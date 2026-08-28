@@ -7,15 +7,12 @@
 #ifndef KO_LCMS_ENGINE_PLUGIN_H
 #define KO_LCMS_ENGINE_PLUGIN_H
 
-#include <QObject>
-#include <QVariantList>
-
-class LcmsEnginePlugin : public QObject
-{
-    Q_OBJECT
-public:
-    LcmsEnginePlugin(QObject *parent, const QVariantList &);
-
-};
+/** Register the LCMS engine, profiles, color spaces, and histogram producers.
+ *
+ * The function is idempotent so the local MODULE initializer and focused tests
+ * can share the same registration entry point without creating duplicate
+ * registry entries.
+ */
+void registerLcmsEngine();
 
 #endif // KO_LCMS_ENGINE_PLUGIN_H

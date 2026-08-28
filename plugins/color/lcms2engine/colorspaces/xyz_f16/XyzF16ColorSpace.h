@@ -19,7 +19,7 @@ class XyzF16ColorSpace : public LcmsColorSpace<KoXyzF16Traits>
 {
 public:
 
-    XyzF16ColorSpace(const QString &name, KoColorProfile *p);
+    XyzF16ColorSpace(const PkString &name, KoColorProfile *p);
 
     bool willDegrade(ColorSpaceIndependence independence) const override;
 
@@ -35,17 +35,17 @@ public:
 
     virtual KoColorSpace *clone() const;
 
-    void colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const override;
+    void colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const override;
 
-    void colorFromXML(quint8* pixel, const QDomElement& elt) const override;
-    void toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
-    QVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
-    void toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
-    QVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
+    void colorFromXML(quint8* pixel, const PkXmlElement& elt) const override;
+    void toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
+    PkVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
+    void toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
+    PkVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
 
-    static QString colorSpaceId()
+    static PkString colorSpaceId()
     {
-        return QStringLiteral("XYZAF16");
+        return PkString("XYZAF16");
     }
 
     bool hasHighDynamicRange() const override
@@ -63,14 +63,14 @@ public:
     {
     }
 
-    QString id() const override
+    PkString id() const override
     {
         return XyzF16ColorSpace::colorSpaceId();
     }
 
-    QString name() const override
+    PkString name() const override
     {
-        return QString("%1 (%2)").arg(XYZAColorModelID.name()).arg(Float16BitsColorDepthID.name());
+        return PkString("%1 (%2)").arg(XYZAColorModelID.name()).arg(Float16BitsColorDepthID.name());
     }
 
     bool userVisible() const override
@@ -98,7 +98,7 @@ public:
         return new XyzF16ColorSpace(name(), p->clone());
     }
 
-    QString defaultProfile() const override
+    PkString defaultProfile() const override
     {
         return "XYZ identity built-in";
     }

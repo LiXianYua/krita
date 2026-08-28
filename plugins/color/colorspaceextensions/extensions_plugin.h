@@ -7,16 +7,7 @@
 #ifndef _EXTENSIONS_PLUGIN_H_
 #define _EXTENSIONS_PLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
-
-class ExtensionsPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    ExtensionsPlugin(QObject *parent, const QVariantList &);
-    ~ExtensionsPlugin() override;
-
-};
+/** Register the color-space transformation factories once. */
+void registerColorSpaceExtensions();
 
 #endif

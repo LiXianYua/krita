@@ -80,7 +80,19 @@ endif ()
 
 
 kis_add_library(kritalcmsengine MODULE ${lcmsengine_SRCS})
+set_target_properties(kritalcmsengine PROPERTIES AUTOMOC OFF)
 
-target_link_libraries(kritalcmsengine kritapigment KF${KF_MAJOR}::I18n KF${KF_MAJOR}::CoreAddons ${LCMS2_LIBRARIES} ${LINK_OPENEXR_LIB})
+target_link_libraries(kritalcmsengine PRIVATE
+    kritapigment
+    kritastore
+    pkcontainer
+    pkstring
+    pkpointer
+    pkgeometry
+    pkxml
+    pkcolor
+    pkvariant
+    ${LCMS2_LIBRARIES}
+    ${LINK_OPENEXR_LIB}
+)
 install(TARGETS kritalcmsengine DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
-

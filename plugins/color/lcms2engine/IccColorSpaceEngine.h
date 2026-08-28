@@ -14,10 +14,10 @@ class IccColorSpaceEngine : public KoColorSpaceEngine
 public:
     IccColorSpaceEngine();
     ~IccColorSpaceEngine() override;
-    const KoColorProfile *addProfile(const QString &filename) override;
-    const KoColorProfile *addProfile(const QByteArray &data) override;
-    const KoColorProfile * getProfile(const QVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction) override;
-    void removeProfile(const QString &filename) override;
+    const KoColorProfile *addProfile(const PkString &filename) override;
+    const KoColorProfile *addProfile(const PkByteArray &data) override;
+    const KoColorProfile * getProfile(const PkVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction) override;
+    void removeProfile(const PkString &filename) override;
     KoColorConversionTransformation *createColorTransformation(const KoColorSpace *srcColorSpace,
             const KoColorSpace *dstColorSpace,
             KoColorConversionTransformation::Intent renderingIntent,
@@ -32,7 +32,7 @@ public:
             KoColorConversionTransformation::ConversionFlags displayConversionFlags) const override;
     quint32 computeColorSpaceType(const KoColorSpace *cs) const;
 
-    bool supportsColorSpace(const QString& colorModelId, const QString& colorDepthId, const KoColorProfile *profile) const override;
+    bool supportsColorSpace(const PkString& colorModelId, const PkString& colorDepthId, const KoColorProfile *profile) const override;
 private:
     struct Private;
     Private *const d;

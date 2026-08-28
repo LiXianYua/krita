@@ -11,13 +11,14 @@
 
 #include "LcmsColorProfileContainer.h"
 
-#include <QGenericMatrix>
-#include <QTransform>
+#include <PkTransform.h>
 #include <array>
 #include <cfloat>
 #include <cmath>
+#include <cstdint>
+#include <string>
 
-#include <QDebug>
+#include <DebugPigment.h>
 
 #include "kis_debug.h"
 
@@ -26,6 +27,51 @@
 #include <lcms2.h>
 
 namespace {
+void appendUtf8CodePoint(std::string &output, std::uint32_t codePoint)
+{
+    if (codePoint <= 0x7f) {
+        output.push_back(static_cast<char>(codePoint));
+    } else if (codePoint <= 0x7ff) {
+        output.push_back(static_cast<char>(0xc0 | (codePoint >> 6)));
+        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
+    } else if (codePoint <= 0xffff) {
+        output.push_back(static_cast<char>(0xe0 | (codePoint >> 12)));
+        output.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3f)));
+        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
+    } else {
+        output.push_back(static_cast<char>(0xf0 | (codePoint >> 18)));
+        output.push_back(static_cast<char>(0x80 | ((codePoint >> 12) & 0x3f)));
+        output.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3f)));
+        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
+    }
+}
+
+PkString fromWideString(const wchar_t *text)
+{
+    std::string utf8;
+    for (std::size_t i = 0; text[i] != 0; ++i) {
+        std::uint32_t codePoint = static_cast<std::uint32_t>(text[i]);
+        if constexpr (sizeof(wchar_t) == 2) {
+            if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
+                const std::uint32_t low = static_cast<std::uint32_t>(text[i + 1]);
+                if (low >= 0xdc00 && low <= 0xdfff) {
+                    codePoint = 0x10000 + ((codePoint - 0xd800) << 10) + (low - 0xdc00);
+                    ++i;
+                } else {
+                    codePoint = 0xfffd;
+                }
+            } else if (codePoint >= 0xdc00 && codePoint <= 0xdfff) {
+                codePoint = 0xfffd;
+            }
+        }
+        if (codePoint > 0x10ffff) {
+            codePoint = 0xfffd;
+        }
+        appendUtf8CodePoint(utf8, codePoint);
+    }
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
 struct ReverseCurveWrapper
 {
     ReverseCurveWrapper() : reverseCurve(0) {}
@@ -64,10 +110,10 @@ public:
     cmsHPROFILE profile;
     cmsColorSpaceSignature colorSpaceSignature;
     cmsProfileClassSignature deviceClass;
-    QString productDescription;
-    QString manufacturer;
-    QString copyright;
-    QString name;
+    PkString productDescription;
+    PkString manufacturer;
+    PkString copyright;
+    PkString name;
     float version;
     IccColorProfile::Data *data {0};
     bool valid {false};
@@ -103,7 +149,7 @@ public:
     bool isSaturationCLUT;
     bool isMatrixShaper;
 
-    QByteArray uniqueId;
+    PkByteArray uniqueId;
 };
 
 LcmsColorProfileContainer::LcmsColorProfileContainer()
@@ -120,17 +166,17 @@ LcmsColorProfileContainer::LcmsColorProfileContainer(IccColorProfile::Data *data
     init();
 }
 
-QByteArray LcmsColorProfileContainer::lcmsProfileToByteArray(const cmsHPROFILE profile)
+PkByteArray LcmsColorProfileContainer::lcmsProfileToByteArray(const cmsHPROFILE profile)
 {
     cmsUInt32Number  bytesNeeded = 0;
     // Make a raw data image ready for saving
     cmsSaveProfileToMem(profile, 0, &bytesNeeded); // calc size
-    QByteArray rawData;
+    PkByteArray rawData;
     rawData.resize(bytesNeeded);
     if (rawData.size() >= (int)bytesNeeded) {
         cmsSaveProfileToMem(profile, rawData.data(), &bytesNeeded); // fill buffer
     } else {
-        qWarning() << "Couldn't resize the profile buffer, system is probably running out of memory.";
+        warnPigment << "Couldn't resize the profile buffer, system is probably running out of memory.";
         rawData.resize(0);
     }
     return rawData;
@@ -162,7 +208,7 @@ bool LcmsColorProfileContainer::init()
 
 #ifndef NDEBUG
     if (d->data->rawData().size() == 4096) {
-        qWarning() << "Profile has a size of 4096, which is suspicious and indicates a possible misuse of QIODevice::read(int), check your code.";
+        warnPigment << "Profile has a size of 4096, which is suspicious and indicates a possible misuse of PkStream::read(int), check your code.";
     }
 #endif
 
@@ -171,17 +217,17 @@ bool LcmsColorProfileContainer::init()
         d->colorSpaceSignature = cmsGetColorSpace(d->profile);
         d->deviceClass = cmsGetDeviceClass(d->profile);
         cmsGetProfileInfo(d->profile, cmsInfoDescription, cmsNoLanguage, cmsNoCountry, buffer, _BUFFER_SIZE_);
-        d->name = QString::fromWCharArray(buffer);
+        d->name = fromWideString(buffer);
 
         //apparently this should give us a localised string??? Not sure about this.
         cmsGetProfileInfo(d->profile, cmsInfoModel, cmsNoLanguage, cmsNoCountry, buffer, _BUFFER_SIZE_);
-        d->productDescription = QString::fromWCharArray(buffer);
+        d->productDescription = fromWideString(buffer);
 
         cmsGetProfileInfo(d->profile, cmsInfoManufacturer, cmsNoLanguage, cmsNoCountry, buffer, _BUFFER_SIZE_);
-        d->manufacturer = QString::fromWCharArray(buffer);
+        d->manufacturer = fromWideString(buffer);
 
         cmsGetProfileInfo(d->profile, cmsInfoCopyright, cmsNoLanguage, cmsNoCountry, buffer, _BUFFER_SIZE_);
-        d->copyright = QString::fromWCharArray(buffer);
+        d->copyright = fromWideString(buffer);
 
         cmsProfileClassSignature profile_class;
         profile_class = cmsGetDeviceClass(d->profile);
@@ -216,27 +262,27 @@ bool LcmsColorProfileContainer::init()
                     && whiteIsD50) {
                 //the chromatic adaption tag represent a matrix from the actual white point of the profile to D50.
 
-                //We first put all our data into structures we can manipulate.
-                double d3dummy [3] = {d->mediaWhitePoint.X, d->mediaWhitePoint.Y, d->mediaWhitePoint.Z};
-                QGenericMatrix<1, 3, double> whitePointMatrix(d3dummy);
-                QTransform invertDummy(CAM1[0].X, CAM1[0].Y, CAM1[0].Z, CAM1[1].X, CAM1[1].Y, CAM1[1].Z, CAM1[2].X, CAM1[2].Y, CAM1[2].Z);
-                //we then abuse QTransform's invert function because it probably does matrix inversion 20 times better than I can program.
+                PkTransform invertDummy(CAM1[0].X, CAM1[0].Y, CAM1[0].Z, CAM1[1].X, CAM1[1].Y, CAM1[1].Z, CAM1[2].X, CAM1[2].Y, CAM1[2].Z);
+                //we then abuse PkTransform's invert function because it probably does matrix inversion 20 times better than I can program.
                 //if the matrix is uninvertable, invertedDummy will be an identity matrix, which for us means that it won't give any noticeable
                 //effect when we start multiplying.
-                QTransform invertedDummy = invertDummy.inverted();
-                //we then put the QTransform into a generic 3x3 matrix.
-                double d9dummy [9] = {invertedDummy.m11(), invertedDummy.m12(), invertedDummy.m13(),
-                                      invertedDummy.m21(), invertedDummy.m22(), invertedDummy.m23(),
-                                      invertedDummy.m31(), invertedDummy.m32(), invertedDummy.m33()
-                                     };
-                QGenericMatrix<3, 3, double> chromaticAdaptionMatrix(d9dummy);
-                //multiplying our inverted adaption matrix with the whitepoint gives us the right whitepoint.
-                QGenericMatrix<1, 3, double> result = chromaticAdaptionMatrix * whitePointMatrix;
-                //and then we pour the matrix into the whitepoint variable. Generic matrix does row/column for indices even though it
-                //uses column/row for initialising.
-                d->mediaWhitePoint.X = result(0, 0);
-                d->mediaWhitePoint.Y = result(1, 0);
-                d->mediaWhitePoint.Z = result(2, 0);
+                PkTransform invertedDummy = invertDummy.inverted();
+                // Multiply the inverse adaptation matrix by the profile white
+                // point. This is the same row-major operation previously
+                // performed by the former generic matrix, written out to keep the color
+                // values independent of a Qt matrix type.
+                const double whiteX = d->mediaWhitePoint.X;
+                const double whiteY = d->mediaWhitePoint.Y;
+                const double whiteZ = d->mediaWhitePoint.Z;
+                d->mediaWhitePoint.X = invertedDummy.m11() * whiteX
+                    + invertedDummy.m12() * whiteY
+                    + invertedDummy.m13() * whiteZ;
+                d->mediaWhitePoint.Y = invertedDummy.m21() * whiteX
+                    + invertedDummy.m22() * whiteY
+                    + invertedDummy.m23() * whiteZ;
+                d->mediaWhitePoint.Z = invertedDummy.m31() * whiteX
+                    + invertedDummy.m32() * whiteY
+                    + invertedDummy.m33() * whiteZ;
                 cmsXYZ2xyY(&d->whitePoint, &d->mediaWhitePoint);
             }
         }
@@ -259,7 +305,7 @@ bool LcmsColorProfileContainer::init()
             //d->colorants = tempColorants;
             d->hasColorants = true;
         } else {
-            //qDebug()<<d->name<<": has no colorants";
+            // This profile has no colorants.
             d->hasColorants = false;
         }
         //retrieve TRC.
@@ -331,12 +377,12 @@ cmsProfileClassSignature LcmsColorProfileContainer::deviceClass() const
     return d->deviceClass;
 }
 
-QString LcmsColorProfileContainer::manufacturer() const
+PkString LcmsColorProfileContainer::manufacturer() const
 {
     return d->manufacturer;
 }
 
-QString LcmsColorProfileContainer::copyright() const
+PkString LcmsColorProfileContainer::copyright() const
 {
     return d->copyright;
 }
@@ -405,9 +451,9 @@ bool LcmsColorProfileContainer::isLinear() const
 {
     return *d->isLinear;
 }
-QVector <double> LcmsColorProfileContainer::getColorantsXYZ() const
+PkVector <double> LcmsColorProfileContainer::getColorantsXYZ() const
 {
-    QVector <double> colorants(9);
+    PkVector <double> colorants(9);
     colorants[0] = d->colorants.Red.X;
     colorants[1] = d->colorants.Red.Y;
     colorants[2] = d->colorants.Red.Z;
@@ -420,11 +466,11 @@ QVector <double> LcmsColorProfileContainer::getColorantsXYZ() const
     return colorants;
 }
 
-QVector <double> LcmsColorProfileContainer::getColorantsxyY() const
+PkVector <double> LcmsColorProfileContainer::getColorantsxyY() const
 {
     cmsCIEXYZ temp1;
     cmsCIExyY temp2;
-    QVector <double> colorants(9);
+    PkVector <double> colorants(9);
 
     temp1.X = d->colorants.Red.X;
     temp1.Y = d->colorants.Red.Y;
@@ -453,9 +499,9 @@ QVector <double> LcmsColorProfileContainer::getColorantsxyY() const
     return colorants;
 }
 
-QVector <double> LcmsColorProfileContainer::getWhitePointXYZ() const
+PkVector <double> LcmsColorProfileContainer::getWhitePointXYZ() const
 {
-    QVector <double> tempWhitePoint(3);
+    PkVector <double> tempWhitePoint(3);
 
     tempWhitePoint[0] = d->mediaWhitePoint.X;
     tempWhitePoint[1] = d->mediaWhitePoint.Y;
@@ -464,18 +510,18 @@ QVector <double> LcmsColorProfileContainer::getWhitePointXYZ() const
     return tempWhitePoint;
 }
 
-QVector <double> LcmsColorProfileContainer::getWhitePointxyY() const
+PkVector <double> LcmsColorProfileContainer::getWhitePointxyY() const
 {
-    QVector <double> tempWhitePoint(3);
+    PkVector <double> tempWhitePoint(3);
     tempWhitePoint[0] = d->whitePoint.x;
     tempWhitePoint[1] = d->whitePoint.y;
     tempWhitePoint[2] = d->whitePoint.Y;
     return tempWhitePoint;
 }
 
-QVector <double> LcmsColorProfileContainer::getEstimatedTRC() const
+PkVector <double> LcmsColorProfileContainer::getEstimatedTRC() const
 {
-    QVector <double> TRCtriplet(3);
+    PkVector <double> TRCtriplet(3);
     if (d->hasColorants && hasTRC()) {
         if (cmsIsToneCurveLinear(d->redTRC)) {
             TRCtriplet[0] = 1.0;
@@ -507,7 +553,7 @@ QVector <double> LcmsColorProfileContainer::getEstimatedTRC() const
     return TRCtriplet;
 }
 
-void LcmsColorProfileContainer::LinearizeFloatValue(QVector <double> & Value) const
+void LcmsColorProfileContainer::LinearizeFloatValue(PkVector <double> & Value) const
 {
     if (d->hasColorants && hasTRC()) {
         if (!cmsIsToneCurveLinear(d->redTRC)) {
@@ -527,7 +573,7 @@ void LcmsColorProfileContainer::LinearizeFloatValue(QVector <double> & Value) co
     }
 }
 
-void LcmsColorProfileContainer::DelinearizeFloatValue(QVector <double> & Value) const
+void LcmsColorProfileContainer::DelinearizeFloatValue(PkVector <double> & Value) const
 {
     if (d->hasColorants && hasTRC()) {
         if (!cmsIsToneCurveLinear(d->redTRC)) {
@@ -547,7 +593,7 @@ void LcmsColorProfileContainer::DelinearizeFloatValue(QVector <double> & Value) 
     }
 }
 
-void LcmsColorProfileContainer::LinearizeFloatValueFast(QVector <double> & Value) const
+void LcmsColorProfileContainer::LinearizeFloatValueFast(PkVector <double> & Value) const
 {
     const qreal scale = 65535.0;
     const qreal invScale = 1.0 / scale;
@@ -574,7 +620,7 @@ void LcmsColorProfileContainer::LinearizeFloatValueFast(QVector <double> & Value
         }
     }
 }
-void LcmsColorProfileContainer::DelinearizeFloatValueFast(QVector <double> & Value) const
+void LcmsColorProfileContainer::DelinearizeFloatValueFast(PkVector <double> & Value) const
 {
     const qreal scale = 65535.0;
     const qreal invScale = 1.0 / scale;
@@ -602,24 +648,25 @@ void LcmsColorProfileContainer::DelinearizeFloatValueFast(QVector <double> & Val
     }
 }
 
-QString LcmsColorProfileContainer::name() const
+PkString LcmsColorProfileContainer::name() const
 {
     return d->name;
 }
 
-QString LcmsColorProfileContainer::info() const
+PkString LcmsColorProfileContainer::info() const
 {
     return d->productDescription;
 }
 
-QByteArray LcmsColorProfileContainer::getProfileUniqueId() const
+PkByteArray LcmsColorProfileContainer::getProfileUniqueId() const
 {
     if (d->uniqueId.isEmpty() && d->profile) {
-        QByteArray id(sizeof(cmsProfileID), 0);
+        PkByteArray id;
+        id.resize(static_cast<int>(sizeof(cmsProfileID)));
         cmsGetHeaderProfileID(d->profile, (quint8*)id.data());
 
-        bool isNull = std::all_of(id.constBegin(),
-                                  id.constEnd(),
+        bool isNull = std::all_of(id.constData(),
+                                  id.constData() + id.size(),
                                   [](char c) {return c == 0;});
         if (isNull) {
             if (cmsMD5computeID(d->profile)) {
@@ -696,8 +743,8 @@ cmsToneCurve *LcmsColorProfileContainer::transferFunction(TransferCharacteristic
         // Not possible in ICC due to lack of a*pow(bX+c,y) construct.
     case TRC_ITU_R_BT_1361:
         // This is not possible in ICC due to lack of a*pow(bX+c,y) construct.
-        qWarning() << "Neither IEC 61966 2-4 nor Bt. 1361 are supported, returning a rec 709 curve.";
-        Q_FALLTHROUGH();
+        warnPigment << "Neither IEC 61966 2-4 nor Bt. 1361 are supported, returning a rec 709 curve.";
+        [[fallthrough]];
     case TRC_ITU_R_BT_709_5:
     case TRC_ITU_R_BT_601_6:
     case TRC_ITU_R_BT_2020_2_10bit:
@@ -746,8 +793,8 @@ cmsToneCurve *LcmsColorProfileContainer::transferFunction(TransferCharacteristic
         // Perceptual Quantizer
     case TRC_ITU_R_BT_2100_0_HLG:
         // Hybrid log gamma.
-        qWarning() << "Cannot generate an icc profile with this transfer function, will generate a linear profile";
-        Q_FALLTHROUGH();
+        warnPigment << "Cannot generate an icc profile with this transfer function, will generate a linear profile";
+        [[fallthrough]];
     case TRC_LINEAR:
     default:
         mainCurve = cmsBuildGamma(NULL, 1.0);

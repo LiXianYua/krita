@@ -18,7 +18,7 @@ struct KoCmykF32Traits;
 class CmykF32ColorSpace : public LcmsColorSpace<KoCmykF32Traits>
 {
 public:
-    CmykF32ColorSpace(const QString &name, KoColorProfile *p);
+    CmykF32ColorSpace(const PkString &name, KoColorProfile *p);
 
     bool willDegrade(ColorSpaceIndependence independence) const override;
 
@@ -34,18 +34,18 @@ public:
 
     virtual KoColorSpace *clone() const;
 
-    void colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const override;
+    void colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const override;
 
-    void colorFromXML(quint8* pixel, const QDomElement& elt) const override;
+    void colorFromXML(quint8* pixel, const PkXmlElement& elt) const override;
     
-    void toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
-    QVector <double> fromHSY( qreal *hue, qreal *sat, qreal *luma) const override;
-    void toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
-    QVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
+    void toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
+    PkVector <double> fromHSY( qreal *hue, qreal *sat, qreal *luma) const override;
+    void toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
+    PkVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
 
-    static QString colorSpaceId()
+    static PkString colorSpaceId()
     {
-        return QStringLiteral("CMYKAF32");
+        return PkString("CMYKAF32");
     }
 
     bool hasHighDynamicRange() const override
@@ -68,14 +68,14 @@ public:
         return true;
     }
 
-    QString id() const override
+    PkString id() const override
     {
         return CmykF32ColorSpace::colorSpaceId();
     }
 
-    QString name() const override
+    PkString name() const override
     {
-        return QString("%1 (%2)").arg(CMYKAColorModelID.name()).arg(Float32BitsColorDepthID.name());
+        return PkString("%1 (%2)").arg(CMYKAColorModelID.name()).arg(Float32BitsColorDepthID.name());
     }
 
     KoID colorModelId() const override
@@ -98,7 +98,7 @@ public:
         return new CmykF32ColorSpace(name(), p->clone());
     }
 
-    QString defaultProfile() const override
+    PkString defaultProfile() const override
     {
         return "Chemical proof";
     }

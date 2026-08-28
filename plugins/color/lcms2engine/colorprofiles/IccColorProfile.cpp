@@ -13,11 +13,12 @@
 
 #include <lcms2.h>
 
-#include <QDebug>
-#include <QFile>
-#include <QSharedPointer>
+#include <PkFileStream.h>
+#include <PkSharedPointer.h>
+#include <PkStringList.h>
 
 #include <KoColorConversions.h>
+#include <DebugPigment.h>
 #include <kis_assert.h>
 
 #include "LcmsColorProfileContainer.h"
@@ -27,14 +28,14 @@
 
 
 struct IccColorProfile::Data::Private {
-    QByteArray rawData;
+    PkByteArray rawData;
 };
 
 IccColorProfile::Data::Data() 
     : d(new Private)
 {
 }
-IccColorProfile::Data::Data(const QByteArray &rawData) 
+IccColorProfile::Data::Data(const PkByteArray &rawData)
     : d(new Private)
 {
     d->rawData = rawData;
@@ -44,12 +45,12 @@ IccColorProfile::Data::~Data()
 {
 }
 
-QByteArray IccColorProfile::Data::rawData()
+PkByteArray IccColorProfile::Data::rawData()
 {
     return d->rawData;
 }
 
-void IccColorProfile::Data::setRawData(const QByteArray &rawData)
+void IccColorProfile::Data::setRawData(const PkByteArray &rawData)
 {
     d->rawData = rawData;
 }
@@ -64,15 +65,15 @@ IccColorProfile::Container::~Container()
 
 struct IccColorProfile::Private {
     struct ProfileInfo {
-        QVector<KoChannelInfo::DoubleRange> uiMinMaxes;
+        PkVector<KoChannelInfo::DoubleRange> uiMinMaxes;
         bool canCreateCyclicTransform = false;
     };
 
     using LazyProfileInfo = KisLazyStorage<KisLazyValueWrapper<ProfileInfo>, std::function<ProfileInfo()>>;
 
     struct Shared {
-        QScopedPointer<IccColorProfile::Data> data;
-        QScopedPointer<LcmsColorProfileContainer> lcmsProfile;
+        PkScopedPointer<IccColorProfile::Data> data;
+        PkScopedPointer<LcmsColorProfileContainer> lcmsProfile;
         LazyProfileInfo profileInfo = LazyProfileInfo(LazyProfileInfo::init_value_tag{}, {});
 
         Shared()
@@ -82,32 +83,32 @@ struct IccColorProfile::Private {
     };
 
     Private()
-        : shared(QSharedPointer<Shared>::create())
+        : shared(PkSharedPointer<Shared>::create())
     {
     }
-    QSharedPointer<Shared> shared;
+    PkSharedPointer<Shared> shared;
 
     ProfileInfo calculateFloatUIMinMax() const;
 };
 
-IccColorProfile::IccColorProfile(const QString &fileName)
+IccColorProfile::IccColorProfile(const PkString &fileName)
     : KoColorProfile(fileName), d(new Private)
 {
 }
 
-IccColorProfile::IccColorProfile(const QByteArray &rawData)
-    : KoColorProfile(QString()), d(new Private)
+IccColorProfile::IccColorProfile(const PkByteArray &rawData)
+    : KoColorProfile(PkString()), d(new Private)
 {
     setRawData(rawData);
     init();
 }
 
-IccColorProfile::IccColorProfile(const QVector<double> &colorants,
+IccColorProfile::IccColorProfile(const PkVector<double> &colorants,
                                  const ColorPrimaries colorPrimariesType,
                                  const TransferCharacteristics transferFunction)
-: KoColorProfile(QString()), d(new Private)
+: KoColorProfile(PkString()), d(new Private)
 {
-    d->shared = QSharedPointer<Private::Shared>::create();
+    d->shared = PkSharedPointer<Private::Shared>::create();
 
     KIS_SAFE_ASSERT_RECOVER_RETURN(
         (!colorants.isEmpty() || colorPrimariesType != PRIMARIES_UNSPECIFIED)
@@ -115,7 +116,7 @@ IccColorProfile::IccColorProfile(const QVector<double> &colorants,
 
     cmsCIExyY whitePoint;
 
-    QVector<double> modifiedColorants = colorants;
+    PkVector<double> modifiedColorants = colorants;
 
     KoColorProfile::colorantsForType(colorPrimariesType, modifiedColorants);
 
@@ -147,15 +148,15 @@ IccColorProfile::IccColorProfile(const QVector<double> &colorants,
     }
 
     if (!iccProfile) {
-        qWarning() << "WARNING: LCMS failed to create a profile for the requested parameters";
-        qWarning().nospace() << "    transfer function: " << getTransferCharacteristicName(transferFunction) << " (" << transferFunction << ")";
-        qWarning().nospace() << "    named primaries:" << getColorPrimariesName(colorPrimariesType) << " (" << colorPrimariesType << ")";
-        qWarning() << "    requested colorants:" << colorants;
+        warnPigment << "WARNING: LCMS failed to create a profile for the requested parameters";
+        warnPigment.nospace() << "    transfer function: " << getTransferCharacteristicName(transferFunction) << " (" << transferFunction << ")";
+        warnPigment.nospace() << "    named primaries:" << getColorPrimariesName(colorPrimariesType) << " (" << colorPrimariesType << ")";
+        warnPigment << "    requested colorants:" << colorants;
         // leave the profile in invalid state and return
         return;
     }
 
-    QStringList name;
+    PkStringList name;
     name.append("Krita");
     name.append(KoColorProfile::getColorPrimariesName(colorPrimariesType));
     name.append(KoColorProfile::getTransferCharacteristicName(transferFunction));
@@ -166,11 +167,11 @@ IccColorProfile::IccColorProfile(const QVector<double> &colorants,
     //set the color profile info on the iccProfile;
     cmsMLU *mlu;
     mlu = cmsMLUalloc (NULL, 1);
-    cmsMLUsetASCII (mlu, "en", "US", name.join(" ").toLatin1());
+    cmsMLUsetASCII (mlu, "en", "US", name.join(" ").PkToUtf8().c_str());
     cmsWriteTag (iccProfile, cmsSigProfileDescriptionTag, mlu);
     cmsMLUfree (mlu);
     mlu = cmsMLUalloc (NULL, 1);
-    cmsMLUsetASCII (mlu, "en", "US", QString("Profile generated by Krita, Public domain.").toLatin1());
+    cmsMLUsetASCII (mlu, "en", "US", "Profile generated by Krita, Public domain.");
     cmsWriteTag(iccProfile, cmsSigCopyrightTag, mlu);
     cmsMLUfree (mlu);
 
@@ -178,7 +179,9 @@ IccColorProfile::IccColorProfile(const QVector<double> &colorants,
 
     setRawData(LcmsColorProfileContainer::lcmsProfileToByteArray(iccProfile));
     cmsCloseProfile(iccProfile);
-    setFileName(name.join(" ").split(" ").join("-")+".icc");
+    PkStringList fileNameParts = name;
+    fileNameParts.replaceInStrings(" ", "-");
+    setFileName(fileNameParts.join("-") + ".icc");
     init();
 }
 
@@ -186,12 +189,12 @@ IccColorProfile::IccColorProfile(const IccColorProfile &rhs)
     : KoColorProfile(rhs)
     , d(new Private(*rhs.d))
 {
-    Q_ASSERT(d->shared);
+    KIS_ASSERT(d->shared);
 }
 
 IccColorProfile::~IccColorProfile()
 {
-    Q_ASSERT(d->shared);
+    KIS_ASSERT(d->shared);
 }
 
 KoColorProfile *IccColorProfile::clone() const
@@ -199,12 +202,12 @@ KoColorProfile *IccColorProfile::clone() const
     return new IccColorProfile(*this);
 }
 
-QByteArray IccColorProfile::rawData() const
+PkByteArray IccColorProfile::rawData() const
 {
     return d->shared->data->rawData();
 }
 
-void IccColorProfile::setRawData(const QByteArray &rawData)
+void IccColorProfile::setRawData(const PkByteArray &rawData)
 {
     d->shared->data->setRawData(rawData);
 }
@@ -224,9 +227,9 @@ float IccColorProfile::version() const
     return 0.0;
 }
 
-QString IccColorProfile::colorModelID() const
+PkString IccColorProfile::colorModelID() const
 {
-    QString model;
+    PkString model;
 
     switch (d->shared->lcmsProfile->colorSpaceSignature()) {
     case cmsSigRgbData:
@@ -249,7 +252,7 @@ QString IccColorProfile::colorModelID() const
         break;
     default:
         // In theory we should be able to interpret the colorspace signature as a 4 char array...
-        model = QString();
+        model = PkString();
     }
 
     return model;
@@ -340,41 +343,41 @@ bool IccColorProfile::isLinear() const
         return d->shared->lcmsProfile->isLinear();
     return false;
 }
-QVector <qreal> IccColorProfile::getColorantsXYZ() const
+PkVector <qreal> IccColorProfile::getColorantsXYZ() const
 {
     if (d->shared->lcmsProfile) {
         return d->shared->lcmsProfile->getColorantsXYZ();
     }
-    return QVector<qreal>(9);
+    return PkVector<qreal>(9);
 }
-QVector <qreal> IccColorProfile::getColorantsxyY() const
+PkVector <qreal> IccColorProfile::getColorantsxyY() const
 {
     if (d->shared->lcmsProfile) {
         return d->shared->lcmsProfile->getColorantsxyY();
     }
-    return QVector<qreal>(9);
+    return PkVector<qreal>(9);
 }
-QVector <qreal> IccColorProfile::getWhitePointXYZ() const
+PkVector <qreal> IccColorProfile::getWhitePointXYZ() const
 {
-    QVector <qreal> d50Dummy(3);
+    PkVector <qreal> d50Dummy(3);
     d50Dummy << 0.9642 << 1.0000 << 0.8249;
     if (d->shared->lcmsProfile) {
         return d->shared->lcmsProfile->getWhitePointXYZ();
     }
     return d50Dummy;
 }
-QVector <qreal> IccColorProfile::getWhitePointxyY() const
+PkVector <qreal> IccColorProfile::getWhitePointxyY() const
 {
-    QVector <qreal> d50Dummy(3);
+    PkVector <qreal> d50Dummy(3);
     d50Dummy << 0.34773 << 0.35952 << 1.0;
     if (d->shared->lcmsProfile) {
         return d->shared->lcmsProfile->getWhitePointxyY();
     }
     return d50Dummy;
 }
-QVector <qreal> IccColorProfile::getEstimatedTRC() const
+PkVector <qreal> IccColorProfile::getEstimatedTRC() const
 {
-    QVector <qreal> dummy(3);
+    PkVector <qreal> dummy(3);
     dummy.fill(2.2);//estimated sRGB trc.
     if (d->shared->lcmsProfile) {
         return d->shared->lcmsProfile->getEstimatedTRC();
@@ -390,30 +393,30 @@ bool IccColorProfile::compareTRC(TransferCharacteristics characteristics, float 
     return false;
 }
 
-void IccColorProfile::linearizeFloatValue(QVector <qreal> & Value) const
+void IccColorProfile::linearizeFloatValue(PkVector <qreal> & Value) const
 {
     if (d->shared->lcmsProfile)
         d->shared->lcmsProfile->LinearizeFloatValue(Value);
 }
-void IccColorProfile::delinearizeFloatValue(QVector <qreal> & Value) const
+void IccColorProfile::delinearizeFloatValue(PkVector <qreal> & Value) const
 {
     if (d->shared->lcmsProfile)
         d->shared->lcmsProfile->DelinearizeFloatValue(Value);
 }
-void IccColorProfile::linearizeFloatValueFast(QVector <qreal> & Value) const
+void IccColorProfile::linearizeFloatValueFast(PkVector <qreal> & Value) const
 {
     if (d->shared->lcmsProfile)
         d->shared->lcmsProfile->LinearizeFloatValueFast(Value);
 }
-void IccColorProfile::delinearizeFloatValueFast(QVector<qreal> &Value) const
+void IccColorProfile::delinearizeFloatValueFast(PkVector<qreal> &Value) const
 {
     if (d->shared->lcmsProfile)
         d->shared->lcmsProfile->DelinearizeFloatValueFast(Value);
 }
 
-QByteArray IccColorProfile::uniqueId() const
+PkByteArray IccColorProfile::uniqueId() const
 {
-    QByteArray dummy;
+    PkByteArray dummy;
     if (d->shared->lcmsProfile) {
         dummy = d->shared->lcmsProfile->getProfileUniqueId();
     }
@@ -422,16 +425,16 @@ QByteArray IccColorProfile::uniqueId() const
 
 bool IccColorProfile::load()
 {
-    QFile file(fileName());
-    if (file.open(QIODevice::ReadOnly)) {
-        QByteArray rawData = file.readAll();
+    PkFileStream file(fileName());
+    if (file.open(PkStream::ReadOnly)) {
+        PkByteArray rawData = file.readAll();
         setRawData(rawData);
         file.close();
         if (init()) {
             return true;
         }
     }
-    qWarning() << "Failed to load profile from " << fileName();
+    warnPigment << "Failed to load profile from " << fileName();
     return false;
 }
 
@@ -463,7 +466,7 @@ bool IccColorProfile::init()
 
 LcmsColorProfileContainer *IccColorProfile::asLcms() const
 {
-    Q_ASSERT(d->shared->lcmsProfile);
+    KIS_ASSERT(d->shared->lcmsProfile);
     return d->shared->lcmsProfile.data();
 }
 
@@ -476,9 +479,9 @@ bool IccColorProfile::operator==(const KoColorProfile &rhs) const
     return false;
 }
 
-const QVector<KoChannelInfo::DoubleRange> &IccColorProfile::getFloatUIMinMax(void) const
+const PkVector<KoChannelInfo::DoubleRange> &IccColorProfile::getFloatUIMinMax(void) const
 {
-    Q_ASSERT(!d->shared->profileInfo->value.uiMinMaxes.isEmpty());
+    KIS_ASSERT(!d->shared->profileInfo->value.uiMinMaxes.isEmpty());
     return d->shared->profileInfo->value.uiMinMaxes;
 }
 
@@ -486,17 +489,17 @@ IccColorProfile::Private::ProfileInfo
 IccColorProfile::Private::calculateFloatUIMinMax() const
 {
     Private::ProfileInfo info;
-    QVector<KoChannelInfo::DoubleRange> &ret = info.uiMinMaxes;
+    PkVector<KoChannelInfo::DoubleRange> &ret = info.uiMinMaxes;
 
     cmsHPROFILE cprofile = shared->lcmsProfile->lcmsProfile();
-    Q_ASSERT(cprofile);
+    KIS_ASSERT(cprofile);
 
     cmsColorSpaceSignature color_space_sig = cmsGetColorSpace(cprofile);
     unsigned int num_channels = cmsChannelsOf(color_space_sig);
     unsigned int color_space_mask = _cmsLCMScolorSpace(color_space_sig);
 
-    Q_ASSERT(num_channels >= 1 && num_channels <= 4); // num_channels==1 is for grayscale, we need to handle it
-    Q_ASSERT(color_space_mask);
+    KIS_ASSERT(num_channels >= 1 && num_channels <= 4); // num_channels==1 is for grayscale, we need to handle it
+    KIS_ASSERT(color_space_mask);
 
     // to try to find the max range of float/doubles for this profile,
     // pass in min/max int and make the profile convert that
@@ -559,4 +562,3 @@ IccColorProfile::Private::calculateFloatUIMinMax() const
 
     return info;
 }
-

@@ -6,28 +6,26 @@
  */
 
 #include "XyzF32ColorSpace.h"
-#include <QDomElement>
+#include <PkXmlElement.h>
 
-#include <QDebug>
-#include <klocalizedstring.h>
 
 #include "compositeops/KoCompositeOps.h"
 #include "dithering/KisXyzDitherOpFactory.h"
 #include <KoColorConversions.h>
 #include <kis_dom_utils.h>
 
-XyzF32ColorSpace::XyzF32ColorSpace(const QString &name, KoColorProfile *p) :
+XyzF32ColorSpace::XyzF32ColorSpace(const PkString &name, KoColorProfile *p) :
     LcmsColorSpace<KoXyzF32Traits>(colorSpaceId(), name, TYPE_XYZA_FLT, cmsSigXYZData, p)
 {
     const IccColorProfile *icc_p = dynamic_cast<const IccColorProfile *>(p);
-    Q_ASSERT(icc_p);
-    QVector<KoChannelInfo::DoubleRange> uiRanges(icc_p->getFloatUIMinMax());
-    Q_ASSERT(uiRanges.size() == 3);
+    KIS_ASSERT(icc_p);
+    PkVector<KoChannelInfo::DoubleRange> uiRanges(icc_p->getFloatUIMinMax());
+    KIS_ASSERT(uiRanges.size() == 3);
 
-    addChannel(new KoChannelInfo(i18n("X"),     KoXyzF32Traits::x_pos     * sizeof(float), KoXyzF32Traits::x_pos,     KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), Qt::cyan, uiRanges[0]));
-    addChannel(new KoChannelInfo(i18n("Y"),     KoXyzF32Traits::y_pos     * sizeof(float), KoXyzF32Traits::y_pos,     KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), Qt::magenta, uiRanges[1]));
-    addChannel(new KoChannelInfo(i18n("Z"),     KoXyzF32Traits::z_pos     * sizeof(float), KoXyzF32Traits::z_pos,     KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), Qt::yellow, uiRanges[2]));
-    addChannel(new KoChannelInfo(i18n("Alpha"), KoXyzF32Traits::alpha_pos * sizeof(float), KoXyzF32Traits::alpha_pos, KoChannelInfo::ALPHA, KoChannelInfo::FLOAT32, sizeof(float)));
+    addChannel(new KoChannelInfo(PkString("X"),     KoXyzF32Traits::x_pos     * sizeof(float), KoXyzF32Traits::x_pos,     KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), PkColor(0, 255, 255), uiRanges[0]));
+    addChannel(new KoChannelInfo(PkString("Y"),     KoXyzF32Traits::y_pos     * sizeof(float), KoXyzF32Traits::y_pos,     KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), PkColor(255, 0, 255), uiRanges[1]));
+    addChannel(new KoChannelInfo(PkString("Z"),     KoXyzF32Traits::z_pos     * sizeof(float), KoXyzF32Traits::z_pos,     KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), PkColor(255, 255, 0), uiRanges[2]));
+    addChannel(new KoChannelInfo(PkString("Alpha"), KoXyzF32Traits::alpha_pos * sizeof(float), KoXyzF32Traits::alpha_pos, KoChannelInfo::ALPHA, KoChannelInfo::FLOAT32, sizeof(float)));
     init();
 
     addStandardCompositeOps<KoXyzF32Traits>(this);
@@ -48,10 +46,10 @@ KoColorSpace *XyzF32ColorSpace::clone() const
     return new XyzF32ColorSpace(name(), profile()->clone());
 }
 
-void XyzF32ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const
+void XyzF32ColorSpace::colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const
 {
     const KoXyzF32Traits::Pixel *p = reinterpret_cast<const KoXyzF32Traits::Pixel *>(pixel);
-    QDomElement labElt = doc.createElement("XYZ");
+    PkXmlElement labElt = doc.createElement("XYZ");
     labElt.setAttribute("x", KisDomUtils::toString(KoColorSpaceMaths< KoXyzF32Traits::channels_type, qreal>::scaleToA(p->x)));
     labElt.setAttribute("y", KisDomUtils::toString(KoColorSpaceMaths< KoXyzF32Traits::channels_type, qreal>::scaleToA(p->y)));
     labElt.setAttribute("z", KisDomUtils::toString(KoColorSpaceMaths< KoXyzF32Traits::channels_type, qreal>::scaleToA(p->z)));
@@ -59,7 +57,7 @@ void XyzF32ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomEl
     colorElt.appendChild(labElt);
 }
 
-void XyzF32ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
+void XyzF32ColorSpace::colorFromXML(quint8 *pixel, const PkXmlElement &elt) const
 {
     KoXyzF32Traits::Pixel *p = reinterpret_cast<KoXyzF32Traits::Pixel *>(pixel);
     p->x = KoColorSpaceMaths< qreal, KoXyzF32Traits::channels_type >::scaleToA(KisDomUtils::toDouble(elt.attribute("x")));
@@ -68,16 +66,16 @@ void XyzF32ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
     p->alpha = 1.0;
 }
 
-void XyzF32ColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
+void XyzF32ColorSpace::toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
 {
     qreal xyx, xyy, xyY = 0.0;
     XYZToxyY(channelValues[0],channelValues[1],channelValues[2], &xyx, &xyy, &xyY);
     LabToLCH(xyY,xyx,xyY, hue, sat, luma);
 }
 
-QVector <double> XyzF32ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
+PkVector <double> XyzF32ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
     qreal xyx, xyy, xyY = 0.0;
     LCHToLab(*luma, *sat, *hue, &xyY,&xyx,&xyy);
     xyYToXYZ(xyx, xyy, xyY, &channelValues[0],&channelValues[1],&channelValues[2]);
@@ -85,14 +83,14 @@ QVector <double> XyzF32ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) 
     return channelValues;
 }
 
-void XyzF32ColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
+void XyzF32ColorSpace::toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
 {
     XYZToxyY(channelValues[0],channelValues[1],channelValues[2], u, v, y);
 }
 
-QVector <double> XyzF32ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
+PkVector <double> XyzF32ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
     xyYToXYZ(*u, *v, *y, &channelValues[0],&channelValues[1],&channelValues[2]);
     channelValues[3]=1.0;
     return channelValues;

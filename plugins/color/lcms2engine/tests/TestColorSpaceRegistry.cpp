@@ -21,7 +21,7 @@ void TestColorSpaceRegistry::testConstruction()
 
 void TestColorSpaceRegistry::testRgbU8()
 {
-    const QString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(RGBAColorModelID,
+    const PkString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(RGBAColorModelID,
                                                                                 Integer8BitsColorDepthID);
 
     const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
@@ -33,17 +33,17 @@ void TestColorSpaceRegistry::testRgbU8()
     QCOMPARE(profile->name(), KoColorSpaceRegistry::instance()->defaultProfileForColorSpace(colorSpaceId));
 
     cmsHPROFILE lcmsProfile = cmsCreate_sRGBProfile();
-    QString testProfileName = "TestRGBU8ProfileName";
+    PkString testProfileName = "TestRGBU8ProfileName";
 
-    cmsWriteTag(lcmsProfile, cmsSigProfileDescriptionTag, testProfileName.toLatin1().constData());
-    cmsWriteTag(lcmsProfile, cmsSigDeviceModelDescTag, testProfileName.toLatin1().constData());
+    cmsWriteTag(lcmsProfile, cmsSigProfileDescriptionTag, testProfileName.PkToUtf8().c_str());
+    cmsWriteTag(lcmsProfile, cmsSigDeviceModelDescTag, testProfileName.PkToUtf8().c_str());
     cmsWriteTag(lcmsProfile, cmsSigDeviceMfgDescTag, "");
 
 }
 
 void TestColorSpaceRegistry::testRgbU16()
 {
-    const QString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(RGBAColorModelID,
+    const PkString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(RGBAColorModelID,
                                                                                 Integer16BitsColorDepthID);
 
     const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb16();
@@ -55,17 +55,17 @@ void TestColorSpaceRegistry::testRgbU16()
     QCOMPARE(profile->name(), KoColorSpaceRegistry::instance()->defaultProfileForColorSpace(colorSpaceId));
 
     cmsHPROFILE lcmsProfile = cmsCreate_sRGBProfile();
-    QString testProfileName = "TestRGBU16ProfileName";
+    PkString testProfileName = "TestRGBU16ProfileName";
 
-    cmsWriteTag(lcmsProfile, cmsSigProfileDescriptionTag, testProfileName.toLatin1().constData());
-    cmsWriteTag(lcmsProfile, cmsSigDeviceModelDescTag, testProfileName.toLatin1().constData());
+    cmsWriteTag(lcmsProfile, cmsSigProfileDescriptionTag, testProfileName.PkToUtf8().c_str());
+    cmsWriteTag(lcmsProfile, cmsSigDeviceModelDescTag, testProfileName.PkToUtf8().c_str());
     cmsWriteTag(lcmsProfile, cmsSigDeviceMfgDescTag, "");
 
 }
 
 void TestColorSpaceRegistry::testLab()
 {
-    const QString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(LABAColorModelID,
+    const PkString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(LABAColorModelID,
                                                                                 Integer16BitsColorDepthID);
 
     const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->lab16();
@@ -82,10 +82,10 @@ void TestColorSpaceRegistry::testLab()
     whitepoint.Y = 1.0;
 
     cmsHPROFILE lcmsProfile = cmsCreateLab4Profile(&whitepoint);
-    QString testProfileName = "TestLabProfileName";
+    PkString testProfileName = "TestLabProfileName";
 
-    cmsWriteTag(lcmsProfile, cmsSigProfileDescriptionTag, testProfileName.toLatin1().constData());
-    cmsWriteTag(lcmsProfile, cmsSigDeviceModelDescTag, testProfileName.toLatin1().constData());
+    cmsWriteTag(lcmsProfile, cmsSigProfileDescriptionTag, testProfileName.PkToUtf8().c_str());
+    cmsWriteTag(lcmsProfile, cmsSigDeviceModelDescTag, testProfileName.PkToUtf8().c_str());
     cmsWriteTag(lcmsProfile, cmsSigDeviceMfgDescTag, "");
 
 }

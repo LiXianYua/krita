@@ -12,7 +12,6 @@
 
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 
 #include <KoColorConversions.h>
 #include <KoColorModelStandardIds.h>
@@ -87,10 +86,10 @@ struct HSVPolicy
     }
 
     inline float valueFromRGB(float r, float g, float b, float m, float M) {
-        Q_UNUSED(r);
-        Q_UNUSED(g);
-        Q_UNUSED(b);
-        Q_UNUSED(m);
+        (void)r;
+        (void)g;
+        (void)b;
+        (void)m;
         return M;
     }
 
@@ -115,9 +114,9 @@ struct HSLPolicy
     }
 
     inline float valueFromRGB(float r, float g, float b, float m, float M) {
-        Q_UNUSED(r);
-        Q_UNUSED(g);
-        Q_UNUSED(b);
+        (void)r;
+        (void)g;
+        (void)b;
         return 0.5f * (M + m);
     }
 
@@ -150,8 +149,8 @@ struct HCIPolicy
     }
 
     inline float valueFromRGB(float r, float g, float b, float m, float M) {
-        Q_UNUSED(m);
-        Q_UNUSED(M);
+        (void)m;
+        (void)M;
         return (r + g + b) / 3.0f;
     }
 
@@ -199,13 +198,13 @@ struct HCYPolicy
     }
 
     inline float valueFromRGB(float r, float g, float b, float m, float M) {
-        Q_UNUSED(m);
-        Q_UNUSED(M);
+        (void)m;
+        (void)M;
         return rCoeff * r + gCoeff * g + bCoeff * b;
     }
 
     inline float fixupChroma(float c, float v) {
-        Q_UNUSED(v);
+        (void)v;
         // NOTE: no sliding in HCY, because the shape of the triangle
         //       depends on Hue, which complicated code a lot. And it
         //       seems to work fine without it :)
@@ -489,7 +488,7 @@ public:
                         g = green;
                         b = blue;
                     } else {
-                        Q_ASSERT_X(false, "", "invalid type");
+                        KIS_ASSERT(false);
                     }
                 }
 
@@ -548,14 +547,14 @@ public:
         }*/
     }
 
-    QList<QString> parameters() const override
+    PkList<PkString> parameters() const override
     {
-      QList<QString> list;
+      PkList<PkString> list;
       list << "h" << "s" << "v" << "type" << "colorize" << "lumaRed" << "lumaGreen"<< "lumaBlue" << "compatibilityMode";
       return list;
     }
 
-    int parameterId(const QString& name) const override
+    int parameterId(const PkString& name) const override
     {
         if (name == "h") {
             return 0;
@@ -588,7 +587,7 @@ public:
     * m_colorize: Use colorize formula instead
     * luma Red/Green/Blue: Used for luma calculations.
     */
-    void setParameter(int id, const QVariant& parameter) override
+    void setParameter(int id, const PkVariant& parameter) override
     {
         switch(id)
         {
@@ -647,14 +646,14 @@ public:
         m_lumaBlue(0.0)
     {}
 
-    QList<QString> parameters() const override
+    PkList<PkString> parameters() const override
     {
-      QList<QString> list;
+      PkList<PkString> list;
       list << "curve" << "channel" << "driverChannel" << "relative" << "lumaRed" << "lumaGreen"<< "lumaBlue";
       return list;
     }
 
-    int parameterId(const QString& name) const override
+    int parameterId(const PkString& name) const override
     {
         if (name == "curve") {
             return PAR_CURVE;
@@ -675,7 +674,7 @@ public:
     }
 
     /**
-    * curve: adjustment curve as QVector<quin16>
+    * curve: adjustment curve as PkVector<quin16>
     * channel: which channel to adjust. See KisHSVCurve::ColorChannel.
     * driverChannel: which channel to use as source for adjustments.
     * relative:
@@ -683,12 +682,12 @@ public:
     *   true: add adjustment to original. In this mode, the curve range is mapped to -1.0 to 1.0
     * luma Red/Green/Blue: Used for luma calculations.
     */
-    void setParameter(int id, const QVariant& parameter) override
+    void setParameter(int id, const PkVariant& parameter) override
     {
         switch(id)
         {
         case PAR_CURVE:
-            m_curve = parameter.value<QVector<quint16>>();
+            m_curve = parameter.value<PkVector<quint16>>();
             break;
         case PAR_CHANNEL:
         case PAR_DRIVER_CHANNEL: {
@@ -826,7 +825,7 @@ private:
         PAR_LUMA_B,
     };
 
-    QVector<quint16> m_curve;
+    PkVector<quint16> m_curve;
     int m_channel = 0;
     int m_driverChannel = 0;
     bool m_relative = false;
@@ -843,17 +842,17 @@ KisHSVAdjustmentFactory::KisHSVAdjustmentFactory()
 {
 }
 
-QList< QPair< KoID, KoID > > KisHSVAdjustmentFactory::supportedModels() const
+PkList< std::pair< KoID, KoID > > KisHSVAdjustmentFactory::supportedModels() const
 {
-    QList< QPair< KoID, KoID > > l;
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Integer8BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Integer16BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Float16BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Float32BitsColorDepthID));
+    PkList< std::pair< KoID, KoID > > l;
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Integer8BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Integer16BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Float16BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Float32BitsColorDepthID));
     return l;
 }
 
-KoColorTransformation* KisHSVAdjustmentFactory::createTransformation(const KoColorSpace* colorSpace, QHash<QString, QVariant> parameters) const
+KoColorTransformation* KisHSVAdjustmentFactory::createTransformation(const KoColorSpace* colorSpace, PkHash<PkString, PkVariant> parameters) const
 {
     KoColorTransformation * adj;
     if (colorSpace->colorModelId() != RGBAColorModelID) {
@@ -887,17 +886,17 @@ KisHSVCurveAdjustmentFactory::KisHSVCurveAdjustmentFactory()
 {
 }
 
-QList< QPair< KoID, KoID > > KisHSVCurveAdjustmentFactory::supportedModels() const
+PkList< std::pair< KoID, KoID > > KisHSVCurveAdjustmentFactory::supportedModels() const
 {
-    QList< QPair< KoID, KoID > > l;
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Integer8BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Integer16BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Float16BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Float32BitsColorDepthID));
+    PkList< std::pair< KoID, KoID > > l;
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Integer8BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Integer16BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Float16BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Float32BitsColorDepthID));
     return l;
 }
 
-KoColorTransformation* KisHSVCurveAdjustmentFactory::createTransformation(const KoColorSpace* colorSpace, QHash<QString, QVariant> parameters) const
+KoColorTransformation* KisHSVCurveAdjustmentFactory::createTransformation(const KoColorSpace* colorSpace, PkHash<PkString, PkVariant> parameters) const
 {
     KoColorTransformation * adj;
     if (colorSpace->colorModelId() != RGBAColorModelID) {

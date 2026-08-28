@@ -5,8 +5,6 @@
 */
 
 #include "extensions_plugin.h"
-#include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include <KoColorTransformationFactoryRegistry.h>
 
@@ -20,11 +18,14 @@
 #include "kis_color_balance_adjustment.h"
 #include "kis_desaturate_adjustment.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ExtensionsPluginFactory, "krita_colorspaces_extensions_plugin.json", registerPlugin<ExtensionsPlugin>();)
-
-ExtensionsPlugin::ExtensionsPlugin(QObject *parent, const QVariantList &)
+void registerColorSpaceExtensions()
 {
-    Q_UNUSED(parent);
+    static bool registered = false;
+    if (registered) {
+        return;
+    }
+    registered = true;
+
     KoColorTransformationFactoryRegistry::addColorTransformationFactory(new KisHSVAdjustmentFactory);
     KoColorTransformationFactoryRegistry::addColorTransformationFactory(new KisHSVCurveAdjustmentFactory);
     
@@ -41,8 +42,15 @@ ExtensionsPlugin::ExtensionsPlugin(QObject *parent, const QVariantList &)
     KoColorTransformationFactoryRegistry::addColorTransformationFactory(new KisDesaturateAdjustmentFactory);
 }
 
-ExtensionsPlugin::~ExtensionsPlugin()
+namespace
 {
-}
+struct ColorSpaceExtensionRegistration
+{
+    ColorSpaceExtensionRegistration()
+    {
+        registerColorSpaceExtensions();
+    }
+};
 
-#include "extensions_plugin.moc"
+ColorSpaceExtensionRegistration s_colorSpaceExtensionRegistration;
+} // namespace

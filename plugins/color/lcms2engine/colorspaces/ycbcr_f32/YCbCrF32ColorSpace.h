@@ -19,13 +19,13 @@ class YCbCrF32ColorSpace : public LcmsColorSpace<KoYCbCrF32Traits>
 {
 public:
 
-    YCbCrF32ColorSpace(const QString &name, KoColorProfile *p);
+    YCbCrF32ColorSpace(const PkString &name, KoColorProfile *p);
 
     bool willDegrade(ColorSpaceIndependence independence) const override;
 
-    static QString colorSpaceId()
+    static PkString colorSpaceId()
     {
-        return QStringLiteral("YCBCRF32");
+        return PkString("YCBCRF32");
     }
 
     KoID colorModelId() const override
@@ -45,13 +45,13 @@ public:
 
     virtual KoColorSpace *clone() const;
 
-    void colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const override;
+    void colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const override;
 
-    void colorFromXML(quint8* pixel, const QDomElement& elt) const override;
-    void toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
-    QVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
-    void toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
-    QVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
+    void colorFromXML(quint8* pixel, const PkXmlElement& elt) const override;
+    void toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
+    PkVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
+    void toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
+    PkVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
 
 };
 
@@ -64,14 +64,14 @@ public:
     {
     }
 
-    QString id() const override
+    PkString id() const override
     {
         return YCbCrF32ColorSpace::colorSpaceId();
     }
 
-    QString name() const override
+    PkString name() const override
     {
-        return QString("%1 (%2)").arg(YCbCrAColorModelID.name()).arg(Float32BitsColorDepthID.name());
+        return PkString("%1 (%2)").arg(YCbCrAColorModelID.name()).arg(Float32BitsColorDepthID.name());
     }
 
     bool userVisible() const override
@@ -99,7 +99,7 @@ public:
         return new YCbCrF32ColorSpace(name(), p->clone());
     }
 
-    QString defaultProfile() const override
+    PkString defaultProfile() const override
     {
         return "ITU-R BT.709-6 YCbCr ICC V4 profile";
     }

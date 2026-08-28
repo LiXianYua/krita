@@ -7,9 +7,8 @@
 
 #include "RgbU16ColorSpace.h"
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 
-#include <klocalizedstring.h>
 
 #include "compositeops/KoCompositeOps.h"
 #include "compositeops/RgbCompositeOps.h"
@@ -18,13 +17,13 @@
 #include <KoColorConversions.h>
 #include <KoColorSpacePreserveLightnessUtils.h>
 
-RgbU16ColorSpace::RgbU16ColorSpace(const QString &name, KoColorProfile *p) :
+RgbU16ColorSpace::RgbU16ColorSpace(const PkString &name, KoColorProfile *p) :
     LcmsColorSpace<KoBgrU16Traits>(colorSpaceId(), name, TYPE_BGRA_16, cmsSigRgbData, p)
 {
-    addChannel(new KoChannelInfo(i18n("Blue"), 0 * sizeof(quint16), 2, KoChannelInfo::COLOR, KoChannelInfo::UINT16, 2, QColor(0, 0, 255)));
-    addChannel(new KoChannelInfo(i18n("Green"), 1 * sizeof(quint16), 1, KoChannelInfo::COLOR, KoChannelInfo::UINT16, 2, QColor(0, 255, 0)));
-    addChannel(new KoChannelInfo(i18n("Red"), 2 * sizeof(quint16), 0, KoChannelInfo::COLOR, KoChannelInfo::UINT16, 2, QColor(255, 0, 0)));
-    addChannel(new KoChannelInfo(i18n("Alpha"), 3 * sizeof(quint16), 3, KoChannelInfo::ALPHA, KoChannelInfo::UINT16, 2));
+    addChannel(new KoChannelInfo(PkString("Blue"), 0 * sizeof(quint16), 2, KoChannelInfo::COLOR, KoChannelInfo::UINT16, 2, PkColor(0, 0, 255)));
+    addChannel(new KoChannelInfo(PkString("Green"), 1 * sizeof(quint16), 1, KoChannelInfo::COLOR, KoChannelInfo::UINT16, 2, PkColor(0, 255, 0)));
+    addChannel(new KoChannelInfo(PkString("Red"), 2 * sizeof(quint16), 0, KoChannelInfo::COLOR, KoChannelInfo::UINT16, 2, PkColor(255, 0, 0)));
+    addChannel(new KoChannelInfo(PkString("Alpha"), 3 * sizeof(quint16), 3, KoChannelInfo::ALPHA, KoChannelInfo::UINT16, 2));
     init();
 
     addStandardCompositeOps<KoBgrU16Traits>(this);
@@ -49,10 +48,10 @@ KoColorSpace *RgbU16ColorSpace::clone() const
     return new RgbU16ColorSpace(name(), profile()->clone());
 }
 
-void RgbU16ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const
+void RgbU16ColorSpace::colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const
 {
     const KoBgrU16Traits::Pixel *p = reinterpret_cast<const KoBgrU16Traits::Pixel *>(pixel);
-    QDomElement labElt = doc.createElement("RGB");
+    PkXmlElement labElt = doc.createElement("RGB");
     labElt.setAttribute("r", KisDomUtils::toString(KoColorSpaceMaths< KoBgrU16Traits::channels_type, qreal>::scaleToA(p->red)));
     labElt.setAttribute("g", KisDomUtils::toString(KoColorSpaceMaths< KoBgrU16Traits::channels_type, qreal>::scaleToA(p->green)));
     labElt.setAttribute("b", KisDomUtils::toString(KoColorSpaceMaths< KoBgrU16Traits::channels_type, qreal>::scaleToA(p->blue)));
@@ -60,7 +59,7 @@ void RgbU16ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomEl
     colorElt.appendChild(labElt);
 }
 
-void RgbU16ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
+void RgbU16ColorSpace::colorFromXML(quint8 *pixel, const PkXmlElement &elt) const
 {
     KoBgrU16Traits::Pixel *p = reinterpret_cast<KoBgrU16Traits::Pixel *>(pixel);
     p->red = KoColorSpaceMaths< qreal, KoBgrU16Traits::channels_type >::scaleToA(KisDomUtils::toDouble(elt.attribute("r")));
@@ -69,46 +68,46 @@ void RgbU16ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
     p->alpha = KoColorSpaceMathsTraits<quint16>::max;
 }
 
-void RgbU16ColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
+void RgbU16ColorSpace::toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
 {
     RGBToHSY(channelValues[0],channelValues[1],channelValues[2], hue, sat, luma, lumaCoefficients()[0], lumaCoefficients()[1], lumaCoefficients()[2]);
 }
 
-QVector <double> RgbU16ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
+PkVector <double> RgbU16ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
     HSYToRGB(*hue, *sat, *luma, &channelValues[0],&channelValues[1],&channelValues[2], lumaCoefficients()[0], lumaCoefficients()[1], lumaCoefficients()[2]);
     channelValues[3]=1.0;
     return channelValues;
 }
 
-void RgbU16ColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
+void RgbU16ColorSpace::toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
 {
 
     
     RGBToYUV(channelValues[0],channelValues[1],channelValues[2], y, u, v, lumaCoefficients()[0], lumaCoefficients()[1], lumaCoefficients()[2]);
 }
 
-QVector <double> RgbU16ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
+PkVector <double> RgbU16ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
 
     YUVToRGB(*y, *u, *v, &channelValues[0],&channelValues[1],&channelValues[2], lumaCoefficients()[0], lumaCoefficients()[1], lumaCoefficients()[2]);
     channelValues[3]=1.0;
     return channelValues;
 }
 
-void RgbU16ColorSpace::fillGrayBrushWithColorAndLightnessOverlay(quint8* dst, const QRgb* brush, quint8* brushColor, qint32 nPixels) const
+void RgbU16ColorSpace::fillGrayBrushWithColorAndLightnessOverlay(quint8* dst, const PkRgb* brush, quint8* brushColor, qint32 nPixels) const
 {
     fillGrayBrushWithColorPreserveLightnessRGB<KoBgrU16Traits>(dst, brush, brushColor, 1.0, nPixels);
 }
 
-void RgbU16ColorSpace::fillGrayBrushWithColorAndLightnessWithStrength(quint8* dst, const QRgb* brush, quint8* brushColor, qreal strength, qint32 nPixels) const
+void RgbU16ColorSpace::fillGrayBrushWithColorAndLightnessWithStrength(quint8* dst, const PkRgb* brush, quint8* brushColor, qreal strength, qint32 nPixels) const
 {
     fillGrayBrushWithColorPreserveLightnessRGB<KoBgrU16Traits>(dst, brush, brushColor, strength, nPixels);
 }
 
-void RgbU16ColorSpace::modulateLightnessByGrayBrush(quint8 *dst, const QRgb *brush, qreal strength, qint32 nPixels) const
+void RgbU16ColorSpace::modulateLightnessByGrayBrush(quint8 *dst, const PkRgb *brush, qreal strength, qint32 nPixels) const
 {
    modulateLightnessByGrayBrushRGB<KoBgrU16Traits>(dst, brush, strength, nPixels);
 }

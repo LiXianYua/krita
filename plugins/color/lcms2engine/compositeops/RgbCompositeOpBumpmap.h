@@ -31,7 +31,7 @@ public:
                                             const channels_type *src,
                                             channels_type *dst,
                                             bool allChannelFlags,
-                                            const QBitArray &channelFlags)
+                                            const PkBitArray &channelFlags)
     {
         qreal intensity;
 

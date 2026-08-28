@@ -8,7 +8,6 @@
 #include <KoConfig.h>
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 #ifdef HAVE_OPENEXR
 #include <half.h>
 #endif
@@ -52,21 +51,21 @@ public:
         }
     }
 
-	QList<QString> parameters() const override
+	PkList<PkString> parameters() const override
 	{
-        QList<QString> list;
+        PkList<PkString> list;
         list << "exposure";
         return list;
 	}
 
-	int parameterId(const QString& name) const override
+	int parameterId(const PkString& name) const override
 	{
         if (name == "exposure")
         return 0;
         return -1;
 	}
 
-    void setParameter(int id, const QVariant& parameter) override
+    void setParameter(int id, const PkVariant& parameter) override
     {
         switch(id)
         {
@@ -87,17 +86,17 @@ private:
 {
 }
 
-QList< QPair< KoID, KoID > > KisBurnMidtonesAdjustmentFactory::supportedModels() const
+PkList< std::pair< KoID, KoID > > KisBurnMidtonesAdjustmentFactory::supportedModels() const
 {
-    QList< QPair< KoID, KoID > > l;
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Integer8BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Integer16BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Float16BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Float32BitsColorDepthID));
+    PkList< std::pair< KoID, KoID > > l;
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Integer8BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Integer16BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Float16BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Float32BitsColorDepthID));
     return l;
 }
 
-KoColorTransformation* KisBurnMidtonesAdjustmentFactory::createTransformation(const KoColorSpace* colorSpace, QHash<QString, QVariant> parameters) const
+KoColorTransformation* KisBurnMidtonesAdjustmentFactory::createTransformation(const KoColorSpace* colorSpace, PkHash<PkString, PkVariant> parameters) const
 {
     KoColorTransformation * adj;
     if (colorSpace->colorModelId() != RGBAColorModelID) {

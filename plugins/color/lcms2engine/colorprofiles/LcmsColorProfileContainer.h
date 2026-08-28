@@ -14,8 +14,8 @@
 
 #include <lcms2.h>
 
-#include <QByteArray>
-#include <QString>
+#include <PkAuxTypes.h>
+#include <PkString.h>
 
 /**
  * This class contains an LCMS color profile. Don't use it outside LcmsColorSpace.
@@ -29,7 +29,7 @@ private:
     /**
      * Create a byte array from a lcms profile.
      */
-    static QByteArray lcmsProfileToByteArray(const cmsHPROFILE profile);
+    static PkByteArray lcmsProfileToByteArray(const cmsHPROFILE profile);
 
 public:
     /**
@@ -53,11 +53,11 @@ public:
     /**
      * @return the name of the manufacturer
      */
-    QString manufacturer() const override;
+    PkString manufacturer() const override;
     /**
      * @return the embedded copyright
      */
-    QString copyright() const override;
+    PkString copyright() const override;
     /**
      * @return the structure to use with LCMS functions
      */
@@ -82,18 +82,18 @@ public:
     bool hasColorants() const override;
     virtual bool hasTRC() const;
     bool isLinear() const;
-    QVector <double> getColorantsXYZ() const override;
-    QVector <double> getColorantsxyY() const override;
-    QVector <double> getWhitePointXYZ() const override;
-    QVector <double> getWhitePointxyY() const override;
-    QVector <double> getEstimatedTRC() const override;
-    virtual void LinearizeFloatValue(QVector <double> & Value) const;
-    virtual void DelinearizeFloatValue(QVector <double> & Value) const;
-    virtual void LinearizeFloatValueFast(QVector <double> & Value) const;
-    virtual void DelinearizeFloatValueFast(QVector <double> & Value) const;
-    QString name() const override;
-    QString info() const override;
-    QByteArray getProfileUniqueId() const override;
+    PkVector <double> getColorantsXYZ() const override;
+    PkVector <double> getColorantsxyY() const override;
+    PkVector <double> getWhitePointXYZ() const override;
+    PkVector <double> getWhitePointxyY() const override;
+    PkVector <double> getEstimatedTRC() const override;
+    virtual void LinearizeFloatValue(PkVector <double> & Value) const;
+    virtual void DelinearizeFloatValue(PkVector <double> & Value) const;
+    virtual void LinearizeFloatValueFast(PkVector <double> & Value) const;
+    virtual void DelinearizeFloatValueFast(PkVector <double> & Value) const;
+    PkString name() const override;
+    PkString info() const override;
+    PkByteArray getProfileUniqueId() const override;
 
     bool compareTRC(TransferCharacteristics characteristics, float error) const override;
 
@@ -110,4 +110,3 @@ private:
 };
 
 #endif // _KO_LCMS_COLORPROFILE_H
-

@@ -7,22 +7,21 @@
 
 #include "LabU8ColorSpace.h"
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 
-#include <klocalizedstring.h>
 
 #include "../compositeops/KoCompositeOps.h"
 #include "dithering/KisLabDitherOpFactory.h"
 #include <KoColorConversions.h>
 #include <kis_dom_utils.h>
 
-LabU8ColorSpace::LabU8ColorSpace(const QString &name, KoColorProfile *p) :
+LabU8ColorSpace::LabU8ColorSpace(const PkString &name, KoColorProfile *p) :
     LcmsColorSpace<KoLabU8Traits>(colorSpaceId(), name, TYPE_LABA_8, cmsSigLabData, p)
 {
-    addChannel(new KoChannelInfo(i18nc("Lightness value in Lab color model", "Lightness"), 0 * sizeof(quint8), 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), QColor(100, 100, 100)));
-    addChannel(new KoChannelInfo(i18n("a*"),        1 * sizeof(quint8), 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), QColor(150, 150, 150)));
-    addChannel(new KoChannelInfo(i18n("b*"),        2 * sizeof(quint8), 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), QColor(200, 200, 200)));
-    addChannel(new KoChannelInfo(i18n("Alpha"),     3 * sizeof(quint8), 3, KoChannelInfo::ALPHA, KoChannelInfo::UINT8, sizeof(quint8)));
+    addChannel(new KoChannelInfo(PkString("Lightness"), 0 * sizeof(quint8), 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), PkColor(100, 100, 100)));
+    addChannel(new KoChannelInfo(PkString("a*"),        1 * sizeof(quint8), 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), PkColor(150, 150, 150)));
+    addChannel(new KoChannelInfo(PkString("b*"),        2 * sizeof(quint8), 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), PkColor(200, 200, 200)));
+    addChannel(new KoChannelInfo(PkString("Alpha"),     3 * sizeof(quint8), 3, KoChannelInfo::ALPHA, KoChannelInfo::UINT8, sizeof(quint8)));
     init();
     addStandardCompositeOps<KoLabU8Traits>(this);
     addStandardDitherOps<KoLabU8Traits>(this);
@@ -38,10 +37,10 @@ KoColorSpace *LabU8ColorSpace::clone() const
     return new LabU8ColorSpace(name(), profile()->clone());
 }
 
-void LabU8ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const
+void LabU8ColorSpace::colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const
 {
     const KoLabU8Traits::Pixel *p = reinterpret_cast<const KoLabU8Traits::Pixel *>(pixel);
-    QDomElement labElt = doc.createElement("Lab");
+    PkXmlElement labElt = doc.createElement("Lab");
 
     double a, b;
     KoLabU8Traits::channels_type halfValue = KoLabColorSpaceMathsTraits<KoLabU8Traits::channels_type>::halfValueAB;
@@ -69,7 +68,7 @@ void LabU8ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomEle
     colorElt.appendChild(labElt);
 }
 
-void LabU8ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
+void LabU8ColorSpace::colorFromXML(quint8 *pixel, const PkXmlElement &elt) const
 {
     KoLabU8Traits::Pixel *p = reinterpret_cast<KoLabU8Traits::Pixel *>(pixel);
 
@@ -102,29 +101,29 @@ void LabU8ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
     p->alpha = KoColorSpaceMathsTraits<quint8>::max;
 }
 
-void LabU8ColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
+void LabU8ColorSpace::toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
 {
     LabToLCH(channelValues[0],channelValues[1],channelValues[2], luma, sat, hue);
 }
 
-QVector <double> LabU8ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
+PkVector <double> LabU8ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
     LCHToLab(*luma, *sat, *hue, &channelValues[0],&channelValues[1],&channelValues[2]);
     channelValues[3]=1.0;
     return channelValues;
 }
 
-void LabU8ColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
+void LabU8ColorSpace::toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
 {
     *y =channelValues[0];
     *u=channelValues[1];
     *v=channelValues[2];
 }
 
-QVector <double> LabU8ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
+PkVector <double> LabU8ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
     channelValues[0]=*y;
     channelValues[1]=*u;
     channelValues[2]=*v;
@@ -191,7 +190,7 @@ void LabU8ColorSpace::convertChannelToVisualRepresentation(const quint8 *src, qu
     }
 }
 
-void LabU8ColorSpace::convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const QBitArray selectedChannels) const
+void LabU8ColorSpace::convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const PkBitArray selectedChannels) const
 {
     for (uint pixelIndex = 0; pixelIndex < nPixels; ++pixelIndex) {
         for (uint channelIndex = 0; channelIndex < ColorSpaceTraits::channels_nb; ++channelIndex) {

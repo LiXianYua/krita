@@ -10,6 +10,7 @@
 
 #include "KoColorProfile.h"
 #include "KoChannelInfo.h"
+#include <PkScopedPointer.h>
 
 class LcmsColorProfileContainer;
 
@@ -30,13 +31,13 @@ public:
     {
     public:
         Data();
-        explicit Data(const QByteArray &rawData);
+        explicit Data(const PkByteArray &rawData);
         ~Data();
-        QByteArray rawData();
-        void setRawData(const QByteArray &);
+        PkByteArray rawData();
+        void setRawData(const PkByteArray &);
     private:
         struct Private;
-        QScopedPointer<Private> const d;
+        PkScopedPointer<Private> const d;
     };
     /**
      * This class should be used to wrap the ICC profile
@@ -48,10 +49,10 @@ public:
         Container();
         virtual ~Container();
     public:
-        virtual QString name() const = 0;
-        virtual QString info() const = 0;
-        virtual QString manufacturer() const = 0;
-        virtual QString copyright() const = 0;
+        virtual PkString name() const = 0;
+        virtual PkString info() const = 0;
+        virtual PkString manufacturer() const = 0;
+        virtual PkString copyright() const = 0;
         virtual bool valid() const = 0;
         virtual bool isSuitableForOutput() const = 0;
         virtual bool isSuitableForInput() const = 0;
@@ -59,19 +60,19 @@ public:
         virtual bool isSuitableForPrinting() const = 0;
         virtual bool isSuitableForDisplay() const = 0;
         virtual bool hasColorants() const = 0;
-        virtual QVector <double> getColorantsXYZ() const = 0;
-        virtual QVector <double> getColorantsxyY() const = 0;
-        virtual QVector <double> getWhitePointXYZ() const = 0;
-        virtual QVector <double> getWhitePointxyY() const = 0;
-        virtual QVector <double> getEstimatedTRC() const = 0;
+        virtual PkVector <double> getColorantsXYZ() const = 0;
+        virtual PkVector <double> getColorantsxyY() const = 0;
+        virtual PkVector <double> getWhitePointXYZ() const = 0;
+        virtual PkVector <double> getWhitePointxyY() const = 0;
+        virtual PkVector <double> getEstimatedTRC() const = 0;
         virtual bool compareTRC(TransferCharacteristics characteristics, float error) const = 0;
-        virtual QByteArray getProfileUniqueId() const = 0;
+        virtual PkByteArray getProfileUniqueId() const = 0;
     };
 public:
 
-    explicit IccColorProfile(const QString &fileName = QString());
-    explicit IccColorProfile(const QByteArray &rawData);
-    explicit IccColorProfile(const QVector<double> &colorants,
+    explicit IccColorProfile(const PkString &fileName = PkString());
+    explicit IccColorProfile(const PkByteArray &rawData);
+    explicit IccColorProfile(const PkVector<double> &colorants,
                              const ColorPrimaries colorPrimariesType = PRIMARIES_UNSPECIFIED,
                              const TransferCharacteristics transferFunction = TRC_LINEAR);
     IccColorProfile(const IccColorProfile &rhs);
@@ -85,10 +86,10 @@ public:
     /**
     * @return an array with the raw data of the profile
     */
-    QByteArray rawData() const override;
+    PkByteArray rawData() const override;
     bool valid() const override;
     float version() const override;
-    QString colorModelID() const override;
+    PkString colorModelID() const override;
     bool isSuitableForOutput() const override;
     bool isSuitableForInput() const override;
     bool isSuitableForWorkspace() const override;
@@ -101,19 +102,19 @@ public:
     bool hasColorants() const override;
     bool hasTRC() const override;
     bool isLinear() const override;
-    QVector <qreal> getColorantsXYZ() const override;
-    QVector <qreal> getColorantsxyY() const override;
-    QVector <qreal> getWhitePointXYZ() const override;
-    QVector <qreal> getWhitePointxyY() const override;
-    QVector <qreal> getEstimatedTRC() const override;
+    PkVector <qreal> getColorantsXYZ() const override;
+    PkVector <qreal> getColorantsxyY() const override;
+    PkVector <qreal> getWhitePointXYZ() const override;
+    PkVector <qreal> getWhitePointxyY() const override;
+    PkVector <qreal> getEstimatedTRC() const override;
     bool compareTRC(TransferCharacteristics characteristics, float error) const override;
-    void linearizeFloatValue(QVector <qreal> & Value) const override;
-    void delinearizeFloatValue(QVector <qreal> & Value) const override;
-    void linearizeFloatValueFast(QVector <qreal> & Value) const override;
-    void delinearizeFloatValueFast(QVector <qreal> & Value) const override;
-    QByteArray uniqueId() const override;
+    void linearizeFloatValue(PkVector <qreal> & Value) const override;
+    void delinearizeFloatValue(PkVector <qreal> & Value) const override;
+    void linearizeFloatValueFast(PkVector <qreal> & Value) const override;
+    void delinearizeFloatValueFast(PkVector <qreal> & Value) const override;
+    PkByteArray uniqueId() const override;
     bool operator==(const KoColorProfile &) const override;
-    QString type() const override
+    PkString type() const override
     {
         return "icc";
     }
@@ -125,17 +126,17 @@ public:
      * Furthermore, then only apply to the floating point uses of this profile,
      * and not the integer variants.
      */
-    const QVector<KoChannelInfo::DoubleRange> &getFloatUIMinMax(void) const;
+    const PkVector<KoChannelInfo::DoubleRange> &getFloatUIMinMax(void) const;
 
 protected:
-    void setRawData(const QByteArray &rawData);
+    void setRawData(const PkByteArray &rawData);
 public:
     LcmsColorProfileContainer *asLcms() const;
 protected:
     bool init();
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif

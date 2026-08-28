@@ -7,28 +7,26 @@
 
 #include "CmykF32ColorSpace.h"
 
-#include <QDomElement>
-#include <QDebug>
-#include <klocalizedstring.h>
+#include <PkXmlElement.h>
 
 #include "compositeops/KoCompositeOps.h"
 #include "dithering/KisCmykDitherOpFactory.h"
 #include <KoColorConversions.h>
 #include <kis_dom_utils.h>
 
-CmykF32ColorSpace::CmykF32ColorSpace(const QString &name, KoColorProfile *p)
+CmykF32ColorSpace::CmykF32ColorSpace(const PkString &name, KoColorProfile *p)
     : LcmsColorSpace<KoCmykF32Traits>(colorSpaceId(), name,  TYPE_CMYKA_FLT, cmsSigCmykData, p)
 {
     const IccColorProfile *icc_p = dynamic_cast<const IccColorProfile *>(p);
-    Q_ASSERT(icc_p);
-    QVector<KoChannelInfo::DoubleRange> uiRanges(icc_p->getFloatUIMinMax());
-    Q_ASSERT(uiRanges.size() == 4);
+    KIS_ASSERT(icc_p);
+    PkVector<KoChannelInfo::DoubleRange> uiRanges(icc_p->getFloatUIMinMax());
+    KIS_ASSERT(uiRanges.size() == 4);
 
-    addChannel(new KoChannelInfo(i18n("Cyan"), 0 * sizeof(float), 0, KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), Qt::cyan, uiRanges[0]));
-    addChannel(new KoChannelInfo(i18n("Magenta"), 1 * sizeof(float), 1, KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), Qt::magenta, uiRanges[1]));
-    addChannel(new KoChannelInfo(i18n("Yellow"), 2 * sizeof(float), 2, KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), Qt::yellow, uiRanges[2]));
-    addChannel(new KoChannelInfo(i18n("Black"), 3 * sizeof(float), 3, KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), Qt::black, uiRanges[3]));
-    addChannel(new KoChannelInfo(i18n("Alpha"), 4 * sizeof(float), 4, KoChannelInfo::ALPHA, KoChannelInfo::FLOAT32, sizeof(float)));
+    addChannel(new KoChannelInfo(PkString("Cyan"), 0 * sizeof(float), 0, KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), PkColor(0, 255, 255), uiRanges[0]));
+    addChannel(new KoChannelInfo(PkString("Magenta"), 1 * sizeof(float), 1, KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), PkColor(255, 0, 255), uiRanges[1]));
+    addChannel(new KoChannelInfo(PkString("Yellow"), 2 * sizeof(float), 2, KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), PkColor(255, 255, 0), uiRanges[2]));
+    addChannel(new KoChannelInfo(PkString("Black"), 3 * sizeof(float), 3, KoChannelInfo::COLOR, KoChannelInfo::FLOAT32, sizeof(float), PkColor(0, 0, 0), uiRanges[3]));
+    addChannel(new KoChannelInfo(PkString("Alpha"), 4 * sizeof(float), 4, KoChannelInfo::ALPHA, KoChannelInfo::FLOAT32, sizeof(float)));
 
     init();
 
@@ -56,12 +54,12 @@ KoColorSpace *CmykF32ColorSpace::clone() const
     return new CmykF32ColorSpace(name(), profile()->clone());
 }
 
-void CmykF32ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const
+void CmykF32ColorSpace::colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const
 {
     const KoCmykF32Traits::Pixel *p = reinterpret_cast<const KoCmykF32Traits::Pixel *>(pixel);
-    QDomElement labElt = doc.createElement("CMYK");
+    PkXmlElement labElt = doc.createElement("CMYK");
 
-    const QList<KoChannelInfo *> channels = this->channels();
+    const PkList<KoChannelInfo *> channels = this->channels();
 
     // XML expects 0-1, we need 0-100
     // Get the bounds from the channels and adjust the calculations
@@ -73,10 +71,10 @@ void CmykF32ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomE
     colorElt.appendChild(labElt);
 }
 
-void CmykF32ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
+void CmykF32ColorSpace::colorFromXML(quint8 *pixel, const PkXmlElement &elt) const
 {
     KoCmykF32Traits::Pixel *p = reinterpret_cast<KoCmykF32Traits::Pixel *>(pixel);
-    const QList<KoChannelInfo *> channels = this->channels();
+    const PkList<KoChannelInfo *> channels = this->channels();
 
     p->cyan = channels[0]->getUIMin() + KoColorSpaceMaths< qreal, KoCmykF32Traits::channels_type >::scaleToA(KisDomUtils::toDouble(elt.attribute("c"))) * channels[0]->getUIUnitValue();
     p->magenta = channels[1]->getUIMin() + KoColorSpaceMaths< qreal, KoCmykF32Traits::channels_type >::scaleToA(KisDomUtils::toDouble(elt.attribute("m"))) * channels[1]->getUIUnitValue();
@@ -85,7 +83,7 @@ void CmykF32ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) cons
     p->alpha = 1.0;
 }
 
-void CmykF32ColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
+void CmykF32ColorSpace::toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
 {
     qreal c0 = channelValues[0];
     qreal c1 = channelValues[1];
@@ -99,9 +97,9 @@ void CmykF32ColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, 
     RGBToHSI(c0, c1, c2, hue, sat, luma);
 }
 
-QVector <double> CmykF32ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
+PkVector <double> CmykF32ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
 {
-    QVector <double> channelValues(5);
+    PkVector <double> channelValues(5);
     channelValues.fill(1.0);
     HSIToRGB(*hue, *sat, *luma, &channelValues[0],&channelValues[1],&channelValues[2]);
     channelValues[0] = qBound(0.0,1.0-channelValues[0],1.0);
@@ -111,7 +109,7 @@ QVector <double> CmykF32ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma)
     return channelValues;
 }
 
-void CmykF32ColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
+void CmykF32ColorSpace::toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
 {
     qreal c0 = channelValues[0];
     qreal c1 = channelValues[1];
@@ -124,9 +122,9 @@ void CmykF32ColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qr
     RGBToYUV(c0, c1, c2, y, u, v, (1.0 - 0.299),(1.0 - 0.587), (1.0 - 0.114));
 }
 
-QVector <double> CmykF32ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
+PkVector <double> CmykF32ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
 {
-    QVector <double> channelValues(5);
+    PkVector <double> channelValues(5);
     channelValues.fill(1.0);
     YUVToRGB(*y, *u, *v, &channelValues[0],&channelValues[1],&channelValues[2], 0.33, 0.33, 0.33);
     channelValues[0] = qBound(0.0,1.0-channelValues[0],1.0);

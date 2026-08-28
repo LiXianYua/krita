@@ -7,8 +7,9 @@
 
 #include "IccColorSpaceEngine.h"
 
-#include <klocalizedstring.h>
+#include <string>
 
+#include <DebugPigment.h>
 #include <KoColorModelStandardIds.h>
 #include <kis_assert.h>
 
@@ -26,9 +27,9 @@ public:
         : KoColorConversionTransformation(srcCs, dstCs, renderingIntent, conversionFlags)
         , m_transform(0)
     {
-        Q_ASSERT(srcCs);
-        Q_ASSERT(dstCs);
-        Q_ASSERT(renderingIntent < 4);
+        KIS_ASSERT(srcCs);
+        KIS_ASSERT(dstCs);
+        KIS_ASSERT(renderingIntent < 4);
 
         if ((srcProfile->isLinear() || dstProfile->isLinear()) &&
             !conversionFlags.testFlag(KoColorConversionTransformation::NoOptimization)) {
@@ -47,7 +48,7 @@ public:
                                          renderingIntent,
                                          conversionFlags);
 
-        Q_ASSERT(m_transform);
+        KIS_ASSERT(m_transform);
     }
 
     ~KoLcmsColorConversionTransformation() override
@@ -59,7 +60,7 @@ public:
 
     void transform(const quint8 *src, quint8 *dst, qint32 numPixels) const override
     {
-        Q_ASSERT(m_transform);
+        KIS_ASSERT(m_transform);
 
         cmsDoTransform(m_transform, const_cast<quint8 *>(src), dst, numPixels);
 
@@ -83,9 +84,9 @@ public:
         : KoColorProofingConversionTransformation(srcCs, dstCs, proofingSpace, renderingIntent, displayConversionFlags)
         , m_transform(0)
     {
-        Q_ASSERT(srcCs);
-        Q_ASSERT(dstCs);
-        Q_ASSERT(renderingIntent < 4);
+        KIS_ASSERT(srcCs);
+        KIS_ASSERT(dstCs);
+        KIS_ASSERT(renderingIntent < 4);
 
         bool doBPC1 = bpcFirstTransform;
         bool doBPC2 = displayConversionFlags.testFlag(KoColorConversionTransformation::BlackpointCompensation);
@@ -122,7 +123,7 @@ public:
         cmsFloat64Number adaptation[] = {adaptationState, adaptationState, adaptationState, adaptationState};
         m_transform = cmsCreateExtendedTransform(cmsGetProfileContextID(srcProfile->lcmsProfile()), 4, profiles, bpc, intents, adaptation, proof, 1, srcColorSpaceType, dstColorSpaceType, displayConversionFlags);
 
-        Q_ASSERT(m_transform);
+        KIS_ASSERT(m_transform);
     }
 
     ~KoLcmsColorProofingConversionTransformation() override
@@ -134,7 +135,7 @@ public:
 
     void transform(const quint8 *src, quint8 *dst, qint32 numPixels) const override
     {
-        Q_ASSERT(m_transform);
+        KIS_ASSERT(m_transform);
 
         cmsDoTransform(m_transform, const_cast<quint8 *>(src), dst, numPixels);
 
@@ -146,7 +147,7 @@ private:
 struct IccColorSpaceEngine::Private {
 };
 
-IccColorSpaceEngine::IccColorSpaceEngine() : KoColorSpaceEngine("icc", i18n("ICC Engine")), d(new Private)
+IccColorSpaceEngine::IccColorSpaceEngine() : KoColorSpaceEngine("icc", PkString("ICC Engine")), d(new Private)
 {
 }
 
@@ -155,12 +156,12 @@ IccColorSpaceEngine::~IccColorSpaceEngine()
     delete d;
 }
 
-const KoColorProfile* IccColorSpaceEngine::addProfile(const QString &filename)
+const KoColorProfile* IccColorSpaceEngine::addProfile(const PkString &filename)
 {
     KoColorSpaceRegistry *registry = KoColorSpaceRegistry::instance();
 
     KoColorProfile *profile = new IccColorProfile(filename);
-    Q_CHECK_PTR(profile);
+    KIS_ASSERT(profile);
 
     // this our own loading code; sometimes it fails because of an lcms error
     profile->load();
@@ -168,7 +169,8 @@ const KoColorProfile* IccColorSpaceEngine::addProfile(const QString &filename)
     // and then lcms can read the profile from file itself without problems,
     // quite often, and we can initialize it
     if (!profile->valid()) {
-        cmsHPROFILE cmsp = cmsOpenProfileFromFile(filename.toLatin1(), "r");
+        const std::string path = filename.PkToUtf8();
+        cmsHPROFILE cmsp = cmsOpenProfileFromFile(path.c_str(), "r");
         if (cmsp) {
             profile = LcmsColorProfileContainer::createFromLcmsProfile(cmsp);
         }
@@ -186,12 +188,12 @@ const KoColorProfile* IccColorSpaceEngine::addProfile(const QString &filename)
     return profile;
 }
 
-const KoColorProfile* IccColorSpaceEngine::addProfile(const QByteArray &data)
+const KoColorProfile* IccColorSpaceEngine::addProfile(const PkByteArray &data)
 {
     KoColorSpaceRegistry *registry = KoColorSpaceRegistry::instance();
 
     KoColorProfile *profile = new IccColorProfile(data);
-    Q_CHECK_PTR(profile);
+    KIS_ASSERT(profile);
 
     if (profile->valid()) {
         dbgPigment << "Valid profile : " << profile->fileName() << profile->name();
@@ -205,7 +207,7 @@ const KoColorProfile* IccColorSpaceEngine::addProfile(const QByteArray &data)
     return profile;
 }
 
-const KoColorProfile *IccColorSpaceEngine::getProfile(const QVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction)
+const KoColorProfile *IccColorSpaceEngine::getProfile(const PkVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction)
 {
     KoColorSpaceRegistry *registry = KoColorSpaceRegistry::instance();
 
@@ -225,7 +227,7 @@ const KoColorProfile *IccColorSpaceEngine::getProfile(const QVector<double> &col
     }
 
     const KoColorProfile *profile = new IccColorProfile(colorants, colorPrimaries, transferFunction);
-    Q_CHECK_PTR(profile);
+    KIS_ASSERT(profile);
 
     if (profile->valid()) {
         dbgPigment << "Valid profile : " << profile->fileName() << profile->name();
@@ -239,12 +241,12 @@ const KoColorProfile *IccColorSpaceEngine::getProfile(const QVector<double> &col
     return profile;
 }
 
-void IccColorSpaceEngine::removeProfile(const QString &filename)
+void IccColorSpaceEngine::removeProfile(const PkString &filename)
 {
     KoColorSpaceRegistry *registry = KoColorSpaceRegistry::instance();
 
     KoColorProfile *profile = new IccColorProfile(filename);
-    Q_CHECK_PTR(profile);
+    KIS_ASSERT(profile);
     profile->load();
 
     if (profile->valid() && registry->profileByName(profile->name())) {
@@ -292,13 +294,13 @@ KoColorProofingConversionTransformation *IccColorSpaceEngine::createColorProofin
 
 quint32 IccColorSpaceEngine::computeColorSpaceType(const KoColorSpace *cs) const
 {
-    Q_ASSERT(cs);
+    KIS_ASSERT(cs);
 
     if (const KoLcmsInfo *lcmsInfo = dynamic_cast<const KoLcmsInfo *>(cs)) {
         return lcmsInfo->colorSpaceType();
     } else {
-        QString modelId = cs->colorModelId().id();
-        QString depthId = cs->colorDepthId().id();
+        PkString modelId = cs->colorModelId().id();
+        PkString depthId = cs->colorDepthId().id();
         // Compute the depth part of the type
         quint32 depthType;
 
@@ -313,16 +315,16 @@ quint32 IccColorSpaceEngine::computeColorSpaceType(const KoColorSpace *cs) const
         } else if (depthId == Float64BitsColorDepthID.id()) {
             depthType = BYTES_SH(0) | FLOAT_SH(1);
         } else {
-            qWarning() << "Unknown bit depth";
+            warnPigment << "Unknown bit depth";
             return 0;
         }
         // Compute the model part of the type
         quint32 modelType = 0;
 
         if (modelId == RGBAColorModelID.id()) {
-            if (depthId.startsWith(QLatin1Char('U'))) {
+            if (depthId.startsWith(PkString("U"))) {
                 modelType = (COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | DOSWAP_SH(1) | SWAPFIRST_SH(1));
-            } else if (depthId.startsWith(QLatin1Char('F'))) {
+            } else if (depthId.startsWith(PkString("F"))) {
                 modelType = (COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3));
             }
         } else if (modelId == XYZAColorModelID.id()) {
@@ -338,15 +340,15 @@ quint32 IccColorSpaceEngine::computeColorSpaceType(const KoColorSpace *cs) const
         } else if (modelId == YCbCrAColorModelID.id()) {
             modelType = (COLORSPACE_SH(PT_YCbCr) | EXTRA_SH(1) | CHANNELS_SH(3));
         } else {
-            qWarning() << "Cannot convert colorspace to lcms modeltype";
+            warnPigment << "Cannot convert colorspace to lcms modeltype";
             return 0;
         }
         return depthType | modelType;
     }
 }
 
-bool IccColorSpaceEngine::supportsColorSpace(const QString &colorModelId, const QString &colorDepthId, const KoColorProfile *profile) const
+bool IccColorSpaceEngine::supportsColorSpace(const PkString &colorModelId, const PkString &colorDepthId, const KoColorProfile *profile) const
 {
-    Q_UNUSED(colorDepthId);
+    (void)colorDepthId;
     return colorModelId != RGBAColorModelID.id() || !profile || profile->name() != "High Dynamic Range UHDTV Wide Color Gamut Display (Rec. 2020) - SMPTE ST 2084 PQ EOTF";
 }

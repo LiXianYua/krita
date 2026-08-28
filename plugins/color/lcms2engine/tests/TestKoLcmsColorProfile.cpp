@@ -46,7 +46,7 @@ void TestKoLcmsColorProfile::testConversion()
     memset(&dst2, 0, 8);
 
     cmsHPROFILE sRgbProfile = cmsCreate_sRGBProfile();
-    QByteArray rawData = linearRgb->profile()->rawData();
+    PkByteArray rawData = linearRgb->profile()->rawData();
     cmsHPROFILE linearRgbProfile = cmsOpenProfileFromMem((void *)rawData.constData(), rawData.size());
 
     cmsHTRANSFORM tf = cmsCreateTransform(linearRgbProfile,
@@ -103,4 +103,20 @@ void TestKoLcmsColorProfile::testProofingConversion()
     Q_ASSERT((dst[0] == alarm[0]) && (dst[1] == alarm[1]) && (dst[2] == alarm[2]));
 
 }
+
+void TestKoLcmsColorProfile::testProfileUniqueIdHasIccMd5Size()
+{
+    const KoColorSpace *sRgb = KoColorSpaceRegistry::instance()->rgb16("sRGB built-in");
+    QVERIFY(sRgb);
+
+    const PkByteArray id = sRgb->profile()->uniqueId();
+    QCOMPARE(id.size(), static_cast<int>(sizeof(cmsProfileID)));
+
+    bool hasNonZeroByte = false;
+    for (int i = 0; i < id.size(); ++i) {
+        hasNonZeroByte = hasNonZeroByte || id.constData()[i] != 0;
+    }
+    QVERIFY(hasNonZeroByte);
+}
+
 SIMPLE_TEST_MAIN(TestKoLcmsColorProfile)

@@ -17,12 +17,12 @@ struct KoLabU8Traits;
 class LabU8ColorSpace : public LcmsColorSpace<KoLabU8Traits>
 {
 public:
-    LabU8ColorSpace(const QString &name, KoColorProfile *p);
+    LabU8ColorSpace(const PkString &name, KoColorProfile *p);
     bool willDegrade(ColorSpaceIndependence independence) const override;
 
-    static QString colorSpaceId()
+    static PkString colorSpaceId()
     {
-        return QStringLiteral("LABAU8");
+        return PkString("LABAU8");
     }
 
     KoID colorModelId() const override
@@ -36,15 +36,15 @@ public:
     }
 
     virtual KoColorSpace* clone() const;
-    void colorToXML(const quint8* pixel, QDomDocument& doc, QDomElement& colorElt) const override;
-    void colorFromXML(quint8* pixel, const QDomElement& elt) const override;
-    void toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
-    QVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
-    void toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
-    QVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
+    void colorToXML(const quint8* pixel, PkXmlDocument& doc, PkXmlElement& colorElt) const override;
+    void colorFromXML(quint8* pixel, const PkXmlElement& elt) const override;
+    void toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
+    PkVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
+    void toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
+    PkVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
     quint8 scaleToU8(const quint8 * srcPixel, qint32 channelIndex) const override;
     void convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const qint32 selectedChannelIndex) const override;
-    void convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const QBitArray selectedChannels) const override;
+    void convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const PkBitArray selectedChannels) const override;
 };
 
 class LabU8ColorSpaceFactory : public LcmsColorSpaceFactory
@@ -57,14 +57,14 @@ public:
         return true;
     }
 
-    QString id() const override
+    PkString id() const override
     {
         return LabU8ColorSpace::colorSpaceId();
     }
 
-    QString name() const override
+    PkString name() const override
     {
-        return QString("%1 (%2)").arg(LABAColorModelID.name()).arg(Integer8BitsColorDepthID.name());
+        return PkString("%1 (%2)").arg(LABAColorModelID.name()).arg(Integer8BitsColorDepthID.name());
     }
 
     KoID colorModelId() const override
@@ -87,7 +87,7 @@ public:
         return new LabU8ColorSpace(name(), p->clone());
     }
 
-    QString defaultProfile() const override
+    PkString defaultProfile() const override
     {
         return "Lab identity built-in";
     }

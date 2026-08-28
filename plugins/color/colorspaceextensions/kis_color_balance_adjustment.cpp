@@ -11,7 +11,6 @@
 #endif
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 
 #include <KoColorConversions.h>
 #include <KoColorModelStandardIds.h>
@@ -71,16 +70,16 @@ void transform(const quint8 *srcU8, quint8 *dstU8, qint32 nPixels) const overrid
 }
 
 
-QList<QString> parameters() const override
+PkList<PkString> parameters() const override
 {
-    QList<QString> list;
+    PkList<PkString> list;
     list << "cyan_red_midtones"   << "magenta_green_midtones"   << "yellow_blue_midtones"
          << "cyan_red_shadows"    << "magenta_green_shadows"    << "yellow_blue_shadows"
          << "cyan_red_highlights" << "magenta_green_highlights" << "yellow_blue_highlights" << "preserve_luminosity";
     return list;
 }
 
-int parameterId(const QString& name) const override
+int parameterId(const PkString& name) const override
 {
     if (name == "cyan_red_midtones")
         return 0;
@@ -105,7 +104,7 @@ int parameterId(const QString& name) const override
     return -1;
 }
 
-void setParameter(int id, const QVariant& parameter) override
+void setParameter(int id, const PkVariant& parameter) override
 {
     switch(id)
     {
@@ -163,17 +162,17 @@ private:
 {
 }
 
-QList< QPair< KoID, KoID > > KisColorBalanceAdjustmentFactory::supportedModels() const
+PkList< std::pair< KoID, KoID > > KisColorBalanceAdjustmentFactory::supportedModels() const
 {
-    QList< QPair< KoID, KoID > > l;
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Integer8BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Integer16BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Float16BitsColorDepthID));
-    l.append(QPair< KoID, KoID >(RGBAColorModelID , Float32BitsColorDepthID));
+    PkList< std::pair< KoID, KoID > > l;
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Integer8BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Integer16BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Float16BitsColorDepthID));
+    l.append(std::pair< KoID, KoID >(RGBAColorModelID , Float32BitsColorDepthID));
     return l;
 }
 
-KoColorTransformation* KisColorBalanceAdjustmentFactory::createTransformation(const KoColorSpace* colorSpace, QHash<QString, QVariant> parameters) const
+KoColorTransformation* KisColorBalanceAdjustmentFactory::createTransformation(const KoColorSpace* colorSpace, PkHash<PkString, PkVariant> parameters) const
 {
     KoColorTransformation * adj;
     if (colorSpace->colorModelId() != RGBAColorModelID) {

@@ -13,6 +13,7 @@ class TestKoLcmsColorProfile : public QObject
 private Q_SLOTS:
     void testConversion();
     void testProofingConversion();
+    void testProfileUniqueIdHasIccMd5Size();
 
 };
 

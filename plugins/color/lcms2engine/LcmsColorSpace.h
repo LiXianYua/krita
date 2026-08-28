@@ -11,6 +11,7 @@
 #define KOLCMSCOLORSPACE_H_
 
 #include <array>
+#include <PkMap.h>
 #include <kis_lockless_stack.h>
 #include <KoColorSpaceAbstract.h>
 
@@ -60,7 +61,7 @@ struct KoLcmsDefaultTransformations {
     cmsHTRANSFORM toRGB16;
     cmsHTRANSFORM fromRGB;
     static cmsHPROFILE s_RGBProfile;
-    static QMap< QString, QMap< LcmsColorProfileContainer *, KoLcmsDefaultTransformations * > > s_transformations;
+    static PkMap< PkString, PkMap< LcmsColorProfileContainer *, KoLcmsDefaultTransformations * > > s_transformations;
 };
 
 /**
@@ -156,7 +157,7 @@ class LcmsColorSpace : public KoColorSpaceAbstract<_CSTraits>, public KoLcmsInfo
         }
     };
 
-    typedef QSharedPointer<KisLcmsLastTransformation> KisLcmsLastTransformationSP;
+    typedef PkSharedPointer<KisLcmsLastTransformation> KisLcmsLastTransformationSP;
 
     typedef KisLocklessStack<KisLcmsLastTransformationSP> KisLcmsTransformationStack;
 
@@ -173,8 +174,8 @@ class LcmsColorSpace : public KoColorSpaceAbstract<_CSTraits>, public KoLcmsInfo
 
 protected:
 
-    LcmsColorSpace(const QString &id,
-                   const QString &name,
+    LcmsColorSpace(const PkString &id,
+                   const PkString &name,
                    cmsUInt32Number cmType,
                    cmsColorSpaceSignature colorSpaceSignature,
                    KoColorProfile *p)
@@ -182,10 +183,10 @@ protected:
         , KoLcmsInfo(cmType, colorSpaceSignature)
         , d(new Private())
     {
-        Q_ASSERT(p); // No profile means the lcms color space can't work
-        Q_ASSERT(profileIsCompatible(p));
+        KIS_ASSERT(p); // No profile means the lcms color space can't work
+        KIS_ASSERT(profileIsCompatible(p));
         d->profile = asLcmsProfile(p);
-        Q_ASSERT(d->profile);
+        KIS_ASSERT(d->profile);
         d->colorProfile = p;
         d->defaultTransformations = 0;
     }
@@ -259,7 +260,7 @@ public:
         return (p && p->asLcms()->colorSpaceSignature() == colorSpaceSignature());
     }
 
-    void fromQColor(const QColor &color, quint8 *dst) const override
+    void fromQColor(const PkColor &color, quint8 *dst) const override
     {
         std::array<quint8, 3> qcolordata;
 
@@ -274,7 +275,7 @@ public:
         this->setOpacity(dst, static_cast<quint8>(color.alpha()), 1);
     }
 
-    void toQColor(const quint8 *src, QColor *color) const override
+    void toQColor(const quint8 *src, PkColor *color) const override
     {
         std::array<quint8, 3> qcolordata;
 
@@ -286,15 +287,19 @@ public:
         color->setAlpha(this->opacityU8(src));
     }
 
-    void toQColor16(const quint8 *src, QColor *color) const override
+    void toQColor16(const quint8 *src, PkColor *color) const override
     {
         std::array<quint16, 3> qcolordata;
 
         // Default sRGB transform
-        Q_ASSERT(d->defaultTransformations && d->defaultTransformations->toRGB16);
+        KIS_ASSERT(d->defaultTransformations && d->defaultTransformations->toRGB16);
         cmsDoTransform(d->defaultTransformations->toRGB16, src, qcolordata.data(), 1);
 
-        color->setRgba64(QRgba64::fromRgba64(qcolordata[2], qcolordata[1], qcolordata[0], 0x0000));
+        const PkColor::WireState rgba64 {
+            PkColor::Rgb,
+            {0x0000, qcolordata[2], qcolordata[1], qcolordata[0], 0x0000}
+        };
+        *color = PkColor::fromWireState(rgba64);
         color->setAlpha(this->opacityU8(src));
     }
 
@@ -368,7 +373,7 @@ public:
                 || this->opacityU8(src2) == OPACITY_TRANSPARENT_U8) {
             return (this->opacityU8(src1) == this->opacityU8(src2) ? 0 : 255);
         }
-        Q_ASSERT(this->toLabA16Converter());
+        KIS_ASSERT(this->toLabA16Converter());
         this->toLabA16Converter()->transform(src1, lab1, 1);
         this->toLabA16Converter()->transform(src2, lab2, 1);
         cmsLabEncoded2Float(&labF1, (cmsUInt16Number *)lab1);
@@ -396,7 +401,7 @@ public:
             const qreal alphaScale = 100.0 / 255.0;
             return qRound(alphaScale * qAbs(this->opacityU8(src1) - this->opacityU8(src2)));
         }
-        Q_ASSERT(this->toLabA16Converter());
+        KIS_ASSERT(this->toLabA16Converter());
         this->toLabA16Converter()->transform(src1, lab1, 1);
         this->toLabA16Converter()->transform(src2, lab2, 1);
         cmsLabEncoded2Float(&labF1, (cmsUInt16Number *)lab1);
@@ -445,7 +450,7 @@ private:
             return 0;
         }
 
-        Q_ASSERT(iccp->asLcms());
+        KIS_ASSERT(iccp->asLcms());
 
         return iccp->asLcms();
     }
@@ -470,7 +475,7 @@ public:
         return (p && p->asLcms()->colorSpaceSignature() == colorSpaceSignature());
     }
 
-    QString colorSpaceEngine() const override
+    PkString colorSpaceEngine() const override
     {
         return "icc";
     }
@@ -484,8 +489,8 @@ public:
         return 1;
     }
 
-    QList<KoColorConversionTransformationFactory *> colorConversionLinks() const override;
-    KoColorProfile *createColorProfile(const QByteArray &rawData) const override;
+    PkList<KoColorConversionTransformationFactory *> colorConversionLinks() const override;
+    KoColorProfile *createColorProfile(const PkByteArray &rawData) const override;
 };
 
 #endif

@@ -125,7 +125,7 @@ void TestIccFromColorimetryConversion::testRequestConstructionCustomPrimaries()
     ColorSpace  colorSpace;
     colorSpace.primaries = Colorimetry::BT709;
     colorSpace.transferFunction = NamedTransferFunction::transfer_function_srgb;
-    const QVector<double> expectedColorants = {
+    const PkVector<double> expectedColorants = {
         0.3127, 0.3290, // white
         0.64, 0.33, // red
         0.30, 0.60, // green

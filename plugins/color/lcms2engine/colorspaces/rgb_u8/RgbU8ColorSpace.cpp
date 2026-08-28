@@ -7,10 +7,9 @@
  */
 #include "RgbU8ColorSpace.h"
 
-#include <QColor>
-#include <QDomElement>
+#include <PkColor.h>
+#include <PkXmlElement.h>
 
-#include <klocalizedstring.h>
 
 #include "compositeops/KoCompositeOps.h"
 #include "compositeops/RgbCompositeOps.h"
@@ -24,13 +23,13 @@
 #define downscale(quantum)  (quantum) //((unsigned char) ((quantum)/257UL))
 #define upscale(value)  (value) // ((quint8) (257UL*(value)))
 
-RgbU8ColorSpace::RgbU8ColorSpace(const QString &name, KoColorProfile *p) :
+RgbU8ColorSpace::RgbU8ColorSpace(const PkString &name, KoColorProfile *p) :
     LcmsColorSpace<KoBgrU8Traits>(colorSpaceId(), name, TYPE_BGRA_8, cmsSigRgbData, p)
 {
-    addChannel(new KoChannelInfo(i18n("Blue"), 0, 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, QColor(0, 0, 255)));
-    addChannel(new KoChannelInfo(i18n("Green"), 1, 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, QColor(0, 255, 0)));
-    addChannel(new KoChannelInfo(i18n("Red"), 2, 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, QColor(255, 0, 0)));
-    addChannel(new KoChannelInfo(i18n("Alpha"), 3, 3, KoChannelInfo::ALPHA, KoChannelInfo::UINT8));
+    addChannel(new KoChannelInfo(PkString("Blue"), 0, 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, PkColor(0, 0, 255)));
+    addChannel(new KoChannelInfo(PkString("Green"), 1, 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, PkColor(0, 255, 0)));
+    addChannel(new KoChannelInfo(PkString("Red"), 2, 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, PkColor(255, 0, 0)));
+    addChannel(new KoChannelInfo(PkString("Alpha"), 3, 3, KoChannelInfo::ALPHA, KoChannelInfo::UINT8));
 
     init();
 
@@ -47,10 +46,10 @@ KoColorSpace *RgbU8ColorSpace::clone() const
     return new RgbU8ColorSpace(name(), profile()->clone());
 }
 
-void RgbU8ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const
+void RgbU8ColorSpace::colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const
 {
     const KoBgrU8Traits::Pixel *p = reinterpret_cast<const KoBgrU8Traits::Pixel *>(pixel);
-    QDomElement labElt = doc.createElement("RGB");
+    PkXmlElement labElt = doc.createElement("RGB");
     labElt.setAttribute("r", KisDomUtils::toString(KoColorSpaceMaths< KoBgrU8Traits::channels_type, qreal>::scaleToA(p->red)));
     labElt.setAttribute("g", KisDomUtils::toString(KoColorSpaceMaths< KoBgrU8Traits::channels_type, qreal>::scaleToA(p->green)));
     labElt.setAttribute("b", KisDomUtils::toString(KoColorSpaceMaths< KoBgrU8Traits::channels_type, qreal>::scaleToA(p->blue)));
@@ -58,7 +57,7 @@ void RgbU8ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomEle
     colorElt.appendChild(labElt);
 }
 
-void RgbU8ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
+void RgbU8ColorSpace::colorFromXML(quint8 *pixel, const PkXmlElement &elt) const
 {
     KoBgrU8Traits::Pixel *p = reinterpret_cast<KoBgrU8Traits::Pixel *>(pixel);
     p->red = KoColorSpaceMaths< qreal, KoBgrU8Traits::channels_type >::scaleToA(KisDomUtils::toDouble(elt.attribute("r")));
@@ -84,46 +83,46 @@ qreal RgbU8ColorSpace::intensityF(const quint8 *src) const
     return static_cast<qreal>(p->red * 30 + p->green * 59 + p->blue * 11) / (100.0 * 255.0);
 }
 
-void RgbU8ColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
+void RgbU8ColorSpace::toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
 {
     RGBToHSY(channelValues[0],channelValues[1],channelValues[2], hue, sat, luma, lumaCoefficients()[0], lumaCoefficients()[1], lumaCoefficients()[2]);
 }
 
-QVector <double> RgbU8ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
+PkVector <double> RgbU8ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
     HSYToRGB(*hue, *sat, *luma, &channelValues[0],&channelValues[1],&channelValues[2], lumaCoefficients()[0], lumaCoefficients()[1], lumaCoefficients()[2]);
     channelValues[3]=1.0;
     return channelValues;
 }
 
-void RgbU8ColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
+void RgbU8ColorSpace::toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
 {
 
     
     RGBToYUV(channelValues[0],channelValues[1],channelValues[2], y, u, v, lumaCoefficients()[0], lumaCoefficients()[1], lumaCoefficients()[2]);
 }
 
-QVector <double> RgbU8ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
+PkVector <double> RgbU8ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
 
     YUVToRGB(*y, *u, *v, &channelValues[0],&channelValues[1],&channelValues[2], lumaCoefficients()[0], lumaCoefficients()[1], lumaCoefficients()[2]);
     channelValues[3]=1.0;
     return channelValues;
 }
 
-void RgbU8ColorSpace::fillGrayBrushWithColorAndLightnessOverlay(quint8* dst, const QRgb* brush, quint8* brushColor, qint32 nPixels) const
+void RgbU8ColorSpace::fillGrayBrushWithColorAndLightnessOverlay(quint8* dst, const PkRgb* brush, quint8* brushColor, qint32 nPixels) const
 {
     fillGrayBrushWithColorPreserveLightnessRGB<KoBgrU8Traits>(dst, brush, brushColor, 1.0, nPixels);
 }
 
-void RgbU8ColorSpace::fillGrayBrushWithColorAndLightnessWithStrength(quint8* dst, const QRgb* brush, quint8* brushColor, qreal strength, qint32 nPixels) const
+void RgbU8ColorSpace::fillGrayBrushWithColorAndLightnessWithStrength(quint8* dst, const PkRgb* brush, quint8* brushColor, qreal strength, qint32 nPixels) const
 {
     fillGrayBrushWithColorPreserveLightnessRGB<KoBgrU8Traits>(dst, brush, brushColor, strength, nPixels);
 }
 
-void RgbU8ColorSpace::modulateLightnessByGrayBrush(quint8 *dst, const QRgb *brush, qreal strength, qint32 nPixels) const
+void RgbU8ColorSpace::modulateLightnessByGrayBrush(quint8 *dst, const PkRgb *brush, qreal strength, qint32 nPixels) const
 {
     modulateLightnessByGrayBrushRGB<KoBgrU8Traits>(dst, brush, strength, nPixels);
 }

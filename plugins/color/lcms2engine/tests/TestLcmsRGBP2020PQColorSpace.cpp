@@ -16,7 +16,7 @@
 #include "KoColor.h"
 #include "KoColorModelStandardIds.h"
 
-inline QString truncated(QString value) {
+inline PkString truncated(PkString value) {
     value.truncate(24);
     return value;
 }
@@ -37,7 +37,7 @@ void testRoundTrip(const KoColorSpace *srcCS, const KoColorSpace *dstCS, SourceT
     KoColor srcColor(srcCS);
     KoColor dstColor(dstCS);
 
-    QVector<float> refChannels;
+    PkVector<float> refChannels;
 
     if (sourceIsPQ == HDR) {
         refChannels << 2.8; // R
@@ -66,10 +66,10 @@ void testRoundTrip(const KoColorSpace *srcCS, const KoColorSpace *dstCS, SourceT
                            KoColorConversionTransformation::internalRenderingIntent(),
                            KoColorConversionTransformation::internalConversionFlags());
 
-    QVector<float> result(4);
+    PkVector<float> result(4);
     srcCS->normalisedChannelsValue(srcColor.data(), result);
 
-    const QList<KoChannelInfo*> channels = srcCS->channels();
+    const PkList<KoChannelInfo*> channels = srcCS->channels();
 
     // 5% tolerance for CMYK, 4% for 8-bit, and 1% for everything else
     const float tolerance =
@@ -117,11 +117,11 @@ void TestLcmsRGBP2020PQColorSpace::test()
     QVERIFY(p2020G10Profile);
     QVERIFY(p709G10Profile);
 
-    QVector<KoID> linearModes;
+    PkVector<KoID> linearModes;
     linearModes << Float16BitsColorDepthID;
     linearModes << Float32BitsColorDepthID;
 
-    QVector<KoID> pqModes;
+    PkVector<KoID> pqModes;
     pqModes << Integer8BitsColorDepthID;
     pqModes << Integer16BitsColorDepthID;
     pqModes << Float16BitsColorDepthID;
@@ -144,7 +144,7 @@ void TestLcmsRGBP2020PQColorSpace::testInternalConversions()
 {
     const KoColorProfile *p2020PQProfile = KoColorSpaceRegistry::instance()->p2020PQProfile();
 
-    QVector<KoID> pqModes;
+    PkVector<KoID> pqModes;
     pqModes << Integer16BitsColorDepthID;
     pqModes << Float16BitsColorDepthID;
     pqModes << Float32BitsColorDepthID;

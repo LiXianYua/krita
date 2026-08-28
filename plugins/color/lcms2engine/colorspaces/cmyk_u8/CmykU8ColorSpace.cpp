@@ -7,24 +7,22 @@
 
 #include "CmykU8ColorSpace.h"
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 
-#include <QDebug>
-#include <klocalizedstring.h>
 
 #include "compositeops/KoCompositeOps.h"
 #include "dithering/KisCmykDitherOpFactory.h"
 #include <KoColorConversions.h>
 #include <kis_dom_utils.h>
 
-CmykU8ColorSpace::CmykU8ColorSpace(const QString &name, KoColorProfile *p)
+CmykU8ColorSpace::CmykU8ColorSpace(const PkString &name, KoColorProfile *p)
     : LcmsColorSpace<KoCmykU8Traits>(colorSpaceId(), name, TYPE_CMYKA_8, cmsSigCmykData, p)
 {
-    addChannel(new KoChannelInfo(i18n("Cyan"), 0 * sizeof(quint8), 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), Qt::cyan));
-    addChannel(new KoChannelInfo(i18n("Magenta"), 1 * sizeof(quint8), 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), Qt::magenta));
-    addChannel(new KoChannelInfo(i18n("Yellow"), 2 * sizeof(quint8), 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), Qt::yellow));
-    addChannel(new KoChannelInfo(i18n("Black"), 3 * sizeof(quint8), 3, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), Qt::black));
-    addChannel(new KoChannelInfo(i18n("Alpha"), 4 * sizeof(quint8), 4, KoChannelInfo::ALPHA, KoChannelInfo::UINT8, sizeof(quint8)));
+    addChannel(new KoChannelInfo(PkString("Cyan"), 0 * sizeof(quint8), 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), PkColor(0, 255, 255)));
+    addChannel(new KoChannelInfo(PkString("Magenta"), 1 * sizeof(quint8), 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), PkColor(255, 0, 255)));
+    addChannel(new KoChannelInfo(PkString("Yellow"), 2 * sizeof(quint8), 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), PkColor(255, 255, 0)));
+    addChannel(new KoChannelInfo(PkString("Black"), 3 * sizeof(quint8), 3, KoChannelInfo::COLOR, KoChannelInfo::UINT8, sizeof(quint8), PkColor(0, 0, 0)));
+    addChannel(new KoChannelInfo(PkString("Alpha"), 4 * sizeof(quint8), 4, KoChannelInfo::ALPHA, KoChannelInfo::UINT8, sizeof(quint8)));
 
     init();
 
@@ -46,10 +44,10 @@ KoColorSpace *CmykU8ColorSpace::clone() const
     return new CmykU8ColorSpace(name(), profile()->clone());
 }
 
-void CmykU8ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomElement &colorElt) const
+void CmykU8ColorSpace::colorToXML(const quint8 *pixel, PkXmlDocument &doc, PkXmlElement &colorElt) const
 {
     const KoCmykU8Traits::Pixel *p = reinterpret_cast<const KoCmykU8Traits::Pixel *>(pixel);
-    QDomElement labElt = doc.createElement("CMYK");
+    PkXmlElement labElt = doc.createElement("CMYK");
     labElt.setAttribute("c", KisDomUtils::toString(KoColorSpaceMaths<KoCmykU8Traits::channels_type, qreal>::scaleToA(p->cyan)));
     labElt.setAttribute("m", KisDomUtils::toString(KoColorSpaceMaths<KoCmykU8Traits::channels_type, qreal>::scaleToA(p->magenta)));
     labElt.setAttribute("y", KisDomUtils::toString(KoColorSpaceMaths<KoCmykU8Traits::channels_type, qreal>::scaleToA(p->yellow)));
@@ -58,7 +56,7 @@ void CmykU8ColorSpace::colorToXML(const quint8 *pixel, QDomDocument &doc, QDomEl
     colorElt.appendChild(labElt);
 }
 
-void CmykU8ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
+void CmykU8ColorSpace::colorFromXML(quint8 *pixel, const PkXmlElement &elt) const
 {
     KoCmykU8Traits::Pixel *p = reinterpret_cast<KoCmykU8Traits::Pixel *>(pixel);
     p->cyan = KoColorSpaceMaths< qreal, KoCmykU8Traits::channels_type >::scaleToA(KisDomUtils::toDouble(elt.attribute("c")));
@@ -68,7 +66,7 @@ void CmykU8ColorSpace::colorFromXML(quint8 *pixel, const QDomElement &elt) const
     p->alpha = KoColorSpaceMathsTraits<quint8>::max;
 }
 
-void CmykU8ColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
+void CmykU8ColorSpace::toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
 {
     qreal c0 = channelValues[0];
     qreal c1 = channelValues[1];
@@ -82,9 +80,9 @@ void CmykU8ColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, q
     RGBToHSI(c0, c1, c2, hue, sat, luma);
 }
 
-QVector <double> CmykU8ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
+PkVector <double> CmykU8ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
 {
-    QVector <double> channelValues(5);
+    PkVector <double> channelValues(5);
     channelValues.fill(1.0);
     HSIToRGB(*hue, *sat, *luma, &channelValues[0],&channelValues[1],&channelValues[2]);
     channelValues[0] = qBound(0.0,1.0-channelValues[0],1.0);
@@ -94,7 +92,7 @@ QVector <double> CmykU8ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) 
     return channelValues;
 }
 
-void CmykU8ColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
+void CmykU8ColorSpace::toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
 {
     qreal c0 = channelValues[0];
     qreal c1 = channelValues[1];
@@ -107,9 +105,9 @@ void CmykU8ColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qre
     RGBToYUV(c0, c1, c2, y, u, v, 0.33, 0.33, 0.33);
 }
 
-QVector <double> CmykU8ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
+PkVector <double> CmykU8ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
 {
-    QVector <double> channelValues(5);
+    PkVector <double> channelValues(5);
     channelValues.fill(1.0);
     YUVToRGB(*y, *u, *v, &channelValues[0],&channelValues[1],&channelValues[2], 0.33, 0.33, 0.33);
     channelValues[0] = qBound(0.0,1.0-channelValues[0],1.0);

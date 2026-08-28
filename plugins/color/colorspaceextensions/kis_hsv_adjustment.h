@@ -15,9 +15,9 @@ public:
 
     KisHSVAdjustmentFactory();
 
-    QList< QPair< KoID, KoID > > supportedModels() const override;
+    PkList< std::pair< KoID, KoID > > supportedModels() const override;
 
-    KoColorTransformation* createTransformation(const KoColorSpace* colorSpace, QHash<QString, QVariant> parameters) const override;
+    KoColorTransformation* createTransformation(const KoColorSpace* colorSpace, PkHash<PkString, PkVariant> parameters) const override;
 
 };
 
@@ -27,9 +27,9 @@ public:
 
     KisHSVCurveAdjustmentFactory();
 
-    QList< QPair< KoID, KoID > > supportedModels() const override;
+    PkList< std::pair< KoID, KoID > > supportedModels() const override;
 
-    KoColorTransformation* createTransformation(const KoColorSpace* colorSpace, QHash<QString, QVariant> parameters) const override;
+    KoColorTransformation* createTransformation(const KoColorSpace* colorSpace, PkHash<PkString, PkVariant> parameters) const override;
 
 };
 

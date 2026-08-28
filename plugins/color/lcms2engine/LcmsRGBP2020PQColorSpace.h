@@ -66,7 +66,7 @@ template<> struct NextTrait<KoBgrU16Traits> { using type = KoRgbF32Traits; };
  * space has exactly three outgoing edges for color conversion.
  */
 template<typename ParentColorSpace, typename CurrentTraits>
-void addInternalConversion(QList<KoColorConversionTransformationFactory*> &list, CurrentTraits*)
+void addInternalConversion(PkList<KoColorConversionTransformationFactory*> &list, CurrentTraits*)
 {
     // general case: add a converter and recurse for the next traits
     list << new LcmsScaleRGBP2020PQTransformationFactory<ParentColorSpace, CurrentTraits>();
@@ -76,7 +76,7 @@ void addInternalConversion(QList<KoColorConversionTransformationFactory*> &list,
 }
 
 template<typename ParentColorSpace>
-void addInternalConversion(QList<KoColorConversionTransformationFactory*> &list, typename ParentColorSpace::ColorSpaceTraits*)
+void addInternalConversion(PkList<KoColorConversionTransformationFactory*> &list, typename ParentColorSpace::ColorSpaceTraits*)
 {
     // exception: skip adding an edge to the same bit depth
 
@@ -86,7 +86,7 @@ void addInternalConversion(QList<KoColorConversionTransformationFactory*> &list,
 }
 
 template<typename ParentColorSpace>
-void addInternalConversion(QList<KoColorConversionTransformationFactory*> &, void*)
+void addInternalConversion(PkList<KoColorConversionTransformationFactory*> &, void*)
 {
     // stop recursion
 }
@@ -105,9 +105,9 @@ class LcmsRGBP2020PQColorSpaceFactoryWrapper : public BaseColorSpaceFactory
         return this->colorDepthId() != Integer8BitsColorDepthID;
     }
 
-    QList<KoColorConversionTransformationFactory *> colorConversionLinks() const override
+    PkList<KoColorConversionTransformationFactory *> colorConversionLinks() const override
     {
-        QList<KoColorConversionTransformationFactory *> list;
+        PkList<KoColorConversionTransformationFactory *> list;
 
         /**
          * We explicitly disable direct conversions to/from integer color spaces, because
