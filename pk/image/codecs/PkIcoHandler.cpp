@@ -111,13 +111,20 @@ PkImage decodeDib(const uint8_t *data, std::size_t size)
     const std::size_t maskRow = static_cast<std::size_t>(maskRow64);
     const uint64_t xorBytes64 = xorRow64 * static_cast<uint64_t>(height);
     const uint64_t maskBytes64 = maskRow64 * static_cast<uint64_t>(height);
-    if (xorBytes64 > size || maskBytes64 > size ||
-        !range(position, static_cast<std::size_t>(xorBytes64), size) ||
-        !range(position + static_cast<std::size_t>(xorBytes64), static_cast<std::size_t>(maskBytes64), size)) {
+    if (xorBytes64 > size ||
+        !range(position, static_cast<std::size_t>(xorBytes64), size)) {
         return PkImage();
     }
     const uint8_t *xorData = data + position;
-    const uint8_t *maskData = xorData + static_cast<std::size_t>(xorBytes64);
+    const uint8_t *maskData = nullptr;
+    if (bits != 32) {
+        if (maskBytes64 > size ||
+            !range(position + static_cast<std::size_t>(xorBytes64),
+                   static_cast<std::size_t>(maskBytes64), size)) {
+            return PkImage();
+        }
+        maskData = xorData + static_cast<std::size_t>(xorBytes64);
+    }
 
     PkImage image(width, height, PkImage::Format_ARGB32);
     if (image.isNull()) return PkImage();
@@ -179,25 +186,12 @@ PkImage decodeIco(const uint8_t *data, std::size_t size)
     if (!isIco(data, size)) return PkImage();
     const uint16_t count = u16(data + 4);
     if (count > 1024 || !range(6, static_cast<std::size_t>(count) * 16u, size)) return PkImage();
-    std::size_t best = size;
-    uint64_t bestArea = 0;
-    unsigned bestDepth = 0;
-    for (uint16_t index = 0; index < count; ++index) {
-        const std::size_t entry = 6u + static_cast<std::size_t>(index) * 16u;
-        const unsigned width = data[entry] ? data[entry] : 256u;
-        const unsigned height = data[entry + 1] ? data[entry + 1] : 256u;
-        const unsigned depth = u16(data + entry + 6);
-        const uint32_t bytes = u32(data + entry + 8);
-        const uint32_t offset = u32(data + entry + 12);
-        if (bytes == 0 || !range(offset, bytes, size)) continue;
-        const uint64_t area = static_cast<uint64_t>(width) * height;
-        if (best == size || area > bestArea || (area == bestArea && depth > bestDepth)) {
-            best = entry; bestArea = area; bestDepth = depth;
-        }
-    }
-    if (best == size) return PkImage();
-    const uint32_t bytes = u32(data + best + 8);
-    const uint32_t offset = u32(data + best + 12);
+    // QtIcoHandler starts at current image index zero and an ordinary read
+    // never scans for a larger or deeper directory entry.
+    const std::size_t entry = 6u;
+    const uint32_t bytes = u32(data + entry + 8);
+    const uint32_t offset = u32(data + entry + 12);
+    if (bytes == 0 || !range(offset, bytes, size)) return PkImage();
     const uint8_t *payload = data + offset;
     if (bytes >= 8 && payload[0] == 0x89 && payload[1] == 'P' && payload[2] == 'N' && payload[3] == 'G') {
         return PkImageFileDecoder::decode(payload, bytes, "embedded.png");

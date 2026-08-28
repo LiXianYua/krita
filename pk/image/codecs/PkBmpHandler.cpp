@@ -133,7 +133,7 @@ bool decodeRle(Cursor &cursor, PkImage &image, int width, int height, bool topDo
             continue;
         }
         if (command == 0) { x = 0; if (++row > height) return false; continue; }
-        if (command == 1) return row < height;
+        if (command == 1) return row <= height;
         if (command == 2) {
             uint8_t dx = 0, dy = 0;
             if (!cursor.u8(dx) || !cursor.u8(dy)) return false;

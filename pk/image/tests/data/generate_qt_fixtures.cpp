@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -50,6 +51,62 @@ std::vector<uint8_t> bmp24(int32_t width, int32_t height)
     return bytes;
 }
 
+std::vector<uint8_t> bmpRle(uint16_t bits)
+{
+    const bool rle8 = bits == 8;
+    const uint32_t paletteCount = rle8 ? 2u : 3u;
+    const uint32_t pixelOffset = 14u + 40u + paletteCount * 4u;
+    const std::vector<uint8_t> encoded = rle8
+        ? std::vector<uint8_t>{2, 1, 0, 0, 0, 1}
+        : std::vector<uint8_t>{2, 0x12, 0, 0, 0, 1};
+    std::vector<uint8_t> bytes;
+    bytes.push_back('B'); bytes.push_back('M');
+    u32(bytes, pixelOffset + static_cast<uint32_t>(encoded.size()));
+    u32(bytes, 0); u32(bytes, pixelOffset);
+    u32(bytes, 40); u32(bytes, 2); u32(bytes, 1);
+    u16(bytes, 1); u16(bytes, bits); u32(bytes, rle8 ? 1u : 2u);
+    u32(bytes, static_cast<uint32_t>(encoded.size()));
+    u32(bytes, 0); u32(bytes, 0); u32(bytes, paletteCount); u32(bytes, 0);
+    bytes.insert(bytes.end(), {0, 0, 0, 0, 0, 0, 255, 0});
+    if (!rle8) bytes.insert(bytes.end(), {0, 255, 0, 0});
+    bytes.insert(bytes.end(), encoded.begin(), encoded.end());
+    return bytes;
+}
+
+std::vector<uint8_t> dib32(uint32_t width, uint32_t height,
+                           const std::vector<uint8_t> &bgra, bool includeMask)
+{
+    std::vector<uint8_t> dib;
+    u32(dib, 40); u32(dib, width); u32(dib, height * 2u);
+    u16(dib, 1); u16(dib, 32); u32(dib, 0); u32(dib, static_cast<uint32_t>(bgra.size()));
+    u32(dib, 0); u32(dib, 0); u32(dib, 0); u32(dib, 0);
+    dib.insert(dib.end(), bgra.begin(), bgra.end());
+    if (includeMask) {
+        const std::size_t maskRow = ((static_cast<std::size_t>(width) + 31u) / 32u) * 4u;
+        dib.insert(dib.end(), maskRow * height, 0);
+    }
+    return dib;
+}
+
+std::vector<uint8_t> iconFromDibs(uint16_t type,
+                                  const std::vector<std::vector<uint8_t>> &dibs,
+                                  const std::vector<std::pair<uint8_t, uint8_t>> &sizes)
+{
+    std::vector<uint8_t> bytes;
+    u16(bytes, 0); u16(bytes, type); u16(bytes, static_cast<uint16_t>(dibs.size()));
+    uint32_t offset = 6u + static_cast<uint32_t>(dibs.size()) * 16u;
+    for (std::size_t i = 0; i < dibs.size(); ++i) {
+        bytes.push_back(sizes[i].first); bytes.push_back(sizes[i].second);
+        bytes.push_back(0); bytes.push_back(0);
+        if (type == 1) { u16(bytes, 1); u16(bytes, 32); }
+        else { u16(bytes, static_cast<uint16_t>(i + 3)); u16(bytes, static_cast<uint16_t>(i + 5)); }
+        u32(bytes, static_cast<uint32_t>(dibs[i].size())); u32(bytes, offset);
+        offset += static_cast<uint32_t>(dibs[i].size());
+    }
+    for (const std::vector<uint8_t> &dib : dibs) bytes.insert(bytes.end(), dib.begin(), dib.end());
+    return bytes;
+}
+
 std::vector<uint8_t> icon(uint16_t type)
 {
     std::vector<uint8_t> dib;
@@ -94,6 +151,8 @@ int main(int argc, char **argv)
         "\"2 1 2 1\",\n\"R c #ff0000\",\n\". c None\",\n\"R.\"\n};\n";
     const std::vector<uint8_t> ico = icon(1);
     const std::vector<uint8_t> cur = icon(2);
+    const std::vector<uint8_t> noMaskRed = dib32(1, 1, {0, 0, 255, 255}, false);
+    const std::vector<uint8_t> larger = dib32(2, 1, {0, 255, 0, 255, 255, 0, 0, 255}, false);
     std::vector<uint8_t> zeroAlphaIco = ico;
     zeroAlphaIco[22 + 40 + 3] = 0;
     zeroAlphaIco[22 + 40 + 7] = 0;
@@ -101,6 +160,8 @@ int main(int argc, char **argv)
     masked32Ico[22 + 40 + 8] = 0x80;
 
     write(out / "valid.bmp", bmp);
+    write(out / "valid-rle4.bmp", bmpRle(4));
+    write(out / "valid-rle8.bmp", bmpRle(8));
     writeText(out / "valid.pbm", pbm);
     writeText(out / "valid.pgm", pgm);
     writeText(out / "valid.ppm", ppm);
@@ -110,8 +171,15 @@ int main(int argc, char **argv)
                                   255, 0, 0, 0, 255, 0});
     writeText(out / "valid.xbm", xbm);
     writeText(out / "valid.xpm", xpm);
+    writeText(out / "named-colors.xpm",
+              "/* XPM */\nstatic const char *named[] = {\n"
+              "\"2 1 2 1\",\n\"A c aliceblue\",\n\"G c green\",\n\"AG\"\n};\n");
     write(out / "valid.ico", ico);
     write(out / "valid.cur", cur);
+    write(out / "no-mask-32.ico", iconFromDibs(1, {noMaskRed}, {{1, 1}}));
+    write(out / "no-mask-32.cur", iconFromDibs(2, {noMaskRed}, {{1, 1}}));
+    write(out / "multi.ico", iconFromDibs(1, {noMaskRed, larger}, {{1, 1}, {2, 1}}));
+    write(out / "multi.cur", iconFromDibs(2, {noMaskRed, larger}, {{1, 1}, {2, 1}}));
     write(out / "zero-alpha.ico", zeroAlphaIco);
     write(out / "masked-32.ico", masked32Ico);
 

@@ -401,6 +401,52 @@ void ico32BitAlphaIsAuthoritativeLikeQt()
            "32-bit ICO alpha must remain authoritative when the legacy AND mask disagrees");
 }
 
+void canonicalRleBmpTerminalEolMatchesQtOracle()
+{
+    const PkImage rle4 = PkImageFileDecoder::load(
+        std::string(PKIMAGE_TEST_DATA_DIR) + "/valid-rle4.bmp");
+    expect(!rle4.isNull() && rle4.width() == 2 && rle4.height() == 1 &&
+               rle4.pixel(0, 0) == 0xFFFF0000u && rle4.pixel(1, 0) == 0xFF00FF00u,
+           "RLE4 final EOL followed by EOB must preserve Qt-oracle pixels");
+
+    const PkImage rle8 = PkImageFileDecoder::load(
+        std::string(PKIMAGE_TEST_DATA_DIR) + "/valid-rle8.bmp");
+    expect(!rle8.isNull() && rle8.width() == 2 && rle8.height() == 1 &&
+               rle8.pixel(0, 0) == 0xFFFF0000u && rle8.pixel(1, 0) == 0xFFFF0000u,
+           "RLE8 final EOL followed by EOB must preserve Qt-oracle pixels");
+}
+
+void xpmNamedColorsMatchQtTable()
+{
+    const PkImage image = PkImageFileDecoder::load(
+        std::string(PKIMAGE_TEST_DATA_DIR) + "/named-colors.xpm");
+    expect(!image.isNull() && image.width() == 2 && image.height() == 1 &&
+               image.pixel(0, 0) == 0xFFF0F8FFu && image.pixel(1, 0) == 0xFF00FF00u,
+           "XPM aliceblue and green must use the Qt 5.15 XPM color table");
+}
+
+void ico32BitPayloadWithoutMaskMatchesQtOracle()
+{
+    for (const char *file : {"no-mask-32.ico", "no-mask-32.cur"}) {
+        const PkImage image = PkImageFileDecoder::load(
+            std::string(PKIMAGE_TEST_DATA_DIR) + "/" + file);
+        expect(!image.isNull() && image.width() == 1 && image.height() == 1 &&
+                   image.pixel(0, 0) == 0xFFFF0000u,
+               (std::string(file) + " must decode without a legacy AND mask").c_str());
+    }
+}
+
+void icoDefaultReadUsesFirstDirectoryEntryLikeQt()
+{
+    for (const char *file : {"multi.ico", "multi.cur"}) {
+        const PkImage image = PkImageFileDecoder::load(
+            std::string(PKIMAGE_TEST_DATA_DIR) + "/" + file);
+        expect(!image.isNull() && image.width() == 1 && image.height() == 1 &&
+                   image.pixel(0, 0) == 0xFFFF0000u,
+               (std::string(file) + " default read must use directory entry zero").c_str());
+    }
+}
+
 void qtPortedHandlersPublishExtensionsAndSniffContent()
 {
     const std::vector<uint8_t> bmp = readFixture("valid.bmp");
@@ -435,6 +481,10 @@ int main()
     qtPortedHandlersRejectMalformedTruncatedAndOverflow();
     rawPnmVariantsMatchQtOracle();
     ico32BitAlphaIsAuthoritativeLikeQt();
+    canonicalRleBmpTerminalEolMatchesQtOracle();
+    xpmNamedColorsMatchQtTable();
+    ico32BitPayloadWithoutMaskMatchesQtOracle();
+    icoDefaultReadUsesFirstDirectoryEntryLikeQt();
     qtPortedHandlersPublishExtensionsAndSniffContent();
 
     if (failures == 0) {
