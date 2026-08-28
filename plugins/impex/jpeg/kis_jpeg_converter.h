@@ -14,6 +14,9 @@ extern "C" {
 }
 
 #include <PkColor.h>
+#include <PkList.h>
+#include <PkScopedPointer.h>
+#include <PkStream.h>
 
 #include "kis_types.h"
 #include "kis_annotation.h"

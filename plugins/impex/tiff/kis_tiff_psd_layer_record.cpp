@@ -87,7 +87,15 @@ bool KisTiffPsdLayerRecord::readImpl(PkStream &device)
 
     static constexpr char signature[] = "Adobe Photoshop Document Data Block";
     constexpr int signatureSize = sizeof(signature);
-    PkByteArray b = device.read(signatureSize);
+    PkByteArray b;
+    b.resize(signatureSize);
+    const PkStream::pk_int64 bytesRead =
+        device.read(b.data(), static_cast<PkStream::pk_int64>(signatureSize));
+    if (bytesRead < 0) {
+        b.resize(0);
+    } else {
+        b.resize(static_cast<int>(bytesRead));
+    }
     if (b.size() != signatureSize || std::memcmp(b.constData(), signature, signatureSize) != 0) {
         m_record->error = PkString("Invalid Photoshop data block: %1")
                               .arg(PkString::PkFromUtf8(b.constData(), b.size()));

@@ -362,7 +362,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
             psd_colormode_to_colormodelid(photoshopLayerRecord.colorMode(),
                                           photoshopLayerRecord.channelDepth());
 
-        if (colorSpaceId.first.isNull()) {
+        if (colorSpaceId.first.isEmpty()) {
             dbgFile << "Inconsistent PSD metadata, the color space"
                     << photoshopLayerRecord.colorMode()
                     << photoshopLayerRecord.channelDepth()
@@ -465,7 +465,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
             && layerRecord->infoBlocks.sectionDividerType != psd_other) {
             if (layerRecord->infoBlocks.sectionDividerType
                     == psd_bounding_divider
-                && !groupStack.isEmpty()) {
+                && !groupStack.empty()) {
                 KisGroupLayerSP groupLayer =
                     new KisGroupLayer(psdImage, "temp", OPACITY_OPAQUE_U8);
                 psdImage->addNode(groupLayer, groupStack.top());
@@ -476,7 +476,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
                         || layerRecord->infoBlocks.sectionDividerType
                             == psd_closed_folder)
                        && (groupStack.size() > 1
-                           || (lastAddedLayer && !groupStack.isEmpty()))) {
+                           || (lastAddedLayer && !groupStack.empty()))) {
                 KisGroupLayerSP groupLayer;
 
                 if (groupStack.size() <= 1) {
@@ -485,7 +485,8 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
                     psdImage->addNode(groupLayer, groupStack.top());
                     psdImage->moveNode(lastAddedLayer, groupLayer, KisNodeSP());
                 } else {
-                    groupLayer = groupStack.pop();
+                    groupLayer = groupStack.top();
+                    groupStack.pop();
                 }
 
                 const PkXmlDocument &styleXml =
@@ -557,7 +558,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
                 return ImportExportCodes::FileFormatIncorrect;
             }
 
-            if (!groupStack.isEmpty()) {
+            if (!groupStack.empty()) {
                 psdImage->addNode(layer, groupStack.top());
             } else {
                 psdImage->addNode(layer, psdImage->root());
@@ -1145,14 +1146,14 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                             static_cast<unsigned long>(std::numeric_limits<tmsize_t>::max()),
                     ImportExportCodes::FileFormatIncorrect);
                 dbgFile << PkString("Uncompressed tile size (plane %1): %2")
-                               .arg(i)
-                               .arg(uncompressedTileSize)
+                               .arg(static_cast<int>(i))
+                               .arg(static_cast<int>(uncompressedTileSize))
                                .PkToUtf8()
                                .c_str();
                 tsize_t scanLineSize = uncompressedTileSize / tileHeight;
                 dbgFile << PkString("scan line size (plane %1): %2")
-                               .arg(i)
-                               .arg(scanLineSize)
+                               .arg(static_cast<int>(i))
+                               .arg(static_cast<int>(scanLineSize))
                                .PkToUtf8()
                                .c_str();
                 (*ps_buf)[i] =
@@ -1365,12 +1366,12 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                             static_cast<unsigned long>(std::numeric_limits<tmsize_t>::max()),
                     ImportExportCodes::FileFormatIncorrect);
                 dbgFile << PkString("Uncompressed strip size (plane %1): %2")
-                               .arg(i)
-                               .arg(uncompressedStripsize);
+                               .arg(static_cast<int>(i))
+                               .arg(static_cast<int>(uncompressedStripsize));
                 tsize_t scanLineSize = uncompressedStripsize / rowsPerStrip;
                 dbgFile << PkString("scan line size (plane %1): %2")
-                               .arg(i)
-                               .arg(scanLineSize);
+                               .arg(static_cast<int>(i))
+                               .arg(static_cast<int>(scanLineSize));
                 (*ps_buf)[i] = static_cast<uint8_t*>(_TIFFmalloc(uncompressedStripsize));
                 if (!(*ps_buf)[i] || scanLineSize <= 0) {
                     return ImportExportCodes::FileFormatIncorrect;

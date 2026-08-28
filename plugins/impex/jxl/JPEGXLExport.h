@@ -18,8 +18,8 @@ public:
 
     KisImportExportErrorCode
     convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP cfg = nullptr) override;
-    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray &from = "",
-                                                      const PkByteArray &to = "") const override;
+    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray &from = PkByteArray(),
+                                                      const PkByteArray &to = PkByteArray()) const override;
     void initializeCapabilities() override;
 };
 
