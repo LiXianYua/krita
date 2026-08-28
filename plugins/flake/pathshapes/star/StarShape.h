@@ -101,15 +101,15 @@ public:
     PkPointF starCenter() const;
 
     /// reimplemented
-    void setSize(const PkSizeF &newSize) override;
+    void setSize(const PkSizeF &newSize);
     /// reimplemented
-    PkString pathShapeId() const override;
+    PkString pathShapeId() const;
 
 protected:
     StarShape(const StarShape &rhs);
 
-    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
-    void updatePath(const PkSizeF &size) override;
+    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void updatePath(const PkSizeF &size);
     /// recreates the path points when the corner count or convexity changes
     void createPoints(int requiredPointCount);
 

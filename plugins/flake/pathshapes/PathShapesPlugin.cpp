@@ -12,15 +12,18 @@
 #include "rectangle/RectangleShapeFactory.h"
 #include "ellipse/EllipseShapeFactory.h"
 #include "spiral/SpiralShapeFactory.h"
+
+#include <mutex>
+
 void registerPathShapes()
 {
-    static bool registered = false;
-    if (registered) return;
-    registered = true;
-    KoShapeRegistry::instance()->add(new StarShapeFactory());
-    KoShapeRegistry::instance()->add(new RectangleShapeFactory());
-    KoShapeRegistry::instance()->add(new SpiralShapeFactory());
-    KoShapeRegistry::instance()->add(new EllipseShapeFactory());
+    static std::once_flag once;
+    std::call_once(once, [] {
+        KoShapeRegistry::instance()->add(new StarShapeFactory());
+        KoShapeRegistry::instance()->add(new RectangleShapeFactory());
+        KoShapeRegistry::instance()->add(new SpiralShapeFactory());
+        KoShapeRegistry::instance()->add(new EllipseShapeFactory());
+    });
 }
 
 namespace

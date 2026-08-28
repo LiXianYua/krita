@@ -11,12 +11,14 @@
 
 #include "ImageShapeFactory.h"
 
+#include <mutex>
+
 void registerImageShape()
 {
-    static bool registered = false;
-    if (registered) return;
-    registered = true;
-    KoShapeRegistry::instance()->add(new ImageShapeFactory());
+    static std::once_flag once;
+    std::call_once(once, [] {
+        KoShapeRegistry::instance()->add(new ImageShapeFactory());
+    });
 }
 
 namespace

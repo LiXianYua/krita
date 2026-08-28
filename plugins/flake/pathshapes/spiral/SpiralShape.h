@@ -34,8 +34,8 @@ public:
 
     KoShape* cloneShape() const override;
 
-    void setSize(const PkSizeF &newSize) override;
-    PkPointF normalize() override;
+    void setSize(const PkSizeF &newSize);
+    PkPointF normalize();
 
     /**
      * Sets the type of the spiral.
@@ -59,13 +59,13 @@ public:
     void setClockWise(bool clockwise);
 
     /// reimplemented
-    PkString pathShapeId() const override;
+    PkString pathShapeId() const;
 
 protected:
     SpiralShape(const SpiralShape &rhs);
 
-    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
-    void updatePath(const PkSizeF &size) override;
+    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void updatePath(const PkSizeF &size);
     void createPath(const PkSizeF &size);
 
 private:

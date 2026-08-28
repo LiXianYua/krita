@@ -57,7 +57,7 @@ public:
      */
     void setCornerRadiusY(qreal radius);
     /// reimplemented
-    PkString pathShapeId() const override;
+    PkString pathShapeId() const;
 
     /// reimplemented from SvgShape
     bool saveSvg(SvgSavingContext &context) override;
@@ -68,8 +68,8 @@ public:
 protected:
     RectangleShape(const RectangleShape &rhs);
 
-    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
-    void updatePath(const PkSizeF &size) override;
+    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void updatePath(const PkSizeF &size);
     void createPoints(int requiredPointCount);
     void updateHandles();
 

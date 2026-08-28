@@ -4,19 +4,25 @@
 
 #include "../PathShapesPlugin.h"
 #include "../ellipse/EllipseShape.h"
+#include "../ellipse/EllipseShapeConfigCommand.h"
 #include "../ellipse/EllipseShapeFactory.h"
 #include "../rectangle/RectangleShape.h"
+#include "../rectangle/RectangleShapeConfigCommand.h"
 #include "../rectangle/RectangleShapeFactory.h"
 #include "../spiral/SpiralShape.h"
+#include "../spiral/SpiralShapeConfigCommand.h"
 #include "../spiral/SpiralShapeFactory.h"
 #include "../star/StarShape.h"
+#include "../star/StarShapeConfigCommand.h"
 #include "../star/StarShapeFactory.h"
 
 #include <KoShapeLoadingContext.h>
 #include <KoShapeRegistry.h>
 #include <KoXmlNS.h>
 #include <PkXmlDocument.h>
+#include <SvgLoadingContext.h>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -99,6 +105,28 @@ int starClonePreservesConfiguration()
     return 0;
 }
 
+int representativePointsAndBoundsRemainLive()
+{
+    RectangleShape rectangle;
+    rectangle.setSize(PkSizeF(200.0, 100.0));
+    if (rectangle.subpaths().count() != 1 || rectangle.subpaths()[0]->count() != 4) return 30;
+    qreal minX = 10000.0, minY = 10000.0, maxX = -10000.0, maxY = -10000.0;
+    for (KoPathPoint *point : *rectangle.subpaths()[0]) {
+        minX = std::min(minX, point->point().x());
+        minY = std::min(minY, point->point().y());
+        maxX = std::max(maxX, point->point().x());
+        maxY = std::max(maxY, point->point().y());
+    }
+    if (!closeEnough(minX, 0.0) || !closeEnough(minY, 0.0) ||
+        !closeEnough(maxX, 200.0) || !closeEnough(maxY, 100.0)) return 31;
+
+    StarShape star;
+    star.setConvex(true);
+    star.setCornerCount(5);
+    if (star.subpaths().count() != 1 || star.subpaths()[0]->count() != 5) return 32;
+    return 0;
+}
+
 PkXmlElement namespacedElement(PkXmlDocument &document,
                                const PkString &prefix,
                                const PkString &localName,
@@ -136,6 +164,67 @@ int factoriesPreserveXmlSupport()
     return 0;
 }
 
+int xmlDefaultsAndErrorsRemainLive()
+{
+    KoShapeLoadingContext factoryContext(nullptr, nullptr);
+    SvgLoadingContext svgContext;
+    PkXmlDocument rectangleDocument;
+    PkXmlElement rectangle = rectangleDocument.createElement("rect");
+    rectangle.setAttribute("width", "100");
+    rectangle.setAttribute("height", "50");
+    rectangle.setAttribute("rx", "10");
+    RectangleShape rectangleShape;
+    if (!rectangleShape.loadSvg(rectangle, svgContext)) return 60;
+    if (!closeEnough(rectangleShape.cornerRadiusX(), 20.0)) return 61;
+    if (!closeEnough(rectangleShape.cornerRadiusY(), 40.0)) return 62;
+
+    PkXmlDocument wrongDocument;
+    PkXmlElement wrong = wrongDocument.createElement("rect");
+    EllipseShape ellipse;
+    if (ellipse.loadSvg(wrong, svgContext)) return 63;
+    if (EllipseShapeFactory().supports(wrong, factoryContext)) return 64;
+    return 0;
+}
+
+int configurationCommandsRedoAndUndo()
+{
+    RectangleShape rectangle;
+    RectangleShapeConfigCommand rectangleCommand(&rectangle, 12.0, 34.0);
+    rectangleCommand.redo();
+    if (!closeEnough(rectangle.cornerRadiusX(), 12.0) || !closeEnough(rectangle.cornerRadiusY(), 34.0)) return 70;
+    rectangleCommand.undo();
+    if (!closeEnough(rectangle.cornerRadiusX(), 0.0) || !closeEnough(rectangle.cornerRadiusY(), 0.0)) return 71;
+
+    EllipseShape ellipse;
+    EllipseShapeConfigCommand ellipseCommand(&ellipse, EllipseShape::Pie, 15.0, 275.0);
+    ellipseCommand.redo();
+    if (ellipse.type() != EllipseShape::Pie || !closeEnough(ellipse.startAngle(), 15.0) ||
+        !closeEnough(ellipse.endAngle(), 275.0)) return 72;
+    ellipseCommand.undo();
+    if (ellipse.type() != EllipseShape::Arc || !closeEnough(ellipse.startAngle(), 0.0) ||
+        !closeEnough(ellipse.endAngle(), 0.0)) return 73;
+
+    SpiralShape spiral;
+    const SpiralShape::SpiralType oldType = spiral.type();
+    const bool oldClockwise = spiral.clockWise();
+    const qreal oldFade = spiral.fade();
+    SpiralShapeConfigCommand spiralCommand(&spiral, SpiralShape::Line, !oldClockwise, 0.25);
+    spiralCommand.redo();
+    if (spiral.type() != SpiralShape::Line || spiral.clockWise() == oldClockwise || !closeEnough(spiral.fade(), 0.25)) return 74;
+    spiralCommand.undo();
+    if (spiral.type() != oldType || spiral.clockWise() != oldClockwise || !closeEnough(spiral.fade(), oldFade)) return 75;
+
+    StarShape star;
+    StarShapeConfigCommand starCommand(&star, 7, 10.0, 60.0, true);
+    starCommand.redo();
+    if (star.cornerCount() != 7 || !closeEnough(star.baseRadius(), 10.0) ||
+        !closeEnough(star.tipRadius(), 60.0) || !star.convex()) return 76;
+    starCommand.undo();
+    if (star.cornerCount() != 5 || !closeEnough(star.baseRadius(), 25.0) ||
+        !closeEnough(star.tipRadius(), 50.0) || star.convex()) return 77;
+    return 0;
+}
+
 int registrationIsIdempotentAndComplete()
 {
     KoShapeRegistry *registry = KoShapeRegistry::instance();
@@ -161,7 +250,13 @@ int main()
     if (spiralResult) return spiralResult;
     const int starResult = starClonePreservesConfiguration();
     if (starResult) return starResult;
+    const int geometryResult = representativePointsAndBoundsRemainLive();
+    if (geometryResult) return geometryResult;
     const int factoryResult = factoriesPreserveXmlSupport();
     if (factoryResult) return factoryResult;
+    const int xmlResult = xmlDefaultsAndErrorsRemainLive();
+    if (xmlResult) return xmlResult;
+    const int commandResult = configurationCommandsRedoAndUndo();
+    if (commandResult) return commandResult;
     return registrationIsIdempotentAndComplete();
 }

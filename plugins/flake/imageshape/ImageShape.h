@@ -11,8 +11,7 @@
 #include <PkTransform.h>
 #include <PkXmlElement.h>
 
-#include <memory>
-
+#include "ImageShapeState.h"
 #include "KoShape.h"
 #include <SvgShape.h>
 
@@ -24,14 +23,13 @@ class ImageShape : public KoShape, public SvgShape
 public:
     ImageShape();
     ~ImageShape() override;
+    ImageShape &operator=(const ImageShape &) = delete;
 
     KoShape *cloneShape() const override;
 
-    // S-09/M5 GAP: the drawing hook remains callable, but the kernel has no
-    // painter backend yet.  The opaque context is deliberately unused.
-    void paint(void *paintContext) const override;
-
-    void setSize(const PkSizeF &size) override;
+    // The current Qt painter hook remains transitional and is owned by M5.
+    // Do not invent a replacement renderer contract in this value-side class.
+    void setSize(const PkSizeF &size);
 
     bool saveSvg(SvgSavingContext &context) override;
     bool loadSvg(const PkXmlElement &element, SvgLoadingContext &context) override;
@@ -44,11 +42,7 @@ public:
 
 private:
     ImageShape(const ImageShape &rhs);
-    void detach();
-
-private:
-    struct Private;
-    std::shared_ptr<Private> m_d;
+    ImageShapeStateHolder m_state;
 };
 
 #endif // IMAGESHAPE_H

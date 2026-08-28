@@ -3,11 +3,18 @@
  */
 
 #include "../ImageShape.h"
+#include "../ImageShapePngData.h"
 #include "../ImageShapePlugin.h"
 
 #include <KoShapeRegistry.h>
+#include <PkXmlDocument.h>
+#include <SvgLoadingContext.h>
+#include <SvgSavingContext.h>
 
 #include <memory>
+#include <type_traits>
+
+static_assert(!std::is_copy_assignable_v<ImageShape>);
 
 namespace
 {
@@ -55,6 +62,57 @@ int viewBoxMutationDetachesFromClone()
     return 0;
 }
 
+PkXmlElement imageElement(PkXmlDocument &document,
+                          const PkImage &image,
+                          const PkString &aspect)
+{
+    PkXmlElement element = document.createElement("image");
+    element.setAttribute("x", "0");
+    element.setAttribute("y", "0");
+    element.setAttribute("width", "20");
+    element.setAttribute("height", "10");
+    element.setAttribute("xlink:href", ImageShapePngData::encodeDataUri(image));
+    element.setAttribute("preserveAspectRatio", aspect);
+    return element;
+}
+
+PkString savedAspect(ImageShape &shape)
+{
+    SvgSavingContext context;
+    if (!shape.saveSvg(context)) return {};
+    return context.shapeWriter().attribute("preserveAspectRatio");
+}
+
+int loadSvgDetachesImageParserAndTransformTogether()
+{
+    PkImage firstImage(2, 1, PkImage::Format_ARGB32);
+    firstImage.setPixel(0, 0, 0xff102030u);
+    firstImage.setPixel(1, 0, 0xff405060u);
+    PkXmlDocument firstDocument;
+    PkXmlElement firstElement = imageElement(firstDocument, firstImage, "xMinYMin meet");
+    SvgLoadingContext loadingContext;
+
+    ImageShape original;
+    if (!original.loadSvg(firstElement, loadingContext)) return 30;
+    std::unique_ptr<KoShape> cloneBase(original.cloneShape());
+    ImageShape *clone = dynamic_cast<ImageShape *>(cloneBase.get());
+    if (!clone) return 31;
+    const PkImage clonedImage = clone->image();
+    const PkTransform clonedTransform = clone->viewBoxTransform();
+
+    PkImage secondImage(4, 2, PkImage::Format_RGB16);
+    PkXmlDocument secondDocument;
+    PkXmlElement secondElement = imageElement(secondDocument, secondImage, "xMaxYMax slice");
+    if (!original.loadSvg(secondElement, loadingContext)) return 32;
+    if (original.image() == clonedImage) return 33;
+    if (clone->image() != clonedImage) return 34;
+    if (original.viewBoxTransform() == clonedTransform) return 35;
+    if (clone->viewBoxTransform() != clonedTransform) return 36;
+    if (savedAspect(original) != "xMaxYMax slice") return 37;
+    if (savedAspect(*clone) != "xMinYMin meet") return 38;
+    return 0;
+}
+
 int registrationIsIdempotentAndLive()
 {
     KoShapeRegistry *registry = KoShapeRegistry::instance();
@@ -72,5 +130,7 @@ int main()
     const int imageResult = imageMutationDetachesFromClone();
     if (imageResult) return imageResult;
     const int viewBoxResult = viewBoxMutationDetachesFromClone();
-    return viewBoxResult ? viewBoxResult : registrationIsIdempotentAndLive();
+    if (viewBoxResult) return viewBoxResult;
+    const int loadResult = loadSvgDetachesImageParserAndTransformTogether();
+    return loadResult ? loadResult : registrationIsIdempotentAndLive();
 }

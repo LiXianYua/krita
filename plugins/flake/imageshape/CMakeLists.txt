@@ -3,6 +3,7 @@ project(imageshape)
 set ( ImageShape_SRCS
     ImageShapePlugin.cpp
     ImageShape.cpp
+    ImageShapeState.cpp
     ImageShapePngData.cpp
     ImageShapeFactory.cpp
 )
@@ -28,6 +29,8 @@ target_link_libraries(krita_shape_image
     pkimage
     pkxml
     PNG::PNG
+    JPEG::JPEG
+    TIFF::TIFF
 )
 
 install(TARGETS krita_shape_image DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
