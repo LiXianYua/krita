@@ -16,6 +16,7 @@
 #include <PkScopedPointer.h>
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <libheif/heif_cxx.h>
 
@@ -113,7 +114,7 @@ private:
 };
 
 #if LIBHEIF_HAVE_VERSION(1, 13, 0)
-class Q_DECL_HIDDEN HeifLock
+class HeifLock
 {
 public:
     HeifLock()
@@ -140,13 +141,13 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, PkStream *io
 
 #if LIBHEIF_HAVE_VERSION(1, 20, 2)
     using HeifStrideType = size_t;
-    auto heifGetPlaneMethod = std::mem_fn(qNonConstOverload<heif_channel, HeifStrideType*>(&heif::Image::get_plane2));
+    auto heifGetPlaneMethod = std::mem_fn(static_cast<uint8_t *(heif::Image::*)(heif_channel, HeifStrideType *) noexcept>(&heif::Image::get_plane2));
 #elif LIBHEIF_HAVE_VERSION(1, 20, 0)
     using HeifStrideType = size_t;
-    auto heifGetPlaneMethod = std::mem_fn(qNonConstOverload<heif_channel, HeifStrideType*>(&heif::Image::get_plane));
+    auto heifGetPlaneMethod = std::mem_fn(static_cast<uint8_t *(heif::Image::*)(heif_channel, HeifStrideType *) noexcept>(&heif::Image::get_plane));
 #else
     using HeifStrideType = int;
-    auto heifGetPlaneMethod = std::mem_fn(qNonConstOverload<heif_channel, HeifStrideType*>(&heif::Image::get_plane));
+    auto heifGetPlaneMethod = std::mem_fn(static_cast<uint8_t *(heif::Image::*)(heif_channel, HeifStrideType *) noexcept>(&heif::Image::get_plane));
 #endif
 
 
@@ -226,7 +227,7 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, PkStream *io
         heif::Encoder encoder(heif_compression_HEVC);
 
 
-        if (mimeType() == "image/avif") {
+        if (mimeType() == PkByteArray("image/avif", sizeof("image/avif") - 1)) {
             encoder = heif::Encoder(heif_compression_AV1);
         }
 

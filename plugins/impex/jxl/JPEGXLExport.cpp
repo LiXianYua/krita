@@ -16,6 +16,7 @@
 #include <jxl/encode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
 #include <PkMemoryStream.h>
+#include <PkStringList.h>
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -472,7 +473,11 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, PkStream *
 
         if (metaDataStore && !metaDataStore->isEmpty()) {
             KisMetaData::FilterRegistryModel model;
-            model.setEnabledFilters(cfg->getString("filters").split(","));
+            PkStringList enabledFilters;
+            for (const PkString &filter : cfg->getString("filters").split(u',')) {
+                enabledFilters << filter;
+            }
+            model.setEnabledFilters(enabledFilters);
             metaDataStore->applyFilters(model.enabledFilters());
         }
 

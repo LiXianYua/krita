@@ -31,17 +31,19 @@ KisImportExportErrorCode KisQImageIOExport::convert(KisDocument *document, PkStr
 {
     (void)io;
     (void)configuration;
-    document->setErrorMessage(PkString("Generic QImageIO formats have no native headless codec"));
+    document->setErrorMessage(PkString("Generic image I/O formats have no native headless codec"));
     return ImportExportCodes::FormatFeaturesUnsupported;
 }
 
 void KisQImageIOExport::initializeCapabilities()
 {
+    const PkByteArray mime = mimeType();
+    const PkString mimeString = PkString::PkFromUtf8(mime.constData(), mime.size());
     PkList<std::pair<KoID, KoID> > supportedColorModels;
     supportedColorModels << std::pair<KoID, KoID>()
             << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
-    addSupportedColorModels(supportedColorModels, KisMimeDatabase::descriptionForMimeType(mimeType()));
-    addCapability(KisExportCheckRegistry::instance()->get("ColorModelPerLayerCheck/" + RGBAColorModelID.id() + "/" + Integer8BitsColorDepthID.id())->create(KisExportCheckBase::SUPPORTED));
+    addSupportedColorModels(supportedColorModels, KisMimeDatabase::descriptionForMimeType(mimeString));
+    addCapability(KisExportCheckRegistry::instance()->get("ColorModelPerLayerCheck/" + mimeString + "/" + Integer8BitsColorDepthID.id())->create(KisExportCheckBase::SUPPORTED));
 }
 
 KisPropertiesConfigurationSP KisQImageIOExport::defaultConfiguration(const PkByteArray &, const PkByteArray &) const

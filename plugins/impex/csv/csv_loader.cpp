@@ -22,6 +22,7 @@
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
+#include <KoCompositeOpRegistry.h>
 
 #include <kis_debug.h>
 #include <kis_image.h>

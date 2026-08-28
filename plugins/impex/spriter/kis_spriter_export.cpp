@@ -134,7 +134,7 @@ KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGro
     while (child) {
         if (child->visible() && child->inherits("KisGroupLayer")) {
             KisImportExportErrorCode res = parseFolder(
-                child.dynamicCast<KisGroupLayer>(),
+                KisGroupLayerSP(dynamic_cast<KisGroupLayer *>(child.data())),
                 firstWord(child->name()),
                 basePath + "/" + pathName,
                 folderId);
@@ -236,7 +236,7 @@ Bone *KisSpriterExport::parseBone(const Bone *parent, KisGroupLayerSP groupLayer
     KisNodeSP child = groupLayer->lastChild();
     while (child) {
         if (child->visible() && child->inherits("KisGroupLayer")) {
-            bone->bones.append(parseBone(bone, child.dynamicCast<KisGroupLayer>()));
+            bone->bones.append(parseBone(bone, KisGroupLayerSP(dynamic_cast<KisGroupLayer *>(child.data()))));
         }
         child = child->prevSibling();
     }
@@ -361,9 +361,11 @@ KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, PkStre
 
     KisGroupLayerSP root = m_image->rootLayer();
 
-    m_boneLayer = KisLayerUtils::findNodeByName(root,"bone").dynamicCast<KisLayer>();
+    KisNodeSP boneNode = KisLayerUtils::findNodeByName(root, "bone");
+    m_boneLayer = KisLayerSP(dynamic_cast<KisLayer *>(boneNode.data()));
 
-    m_rootLayer= KisLayerUtils::findNodeByName(root,"root").dynamicCast<KisGroupLayer>();
+    KisNodeSP rootNode = KisLayerUtils::findNodeByName(root, "root");
+    m_rootLayer = KisGroupLayerSP(dynamic_cast<KisGroupLayer *>(rootNode.data()));
 
     KisImportExportErrorCode result =
         parseFolder(m_image->rootLayer(), "", pkPath(outputDirectory));

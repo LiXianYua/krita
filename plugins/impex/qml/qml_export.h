@@ -11,11 +11,11 @@
 
 #include <KisImportExportFilter.h>
 
-class QMLExport : public KisImportExportFilter
+class QmlExport : public KisImportExportFilter
 {
 public:
-    QMLExport(PkObject *parent, const PkVariantList &);
-    ~QMLExport() override;
+    QmlExport(PkObject *parent, const PkVariantList &);
+    ~QmlExport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
     void initializeCapabilities() override;

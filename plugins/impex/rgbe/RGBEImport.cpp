@@ -16,6 +16,7 @@
 
 #include <KisDocument.h>
 #include <KisImportExportErrorCode.h>
+#include <PkDataStream.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>
 #include <KoCompositeOpRegistry.h>

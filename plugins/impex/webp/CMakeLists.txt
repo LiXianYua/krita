@@ -2,6 +2,7 @@ add_subdirectory(tests)
 
 set(kritawebpexport_SOURCES
     kis_webp_export.cpp
+    webp_validation.cpp
 )
 
 add_library(kritawebpexport MODULE ${kritawebpexport_SOURCES})

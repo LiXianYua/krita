@@ -9,6 +9,7 @@
 #include "../kis_impex_static_registration.h"
 #include <PkColor.h>
 #include <PkString.h>
+#include <PkStringList.h>
 #include <PkScopedPointer.h>
 #include <KoColorSpace.h>
 #include <KoColorProfile.h>
@@ -78,7 +79,11 @@ KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, PkStream 
     c.fromQColor(PkColor(255, 255, 255));
     options.transparencyFillColor = configuration->getColor("transparencyFillcolor", c).toQColor();
     KisMetaData::FilterRegistryModel m;
-    m.setEnabledFilters(configuration->getString("filters").split(","));
+    PkStringList enabledFilters;
+    for (const PkString &filter : configuration->getString("filters").split(u',')) {
+        enabledFilters << filter;
+    }
+    m.setEnabledFilters(enabledFilters);
     options.filters = m.enabledFilters();
     options.storeAuthor = configuration->getBool("storeAuthor", false);
     options.storeDocumentMetaData = configuration->getBool("storeMetaData", false);

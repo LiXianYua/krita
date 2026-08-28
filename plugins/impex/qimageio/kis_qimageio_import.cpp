@@ -28,7 +28,7 @@ KisQImageIOImport::~KisQImageIOImport()
 KisImportExportErrorCode KisQImageIOImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     (void)io;
-    document->setErrorMessage(PkString("Generic QImageIO formats have no native headless codec"));
+    document->setErrorMessage(PkString("Generic image I/O formats have no native headless codec"));
     return ImportExportCodes::FormatFeaturesUnsupported;
 
 }

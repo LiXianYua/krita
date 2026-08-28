@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <limits>
+#include <string>
 
 #include <exiv2/exiv2.hpp>
 #include <tiffio.h>
@@ -37,6 +38,20 @@
 #include "kis_tiff_converter.h"
 #include "kis_tiff_logger.h"
 #include "tiff_stream_adapter.h"
+
+namespace
+{
+std::string latin1Bytes(const PkString &value)
+{
+    std::string result;
+    const std::u16string units = value.PkToU16();
+    result.reserve(units.size());
+    for (char16_t unit : units) {
+        result.push_back(unit <= 0xff ? static_cast<char>(unit) : '?');
+    }
+    return result;
+}
+}
 
 extern "C" KRITAIMPEX_EXPORT bool registerKisTIFFExportFilter()
 {
@@ -71,7 +86,9 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
         cfg->fromXML(configuration->toXML());
     }
     else {
-        cfg = lastSavedConfiguration(KisDocument::nativeFormatMimeType(), "image/tiff");
+        cfg = lastSavedConfiguration(
+            KisDocument::nativeFormatMimeType(),
+            PkByteArray("image/tiff", sizeof("image/tiff") - 1));
     }
 
     KisTIFFOptions options;
@@ -129,25 +146,28 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
     KoDocumentInfo *info = document->documentInfo();
     PkString title = info->aboutInfo("title");
     if (!title.isEmpty()) {
+        const std::string encodedTitle = latin1Bytes(title);
         if (!TIFFSetField(image.get(),
                           TIFFTAG_DOCUMENTNAME,
-                          title.toLatin1().constData())) {
+                          encodedTitle.c_str())) {
             return ImportExportCodes::ErrorWhileWriting;
         }
     }
     PkString abstract = info->aboutInfo("description");
     if (!abstract.isEmpty()) {
+        const std::string encodedAbstract = latin1Bytes(abstract);
         if (!TIFFSetField(image.get(),
                           TIFFTAG_IMAGEDESCRIPTION,
-                          abstract.toLatin1().constData())) {
+                          encodedAbstract.c_str())) {
             return ImportExportCodes::ErrorWhileWriting;
         }
     }
     PkString author = info->authorInfo("creator");
     if (!author.isEmpty()) {
+        const std::string encodedAuthor = latin1Bytes(author);
         if (!TIFFSetField(image.get(),
                           TIFFTAG_ARTIST,
-                          author.toLatin1().constData())) {
+                          encodedAuthor.c_str())) {
             return ImportExportCodes::ErrorWhileWriting;
         }
     }

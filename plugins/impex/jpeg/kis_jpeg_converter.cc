@@ -52,7 +52,6 @@ extern "C" {
 #include <kis_paint_device.h>
 #include <kis_paint_layer.h>
 #include <kis_painter.h>
-#include <kis_transaction.h>
 #include <kis_transform_worker.h>
 
 #define ICC_MARKER  (JPEG_APP0 + 2) /* JPEG marker code for ICC */

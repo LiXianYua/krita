@@ -12,7 +12,6 @@
 
 #include <KisDocument.h>
 
-#include <kis_transaction.h>
 #include <kis_paint_device.h>
 #include <kis_image.h>
 #include <kis_paint_layer.h>
@@ -45,10 +44,10 @@ KisImportExportErrorCode KisBrushImport::convert(KisDocument *document, PkStream
 {
     PkSharedPointer<KisColorfulBrush> brush;
 
-    if (mimeType() == "image/x-gimp-brush") {
+    if (mimeType() == PkByteArray("image/x-gimp-brush", sizeof("image/x-gimp-brush") - 1)) {
         brush = PkSharedPointer<KisColorfulBrush>(new KisGbrBrush(filename()));
     }
-    else if (mimeType() == "image/x-gimp-brush-animated") {
+    else if (mimeType() == PkByteArray("image/x-gimp-brush-animated", sizeof("image/x-gimp-brush-animated") - 1)) {
         brush = PkSharedPointer<KisColorfulBrush>(new KisImagePipeBrush(filename()));
     }
     else {

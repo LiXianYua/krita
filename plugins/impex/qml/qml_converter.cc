@@ -16,7 +16,7 @@
 #include <KisPngCodec.h>
 #include <PkStringList.h>
 
-KisImportExportErrorCode QMLConverter::buildFile(const PkString &filename, const PkString &realFilename, PkStream *io, KisImageSP image)
+KisImportExportErrorCode QmlConverter::buildFile(const PkString &filename, const PkString &realFilename, PkStream *io, KisImageSP image)
 {
     if (!io || !image) {
         return ImportExportCodes::InternalError;

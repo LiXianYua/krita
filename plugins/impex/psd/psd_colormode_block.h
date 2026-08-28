@@ -9,7 +9,7 @@
 #include <psd.h>
 #include "psd_header.h"
 
-#include <PkByteArray.h>
+#include <PkAuxTypes.h>
 #include <PkColor.h>
 
 class PSDColorModeBlock

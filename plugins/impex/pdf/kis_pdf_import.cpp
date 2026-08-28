@@ -22,6 +22,7 @@
 
 // krita's headers
 #include <KisDocument.h>
+#include <kis_group_layer.h>
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 

@@ -11,6 +11,7 @@
 #include <webp/mux_types.h>
 
 #include <PkMemoryStream.h>
+#include <PkStringList.h>
 
 #include <cmath>
 #include <memory>
@@ -36,6 +37,7 @@
 #include <kis_time_span.h>
 
 #include "kis_webp_export.h"
+#include "webp_validation.h"
 
 extern "C" KRITAIMPEX_EXPORT bool registerKisWebPExportFilter()
 {
@@ -601,7 +603,11 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
 
         if (metaDataStore && !metaDataStore->isEmpty()) {
             KisMetaData::FilterRegistryModel model;
-            model.setEnabledFilters(cfg->getString("filters").split(","));
+            PkStringList enabledFilters;
+            for (const PkString &filter : cfg->getString("filters").split(u',')) {
+                enabledFilters << filter;
+            }
+            model.setEnabledFilters(enabledFilters);
             metaDataStore->applyFilters(model.enabledFilters());
         }
 

@@ -19,7 +19,8 @@ if(OpenEXR_FOUND)
     add_subdirectory(exr)
 endif()
 
-if(Poppler_Qt${QT_MAJOR_VERSION}_FOUND)
+find_package(Poppler QUIET COMPONENTS Cpp)
+if(Poppler_Cpp_FOUND)
     add_subdirectory(pdf)
 endif()
 
@@ -27,9 +28,7 @@ if(OpenJPEG_FOUND AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
     add_subdirectory(jp2)
 endif()
 
-if(KF5KDcraw_FOUND OR KDcrawQt6_FOUND)
-    add_subdirectory(raw)
-endif()
+add_subdirectory(raw)
 
 add_subdirectory(svg)
 add_subdirectory(qimageio)

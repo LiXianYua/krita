@@ -20,7 +20,6 @@
 #include <kis_image.h>
 #include <kis_group_layer.h>
 #include <kis_paint_device.h>
-#include <kis_transaction.h>
 #include <kis_debug.h>
 #include <kis_guides_config.h>
 
@@ -258,5 +257,4 @@ void PSDSaver::cancel()
 {
     m_stop = true;
 }
-
 

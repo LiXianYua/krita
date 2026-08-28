@@ -38,7 +38,7 @@ inline void linearize(float *pixelValues,
     }
 
     if (linearizePolicy == LinearizePolicy::KeepTheSame) {
-        qSwap(pixelValues[0], pixelValues[2]);
+        std::swap(pixelValues[0], pixelValues[2]);
     } else if (linearizePolicy == LinearizePolicy::LinearFromHLG && applyOOTF) {
         applyHLGOOTF(pixelValues, lCoef, displayGamma, displayNits);
     }
@@ -56,7 +56,7 @@ inline void linearize(float *pixelValues,
                       float displayNits)
 {
     if (linearizePolicy == LinearizePolicy::KeepTheSame) {
-        qSwap(pixelValues[0], pixelValues[2]);
+        std::swap(pixelValues[0], pixelValues[2]);
     } else if (linearizePolicy == LinearizePolicy::LinearFromHLG && applyOOTF) {
         applyHLGOOTF(pixelValues, lCoef, displayGamma, displayNits);
     }
@@ -398,7 +398,7 @@ inline void linearize(float *pixelValues,
     }
 
     if (linearizePolicy == LinearizePolicy::KeepTheSame) {
-        qSwap(pixelValues[0], pixelValues[2]);
+        std::swap(pixelValues[0], pixelValues[2]);
     } else if (linearizePolicy == LinearizePolicy::LinearFromHLG && applyOOTF) {
         applyHLGOOTF(pixelValues, lCoef, displayGamma, displayNits);
     }
@@ -416,7 +416,7 @@ inline void linearize(float *pixelValues,
                       float displayNits)
 {
     if (linearizePolicy == LinearizePolicy::KeepTheSame) {
-        qSwap(pixelValues[0], pixelValues[2]);
+        std::swap(pixelValues[0], pixelValues[2]);
     } else if (linearizePolicy == LinearizePolicy::LinearFromHLG && applyOOTF) {
         applyHLGOOTF(pixelValues, lCoef, displayGamma, displayNits);
     }
@@ -727,7 +727,7 @@ inline void linearize(float *pixelValues,
     }
 
     if (linearizePolicy == LinearizePolicy::KeepTheSame) {
-        qSwap(pixelValues[0], pixelValues[2]);
+        std::swap(pixelValues[0], pixelValues[2]);
     } else if (linearizePolicy == LinearizePolicy::LinearFromHLG && applyOOTF) {
         applyHLGOOTF(pixelValues, lCoef, displayGamma, displayNits);
     }
@@ -745,7 +745,7 @@ inline void linearize(float *pixelValues,
                       float displayNits)
 {
     if (linearizePolicy == LinearizePolicy::KeepTheSame) {
-        qSwap(pixelValues[0], pixelValues[2]);
+        std::swap(pixelValues[0], pixelValues[2]);
     } else if (linearizePolicy == LinearizePolicy::LinearFromHLG && applyOOTF) {
         applyHLGOOTF(pixelValues, lCoef, displayGamma, displayNits);
     }

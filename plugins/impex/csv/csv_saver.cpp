@@ -19,6 +19,7 @@
 #include <KisDocumentRegistry.h>
 #include <KisMimeDatabase.h>
 #include <KoColorModelStandardIds.h>
+#include <KoCompositeOpRegistry.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <kis_annotation.h>

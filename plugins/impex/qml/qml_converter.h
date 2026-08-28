@@ -14,11 +14,11 @@
 #include "kis_types.h"
 #include <KisImportExportErrorCode.h>
 
-class QMLConverter
+class QmlConverter
 {
 public:
-    QMLConverter() = default;
-    ~QMLConverter() = default;
+    QmlConverter() = default;
+    ~QmlConverter() = default;
 
     KisImportExportErrorCode buildFile(const PkString &filename, const PkString &realFilename, PkStream *io, KisImageSP image);
 };

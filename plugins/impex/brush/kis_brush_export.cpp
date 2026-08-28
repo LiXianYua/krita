@@ -22,6 +22,7 @@
 #include <kis_pipebrush_parasite.h>
 #include <KisAnimatedBrushAnnotation.h>
 #include <KisImportExportManager.h>
+#include <KoColorModelStandardIds.h>
 
 struct KisBrushExportOptions {
     qreal spacing;
@@ -90,10 +91,10 @@ KisImportExportErrorCode KisBrushExport::convert(KisDocument *document, PkStream
     }
 
     std::unique_ptr<KisGbrBrush> brush;
-    if (mimeType() == "image/x-gimp-brush") {
+    if (mimeType() == PkByteArray("image/x-gimp-brush", sizeof("image/x-gimp-brush") - 1)) {
         brush.reset(new KisGbrBrush(filename()));
     }
-    else if (mimeType() == "image/x-gimp-brush-animated") {
+    else if (mimeType() == PkByteArray("image/x-gimp-brush-animated", sizeof("image/x-gimp-brush-animated") - 1)) {
         brush.reset(new KisImagePipeBrush(filename()));
     }
     else {
@@ -203,7 +204,7 @@ void KisBrushExport::initializeCapabilities()
             << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
             << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "Gimp Brushes");
-    if (mimeType() == "image/x-gimp-brush-animated") {
+    if (mimeType() == PkByteArray("image/x-gimp-brush-animated", sizeof("image/x-gimp-brush-animated") - 1)) {
         addCapability(KisExportCheckRegistry::instance()->get("MultiLayerCheck")->create(KisExportCheckBase::SUPPORTED));
         addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::SUPPORTED));
     }

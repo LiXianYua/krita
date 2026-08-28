@@ -30,7 +30,9 @@ OraConverter::~OraConverter()
 
 KisImportExportErrorCode OraConverter::buildImage(PkStream *io)
 {
-    KoStore* store = KoStore::createStore(io, KoStore::Read, "image/openraster", KoStore::Zip);
+    KoStore* store = KoStore::createStore(
+        io, KoStore::Read,
+        PkByteArray("image/openraster", sizeof("image/openraster") - 1), KoStore::Zip);
     if (!store) {
         delete store;
         return ImportExportCodes::FileFormatIncorrect;
@@ -66,7 +68,9 @@ KisImportExportErrorCode OraConverter::buildFile(PkStream *io, KisImageSP image,
 {
 
     // Open file for writing
-    KoStore* store = KoStore::createStore(io, KoStore::Write, "image/openraster", KoStore::Zip);
+    KoStore* store = KoStore::createStore(
+        io, KoStore::Write,
+        PkByteArray("image/openraster", sizeof("image/openraster") - 1), KoStore::Zip);
     if (!store) {
         delete store;
         return ImportExportCodes::ErrorWhileWriting;

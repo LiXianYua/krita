@@ -15,6 +15,7 @@
 
 #include <PkMemoryStream.h>
 
+#include <functional>
 #include <limits>
 #include <libheif/heif.h>
 #include <libheif/heif_cxx.h>
@@ -35,7 +36,6 @@
 #include <kis_node.h>
 #include <kis_paint_device.h>
 #include <kis_paint_layer.h>
-#include <kis_transaction.h>
 
 #include "kis_heif_import_tools.h"
 
@@ -101,7 +101,7 @@ private:
 };
 
 #if LIBHEIF_HAVE_VERSION(1, 13, 0)
-class Q_DECL_HIDDEN HeifLock
+class HeifLock
 {
 public:
     HeifLock()
@@ -230,13 +230,13 @@ KisImportExportErrorCode HeifImport::convert(KisDocument *document, PkStream *io
 
 #if LIBHEIF_HAVE_VERSION(1, 20, 2)
     using HeifStrideType = size_t;
-    auto heifGetPlaneMethod = std::mem_fn(qNonConstOverload<heif_channel, HeifStrideType*>(&heif::Image::get_plane2));
+    auto heifGetPlaneMethod = std::mem_fn(static_cast<uint8_t *(heif::Image::*)(heif_channel, HeifStrideType *) noexcept>(&heif::Image::get_plane2));
 #elif LIBHEIF_HAVE_VERSION(1, 20, 0)
     using HeifStrideType = size_t;
-    auto heifGetPlaneMethod = std::mem_fn(qNonConstOverload<heif_channel, HeifStrideType*>(&heif::Image::get_plane));
+    auto heifGetPlaneMethod = std::mem_fn(static_cast<uint8_t *(heif::Image::*)(heif_channel, HeifStrideType *) noexcept>(&heif::Image::get_plane));
 #else
     using HeifStrideType = int;
-    auto heifGetPlaneMethod = std::mem_fn(qNonConstOverload<heif_channel, HeifStrideType*>(&heif::Image::get_plane));
+    auto heifGetPlaneMethod = std::mem_fn(static_cast<uint8_t *(heif::Image::*)(heif_channel, HeifStrideType *) noexcept>(&heif::Image::get_plane));
 #endif
 
     // Wrap input stream into heif Reader object

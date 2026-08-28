@@ -40,7 +40,6 @@
 #include <kis_image.h>
 #include <kis_paint_device.h>
 #include <kis_paint_layer.h>
-#include <kis_transaction.h>
 #include "kis_iterator_ng.h"
 #include <kis_exr_layers_sorter.h>
 
@@ -53,7 +52,6 @@
 #include "kis_kra_savexml_visitor.h"
 
 #include <KisImportExportAdditionalChecks.h>
-#include <KisPortingUtils.h>
 
 // Do not translate!
 #define HDR_LAYER "HDR Layer"
@@ -847,7 +845,6 @@ KisImportExportErrorCode EXRConverter::decode(const PkString &filename)
          * into the image as a layer, in which case the default color will create
          * major issues. See https://bugs.kde.org/show_bug.cgi?id=427720
          */
-        //d->image->setDefaultProjectionColor(KoColor(Qt::black, colorSpace));
 
         // Create group layers
         for (int i = 0; i < groups.size(); ++i) {

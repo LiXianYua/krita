@@ -32,7 +32,7 @@
 #include <kis_image.h>
 #include <kis_group_layer.h>
 #include <kis_paint_device.h>
-#include <kis_transaction.h>
+#include <kis_selection.h>
 #include <kis_transparency_mask.h>
 #include <kis_generator_layer.h>
 #include <kis_generator_registry.h>
@@ -466,7 +466,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                                 stroke->setLineBrush(grad.getBrush());
                             }
                         } else {
-                            stroke->setColor(Qt::transparent);
+                            stroke->setColor(PkColor(0, 0, 0, 0));
                         }
                         data.setupShapeStroke(stroke);
 

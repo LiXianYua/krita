@@ -56,7 +56,7 @@ namespace {
 std::array<char, 4> normalizedBoxType(const std::array<char, 5> &type)
 {
     std::array<char, 4> result{};
-    std::transform_n(type.begin(), result.size(), result.begin(), [](char value) {
+    std::transform(type.begin(), type.begin() + result.size(), result.begin(), [](char value) {
         return value >= 'A' && value <= 'Z' ? static_cast<char>(value - 'A' + 'a') : value;
     });
     return result;
@@ -68,7 +68,7 @@ bool isMetadataBox(const std::array<char, 4> &type)
 }
 }
 
-class Q_DECL_HIDDEN JPEGXLImportData
+class JPEGXLImportData
 {
 public:
     JxlBasicInfo m_info{};
@@ -911,8 +911,9 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
                         errFile << "JxlDecoderGetFrameName failed";
                         break;
                     }
-                    dbgFile << "\tlayer name:" << PkString(layerNameRaw);
-                    layerName = PkString(layerNameRaw);
+                    layerName = PkString::PkFromUtf8(layerNameRaw.constData(),
+                                                     static_cast<int>(d.m_header.name_length));
+                    dbgFile << "\tlayer name:" << layerName;
                 } else {
                     layerName = PkString("Layer");
                 }

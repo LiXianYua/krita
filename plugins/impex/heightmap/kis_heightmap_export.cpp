@@ -106,7 +106,7 @@ KisImportExportErrorCode KisHeightMapExport::convert(KisDocument *document, PkSt
 
     KoID target_co_model = GrayAColorModelID;
     KoID target_co_depth = KisHeightmapUtils::mimeTypeToKoID(mimeType());
-    KIS_ASSERT(!target_co_depth.id().isNull());
+    KIS_ASSERT(!target_co_depth.id().isEmpty());
 
     if (pd->colorSpace()->colorModelId() != target_co_model || pd->colorSpace()->colorDepthId() != target_co_depth) {
         pd = new KisPaintDevice(*pd.data());

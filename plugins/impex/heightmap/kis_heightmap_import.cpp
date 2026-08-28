@@ -8,6 +8,7 @@
 #include "kis_heightmap_import.h"
 
 #include "../kis_impex_static_registration.h"
+#include <PkDataStream.h>
 #include <ctype.h>
 #include <cmath>
 #include <KisImportExportManager.h>
@@ -22,7 +23,6 @@
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 #include <kis_paint_device.h>
-#include <kis_transaction.h>
 #include <kis_iterator_ng.h>
 #include <kis_random_accessor_ng.h>
 
@@ -64,7 +64,7 @@ KisImportExportErrorCode KisHeightMapImport::convert(KisDocument *document, PkSt
 {
     (void)configuration;
     KoID depthId = KisHeightmapUtils::mimeTypeToKoID(mimeType());
-    if (depthId.id().isNull()) {
+    if (depthId.id().isEmpty()) {
         document->setErrorMessage(PkString("Unknown file type"));
         return ImportExportCodes::FileFormatIncorrect;
     }
