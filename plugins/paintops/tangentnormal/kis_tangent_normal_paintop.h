@@ -1,3 +1,4 @@
+#include <PkRect.h>
 /*
  *  SPDX-FileCopyrightText: 2015 Wolthera van Hövell tot Westerflier <griffinvalley@gmail.com>
  *
@@ -7,7 +8,7 @@
 #ifndef _KIS_TANGENTNORMALPAINTOP_H_
 #define _KIS_TANGENTNORMALPAINTOP_H_
 
-#include <QRect>
+#include <PkRect.h>
 
 #include <kis_brush_based_paintop.h>
 #include <kis_types.h>
@@ -66,7 +67,7 @@ private:
 
     KisFixedPaintDeviceSP m_maskDab;
     KisPaintDeviceSP m_tempDev;
-    QRect m_dstDabRect;
+    PkRect m_dstDabRect;
 
     KisPaintDeviceSP m_lineCacheDevice;
 };

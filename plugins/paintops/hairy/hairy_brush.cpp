@@ -1,3 +1,6 @@
+#include <PkVector.h>
+#include <PkVariant.h>
+#include <PkPoint.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -11,8 +14,8 @@
 #include <KoColorTransformation.h>
 #include <KoCompositeOpRegistry.h>
 
-#include <QVariant>
-#include <QVector>
+#include <PkVariant.h>
+#include <PkVector.h>
 
 #include <kis_types.h>
 #include <kis_random_accessor_ng.h>
@@ -196,7 +199,7 @@ void HairyBrush::paintLine(KisPaintDeviceSP dab, KisPaintDeviceSP layer, const K
 
         if (m_properties->threshold && (bristle->length() < threshold)) continue;
         // paint between first and last dab
-        const QVector<QPointF> bristlePath = m_trajectory.getLinearTrajectory(QPointF(fx1, fy1), QPointF(fx2, fy2), 1.0);
+        const PkVector<PkPointF> bristlePath = m_trajectory.getLinearTrajectory(PkPointF(fx1, fy1), PkPointF(fx2, fy2), 1.0);
         bristlePathSize = m_trajectory.size();
 
         // avoid overlapping bristle caps with antialias on
@@ -293,7 +296,7 @@ void HairyBrush::opacityDepletion(Bristle* bristle, KoColor& bristleColor, qreal
     bristleColor.setOpacity(opacity);
 }
 
-inline void HairyBrush::addBristleInk(Bristle *bristle,const QPointF &pos, const KoColor &color)
+inline void HairyBrush::addBristleInk(Bristle *bristle,const PkPointF &pos, const KoColor &color)
 {
     Q_UNUSED(bristle);
     if (m_properties->antialias) {
@@ -315,7 +318,7 @@ inline void HairyBrush::addBristleInk(Bristle *bristle,const QPointF &pos, const
     }
 }
 
-void HairyBrush::paintParticle(QPointF pos, const KoColor& color, qreal weight)
+void HairyBrush::paintParticle(PkPointF pos, const KoColor& color, qreal weight)
 {
     // opacity top left, right, bottom left, right
     quint8 opacity = color.opacityU8();
@@ -354,7 +357,7 @@ void HairyBrush::paintParticle(QPointF pos, const KoColor& color, qreal weight)
     cs->setOpacity(m_dabAccessor->rawData(), bbr, 1);
 }
 
-void HairyBrush::paintParticle(QPointF pos, const KoColor& color)
+void HairyBrush::paintParticle(PkPointF pos, const KoColor& color)
 {
     // opacity top left, right, bottom left, right
     memcpy(m_color.data(), color.data(), m_pixelSize);
@@ -415,7 +418,7 @@ double HairyBrush::computeMousePressure(double distance)
 }
 
 
-void HairyBrush::colorifyBristles(KisPaintDeviceSP source, QPointF point)
+void HairyBrush::colorifyBristles(KisPaintDeviceSP source, PkPointF point)
 {
     KoColor bristleColor(m_dab->colorSpace());
     KisCrossDeviceColorSamplerInt colorSampler(source, bristleColor);

@@ -1,3 +1,13 @@
+#include <PkString.h>
+#include <PkList.h>
+#include <PkHash.h>
+#include <PkVariant.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
+#include <PkImage.h>
+#include <PkTransform.h>
+#include <PkPainterPath.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -14,10 +24,10 @@
 
 #include <brushengine/kis_paintop.h>
 
-#include <QVariant>
-#include <QHash>
-#include <QTransform>
-#include <QImage>
+#include <PkVariant.h>
+#include <PkHash.h>
+#include <PkTransform.h>
+#include <PkImage.h>
 
 #include <kis_random_accessor_ng.h>
 #include <kis_random_sub_accessor.h>
@@ -34,7 +44,7 @@
 #include <cmath>
 #include <ctime>
 
-#include <QtGlobal>
+
 
 SprayBrush::SprayBrush()
 {
@@ -152,7 +162,7 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
 
     KisRandomSourceSP randomSource = info.randomSource();
 
-    const QSize effectiveSize = m_shapeProperties->effectiveSize(m_sprayOpOptionData->diameter, m_sprayOpOptionData->scale);
+    const PkSize effectiveSize = m_shapeProperties->effectiveSize(m_sprayOpOptionData->diameter, m_sprayOpOptionData->scale);
 
     // initializing painter
     if (!m_painter) {
@@ -161,12 +171,12 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
         m_painter->setMaskImageSize(effectiveSize.width(), effectiveSize.height());
         m_dabPixelSize = dab->colorSpace()->pixelSize();
         if (m_colorProperties->useRandomHSV) {
-            m_transfo = dab->colorSpace()->createColorTransformation("hsv_adjustment", QHash<QString, QVariant>());
+            m_transfo = dab->colorSpace()->createColorTransformation("hsv_adjustment", PkHash<PkString, PkVariant>());
         }
 
-        m_brushQImage = m_shapeProperties->image;
-        if (!m_brushQImage.isNull()) {
-            m_brushQImage = m_brushQImage.scaled(effectiveSize);
+        m_brushPkImage = m_shapeProperties->image;
+        if (!m_brushPkImage.isNull()) {
+            m_brushPkImage = m_brushPkImage.scaled(effectiveSize);
         }
         m_imageDevice = new KisPaintDevice(dab->colorSpace());
     }
@@ -199,7 +209,7 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
         m_particlesCount = m_sprayOpOption->data.particleCount;
     }
 
-    QHash<QString, QVariant> params;
+    PkHash<PkString, PkVariant> params;
     qreal nx, ny;
     int ix, iy;
 
@@ -214,7 +224,7 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
         paintCircle(m_painter, x, y, m_radius);
     }
 
-    QTransform m;
+    PkTransform m;
     m.reset();
     m.rotateRadians(-rotation + deg2rad(m_sprayOpOption->data.brushRotation));
     m.scale(m_sprayOpOption->data.scale, m_sprayOpOption->data.scale);
@@ -338,19 +348,19 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
                 break;
             }
             case 4: {
-                if (!m_brushQImage.isNull()) {
+                if (!m_brushPkImage.isNull()) {
 
-                    QTransform m;
+                    PkTransform m;
                     m.rotate(rad2deg(rotationZ));
                     m.scale(additionalScale, additionalScale);
 
                     if (m_shapeDynamicsProperties->randomSize) {
                         m.scale(particleScale, particleScale);
                     }
-                    m_transformed = m_brushQImage.transformed(m, Qt::SmoothTransformation);
+                    m_transformed = m_brushPkImage.transformed(m, Qt::SmoothTransformation);
                     m_imageDevice->convertFromQImage(m_transformed, 0);
                     KisRandomAccessorSP ac = m_imageDevice->createRandomAccessorNG();
-                    QRect rc = m_transformed.rect();
+                    PkRect rc = m_transformed.rect();
 
                     if (m_colorProperties->useRandomHSV && m_transfo) {
 
@@ -364,7 +374,7 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
 
                     ix = qRound(nx + x - rc.width() * 0.5);
                     iy = qRound(ny + y - rc.height() * 0.5);
-                    m_painter->bitBlt(QPoint(ix, iy), m_imageDevice, rc);
+                    m_painter->bitBlt(PkPoint(ix, iy), m_imageDevice, rc);
                     m_imageDevice->clear();
                     break;
                 }
@@ -374,9 +384,9 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
         }
         else {
             KisDabShape shape(particleScale * additionalScale, 1.0, -rotationZ);
-            QPointF hotSpot = m_brush->hotSpot(shape, info);
-            QPointF pos(nx + x, ny + y);
-            QPointF pt = pos - hotSpot;
+            PkPointF hotSpot = m_brush->hotSpot(shape, info);
+            PkPointF pos(nx + x, ny + y);
+            PkPointF pt = pos - hotSpot;
 
             qint32 ix;
             qreal xFraction;
@@ -404,7 +414,7 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
                 m_brush->mask(m_fixedDab, m_inkColor, shape,
                               info, xFraction, yFraction);
             }
-            m_painter->bltFixed(QPoint(ix, iy), m_fixedDab, m_fixedDab->bounds());
+            m_painter->bltFixed(PkPoint(ix, iy), m_fixedDab, m_fixedDab->bounds());
         }
         if (m_colorProperties->colorPerParticle){
             m_inkColor=color;//reset color//
@@ -455,17 +465,17 @@ void SprayBrush::paintParticle(KisRandomAccessorSP &writeAccessor, const KoColor
 
 void SprayBrush::paintCircle(KisPainter* painter, qreal x, qreal y, qreal radius)
 {
-    QPainterPath path;
-    path.addEllipse(QPointF(x,y),radius,radius);
+    PkPainterPath path;
+    path.addEllipse(PkPointF(x,y),radius,radius);
     painter->fillPainterPath(path);
 }
 
 
 void SprayBrush::paintEllipse(KisPainter* painter, qreal x, qreal y, qreal a, qreal b, qreal angle)
 {
-    QPainterPath path;
-    path.addEllipse(QPointF(), a, b);
-    QTransform t;
+    PkPainterPath path;
+    path.addEllipse(PkPointF(), a, b);
+    PkTransform t;
     t.translate(x, y);
     t.rotateRadians(angle);
     path = t.map(path);
@@ -474,9 +484,9 @@ void SprayBrush::paintEllipse(KisPainter* painter, qreal x, qreal y, qreal a, qr
 
 void SprayBrush::paintRectangle(KisPainter* painter, qreal x, qreal y, qreal width, qreal height, qreal angle)
 {
-    QPainterPath path;
-    path.addRect(QRectF(-0.5 * width, -0.5 * height, width, height));
-    QTransform t;
+    PkPainterPath path;
+    path.addRect(PkRectF(-0.5 * width, -0.5 * height, width, height));
+    PkTransform t;
     t.translate(x, y);
     t.rotateRadians(angle);
     path = t.map(path);
@@ -486,7 +496,7 @@ void SprayBrush::paintRectangle(KisPainter* painter, qreal x, qreal y, qreal wid
 
 void SprayBrush::paintOutline(KisPaintDeviceSP dev , const KoColor &outlineColor, qreal posX, qreal posY, qreal radius)
 {
-    QList<QPointF> antiPixels;
+    PkList<PkPointF> antiPixels;
     KisRandomAccessorSP accessor = dev->createRandomAccessorNG();
 
     for (int y = -radius + posY; y <= radius + posY; y++) {
@@ -498,56 +508,56 @@ void SprayBrush::paintOutline(KisPaintDeviceSP dev , const KoColor &outlineColor
                 // top left
                 accessor->moveTo(x - 1, y - 1);
                 if (dev->colorSpace()->opacityU8(accessor->rawData()) == 0) {
-                    antiPixels.append(QPointF(x - 1, y - 1));
+                    antiPixels.append(PkPointF(x - 1, y - 1));
                     //continue;
                 }
 
                 // top
                 accessor->moveTo(x, y - 1);
                 if (dev->colorSpace()->opacityU8(accessor->rawData()) == 0) {
-                    antiPixels.append(QPointF(x, y - 1));
+                    antiPixels.append(PkPointF(x, y - 1));
                     //continue;
                 }
 
                 // top right
                 accessor->moveTo(x + 1, y - 1);
                 if (dev->colorSpace()->opacityU8(accessor->rawData()) == 0) {
-                    antiPixels.append(QPointF(x + 1, y - 1));
+                    antiPixels.append(PkPointF(x + 1, y - 1));
                     //continue;
                 }
 
                 //left
                 accessor->moveTo(x - 1, y);
                 if (dev->colorSpace()->opacityU8(accessor->rawData()) == 0) {
-                    antiPixels.append(QPointF(x - 1, y));
+                    antiPixels.append(PkPointF(x - 1, y));
                     //continue;
                 }
 
                 //right
                 accessor->moveTo(x + 1, y);
                 if (dev->colorSpace()->opacityU8(accessor->rawData()) == 0) {
-                    antiPixels.append(QPointF(x + 1, y));
+                    antiPixels.append(PkPointF(x + 1, y));
                     //continue;
                 }
 
                 // bottom left
                 accessor->moveTo(x - 1, y + 1);
                 if (dev->colorSpace()->opacityU8(accessor->rawData()) == 0) {
-                    antiPixels.append(QPointF(x - 1, y + 1));
+                    antiPixels.append(PkPointF(x - 1, y + 1));
                     //continue;
                 }
 
                 // bottom
                 accessor->moveTo(x, y + 1);
                 if (dev->colorSpace()->opacityU8(accessor->rawData()) == 0) {
-                    antiPixels.append(QPointF(x, y + 1));
+                    antiPixels.append(PkPointF(x, y + 1));
                     //continue;
                 }
 
                 // bottom right
                 accessor->moveTo(x + 1, y + 1);
                 if (dev->colorSpace()->opacityU8(accessor->rawData()) == 0) {
-                    antiPixels.append(QPointF(x + 1, y + 1));
+                    antiPixels.append(PkPointF(x + 1, y + 1));
                     //continue;
                 }
             }

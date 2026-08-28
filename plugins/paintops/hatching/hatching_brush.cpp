@@ -1,3 +1,5 @@
+#include <PkVariant.h>
+#include <PkPoint.h>
 /*
  *  SPDX-FileCopyrightText: 2008, 2009, 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *  SPDX-FileCopyrightText: 2010 José Luis Vergara <pentalis@gmail.com>
@@ -10,7 +12,7 @@
 #include <KoColor.h>
 #include <KoColorTransformation.h>
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include "kis_random_accessor_ng.h"
 #include <cmath>
@@ -97,7 +99,7 @@ void HatchingBrush::iterateLines(bool forward, int lineindex, bool oneline)
     double xdraw[2] = {0, 0};
     double ydraw[2] = {0, 0};
     //points A and B of the segments to trace
-    QPointF A, B;
+    PkPointF A, B;
     int append_index = 0;
     bool remaininginnerlines = true;
 
@@ -196,7 +198,7 @@ void HatchingBrush::iterateVerticalLines(bool forward, int lineindex, bool oneli
     double xdraw = 0;
     double ydraw[2] = {0, height_};
     //points A and B of the segments to trace
-    QPointF A, B;
+    PkPointF A, B;
     bool remaininginnerlines = true;
 
     while (remaininginnerlines) {

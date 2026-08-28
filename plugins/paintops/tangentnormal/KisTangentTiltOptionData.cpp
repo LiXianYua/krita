@@ -1,3 +1,4 @@
+#include <PkString.h>
 /*
  * SPDX-FileCopyrightText: 2015 Wolthera van Hövell tot Westerflier <griffinvalley@gmail.com>
  *
@@ -8,12 +9,12 @@
 #include "kis_properties_configuration.h"
 
 
-const QString TANGENT_RED = "Tangent/swizzleRed";
-const QString TANGENT_GREEN = "Tangent/swizzleGreen";
-const QString TANGENT_BLUE = "Tangent/swizzleBlue";
-const QString TANGENT_TYPE = "Tangent/directionType";
-const QString TANGENT_EV_SEN = "Tangent/elevationSensitivity";
-const QString TANGENT_MIX_VAL = "Tangent/mixValue";
+const PkString TANGENT_RED = "Tangent/swizzleRed";
+const PkString TANGENT_GREEN = "Tangent/swizzleGreen";
+const PkString TANGENT_BLUE = "Tangent/swizzleBlue";
+const PkString TANGENT_TYPE = "Tangent/directionType";
+const PkString TANGENT_EV_SEN = "Tangent/elevationSensitivity";
+const PkString TANGENT_MIX_VAL = "Tangent/mixValue";
 
 
 bool KisTangentTiltOptionData::read(const KisPropertiesConfiguration *setting)

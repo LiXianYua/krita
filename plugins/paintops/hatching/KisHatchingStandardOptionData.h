@@ -13,7 +13,7 @@ struct KisAngleOptionData : KisCurveOptionData
 {
     KisAngleOptionData()
         : KisCurveOptionData(
-              KoID("Angle", i18n("Angle")))
+              KoID("Angle", "Angle"))
     {}
 };
 
@@ -21,7 +21,7 @@ struct KisCrosshatchingOptionData : KisCurveOptionData
 {
     KisCrosshatchingOptionData()
         : KisCurveOptionData(
-              KoID("Crosshatching", i18n("Crosshatching")))
+              KoID("Crosshatching", "Crosshatching"))
     {}
 };
 
@@ -29,7 +29,7 @@ struct KisSeparationOptionData : KisCurveOptionData
 {
     KisSeparationOptionData()
         : KisCurveOptionData(
-              KoID("Separation", i18n("Separation")),
+              KoID("Separation", "Separation"),
               Checkability::Checkable, true,
               std::make_pair(0.0, 1.0))
     {}
@@ -39,7 +39,7 @@ struct KisThicknessOptionData : KisCurveOptionData
 {
     KisThicknessOptionData()
         : KisCurveOptionData(
-              KoID("Thickness", i18n("Thickness")))
+              KoID("Thickness", "Thickness"))
     {}
 };
 

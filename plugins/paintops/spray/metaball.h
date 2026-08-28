@@ -8,7 +8,7 @@
 #define _METABALL_H_
 
 #include <cmath>
-#include <QtGlobal>
+
 
 class Metaball
 {

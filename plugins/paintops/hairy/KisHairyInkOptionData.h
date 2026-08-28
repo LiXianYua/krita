@@ -1,3 +1,4 @@
+#include <PkString.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -33,7 +34,7 @@ struct KisHairyInkOptionData : boost::equality_comparable<KisHairyInkOptionData>
     bool inkDepletionEnabled {false};
 
     int inkAmount {1024};
-    QString inkDepletionCurve {DEFAULT_CURVE_STRING};
+    PkString inkDepletionCurve {DEFAULT_CURVE_STRING};
 
     bool useSaturation {false};
     bool useOpacity {true};

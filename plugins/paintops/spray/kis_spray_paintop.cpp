@@ -1,3 +1,5 @@
+#include <PkList.h>
+#include <PkRect.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2012 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -9,7 +11,7 @@
 
 #include <cmath>
 
-#include <QRect>
+#include <PkRect.h>
 #include <kis_global.h>
 #include <kis_paint_device.h>
 #include <kis_painter.h>
@@ -77,7 +79,7 @@ KisSprayPaintOp::~KisSprayPaintOp()
 {
 }
 
-QList<KoResourceLoadResult> KisSprayPaintOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisSprayPaintOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
 {
     KisBrushOptionProperties brushOption;
     return brushOption.prepareLinkedResources(settings, resourcesInterface);
@@ -112,7 +114,7 @@ KisSpacingInformation KisSprayPaintOp::paintAt(const KisPaintInformation& info)
                        painter()->paintColor(),
                        painter()->backgroundColor());
 
-    QRect rc = m_dab->extent();
+    PkRect rc = m_dab->extent();
     painter()->bitBlt(rc.topLeft(), m_dab, rc);
     painter()->renderMirrorMask(rc, m_dab);
 

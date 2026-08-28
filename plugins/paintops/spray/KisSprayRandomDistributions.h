@@ -1,3 +1,4 @@
+#include <PkScopedPointer.h>
 /*
  *  SPDX-FileCopyrightText: 2022 Deif Lou <ginoba@gmail.com>
  *
@@ -7,7 +8,7 @@
 #ifndef KISSPRAYRANDOMDISTRIBUTIONS_H
 #define KISSPRAYRANDOMDISTRIBUTIONS_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include <kis_random_source.h>
 #include <kis_cubic_curve.h>
@@ -78,7 +79,7 @@ protected:
 
 private:
     class Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 /**

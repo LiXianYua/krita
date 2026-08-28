@@ -1,3 +1,4 @@
+#include <PkString.h>
 /*
  *  SPDX-FileCopyrightText: 2022 Agata Cacko <cacko.azh@gmail.com>
  *  SPDX-FileCopyrightText: 2008, 2009, 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
@@ -9,31 +10,31 @@
 #include "kis_properties_configuration.h"
 
 
-const QString SHAPE_DYNAMICS_VERSION = "ShapeDynamicsVersion";
+const PkString SHAPE_DYNAMICS_VERSION = "ShapeDynamicsVersion";
 
 // Old Krita 2.2.x strings for backward compatibility
-const QString SPRAYSHAPE_RANDOM_SIZE = "SprayShape/randomSize";
-const QString SPRAYSHAPE_FIXED_ROTATION = "SprayShape/fixedRotation";
-const QString SPRAYSHAPE_FIXED_ANGEL = "SprayShape/fixedAngle";
-const QString SPRAYSHAPE_RANDOM_ROTATION = "SprayShape/randomRotation";
-const QString SPRAYSHAPE_RANDOM_ROTATION_WEIGHT = "SprayShape/randomRotationWeight";
-const QString SPRAYSHAPE_FOLLOW_CURSOR = "SprayShape/followCursor";
-const QString SPRAYSHAPE_FOLLOW_CURSOR_WEIGHT = "SprayShape/followCursorWeigth";
-const QString SPRAYSHAPE_DRAWING_ANGLE = "SprayShape/followDrawingAngle";
-const QString SPRAYSHAPE_DRAWING_ANGLE_WEIGHT = "SprayShape/followDrawingAngleWeigth";
+const PkString SPRAYSHAPE_RANDOM_SIZE = "SprayShape/randomSize";
+const PkString SPRAYSHAPE_FIXED_ROTATION = "SprayShape/fixedRotation";
+const PkString SPRAYSHAPE_FIXED_ANGEL = "SprayShape/fixedAngle";
+const PkString SPRAYSHAPE_RANDOM_ROTATION = "SprayShape/randomRotation";
+const PkString SPRAYSHAPE_RANDOM_ROTATION_WEIGHT = "SprayShape/randomRotationWeight";
+const PkString SPRAYSHAPE_FOLLOW_CURSOR = "SprayShape/followCursor";
+const PkString SPRAYSHAPE_FOLLOW_CURSOR_WEIGHT = "SprayShape/followCursorWeigth";
+const PkString SPRAYSHAPE_DRAWING_ANGLE = "SprayShape/followDrawingAngle";
+const PkString SPRAYSHAPE_DRAWING_ANGLE_WEIGHT = "SprayShape/followDrawingAngleWeigth";
 
 // My intention is to have the option dialog more general so that it can be share
 // hence the suffix ShapeDynamics
-const QString SHAPE_DYNAMICS_ENABLED = "ShapeDynamics/enabled";
-const QString SHAPE_DYNAMICS_RANDOM_SIZE = "ShapeDynamics/randomSize";
-const QString SHAPE_DYNAMICS_FIXED_ROTATION = "ShapeDynamics/fixedRotation";
-const QString SHAPE_DYNAMICS_FIXED_ANGEL = "ShapeDynamics/fixedAngle";
-const QString SHAPE_DYNAMICS_RANDOM_ROTATION = "ShapeDynamics/randomRotation";
-const QString SHAPE_DYNAMICS_RANDOM_ROTATION_WEIGHT = "ShapeDynamics/randomRotationWeight";
-const QString SHAPE_DYNAMICS_FOLLOW_CURSOR = "ShapeDynamics/followCursor";
-const QString SHAPE_DYNAMICS_FOLLOW_CURSOR_WEIGHT = "ShapeDynamics/followCursorWeigth";
-const QString SHAPE_DYNAMICS_DRAWING_ANGLE = "ShapeDynamics/followDrawingAngle";
-const QString SHAPE_DYNAMICS_DRAWING_ANGLE_WEIGHT = "ShapeDynamics/followDrawingAngleWeigth";
+const PkString SHAPE_DYNAMICS_ENABLED = "ShapeDynamics/enabled";
+const PkString SHAPE_DYNAMICS_RANDOM_SIZE = "ShapeDynamics/randomSize";
+const PkString SHAPE_DYNAMICS_FIXED_ROTATION = "ShapeDynamics/fixedRotation";
+const PkString SHAPE_DYNAMICS_FIXED_ANGEL = "ShapeDynamics/fixedAngle";
+const PkString SHAPE_DYNAMICS_RANDOM_ROTATION = "ShapeDynamics/randomRotation";
+const PkString SHAPE_DYNAMICS_RANDOM_ROTATION_WEIGHT = "ShapeDynamics/randomRotationWeight";
+const PkString SHAPE_DYNAMICS_FOLLOW_CURSOR = "ShapeDynamics/followCursor";
+const PkString SHAPE_DYNAMICS_FOLLOW_CURSOR_WEIGHT = "ShapeDynamics/followCursorWeigth";
+const PkString SHAPE_DYNAMICS_DRAWING_ANGLE = "ShapeDynamics/followDrawingAngle";
+const PkString SHAPE_DYNAMICS_DRAWING_ANGLE_WEIGHT = "ShapeDynamics/followDrawingAngleWeigth";
 
 
 

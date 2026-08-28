@@ -1,3 +1,5 @@
+#include <PkList.h>
+#include <PkRect.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -8,7 +10,7 @@
 #include "kis_hairy_paintop_settings.h"
 
 #include <cmath>
-#include <QRect>
+#include <PkRect.h>
 
 #include <kis_image.h>
 #include <kis_debug.h>
@@ -66,7 +68,7 @@ KisHairyPaintOp::KisHairyPaintOp(const KisPaintOpSettingsSP settings, KisPainter
     m_brush.setProperties(&m_properties);
 }
 
-QList<KoResourceLoadResult> KisHairyPaintOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisHairyPaintOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
 {
     KisBrushOptionProperties brushOption;
     return brushOption.prepareLinkedResources(settings, resourcesInterface);
@@ -149,8 +151,8 @@ void KisHairyPaintOp::paintLine(const KisPaintInformation &pi1, const KisPaintIn
 
     m_brush.paintLine(m_dab, m_dev, pi1, pi, scale * m_hairyBristleOption.scaleFactor, mirrorFlip ? -rotation : rotation);
 
-    //QRect rc = m_dab->exactBounds();
-    QRect rc = m_dab->extent();
+    //PkRect rc = m_dab->exactBounds();
+    PkRect rc = m_dab->extent();
     painter()->bitBlt(rc.topLeft(), m_dab, rc);
     painter()->renderMirrorMask(rc, m_dab);
 

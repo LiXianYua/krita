@@ -1,3 +1,5 @@
+#include <PkVector.h>
+#include <PkPoint.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -20,7 +22,7 @@ Trajectory::~Trajectory()
 }
 
 
-void Trajectory::addPoint(QPointF pos)
+void Trajectory::addPoint(PkPointF pos)
 {
     if (m_i >= m_path.size()) {
         m_path.append(pos);
@@ -41,7 +43,7 @@ void Trajectory::reset()
 }
 
 
-const QVector<QPointF> &Trajectory::getLinearTrajectory(const QPointF &start, const QPointF &end, double space)
+const PkVector<PkPointF> &Trajectory::getLinearTrajectory(const PkPointF &start, const PkPointF &end, double space)
 {
     Q_UNUSED(space);
     reset();
@@ -76,7 +78,7 @@ const QVector<QPointF> &Trajectory::getLinearTrajectory(const QPointF &start, co
             fy = fy + incr;
             y += incr;
 //            x = (int)(fx + 0.5f);
-            addPoint(QPointF(fx, fy));
+            addPoint(PkPointF(fx, fy));
         }
     } else {
         // x - directional axis
@@ -92,7 +94,7 @@ const QVector<QPointF> &Trajectory::getLinearTrajectory(const QPointF &start, co
             fx = fx + incr;
             x += incr;
 //            y = (int)(fy + 0.5f);
-            addPoint(QPointF(fx, fy));
+            addPoint(PkPointF(fx, fy));
         }
     }
 
@@ -100,7 +102,7 @@ const QVector<QPointF> &Trajectory::getLinearTrajectory(const QPointF &start, co
     return m_path;
 }
 
-QVector<QPointF> Trajectory::getDDATrajectory(QPointF start, QPointF end, double space)
+PkVector<PkPointF> Trajectory::getDDATrajectory(PkPointF start, PkPointF end, double space)
 {
     Q_UNUSED(space);
     reset();
@@ -130,7 +132,7 @@ QVector<QPointF> Trajectory::getDDATrajectory(QPointF start, QPointF end, double
             fx = fx + m;
             y = y + incr;
             x = (int)(fx + 0.5f);
-            addPoint(QPointF(x, y));
+            addPoint(PkPointF(x, y));
         }
     } else {
         int incr;
@@ -145,7 +147,7 @@ QVector<QPointF> Trajectory::getDDATrajectory(QPointF start, QPointF end, double
             fy = fy + m;
             x = x + incr;
             y = (int)(fy + 0.5f);
-            addPoint(QPointF(x, y));
+            addPoint(PkPointF(x, y));
         }
     }
 

@@ -1,3 +1,4 @@
+#include <PkString.h>
 /*
  *  SPDX-FileCopyrightText: 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -9,15 +10,15 @@
 #include <kis_paintop_lod_limitations.h>
 
 
-const QString HAIRY_BRISTLE_USE_MOUSEPRESSURE = "HairyBristle/useMousePressure";
-const QString HAIRY_BRISTLE_SCALE = "HairyBristle/scale";
-const QString HAIRY_BRISTLE_SHEAR = "HairyBristle/shear";
-const QString HAIRY_BRISTLE_RANDOM = "HairyBristle/random";
-const QString HAIRY_BRISTLE_DENSITY = "HairyBristle/density";
-const QString HAIRY_BRISTLE_THRESHOLD = "HairyBristle/threshold";
-const QString HAIRY_BRISTLE_ANTI_ALIASING = "HairyBristle/antialias";
-const QString HAIRY_BRISTLE_USE_COMPOSITING = "HairyBristle/useCompositing";
-const QString HAIRY_BRISTLE_CONNECTED = "HairyBristle/isConnected";
+const PkString HAIRY_BRISTLE_USE_MOUSEPRESSURE = "HairyBristle/useMousePressure";
+const PkString HAIRY_BRISTLE_SCALE = "HairyBristle/scale";
+const PkString HAIRY_BRISTLE_SHEAR = "HairyBristle/shear";
+const PkString HAIRY_BRISTLE_RANDOM = "HairyBristle/random";
+const PkString HAIRY_BRISTLE_DENSITY = "HairyBristle/density";
+const PkString HAIRY_BRISTLE_THRESHOLD = "HairyBristle/threshold";
+const PkString HAIRY_BRISTLE_ANTI_ALIASING = "HairyBristle/antialias";
+const PkString HAIRY_BRISTLE_USE_COMPOSITING = "HairyBristle/useCompositing";
+const PkString HAIRY_BRISTLE_CONNECTED = "HairyBristle/isConnected";
 
 
 bool KisHairyBristleOptionData::read(const KisPropertiesConfiguration *setting)
@@ -51,6 +52,6 @@ void KisHairyBristleOptionData::write(KisPropertiesConfiguration *setting) const
 KisPaintopLodLimitations KisHairyBristleOptionData::lodLimitations() const
 {
     KisPaintopLodLimitations l;
-    l.limitations << KoID("hairy-brush", i18nc("PaintOp instant preview limitation", "Bristle Brush (the lines will be thinner than on preview)"));
+    l.limitations.insert(KoID("hairy-brush", "Bristle Brush (the lines will be thinner than on preview)"));
     return l;
 }

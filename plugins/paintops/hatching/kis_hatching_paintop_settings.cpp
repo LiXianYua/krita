@@ -1,3 +1,9 @@
+#include <PkString.h>
+#include <PkList.h>
+#include <PkMap.h>
+#include <PkVariant.h>
+#include <PkPointer.h>
+#include <PkPoint.h>
 /*
  *  SPDX-FileCopyrightText: 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *  SPDX-FileCopyrightText: 2010 José Luis Vergara <pentalis@gmail.com>
@@ -9,7 +15,7 @@
 
 struct KisHatchingPaintOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 
@@ -28,9 +34,9 @@ void KisHatchingPaintOpSettings::initializeTwin(KisPaintOpSettingsSP settings) c
     // XXX: this is a nice way to reinvent the copy constructor?
 
     /*--------DO NOT REMOVE please, use this to review the XML config tree
-    QMap<QString, QVariant> rofl = QMap<QString, QVariant>(getProperties());
+    PkMap<PkString, PkVariant> rofl = PkMap<PkString, PkVariant>(getProperties());
 
-    QMap<QString, QVariant>::const_iterator i;
+    PkMap<PkString, PkVariant>::const_iterator i;
     for (i = rofl.constBegin(); i != rofl.constEnd(); ++i)
         dbgKrita << i.key() << ":" << i.value();
     /----------DO NOT REMOVE----------------*/
@@ -84,9 +90,9 @@ void KisHatchingPaintOpSettings::initializeTwin(KisPaintOpSettingsSP settings) c
 #include "KisHatchingOptionsData.h"
 
 
-QList<KisUniformPaintOpPropertySP> KisHatchingPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisHatchingPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
@@ -94,14 +100,14 @@ QList<KisUniformPaintOpPropertySP> KisHatchingPaintOpSettings::uniformProperties
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
                                                                 KisDoubleSliderBasedPaintOpPropertyCallback::SubType_Angle,
-                                                                KoID("hatching_angle", i18n("Hatching Angle")),
+                                                                KoID("hatching_angle", "Hatching Angle"),
                                                                 settings,
                                                                 0);
 
             prop->setRange(-90, 90);
             prop->setSingleStep(0.01);
             prop->setDecimals(2);
-            prop->setSuffix(QStringLiteral("°"));
+            prop->setSuffix("°");
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -117,21 +123,21 @@ QList<KisUniformPaintOpPropertySP> KisHatchingPaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("hatching_separation", i18n("Separation")),
+                                                                KoID("hatching_separation", "Separation"),
                                                                 settings,
                                                                 0);
 
             prop->setRange(1.0, 30);
             prop->setSingleStep(0.01);
             prop->setDecimals(2);
-            prop->setSuffix(i18n(" px"));
+            prop->setSuffix(" px");
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -147,21 +153,21 @@ QList<KisUniformPaintOpPropertySP> KisHatchingPaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("hatching_thickness", i18n("Thickness")),
+                                                                KoID("hatching_thickness", "Thickness"),
                                                                 settings,
                                                                 0);
 
             prop->setRange(1.0, 30);
             prop->setSingleStep(0.01);
             prop->setDecimals(2);
-            prop->setSuffix(i18n(" px"));
+            prop->setSuffix(" px");
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -177,12 +183,13 @@ QList<KisUniformPaintOpPropertySP> KisHatchingPaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
     }
 
-    return KisPaintOpSettings::uniformProperties(settings, updateProxy) + props;
+    PkList<KisUniformPaintOpPropertySP> result = KisPaintOpSettings::uniformProperties(settings, updateProxy);
+    for (const auto &property : props) result.append(property);
+    return result;
 }
-

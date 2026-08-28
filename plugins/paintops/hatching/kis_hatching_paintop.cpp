@@ -1,3 +1,6 @@
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
 /*
  *  SPDX-FileCopyrightText: 2008, 2009 Lukáš Tvrdý <lukast.dev@gmail.com>
  *  SPDX-FileCopyrightText: 2010 José Luis Vergara <pentalis@gmail.com>
@@ -9,7 +12,7 @@
 #include "kis_hatching_paintop_settings.h"
 
 #include <cmath>
-#include <QRect>
+#include <PkRect.h>
 
 #include <KoColor.h>
 #include <KoColorSpace.h>
@@ -95,7 +98,7 @@ KisSpacingInformation KisHatchingPaintOp::paintAt(const KisPaintInformation& inf
     static const KoColorSpace *cs = KoColorSpaceRegistry::instance()->alpha8();
     static KoColor color(Qt::black, cs);
 
-    QRect dstRect;
+    PkRect dstRect;
     KisFixedPaintDeviceSP maskDab =
         m_dabCache->fetchDab(cs, color, info.pos(),
                              shape,
@@ -164,7 +167,7 @@ KisSpacingInformation KisHatchingPaintOp::paintAt(const KisPaintInformation& inf
 
     // The most important line, the one that paints to the screen.
     painter()->bitBltWithFixedSelection(x, y, m_hatchedDab, maskDab, sw, sh);
-    painter()->renderMirrorMaskSafe(QRect(QPoint(x, y), QSize(sw, sh)), m_hatchedDab, 0, 0, maskDab,
+    painter()->renderMirrorMaskSafe(PkRect(PkPoint(x, y), PkSize(sw, sh)), m_hatchedDab, 0, 0, maskDab,
                                     !m_dabCache->needSeparateOriginal());
 
     return effectiveSpacing(scale);

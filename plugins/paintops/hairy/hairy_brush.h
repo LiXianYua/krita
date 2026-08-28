@@ -1,3 +1,9 @@
+#include <PkString.h>
+#include <PkVector.h>
+#include <PkHash.h>
+#include <PkVariant.h>
+#include <PkPoint.h>
+#include <PkTransform.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -7,8 +13,8 @@
 #ifndef _HAIRY_BRUSH_H_
 #define _HAIRY_BRUSH_H_
 
-#include <QVector>
-#include <QTransform>
+#include <PkVector.h>
+#include <PkTransform.h>
 
 #include <KoColor.h>
 
@@ -28,7 +34,7 @@ public:
     quint16 radius;
     quint16 inkAmount;
     qreal sigma;
-    QVector<qreal> inkDepletionCurve;
+    PkVector<qreal> inkDepletionCurve;
     bool inkDepletionEnabled;
     bool isbrushDimension1D;
     bool useMousePressure;
@@ -74,17 +80,17 @@ public:
 
 private:
     /// paints single bristle
-    void addBristleInk(Bristle *bristle,const QPointF &pos, const KoColor &color);
+    void addBristleInk(Bristle *bristle,const PkPointF &pos, const KoColor &color);
     /// composite single pixel to dab
     void plotPixel(int wx, int wy, const KoColor &color);
     /// check the opacity of dab pixel and if the opacity is less than color, it will copy color to dab
     void darkenPixel(int wx, int wy, const KoColor &color);
     /// paint wu particle by copying the color and setup just the opacity, weight is complementary to opacity of the color
-    void paintParticle(QPointF pos, const KoColor& color, qreal weight);
+    void paintParticle(PkPointF pos, const KoColor& color, qreal weight);
     /// paint wu particle using composite operation
-    void paintParticle(QPointF pos, const KoColor& color);
+    void paintParticle(PkPointF pos, const KoColor& color);
     /// similar to sample input color in spray
-    void colorifyBristles(KisPaintDeviceSP source, QPointF point);
+    void colorifyBristles(KisPaintDeviceSP source, PkPointF point);
 
     void repositionBristles(double angle, double slope);
     /// compute mouse pressure according distance
@@ -102,12 +108,12 @@ private:
 private:
     const KisHairyProperties * m_properties {nullptr};
 
-    QVector<Bristle*> m_bristles;
-    QTransform m_transform;
+    PkVector<Bristle*> m_bristles;
+    PkTransform m_transform;
 
     // used for interpolation the path of bristles
     Trajectory m_trajectory;
-    QHash<QString, QVariant> m_params;
+    PkHash<PkString, PkVariant> m_params;
     // temporary device
     KisPaintDeviceSP m_dab;
     KisRandomAccessorSP m_dabAccessor;

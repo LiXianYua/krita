@@ -10,11 +10,11 @@ set(kritahairypaintop_SOURCES
     )
 
 kis_add_library(kritahairypaintop MODULE ${kritahairypaintop_SOURCES})
+target_include_directories(kritahairypaintop PRIVATE ${CMAKE_SOURCE_DIR}/pk/string ${CMAKE_SOURCE_DIR}/pk/container ${CMAKE_SOURCE_DIR}/pk/geometry ${CMAKE_SOURCE_DIR}/pk/image ${CMAKE_SOURCE_DIR}/pk/pointer ${CMAKE_SOURCE_DIR}/pk/variant)
 
 target_link_libraries(kritahairypaintop kritalibpaintop)
 
 install(TARGETS kritahairypaintop  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 install( FILES
     krita-sumi.png DESTINATION ${KDE_INSTALL_DATADIR}/krita/images)
-
 

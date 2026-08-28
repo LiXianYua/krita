@@ -1,3 +1,8 @@
+#include <PkString.h>
+#include <PkList.h>
+#include <PkScopedPointer.h>
+#include <PkPointer.h>
+#include <PkPoint.h>
 /*
  *  SPDX-FileCopyrightText: 2008, 2009, 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -7,7 +12,7 @@
 #ifndef KIS_SPRAY_PAINTOP_SETTINGS_H_
 #define KIS_SPRAY_PAINTOP_SETTINGS_H_
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include <brushengine/kis_no_size_paintop_settings.h>
 #include <kis_types.h>
@@ -29,7 +34,7 @@ public:
 
     KisOptimizedBrushOutline brushOutline(const KisPaintInformation &info, const OutlineMode &mode, qreal alignForZoom) override;
 
-    QString modelName() const override {
+    PkString modelName() const override {
         return "airbrush";
     }
 
@@ -37,13 +42,13 @@ public:
 
 protected:
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
 private:
     Q_DISABLE_COPY(KisSprayPaintOpSettings)
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 
 };
 

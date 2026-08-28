@@ -7,7 +7,7 @@
 #include "gauss.h"
 #include <math.h>
 #include <stdlib.h>
-#include <QtGlobal>
+
 
 #ifdef Q_OS_WIN
 // quoting DRAND48(3) man-page:

@@ -1,3 +1,6 @@
+#include <PkString.h>
+#include <PkSize.h>
+#include <PkImage.h>
 /*
  *  SPDX-FileCopyrightText: 2022 Agata Cacko <cacko.azh@gmail.com>
  *  SPDX-FileCopyrightText: 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
@@ -12,7 +15,7 @@
 #include <boost/operators.hpp>
 #include <kritapaintop_export.h>
 
-#include <QImage>
+#include <PkImage.h>
 
 class KisPropertiesConfiguration;
 
@@ -28,18 +31,18 @@ struct KisSprayShapeOptionData : boost::equality_comparable<KisSprayShapeOptionD
     
     // particle type size
     quint8 shape;
-    QSize size;
+    PkSize size;
     bool enabled;
     bool proportional;
     
     // rotation
-    QImage image;
-    QString imageUrl;
+    PkImage image;
+    PkString imageUrl;
 
     bool read(const KisPropertiesConfiguration *setting);
     void write(KisPropertiesConfiguration *setting) const;
 
-    QSize effectiveSize(int diameter, qreal scale) const;
+    PkSize effectiveSize(int diameter, qreal scale) const;
 };
 
 #endif // KIS_SPRAY_SHAPE_OPTION_DATA_H

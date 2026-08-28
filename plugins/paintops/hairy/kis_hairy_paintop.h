@@ -1,3 +1,4 @@
+#include <PkList.h>
 /*
  *  SPDX-FileCopyrightText: 2008 Boudewijn Rempt <boud@valdyas.org>
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
@@ -33,7 +34,7 @@ public:
 
     void paintLine(const KisPaintInformation &pi1, const KisPaintInformation &pi2, KisDistanceInformation *currentDistance) override;
 
-    static QList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface);
+    static PkList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface);
 protected:
     KisSpacingInformation paintAt(const KisPaintInformation& info) override;
 

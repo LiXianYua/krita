@@ -1,3 +1,7 @@
+#include <PkList.h>
+#include <PkPointer.h>
+#include <PkPoint.h>
+#include <PkPainterPath.h>
 /*
  *  SPDX-FileCopyrightText: 2008, 2009, 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -16,7 +20,7 @@
 
 struct KisSprayPaintOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 
@@ -78,8 +82,8 @@ KisOptimizedBrushOutline KisSprayPaintOpSettings::brushOutline(const KisPaintInf
         path = outlineFetcher()->fetchOutline(info, this, path, mode, alignForZoom);
 
         if (mode.forceFullSize) {
-            QPainterPath tiltLine =
-                makeTiltIndicator(info, QPointF(0.0, 0.0), width * 0.5, 3.0);
+            PkPainterPath tiltLine =
+                makeTiltIndicator(info, PkPointF(0.0, 0.0), width * 0.5, 3.0);
             path.addPath(outlineFetcher()->fetchOutline(info, this, tiltLine, mode, alignForZoom, 1.0, 0.0, true, 0, 0));
         }
     }
@@ -92,16 +96,16 @@ KisOptimizedBrushOutline KisSprayPaintOpSettings::brushOutline(const KisPaintInf
 #include "kis_standard_uniform_properties_factory.h"
 
 
-QList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("spacing", i18n("Spacing")),
+                                                                KoID("spacing", "Spacing"),
                                                                 settings,
                                                                 0);
 
@@ -124,13 +128,13 @@ QList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(Ki
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop = new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
-                                                                                                          KoID("spray_particlecount", i18n("Particle Count")),
+                                                                                                          KoID("spray_particlecount", "Particle Count"),
                                                                                                           settings,
                                                                                                           0);
 
@@ -158,14 +162,14 @@ QList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(Ki
                     return !option.useDensity;
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("spray_density", i18n("Density")),
+                                                                KoID("spray_density", "Density"),
                                                                 settings,
                                                                 0);
 
@@ -193,7 +197,7 @@ QList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(Ki
                     option.read(prop->settings().data());
                     return option.useDensity;
                 });
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

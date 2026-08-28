@@ -1,3 +1,5 @@
+#include <PkString.h>
+#include <PkVariant.h>
 /*
  *  SPDX-FileCopyrightText: 2022 Agata Cacko <cacko.azh@gmail.com>
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
@@ -10,7 +12,7 @@
 
 bool KisSprayOpOptionData::read(const KisPropertiesConfiguration *settings)
 {
-    QVariant v;
+    PkVariant v;
     diameter = settings->getInt(SPRAY_DIAMETER);
     aspect = settings->getDouble(SPRAY_ASPECT);
     brushRotation = settings->getDouble(SPRAY_ROTATION);
@@ -22,7 +24,7 @@ bool KisSprayOpOptionData::read(const KisPropertiesConfiguration *settings)
     coverage = settings->getDouble(SPRAY_COVERAGE) / 100.0;
     useDensity = settings->getBool(SPRAY_USE_DENSITY);
     {
-        const QString angularDistributionTypeStr = settings->getString(SPRAY_ANGULAR_DISTRIBUTION_TYPE, "uniform");
+        const PkString angularDistributionTypeStr = settings->getString(SPRAY_ANGULAR_DISTRIBUTION_TYPE, "uniform");
         if (angularDistributionTypeStr == "curveBased") {
             angularDistributionType = ParticleDistribution_CurveBased;
         } else {
@@ -32,7 +34,7 @@ bool KisSprayOpOptionData::read(const KisPropertiesConfiguration *settings)
         angularDistributionCurveRepeat = settings->getInt(SPRAY_ANGULAR_DISTRIBUTION_CURVE_REPEAT, 1);
     }
     {
-        const QString radialDistributionTypeStr = settings->getString(SPRAY_RADIAL_DISTRIBUTION_TYPE, "");
+        const PkString radialDistributionTypeStr = settings->getString(SPRAY_RADIAL_DISTRIBUTION_TYPE, "");
         if (radialDistributionTypeStr == "uniform") {
             radialDistributionType = ParticleDistribution_Uniform;
         } else if (radialDistributionTypeStr == "gaussian") {
@@ -85,7 +87,7 @@ void KisSprayOpOptionData::write(KisPropertiesConfiguration *setting) const
     } else {
         setting->setProperty(SPRAY_RADIAL_DISTRIBUTION_TYPE, "uniform");
     }
-    QVariant c;
+    PkVariant c;
     c.setValue(angularDistributionCurve);
     setting->setProperty(SPRAY_ANGULAR_DISTRIBUTION_CURVE, c);
     setting->setProperty(SPRAY_ANGULAR_DISTRIBUTION_CURVE_REPEAT, angularDistributionCurveRepeat);

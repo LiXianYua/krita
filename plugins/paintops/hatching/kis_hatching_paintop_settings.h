@@ -1,3 +1,7 @@
+#include <PkList.h>
+#include <PkScopedPointer.h>
+#include <PkPointer.h>
+#include <PkPoint.h>
 /*
  *  SPDX-FileCopyrightText: 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *  SPDX-FileCopyrightText: 2010 José Luis Vergara <pentalis@gmail.com>
@@ -11,7 +15,7 @@
 #include <brushengine/kis_paintop_settings.h>
 #include <kis_brush_based_paintop_settings.h>
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 
 class KisHatchingPaintOpSettings : public KisBrushBasedPaintOpSettings
@@ -58,13 +62,13 @@ public:
 
     void initializeTwin(KisPaintOpSettingsSP convenienttwin) const;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
 private:
     Q_DISABLE_COPY(KisHatchingPaintOpSettings)
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 
 };
 

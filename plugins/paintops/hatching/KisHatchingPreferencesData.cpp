@@ -1,3 +1,4 @@
+#include <PkString.h>
 /*
  *  SPDX-FileCopyrightText: 2008 Lukas Tvrdy <lukast.dev@gmail.com>
  *  SPDX-FileCopyrightText: 2010 José Luis Vergara <pentalis@gmail.com>
@@ -9,9 +10,9 @@
 #include "kis_properties_configuration.h"
 
 
-const QString HATCHING_ANTIALIAS = "Hatching/bool_antialias";
-const QString HATCHING_OPAQUE_BACKGROUND = "Hatching/bool_opaquebackground";
-const QString HATCHING_SUBPIXEL_PRECISION = "Hatching/bool_subpixelprecision";
+const PkString HATCHING_ANTIALIAS = "Hatching/bool_antialias";
+const PkString HATCHING_OPAQUE_BACKGROUND = "Hatching/bool_opaquebackground";
+const PkString HATCHING_SUBPIXEL_PRECISION = "Hatching/bool_subpixelprecision";
 
 
 bool KisHatchingPreferencesData::read(const KisPropertiesConfiguration *setting)

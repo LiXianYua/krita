@@ -1,3 +1,7 @@
+#include <PkString.h>
+#include <PkVector.h>
+#include <PkPoint.h>
+#include <PkRect.h>
 /*
  *  SPDX-FileCopyrightText: 2015 Wolthera van Hövell tot Westerflier <griffinvalley@gmail.com>
  *
@@ -6,7 +10,7 @@
 
 #include "kis_tangent_normal_paintop.h"
 
-#include <QRect>
+#include <PkRect.h>
 
 #include <KoColorSpaceRegistry.h>
 #include <KoColor.h>
@@ -58,14 +62,14 @@ KisSpacingInformation KisTangentNormalPaintOp::paintAt(const KisPaintInformation
      * if so we request a profile with that space and 8bit bit depth, if not, just sRGB
      */
     KoColor currentColor = painter()->paintColor();
-    QString currentSpace = currentColor.colorSpace()->colorModelId().id();
+    PkString currentSpace = currentColor.colorSpace()->colorModelId().id();
     const KoColorSpace* rgbColorSpace = KoColorSpaceRegistry::instance()->rgb8();
     if (currentSpace != "RGBA") {
         rgbColorSpace = KoColorSpaceRegistry::instance()->rgb8();
     } else {
         rgbColorSpace = currentColor.colorSpace();
     }
-    QVector <float> channelValues(4);
+    PkVector <float> channelValues(4);
     qreal r, g, b;
 
     if (currentColor.colorSpace()->colorDepthId().id()=="F16" || currentColor.colorSpace()->colorDepthId().id()=="F32"){
@@ -110,7 +114,7 @@ KisSpacingInformation KisTangentNormalPaintOp::paintAt(const KisPaintInformation
     KisDabShape shape(scale, 1.0, rotation);
 
 
-    QPointF cursorPos =
+    PkPointF cursorPos =
             m_scatterOption.apply(info,
                                   brush->maskWidth(shape, 0, 0, info),
                                   brush->maskHeight(shape, 0, 0, info));
@@ -123,14 +127,14 @@ KisSpacingInformation KisTangentNormalPaintOp::paintAt(const KisPaintInformation
 
     if (m_dstDabRect.isEmpty()) return KisSpacingInformation(1.0);
 
-    QRect dabRect = m_maskDab->bounds();
+    PkRect dabRect = m_maskDab->bounds();
 
     // sanity check
     Q_ASSERT(m_dstDabRect.size() == dabRect.size());
     Q_UNUSED(dabRect);
 
     qreal  oldOpacityF = painter()->opacityF();
-    QString oldCompositeOpId = painter()->compositeOpId();
+    PkString oldCompositeOpId = painter()->compositeOpId();
 
 
     m_opacityOption.apply(painter(), info);
@@ -178,14 +182,14 @@ void KisTangentNormalPaintOp::paintLine(const KisPaintInformation& pi1, const Ki
 
         KisPainter p(m_lineCacheDevice);
         KoColor currentColor = painter()->paintColor();
-        QString currentSpace = currentColor.colorSpace()->colorModelId().id();
+        PkString currentSpace = currentColor.colorSpace()->colorModelId().id();
         const KoColorSpace* rgbColorSpace = KoColorSpaceRegistry::instance()->rgb8();
         if (currentSpace != "RGBA") {
             rgbColorSpace = KoColorSpaceRegistry::instance()->rgb8();
         } else {
             rgbColorSpace = currentColor.colorSpace();
         }
-        QVector <float> channelValues(4);
+        PkVector <float> channelValues(4);
         qreal r, g, b;
 
         if (currentColor.colorSpace()->colorDepthId().id()=="F16" || currentColor.colorSpace()->colorDepthId().id()=="F32"){
@@ -219,7 +223,7 @@ void KisTangentNormalPaintOp::paintLine(const KisPaintInformation& pi1, const Ki
         p.setPaintColor(color);
         p.drawDDALine(pi1.pos(), pi2.pos());
 
-        QRect rc = m_lineCacheDevice->extent();
+        PkRect rc = m_lineCacheDevice->extent();
         painter()->bitBlt(rc.x(), rc.y(), m_lineCacheDevice, rc.x(), rc.y(), rc.width(), rc.height());
         painter()->renderMirrorMask(rc, m_lineCacheDevice);
     }

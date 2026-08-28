@@ -1,3 +1,4 @@
+#include <PkString.h>
 /*
  *  SPDX-FileCopyrightText: 2008 Lukas Tvrdy <lukast.dev@gmail.com>
  *  SPDX-FileCopyrightText: 2010 José Luis Vergara <pentalis@gmail.com>
@@ -10,19 +11,19 @@
 #include <kis_paintop_lod_limitations.h>
 
 
-const QString HATCHING_ANGLE = "Hatching/angle";
-const QString HATCHING_SEPARATION = "Hatching/separation";
-const QString HATCHING_THICKNESS = "Hatching/thickness";
-const QString HATCHING_ORIGIN_X = "Hatching/origin_x";
-const QString HATCHING_ORIGIN_Y = "Hatching/origin_y";
+const PkString HATCHING_ANGLE = "Hatching/angle";
+const PkString HATCHING_SEPARATION = "Hatching/separation";
+const PkString HATCHING_THICKNESS = "Hatching/thickness";
+const PkString HATCHING_ORIGIN_X = "Hatching/origin_x";
+const PkString HATCHING_ORIGIN_Y = "Hatching/origin_y";
 
-const QString HATCHING_BOOL_NOCROSSHATCHING = "Hatching/bool_nocrosshatching";
-const QString HATCHING_BOOL_PERPENDICULAR = "Hatching/bool_perpendicular";
-const QString HATCHING_BOOL_MINUSTHENPLUS = "Hatching/bool_minusthenplus";
-const QString HATCHING_BOOL_PLUSTHENMINUS = "Hatching/bool_plusthenminus";
-const QString HATCHING_BOOL_MOIREPATTERN = "Hatching/bool_moirepattern";
+const PkString HATCHING_BOOL_NOCROSSHATCHING = "Hatching/bool_nocrosshatching";
+const PkString HATCHING_BOOL_PERPENDICULAR = "Hatching/bool_perpendicular";
+const PkString HATCHING_BOOL_MINUSTHENPLUS = "Hatching/bool_minusthenplus";
+const PkString HATCHING_BOOL_PLUSTHENMINUS = "Hatching/bool_plusthenminus";
+const PkString HATCHING_BOOL_MOIREPATTERN = "Hatching/bool_moirepattern";
 
-const QString HATCHING_SEPARATIONINTERVALS = "Hatching/separationintervals";
+const PkString HATCHING_SEPARATIONINTERVALS = "Hatching/separationintervals";
 
 
 bool KisHatchingOptionsData::read(const KisPropertiesConfiguration *setting)
@@ -73,6 +74,6 @@ void KisHatchingOptionsData::write(KisPropertiesConfiguration *setting) const
 KisPaintopLodLimitations KisHatchingOptionsData::lodLimitations() const
 {
     KisPaintopLodLimitations l;
-    l.limitations << KoID("hatching-brush", i18nc("PaintOp instant preview limitation", "Hatching Brush (heavy aliasing in preview mode)"));
+    l.limitations.insert(KoID("hatching-brush", "Hatching Brush (heavy aliasing in preview mode)"));
     return l;
 }

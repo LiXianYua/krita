@@ -1,3 +1,4 @@
+#include <PkImage.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2010, 2013 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -23,7 +24,7 @@
 
 
 
-#include <QImage>
+#include <PkImage.h>
 #include <kis_brush.h>
 
 class KisPaintInformation;
@@ -60,8 +61,8 @@ private:
 
     KisPainter * m_painter {nullptr};
     KisPaintDeviceSP m_imageDevice;
-    QImage m_brushQImage;
-    QImage m_transformed;
+    PkImage m_brushPkImage;
+    PkImage m_transformed;
 
     KoColorTransformation* m_transfo {nullptr};
 

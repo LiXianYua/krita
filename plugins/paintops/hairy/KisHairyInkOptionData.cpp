@@ -1,3 +1,5 @@
+#include <PkString.h>
+#include <PkVariant.h>
 /*
  *  SPDX-FileCopyrightText: 2008-2010 Lukáš Tvrdý <lukast.dev@gmail.com>
  *
@@ -8,17 +10,17 @@
 #include "kis_properties_configuration.h"
 
 
-const QString HAIRY_INK_DEPLETION_ENABLED = "HairyInk/enabled";
-const QString HAIRY_INK_AMOUNT = "HairyInk/inkAmount";
-const QString HAIRY_INK_USE_SATURATION = "HairyInk/useSaturation";
-const QString HAIRY_INK_USE_OPACITY = "HairyInk/useOpacity";
-const QString HAIRY_INK_USE_WEIGHTS = "HairyInk/useWeights";
-const QString HAIRY_INK_PRESSURE_WEIGHT = "HairyInk/pressureWeights";
-const QString HAIRY_INK_BRISTLE_LENGTH_WEIGHT = "HairyInk/bristleLengthWeights";
-const QString HAIRY_INK_BRISTLE_INK_AMOUNT_WEIGHT = "HairyInk/bristleInkAmountWeight";
-const QString HAIRY_INK_DEPLETION_WEIGHT = "HairyInk/inkDepletionWeight";
-const QString HAIRY_INK_DEPLETION_CURVE = "HairyInk/inkDepletionCurve";
-const QString HAIRY_INK_SOAK = "HairyInk/soak";
+const PkString HAIRY_INK_DEPLETION_ENABLED = "HairyInk/enabled";
+const PkString HAIRY_INK_AMOUNT = "HairyInk/inkAmount";
+const PkString HAIRY_INK_USE_SATURATION = "HairyInk/useSaturation";
+const PkString HAIRY_INK_USE_OPACITY = "HairyInk/useOpacity";
+const PkString HAIRY_INK_USE_WEIGHTS = "HairyInk/useWeights";
+const PkString HAIRY_INK_PRESSURE_WEIGHT = "HairyInk/pressureWeights";
+const PkString HAIRY_INK_BRISTLE_LENGTH_WEIGHT = "HairyInk/bristleLengthWeights";
+const PkString HAIRY_INK_BRISTLE_INK_AMOUNT_WEIGHT = "HairyInk/bristleInkAmountWeight";
+const PkString HAIRY_INK_DEPLETION_WEIGHT = "HairyInk/inkDepletionWeight";
+const PkString HAIRY_INK_DEPLETION_CURVE = "HairyInk/inkDepletionCurve";
+const PkString HAIRY_INK_SOAK = "HairyInk/soak";
 
 
 bool KisHairyInkOptionData::read(const KisPropertiesConfiguration *setting)
@@ -49,6 +51,6 @@ void KisHairyInkOptionData::write(KisPropertiesConfiguration *setting) const
     setting->setProperty(HAIRY_INK_BRISTLE_LENGTH_WEIGHT, bristleLengthWeight);
     setting->setProperty(HAIRY_INK_BRISTLE_INK_AMOUNT_WEIGHT, bristleInkAmountWeight);
     setting->setProperty(HAIRY_INK_DEPLETION_WEIGHT, inkDepletionWeight);
-    setting->setProperty(HAIRY_INK_DEPLETION_CURVE, QVariant::fromValue(KisCubicCurve(inkDepletionCurve)));
+    setting->setProperty(HAIRY_INK_DEPLETION_CURVE, PkVariant::fromValue(KisCubicCurve(inkDepletionCurve)));
     setting->setProperty(HAIRY_INK_SOAK, useSoakInk);
 }
