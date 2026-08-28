@@ -74,6 +74,17 @@ target_include_directories(kritacanvas
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/processing>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../surfacecolormanagementapi>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../surfacecolormanagementapi>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/container>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/geometry>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/pointer>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/config>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/global>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/xml>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/signal>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/concurrent>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/time>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/log>
 )
 
 target_link_libraries(kritacanvas
@@ -89,6 +100,17 @@ target_link_libraries(kritacanvas
         kritainput
         kritalibpaintop
         kritasurfacecolormanagementapi
+        pkstring
+        pkcontainer
+        pkgeometry
+        pkpointer
+        pkconfig
+        pkglobal
+        pkxml
+        pksignal
+        pkconcurrent
+        pktime
+        pklog
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
 )
