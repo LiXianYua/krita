@@ -6,28 +6,26 @@
 
 #include "RectangleShapeFactory.h"
 #include "RectangleShape.h"
-#include <QLinearGradient>
 #include "KoShapeStroke.h"
 #include <KoXmlNS.h>
-#include <KoGradientBackground.h>
 #include <KoShapeLoadingContext.h>
 #include <KoProperties.h>
 #include "kis_assert.h"
+#include <PkSharedPointer.h>
+#include <PkStringList.h>
 
-#include <klocalizedstring.h>
-
-#include "kis_pointer_utils.h"
+#include <utility>
 
 RectangleShapeFactory::RectangleShapeFactory()
-    : KoShapeFactoryBase(RectangleShapeId, i18n("Rectangle"))
+    : KoShapeFactoryBase(RectangleShapeId, "Rectangle")
 {
-    setToolTip(i18n("A rectangle"));
+    setToolTip("A rectangle");
     setFamily("geometric");
     setLoadingPriority(1);
 
-    QList<QPair<QString, QStringList> > elementNamesList;
-    elementNamesList.append(qMakePair(QString(KoXmlNS::draw), QStringList("rect")));
-    elementNamesList.append(qMakePair(QString(KoXmlNS::svg), QStringList("rect")));
+    PkList<std::pair<PkString, PkStringList> > elementNamesList;
+    elementNamesList.append(std::make_pair(PkString(KoXmlNS::draw), PkStringList{"rect"}));
+    elementNamesList.append(std::make_pair(PkString(KoXmlNS::svg), PkStringList{"rect"}));
     setXmlElements(elementNamesList);
 }
 
@@ -35,15 +33,10 @@ KoShape *RectangleShapeFactory::createDefaultShape(KoDocumentResourceManager *) 
 {
     RectangleShape *rect = new RectangleShape();
 
-    rect->setStroke(toQShared(new KoShapeStroke(1.0)));
+    rect->setStroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
     rect->setShapeId(KoPathShapeId);
 
-    QLinearGradient *gradient = new QLinearGradient(QPointF(0, 0), QPointF(1, 1));
-    gradient->setCoordinateMode(QGradient::ObjectBoundingMode);
-
-    gradient->setColorAt(0.0, Qt::white);
-    gradient->setColorAt(1.0, Qt::green);
-    rect->setBackground(QSharedPointer<KoGradientBackground>(new KoGradientBackground(gradient)));
+    // S-09/M5 GAP: the default gradient is renderer-only visualization.
 
     return rect;
 }
@@ -55,11 +48,11 @@ KoShape *RectangleShapeFactory::createShape(const KoProperties *params, KoDocume
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(rectShape, shape);
 
     rectShape->setSize(
-        QSizeF(params->doubleProperty("width", rectShape->size().width()),
+        PkSizeF(params->doubleProperty("width", rectShape->size().width()),
                params->doubleProperty("height", rectShape->size().height())));
 
     rectShape->setAbsolutePosition(
-        QPointF(params->doubleProperty("x", rectShape->absolutePosition(KoFlake::TopLeft).x()),
+        PkPointF(params->doubleProperty("x", rectShape->absolutePosition(KoFlake::TopLeft).x()),
                 params->doubleProperty("y", rectShape->absolutePosition(KoFlake::TopLeft).y())),
         KoFlake::TopLeft);
 
@@ -70,9 +63,8 @@ KoShape *RectangleShapeFactory::createShape(const KoProperties *params, KoDocume
     return shape;
 }
 
-bool RectangleShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &/*context*/) const
+bool RectangleShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &/*context*/) const
 {
-    Q_UNUSED(e);
+    (void)e;
     return (e.localName() == "rect" && e.namespaceURI() == KoXmlNS::draw);
 }
-

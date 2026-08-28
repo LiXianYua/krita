@@ -10,6 +10,11 @@
 
 #include "KoParameterShape.h"
 #include <SvgShape.h>
+#include <PkNamespace.h>
+#include <PkPoint.h>
+#include <PkSize.h>
+#include <PkString.h>
+#include <PkXmlElement.h>
 
 #define RectangleShapeId "RectangleShape"
 
@@ -52,19 +57,19 @@ public:
      */
     void setCornerRadiusY(qreal radius);
     /// reimplemented
-    QString pathShapeId() const override;
+    PkString pathShapeId() const override;
 
     /// reimplemented from SvgShape
     bool saveSvg(SvgSavingContext &context) override;
 
     /// reimplemented from SvgShape
-    bool loadSvg(const QDomElement &element, SvgLoadingContext &context) override;
+    bool loadSvg(const PkXmlElement &element, SvgLoadingContext &context) override;
 
 protected:
     RectangleShape(const RectangleShape &rhs);
 
-    void moveHandleAction(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
-    void updatePath(const QSizeF &size) override;
+    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
+    void updatePath(const PkSizeF &size) override;
     void createPoints(int requiredPointCount);
     void updateHandles();
 
@@ -74,4 +79,3 @@ private:
 };
 
 #endif /* KORECTANGLESHAPE_H */
-

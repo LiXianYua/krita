@@ -10,6 +10,11 @@
 
 #include "KoParameterShape.h"
 #include <SvgShape.h>
+#include <PkNamespace.h>
+#include <PkPoint.h>
+#include <PkSize.h>
+#include <PkString.h>
+#include <PkXmlElement.h>
 
 #define EllipseShapeId "EllipseShape"
 
@@ -34,8 +39,8 @@ public:
 
     KoShape* cloneShape() const override;
 
-    void setSize(const QSizeF &newSize) override;
-    QPointF normalize() override;
+    void setSize(const PkSizeF &newSize) override;
+    PkPointF normalize() override;
 
     /**
      * Sets the type of the ellipse.
@@ -65,18 +70,18 @@ public:
     qreal endAngle() const;
 
     /// reimplemented
-    QString pathShapeId() const override;
+    PkString pathShapeId() const override;
 
     /// reimplemented from SvgShape
     bool saveSvg(SvgSavingContext &context) override;
 
     /// reimplemented from SvgShape
-    bool loadSvg(const QDomElement &element, SvgLoadingContext &context) override;
+    bool loadSvg(const PkXmlElement &element, SvgLoadingContext &context) override;
 
 protected:
 
-    void moveHandleAction(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
-    void updatePath(const QSizeF &size) override;
+    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
+    void updatePath(const PkSizeF &size) override;
     void createPoints(int requiredPointCount);
 
 private:
@@ -94,12 +99,11 @@ private:
     // angle for modifying the kind in radiant
     qreal m_kindAngle;
     // the center of the ellipse
-    QPointF m_center;
+    PkPointF m_center;
     // the radii of the ellipse
-    QPointF m_radii;
+    PkPointF m_radii;
     // the actual ellipse type
     EllipseType m_type;
 };
 
 #endif /* KOELLIPSESHAPE_H */
-

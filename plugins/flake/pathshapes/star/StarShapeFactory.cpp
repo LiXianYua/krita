@@ -13,17 +13,16 @@
 #include <KoXmlNS.h>
 #include <KoColorBackground.h>
 #include <KoShapeLoadingContext.h>
+#include <PkColor.h>
+#include <PkSharedPointer.h>
+#include <PkStringList.h>
 
-
-#include <klocalizedstring.h>
-
-#include "kis_pointer_utils.h"
 
 StarShapeFactory::StarShapeFactory()
-    : KoShapeFactoryBase(StarShapeId, i18n("A star shape"))
+    : KoShapeFactoryBase(StarShapeId, "A star shape")
 {
-    setToolTip(i18n("A star"));
-    QStringList elementNames;
+    setToolTip("A star");
+    PkStringList elementNames;
     elementNames << "regular-polygon" << "custom-shape";
     setXmlElementNames(KoXmlNS::draw, elementNames);
     setLoadingPriority(5);
@@ -31,63 +30,63 @@ StarShapeFactory::StarShapeFactory()
     KoShapeTemplate t;
     t.id = KoPathShapeId;
     t.templateId = "star";
-    t.name = i18n("Star");
+    t.name = "Star";
     t.family = "geometric";
-    t.toolTip = i18n("A star");
-    t.iconName = QLatin1String("star-shape");
+    t.toolTip = "A star";
+    t.iconName = "star-shape";
     KoProperties *props = new KoProperties();
     props->setProperty("corners", 5);
-    QVariant v;
-    v.setValue(QColor(Qt::yellow));
+    PkVariant v;
+    v.setValue(PkColor(255, 255, 0));
     props->setProperty("background", v);
     t.properties = props;
     addTemplate(t);
 
     t.id = KoPathShapeId;
     t.templateId = "flower";
-    t.name = i18n("Flower");
+    t.name = "Flower";
     t.family = "funny";
-    t.toolTip = i18n("A flower");
-    t.iconName = QLatin1String("flower-shape");
+    t.toolTip = "A flower";
+    t.iconName = "flower-shape";
     props = new KoProperties();
     props->setProperty("corners", 5);
     props->setProperty("baseRadius", 10.0);
     props->setProperty("tipRadius", 50.0);
     props->setProperty("baseRoundness", 0.0);
     props->setProperty("tipRoundness", 40.0);
-    v.setValue(QColor(Qt::magenta));
+    v.setValue(PkColor(255, 0, 255));
     props->setProperty("background", v);
     t.properties = props;
     addTemplate(t);
 
     t.id = KoPathShapeId;
     t.templateId = "pentagon";
-    t.name = i18n("Pentagon");
+    t.name = "Pentagon";
     t.family = "geometric";
-    t.toolTip = i18n("A pentagon");
-    t.iconName = QLatin1String("pentagon-shape");
+    t.toolTip = "A pentagon";
+    t.iconName = "pentagon-shape";
     props = new KoProperties();
     props->setProperty("corners", 5);
     props->setProperty("convex", true);
     props->setProperty("tipRadius", 50.0);
     props->setProperty("tipRoundness", 0.0);
-    v.setValue(QColor(Qt::blue));
+    v.setValue(PkColor(0, 0, 255));
     props->setProperty("background", v);
     t.properties = props;
     addTemplate(t);
 
     t.id = KoPathShapeId;
     t.templateId = "hexagon";
-    t.name = i18n("Hexagon");
+    t.name = "Hexagon";
     t.family = "geometric";
-    t.toolTip = i18n("A hexagon");
-    t.iconName = QLatin1String("hexagon-shape");
+    t.toolTip = "A hexagon";
+    t.iconName = "hexagon-shape";
     props = new KoProperties();
     props->setProperty("corners", 6);
     props->setProperty("convex", true);
     props->setProperty("tipRadius", 50.0);
     props->setProperty("tipRoundness", 0.0);
-    v.setValue(QColor(Qt::blue));
+    v.setValue(PkColor(0, 0, 255));
     props->setProperty("background", v);
     t.properties = props;
     addTemplate(t);
@@ -97,7 +96,7 @@ KoShape *StarShapeFactory::createDefaultShape(KoDocumentResourceManager *) const
 {
     StarShape *star = new StarShape();
 
-    star->setStroke(toQShared(new KoShapeStroke(1.0)));
+    star->setStroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
     star->setShapeId(KoPathShapeId);
 
     return star;
@@ -116,19 +115,19 @@ KoShape *StarShapeFactory::createShape(const KoProperties *params, KoDocumentRes
     star->setTipRadius(params->doubleProperty("tipRadius", 50.0));
     star->setBaseRoundness(params->doubleProperty("baseRoundness", 0.0));
     star->setTipRoundness(params->doubleProperty("tipRoundness", 0.0));
-    star->setStroke(toQShared(new KoShapeStroke(1.0)));
+    star->setStroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
     star->setShapeId(KoPathShapeId);
-    QVariant v;
+    PkVariant v;
     if (params->property("background", v)) {
-        star->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(v.value<QColor>())));
+        star->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(v.value<PkColor>())));
     }
 
     return star;
 }
 
-bool StarShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &context) const
+bool StarShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &context) const
 {
-    Q_UNUSED(context);
+    (void)context;
     if (e.localName() == "regular-polygon" && e.namespaceURI() == KoXmlNS::draw) {
         return true;
     }

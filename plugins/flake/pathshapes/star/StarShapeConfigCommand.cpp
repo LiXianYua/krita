@@ -6,7 +6,7 @@
 
 #include "StarShapeConfigCommand.h"
 #include "StarShape.h"
-#include <klocalizedstring.h>
+#include <cassert>
 
 StarShapeConfigCommand::StarShapeConfigCommand(StarShape *star, uint cornerCount, qreal innerRadius, qreal outerRadius, bool convex, KUndo2Command *parent)
     : KUndo2Command(parent)
@@ -16,9 +16,9 @@ StarShapeConfigCommand::StarShapeConfigCommand(StarShape *star, uint cornerCount
     , m_newOuterRadius(outerRadius)
     , m_newConvex(convex)
 {
-    Q_ASSERT(m_star);
+    assert(m_star);
 
-    setText(kundo2_i18n("Change star"));
+    setText(kundo2_text("Change star"));
 
     m_oldCornerCount = m_star->cornerCount();
     m_oldInnerRadius = m_star->baseRadius();
@@ -32,7 +32,7 @@ void StarShapeConfigCommand::redo()
 
     m_star->update();
 
-    QPointF position = m_star->absolutePosition();
+    PkPointF position = m_star->absolutePosition();
 
     if (m_oldCornerCount != m_newCornerCount) {
         m_star->setCornerCount(m_newCornerCount);
@@ -58,7 +58,7 @@ void StarShapeConfigCommand::undo()
 
     m_star->update();
 
-    QPointF position = m_star->absolutePosition();
+    PkPointF position = m_star->absolutePosition();
 
     if (m_oldCornerCount != m_newCornerCount) {
         m_star->setCornerCount(m_oldCornerCount);

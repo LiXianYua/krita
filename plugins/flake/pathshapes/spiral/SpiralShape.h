@@ -8,6 +8,11 @@
 #define KOSPIRALSHAPE_H
 
 #include "KoParameterShape.h"
+#include <PkNamespace.h>
+#include <PkPoint.h>
+#include <PkSize.h>
+#include <PkString.h>
+#include <PkTransform.h>
 
 #define SpiralShapeId "SpiralShape"
 
@@ -29,8 +34,8 @@ public:
 
     KoShape* cloneShape() const override;
 
-    void setSize(const QSizeF &newSize) override;
-    QPointF normalize() override;
+    void setSize(const PkSizeF &newSize) override;
+    PkPointF normalize() override;
 
     /**
      * Sets the type of the spiral.
@@ -54,14 +59,14 @@ public:
     void setClockWise(bool clockwise);
 
     /// reimplemented
-    QString pathShapeId() const override;
+    PkString pathShapeId() const override;
 
 protected:
     SpiralShape(const SpiralShape &rhs);
 
-    void moveHandleAction(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
-    void updatePath(const QSizeF &size) override;
-    void createPath(const QSizeF &size);
+    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
+    void updatePath(const PkSizeF &size) override;
+    void createPath(const PkSizeF &size);
 
 private:
     void updateKindHandle();
@@ -72,9 +77,9 @@ private:
     // angle for modifying the kind in radiant
     qreal m_kindAngle;
     // the center of the spiral
-    QPointF m_center;
+    PkPointF m_center;
     // the radii of the spiral
-    QPointF m_radii;
+    PkPointF m_radii;
     // the actual spiral type
     SpiralType m_type;
     //
@@ -84,4 +89,3 @@ private:
 };
 
 #endif /* KOSPIRALSHAPE_H */
-

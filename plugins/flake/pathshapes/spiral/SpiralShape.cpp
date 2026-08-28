@@ -12,7 +12,7 @@
 #include <KoXmlWriter.h>
 #include <KoXmlNS.h>
 
-#include <math.h>
+#include <cmath>
 #include "kis_assert.h"
 
 
@@ -23,10 +23,10 @@ SpiralShape::SpiralShape()
     , m_type(Curve)
     , m_clockwise(true)
 {
-    //m_handles.push_back(QPointF(50, 0));
-    //m_handles.push_back(QPointF(50, 50));
-    //m_handles.push_back(QPointF(0, 50));
-    createPath(QSizeF(m_radii.x(), m_radii.y()));
+    //m_handles.push_back(PkPointF(50, 0));
+    //m_handles.push_back(PkPointF(50, 50));
+    //m_handles.push_back(PkPointF(0, 50));
+    createPath(PkSizeF(m_radii.x(), m_radii.y()));
 }
 
 SpiralShape::SpiralShape(const SpiralShape &rhs)
@@ -39,7 +39,7 @@ SpiralShape::SpiralShape(const SpiralShape &rhs)
       m_clockwise(rhs.m_clockwise)
 
 {
-    Q_FOREACH(KoPathPoint *point, rhs.m_points) {
+    for (KoPathPoint *point : rhs.m_points) {
         KIS_ASSERT_RECOVER(point) { continue; }
         m_points << new KoPathPoint(*point, this);
     }
@@ -55,32 +55,32 @@ KoShape *SpiralShape::cloneShape() const
     return new SpiralShape(*this);
 }
 
-void SpiralShape::setSize(const QSizeF &newSize)
+void SpiralShape::setSize(const PkSizeF &newSize)
 {
-    QTransform matrix(resizeMatrix(newSize));
+    PkTransform matrix(resizeMatrix(newSize));
     m_center = matrix.map(m_center);
     m_radii = matrix.map(m_radii);
     KoParameterShape::setSize(newSize);
 }
 
-QPointF SpiralShape::normalize()
+PkPointF SpiralShape::normalize()
 {
-    QPointF offset(KoParameterShape::normalize());
-    QTransform matrix;
+    PkPointF offset(KoParameterShape::normalize());
+    PkTransform matrix;
     matrix.translate(-offset.x(), -offset.y());
     m_center = matrix.map(m_center);
     return offset;
 }
 
-void SpiralShape::moveHandleAction(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers)
+void SpiralShape::moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers)
 {
-    Q_UNUSED(handleId);
-    Q_UNUSED(point);
-    Q_UNUSED(modifiers);
+    (void)handleId;
+    (void)point;
+    (void)modifiers;
 #if 0
-    QPointF p(point);
+    PkPointF p(point);
 
-    QPointF diff(m_center - point);
+    PkPointF diff(m_center - point);
     diff.setX(-diff.x());
     qreal angle = 0;
     if (diff.x() == 0) {
@@ -98,26 +98,26 @@ void SpiralShape::moveHandleAction(int handleId, const QPointF &point, Qt::Keybo
 
     switch (handleId) {
     case 0:
-        p = QPointF(m_center + QPointF(cos(angle) * m_radii.x(), -sin(angle) * m_radii.y()));
+        p = PkPointF(m_center + PkPointF(cos(angle) * m_radii.x(), -sin(angle) * m_radii.y()));
         m_handles[handleId] = p;
         updateKindHandle();
         break;
     case 1:
-        p = QPointF(m_center + QPointF(cos(angle) * m_radii.x(), -sin(angle) * m_radii.y()));
+        p = PkPointF(m_center + PkPointF(cos(angle) * m_radii.x(), -sin(angle) * m_radii.y()));
         m_handles[handleId] = p;
         updateKindHandle();
         break;
     case 2: {
-        QList<QPointF> kindHandlePositions;
-        kindHandlePositions.push_back(QPointF(m_center + QPointF(cos(m_kindAngle) * m_radii.x(), -sin(m_kindAngle) * m_radii.y())));
+        PkList<PkPointF> kindHandlePositions;
+        kindHandlePositions.push_back(PkPointF(m_center + PkPointF(cos(m_kindAngle) * m_radii.x(), -sin(m_kindAngle) * m_radii.y())));
         kindHandlePositions.push_back(m_center);
         kindHandlePositions.push_back((m_handles[0] + m_handles[1]) / 2.0);
 
-        QPointF diff = m_center * 2.0;
+        PkPointF diff = m_center * 2.0;
         int handlePos = 0;
         for (int i = 0; i < kindHandlePositions.size(); ++i) {
-            QPointF pointDiff(p - kindHandlePositions[i]);
-            if (i == 0 || qAbs(pointDiff.x()) + qAbs(pointDiff.y()) < qAbs(diff.x()) + qAbs(diff.y())) {
+            PkPointF pointDiff(p - kindHandlePositions[i]);
+            if (i == 0 || std::abs(pointDiff.x()) + std::abs(pointDiff.y()) < std::abs(diff.x()) + std::abs(diff.y())) {
                 diff = pointDiff;
                 handlePos = i;
             }
@@ -129,15 +129,15 @@ void SpiralShape::moveHandleAction(int handleId, const QPointF &point, Qt::Keybo
 #endif
 }
 
-void SpiralShape::updatePath(const QSizeF &size)
+void SpiralShape::updatePath(const PkSizeF &size)
 {
     createPath(size);
     normalize();
 #if 0
-    Q_UNUSED(size);
-    QPointF startpoint(m_handles[0]);
+    (void)size;
+    PkPointF startpoint(m_handles[0]);
 
-    QPointF curvePoints[12];
+    PkPointF curvePoints[12];
 
     int pointCnt = arcToCurve(m_radii.x(), m_radii.y(), m_startAngle, sweepAngle(), startpoint, curvePoints);
 
@@ -173,20 +173,20 @@ void SpiralShape::updatePath(const QSizeF &size)
 #endif
 }
 
-void SpiralShape::createPath(const QSizeF &size)
+void SpiralShape::createPath(const PkSizeF &size)
 {
-    Q_UNUSED(size);
+    (void)size;
     clear();
-    QPointF center = QPointF(m_radii.x() / 2.0, m_radii.y() / 2.0);
-    //moveTo(QPointF(size.width(), m_radii.y()));
+    PkPointF center = PkPointF(m_radii.x() / 2.0, m_radii.y() / 2.0);
+    //moveTo(PkPointF(size.width(), m_radii.y()));
     qreal adv_ang = (m_clockwise ? -1.0 : 1.0) * M_PI_2;
     // radius of first segment is non-faded radius:
     qreal m_radius = m_radii.x() / 2.0;
     qreal r = m_radius;
 
-    QPointF oldP(center.x(), (m_clockwise ? -1.0 : 1.0) * m_radius + center.y());
-    QPointF newP;
-    QPointF newCenter(center);
+    PkPointF oldP(center.x(), (m_clockwise ? -1.0 : 1.0) * m_radius + center.y());
+    PkPointF newP;
+    PkPointF newCenter(center);
     moveTo(oldP);
     uint m_segments = 10;
     //m_handles[0] = oldP;
@@ -196,8 +196,8 @@ void SpiralShape::createPath(const QSizeF &size)
         newP.setY(r * sin(adv_ang * (i + 2)) + newCenter.y());
 
         if (m_type == Curve) {
-            qreal rx = qAbs(oldP.x() - newP.x());
-            qreal ry = qAbs(oldP.y() - newP.y());
+            qreal rx = std::abs(oldP.x() - newP.x());
+            qreal ry = std::abs(oldP.y() - newP.y());
             if (m_clockwise) {
                 arcTo(rx, ry, ((i + 1) % 4) * 90, 90);
             } else {
@@ -211,7 +211,7 @@ void SpiralShape::createPath(const QSizeF &size)
         oldP = newP;
         r *= m_fade;
     }
-    //m_handles[1] = QPointF(center.x(), (m_clockwise ? -1.0 : 1.0) * m_radius + center.y());
+    //m_handles[1] = PkPointF(center.x(), (m_clockwise ? -1.0 : 1.0) * m_radius + center.y());
     m_points = *subpaths()[0];
 
     notifyPointsChanged();
@@ -228,7 +228,7 @@ void SpiralShape::updateKindHandle()
        switch (m_type)
        {
            case Curve:
-               m_handles[2] = m_center + QPointF(cos(m_kindAngle) * m_radii.x(), -sin(m_kindAngle) * m_radii.y());
+               m_handles[2] = m_center + PkPointF(cos(m_kindAngle) * m_radii.x(), -sin(m_kindAngle) * m_radii.y());
                break;
            case Line:
                m_handles[2] = m_center;
@@ -241,8 +241,8 @@ void SpiralShape::updateAngleHandles()
 {
 //    qreal startRadian = m_startAngle * M_PI / 180.0;
 //    qreal endRadian = m_endAngle * M_PI / 180.0;
-//    m_handles[0] = m_center + QPointF(cos(startRadian) * m_radii.x(), -sin(startRadian) * m_radii.y());
-//    m_handles[1] = m_center + QPointF(cos(endRadian) * m_radii.x(), -sin(endRadian) * m_radii.y());
+//    m_handles[0] = m_center + PkPointF(cos(startRadian) * m_radii.x(), -sin(startRadian) * m_radii.y());
+//    m_handles[1] = m_center + PkPointF(cos(endRadian) * m_radii.x(), -sin(endRadian) * m_radii.y());
 }
 
 void SpiralShape::setType(SpiralType type)
@@ -283,7 +283,7 @@ void SpiralShape::setClockWise(bool clockWise)
     updatePath(size());
 }
 
-QString SpiralShape::pathShapeId() const
+PkString SpiralShape::pathShapeId() const
 {
     return SpiralShapeId;
 }

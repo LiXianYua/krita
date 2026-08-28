@@ -9,6 +9,10 @@
 
 #include <array>
 #include <KoParameterShape.h>
+#include <PkNamespace.h>
+#include <PkPoint.h>
+#include <PkSize.h>
+#include <PkString.h>
 
 #define StarShapeId "StarShape"
 
@@ -94,24 +98,24 @@ public:
      * The star center is the weight center of the star and not necessarily
      * coincident with the shape center point.
      */
-    QPointF starCenter() const;
+    PkPointF starCenter() const;
 
     /// reimplemented
-    void setSize(const QSizeF &newSize) override;
+    void setSize(const PkSizeF &newSize) override;
     /// reimplemented
-    QString pathShapeId() const override;
+    PkString pathShapeId() const override;
 
 protected:
     StarShape(const StarShape &rhs);
 
-    void moveHandleAction(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
-    void updatePath(const QSizeF &size) override;
+    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
+    void updatePath(const PkSizeF &size) override;
     /// recreates the path points when the corner count or convexity changes
     void createPoints(int requiredPointCount);
 
 private:
     /// Computes the star center point from the inner points
-    QPointF computeCenter() const;
+    PkPointF computeCenter() const;
 
     /// Returns the default offset angle in radian
     double defaultAngleRadian() const;
@@ -125,9 +129,8 @@ private:
     qreal m_zoomX;        ///< scaling in x
     qreal m_zoomY;        ///< scaling in y
     std::array<qreal, 2> m_roundness; ///< the roundness at the handles
-    QPointF m_center;      ///< the star center point
+    PkPointF m_center;      ///< the star center point
     bool m_convex;         ///< controls if the star is convex
 };
 
 #endif /* KOSTARSHAPE_H */
-

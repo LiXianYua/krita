@@ -7,17 +7,6 @@
 #ifndef PATHSHAPESPLUGIN_H
 #define PATHSHAPESPLUGIN_H
 
-#include <QObject>
-#include <QVariantList>
-
-class PathShapesPlugin : public QObject
-{
-    Q_OBJECT
-
-public:
-    PathShapesPlugin(QObject *parent, const QVariantList &);
-    ~PathShapesPlugin() override {}
-
-};
+void registerPathShapes();
 
 #endif

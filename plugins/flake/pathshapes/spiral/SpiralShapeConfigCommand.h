@@ -8,6 +8,7 @@
 #define SPIRALSHAPECONFIGCOMMAND_H
 
 #include "SpiralShape.h"
+#include <PkGlobal.h>
 #include <kundo2command.h>
 
 /// The undo / redo command for configuring a spiral shape
@@ -37,4 +38,3 @@ private:
 };
 
 #endif // SPIRALSHAPECONFIGCOMMAND_H
-

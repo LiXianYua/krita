@@ -7,18 +7,24 @@
 
 #include "ImageShapePlugin.h"
 
-#include <kpluginfactory.h>
-
 #include <KoShapeRegistry.h>
 
 #include "ImageShapeFactory.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ImageShapePluginFactory, "krita_shape_image.json", registerPlugin<ImageShapePlugin>();)
-
-ImageShapePlugin::ImageShapePlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+void registerImageShape()
 {
+    static bool registered = false;
+    if (registered) return;
+    registered = true;
     KoShapeRegistry::instance()->add(new ImageShapeFactory());
 }
 
-#include <ImageShapePlugin.moc>
+namespace
+{
+struct ImageShapeRegistration
+{
+    ImageShapeRegistration() { registerImageShape(); }
+};
+
+ImageShapeRegistration s_imageShapeRegistration;
+} // namespace

@@ -7,7 +7,11 @@
 #ifndef IMAGESHAPE_H
 #define IMAGESHAPE_H
 
-#include <QSharedDataPointer>
+#include <PkImage.h>
+#include <PkTransform.h>
+#include <PkXmlElement.h>
+
+#include <memory>
 
 #include "KoShape.h"
 #include <SvgShape.h>
@@ -23,25 +27,28 @@ public:
 
     KoShape *cloneShape() const override;
 
-    void paint(QPainter &painter) const override;
+    // S-09/M5 GAP: the drawing hook remains callable, but the kernel has no
+    // painter backend yet.  The opaque context is deliberately unused.
+    void paint(void *paintContext) const override;
 
-    void setSize(const QSizeF &size) override;
+    void setSize(const PkSizeF &size) override;
 
     bool saveSvg(SvgSavingContext &context) override;
-    bool loadSvg(const QDomElement &element, SvgLoadingContext &context) override;
+    bool loadSvg(const PkXmlElement &element, SvgLoadingContext &context) override;
 
-    void setImage(const QImage &img);
-    QImage image() const;
+    void setImage(const PkImage &img);
+    PkImage image() const;
 
-    void setViewBoxTransform(const QTransform &tf);
-    QTransform viewBoxTransform() const;
+    void setViewBoxTransform(const PkTransform &tf);
+    PkTransform viewBoxTransform() const;
 
 private:
     ImageShape(const ImageShape &rhs);
+    void detach();
 
 private:
     struct Private;
-    QSharedDataPointer<Private> m_d;
+    std::shared_ptr<Private> m_d;
 };
 
 #endif // IMAGESHAPE_H

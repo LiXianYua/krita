@@ -7,6 +7,7 @@
 #ifndef STARSHAPECONFIGCOMMAND_H
 #define STARSHAPECONFIGCOMMAND_H
 
+#include <PkGlobal.h>
 #include <kundo2command.h>
 
 class StarShape;
@@ -42,4 +43,3 @@ private:
 };
 
 #endif // STARSHAPECONFIGCOMMAND_H
-

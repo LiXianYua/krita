@@ -5,7 +5,7 @@
  */
 
 #include "SpiralShapeConfigCommand.h"
-#include <klocalizedstring.h>
+#include <cassert>
 
 SpiralShapeConfigCommand::SpiralShapeConfigCommand(SpiralShape *spiral, SpiralShape::SpiralType type, bool clockWise, qreal fade, KUndo2Command *parent)
     : KUndo2Command(parent)
@@ -14,9 +14,9 @@ SpiralShapeConfigCommand::SpiralShapeConfigCommand(SpiralShape *spiral, SpiralSh
     , m_newClockWise(clockWise)
     , m_newFade(fade)
 {
-    Q_ASSERT(m_spiral);
+    assert(m_spiral);
 
-    setText(kundo2_i18n("Change spiral"));
+    setText(kundo2_text("Change spiral"));
 
     m_oldType = m_spiral->type();
     m_oldClockWise = m_spiral->clockWise();

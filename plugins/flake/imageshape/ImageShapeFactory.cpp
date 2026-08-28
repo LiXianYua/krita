@@ -14,23 +14,23 @@
 
 // Calligra
 #include <KoXmlNS.h>
-#include <QImage>
-#include <QTransform>
+#include <PkImage.h>
+#include <PkStringList.h>
+#include <PkTransform.h>
 #include <KoShapeLoadingContext.h>
 #include <KoProperties.h>
 #include <kis_assert.h>
 
-// KDE
-#include <klocalizedstring.h>
+#include <utility>
 
 ImageShapeFactory::ImageShapeFactory()
-    : KoShapeFactoryBase(ImageShapeId, i18n("Image shape"))
+    : KoShapeFactoryBase(ImageShapeId, "Image shape")
 {
-    setToolTip(i18n("A shape that shows an image (PNG/JPG/TIFF)"));
+    setToolTip("A shape that shows an image (PNG/JPG/TIFF)");
 
-    QList<QPair<QString, QStringList> > elementNamesList;
-    elementNamesList.append(qMakePair(QString(KoXmlNS::draw), QStringList("image")));
-    elementNamesList.append(qMakePair(QString(KoXmlNS::svg), QStringList("image")));
+    PkList<std::pair<PkString, PkStringList> > elementNamesList;
+    elementNamesList.append(std::make_pair(PkString(KoXmlNS::draw), PkStringList{"image"}));
+    elementNamesList.append(std::make_pair(PkString(KoXmlNS::svg), PkStringList{"image"}));
     setXmlElements(elementNamesList);
     setLoadingPriority(1);
 }
@@ -49,21 +49,21 @@ KoShape *ImageShapeFactory::createShape(const KoProperties *params, KoDocumentRe
     ImageShape *shape = new ImageShape();
     shape->setShapeId(ImageShapeId);
 
-    QVariant var = params->value("image");
+    PkVariant var = params->value("image");
 
-    KIS_SAFE_ASSERT_RECOVER(var.type() == QMetaType::QImage);
-    shape->setImage(var.value<QImage>());
+    KIS_SAFE_ASSERT_RECOVER(var.canConvert<PkImage>());
+    shape->setImage(var.value<PkImage>());
 
     var = params->value("viewboxTransform");
-    if (var.type() == QMetaType::QTransform) {
-        shape->setViewBoxTransform(var.value<QTransform>());
+    if (var.canConvert<PkTransform>()) {
+        shape->setViewBoxTransform(var.value<PkTransform>());
     }
     return shape;
 }
 
-bool ImageShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &context) const
+bool ImageShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &context) const
 {
-    Q_UNUSED(context);
+    (void)context;
     return e.localName() == "image" &&
             (e.namespaceURI() == KoXmlNS::draw || e.namespaceURI() == KoXmlNS::svg);
 }

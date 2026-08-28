@@ -7,6 +7,7 @@
 #ifndef RECTANGLESHAPECONFIGCOMMAND_H
 #define RECTANGLESHAPECONFIGCOMMAND_H
 
+#include <PkGlobal.h>
 #include <kundo2command.h>
 
 class RectangleShape;
@@ -40,4 +41,3 @@ private:
 };
 
 #endif // RECTANGLESHAPECONFIGCOMMAND_H
-

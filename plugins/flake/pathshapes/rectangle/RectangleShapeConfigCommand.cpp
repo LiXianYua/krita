@@ -6,9 +6,9 @@
 
 #include "RectangleShapeConfigCommand.h"
 #include "RectangleShape.h"
-#include <klocalizedstring.h>
 #include "kis_command_ids.h"
 
+#include <cassert>
 
 RectangleShapeConfigCommand::RectangleShapeConfigCommand(RectangleShape *rectangle, qreal cornerRadiusX, qreal cornerRadiusY, KUndo2Command *parent)
     : KUndo2Command(parent)
@@ -16,9 +16,9 @@ RectangleShapeConfigCommand::RectangleShapeConfigCommand(RectangleShape *rectang
     , m_newCornerRadiusX(cornerRadiusX)
     , m_newCornerRadiusY(cornerRadiusY)
 {
-    Q_ASSERT(m_rectangle);
+    assert(m_rectangle);
 
-    setText(kundo2_i18n("Change rectangle"));
+    setText(kundo2_text("Change rectangle"));
 
     m_oldCornerRadiusX = m_rectangle->cornerRadiusX();
     m_oldCornerRadiusY = m_rectangle->cornerRadiusY();

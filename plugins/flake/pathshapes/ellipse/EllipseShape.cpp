@@ -21,7 +21,7 @@
 #include <KoParameterShape_p.h>
 #include "kis_global.h"
 
-#include <math.h>
+#include <cmath>
 
 EllipseShape::EllipseShape()
     : m_startAngle(0)
@@ -29,14 +29,14 @@ EllipseShape::EllipseShape()
     , m_kindAngle(M_PI)
     , m_type(Arc)
 {
-    QList<QPointF> handles;
-    handles.push_back(QPointF(100, 50));
-    handles.push_back(QPointF(100, 50));
-    handles.push_back(QPointF(0, 50));
+    PkList<PkPointF> handles;
+    handles.push_back(PkPointF(100, 50));
+    handles.push_back(PkPointF(100, 50));
+    handles.push_back(PkPointF(0, 50));
     setHandles(handles);
-    QSizeF size(100, 100);
-    m_radii = QPointF(size.width() / 2.0, size.height() / 2.0);
-    m_center = QPointF(m_radii.x(), m_radii.y());
+    PkSizeF size(100, 100);
+    m_radii = PkPointF(size.width() / 2.0, size.height() / 2.0);
+    m_center = PkPointF(m_radii.x(), m_radii.y());
     updatePath(size);
 }
 
@@ -60,29 +60,29 @@ KoShape *EllipseShape::cloneShape() const
     return new EllipseShape(*this);
 }
 
-void EllipseShape::setSize(const QSizeF &newSize)
+void EllipseShape::setSize(const PkSizeF &newSize)
 {
-    QTransform matrix(resizeMatrix(newSize));
+    PkTransform matrix(resizeMatrix(newSize));
     m_center = matrix.map(m_center);
     m_radii = matrix.map(m_radii);
     KoParameterShape::setSize(newSize);
 }
 
-QPointF EllipseShape::normalize()
+PkPointF EllipseShape::normalize()
 {
-    QPointF offset(KoParameterShape::normalize());
-    QTransform matrix;
+    PkPointF offset(KoParameterShape::normalize());
+    PkTransform matrix;
     matrix.translate(-offset.x(), -offset.y());
     m_center = matrix.map(m_center);
     return offset;
 }
 
-void EllipseShape::moveHandleAction(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers)
+void EllipseShape::moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers)
 {
-    Q_UNUSED(modifiers);
-    QPointF p(point);
+    (void)modifiers;
+    PkPointF p(point);
 
-    QPointF diff(m_center - point);
+    PkPointF diff(m_center - point);
     diff.setX(-diff.x());
     qreal angle = 0;
     if (diff.x() == 0) {
@@ -99,29 +99,29 @@ void EllipseShape::moveHandleAction(int handleId, const QPointF &point, Qt::Keyb
         }
     }
 
-    QList<QPointF> handles = this->handles();
+    PkList<PkPointF> handles = this->handles();
     switch (handleId) {
     case 0:
-        p = QPointF(m_center + QPointF(cos(angle) * m_radii.x(), -sin(angle) * m_radii.y()));
+        p = PkPointF(m_center + PkPointF(cos(angle) * m_radii.x(), -sin(angle) * m_radii.y()));
         m_startAngle = kisRadiansToDegrees(angle);
         handles[handleId] = p;
         break;
     case 1:
-        p = QPointF(m_center + QPointF(cos(angle) * m_radii.x(), -sin(angle) * m_radii.y()));
+        p = PkPointF(m_center + PkPointF(cos(angle) * m_radii.x(), -sin(angle) * m_radii.y()));
         m_endAngle = kisRadiansToDegrees(angle);
         handles[handleId] = p;
         break;
     case 2: {
-        QList<QPointF> kindHandlePositions;
-        kindHandlePositions.push_back(QPointF(m_center + QPointF(cos(m_kindAngle) * m_radii.x(), -sin(m_kindAngle) * m_radii.y())));
+        PkList<PkPointF> kindHandlePositions;
+        kindHandlePositions.push_back(PkPointF(m_center + PkPointF(cos(m_kindAngle) * m_radii.x(), -sin(m_kindAngle) * m_radii.y())));
         kindHandlePositions.push_back(m_center);
         kindHandlePositions.push_back((handles[0] + handles[1]) / 2.0);
 
-        QPointF diff = m_center * 2.0;
+        PkPointF diff = m_center * 2.0;
         int handlePos = 0;
         for (int i = 0; i < kindHandlePositions.size(); ++i) {
-            QPointF pointDiff(p - kindHandlePositions[i]);
-            if (i == 0 || qAbs(pointDiff.x()) + qAbs(pointDiff.y()) < qAbs(diff.x()) + qAbs(diff.y())) {
+            PkPointF pointDiff(p - kindHandlePositions[i]);
+            if (i == 0 || std::abs(pointDiff.x()) + std::abs(pointDiff.y()) < std::abs(diff.x()) + std::abs(diff.y())) {
                 diff = pointDiff;
                 handlePos = i;
             }
@@ -138,12 +138,12 @@ void EllipseShape::moveHandleAction(int handleId, const QPointF &point, Qt::Keyb
     }
 }
 
-void EllipseShape::updatePath(const QSizeF &size)
+void EllipseShape::updatePath(const PkSizeF &size)
 {
-    Q_UNUSED(size);
-    QPointF startpoint(handles()[0]);
+    (void)size;
+    PkPointF startpoint(handles()[0]);
 
-    QPointF curvePoints[12];
+    PkPointF curvePoints[12];
     const qreal distance = sweepAngle();
 
     const bool sameAngles = distance > 359.9;
@@ -215,7 +215,7 @@ void EllipseShape::createPoints(int requiredPointCount)
         }
     } else if (requiredPointCount > currentPointCount) {
         for (int i = 0; i < requiredPointCount - currentPointCount; ++i) {
-            subpaths()[0]->append(new KoPathPoint(this, QPointF()));
+            subpaths()[0]->append(new KoPathPoint(this, PkPointF()));
         }
     }
 
@@ -231,10 +231,10 @@ void EllipseShape::updateKindHandle()
 
     m_kindAngle = normalizeAngle(kisDegreesToRadians(angle));
 
-    QList<QPointF> handles = this->handles();
+    PkList<PkPointF> handles = this->handles();
     switch (m_type) {
     case Arc:
-        handles[2] = m_center + QPointF(cos(m_kindAngle) * m_radii.x(), -sin(m_kindAngle) * m_radii.y());
+        handles[2] = m_center + PkPointF(cos(m_kindAngle) * m_radii.x(), -sin(m_kindAngle) * m_radii.y());
         break;
     case Pie:
         handles[2] = m_center;
@@ -250,9 +250,9 @@ void EllipseShape::updateAngleHandles()
 {
     qreal startRadian = kisDegreesToRadians(normalizeAngleDegrees(m_startAngle));
     qreal endRadian = kisDegreesToRadians(normalizeAngleDegrees(m_endAngle));
-    QList<QPointF> handles = this->handles();
-    handles[0] = m_center + QPointF(cos(startRadian) * m_radii.x(), -sin(startRadian) * m_radii.y());
-    handles[1] = m_center + QPointF(cos(endRadian) * m_radii.x(), -sin(endRadian) * m_radii.y());
+    PkList<PkPointF> handles = this->handles();
+    handles[0] = m_center + PkPointF(cos(startRadian) * m_radii.x(), -sin(startRadian) * m_radii.y());
+    handles[1] = m_center + PkPointF(cos(endRadian) * m_radii.x(), -sin(endRadian) * m_radii.y());
     setHandles(handles);
 }
 
@@ -267,7 +267,7 @@ qreal EllipseShape::sweepAngle() const
         sAngle = 2 * M_PI + sAngle;
     }
 
-    if (qAbs(a1 - a2) < 0.05 / M_PI) {
+    if (std::abs(a1 - a2) < 0.05 / M_PI) {
         sAngle = 2 * M_PI;
     }
 
@@ -312,7 +312,7 @@ qreal EllipseShape::endAngle() const
     return m_endAngle;
 }
 
-QString EllipseShape::pathShapeId() const
+PkString EllipseShape::pathShapeId() const
 {
     return EllipseShapeId;
 }
@@ -323,7 +323,7 @@ bool EllipseShape::saveSvg(SvgSavingContext &context)
     if (!isParametricShape()) return false;
 
     if (type() == EllipseShape::Arc && startAngle() == endAngle()) {
-        const QSizeF size = this->size();
+        const PkSizeF size = this->size();
         const bool isCircle = size.width() == size.height();
         context.shapeWriter().startElement(isCircle ? "circle" : "ellipse");
         context.shapeWriter().addAttribute("id", context.getID(this));
@@ -380,7 +380,7 @@ bool EllipseShape::saveSvg(SvgSavingContext &context)
     return true;
 }
 
-bool EllipseShape::loadSvg(const QDomElement &element, SvgLoadingContext &context)
+bool EllipseShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &context)
 {
     qreal rx = 0, ry = 0;
     qreal cx = 0;
@@ -389,7 +389,7 @@ bool EllipseShape::loadSvg(const QDomElement &element, SvgLoadingContext &contex
     qreal end = 0;
     EllipseType type = Arc;
 
-    const QString extendedNamespace =
+    const PkString extendedNamespace =
             element.attribute("sodipodi:type") == "arc" ? "sodipodi" :
             element.attribute("krita:type") == "arc" ? "krita" : "";
 
@@ -411,7 +411,7 @@ bool EllipseShape::loadSvg(const QDomElement &element, SvgLoadingContext &contex
         start = 2 * M_PI - SvgUtil::parseNumber(element.attribute(extendedNamespace + ":end"));
         end = 2 * M_PI - SvgUtil::parseNumber(element.attribute(extendedNamespace + ":start"));
 
-        const QString kritaArcType =
+        const PkString kritaArcType =
             element.attribute("sodipodi:arc-type", element.attribute("krita:arcType"));
 
         if (kritaArcType.isEmpty()) {
@@ -427,8 +427,8 @@ bool EllipseShape::loadSvg(const QDomElement &element, SvgLoadingContext &contex
         return false;
     }
 
-    setSize(QSizeF(2 * rx, 2 * ry));
-    setPosition(QPointF(cx - rx, cy - ry));
+    setSize(PkSizeF(2 * rx, 2 * ry));
+    setPosition(PkPointF(cx - rx, cy - ry));
     if (rx == 0.0 || ry == 0.0) {
         setVisible(false);
     }

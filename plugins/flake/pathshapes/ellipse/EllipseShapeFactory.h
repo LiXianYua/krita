@@ -8,8 +8,7 @@
 #define KOELLIPSESHAPEFACTORY_H
 
 #include "KoShapeFactoryBase.h"
-#include <QDebug>
-
+#include <PkXmlElement.h>
 class KoShape;
 
 /// Factory for ellipse shapes
@@ -20,7 +19,7 @@ public:
     EllipseShapeFactory();
     ~EllipseShapeFactory() override {}
     KoShape *createDefaultShape(KoDocumentResourceManager *documentResources = 0) const override;
-    bool supports(const QDomElement &e, KoShapeLoadingContext &context) const override;
+    bool supports(const PkXmlElement &e, KoShapeLoadingContext &context) const override;
 };
 
 #endif /* KOELLIPSESHAPEFACTORY_H */

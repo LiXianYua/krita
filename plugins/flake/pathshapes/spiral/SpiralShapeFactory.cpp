@@ -8,15 +8,12 @@
 #include "SpiralShape.h"
 #include <KoShapeStroke.h>
 #include <KoShapeLoadingContext.h>
-
-#include <klocalizedstring.h>
-
-#include "kis_pointer_utils.h"
+#include <PkSharedPointer.h>
 
 SpiralShapeFactory::SpiralShapeFactory()
-    : KoShapeFactoryBase(SpiralShapeId, i18n("Spiral"))
+    : KoShapeFactoryBase(SpiralShapeId, "Spiral")
 {
-    setToolTip(i18n("A spiral shape"));
+    setToolTip("A spiral shape");
     setFamily("geometric");
     setLoadingPriority(1);
 }
@@ -25,15 +22,15 @@ KoShape *SpiralShapeFactory::createDefaultShape(KoDocumentResourceManager *) con
 {
     SpiralShape *spiral = new SpiralShape();
 
-    spiral->setStroke(toQShared(new KoShapeStroke(1.0)));
+    spiral->setStroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
     spiral->setShapeId(KoPathShapeId);
 
     return spiral;
 }
 
-bool SpiralShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &context) const
+bool SpiralShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &context) const
 {
-    Q_UNUSED(e);
-    Q_UNUSED(context);
+    (void)e;
+    (void)context;
     return false;
 }

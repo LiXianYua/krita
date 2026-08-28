@@ -14,7 +14,7 @@
 #include <KoXmlNS.h>
 #include <KoXmlWriter.h>
 
-#include <math.h>
+#include <cmath>
 
 StarShape::StarShape()
     : m_cornerCount(5)
@@ -27,8 +27,8 @@ StarShape::StarShape()
     m_angles[base] = m_angles[tip] = defaultAngleRadian();
     m_roundness[base] = m_roundness[tip] = 0.0f;
 
-    m_center = QPointF(50, 50);
-    updatePath(QSize(100, 100));
+    m_center = PkPointF(50, 50);
+    updatePath(PkSize(100, 100));
 }
 
 StarShape::StarShape(const StarShape &rhs)
@@ -63,7 +63,7 @@ void StarShape::setCornerCount(uint cornerCount)
         m_angles[base] += newDefaultAngle - oldDefaultAngle;
         m_angles[tip] += newDefaultAngle - oldDefaultAngle;
 
-        updatePath(QSize());
+        updatePath(PkSize());
     }
 }
 
@@ -75,7 +75,7 @@ uint StarShape::cornerCount() const
 void StarShape::setBaseRadius(qreal baseRadius)
 {
     m_radius[base] = fabs(baseRadius);
-    updatePath(QSize());
+    updatePath(PkSize());
 }
 
 qreal StarShape::baseRadius() const
@@ -86,7 +86,7 @@ qreal StarShape::baseRadius() const
 void StarShape::setTipRadius(qreal tipRadius)
 {
     m_radius[tip] = fabs(tipRadius);
-    updatePath(QSize());
+    updatePath(PkSize());
 }
 
 qreal StarShape::tipRadius() const
@@ -97,19 +97,19 @@ qreal StarShape::tipRadius() const
 void StarShape::setBaseRoundness(qreal baseRoundness)
 {
     m_roundness[base] = baseRoundness;
-    updatePath(QSize());
+    updatePath(PkSize());
 }
 
 void StarShape::setTipRoundness(qreal tipRoundness)
 {
     m_roundness[tip] = tipRoundness;
-    updatePath(QSize());
+    updatePath(PkSize());
 }
 
 void StarShape::setConvex(bool convex)
 {
     m_convex = convex;
-    updatePath(QSize());
+    updatePath(PkSize());
 }
 
 bool StarShape::convex() const
@@ -117,18 +117,18 @@ bool StarShape::convex() const
     return m_convex;
 }
 
-QPointF StarShape::starCenter() const
+PkPointF StarShape::starCenter() const
 {
     return m_center;
 }
 
-void StarShape::moveHandleAction(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers)
+void StarShape::moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers)
 {
     if (modifiers & Qt::ShiftModifier) {
-        QPointF handle = handles()[handleId];
-        QPointF tangentVector = point - handle;
+        PkPointF handle = handles()[handleId];
+        PkPointF tangentVector = point - handle;
         qreal distance = sqrt(tangentVector.x() * tangentVector.x() + tangentVector.y() * tangentVector.y());
-        QPointF radialVector = handle - m_center;
+        PkPointF radialVector = handle - m_center;
         // cross product to determine in which direction the user is dragging
         qreal moveDirection = radialVector.x() * tangentVector.y() - radialVector.y() * tangentVector.x();
         // make the roundness stick to zero if distance is under a certain value
@@ -145,7 +145,7 @@ void StarShape::moveHandleAction(int handleId, const QPointF &point, Qt::Keyboar
             m_roundness[base] = m_roundness[tip] = moveDirection < 0.0f ? distance : -distance;
         }
     } else {
-        QPointF distVector = point - m_center;
+        PkPointF distVector = point - m_center;
         // unapply scaling
         distVector.rx() /= m_zoomX;
         distVector.ry() /= m_zoomY;
@@ -171,9 +171,9 @@ void StarShape::moveHandleAction(int handleId, const QPointF &point, Qt::Keyboar
     }
 }
 
-void StarShape::updatePath(const QSizeF &size)
+void StarShape::updatePath(const PkSizeF &size)
 {
-    Q_UNUSED(size);
+    (void)size;
     qreal radianStep = M_PI / static_cast<qreal>(m_cornerCount);
 
     createPoints(m_convex ? m_cornerCount : 2 * m_cornerCount);
@@ -187,14 +187,14 @@ void StarShape::updatePath(const QSizeF &size)
             continue;
         }
         qreal radian = static_cast<qreal>((i + 1) * radianStep) + m_angles[cornerType];
-        QPointF cornerPoint = QPointF(m_zoomX * m_radius[cornerType] * cos(radian), m_zoomY * m_radius[cornerType] * sin(radian));
+        PkPointF cornerPoint = PkPointF(m_zoomX * m_radius[cornerType] * cos(radian), m_zoomY * m_radius[cornerType] * sin(radian));
 
         points[index]->setPoint(m_center + cornerPoint);
         points[index]->unsetProperty(KoPathPoint::StopSubpath);
         points[index]->unsetProperty(KoPathPoint::CloseSubpath);
         if (m_roundness[cornerType] > 1e-10 || m_roundness[cornerType] < -1e-10) {
             // normalized cross product to compute tangential vector for handle point
-            QPointF tangentVector(cornerPoint.y() / m_radius[cornerType], -cornerPoint.x() / m_radius[cornerType]);
+            PkPointF tangentVector(cornerPoint.y() / m_radius[cornerType], -cornerPoint.x() / m_radius[cornerType]);
             points[index]->setControlPoint2(points[index]->point() - m_roundness[cornerType] * tangentVector);
             points[index]->setControlPoint1(points[index]->point() + m_roundness[cornerType] * tangentVector);
         } else {
@@ -213,7 +213,7 @@ void StarShape::updatePath(const QSizeF &size)
 
     normalize();
 
-    QList<QPointF> handles;
+    PkList<PkPointF> handles;
     handles.push_back(points.at(tip)->point());
     if (!m_convex) {
         handles.push_back(points.at(base)->point());
@@ -237,16 +237,16 @@ void StarShape::createPoints(int requiredPointCount)
         }
     } else if (requiredPointCount > currentPointCount) {
         for (int i = 0; i < requiredPointCount - currentPointCount; ++i) {
-            subpaths()[0]->append(new KoPathPoint(this, QPointF()));
+            subpaths()[0]->append(new KoPathPoint(this, PkPointF()));
         }
     }
 
     notifyPointsChanged();
 }
 
-void StarShape::setSize(const QSizeF &newSize)
+void StarShape::setSize(const PkSizeF &newSize)
 {
-    QTransform matrix(resizeMatrix(newSize));
+    PkTransform matrix(resizeMatrix(newSize));
     m_zoomX *= matrix.m11();
     m_zoomY *= matrix.m22();
 
@@ -256,11 +256,11 @@ void StarShape::setSize(const QSizeF &newSize)
     m_center = computeCenter();
 }
 
-QPointF StarShape::computeCenter() const
+PkPointF StarShape::computeCenter() const
 {
     KoSubpath &points = *subpaths()[0];
 
-    QPointF center(0, 0);
+    PkPointF center(0, 0);
     for (uint i = 0; i < m_cornerCount; ++i) {
         if (m_convex) {
             center += points[i]->point();
@@ -275,7 +275,7 @@ QPointF StarShape::computeCenter() const
 
 }
 
-QString StarShape::pathShapeId() const
+PkString StarShape::pathShapeId() const
 {
     return StarShapeId;
 }

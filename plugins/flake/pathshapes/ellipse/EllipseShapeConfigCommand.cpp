@@ -5,8 +5,9 @@
  */
 
 #include "EllipseShapeConfigCommand.h"
-#include <klocalizedstring.h>
 #include "kis_command_ids.h"
+
+#include <cassert>
 
 EllipseShapeConfigCommand::EllipseShapeConfigCommand(EllipseShape *ellipse, EllipseShape::EllipseType type, qreal startAngle, qreal endAngle, KUndo2Command *parent)
     : KUndo2Command(parent)
@@ -15,9 +16,9 @@ EllipseShapeConfigCommand::EllipseShapeConfigCommand(EllipseShape *ellipse, Elli
     , m_newStartAngle(startAngle)
     , m_newEndAngle(endAngle)
 {
-    Q_ASSERT(m_ellipse);
+    assert(m_ellipse);
 
-    setText(kundo2_i18n("Change ellipse"));
+    setText(kundo2_text("Change ellipse"));
 
     m_oldType = m_ellipse->type();
     m_oldStartAngle = m_ellipse->startAngle();

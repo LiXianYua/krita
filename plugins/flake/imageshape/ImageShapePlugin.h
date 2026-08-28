@@ -8,17 +8,6 @@
 #ifndef IMAGESHAPE_PLUGIN_H
 #define IMAGESHAPE_PLUGIN_H
 
-// Qt
-#include <QObject>
-#include <QVariantList>
-
-class ImageShapePlugin : public QObject
-{
-    Q_OBJECT
-
-public:
-    ImageShapePlugin(QObject *parent, const QVariantList &);
-    ~ImageShapePlugin() override {}
-};
+void registerImageShape();
 
 #endif

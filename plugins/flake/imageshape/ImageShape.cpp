@@ -5,40 +5,37 @@
  */
 
 #include "ImageShape.h"
-#include "kis_debug.h"
+#include "ImageShapePngData.h"
 
-#include <QPainter>
 #include <SvgLoadingContext.h>
 #include <SvgSavingContext.h>
 #include <SvgUtil.h>
 #include <SvgStyleWriter.h>
-#include <QBuffer>
-#include <KisMimeDatabase.h>
 #include <KoXmlWriter.h>
 #include "kis_dom_utils.h"
-#include <QRegularExpression>
-#include "KisQPainterStateSaver.h"
 
+#include <string>
 
-struct Q_DECL_HIDDEN ImageShape::Private : public QSharedData
+struct ImageShape::Private
 {
-    Private() {}
+    Private() = default;
     Private(const Private &rhs)
-        : QSharedData(),
-          image(rhs.image),
-          ratioParser(rhs.ratioParser ? new SvgUtil::PreserveAspectRatioParser(*rhs.ratioParser) : 0),
-          viewBoxTransform(rhs.viewBoxTransform)
+        : image(rhs.image)
+        , ratioParser(rhs.ratioParser
+                          ? std::make_unique<SvgUtil::PreserveAspectRatioParser>(*rhs.ratioParser)
+                          : nullptr)
+        , viewBoxTransform(rhs.viewBoxTransform)
     {
     }
 
-    QImage image;
-    QScopedPointer<SvgUtil::PreserveAspectRatioParser> ratioParser;
-    QTransform viewBoxTransform;
+    PkImage image;
+    std::unique_ptr<SvgUtil::PreserveAspectRatioParser> ratioParser;
+    PkTransform viewBoxTransform;
 };
 
 
 ImageShape::ImageShape()
-    : m_d(new Private)
+    : m_d(std::make_shared<Private>())
 {
 }
 
@@ -52,48 +49,47 @@ ImageShape::~ImageShape()
 {
 }
 
+void ImageShape::detach()
+{
+    if (!m_d.unique()) {
+        m_d = std::make_shared<Private>(*m_d);
+    }
+}
+
 KoShape *ImageShape::cloneShape() const
 {
     return new ImageShape(*this);
 }
 
-void ImageShape::paint(QPainter &painter) const
+void ImageShape::paint(void *paintContext) const
 {
-    KisQPainterStateSaver saver(&painter);
-
-    const QRectF myrect(QPointF(), size());
-
-    painter.setRenderHint(QPainter::SmoothPixmapTransform);
-    painter.setClipRect(QRectF(QPointF(), size()), Qt::IntersectClip);
-    painter.setTransform(m_d->viewBoxTransform, true);
-    painter.drawImage(QPoint(), m_d->image);
+    // S-09/M5 GAP: image drawing resumes when the Pk renderer is delivered.
+    (void)paintContext;
 }
 
-void ImageShape::setSize(const QSizeF &size)
+void ImageShape::setSize(const PkSizeF &size)
 {
     KoShape::setSize(size);
 }
 
 bool ImageShape::saveSvg(SvgSavingContext &context)
 {
-    const QString uid = context.createUID("image");
+    const PkString uid = context.createUID("image");
 
     context.shapeWriter().startElement("image");
     context.shapeWriter().addAttribute("id", uid);
     SvgUtil::writeTransformAttributeLazy("transform", transformation(), context.shapeWriter());
-    context.shapeWriter().addAttribute("width", QString("%1px").arg(KisDomUtils::toString(size().width())));
-    context.shapeWriter().addAttribute("height", QString("%1px").arg(KisDomUtils::toString(size().height())));
+    context.shapeWriter().addAttribute("width", PkString("%1px").arg(KisDomUtils::toString(size().width())));
+    context.shapeWriter().addAttribute("height", PkString("%1px").arg(KisDomUtils::toString(size().height())));
 
-    QString aspectString = m_d->ratioParser? m_d->ratioParser->toString(): QString();
+    PkString aspectString = m_d->ratioParser? m_d->ratioParser->toString(): PkString();
     if (!aspectString.isEmpty()) {
         context.shapeWriter().addAttribute("preserveAspectRatio", aspectString);
     }
 
-    QBuffer buffer;
-    buffer.open(QIODevice::WriteOnly);
-    if (m_d->image.save(&buffer, "PNG")) {
-        const QString mimeType = KisMimeDatabase::mimeTypeForSuffix("*.png");
-        context.shapeWriter().addAttribute("xlink:href", "data:"+ mimeType + ";base64," + buffer.data().toBase64());
+    const PkString dataUri = ImageShapePngData::encodeDataUri(m_d->image);
+    if (!dataUri.isEmpty()) {
+        context.shapeWriter().addAttribute("xlink:href", dataUri);
     }
     SvgStyleWriter::saveMetadata(this, context);
 
@@ -102,51 +98,52 @@ bool ImageShape::saveSvg(SvgSavingContext &context)
     return true;
 }
 
-bool ImageShape::loadSvg(const QDomElement &element, SvgLoadingContext &context)
+bool ImageShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &context)
 {
     const qreal x = SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), element.attribute("x"));
     const qreal y = SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), element.attribute("y"));
     const qreal w = SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), element.attribute("width"));
     const qreal h = SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), element.attribute("height"));
 
-    setSize(QSizeF(w, h));
-    setPosition(QPointF(x, y));
+    setSize(PkSizeF(w, h));
+    setPosition(PkPointF(x, y));
 
     if (w == 0.0 || h == 0.0) {
         setVisible(false);
     }
 
-    QString fileName = element.attribute("xlink:href");
+    const PkString fileName = element.attribute("xlink:href");
 
-    QByteArray data;
+    PkByteArray data;
 
     if (fileName.startsWith("data:")) {
-
-        QRegularExpression re("data:(.+?);base64,(.+)");
-        QRegularExpressionMatch match = re.match(fileName);
-
-        data = match.captured(2).toLatin1();
-        data = QByteArray::fromBase64(data);
+        const std::string marker(";base64,");
+        const std::string encodedUri = fileName.PkToUtf8();
+        const std::size_t payloadOffset = encodedUri.find(marker);
+        if (payloadOffset != std::string::npos) {
+            data = ImageShapePngData::decodeBase64(
+                PkString(encodedUri.substr(payloadOffset + marker.size()).c_str()));
+        }
     } else {
         data = context.fetchExternalFile(fileName);
     }
 
+    detach();
     if (!data.isEmpty()) {
-        QBuffer buffer(&data);
-        m_d->image.load(&buffer, "");
+        m_d->image = ImageShapePngData::decodePng(data);
     }
 
-    const QString aspectString = element.attribute("preserveAspectRatio", "xMidYMid meet");
+    const PkString aspectString = element.attribute("preserveAspectRatio", "xMidYMid meet");
     m_d->ratioParser.reset(new SvgUtil::PreserveAspectRatioParser(aspectString));
 
     if (!m_d->image.isNull()) {
 
         m_d->viewBoxTransform =
-             QTransform::fromScale(w / m_d->image.width(), h / m_d->image.height());
+             PkTransform::fromScale(w / m_d->image.width(), h / m_d->image.height());
 
         SvgUtil::parseAspectRatio(*m_d->ratioParser,
-                                  QRectF(QPointF(), size()),
-                                  QRect(QPoint(), m_d->image.size()),
+                                  PkRectF(PkPointF(), PkSizeF(w, h)),
+                                  PkRect(PkPoint(), m_d->image.size()),
                                   &m_d->viewBoxTransform);
     }
 
@@ -157,28 +154,30 @@ bool ImageShape::loadSvg(const QDomElement &element, SvgLoadingContext &context)
     return true;
 }
 
-void ImageShape::setImage(const QImage &img)
+void ImageShape::setImage(const PkImage &img)
 {
     if (m_d->image != img) {
+        detach();
         m_d->image = img;
         shapeChanged(KoShape::ContentChanged);
     }
 }
 
-QImage ImageShape::image() const
+PkImage ImageShape::image() const
 {
     return m_d->image;
 }
 
-void ImageShape::setViewBoxTransform(const QTransform &tf)
+void ImageShape::setViewBoxTransform(const PkTransform &tf)
 {
     if (m_d->viewBoxTransform != tf) {
+        detach();
         m_d->viewBoxTransform = tf;
         shapeChanged(KoShape::GenericMatrixChange);
     }
 }
 
-QTransform ImageShape::viewBoxTransform() const
+PkTransform ImageShape::viewBoxTransform() const
 {
     return m_d->viewBoxTransform;
 }

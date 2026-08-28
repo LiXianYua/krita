@@ -8,6 +8,7 @@
 #define ELLIPSESHAPECONFIGCOMMAND_H
 
 #include "EllipseShape.h"
+#include <PkGlobal.h>
 #include <kundo2command.h>
 
 /// The undo / redo command for configuring an ellipse shape
@@ -42,4 +43,3 @@ private:
 };
 
 #endif // ELLIPSESHAPECONFIGCOMMAND_H
-
