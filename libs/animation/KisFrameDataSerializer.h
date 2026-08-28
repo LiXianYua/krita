@@ -8,6 +8,8 @@
 
 #include "kritaanimation_export.h"
 #include <PkScopedPointer.h>
+#include <PkRect.h>
+#include <PkString.h>
 #include "opengl/kis_texture_tile_info_pool.h"
 
 // TODO: extract DataBuffer into a separate file
@@ -15,9 +17,6 @@
 
 #include <vector>
 #include <boost/optional.hpp>
-
-class QString;
-
 
 /**
  * KisFrameDataSerializer is the lowest level class for storing frame
@@ -63,7 +62,7 @@ public:
         int col = -1;
         int row = -1;
         bool isCompressed = false;
-        QRect rect;
+        PkRect rect;
         DataBuffer data;
     };
 
@@ -96,7 +95,7 @@ public:
 
 public:
     KisFrameDataSerializer();
-    KisFrameDataSerializer(const QString &frameCachePath);
+    KisFrameDataSerializer(const PkString &frameCachePath);
     ~KisFrameDataSerializer();
 
     int saveFrame(const Frame &frame);
@@ -107,7 +106,7 @@ public:
     bool hasFrame(int frameId) const;
     void forgetFrame(int frameId);
 
-    static boost::optional<qreal> estimateFrameUniqueness(const Frame &lhs, const Frame &rhs, qreal portion);
+    static boost::optional<double> estimateFrameUniqueness(const Frame &lhs, const Frame &rhs, double portion);
     static bool subtractFrames(Frame &dst, const Frame &src);
     static void addFrames(Frame &dst, const Frame &src);
 

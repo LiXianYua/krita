@@ -7,6 +7,7 @@
 #define KISFRAMECACHESWAPPER_H
 
 #include <PkScopedPointer.h>
+#include <PkString.h>
 
 #include "KisAbstractFrameCacheSwapper.h"
 
@@ -29,11 +30,11 @@ class KRITAANIMATION_EXPORT KisFrameCacheSwapper : public KisAbstractFrameCacheS
 {
 public:
     KisFrameCacheSwapper(const KisOpenGLUpdateInfoBuilder &builder);
-    KisFrameCacheSwapper(const KisOpenGLUpdateInfoBuilder &builder, const QString &frameCachePath);
+    KisFrameCacheSwapper(const KisOpenGLUpdateInfoBuilder &builder, const PkString &frameCachePath);
     ~KisFrameCacheSwapper();
 
     // WARNING: after transferring \p info to saveFrame() the object becomes invalid
-    void saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const QRect &imageBounds) override;
+    void saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const PkRect &imageBounds) override;
     KisOpenGLUpdateInfoSP loadFrame(int frameId) override;
 
     void moveFrame(int srcFrameId, int dstFrameId) override;
@@ -43,7 +44,7 @@ public:
 
     int frameLevelOfDetail(int frameId) const override;
 
-    QRect frameDirtyRect(int frameId) const override;
+    PkRect frameDirtyRect(int frameId) const override;
 
 private:
     struct Private;

@@ -4,10 +4,10 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KisFrameCacheStore.h"
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
-#include <KoColorSpace.h>
 #include "kis_update_info.h"
+#include "kis_lod_transform.h"
 #include "KisFrameDataSerializer.h"
 #include "opengl/KisOpenGLUpdateInfoBuilder.h"
 
@@ -21,15 +21,15 @@ enum FrameType {
 };
 
 struct FrameInfo;
-typedef QSharedPointer<FrameInfo> FrameInfoSP;
+typedef PkSharedPointer<FrameInfo> FrameInfoSP;
 
 struct FrameInfo {
     // full frame
-    FrameInfo(const QRect &dirtyImageRect, const QRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, const KisFrameDataSerializer::Frame &frame);
+    FrameInfo(const PkRect &dirtyImageRect, const PkRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, const KisFrameDataSerializer::Frame &frame);
     // diff frame
-    FrameInfo(const QRect &dirtyImageRect, const QRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, FrameInfoSP baseFrame, const KisFrameDataSerializer::Frame &frame);
+    FrameInfo(const PkRect &dirtyImageRect, const PkRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, FrameInfoSP baseFrame, const KisFrameDataSerializer::Frame &frame);
     // copy frame
-    FrameInfo(const QRect &dirtyImageRect, const QRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, FrameInfoSP baseFrame);
+    FrameInfo(const PkRect &dirtyImageRect, const PkRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, FrameInfoSP baseFrame);
 
     ~FrameInfo();
 
@@ -41,11 +41,11 @@ struct FrameInfo {
         return m_levelOfDetail;
     }
 
-    QRect dirtyImageRect() const {
+    PkRect dirtyImageRect() const {
         return m_dirtyImageRect;
     }
 
-    QRect imageBounds() const {
+    PkRect imageBounds() const {
         return m_imageBounds;
     }
 
@@ -58,8 +58,8 @@ struct FrameInfo {
     }
 
     int m_levelOfDetail = 0;
-    QRect m_dirtyImageRect;
-    QRect m_imageBounds;
+    PkRect m_dirtyImageRect;
+    PkRect m_imageBounds;
     FrameInfoSP m_baseFrame;
     FrameType m_type = FrameFull;
     int m_savedFrameDataId = -1;
@@ -67,11 +67,11 @@ struct FrameInfo {
 };
 
 // full frame
-FrameInfo::FrameInfo(const QRect &dirtyImageRect, const QRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, const KisFrameDataSerializer::Frame &frame)
+FrameInfo::FrameInfo(const PkRect &dirtyImageRect, const PkRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, const KisFrameDataSerializer::Frame &frame)
     : m_levelOfDetail(levelOfDetail),
       m_dirtyImageRect(dirtyImageRect),
       m_imageBounds(imageBounds),
-      m_baseFrame(0),
+      m_baseFrame(nullptr),
       m_type(FrameFull),
       m_serializer(serializer)
 {
@@ -79,7 +79,7 @@ FrameInfo::FrameInfo(const QRect &dirtyImageRect, const QRect &imageBounds, int 
 }
 
 // diff frame
-FrameInfo::FrameInfo(const QRect &dirtyImageRect, const QRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, FrameInfoSP baseFrame, const KisFrameDataSerializer::Frame &frame)
+FrameInfo::FrameInfo(const PkRect &dirtyImageRect, const PkRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, FrameInfoSP baseFrame, const KisFrameDataSerializer::Frame &frame)
     : m_levelOfDetail(levelOfDetail),
       m_dirtyImageRect(dirtyImageRect),
       m_imageBounds(imageBounds),
@@ -91,7 +91,7 @@ FrameInfo::FrameInfo(const QRect &dirtyImageRect, const QRect &imageBounds, int 
 }
 
 // copy frame
-FrameInfo::FrameInfo(const QRect &dirtyImageRect, const QRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, FrameInfoSP baseFrame)
+FrameInfo::FrameInfo(const PkRect &dirtyImageRect, const PkRect &imageBounds, int levelOfDetail, KisFrameDataSerializer &serializer, FrameInfoSP baseFrame)
     : m_levelOfDetail(levelOfDetail),
       m_dirtyImageRect(dirtyImageRect),
       m_imageBounds(imageBounds),
@@ -116,7 +116,7 @@ FrameInfo::~FrameInfo()
 
 struct KRITAANIMATION_NO_EXPORT KisFrameCacheStore::Private
 {
-    Private(const QString &frameCachePath)
+    Private(const PkString &frameCachePath)
         : serializer(frameCachePath)
     {
     }
@@ -135,11 +135,11 @@ struct KRITAANIMATION_NO_EXPORT KisFrameCacheStore::Private
 };
 
 KisFrameCacheStore::KisFrameCacheStore()
-    : KisFrameCacheStore(QString())
+    : KisFrameCacheStore(PkString())
 {
 }
 
-KisFrameCacheStore::KisFrameCacheStore(const QString &frameCachePath)
+KisFrameCacheStore::KisFrameCacheStore(const PkString &frameCachePath)
     : m_d(new Private(frameCachePath))
 {
 }
@@ -149,11 +149,11 @@ KisFrameCacheStore::~KisFrameCacheStore()
 {
 }
 
-void KisFrameCacheStore::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const QRect &imageBounds)
+void KisFrameCacheStore::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const PkRect &imageBounds)
 {
     int pixelSize = 0;
 
-    Q_FOREACH (auto tile, info->tileList) {
+    for (auto tile : info->tileList) {
 #ifdef SANITY_CHECK
         if (!pixelSize) {
             pixelSize = tile->pixelSize();
@@ -175,7 +175,7 @@ void KisFrameCacheStore::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, cons
     frame.pixelSize = pixelSize;
 
     for (auto it = info->tileList.begin(); it != info->tileList.end(); ++it) {
-        KisFrameDataSerializer::FrameTile tile(KisTextureTileInfoPoolSP(0)); // TODO: fix the pool should never be null!
+        KisFrameDataSerializer::FrameTile tile(KisTextureTileInfoPoolSP(nullptr)); // TODO: fix the pool should never be null!
         tile.col = (*it)->tileCol();
         tile.row = (*it)->tileRow();
         tile.rect = (*it)->realPatchRect();
@@ -189,7 +189,7 @@ void KisFrameCacheStore::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, cons
     FrameInfoSP frameInfo;
 
     if (m_d->lastSavedFullFrame.isValid()) {
-        boost::optional<qreal> uniqueness = KisFrameDataSerializer::estimateFrameUniqueness(m_d->lastSavedFullFrame, frame, 0.01);
+        boost::optional<double> uniqueness = KisFrameDataSerializer::estimateFrameUniqueness(m_d->lastSavedFullFrame, frame, 0.01);
 
 
         if (uniqueness) {
@@ -205,11 +205,11 @@ void KisFrameCacheStore::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, cons
 #if 0
             if (*uniqueness == 0.0) {
                 FrameInfoSP baseFrameInfo = m_d->savedFrames[m_d->lastSavedFullFrameId];
-                frameInfo = toQShared(new FrameInfo(info->dirtyImageRect(),
-                                                    imageBounds,
-                                                    info->levelOfDetail(),
-                                                    m_d->serializer,
-                                                    baseFrameInfo));
+                frameInfo = FrameInfoSP(new FrameInfo(info->dirtyImageRect(),
+                                                      imageBounds,
+                                                      info->levelOfDetail(),
+                                                      m_d->serializer,
+                                                      baseFrameInfo));
 
             } else
 #endif
@@ -217,22 +217,22 @@ void KisFrameCacheStore::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, cons
                 FrameInfoSP baseFrameInfo = m_d->savedFrames[m_d->lastSavedFullFrameId];
 
                 KisFrameDataSerializer::subtractFrames(frame, m_d->lastSavedFullFrame);
-                frameInfo = toQShared(new FrameInfo(info->dirtyImageRect(),
-                                                    imageBounds,
-                                                    info->levelOfDetail(),
-                                                    m_d->serializer,
-                                                    baseFrameInfo,
-                                                    frame));
+                frameInfo = FrameInfoSP(new FrameInfo(info->dirtyImageRect(),
+                                                      imageBounds,
+                                                      info->levelOfDetail(),
+                                                      m_d->serializer,
+                                                      baseFrameInfo,
+                                                      frame));
             }
         }
     }
 
     if (!frameInfo) {
-        frameInfo = toQShared(new FrameInfo(info->dirtyImageRect(),
-                                            imageBounds,
-                                            info->levelOfDetail(),
-                                            m_d->serializer,
-                                            frame));
+        frameInfo = FrameInfoSP(new FrameInfo(info->dirtyImageRect(),
+                                              imageBounds,
+                                              info->levelOfDetail(),
+                                              m_d->serializer,
+                                              frame));
     }
 
     m_d->savedFrames.insert(frameId, frameInfo);
@@ -299,13 +299,13 @@ KisOpenGLUpdateInfoSP KisFrameCacheStore::loadFrame(int frameId, const KisOpenGL
     for (auto it = frame.frameTiles.begin(); it != frame.frameTiles.end(); ++it) {
         KisFrameDataSerializer::FrameTile &tile = *it;
 
-        QRect patchRect = tile.rect;
+        PkRect patchRect = tile.rect;
 
         if (frameInfo->levelOfDetail()) {
             patchRect = KisLodTransform::upscaledRect(patchRect, frameInfo->levelOfDetail());
         }
 
-        const QRect fullSizeTileRect =
+        const PkRect fullSizeTileRect =
             builder.calculatePhysicalTileRect(tile.col, tile.row,
                                               frameInfo->imageBounds(),
                                               frameInfo->levelOfDetail());
@@ -319,7 +319,7 @@ KisOpenGLUpdateInfoSP KisFrameCacheStore::loadFrame(int frameId, const KisOpenGL
 
         tileInfo->putPixelData(std::move(tile.data), builder.destinationColorSpace());
 
-        info->tileList << tileInfo;
+        info->tileList.push_back(tileInfo);
     }
 
     return info;
@@ -366,8 +366,8 @@ int KisFrameCacheStore::frameLevelOfDetail(int frameId) const
     return m_d->savedFrames[frameId]->levelOfDetail();
 }
 
-QRect KisFrameCacheStore::frameDirtyRect(int frameId) const
+PkRect KisFrameCacheStore::frameDirtyRect(int frameId) const
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->savedFrames.contains(frameId), QRect());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->savedFrames.contains(frameId), PkRect(0, 0, 0, 0));
     return m_d->savedFrames[frameId]->dirtyImageRect();
 }

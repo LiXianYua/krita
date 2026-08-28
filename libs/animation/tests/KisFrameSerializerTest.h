@@ -15,6 +15,7 @@ class KisFrameSerializerTest : public QObject
 
 private Q_SLOTS:
     void testFrameDataSerialization();
+    void testFrameDataWireCompatibility();
     void testFrameUniquenessEstimation();
     void testFrameArithmetics();
 

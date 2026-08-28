@@ -12,7 +12,7 @@
 
 struct KisFrameCacheSwapper::Private
 {
-    Private(const KisOpenGLUpdateInfoBuilder &_builder, const QString &frameCachePath)
+    Private(const KisOpenGLUpdateInfoBuilder &_builder, const PkString &frameCachePath)
         : frameStore(frameCachePath),
           builder(_builder)
     {
@@ -27,7 +27,7 @@ KisFrameCacheSwapper::KisFrameCacheSwapper(const KisOpenGLUpdateInfoBuilder &bui
 {
 }
 
-KisFrameCacheSwapper::KisFrameCacheSwapper(const KisOpenGLUpdateInfoBuilder &builder, const QString &frameCachePath)
+KisFrameCacheSwapper::KisFrameCacheSwapper(const KisOpenGLUpdateInfoBuilder &builder, const PkString &frameCachePath)
     : m_d(new Private(builder, frameCachePath))
 {
 }
@@ -36,7 +36,7 @@ KisFrameCacheSwapper::~KisFrameCacheSwapper()
 {
 }
 
-void KisFrameCacheSwapper::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const QRect &imageBounds)
+void KisFrameCacheSwapper::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const PkRect &imageBounds)
 {
     m_d->frameStore.saveFrame(frameId, info, imageBounds);
 }
@@ -66,7 +66,7 @@ int KisFrameCacheSwapper::frameLevelOfDetail(int frameId) const
     return m_d->frameStore.frameLevelOfDetail(frameId);
 }
 
-QRect KisFrameCacheSwapper::frameDirtyRect(int frameId) const
+PkRect KisFrameCacheSwapper::frameDirtyRect(int frameId) const
 {
     return m_d->frameStore.frameDirtyRect(frameId);
 }

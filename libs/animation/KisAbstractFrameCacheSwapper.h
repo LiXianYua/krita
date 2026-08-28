@@ -7,8 +7,7 @@
 #define KISABSTRACTFRAMECACHESWAPPER_H
 
 #include "kritaanimation_export.h"
-
-class QRect;
+#include <PkRect.h>
 
 template<class T>
 class KisSharedPtr;
@@ -23,7 +22,7 @@ public:
     virtual ~KisAbstractFrameCacheSwapper();
 
     // WARNING: after transferring \p info to saveFrame() the object becomes invalid
-    virtual void saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const QRect &imageBounds) = 0;
+    virtual void saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const PkRect &imageBounds) = 0;
     virtual KisOpenGLUpdateInfoSP loadFrame(int frameId) = 0;
 
     virtual void moveFrame(int srcFrameId, int dstFrameId) = 0;
@@ -32,7 +31,7 @@ public:
     virtual bool hasFrame(int frameId) const = 0;
 
     virtual int frameLevelOfDetail(int frameId) const = 0;
-    virtual QRect frameDirtyRect(int frameId) const = 0;
+    virtual PkRect frameDirtyRect(int frameId) const = 0;
 };
 
 #endif // KISABSTRACTFRAMECACHESWAPPER_H

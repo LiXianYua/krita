@@ -23,9 +23,9 @@ KisInMemoryFrameCacheSwapper::~KisInMemoryFrameCacheSwapper()
 {
 }
 
-void KisInMemoryFrameCacheSwapper::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const QRect &imageBounds)
+void KisInMemoryFrameCacheSwapper::saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const PkRect &imageBounds)
 {
-    Q_UNUSED(imageBounds);
+    (void)imageBounds;
     KIS_SAFE_ASSERT_RECOVER_NOOP(!m_d->framesMap.contains(frameId));
 
     m_d->framesMap.insert(frameId, info);
@@ -64,9 +64,9 @@ int KisInMemoryFrameCacheSwapper::frameLevelOfDetail(int frameId) const
     return m_d->framesMap[frameId]->levelOfDetail();
 }
 
-QRect KisInMemoryFrameCacheSwapper::frameDirtyRect(int frameId) const
+PkRect KisInMemoryFrameCacheSwapper::frameDirtyRect(int frameId) const
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->framesMap.contains(frameId), QRect());
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!m_d->framesMap[frameId].isNull(), QRect());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->framesMap.contains(frameId), PkRect(0, 0, 0, 0));
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!m_d->framesMap[frameId].isNull(), PkRect(0, 0, 0, 0));
     return m_d->framesMap[frameId]->dirtyImageRect();
 }

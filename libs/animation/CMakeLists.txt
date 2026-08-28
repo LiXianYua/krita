@@ -16,8 +16,14 @@ target_include_directories(kritaanimation
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/container>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/geometry>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/pointer>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
+    PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/store>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/port>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/time>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/variant>
 )
 
 target_link_libraries(kritaanimation
@@ -30,10 +36,14 @@ target_link_libraries(kritaanimation
         kritaimage
         kritaimpex
         pkcontainer
+        pkgeometry
         pkpointer
         pkstring
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
+        kritastore
+        pktime
+        pkvariant
 )
 
 set_target_properties(kritaanimation PROPERTIES

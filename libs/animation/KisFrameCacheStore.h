@@ -9,6 +9,8 @@
 #include "kritaanimation_export.h"
 #include <PkScopedPointer.h>
 #include <PkMap.h>
+#include <PkRect.h>
+#include <PkString.h>
 #include "kis_types.h"
 
 #include "opengl/kis_texture_tile_info_pool.h"
@@ -40,12 +42,12 @@ class KRITAANIMATION_EXPORT KisFrameCacheStore
 {
 public:
     KisFrameCacheStore();
-    KisFrameCacheStore(const QString &frameCachePath);
+    KisFrameCacheStore(const PkString &frameCachePath);
 
     ~KisFrameCacheStore();
 
     // WARNING: after transferring \p info to saveFrame() the object becomes invalid
-    void saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const QRect &imageBounds);
+    void saveFrame(int frameId, KisOpenGLUpdateInfoSP info, const PkRect &imageBounds);
     KisOpenGLUpdateInfoSP loadFrame(int frameId, const KisOpenGLUpdateInfoBuilder &builder);
 
     void moveFrame(int srcFrameId, int dstFrameId);
@@ -54,7 +56,7 @@ public:
     bool hasFrame(int frameId) const;
 
     int frameLevelOfDetail(int frameId) const;
-    QRect frameDirtyRect(int frameId) const;
+    PkRect frameDirtyRect(int frameId) const;
 
 private:
     struct Private;

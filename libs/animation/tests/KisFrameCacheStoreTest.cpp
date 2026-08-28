@@ -9,6 +9,7 @@
 #include <testutil.h>
 
 #include <KoColor.h>
+#include <PkRect.h>
 #include "opengl/KisOpenGLUpdateInfoBuilder.h"
 
 #include "KoColorSpaceRegistry.h"
@@ -88,7 +89,7 @@ bool compareUpdateInfo(KisOpenGLUpdateInfoSP info1, KisOpenGLUpdateInfoSP info2)
 
 void KisFrameCacheStoreTest::test()
 {
-    QRect refRect(QRect(0,0,512,512));
+    PkRect refRect(0, 0, 512, 512);
     TestUtil::MaskParent p(refRect);
     const KoColor fillColor(Qt::red, p.image->colorSpace());
 

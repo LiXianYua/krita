@@ -5,68 +5,143 @@
  */
 #include "KisFrameDataSerializer.h"
 
-#include <cstring>
+#include <PkDataStream.h>
+#include <PkElapsedTimer.h>
+#include <PkFileStream.h>
 
-#include <QTemporaryDir>
-#include <QElapsedTimer>
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <filesystem>
+#include <iostream>
+#include <string>
+#include <system_error>
+#include <vector>
 
 #include "tiles3/swap/kis_lzf_compression.h"
 
+namespace {
+
+namespace fs = std::filesystem;
+
+class TemporaryFrameDirectory
+{
+public:
+    explicit TemporaryFrameDirectory(const PkString &requestedRoot)
+    {
+        std::error_code error;
+        const fs::path requested = fs::u8path(requestedRoot.PkToUtf8());
+        if (!requestedRoot.isEmpty() && fs::is_directory(requested, error)) {
+            m_path = createUniqueDirectory(requested);
+        }
+
+        if (m_path.empty()) {
+            error.clear();
+            m_path = createUniqueDirectory(fs::temp_directory_path(error));
+        }
+    }
+
+    ~TemporaryFrameDirectory()
+    {
+        if (!m_path.empty()) {
+            std::error_code error;
+            fs::remove_all(m_path, error);
+        }
+    }
+
+    TemporaryFrameDirectory(const TemporaryFrameDirectory &) = delete;
+    TemporaryFrameDirectory &operator=(const TemporaryFrameDirectory &) = delete;
+
+    const fs::path &path() const { return m_path; }
+
+private:
+    static fs::path createUniqueDirectory(const fs::path &root)
+    {
+        if (root.empty()) return {};
+
+        static std::atomic<std::uint64_t> sequence {0};
+        const auto timestamp = std::chrono::steady_clock::now().time_since_epoch().count();
+        constexpr char alphabet[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+        for (int attempt = 0; attempt < 100; ++attempt) {
+            std::uint64_t uniqueValue = static_cast<std::uint64_t>(timestamp) ^ sequence.fetch_add(1);
+            std::string suffix(6, '0');
+            for (char &character : suffix) {
+                character = alphabet[uniqueValue % (sizeof(alphabet) - 1)];
+                uniqueValue /= sizeof(alphabet) - 1;
+            }
+            const fs::path candidate = root / ("KritaFrameCache" + suffix);
+            std::error_code error;
+            if (fs::create_directory(candidate, error)) {
+                const fs::path absolutePath = fs::absolute(candidate, error);
+                return error ? candidate : absolutePath;
+            }
+        }
+        return {};
+    }
+
+    fs::path m_path;
+};
+
+PkString pathString(const fs::path &path)
+{
+    const std::string utf8 = path.u8string();
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
+} // namespace
+
 struct KRITAANIMATION_NO_EXPORT KisFrameDataSerializer::Private
 {
-    Private(const QString &frameCachePath)
-        : framesDir(
-              (!frameCachePath.isEmpty() && QTemporaryDir(frameCachePath + "/KritaFrameCacheXXXXXX").isValid()
-               ? frameCachePath
-               : QDir::tempPath())
-              + "/KritaFrameCacheXXXXXX")
+    explicit Private(const PkString &frameCachePath)
+        : framesDir(frameCachePath)
     {
-        framesDirObject = QDir(framesDir.path());
-        framesDirObject.makeAbsolute();
     }
 
-    QString subfolderNameForFrame(int frameId)
+    std::string subfolderNameForFrame(int frameId) const
     {
-        const int subfolderIndex = frameId & 0xff00;
-        return QString::number(subfolderIndex);
+        return std::to_string(frameId & 0xff00);
     }
 
-    QString fileNameForFrame(int frameId) {
-        return QString("frame_%1").arg(frameId);
-    }
-
-    QString filePathForFrame(int frameId)
+    std::string fileNameForFrame(int frameId) const
     {
-        return framesDirObject.filePath(
-                    subfolderNameForFrame(frameId) + '/' +
-                    fileNameForFrame(frameId));
+        return "frame_" + std::to_string(frameId);
     }
 
-    int generateFrameId() {
+    fs::path filePathForFrame(int frameId) const
+    {
+        if (framesDir.path().empty()) return {};
+        return framesDir.path() / subfolderNameForFrame(frameId) / fileNameForFrame(frameId);
+    }
+
+    int generateFrameId()
+    {
         // TODO: handle wrapping and range compression
         return nextFrameId++;
     }
 
-    quint8* getCompressionBuffer(int size) {
-        if (compressionBuffer.size() < size) {
-            compressionBuffer.resize(size);
+    std::uint8_t *getCompressionBuffer(int size)
+    {
+        if (static_cast<int>(compressionBuffer.size()) < size) {
+            compressionBuffer.resize(static_cast<std::size_t>(size));
         }
-        return reinterpret_cast<quint8*>(compressionBuffer.data());
+        return compressionBuffer.data();
     }
 
-    QTemporaryDir framesDir;
-    QDir framesDirObject;
+    TemporaryFrameDirectory framesDir;
     int nextFrameId = 0;
-
-    QByteArray compressionBuffer;
+    std::vector<std::uint8_t> compressionBuffer;
 };
 
 KisFrameDataSerializer::KisFrameDataSerializer()
-    : KisFrameDataSerializer(QString())
+    : KisFrameDataSerializer(PkString())
 {
 }
 
-KisFrameDataSerializer::KisFrameDataSerializer(const QString &frameCachePath)
+KisFrameDataSerializer::KisFrameDataSerializer(const PkString &frameCachePath)
     : m_d(new Private(frameCachePath))
 {
 }
@@ -81,42 +156,42 @@ int KisFrameDataSerializer::saveFrame(const KisFrameDataSerializer::Frame &frame
 
     const int frameId = m_d->generateFrameId();
 
-    const QString frameSubfolder = m_d->subfolderNameForFrame(frameId);
+    const fs::path frameFilePath = m_d->filePathForFrame(frameId);
+    if (frameFilePath.empty()) return frameId;
+    std::error_code error;
+    fs::create_directories(frameFilePath.parent_path(), error);
+    if (error) return frameId;
 
-    if (!m_d->framesDirObject.exists(frameSubfolder)) {
-        m_d->framesDirObject.mkpath(frameSubfolder);
-    }
-
-    const QString frameRelativePath = frameSubfolder + '/' + m_d->fileNameForFrame(frameId);
-
-    if (m_d->framesDirObject.exists(frameRelativePath)) {
-        qWarning() << "WARNING: overwriting existing frame file!" << frameRelativePath;
+    if (fs::exists(frameFilePath, error)) {
+        std::cerr << "WARNING: overwriting existing frame file! " << frameFilePath << '\n';
         forgetFrame(frameId);
     }
 
-    const QString frameFilePath = m_d->framesDirObject.filePath(frameRelativePath);
-
-    QFile file(frameFilePath);
-    if (!file.open(QFile::WriteOnly)) {
+    PkFileStream file(pathString(frameFilePath));
+    if (!file.open(PkStream::WriteOnly | PkStream::Truncate)) {
         return frameId;
     }
 
-    QDataStream stream(&file);
-    stream << frameId;
-    stream << frame.pixelSize;
-
-    stream << int(frame.frameTiles.size());
+    PkDataStream stream(&file);
+    stream.setByteOrder(PkDataStream::BigEndian);
+    stream.setVersion(PkDataStream::Qt_5_15);
+    stream << static_cast<std::int32_t>(frameId);
+    stream << static_cast<std::int32_t>(frame.pixelSize);
+    stream << static_cast<std::int32_t>(frame.frameTiles.size());
 
     for (int i = 0; i < int(frame.frameTiles.size()); i++) {
         const FrameTile &tile = frame.frameTiles[i];
 
-        stream << tile.col;
-        stream << tile.row;
-        stream << tile.rect;
+        stream << static_cast<std::int32_t>(tile.col);
+        stream << static_cast<std::int32_t>(tile.row);
+        stream << static_cast<std::int32_t>(tile.rect.left());
+        stream << static_cast<std::int32_t>(tile.rect.top());
+        stream << static_cast<std::int32_t>(tile.rect.right());
+        stream << static_cast<std::int32_t>(tile.rect.bottom());
 
         const int frameByteSize = frame.pixelSize * tile.rect.width() * tile.rect.height();
         const int maxBufferSize = compression.outputBufferSize(frameByteSize);
-        quint8 *buffer = m_d->getCompressionBuffer(maxBufferSize);
+        std::uint8_t *buffer = m_d->getCompressionBuffer(maxBufferSize);
 
         const int compressedSize =
             compression.compress(tile.data.data(), frameByteSize, buffer, maxBufferSize);
@@ -127,12 +202,20 @@ int KisFrameDataSerializer::saveFrame(const KisFrameDataSerializer::Frame &frame
         stream << isCompressed;
 
         if (isCompressed) {
-            stream << compressedSize;
-            stream.writeRawData((char*)buffer, compressedSize);
+            stream << static_cast<std::int32_t>(compressedSize);
+            if (stream.status() == PkDataStream::Ok &&
+                file.write(reinterpret_cast<const char *>(buffer), compressedSize) != compressedSize) {
+                stream.setStatus(PkDataStream::WriteFailed);
+            }
         } else {
-            stream << frameByteSize;
-            stream.writeRawData((char*)tile.data.data(), frameByteSize);
+            stream << static_cast<std::int32_t>(frameByteSize);
+            if (stream.status() == PkDataStream::Ok &&
+                file.write(reinterpret_cast<const char *>(tile.data.data()), frameByteSize) != frameByteSize) {
+                stream.setStatus(PkDataStream::WriteFailed);
+            }
         }
+
+        if (stream.status() != PkDataStream::Ok) break;
     }
 
     file.close();
@@ -144,55 +227,73 @@ KisFrameDataSerializer::Frame KisFrameDataSerializer::loadFrame(int frameId, Kis
 {
     KisLzfCompression compression;
 
-    QElapsedTimer loadingTime;
+    PkElapsedTimer loadingTime;
     loadingTime.start();
 
     int loadedFrameId = -1;
     KisFrameDataSerializer::Frame frame;
 
-    qint64 compressionTime = 0;
+    std::int64_t compressionTime = 0;
 
-    const QString framePath = m_d->filePathForFrame(frameId);
+    const fs::path framePath = m_d->filePathForFrame(frameId);
 
-    QFile file(framePath);
-    KIS_SAFE_ASSERT_RECOVER_NOOP(file.exists());
-    if (!file.open(QFile::ReadOnly)) return frame;
+    KIS_SAFE_ASSERT_RECOVER_NOOP(fs::exists(framePath));
+    PkFileStream file(pathString(framePath));
+    if (!file.open(PkStream::ReadOnly)) return frame;
 
-    QDataStream stream(&file);
+    PkDataStream stream(&file);
+    stream.setByteOrder(PkDataStream::BigEndian);
+    stream.setVersion(PkDataStream::Qt_5_15);
 
-    int numTiles = 0;
+    std::int32_t loadedFrameIdWire = -1;
+    std::int32_t pixelSizeWire = 0;
+    std::int32_t numTiles = 0;
 
-    stream >> loadedFrameId;
-    stream >> frame.pixelSize;
+    stream >> loadedFrameIdWire;
+    stream >> pixelSizeWire;
     stream >> numTiles;
+    if (stream.status() != PkDataStream::Ok) return KisFrameDataSerializer::Frame();
+    loadedFrameId = loadedFrameIdWire;
+    frame.pixelSize = pixelSizeWire;
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(loadedFrameId == frameId, KisFrameDataSerializer::Frame());
 
 
 
     for (int i = 0; i < numTiles; i++) {
         FrameTile tile(pool);
-        stream >> tile.col;
-        stream >> tile.row;
-        stream >> tile.rect;
+        std::int32_t col = 0;
+        std::int32_t row = 0;
+        std::int32_t left = 0;
+        std::int32_t top = 0;
+        std::int32_t right = -1;
+        std::int32_t bottom = -1;
+        stream >> col >> row >> left >> top >> right >> bottom;
+        if (stream.status() != PkDataStream::Ok) return KisFrameDataSerializer::Frame();
+        tile.col = col;
+        tile.row = row;
+        tile.rect = PkRect(left, top, right - left + 1, bottom - top + 1);
 
         const int frameByteSize = frame.pixelSize * tile.rect.width() * tile.rect.height();
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(frameByteSize <= pool->chunkSize(frame.pixelSize),
                                              KisFrameDataSerializer::Frame());
 
         bool isCompressed = false;
-        int inputSize = -1;
+        std::int32_t inputSize = -1;
 
         stream >> isCompressed;
         stream >> inputSize;
+        if (stream.status() != PkDataStream::Ok) return KisFrameDataSerializer::Frame();
 
         if (isCompressed) {
             const int maxBufferSize = compression.outputBufferSize(inputSize);
-            quint8 *buffer = m_d->getCompressionBuffer(maxBufferSize);
-            stream.readRawData((char*)buffer, inputSize);
+            std::uint8_t *buffer = m_d->getCompressionBuffer(maxBufferSize);
+            if (file.read(reinterpret_cast<char *>(buffer), inputSize) != inputSize) {
+                return KisFrameDataSerializer::Frame();
+            }
 
             tile.data.allocate(frame.pixelSize);
 
-            QElapsedTimer compTime;
+            PkElapsedTimer compTime;
             compTime.start();
 
             const int decompressedSize =
@@ -208,13 +309,15 @@ KisFrameDataSerializer::Frame KisFrameDataSerializer::loadFrame(int frameId, Kis
                                                  KisFrameDataSerializer::Frame());
 
             tile.data.allocate(frame.pixelSize);
-            stream.readRawData((char*)tile.data.data(), inputSize);
+            if (file.read(reinterpret_cast<char *>(tile.data.data()), inputSize) != inputSize) {
+                return KisFrameDataSerializer::Frame();
+            }
         }
 
         frame.frameTiles.push_back(std::move(tile));
     }
 
-    Q_UNUSED(compressionTime);
+    (void)compressionTime;
 
     file.close();
 
@@ -223,30 +326,32 @@ KisFrameDataSerializer::Frame KisFrameDataSerializer::loadFrame(int frameId, Kis
 
 void KisFrameDataSerializer::moveFrame(int srcFrameId, int dstFrameId)
 {
-    const QString srcFramePath = m_d->filePathForFrame(srcFrameId);
-    const QString dstFramePath = m_d->filePathForFrame(dstFrameId);
-    KIS_SAFE_ASSERT_RECOVER_RETURN(QFileInfo(srcFramePath).exists());
+    const fs::path srcFramePath = m_d->filePathForFrame(srcFrameId);
+    const fs::path dstFramePath = m_d->filePathForFrame(dstFrameId);
+    KIS_SAFE_ASSERT_RECOVER_RETURN(fs::exists(srcFramePath));
 
-    KIS_SAFE_ASSERT_RECOVER(!QFileInfo(dstFramePath).exists()) {
-        QFile::remove(dstFramePath);
+    std::error_code error;
+    fs::create_directories(dstFramePath.parent_path(), error);
+    KIS_SAFE_ASSERT_RECOVER(!fs::exists(dstFramePath)) {
+        fs::remove(dstFramePath, error);
     }
 
-    QFile::rename(srcFramePath, dstFramePath);
+    error.clear();
+    fs::rename(srcFramePath, dstFramePath, error);
 }
 
 bool KisFrameDataSerializer::hasFrame(int frameId) const
 {
-    const QString framePath = m_d->filePathForFrame(frameId);
-    return QFileInfo(framePath).exists();
+    return fs::exists(m_d->filePathForFrame(frameId));
 }
 
 void KisFrameDataSerializer::forgetFrame(int frameId)
 {
-    const QString framePath = m_d->filePathForFrame(frameId);
-    QFile::remove(framePath);
+    std::error_code error;
+    fs::remove(m_d->filePathForFrame(frameId), error);
 }
 
-boost::optional<qreal> KisFrameDataSerializer::estimateFrameUniqueness(const KisFrameDataSerializer::Frame &lhs, const KisFrameDataSerializer::Frame &rhs, qreal portion)
+boost::optional<double> KisFrameDataSerializer::estimateFrameUniqueness(const KisFrameDataSerializer::Frame &lhs, const KisFrameDataSerializer::Frame &rhs, double portion)
 {
     if (lhs.pixelSize != rhs.pixelSize) return boost::none;
     if (lhs.frameTiles.size() != rhs.frameTiles.size()) return boost::none;
@@ -254,7 +359,7 @@ boost::optional<qreal> KisFrameDataSerializer::estimateFrameUniqueness(const Kis
     const int pixelSize = lhs.pixelSize;
     int numSampledPixels = 0;
     int numUniquePixels = 0;
-    const int sampleStep = portion > 0.0 ? qMax(1, qRound(1.0 / portion)) : 0;
+    const int sampleStep = portion > 0.0 ? std::max(1, static_cast<int>(std::lround(1.0 / portion))) : 0;
 
     for (int i = 0; i < int(lhs.frameTiles.size()); i++) {
         const FrameTile &lhsTile = lhs.frameTiles[i];
@@ -274,8 +379,8 @@ boost::optional<qreal> KisFrameDataSerializer::estimateFrameUniqueness(const Kis
             KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(rhsTile.data.data(), boost::none);
 
             for (int j = 0; j < numPixels; j += sampleStep) {
-                quint8 *lhsDataPtr = lhsTile.data.data() + j * pixelSize;
-                quint8 *rhsDataPtr = rhsTile.data.data() + j * pixelSize;
+                std::uint8_t *lhsDataPtr = lhsTile.data.data() + j * pixelSize;
+                std::uint8_t *rhsDataPtr = rhsTile.data.data() + j * pixelSize;
 
                 if (std::memcmp(lhsDataPtr, rhsDataPtr, pixelSize) != 0) {
                     numUniquePixels++;
@@ -285,7 +390,7 @@ boost::optional<qreal> KisFrameDataSerializer::estimateFrameUniqueness(const Kis
         }
     }
 
-    return numSampledPixels > 0 ? qreal(numUniquePixels) / numSampledPixels : 1.0;
+    return numSampledPixels > 0 ? double(numUniquePixels) / numSampledPixels : 1.0;
 }
 
 template <template <typename U> class OpPolicy, typename T>
@@ -323,15 +428,15 @@ bool KisFrameDataSerializer::processFrames(KisFrameDataSerializer::Frame &dst, c
         const int numBytes = srcTile.rect.width() * srcTile.rect.height() * src.pixelSize;
         const int numQWords = numBytes / 8;
 
-        const quint64 *srcDataPtr = reinterpret_cast<const quint64*>(srcTile.data.data());
-        quint64 *dstDataPtr = reinterpret_cast<quint64*>(dstTile.data.data());
+        const std::uint64_t *srcDataPtr = reinterpret_cast<const std::uint64_t*>(srcTile.data.data());
+        std::uint64_t *dstDataPtr = reinterpret_cast<std::uint64_t*>(dstTile.data.data());
 
         framesAreSame &= processData<OpPolicy>(dstDataPtr, srcDataPtr, numQWords);
 
 
         const int tailBytes = numBytes % 8;
-        const quint8 *srcTailDataPtr = srcTile.data.data() + numBytes - tailBytes;
-        quint8 *dstTailDataPtr = dstTile.data.data() + numBytes - tailBytes;
+        const std::uint8_t *srcTailDataPtr = srcTile.data.data() + numBytes - tailBytes;
+        std::uint8_t *dstTailDataPtr = dstTile.data.data() + numBytes - tailBytes;
 
         framesAreSame &= processData<OpPolicy>(dstTailDataPtr, srcTailDataPtr, tailBytes);
     }
