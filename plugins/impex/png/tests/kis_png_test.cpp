@@ -7,9 +7,9 @@
 #include "kis_png_test.h"
 #include <KisDocumentRegistry.h>
 
+#include <algorithm>
 
 #include <simpletest.h>
-#include <QBuffer>
 #include <QCoreApplication>
 
 #include "filestest.h"
@@ -17,13 +17,18 @@
 #include <testui.h>
 
 #include <KisPngCodec.h>
+#include <PkConfigGroup.h>
+#include <PkMemoryStream.h>
+#include <PkSharedConfig.h>
+
+#include "../kis_dlg_png_import.h"
 
 #ifndef FILES_DATA_DIR
 #error "FILES_DATA_DIR not set. A directory with the data used for testing the importing of files in krita"
 #endif
 
 
-const QString PngMimetype = "image/png";
+const PkString PngMimetype = "image/png";
 
 namespace
 {
@@ -31,25 +36,25 @@ namespace
 class FixedPngImportProfilePolicy final : public KisPngImportProfilePolicy
 {
 public:
-    explicit FixedPngImportProfilePolicy(const QString &profileName)
+    explicit FixedPngImportProfilePolicy(const PkString &profileName)
         : m_profileName(profileName)
     {
     }
 
-    QString chooseColorProfile(const KisPngImportProfileRequest &) override
+    PkString chooseColorProfile(const KisPngImportProfileRequest &) override
     {
         return m_profileName;
     }
 
 private:
-    const QString m_profileName;
+    const PkString m_profileName;
 };
 
 }
 
 void KisPngTest::testFiles()
 {
-    TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources", QStringList(), QString(), 1);
+    TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", PkStringList(), PkString(), 1);
 }
 
 void KisPngTest::testWriteonly()
@@ -74,7 +79,7 @@ void roudTripHdrImage(const KoColorSpace *savingColorSpace)
     pixelPtr[3] = 0.9;
 
     {
-        QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
+        PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
         KisImageSP image = new KisImage(0, 3, 3, scRGBF32, "png test");
         KisPaintLayerSP paintLayer0 = new KisPaintLayer(image, "paint0", OPACITY_OPAQUE_U8);
@@ -97,12 +102,12 @@ void roudTripHdrImage(const KoColorSpace *savingColorSpace)
     }
 
     {
-        QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
+        PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
         KisImportExportManager manager(doc.data());
         doc->setFileBatchMode(true);
 
         KisImportExportErrorCode loadingStatus =
-            manager.importDocument("test.png", QString());
+            manager.importDocument("test.png", PkString());
 
         QVERIFY(loadingStatus.isOk());
 
@@ -137,13 +142,13 @@ void roudTripHdrImage(const KoColorSpace *savingColorSpace)
 
 void KisPngTest::testSaveHDR()
 {
-    QVector<KoID> colorDepthIds;
+    PkVector<KoID> colorDepthIds;
 #ifdef HAVE_OPENEXR
     colorDepthIds << Float16BitsColorDepthID;
 #endif
     colorDepthIds << Float32BitsColorDepthID;
 
-    QVector<const KoColorProfile*> profiles;
+    PkVector<const KoColorProfile*> profiles;
     const KoColorProfile *profile = KoColorSpaceRegistry::instance()->p709G10Profile();
     if (!profile) {
         qWarning() << "Could not get a p709G10 Profile";
@@ -191,6 +196,40 @@ void KisPngTest::testSaveHDR()
                     KoColorSpaceRegistry::instance()->p2020PQProfile()));
 }
 
+void KisPngTest::testImportProfileModel()
+{
+    KoColorSpaceRegistry *registry = KoColorSpaceRegistry::instance();
+    const PkString colorSpaceId = registry->colorSpaceId(RGBAColorModelID, Integer16BitsColorDepthID);
+    const PkString defaultProfile = registry->defaultProfileForColorSpace(colorSpaceId);
+    QVERIFY(!defaultProfile.isEmpty());
+
+    PkConfigGroup config = PkSharedConfig::openConfig()->group(PkString());
+    config.writeEntry(PkString("pngImportProfile"), defaultProfile);
+
+    KisDlgPngImport model(PkString("fixture.png"),
+                          RGBAColorModelID.id(),
+                          Integer16BitsColorDepthID.id());
+
+    QVERIFY(model.sourcePath() == PkString("fixture.png"));
+    const PkStringList &profiles = model.profiles();
+    QVERIFY(profiles.size() > 1);
+    QVERIFY(std::is_sorted(profiles.begin(), profiles.end()));
+    QVERIFY(std::find(profiles.begin(), profiles.end(), defaultProfile) != profiles.end());
+    QVERIFY(model.profile() == defaultProfile);
+
+    const auto alternate = std::find_if(profiles.begin(), profiles.end(),
+                                        [&defaultProfile](const PkString &profile) {
+                                            return profile != defaultProfile;
+                                        });
+    QVERIFY(alternate != profiles.end());
+    QVERIFY(model.selectProfile(*alternate));
+    QVERIFY(model.profile() == *alternate);
+    QVERIFY(!model.selectProfile(PkString("not-a-registered-profile")));
+    QVERIFY(model.profile() == *alternate);
+
+    config.deleteEntry(PkString("pngImportProfile"));
+}
+
 void KisPngTest::testHeadlessCodecUsesImportProfilePolicy()
 {
     const KoColorProfile *sourceProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
@@ -205,13 +244,13 @@ void KisPngTest::testHeadlessCodecUsesImportProfilePolicy()
             sourceProfile);
     QVERIFY(sourceColorSpace);
 
-    const QRect imageRect(0, 0, 2, 2);
+    const PkRect imageRect(0, 0, 2, 2);
     KisPaintDeviceSP device = new KisPaintDevice(sourceColorSpace);
     KoColor fillColor(Qt::red, sourceColorSpace);
     device->fill(imageRect, fillColor);
 
-    QBuffer encodedPng;
-    QVERIFY(encodedPng.open(QIODevice::ReadWrite));
+    PkMemoryStream encodedPng;
+    QVERIFY(encodedPng.open(PkStream::ReadWrite));
 
     KisPNGOptions options;
     options.saveSRGBProfile = false;

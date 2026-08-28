@@ -9,21 +9,15 @@
 
 #include <KisImportExportFilter.h>
 
-namespace KDcrawIface
-{
-class RawDecodingSettings;
-} // namespace KDcrawIface
-
 class KisRawImport : public KisImportExportFilter
 {
     Q_OBJECT
 
 public:
-    KisRawImport(QObject *parent, const QVariantList &);
+    KisRawImport(PkObject *parent, const PkVariantList &);
     ~KisRawImport() override;
 
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 };
 
 #endif // KIS_RAW_IMPORT_H_
-

@@ -8,8 +8,6 @@
 
 #include <kpluginfactory.h>
 
-#include <QDebug>
-
 #include <KisImportExportManager.h>
 
 #include <KisDocument.h>
@@ -19,7 +17,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(CSVImportFactory, "krita_csv_import.json", registerPlugin<KisCSVImport>();)
 
-KisCSVImport::KisCSVImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisCSVImport::KisCSVImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -27,7 +25,7 @@ KisCSVImport::~KisCSVImport()
 {
 }
 
-KisImportExportErrorCode KisCSVImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode KisCSVImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     CSVLoader ib(document, batchMode());
     KisImportExportErrorCode result = ib.buildAnimation(io, filename());
@@ -38,4 +36,3 @@ KisImportExportErrorCode KisCSVImport::convert(KisDocument *document, QIODevice 
 }
 
 #include <kis_csv_import.moc>
-

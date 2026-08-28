@@ -7,7 +7,7 @@
 #ifndef _KIS_CSV_EXPORT_H_
 #define _KIS_CSV_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,10 +15,10 @@ class KisCSVExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisCSVExport(QObject *parent, const QVariantList &);
+    KisCSVExport(PkObject *parent, const PkVariantList &);
     ~KisCSVExport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
     void initializeCapabilities() override;
 };
 

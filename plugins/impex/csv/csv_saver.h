@@ -7,40 +7,34 @@
 #ifndef CSV_SAVER_H_
 #define CSV_SAVER_H_
 
-#include <QObject>
+#include <atomic>
 
 #include <KisImportExportErrorCode.h>
 #include <kis_types.h>
 
 class CSVLayerRecord;
 class KisDocument;
-class QIODevice;
+class PkStream;
 
-class CSVSaver : public QObject {
-
-    Q_OBJECT
-
+class CSVSaver {
 public:
     CSVSaver(KisDocument* doc, bool batchMode);
-    ~CSVSaver() override;
+    ~CSVSaver();
 
-    KisImportExportErrorCode buildAnimation(QIODevice *io);
+    KisImportExportErrorCode buildAnimation(PkStream *io);
     KisImageSP image();
+    void cancel();
 
 private:
-    KisImportExportErrorCode encode(QIODevice *io);
-    KisImportExportErrorCode getLayer(CSVLayerRecord* , KisDocument* , KisKeyframeSP, const QString &, int, int);
+    KisImportExportErrorCode encode(PkStream *io);
+    KisImportExportErrorCode getLayer(CSVLayerRecord* , KisDocument* , KisKeyframeSP, const PkString &, int, int);
     void createTempImage(KisDocument* );
-    QString convertToBlending(const QString &);
-
-private Q_SLOTS:
-    void cancel();
+    PkString convertToBlending(const PkString &);
 
 private:
     KisImageSP m_image;
     KisDocument* m_doc;
-    bool m_batchMode;
-    bool m_stop;
+    std::atomic_bool m_stop;
 };
 
 #endif

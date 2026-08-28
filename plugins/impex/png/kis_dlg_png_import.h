@@ -6,24 +6,26 @@
 #ifndef KIS_DLG_PNG_IMPORT_H
 #define KIS_DLG_PNG_IMPORT_H
 
-#include <QDialog>
-#include <QString>
-
-#include "ui_wdgdlgpngimport.h"
+#include <PkString.h>
+#include <PkStringList.h>
 
 
-class KisDlgPngImport : public QDialog
+class KisDlgPngImport
 {
-    Q_OBJECT
-
 public:
-    KisDlgPngImport(const QString &path, const QString &colorModelID, const QString &colorDepthID, QWidget *parent = 0);
-    QString profile() const;
+    KisDlgPngImport(const PkString &path,
+                    const PkString &colorModelId,
+                    const PkString &colorDepthId);
+
+    const PkString &sourcePath() const;
+    const PkStringList &profiles() const;
+    bool selectProfile(const PkString &profile);
+    PkString profile() const;
 
 private:
-
-    Ui_WdgDlgPngImport dlgWidget;
-
+    PkString m_sourcePath;
+    PkStringList m_profiles;
+    PkString m_selectedProfile;
 };
 
 #endif // KIS_DLG_PNG_IMPORT_H

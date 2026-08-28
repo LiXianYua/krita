@@ -5,56 +5,66 @@
  */
 #include "kis_dlg_png_import.h"
 
-#include <QDialogButtonBox>
-#include <QVBoxLayout>
+#include <algorithm>
 
-#include <KConfigGroup>
-#include <KSharedConfig>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KoColorProfile.h>
-#include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
-#include <KoColorSpaceEngine.h>
-#include <KoID.h>
 
-KisDlgPngImport::KisDlgPngImport(const QString &path, const QString &colorModelID, const QString &colorDepthID, QWidget *parent)
-    : QDialog(parent)
+KisDlgPngImport::KisDlgPngImport(const PkString &path,
+                                 const PkString &colorModelId,
+                                 const PkString &colorDepthId)
+    : m_sourcePath(path)
 {
-    QWidget *page = new QWidget(this);
-    dlgWidget.setupUi(page);
-
-    QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->addWidget(page);
-
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, this);
-    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    layout->addWidget(buttonBox);
-
-    dlgWidget.lblFilename->setText(path);
-
-    const QString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(colorModelID, colorDepthID);
-    dlgWidget.cmbProfile->clear();
-    QList<const KoColorProfile *>  profileList = KoColorSpaceRegistry::instance()->profilesFor(colorSpaceId);
-    QStringList profileNames;
-    Q_FOREACH (const KoColorProfile *profile, profileList) {
-        profileNames.append(profile->name());
+    KoColorSpaceRegistry *registry = KoColorSpaceRegistry::instance();
+    const PkString colorSpaceId = registry->colorSpaceId(colorModelId, colorDepthId);
+    const PkList<const KoColorProfile *> profileList = registry->profilesFor(colorSpaceId);
+    for (const KoColorProfile *profile : profileList) {
+        if (profile) {
+            m_profiles.append(profile->name());
+        }
     }
-    std::sort(profileNames.begin(), profileNames.end());
-    Q_FOREACH (QString stringName, profileNames) {
-        dlgWidget.cmbProfile->addItem(stringName);
+    std::sort(m_profiles.begin(), m_profiles.end());
+
+    const PkString defaultProfile = registry->defaultProfileForColorSpace(colorSpaceId);
+    const PkConfigGroup config = PkSharedConfig::openConfig()->group(PkString());
+    const PkString persistedProfile =
+        config.readEntry(PkString("pngImportProfile"), defaultProfile);
+
+    if (std::find(m_profiles.begin(), m_profiles.end(), persistedProfile) != m_profiles.end()) {
+        m_selectedProfile = persistedProfile;
+    } else if (std::find(m_profiles.begin(), m_profiles.end(), defaultProfile) != m_profiles.end()) {
+        m_selectedProfile = defaultProfile;
+    } else if (!m_profiles.isEmpty()) {
+        m_selectedProfile = m_profiles.front();
     }
-    KConfigGroup config = KSharedConfig::openConfig()->group("");
-    const QString profile = config.readEntry(
-        "pngImportProfile",
-        KoColorSpaceRegistry::instance()->defaultProfileForColorSpace(colorSpaceId));
-    dlgWidget.cmbProfile->setCurrentText(profile);
 }
 
-QString KisDlgPngImport::profile() const
+const PkString &KisDlgPngImport::sourcePath() const
 {
-    QString p = dlgWidget.cmbProfile->currentText();
-    KConfigGroup config = KSharedConfig::openConfig()->group("");
-    config.writeEntry("pngImportProfile", p);
+    return m_sourcePath;
+}
+
+const PkStringList &KisDlgPngImport::profiles() const
+{
+    return m_profiles;
+}
+
+bool KisDlgPngImport::selectProfile(const PkString &profile)
+{
+    if (std::find(m_profiles.begin(), m_profiles.end(), profile) == m_profiles.end()) {
+        return false;
+    }
+    m_selectedProfile = profile;
+    return true;
+}
+
+PkString KisDlgPngImport::profile() const
+{
+    PkConfigGroup config = PkSharedConfig::openConfig()->group(PkString());
+    config.writeEntry(PkString("pngImportProfile"), m_selectedProfile);
     config.sync();
-    return p;
+    return m_selectedProfile;
 }

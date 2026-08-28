@@ -1,5 +1,6 @@
 krita_add_broken_unit_test(
     kis_png_test.cpp
+    ../kis_dlg_png_import.cpp
     TEST_NAME kis_png_test
-    LINK_LIBRARIES kritaimpex kritatestsdk
+    LINK_LIBRARIES kritaimpex kritatestsdk pktest
 )

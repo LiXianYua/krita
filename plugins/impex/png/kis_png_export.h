@@ -7,6 +7,8 @@
 #ifndef _KIS_PNG_EXPORT_H_
 #define _KIS_PNG_EXPORT_H_
 
+#include <PkVariant.h>
+
 #include <KisImportExportFilter.h>
 
 class KisPNGExport : public KisImportExportFilter
@@ -15,12 +17,13 @@ class KisPNGExport : public KisImportExportFilter
 
 public:
 
-    KisPNGExport(QObject *parent, const QVariantList &);
+    KisPNGExport(PkObject *parent, const PkVariantList &);
     ~KisPNGExport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 
-    KisPropertiesConfigurationSP defaultConfiguration(const QByteArray& from = "", const QByteArray& to = "") const override;
+    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray& from = PkByteArray(),
+                                                       const PkByteArray& to = PkByteArray()) const override;
     void initializeCapabilities() override;
 };
 

@@ -32,7 +32,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisPNGExportFactory, "krita_png_export.json", registerPlugin<KisPNGExport>();)
 
-KisPNGExport::KisPNGExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisPNGExport::KisPNGExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -40,7 +40,7 @@ KisPNGExport::~KisPNGExport()
 {
 }
 
-KisImportExportErrorCode KisPNGExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisPNGExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
     KisImageSP image = document->savingImage();
 
@@ -51,7 +51,7 @@ KisImportExportErrorCode KisPNGExport::convert(KisDocument *document, QIODevice 
     options.compression = configuration->getInt("compression", 3);
     options.tryToSaveAsIndexed = configuration->getBool("indexed", false);
     KoColor c(KoColorSpaceRegistry::instance()->rgb8());
-    c.fromQColor(Qt::white);
+    c.fromQColor(PkColor(255, 255, 255));
     options.transparencyFillColor = configuration->getColor("transparencyFillcolor", c).toQColor();
     options.saveSRGBProfile = configuration->getBool("saveSRGBProfile", false);
     options.forceSRGB = configuration->getBool("forceSRGB", true);
@@ -86,7 +86,7 @@ KisImportExportErrorCode KisPNGExport::convert(KisDocument *document, QIODevice 
     return res;
 }
 
-KisPropertiesConfigurationSP KisPNGExport::defaultConfiguration(const QByteArray &, const QByteArray &) const
+KisPropertiesConfigurationSP KisPNGExport::defaultConfiguration(const PkByteArray &, const PkByteArray &) const
 {
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
     cfg->setProperty("alpha", true);
@@ -96,8 +96,8 @@ KisPropertiesConfigurationSP KisPNGExport::defaultConfiguration(const QByteArray
 
     KoColor fill_color(KoColorSpaceRegistry::instance()->rgb8());
     fill_color = KoColor();
-    fill_color.fromQColor(Qt::white);
-    QVariant v;
+    fill_color.fromQColor(PkColor(255, 255, 255));
+    PkVariant v;
     v.setValue(fill_color);
 
     cfg->setProperty("transparencyFillcolor", v);
@@ -113,12 +113,12 @@ KisPropertiesConfigurationSP KisPNGExport::defaultConfiguration(const QByteArray
 void KisPNGExport::initializeCapabilities()
 {
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::SUPPORTED));
-    QList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "PNG");
 }
 

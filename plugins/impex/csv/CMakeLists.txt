@@ -11,7 +11,7 @@ set(kritacsvimport_SOURCES
 
 kis_add_library(kritacsvimport MODULE ${kritacsvimport_SOURCES})
 
-target_link_libraries(kritacsvimport kritaimpex)
+target_link_libraries(kritacsvimport kritaimpex kritastore)
 
 install(TARGETS kritacsvimport DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -25,7 +25,7 @@ set(kritacsvexport_SOURCES
 
 kis_add_library(kritacsvexport MODULE ${kritacsvexport_SOURCES})
 
-target_link_libraries(kritacsvexport kritaimpex)
+target_link_libraries(kritacsvexport kritaimpex kritastore)
 
 install(TARGETS kritacsvexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

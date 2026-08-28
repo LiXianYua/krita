@@ -16,6 +16,7 @@ private Q_SLOTS:
     void testFiles();
     void testWriteonly();
     void testSaveHDR();
+    void testImportProfileModel();
     void testHeadlessCodecUsesImportProfilePolicy();
 };
 

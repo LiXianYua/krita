@@ -6,21 +6,22 @@
 
 #include "csv_loader.h"
 
-#include <QDebug>
-#include <QCoreApplication>
+#include <algorithm>
+#include <cctype>
+#include <cstdint>
+#include <filesystem>
+#include <string>
+#include <system_error>
 
-#include <QFile>
-#include <QVector>
-#include <QIODevice>
-#include <QFileInfo>
-#include <QRegularExpression>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
+#include <PkStream.h>
 
 #include <KisDocument.h>
 #include <KisDocumentRegistry.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
-#include <KisCursorOverrideLock.h>
 
 #include <kis_debug.h>
 #include <kis_image.h>
@@ -32,25 +33,59 @@
 #include "csv_read_line.h"
 #include "csv_layer_record.h"
 
+namespace
+{
+PkString pathWithSlash(const std::filesystem::path &path)
+{
+    std::string value = path.generic_u8string();
+    if (!value.empty() && value.back() != '/') {
+        value.push_back('/');
+    }
+    return PkString::PkFromUtf8(value.data(), static_cast<int>(value.size()));
+}
+
+bool isDirectory(const std::filesystem::path &path)
+{
+    std::error_code error;
+    return std::filesystem::is_directory(path, error) && !error;
+}
+
+PkString defaultFramesPath(const PkString &filename)
+{
+    std::string value = filename.PkToUtf8();
+    if (value.size() >= 4) {
+        std::string extension = value.substr(value.size() - 4);
+        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) {
+            return static_cast<char>(std::toupper(c));
+        });
+        if (extension == ".CSV") {
+            value.resize(value.size() - 4);
+        }
+    }
+    value += ".frames/";
+    return PkString::PkFromUtf8(value.data(), static_cast<int>(value.size()));
+}
+}
+
 CSVLoader::CSVLoader(KisDocument *doc, bool batchMode)
     : m_image(0)
     , m_doc(doc)
-    , m_batchMode(batchMode)
     , m_stop(false)
 {
+    (void)batchMode;
 }
 
 CSVLoader::~CSVLoader()
 {
 }
 
-KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filename)
+KisImportExportErrorCode CSVLoader::decode(PkStream *io, const PkString &filename)
 {
-    QString     field;
-    int         idx;
+    PkString     field;
+    int         idx = 0;
     int         frame = 0;
 
-    QString     projName;
+    PkString     projName;
     int         width = 0;
     int         height = 0;
     int         frameCount = 1;
@@ -64,35 +99,27 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
     int         framerateIdx = -1;
     int         pixelRatioIdx = -1;
 
-    QVector<CSVLayerRecord*> layers;
+    PkVector<CSVLayerRecord*> layers;
 
-    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
-
-    idx = filename.lastIndexOf(QRegularExpression("[\\/]"));
-    QString base = (idx == -1) ? QString() : filename.left(idx + 1); //include separator
-    QString path = filename;
-
-    if (path.right(4).toUpper() == ".CSV")
-        path = path.left(path.size() - 4);
-
-    //according to the QT docs, the slash is a universal directory separator
-    path.append(".frames/");
+    const std::filesystem::path sourcePath = std::filesystem::u8path(filename.PkToUtf8());
+    const PkString base = pathWithSlash(sourcePath.parent_path());
+    const PkString path = defaultFramesPath(filename);
 
     KisImportExportErrorCode retval = ImportExportCodes::OK;
 
     dbgFile << "pos:" << io->pos();
 
     CSVReadLine readLine;
-    QScopedPointer<KisDocument> importDoc(KisDocumentRegistry::instance()->createDocument());
+    PkScopedPointer<KisDocument> importDoc(KisDocumentRegistry::instance()->createDocument());
     importDoc->setInfiniteAutoSaveInterval();
     importDoc->setFileBatchMode(true);
 
     int step = 0;
 
     do {
-        QCoreApplication::processEvents();
-
-        if (m_stop) {
+        // Cancellation is cooperative at record boundaries. No UI event pump is
+        // required; callers may invoke cancel() from their orchestration layer.
+        if (m_stop.load()) {
             retval = ImportExportCodes::Cancelled;
             break;
         }
@@ -102,9 +129,7 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
                 retval = ImportExportCodes::FileFormatIncorrect;
             break;
         }
-        field = readLine.nextField(); //first field of the line
-
-        if (field.isNull()) continue; //empty row
+        if (!readLine.nextField(&field)) continue;
 
         switch (step) {
 
@@ -115,7 +140,7 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
         case 1 :    //scene header names
             step = 2;
 
-            for (idx = 0; !field.isNull(); idx++) {
+            for (idx = 0;; idx++) {
                 if (field == "Project Name") {
                     projNameIdx = idx;
 
@@ -134,16 +159,18 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
                 } else if (field == "Pixel Aspect Ratio") {
                     pixelRatioIdx = idx;
                 }
-                field= readLine.nextField();
+                if (!readLine.nextField(&field)) break;
             }
             break;
 
-        case 2 :    //scene header values
+        case 2 : {  //scene header values
             step= 3;
 
-            for (idx= 0; !field.isNull(); idx++) {
+            bool hasProjectName = false;
+            for (idx= 0;; idx++) {
                 if (idx == projNameIdx) {
                     projName = field;
+                    hasProjectName = true;
 
                 } else if (idx == widthIdx) {
                     width = field.toInt();
@@ -157,13 +184,13 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
                     if (frameCount < 1) frameCount= 1;
 
                 } else if (idx == framerateIdx) {
-                    framerate = field.toFloat();
+                    framerate = static_cast<float>(field.toDouble());
 
                 } else if (idx == pixelRatioIdx) {
-                    pixelRatio = field.toFloat();
+                    pixelRatio = static_cast<float>(field.toDouble());
 
                 }
-                field= readLine.nextField();
+                if (!readLine.nextField(&field)) break;
             }
 
             if ((width < 1) || (height < 1)) {
@@ -171,76 +198,76 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
                break;
             }
 
-            retval = createNewImage(width, height, pixelRatio, projName.isNull() ? filename : projName);
+            retval = createNewImage(width, height, pixelRatio, hasProjectName ? projName : filename);
             break;
+        }
 
         case 3 :    //create level headers
             if (field[0] != '#') break;
 
-            for (; !(field = readLine.nextField()).isNull(); ) {
+            while (readLine.nextField(&field)) {
                 CSVLayerRecord* layerRecord = new CSVLayerRecord();
                 layers.append(layerRecord);
             }
             readLine.rewind();
-            field = readLine.nextField();
+            if (!readLine.nextField(&field)) break;
             step = 4;
-            Q_FALLTHROUGH();
+            [[fallthrough]];
 
         case 4 :    //level header
 
             if (field == "#Layers") {
                 //layer name
-                for (idx = 0; !(field = readLine.nextField()).isNull() && (idx < layers.size()); idx++)
+                for (idx = 0; idx < layers.size() && readLine.nextField(&field); idx++)
                     layers.at(idx)->name = field;
 
                 break;
             }
             if (field == "#Density") {
                 //layer opacity
-                for (idx = 0; !(field = readLine.nextField()).isNull() && (idx < layers.size()); idx++)
-                    layers.at(idx)->density = field.toFloat();
+                for (idx = 0; idx < layers.size() && readLine.nextField(&field); idx++)
+                    layers.at(idx)->density = static_cast<float>(field.toDouble());
 
                 break;
             }
             if (field == "#Blending") {
                 //layer blending mode
-                for (idx = 0; !(field = readLine.nextField()).isNull() && (idx < layers.size()); idx++)
+                for (idx = 0; idx < layers.size() && readLine.nextField(&field); idx++)
                     layers.at(idx)->blending = field;
 
                 break;
             }
             if (field == "#Visible") {
                 //layer visibility
-                for (idx = 0; !(field = readLine.nextField()).isNull() && (idx < layers.size()); idx++)
+                for (idx = 0; idx < layers.size() && readLine.nextField(&field); idx++)
                     layers.at(idx)->visible = field.toInt();
 
                 break;
             }
             if (field == "#Folder") {
                 //CSV 1.1 folder location
-                for (idx = 0; !(field = readLine.nextField()).isNull() && (idx < layers.size()); idx++)
-                    layers.at(idx)->path = validPath(field, base);
+                for (idx = 0; idx < layers.size() && readLine.nextField(&field); idx++) {
+                    CSVLayerRecord *layer = layers.at(idx);
+                    layer->path = validPath(field, base);
+                    layer->hasPath = !layer->path.isEmpty();
+                }
 
                 break;
             }
-            if ((field.size() < 2) || (field[0] != '#') || !field[1].isDigit()) break;
+            if ((field.size() < 2) || (field[0] != u'#') || field[1] < u'0' || field[1] > u'9') break;
 
             step = 5;
 
-            Q_FALLTHROUGH();
+            [[fallthrough]];
 
         case 5 :    //frames
 
-            if ((field.size() < 2) || (field[0] != '#') || !field[1].isDigit()) break;
+            if ((field.size() < 2) || (field[0] != u'#') || field[1] < u'0' || field[1] > u'9') break;
 
-            for (idx = 0; !(field = readLine.nextField()).isNull() && (idx < layers.size()); idx++) {
+            for (idx = 0; idx < layers.size() && readLine.nextField(&field); idx++) {
                 CSVLayerRecord* layer = layers.at(idx);
 
                 if (layer->last != field) {
-                    if (!m_batchMode) {
-                        //Q_EMIT m_doc->sigProgress((frame * layers.size() + idx) * 100 /
-                        //                        (frameCount * layers.size()));
-                    }
                     retval = setLayer(layer, importDoc.data(), path);
                     layer->last = field;
                     layer->frame = frame;
@@ -288,13 +315,15 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
         }
         m_image->unlock();
     }
-    qDeleteAll(layers);
+    for (CSVLayerRecord *layer : layers) {
+        delete layer;
+    }
     io->close();
 
     return retval;
 }
 
-QString CSVLoader::convertBlending(const QString &blending)
+PkString CSVLoader::convertBlending(const PkString &blending)
 {
     if (blending == "Color") return COMPOSITE_OVER;
     if (blending == "Behind") return COMPOSITE_BEHIND;
@@ -326,36 +355,39 @@ QString CSVLoader::convertBlending(const QString &blending)
     return COMPOSITE_OVER;
 }
 
-QString CSVLoader::validPath(const QString &path,const QString &base)
+PkString CSVLoader::validPath(const PkString &path,const PkString &base)
 {
-    //replace Windows directory separators with the universal /
-
-    QString tryPath= QString(path).replace(QString("\\"), QString("/"));
-    int i = tryPath.lastIndexOf("/");
-
-    if (i == (tryPath.size() - 1))
-        tryPath= tryPath.left(i); //remove the ending separator if exists
-
-    if (QFileInfo(tryPath).isDir())
-        return tryPath.append("/");
-
-    QString scan(tryPath);
-    i = -1;
-
-    while ((i= (scan.lastIndexOf("/",i) - 1)) > 0) {
-        //avoid testing if the next level will be the default xxxx.layers folder
-
-        if ((i >= 6) && (scan.mid(i - 6, 7) == ".layers")) continue;
-
-        tryPath= QString(base).append(scan.mid(i + 2)); //base already ending with a /
-
-        if (QFileInfo(tryPath).isDir())
-            return tryPath.append("/");
+    std::string normalized = path.PkToUtf8();
+    std::replace(normalized.begin(), normalized.end(), '\\', '/');
+    while (!normalized.empty() && normalized.back() == '/') {
+        normalized.pop_back();
     }
-    return QString(); //NULL string
+
+    const std::filesystem::path direct = std::filesystem::u8path(normalized);
+    if (isDirectory(direct)) {
+        return pathWithSlash(direct);
+    }
+
+    const std::filesystem::path basePath = std::filesystem::u8path(base.PkToUtf8());
+    for (std::size_t slash = normalized.rfind('/'); slash != std::string::npos;) {
+        const std::size_t previous = slash == 0 ? std::string::npos : normalized.rfind('/', slash - 1);
+        const std::size_t componentStart = previous == std::string::npos ? 0 : previous + 1;
+        const std::string parentComponent = normalized.substr(componentStart, slash - componentStart);
+
+        if (parentComponent != ".layers") {
+            const std::filesystem::path candidate = basePath / std::filesystem::u8path(normalized.substr(slash + 1));
+            if (isDirectory(candidate)) {
+                return pathWithSlash(candidate);
+            }
+        }
+
+        if (slash == 0) break;
+        slash = normalized.rfind('/', slash - 1);
+    }
+    return PkString();
 }
 
-KisImportExportErrorCode CSVLoader::setLayer(CSVLayerRecord* layer, KisDocument *importDoc, const QString &path)
+KisImportExportErrorCode CSVLoader::setLayer(CSVLayerRecord* layer, KisDocument *importDoc, const PkString &path)
 {
     bool result = true;
 
@@ -370,24 +402,24 @@ KisImportExportErrorCode CSVLoader::setLayer(CSVLayerRecord* layer, KisDocument 
             opacity = 0.0;
 
         const KoColorSpace* cs = m_image->colorSpace();
-        const QString layerName = (layer->name).isEmpty() ? m_image->nextLayerName() : layer->name;
+        const PkString layerName = (layer->name).isEmpty() ? m_image->nextLayerName() : layer->name;
 
         KisPaintLayer* paintLayer = new KisPaintLayer(m_image, layerName,
-                                                       (quint8)(opacity * OPACITY_OPAQUE_U8), cs);
+                                                       static_cast<std::uint8_t>(opacity * OPACITY_OPAQUE_U8), cs);
 
         paintLayer->setCompositeOpId(convertBlending(layer->blending));
         paintLayer->setVisible(layer->visible);
         paintLayer->enableAnimation();
 
         layer->layer = paintLayer;
-        layer->channel = qobject_cast<KisRasterKeyframeChannel*>
-            (paintLayer->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true));
+        layer->channel = dynamic_cast<KisRasterKeyframeChannel *>(
+            paintLayer->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true));
     }
 
 
     if (!layer->last.isEmpty()) {
         //png image
-        QString filename = layer->path.isNull() ? path : layer->path;
+        PkString filename = layer->hasPath ? layer->path : path;
         filename.append(layer->last);
 
         result = importDoc->openPath(filename,
@@ -402,7 +434,7 @@ KisImportExportErrorCode CSVLoader::setLayer(CSVLayerRecord* layer, KisDocument 
     return (result) ? ImportExportCodes::OK : ImportExportCodes::Failure;
 }
 
-KisImportExportErrorCode CSVLoader::createNewImage(int width, int height, float ratio, const QString &name)
+KisImportExportErrorCode CSVLoader::createNewImage(int width, int height, float ratio, const PkString &name)
 {
     //the CSV is RGBA 8bits, sRGB
 
@@ -420,7 +452,7 @@ KisImportExportErrorCode CSVLoader::createNewImage(int width, int height, float 
     return ImportExportCodes::OK;
 }
 
-KisImportExportErrorCode CSVLoader::buildAnimation(QIODevice *io, const QString &filename)
+KisImportExportErrorCode CSVLoader::buildAnimation(PkStream *io, const PkString &filename)
 {
     return decode(io, filename);
 }

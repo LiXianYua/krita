@@ -7,10 +7,6 @@ set(kritapngimport_SOURCES
     kis_dlg_png_import.cpp
 )
 
-ki18n_wrap_ui(kritapngimport_SOURCES
-    wdgdlgpngimport.ui
-)
-
 kis_add_library(kritapngimport MODULE ${kritapngimport_SOURCES})
 
 include_directories(SYSTEM ${PNG_INCLUDE_DIR})
@@ -20,8 +16,7 @@ add_definitions(${PNG_DEFINITIONS})
 target_link_libraries(kritapngimport
     PRIVATE
         kritaimpex
-        KF${KF_MAJOR}::ConfigCore
-        Qt${QT_MAJOR_VERSION}::Widgets
+        pkconfig
         ${PNG_LIBRARIES}
 )
 

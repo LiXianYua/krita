@@ -11,12 +11,11 @@
 class KisPngImportProfileDesktopPolicy final : public KisPngImportProfilePolicy
 {
 public:
+    // Flutter and future UI layers inject profile selection through this
+    // policy; the default implementation remains toolkit-free.
     explicit KisPngImportProfileDesktopPolicy(bool batchMode);
 
-    QString chooseColorProfile(const KisPngImportProfileRequest &request) override;
-
-private:
-    const bool m_batchMode;
+    PkString chooseColorProfile(const KisPngImportProfileRequest &request) override;
 };
 
 #endif // KIS_PNG_IMPORT_PROFILE_POLICY_H

@@ -7,7 +7,7 @@
 #ifndef CSV_LAYER_RECORD_H_
 #define CSV_LAYER_RECORD_H_
 
-#include <QString>
+#include <PkString.h>
 
 #include "kis_raster_keyframe_channel.h"
 
@@ -17,15 +17,16 @@ public:
     CSVLayerRecord();
     virtual ~CSVLayerRecord();
 
-    QString     name;
-    QString     blending;
+    PkString     name;
+    PkString     blending;
     float       density {0.0};
     int         visible {0};
 
     KisLayer*   layer {0};
     KisRasterKeyframeChannel *channel {0};
-    QString     last;
-    QString     path;
+    PkString     last;
+    PkString     path;
+    bool         hasPath {false};
     int         frame {0};
 };
 

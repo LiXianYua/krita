@@ -19,7 +19,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(PNGImportFactory, "krita_png_import.json", registerPlugin<KisPNGImport>();)
 
-KisPNGImport::KisPNGImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisPNGImport::KisPNGImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -27,7 +27,7 @@ KisPNGImport::~KisPNGImport()
 {
 }
 
-KisImportExportErrorCode KisPNGImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode KisPNGImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     KisPngDocumentContext documentContext(document);
     KisPngImportProfileDesktopPolicy profilePolicy(batchMode());
