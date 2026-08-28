@@ -435,7 +435,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
 
     std::stack<KisGroupLayerSP> groupStack;
 
-    groupStack << psdImage->rootLayer().data();
+    groupStack.push(psdImage->rootLayer());
 
     /**
      * PSD has a weird "optimization": if a group layer has only one
