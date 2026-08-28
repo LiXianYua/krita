@@ -46,6 +46,7 @@ extern "C" {
 #include <kis_iterator_ng.h>
 #include <kis_jpeg_destination.h>
 #include <kis_jpeg_source.h>
+#include "jpeg_decompress_guard.h"
 #include <kis_meta_data_backend_registry.h>
 #include <kis_meta_data_entry.h>
 #include <kis_meta_data_store.h>
@@ -150,6 +151,7 @@ KisImportExportErrorCode KisJPEGConverter::decode(PkStream *io)
 
     try {
         jpeg_create_decompress(&cinfo);
+        KisJPEGDecompressGuard cleanup(&cinfo);
 
         KisJPEGSource::setSource(&cinfo, io);
 
@@ -173,7 +175,6 @@ KisImportExportErrorCode KisJPEGConverter::decode(PkStream *io)
                                    decodedBytes) ||
             cinfo.output_width > static_cast<JDIMENSION>(std::numeric_limits<int>::max()) ||
             cinfo.output_height > static_cast<JDIMENSION>(std::numeric_limits<int>::max())) {
-            jpeg_destroy_decompress(&cinfo);
             return ImportExportCodes::FileFormatIncorrect;
         }
 
@@ -181,7 +182,6 @@ KisImportExportErrorCode KisJPEGConverter::decode(PkStream *io)
         PkString modelId = getColorSpaceModelForColorType(cinfo.out_color_space);
         if (modelId.isEmpty()) {
             dbgFile << "unsupported colorspace :" << cinfo.out_color_space;
-            jpeg_destroy_decompress(&cinfo);
             return ImportExportCodes::FormatColorSpaceUnsupported;
         }
 
@@ -193,7 +193,6 @@ KisImportExportErrorCode KisJPEGConverter::decode(PkStream *io)
         if (read_icc_profile(&cinfo, &profile_data, &profile_len)) {
             if (profile_len > static_cast<uint32_t>(std::numeric_limits<int>::max())) {
                 free(profile_data);
-                jpeg_destroy_decompress(&cinfo);
                 return ImportExportCodes::FileFormatIncorrect;
             }
             PkByteArray profile_rawdata(reinterpret_cast<char*>(profile_data), static_cast<int>(profile_len));
@@ -229,7 +228,6 @@ KisImportExportErrorCode KisJPEGConverter::decode(PkStream *io)
 
         if (cs == 0) {
             dbgFile << "unknown colorspace";
-            jpeg_destroy_decompress(&cinfo);
             return ImportExportCodes::FormatColorSpaceUnsupported;
         }
 
@@ -474,11 +472,9 @@ KisImportExportErrorCode KisJPEGConverter::decode(PkStream *io)
 
         // Finish decompression
         jpeg_finish_decompress(&cinfo);
-        jpeg_destroy_decompress(&cinfo);
         return ImportExportCodes::OK;
     }
     catch( std::runtime_error &) {
-        jpeg_destroy_decompress(&cinfo);
         return ImportExportCodes::FileFormatIncorrect;
     }
 }

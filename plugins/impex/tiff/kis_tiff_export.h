@@ -19,7 +19,7 @@ class KisTIFFExport : public KisImportExportFilter
 public:
     KisTIFFExport(QObject *parent, const PkVariantList &);
     ~KisTIFFExport() override;
-    bool supportsIO() const override { return false; }
+    bool supportsIO() const override { return true; }
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
     KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray& from = "", const PkByteArray& to = "") const override;
     void initializeCapabilities() override;

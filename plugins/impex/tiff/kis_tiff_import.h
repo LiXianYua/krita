@@ -26,7 +26,7 @@ class KisTIFFImport : public KisImportExportFilter
 public:
     KisTIFFImport(QObject *parent, const PkVariantList &);
     ~KisTIFFImport() override;
-    bool supportsIO() const override { return false; }
+    bool supportsIO() const override { return true; }
     KisImportExportErrorCode
     convert(KisDocument *document,
             PkStream *io,

@@ -8,6 +8,7 @@
  */
 
 #include "HeifImport.h"
+#include "heif_chroma_dispatch.h"
 #include "HeifError.h"
 #include "heif_validation.h"
 
@@ -493,7 +494,8 @@ KisImportExportErrorCode HeifImport::convert(KisDocument *document, PkStream *io
                                     displayGamma,
                                     displayNits,
                                     colorSpace);
-        } else if (heifChroma == heif_chroma_interleaved_RGB || heifChroma == heif_chroma_interleaved_RGBA) {
+        } else if (heifInterleavedLayout(heifChroma) == HeifInterleavedLayout::SdrRgb ||
+                   heifInterleavedLayout(heifChroma) == HeifInterleavedLayout::SdrRgba) {
             HeifStrideType stride = 0;
             dbgFile << "interleaved SDR heif file, bits:" << luma;
 
@@ -518,7 +520,8 @@ KisImportExportErrorCode HeifImport::convert(KisDocument *document, PkStream *io
                                       displayNits,
                                       colorSpace);
 
-        } else if (heifChroma == heif_chroma_interleaved_RRGGBB_LE || heifChroma == heif_chroma_interleaved_RRGGBBAA_LE || heifChroma == heif_chroma_interleaved_RRGGBB_BE || heifChroma == heif_chroma_interleaved_RRGGBB_BE) {
+        } else if (heifInterleavedLayout(heifChroma) == HeifInterleavedLayout::HdrRgb ||
+                   heifInterleavedLayout(heifChroma) == HeifInterleavedLayout::HdrRgba) {
             HeifStrideType stride = 0;
             dbgFile << "interleaved HDR heif file, bits:" << luma;
 
@@ -542,6 +545,9 @@ KisImportExportErrorCode HeifImport::convert(KisDocument *document, PkStream *io
                                       displayGamma,
                                       displayNits,
                                       colorSpace);
+        } else {
+            errFile << "Unsupported HEIF chroma layout:" << static_cast<int>(heifChroma);
+            return ImportExportCodes::FormatFeaturesUnsupported;
         }
 
         image->addNode(layer.data(), image->rootLayer().data());

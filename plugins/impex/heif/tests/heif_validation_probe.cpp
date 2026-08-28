@@ -1,4 +1,5 @@
 #include "../heif_validation.h"
+#include "../heif_chroma_dispatch.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -26,5 +27,11 @@ int main()
     require(heifReaderTargetStatus(128, 128) == HeifReaderTargetStatus::Reached &&
                 heifReaderTargetStatus(129, 128) == HeifReaderTargetStatus::BeyondEof,
             "HEIF truncated readers must report beyond EOF without waiting");
+    require(heifInterleavedLayout(heif_chroma_interleaved_RRGGBBAA_BE) ==
+                HeifInterleavedLayout::HdrRgba,
+            "HEIF big-endian HDR RGBA must dispatch to the HDR RGBA reader");
+    require(heifInterleavedLayout(heif_chroma_undefined) ==
+                HeifInterleavedLayout::Unsupported,
+            "unknown HEIF chroma must be rejected instead of producing a blank layer");
     return 0;
 }

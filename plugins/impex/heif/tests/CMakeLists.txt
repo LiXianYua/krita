@@ -17,4 +17,5 @@ else(APPLE)
 endif()
 
 add_executable(heif_validation_probe heif_validation_probe.cpp)
+target_link_libraries(heif_validation_probe PRIVATE HEIF::heif)
 add_test(NAME heif_validation_probe COMMAND heif_validation_probe)

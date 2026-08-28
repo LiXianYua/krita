@@ -52,6 +52,7 @@
 #include "kis_tiff_logger.h"
 #include "kis_tiff_reader.h"
 #include "kis_tiff_ycbcr_reader.h"
+#include "tiff_stream_adapter.h"
 
 enum class TiffResolution : quint8 {
     NONE = RESUNIT_NONE,
@@ -1064,15 +1065,23 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         uint32_t tileHeight = 0;
         uint32_t x = 0;
         uint32_t y = 0;
-        TIFFGetField(image, TIFFTAG_TILEWIDTH, &tileWidth);
-        TIFFGetField(image, TIFFTAG_TILELENGTH, &tileHeight);
+        if (!TIFFGetField(image, TIFFTAG_TILEWIDTH, &tileWidth) ||
+            !TIFFGetField(image, TIFFTAG_TILELENGTH, &tileHeight)) {
+            return ImportExportCodes::FileFormatIncorrect;
+        }
         tmsize_t tileSize = TIFFTileSize(image);
+        if (!tiffValidChunkGeometry(tileWidth, tileHeight,
+                                    tileSize > 0 ? static_cast<std::size_t>(tileSize) : 0) ||
+            tileSize > std::numeric_limits<int>::max() || TIFFNumberOfTiles(image) == 0) {
+            return ImportExportCodes::FileFormatIncorrect;
+        }
 
         if (planarconfig == PLANARCONFIG_CONTIG
             && !(color_type == PHOTOMETRIC_YCBCR
                  && compression == COMPRESSION_JPEG && hsubsampling != 1
                  && vsubsampling != 1)) {
             buf.reset(_TIFFmalloc(tileSize));
+            if (!buf) return ImportExportCodes::FileFormatIncorrect;
             if (depth < 16) {
                 tiffstream =
                     PkSharedPointer<KisBufferStreamContigBelow16>::create(
@@ -1098,7 +1107,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #ifdef HAVE_JPEG_TURBO
             jpegBuf.resize(tileSize);
             ps_buf->resize(nbchannels);
-            TIFFReadRawTile(image, 0, jpegBuf.data(), tileSize);
+            if (TIFFReadRawTile(image, 0, jpegBuf.data(), tileSize) < 0) {
+                return ImportExportCodes::FileFormatIncorrect;
+            }
 
             int width = tileWidth;
             int height = tileHeight;
@@ -1122,7 +1133,10 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 const unsigned long uncompressedTileSize =
                     tjPlaneSizeYUV(i, width, 0, height, jpegSubsamp);
                 KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(
-                    uncompressedTileSize != (unsigned long)-1,
+                    uncompressedTileSize != (unsigned long)-1 &&
+                        uncompressedTileSize > 0 &&
+                        uncompressedTileSize <=
+                            static_cast<unsigned long>(std::numeric_limits<tmsize_t>::max()),
                     ImportExportCodes::FileFormatIncorrect);
                 dbgFile << PkString("Uncompressed tile size (plane %1): %2")
                                .arg(i)
@@ -1137,6 +1151,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                                .c_str();
                 (*ps_buf)[i] =
                     static_cast<uint8_t *>(_TIFFmalloc(uncompressedTileSize));
+                if (!(*ps_buf)[i] || scanLineSize <= 0) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
                 lineSizes[i] = scanLineSize;
             }
             tiffstream =
@@ -1160,8 +1177,11 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             dbgFile << " scanLineSize for each plan =" << scanLineSize;
             PkVector<tsize_t> lineSizes(nbchannels);
             for (uint32_t i = 0; i < nbchannels; i++) {
-                (*ps_buf)[i] = static_cast<uint8_t *>(_TIFFmalloc(tileSize));
                 lineSizes[i] = scanLineSize / lineSizeCoeffs[i];
+                (*ps_buf)[i] = static_cast<uint8_t *>(_TIFFmalloc(tileSize));
+                if (!(*ps_buf)[i] || lineSizes[i] <= 0) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
             }
             tiffstream = PkSharedPointer<KisBufferStreamSeparate>::create(
                 ps_buf->data(),
@@ -1188,14 +1208,18 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #else
                 if (planarconfig == PLANARCONFIG_CONTIG) {
 #endif
-                    TIFFReadTile(image, buf.get(), x, y, 0, (tsample_t)-1);
+                    if (TIFFReadTile(image, buf.get(), x, y, 0, (tsample_t)-1) < 0) {
+                        return ImportExportCodes::FileFormatIncorrect;
+                    }
 #ifdef HAVE_JPEG_TURBO
                 } else if (planarconfig == PLANARCONFIG_CONTIG
                            && (color_type == PHOTOMETRIC_YCBCR
                                && compression == COMPRESSION_JPEG)) {
                     uint32_t tile =
                         TIFFComputeTile(image, x, y, 0, (tsample_t)-1);
-                    TIFFReadRawTile(image, tile, jpegBuf.data(), tileSize);
+                    if (TIFFReadRawTile(image, tile, jpegBuf.data(), tileSize) < 0) {
+                        return ImportExportCodes::FileFormatIncorrect;
+                    }
 
                     int width = tileWidth;
                     int height = tileHeight;
@@ -1229,7 +1253,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #endif
                 } else {
                     for (uint16_t i = 0; i < nbchannels; i++) {
-                        TIFFReadTile(image, (*ps_buf)[i], x, y, 0, i);
+                        if (TIFFReadTile(image, (*ps_buf)[i], x, y, 0, i) < 0) {
+                            return ImportExportCodes::FileFormatIncorrect;
+                        }
                     }
                 }
                 uint32_t realTileWidth =
@@ -1241,6 +1267,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                                                        y + yintile,
                                                        realTileWidth,
                                                        tiffstream);
+                    if (linesread == 0 || linesread > tileHeight - yintile) {
+                        return ImportExportCodes::FileFormatIncorrect;
+                    }
                     yintile += linesread;
                     tiffstream->moveToLine(yintile);
                 }
@@ -1257,11 +1286,18 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             qMin(rowsPerStrip,
                  height); // when TIFFNumberOfStrips(image) == 1 it might happen
                           // that rowsPerStrip is incorrectly set
+        if (!tiffValidChunkGeometry(basicInfo.width,
+                                    rowsPerStrip,
+                                    stripsize > 0 ? static_cast<std::size_t>(stripsize) : 0) ||
+            stripsize > std::numeric_limits<int>::max() || TIFFNumberOfStrips(image) == 0) {
+            return ImportExportCodes::FileFormatIncorrect;
+        }
         if (planarconfig == PLANARCONFIG_CONTIG
             && !(color_type == PHOTOMETRIC_YCBCR
                  && compression == COMPRESSION_JPEG && hsubsampling != 1
                  && vsubsampling != 1)) {
             buf.reset(_TIFFmalloc(stripsize));
+            if (!buf) return ImportExportCodes::FileFormatIncorrect;
             if (depth < 16) {
                 tiffstream =
                     PkSharedPointer<KisBufferStreamContigBelow16>::create(
@@ -1287,7 +1323,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #ifdef HAVE_JPEG_TURBO
             jpegBuf.resize(stripsize);
             ps_buf->resize(nbchannels);
-            TIFFReadRawStrip(image, 0, jpegBuf.data(), stripsize);
+            if (TIFFReadRawStrip(image, 0, jpegBuf.data(), stripsize) < 0) {
+                return ImportExportCodes::FileFormatIncorrect;
+            }
 
             int width = basicInfo.width;
             int height = rowsPerStrip;
@@ -1311,7 +1349,10 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 const unsigned long uncompressedStripsize =
                     tjPlaneSizeYUV(i, width, 0, height, jpegSubsamp);
                 KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(
-                    uncompressedStripsize != (unsigned long)-1,
+                    uncompressedStripsize != (unsigned long)-1 &&
+                        uncompressedStripsize > 0 &&
+                        uncompressedStripsize <=
+                            static_cast<unsigned long>(std::numeric_limits<tmsize_t>::max()),
                     ImportExportCodes::FileFormatIncorrect);
                 dbgFile << PkString("Uncompressed strip size (plane %1): %2")
                                .arg(i)
@@ -1321,6 +1362,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                                .arg(i)
                                .arg(scanLineSize);
                 (*ps_buf)[i] = static_cast<uint8_t*>(_TIFFmalloc(uncompressedStripsize));
+                if (!(*ps_buf)[i] || scanLineSize <= 0) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
                 lineSizes[i] = scanLineSize;
             }
             tiffstream = PkSharedPointer<KisBufferStreamInterleaveUpsample>::create(
@@ -1343,8 +1387,11 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             dbgFile << " scanLineSize for each plan =" << scanLineSize;
             PkVector<tsize_t> lineSizes(nbchannels);
             for (uint32_t i = 0; i < nbchannels; i++) {
-                (*ps_buf)[i] = static_cast<uint8_t*>(_TIFFmalloc(stripsize));
                 lineSizes[i] = scanLineSize / lineSizeCoeffs[i];
+                (*ps_buf)[i] = static_cast<uint8_t*>(_TIFFmalloc(stripsize));
+                if (!(*ps_buf)[i] || lineSizes[i] <= 0) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
             }
             tiffstream = PkSharedPointer<KisBufferStreamSeparate>::create(
                 ps_buf->data(),
@@ -1371,15 +1418,19 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #else
             if (planarconfig == PLANARCONFIG_CONTIG) {
 #endif
-                TIFFReadEncodedStrip(image,
-                                     TIFFComputeStrip(image, y, 0),
-                                     buf.get(),
-                                     (tsize_t)-1);
+                if (TIFFReadEncodedStrip(image,
+                                         TIFFComputeStrip(image, y, 0),
+                                         buf.get(),
+                                         (tsize_t)-1) < 0) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
 #ifdef HAVE_JPEG_TURBO
             } else if (planarconfig == PLANARCONFIG_CONTIG
                        && (color_type == PHOTOMETRIC_YCBCR
                            && compression == COMPRESSION_JPEG)) {
-                TIFFReadRawStrip(image, strip, jpegBuf.data(), stripsize);
+                if (TIFFReadRawStrip(image, strip, jpegBuf.data(), stripsize) < 0) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
 
                 int width = basicInfo.width;
                 int height = rowsPerStrip;
@@ -1414,16 +1465,21 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #endif
             } else {
                 for (uint16_t i = 0; i < nbchannels; i++) {
-                    TIFFReadEncodedStrip(image,
-                                         TIFFComputeStrip(image, y, i),
-                                         (*ps_buf)[i],
-                                         (tsize_t)-1);
+                    if (TIFFReadEncodedStrip(image,
+                                             TIFFComputeStrip(image, y, i),
+                                             (*ps_buf)[i],
+                                             (tsize_t)-1) < 0) {
+                        return ImportExportCodes::FileFormatIncorrect;
+                    }
                 }
             }
             for (uint32_t yinstrip = 0;
                  yinstrip < rowsPerStrip && y < height;) {
                 uint32_t linesread =
                     tiffReader->copyDataToChannels(0, y, width, tiffstream);
+                if (linesread == 0 || linesread > rowsPerStrip - yinstrip) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
                 y += linesread;
                 yinstrip += linesread;
                 tiffstream->moveToLine(yinstrip);
@@ -1678,6 +1734,13 @@ KisImportExportErrorCode KisTIFFImport::readTIFFDirectory(KisDocument *m_doc,
         == 0) {
         basicInfo.extrasamplescount = 0;
     }
+    if (!tiffValidDirectoryShape(basicInfo.width,
+                                 basicInfo.height,
+                                 basicInfo.nbchannels,
+                                 basicInfo.extrasamplescount) ||
+        (basicInfo.extrasamplescount > 0 && !basicInfo.sampleinfo)) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
 
     // Determine the colorspace
     if (TIFFGetField(image, TIFFTAG_PHOTOMETRIC, &basicInfo.color_type) == 0) {
@@ -1820,6 +1883,10 @@ KisTIFFImport::convert(KisDocument *document,
     if (!io || !io->isReadable()) {
         return ImportExportCodes::NoAccessToRead;
     }
+    std::vector<std::uint8_t> metadataSource;
+    if (!kisTiffSnapshot(*io, metadataSource)) {
+        return ImportExportCodes::ErrorWhileReading;
+    }
     std::unique_ptr<TIFF, decltype(&TIFFCleanup)> image(kisTiffOpenStream(io, "r"), &TIFFCleanup);
 
     if (!image) {
@@ -1852,7 +1919,9 @@ KisTIFFImport::convert(KisDocument *document,
         // HACK!! Externally parse the Exif metadata
         // libtiff has no way to access the fields wholesale
         try {
-            KisExiv2IODevice::ptr_type basicIoDevice(new KisExiv2IODevice(filename()));
+            KisExiv2IODevice::ptr_type basicIoDevice(new Exiv2::MemIo(
+                reinterpret_cast<const Exiv2::byte *>(metadataSource.data()),
+                metadataSource.size()));
 
 #if EXIV2_TEST_VERSION(0,28,0)
             const std::unique_ptr<Exiv2::Image> readImg = Exiv2::ImageFactory::open(std::move(basicIoDevice));
@@ -1862,7 +1931,7 @@ KisTIFFImport::convert(KisDocument *document,
 
             readImg->readMetadata();
 
-            const KisMetaData::IOBackend *io =
+            const KisMetaData::IOBackend *backend =
                 KisMetadataBackendRegistry::instance()->value("exif");
 
             // All IFDs are paint layer children of root
@@ -1925,7 +1994,9 @@ KisTIFFImport::convert(KisDocument *document,
             }
 
             // Inject the data as any other IOBackend
-            io->loadFrom(layer->metaData(), &ioDevice);
+            if (!backend || !backend->loadFrom(layer->metaData(), &ioDevice)) {
+                return ImportExportCodes::ErrorWhileReading;
+            }
 #if EXIV2_TEST_VERSION(0,28,0)
         } catch (Exiv2::Error &e) {
             errFile << "Failed metadata import:" << Exiv2::Error(e.code()).what();
@@ -1933,6 +2004,7 @@ KisTIFFImport::convert(KisDocument *document,
         } catch (Exiv2::AnyError &e) {
             errFile << "Failed metadata import:" << e.code() << e.what();
 #endif
+            return ImportExportCodes::ErrorWhileReading;
         }
     }
 

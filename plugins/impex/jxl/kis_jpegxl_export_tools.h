@@ -93,68 +93,6 @@ inline PkByteArray writeCMYKLayer(const KoID &id, Args &&...args)
     }
 }
 
-struct JxlOutputProcessor {
-    JxlOutputProcessor(PkStream *io)
-        : outDevice(io)
-    {
-    }
-
-#if JPEGXL_NUMERIC_VERSION >= JPEGXL_COMPUTE_NUMERIC_VERSION(0, 10, 1)
-    JxlEncoderOutputProcessor getOutputProcessor()
-    {
-        return JxlEncoderOutputProcessor{this, getBuffer, releaseBuffer, seek, setFinalizedPosition};
-    }
-#endif
-
-    static void *getBuffer(void *opaque, size_t *size)
-    {
-        JxlOutputProcessor *self = reinterpret_cast<JxlOutputProcessor *>(opaque);
-        *size = std::min<size_t>(*size, 1u << 16);
-        if (static_cast<size_t>(self->output.size()) < *size) {
-            if (*size > static_cast<size_t>(std::numeric_limits<int>::max())) {
-                *size = 0;
-                return nullptr;
-            }
-            self->output.resize(static_cast<int>(*size));
-        }
-        return self->output.data();
-    }
-
-    static void releaseBuffer(void *opaque, size_t written_bytes)
-    {
-        JxlOutputProcessor *self = reinterpret_cast<JxlOutputProcessor *>(opaque);
-        if (self->outDevice->isOpen()) {
-            if (static_cast<size_t>(
-                    self->outDevice->write(reinterpret_cast<const char *>(self->output.data()), written_bytes))
-                != written_bytes) {
-                warnFile << "Failed to write" << written_bytes << "bytes to output";
-            }
-        } else {
-            warnFile << "ReleaseBuffer failed, file not open";
-        }
-        self->output.clear();
-    }
-
-    static void seek(void *opaque, uint64_t position)
-    {
-        JxlOutputProcessor *self = reinterpret_cast<JxlOutputProcessor *>(opaque);
-        if (self->outDevice->isOpen()) {
-            self->outDevice->seek(position);
-        } else {
-            warnFile << "Seek failed, file not open";
-        }
-    }
-
-    static void setFinalizedPosition(void *opaque, uint64_t finalized_position)
-    {
-        JxlOutputProcessor *self = reinterpret_cast<JxlOutputProcessor *>(opaque);
-        self->finalized_position = finalized_position;
-    }
-
-    PkStream *outDevice{nullptr};
-    PkByteArray output;
-    size_t finalized_position{0};
-};
 } // namespace JXLExpTool
 
 namespace HDR

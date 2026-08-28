@@ -10,12 +10,10 @@
 
 #include <PkStream.h>
 
-#include "kis_debug.h"
-
 namespace
 {
 
-const qint64 INPUT_BUFFER_SIZE = 4096;
+const PkStream::pk_int64 INPUT_BUFFER_SIZE = 4096;
 
 struct KisJPEGSourceManager : public jpeg_source_mgr
 {
@@ -38,7 +36,8 @@ void init_source(j_decompress_ptr cinfo)
 boolean fill_input_buffer(j_decompress_ptr cinfo)
 {
     KisJPEGSourceManagerPtr src = (KisJPEGSourceManagerPtr)cinfo->src;
-    qint64 numBytesRead = src->input->read(reinterpret_cast<char*>(src->buffer), INPUT_BUFFER_SIZE);
+    PkStream::pk_int64 numBytesRead =
+        src->input->read(reinterpret_cast<char *>(src->buffer), INPUT_BUFFER_SIZE);
 
     if (numBytesRead <= 0) {
         if (!src->anyDataReceived)	{
@@ -76,7 +75,7 @@ void skip_input_data(j_decompress_ptr cinfo, long numBytes)
 
 void term_source(j_decompress_ptr cinfo)
 {
-    Q_UNUSED(cinfo);
+    (void)cinfo;
 }
 
 }
@@ -111,4 +110,3 @@ void setSource(j_decompress_ptr cinfo, PkStream* inputDevice)
 }
 
 }
-

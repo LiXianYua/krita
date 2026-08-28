@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <string>
 
 #include <KisDocument.h>
 #include <KisExportCheckRegistry.h>
@@ -56,6 +57,7 @@
 #include <kis_time_span.h>
 
 #include "kis_jpegxl_export_tools.h"
+#include "kis_jpegxl_output_processor.h"
 #include "jxl_validation.h"
 
 namespace {
@@ -800,7 +802,11 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, PkStream *
                 }
                 if (JxlEncoderFlushInput(enc.get()) != JXL_ENC_SUCCESS) {
                     errFile << "JxlEncoderFlushInput failed";
-                    return ImportExportCodes::InternalError;
+                    return processor.ok() ? ImportExportCodes::InternalError
+                                          : ImportExportCodes::ErrorWhileWriting;
+                }
+                if (!processor.ok()) {
+                    return ImportExportCodes::ErrorWhileWriting;
                 }
 #endif
             }
@@ -970,7 +976,8 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, PkStream *
                         errFile << "JxlEncoderSetFrameHeader failed";
                         return ImportExportCodes::InternalError;
                     }
-                    if (JxlEncoderSetFrameName(frameSettings, frameName.toLocal8Bit()) != JXL_ENC_SUCCESS) {
+                    const std::string frameNameUtf8 = frameName.PkToUtf8();
+                    if (JxlEncoderSetFrameName(frameSettings, frameNameUtf8.c_str()) != JXL_ENC_SUCCESS) {
                         errFile << "JxlEncoderSetFrameName failed";
                         return ImportExportCodes::InternalError;
                     }
@@ -1006,7 +1013,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, PkStream *
 
                     if (JxlEncoderSetExtraChannelBuffer(frameSettings,
                                                         &pixelFormat,
-                                                        chaK,
+                                                        chaK.data(),
                                                         static_cast<size_t>(chaK.size()),
                                                         0)
                         != JXL_ENC_SUCCESS) {
@@ -1015,7 +1022,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, PkStream *
                     }
                     if (JxlEncoderSetExtraChannelBuffer(frameSettings,
                                                         &pixelFormat,
-                                                        chaA,
+                                                        chaA.data(),
                                                         static_cast<size_t>(chaA.size()),
                                                         1)
                         != JXL_ENC_SUCCESS) {
@@ -1036,7 +1043,11 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, PkStream *
                 }
                 if (JxlEncoderFlushInput(enc.get()) != JXL_ENC_SUCCESS) {
                     errFile << "JxlEncoderFlushInput failed";
-                    return ImportExportCodes::InternalError;
+                    return processor.ok() ? ImportExportCodes::InternalError
+                                          : ImportExportCodes::ErrorWhileWriting;
+                }
+                if (!processor.ok()) {
+                    return ImportExportCodes::ErrorWhileWriting;
                 }
                 if (cfgFlattenLayer) {
                     break;
@@ -1081,6 +1092,12 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, PkStream *
 #endif
     }
 
+#if JPEGXL_NUMERIC_VERSION >= JPEGXL_COMPUTE_NUMERIC_VERSION(0, 10, 1)
+    if (!processor.ok()) {
+        errFile << "JPEG XL output processor failed";
+        return ImportExportCodes::ErrorWhileWriting;
+    }
+#endif
     return ImportExportCodes::OK;
 }
 

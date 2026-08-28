@@ -17,6 +17,7 @@
 #include <memory>
 #include <psd_header.h>
 #include <tiff.h>
+#include "tiff_stream_adapter.h"
 
 KisTiffPsdLayerRecord::KisTiffPsdLayerRecord(bool isBigEndian,
                                              uint32_t width,
@@ -138,7 +139,8 @@ bool KisTiffPsdLayerRecord::writeImpl(PkStream &device, KisNodeSP rootLayer, psd
     dbgFile << "layer section has size" << layerSectionLength;
 
     // and write the whole buffer
-    return (device.write(buf.data()) == layerSectionLength);
+    return layerSectionLength >= 0 &&
+           kisTiffWriteExact(device, buf.data(), static_cast<std::size_t>(layerSectionLength));
 }
 
 std::shared_ptr<PSDLayerMaskSection> KisTiffPsdLayerRecord::record() const

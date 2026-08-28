@@ -2,6 +2,7 @@
 #define TIFF_VALIDATION_H
 
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 
 inline bool tiffCheckedRasterSize(std::size_t width,
@@ -29,6 +30,24 @@ inline bool tiffCheckedRasterSize(std::size_t width,
 inline bool tiffTagPayloadAvailable(std::size_t payloadSize, std::size_t requiredSize)
 {
     return payloadSize >= requiredSize;
+}
+
+inline bool tiffValidDirectoryShape(std::uint32_t width,
+                                    std::uint32_t height,
+                                    std::uint16_t samples,
+                                    std::uint16_t extraSamples)
+{
+    return width > 0 && height > 0 &&
+           width <= static_cast<std::uint32_t>(std::numeric_limits<int>::max()) &&
+           height <= static_cast<std::uint32_t>(std::numeric_limits<int>::max()) &&
+           samples > 0 && extraSamples <= samples;
+}
+
+inline bool tiffValidChunkGeometry(std::uint32_t width,
+                                   std::uint32_t height,
+                                   std::size_t encodedSize)
+{
+    return width > 0 && height > 0 && encodedSize > 0;
 }
 
 #endif

@@ -10,16 +10,14 @@
 
 #include <PkStream.h>
 
-#include "kis_debug.h"
-
 namespace
 {
 
-const qint64 OUTPUT_BUFFER_SIZE = 4096;
+const PkStream::pk_int64 OUTPUT_BUFFER_SIZE = 4096;
 
 struct KisJPEGDestinationManager : public jpeg_destination_mgr
 {
-    void writeData(j_compress_ptr cinfo, const qint64 numBytesToWrite)
+    void writeData(j_compress_ptr cinfo, const PkStream::pk_int64 numBytesToWrite)
     {
         if (output->write(reinterpret_cast<const char*>(buffer), numBytesToWrite) != numBytesToWrite) {
             ERREXIT(cinfo, JERR_FILE_WRITE);
@@ -61,7 +59,8 @@ boolean empty_output_buffer(j_compress_ptr cinfo)
 void term_destination(j_compress_ptr cinfo)
 {
     KisJPEGDestinationManagerPtr dest = (KisJPEGDestinationManagerPtr)cinfo->dest;
-    const qint64 numBytesToWrite = OUTPUT_BUFFER_SIZE-(qint64)dest->free_in_buffer;
+    const PkStream::pk_int64 numBytesToWrite =
+        OUTPUT_BUFFER_SIZE - static_cast<PkStream::pk_int64>(dest->free_in_buffer);
 
     if (numBytesToWrite > 0) {
         dest->writeData(cinfo, numBytesToWrite);
@@ -91,4 +90,3 @@ void setDestination(j_compress_ptr cinfo, PkStream* destinationDevice)
 }
 
 }
-

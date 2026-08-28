@@ -36,6 +36,7 @@
 
 #include "kis_tiff_converter.h"
 #include "kis_tiff_logger.h"
+#include "tiff_stream_adapter.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KisTIFFExportFactory, "krita_tiff_export.json", registerPlugin<KisTIFFExport>();)
 
@@ -106,8 +107,12 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
     dbgFile << "Start writing TIFF File";
     KIS_ASSERT_RECOVER_RETURN_VALUE(kisimage, ImportExportCodes::InternalError);
 
+    PkMemoryStream encodedTiff;
+    if (!encodedTiff.open(PkStream::ReadWrite)) {
+        return ImportExportCodes::ErrorWhileWriting;
+    }
     std::unique_ptr<TIFF, decltype(&TIFFCleanup)> image(
-        kisTiffOpenStream(io, "w"), &TIFFCleanup);
+        kisTiffOpenStream(&encodedTiff, "w"), &TIFFCleanup);
 
     if (!image) {
         dbgFile << "Could not open the file for writing" << filename();
@@ -188,7 +193,14 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
         // HACK!! Externally inject the Exif metadata
         // libtiff has no way to access the fields wholesale
         try {
-            KisExiv2IODevice::ptr_type basicIoDevice(new KisExiv2IODevice(filename()));
+            if (encodedTiff.size() <= 0 ||
+                static_cast<std::uint64_t>(encodedTiff.size()) >
+                    std::numeric_limits<std::size_t>::max()) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
+            KisExiv2IODevice::ptr_type basicIoDevice(new Exiv2::MemIo(
+                reinterpret_cast<const Exiv2::byte *>(encodedTiff.data()),
+                static_cast<std::size_t>(encodedTiff.size())));
 
 #if EXIV2_TEST_VERSION(0,28,0)
             const std::unique_ptr<Exiv2::Image> img = Exiv2::ImageFactory::open(std::move(basicIoDevice));
@@ -200,7 +212,7 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
 
             Exiv2::ExifData &data = img->exifData();
 
-            const KisMetaData::IOBackend *io =
+            const KisMetaData::IOBackend *backend =
                 KisMetadataBackendRegistry::instance()->value("exif");
 
             // All IFDs are paint layer children of root
@@ -213,8 +225,8 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
             Q_ASSERT(layer);
 
             // Inject the data as any other IOBackend
-            if (!io || !ioDevice.open(PkStream::WriteOnly) ||
-                !io->saveTo(layer->metaData(), &ioDevice) ||
+            if (!backend || !ioDevice.open(PkStream::WriteOnly) ||
+                !backend->saveTo(layer->metaData(), &ioDevice) ||
                 ioDevice.size() > std::numeric_limits<uint32_t>::max()) {
                 return ImportExportCodes::ErrorWhileWriting;
             }
@@ -233,6 +245,16 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
             }
             // Write metadata
             img->writeMetadata();
+            Exiv2::BasicIo &modified = img->io();
+            const std::size_t modifiedSize = modified.size();
+            const Exiv2::byte *modifiedData = modified.mmap();
+            if (!modifiedData || !kisTiffWriteExact(
+                    *io,
+                    reinterpret_cast<const char *>(modifiedData),
+                    modifiedSize)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
+            return ImportExportCodes::OK;
 #if EXIV2_TEST_VERSION(0,28,0)
         } catch (Exiv2::Error &e) {
             errFile << "Failed injecting TIFF metadata:" << Exiv2::Error(e.code()).what();
@@ -241,9 +263,14 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
             errFile << "Failed injecting TIFF metadata:" << e.code()
                     << e.what();
 #endif
+            return ImportExportCodes::ErrorWhileWriting;
         }
     }
-    return ImportExportCodes::OK;
+    return kisTiffWriteExact(*io,
+                             encodedTiff.data(),
+                             static_cast<std::size_t>(encodedTiff.size()))
+        ? ImportExportCodes::OK
+        : ImportExportCodes::ErrorWhileWriting;
 }
 
 KisPropertiesConfigurationSP KisTIFFExport::defaultConfiguration(const PkByteArray &/*from*/, const PkByteArray &/*to*/) const
