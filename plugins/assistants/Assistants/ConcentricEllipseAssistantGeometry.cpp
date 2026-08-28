@@ -9,27 +9,27 @@
 
 #include "Ellipse.h"
 
-#include <QLineF>
+#include <PkLine.h>
 
-QPointF ConcentricEllipseAssistantGeometry::project(const QList<QPointF> &handles,
-                                                    const QPointF &point,
-                                                    const QPointF &strokeBegin)
+PkPointF ConcentricEllipseAssistantGeometry::project(const PkList<PkPointF> &handles,
+                                                    const PkPointF &point,
+                                                    const PkPointF &strokeBegin)
 {
-    Q_ASSERT(handles.size() >= 3);
+    assert(handles.size() >= 3);
 
     Ellipse ellipse;
     ellipse.set(handles[0], handles[1], handles[2]);
 
-    const QPointF initial = ellipse.project(strokeBegin);
-    const QPointF center = ellipse.boundingRect().center();
-    const qreal ratio = QLineF(center, strokeBegin).length()
-        / QLineF(center, initial).length();
+    const PkPointF initial = ellipse.project(strokeBegin);
+    const PkPointF center = ellipse.boundingRect().center();
+    const qreal ratio = PkLineF(center, strokeBegin).length()
+        / PkLineF(center, initial).length();
 
-    QLineF extrapolate0(center, handles[0]);
+    PkLineF extrapolate0(center, handles[0]);
     extrapolate0.setLength(extrapolate0.length() * ratio);
-    QLineF extrapolate1(center, handles[1]);
+    PkLineF extrapolate1(center, handles[1]);
     extrapolate1.setLength(extrapolate1.length() * ratio);
-    QLineF extrapolate2(center, handles[2]);
+    PkLineF extrapolate2(center, handles[2]);
     extrapolate2.setLength(extrapolate2.length() * ratio);
 
     Ellipse extraEllipse;
@@ -37,9 +37,9 @@ QPointF ConcentricEllipseAssistantGeometry::project(const QList<QPointF> &handle
     return extraEllipse.project(point);
 }
 
-void ConcentricEllipseAssistantGeometry::adjustLine(const QList<QPointF> &handles,
-                                                    QPointF &point,
-                                                    const QPointF &strokeBegin)
+void ConcentricEllipseAssistantGeometry::adjustLine(const PkList<PkPointF> &handles,
+                                                    PkPointF &point,
+                                                    const PkPointF &strokeBegin)
 {
     point = project(handles, point, strokeBegin);
 }

@@ -1,81 +1,70 @@
 /*
- *  SPDX-FileCopyrightText: 2022 Agata Cacko <cacko.azh@gmail.com>
- *
- *  SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-FileCopyrightText: 2022 Agata Cacko <agata.cacko@krita.org>
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 #include "TestPerspectiveBasedAssistantHelper.h"
 
-#include <kis_painting_assistant.h>
 #include <PerspectiveBasedAssistantHelper.h>
-#include <kis_algebra_2d.h>
-#include <kis_debug.h>
-#include <kis_global.h>
 
+#include <cmath>
 
-
-void TestPerspectiveBasedAssistantHelper::testDistanceInGrid()
+namespace
 {
-    QList<KisPaintingAssistantHandleSP> handles = getHandles({QPointF(-4, 4), QPointF(4, 4), QPointF(8, 8), QPointF(-8, 8)});
-    QList<QPointF> pointsToCheck;
-    for (int i = 0; i <= 8; i++) {
-        pointsToCheck << QPointF(0, i);
-    }
 
-    QPolygonF poly;
-    bool correct = PerspectiveBasedAssistantHelper::getTetragon(handles, true, poly);
-    ENTER_FUNCTION() << correct;
-
-    PerspectiveBasedAssistantHelper::CacheData cache;
-    PerspectiveBasedAssistantHelper::updateCacheData(cache, poly);
-
-    auto fuzzyCompare = [] (double a, double b) {
-        return qAbs(a - b) < 0.0000001;
-    };
-
-
-    for (int i = 0; i < pointsToCheck.size(); i++) {
-        qreal response = PerspectiveBasedAssistantHelper::distanceInGrid(cache, pointsToCheck[i]);
-        QVERIFY(fuzzyCompare(response, i/8.0));
-    }
-
-    // let's say: vps in (-10, 0) and (10, 0)
-    // small point:
-    ENTER_FUNCTION() << ppVar(6.0/19) << ppVar(4.0/19);
-    QLineF first = QLineF(QPointF(10, 0), QPointF(-10, 8));
-    QLineF second = QLineF(QPointF(-10, 0), QPointF(0, 13));
-    QPointF inters;
-    if (first.intersects(second, &inters) != QLineF::NoIntersection) {
-        ENTER_FUNCTION() << "Intersection is: " << inters << "and was supposed to be: " << QPointF(-5 - 15.0/19, 6 + 6.0/19);
-    }
-
-
-    handles = getHandles({QPointF(0, 4), inters, QPointF(0, 13), QPointF(-inters.x(), inters.y())});
-    pointsToCheck.clear();
-    for (int i = 0; i <= 13; i++) {
-        pointsToCheck << QPointF(0, i);
-    }
-
-    correct = PerspectiveBasedAssistantHelper::getTetragon(handles, true, poly);
-    ENTER_FUNCTION() << correct;
-
-    PerspectiveBasedAssistantHelper::updateCacheData(cache, poly);
-
-    for (int i = 0; i < pointsToCheck.size(); i++) {
-        qreal response = PerspectiveBasedAssistantHelper::distanceInGrid(cache, pointsToCheck[i]);
-        QVERIFY(fuzzyCompare(response, i/13.0));
-
-    }
-
-}
-
-QList<KisPaintingAssistantHandleSP> TestPerspectiveBasedAssistantHelper::getHandles(QList<QPointF> points)
+PkList<KisPaintingAssistantHandleSP> getHandles(const PkList<PkPointF> &points)
 {
-    QList<KisPaintingAssistantHandleSP> handles;
-    for(int i = 0; i < points.size(); i++) {
-        handles << KisPaintingAssistantHandleSP(new KisPaintingAssistantHandle(points[i]));
+    PkList<KisPaintingAssistantHandleSP> handles;
+    for (const PkPointF &point : points) {
+        handles << KisPaintingAssistantHandleSP(new KisPaintingAssistantHandle(point));
     }
     return handles;
 }
 
-SIMPLE_TEST_MAIN(TestPerspectiveBasedAssistantHelper)
+bool fuzzyCompare(double lhs, double rhs)
+{
+    return std::abs(lhs - rhs) < 0.0000001;
+}
+
+}
+
+int runPerspectiveBasedAssistantHelperTest()
+{
+    PkList<KisPaintingAssistantHandleSP> handles =
+        getHandles({PkPointF(-4, 4), PkPointF(4, 4), PkPointF(8, 8), PkPointF(-8, 8)});
+    PkList<PkPointF> pointsToCheck;
+    for (int i = 0; i <= 8; ++i) pointsToCheck << PkPointF(0, i);
+
+    PkPolygonF polygon;
+    if (!PerspectiveBasedAssistantHelper::getTetragon(handles, true, polygon)) return 1;
+
+    PerspectiveBasedAssistantHelper::CacheData cache;
+    PerspectiveBasedAssistantHelper::updateCacheData(cache, polygon);
+    for (int i = 0; i < pointsToCheck.size(); ++i) {
+        if (!fuzzyCompare(PerspectiveBasedAssistantHelper::distanceInGrid(cache, pointsToCheck[i]),
+                          i / 8.0)) return 2;
+    }
+
+    const PkLineF first(PkPointF(10, 0), PkPointF(-10, 8));
+    const PkLineF second(PkPointF(-10, 0), PkPointF(0, 13));
+    PkPointF intersection;
+    if (first.intersects(second, &intersection) == PkLineF::NoIntersection) return 3;
+
+    handles = getHandles({PkPointF(0, 4), intersection, PkPointF(0, 13),
+                          PkPointF(-intersection.x(), intersection.y())});
+    pointsToCheck.clear();
+    for (int i = 0; i <= 13; ++i) pointsToCheck << PkPointF(0, i);
+
+    if (!PerspectiveBasedAssistantHelper::getTetragon(handles, true, polygon)) return 4;
+    PerspectiveBasedAssistantHelper::updateCacheData(cache, polygon);
+    for (int i = 0; i < pointsToCheck.size(); ++i) {
+        if (!fuzzyCompare(PerspectiveBasedAssistantHelper::distanceInGrid(cache, pointsToCheck[i]),
+                          i / 13.0)) return 5;
+    }
+    return 0;
+}
+
+int main()
+{
+    return runPerspectiveBasedAssistantHelperTest();
+}

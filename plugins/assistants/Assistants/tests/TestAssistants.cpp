@@ -1,59 +1,44 @@
 /*
- *  SPDX-FileCopyrightText: 2022 Agata Cacko <cacko.azh@gmail.com>
- *
- *  SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-FileCopyrightText: 2022 Agata Cacko <agata.cacko@krita.org>
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 #include "TestAssistants.h"
 
 #include <ConcentricEllipseAssistantGeometry.h>
-#include <PerspectiveBasedAssistantHelper.h>
-#include <kis_algebra_2d.h>
-#include <kis_debug.h>
-#include <kis_global.h>
 
-void TestAssistants::testConcentricEllipseAdjustLine()
+#include <cmath>
+
+int runConcentricEllipseAdjustLineTest()
 {
-    const QList<QPointF> handles {
-        QPointF(0, 100),
-        QPointF(100, 0),
-        QPointF(200, 200)
+    const PkList<PkPointF> handles {
+        PkPointF(0, 100),
+        PkPointF(100, 0),
+        PkPointF(200, 200)
     };
 
-    QPointF begin = QPointF(0, 100);
-    //QPointF end = QPointF(100, 5);
-    //QPointF end = QPointF(100, 0);
-    //ellipse->adjustLine(end, begin);
-    //ENTER_FUNCTION() << begin << end;
+    PkPointF begin(0, 100);
+    PkList<PkPointF> ends {
+        PkPointF(100, 0), PkPointF(100, 5), PkPointF(200, 200), PkPointF(400, 400)
+    };
 
-    ENTER_FUNCTION() << "Begin is " << begin;
-
-    QList<QPointF> ends;
-    ends << QPointF(100, 0) << QPointF(100, 5) << QPointF(200, 200) << QPointF(400, 400);
-
-    for (int i = 0; i < ends.size(); i++) {
-        QPointF endHere = ends[i];
-        ConcentricEllipseAssistantGeometry::adjustLine(handles, endHere, begin);
-        ENTER_FUNCTION() << ends[i] << "=>" << endHere;
+    for (PkPointF end : ends) {
+        ConcentricEllipseAssistantGeometry::adjustLine(handles, end, begin);
+        if (!std::isfinite(end.x()) || !std::isfinite(end.y())) return 1;
     }
 
-
-    begin = QPointF(0, 200);
-
-    ENTER_FUNCTION() << "Begin is " << begin;
-
-    ends.clear();
-    ends << QPointF(200, 0) << QPointF(200, 5) << QPointF(400, 400) << QPointF(500, 500);
-
-    for (int i = 0; i < ends.size(); i++) {
-        QPointF endHere = ends[i];
-        ConcentricEllipseAssistantGeometry::adjustLine(handles, endHere, begin);
-        ENTER_FUNCTION() << ends[i] << "=>" << endHere;
+    begin = PkPointF(0, 200);
+    ends = {
+        PkPointF(200, 0), PkPointF(200, 5), PkPointF(400, 400), PkPointF(500, 500)
+    };
+    for (PkPointF end : ends) {
+        ConcentricEllipseAssistantGeometry::adjustLine(handles, end, begin);
+        if (!std::isfinite(end.x()) || !std::isfinite(end.y())) return 2;
     }
-
-
-
+    return 0;
 }
 
-
-SIMPLE_TEST_MAIN(TestAssistants)
+int main()
+{
+    return runConcentricEllipseAdjustLineTest();
+}

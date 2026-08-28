@@ -11,30 +11,27 @@
 
 #include "kis_abstract_perspective_grid.h"
 #include "kis_painting_assistant.h"
-#include <QObject>
-#include <QPolygonF>
-#include <QLineF>
-#include <QTransform>
+#include <PkPolygon.h>
+#include <PkLine.h>
+#include <PkTransform.h>
 
 #include <PerspectiveBasedAssistantHelper.h>
 
 class PerspectiveAssistant : public KisAbstractPerspectiveGrid, public KisPaintingAssistant
 {
-    Q_OBJECT
 public:
-    PerspectiveAssistant(QObject * parent = 0);
-    KisPaintingAssistantSP clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
+    PerspectiveAssistant();
+    KisPaintingAssistantSP clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
 
-    QPointF adjustPosition(const QPointF& point, const QPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
-    void adjustLine(QPointF &point, QPointF& strokeBegin) override;
+    PkPointF adjustPosition(const PkPointF& point, const PkPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
+    void adjustLine(PkPointF &point, PkPointF& strokeBegin) override;
     void endStroke() override;
 
-    QPointF getDefaultEditorPosition() const override;
+    PkPointF getDefaultEditorPosition() const override;
     int numHandles() const override { return 4; }
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached = true,KisPaintingAssistantCanvas* canvas=0, bool assistantVisible=true, bool previewVisible=true) override;
 
-    bool contains(const QPointF& point) const override;
-    qreal distance(const QPointF& point) const override;
+    bool contains(const PkPointF& point) const override;
+    qreal distance(const PkPointF& point) const override;
     bool isActive() const override;
 
     int subdivisions() const;
@@ -42,26 +39,24 @@ public:
 
     bool isAssistantComplete() const override;
 
-    void saveCustomXml(QXmlStreamWriter *xml) override;
-    bool loadCustomXml(QXmlStreamReader *xml) override;
+    void saveCustomXml(PkXmlStreamWriter *xml) override;
+    bool loadCustomXml(PkXmlStreamReader *xml) override;
 
-protected:
-    void drawCache(QPainter& gc, const KisCoordinatesConverter *converter,  bool assistantVisible=true) override;
 private:
-    QPointF project(const QPointF& pt, const QPointF& strokeBegin, const bool snapToAnyDirection, qreal moveThresholdPt);
+    PkPointF project(const PkPointF& pt, const PkPointF& strokeBegin, const bool snapToAnyDirection, qreal moveThresholdPt);
     // creates the convex hull, returns false if it's not a quadrilateral
     // finds the transform from perspective coordinates (a unit square) to the document
-    bool getTransform(QPolygonF& polyOut, QTransform& transformOut) const;
-    explicit PerspectiveAssistant(const PerspectiveAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
+    bool getTransform(PkPolygonF& polyOut, PkTransform& transformOut) const;
+    explicit PerspectiveAssistant(const PerspectiveAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
 
     // The number of subdivisions to draw
     int m_subdivisions {8};
     // which direction to snap to (in transformed coordinates)
-    QLineF m_snapLine;
+    PkLineF m_snapLine;
     // cached information
-    mutable QTransform m_cachedTransform;
-    mutable QPolygonF m_cachedPolygon;
-    mutable QPointF m_cachedPoints[4];
+    mutable PkTransform m_cachedTransform;
+    mutable PkPolygonF m_cachedPolygon;
+    mutable PkPointF m_cachedPoints[4];
     mutable bool m_cacheValid {false};
 
     mutable PerspectiveBasedAssistantHelper::CacheData m_cache;
@@ -73,8 +68,8 @@ class PerspectiveAssistantFactory : public KisPaintingAssistantFactory
 public:
     PerspectiveAssistantFactory();
     ~PerspectiveAssistantFactory() override;
-    QString id() const override;
-    QString name() const override;
+    PkString id() const override;
+    PkString name() const override;
     KisPaintingAssistant* createPaintingAssistant() const override;
 };
 

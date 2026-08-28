@@ -11,8 +11,7 @@
 #define _PARALLELRULER_ASSISTANT_H_
 
 #include "kis_painting_assistant.h"
-#include <QObject>
-#include <QLineF>
+#include <PkLine.h>
 /* Design:
  */
 class ParallelRuler;
@@ -21,27 +20,24 @@ class ParallelRulerAssistant : public KisPaintingAssistant
 {
 public:
     ParallelRulerAssistant();
-    KisPaintingAssistantSP clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
-    QPointF adjustPosition(const QPointF& point, const QPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
-    void adjustLine(QPointF &point, QPointF& strokeBegin) override;
-    QPointF getDefaultEditorPosition() const override;
+    KisPaintingAssistantSP clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
+    PkPointF adjustPosition(const PkPointF& point, const PkPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
+    void adjustLine(PkPointF &point, PkPointF& strokeBegin) override;
+    PkPointF getDefaultEditorPosition() const override;
     int numHandles() const override { return isLocal() ? 4 : 2; }
     bool isAssistantComplete() const override;
     bool canBeLocal() const override;
 
-    void saveCustomXml(QXmlStreamWriter* xml) override;
-    bool loadCustomXml(QXmlStreamReader* xml) override;
+    void saveCustomXml(PkXmlStreamWriter* xml) override;
+    bool loadCustomXml(PkXmlStreamReader* xml) override;
 
 protected:
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool  cached = true,KisPaintingAssistantCanvas* canvas=0, bool assistantVisible=true, bool previewVisible=true) override;
-    void drawCache(QPainter& gc, const KisCoordinatesConverter *converter,  bool assistantVisible=true) override;
-
     KisPaintingAssistantHandleSP firstLocalHandle() const override;
     KisPaintingAssistantHandleSP secondLocalHandle() const override;
 
 private:
-    QPointF project(const QPointF& pt, const QPointF& strokeBegin, qreal moveThresholdPt);
-    explicit ParallelRulerAssistant(const ParallelRulerAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
+    PkPointF project(const PkPointF& pt, const PkPointF& strokeBegin, qreal moveThresholdPt);
+    explicit ParallelRulerAssistant(const ParallelRulerAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
 
 };
 
@@ -50,8 +46,8 @@ class ParallelRulerAssistantFactory : public KisPaintingAssistantFactory
 public:
     ParallelRulerAssistantFactory();
     ~ParallelRulerAssistantFactory() override;
-    QString id() const override;
-    QString name() const override;
+    PkString id() const override;
+    PkString name() const override;
     KisPaintingAssistant* createPaintingAssistant() const override;
 };
 

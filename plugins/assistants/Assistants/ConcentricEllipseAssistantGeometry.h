@@ -10,19 +10,19 @@
 
 #include "kritaassistanttool_export.h"
 
-#include <QList>
-#include <QPointF>
+#include <PkList.h>
+#include <PkPoint.h>
 
 class KRITAASSISTANTTOOL_EXPORT ConcentricEllipseAssistantGeometry
 {
 public:
-    static QPointF project(const QList<QPointF> &handles,
-                           const QPointF &point,
-                           const QPointF &strokeBegin);
+    static PkPointF project(const PkList<PkPointF> &handles,
+                           const PkPointF &point,
+                           const PkPointF &strokeBegin);
 
-    static void adjustLine(const QList<QPointF> &handles,
-                           QPointF &point,
-                           const QPointF &strokeBegin);
+    static void adjustLine(const PkList<PkPointF> &handles,
+                           PkPointF &point,
+                           const PkPointF &strokeBegin);
 };
 
 #endif

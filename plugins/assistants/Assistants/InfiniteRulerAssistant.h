@@ -13,8 +13,7 @@
 
 #include "RulerAssistant.h"
 
-#include <QObject>
-#include <QLineF>
+#include <PkLine.h>
 
 
 
@@ -22,22 +21,17 @@ class InfiniteRulerAssistant : public RulerAssistant
 {
 public:
     InfiniteRulerAssistant();
-    KisPaintingAssistantSP clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
-    QPointF adjustPosition(const QPointF& point, const QPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
-    void adjustLine(QPointF &point, QPointF& strokeBegin) override;
-    QPointF getDefaultEditorPosition() const override;
+    KisPaintingAssistantSP clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
+    PkPointF adjustPosition(const PkPointF& point, const PkPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
+    void adjustLine(PkPointF &point, PkPointF& strokeBegin) override;
+    PkPointF getDefaultEditorPosition() const override;
     int numHandles() const override { return 2; }
     bool isAssistantComplete() const override;
 
-protected:
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool  cached = true,KisPaintingAssistantCanvas* canvas=0, bool assistantVisible=true, bool previewVisible=true) override;
-    
 private:
-    QPointF project(const QPointF& pt, const QPointF& strokeBegin, const bool checkForInitialMovement, qreal moveThresholdPt);
-    explicit InfiniteRulerAssistant(const InfiniteRulerAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
+    PkPointF project(const PkPointF& pt, const PkPointF& strokeBegin, const bool checkForInitialMovement, qreal moveThresholdPt);
+    explicit InfiniteRulerAssistant(const InfiniteRulerAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
   
-    void drawSubdivisions(QPainter& gc, const KisCoordinatesConverter *converter);
-    
     // Helper struct for clipLineParametric's return type
     struct ClippingResult {
         bool intersects;
@@ -45,7 +39,7 @@ private:
         qreal tmax;
     };
     // Like KisAlgebra2D::clipLineRect, but returns the parametric positions
-    static ClippingResult clipLineParametric(QLineF line, QRectF rect, bool extendFirst=true, bool extendSecond=true);
+    static ClippingResult clipLineParametric(PkLineF line, PkRectF rect, bool extendFirst=true, bool extendSecond=true);
 };
 
 class InfiniteRulerAssistantFactory : public KisPaintingAssistantFactory
@@ -53,8 +47,8 @@ class InfiniteRulerAssistantFactory : public KisPaintingAssistantFactory
 public:
     InfiniteRulerAssistantFactory();
     ~InfiniteRulerAssistantFactory() override;
-    QString id() const override;
-    QString name() const override;
+    PkString id() const override;
+    PkString name() const override;
     KisPaintingAssistant* createPaintingAssistant() const override;
 };
 

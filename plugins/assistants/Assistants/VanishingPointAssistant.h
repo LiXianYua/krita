@@ -11,8 +11,7 @@
 #define _VANISHINGPOINT_ASSISTANT_H_
 
 #include "kis_painting_assistant.h"
-#include <QObject>
-#include <QLineF>
+#include <PkLine.h>
 /* Design:
  *The idea behind the vanishing point ruler is that in a perspective deformed landscape, a set of parallel
  *lines al share a single vanishing point.
@@ -39,10 +38,10 @@ public:
         LocalSecondHandle
     };
 
-    KisPaintingAssistantSP clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
-    QPointF adjustPosition(const QPointF& point, const QPointF& strokeBegin, bool snapToAny, qreal moveThresholdPt) override;
-    void adjustLine(QPointF &point, QPointF& strokeBegin) override;
-    QPointF getDefaultEditorPosition() const override;
+    KisPaintingAssistantSP clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
+    PkPointF adjustPosition(const PkPointF& point, const PkPointF& strokeBegin, bool snapToAny, qreal moveThresholdPt) override;
+    void adjustLine(PkPointF &point, PkPointF& strokeBegin) override;
+    PkPointF getDefaultEditorPosition() const override;
     int numHandles() const override { return isLocal() ? 3 : 1; }
 
     float referenceLineDensity();
@@ -51,23 +50,18 @@ public:
     bool isAssistantComplete() const override;
     bool canBeLocal() const override;
 
-    void saveCustomXml(QXmlStreamWriter* xml) override;
-    bool loadCustomXml(QXmlStreamReader* xml) override;
+    void saveCustomXml(PkXmlStreamWriter* xml) override;
+    bool loadCustomXml(PkXmlStreamReader* xml) override;
 
 protected:
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool  cached = true,KisPaintingAssistantCanvas* canvas=nullptr, bool assistantVisible=true, bool previewVisible=true) override;
-    void drawCache(QPainter& gc, const KisCoordinatesConverter *converter,  bool assistantVisible=true) override;
-
     KisPaintingAssistantHandleSP firstLocalHandle() const override;
     KisPaintingAssistantHandleSP secondLocalHandle() const override;
 
 private:
 
 
-    QPointF project(const QPointF& pt, const QPointF& strokeBegin, qreal moveThresholdPt);
-    explicit VanishingPointAssistant(const VanishingPointAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
-
-    KisPaintingAssistantCanvas *m_canvas {nullptr};
+    PkPointF project(const PkPointF& pt, const PkPointF& strokeBegin, qreal moveThresholdPt);
+    explicit VanishingPointAssistant(const VanishingPointAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
 
     float m_referenceLineDensity {15.0};
 };
@@ -77,8 +71,8 @@ class VanishingPointAssistantFactory : public KisPaintingAssistantFactory
 public:
     VanishingPointAssistantFactory();
     ~VanishingPointAssistantFactory() override;
-    QString id() const override;
-    QString name() const override;
+    PkString id() const override;
+    PkString name() const override;
     KisPaintingAssistant* createPaintingAssistant() const override;
 };
 

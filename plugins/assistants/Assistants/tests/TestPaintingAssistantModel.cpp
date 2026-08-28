@@ -1,10 +1,7 @@
 /*
- *  SPDX-FileCopyrightText: 2026 Krita contributors
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-FileCopyrightText: 2026 Krita contributors
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
-
-#include <QtTest>
 
 #include <kis_painting_assistant.h>
 #include <kis_painting_assistant_collection.h>
@@ -16,34 +13,24 @@ class TestAssistant final : public KisPaintingAssistant
 {
 public:
     TestAssistant()
-        : KisPaintingAssistant(QStringLiteral("model-test"), QStringLiteral("Model Test"))
+        : KisPaintingAssistant(PkString("model-test"), PkString("Model Test"))
     {
     }
 
     KisPaintingAssistantSP clone(
-        QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override
+        PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override
     {
         return KisPaintingAssistantSP(new TestAssistant(*this, handleMap));
     }
 
-    QPointF adjustPosition(const QPointF &point, const QPointF &, bool, qreal) override
+    PkPointF adjustPosition(const PkPointF &point, const PkPointF &, bool, qreal) override
     {
         return point;
     }
 
-    void adjustLine(QPointF &, QPointF &) override
-    {
-    }
-
-    QPointF getDefaultEditorPosition() const override
-    {
-        return QPointF();
-    }
-
-    int numHandles() const override
-    {
-        return 1;
-    }
+    void adjustLine(PkPointF &, PkPointF &) override {}
+    PkPointF getDefaultEditorPosition() const override { return PkPointF(); }
+    int numHandles() const override { return 1; }
 
     void endStroke() override
     {
@@ -56,71 +43,57 @@ public:
 protected:
     TestAssistant(
         const TestAssistant &rhs,
-        QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
+        PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
         : KisPaintingAssistant(rhs, handleMap)
     {
     }
-
-    void drawCache(QPainter &, const KisCoordinatesConverter *, bool) override
-    {
-    }
 };
 
-} // namespace
-
-class TestPaintingAssistantModel : public QObject
-{
-    Q_OBJECT
-
-private Q_SLOTS:
-    void preservesModelStateWithoutUiLibrary();
-    void collectionEndsStrokeForEveryAssistant();
-};
-
-void TestPaintingAssistantModel::preservesModelStateWithoutUiLibrary()
+int preservesModelStateWithoutUiLibrary()
 {
     TestAssistant assistant;
-
-    QCOMPARE(assistant.id(), QStringLiteral("model-test"));
-    QCOMPARE(assistant.name(), QStringLiteral("Model Test"));
+    if (assistant.id() != "model-test" || assistant.name() != "Model Test") return 1;
 
     assistant.setSnappingActive(false);
     assistant.setLocal(true);
     assistant.setLocked(true);
     assistant.setUseCustomColor(true);
-    assistant.setAssistantCustomColor(QColor(12, 34, 56, 78));
+    assistant.setAssistantCustomColor(PkColor(12, 34, 56, 78));
 
-    QVERIFY(!assistant.isSnappingActive());
-    QVERIFY(assistant.isLocal());
-    QVERIFY(assistant.isLocked());
-    QCOMPARE(assistant.effectiveAssistantColor(), QColor(12, 34, 56, 78));
+    if (assistant.isSnappingActive() || !assistant.isLocal() || !assistant.isLocked()) return 2;
+    if (assistant.effectiveAssistantColor() != PkColor(12, 34, 56, 78)) return 3;
 
-    KisPaintingAssistantHandleSP handle(new KisPaintingAssistantHandle(QPointF(2.0, 3.0)));
+    KisPaintingAssistantHandleSP handle(new KisPaintingAssistantHandle(PkPointF(2.0, 3.0)));
     assistant.addHandle(handle, HandleType::NORMAL);
-    QCOMPARE(assistant.handles().size(), 1);
+    if (assistant.handles().size() != 1) return 4;
 
-    QTransform transform;
+    PkTransform transform;
     transform.translate(5.0, -2.0);
     assistant.transform(transform);
-    QCOMPARE(QPointF(*assistant.handles().constFirst()), QPointF(7.0, 1.0));
+    if (PkPointF(*assistant.handles().first()) != PkPointF(7.0, 1.0)) return 5;
+    return 0;
 }
 
-void TestPaintingAssistantModel::collectionEndsStrokeForEveryAssistant()
+int collectionEndsStrokeForEveryAssistant()
 {
     KisPaintingAssistantSP first(new TestAssistant);
     KisPaintingAssistantSP second(new TestAssistant);
     KisPaintingAssistantCollection collection({first, second});
 
     collection.setFirstAssistant(first);
-    QCOMPARE(collection.firstAssistant(), first);
+    if (collection.firstAssistant() != first) return 10;
 
     collection.endStroke();
-
-    QVERIFY(!collection.firstAssistant());
-    QCOMPARE(static_cast<TestAssistant *>(first.data())->endStrokeCount, 1);
-    QCOMPARE(static_cast<TestAssistant *>(second.data())->endStrokeCount, 1);
+    if (collection.firstAssistant()) return 11;
+    if (static_cast<TestAssistant *>(first.data())->endStrokeCount != 1) return 12;
+    if (static_cast<TestAssistant *>(second.data())->endStrokeCount != 1) return 13;
+    return 0;
 }
 
-QTEST_GUILESS_MAIN(TestPaintingAssistantModel)
+}
 
-#include "TestPaintingAssistantModel.moc"
+int main()
+{
+    if (const int result = preservesModelStateWithoutUiLibrary()) return result;
+    return collectionEndsStrokeForEveryAssistant();
+}

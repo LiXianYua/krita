@@ -6,7 +6,7 @@
 
 #include "Ruler.h"
 
-Ruler::Ruler() : p1(QPointF(10, 10)), p2(QPointF(100, 190))
+Ruler::Ruler() : p1(PkPointF(10, 10)), p2(PkPointF(100, 190))
 {
 }
 
@@ -14,7 +14,7 @@ Ruler::~Ruler()
 {
 }
 
-QPointF Ruler::project(const QPointF& pt)
+PkPointF Ruler::project(const PkPointF& pt)
 {
     double x1 = p1.x();
     double y1 = p1.y();
@@ -25,15 +25,15 @@ QPointF Ruler::project(const QPointF& pt)
     double a2 = (x2 - x1) / (y1 - y2);
     double b2 = pt.y() - a2 * pt.x();
     double xm = (b2 - b1) / (a1 - a2);
-    return QPointF(xm, xm * a1 + b1);
+    return PkPointF(xm, xm * a1 + b1);
 }
 
-const QPointF& Ruler::point1() const
+const PkPointF& Ruler::point1() const
 {
     return p1;
 }
 
-const QPointF& Ruler::point2() const
+const PkPointF& Ruler::point2() const
 {
     return p2;
 }

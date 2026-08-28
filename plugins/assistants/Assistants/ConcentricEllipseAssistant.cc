@@ -9,117 +9,48 @@
 #include "ConcentricEllipseAssistant.h"
 #include "ConcentricEllipseAssistantGeometry.h"
 
-#include <klocalizedstring.h>
-#include "kis_debug.h"
-#include <QPainter>
-#include <QPainterPath>
-#include <QLinearGradient>
-#include <QTransform>
-#include <kis_coordinates_converter.h>
+#include <PkTransform.h>
 #include <kis_algebra_2d.h>
 
 #include <math.h>
 
 ConcentricEllipseAssistant::ConcentricEllipseAssistant()
-    : KisPaintingAssistant("concentric ellipse", i18n("Concentric Ellipse assistant"))
+    : KisPaintingAssistant("concentric ellipse", PkString("Concentric Ellipse assistant"))
 {
 }
 
-KisPaintingAssistantSP ConcentricEllipseAssistant::clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
+KisPaintingAssistantSP ConcentricEllipseAssistant::clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
 {
     return KisPaintingAssistantSP(new ConcentricEllipseAssistant(*this, handleMap));
 }
 
-ConcentricEllipseAssistant::ConcentricEllipseAssistant(const ConcentricEllipseAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
+ConcentricEllipseAssistant::ConcentricEllipseAssistant(const ConcentricEllipseAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
     : KisPaintingAssistant(rhs, handleMap)
     , m_ellipse(rhs.m_ellipse)
 {
 }
 
-QPointF ConcentricEllipseAssistant::project(const QPointF& pt, const QPointF& strokeBegin) const
+PkPointF ConcentricEllipseAssistant::project(const PkPointF& pt, const PkPointF& strokeBegin) const
 {
-    Q_ASSERT(isAssistantComplete());
+    assert(isAssistantComplete());
     return ConcentricEllipseAssistantGeometry::project(
         {*handles()[0], *handles()[1], *handles()[2]}, pt, strokeBegin);
 }
 
-QPointF ConcentricEllipseAssistant::adjustPosition(const QPointF& pt, const QPointF& strokeBegin, const bool /*snapToAny*/, qreal /*moveThresholdPt*/)
+PkPointF ConcentricEllipseAssistant::adjustPosition(const PkPointF& pt, const PkPointF& strokeBegin, const bool /*snapToAny*/, qreal /*moveThresholdPt*/)
 {
     return project(pt, strokeBegin);
 }
 
-void ConcentricEllipseAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
+void ConcentricEllipseAssistant::adjustLine(PkPointF &point, PkPointF &strokeBegin)
 {
     point = project(point, strokeBegin);
 }
 
-void ConcentricEllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
-{
-    gc.save();
-    gc.resetTransform();
-
-    if (isSnappingActive() && previewVisible == true){
-
-        if (isAssistantComplete()){
-
-            QTransform initialTransform = converter->documentToWidgetTransform();
-
-            if (m_ellipse.set(*handles()[0], *handles()[1], *handles()[2])) {
-                QPointF mousePos = effectiveBrushPosition(converter, canvas);
-                QPointF initial = m_ellipse.project(initialTransform.inverted().map(mousePos));
-                QPointF center = m_ellipse.boundingRect().center();
-                qreal Ratio = QLineF(center, initialTransform.inverted().map(mousePos)).length() /QLineF(center, initial).length();
-                //line from center to handle 1 * difference.
-                //set handle1 translated to
-                // valid ellipse
-                gc.setTransform(initialTransform);
-                gc.setTransform(m_ellipse.getInverse(), true);
-                QPainterPath path;
-                // Draw the ellipse
-                path.addEllipse(QPointF(0, 0), m_ellipse.semiMajor()*Ratio, m_ellipse.semiMinor()*Ratio);
-                drawPreview(gc, path);
-            }
-        }
-    }
-    gc.restore();
-    KisPaintingAssistant::drawAssistant(gc, updateRect, converter, cached, canvas, assistantVisible, previewVisible);
-
-}
 
 
-void ConcentricEllipseAssistant::drawCache(QPainter& gc, const KisCoordinatesConverter *converter, bool assistantVisible)
-{
-    if (assistantVisible == false || handles().size() < 2) { // 2 points means a line, so we can continue after 1 point
-        return;
-    }
 
-    QTransform initialTransform = converter->documentToWidgetTransform();
-
-    if (handles().size() == 2) {
-        // just draw the axis
-        gc.setTransform(initialTransform);
-        QPainterPath path;
-        path.moveTo(*handles()[0]);
-        path.lineTo(*handles()[1]);
-        drawPath(gc, path, isSnappingActive());
-        return;
-    }
-
-    if (m_ellipse.set(*handles()[0], *handles()[1], *handles()[2])) {
-        // valid ellipse
-
-        gc.setTransform(initialTransform);
-        gc.setTransform(m_ellipse.getInverse(), true);
-        QPainterPath path;
-        path.moveTo(QPointF(-m_ellipse.semiMajor(), 0)); path.lineTo(QPointF(m_ellipse.semiMajor(), 0));
-        path.moveTo(QPointF(0, -m_ellipse.semiMinor())); path.lineTo(QPointF(0, m_ellipse.semiMinor()));
-        // Draw the ellipse
-        path.addEllipse(QPointF(0, 0), m_ellipse.semiMajor(), m_ellipse.semiMinor());
-        drawPath(gc, path, isSnappingActive());
-    }
-}
-
-QRect ConcentricEllipseAssistant::boundingRect() const
+PkRect ConcentricEllipseAssistant::boundingRect() const
 {
     if (!isAssistantComplete()) {
         return KisPaintingAssistant::boundingRect();
@@ -128,11 +59,11 @@ QRect ConcentricEllipseAssistant::boundingRect() const
     if (m_ellipse.set(*handles()[0], *handles()[1], *handles()[2])) {
         return m_ellipse.boundingRect().adjusted(-2, -2, 2, 2).toAlignedRect();
     } else {
-        return QRect();
+        return PkRect();
     }
 }
 
-QPointF ConcentricEllipseAssistant::getDefaultEditorPosition() const
+PkPointF ConcentricEllipseAssistant::getDefaultEditorPosition() const
 {
     return (*handles()[0] + *handles()[1]) * 0.5;
 }
@@ -142,18 +73,18 @@ bool ConcentricEllipseAssistant::isAssistantComplete() const
     return handles().size() >= 3;
 }
 
-void ConcentricEllipseAssistant::transform(const QTransform &transform)
+void ConcentricEllipseAssistant::transform(const PkTransform &transform)
 {
     m_ellipse.set(*handles()[0], *handles()[1], *handles()[2]);
 
-    QPointF newAxes;
-    QTransform newTransform;
+    PkPointF newAxes;
+    PkTransform newTransform;
 
-    std::tie(newAxes, newTransform) = KisAlgebra2D::transformEllipse(QPointF(m_ellipse.semiMajor(), m_ellipse.semiMinor()), m_ellipse.getInverse() * transform);
+    std::tie(newAxes, newTransform) = KisAlgebra2D::transformEllipse(PkPointF(m_ellipse.semiMajor(), m_ellipse.semiMinor()), m_ellipse.getInverse() * transform);
 
-    const QPointF p1 = newTransform.map(QPointF(newAxes.x(), 0));
-    const QPointF p2 = newTransform.map(QPointF(-newAxes.x(), 0));
-    const QPointF p3 = newTransform.map(QPointF(0, newAxes.y()));
+    const PkPointF p1 = newTransform.map(PkPointF(newAxes.x(), 0));
+    const PkPointF p2 = newTransform.map(PkPointF(-newAxes.x(), 0));
+    const PkPointF p3 = newTransform.map(PkPointF(0, newAxes.y()));
 
     *handles()[0] = p1;
     *handles()[1] = p2;
@@ -170,14 +101,14 @@ ConcentricEllipseAssistantFactory::~ConcentricEllipseAssistantFactory()
 {
 }
 
-QString ConcentricEllipseAssistantFactory::id() const
+PkString ConcentricEllipseAssistantFactory::id() const
 {
     return "concentric ellipse";
 }
 
-QString ConcentricEllipseAssistantFactory::name() const
+PkString ConcentricEllipseAssistantFactory::name() const
 {
-    return i18n("Concentric Ellipse");
+    return PkString("Concentric Ellipse");
 }
 
 KisPaintingAssistant* ConcentricEllipseAssistantFactory::createPaintingAssistant() const

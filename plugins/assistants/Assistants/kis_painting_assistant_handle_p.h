@@ -8,7 +8,7 @@
 #include "kis_painting_assistant.h"
 
 struct KisPaintingAssistantHandle::Private {
-    QList<KisPaintingAssistant*> assistants;
+    PkList<KisPaintingAssistant*> assistants;
     char handleType {HandleType::NORMAL};
 };
 

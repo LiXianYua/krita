@@ -6,29 +6,27 @@
 
 #include "kis_painting_assistant_handle_p.h"
 
-#include "kis_debug.h"
 
 KisPaintingAssistantHandle::KisPaintingAssistantHandle(double x, double y)
-    : QPointF(x, y)
+    : PkPointF(x, y)
     , d(new Private)
 {
 }
 
-KisPaintingAssistantHandle::KisPaintingAssistantHandle(QPointF p)
-    : QPointF(p)
+KisPaintingAssistantHandle::KisPaintingAssistantHandle(PkPointF p)
+    : PkPointF(p)
     , d(new Private)
 {
 }
 
 KisPaintingAssistantHandle::KisPaintingAssistantHandle(const KisPaintingAssistantHandle &rhs)
-    : QPointF(rhs)
+    : PkPointF(rhs)
     , KisShared()
     , d(new Private)
 {
-    dbgUI << "KisPaintingAssistantHandle ctor";
 }
 
-KisPaintingAssistantHandle &KisPaintingAssistantHandle::operator=(const QPointF &pt)
+KisPaintingAssistantHandle &KisPaintingAssistantHandle::operator=(const PkPointF &pt)
 {
     setX(pt.x());
     setY(pt.y());
@@ -52,20 +50,20 @@ KisPaintingAssistant *KisPaintingAssistantHandle::chiefAssistant() const
 
 KisPaintingAssistantHandle::~KisPaintingAssistantHandle()
 {
-    Q_ASSERT(d->assistants.empty());
+    assert(d->assistants.empty());
     delete d;
 }
 
 void KisPaintingAssistantHandle::registerAssistant(KisPaintingAssistant *assistant)
 {
-    Q_ASSERT(!d->assistants.contains(assistant));
+    assert(!d->assistants.contains(assistant));
     d->assistants.append(assistant);
 }
 
 void KisPaintingAssistantHandle::unregisterAssistant(KisPaintingAssistant *assistant)
 {
     d->assistants.removeOne(assistant);
-    Q_ASSERT(!d->assistants.contains(assistant));
+    assert(!d->assistants.contains(assistant));
 }
 
 bool KisPaintingAssistantHandle::containsAssistant(KisPaintingAssistant *assistant) const

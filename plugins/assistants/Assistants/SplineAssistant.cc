@@ -8,19 +8,12 @@
 
 #include "SplineAssistant.h"
 
-#include <klocalizedstring.h>
 
-#include <QPainter>
-#include <QPainterPath>
-#include <QLinearGradient>
-#include <QTransform>
-#include <QCursor>
+#include <PkTransform.h>
 
-#include <kis_coordinates_converter.h>
-#include "kis_debug.h"
 #include "KisBezierUtils.h"
 
-#include <math.h>
+#include <cmath>
 #include <limits>
 #include <algorithm>
 
@@ -31,7 +24,7 @@ struct GoldenSearchParams
         :lbound(lbound)
         ,ubound(ubound)
     {
-        samples = QVector<GoldenSearchPoint>(4);
+        samples = PkVector<GoldenSearchPoint>(4);
     }
 
     struct GoldenSearchPoint {
@@ -55,14 +48,14 @@ struct GoldenSearchParams
 
     qreal lbound;
     qreal ubound;
-    QVector<GoldenSearchPoint> samples;
+    PkVector<GoldenSearchPoint> samples;
 };
 
 
 struct SplineAssistant::Private {
     Private();
 
-    QPointF prevStrokebegin;
+    PkPointF prevStrokebegin;
     qreal prev_t {0};
 };
 
@@ -72,25 +65,26 @@ SplineAssistant::Private::Private()
 }
 
 SplineAssistant::SplineAssistant()
-    : KisPaintingAssistant("spline", i18n("Spline assistant"))
+    : KisPaintingAssistant("spline", PkString("Spline assistant"))
     , m_d(new Private)
 {
 }
 
-SplineAssistant::SplineAssistant(const SplineAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
+SplineAssistant::~SplineAssistant() = default;
+
+SplineAssistant::SplineAssistant(const SplineAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
     : KisPaintingAssistant(rhs, handleMap)
-    , m_canvas(rhs.m_canvas)
     , m_d(new Private)
 {
 }
 
-KisPaintingAssistantSP SplineAssistant::clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
+KisPaintingAssistantSP SplineAssistant::clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
 {
     return KisPaintingAssistantSP(new SplineAssistant(*this, handleMap));
 }
 
 // parametric form of a cubic spline (B(t) = (1-t)^3 P0 + 3 (1-t)^2 t P1 + 3 (1-t) t^2 P2 + t^3 P3)
-inline QPointF B(qreal t, const QPointF& P0, const QPointF& P1, const QPointF& P2, const QPointF& P3)
+inline PkPointF B(qreal t, const PkPointF& P0, const PkPointF& P1, const PkPointF& P2, const PkPointF& P3)
 {
     const qreal tp = 1 - t;
     const qreal tp2 = tp * tp;
@@ -102,7 +96,7 @@ inline QPointF B(qreal t, const QPointF& P0, const QPointF& P1, const QPointF& P
             (    t   * t2) * P3;
 }
 // squared distance from a point on the spline to given point: we want to minimize this
-inline qreal D(qreal t, const QPointF& P0, const QPointF& P1, const QPointF& P2, const QPointF& P3, const QPointF& p)
+inline qreal D(qreal t, const PkPointF& P0, const PkPointF& P1, const PkPointF& P2, const PkPointF& P3, const PkPointF& p)
 {
     const qreal
             tp =  1 - t,
@@ -119,15 +113,15 @@ inline qreal D(qreal t, const QPointF& P0, const QPointF& P1, const QPointF& P2,
 }
 
 
-inline qreal goldenSearch(const QPointF& pt
-                          , const QList<KisPaintingAssistantHandleSP> handles
+inline qreal goldenSearch(const PkPointF& pt
+                          , const PkList<KisPaintingAssistantHandleSP> handles
                           , qreal low
                           , qreal high
                           , qreal tolerance
                           , uint max_iter)
 {
     GoldenSearchParams ovalues = GoldenSearchParams(low,high);
-    QVector<GoldenSearchParams::GoldenSearchPoint> p = ovalues.samples;
+    PkVector<GoldenSearchParams::GoldenSearchPoint> p = ovalues.samples;
     qreal u = ovalues.ubound;
     qreal l = ovalues.lbound;
 
@@ -146,7 +140,7 @@ inline qreal goldenSearch(const QPointF& pt
     GoldenSearchParams::GoldenSearchPoint xtemp = GoldenSearchParams::GoldenSearchPoint(0);
 
     uint i = 0; // used to force early exit
-    while ( qAbs(p[2].xnorm - p[1].xnorm) > tolerance && i < max_iter) {
+    while (std::abs(p[2].xnorm - p[1].xnorm) > tolerance && i < max_iter) {
 
         if (p[1].fval < p[2].fval) {
             xtemp = p[1];
@@ -173,17 +167,17 @@ inline qreal goldenSearch(const QPointF& pt
 }
 
 
-QPointF SplineAssistant::project(const QPointF& pt, const QPointF& strokeBegin) const
+PkPointF SplineAssistant::project(const PkPointF& pt, const PkPointF& strokeBegin) const
 {
-    Q_ASSERT(isAssistantComplete());
+    assert(isAssistantComplete());
 
     // minimize d(t), but keep t in the same neighbourhood as before (unless starting a new stroke)
     bool stayClose = (m_d->prevStrokebegin == strokeBegin)? true : false;
     qreal min_t;
 
-    QList<QPointF> refs;
-    QVector<int> hindex = {0,2,3,1}; // order handles as expected by KisBezierUtils
-    Q_FOREACH(int i, hindex) {
+    PkList<PkPointF> refs;
+    PkVector<int> hindex = {0,2,3,1}; // order handles as expected by KisBezierUtils
+    for (int i : hindex) {
         refs.append(*handles()[i]);
     }
 
@@ -199,7 +193,7 @@ QPointF SplineAssistant::project(const QPointF& pt, const QPointF& strokeBegin) 
         min_t = KisBezierUtils::nearestPoint(refs,pt);
     }
 
-    QPointF draw_pos = B(min_t, *handles()[0], *handles()[2], *handles()[3], *handles()[1]);
+    PkPointF draw_pos = B(min_t, *handles()[0], *handles()[2], *handles()[3], *handles()[1]);
 
     m_d->prev_t = min_t;
     m_d->prevStrokebegin = strokeBegin;
@@ -207,122 +201,20 @@ QPointF SplineAssistant::project(const QPointF& pt, const QPointF& strokeBegin) 
     return draw_pos;
 }
 
-QPointF SplineAssistant::adjustPosition(const QPointF& pt, const QPointF& strokeBegin, const bool /*snapToAny*/, qreal /*moveThresholdPt*/)
+PkPointF SplineAssistant::adjustPosition(const PkPointF& pt, const PkPointF& strokeBegin, const bool /*snapToAny*/, qreal /*moveThresholdPt*/)
 {
     return project(pt, strokeBegin);
 }
 
-void SplineAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
+void SplineAssistant::adjustLine(PkPointF &point, PkPointF &strokeBegin)
 {
-    point = QPointF();
-    strokeBegin = QPointF();
+    point = PkPointF();
+    strokeBegin = PkPointF();
 }
 
-void SplineAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
-{
-    gc.save();
-    gc.resetTransform();
-    QPoint mousePos;
-    
-    if (canvas){
-        //simplest, cheapest way to get the mouse-position//
-        mousePos = canvas->paintingAssistantCursorPosition();
-        m_canvas = canvas;
-    }
-    else {
-        //...of course, you need to have access to a canvas-widget for that.//
-        mousePos = QCursor::pos();//this'll give an offset//
-        dbgFile<<"canvas does not exist in spline, you may have passed arguments incorrectly:"<<canvas;
-    }
-    
-
-    if (handles().size() > 1) {
-
-        QTransform initialTransform = converter->documentToWidgetTransform();
-
-        // first we find the path that our point create.
-        QPointF pts[4];
-        pts[0] = *handles()[0];
-        pts[1] = *handles()[1];
-        pts[2] = (handles().size() >= 3) ? (*handles()[2]) : (*handles()[0]);
-        pts[3] = (handles().size() >= 4) ? (*handles()[3]) : (handles().size() >= 3) ? (*handles()[2]) : (*handles()[1]);
-        gc.setTransform(initialTransform);
-
-        // Draw the spline
-        QPainterPath path;
-        path.moveTo(pts[0]);
-        path.cubicTo(pts[2], pts[3], pts[1]);
-        
-        //then we use this path to check the bounding rectangle//
-        if (isSnappingActive() && path.boundingRect().contains(initialTransform.inverted().map(mousePos)) && previewVisible==true){
-            drawPreview(gc, path);//and we draw the preview.
-        }
-    }
-    gc.restore();
-
-   // there is some odd rectangle that is getting rendered when there is only one point, so don't start rendering the line until after 2
-   // this issue only exists with this spline assistant...none of the others
-   if (handles().size() > 2) {
-      KisPaintingAssistant::drawAssistant(gc, updateRect, converter, cached, canvas, assistantVisible, previewVisible);
-   }
-}
-
-void SplineAssistant::drawCache(QPainter& gc, const KisCoordinatesConverter *converter, bool assistantVisible)
-{
-    if (assistantVisible == false || handles().size() < 2 ){
-        return;
-    }
-
-    QTransform initialTransform = converter->documentToWidgetTransform();
-
-    QPointF pts[4];
-    pts[0] = *handles()[0];
-    pts[1] = *handles()[1];
-    pts[2] = (handles().size() >= 3) ? (*handles()[2]) : (*handles()[0]);
-    pts[3] = (handles().size() >= 4) ? (*handles()[3]) : (handles().size() >= 3) ? (*handles()[2]) : (*handles()[1]);
-
-    gc.setTransform(initialTransform);
 
 
-    {  // Draw bezier handles control lines only if we are editing the assistant
-        gc.save();
-        QColor assistantColor = effectiveAssistantColor();
-        QPen bezierlinePen(assistantColor);
-        bezierlinePen.setStyle(Qt::DotLine);
-        bezierlinePen.setWidth(2);
-
-        if (m_canvas->isEditingPaintingAssistants()) {
-
-            if (!isSnappingActive()) {
-                QColor snappingColor = assistantColor;
-                snappingColor.setAlpha(snappingColor.alpha() * 0.2);
-
-                bezierlinePen.setColor(snappingColor);
-            }
-            bezierlinePen.setCosmetic(true);
-
-            gc.setPen(bezierlinePen);
-            gc.drawLine(pts[0], pts[2]);
-
-            if (isAssistantComplete()) {
-                gc.drawLine(pts[1], pts[3]);
-            }
-            gc.setPen(QColor(0, 0, 0, 125));
-        }
-        gc.restore();
-    }
-
-
-    // Draw the spline
-    QPainterPath path;
-    path.moveTo(pts[0]);
-    path.cubicTo(pts[2], pts[3], pts[1]);
-    drawPath(gc, path, isSnappingActive());
-
-
-}
-
-QPointF SplineAssistant::getDefaultEditorPosition() const
+PkPointF SplineAssistant::getDefaultEditorPosition() const
 {
     return B(0.5, *handles()[0], *handles()[2], *handles()[3], *handles()[1]);
 }
@@ -340,14 +232,14 @@ SplineAssistantFactory::~SplineAssistantFactory()
 {
 }
 
-QString SplineAssistantFactory::id() const
+PkString SplineAssistantFactory::id() const
 {
     return "spline";
 }
 
-QString SplineAssistantFactory::name() const
+PkString SplineAssistantFactory::name() const
 {
-    return i18nc("A type of drawing assistants", "Spline");
+    return PkString("Spline");
 }
 
 KisPaintingAssistant* SplineAssistantFactory::createPaintingAssistant() const

@@ -26,17 +26,17 @@ public:
     {
     public:
         // vanishing points that one gets from getVanishingPoints
-        boost::optional<QPointF> vanishingPoint1 {boost::none};
-        boost::optional<QPointF> vanishingPoint2 {boost::none};
+        boost::optional<PkPointF> vanishingPoint1 {boost::none};
+        boost::optional<PkPointF> vanishingPoint2 {boost::none};
 
         // distances from the horizon line to point 1, 2, 3 and 4 on the final polygon
-        QVector<qreal> distancesFromPoints;
+        PkVector<qreal> distancesFromPoints;
         qreal maxDistanceFromPoint {0.0};
 
-        QLineF horizon;
+        PkLineF horizon;
 
         // final polygon
-        QPolygonF polygon;
+        PkPolygonF polygon;
 
 
         typedef enum PerspectiveType {
@@ -55,32 +55,32 @@ public:
     // *** main functions ***
 
     // creates the convex hull, returns false if it's not a quadrilateral/tetragon
-    static bool getTetragon(const QList<KisPaintingAssistantHandleSP> &handles, bool isAssistantComplete, QPolygonF& outPolygon);
+    static bool getTetragon(const PkList<KisPaintingAssistantHandleSP> &handles, bool isAssistantComplete, PkPolygonF& outPolygon);
 
     // creates a fully connected tetragon (as in, every vertex is connected to every other vertex)
     // this is useful for drawing a wrong state in perspective-based assistants (when one vertex is inside the triangle created by the rest of them)
-    static QPolygonF getAllConnectedTetragon(const QList<KisPaintingAssistantHandleSP>& handles);
+    static PkPolygonF getAllConnectedTetragon(const PkList<KisPaintingAssistantHandleSP>& handles);
 
     // distance in Perspective grid
     // used for calculating the Perspective sensor
-    static qreal distanceInGrid(const QList<KisPaintingAssistantHandleSP>& handles, bool isAssistantComplete, const QPointF &point);
+    static qreal distanceInGrid(const PkList<KisPaintingAssistantHandleSP>& handles, bool isAssistantComplete, const PkPointF &point);
 
     // distance in Perspective grid
     // used for calculating the Perspective sensor
-    static qreal distanceInGrid(const CacheData& cache, const QPointF &point);
+    static qreal distanceInGrid(const CacheData& cache, const PkPointF &point);
 
-    static void updateCacheData(CacheData& cache, const QPolygonF& poly);
+    static void updateCacheData(CacheData& cache, const PkPolygonF& poly);
 
     // vp1 - vp for lines 0-1 and 2-3
     // vp2 - vp for lines 1-2 and 3-0
-    static bool getVanishingPointsOptional(const QPolygonF &poly, boost::optional<QPointF>& vp1, boost::optional<QPointF>& vp2);
+    static bool getVanishingPointsOptional(const PkPolygonF &poly, boost::optional<PkPointF>& vp1, boost::optional<PkPointF>& vp2);
 
 
 
-    static qreal localScale(const QTransform& transform, QPointF pt);
+    static qreal localScale(const PkTransform& transform, PkPointF pt);
 
     // returns the reciprocal of the maximum local scale at the points (0,0),(0,1),(1,0),(1,1)
-    static qreal inverseMaxLocalScale(const QTransform& transform);
+    static qreal inverseMaxLocalScale(const PkTransform& transform);
 
 
     // *** small helper functions ***
@@ -89,7 +89,7 @@ public:
     // it's basically a dot product between vector A(xa, ya) and vector B'(xb, -yb)
     // or a dot product between vector A'(xa, -ya) and vector B(xb, yb)
     // if it's needed elsewhere in Krita too, you can move it to KisAlgebra2D
-    static qreal pdot(const QPointF& a, const QPointF& b);
+    static qreal pdot(const PkPointF& a, const PkPointF& b);
 
 };
 

@@ -12,7 +12,7 @@
 Ellipse::Ellipse() : a(-1), b(-1)
 {
 }
-Ellipse::Ellipse(const QPointF& _p1, const QPointF& _p2, const QPointF& _p3) : p1(_p1), p2(_p2), p3(_p3) {
+Ellipse::Ellipse(const PkPointF& _p1, const PkPointF& _p2, const PkPointF& _p3) : p1(_p1), p2(_p2), p3(_p3) {
     changeMajor();
 }
 
@@ -20,7 +20,7 @@ Ellipse::~Ellipse()
 {
 }
 
-bool Ellipse::set(const QPointF& m1, const QPointF& m2, const QPointF& p)
+bool Ellipse::set(const PkPointF& m1, const PkPointF& m2, const PkPointF& p)
 {
     bool changedMajor = m1 != p1 || m2 != p2,
          changedMinor = !changedMajor && p != p3;
@@ -36,10 +36,10 @@ bool Ellipse::set(const QPointF& m1, const QPointF& m2, const QPointF& p)
     }
 }
 
-QPointF Ellipse::project(const QPointF& pt) const
+PkPointF Ellipse::project(const PkPointF& pt) const
 {
     if (a <= 0 || b <= 0) return pt; // not a valid ellipse
-    QPointF p = matrix.map(pt);
+    PkPointF p = matrix.map(pt);
     /*
      * intersect line from (0,0) to p with the ellipse in canonical position
      * the equation of the line is y = py/px x
@@ -48,38 +48,38 @@ QPointF Ellipse::project(const QPointF& pt) const
      * y=(a*b*py)/sqrt(a^2*py^2+b^2*px^2)
      */
     const qreal divisor = sqrt(a * a * p.y() * p.y() + b * b * p.x() * p.x());
-    if (divisor <= 0) return inverse.map(QPointF(a, 0)); // give up
+    if (divisor <= 0) return inverse.map(PkPointF(a, 0)); // give up
     const qreal ab = a * b, factor = 1.0 / divisor;
-    QPointF ep(ab * p.x() * factor, ab * p.y() * factor);
+    PkPointF ep(ab * p.x() * factor, ab * p.y() * factor);
     return inverse.map(ep);
 /*    return inverse.map(closest(matrix.map(pt)));*/
 }
 
-inline QPointF rotate90(const QPointF& p) {
-    return QPointF(p.y(), -p.x());
+inline PkPointF rotate90(const PkPointF& p) {
+    return PkPointF(p.y(), -p.x());
 }
 
-QRectF Ellipse::boundingRect() const
+PkRectF Ellipse::boundingRect() const
 {
-    const QPointF d = rotate90((p2 - p1) * 0.5 * b / a);
-    const QPointF pts[4] = {
+    const PkPointF d = rotate90((p2 - p1) * 0.5 * b / a);
+    const PkPointF pts[4] = {
         p1 + d,
         p1 - d,
         p2 + d,
         p2 - d
     };
-    QRectF ret;
+    PkRectF ret;
     for (int i = 0; i < 4; ++i) {
-        ret = ret.united(QRectF(pts[i], QSizeF(0.0001, 0.0001)));
+        ret = ret.united(PkRectF(pts[i], PkSizeF(0.0001, 0.0001)));
     }
     return ret;
 }
 
-inline qreal sqrlength(const QPointF& vec)
+inline qreal sqrlength(const PkPointF& vec)
 {
     return vec.x() * vec.x() + vec.y() * vec.y();
 }
-inline qreal length(const QPointF& vec)
+inline qreal length(const PkPointF& vec)
 {
     return sqrt(vec.x() * vec.x() + vec.y() * vec.y());
 }
@@ -136,7 +136,7 @@ bool Ellipse::changeMajor()
         dx = (x1*(-x2*x2p) + y1*(-x2p*y2 - x1p*y2) + x2p*y1sqr + x1sqr*x2p + x1p*(y2sqr + x2sqr - x1*x2)) * factor,
         dy = (x1*(x2p*y2) + y1*(-x2*x2p + x2*x1p) - x1*x1p*y2) * factor;
     
-    matrix = QTransform(m11, m12, -m12, m11, dx, dy);
+    matrix = PkTransform(m11, m12, -m12, m11, dx, dy);
     inverse = matrix.inverted();
 
     return changeMinor();
@@ -144,7 +144,7 @@ bool Ellipse::changeMajor()
 
 bool Ellipse::changeMinor()
 {
-    QPointF p = matrix.map(p3);
+    PkPointF p = matrix.map(p3);
 
     /*
      * ellipse formula:
@@ -165,16 +165,16 @@ bool Ellipse::changeMinor()
     return true;
 }
 
-bool Ellipse::setMajor1(const QPointF& p)
+bool Ellipse::setMajor1(const PkPointF& p)
 {
     p1 = p;
     return changeMajor();
 }
-bool Ellipse::setMajor2(const QPointF& p) {
+bool Ellipse::setMajor2(const PkPointF& p) {
     p2 = p;
     return changeMajor();
 }
-bool Ellipse::setPoint(const QPointF& p)
+bool Ellipse::setPoint(const PkPointF& p)
 {
     p3 = p;
     return changeMinor();

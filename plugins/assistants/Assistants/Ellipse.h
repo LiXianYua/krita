@@ -7,29 +7,29 @@
 #ifndef _ELLIPSE_H_
 #define _ELLIPSE_H_
 
-#include <QPointF>
-#include <QTransform>
+#include <PkPoint.h>
+#include <PkTransform.h>
 
 class Ellipse
 {
 public:
     Ellipse();
-    Ellipse(const QPointF& p1, const QPointF& p2, const QPointF& p3);
+    Ellipse(const PkPointF& p1, const PkPointF& p2, const PkPointF& p3);
     ~Ellipse();
     
-    QPointF project(const QPointF&) const; // find a close point on the ellipse
-    QRectF boundingRect() const; // find an axis-aligned box bounding this ellipse (inexact)
+    PkPointF project(const PkPointF&) const; // find a close point on the ellipse
+    PkRectF boundingRect() const; // find an axis-aligned box bounding this ellipse (inexact)
     
-    bool set(const QPointF& m1, const QPointF& m2, const QPointF& p); // set all points
+    bool set(const PkPointF& m1, const PkPointF& m2, const PkPointF& p); // set all points
     
-    const QPointF& major1() const { return p1; }
-    bool setMajor1(const QPointF& p);
-    const QPointF& major2() const { return p2; }
-    bool setMajor2(const QPointF& p);
-    const QPointF& point() const { return p3; }
-    bool setPoint(const QPointF& p);
-    const QTransform& getTransform() const { return matrix; }
-    const QTransform& getInverse() const { return inverse; }
+    const PkPointF& major1() const { return p1; }
+    bool setMajor1(const PkPointF& p);
+    const PkPointF& major2() const { return p2; }
+    bool setMajor2(const PkPointF& p);
+    const PkPointF& point() const { return p3; }
+    bool setPoint(const PkPointF& p);
+    const PkTransform& getTransform() const { return matrix; }
+    const PkTransform& getInverse() const { return inverse; }
     qreal semiMajor() const { return a; }
     qreal semiMinor() const { return b; }
     
@@ -37,15 +37,15 @@ private:
     bool changeMajor(); // determine 'a', 'b', 'matrix' and 'inverse'
     bool changeMinor(); // determine 'b'
     
-    QTransform matrix; // transformation turning p1, p2 and p3 into their corresponding points on the ellipse in canonical position
-    QTransform inverse; // inverse transformation
+    PkTransform matrix; // transformation turning p1, p2 and p3 into their corresponding points on the ellipse in canonical position
+    PkTransform inverse; // inverse transformation
     qreal a; // semi-major axis: half the distance between p1 and p2 (horizontal axis)
     qreal b; // semi-minor axis (vertical axis)
     // a may not actually be larger than b, but we don't care that much
     
-    QPointF p1;
-    QPointF p2;
-    QPointF p3;
+    PkPointF p1;
+    PkPointF p2;
+    PkPointF p3;
 };
 
 #endif

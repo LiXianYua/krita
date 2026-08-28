@@ -11,28 +11,25 @@
 
 #include "kis_painting_assistant.h"
 #include "Ellipse.h"
-#include <QObject>
 
 class EllipseAssistant : public KisPaintingAssistant
 {
 public:
     EllipseAssistant();
-    KisPaintingAssistantSP clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
-    QPointF adjustPosition(const QPointF& point, const QPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
-    void adjustLine(QPointF &point, QPointF& strokeBegin) override;
-    QPointF getDefaultEditorPosition() const override;
+    KisPaintingAssistantSP clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
+    PkPointF adjustPosition(const PkPointF& point, const PkPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
+    void adjustLine(PkPointF &point, PkPointF& strokeBegin) override;
+    PkPointF getDefaultEditorPosition() const override;
     int numHandles() const override { return 3; }
     bool isAssistantComplete() const override;
 
-    void transform(const QTransform &transform) override;
+    void transform(const PkTransform &transform) override;
 
 protected:
-    QRect boundingRect() const override;
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible=true, bool previewVisible=true) override;
-    void drawCache(QPainter& gc, const KisCoordinatesConverter *converter,  bool assistantVisible=true) override;
+    PkRect boundingRect() const override;
 private:
-    QPointF project(const QPointF& pt) const;
-    explicit EllipseAssistant(const EllipseAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
+    PkPointF project(const PkPointF& pt) const;
+    explicit EllipseAssistant(const EllipseAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
     mutable Ellipse e;
 };
 
@@ -41,8 +38,8 @@ class EllipseAssistantFactory : public KisPaintingAssistantFactory
 public:
     EllipseAssistantFactory();
     ~EllipseAssistantFactory() override;
-    QString id() const override;
-    QString name() const override;
+    PkString id() const override;
+    PkString name() const override;
     KisPaintingAssistant* createPaintingAssistant() const override;
 };
 

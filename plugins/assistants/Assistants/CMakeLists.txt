@@ -27,7 +27,10 @@ set(kritaassistanttool_UI_SOURCES
     PerspectiveEllipseAssistant.cc
 )
 
-kis_add_library(kritaassistanttool_static STATIC ${kritaassistanttool_GEOMETRY_SOURCES})
+kis_add_library(kritaassistanttool_static STATIC
+    ${kritaassistanttool_GEOMETRY_SOURCES}
+    ${kritaassistanttool_UI_SOURCES}
+)
 
 generate_export_header(kritaassistanttool_static BASE_NAME kritaassistanttool EXPORT_MACRO_NAME KRITAASSISTANTTOOL_EXPORT)
 
@@ -39,14 +42,17 @@ target_include_directories(kritaassistanttool_static
 
 target_link_libraries(kritaassistanttool_static
     PUBLIC
-        kritaflake
-        kritaimage
+        Boost::boost
+        kritaglobal
+        kritastore
+        pkcolor
     PRIVATE
-        kritacanvas
-        KF${KF_MAJOR}::ConfigCore
+        Eigen3::Eigen
 )
+set_target_properties(kritaassistanttool_static PROPERTIES AUTOMOC OFF)
 
-kis_add_library(kritaassistanttool MODULE assistant_tool.cc ${kritaassistanttool_UI_SOURCES})
-target_link_libraries(kritaassistanttool kritaassistanttool_static kritacanvas)
+kis_add_library(kritaassistanttool MODULE assistant_tool.cc)
+target_link_libraries(kritaassistanttool PRIVATE kritaassistanttool_static)
+set_target_properties(kritaassistanttool PROPERTIES AUTOMOC OFF)
 
 install(TARGETS kritaassistanttool  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

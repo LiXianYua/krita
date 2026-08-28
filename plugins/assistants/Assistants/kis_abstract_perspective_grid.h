@@ -9,27 +9,23 @@
 #ifndef KIS_ABSTRACT_PERSPECTIVE_GRID_H
 #define KIS_ABSTRACT_PERSPECTIVE_GRID_H
 
-#include <QPointF>
-#include <QObject>
+#include <PkPoint.h>
 
 #include <kritaassistanttool_export.h>
 
-class KRITAASSISTANTTOOL_EXPORT KisAbstractPerspectiveGrid : public QObject
+class KRITAASSISTANTTOOL_EXPORT KisAbstractPerspectiveGrid
 {
-    Q_OBJECT
 public:
+    KisAbstractPerspectiveGrid() = default;
+    virtual ~KisAbstractPerspectiveGrid() = default;
 
-    KisAbstractPerspectiveGrid(QObject * parent = 0);
-
-    ~KisAbstractPerspectiveGrid() override {}
-
-    virtual bool contains(const QPointF& pt) const = 0;
+    virtual bool contains(const PkPointF& pt) const = 0;
     /**
      * Returns the reciprocal of the distance from the given point
      * to the 'observer', in the range [0, 1] where 0 = infinite
      * distance and 1 = closest.
      */
-    virtual qreal distance(const QPointF& pt) const = 0;
+    virtual qreal distance(const PkPointF& pt) const = 0;
 
     virtual bool isActive() const = 0;
 };

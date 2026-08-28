@@ -8,135 +8,59 @@
 
 #include "EllipseAssistant.h"
 
-#include <klocalizedstring.h>
-#include "kis_debug.h"
-#include <QPainter>
-#include <QPainterPath>
-#include <QLinearGradient>
-#include <QTransform>
-#include <QCursor>
+#include <PkTransform.h>
 
-#include <kis_coordinates_converter.h>
 #include "kis_algebra_2d.h"
 
 #include <math.h>
 
 EllipseAssistant::EllipseAssistant()
-        : KisPaintingAssistant("ellipse", i18n("Ellipse assistant"))
+        : KisPaintingAssistant("ellipse", PkString("Ellipse assistant"))
 {
 }
 
-EllipseAssistant::EllipseAssistant(const EllipseAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
+EllipseAssistant::EllipseAssistant(const EllipseAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
     : KisPaintingAssistant(rhs, handleMap)
     , e(rhs.e)
 {
 }
 
-KisPaintingAssistantSP EllipseAssistant::clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
+KisPaintingAssistantSP EllipseAssistant::clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
 {
     return KisPaintingAssistantSP(new EllipseAssistant(*this, handleMap));
 }
 
-QPointF EllipseAssistant::project(const QPointF& pt) const
+PkPointF EllipseAssistant::project(const PkPointF& pt) const
 {
-    Q_ASSERT(isAssistantComplete());
+    assert(isAssistantComplete());
     e.set(*handles()[0], *handles()[1], *handles()[2]);
     return e.project(pt);
 }
 
-QPointF EllipseAssistant::adjustPosition(const QPointF& pt, const QPointF& /*strokeBegin*/, const bool /*snapToAny*/, qreal /*moveThresholdPt*/)
+PkPointF EllipseAssistant::adjustPosition(const PkPointF& pt, const PkPointF& /*strokeBegin*/, const bool /*snapToAny*/, qreal /*moveThresholdPt*/)
 {
     return project(pt);
 
 }
 
-void EllipseAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
+void EllipseAssistant::adjustLine(PkPointF &point, PkPointF &strokeBegin)
 {
-    const QPointF p1 = point;
-    const QPointF p2 = strokeBegin;
+    const PkPointF p1 = point;
+    const PkPointF p2 = strokeBegin;
 
-    Q_ASSERT(isAssistantComplete());
+    assert(isAssistantComplete());
     e.set(*handles()[0], *handles()[1], *handles()[2]);
 
-    QPointF p3 = e.project(p1);
-    QPointF p4 = e.project(p2);
+    PkPointF p3 = e.project(p1);
+    PkPointF p4 = e.project(p2);
     point = p3;
     strokeBegin = p4;
 }
 
-void EllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
-{
-    gc.save();
-    gc.resetTransform();
-    QPoint mousePos;
-    
-    if (canvas){
-        //simplest, cheapest way to get the mouse-position//
-        mousePos = canvas->paintingAssistantCursorPosition();
-    }
-    else {
-        //...of course, you need to have access to a canvas-widget for that.//
-        mousePos = QCursor::pos();//this'll give an offset//
-        dbgFile<<"canvas does not exist in the ellipse assistant, you may have passed arguments incorrectly:"<<canvas;
-    }
-
-    QTransform initialTransform = converter->documentToWidgetTransform();
-
-    if (isSnappingActive() && boundingRect().contains(initialTransform.inverted().map(mousePos), false) && previewVisible==true){
-
-        if (isAssistantComplete()){
-            if (e.set(*handles()[0], *handles()[1], *handles()[2])) {
-                // valid ellipse
-                gc.setTransform(initialTransform);
-                gc.setTransform(e.getInverse(), true);
-                QPainterPath path;
-                //path.moveTo(QPointF(-e.semiMajor(), 0)); path.lineTo(QPointF(e.semiMajor(), 0));
-                //path.moveTo(QPointF(0, -e.semiMinor())); path.lineTo(QPointF(0, e.semiMinor()));
-                // Draw the ellipse
-                path.addEllipse(QPointF(0, 0), e.semiMajor(), e.semiMinor());
-                drawPreview(gc, path);
-            }
-        }
-    }
-    gc.restore();
-    KisPaintingAssistant::drawAssistant(gc, updateRect, converter, cached, canvas, assistantVisible, previewVisible);
-
-}
 
 
-void EllipseAssistant::drawCache(QPainter& gc, const KisCoordinatesConverter *converter, bool assistantVisible)
-{
 
-    if (assistantVisible == false || handles().size() < 2){
-        return;
-    }
-
-    QTransform initialTransform = converter->documentToWidgetTransform();
-
-    if (handles().size() == 2) {
-        // just draw the axis
-        gc.setTransform(initialTransform);
-        QPainterPath path;
-        path.moveTo(*handles()[0]);
-        path.lineTo(*handles()[1]);
-        drawPath(gc, path, isSnappingActive());
-        return;
-    }
-    if (e.set(*handles()[0], *handles()[1], *handles()[2])) {
-        // valid ellipse
-
-        gc.setTransform(initialTransform);
-        gc.setTransform(e.getInverse(), true);
-        QPainterPath path;
-        path.moveTo(QPointF(-e.semiMajor(), 0)); path.lineTo(QPointF(e.semiMajor(), 0));
-        path.moveTo(QPointF(0, -e.semiMinor())); path.lineTo(QPointF(0, e.semiMinor()));
-        // Draw the ellipse
-        path.addEllipse(QPointF(0, 0), e.semiMajor(), e.semiMinor());
-        drawPath(gc, path, isSnappingActive());
-    }
-}
-
-QRect EllipseAssistant::boundingRect() const
+PkRect EllipseAssistant::boundingRect() const
 {
     if (!isAssistantComplete()) {
         return KisPaintingAssistant::boundingRect();
@@ -145,11 +69,11 @@ QRect EllipseAssistant::boundingRect() const
     if (e.set(*handles()[0], *handles()[1], *handles()[2])) {
         return e.boundingRect().adjusted(-2, -2, 2, 2).toAlignedRect();
     } else {
-        return QRect();
+        return PkRect();
     }
 }
 
-QPointF EllipseAssistant::getDefaultEditorPosition() const
+PkPointF EllipseAssistant::getDefaultEditorPosition() const
 {
     return (*handles()[0] + *handles()[1]) * 0.5;
 }
@@ -159,18 +83,18 @@ bool EllipseAssistant::isAssistantComplete() const
     return handles().size() >= 3;
 }
 
-void EllipseAssistant::transform(const QTransform &transform)
+void EllipseAssistant::transform(const PkTransform &transform)
 {
     e.set(*handles()[0], *handles()[1], *handles()[2]);
 
-    QPointF newAxes;
-    QTransform newTransform;
+    PkPointF newAxes;
+    PkTransform newTransform;
 
-    std::tie(newAxes, newTransform) = KisAlgebra2D::transformEllipse(QPointF(e.semiMajor(), e.semiMinor()), e.getInverse() * transform);
+    std::tie(newAxes, newTransform) = KisAlgebra2D::transformEllipse(PkPointF(e.semiMajor(), e.semiMinor()), e.getInverse() * transform);
 
-    const QPointF p1 = newTransform.map(QPointF(newAxes.x(), 0));
-    const QPointF p2 = newTransform.map(QPointF(-newAxes.x(), 0));
-    const QPointF p3 = newTransform.map(QPointF(0, newAxes.y()));
+    const PkPointF p1 = newTransform.map(PkPointF(newAxes.x(), 0));
+    const PkPointF p2 = newTransform.map(PkPointF(-newAxes.x(), 0));
+    const PkPointF p3 = newTransform.map(PkPointF(0, newAxes.y()));
 
     *handles()[0] = p1;
     *handles()[1] = p2;
@@ -187,14 +111,14 @@ EllipseAssistantFactory::~EllipseAssistantFactory()
 {
 }
 
-QString EllipseAssistantFactory::id() const
+PkString EllipseAssistantFactory::id() const
 {
     return "ellipse";
 }
 
-QString EllipseAssistantFactory::name() const
+PkString EllipseAssistantFactory::name() const
 {
-    return i18n("Ellipse");
+    return PkString("Ellipse");
 }
 
 KisPaintingAssistant* EllipseAssistantFactory::createPaintingAssistant() const

@@ -1,50 +1,58 @@
 /*
  * SPDX-FileCopyrightText: 2008 Cyrille Berger <cberger@cberger.net>
- *
- *  SPDX-License-Identifier: LGPL-2.0-or-later
+ * SPDX-License-Identifier: LGPL-2.0-or-later
  */
+
 #include "assistant_tool.h"
 
-#include <kpluginfactory.h>
-#include <kis_coordinates_converter.h>
-#include <kis_algebra_2d.h>
-#include "RulerAssistant.h"
+#include "ConcentricEllipseAssistant.h"
+#include "CurvilinearPerspectiveAssistant.h"
 #include "EllipseAssistant.h"
-#include "SplineAssistant.h"
-#include "PerspectiveAssistant.h"
-#include "VanishingPointAssistant.h"
+#include "FisheyePointAssistant.h"
 #include "InfiniteRulerAssistant.h"
 #include "ParallelRulerAssistant.h"
-#include "ConcentricEllipseAssistant.h"
-#include "FisheyePointAssistant.h"
-#include "TwoPointAssistant.h"
+#include "PerspectiveAssistant.h"
 #include "PerspectiveEllipseAssistant.h"
-#include "CurvilinearPerspectiveAssistant.h"
-//#include "mesh_assistant.h"
+#include "RulerAssistant.h"
+#include "SplineAssistant.h"
+#include "TwoPointAssistant.h"
+#include "VanishingPointAssistant.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(AssistantToolFactory, "kritaassistanttool.json", registerPlugin<AssistantToolPlugin>();)
+#include <PkString.h>
 
+#include <mutex>
 
-AssistantToolPlugin::AssistantToolPlugin(QObject *parent, const QVariantList &)
-        : QObject(parent)
+PkString assistantToolPluginId()
 {
-    KisPaintingAssistantFactoryRegistry::instance()->add(new RulerAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new EllipseAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new SplineAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new PerspectiveAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new VanishingPointAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new InfiniteRulerAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new ParallelRulerAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new ConcentricEllipseAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new FisheyePointAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new TwoPointAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new PerspectiveEllipseAssistantFactory);
-    KisPaintingAssistantFactoryRegistry::instance()->add(new CurvilinearPerspectiveAssistantFactory);
-//    KisPaintingAssistantFactoryRegistry::instance()->add(new MeshAssistantFactory);
+    return PkString("AssistantTool");
 }
 
-AssistantToolPlugin::~AssistantToolPlugin()
+void registerAssistantFactories()
 {
+    static std::once_flag once;
+    std::call_once(once, [] {
+        KisPaintingAssistantFactoryRegistry *registry = KisPaintingAssistantFactoryRegistry::instance();
+        registry->add(new RulerAssistantFactory);
+        registry->add(new EllipseAssistantFactory);
+        registry->add(new SplineAssistantFactory);
+        registry->add(new PerspectiveAssistantFactory);
+        registry->add(new VanishingPointAssistantFactory);
+        registry->add(new InfiniteRulerAssistantFactory);
+        registry->add(new ParallelRulerAssistantFactory);
+        registry->add(new ConcentricEllipseAssistantFactory);
+        registry->add(new FisheyePointAssistantFactory);
+        registry->add(new TwoPointAssistantFactory);
+        registry->add(new PerspectiveEllipseAssistantFactory);
+        registry->add(new CurvilinearPerspectiveAssistantFactory);
+    });
 }
 
-#include "assistant_tool.moc"
+namespace
+{
+struct AssistantFactoryRegistration
+{
+    AssistantFactoryRegistration() { registerAssistantFactories(); }
+};
+
+const AssistantFactoryRegistration registration;
+}

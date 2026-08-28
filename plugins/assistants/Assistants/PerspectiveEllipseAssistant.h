@@ -8,38 +8,35 @@
 #include "kis_abstract_perspective_grid.h"
 #include "kis_painting_assistant.h"
 #include "Ellipse.h"
-#include <QObject>
+#include <PkScopedPointer.h>
 
 class PerspectiveEllipseAssistant : public KisAbstractPerspectiveGrid, public KisPaintingAssistant
 {
-    Q_OBJECT
 public:
-    PerspectiveEllipseAssistant(QObject * parent = 0);
+    PerspectiveEllipseAssistant();
     ~PerspectiveEllipseAssistant();
 
 
-    KisPaintingAssistantSP clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
-    QPointF adjustPosition(const QPointF& point, const QPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
-    void adjustLine(QPointF &point, QPointF& strokeBegin) override;
+    KisPaintingAssistantSP clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
+    PkPointF adjustPosition(const PkPointF& point, const PkPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
+    void adjustLine(PkPointF &point, PkPointF& strokeBegin) override;
     
-    QPointF getDefaultEditorPosition() const override;
+    PkPointF getDefaultEditorPosition() const override;
     int numHandles() const override { return 4; }
     bool isAssistantComplete() const override;
 
     // implements KisAbstractPerspectiveGrid
-    bool contains(const QPointF& point) const override;
-    qreal distance(const QPointF& point) const override;
+    bool contains(const PkPointF& point) const override;
+    qreal distance(const PkPointF& point) const override;
     bool isActive() const  override;
     
 protected:
-    QRect boundingRect() const override;
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible=true, bool previewVisible=true) override;
-    void drawCache(QPainter& gc, const KisCoordinatesConverter *converter,  bool assistantVisible=true) override;
+    PkRect boundingRect() const override;
 private:
-    QPointF project(const QPointF& pt, const QPointF& strokeBegin);
+    PkPointF project(const PkPointF& pt, const PkPointF& strokeBegin);
 
     // finds the transform from perspective coordinates (a unit square) to the document
-    bool getTransform(QPolygonF& polyOut, QTransform& transformOut);
+    bool getTransform(PkPolygonF& polyOut, PkTransform& transformOut);
 
 
     bool isEllipseValid();
@@ -47,11 +44,11 @@ private:
 
 
      
-    explicit PerspectiveEllipseAssistant(const PerspectiveEllipseAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
+    explicit PerspectiveEllipseAssistant(const PerspectiveEllipseAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
 
 
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
     
 };
 
@@ -60,8 +57,8 @@ class PerspectiveEllipseAssistantFactory : public KisPaintingAssistantFactory
 public:
     PerspectiveEllipseAssistantFactory();
     ~PerspectiveEllipseAssistantFactory() override;
-    QString id() const override;
-    QString name() const override;
+    PkString id() const override;
+    PkString name() const override;
     KisPaintingAssistant* createPaintingAssistant() const override;
 };
 

@@ -9,7 +9,7 @@
 #ifndef _RULER_ASSISTANT_H_
 #define _RULER_ASSISTANT_H_
 
-#include <QMap>
+#include <PkMap.h>
 
 #include "kis_painting_assistant.h"
 
@@ -19,14 +19,14 @@ class RulerAssistant : public KisPaintingAssistant
 {
 public:
     RulerAssistant();
-    KisPaintingAssistantSP clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
-    QPointF adjustPosition(const QPointF& point, const QPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
-    void adjustLine(QPointF &point, QPointF& strokeBegin) override;
-    QPointF getDefaultEditorPosition() const override;
+    KisPaintingAssistantSP clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const override;
+    PkPointF adjustPosition(const PkPointF& point, const PkPointF& strokeBegin, const bool snapToAny, qreal moveThresholdPt) override;
+    void adjustLine(PkPointF &point, PkPointF& strokeBegin) override;
+    PkPointF getDefaultEditorPosition() const override;
     int numHandles() const override { return 2; }
     bool isAssistantComplete() const override;
-    void saveCustomXml(QXmlStreamWriter *xml) override;
-    bool loadCustomXml(QXmlStreamReader *xml) override;
+    void saveCustomXml(PkXmlStreamWriter *xml) override;
+    bool loadCustomXml(PkXmlStreamReader *xml) override;
     
     int subdivisions() const;
     void setSubdivisions(int subdivisions);
@@ -36,27 +36,22 @@ public:
     void enableFixedLength(bool enabled);
     qreal fixedLength() const;
     void setFixedLength(qreal length);
-    QString fixedLengthUnit() const;
-    void setFixedLengthUnit(QString unit);
+    PkString fixedLengthUnit() const;
+    void setFixedLengthUnit(PkString unit);
     
     void ensureLength();
 
 protected:
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible=true, bool previewVisible=true) override;
-    void drawCache(QPainter& gc, const KisCoordinatesConverter *converter,  bool assistantVisible=true) override;
-    explicit RulerAssistant(const QString& id, const QString& name);
-    explicit RulerAssistant(const RulerAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
+    explicit RulerAssistant(const PkString& id, const PkString& name);
+    explicit RulerAssistant(const RulerAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
 
   private:
-    QPointF project(const QPointF& pt) const;
-    void drawSubdivisions(QPainter& gc, const KisCoordinatesConverter *converter);
-    void drawHandleAnnotations(QPainter& gc, const KisCoordinatesConverter *converter);
-    
+    PkPointF project(const PkPointF& pt) const;
     int m_subdivisions {0};
     int m_minorSubdivisions {0};
     bool m_hasFixedLength {false};
     qreal m_fixedLength {0.0};
-    QString m_fixedLengthUnit {"px"};
+    PkString m_fixedLengthUnit {"px"};
 };
 
 class RulerAssistantFactory : public KisPaintingAssistantFactory
@@ -64,8 +59,8 @@ class RulerAssistantFactory : public KisPaintingAssistantFactory
 public:
     RulerAssistantFactory();
     ~RulerAssistantFactory() override;
-    QString id() const override;
-    QString name() const override;
+    PkString id() const override;
+    PkString name() const override;
     KisPaintingAssistant* createPaintingAssistant() const override;
 };
 

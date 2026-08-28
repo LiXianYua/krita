@@ -9,50 +9,44 @@
 
 #include "ParallelRulerAssistant.h"
 
-#include "kis_debug.h"
-#include <klocalizedstring.h>
 
-#include <QPainter>
-#include <QPainterPath>
-#include <QLinearGradient>
-#include <QTransform>
+#include <PkTransform.h>
 
-#include <kis_coordinates_converter.h>
 #include <kis_algebra_2d.h>
 #include <kis_dom_utils.h>
 
 #include <math.h>
 
 ParallelRulerAssistant::ParallelRulerAssistant()
-    : KisPaintingAssistant("parallel ruler", i18n("Parallel Ruler assistant"))
+    : KisPaintingAssistant("parallel ruler", PkString("Parallel Ruler assistant"))
 {
 }
 
-KisPaintingAssistantSP ParallelRulerAssistant::clone(QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
+KisPaintingAssistantSP ParallelRulerAssistant::clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
 {
     return KisPaintingAssistantSP(new ParallelRulerAssistant(*this, handleMap));
 }
 
-ParallelRulerAssistant::ParallelRulerAssistant(const ParallelRulerAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
+ParallelRulerAssistant::ParallelRulerAssistant(const ParallelRulerAssistant &rhs, PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
     : KisPaintingAssistant(rhs, handleMap)
 {
 }
 
-QPointF ParallelRulerAssistant::project(const QPointF& pt, const QPointF& strokeBegin, qreal /*moveThresholdPt*/)
+PkPointF ParallelRulerAssistant::project(const PkPointF& pt, const PkPointF& strokeBegin, qreal /*moveThresholdPt*/)
 {
-    Q_ASSERT(isAssistantComplete());
+    assert(isAssistantComplete());
 
     if (isLocal() && isAssistantComplete()) {
         if (getLocalRect().contains(pt)) {
             m_hasBeenInsideLocalRect = true;
         } else if (isLocal() && !m_hasBeenInsideLocalRect) {
-            return QPointF(qQNaN(), qQNaN());
+            return PkPointF(qQNaN(), qQNaN());
         }
     }
 
     //dbgKrita<<strokeBegin<< ", " <<*handles()[0];
-    QLineF snapLine = QLineF(*handles()[0], *handles()[1]);
-    QPointF translation = (*handles()[0]-strokeBegin)*-1.0;
+    PkLineF snapLine = PkLineF(*handles()[0], *handles()[1]);
+    PkPointF translation = (*handles()[0]-strokeBegin)*-1.0;
     snapLine = snapLine.translated(translation);
 
     qreal dx = snapLine.dx();
@@ -62,91 +56,23 @@ QPointF ParallelRulerAssistant::project(const QPointF& pt, const QPointF& stroke
             dx2 = dx * dx,
             dy2 = dy * dy,
             invsqrlen = 1.0 / (dx2 + dy2);
-    QPointF r(dx2 * pt.x() + dy2 * snapLine.x1() + dx * dy * (pt.y() - snapLine.y1()),
+    PkPointF r(dx2 * pt.x() + dy2 * snapLine.x1() + dx * dy * (pt.y() - snapLine.y1()),
               dx2 * snapLine.y1() + dy2 * pt.y() + dx * dy * (pt.x() - snapLine.x1()));
     r *= invsqrlen;
     return r;
 }
 
-QPointF ParallelRulerAssistant::adjustPosition(const QPointF& pt, const QPointF& strokeBegin, const bool /*snapToAny*/, qreal moveThresholdPt)
+PkPointF ParallelRulerAssistant::adjustPosition(const PkPointF& pt, const PkPointF& strokeBegin, const bool /*snapToAny*/, qreal moveThresholdPt)
 {
     return project(pt, strokeBegin, moveThresholdPt);
 }
 
-void ParallelRulerAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
+void ParallelRulerAssistant::adjustLine(PkPointF &point, PkPointF &strokeBegin)
 {
     point = project(point, strokeBegin, 0.0);
 }
 
-void ParallelRulerAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
-{
-    gc.save();
-    gc.resetTransform();
 
-    QTransform initialTransform = converter->documentToWidgetTransform();
-    QRectF local = getLocalRect();
-    QRectF localTransformed = initialTransform.mapRect(local);
-    const QRect viewport= gc.viewport();
-    QPolygonF viewportAndLocal = !localTransformed.isEmpty() ? QPolygonF(QRectF(viewport)).intersected(localTransformed) : QRectF(viewport);
-
-
-
-    if (assistantVisible && isLocal() && isAssistantComplete()) {
-        QPainterPath path;
-        // note: be careful; bottom and right only work with RectF, not Rect
-        path.moveTo(initialTransform.map(local.topLeft()));
-
-        path.lineTo(initialTransform.map(local.topRight()));
-        path.lineTo(initialTransform.map(local.bottomRight()));
-        path.lineTo(initialTransform.map(local.bottomLeft()));
-        path.lineTo(initialTransform.map(local.topLeft()));
-        drawPath(gc, path, isSnappingActive());//and we draw the preview.
-    }
-
-
-    if (isAssistantComplete() && isSnappingActive() && previewVisible==true) {
-        //don't draw if invalid.
-        QLineF snapLine= QLineF(initialTransform.map(*handles()[0]), initialTransform.map(*handles()[1]));
-
-        QPointF mousePos = effectiveBrushPosition(converter, canvas);
-
-        QPointF translation = (initialTransform.map(*handles()[0])-mousePos)*-1.0;
-        snapLine= snapLine.translated(translation);
-
-        KisAlgebra2D::cropLineToConvexPolygon(snapLine, viewportAndLocal, true, true);
-
-
-        QPainterPath path;
-        path.moveTo(snapLine.p1());
-        path.lineTo(snapLine.p2());
-
-        drawPreview(gc, path);//and we draw the preview.
-    }
-    gc.restore();
-
-    KisPaintingAssistant::drawAssistant(gc, updateRect, converter, cached, canvas, assistantVisible, previewVisible);
-
-}
-
-void ParallelRulerAssistant::drawCache(QPainter& gc, const KisCoordinatesConverter *converter, bool assistantVisible)
-{
-    if (assistantVisible == false || handles().size() < 2) {
-        return;
-    }
-
-    QTransform initialTransform = converter->documentToWidgetTransform();
-
-    // Draw the line
-    QPointF p1 = *handles()[0];
-    QPointF p2 = *handles()[1];
-
-    gc.setTransform(initialTransform);
-    QPainterPath path;
-    path.moveTo(p1);
-    path.lineTo(p2);
-    drawPath(gc, path, isSnappingActive());
-
-}
 
 KisPaintingAssistantHandleSP ParallelRulerAssistant::firstLocalHandle() const
 {
@@ -158,7 +84,7 @@ KisPaintingAssistantHandleSP ParallelRulerAssistant::secondLocalHandle() const
     return handles().size() > 3 ? handles()[3] : 0;
 }
 
-QPointF ParallelRulerAssistant::getDefaultEditorPosition() const
+PkPointF ParallelRulerAssistant::getDefaultEditorPosition() const
 {
     if (handles().size() > 1) {
         return (*handles()[0] + *handles()[1]) * 0.5;
@@ -166,8 +92,8 @@ QPointF ParallelRulerAssistant::getDefaultEditorPosition() const
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(false, *handles()[0]);
         return *handles()[0];
     } else {
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(false, QPointF(0, 0));
-        return QPointF(0, 0);
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(false, PkPointF(0, 0));
+        return PkPointF(0, 0);
     }
 }
 
@@ -181,17 +107,17 @@ bool ParallelRulerAssistant::canBeLocal() const
     return true;
 }
 
-void ParallelRulerAssistant::saveCustomXml(QXmlStreamWriter *xml)
+void ParallelRulerAssistant::saveCustomXml(PkXmlStreamWriter *xml)
 {
     xml->writeStartElement("isLocal");
     xml->writeAttribute("value", KisDomUtils::toString( (int)this->isLocal()));
     xml->writeEndElement();
 }
 
-bool ParallelRulerAssistant::loadCustomXml(QXmlStreamReader *xml)
+bool ParallelRulerAssistant::loadCustomXml(PkXmlStreamReader *xml)
 {
     if (xml && xml->name() == "isLocal") {
-        this->setLocal((bool)KisDomUtils::toInt(xml->attributes().value("value").toString()));
+        this->setLocal((bool)KisDomUtils::toInt(xml->attributes().value("value")));
     }
     return true;
 }
@@ -204,14 +130,14 @@ ParallelRulerAssistantFactory::~ParallelRulerAssistantFactory()
 {
 }
 
-QString ParallelRulerAssistantFactory::id() const
+PkString ParallelRulerAssistantFactory::id() const
 {
     return "parallel ruler";
 }
 
-QString ParallelRulerAssistantFactory::name() const
+PkString ParallelRulerAssistantFactory::name() const
 {
-    return i18n("Parallel Ruler");
+    return PkString("Parallel Ruler");
 }
 
 KisPaintingAssistant* ParallelRulerAssistantFactory::createPaintingAssistant() const

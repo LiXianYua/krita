@@ -7,25 +7,25 @@
 #ifndef _RULER_H_
 #define _RULER_H_
 
-#include <QPointF>
+#include <PkPoint.h>
 
 class Ruler
 {
 public:
     Ruler();
     ~Ruler();
-    QPointF project(const QPointF&);
-    const QPointF& point1() const;
-    void setPoint1(const QPointF& p) {
+    PkPointF project(const PkPointF&);
+    const PkPointF& point1() const;
+    void setPoint1(const PkPointF& p) {
         p1 = p;
     }
-    const QPointF& point2() const;
-    void setPoint2(const QPointF& p) {
+    const PkPointF& point2() const;
+    void setPoint2(const PkPointF& p) {
         p2 = p;
     }
 private:
-    QPointF p1;
-    QPointF p2;
+    PkPointF p1;
+    PkPointF p2;
 };
 
 #endif

@@ -4,19 +4,18 @@
 
 #include "PerspectiveBasedAssistantHelper.h"
 
-#include <QTransform>
+#include <PkTransform.h>
 
 #include "kis_algebra_2d.h"
 #include <Eigen/Eigenvalues>
 
 #include <math.h>
-#include <QtMath>
 
 #include <functional>
 
 
 
-bool PerspectiveBasedAssistantHelper::getTetragon(const QList<KisPaintingAssistantHandleSP>& handles, bool isAssistantComplete, QPolygonF& outPolygon)
+bool PerspectiveBasedAssistantHelper::getTetragon(const PkList<KisPaintingAssistantHandleSP>& handles, bool isAssistantComplete, PkPolygonF& outPolygon)
 {
     outPolygon.clear();
     for (int i = 0; i < handles.size(); ++i) {
@@ -68,9 +67,9 @@ bool PerspectiveBasedAssistantHelper::getTetragon(const QList<KisPaintingAssista
     return true;
 }
 
-QPolygonF PerspectiveBasedAssistantHelper::getAllConnectedTetragon(const QList<KisPaintingAssistantHandleSP>& handles)
+PkPolygonF PerspectiveBasedAssistantHelper::getAllConnectedTetragon(const PkList<KisPaintingAssistantHandleSP>& handles)
 {
-    QPolygonF polyAllConnected;
+    PkPolygonF polyAllConnected;
     if (handles.size() < 4) {
         return polyAllConnected;
     }
@@ -78,13 +77,13 @@ QPolygonF PerspectiveBasedAssistantHelper::getAllConnectedTetragon(const QList<K
     return polyAllConnected;
 }
 
-qreal PerspectiveBasedAssistantHelper::localScale(const QTransform &transform, QPointF pt)
+qreal PerspectiveBasedAssistantHelper::localScale(const PkTransform &transform, PkPointF pt)
 {
     //    const qreal epsilon = 1e-5, epsilonSquared = epsilon * epsilon;
-    //    qreal xSizeSquared = lengthSquared(transform.map(pt + QPointF(epsilon, 0.0)) - orig) / epsilonSquared;
-    //    qreal ySizeSquared = lengthSquared(transform.map(pt + QPointF(0.0, epsilon)) - orig) / epsilonSquared;
-    //    xSizeSquared /= lengthSquared(transform.map(QPointF(0.0, pt.y())) - transform.map(QPointF(1.0, pt.y())));
-    //    ySizeSquared /= lengthSquared(transform.map(QPointF(pt.x(), 0.0)) - transform.map(QPointF(pt.x(), 1.0)));
+    //    qreal xSizeSquared = lengthSquared(transform.map(pt + PkPointF(epsilon, 0.0)) - orig) / epsilonSquared;
+    //    qreal ySizeSquared = lengthSquared(transform.map(pt + PkPointF(0.0, epsilon)) - orig) / epsilonSquared;
+    //    xSizeSquared /= lengthSquared(transform.map(PkPointF(0.0, pt.y())) - transform.map(PkPointF(1.0, pt.y())));
+    //    ySizeSquared /= lengthSquared(transform.map(PkPointF(pt.x(), 0.0)) - transform.map(PkPointF(pt.x(), 1.0)));
     //  when taking the limit epsilon->0:
     //  xSizeSquared=((m23*y+m33)^2*(m23*y+m33+m13)^2)/(m23*y+m13*x+m33)^4
     //  ySizeSquared=((m23*y+m33)^2*(m23*y+m33+m13)^2)/(m23*y+m13*x+m33)^4
@@ -98,7 +97,7 @@ qreal PerspectiveBasedAssistantHelper::localScale(const QTransform &transform, Q
     return fabs(a*(a + transform.m23())*b*(b + transform.m13()))/(d * d);
 }
 
-qreal PerspectiveBasedAssistantHelper::inverseMaxLocalScale(const QTransform &transform)
+qreal PerspectiveBasedAssistantHelper::inverseMaxLocalScale(const PkTransform &transform)
 {
     const qreal a = fabs((transform.m33() + transform.m13()) * (transform.m33() + transform.m23())),
             b = fabs((transform.m33()) * (transform.m13() + transform.m33() + transform.m23())),
@@ -111,19 +110,19 @@ qreal PerspectiveBasedAssistantHelper::inverseMaxLocalScale(const QTransform &tr
     return qMin(s0011, s1001);
 }
 
-qreal PerspectiveBasedAssistantHelper::distanceInGrid(const QList<KisPaintingAssistantHandleSP>& handles, bool isAssistantComplete, const QPointF &point)
+qreal PerspectiveBasedAssistantHelper::distanceInGrid(const PkList<KisPaintingAssistantHandleSP>& handles, bool isAssistantComplete, const PkPointF &point)
 {
     // TODO: make it not calculate the poly max distance over and over
     qreal defaultValue = 1;
     int vertexCount = 4;
 
-    QPolygonF poly;
+    PkPolygonF poly;
     if (!PerspectiveBasedAssistantHelper::getTetragon(handles, isAssistantComplete, poly)) {
         return defaultValue;
     }
 
-    boost::optional<QPointF> vp1;
-    boost::optional<QPointF> vp2;
+    boost::optional<PkPointF> vp1;
+    boost::optional<PkPointF> vp2;
 
     PerspectiveBasedAssistantHelper::getVanishingPointsOptional(poly, vp1, vp2);
     if (!vp1 && !vp2) {
@@ -132,12 +131,12 @@ qreal PerspectiveBasedAssistantHelper::distanceInGrid(const QList<KisPaintingAss
         // result should be:
         // dist from horizon / max dist from horizon
         // horizon is parallel to the parallel sides of the tetragon (two must be parallel if there is only one vp)
-        QLineF horizon;
+        PkLineF horizon;
         if (vp1) {
             // that means the 0-1 line is the horizon parallel line
-            horizon = QLineF(vp1.get(), vp1.get() + poly[1] - poly[0]);
+            horizon = PkLineF(vp1.get(), vp1.get() + poly[1] - poly[0]);
         } else {
-            horizon = QLineF(vp2.get(), vp2.get() + poly[2] - poly[1]);
+            horizon = PkLineF(vp2.get(), vp2.get() + poly[2] - poly[1]);
         }
 
         qreal dist = kisDistanceToLine(point, horizon);
@@ -155,7 +154,7 @@ qreal PerspectiveBasedAssistantHelper::distanceInGrid(const QList<KisPaintingAss
     } else if (vp1 && vp2) {
         // should be:
         // dist from vp-line / max dist from vp-line
-        QLineF horizon = QLineF(vp1.get(), vp2.get());
+        PkLineF horizon = PkLineF(vp1.get(), vp2.get());
 
         qreal dist = kisDistanceToLine(point, horizon);
         qreal distMax = 0;
@@ -175,7 +174,7 @@ qreal PerspectiveBasedAssistantHelper::distanceInGrid(const QList<KisPaintingAss
 
 }
 
-qreal PerspectiveBasedAssistantHelper::distanceInGrid(const PerspectiveBasedAssistantHelper::CacheData &cache, const QPointF& point)
+qreal PerspectiveBasedAssistantHelper::distanceInGrid(const PerspectiveBasedAssistantHelper::CacheData &cache, const PkPointF& point)
 {
     qreal defaultValue = 1;
     if (cache.maxDistanceFromPoint == 0.0) {
@@ -200,11 +199,11 @@ qreal PerspectiveBasedAssistantHelper::distanceInGrid(const PerspectiveBasedAssi
     return defaultValue;
 }
 
-void PerspectiveBasedAssistantHelper::updateCacheData(PerspectiveBasedAssistantHelper::CacheData &cache, const QPolygonF &poly)
+void PerspectiveBasedAssistantHelper::updateCacheData(PerspectiveBasedAssistantHelper::CacheData &cache, const PkPolygonF &poly)
 {
     cache.polygon = poly;
     bool r = PerspectiveBasedAssistantHelper::getVanishingPointsOptional(poly, cache.vanishingPoint1, cache.vanishingPoint2);
-    Q_UNUSED(r);
+    (void)r;
 
     if (cache.vanishingPoint1 && cache.vanishingPoint2) {
         cache.type = CacheData::TwoVps;
@@ -212,20 +211,20 @@ void PerspectiveBasedAssistantHelper::updateCacheData(PerspectiveBasedAssistantH
         cache.type = CacheData::OneVp;
     } else {
         cache.type = CacheData::None;
-        cache.horizon = QLineF();
-        cache.distancesFromPoints = QVector<qreal>();
+        cache.horizon = PkLineF();
+        cache.distancesFromPoints = PkVector<qreal>();
         cache.maxDistanceFromPoint = 0.0;
         return;
     }
 
     if (cache.type == CacheData::TwoVps) {
-        cache.horizon = QLineF(cache.vanishingPoint1.get(), cache.vanishingPoint2.get());
+        cache.horizon = PkLineF(cache.vanishingPoint1.get(), cache.vanishingPoint2.get());
     } else if (cache.type == CacheData::OneVp) {
         if (cache.vanishingPoint1) {
             // that means the 0-1 line is the horizon parallel line
-            cache.horizon = QLineF(cache.vanishingPoint1.get(), cache.vanishingPoint1.get() + cache.polygon[1] - cache.polygon[0]);
+            cache.horizon = PkLineF(cache.vanishingPoint1.get(), cache.vanishingPoint1.get() + cache.polygon[1] - cache.polygon[0]);
         } else { // the other vp
-            cache.horizon = QLineF(cache.vanishingPoint2.get(), cache.vanishingPoint2.get() + cache.polygon[2] - cache.polygon[1]);
+            cache.horizon = PkLineF(cache.vanishingPoint2.get(), cache.vanishingPoint2.get() + cache.polygon[2] - cache.polygon[1]);
         }
     }
 
@@ -241,7 +240,7 @@ void PerspectiveBasedAssistantHelper::updateCacheData(PerspectiveBasedAssistantH
 
 }
 
-bool PerspectiveBasedAssistantHelper::getVanishingPointsOptional(const QPolygonF &poly, boost::optional<QPointF> &vp1, boost::optional<QPointF> &vp2)
+bool PerspectiveBasedAssistantHelper::getVanishingPointsOptional(const PkPolygonF &poly, boost::optional<PkPointF> &vp1, boost::optional<PkPointF> &vp2)
 {
     bool either = false;
     vp1 = boost::none;
@@ -251,19 +250,19 @@ bool PerspectiveBasedAssistantHelper::getVanishingPointsOptional(const QPolygonF
         return false;
     }
 
-    QPointF intersection(0, 0);
+    PkPointF intersection(0, 0);
     // note: in code it seems like vp1 and vp2 are swapped, but it's all correct if you read carefully
 
-    if (fmod(QLineF(poly[0], poly[1]).angle(), 180.0)>=fmod(QLineF(poly[2], poly[3]).angle(), 180.0)+2.0
-            || fmod(QLineF(poly[0], poly[1]).angle(), 180.0)<=fmod(QLineF(poly[2], poly[3]).angle(), 180.0)-2.0) {
-        if (QLineF(poly[0], poly[1]).intersects(QLineF(poly[2], poly[3]), &intersection) != QLineF::NoIntersection) {
+    if (fmod(PkLineF(poly[0], poly[1]).angle(), 180.0)>=fmod(PkLineF(poly[2], poly[3]).angle(), 180.0)+2.0
+            || fmod(PkLineF(poly[0], poly[1]).angle(), 180.0)<=fmod(PkLineF(poly[2], poly[3]).angle(), 180.0)-2.0) {
+        if (PkLineF(poly[0], poly[1]).intersects(PkLineF(poly[2], poly[3]), &intersection) != PkLineF::NoIntersection) {
             vp2 = intersection;
             either = true;
         }
     }
-    if (fmod(QLineF(poly[1], poly[2]).angle(), 180.0)>=fmod(QLineF(poly[3], poly[0]).angle(), 180.0)+2.0
-            || fmod(QLineF(poly[1], poly[2]).angle(), 180.0)<=fmod(QLineF(poly[3], poly[0]).angle(), 180.0)-2.0){
-        if (QLineF(poly[1], poly[2]).intersects(QLineF(poly[3], poly[0]), &intersection) != QLineF::NoIntersection) {
+    if (fmod(PkLineF(poly[1], poly[2]).angle(), 180.0)>=fmod(PkLineF(poly[3], poly[0]).angle(), 180.0)+2.0
+            || fmod(PkLineF(poly[1], poly[2]).angle(), 180.0)<=fmod(PkLineF(poly[3], poly[0]).angle(), 180.0)-2.0){
+        if (PkLineF(poly[1], poly[2]).intersects(PkLineF(poly[3], poly[0]), &intersection) != PkLineF::NoIntersection) {
             vp1 = intersection;
             either = true;
         }
@@ -271,8 +270,7 @@ bool PerspectiveBasedAssistantHelper::getVanishingPointsOptional(const QPolygonF
     return either;
 }
 
-qreal PerspectiveBasedAssistantHelper::pdot(const QPointF &a, const QPointF &b)
+qreal PerspectiveBasedAssistantHelper::pdot(const PkPointF &a, const PkPointF &b)
 {
     return a.x() * b.y() - a.y() * b.x();
 }
-
