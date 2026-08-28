@@ -85,7 +85,7 @@ public:
 
         doPaint(gc);
 
-        checkOneLayer(image, targetNode, testPrefix);
+        QVERIFY(checkOneLayer(image, targetNode, testPrefix));
     }
 
     void doPaint(KisPainter &gc) {
