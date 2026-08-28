@@ -14,8 +14,8 @@
 #include <string.h>
 #include <memory>
 
-#include <QRect>
-#include <QDomElement>
+#include <PkRect.h>
+#include <PkXmlElement.h>
 
 #include <kis_image.h>
 #include <kis_debug.h>
@@ -112,7 +112,7 @@ KisSpacingInformation KisDuplicateOp::paintAt(const KisPaintInformation& info)
     static const KoColorSpace *cs = KoColorSpaceRegistry::instance()->alpha8();
     static KoColor color(Qt::black, cs);
 
-    QRect dstRect;
+    PkRect dstRect;
     KisFixedPaintDeviceSP dab =
         m_dabCache->fetchDab(cs, color, info.pos(),
                              shape,
@@ -122,13 +122,13 @@ KisSpacingInformation KisDuplicateOp::paintAt(const KisPaintInformation& info)
     if (dstRect.isEmpty()) return KisSpacingInformation(1.0);
 
 
-    QPoint srcPoint;
+    PkPoint srcPoint;
 
     if (m_duplicateOptionData.moveSourcePoint) {
         srcPoint = (dstRect.topLeft() - m_settings->offset()).toPoint();
     }
     else {
-        QPointF hotSpot = brush->hotSpot(shape, info);
+        PkPointF hotSpot = brush->hotSpot(shape, info);
         srcPoint = (m_settings->position() - hotSpot).toPoint();
     }
 
@@ -144,7 +144,7 @@ KisSpacingInformation KisDuplicateOp::paintAt(const KisPaintInformation& info)
 
     //     // First look for the grid corresponding to the start point
     //     KisSubPerspectiveGrid* subGridStart = *m_image->perspectiveGrid()->begin();
-    //     QRect r = QRect(0, 0, m_image->width(), m_image->height());
+    //     PkRect r = PkRect(0, 0, m_image->width(), m_image->height());
 
     //     if (subGridStart) {
     //         startM = KisPerspectiveMath::computeMatrixTransfoFromPerspective(r, *subGridStart->topLeft(), *subGridStart->topRight(), *subGridStart->bottomLeft(), *subGridStart->bottomRight());
@@ -157,16 +157,16 @@ KisSpacingInformation KisDuplicateOp::paintAt(const KisPaintInformation& info)
     //     }
 
     //     // Compute the translation in the perspective transformation space:
-    //     QPointF positionStartPaintingT = KisPerspectiveMath::matProd(endM, QPointF(m_duplicateStart));
-    //     QPointF duplicateStartPositionT = KisPerspectiveMath::matProd(endM, QPointF(m_duplicateStart) - QPointF(m_settings->offset()));
-    //     QPointF translate = duplicateStartPositionT - positionStartPaintingT;
+    //     PkPointF positionStartPaintingT = KisPerspectiveMath::matProd(endM, PkPointF(m_duplicateStart));
+    //     PkPointF duplicateStartPositionT = KisPerspectiveMath::matProd(endM, PkPointF(m_duplicateStart) - PkPointF(m_settings->offset()));
+    //     PkPointF translate = duplicateStartPositionT - positionStartPaintingT;
 
-    //     KisSequentialIterator dstIt(m_srcdev, QRect(0, 0, sw, sh));
+    //     KisSequentialIterator dstIt(m_srcdev, PkRect(0, 0, sw, sh));
     //     KisRandomSubAccessorSP srcAcc = realSourceDevice->createRandomSubAccessor();
 
     //     //Action
     //     while (dstIt.nextPixel()) {
-    //         QPointF p =  KisPerspectiveMath::matProd(startM, KisPerspectiveMath::matProd(endM, QPointF(dstIt.x() + dstRect.x(), dstIt.y() + dstRect.y())) + translate);
+    //         PkPointF p =  KisPerspectiveMath::matProd(startM, KisPerspectiveMath::matProd(endM, PkPointF(dstIt.x() + dstRect.x(), dstIt.y() + dstRect.y())) + translate);
     //         srcAcc->moveTo(p);
     //         srcAcc->sampledOldRawData(dstIt.rawData());
     //     }
@@ -183,7 +183,7 @@ KisSpacingInformation KisDuplicateOp::paintAt(const KisPaintInformation& info)
 
     // heal ?
     if (m_duplicateOptionData.healing) {
-        QRect healRect(dstRect);
+        PkRect healRect(dstRect);
 
         const bool smallWidth = healRect.width() < 3;
         const bool smallHeight = healRect.height() < 3;

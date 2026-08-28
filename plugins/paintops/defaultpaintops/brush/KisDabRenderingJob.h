@@ -7,7 +7,7 @@
 #ifndef KISDABRENDERINGJOB_H
 #define KISDABRENDERINGJOB_H
 
-#include <QRunnable>
+#include <PkRunnable.h>
 #include <KisDabCacheUtils.h>
 #include <kis_fixed_paint_device.h>
 #include <kis_types.h>
@@ -37,7 +37,7 @@ public:
     KisDabRenderingJob(const KisDabRenderingJob &rhs);
     KisDabRenderingJob& operator=(const KisDabRenderingJob &rhs);
 
-    QPoint dstDabOffset() const;
+    PkPoint dstDabOffset() const;
 
     int seqNo = -1;
     KisDabCacheUtils::DabGenerationInfo generationInfo;
@@ -52,10 +52,10 @@ public:
     qreal flow = OPACITY_OPAQUE_F;
 };
 
-#include <QSharedPointer>
-typedef QSharedPointer<KisDabRenderingJob> KisDabRenderingJobSP;
+#include <PkSharedPointer.h>
+typedef PkSharedPointer<KisDabRenderingJob> KisDabRenderingJobSP;
 
-class KRITADEFAULTPAINTOPS_EXPORT KisDabRenderingJobRunner : public QRunnable
+class KRITADEFAULTPAINTOPS_EXPORT KisDabRenderingJobRunner : public PkRunnable
 {
 public:
     KisDabRenderingJobRunner(KisDabRenderingJobSP job,

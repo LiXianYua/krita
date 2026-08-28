@@ -9,9 +9,9 @@
 
 #include "kritadefaultpaintops_export.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
-#include <QList>
+#include <PkList.h>
 struct KisRenderedDab;
 
 #include "KisDabCacheUtils.h"
@@ -34,7 +34,7 @@ public:
     void addDab(const KisDabCacheUtils::DabRequestInfo &request,
                 qreal opacity, qreal flow);
 
-    QList<KisRenderedDab> takeReadyDabs(bool returnMutableDabs = false, int oneTimeLimit = -1, bool *someDabsLeft = 0);
+    PkList<KisRenderedDab> takeReadyDabs(bool returnMutableDabs = false, int oneTimeLimit = -1, bool *someDabsLeft = 0);
 
     bool hasPreparedDabs() const;
 
@@ -45,7 +45,7 @@ private:
     KisDabRenderingExecutor(const KisDabRenderingExecutor &rhs) = delete;
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISDABRENDERINGEXECUTOR_H

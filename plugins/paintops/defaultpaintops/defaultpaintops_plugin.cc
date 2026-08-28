@@ -7,11 +7,6 @@
  */
 
 #include "defaultpaintops_plugin.h"
-#include <klocalizedstring.h>
-
-#include <kis_debug.h>
-#include <kpluginfactory.h>
-
 #include <KoCompositeOpRegistry.h>
 
 #include "kis_simple_paintop_factory.h"
@@ -25,19 +20,16 @@
 #include "KisBrushOpSettings.h"
 #include "KisBrushServerProvider.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(DefaultPaintOpsPluginFactory, "kritadefaultpaintops.json", registerPlugin<DefaultPaintOpsPlugin>();)
-
-
-DefaultPaintOpsPlugin::DefaultPaintOpsPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace {
+struct DefaultPaintOpsRegistration
 {
-    KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
-    r->add(new KisSimplePaintOpFactory<KisBrushOp, KisBrushOpSettings>("paintbrush", i18nc("Pixel paintbrush", "Pixel"), KisPaintOpFactory::categoryStable(), "krita-paintbrush.png", QString(), QStringList(), 1));
-    r->add(new KisSimplePaintOpFactory<KisDuplicateOp, KisDuplicateOpSettings>("duplicate", i18nc("clone paintbrush (previously \"Duplicate\")", "Clone"), KisPaintOpFactory::categoryStable(), "krita-duplicate.png", QString(), QStringList(COMPOSITE_COPY), 15));
+    DefaultPaintOpsRegistration()
+    {
+        KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
+        r->add(new KisSimplePaintOpFactory<KisBrushOp, KisBrushOpSettings>("paintbrush", "Pixel", KisPaintOpFactory::categoryStable(), "krita-paintbrush.png", PkString(), PkStringList(), 1));
+        r->add(new KisSimplePaintOpFactory<KisDuplicateOp, KisDuplicateOpSettings>("duplicate", "Clone", KisPaintOpFactory::categoryStable(), "krita-duplicate.png", PkString(), PkStringList(COMPOSITE_COPY), 15));
+    }
+};
 }
 
-DefaultPaintOpsPlugin::~DefaultPaintOpsPlugin()
-{
-}
-
-#include "defaultpaintops_plugin.moc"
+static DefaultPaintOpsRegistration s_defaultPaintOpsRegistration;

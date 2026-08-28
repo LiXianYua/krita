@@ -11,8 +11,8 @@
 #include "kis_duplicateop_settings.h"
 #include <KisDuplicateOptionData.h>
 
-#include <QDomElement>
-#include <QDomDocument>
+#include <PkXmlElement.h>
+#include <PkXmlDocument.h>
 
 #include <KoPointerEvent.h>
 #include <KoCompositeOpRegistry.h>
@@ -37,17 +37,17 @@ bool KisDuplicateOpSettings::paintIncremental()
     return false;
 }
 
-QString KisDuplicateOpSettings::indirectPaintingCompositeOp() const
+PkString KisDuplicateOpSettings::indirectPaintingCompositeOp() const
 {
     return COMPOSITE_COPY;
 }
 
-QPointF KisDuplicateOpSettings::offset() const
+PkPointF KisDuplicateOpSettings::offset() const
 {
     return m_offset;
 }
 
-QPointF KisDuplicateOpSettings::position() const
+PkPointF KisDuplicateOpSettings::position() const
 {
     return m_position;
 }
@@ -94,7 +94,7 @@ void KisDuplicateOpSettings::activate()
 {
 }
 
-void KisDuplicateOpSettings::fromXML(const QDomElement& elt)
+void KisDuplicateOpSettings::fromXML(const PkXmlElement& elt)
 {
     // First, call the parent class fromXML to make sure all the
     // properties are saved to the map
@@ -105,13 +105,13 @@ void KisDuplicateOpSettings::fromXML(const QDomElement& elt)
     m_isOffsetNotUptodate = false;
 }
 
-void KisDuplicateOpSettings::toXML(QDomDocument& doc, QDomElement& rootElt) const
+void KisDuplicateOpSettings::toXML(PkXmlDocument& doc, PkXmlElement& rootElt) const
 {
     // Then call the parent class fromXML
     KisPropertiesConfiguration::toXML(doc, rootElt);
 
-    rootElt.setAttribute("OffsetX", QString::number(m_offset.x()));
-    rootElt.setAttribute("OffsetY", QString::number(m_offset.y()));
+    rootElt.setAttribute("OffsetX", PkString::number(m_offset.x()));
+    rootElt.setAttribute("OffsetY", PkString::number(m_offset.y()));
 }
 
 
@@ -143,7 +143,7 @@ KisOptimizedBrushOutline KisDuplicateOpSettings::brushOutline(const KisPaintInfo
     path = KisBrushBasedPaintOpSettings::brushOutlineImpl(info, forcedMode, alignForZoom, 1.0);
 
     KisOptimizedBrushOutline copy(path);
-    QRectF rect2 = copy.boundingRect();
+    PkRectF rect2 = copy.boundingRect();
     bool shouldStayInOrigin = m_isOffsetNotUptodate // the clone brush right now waits for first stroke with a new origin, so stays at origin point
             || !getBool(DUPLICATE_MOVE_SOURCE_POINT) // the brush always use the same source point, so stays at origin point
             || (!m_duringPaintingStroke && getBool(DUPLICATE_RESET_SOURCE_POINT)); // during the stroke, with reset Origin selected, outline should stay at origin point
@@ -161,7 +161,7 @@ KisOptimizedBrushOutline KisDuplicateOpSettings::brushOutline(const KisPaintInfo
     qreal dy = rect2.height() / 4.0;
     rect2.adjust(dx, dy, -dx, -dy);
 
-    QPainterPath crossIcon;
+    PkPainterPath crossIcon;
 
     crossIcon.moveTo(rect2.topLeft());
     crossIcon.lineTo(rect2.bottomRight());
@@ -182,15 +182,15 @@ KisOptimizedBrushOutline KisDuplicateOpSettings::brushOutline(const KisPaintInfo
 #include <KisDuplicateOptionData.h>
 
 
-QList<KisUniformPaintOpPropertySP> KisDuplicateOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisDuplicateOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
             listWeakToStrong(m_uniformProperties);
 
     if (props.isEmpty()) {
         {
             KisUniformPaintOpPropertyCallback *prop =
-                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("clone_healing", i18n("Healing")), settings, 0);
+                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("clone_healing", PkString("Healing")), settings, 0);
 
             prop->setReadCallback(
                         [](KisUniformPaintOpProperty *prop) {
@@ -207,13 +207,14 @@ QList<KisUniformPaintOpPropertySP> KisDuplicateOpSettings::uniformProperties(Kis
                 optionData.write(prop->settings().data());
             });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisUniformPaintOpPropertyCallback *prop =
-                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("clone_movesource", i18n("Move Source")), settings, 0);
+                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("clone_movesource", PkString("Move Source")), settings, 0);
 
             prop->setReadCallback(
                         [](KisUniformPaintOpProperty *prop) {
@@ -230,7 +231,8 @@ QList<KisUniformPaintOpPropertySP> KisDuplicateOpSettings::uniformProperties(Kis
                 optionData.write(prop->settings().data());
             });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -238,5 +240,3 @@ QList<KisUniformPaintOpPropertySP> KisDuplicateOpSettings::uniformProperties(Kis
 
     return KisPaintOpSettings::uniformProperties(settings, updateProxy) + props;
 }
-
-

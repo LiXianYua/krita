@@ -13,9 +13,9 @@
 
 #include <kis_brush_based_paintop_settings.h>
 #include <kis_types.h>
-#include <QPointF>
+#include <PkPoint.h>
 
-class QDomElement;
+class PkXmlElement;
 class KisDuplicateOpSettings : public KisBrushBasedPaintOpSettings
 {
 
@@ -26,10 +26,10 @@ public:
     KisDuplicateOpSettings(KisResourcesInterfaceSP resourcesInterface);
     ~KisDuplicateOpSettings() override;
     bool paintIncremental() override;
-    QString indirectPaintingCompositeOp() const override;
+    PkString indirectPaintingCompositeOp() const override;
 
-    QPointF offset() const;
-    QPointF position() const;
+    PkPointF offset() const;
+    PkPointF position() const;
     /**
      * This function is called by a tool when the mouse is pressed.
      * Returns false if picking new origin is in action,
@@ -45,8 +45,8 @@ public:
     bool mouseReleaseEvent() override;
     void activate() override;
 
-    void fromXML(const QDomElement& elt) override;
-    void toXML(QDomDocument& doc, QDomElement& rootElt) const override;
+    void fromXML(const PkXmlElement& elt) override;
+    void toXML(PkXmlDocument& doc, PkXmlElement& rootElt) const override;
 
     KisPaintOpSettingsSP clone() const override;
     using KisBrushBasedPaintOpSettings::brushOutline;
@@ -54,18 +54,19 @@ public:
 
     KisNodeWSP sourceNode() const;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
 public:
 
-    Q_DISABLE_COPY(KisDuplicateOpSettings)
+    KisDuplicateOpSettings(const KisDuplicateOpSettings&) = delete;
+    KisDuplicateOpSettings& operator=(const KisDuplicateOpSettings&) = delete;
 
-    QPointF m_offset;
+    PkPointF m_offset;
     bool m_isOffsetNotUptodate; // true between the act of setting a new origin and the first stroke
     bool m_duringPaintingStroke; // true if the stroke is begin painted now, false otherwise
-    QPointF m_position; // Give the position of the last alt-click
+    PkPointF m_position; // Give the position of the last alt-click
     KisNodeWSP m_sourceNode; // Give the node of the source point (origin)
-    QList<KisUniformPaintOpPropertyWSP> m_uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> m_uniformProperties;
 };
 
 typedef KisSharedPtr<KisDuplicateOpSettings> KisDuplicateOpSettingsSP;

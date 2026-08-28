@@ -29,7 +29,7 @@
 class KisPaintInformation;
 
 
-class QPointF;
+class PkPointF;
 class KisPainter;
 
 
@@ -59,7 +59,7 @@ private:
     KisDuplicateOpSettingsSP m_settings;
     KisPaintDeviceSP m_srcdev;
     KisPaintDeviceSP m_target;
-    QPointF m_duplicateStart {QPointF(0.0, 0.0)};
+    PkPointF m_duplicateStart {PkPointF(0.0, 0.0)};
     bool m_duplicateStartIsSet {false};
     KisSizeOption m_sizeOption;
     KisOpacityOption m_opacityOption;

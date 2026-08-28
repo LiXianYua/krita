@@ -13,11 +13,11 @@
 #include <KoID.h>
 #include <kritapaintop_export.h>
 
-const QString DUPLICATE_HEALING = "Duplicateop/Healing";
-const QString DUPLICATE_CORRECT_PERSPECTIVE = "Duplicateop/CorrectPerspective";
-const QString DUPLICATE_MOVE_SOURCE_POINT = "Duplicateop/MoveSourcePoint";
-const QString DUPLICATE_RESET_SOURCE_POINT = "Duplicateop/ResetSourcePoint";
-const QString DUPLICATE_CLONE_FROM_PROJECTION = "Duplicateop/CloneFromProjection";
+const PkString DUPLICATE_HEALING = "Duplicateop/Healing";
+const PkString DUPLICATE_CORRECT_PERSPECTIVE = "Duplicateop/CorrectPerspective";
+const PkString DUPLICATE_MOVE_SOURCE_POINT = "Duplicateop/MoveSourcePoint";
+const PkString DUPLICATE_RESET_SOURCE_POINT = "Duplicateop/ResetSourcePoint";
+const PkString DUPLICATE_CLONE_FROM_PROJECTION = "Duplicateop/CloneFromProjection";
 
 class KisPropertiesConfiguration;
 

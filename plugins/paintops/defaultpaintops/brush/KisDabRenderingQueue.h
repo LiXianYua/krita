@@ -7,11 +7,11 @@
 #ifndef KISDABRENDERINGQUEUE_H
 #define KISDABRENDERINGQUEUE_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kritadefaultpaintops_export.h"
 
-#include <QList>
+#include <PkList.h>
 class KisDabRenderingJob;
 struct KisRenderedDab;
 
@@ -40,9 +40,9 @@ public:
     KisDabRenderingJobSP addDab(const KisDabCacheUtils::DabRequestInfo &request,
                                qreal opacity, qreal flow);
 
-    QList<KisDabRenderingJobSP> notifyJobFinished(int seqNo, int usecsTime = -1);
+    PkList<KisDabRenderingJobSP> notifyJobFinished(int seqNo, int usecsTime = -1);
 
-    QList<KisRenderedDab> takeReadyDabs(bool returnMutableDabs = false, int oneTimeLimit = -1, bool *someDabsLeft = 0);
+    PkList<KisRenderedDab> takeReadyDabs(bool returnMutableDabs = false, int oneTimeLimit = -1, bool *someDabsLeft = 0);
 
     bool hasPreparedDabs() const;
 
@@ -60,7 +60,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISDABRENDERINGQUEUE_H

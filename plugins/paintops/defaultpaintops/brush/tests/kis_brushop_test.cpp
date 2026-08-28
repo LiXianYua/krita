@@ -21,7 +21,7 @@
 class TestBrushOp : public TestUtil::QImageBasedTest
 {
 public:
-    TestBrushOp(const QString &presetFileName, const QString &prefix = "simple")
+    TestBrushOp(const PkString &presetFileName, const PkString &prefix = "simple")
         : QImageBasedTest("brushop") {
         m_presetFileName = presetFileName;
         m_prefix = prefix;
@@ -72,7 +72,7 @@ public:
 
         KisPainter gc(paint1->paintDevice());
 
-        QScopedPointer<KoCanvasResourceProvider> manager(
+        PkScopedPointer<KoCanvasResourceProvider> manager(
             utils::createResourceManager(image, 0, m_presetFileName));
 
         KisPaintOpPresetSP preset =
@@ -112,8 +112,8 @@ public:
         }
 
 
-        QString testName =
-            QString("%7_cmY_%1_cmX_%2_cR_%3_dmX_%4_dmY_%5_dR_%6")
+        PkString testName =
+            PkString("%7_cmY_%1_cmX_%2_cR_%3_dmX_%4_dmY_%5_dR_%6")
             .arg(mirrorY)
             .arg(mirrorX)
             .arg(rotation)
@@ -135,7 +135,7 @@ public:
     }
 
     virtual void doPaint(KisPainter &gc, qreal rotation, bool mirrorX, bool mirrorY) {
-        KisPaintInformation pi(QPointF(100, 100), 1.0);
+        KisPaintInformation pi(PkPointF(100, 100), 1.0);
         pi.setCanvasRotation(rotation);
         pi.setCanvasMirroredH(mirrorX);
         pi.setCanvasMirroredV(mirrorY);
@@ -144,24 +144,24 @@ public:
         gc.paintAt(pi, &dist);
     }
 
-    QString m_presetFileName;
-    QString m_prefix;
+    PkString m_presetFileName;
+    PkString m_prefix;
 };
 
 class TestBrushOpLines : public TestBrushOp
 {
 public:
-    TestBrushOpLines(const QString &presetFileName)
+    TestBrushOpLines(const PkString &presetFileName)
         : TestBrushOp(presetFileName) {
     }
 
     void doPaint(KisPainter &gc, qreal rotation, bool mirrorX, bool mirrorY) override {
 
-        QVector<KisPaintInformation> vector;
+        PkVector<KisPaintInformation> vector;
 
-        vector << KisPaintInformation(QPointF(100, 100));
-        vector << KisPaintInformation(QPointF(200, 150));
-        vector << KisPaintInformation(QPointF(100, 350));
+        vector << KisPaintInformation(PkPointF(100, 100));
+        vector << KisPaintInformation(PkPointF(200, 150));
+        vector << KisPaintInformation(PkPointF(100, 350));
 
 
         for (auto pi : vector) {
@@ -181,19 +181,19 @@ public:
 class TestBrushOpPressureLines : public TestBrushOp
 {
 public:
-    TestBrushOpPressureLines(const QString &presetFileName, const QString &prefix)
+    TestBrushOpPressureLines(const PkString &presetFileName, const PkString &prefix)
         : TestBrushOp(presetFileName, prefix) {
     }
 
     void doPaint(KisPainter &gc, qreal rotation, bool mirrorX, bool mirrorY) override {
 
-        QVector<KisPaintInformation> vector;
+        PkVector<KisPaintInformation> vector;
 
-        vector << KisPaintInformation(QPointF(0, 0), 0.2);
-        vector << KisPaintInformation(QPointF(200, 50), 1.0);
-        vector << KisPaintInformation(QPointF(100, 250), 0.0);
-        vector << KisPaintInformation(QPointF(200, 150), 1.0);
-        vector << KisPaintInformation(QPointF(100, 350), 1.0);
+        vector << KisPaintInformation(PkPointF(0, 0), 0.2);
+        vector << KisPaintInformation(PkPointF(200, 50), 1.0);
+        vector << KisPaintInformation(PkPointF(100, 250), 0.0);
+        vector << KisPaintInformation(PkPointF(200, 150), 1.0);
+        vector << KisPaintInformation(PkPointF(100, 350), 1.0);
 
         for (auto pi : vector) {
             pi.setCanvasRotation(rotation);
@@ -212,7 +212,7 @@ public:
 #include <KoResourcePaths.h>
 void KisBrushOpTest::initTestCase()
 {
-    KoResourcePaths::addAssetDir(ResourceType::Brushes, QString(SYSTEM_RESOURCES_DATA_DIR) + "/brushes");
+    KoResourcePaths::addAssetDir(ResourceType::Brushes, PkString(SYSTEM_RESOURCES_DATA_DIR) + "/brushes");
 }
 
 void KisBrushOpTest::testRotationMirroring()
@@ -234,7 +234,7 @@ void KisBrushOpTest::testMagicSeven()
      *     mask size: 56
      *     brush size: 7
      *     therefore scale is: 0.125
-     *     which causes QTransform work as a pure Translate in the mipmap
+     *     which causes PkTransform work as a pure Translate in the mipmap
      */
 
     TestBrushOpPressureLines t("magic_seven.kpp", "magicseven");

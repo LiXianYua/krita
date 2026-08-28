@@ -9,7 +9,7 @@
 
 #include "KisDabCacheUtils.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisPainter;
 class KisPaintInformation;
@@ -25,7 +25,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISBRUSHOPRESOURCES_H

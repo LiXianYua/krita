@@ -11,8 +11,8 @@
 #include "kis_painter.h"
 #include "KisOptimizedByteArray.h"
 
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkMutex.h>
+#include <PkMutex.h>
 #include <KisRollingMeanAccumulatorWrapper.h>
 
 #include "kis_algebra_2d.h"
@@ -64,20 +64,20 @@ struct KisDabRenderingQueue::Private
         cachedResources.clear();
     }
 
-    QList<KisDabRenderingJobSP> jobs;
+    PkList<KisDabRenderingJobSP> jobs;
     int nextSeqNoToUse = 0;
     int lastPaintedJob = -1;
     int lastDabJobInQueue = -1;
-    QScopedPointer<CacheInterface> cacheInterface;
+    PkScopedPointer<CacheInterface> cacheInterface;
     const KoColorSpace *colorSpace;
     qreal averageOpacity = 0.0;
 
     KisDabCacheUtils::ResourcesFactory resourcesFactory;
 
-    QList<KisDabCacheUtils::DabRenderingResources*> cachedResources;
-    QSharedPointer<KisOptimizedByteArray::MemoryAllocator> paintDeviceAllocator;
+    PkList<KisDabCacheUtils::DabRenderingResources*> cachedResources;
+    PkSharedPointer<KisOptimizedByteArray::MemoryAllocator> paintDeviceAllocator;
 
-    QMutex mutex;
+    PkMutex mutex;
 
     KisRollingMeanAccumulatorWrapper avgExecutionTime;
     KisRollingMeanAccumulatorWrapper avgDabSize;
@@ -127,7 +127,7 @@ int KisDabRenderingQueue::Private::calculateLastDabJobIndex(int startSearchIndex
 KisDabRenderingJobSP KisDabRenderingQueue::addDab(const KisDabCacheUtils::DabRequestInfo &request,
                                                  qreal opacity, qreal flow)
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
 
     const int seqNo = m_d->nextSeqNoToUse++;
 
@@ -190,11 +190,11 @@ KisDabRenderingJobSP KisDabRenderingQueue::addDab(const KisDabCacheUtils::DabReq
     return jobToRun;
 }
 
-QList<KisDabRenderingJobSP> KisDabRenderingQueue::notifyJobFinished(int seqNo, int usecsTime)
+PkList<KisDabRenderingJobSP> KisDabRenderingQueue::notifyJobFinished(int seqNo, int usecsTime)
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
 
-    QList<KisDabRenderingJobSP> dependentJobs;
+    PkList<KisDabRenderingJobSP> dependentJobs;
 
     /**
      * Here we use binary search for locating the necessary original dab
@@ -282,13 +282,13 @@ void KisDabRenderingQueue::Private::cleanPaintedDabs()
     }
 }
 
-QList<KisRenderedDab> KisDabRenderingQueue::takeReadyDabs(bool returnMutableDabs,
+PkList<KisRenderedDab> KisDabRenderingQueue::takeReadyDabs(bool returnMutableDabs,
                                                           int oneTimeLimit,
                                                           bool *someDabsLeft)
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
 
-    QList<KisRenderedDab> renderedDabs;
+    PkList<KisRenderedDab> renderedDabs;
     if (m_d->jobs.isEmpty()) return renderedDabs;
 
     KIS_SAFE_ASSERT_RECOVER_NOOP(
@@ -354,7 +354,7 @@ bool KisDabRenderingQueue::Private::hasPreparedDabsImpl() const
 
 bool KisDabRenderingQueue::hasPreparedDabs() const
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
     return m_d->hasPreparedDabsImpl();
 }
 
@@ -374,13 +374,13 @@ KisFixedPaintDeviceSP KisDabRenderingQueue::fetchCachedPaintDevice()
 
 qreal KisDabRenderingQueue::averageExecutionTime() const
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
     return m_d->avgExecutionTime.rollingMean() / 1000.0;
 }
 
 int KisDabRenderingQueue::averageDabSize() const
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
     return qRound(m_d->avgDabSize.rollingMean());
 }
 
@@ -417,19 +417,19 @@ void KisDabRenderingQueue::Private::putResourcesToCache(KisDabCacheUtils::DabRen
 KisDabCacheUtils::DabRenderingResources *KisDabRenderingQueue::fetchResourcesFromCache()
 {
     // TODO: make a separate lock for that
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
     return m_d->fetchResourcesFromCache();
 }
 
 void KisDabRenderingQueue::putResourcesToCache(KisDabCacheUtils::DabRenderingResources *resources)
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
     m_d->putResourcesToCache(resources);
 }
 
 int KisDabRenderingQueue::testingGetQueueSize() const
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
 
     return m_d->jobs.size();
 }

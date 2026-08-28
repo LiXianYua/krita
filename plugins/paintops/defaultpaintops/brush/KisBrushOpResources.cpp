@@ -29,7 +29,7 @@ struct KisBrushOpResources::Private
     {
     }
 
-    QList<KisHSVOption*> hsvOptions;
+    PkList<KisHSVOption*> hsvOptions;
     KoColorTransformation *hsvTransformation = 0;
     KisMixOption mixOption;
     KisDarkenOption darkenOption;
@@ -56,7 +56,7 @@ KisBrushOpResources::KisBrushOpResources(const KisPaintOpSettingsSP settings, Ki
 
     Q_FOREACH (KisHSVOption *option, m_d->hsvOptions) {
         if (option->isChecked() && !m_d->hsvTransformation) {
-            m_d->hsvTransformation = painter->backgroundColor().colorSpace()->createColorTransformation("hsv_adjustment", QHash<QString, QVariant>());
+            m_d->hsvTransformation = painter->backgroundColor().colorSpace()->createColorTransformation("hsv_adjustment", PkHash<PkString, PkVariant>());
         }
     }
 

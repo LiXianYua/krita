@@ -11,7 +11,7 @@
 
 #include "kis_brushop.h"
 
-#include <QRect>
+#include <PkRect.h>
 
 #include <kis_image.h>
 #include <kis_vec.h>
@@ -38,7 +38,7 @@
 #include <KisRunnableStrokeJobUtils.h>
 #include <KisRunnableStrokeJobsInterface.h>
 
-#include <QThread>
+#include <PkThread.h>
 #include "kis_image_config.h"
 #include "kis_wrapped_rect.h"
 
@@ -119,7 +119,7 @@ KisSpacingInformation KisBrushOp::paintAt(const KisPaintInformation& info)
     qreal ratio = m_ratioOption.apply(info);
 
     KisDabShape shape(scale, ratio, rotation);
-    QPointF cursorPos =
+    PkPointF cursorPos =
         m_scatterOption.apply(info,
                               brush->maskWidth(shape, 0, 0, info),
                               brush->maskHeight(shape, 0, 0, info));
@@ -152,20 +152,20 @@ struct KisBrushOp::UpdateSharedState
 {
     // rendering data
     KisPainter *painter = 0;
-    QList<KisRenderedDab> dabsQueue;
+    PkList<KisRenderedDab> dabsQueue;
 
     // speed metrics
-    QVector<QPointF> dabPoints;
-    QElapsedTimer dabRenderingTimer;
+    PkVector<PkPointF> dabPoints;
+    PkElapsedTimer dabRenderingTimer;
 
     // final report
-    QVector<QRect> allDirtyRects;
+    PkVector<PkRect> allDirtyRects;
 };
 
 void KisBrushOp::addMirroringJobs(Qt::Orientation direction,
-                                  QVector<QRect> &rects,
+                                  PkVector<PkRect> &rects,
                                   UpdateSharedStateSP state,
-                                  QVector<KisRunnableStrokeJobData*> &jobs)
+                                  PkVector<KisRunnableStrokeJobData*> &jobs)
 {
     KritaUtils::addJobSequential(jobs, nullptr);
 
@@ -190,7 +190,7 @@ void KisBrushOp::addMirroringJobs(Qt::Orientation direction,
 
     KritaUtils::addJobSequential(jobs, nullptr);
 
-    for (QRect &rc : rects) {
+    for (PkRect &rc : rects) {
         state->painter->mirrorRect(direction, &rc);
 
         KritaUtils::addJobConcurrent(jobs,
@@ -203,7 +203,7 @@ void KisBrushOp::addMirroringJobs(Qt::Orientation direction,
     state->allDirtyRects.append(rects);
 }
 
-std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(QVector<KisRunnableStrokeJobData*> &jobs)
+std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(PkVector<KisRunnableStrokeJobData*> &jobs)
 {
     bool someDabsAreStillInQueue = false;
     const bool hasPreparedDabsAtStart = m_dabExecutor->hasPreparedDabs();
@@ -237,7 +237,7 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(QVector<KisRunnableStrokeJ
 
         const int idealNumRects = m_idealNumRects;
 
-        QVector<QRect> rects;
+        PkVector<PkRect> rects;
 
         // wrap the dabs if needed
         if (painter()->device()->defaultBounds()->wrapAroundMode()) {
@@ -254,16 +254,16 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(QVector<KisRunnableStrokeJ
              *    we paint only the parts intersecting the wrap rect.
              */
 
-            const QRect wrapRect = painter()->device()->defaultBounds()->imageBorderRect();
+            const PkRect wrapRect = painter()->device()->defaultBounds()->imageBorderRect();
             const WrapAroundAxis wrapAroundModeAxis = painter()->device()->defaultBounds()->wrapAroundModeAxis();
 
-            QList<KisRenderedDab> wrappedDabs;
+            PkList<KisRenderedDab> wrappedDabs;
 
             Q_FOREACH (const KisRenderedDab &dab, state->dabsQueue) {
-                const QVector<QPoint> normalizationOrigins =
+                const PkVector<PkPoint> normalizationOrigins =
                     KisWrappedRect::normalizationOriginsForRect(dab.realBounds(), wrapRect, wrapAroundModeAxis);
 
-                Q_FOREACH(const QPoint &pt, normalizationOrigins) {
+                Q_FOREACH(const PkPoint &pt, normalizationOrigins) {
                     KisRenderedDab newDab = dab;
 
                     newDab.offset = pt;
@@ -293,7 +293,7 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(QVector<KisRunnableStrokeJ
 
         state->dabRenderingTimer.start();
 
-        Q_FOREACH (const QRect &rc, rects) {
+        Q_FOREACH (const PkRect &rc, rects) {
             KritaUtils::addJobConcurrent(jobs,
                 [rc, state] () {
                     state->painter->bltFixed(rc, state->dabsQueue);
@@ -321,7 +321,7 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(QVector<KisRunnableStrokeJ
 
         KritaUtils::addJobSequential(jobs,
                 [state, this, someDabsAreStillInQueue] () {
-                    Q_FOREACH(const QRect &rc, state->allDirtyRects) {
+                    Q_FOREACH(const PkRect &rc, state->allDirtyRects) {
                         state->painter->addDirtyRect(rc);
                     }
 
@@ -395,7 +395,7 @@ void KisBrushOp::paintLine(const KisPaintInformation& pi1, const KisPaintInforma
         p.setPaintColor(painter()->paintColor());
         p.drawDDALine(pi1.pos(), pi2.pos());
 
-        QRect rc = m_lineCacheDevice->extent();
+        PkRect rc = m_lineCacheDevice->extent();
         painter()->bitBlt(rc.x(), rc.y(), m_lineCacheDevice, rc.x(), rc.y(), rc.width(), rc.height());
     //fixes Bug 338011
     painter()->renderMirrorMask(rc, m_lineCacheDevice);

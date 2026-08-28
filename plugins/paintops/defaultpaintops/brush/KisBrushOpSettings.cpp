@@ -8,7 +8,7 @@
 
 struct KisBrushOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 KisBrushOpSettings::KisBrushOpSettings(KisResourcesInterfaceSP resourcesInterface)
@@ -31,9 +31,9 @@ bool KisBrushOpSettings::needsAsynchronousUpdates() const
 #include "KisCurveOptionDataUniformProperty.h"
 #include "KisStandardOptionData.h"
 
-QList<KisUniformPaintOpPropertySP> KisBrushOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisBrushOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props = listWeakToStrong(m_d->uniformProperties);
+    PkList<KisUniformPaintOpPropertySP> props = listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
@@ -43,7 +43,8 @@ QList<KisUniformPaintOpPropertySP> KisBrushOpSettings::uniformProperties(KisPain
                     "lightness_strength",
                     settings, 0);
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

@@ -39,7 +39,7 @@ public:
     ~KisBrushOp() override;
 
     void paintLine(const KisPaintInformation &pi1, const KisPaintInformation &pi2, KisDistanceInformation *currentDistance) override;
-    std::pair<int, bool> doAsynchronousUpdate(QVector<KisRunnableStrokeJobData *> &jobs) override;
+    std::pair<int, bool> doAsynchronousUpdate(PkVector<KisRunnableStrokeJobData *> &jobs) override;
 
 
 protected:
@@ -50,12 +50,12 @@ protected:
     KisTimingInformation updateTimingImpl(const KisPaintInformation &info) const override;
 
     struct UpdateSharedState;
-    typedef QSharedPointer<UpdateSharedState> UpdateSharedStateSP;
+    typedef PkSharedPointer<UpdateSharedState> UpdateSharedStateSP;
 
     void addMirroringJobs(Qt::Orientation direction,
-                          QVector<QRect> &rects,
+                          PkVector<PkRect> &rects,
                           UpdateSharedStateSP state,
-                          QVector<KisRunnableStrokeJobData*> &jobs);
+                          PkVector<KisRunnableStrokeJobData*> &jobs);
 
     UpdateSharedStateSP m_updateSharedState;
 
@@ -77,7 +77,7 @@ private:
 
     KisPaintDeviceSP m_lineCacheDevice;
 
-    QScopedPointer<KisDabRenderingExecutor> m_dabExecutor;
+    PkScopedPointer<KisDabRenderingExecutor> m_dabExecutor;
     qreal m_currentUpdatePeriod = 20.0;
     KisRollingMeanAccumulatorWrapper m_avgSpacing;
     KisRollingMeanAccumulatorWrapper m_avgNumDabs;

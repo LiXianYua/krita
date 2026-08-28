@@ -16,7 +16,7 @@
 
 struct KisDabRenderingExecutor::Private
 {
-    QScopedPointer<KisDabRenderingQueue> renderingQueue;
+    PkScopedPointer<KisDabRenderingQueue> renderingQueue;
     KisRunnableStrokeJobsInterface *runnableJobsInterface;
 };
 
@@ -55,7 +55,7 @@ void KisDabRenderingExecutor::addDab(const KisDabCacheUtils::DabRequestInfo &req
     }
 }
 
-QList<KisRenderedDab> KisDabRenderingExecutor::takeReadyDabs(bool returnMutableDabs,
+PkList<KisRenderedDab> KisDabRenderingExecutor::takeReadyDabs(bool returnMutableDabs,
                                                              int oneTimeLimit,
                                                              bool *someDabsLeft)
 {

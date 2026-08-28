@@ -7,18 +7,6 @@
 #ifndef DEFAULT_PAINTOPS_PLUGIN_H_
 #define DEFAULT_PAINTOPS_PLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
-
-/**
- * A plugin wrapper that adds the paintop factories to the paintop registry.
- */
-class DefaultPaintOpsPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    DefaultPaintOpsPlugin(QObject *parent, const QVariantList &);
-    ~DefaultPaintOpsPlugin() override;
-};
+// Registration is performed by the static object in defaultpaintops_plugin.cc.
 
 #endif // DEFAULT_PAINTOPSGRAY_PLUGIN_H_

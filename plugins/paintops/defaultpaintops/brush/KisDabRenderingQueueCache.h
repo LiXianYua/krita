@@ -31,7 +31,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif // KISDABRENDERINGQUEUECACHE_H

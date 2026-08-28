@@ -73,8 +73,8 @@ void KisDabRenderingQueueTest::testCachedDabs()
     queue.setCacheInterface(cacheInterface);
 
     KoColor color;
-    QPointF pos1(10,10);
-    QPointF pos2(20,20);
+    PkPointF pos1(10,10);
+    PkPointF pos2(20,20);
     KisDabShape shape;
     KisPaintInformation pi1(pos1);
     KisPaintInformation pi2(pos2);
@@ -114,8 +114,8 @@ void KisDabRenderingQueueTest::testCachedDabs()
     QVERIFY(!queue.hasPreparedDabs());
     QCOMPARE(queue.testingGetQueueSize(), 4);
 
-    QList<KisDabRenderingJobSP > jobs;
-    QList<KisRenderedDab> renderedDabs;
+    PkList<KisDabRenderingJobSP > jobs;
+    PkList<KisRenderedDab> renderedDabs;
 
 
     {
@@ -233,8 +233,8 @@ void KisDabRenderingQueueTest::testPostprocessedDabs()
     queue.setCacheInterface(cacheInterface);
 
     KoColor color;
-    QPointF pos1(10,10);
-    QPointF pos2(20,20);
+    PkPointF pos1(10,10);
+    PkPointF pos2(20,20);
     KisDabShape shape;
     KisPaintInformation pi1(pos1);
     KisPaintInformation pi2(pos2);
@@ -274,8 +274,8 @@ void KisDabRenderingQueueTest::testPostprocessedDabs()
     QVERIFY(!queue.hasPreparedDabs());
     QCOMPARE(queue.testingGetQueueSize(), 4);
 
-    QList<KisDabRenderingJobSP > jobs;
-    QList<KisRenderedDab> renderedDabs;
+    PkList<KisDabRenderingJobSP > jobs;
+    PkList<KisRenderedDab> renderedDabs;
 
 
     {
@@ -331,7 +331,7 @@ void KisDabRenderingQueueTest::testPostprocessedDabs()
 
 
         // return back two postprocessed dabs
-        QList<KisDabRenderingJobSP > emptyJobs;
+        PkList<KisDabRenderingJobSP > emptyJobs;
         emptyJobs = queue.notifyJobFinished(jobs[0]->seqNo);
         QVERIFY(emptyJobs.isEmpty());
 
@@ -374,7 +374,7 @@ void KisDabRenderingQueueTest::testPostprocessedDabs()
         job->postprocessedDevice = new KisFixedPaintDevice(cs);
 
         // return back the postprocessed dab
-        QList<KisDabRenderingJobSP > emptyJobs;
+        PkList<KisDabRenderingJobSP > emptyJobs;
         emptyJobs = queue.notifyJobFinished(job->seqNo);
         QVERIFY(emptyJobs.isEmpty());
 
@@ -445,8 +445,8 @@ void KisDabRenderingQueueTest::testRunningJobs()
 
 
     KoColor color(Qt::red, cs);
-    QPointF pos1(10,10);
-    QPointF pos2(20,20);
+    PkPointF pos1(10,10);
+    PkPointF pos2(20,20);
     KisDabShape shape;
     KisPaintInformation pi1(pos1);
     KisPaintInformation pi2(pos2);
@@ -476,14 +476,14 @@ void KisDabRenderingQueueTest::testRunningJobs()
     KisDabRenderingJobSP job1 = queue.addDab(request2, OPACITY_OPAQUE_F, OPACITY_OPAQUE_F);
     QVERIFY(!job1);
 
-    QList<KisRenderedDab> renderedDabs = queue.takeReadyDabs();
+    PkList<KisRenderedDab> renderedDabs = queue.takeReadyDabs();
     QCOMPARE(renderedDabs.size(), 2);
 
     // we did the caching
     QVERIFY(renderedDabs[0].device == renderedDabs[1].device);
 
-    QCOMPARE(renderedDabs[0].offset, QPoint(5,5));
-    QCOMPARE(renderedDabs[1].offset, QPoint(15,15));
+    QCOMPARE(renderedDabs[0].offset, PkPoint(5,5));
+    QCOMPARE(renderedDabs[1].offset, PkPoint(15,15));
 }
 
 #include "../KisDabRenderingExecutor.h"
@@ -493,13 +493,13 @@ void KisDabRenderingQueueTest::testExecutor()
 {
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
 
-    QScopedPointer<KisRunnableStrokeJobsInterface> runner(new KisFakeRunnableStrokeJobsExecutor());
+    PkScopedPointer<KisRunnableStrokeJobsInterface> runner(new KisFakeRunnableStrokeJobsExecutor());
 
     KisDabRenderingExecutor executor(cs, testResourcesFactory, runner.data());
 
     KoColor color(Qt::red, cs);
-    QPointF pos1(10,10);
-    QPointF pos2(20,20);
+    PkPointF pos1(10,10);
+    PkPointF pos2(20,20);
     KisDabShape shape;
     KisPaintInformation pi1(pos1);
     KisPaintInformation pi2(pos2);
@@ -510,14 +510,14 @@ void KisDabRenderingQueueTest::testExecutor()
     executor.addDab(request1, 0.5, 0.25);
     executor.addDab(request2, 0.125, 1.0);
 
-    QList<KisRenderedDab> renderedDabs = executor.takeReadyDabs();
+    PkList<KisRenderedDab> renderedDabs = executor.takeReadyDabs();
     QCOMPARE(renderedDabs.size(), 2);
 
     // we did the caching
     QVERIFY(renderedDabs[0].device == renderedDabs[1].device);
 
-    QCOMPARE(renderedDabs[0].offset, QPoint(5,5));
-    QCOMPARE(renderedDabs[1].offset, QPoint(15,15));
+    QCOMPARE(renderedDabs[0].offset, PkPoint(5,5));
+    QCOMPARE(renderedDabs[1].offset, PkPoint(15,15));
 
     QCOMPARE(renderedDabs[0].opacity, 0.5);
     QCOMPARE(renderedDabs[0].flow, 0.25);

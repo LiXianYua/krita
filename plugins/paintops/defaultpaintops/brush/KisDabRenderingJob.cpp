@@ -6,7 +6,7 @@
 
 #include "KisDabRenderingJob.h"
 
-#include <QElapsedTimer>
+#include <PkElapsedTimer.h>
 
 #include <KisRunnableStrokeJobsInterface.h>
 #include <KisRunnableStrokeJobData.h>
@@ -50,14 +50,14 @@ KisDabRenderingJob &KisDabRenderingJob::operator=(const KisDabRenderingJob &rhs)
     return *this;
 }
 
-QPoint KisDabRenderingJob::dstDabOffset() const
+PkPoint KisDabRenderingJob::dstDabOffset() const
 {
     /// Recenter generated low-res dab around the center
     /// of the ideal theoretical dab rect
-    const QPoint p1 = generationInfo.dstDabRect.topLeft();
-    const QPoint s1 = QPoint(generationInfo.dstDabRect.width(),
+    const PkPoint p1 = generationInfo.dstDabRect.topLeft();
+    const PkPoint s1 = PkPoint(generationInfo.dstDabRect.width(),
                              generationInfo.dstDabRect.height());
-    const QPoint s2 = QPoint(postprocessedDevice->bounds().width(),
+    const PkPoint s2 = PkPoint(postprocessedDevice->bounds().width(),
                              postprocessedDevice->bounds().height());
     return p1 + (s1 - s2) / 2;
 }
@@ -86,7 +86,7 @@ int KisDabRenderingJobRunner::executeOneJob(KisDabRenderingJob *job,
     KIS_SAFE_ASSERT_RECOVER_NOOP(job->type == KisDabRenderingJob::Dab ||
                                  job->type == KisDabRenderingJob::Postprocess);
 
-    QElapsedTimer executionTime;
+    PkElapsedTimer executionTime;
     executionTime.start();
 
     resources->syncResourcesToSeqNo(job->seqNo, job->generationInfo.info);
@@ -135,10 +135,10 @@ void KisDabRenderingJobRunner::run()
     KisDabCacheUtils::DabRenderingResources *resources = m_parentQueue->fetchResourcesFromCache();
 
     executionTime = executeOneJob(m_job.data(), resources, m_parentQueue);
-    QList<KisDabRenderingJobSP> jobs = m_parentQueue->notifyJobFinished(m_job->seqNo, executionTime);
+    PkList<KisDabRenderingJobSP> jobs = m_parentQueue->notifyJobFinished(m_job->seqNo, executionTime);
 
     while (!jobs.isEmpty()) {
-        QVector<KisRunnableStrokeJobData*> dataList;
+        PkVector<KisRunnableStrokeJobData*> dataList;
 
         // start all-but-the-first jobs asynchronously
         for (int i = 1; i < jobs.size(); i++) {
