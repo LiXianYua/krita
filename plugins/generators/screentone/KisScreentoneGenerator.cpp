@@ -6,7 +6,6 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <kpluginfactory.h>
 #include <KoUpdater.h>
 #include <kis_processing_information.h>
 #include <KisSequentialIteratorProgress.h>
@@ -26,13 +25,13 @@
 #include "KisScreentoneGeneratorTemplate.h"
 #include "KisScreentoneGeneratorTemplateSampler.h"
 
-KisScreentoneGenerator::KisScreentoneGenerator() : KisGenerator(id(), KoID("basic"), i18n("&Screentone..."))
+KisScreentoneGenerator::KisScreentoneGenerator() : KisGenerator(id(), KoID("basic"), "&Screentone...")
 {
     setSupportsPainting(true);
 }
 
 void KisScreentoneGenerator::generate(KisProcessingInformation dst,
-                                      const QSize &size,
+                                      const PkSize &size,
                                       const KisFilterConfigurationSP config,
                                       KoUpdater *progressUpdater) const
 {
@@ -47,7 +46,7 @@ void KisScreentoneGenerator::generate(KisProcessingInformation dst,
 }
 
 void KisScreentoneGenerator::generate(KisProcessingInformation dst,
-                                      const QSize &size,
+                                      const PkSize &size,
                                       const KisScreentoneGeneratorConfigurationSP config,
                                       KoUpdater *progressUpdater) const
 {
@@ -242,7 +241,7 @@ void KisScreentoneGenerator::generate(KisProcessingInformation dst,
 
 template <class Sampler>
 void KisScreentoneGenerator::generate(KisProcessingInformation dst,
-                                      const QSize &size,
+                                      const PkSize &size,
                                       const KisScreentoneGeneratorConfigurationSP config,
                                       KoUpdater *progressUpdater,
                                       const Sampler &sampler) const
@@ -285,7 +284,7 @@ bool KisScreentoneGenerator::checkUpdaterInterruptedAndSetPercent(KoUpdater *pro
 
 template <class Sampler, class PostprocessingFunction>
 void KisScreentoneGenerator::generate(KisProcessingInformation dst,
-                                      const QSize &size,
+                                      const PkSize &size,
                                       const KisScreentoneGeneratorConfigurationSP config,
                                       KoUpdater *progressUpdater,
                                       const Sampler &sampler,
@@ -297,7 +296,7 @@ void KisScreentoneGenerator::generate(KisProcessingInformation dst,
 
     checkUpdaterInterruptedAndSetPercent(progressUpdater, 0);
     
-    const QRect bounds = QRect(dst.topLeft(), size);
+    const PkRect bounds = PkRect(dst.topLeft(), size);
     const KoColorSpace *colorSpace;
     if (device->colorSpace()->profile()->isLinear()) {
         colorSpace = KoColorSpaceRegistry::instance()->rgb8();

@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <kpluginfactory.h>
 #include <KoUpdater.h>
 #include <kis_processing_information.h>
 #include <filter/kis_filter_configuration.h>
@@ -16,13 +15,13 @@
 
 #include "KisGradientGenerator.h"
 
-KisGradientGenerator::KisGradientGenerator() : KisGenerator(id(), KoID("basic"), i18n("&Gradient..."))
+KisGradientGenerator::KisGradientGenerator() : KisGenerator(id(), KoID("basic"), "&Gradient...")
 {
     setSupportsPainting(true);
 }
 
 void KisGradientGenerator::generate(KisProcessingInformation dst,
-                                    const QSize &size,
+                                    const PkSize &size,
                                     const KisFilterConfigurationSP config,
                                     KoUpdater *progressUpdater) const
 {
@@ -35,8 +34,8 @@ void KisGradientGenerator::generate(KisProcessingInformation dst,
     KIS_SAFE_ASSERT_RECOVER_RETURN(generatorConfiguration);
 
 
-    QSize imageSize = device->defaultBounds()->imageBorderRect().size();
-    QPair<QPointF, QPointF> positions =
+    PkSize imageSize = device->defaultBounds()->imageBorderRect().size();
+    std::pair<PkPointF, PkPointF> positions =
         generatorConfiguration->absoluteCartesianPositionsInPixels(imageSize.width(), imageSize.height());
 
     KisGradientPainter painter(device);
@@ -50,7 +49,7 @@ void KisGradientGenerator::generate(KisProcessingInformation dst,
         generatorConfiguration->repeat(),
         generatorConfiguration->antiAliasThreshold(),
         generatorConfiguration->reverse(),
-        QRect(dst.topLeft(), size),
+        PkRect(dst.topLeft(), size),
         generatorConfiguration->dither()
     );
 }

@@ -9,8 +9,6 @@
 #ifndef KISGRADIENTGENERATOR_H
 #define KISGRADIENTGENERATOR_H
 
-#include <QObject>
-
 #include "generator/kis_generator.h"
 
 #include "KisGradientGeneratorConfiguration.h"
@@ -24,12 +22,12 @@ public:
     using KisGenerator::generate;
 
     virtual void generate(KisProcessingInformation dst,
-                          const QSize& size,
+                          const PkSize& size,
                           const KisFilterConfigurationSP config,
                           KoUpdater* progressUpdater) const override;
     
     static inline KoID id() {
-        return KoID(KisGradientGeneratorConfiguration::defaultName(), i18n("Gradient"));
+        return KoID(KisGradientGeneratorConfiguration::defaultName(), "Gradient");
     }
 
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

@@ -9,9 +9,8 @@
 #ifndef KISSCREENTONEGENERATORTEMPLATE_H
 #define KISSCREENTONEGENERATORTEMPLATE_H
 
-#include <QtGlobal>
-#include <QVector>
-#include <QTransform>
+#include <PkVector.h>
+#include <PkTransform.h>
 
 #include "KisScreentoneGeneratorConfiguration.h"
 
@@ -20,29 +19,29 @@ class KisScreentoneGeneratorTemplate
 public:
     KisScreentoneGeneratorTemplate(const KisScreentoneGeneratorConfigurationSP config);
 
-    inline const QVector<qreal>& templateData() const { return m_templateData; }
-    inline const QTransform& imageToScreenTransform() const { return m_imageToScreenTransform; }
-    inline const QTransform& screenToTemplateTransform() const { return m_screenToTemplateTransform; }
-    inline const QTransform& templateToScreenTransform() const { return m_templateToScreenTransform; }
-    inline const QPointF& screenPosition() const { return m_screenPosition; }
-    inline const QSize& macrocellSize() const { return m_macrocellSize; }
-    inline const QSize& templateSize() const { return m_templateSize; }
-    inline const QPoint& originOffset() const{ return m_originOffset; }
-    inline const QPointF& v1() const { return m_v1; }
-    inline const QPointF& v2() const { return m_v2; }
+    inline const PkVector<qreal>& templateData() const { return m_templateData; }
+    inline const PkTransform& imageToScreenTransform() const { return m_imageToScreenTransform; }
+    inline const PkTransform& screenToTemplateTransform() const { return m_screenToTemplateTransform; }
+    inline const PkTransform& templateToScreenTransform() const { return m_templateToScreenTransform; }
+    inline const PkPointF& screenPosition() const { return m_screenPosition; }
+    inline const PkSize& macrocellSize() const { return m_macrocellSize; }
+    inline const PkSize& templateSize() const { return m_templateSize; }
+    inline const PkPoint& originOffset() const{ return m_originOffset; }
+    inline const PkPointF& v1() const { return m_v1; }
+    inline const PkPointF& v2() const { return m_v2; }
 
 private:
-    QVector<qreal> m_templateData;
-    QTransform m_imageToScreenTransform, m_screenToTemplateTransform, m_templateToScreenTransform;
-    QPointF m_screenPosition;
-    QSize m_macrocellSize;
-    QSize m_templateSize;
-    QPoint m_originOffset;
-    QPointF m_v1, m_v2;
+    PkVector<qreal> m_templateData;
+    PkTransform m_imageToScreenTransform, m_screenToTemplateTransform, m_templateToScreenTransform;
+    PkPointF m_screenPosition;
+    PkSize m_macrocellSize;
+    PkSize m_templateSize;
+    PkPoint m_originOffset;
+    PkPointF m_v1, m_v2;
 
     template <typename ScreentoneFunction>
     void makeTemplate(const KisScreentoneGeneratorConfigurationSP config, ScreentoneFunction screentoneFunction);
-    QVector<int> makeCellOrderList(int macrocellColumns, int macrocellRows) const;
+    PkVector<int> makeCellOrderList(int macrocellColumns, int macrocellRows) const;
 };
 
 #endif

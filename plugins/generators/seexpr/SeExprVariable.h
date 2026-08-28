@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QMap>
+#include <PkMap.h>
 #include <KSeExpr/Expression.h>
 
 class SeExprVariable : public KSeExpr::ExprVarRef

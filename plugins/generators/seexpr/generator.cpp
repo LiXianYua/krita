@@ -20,8 +20,6 @@
 #include <kis_processing_information.h>
 #include <kis_selection.h>
 #include <kis_types.h>
-#include <klocalizedstring.h>
-#include <kpluginfactory.h>
 
 #include "SeExprExpressionContext.h"
 #include "generator.h"
@@ -33,7 +31,7 @@
 class KisSeExprGeneratorConfiguration : public KisFilterConfiguration
 {
 public:
-    KisSeExprGeneratorConfiguration(const QString &name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
+    KisSeExprGeneratorConfiguration(const PkString &name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
         : KisFilterConfiguration(name, version, resourcesInterface)
     {
     }
@@ -48,26 +46,19 @@ public:
         return new KisSeExprGeneratorConfiguration(*this);
     }
 
-    QString script() const
+    PkString script() const
     {
-        return this->getString("script", QStringLiteral(BASE_SCRIPT));
+        return this->getString("script", BASE_SCRIPT);
     }
 };
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaSeExprGeneratorFactory, "generator.json", registerPlugin<KritaSeExprGenerator>();)
-
-KritaSeExprGenerator::KritaSeExprGenerator(QObject *parent, const QVariantList &)
-    : QObject(parent)
-{
+namespace { const bool registered = [] {
     KisGeneratorRegistry::instance()->add(new KisSeExprGenerator());
-}
-
-KritaSeExprGenerator::~KritaSeExprGenerator()
-{
-}
+    return true;
+}(); }
 
 KisSeExprGenerator::KisSeExprGenerator()
-    : KisGenerator(id(), KoID("basic"), i18n("&SeExpr..."))
+    : KisGenerator(id(), KoID("basic"), "&SeExpr...")
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -82,13 +73,13 @@ KisFilterConfigurationSP KisSeExprGenerator::defaultConfiguration(KisResourcesIn
 {
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
 
-    QVariant v;
-    v.setValue(QString("Disney_noisecolor2"));
+    PkVariant v;
+    v.setValue(PkString("Disney_noisecolor2"));
     config->setProperty("pattern", v);
     return config;
 }
 
-void KisSeExprGenerator::generate(KisProcessingInformation dstInfo, const QSize &size, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
+void KisSeExprGenerator::generate(KisProcessingInformation dstInfo, const PkSize &size, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
 {
     KisPaintDeviceSP device = dstInfo.paintDevice();
 
@@ -96,10 +87,10 @@ void KisSeExprGenerator::generate(KisProcessingInformation dstInfo, const QSize 
     Q_ASSERT(config);
 
     if (config) {
-        QString script = config->getString("script");
+        PkString script = config->getString("script");
 
-        QRect bounds = QRect(dstInfo.topLeft(), size);
-        QRect whole_image_bounds = device->defaultBounds()->bounds();
+        PkRect bounds = PkRect(dstInfo.topLeft(), size);
+        PkRect whole_image_bounds = device->defaultBounds()->bounds();
 
         SeExprExpressionContext expression(script);
 
@@ -139,5 +130,3 @@ void KisSeExprGenerator::generate(KisProcessingInformation dstInfo, const QSize 
         }
     }
 }
-
-#include "generator.moc"

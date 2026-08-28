@@ -26,7 +26,7 @@ void KisScreentoneGeneratorTest::initTestCase()
     KisGeneratorRegistry::instance();
 }
 
-void testGenerate(const QString &testName, const QHash<QString, QVariant> &properties)
+void testGenerate(const PkString &testName, const PkHash<PkString, PkVariant> &properties)
 {
     KisGeneratorSP generator = KisGeneratorRegistry::instance()->get("screentone");
     QVERIFY(generator);
@@ -35,28 +35,26 @@ void testGenerate(const QString &testName, const QHash<QString, QVariant> &prope
     QVERIFY(config);
 
     KisPaintDeviceSP paintDevice = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
-    KisProcessingInformation processingInformation(paintDevice, QPoint(0, 0), KisSelectionSP());
+    KisProcessingInformation processingInformation(paintDevice, PkPoint(0, 0), KisSelectionSP());
     TestUtil::TestProgressBar *testProgressBar = new TestUtil::TestProgressBar();
     KoProgressUpdater *progressUpdater = new KoProgressUpdater(testProgressBar);
     KoUpdaterPtr updater = progressUpdater->startSubtask();
 
-    QSize testImageSize(256, 256);
+    PkSize testImageSize(256, 256);
 
-    QHashIterator<QString, QVariant> it(properties);
-    while (it.hasNext()) {
-        it.next();
+    for (auto it = properties.constBegin(); it != properties.constEnd(); ++it) {
         config->setProperty(it.key(), it.value());
     }
 
     generator->generate(processingInformation, testImageSize, config, updater);
 
-    QImage referenceImage(QString(FILES_DATA_DIR) + QDir::separator() + testName + ".png");
-    QImage deviceImage = paintDevice->convertToQImage(0, 0, 0, testImageSize.width(), testImageSize.height());
+    PkImage referenceImage(PkString(FILES_DATA_DIR) + QDir::separator() + testName + ".png");
+    PkImage deviceImage = paintDevice->convertToQImage(0, 0, 0, testImageSize.width(), testImageSize.height());
 
-    QPoint differingPoint;
+    PkPoint differingPoint;
     if (!TestUtil::compareQImages(differingPoint, referenceImage, deviceImage)) {
         deviceImage.save(testName + "_generated.png");
-        QFAIL(QString(testName + ": failed to compare images, first different pixel: %1,%2 ").arg(differingPoint.x()).arg(differingPoint.y()).toLatin1());
+        QFAIL(PkString(testName + ": failed to compare images, first different pixel: %1,%2 ").arg(differingPoint.x()).arg(differingPoint.y()).toLatin1());
     }
 
     delete progressUpdater;
@@ -65,7 +63,7 @@ void testGenerate(const QString &testName, const QHash<QString, QVariant> &prope
 
 void KisScreentoneGeneratorTest::testGenerate01()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("equalization_mode", 0);
     properties.insert("brightness", 70);
@@ -76,7 +74,7 @@ void KisScreentoneGeneratorTest::testGenerate01()
 
 void KisScreentoneGeneratorTest::testGenerate02()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("equalization_mode", 1);
     properties.insert("brightness", 70);
@@ -87,7 +85,7 @@ void KisScreentoneGeneratorTest::testGenerate02()
 
 void KisScreentoneGeneratorTest::testGenerate03()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("equalization_mode", 2);
     properties.insert("brightness", 70);
@@ -98,7 +96,7 @@ void KisScreentoneGeneratorTest::testGenerate03()
 
 void KisScreentoneGeneratorTest::testGenerate04()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("equalization_mode", 0);
     properties.insert("align_to_pixel_grid", false);
@@ -110,7 +108,7 @@ void KisScreentoneGeneratorTest::testGenerate04()
 
 void KisScreentoneGeneratorTest::testGenerate05()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("equalization_mode", 1);
     properties.insert("align_to_pixel_grid", false);
@@ -122,7 +120,7 @@ void KisScreentoneGeneratorTest::testGenerate05()
 
 void KisScreentoneGeneratorTest::testGenerate06()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("equalization_mode", 2);
     properties.insert("align_to_pixel_grid", false);
@@ -134,7 +132,7 @@ void KisScreentoneGeneratorTest::testGenerate06()
 
 void KisScreentoneGeneratorTest::testGenerate07()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("pattern", 1);
     properties.insert("shape", 1);
@@ -145,8 +143,8 @@ void KisScreentoneGeneratorTest::testGenerate07()
     properties.insert("size_x", 100.0);
     properties.insert("rotation", 15.0);
 
-    QVariant v;
-    v.setValue(KoColor(QColor(255, 0, 0), KoColorSpaceRegistry::instance()->rgb8()));
+    PkVariant v;
+    v.setValue(KoColor(PkColor(255, 0, 0), KoColorSpaceRegistry::instance()->rgb8()));
     properties.insert("foreground_color", v);
     properties.insert("background_opacity", 0);
     properties.insert("brightness", 75);
@@ -159,7 +157,7 @@ void KisScreentoneGeneratorTest::testGenerate07()
 
 void KisScreentoneGeneratorTest::testGenerate08()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("pattern", 1);
     properties.insert("shape", 1);
@@ -170,8 +168,8 @@ void KisScreentoneGeneratorTest::testGenerate08()
     properties.insert("size_x", 100.0);
     properties.insert("rotation", 15.0);
 
-    QVariant v;
-    v.setValue(KoColor(QColor(255, 0, 0), KoColorSpaceRegistry::instance()->rgb8()));
+    PkVariant v;
+    v.setValue(KoColor(PkColor(255, 0, 0), KoColorSpaceRegistry::instance()->rgb8()));
     properties.insert("foreground_color", v);
     properties.insert("background_opacity", 0);
     properties.insert("brightness", 75);
@@ -184,7 +182,7 @@ void KisScreentoneGeneratorTest::testGenerate08()
 
 void KisScreentoneGeneratorTest::testGenerate09()
 {
-    QHash<QString, QVariant> properties;
+    PkHash<PkString, PkVariant> properties;
 
     properties.insert("pattern", 1);
     properties.insert("shape", 1);
@@ -195,8 +193,8 @@ void KisScreentoneGeneratorTest::testGenerate09()
     properties.insert("size_x", 100.0);
     properties.insert("rotation", 15.0);
 
-    QVariant v;
-    v.setValue(KoColor(QColor(255, 0, 0), KoColorSpaceRegistry::instance()->rgb8()));
+    PkVariant v;
+    v.setValue(KoColor(PkColor(255, 0, 0), KoColorSpaceRegistry::instance()->rgb8()));
     properties.insert("foreground_color", v);
     properties.insert("background_opacity", 0);
     properties.insert("brightness", 75);

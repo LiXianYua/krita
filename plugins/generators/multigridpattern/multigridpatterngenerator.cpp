@@ -8,16 +8,14 @@
 
 #include "multigridpatterngenerator.h"
 
-#include <QPoint>
-#include <QPolygonF>
-#include <QMap>
-#include <QtMath>
-#include <QDomDocument>
+#include <PkPoint.h>
+#include <PkPolygonF.h>
+#include <PkMap.h>
+#include <PkXmlDocument.h>
+#include <KoStopGradient.h>
 
 #include <kis_debug.h>
 
-#include <kpluginfactory.h>
-#include <klocalizedstring.h>
 
 #include <kis_fill_painter.h>
 #include <kis_image.h>
@@ -30,21 +28,12 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 #include <kis_progress_update_helper.h>
-#include <KoStopGradient.h>
-
-K_PLUGIN_FACTORY_WITH_JSON(KritaMultigridPatternGeneratorFactory, "kritamultigridpatterngenerator.json", registerPlugin<KritaMultigridPatternGenerator>();)
-
-KritaMultigridPatternGenerator::KritaMultigridPatternGenerator(QObject *parent, const QVariantList &)
-        : QObject(parent)
-{
+namespace { const bool registered = [] {
     KisGeneratorRegistry::instance()->add(new KisMultigridPatternGenerator());
-}
+    return true;
+}(); }
 
-KritaMultigridPatternGenerator::~KritaMultigridPatternGenerator()
-{
-}
-
-KisMultigridPatternGenerator::KisMultigridPatternGenerator() : KisGenerator(id(), KoID("basic"), i18n("&Multigrid Pattern..."))
+KisMultigridPatternGenerator::KisMultigridPatternGenerator() : KisGenerator(id(), KoID("basic"), "&Multigrid Pattern...")
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -54,19 +43,10 @@ KisFilterConfigurationSP KisMultigridPatternGenerator::defaultConfiguration(KisR
 {
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
 
-    QLinearGradient gradient;
-    gradient.setColorAt(0, Qt::green);
-    gradient.setColorAt(1.0, Qt::blue);
-    KoStopGradientSP grad = KoStopGradient::fromQGradient(&gradient);
-    if (grad) {
-        QDomDocument doc;
-        QDomElement elt = doc.createElement("gradient");
-        grad->toXML(doc, elt);
-        doc.appendChild(elt);
-        config->setProperty("gradientXML", doc.toString());
-    }
+    // Rendering is intentionally unavailable until S-09/M5; keep the key stable.
+    config->setProperty("gradientXML", PkString());
 
-    QVariant v;
+    PkVariant v;
     KoColor c;
     v.setValue(c);
     config->setProperty("lineColor", v);
@@ -86,7 +66,7 @@ KisFilterConfigurationSP KisMultigridPatternGenerator::defaultConfiguration(KisR
 }
 
 void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
-                                 const QSize& size,
+                                 const PkSize& size,
                                  const KisFilterConfigurationSP config,
                                  KoUpdater* progressUpdater) const
 {
@@ -97,23 +77,20 @@ void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
 
     if (config) {
 
-        QLinearGradient gradient;
-        gradient.setColorAt(0, Qt::green);
-        gradient.setColorAt(1.0, Qt::blue);
-        KoStopGradientSP grad = KoStopGradient::fromQGradient(&gradient);
+        KoStopGradientSP grad;
         if (config->hasProperty("gradientXML")) {
-            QDomDocument doc;
+            PkXmlDocument doc;
             doc.setContent(config->getString("gradientXML", ""));
             KoStopGradient gradient = KoStopGradient::fromXML(doc.firstChildElement());
             if (gradient.stops().size() > 0) {
-                grad->setStops(gradient.stops());
+                    grad = gradient.clone().dynamicCast<KoStopGradient>();
             }
         }
 
         int divisions = config->getInt("divisions", 1);
         int dimensions = config->getInt("dimensions", 5);
         qreal offset = config->getFloat("offset", .2);
-        QRectF bounds(QPoint(), size);
+        PkRectF bounds(PkPoint(), size);
 
         KoColor lineColor = config->getColor("lineColor");
         lineColor.setOpacity(1.0);
@@ -123,10 +100,16 @@ void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
         qreal colorIndex = config->getFloat("colorIndex", 0.0);
         qreal colorIntersect = config->getFloat("colorIntersect", 0.0);
 
-        qreal diameter = QLineF(bounds.topLeft(), bounds.bottomRight()).length();
+        qreal diameter = PkLineF(bounds.topLeft(), bounds.bottomRight()).length();
         qreal scale = diameter/2/divisions;
 
-        QList<KisMultiGridRhomb> rhombs = generateRhombs(dimensions, divisions, offset);
+        PkList<KisMultiGridRhomb> rhombs = generateRhombs(dimensions, divisions, offset);
+
+        // S-09/M5 GAP: geometry generation remains available, rendering is a
+        // deterministic no-op until a non-Qt painter backend is delivered.
+        (void)rhombs;
+        (void)progressUpdater;
+        return;
 
         KisProgressUpdateHelper progress(progressUpdater, 100, rhombs.size());
 
@@ -140,7 +123,7 @@ void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
 
         gc.fill(bounds.left(), bounds.top(), bounds.right(), bounds.bottom(), lineColor);
 
-        QTransform tf;
+        PkTransform tf;
         tf.translate(bounds.center().x(), bounds.center().y());
         tf.scale(scale, scale);
         if (dimensions%2>0) {
@@ -149,17 +132,17 @@ void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
         KoColor c = grad->stops()[0].color;
         for (int i= 0; i < rhombs.size(); i++){
             KisMultiGridRhomb rhomb = rhombs.at(i);
-            QPolygonF shape = tf.map(rhomb.shape);
+            PkPolygonF shape = tf.map(rhomb.shape);
 
-            QPointF center = shape.at(0)+shape.at(1)+shape.at(2)+shape.at(3);
+            PkPointF center = shape.at(0)+shape.at(1)+shape.at(2)+shape.at(3);
             center.setX(center.x()/4.0);
             center.setY(center.y()/4.0);
 
-            QTransform lineWidthTransform;
+            PkTransform lineWidthTransform;
 
             qreal scaleForLineWidth = qMax(1-(qreal(lineWidth)/scale), 0.0);
             lineWidthTransform.scale(scaleForLineWidth, scaleForLineWidth);
-            QPointF scaledCenter = lineWidthTransform.map(center);
+            PkPointF scaledCenter = lineWidthTransform.map(center);
             lineWidthTransform.reset();
 
             lineWidthTransform.translate(center.x()-scaledCenter.x(), center.y()-scaledCenter.y());
@@ -167,13 +150,13 @@ void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
 
             shape = lineWidthTransform.map(shape);
             if (shape.intersects(bounds) && shape.boundingRect().width()>0) {
-                QPainterPath p;
+                PkPainterPath p;
                 p.addPolygon(lineWidthTransform.map(shape));
 
                 qreal gradientPos = 1;
 
-                qreal w1 = QLineF (shape.at(0), shape.at(2)).length();
-                qreal w2 = QLineF (shape.at(1), shape.at(3)).length();
+                qreal w1 = PkLineF (shape.at(0), shape.at(2)).length();
+                qreal w2 = PkLineF (shape.at(1), shape.at(3)).length();
                 qreal shapeRatio = qMin(w1, w2)/qMax(w1, w2);
 
                 qreal intersectRatio = qreal(rhomb.line1)/qreal(dimensions);
@@ -209,60 +192,60 @@ void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
                 if (connectorType != Connector::None) {
                     gc.setBackgroundColor(config->getColor("connectorColor"));
                     qreal connectorWidth = qreal(config->getInt("connectorWidth", 1))*.5;
-                    QPainterPath pConnect;
+                    PkPainterPath pConnect;
                     qreal lower = connectorWidth/scale;
 
                     if (connectorType == Connector::Cross) {
-                        QPointF cl = QLineF(shape.at(0), shape.at(1)).pointAt(0.5-lower);
+                        PkPointF cl = PkLineF(shape.at(0), shape.at(1)).pointAt(0.5-lower);
                         pConnect.moveTo(cl);
-                        cl = QLineF(shape.at(0), shape.at(1)).pointAt(0.5+lower);
+                        cl = PkLineF(shape.at(0), shape.at(1)).pointAt(0.5+lower);
                         pConnect.lineTo(cl);
-                        cl = QLineF(shape.at(2), shape.at(3)).pointAt(0.5-lower);
+                        cl = PkLineF(shape.at(2), shape.at(3)).pointAt(0.5-lower);
                         pConnect.lineTo(cl);
-                        cl = QLineF(shape.at(2), shape.at(3)).pointAt(0.5+lower);
+                        cl = PkLineF(shape.at(2), shape.at(3)).pointAt(0.5+lower);
                         pConnect.lineTo(cl);
                         pConnect.closeSubpath();
 
-                        cl = QLineF(shape.at(1), shape.at(2)).pointAt(0.5-lower);
+                        cl = PkLineF(shape.at(1), shape.at(2)).pointAt(0.5-lower);
                         pConnect.moveTo(cl);
-                        cl = QLineF(shape.at(1), shape.at(2)).pointAt(0.5+lower);
+                        cl = PkLineF(shape.at(1), shape.at(2)).pointAt(0.5+lower);
                         pConnect.lineTo(cl);
-                        cl = QLineF(shape.at(3), shape.at(0)).pointAt(0.5-lower);
+                        cl = PkLineF(shape.at(3), shape.at(0)).pointAt(0.5-lower);
                         pConnect.lineTo(cl);
-                        cl = QLineF(shape.at(3), shape.at(0)).pointAt(0.5+lower);
+                        cl = PkLineF(shape.at(3), shape.at(0)).pointAt(0.5+lower);
                         pConnect.lineTo(cl);
                         pConnect.closeSubpath();
 
                     } else if (connectorType == Connector::CornerDot) {
-                        QPointF cW(connectorWidth, connectorWidth);
+                        PkPointF cW(connectorWidth, connectorWidth);
                         
-                        QRectF dot (shape.at(0)-cW, shape.at(0)+cW);
+                        PkRectF dot (shape.at(0)-cW, shape.at(0)+cW);
                         pConnect.addEllipse(dot);
-                        dot = QRectF(shape.at(1)-cW, shape.at(1)+cW);
+                        dot = PkRectF(shape.at(1)-cW, shape.at(1)+cW);
                         pConnect.addEllipse(dot);
-                        dot = QRectF(shape.at(2)-cW, shape.at(2)+cW);
+                        dot = PkRectF(shape.at(2)-cW, shape.at(2)+cW);
                         pConnect.addEllipse(dot);
-                        dot = QRectF(shape.at(3)-cW, shape.at(3)+cW);
+                        dot = PkRectF(shape.at(3)-cW, shape.at(3)+cW);
                         pConnect.addEllipse(dot);
                         pConnect = pConnect.intersected(p);
                         
                     } else if (connectorType == Connector::CenterDot) {
                         
-                        QRectF dot (center-QPointF(connectorWidth, connectorWidth), center+QPointF(connectorWidth, connectorWidth));
+                        PkRectF dot (center-PkPointF(connectorWidth, connectorWidth), center+PkPointF(connectorWidth, connectorWidth));
                         pConnect.addEllipse(dot);
                         
                     } else {
                         for (int i=1; i<shape.size(); i++) {
-                            QPainterPath pAngle;
-                            QPointF curPoint = shape.at(i);
-                            QLineF l1(curPoint, shape.at(i-1));
-                            QPointF np;
+                            PkPainterPath pAngle;
+                            PkPointF curPoint = shape.at(i);
+                            PkLineF l1(curPoint, shape.at(i-1));
+                            PkPointF np;
                             if (i==4) {
                                 np = shape.at(1);
                             } else {
                                 np = shape.at(i+1);
                             }
-                            QLineF l2(curPoint, np);
+                            PkLineF l2(curPoint, np);
                             qreal angleDiff = abs(fmod(abs(l1.angle()-l2.angle())+180, 360)-180);
 
                             if (round(angleDiff) == 90) {
@@ -276,9 +259,9 @@ void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
                             }
 
                             qreal length = (l1.length()*0.5)-connectorWidth;
-                            QRectF sweep(curPoint-QPointF(length, length), curPoint+QPointF(length, length));
+                            PkRectF sweep(curPoint-PkPointF(length, length), curPoint+PkPointF(length, length));
                             length = (l1.length()*0.5)+connectorWidth;
-                            QRectF sweep2(curPoint-QPointF(length, length), curPoint+QPointF(length, length));
+                            PkRectF sweep2(curPoint-PkPointF(length, length), curPoint+PkPointF(length, length));
 
                             pAngle.moveTo(shape.at(i));
                             pAngle.addEllipse(sweep2);
@@ -303,11 +286,11 @@ void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
     }
 }
 
-QList<KisMultiGridRhomb> KisMultigridPatternGenerator::generateRhombs(int lines, int divisions, qreal offset) const
+PkList<KisMultiGridRhomb> KisMultigridPatternGenerator::generateRhombs(int lines, int divisions, qreal offset) const
 {
-    QList<KisMultiGridRhomb> rhombs;
-    QList<QLineF> parallelLines;
-    QList<qreal> angles;
+    PkList<KisMultiGridRhomb> rhombs;
+    PkList<PkLineF> parallelLines;
+    PkList<qreal> angles;
 
     int halfLines = divisions;
     int totalLines = (halfLines*2) +1;
@@ -322,37 +305,37 @@ QList<KisMultiGridRhomb> KisMultigridPatternGenerator::generateRhombs(int lines,
 
     for (int i = 0; i <angles.size(); i++ ) {
         qreal angle1 = angles.at(i);
-        QPointF p1(totalLines*cos(angle1), -totalLines*sin(angle1));
-        QPointF p2 = -p1;
+        PkPointF p1(totalLines*cos(angle1), -totalLines*sin(angle1));
+        PkPointF p2 = -p1;
 
 
         for (int parallel1 = 0; parallel1 < totalLines; parallel1++) {
             int index1 = halfLines-parallel1;
 
-            QPointF offset1((index1+offset)*sin(angle1), (index1+offset)*cos(angle1));
-            QLineF l1(p1, p2);
+            PkPointF offset1((index1+offset)*sin(angle1), (index1+offset)*cos(angle1));
+            PkLineF l1(p1, p2);
             l1.translate(offset1);
 
             for (int k = i+1; k <angles.size(); k++ ) {
                 qreal angle2 = angles.at(k);
-                QPointF p3(totalLines*cos(angle2), -totalLines*sin(angle2));
-                QPointF p4 = -p3;
+                PkPointF p3(totalLines*cos(angle2), -totalLines*sin(angle2));
+                PkPointF p4 = -p3;
 
 
                 for (int parallel2 = 0; parallel2 < totalLines; parallel2++) {
                     int index2 = halfLines-parallel2;
 
-                    QPointF offset2((index2+offset)*sin(angle2), (index2+offset)*cos(angle2));
-                    QLineF l2(p3, p4);
+                    PkPointF offset2((index2+offset)*sin(angle2), (index2+offset)*cos(angle2));
+                    PkLineF l2(p3, p4);
                     l2.translate(offset2);
 
 
-                    QPointF intersect;
-                    if (l1.intersects(l2, &intersect) == QLineF::BoundedIntersection) {
+                    PkPointF intersect;
+                    if (l1.intersects(l2, &intersect) == PkLineF::BoundedIntersection) {
 
-                        QList<int> indices = getIndicesFromPoint(intersect, angles, offset );
+                        PkList<int> indices = getIndicesFromPoint(intersect, angles, offset );
 
-                        QPolygonF shape;
+                        PkPolygonF shape;
                         indices[i] = index1+1;
                         indices[k] = index2+1;
                         shape << getVertice(indices, angles);
@@ -388,13 +371,13 @@ QList<KisMultiGridRhomb> KisMultigridPatternGenerator::generateRhombs(int lines,
     return rhombs;
 }
 
-QList<int> KisMultigridPatternGenerator::getIndicesFromPoint(QPointF point, QList<qreal> angles, qreal offset) const
+PkList<int> KisMultigridPatternGenerator::getIndicesFromPoint(PkPointF point, PkList<qreal> angles, qreal offset) const
 {
-    QList<int> indices;
+    PkList<int> indices;
 
     for (int a=0; a< angles.size(); a++) {
 
-        QPointF p = point;
+        PkPointF p = point;
 
         qreal index = p.x() * sin(angles.at(a)) + (p.y()) * cos(angles.at(a));
         indices.append(floor(index-offset+1));
@@ -402,11 +385,11 @@ QList<int> KisMultigridPatternGenerator::getIndicesFromPoint(QPointF point, QLis
     return indices;
 }
 
-QPointF KisMultigridPatternGenerator::getVertice(QList<int> indices, QList<qreal> angles) const
+PkPointF KisMultigridPatternGenerator::getVertice(PkList<int> indices, PkList<qreal> angles) const
 {
     if (indices.isEmpty() || angles.isEmpty()) {
         qDebug() << "error";
-        return QPointF();
+        return PkPointF();
     }
     qreal x = 0;
     qreal y = 0;
@@ -416,7 +399,5 @@ QPointF KisMultigridPatternGenerator::getVertice(QList<int> indices, QList<qreal
         y += indices.at(i)*sin(angles.at(i));
     }
 
-    return QPointF(x, y);
+    return PkPointF(x, y);
 }
-
-#include "multigridpatterngenerator.moc"

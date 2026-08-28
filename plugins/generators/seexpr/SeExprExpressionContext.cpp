@@ -8,7 +8,7 @@
 
 #include "SeExprExpressionContext.h"
 
-SeExprExpressionContext::SeExprExpressionContext(const QString &expr)
+SeExprExpressionContext::SeExprExpressionContext(const PkString &expr)
     : KSeExpr::Expression(expr.toStdString())
     , m_vars(VariableMap())
 {

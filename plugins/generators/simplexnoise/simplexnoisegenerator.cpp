@@ -12,42 +12,32 @@
 
 #include <KisSequentialIteratorProgress.h>
 #include <KoUpdater.h>
-#include <QCryptographicHash>
+#include <openssl/md5.h>
 #include <filter/kis_filter_configuration.h>
 #include <generator/kis_generator_registry.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorSpaceRegistry.h>
 #include <kis_processing_information.h>
-#include <kpluginfactory.h>
-
-K_PLUGIN_FACTORY_WITH_JSON(KritaSimplexNoiseGeneratorFactory, "kritasimplexnoisegenerator.json", registerPlugin<KisSimplexNoiseGeneratorHandle>();)
-
-KisSimplexNoiseGeneratorHandle::KisSimplexNoiseGeneratorHandle(QObject *parent, const QVariantList &)
-        : QObject(parent)
-{
+namespace { const bool registered = [] {
     KisGeneratorRegistry::instance()->add(new KisSimplexNoiseGenerator());
+    return true;
+}(); }
 
-}
-
-KisSimplexNoiseGeneratorHandle::~KisSimplexNoiseGeneratorHandle()
-{
-}
-
-KisSimplexNoiseGenerator::KisSimplexNoiseGenerator() : KisGenerator(id(), KoID("basic"), i18n("&Simplex Noise..."))
+KisSimplexNoiseGenerator::KisSimplexNoiseGenerator() : KisGenerator(id(), KoID("basic"), "&Simplex Noise...")
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
 }
 
-void KisSimplexNoiseGenerator::generate(KisProcessingInformation dst, const QSize &size, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
+void KisSimplexNoiseGenerator::generate(KisProcessingInformation dst, const PkSize &size, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
 {
     KisPaintDeviceSP device = dst.paintDevice();
     Q_ASSERT(!device.isNull());
 
     osn_context *noise_context;
 
-    QRect bounds = QRect(dst.topLeft(), size);
-    QRect whole_image_bounds = device->defaultBounds()->bounds();
+    PkRect bounds = PkRect(dst.topLeft(), size);
+    PkRect whole_image_bounds = device->defaultBounds()->bounds();
 
     const KoColorSpace *cs = device->colorSpace();
     const KoColorSpace *src = KoColorSpaceRegistry::instance()->colorSpace(GrayAColorModelID.id(), Float32BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc");
@@ -55,10 +45,10 @@ void KisSimplexNoiseGenerator::generate(KisProcessingInformation dst, const QSiz
 
     KisSequentialIteratorProgress it(device, bounds, progressUpdater);
 
-    QVariant property;
+    PkVariant property;
 
     const uint default_seed = (config->getProperty("seed", property)) ? property.toUInt() : 0;
-    const QString custom_seed_string = (config->getProperty("custom_seed_string", property)) ? property.toString() : "";
+    const PkString custom_seed_string = (config->getProperty("custom_seed_string", property)) ? property.toString() : "";
     const bool use_custom_seed = !custom_seed_string.trimmed().isEmpty();
 
     const uint seed = use_custom_seed ? seedFromString(custom_seed_string) : default_seed;
@@ -120,12 +110,14 @@ KisFilterConfigurationSP KisSimplexNoiseGenerator::defaultConfiguration(KisResou
     return config;
 }
 
-uint KisSimplexNoiseGenerator::seedFromString(const QString &string) const
+uint KisSimplexNoiseGenerator::seedFromString(const PkString &string) const
 {
-    QByteArray bytes = QCryptographicHash::hash(string.toUtf8(),QCryptographicHash::Md5);
+    const PkByteArray input = string.toUtf8();
+    unsigned char digest[MD5_DIGEST_LENGTH];
+    MD5(reinterpret_cast<const unsigned char *>(input.data()), static_cast<size_t>(input.size()), digest);
     uint hash = 0;
     for( int index = 0; index < bytes.length(); index++){
-        hash += rotateLeft(bytes[index], index % 32);
+        hash += rotateLeft(digest[index], index % 32);
     }
     return hash;
 }
@@ -134,6 +126,4 @@ quint64 KisSimplexNoiseGenerator::rotateLeft(const quint64 input, uint shift) co
 {
     return (input << shift)|(input >> (64 - shift));
 }
-
-#include "simplexnoisegenerator.moc"
 

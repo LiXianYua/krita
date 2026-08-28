@@ -9,9 +9,10 @@
 #ifndef KISSCREENTONEGENERATORCONFIGURATION_H
 #define KISSCREENTONEGENERATORCONFIGURATION_H
 
-#include <QString>
-#include <QStringList>
-#include <QScopedPointer>
+#include <PkString.h>
+#include <PkColor.h>
+#include <PkStringList.h>
+#include <PkScopedPointer.h>
 
 #include <KoColor.h>
 #include <KoColorSpaceRegistry.h>
@@ -66,9 +67,9 @@ enum KisScreentoneUnits
     KisScreentoneUnits_Centimeters
 };
 
-QStringList screentonePatternNames();
-QStringList screentoneShapeNames(int pattern);
-QStringList screentoneInterpolationNames(int pattern, int shape);
+PkStringList screentonePatternNames();
+PkStringList screentoneShapeNames(int pattern);
+PkStringList screentoneInterpolationNames(int pattern, int shape);
 
 class KisScreentoneGeneratorConfiguration;
 typedef KisPinnedSharedPtr<KisScreentoneGeneratorConfiguration> KisScreentoneGeneratorConfigurationSP;
@@ -83,7 +84,7 @@ public:
 
     virtual KisFilterConfigurationSP clone() const override;
 
-    static inline QString defaultName() { return "screentone"; }
+    static inline PkString defaultName() { return "screentone"; }
     static constexpr qint32 defaultVersion() { return 2; }
 
     static constexpr int defaultPattern() { return KisScreentonePatternType_Dots; }
@@ -93,12 +94,12 @@ public:
 
     static inline const KoColor& defaultForegroundColor()
     {
-        static const KoColor c(Qt::black, KoColorSpaceRegistry::instance()->rgb8());
+        static const KoColor c(PkColor("#000000"), KoColorSpaceRegistry::instance()->rgb8());
         return c;
     }
     static inline const KoColor& defaultBackgroundColor()
     {
-        static const KoColor c(Qt::white, KoColorSpaceRegistry::instance()->rgb8());
+        static const KoColor c(PkColor("#ffffff"), KoColorSpaceRegistry::instance()->rgb8());
         return c;
     }
     static constexpr int defaultForegroundOpacity() { return 100; }
@@ -192,7 +193,7 @@ public:
 
 private:
     class Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif

@@ -6,60 +6,58 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QStringList>
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkStringList.h>
+#include <PkMutex.h>
 
-#include <klocalizedstring.h>
 
 #include "KisScreentoneGeneratorTemplate.h"
 #include "KisScreentoneGeneratorConfiguration.h"
 
-QStringList screentonePatternNames()
+PkStringList screentonePatternNames()
 {
-    return QStringList()
-        << i18nc("Screentone Pattern Type - Dots", "Dots")
-        << i18nc("Screentone Pattern Type - Lines", "Lines");
+    return PkStringList()
+        << "Dots"
+        << "Lines";
 }
 
-QStringList screentoneShapeNames(int pattern)
+PkStringList screentoneShapeNames(int pattern)
 {
     if (pattern == KisScreentonePatternType_Dots) {
-        return QStringList()
-            << i18nc("Screentone Pattern - Round Dots", "Round")
-            << i18nc("Screentone Pattern - Ellipse Dots (Krita 4 legacy version)", "Ellipse (Legacy)")
-            << i18nc("Screentone Pattern - Ellipse Dots", "Ellipse")
-            << i18nc("Screentone Pattern - Diamond Dots", "Diamond")
-            << i18nc("Screentone Pattern - Square Dots", "Square");
+        return PkStringList()
+            << "Round"
+            << "Ellipse (Legacy)"
+            << "Ellipse"
+            << "Diamond"
+            << "Square";
     } else if (pattern == KisScreentonePatternType_Lines) {
-        return QStringList()
-            << i18nc("Screentone Pattern - Straight Lines", "Straight")
-            << i18nc("Screentone Pattern - Sine Wave Lines", "Sine Wave")
-            << i18nc("Screentone Pattern - Triangular Wave Lines", "Triangular Wave")
-            << i18nc("Screentone Pattern - Sawtooth Wave Lines", "Sawtooth Wave")
-            << i18nc("Screentone Pattern - Curtains Lines", "Curtains");
+        return PkStringList()
+            << "Straight"
+            << "Sine Wave"
+            << "Triangular Wave"
+            << "Sawtooth Wave"
+            << "Curtains";
     }
     
-    return QStringList();
+    return PkStringList();
 }
 
-QStringList screentoneInterpolationNames(int pattern, int shape)
+PkStringList screentoneInterpolationNames(int pattern, int shape)
 {
     if (pattern == KisScreentonePatternType_Dots) {
         if (shape == KisScreentoneShapeType_RoundDots ||
             shape == KisScreentoneShapeType_EllipseDots ||
             shape == KisScreentoneShapeType_EllipseDotsLegacy) {
-            return QStringList()
-                << i18nc("Screentone Interpolation Method - Linear", "Linear")
-                << i18nc("Screentone Interpolation Method - Sinusoidal", "Sinusoidal");
+            return PkStringList()
+                << "Linear"
+                << "Sinusoidal";
         }
     } else if (pattern == KisScreentonePatternType_Lines) {
-        return QStringList()
-            << i18nc("Screentone Interpolation Method - Linear", "Linear")
-            << i18nc("Screentone Interpolation Method - Sinusoidal", "Sinusoidal");
+        return PkStringList()
+            << "Linear"
+            << "Sinusoidal";
     }
 
-    return QStringList();
+    return PkStringList();
 }
 
 class KisScreentoneGeneratorConfiguration::Private
@@ -73,8 +71,8 @@ public:
 
 public:
     KisScreentoneGeneratorConfiguration *m_q{nullptr};
-    mutable QSharedPointer<KisScreentoneGeneratorTemplate> m_cachedTemplate{nullptr};
-    mutable QMutex m_templateMutex;
+    mutable PkSharedPointer<KisScreentoneGeneratorTemplate> m_cachedTemplate{nullptr};
+    mutable PkMutex m_templateMutex;
 };
 
 KisScreentoneGeneratorConfiguration::Private::Private(KisScreentoneGeneratorConfiguration *q)
@@ -86,7 +84,7 @@ KisScreentoneGeneratorConfiguration::Private::~Private()
 
 const KisScreentoneGeneratorTemplate& KisScreentoneGeneratorConfiguration::Private::getTemplate() const
 {
-    QMutexLocker ml(&m_templateMutex);
+    PkMutexLocker ml(&m_templateMutex);
     if (!m_cachedTemplate) {
         m_cachedTemplate.reset(new KisScreentoneGeneratorTemplate(m_q));
     }
@@ -95,7 +93,7 @@ const KisScreentoneGeneratorTemplate& KisScreentoneGeneratorConfiguration::Priva
 
 void KisScreentoneGeneratorConfiguration::Private::invalidateTemplate()
 {
-    QMutexLocker ml(&m_templateMutex);
+    PkMutexLocker ml(&m_templateMutex);
     m_cachedTemplate.reset();
 }
 
@@ -294,14 +292,14 @@ void KisScreentoneGeneratorConfiguration::setEqualizationMode(int newEqualizatio
 
 void KisScreentoneGeneratorConfiguration::setForegroundColor(const KoColor &newForegroundColor)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(newForegroundColor);
     setProperty("foreground_color", v);
 }
 
 void KisScreentoneGeneratorConfiguration::setBackgroundColor(const KoColor &newBackgroundColor)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(newBackgroundColor);
     setProperty("background_color", v);
 }

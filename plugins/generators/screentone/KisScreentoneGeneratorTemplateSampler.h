@@ -9,7 +9,6 @@
 #ifndef KISSCREENTONEGENERATORTEMPLATESAMPLER_H
 #define KISSCREENTONEGENERATORTEMPLATESAMPLER_H
 
-#include <QtGlobal>
 
 #include <cmath>
 
@@ -24,18 +23,18 @@ public:
     qreal operator()(qreal x, qreal y) const
     {
         // Get the coordinates in template space
-        QPointF p(
+        PkPointF p(
             x + std::round(m_template.screenPosition().x()),
             y + std::round(m_template.screenPosition().y())
         );
         // Get the coordinates in screen space
-        const QPointF screenPos = m_template.templateToScreenTransform().map(p);
+        const PkPointF screenPos = m_template.templateToScreenTransform().map(p);
         // Get x/y indices in macrocell units or the current macrocell tile
         // position
         const qreal a = -std::floor(screenPos.x() / static_cast<qreal>(m_template.macrocellSize().width()));
         const qreal b = -std::floor(screenPos.y() / static_cast<qreal>(m_template.macrocellSize().height()));
         // Get the correspondent point in the (0, 0) macrocell tile
-        p += QPointF(a * m_template.v1().x() + b * m_template.v2().x(), a * m_template.v1().y() + b * m_template.v2().y());
+        p += PkPointF(a * m_template.v1().x() + b * m_template.v2().x(), a * m_template.v1().y() + b * m_template.v2().y());
 
         const int i = static_cast<int>(std::floor(p.x())) + m_template.originOffset().x();
         const int j = static_cast<int>(std::floor(p.y())) + m_template.originOffset().y();
@@ -64,7 +63,7 @@ public:
         xx -= std::floor(xx / m_template.macrocellSize().width()) * m_template.macrocellSize().width();
         yy -= std::floor(yy / m_template.macrocellSize().height()) * m_template.macrocellSize().height();
         // Get template coordinates
-        QPointF templatePoint = m_template.screenToTemplateTransform().map(QPointF(xx, yy)) +
+        PkPointF templatePoint = m_template.screenToTemplateTransform().map(PkPointF(xx, yy)) +
                                 m_template.originOffset();
         
         // Bilinear interpolation

@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include <KoSegmentGradient.h>
 
@@ -131,11 +131,11 @@ KisGradientGeneratorConfiguration::SpatialUnits KisGradientGeneratorConfiguratio
 
 KoAbstractGradientSP KisGradientGeneratorConfiguration::gradient(KoAbstractGradientSP fallbackGradient) const
 {
-    QDomDocument document;
+    PkXmlDocument document;
     if (document.setContent(this->getString("gradient", ""))) {
-        const QDomElement gradientElement = document.firstChildElement();
+        const PkXmlElement gradientElement = document.firstChildElement();
         if (!gradientElement.isNull()) {
-            const QString gradientType = gradientElement.attribute("type");
+            const PkString gradientType = gradientElement.attribute("type");
             KoAbstractGradientSP gradient;
             if (gradientType == "stop") {
                 gradient = KoStopGradient::fromXML(gradientElement).clone().dynamicCast<KoAbstractGradient>();
@@ -152,30 +152,30 @@ KoAbstractGradientSP KisGradientGeneratorConfiguration::gradient(KoAbstractGradi
     return fallbackGradient ? fallbackGradient : defaultGradient();
 }
 
-QPair<QPointF, QPointF> KisGradientGeneratorConfiguration::absoluteCartesianPositionsInPixels(int width, int height) const
+std::pair<PkPointF, PkPointF> KisGradientGeneratorConfiguration::absoluteCartesianPositionsInPixels(int width, int height) const
 {
-    QPointF startPosition(
+    PkPointF startPosition(
         convertUnitsToPixels(startPositionX(), startPositionXUnits(), width, height),
         convertUnitsToPixels(startPositionY(), startPositionYUnits(), width, height)
     );
-    QPointF endPosition;
+    PkPointF endPosition;
 
     if (endPositionCoordinateSystem() == CoordinateSystemPolar) {
         qreal angle = endPositionAngle() * M_PI / 180.0;
         qreal distance = convertUnitsToPixels(endPositionDistance(), endPositionDistanceUnits(), width, height);
-        endPosition = startPosition + distance * QPointF(std::cos(angle), -std::sin(angle));
+        endPosition = startPosition + distance * PkPointF(std::cos(angle), -std::sin(angle));
     } else {
-        endPosition = QPointF(
+        endPosition = PkPointF(
             convertUnitsToPixels(endPositionX(), endPositionXUnits(), width, height),
             convertUnitsToPixels(endPositionY(), endPositionYUnits(), width, height)
         );
-        endPosition += QPointF(
+        endPosition += PkPointF(
             endPositionXPositioning() == PositioningRelative ? startPosition.x() : 0,
             endPositionYPositioning() == PositioningRelative ? startPosition.y() : 0
         );
     }
 
-    return QPair<QPointF, QPointF>(startPosition, endPosition);
+    return std::pair<PkPointF, PkPointF>(startPosition, endPosition);
 }
 
 void KisGradientGeneratorConfiguration::setShape(KisGradientPainter::enumGradientShape newShape)
@@ -280,8 +280,8 @@ void KisGradientGeneratorConfiguration::setGradient(KoAbstractGradientSP newGrad
         return;
     }
     
-    QDomDocument document;
-    QDomElement gradientElement = document.createElement("gradient");
+    PkXmlDocument document;
+    PkXmlElement gradientElement = document.createElement("gradient");
     gradientElement.setAttribute("name", newGradient->name());
 
     if (dynamic_cast<KoStopGradient*>(newGradient.data())) {

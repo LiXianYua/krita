@@ -9,7 +9,6 @@
 #ifndef KISSCREENTONEGENERATOR_H
 #define KISSCREENTONEGENERATOR_H
 
-#include <QObject>
 #include "generator/kis_generator.h"
 
 #include "KisScreentoneGeneratorConfiguration.h"
@@ -23,32 +22,32 @@ public:
     using KisGenerator::generate;
 
     virtual void generate(KisProcessingInformation dst,
-                          const QSize& size,
+                          const PkSize& size,
                           const KisFilterConfigurationSP config,
                           KoUpdater* progressUpdater) const override;
 
     void generate(KisProcessingInformation dst,
-                  const QSize& size,
+                  const PkSize& size,
                   const KisScreentoneGeneratorConfigurationSP config,
                   KoUpdater* progressUpdater) const;
     
     template <class Sampler>
     void generate(KisProcessingInformation dst,
-                  const QSize &size,
+                  const PkSize &size,
                   const KisScreentoneGeneratorConfigurationSP config,
                   KoUpdater *progressUpdater,
                   const Sampler &sampler) const;
     
     template <class Sampler, class PostprocessingFunction>
     void generate(KisProcessingInformation dst,
-                  const QSize &size,
+                  const PkSize &size,
                   const KisScreentoneGeneratorConfigurationSP config,
                   KoUpdater *progressUpdater,
                   const Sampler &sampler,
                   const PostprocessingFunction &postprocessingFunction) const;
 
     static inline KoID id() {
-        return KoID(KisScreentoneGeneratorConfiguration::defaultName(), i18n("Screentone"));
+        return KoID(KisScreentoneGeneratorConfiguration::defaultName(), "Screentone");
     }
 
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

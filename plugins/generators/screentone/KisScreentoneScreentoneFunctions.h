@@ -9,7 +9,6 @@
 #ifndef KISSCREENTONESCREENTONEFUNCTIONS_H
 #define KISSCREENTONESCREENTONEFUNCTIONS_H
 
-#include <QtGlobal>
 
 #include "KisScreentoneGeneratorTemplate.h"
 

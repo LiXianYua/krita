@@ -10,7 +10,8 @@
 #ifndef KISGRADIENTGENERATORCONFIGURATION_H
 #define KISGRADIENTGENERATORCONFIGURATION_H
 
-#include <QString>
+#include <PkString.h>
+#include <PkColor.h>
 
 #include <kis_filter_configuration.h>
 #include <kis_gradient_painter.h>
@@ -57,7 +58,7 @@ public:
 
     virtual KisFilterConfigurationSP clone() const override;
 
-    static inline QString defaultName()
+    static inline PkString defaultName()
     {
         return "gradient";
     }
@@ -166,11 +167,11 @@ public:
     {
         KoStopGradientSP gradient = KoStopGradientSP(new KoStopGradient);
         gradient->setStops(
-            QList<KoGradientStop>()
-            << KoGradientStop(0.0, KoColor(Qt::black, KoColorSpaceRegistry::instance()->rgb8(0)), FOREGROUNDSTOP)
-            << KoGradientStop(1.0, KoColor(Qt::white, KoColorSpaceRegistry::instance()->rgb8(0)), BACKGROUNDSTOP)
+            PkList<KoGradientStop>()
+            << KoGradientStop(0.0, KoColor(PkColor("#000000"), KoColorSpaceRegistry::instance()->rgb8(0)), FOREGROUNDSTOP)
+            << KoGradientStop(1.0, KoColor(PkColor("#ffffff"), KoColorSpaceRegistry::instance()->rgb8(0)), BACKGROUNDSTOP)
         );
-        gradient->setName(i18nc("Default gradient name for the gradient generator", "Unnamed"));
+        gradient->setName("Unnamed");
         gradient->setValid(true);
         return gradient;
     }
@@ -196,7 +197,7 @@ public:
     SpatialUnits endPositionDistanceUnits() const;
     KoAbstractGradientSP gradient(KoAbstractGradientSP fallbackGradient = nullptr) const;
 
-    QPair<QPointF, QPointF> absoluteCartesianPositionsInPixels(int width, int height) const;
+    std::pair<PkPointF, PkPointF> absoluteCartesianPositionsInPixels(int width, int height) const;
 
     void setShape(KisGradientPainter::enumGradientShape newShape);
     void setRepeat(KisGradientPainter::enumGradientRepeat newRepeat);
@@ -220,8 +221,8 @@ public:
     void setGradient(KoAbstractGradientSP newGradient);
     void setDefaults();
 
-    static inline QString shapeToString(KisGradientPainter::enumGradientShape shape,
-                                        const QString & defaultShapeString = QString())
+    static inline PkString shapeToString(KisGradientPainter::enumGradientShape shape,
+                                        const PkString & defaultShapeString = PkString())
     {
         if (shape == KisGradientPainter::GradientShapeLinear) {
             return "linear";
@@ -245,7 +246,7 @@ public:
         return defaultShapeString;
     }
 
-    static inline KisGradientPainter::enumGradientShape stringToShape(QString const & shapeString,
+    static inline KisGradientPainter::enumGradientShape stringToShape(PkString const & shapeString,
                                                                       KisGradientPainter::enumGradientShape defaultShape = KisGradientPainter::GradientShapeLinear)
     {
         if (shapeString == "linear") {
@@ -270,8 +271,8 @@ public:
         return defaultShape;
     }
 
-    static inline QString repeatToString(KisGradientPainter::enumGradientRepeat repeat,
-                                         const QString & defaultRepeatString = QString())
+    static inline PkString repeatToString(KisGradientPainter::enumGradientRepeat repeat,
+                                         const PkString & defaultRepeatString = PkString())
     {
         if (repeat == KisGradientPainter::GradientRepeatNone) {
             return "none";
@@ -283,7 +284,7 @@ public:
         return defaultRepeatString;
     }
 
-    static inline KisGradientPainter::enumGradientRepeat stringToRepeat(QString const & repeatString,
+    static inline KisGradientPainter::enumGradientRepeat stringToRepeat(PkString const & repeatString,
                                                                         KisGradientPainter::enumGradientRepeat defaultRepeat = KisGradientPainter::GradientRepeatNone)
     {
         if (repeatString == "none") {
@@ -296,8 +297,8 @@ public:
         return defaultRepeat;
     }
 
-    static inline QString coordinateSystemToString(CoordinateSystem coordinateSystem,
-                                                   const QString &defaultCoordinateSystemString = QString())
+    static inline PkString coordinateSystemToString(CoordinateSystem coordinateSystem,
+                                                   const PkString &defaultCoordinateSystemString = PkString())
     {
         if (coordinateSystem == CoordinateSystemCartesian) {
             return "cartesian";
@@ -307,7 +308,7 @@ public:
         return defaultCoordinateSystemString;
     }
 
-    static inline CoordinateSystem stringToCoordinateSystem(QString const & coordinateSystemString,
+    static inline CoordinateSystem stringToCoordinateSystem(PkString const & coordinateSystemString,
                                                             CoordinateSystem defaultCoordinateSystem = CoordinateSystemCartesian)
     {
         if (coordinateSystemString == "cartesian") {
@@ -318,8 +319,8 @@ public:
         return defaultCoordinateSystem;
     }
 
-    static inline QString spatialUnitsToString(SpatialUnits spatialUnits,
-                                               const QString &defaultSpatialUnitsString = QString())
+    static inline PkString spatialUnitsToString(SpatialUnits spatialUnits,
+                                               const PkString &defaultSpatialUnitsString = PkString())
     {
         if (spatialUnits == SpatialUnitsPixels) {
             return "pixels";
@@ -335,7 +336,7 @@ public:
         return defaultSpatialUnitsString;
     }
 
-    static inline SpatialUnits stringToSpatialUnits(QString const & spatialUnitsString,
+    static inline SpatialUnits stringToSpatialUnits(PkString const & spatialUnitsString,
                                                     SpatialUnits defaultSpatialUnits = SpatialUnitsPixels)
     {
         if (spatialUnitsString == "pixels") {
@@ -352,8 +353,8 @@ public:
         return defaultSpatialUnits;
     }
 
-    static inline QString positioningToString(Positioning positioning,
-                                              const QString &defaultPositioningString = QString())
+    static inline PkString positioningToString(Positioning positioning,
+                                              const PkString &defaultPositioningString = PkString())
     {
         if (positioning == PositioningAbsolute) {
             return "absolute";
@@ -363,7 +364,7 @@ public:
         return defaultPositioningString;
     }
 
-    static inline Positioning stringToPositioning(QString const & positioningString,
+    static inline Positioning stringToPositioning(PkString const & positioningString,
                                                   Positioning defaultPositioning = PositioningAbsolute)
     {
         if (positioningString == "absolute") {

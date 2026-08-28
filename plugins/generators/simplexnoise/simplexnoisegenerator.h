@@ -10,17 +10,8 @@
 #ifndef NOISEFILTER_H
 #define NOISEFILTER_H
 
-#include <QObject>
 #include "generator/kis_generator.h"
 
-
-class KisSimplexNoiseGeneratorHandle : public QObject
-{
-    Q_OBJECT
-public:
-    KisSimplexNoiseGeneratorHandle(QObject *parent, const QVariantList &);
-    ~KisSimplexNoiseGeneratorHandle() override;
-};
 
 class KisSimplexNoiseGenerator : public KisGenerator
 {
@@ -30,18 +21,18 @@ public:
     using KisGenerator::generate;
 
     virtual void generate(KisProcessingInformation dst,
-                          const QSize& size,
+                          const PkSize& size,
                           const KisFilterConfigurationSP config,
                           KoUpdater* progressUpdater
                          ) const override;
 
     static inline KoID id() {
-        return KoID("simplex_noise", i18n("Simplex Noise"));
+        return KoID("simplex_noise", "Simplex Noise");
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
-    uint seedFromString(const QString &string) const;
+    uint seedFromString(const PkString &string) const;
     quint64 rotateLeft(const quint64 input, uint d) const;
 
     static inline double map_range(double value, double curr_min, double curr_max, double new_min, double new_max ) {

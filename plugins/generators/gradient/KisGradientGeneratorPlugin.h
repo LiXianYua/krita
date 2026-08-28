@@ -9,14 +9,4 @@
 #ifndef KISGRADIENTGENERATORPLUGIN_H
 #define KISGRADIENTGENERATORPLUGIN_H
 
-#include <QObject>
-
-class KisGradientGeneratorPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    KisGradientGeneratorPlugin(QObject *parent, const QVariantList &);
-    ~KisGradientGeneratorPlugin() override;
-};
-
 #endif

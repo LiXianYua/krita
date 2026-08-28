@@ -51,10 +51,10 @@ void KisSeExprGeneratorTest::testGenerationFromScript()
 
     config->setProperty("script", BASE_SCRIPT);
 
-    QPoint point(0, 0);
-    QSize testSize(256, 256);
+    PkPoint point(0, 0);
+    PkSize testSize(256, 256);
 
-    KisDefaultBoundsBaseSP bounds(new KisWrapAroundBoundsWrapper(new KisDefaultBounds(), QRect(point.x(), point.y(), testSize.width(), testSize.height())));
+    KisDefaultBoundsBaseSP bounds(new KisWrapAroundBoundsWrapper(new KisDefaultBounds(), PkRect(point.x(), point.y(), testSize.width(), testSize.height())));
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->setDefaultBounds(bounds);
@@ -63,12 +63,12 @@ void KisSeExprGeneratorTest::testGenerationFromScript()
     KisFillPainter fillPainter(dev);
     fillPainter.fillRect(point.x(), point.y(), 256, 256, config);
 
-    QImage qimage(QString(FILES_DATA_DIR) + QDir::separator() + "noisecolor2.png");
+    PkImage qimage(PkString(FILES_DATA_DIR) + QDir::separator() + "noisecolor2.png");
 
-    QPoint errpoint;
+    PkPoint errpoint;
     if (!TestUtil::compareQImages(errpoint, qimage, dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()), 1)) {
         dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()).save("filtertest.png");
-        QFAIL(QString("Failed to create image, first different pixel: %1,%2 ").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+        QFAIL(PkString("Failed to create image, first different pixel: %1,%2 ").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
     }
 }
 
@@ -86,10 +86,10 @@ void KisSeExprGeneratorTest::testGenerationFromKoResource()
 
     config->setProperty("script", resource->script());
 
-    QPoint point(0, 0);
-    QSize testSize(256, 256);
+    PkPoint point(0, 0);
+    PkSize testSize(256, 256);
 
-    KisDefaultBoundsBaseSP bounds(new KisWrapAroundBoundsWrapper(new KisDefaultBounds(), QRect(point.x(), point.y(), testSize.width(), testSize.height())));
+    KisDefaultBoundsBaseSP bounds(new KisWrapAroundBoundsWrapper(new KisDefaultBounds(), PkRect(point.x(), point.y(), testSize.width(), testSize.height())));
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->setDefaultBounds(bounds);
@@ -98,12 +98,12 @@ void KisSeExprGeneratorTest::testGenerationFromKoResource()
     KisFillPainter fillPainter(dev);
     fillPainter.fillRect(point.x(), point.y(), 256, 256, config);
 
-    QImage qimage(QString(FILES_DATA_DIR) + QDir::separator() + "noisecolor2.png");
+    PkImage qimage(PkString(FILES_DATA_DIR) + QDir::separator() + "noisecolor2.png");
 
-    QPoint errpoint;
+    PkPoint errpoint;
     if (!TestUtil::compareQImages(errpoint, qimage, dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()), 1)) {
         dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()).save("filtertest.png");
-        QFAIL(QString("Failed to create image, first different pixel: %1,%2 ").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+        QFAIL(PkString("Failed to create image, first different pixel: %1,%2 ").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
     }
 }
 

@@ -6,8 +6,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QMap>
-#include <QString>
+#include <PkMap.h>
+#include <PkString.h>
 #include <KSeExpr/Expression.h>
 #include <cstring>
 
@@ -16,11 +16,11 @@
 class SeExprExpressionContext : public KSeExpr::Expression
 {
 public:
-    typedef QMap<std::string, SeExprVariable *> VariableMap;
+    typedef PkMap<std::string, SeExprVariable *> VariableMap;
 
     VariableMap m_vars;
 
-    SeExprExpressionContext(const QString &expr);
+    SeExprExpressionContext(const PkString &expr);
 
     virtual KSeExpr::ExprVarRef *resolveVar(const std::string &name) const override;
 };

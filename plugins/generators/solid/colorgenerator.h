@@ -9,18 +9,9 @@
 #ifndef COLOR_GENERATOR_H
 #define COLOR_GENERATOR_H
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "generator/kis_generator.h"
 
-
-class KritaColorGenerator : public QObject
-{
-    Q_OBJECT
-public:
-    KritaColorGenerator(QObject *parent, const QVariantList &);
-    ~KritaColorGenerator() override;
-};
 
 class KisColorGenerator : public KisGenerator
 {
@@ -31,13 +22,13 @@ public:
     using KisGenerator::generate;
 
     void generate(KisProcessingInformation dst,
-                  const QSize& size,
+                  const PkSize& size,
                   const KisFilterConfigurationSP config,
                   KoUpdater* progressUpdater
                  ) const override;
 
     static inline KoID id() {
-        return KoID("color", i18n("Color"));
+        return KoID("color", "Color");
     }
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 };

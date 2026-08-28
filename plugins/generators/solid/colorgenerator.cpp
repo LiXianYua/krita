@@ -8,12 +8,10 @@
 
 #include "colorgenerator.h"
 
-#include <QPoint>
+#include <PkPoint.h>
 
 #include <kis_debug.h>
 
-#include <kpluginfactory.h>
-#include <klocalizedstring.h>
 
 #include <kis_fill_painter.h>
 #include <kis_image.h>
@@ -26,19 +24,12 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaColorGeneratorFactory, "kritacolorgenerator.json", registerPlugin<KritaColorGenerator>();)
-
-KritaColorGenerator::KritaColorGenerator(QObject *parent, const QVariantList &)
-        : QObject(parent)
-{
+namespace { const bool registered = [] {
     KisGeneratorRegistry::instance()->add(new KisColorGenerator());
-}
+    return true;
+}(); }
 
-KritaColorGenerator::~KritaColorGenerator()
-{
-}
-
-KisColorGenerator::KisColorGenerator() : KisGenerator(id(), KoID("basic"), i18n("&Solid Color..."))
+KisColorGenerator::KisColorGenerator() : KisGenerator(id(), KoID("basic"), "&Solid Color...")
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -48,14 +39,14 @@ KisFilterConfigurationSP KisColorGenerator::defaultConfiguration(KisResourcesInt
 {
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
 
-    QVariant v;
+    PkVariant v;
     v.setValue(KoColor());
     config->setProperty("color", v);
     return config;
 }
 
 void KisColorGenerator::generate(KisProcessingInformation dstInfo,
-                                 const QSize& size,
+                                 const PkSize& size,
                                  const KisFilterConfigurationSP config,
                                  KoUpdater* progressUpdater) const
 {
@@ -74,9 +65,7 @@ void KisColorGenerator::generate(KisProcessingInformation dstInfo,
         gc.setChannelFlags(config->channelFlags());
         gc.setOpacityF(0.4);
         gc.setSelection(dstInfo.selection());
-        gc.fillRect(QRect(dstInfo.topLeft(), size), c);
+        gc.fillRect(PkRect(dstInfo.topLeft(), size), c);
         gc.end();
     }
 }
-
-#include "colorgenerator.moc"

@@ -9,18 +9,9 @@
 #ifndef PATTERN_GENERATOR_H
 #define PATTERN_GENERATOR_H
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "generator/kis_generator.h"
 
-
-class KritaPatternGenerator : public QObject
-{
-    Q_OBJECT
-public:
-    KritaPatternGenerator(QObject *parent, const QVariantList &);
-    ~KritaPatternGenerator() override;
-};
 
 class PatternGenerator : public KisGenerator
 {
@@ -31,13 +22,13 @@ public:
     using KisGenerator::generate;
 
     void generate(KisProcessingInformation dst,
-                  const QSize& size,
+                  const PkSize& size,
                   const KisFilterConfigurationSP config,
                   KoUpdater* progressUpdater
                  ) const override;
 
     static inline KoID id() {
-        return KoID("pattern", i18n("Pattern"));
+        return KoID("pattern", "Pattern");
     }
 
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

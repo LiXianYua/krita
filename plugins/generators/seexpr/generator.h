@@ -9,8 +9,7 @@
 #ifndef SEEXPR_GENERATOR_H
 #define SEEXPR_GENERATOR_H
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 #include "generator/kis_generator.h"
 
@@ -25,14 +24,6 @@ $color\n\
 "
 
 
-class KritaSeExprGenerator : public QObject
-{
-    Q_OBJECT
-public:
-    KritaSeExprGenerator(QObject *parent, const QVariantList &);
-    ~KritaSeExprGenerator() override;
-};
-
 class KisSeExprGenerator : public KisGenerator
 {
 public:
@@ -41,14 +32,14 @@ public:
     using KisGenerator::generate;
 
     void generate(KisProcessingInformation dst,
-                  const QSize& size,
+                  const PkSize& size,
                   const KisFilterConfigurationSP config,
                   KoUpdater* progressUpdater
                  ) const override;
 
     static inline KoID id()
     {
-        return KoID("seexpr", i18n("SeExpr"));
+        return KoID("seexpr", "SeExpr");
     }
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

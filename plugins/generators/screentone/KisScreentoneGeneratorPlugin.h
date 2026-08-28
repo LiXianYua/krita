@@ -9,14 +9,4 @@
 #ifndef KISSCREENTONEGENERATORPLUGIN_H
 #define KISSCREENTONEGENERATORPLUGIN_H
 
-#include <QObject>
-
-class KisScreentoneGeneratorPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    KisScreentoneGeneratorPlugin(QObject *parent, const QVariantList &);
-    ~KisScreentoneGeneratorPlugin() override;
-};
-
 #endif

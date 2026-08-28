@@ -9,7 +9,6 @@
 #ifndef KISSCREENTONEBRIGHTNESCONTRASTFUNCTIONS_H
 #define KISSCREENTONEBRIGHTNESCONTRASTFUNCTIONS_H
 
-#include <QtGlobal>
 
 namespace KisScreentoneBrightnessContrastFunctions {
 
