@@ -141,6 +141,11 @@ KisImportExportErrorCode KisAnimationImporter::import(PkStringList files, int fi
         const bool successfullyLoaded = importDoc->openPath(file, KisDocument::DontAddToRecent);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(successfullyLoaded, ImportExportCodes::InternalError);
 
+        if ( (!usingPredefinedTimes && frame == firstFrame)
+          || (usingPredefinedTimes && frame == optionalKeyframeTimeList.first()) ) {
+             layerRasterChannelPair = initializePaintLayer(importDoc, undo);
+        }
+
         filesProcessed++;
 
         if (m_d->updater) {
@@ -158,11 +163,6 @@ KisImportExportErrorCode KisAnimationImporter::import(PkStringList files, int fi
         if (m_d->stop) {
             status = ImportExportCodes::Cancelled;
             break;
-        }
-
-        if ( (!usingPredefinedTimes && frame == firstFrame)
-          || (usingPredefinedTimes && frame == optionalKeyframeTimeList.first()) ) {
-             layerRasterChannelPair = initializePaintLayer(importDoc, undo);
         }
 
         if (m_d->trimFrames) {
