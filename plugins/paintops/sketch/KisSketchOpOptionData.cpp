@@ -57,6 +57,6 @@ void KisSketchOpOptionData::write(KisPropertiesConfiguration *setting) const
 KisPaintopLodLimitations KisSketchOpOptionData::lodLimitations() const
 {
     KisPaintopLodLimitations l;
-    l.limitations << KoID("sketch-brush", "Sketch brush (differences in connecting lines are possible)");
+    l.limitations.insert(KoID("sketch-brush", "Sketch brush (differences in connecting lines are possible)"));
     return l;
 }

@@ -152,5 +152,10 @@ PkList<KisUniformPaintOpPropertySP> KisRoundMarkerOpSettings::uniformProperties(
         }
     }
 
-    return KisPaintOpSettings::uniformProperties(settings, updateProxy) + props;
+    PkList<KisUniformPaintOpPropertySP> result =
+        KisPaintOpSettings::uniformProperties(settings, updateProxy);
+    for (const auto &prop : props) {
+        result.append(prop);
+    }
+    return result;
 }

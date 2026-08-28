@@ -9,6 +9,7 @@
 #include <cmath>
 
 #include <PkPainterPath.h>
+#include <PkPen.h>
 #include <PkRect.h>
 
 #include <kis_image.h>

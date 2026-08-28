@@ -42,6 +42,6 @@ void KisParticleOpOptionData::write(KisPropertiesConfiguration *setting) const
 KisPaintopLodLimitations KisParticleOpOptionData::lodLimitations() const
 {
     KisPaintopLodLimitations l;
-    l.blockers << KoID("particle-brush", "Particle Brush (not supported)");
+    l.blockers.insert(KoID("particle-brush", "Particle Brush (not supported)"));
     return l;
 }

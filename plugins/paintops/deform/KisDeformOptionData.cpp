@@ -40,6 +40,6 @@ void KisDeformOptionData::write(KisPropertiesConfiguration *setting) const
 KisPaintopLodLimitations KisDeformOptionData::lodLimitations() const
 {
     KisPaintopLodLimitations l;
-    l.blockers << KoID("deform-brush", "Deform Brush (unsupported)");
+    l.blockers.insert(KoID("deform-brush", "Deform Brush (unsupported)"));
     return l;
 }

@@ -226,10 +226,14 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
                     changedRegion = changedRect.toRect();
                 }
                 else {
-                    PkPainterPath diff1 = m_path - m_lastPaintedPath;
-                    PkPainterPath diff2 = m_lastPaintedPath - m_path;
-
-                    changedRegion = KritaUtils::splitPath(diff1 | diff2);
+                    // PkPainterPath has no boolean path-arithmetic backend yet.
+                    // The union of the two bounds is a conservative repaint
+                    // region and preserves correctness until path clipping is
+                    // available in the backend.
+                    PkRectF changedRect = m_path.boundingRect().toRect() |
+                                         m_lastPaintedPath.boundingRect().toRect();
+                    changedRect.adjust(-1, -1, 1, 1);
+                    changedRegion = changedRect.toRect();
                 }
 
                 paintRegion(changedRegion);
@@ -343,4 +347,3 @@ PkPainterPath KisExperimentPaintOp::applyDisplace(const PkPainterPath& path, int
 
     return newPath;
 }
-

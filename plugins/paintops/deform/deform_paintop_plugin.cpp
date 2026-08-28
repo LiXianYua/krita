@@ -17,7 +17,7 @@
 namespace { struct DeformPaintOpRegistration { DeformPaintOpRegistration()
 {
     KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
-    r->add(new KisSimplePaintOpFactory<KisDeformPaintOp, KisDeformPaintOpSettings>("deformbrush", "Deform", KisPaintOpFactory::categoryStable(), "krita-deform.png", PkString(), PkStringList(COMPOSITE_COPY), 16));
+    r->add(new KisSimplePaintOpFactory<KisDeformPaintOp, KisDeformPaintOpSettings>("deformbrush", "Deform", KisPaintOpFactory::categoryStable(), "krita-deform.png", PkString(), PkStringList({COMPOSITE_COPY}), 16));
 }
 
 }; }
