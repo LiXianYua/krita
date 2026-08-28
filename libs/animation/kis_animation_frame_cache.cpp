@@ -11,6 +11,7 @@
 #include <PkList.h>
 #include <PkScopedPointer.h>
 #include <QtMath>
+#include <QDebug>
 
 #include "kis_debug.h"
 
@@ -34,6 +35,16 @@
 
 struct KisAnimationFrameCache::Private
 {
+    static QRect toQRect(const PkRect &rect)
+    {
+        return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+    }
+
+    static PkRect toPkRect(const QRect &rect)
+    {
+        return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
+    }
+
     Private(KisAnimationFrameCacheSourceSP _source)
         : source(std::move(_source))
     {
@@ -72,7 +83,7 @@ struct KisAnimationFrameCache::Private
 
         auto it = newFrames.upperBound(time);
 
-        if (it != newFrames.constBegin()) it--;
+        if (it != newFrames.constBegin()) it = decltype(it)(std::prev(it.PkInner()));
 
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(it != newFrames.constEnd(), 0);
         const int start = it.key();
@@ -110,7 +121,7 @@ struct KisAnimationFrameCache::Private
 
         const int length = range.isInfinite() ? -1 : range.end() - range.start() + 1;
         newFrames.insert(range.start(), length);
-        swapper->saveFrame(range.start(), info, image->bounds());
+        swapper->saveFrame(range.start(), info, toQRect(image->bounds()));
     }
 
     /**
@@ -125,7 +136,7 @@ struct KisAnimationFrameCache::Private
         bool cacheChanged = false;
 
         auto it = newFrames.lowerBound(range.start());
-        if (it.key() != range.start() && it != newFrames.begin()) it--;
+        if (it.key() != range.start() && it != newFrames.begin()) it = decltype(it)(std::prev(it.PkInner()));
 
         while (it != newFrames.end()) {
             const int start = it.key();
@@ -170,7 +181,7 @@ struct KisAnimationFrameCache::Private
     int effectiveLevelOfDetail(const QRect &rc) const {
         if (!frameSizeLimit) return 0;
 
-        const int maxDimension = KisAlgebra2D::maxDimension(rc);
+        const int maxDimension = KisAlgebra2D::maxDimension(toPkRect(rc));
 
         const qreal minLod = -std::log2(qreal(frameSizeLimit) / maxDimension);
         const int lodLimit = qMax(0, qCeil(minLod));
@@ -401,8 +412,8 @@ KisOpenGLUpdateInfoSP KisAnimationFrameCache::Private::fetchFrameDataImpl(KisIma
         tempDevice->prepareClone(image->projection());
         image->projection()->generateLodCloneDevice(tempDevice, image->projection()->extent(), lod);
 
-        const QRect fetchRect = KisLodTransform::alignedRect(requestedRect, lod);
-        return source->updateInfoBuilder().buildUpdateInfo(fetchRect, tempDevice, image->bounds(), lod, true);
+        const QRect fetchRect = toQRect(KisLodTransform::alignedRect(toPkRect(requestedRect), lod));
+        return source->updateInfoBuilder().buildUpdateInfo(fetchRect, tempDevice, toQRect(image->bounds()), lod, true);
     } else {
         return source->fetchFrameData(requestedRect, image);
     }
@@ -418,12 +429,12 @@ KisOpenGLUpdateInfoSP KisAnimationFrameCache::fetchFrameData(int time, KisImageS
     // the frames are always generated at full scale
     KIS_SAFE_ASSERT_RECOVER_NOOP(image->currentLevelOfDetail() == 0);
 
-    const int lod = m_d->effectiveLevelOfDetail(requestedRegion.boundingRect());
+    const int lod = m_d->effectiveLevelOfDetail(Private::toQRect(requestedRegion.boundingRect()));
 
     KisOpenGLUpdateInfoSP totalInfo;
 
-    Q_FOREACH (const QRect &rc, requestedRegion.rects()) {
-        KisOpenGLUpdateInfoSP info = m_d->fetchFrameDataImpl(image, rc, lod);
+    Q_FOREACH (const PkRect &pkRect, requestedRegion.rects()) {
+        KisOpenGLUpdateInfoSP info = m_d->fetchFrameDataImpl(image, Private::toQRect(pkRect), lod);
         if (!totalInfo) {
             totalInfo = info;
         } else {
@@ -454,7 +465,7 @@ void KisAnimationFrameCache::dropLowQualityFrames(const KisTimeSpan &range, cons
 
     // the vector is guaranteed to be non-empty,
     // so decrementing iterator is safe
-    if (it != m_d->newFrames.begin()) it--;
+    if (it != m_d->newFrames.begin()) it = decltype(it)(std::prev(it.PkInner()));
 
     while (it != m_d->newFrames.end() && it.key() <= range.end()) {
         const int frameId = it.key();
@@ -484,7 +495,7 @@ bool KisAnimationFrameCache::framesHaveValidRoi(const KisTimeSpan &range, const 
 
     auto it = m_d->newFrames.upperBound(range.start());
 
-    if (it != m_d->newFrames.begin()) it--;
+    if (it != m_d->newFrames.begin()) it = decltype(it)(std::prev(it.PkInner()));
 
     int expectedNextFrameStart = it.key();
 

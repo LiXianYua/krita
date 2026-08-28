@@ -5,11 +5,14 @@
  */
 
 #include "kis_animation_importer.h"
+#include "kundo2magicstring.h"
+#include <PkString.h>
 
 #include "KoColorSpace.h"
 #include <KoUpdater.h>
 #include <QCoreApplication>
-#include <QQueue>
+#include <deque>
+#include <regex>
 #include "KisDocumentRegistry.h"
 #include "KisDocument.h"
 #include "kis_image.h"
@@ -19,7 +22,6 @@
 #include "kis_raster_keyframe_channel.h"
 #include "kis_assign_profile_processing_visitor.h"
 #include "commands/kis_image_layer_add_command.h"
-#include <QRegularExpression>
 
 struct KisAnimationImporter::Private
 {
@@ -53,17 +55,20 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
     Q_ASSERT(step > 0);
 
     KisUndoAdapter *undo = m_d->image->undoAdapter();
-    undo->beginMacro(kundo2_i18n("Import animation"));
+    undo->beginMacro(kundo2_text("Import animation"));
 
     PkScopedPointer<KisDocument> importDoc(KisDocumentRegistry::instance()->createDocument());
     importDoc->setFileBatchMode(true);
 
     const bool usingPredefinedTimes = !optionalKeyframeTimeList.isEmpty() && !autoAddHoldframes;
-    QQueue<int> predefinedFrameQueue;
-    predefinedFrameQueue.append(optionalKeyframeTimeList);
+    std::deque<int> predefinedFrameQueue;
+    for (int value : optionalKeyframeTimeList) {
+        predefinedFrameQueue.push_back(value);
+    }
 
     KisImportExportErrorCode status = ImportExportCodes::OK;
-    int frame = usingPredefinedTimes ? predefinedFrameQueue.dequeue() : firstFrame;
+    int frame = usingPredefinedTimes ? predefinedFrameQueue.front() : firstFrame;
+    if (usingPredefinedTimes) predefinedFrameQueue.pop_front();
     int filesProcessed = 0;
 
     if (usingPredefinedTimes) {
@@ -76,20 +81,19 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
 
     PkPair<KisPaintLayerSP, KisRasterKeyframeChannel*> layerRasterChannelPair;
 
-    const QRegularExpression rx(QLatin1String("(\\d+)"));    //regex for extracting numbers
-    QStringList fileNumberRxList;
+    const std::regex rx("([0-9]+)");    // regex for extracting numbers
+    std::vector<QString> fileNumberRxList;
     
-    QRegularExpressionMatchIterator i = rx.globalMatch(files.at(0));
-    while (i.hasNext()) {
-        QRegularExpressionMatch match = i.next();
-        fileNumberRxList << match.captured(1);
+    std::string firstFile = files.at(0).toStdString();
+    for (std::sregex_iterator i(firstFile.begin(), firstFile.end(), rx), end; i != end; ++i) {
+        fileNumberRxList.push_back(QString::fromStdString((*i)[1].str()));
     }
 
     int firstFrameNumber = 0;
     bool ok;
 
-    if (!fileNumberRxList.isEmpty()) {
-        fileNumberRxList.last().toInt(&ok);    // selects the last number of file name of the first frame (useful for descending order)
+    if (!fileNumberRxList.empty()) {
+        fileNumberRxList.back().toInt(&ok);    // selects the last number of file name of the first frame (useful for descending order)
         // Note to self -- ^^ uh.... This isn't doing anything?? Shouldn't this assign `firstFrameNumber`?
     }
 
@@ -102,7 +106,8 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
     int autoframe = 0;
 
     Q_FOREACH(QString file, files) {
-        bool successfullyLoaded = importDoc->openPath(file, KisDocument::DontAddToRecent);
+        const QByteArray utf8Path = file.toUtf8();
+        bool successfullyLoaded = importDoc->openPath(PkString::PkFromUtf8(utf8Path.constData(), utf8Path.size()), KisDocument::DontAddToRecent);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(successfullyLoaded, ImportExportCodes::InternalError);
 
         if ( (!usingPredefinedTimes && frame == firstFrame)
@@ -135,15 +140,14 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(layerRasterChannelPair.second, ImportExportCodes::InternalError);
 
         if (!autoAddHoldframes) {
-            layerRasterChannelPair.second->importFrame(frame, importDoc->image()->projection(), NULL);    // as first frame added will go to second slot i.e #1 instead of #0
+            layerRasterChannelPair.second->importFrame(frame, importDoc->image()->projection(), nullptr);    // as first frame added will go to second slot i.e #1 instead of #0
         } else {
-            QRegularExpressionMatchIterator i = rx.globalMatch(file);
-            while (i.hasNext()) {
-                QRegularExpressionMatch match = i.next();
-                fileNumberRxList << match.captured(1);
+            const std::string fileName = file.toStdString();
+            for (std::sregex_iterator i(fileName.begin(), fileName.end(), rx), end; i != end; ++i) {
+                fileNumberRxList.push_back(QString::fromStdString((*i)[1].str()));
             }
 
-            int filenum = fileNumberRxList.last().toInt(&ok);
+            int filenum = fileNumberRxList.back().toInt(&ok);
 
             if (isAscending == 0) {
                 autoframe = firstFrame + filenum - offset;
@@ -152,16 +156,17 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
             }
 
             if (ok) {
-                layerRasterChannelPair.second->importFrame(autoframe , importDoc->image()->projection(), NULL);
+                layerRasterChannelPair.second->importFrame(autoframe , importDoc->image()->projection(), nullptr);
             } else {
                 // if it fails to extract a number, the next frame will simply be added to next slot
-                layerRasterChannelPair.second->importFrame(autoframe + 1, importDoc->image()->projection(), NULL);
+                layerRasterChannelPair.second->importFrame(autoframe + 1, importDoc->image()->projection(), nullptr);
             }
             fileNumberRxList.clear();
         }
 
-        if (usingPredefinedTimes && predefinedFrameQueue.count()) {
-            frame = predefinedFrameQueue.dequeue();
+        if (usingPredefinedTimes && !predefinedFrameQueue.empty()) {
+            frame = predefinedFrameQueue.front();
+            predefinedFrameQueue.pop_front();
         } else {
             frame += step;
         }
@@ -196,7 +201,7 @@ PkPair<KisPaintLayerSP, KisRasterKeyframeChannel*> KisAnimationImporter::initial
     undoAdapter->addCommand(new KisImageLayerAddCommand(m_d->image, paintLayer, m_d->image->rootLayer(), m_d->image->rootLayer()->childCount()));
 
     paintLayer->enableAnimation();
-    KisRasterKeyframeChannel* contentChannel = qobject_cast<KisRasterKeyframeChannel*>(paintLayer->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true));
+    KisRasterKeyframeChannel* contentChannel = dynamic_cast<KisRasterKeyframeChannel*>(paintLayer->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true));
     return PkPair<KisPaintLayerSP, KisRasterKeyframeChannel*>(paintLayer, contentChannel);
 }
 
