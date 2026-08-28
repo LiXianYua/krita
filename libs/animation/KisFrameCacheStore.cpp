@@ -20,7 +20,7 @@ enum FrameType {
 };
 
 struct FrameInfo;
-typedef QSharedPointer<FrameInfo> FrameInfoSP;
+typedef KisSharedPtr<FrameInfo> FrameInfoSP;
 
 struct FrameInfo {
     // full frame
@@ -130,7 +130,7 @@ struct KRITAANIMATION_NO_EXPORT KisFrameCacheStore::Private
     KisFrameDataSerializer::Frame lastLoadedBaseFrame;
     FrameInfoSP lastLoadedBaseFrameInfo;
 
-    QMap<int, FrameInfoSP> savedFrames;
+    PkMap<int, FrameInfoSP> savedFrames;
 };
 
 KisFrameCacheStore::KisFrameCacheStore()

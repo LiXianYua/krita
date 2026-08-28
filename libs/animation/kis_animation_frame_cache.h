@@ -9,7 +9,9 @@
 
 #include <QImage>
 #include <QObject>
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
+#include <PkScopedPointer.h>
+#include <PkList.h>
 
 #include "kritaanimation_export.h"
 #include "kis_types.h"
@@ -41,7 +43,7 @@ public:
     virtual void uploadFrameData(KisOpenGLUpdateInfoSP info) = 0;
 };
 
-using KisAnimationFrameCacheSourceSP = QSharedPointer<KisAnimationFrameCacheSource>;
+using KisAnimationFrameCacheSourceSP = PkSharedPointer<KisAnimationFrameCacheSource>;
 
 class KRITAANIMATION_EXPORT KisAnimationFrameCache : public QObject, public KisShared
 {
@@ -50,7 +52,7 @@ class KRITAANIMATION_EXPORT KisAnimationFrameCache : public QObject, public KisS
 public:
 
     static KisAnimationFrameCacheSP getFrameCache(KisAnimationFrameCacheSourceSP source);
-    static const QList<KisAnimationFrameCache*> caches();
+    static const PkList<KisAnimationFrameCache*> caches();
     static const KisAnimationFrameCacheSP cacheForImage(KisImageWSP image);
 
     explicit KisAnimationFrameCache(KisAnimationFrameCacheSourceSP source);
@@ -89,7 +91,7 @@ Q_SIGNALS:
 private:
 
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 
 private Q_SLOTS:
     void framesChanged(const KisTimeSpan &range, const QRect &rect);

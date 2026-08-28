@@ -7,7 +7,8 @@
 #define KISFRAMECACHESTORE_H
 
 #include "kritaanimation_export.h"
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkMap.h>
 #include "kis_types.h"
 
 #include "opengl/kis_texture_tile_info_pool.h"
@@ -57,7 +58,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISFRAMECACHESTORE_H

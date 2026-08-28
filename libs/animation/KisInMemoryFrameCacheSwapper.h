@@ -6,7 +6,7 @@
 #ifndef KISINMEMORYFRAMECACHESWAPPER_H
 #define KISINMEMORYFRAMECACHESWAPPER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "KisAbstractFrameCacheSwapper.h"
 #include "opengl/kis_texture_tile_info_pool.h"
@@ -35,7 +35,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISINMEMORYFRAMECACHESWAPPER_H

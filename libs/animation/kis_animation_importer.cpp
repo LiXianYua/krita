@@ -55,7 +55,7 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
     KisUndoAdapter *undo = m_d->image->undoAdapter();
     undo->beginMacro(kundo2_i18n("Import animation"));
 
-    QScopedPointer<KisDocument> importDoc(KisDocumentRegistry::instance()->createDocument());
+    PkScopedPointer<KisDocument> importDoc(KisDocumentRegistry::instance()->createDocument());
     importDoc->setFileBatchMode(true);
 
     const bool usingPredefinedTimes = !optionalKeyframeTimeList.isEmpty() && !autoAddHoldframes;
@@ -74,7 +74,7 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
         m_d->updater->setRange(0, files.size());
     }
 
-    QPair<KisPaintLayerSP, KisRasterKeyframeChannel*> layerRasterChannelPair;
+    PkPair<KisPaintLayerSP, KisRasterKeyframeChannel*> layerRasterChannelPair;
 
     const QRegularExpression rx(QLatin1String("(\\d+)"));    //regex for extracting numbers
     QStringList fileNumberRxList;
@@ -189,7 +189,7 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
     return status;
 }
 
-QPair<KisPaintLayerSP, KisRasterKeyframeChannel*> KisAnimationImporter::initializePaintLayer(QScopedPointer<KisDocument>& doc, KisUndoAdapter *undoAdapter)
+PkPair<KisPaintLayerSP, KisRasterKeyframeChannel*> KisAnimationImporter::initializePaintLayer(PkScopedPointer<KisDocument>& doc, KisUndoAdapter *undoAdapter)
 {
     const KoColorSpace *cs = doc->image()->colorSpace();
     KisPaintLayerSP paintLayer = new KisPaintLayer(m_d->image, m_d->image->nextLayerName(), OPACITY_OPAQUE_U8, cs);
@@ -197,7 +197,7 @@ QPair<KisPaintLayerSP, KisRasterKeyframeChannel*> KisAnimationImporter::initiali
 
     paintLayer->enableAnimation();
     KisRasterKeyframeChannel* contentChannel = qobject_cast<KisRasterKeyframeChannel*>(paintLayer->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true));
-    return QPair<KisPaintLayerSP, KisRasterKeyframeChannel*>(paintLayer, contentChannel);
+    return PkPair<KisPaintLayerSP, KisRasterKeyframeChannel*>(paintLayer, contentChannel);
 }
 
 void KisAnimationImporter::cancel()

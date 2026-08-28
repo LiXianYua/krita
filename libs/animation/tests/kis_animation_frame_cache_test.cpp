@@ -20,6 +20,8 @@
 #include "KoColorSpaceRegistry.h"
 
 #include "kundo2command.h"
+#include <PkSharedPointer.h>
+#include <PkMap.h>
 
 namespace
 {
@@ -77,8 +79,8 @@ private:
 void KisAnimationFrameCacheTest::testCachesAreScopedToSourceIdentity()
 {
     TestUtil::MaskParent p;
-    auto firstSource = QSharedPointer<TestAnimationFrameCacheSource>::create(p.image);
-    auto secondSource = QSharedPointer<TestAnimationFrameCacheSource>::create(p.image);
+    auto firstSource = PkSharedPointer<TestAnimationFrameCacheSource>::create(p.image);
+    auto secondSource = PkSharedPointer<TestAnimationFrameCacheSource>::create(p.image);
 
     KisAnimationFrameCacheSP firstCache = KisAnimationFrameCache::getFrameCache(firstSource);
     KisAnimationFrameCacheSP secondCache = KisAnimationFrameCache::getFrameCache(secondSource);
@@ -128,7 +130,7 @@ void KisAnimationFrameCacheTest::testCache()
     KisKeyframeChannel *rasterChannel3 = layer2->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true);
     rasterChannel3->addKeyframe(17, &parentCommand);
 
-    KisAnimationFrameCacheSourceSP source = QSharedPointer<TestAnimationFrameCacheSource>::create(image);
+    KisAnimationFrameCacheSourceSP source = PkSharedPointer<TestAnimationFrameCacheSource>::create(image);
     KisAnimationFrameCacheSP cache = new KisAnimationFrameCache(source);
 
     m_globalAnimationCache = cache.data();
@@ -181,14 +183,14 @@ void KisAnimationFrameCacheTest::slotFrameGenerationFinished(int time)
 
 #include <kis_animation_frame_cache_p.h>
 
-using MapType = QMap<int, int>;
+using MapType = PkMap<int, int>;
 using DroppedFramesType = std::vector<int>;
 using MovedFramesType = std::vector<std::pair<int, int>>;
 
 
 struct TestingFramesGluer : FramesGluerBase
 {
-    TestingFramesGluer(QMap<int, int> &_frames) : FramesGluerBase(_frames) {}
+    TestingFramesGluer(PkMap<int, int> &_frames) : FramesGluerBase(_frames) {}
 
     DroppedFramesType droppedSwapFrames;
     MovedFramesType movedSwapFrames;
@@ -214,7 +216,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("overlap-first")
         << KisTimeSpan::fromTimeWithDuration(0, 3)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 3},
                {5, 3},
                {8, 3},
@@ -227,7 +229,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-first")
         << KisTimeSpan::fromTimeWithDuration(1, 3)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 4},
                {5, 3},
                {8, 3},
@@ -240,7 +242,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-first-up-to-next")
         << KisTimeSpan::fromTimeWithDuration(2, 3)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 5},
                {5, 3},
                {8, 3},
@@ -253,7 +255,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-first-consume-next")
         << KisTimeSpan::fromTimeWithDuration(2, 4)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 6},
                {6, 2},
                {8, 3},
@@ -266,7 +268,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-first-consume-next-fully")
         << KisTimeSpan::fromTimeWithDuration(2, 6)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 8},
                {8, 3},
                {11, 3},
@@ -278,7 +280,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-first-consume-1.5")
         << KisTimeSpan::fromTimeWithDuration(2, 7)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 9},
                {9, 2},
                {11, 3},
@@ -290,7 +292,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-first-consume-2")
         << KisTimeSpan::fromTimeWithDuration(2, 9)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 11},
                {11, 3},
                {16, -1}
@@ -301,7 +303,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-first-infinite")
         << KisTimeSpan::infinite(2)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, -1}
            }
         << DroppedFramesType{5, 8, 11, 16}
@@ -310,7 +312,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-middle")
         << KisTimeSpan::fromTimeWithDuration(12, 3)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 3},
                {5, 3},
                {8, 3},
@@ -323,7 +325,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-middle-half-consume-infinite")
         << KisTimeSpan::fromTimeWithDuration(12, 5)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 3},
                {5, 3},
                {8, 3},
@@ -336,7 +338,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("extend-middle-consume-infinite")
         << KisTimeSpan::infinite(12)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 3},
                {5, 3},
                {8, 3},
@@ -348,7 +350,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
     QTest::newRow("end-consume-infinite")
         << KisTimeSpan::infinite(17)
-        << QMap<int, int> {
+        << PkMap<int, int> {
                {0, 3},
                {5, 3},
                {8, 3},
@@ -362,7 +364,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing_data()
 
 void KisAnimationFrameCacheTest::testFrameGlueing()
 {
-    QMap<int, int> frames;
+    PkMap<int, int> frames;
 
     frames.insert(0, 3);
     frames.insert(5, 3);
@@ -370,7 +372,7 @@ void KisAnimationFrameCacheTest::testFrameGlueing()
     frames.insert(11, 3);
     frames.insert(16, -1);
 
-    const QMap<int, int> originalFrames = frames;
+    const PkMap<int, int> originalFrames = frames;
 
     QFETCH(KisTimeSpan, glueRange);
     QFETCH(MapType, referenceFrames);

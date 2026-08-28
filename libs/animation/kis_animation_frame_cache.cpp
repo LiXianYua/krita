@@ -7,7 +7,9 @@
 #include "kis_animation_frame_cache.h"
 #include "kis_animation_frame_cache_p.h"
 
-#include <QMap>
+#include <PkMap.h>
+#include <PkList.h>
+#include <PkScopedPointer.h>
 #include <QtMath>
 
 #include "kis_debug.h"
@@ -47,7 +49,7 @@ struct KisAnimationFrameCache::Private
     const void *cacheKey = nullptr;
     KisImageWSP image;
 
-    QScopedPointer<KisAbstractFrameCacheSwapper> swapper;
+    PkScopedPointer<KisAbstractFrameCacheSwapper> swapper;
     int frameSizeLimit = 777;
 
     KisOpenGLUpdateInfoSP fetchFrameDataImpl(KisImageSP image, const QRect &requestedRect, int lod);
@@ -62,7 +64,7 @@ struct KisAnimationFrameCache::Private
         {}
     };
 
-    QMap<int, int> newFrames;
+    PkMap<int, int> newFrames;
 
     int getFrameIdAtTime(int time) const
     {
@@ -177,7 +179,7 @@ struct KisAnimationFrameCache::Private
 
 
     // TODO: verify that we don't have any leak here!
-    typedef QMap<const void*, KisAnimationFrameCache*> CachesMap;
+    typedef PkMap<const void*, KisAnimationFrameCache*> CachesMap;
     static CachesMap caches;
 };
 
@@ -200,7 +202,7 @@ KisAnimationFrameCacheSP KisAnimationFrameCache::getFrameCache(KisAnimationFrame
     return cache;
 }
 
-const QList<KisAnimationFrameCache *> KisAnimationFrameCache::caches()
+const PkList<KisAnimationFrameCache *> KisAnimationFrameCache::caches()
 {
     return Private::caches.values();
 }
@@ -333,7 +335,7 @@ bool KisAnimationFrameCache::tryGlueSameFrames(const KisTimeSpan &range)
     {
         KisAbstractFrameCacheSwapper *swapper {nullptr};
 
-        FramesGluer(KisAbstractFrameCacheSwapper *_swapper, QMap<int, int> &_frames)
+        FramesGluer(KisAbstractFrameCacheSwapper *_swapper, PkMap<int, int> &_frames)
             : FramesGluerBase(_frames)
             , swapper(_swapper)
         {}

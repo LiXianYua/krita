@@ -13,7 +13,8 @@
 #include "kis_types.h"
 #include "kritaanimation_export.h"
 #include <KisImportExportErrorCode.h>
-#include <QPair>
+#include <PkPair.h>
+#include <PkScopedPointer.h>
 
 class KisDocument;
 
@@ -37,8 +38,8 @@ public:
                                     , QList<int> optionalKeyframeTimeList = {});
 
 private:
-    QPair<KisPaintLayerSP, class KisRasterKeyframeChannel*> initializePaintLayer(
-        QScopedPointer<KisDocument>& doc,
+    PkPair<KisPaintLayerSP, class KisRasterKeyframeChannel*> initializePaintLayer(
+        PkScopedPointer<KisDocument>& doc,
         class KisUndoAdapter* undoAdapter);
 
 private Q_SLOTS:
@@ -46,7 +47,7 @@ private Q_SLOTS:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif

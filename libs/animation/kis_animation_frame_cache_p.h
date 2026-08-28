@@ -6,15 +6,15 @@
 #ifndef KIS_ANIMATION_FRAME_CACHE_P_H
 #define KIS_ANIMATION_FRAME_CACHE_P_H
 
-#include <QMap>
+#include <PkMap.h>
 #include <kis_time_span.h>
 #include <kritaanimation_export.h>
 
 struct KRITAANIMATION_EXPORT FramesGluerBase
 {
-    FramesGluerBase(QMap<int, int> &_frames) : frames(_frames) {}
+    FramesGluerBase(PkMap<int, int> &_frames) : frames(_frames) {}
 
-    QMap<int, int> &frames;
+    PkMap<int, int> &frames;
 
     bool glueFrames(const KisTimeSpan &range);
 

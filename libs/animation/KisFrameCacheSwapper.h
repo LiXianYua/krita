@@ -6,7 +6,7 @@
 #ifndef KISFRAMECACHESWAPPER_H
 #define KISFRAMECACHESWAPPER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "KisAbstractFrameCacheSwapper.h"
 
@@ -47,7 +47,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISFRAMECACHESWAPPER_H

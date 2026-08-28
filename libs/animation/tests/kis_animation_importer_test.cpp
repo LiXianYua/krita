@@ -16,10 +16,11 @@
 #include <KoUpdater.h>
 
 #include "testui.h"
+#include <PkScopedPointer.h>
 
 void KisAnimationImporterTest::testImport()
 {
-    QScopedPointer<KisDocument> document(KisDocumentRegistry::instance()->createDocument());
+    PkScopedPointer<KisDocument> document(KisDocumentRegistry::instance()->createDocument());
     TestUtil::MaskParent mp(QRect(0,0,512,512));
     document->setCurrentImage(mp.image);
 

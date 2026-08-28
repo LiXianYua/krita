@@ -15,6 +15,9 @@ target_include_directories(kritaanimation
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/container>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/pointer>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
 )
 
 target_link_libraries(kritaanimation
@@ -26,6 +29,9 @@ target_link_libraries(kritaanimation
         kritaglobal
         kritaimage
         kritaimpex
+        pkcontainer
+        pkpointer
+        pkstring
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
 )

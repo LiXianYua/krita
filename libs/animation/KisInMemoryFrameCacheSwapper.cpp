@@ -5,13 +5,13 @@
  */
 #include "KisInMemoryFrameCacheSwapper.h"
 
-#include <QMap>
+#include <PkMap.h>
 #include <kis_update_info.h>
 
 
 struct KRITAANIMATION_NO_EXPORT KisInMemoryFrameCacheSwapper::Private
 {
-    QMap<int, KisOpenGLUpdateInfoSP> framesMap;
+    PkMap<int, KisOpenGLUpdateInfoSP> framesMap;
 };
 
 KisInMemoryFrameCacheSwapper::KisInMemoryFrameCacheSwapper()

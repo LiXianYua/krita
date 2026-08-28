@@ -7,7 +7,7 @@
 #define KISFRAMEDATASERIALIZER_H
 
 #include "kritaanimation_export.h"
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include "opengl/kis_texture_tile_info_pool.h"
 
 // TODO: extract DataBuffer into a separate file
@@ -116,10 +116,11 @@ private:
     static bool processFrames(KisFrameDataSerializer::Frame &dst, const KisFrameDataSerializer::Frame &src);
 
 private:
-    Q_DISABLE_COPY(KisFrameDataSerializer)
+    KisFrameDataSerializer(const KisFrameDataSerializer &) = delete;
+    KisFrameDataSerializer &operator=(const KisFrameDataSerializer &) = delete;
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISFRAMEDATASERIALIZER_H
