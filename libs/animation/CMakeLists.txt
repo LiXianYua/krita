@@ -17,10 +17,14 @@ target_include_directories(kritaanimation
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/container>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/geometry>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/image>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/pointer>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/signal>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
     PRIVATE
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/store>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/concurrent>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/log>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/port>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/time>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/variant>
@@ -29,24 +33,26 @@ target_include_directories(kritaanimation
 target_link_libraries(kritaanimation
     PUBLIC
         Boost::boost
-        Qt${QT_MAJOR_VERSION}::Core
-        Qt${QT_MAJOR_VERSION}::Gui
         kritacanvas
         kritaglobal
         kritaimage
         kritaimpex
         pkcontainer
         pkgeometry
+        pkimage
         pkpointer
+        pksignal
         pkstring
     PRIVATE
-        KF${KF_MAJOR}::ConfigCore
         kritastore
+        pkconcurrent
+        pklog
         pktime
         pkvariant
 )
 
 set_target_properties(kritaanimation PROPERTIES
+    AUTOMOC OFF
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
 )
 

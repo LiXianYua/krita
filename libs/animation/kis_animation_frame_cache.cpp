@@ -9,9 +9,8 @@
 
 #include <PkMap.h>
 #include <PkList.h>
+#include <PkObject.h>
 #include <PkScopedPointer.h>
-#include <QtMath>
-#include <QDebug>
 
 #include "kis_debug.h"
 
@@ -30,21 +29,14 @@
 
 #include <kis_algebra_2d.h>
 #include <kis_lod_transform.h>
+#include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <utility>
 
 
 struct KisAnimationFrameCache::Private
 {
-    static QRect toQRect(const PkRect &rect)
-    {
-        return QRect(rect.x(), rect.y(), rect.width(), rect.height());
-    }
-
-    static PkRect toPkRect(const QRect &rect)
-    {
-        return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
-    }
-
     Private(KisAnimationFrameCacheSourceSP _source)
         : source(std::move(_source))
     {
@@ -63,7 +55,7 @@ struct KisAnimationFrameCache::Private
     PkScopedPointer<KisAbstractFrameCacheSwapper> swapper;
     int frameSizeLimit = 777;
 
-    KisOpenGLUpdateInfoSP fetchFrameDataImpl(KisImageSP image, const QRect &requestedRect, int lod);
+    KisOpenGLUpdateInfoSP fetchFrameDataImpl(KisImageSP image, const PkRect &requestedRect, int lod);
 
     struct Frame
     {
@@ -121,7 +113,7 @@ struct KisAnimationFrameCache::Private
 
         const int length = range.isInfinite() ? -1 : range.end() - range.start() + 1;
         newFrames.insert(range.start(), length);
-        swapper->saveFrame(range.start(), info, toQRect(image->bounds()));
+        swapper->saveFrame(range.start(), info, image->bounds());
     }
 
     /**
@@ -178,13 +170,13 @@ struct KisAnimationFrameCache::Private
         return cacheChanged;
     }
 
-    int effectiveLevelOfDetail(const QRect &rc) const {
+    int effectiveLevelOfDetail(const PkRect &rc) const {
         if (!frameSizeLimit) return 0;
 
-        const int maxDimension = KisAlgebra2D::maxDimension(toPkRect(rc));
+        const int maxDimension = KisAlgebra2D::maxDimension(rc);
 
-        const qreal minLod = -std::log2(qreal(frameSizeLimit) / maxDimension);
-        const int lodLimit = qMax(0, qCeil(minLod));
+        const double minLod = -std::log2(double(frameSizeLimit) / maxDimension);
+        const int lodLimit = std::max(0, static_cast<int>(std::ceil(minLod)));
         return lodLimit;
     }
 
@@ -232,13 +224,20 @@ KisAnimationFrameCache::KisAnimationFrameCache(KisAnimationFrameCacheSourceSP so
     // create swapping backend
     slotConfigChanged();
 
-    connect(m_d->image->animationInterface(), SIGNAL(sigFramesChanged(KisTimeSpan,QRect)), this, SLOT(framesChanged(KisTimeSpan,QRect)));
-    connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotConfigChanged()));
+    PkObject::connect(m_d->image->animationInterface(), &KisImageAnimationInterface::sigFramesChanged,
+                      this, &KisAnimationFrameCache::framesChanged);
+    PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged,
+                      this, &KisAnimationFrameCache::slotConfigChanged);
 }
 
 KisAnimationFrameCache::~KisAnimationFrameCache()
 {
     Private::caches.remove(m_d->cacheKey);
+}
+
+void KisAnimationFrameCache::changed()
+{
+    PkObject::activateSignal<>(this, PkMemberFnKey::from(static_cast<void (KisAnimationFrameCache::*)()>(&KisAnimationFrameCache::changed)));
 }
 
 bool KisAnimationFrameCache::uploadFrame(int time)
@@ -365,7 +364,7 @@ bool KisAnimationFrameCache::tryGlueSameFrames(const KisTimeSpan &range)
     const bool cacheChanged = gluer.glueFrames(range);
 
     if (cacheChanged) {
-        Q_EMIT changed();
+        changed();
     }
 
     return cacheChanged;
@@ -376,16 +375,16 @@ KisImageWSP KisAnimationFrameCache::image()
     return m_d->image;
 }
 
-void KisAnimationFrameCache::framesChanged(const KisTimeSpan &range, const QRect &rect)
+void KisAnimationFrameCache::framesChanged(const KisTimeSpan &range, const PkRect &rect)
 {
-    Q_UNUSED(rect);
+    (void)rect;
 
     if (!range.isValid()) return;
 
     bool cacheChanged = m_d->invalidate(range);
 
     if (cacheChanged) {
-        Q_EMIT changed();
+        changed();
     }
 }
 
@@ -402,18 +401,18 @@ void KisAnimationFrameCache::slotConfigChanged()
     }
 
     m_d->frameSizeLimit = cfg.useAnimationCacheFrameSizeLimit() ? cfg.animationCacheFrameSizeLimit() : 0;
-    Q_EMIT changed();
+    changed();
 }
 
-KisOpenGLUpdateInfoSP KisAnimationFrameCache::Private::fetchFrameDataImpl(KisImageSP image, const QRect &requestedRect, int lod)
+KisOpenGLUpdateInfoSP KisAnimationFrameCache::Private::fetchFrameDataImpl(KisImageSP image, const PkRect &requestedRect, int lod)
 {
     if (lod > 0) {
         KisPaintDeviceSP tempDevice = new KisPaintDevice(image->projection()->colorSpace());
         tempDevice->prepareClone(image->projection());
         image->projection()->generateLodCloneDevice(tempDevice, image->projection()->extent(), lod);
 
-        const QRect fetchRect = toQRect(KisLodTransform::alignedRect(toPkRect(requestedRect), lod));
-        return source->updateInfoBuilder().buildUpdateInfo(fetchRect, tempDevice, toQRect(image->bounds()), lod, true);
+        const PkRect fetchRect = KisLodTransform::alignedRect(requestedRect, lod);
+        return source->updateInfoBuilder().buildUpdateInfo(fetchRect, tempDevice, image->bounds(), lod, true);
     } else {
         return source->fetchFrameData(requestedRect, image);
     }
@@ -422,19 +421,19 @@ KisOpenGLUpdateInfoSP KisAnimationFrameCache::Private::fetchFrameDataImpl(KisIma
 KisOpenGLUpdateInfoSP KisAnimationFrameCache::fetchFrameData(int time, KisImageSP image, const KisRegion &requestedRegion) const
 {
     if (time != image->animationInterface()->currentTime()) {
-        qWarning() << "WARNING: KisAnimationFrameCache::frameReady image's time doesn't coincide with the requested time!";
-        qWarning() << "    "  << ppVar(image->animationInterface()->currentTime()) << ppVar(time);
+        warnKrita << "WARNING: KisAnimationFrameCache::frameReady image's time doesn't coincide with the requested time!";
+        warnKrita << "    "  << ppVar(image->animationInterface()->currentTime()) << ppVar(time);
     }
 
     // the frames are always generated at full scale
     KIS_SAFE_ASSERT_RECOVER_NOOP(image->currentLevelOfDetail() == 0);
 
-    const int lod = m_d->effectiveLevelOfDetail(Private::toQRect(requestedRegion.boundingRect()));
+    const int lod = m_d->effectiveLevelOfDetail(requestedRegion.boundingRect());
 
     KisOpenGLUpdateInfoSP totalInfo;
 
-    Q_FOREACH (const PkRect &pkRect, requestedRegion.rects()) {
-        KisOpenGLUpdateInfoSP info = m_d->fetchFrameDataImpl(image, Private::toQRect(pkRect), lod);
+    for (const PkRect &rect : requestedRegion.rects()) {
+        KisOpenGLUpdateInfoSP info = m_d->fetchFrameDataImpl(image, rect, lod);
         if (!totalInfo) {
             totalInfo = info;
         } else {
@@ -453,10 +452,10 @@ void KisAnimationFrameCache::addConvertedFrameData(KisOpenGLUpdateInfoSP info, i
 
     m_d->addFrame(info, identicalRange);
 
-    Q_EMIT changed();
+    changed();
 }
 
-void KisAnimationFrameCache::dropLowQualityFrames(const KisTimeSpan &range, const QRect &regionOfInterest, const QRect &minimalRect)
+void KisAnimationFrameCache::dropLowQualityFrames(const KisTimeSpan &range, const PkRect &regionOfInterest, const PkRect &minimalRect)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(!range.isInfinite());
     if (m_d->newFrames.isEmpty()) return;
@@ -476,7 +475,7 @@ void KisAnimationFrameCache::dropLowQualityFrames(const KisTimeSpan &range, cons
             continue;
         }
 
-        const QRect frameRect = m_d->swapper->frameDirtyRect(frameId);
+        const PkRect frameRect = m_d->swapper->frameDirtyRect(frameId);
         const int frameLod = m_d->swapper->frameLevelOfDetail(frameId);
 
         if (frameLod > m_d->effectiveLevelOfDetail(regionOfInterest) || !frameRect.contains(minimalRect)) {
@@ -488,7 +487,7 @@ void KisAnimationFrameCache::dropLowQualityFrames(const KisTimeSpan &range, cons
     }
 }
 
-bool KisAnimationFrameCache::framesHaveValidRoi(const KisTimeSpan &range, const QRect &regionOfInterest)
+bool KisAnimationFrameCache::framesHaveValidRoi(const KisTimeSpan &range, const PkRect &regionOfInterest)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!range.isInfinite(), false);
     if (m_d->newFrames.isEmpty()) return false;

@@ -7,42 +7,41 @@
 #ifndef KIS_ANIMATION_IMPORTER_H
 #define KIS_ANIMATION_IMPORTER_H
 
-#include <QObject>
 #include <KoUpdater.h>
 
 #include "kis_types.h"
 #include "kritaanimation_export.h"
 #include <KisImportExportErrorCode.h>
 #include <PkPair.h>
+#include <PkList.h>
 #include <PkScopedPointer.h>
+#include <PkStringList.h>
 
 class KisDocument;
 
-class KRITAANIMATION_EXPORT KisAnimationImporter : public QObject
+class KRITAANIMATION_EXPORT KisAnimationImporter
 {
-    Q_OBJECT    
-
 public:
     KisAnimationImporter(KisImageSP image,
                          KoUpdaterPtr updater = {},
                          bool trimFrames = false);
-    ~KisAnimationImporter() override;
+    ~KisAnimationImporter();
 
-    KisImportExportErrorCode import(QStringList files
+    KisImportExportErrorCode import(PkStringList files
                                     , int firstFrame
                                     , int step
                                     , bool autoAddHoldframes = false
                                     , bool startfrom0 = false
                                     , int isAscending = 0
                                     , bool assignDocumentProfile = false
-                                    , QList<int> optionalKeyframeTimeList = {});
+                                    , PkList<int> optionalKeyframeTimeList = {});
 
 private:
     PkPair<KisPaintLayerSP, class KisRasterKeyframeChannel*> initializePaintLayer(
         PkScopedPointer<KisDocument>& doc,
         class KisUndoAdapter* undoAdapter);
 
-private Q_SLOTS:
+private:
     void cancel();
 
 private:

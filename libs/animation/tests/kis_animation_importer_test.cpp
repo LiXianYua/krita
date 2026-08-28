@@ -16,7 +16,31 @@
 #include <KoUpdater.h>
 
 #include "testui.h"
+#include <PkImage.h>
 #include <PkScopedPointer.h>
+#include <PkStringList.h>
+
+#include <cstring>
+
+namespace
+{
+QImage toQImage(const PkImage &image)
+{
+    QImage result(image.width(), image.height(), static_cast<QImage::Format>(image.format()));
+    for (int y = 0; y < image.height(); ++y) {
+        std::memcpy(result.scanLine(y), image.constScanLine(y), static_cast<std::size_t>(image.bytesPerLine()));
+    }
+    if (image.colorCount() > 0) {
+        QVector<QRgb> colorTable;
+        colorTable.reserve(image.colorCount());
+        for (int i = 0; i < image.colorCount(); ++i) {
+            colorTable.append(image.color(i));
+        }
+        result.setColorTable(colorTable);
+    }
+    return result;
+}
+}
 
 void KisAnimationImporterTest::testImport()
 {
@@ -26,10 +50,10 @@ void KisAnimationImporterTest::testImport()
 
     KisAnimationImporter importer(document->image());
 
-    QStringList files;
-    files.append(QString(FILES_DATA_DIR) + '/' + "file_layer_source.png");
-    files.append(QString(FILES_DATA_DIR) + '/' + "carrot.png");
-    files.append(QString(FILES_DATA_DIR) + '/' + "hakonepa.png");
+    PkStringList files;
+    files.append(PkString(FILES_DATA_DIR) + PkString("/file_layer_source.png"));
+    files.append(PkString(FILES_DATA_DIR) + PkString("/carrot.png"));
+    files.append(PkString(FILES_DATA_DIR) + PkString("/hakonepa.png"));
 
     importer.import(files, 7, 3);
 
@@ -46,15 +70,15 @@ void KisAnimationImporterTest::testImport()
 
     mp.image->animationInterface()->switchCurrentTimeAsync(7);
     mp.image->waitForDone();
-    QImage imported1 = importedLayer->projection()->convertToQImage(importedLayer->colorSpace()->profile());
+    QImage imported1 = toQImage(importedLayer->projection()->convertToQImage(importedLayer->colorSpace()->profile()));
 
     mp.image->animationInterface()->switchCurrentTimeAsync(10);
     mp.image->waitForDone();
-    QImage imported2 = importedLayer->projection()->convertToQImage(importedLayer->colorSpace()->profile());
+    QImage imported2 = toQImage(importedLayer->projection()->convertToQImage(importedLayer->colorSpace()->profile()));
 
     mp.image->animationInterface()->switchCurrentTimeAsync(13);
     mp.image->waitForDone();
-    QImage imported3 = importedLayer->projection()->convertToQImage(importedLayer->colorSpace()->profile());
+    QImage imported3 = toQImage(importedLayer->projection()->convertToQImage(importedLayer->colorSpace()->profile()));
 
     QImage source1(QString(FILES_DATA_DIR) + '/' + "file_layer_source.png");
     QImage source2(QString(FILES_DATA_DIR) + '/' + "carrot.png");

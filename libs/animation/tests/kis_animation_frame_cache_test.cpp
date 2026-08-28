@@ -6,6 +6,8 @@
 
 #include "kis_animation_frame_cache_test.h"
 
+#include <PkObject.h>
+
 #include <simpletest.h>
 #include <testutil.h>
 
@@ -56,9 +58,9 @@ public:
         return m_builder;
     }
 
-    KisOpenGLUpdateInfoSP fetchFrameData(const QRect &rect, KisImageSP image) override
+    KisOpenGLUpdateInfoSP fetchFrameData(const PkRect &rect, KisImageSP image) override
     {
-        return m_builder.buildUpdateInfo(rect, image, true);
+        return m_builder.buildUpdateInfo(QRect(rect.x(), rect.y(), rect.width(), rect.height()), image, true);
     }
 
     void uploadFrameData(KisOpenGLUpdateInfoSP) override
@@ -87,11 +89,18 @@ void KisAnimationFrameCacheTest::testCachesAreScopedToSourceIdentity()
 
     QVERIFY(firstCache != secondCache);
 
+    PkObject signalReceiver;
+    int changedCount = 0;
+    PkObject::connect(firstCache.data(), &KisAnimationFrameCache::changed,
+                      &signalReceiver, [&changedCount]() { ++changedCount; });
+
     const KisRegion imageBounds(p.image->bounds());
     KisOpenGLUpdateInfoSP firstFrame = firstCache->fetchFrameData(0, p.image, imageBounds);
     KisOpenGLUpdateInfoSP secondFrame = secondCache->fetchFrameData(0, p.image, imageBounds);
     firstCache->addConvertedFrameData(firstFrame, 0);
     secondCache->addConvertedFrameData(secondFrame, 0);
+
+    QCOMPARE(changedCount, 1);
 
     QVERIFY(firstCache->uploadFrame(0));
     QVERIFY(secondCache->uploadFrame(0));
@@ -134,7 +143,8 @@ void KisAnimationFrameCacheTest::testCache()
     KisAnimationFrameCacheSP cache = new KisAnimationFrameCache(source);
 
     m_globalAnimationCache = cache.data();
-    connect(animation, SIGNAL(sigFrameReady(int)), this, SLOT(slotFrameGenerationFinished(int)));
+    PkObject::connect(animation, &KisImageAnimationInterface::sigFrameReady,
+                      cache.data(), [this](int time) { slotFrameGenerationFinished(time); });
 
     int t;
     animation->saveAndResetCurrentTime(11, &t);
@@ -151,23 +161,23 @@ void KisAnimationFrameCacheTest::testCache()
     verifyRangeIsCachedStatus(cache, 30, 40, KisAnimationFrameCache::Cached);
     QCOMPARE(cache->frameStatus(9999), KisAnimationFrameCache::Cached);
 
-    image->invalidateFrames(KisTimeSpan::fromTimeToTime(10, 12), QRect());
+    image->invalidateFrames(KisTimeSpan::fromTimeToTime(10, 12), PkRect());
     verifyRangeIsCachedStatus(cache, 10, 12, KisAnimationFrameCache::Uncached);
     verifyRangeIsCachedStatus(cache, 13, 16, KisAnimationFrameCache::Cached);
 
-    image->invalidateFrames(KisTimeSpan::fromTimeToTime(15, 20), QRect());
+    image->invalidateFrames(KisTimeSpan::fromTimeToTime(15, 20), PkRect());
     verifyRangeIsCachedStatus(cache, 13, 14, KisAnimationFrameCache::Cached);
     verifyRangeIsCachedStatus(cache, 15, 20, KisAnimationFrameCache::Uncached);
 
-    image->invalidateFrames(KisTimeSpan::infinite(100), QRect());
+    image->invalidateFrames(KisTimeSpan::infinite(100), PkRect());
     verifyRangeIsCachedStatus(cache, 90, 99, KisAnimationFrameCache::Cached);
     verifyRangeIsCachedStatus(cache, 100, 110, KisAnimationFrameCache::Uncached);
 
-    image->invalidateFrames(KisTimeSpan::fromTimeToTime(90, 100), QRect());
+    image->invalidateFrames(KisTimeSpan::fromTimeToTime(90, 100), PkRect());
     verifyRangeIsCachedStatus(cache, 80, 89, KisAnimationFrameCache::Cached);
     verifyRangeIsCachedStatus(cache, 90, 100, KisAnimationFrameCache::Uncached);
 
-    image->invalidateFrames(KisTimeSpan::infinite(14), QRect());
+    image->invalidateFrames(KisTimeSpan::infinite(14), PkRect());
     QCOMPARE(cache->frameStatus(13), KisAnimationFrameCache::Cached);
     verifyRangeIsCachedStatus(cache, 15, 100, KisAnimationFrameCache::Uncached);
 
@@ -187,6 +197,9 @@ using MapType = PkMap<int, int>;
 using DroppedFramesType = std::vector<int>;
 using MovedFramesType = std::vector<std::pair<int, int>>;
 
+Q_DECLARE_METATYPE(MapType)
+Q_DECLARE_METATYPE(DroppedFramesType)
+Q_DECLARE_METATYPE(MovedFramesType)
 
 struct TestingFramesGluer : FramesGluerBase
 {
@@ -372,8 +385,6 @@ void KisAnimationFrameCacheTest::testFrameGlueing()
     frames.insert(11, 3);
     frames.insert(16, -1);
 
-    const PkMap<int, int> originalFrames = frames;
-
     QFETCH(KisTimeSpan, glueRange);
     QFETCH(MapType, referenceFrames);
     QFETCH(bool, framesChanged);
@@ -385,32 +396,11 @@ void KisAnimationFrameCacheTest::testFrameGlueing()
     const bool result = gluer.glueFrames(glueRange);
 
     if (frames != referenceFrames) {
-        qDebug() << "=== FAILURE ===";
-        qDebug() << ppVar(originalFrames);
-        qDebug() << ppVar(glueRange);
-        qDebug() << "===============";
-        qDebug() << ppVar(frames);
-        qDebug() << ppVar(referenceFrames);
-        qDebug() << "===============";
-
         QFAIL("unexpected frames after gluing");
     }
 
     if (gluer.droppedSwapFrames != droppedSwapFrames ||
         gluer.movedSwapFrames != movedSwapFrames) {
-
-        qDebug() << "=== FAILURE (swapper callbacks) ===";
-        qDebug() << ppVar(originalFrames);
-        qDebug() << ppVar(glueRange);
-        qDebug() << "===================================";
-        qDebug() << ppVar(frames);
-        qDebug() << ppVar(referenceFrames);
-        qDebug() << ppVar(droppedSwapFrames);
-        qDebug() << ppVar(gluer.droppedSwapFrames);
-        qDebug() << ppVar(movedSwapFrames);
-        qDebug() << ppVar(gluer.movedSwapFrames);
-        qDebug() << "===================================";
-
         QFAIL("unexpected swapper callbacks");
     }
 

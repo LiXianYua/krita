@@ -7,8 +7,9 @@
 #ifndef KIS_ANIMATION_FRAME_CACHE_H
 #define KIS_ANIMATION_FRAME_CACHE_H
 
-#include <QImage>
-#include <QObject>
+#include <PkImage.h>
+#include <PkObject.h>
+#include <PkRect.h>
 #include <PkSharedPointer.h>
 #include <PkScopedPointer.h>
 #include <PkList.h>
@@ -39,16 +40,14 @@ public:
     virtual const void *cacheKey() const = 0;
     virtual KisImageWSP image() const = 0;
     virtual KisOpenGLUpdateInfoBuilder &updateInfoBuilder() = 0;
-    virtual KisOpenGLUpdateInfoSP fetchFrameData(const QRect &rect, KisImageSP image) = 0;
+    virtual KisOpenGLUpdateInfoSP fetchFrameData(const PkRect &rect, KisImageSP image) = 0;
     virtual void uploadFrameData(KisOpenGLUpdateInfoSP info) = 0;
 };
 
 using KisAnimationFrameCacheSourceSP = PkSharedPointer<KisAnimationFrameCacheSource>;
 
-class KRITAANIMATION_EXPORT KisAnimationFrameCache : public QObject, public KisShared
+class KRITAANIMATION_EXPORT KisAnimationFrameCache : public PkObject, public KisShared
 {
-    Q_OBJECT
-
 public:
 
     static KisAnimationFrameCacheSP getFrameCache(KisAnimationFrameCacheSourceSP source);
@@ -58,7 +57,7 @@ public:
     explicit KisAnimationFrameCache(KisAnimationFrameCacheSourceSP source);
     ~KisAnimationFrameCache() override;
 
-    QImage getFrame(int time);
+    PkImage getFrame(int time);
     bool uploadFrame(int time);
 
     bool shouldUploadNewFrame(int newTime, int oldTime) const;
@@ -81,11 +80,10 @@ public:
      * Drops all the frames with worse level of detail values than the current
      * desired level of detail.
      */
-    void dropLowQualityFrames(const KisTimeSpan &range, const QRect &regionOfInterest, const QRect &minimalRect);
+    void dropLowQualityFrames(const KisTimeSpan &range, const PkRect &regionOfInterest, const PkRect &minimalRect);
 
-    bool framesHaveValidRoi(const KisTimeSpan &range, const QRect &regionOfInterest);
+    bool framesHaveValidRoi(const KisTimeSpan &range, const PkRect &regionOfInterest);
 
-Q_SIGNALS:
     void changed();
 
 private:
@@ -93,8 +91,8 @@ private:
     struct Private;
     PkScopedPointer<Private> m_d;
 
-private Q_SLOTS:
-    void framesChanged(const KisTimeSpan &range, const QRect &rect);
+private:
+    void framesChanged(const KisTimeSpan &range, const PkRect &rect);
     void slotConfigChanged();
 };
 
