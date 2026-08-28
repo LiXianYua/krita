@@ -101,6 +101,9 @@ struct KisPaintingAssistant::Private {
     int decorationThickness{1};
     bool loadingXml {false};
     bool updatingModelState {false};
+    bool modelSnapshotValid {false};
+    PkList<PkPointF> modelHandlePoints;
+    PkList<PkPointF> modelSideHandlePoints;
 
 };
 
@@ -363,8 +366,37 @@ void KisPaintingAssistant::synchronizeModelState()
         return;
     }
 
+    const auto pointsMatch = [](const PkList<KisPaintingAssistantHandleSP> &handles,
+                                const PkList<PkPointF> &snapshot) {
+        if (handles.size() != snapshot.size()) {
+            return false;
+        }
+        for (int i = 0; i < handles.size(); ++i) {
+            if (*handles[i] != snapshot[i]) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    if (d->modelSnapshotValid &&
+        pointsMatch(d->handles, d->modelHandlePoints) &&
+        pointsMatch(d->sideHandles, d->modelSideHandlePoints)) {
+        return;
+    }
+
     d->updatingModelState = true;
     updateModelState();
+
+    d->modelHandlePoints.clear();
+    for (const KisPaintingAssistantHandleSP &handle : d->handles) {
+        d->modelHandlePoints << *handle;
+    }
+    d->modelSideHandlePoints.clear();
+    for (const KisPaintingAssistantHandleSP &handle : d->sideHandles) {
+        d->modelSideHandlePoints << *handle;
+    }
+    d->modelSnapshotValid = true;
     d->updatingModelState = false;
 }
 
@@ -401,6 +433,7 @@ void KisPaintingAssistant::transform(const PkTransform &transform)
 
 PkByteArray KisPaintingAssistant::saveXml(PkMap<KisPaintingAssistantHandleSP, int> &handleMap)
 {
+    synchronizeModelState();
     PkString text;
     PkXmlStreamWriter xml(&text);
     xml.writeStartDocument();
@@ -444,6 +477,7 @@ PkByteArray KisPaintingAssistant::saveXml(PkMap<KisPaintingAssistantHandleSP, in
 	    xml.writeAttribute("y", fixedThree(handle->y()));
 	    xml.writeEndElement();
       }
+      xml.writeEndElement();
     }
 
     xml.writeEndElement();
@@ -768,101 +802,121 @@ KisPaintingAssistantHandleSP KisPaintingAssistant::oppHandleOne()
 
 KisPaintingAssistantHandleSP KisPaintingAssistant::topLeft()
 {
+    synchronizeModelState();
     return d->topLeft;
 }
 
 const KisPaintingAssistantHandleSP KisPaintingAssistant::topLeft() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->topLeft;
 }
 
 KisPaintingAssistantHandleSP KisPaintingAssistant::bottomLeft()
 {
+    synchronizeModelState();
     return d->bottomLeft;
 }
 
 const KisPaintingAssistantHandleSP KisPaintingAssistant::bottomLeft() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->bottomLeft;
 }
 
 KisPaintingAssistantHandleSP KisPaintingAssistant::topRight()
 {
+    synchronizeModelState();
     return d->topRight;
 }
 
 const KisPaintingAssistantHandleSP KisPaintingAssistant::topRight() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->topRight;
 }
 
 KisPaintingAssistantHandleSP KisPaintingAssistant::bottomRight()
 {
+    synchronizeModelState();
     return d->bottomRight;
 }
 
 const KisPaintingAssistantHandleSP KisPaintingAssistant::bottomRight() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->bottomRight;
 }
 
 KisPaintingAssistantHandleSP KisPaintingAssistant::topMiddle()
 {
+    synchronizeModelState();
     return d->topMiddle;
 }
 
 const KisPaintingAssistantHandleSP KisPaintingAssistant::topMiddle() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->topMiddle;
 }
 
 KisPaintingAssistantHandleSP KisPaintingAssistant::bottomMiddle()
 {
+    synchronizeModelState();
     return d->bottomMiddle;
 }
 
 const KisPaintingAssistantHandleSP KisPaintingAssistant::bottomMiddle() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->bottomMiddle;
 }
 
 KisPaintingAssistantHandleSP KisPaintingAssistant::rightMiddle()
 {
+    synchronizeModelState();
     return d->rightMiddle;
 }
 
 const KisPaintingAssistantHandleSP KisPaintingAssistant::rightMiddle() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->rightMiddle;
 }
 
 KisPaintingAssistantHandleSP KisPaintingAssistant::leftMiddle()
 {
+    synchronizeModelState();
     return d->leftMiddle;
 }
 
 const KisPaintingAssistantHandleSP KisPaintingAssistant::leftMiddle() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->leftMiddle;
 }
 
 const PkList<KisPaintingAssistantHandleSP>& KisPaintingAssistant::handles() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->handles;
 }
 
 PkList<KisPaintingAssistantHandleSP> KisPaintingAssistant::handles()
 {
+    synchronizeModelState();
     return d->handles;
 }
 
 const PkList<KisPaintingAssistantHandleSP>& KisPaintingAssistant::sideHandles() const
 {
+    const_cast<KisPaintingAssistant *>(this)->synchronizeModelState();
     return d->sideHandles;
 }
 
 PkList<KisPaintingAssistantHandleSP> KisPaintingAssistant::sideHandles()
 {
+    synchronizeModelState();
     return d->sideHandles;
 }
 

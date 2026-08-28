@@ -345,7 +345,10 @@ PkPointF PerspectiveEllipseAssistant::project(const PkPointF& pt, const PkPointF
     assert(isAssistantComplete());
 
     updateCache();
-    d->ellipseInPolygon.setSimpleEllipseVertices(d->simpleEllipse);
+    if (!d->cacheValid || !d->ellipseInPolygon.isValid() ||
+        !d->ellipseInPolygon.setSimpleEllipseVertices(d->simpleEllipse)) {
+        return pt;
+    }
 
     return d->simpleEllipse.project(pt);
 }
@@ -371,7 +374,8 @@ PkRect PerspectiveEllipseAssistant::boundingRect() const
     }
 
     updateCache();
-    if (d->ellipseInPolygon.setSimpleEllipseVertices(d->simpleEllipse)) {
+    if (d->cacheValid && d->ellipseInPolygon.isValid() &&
+        d->ellipseInPolygon.setSimpleEllipseVertices(d->simpleEllipse)) {
        return d->simpleEllipse.boundingRect().adjusted(-2, -2, 2, 2).toAlignedRect();
     } else {
        return PkRect();
@@ -391,28 +395,30 @@ PkPointF PerspectiveEllipseAssistant::getDefaultEditorPosition() const
 bool PerspectiveEllipseAssistant::isEllipseValid()
 {
     updateCache();
-    return isAssistantComplete() && d->ellipseInPolygon.isValid();
+    return isAssistantComplete() && d->cacheValid && d->ellipseInPolygon.isValid();
 }
 
 void PerspectiveEllipseAssistant::updateCache() const
 {
     if (!isAssistantComplete()) {
+        d->cacheValid = false;
         return;
     }
 
     // handles -> points -> polygon
-    d->cacheValid = false;
     // check the cached points, whether they are the same as handles
     if (d->cachedPoints.size() == handles().size()) {
         for (int i = 0; i < handles().size(); ++i) {
             if (d->cachedPoints[i] != *handles()[i]) break;
             if (i == handles().size() - 1) {
-                // that means the cache is up to date, because the loop was still going
-                d->cacheValid = true;
+                // The current snapshot has already been rebuilt. Preserve
+                // whether that rebuild produced valid geometry.
                 return;
             }
         }
     }
+
+    d->cacheValid = false;
 
     d->cachedPoints = PkVector<PkPointF>();
     for (int i = 0; i < handles().size(); ++i) {
@@ -427,17 +433,12 @@ void PerspectiveEllipseAssistant::updateCache() const
     PkPolygonF poly = PkPolygonF(d->cachedPoints);
 
     if (!PerspectiveBasedAssistantHelper::getTetragon(handles(), isAssistantComplete(), poly)) { // this function changes poly to some "standardized" version, or a triangle when it cannot be achieved
-
-        poly = PkPolygonF(d->cachedPoints);
-        poly << d->cachedPoints[0];
-        d->ellipseInPolygon.updateToPolygon(poly);
-        d->cacheValid = true;
         return;
     }
 
-    d->ellipseInPolygon.updateToPolygon(poly);
-    if (d->ellipseInPolygon.isValid()) {
-        d->ellipseInPolygon.setSimpleEllipseVertices(d->simpleEllipse);
+    if (!d->ellipseInPolygon.updateToPolygon(poly) ||
+        !d->ellipseInPolygon.setSimpleEllipseVertices(d->simpleEllipse)) {
+        return;
     }
 
     PerspectiveBasedAssistantHelper::updateCacheData(d->cache, poly);
@@ -461,7 +462,9 @@ bool PerspectiveEllipseAssistant::contains(const PkPointF &point) const
 qreal PerspectiveEllipseAssistant::distance(const PkPointF &point) const
 {
     updateCache();
-    KIS_SAFE_ASSERT_RECOVER_NOOP(d->cacheValid);
+    if (!d->cacheValid || !d->ellipseInPolygon.isValid()) {
+        return 1.0;
+    }
     return PerspectiveBasedAssistantHelper::distanceInGrid(d->cache, point);
 }
 

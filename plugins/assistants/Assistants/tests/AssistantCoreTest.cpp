@@ -88,6 +88,21 @@ void addNormalHandles(Assistant &assistant, std::initializer_list<PkPointF> poin
     }
 }
 
+PkList<PkPointF> serializedSideHandlePoints(const PkByteArray &bytes)
+{
+    PkList<PkPointF> points;
+    PkXmlStreamReader reader(PkString::PkFromUtf8(bytes.constData(), bytes.size()));
+    while (!reader.atEnd()) {
+        if (reader.readNext() != PkXmlStreamReader::StartElement ||
+            reader.name() != "sidehandle") {
+            continue;
+        }
+        points << PkPointF(reader.attributes().value("x").toDouble(),
+                           reader.attributes().value("y").toDouble());
+    }
+    return reader.hasError() ? PkList<PkPointF>() : points;
+}
+
 int registryPreservesAllIdsAndIsIdempotent()
 {
     std::vector<std::thread> threads;
@@ -188,9 +203,34 @@ int renderIndependentHandleLifecycleRemainsLive()
         !closePoint(*perspective.bottomMiddle(), {5, 10}) ||
         !closePoint(*perspective.topMiddle(), {5, 0})) return 121;
 
-    *perspective.handles()[1] = PkPointF(20, 0);
+    *perspective.handles()[1] += PkPointF(10, 0);
     if (!closePoint(*perspective.rightMiddle(), {15, 5}) ||
         !closePoint(*perspective.topMiddle(), {10, 0})) return 122;
+
+    perspective.handles()[2]->setX(30);
+    perspective.handles()[2]->setY(20);
+    HandleIdMap perspectiveHandleIds;
+    const PkByteArray savedPerspectiveXml = perspective.saveXml(perspectiveHandleIds);
+    const PkList<PkPointF> savedPerspectiveSides = serializedSideHandlePoints(savedPerspectiveXml);
+    if (savedPerspectiveSides.size() != 4 ||
+        !closePoint(savedPerspectiveSides[0], {25, 10}) ||
+        !closePoint(savedPerspectiveSides[2], {15, 15}) ||
+        !closePoint(savedPerspectiveSides[3], {10, 0})) return 126;
+    if (perspective.topRight() != perspective.handles()[1] ||
+        perspective.bottomRight() != perspective.handles()[2] ||
+        !closePoint(*perspective.rightMiddle(), {25, 10}) ||
+        !closePoint(*perspective.bottomMiddle(), {15, 15})) return 127;
+
+    PerspectiveAssistant sharedPerspective;
+    KisPaintingAssistantHandleSP sharedCorner = perspective.handles()[1];
+    sharedPerspective.addHandle(new KisPaintingAssistantHandle(0, 0), HandleType::NORMAL);
+    sharedPerspective.addHandle(sharedCorner, HandleType::NORMAL);
+    sharedPerspective.addHandle(new KisPaintingAssistantHandle(10, 10), HandleType::NORMAL);
+    sharedPerspective.addHandle(new KisPaintingAssistantHandle(0, 10), HandleType::NORMAL);
+    *sharedCorner += PkPointF(10, 0);
+    if (!closePoint(*perspective.topMiddle(), {15, 0}) ||
+        !closePoint(*sharedPerspective.topMiddle(), {15, 0}) ||
+        !closePoint(*sharedPerspective.rightMiddle(), {20, 5})) return 128;
 
     VanishingPointAssistant freshVanishing;
     addNormalHandles(freshVanishing, {{10, 20}});
@@ -208,6 +248,22 @@ int renderIndependentHandleLifecycleRemainsLive()
     const PkList<PkPointF> expected {{-60, 20}, {-130, 20}, {80, 20}, {150, 20}};
     for (int i = 0; i < expected.size(); ++i) {
         if (!closePoint(*loadedVanishing.sideHandles()[i], expected[i])) return 125;
+    }
+
+    VanishingPointAssistant customVanishing;
+    addNormalHandles(customVanishing, {{3, 4}});
+    const PkList<PkPointF> customSides {{-11, 7}, {-23, 8}, {17, 9}, {29, 10}};
+    for (int i = 0; i < customSides.size(); ++i) {
+        *customVanishing.sideHandles()[i] = customSides[i];
+    }
+    HandleIdMap customIds;
+    KoStore customStore(customVanishing.saveXml(customIds));
+    IdHandleMap customLoadedHandles;
+    VanishingPointAssistant customLoaded;
+    customLoaded.loadXml(&customStore, customLoadedHandles, "custom-vanishing.assistant");
+    if (customLoaded.sideHandles().size() != customSides.size()) return 129;
+    for (int i = 0; i < customSides.size(); ++i) {
+        if (!closePoint(*customLoaded.sideHandles()[i], customSides[i])) return 130;
     }
     return 0;
 }
@@ -278,7 +334,7 @@ int representativeGeometryRemainsLive()
 
     CurvilinearPerspectiveAssistant curvilinear;
     addNormalHandles(curvilinear, {{-10, 0}, {10, 0}});
-    if (!closePoint(curvilinear.adjustPosition({12.5, -7.5}, {0, 5}, true, 0.0),
+    if (!closePoint(curvilinear.adjustPosition({25, -7.5}, {0, 5}, true, 0.0),
                     {12.5, -7.5})) return 33;
 
     PerspectiveAssistant perspective;
@@ -299,6 +355,17 @@ int representativeGeometryRemainsLive()
     *perspectiveEllipse.handles()[1] = PkPointF(20, -10);
     *perspectiveEllipse.handles()[2] = PkPointF(20, 10);
     if (!closePoint(perspectiveEllipse.adjustPosition({5, 15}, {5, 0}, true, 0.0), {5, 10})) return 38;
+
+    ExposedPerspectiveEllipseAssistant trapezoidEllipse;
+    addNormalHandles(trapezoidEllipse, {{-4, 4}, {4, 4}, {8, 8}, {-8, 8}});
+    if (!closeEnough(trapezoidEllipse.distance({0, 3}), 3.0 / 8.0)) return 45;
+
+    ExposedPerspectiveEllipseAssistant invalidEllipse;
+    addNormalHandles(invalidEllipse, {{0, 0}, {1, 0}, {2, 0}, {3, 0}});
+    const PkPointF invalidInput(9, 7);
+    if (!invalidEllipse.modelBoundingRect().isEmpty() ||
+        invalidEllipse.adjustPosition(invalidInput, {0, 0}, true, 0.0) != invalidInput ||
+        !closeEnough(invalidEllipse.distance({0, 3}), 1.0)) return 46;
 
     InfiniteRulerAssistant infinite;
     addNormalHandles(infinite, {{0, 0}, {10, 0}});
