@@ -39,6 +39,46 @@ bool buildWebPTimeline(const std::vector<int> &durations, WebPTimeline &timeline
     return true;
 }
 
+int webpPlaybackRangeEndFrame(int totalDurationMs, int framerate)
+{
+    if (totalDurationMs <= 0 || framerate <= 0) {
+        return -1;
+    }
+
+    const std::int64_t ticks = static_cast<std::int64_t>(totalDurationMs) * framerate;
+    const std::int64_t frameCount = (ticks + 999) / 1000;
+    if (frameCount <= 0 || frameCount - 1 > std::numeric_limits<int>::max()) {
+        return -1;
+    }
+    return static_cast<int>(frameCount - 1);
+}
+
+int webpExportPlaybackEndFrame(int playbackRangeStart,
+                               int playbackRangeEnd,
+                               int firstKeyframe,
+                               int lastKeyframe)
+{
+    if (firstKeyframe < 0 || lastKeyframe < firstKeyframe ||
+        playbackRangeStart > playbackRangeEnd || playbackRangeEnd < lastKeyframe) {
+        return lastKeyframe;
+    }
+    return playbackRangeEnd;
+}
+
+int webpFrameToDurationMs(int endFrame, int firstKeyframe, int framerate)
+{
+    if (endFrame < firstKeyframe || framerate <= 0) {
+        return -1;
+    }
+    const std::int64_t frameCount = static_cast<std::int64_t>(endFrame) - firstKeyframe + 1;
+    const std::int64_t duration = static_cast<std::int64_t>(std::lround(
+        frameCount * 1000.0 / framerate));
+    if (duration > std::numeric_limits<int>::max()) {
+        return -1;
+    }
+    return static_cast<int>(duration);
+}
+
 bool isPlausibleIccProfile(const std::uint8_t *data, std::size_t size)
 {
     if (!data || size < 128 || data[36] != 'a' || data[37] != 'c' ||

@@ -27,6 +27,16 @@ int main()
                 timeline.frameTimes[0] < timeline.frameTimes[1] &&
                 timeline.frameTimes[1] < timeline.frameTimes[2],
             "variable durations must map cumulative milliseconds monotonically");
+    require(webpPlaybackRangeEndFrame(450, 20) == 8,
+            "import duration must include the complete final frame");
+    require(webpPlaybackRangeEndFrame(400, 20) == 7,
+            "import duration must map exactly to its final frame");
+    require(webpExportPlaybackEndFrame(0, 8, 0, 7) == 8 &&
+                webpFrameToDurationMs(8, 0, 20) == 450,
+            "export must honor a playback range extending past the last keyframe");
+    require(webpExportPlaybackEndFrame(0, 3, 0, 7) == 7 &&
+                webpExportPlaybackEndFrame(9, 3, 0, 7) == 7,
+            "export must safely fall back for an invalid or early playback range");
     const std::uint8_t malformedIcc[] = {'n', 'o', 't', 'i', 'c', 'c'};
     require(!isPlausibleIccProfile(malformedIcc, sizeof(malformedIcc)),
             "malformed embedded ICC must fall back without registry dereference");

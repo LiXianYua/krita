@@ -13,4 +13,10 @@ struct WebPTimeline
 };
 
 bool buildWebPTimeline(const std::vector<int> &durations, WebPTimeline &timeline);
+int webpPlaybackRangeEndFrame(int totalDurationMs, int framerate);
+int webpExportPlaybackEndFrame(int playbackRangeStart,
+                               int playbackRangeEnd,
+                               int firstKeyframe,
+                               int lastKeyframe);
+int webpFrameToDurationMs(int endFrame, int firstKeyframe, int framerate);
 bool isPlausibleIccProfile(const std::uint8_t *data, std::size_t size);

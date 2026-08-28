@@ -349,8 +349,6 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                         true);
                     auto *frame =
                         dynamic_cast<KisRasterKeyframeChannel *>(channel);
-                    image->animationInterface()->setDocumentRangeEndFrame(
-                        currentFrameTime);
                     frame->importFrame(currentFrameTime,
                                        compositedFrame,
                                        nullptr);
@@ -368,6 +366,12 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
             if (frameIndex != timeline.frameTimes.size()) {
                 return ImportExportCodes::FileFormatIncorrect;
             }
+            const int playbackEnd = webpPlaybackRangeEndFrame(
+                timeline.totalDurationMs, timeline.framerate);
+            if (playbackEnd < 0) {
+                return ImportExportCodes::FileFormatIncorrect;
+            }
+            image->animationInterface()->setDocumentRangeEndFrame(playbackEnd);
         }
     }
 

@@ -292,6 +292,8 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                 return ImportExportCodes::FormatFeaturesUnsupported;
             }
             const int firstFrame = times.front();
+            const KisTimeSpan playbackRange =
+                image->animationInterface()->documentPlaybackRange();
 
             // If this is not an integral number, it must be diagnosed on
             // export and reported to the user.
@@ -421,8 +423,13 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                 dbgFile << "Added frame @" << i << timestamp_ms << "ms";
             }
 
+            const int exportEndFrame = webpExportPlaybackEndFrame(
+                playbackRange.start(), playbackRange.end(), firstFrame, times.back());
             const int timestamp_ms =
-                std::lround((times.back() - firstFrame + 1) * 1000.0 / framerate);
+                webpFrameToDurationMs(exportEndFrame, firstFrame, framerate);
+            if (timestamp_ms <= 0) {
+                return ImportExportCodes::InternalError;
+            }
 
             // Insert the finish beacon.
             if (!WebPAnimEncoderAdd(enc.get(), nullptr, timestamp_ms, nullptr)) {
