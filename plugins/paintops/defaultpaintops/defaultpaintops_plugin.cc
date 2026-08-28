@@ -18,7 +18,6 @@
 #include "kis_global.h"
 #include <brushengine/kis_paintop_registry.h>
 #include "KisBrushOpSettings.h"
-#include "KisBrushServerProvider.h"
 
 namespace {
 struct DefaultPaintOpsRegistration
@@ -27,7 +26,7 @@ struct DefaultPaintOpsRegistration
     {
         KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
         r->add(new KisSimplePaintOpFactory<KisBrushOp, KisBrushOpSettings>("paintbrush", "Pixel", KisPaintOpFactory::categoryStable(), "krita-paintbrush.png", PkString(), PkStringList(), 1));
-        r->add(new KisSimplePaintOpFactory<KisDuplicateOp, KisDuplicateOpSettings>("duplicate", "Clone", KisPaintOpFactory::categoryStable(), "krita-duplicate.png", PkString(), PkStringList(COMPOSITE_COPY), 15));
+        r->add(new KisSimplePaintOpFactory<KisDuplicateOp, KisDuplicateOpSettings>("duplicate", "Clone", KisPaintOpFactory::categoryStable(), "krita-duplicate.png", PkString(), PkStringList{COMPOSITE_COPY}, 15));
     }
 };
 }

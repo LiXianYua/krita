@@ -50,5 +50,8 @@ PkList<KisUniformPaintOpPropertySP> KisBrushOpSettings::uniformProperties(KisPai
         }
     }
 
-    return KisBrushBasedPaintOpSettings::uniformProperties(settings, updateProxy) + props;
+    PkList<KisUniformPaintOpPropertySP> base =
+        KisBrushBasedPaintOpSettings::uniformProperties(settings, updateProxy);
+    base.append(props);
+    return base;
 }

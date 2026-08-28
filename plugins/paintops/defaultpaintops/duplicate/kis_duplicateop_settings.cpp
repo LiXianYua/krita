@@ -13,8 +13,8 @@
 
 #include <PkXmlElement.h>
 #include <PkXmlDocument.h>
+#include <string>
 
-#include <KoPointerEvent.h>
 #include <KoCompositeOpRegistry.h>
 
 #include <kis_image.h>
@@ -110,8 +110,10 @@ void KisDuplicateOpSettings::toXML(PkXmlDocument& doc, PkXmlElement& rootElt) co
     // Then call the parent class fromXML
     KisPropertiesConfiguration::toXML(doc, rootElt);
 
-    rootElt.setAttribute("OffsetX", PkString::number(m_offset.x()));
-    rootElt.setAttribute("OffsetY", PkString::number(m_offset.y()));
+    const std::string offsetX = std::to_string(m_offset.x());
+    const std::string offsetY = std::to_string(m_offset.y());
+    rootElt.setAttribute("OffsetX", PkString::PkFromUtf8(offsetX.c_str(), offsetX.size()));
+    rootElt.setAttribute("OffsetY", PkString::PkFromUtf8(offsetY.c_str(), offsetY.size()));
 }
 
 
@@ -238,5 +240,8 @@ PkList<KisUniformPaintOpPropertySP> KisDuplicateOpSettings::uniformProperties(Ki
         }
     }
 
-    return KisPaintOpSettings::uniformProperties(settings, updateProxy) + props;
+    PkList<KisUniformPaintOpPropertySP> base =
+        KisPaintOpSettings::uniformProperties(settings, updateProxy);
+    base.append(props);
+    return base;
 }

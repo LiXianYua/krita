@@ -39,6 +39,7 @@
 #include <KisRunnableStrokeJobsInterface.h>
 
 #include <PkThread.h>
+#include <PkElapsedTimer.h>
 #include "kis_image_config.h"
 #include "kis_wrapped_rect.h"
 
