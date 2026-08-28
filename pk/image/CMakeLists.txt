@@ -9,9 +9,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 enable_testing()
 
+find_package(Threads REQUIRED)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/modules")
+find_package(PNG REQUIRED)
+find_package(JPEG REQUIRED)
+find_package(TIFF REQUIRED)
+find_package(GIF REQUIRED)
+find_package(WebP REQUIRED)
+
 # 零 Qt：本工程不得出现 find_package(Qt...)。
 add_library(pkimage STATIC
     PkImage.cpp
+    PkImageFileDecoder.cpp
+    codecs/PkNativeImageCodecs.cpp
 )
 target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -29,7 +39,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../geometry
 # ---------------------------------------------------------------------------
 target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 
-target_link_libraries(pkimage PUBLIC pkgeometry)
+target_link_libraries(pkimage
+    PUBLIC pkgeometry
+    PRIVATE Threads::Threads PNG::PNG JPEG::JPEG TIFF::TIFF GIF::GIF WebP::webp)
 
 # ---------------------------------------------------------------------------
 # 单测：用 pk/test 的 PK_* harness
@@ -48,3 +60,11 @@ set_source_files_properties(tests/test_image.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_image_case.inc")
 
 add_test(NAME test_pkimage COMMAND test_pkimage)
+
+add_executable(test_pkimage_file_decoder
+    tests/test_file_decoder.cpp
+)
+target_compile_definitions(test_pkimage_file_decoder PRIVATE
+    PKIMAGE_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+target_link_libraries(test_pkimage_file_decoder PRIVATE pkimage Threads::Threads)
+add_test(NAME test_pkimage_file_decoder COMMAND test_pkimage_file_decoder)

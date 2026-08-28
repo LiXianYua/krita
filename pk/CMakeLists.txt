@@ -26,6 +26,21 @@
 
 find_package(Threads REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+if (NOT TARGET PNG::PNG)
+    find_package(PNG REQUIRED)
+endif()
+if (NOT TARGET JPEG::JPEG)
+    find_package(JPEG REQUIRED)
+endif()
+if (NOT TARGET TIFF::TIFF)
+    find_package(TIFF REQUIRED)
+endif()
+if (NOT TARGET GIF::GIF)
+    find_package(GIF REQUIRED)
+endif()
+if (NOT TARGET WebP::webp)
+    find_package(WebP REQUIRED)
+endif()
 
 # =========================================================================
 # 1. pk/container
@@ -122,12 +137,16 @@ target_include_directories(pknamespace INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/nam
 # pk/geometry and the shared pk/test target.
 add_library(pkimage STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImage.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImageFileDecoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkNativeImageCodecs.cpp
 )
 target_include_directories(pkimage PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/image
     ${CMAKE_CURRENT_SOURCE_DIR}/container
 )
-target_link_libraries(pkimage PUBLIC pkgeometry)
+target_link_libraries(pkimage
+    PUBLIC pkgeometry
+    PRIVATE Threads::Threads PNG::PNG JPEG::JPEG TIFF::TIFF GIF::GIF WebP::webp)
 
 # =========================================================================
 # 5. pk/concurrent
