@@ -149,6 +149,11 @@ target_link_libraries(pkimage PUBLIC pkgeometry)
 add_library(pkimageio SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImageFileDecoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkNativeImageCodecs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkBmpHandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkPnmHandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkXbmHandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkXpmHandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkIcoHandler.cpp
 )
 set_target_properties(pkimageio PROPERTIES
     CXX_VISIBILITY_PRESET hidden

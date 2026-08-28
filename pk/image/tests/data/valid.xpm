@@ -1,0 +1,7 @@
+/* XPM */
+static const char *oracle[] = {
+"2 1 2 1",
+"R c #ff0000",
+". c None",
+"R."
+};

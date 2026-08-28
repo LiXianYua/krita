@@ -12,6 +12,11 @@
 #include <utility>
 
 std::vector<PkImageFileDecoderHandler> pkNativeImageCodecHandlers();
+PkImageFileDecoderHandler pkBmpImageCodecHandler();
+PkImageFileDecoderHandler pkPnmImageCodecHandler();
+PkImageFileDecoderHandler pkXbmImageCodecHandler();
+PkImageFileDecoderHandler pkXpmImageCodecHandler();
+PkImageFileDecoderHandler pkIcoImageCodecHandler();
 
 namespace
 {
@@ -52,6 +57,11 @@ void ensureBuiltInHandlers()
     std::call_once(once, [] {
         try {
             std::vector<PkImageFileDecoderHandler> handlers = pkNativeImageCodecHandlers();
+            handlers.push_back(pkBmpImageCodecHandler());
+            handlers.push_back(pkPnmImageCodecHandler());
+            handlers.push_back(pkXbmImageCodecHandler());
+            handlers.push_back(pkXpmImageCodecHandler());
+            handlers.push_back(pkIcoImageCodecHandler());
             for (PkImageFileDecoderHandler &handler : handlers) {
                 registerHandlerInternal(std::move(handler));
             }

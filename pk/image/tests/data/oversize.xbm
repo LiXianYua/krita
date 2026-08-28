@@ -1,0 +1,3 @@
+#define huge_width 2147483647
+#define huge_height 2147483647
+{ 0x00 };

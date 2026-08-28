@@ -319,6 +319,104 @@ void nativeHandlersSniffBytesAndPublishExtensions()
     }
 }
 
+void qtPortedFormatMatrixMatchesOracle()
+{
+    struct FormatCase {
+        const char *file;
+        uint32_t first;
+        uint32_t second;
+    };
+    // Literal pixels were emitted by Qt 5.15 QImageReader for these exact
+    // fixtures; they are deliberately not derived through the decoder.
+    const FormatCase cases[] = {
+        {"valid.bmp", 0xFFFF0000u, 0xFF00FF00u},
+        {"valid.pbm", 0xFFFFFFFFu, 0xFF000000u},
+        {"valid.pgm", 0xFF000000u, 0xFFFFFFFFu},
+        {"valid.ppm", 0xFFFF0000u, 0xFF00FF00u},
+        {"valid.xbm", 0xFFFFFFFFu, 0xFF000000u},
+        {"valid.xpm", 0xFFFF0000u, 0x00000000u},
+        {"valid.ico", 0xFFFF0000u, 0x4000FF00u},
+        {"valid.cur", 0xFFFF0000u, 0x4000FF00u},
+    };
+
+    for (const FormatCase &test : cases) {
+        const PkImage image = PkImageFileDecoder::load(
+            std::string(PKIMAGE_TEST_DATA_DIR) + "/" + test.file);
+        expect(!image.isNull(), (std::string(test.file) + " should decode").c_str());
+        if (image.isNull()) continue;
+        expect(image.width() == 2 && image.height() == 1,
+               (std::string(test.file) + " should preserve 2x1 dimensions").c_str());
+        expect(image.format() == PkImage::Format_ARGB32,
+               (std::string(test.file) + " should produce ARGB32").c_str());
+        expect(image.pixel(0, 0) == test.first,
+               (std::string(test.file) + " first Qt-oracle pixel mismatch").c_str());
+        expect(image.pixel(1, 0) == test.second,
+               (std::string(test.file) + " second Qt-oracle pixel mismatch").c_str());
+    }
+}
+
+void qtPortedHandlersRejectMalformedTruncatedAndOverflow()
+{
+    for (const char *file : {
+             "truncated.bmp", "truncated.pbm", "truncated.pgm", "truncated.ppm",
+             "truncated.xbm", "truncated.xpm", "truncated.ico", "truncated.cur",
+             "malformed.pnm", "malformed.xbm", "malformed.xpm", "malformed.ico",
+             "oversize.bmp", "oversize.ppm", "oversize.xbm", "oversize.xpm",
+             "oversize.ico"}) {
+        expect(PkImageFileDecoder::load(std::string(PKIMAGE_TEST_DATA_DIR) + "/" + file).isNull(),
+               (std::string(file) + " should return null").c_str());
+    }
+}
+
+void rawPnmVariantsMatchQtOracle()
+{
+    struct RawCase { const char *file; uint32_t first; uint32_t second; };
+    const RawCase cases[] = {
+        {"valid-raw.pbm", 0xFFFFFFFFu, 0xFF000000u},
+        {"valid-raw.pgm", 0xFF000000u, 0xFFFFFFFFu},
+        {"valid-raw.ppm", 0xFFFF0000u, 0xFF00FF00u},
+    };
+    for (const RawCase &test : cases) {
+        const PkImage image = PkImageFileDecoder::load(
+            std::string(PKIMAGE_TEST_DATA_DIR) + "/" + test.file);
+        expect(!image.isNull(), (std::string(test.file) + " should decode").c_str());
+        if (!image.isNull()) {
+            expect(image.pixel(0, 0) == test.first && image.pixel(1, 0) == test.second,
+                   (std::string(test.file) + " raw Qt-oracle pixels mismatch").c_str());
+        }
+    }
+}
+
+void ico32BitAlphaIsAuthoritativeLikeQt()
+{
+    const PkImage zeroAlpha = PkImageFileDecoder::load(
+        std::string(PKIMAGE_TEST_DATA_DIR) + "/zero-alpha.ico");
+    expect(!zeroAlpha.isNull() && zeroAlpha.pixel(0, 0) == 0x00000000u &&
+               zeroAlpha.pixel(1, 0) == 0x00000000u,
+           "32-bit ICO with zero alpha must stay transparent instead of using the AND mask");
+
+    const PkImage masked = PkImageFileDecoder::load(
+        std::string(PKIMAGE_TEST_DATA_DIR) + "/masked-32.ico");
+    expect(!masked.isNull() && masked.pixel(0, 0) == 0xFFFF0000u,
+           "32-bit ICO alpha must remain authoritative when the legacy AND mask disagrees");
+}
+
+void qtPortedHandlersPublishExtensionsAndSniffContent()
+{
+    const std::vector<uint8_t> bmp = readFixture("valid.bmp");
+    const PkImage contradicted = PkImageFileDecoder::decode(
+        bmp.data(), bmp.size(), "contradiction.xpm");
+    expect(!contradicted.isNull() && contradicted.pixel(1, 0) == 0xFF00FF00u,
+           "BMP bytes must outrank a contradictory XPM extension");
+
+    const std::vector<std::string> extensions = PkImageFileDecoder::supportedExtensions();
+    const std::set<std::string> supported(extensions.begin(), extensions.end());
+    for (const char *extension : {"bmp", "pbm", "pgm", "ppm", "xbm", "xpm", "ico", "cur"}) {
+        expect(supported.count(extension) == 1,
+               (std::string("supportedExtensions should contain ") + extension).c_str());
+    }
+}
+
 } // namespace
 
 int main()
@@ -333,6 +431,11 @@ int main()
     corruptAndOversizeInputsReturnNull();
     jpegUnsignedLongBoundaryIsRejectedWhereRepresentable();
     nativeHandlersSniffBytesAndPublishExtensions();
+    qtPortedFormatMatrixMatchesOracle();
+    qtPortedHandlersRejectMalformedTruncatedAndOverflow();
+    rawPnmVariantsMatchQtOracle();
+    ico32BitAlphaIsAuthoritativeLikeQt();
+    qtPortedHandlersPublishExtensionsAndSniffContent();
 
     if (failures == 0) {
         std::cout << "registry tests passed\n";

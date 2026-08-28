@@ -29,6 +29,11 @@ target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(pkimageio SHARED
     PkImageFileDecoder.cpp
     codecs/PkNativeImageCodecs.cpp
+    codecs/PkBmpHandler.cpp
+    codecs/PkPnmHandler.cpp
+    codecs/PkXbmHandler.cpp
+    codecs/PkXpmHandler.cpp
+    codecs/PkIcoHandler.cpp
 )
 set_target_properties(pkimageio PROPERTIES
     CXX_VISIBILITY_PRESET hidden

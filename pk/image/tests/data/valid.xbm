@@ -1,0 +1,3 @@
+#define oracle_width 2
+#define oracle_height 1
+static unsigned char oracle_bits[] = { 0x02 };
