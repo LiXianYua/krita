@@ -5,11 +5,14 @@
  */
 
 #include "kis_spriter_export.h"
+#include "spriter_format.h"
 
-#include <QCoreApplication>
-#include <QDomDocument>
-#include <QFileInfo>
-#include <QDir>
+#include <PkXmlDocument.h>
+
+#include <cmath>
+#include <filesystem>
+#include <string>
+#include <system_error>
 
 #include <kpluginfactory.h>
 
@@ -33,29 +36,65 @@
 #include <kis_adjustment_layer.h>
 #include <kis_types.h>
 #include <KisPngCodec.h>
-#include <kis_global.h> // for KisDegreesToRadians
 #include <kis_fast_math.h>
 #include <math.h>
 #include <kis_dom_utils.h>
 #include <kis_layer_utils.h>
+#include <kritaversion.h>
+
+namespace
+{
+
+PkString firstWord(const PkString &value)
+{
+    const std::string utf8 = value.PkToUtf8();
+    const std::size_t separator = utf8.find(' ');
+    return PkString((separator == std::string::npos ? utf8 : utf8.substr(0, separator)).c_str());
+}
+
+PkString markerValue(const PkString &value, const char *marker)
+{
+    const std::string utf8 = value.PkToUtf8();
+    const std::string prefix(marker);
+    const std::size_t start = utf8.find(prefix);
+    if (start == std::string::npos) {
+        return PkString();
+    }
+    const std::size_t contentStart = start + prefix.size();
+    const std::size_t end = utf8.find(')', contentStart);
+    if (end == std::string::npos) {
+        return PkString();
+    }
+    return PkString(utf8.substr(contentStart, end - contentStart).c_str());
+}
+
+PkString pkPath(const std::filesystem::path &path)
+{
+    return PkString(path.u8string().c_str());
+}
+
+} // namespace
 
 K_PLUGIN_FACTORY_WITH_JSON(KisSpriterExportFactory, "krita_spriter_export.json", registerPlugin<KisSpriterExport>();)
 
-KisSpriterExport::KisSpriterExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisSpriterExport::KisSpriterExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
 KisSpriterExport::~KisSpriterExport()
 {
+    delete m_rootBone;
 }
 
-KisImportExportErrorCode KisSpriterExport::savePaintDevice(KisPaintDeviceSP dev, const QString &fileName)
+KisImportExportErrorCode KisSpriterExport::savePaintDevice(KisPaintDeviceSP dev, const PkString &fileName)
 {
-    QFileInfo fi(fileName);
-
-    QDir d = fi.absoluteDir();
-    d.mkpath(d.path());
-    QRect rc = m_image->bounds().intersected(dev->exactBounds());
+    const std::filesystem::path path = std::filesystem::u8path(fileName.PkToUtf8());
+    std::error_code filesystemError;
+    std::filesystem::create_directories(path.parent_path(), filesystemError);
+    if (filesystemError) {
+        return ImportExportCodes::CannotCreateFile;
+    }
+    PkRect rc = m_image->bounds().intersected(dev->exactBounds());
 
     if (!KisPngCodec::isColorSpaceSupported(dev->colorSpace())) {
         dev = new KisPaintDevice(*dev.data());
@@ -69,23 +108,19 @@ KisImportExportErrorCode KisSpriterExport::savePaintDevice(KisPaintDeviceSP dev,
     vKisAnnotationSP_it endIt = m_image->endAnnotations();
 
     KisPngCodec converter;
-    KisImportExportErrorCode res = converter.buildFile(fileName, rc, m_image->xRes(), m_image->yRes(), dev, beginIt, endIt, options, 0);
+    KisImportExportErrorCode res = converter.buildFile(pkPath(path), rc, m_image->xRes(), m_image->yRes(), dev, beginIt, endIt, options, 0);
 
     return res;
 }
 
-KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGroup, const QString &folderName, const QString &basePath, int *folderId)
+KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGroup, const PkString &folderName, const PkString &basePath, int *folderId)
 {
-//    qDebug() << "parseFolder: parent" << parentGroup->name()
-//                << "folderName" << folderName
-//                << "basepath" << basePath;
-
     int currentFolder=0;
 	if(folderId == 0)
 	{
 		folderId = &currentFolder;
 	}
-    QString pathName;
+    PkString pathName;
     if (!folderName.isEmpty()) {
         pathName = folderName + "/";
     }
@@ -94,7 +129,11 @@ KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGro
     KisNodeSP child = parentGroup->lastChild();
     while (child) {
         if (child->visible() && child->inherits("KisGroupLayer")) {
-            KisImportExportErrorCode res = parseFolder(dynamic_cast<KisGroupLayer*>(child.data()), child->name().split(" ").first(), basePath + "/" + pathName, folderId);
+            KisImportExportErrorCode res = parseFolder(
+                child.dynamicCast<KisGroupLayer>(),
+                firstWord(child->name()),
+                basePath + "/" + pathName,
+                folderId);
             if (!res.isOk()) {
                 return res;
             }
@@ -112,8 +151,8 @@ KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGro
 
     while (child) {
         if (child->visible() && !child->inherits("KisGroupLayer") && !child->inherits("KisMask")) {
-            QRectF rc = m_image->bounds().intersected(child->exactBounds());
-            QString layerBaseName = child->name().split(" ").first();
+            PkRect rc = m_image->bounds().intersected(child->exactBounds());
+            PkString layerBaseName = firstWord(child->name());
             SpriterFile file;
             file.id = fileId++;
             file.pathName = pathName;
@@ -130,7 +169,6 @@ KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGro
             file.height = ymax - ymin;
             file.x = xmin;
             file.y = ymin;
-            //qDebug() << "Created file" << file.id << file.name << file.pathName << file.baseName << file.width << file.height << file.layerName;
             KisImportExportErrorCode result = savePaintDevice(child->projection(), basePath + file.name);
             if (result.isOk()) {
                 folder.files.append(file);
@@ -143,7 +181,6 @@ KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGro
     }
 
     if (folder.files.size() > 0) {
-        //qDebug() << "Adding folder" << folder.id << folder.name << folder.groupName << folder.files.length();
         m_folders.append(folder);
         (*folderId)++;
     }
@@ -153,15 +190,14 @@ KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGro
 
 Bone *KisSpriterExport::parseBone(const Bone *parent, KisGroupLayerSP groupLayer)
 {
-    static int boneId = 0;
-    QString groupBaseName = groupLayer->name().split(" ").first();
+    PkString groupBaseName = firstWord(groupLayer->name());
     Bone *bone = new Bone;
-    bone->id = boneId++;
+    bone->id = m_nextBoneId++;
     bone->parentBone = parent;
     bone->name = groupBaseName;
 
     if (m_boneLayer) {
-        QRectF rc = m_image->bounds().intersected(m_boneLayer->exactBounds());
+        PkRect rc = m_image->bounds().intersected(m_boneLayer->exactBounds());
 
         qreal xmin = rc.left();
         qreal ymin = rc.top();
@@ -196,12 +232,11 @@ Bone *KisSpriterExport::parseBone(const Bone *parent, KisGroupLayerSP groupLayer
     KisNodeSP child = groupLayer->lastChild();
     while (child) {
         if (child->visible() && child->inherits("KisGroupLayer")) {
-            bone->bones.append(parseBone(bone, dynamic_cast<KisGroupLayer*>(child.data())));
+            bone->bones.append(parseBone(bone, child.dynamicCast<KisGroupLayer>()));
         }
         child = child->prevSibling();
     }
 
-    //qDebug() << "Created bone" << bone->id << "with" << bone->bones.size() << "bones";
     return bone;
 }
 
@@ -213,31 +248,31 @@ void copyBone(Bone *startBone)
     startBone->fixLocalScaleX= startBone->localScaleX;
     startBone->fixLocalScaleY= startBone->localScaleY;
 
-    Q_FOREACH(Bone *child, startBone->bones) {
+    for (Bone *child : startBone->bones) {
         copyBone(child);
     }
 }
 
 void KisSpriterExport::fixBone(Bone *bone)
 {
-    qreal boneLocalAngle = 0;
-    qreal boneLocalScaleX = 1;
+    double boneLocalAngle = 0;
+    double boneLocalScaleX = 1;
 
     if (bone->bones.length() >= 1) {
         // if a bone has one or more children, point at first child
         Bone *childBone = bone->bones[0];
-        qreal dx = childBone->x - bone->x;
-        qreal dy = childBone->y - bone->y;
-        if (qAbs(dx) > 0 || qAbs(dy) > 0) {
+        double dx = childBone->x - bone->x;
+        double dy = childBone->y - bone->y;
+        if (std::abs(dx) > 0 || std::abs(dy) > 0) {
             boneLocalAngle = KisFastMath::atan2(dy, dx);
             boneLocalScaleX = sqrt(dx * dx + dy * dy) / 200;
         }
     }
     else if (bone->parentBone) {
         // else, if bone has parent, point away from parent
-        qreal dx = bone->x - bone->parentBone->x;
-        qreal dy = bone->y - bone->parentBone->y;
-        if (qAbs(dx) > 0 || qAbs(dy) > 0) {
+        double dx = bone->x - bone->parentBone->x;
+        double dy = bone->y - bone->parentBone->y;
+        if (std::abs(dx) > 0 || std::abs(dy) > 0) {
             boneLocalAngle = KisFastMath::atan2(dy, dx);
             boneLocalScaleX = sqrt(dx * dx + dy * dy) / 200;
         }
@@ -250,8 +285,8 @@ void KisSpriterExport::fixBone(Bone *bone)
     for (int i = 0; i < bone->bones.length(); ++i) {
         Bone *childBone = bone->bones[i];
 
-        qreal tx = childBone->fixLocalX;
-        qreal ty = childBone->fixLocalY;
+        double tx = childBone->fixLocalX;
+        double ty = childBone->fixLocalY;
 
         childBone->fixLocalX = tx * cos(-boneLocalAngle) - ty * sin(-boneLocalAngle);
         childBone->fixLocalY = tx * sin(-boneLocalAngle) + ty * cos(-boneLocalAngle);
@@ -275,183 +310,14 @@ void KisSpriterExport::fixBone(Bone *bone)
     }
 }
 
-void KisSpriterExport::writeBoneRef(const Bone *bone, QDomElement &key, QDomDocument &scml)
-{
-    if (!bone) return;
-    QDomElement boneRef = scml.createElement("bone_ref");
-    key.appendChild(boneRef);
-    boneRef.setAttribute("id", bone->id);
-    if (bone->parentBone) {
-        boneRef.setAttribute("parent", bone->parentBone->id);
-    }
-    boneRef.setAttribute("timeline", m_timelineid++);
-    boneRef.setAttribute("key", "0");
-    Q_FOREACH(const Bone *childBone, bone->bones) {
-        writeBoneRef(childBone, key, scml);
-    }
-}
-
-void KisSpriterExport::writeBone(const Bone *bone, QDomElement &animation, QDomDocument &scml)
-{
-    if (!bone) return;
-    QDomElement timeline = scml.createElement("timeline");
-    animation.appendChild(timeline);
-    timeline.setAttribute("id", m_timelineid);
-    timeline.setAttribute("name", bone->name);
-    timeline.setAttribute("object_type", "bone");
-
-    QDomElement key = scml.createElement("key");
-    timeline.appendChild(key);
-    key.setAttribute("id", "0");
-    key.setAttribute("spin", 0);
-
-    QDomElement boneEl = scml.createElement("bone");
-    key.appendChild(boneEl);
-    boneEl.setAttribute("x", QString::number(bone->fixLocalX, 'f', 2));
-    boneEl.setAttribute("y", QString::number(bone->fixLocalY, 'f', 2));
-    boneEl.setAttribute("angle", QString::number(bone->fixLocalAngle, 'f', 2));
-    boneEl.setAttribute("scale_x", QString::number(bone->fixLocalScaleX, 'f', 2));
-    boneEl.setAttribute("scale_y", QString::number(bone->fixLocalScaleY, 'f', 2));
-
-    m_timelineid++;
-
-    Q_FOREACH(const Bone *childBone, bone->bones) {
-        writeBone(childBone, animation, scml);
-    }
-}
-
-void KisSpriterExport::fillScml(QDomDocument &scml, const QString &entityName)
-{
-    //qDebug() << "Creating scml" << entityName;
-
-    QDomElement root = scml.createElement("spriter_data");
-    scml.appendChild(root);
-    root.setAttribute("scml_version", 1);
-    root.setAttribute("generator", "krita");
-    root.setAttribute("generator_version", QCoreApplication::applicationVersion());
-
-    Q_FOREACH(const Folder &folder, m_folders) {
-        QDomElement fe = scml.createElement("folder");
-        root.appendChild(fe);
-        fe.setAttribute("id", folder.id);
-        fe.setAttribute("name", folder.name);
-        Q_FOREACH(const SpriterFile &file, folder.files) {
-            QDomElement fileElement = scml.createElement("file");
-            fe.appendChild(fileElement);
-            fileElement.setAttribute("id", file.id);
-            fileElement.setAttribute("name", file.name);
-            fileElement.setAttribute("width", QString::number(file.width, 'f', 2));
-            fileElement.setAttribute("height", QString::number(file.height, 'f', 2));
-            // qreal pivotX=0;
-            // qreal pivotY=1;
-            // Q_FOREACH(const SpriterObject &object, m_objects) {
-                // if(file.id == object.fileId)
-                // {
-                    // pivotX = (0.0 -(object.fixLocalX / file.width));
-                    // pivotY = (1.0 -(object.fixLocalY / file.height));
-                    // break;
-                // }
-            // }
-            // fileElement.setAttribute("pivot_x", QString::number(pivotX, 'f', 2));
-            // fileElement.setAttribute("pivot_y", QString::number(pivotY, 'f', 2));
-        }
-    }
-
-    // entity
-    QDomElement entity = scml.createElement("entity");
-    root.appendChild(entity);
-    entity.setAttribute("id", "0");
-    entity.setAttribute("name", entityName);
-
-    // entity/animation
-    QDomElement animation = scml.createElement("animation");
-    entity.appendChild(animation);
-    animation.setAttribute("id", "0");
-    animation.setAttribute("name", "default");
-    animation.setAttribute("length", "1000");
-    animation.setAttribute("looping", "false");
-
-    // entity/animation/mainline
-    QDomElement mainline = scml.createElement("mainline");
-    animation.appendChild(mainline);
-
-    QDomElement key = scml.createElement("key");
-    mainline.appendChild(key);
-    key.setAttribute("id", "0");
-
-    m_timelineid = 0;
-    writeBoneRef(m_rootBone, key, scml);
-
-    Q_FOREACH(const SpriterObject &object, m_objects) {
-        QDomElement oe = scml.createElement("object_ref");
-        key.appendChild(oe);
-        oe.setAttribute("id", object.id);
-        if (object.bone) {
-            oe.setAttribute("parent", object.bone->id);
-        }
-        oe.setAttribute("timeline", m_timelineid++);
-        oe.setAttribute("key", "0");
-        oe.setAttribute("z_index", object.id);
-    }
-
-    // entity/animation/timeline
-    m_timelineid = 0;
-    if (m_rootBone) {
-        writeBone(m_rootBone, animation, scml);
-    }
-
-    Q_FOREACH(const SpriterObject &object, m_objects) {
-        Folder folder;
-        Q_FOREACH(const Folder & f, m_folders) {
-            if (f.id == object.folderId) {
-                folder = f;
-                break;
-            }
-        }
-        SpriterFile file;
-        file.id = -1;
-        Q_FOREACH(const SpriterFile &f, folder.files) {
-            if (f.id == object.fileId) {
-                file = f;
-                break;
-            }
-        }
-        Q_ASSERT(file.id >= 0);
-
-        QString objectName = "object-" + file.baseName;
-
-        QDomElement timeline = scml.createElement("timeline");
-        animation.appendChild(timeline);
-        timeline.setAttribute("id", m_timelineid++);
-        timeline.setAttribute("name", objectName);
-
-        QDomElement key = scml.createElement("key");
-        timeline.appendChild(key);
-        key.setAttribute("id", "0");
-        key.setAttribute("spin", "0");
-
-        QDomElement objectEl = scml.createElement("object");
-        key.appendChild(objectEl);
-        objectEl.setAttribute("folder", object.folderId);
-        objectEl.setAttribute("file", object.fileId);
-        objectEl.setAttribute("x", object.fixLocalX);
-        objectEl.setAttribute("y", object.fixLocalY);
-        objectEl.setAttribute("angle", QString::number(kisRadiansToDegrees(object.fixLocalAngle), 'f', 2));
-        objectEl.setAttribute("scale_x", QString::number(object.fixLocalScaleX, 'f', 2));
-        objectEl.setAttribute("scale_y", QString::number(object.fixLocalScaleY, 'f', 2));
-    }
-}
-
-Bone *findBoneByName(Bone *startBone, const QString &name)
+Bone *findBoneByName(Bone *startBone, const PkString &name)
 {
     if (!startBone) return 0;
-    //qDebug() << "findBoneByName" << name << "starting with" << startBone->name;
 
     if (startBone->name == name) {
         return startBone;
     }
-    Q_FOREACH(Bone *child, startBone->bones) {
-        //qDebug() << "looking for" << name << "found" << child->name;
+    for (Bone *child : startBone->bones) {
         if (child->name == name) {
             return child;
         }
@@ -463,11 +329,27 @@ Bone *findBoneByName(Bone *startBone, const QString &name)
     return 0;
 }
 
-KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
-    QFileInfo fi(filename());
+    if (!document || !io) {
+        return ImportExportCodes::InternalError;
+    }
+
+    const std::filesystem::path outputPath = std::filesystem::u8path(filename().PkToUtf8());
+    std::error_code pathError;
+    const std::filesystem::path outputDirectory = spriterOutputDirectory(outputPath, pathError);
+    if (pathError || outputDirectory.empty()) {
+        return ImportExportCodes::CannotCreateFile;
+    }
 
     m_image = document->savingImage();
+    KIS_ASSERT_RECOVER_RETURN_VALUE(m_image, ImportExportCodes::InternalError);
+
+    delete m_rootBone;
+    m_rootBone = nullptr;
+    m_folders.clear();
+    m_objects.clear();
+    m_nextBoneId = 0;
 
     if (m_image->rootLayer()->childCount() == 0) {
         return ImportExportCodes::Failure;
@@ -475,13 +357,12 @@ KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, QIODev
 
     KisGroupLayerSP root = m_image->rootLayer();
 
-    m_boneLayer = dynamic_cast<KisLayer*>(KisLayerUtils::findNodeByName(root,"bone").data());
-    //qDebug() << "Found boneLayer" << m_boneLayer;
+    m_boneLayer = KisLayerUtils::findNodeByName(root,"bone").dynamicCast<KisLayer>();
 
-    m_rootLayer= dynamic_cast<KisGroupLayer*>(KisLayerUtils::findNodeByName(root,"root").data());
-    //qDebug() << "Fond rootLayer" << m_rootLayer;
+    m_rootLayer= KisLayerUtils::findNodeByName(root,"root").dynamicCast<KisGroupLayer>();
 
-    KisImportExportErrorCode result = parseFolder(m_image->rootLayer(), "", fi.absolutePath());
+    KisImportExportErrorCode result =
+        parseFolder(m_image->rootLayer(), "", pkPath(outputDirectory));
     if (!result.isOk()) {
         dbgFile << "There were errors encountered while using the spriter exporter.";
         return result;
@@ -506,12 +387,9 @@ KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, QIODev
             spriterObject.y = -file.y;
             Bone *bone = 0;
 
-            //qDebug() << "file layername" << file.layerName;
             // layer.name format: "base_name bone(bone_name) slot(slot_name)"
             if (file.layerName.contains("bone(")) {
-                int start = file.layerName.indexOf("bone(") + 5;
-                int end = file.layerName.indexOf(')', start);
-                QString boneName = file.layerName.mid(start, end - start);
+                PkString boneName = markerValue(file.layerName, "bone(");
                 bone = findBoneByName(m_rootBone, boneName);
             }
 
@@ -523,9 +401,7 @@ KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, QIODev
             // group.name format: "base_name bone(bone_name)"
             if (!bone && m_rootBone) {
                 if (folder.groupName.contains("bone(")) {
-                    int start = folder.groupName.indexOf("bone(") + 5;
-                    int end = folder.groupName.indexOf(')', start);
-                    QString boneName = folder.groupName.mid(start, end - start);
+                    PkString boneName = markerValue(folder.groupName, "bone(");
                     bone = findBoneByName(m_rootBone, boneName);
                 }
 
@@ -554,22 +430,16 @@ KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, QIODev
             spriterObject.localScaleX = 1.0;
             spriterObject.localScaleY = 1.0;
 
-            SpriterSlot *slot = 0;
+            PkSharedPointer<SpriterSlot> slot;
 
             // layer.name format: "base_name bone(bone_name) slot(slot_name)"
             if (file.layerName.contains("slot(")) {
-                int start = file.layerName.indexOf("slot(") + 5;
-                int end = file.layerName.indexOf(')', start);
-                slot = new SpriterSlot();
-                slot->name = file.layerName.mid(start, end - start);
+                slot = PkSharedPointer<SpriterSlot>(new SpriterSlot());
+                slot->name = markerValue(file.layerName, "slot(");
                 slot->defaultAttachmentFlag = file.layerName.contains("*");
             }
 
             spriterObject.slot = slot;
-
-//            qDebug() << "Created object" << spriterObject.id << spriterObject.folderId
-//                     << spriterObject.fileId << spriterObject.x << spriterObject.y
-//                     << spriterObject.localX << spriterObject.localY;
 
             m_objects.append(spriterObject);
         }
@@ -591,44 +461,34 @@ KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, QIODev
     }
 
     // Generate scml
-    QDomDocument scml;
-    fillScml(scml, fi.completeBaseName());
-
-    bool openedHere = false;
-    if (!io->isOpen()) {
-        openedHere = io->open(QIODevice::WriteOnly);
-        if (!openedHere) {
-            // unsuccessful open
-            return ImportExportCodes::NoAccessToWrite;
-        }
+    PkXmlDocument scml;
+    if (!buildSpriterScml(scml,
+                          KRITA_VERSION_STRING,
+                          PkString(outputPath.stem().u8string().c_str()),
+                          m_folders,
+                          m_rootBone,
+                          m_objects)) {
+        delete m_rootBone;
+        m_rootBone = nullptr;
+        return ImportExportCodes::InternalError;
     }
 
-    QString towrite = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    if (io->write(towrite.toUtf8()) != towrite.length()) {
-        return ImportExportCodes::ErrorWhileWriting;
-    }
-    towrite = scml.toString(4).toUtf8();
-    if (io->write(towrite.toUtf8()) != towrite.length()) {
-        return ImportExportCodes::ErrorWhileWriting;
-    }
+    const bool written = writeSpriterScml(io, scml);
 
     delete m_rootBone;
+    m_rootBone = nullptr;
 
-    if (openedHere) {
-        // FIXME: causes crash...
-        //io->close();
-    }
-
-    return ImportExportCodes::OK;
+    return written ? KisImportExportErrorCode(ImportExportCodes::OK)
+                   : KisImportExportErrorCode(ImportExportCodes::ErrorWhileWriting);
 }
 
 void KisSpriterExport::initializeCapabilities()
 {
     addCapability(KisExportCheckRegistry::instance()->get("MultiLayerCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::PARTIALLY));
-    QList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "Spriter");
 }
 

@@ -6,8 +6,8 @@ kis_add_test(
 
 add_executable(KisAnimatedBrushAnnotationTest
     KisAnimatedBrushAnnotationTest.cpp
-    ../KisAnimatedBrushAnnotation.cpp
+    ../animated_brush_annotation_data.cpp
 )
 target_include_directories(KisAnimatedBrushAnnotationTest PRIVATE ..)
-target_link_libraries(KisAnimatedBrushAnnotationTest PRIVATE kritalibbrush kritastore)
+target_link_libraries(KisAnimatedBrushAnnotationTest PRIVATE kritastore pkvariant)
 add_test(NAME KisAnimatedBrushAnnotationTest COMMAND KisAnimatedBrushAnnotationTest)

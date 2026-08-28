@@ -6,9 +6,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KisAnimatedBrushAnnotation.h"
-
-#include <PkAuxTypes.h>
-#include <PkMemoryStream.h>
+#include "animated_brush_annotation_data.h"
 
 #include <kis_pipebrush_parasite.h>
 
@@ -17,11 +15,6 @@ KisAnimatedBrushAnnotation::KisAnimatedBrushAnnotation(const KisPipeBrushParasit
                     PkString("Brush selection information for animated brushes"),
                     PkByteArray())
 {
-    PkMemoryStream buffer;
-    if (!buffer.open(PkStream::WriteOnly)) {
-        return;
-    }
-    if (parasite.saveToDevice(&buffer)) {
-        m_annotation = PkByteArray(buffer.data(), static_cast<int>(buffer.size()));
-    }
+    m_annotation = captureAnimatedBrushAnnotation(
+        [&parasite](PkStream *stream) { return parasite.saveToDevice(stream); });
 }

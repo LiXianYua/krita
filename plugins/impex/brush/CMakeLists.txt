@@ -3,6 +3,7 @@ add_subdirectory(tests)
 set(kritabrushexport_PART_SRCS
     kis_brush_export.cpp
     KisAnimatedBrushAnnotation.cpp
+    animated_brush_annotation_data.cpp
     )
 
 kis_add_library(kritabrushexport MODULE ${kritabrushexport_PART_SRCS})
@@ -14,6 +15,7 @@ install(TARGETS kritabrushexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 set(kritabrushimport_PART_SRCS
     kis_brush_import.cpp
     KisAnimatedBrushAnnotation.cpp
+    animated_brush_annotation_data.cpp
     )
 
 ki18n_wrap_ui(kritabrushimport_PART_SRCS )
