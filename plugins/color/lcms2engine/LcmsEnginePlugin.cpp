@@ -6,16 +6,9 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 #include "LcmsEnginePlugin.h"
+#include "LcmsProfileDiscovery.h"
 
 #include <PkStringList.h>
-
-#include <algorithm>
-#include <cctype>
-#include <cstdlib>
-#include <filesystem>
-#include <string>
-#include <system_error>
-#include <vector>
 
 #include <KoBasicHistogramProducers.h>
 #include <KoColorSpace.h>
@@ -69,84 +62,6 @@
 #include <lcms2_fast_float.h>
 #endif 
 
-namespace fs = std::filesystem;
-
-namespace
-{
-PkString stringFromPath(const fs::path &path)
-{
-    const std::string utf8 = path.generic_u8string();
-    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
-}
-
-fs::path pathFromString(const PkString &path)
-{
-    return fs::u8path(path.PkToUtf8());
-}
-
-PkString environmentPath(const char *name)
-{
-    const char *value = std::getenv(name);
-    return value ? PkString(value) : PkString();
-}
-
-PkString homePath()
-{
-#ifdef _WIN32
-    PkString value = environmentPath("USERPROFILE");
-    if (value.isEmpty()) {
-        value = environmentPath("HOMEPATH");
-    }
-#else
-    PkString value = environmentPath("HOME");
-#endif
-    if (!value.isEmpty()) {
-        return value;
-    }
-    std::error_code error;
-    return stringFromPath(fs::current_path(error));
-}
-
-bool isIccProfileFilename(const fs::path &path)
-{
-    const std::string extension = path.extension().generic_u8string();
-    return extension == ".icm" || extension == ".icc"
-        || extension == ".ICM" || extension == ".ICC";
-}
-
-std::string caseFoldedFilename(const fs::path &path)
-{
-    std::string result = path.filename().generic_u8string();
-    std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-    return result;
-}
-
-PkStringList profileEntries(const PkString &directory)
-{
-    std::vector<fs::path> paths;
-    std::error_code error;
-    for (fs::directory_iterator it(pathFromString(directory), error), end;
-         !error && it != end;
-         it.increment(error)) {
-        std::error_code fileError;
-        if (it->is_regular_file(fileError) && !fileError && isIccProfileFilename(it->path())) {
-            paths.push_back(it->path());
-        }
-    }
-    std::sort(paths.begin(), paths.end(), [](const fs::path &lhs, const fs::path &rhs) {
-        return caseFoldedFilename(lhs) < caseFoldedFilename(rhs);
-    });
-
-    PkStringList result;
-    for (const fs::path &path : paths) {
-        result.append(stringFromPath(path.filename()));
-    }
-    return result;
-}
-} // namespace
-
 void lcms2LogErrorHandlerFunction(cmsContext /*ContextID*/, cmsUInt32Number ErrorCode, const char *Text)
 {
     errorPigment << "Lcms2 error: " << ErrorCode << Text;
@@ -180,26 +95,21 @@ void registerLcmsEngine()
     PkStringList iccProfileDirs;
 
 #ifdef __APPLE__
-    iccProfileDirs.append(homePath() + "/Library/ColorSync/Profiles/");
+    iccProfileDirs.append(LcmsProfileDiscovery::homePath() + "/Library/ColorSync/Profiles/");
     iccProfileDirs.append("/System/Library/ColorSync/Profiles/");
     iccProfileDirs.append("/Library/ColorSync/Profiles/");
 #endif
 #ifdef _WIN32
-    PkString winPath = environmentPath("windir");
+    PkString winPath = LcmsProfileDiscovery::environmentPath("windir");
     iccProfileDirs.append(winPath + "/System32/Spool/Drivers/Color/");
 
 #endif
 #ifdef __linux__
-    iccProfileDirs.append(homePath() + "./share/color/icc");
+    iccProfileDirs.append(LcmsProfileDiscovery::homePath() + "./share/color/icc");
 #endif
 
-    PkStringList blackList = PkStringList() << "panhexro.icm"
-                                          << "ctpctdmed.icc";
-
-
     for (const PkString &iccProfiledir : iccProfileDirs) {
-        for (const PkString &entry : profileEntries(iccProfiledir)) {
-            if (blackList.contains(entry.toLower())) continue;
+        for (const PkString &entry : LcmsProfileDiscovery::profileEntries(iccProfiledir)) {
             profileFilenames << iccProfiledir + "/" + entry;
         }
     }

@@ -10,13 +10,12 @@
 */
 
 #include "LcmsColorProfileContainer.h"
+#include "LcmsStringUtils.h"
 
 #include <PkTransform.h>
 #include <array>
 #include <cfloat>
 #include <cmath>
-#include <cstdint>
-#include <string>
 
 #include <DebugPigment.h>
 
@@ -27,51 +26,6 @@
 #include <lcms2.h>
 
 namespace {
-void appendUtf8CodePoint(std::string &output, std::uint32_t codePoint)
-{
-    if (codePoint <= 0x7f) {
-        output.push_back(static_cast<char>(codePoint));
-    } else if (codePoint <= 0x7ff) {
-        output.push_back(static_cast<char>(0xc0 | (codePoint >> 6)));
-        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
-    } else if (codePoint <= 0xffff) {
-        output.push_back(static_cast<char>(0xe0 | (codePoint >> 12)));
-        output.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3f)));
-        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
-    } else {
-        output.push_back(static_cast<char>(0xf0 | (codePoint >> 18)));
-        output.push_back(static_cast<char>(0x80 | ((codePoint >> 12) & 0x3f)));
-        output.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3f)));
-        output.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
-    }
-}
-
-PkString fromWideString(const wchar_t *text)
-{
-    std::string utf8;
-    for (std::size_t i = 0; text[i] != 0; ++i) {
-        std::uint32_t codePoint = static_cast<std::uint32_t>(text[i]);
-        if constexpr (sizeof(wchar_t) == 2) {
-            if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
-                const std::uint32_t low = static_cast<std::uint32_t>(text[i + 1]);
-                if (low >= 0xdc00 && low <= 0xdfff) {
-                    codePoint = 0x10000 + ((codePoint - 0xd800) << 10) + (low - 0xdc00);
-                    ++i;
-                } else {
-                    codePoint = 0xfffd;
-                }
-            } else if (codePoint >= 0xdc00 && codePoint <= 0xdfff) {
-                codePoint = 0xfffd;
-            }
-        }
-        if (codePoint > 0x10ffff) {
-            codePoint = 0xfffd;
-        }
-        appendUtf8CodePoint(utf8, codePoint);
-    }
-    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
-}
-
 struct ReverseCurveWrapper
 {
     ReverseCurveWrapper() : reverseCurve(0) {}
@@ -217,17 +171,17 @@ bool LcmsColorProfileContainer::init()
         d->colorSpaceSignature = cmsGetColorSpace(d->profile);
         d->deviceClass = cmsGetDeviceClass(d->profile);
         cmsGetProfileInfo(d->profile, cmsInfoDescription, cmsNoLanguage, cmsNoCountry, buffer, _BUFFER_SIZE_);
-        d->name = fromWideString(buffer);
+        d->name = LcmsStringUtils::fromWideString(buffer);
 
         //apparently this should give us a localised string??? Not sure about this.
         cmsGetProfileInfo(d->profile, cmsInfoModel, cmsNoLanguage, cmsNoCountry, buffer, _BUFFER_SIZE_);
-        d->productDescription = fromWideString(buffer);
+        d->productDescription = LcmsStringUtils::fromWideString(buffer);
 
         cmsGetProfileInfo(d->profile, cmsInfoManufacturer, cmsNoLanguage, cmsNoCountry, buffer, _BUFFER_SIZE_);
-        d->manufacturer = fromWideString(buffer);
+        d->manufacturer = LcmsStringUtils::fromWideString(buffer);
 
         cmsGetProfileInfo(d->profile, cmsInfoCopyright, cmsNoLanguage, cmsNoCountry, buffer, _BUFFER_SIZE_);
-        d->copyright = fromWideString(buffer);
+        d->copyright = LcmsStringUtils::fromWideString(buffer);
 
         cmsProfileClassSignature profile_class;
         profile_class = cmsGetDeviceClass(d->profile);
