@@ -7,7 +7,7 @@
 #ifndef _KRA_EXPORT_H_
 #define _KRA_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,12 +15,12 @@ class KraExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KraExport(QObject *parent, const QVariantList &);
+    KraExport(PkObject *parent, const PkVariantList &);
     ~KraExport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
     void initializeCapabilities() override;
-    QString verify(const QString &fileName) const override;
+    PkString verify(const PkString &fileName) const override;
     bool exportSupportsGuides() const override;
 };
 

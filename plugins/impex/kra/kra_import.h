@@ -7,7 +7,7 @@
 #ifndef KRA_IMPORT_H_
 #define KRA_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,10 +15,10 @@ class KraImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KraImport(QObject *parent, const QVariantList &);
+    KraImport(PkObject *parent, const PkVariantList &);
     ~KraImport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 };
 
 #endif

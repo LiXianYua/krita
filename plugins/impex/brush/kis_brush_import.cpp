@@ -6,11 +6,6 @@
 
 #include "kis_brush_import.h"
 
-#include <QCheckBox>
-#include <QBuffer>
-#include <QSlider>
-#include <QApplication>
-
 #include <kpluginfactory.h>
 
 #include <KoColorSpace.h>
@@ -33,7 +28,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisBrushImportFactory, "krita_brush_import.json", registerPlugin<KisBrushImport>();)
 
-KisBrushImport::KisBrushImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisBrushImport::KisBrushImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -42,15 +37,15 @@ KisBrushImport::~KisBrushImport()
 }
 
 
-KisImportExportErrorCode KisBrushImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode KisBrushImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP /*configuration*/)
 {
-    QSharedPointer<KisColorfulBrush> brush;
+    PkSharedPointer<KisColorfulBrush> brush;
 
     if (mimeType() == "image/x-gimp-brush") {
-        brush = toQShared(new KisGbrBrush(filename()));
+        brush = PkSharedPointer<KisColorfulBrush>(new KisGbrBrush(filename()));
     }
     else if (mimeType() == "image/x-gimp-brush-animated") {
-        brush = toQShared(new KisImagePipeBrush(filename()));
+        brush = PkSharedPointer<KisColorfulBrush>(new KisImagePipeBrush(filename()));
     }
     else {
         return ImportExportCodes::FileFormatIncorrect;
@@ -74,11 +69,9 @@ KisImportExportErrorCode KisBrushImport::convert(KisDocument *document, QIODevic
     }
 
     KisImageSP image = new KisImage(document->createUndoStore(), brush->width(), brush->height(), colorSpace, brush->name());
-    image->setProperty("brushspacing", brush->spacing());
-
     KisImagePipeBrushSP pipeBrush = brush.dynamicCast<KisImagePipeBrush>();
     if (pipeBrush) {
-        QVector<KisGbrBrushSP> brushes = pipeBrush->brushes();
+        PkVector<KisGbrBrushSP> brushes = pipeBrush->brushes();
         for(int i = brushes.size(); i > 0; i--) {
             KisGbrBrushSP subbrush = brushes.at(i - 1);
             const KoColorSpace *subColorSpace = 0;

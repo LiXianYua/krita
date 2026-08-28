@@ -8,8 +8,6 @@
 
 
 #include <simpletest.h>
-#include <QCoreApplication>
-
 #include "filestest.h"
 
 #ifndef FILES_DATA_DIR
@@ -38,8 +36,4 @@ void KisBrushTest::testImportIncorrectFormat()
     TestUtil::testImportIncorrectFormat(BrushMimetype);
 }
 
-
-
 KISTEST_MAIN(KisBrushTest)
-
-

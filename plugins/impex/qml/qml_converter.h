@@ -7,26 +7,20 @@
 #ifndef _QML_CONVERTER_H_
 #define _QML_CONVERTER_H_
 
-#include <stdio.h>
-
-#include <QObject>
-
+#include <PkStream.h>
+#include <PkString.h>
+#include <PkVector.h>
 
 #include "kis_types.h"
 #include <KisImportExportErrorCode.h>
 
-class QMLConverter : public QObject
+class QMLConverter
 {
-    Q_OBJECT
 public:
-    QMLConverter();
-    ~QMLConverter() override;
-public:
-    KisImportExportErrorCode buildFile(const QString &filename, const QString &realFilename, QIODevice *io, KisImageSP image);
+    QMLConverter() = default;
+    ~QMLConverter() = default;
 
-private:
-    void writeString(QTextStream& out, int spacing, const QString& setting, const QString& value);
-    void writeInt(QTextStream& out, int spacing, const QString& setting, int value);
+    KisImportExportErrorCode buildFile(const PkString &filename, const PkString &realFilename, PkStream *io, KisImageSP image);
 };
 
 #endif

@@ -20,4 +20,3 @@ private Q_SLOTS:
 };
 
 #endif // _KIS_BRUSH_TEST_H_
-

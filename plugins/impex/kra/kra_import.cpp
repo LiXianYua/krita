@@ -15,7 +15,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_kra_import.json", registerPlugin<KraImport>();)
 
-KraImport::KraImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KraImport::KraImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -23,7 +23,7 @@ KraImport::~KraImport()
 {
 }
 
-KisImportExportErrorCode KraImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode KraImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     KraConverter kraConverter(document);
     KisImportExportErrorCode result = kraConverter.buildImage(io);
@@ -45,4 +45,3 @@ KisImportExportErrorCode KraImport::convert(KisDocument *document, QIODevice *io
 }
 
 #include <kra_import.moc>
-

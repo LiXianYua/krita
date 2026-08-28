@@ -7,7 +7,7 @@
 #ifndef _KIS_Brush_IMPORT_H_
 #define _KIS_Brush_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,10 +15,10 @@ class KisBrushImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisBrushImport(QObject *parent, const QVariantList &);
+    KisBrushImport(PkObject *parent, const PkVariantList &);
     ~KisBrushImport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 };
 
 #endif

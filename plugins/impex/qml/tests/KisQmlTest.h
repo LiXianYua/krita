@@ -18,4 +18,3 @@ private Q_SLOTS:
 };
 
 #endif // _KIS_QML_TEST_H_
-

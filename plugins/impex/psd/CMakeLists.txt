@@ -20,7 +20,7 @@ set(kritapsdimport_SOURCES
 
 kis_add_library(kritapsdimport MODULE ${kritapsdimport_SOURCES})
 
-target_link_libraries(kritapsdimport kritapsd_static kritaglobal kritaimpex KF${KF_MAJOR}::I18n)
+target_link_libraries(kritapsdimport kritapsd_static kritaglobal kritaimpex)
 
 install(TARGETS kritapsdimport DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

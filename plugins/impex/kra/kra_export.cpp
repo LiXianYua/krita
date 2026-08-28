@@ -6,11 +6,7 @@
 
 #include "kra_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-
 #include <kpluginfactory.h>
-#include <QApplication>
 
 #include <KisImportExportManager.h>
 #include <KoColorModelStandardIds.h>
@@ -31,7 +27,7 @@ class KisExternalLayer;
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_kra_export.json", registerPlugin<KraExport>();)
 
-KraExport::KraExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KraExport::KraExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -39,7 +35,7 @@ KraExport::~KraExport()
 {
 }
 
-KisImportExportErrorCode KraExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode KraExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     KisImageSP image = document->savingImage();
     KIS_ASSERT_RECOVER_RETURN_VALUE(image, ImportExportCodes::InternalError);
@@ -54,18 +50,18 @@ void KraExport::initializeCapabilities()
 {
     // Kra supports everything, by definition
     KisExportCheckFactory *factory = 0;
-    Q_FOREACH(const QString &id, KisExportCheckRegistry::instance()->keys()) {
+    for (const PkString &id : KisExportCheckRegistry::instance()->keys()) {
         factory = KisExportCheckRegistry::instance()->get(id);
         addCapability(factory->create(KisExportCheckBase::SUPPORTED));
     }
 }
 
-QString KraExport::verify(const QString &fileName) const
+PkString KraExport::verify(const PkString &fileName) const
 {
-    QString error = KisImportExportFilter::verify(fileName);
+    PkString error = KisImportExportFilter::verify(fileName);
     if (error.isEmpty()) {
         return KisImportExportFilter::verifyZiPBasedFiles(fileName,
-                                                          QStringList()
+                                                          PkStringList()
                                                           << "mimetype"
                                                           << "documentinfo.xml"
                                                           << "maindoc.xml"
@@ -80,4 +76,3 @@ bool KraExport::exportSupportsGuides() const {
 
 
 #include <kra_export.moc>
-

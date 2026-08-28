@@ -6,11 +6,7 @@
 
 #include "qml_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-
 #include <kpluginfactory.h>
-#include <QApplication>
 
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportBackend.h>
@@ -21,7 +17,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_qml_export.json", registerPlugin<QMLExport>();)
 
-QMLExport::QMLExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+QMLExport::QMLExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -29,10 +25,10 @@ QMLExport::~QMLExport()
 {
 }
 
-KisImportExportErrorCode QMLExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode QMLExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     KisImageSP image = kisImportExportSavingImage(document);
-    Q_CHECK_PTR(image);
+    KIS_ASSERT_RECOVER_RETURN_VALUE(image, ImportExportCodes::InternalError);
 
     QMLConverter converter;
     return converter.buildFile(filename(), realFilename(), io, image);
@@ -43,12 +39,12 @@ void QMLExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("MultiLayerCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::SUPPORTED));
 
-    QList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "QML");
-    }
+}
 
 
 

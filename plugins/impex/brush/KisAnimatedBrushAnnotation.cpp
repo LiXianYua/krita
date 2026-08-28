@@ -7,18 +7,21 @@
  */
 #include "KisAnimatedBrushAnnotation.h"
 
-#include <QByteArray>
-#include <QBuffer>
+#include <PkAuxTypes.h>
+#include <PkMemoryStream.h>
 
 #include <kis_pipebrush_parasite.h>
 
 KisAnimatedBrushAnnotation::KisAnimatedBrushAnnotation(const KisPipeBrushParasite &parasite)
-    : KisAnnotation("ImagePipe Parasite",
-                    i18n("Brush selection information for animated brushes"),
-                    QByteArray())
+    : KisAnnotation(PkString("ImagePipe Parasite"),
+                    PkString("Brush selection information for animated brushes"),
+                    PkByteArray())
 {
-    QBuffer buf(&m_annotation);
-    buf.open(QBuffer::WriteOnly);
-    parasite.saveToDevice(&buf);
-    buf.close();
+    PkMemoryStream buffer;
+    if (!buffer.open(PkStream::WriteOnly)) {
+        return;
+    }
+    if (parasite.saveToDevice(&buffer)) {
+        m_annotation = PkByteArray(buffer.data(), static_cast<int>(buffer.size()));
+    }
 }

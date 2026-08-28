@@ -16,7 +16,7 @@ class KisAnimatedBrushAnnotation : public KisAnnotation
 {
 public:
     KisAnimatedBrushAnnotation(const KisPipeBrushParasite &parasite);
-    KisAnnotation* clone() const Q_DECL_OVERRIDE {
+    KisAnnotation* clone() const override {
         return new KisAnimatedBrushAnnotation(*this);
     }
 };

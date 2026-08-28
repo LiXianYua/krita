@@ -6,9 +6,7 @@
 
 #include "KisQmlTest.h"
 
-
 #include <simpletest.h>
-#include <QCoreApplication>
 
 #include "filestest.h"
 
@@ -25,7 +23,4 @@ void KisQmlTest::testExportToReadonly()
     TestUtil::testExportToReadonly(QmlMimetype);
 }
 
-
 KISTEST_MAIN(KisQmlTest)
-
-

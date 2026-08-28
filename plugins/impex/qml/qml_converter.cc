@@ -5,82 +5,71 @@
  */
 
 #include "qml_converter.h"
+#include "qml_format.h"
 
-#include <QFileInfo>
-#include <QDir>
+#include <filesystem>
+#include <system_error>
+#include <vector>
 
 #include <kis_image.h>
 #include <kis_group_layer.h>
-#include <KisPortingUtils.h>
+#include <KisPngCodec.h>
+#include <PkStringList.h>
 
-#define SPACE "    "
-
-QMLConverter::QMLConverter()
+KisImportExportErrorCode QMLConverter::buildFile(const PkString &filename, const PkString &realFilename, PkStream *io, KisImageSP image)
 {
-}
+    if (!io || !image) {
+        return ImportExportCodes::InternalError;
+    }
 
-QMLConverter::~QMLConverter()
-{
-}
+    const PkString effectiveRealFilename = realFilename.isEmpty() ? filename : realFilename;
+    const std::filesystem::path realPath = std::filesystem::u8path(effectiveRealFilename.PkToUtf8());
+    const std::string imageDirectoryName = realPath.stem().u8string() + "_images";
+    const std::filesystem::path imagePath = realPath.parent_path() / imageDirectoryName;
 
-KisImportExportErrorCode QMLConverter::buildFile(const QString &filename, const QString &realFilename, QIODevice *io, KisImageSP image)
-{
-    QTextStream out(io);
-    KisPortingUtils::setUtf8OnStream(out);
-    out << "import QtQuick 1.1" << "\n\n";
-    out << "Rectangle {\n";
-    writeInt(out, 1, "width", image->width());
-    writeInt(out, 1, "height", image->height());
-    out << "\n";
-
-    QFileInfo info(filename);
-    QFileInfo infoRealFile(realFilename);
     KisNodeSP node = image->rootLayer()->firstChild();
-    QString imageDir = infoRealFile.completeBaseName() + "_images";
-    QString imagePath = infoRealFile.absolutePath() + '/' + imageDir;
     if (node) {
-        QDir dir;
-        bool success = dir.mkpath(imagePath);
-        if (!success)
-        {
+        std::error_code error;
+        std::filesystem::create_directories(imagePath, error);
+        if (error) {
             return ImportExportCodes::CannotCreateFile;
         }
     }
 
-    dbgFile << "Saving images to " << imagePath;
+    std::vector<QmlLayerRecord> layers;
     while(node) {
         KisPaintDeviceSP projection = node->projection();
-        QRect rect = projection->exactBounds();
-        QImage qmlImage = projection->convertToQImage(0, rect.x(), rect.y(), rect.width(), rect.height());
-        QString name = node->name().replace(' ', '_').toLower();
-        QString fileName = name + ".png";
-        qmlImage.save(imagePath +'/'+ fileName);
+        PkRect rect = projection->exactBounds();
+        const PkString name = pkStringReplaceAll(node->name().toLower(), " ", "_", PkCaseSensitive);
+        const std::string fileName = name.PkToUtf8() + ".png";
+        const std::filesystem::path filePath = imagePath / fileName;
 
-        out << SPACE << "Image {\n";
-        writeString(out, 2, "id", name);
-        writeInt(out, 2, "x", rect.x());
-        writeInt(out, 2, "y", rect.y());
-        writeInt(out, 2, "width", rect.width());
-        writeInt(out, 2, "height", rect.height());
-        writeString(out, 2, "source", "\"" + imageDir + '/' + fileName + "\"" );
-        writeString(out, 2, "opacity", QString().setNum(node->opacity()/255.0));
-        out << SPACE << "}\n";
+        KisPNGOptions options;
+        PkVector<KisAnnotationSP> annotations;
+        KisPngCodec png;
+        const KisImportExportErrorCode pngResult =
+            png.buildFile(PkString(filePath.u8string().c_str()),
+                          rect,
+                          image->xRes(),
+                          image->yRes(),
+                          projection,
+                          annotations.begin(),
+                          annotations.end(),
+                          options,
+                          nullptr);
+        if (!pngResult.isOk()) {
+            return pngResult;
+        }
+
+        layers.push_back({name,
+                          rect,
+                          PkString((std::filesystem::path(imageDirectoryName) / fileName)
+                                       .generic_string().c_str()),
+                          node->opacity() / 255.0});
         node = node->nextSibling();
     }
-    out << "}\n";
 
-    return ImportExportCodes::OK;
+    return writeQmlDocument(io, image->width(), image->height(), layers)
+        ? KisImportExportErrorCode(ImportExportCodes::OK)
+        : KisImportExportErrorCode(ImportExportCodes::ErrorWhileWriting);
 }
-
-void QMLConverter::writeString(QTextStream&  out, int spacing, const QString& setting, const QString& value) {
-    for (int space = 0; space < spacing; space++) {
-        out << SPACE;
-    }
-    out << setting << ": " << value << "\n";
-}
-
-void QMLConverter::writeInt(QTextStream&  out, int spacing, const QString& setting, int value) {
-    writeString(out, spacing, setting, QString::number(value));
-}
-
-

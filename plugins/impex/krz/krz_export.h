@@ -7,7 +7,7 @@
 #ifndef _KRZ_EXPORT_H_
 #define _KRZ_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,12 +15,12 @@ class KrzExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KrzExport(QObject *parent, const QVariantList &);
+    KrzExport(PkObject *parent, const PkVariantList &);
     ~KrzExport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
     void initializeCapabilities() override;
-    QString verify(const QString &fileName) const override;
+    PkString verify(const PkString &fileName) const override;
 };
 
 #endif
