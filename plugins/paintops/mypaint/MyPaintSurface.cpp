@@ -9,14 +9,13 @@
 #include <KoColorConversions.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceMaths.h>
-#include <QtMath>
+#include <cmath>
 #include <kis_algebra_2d.h>
 #include <kis_cross_device_color_sampler.h>
 #include <kis_image.h>
 #include <kis_node.h>
 #include <kis_sequential_iterator.h>
 #include <kis_selection.h>
-#include <qmath.h>
 #include <KoCompositeOpRegistry.h>
 #include <KoMixColorsOp.h>
 
@@ -144,11 +143,11 @@ int KisMyPaintSurface::drawDabImpl(MyPaintSurface *self, float x, float y, float
     normal_mode = opaque * (1.0f - colorize);
     colorize = opaque * colorize;
 
-    const QPoint pt = QPoint(x - radius - 1, y - radius - 1);
-    const QSize sz = QSize(2 * (radius+1), 2 * (radius+1));
+    const PkPoint pt = PkPoint(x - radius - 1, y - radius - 1);
+    const PkSize sz = PkSize(2 * (radius+1), 2 * (radius+1));
 
-    const QRect dabRectAligned = QRect(pt, sz);
-    const QPointF center = QPointF(x, y);
+    const PkRect dabRectAligned = PkRect(pt, sz);
+    const PkPointF center = PkPointF(x, y);
 
     KisAlgebra2D::OuterCircle outer(center, radius);
     m_precisePainterWrapper.readRects(m_tempPainter->calculateAllMirroredRects(dabRectAligned));
@@ -176,7 +175,7 @@ int KisMyPaintSurface::drawDabImpl(MyPaintSurface *self, float x, float y, float
         // first initialize to 0;
         *maskPointer = 0;
 
-        QPoint pt(it.x(), it.y());
+        PkPoint pt(it.x(), it.y());
 
         if(outer.fadeSq(pt) > 1.0f) {
             maskPointer++;
@@ -269,7 +268,7 @@ int KisMyPaintSurface::drawDabImpl(MyPaintSurface *self, float x, float y, float
 
     m_tempPainter->bitBltWithFixedSelection(dabRectAligned.x(), dabRectAligned.y(), m_dab, m_maskDevice, dabRectAligned.x(), dabRectAligned.y(), dabRectAligned.x(), dabRectAligned.y(), dabRectAligned.width(), dabRectAligned.height());
     m_tempPainter->renderMirrorMask(dabRectAligned, m_dab, dabRectAligned.x(), dabRectAligned.y(), m_maskDevice);
-    const QVector<QRect> dirtyRects = m_tempPainter->takeDirtyRegion();
+    const PkVector<PkRect> dirtyRects = m_tempPainter->takeDirtyRegion();
     m_precisePainterWrapper.writeRects(dirtyRects);
     painter()->addDirtyRects(dirtyRects);
     return 1;
@@ -287,12 +286,12 @@ void KisMyPaintSurface::getColorImpl(MyPaintSurface *self, float x, float y, flo
     *color_b = 0.0f;
     *color_a = 0.0f;
 
-    const QPoint pt = QPoint(x - radius, y - radius);
-    const QSize sz = QSize(2 * radius, 2 * radius);
+    const PkPoint pt = PkPoint(x - radius, y - radius);
+    const PkSize sz = PkSize(2 * radius, 2 * radius);
 
 
-    const QRect dabRectAligned = QRect(pt, sz);
-    const QPointF center = QPointF(x, y);
+    const PkRect dabRectAligned = PkRect(pt, sz);
+    const PkPointF center = PkPointF(x, y);
     KisAlgebra2D::OuterCircle outer(center, radius);
 
     const float one_over_radius2 = 1.0f / (radius * radius);
@@ -314,7 +313,7 @@ void KisMyPaintSurface::getColorImpl(MyPaintSurface *self, float x, float y, flo
     }
 
     KisSequentialIterator it(activeDev, dabRectAligned);
-    QVector<float> surface_color_vec = {0,0,0,0};
+    PkVector<float> surface_color_vec = {0,0,0,0};
     float unitValue = KoColorSpaceMathsTraits<channelType>::unitValue;
     float maxValue = KoColorSpaceMathsTraits<channelType>::max;
 
@@ -330,7 +329,7 @@ void KisMyPaintSurface::getColorImpl(MyPaintSurface *self, float x, float y, flo
 
     while(it.nextPixel()) {
 
-        QPointF pt(it.x(), it.y());
+        PkPointF pt(it.x(), it.y());
 
         float rr = 0.0;
         if(outer.fadeSq(pt) <= 1.0) {

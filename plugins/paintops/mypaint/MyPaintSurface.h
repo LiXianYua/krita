@@ -7,8 +7,6 @@
 #ifndef KIS_MYPAINT_SURFACE_H
 #define KIS_MYPAINT_SURFACE_H
 
-#include <QObject>
-
 #include <kis_paint_device.h>
 #include <kis_fixed_paint_device.h>
 #include <kis_painter.h>
@@ -18,6 +16,7 @@
 #include <kis_marker_painter.h>
 #include <kis_sequential_iterator.h>
 #include <KisOverlayPaintDeviceWrapper.h>
+#include <PkScopedPointer.h>
 
 #include <libmypaint/mypaint-brush.h>
 #include <libmypaint/mypaint-surface.h>
@@ -83,8 +82,8 @@ private:
     KisImageSP m_image;
     KisOverlayPaintDeviceWrapper m_precisePainterWrapper;
     KisPaintDeviceSP m_dab;
-    QScopedPointer<KisPainter> m_tempPainter;
-    QScopedPointer<KisPainter> m_backgroundPainter;
+    PkScopedPointer<KisPainter> m_tempPainter;
+    PkScopedPointer<KisPainter> m_backgroundPainter;
     KisFixedPaintDeviceSP m_blendDevice;
     KisFixedPaintDeviceSP m_maskDevice;
 

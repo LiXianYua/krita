@@ -16,8 +16,7 @@
 #include <kis_algebra_2d.h>
 #include <kis_properties_configuration.h>
 #include <MyPaintCurveRangeModel.h>
-#include <QJsonDocument>
-#include <QJsonObject>
+#include "MyPaintJson.h"
 
 namespace detail {
 
@@ -49,7 +48,7 @@ inline std::vector<SensorData*> sensors(Data *data)
 MyPaintSensorDataWithRange::MyPaintSensorDataWithRange(const KoID &id)
     : KisSensorData(id)
 {
-    QList<QPointF> points;
+    PkList<PkPointF> points;
 
     if (id == MyPaintPressureId) {
         points = {{0,0}, {1,1}};
@@ -79,12 +78,12 @@ MyPaintSensorDataWithRange::MyPaintSensorDataWithRange(const KoID &id)
     reshapeCurve();
 }
 
-QRectF MyPaintSensorDataWithRange::baseCurveRange() const
+PkRectF MyPaintSensorDataWithRange::baseCurveRange() const
 {
     return curveRange;
 }
 
-void MyPaintSensorDataWithRange::setBaseCurveRange(const QRectF &rect)
+void MyPaintSensorDataWithRange::setBaseCurveRange(const PkRectF &rect)
 {
     curveRange = rect;
 }
@@ -175,9 +174,9 @@ MyPaintBrushInput sensorIdToMyPaintBrushInput(const KoID &id)
     return result;
 }
 
-QString sensorIdToMyPaintBrushInputJsonKey(const KoID &id)
+PkString sensorIdToMyPaintBrushInputJsonKey(const KoID &id)
 {
-    QString result = "pressure";
+    PkString result = "pressure";
 
     if (id == MyPaintPressureId) {
         result = "pressure";
@@ -309,7 +308,7 @@ MyPaintBrushSetting optionIdToMyPaintBrushSettings(const KoID &id) {
 
 bool MyPaintSensorPack::read(KisCurveOptionDataCommon &data, const KisPropertiesConfiguration *setting) const
 {
-    data.isChecked = !data.isCheckable || setting->getBool("Pressure" + data.id.id(), false);
+    data.isChecked = !data.isCheckable || setting->getBool(PkString("Pressure") + data.id.id(), false);
 
     std::vector<KisSensorData *> sensors = data.sensors();
 
@@ -318,17 +317,18 @@ bool MyPaintSensorPack::read(KisCurveOptionDataCommon &data, const KisProperties
         brush(mypaint_brush_new(), &mypaint_brush_unref);
 
     const MyPaintBrushSetting brushSetting = optionIdToMyPaintBrushSettings(data.id);
-    mypaint_brush_from_string(brush.get(), setting->getProperty(MYPAINT_JSON).toByteArray());
+    const PkByteArray json = setting->getProperty(MYPAINT_JSON).toByteArray();
+    mypaint_brush_from_string(brush.get(), json.constData());
 
     for (auto it = sensors.begin(); it != sensors.end(); ++it) {
         const MyPaintBrushInput input = sensorIdToMyPaintBrushInput((*it)->id);
         const int numPoints = mypaint_brush_get_mapping_n(brush.get(), brushSetting, input);
 
-        QList<QPointF> points;
+        PkList<PkPointF> points;
         for(int i = 0; i < numPoints; i++) {
             float x, y;
             mypaint_brush_get_mapping_point(brush.get(), brushSetting, input, i, &x, &y);
-            points << QPointF(qreal(x), qreal(y));
+            points << PkPointF(qreal(x), qreal(y));
         }
 
         if (points.size() > 1) {
@@ -362,52 +362,37 @@ bool MyPaintSensorPack::read(KisCurveOptionDataCommon &data, const KisProperties
 
 void MyPaintSensorPack::write(const KisCurveOptionDataCommon &data, KisPropertiesConfiguration *setting) const
 {
-    setting->setProperty("Pressure" + data.id.id(), data.isChecked || !data.isCheckable);
-
-    QVector<const KisSensorData*> activeSensors;
-    Q_FOREACH(const KisSensorData *sensor, data.sensors()) {
-        if (sensor->isActive) {
-            activeSensors.append(sensor);
-        }
-    }
-
-    QJsonDocument doc = QJsonDocument::fromJson(setting->getProperty(MYPAINT_JSON).toByteArray());
-
-    QJsonObject brush_json = doc.object();
-    QVariantMap map = brush_json.toVariantMap();
-    QVariantMap settings_map = map["settings"].toMap();
-    QVariantMap name_map = settings_map[data.id.id()].toMap();
-    QVariantMap inputs_map = name_map["inputs"].toMap();
+    setting->setProperty(PkString("Pressure") + data.id.id(), data.isChecked || !data.isCheckable);
 
     const std::vector<const KisSensorData*> sensors = data.sensors();
+    std::vector<MyPaintJson::InputMapping> mappings;
+    mappings.reserve(sensors.size());
 
-    for (auto it = sensors.begin(); it != sensors.end(); ++it) {
-        const KisSensorData *sensor = *it;
-        const QString sensorJsonId = sensorIdToMyPaintBrushInputJsonKey(sensor->id);
+    for (const KisSensorData *sensor : sensors) {
+        MyPaintJson::InputMapping mapping;
+        mapping.name = sensorIdToMyPaintBrushInputJsonKey(sensor->id).PkToUtf8();
+        mapping.active = sensor->isActive && data.useCurve;
 
-        if (!sensor->isActive || !data.useCurve) {
-            inputs_map.remove(sensorJsonId);
-        } else {
+        if (mapping.active) {
             KisCubicCurve curve(sensor->curve);
-            const QList<KisCubicCurvePoint> &points = curve.curvePoints();
-
-            QVariantList pointsList;
-
-            Q_FOREACH(const KisCubicCurvePoint &pt, points) {
-                pointsList.push_back(QVariantList{pt.x(), pt.y()});
+            const PkList<KisCubicCurvePoint> &points = curve.curvePoints();
+            mapping.points.reserve(points.size());
+            for (const KisCubicCurvePoint &point : points) {
+                mapping.points.emplace_back(point.x(), point.y());
             }
-            inputs_map[sensorJsonId] = pointsList;
         }
+
+        mappings.push_back(std::move(mapping));
     }
 
-    name_map["inputs"] = inputs_map;
-    name_map["base_value"] = data.strengthValue;
-
-    settings_map[data.id.id()] = name_map;
-    map["settings"] = settings_map;
-
-    doc = QJsonDocument(QJsonObject::fromVariantMap(map));
-    setting->setProperty(MYPAINT_JSON, doc.toJson());
+    const PkByteArray current = setting->getProperty(MYPAINT_JSON).toByteArray();
+    const std::string source(current.constData(), static_cast<std::size_t>(current.size()));
+    const std::string updated = MyPaintJson::updateSetting(source,
+                                                           data.id.id().PkToUtf8(),
+                                                           mappings,
+                                                           data.strengthValue);
+    setting->setProperty(MYPAINT_JSON,
+                         PkByteArray(updated.data(), static_cast<int>(updated.size())));
 
     // not used in mypaint engine
     setting->setProperty(data.id.id() + "UseSameCurve", false);

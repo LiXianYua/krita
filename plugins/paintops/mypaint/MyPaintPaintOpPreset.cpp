@@ -7,9 +7,14 @@
 
 #include "MyPaintPaintOpPreset.h"
 
-#include <QFile>
-#include <QFileInfo>
+#include <PkAuxTypes.h>
+#include <PkColor.h>
+#include <PkImage.h>
 #include <array>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <filesystem>
 #include <libmypaint/mypaint-brush.h>
 #include <png.h>
 
@@ -22,15 +27,42 @@
 #include "MyPaintSensorPack.h"
 #include "MyPaintStandardOptionData.h"
 
+namespace
+{
+PkString pathCompleteBaseName(const PkString &path)
+{
+    const std::string name = std::filesystem::u8path(path.PkToUtf8()).stem().string();
+    return PkString::PkFromUtf8(name.data(), static_cast<int>(name.size()));
+}
+
+PkString pathBaseName(const PkString &path)
+{
+    std::string name = std::filesystem::u8path(path.PkToUtf8()).filename().string();
+    const std::size_t firstSuffix = name.find('.');
+    if (firstSuffix != std::string::npos) {
+        name.erase(firstSuffix);
+    }
+    return PkString::PkFromUtf8(name.data(), static_cast<int>(name.size()));
+}
+
+bool hasMyPaintSuffix(const PkString &path)
+{
+    std::string suffix = std::filesystem::u8path(path.PkToUtf8()).extension().string();
+    std::transform(suffix.begin(), suffix.end(), suffix.begin(),
+                   [](unsigned char value) { return static_cast<char>(std::tolower(value)); });
+    return suffix == ".myb";
+}
+}
+
 class KisMyPaintPaintOpPreset::Private {
 
 public:
     MyPaintBrush *brush;
-    QImage icon;
-    QByteArray json;
+    PkImage icon;
+    PkByteArray json;
 };
 
-KisMyPaintPaintOpPreset::KisMyPaintPaintOpPreset(const QString &fileName)
+KisMyPaintPaintOpPreset::KisMyPaintPaintOpPreset(const PkString &fileName)
     : KisPaintOpPreset(fileName)
     , d(new Private)
 {
@@ -47,7 +79,7 @@ KisMyPaintPaintOpPreset::KisMyPaintPaintOpPreset(const KisMyPaintPaintOpPreset &
     if (d->json.isEmpty()) {
         mypaint_brush_from_defaults(d->brush);
     } else {
-        mypaint_brush_from_string(d->brush, d->json);
+        mypaint_brush_from_string(d->brush, d->json.constData());
     }
 }
 
@@ -65,16 +97,14 @@ KoResourceSP KisMyPaintPaintOpPreset::clone() const
 void KisMyPaintPaintOpPreset::setColor(const KoColor color, const KoColorSpace *colorSpace) {
 
     float hue, saturation, value;
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    qreal r = 0, g = 0, b = 0;
-#else
     float r = 0, g = 0, b = 0;
-#endif
-    QColor dstColor;
+    PkColor dstColor;
 
     if (colorSpace->colorModelId() == RGBAColorModelID) {
         colorSpace->toQColor(color.data(), &dstColor);
-        dstColor.getRgbF(&r, &g, &b);
+        r = static_cast<float>(dstColor.redF());
+        g = static_cast<float>(dstColor.greenF());
+        b = static_cast<float>(dstColor.blueF());
     }
 
     RGBToHSV(r, g, b, &hue, &saturation, &value);
@@ -90,8 +120,8 @@ void KisMyPaintPaintOpPreset::apply(KisPaintOpSettingsSP settings) {
         mypaint_brush_from_defaults(d->brush);
     }
     else {
-        QByteArray ba = settings->getProperty(MYPAINT_JSON).toByteArray();
-        mypaint_brush_from_string(d->brush, ba);
+        PkByteArray ba = settings->getProperty(MYPAINT_JSON).toByteArray();
+        mypaint_brush_from_string(d->brush, ba.constData());
     }
 
     mypaint_brush_new_stroke(d->brush);
@@ -102,7 +132,7 @@ MyPaintBrush* KisMyPaintPaintOpPreset::brush() {
     return d->brush;
 }
 
-bool KisMyPaintPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisMyPaintPaintOpPreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     if (!dev->isSequential())
         dev->seek(0); // ensure we do read *all* the bytes
@@ -119,9 +149,9 @@ bool KisMyPaintPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfa
         if (KisPaintOpPreset::loadFromDevice(dev, resourcesInterface)) {
             apply(settings());
             // correct filename
-            const QString f = filename();
-            if (f.endsWith(".myb", Qt::CaseInsensitive)) {
-                setFilename(QFileInfo(f).completeBaseName().append(KisPaintOpPreset::defaultFileExtension()));
+            const PkString f = filename();
+            if (hasMyPaintSuffix(f)) {
+                setFilename(pathCompleteBaseName(f).append(KisPaintOpPreset::defaultFileExtension()));
             }
             return true;
         } else {
@@ -130,19 +160,19 @@ bool KisMyPaintPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfa
         }
     }
     
-    const QByteArray ba(dev->readAll());
+    const PkByteArray ba(dev->readAll());
     d->json = ba;
     // mypaint can handle invalid json files too, so this is the only way to find out if it was correct mypaint file or not...
     // if the json is incorrect, the brush will get the default mypaint brush settings
     // which looks like a round brush with low opacity and high spacing
-    bool success = mypaint_brush_from_string(d->brush, ba);
+    bool success = mypaint_brush_from_string(d->brush, ba.constData());
     const float isEraser = mypaint_brush_get_base_value(d->brush, MYPAINT_BRUSH_SETTING_ERASER);
 
     KisPaintOpSettingsSP s = new KisMyPaintOpSettings(resourcesInterface);
     s->setProperty("paintop", "mypaintbrush");
     s->setProperty("filename", this->filename());
     s->setProperty(MYPAINT_JSON, this->getJsonData());
-    s->setProperty("EraserMode", qRound(isEraser));
+    s->setProperty("EraserMode", static_cast<int>(std::lround(isEraser)));
 
 
     {
@@ -170,7 +200,7 @@ bool KisMyPaintPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfa
     }
 
     this->setSettings(s);
-    setName(QFileInfo(filename()).baseName());
+    setName(pathBaseName(filename()));
     setValid(success);
 
     return success;
@@ -181,12 +211,12 @@ void KisMyPaintPaintOpPreset::updateThumbnail()
     d->icon = thumbnail();
 }
 
-QString KisMyPaintPaintOpPreset::thumbnailPath() const
+PkString KisMyPaintPaintOpPreset::thumbnailPath() const
 {
-    return QFileInfo(filename()).baseName() + "_prev.png";
+    return pathBaseName(filename()) + "_prev.png";
 }
 
-QByteArray KisMyPaintPaintOpPreset::getJsonData() {
+PkByteArray KisMyPaintPaintOpPreset::getJsonData() {
 
     return d->json;
 }

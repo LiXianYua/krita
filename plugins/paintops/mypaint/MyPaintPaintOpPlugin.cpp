@@ -9,32 +9,24 @@
 #include <KisResourceLoader.h>
 #include <KisResourceLoaderRegistry.h>
 #include <brushengine/kis_paintop_registry.h>
-#include <kis_debug.h>
-#include <kis_fixed_paint_device.h>
-#include <kis_global.h>
-#include <kis_simple_paintop_factory.h>
-#include <klocalizedstring.h>
-#include <kpluginfactory.h>
-
-#include "MyPaintPaintOp.h"
 #include "MyPaintPaintOpFactory.h"
 #include "MyPaintPaintOpPreset.h"
-#include "MyPaintPaintOpSettings.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(MyPaintOpPluginFactory, "kritamypaintop.json", registerPlugin<MyPaintOpPlugin>();)
-
-
-MyPaintOpPlugin::MyPaintOpPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace
 {
-    KisResourceLoaderRegistry::instance()->registerLoader(new KisResourceLoader<KisMyPaintPaintOpPreset>(ResourceSubType::MyPaintPaintOpPresets, ResourceType::PaintOpPresets
-                                                                                                         , i18n("MyPaint Brush Presets")
-                                                                                                         , QStringList() << "application/x-mypaint-brush"));
-    KisPaintOpRegistry::instance()->add(new KisMyPaintOpFactory());
+struct MyPaintOpRegistration
+{
+    MyPaintOpRegistration()
+    {
+        KisResourceLoaderRegistry::instance()->registerLoader(
+            new KisResourceLoader<KisMyPaintPaintOpPreset>(
+                ResourceSubType::MyPaintPaintOpPresets,
+                ResourceType::PaintOpPresets,
+                "MyPaint Brush Presets",
+                PkStringList() << "application/x-mypaint-brush"));
+        KisPaintOpRegistry::instance()->add(new KisMyPaintOpFactory());
+    }
+};
 }
 
-MyPaintOpPlugin::~MyPaintOpPlugin()
-{
-}
-
-#include "MyPaintPaintOpPlugin.moc"
+static MyPaintOpRegistration s_myPaintOpRegistration;

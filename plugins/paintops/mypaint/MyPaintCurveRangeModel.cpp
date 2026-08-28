@@ -12,11 +12,11 @@
 namespace {
 
     auto curveToNormalizedCurve = lager::lenses::getset(
-        [] (const std::tuple<QString, QRectF> &curveData)
+        [] (const std::tuple<PkString, PkRectF> &curveData)
         {
             MyPaintCurveRangeModel::NormalizedCurve normalized;
-            QList<KisCubicCurvePoint> points = KisCubicCurve(std::get<0>(curveData)).curvePoints();
-            const QRectF bounds = std::get<1>(curveData);
+            PkList<KisCubicCurvePoint> points = KisCubicCurve(std::get<0>(curveData)).curvePoints();
+            const PkRectF bounds = std::get<1>(curveData);
 
             normalized.yLimit = qMax(qAbs(bounds.top()), qAbs(bounds.bottom()));
             normalized.xMax = bounds.right();
@@ -36,8 +36,8 @@ namespace {
             //qDebug() << "get" << std::get<0>(curveData) << "->" << normalized.curve << bounds;
             return normalized;
         },
-        [] (std::tuple<QString, QRectF> curveData, const MyPaintCurveRangeModel::NormalizedCurve &normalizedCurve) {
-            QList<KisCubicCurvePoint> points = KisCubicCurve(normalizedCurve.curve).curvePoints();
+        [] (std::tuple<PkString, PkRectF> curveData, const MyPaintCurveRangeModel::NormalizedCurve &normalizedCurve) {
+            PkList<KisCubicCurvePoint> points = KisCubicCurve(normalizedCurve.curve).curvePoints();
 
             for (auto it = points.begin(); it != points.end(); ++it) {
                 it->setX(it->x() * (normalizedCurve.xMax - normalizedCurve.xMin) + normalizedCurve.xMin);
@@ -46,7 +46,7 @@ namespace {
 
             std::get<0>(curveData) = KisCubicCurve(points).toString();
 
-            std::get<1>(curveData) = QRectF(normalizedCurve.xMin,
+            std::get<1>(curveData) = PkRectF(normalizedCurve.xMin,
                                             -normalizedCurve.yLimit,
                                             normalizedCurve.xMax - normalizedCurve.xMin,
                                             2.0 * normalizedCurve.yLimit);
@@ -59,13 +59,13 @@ namespace {
 } // namespace
 
 
-std::tuple<QString, QRectF> MyPaintCurveRangeModel::reshapeCurve(std::tuple<QString, QRectF> curve)
+std::tuple<PkString, PkRectF> MyPaintCurveRangeModel::reshapeCurve(std::tuple<PkString, PkRectF> curve)
 {
     /**
      * Krita's GUI doesn't support x-range more narrow than 0...1, so
      * we should extend it if necessary
      */
-    std::get<1>(curve) |= QRect(0, -1, 1, 2);
+    std::get<1>(curve) |= PkRect(0, -1, 1, 2);
 
     NormalizedCurve normalized = lager::view(curveToNormalizedCurve, curve);
     curve = lager::set(curveToNormalizedCurve, curve, normalized);

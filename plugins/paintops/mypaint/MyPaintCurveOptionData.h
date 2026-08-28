@@ -13,7 +13,7 @@
 
 struct MyPaintCurveOptionData : KisCurveOptionDataCommon
 {
-    MyPaintCurveOptionData(const QString &prefix,
+    MyPaintCurveOptionData(const PkString &prefix,
                               const KoID &id,
                               bool isCheckable = true,
                               bool isChecked = false,
@@ -27,7 +27,7 @@ struct MyPaintCurveOptionData : KisCurveOptionDataCommon
                               qreal maxValue = 1.0);
 
 protected:
-    MyPaintCurveOptionData(const QString &prefix,
+    MyPaintCurveOptionData(const PkString &prefix,
                            const KoID &id,
                            bool isCheckable,
                            bool isChecked,

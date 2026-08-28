@@ -16,9 +16,9 @@ namespace deprecated_remove_after_krita6 {
  * older versions of Krita, we should keep them for some time.
  */
 
-const QString MYPAINT_HARDNESS = "MyPaint/hardness";
-const QString MYPAINT_OPACITY = "MyPaint/opcity";
-const QString MYPAINT_DIAMETER = "MyPaint/diameter";
+const PkString MYPAINT_HARDNESS = "MyPaint/hardness";
+const PkString MYPAINT_OPACITY = "MyPaint/opcity";
+const PkString MYPAINT_DIAMETER = "MyPaint/diameter";
 
 class SensorPackOpacity : public MyPaintSensorPack
 {
@@ -68,7 +68,7 @@ public:
 MyPaintRadiusLogarithmicData::MyPaintRadiusLogarithmicData()
     : MyPaintCurveOptionData("",
                              KoID("radius_logarithmic",
-                                  i18n("Radius Logarithmic")),
+                                  "Radius Logarithmic"),
                              false, true, 0.01, 8.0,
                              new deprecated_remove_after_krita6::SensorPackRadiusLogarithmic())
 {
@@ -76,7 +76,7 @@ MyPaintRadiusLogarithmicData::MyPaintRadiusLogarithmicData()
 
 MyPaintHardnessData::MyPaintHardnessData()
     : MyPaintCurveOptionData("",
-                             KoID("hardness", i18n("Hardness")),
+                             KoID("hardness", "Hardness"),
                              false, true, 0.02, 1.0,
                              new deprecated_remove_after_krita6::SensorPackHardness())
 {
@@ -84,7 +84,7 @@ MyPaintHardnessData::MyPaintHardnessData()
 
 MyPaintOpacityData::MyPaintOpacityData()
     : MyPaintCurveOptionData("",
-                             KoID("opaque", i18n("Opaque")),
+                             KoID("opaque", "Opaque"),
                              false, true, 0.0, 2.0,
                              new deprecated_remove_after_krita6::SensorPackOpacity())
 {

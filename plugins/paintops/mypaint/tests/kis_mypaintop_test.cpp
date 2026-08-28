@@ -4,64 +4,96 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <simpletest.h>
-#include <QImageReader>
-#include <QTest>
-
-#include <kis_image.h>
-#include <kis_node_facade.h>
-#include <kis_group_layer.h>
-#include <kis_paintop_preset.h>
-#include <stroke_testing_utils.h>
-#include <kis_paint_information.h>
-#include <kis_random_accessor_ng.h>
 #include <KisGlobalResourcesInterface.h>
+#include <PkImageFileDecoder.h>
+#include <kis_image.h>
+
+#include <cmath>
+#include <cstdint>
+#include <filesystem>
+#include <string>
 
 #include "kis_mypaintop_test.h"
-#include "MyPaintPaintOp.h"
 #include "MyPaintSurface.h"
-#include "MyPaintPaintOpSettings.h"
+#include "MyPaintPaintOpPreset.h"
 
-#include <qimage_test_util.h>
-
-class KisMyPaintOpSettings;
-KisMyPaintOpTest::KisMyPaintOpTest(): TestUtil::QImageBasedTest("MyPaintOp")
+namespace
 {
 
+PkImage loadFixture(const char *name)
+{
+    return PkImageFileDecoder::load((std::filesystem::path(FILES_DATA_DIR) / name).string());
 }
 
-void KisMyPaintOpTest::testDab() {
+bool findFirstDifferentPixel(const PkImage &expected, const PkImage &actual,
+                             PkPoint *differentPixel)
+{
+    if (expected.size() != actual.size()) {
+        *differentPixel = PkPoint(-1, -1);
+        return true;
+    }
+
+    for (int y = 0; y < expected.height(); ++y) {
+        for (int x = 0; x < expected.width(); ++x) {
+            const std::uint32_t expectedPixel = expected.pixel(x, y);
+            const std::uint32_t actualPixel = actual.pixel(x, y);
+            const bool bothTransparent =
+                (expectedPixel >> 24) == 0 && (actualPixel >> 24) == 0;
+            if (!bothTransparent && expectedPixel != actualPixel) {
+                *differentPixel = PkPoint(x, y);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+} // namespace
+
+void KisMyPaintOpTest::testDab()
+{
 
     KisPaintDeviceSP dst = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
     KisPainter painter(dst);
 
     mypaint_brush_new();
 
-    QScopedPointer<KisMyPaintSurface> surface(new KisMyPaintSurface(&painter, dst));
+    PkScopedPointer<KisMyPaintSurface> surface(new KisMyPaintSurface(&painter, dst));
 
     surface->draw_dab(surface->surface(), 250, 250, 100, 0, 0, 1, 1, 0.8, 1, 1, 90, 0, 0);
 
-    QImage img = dst->convertToQImage(0, dst->exactBounds().x(), dst->exactBounds().y(), dst->exactBounds().width(), dst->exactBounds().height());
-    QImage source(QString(FILES_DATA_DIR) + QDir::separator() + "draw_dab.png");
+    PkImage img = dst->convertToQImage(0, dst->exactBounds().x(), dst->exactBounds().y(), dst->exactBounds().width(), dst->exactBounds().height());
+    const PkImage source = loadFixture("draw_dab.png");
+    PK_VERIFY2(!source.isNull(), "draw_dab.png must decode");
 
-    QPoint errpoint;
-    if (!TestUtil::compareQImages(errpoint, source, img)) {
-        img.save("mypaint_test_draw_dab.png");
-        QFAIL(QString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+    PkPoint errpoint;
+    if (findFirstDifferentPixel(source, img, &errpoint)) {
+        std::string message;
+        if (errpoint.x() < 0) {
+            message = "Failed to create identical image: size mismatch";
+        } else {
+            message =
+                "Failed to create identical image, first different pixel: " +
+                std::to_string(errpoint.x()) + "," + std::to_string(errpoint.y()) +
+                ", expected=" + std::to_string(source.pixel(errpoint.x(), errpoint.y())) +
+                ", actual=" + std::to_string(img.pixel(errpoint.x(), errpoint.y()));
+        }
+        PK_FAIL(message.c_str());
     }
-
 }
 
-void KisMyPaintOpTest::testGetColor() {
+void KisMyPaintOpTest::testGetColor()
+{
 
     KisPaintDeviceSP dst = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
 
-    QImage source(QString(FILES_DATA_DIR) + QDir::separator() + "draw_dab.png");
+    const PkImage source = loadFixture("draw_dab.png");
+    PK_VERIFY2(!source.isNull(), "draw_dab.png must decode");
     dst->convertFromQImage(source, 0);
 
     KisPainter painter(dst);
 
-    QScopedPointer<KisMyPaintSurface> surface(new KisMyPaintSurface(&painter, dst));
+    PkScopedPointer<KisMyPaintSurface> surface(new KisMyPaintSurface(&painter, dst));
 
     surface->draw_dab(surface->surface(), 250, 250, 100, 0, 0, 1, 1, 0.8, 1, 1, 90, 0, 0);
 
@@ -72,17 +104,20 @@ void KisMyPaintOpTest::testGetColor() {
 
     surface->get_color(surface->surface(), 250, 250, 100, &r, &g, &b, &a);
 
-    QVERIFY(qFuzzyCompare((float)qRound(r), 0.0L));
-    QVERIFY(qFuzzyCompare((float)qRound(g), 0.0L));
-    QVERIFY(qFuzzyCompare((float)qRound(b), 1.0L));
-    QVERIFY(qFuzzyCompare((float)qRound(a), 1.0L));
+    PK_COMPARE(std::lround(r), 0L);
+    PK_COMPARE(std::lround(g), 0L);
+    PK_COMPARE(std::lround(b), 1L);
+    PK_COMPARE(std::lround(a), 1L);
 }
 
-void KisMyPaintOpTest::testLoading() {
-
-    QScopedPointer<KisMyPaintPaintOpPreset> brush (new KisMyPaintPaintOpPreset(QString(FILES_DATA_DIR) + QDir::separator() + "basic.myb"));
+void KisMyPaintOpTest::testLoading()
+{
+    const std::string path =
+        (std::filesystem::path(FILES_DATA_DIR) / "basic.myb").string();
+    PkScopedPointer<KisMyPaintPaintOpPreset> brush(
+        new KisMyPaintPaintOpPreset(PkString(path.c_str())));
     brush->load(KisGlobalResourcesInterface::instance());
-    QVERIFY(brush->valid());
+    PK_VERIFY(brush->valid());
 }
 
-SIMPLE_TEST_MAIN(KisMyPaintOpTest)
+PK_TEST_MAIN(KisMyPaintOpTest)

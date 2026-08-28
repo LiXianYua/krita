@@ -1,8 +1,10 @@
+find_package(json-c CONFIG REQUIRED)
 add_subdirectory(tests)
 add_subdirectory(brushes)
 
 set(kritamypaintop_SOURCES
     MyPaintSensorPack.cpp
+    MyPaintJson.cpp
     MyPaintCurveOptionData.cpp
     MyPaintCurveRangeModel.cpp
     MyPaintPaintOp.cpp
@@ -20,11 +22,16 @@ target_include_directories(kritamypaintop_static
     PRIVATE
         ${CMAKE_SOURCE_DIR}/plugins/paintops/libpaintop
         ${CMAKE_BINARY_DIR}/plugins/paintops/libpaintop
-        ${CMAKE_SOURCE_DIR}/libs/ui
-        ${CMAKE_BINARY_DIR}/libs/ui
 )
 
-target_link_libraries(kritamypaintop_static LibMyPaint::mypaint kritalibbrush kritaresources ${PNG_LIBRARIES})
+target_link_libraries(kritamypaintop_static
+    PRIVATE
+        LibMyPaint::mypaint
+        kritalibbrush
+        kritaresources
+        kritalibpaintop
+        PNG::PNG
+        json-c::json-c)
 
 kis_add_library(kritamypaintop MODULE MyPaintPaintOpPlugin.cpp)
 

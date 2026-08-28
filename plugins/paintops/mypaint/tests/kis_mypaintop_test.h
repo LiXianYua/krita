@@ -7,21 +7,12 @@
 #ifndef KIS_MYPAINTOP_TEST_H
 #define KIS_MYPAINTOP_TEST_H
 
-#define USE_DOCUMENT 0
+#include <pk/test/compat/QObject>
+#include <pk/test/compat/QTest>
 
-#include <QObject>
-#include <stroke_testing_utils.h>
-#include <qimage_based_test.h>
-#include <simpletest.h>
-#include <QTest>
-
-class KisMyPaintOpTest: public QObject, public TestUtil::QImageBasedTest
+class KisMyPaintOpTest : public PkTestObject
 {
     Q_OBJECT
-public:
-    KisMyPaintOpTest();
-    virtual ~KisMyPaintOpTest() {}
-
 private Q_SLOTS:
     void testDab();
     void testGetColor();

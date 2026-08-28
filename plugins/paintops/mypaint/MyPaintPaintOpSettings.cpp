@@ -132,9 +132,9 @@ bool KisMyPaintOpSettings::paintIncremental()
     return true;
 }
 
-void KisMyPaintOpSettings::resetSettings(const QStringList &preserveProperties)
+void KisMyPaintOpSettings::resetSettings(const PkStringList &preserveProperties)
 {
-    QStringList allKeys = preserveProperties;
+    PkStringList allKeys = preserveProperties;
     allKeys << MYPAINT_JSON;
     KisOutlineGenerationPolicy<KisPaintOpSettings>::resetSettings(allKeys);
 }
@@ -158,13 +158,13 @@ KisOptimizedBrushOutline KisMyPaintOpSettings::brushOutline(const KisPaintInform
         radius = radius + 2 * radius * offset;
         radius = qBound(3.5, radius, 500.0);
 
-        QPainterPath realOutline;
-        realOutline.addEllipse(QPointF(), radius, radius);
+        PkPainterPath realOutline;
+        realOutline.addEllipse(PkPointF(), radius, radius);
 
         path = outlineFetcher()->fetchOutline(info, this, realOutline, mode, alignForZoom, finalScale);
 
         if (mode.showTiltDecoration) {
-            QPainterPath tiltLine = makeTiltIndicator(info,
+            PkPainterPath tiltLine = makeTiltIndicator(info,
                 realOutline.boundingRect().center(),
                 realOutline.boundingRect().width() * 0.5,
                 3.0);

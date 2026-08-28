@@ -9,22 +9,22 @@
 
 #include <tuple>
 
-#include <QtGlobal>
-#include <QString>
-#include <QRectF>
+#include <PkGlobal.h>
+#include <PkString.h>
+#include <PkRect.h>
 
 class MyPaintCurveRangeModel
 {
 public:
     struct NormalizedCurve {
-        QString curve;
+        PkString curve;
         qreal xMin = 0.0;
         qreal xMax = 1.0;
         qreal yLimit = 1.0;
     };
 
 public:
-    static std::tuple<QString, QRectF> reshapeCurve(std::tuple<QString, QRectF> curve);
+    static std::tuple<PkString, PkRectF> reshapeCurve(std::tuple<PkString, PkRectF> curve);
 };
 
 #endif // MYPAINTCURVERANGEMODEL_H

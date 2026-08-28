@@ -12,6 +12,7 @@
 
 #include <libmypaint/mypaint-brush.h>
 #include <KisAirbrushOptionData.h>
+#include <PkScopedPointer.h>
 
 #include "MyPaintPaintOpPreset.h"
 #include "MyPaintSurface.h"
@@ -39,8 +40,8 @@ private:
     KisSpacingInformation computeSpacing(const KisPaintInformation &info, qreal lodScale) const;
 
 private:
-    QScopedPointer<KisMyPaintPaintOpPreset> m_brush;
-    QScopedPointer<KisMyPaintSurface> m_surface;
+    PkScopedPointer<KisMyPaintPaintOpPreset> m_brush;
+    PkScopedPointer<KisMyPaintSurface> m_surface;
     KisPaintOpSettingsSP m_settings;
     KisAirbrushOptionData m_airBrushData;
     KisImageWSP m_image;

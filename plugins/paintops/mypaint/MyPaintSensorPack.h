@@ -12,17 +12,17 @@
 #include <KisSensorData.h>
 #include <KisSensorPackInterface.h>
 
-const QString MYPAINT_JSON = "MyPaint/json";
+const PkString MYPAINT_JSON = "MyPaint/json";
 
-const KoID MyPaintPressureId("mypaint_pressure", ki18n("Pressure"));
-const KoID MyPaintFineSpeedId("mypaint_speed1", ki18n("Fine Speed"));
-const KoID MyPaintGrossSpeedId("mypaint_speed2", ki18n("Gross Speed"));
-const KoID MyPaintRandomId("mypaint_random", ki18n("Random"));
-const KoID MyPaintStrokeId("mypaint_stroke", ki18nc("The duration of a brush stroke", "Stroke"));
-const KoID MyPaintDirectionId("mypaint_direction", ki18nc("Drawing Angle", "Direction"));
-const KoID MyPaintDeclinationId("mypaint_tilt_declination", ki18nc("Pen tilt declination", "Declination"));
-const KoID MyPaintAscensionId("mypaint_tilt_ascension", ki18nc("Pen tilt ascension", "Ascension"));
-const KoID MyPaintCustomId("mypaint_custom", ki18n("Custom"));
+const KoID MyPaintPressureId("mypaint_pressure", "Pressure");
+const KoID MyPaintFineSpeedId("mypaint_speed1", "Fine Speed");
+const KoID MyPaintGrossSpeedId("mypaint_speed2", "Gross Speed");
+const KoID MyPaintRandomId("mypaint_random", "Random");
+const KoID MyPaintStrokeId("mypaint_stroke", "Stroke");
+const KoID MyPaintDirectionId("mypaint_direction", "Direction");
+const KoID MyPaintDeclinationId("mypaint_tilt_declination", "Declination");
+const KoID MyPaintAscensionId("mypaint_tilt_ascension", "Ascension");
+const KoID MyPaintCustomId("mypaint_custom", "Custom");
 
 struct MyPaintSensorDataWithRange : KisSensorData, boost::equality_comparable<MyPaintSensorDataWithRange>
 {
@@ -33,13 +33,13 @@ struct MyPaintSensorDataWithRange : KisSensorData, boost::equality_comparable<My
             static_cast<const KisSensorData&>(lhs) == static_cast<const KisSensorData&>(rhs);
     }
 
-    QRectF baseCurveRange() const override;
-    void setBaseCurveRange(const QRectF &rect) override;
+    PkRectF baseCurveRange() const override;
+    void setBaseCurveRange(const PkRectF &rect) override;
     void reset() override;
 
     void reshapeCurve();
 
-    QRectF curveRange {0,-1,1,2};
+    PkRectF curveRange {0,-1,1,2};
 };
 
 struct MyPaintSensorData : boost::equality_comparable<MyPaintSensorData>

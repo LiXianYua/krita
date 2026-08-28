@@ -8,9 +8,7 @@
 
 #include <KoColorConversions.h>
 #include <KoCompositeOpRegistry.h>
-#include <KoToolManager.h>
-#include <QDebug>
-#include <QtMath>
+#include <cmath>
 #include <kis_brush_based_paintop_settings.h>
 #include <kis_image.h>
 #include <kis_node.h>
@@ -40,16 +38,16 @@ KisMyPaintPaintOp::KisMyPaintPaintOp(const KisPaintOpSettingsSP settings, KisPai
 
     m_brush->setColor(this->painter()->paintColor(), painter->device()->colorSpace());
 
-    if (KoToolManager::instance()->activeToolId() != "KritaShape/KisToolBrush") {
-        mypaint_brush_set_base_value(m_brush->brush(), MYPAINT_BRUSH_SETTING_SLOW_TRACKING, 0.0);
-    }
+    // The algorithm core has no UI tool manager.  Match the former headless
+    // fallback (an empty active-tool id) and disable slow tracking.
+    mypaint_brush_set_base_value(m_brush->brush(), MYPAINT_BRUSH_SETTING_SLOW_TRACKING, 0.0);
 
     m_settings = settings;
     m_airBrushData.read(m_settings.data());
 
     m_dtime = -1;
     m_isStrokeStarted = false;
-    m_radius = exp(mypaint_brush_get_base_value(m_brush->brush(), MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC));
+    m_radius = std::exp(mypaint_brush_get_base_value(m_brush->brush(), MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC));
 }
 
 KisMyPaintPaintOp::~KisMyPaintPaintOp() {
@@ -65,7 +63,7 @@ KisSpacingInformation KisMyPaintPaintOp::paintAt(const KisPaintInformation& info
 
     qreal radius = m_radius;
     radius *= lodScale;
-    mypaint_brush_set_base_value(m_brush->brush(), MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC, log(radius));
+    mypaint_brush_set_base_value(m_brush->brush(), MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC, std::log(radius));
 
     m_isStrokeStarted = mypaint_brush_get_state(m_brush->brush(), MYPAINT_BRUSH_STATE_STROKE_STARTED);
     if (!m_isStrokeStarted) {
@@ -76,7 +74,7 @@ KisSpacingInformation KisMyPaintPaintOp::paintAt(const KisPaintInformation& info
         m_dtime = 0.015;
     }
     else {
-        m_dtime = abs(info.currentTime() - m_previousTime)*0.001;
+        m_dtime = std::abs(info.currentTime() - m_previousTime)*0.001;
     }
 
     mypaint_brush_stroke_to(m_brush->brush(), m_surface->surface(), info.pos().x(), info.pos().y(), info.pressure(),

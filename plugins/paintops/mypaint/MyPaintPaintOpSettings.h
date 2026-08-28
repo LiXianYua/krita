@@ -7,7 +7,7 @@
 #ifndef KIS_MY_PAINTOP_SETTINGS_H_
 #define KIS_MY_PAINTOP_SETTINGS_H_
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include <brushengine/kis_no_size_paintop_settings.h>
 #include <kis_types.h>
@@ -32,12 +32,12 @@ public:
 
     KisOptimizedBrushOutline brushOutline(const KisPaintInformation &info, const OutlineMode &mode, qreal alignForZoom) override;
 
-    QString modelName() const override {
+    PkString modelName() const override {
         return "airbrush";
     }
 
     bool paintIncremental() override;
-    void resetSettings(const QStringList &preserveProperties = QStringList()) override;
+    void resetSettings(const PkStringList &preserveProperties = PkStringList()) override;
 
     void onPropertyChanged() override;
 
@@ -45,7 +45,7 @@ private:
     Q_DISABLE_COPY(KisMyPaintOpSettings)
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 
 };
 

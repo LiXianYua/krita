@@ -9,17 +9,19 @@
 
 #include <libmypaint/mypaint-brush.h>
 #include <KoColor.h>
-#include <kis_paintop_settings.h>
+#include <brushengine/kis_paintop_settings.h>
 #include <kis_painter.h>
 #include <KoResource.h>
 #include <KisResourceTypes.h>
 #include <kis_paintop_preset.h>
+#include <PkAuxTypes.h>
+#include <PkStream.h>
 
 class KisMyPaintPaintOpPreset : public KisPaintOpPreset
 {
 public:
 
-    KisMyPaintPaintOpPreset(const QString &fileName="");
+    KisMyPaintPaintOpPreset(const PkString &fileName="");
     KisMyPaintPaintOpPreset(const KisMyPaintPaintOpPreset &rhs);
     virtual ~KisMyPaintPaintOpPreset();
 
@@ -29,16 +31,16 @@ public:
     void apply(KisPaintOpSettingsSP settings);
     MyPaintBrush* brush();
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(ResourceType::PaintOpPresets, ResourceSubType::MyPaintPaintOpPresets);
+    std::pair<PkString, PkString> resourceType() const override {
+        return std::pair<PkString, PkString>(ResourceType::PaintOpPresets, ResourceSubType::MyPaintPaintOpPresets);
     }
 
     void updateThumbnail() override;
-    QString thumbnailPath() const override;
+    PkString thumbnailPath() const override;
 
-    QByteArray getJsonData();
+    PkByteArray getJsonData();
 
 private:
     class Private;

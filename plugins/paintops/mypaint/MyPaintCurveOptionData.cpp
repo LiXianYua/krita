@@ -6,7 +6,7 @@
 
 #include "MyPaintCurveOptionData.h"
 
-MyPaintCurveOptionData::MyPaintCurveOptionData(const QString &prefix,
+MyPaintCurveOptionData::MyPaintCurveOptionData(const PkString &prefix,
                                        const KoID &id,
                                        bool isCheckable,
                                        bool isChecked,
@@ -31,7 +31,7 @@ MyPaintCurveOptionData::MyPaintCurveOptionData(const KoID &id,
 {
 }
 
-MyPaintCurveOptionData::MyPaintCurveOptionData(const QString &prefix, const KoID &id, bool isCheckable, bool isChecked, qreal minValue, qreal maxValue, MyPaintSensorPack *sensorInterface)
+MyPaintCurveOptionData::MyPaintCurveOptionData(const PkString &prefix, const KoID &id, bool isCheckable, bool isChecked, qreal minValue, qreal maxValue, MyPaintSensorPack *sensorInterface)
     : KisCurveOptionDataCommon(prefix,
                                id,
                                isCheckable,
