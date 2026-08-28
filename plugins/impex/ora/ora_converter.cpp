@@ -69,13 +69,16 @@ KisImportExportErrorCode OraConverter::buildFile(PkStream *io, KisImageSP image,
     KoStore* store = KoStore::createStore(io, KoStore::Write, "image/openraster", KoStore::Zip);
     if (!store) {
         delete store;
-        return ImportExportCodes::Failure;
+        return ImportExportCodes::ErrorWhileWriting;
     }
 
     KisOpenRasterSaveContext osc(store);
     KisOpenRasterStackSaveVisitor orssv(&osc, activeNodes);
 
-    image->rootLayer()->accept(orssv);
+    if (!image->rootLayer()->accept(orssv)) {
+        delete store;
+        return ImportExportCodes::ErrorWhileWriting;
+    }
 
     PkSize previewSize = image->bounds().size();
     previewSize.scale(PkSize(256,256), Qt::KeepAspectRatio);
@@ -100,4 +103,3 @@ KisImportExportErrorCode OraConverter::buildFile(PkStream *io, KisImageSP image,
     delete store;
     return ImportExportCodes::OK;
 }
-

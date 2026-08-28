@@ -6,6 +6,7 @@ set(libkritaconverter_LIB_SRCS
     kis_open_raster_save_context.cpp
     kis_open_raster_stack_load_visitor.cpp
     kis_open_raster_stack_save_visitor.cpp
+    ora_save_policy.cpp
     )
 
 set(kritaoraimport_SOURCES

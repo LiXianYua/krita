@@ -7,3 +7,8 @@ krita_add_broken_unit_test(
 add_executable(KisSvgImportPolicyTest KisSvgImportPolicyTest.cpp ../svg_import_policy.cpp)
 target_include_directories(KisSvgImportPolicyTest PRIVATE ..)
 add_test(NAME KisSvgImportPolicyTest COMMAND KisSvgImportPolicyTest)
+
+add_test(NAME KisSvgQtFreeSourceTest
+    COMMAND ${CMAKE_COMMAND}
+        -DSVG_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/../kis_svg_import.cc
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/KisSvgQtFreeSourceTest.cmake)

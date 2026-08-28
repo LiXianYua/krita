@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <PkFileStream.h>
-#include <qendian.h>
 
 #include <kpluginfactory.h>
 

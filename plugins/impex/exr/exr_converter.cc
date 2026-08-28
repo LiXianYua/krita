@@ -18,6 +18,7 @@
 
 #include <ImfStringAttribute.h>
 #include "exr_extra_tags.h"
+#include "exr_import_policy.h"
 
 #include <PkXmlDocument.h>
 #include <PkThread.h>
@@ -210,10 +211,9 @@ const KoColorSpace *kisTypeToColorSpace(PkString colorModelID, ImageType imageTy
      * Our user settings are only for the RGB color model, for other models just use
      * the default one provided by the color space.
      */
-    PkString profileName = defaultProfileForColorSpace;
-    if (colorModelID == RGBAColorModelID.id()) {
-        profileName = defaultProfileForColorSpace;
-    }
+    const PkString profileName = colorModelID == RGBAColorModelID.id()
+        ? preferredExrColorProfile(defaultProfileForColorSpace)
+        : defaultProfileForColorSpace;
 
     return KoColorSpaceRegistry::instance()->colorSpace(colorModelID, colorDepthID, profileName);
 
@@ -585,7 +585,11 @@ KisImportExportErrorCode EXRConverter::decode(const PkString &filename)
         }
 
         // fetch Krita's extra layer info, which might have been stored previously
+        const bool hasExtraLayersAttribute =
+            file.header().findTypedAttribute<Imf::StringAttribute>(EXR_KRITA_LAYERS) != nullptr;
         PkXmlDocument extraLayersInfo = d->loadExtraLayersInfo(file.header());
+        bool useExtraLayersInfo =
+            hasUsableExrLayersMetadata(hasExtraLayersAttribute, extraLayersInfo);
 
         // Construct the list of LayerInfo
 
@@ -598,11 +602,11 @@ KisImportExportErrorCode EXRConverter::decode(const PkString &filename)
         std::set<std::string> layerNames;
         channels.layers(layerNames);
 
-        if (!extraLayersInfo.isNull() &&
+        if (useExtraLayersInfo &&
                 !d->checkExtraLayersInfoConsistent(extraLayersInfo, layerNames)) {
 
             // it is inconsistent anyway
-            extraLayersInfo = PkXmlDocument();
+            useExtraLayersInfo = false;
         }
 
         // Check if there are A, R, G, B channels
@@ -721,7 +725,13 @@ KisImportExportErrorCode EXRConverter::decode(const PkString &filename)
             ExrPaintLayerInfo& info = informationObjects[i];
             PkString modelId;
 
-            if (info.channelMap.size() == 1) {
+            std::set<std::string> channelKeys;
+            for (auto it = info.channelMap.constBegin(); it != info.channelMap.constEnd(); ++it) {
+                channelKeys.insert(it.key().PkToUtf8());
+            }
+            const ExrChannelModel channelModel = classifyExrChannels(channelKeys);
+
+            if (channelModel == ExrChannelModel::Gray && info.channelMap.size() == 1) {
                 modelId = GrayAColorModelID.id();
                 PkString key = info.channelMap.begin().key();
                 if (key != "Y") {
@@ -731,7 +741,7 @@ KisImportExportErrorCode EXRConverter::decode(const PkString &filename)
                     info.channelMap["Y"] = channel;
                 }
             }
-            else if (info.channelMap.size() == 2) {
+            else if (channelModel == ExrChannelModel::Gray && info.channelMap.size() == 2) {
                 modelId = GrayAColorModelID.id();
 
                 PkMap<PkString,PkString>::const_iterator it = info.channelMap.constBegin();
@@ -755,10 +765,10 @@ KisImportExportErrorCode EXRConverter::decode(const PkString &filename)
             }
             else if (info.channelMap.size() == 3 || info.channelMap.size() == 4) {
 
-                if (info.channelMap.contains("R") && info.channelMap.contains("G") && info.channelMap.contains("B")) {
+                if (channelModel == ExrChannelModel::Rgb) {
                     modelId = RGBAColorModelID.id();
                 }
-                else if (info.channelMap.contains("X") && info.channelMap.contains("Y") && info.channelMap.contains("Z")) {
+                else if (channelModel == ExrChannelModel::Xyz) {
                     modelId = XYZAColorModelID.id();
                     PkMap<PkString, PkString> newChannelMap;
                     if (info.channelMap.contains("W")) {
@@ -927,7 +937,7 @@ KisImportExportErrorCode EXRConverter::decode(const PkString &filename)
             }
         }
 
-        if (!extraLayersInfo.isNull()) {
+        if (useExtraLayersInfo) {
             KisExrLayersSorter sorter(extraLayersInfo, d->image);
         }
 

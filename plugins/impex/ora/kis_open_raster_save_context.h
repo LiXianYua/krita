@@ -20,7 +20,7 @@ class KisOpenRasterSaveContext
 public:
     KisOpenRasterSaveContext(KoStore *store);
     PkString saveDeviceData(KisPaintDeviceSP dev, KisMetaData::Store *metaData, const PkRect &imageRect, qreal xRes, qreal yRes);
-    void saveStack(const PkXmlDocument& doc);
+    bool saveStack(const PkXmlDocument& doc);
 private:
     int m_id;
     KoStore *m_store;

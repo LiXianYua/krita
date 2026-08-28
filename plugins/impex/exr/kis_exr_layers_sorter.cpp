@@ -162,7 +162,7 @@ void KisExrLayersSorter::Private::sortLayers(KisNodeSP root)
 KisExrLayersSorter::KisExrLayersSorter(const PkXmlDocument &extraData, KisImageSP image)
     : m_d(new Private(extraData, image))
 {
-    KIS_ASSERT_RECOVER_RETURN(!extraData.isNull());
+    KIS_ASSERT_RECOVER_RETURN(!extraData.documentElement().isNull());
     m_d->createOrderingMap();
 
     m_d->processLayers(image->root());

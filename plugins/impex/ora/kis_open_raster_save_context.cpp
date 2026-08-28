@@ -5,6 +5,7 @@
  */
 
 #include "kis_open_raster_save_context.h"
+#include "ora_save_policy.h"
 
 #include <PkXmlDocument.h>
 
@@ -36,24 +37,25 @@ PkString KisOpenRasterSaveContext::saveDeviceData(KisPaintDeviceSP dev, KisMetaD
 }
 
 
-void KisOpenRasterSaveContext::saveStack(const PkXmlDocument& doc)
+bool KisOpenRasterSaveContext::saveStack(const PkXmlDocument& doc)
 {
-    if (m_store->open("stack.xml")) {
-        KoStoreDevice io(m_store);
-        const std::string xml = doc.toByteArray().PkToUtf8();
-        long long written = 0;
-        while (written < static_cast<long long>(xml.size())) {
-            const long long count = io.write(xml.data() + written,
-                                             static_cast<long long>(xml.size()) - written);
-            if (count <= 0) {
-                dbgFile << "Writing stack.xml failed";
-                break;
-            }
-            written += count;
-        }
-        io.close();
-        m_store->close();
-    } else {
+    if (!m_store->open("stack.xml")) {
         dbgFile << "Opening of the stack.xml file failed :";
+        return false;
     }
+
+    KoStoreDevice io(m_store);
+    const std::string xml = doc.toByteArray().PkToUtf8();
+    const bool writeSucceeded = oraWriteAll(
+        [&io](const char *data, long long size) { return io.write(data, size); },
+        xml.data(), xml.size());
+    io.close();
+    const bool closeSucceeded = m_store->close();
+    if (!writeSucceeded) {
+        dbgFile << "Writing stack.xml failed";
+    }
+    if (!closeSucceeded) {
+        dbgFile << "Closing stack.xml failed";
+    }
+    return writeSucceeded && closeSucceeded;
 }

@@ -6,6 +6,8 @@
 #include "pdf_import_policy.h"
 
 #include <iostream>
+#include <cstdint>
+#include <cstring>
 #include <sstream>
 #include <string>
 
@@ -60,9 +62,14 @@ int main()
     }
     const std::size_t center = static_cast<std::size_t>(raster.height / 2) * raster.stride +
                                static_cast<std::size_t>(raster.width / 2) * 4;
-    if (raster.argb[center] == 255 && raster.argb[center + 1] == 255 &&
-        raster.argb[center + 2] == 255) {
-        std::cerr << "native raster did not preserve the fixture's painted page content\n";
+    std::uint32_t centerArgb = 0;
+    std::memcpy(&centerArgb, raster.argb.data() + center, sizeof(centerArgb));
+    const std::uint8_t alpha = static_cast<std::uint8_t>(centerArgb >> 24);
+    const std::uint8_t red = static_cast<std::uint8_t>(centerArgb >> 16);
+    const std::uint8_t green = static_cast<std::uint8_t>(centerArgb >> 8);
+    const std::uint8_t blue = static_cast<std::uint8_t>(centerArgb);
+    if (alpha != 255 || red < 250 || green > 5 || blue > 5) {
+        std::cerr << "native raster did not preserve exact opaque-red ARGB32 pixel contract\n";
         return 4;
     }
     return 0;

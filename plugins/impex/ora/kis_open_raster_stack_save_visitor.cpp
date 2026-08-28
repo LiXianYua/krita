@@ -6,6 +6,7 @@
  */
 
 #include "kis_open_raster_stack_save_visitor.h"
+#include "ora_save_policy.h"
 
 #include <math.h>
 #include <cmath>
@@ -131,10 +132,13 @@ bool KisOpenRasterStackSaveVisitor::visit(KisGroupLayer *layer)
         isolate = "auto";
     }
     elt.setAttribute("isolation", isolate);
-    visitAll(layer);
+    if (!visitAll(layer, true)) {
+        d->currentElement = previousElt;
+        return false;
+    }
 
     if (!previousElt.isNull()) {
-        previousElt.insertBefore(elt, PkXmlNode());
+        oraAppendStackChild(previousElt, elt);
         d->currentElement = previousElt;
     } else {
         PkXmlElement imageElt = d->layerStack.createElement("image");
@@ -148,10 +152,12 @@ bool KisOpenRasterStackSaveVisitor::visit(KisGroupLayer *layer)
         imageElt.setAttribute("h", PkString("%1").arg(height));
         imageElt.setAttribute("xres", PkString("%1").arg(xRes));
         imageElt.setAttribute("yres", PkString("%1").arg(yRes));
-        imageElt.appendChild(elt);
-        d->layerStack.insertBefore(imageElt, PkXmlNode());
+        oraAppendStackChild(imageElt, elt);
+        oraAppendStackChild(d->layerStack, imageElt);
         d->currentElement = PkXmlElement();
-        d->saveContext->saveStack(d->layerStack);
+        if (!d->saveContext->saveStack(d->layerStack)) {
+            return false;
+        }
     }
 
     return true;
@@ -192,11 +198,14 @@ bool KisOpenRasterStackSaveVisitor::saveLayer(KisLayer *layer)
     }
 
     PkString filename = d->saveContext->saveDeviceData(layer->projection(), layer->metaData(), adjustedBounds, layer->image()->xRes(), layer->image()->yRes());
+    if (!oraLayerPayloadSucceeded(filename)) {
+        return false;
+    }
 
     PkXmlElement elt = d->layerStack.createElement("layer");
     saveLayerInfo(elt, layer);
     elt.setAttribute("src", filename);
-    d->currentElement.insertBefore(elt, PkXmlNode());
+    oraAppendStackChild(d->currentElement, elt);
 
     return true;
 }

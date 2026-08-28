@@ -2,6 +2,7 @@ add_subdirectory(tests)
 
 set(libkritaconverter_LIB_SRCS
     exr_converter.cc
+    exr_import_policy.cpp
     kis_exr_layers_sorter.cpp
     exr_extra_tags.cpp
     )
@@ -13,7 +14,7 @@ set(kritaexrimport_SOURCES
 
 kis_add_library(kritaexrimport MODULE ${kritaexrimport_SOURCES})
 
-target_link_libraries(kritaexrimport kritaimpex kritalibkra OpenEXR::IlmImf)
+target_link_libraries(kritaexrimport kritaimpex kritalibkra OpenEXR::IlmImf pkconfig)
 
 install(TARGETS kritaexrimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -24,7 +25,7 @@ set(kritaexrexport_SOURCES
 
 kis_add_library(kritaexrexport MODULE ${kritaexrexport_SOURCES})
 
-target_link_libraries(kritaexrexport kritalibkra kritaimpex OpenEXR::IlmImf)
+target_link_libraries(kritaexrexport kritalibkra kritaimpex OpenEXR::IlmImf pkconfig)
 
 install(TARGETS kritaexrexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
