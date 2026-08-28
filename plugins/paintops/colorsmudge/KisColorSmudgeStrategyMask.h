@@ -23,8 +23,8 @@ public:
     void updateMask(KisDabCache *dabCache,
                     const KisPaintInformation& info,
                     const KisDabShape &shape,
-                    const QPointF &cursorPoint,
-                    QRect *dstDabRect, 
+                    const PkPointF &cursorPoint,
+                    PkRect *dstDabRect,
                     qreal lightnessStrength) override;
 
 private:

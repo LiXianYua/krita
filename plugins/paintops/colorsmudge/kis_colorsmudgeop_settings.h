@@ -7,7 +7,9 @@
 #ifndef __KIS_COLORSMUDGEOP_SETTINGS_H
 #define __KIS_COLORSMUDGEOP_SETTINGS_H
 
-#include <QScopedPointer>
+#include <PkList.h>
+#include <PkPointer.h>
+#include <PkScopedPointer.h>
 #include <kis_brush_based_paintop_settings.h>
 
 
@@ -17,11 +19,11 @@ public:
     KisColorSmudgeOpSettings(KisResourcesInterfaceSP resourcesInterface);
     ~KisColorSmudgeOpSettings() override;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 typedef KisSharedPtr<KisColorSmudgeOpSettings> KisColorSmudgeOpSettingsSP;

@@ -24,10 +24,10 @@ KisColorSmudgeStrategyBase::DabColoringStrategy &KisColorSmudgeStrategyStamp::co
 }
 
 void KisColorSmudgeStrategyStamp::updateMask(KisDabCache *dabCache, const KisPaintInformation &info,
-                                             const KisDabShape &shape, const QPointF &cursorPoint, QRect *dstDabRect, qreal lightnessStrength)
+                                             const KisDabShape &shape, const PkPointF &cursorPoint, PkRect *dstDabRect, qreal lightnessStrength)
 {
 
-    static KoColor color(Qt::black, m_origDab->colorSpace());
+    static KoColor color(PkColor(0, 0, 0), m_origDab->colorSpace());
 
     m_origDab = dabCache->fetchDab(m_origDab->colorSpace(),
                                    color,

@@ -4,13 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "colorsmudge_paintop_plugin.h"
-
-#include <klocalizedstring.h>
-
-#include <kis_debug.h>
-#include <kpluginfactory.h>
-
 #include <brushengine/kis_paintop_registry.h>
 #include "kis_colorsmudgeop_settings.h"
 
@@ -21,18 +14,18 @@
 
 #include "kis_global.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ColorSmudgePaintOpPluginFactory, "kritacolorsmudgepaintop.json", registerPlugin<ColorSmudgePaintOpPlugin>();)
-
-
-ColorSmudgePaintOpPlugin::ColorSmudgePaintOpPlugin(QObject* parent, const QVariantList&):
-    QObject(parent)
+namespace
 {
-    KisPaintOpRegistry::instance()->add(new KisSimplePaintOpFactory<KisColorSmudgeOp, KisColorSmudgeOpSettings>(
-                                            "colorsmudge", i18n("Color Smudge"), KisPaintOpFactory::categoryStable(), "krita-colorsmudge.png",
-                                            QString(), QStringList(), 2)
-                                       );
+struct ColorSmudgePaintOpRegistration
+{
+    ColorSmudgePaintOpRegistration()
+    {
+        KisPaintOpRegistry::instance()->add(
+            new KisSimplePaintOpFactory<KisColorSmudgeOp, KisColorSmudgeOpSettings>(
+                "colorsmudge", "Color Smudge", KisPaintOpFactory::categoryStable(),
+                "krita-colorsmudge.png", PkString(), PkStringList(), 2));
+    }
+};
 }
 
-ColorSmudgePaintOpPlugin::~ColorSmudgePaintOpPlugin() { }
-
-#include "colorsmudge_paintop_plugin.moc"
+static ColorSmudgePaintOpRegistration s_colorSmudgePaintOpRegistration;

@@ -22,11 +22,11 @@ public:
     virtual void updateMask(KisDabCache *dabCache,
                             const KisPaintInformation& info,
                             const KisDabShape &shape,
-                            const QPointF &cursorPoint,
-                            QRect *dstDabRect,
+                            const PkPointF &cursorPoint,
+                            PkRect *dstDabRect,
                             qreal lightnessStrength) = 0;
 
-    virtual QVector<QRect> paintDab(const QRect &srcRect, const QRect &dstRect,
+    virtual PkVector<PkRect> paintDab(const PkRect &srcRect, const PkRect &dstRect,
                                     const KoColor &currentPaintColor,
                                     qreal opacity,
                                     qreal colorRateValue,

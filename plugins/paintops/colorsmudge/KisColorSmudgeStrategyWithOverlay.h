@@ -24,22 +24,22 @@ public:
 
     void initializePainting() override;
 
-    QVector<KisPainter*> finalPainters();
+    PkVector<KisPainter*> finalPainters();
 
-    QVector<QRect> paintDab(const QRect &srcRect, const QRect &dstRect, const KoColor &currentPaintColor, qreal opacity,
+    PkVector<PkRect> paintDab(const PkRect &srcRect, const PkRect &dstRect, const KoColor &currentPaintColor, qreal opacity,
                             qreal colorRateValue, qreal smudgeRateValue, qreal maxPossibleSmudgeRateValue,
                             qreal lightnessStrengthValue, qreal smudgeRadiusValue) override;
 
 protected:
     KisFixedPaintDeviceSP m_maskDab;
     bool m_shouldPreserveMaskDab = true;
-    QScopedPointer<KisOverlayPaintDeviceWrapper> m_layerOverlayDevice;
+    PkScopedPointer<KisOverlayPaintDeviceWrapper> m_layerOverlayDevice;
 
 private:
-    QScopedPointer<KisOverlayPaintDeviceWrapper> m_imageOverlayDevice;
+    PkScopedPointer<KisOverlayPaintDeviceWrapper> m_imageOverlayDevice;
     KisColorSmudgeSourceSP m_sourceWrapperDevice;
     KisPainter m_finalPainter;
-    QScopedPointer<KisPainter> m_overlayPainter;
+    PkScopedPointer<KisPainter> m_overlayPainter;
     bool m_smearAlpha = true;
     KisPainter *m_initializationPainter = 0;
 };

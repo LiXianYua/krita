@@ -12,7 +12,7 @@ struct KisColorRateOptionData : KisCurveOptionData
 {
     KisColorRateOptionData()
         : KisCurveOptionData(
-              KoID("ColorRate", i18nc("Color rate of active Foreground color", "Color Rate")))
+              KoID("ColorRate", "Color Rate"))
     {}
 };
 
@@ -20,7 +20,7 @@ struct KisGradientOptionData : KisCurveOptionData
 {
     KisGradientOptionData()
         : KisCurveOptionData(
-              KoID("Gradient", i18n("Gradient")))
+              KoID("Gradient", "Gradient"))
     {}
 };
 

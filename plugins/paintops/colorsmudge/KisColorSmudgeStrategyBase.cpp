@@ -22,7 +22,7 @@ bool KisColorSmudgeStrategyBase::DabColoringStrategyMask::supportsFusedDullingBl
 }
 
 void KisColorSmudgeStrategyBase::DabColoringStrategyMask::blendInFusedBackgroundAndColorRateWithDulling(
-        KisFixedPaintDeviceSP dst, KisColorSmudgeSourceSP src, const QRect &dstRect,
+        KisFixedPaintDeviceSP dst, KisColorSmudgeSourceSP src, const PkRect &dstRect,
         const KoColor &preparedDullingColor, const KoCompositeOp *smearOp, const qreal smudgeRateOpacity,
         const KoColor &paintColor, const KoCompositeOp *colorRateOp, const qreal colorRateOpacity) const
 {
@@ -47,7 +47,7 @@ void KisColorSmudgeStrategyBase::DabColoringStrategyMask::blendInColorRate(const
                                                                            const KoCompositeOp *colorRateOp,
                                                                            qreal colorRateOpacity,
                                                                            KisFixedPaintDeviceSP dstDevice,
-                                                                           const QRect &dstRect) const
+                                                                           const PkRect &dstRect) const
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(*paintColor.colorSpace() == *colorRateOp->colorSpace());
 
@@ -71,7 +71,7 @@ void KisColorSmudgeStrategyBase::DabColoringStrategyStamp::blendInColorRate(cons
                                                                             const KoCompositeOp *colorRateOp,
                                                                             qreal colorRateOpacity,
                                                                             KisFixedPaintDeviceSP dstDevice,
-                                                                            const QRect &dstRect) const
+                                                                            const PkRect &dstRect) const
 {
     Q_UNUSED(paintColor);
 
@@ -91,7 +91,7 @@ bool KisColorSmudgeStrategyBase::DabColoringStrategyStamp::supportsFusedDullingB
 }
 
 void KisColorSmudgeStrategyBase::DabColoringStrategyStamp::blendInFusedBackgroundAndColorRateWithDulling(
-        KisFixedPaintDeviceSP dst, KisColorSmudgeSourceSP src, const QRect &dstRect,
+        KisFixedPaintDeviceSP dst, KisColorSmudgeSourceSP src, const PkRect &dstRect,
         const KoColor &preparedDullingColor, const KoCompositeOp *smearOp, const qreal smudgeRateOpacity,
         const KoColor &paintColor, const KoCompositeOp *colorRateOp, const qreal colorRateOpacity) const
 {
@@ -116,7 +116,7 @@ KisColorSmudgeStrategyBase::KisColorSmudgeStrategyBase(bool useDullingMode)
 }
 
 void KisColorSmudgeStrategyBase::initializePaintingImpl(const KoColorSpace *dstColorSpace, bool smearAlpha,
-                                                        const QString &colorRateCompositeOpId)
+                                                        const PkString &colorRateCompositeOpId)
 {
     m_blendDevice = new KisFixedPaintDevice(dstColorSpace, m_memoryAllocator);
     m_smearOp = dstColorSpace->compositeOp(smearCompositeOp(smearAlpha));
@@ -132,12 +132,12 @@ const KoColorSpace *KisColorSmudgeStrategyBase::preciseColorSpace() const
     return m_smearOp->colorSpace();
 }
 
-QString KisColorSmudgeStrategyBase::smearCompositeOp(bool smearAlpha) const
+PkString KisColorSmudgeStrategyBase::smearCompositeOp(bool smearAlpha) const
 {
     return smearAlpha ? COMPOSITE_COPY : COMPOSITE_OVER;
 }
 
-QString KisColorSmudgeStrategyBase::finalCompositeOp(bool smearAlpha) const
+PkString KisColorSmudgeStrategyBase::finalCompositeOp(bool smearAlpha) const
 {
     Q_UNUSED(smearAlpha);
     return COMPOSITE_COPY;
@@ -169,7 +169,7 @@ qreal KisColorSmudgeStrategyBase::smearRateOpacity(qreal opacity, qreal smudgeRa
     return smudgeRateValue * opacity;
 }
 
-void KisColorSmudgeStrategyBase::sampleDullingColor(const QRect &srcRect, qreal sampleRadiusValue,
+void KisColorSmudgeStrategyBase::sampleDullingColor(const PkRect &srcRect, qreal sampleRadiusValue,
                                                     KisColorSmudgeSourceSP sourceDevice,
                                                     KisFixedPaintDeviceSP tempFixedDevice,
                                                     KisFixedPaintDeviceSP maskDab, KoColor *resultColor)
@@ -181,9 +181,9 @@ void KisColorSmudgeStrategyBase::sampleDullingColor(const QRect &srcRect, qreal 
 }
 
 void
-KisColorSmudgeStrategyBase::blendBrush(const QVector<KisPainter *> dstPainters, KisColorSmudgeSourceSP srcSampleDevice,
-                                       KisFixedPaintDeviceSP maskDab, bool preserveMaskDab, const QRect &srcRect,
-                                       const QRect &dstRect, const KoColor &currentPaintColor, qreal opacity,
+KisColorSmudgeStrategyBase::blendBrush(const PkVector<KisPainter *> dstPainters, KisColorSmudgeSourceSP srcSampleDevice,
+                                       KisFixedPaintDeviceSP maskDab, bool preserveMaskDab, const PkRect &srcRect,
+                                       const PkRect &dstRect, const KoColor &currentPaintColor, qreal opacity,
                                        qreal smudgeRateValue, qreal maxPossibleSmudgeRateValue, qreal colorRateValue,
                                        qreal smudgeRadiusValue)
 {
@@ -248,7 +248,7 @@ KisColorSmudgeStrategyBase::blendBrush(const QVector<KisPainter *> dstPainters, 
 
     const bool preserveDab = preserveMaskDab && dstPainters.size() > 1;
 
-    Q_FOREACH (KisPainter *dstPainter, dstPainters) {
+    for (KisPainter *dstPainter : dstPainters) {
         dstPainter->setOpacityF(finalPainterOpacity(opacity, smudgeRateValue));
 
         dstPainter->bltFixedWithFixedSelection(dstRect.x(), dstRect.y(),
@@ -262,7 +262,7 @@ KisColorSmudgeStrategyBase::blendBrush(const QVector<KisPainter *> dstPainters, 
 }
 
 void KisColorSmudgeStrategyBase::blendInBackgroundWithSmearing(KisFixedPaintDeviceSP dst, KisColorSmudgeSourceSP src,
-                                                               const QRect &srcRect, const QRect &dstRect,
+                                                               const PkRect &srcRect, const PkRect &dstRect,
                                                                const qreal smudgeRateOpacity)
 {
     if (m_smearOp->id() == COMPOSITE_COPY && qFuzzyCompare(smudgeRateOpacity, OPACITY_OPAQUE_F)) {
@@ -284,7 +284,7 @@ void KisColorSmudgeStrategyBase::blendInBackgroundWithSmearing(KisFixedPaintDevi
 }
 
 void KisColorSmudgeStrategyBase::blendInBackgroundWithDulling(KisFixedPaintDeviceSP dst, KisColorSmudgeSourceSP src,
-                                                              const QRect &dstRect, const KoColor &preparedDullingColor,
+                                                              const PkRect &dstRect, const KoColor &preparedDullingColor,
                                                               const qreal smudgeRateOpacity)
 {
     Q_UNUSED(preparedDullingColor);

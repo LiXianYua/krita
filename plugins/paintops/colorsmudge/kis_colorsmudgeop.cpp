@@ -6,7 +6,8 @@
 
 #include "kis_colorsmudgeop.h"
 
-#include <QRect>
+#include <PkHash.h>
+#include <PkRect.h>
 
 #include <KoColor.h>
 
@@ -119,9 +120,9 @@ KisColorSmudgeOp::KisColorSmudgeOp(const KisPaintOpSettingsSP settings, KisPaint
 
     /// color transformation must be created **after** the color
     /// space of m_paintColor has been set up
-    Q_FOREACH (KisHSVOption * option, m_hsvOptions) {
+    for (KisHSVOption *option : m_hsvOptions) {
         if (option->isChecked() && !m_hsvTransform) {
-            m_hsvTransform = m_paintColor.colorSpace()->createColorTransformation("hsv_adjustment", QHash<QString, QVariant>());
+            m_hsvTransform = m_paintColor.colorSpace()->createColorTransformation("hsv_adjustment", PkHash<PkString, PkVariant>());
         }
     }
 }
@@ -146,7 +147,7 @@ KisSpacingInformation KisColorSmudgeOp::paintAt(const KisPaintInformation& info)
         * should read from the aligned areas of the image, so having
         * additional internal offsets, created by the subpixel precision,
         * will worsen the quality (at least because
-        * QRectF(m_dstDabRect).center() will not point to the real center
+        * PkRectF(m_dstDabRect).center() will not point to the real center
         * of the brush anymore).
         * Of course, this only really matters with smearing_mode (bug:327235),
         * and you only notice the lack of subpixel precision in the dulling methods.
@@ -164,7 +165,7 @@ KisSpacingInformation KisColorSmudgeOp::paintAt(const KisPaintInformation& info)
 
     KisDabShape shape(scale, ratio, rotation);
 
-    QPointF scatteredPos =
+    PkPointF scatteredPos =
         m_scatterOption.apply(info,
                               brush->maskWidth(shape, 0, 0, info),
                               brush->maskHeight(shape, 0, 0, info));
@@ -181,7 +182,7 @@ KisSpacingInformation KisColorSmudgeOp::paintAt(const KisPaintInformation& info)
     const qreal paintThickness = m_paintThicknessOption.apply(info);
     m_strategy->updateMask(m_dabCache, info, shape, scatteredPos, &m_dstDabRect, paintThickness);
 
-    QPointF newCenterPos = QRectF(m_dstDabRect).center();
+    PkPointF newCenterPos = PkRectF(m_dstDabRect).center();
     /**
      * Save the center of the current dab to know where to read the
      * data during the next pass. We do not save scatteredPos here,
@@ -189,7 +190,7 @@ KisSpacingInformation KisColorSmudgeOp::paintAt(const KisPaintInformation& info)
      * brush (due to rounding effects), which will result in a
      * really weird quality.
      */
-    QRect srcDabRect = m_dstDabRect.translated((m_lastPaintPos - newCenterPos).toPoint());
+    PkRect srcDabRect = m_dstDabRect.translated((m_lastPaintPos - newCenterPos).toPoint());
 
     m_lastPaintPos = newCenterPos;
 
@@ -207,13 +208,13 @@ KisSpacingInformation KisColorSmudgeOp::paintAt(const KisPaintInformation& info)
 
     m_gradientOption.apply(paintColor, m_gradient, info);
     if (m_hsvTransform) {
-        Q_FOREACH (KisHSVOption *option, m_hsvOptions) {
+        for (KisHSVOption *option : m_hsvOptions) {
             option->apply(m_hsvTransform, info);
         }
         m_hsvTransform->transform(paintColor.data(), paintColor.data(), 1);
     }
 
-    const QVector<QRect> dirtyRects =
+    const PkVector<PkRect> dirtyRects =
             m_strategy->paintDab(srcDabRect, m_dstDabRect,
                                  paintColor,
                                  fpOpacity, colorRate,
@@ -246,7 +247,7 @@ KisInterstrokeDataFactory *KisColorSmudgeOp::createInterstrokeDataFactory(const 
     const bool needsInterstrokeData =
         brushOption.brushApplication(settings.data(), resourcesInterface) == LIGHTNESSMAP;
 
-    const bool needsNewEngine = settings->getBool(QString("SmudgeRate") + "UseNewEngine", false);
+    const bool needsNewEngine = settings->getBool(PkString("SmudgeRate") + "UseNewEngine", false);
     KIS_SAFE_ASSERT_RECOVER_NOOP(!needsInterstrokeData || needsNewEngine);
 
     return needsInterstrokeData ? new ColorSmudgeInterstrokeDataFactory() : 0;

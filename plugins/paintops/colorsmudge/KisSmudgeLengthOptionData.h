@@ -34,9 +34,9 @@ using KisSmudgeLengthOptionMixIn = KisPrefixedOptionDataWrapper<KisSmudgeLengthO
 
 struct KisSmudgeLengthOptionData : KisOptionTuple<KisCurveOptionData, KisSmudgeLengthOptionMixIn>
 {
-    KisSmudgeLengthOptionData(const QString &prefix = "")
+    KisSmudgeLengthOptionData(const PkString &prefix = "")
         : KisOptionTuple<KisCurveOptionData, KisSmudgeLengthOptionMixIn>(prefix,
-                                                                         KoID("SmudgeRate", i18n("Smudge Length")))
+                                                                         KoID("SmudgeRate", "Smudge Length"))
     {
     }
 };

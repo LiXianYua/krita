@@ -6,9 +6,8 @@
 
 #include "KisColorsmudgeOpTest.h"
 
-#include "kistest.h"
+#include <pk/test/compat/QTest>
 
-#include <QRegularExpression>
 #define USE_DOCUMENT 0
 #include <qimage_based_test.h>
 #undef USE_DOCUMENT
@@ -18,6 +17,10 @@
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/kis_paintop_settings.h>
 #include <KoCanvasResourcesIds.h>
+#include <PkScopedPointer.h>
+#include <kis_painter.h>
+#include <kis_resources_snapshot.h>
+#include <string>
 
 class TestColorsmudgeOp : public TestUtil::QImageBasedTest
 {
@@ -56,7 +59,7 @@ public:
 
         KisPainter gc(targetNode->paintDevice());
 
-        QScopedPointer<KoCanvasResourceProvider> manager(
+        PkScopedPointer<KoCanvasResourceProvider> manager(
             utils::createResourceManager(image, 0, presetFileName));
 
         manager->setResource(KoCanvasResource::ForegroundColor, KoColor(Qt::green, image->colorSpace()));
@@ -135,10 +138,12 @@ void KisColorsmudgeOpTest::test_data()
     for (int i = 0; i < 2; i++) {
         const bool useOverlay = bool(i);
         Q_FOREACH (const QString &file, files) {
-            QRegularExpression re("test_smudge_(.+).0001.kpp");
-            const QString name = QString("%1_%2").arg(useOverlay ? "over" : "norm").arg(re.match(file).captured(1));
-            const QByteArray nameLatin = name.toLatin1();
-            QTest::addRow("%s", nameLatin.data()) << name << file << useOverlay;
+            const int prefixLength = int(PkString("test_smudge_").size());
+            const int suffixLength = int(PkString(".0001.kpp").size());
+            const PkString caseName = file.mid(prefixLength, file.size() - prefixLength - suffixLength);
+            const QString name = QString("%1_%2").arg(useOverlay ? "over" : "norm").arg(caseName);
+            const std::string rowName = name.PkToUtf8();
+            QTest::addRow("%s", rowName.c_str()) << name << file << useOverlay;
         }
     }
 }
@@ -153,4 +158,4 @@ void KisColorsmudgeOpTest::test()
     t.test(testName, preset, overlay);
 }
 
-KISTEST_MAIN(KisColorsmudgeOpTest)
+PK_TEST_MAIN(KisColorsmudgeOpTest)

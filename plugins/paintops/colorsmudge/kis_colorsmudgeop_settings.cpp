@@ -8,7 +8,7 @@
 
 struct KisColorSmudgeOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 KisColorSmudgeOpSettings::KisColorSmudgeOpSettings(KisResourcesInterfaceSP resourcesInterface)
@@ -31,18 +31,18 @@ KisColorSmudgeOpSettings::~KisColorSmudgeOpSettings()
 #include "KisCurveOptionDataUniformProperty.h"
 #include "KisSmudgeRadiusOptionData.h"
 
-QList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
-            KisComboBasedPaintOpPropertyCallback *prop = new KisComboBasedPaintOpPropertyCallback(KoID("smudge_mode", i18n("Smudge Mode")), settings, 0);
+            KisComboBasedPaintOpPropertyCallback *prop = new KisComboBasedPaintOpPropertyCallback(KoID("smudge_mode", "Smudge Mode"), settings, 0);
 
-            QList<QString> modes;
-            modes << i18n("Smearing");
-            modes << i18n("Dulling");
+            PkList<PkString> modes;
+            modes << "Smearing";
+            modes << "Dulling";
 
             prop->setItems(modes);
 
@@ -60,7 +60,8 @@ QList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(K
                     data.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -72,7 +73,8 @@ QList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(K
                     "smudge_length",
                     settings, 0);
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -83,7 +85,8 @@ QList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(K
                     "smudge_radius",
                     settings, 0);
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -95,14 +98,15 @@ QList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(K
                         "smudge_color_rate",
                         settings, 0);
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
 
         {
             KisUniformPaintOpPropertyCallback *prop =
-                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("smudge_smear_alpha", i18n("Smear Alpha")), settings, 0);
+                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("smudge_smear_alpha", "Smear Alpha"), settings, 0);
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -119,7 +123,8 @@ QList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(K
                     data.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -131,18 +136,19 @@ QList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(K
                     "smudge_paint_thickness_rate",
                     settings, 0);
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
 
         {
             KisComboBasedPaintOpPropertyCallback *prop =
-                new KisComboBasedPaintOpPropertyCallback(KoID("smudge_paint_thickness_mode", i18n("Paint Thickness Mode")), settings, 0);
+                new KisComboBasedPaintOpPropertyCallback(KoID("smudge_paint_thickness_mode", "Paint Thickness Mode"), settings, 0);
 
-            QList<QString> modes;
-            modes << i18n("Overwrite");
-            modes << i18n("Paint over");
+            PkList<PkString> modes;
+            modes << "Overwrite";
+            modes << "Paint over";
 
             prop->setItems(modes);
 
@@ -161,12 +167,15 @@ QList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(K
                     data.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                              prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
     }
 
-    return KisBrushBasedPaintOpSettings::uniformProperties(settings, updateProxy) + props;
+    PkList<KisUniformPaintOpPropertySP> result =
+        KisBrushBasedPaintOpSettings::uniformProperties(settings, updateProxy);
+    result.append(props);
+    return result;
 }
-

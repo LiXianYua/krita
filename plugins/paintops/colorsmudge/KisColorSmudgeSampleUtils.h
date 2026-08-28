@@ -22,8 +22,8 @@ namespace KisColorSmudgeSampleUtils {
 struct WeightedSampleWrapper
 {
     WeightedSampleWrapper(KoMixColorsOp::Mixer *mixer,
-                          KisFixedPaintDeviceSP maskDab, const QRect &maskRect,
-                          KisFixedPaintDeviceSP sampleDab, const QRect &sampleRect)
+                          KisFixedPaintDeviceSP maskDab, const PkRect &maskRect,
+                          KisFixedPaintDeviceSP sampleDab, const PkRect &sampleRect)
             : m_mixer(mixer),
               m_maskRect(maskRect),
               m_maskPtr(maskDab->data()),
@@ -36,8 +36,8 @@ struct WeightedSampleWrapper
 
     }
 
-    inline void samplePixel(const QPoint &relativeSamplePoint) {
-        const QPoint maskPt(relativeSamplePoint - m_maskRect.topLeft() + m_sampleRect.topLeft());
+    inline void samplePixel(const PkPoint &relativeSamplePoint) {
+        const PkPoint maskPt(relativeSamplePoint - m_maskRect.topLeft() + m_sampleRect.topLeft());
 
         const qint16 opacity = *(m_maskPtr + maskPt.x() + maskPt.y() * m_maskStride);
         const quint8 *ptr = m_samplePtr + relativeSamplePoint.x() * m_samplePixelSize + relativeSamplePoint.y() * m_sampleStride;
@@ -61,11 +61,11 @@ struct WeightedSampleWrapper
     }
 
     KoMixColorsOp::Mixer *m_mixer;
-    const QRect m_maskRect;
+    const PkRect m_maskRect;
     quint8 *m_maskPtr;
     const int m_maskStride;
     int m_samplePixelSize;
-    const QRect m_sampleRect;
+    const PkRect m_sampleRect;
     quint8 *m_samplePtr;
     const int m_sampleStride;
 };
@@ -73,8 +73,8 @@ struct WeightedSampleWrapper
 struct AveragedSampleWrapper
 {
     AveragedSampleWrapper(KoMixColorsOp::Mixer *mixer,
-                          KisFixedPaintDeviceSP maskDab, const QRect &maskRect,
-                          KisFixedPaintDeviceSP sampleDab, const QRect &sampleRect)
+                          KisFixedPaintDeviceSP maskDab, const PkRect &maskRect,
+                          KisFixedPaintDeviceSP sampleDab, const PkRect &sampleRect)
             : m_mixer(mixer),
               m_samplePixelSize(sampleDab->colorSpace()->pixelSize()),
               m_sampleRect(sampleRect),
@@ -85,7 +85,7 @@ struct AveragedSampleWrapper
         Q_UNUSED(maskRect);
     }
 
-    inline void samplePixel(const QPoint &relativeSamplePoint) {
+    inline void samplePixel(const PkPoint &relativeSamplePoint) {
         const quint8 *ptr = m_samplePtr + relativeSamplePoint.x() * m_samplePixelSize + relativeSamplePoint.y() * m_sampleStride;
         m_mixer->accumulateAverage(ptr, 1);
     }
@@ -100,7 +100,7 @@ struct AveragedSampleWrapper
 
     KoMixColorsOp::Mixer *m_mixer;
     int m_samplePixelSize;
-    const QRect m_sampleRect;
+    const PkRect m_sampleRect;
     quint8 *m_samplePtr;
     const int m_sampleStride;
 };
@@ -132,7 +132,7 @@ struct AveragedSampleWrapper
  * function for internal purposes.
  */
 template<class WeightingModeWrapper>
-void sampleColor(const QRect &srcRect,
+void sampleColor(const PkRect &srcRect,
                  qreal sampleRadiusValue,
                  KisColorSmudgeSourceSP sourceDevice,
                  KisFixedPaintDeviceSP tempFixedDevice,
@@ -145,10 +145,10 @@ void sampleColor(const QRect &srcRect,
     KIS_ASSERT_RECOVER_RETURN(*resultColor->colorSpace() == *sourceDevice->colorSpace());
     KIS_ASSERT_RECOVER_RETURN(*tempFixedDevice->colorSpace() == *sourceDevice->colorSpace());
 
-    const QRect minimalRect = QRect(srcRect.center(), QSize(1,1));
+    const PkRect minimalRect = PkRect(srcRect.center(), PkSize(1,1));
 
     do {
-        const QRect sampleRect = sampleRadiusValue > 0 ?
+        const PkRect sampleRect = sampleRadiusValue > 0 ?
                     KisAlgebra2D::blowRect(srcRect, 0.5 * (sampleRadiusValue - 1.0)) | minimalRect :
                     minimalRect;
 
@@ -163,7 +163,7 @@ void sampleColor(const QRect &srcRect,
         KisAlgebra2D::HaltonSequenceGenerator hGen(2);
         KisAlgebra2D::HaltonSequenceGenerator vGen(3);
 
-        QScopedPointer<KoMixColorsOp::Mixer> mixer(cs->mixColorsOp()->createMixer());
+        PkScopedPointer<KoMixColorsOp::Mixer> mixer(cs->mixColorsOp()->createMixer());
 
         const int minSamples =
                 qMin(numPixels, qMax(64, qRound(0.02 * numPixels)));
@@ -175,7 +175,7 @@ void sampleColor(const QRect &srcRect,
         KoColor lastPickedColor(*resultColor);
 
         for (int i = 0; i < minSamples; i++) {
-            const QPoint pt(hGen.generate(sampleRect.width() - 1),
+            const PkPoint pt(hGen.generate(sampleRect.width() - 1),
                             vGen.generate(sampleRect.height() - 1));
 
             weightingModeWrapper.samplePixel(pt);
@@ -190,7 +190,7 @@ void sampleColor(const QRect &srcRect,
         while (numSamplesLeft > 0) {
             const int currentBatchSize = qMin(numSamplesLeft, batchSize);
             for (int i = 0; i < currentBatchSize; i++) {
-                const QPoint pt(hGen.generate(sampleRect.width() - 1),
+                const PkPoint pt(hGen.generate(sampleRect.width() - 1),
                                 vGen.generate(sampleRect.height() - 1));
 
                 weightingModeWrapper.samplePixel(pt);

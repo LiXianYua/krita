@@ -23,6 +23,6 @@ void KisSmudgeOverlayModeOptionData::write(KisPropertiesConfiguration *setting) 
 KisPaintopLodLimitations KisSmudgeOverlayModeOptionData::lodLimitations() const
 {
     KisPaintopLodLimitations l;
-    l.blockers << KoID("colorsmudge-overlay", i18nc("PaintOp instant preview limitation", "Overlay Option"));
+    l.blockers.insert(KoID("colorsmudge-overlay", "Overlay Option"));
     return l;
 }

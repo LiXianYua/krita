@@ -7,7 +7,10 @@
 #ifndef _KIS_COLORSMUDGEOP_H_
 #define _KIS_COLORSMUDGEOP_H_
 
-#include <QRect>
+#include <PkList.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkScopedPointer.h>
 
 #include "KoColorTransformation.h"
 #include <KoAbstractGradient.h>
@@ -28,8 +31,6 @@
 #include <KisColorRateOption.h>
 #include <KisSmudgeRadiusOption.h>
 #include <KisSmudgeOverlayModeOptionData.h>
-
-class QPointF;
 
 class KisBrushBasedPaintOpSettings;
 class KisPainter;
@@ -70,15 +71,15 @@ private:
     KisColorRateOption2 m_colorRateOption;
     KisSmudgeRadiusOption2 m_smudgeRadiusOption;
 
-    QList<KisHSVOption*> m_hsvOptions;
+    PkList<KisHSVOption*> m_hsvOptions;
     KisAirbrushOptionData m_airbrushData;
     KisSmudgeOverlayModeOptionData m_overlayModeData;
 
-    QRect                     m_dstDabRect;
-    QPointF                   m_lastPaintPos;
+    PkRect                     m_dstDabRect;
+    PkPointF                   m_lastPaintPos;
 
     KoColorTransformation *m_hsvTransform {0};
-    QScopedPointer<KisColorSmudgeStrategy> m_strategy;
+    PkScopedPointer<KisColorSmudgeStrategy> m_strategy;
 };
 
 #endif // _KIS_COLORSMUDGEOP_H_

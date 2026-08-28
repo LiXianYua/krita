@@ -19,11 +19,11 @@ public:
                                      bool useDullingMode,
                                      bool useOverlayMode);
 
-    void sampleDullingColor(const QRect &srcRect, qreal sampleRadiusValue, KisColorSmudgeSourceSP sourceDevice,
+    void sampleDullingColor(const PkRect &srcRect, qreal sampleRadiusValue, KisColorSmudgeSourceSP sourceDevice,
                             KisFixedPaintDeviceSP tempFixedDevice, KisFixedPaintDeviceSP maskDab,
                             KoColor *resultColor) override;
-    QString smearCompositeOp(bool smearAlpha) const override;
-    QString finalCompositeOp(bool smearAlpha) const override;
+    PkString smearCompositeOp(bool smearAlpha) const override;
+    PkString finalCompositeOp(bool smearAlpha) const override;
     qreal finalPainterOpacity(qreal opacity, qreal smudgeRateValue) override;
     qreal colorRateOpacity(qreal opacity, qreal smudgeRateValue, qreal colorRateValue, qreal maxPossibleSmudgeRateValue) override;
     qreal dullingRateOpacity(qreal opacity, qreal smudgeRateValue) override;

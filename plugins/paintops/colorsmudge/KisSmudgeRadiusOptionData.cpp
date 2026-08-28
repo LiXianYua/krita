@@ -8,7 +8,7 @@
 
 KisSmudgeRadiusOptionData::KisSmudgeRadiusOptionData()
     : KisCurveOptionData(
-          KoID("SmudgeRadius", i18n("Smudge Radius")),
+          KoID("SmudgeRadius", "Smudge Radius"),
           Checkability::Checkable, std::nullopt,
           std::make_pair(0.0, 3.0))
 {

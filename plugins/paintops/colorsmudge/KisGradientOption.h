@@ -10,7 +10,7 @@
 
 class KoColor;
 class KoAbstractGradient;
-typedef QSharedPointer<KoAbstractGradient> KoAbstractGradientSP;
+typedef PkSharedPointer<KoAbstractGradient> KoAbstractGradientSP;
 
 struct KisGradientOptionData;
 

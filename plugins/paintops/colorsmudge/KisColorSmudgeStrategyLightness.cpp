@@ -88,8 +88,8 @@ KisColorSmudgeStrategyBase::DabColoringStrategy &KisColorSmudgeStrategyLightness
 }
 
 void KisColorSmudgeStrategyLightness::updateMask(KisDabCache *dabCache, const KisPaintInformation &info,
-                                                 const KisDabShape &shape, const QPointF &cursorPoint,
-                                                 QRect *dstDabRect, qreal paintThickness)
+                                                 const KisDabShape &shape, const PkPointF &cursorPoint,
+                                                 PkRect *dstDabRect, qreal paintThickness)
 {
     m_origDab = dabCache->fetchNormalizedImageDab(m_origDab->colorSpace(),
                                                   cursorPoint,
@@ -134,17 +134,17 @@ void KisColorSmudgeStrategyLightness::updateMask(KisDabCache *dabCache, const Ki
     m_origDab->colorSpace()->copyOpacityU8(m_origDab->data(), m_maskDab->data(), numPixels);
 }
 
-QVector<QRect>
-KisColorSmudgeStrategyLightness::paintDab(const QRect &srcRect, const QRect &dstRect, const KoColor &currentPaintColor,
+PkVector<PkRect>
+KisColorSmudgeStrategyLightness::paintDab(const PkRect &srcRect, const PkRect &dstRect, const KoColor &currentPaintColor,
                                           qreal opacity, qreal colorRateValue, qreal smudgeRateValue,
                                           qreal maxPossibleSmudgeRateValue, qreal paintThicknessValue,
                                           qreal smudgeRadiusValue)
 {
     const int numPixels = dstRect.width() * dstRect.height();
 
-    const QVector<QRect> mirroredRects = m_finalPainter.calculateAllMirroredRects(dstRect);
+    const PkVector<PkRect> mirroredRects = m_finalPainter.calculateAllMirroredRects(dstRect);
 
-    QVector<QRect> readRects;
+    PkVector<PkRect> readRects;
     readRects << mirroredRects;
     readRects << srcRect;
     m_sourceWrapperDevice->readRects(readRects);
@@ -178,7 +178,7 @@ KisColorSmudgeStrategyLightness::paintDab(const QRect &srcRect, const QRect &dst
     KisFixedPaintDeviceSP tempHeightmapDevice =
         new KisFixedPaintDevice(m_heightmapDevice->colorSpace(), m_memoryAllocator);
 
-    Q_FOREACH(const QRect& rc, mirroredRects) {
+    for (const PkRect &rc : mirroredRects) {
         tempColorDevice->setRect(rc);
         tempColorDevice->lazyGrowBufferWithoutInitialization();
 
@@ -189,7 +189,7 @@ KisColorSmudgeStrategyLightness::paintDab(const QRect &srcRect, const QRect &dst
         m_heightmapDevice->readBytes(tempHeightmapDevice->data(), rc);
         tempColorDevice->colorSpace()->
             modulateLightnessByGrayBrush(tempColorDevice->data(),
-                reinterpret_cast<const QRgb*>(tempHeightmapDevice->data()),
+                reinterpret_cast<const PkRgb*>(tempHeightmapDevice->data()),
                 1.0,
                 numPixels);
         m_projectionDevice->writeBytes(tempColorDevice->data(), tempColorDevice->bounds());

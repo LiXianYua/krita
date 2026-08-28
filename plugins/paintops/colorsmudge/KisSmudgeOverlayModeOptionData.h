@@ -6,7 +6,6 @@
 #ifndef KISSMUDGEOVERLAYMODEOPTIONDATA_H
 #define KISSMUDGEOVERLAYMODEOPTIONDATA_H
 
-#include <QtGlobal>
 #include <boost/operators.hpp>
 
 class KisPropertiesConfiguration;

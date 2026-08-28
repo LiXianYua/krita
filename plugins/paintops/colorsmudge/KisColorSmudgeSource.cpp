@@ -10,7 +10,7 @@
 #include "kis_image.h"
 #include "KisOverlayPaintDeviceWrapper.h"
 
-void KisColorSmudgeSource::readRect(const QRect &rect) {
+void KisColorSmudgeSource::readRect(const PkRect &rect) {
     readRects({rect});
 }
 
@@ -24,11 +24,11 @@ KisColorSmudgeSourcePaintDevice::KisColorSmudgeSourcePaintDevice(KisOverlayPaint
 {
 }
 
-void KisColorSmudgeSourcePaintDevice::readRects(const QVector<QRect> &rects) {
+void KisColorSmudgeSourcePaintDevice::readRects(const PkVector<PkRect> &rects) {
     m_overlayDevice.readRects(rects);
 }
 
-void KisColorSmudgeSourcePaintDevice::readBytes(quint8 *dstPtr, const QRect &rect) {
+void KisColorSmudgeSourcePaintDevice::readBytes(quint8 *dstPtr, const PkRect &rect) {
     m_overlayDevice.overlay(m_overlayIndex)->readBytes(dstPtr, rect);
 }
 
@@ -46,14 +46,14 @@ KisColorSmudgeSourceImage::KisColorSmudgeSourceImage(KisImageSP image, KisOverla
     KIS_ASSERT(m_image->projection() == m_overlayDevice.source());
 }
 
-void KisColorSmudgeSourceImage::readRects(const QVector<QRect> &rects)
+void KisColorSmudgeSourceImage::readRects(const PkVector<PkRect> &rects)
 {
     m_image->blockUpdates();
     m_overlayDevice.readRects(rects);
     m_image->unblockUpdates();
 }
 
-void KisColorSmudgeSourceImage::readBytes(quint8 *dstPtr, const QRect &rect)
+void KisColorSmudgeSourceImage::readBytes(quint8 *dstPtr, const PkRect &rect)
 {
     m_overlayDevice.overlay()->readBytes(dstPtr, rect);
 }

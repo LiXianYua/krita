@@ -35,9 +35,9 @@ using KisPaintThicknessOptionMixIn = KisPrefixedOptionDataWrapper<KisPaintThickn
 
 struct KisPaintThicknessOptionData : KisOptionTuple<KisCurveOptionData, KisPaintThicknessOptionMixIn>
 {
-    KisPaintThicknessOptionData(const QString &prefix = "")
+    KisPaintThicknessOptionData(const PkString &prefix = "")
         : KisOptionTuple<KisCurveOptionData, KisPaintThicknessOptionMixIn>(prefix,
-                                                                           KoID("PaintThickness", i18n("Paint Thickness")))
+                                                                           KoID("PaintThickness", "Paint Thickness"))
     {
     }
 };

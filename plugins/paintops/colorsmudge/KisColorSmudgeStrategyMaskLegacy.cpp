@@ -6,7 +6,6 @@
 
 #include <KoCompositeOpRegistry.h>
 #include <kis_algebra_2d.h>
-#include <QtMath>
 #include "KisColorSmudgeStrategyMaskLegacy.h"
 #include "KisColorSmudgeSampleUtils.h"
 
@@ -23,7 +22,7 @@ KisColorSmudgeStrategyMaskLegacy::KisColorSmudgeStrategyMaskLegacy(KisPainter *p
 {
 }
 
-void KisColorSmudgeStrategyMaskLegacy::sampleDullingColor(const QRect &srcRect, qreal sampleRadiusValue,
+void KisColorSmudgeStrategyMaskLegacy::sampleDullingColor(const PkRect &srcRect, qreal sampleRadiusValue,
                                                           KisColorSmudgeSourceSP sourceDevice,
                                                           KisFixedPaintDeviceSP tempFixedDevice,
                                                           KisFixedPaintDeviceSP maskDab, KoColor *resultColor)
@@ -34,13 +33,13 @@ void KisColorSmudgeStrategyMaskLegacy::sampleDullingColor(const QRect &srcRect, 
                                        maskDab, resultColor);
 }
 
-QString KisColorSmudgeStrategyMaskLegacy::smearCompositeOp(bool smearAlpha) const
+PkString KisColorSmudgeStrategyMaskLegacy::smearCompositeOp(bool smearAlpha) const
 {
     Q_UNUSED(smearAlpha);
     return COMPOSITE_COPY;
 }
 
-QString KisColorSmudgeStrategyMaskLegacy::finalCompositeOp(bool smearAlpha) const
+PkString KisColorSmudgeStrategyMaskLegacy::finalCompositeOp(bool smearAlpha) const
 {
     return smearAlpha ? COMPOSITE_COPY : COMPOSITE_OVER;
 }
