@@ -30,17 +30,16 @@ void PhongPixelProcessor::initialize(const KisPropertiesConfigurationSP config)
     //setLightVector(PkVector3D(-8, 8, 2));
 
     Illuminant light[PHONG_TOTAL_ILLUMINANTS];
-    PkVariant guiLight[PHONG_TOTAL_ILLUMINANTS];
-
     qint32 azimuth;
     qint32 inclination;
 
     for (int i = 0; i < PHONG_TOTAL_ILLUMINANTS; i++) {
         if (config->getBool(PHONG_ILLUMINANT_IS_ENABLED[i])) {
-            if (config->getProperty(PHONG_ILLUMINANT_COLOR[i], guiLight[i])) {
-                light[i].RGBvalue << guiLight[i].value<PkColor>().redF();
-                light[i].RGBvalue << guiLight[i].value<PkColor>().greenF();
-                light[i].RGBvalue << guiLight[i].value<PkColor>().blueF();
+            const PkColor guiLight = config->getColor(PHONG_ILLUMINANT_COLOR[i]).toQColor();
+            if (guiLight.isValid()) {
+                light[i].RGBvalue << guiLight.redF();
+                light[i].RGBvalue << guiLight.greenF();
+                light[i].RGBvalue << guiLight.blueF();
 
                 azimuth = config->getInt(PHONG_ILLUMINANT_AZIMUTH[i]) - 90;
                 inclination = config->getInt(PHONG_ILLUMINANT_INCLINATION[i]);

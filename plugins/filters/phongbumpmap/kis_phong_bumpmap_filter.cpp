@@ -190,10 +190,10 @@ KisFilterConfigurationSP KisFilterPhongBumpmap::defaultConfiguration(KisResource
     config->setProperty(PHONG_ILLUMINANT_IS_ENABLED[1], true);
     config->setProperty(PHONG_ILLUMINANT_IS_ENABLED[2], false);
     config->setProperty(PHONG_ILLUMINANT_IS_ENABLED[3], false);
-    config->setProperty(PHONG_ILLUMINANT_COLOR[0], PkVariant::fromValue(PkColor(255, 255, 0)));
-    config->setProperty(PHONG_ILLUMINANT_COLOR[1], PkVariant::fromValue(PkColor(255, 0, 0)));
-    config->setProperty(PHONG_ILLUMINANT_COLOR[2], PkVariant::fromValue(PkColor(0, 0, 255)));
-    config->setProperty(PHONG_ILLUMINANT_COLOR[3], PkVariant::fromValue(PkColor(0, 255, 0)));
+    config->setProperty(PHONG_ILLUMINANT_COLOR[0], PkColor(255, 255, 0).name(PkColor::HexArgb));
+    config->setProperty(PHONG_ILLUMINANT_COLOR[1], PkColor(255, 0, 0).name(PkColor::HexArgb));
+    config->setProperty(PHONG_ILLUMINANT_COLOR[2], PkColor(0, 0, 255).name(PkColor::HexArgb));
+    config->setProperty(PHONG_ILLUMINANT_COLOR[3], PkColor(0, 255, 0).name(PkColor::HexArgb));
     config->setProperty(PHONG_ILLUMINANT_AZIMUTH[0], 50);
     config->setProperty(PHONG_ILLUMINANT_AZIMUTH[1], 100);
     config->setProperty(PHONG_ILLUMINANT_AZIMUTH[2], 150);

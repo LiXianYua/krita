@@ -34,7 +34,7 @@ KisFilterColorToAlpha::KisFilterColorToAlpha()
 KisFilterConfigurationSP KisFilterColorToAlpha::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
-    config->setProperty("targetcolor", PkVariant::fromValue(PkColor(255, 255, 255)));
+    config->setProperty("targetcolor", PkColor(255, 255, 255).name(PkColor::HexArgb));
     config->setProperty("threshold", 100);
     return config;
 }
@@ -89,7 +89,10 @@ void KisFilterColorToAlpha::processImpl(KisPaintDeviceSP device,
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
 
     PkVariant value;
-    PkColor cTA = (config->getProperty("targetcolor", value)) ? value.value<PkColor>() : PkColor(255, 255, 255);
+    PkColor cTA = config->getColor("targetcolor").toQColor();
+    if (!cTA.isValid()) {
+        cTA = PkColor(255, 255, 255);
+    }
     int threshold = (config->getProperty("threshold", value)) ? value.toInt() : 1;
 
     const KoColorSpace * cs = device->colorSpace();

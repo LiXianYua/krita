@@ -10,6 +10,7 @@
 
 #include <PkXmlDocument.h>
 #include <regex>
+#include <limits>
 
 #include "KoChannelInfo.h"
 #include "KoBasicHistogramProducers.h"
@@ -175,14 +176,20 @@ void KisMultiChannelFilterConfiguration::fromXML(const PkXmlElement& root)
     quint16 index;
     std::regex curveRegexp("curve(\\d+)");
     std::smatch match;
+    auto parseUShort = [](const PkString &text) -> quint16 {
+        bool ok = false;
+        const int value = text.toInt(&ok);
+        return ok && value >= 0 && value <= std::numeric_limits<quint16>::max()
+            ? static_cast<quint16>(value) : 0;
+    };
 
     while (!e.isNull()) {
         if ((attributeName = e.attribute("name")) == "activeCurve") {
             activeCurve = e.text().toInt();
         } else if ((attributeName = e.attribute("name")) == "nTransfers") {
-            numTransfers = static_cast<quint16>(e.text().toInt());
+            numTransfers = parseUShort(e.text());
         } else if ((attributeName = e.attribute("name")) == "nTransfersWithAlpha") {
-            numTransfersWithAlpha = static_cast<quint16>(e.text().toInt());
+            numTransfersWithAlpha = parseUShort(e.text());
         } else {
             const std::string attributeUtf8 = attributeName.PkToUtf8();
             if (std::regex_search(attributeUtf8, match, curveRegexp)) {

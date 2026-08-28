@@ -44,20 +44,19 @@ public:
 
     inline static PkString defaultGeneratorId()
     {
-        static PkString defaultGeneratorId;
-        if (defaultGeneratorId.isEmpty()) {
+        static const PkString defaultGeneratorId = [] {
             PkStringList generatorIds = KisGeneratorRegistry::instance()->keys();
             if (generatorIds.size() == 0) {
-                defaultGeneratorId = "";
+                return PkString();
             } else {
                 generatorIds.sort();
                 if (generatorIds.indexOf("screentone") == -1) {
-                    defaultGeneratorId = generatorIds.at(0);
+                    return generatorIds.at(0);
                 } else {
-                    defaultGeneratorId = "screentone";
+                    return PkString("screentone");
                 }
             }
-        }
+        }();
         return defaultGeneratorId;
     }
 
