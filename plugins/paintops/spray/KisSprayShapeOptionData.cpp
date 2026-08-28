@@ -1,6 +1,7 @@
 #include <PkString.h>
 #include <PkSize.h>
 #include <PkImage.h>
+#include <PkImageFileDecoder.h>
 /*
  *  SPDX-FileCopyrightText: 2022 Agata Cacko <cacko.azh@gmail.com>
  *  SPDX-FileCopyrightText: 2008, 2009, 2010 Lukáš Tvrdý <lukast.dev@gmail.com>
@@ -8,8 +9,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KisSprayShapeOptionData.h"
-#include <KisResourceThumbnailCodec.h>
-
 #include "kis_properties_configuration.h"
 
 
@@ -40,7 +39,7 @@ bool KisSprayShapeOptionData::read(const KisPropertiesConfiguration *settings)
 		image = PkImage();
 	}
 	else {
-		image = KisResourceThumbnailCodec::loadPng(url);
+		image = PkImageFileDecoder::load(url.PkToUtf8());
 	}
 	imageUrl = url;
 

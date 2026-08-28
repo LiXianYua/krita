@@ -9,7 +9,6 @@
 #ifndef KIS_HAIRYPAINTOP_H_
 #define KIS_HAIRYPAINTOP_H_
 
-#include <klocalizedstring.h>
 #include <brushengine/kis_paintop.h>
 #include <brushengine/kis_paintop_factory.h>
 #include <kis_types.h>

@@ -5,6 +5,7 @@ set(kritaimpex_LIB_SRCS
     KisImportExportBackend.cpp
     KisImportExportFilter.cpp
     KisImportExportManager.cpp
+    KisPkImageFileDecoderAdapter.cpp
     KisImportExportUtils.cpp
     KisImportExportErrorCode.cpp
     KisImportExportAdditionalChecks.cpp
@@ -41,7 +42,13 @@ target_link_libraries(kritaimpex
         kritacanvas
         kritaresources
         kritastore
+        pkimageio
 )
+
+if(UNIX AND NOT APPLE)
+    # The process-wide decoder registry retains callbacks into this DSO.
+    target_link_options(kritaimpex PRIVATE -Wl,-z,nodelete)
+endif()
 
 set_target_properties(kritaimpex
     PROPERTIES VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}

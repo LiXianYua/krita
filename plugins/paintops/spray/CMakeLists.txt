@@ -16,7 +16,12 @@ set(kritaspraypaintop_SOURCES
 kis_add_library(kritaspraypaintop MODULE ${kritaspraypaintop_SOURCES})
 target_include_directories(kritaspraypaintop PRIVATE ${CMAKE_SOURCE_DIR}/pk/string ${CMAKE_SOURCE_DIR}/pk/container ${CMAKE_SOURCE_DIR}/pk/geometry ${CMAKE_SOURCE_DIR}/pk/image ${CMAKE_SOURCE_DIR}/pk/pointer ${CMAKE_SOURCE_DIR}/pk/variant)
 
-target_link_libraries(kritaspraypaintop kritalibpaintop)
+target_link_libraries(kritaspraypaintop PRIVATE kritalibpaintop kritaimpex pkimageio)
+if(UNIX AND NOT APPLE)
+    # The adapter registers from kritaimpex's DSO initializer; retain that DSO
+    # even though Spray itself calls only the low-level decoder facade.
+    target_link_options(kritaspraypaintop PRIVATE -Wl,--no-as-needed)
+endif()
 
 install(TARGETS kritaspraypaintop  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

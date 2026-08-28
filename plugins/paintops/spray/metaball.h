@@ -14,33 +14,32 @@ class Metaball
 {
 public:
     ~Metaball() {}
-    Metaball(qreal x, qreal y, qreal radius):
+    Metaball(double x, double y, double radius):
         m_x(x),
         m_y(y),
         m_radius(radius) {}
 
-    qreal equation(qreal x, qreal y) {
+    double equation(double x, double y) {
         //return m_radius / sqrt( pow((x - m_x),2) + pow((y - m_y),2) );
         return (m_radius * m_radius) / (pow((x - m_x), 2) + pow((y - m_y), 2));
     }
 
-    qreal x() {
+    double x() {
         return m_x;
     }
 
-    qreal y() {
+    double y() {
         return m_y;
     }
 
-    qreal radius() {
+    double radius() {
         return m_radius;
     }
 private:
-    qreal m_x;
-    qreal m_y;
-    qreal m_radius;
+    double m_x;
+    double m_y;
+    double m_radius;
 
 };
 
 #endif // _METABALL_H_
-

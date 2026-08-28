@@ -1,3 +1,9 @@
+/*
+ *  SPDX-FileCopyrightText: 2015 Wolthera van Hövell tot Westerflier <griffinvalley@gmail.com>
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 #include <PkString.h>
 #include <brushengine/kis_paintop_registry.h>
 #include "kis_tangent_normal_paintop.h"

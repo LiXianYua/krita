@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2008 Lukáš Tvrdý (lukast.dev@gmail.com)
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ */
 #include <PkString.h>
 #include <brushengine/kis_paintop_registry.h>
 #include "kis_spray_paintop.h"
