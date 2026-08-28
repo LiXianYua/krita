@@ -63,8 +63,8 @@ KisBrushOp::KisBrushOp(const KisPaintOpSettingsSP settings, KisPainter *painter,
     , m_minUpdatePeriod(10)
     , m_maxUpdatePeriod(100)
 {
-    Q_UNUSED(image);
-    Q_ASSERT(settings);
+    (void)image;
+    KIS_ASSERT(settings);
 
     m_airbrushData.read(settings.data());
     m_rotationOption.applyFanCornersInfo(this);
@@ -105,7 +105,7 @@ KisSpacingInformation KisBrushOp::paintAt(const KisPaintInformation& info)
     if (!painter()->device()) return KisSpacingInformation(1.0);
 
     KisBrushSP brush = m_brush;
-    Q_ASSERT(brush);
+    KIS_ASSERT(brush);
     if (!brush)
         return KisSpacingInformation(1.0);
 
@@ -260,11 +260,11 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(PkVector<KisRunnableStroke
 
             PkList<KisRenderedDab> wrappedDabs;
 
-            Q_FOREACH (const KisRenderedDab &dab, state->dabsQueue) {
+            for (const KisRenderedDab &dab : state->dabsQueue) {
                 const PkVector<PkPoint> normalizationOrigins =
                     KisWrappedRect::normalizationOriginsForRect(dab.realBounds(), wrapRect, wrapAroundModeAxis);
 
-                Q_FOREACH(const PkPoint &pt, normalizationOrigins) {
+                for (const PkPoint &pt : normalizationOrigins) {
                     KisRenderedDab newDab = dab;
 
                     newDab.offset = pt;
@@ -277,7 +277,7 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(PkVector<KisRunnableStroke
 
         } else {
             // just get all rects
-            Q_FOREACH (const KisRenderedDab &dab, state->dabsQueue) {
+            for (const KisRenderedDab &dab : state->dabsQueue) {
                 rects.append(dab.realBounds());
             }
         }
@@ -288,13 +288,13 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(PkVector<KisRunnableStroke
 
         state->allDirtyRects = rects;
 
-        Q_FOREACH (const KisRenderedDab &dab, state->dabsQueue) {
+        for (const KisRenderedDab &dab : state->dabsQueue) {
             state->dabPoints.append(dab.realBounds().center());
         }
 
         state->dabRenderingTimer.start();
 
-        Q_FOREACH (const PkRect &rc, rects) {
+        for (const PkRect &rc : rects) {
             KritaUtils::addJobConcurrent(jobs,
                 [rc, state] () {
                     state->painter->bltFixed(rc, state->dabsQueue);
@@ -322,7 +322,7 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(PkVector<KisRunnableStroke
 
         KritaUtils::addJobSequential(jobs,
                 [state, this, someDabsAreStillInQueue] () {
-                    Q_FOREACH(const PkRect &rc, state->allDirtyRects) {
+                    for (const PkRect &rc : state->allDirtyRects) {
                         state->painter->addDirtyRect(rc);
                     }
 

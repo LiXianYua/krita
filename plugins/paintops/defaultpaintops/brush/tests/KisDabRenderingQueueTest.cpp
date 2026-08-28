@@ -6,9 +6,14 @@
 
 #include "KisDabRenderingQueueTest.h"
 
+#include <cmath>
+
 #include <simpletest.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
+#include <PkXmlDocument.h>
+#include <kis_dom_utils.h>
+#include <kis_duplicateop_settings.h>
 
 #include <../KisDabRenderingQueue.h>
 #include <../KisRenderedDab.h>
@@ -23,8 +28,8 @@ struct SurrogateCacheInterface : public KisDabRenderingQueue::CacheInterface
                     KisDabCacheUtils::DabGenerationInfo *di,
                     bool *shouldUseCache) override
     {
-        Q_UNUSED(resources);
-        Q_UNUSED(request);
+        (void)resources;
+        (void)request;
 
         if (!hasDabInCache || typeOverride == KisDabRenderingJob::Dab) {
             di->needsPostprocessing = false;
@@ -41,7 +46,7 @@ struct SurrogateCacheInterface : public KisDabRenderingQueue::CacheInterface
     }
 
     bool hasSeparateOriginal(KisDabCacheUtils::DabRenderingResources *resources) const override {
-        Q_UNUSED(resources);
+        (void)resources;
         return typeOverride == KisDabRenderingJob::Postprocess;
     }
 
@@ -444,7 +449,7 @@ void KisDabRenderingQueueTest::testRunningJobs()
     queue.setCacheInterface(cacheInterface);
 
 
-    KoColor color(Qt::red, cs);
+    KoColor color(PkColor(255, 0, 0), cs);
     PkPointF pos1(10,10);
     PkPointF pos2(20,20);
     KisDabShape shape;
@@ -497,7 +502,7 @@ void KisDabRenderingQueueTest::testExecutor()
 
     KisDabRenderingExecutor executor(cs, testResourcesFactory, runner.data());
 
-    KoColor color(Qt::red, cs);
+    KoColor color(PkColor(255, 0, 0), cs);
     PkPointF pos1(10,10);
     PkPointF pos2(20,20);
     KisDabShape shape;
@@ -524,6 +529,40 @@ void KisDabRenderingQueueTest::testExecutor()
     QCOMPARE(renderedDabs[1].opacity, 0.125);
     QCOMPARE(renderedDabs[1].flow, 1.0);
 
+}
+
+void KisDabRenderingQueueTest::testDuplicateOffsetSerialization()
+{
+    struct Case { double x; double y; const char *sx; const char *sy; };
+    const Case cases[] = {
+        {1.2, -3.1415926535, "1.2", "-3.14159"},
+        {1e-8, 1234567.0, "1e-08", "1.23457e+06"},
+    };
+
+    for (const Case &testCase : cases) {
+        PkXmlDocument inputDoc;
+        PkXmlElement input = inputDoc.createElement("settings");
+        input.setAttribute("OffsetX", KisDomUtils::numberToString(testCase.x, 6));
+        input.setAttribute("OffsetY", KisDomUtils::numberToString(testCase.y, 6));
+
+        KisDuplicateOpSettings settings(nullptr);
+        settings.fromXML(input);
+        const double expectedX = KisDomUtils::numberToString(testCase.x, 6).toDouble();
+        const double expectedY = KisDomUtils::numberToString(testCase.y, 6).toDouble();
+        QVERIFY(std::abs(settings.offset().x() - expectedX) < 1e-15);
+        QVERIFY(std::abs(settings.offset().y() - expectedY) < 1e-15);
+
+        PkXmlDocument outputDoc;
+        PkXmlElement output = outputDoc.createElement("settings");
+        settings.toXML(outputDoc, output);
+        QCOMPARE(output.attribute("OffsetX"), PkString(testCase.sx));
+        QCOMPARE(output.attribute("OffsetY"), PkString(testCase.sy));
+
+        KisDuplicateOpSettings roundTrip(nullptr);
+        roundTrip.fromXML(output);
+        QVERIFY(std::abs(roundTrip.offset().x() - expectedX) < 1e-15);
+        QVERIFY(std::abs(roundTrip.offset().y() - expectedY) < 1e-15);
+    }
 }
 
 SIMPLE_TEST_MAIN(KisDabRenderingQueueTest)

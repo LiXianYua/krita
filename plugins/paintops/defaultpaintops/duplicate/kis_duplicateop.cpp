@@ -51,8 +51,8 @@ KisDuplicateOp::KisDuplicateOp(const KisPaintOpSettingsSP settings, KisPainter *
     , m_opacityOption(settings.data(), node)
     , m_rotationOption(settings.data())
 {
-    Q_ASSERT(settings);
-    Q_ASSERT(painter);
+    KIS_ASSERT(settings);
+    KIS_ASSERT(painter);
 
     m_duplicateOptionData.read(settings.data());
     m_srcdev = source()->createCompositionSourceDevice();
@@ -110,7 +110,7 @@ KisSpacingInformation KisDuplicateOp::paintAt(const KisPaintInformation& info)
 
 
     static const KoColorSpace *cs = KoColorSpaceRegistry::instance()->alpha8();
-    static KoColor color(Qt::black, cs);
+    static KoColor color(PkColor(0, 0, 0), cs);
 
     PkRect dstRect;
     KisFixedPaintDeviceSP dab =

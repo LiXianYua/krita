@@ -110,10 +110,8 @@ void KisDuplicateOpSettings::toXML(PkXmlDocument& doc, PkXmlElement& rootElt) co
     // Then call the parent class fromXML
     KisPropertiesConfiguration::toXML(doc, rootElt);
 
-    const std::string offsetX = std::to_string(m_offset.x());
-    const std::string offsetY = std::to_string(m_offset.y());
-    rootElt.setAttribute("OffsetX", PkString::PkFromUtf8(offsetX.c_str(), offsetX.size()));
-    rootElt.setAttribute("OffsetY", PkString::PkFromUtf8(offsetY.c_str(), offsetY.size()));
+    rootElt.setAttribute("OffsetX", KisDomUtils::numberToString(m_offset.x(), 6));
+    rootElt.setAttribute("OffsetY", KisDomUtils::numberToString(m_offset.y(), 6));
 }
 
 

@@ -13,7 +13,6 @@
 #include <KisMpl.h>
 
 #include <PkMutex.h>
-#include <PkMutex.h>
 #include <KisRollingMeanAccumulatorWrapper.h>
 
 #include "kis_algebra_2d.h"
@@ -28,9 +27,9 @@ struct KisDabRenderingQueue::Private
                                 KisDabCacheUtils::DabGenerationInfo *di,
                                 bool *shouldUseCache) override
         {
-            Q_UNUSED(hasDabInCache);
-            Q_UNUSED(resources);
-            Q_UNUSED(request);
+            (void)hasDabInCache;
+            (void)resources;
+            (void)request;
 
             di->needsPostprocessing = false;
             *shouldUseCache = false;
@@ -38,7 +37,7 @@ struct KisDabRenderingQueue::Private
 
         bool hasSeparateOriginal(KisDabCacheUtils::DabRenderingResources *resources) const override
         {
-            Q_UNUSED(resources);
+            (void)resources;
             return false;
         }
 

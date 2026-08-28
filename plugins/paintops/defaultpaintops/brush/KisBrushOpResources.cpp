@@ -54,7 +54,7 @@ KisBrushOpResources::KisBrushOpResources(const KisPaintOpSettingsSP settings, Ki
     m_d->hsvOptions.append(KisHSVOption::createSaturationOption(settings.data()));
     m_d->hsvOptions.append(KisHSVOption::createValueOption(settings.data()));
 
-    Q_FOREACH (KisHSVOption *option, m_d->hsvOptions) {
+    for (KisHSVOption *option : m_d->hsvOptions) {
         if (option->isChecked() && !m_d->hsvTransformation) {
             m_d->hsvTransformation = painter->backgroundColor().colorSpace()->createColorTransformation("hsv_adjustment", PkHash<PkString, PkVariant>());
         }
@@ -76,7 +76,7 @@ void KisBrushOpResources::syncResourcesToSeqNo(int seqNo, const KisPaintInformat
     m_d->darkenOption.apply(colorSource.get(), info);
 
     if (m_d->hsvTransformation) {
-        Q_FOREACH (KisHSVOption * option, m_d->hsvOptions) {
+        for (KisHSVOption *option : m_d->hsvOptions) {
             option->apply(m_d->hsvTransformation, info);
         }
         colorSource->applyColorTransformation(m_d->hsvTransformation);

@@ -18,6 +18,7 @@ private Q_SLOTS:
     void testRunningJobs();
 
     void testExecutor();
+    void testDuplicateOffsetSerialization();
 };
 
 #endif // KISDABRENDERINGQUEUETEST_H
