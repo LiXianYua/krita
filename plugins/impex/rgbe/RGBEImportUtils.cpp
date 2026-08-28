@@ -27,7 +27,8 @@ namespace RGBEIMPORT
 // if 'first' is true the first byte is already read
 bool ReadOldLine(quint8 *image, int width, PkDataStream &s)
 {
-    int rshift = 0;
+    unsigned rshift = 0;
+    std::size_t produced = 0;
     int i;
 
     while (width > 0) {
@@ -40,20 +41,21 @@ bool ReadOldLine(quint8 *image, int width, PkDataStream &s)
         }
 
         if ((image[0] == 1) && (image[1] == 1) && (image[2] == 1)) {
-            const int length = image[3] << rshift;
-            if (length > width) {
+            std::size_t length = 0;
+            if (!RGBE::decodeOldRepeat(image[3], produced, static_cast<std::size_t>(width), rshift, length)) {
                 dbgFile << "Broken file detected: cannot duplicate pixels past image bounds!";
                 return false;
             }
-            for (i = length; i > 0; i--) {
+            for (i = static_cast<int>(length); i > 0; i--) {
                 memcpy(image, image-4, 4);
                 image += 4;
                 width--;
+                ++produced;
             }
-            rshift += 8;
         } else {
             image += 4;
             width--;
+            ++produced;
             rshift = 0;
         }
     }
@@ -139,33 +141,30 @@ bool LoadHDR(PkDataStream &s, PkStream *device, const int width, const int heigh
                     dbgFile << "Truncated HDR file";
                     return false;
                 }
-                if (code > 128) {
-                    // run
-                    code &= 127;
+                bool isRun = false;
+                std::size_t packetLength = 0;
+                if (!RGBE::decodeRlePacket(code, static_cast<std::size_t>(width - j), isRun, packetLength)) {
+                    dbgFile << "Broken file detected: empty or overlong RLE packet";
+                    return false;
+                }
+                if (isRun) {
                     s >> val;
-                    if (j + code - 1 >= width) {
-                        dbgFile << "Broken file detected: cannot duplicate data past image bounds!";
+                    if (s.status() != PkDataStream::Ok) {
+                        dbgFile << "Truncated HDR run packet";
                         return false;
                     }
-                    while (code != 0) {
+                    while (packetLength-- != 0) {
                         image[i + j * 4] = val;
                         j++;
-                        code--;
                     }
                 } else {
-                    // non-run
-                    if (j + code - 1 >= width) {
-                        dbgFile << "Broken file detected: cannot extract data past image bounds!";
-                        return false;
-                    }
-                    while (code != 0) {
+                    while (packetLength-- != 0) {
                         s >> image[i + j * 4];
                         if (s.status() != PkDataStream::Ok) {
                             dbgFile << "Truncated HDR file";
                             return false;
                         }
                         j++;
-                        code--;
                     }
                 }
             }

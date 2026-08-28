@@ -15,11 +15,20 @@
 namespace
 {
 
+struct GifWriteContext
+{
+    PkStream *stream = nullptr;
+    bool failed = false;
+};
+
 int writeCallback(GifFileType *gif, const GifByteType *data, int count)
 {
-    auto *stream = static_cast<PkStream *>(gif->UserData);
-    const auto written = stream->write(reinterpret_cast<const char *>(data), count);
-    return written > 0 ? static_cast<int>(written) : 0;
+    auto *context = static_cast<GifWriteContext *>(gif->UserData);
+    const auto written = context->stream->write(reinterpret_cast<const char *>(data), count);
+    if (written != count) {
+        context->failed = true;
+    }
+    return written == count ? count : 0;
 }
 
 int readCallback(GifFileType *gif, GifByteType *data, int count)
@@ -177,14 +186,13 @@ bool GifLibCodec::write(const PkImage &image)
         indexed = image;
     } else {
         indexed = PkImage(image.width(), image.height(), PkImage::Format_Indexed8);
-        std::vector<PkRgb> palette(256, 0);
+        std::vector<PkRgb> palette(129, 0);
         palette[0] = pkRgba(0, 0, 0, 0);
-        palette[1] = pkRgba(0, 0, 0, 255);
-        for (int bucket = 2; bucket < 256; ++bucket) {
-            const int red = ((bucket >> 5) & 0x07) * 255 / 7;
-            const int green = ((bucket >> 2) & 0x07) * 255 / 7;
-            const int blue = (bucket & 0x03) * 255 / 3;
-            palette[bucket] = pkRgba(red, green, blue, 255);
+        for (int bucket = 0; bucket < 128; ++bucket) {
+            const int red = (((bucket >> 4) & 0x07) << 5) | 0x10;
+            const int green = (((bucket >> 1) & 0x07) << 5) | 0x10;
+            const int blue = ((bucket & 0x01) << 7) | 0x40;
+            palette[bucket + 1] = pkRgba(red, green, blue, 255);
         }
         indexed.setColorTable(palette);
         for (int y = 0; y < image.height(); ++y) {
@@ -192,9 +200,9 @@ bool GifLibCodec::write(const PkImage &image)
                 const PkRgb color = image.pixel(x, y);
                 int index = 0;
                 if (pkAlpha(color) >= 128) {
-                    const int bucket = ((pkRed(color) >> 5) << 5) |
-                        ((pkGreen(color) >> 5) << 2) | (pkBlue(color) >> 6);
-                    index = bucket == 0 ? 1 : bucket;
+                    const int bucket = ((pkRed(color) >> 5) << 4) |
+                        ((pkGreen(color) >> 5) << 1) | (pkBlue(color) >> 7);
+                    index = bucket + 1;
                 }
                 indexed.setPixel(x, y, static_cast<std::uint32_t>(index));
             }
@@ -222,7 +230,8 @@ bool GifLibCodec::write(const PkImage &image)
     }
 
     int error = 0;
-    std::unique_ptr<GifFileType, GifWriteCloser> gif(EGifOpen(m_device, writeCallback, &error));
+    GifWriteContext writeContext{m_device, false};
+    std::unique_ptr<GifFileType, GifWriteCloser> gif(EGifOpen(&writeContext, writeCallback, &error));
     if (!gif ||
         EGifPutScreenDesc(gif.get(), indexed.width(), indexed.height(),
                           GifBitSize(colorCount), 0, colorMap.get()) == GIF_ERROR) {
@@ -256,5 +265,6 @@ bool GifLibCodec::write(const PkImage &image)
             return false;
         }
     }
-    return true;
+    const int closeResult = EGifCloseFile(gif.release(), &error);
+    return closeResult != GIF_ERROR && !writeContext.failed;
 }

@@ -51,6 +51,28 @@ private:
     std::vector<char> m_bytes;
 };
 
+class ShortWriteStream final : public PkStream
+{
+public:
+    explicit ShortWriteStream(pk_int64 limit)
+        : m_limit(limit)
+    {
+    }
+
+    pk_int64 size() const override { return pos(); }
+
+protected:
+    pk_int64 readData(char *, pk_int64) override { return -1; }
+    pk_int64 writeData(const char *, pk_int64 count) override
+    {
+        const pk_int64 available = std::max<pk_int64>(0, m_limit - pos());
+        return std::min(count, available);
+    }
+
+private:
+    pk_int64 m_limit;
+};
+
 void require(bool condition, const char *message)
 {
     if (!condition) {
@@ -63,9 +85,10 @@ void require(bool condition, const char *message)
 
 int main()
 {
-    PkImage source(2, 1, PkImage::Format_ARGB32);
+    PkImage source(3, 1, PkImage::Format_ARGB32);
     source.setPixel(0, 0, pkRgba(255, 0, 0, 255));
-    source.setPixel(1, 0, pkRgba(0, 0, 255, 0));
+    source.setPixel(1, 0, pkRgba(0, 0, 1, 255));
+    source.setPixel(2, 0, pkRgba(0, 0, 255, 0));
 
     MemoryStream encoded;
     require(encoded.open(PkStream::ReadWrite), "memory stream must open");
@@ -79,8 +102,15 @@ int main()
 
     PkImage decoded;
     require(decoder.read(&decoded), "giflib must decode its output");
-    require(decoded.width() == 2 && decoded.height() == 1, "GIF dimensions must round-trip");
+    require(decoded.width() == 3 && decoded.height() == 1, "GIF dimensions must round-trip");
     require(pkAlpha(decoded.pixel(0, 0)) == 255, "opaque pixel alpha must round-trip");
-    require(pkAlpha(decoded.pixel(1, 0)) == 0, "transparent pixel alpha must round-trip");
+    require(pkBlue(decoded.pixel(1, 0)) > 0 && pkAlpha(decoded.pixel(1, 0)) == 255,
+            "opaque dark blue must not collide with the reserved transparent index");
+    require(pkAlpha(decoded.pixel(2, 0)) == 0, "transparent pixel alpha must round-trip");
+
+    ShortWriteStream shortOutput(static_cast<PkStream::pk_int64>(encoded.bytes().size() - 1));
+    require(shortOutput.open(PkStream::WriteOnly), "short output stream must open");
+    require(!GifLibCodec(&shortOutput).write(source),
+            "GIF trailer short-write must fail explicit finalization");
     return 0;
 }

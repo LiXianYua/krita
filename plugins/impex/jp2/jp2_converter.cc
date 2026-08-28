@@ -5,6 +5,7 @@
  */
 
 #include "jp2_converter.h"
+#include "jp2_validation.h"
 
 #include <openjpeg.h>
 #include <PkStream.h>
@@ -126,16 +127,17 @@ KisImportExportErrorCode JP2Converter::buildImage(PkStream *input) {
 	bool hasColorSpaceInfo = false;
 	opj_stream_t *l_stream = NULL;
 	opj_image_t *image = NULL;
-	int pos = 0;
+	std::size_t pos = 0;
 	KisHLineIteratorSP it = NULL;
 	unsigned int numComponents = 0;
 	unsigned int precision = 0;
 	const KoColorSpace *colorSpace = 0;
 	PkVector<int> channelorder;
 	KisPaintLayerSP layer;
-	bool isSigned;
+	bool isSigned = false;
 	int32_t signedCorrection = 0;
 	uint32_t w=0, h=0;
+	Jp2ValidatedImage validatedImage{};
 
 	// decompression parameters
 	opj_set_default_decoder_parameters(&parameters);
@@ -197,33 +199,15 @@ KisImportExportErrorCode JP2Converter::buildImage(PkStream *input) {
 		goto beach;
 	}
 
-	// Look for the colorspace
-	numComponents = image->numcomps;
-	if (image->numcomps == 0) {
-		addErrorString("Image must have at least one component");
-		res = ImportExportCodes::Failure;
+	// Validate the complete decoded layout before using any component pointer.
+	if (!validateJp2Image(*image, validatedImage)) {
+		addErrorString("Invalid or unsupported JPEG 2000 component layout");
+		res = ImportExportCodes::FormatFeaturesUnsupported;
 		goto beach;
 	}
-	precision = image->comps[0].prec;
-	for (uint32_t i = 1; i < numComponents; ++i) {
-		if (image->comps[i].prec != precision) {
-			std::ostringstream buffer;
-			buffer << "All components must have the same bit depth "
-					<< precision;
-			addErrorString(buffer.str());
-			res = ImportExportCodes::FormatFeaturesUnsupported;
-			goto beach;
-		}
-	}
-	isSigned = false;
-	for (uint32_t i = 0; i < numComponents; ++i) {
-		if ((image->comps[i].dx != 1) || (image->comps[i].dy != 1)) {
-			addErrorString("Sub-sampling not supported");
-			res = ImportExportCodes::FormatFeaturesUnsupported;
-			goto beach;
-		}
-		isSigned = isSigned || (image->comps[0].sgnd);
-	}
+	numComponents = image->numcomps;
+	precision = validatedImage.precision;
+	isSigned = validatedImage.isSigned;
 	if (isSigned)
 		signedCorrection = 1 << (precision - 1);
 
@@ -306,10 +290,10 @@ KisImportExportErrorCode JP2Converter::buildImage(PkStream *input) {
 	}
 
 	// Create the image
-	w = (uint32_t)(image->x1 - image->x0);
-	h = (uint32_t)(image->y1 - image->y0);
+	w = validatedImage.width;
+	h = validatedImage.height;
 	if (m_image == 0) {
-		m_image = new KisImage(m_doc->createUndoStore(), w, h,
+		m_image = new KisImage(m_doc->createUndoStore(), static_cast<int>(w), static_cast<int>(h),
 				colorSpace, "built image");
 	}
 
@@ -320,9 +304,13 @@ KisImportExportErrorCode JP2Converter::buildImage(PkStream *input) {
 
 	// Set the data
 	it = layer->paintDevice()->createHLineIteratorNG(0, 0, w);
-	for (OPJ_UINT32 v = 0; v < image->y1; ++v) {
+	for (OPJ_UINT32 v = 0; v < h; ++v) {
 		if (precision == 16 || precision == 12) {
 			do {
+				if (pos >= validatedImage.pixelCount) {
+					res = ImportExportCodes::FileFormatIncorrect;
+					goto beach;
+				}
 				quint16 *px = reinterpret_cast<quint16*>(it->rawData());
 				for (uint32_t i = 0; i < numComponents; ++i) {
 					px[channelorder[i]] = image->comps[i].data[pos]
@@ -334,6 +322,10 @@ KisImportExportErrorCode JP2Converter::buildImage(PkStream *input) {
 			} while (it->nextPixel());
 		} else if (precision == 8) {
 			do {
+				if (pos >= validatedImage.pixelCount) {
+					res = ImportExportCodes::FileFormatIncorrect;
+					goto beach;
+				}
 				quint8 *px = it->rawData();
 				for (uint32_t i = 0; i < numComponents; ++i) {
 					px[channelorder[i]] = image->comps[i].data[pos]
@@ -345,6 +337,10 @@ KisImportExportErrorCode JP2Converter::buildImage(PkStream *input) {
 			} while (it->nextPixel());
 		}
 		it->nextRow();
+	}
+	if (pos != validatedImage.pixelCount) {
+		res = ImportExportCodes::FileFormatIncorrect;
+		goto beach;
 	}
 
 beach:

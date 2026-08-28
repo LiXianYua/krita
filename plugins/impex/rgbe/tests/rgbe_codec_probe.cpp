@@ -47,5 +47,22 @@ int main()
     require(black[0] == 0.0F && black[1] == 0.0F && black[2] == 0.0F,
             "zero exponent must decode as black");
 
+    std::size_t repeat = 0;
+    unsigned shift = 0;
+    require(!RGBE::decodeOldRepeat(5, 0, 8, shift, repeat),
+            "old-style repeat cannot appear before a produced pixel");
+    require(RGBE::decodeOldRepeat(3, 1, 8, shift, repeat) && repeat == 3 && shift == 8,
+            "valid old-style repeat must decode and advance the shift");
+    shift = 24;
+    require(!RGBE::decodeOldRepeat(255, 1, 8, shift, repeat),
+            "old-style repeat shift overflow must be rejected");
+    bool run = false;
+    std::size_t length = 0;
+    require(!RGBE::decodeRlePacket(0, 8, run, length) &&
+                !RGBE::decodeRlePacket(128, 8, run, length),
+            "zero-length RLE packets must be rejected");
+    require(RGBE::decodeRlePacket(131, 8, run, length) && run && length == 3,
+            "non-empty run packet must decode");
+
     return 0;
 }

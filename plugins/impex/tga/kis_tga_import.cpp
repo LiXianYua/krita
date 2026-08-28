@@ -28,6 +28,7 @@
 #include <kis_group_layer.h>
 
 #include <tga.h>
+#include "tga_validation.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KisTGAImportFactory, "krita_tga_import.json", registerPlugin<KisTGAImport>();)
 
@@ -81,41 +82,7 @@ static bool readHeader(PkStream *stream, TgaHeader &head)
 
 static bool isSupported(const TgaHeader & head)
 {
-    if (head.image_type != TGA_TYPE_INDEXED &&
-            head.image_type != TGA_TYPE_RGB &&
-            head.image_type != TGA_TYPE_GREY &&
-            head.image_type != TGA_TYPE_RLE_INDEXED &&
-            head.image_type != TGA_TYPE_RLE_RGB &&
-            head.image_type != TGA_TYPE_RLE_GREY) {
-        return false;
-    }
-
-    if (head.image_type == TGA_TYPE_INDEXED ||
-            head.image_type == TGA_TYPE_RLE_INDEXED) {
-        if (head.colormap_length > 256 || head.colormap_size != 24 || head.colormap_type != 1) {
-            return false;
-        }
-    }
-
-    if (head.image_type == TGA_TYPE_RGB ||
-            head.image_type == TGA_TYPE_GREY ||
-            head.image_type == TGA_TYPE_RLE_RGB ||
-            head.image_type == TGA_TYPE_RLE_GREY) {
-        if (head.colormap_type != 0) {
-            return false;
-        }
-    }
-
-    if (head.width == 0 || head.height == 0) {
-        return false;
-    }
-
-    if (head.pixel_size != 8 && head.pixel_size != 16 &&
-            head.pixel_size != 24 && head.pixel_size != 32) {
-        return false;
-    }
-
-    return true;
+    return validateTgaHeader(head);
 }
 
 static bool loadTGA(PkStream *stream, const TgaHeader & tga, PkImage &img)
@@ -156,7 +123,7 @@ static bool loadTGA(PkStream *stream, const TgaHeader & tga, PkImage &img)
     std::array<unsigned char, 768> palette{};
     if (info.pal) {
         // @todo Support palettes in other formats!
-        if (!readExact(stream, palette.data(), 3 * tga.colormap_length)) {
+        if (!readExact(stream, palette.data() + 3 * tga.colormap_index, 3 * tga.colormap_length)) {
             return false;
         }
     }
@@ -233,31 +200,42 @@ static bool loadTGA(PkStream *stream, const TgaHeader & tga, PkImage &img)
             // Paletted.
             for (int x = 0; x < tga.width; x++) {
                 uchar idx = *src++;
-                scanline[x] = pkRgb(palette[3 * idx + 2], palette[3 * idx + 1], palette[3 * idx + 0]);
+                if (idx < tga.colormap_index || idx >= tga.colormap_index + tga.colormap_length) {
+                    return false;
+                }
+                const int destinationX = tgaDestinationX(tga, x);
+                scanline[destinationX] = pkRgb(palette[3 * idx + 2], palette[3 * idx + 1], palette[3 * idx + 0]);
             }
         } else if (info.grey) {
             // Greyscale.
             for (int x = 0; x < tga.width; x++) {
-                scanline[x] = pkRgb(*src, *src, *src);
+                const int destinationX = tgaDestinationX(tga, x);
+                scanline[destinationX] = pkRgb(*src, *src, *src);
                 src++;
             }
         } else {
             // True Color.
             if (tga.pixel_size == 16) {
                 for (int x = 0; x < tga.width; x++) {
-                    Color555 c = *reinterpret_cast<Color555 *>(src);
-                    scanline[x] = pkRgb((c.r << 3) | (c.r >> 2), (c.g << 3) | (c.g >> 2), (c.b << 3) | (c.b >> 2));
+                    const unsigned value = src[0] | (static_cast<unsigned>(src[1]) << 8);
+                    const unsigned b = value & 0x1f;
+                    const unsigned g = (value >> 5) & 0x1f;
+                    const unsigned r = (value >> 10) & 0x1f;
+                    const int destinationX = tgaDestinationX(tga, x);
+                    scanline[destinationX] = pkRgb((r << 3) | (r >> 2), (g << 3) | (g >> 2), (b << 3) | (b >> 2));
                     src += 2;
                 }
             } else if (tga.pixel_size == 24) {
                 for (int x = 0; x < tga.width; x++) {
-                    scanline[x] = pkRgb(src[2], src[1], src[0]);
+                    const int destinationX = tgaDestinationX(tga, x);
+                    scanline[destinationX] = pkRgb(src[2], src[1], src[0]);
                     src += 3;
                 }
             } else if (tga.pixel_size == 32) {
                 for (int x = 0; x < tga.width; x++) {
                     const uchar alpha = src[3];
-                    scanline[x] = pkRgba(src[2], src[1], src[0], alpha);
+                    const int destinationX = tgaDestinationX(tga, x);
+                    scanline[destinationX] = pkRgba(src[2], src[1], src[0], alpha);
                     src += 4;
                     hasAlpha |= (alpha > 0);
                 }

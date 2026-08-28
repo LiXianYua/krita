@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <KisDocument.h>
 #include <KisImportExportErrorCode.h>
@@ -31,6 +32,7 @@
 #include <kis_raster_keyframe_channel.h>
 
 #include "kis_webp_import.h"
+#include "webp_validation.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KisWebPImportFactory, "krita_webp_import.json", registerPlugin<KisWebPImport>();)
 
@@ -56,7 +58,9 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
 
     const WebPData webpData = {data, data_size};
 
-    WebPDemuxer *demux = WebPDemux(&webpData);
+    std::unique_ptr<WebPDemuxer, decltype(&WebPDemuxDelete)> demuxOwner(
+        WebPDemux(&webpData), &WebPDemuxDelete);
+    WebPDemuxer *demux = demuxOwner.get();
     if (!demux) {
         dbgFile << "WebP demuxer initialization failure";
         return ImportExportCodes::InternalError;
@@ -66,6 +70,27 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
     const uint32_t height = WebPDemuxGetI(demux, WEBP_FF_CANVAS_HEIGHT);
     const uint32_t flags = WebPDemuxGetI(demux, WEBP_FF_FORMAT_FLAGS);
     const uint32_t bg = WebPDemuxGetI(demux, WEBP_FF_BACKGROUND_COLOR);
+    const uint32_t frameCount = WebPDemuxGetI(demux, WEBP_FF_FRAME_COUNT);
+    if (width == 0 || height == 0 || frameCount == 0) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
+
+    std::vector<int> durations;
+    {
+        WebPIterator timelineIterator{};
+        if (!WebPDemuxGetFrame(demux, 1, &timelineIterator)) {
+            return ImportExportCodes::FileFormatIncorrect;
+        }
+        std::unique_ptr<WebPIterator, decltype(&WebPDemuxReleaseIterator)> timelineGuard(
+            &timelineIterator, &WebPDemuxReleaseIterator);
+        do {
+            durations.push_back(timelineIterator.duration);
+        } while (WebPDemuxNextFrame(&timelineIterator));
+    }
+    WebPTimeline timeline;
+    if (!buildWebPTimeline(durations, timeline) || durations.size() != frameCount) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
 
     const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
     const KoColorSpace *imageColorSpace = nullptr;
@@ -79,21 +104,24 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                 dbgFile << "WebPDemuxGetChunk on ICCP succeeded, ICC profile "
                            "available";
 
+                const bool plausibleProfile = isPlausibleIccProfile(
+                    chunk_iter.chunk.bytes, chunk_iter.chunk.size);
                 const PkByteArray iccProfile(
-                    reinterpret_cast<const char *>(chunk_iter.chunk.bytes),
-                    static_cast<int>(chunk_iter.chunk.size));
-                const KoColorProfile *profile =
-                    KoColorSpaceRegistry::instance()->createColorProfile(
+                    plausibleProfile ? reinterpret_cast<const char *>(chunk_iter.chunk.bytes) : nullptr,
+                    plausibleProfile ? static_cast<int>(chunk_iter.chunk.size) : 0);
+                const KoColorProfile *profile = plausibleProfile
+                    ? KoColorSpaceRegistry::instance()->createColorProfile(
+                          RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), iccProfile)
+                    : nullptr;
+                if (profile) {
+                    imageColorSpace = KoColorSpaceRegistry::instance()->colorSpace(
                         RGBAColorModelID.id(),
                         Integer8BitsColorDepthID.id(),
-                        iccProfile);
-                imageColorSpace = KoColorSpaceRegistry::instance()->colorSpace(
-                    RGBAColorModelID.id(),
-                    Integer8BitsColorDepthID.id(),
-                    profile);
+                        profile);
+                }
 
                 // Assign as non-RGBA color space to convert it back later
-                if (!imageColorSpace) {
+                if (profile && !imageColorSpace) {
                     const PkString colId = profile->colorModelID();
                     const KoColorProfile *cProfile =
                         KoColorSpaceRegistry::instance()->createColorProfile(
@@ -143,7 +171,6 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                         static_cast<PkStream::pk_int64>(chunk_iter.chunk.size) ||
                     !buf.seek(0)) {
                     WebPDemuxReleaseChunkIterator(&chunk_iter);
-                    WebPDemuxDelete(demux);
                     return ImportExportCodes::ErrorWhileReading;
                 }
 
@@ -152,7 +179,6 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
 
                 if (!backend || !backend->loadFrom(layer->metaData(), &buf)) {
                     WebPDemuxReleaseChunkIterator(&chunk_iter);
-                    WebPDemuxDelete(demux);
                     return ImportExportCodes::ErrorWhileReading;
                 }
             }
@@ -173,7 +199,6 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                         static_cast<PkStream::pk_int64>(chunk_iter.chunk.size) ||
                     !buf.seek(0)) {
                     WebPDemuxReleaseChunkIterator(&chunk_iter);
-                    WebPDemuxDelete(demux);
                     return ImportExportCodes::ErrorWhileReading;
                 }
 
@@ -182,7 +207,6 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
 
                 if (!xmpBackend || !xmpBackend->loadFrom(layer->metaData(), &buf)) {
                     WebPDemuxReleaseChunkIterator(&chunk_iter);
-                    WebPDemuxDelete(demux);
                     return ImportExportCodes::ErrorWhileReading;
                 }
             }
@@ -193,7 +217,9 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
     {
         WebPIterator iter{};
         if (WebPDemuxGetFrame(demux, 1, &iter)) {
-            int nextTimestamp = 0;
+            std::unique_ptr<WebPIterator, decltype(&WebPDemuxReleaseIterator)> iteratorGuard(
+                &iter, &WebPDemuxReleaseIterator);
+            std::size_t frameIndex = 0;
             WebPDecoderConfig config;
 
             KisPaintDeviceSP compositedFrame(
@@ -204,6 +230,8 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                     dbgFile << "WebP decode config initialization failure";
                     return ImportExportCodes::InternalError;
                 }
+                std::unique_ptr<WebPDecBuffer, decltype(&WebPFreeDecBuffer)> outputGuard(
+                    &config.output, &WebPFreeDecBuffer);
 
                 {
                     const VP8StatusCode result =
@@ -267,14 +295,11 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                 // This code had previously "config.input.has_animation",
                 // this is incorrect when using the demuxer because
                 // each frame is yielded through GetFrame().
-                if (iter.num_frames > 0 && iter.frame_num == 1) {
-                    dbgFile << "Animation detected, estimated framerate:"
-                            << static_cast<double>(1000) / iter.duration;
-                    const int framerate = std::lround(
-                        1000.0 / static_cast<double>(iter.duration));
+                if (timeline.animated && iter.frame_num == 1) {
+                    dbgFile << "Animation detected, framerate:" << timeline.framerate;
                     layer->enableAnimation();
                     image->animationInterface()->setDocumentRangeEndFrame(0);
-                    image->animationInterface()->setFramerate(framerate);
+                    image->animationInterface()->setFramerate(timeline.framerate);
                 }
 
                 const PkRect bounds(
@@ -304,10 +329,11 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                          PkSize(config.output.width, config.output.height)});
                 }
 
-                if (iter.num_frames > 1) {
-                    const int currentFrameTime =
-                        std::lround(static_cast<double>(nextTimestamp)
-                                    / static_cast<double>(iter.duration));
+                if (timeline.animated) {
+                    if (frameIndex >= timeline.frameTimes.size()) {
+                        return ImportExportCodes::FileFormatIncorrect;
+                    }
+                    const int currentFrameTime = timeline.frameTimes[frameIndex];
                     dbgFile << PkString(
                                    "Importing frame %1 @ %2, duration %3 ms, "
                                    "blending %4, disposal %5")
@@ -324,12 +350,10 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                     auto *frame =
                         dynamic_cast<KisRasterKeyframeChannel *>(channel);
                     image->animationInterface()->setDocumentRangeEndFrame(
-                        std::lround(static_cast<double>(nextTimestamp)
-                                    / static_cast<double>(iter.duration)));
+                        currentFrameTime);
                     frame->importFrame(currentFrameTime,
                                        compositedFrame,
                                        nullptr);
-                    nextTimestamp += iter.duration;
                 } else {
                     layer->paintDevice()->makeCloneFrom(compositedFrame,
                                                         image->bounds());
@@ -339,13 +363,13 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                     compositedFrame->fill(bounds, bgColor);
                 }
 
-                WebPFreeDecBuffer(&config.output);
+                ++frameIndex;
             } while (WebPDemuxNextFrame(&iter));
+            if (frameIndex != timeline.frameTimes.size()) {
+                return ImportExportCodes::FileFormatIncorrect;
+            }
         }
-        WebPDemuxReleaseIterator(&iter);
     }
-
-    WebPDemuxDelete(demux);
 
     image->addNode(layer.data(), image->rootLayer().data());
 

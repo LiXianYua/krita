@@ -18,7 +18,10 @@
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 
+#include <limits>
+
 #include "tga.h"
+#include "tga_validation.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KisTGAExportFactory, "krita_tga_export.json", registerPlugin<KisTGAExport>();)
 
@@ -36,6 +39,10 @@ KisImportExportErrorCode KisTGAExport::convert(KisDocument *document, PkStream *
     KisImageSP savingImage = kisImportExportSavingImage(document);
     PkRect rc = savingImage->bounds();
     PkImage image = savingImage->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
+
+    if (!validateTgaExportDimensions(image.width(), image.height())) {
+        return ImportExportCodes::FormatFeaturesUnsupported;
+    }
 
     PkDataStream s(io);
     s.setByteOrder(PkDataStream::LittleEndian);

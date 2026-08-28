@@ -12,6 +12,7 @@ install(TARGETS kritawebpexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
 set(kritawebpimport_SOURCES
     kis_webp_import.cpp
+    webp_validation.cpp
 )
 
 add_library(kritawebpimport MODULE ${kritawebpimport_SOURCES})

@@ -68,11 +68,14 @@ KisImportExportErrorCode KisHeightMapImport::convert(KisDocument *document, PkSt
     int w = 0;
     int h = 0;
 
-    KIS_ASSERT(io->isOpen());
-    const quint64 size = io->size();
-    if (size == 0) {
+    if (!io || !io->isOpen() || !io->isReadable()) {
+        return ImportExportCodes::NoAccessToRead;
+    }
+    const PkStream::pk_int64 streamSize = io->size();
+    if (streamSize <= 0) {
         return ImportExportCodes::FileFormatIncorrect;
     }
+    const quint64 size = static_cast<quint64>(streamSize);
 
     PkDataStream::ByteOrder bo = PkDataStream::LittleEndian;
 
@@ -80,17 +83,16 @@ KisImportExportErrorCode KisHeightMapImport::convert(KisDocument *document, PkSt
         depthId == Float32BitsColorDepthID ? 4 :
         depthId == Integer16BitsColorDepthID ? 2 : 1;
 
-    if (size % pixelSize != 0) {
+    const int configuredWidth = configuration ? configuration->getInt("width", 0) : 0;
+    const int configuredHeight = configuration ? configuration->getInt("height", 0) : 0;
+    if (!KisHeightmapUtils::resolveDimensions(size, pixelSize,
+                                               configuredWidth, configuredHeight,
+                                               w, h)) {
         return ImportExportCodes::FileFormatIncorrect;
     }
-    const int numPixels = size / pixelSize;
-
-    w = std::sqrt(numPixels);
-    if (w <= 0 || numPixels % w != 0) {
-        return ImportExportCodes::FileFormatIncorrect;
-    }
-    h = numPixels / w;
-    bo = PkDataStream::LittleEndian;
+    bo = configuration && configuration->getInt("endianness", 1) == 0
+        ? PkDataStream::BigEndian
+        : PkDataStream::LittleEndian;
 
     PkDataStream s(io);
     s.setByteOrder(bo);

@@ -132,6 +132,18 @@ struct WebPPictureSP {
     WebPPicture picture{};
 };
 
+struct WebPMemoryWriterSP {
+    WebPMemoryWriterSP() { WebPMemoryWriterInit(&writer); }
+    ~WebPMemoryWriterSP() { WebPMemoryWriterClear(&writer); }
+    WebPMemoryWriter writer{};
+};
+
+struct WebPDataSP {
+    explicit WebPDataSP(WebPData *data) : data(data) {}
+    ~WebPDataSP() { WebPDataClear(data); }
+    WebPData *data;
+};
+
 KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP cfg)
 {
     using WebPMuxSP = std::unique_ptr<WebPMux, decltype(&WebPMuxDelete)>;
@@ -167,6 +179,7 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
 
     // Then comes the animation chunk.
     WebPData imageChunk = {nullptr, 0};
+    WebPDataSP imageChunkCleanup(&imageChunk);
 
     {
         WebPAnimEncoderOptions encodingOptions;
@@ -188,6 +201,9 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                                                  bounds.height(),
                                                  &encodingOptions),
                               &WebPAnimEncoderDelete);
+        if (!enc) {
+            return ImportExportCodes::InsufficientMemory;
+        }
 
         WebPConfig config;
         {
@@ -243,7 +259,12 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                 image->waitForDone();
 
                 const KisNodeSP projection = image->rootLayer()->firstChild();
-                return projection->isAnimated() && projection->hasEditablePaintDevice();
+                if (!projection->isAnimated() || !projection->hasEditablePaintDevice()) {
+                    return false;
+                }
+                const KisRasterKeyframeChannel *frames =
+                    projection->paintDevice()->keyframeChannel();
+                return frames && frames->allKeyframeTimes().size() > 1;
             }
             return false;
         }();
@@ -266,16 +287,17 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                 return t;
             }();
 
+            const int framerate = image->animationInterface()->framerate();
+            if (framerate <= 0 || times.size() < 2) {
+                return ImportExportCodes::FormatFeaturesUnsupported;
+            }
+            const int firstFrame = times.front();
+
             // If this is not an integral number, it must be diagnosed on
             // export and reported to the user.
             // THE FRAME DURATION WILL BE ROUNDED.
-            const int duration =
-                std::lround(1000.0
-                            / static_cast<double>(
-                                image->animationInterface()->framerate()));
-
             for (const int i : times) {
-                const int timestamp_ms = i * duration;
+                const int timestamp_ms = std::lround((i - firstFrame) * 1000.0 / framerate);
 
                 WebPPictureSP currentFrame;
                 if (!WebPPictureInit(currentFrame.get())) {
@@ -378,10 +400,9 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                     return ImportExportCodes::InternalError;
                 }
 
-                WebPMemoryWriter writer;
-                WebPMemoryWriterInit(&writer);
+                WebPMemoryWriterSP writer;
                 currentFrame.get()->writer = WebPMemoryWrite;
-                currentFrame.get()->custom_ptr = &writer;
+                currentFrame.get()->custom_ptr = &writer.writer;
 
                 if (!WebPEncode(&config, currentFrame.get())) {
                     errFile << "WebP encoding failure:"
@@ -401,11 +422,12 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
             }
 
             const int timestamp_ms =
-                (image->animationInterface()->documentPlaybackRange().end() + 1)
-                * (1000 / image->animationInterface()->framerate());
+                std::lround((times.back() - firstFrame + 1) * 1000.0 / framerate);
 
             // Insert the finish beacon.
-            WebPAnimEncoderAdd(enc.get(), nullptr, timestamp_ms, nullptr);
+            if (!WebPAnimEncoderAdd(enc.get(), nullptr, timestamp_ms, nullptr)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
 
             dbgFile << "Animation finished @" << timestamp_ms << "ms";
         } else {
@@ -504,10 +526,9 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                 return ImportExportCodes::InternalError;
             }
 
-            WebPMemoryWriter writer;
-            WebPMemoryWriterInit(&writer);
+            WebPMemoryWriterSP writer;
             currentFrame.get()->writer = WebPMemoryWrite;
-            currentFrame.get()->custom_ptr = &writer;
+            currentFrame.get()->custom_ptr = &writer.writer;
 
             if (!WebPEncode(&config, currentFrame.get())) {
                 errFile << "WebP encoding failure:"

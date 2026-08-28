@@ -9,11 +9,19 @@
 
 #include <KoID.h>
 
+#include <cstdint>
+
 class PkByteArray;
 
 namespace KisHeightmapUtils
 {
 KoID mimeTypeToKoID(const PkByteArray& mimeType);
+bool resolveDimensions(std::uint64_t byteSize,
+                       int pixelSize,
+                       int configuredWidth,
+                       int configuredHeight,
+                       int &width,
+                       int &height);
 }
 
 #endif // _KIS_HEIGHTMAP_UTILS_H_

@@ -2,6 +2,7 @@ add_subdirectory(tests)
 
 set(kritatgaexport_SOURCES
     kis_tga_export.cpp
+    tga_validation.cpp
     )
 
 ki18n_wrap_ui(kritatgaexport_SOURCES )
@@ -14,6 +15,7 @@ install(TARGETS kritatgaexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
 set(kritatgaimport_SOURCES
     kis_tga_import.cpp
+    tga_validation.cpp
     )
 
 ki18n_wrap_ui(kritatgaimport_SOURCES )

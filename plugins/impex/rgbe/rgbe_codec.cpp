@@ -2,6 +2,7 @@
 
 #include <charconv>
 #include <cmath>
+#include <limits>
 
 namespace RGBE
 {
@@ -99,6 +100,37 @@ std::array<float, 4> decodePixel(std::uint8_t red,
     }
     const float scale = std::ldexp(1.0F, static_cast<int>(exponent) - (128 + 8));
     return {red * scale, green * scale, blue * scale, 1.0F};
+}
+
+bool decodeOldRepeat(std::uint8_t marker,
+                     std::size_t produced,
+                     std::size_t remaining,
+                     unsigned &shift,
+                     std::size_t &length)
+{
+    if (produced == 0 || shift >= std::numeric_limits<std::size_t>::digits ||
+        static_cast<std::size_t>(marker) > (std::numeric_limits<std::size_t>::max() >> shift)) {
+        return false;
+    }
+    length = static_cast<std::size_t>(marker) << shift;
+    if (length == 0 || length > remaining || shift > std::numeric_limits<unsigned>::max() - 8) {
+        return false;
+    }
+    shift += 8;
+    return true;
+}
+
+bool decodeRlePacket(std::uint8_t code,
+                     std::size_t remaining,
+                     bool &run,
+                     std::size_t &length)
+{
+    if (code == 0 || code == 128) {
+        return false;
+    }
+    run = code > 128;
+    length = run ? static_cast<std::size_t>(code & 127) : static_cast<std::size_t>(code);
+    return length <= remaining;
 }
 
 } // namespace RGBE

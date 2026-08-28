@@ -2,6 +2,7 @@ add_subdirectory(tests)
 
 set(libkritaconverter_LIB_SRCS
     jp2_converter.cc
+    jp2_validation.cpp
 )
 
 set(kritajp2import_SOURCES
