@@ -8,8 +8,11 @@
 
 #include <algorithm>
 #include <cassert>
-#include <regex>
+#include <charconv>
+#include <cstdint>
 #include <string>
+
+#include <unicode/uchar.h>
 
 #include <PkStream.h>
 
@@ -166,6 +169,74 @@ bool KisXMPIO::saveTo(const KisMetaData::Store *store, PkStream *ioDevice, Heade
     return true;
 }
 
+namespace
+{
+// Sparse XMP paths can name an arbitrary one-based array slot. Keep metadata
+// history bounded instead of allowing a single path to resize a vector toward
+// an attacker-controlled index.
+constexpr std::uint32_t kMaxXmpArrayEntries = 1024;
+
+bool isAsciiLetter(char16_t codeUnit)
+{
+    return (codeUnit >= u'A' && codeUnit <= u'Z')
+        || (codeUnit >= u'a' && codeUnit <= u'z');
+}
+
+bool isUnicodeWordContinuation(UChar32 codePoint)
+{
+    const std::uint32_t categoryMask = U_MASK(u_charType(codePoint));
+    return (categoryMask & (U_GC_L_MASK | U_GC_M_MASK | U_GC_N_MASK | U_GC_PC_MASK)) != 0;
+}
+
+bool isStructuredIdentifier(const std::u16string &identifier)
+{
+    if (identifier.empty() || !isAsciiLetter(identifier.front())) {
+        return false;
+    }
+    for (std::size_t i = 1; i < identifier.size();) {
+        UChar32 codePoint = identifier[i++];
+        if (U16_IS_LEAD(codePoint)) {
+            if (i >= identifier.size() || !U16_IS_TRAIL(identifier[i])) {
+                return false;
+            }
+            codePoint = U16_GET_SUPPLEMENTARY(codePoint, identifier[i++]);
+        } else if (U16_IS_TRAIL(codePoint)) {
+            return false;
+        }
+        if (!isUnicodeWordContinuation(codePoint)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool parsePositiveArrayIndex(const std::u16string &digits, int &arrayIndex)
+{
+    if (digits.empty()) {
+        return false;
+    }
+    std::string ascii;
+    ascii.reserve(digits.size());
+    for (const char16_t codeUnit : digits) {
+        if (codeUnit < u'0' || codeUnit > u'9') {
+            return false;
+        }
+        ascii.push_back(static_cast<char>(codeUnit));
+    }
+
+    std::uint64_t oneBasedIndex = 0;
+    const auto conversion = std::from_chars(ascii.data(),
+                                            ascii.data() + ascii.size(),
+                                            oneBasedIndex);
+    if (conversion.ec != std::errc() || conversion.ptr != ascii.data() + ascii.size()
+        || oneBasedIndex == 0 || oneBasedIndex > kMaxXmpArrayEntries) {
+        return false;
+    }
+    arrayIndex = static_cast<int>(oneBasedIndex - 1);
+    return true;
+}
+}
+
 bool parseTagName(const PkString &tagString,
                   PkString &structName,
                   int &arrayIndex,
@@ -176,8 +247,8 @@ bool parseTagName(const PkString &tagString,
     arrayIndex = -1;
     *typeInfo = 0;
 
-    const std::string tagUtf8 = tagString.PkToUtf8();
-    const int numSubNames = static_cast<int>(std::count(tagUtf8.begin(), tagUtf8.end(), '/')) + 1;
+    const std::u16string tagUtf16 = tagString.PkToU16();
+    const int numSubNames = static_cast<int>(std::count(tagUtf16.begin(), tagUtf16.end(), u'/')) + 1;
 
     if (numSubNames == 1) {
         structName = PkString();
@@ -187,15 +258,23 @@ bool parseTagName(const PkString &tagString,
     }
 
     if (numSubNames == 2) {
-        const std::string &utf8 = tagUtf8;
-        const std::regex structurePattern(
-            R"(^([A-Za-z][A-Za-z0-9_]*)/([A-Za-z][A-Za-z0-9_]*):([A-Za-z][A-Za-z0-9_]*)$)");
-        std::smatch match;
-        if (std::regex_match(utf8, match, structurePattern)) {
-            const std::string matchedStruct = match[1].str();
-            const std::string matchedTag = match[3].str();
-            structName = PkString::PkFromUtf8(matchedStruct.data(), static_cast<int>(matchedStruct.size()));
-            tagName = PkString::PkFromUtf8(matchedTag.data(), static_cast<int>(matchedTag.size()));
+        const std::size_t slash = tagUtf16.find(u'/');
+        const std::size_t colon = tagUtf16.find(u':', slash + 1);
+        if (colon == std::u16string::npos || tagUtf16.find(u':', colon + 1) != std::u16string::npos) {
+            return false;
+        }
+
+        const std::u16string left = tagUtf16.substr(0, slash);
+        const std::u16string prefix = tagUtf16.substr(slash + 1, colon - slash - 1);
+        const std::u16string field = tagUtf16.substr(colon + 1);
+        const std::size_t bracket = left.find(u'[');
+
+        if (bracket == std::u16string::npos
+            && isStructuredIdentifier(left)
+            && isStructuredIdentifier(prefix)
+            && isStructuredIdentifier(field)) {
+            structName = tagString.left(static_cast<int>(slash));
+            tagName = tagString.mid(static_cast<int>(colon + 1));
             *typeInfo = schema->propertyType(structName);
 
             if (*typeInfo && (*typeInfo)->propertyType() == KisMetaData::TypeInfo::StructureType) {
@@ -205,15 +284,18 @@ bool parseTagName(const PkString &tagString,
             return true;
         }
 
-        const std::regex arrayPattern(
-            R"(^([A-Za-z][A-Za-z0-9_]*)\[([0-9]+)\]/([A-Za-z][A-Za-z0-9_]*):([A-Za-z][A-Za-z0-9_]*)$)");
-        std::smatch arrayMatch;
-        if (std::regex_match(utf8, arrayMatch, arrayPattern)) {
-            const std::string matchedStruct = arrayMatch[1].str();
-            const std::string matchedTag = arrayMatch[4].str();
-            structName = PkString::PkFromUtf8(matchedStruct.data(), static_cast<int>(matchedStruct.size()));
-            arrayIndex = std::stoi(arrayMatch[2].str()) - 1;
-            tagName = PkString::PkFromUtf8(matchedTag.data(), static_cast<int>(matchedTag.size()));
+        if (bracket != std::u16string::npos && left.back() == u']') {
+            const std::u16string arrayName = left.substr(0, bracket);
+            const std::u16string digits = left.substr(bracket + 1,
+                                                      left.size() - bracket - 2);
+            if (!isStructuredIdentifier(arrayName)
+                || !isStructuredIdentifier(prefix)
+                || !isStructuredIdentifier(field)
+                || !parsePositiveArrayIndex(digits, arrayIndex)) {
+                return false;
+            }
+            structName = tagString.left(static_cast<int>(bracket));
+            tagName = tagString.mid(static_cast<int>(colon + 1));
 
             if (schema->propertyType(structName)) {
                 *typeInfo = schema->propertyType(structName)->embeddedPropertyType();

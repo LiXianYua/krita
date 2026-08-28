@@ -93,6 +93,17 @@ PkString fromLatin1(const char *data, int size = -1)
     return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
 }
 
+std::string toLatin1(const PkString &text)
+{
+    const std::u16string utf16 = text.PkToU16();
+    std::string latin1;
+    latin1.reserve(utf16.size());
+    for (const char16_t codeUnit : utf16) {
+        latin1.push_back(codeUnit <= 0xff ? static_cast<char>(codeUnit) : '?');
+    }
+    return latin1;
+}
+
 void appendUtf8CodePoint(std::string &utf8, std::uint32_t codePoint)
 {
     if (codePoint <= 0x7f) {
@@ -298,30 +309,23 @@ KisMetaData::Value exifOECFToKMDOECFStructure(const Exiv2::Value::AutoPtr value,
     PkByteArray array = zeroedBytes(static_cast<int>(dvalue->count()));
 
     dvalue->copy((Exiv2::byte *)array.data());
-#if EXIV2_TEST_VERSION(0,28,0)
-    size_t columns = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[0], order);
-    size_t rows = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[1], order);
-#else
-    int columns = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[0], order);
-    int rows = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[1], order);
-#endif
+    std::uint16_t columns =
+        fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[0], order);
+    std::uint16_t rows =
+        fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[1], order);
 
-    if ((columns * rows + 4)
+    if ((static_cast<std::size_t>(columns) * rows * 8 + 4)
         > dvalue->count()) { // Sometime byteOrder get messed up (especially if metadata got saved with kexiv2 library,
                              // or any library that doesn't save back with the same byte order as the camera)
         order = invertByteOrder(order);
-#if EXIV2_TEST_VERSION(0,28,0)
-        columns = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[0], order);
-        rows = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[1], order);
-#else
         columns = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[0], order);
         rows = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[1], order);
-#endif
-        assert((columns * rows + 4) > dvalue->count());
+        if (static_cast<std::size_t>(columns) * rows * 8 + 4 > dvalue->count()) {
+            return {};
+        }
     }
-    PkVariant qcolumns, qrows;
-    qcolumns.setValue(columns);
-    qrows.setValue(rows);
+    const PkVariant qcolumns(static_cast<unsigned int>(columns));
+    const PkVariant qrows(static_cast<unsigned int>(rows));
     oecfStructure["Columns"] = KisMetaData::Value(qcolumns);
     oecfStructure["Rows"] = KisMetaData::Value(qrows);
     int index = 4;
@@ -333,7 +337,7 @@ KisMetaData::Value exifOECFToKMDOECFStructure(const Exiv2::Value::AutoPtr value,
 #endif
         int lastIndex = indexOfByte(array, '\0', index);
         PkString name = lastIndex >= index
-            ? PkString::PkFromUtf8(array.constData() + index, lastIndex - index)
+            ? fromLatin1(array.constData() + index, lastIndex - index)
             : PkString();
         if (index != lastIndex) {
             index = lastIndex + 1;
@@ -375,9 +379,12 @@ Exiv2::Value *kmdOECFStructureToExifOECF(const KisMetaData::Value &value)
     assert(columns * rows == values.size());
     int length = 4 + rows * columns * 8; // The 4 byte for storing rows/columns and the rows*columns*sizeof(rational)
     bool saveNames = (!names.empty() && names[0].asVariant().toString().size() > 0);
+    std::vector<std::string> encodedNames;
     if (saveNames) {
+        encodedNames.reserve(columns);
         for (int i = 0; i < columns; i++) {
-            length += names[i].asVariant().toString().size() + 1;
+            encodedNames.push_back(toLatin1(names[i].asVariant().toString()));
+            length += static_cast<int>(encodedNames.back().size()) + 1;
         }
     }
     PkByteArray array = zeroedBytes(length);
@@ -386,7 +393,7 @@ Exiv2::Value *kmdOECFStructureToExifOECF(const KisMetaData::Value &value)
     int index = 4;
     if (saveNames) {
         for (int i = 0; i < columns; i++) {
-            const std::string name = names[i].asVariant().toString().PkToUtf8();
+            const std::string &name = encodedNames[static_cast<std::size_t>(i)];
             memcpy(array.data() + index, name.data(), name.size());
             index += static_cast<int>(name.size());
             array.data()[index++] = '\0';

@@ -1,3 +1,5 @@
+find_package(ICU REQUIRED COMPONENTS uc)
+
 set(kritaxmp_SOURCES
     kis_xmp_io.cpp
     kis_xmp_plugin.cpp
@@ -17,6 +19,7 @@ target_link_libraries(kritaxmp
         pkport
         pktime
         pklog
+        ICU::uc
         LibExiv2::LibExiv2
 )
 

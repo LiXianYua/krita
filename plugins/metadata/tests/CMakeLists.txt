@@ -20,3 +20,9 @@ add_test(NAME plugins-metadata-kis_metadata-date-regression
          COMMAND kis_metadata_regression_test date)
 add_test(NAME plugins-metadata-kis_metadata-registry-regression
          COMMAND kis_metadata_regression_test registry)
+add_test(NAME plugins-metadata-kis_metadata-exif-oecf-regression
+         COMMAND kis_metadata_regression_test exif-oecf)
+add_test(NAME plugins-metadata-kis_metadata-xmp-unicode-regression
+         COMMAND kis_metadata_regression_test xmp-unicode)
+add_test(NAME plugins-metadata-kis_metadata-xmp-array-index-regression
+         COMMAND kis_metadata_regression_test xmp-array-index)
