@@ -104,7 +104,8 @@ class KoPathPoint
 {
 public:
     enum PointProperty { StartSubpath = 1, StopSubpath = 2, CloseSubpath = 4, HasControlPoint1 = 8, HasControlPoint2 = 16 };
-    KoPathPoint(KoShape *parent, const PkPointF &point) : m_parent(parent), m_point(point) {}
+    KoPathPoint(KoShape *parent, const PkPointF &point, int properties = 0)
+        : m_parent(parent), m_point(point), m_properties(properties) {}
     KoPathPoint(const KoPathPoint &other, KoShape *parent)
         : m_parent(parent), m_point(other.m_point), m_control1(other.m_control1),
           m_control2(other.m_control2), m_properties(other.m_properties) {}
@@ -169,7 +170,15 @@ public:
         const PkPointF offset(minX, minY);
         if (minX != 0.0 || minY != 0.0) {
             for (KoSubpath *path : m_subpaths) {
-                for (KoPathPoint *point : *path) point->setPoint(point->point() - offset);
+                for (KoPathPoint *point : *path) {
+                    point->setPoint(point->point() - offset);
+                    if (point->hasProperty(KoPathPoint::HasControlPoint1)) {
+                        point->setControlPoint1(point->controlPoint1() - offset);
+                    }
+                    if (point->hasProperty(KoPathPoint::HasControlPoint2)) {
+                        point->setControlPoint2(point->controlPoint2() - offset);
+                    }
+                }
             }
             setPosition(position() + offset);
         }
@@ -196,20 +205,36 @@ public:
     }
     void moveTo(const PkPointF &point)
     {
-        if (m_subpaths.isEmpty()) m_subpaths.append(new KoSubpath);
-        m_subpaths.last()->append(new KoPathPoint(this, point));
+        auto *path = new KoSubpath;
+        path->append(new KoPathPoint(this, point,
+                                    KoPathPoint::StartSubpath | KoPathPoint::StopSubpath));
+        m_subpaths.append(path);
     }
-    void lineTo(const PkPointF &point) { moveTo(point); }
+    void lineTo(const PkPointF &point)
+    {
+        if (m_subpaths.isEmpty()) moveTo(PkPointF());
+        m_subpaths.last()->last()->unsetProperty(KoPathPoint::StopSubpath);
+        m_subpaths.last()->append(new KoPathPoint(this, point, KoPathPoint::StopSubpath));
+    }
+    void curveTo(const PkPointF &control1, const PkPointF &control2,
+                 const PkPointF &point)
+    {
+        if (m_subpaths.isEmpty() || m_subpaths.last()->isEmpty()) moveTo(PkPointF());
+        m_subpaths.last()->last()->unsetProperty(KoPathPoint::StopSubpath);
+        m_subpaths.last()->last()->setControlPoint2(control1);
+        auto *end = new KoPathPoint(this, point, KoPathPoint::StopSubpath);
+        end->setControlPoint1(control2);
+        m_subpaths.last()->append(end);
+    }
     void arcTo(qreal rx, qreal ry, qreal startDegrees, qreal sweepDegrees)
     {
         if (m_subpaths.isEmpty() || m_subpaths.last()->isEmpty()) return;
-        const PkPointF start = m_subpaths.last()->last()->point();
-        const qreal startRadians = kisDegreesToRadians(startDegrees);
-        const qreal endRadians = kisDegreesToRadians(startDegrees + sweepDegrees);
-        const PkPointF center(start.x() - rx * std::cos(startRadians),
-                              start.y() + ry * std::sin(startRadians));
-        lineTo(PkPointF(center.x() + rx * std::cos(endRadians),
-                        center.y() - ry * std::sin(endRadians)));
+        PkPointF curvePoints[12];
+        const int pointCount = arcToCurve(rx, ry, startDegrees, sweepDegrees,
+                                          m_subpaths.last()->last()->point(), curvePoints);
+        for (int i = 0; i < pointCount; i += 3) {
+            curveTo(curvePoints[i], curvePoints[i + 1], curvePoints[i + 2]);
+        }
     }
 
     static int arcToCurve(qreal rx, qreal ry, qreal startDegrees, qreal sweepDegrees,
@@ -262,6 +287,8 @@ public:
         auto found = m_attributes.find(name);
         return found == m_attributes.end() ? PkString() : found->second;
     }
+    bool hasAttribute(const PkString &name) const { return m_attributes.find(name) != m_attributes.end(); }
+    PkString elementName() const { return m_element; }
 private:
     PkString m_element;
     std::map<PkString, PkString> m_attributes;

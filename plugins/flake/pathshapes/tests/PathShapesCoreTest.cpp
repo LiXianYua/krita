@@ -124,6 +124,83 @@ int representativePointsAndBoundsRemainLive()
     star.setConvex(true);
     star.setCornerCount(5);
     if (star.subpaths().count() != 1 || star.subpaths()[0]->count() != 5) return 32;
+
+    EllipseShape ellipse;
+    ellipse.setType(EllipseShape::Pie);
+    ellipse.setStartAngle(0.0);
+    ellipse.setEndAngle(90.0);
+    if (ellipse.subpaths().count() != 1 || ellipse.subpaths()[0]->count() != 3) return 33;
+    KoSubpath &pie = *ellipse.subpaths()[0];
+    if (!pie[0]->hasProperty(KoPathPoint::HasControlPoint2) ||
+        !pie[1]->hasProperty(KoPathPoint::HasControlPoint1) ||
+        !pie[0]->hasProperty(KoPathPoint::CloseSubpath) ||
+        !pie[2]->hasProperty(KoPathPoint::CloseSubpath)) return 34;
+    if (!closeEnough(pie[0]->point().x(), 50.0) || !closeEnough(pie[0]->point().y(), 50.0) ||
+        !closeEnough(pie[1]->point().x(), 0.0) || !closeEnough(pie[1]->point().y(), 0.0) ||
+        !closeEnough(pie[2]->point().x(), 0.0) || !closeEnough(pie[2]->point().y(), 50.0)) return 35;
+    if (!closeEnough(pie[0]->controlPoint2().x(), 50.0) ||
+        !closeEnough(pie[0]->controlPoint2().y(), 22.3857625084603) ||
+        !closeEnough(pie[1]->controlPoint1().x(), 27.6142374915397) ||
+        !closeEnough(pie[1]->controlPoint1().y(), 0.0) ||
+        !closeEnough(ellipse.size().width(), 50.0) ||
+        !closeEnough(ellipse.size().height(), 50.0)) return 42;
+
+    ellipse.setType(EllipseShape::Chord);
+    if (ellipse.subpaths()[0]->count() != 2 ||
+        !ellipse.subpaths()[0]->first()->hasProperty(KoPathPoint::CloseSubpath) ||
+        !ellipse.subpaths()[0]->last()->hasProperty(KoPathPoint::CloseSubpath)) return 36;
+    ellipse.setType(EllipseShape::Arc);
+    if (ellipse.subpaths()[0]->first()->hasProperty(KoPathPoint::CloseSubpath) ||
+        ellipse.subpaths()[0]->last()->hasProperty(KoPathPoint::CloseSubpath)) return 37;
+
+    SpiralShape lineSpiral;
+    lineSpiral.setType(SpiralShape::Line);
+    if (lineSpiral.subpaths().count() != 1 || lineSpiral.subpaths()[0]->count() != 11) return 38;
+    if (!lineSpiral.subpaths()[0]->first()->hasProperty(KoPathPoint::StartSubpath) ||
+        !lineSpiral.subpaths()[0]->last()->hasProperty(KoPathPoint::StopSubpath)) return 45;
+    for (KoPathPoint *point : *lineSpiral.subpaths()[0]) {
+        if (point->hasProperty(KoPathPoint::HasControlPoint1) ||
+            point->hasProperty(KoPathPoint::HasControlPoint2)) return 39;
+    }
+    if (!closeEnough(lineSpiral.size().width(), 85.5) ||
+        !closeEnough(lineSpiral.size().height(), 95.0)) return 43;
+    SpiralShape curveSpiral;
+    if (curveSpiral.subpaths().count() != 1 || curveSpiral.subpaths()[0]->count() != 11) return 40;
+    if (!curveSpiral.subpaths()[0]->first()->hasProperty(KoPathPoint::StartSubpath) ||
+        !curveSpiral.subpaths()[0]->last()->hasProperty(KoPathPoint::StopSubpath)) return 46;
+    if (!curveSpiral.subpaths()[0]->first()->hasProperty(KoPathPoint::HasControlPoint2) ||
+        !curveSpiral.subpaths()[0]->last()->hasProperty(KoPathPoint::HasControlPoint1)) return 41;
+    if (!closeEnough(curveSpiral.size().width(), 100.0) ||
+        !closeEnough(curveSpiral.size().height(), 100.0)) return 44;
+    return 0;
+}
+
+int realEllipseSaveSvgPreservesAttributes()
+{
+    EllipseShape circle;
+    SvgSavingContext circleContext;
+    if (!circle.saveSvg(circleContext)) return 80;
+    const KoXmlWriter &circleWriter = circleContext.shapeWriter();
+    if (circleWriter.elementName() != "circle" || circleWriter.attribute("r") != "50" ||
+        circleWriter.attribute("cx") != "50" || circleWriter.attribute("cy") != "50") return 81;
+
+    EllipseShape chord;
+    chord.setType(EllipseShape::Chord);
+    chord.setStartAngle(15.0);
+    chord.setEndAngle(275.0);
+    SvgSavingContext chordContext;
+    if (!chord.saveSvg(chordContext)) return 82;
+    const KoXmlWriter &chordWriter = chordContext.shapeWriter();
+    if (chordWriter.elementName() != "path" ||
+        chordWriter.attribute("sodipodi:type") != "arc" ||
+        chordWriter.attribute("sodipodi:arc-type") != "chord" ||
+        chordWriter.hasAttribute("sodipodi:open") || !chordWriter.hasAttribute("d")) return 83;
+
+    EllipseShape arc;
+    arc.setStartAngle(15.0);
+    arc.setEndAngle(275.0);
+    SvgSavingContext arcContext;
+    if (!arc.saveSvg(arcContext) || arcContext.shapeWriter().attribute("sodipodi:open") != "true") return 84;
     return 0;
 }
 
@@ -256,6 +333,8 @@ int main()
     if (factoryResult) return factoryResult;
     const int xmlResult = xmlDefaultsAndErrorsRemainLive();
     if (xmlResult) return xmlResult;
+    const int svgResult = realEllipseSaveSvgPreservesAttributes();
+    if (svgResult) return svgResult;
     const int commandResult = configurationCommandsRedoAndUndo();
     if (commandResult) return commandResult;
     return registrationIsIdempotentAndComplete();

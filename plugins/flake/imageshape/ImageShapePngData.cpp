@@ -6,7 +6,12 @@
 
 #include <cstddef>
 #include <cstdio>
+#ifndef HAVE_JPEG
+#define HAVE_JPEG 0
+#endif
+#if HAVE_JPEG
 #include <jpeglib.h>
+#endif
 #include <tiffio.h>
 
 #include <algorithm>
@@ -229,16 +234,43 @@ bool readPixel8(const PkImage &image, int x, int y, Rgba8 &result)
     return false;
 }
 
-bool checkedPixelBytes(int width, int height, std::size_t bytesPerPixel, std::size_t &total)
+void setDecodeError(ImageShapePngData::DecodeError *error,
+                    ImageShapePngData::DecodeError value)
 {
-    if (width <= 0 || height <= 0) return false;
+    if (error) *error = value;
+}
+
+bool checkedPixelBytes(int width, int height, std::size_t bytesPerPixel,
+                       std::size_t maximum, std::size_t &total,
+                       ImageShapePngData::DecodeError *error = nullptr)
+{
+    if (width <= 0 || height <= 0 || bytesPerPixel == 0) {
+        setDecodeError(error, ImageShapePngData::DecodeError::Dimensions);
+        return false;
+    }
     const std::size_t w = static_cast<std::size_t>(width);
     const std::size_t h = static_cast<std::size_t>(height);
-    if (w > std::numeric_limits<std::size_t>::max() / bytesPerPixel) return false;
+    const std::size_t depthBits = bytesPerPixel * 8u;
+    if (depthBits > static_cast<std::size_t>(std::numeric_limits<int>::max()) ||
+        w > static_cast<std::size_t>(std::numeric_limits<int>::max() - 31) / depthBits) {
+        setDecodeError(error, ImageShapePngData::DecodeError::Dimensions);
+        return false;
+    }
+    if (w > std::numeric_limits<std::size_t>::max() / bytesPerPixel) {
+        setDecodeError(error, ImageShapePngData::DecodeError::SizeLimit);
+        return false;
+    }
     const std::size_t row = w * bytesPerPixel;
-    if (h > std::numeric_limits<std::size_t>::max() / row) return false;
+    if (h > std::numeric_limits<std::size_t>::max() / row) {
+        setDecodeError(error, ImageShapePngData::DecodeError::SizeLimit);
+        return false;
+    }
     total = row * h;
-    return total <= kMaxDecodedRgbaBytes;
+    if (total > maximum) {
+        setDecodeError(error, ImageShapePngData::DecodeError::SizeLimit);
+        return false;
+    }
+    return true;
 }
 
 void pngWrite(png_structp png, png_bytep data, png_size_t length)
@@ -258,7 +290,8 @@ PkByteArray encodePng(const PkImage &image)
                         image.format() == PkImage::Format_RGBA64_Premultiplied;
     const std::size_t bytesPerPixel = gray16 ? 2u : (rgba16 ? 8u : 4u);
     std::size_t byteCount = 0;
-    if (image.isNull() || !checkedPixelBytes(image.width(), image.height(), bytesPerPixel, byteCount)) return {};
+    if (image.isNull() || !checkedPixelBytes(image.width(), image.height(), bytesPerPixel,
+                                             kMaxDecodedRgbaBytes, byteCount)) return {};
     std::vector<std::uint8_t> pixels(byteCount);
     const std::size_t rowBytes = std::size_t(image.width()) * bytesPerPixel;
 
@@ -301,6 +334,8 @@ PkByteArray encodePng(const PkImage &image)
         return {};
     }
     std::vector<std::uint8_t> encoded;
+    std::vector<png_bytep> rows(static_cast<std::size_t>(image.height()));
+    for (int y = 0; y < image.height(); ++y) rows[static_cast<std::size_t>(y)] = pixels.data() + std::size_t(y) * rowBytes;
     if (setjmp(png_jmpbuf(png))) {
         png_destroy_write_struct(&png, &info);
         return {};
@@ -310,8 +345,6 @@ PkByteArray encodePng(const PkImage &image)
                  gray16 || rgba16 ? 16 : 8, gray16 ? PNG_COLOR_TYPE_GRAY : PNG_COLOR_TYPE_RGBA,
                  PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
     png_write_info(png, info);
-    std::vector<png_bytep> rows(static_cast<std::size_t>(image.height()));
-    for (int y = 0; y < image.height(); ++y) rows[static_cast<std::size_t>(y)] = pixels.data() + std::size_t(y) * rowBytes;
     png_write_image(png, rows.data());
     png_write_end(png, info);
     png_destroy_write_struct(&png, &info);
@@ -349,30 +382,45 @@ int base64Value(char character)
     return -1;
 }
 
+bool isBase64Whitespace(char16_t character)
+{
+    return character == u' ' || character == u'\t' || character == u'\n' ||
+           character == u'\r' || character == u'\f' || character == u'\v';
+}
+
 PkByteArray decodeBase64Range(const PkString &encoded, int offset, int length)
 {
     if (offset < 0 || length <= 0 || offset > encoded.size() ||
         length > encoded.size() - offset) return {};
+    std::size_t symbolCount = 0;
+    std::array<char16_t, 2> trailing{};
+    for (int i = 0; i < length; ++i) {
+        const char16_t character = encoded.at(offset + i);
+        if (character > 0x7fu) return {};
+        if (isBase64Whitespace(character)) continue;
+        trailing[0] = trailing[1];
+        trailing[1] = character;
+        ++symbolCount;
+    }
     std::size_t padding = 0;
-    if (encoded.at(offset + length - 1) == u'=') ++padding;
-    if (length > 1 && encoded.at(offset + length - 2) == u'=') ++padding;
+    if (symbolCount > 0 && trailing[1] == u'=') ++padding;
+    if (symbolCount > 1 && trailing[0] == u'=') ++padding;
     std::size_t decodedLength = 0;
     if (!ImageShapePngData::base64DecodedSizeWithinLimit(
-            static_cast<std::size_t>(length), padding, decodedLength)) return {};
-    for (int i = 0; i < length; ++i) {
-        if (encoded.at(offset + i) > 0x7fu) return {};
-    }
+            symbolCount, padding, decodedLength)) return {};
 
     std::vector<std::uint8_t> bytes;
     bytes.reserve(decodedLength);
-    for (int relativeOffset = 0; relativeOffset < length; relativeOffset += 4) {
-        const bool finalQuartet = relativeOffset + 4 == length;
-        const int quartetOffset = offset + relativeOffset;
-        std::array<char, 4> source{};
-        for (int i = 0; i < 4; ++i) {
-            source[static_cast<std::size_t>(i)] =
-                static_cast<char>(encoded.at(quartetOffset + i));
-        }
+    std::array<char, 4> source{};
+    std::size_t quartetSize = 0;
+    std::size_t consumedSymbols = 0;
+    for (int relativeOffset = 0; relativeOffset < length; ++relativeOffset) {
+        const char16_t character = encoded.at(offset + relativeOffset);
+        if (isBase64Whitespace(character)) continue;
+        source[quartetSize++] = static_cast<char>(character);
+        ++consumedSymbols;
+        if (quartetSize != 4) continue;
+        const bool finalQuartet = consumedSymbols == symbolCount;
         const int first = base64Value(source[0]);
         const int second = base64Value(source[1]);
         const int third = source[2] == '=' ? -2 : base64Value(source[2]);
@@ -383,16 +431,19 @@ PkByteArray decodeBase64Range(const PkString &encoded, int offset, int length)
         bytes.push_back(static_cast<std::uint8_t>((first << 2) | (second >> 4)));
         if (third == -2) {
             if ((second & 0x0f) != 0) return {};
+            quartetSize = 0;
             continue;
         }
         bytes.push_back(static_cast<std::uint8_t>((second << 4) | (third >> 2)));
         if (fourth == -2) {
             if ((third & 0x03) != 0) return {};
+            quartetSize = 0;
             continue;
         }
         bytes.push_back(static_cast<std::uint8_t>((third << 6) | fourth));
+        quartetSize = 0;
     }
-    return bytes.size() == decodedLength ? PkByteArray(bytes) : PkByteArray();
+    return quartetSize == 0 && bytes.size() == decodedLength ? PkByteArray(bytes) : PkByteArray();
 }
 
 struct PngInput {
@@ -409,8 +460,10 @@ void pngRead(png_structp png, png_bytep output, png_size_t length)
     input->offset += length;
 }
 
-PkImage decodePngBytes(const PkByteArray &encoded)
+PkImage decodePngBytes(const PkByteArray &encoded, std::size_t maximum,
+                       ImageShapePngData::DecodeError *error)
 {
+    setDecodeError(error, ImageShapePngData::DecodeError::InvalidData);
     if (encoded.size() < 8 || png_sig_cmp(reinterpret_cast<png_const_bytep>(encoded.constData()), 0, 8)) return {};
     png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     if (!png) return {};
@@ -420,17 +473,23 @@ PkImage decodePngBytes(const PkByteArray &encoded)
         return {};
     }
     PngInput input{reinterpret_cast<const std::uint8_t *>(encoded.constData()), static_cast<std::size_t>(encoded.size()), 0};
+    std::vector<std::uint8_t> pixels;
+    std::vector<png_bytep> rows;
+    PkImage image;
     if (setjmp(png_jmpbuf(png))) {
         png_destroy_read_struct(&png, &info, nullptr);
         return {};
     }
     png_set_read_fn(png, &input, pngRead);
+    png_set_user_limits(png, std::numeric_limits<png_uint_32>::max(),
+                        std::numeric_limits<png_uint_32>::max());
     png_read_info(png, info);
     png_uint_32 width = 0, height = 0;
     int bitDepth = 0, colorType = 0, interlace = 0, compression = 0, filter = 0;
     png_get_IHDR(png, info, &width, &height, &bitDepth, &colorType, &interlace, &compression, &filter);
     if (width > static_cast<png_uint_32>(std::numeric_limits<int>::max()) ||
         height > static_cast<png_uint_32>(std::numeric_limits<int>::max())) {
+        setDecodeError(error, ImageShapePngData::DecodeError::Dimensions);
         png_destroy_read_struct(&png, &info, nullptr);
         return {};
     }
@@ -450,20 +509,38 @@ PkImage decodePngBytes(const PkByteArray &encoded)
     if (interlace != PNG_INTERLACE_NONE) png_set_interlace_handling(png);
     png_read_update_info(png, info);
     const std::size_t rowBytes = png_get_rowbytes(png, info);
-    if (height == 0 || rowBytes > kMaxDecodedRgbaBytes || height > kMaxDecodedRgbaBytes / rowBytes) {
+    const std::size_t bytesPerPixel = preserveGray16 ? 2u : (highDepth ? 8u : 4u);
+    std::size_t total = 0;
+    if (!checkedPixelBytes(static_cast<int>(width), static_cast<int>(height),
+                           bytesPerPixel, maximum, total, error) ||
+        rowBytes != static_cast<std::size_t>(width) * bytesPerPixel) {
+        if (rowBytes != static_cast<std::size_t>(width) * bytesPerPixel) {
+            setDecodeError(error, ImageShapePngData::DecodeError::InvalidData);
+        }
         png_destroy_read_struct(&png, &info, nullptr);
         return {};
     }
-    std::vector<std::uint8_t> pixels(rowBytes * static_cast<std::size_t>(height));
-    std::vector<png_bytep> rows(static_cast<std::size_t>(height));
+    try {
+        pixels.resize(total);
+        rows.resize(static_cast<std::size_t>(height));
+    } catch (const std::bad_alloc &) {
+        setDecodeError(error, ImageShapePngData::DecodeError::Allocation);
+        png_destroy_read_struct(&png, &info, nullptr);
+        return {};
+    }
     for (std::size_t y = 0; y < rows.size(); ++y) rows[y] = pixels.data() + y * rowBytes;
     png_read_image(png, rows.data());
     png_read_end(png, info);
     png_destroy_read_struct(&png, &info, nullptr);
 
-    PkImage image(static_cast<int>(width), static_cast<int>(height),
-                  preserveGray16 ? PkImage::Format_Grayscale16 :
-                  (highDepth ? PkImage::Format_RGBA64 : PkImage::Format_ARGB32));
+    try {
+        image = PkImage(static_cast<int>(width), static_cast<int>(height),
+                        preserveGray16 ? PkImage::Format_Grayscale16 :
+                        (highDepth ? PkImage::Format_RGBA64 : PkImage::Format_ARGB32));
+    } catch (const std::bad_alloc &) {
+        setDecodeError(error, ImageShapePngData::DecodeError::Allocation);
+        return {};
+    }
     for (std::size_t y = 0; y < height; ++y) {
         const std::uint8_t *source = pixels.data() + y * rowBytes;
         if (preserveGray16) {
@@ -488,12 +565,15 @@ PkImage decodePngBytes(const PkByteArray &encoded)
             }
         }
     }
+    setDecodeError(error, ImageShapePngData::DecodeError::None);
     return image;
 }
 
+#if HAVE_JPEG
 struct JpegError {
     jpeg_error_mgr base;
     std::jmp_buf jump;
+    int warnings = 0;
 };
 
 void jpegErrorExit(j_common_ptr common)
@@ -501,12 +581,22 @@ void jpegErrorExit(j_common_ptr common)
     std::longjmp(reinterpret_cast<JpegError *>(common->err)->jump, 1);
 }
 
-PkImage decodeJpeg(const PkByteArray &encoded)
+void jpegEmitMessage(j_common_ptr common, int messageLevel)
+{
+    if (messageLevel < 0) ++reinterpret_cast<JpegError *>(common->err)->warnings;
+}
+
+PkImage decodeJpeg(const PkByteArray &encoded, std::size_t maximum,
+                   ImageShapePngData::DecodeError *decodeError)
 {
     jpeg_decompress_struct decoder{};
     JpegError error{};
+    PkImage image;
+    std::vector<JSAMPLE> row;
     decoder.err = jpeg_std_error(&error.base);
     error.base.error_exit = jpegErrorExit;
+    error.base.emit_message = jpegEmitMessage;
+    setDecodeError(decodeError, ImageShapePngData::DecodeError::InvalidData);
     if (setjmp(error.jump)) {
         jpeg_destroy_decompress(&decoder);
         return {};
@@ -518,29 +608,66 @@ PkImage decodeJpeg(const PkByteArray &encoded)
         jpeg_destroy_decompress(&decoder);
         return {};
     }
-    decoder.out_color_space = JCS_RGB;
+    const bool cmyk = decoder.jpeg_color_space == JCS_CMYK ||
+                      decoder.jpeg_color_space == JCS_YCCK;
+    decoder.out_color_space = cmyk ? JCS_CMYK : JCS_RGB;
     jpeg_start_decompress(&decoder);
     std::size_t byteCount = 0;
-    if (!checkedPixelBytes(static_cast<int>(decoder.output_width), static_cast<int>(decoder.output_height), 4u, byteCount)) {
+    if (decoder.output_width > static_cast<JDIMENSION>(std::numeric_limits<int>::max()) ||
+        decoder.output_height > static_cast<JDIMENSION>(std::numeric_limits<int>::max()) ||
+        !checkedPixelBytes(static_cast<int>(decoder.output_width), static_cast<int>(decoder.output_height),
+                           4u, maximum, byteCount, decodeError)) {
         jpeg_destroy_decompress(&decoder);
         return {};
     }
-    PkImage image(static_cast<int>(decoder.output_width), static_cast<int>(decoder.output_height), PkImage::Format_ARGB32);
-    std::vector<JSAMPLE> row(static_cast<std::size_t>(decoder.output_width) * decoder.output_components);
+    try {
+        image = PkImage(static_cast<int>(decoder.output_width), static_cast<int>(decoder.output_height), PkImage::Format_ARGB32);
+        row.resize(static_cast<std::size_t>(decoder.output_width) * decoder.output_components);
+    } catch (const std::bad_alloc &) {
+        setDecodeError(decodeError, ImageShapePngData::DecodeError::Allocation);
+        jpeg_destroy_decompress(&decoder);
+        return {};
+    }
     while (decoder.output_scanline < decoder.output_height) {
         JSAMPROW rows[] = {row.data()};
         jpeg_read_scanlines(&decoder, rows, 1);
         const int y = static_cast<int>(decoder.output_scanline - 1);
         for (std::size_t x = 0; x < decoder.output_width; ++x) {
+            std::uint8_t red = row[x * decoder.output_components];
+            std::uint8_t green = row[x * decoder.output_components + 1];
+            std::uint8_t blue = row[x * decoder.output_components + 2];
+            if (cmyk) {
+                const std::uint8_t black = row[x * 4 + 3];
+                if (decoder.saw_Adobe_marker) {
+                    red = static_cast<std::uint8_t>((std::uint32_t(red) * black + 127u) / 255u);
+                    green = static_cast<std::uint8_t>((std::uint32_t(green) * black + 127u) / 255u);
+                    blue = static_cast<std::uint8_t>((std::uint32_t(blue) * black + 127u) / 255u);
+                } else {
+                    red = static_cast<std::uint8_t>((std::uint32_t(255u - red) * (255u - black) + 127u) / 255u);
+                    green = static_cast<std::uint8_t>((std::uint32_t(255u - green) * (255u - black) + 127u) / 255u);
+                    blue = static_cast<std::uint8_t>((std::uint32_t(255u - blue) * (255u - black) + 127u) / 255u);
+                }
+            }
             image.setPixel(static_cast<int>(x), y, 0xff000000u |
-                           (std::uint32_t(row[x * 3]) << 16) |
-                           (std::uint32_t(row[x * 3 + 1]) << 8) | row[x * 3 + 2]);
+                           (std::uint32_t(red) << 16) |
+                           (std::uint32_t(green) << 8) | blue);
         }
     }
-    jpeg_finish_decompress(&decoder);
+    const bool complete = jpeg_finish_decompress(&decoder) != FALSE;
+    const bool clean = error.warnings == 0;
     jpeg_destroy_decompress(&decoder);
+    if (!complete || !clean) return {};
+    setDecodeError(decodeError, ImageShapePngData::DecodeError::None);
     return image;
 }
+#else
+PkImage decodeJpeg(const PkByteArray &, std::size_t,
+                   ImageShapePngData::DecodeError *error)
+{
+    setDecodeError(error, ImageShapePngData::DecodeError::UnsupportedFormat);
+    return {};
+}
+#endif
 
 struct TiffInput {
     const std::uint8_t *data = nullptr;
@@ -572,8 +699,10 @@ toff_t tiffSize(thandle_t handle) { return static_cast<toff_t>(static_cast<TiffI
 int tiffMap(thandle_t, tdata_t *, toff_t *) { return 0; }
 void tiffUnmap(thandle_t, tdata_t, toff_t) {}
 
-PkImage decodeTiff(const PkByteArray &encoded)
+PkImage decodeTiff(const PkByteArray &encoded, std::size_t maximum,
+                   ImageShapePngData::DecodeError *error)
 {
+    setDecodeError(error, ImageShapePngData::DecodeError::InvalidData);
     TiffInput input{reinterpret_cast<const std::uint8_t *>(encoded.constData()), static_cast<std::size_t>(encoded.size()), 0};
     TIFF *tiff = TIFFClientOpen("memory", "r", &input, tiffRead, tiffNoWrite,
                                 tiffSeek, tiffClose, tiffSize, tiffMap, tiffUnmap);
@@ -584,17 +713,31 @@ PkImage decodeTiff(const PkByteArray &encoded)
     std::size_t byteCount = 0;
     if (width > static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
         height > static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
-        !checkedPixelBytes(static_cast<int>(width), static_cast<int>(height), 4u, byteCount)) {
+        !checkedPixelBytes(static_cast<int>(width), static_cast<int>(height), 4u,
+                           maximum, byteCount, error)) {
         TIFFClose(tiff);
         return {};
     }
-    std::vector<std::uint32_t> raster(static_cast<std::size_t>(width) * height);
+    std::vector<std::uint32_t> raster;
+    try {
+        raster.resize(static_cast<std::size_t>(width) * height);
+    } catch (const std::bad_alloc &) {
+        setDecodeError(error, ImageShapePngData::DecodeError::Allocation);
+        TIFFClose(tiff);
+        return {};
+    }
     if (!TIFFReadRGBAImageOriented(tiff, width, height, raster.data(), ORIENTATION_TOPLEFT, 1)) {
         TIFFClose(tiff);
         return {};
     }
     TIFFClose(tiff);
-    PkImage image(static_cast<int>(width), static_cast<int>(height), PkImage::Format_ARGB32);
+    PkImage image;
+    try {
+        image = PkImage(static_cast<int>(width), static_cast<int>(height), PkImage::Format_ARGB32);
+    } catch (const std::bad_alloc &) {
+        setDecodeError(error, ImageShapePngData::DecodeError::Allocation);
+        return {};
+    }
     for (std::uint32_t y = 0; y < height; ++y) {
         for (std::uint32_t x = 0; x < width; ++x) {
             const std::uint32_t pixel = raster[static_cast<std::size_t>(y) * width + x];
@@ -606,7 +749,44 @@ PkImage decodeTiff(const PkByteArray &encoded)
                            unpremultiply8(TIFFGetB(pixel), alpha));
         }
     }
+    setDecodeError(error, ImageShapePngData::DecodeError::None);
     return image;
+}
+
+bool hasJpegSignature(const PkByteArray &encoded)
+{
+    const std::size_t size = encoded.size() > 0 ? static_cast<std::size_t>(encoded.size()) : 0;
+    const auto *data = reinterpret_cast<const std::uint8_t *>(encoded.constData());
+    if (size < 6 || data[0] != 0xffu || data[1] != 0xd8u) return false;
+    std::size_t offset = 2;
+    while (offset < size && data[offset] == 0xffu) ++offset;
+    if (offset >= size || data[offset] == 0x00u || data[offset] == 0xd8u || data[offset] == 0xd9u) return false;
+    const std::uint8_t marker = data[offset++];
+    if (marker >= 0xd0u && marker <= 0xd7u) return false;
+    if (offset + 2 > size) return false;
+    const std::size_t segmentLength = (std::size_t(data[offset]) << 8) | data[offset + 1];
+    return segmentLength >= 2u && segmentLength <= size - offset;
+}
+
+PkImage decodeImageWithLimit(const PkByteArray &encodedImage, std::size_t maximum,
+                             ImageShapePngData::DecodeError *error)
+{
+    setDecodeError(error, ImageShapePngData::DecodeError::UnsupportedFormat);
+    if (encodedImage.isEmpty() || static_cast<std::size_t>(encodedImage.size()) > kMaxDecodedCompressedBytes) {
+        if (!encodedImage.isEmpty()) setDecodeError(error, ImageShapePngData::DecodeError::SizeLimit);
+        return {};
+    }
+    const auto *data = reinterpret_cast<const std::uint8_t *>(encodedImage.constData());
+    const std::size_t size = static_cast<std::size_t>(encodedImage.size());
+    if (size >= 8 && png_sig_cmp(data, 0, 8) == 0) return decodePngBytes(encodedImage, maximum, error);
+    if (hasJpegSignature(encodedImage)) return decodeJpeg(encodedImage, maximum, error);
+    if (size >= 4 && ((data[0] == 'I' && data[1] == 'I' &&
+                       ((data[2] == 42 || data[2] == 43) && data[3] == 0)) ||
+                      (data[0] == 'M' && data[1] == 'M' && data[2] == 0 &&
+                       (data[3] == 42 || data[3] == 43)))) {
+        return decodeTiff(encodedImage, maximum, error);
+    }
+    return {};
 }
 } // namespace
 
@@ -616,6 +796,13 @@ std::size_t maxDecodedCompressedBytes()
 {
     return kMaxDecodedCompressedBytes;
 }
+
+#if defined(IMAGESHAPE_CODEC_TESTING)
+std::size_t maxDecodedPixelBytes()
+{
+    return kMaxDecodedRgbaBytes;
+}
+#endif
 
 bool base64DecodedSizeWithinLimit(std::size_t encodedLength,
                                   std::size_t padding,
@@ -671,20 +858,25 @@ PkByteArray decodeDataUriBase64(const PkString &dataUri)
 
 PkImage decodePng(const PkByteArray &encodedPng)
 {
-    return decodePngBytes(encodedPng);
+    return decodePngBytes(encodedPng, kMaxDecodedRgbaBytes, nullptr);
 }
 
 PkImage decodeImage(const PkByteArray &encodedImage)
 {
-    if (encodedImage.isEmpty() || static_cast<std::size_t>(encodedImage.size()) > kMaxDecodedCompressedBytes) return {};
-    const auto *data = reinterpret_cast<const std::uint8_t *>(encodedImage.constData());
-    const std::size_t size = static_cast<std::size_t>(encodedImage.size());
-    if (size >= 8 && png_sig_cmp(data, 0, 8) == 0) return decodePngBytes(encodedImage);
-    if (size >= 2 && data[0] == 0xffu && data[1] == 0xd8u) return decodeJpeg(encodedImage);
-    if (size >= 4 && ((data[0] == 'I' && data[1] == 'I' && data[2] == 42 && data[3] == 0) ||
-                      (data[0] == 'M' && data[1] == 'M' && data[2] == 0 && data[3] == 42))) {
-        return decodeTiff(encodedImage);
-    }
-    return {};
+    return decodeImageWithLimit(encodedImage, kMaxDecodedRgbaBytes, nullptr);
 }
+
+#if defined(IMAGESHAPE_CODEC_TESTING)
+PkImage decodeImageForTesting(const PkByteArray &encodedImage,
+                              std::size_t maximum,
+                              DecodeError *error)
+{
+    return decodeImageWithLimit(encodedImage, maximum, error);
+}
+
+bool hasJpegSignatureForTesting(const PkByteArray &encodedImage)
+{
+    return hasJpegSignature(encodedImage);
+}
+#endif
 } // namespace ImageShapePngData

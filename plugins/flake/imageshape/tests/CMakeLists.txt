@@ -9,7 +9,7 @@ set(imageshape_cow_test_SRCS
 
 kis_add_test(${imageshape_cow_test_SRCS}
     TEST_NAME ImageShapeCowTest
-    LINK_LIBRARIES pkstring pkcontainer pkgeometry pkimage pkvariant pkxml PNG::PNG JPEG::JPEG TIFF::TIFF
+    LINK_LIBRARIES pkstring pkcontainer pkgeometry pkimage pkvariant pkxml PNG::PNG TIFF::TIFF
 )
 set_target_properties(ImageShapeCowTest PROPERTIES AUTOMOC OFF)
 target_include_directories(ImageShapeCowTest BEFORE PRIVATE
@@ -21,6 +21,16 @@ target_include_directories(ImageShapeCowTest BEFORE PRIVATE
 
 kis_add_test(ImageShapeSerializationTest.cpp ../ImageShapePngData.cpp
     TEST_NAME ImageShapeSerializationTest
-    LINK_LIBRARIES pkstring pkcontainer pkgeometry pkimage pkvariant PNG::PNG JPEG::JPEG TIFF::TIFF
+    LINK_LIBRARIES pkstring pkcontainer pkgeometry pkimage pkvariant PNG::PNG TIFF::TIFF
 )
 set_target_properties(ImageShapeSerializationTest PROPERTIES AUTOMOC OFF)
+target_compile_definitions(ImageShapeSerializationTest PRIVATE IMAGESHAPE_CODEC_TESTING=1)
+
+foreach(image_shape_test ImageShapeCowTest ImageShapeSerializationTest)
+    if(JPEG_FOUND)
+        target_link_libraries(${image_shape_test} JPEG::JPEG)
+        target_compile_definitions(${image_shape_test} PRIVATE HAVE_JPEG=1)
+    else()
+        target_compile_definitions(${image_shape_test} PRIVATE HAVE_JPEG=0)
+    endif()
+endforeach()

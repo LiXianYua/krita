@@ -29,9 +29,14 @@ target_link_libraries(krita_shape_image
     pkimage
     pkxml
     PNG::PNG
-    JPEG::JPEG
     TIFF::TIFF
 )
+if(JPEG_FOUND)
+    target_link_libraries(krita_shape_image JPEG::JPEG)
+    target_compile_definitions(krita_shape_image PRIVATE HAVE_JPEG=1)
+else()
+    target_compile_definitions(krita_shape_image PRIVATE HAVE_JPEG=0)
+endif()
 
 install(TARGETS krita_shape_image DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
