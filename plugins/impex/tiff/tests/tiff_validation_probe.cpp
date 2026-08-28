@@ -43,6 +43,34 @@ private:
     bool m_shortWrite;
 };
 
+class OversizeMetadataStream final : public PkStream
+{
+public:
+    OversizeMetadataStream()
+    {
+        open(PkStream::ReadOnly);
+    }
+
+    pk_int64 size() const override
+    {
+        return static_cast<pk_int64>(MaxMetadataAdapterBytes + 1);
+    }
+
+    bool readAttempted() const { return m_readAttempted; }
+
+protected:
+    pk_int64 readData(char *, pk_int64) override
+    {
+        m_readAttempted = true;
+        return -1;
+    }
+
+    pk_int64 writeData(const char *, pk_int64) override { return -1; }
+
+private:
+    bool m_readAttempted = false;
+};
+
 void require(bool condition, const char *message)
 {
     if (!condition) {
@@ -68,9 +96,41 @@ int main()
             "TIFF dimensions that narrow past signed image coordinates must be rejected");
     require(!tiffValidDirectoryShape(8, 8, 3, 4),
             "TIFF extra samples cannot exceed samples per pixel");
+    require(tiffMinimumBaseSamples(PHOTOMETRIC_MINISBLACK) == 1 &&
+                tiffMinimumBaseSamples(PHOTOMETRIC_RGB) == 3 &&
+                tiffMinimumBaseSamples(PHOTOMETRIC_YCBCR) == 3 &&
+                tiffMinimumBaseSamples(PHOTOMETRIC_SEPARATED) == 4 &&
+                tiffMinimumBaseSamples(PHOTOMETRIC_CIELAB) == 3 &&
+                tiffMinimumBaseSamples(PHOTOMETRIC_PALETTE) == 2,
+            "TIFF photometric modes must declare their minimum base channel count");
+    require(!tiffHasMinimumBaseSamples(PHOTOMETRIC_RGB, 2) &&
+                tiffHasMinimumBaseSamples(PHOTOMETRIC_RGB, 3),
+            "TIFF RGB channel validation must reject subtraction underflow");
+    require(!tiffValidSubsampling(0, 1) && !tiffValidSubsampling(1, 0) &&
+                tiffValidSubsampling(2, 2),
+            "TIFF YCbCr subsampling factors must be non-zero");
     require(!tiffValidChunkGeometry(16, 0, 128) &&
                 !tiffValidChunkGeometry(16, 16, 0),
             "TIFF zero chunk dimensions and encoded sizes must be rejected");
+    require(!tiffValidChunkGeometry(
+                static_cast<std::uint32_t>(std::numeric_limits<int>::max()) + 1u,
+                16,
+                128),
+            "TIFF tile dimensions must not narrow past the decoder int API");
+
+    std::size_t actualReadSize = 0;
+    require(!tiffActualReadSize(-1, 128, actualReadSize) &&
+                !tiffActualReadSize(0, 128, actualReadSize) &&
+                !tiffActualReadSize(129, 128, actualReadSize) &&
+                tiffActualReadSize(31, 128, actualReadSize) && actualReadSize == 31,
+            "TIFF raw reads must reject invalid counts and retain short positive lengths");
+
+    OversizeMetadataStream oversizeMetadata;
+    std::vector<std::uint8_t> metadataBytes;
+    require(kisTiffSnapshotMetadata(oversizeMetadata, metadataBytes) ==
+                KisTiffMetadataSnapshotResult::Skipped &&
+                !oversizeMetadata.readAttempted(),
+            "oversize TIFF metadata snapshots must be skipped without reading or blocking pixels");
 
     ProbeStream callbackStream;
     const char payload[] = "TIFF";

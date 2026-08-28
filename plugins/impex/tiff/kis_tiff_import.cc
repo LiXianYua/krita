@@ -831,6 +831,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                               TIFFTAG_YCBCRSUBSAMPLING,
                               &hsubsampling,
                               &vsubsampling);
+        if (!tiffValidSubsampling(hsubsampling, vsubsampling)) {
+            return ImportExportCodes::FileFormatIncorrect;
+        }
         lineSizeCoeffs[1] = hsubsampling;
         lineSizeCoeffs[2] = hsubsampling;
         dbgFile << "Subsampling" << 4 << hsubsampling << vsubsampling;
@@ -1010,6 +1013,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
     uint8_t *tables = nullptr;
     uint32_t sz = 0;
     PkVector<unsigned char> jpegBuf;
+    std::size_t jpegEncodedSize = 0;
 
     auto handle = [&]() -> std::unique_ptr<void, decltype(&tjDestroy)> {
         if (planarconfig == PLANARCONFIG_CONTIG
@@ -1107,7 +1111,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #ifdef HAVE_JPEG_TURBO
             jpegBuf.resize(tileSize);
             ps_buf->resize(nbchannels);
-            if (TIFFReadRawTile(image, 0, jpegBuf.data(), tileSize) < 0) {
+            if (!tiffActualReadSize(TIFFReadRawTile(image, 0, jpegBuf.data(), tileSize),
+                                    static_cast<std::size_t>(tileSize),
+                                    jpegEncodedSize)) {
                 return ImportExportCodes::FileFormatIncorrect;
             }
 
@@ -1118,7 +1124,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 
             if (tjDecompressHeader3(handle.get(),
                                     jpegBuf.data(),
-                                    tileSize,
+                                    static_cast<unsigned long>(jpegEncodedSize),
                                     &width,
                                     &height,
                                     &jpegSubsamp,
@@ -1217,7 +1223,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                                && compression == COMPRESSION_JPEG)) {
                     uint32_t tile =
                         TIFFComputeTile(image, x, y, 0, (tsample_t)-1);
-                    if (TIFFReadRawTile(image, tile, jpegBuf.data(), tileSize) < 0) {
+                    if (!tiffActualReadSize(TIFFReadRawTile(image, tile, jpegBuf.data(), tileSize),
+                                            static_cast<std::size_t>(tileSize),
+                                            jpegEncodedSize)) {
                         return ImportExportCodes::FileFormatIncorrect;
                     }
 
@@ -1228,7 +1236,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 
                     if (tjDecompressHeader3(handle.get(),
                                             jpegBuf.data(),
-                                            tileSize,
+                                            static_cast<unsigned long>(jpegEncodedSize),
                                             &width,
                                             &height,
                                             &jpegSubsamp,
@@ -1240,7 +1248,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 
                     if (tjDecompressToYUVPlanes(handle.get(),
                                                 jpegBuf.data(),
-                                                tileSize,
+                                                static_cast<unsigned long>(jpegEncodedSize),
                                                 ps_buf->data(),
                                                 width,
                                                 nullptr,
@@ -1323,7 +1331,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #ifdef HAVE_JPEG_TURBO
             jpegBuf.resize(stripsize);
             ps_buf->resize(nbchannels);
-            if (TIFFReadRawStrip(image, 0, jpegBuf.data(), stripsize) < 0) {
+            if (!tiffActualReadSize(TIFFReadRawStrip(image, 0, jpegBuf.data(), stripsize),
+                                    static_cast<std::size_t>(stripsize),
+                                    jpegEncodedSize)) {
                 return ImportExportCodes::FileFormatIncorrect;
             }
 
@@ -1334,7 +1344,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 
             if (tjDecompressHeader3(handle.get(),
                                     jpegBuf.data(),
-                                    stripsize,
+                                    static_cast<unsigned long>(jpegEncodedSize),
                                     &width,
                                     &height,
                                     &jpegSubsamp,
@@ -1428,7 +1438,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             } else if (planarconfig == PLANARCONFIG_CONTIG
                        && (color_type == PHOTOMETRIC_YCBCR
                            && compression == COMPRESSION_JPEG)) {
-                if (TIFFReadRawStrip(image, strip, jpegBuf.data(), stripsize) < 0) {
+                if (!tiffActualReadSize(TIFFReadRawStrip(image, strip, jpegBuf.data(), stripsize),
+                                        static_cast<std::size_t>(stripsize),
+                                        jpegEncodedSize)) {
                     return ImportExportCodes::FileFormatIncorrect;
                 }
 
@@ -1439,7 +1451,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 
                 if (tjDecompressHeader3(handle.get(),
                                         jpegBuf.data(),
-                                        stripsize,
+                                        static_cast<unsigned long>(jpegEncodedSize),
                                         &width,
                                         &height,
                                         &jpegSubsamp,
@@ -1452,7 +1464,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 if (tjDecompressToYUVPlanes(
                         handle.get(),
                         jpegBuf.data(),
-                        stripsize,
+                        static_cast<unsigned long>(jpegEncodedSize),
                         ps_buf->data(),
                         width,
                         nullptr,
@@ -1747,6 +1759,9 @@ KisImportExportErrorCode KisTIFFImport::readTIFFDirectory(KisDocument *m_doc,
         dbgFile << "Image has an undefined photometric interpretation";
         basicInfo.color_type = PHOTOMETRIC_MINISWHITE;
     }
+    if (!tiffHasMinimumBaseSamples(basicInfo.color_type, basicInfo.nbchannels)) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
 
     basicInfo.colorSpaceIdTag =
         getColorSpaceForColorType(basicInfo.sampletype,
@@ -1884,9 +1899,8 @@ KisTIFFImport::convert(KisDocument *document,
         return ImportExportCodes::NoAccessToRead;
     }
     std::vector<std::uint8_t> metadataSource;
-    if (!kisTiffSnapshot(*io, metadataSource)) {
-        return ImportExportCodes::ErrorWhileReading;
-    }
+    const KisTiffMetadataSnapshotResult metadataSnapshot =
+        kisTiffSnapshotMetadata(*io, metadataSource);
     std::unique_ptr<TIFF, decltype(&TIFFCleanup)> image(kisTiffOpenStream(io, "r"), &TIFFCleanup);
 
     if (!image) {
@@ -1915,7 +1929,8 @@ KisTIFFImport::convert(KisDocument *document,
     // Freeing memory
     image.reset();
 
-    {
+    if (metadataSnapshot == KisTiffMetadataSnapshotResult::Available) {
+        const bool metadataImported = [&]() -> bool {
         // HACK!! Externally parse the Exif metadata
         // libtiff has no way to access the fields wholesale
         try {
@@ -1981,7 +1996,7 @@ KisTIFFImport::convert(KisDocument *document,
                                           tempData);
 
                 if (!stageTiffBytes(ioDevice, tempBlob.data(), tempBlob.size())) {
-                    return ImportExportCodes::ErrorWhileReading;
+                    return false;
                 }
             }
 
@@ -1990,13 +2005,14 @@ KisTIFFImport::convert(KisDocument *document,
             KIS_ASSERT_RECOVER(layer)
             {
                 errFile << "Attempted to import metadata on an empty document";
-                return ImportExportCodes::InternalError;
+                return false;
             }
 
             // Inject the data as any other IOBackend
             if (!backend || !backend->loadFrom(layer->metaData(), &ioDevice)) {
-                return ImportExportCodes::ErrorWhileReading;
+                return false;
             }
+            return true;
 #if EXIV2_TEST_VERSION(0,28,0)
         } catch (Exiv2::Error &e) {
             errFile << "Failed metadata import:" << Exiv2::Error(e.code()).what();
@@ -2004,7 +2020,11 @@ KisTIFFImport::convert(KisDocument *document,
         } catch (Exiv2::AnyError &e) {
             errFile << "Failed metadata import:" << e.code() << e.what();
 #endif
-            return ImportExportCodes::ErrorWhileReading;
+            return false;
+        }
+        }();
+        if (!metadataImported) {
+            warnFile << "TIFF metadata import failed; continuing with decoded pixels";
         }
     }
 

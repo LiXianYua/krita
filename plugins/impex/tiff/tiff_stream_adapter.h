@@ -19,29 +19,46 @@ inline bool kisTiffWriteExact(PkStream &stream, const char *data, std::size_t si
                static_cast<PkStream::pk_int64>(size);
 }
 
-inline bool kisTiffSnapshot(PkStream &stream, std::vector<std::uint8_t> &bytes)
+constexpr std::uint64_t MaxMetadataAdapterBytes = 512ull * 1024ull * 1024ull;
+
+enum class KisTiffMetadataSnapshotResult {
+    Available,
+    Skipped,
+    Failed,
+};
+
+inline KisTiffMetadataSnapshotResult kisTiffSnapshotMetadata(
+    PkStream &stream,
+    std::vector<std::uint8_t> &bytes)
 {
-    constexpr std::uint64_t MaxMetadataAdapterBytes = 512ull * 1024ull * 1024ull;
     const PkStream::pk_int64 size = stream.size();
+    bytes.clear();
     if (!stream.isReadable() || size <= 0 ||
-        static_cast<std::uint64_t>(size) > std::numeric_limits<std::size_t>::max() ||
-        static_cast<std::uint64_t>(size) > MaxMetadataAdapterBytes ||
-        !stream.seek(0)) {
-        return false;
+        static_cast<std::uint64_t>(size) > std::numeric_limits<std::size_t>::max()) {
+        return KisTiffMetadataSnapshotResult::Failed;
+    }
+    if (static_cast<std::uint64_t>(size) > MaxMetadataAdapterBytes) {
+        return KisTiffMetadataSnapshotResult::Skipped;
+    }
+    if (!stream.seek(0)) {
+        return KisTiffMetadataSnapshotResult::Failed;
     }
     try {
         bytes.resize(static_cast<std::size_t>(size));
     } catch (const std::bad_alloc &) {
-        return false;
+        return KisTiffMetadataSnapshotResult::Failed;
     }
     std::size_t offset = 0;
     while (offset < bytes.size()) {
         const auto count = stream.read(reinterpret_cast<char *>(bytes.data() + offset),
                                        static_cast<PkStream::pk_int64>(bytes.size() - offset));
-        if (count <= 0) return false;
+        if (count <= 0) {
+            bytes.clear();
+            return KisTiffMetadataSnapshotResult::Failed;
+        }
         offset += static_cast<std::size_t>(count);
     }
-    return true;
+    return KisTiffMetadataSnapshotResult::Available;
 }
 
 inline tmsize_t kisTiffStreamRead(thandle_t handle, void *data, tmsize_t size)
