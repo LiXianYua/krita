@@ -26,6 +26,9 @@
 
 namespace
 {
+#if defined(IMAGESHAPE_CODEC_TESTING)
+std::size_t gJpegStartCount = 0;
+#endif
 constexpr std::size_t kMaxDecodedRgbaBytes = 256u * 1024u * 1024u;
 constexpr std::size_t kMaxDecodedCompressedBytes = 256u * 1024u * 1024u;
 constexpr char kBase64Alphabet[] =
@@ -608,21 +611,40 @@ PkImage decodeJpeg(const PkByteArray &encoded, std::size_t maximum,
         jpeg_destroy_decompress(&decoder);
         return {};
     }
+    if (decoder.image_width > static_cast<JDIMENSION>(std::numeric_limits<int>::max()) ||
+        decoder.image_height > static_cast<JDIMENSION>(std::numeric_limits<int>::max())) {
+        setDecodeError(decodeError, ImageShapePngData::DecodeError::Dimensions);
+        jpeg_destroy_decompress(&decoder);
+        return {};
+    }
     const bool cmyk = decoder.jpeg_color_space == JCS_CMYK ||
                       decoder.jpeg_color_space == JCS_YCCK;
     decoder.out_color_space = cmyk ? JCS_CMYK : JCS_RGB;
-    jpeg_start_decompress(&decoder);
     std::size_t byteCount = 0;
+    const std::size_t outputComponents = cmyk ? 4u : 3u;
+    if (static_cast<std::size_t>(decoder.image_width) >
+        std::numeric_limits<std::size_t>::max() / outputComponents) {
+        setDecodeError(decodeError, ImageShapePngData::DecodeError::Dimensions);
+        jpeg_destroy_decompress(&decoder);
+        return {};
+    }
+    jpeg_calc_output_dimensions(&decoder);
     if (decoder.output_width > static_cast<JDIMENSION>(std::numeric_limits<int>::max()) ||
         decoder.output_height > static_cast<JDIMENSION>(std::numeric_limits<int>::max()) ||
+        static_cast<std::size_t>(decoder.output_components) != outputComponents ||
         !checkedPixelBytes(static_cast<int>(decoder.output_width), static_cast<int>(decoder.output_height),
                            4u, maximum, byteCount, decodeError)) {
         jpeg_destroy_decompress(&decoder);
         return {};
     }
+    const std::size_t rowBytes = static_cast<std::size_t>(decoder.output_width) * outputComponents;
+#if defined(IMAGESHAPE_CODEC_TESTING)
+    ++gJpegStartCount;
+#endif
+    jpeg_start_decompress(&decoder);
     try {
         image = PkImage(static_cast<int>(decoder.output_width), static_cast<int>(decoder.output_height), PkImage::Format_ARGB32);
-        row.resize(static_cast<std::size_t>(decoder.output_width) * decoder.output_components);
+        row.resize(rowBytes);
     } catch (const std::bad_alloc &) {
         setDecodeError(decodeError, ImageShapePngData::DecodeError::Allocation);
         jpeg_destroy_decompress(&decoder);
@@ -759,13 +781,16 @@ bool hasJpegSignature(const PkByteArray &encoded)
     const auto *data = reinterpret_cast<const std::uint8_t *>(encoded.constData());
     if (size < 6 || data[0] != 0xffu || data[1] != 0xd8u) return false;
     std::size_t offset = 2;
-    while (offset < size && data[offset] == 0xffu) ++offset;
-    if (offset >= size || data[offset] == 0x00u || data[offset] == 0xd8u || data[offset] == 0xd9u) return false;
-    const std::uint8_t marker = data[offset++];
-    if (marker >= 0xd0u && marker <= 0xd7u) return false;
-    if (offset + 2 > size) return false;
-    const std::size_t segmentLength = (std::size_t(data[offset]) << 8) | data[offset + 1];
-    return segmentLength >= 2u && segmentLength <= size - offset;
+    while (offset < size) {
+        while (offset < size && data[offset] == 0xffu) ++offset;
+        if (offset >= size || data[offset] == 0x00u || data[offset] == 0xd8u || data[offset] == 0xd9u) return false;
+        const std::uint8_t marker = data[offset++];
+        if (marker == 0x01u || (marker >= 0xd0u && marker <= 0xd7u)) continue;
+        if (offset + 2 > size) return false;
+        const std::size_t segmentLength = (std::size_t(data[offset]) << 8) | data[offset + 1];
+        return segmentLength >= 2u && segmentLength <= size - offset;
+    }
+    return false;
 }
 
 PkImage decodeImageWithLimit(const PkByteArray &encodedImage, std::size_t maximum,
@@ -877,6 +902,16 @@ PkImage decodeImageForTesting(const PkByteArray &encodedImage,
 bool hasJpegSignatureForTesting(const PkByteArray &encodedImage)
 {
     return hasJpegSignature(encodedImage);
+}
+
+void resetJpegStartCountForTesting()
+{
+    gJpegStartCount = 0;
+}
+
+std::size_t jpegStartCountForTesting()
+{
+    return gJpegStartCount;
 }
 #endif
 } // namespace ImageShapePngData

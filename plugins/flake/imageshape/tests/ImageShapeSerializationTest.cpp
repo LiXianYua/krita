@@ -30,7 +30,7 @@ PkByteArray byteArray(const std::vector<std::uint8_t> &bytes)
 }
 
 #if HAVE_JPEG
-std::vector<std::uint8_t> makeJpegFixture()
+std::vector<std::uint8_t> makeJpegFixture(bool progressive = false)
 {
     jpeg_compress_struct compressor{};
     jpeg_error_mgr error{};
@@ -44,6 +44,7 @@ std::vector<std::uint8_t> makeJpegFixture()
     compressor.input_components = 3;
     compressor.in_color_space = JCS_RGB;
     jpeg_set_defaults(&compressor);
+    if (progressive) jpeg_simple_progression(&compressor);
     jpeg_set_quality(&compressor, 100, TRUE);
     jpeg_start_compress(&compressor, TRUE);
     std::array<JSAMPLE, 8 * 3> row{};
@@ -330,6 +331,13 @@ int decoderBoundariesAndCorruptInputsAreRejected()
     if (!ImageShapePngData::decodeImage(byteArray(corruptHeader)).isNull()) return 55;
 
 #if HAVE_JPEG
+    ImageShapePngData::resetJpegStartCountForTesting();
+    ImageShapePngData::DecodeError jpegError = ImageShapePngData::DecodeError::None;
+    const PkImage rejectedProgressive = ImageShapePngData::decodeImageForTesting(
+        byteArray(makeJpegFixture(true)), 16u, &jpegError);
+    if (!rejectedProgressive.isNull() || jpegError != ImageShapePngData::DecodeError::SizeLimit ||
+        ImageShapePngData::jpegStartCountForTesting() != 0) return 56;
+    if (ImageShapePngData::decodeImage(byteArray(makeJpegFixture(true))).isNull()) return 57;
     std::vector<std::uint8_t> truncatedJpeg = makeJpegFixture();
     truncatedJpeg.resize(truncatedJpeg.size() / 2);
     if (!ImageShapePngData::decodeImage(byteArray(truncatedJpeg)).isNull()) return 54;
@@ -345,6 +353,8 @@ int signaturesAndWhitespaceMatchTheLegacyLoader()
     if (ImageShapePngData::hasJpegSignatureForTesting(byteArray(noise))) return 61;
     const std::vector<std::uint8_t> marker{0xff, 0xd8, 0xff, 0xe0, 0x00, 0x02};
     if (!ImageShapePngData::hasJpegSignatureForTesting(byteArray(marker))) return 62;
+    const std::vector<std::uint8_t> tem{0xff, 0xd8, 0xff, 0x01, 0xff, 0xe0, 0x00, 0x02};
+    if (!ImageShapePngData::hasJpegSignatureForTesting(byteArray(tem))) return 63;
     return 0;
 }
 

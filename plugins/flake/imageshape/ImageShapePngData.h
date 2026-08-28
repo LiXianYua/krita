@@ -33,6 +33,8 @@ PkImage decodeImageForTesting(const PkByteArray &encodedImage,
                               std::size_t maxDecodedPixelBytes,
                               DecodeError *error);
 bool hasJpegSignatureForTesting(const PkByteArray &encodedImage);
+void resetJpegStartCountForTesting();
+std::size_t jpegStartCountForTesting();
 #endif
 
 std::size_t maxDecodedCompressedBytes();
