@@ -6,7 +6,7 @@
 #ifndef _KIS_JPEG_IMPORT_H_
 #define _KIS_JPEG_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -14,10 +14,10 @@ class KisJPEGImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisJPEGImport(QObject *parent, const QVariantList &);
+    KisJPEGImport(QObject *parent, const PkVariantList &);
     ~KisJPEGImport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 };
 
 #endif

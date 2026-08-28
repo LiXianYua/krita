@@ -6,25 +6,23 @@
  */
 
 #include "kis_tiff_import.h"
+#include "tiff_validation.h"
 #include "KisImportExportErrorCode.h"
 #include "kis_assert.h"
 
-#include <QBuffer>
-#include <QPair>
-#include <QSharedPointer>
-#include <QStack>
+#include <PkMemoryStream.h>
+#include <utility>
+#include <PkSharedPointer.h>
+#include <stack>
 
 #include <array>
+#include <limits>
 
 #include <exiv2/exiv2.hpp>
 #include <kpluginfactory.h>
-#ifdef Q_OS_WIN
-#include <io.h>
-#endif
 #include <tiffio.h>
 
 #include <KisDocument.h>
-#include <KisImportExportAdditionalChecks.h>
 #include <KoColorProfile.h>
 #include <KoDocumentInfo.h>
 #include <KoUnit.h>
@@ -44,7 +42,6 @@
 #include "kis_tiff_psd_resource_record.h"
 
 #include <KisImportUserFeedbackInterface.h>
-#include <QMessageBox>
 #endif /* TIFF_HAS_PSD_TAGS */
 
 #ifdef HAVE_JPEG_TURBO
@@ -76,17 +73,28 @@ struct KisTiffBasicInfo {
     uint16_t *sampleinfo = nullptr;
     uint16_t extrasamplescount = 0;
     const KoColorSpace *cs = nullptr;
-    QPair<QString, QString> colorSpaceIdTag;
+    std::pair<PkString, PkString> colorSpaceIdTag;
     KoColorTransformation *transform = nullptr;
     uint8_t dstDepth{};
     TiffResolution resolution = TiffResolution::NONE;
 };
 
+namespace {
+bool stageTiffBytes(PkMemoryStream &stream, const void *data, std::size_t size)
+{
+    return data && size <= static_cast<std::size_t>(std::numeric_limits<qint64>::max()) &&
+           stream.open(PkStream::ReadWrite) &&
+           stream.write(static_cast<const char *>(data), static_cast<qint64>(size)) ==
+               static_cast<qint64>(size) &&
+           stream.seek(0);
+}
+}
+
 K_PLUGIN_FACTORY_WITH_JSON(TIFFImportFactory,
                            "krita_tiff_import.json",
                            registerPlugin<KisTIFFImport>();)
 
-QPair<QString, QString> getColorSpaceForColorType(uint16_t sampletype,
+std::pair<PkString, PkString> getColorSpaceForColorType(uint16_t sampletype,
                                                   uint16_t color_type,
                                                   uint16_t color_nb_bits,
                                                   TIFF *image,
@@ -292,26 +300,26 @@ QPair<QString, QString> getColorSpaceForColorType(uint16_t sampletype,
 }
 
 template<template<typename> class T>
-QSharedPointer<KisTIFFPostProcessor>
-makePostProcessor(uint32_t nbsamples, const QPair<QString, QString> &id)
+PkSharedPointer<KisTIFFPostProcessor>
+makePostProcessor(uint32_t nbsamples, const std::pair<PkString, PkString> &id)
 {
     if (id.second == Integer8BitsColorDepthID.id()) {
-        return QSharedPointer<T<uint8_t>>::create(nbsamples);
+        return PkSharedPointer<T<uint8_t>>::create(nbsamples);
     } else if (id.second == Integer16BitsColorDepthID.id()) {
-        return QSharedPointer<T<uint16_t>>::create(nbsamples);
+        return PkSharedPointer<T<uint16_t>>::create(nbsamples);
 #ifdef HAVE_OPENEXR
     } else if (id.second == Float16BitsColorDepthID.id()) {
-        return QSharedPointer<T<half>>::create(nbsamples);
+        return PkSharedPointer<T<half>>::create(nbsamples);
 #endif
     } else if (id.second == Float32BitsColorDepthID.id()) {
-        return QSharedPointer<T<float>>::create(nbsamples);
+        return PkSharedPointer<T<float>>::create(nbsamples);
     } else {
         KIS_ASSERT(false && "TIFF does not support this bit depth!");
         return {};
     }
 }
 
-KisTIFFImport::KisTIFFImport(QObject *parent, const QVariantList &)
+KisTIFFImport::KisTIFFImport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
     , m_image(nullptr)
     , oldErrHandler(TIFFSetErrorHandler(&KisTiffErrorHandler))
@@ -336,10 +344,10 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
     KisDocument *m_doc,
     const KisTiffPsdLayerRecord &photoshopLayerRecord,
     KisTiffPsdResourceRecord &photoshopImageResourceRecord,
-    QBuffer &photoshopLayerData,
+    PkMemoryStream &photoshopLayerData,
     const KisTiffBasicInfo &basicInfo)
 {
-    QMap<KisTiffPsdResourceRecord::PSDResourceID, PSDResourceBlock *>
+    PkMap<KisTiffPsdResourceRecord::PSDResourceID, PSDResourceBlock *>
         &resources = photoshopImageResourceRecord.resources;
 
     const KoColorSpace *cs = basicInfo.cs;
@@ -349,7 +357,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
         const KoColorProfile *profile = nullptr;
 
         // Use the color mode from the synthetic PSD header
-        QPair<QString, QString> colorSpaceId =
+        std::pair<PkString, PkString> colorSpaceId =
             psd_colormode_to_colormodelid(photoshopLayerRecord.colorMode(),
                                           photoshopLayerRecord.channelDepth());
 
@@ -424,7 +432,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
 
     dbgFile << "Loading Photoshop layers";
 
-    QStack<KisGroupLayerSP> groupStack;
+    std::stack<KisGroupLayerSP> groupStack;
 
     groupStack << psdImage->rootLayer().data();
 
@@ -436,8 +444,8 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
      */
     KisNodeSP lastAddedLayer;
 
-    using LayerStyleMapping = QPair<QDomDocument, KisLayerSP>;
-    QVector<LayerStyleMapping> allStylesXml;
+    using LayerStyleMapping = std::pair<PkXmlDocument, KisLayerSP>;
+    PkVector<LayerStyleMapping> allStylesXml;
 
     const std::shared_ptr<PSDLayerMaskSection> &layerSection =
         photoshopLayerRecord.record();
@@ -479,7 +487,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
                     groupLayer = groupStack.pop();
                 }
 
-                const QDomDocument &styleXml =
+                const PkXmlDocument &styleXml =
                     layerRecord->infoBlocks.layerStyleXml;
 
                 if (!styleXml.isNull()) {
@@ -489,7 +497,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
                 groupLayer->setName(layerRecord->layerName);
                 groupLayer->setVisible(layerRecord->visible);
 
-                QString compositeOp = psd_blendmode_to_composite_op(
+                PkString compositeOp = psd_blendmode_to_composite_op(
                     layerRecord->infoBlocks.sectionDividerBlendMode);
 
                 // Krita doesn't support pass-through blend
@@ -533,7 +541,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
             layer->setCompositeOpId(
                 psd_blendmode_to_composite_op(layerRecord->blendModeKey));
 
-            const QDomDocument &styleXml =
+            const PkXmlDocument &styleXml =
                 layerRecord->infoBlocks.layerStyleXml;
 
             if (!styleXml.isNull()) {
@@ -603,7 +611,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
     uint16_t *&sampleinfo = basicInfo.sampleinfo;
     uint16_t &extrasamplescount = basicInfo.extrasamplescount;
     const KoColorSpace *&cs = basicInfo.cs;
-    QPair<QString, QString> &colorSpaceIdTag = basicInfo.colorSpaceIdTag;
+    std::pair<PkString, PkString> &colorSpaceIdTag = basicInfo.colorSpaceIdTag;
     KoColorTransformation *&transform = basicInfo.transform;
     uint8_t &dstDepth = basicInfo.dstDepth;
 
@@ -636,7 +644,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 break;
             case EXTRASAMPLE_UNSPECIFIED:
             default:
-                qWarning() << "Extra sample type not defined for this file, "
+                warnFile << "Extra sample type not defined for this file, "
                               "assuming unassociated alpha.";
                 alphapos = i;
                 break;
@@ -722,7 +730,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             qint32 newheight = (m_image->height() < static_cast<qint32>(height))
                 ? static_cast<qint32>(height)
                 : m_image->height();
-            m_image->resizeImage(QRect(0, 0, newwidth, newheight));
+            m_image->resizeImage(PkRect(0, 0, newwidth, newheight));
         }
     }
     KisPaintLayer *layer =
@@ -731,15 +739,15 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         nullptr,
         &_TIFFfree);
     // used only for planar configuration separated
-    auto ps_buf = make_unique_with_deleter(new QVector<uint8_t *>(),
-                                           [](QVector<uint8_t *> *buf) {
+    auto ps_buf = make_unique_with_deleter(new PkVector<uint8_t *>(),
+                                           [](PkVector<uint8_t *> *buf) {
                                                for (uint8_t *p : *buf)
                                                    _TIFFfree(p);
                                                delete buf;
                                            });
 
-    QSharedPointer<KisBufferStreamBase> tiffstream = nullptr;
-    QSharedPointer<KisTIFFReaderBase> tiffReader = nullptr;
+    PkSharedPointer<KisBufferStreamBase> tiffstream = nullptr;
+    PkSharedPointer<KisTIFFReaderBase> tiffReader = nullptr;
 
     // Configure poses
     uint16_t nbcolorsamples = nbchannels - extrasamplescount;
@@ -764,7 +772,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         }
     }();
 
-    auto postprocessor = [&]() -> QSharedPointer<KisTIFFPostProcessor> {
+    auto postprocessor = [&]() -> PkSharedPointer<KisTIFFPostProcessor> {
         switch (color_type) {
         case PHOTOMETRIC_MINISWHITE:
             return makePostProcessor<KisTIFFPostProcessorInvert>(
@@ -790,7 +798,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
     }();
 
     // Initialize tiffReader
-    QVector<uint16_t> lineSizeCoeffs(nbchannels, 1);
+    PkVector<uint16_t> lineSizeCoeffs(nbchannels, 1);
     uint16_t vsubsampling = 1;
     uint16_t hsubsampling = 1;
     if (color_type == PHOTOMETRIC_PALETTE) {
@@ -804,7 +812,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         }
 
         tiffReader =
-            QSharedPointer<KisTIFFReaderFromPalette>::create(layer->paintDevice(),
+            PkSharedPointer<KisTIFFReaderFromPalette>::create(layer->paintDevice(),
                                                        red,
                                                        green,
                                                        blue,
@@ -826,7 +834,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         lineSizeCoeffs[2] = hsubsampling;
         dbgFile << "Subsampling" << 4 << hsubsampling << vsubsampling;
         if (dstDepth == 8) {
-            tiffReader = QSharedPointer<KisTIFFYCbCrReader<uint8_t>>::create(
+            tiffReader = PkSharedPointer<KisTIFFYCbCrReader<uint8_t>>::create(
                 layer->paintDevice(),
                 static_cast<quint32>(layer->image()->width()),
                 static_cast<quint32>(layer->image()->height()),
@@ -844,7 +852,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         } else if (dstDepth == 16) {
             if (sampletype == SAMPLEFORMAT_IEEEFP) {
 #ifdef HAVE_OPENEXR
-                tiffReader = QSharedPointer<KisTIFFYCbCrReader<half>>::create(
+                tiffReader = PkSharedPointer<KisTIFFYCbCrReader<half>>::create(
                     layer->paintDevice(),
                     static_cast<quint32>(layer->image()->width()),
                     static_cast<quint32>(layer->image()->height()),
@@ -862,7 +870,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #endif
             } else {
                 tiffReader =
-                    QSharedPointer<KisTIFFYCbCrReader<uint16_t>>::create(
+                    PkSharedPointer<KisTIFFYCbCrReader<uint16_t>>::create(
                     layer->paintDevice(),
                     static_cast<quint32>(layer->image()->width()),
                     static_cast<quint32>(layer->image()->height()),
@@ -880,7 +888,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             }
         } else if (dstDepth == 32) {
             if (sampletype == SAMPLEFORMAT_IEEEFP) {
-                tiffReader = QSharedPointer<KisTIFFYCbCrReader<float>>::create(
+                tiffReader = PkSharedPointer<KisTIFFYCbCrReader<float>>::create(
                     layer->paintDevice(),
                     static_cast<quint32>(layer->image()->width()),
                     static_cast<quint32>(layer->image()->height()),
@@ -897,7 +905,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                     vsubsampling);
             } else {
                 tiffReader =
-                    QSharedPointer<KisTIFFYCbCrReader<uint32_t>>::create(
+                    PkSharedPointer<KisTIFFYCbCrReader<uint32_t>>::create(
                     layer->paintDevice(),
                     static_cast<quint32>(layer->image()->width()),
                     static_cast<quint32>(layer->image()->height()),
@@ -915,7 +923,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             }
         }
     } else if (dstDepth == 8) {
-        tiffReader = QSharedPointer<KisTIFFReaderTarget<uint8_t>>::create(
+        tiffReader = PkSharedPointer<KisTIFFReaderTarget<uint8_t>>::create(
             layer->paintDevice(),
             poses,
             alphapos,
@@ -930,7 +938,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
     } else if (dstDepth == 16) {
         if (sampletype == SAMPLEFORMAT_IEEEFP) {
 #ifdef HAVE_OPENEXR
-            tiffReader = QSharedPointer<KisTIFFReaderTarget<half>>::create(
+            tiffReader = PkSharedPointer<KisTIFFReaderTarget<half>>::create(
                 layer->paintDevice(),
                 poses,
                 alphapos,
@@ -944,7 +952,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 1.0);
 #endif
         } else {
-            tiffReader = QSharedPointer<KisTIFFReaderTarget<uint16_t>>::create(
+            tiffReader = PkSharedPointer<KisTIFFReaderTarget<uint16_t>>::create(
                 layer->paintDevice(),
                 poses,
                 alphapos,
@@ -959,7 +967,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         }
     } else if (dstDepth == 32) {
         if (sampletype == SAMPLEFORMAT_IEEEFP) {
-            tiffReader = QSharedPointer<KisTIFFReaderTarget<float>>::create(
+            tiffReader = PkSharedPointer<KisTIFFReaderTarget<float>>::create(
                 layer->paintDevice(),
                 poses,
                 alphapos,
@@ -972,7 +980,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 postprocessor,
                 1.0f);
         } else {
-            tiffReader = QSharedPointer<KisTIFFReaderTarget<uint32_t>>::create(
+            tiffReader = PkSharedPointer<KisTIFFReaderTarget<uint32_t>>::create(
                 layer->paintDevice(),
                 poses,
                 alphapos,
@@ -1000,7 +1008,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
     uint32_t hasSplitTables = 0;
     uint8_t *tables = nullptr;
     uint32_t sz = 0;
-    QVector<unsigned char> jpegBuf;
+    PkVector<unsigned char> jpegBuf;
 
     auto handle = [&]() -> std::unique_ptr<void, decltype(&tjDestroy)> {
         if (planarconfig == PLANARCONFIG_CONTIG
@@ -1067,19 +1075,19 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             buf.reset(_TIFFmalloc(tileSize));
             if (depth < 16) {
                 tiffstream =
-                    QSharedPointer<KisBufferStreamContigBelow16>::create(
+                    PkSharedPointer<KisBufferStreamContigBelow16>::create(
                         static_cast<uint8_t *>(buf.get()),
                         depth,
                         tileSize / tileHeight);
             } else if (depth >= 16 && depth < 32) {
                 tiffstream =
-                    QSharedPointer<KisBufferStreamContigBelow32>::create(
+                    PkSharedPointer<KisBufferStreamContigBelow32>::create(
                         static_cast<uint8_t *>(buf.get()),
                         depth,
                         tileSize / tileHeight);
             } else {
                 tiffstream =
-                    QSharedPointer<KisBufferStreamContigAbove32>::create(
+                    PkSharedPointer<KisBufferStreamContigAbove32>::create(
                         static_cast<uint8_t *>(buf.get()),
                         depth,
                         tileSize / tileHeight);
@@ -1109,30 +1117,30 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 return ImportExportCodes::FileFormatIncorrect;
             }
 
-            QVector<tsize_t> lineSizes(nbchannels);
+            PkVector<tsize_t> lineSizes(nbchannels);
             for (uint32_t i = 0; i < nbchannels; i++) {
                 const unsigned long uncompressedTileSize =
                     tjPlaneSizeYUV(i, width, 0, height, jpegSubsamp);
                 KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(
                     uncompressedTileSize != (unsigned long)-1,
                     ImportExportCodes::FileFormatIncorrect);
-                dbgFile << QString("Uncompressed tile size (plane %1): %2")
+                dbgFile << PkString("Uncompressed tile size (plane %1): %2")
                                .arg(i)
                                .arg(uncompressedTileSize)
-                               .toStdString()
+                               .PkToUtf8()
                                .c_str();
                 tsize_t scanLineSize = uncompressedTileSize / tileHeight;
-                dbgFile << QString("scan line size (plane %1): %2")
+                dbgFile << PkString("scan line size (plane %1): %2")
                                .arg(i)
                                .arg(scanLineSize)
-                               .toStdString()
+                               .PkToUtf8()
                                .c_str();
                 (*ps_buf)[i] =
                     static_cast<uint8_t *>(_TIFFmalloc(uncompressedTileSize));
                 lineSizes[i] = scanLineSize;
             }
             tiffstream =
-                QSharedPointer<KisBufferStreamInterleaveUpsample>::create(
+                PkSharedPointer<KisBufferStreamInterleaveUpsample>::create(
                     ps_buf->data(),
                     nbchannels,
                     depth,
@@ -1150,12 +1158,12 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             ps_buf->resize(nbchannels);
             tsize_t scanLineSize = tileSize / tileHeight;
             dbgFile << " scanLineSize for each plan =" << scanLineSize;
-            QVector<tsize_t> lineSizes(nbchannels);
+            PkVector<tsize_t> lineSizes(nbchannels);
             for (uint32_t i = 0; i < nbchannels; i++) {
                 (*ps_buf)[i] = static_cast<uint8_t *>(_TIFFmalloc(tileSize));
                 lineSizes[i] = scanLineSize / lineSizeCoeffs[i];
             }
-            tiffstream = QSharedPointer<KisBufferStreamSeparate>::create(
+            tiffstream = PkSharedPointer<KisBufferStreamSeparate>::create(
                 ps_buf->data(),
                 nbchannels,
                 depth,
@@ -1256,19 +1264,19 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             buf.reset(_TIFFmalloc(stripsize));
             if (depth < 16) {
                 tiffstream =
-                    QSharedPointer<KisBufferStreamContigBelow16>::create(
+                    PkSharedPointer<KisBufferStreamContigBelow16>::create(
                     static_cast<uint8_t *>(buf.get()),
                     depth,
                     stripsize / rowsPerStrip);
             } else if (depth < 32) {
                 tiffstream =
-                    QSharedPointer<KisBufferStreamContigBelow32>::create(
+                    PkSharedPointer<KisBufferStreamContigBelow32>::create(
                     static_cast<uint8_t *>(buf.get()),
                     depth,
                     stripsize / rowsPerStrip);
             } else {
                 tiffstream =
-                    QSharedPointer<KisBufferStreamContigAbove32>::create(
+                    PkSharedPointer<KisBufferStreamContigAbove32>::create(
                     static_cast<uint8_t *>(buf.get()),
                     depth,
                     stripsize / rowsPerStrip);
@@ -1298,24 +1306,24 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 return ImportExportCodes::FileFormatIncorrect;
             }
 
-            QVector<tsize_t> lineSizes(nbchannels);
+            PkVector<tsize_t> lineSizes(nbchannels);
             for (uint32_t i = 0; i < nbchannels; i++) {
                 const unsigned long uncompressedStripsize =
                     tjPlaneSizeYUV(i, width, 0, height, jpegSubsamp);
                 KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(
                     uncompressedStripsize != (unsigned long)-1,
                     ImportExportCodes::FileFormatIncorrect);
-                dbgFile << QString("Uncompressed strip size (plane %1): %2")
+                dbgFile << PkString("Uncompressed strip size (plane %1): %2")
                                .arg(i)
                                .arg(uncompressedStripsize);
                 tsize_t scanLineSize = uncompressedStripsize / rowsPerStrip;
-                dbgFile << QString("scan line size (plane %1): %2")
+                dbgFile << PkString("scan line size (plane %1): %2")
                                .arg(i)
                                .arg(scanLineSize);
                 (*ps_buf)[i] = static_cast<uint8_t*>(_TIFFmalloc(uncompressedStripsize));
                 lineSizes[i] = scanLineSize;
             }
-            tiffstream = QSharedPointer<KisBufferStreamInterleaveUpsample>::create(
+            tiffstream = PkSharedPointer<KisBufferStreamInterleaveUpsample>::create(
                 ps_buf->data(),
                 nbchannels,
                 depth,
@@ -1333,12 +1341,12 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             ps_buf->resize(nbchannels);
             tsize_t scanLineSize = stripsize / rowsPerStrip;
             dbgFile << " scanLineSize for each plan =" << scanLineSize;
-            QVector<tsize_t> lineSizes(nbchannels);
+            PkVector<tsize_t> lineSizes(nbchannels);
             for (uint32_t i = 0; i < nbchannels; i++) {
                 (*ps_buf)[i] = static_cast<uint8_t*>(_TIFFmalloc(stripsize));
                 lineSizes[i] = scanLineSize / lineSizeCoeffs[i];
             }
-            tiffstream = QSharedPointer<KisBufferStreamSeparate>::create(
+            tiffstream = PkSharedPointer<KisBufferStreamSeparate>::create(
                 ps_buf->data(),
                 nbchannels,
                 depth,
@@ -1477,11 +1485,11 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         KisMetaData::IOBackend *iptcIO =
             KisMetadataBackendRegistry::instance()->value("iptc");
 
-        // Copy the xmp data into the byte array
-        QByteArray ba(reinterpret_cast<const char *>(iptc_profile_data),
-                      static_cast<int>(iptc_profile_size));
-        QBuffer buf(&ba);
-        iptcIO->loadFrom(layer->metaData(), &buf);
+        PkMemoryStream buf;
+        if (!iptcIO || !stageTiffBytes(buf, iptc_profile_data, iptc_profile_size) ||
+            !iptcIO->loadFrom(layer->metaData(), &buf)) {
+            return ImportExportCodes::ErrorWhileReading;
+        }
     }
 
     // Process XMP metadata
@@ -1491,11 +1499,11 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         KisMetaData::IOBackend *xmpIO =
             KisMetadataBackendRegistry::instance()->value("xmp");
 
-        // Copy the xmp data into the byte array
-        QByteArray ba(reinterpret_cast<char *>(xmp_data),
-                      static_cast<int>(xmp_size));
-        QBuffer buf(&ba);
-        xmpIO->loadFrom(layer->metaData(), &buf);
+        PkMemoryStream buf;
+        if (!xmpIO || !stageTiffBytes(buf, xmp_data, xmp_size) ||
+            !xmpIO->loadFrom(layer->metaData(), &buf)) {
+            return ImportExportCodes::ErrorWhileReading;
+        }
     }
 
     return ImportExportCodes::OK;
@@ -1508,7 +1516,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsd(KisDocument *m_doc, TIF
     // if it succeeds, divert and load as PSD
 
     if (!m_photoshopBlockParsed) {
-        QBuffer photoshopLayerData;
+        PkMemoryStream photoshopLayerData;
 
         KisTiffPsdLayerRecord photoshopLayerRecord(TIFFIsBigEndian(image),
                                                    basicInfo.width,
@@ -1530,10 +1538,9 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsd(KisDocument *m_doc, TIF
                            "Section size: "
                         << length;
 
-                QByteArray buf(reinterpret_cast<char *>(data),
-                               static_cast<int>(length));
-                photoshopLayerData.setData(buf);
-                photoshopLayerData.open(QIODevice::ReadOnly);
+                if (!stageTiffBytes(photoshopLayerData, data, length)) {
+                    return ImportExportCodes::ErrorWhileReading;
+                }
 
                 if (!photoshopLayerRecord.read(photoshopLayerData)) {
                     dbgFile << "TIFF: failed reading Photoshop layer metadata: "
@@ -1553,12 +1560,10 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsd(KisDocument *m_doc, TIF
                            "Section size: "
                         << length;
 
-                QByteArray photoshopImageResourceData(
-                    reinterpret_cast<char *>(data),
-                    static_cast<int>(length));
-
-                QBuffer buf(&photoshopImageResourceData);
-                buf.open(QIODevice::ReadOnly);
+                PkMemoryStream buf;
+                if (!stageTiffBytes(buf, data, length)) {
+                    return ImportExportCodes::ErrorWhileReading;
+                }
 
                 if (!photoshopImageResourceRecord.read(buf)) {
                     dbgFile << "TIFF: failed reading Photoshop image metadata: "
@@ -1569,24 +1574,6 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsd(KisDocument *m_doc, TIF
 
         if (photoshopLayerRecord.valid()
             && photoshopImageResourceRecord.valid()) {
-
-            if (importUserFeedBackInterface()) {
-
-                bool usePsd = true;
-                importUserFeedBackInterface()->askUser([&] (QWidget *parent) {
-                    usePsd = QMessageBox::question(parent, i18nc("@title:window", "TIFF image with PSD data"),
-                                            i18nc("the choice for the user on loading a TIFF file",
-                                                "The TIFF image contains valid PSD data embedded. "
-                                                "Would you like to use PSD data instead of normal TIFF data?"))
-                        == QMessageBox::Yes;
-
-                    return true;
-                });
-
-                if (!usePsd) {
-                    return ImportExportCodes::Cancelled;
-                }
-            }
 
             KisImportExportErrorCode result =
                 readImageFromPsdRecords(m_doc,
@@ -1673,6 +1660,16 @@ KisImportExportErrorCode KisTIFFImport::readTIFFDirectory(KisDocument *m_doc,
         basicInfo.nbchannels = 0;
     }
 
+    std::size_t checkedRasterBytes = 0;
+    const std::size_t bytesPerSample = (static_cast<std::size_t>(basicInfo.depth) + 7) / 8;
+    if (!tiffCheckedRasterSize(basicInfo.width,
+                               basicInfo.height,
+                               basicInfo.nbchannels,
+                               bytesPerSample,
+                               checkedRasterBytes)) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
+
     // Get the number of extrasamples and information about them
     if (TIFFGetField(image,
                      TIFFTAG_EXTRASAMPLES,
@@ -1715,8 +1712,11 @@ KisImportExportErrorCode KisTIFFImport::readTIFFDirectory(KisDocument *m_doc,
     uint8_t *EmbedBuffer = nullptr;
 
     if (TIFFGetField(image, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer) == 1) {
+        if (!EmbedBuffer || EmbedLen > static_cast<quint32>(std::numeric_limits<int>::max())) {
+            return ImportExportCodes::FileFormatIncorrect;
+        }
         dbgFile << "Profile found";
-        QByteArray rawdata(reinterpret_cast<char *>(EmbedBuffer),
+        PkByteArray rawdata(reinterpret_cast<char *>(EmbedBuffer),
                            static_cast<int>(EmbedLen));
         profile = KoColorSpaceRegistry::instance()->createColorProfile(
             basicInfo.colorSpaceIdTag.first,
@@ -1724,7 +1724,7 @@ KisImportExportErrorCode KisTIFFImport::readTIFFDirectory(KisDocument *m_doc,
             rawdata);
     }
 
-    const QString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(
+    const PkString colorSpaceId = KoColorSpaceRegistry::instance()->colorSpaceId(
         basicInfo.colorSpaceIdTag.first,
         basicInfo.colorSpaceIdTag.second);
 
@@ -1812,34 +1812,15 @@ KisImportExportErrorCode KisTIFFImport::readTIFFDirectory(KisDocument *m_doc,
 
 KisImportExportErrorCode
 KisTIFFImport::convert(KisDocument *document,
-                       QIODevice * /*io*/,
+                       PkStream *io,
                        KisPropertiesConfigurationSP /*configuration*/)
 {
     dbgFile << "Start decoding TIFF File";
 
-    if (!KisImportExportAdditionalChecks::doesFileExist(filename())) {
-        return ImportExportCodes::FileNotExist;
-    }
-    if (!KisImportExportAdditionalChecks::isFileReadable(filename())) {
+    if (!io || !io->isReadable()) {
         return ImportExportCodes::NoAccessToRead;
     }
-
-    QFile file(filename());
-    if (!file.open(QFile::ReadOnly)) {
-        return KisImportExportErrorCode(KisImportExportErrorCannotRead(file.error()));
-    }
-
-    // Open the TIFF file
-    const QByteArray encodedFilename = QFile::encodeName(filename());
-
-    // https://gitlab.com/libtiff/libtiff/-/issues/173
-#ifdef Q_OS_WIN
-    const intptr_t handle = _get_osfhandle(file.handle());
-#else
-    const int handle = file.handle();
-#endif
-
-    std::unique_ptr<TIFF, decltype(&TIFFCleanup)> image(TIFFFdOpen(handle, encodedFilename.data(), "r"), &TIFFCleanup);
+    std::unique_ptr<TIFF, decltype(&TIFFCleanup)> image(kisTiffOpenStream(io, "r"), &TIFFCleanup);
 
     if (!image) {
         dbgFile << "Could not open the file, either it does not exist, either "
@@ -1866,7 +1847,6 @@ KisTIFFImport::convert(KisDocument *document,
     }
     // Freeing memory
     image.reset();
-    file.close();
 
     {
         // HACK!! Externally parse the Exif metadata
@@ -1888,7 +1868,7 @@ KisTIFFImport::convert(KisDocument *document,
             // All IFDs are paint layer children of root
             KisNodeSP node = m_image->rootLayer()->firstChild();
 
-            QBuffer ioDevice;
+            PkMemoryStream ioDevice;
 
             {
                 // Synthesize the Exif blob
@@ -1931,9 +1911,9 @@ KisTIFFImport::convert(KisDocument *document,
                                           Exiv2::littleEndian,
                                           tempData);
 
-                // Reencode into Qt land
-                ioDevice.setData(reinterpret_cast<char *>(tempBlob.data()),
-                                 static_cast<int>(tempBlob.size()));
+                if (!stageTiffBytes(ioDevice, tempBlob.data(), tempBlob.size())) {
+                    return ImportExportCodes::ErrorWhileReading;
+                }
             }
 
             // Get layer

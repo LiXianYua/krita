@@ -10,7 +10,7 @@
 #ifndef HEIF_IMPORT_H_
 #define HEIF_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -18,13 +18,13 @@ class HeifImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    HeifImport(QObject *parent, const QVariantList &);
+    HeifImport(QObject *parent, const PkVariantList &);
     ~HeifImport() override;
     bool supportsIO() const override { return true; }
 
     KisImportExportErrorCode
     convert(KisDocument *document,
-            QIODevice *io,
+            PkStream *io,
             KisPropertiesConfigurationSP configuration = 0) override;
 };
 

@@ -8,7 +8,7 @@
 
 #include <jerror.h>
 
-#include <QIODevice>
+#include <PkStream.h>
 
 #include "kis_debug.h"
 
@@ -19,7 +19,7 @@ const qint64 INPUT_BUFFER_SIZE = 4096;
 
 struct KisJPEGSourceManager : public jpeg_source_mgr
 {
-    QIODevice* input;
+    PkStream* input;
     JOCTET* buffer;
     bool anyDataReceived;
 };
@@ -85,7 +85,7 @@ void term_source(j_decompress_ptr cinfo)
 namespace KisJPEGSource
 {
 
-void setSource(j_decompress_ptr cinfo, QIODevice* inputDevice)
+void setSource(j_decompress_ptr cinfo, PkStream* inputDevice)
 {
     KisJPEGSourceManagerPtr src = 0;
 

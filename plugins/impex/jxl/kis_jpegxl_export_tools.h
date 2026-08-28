@@ -12,7 +12,10 @@
 #ifndef KIS_JPEGXL_EXPORT_TOOLS_H
 #define KIS_JPEGXL_EXPORT_TOOLS_H
 
-#include <QByteArray>
+#include <PkAuxTypes.h>
+#include "jxl_validation.h"
+
+#include <limits>
 
 #include <KisDocument.h>
 #include <KoColorModelStandardIds.h>
@@ -26,7 +29,7 @@
 namespace JXLExpTool
 {
 template<typename CSTrait>
-inline QByteArray
+inline PkByteArray
 writeCMYKPixels(bool isTrichromatic, int chPos, const int width, const int height, KisHLineConstIteratorSP it)
 {
     const int channels = isTrichromatic ? 3 : 1;
@@ -34,8 +37,18 @@ writeCMYKPixels(bool isTrichromatic, int chPos, const int width, const int heigh
     const int pxSize = chSize * channels;
     const int chOffset = chPos * chSize;
 
-    QByteArray res;
-    res.resize(width * height * pxSize);
+    PkByteArray res;
+    std::size_t byteCount = 0;
+    if (width <= 0 || height <= 0 || pxSize <= 0 ||
+        !jxlCheckedImageBufferSize(static_cast<std::size_t>(width),
+                                   static_cast<std::size_t>(height),
+                                   static_cast<std::size_t>(channels),
+                                   static_cast<std::size_t>(chSize),
+                                   byteCount) ||
+        byteCount > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return {};
+    }
+    res.resize(static_cast<int>(byteCount));
 
     quint8 *ptr = reinterpret_cast<quint8 *>(res.data());
 
@@ -62,7 +75,7 @@ writeCMYKPixels(bool isTrichromatic, int chPos, const int width, const int heigh
 }
 
 template<typename... Args>
-inline QByteArray writeCMYKLayer(const KoID &id, Args &&...args)
+inline PkByteArray writeCMYKLayer(const KoID &id, Args &&...args)
 {
     if (id == Integer8BitsColorDepthID) {
         return writeCMYKPixels<KoCmykU8Traits>(std::forward<Args>(args)...);
@@ -76,12 +89,12 @@ inline QByteArray writeCMYKLayer(const KoID &id, Args &&...args)
         return writeCMYKPixels<KoCmykF32Traits>(std::forward<Args>(args)...);
     } else {
         KIS_ASSERT_X(false, "JPEGXLExport::writeLayer", "unsupported bit depth!");
-        return QByteArray();
+        return PkByteArray();
     }
 }
 
 struct JxlOutputProcessor {
-    JxlOutputProcessor(QIODevice *io)
+    JxlOutputProcessor(PkStream *io)
         : outDevice(io)
     {
     }
@@ -98,7 +111,11 @@ struct JxlOutputProcessor {
         JxlOutputProcessor *self = reinterpret_cast<JxlOutputProcessor *>(opaque);
         *size = std::min<size_t>(*size, 1u << 16);
         if (static_cast<size_t>(self->output.size()) < *size) {
-            self->output.resize(*size);
+            if (*size > static_cast<size_t>(std::numeric_limits<int>::max())) {
+                *size = 0;
+                return nullptr;
+            }
+            self->output.resize(static_cast<int>(*size));
         }
         return self->output.data();
     }
@@ -134,8 +151,8 @@ struct JxlOutputProcessor {
         self->finalized_position = finalized_position;
     }
 
-    QIODevice *outDevice{nullptr};
-    QByteArray output;
+    PkStream *outDevice{nullptr};
+    PkByteArray output;
     size_t finalized_position{0};
 };
 } // namespace JXLExpTool
@@ -162,7 +179,7 @@ template<typename CSTrait,
          ConversionPolicy conversionPolicy,
          typename DestTrait,
          bool removeOOTF>
-inline QByteArray writeLayer(const int width,
+inline PkByteArray writeLayer(const int width,
                              const int height,
                              KisHLineConstIteratorSP it,
                              float hlgGamma,
@@ -170,15 +187,25 @@ inline QByteArray writeLayer(const int width,
                              const KoColorSpace *cs)
 {
     const int channels = static_cast<int>(CSTrait::channels_nb);
-    QVector<float> pixelValues(channels);
-    QVector<qreal> pixelValuesLinear(channels);
+    PkVector<float> pixelValues(channels);
+    PkVector<qreal> pixelValuesLinear(channels);
     const KoColorProfile *profile = cs->profile();
-    const QVector<qreal> lCoef = cs->lumaCoefficients();
+    const PkVector<qreal> lCoef = cs->lumaCoefficients();
     double *src = pixelValuesLinear.data();
     float *dst = pixelValues.data();
 
-    QByteArray res;
-    res.resize(width * height * static_cast<int>(DestTrait::pixelSize));
+    PkByteArray res;
+    std::size_t byteCount = 0;
+    if (width <= 0 || height <= 0 ||
+        !jxlCheckedImageBufferSize(static_cast<std::size_t>(width),
+                                   static_cast<std::size_t>(height),
+                                   1,
+                                   static_cast<std::size_t>(DestTrait::pixelSize),
+                                   byteCount) ||
+        byteCount > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return {};
+    }
+    res.resize(static_cast<int>(byteCount));
 
     quint8 *ptr = reinterpret_cast<quint8 *>(res.data());
 
@@ -226,7 +253,7 @@ inline QByteArray writeLayer(const int width,
 }
 
 template<typename CSTrait, bool swap>
-inline QByteArray writeLayerNoConversion(const int width,
+inline PkByteArray writeLayerNoConversion(const int width,
                                          const int height,
                                          KisHLineConstIteratorSP it,
                                          float hlgGamma,
@@ -238,11 +265,21 @@ inline QByteArray writeLayerNoConversion(const int width,
     Q_UNUSED(cs);
 
     const int channels = static_cast<int>(CSTrait::channels_nb);
-    QVector<float> pixelValues(channels);
-    QVector<qreal> pixelValuesLinear(channels);
+    PkVector<float> pixelValues(channels);
+    PkVector<qreal> pixelValuesLinear(channels);
 
-    QByteArray res;
-    res.resize(width * height * static_cast<int>(CSTrait::pixelSize));
+    PkByteArray res;
+    std::size_t byteCount = 0;
+    if (width <= 0 || height <= 0 ||
+        !jxlCheckedImageBufferSize(static_cast<std::size_t>(width),
+                                   static_cast<std::size_t>(height),
+                                   1,
+                                   static_cast<std::size_t>(CSTrait::pixelSize),
+                                   byteCount) ||
+        byteCount > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return {};
+    }
+    res.resize(static_cast<int>(byteCount));
 
     quint8 *ptr = reinterpret_cast<quint8 *>(res.data());
 
@@ -368,7 +405,7 @@ inline auto writeLayer(const KoID &id, Args &&...args)
         return writeLayerWithSwap<KoBgrF32Traits, false>(std::forward<Args>(args)...);
     } else {
         KIS_ASSERT_X(false, "JPEGXLExport::writeLayer", "unsupported bit depth!");
-        return QByteArray();
+        return PkByteArray();
     }
 }
 } // namespace HDR

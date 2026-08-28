@@ -6,7 +6,7 @@
 #ifndef _KIS_TIFF_IMPORT_H_
 #define _KIS_TIFF_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <tiffio.h>
 
@@ -15,7 +15,7 @@
 #include <config-jpeg.h>
 #include <kis_types.h>
 
-class QBuffer;
+class PkMemoryStream;
 class KisTiffPsdLayerRecord;
 class KisTiffPsdResourceRecord;
 struct KisTiffBasicInfo;
@@ -24,12 +24,12 @@ class KisTIFFImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisTIFFImport(QObject *parent, const QVariantList &);
+    KisTIFFImport(QObject *parent, const PkVariantList &);
     ~KisTIFFImport() override;
     bool supportsIO() const override { return false; }
     KisImportExportErrorCode
     convert(KisDocument *document,
-            QIODevice *io,
+            PkStream *io,
             KisPropertiesConfigurationSP configuration = nullptr) override;
 
 private:
@@ -59,7 +59,7 @@ private:
     readImageFromPsdRecords(KisDocument *m_doc,
                      const KisTiffPsdLayerRecord &photoshopLayerRecord,
                      KisTiffPsdResourceRecord &photoshopImageResourceRecord,
-                     QBuffer &photoshopLayerData,
+                     PkMemoryStream &photoshopLayerData,
                      const KisTiffBasicInfo &basicInfo);
 #endif // TIFF_HAS_PSD_TAGS
 

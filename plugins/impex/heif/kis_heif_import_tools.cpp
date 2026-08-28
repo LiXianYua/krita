@@ -161,8 +161,8 @@ inline void readLayer(const int width,
                       float displayNits,
                       const KoColorSpace *colorSpace)
 {
-    const QVector<qreal> lCoef{colorSpace->lumaCoefficients()};
-    QVector<float> pixelValues(bufferSize<Arch>());
+    const PkVector<qreal> lCoef{colorSpace->lumaCoefficients()};
+    PkVector<float> pixelValues(bufferSize<Arch>());
     float *data = pixelValues.data();
 
     for (int y = 0; y < height; y++) {
@@ -518,8 +518,8 @@ inline void readLayer(const int width,
                       float displayNits,
                       const KoColorSpace *colorSpace)
 {
-    const QVector<qreal> lCoef{colorSpace->lumaCoefficients()};
-    QVector<float> pixelValues(bufferSize<Arch, channels>());
+    const PkVector<qreal> lCoef{colorSpace->lumaCoefficients()};
+    PkVector<float> pixelValues(bufferSize<Arch, channels>());
     float *data = pixelValues.data();
 
     for (int y = 0; y < height; y++) {
@@ -819,8 +819,8 @@ inline void readLayer(const int width,
                       float displayNits,
                       const KoColorSpace *colorSpace)
 {
-    const QVector<qreal> lCoef{colorSpace->lumaCoefficients()};
-    QVector<float> pixelValues(bufferSize<Arch, channels>());
+    const PkVector<qreal> lCoef{colorSpace->lumaCoefficients()};
+    PkVector<float> pixelValues(bufferSize<Arch, channels>());
     float *data = pixelValues.data();
 
     for (int y = 0; y < height; y++) {

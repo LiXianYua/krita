@@ -10,7 +10,7 @@
 #ifndef HEIF_EXPORT_H_
 #define HEIF_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -20,14 +20,14 @@ class HeifExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    HeifExport(QObject *parent, const QVariantList &);
+    HeifExport(QObject *parent, const PkVariantList &);
     ~HeifExport() override;
 
-    // This should return true if the library can work with a QIODevice, and doesn't want to open the file by itself
+    // This should return true if the library can work with a PkStream, and doesn't want to open the file by itself
     bool supportsIO() const override { return true; }
 
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
-    KisPropertiesConfigurationSP defaultConfiguration(const QByteArray& from = "", const QByteArray& to = "") const override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray& from = "", const PkByteArray& to = "") const override;
     void initializeCapabilities() override;
 };
 

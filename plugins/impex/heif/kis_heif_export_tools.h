@@ -10,6 +10,19 @@
 
 #include <cstdint>
 
+enum class HeifByteOrder {
+    LittleEndian,
+    BigEndian
+};
+
+inline HeifByteOrder heifNativeByteOrder()
+{
+    const uint16_t value = 1;
+    return *reinterpret_cast<const uint8_t *>(&value) == 1
+        ? HeifByteOrder::LittleEndian
+        : HeifByteOrder::BigEndian;
+}
+
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>
 #include <KoColorSpace.h>
@@ -109,9 +122,9 @@ inline auto writePlanarWithLuma(const int luma, Args &&...args)
 }
 
 template<typename... Args>
-inline auto writePlanarLayer(QSysInfo::Endian endian, Args &&...args)
+inline auto writePlanarLayer(HeifByteOrder endian, Args &&...args)
 {
-    if (endian == QSysInfo::LittleEndian) {
+    if (endian == HeifByteOrder::LittleEndian) {
         return Gray::writePlanarWithLuma<1, 0>(std::forward<Args>(args)...);
     } else {
         return Gray::writePlanarWithLuma<0, 1>(std::forward<Args>(args)...);
@@ -219,9 +232,9 @@ inline auto writeInterleavedWithAlpha(bool hasAlpha, Args &&...args)
 }
 
 template<typename... Args>
-inline auto writeInterleavedLayer(QSysInfo::Endian endian, Args &&...args)
+inline auto writeInterleavedLayer(HeifByteOrder endian, Args &&...args)
 {
-    if (endian == QSysInfo::LittleEndian) {
+    if (endian == HeifByteOrder::LittleEndian) {
         return writeInterleavedWithAlpha<1, 0>(std::forward<Args>(args)...);
     } else {
         return writeInterleavedWithAlpha<0, 1>(std::forward<Args>(args)...);
@@ -246,7 +259,7 @@ inline float applyCurveAsNeeded(float value)
 }
 
 template<typename CSTrait,
-         QSysInfo::Endian endianness,
+         HeifByteOrder endianness,
          int channels,
          bool convertToRec2020,
          bool isLinear,
@@ -261,12 +274,12 @@ inline void writeFloatLayerImpl(const int width,
                                 float hlgNominalPeak,
                                 const KoColorSpace *cs)
 {
-    const int endValue0 = endianness == QSysInfo::LittleEndian ? 1 : 0;
-    const int endValue1 = endianness == QSysInfo::LittleEndian ? 0 : 1;
-    QVector<float> pixelValues(4);
-    QVector<qreal> pixelValuesLinear(4);
+    const int endValue0 = endianness == HeifByteOrder::LittleEndian ? 1 : 0;
+    const int endValue1 = endianness == HeifByteOrder::LittleEndian ? 0 : 1;
+    PkVector<float> pixelValues(4);
+    PkVector<qreal> pixelValuesLinear(4);
     const KoColorProfile *profile = cs->profile();
-    const QVector<qreal> lCoef{cs->lumaCoefficients()};
+    const PkVector<qreal> lCoef{cs->lumaCoefficients()};
     double *src = pixelValuesLinear.data();
     float *dst = pixelValues.data();
 
@@ -318,7 +331,7 @@ inline void writeFloatLayerImpl(const int width,
     }
 }
 template<typename CSTrait,
-         QSysInfo::Endian endianness,
+         HeifByteOrder endianness,
          int channels,
          bool convertToRec2020,
          bool isLinear,
@@ -346,7 +359,7 @@ inline auto writeInterleavedWithPolicy(bool removeOOTF, Args &&...args)
 }
 
 template<typename CSTrait,
-         QSysInfo::Endian endianness,
+         HeifByteOrder endianness,
          int channels,
          bool convertToRec2020,
          bool isLinear,
@@ -386,7 +399,7 @@ inline auto writeInterleavedWithLinear(ConversionPolicy linearizePolicy,
 }
 
 template<typename CSTrait,
-         QSysInfo::Endian endianness,
+         HeifByteOrder endianness,
          int channels,
          bool convertToRec2020,
          typename... Args>
@@ -408,7 +421,7 @@ inline auto writeInterleavedWithRec2020(bool isLinear, Args &&...args)
 }
 
 template<typename CSTrait,
-         QSysInfo::Endian endianness,
+         HeifByteOrder endianness,
          int channels,
          typename... Args>
 inline auto writeInterleavedWithAlpha(bool convertToRec2020, Args &&...args)
@@ -424,7 +437,7 @@ inline auto writeInterleavedWithAlpha(bool convertToRec2020, Args &&...args)
     }
 }
 
-template<typename CSTrait, QSysInfo::Endian endianness, typename... Args>
+template<typename CSTrait, HeifByteOrder endianness, typename... Args>
 inline auto writeInterleavedWithEndian(bool hasAlpha, Args &&...args)
 {
     if (hasAlpha) {
@@ -437,13 +450,13 @@ inline auto writeInterleavedWithEndian(bool hasAlpha, Args &&...args)
 }
 
 template<typename CSTrait, typename... Args>
-inline auto writeInterleavedWithDepth(QSysInfo::Endian endian, Args &&...args)
+inline auto writeInterleavedWithDepth(HeifByteOrder endian, Args &&...args)
 {
-    if (endian == QSysInfo::LittleEndian) {
-        return writeInterleavedWithEndian<CSTrait, QSysInfo::LittleEndian>(
+    if (endian == HeifByteOrder::LittleEndian) {
+        return writeInterleavedWithEndian<CSTrait, HeifByteOrder::LittleEndian>(
             std::forward<Args>(args)...);
     } else {
-        return writeInterleavedWithEndian<CSTrait, QSysInfo::BigEndian>(
+        return writeInterleavedWithEndian<CSTrait, HeifByteOrder::BigEndian>(
             std::forward<Args>(args)...);
     }
 }

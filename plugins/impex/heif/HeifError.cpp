@@ -46,7 +46,7 @@ KisImportExportErrorCode setHeifError(KisDocument* document,
       return ImportExportCodes::OK;
   default:
     // we only get here when we forgot to handle an error ID
-    document->setErrorMessage(QString(i18n("Unknown error: %1")).arg(QString::fromStdString(error.get_message())));
+    document->setErrorMessage(PkString(i18n("Unknown error: %1")).arg(PkString(error.get_message().c_str())));
     return ImportExportCodes::Failure;
   }
 }

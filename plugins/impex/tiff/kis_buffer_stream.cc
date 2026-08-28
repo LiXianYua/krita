@@ -140,7 +140,7 @@ KisBufferStreamSeparate::KisBufferStreamSeparate(uint8_t **srcs, uint16_t nb_sam
     if (depth < 16) {
         for (uint16_t i = 0; i < m_nb_samples; i++) {
             streams.push_back(
-                QSharedPointer<KisBufferStreamContigBelow16>::create(
+                PkSharedPointer<KisBufferStreamContigBelow16>::create(
                     srcs[i],
                     depth,
                     lineSize[i]));
@@ -148,7 +148,7 @@ KisBufferStreamSeparate::KisBufferStreamSeparate(uint8_t **srcs, uint16_t nb_sam
     } else if (depth < 32) {
         for (uint16_t i = 0; i < m_nb_samples; i++) {
             streams.push_back(
-                QSharedPointer<KisBufferStreamContigBelow32>::create(
+                PkSharedPointer<KisBufferStreamContigBelow32>::create(
                     srcs[i],
                     depth,
                     lineSize[i]));
@@ -156,7 +156,7 @@ KisBufferStreamSeparate::KisBufferStreamSeparate(uint8_t **srcs, uint16_t nb_sam
     } else {
         for (uint16_t i = 0; i < m_nb_samples; i++) {
             streams.push_back(
-                QSharedPointer<KisBufferStreamContigAbove32>::create(
+                PkSharedPointer<KisBufferStreamContigAbove32>::create(
                     srcs[i],
                     depth,
                     lineSize[i]));

@@ -22,7 +22,7 @@
 #error "JPEG_LIB_VERSION not set. libjpeg should set it."
 #endif
 
-const QString JpegMimetype = "image/jpeg";
+const PkString JpegMimetype = "image/jpeg";
 
 void KisJpegTest::testFiles()
 {
@@ -36,9 +36,9 @@ void KisJpegTest::testFiles()
     const bool showDebug = false; // No need to write down all pixels that are different since all of them can be.
 
     if (JPEG_LIB_VERSION == 80){
-        TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources", QStringList(), "_80", fuzziness, maxNumFailingPixels, showDebug);
+        TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", PkStringList(), "_80", fuzziness, maxNumFailingPixels, showDebug);
     }else {
-        TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources", QStringList(), QString(), fuzziness, maxNumFailingPixels, showDebug);
+        TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", PkStringList(), PkString(), fuzziness, maxNumFailingPixels, showDebug);
     }
 }
 

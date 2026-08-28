@@ -9,11 +9,11 @@
 #include "kis_tiff_psd_layer_record.h"
 #include "psd_utils.h"
 
-#include <QBuffer>
-#include <QLatin1String>
+#include <PkMemoryStream.h>
 #include <asl/kis_asl_reader_utils.h>
 #include <asl/kis_asl_writer_utils.h>
 #include <kis_debug.h>
+#include <cstring>
 #include <memory>
 #include <psd_header.h>
 #include <tiff.h>
@@ -50,7 +50,7 @@ KisTiffPsdLayerRecord::KisTiffPsdLayerRecord(bool isBigEndian,
     }
 }
 
-bool KisTiffPsdLayerRecord::read(QIODevice &io)
+bool KisTiffPsdLayerRecord::read(PkStream &io)
 {
     switch (m_byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -60,7 +60,7 @@ bool KisTiffPsdLayerRecord::read(QIODevice &io)
     }
 }
 
-bool KisTiffPsdLayerRecord::write(QIODevice &io, KisNodeSP rootLayer, psd_compression_type compressionType)
+bool KisTiffPsdLayerRecord::write(PkStream &io, KisNodeSP rootLayer, psd_compression_type compressionType)
 {
     switch (m_byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -71,7 +71,7 @@ bool KisTiffPsdLayerRecord::write(QIODevice &io, KisNodeSP rootLayer, psd_compre
 }
 
 template<psd_byte_order byteOrder>
-bool KisTiffPsdLayerRecord::readImpl(QIODevice &device)
+bool KisTiffPsdLayerRecord::readImpl(PkStream &device)
 {
     PSDHeader header;
     header.version = 1;
@@ -84,10 +84,12 @@ bool KisTiffPsdLayerRecord::readImpl(QIODevice &device)
     header.tiffStyleLayerBlock = true;
     m_record = std::make_shared<PSDLayerMaskSection>(header);
 
-    QLatin1String signature("Adobe Photoshop Document Data Block");
-    QByteArray b = device.read(signature.size() + 1);
-    if (b.size() != signature.size() + 1 || QLatin1String(b) != signature) {
-        m_record->error = QString("Invalid Photoshop data block: %1").arg(QLatin1String(b));
+    static constexpr char signature[] = "Adobe Photoshop Document Data Block";
+    constexpr int signatureSize = sizeof(signature);
+    PkByteArray b = device.read(signatureSize);
+    if (b.size() != signatureSize || std::memcmp(b.constData(), signature, signatureSize) != 0) {
+        m_record->error = PkString("Invalid Photoshop data block: %1")
+                              .arg(PkString::PkFromUtf8(b.constData(), b.size()));
         return false;
     }
 
@@ -104,7 +106,7 @@ bool KisTiffPsdLayerRecord::readImpl(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder>
-bool KisTiffPsdLayerRecord::writeImpl(QIODevice &device, KisNodeSP rootLayer, psd_compression_type compressionType)
+bool KisTiffPsdLayerRecord::writeImpl(PkStream &device, KisNodeSP rootLayer, psd_compression_type compressionType)
 {
     PSDHeader header;
     header.version = 1;
@@ -118,8 +120,8 @@ bool KisTiffPsdLayerRecord::writeImpl(QIODevice &device, KisNodeSP rootLayer, ps
     m_record = std::make_shared<PSDLayerMaskSection>(header);
     m_record->hasTransparency = m_hasTransparency;
 
-    QBuffer buf;
-    buf.open(QIODevice::WriteOnly);
+    PkMemoryStream buf;
+    buf.open(PkStream::WriteOnly);
 
     psdwrite(buf, "Adobe Photoshop Document Data Block");
     psdpad(buf, 1);

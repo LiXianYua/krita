@@ -13,7 +13,7 @@ extern "C" {
 #include <jpeglib.h>
 }
 
-#include <QColor>
+#include <PkColor.h>
 
 #include "kis_types.h"
 #include "kis_annotation.h"
@@ -35,8 +35,8 @@ struct KisJPEGOptions {
     bool exif;
     bool iptc;
     bool xmp;
-    QList<const KisMetaData::Filter*> filters;
-    QColor transparencyFillColor;
+    PkList<const KisMetaData::Filter*> filters;
+    PkColor transparencyFillColor;
     bool forceSRGB;
     bool saveProfile;
     bool storeDocumentMetaData; //this is for getting the metadata from the document info.
@@ -55,18 +55,18 @@ public:
     KisJPEGConverter(KisDocument *doc, bool batchMode = false);
     ~KisJPEGConverter() override;
 public:
-    KisImportExportErrorCode buildImage(QIODevice *io);
-    KisImportExportErrorCode buildFile(QIODevice *io, KisPaintLayerSP layer, KisJPEGOptions options, KisMetaData::Store* metaData);
+    KisImportExportErrorCode buildImage(PkStream *io);
+    KisImportExportErrorCode buildFile(PkStream *io, KisPaintLayerSP layer, KisJPEGOptions options, KisMetaData::Store* metaData);
     /** Retrieve the constructed image
     */
     KisImageSP image();
 public Q_SLOTS:
     virtual void cancel();
 private:
-    KisImportExportErrorCode decode(QIODevice *io);
+    KisImportExportErrorCode decode(PkStream *io);
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif

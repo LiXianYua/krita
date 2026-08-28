@@ -15,3 +15,6 @@ else(APPLE)
 
 
 endif()
+
+add_executable(heif_validation_probe heif_validation_probe.cpp)
+add_test(NAME heif_validation_probe COMMAND heif_validation_probe)

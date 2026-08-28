@@ -16,11 +16,12 @@
 #include <jxl/resizable_parallel_runner_cxx.h>
 #include <kpluginfactory.h>
 
-#include <QBuffer>
+#include <PkMemoryStream.h>
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 
 #include <KisDocument.h>
 #include <KisExportCheckRegistry.h>
@@ -55,25 +56,44 @@
 #include <kis_time_span.h>
 
 #include "kis_jpegxl_export_tools.h"
+#include "jxl_validation.h"
+
+namespace {
+bool resizePixelBuffer(PkByteArray &buffer, int width, int height, std::size_t pixelSize)
+{
+    std::size_t bytes = 0;
+    if (width <= 0 || height <= 0 ||
+        !jxlCheckedImageBufferSize(static_cast<std::size_t>(width),
+                                   static_cast<std::size_t>(height),
+                                   1,
+                                   pixelSize,
+                                   bytes) ||
+        bytes > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return false;
+    }
+    buffer.resize(static_cast<int>(bytes));
+    return true;
+}
+}
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_jxl_export.json", registerPlugin<JPEGXLExport>();)
 
-JPEGXLExport::JPEGXLExport(QObject *parent, const QVariantList &)
+JPEGXLExport::JPEGXLExport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
 
-KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP cfg)
+KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP cfg)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(io->isWritable(), ImportExportCodes::NoAccessToWrite);
 
-    dbgFile << QString("libjxl version: %1.%2.%3")
+    dbgFile << PkString("libjxl version: %1.%2.%3")
                    .arg(JPEGXL_MAJOR_VERSION)
                    .arg(JPEGXL_MINOR_VERSION)
                    .arg(JPEGXL_PATCH_VERSION);
 
     KisImageSP image = document->savingImage();
-    const QRect bounds = image->bounds();
+    const PkRect bounds = image->bounds();
 
     const bool cfgFlattenLayer = cfg->getBool("flattenLayers", true);
     const bool cfgHaveAnimation = cfg->getBool("haveAnimation", false);
@@ -95,7 +115,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
     bool convertToRec2020 = false;
 
     if (cs->hasHighDynamicRange() && cs->colorModelId() != GrayAColorModelID) {
-        const QString conversionOption = (cfg->getString("floatingPointConversionOption", "Rec2100PQ"));
+        const PkString conversionOption = (cfg->getString("floatingPointConversionOption", "Rec2100PQ"));
         if (conversionOption == "Rec2100PQ") {
             convertToRec2020 = true;
             conversionPolicy = ConversionPolicy::ApplyPQ;
@@ -372,7 +392,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
         if ((cfg->getBool("lossless") && conversionPolicy == ConversionPolicy::KeepTheSame
              && !cfg->getBool("forceCicpLossless"))
             || (!hasPrimaries && !(cs->colorModelId() == GrayAColorModelID)) || !isSupportedTRC) {
-            const QByteArray profile = cs->profile()->rawData();
+            const PkByteArray profile = cs->profile()->rawData();
 
             dbgFile << "Saving with ICC profile";
 
@@ -405,7 +425,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
                     break;
                 default:
                     warnFile << "Writing possibly non-roundtrip primaries!";
-                    const QVector<qreal> colorants = cs->profile()->getColorantsxyY();
+                    const PkVector<qreal> colorants = cs->profile()->getColorantsxyY();
                     cicpDescription.primaries = JXL_PRIMARIES_CUSTOM;
                     cicpDescription.primaries_red_xy[0] = colorants[0];
                     cicpDescription.primaries_red_xy[1] = colorants[1];
@@ -417,7 +437,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
                 }
 
                 // Unfortunately, Wolthera never wrote an enum for white points...
-                const QVector<qreal> whitePoint = image->colorSpace()->profile()->getWhitePointxyY();
+                const PkVector<qreal> whitePoint = image->colorSpace()->profile()->getWhitePointxyY();
                 cicpDescription.white_point = JXL_WHITE_POINT_CUSTOM;
                 cicpDescription.white_point_xy[0] = whitePoint[0];
                 cicpDescription.white_point_xy[1] = whitePoint[1];
@@ -454,10 +474,10 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
         Q_ASSERT(dcSchema);
 
         if (cfg->getBool("storeAuthor", true)) {
-            QString author = document->documentInfo()->authorInfo("creator");
+            PkString author = document->documentInfo()->authorInfo("creator");
             if (!author.isEmpty()) {
                 if (!document->documentInfo()->authorContactInfo().isEmpty()) {
-                    QString contact = document->documentInfo()->authorContactInfo().at(0);
+                    PkString contact = document->documentInfo()->authorContactInfo().at(0);
                     if (!contact.isEmpty()) {
                         author = author + "(" + contact + ")";
                     }
@@ -465,22 +485,25 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
                 if (metaDataStore->containsEntry("creator")) {
                     metaDataStore->removeEntry("creator");
                 }
-                metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "creator", KisMetaData::Value(QVariant(author))));
+                metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "creator", KisMetaData::Value(PkVariant(author))));
             }
         }
 
         if (metaDataStore && cfg->getBool("exif", true)) {
             const KisMetaData::IOBackend *io = KisMetadataBackendRegistry::instance()->value("exif");
 
-            QBuffer ioDevice;
+            PkMemoryStream ioDevice;
 
             // Inject the data as any other IOBackend
-            io->saveTo(metaDataStore.get(), &ioDevice);
+            if (!io || !ioDevice.open(PkStream::WriteOnly) ||
+                !io->saveTo(metaDataStore.get(), &ioDevice)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
 
             if (JXL_ENC_SUCCESS
                 != JxlEncoderAddBox(enc.get(),
                                     "Exif",
-                                    reinterpret_cast<const uint8_t *>(ioDevice.data().constData()),
+                                    reinterpret_cast<const uint8_t *>(ioDevice.data()),
                                     static_cast<size_t>(ioDevice.size()),
                                     cfg->getBool("lossless") ? JXL_FALSE : JXL_TRUE)) {
                 errFile << "JxlEncoderAddBox for EXIF failed";
@@ -491,15 +514,18 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
         if (metaDataStore && cfg->getBool("xmp", true)) {
             const KisMetaData::IOBackend *io = KisMetadataBackendRegistry::instance()->value("xmp");
 
-            QBuffer ioDevice;
+            PkMemoryStream ioDevice;
 
             // Inject the data as any other IOBackend
-            io->saveTo(metaDataStore.get(), &ioDevice);
+            if (!io || !ioDevice.open(PkStream::WriteOnly) ||
+                !io->saveTo(metaDataStore.get(), &ioDevice)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
 
             if (JXL_ENC_SUCCESS
                 != JxlEncoderAddBox(enc.get(),
                                     "xml ",
-                                    reinterpret_cast<const uint8_t *>(ioDevice.data().constData()),
+                                    reinterpret_cast<const uint8_t *>(ioDevice.data()),
                                     static_cast<size_t>(ioDevice.size()),
                                     cfg->getBool("lossless") ? JXL_FALSE : JXL_TRUE)) {
                 errFile << "JxlEncoderAddBox for XMP failed";
@@ -510,15 +536,18 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
         if (metaDataStore && cfg->getBool("iptc", true)) {
             const KisMetaData::IOBackend *io = KisMetadataBackendRegistry::instance()->value("iptc");
 
-            QBuffer ioDevice;
+            PkMemoryStream ioDevice;
 
             // Inject the data as any other IOBackend
-            io->saveTo(metaDataStore.get(), &ioDevice);
+            if (!io || !ioDevice.open(PkStream::WriteOnly) ||
+                !io->saveTo(metaDataStore.get(), &ioDevice)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
 
             if (JXL_ENC_SUCCESS
                 != JxlEncoderAddBox(enc.get(),
                                     "xml ",
-                                    reinterpret_cast<const uint8_t *>(ioDevice.data().constData()),
+                                    reinterpret_cast<const uint8_t *>(ioDevice.data()),
                                     static_cast<size_t>(ioDevice.size()),
                                     cfg->getBool("lossless") ? JXL_FALSE : JXL_TRUE)) {
                 errFile << "JxlEncoderAddBox for IPTC failed";
@@ -680,9 +709,11 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
 
             const auto *frames = projection->paintDevice()->keyframeChannel();
             const auto times = [&]() {
-            QList<int>  t;
-                QSet<int> s = frames->allKeyframeTimes();
-                t = QList<int>(s.begin(), s.end());
+            PkList<int>  t;
+                PkSet<int> s = frames->allKeyframeTimes();
+                for (int value : s) {
+                    t.append(value);
+                }
                 std::sort(t.begin(), t.end());
                 return t;
             }();
@@ -712,7 +743,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
                     return ImportExportCodes::InternalError;
                 }
 
-                const QByteArray pixels = [&]() {
+                const PkByteArray pixels = [&]() {
                     const auto frameData = frames->keyframeAt<KisRasterKeyframe>(i);
                     KisPaintDeviceSP dev =
                         new KisPaintDevice(*image->projection(), KritaUtils::DeviceCopyMode::CopySnapshot);
@@ -722,8 +753,10 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
 
                     if (colorModel != RGBAColorModelID) {
                         // blast it wholesale
-                        QByteArray p;
-                        p.resize(bounds.width() * bounds.height() * static_cast<int>(cs->pixelSize()));
+                        PkByteArray p;
+                        if (!resizePixelBuffer(p, bounds.width(), bounds.height(), cs->pixelSize())) {
+                            return PkByteArray();
+                        }
                         dev->readBytes(reinterpret_cast<quint8 *>(p.data()), bounds);
                         return p;
                     } else {
@@ -820,7 +853,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
                     dbgFile << "Saving flattened image";
                 }
 
-                const QRect layerBounds = [&]() {
+                const PkRect layerBounds = [&]() {
                     if (node->exactBounds().isEmpty() || cfgFlattenLayer) {
                         return image->bounds();
                     }
@@ -844,7 +877,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
                     f->process(dev, layerBounds, kfc->cloneWithResourcesSnapshot());
                 }
 
-                const QByteArray pixels = [&]() {
+                const PkByteArray pixels = [&]() {
                     const KoID colorModel = cs->colorModelId();
                     const KoID colorDepth = cs->colorDepthId();
 
@@ -865,8 +898,13 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
                                                               it);
                         }
                         // blast it wholesale
-                        QByteArray p;
-                        p.resize(layerBounds.width() * layerBounds.height() * static_cast<int>(cs->pixelSize()));
+                        PkByteArray p;
+                        if (!resizePixelBuffer(p,
+                                               layerBounds.width(),
+                                               layerBounds.height(),
+                                               cs->pixelSize())) {
+                            return PkByteArray();
+                        }
                         dev->readBytes(reinterpret_cast<quint8 *>(p.data()), layerBounds);
                         return p;
                     } else {
@@ -919,9 +957,9 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
 
                     // EXPERIMENTAL! Additive blending mode on JPEG-XL produces
                     // slightly different result than Krita.
-                    const QString frameName = node->name();
+                    const PkString frameName = node->name();
                     if (!isFirstLayer && cfgMultiLayer) {
-                        if (node->compositeOpId() == QString("add")) {
+                        if (node->compositeOpId() == PkString("add")) {
                             frameHeader->layer_info.blend_info.blendmode = JXL_BLEND_MULADD;
                         } else {
                             frameHeader->layer_info.blend_info.blendmode = JXL_BLEND_BLEND;
@@ -952,14 +990,14 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
                     KisHLineConstIteratorSP it =
                         dev->createHLineConstIteratorNG(layerBounds.x(), layerBounds.y(), layerBounds.width());
 
-                    const QByteArray chaK = JXLExpTool::writeCMYKLayer(cs->colorDepthId(),
+                    const PkByteArray chaK = JXLExpTool::writeCMYKLayer(cs->colorDepthId(),
                                                                        false,
                                                                        3,
                                                                        layerBounds.width(),
                                                                        layerBounds.height(),
                                                                        it);
                     it->resetRowPos();
-                    const QByteArray chaA = JXLExpTool::writeCMYKLayer(cs->colorDepthId(),
+                    const PkByteArray chaA = JXLExpTool::writeCMYKLayer(cs->colorDepthId(),
                                                                        false,
                                                                        4,
                                                                        layerBounds.width(),
@@ -1014,16 +1052,23 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
         }
         JxlEncoderCloseInput(enc.get());
 
-        QByteArray compressed(16384, 0x0);
+        PkByteArray compressed;
+        compressed.resize(16384);
         auto *nextOut = reinterpret_cast<uint8_t *>(compressed.data());
         auto availOut = static_cast<size_t>(compressed.size());
         auto result = JXL_ENC_NEED_MORE_OUTPUT;
         while (result == JXL_ENC_NEED_MORE_OUTPUT) {
             result = JxlEncoderProcessOutput(enc.get(), &nextOut, &availOut);
             if (result != JXL_ENC_ERROR) {
-                io->write(compressed.data(), compressed.size() - static_cast<int>(availOut));
+                const int produced = compressed.size() - static_cast<int>(availOut);
+                if (produced < 0 || io->write(compressed.data(), produced) != produced) {
+                    return ImportExportCodes::ErrorWhileWriting;
+                }
             }
             if (result == JXL_ENC_NEED_MORE_OUTPUT) {
+                if (compressed.size() > std::numeric_limits<int>::max() / 2) {
+                    return ImportExportCodes::ErrorWhileWriting;
+                }
                 compressed.resize(compressed.size() * 2);
                 nextOut = reinterpret_cast<uint8_t *>(compressed.data());
                 availOut = static_cast<size_t>(compressed.size());
@@ -1044,7 +1089,7 @@ void JPEGXLExport::initializeCapabilities()
     // This checks before saving for what the file format supports: anything that is supported needs to be mentioned
     // here
 
-    QList<QPair<KoID, KoID>> supportedColorModels;
+    PkList<std::pair<KoID, KoID>> supportedColorModels;
     addCapability(KisExportCheckRegistry::instance()
                       ->get("AnimationCheck")
                       ->create(KisExportCheckBase::SUPPORTED));
@@ -1052,20 +1097,20 @@ void JPEGXLExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("ExifCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("MultiLayerCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("TiffExifCheck")->create(KisExportCheckBase::PARTIALLY));
-    supportedColorModels << QPair<KoID, KoID>() << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
-                         << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
-                         << QPair<KoID, KoID>(CMYKAColorModelID, Integer8BitsColorDepthID)
-                         << QPair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
-                         << QPair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID)
-                         << QPair<KoID, KoID>(CMYKAColorModelID, Integer16BitsColorDepthID)
+    supportedColorModels << std::pair<KoID, KoID>() << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
+                         << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
+                         << std::pair<KoID, KoID>(CMYKAColorModelID, Integer8BitsColorDepthID)
+                         << std::pair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
+                         << std::pair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID)
+                         << std::pair<KoID, KoID>(CMYKAColorModelID, Integer16BitsColorDepthID)
 #ifdef HAVE_OPENEXR
-                         << QPair<KoID, KoID>(RGBAColorModelID, Float16BitsColorDepthID)
-                         << QPair<KoID, KoID>(GrayAColorModelID, Float16BitsColorDepthID)
-                         << QPair<KoID, KoID>(CMYKAColorModelID, Float16BitsColorDepthID)
+                         << std::pair<KoID, KoID>(RGBAColorModelID, Float16BitsColorDepthID)
+                         << std::pair<KoID, KoID>(GrayAColorModelID, Float16BitsColorDepthID)
+                         << std::pair<KoID, KoID>(CMYKAColorModelID, Float16BitsColorDepthID)
 #endif
-                         << QPair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID)
-                         << QPair<KoID, KoID>(GrayAColorModelID, Float32BitsColorDepthID)
-                         << QPair<KoID, KoID>(CMYKAColorModelID, Float32BitsColorDepthID);
+                         << std::pair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID)
+                         << std::pair<KoID, KoID>(GrayAColorModelID, Float32BitsColorDepthID)
+                         << std::pair<KoID, KoID>(CMYKAColorModelID, Float32BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "JPEG-XL");
 
     addCapability(KisExportCheckRegistry::instance()->get("PSDLayerStyleCheck")->create(KisExportCheckBase::PARTIALLY));
@@ -1079,7 +1124,7 @@ void JPEGXLExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::PARTIALLY));
 }
 
-KisPropertiesConfigurationSP JPEGXLExport::defaultConfiguration(const QByteArray &, const QByteArray &) const
+KisPropertiesConfigurationSP JPEGXLExport::defaultConfiguration(const PkByteArray &, const PkByteArray &) const
 {
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
 

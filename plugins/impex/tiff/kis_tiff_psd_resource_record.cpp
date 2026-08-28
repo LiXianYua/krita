@@ -6,8 +6,8 @@
  */
 #include "kis_tiff_psd_resource_record.h"
 
-#include <QBuffer>
-#include <QIODevice>
+#include <PkMemoryStream.h>
+#include <PkStream.h>
 #include <algorithm>
 #include <kis_debug.h>
 #include <psd_resource_block.h>
@@ -22,7 +22,7 @@ KisTiffPsdResourceRecord::~KisTiffPsdResourceRecord()
     resources.clear();
 }
 
-bool KisTiffPsdResourceRecord::read(QIODevice &buf)
+bool KisTiffPsdResourceRecord::read(PkStream &buf)
 {
     // Unlike its PSD counterpart (PSDResourceSection), TIFF resource
     // records are just a concatenation of resource blocks.
@@ -30,7 +30,7 @@ bool KisTiffPsdResourceRecord::read(QIODevice &buf)
     while (!buf.atEnd()) {
         PSDResourceBlock *block = new PSDResourceBlock();
         if (!block->read(buf)) {
-            error = "Error reading block: " + block->error;
+            error = PkString("Error reading block: ") + block->error;
             dbgFile << error << ", skipping.";
             delete block;
             continue;
@@ -46,15 +46,15 @@ bool KisTiffPsdResourceRecord::read(QIODevice &buf)
     return valid();
 }
 
-bool KisTiffPsdResourceRecord::write(QIODevice &io)
+bool KisTiffPsdResourceRecord::write(PkStream &io)
 {
     if (!valid()) {
         error = "Resource Section is Invalid";
         return false;
     }
     // write all the sections
-    QBuffer buf;
-    buf.open(QBuffer::WriteOnly);
+    PkMemoryStream buf;
+    buf.open(PkMemoryStream::WriteOnly);
 
     for (const PSDResourceBlock *block : resources) {
         if (!block->write(buf)) {
@@ -70,7 +70,7 @@ bool KisTiffPsdResourceRecord::write(QIODevice &io)
     dbgFile << "resource section has size" << resourceSectionLength;
 
     // and write the whole buffer
-    return (io.write(buf.data()) == resourceSectionLength);
+    return io.write(buf.data(), resourceSectionLength) == resourceSectionLength;
 }
 
 bool KisTiffPsdResourceRecord::valid()
@@ -78,7 +78,7 @@ bool KisTiffPsdResourceRecord::valid()
     return true;
 }
 
-QString KisTiffPsdResourceRecord::idToString(KisTiffPsdResourceRecord::PSDResourceID id)
+PkString KisTiffPsdResourceRecord::idToString(KisTiffPsdResourceRecord::PSDResourceID id)
 {
     switch (id) {
     case UNKNOWN:
@@ -296,5 +296,5 @@ QString KisTiffPsdResourceRecord::idToString(KisTiffPsdResourceRecord::PSDResour
             return "Plug-In Resource";
     }
     };
-    return QString("Unknown Resource Block: %1").arg(id);
+    return PkString("Unknown Resource Block: %1").arg(id);
 }

@@ -28,13 +28,13 @@
 #endif
 
 
-const QString TiffMimetype = "image/tiff";
+const PkString TiffMimetype = "image/tiff";
 
 void KisTiffTest::testFiles()
 {
     KisMetadataBackendRegistry::instance();
 
-    QStringList excludes;
+    PkStringList excludes;
 
 #ifdef HAVE_LCMS2
     excludes << "flower-separated-contig-08.tif"
@@ -60,10 +60,10 @@ void KisTiffTest::testFiles()
              << "quad-tile-jpeg.tif";
 #endif
 
-    TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources", excludes, QString(), 1);
+    TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", excludes, PkString(), 1);
 }
 
-void KisTiffTest::testSaveTiffColorSpace(QString colorModel, QString colorDepth, QString colorProfile)
+void KisTiffTest::testSaveTiffColorSpace(PkString colorModel, PkString colorDepth, PkString colorProfile)
 {
     const KoColorSpace *space = KoColorSpaceRegistry::instance()->colorSpace(colorModel, colorDepth, colorProfile);
     if (space) {
@@ -73,7 +73,7 @@ void KisTiffTest::testSaveTiffColorSpace(QString colorModel, QString colorDepth,
 
 void KisTiffTest::testSaveTiffRgbaColorSpace()
 {
-    QString profile = "sRGB-elle-V2-srgbtrc";
+    PkString profile = "sRGB-elle-V2-srgbtrc";
     testSaveTiffColorSpace(RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), profile);
     profile = "sRGB-elle-V2-g10";
     testSaveTiffColorSpace(RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), profile);
@@ -83,7 +83,7 @@ void KisTiffTest::testSaveTiffRgbaColorSpace()
 
 void KisTiffTest::testSaveTiffGreyAColorSpace()
 {
-    QString profile = "Gray-D50-elle-V2-srgbtrc";
+    PkString profile = "Gray-D50-elle-V2-srgbtrc";
     testSaveTiffColorSpace(GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), profile);
     profile = "Gray-D50-elle-V2-g10";
     testSaveTiffColorSpace(GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), profile);
@@ -95,7 +95,7 @@ void KisTiffTest::testSaveTiffGreyAColorSpace()
 
 void KisTiffTest::testSaveTiffCmykColorSpace()
 {
-    QString profile = "Chemical proof";
+    PkString profile = "Chemical proof";
     testSaveTiffColorSpace(CMYKAColorModelID.id(), Integer8BitsColorDepthID.id(), profile);
     testSaveTiffColorSpace(CMYKAColorModelID.id(), Integer16BitsColorDepthID.id(), profile);
     testSaveTiffColorSpace(CMYKAColorModelID.id(), Float32BitsColorDepthID.id(), profile);
@@ -103,7 +103,7 @@ void KisTiffTest::testSaveTiffCmykColorSpace()
 
 void KisTiffTest::testSaveTiffLabColorSpace()
 {
-    const QString profile = "Lab identity build-in";
+    const PkString profile = "Lab identity build-in";
     testSaveTiffColorSpace(LABAColorModelID.id(), Integer8BitsColorDepthID.id(), profile);
     testSaveTiffColorSpace(LABAColorModelID.id(), Integer16BitsColorDepthID.id(), profile);
     testSaveTiffColorSpace(LABAColorModelID.id(), Float32BitsColorDepthID.id(), profile);
@@ -112,7 +112,7 @@ void KisTiffTest::testSaveTiffLabColorSpace()
 
 void KisTiffTest::testSaveTiffYCbCrAColorSpace()
 {
-    const QString profile = "ITU-R BT.709-6 + BT.1886 YCbCr ICC V4 profile";
+    const PkString profile = "ITU-R BT.709-6 + BT.1886 YCbCr ICC V4 profile";
     testSaveTiffColorSpace(YCbCrAColorModelID.id(), Integer8BitsColorDepthID.id(), profile);
     testSaveTiffColorSpace(YCbCrAColorModelID.id(), Integer16BitsColorDepthID.id(), profile);
     testSaveTiffColorSpace(YCbCrAColorModelID.id(),

@@ -7,13 +7,13 @@
 #ifndef _KIS_TIFF_PSD_RESOURCE_RECORD_H
 #define _KIS_TIFF_PSD_RESOURCE_RECORD_H
 
-#include <QMap>
-#include <QString>
+#include <PkMap.h>
+#include <PkString.h>
 #include <psd.h>
 
 #include "kritatiffpsd_export.h"
 
-class QIODevice;
+class PkStream;
 
 class PSDResourceBlock;
 
@@ -156,15 +156,15 @@ public:
     KisTiffPsdResourceRecord();
     ~KisTiffPsdResourceRecord();
 
-    bool read(QIODevice &io);
-    bool write(QIODevice &io);
+    bool read(PkStream &io);
+    bool write(PkStream &io);
     bool valid();
 
-    static QString idToString(PSDResourceID id);
+    static PkString idToString(PSDResourceID id);
 
-    QMap<PSDResourceID, PSDResourceBlock *> resources;
+    PkMap<PSDResourceID, PSDResourceBlock *> resources;
 
-    QString error;
+    PkString error;
 };
 
 #endif // _KIS_TIFF_PSD_RESOURCE_RECORD_H

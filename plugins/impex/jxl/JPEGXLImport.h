@@ -13,11 +13,11 @@ class JPEGXLImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    JPEGXLImport(QObject *parent, const QVariantList &);
+    JPEGXLImport(QObject *parent, const PkVariantList &);
     ~JPEGXLImport() override = default;
     bool supportsIO() const override { return true; }
 
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = nullptr) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = nullptr) override;
 };
 
 #endif

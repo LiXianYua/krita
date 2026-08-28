@@ -13,13 +13,13 @@ class JPEGXLExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    JPEGXLExport(QObject *parent, const QVariantList &);
+    JPEGXLExport(QObject *parent, const PkVariantList &);
     ~JPEGXLExport() override = default;
 
     KisImportExportErrorCode
-    convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP cfg = nullptr) override;
-    KisPropertiesConfigurationSP defaultConfiguration(const QByteArray &from = "",
-                                                      const QByteArray &to = "") const override;
+    convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP cfg = nullptr) override;
+    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray &from = "",
+                                                      const PkByteArray &to = "") const override;
     void initializeCapabilities() override;
 };
 

@@ -12,11 +12,11 @@ extern "C" {
   #include <jpeglib.h>
 }
 
-class QIODevice;
+class PkStream;
 
 namespace KisJPEGSource
 {
-    void setSource(j_decompress_ptr cinfo, QIODevice* inputDevice);
+    void setSource(j_decompress_ptr cinfo, PkStream* inputDevice);
 }
 
 #endif

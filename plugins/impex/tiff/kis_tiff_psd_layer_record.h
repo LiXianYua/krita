@@ -27,9 +27,9 @@ public:
                           uint16_t photometricInterpretation,
                           bool hasTransparency = false);
 
-    bool read(QIODevice &io);
+    bool read(PkStream &io);
 
-    bool write(QIODevice &io, KisNodeSP rootLayer, psd_compression_type compressionType);
+    bool write(PkStream &io, KisNodeSP rootLayer, psd_compression_type compressionType);
 
     std::shared_ptr<PSDLayerMaskSection> record() const;
 
@@ -58,10 +58,10 @@ private:
 
 private:
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    bool readImpl(QIODevice &device);
+    bool readImpl(PkStream &device);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    bool writeImpl(QIODevice &device, KisNodeSP rootLayer, psd_compression_type compressionType);
+    bool writeImpl(PkStream &device, KisNodeSP rootLayer, psd_compression_type compressionType);
 };
 
 #endif // _KIS_TIFF_PSD_LAYER_RECORD_H

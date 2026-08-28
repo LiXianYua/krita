@@ -11,7 +11,7 @@
 
 #include <simpletest.h>
 
-#include <QString>
+#include <PkString.h>
 
 #include <filestest.h>
 #include <kis_meta_data_backend_registry.h>
@@ -22,7 +22,7 @@
 #error "FILES_DATA_DIR not set. A directory with the data used for testing the importing of files in krita"
 #endif
 
-const QString MIMETYPE = "image/jxl";
+const PkString MIMETYPE = "image/jxl";
 
 void KisJPEGXLTest::testFiles()
 {
@@ -30,9 +30,9 @@ void KisJPEGXLTest::testFiles()
 
     const int fuzziness = 1;
 
-    TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources", {}, {}, fuzziness, 0, true);
+    TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", {}, {}, fuzziness, 0, true);
 
-    TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources/netflix",
+    TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources/netflix",
                         {"hdr_cosmos01000_cicp9-16-0_lossless.jxl", "LICENSE.txt"},
                         {},
                         fuzziness,
@@ -44,12 +44,12 @@ void KisJPEGXLTest::testAnimation()
 {
     const auto inputFileName = TestUtil::fetchDataFileLazy("/sources/DX-MON/loading_16.jxl");
 
-    QScopedPointer<KisDocument> doc(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
+    PkScopedPointer<KisDocument> doc(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
 
-    const auto status = manager.importDocument(inputFileName, QString());
+    const auto status = manager.importDocument(inputFileName, PkString());
     QVERIFY(status.isOk());
 
     KisImageSP image = doc->image();
@@ -78,13 +78,13 @@ void KisJPEGXLTest::testAnimationWithTail()
     const auto inputFileName =
         TestUtil::fetchDataFileLazy("/sources/animated/animation_test.jxl");
 
-    QScopedPointer<KisDocument> doc(
+    PkScopedPointer<KisDocument> doc(
         qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
 
-    const auto status = manager.importDocument(inputFileName, QString());
+    const auto status = manager.importDocument(inputFileName, PkString());
     QVERIFY(status.isOk());
 
     KisImageSP image = doc->image();
@@ -112,7 +112,7 @@ void KisJPEGXLTest::testHDR()
 {
     const auto inputFileName = TestUtil::fetchDataFileLazy("/sources/netflix/hdr_cosmos01000_cicp9-16-0_lossless.jxl");
 
-    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
+    PkScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc1.data());
     doc1->setFileBatchMode(true);
@@ -146,9 +146,9 @@ void KisJPEGXLTest::testHDR()
 
 void KisJPEGXLTest::testCmykWithLayers()
 {
-    const QString inputFileName = TestUtil::fetchDataFileLazy("/sources/extralayers/cmyk-layers.jxl");
+    const PkString inputFileName = TestUtil::fetchDataFileLazy("/sources/extralayers/cmyk-layers.jxl");
 
-    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
+    PkScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc1.data());
     doc1->setFileBatchMode(true);
@@ -169,7 +169,7 @@ void KisJPEGXLTest::testCmykWithLayers()
     QVERIFY(black);
 
     {
-        const QString outputFileName = TestUtil::fetchDataFileLazy("/results/cmyk-layers.kra");
+        const PkString outputFileName = TestUtil::fetchDataFileLazy("/results/cmyk-layers.kra");
 
         KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
         doc2->setFileBatchMode(true);
@@ -215,9 +215,9 @@ void KisJPEGXLTest::testCmykWithLayers()
 
 void KisJPEGXLTest::testMultipage()
 {
-    const QString inputFileName = TestUtil::fetchDataFileLazy("/sources/multipage/jxl-multipage.jxl");
+    const PkString inputFileName = TestUtil::fetchDataFileLazy("/sources/multipage/jxl-multipage.jxl");
 
-    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
+    PkScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc1.data());
     doc1->setFileBatchMode(true);
@@ -236,7 +236,7 @@ void KisJPEGXLTest::testMultipage()
     QVERIFY(page3);
 
     {
-        const QString outputFileName = TestUtil::fetchDataFileLazy("/results/jxl-multipage.kra");
+        const PkString outputFileName = TestUtil::fetchDataFileLazy("/results/jxl-multipage.kra");
 
         KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
         doc2->setFileBatchMode(true);
@@ -275,7 +275,7 @@ void KisJPEGXLTest::testMultipage()
     }
 }
 
-inline void testSaveColorSpace(const QString &colorModel, const QString &colorDepth, const QString &colorProfile)
+inline void testSaveColorSpace(const PkString &colorModel, const PkString &colorDepth, const PkString &colorProfile)
 {
     const KoColorSpace *space = KoColorSpaceRegistry::instance()->colorSpace(colorModel, colorDepth, colorProfile);
     if (space) {
@@ -284,7 +284,7 @@ inline void testSaveColorSpace(const QString &colorModel, const QString &colorDe
 }
 void KisJPEGXLTest::testSaveRgbaColorSpace()
 {
-    QString profile = "sRGB-elle-V2-srgbtrc";
+    PkString profile = "sRGB-elle-V2-srgbtrc";
     testSaveColorSpace(RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), profile);
     profile = "Rec2020-elle-V4-g10";
     testSaveColorSpace(RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), profile);
@@ -296,7 +296,7 @@ void KisJPEGXLTest::testSaveRgbaColorSpace()
 
 void KisJPEGXLTest::testSaveGreyAColorSpace()
 {
-    QString profile = "Gray-D50-elle-V2-srgbtrc";
+    PkString profile = "Gray-D50-elle-V2-srgbtrc";
     testSaveColorSpace(GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), profile);
     profile = "Gray-D50-elle-V2-g10";
     testSaveColorSpace(GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), profile);
@@ -308,7 +308,7 @@ void KisJPEGXLTest::testSaveGreyAColorSpace()
 
 void KisJPEGXLTest::testSaveCmykAColorSpace()
 {
-    QString profile = "Chemical proof";
+    PkString profile = "Chemical proof";
     testSaveColorSpace(CMYKAColorModelID.id(), Integer8BitsColorDepthID.id(), profile);
     testSaveColorSpace(CMYKAColorModelID.id(), Integer16BitsColorDepthID.id(), profile);
 #ifdef HAVE_OPENEXR

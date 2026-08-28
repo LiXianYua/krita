@@ -5,9 +5,10 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 #include <memory>
+#include <limits>
 
 #include <tiff.h>
 
@@ -148,7 +149,7 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
     if (m_options->saveProfile) {
         const KoColorProfile *profile = pd->colorSpace()->profile();
         if (profile && profile->type() == "icc" && !profile->rawData().isEmpty()) {
-            QByteArray ba = profile->rawData();
+            PkByteArray ba = profile->rawData();
             TIFFSetField(image(), TIFFTAG_ICCPROFILE, ba.size(), ba.constData());
         }
     }
@@ -227,8 +228,8 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
     {
         const bool haveLayers = layer->childCount() > 1 || KisPainter::checkDeviceHasTransparency(layer->firstChild()->projection());
 
-        QBuffer buf;
-        buf.open(QIODevice::WriteOnly);
+        PkMemoryStream buf;
+        buf.open(PkStream::WriteOnly);
 
         dbgFile << "m_image->rootLayer->childCount" << layer->childCount() << buf.pos();
 
@@ -253,9 +254,10 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
         }
 
         buf.close();
-        buf.open(QIODevice::ReadOnly);
+        buf.open(PkStream::ReadOnly);
 
-        if (!TIFFSetField(image(), TIFFTAG_IMAGESOURCEDATA, static_cast<uint32_t>(buf.size()), buf.data().constData())) {
+        if (buf.size() > std::numeric_limits<uint32_t>::max() ||
+            !TIFFSetField(image(), TIFFTAG_IMAGESOURCEDATA, static_cast<uint32_t>(buf.size()), buf.data())) {
             dbgFile << "Failed to write the PSD image block to the TIFF field";
             return ImportExportCodes::ErrorWhileWriting;
         }
@@ -278,7 +280,7 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
 
             dbgFile << "Annotation:" << annotation->type() << annotation->description();
 
-            if (annotation->type().startsWith(QString("PSD Resource Block:"))) { //
+            if (annotation->type().startsWith(PkString("PSD Resource Block:"))) { //
                 PSDResourceBlock *resourceBlock =
                     dynamic_cast<PSDResourceBlock *>(annotation.data());
                 if (resourceBlock) {
@@ -311,8 +313,8 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
 
         dbgFile << "Resource section ready to write";
 
-        QBuffer buf;
-        buf.open(QIODevice::WriteOnly);
+        PkMemoryStream buf;
+        buf.open(PkStream::WriteOnly);
 
         if (!resourceSection.write(buf)) {
             dbgFile << "Failed to write resource section. Error:" << resourceSection.error << buf.pos();
@@ -320,9 +322,10 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
         }
 
         buf.close();
-        buf.open(QIODevice::WriteOnly);
+        buf.open(PkStream::WriteOnly);
 
-        if (!TIFFSetField(image(), TIFFTAG_PHOTOSHOP, static_cast<uint32_t>(buf.size()), buf.data().data())) {
+        if (buf.size() > std::numeric_limits<uint32_t>::max() ||
+            !TIFFSetField(image(), TIFFTAG_PHOTOSHOP, static_cast<uint32_t>(buf.size()), buf.data())) {
             dbgFile << "Failed to write the PSD resource block to the TIFF field";
             return ImportExportCodes::ErrorWhileWriting;
         }

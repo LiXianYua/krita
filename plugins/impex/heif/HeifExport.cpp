@@ -9,14 +9,13 @@
 
 #include "HeifExport.h"
 #include "HeifError.h"
+#include "heif_validation.h"
 
-#include <QApplication>
-#include <QBuffer>
-#include <QCheckBox>
-#include <QScopedPointer>
-#include <QSlider>
+#include <PkMemoryStream.h>
+#include <PkScopedPointer.h>
 
 #include <algorithm>
+#include <limits>
 #include <kpluginfactory.h>
 #include <libheif/heif_cxx.h>
 
@@ -50,7 +49,7 @@ class KisExternalLayer;
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_heif_export.json", registerPlugin<HeifExport>();)
 
-HeifExport::HeifExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+HeifExport::HeifExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -58,7 +57,7 @@ HeifExport::~HeifExport()
 {
 }
 
-KisPropertiesConfigurationSP HeifExport::defaultConfiguration(const QByteArray &/*from*/, const QByteArray &/*to*/) const
+KisPropertiesConfigurationSP HeifExport::defaultConfiguration(const PkByteArray &/*from*/, const PkByteArray &/*to*/) const
 {
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
     cfg->setProperty("quality", 100);
@@ -75,16 +74,21 @@ KisPropertiesConfigurationSP HeifExport::defaultConfiguration(const QByteArray &
 class Writer_QIODevice : public heif::Context::Writer
 {
 public:
-    Writer_QIODevice(QIODevice* io)
+    Writer_QIODevice(PkStream* io)
         : m_io(io)
     {
     }
 
     heif_error write(const void* data, size_t size) override {
+        if (size > static_cast<size_t>(std::numeric_limits<PkStream::pk_int64>::max())) {
+            return {heif_error_Encoding_error,
+                    heif_suberror_Cannot_write_output_data,
+                    "Output chunk is too large"};
+        }
         qint64 n = m_io->write(static_cast<const char *>(data),
-                               static_cast<int>(size));
+                               static_cast<PkStream::pk_int64>(size));
         if (n != static_cast<qint64>(size)) {
-            QString error = m_io->errorString();
+            PkString error = m_io->errorString();
 
             heif_error err = {
                 heif_error_Encoding_error,
@@ -99,7 +103,7 @@ public:
     }
 
 private:
-    QIODevice* m_io;
+    PkStream* m_io;
 };
 
 #if LIBHEIF_HAVE_VERSION(1, 13, 0)
@@ -122,7 +126,7 @@ private:
 };
 #endif
 
-KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode HeifExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
 #if LIBHEIF_HAVE_VERSION(1, 13, 0)
     HeifLock lock;
@@ -168,7 +172,7 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
     bool convertToRec2020 = false;
     
     if (cs->hasHighDynamicRange() && cs->colorModelId() != GrayAColorModelID) {
-        QString conversionOption =
+        PkString conversionOption =
             (configuration->getString("floatingPointConversionOption",
                                       "KeepSame"));
         if (conversionOption == "Rec2100PQ") {
@@ -187,7 +191,7 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
     }
 
     if (cs->hasHighDynamicRange() && convertToRec2020) {
-        const KoColorProfile *linear = KoColorSpaceRegistry::instance()->profileFor(QVector<double>(),
+        const KoColorProfile *linear = KoColorSpaceRegistry::instance()->profileFor(PkVector<double>(),
                                                                                    PRIMARIES_ITU_R_BT_2020_2_AND_2100_0,
                                                                                    TRC_LINEAR);
         const KoColorSpace *linearRec2020 = KoColorSpaceRegistry::instance()->colorSpace("RGBA", "F32", linear);
@@ -228,18 +232,33 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
         }
         encoder.set_lossless(lossless);
         if (cs->colorModelId() != GrayAColorModelID) {
-        encoder.set_parameter("chroma", configuration->getString("chroma", "444").toStdString());
+        encoder.set_parameter("chroma", configuration->getString("chroma", "444").PkToUtf8());
         }
 
 
         // --- convert KisImage to HEIF image ---
         int width = image->width();
         int height = image->height();
+        if (width <= 0 || height <= 0) {
+            return ImportExportCodes::FileFormatIncorrect;
+        }
+        const auto validPlane = [width, height](const uint8_t *plane,
+                                                std::size_t stride,
+                                                std::size_t bytesPerPixel) {
+            std::size_t planeBytes = 0;
+            return plane &&
+                   static_cast<std::size_t>(width) <=
+                       std::numeric_limits<std::size_t>::max() / bytesPerPixel &&
+                   heifCheckedPlaneSize(static_cast<std::size_t>(width) * bytesPerPixel,
+                                        static_cast<std::size_t>(height),
+                                        stride,
+                                        planeBytes);
+        };
 
         heif::Context ctx;
 
         heif_chroma chroma = hasAlpha? heif_chroma_interleaved_RRGGBBAA_LE: heif_chroma_interleaved_RRGGBB_LE;
-        if (QSysInfo::ByteOrder == QSysInfo::BigEndian) {
+        if (heifNativeByteOrder() == HeifByteOrder::BigEndian) {
             chroma = hasAlpha? heif_chroma_interleaved_RRGGBBAA_BE: heif_chroma_interleaved_RRGGBB_BE;
         }
 
@@ -271,6 +290,12 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
                     }
                 }();
 
+                if (!validPlane(ptrR, strideR, 1) || !validPlane(ptrG, strideG, 1) ||
+                    !validPlane(ptrB, strideB, 1) ||
+                    (hasAlpha && !validPlane(ptrA, strideA, 1))) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
+
                 KisPaintDeviceSP pd = image->projection();
                 KisHLineConstIteratorSP it =
                     pd->createHLineConstIteratorNG(0, 0, width);
@@ -295,13 +320,16 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
                 HeifStrideType stride = 0;
 
                 uint8_t *ptr = heifGetPlaneMethod(img, heif_channel_interleaved, &stride);
+                if (!validPlane(ptr, stride, hasAlpha ? 8 : 6)) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
 
                 KisPaintDeviceSP pd = image->projection();
                 KisHLineConstIteratorSP it =
                     pd->createHLineConstIteratorNG(0, 0, width);
 
                 if (cs->colorDepthId() == Integer16BitsColorDepthID) {
-                    HDRInt::writeInterleavedLayer(QSysInfo::ByteOrder,
+                    HDRInt::writeInterleavedLayer(heifNativeByteOrder(),
                                                   hasAlpha,
                                                   width,
                                                   height,
@@ -310,7 +338,7 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
                                                   it);
                 } else {
                     HDRFloat::writeInterleavedLayer(cs->colorDepthId(),
-                                                    QSysInfo::ByteOrder,
+                                                    heifNativeByteOrder(),
                                                     hasAlpha,
                                                     convertToRec2020,
                                                     cs->profile()->isLinear(),
@@ -346,11 +374,16 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
                     }
                 }();
 
+                if (!validPlane(ptrG, strideG, 1) ||
+                    (hasAlpha && !validPlane(ptrA, strideA, 1))) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
+
                 KisPaintDeviceSP pd = image->projection();
                 KisHLineConstIteratorSP it =
                     pd->createHLineConstIteratorNG(0, 0, width);
 
-                Gray::writePlanarLayer(QSysInfo::ByteOrder,
+                Gray::writePlanarLayer(heifNativeByteOrder(),
                                        8,
                                        hasAlpha,
                                        width,
@@ -379,11 +412,16 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
                     }
                 }();
 
+                if (!validPlane(ptrG, strideG, 2) ||
+                    (hasAlpha && !validPlane(ptrA, strideA, 2))) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
+
                 KisPaintDeviceSP pd = image->projection();
                 KisHLineConstIteratorSP it =
                     pd->createHLineConstIteratorNG(0, 0, width);
 
-                Gray::writePlanarLayer(QSysInfo::ByteOrder,
+                Gray::writePlanarLayer(heifNativeByteOrder(),
                                        12,
                                        hasAlpha,
                                        width,
@@ -398,8 +436,9 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
 
         // --- save the color profile.
         if (conversionPolicy == ConversionPolicy::KeepTheSame) {
-            QByteArray rawProfileBA = image->colorSpace()->profile()->rawData();
-            std::vector<uint8_t> rawProfile(rawProfileBA.begin(), rawProfileBA.end());
+            PkByteArray rawProfileBA = image->colorSpace()->profile()->rawData();
+            const auto *begin = reinterpret_cast<const uint8_t *>(rawProfileBA.constData());
+            std::vector<uint8_t> rawProfile(begin, begin + rawProfileBA.size());
             img.set_raw_color_profile(heif_color_profile_type_prof, rawProfile);
         } else {
            heif::ColorProfile_nclx nclxDescription;
@@ -458,7 +497,7 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
         KisExifInfoVisitor exivInfoVisitor;
         exivInfoVisitor.visit(image->rootLayer().data());
 
-        QScopedPointer<KisMetaData::Store> metaDataStore;
+        PkScopedPointer<KisMetaData::Store> metaDataStore;
         if (exivInfoVisitor.metaDataCount() == 1) {
             metaDataStore.reset(new KisMetaData::Store(*exivInfoVisitor.exifInfo()));
         }
@@ -469,24 +508,32 @@ KisImportExportErrorCode HeifExport::convert(KisDocument *document, QIODevice *i
         if (!metaDataStore->empty()) {
             {
                 KisMetaData::IOBackend *exifIO = KisMetadataBackendRegistry::instance()->value("exif");
-                QBuffer buffer;
-                exifIO->saveTo(metaDataStore.data(), &buffer, KisMetaData::IOBackend::NoHeader); // Or JpegHeader? Or something else?
-                QByteArray data = buffer.data();
+                PkMemoryStream buffer;
+                if (!exifIO || !buffer.open(PkStream::WriteOnly) ||
+                    !exifIO->saveTo(metaDataStore.data(), &buffer, KisMetaData::IOBackend::NoHeader)) {
+                    return ImportExportCodes::ErrorWhileWriting;
+                }
 
                 // Write the data to the file
-                if (data.size() > 4) {
-                    ctx.add_exif_metadata(handle, data.constData(), data.size());
+                if (buffer.size() > 4) {
+                    ctx.add_exif_metadata(handle,
+                                          buffer.data(),
+                                          static_cast<size_t>(buffer.size()));
                 }
             }
             {
                 KisMetaData::IOBackend *xmpIO = KisMetadataBackendRegistry::instance()->value("xmp");
-                QBuffer buffer;
-                xmpIO->saveTo(metaDataStore.data(), &buffer, KisMetaData::IOBackend::NoHeader); // Or JpegHeader? Or something else?
-                QByteArray data = buffer.data();
+                PkMemoryStream buffer;
+                if (!xmpIO || !buffer.open(PkStream::WriteOnly) ||
+                    !xmpIO->saveTo(metaDataStore.data(), &buffer, KisMetaData::IOBackend::NoHeader)) {
+                    return ImportExportCodes::ErrorWhileWriting;
+                }
 
                 // Write the data to the file
-                if (data.size() > 0) {
-                    ctx.add_XMP_metadata(handle, data.constData(), data.size());
+                if (buffer.size() > 0) {
+                    ctx.add_XMP_metadata(handle,
+                                         buffer.data(),
+                                         static_cast<size_t>(buffer.size()));
                 }
             }
         }
@@ -508,13 +555,13 @@ void HeifExport::initializeCapabilities()
 {
     // This checks before saving for what the file format supports: anything that is supported needs to be mentioned here
 
-    QList<QPair<KoID, KoID> > supportedColorModels;
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::SUPPORTED));
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID)
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID)
             ;
     addSupportedColorModels(supportedColorModels, "HEIF");
 }

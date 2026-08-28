@@ -7,6 +7,7 @@
  */
 
 #include "JPEGXLImport.h"
+#include "jxl_validation.h"
 
 #include <KisGlobalResourcesInterface.h>
 
@@ -15,11 +16,12 @@
 #include <jxl/types.h>
 #include <kpluginfactory.h>
 
-#include <QBuffer>
+#include <PkMemoryStream.h>
 #include <algorithm>
 #include <array>
 #include <cstring>
 #include <map>
+#include <limits>
 
 #include <KisDocument.h>
 #include <KisImportExportErrorCode.h>
@@ -44,6 +46,22 @@ K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_jxl_import.json", registerPlugi
 
 static constexpr std::array<char, 4> exifTag = {'e', 'x', 'i', 'f'};
 static constexpr std::array<char, 4> xmpTag = {'x', 'm', 'l', ' '};
+
+namespace {
+std::array<char, 4> normalizedBoxType(const std::array<char, 5> &type)
+{
+    std::array<char, 4> result{};
+    std::transform_n(type.begin(), result.size(), result.begin(), [](char value) {
+        return value >= 'A' && value <= 'Z' ? static_cast<char>(value - 'A' + 'a') : value;
+    });
+    return result;
+}
+
+bool isMetadataBox(const std::array<char, 4> &type)
+{
+    return type == exifTag || type == xmpTag;
+}
+}
 
 class Q_DECL_HIDDEN JPEGXLImportData
 {
@@ -72,7 +90,7 @@ public:
     const KoColorSpace *cs_target = nullptr;
     const KoColorSpace *cs_intermediate = nullptr;
     std::vector<quint8> kPlane;
-    QVector<qreal> lCoef;
+    PkVector<qreal> lCoef;
 };
 
 template<LinearizePolicy policy>
@@ -119,7 +137,7 @@ inline void imageOutCallback(JPEGXLImportData &d)
     if (policy != LinearizePolicy::KeepTheSame) {
         const KoColorSpace *cs = d.cs;
         const double *lCoef = d.lCoef.constData();
-        QVector<float> pixelValues(static_cast<int>(cs->channelCount()));
+        PkVector<float> pixelValues(static_cast<int>(cs->channelCount()));
         float *tmp = pixelValues.data();
         const quint32 alphaPos = cs->alphaPos();
 
@@ -237,13 +255,13 @@ inline void generateCallback(JPEGXLImportData &d)
     }
 }
 
-JPEGXLImport::JPEGXLImport(QObject *parent, const QVariantList &)
+JPEGXLImport::JPEGXLImport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
 
 KisImportExportErrorCode
-JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP /*configuration*/)
+JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP /*configuration*/)
 {
     if (!io->isReadable()) {
         errFile << "Cannot read image contents";
@@ -252,6 +270,9 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
 
     JPEGXLImportData d{};
     const auto data = io->readAll();
+    if (data.isEmpty()) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
 
     const auto validation =
         JxlSignatureCheck(reinterpret_cast<const uint8_t *>(data.constData()), static_cast<size_t>(data.size()));
@@ -326,6 +347,16 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                     errFile << "JxlDecoderGetBasicInfo failed";
                     return ImportExportCodes::ErrorWhileReading;
                 }
+                std::size_t checkedPixels = 0;
+                if (!jxlCheckedImageBufferSize(d.m_info.xsize,
+                                               d.m_info.ysize,
+                                               1,
+                                               1,
+                                               checkedPixels) ||
+                    d.m_info.xsize > static_cast<uint32_t>(std::numeric_limits<int>::max()) ||
+                    d.m_info.ysize > static_cast<uint32_t>(std::numeric_limits<int>::max())) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
                 // Coalesce frame on animation import
                 if (d.m_info.have_animation) {
                     isMultilayer = false;
@@ -343,24 +374,24 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                     // Channel name references taken from libjxl repo:
                     // https://github.com/libjxl/libjxl/blob/v0.8.0/lib/extras/enc/pnm.cc#L262
                     // With added "JXL-" prefix to indicate that it comes from JXL image.
-                    const QString channelTypeString = [&]() {
+                    const PkString channelTypeString = [&]() {
                         switch (d.m_extra.type) {
                         case JXL_CHANNEL_ALPHA:
-                            return QString("JXL-Alpha");
+                            return PkString("JXL-Alpha");
                         case JXL_CHANNEL_DEPTH:
-                            return QString("JXL-Depth");
+                            return PkString("JXL-Depth");
                         case JXL_CHANNEL_SPOT_COLOR:
-                            return QString("JXL-SpotColor");
+                            return PkString("JXL-SpotColor");
                         case JXL_CHANNEL_SELECTION_MASK:
-                            return QString("JXL-SelectionMask");
+                            return PkString("JXL-SelectionMask");
                         case JXL_CHANNEL_BLACK:
-                            return QString("JXL-Black");
+                            return PkString("JXL-Black");
                         case JXL_CHANNEL_CFA:
-                            return QString("JXL-CFA");
+                            return PkString("JXL-CFA");
                         case JXL_CHANNEL_THERMAL:
-                            return QString("JXL-Thermal");
+                            return PkString("JXL-Thermal");
                         default:
-                            return QString("JXL-UNKNOWN");
+                            return PkString("JXL-UNKNOWN");
                         }
                     }();
 
@@ -512,13 +543,13 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
 
     KisImageSP image{nullptr};
     KisLayerSP layer{nullptr};
-    std::multimap<QByteArray, QByteArray> metadataBoxes;
+    std::multimap<std::array<char, 4>, std::vector<uint8_t>> metadataBoxes;
     std::vector<KisLayerSP> additionalLayers;
     bool bgLayerSet = false;
     bool needColorTransform = false;
     bool needIntermediateTransform = false;
-    QByteArray boxType(5, 0x0);
-    QByteArray box(16384, 0x0);
+    std::array<char, 5> boxType{};
+    std::vector<uint8_t> box(16384, 0);
     auto boxSize = box.size();
 
     // Basic info already parsed above, skip doing it again
@@ -612,7 +643,7 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                     }
                 }();
 
-                const QVector<double> colorants = [&]() -> QVector<double> {
+                const PkVector<double> colorants = [&]() -> PkVector<double> {
                     if (colorEncoding.primaries != JXL_PRIMARIES_CUSTOM) {
                         return {};
                     } else {
@@ -660,7 +691,7 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
 
             if (!d.cs) {
                 size_t iccSize = 0;
-                QByteArray iccProfile;
+                PkByteArray iccProfile;
                 if (JXL_DEC_SUCCESS
                     != JxlDecoderGetICCProfileSize(dec.get(),
 #if JPEGXL_NUMERIC_VERSION < JPEGXL_COMPUTE_NUMERIC_VERSION(0,9,0)
@@ -687,7 +718,7 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
 
                 // Get original profile if XYB is used
                 size_t iccTargetSize = 0;
-                QByteArray iccTargetProfile;
+                PkByteArray iccTargetProfile;
                 if (!d.m_info.uses_original_profile) {
                     if (JXL_DEC_SUCCESS
                         != JxlDecoderGetICCProfileSize(dec.get(),
@@ -804,8 +835,20 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
             // Use raw byte buffer instead of image callback
             size_t rawSize = 0;
             if (JXL_DEC_SUCCESS != JxlDecoderImageOutBufferSize(dec.get(), &d.m_pixelFormat, &rawSize)) {
-                qWarning() << "JxlDecoderImageOutBufferSize failed";
+                errFile << "JxlDecoderImageOutBufferSize failed";
                 return ImportExportCodes::InternalError;
+            }
+            std::size_t expectedMaximum = 0;
+            const std::size_t bytesPerChannel = d.m_pixelFormat.data_type == JXL_TYPE_UINT8 ? 1 :
+                                                d.m_pixelFormat.data_type == JXL_TYPE_UINT16 ? 2 : 4;
+            if (rawSize == 0 ||
+                !jxlCheckedImageBufferSize(d.m_info.xsize,
+                                           d.m_info.ysize,
+                                           d.m_pixelFormat.num_channels,
+                                           bytesPerChannel,
+                                           expectedMaximum) ||
+                rawSize > expectedMaximum) {
+                return ImportExportCodes::FileFormatIncorrect;
             }
             d.m_rawData.resize(rawSize);
             if (JXL_DEC_SUCCESS
@@ -813,7 +856,7 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                                                &d.m_pixelFormat,
                                                reinterpret_cast<uint8_t *>(d.m_rawData.data()),
                                                static_cast<size_t>(d.m_rawData.size()))) {
-                qWarning() << "JxlDecoderSetImageOutBuffer failed";
+                errFile << "JxlDecoderSetImageOutBuffer failed";
                 return ImportExportCodes::InternalError;
             }
 
@@ -847,8 +890,8 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
             const JxlBlendMode blendMode = d.m_header.layer_info.blend_info.blendmode;
 
             if (isMultilayer || isMultipage) {
-                QString layerName;
-                QByteArray layerNameRaw;
+                PkString layerName;
+                PkByteArray layerNameRaw;
                 if (d.m_header.name_length) {
                     KIS_SAFE_ASSERT_RECOVER(d.m_header.name_length < std::numeric_limits<int>::max())
                     {
@@ -863,10 +906,10 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                         errFile << "JxlDecoderGetFrameName failed";
                         break;
                     }
-                    dbgFile << "\tlayer name:" << QString(layerNameRaw);
-                    layerName = QString(layerNameRaw);
+                    dbgFile << "\tlayer name:" << PkString(layerNameRaw);
+                    layerName = PkString(layerNameRaw);
                 } else {
-                    layerName = QString("Layer");
+                    layerName = PkString("Layer");
                 }
                 // Set the first layer name (if any)
                 if (!bgLayerSet) {
@@ -876,7 +919,7 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                 } else {
                     additionalLayers.emplace_back(new KisPaintLayer(image, layerName, UCHAR_MAX));
                     if (blendMode == JXL_BLEND_MULADD) {
-                        additionalLayers.back()->setCompositeOpId(QString("add"));
+                        additionalLayers.back()->setCompositeOpId(PkString("add"));
                     }
                 }
             }
@@ -884,7 +927,7 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
             // Parse raw data using existing callback function
             generateCallback(d);
             const JxlLayerInfo layerInfo = d.m_header.layer_info;
-            const QRect layerBounds = QRect(static_cast<int>(layerInfo.crop_x0),
+            const PkRect layerBounds = PkRect(static_cast<int>(layerInfo.crop_x0),
                                             static_cast<int>(layerInfo.crop_y0),
                                             static_cast<int>(layerInfo.xsize),
                                             static_cast<int>(layerInfo.ysize));
@@ -947,7 +990,7 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                 d.m_nextFrameTime += static_cast<int>(frameDurationNorm);
             } else {
                 if (d.isCMYK && d.m_info.uses_original_profile) {
-                    QVector<quint8 *> planes = d.m_currentFrame->readPlanarBytes(layerBounds.x(),
+                    PkVector<quint8 *> planes = d.m_currentFrame->readPlanarBytes(layerBounds.x(),
                                                                                  layerBounds.y(),
                                                                                  layerBounds.width(),
                                                                                  layerBounds.height());
@@ -977,17 +1020,20 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                 }
             }
         } else if (status == JXL_DEC_SUCCESS || status == JXL_DEC_BOX) {
-            if (std::strlen(boxType.data()) != 0) {
+            if (boxType[0] != '\0') {
                 // Release buffer and get its final size.
                 const auto availOut = JxlDecoderReleaseBoxBuffer(dec.get());
-                const int finalSize = box.size() - static_cast<int>(availOut);
+                if (availOut > box.size()) {
+                    return ImportExportCodes::FileFormatIncorrect;
+                }
+                const std::size_t finalSize = box.size() - availOut;
                 // Only resize and write boxes if it's not empty.
                 // And only input metadata boxes while skipping other boxes.
-                QByteArray type = boxType.toLower();
-                if ((std::equal(exifTag.begin(), exifTag.end(), type.constBegin())
-                     || std::equal(xmpTag.begin(), xmpTag.end(), type.constBegin()))
-                    && finalSize != 0) {
-                    metadataBoxes.emplace(type, QByteArray(box.data(), finalSize));
+                const auto type = normalizedBoxType(boxType);
+                if (isMetadataBox(type) && finalSize != 0) {
+                    metadataBoxes.emplace(type,
+                                          std::vector<uint8_t>(box.begin(),
+                                                               box.begin() + finalSize));
                 }
                 // Preemptively zero the box type out to prevent dangling
                 // boxes.
@@ -999,29 +1045,41 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                 // Insert layer metadata if available (delayed
                 // in case the boxes came before the BASIC_INFO event)
                 for (auto &metaBox : metadataBoxes) {
-                    const QByteArray &type = metaBox.first;
-                    QByteArray &value = metaBox.second;
-                    QBuffer buf(&value);
-                    if (std::equal(exifTag.begin(), exifTag.end(), type.constBegin())) {
+                    const auto &type = metaBox.first;
+                    auto &value = metaBox.second;
+                    PkMemoryStream buf;
+                    if (!buf.open(PkStream::ReadWrite) ||
+                        value.size() > static_cast<std::size_t>(std::numeric_limits<qint64>::max()) ||
+                        buf.write(reinterpret_cast<const char *>(value.data()),
+                                  static_cast<qint64>(value.size())) != static_cast<qint64>(value.size()) ||
+                        !buf.seek(0)) {
+                        return ImportExportCodes::ErrorWhileReading;
+                    }
+                    if (type == exifTag) {
                         dbgFile << "Loading EXIF data. Size: " << value.size();
 
                         const auto *backend =
                             KisMetadataBackendRegistry::instance()->value(
                                 "exif");
 
-                        backend->loadFrom(layer->metaData(), &buf);
-                    } else if (std::equal(xmpTag.begin(), xmpTag.end(), type.constBegin())) {
+                        if (!backend || !backend->loadFrom(layer->metaData(), &buf)) {
+                            return ImportExportCodes::ErrorWhileReading;
+                        }
+                    } else if (type == xmpTag) {
                         dbgFile << "Loading XMP or IPTC data. Size: " << value.size();
 
                         const auto *xmpBackend =
                             KisMetadataBackendRegistry::instance()->value(
                                 "xmp");
 
-                        if (!xmpBackend->loadFrom(layer->metaData(), &buf)) {
+                        if (!xmpBackend || !xmpBackend->loadFrom(layer->metaData(), &buf)) {
                             const KisMetaData::IOBackend *iptcBackend =
                                 KisMetadataBackendRegistry::instance()->value(
                                     "iptc");
-                            iptcBackend->loadFrom(layer->metaData(), &buf);
+                            if (!buf.seek(0) || !iptcBackend ||
+                                !iptcBackend->loadFrom(layer->metaData(), &buf)) {
+                                return ImportExportCodes::ErrorWhileReading;
+                            }
                         }
                     }
                 }
@@ -1054,9 +1112,8 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
                     errFile << "JxlDecoderGetBoxType failed";
                     return ImportExportCodes::ErrorWhileReading;
                 }
-                const QByteArray type = boxType.toLower();
-                if (std::equal(exifTag.begin(), exifTag.end(), type.constBegin())
-                    || std::equal(xmpTag.begin(), xmpTag.end(), type.constBegin())) {
+                const auto type = normalizedBoxType(boxType);
+                if (isMetadataBox(type)) {
                     if (JxlDecoderSetBoxBuffer(
                             dec.get(),
                             reinterpret_cast<uint8_t *>(box.data()),
@@ -1072,6 +1129,11 @@ JPEGXLImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigu
         } else if (status == JXL_DEC_BOX_NEED_MORE_OUTPUT) {
             // Update the box size if it was truncated in a previous buffering.
             boxSize = box.size();
+            constexpr std::size_t maxMetadataBoxSize = 64u * 1024u * 1024u;
+            if (boxSize > maxMetadataBoxSize / 2 ||
+                !jxlInputMayGrow(boxSize * 2, maxMetadataBoxSize)) {
+                return ImportExportCodes::FileFormatIncorrect;
+            }
             box.resize(boxSize * 2);
             // Release buffer before setting it up again
             JxlDecoderReleaseBoxBuffer(dec.get());

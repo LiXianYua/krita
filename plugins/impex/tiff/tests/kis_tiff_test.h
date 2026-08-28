@@ -15,7 +15,7 @@ class KisTiffTest : public QObject
 private Q_SLOTS:
     void testFiles();
 
-    void testSaveTiffColorSpace(QString colorModel, QString colorDepth, QString colorProfile);
+    void testSaveTiffColorSpace(PkString colorModel, PkString colorDepth, PkString colorProfile);
     void testSaveTiffRgbaColorSpace();
     void testSaveTiffGreyAColorSpace();
     void testSaveTiffCmykColorSpace();

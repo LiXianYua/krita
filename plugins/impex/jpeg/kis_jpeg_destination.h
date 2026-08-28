@@ -9,11 +9,11 @@
 #include <stdio.h>
 #include <jpeglib.h>
 
-class QIODevice;
+class PkStream;
 
 namespace KisJPEGDestination
 {
-    void setDestination(j_compress_ptr cinfo, QIODevice* destinationDevice);
+    void setDestination(j_compress_ptr cinfo, PkStream* destinationDevice);
 }
 
 #endif

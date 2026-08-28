@@ -7,15 +7,13 @@
 
 #include "kis_tiff_export.h"
 
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 #include <memory>
+#include <limits>
 
 #include <exiv2/exiv2.hpp>
 #include <kpluginfactory.h>
-#ifdef Q_OS_WIN
-#include <io.h>
-#endif
 #include <tiffio.h>
 
 #include <KisDocument.h>
@@ -41,7 +39,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisTIFFExportFactory, "krita_tiff_export.json", registerPlugin<KisTIFFExport>();)
 
-KisTIFFExport::KisTIFFExport(QObject *parent, const QVariantList &)
+KisTIFFExport::KisTIFFExport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
     , oldErrHandler(TIFFSetErrorHandler(&KisTiffErrorHandler))
     , oldWarnHandler(TIFFSetWarningHandler(&KisTiffWarningHandler))
@@ -54,8 +52,12 @@ KisTIFFExport::~KisTIFFExport()
     TIFFSetWarningHandler(oldWarnHandler);
 }
 
-KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice */*io*/,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
+    if (!io || !io->isWritable()) {
+        return ImportExportCodes::NoAccessToWrite;
+    }
+
     // If a configuration object was passed to the convert method, we use that, otherwise we load from the settings
     KisPropertiesConfigurationSP cfg(new KisPropertiesConfiguration());
     if (configuration) {
@@ -104,23 +106,8 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
     dbgFile << "Start writing TIFF File";
     KIS_ASSERT_RECOVER_RETURN_VALUE(kisimage, ImportExportCodes::InternalError);
 
-    QFile file(filename());
-    if (!file.open(QFile::ReadWrite | QFile::Truncate)) {
-        return {KisImportExportErrorCannotRead(file.error())};
-    }
-
-    // Open file for writing
-    const QByteArray encodedFilename = QFile::encodeName(filename());
-
-    // https://gitlab.com/libtiff/libtiff/-/issues/173
-#ifdef Q_OS_WIN
-    const int handle = (int)(_get_osfhandle(file.handle()));
-#else
-    const int handle = file.handle();
-#endif
-
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions)
-    std::unique_ptr<TIFF, decltype(&TIFFCleanup)> image(TIFFFdOpen(handle, encodedFilename.data(), "w"), &TIFFCleanup);
+    std::unique_ptr<TIFF, decltype(&TIFFCleanup)> image(
+        kisTiffOpenStream(io, "w"), &TIFFCleanup);
 
     if (!image) {
         dbgFile << "Could not open the file for writing" << filename();
@@ -129,7 +116,7 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
 
     // Set the document information
     KoDocumentInfo *info = document->documentInfo();
-    QString title = info->aboutInfo("title");
+    PkString title = info->aboutInfo("title");
     if (!title.isEmpty()) {
         if (!TIFFSetField(image.get(),
                           TIFFTAG_DOCUMENTNAME,
@@ -137,7 +124,7 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
             return ImportExportCodes::ErrorWhileWriting;
         }
     }
-    QString abstract = info->aboutInfo("description");
+    PkString abstract = info->aboutInfo("description");
     if (!abstract.isEmpty()) {
         if (!TIFFSetField(image.get(),
                           TIFFTAG_IMAGEDESCRIPTION,
@@ -145,7 +132,7 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
             return ImportExportCodes::ErrorWhileWriting;
         }
     }
-    QString author = info->authorInfo("creator");
+    PkString author = info->authorInfo("creator");
     if (!author.isEmpty()) {
         if (!TIFFSetField(image.get(),
                           TIFFTAG_ARTIST,
@@ -196,7 +183,6 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
     }
 
     image.reset();
-    file.close();
 
     if (!options.flatten && !options.saveAsPhotoshop) {
         // HACK!! Externally inject the Exif metadata
@@ -220,14 +206,18 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
             // All IFDs are paint layer children of root
             KisNodeSP node = root->firstChild();
 
-            QBuffer ioDevice;
+            PkMemoryStream ioDevice;
 
             // Get layer
             KisLayer *layer = dynamic_cast<KisLayer *>(node.data());
             Q_ASSERT(layer);
 
             // Inject the data as any other IOBackend
-            io->saveTo(layer->metaData(), &ioDevice);
+            if (!io || !ioDevice.open(PkStream::WriteOnly) ||
+                !io->saveTo(layer->metaData(), &ioDevice) ||
+                ioDevice.size() > std::numeric_limits<uint32_t>::max()) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
 
             Exiv2::ExifData dataToInject;
 
@@ -235,7 +225,7 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
             // tempData
             Exiv2::ExifParser::decode(
                 dataToInject,
-                reinterpret_cast<const Exiv2::byte *>(ioDevice.data().data()),
+                reinterpret_cast<const Exiv2::byte *>(ioDevice.data()),
                 static_cast<uint32_t>(ioDevice.size()));
 
             for (const auto &v : dataToInject) {
@@ -256,7 +246,7 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
     return ImportExportCodes::OK;
 }
 
-KisPropertiesConfigurationSP KisTIFFExport::defaultConfiguration(const QByteArray &/*from*/, const QByteArray &/*to*/) const
+KisPropertiesConfigurationSP KisTIFFExport::defaultConfiguration(const PkByteArray &/*from*/, const PkByteArray &/*to*/) const
 {
     KisTIFFOptions options;
     return options.toProperties();
@@ -274,7 +264,7 @@ void KisTIFFExport::initializeCapabilities()
     addCapability(
         KisExportCheckRegistry::instance()->get("ColorModelHomogenousCheck")->create(KisExportCheckBase::SUPPORTED));
 
-    QList<QPair<KoID, KoID>> supportedColorModels = {
+    PkList<std::pair<KoID, KoID>> supportedColorModels = {
         {},
         {RGBAColorModelID, Integer8BitsColorDepthID},
         {RGBAColorModelID, Integer16BitsColorDepthID},
@@ -297,4 +287,3 @@ void KisTIFFExport::initializeCapabilities()
 }
 
 #include <kis_tiff_export.moc>
-

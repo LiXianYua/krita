@@ -6,12 +6,9 @@
 
 #include "kis_jpeg_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-#include <QColor>
-#include <QString>
-#include <QApplication>
-#include <QScopedPointer>
+#include <PkColor.h>
+#include <PkString.h>
+#include <PkScopedPointer.h>
 
 #include <kpluginfactory.h>
 
@@ -43,7 +40,7 @@ class KisExternalLayer;
 
 K_PLUGIN_FACTORY_WITH_JSON(KisJPEGExportFactory, "krita_jpeg_export.json", registerPlugin<KisJPEGExport>();)
 
-KisJPEGExport::KisJPEGExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisJPEGExport::KisJPEGExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -51,14 +48,14 @@ KisJPEGExport::~KisJPEGExport()
 {
 }
 
-KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
     KisImageSP image = document->savingImage();
     Q_CHECK_PTR(image);
 
     // An extra option to pass to the config widget to set the state correctly, this isn't saved
     const KoColorSpace* cs = image->projection()->colorSpace();
-    bool sRGB = cs->profile()->name().contains(QLatin1String("srgb"), Qt::CaseInsensitive);
+    bool sRGB = cs->profile()->name().toLower().contains("srgb");
     configuration->setProperty("is_sRGB", sRGB);
 
     KisJPEGOptions options;
@@ -74,7 +71,7 @@ KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, QIODevice
     options.iptc = configuration->getBool("iptc", true);
     options.xmp = configuration->getBool("xmp", true);
     KoColor c(KoColorSpaceRegistry::instance()->rgb8());
-    c.fromQColor(Qt::white);
+    c.fromQColor(PkColor(255, 255, 255));
     options.transparencyFillColor = configuration->getColor("transparencyFillcolor", c).toQColor();
     KisMetaData::FilterRegistryModel m;
     m.setEnabledFilters(configuration->getString("filters").split(","));
@@ -90,7 +87,7 @@ KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, QIODevice
     KisExifInfoVisitor exivInfoVisitor;
     exivInfoVisitor.visit(image->rootLayer().data());
 
-    QScopedPointer<KisMetaData::Store> metaDataStore;
+    PkScopedPointer<KisMetaData::Store> metaDataStore;
     if (exivInfoVisitor.metaDataCount() == 1) {
         metaDataStore.reset(new KisMetaData::Store(*exivInfoVisitor.exifInfo()));
     }
@@ -102,44 +99,44 @@ KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, QIODevice
     const KisMetaData::Schema* dcSchema = KisMetaData::SchemaRegistry::instance()->schemaFromUri(KisMetaData::Schema::DublinCoreSchemaUri);
     Q_ASSERT(dcSchema);
     if (options.storeDocumentMetaData) {
-        QString title = document->documentInfo()->aboutInfo("title");
+        PkString title = document->documentInfo()->aboutInfo("title");
         if (!title.isEmpty()) {
             if (metaDataStore->containsEntry("title")) {
                 metaDataStore->removeEntry("title");
             }
-            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "title", KisMetaData::Value(QVariant(title))));
+            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "title", KisMetaData::Value(PkVariant(title))));
         }
-        QString description = document->documentInfo()->aboutInfo("subject");
+        PkString description = document->documentInfo()->aboutInfo("subject");
         if (description.isEmpty()) {
             description = document->documentInfo()->aboutInfo("abstract");
         }
         if (!description.isEmpty()) {
-            QString keywords = document->documentInfo()->aboutInfo("keyword");
+            PkString keywords = document->documentInfo()->aboutInfo("keyword");
             if (!keywords.isEmpty()) {
                 description = description + " keywords: " + keywords;
             }
             if (metaDataStore->containsEntry("description")) {
                 metaDataStore->removeEntry("description");
             }
-            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "description", KisMetaData::Value(QVariant(description))));
+            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "description", KisMetaData::Value(PkVariant(description))));
         }
-        QString license = document->documentInfo()->aboutInfo("license");
+        PkString license = document->documentInfo()->aboutInfo("license");
         if (!license.isEmpty()) {
             if (metaDataStore->containsEntry("rights")) {
                 metaDataStore->removeEntry("rights");
             }
-            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "rights", KisMetaData::Value(QVariant(license))));
+            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "rights", KisMetaData::Value(PkVariant(license))));
         }
-        QString date = document->documentInfo()->aboutInfo("date");
+        PkString date = document->documentInfo()->aboutInfo("date");
         if (!date.isEmpty() && !metaDataStore->containsEntry("rights")) {
-            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "date", KisMetaData::Value(QVariant(date))));
+            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "date", KisMetaData::Value(PkVariant(date))));
         }
     }
     if (options.storeAuthor) {
-        QString author = document->documentInfo()->authorInfo("creator");
+        PkString author = document->documentInfo()->authorInfo("creator");
         if (!author.isEmpty()) {
             if (!document->documentInfo()->authorContactInfo().isEmpty()) {
-                QString contact = document->documentInfo()->authorContactInfo().at(0);
+                PkString contact = document->documentInfo()->authorContactInfo().at(0);
                 if (!contact.isEmpty()) {
                     author = author+"("+contact+")";
                 }
@@ -147,7 +144,7 @@ KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, QIODevice
             if (metaDataStore->containsEntry("creator")) {
                 metaDataStore->removeEntry("creator");
             }
-            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "creator", KisMetaData::Value(QVariant(author))));
+            metaDataStore->addEntry(KisMetaData::Entry(dcSchema, "creator", KisMetaData::Value(PkVariant(author))));
         }
     }
 
@@ -155,7 +152,7 @@ KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, QIODevice
     return res;
 }
 
-KisPropertiesConfigurationSP KisJPEGExport::defaultConfiguration(const QByteArray &/*from*/, const QByteArray &/*to*/) const
+KisPropertiesConfigurationSP KisJPEGExport::defaultConfiguration(const PkByteArray &/*from*/, const PkByteArray &/*to*/) const
 {
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
     cfg->setProperty("progressive", false);
@@ -174,8 +171,8 @@ KisPropertiesConfigurationSP KisJPEGExport::defaultConfiguration(const QByteArra
 
     KoColor fill_color(KoColorSpaceRegistry::instance()->rgb8());
     fill_color = KoColor();
-    fill_color.fromQColor(Qt::white);
-    QVariant v;
+    fill_color.fromQColor(PkColor(255, 255, 255));
+    PkVariant v;
     v.setValue(fill_color);
 
     cfg->setProperty("transparencyFillcolor", v);
@@ -189,11 +186,11 @@ void KisJPEGExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("ExifCheck")->create(KisExportCheckBase::SUPPORTED));
 
-    QList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(CMYKAColorModelID, Integer8BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(CMYKAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "JPEG");
 }
 

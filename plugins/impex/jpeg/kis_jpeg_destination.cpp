@@ -8,7 +8,7 @@
 
 #include <jerror.h>
 
-#include <QIODevice>
+#include <PkStream.h>
 
 #include "kis_debug.h"
 
@@ -26,7 +26,7 @@ struct KisJPEGDestinationManager : public jpeg_destination_mgr
         }
     }
 
-    QIODevice* output;
+    PkStream* output;
     JOCTET* buffer;
 };
 
@@ -74,7 +74,7 @@ void term_destination(j_compress_ptr cinfo)
 namespace KisJPEGDestination
 {
 
-void setDestination(j_compress_ptr cinfo, QIODevice* destinationDevice)
+void setDestination(j_compress_ptr cinfo, PkStream* destinationDevice)
 {
     if (cinfo->dest == 0) {
         cinfo->dest = (struct jpeg_destination_mgr *)

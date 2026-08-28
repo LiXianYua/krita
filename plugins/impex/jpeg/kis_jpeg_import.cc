@@ -17,7 +17,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(JPEGImportFactory, "krita_jpeg_import.json", registerPlugin<KisJPEGImport>();)
 
-KisJPEGImport::KisJPEGImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisJPEGImport::KisJPEGImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -25,7 +25,7 @@ KisJPEGImport::~KisJPEGImport()
 {
 }
 
-KisImportExportErrorCode KisJPEGImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode KisJPEGImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     KisJPEGConverter ib(document, batchMode());
     KisImportExportErrorCode result = ib.buildImage(io);

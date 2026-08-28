@@ -14,14 +14,14 @@
 
 KisPropertiesConfigurationSP KisTIFFOptions::toProperties() const
 {
-    QHash<int, int> compToIndex;
+    PkHash<int, int> compToIndex;
     compToIndex[COMPRESSION_NONE] = 0;
     compToIndex[COMPRESSION_JPEG] = 1;
     compToIndex[COMPRESSION_ADOBE_DEFLATE] = 2;
     compToIndex[COMPRESSION_LZW] = 3;
     compToIndex[COMPRESSION_PIXARLOG] = 8;
 
-    const QHash<quint16, int> psdCompToIndex = {
+    const PkHash<quint16, int> psdCompToIndex = {
         {psd_compression_type::RLE, 0},
         {psd_compression_type::ZIP, 1},
     };
@@ -45,7 +45,7 @@ KisPropertiesConfigurationSP KisTIFFOptions::toProperties() const
 
 void KisTIFFOptions::fromProperties(KisPropertiesConfigurationSP cfg)
 {
-    QHash<int, int> indexToComp;
+    PkHash<int, int> indexToComp;
     indexToComp[0] = COMPRESSION_NONE;
     indexToComp[1] = COMPRESSION_JPEG;
     indexToComp[2] = COMPRESSION_ADOBE_DEFLATE;
@@ -56,7 +56,7 @@ void KisTIFFOptions::fromProperties(KisPropertiesConfigurationSP cfg)
     // :) )
     indexToComp[8] = COMPRESSION_PIXARLOG;
 
-    const QHash<int, quint16> psdIndexToComp = {
+    const PkHash<int, quint16> psdIndexToComp = {
         {0, psd_compression_type::RLE},
         {1, psd_compression_type::ZIP},
     };

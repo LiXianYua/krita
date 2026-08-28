@@ -153,7 +153,7 @@ public:
                       uint16_t extrasamplescount,
                       bool premultipliedAlpha,
                       KoColorTransformation *transformProfile,
-                      QSharedPointer<KisTIFFPostProcessor> postprocessor)
+                      PkSharedPointer<KisTIFFPostProcessor> postprocessor)
         : m_device(device)
         , m_alphapos(alphapos)
         , m_sourceDepth(sourceDepth)
@@ -183,7 +183,7 @@ public:
     copyDataToChannels(quint32 x,
                        quint32 y,
                        quint32 dataWidth,
-                       QSharedPointer<KisBufferStreamBase> tiffstream) = 0;
+                       PkSharedPointer<KisBufferStreamBase> tiffstream) = 0;
     /**
      * This function is called when all data has been read and should be used for any postprocessing.
      */
@@ -251,7 +251,7 @@ private:
     bool m_premultipliedAlpha;
     std::array<quint8, 5> m_poses;
     KoColorTransformation *m_transformProfile;
-    QSharedPointer<KisTIFFPostProcessor> mpostProcessImpl;
+    PkSharedPointer<KisTIFFPostProcessor> mpostProcessImpl;
 };
 
 template<typename T> class KisTIFFReaderTarget : public KisTIFFReaderBase
@@ -268,7 +268,7 @@ public:
                         uint16_t extrasamplescount,
                         bool premultipliedAlpha,
                         KoColorTransformation *transformProfile,
-                        QSharedPointer<KisTIFFPostProcessor> postprocessor,
+                        PkSharedPointer<KisTIFFPostProcessor> postprocessor,
                         T alphaValue)
         : KisTIFFReaderBase(device,
                             poses,
@@ -288,7 +288,7 @@ public:
     copyDataToChannels(quint32 x,
                        quint32 y,
                        quint32 dataWidth,
-                       QSharedPointer<KisBufferStreamBase> tiffstream) override
+                       PkSharedPointer<KisBufferStreamBase> tiffstream) override
     {
         return _copyDataToChannels(x, y, dataWidth, tiffstream);
     }
@@ -300,7 +300,7 @@ private:
     uint32_t _copyDataToChannels(quint32 x,
                                  quint32 y,
                                  quint32 dataWidth,
-                                 QSharedPointer<KisBufferStreamBase> tiffstream)
+                                 PkSharedPointer<KisBufferStreamBase> tiffstream)
     {
         KisHLineIteratorSP it = this->paintDevice()->createHLineIteratorNG(x, y, dataWidth);
         do {
@@ -376,7 +376,7 @@ private:
     uint32_t _copyDataToChannels(quint32 x,
                                  quint32 y,
                                  quint32 dataWidth,
-                                 QSharedPointer<KisBufferStreamBase> tiffstream)
+                                 PkSharedPointer<KisBufferStreamBase> tiffstream)
     {
         KisHLineIteratorSP it = this->paintDevice()->createHLineIteratorNG(x, y, dataWidth);
         const double coeff = std::numeric_limits<T>::max() / static_cast<double>(std::pow(2.0, this->sourceDepth()) - 1);
@@ -468,7 +468,7 @@ public:
                              bool premultipliedAlpha,
                              uint8_t extrasamplescount,
                              KoColorTransformation *transformProfile,
-                             QSharedPointer<KisTIFFPostProcessor> postprocessor)
+                             PkSharedPointer<KisTIFFPostProcessor> postprocessor)
         : KisTIFFReaderBase(device,
                             poses,
                             alphapos,
@@ -489,7 +489,7 @@ public:
     copyDataToChannels(quint32 x,
                        quint32 y,
                        quint32 dataWidth,
-                       QSharedPointer<KisBufferStreamBase> tiffstream) override
+                       PkSharedPointer<KisBufferStreamBase> tiffstream) override
     {
         KisHLineIteratorSP it = paintDevice()->createHLineIteratorNG(static_cast<int>(x), static_cast<int>(y), static_cast<int>(dataWidth));
         do {

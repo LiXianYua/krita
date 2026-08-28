@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <memory>
 
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
 #include <kis_buffer_stream.h>
 #include <kis_global.h>
@@ -46,7 +46,7 @@ public:
                        uint16_t extrasamplescount,
                        bool premultipliedAlpha,
                        KoColorTransformation *transformProfile,
-                       QSharedPointer<KisTIFFPostProcessor> postprocessor,
+                       PkSharedPointer<KisTIFFPostProcessor> postprocessor,
                        uint16_t hsub,
                        uint16_t vsub)
         : KisTIFFReaderBase(device,
@@ -81,7 +81,7 @@ public:
     copyDataToChannels(quint32 x,
                        quint32 y,
                        quint32 dataWidth,
-                       QSharedPointer<KisBufferStreamBase> tiffstream) override
+                       PkSharedPointer<KisBufferStreamBase> tiffstream) override
     {
         return copyDataToChannelsImpl(x, y, dataWidth, tiffstream);
     }
@@ -99,7 +99,7 @@ private:
     copyDataToChannelsImpl(quint32 x,
                            quint32 y,
                            quint32 dataWidth,
-                           QSharedPointer<KisBufferStreamBase> tiffstream)
+                           PkSharedPointer<KisBufferStreamBase> tiffstream)
     {
         quint32 numcols = dataWidth / m_hsub;
         quint32 buffPos = y / m_vsub * m_bufferWidth + x / m_hsub;
@@ -133,7 +133,7 @@ private:
     copyDataToChannelsImpl(quint32 x,
                            quint32 y,
                            quint32 dataWidth,
-                           QSharedPointer<KisBufferStreamBase> tiffstream)
+                           PkSharedPointer<KisBufferStreamBase> tiffstream)
     {
         quint32 numcols = dataWidth / m_hsub;
         double coeff = std::numeric_limits<T>::max() / (double)(std::pow(2.0, this->sourceDepth()) - 1);

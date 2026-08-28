@@ -10,8 +10,8 @@
 
 #include <cstdint>
 
-#include <QSharedPointer>
-#include <QVector>
+#include <PkSharedPointer.h>
+#include <PkVector.h>
 
 #include <tiffio.h>
 
@@ -121,7 +121,7 @@ public:
     tsize_t width() const override;
 
 protected:
-    QVector<QSharedPointer<KisBufferStreamBase>> streams;
+    PkVector<PkSharedPointer<KisBufferStreamBase>> streams;
     uint16_t m_current_sample = 0;
     uint16_t m_nb_samples;
 };

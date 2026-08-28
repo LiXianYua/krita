@@ -7,7 +7,7 @@
 #ifndef _KIS_TIFF_EXPORT_H_
 #define _KIS_TIFF_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <tiffio.h>
 
@@ -17,11 +17,11 @@ class KisTIFFExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisTIFFExport(QObject *parent, const QVariantList &);
+    KisTIFFExport(QObject *parent, const PkVariantList &);
     ~KisTIFFExport() override;
     bool supportsIO() const override { return false; }
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
-    KisPropertiesConfigurationSP defaultConfiguration(const QByteArray& from = "", const QByteArray& to = "") const override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray& from = "", const PkByteArray& to = "") const override;
     void initializeCapabilities() override;
 
 private:

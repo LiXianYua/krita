@@ -5,9 +5,10 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 #include <memory>
+#include <limits>
 
 #include <tiff.h>
 
@@ -129,7 +130,7 @@ bool KisTIFFWriterVisitor::saveLayerProjection(KisLayer *layer)
     if (m_options->saveProfile) {
         const KoColorProfile* profile = pd->colorSpace()->profile();
         if (profile && profile->type() == "icc" && !profile->rawData().isEmpty()) {
-            QByteArray ba = profile->rawData();
+            PkByteArray ba = profile->rawData();
             TIFFSetField(image(), TIFFTAG_ICCPROFILE, ba.size(), ba.constData());
         }
     }
@@ -138,14 +139,18 @@ bool KisTIFFWriterVisitor::saveLayerProjection(KisLayer *layer)
         // IPTC
         KisMetaData::IOBackend *io =
             KisMetadataBackendRegistry::instance()->value("iptc");
-        QBuffer buf;
-        io->saveTo(layer->metaData(), &buf, KisMetaData::IOBackend::NoHeader);
+        PkMemoryStream buf;
+        if (!io || !buf.open(PkStream::WriteOnly) ||
+            !io->saveTo(layer->metaData(), &buf, KisMetaData::IOBackend::NoHeader) ||
+            buf.size() > std::numeric_limits<uint32_t>::max()) {
+            return false;
+        }
 
         if (buf.size()
             && !TIFFSetField(image(),
                              TIFFTAG_RICHTIFFIPTC,
                              static_cast<uint32_t>(buf.size()),
-                             buf.data().data())) {
+                             buf.data())) {
             dbgFile << "Failed to write the IPTC metadata to the TIFF field";
         }
     }
@@ -154,14 +159,18 @@ bool KisTIFFWriterVisitor::saveLayerProjection(KisLayer *layer)
         // XMP
         KisMetaData::IOBackend *io =
             KisMetadataBackendRegistry::instance()->value("xmp");
-        QBuffer buf;
-        io->saveTo(layer->metaData(), &buf, KisMetaData::IOBackend::NoHeader);
+        PkMemoryStream buf;
+        if (!io || !buf.open(PkStream::WriteOnly) ||
+            !io->saveTo(layer->metaData(), &buf, KisMetaData::IOBackend::NoHeader) ||
+            buf.size() > std::numeric_limits<uint32_t>::max()) {
+            return false;
+        }
 
         if (buf.size()
             && !TIFFSetField(image(),
                              TIFFTAG_XMLPACKET,
                              static_cast<uint32_t>(buf.size()),
-                             buf.data().data())) {
+                             buf.data())) {
             dbgFile << "Failed to write the XMP metadata to the TIFF field";
         }
     }
