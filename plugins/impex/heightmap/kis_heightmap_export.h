@@ -14,9 +14,8 @@
 
 class KisHeightMapExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisHeightMapExport(QObject *parent, const PkVariantList &);
+    KisHeightMapExport(PkObject *parent, const PkVariantList &);
     ~KisHeightMapExport() override;
     KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray& from = PkByteArray(), const PkByteArray& to = PkByteArray()) const override;
     void initializeCapabilities() override;

@@ -16,9 +16,8 @@
 
 class KisJPEGExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisJPEGExport(QObject *parent, const PkVariantList &);
+    KisJPEGExport(PkObject *parent, const PkVariantList &);
     ~KisJPEGExport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

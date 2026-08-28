@@ -14,7 +14,6 @@
 
 class KisBrushExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
     KisBrushExport(PkObject *parent, const PkVariantList &);
     ~KisBrushExport() override;

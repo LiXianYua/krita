@@ -34,19 +34,19 @@ KisImportExportErrorCode setHeifError(KisDocument* document,
       return ImportExportCodes::InternalError;
 
   case heif_error_Memory_allocation_error:
-    document->setErrorMessage(i18n("Could not allocate memory."));
+    document->setErrorMessage(PkString("Could not allocate memory."));
     return ImportExportCodes::InsufficientMemory;
 
   case heif_error_Encoding_error:
-    document->setErrorMessage(i18n("Could not encode or write image."));
+    document->setErrorMessage(PkString("Could not encode or write image."));
     return ImportExportCodes::NoAccessToWrite;
 
   case heif_error_Color_profile_does_not_exist:
-      document->setErrorMessage(i18n("Color profile was not found in the document."));
+      document->setErrorMessage(PkString("Color profile was not found in the document."));
       return ImportExportCodes::OK;
   default:
     // we only get here when we forgot to handle an error ID
-    document->setErrorMessage(PkString(i18n("Unknown error: %1")).arg(PkString(error.get_message().c_str())));
+    document->setErrorMessage(PkString("Unknown error: %1").arg(PkString(error.get_message().c_str())));
     return ImportExportCodes::Failure;
   }
 }

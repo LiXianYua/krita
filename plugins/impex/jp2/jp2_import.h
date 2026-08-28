@@ -13,9 +13,8 @@
 
 class jp2Import : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    jp2Import(QObject *parent, const PkVariantList &);
+    jp2Import(PkObject *parent, const PkVariantList &);
     virtual ~jp2Import();
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

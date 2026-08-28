@@ -13,9 +13,8 @@
 
 class EXRExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    EXRExport(QObject *parent, const PkVariantList &);
+    EXRExport(PkObject *parent, const PkVariantList &);
     ~EXRExport() override;
     bool supportsIO() const override { return false; }
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

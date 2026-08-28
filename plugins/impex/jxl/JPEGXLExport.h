@@ -11,9 +11,8 @@
 
 class JPEGXLExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    JPEGXLExport(QObject *parent, const PkVariantList &);
+    JPEGXLExport(PkObject *parent, const PkVariantList &);
     ~JPEGXLExport() override = default;
 
     KisImportExportErrorCode

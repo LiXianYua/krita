@@ -5,9 +5,7 @@
  */
 
 #include "exr_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisImportExportManager.h>
 
 #include <KisDocument.h>
@@ -15,9 +13,15 @@
 
 #include "exr_converter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_exr_import.json", registerPlugin<exrImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerexrImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/x-exr"), PkString("application/x-extension-exr")}, {}, 1,
+        []() -> KisImportExportFilter * { return new exrImport(nullptr, PkVariantList()); });
+}
 
-exrImport::exrImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+exrImport::exrImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -37,5 +41,3 @@ KisImportExportErrorCode exrImport::convert(KisDocument *document, PkStream */*i
     }
     return result;
 }
-
-#include <exr_import.moc>

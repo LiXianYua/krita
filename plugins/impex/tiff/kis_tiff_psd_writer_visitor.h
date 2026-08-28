@@ -12,6 +12,7 @@
 
 #include <array>
 
+#include <PkObject.h>
 #include <KisImportExportErrorCode.h>
 #include <kis_types.h>
 
@@ -19,9 +20,8 @@
 
 struct KisTIFFOptions;
 
-class KisTiffPsdWriter : public QObject, protected KisTIFFBaseWriter
+class KisTiffPsdWriter : public PkObject, protected KisTIFFBaseWriter
 {
-    Q_OBJECT
 public:
     KisTiffPsdWriter(TIFF *image, KisTIFFOptions *options);
     ~KisTiffPsdWriter() override;

@@ -8,14 +8,13 @@
 
 #include "JPEGXLExport.h"
 
+#include "../kis_impex_static_registration.h"
 #include <KisGlobalResourcesInterface.h>
 
 #include <jxl/version.h>
 #include <jxl/color_encoding.h>
 #include <jxl/encode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
-#include <kpluginfactory.h>
-
 #include <PkMemoryStream.h>
 #include <algorithm>
 #include <array>
@@ -78,9 +77,15 @@ bool resizePixelBuffer(PkByteArray &buffer, int width, int height, std::size_t p
 }
 }
 
-K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_jxl_export.json", registerPlugin<JPEGXLExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerJPEGXLExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/jxl")}, 1,
+        []() -> KisImportExportFilter * { return new JPEGXLExport(nullptr, PkVariantList()); });
+}
 
-JPEGXLExport::JPEGXLExport(QObject *parent, const PkVariantList &)
+JPEGXLExport::JPEGXLExport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -1209,5 +1214,3 @@ KisPropertiesConfigurationSP JPEGXLExport::defaultConfiguration(const PkByteArra
     cfg->setProperty("filters", "");
     return cfg;
 }
-
-#include <JPEGXLExport.moc>

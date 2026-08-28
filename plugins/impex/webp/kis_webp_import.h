@@ -13,9 +13,8 @@
 
 class KisWebPImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisWebPImport(QObject *parent, const PkVariantList &);
+    KisWebPImport(PkObject *parent, const PkVariantList &);
     ~KisWebPImport() override;
 
     KisImportExportErrorCode

@@ -22,9 +22,8 @@ struct KisTiffBasicInfo;
 
 class KisTIFFImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisTIFFImport(QObject *parent, const PkVariantList &);
+    KisTIFFImport(PkObject *parent, const PkVariantList &);
     ~KisTIFFImport() override;
     bool supportsIO() const override { return true; }
     KisImportExportErrorCode

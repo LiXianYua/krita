@@ -5,9 +5,7 @@
  */
 
 #include "kis_brush_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
@@ -26,7 +24,13 @@
 #include <KisAnimatedBrushAnnotation.h>
 #include <KisGlobalResourcesInterface.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KisBrushImportFactory, "krita_brush_import.json", registerPlugin<KisBrushImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisBrushImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/x-gimp-brush"), PkString("image/x-gimp-brush-animated")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisBrushImport(nullptr, PkVariantList()); });
+}
 
 KisBrushImport::KisBrushImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -99,4 +103,3 @@ KisImportExportErrorCode KisBrushImport::convert(KisDocument *document, PkStream
     return ImportExportCodes::OK;
 
 }
-#include "kis_brush_import.moc"

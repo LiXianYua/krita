@@ -5,9 +5,7 @@
  */
 
 #include "kis_png_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisImportExportManager.h>
 
 #include <KisDocument.h>
@@ -17,7 +15,13 @@
 #include "kis_png_document_context.h"
 #include "kis_png_import_profile_policy.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(PNGImportFactory, "krita_png_import.json", registerPlugin<KisPNGImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisPNGImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/png"), PkString("application/x-krita-paintoppreset")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisPNGImport(nullptr, PkVariantList()); });
+}
 
 KisPNGImport::KisPNGImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -42,5 +46,3 @@ KisImportExportErrorCode KisPNGImport::convert(KisDocument *document, PkStream *
     return res;
 
 }
-
-#include <kis_png_import.moc>

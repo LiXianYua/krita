@@ -13,7 +13,6 @@
 
 class KraExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
     KraExport(PkObject *parent, const PkVariantList &);
     ~KraExport() override;

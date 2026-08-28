@@ -13,9 +13,8 @@
 
 class OraImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    OraImport(QObject *parent, const PkVariantList &);
+    OraImport(PkObject *parent, const PkVariantList &);
     ~OraImport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

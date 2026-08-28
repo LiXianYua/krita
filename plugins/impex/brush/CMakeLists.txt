@@ -18,8 +18,6 @@ set(kritabrushimport_PART_SRCS
     animated_brush_annotation_data.cpp
     )
 
-ki18n_wrap_ui(kritabrushimport_PART_SRCS )
-
 kis_add_library(kritabrushimport MODULE ${kritabrushimport_PART_SRCS})
 
 target_link_libraries(kritabrushimport kritalibbrush kritaimpex kritastore)

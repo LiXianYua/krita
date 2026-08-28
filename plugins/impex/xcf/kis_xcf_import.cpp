@@ -6,13 +6,11 @@
 
 #include "kis_xcf_import.h"
 
+#include "../kis_impex_static_registration.h"
 #include <ctype.h>
 
 #include <algorithm>
 #include <PkFileStream.h>
-
-#include <kpluginfactory.h>
-
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorSpaceTraits.h>
@@ -128,9 +126,15 @@ void addLayers(const PkVector<Layer> &layers, KisImageSP image, int depth)
     }
 }
 
-K_PLUGIN_FACTORY_WITH_JSON(XCFImportFactory, "krita_xcf_import.json", registerPlugin<KisXCFImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisXCFImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/x-xcf")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisXCFImport(nullptr, PkVariantList()); });
+}
 
-KisXCFImport::KisXCFImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisXCFImport::KisXCFImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -313,5 +317,3 @@ KisImportExportErrorCode KisXCFImport::convert(KisDocument *document, PkStream *
     return ImportExportCodes::OK;
 
 }
-
-#include "kis_xcf_import.moc"

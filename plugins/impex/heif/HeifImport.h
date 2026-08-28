@@ -16,9 +16,8 @@
 
 class HeifImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    HeifImport(QObject *parent, const PkVariantList &);
+    HeifImport(PkObject *parent, const PkVariantList &);
     ~HeifImport() override;
     bool supportsIO() const override { return true; }
 

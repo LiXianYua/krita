@@ -6,6 +6,7 @@
  */
 
 #include "kis_pdf_import.h"
+#include "../kis_impex_static_registration.h"
 #include "pdf_import_policy.h"
 
 #include <PkImage.h>
@@ -15,8 +16,6 @@
 // KDE's headers
 #include <kis_debug.h>
 #include <kis_paint_device.h>
-#include <kpluginfactory.h>
-
 // calligra's headers
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -29,10 +28,15 @@
 // plugins's headers
 #include <KisImportExportErrorCode.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(PDFImportFactory, "krita_pdf_import.json",
-                           registerPlugin<KisPDFImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisPDFImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("application/pdf")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisPDFImport(nullptr, PkVariantList()); });
+}
 
-KisPDFImport::KisPDFImport(QObject *parent, const PkVariantList &)
+KisPDFImport::KisPDFImport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -81,5 +85,3 @@ KisImportExportErrorCode KisPDFImport::convert(KisDocument *document,
     document->setCurrentImage(image);
     return ImportExportCodes::OK;
 }
-
-#include "kis_pdf_import.moc"

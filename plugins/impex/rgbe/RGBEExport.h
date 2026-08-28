@@ -11,9 +11,8 @@
 
 class RGBEExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    RGBEExport(QObject *parent, const PkVariantList &);
+    RGBEExport(PkObject *parent, const PkVariantList &);
     ~RGBEExport() override = default;
 
     KisImportExportErrorCode

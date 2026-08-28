@@ -13,7 +13,6 @@
 
 class QMLExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
     QMLExport(PkObject *parent, const PkVariantList &);
     ~QMLExport() override;

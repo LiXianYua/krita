@@ -12,7 +12,6 @@
 
 class KisCSVImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
     KisCSVImport(PkObject *parent, const PkVariantList &);
     ~KisCSVImport() override;

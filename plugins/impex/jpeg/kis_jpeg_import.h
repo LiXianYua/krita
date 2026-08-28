@@ -12,9 +12,8 @@
 
 class KisJPEGImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisJPEGImport(QObject *parent, const PkVariantList &);
+    KisJPEGImport(PkObject *parent, const PkVariantList &);
     ~KisJPEGImport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

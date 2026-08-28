@@ -5,9 +5,7 @@
  */
 
 #include "kis_gif_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 
@@ -22,9 +20,15 @@
 
 #include "qgiflibhandler.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisGIFImportFactory, "krita_gif_import.json", registerPlugin<KisGIFImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisGIFImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/gif")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisGIFImport(nullptr, PkVariantList()); });
+}
 
-KisGIFImport::KisGIFImport(QObject *parent, const PkVariantList &)
+KisGIFImport::KisGIFImport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -64,5 +68,3 @@ KisImportExportErrorCode KisGIFImport::convert(KisDocument *document, PkStream *
     return ImportExportCodes::OK;
 
 }
-
-#include "kis_gif_import.moc"

@@ -5,9 +5,7 @@
  */
 
 #include "exr_export.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KoColorSpaceRegistry.h>
 #include <KoColorSpaceConstants.h>
 #include <KisImportExportManager.h>
@@ -25,9 +23,15 @@
 
 class KisExternalLayer;
 
-K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_exr_export.json", registerPlugin<EXRExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerEXRExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/x-exr"), PkString("application/x-extension-exr")}, 1,
+        []() -> KisImportExportFilter * { return new EXRExport(nullptr, PkVariantList()); });
+}
 
-EXRExport::EXRExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+EXRExport::EXRExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -92,5 +96,3 @@ void EXRExport::initializeCapabilities()
             << std::pair<KoID, KoID>(XYZAColorModelID, Float32BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "EXR");
 }
-
-#include <exr_export.moc>

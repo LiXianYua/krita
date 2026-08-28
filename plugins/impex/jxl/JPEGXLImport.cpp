@@ -7,6 +7,7 @@
  */
 
 #include "JPEGXLImport.h"
+#include "../kis_impex_static_registration.h"
 #include "jxl_validation.h"
 
 #include <KisGlobalResourcesInterface.h>
@@ -14,8 +15,6 @@
 #include <jxl/decode_cxx.h>
 #include <jxl/resizable_parallel_runner_cxx.h>
 #include <jxl/types.h>
-#include <kpluginfactory.h>
-
 #include <PkMemoryStream.h>
 #include <algorithm>
 #include <array>
@@ -42,7 +41,13 @@
 #include <kis_paint_layer.h>
 #include <kis_raster_keyframe_channel.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_jxl_import.json", registerPlugin<JPEGXLImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerJPEGXLImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/jxl")}, {}, 1,
+        []() -> KisImportExportFilter * { return new JPEGXLImport(nullptr, PkVariantList()); });
+}
 
 static constexpr std::array<char, 4> exifTag = {'e', 'x', 'i', 'f'};
 static constexpr std::array<char, 4> xmpTag = {'x', 'm', 'l', ' '};
@@ -255,7 +260,7 @@ inline void generateCallback(JPEGXLImportData &d)
     }
 }
 
-JPEGXLImport::JPEGXLImport(QObject *parent, const PkVariantList &)
+JPEGXLImport::JPEGXLImport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -403,9 +408,9 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
                     }
                     if (d.m_extra.type == JXL_CHANNEL_SPOT_COLOR) {
                         warnFile << "Spot color channels unsupported! Rewinding decoder with coalescing enabled";
-                        document->setWarningMessage(i18nc("JPEG-XL errors",
-                                                          "Detected JPEG-XL image with spot color channels, "
-                                                          "importing flattened image."));
+                        document->setWarningMessage(PkString(
+                            "Detected JPEG-XL image with spot color channels, "
+                            "importing flattened image."));
                         forceCoalesce = true;
                     }
                 }
@@ -700,7 +705,7 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
                                                    JXL_COLOR_PROFILE_TARGET_DATA,
                                                    &iccSize)) {
                     errFile << "ICC profile size retrieval failed";
-                    document->setErrorMessage(i18nc("JPEG-XL errors", "Unable to read the image profile."));
+                    document->setErrorMessage(PkString("Unable to read the image profile."));
                     return ImportExportCodes::ErrorWhileReading;
                 }
                 iccProfile.resize(static_cast<int>(iccSize));
@@ -712,7 +717,7 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
                                                       JXL_COLOR_PROFILE_TARGET_DATA,
                                                       reinterpret_cast<uint8_t *>(iccProfile.data()),
                                                       static_cast<size_t>(iccProfile.size()))) {
-                    document->setErrorMessage(i18nc("JPEG-XL errors", "Unable to read the image profile."));
+                    document->setErrorMessage(PkString("Unable to read the image profile."));
                     return ImportExportCodes::ErrorWhileReading;
                 }
 
@@ -728,7 +733,7 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
                                                        JXL_COLOR_PROFILE_TARGET_ORIGINAL,
                                                        &iccTargetSize)) {
                         errFile << "ICC profile size retrieval failed";
-                        document->setErrorMessage(i18nc("JPEG-XL errors", "Unable to read the image profile."));
+                        document->setErrorMessage(PkString("Unable to read the image profile."));
                         return ImportExportCodes::ErrorWhileReading;
                     }
                     iccTargetProfile.resize(static_cast<int>(iccTargetSize));
@@ -740,7 +745,7 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
                                                           JXL_COLOR_PROFILE_TARGET_ORIGINAL,
                                                           reinterpret_cast<uint8_t *>(iccTargetProfile.data()),
                                                           static_cast<size_t>(iccTargetProfile.size()))) {
-                        document->setErrorMessage(i18nc("JPEG-XL errors", "Unable to read the image profile."));
+                        document->setErrorMessage(PkString("Unable to read the image profile."));
                         return ImportExportCodes::ErrorWhileReading;
                     }
                 }
@@ -895,7 +900,7 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
                 if (d.m_header.name_length) {
                     KIS_SAFE_ASSERT_RECOVER(d.m_header.name_length < std::numeric_limits<int>::max())
                     {
-                        document->setErrorMessage(i18nc("JPEG-XL", "Invalid JPEG-XL layer name length"));
+                        document->setErrorMessage(PkString("Invalid JPEG-XL layer name length"));
                         return ImportExportCodes::FormatFeaturesUnsupported;
                     }
                     layerNameRaw.resize(static_cast<int>(d.m_header.name_length + 1));
@@ -957,10 +962,9 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
                         warnFile << "JXL ticks per second value exceeds 240, "
                                     "approximating FPS from the duration of "
                                     "the first frame";
-                        document->setWarningMessage(
-                            i18nc("JPEG-XL errors",
-                                  "The animation declares a frame rate of more "
-                                  "than 240 FPS."));
+                        document->setWarningMessage(PkString(
+                            "The animation declares a frame rate of more "
+                            "than 240 FPS."));
                         const int approximatedFramerate = std::lround(
                             1000.0 / static_cast<double>(d.m_header.duration));
                         d.m_durationFrameInTicks =
@@ -1153,5 +1157,3 @@ JPEGXLImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigur
 
     return ImportExportCodes::OK;
 }
-
-#include <JPEGXLImport.moc>

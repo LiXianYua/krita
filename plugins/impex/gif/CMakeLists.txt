@@ -5,8 +5,6 @@ set(kritagifexport_SOURCES
     qgiflibhandler.cpp
     )
 
-ki18n_wrap_ui(kritagifexport_SOURCES )
-
 kis_add_library(kritagifexport MODULE ${kritagifexport_SOURCES})
 
 target_link_libraries(kritagifexport kritaimpex ${GIF_LIBRARY})
@@ -17,8 +15,6 @@ set(kritagifimport_SOURCES
     kis_gif_import.cpp
     qgiflibhandler.cpp
     )
-
-ki18n_wrap_ui(kritagifimport_SOURCES )
 
 kis_add_library(kritagifimport MODULE ${kritagifimport_SOURCES})
 

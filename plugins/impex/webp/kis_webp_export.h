@@ -15,9 +15,8 @@
 
 class KisWebPExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisWebPExport(QObject *parent, const PkVariantList &);
+    KisWebPExport(PkObject *parent, const PkVariantList &);
     ~KisWebPExport() override;
 
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP configuration = 0) override;

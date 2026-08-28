@@ -6,12 +6,12 @@
 
 #include "kis_brush_export.h"
 
+#include "../kis_impex_static_registration.h"
 #include <PkMemoryStream.h>
 
 #include <memory>
 
 #include <KoProperties.h>
-#include <kpluginfactory.h>
 #include <KisExportCheckRegistry.h>
 #include <kis_paint_device.h>
 #include <kis_image.h>
@@ -34,7 +34,13 @@ struct KisBrushExportOptions {
 };
 
 
-K_PLUGIN_FACTORY_WITH_JSON(KisBrushExportFactory, "krita_brush_export.json", registerPlugin<KisBrushExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisBrushExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/x-gimp-brush"), PkString("image/x-gimp-brush-animated")}, 1,
+        []() -> KisImportExportFilter * { return new KisBrushExport(nullptr, PkVariantList()); });
+}
 
 KisBrushExport::KisBrushExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -202,6 +208,3 @@ void KisBrushExport::initializeCapabilities()
         addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::SUPPORTED));
     }
 }
-
-
-#include "kis_brush_export.moc"

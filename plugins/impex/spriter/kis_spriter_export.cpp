@@ -5,6 +5,7 @@
  */
 
 #include "kis_spriter_export.h"
+#include "../kis_impex_static_registration.h"
 #include "spriter_format.h"
 
 #include <PkXmlDocument.h>
@@ -13,9 +14,6 @@
 #include <filesystem>
 #include <string>
 #include <system_error>
-
-#include <kpluginfactory.h>
-
 #include <KoColorSpaceConstants.h>
 #include <KoColorSpaceRegistry.h>
 
@@ -75,7 +73,13 @@ PkString pkPath(const std::filesystem::path &path)
 
 } // namespace
 
-K_PLUGIN_FACTORY_WITH_JSON(KisSpriterExportFactory, "krita_spriter_export.json", registerPlugin<KisSpriterExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisSpriterExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("application/x-spriter")}, 1,
+        []() -> KisImportExportFilter * { return new KisSpriterExport(nullptr, PkVariantList()); });
+}
 
 KisSpriterExport::KisSpriterExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -491,7 +495,3 @@ void KisSpriterExport::initializeCapabilities()
             << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "Spriter");
 }
-
-
-
-#include "kis_spriter_export.moc"

@@ -5,8 +5,6 @@ set(kritatgaexport_SOURCES
     tga_validation.cpp
     )
 
-ki18n_wrap_ui(kritatgaexport_SOURCES )
-
 kis_add_library(kritatgaexport MODULE ${kritatgaexport_SOURCES})
 
 target_link_libraries(kritatgaexport kritaimpex)
@@ -17,8 +15,6 @@ set(kritatgaimport_SOURCES
     kis_tga_import.cpp
     tga_validation.cpp
     )
-
-ki18n_wrap_ui(kritatgaimport_SOURCES )
 
 kis_add_library(kritatgaimport MODULE ${kritatgaimport_SOURCES})
 

@@ -5,19 +5,22 @@
  */
 
 #include "kis_jpeg_import.h"
-
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisDocument.h>
 #include <kis_image.h>
 #include <KisImportExportManager.h>
 
 #include "kis_jpeg_converter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(JPEGImportFactory, "krita_jpeg_import.json", registerPlugin<KisJPEGImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisJPEGImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/jpeg")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisJPEGImport(nullptr, PkVariantList()); });
+}
 
-KisJPEGImport::KisJPEGImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisJPEGImport::KisJPEGImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -34,5 +37,3 @@ KisImportExportErrorCode KisJPEGImport::convert(KisDocument *document, PkStream 
     }
     return result;
 }
-
-#include <kis_jpeg_import.moc>

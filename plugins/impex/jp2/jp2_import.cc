@@ -5,17 +5,21 @@
  */
 
 #include "jp2_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisDocument.h>
 #include <kis_image.h>
 
 #include "jp2_converter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_jp2_import.json", registerPlugin<jp2Import>();)
+extern "C" KRITAIMPEX_EXPORT void registerjp2ImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/jp2"), PkString("image/jpeg2000"), PkString("image/jpx"), PkString("image/jpeg2000-image"), PkString("image/x-jpeg2000-image")}, {}, 1,
+        []() -> KisImportExportFilter * { return new jp2Import(nullptr, PkVariantList()); });
+}
 
-jp2Import::jp2Import(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+jp2Import::jp2Import(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -35,5 +39,3 @@ KisImportExportErrorCode jp2Import::convert(KisDocument *document, PkStream *io,
     }
     return result;
 }
-
-#include <jp2_import.moc>

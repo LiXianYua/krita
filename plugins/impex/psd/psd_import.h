@@ -11,7 +11,6 @@
 #include <KisImportExportFilter.h>
 
 class psdImport : public KisImportExportFilter {
-    Q_OBJECT
     public:
         psdImport(PkObject *parent, const PkVariantList &);
         ~psdImport() override;

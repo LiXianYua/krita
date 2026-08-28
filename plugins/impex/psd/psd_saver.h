@@ -23,8 +23,6 @@ class KisDocument;
 
 class PSDSaver : public PkObject {
 
-    Q_OBJECT
-
 public:
 
     PSDSaver(KisDocument *doc);
@@ -35,7 +33,7 @@ public:
 
     KisImageSP image();
 
-public Q_SLOTS:
+public:
 
     virtual void cancel();
 

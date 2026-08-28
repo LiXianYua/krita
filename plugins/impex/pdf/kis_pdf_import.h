@@ -13,9 +13,8 @@
 
 class KisPDFImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisPDFImport(QObject *parent, const PkVariantList &);
+    KisPDFImport(PkObject *parent, const PkVariantList &);
     ~KisPDFImport() override;
 
 public:

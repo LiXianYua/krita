@@ -7,13 +7,13 @@
 
 #include "kis_tiff_export.h"
 
+#include "../kis_impex_static_registration.h"
 #include <PkMemoryStream.h>
 
 #include <memory>
 #include <limits>
 
 #include <exiv2/exiv2.hpp>
-#include <kpluginfactory.h>
 #include <tiffio.h>
 
 #include <KisDocument.h>
@@ -38,9 +38,15 @@
 #include "kis_tiff_logger.h"
 #include "tiff_stream_adapter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisTIFFExportFactory, "krita_tiff_export.json", registerPlugin<KisTIFFExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisTIFFExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/tiff")}, 1,
+        []() -> KisImportExportFilter * { return new KisTIFFExport(nullptr, PkVariantList()); });
+}
 
-KisTIFFExport::KisTIFFExport(QObject *parent, const PkVariantList &)
+KisTIFFExport::KisTIFFExport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
     , oldErrHandler(TIFFSetErrorHandler(&KisTiffErrorHandler))
     , oldWarnHandler(TIFFSetWarningHandler(&KisTiffWarningHandler))
@@ -312,5 +318,3 @@ void KisTIFFExport::initializeCapabilities()
     addSupportedColorModels(supportedColorModels, "TIFF");
 
 }
-
-#include <kis_tiff_export.moc>

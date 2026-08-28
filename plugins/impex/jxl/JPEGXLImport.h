@@ -11,9 +11,8 @@
 
 class JPEGXLImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    JPEGXLImport(QObject *parent, const PkVariantList &);
+    JPEGXLImport(PkObject *parent, const PkVariantList &);
     ~JPEGXLImport() override = default;
     bool supportsIO() const override { return true; }
 

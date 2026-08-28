@@ -5,9 +5,7 @@
  */
 
 #include "qml_export.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportBackend.h>
 #include <kis_image.h>
@@ -15,7 +13,13 @@
 #include "qml_converter.h"
 #include <KoColorModelStandardIds.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_qml_export.json", registerPlugin<QMLExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerQMLExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("text/x-qml")}, 1,
+        []() -> KisImportExportFilter * { return new QMLExport(nullptr, PkVariantList()); });
+}
 
 QMLExport::QMLExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -45,7 +49,3 @@ void QMLExport::initializeCapabilities()
             << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "QML");
 }
-
-
-
-#include <qml_export.moc>

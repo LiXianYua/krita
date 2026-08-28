@@ -5,8 +5,7 @@
  */
 
 #include "ora_export.h"
-
-#include <kpluginfactory.h>
+#include "../kis_impex_static_registration.h"
 #include <KoStore.h>
 #include <KisImportExportManager.h>
 #include <KoColorModelStandardIds.h>
@@ -25,9 +24,15 @@
 
 class KisExternalLayer;
 
-K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_ora_export.json", registerPlugin<OraExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerOraExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/openraster")}, 1,
+        []() -> KisImportExportFilter * { return new OraExport(nullptr, PkVariantList()); });
+}
 
-OraExport::OraExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+OraExport::OraExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -97,7 +102,3 @@ PkString OraExport::verify(const PkString &fileName) const
 
     return error;
 }
-
-
-
-#include <ora_export.moc>

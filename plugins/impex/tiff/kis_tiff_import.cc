@@ -6,6 +6,7 @@
  */
 
 #include "kis_tiff_import.h"
+#include "../kis_impex_static_registration.h"
 #include "tiff_validation.h"
 #include "KisImportExportErrorCode.h"
 #include "kis_assert.h"
@@ -19,7 +20,6 @@
 #include <limits>
 
 #include <exiv2/exiv2.hpp>
-#include <kpluginfactory.h>
 #include <tiffio.h>
 
 #include <KisDocument.h>
@@ -91,9 +91,13 @@ bool stageTiffBytes(PkMemoryStream &stream, const void *data, std::size_t size)
 }
 }
 
-K_PLUGIN_FACTORY_WITH_JSON(TIFFImportFactory,
-                           "krita_tiff_import.json",
-                           registerPlugin<KisTIFFImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisTIFFImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/tiff")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisTIFFImport(nullptr, PkVariantList()); });
+}
 
 std::pair<PkString, PkString> getColorSpaceForColorType(uint16_t sampletype,
                                                   uint16_t color_type,
@@ -320,7 +324,7 @@ makePostProcessor(uint32_t nbsamples, const std::pair<PkString, PkString> &id)
     }
 }
 
-KisTIFFImport::KisTIFFImport(QObject *parent, const PkVariantList &)
+KisTIFFImport::KisTIFFImport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
     , m_image(nullptr)
     , oldErrHandler(TIFFSetErrorHandler(&KisTiffErrorHandler))
@@ -571,7 +575,7 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
             if (channelInfo->channelId < -1) {
                 KisTransparencyMaskSP mask =
                     new KisTransparencyMask(psdImage,
-                                            i18n("Transparency Mask"));
+                                            PkString("Transparency Mask"));
                 mask->initSelection(newLayer);
                 if (!layerRecord->readMask(photoshopLayerData,
                                            mask->paintDevice(),
@@ -1052,12 +1056,11 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                     != 0) {
                 errFile << tjGetErrorStr2(handle.get());
                 m_doc->setErrorMessage(
-                    i18nc("TIFF errors",
-                          "This TIFF file is compressed with JPEG, but "
-                          "libjpeg-turbo could not load its coefficient "
-                          "quantization and/or Huffman coding tables. "
-                          "Please upgrade your version of libjpeg-turbo "
-                          "and try again."));
+                    PkString("This TIFF file is compressed with JPEG, but "
+                             "libjpeg-turbo could not load its coefficient "
+                             "quantization and/or Huffman coding tables. "
+                             "Please upgrade your version of libjpeg-turbo "
+                             "and try again."));
                 return ImportExportCodes::FileFormatIncorrect;
             }
         }
@@ -1173,9 +1176,8 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                     vsubsampling);
 #else
             m_doc->setErrorMessage(
-                i18nc("TIFF",
-                      "Subsampled YCbCr TIFF files compressed with JPEG cannot "
-                      "be loaded."));
+                PkString("Subsampled YCbCr TIFF files compressed with JPEG cannot "
+                         "be loaded."));
             return ImportExportCodes::FileFormatIncorrect;
 #endif
         } else {
@@ -1387,9 +1389,8 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 vsubsampling);
 #else
             m_doc->setErrorMessage(
-                i18nc("TIFF",
-                      "Subsampled YCbCr TIFF files compressed with JPEG cannot "
-                      "be loaded."));
+                PkString("Subsampled YCbCr TIFF files compressed with JPEG cannot "
+                         "be loaded."));
             return ImportExportCodes::FileFormatIncorrect;
 #endif
         } else {
@@ -2036,5 +2037,3 @@ KisTIFFImport::convert(KisDocument *document,
 
     return ImportExportCodes::OK;
 }
-
-#include <kis_tiff_import.moc>

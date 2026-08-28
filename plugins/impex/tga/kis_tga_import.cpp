@@ -6,6 +6,7 @@
 
 #include "kis_tga_import.h"
 
+#include "../kis_impex_static_registration.h"
 #include <PkImage.h>
 #include <PkRgb.h>
 #include <PkStream.h>
@@ -13,9 +14,6 @@
 #include <array>
 #include <limits>
 #include <vector>
-
-#include <kpluginfactory.h>
-
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 
@@ -30,9 +28,15 @@
 #include <tga.h>
 #include "tga_validation.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisTGAImportFactory, "krita_tga_import.json", registerPlugin<KisTGAImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisTGAImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/x-tga")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisTGAImport(nullptr, PkVariantList()); });
+}
 
-KisTGAImport::KisTGAImport(QObject *parent, const PkVariantList &)
+KisTGAImport::KisTGAImport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -296,5 +300,3 @@ KisImportExportErrorCode KisTGAImport::convert(KisDocument *document, PkStream *
     return ImportExportCodes::OK;
 
 }
-
-#include "kis_tga_import.moc"

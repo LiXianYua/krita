@@ -18,8 +18,6 @@ class KisImportUserFeedbackInterface;
 
 class PSDLoader : public PkObject {
 
-    Q_OBJECT
-
 public:
 
     PSDLoader(KisDocument *doc, KisImportUserFeedbackInterface *feedbackInterface);
@@ -29,7 +27,7 @@ public:
 
     KisImageSP image();
 
-public Q_SLOTS:
+public:
 
     virtual void cancel();
 

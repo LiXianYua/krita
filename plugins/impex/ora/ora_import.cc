@@ -5,17 +5,21 @@
  */
 
 #include "ora_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisDocument.h>
 #include <kis_image.h>
 
 #include "ora_converter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_ora_import.json", registerPlugin<OraImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerOraImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/openraster")}, {}, 1,
+        []() -> KisImportExportFilter * { return new OraImport(nullptr, PkVariantList()); });
+}
 
-OraImport::OraImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+OraImport::OraImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -33,6 +37,3 @@ KisImportExportErrorCode OraImport::convert(KisDocument *document, PkStream *io,
     }
     return result;
 }
-
-#include <ora_import.moc>
-

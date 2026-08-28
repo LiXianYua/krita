@@ -5,9 +5,8 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-
-#include <kpluginfactory.h>
 #include <webp/encode.h>
+#include "../kis_impex_static_registration.h"
 #include <webp/mux.h>
 #include <webp/mux_types.h>
 
@@ -38,9 +37,15 @@
 
 #include "kis_webp_export.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisWebPExportFactory, "krita_webp_export.json", registerPlugin<KisWebPExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisWebPExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/webp")}, 4,
+        []() -> KisImportExportFilter * { return new KisWebPExport(nullptr, PkVariantList()); });
+}
 
-KisWebPExport::KisWebPExport(QObject *parent, const PkVariantList &)
+KisWebPExport::KisWebPExport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -698,5 +703,3 @@ void KisWebPExport::initializeCapabilities()
     supportedColorModels << std::pair<KoID, KoID>() << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "WebP");
 }
-
-#include "kis_webp_export.moc"

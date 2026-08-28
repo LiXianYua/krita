@@ -14,9 +14,8 @@
 
 class KisHeightMapImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisHeightMapImport(QObject *parent, const PkVariantList &);
+    KisHeightMapImport(PkObject *parent, const PkVariantList &);
     ~KisHeightMapImport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

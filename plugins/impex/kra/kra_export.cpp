@@ -5,9 +5,7 @@
  */
 
 #include "kra_export.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisImportExportManager.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorSpace.h>
@@ -25,7 +23,13 @@
 
 class KisExternalLayer;
 
-K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_kra_export.json", registerPlugin<KraExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKraExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("application/x-krita")}, 1,
+        []() -> KisImportExportFilter * { return new KraExport(nullptr, PkVariantList()); });
+}
 
 KraExport::KraExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -73,6 +77,3 @@ PkString KraExport::verify(const PkString &fileName) const
 bool KraExport::exportSupportsGuides() const {
     return true;
 }
-
-
-#include <kra_export.moc>

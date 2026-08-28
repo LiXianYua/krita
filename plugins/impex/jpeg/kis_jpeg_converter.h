@@ -15,6 +15,7 @@ extern "C" {
 
 #include <PkColor.h>
 #include <PkList.h>
+#include <PkObject.h>
 #include <PkScopedPointer.h>
 #include <PkStream.h>
 
@@ -51,9 +52,8 @@ namespace KisMetaData
 class Store;
 }
 
-class KisJPEGConverter : public QObject
+class KisJPEGConverter : public PkObject
 {
-    Q_OBJECT
 public:
     KisJPEGConverter(KisDocument *doc, bool batchMode = false);
     ~KisJPEGConverter() override;
@@ -63,7 +63,7 @@ public:
     /** Retrieve the constructed image
     */
     KisImageSP image();
-public Q_SLOTS:
+public:
     virtual void cancel();
 private:
     KisImportExportErrorCode decode(PkStream *io);

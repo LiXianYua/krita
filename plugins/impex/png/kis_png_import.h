@@ -12,7 +12,6 @@
 
 class KisPNGImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
     KisPNGImport(PkObject *parent, const PkVariantList &);
     ~KisPNGImport() override;

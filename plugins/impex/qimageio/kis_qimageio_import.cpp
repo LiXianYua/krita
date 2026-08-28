@@ -5,14 +5,19 @@
  */
 
 #include "kis_qimageio_import.h"
-
-#include <kpluginfactory.h>
+#include "../kis_impex_static_registration.h"
 #include <KisDocument.h>
 
 
-K_PLUGIN_FACTORY_WITH_JSON(KisQImageIOImportFactory, "krita_qimageio_import.json", registerPlugin<KisQImageIOImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisQImageIOImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/bmp"), PkString("image/x-xpixmap"), PkString("image/x-xbitmap"), PkString("image/vnd.microsoft.icon"), PkString("image/x-portable-pixmap"), PkString("image/x-portable-graymap"), PkString("image/x-portable-bitmap"), PkString("image/webp")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisQImageIOImport(nullptr, PkVariantList()); });
+}
 
-KisQImageIOImport::KisQImageIOImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisQImageIOImport::KisQImageIOImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -27,5 +32,3 @@ KisImportExportErrorCode KisQImageIOImport::convert(KisDocument *document, PkStr
     return ImportExportCodes::FormatFeaturesUnsupported;
 
 }
-
-#include "kis_qimageio_import.moc"

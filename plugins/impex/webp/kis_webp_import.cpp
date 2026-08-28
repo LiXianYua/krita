@@ -5,10 +5,9 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-
-#include <kpluginfactory.h>
 #include <webp/demux.h>
 
+#include "../kis_impex_static_registration.h"
 #include <PkMemoryStream.h>
 #include <PkAuxTypes.h>
 
@@ -34,9 +33,15 @@
 #include "kis_webp_import.h"
 #include "webp_validation.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisWebPImportFactory, "krita_webp_import.json", registerPlugin<KisWebPImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisWebPImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/webp")}, {}, 4,
+        []() -> KisImportExportFilter * { return new KisWebPImport(nullptr, PkVariantList()); });
+}
 
-KisWebPImport::KisWebPImport(QObject *parent, const PkVariantList &)
+KisWebPImport::KisWebPImport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -385,5 +390,3 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
 
     return ImportExportCodes::OK;
 }
-
-#include "kis_webp_import.moc"

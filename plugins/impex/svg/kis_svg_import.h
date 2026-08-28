@@ -12,9 +12,8 @@
 
 class KisSVGImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisSVGImport(QObject *parent, const PkVariantList &);
+    KisSVGImport(PkObject *parent, const PkVariantList &);
     ~KisSVGImport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration) override;

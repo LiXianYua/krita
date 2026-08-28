@@ -7,10 +7,8 @@
 
 #include "kis_heightmap_export.h"
 
+#include "../kis_impex_static_registration.h"
 #include <PkDataStream.h>
-
-#include <kpluginfactory.h>
-
 #include <KoColorSpace.h>
 #include <KoColorSpaceConstants.h>
 #include <KoColorSpaceTraits.h>
@@ -29,7 +27,13 @@
 
 #include "kis_heightmap_utils.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisHeightMapExportFactory, "krita_heightmap_export.json", registerPlugin<KisHeightMapExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisHeightMapExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/x-r32"), PkString("image/x-r16"), PkString("image/x-r8")}, 1,
+        []() -> KisImportExportFilter * { return new KisHeightMapExport(nullptr, PkVariantList()); });
+}
 
 template<typename T>
 static void writeData(KisPaintDeviceSP pd, const PkRect &bounds, PkDataStream &out_stream)
@@ -42,7 +46,7 @@ static void writeData(KisPaintDeviceSP pd, const PkRect &bounds, PkDataStream &o
     }
 }
 
-KisHeightMapExport::KisHeightMapExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisHeightMapExport::KisHeightMapExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -126,5 +130,3 @@ KisImportExportErrorCode KisHeightMapExport::convert(KisDocument *document, PkSt
         ? KisImportExportErrorCode(ImportExportCodes::OK)
         : KisImportExportErrorCode(ImportExportCodes::ErrorWhileWriting);
 }
-
-#include "kis_heightmap_export.moc"

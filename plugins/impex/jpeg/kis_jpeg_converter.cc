@@ -30,8 +30,6 @@ extern "C" {
 #include <PkFileStream.h>
 #include <PkMemoryStream.h>
 
-#include <klocalizedstring.h>
-
 #include <KoDocumentInfo.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>

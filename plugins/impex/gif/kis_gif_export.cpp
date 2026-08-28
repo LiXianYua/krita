@@ -5,8 +5,7 @@
  */
 
 #include "kis_gif_export.h"
-
-#include <kpluginfactory.h>
+#include "../kis_impex_static_registration.h"
 #include <KoColorModelStandardIds.h>
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportManager.h>
@@ -17,9 +16,15 @@
 
 #include "qgiflibhandler.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisGIFExportFactory, "krita_gif_export.json", registerPlugin<KisGIFExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisGIFExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/gif")}, 1,
+        []() -> KisImportExportFilter * { return new KisGIFExport(nullptr, PkVariantList()); });
+}
 
-KisGIFExport::KisGIFExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisGIFExport::KisGIFExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -51,7 +56,3 @@ void KisGIFExport::initializeCapabilities()
             << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "GIF");
 }
-
-
-
-#include "kis_gif_export.moc"

@@ -5,15 +5,19 @@
  */
 
 #include "kra_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisDocument.h>
 #include <kis_image.h>
 
 #include "kra_converter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_kra_import.json", registerPlugin<KraImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKraImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("application/x-krita"), PkString("application/x-krita-archive")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KraImport(nullptr, PkVariantList()); });
+}
 
 KraImport::KraImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -43,5 +47,3 @@ KisImportExportErrorCode KraImport::convert(KisDocument *document, PkStream *io,
     }
     return result;
 }
-
-#include <kra_import.moc>

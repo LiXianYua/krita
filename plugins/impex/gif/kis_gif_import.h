@@ -13,9 +13,8 @@
 
 class KisGIFImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisGIFImport(QObject *parent, const PkVariantList &);
+    KisGIFImport(PkObject *parent, const PkVariantList &);
     ~KisGIFImport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

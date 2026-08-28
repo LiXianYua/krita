@@ -10,10 +10,8 @@
  *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
-
-#include <kpluginfactory.h>
-
 #include <PkMemoryStream.h>
+#include "../kis_impex_static_registration.h"
 #include <PkAuxTypes.h>
 
 #include <KisDocument.h>
@@ -38,7 +36,13 @@
 #include "RGBEImportUtils.h"
 #include "rgbe_codec.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisRGBEImportFactory, "krita_rgbe_import.json", registerPlugin<RGBEImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerRGBEImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/vnd.radiance")}, {}, 1,
+        []() -> KisImportExportFilter * { return new RGBEImport(nullptr, PkVariantList()); });
+}
 
 #define MAXLINE 1024
 
@@ -53,7 +57,7 @@ public:
     const KoColorSpace *cs = nullptr;
 };
 
-RGBEImport::RGBEImport(QObject *parent, const PkVariantList &)
+RGBEImport::RGBEImport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -215,5 +219,3 @@ RGBEImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurat
 
     return ImportExportCodes::OK;
 }
-
-#include <RGBEImport.moc>

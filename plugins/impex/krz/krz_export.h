@@ -13,7 +13,6 @@
 
 class KrzExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
     KrzExport(PkObject *parent, const PkVariantList &);
     ~KrzExport() override;

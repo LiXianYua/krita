@@ -5,8 +5,7 @@
  */
 
 #include "kis_tga_export.h"
-
-#include <kpluginfactory.h>
+#include "../kis_impex_static_registration.h"
 #include <PkDataStream.h>
 #include <PkImage.h>
 #include <PkRgb.h>
@@ -23,9 +22,15 @@
 #include "tga.h"
 #include "tga_validation.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisTGAExportFactory, "krita_tga_export.json", registerPlugin<KisTGAExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisTGAExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/x-tga")}, 1,
+        []() -> KisImportExportFilter * { return new KisTGAExport(nullptr, PkVariantList()); });
+}
 
-KisTGAExport::KisTGAExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisTGAExport::KisTGAExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -85,7 +90,3 @@ void KisTGAExport::initializeCapabilities()
             << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "TGA");
 }
-
-
-
-#include "kis_tga_export.moc"

@@ -13,9 +13,8 @@
 
 class KisTGAExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisTGAExport(QObject *parent, const PkVariantList &);
+    KisTGAExport(PkObject *parent, const PkVariantList &);
     ~KisTGAExport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

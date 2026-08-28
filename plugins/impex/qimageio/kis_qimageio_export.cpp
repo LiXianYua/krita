@@ -5,17 +5,21 @@
  */
 
 #include "kis_qimageio_export.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisMimeDatabase.h>
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportBackend.h>
 #include <KisDocument.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KisQImageIOExportFactory, "krita_qimageio_export.json", registerPlugin<KisQImageIOExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisQImageIOExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/bmp"), PkString("image/x-xpixmap"), PkString("image/x-xbitmap"), PkString("image/vnd.microsoft.icon"), PkString("image/x-portable-pixmap"), PkString("image/x-portable-graymap"), PkString("image/x-portable-bitmap"), PkString("image/webp")}, 1,
+        []() -> KisImportExportFilter * { return new KisQImageIOExport(nullptr, PkVariantList()); });
+}
 
-KisQImageIOExport::KisQImageIOExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisQImageIOExport::KisQImageIOExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -44,5 +48,3 @@ KisPropertiesConfigurationSP KisQImageIOExport::defaultConfiguration(const PkByt
 {
     return {};
 }
-
-#include "kis_qimageio_export.moc"

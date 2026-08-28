@@ -11,8 +11,6 @@
 
 class KisRawImport : public KisImportExportFilter
 {
-    Q_OBJECT
-
 public:
     KisRawImport(PkObject *parent, const PkVariantList &);
     ~KisRawImport() override;

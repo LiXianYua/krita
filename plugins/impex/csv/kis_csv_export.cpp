@@ -5,9 +5,7 @@
  */
 
 #include "kis_csv_export.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportManager.h>
 #include <KoColorSpaceConstants.h>
@@ -20,7 +18,13 @@
 
 #include "csv_saver.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisCSVExportFactory, "krita_csv_export.json", registerPlugin<KisCSVExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisCSVExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("text/csv")}, 1,
+        []() -> KisImportExportFilter * { return new KisCSVExport(nullptr, PkVariantList()); });
+}
 
 KisCSVExport::KisCSVExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -49,5 +53,3 @@ void KisCSVExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("ColorModelPerLayerCheck/" + RGBAColorModelID.id() + "/" + Integer8BitsColorDepthID.id())->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::SUPPORTED));
 }
-
-#include "kis_csv_export.moc"

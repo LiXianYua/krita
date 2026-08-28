@@ -4,9 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "psd_export.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportManager.h>
 #include <ImageSizeCheck.h>
@@ -23,7 +21,13 @@
 
 class KisExternalLayer;
 
-K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_psd_export.json", registerPlugin<psdExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerpsdExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/x-psd"), PkString("image/photoshop"), PkString("image/x-photoshop"), PkString("image/vnd.adobe.photoshop")}, 1,
+        []() -> KisImportExportFilter * { return new psdExport(nullptr, PkVariantList()); });
+}
 
 psdExport::psdExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -89,6 +93,3 @@ bool psdExport::exportSupportsGuides() const
 {
     return true;
 }
-
-#include <psd_export.moc>
-

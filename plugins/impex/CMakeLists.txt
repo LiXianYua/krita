@@ -62,3 +62,7 @@ if (JPEGXL_FOUND)
 endif()
 
 add_subdirectory(rgbe)
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

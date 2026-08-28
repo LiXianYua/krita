@@ -5,9 +5,7 @@
  */
 
 #include "kis_csv_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisImportExportManager.h>
 
 #include <KisDocument.h>
@@ -15,7 +13,13 @@
 
 #include "csv_loader.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(CSVImportFactory, "krita_csv_import.json", registerPlugin<KisCSVImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisCSVImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("text/csv")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisCSVImport(nullptr, PkVariantList()); });
+}
 
 KisCSVImport::KisCSVImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -34,5 +38,3 @@ KisImportExportErrorCode KisCSVImport::convert(KisDocument *document, PkStream *
     }
     return result;
 }
-
-#include <kis_csv_import.moc>

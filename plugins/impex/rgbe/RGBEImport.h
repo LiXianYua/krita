@@ -11,9 +11,8 @@
 
 class RGBEImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    RGBEImport(QObject *parent, const PkVariantList &);
+    RGBEImport(PkObject *parent, const PkVariantList &);
     ~RGBEImport() override = default;
     bool supportsIO() const override { return true; }
 

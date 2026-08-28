@@ -16,7 +16,6 @@
 
 class KisSpriterExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
     KisSpriterExport(PkObject *parent, const PkVariantList &);
     ~KisSpriterExport() override;

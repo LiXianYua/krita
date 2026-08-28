@@ -13,7 +13,6 @@
 
 class KisBrushImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
     KisBrushImport(PkObject *parent, const PkVariantList &);
     ~KisBrushImport() override;

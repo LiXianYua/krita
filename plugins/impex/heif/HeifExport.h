@@ -18,9 +18,8 @@
 
 class HeifExport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    HeifExport(QObject *parent, const PkVariantList &);
+    HeifExport(PkObject *parent, const PkVariantList &);
     ~HeifExport() override;
 
     // This should return true if the library can work with a PkStream, and doesn't want to open the file by itself

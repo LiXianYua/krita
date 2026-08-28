@@ -5,13 +5,17 @@
  */
 
 #include "kis_svg_import.h"
+#include "../kis_impex_static_registration.h"
 #include "svg_import_policy.h"
+extern "C" KRITAIMPEX_EXPORT void registerKisSVGImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/svg+xml")}, {}, 1,
+        []() -> KisImportExportFilter * { return new KisSVGImport(nullptr, PkVariantList()); });
+}
 
-#include <kpluginfactory.h>
-
-K_PLUGIN_FACTORY_WITH_JSON(SVGImportFactory, "krita_svg_import.json", registerPlugin<KisSVGImport>();)
-
-KisSVGImport::KisSVGImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisSVGImport::KisSVGImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -32,5 +36,3 @@ KisImportExportErrorCode KisSVGImport::convert(KisDocument *document, PkStream *
     (void)deterministicSvgImportPolicy();
     return ImportExportCodes::FormatFeaturesUnsupported;
 }
-
-#include <kis_svg_import.moc>

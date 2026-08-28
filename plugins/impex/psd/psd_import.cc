@@ -4,15 +4,19 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "psd_import.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KisDocument.h>
 #include <kis_image.h>
 
 #include "psd_loader.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_psd_import.json", registerPlugin<psdImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerpsdImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/x-psd"), PkString("image/photoshop"), PkString("image/x-photoshop"), PkString("image/vnd.adobe.photoshop"), PkString("image/x-psb")}, {}, 1,
+        []() -> KisImportExportFilter * { return new psdImport(nullptr, PkVariantList()); });
+}
 
 psdImport::psdImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -31,6 +35,3 @@ KisImportExportErrorCode psdImport::convert(KisDocument *document, PkStream *io,
     }
     return result;
 }
-
-#include <psd_import.moc>
-

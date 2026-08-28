@@ -8,6 +8,7 @@
  */
 
 #include "HeifImport.h"
+#include "../kis_impex_static_registration.h"
 #include "heif_chroma_dispatch.h"
 #include "HeifError.h"
 #include "heif_validation.h"
@@ -15,8 +16,6 @@
 #include <PkMemoryStream.h>
 
 #include <limits>
-
-#include <kpluginfactory.h>
 #include <libheif/heif.h>
 #include <libheif/heif_cxx.h>
 
@@ -42,9 +41,15 @@
 
 using heif::Error;
 
-K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_heif_import.json", registerPlugin<HeifImport>();)
+extern "C" KRITAIMPEX_EXPORT void registerHeifImportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {PkString("image/heic"), PkString("image/avif")}, {}, 1,
+        []() -> KisImportExportFilter * { return new HeifImport(nullptr, PkVariantList()); });
+}
 
-HeifImport::HeifImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+HeifImport::HeifImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -612,5 +617,3 @@ KisImportExportErrorCode HeifImport::convert(KisDocument *document, PkStream *io
         return setHeifError(document, err);
     }
 }
-
-#include <HeifImport.moc>

@@ -16,9 +16,8 @@ class KisDocument;
 
 class KisXCFImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisXCFImport(QObject *parent, const PkVariantList &);
+    KisXCFImport(PkObject *parent, const PkVariantList &);
     ~KisXCFImport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

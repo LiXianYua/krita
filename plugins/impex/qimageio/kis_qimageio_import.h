@@ -13,9 +13,8 @@
 
 class KisQImageIOImport : public KisImportExportFilter
 {
-    Q_OBJECT
 public:
-    KisQImageIOImport(QObject *parent, const PkVariantList &);
+    KisQImageIOImport(PkObject *parent, const PkVariantList &);
     ~KisQImageIOImport() override;
 public:
     KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

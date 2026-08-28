@@ -8,6 +8,7 @@
  */
 
 #include "HeifExport.h"
+#include "../kis_impex_static_registration.h"
 #include "HeifError.h"
 #include "heif_validation.h"
 
@@ -16,7 +17,6 @@
 
 #include <algorithm>
 #include <limits>
-#include <kpluginfactory.h>
 #include <libheif/heif_cxx.h>
 
 #include <KisDocument.h>
@@ -47,9 +47,15 @@ using heif::Error;
 
 class KisExternalLayer;
 
-K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_heif_export.json", registerPlugin<HeifExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerHeifExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/heic"), PkString("image/avif")}, 1,
+        []() -> KisImportExportFilter * { return new HeifExport(nullptr, PkVariantList()); });
+}
 
-HeifExport::HeifExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+HeifExport::HeifExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -565,5 +571,3 @@ void HeifExport::initializeCapabilities()
             ;
     addSupportedColorModels(supportedColorModels, "HEIF");
 }
-
-#include <HeifExport.moc>

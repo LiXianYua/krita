@@ -6,10 +6,8 @@
 
 #include "RGBEExport.h"
 
+#include "../kis_impex_static_registration.h"
 #include <KisGlobalResourcesInterface.h>
-
-#include <kpluginfactory.h>
-
 #include <PkMemoryStream.h>
 #include <array>
 #include <cmath>
@@ -35,7 +33,13 @@
 #include <kis_properties_configuration.h>
 #include <kis_sequential_iterator.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_rgbe_export.json", registerPlugin<RGBEExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerRGBEExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/vnd.radiance")}, 1,
+        []() -> KisImportExportFilter * { return new RGBEExport(nullptr, PkVariantList()); });
+}
 
 namespace RGBE
 {
@@ -124,7 +128,7 @@ inline void writeBytesRLE(std::vector<quint8> &rleBuffer, const quint8 *data, in
 }
 }
 
-RGBEExport::RGBEExport(QObject *parent, const PkVariantList &)
+RGBEExport::RGBEExport(PkObject *parent, const PkVariantList &)
     : KisImportExportFilter{parent}
 {
 }
@@ -269,5 +273,3 @@ KisPropertiesConfigurationSP RGBEExport::defaultConfiguration(const PkByteArray 
 
     return cfg;
 }
-
-#include <RGBEExport.moc>

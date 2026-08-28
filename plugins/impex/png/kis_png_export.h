@@ -13,8 +13,6 @@
 
 class KisPNGExport : public KisImportExportFilter
 {
-    Q_OBJECT
-
 public:
 
     KisPNGExport(PkObject *parent, const PkVariantList &);

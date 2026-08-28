@@ -5,9 +5,7 @@
  */
 
 #include "kis_png_export.h"
-
-#include <kpluginfactory.h>
-
+#include "../kis_impex_static_registration.h"
 #include <KoColorSpace.h>
 #include <KisImportExportManager.h>
 #include <KisImportExportErrorCode.h>
@@ -30,7 +28,13 @@
 #include "kis_png_document_context.h"
 #include <kis_iterator_ng.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KisPNGExportFactory, "krita_png_export.json", registerPlugin<KisPNGExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisPNGExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/png"), PkString("application/x-krita-paintoppreset")}, 1,
+        []() -> KisImportExportFilter * { return new KisPNGExport(nullptr, PkVariantList()); });
+}
 
 KisPNGExport::KisPNGExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
@@ -121,5 +125,3 @@ void KisPNGExport::initializeCapabilities()
             << std::pair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "PNG");
 }
-
-#include "kis_png_export.moc"

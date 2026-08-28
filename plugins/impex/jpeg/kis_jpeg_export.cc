@@ -6,12 +6,10 @@
 
 #include "kis_jpeg_export.h"
 
+#include "../kis_impex_static_registration.h"
 #include <PkColor.h>
 #include <PkString.h>
 #include <PkScopedPointer.h>
-
-#include <kpluginfactory.h>
-
 #include <KoColorSpace.h>
 #include <KoColorProfile.h>
 #include <KoColorSpaceConstants.h>
@@ -38,9 +36,15 @@
 
 class KisExternalLayer;
 
-K_PLUGIN_FACTORY_WITH_JSON(KisJPEGExportFactory, "krita_jpeg_export.json", registerPlugin<KisJPEGExport>();)
+extern "C" KRITAIMPEX_EXPORT void registerKisJPEGExportFilter()
+{
+    static bool registered = false;
+    registerKisImpexFilterOnce(
+        registered, {}, {PkString("image/jpeg")}, 1,
+        []() -> KisImportExportFilter * { return new KisJPEGExport(nullptr, PkVariantList()); });
+}
 
-KisJPEGExport::KisJPEGExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+KisJPEGExport::KisJPEGExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -193,5 +197,3 @@ void KisJPEGExport::initializeCapabilities()
             << std::pair<KoID, KoID>(CMYKAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "JPEG");
 }
-
-#include <kis_jpeg_export.moc>
