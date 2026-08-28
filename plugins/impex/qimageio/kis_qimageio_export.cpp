@@ -43,7 +43,7 @@ void KisQImageIOExport::initializeCapabilities()
     supportedColorModels << std::pair<KoID, KoID>()
             << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, KisMimeDatabase::descriptionForMimeType(mimeString));
-    addCapability(KisExportCheckRegistry::instance()->get("ColorModelPerLayerCheck/" + mimeString + "/" + Integer8BitsColorDepthID.id())->create(KisExportCheckBase::SUPPORTED));
+    addCapability(KisExportCheckRegistry::instance()->get("ColorModelPerLayerCheck/" + RGBAColorModelID.id() + "/" + Integer8BitsColorDepthID.id())->create(KisExportCheckBase::SUPPORTED));
 }
 
 KisPropertiesConfigurationSP KisQImageIOExport::defaultConfiguration(const PkByteArray &, const PkByteArray &) const
