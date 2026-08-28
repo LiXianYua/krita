@@ -28,8 +28,6 @@
 #endif
 
 
-const PkString PngMimetype = "image/png";
-
 namespace
 {
 
@@ -54,12 +52,16 @@ private:
 
 void KisPngTest::testFiles()
 {
-    TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", PkStringList(), PkString(), 1);
+    // TestUtil is an SDK test helper whose public boundary still uses Qt types.
+    // Keep that conversion at the boundary; PNG codec/model APIs remain Pk-based.
+    TestUtil::testFiles(QString(FILES_DATA_DIR) + QStringLiteral("/sources"), QStringList(), QString(), 1);
 }
 
 void KisPngTest::testWriteonly()
 {
-    TestUtil::testImportFromWriteonly(PngMimetype);
+    // TestUtil is an SDK test helper whose public boundary still uses Qt types.
+    // Keep that conversion at the boundary; PNG codec/model APIs remain Pk-based.
+    TestUtil::testImportFromWriteonly(QStringLiteral("image/png"));
 }
 
 void roudTripHdrImage(const KoColorSpace *savingColorSpace)
@@ -204,7 +206,26 @@ void KisPngTest::testImportProfileModel()
     QVERIFY(!defaultProfile.isEmpty());
 
     PkConfigGroup config = PkSharedConfig::openConfig()->group(PkString());
-    config.writeEntry(PkString("pngImportProfile"), defaultProfile);
+    const PkString profileKey = PkString("pngImportProfile");
+    const bool hadPreviousProfile = config.hasKey(profileKey);
+    const PkString previousProfile = config.readEntry(profileKey, PkString());
+    struct ProfileConfigRestore {
+        PkConfigGroup config;
+        PkString key;
+        bool hadPrevious;
+        PkString previous;
+        ~ProfileConfigRestore()
+        {
+            if (hadPrevious) {
+                config.writeEntry(key, previous);
+            } else {
+                config.deleteEntry(key);
+            }
+            config.sync();
+        }
+    } restore{config, profileKey, hadPreviousProfile, previousProfile};
+
+    config.writeEntry(profileKey, defaultProfile);
 
     KisDlgPngImport model(PkString("fixture.png"),
                           RGBAColorModelID.id(),
@@ -224,10 +245,9 @@ void KisPngTest::testImportProfileModel()
     QVERIFY(alternate != profiles.end());
     QVERIFY(model.selectProfile(*alternate));
     QVERIFY(model.profile() == *alternate);
+    QVERIFY(config.readEntry(profileKey, PkString()) == *alternate);
     QVERIFY(!model.selectProfile(PkString("not-a-registered-profile")));
     QVERIFY(model.profile() == *alternate);
-
-    config.deleteEntry(PkString("pngImportProfile"));
 }
 
 void KisPngTest::testHeadlessCodecUsesImportProfilePolicy()
