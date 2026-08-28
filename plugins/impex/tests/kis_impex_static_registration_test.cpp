@@ -162,6 +162,14 @@ std::set<std::string> toSet(const PkStringList &values)
     return result;
 }
 
+void requireUniqueMimeList(const PkStringList &values, const char *direction)
+{
+    const std::set<std::string> uniqueValues = toSet(values);
+    if (uniqueValues.size() != values.size()) {
+        fail(std::string("duplicate ") + direction + " MIME registration observed");
+    }
+}
+
 template<std::size_t Size>
 std::set<std::string> expectedSet(const char *const (&values)[Size])
 {
@@ -218,6 +226,33 @@ int main()
         }
 #endif
     }
+
+#ifndef TASK6_RED_ONLY
+    // Registration entry points are intentionally callable more than once:
+    // S9's eventual aggregator may trigger an entry that was already loaded.
+    // Invoke the complete set again and verify the public registry remains
+    // stable.  supportedMimeTypes() de-duplicates by contract, so also check
+    // its raw-list cardinality against the independently computed set.
+    for (const NamedRegistration &registration : registrations) {
+        registration.function();
+    }
+
+    const PkStringList importsAfterDuplicateCalls =
+        KisImportExportManager::supportedMimeTypes(KisImportExportManager::Import);
+    const PkStringList exportsAfterDuplicateCalls =
+        KisImportExportManager::supportedMimeTypes(KisImportExportManager::Export);
+    requireUniqueMimeList(importsAfterDuplicateCalls, "import");
+    requireUniqueMimeList(exportsAfterDuplicateCalls, "export");
+    if (importsAfterDuplicateCalls.size() != std::size(expectedImportMimeTypes) ||
+        exportsAfterDuplicateCalls.size() != std::size(expectedExportMimeTypes) ||
+        toSet(importsAfterDuplicateCalls) != expectedSet(expectedImportMimeTypes) ||
+        toSet(exportsAfterDuplicateCalls) != expectedSet(expectedExportMimeTypes)) {
+        fail("duplicate registration calls changed the MIME registry");
+    }
+
+    requireDynamicType("image/webp", KisImportExportManager::Import, "KisWebPImport");
+    requireDynamicType("image/webp", KisImportExportManager::Export, "KisWebPExport");
+#endif
 
 #ifndef TASK6_RED_ONLY
     const auto actualImports =
