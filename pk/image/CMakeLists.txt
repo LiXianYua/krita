@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(pkimage CXX)
+include(GNUInstallDirs)
 
 # 独立薄壳工程，不接入 Krita 主构建，也不改根 CMakeLists.txt。
 set(CMAKE_CXX_STANDARD 17)
@@ -93,3 +94,20 @@ target_link_libraries(test_pkimage_file_decoder_dso PRIVATE pkimageio ${CMAKE_DL
 add_dependencies(test_pkimage_file_decoder_dso pkimage_test_registrar)
 add_test(NAME test_pkimage_file_decoder_dso
     COMMAND test_pkimage_file_decoder_dso $<TARGET_FILE:pkimage_test_registrar>)
+
+# Keep the standalone shell's package boundary identical to the aggregate
+# target.  The test-only registrar and consumer are installed as a focused
+# harness for checking that both DSOs resolve the installed provider.
+install(TARGETS pkimageio pkimage_test_registrar test_pkimage_file_decoder_dso
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+add_test(NAME test_pkimage_file_decoder_dso_installed
+    COMMAND ${CMAKE_COMMAND}
+        -D BUILD_DIR=${CMAKE_BINARY_DIR}
+        -D INSTALL_PREFIX=${CMAKE_BINARY_DIR}/installed-decoder
+        -D CI_LIBRARY_DIR=$ENV{KDECI_INSTALL_PREFIX}/lib
+        -D REGISTRAR_NAME=$<TARGET_FILE_NAME:pkimage_test_registrar>
+        -D CONSUMER_NAME=$<TARGET_FILE_NAME:test_pkimage_file_decoder_dso>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_installed_decoder.cmake)

@@ -25,6 +25,7 @@
 #  15. test（依赖 string，Python3——仅库目标，不生成测试 binder）
 
 find_package(Threads REQUIRED)
+include(GNUInstallDirs)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 if (NOT TARGET PNG::PNG)
     find_package(PNG REQUIRED)
@@ -159,6 +160,15 @@ target_include_directories(pkimageio PUBLIC
 target_link_libraries(pkimageio
     PUBLIC pkimage
     PRIVATE Threads::Threads PNG::PNG JPEG::JPEG TIFF::TIFF GIF::GIF WebP::webp)
+
+# pkimageio is the process-wide decoder registry/provider.  Install it with
+# the other runtime libraries so plugins and applications share one provider
+# after installation, rather than accidentally each loading a build-tree
+# copy.
+install(TARGETS pkimageio
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # =========================================================================
 # 5. pk/concurrent
