@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KisFrameCacheStore.h"
+#include <QSharedPointer>
 
 #include <KoColorSpace.h>
 #include "kis_update_info.h"
@@ -20,7 +21,7 @@ enum FrameType {
 };
 
 struct FrameInfo;
-typedef KisSharedPtr<FrameInfo> FrameInfoSP;
+typedef QSharedPointer<FrameInfo> FrameInfoSP;
 
 struct FrameInfo {
     // full frame
