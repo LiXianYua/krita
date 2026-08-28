@@ -10,6 +10,7 @@
 #include "KisRenderedDab.h"
 #include "kis_painter.h"
 #include "KisOptimizedByteArray.h"
+#include <KisMpl.h>
 
 #include <PkMutex.h>
 #include <PkMutex.h>
@@ -433,4 +434,3 @@ int KisDabRenderingQueue::testingGetQueueSize() const
 
     return m_d->jobs.size();
 }
-
