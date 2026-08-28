@@ -7,19 +7,12 @@
 #include <PkStringList.h>
 
 #include <algorithm>
-#include <cerrno>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <system_error>
 #include <vector>
-
-#ifndef _WIN32
-#include <pwd.h>
-#include <sys/types.h>
-#include <unistd.h>
-#endif
 
 namespace LcmsProfileDiscovery
 {
@@ -65,27 +58,14 @@ inline PkString homePath()
 #else
     const PkString environmentHome = environmentPath("HOME");
     if (!environmentHome.isEmpty()) {
-        return environmentHome;
-    }
-
-    const long suggestedSize = ::sysconf(_SC_GETPW_R_SIZE_MAX);
-    std::size_t bufferSize = suggestedSize > 0
-        ? static_cast<std::size_t>(suggestedSize) : 16384U;
-    for (;;) {
-        std::vector<char> buffer(bufferSize);
-        struct passwd accountStorage {};
-        struct passwd *account = nullptr;
-        const int status = ::getpwuid_r(::getuid(), &accountStorage,
-                                        buffer.data(), buffer.size(), &account);
-        if (status == 0) {
-            return account && account->pw_dir && *account->pw_dir
-                ? PkString(account->pw_dir) : PkString();
+        fs::path home = pathFromString(environmentHome).lexically_normal();
+        std::string cleaned = home.generic_string();
+        while (cleaned.size() > 1 && cleaned.back() == '/') {
+            cleaned.pop_back();
         }
-        if (status != ERANGE || bufferSize >= 1024U * 1024U) {
-            return PkString();
-        }
-        bufferSize *= 2U;
+        return PkString::PkFromUtf8(cleaned.data(), static_cast<int>(cleaned.size()));
     }
+    return PkString("/");
 #endif
 }
 

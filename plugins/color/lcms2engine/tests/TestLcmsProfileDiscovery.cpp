@@ -10,7 +10,6 @@
 #include <vector>
 
 #ifndef _WIN32
-#include <pwd.h>
 #include <sys/types.h>
 #include <unistd.h>
 #endif
@@ -79,16 +78,18 @@ bool testProfileEntries()
 
     const std::vector<std::string> actual =
         utf8Entries(LcmsProfileDiscovery::profileEntries(fromPath(root)));
-    const std::vector<std::string> expected {
+    std::vector<std::string> expected {
         "keep.ICM",
         "Zulu.icc",
         "zulu.icc",
         "\xC3\xA4pfel.icc",
         "\xC3\x84rger.icc",
-#ifdef _WIN32
-        "unreadable.icc",
-#endif
     };
+
+    std::ifstream readabilityProbe(unreadable, std::ios::binary);
+    if (readabilityProbe.is_open()) {
+        expected.insert(expected.begin() + 1, "unreadable.icc");
+    }
 
 #ifndef _WIN32
     fs::permissions(unreadable, fs::perms::owner_read | fs::perms::owner_write,
@@ -108,17 +109,11 @@ bool testMalformedWideDescription()
                   "surrogate wchar_t values must become U+FFFD");
 }
 
-bool testUnsetHome()
+bool testHomePathSemantics()
 {
 #ifdef _WIN32
     return true;
 #else
-    const passwd *account = ::getpwuid(::getuid());
-    if (!expect(account != nullptr && account->pw_dir != nullptr && account->pw_dir[0] != '\0',
-                "test account must have an OS home directory")) {
-        return false;
-    }
-
     const fs::path originalDirectory = fs::current_path();
     const fs::path isolatedDirectory = fs::temp_directory_path()
         / ("kritalcms-home-unset-" + std::to_string(static_cast<long long>(::getpid())));
@@ -127,12 +122,26 @@ bool testUnsetHome()
     fs::create_directories(isolatedDirectory);
     fs::current_path(isolatedDirectory);
 
-    const PkString actual = LcmsProfileDiscovery::homePath();
-    const PkString expected(account->pw_dir);
-    const bool ok = expect(actual == expected,
-                           "HOME unset must fall back to the OS account home, not cwd")
-        && expect(actual != fromPath(isolatedDirectory),
-                  "isolated HOME-unset fixture must not resolve to cwd");
+    const char *savedHome = std::getenv("HOME");
+    const std::string savedHomeValue = savedHome ? savedHome : "";
+    const bool hadHome = savedHome != nullptr;
+    ::unsetenv("HOME");
+    bool ok = expect(LcmsProfileDiscovery::homePath() == PkString("/"),
+                     "HOME unset must resolve to the Unix root path");
+
+    ::setenv("HOME", "", 1);
+    ok = expect(LcmsProfileDiscovery::homePath() == PkString("/"),
+                "empty HOME must resolve to the Unix root path") && ok;
+
+    ::setenv("HOME", "/tmp/s09f-home/./nested/../profile///", 1);
+    ok = expect(LcmsProfileDiscovery::homePath() == PkString("/tmp/s09f-home/profile"),
+                "HOME must use QDir::cleanPath-equivalent normalization") && ok;
+
+    if (hadHome) {
+        ::setenv("HOME", savedHomeValue.c_str(), 1);
+    } else {
+        ::unsetenv("HOME");
+    }
 
     fs::current_path(originalDirectory);
     fs::remove_all(isolatedDirectory, error);
@@ -144,9 +153,10 @@ bool testUnsetHome()
 int main(int argc, char **argv)
 {
     if (argc == 2 && std::string(argv[1]) == "--home-unset") {
-        return testUnsetHome() ? 0 : 1;
+        return testHomePathSemantics() ? 0 : 1;
     }
 
-    const bool ok = testProfileEntries() && testMalformedWideDescription();
+    const bool ok = testProfileEntries() && testMalformedWideDescription()
+        && testHomePathSemantics();
     return ok ? 0 : 1;
 }
