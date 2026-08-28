@@ -9,32 +9,36 @@
 
 #include <cmath>
 
+namespace
+{
+bool closePoint(const PkPointF &actual, const PkPointF &expected, double epsilon = 1e-4)
+{
+    return std::abs(actual.x() - expected.x()) <= epsilon &&
+           std::abs(actual.y() - expected.y()) <= epsilon;
+}
+}
+
 int runConcentricEllipseAdjustLineTest()
 {
     const PkList<PkPointF> handles {
-        PkPointF(0, 100),
-        PkPointF(100, 0),
-        PkPointF(200, 200)
+        PkPointF(-10, 0),
+        PkPointF(10, 0),
+        PkPointF(0, 5)
     };
 
-    PkPointF begin(0, 100);
-    PkList<PkPointF> ends {
-        PkPointF(100, 0), PkPointF(100, 5), PkPointF(200, 200), PkPointF(400, 400)
+    const PkPointF begin(0, 10);
+    PkList<PkPointF> inputs {
+        PkPointF(0, 15), PkPointF(30, 0)
     };
-
-    for (PkPointF end : ends) {
+    const PkList<PkPointF> expected {
+        PkPointF(0, 10), PkPointF(20, 0)
+    };
+    for (int i = 0; i < inputs.size(); ++i) {
+        PkPointF end = inputs[i];
         ConcentricEllipseAssistantGeometry::adjustLine(handles, end, begin);
-        if (!std::isfinite(end.x()) || !std::isfinite(end.y())) return 1;
+        if (!closePoint(end, expected[i])) return 1;
     }
 
-    begin = PkPointF(0, 200);
-    ends = {
-        PkPointF(200, 0), PkPointF(200, 5), PkPointF(400, 400), PkPointF(500, 500)
-    };
-    for (PkPointF end : ends) {
-        ConcentricEllipseAssistantGeometry::adjustLine(handles, end, begin);
-        if (!std::isfinite(end.x()) || !std::isfinite(end.y())) return 2;
-    }
     return 0;
 }
 

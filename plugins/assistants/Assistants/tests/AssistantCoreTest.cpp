@@ -74,6 +74,12 @@ bool finitePoint(const PkPointF &point)
     return std::isfinite(point.x()) && std::isfinite(point.y());
 }
 
+bool closePoint(const PkPointF &actual, const PkPointF &expected, double epsilon = 1e-6)
+{
+    return closeEnough(actual.x(), expected.x(), epsilon) &&
+           closeEnough(actual.y(), expected.y(), epsilon);
+}
+
 template<typename Assistant>
 void addNormalHandles(Assistant &assistant, std::initializer_list<PkPointF> points)
 {
@@ -134,6 +140,84 @@ int coreStateCloneHandlesAndCollectionRemainLive()
     return 0;
 }
 
+int sharedHandleMergeRewiresEveryAssistant()
+{
+    KisPaintingAssistantSP first(new RulerAssistant);
+    KisPaintingAssistantSP second(new RulerAssistant);
+    KisPaintingAssistantSP third(new RulerAssistant);
+    KisPaintingAssistantHandleSP firstOnly(new KisPaintingAssistantHandle(PkPointF(-10, 0)));
+    KisPaintingAssistantHandleSP shared(new KisPaintingAssistantHandle(PkPointF(0, 0)));
+    KisPaintingAssistantHandleSP secondOnly(new KisPaintingAssistantHandle(PkPointF(10, 0)));
+    KisPaintingAssistantHandleSP thirdOnly(new KisPaintingAssistantHandle(PkPointF(20, 0)));
+    first->addHandle(firstOnly, HandleType::NORMAL);
+    first->addHandle(shared, HandleType::NORMAL);
+    second->addHandle(shared, HandleType::NORMAL);
+    second->addHandle(secondOnly, HandleType::NORMAL);
+    third->addHandle(thirdOnly, HandleType::NORMAL);
+    third->addHandle(shared, HandleType::NORMAL);
+
+    KisPaintingAssistantHandleSP replacement(new KisPaintingAssistantHandle(PkPointF(1, 2)));
+    replacement->setType(HandleType::CORNER);
+    replacement->mergeWith(shared);
+
+    if (first->handles().size() != 2 || first->handles()[0] != firstOnly ||
+        first->handles()[1] != replacement) return 110;
+    if (second->handles().size() != 2 || second->handles()[0] != replacement ||
+        second->handles()[1] != secondOnly) return 111;
+    if (third->handles().size() != 2 || third->handles()[0] != thirdOnly ||
+        third->handles()[1] != replacement) return 112;
+    if (shared->chiefAssistant() != nullptr || replacement->chiefAssistant() != first.data()) return 113;
+
+    first.clear();
+    if (replacement->chiefAssistant() != second.data()) return 114;
+    second.clear();
+    if (replacement->chiefAssistant() != third.data()) return 115;
+    third.clear();
+    if (replacement->chiefAssistant() != nullptr) return 116;
+    return 0;
+}
+
+int renderIndependentHandleLifecycleRemainsLive()
+{
+    PerspectiveAssistant perspective;
+    addNormalHandles(perspective, {{0, 0}, {10, 0}, {10, 10}, {0, 10}});
+    if (perspective.sideHandles().size() != 4 || !perspective.topLeft() ||
+        !perspective.topRight() || !perspective.bottomLeft() || !perspective.bottomRight()) return 120;
+    if (!closePoint(*perspective.rightMiddle(), {10, 5}) ||
+        !closePoint(*perspective.leftMiddle(), {0, 5}) ||
+        !closePoint(*perspective.bottomMiddle(), {5, 10}) ||
+        !closePoint(*perspective.topMiddle(), {5, 0})) return 121;
+
+    *perspective.handles()[1] = PkPointF(20, 0);
+    if (!closePoint(*perspective.rightMiddle(), {15, 5}) ||
+        !closePoint(*perspective.topMiddle(), {10, 0})) return 122;
+
+    VanishingPointAssistant freshVanishing;
+    addNormalHandles(freshVanishing, {{10, 20}});
+    if (freshVanishing.sideHandles().size() != 4) return 123;
+
+    const char legacyText[] =
+        "<assistant type=\"vanishing point\" active=\"1\">"
+        "<handles><handle id=\"0\" x=\"10\" y=\"20\"/></handles>"
+        "</assistant>";
+    KoStore legacyStore(PkByteArray(legacyText, static_cast<int>(sizeof(legacyText) - 1)));
+    IdHandleMap loadedHandles;
+    VanishingPointAssistant loadedVanishing;
+    loadedVanishing.loadXml(&legacyStore, loadedHandles, "legacy-vanishing.assistant");
+    if (loadedVanishing.handles().size() != 1 || loadedVanishing.sideHandles().size() != 4) return 124;
+    const PkList<PkPointF> expected {{-60, 20}, {-130, 20}, {80, 20}, {150, 20}};
+    for (int i = 0; i < expected.size(); ++i) {
+        if (!closePoint(*loadedVanishing.sideHandles()[i], expected[i])) return 125;
+    }
+    return 0;
+}
+
+class ExposedPerspectiveEllipseAssistant : public PerspectiveEllipseAssistant
+{
+public:
+    PkRect modelBoundingRect() const { return boundingRect(); }
+};
+
 int representativeGeometryRemainsLive()
 {
     Ruler ruler;
@@ -145,10 +229,13 @@ int representativeGeometryRemainsLive()
     const PkPointF ellipseProjection = ellipse.project({0.0, 8.0});
     if (!closeEnough(ellipseProjection.x(), 0.0) || !closeEnough(ellipseProjection.y(), 5.0)) return 21;
 
-    const PkList<PkPointF> concentricHandles {{0, 100}, {100, 0}, {200, 200}};
-    PkPointF concentricEnd(100, 5);
-    ConcentricEllipseAssistantGeometry::adjustLine(concentricHandles, concentricEnd, {0, 100});
-    if (!finitePoint(concentricEnd)) return 22;
+    const PkList<PkPointF> concentricHandles {{-10, 0}, {10, 0}, {0, 5}};
+    PkPointF concentricEnd(0, 15);
+    ConcentricEllipseAssistantGeometry::adjustLine(concentricHandles, concentricEnd, {0, 10});
+    if (!closePoint(concentricEnd, {0, 10}, 1e-4)) return 22;
+    ConcentricEllipseAssistant concentric;
+    addNormalHandles(concentric, {{-10, 0}, {10, 0}, {0, 5}});
+    if (!closePoint(concentric.adjustPosition({0, 15}, {0, 10}, true, 0.0), {0, 10}, 1e-4)) return 23;
 
     PkList<KisPaintingAssistantHandleSP> perspectiveHandles;
     for (const PkPointF &point : PkList<PkPointF>{{-4, 4}, {4, 4}, {8, 8}, {-8, 8}}) {
@@ -166,43 +253,66 @@ int representativeGeometryRemainsLive()
 
     EllipseAssistant ellipseAssistant;
     addNormalHandles(ellipseAssistant, {{-10, 0}, {10, 0}, {0, 5}});
-    if (!finitePoint(ellipseAssistant.adjustPosition({0, 8}, {0, 5}, true, 0.0))) return 26;
+    if (!closePoint(ellipseAssistant.adjustPosition({0, 8}, {0, 5}, true, 0.0), {0, 5})) return 26;
 
     SplineAssistant spline;
-    addNormalHandles(spline, {{0, 0}, {10, 0}, {0, 10}, {10, 10}});
-    if (!finitePoint(spline.adjustPosition({5, 6}, {0, 0}, true, 0.0))) return 27;
+    addNormalHandles(spline, {{0, 0}, {10, 0}, {10.0 / 3.0, 0}, {20.0 / 3.0, 0}});
+    const PkPointF splineProjection = spline.adjustPosition({5, 6}, {1, 1}, true, 0.0);
+    if (!closePoint(splineProjection, {5, 0}, 1e-4)) return 27;
 
     VanishingPointAssistant vanishing;
     addNormalHandles(vanishing, {{0, 0}});
-    if (!finitePoint(vanishing.adjustPosition({5, 2}, {10, 0}, true, 0.0))) return 28;
+    if (!closePoint(vanishing.adjustPosition({5, 2}, {10, 0}, true, 0.0), {5, 0})) return 28;
 
     TwoPointAssistant twoPoint;
     addNormalHandles(twoPoint, {{-10, 0}, {10, 0}, {0, 5}});
-    if (!finitePoint(twoPoint.adjustPosition({1, 2}, {0, 5}, true, 0.0))) return 29;
+    const PkPointF twoPointFirst = twoPoint.adjustPosition({8, 2}, {0, 5}, true, 0.0);
+    if (!closePoint(twoPointFirst, {7.6, 1.2})) return 29;
+    if (!closePoint(twoPoint.adjustPosition({1, 2}, {0, 5}, false, 0.0), {2, 4})) return 30;
+    twoPoint.endStroke();
+    if (!closePoint(twoPoint.adjustPosition({1, 2}, {0, 5}, false, 0.0), {0, 2})) return 31;
 
     FisheyePointAssistant fisheye;
     addNormalHandles(fisheye, {{-10, 0}, {10, 0}, {0, 5}});
-    if (!finitePoint(fisheye.adjustPosition({1, 2}, {0, 5}, true, 0.0))) return 30;
+    if (!closePoint(fisheye.adjustPosition({0, 8}, {0, 5}, true, 0.0), {0, 5})) return 32;
 
     CurvilinearPerspectiveAssistant curvilinear;
     addNormalHandles(curvilinear, {{-10, 0}, {10, 0}});
-    if (!finitePoint(curvilinear.adjustPosition({1, 2}, {0, 5}, true, 0.0))) return 31;
+    if (!closePoint(curvilinear.adjustPosition({12.5, -7.5}, {0, 5}, true, 0.0),
+                    {12.5, -7.5})) return 33;
 
     PerspectiveAssistant perspective;
-    addNormalHandles(perspective, {{-4, 4}, {4, 4}, {8, 8}, {-8, 8}});
-    if (!finitePoint(perspective.adjustPosition({0, 6}, {0, 4}, true, 0.0))) return 32;
+    addNormalHandles(perspective, {{-10, -10}, {10, -10}, {10, 10}, {-10, 10}});
+    if (!closePoint(perspective.adjustPosition({3, 4}, {0, 0}, true, 0.0), {0, 4})) return 34;
+    perspective.endStroke();
+    *perspective.handles()[0] = PkPointF(0, -10);
+    *perspective.handles()[1] = PkPointF(20, -10);
+    *perspective.handles()[2] = PkPointF(20, 10);
+    *perspective.handles()[3] = PkPointF(0, 10);
+    if (!closePoint(perspective.adjustPosition({13, 4}, {10, 0}, true, 0.0), {10, 4})) return 35;
 
-    PerspectiveEllipseAssistant perspectiveEllipse;
-    addNormalHandles(perspectiveEllipse, {{-4, 4}, {4, 4}, {8, 8}, {-8, 8}});
-    if (!finitePoint(perspectiveEllipse.adjustPosition({0, 6}, {0, 4}, true, 0.0))) return 33;
+    ExposedPerspectiveEllipseAssistant perspectiveEllipse;
+    addNormalHandles(perspectiveEllipse, {{-10, -10}, {10, -10}, {10, 10}, {-10, 10}});
+    if (!closePoint(perspectiveEllipse.adjustPosition({0, 15}, {0, 0}, true, 0.0), {0, 10})) return 36;
+    if (perspectiveEllipse.modelBoundingRect().isEmpty() ||
+        !closeEnough(perspectiveEllipse.distance({0, 3}), 1.0)) return 37;
+    *perspectiveEllipse.handles()[1] = PkPointF(20, -10);
+    *perspectiveEllipse.handles()[2] = PkPointF(20, 10);
+    if (!closePoint(perspectiveEllipse.adjustPosition({5, 15}, {5, 0}, true, 0.0), {5, 10})) return 38;
 
     InfiniteRulerAssistant infinite;
     addNormalHandles(infinite, {{0, 0}, {10, 0}});
-    if (!finitePoint(infinite.adjustPosition({3, 4}, {0, 0}, true, 0.0))) return 34;
+    if (!closePoint(infinite.adjustPosition({3, 4}, {0, 0}, true, 0.0), {3, 0})) return 39;
+    if (!closePoint(infinite.adjustPosition({1, 1}, {0, 0}, true, 2.0), {0, 0})) return 40;
 
     ParallelRulerAssistant parallel;
-    addNormalHandles(parallel, {{0, 0}, {10, 0}});
-    if (!finitePoint(parallel.adjustPosition({3, 4}, {0, 1}, true, 0.0))) return 35;
+    parallel.setLocal(true);
+    addNormalHandles(parallel, {{0, 0}, {10, 0}, {0, -2}, {10, 2}});
+    if (finitePoint(parallel.adjustPosition({3, 4}, {0, 1}, true, 0.0))) return 41;
+    if (!closePoint(parallel.adjustPosition({3, 1}, {0, 1}, true, 0.0), {3, 1})) return 42;
+    if (!closePoint(parallel.adjustPosition({3, 4}, {0, 1}, true, 0.0), {3, 1})) return 43;
+    parallel.endStroke();
+    if (finitePoint(parallel.adjustPosition({3, 4}, {0, 1}, true, 0.0))) return 44;
     return 0;
 }
 
@@ -272,6 +382,8 @@ int main()
 {
     if (const int result = registryPreservesAllIdsAndIsIdempotent()) return result;
     if (const int result = coreStateCloneHandlesAndCollectionRemainLive()) return result;
+    if (const int result = sharedHandleMergeRewiresEveryAssistant()) return result;
+    if (const int result = renderIndependentHandleLifecycleRemainsLive()) return result;
     if (const int result = representativeGeometryRemainsLive()) return result;
     return xmlPersistencePreservesNamesDefaultsAndFailures();
 }

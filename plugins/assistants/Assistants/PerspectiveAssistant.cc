@@ -36,6 +36,7 @@ PerspectiveAssistant::PerspectiveAssistant(const PerspectiveAssistant &rhs, PkMa
     for (int i = 0; i < 4; ++i) {
         m_cachedPoints[i] = rhs.m_cachedPoints[i];
     }
+    synchronizeModelState();
 }
 
 KisPaintingAssistantSP PerspectiveAssistant::clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
@@ -121,6 +122,11 @@ bool PerspectiveAssistant::contains(const PkPointF& pt) const
 
 qreal PerspectiveAssistant::distance(const PkPointF& pt) const
 {
+    PkPolygonF polygon;
+    PkTransform transform;
+    if (!getTransform(polygon, transform)) {
+        return 1.0;
+    }
     KIS_SAFE_ASSERT_RECOVER_NOOP(m_cacheValid);
     return PerspectiveBasedAssistantHelper::distanceInGrid(m_cache, pt);
 }
@@ -128,6 +134,11 @@ qreal PerspectiveAssistant::distance(const PkPointF& pt) const
 bool PerspectiveAssistant::isActive() const
 {
     return isSnappingActive();
+}
+
+void PerspectiveAssistant::updateModelState()
+{
+    findPerspectiveAssistantHandleLocation();
 }
 
 
@@ -157,6 +168,7 @@ bool PerspectiveAssistant::getTransform(PkPolygonF& poly, PkTransform& transform
 
     m_cachedPolygon.clear();
     m_cacheValid = false;
+    m_cache = PerspectiveBasedAssistantHelper::CacheData();
 
     if (!PerspectiveBasedAssistantHelper::getTetragon(handles(), isAssistantComplete(), poly)) {
         m_cachedPolygon = poly;

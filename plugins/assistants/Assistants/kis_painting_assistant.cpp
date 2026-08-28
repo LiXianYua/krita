@@ -51,7 +51,8 @@ void KisPaintingAssistantHandle::mergeWith(KisPaintingAssistantHandleSP handle)
     }
 
 
-    for (KisPaintingAssistant* assistant : handle->d->assistants) {
+    const PkList<KisPaintingAssistant*> assistants = handle->d->assistants;
+    for (KisPaintingAssistant* assistant : assistants) {
         if (!assistant->handles().contains(this)) {
             assistant->replaceHandle(handle, this);
         }
@@ -98,6 +99,8 @@ struct KisPaintingAssistant::Private {
     PkSharedPointer<SharedData> s;
 
     int decorationThickness{1};
+    bool loadingXml {false};
+    bool updatingModelState {false};
 
 };
 
@@ -291,6 +294,7 @@ void KisPaintingAssistant::initHandles(PkList<KisPaintingAssistantHandleSP> _han
     for (KisPaintingAssistantHandleSP handle : _handles) {
         handle->registerAssistant(this);
     }
+    synchronizeModelState();
 }
 
 KisPaintingAssistant::~KisPaintingAssistant()
@@ -323,6 +327,7 @@ void KisPaintingAssistant::replaceHandle(KisPaintingAssistantHandleSP _handle, K
     KIS_SAFE_ASSERT_RECOVER_RETURN(!d->handles.contains(_handle));
     _handle->unregisterAssistant(this);
     _with->registerAssistant(this);
+    synchronizeModelState();
 }
 
 void KisPaintingAssistant::addHandle(KisPaintingAssistantHandleSP handle, HandleType type)
@@ -336,13 +341,31 @@ void KisPaintingAssistant::addHandle(KisPaintingAssistantHandleSP handle, Handle
 
     handle->registerAssistant(this);
     handle.data()->setType(type);
+    synchronizeModelState();
 }
 
 
 
 void KisPaintingAssistant::uncache()
 {
-    // S-09/M5 GAP: there is no pixmap cache in the core layer.
+    // S-09/M5 GAP: there is no pixmap cache in the core layer. Handle
+    // mutation still has model work to do independently of rendering.
+    synchronizeModelState();
+}
+
+void KisPaintingAssistant::updateModelState()
+{
+}
+
+void KisPaintingAssistant::synchronizeModelState()
+{
+    if (d->loadingXml || d->updatingModelState) {
+        return;
+    }
+
+    d->updatingModelState = true;
+    updateModelState();
+    d->updatingModelState = false;
 }
 
 PkRect KisPaintingAssistant::boundingRect() const
@@ -442,6 +465,7 @@ void KisPaintingAssistant::loadXml(KoStore* store, PkMap<int, KisPaintingAssista
     const PkByteArray data = store->read(store->size());
     PkXmlStreamReader xml(PkString::PkFromUtf8(data.constData(), data.size()));
     PkMap<int, KisPaintingAssistantHandleSP> sideHandleMap;
+    d->loadingXml = true;
     while (!xml.atEnd()) {
         switch (xml.readNext()) {
         case PkXmlStreamReader::StartElement:
@@ -515,6 +539,8 @@ void KisPaintingAssistant::loadXml(KoStore* store, PkMap<int, KisPaintingAssista
             break;
         }
     }
+    d->loadingXml = false;
+    synchronizeModelState();
     store->close();
 }
 

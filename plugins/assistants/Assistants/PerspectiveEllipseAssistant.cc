@@ -344,6 +344,7 @@ PkPointF PerspectiveEllipseAssistant::project(const PkPointF& pt, const PkPointF
     (void)strokeBegin;
     assert(isAssistantComplete());
 
+    updateCache();
     d->ellipseInPolygon.setSimpleEllipseVertices(d->simpleEllipse);
 
     return d->simpleEllipse.project(pt);
@@ -369,6 +370,7 @@ PkRect PerspectiveEllipseAssistant::boundingRect() const
        return KisPaintingAssistant::boundingRect();
     }
 
+    updateCache();
     if (d->ellipseInPolygon.setSimpleEllipseVertices(d->simpleEllipse)) {
        return d->simpleEllipse.boundingRect().adjusted(-2, -2, 2, 2).toAlignedRect();
     } else {
@@ -388,11 +390,16 @@ PkPointF PerspectiveEllipseAssistant::getDefaultEditorPosition() const
 
 bool PerspectiveEllipseAssistant::isEllipseValid()
 {
+    updateCache();
     return isAssistantComplete() && d->ellipseInPolygon.isValid();
 }
 
-void PerspectiveEllipseAssistant::updateCache()
+void PerspectiveEllipseAssistant::updateCache() const
 {
+    if (!isAssistantComplete()) {
+        return;
+    }
+
     // handles -> points -> polygon
     d->cacheValid = false;
     // check the cached points, whether they are the same as handles
@@ -411,6 +418,10 @@ void PerspectiveEllipseAssistant::updateCache()
     for (int i = 0; i < handles().size(); ++i) {
         d->cachedPoints << *handles()[i];
     }
+
+    d->ellipseInPolygon = EllipseInPolygon();
+    d->simpleEllipse = Ellipse();
+    d->cache = PerspectiveBasedAssistantHelper::CacheData();
 
 
     PkPolygonF poly = PkPolygonF(d->cachedPoints);
@@ -449,6 +460,7 @@ bool PerspectiveEllipseAssistant::contains(const PkPointF &point) const
 
 qreal PerspectiveEllipseAssistant::distance(const PkPointF &point) const
 {
+    updateCache();
     KIS_SAFE_ASSERT_RECOVER_NOOP(d->cacheValid);
     return PerspectiveBasedAssistantHelper::distanceInGrid(d->cache, point);
 }

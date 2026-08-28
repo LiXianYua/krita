@@ -30,6 +30,7 @@ KisPaintingAssistantHandle &KisPaintingAssistantHandle::operator=(const PkPointF
 {
     setX(pt.x());
     setY(pt.y());
+    uncache();
     return *this;
 }
 

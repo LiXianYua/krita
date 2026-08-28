@@ -25,6 +25,7 @@ VanishingPointAssistant::VanishingPointAssistant(const VanishingPointAssistant &
     : KisPaintingAssistant(rhs, handleMap)
     , m_referenceLineDensity(rhs.m_referenceLineDensity)
 {
+    synchronizeModelState();
 }
 
 KisPaintingAssistantSP VanishingPointAssistant::clone(PkMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap) const
@@ -70,6 +71,19 @@ PkPointF VanishingPointAssistant::adjustPosition(const PkPointF& pt, const PkPoi
 void VanishingPointAssistant::adjustLine(PkPointF &point, PkPointF &strokeBegin)
 {
     point = project(point, strokeBegin, 0.0);
+}
+
+void VanishingPointAssistant::updateModelState()
+{
+    if (handles().isEmpty() || !sideHandles().isEmpty()) {
+        return;
+    }
+
+    const PkPointF vanishingPoint = *handles()[0];
+    addHandle(new KisPaintingAssistantHandle(vanishingPoint + PkPointF(-70, 0)), HandleType::SIDE);
+    addHandle(new KisPaintingAssistantHandle(vanishingPoint + PkPointF(-140, 0)), HandleType::SIDE);
+    addHandle(new KisPaintingAssistantHandle(vanishingPoint + PkPointF(70, 0)), HandleType::SIDE);
+    addHandle(new KisPaintingAssistantHandle(vanishingPoint + PkPointF(140, 0)), HandleType::SIDE);
 }
 
 

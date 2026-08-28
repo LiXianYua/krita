@@ -40,7 +40,7 @@ private:
 
 
     bool isEllipseValid();
-    void updateCache();
+    void updateCache() const;
 
 
      

@@ -56,6 +56,7 @@ public:
 protected:
     KisPaintingAssistantHandleSP firstLocalHandle() const override;
     KisPaintingAssistantHandleSP secondLocalHandle() const override;
+    void updateModelState() override;
 
 private:
 

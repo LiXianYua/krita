@@ -249,6 +249,10 @@ protected:
 
     virtual PkRect boundingRect() const;
 
+    /** Refresh assistant-owned state derived from handles without rendering. */
+    virtual void updateModelState();
+    void synchronizeModelState();
+
     void initHandles(PkList<KisPaintingAssistantHandleSP> _handles);
     PkList<KisPaintingAssistantHandleSP> m_handles;
 

@@ -42,6 +42,9 @@ public:
     void saveCustomXml(PkXmlStreamWriter *xml) override;
     bool loadCustomXml(PkXmlStreamReader *xml) override;
 
+protected:
+    void updateModelState() override;
+
 private:
     PkPointF project(const PkPointF& pt, const PkPointF& strokeBegin, const bool snapToAnyDirection, qreal moveThresholdPt);
     // creates the convex hull, returns false if it's not a quadrilateral
