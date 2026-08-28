@@ -13,8 +13,8 @@
 
 #include <kpluginfactory.h>
 
-#include <QBuffer>
-#include <QByteArray>
+#include <PkMemoryStream.h>
+#include <PkAuxTypes.h>
 
 #include <KisDocument.h>
 #include <KisImportExportErrorCode.h>
@@ -29,8 +29,14 @@
 #include <kis_properties_configuration.h>
 #include <kis_sequential_iterator.h>
 
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <string_view>
+
 #include "RGBEImport.h"
 #include "RGBEImportUtils.h"
+#include "rgbe_codec.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KisRGBEImportFactory, "krita_rgbe_import.json", registerPlugin<RGBEImport>();)
 
@@ -47,20 +53,23 @@ public:
     const KoColorSpace *cs = nullptr;
 };
 
-RGBEImport::RGBEImport(QObject *parent, const QVariantList &)
+RGBEImport::RGBEImport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
 
 KisImportExportErrorCode
-RGBEImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP /*configuration*/)
+RGBEImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP /*configuration*/)
 {
     if (!io->isReadable()) {
         errFile << "Cannot read image contents";
         return ImportExportCodes::NoAccessToRead;
     }
 
-    if (!(io->peek(11) == "#?RADIANCE\n" || io->peek(7) == "#?RGBE\n")) {
+    char signature[11] = {};
+    const auto signatureSize = io->peek(signature, sizeof(signature));
+    if (!((signatureSize >= 11 && std::memcmp(signature, "#?RADIANCE\n", 11) == 0) ||
+          (signatureSize >= 7 && std::memcmp(signature, "#?RGBE\n", 7) == 0))) {
         errFile << "Invalid RGBE header!";
         return ImportExportCodes::ErrorWhileReading;
     }
@@ -68,55 +77,70 @@ RGBEImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigura
     RGBEImportData d{};
 
     int len;
-    QByteArray line(MAXLINE + 1, Qt::Uninitialized);
-    QByteArray rawFormat;
-    QByteArray rawGamma;
-    QByteArray rawExposure;
-    QByteArray rawHeaderInfo;
+    PkByteArray line;
+    line.resize(MAXLINE + 1);
+    std::string rawFormat;
+    std::string rawGamma;
+    std::string rawExposure;
+    std::string rawHeaderInfo;
 
     // Parse header
     do {
         len = io->readLine(line.data(), MAXLINE);
-        if (line.startsWith("# ")) {
-            rawHeaderInfo = line.mid(2, len - 2 - 1 /*\n*/);
-        } else if (line.startsWith("GAMMA=")) {
-            rawGamma = line.mid(6, len - 6 - 1 /*\n*/);
-        } else if (line.startsWith("EXPOSURE=")) {
-            rawExposure = line.mid(9, len - 9 - 1 /*\n*/);
-        } else if (line.startsWith("FORMAT=")) {
-            rawFormat = line.mid(7, len - 7 - 1 /*\n*/);
+        const std::string_view current(line.constData(), len > 0 ? static_cast<std::size_t>(len) : 0);
+        const auto field = [&current](std::string_view prefix) {
+            if (current.substr(0, prefix.size()) != prefix) {
+                return std::string();
+            }
+            std::string value(current.substr(prefix.size()));
+            while (!value.empty() && (value.back() == '\n' || value.back() == '\r')) {
+                value.pop_back();
+            }
+            return value;
+        };
+        if (current.substr(0, 2) == "# ") {
+            rawHeaderInfo = field("# ");
+        } else if (current.substr(0, 6) == "GAMMA=") {
+            rawGamma = field("GAMMA=");
+        } else if (current.substr(0, 9) == "EXPOSURE=") {
+            rawExposure = field("EXPOSURE=");
+        } else if (current.substr(0, 7) == "FORMAT=") {
+            rawFormat = field("FORMAT=");
         }
-    } while ((len > 0) && (line[0] != '\n'));
+    } while ((len > 0) && (line.constData()[0] != '\n'));
 
     if (rawFormat != "32-bit_rle_rgbe") {
         errFile << "Invalid RGBE format!";
         return ImportExportCodes::ErrorWhileReading;
     }
 
-    const QString headerInfo = [&]() {
-        if (!rawHeaderInfo.isEmpty()) {
-            return QString(rawHeaderInfo).trimmed();
+    const PkString headerInfo = [&]() {
+        if (!rawHeaderInfo.empty()) {
+            return PkString(rawHeaderInfo.c_str()).trimmed();
         }
-        return QString();
+        return PkString();
     }();
 
     // Unused fields, I don't know what to do with gamma and exposure fields yet.
-    if (!rawGamma.isEmpty()) {
-        bool gammaOk = false;
-        const float gammaTemp = QString(rawGamma).toFloat(&gammaOk);
-        if (gammaOk) {
+    if (!rawGamma.empty()) {
+        char *end = nullptr;
+        const float gammaTemp = std::strtof(rawGamma.c_str(), &end);
+        if (end == rawGamma.c_str() + rawGamma.size()) {
             d.m_gamma = gammaTemp;
         }
     }
-    if (!rawExposure.isEmpty()) {
-        bool exposureOk = false;
-        const float expTemp = QString(rawExposure).toFloat(&exposureOk);
-        if (exposureOk) {
+    if (!rawExposure.empty()) {
+        char *end = nullptr;
+        const float expTemp = std::strtof(rawExposure.c_str(), &end);
+        if (end == rawExposure.c_str() + rawExposure.size()) {
             d.m_exposure = expTemp;
         }
     }
 
     len = io->readLine(line.data(), MAXLINE);
+    if (len <= 0) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
     line.resize(len);
 
     /*
@@ -132,29 +156,29 @@ RGBEImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigura
        The reader can convince themselves that the 8 combinations cover all the possible image orientations
        and rotations.
     */
-    QRegularExpression resolutionRegExp(QStringLiteral("([+\\-][XY]) ([0-9]+) ([+\\-][XY]) ([0-9]+)\n"));
-    QRegularExpressionMatch match = resolutionRegExp.match(QString::fromLatin1(line));
-    if (!match.hasMatch()) {
-        errFile << "Invalid HDR file, the first line after the header didn't have the expected format:" << line;
+    RGBE::Resolution resolution;
+    if (!RGBE::parseResolution(std::string_view(line.constData(), static_cast<std::size_t>(len)), resolution)) {
+        errFile << "Invalid HDR file, the first line after the header didn't have the expected format:"
+                << std::string(line.constData(), static_cast<std::size_t>(len));
         return ImportExportCodes::InternalError;
     }
 
-    if ((match.captured(1).at(1) != u'Y') || (match.captured(3).at(1) != u'X')) {
+    if (!resolution.rowMajor || resolution.yIncreasing || !resolution.xIncreasing) {
         errFile << "Unsupported image orientation in HDR file.";
         return ImportExportCodes::InternalError;
     }
 
-    const int width = match.captured(4).toInt();
-    const int height = match.captured(2).toInt();
+    const int width = resolution.width;
+    const int height = resolution.height;
 
     dbgFile << "RGBE image information:";
     dbgFile << "Program info:" << headerInfo;
-    if (!rawGamma.isEmpty()) {
+    if (!rawGamma.empty()) {
         dbgFile << "Gamma:" << d.m_gamma;
     } else {
         dbgFile << "No gamma metadata provided";
     }
-    if (!rawExposure.isEmpty()) {
+    if (!rawExposure.empty()) {
         dbgFile << "Exposure:" << d.m_exposure;
     } else {
         dbgFile << "No exposure metadata provided";
@@ -176,10 +200,10 @@ RGBEImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigura
     layer = new KisPaintLayer(image, image->nextLayerName(), OPACITY_OPAQUE_U8);
     d.m_currentFrame = new KisPaintDevice(image->colorSpace());
 
-    QDataStream stream(io);
+    PkDataStream stream(io);
     KisSequentialIterator it(d.m_currentFrame, {0, 0, width, height});
 
-    if (!RGBEIMPORT::LoadHDR(stream, width, height, it)) {
+    if (!RGBEIMPORT::LoadHDR(stream, io, width, height, it)) {
         errFile << "Error loading HDR file.";
         return ImportExportCodes::InternalError;
     }

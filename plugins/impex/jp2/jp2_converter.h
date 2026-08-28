@@ -8,8 +8,7 @@
 #define _JP2_CONVERTER_H_
 
 #include <stdio.h>
-
-#include <QObject>
+#include <string>
 
 #include "kis_types.h"
 #include "kis_global.h"
@@ -17,20 +16,21 @@
 #include <KisImportExportErrorCode.h>
 
 class KisDocument;
+class PkStream;
+class PkString;
 
 struct JP2ConvertOptions {
 	int rate;
 	int numberresolution;
 };
 
-class JP2Converter: public QObject {
-Q_OBJECT
+class JP2Converter {
 public:
 	JP2Converter(KisDocument *doc);
 	virtual ~JP2Converter();
 public:
-	KisImportExportErrorCode buildImage(const QString &filename);
-	KisImportExportErrorCode buildFile(const QString &filename,
+	KisImportExportErrorCode buildImage(PkStream *stream);
+	KisImportExportErrorCode buildFile(const PkString &filename,
 			KisPaintLayerSP layer, const JP2ConvertOptions &options);
 	/**
 	 * Retrieve the constructed image
@@ -41,9 +41,8 @@ public:
 	void addInfoString(const std::string&  str);
 
 private:
-	KisImportExportErrorCode decode(const QString &filename);
-	int infile_format(const char *fname);
-public Q_SLOTS:
+	int infileFormat(PkStream *stream);
+public:
 	virtual void cancel();
 private:
 	KisImageSP m_image;

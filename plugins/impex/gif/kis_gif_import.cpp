@@ -6,11 +6,6 @@
 
 #include "kis_gif_import.h"
 
-#include <QCheckBox>
-#include <QBuffer>
-#include <QSlider>
-#include <QApplication>
-
 #include <kpluginfactory.h>
 
 #include <KoColorSpace.h>
@@ -29,7 +24,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisGIFImportFactory, "krita_gif_import.json", registerPlugin<KisGIFImport>();)
 
-KisGIFImport::KisGIFImport(QObject *parent, const QVariantList &)
+KisGIFImport::KisGIFImport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -38,29 +33,23 @@ KisGIFImport::~KisGIFImport()
 {
 }
 
-KisImportExportErrorCode KisGIFImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisGIFImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
-    Q_UNUSED(configuration);
+    (void)configuration;
 
-    QImage img;
-    bool result = false;
-    QGIFLibHandler handler;
-
-
-    handler.setDevice(io);
+    PkImage img;
+    GifLibCodec handler(io);
 
     if (!io->isReadable()) {
         return ImportExportCodes::NoAccessToRead;
     }
 
     if (handler.canRead()) {
-        result = handler.read(&img);
+        if (!handler.read(&img)) {
+            return ImportExportCodes::FileFormatIncorrect;
+        }
     } else {
         // handler.canRead() checks for the flag in the file; if it can't read it, maybe the format is incorrect
-        return ImportExportCodes::FileFormatIncorrect;
-    }
-
-    if (result == false) {
         return ImportExportCodes::FileFormatIncorrect;
     }
 
@@ -77,4 +66,3 @@ KisImportExportErrorCode KisGIFImport::convert(KisDocument *document, QIODevice 
 }
 
 #include "kis_gif_import.moc"
-

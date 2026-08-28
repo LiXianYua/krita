@@ -7,17 +7,17 @@
 #include "kis_heightmap_utils.h"
 
 #include <KoColorModelStandardIds.h>
-#include <QByteArray>
+#include <PkAuxTypes.h>
 
-KoID KisHeightmapUtils::mimeTypeToKoID(const QByteArray& mimeType)
+KoID KisHeightmapUtils::mimeTypeToKoID(const PkByteArray& mimeType)
 {
-    if (mimeType == "image/x-r8") {
+    if (mimeType == PkByteArray("image/x-r8", sizeof("image/x-r8") - 1)) {
         return Integer8BitsColorDepthID;
     }
-    else if (mimeType == "image/x-r16") {
+    else if (mimeType == PkByteArray("image/x-r16", sizeof("image/x-r16") - 1)) {
         return Integer16BitsColorDepthID;
     }
-    else if (mimeType == "image/x-r32") {
+    else if (mimeType == PkByteArray("image/x-r32", sizeof("image/x-r32") - 1)) {
         return Float32BitsColorDepthID;
     }
     return KoID();

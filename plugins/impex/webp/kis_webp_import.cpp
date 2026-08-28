@@ -9,8 +9,8 @@
 #include <kpluginfactory.h>
 #include <webp/demux.h>
 
-#include <QBuffer>
-#include <QByteArray>
+#include <PkMemoryStream.h>
+#include <PkAuxTypes.h>
 
 #include <cmath>
 #include <cstdint>
@@ -34,7 +34,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisWebPImportFactory, "krita_webp_import.json", registerPlugin<KisWebPImport>();)
 
-KisWebPImport::KisWebPImport(QObject *parent, const QVariantList &)
+KisWebPImport::KisWebPImport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -42,10 +42,10 @@ KisWebPImport::KisWebPImport(QObject *parent, const QVariantList &)
 KisWebPImport::~KisWebPImport() = default;
 
 KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
-                                                QIODevice *io,
+                                                PkStream *io,
                                                 KisPropertiesConfigurationSP)
 {
-    const QByteArray buf = io->readAll();
+    const PkByteArray buf = io->readAll();
 
     if (buf.isEmpty()) {
         return ImportExportCodes::ErrorWhileReading;
@@ -73,13 +73,13 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
     bool isRgba = true;
 
     {
-        WebPChunkIterator chunk_iter;
+        WebPChunkIterator chunk_iter{};
         if (flags & ICCP_FLAG) {
             if (WebPDemuxGetChunk(demux, "ICCP", 1, &chunk_iter)) {
                 dbgFile << "WebPDemuxGetChunk on ICCP succeeded, ICC profile "
                            "available";
 
-                const QByteArray iccProfile(
+                const PkByteArray iccProfile(
                     reinterpret_cast<const char *>(chunk_iter.chunk.bytes),
                     static_cast<int>(chunk_iter.chunk.size));
                 const KoColorProfile *profile =
@@ -94,7 +94,7 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
 
                 // Assign as non-RGBA color space to convert it back later
                 if (!imageColorSpace) {
-                    const QString colId = profile->colorModelID();
+                    const PkString colId = profile->colorModelID();
                     const KoColorProfile *cProfile =
                         KoColorSpaceRegistry::instance()->createColorProfile(
                             colId,
@@ -118,60 +118,80 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
     }
 
     const KoColor bgColor(
-        QColor(bg >> 8 & 0xFFu, bg >> 16 & 0xFFu, bg >> 24 & 0xFFu, bg & 0xFFu),
+        PkColor(bg >> 8 & 0xFFu, bg >> 16 & 0xFFu, bg >> 24 & 0xFFu, bg & 0xFFu),
         colorSpace);
 
     KisImageSP image = new KisImage(document->createUndoStore(),
                                     static_cast<qint32>(width),
                                     static_cast<qint32>(height),
                                     colorSpace,
-                                    i18n("WebP Image"));
+                                    PkString("WebP Image"));
 
     KisPaintLayerSP layer(
         new KisPaintLayer(image, image->nextLayerName(), 255));
 
     {
-        WebPChunkIterator chunk_iter;
+        WebPChunkIterator chunk_iter{};
         if (flags & EXIF_FLAG) {
             if (WebPDemuxGetChunk(demux, "EXIF", 1, &chunk_iter)) {
                 dbgFile << "Loading EXIF data. Size: " << chunk_iter.chunk.size;
 
-                QBuffer buf;
-                buf.setData(
-                    reinterpret_cast<const char *>(chunk_iter.chunk.bytes),
-                    static_cast<int>(chunk_iter.chunk.size));
+                PkMemoryStream buf;
+                if (!buf.open(PkStream::ReadWrite) ||
+                    buf.write(reinterpret_cast<const char *>(chunk_iter.chunk.bytes),
+                              static_cast<PkStream::pk_int64>(chunk_iter.chunk.size)) !=
+                        static_cast<PkStream::pk_int64>(chunk_iter.chunk.size) ||
+                    !buf.seek(0)) {
+                    WebPDemuxReleaseChunkIterator(&chunk_iter);
+                    WebPDemuxDelete(demux);
+                    return ImportExportCodes::ErrorWhileReading;
+                }
 
                 const KisMetaData::IOBackend *backend =
                     KisMetadataBackendRegistry::instance()->value("exif");
 
-                backend->loadFrom(layer->metaData(), &buf);
+                if (!backend || !backend->loadFrom(layer->metaData(), &buf)) {
+                    WebPDemuxReleaseChunkIterator(&chunk_iter);
+                    WebPDemuxDelete(demux);
+                    return ImportExportCodes::ErrorWhileReading;
+                }
             }
         }
         WebPDemuxReleaseChunkIterator(&chunk_iter);
     }
 
     {
-        WebPChunkIterator chunk_iter;
+        WebPChunkIterator chunk_iter{};
         if (flags & XMP_FLAG) {
             if (WebPDemuxGetChunk(demux, "XMP ", 1, &chunk_iter)) {
                 dbgFile << "Loading XMP data. Size: " << chunk_iter.chunk.size;
 
-                QBuffer buf;
-                buf.setData(
-                    reinterpret_cast<const char *>(chunk_iter.chunk.bytes),
-                    static_cast<int>(chunk_iter.chunk.size));
+                PkMemoryStream buf;
+                if (!buf.open(PkStream::ReadWrite) ||
+                    buf.write(reinterpret_cast<const char *>(chunk_iter.chunk.bytes),
+                              static_cast<PkStream::pk_int64>(chunk_iter.chunk.size)) !=
+                        static_cast<PkStream::pk_int64>(chunk_iter.chunk.size) ||
+                    !buf.seek(0)) {
+                    WebPDemuxReleaseChunkIterator(&chunk_iter);
+                    WebPDemuxDelete(demux);
+                    return ImportExportCodes::ErrorWhileReading;
+                }
 
                 const KisMetaData::IOBackend *xmpBackend =
                     KisMetadataBackendRegistry::instance()->value("xmp");
 
-                xmpBackend->loadFrom(layer->metaData(), &buf);
+                if (!xmpBackend || !xmpBackend->loadFrom(layer->metaData(), &buf)) {
+                    WebPDemuxReleaseChunkIterator(&chunk_iter);
+                    WebPDemuxDelete(demux);
+                    return ImportExportCodes::ErrorWhileReading;
+                }
             }
         }
         WebPDemuxReleaseChunkIterator(&chunk_iter);
     }
 
     {
-        WebPIterator iter;
+        WebPIterator iter{};
         if (WebPDemuxGetFrame(demux, 1, &iter)) {
             int nextTimestamp = 0;
             WebPDecoderConfig config;
@@ -257,9 +277,9 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                     image->animationInterface()->setFramerate(framerate);
                 }
 
-                const QRect bounds(
-                    QPoint{iter.x_offset, iter.y_offset},
-                    QSize{config.output.width, config.output.height});
+                const PkRect bounds(
+                    PkPoint{iter.x_offset, iter.y_offset},
+                    PkSize{config.output.width, config.output.height});
 
                 {
                     KisPaintDeviceSP currentFrame(
@@ -280,15 +300,15 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                     painter.bitBlt(
                         {iter.x_offset, iter.y_offset},
                         currentFrame,
-                        {QPoint(iter.x_offset, iter.y_offset),
-                         QSize(config.output.width, config.output.height)});
+                        {PkPoint(iter.x_offset, iter.y_offset),
+                         PkSize(config.output.width, config.output.height)});
                 }
 
                 if (iter.num_frames > 1) {
                     const int currentFrameTime =
                         std::lround(static_cast<double>(nextTimestamp)
                                     / static_cast<double>(iter.duration));
-                    dbgFile << QString(
+                    dbgFile << PkString(
                                    "Importing frame %1 @ %2, duration %3 ms, "
                                    "blending %4, disposal %5")
                                    .arg(iter.frame_num)
@@ -296,7 +316,7 @@ KisImportExportErrorCode KisWebPImport::convert(KisDocument *document,
                                    .arg(iter.duration)
                                    .arg(iter.blend_method)
                                    .arg(iter.dispose_method)
-                                   .toStdString()
+                                   .PkToUtf8()
                                    .c_str();
                     KisKeyframeChannel *channel = layer->getKeyframeChannel(
                         KisKeyframeChannel::Raster.id(),

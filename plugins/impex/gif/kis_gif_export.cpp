@@ -6,11 +6,7 @@
 
 #include "kis_gif_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-
 #include <kpluginfactory.h>
-#include <QApplication>
 #include <KoColorModelStandardIds.h>
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportManager.h>
@@ -23,7 +19,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisGIFExportFactory, "krita_gif_export.json", registerPlugin<KisGIFExport>();)
 
-KisGIFExport::KisGIFExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisGIFExport::KisGIFExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -31,15 +27,14 @@ KisGIFExport::~KisGIFExport()
 {
 }
 
-KisImportExportErrorCode KisGIFExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisGIFExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
-    Q_UNUSED(configuration);
+    (void)configuration;
     KisImageSP savingImage = kisImportExportSavingImage(document);
-    QRect rc = savingImage->bounds();
-    QImage image = savingImage->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
+    PkRect rc = savingImage->bounds();
+    PkImage image = savingImage->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
 
-    QGIFLibHandler handler;
-    handler.setDevice(io);
+    GifLibCodec handler(io);
     bool result = handler.write(image);
     if (!result) {
        KIS_ASSERT_RECOVER_RETURN_VALUE(true, ImportExportCodes::InternalError);
@@ -51,9 +46,9 @@ KisImportExportErrorCode KisGIFExport::convert(KisDocument *document, QIODevice 
 void KisGIFExport::initializeCapabilities()
 {
 
-    QList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "GIF");
 }
 

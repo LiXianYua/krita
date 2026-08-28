@@ -13,13 +13,13 @@ class RGBEExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    RGBEExport(QObject *parent, const QVariantList &);
+    RGBEExport(QObject *parent, const PkVariantList &);
     ~RGBEExport() override = default;
 
     KisImportExportErrorCode
-    convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP cfg = nullptr) override;
-    KisPropertiesConfigurationSP defaultConfiguration(const QByteArray &from = "",
-                                                      const QByteArray &to = "") const override;
+    convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP cfg = nullptr) override;
+    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray &from = PkByteArray(),
+                                                      const PkByteArray &to = PkByteArray()) const override;
     void initializeCapabilities() override;
 };
 

@@ -13,9 +13,10 @@
 
 #include <cmath>
 
- #include <QDataStream>
-#include <QIODevice>
+ #include <PkDataStream.h>
+#include <PkStream.h>
 #include <kis_sequential_iterator.h>
+#include "rgbe_codec.h"
 
 namespace RGBEIMPORT
 {
@@ -24,7 +25,7 @@ namespace RGBEIMPORT
 
 // read an old style line from the hdr image file
 // if 'first' is true the first byte is already read
-bool ReadOldLine(quint8 *image, int width, QDataStream &s)
+bool ReadOldLine(quint8 *image, int width, PkDataStream &s)
 {
     int rshift = 0;
     int i;
@@ -33,13 +34,10 @@ bool ReadOldLine(quint8 *image, int width, QDataStream &s)
         s >> image[0];
         s >> image[1];
         s >> image[2];
-
-        // check if we can read the whole pixel block correctly
-        if (s.atEnd()) {
+        s >> image[3];
+        if (s.status() != PkDataStream::Ok) {
             return false;
         }
-
-        s >> image[3];
 
         if ((image[0] == 1) && (image[1] == 1) && (image[2] == 1)) {
             const int length = image[3] << rshift;
@@ -68,30 +66,23 @@ void RGBEToPaintDevice(quint8 *image, int width, KisSequentialIterator &it)
         it.nextPixel();
         auto *dst = reinterpret_cast<float *>(it.rawData());
 
-        if (image[3]) {
-            const float v = std::ldexp(1.0f, int(image[3]) - (128 + 8));
-            const float pixelData[4] = {float(image[0]) * v,
-                                        float(image[1]) * v,
-                                        float(image[2]) * v,
-                                        1.0f};
-            memcpy(dst, pixelData, 4 * sizeof(float));
-        } else {
-            // Zero exponent handle
-            const float pixelData[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-            memcpy(dst, pixelData, 4 * sizeof(float));
-        }
+        const auto pixelData = RGBE::decodePixel(image[0], image[1], image[2], image[3]);
+        memcpy(dst, pixelData.data(), pixelData.size() * sizeof(float));
 
         image += 4;
     }
 }
 
 // Load the HDR image.
-bool LoadHDR(QDataStream &s, const int width, const int height, KisSequentialIterator &it)
+bool LoadHDR(PkDataStream &s, PkStream *device, const int width, const int height, KisSequentialIterator &it)
 {
+    if (!device) {
+        return false;
+    }
     quint8 val;
     quint8 code;
 
-    QByteArray lineArray;
+    PkByteArray lineArray;
     lineArray.resize(4 * width);
     quint8 *image = (quint8 *)lineArray.data();
 
@@ -105,14 +96,13 @@ bool LoadHDR(QDataStream &s, const int width, const int height, KisSequentialIte
             continue;
         }
 
-        if (s.atEnd()) {
+        s >> val;
+        if (s.status() != PkDataStream::Ok) {
             return false;
         }
 
-        s >> val;
-
         if (val != 2) {
-            s.device()->ungetChar(val);
+            device->ungetChar(static_cast<char>(val));
             if (!ReadOldLine(image, width, s)) {
                 return false;
             }
@@ -122,13 +112,10 @@ bool LoadHDR(QDataStream &s, const int width, const int height, KisSequentialIte
 
         s >> image[1];
         s >> image[2];
-
-        // check if we can read the whole pixel block correctly
-        if (s.atEnd()) {
+        s >> image[3];
+        if (s.status() != PkDataStream::Ok) {
             return false;
         }
-
-        s >> image[3];
 
         if ((image[1] != 2) || (image[2] & 128)) {
             image[0] = 2;
@@ -148,7 +135,7 @@ bool LoadHDR(QDataStream &s, const int width, const int height, KisSequentialIte
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < width;) {
                 s >> code;
-                if (s.atEnd()) {
+                if (s.status() != PkDataStream::Ok) {
                     dbgFile << "Truncated HDR file";
                     return false;
                 }
@@ -173,6 +160,10 @@ bool LoadHDR(QDataStream &s, const int width, const int height, KisSequentialIte
                     }
                     while (code != 0) {
                         s >> image[i + j * 4];
+                        if (s.status() != PkDataStream::Ok) {
+                            dbgFile << "Truncated HDR file";
+                            return false;
+                        }
                         j++;
                         code--;
                     }

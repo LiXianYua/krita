@@ -10,11 +10,13 @@
 
 #include <kpluginfactory.h>
 
-#include <QBuffer>
+#include <PkMemoryStream.h>
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <string>
+#include <vector>
 
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportBackend.h>
@@ -37,11 +39,10 @@ K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_rgbe_export.json", registerPlug
 
 namespace RGBE
 {
-inline QByteArray floatToRGBE(const int width, const int height, KisPaintDeviceSP &dev)
+inline std::vector<quint8> floatToRGBE(const int width, const int height, KisPaintDeviceSP &dev)
 {
     KisSequentialConstIterator it(dev, {0, 0, width, height});
-    QByteArray res;
-    res.resize(width * height * 4);
+    std::vector<quint8> res(static_cast<std::size_t>(width) * height * 4);
 
     quint8 rgbe[4] = {0, 0, 0, 0};
 
@@ -71,7 +72,7 @@ inline QByteArray floatToRGBE(const int width, const int height, KisPaintDeviceS
     return res;
 }
 
-inline void writeBytesRLE(QByteArray &rleBuffer, quint8 *data, int nBytes)
+inline void writeBytesRLE(std::vector<quint8> &rleBuffer, const quint8 *data, int nBytes)
 {
     static constexpr int minRunLen = 4;
     int cur = 0;
@@ -98,7 +99,7 @@ inline void writeBytesRLE(QByteArray &rleBuffer, quint8 *data, int nBytes)
         if ((oldRunCount > 1) && (oldRunCount == begRun - cur)) {
             buf[0] = 128 + oldRunCount;
             buf[1] = data[cur];
-            rleBuffer.append(reinterpret_cast<const char *>(buf), sizeof(buf));
+            rleBuffer.insert(rleBuffer.end(), std::begin(buf), std::end(buf));
             cur = begRun;
         }
 
@@ -108,32 +109,32 @@ inline void writeBytesRLE(QByteArray &rleBuffer, quint8 *data, int nBytes)
                 nonRunCount = 128;
             }
             buf[0] = nonRunCount;
-            rleBuffer.append(buf[0]);
-            rleBuffer.append(reinterpret_cast<const char *>(data + cur), sizeof(data[0]) * nonRunCount);
+            rleBuffer.push_back(buf[0]);
+            rleBuffer.insert(rleBuffer.end(), data + cur, data + cur + nonRunCount);
             cur += nonRunCount;
         }
 
         if (runCount >= minRunLen) {
             buf[0] = 128 + runCount;
             buf[1] = data[begRun];
-            rleBuffer.append(reinterpret_cast<const char *>(buf), sizeof(buf));
+            rleBuffer.insert(rleBuffer.end(), std::begin(buf), std::end(buf));
             cur += runCount;
         }
     }
 }
 }
 
-RGBEExport::RGBEExport(QObject *parent, const QVariantList &)
+RGBEExport::RGBEExport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter{parent}
 {
 }
 
-KisImportExportErrorCode RGBEExport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP cfg)
+KisImportExportErrorCode RGBEExport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP cfg)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(io->isWritable(), ImportExportCodes::NoAccessToWrite);
 
     KisImageSP image = kisImportExportSavingImage(document);
-    const QRect bounds = image->bounds();
+    const PkRect bounds = image->bounds();
 
     const KoColorSpace *cs = image->colorSpace();
     const KoColorProfile *targetProfile = KoColorSpaceRegistry::instance()->p709G10Profile();
@@ -168,29 +169,26 @@ KisImportExportErrorCode RGBEExport::convert(KisDocument *document, QIODevice *i
     }
 
     // Fill transparent pixels with full opacity
-    KoColor bgColor(Qt::white, targetCs);
+    KoColor bgColor(PkColor(255, 255, 255), targetCs);
     bgColor.fromKoColor(cfg->getColor("transparencyFillcolor"));
 
     KisPaintDeviceSP dev = new KisPaintDevice(targetCs);
     KisPainter gc(dev);
 
-    dev->fill(QRect(0, 0, image->width(), image->height()), bgColor);
-    gc.bitBlt(QPoint(0, 0), image->projection(), QRect(0, 0, image->width(), image->height()));
+    dev->fill(PkRect(0, 0, image->width(), image->height()), bgColor);
+    gc.bitBlt(PkPoint(0, 0), image->projection(), PkRect(0, 0, image->width(), image->height()));
     gc.end();
 
     // Get pixel data and convert it to RGBE format
-    const QByteArray pixels = RGBE::floatToRGBE(bounds.width(), bounds.height(), dev);
+    const std::vector<quint8> pixels = RGBE::floatToRGBE(bounds.width(), bounds.height(), dev);
 
-    QByteArray fileBuffer;
+    std::vector<quint8> fileBuffer;
     {
         // Write header
-        QByteArray header;
-        header.append("#?RADIANCE\n");
-        header.append("# Created with Krita RGBE Export\n");
-        header.append("FORMAT=32-bit_rle_rgbe\n\n");
-        header.append(QStringLiteral("-Y %1 +X %2\n").arg(image->height()).arg(image->width()).toUtf8());
-
-        fileBuffer.append(header);
+        const std::string header = "#?RADIANCE\n# Created with Krita RGBE Export\n"
+                                   "FORMAT=32-bit_rle_rgbe\n\n-Y " +
+            std::to_string(image->height()) + " +X " + std::to_string(image->width()) + "\n";
+        fileBuffer.insert(fileBuffer.end(), header.begin(), header.end());
     }
 
     {
@@ -200,12 +198,11 @@ KisImportExportErrorCode RGBEExport::convert(KisDocument *document, QIODevice *i
 
         if ((scanWidth < 8) || (scanWidth > 0x7fff)) {
             // Invalid width, save without RLE
-            fileBuffer.append(pixels);
-            io->write(fileBuffer);
+            fileBuffer.insert(fileBuffer.end(), pixels.begin(), pixels.end());
         } else {
             // Save with RLE
-            QByteArray rleBuffer;
-            QByteArray outputBuffer;
+            std::vector<quint8> rleBuffer;
+            std::vector<quint8> outputBuffer;
 
             int numScanline = scanHeight;
             quint8 rgbe[4];
@@ -219,7 +216,7 @@ KisImportExportErrorCode RGBEExport::convert(KisDocument *document, QIODevice *i
                 rgbe[1] = 2;
                 rgbe[2] = scanWidth >> 8;
                 rgbe[3] = scanWidth & 0xFF;
-                outputBuffer.append(reinterpret_cast<const char *>(rgbe), sizeof(rgbe));
+                outputBuffer.insert(outputBuffer.end(), std::begin(rgbe), std::end(rgbe));
 
                 for (int i = 0; i < scanWidth; i++) {
                     rle[i] = src[0];
@@ -231,13 +228,17 @@ KisImportExportErrorCode RGBEExport::convert(KisDocument *document, QIODevice *i
 
                 for (int i = 0; i < 4; i++) {
                     RGBE::writeBytesRLE(outputBuffer, &rle[i * scanWidth], scanWidth);
-                    fileBuffer.append(outputBuffer);
+                    fileBuffer.insert(fileBuffer.end(), outputBuffer.begin(), outputBuffer.end());
                     outputBuffer.clear();
                 }
             }
-
-            io->write(fileBuffer);
         }
+    }
+
+    if (io->write(reinterpret_cast<const char *>(fileBuffer.data()),
+                  static_cast<PkStream::pk_int64>(fileBuffer.size())) !=
+        static_cast<PkStream::pk_int64>(fileBuffer.size())) {
+        return ImportExportCodes::ErrorWhileWriting;
     }
 
     return ImportExportCodes::OK;
@@ -245,23 +246,23 @@ KisImportExportErrorCode RGBEExport::convert(KisDocument *document, QIODevice *i
 
 void RGBEExport::initializeCapabilities()
 {
-    QList<QPair<KoID, KoID>> supportedColorModels;
+    PkList<std::pair<KoID, KoID>> supportedColorModels;
     addCapability(KisExportCheckRegistry::instance()->get("AnimationCheck")->create(KisExportCheckBase::PARTIALLY));
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::PARTIALLY));
     addCapability(KisExportCheckRegistry::instance()->get("ExifCheck")->create(KisExportCheckBase::PARTIALLY));
     addCapability(KisExportCheckRegistry::instance()->get("MultiLayerCheck")->create(KisExportCheckBase::PARTIALLY));
     addCapability(KisExportCheckRegistry::instance()->get("TiffExifCheck")->create(KisExportCheckBase::PARTIALLY));
-    supportedColorModels << QPair<KoID, KoID>() << QPair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID);
+    supportedColorModels << std::pair<KoID, KoID>() << std::pair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "RGBE");
 }
 
-KisPropertiesConfigurationSP RGBEExport::defaultConfiguration(const QByteArray &, const QByteArray &) const
+KisPropertiesConfigurationSP RGBEExport::defaultConfiguration(const PkByteArray &, const PkByteArray &) const
 {
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
 
     KoColor background(KoColorSpaceRegistry::instance()->rgb8());
-    background.fromQColor(Qt::white);
-    QVariant v;
+    background.fromQColor(PkColor(255, 255, 255));
+    PkVariant v;
     v.setValue(background);
 
     cfg->setProperty("transparencyFillcolor", v);

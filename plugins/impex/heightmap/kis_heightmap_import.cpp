@@ -8,8 +8,7 @@
 #include "kis_heightmap_import.h"
 
 #include <ctype.h>
-
-#include <qendian.h>
+#include <cmath>
 
 #include <kpluginfactory.h>
 
@@ -34,7 +33,7 @@
 K_PLUGIN_FACTORY_WITH_JSON(HeightMapImportFactory, "krita_heightmap_import.json", registerPlugin<KisHeightMapImport>();)
 
 template<typename T>
-void fillData(KisPaintDeviceSP pd, int w, int h, QDataStream &stream) {
+void fillData(KisPaintDeviceSP pd, int w, int h, PkDataStream &stream) {
     KIS_ASSERT_RECOVER_RETURN(pd);
 
     T pixel;
@@ -49,7 +48,7 @@ void fillData(KisPaintDeviceSP pd, int w, int h, QDataStream &stream) {
     }
 }
 
-KisHeightMapImport::KisHeightMapImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisHeightMapImport::KisHeightMapImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -57,12 +56,12 @@ KisHeightMapImport::~KisHeightMapImport()
 {
 }
 
-KisImportExportErrorCode KisHeightMapImport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisHeightMapImport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP configuration)
 {
-    Q_UNUSED(configuration);
+    (void)configuration;
     KoID depthId = KisHeightmapUtils::mimeTypeToKoID(mimeType());
     if (depthId.id().isNull()) {
-        document->setErrorMessage(i18n("Unknown file type"));
+        document->setErrorMessage(PkString("Unknown file type"));
         return ImportExportCodes::FileFormatIncorrect;
     }
 
@@ -75,22 +74,28 @@ KisImportExportErrorCode KisHeightMapImport::convert(KisDocument *document, QIOD
         return ImportExportCodes::FileFormatIncorrect;
     }
 
-    QDataStream::ByteOrder bo = QDataStream::LittleEndian;
+    PkDataStream::ByteOrder bo = PkDataStream::LittleEndian;
 
     const int pixelSize =
         depthId == Float32BitsColorDepthID ? 4 :
         depthId == Integer16BitsColorDepthID ? 2 : 1;
 
+    if (size % pixelSize != 0) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
     const int numPixels = size / pixelSize;
 
     w = std::sqrt(numPixels);
+    if (w <= 0 || numPixels % w != 0) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
     h = numPixels / w;
-    bo = QDataStream::LittleEndian;
+    bo = PkDataStream::LittleEndian;
 
-    QDataStream s(io);
+    PkDataStream s(io);
     s.setByteOrder(bo);
     // needed for 32bit float data
-    s.setFloatingPointPrecision(QDataStream::SinglePrecision);
+    s.setFloatingPointPrecision(PkDataStream::SinglePrecision);
 
     const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->colorSpace(GrayAColorModelID.id(), depthId.id(), "Gray-D50-elle-V2-srgbtrc.icc");
     KisImageSP image = new KisImage(document->createUndoStore(), w, h, colorSpace, "imported heightmap");
@@ -108,6 +113,10 @@ KisImportExportErrorCode KisHeightMapImport::convert(KisDocument *document, QIOD
     else {
         KIS_ASSERT_RECOVER_RETURN_VALUE(true, ImportExportCodes::InternalError);
         return ImportExportCodes::InternalError;
+    }
+
+    if (s.status() != PkDataStream::Ok) {
+        return ImportExportCodes::ErrorWhileReading;
     }
 
     image->addNode(layer.data(), image->rootLayer().data());

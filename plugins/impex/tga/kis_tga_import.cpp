@@ -6,10 +6,13 @@
 
 #include "kis_tga_import.h"
 
-#include <QCheckBox>
-#include <QBuffer>
-#include <QSlider>
-#include <QApplication>
+#include <PkImage.h>
+#include <PkRgb.h>
+#include <PkStream.h>
+
+#include <array>
+#include <limits>
+#include <vector>
 
 #include <kpluginfactory.h>
 
@@ -28,7 +31,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisTGAImportFactory, "krita_tga_import.json", registerPlugin<KisTGAImport>();)
 
-KisTGAImport::KisTGAImport(QObject *parent, const QVariantList &)
+KisTGAImport::KisTGAImport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
@@ -37,26 +40,42 @@ KisTGAImport::~KisTGAImport()
 {
 }
 
-static QDataStream & operator>> (QDataStream & s, TgaHeader & head)
+static bool readExact(PkStream *stream, void *destination, std::size_t size)
 {
-    s >> head.id_length;
-    s >> head.colormap_type;
-    s >> head.image_type;
-    s >> head.colormap_index;
-    s >> head.colormap_length;
-    s >> head.colormap_size;
-    s >> head.x_origin;
-    s >> head.y_origin;
-    s >> head.width;
-    s >> head.height;
-    s >> head.pixel_size;
-    s >> head.flags;
+    auto *out = static_cast<char *>(destination);
+    std::size_t total = 0;
+    while (total < size) {
+        const auto count = stream->read(out + total, static_cast<PkStream::pk_int64>(size - total));
+        if (count <= 0) {
+            return false;
+        }
+        total += static_cast<std::size_t>(count);
+    }
+    return true;
+}
 
-    /*dbgKrita << "id_length: " << head.id_length << " - colormap_type: " << head.colormap_type << " - image_type: " << head.image_type;
-    dbgKrita << "colormap_index: " << head.colormap_index << " - colormap_length: " << head.colormap_length << " - colormap_size: " << head.colormap_size;
-    dbgKrita << "x_origin: " << head.x_origin << " - y_origin: " << head.y_origin << " - width:" << head.width << " - height:" << head.height << " - pixelsize: " << head.pixel_size << " - flags: " << head.flags;*/
-
-    return s;
+static bool readHeader(PkStream *stream, TgaHeader &head)
+{
+    std::array<unsigned char, TgaHeader::SIZE> bytes{};
+    if (!readExact(stream, bytes.data(), bytes.size())) {
+        return false;
+    }
+    const auto little16 = [&bytes](std::size_t offset) {
+        return static_cast<ushort>(bytes[offset] | (static_cast<ushort>(bytes[offset + 1]) << 8));
+    };
+    head.id_length = bytes[0];
+    head.colormap_type = bytes[1];
+    head.image_type = bytes[2];
+    head.colormap_index = little16(3);
+    head.colormap_length = little16(5);
+    head.colormap_size = bytes[7];
+    head.x_origin = little16(8);
+    head.y_origin = little16(10);
+    head.width = little16(12);
+    head.height = little16(14);
+    head.pixel_size = bytes[16];
+    head.flags = bytes[17];
+    return true;
 }
 
 
@@ -99,10 +118,10 @@ static bool isSupported(const TgaHeader & head)
     return true;
 }
 
-static bool loadTGA(QDataStream & s, const TgaHeader & tga, QImage &img)
+static bool loadTGA(PkStream *stream, const TgaHeader & tga, PkImage &img)
 {
     // Create image.
-    img = QImage(tga.width, tga.height, QImage::Format_RGB32);
+    img = PkImage(tga.width, tga.height, PkImage::Format_RGB32);
 
     TgaHeaderInfo info(tga);
 
@@ -114,15 +133,19 @@ static bool loadTGA(QDataStream & s, const TgaHeader & tga, QImage &img)
      */
     const bool alphaFlag = tga.flags & 0xf;
     if (tga.pixel_size == 32 && !alphaFlag) {
-        qWarning() << "WARNING: TGA image with 32-bit pixel size reports absence of alpha channel. It is not possible, fixing...";
+        warnFile << "TGA image with 32-bit pixels reports no alpha channel; decoding alpha bytes anyway";
     }
 
     if (tga.pixel_size == 32 || tga.pixel_size == 16) {
-        img = QImage(tga.width, tga.height, QImage::Format_ARGB32);
+        img = PkImage(tga.width, tga.height, PkImage::Format_ARGB32);
     }
 
-    uint pixel_size = (tga.pixel_size / 8);
-    uint size = tga.width * tga.height * pixel_size;
+    const std::size_t pixel_size = tga.pixel_size / 8;
+    if (tga.width > std::numeric_limits<std::size_t>::max() / tga.height ||
+        static_cast<std::size_t>(tga.width) * tga.height > std::numeric_limits<std::size_t>::max() / pixel_size) {
+        return false;
+    }
+    const std::size_t size = static_cast<std::size_t>(tga.width) * tga.height * pixel_size;
 
     if (size < 1) {
         dbgFile << "This TGA file is broken with size " << size;
@@ -130,38 +153,44 @@ static bool loadTGA(QDataStream & s, const TgaHeader & tga, QImage &img)
     }
 
     // Read palette.
-    char palette[768];
+    std::array<unsigned char, 768> palette{};
     if (info.pal) {
         // @todo Support palettes in other formats!
-        s.readRawData(palette, 3 * tga.colormap_length);
+        if (!readExact(stream, palette.data(), 3 * tga.colormap_length)) {
+            return false;
+        }
     }
 
     // Allocate image.
-    uchar * const image = new uchar[size];
+    std::vector<uchar> storage(size);
+    uchar * const image = storage.data();
 
     if (info.rle) {
         // Decode image.
         char * dst = (char *)image;
-        int num = size;
+        std::size_t num = size;
 
         while (num > 0) {
             // Get packet header.
             uchar c;
-            s >> c;
-
-            uint count = (c & 0x7f) + 1;
-            num -= count * pixel_size;
-
-            if (num < 0) {
-                dbgFile << "This TGA file is broken: the number of pixels left to read and the number of RLE pixels do not agree" << ppVar(num) << ppVar(count) << ppVar(pixel_size);
+            if (!readExact(stream, &c, 1)) {
                 return false;
             }
 
+            std::size_t count = (c & 0x7f) + 1;
+            if (count * pixel_size > num) {
+                dbgFile << "This TGA file is broken: the number of pixels left to read and the number of RLE pixels do not agree" << ppVar(num) << ppVar(count) << ppVar(pixel_size);
+                return false;
+            }
+            num -= count * pixel_size;
+
             if (c & 0x80) {
                 // RLE pixels.
-                Q_ASSERT(pixel_size <= 8);
+                KIS_ASSERT(pixel_size <= 8);
                 char pixel[8];
-                s.readRawData(pixel, pixel_size);
+                if (!readExact(stream, pixel, pixel_size)) {
+                    return false;
+                }
                 do {
                     memcpy(dst, pixel, pixel_size);
                     dst += pixel_size;
@@ -169,13 +198,17 @@ static bool loadTGA(QDataStream & s, const TgaHeader & tga, QImage &img)
             } else {
                 // Raw pixels.
                 count *= pixel_size;
-                s.readRawData(dst, count);
+                if (!readExact(stream, dst, count)) {
+                    return false;
+                }
                 dst += count;
             }
         }
     } else {
         // Read raw image.
-        s.readRawData((char *)image, size);
+        if (!readExact(stream, image, size)) {
+            return false;
+        }
     }
 
     // Convert image to internal format.
@@ -194,18 +227,18 @@ static bool loadTGA(QDataStream & s, const TgaHeader & tga, QImage &img)
 
     bool hasAlpha = false;
     for (int y = y_start; y != y_end; y += y_step) {
-        QRgb * scanline = (QRgb *) (void*) img.scanLine(y);
+        PkRgb * scanline = (PkRgb *) (void*) img.scanLine(y);
 
         if (info.pal) {
             // Paletted.
             for (int x = 0; x < tga.width; x++) {
                 uchar idx = *src++;
-                scanline[x] = qRgb(palette[3 * idx + 2], palette[3 * idx + 1], palette[3 * idx + 0]);
+                scanline[x] = pkRgb(palette[3 * idx + 2], palette[3 * idx + 1], palette[3 * idx + 0]);
             }
         } else if (info.grey) {
             // Greyscale.
             for (int x = 0; x < tga.width; x++) {
-                scanline[x] = qRgb(*src, *src, *src);
+                scanline[x] = pkRgb(*src, *src, *src);
                 src++;
             }
         } else {
@@ -213,18 +246,18 @@ static bool loadTGA(QDataStream & s, const TgaHeader & tga, QImage &img)
             if (tga.pixel_size == 16) {
                 for (int x = 0; x < tga.width; x++) {
                     Color555 c = *reinterpret_cast<Color555 *>(src);
-                    scanline[x] = qRgb((c.r << 3) | (c.r >> 2), (c.g << 3) | (c.g >> 2), (c.b << 3) | (c.b >> 2));
+                    scanline[x] = pkRgb((c.r << 3) | (c.r >> 2), (c.g << 3) | (c.g >> 2), (c.b << 3) | (c.b >> 2));
                     src += 2;
                 }
             } else if (tga.pixel_size == 24) {
                 for (int x = 0; x < tga.width; x++) {
-                    scanline[x] = qRgb(src[2], src[1], src[0]);
+                    scanline[x] = pkRgb(src[2], src[1], src[0]);
                     src += 3;
                 }
             } else if (tga.pixel_size == 32) {
                 for (int x = 0; x < tga.width; x++) {
                     const uchar alpha = src[3];
-                    scanline[x] = qRgba(src[2], src[1], src[0], alpha);
+                    scanline[x] = pkRgba(src[2], src[1], src[0], alpha);
                     src += 4;
                     hasAlpha |= (alpha > 0);
                 }
@@ -238,31 +271,27 @@ static bool loadTGA(QDataStream & s, const TgaHeader & tga, QImage &img)
      * image to 24 bits.
      */
     if (!hasAlpha && tga.pixel_size == 32) {
-        img.convertTo(QImage::Format_RGB32);
-        qWarning() << "WARNING: TGA image with 32-bit has all pixels transparent, removing alpha information.";
+        img.convertTo(PkImage::Format_RGB32);
+        warnFile << "TGA image has only transparent alpha bytes; importing as RGB";
     }
-
-    // Free image.
-    delete []image;
 
     return true;
 }
 
 
 
-KisImportExportErrorCode KisTGAImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisTGAImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
-    Q_UNUSED(configuration);
-    QDataStream s(io);
-    s.setByteOrder(QDataStream::LittleEndian);
+    (void)configuration;
 
     TgaHeader tga;
-    s >> tga;
-    s.device()->seek(TgaHeader::SIZE + tga.id_length);
+    if (!readHeader(io, tga) || !io->seek(TgaHeader::SIZE + tga.id_length)) {
+        return ImportExportCodes::FileFormatIncorrect;
+    }
 
 
     // Check image file format.
-    if (s.atEnd()) {
+    if (io->atEnd()) {
         return ImportExportCodes::FileFormatIncorrect;
     }
 
@@ -271,8 +300,8 @@ KisImportExportErrorCode KisTGAImport::convert(KisDocument *document, QIODevice 
         return ImportExportCodes::FormatFeaturesUnsupported;
     }
 
-    QImage img;
-    bool result = loadTGA(s, tga, img);
+    PkImage img;
+    bool result = loadTGA(io, tga, img);
 
     if (result == false) {
         return ImportExportCodes::FileFormatIncorrect;
@@ -291,4 +320,3 @@ KisImportExportErrorCode KisTGAImport::convert(KisDocument *document, QIODevice 
 }
 
 #include "kis_tga_import.moc"
-

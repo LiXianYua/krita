@@ -7,9 +7,7 @@
 
 #include "kis_heightmap_export.h"
 
-#include <qendian.h>
-#include <QDataStream>
-#include <QApplication>
+#include <PkDataStream.h>
 
 #include <kpluginfactory.h>
 
@@ -34,7 +32,7 @@
 K_PLUGIN_FACTORY_WITH_JSON(KisHeightMapExportFactory, "krita_heightmap_export.json", registerPlugin<KisHeightMapExport>();)
 
 template<typename T>
-static void writeData(KisPaintDeviceSP pd, const QRect &bounds, QDataStream &out_stream)
+static void writeData(KisPaintDeviceSP pd, const PkRect &bounds, PkDataStream &out_stream)
 {
     KIS_ASSERT_RECOVER_RETURN(pd);
 
@@ -44,7 +42,7 @@ static void writeData(KisPaintDeviceSP pd, const QRect &bounds, QDataStream &out
     }
 }
 
-KisHeightMapExport::KisHeightMapExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisHeightMapExport::KisHeightMapExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -52,10 +50,10 @@ KisHeightMapExport::~KisHeightMapExport()
 {
 }
 
-KisPropertiesConfigurationSP KisHeightMapExport::defaultConfiguration(const QByteArray &from, const QByteArray &to) const
+KisPropertiesConfigurationSP KisHeightMapExport::defaultConfiguration(const PkByteArray &from, const PkByteArray &to) const
 {
-    Q_UNUSED(from);
-    Q_UNUSED(to);
+    (void)from;
+    (void)to;
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
     cfg->setProperty("endianness", 0);
     return cfg;
@@ -63,39 +61,44 @@ KisPropertiesConfigurationSP KisHeightMapExport::defaultConfiguration(const QByt
 
 void KisHeightMapExport::initializeCapabilities()
 {
-    if (mimeType() == "image/x-r8") {
-        QList<QPair<KoID, KoID> > supportedColorModels;
-        supportedColorModels << QPair<KoID, KoID>()
-                << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID);
+    if (mimeType() == PkByteArray("image/x-r8", sizeof("image/x-r8") - 1)) {
+        PkList<std::pair<KoID, KoID> > supportedColorModels;
+        supportedColorModels << std::pair<KoID, KoID>()
+                << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID);
         addSupportedColorModels(supportedColorModels, "R8 Heightmap");
     }
-    else if (mimeType() == "image/x-r16") {
-        QList<QPair<KoID, KoID> > supportedColorModels;
-        supportedColorModels << QPair<KoID, KoID>()
-                << QPair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID);
+    else if (mimeType() == PkByteArray("image/x-r16", sizeof("image/x-r16") - 1)) {
+        PkList<std::pair<KoID, KoID> > supportedColorModels;
+        supportedColorModels << std::pair<KoID, KoID>()
+                << std::pair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID);
         addSupportedColorModels(supportedColorModels, "R16 Heightmap");
     }
-    else if (mimeType() == "image/x-r32") {
-        QList<QPair<KoID, KoID> > supportedColorModels;
-        supportedColorModels << QPair<KoID, KoID>()
-                << QPair<KoID, KoID>(GrayAColorModelID, Float32BitsColorDepthID);
+    else if (mimeType() == PkByteArray("image/x-r32", sizeof("image/x-r32") - 1)) {
+        PkList<std::pair<KoID, KoID> > supportedColorModels;
+        supportedColorModels << std::pair<KoID, KoID>()
+                << std::pair<KoID, KoID>(GrayAColorModelID, Float32BitsColorDepthID);
         addSupportedColorModels(supportedColorModels, "R32 Heightmap");
     }
 }
 
-KisImportExportErrorCode KisHeightMapExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisHeightMapExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
-    KIS_ASSERT_RECOVER_RETURN_VALUE(mimeType() == "image/x-r16" || mimeType() == "image/x-r8" || mimeType() == "image/x-r32", ImportExportCodes::FileFormatIncorrect);
+    const PkByteArray mime = mimeType();
+    KIS_ASSERT_RECOVER_RETURN_VALUE(
+        mime == PkByteArray("image/x-r16", sizeof("image/x-r16") - 1) ||
+        mime == PkByteArray("image/x-r8", sizeof("image/x-r8") - 1) ||
+        mime == PkByteArray("image/x-r32", sizeof("image/x-r32") - 1),
+        ImportExportCodes::FileFormatIncorrect);
 
     KisImageSP image = kisImportExportSavingImage(document);
-    QDataStream::ByteOrder bo = configuration->getInt("endianness", 1) == 0 ? QDataStream::BigEndian : QDataStream::LittleEndian;
+    PkDataStream::ByteOrder bo = configuration->getInt("endianness", 1) == 0 ? PkDataStream::BigEndian : PkDataStream::LittleEndian;
 
     KisPaintDeviceSP pd = new KisPaintDevice(*image->projection());
 
-    QDataStream s(io);
+    PkDataStream s(io);
     s.setByteOrder(bo);
     // needed for 32bit float data
-    s.setFloatingPointPrecision(QDataStream::SinglePrecision);
+    s.setFloatingPointPrecision(PkDataStream::SinglePrecision);
 
     KoID target_co_model = GrayAColorModelID;
     KoID target_co_depth = KisHeightmapUtils::mimeTypeToKoID(mimeType());
@@ -119,7 +122,9 @@ KisImportExportErrorCode KisHeightMapExport::convert(KisDocument *document, QIOD
         KIS_ASSERT_RECOVER_RETURN_VALUE(true, ImportExportCodes::InternalError);
         return ImportExportCodes::InternalError;
     }
-    return ImportExportCodes::OK;
+    return s.status() == PkDataStream::Ok
+        ? KisImportExportErrorCode(ImportExportCodes::OK)
+        : KisImportExportErrorCode(ImportExportCodes::ErrorWhileWriting);
 }
 
 #include "kis_heightmap_export.moc"

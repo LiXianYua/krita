@@ -11,7 +11,7 @@
 #include <webp/mux.h>
 #include <webp/mux_types.h>
 
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 #include <cmath>
 #include <memory>
@@ -40,14 +40,14 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisWebPExportFactory, "krita_webp_export.json", registerPlugin<KisWebPExport>();)
 
-KisWebPExport::KisWebPExport(QObject *parent, const QVariantList &)
+KisWebPExport::KisWebPExport(QObject *parent, const PkVariantList &)
     : KisImportExportFilter(parent)
 {
 }
 
 KisWebPExport::~KisWebPExport() = default;
 
-KisPropertiesConfigurationSP KisWebPExport::defaultConfiguration(const QByteArray & /*from*/, const QByteArray & /*to*/) const
+KisPropertiesConfigurationSP KisWebPExport::defaultConfiguration(const PkByteArray & /*from*/, const PkByteArray & /*to*/) const
 {
     KisPropertiesConfigurationSP cfg(new KisPropertiesConfiguration());
     WebPConfig preset {};
@@ -132,7 +132,7 @@ struct WebPPictureSP {
     WebPPicture picture{};
 };
 
-KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP cfg)
+KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP cfg)
 {
     using WebPMuxSP = std::unique_ptr<WebPMux, decltype(&WebPMuxDelete)>;
     using WebPAnimEncoderSP =
@@ -142,7 +142,7 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
                                          ImportExportCodes::NoAccessToWrite);
 
     KisImageSP image = kisImportExportSavingImage(document);
-    const QRect bounds = image->bounds();
+    const PkRect bounds = image->bounds();
     const KoColorSpace *cs = image->projection()->colorSpace();
 
     const bool needSrgbConversion = [&]() {
@@ -258,10 +258,10 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
 
             const KisRasterKeyframeChannel *frames =
                 projection->paintDevice()->keyframeChannel();
-            const auto times = [&]() -> QList<int> {
-                    QList<int> t;
-                    QSet<int> s = frames->allKeyframeTimes();
-                    t = QList<int>(s.begin(), s.end());
+            const auto times = [&]() -> PkList<int> {
+                    PkList<int> t;
+                    PkSet<int> s = frames->allKeyframeTimes();
+                    t = s.values();
                 std::sort(t.begin(), t.end());
                 return t;
             }();
@@ -291,7 +291,7 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
                     currentFrame.get()->use_argb = 1;
                 }
 
-                const QImage pixels = [&]() {
+                const PkImage pixels = [&]() {
                     const KisRasterKeyframeSP frameData =
                         frames->keyframeAt<KisRasterKeyframe>(i);
                     KisPaintDeviceSP dev = new KisPaintDevice(
@@ -364,8 +364,8 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
                         imageProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
                     }
 
-                    const QImage imageOut = dst->convertToQImage(imageProfile, 0, 0, bounds.width(), bounds.height())
-                                                .convertToFormat(QImage::Format_RGBA8888);
+                    const PkImage imageOut = dst->convertToQImage(imageProfile, 0, 0, bounds.width(), bounds.height())
+                                                .convertToFormat(PkImage::Format_RGBA8888);
 
                     return imageOut;
                 }();
@@ -424,7 +424,7 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
             }
 
             // Insert the projection itself only
-            const QImage pixels = [&]() {
+            const PkImage pixels = [&]() {
                 KisPaintDeviceSP dst;
                 if ((cs->colorModelId() == RGBAColorModelID && cs->colorDepthId() == Integer8BitsColorDepthID)
                     || !enableDithering) {
@@ -490,8 +490,8 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
                     imageProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
                 }
 
-                const QImage imageOut = dst->convertToQImage(imageProfile, 0, 0, bounds.width(), bounds.height())
-                                            .convertToFormat(QImage::Format_RGBA8888);
+                const PkImage imageOut = dst->convertToQImage(imageProfile, 0, 0, bounds.width(), bounds.height())
+                                            .convertToFormat(PkImage::Format_RGBA8888);
 
                 return imageOut;
             }();
@@ -524,7 +524,10 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
             }
         }
 
-        WebPAnimEncoderAssemble(enc.get(), &imageChunk);
+        if (!WebPAnimEncoderAssemble(enc.get(), &imageChunk)) {
+            errFile << "WebP animation assembly failed";
+            return ImportExportCodes::ErrorWhileWriting;
+        }
     };
 
     // Don't copy this data, it's the biggest chunk.
@@ -537,7 +540,7 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
 
     // According to the standard, the ICC profile must be written first.
     if (cfg->getBool("save_profile", true)) {
-        const QByteArray profile = needSrgbConversion
+        const PkByteArray profile = needSrgbConversion
             ? KoColorSpaceRegistry::instance()->p709SRGBProfile()->rawData()
             : image->profile()->rawData();
 
@@ -573,14 +576,23 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
             const KisMetaData::IOBackend *io =
                 KisMetadataBackendRegistry::instance()->value("exif");
 
-            QBuffer ioDevice;
+            PkMemoryStream ioDevice;
+            if (!ioDevice.open(PkStream::ReadWrite)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
 
             // Inject the data as any other IOBackend
-            io->saveTo(metaDataStore.get(), &ioDevice);
+            if (!io || !io->saveTo(metaDataStore.get(), &ioDevice)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
+            if (!ioDevice.seek(0)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
+            const PkByteArray metadata = ioDevice.readAll();
 
             WebPData xmp = {
-                reinterpret_cast<const uint8_t *>(ioDevice.data().constData()),
-                static_cast<size_t>(ioDevice.data().size())};
+                reinterpret_cast<const uint8_t *>(metadata.constData()),
+                static_cast<size_t>(metadata.size())};
 
             // This data will die at the end of the scope.
             if (WEBP_MUX_OK != WebPMuxSetChunk(mux.get(), "EXIF", &xmp, 1)) {
@@ -593,14 +605,23 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
             const KisMetaData::IOBackend *io =
                 KisMetadataBackendRegistry::instance()->value("xmp");
 
-            QBuffer ioDevice;
+            PkMemoryStream ioDevice;
+            if (!ioDevice.open(PkStream::ReadWrite)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
 
             // Inject the data as any other IOBackend
-            io->saveTo(metaDataStore.get(), &ioDevice);
+            if (!io || !io->saveTo(metaDataStore.get(), &ioDevice)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
+            if (!ioDevice.seek(0)) {
+                return ImportExportCodes::ErrorWhileWriting;
+            }
+            const PkByteArray metadata = ioDevice.readAll();
 
             WebPData xmp = {
-                reinterpret_cast<const uint8_t *>(ioDevice.data().constData()),
-                static_cast<size_t>(ioDevice.data().size())};
+                reinterpret_cast<const uint8_t *>(metadata.constData()),
+                static_cast<size_t>(metadata.size())};
 
             // This data will die at the end of the scope.
             if (WEBP_MUX_OK != WebPMuxSetChunk(mux.get(), "XMP ", &xmp, 1)) {
@@ -610,13 +631,16 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
         }
     }
 
-    WebPData output;
-    WebPMuxAssemble(mux.get(), &output);
-    QDataStream s(io);
-    s.setByteOrder(QDataStream::LittleEndian);
-    s.writeRawData(reinterpret_cast<const char *>(output.bytes),
-                   static_cast<int>(output.size));
+    WebPData output = {nullptr, 0};
+    if (WebPMuxAssemble(mux.get(), &output) != WEBP_MUX_OK) {
+        return ImportExportCodes::ErrorWhileWriting;
+    }
+    const auto outputSize = static_cast<PkStream::pk_int64>(output.size);
+    const auto written = io->write(reinterpret_cast<const char *>(output.bytes), outputSize);
     WebPDataClear(&output);
+    if (written != outputSize) {
+        return ImportExportCodes::ErrorWhileWriting;
+    }
 
     return ImportExportCodes::OK;
 }
@@ -642,8 +666,8 @@ void KisWebPExport::initializeCapabilities()
                       ->get("TiffExifCheck")
                       ->create(KisExportCheckBase::PARTIALLY));
     // XXX: add check for IPTC metadata and mark as UNSUPPORTED by the standard.
-    QList<QPair<KoID, KoID>> supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>() << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
+    PkList<std::pair<KoID, KoID>> supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>() << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "WebP");
 }
 

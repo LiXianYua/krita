@@ -9,9 +9,11 @@
 
 #include <KoID.h>
 
+class PkByteArray;
+
 namespace KisHeightmapUtils
 {
-KoID mimeTypeToKoID(const class QByteArray& mimeType);
+KoID mimeTypeToKoID(const PkByteArray& mimeType);
 }
 
 #endif // _KIS_HEIGHTMAP_UTILS_H_

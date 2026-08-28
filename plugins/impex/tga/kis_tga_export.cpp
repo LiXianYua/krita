@@ -6,11 +6,10 @@
 
 #include "kis_tga_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-
 #include <kpluginfactory.h>
-#include <QApplication>
+#include <PkDataStream.h>
+#include <PkImage.h>
+#include <PkRgb.h>
 #include <KoColorModelStandardIds.h>
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportBackend.h>
@@ -23,7 +22,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisTGAExportFactory, "krita_tga_export.json", registerPlugin<KisTGAExport>();)
 
-KisTGAExport::KisTGAExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisTGAExport::KisTGAExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -31,18 +30,18 @@ KisTGAExport::~KisTGAExport()
 {
 }
 
-KisImportExportErrorCode KisTGAExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisTGAExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
-    Q_UNUSED(configuration);
+    (void)configuration;
     KisImageSP savingImage = kisImportExportSavingImage(document);
-    QRect rc = savingImage->bounds();
-    QImage image = savingImage->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
+    PkRect rc = savingImage->bounds();
+    PkImage image = savingImage->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
 
-    QDataStream s(io);
-    s.setByteOrder(QDataStream::LittleEndian);
+    PkDataStream s(io);
+    s.setByteOrder(PkDataStream::LittleEndian);
 
-    const QImage& img = image;
-    const bool hasAlpha = (img.format() == QImage::Format_ARGB32);
+    const PkImage& img = image;
+    const bool hasAlpha = (img.format() == PkImage::Format_ARGB32);
     static constexpr quint8 originTopLeft = TGA_ORIGIN_UPPER + TGA_ORIGIN_LEFT; // 0x20
     static constexpr quint8 alphaChannel8Bits = 0x08;
 
@@ -57,24 +56,26 @@ KisImportExportErrorCode KisTGAExport::convert(KisDocument *document, QIODevice 
 
     for (int y = 0; y < img.height(); y++) {
         for (int x = 0; x < img.width(); x++) {
-            const QRgb color = img.pixel(x, y);
-            s << quint8(qBlue(color));
-            s << quint8(qGreen(color));
-            s << quint8(qRed(color));
+            const PkRgb color = img.pixel(x, y);
+            s << quint8(pkBlue(color));
+            s << quint8(pkGreen(color));
+            s << quint8(pkRed(color));
             if (hasAlpha)
-                s << quint8(qAlpha(color));
+                s << quint8(pkAlpha(color));
         }
     }
 
-    return ImportExportCodes::OK;
+    return s.status() == PkDataStream::Ok
+        ? KisImportExportErrorCode(ImportExportCodes::OK)
+        : KisImportExportErrorCode(ImportExportCodes::ErrorWhileWriting);
 }
 
 void KisTGAExport::initializeCapabilities()
 {
 
-    QList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "TGA");
 }
 

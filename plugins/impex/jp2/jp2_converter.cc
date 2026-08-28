@@ -7,10 +7,8 @@
 #include "jp2_converter.h"
 
 #include <openjpeg.h>
-
-#include <QApplication>
-
-#include <QMessageBox>
+#include <PkStream.h>
+#include <PkString.h>
 
 #include <KoColorSpaceRegistry.h>
 #include <KoColorSpaceTraits.h>
@@ -26,7 +24,7 @@
 #include <kis_paint_device.h>
 #include <kis_transaction.h>
 #include "kis_iterator_ng.h"
-#include <QThread>
+#include <PkThread.h>
 #include <plugins/impex/xcf/3rdparty/xcftools/xcftools.h>
 
 #include <iostream>
@@ -70,83 +68,59 @@ static void info_callback(const char *msg, void *client_data) {
 	converter->addInfoString(msg);
 }
 
-static int getFileFormat(const char *filename) {
-	static const std::list<std::pair<const char*, int>> formats= {
-		{"j2k", J2K_CFMT},
-		{"jp2", JP2_CFMT},
-		{"j2c", J2K_CFMT},
-		{"jpc", J2K_CFMT},
-		{"jpx", J2K_CFMT},
-		{"jpf", J2K_CFMT}
-	};
-	const char *ext = strrchr(filename, '.');
-	if (ext == NULL) {
-		return -1;
-	}
-	ext++;
-	if (*ext) {
-		for (const auto &format : formats) {
-			if (strcasecmp(ext, format.first) == 0) {
-				return format.second;
-			}
-		}
-	}
-
-	return -1;
-}
-
 #define JP2_RFC3745_MAGIC 	 "\x00\x00\x00\x0c\x6a\x50\x20\x20\x0d\x0a\x87\x0a"
 #define JP2_MAGIC 			 "\x0d\x0a\x87\x0a"
 #define J2K_CODESTREAM_MAGIC "\xff\x4f\xff\x51"
 
-int JP2Converter::infile_format(const char *fname) {
-	FILE *reader;
-	const char *s, *magic_s;
-	int ext_format, magic_format;
-	unsigned char buf[12];
-	OPJ_SIZE_T l_nb_read;
-
-	reader = fopen(fname, "rb");
-
-	if (reader == NULL) {
-		return -2;
-	}
-
-	memset(buf, 0, 12);
-	l_nb_read = fread(buf, 1, 12, reader);
-	fclose(reader);
-	if (l_nb_read != 12) {
+int JP2Converter::infileFormat(PkStream *stream) {
+	unsigned char buf[12] = {};
+	if (!stream || stream->peek(reinterpret_cast<char *>(buf), sizeof(buf)) != sizeof(buf)) {
 		return -1;
 	}
-	ext_format = getFileFormat(fname);
 	if (memcmp(buf, JP2_RFC3745_MAGIC, 12) == 0
 			|| memcmp(buf, JP2_MAGIC, 4) == 0) {
-		magic_format = JP2_CFMT;
-		magic_s = ".jp2";
+		return JP2_CFMT;
 	} else if (memcmp(buf, J2K_CODESTREAM_MAGIC, 4) == 0) {
-		magic_format = J2K_CFMT;
-		magic_s = ".j2k, .j2c, .jpc, .jpx, or .jpf";
-	} else {
-		return -1;
+		return J2K_CFMT;
 	}
-
-	if (magic_format == ext_format) {
-		return ext_format;
-	}
-
-	if (strlen(fname) >= 4) {
-		s = fname + strlen(fname) - 4;
-		std::ostringstream buffer;
-		buffer << "The extension of this file is incorrect.\n"
-			<< "Found " << s << " while it should be " << magic_s << ".";
-		addErrorString(buffer.str());
-	}
-	return magic_format;
+	return -1;
 }
 
-KisImportExportErrorCode JP2Converter::buildImage(const QString &filename) {
+static OPJ_SIZE_T readStream(void *buffer, OPJ_SIZE_T size, void *userData)
+{
+	auto *stream = static_cast<PkStream *>(userData);
+	const auto count = stream->read(static_cast<char *>(buffer), static_cast<PkStream::pk_int64>(size));
+	return count > 0 ? static_cast<OPJ_SIZE_T>(count) : static_cast<OPJ_SIZE_T>(-1);
+}
+
+static OPJ_OFF_T skipStream(OPJ_OFF_T count, void *userData)
+{
+	auto *stream = static_cast<PkStream *>(userData);
+	const auto oldPosition = stream->pos();
+	return stream->seek(oldPosition + count) ? count : static_cast<OPJ_OFF_T>(-1);
+}
+
+static OPJ_BOOL seekStream(OPJ_OFF_T position, void *userData)
+{
+	return static_cast<PkStream *>(userData)->seek(position) ? OPJ_TRUE : OPJ_FALSE;
+}
+
+static opj_stream_t *createOpenJpegStream(PkStream *stream)
+{
+	opj_stream_t *result = opj_stream_create(64 * 1024, OPJ_TRUE);
+	if (!result) {
+		return nullptr;
+	}
+	opj_stream_set_user_data(result, stream, nullptr);
+	opj_stream_set_user_data_length(result, static_cast<OPJ_UINT64>(stream->size()));
+	opj_stream_set_read_function(result, readStream);
+	opj_stream_set_skip_function(result, skipStream);
+	opj_stream_set_seek_function(result, seekStream);
+	return result;
+}
+
+KisImportExportErrorCode JP2Converter::buildImage(PkStream *input) {
 	KisImportExportErrorCode res = ImportExportCodes::OK;
-	const QByteArray file_str = filename.toUtf8();
 	opj_codec_t *l_codec = 0;
 	opj_dparameters_t parameters;
 	bool hasColorSpaceInfo = false;
@@ -157,7 +131,7 @@ KisImportExportErrorCode JP2Converter::buildImage(const QString &filename) {
 	unsigned int numComponents = 0;
 	unsigned int precision = 0;
 	const KoColorSpace *colorSpace = 0;
-	QVector<int> channelorder;
+	PkVector<int> channelorder;
 	KisPaintLayerSP layer;
 	bool isSigned;
 	int32_t signedCorrection = 0;
@@ -166,7 +140,7 @@ KisImportExportErrorCode JP2Converter::buildImage(const QString &filename) {
 	// decompression parameters
 	opj_set_default_decoder_parameters(&parameters);
 	// Determine the type
-	parameters.decod_format = infile_format(file_str.constData());
+	parameters.decod_format = infileFormat(input);
 	if (parameters.decod_format == -1) {
 		addErrorString("Not a JPEG 2000 file.");
 		res = ImportExportCodes::FileFormatIncorrect;
@@ -186,14 +160,18 @@ KisImportExportErrorCode JP2Converter::buildImage(const QString &filename) {
 		break;
 	}
 	}
-	Q_ASSERT(l_codec);
+	if (!l_codec) {
+		addErrorString("Failed to create the decoder");
+		res = ImportExportCodes::InternalError;
+		goto beach;
+	}
 
-	opj_codec_set_threads( l_codec,QThread::idealThreadCount() );
+	opj_codec_set_threads( l_codec,PkThread::idealThreadCount() );
 
 	/* setup the decoder decoding parameters using user parameters */
 	opj_setup_decoder(l_codec, &parameters);
 
-	l_stream = opj_stream_create_default_file_stream(file_str.constData(), 1);
+	l_stream = createOpenJpegStream(input);
 	if (!l_stream) {
 		addErrorString("Failed to create the stream");
 		res = ImportExportCodes::ErrorWhileReading;
@@ -252,7 +230,7 @@ KisImportExportErrorCode JP2Converter::buildImage(const QString &filename) {
 	dbgFile
 	<< "Image has " << numComponents << " numComponents and a bit depth of "
 			<< precision << " for color space " << image->color_space;
-	channelorder = QVector<int>(numComponents);
+	channelorder = PkVector<int>(numComponents);
 	if (!hasColorSpaceInfo) {
 		if (numComponents == 3) {
 			image->color_space = OPJ_CLRSPC_SRGB;
@@ -377,9 +355,9 @@ beach:
 	if (image)
 		opj_image_destroy(image);
 	if (!err.empty())
-		m_doc->setErrorMessage(i18n(err.c_str()));
+		m_doc->setErrorMessage(PkString(err.c_str()));
 	if (!warn.empty())
-		m_doc->setWarningMessage(i18n(warn.c_str()));
+		m_doc->setWarningMessage(PkString(warn.c_str()));
 	return res;
 }
 
@@ -387,7 +365,7 @@ KisImageWSP JP2Converter::image() {
 	return m_image;
 }
 
-KisImportExportErrorCode JP2Converter::buildFile(const QString &filename,
+KisImportExportErrorCode JP2Converter::buildFile(const PkString &filename,
 		KisPaintLayerSP layer, const JP2ConvertOptions &options) {
 	(void) layer;
 	(void) filename;
@@ -414,4 +392,3 @@ void JP2Converter::addErrorString(const std::string &str) {
 		err += "\n";
 	err += str;
 }
-

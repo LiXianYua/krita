@@ -8,7 +8,7 @@
 #ifndef _KIS_HeightMap_IMPORT_H_
 #define _KIS_HeightMap_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -16,10 +16,10 @@ class KisHeightMapImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisHeightMapImport(QObject *parent, const QVariantList &);
+    KisHeightMapImport(QObject *parent, const PkVariantList &);
     ~KisHeightMapImport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 };
 
 #endif

@@ -13,11 +13,11 @@ class RGBEImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    RGBEImport(QObject *parent, const QVariantList &);
+    RGBEImport(QObject *parent, const PkVariantList &);
     ~RGBEImport() override = default;
     bool supportsIO() const override { return true; }
 
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP configuration = nullptr) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP configuration = nullptr) override;
 };
 
 #endif // RGBE_IMPORT_H_

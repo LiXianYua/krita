@@ -7,7 +7,7 @@
 #ifndef _KIS_WEBP_IMPORT_H_
 #define _KIS_WEBP_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,12 +15,12 @@ class KisWebPImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisWebPImport(QObject *parent, const QVariantList &);
+    KisWebPImport(QObject *parent, const PkVariantList &);
     ~KisWebPImport() override;
 
     KisImportExportErrorCode
     convert(KisDocument *document,
-            QIODevice *io,
+            PkStream *io,
             KisPropertiesConfigurationSP configuration = 0) override;
     ;
 };

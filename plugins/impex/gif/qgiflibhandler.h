@@ -4,27 +4,23 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-#ifndef QGIFLIBHANDLER_H
-#define QGIFLIBHANDLER_H
+#ifndef GIFLIBCODEC_H
+#define GIFLIBCODEC_H
 
-#include <QImageIOHandler>
-#include <QImage>
-#include <QVariant>
+#include <PkImage.h>
+#include <PkStream.h>
 
-class QGIFLibHandler : public QImageIOHandler
+class GifLibCodec
 {
 public:
-    QGIFLibHandler();
-    bool canRead() const override;
-    bool read(QImage *image) override;
-    bool write(const QImage &image) override;
-    static bool canRead(QIODevice *device);
-    bool supportsOption(ImageOption option) const override;
-    void setOption(ImageOption option, const QVariant &value) override;
-    QVariant option(ImageOption option) const override;
+    explicit GifLibCodec(PkStream *device);
+    bool canRead() const;
+    bool read(PkImage *image);
+    bool write(const PkImage &image);
+    static bool canRead(PkStream *device);
 
 private:
-    QString m_description;
+    PkStream *m_device = nullptr;
 };
 
-#endif // QGIFLIBHANDLER_H
+#endif // GIFLIBCODEC_H

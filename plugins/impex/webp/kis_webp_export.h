@@ -9,7 +9,7 @@
 #ifndef _KIS_WEBP_EXPORT_H_
 #define _KIS_WEBP_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -17,11 +17,11 @@ class KisWebPExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisWebPExport(QObject *parent, const QVariantList &);
+    KisWebPExport(QObject *parent, const PkVariantList &);
     ~KisWebPExport() override;
 
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP configuration = 0) override;
-    KisPropertiesConfigurationSP defaultConfiguration(const QByteArray &from, const QByteArray &to) const override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP configuration = 0) override;
+    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray &from, const PkByteArray &to) const override;
     void initializeCapabilities() override;
 };
 

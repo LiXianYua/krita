@@ -7,7 +7,7 @@
 #ifndef _KIS_GIF_EXPORT_H_
 #define _KIS_GIF_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,10 +15,10 @@ class KisGIFExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisGIFExport(QObject *parent, const QVariantList &);
+    KisGIFExport(QObject *parent, const PkVariantList &);
     ~KisGIFExport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
     void initializeCapabilities() override;
 };
 

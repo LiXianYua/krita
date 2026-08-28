@@ -7,7 +7,7 @@
 #ifndef _KIS_TGA_IMPORT_H_
 #define _KIS_TGA_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,10 +15,10 @@ class KisTGAImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisTGAImport(QObject *parent, const QVariantList &);
+    KisTGAImport(QObject *parent, const PkVariantList &);
     ~KisTGAImport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 };
 
 #endif

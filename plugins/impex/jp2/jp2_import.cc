@@ -15,7 +15,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_jp2_import.json", registerPlugin<jp2Import>();)
 
-jp2Import::jp2Import(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+jp2Import::jp2Import(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -23,10 +23,13 @@ jp2Import::~jp2Import()
 {
 }
 
-KisImportExportErrorCode jp2Import::convert(KisDocument *document, QIODevice */*io*/,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode jp2Import::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     JP2Converter converter(document);
-    KisImportExportErrorCode result = converter.buildImage(filename());
+    if (!io || !io->isReadable()) {
+        return ImportExportCodes::NoAccessToRead;
+    }
+    KisImportExportErrorCode result = converter.buildImage(io);
     if (result.isOk()) {
         document->setCurrentImage(converter.image());
     }
@@ -34,4 +37,3 @@ KisImportExportErrorCode jp2Import::convert(KisDocument *document, QIODevice */*
 }
 
 #include <jp2_import.moc>
-

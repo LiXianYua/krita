@@ -7,7 +7,7 @@
 #ifndef JP2_IMPORT_H_
 #define JP2_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,10 +15,10 @@ class jp2Import : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    jp2Import(QObject *parent, const QVariantList &);
+    jp2Import(QObject *parent, const PkVariantList &);
     virtual ~jp2Import();
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 };
 
 #endif

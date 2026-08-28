@@ -17,8 +17,7 @@
 #ifndef TGA_H
 #define TGA_H
 
-#include <QDataStream>
-#include <QColor>
+#include <PkGlobal.h>
 
 // Header format of saved files.
 const uchar targaMagic[12] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -78,20 +77,20 @@ struct TgaHeaderInfo {
         switch (tga.image_type) {
         case TGA_TYPE_RLE_INDEXED:
             rle = true;
-            Q_FALLTHROUGH();
+            [[fallthrough]];
         case TGA_TYPE_INDEXED:
             pal = true;
             break;
 
         case TGA_TYPE_RLE_RGB:
             rle = true;
-            Q_FALLTHROUGH();
+            [[fallthrough]];
         case TGA_TYPE_RGB:
             rgb = true;
             break;
         case TGA_TYPE_RLE_GREY:
             rle = true;
-            Q_FALLTHROUGH();
+            [[fallthrough]];
         case TGA_TYPE_GREY:
             grey = true;
             break;

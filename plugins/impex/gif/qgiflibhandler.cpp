@@ -5,351 +5,256 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "qgiflibhandler.h"
-#include <QDebug>
-#include <QVariant>
+
+#include <PkRgb.h>
 #include <gif_lib.h>
-#include <string.h>		// memset
-#include <QPainter>
 
-extern int _GifError;
+#include <cstring>
+#include <memory>
 
-static const int InterlacedOffset[] = { 0, 4, 2, 1 };	/* The way Interlaced image should */
-static const int InterlacedJumps[] = { 8, 8, 4, 2 };	/* be read - offsets and jumps... */
-
-int doOutput(GifFileType* gif, const GifByteType * data, int i)
+namespace
 {
-    QIODevice* out = (QIODevice*)gif->UserData;
-    //	qDebug("given %d bytes to write; device is writeable? %d", i, out->isWritable());
-    return out->write((const char*)data, i);
+
+int writeCallback(GifFileType *gif, const GifByteType *data, int count)
+{
+    auto *stream = static_cast<PkStream *>(gif->UserData);
+    const auto written = stream->write(reinterpret_cast<const char *>(data), count);
+    return written > 0 ? static_cast<int>(written) : 0;
 }
 
-int doInput(GifFileType* gif, GifByteType* data, int i)
+int readCallback(GifFileType *gif, GifByteType *data, int count)
 {
-    QIODevice* in = (QIODevice*)gif->UserData;
-    return in->read((char*)data, i);
+    auto *stream = static_cast<PkStream *>(gif->UserData);
+    const auto read = stream->read(reinterpret_cast<char *>(data), count);
+    return read > 0 ? static_cast<int>(read) : 0;
 }
 
-QGIFLibHandler::QGIFLibHandler()
-    : QImageIOHandler()
+struct GifReadCloser
 {
-}
-
-bool QGIFLibHandler::canRead () const
-{
-    if (canRead(device())) {
-        setFormat("gif");
-        return true;
+    void operator()(GifFileType *gif) const
+    {
+        if (gif) {
+            int error = 0;
+            DGifCloseFile(gif, &error);
+        }
     }
-    return false;
+};
+
+struct GifWriteCloser
+{
+    void operator()(GifFileType *gif) const
+    {
+        if (gif) {
+            int error = 0;
+            EGifCloseFile(gif, &error);
+        }
+    }
+};
+
+constexpr int interlacedOffset[] = {0, 4, 2, 1};
+constexpr int interlacedJump[] = {8, 8, 4, 2};
+
+} // namespace
+
+GifLibCodec::GifLibCodec(PkStream *device)
+    : m_device(device)
+{
 }
 
-bool QGIFLibHandler::read ( QImage * image )
+bool GifLibCodec::canRead() const
 {
-    // The contents of this function are based on gif2rgb.c, from the giflib source.
-//    qDebug("QGIFLibHandler::read into image with size %d x %d", image->size().width(), image->size().height());
+    return canRead(m_device);
+}
 
-    int err;
-    GifFileType* gifFile = DGifOpen(device(), doInput, &err);
-    if (!gifFile) {
-        qWarning() << "Received error code" << err;
+bool GifLibCodec::read(PkImage *image)
+{
+    if (!image || !m_device || !m_device->isReadable()) {
         return false;
     }
-//    qDebug("dimensions %d x %d", gifFile->SWidth, gifFile->SHeight);
 
-    *image = QImage(gifFile->SWidth, gifFile->SHeight, QImage::Format_Indexed8);
+    int error = 0;
+    std::unique_ptr<GifFileType, GifReadCloser> gif(DGifOpen(m_device, readCallback, &error));
+    if (!gif || gif->SWidth <= 0 || gif->SHeight <= 0) {
+        return false;
+    }
 
-    GifRecordType recordType;
-    ColorMapObject* ColorMap;
+    *image = PkImage(gif->SWidth, gif->SHeight, PkImage::Format_Indexed8);
+    image->fill(static_cast<std::uint32_t>(gif->SBackGroundColor));
 
-    int	i, row, imageNum = 0, topRow, width, height;
-    int transColor = -1;
-    do
-    {
-        DGifGetRecordType(gifFile, &recordType);
-        switch (recordType)
-        {
-        case IMAGE_DESC_RECORD_TYPE:
-            if (DGifGetImageDesc(gifFile) == GIF_ERROR)
-            {
-                qWarning("QGIFLibHandler::read: error %d", gifFile->Error);
+    int transparentColor = -1;
+    ColorMapObject *activeColorMap = gif->SColorMap;
+    bool foundImage = false;
+    GifRecordType recordType = UNDEFINED_RECORD_TYPE;
+
+    do {
+        if (DGifGetRecordType(gif.get(), &recordType) == GIF_ERROR) {
+            return false;
+        }
+
+        if (recordType == EXTENSION_RECORD_TYPE) {
+            int extensionCode = 0;
+            GifByteType *extension = nullptr;
+            if (DGifGetExtension(gif.get(), &extensionCode, &extension) == GIF_ERROR) {
                 return false;
             }
-            topRow = gifFile->Image.Top; /* Image Position relative to Screen. */
-            width = gifFile->Image.Width;
-            height = gifFile->Image.Height;
-            //qDebug("Image %d at (%d, %d) [%dx%d]", ++imageNum, gifFile->Image.Left, topRow, width, height);
-            if (gifFile->Image.Left + width > gifFile->SWidth ||
-                    gifFile->Image.Top + height > gifFile->SHeight)
-            {
-                qWarning("Image %d is not confined to screen dimension, aborted.", imageNum);
-                return false;
+            while (extension) {
+                if (extensionCode == GRAPHICS_EXT_FUNC_CODE && extension[0] >= 4 && (extension[1] & 0x01)) {
+                    transparentColor = extension[4];
+                }
+                if (DGifGetExtensionNext(gif.get(), &extension) == GIF_ERROR) {
+                    return false;
+                }
             }
+            continue;
+        }
 
-            // Pre-fill with background color
-//            qDebug("background color is at index %d", gifFile->SBackGroundColor);
-            image->fill(gifFile->SBackGroundColor);
+        if (recordType != IMAGE_DESC_RECORD_TYPE) {
+            continue;
+        }
+        if (foundImage || DGifGetImageDesc(gif.get()) == GIF_ERROR) {
+            return false;
+        }
 
-            // Now read the image data
-            if (gifFile->Image.Interlace)
-            {
-                /* Need to perform 4 passes on the images: */
-                for (i = 0; i < 4; i++)
-                    for (row = topRow + InterlacedOffset[i]; row < topRow + height;
-                         row += InterlacedJumps[i])
-                    {
-                        if (DGifGetLine(gifFile, image->scanLine(row), width) == GIF_ERROR)
-                        {
-                            qWarning("QGIFLibHandler::read: error %d", gifFile->Error);
-                            return false;
-                        }
-                        //						else
-                        //							qDebug("got row %d: %d %d %d %d %d %d %d %d ...", row,
-                        //								image->scanLine(row)[0], image->scanLine(row)[1], image->scanLine(row)[2], image->scanLine(row)[3],
-                        //								image->scanLine(row)[4], image->scanLine(row)[5], image->scanLine(row)[6], image->scanLine(row)[7]);
-                    }
-            }
-            else
-            {
-                for (row = 0; row < height; row++)
-                {
-                    if (DGifGetLine(gifFile, image->scanLine(row), width) == GIF_ERROR)
-                    {
-                        qWarning("QGIFLibHandler::read: error %d", gifFile->Error);
+        const int left = gif->Image.Left;
+        const int top = gif->Image.Top;
+        const int width = gif->Image.Width;
+        const int height = gif->Image.Height;
+        if (left < 0 || top < 0 || width <= 0 || height <= 0 ||
+            left + width > gif->SWidth || top + height > gif->SHeight) {
+            return false;
+        }
+        activeColorMap = gif->Image.ColorMap ? gif->Image.ColorMap : gif->SColorMap;
+
+        if (gif->Image.Interlace) {
+            for (int pass = 0; pass < 4; ++pass) {
+                for (int row = interlacedOffset[pass]; row < height; row += interlacedJump[pass]) {
+                    if (DGifGetLine(gif.get(), image->scanLine(top + row) + left, width) == GIF_ERROR) {
                         return false;
                     }
-                    //					else
-                    //						qDebug("got row %d: %d %d %d %d %d %d %d %d ...", row,
-                    //							image->scanLine(row)[0], image->scanLine(row)[1], image->scanLine(row)[2], image->scanLine(row)[3],
-                    //							image->scanLine(row)[4], image->scanLine(row)[5], image->scanLine(row)[6], image->scanLine(row)[7]);
                 }
             }
-            break;
-        case EXTENSION_RECORD_TYPE:
-        {
-            int extCode;
-            GifByteType* extData;
-            /* Skip any extension blocks in file: */
-            if (DGifGetExtension(gifFile, &extCode, &extData) == GIF_ERROR)
-            {
-                qWarning("QGIFLibHandler::read: error %d", gifFile->Error);
-                return false;
-            }
-            while (extData != NULL)
-            {
-                int len = extData[0];
-                switch (extCode)
-                {
-                case GRAPHICS_EXT_FUNC_CODE:	// Graphics control extension
-//                    qDebug("graphics control: %x %x %x %x %x", extData[0], extData[1], extData[2], extData[3], extData[4]);
-                    // Should be block size, packed fields, delay time,
-                    // transparent color, block terminator
-                    // see doc/gif89.txt in libgif source package
-                    // If the trans bit is set in packed fields,
-                    // then set the trans color to the one given
-                    if (extData[1] & 0x01)
-                    {
-                        transColor = extData[3];
-//                        qDebug("transparent color is at index %d", transColor);
-                        /// @todo is it correct to override default fill color?
-                        //							image->fill(transColor);
-                    }
-                    break;
-                case COMMENT_EXT_FUNC_CODE:
-                {
-                    QByteArray comment((char*)(extData + 1), len);
-                    //							qDebug("comment of len %d: \"%s\"", len, comment.constData());
-                    image->setText("Description", comment);
-                }
-                    break;
-                case PLAINTEXT_EXT_FUNC_CODE:
-                    break;
-                }
-                if (DGifGetExtensionNext(gifFile, &extData) == GIF_ERROR)
-                {
-                    qWarning("QGIFLibHandler::read: error %d", gifFile->Error);
+        } else {
+            for (int row = 0; row < height; ++row) {
+                if (DGifGetLine(gif.get(), image->scanLine(top + row) + left, width) == GIF_ERROR) {
                     return false;
                 }
             }
         }
-            break;
-        case TERMINATE_RECORD_TYPE:
-            break;
-        default:
-            break;
-        }
-    }
-    while (recordType != TERMINATE_RECORD_TYPE);
+        foundImage = true;
+    } while (recordType != TERMINATE_RECORD_TYPE);
 
-    //	BackGround = gifFile->SBackGroundColor;
-    ColorMap = (gifFile->Image.ColorMap
-                ? gifFile->Image.ColorMap
-                : gifFile->SColorMap);
-    if (!ColorMap)
-    {
-        qWarning("QGIFLibHandler::read: Image does not have a colormap");
+    if (!foundImage || !activeColorMap) {
         return false;
     }
-    int ccount = ColorMap->ColorCount;
-    image->setColorCount(ccount);
-    for (i = 0; i < ccount; ++i)
-    {
-        GifColorType gifColor = ColorMap->Colors[i];
-        QRgb color = gifColor.Blue | (gifColor.Green << 8) | (gifColor.Red << 16);
-        // If this is not the transparent color,
-        // set the alpha to opaque.
-        if (i != transColor)
-            color |= 0xff << 24;
-        //		qDebug("color %d: 0x%X", i, color);
-        image->setColor(i, color);
+    image->setColorCount(activeColorMap->ColorCount);
+    for (int index = 0; index < activeColorMap->ColorCount; ++index) {
+        const GifColorType &color = activeColorMap->Colors[index];
+        image->setColor(index, pkRgba(color.Red, color.Green, color.Blue,
+                                     index == transparentColor ? 0 : 255));
     }
-
     return true;
 }
 
-bool QGIFLibHandler::canRead(QIODevice *device)
+bool GifLibCodec::canRead(PkStream *device)
 {
-    if (!device) {
-        qWarning("QGIFLibHandler::canRead() called with no device");
+    if (!device || !device->isReadable()) {
+        return false;
+    }
+    char header[6] = {};
+    return device->peek(header, sizeof(header)) == sizeof(header) &&
+        (std::memcmp(header, "GIF87a", sizeof(header)) == 0 ||
+         std::memcmp(header, "GIF89a", sizeof(header)) == 0);
+}
+
+bool GifLibCodec::write(const PkImage &image)
+{
+    if (!m_device || !m_device->isWritable() || image.isNull()) {
         return false;
     }
 
-    char head[6];
-    if (device->peek(head, sizeof(head)) == sizeof(head))
-        return qstrncmp(head, "GIF87a", 6) == 0
-                || qstrncmp(head, "GIF89a", 6) == 0;
-    return false;
-}
-
-bool QGIFLibHandler::write ( const QImage & image )
-{
-    QImage toWrite(image);
-    /// @todo how to specify dithering method
-    if (toWrite.colorCount() == 0 || toWrite.colorCount() > 256)
-        toWrite = image.convertToFormat(QImage::Format_Indexed8);
-
-    QVector<QRgb> colorTable = toWrite.colorTable();
-    ColorMapObject cmap;
-    // colorCount must be a power of 2
-    int colorCount = 1 << GifBitSize(toWrite.colorCount());
-    cmap.ColorCount = colorCount;
-    cmap.BitsPerPixel = 8;	/// @todo based on colorCount (or not? we did ask for Format_Indexed8, so the data is always 8-bit, right?)
-    GifColorType* colorValues = (GifColorType*)malloc(cmap.ColorCount * sizeof(GifColorType));
-    cmap.Colors = colorValues;
-    int c = 0;
-    for(; c < toWrite.colorCount(); ++c)
-    {
-//        qDebug("color %d has %02X%02X%02X", c, qRed(colorTable[c]), qGreen(colorTable[c]), qBlue(colorTable[c]));
-        colorValues[c].Red = qRed(colorTable[c]);
-        colorValues[c].Green = qGreen(colorTable[c]);
-        colorValues[c].Blue = qBlue(colorTable[c]);
-    }
-    // In case we had an actual number of colors that's not a power of 2,
-    // fill the rest with something (black perhaps).
-    for (; c < colorCount; ++c)
-    {
-        colorValues[c].Red = 0;
-        colorValues[c].Green = 0;
-        colorValues[c].Blue = 0;
-    }
-    /// @todo transparent GIFs (use alpha?)
-
-
-    /// @todo write to m_device
-    int err;
-    GifFileType *gif = EGifOpen(device(), doOutput, &err);
-
-    /// @todo how to specify which version, or decide based on features in use
-    // Because of this call, libgif is not reentrant
-    EGifSetGifVersion(gif, true);
-
-    /// @todo how to specify background
-    if (EGifPutScreenDesc(gif, toWrite.width(), toWrite.height(), colorCount, 0, &cmap) == GIF_ERROR) {
-        qWarning("EGifPutScreenDesc returned error %d", gif->Error);
-    }
-
-    QVariant descText = option(QImageIOHandler::Description);
-    if (descText.type() == QMetaType::QString)
-    {
-        QString comment = descText.toString();
-        // Will be something like "Description: actual text" or just
-        // ": actual text", so remove everything leading up to and
-        // including the first colon and the space following it.
-        int idx = comment.indexOf(": ");
-        if (idx >= 0)
-            comment.remove(0, idx + 2);
-        //		qDebug() << "comment:" << comment;
-        if (!comment.isEmpty())
-            EGifPutComment(gif, comment.toUtf8().constData());
-    }
-    //	else
-    //		qDebug("description is of qvariant type %d", descText.type());
-
-    /// @todo foreach of multiple images in an animation...
-    if (EGifPutImageDesc(gif, 0, 0, toWrite.width(), toWrite.height(), 0, &cmap) == GIF_ERROR)
-        qWarning("EGifPutImageDesc returned error %d", gif->Error);
-
-    int lc = toWrite.height();
-
-    // NOTE: we suppose that the pixel size is exactly 1 byte, right now we
-    //       cannot save anything else
-    int llen = toWrite.width();
-
-    //	qDebug("will write %d lines, %d bytes each", lc, llen);
-
-    for (int l = 0; l < lc; ++l)
-    {
-        uchar* line = toWrite.scanLine(l);
-        if (EGifPutLine(gif, (GifPixelType*)line, llen) == GIF_ERROR)
-        {
-            int i = gif->Error;
-            qWarning("EGifPutLine returned error %d", i);
+    PkImage indexed;
+    if (image.colorCount() > 0 && image.colorCount() <= 256) {
+        indexed = image;
+    } else {
+        indexed = PkImage(image.width(), image.height(), PkImage::Format_Indexed8);
+        std::vector<PkRgb> palette(256, 0);
+        palette[0] = pkRgba(0, 0, 0, 0);
+        palette[1] = pkRgba(0, 0, 0, 255);
+        for (int bucket = 2; bucket < 256; ++bucket) {
+            const int red = ((bucket >> 5) & 0x07) * 255 / 7;
+            const int green = ((bucket >> 2) & 0x07) * 255 / 7;
+            const int blue = (bucket & 0x03) * 255 / 3;
+            palette[bucket] = pkRgba(red, green, blue, 255);
+        }
+        indexed.setColorTable(palette);
+        for (int y = 0; y < image.height(); ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                const PkRgb color = image.pixel(x, y);
+                int index = 0;
+                if (pkAlpha(color) >= 128) {
+                    const int bucket = ((pkRed(color) >> 5) << 5) |
+                        ((pkGreen(color) >> 5) << 2) | (pkBlue(color) >> 6);
+                    index = bucket == 0 ? 1 : bucket;
+                }
+                indexed.setPixel(x, y, static_cast<std::uint32_t>(index));
+            }
         }
     }
-
-    EGifCloseFile(gif, &err);
-    free(colorValues);
-
-    return true;
-}
-
-bool QGIFLibHandler::supportsOption ( ImageOption option ) const
-{
-    //	qDebug("supportsOption %d", option);
-    switch (option)
-    {
-    // These are relevant only for reading
-    case QImageIOHandler::ImageFormat:
-    case QImageIOHandler::Size:
-        // This is relevant for both reading and writing
-    case QImageIOHandler::Description:
-        return true;
-        break;
-    default:
+    const auto colorTable = indexed.colorTable();
+    if (colorTable.empty() || colorTable.size() > 256) {
         return false;
     }
-}
 
-void QGIFLibHandler::setOption ( ImageOption option, const QVariant & value )
-{
-    //	qDebug("setOption given option %d, variant of type %d", option, value.type());
-    if (option == QImageIOHandler::Description)
-        m_description = value.toString();
-}
-
-QVariant QGIFLibHandler::option( ImageOption option ) const
-{
-    switch (option)
-    {
-    case QImageIOHandler::ImageFormat:
-        return QVariant();	/// @todo
-        break;
-    case QImageIOHandler::Size:
-        return QVariant();	/// @todo
-        break;
-    case QImageIOHandler::Description:
-        return QVariant(m_description);
-        break;
-    default:
-        return QVariant();
+    int colorCount = 2;
+    while (colorCount < static_cast<int>(colorTable.size())) {
+        colorCount <<= 1;
     }
+    std::unique_ptr<ColorMapObject, decltype(&GifFreeMapObject)> colorMap(
+        GifMakeMapObject(colorCount, nullptr), &GifFreeMapObject);
+    if (!colorMap) {
+        return false;
+    }
+    for (int index = 0; index < colorCount; ++index) {
+        const PkRgb color = index < static_cast<int>(colorTable.size()) ? colorTable[index] : 0;
+        colorMap->Colors[index].Red = pkRed(color);
+        colorMap->Colors[index].Green = pkGreen(color);
+        colorMap->Colors[index].Blue = pkBlue(color);
+    }
+
+    int error = 0;
+    std::unique_ptr<GifFileType, GifWriteCloser> gif(EGifOpen(m_device, writeCallback, &error));
+    if (!gif ||
+        EGifPutScreenDesc(gif.get(), indexed.width(), indexed.height(),
+                          GifBitSize(colorCount), 0, colorMap.get()) == GIF_ERROR) {
+        return false;
+    }
+
+    int transparentIndex = NO_TRANSPARENT_COLOR;
+    for (int index = 0; index < static_cast<int>(colorTable.size()); ++index) {
+        if (pkAlpha(colorTable[index]) < 128) {
+            transparentIndex = index;
+            break;
+        }
+    }
+    if (transparentIndex != NO_TRANSPARENT_COLOR) {
+        GraphicsControlBlock control = {DISPOSAL_UNSPECIFIED, false, 0, transparentIndex};
+        GifByteType extension[4] = {};
+        EGifGCBToExtension(&control, extension);
+        if (EGifPutExtension(gif.get(), GRAPHICS_EXT_FUNC_CODE, sizeof(extension), extension) == GIF_ERROR) {
+            return false;
+        }
+    }
+    if (EGifPutImageDesc(gif.get(), 0, 0, indexed.width(), indexed.height(),
+                         false, nullptr) == GIF_ERROR) {
+        return false;
+    }
+
+    for (int row = 0; row < indexed.height(); ++row) {
+        auto *line = const_cast<GifPixelType *>(
+            reinterpret_cast<const GifPixelType *>(indexed.constScanLine(row)));
+        if (EGifPutLine(gif.get(), line, indexed.width()) == GIF_ERROR) {
+            return false;
+        }
+    }
+    return true;
 }
