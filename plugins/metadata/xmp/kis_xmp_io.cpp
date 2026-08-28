@@ -5,14 +5,11 @@
  *  SPDX-License-Identifier: LGPL-2.0-or-later
  */
 #include "kis_xmp_io.h"
+#include "kis_xmp_io_p.h"
 
 #include <algorithm>
 #include <cassert>
-#include <charconv>
-#include <cstdint>
 #include <string>
-
-#include <unicode/uchar.h>
 
 #include <PkStream.h>
 
@@ -169,74 +166,6 @@ bool KisXMPIO::saveTo(const KisMetaData::Store *store, PkStream *ioDevice, Heade
     return true;
 }
 
-namespace
-{
-// Sparse XMP paths can name an arbitrary one-based array slot. Keep metadata
-// history bounded instead of allowing a single path to resize a vector toward
-// an attacker-controlled index.
-constexpr std::uint32_t kMaxXmpArrayEntries = 1024;
-
-bool isAsciiLetter(char16_t codeUnit)
-{
-    return (codeUnit >= u'A' && codeUnit <= u'Z')
-        || (codeUnit >= u'a' && codeUnit <= u'z');
-}
-
-bool isUnicodeWordContinuation(UChar32 codePoint)
-{
-    const std::uint32_t categoryMask = U_MASK(u_charType(codePoint));
-    return (categoryMask & (U_GC_L_MASK | U_GC_M_MASK | U_GC_N_MASK | U_GC_PC_MASK)) != 0;
-}
-
-bool isStructuredIdentifier(const std::u16string &identifier)
-{
-    if (identifier.empty() || !isAsciiLetter(identifier.front())) {
-        return false;
-    }
-    for (std::size_t i = 1; i < identifier.size();) {
-        UChar32 codePoint = identifier[i++];
-        if (U16_IS_LEAD(codePoint)) {
-            if (i >= identifier.size() || !U16_IS_TRAIL(identifier[i])) {
-                return false;
-            }
-            codePoint = U16_GET_SUPPLEMENTARY(codePoint, identifier[i++]);
-        } else if (U16_IS_TRAIL(codePoint)) {
-            return false;
-        }
-        if (!isUnicodeWordContinuation(codePoint)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool parsePositiveArrayIndex(const std::u16string &digits, int &arrayIndex)
-{
-    if (digits.empty()) {
-        return false;
-    }
-    std::string ascii;
-    ascii.reserve(digits.size());
-    for (const char16_t codeUnit : digits) {
-        if (codeUnit < u'0' || codeUnit > u'9') {
-            return false;
-        }
-        ascii.push_back(static_cast<char>(codeUnit));
-    }
-
-    std::uint64_t oneBasedIndex = 0;
-    const auto conversion = std::from_chars(ascii.data(),
-                                            ascii.data() + ascii.size(),
-                                            oneBasedIndex);
-    if (conversion.ec != std::errc() || conversion.ptr != ascii.data() + ascii.size()
-        || oneBasedIndex == 0 || oneBasedIndex > kMaxXmpArrayEntries) {
-        return false;
-    }
-    arrayIndex = static_cast<int>(oneBasedIndex - 1);
-    return true;
-}
-}
-
 bool parseTagName(const PkString &tagString,
                   PkString &structName,
                   int &arrayIndex,
@@ -270,9 +199,9 @@ bool parseTagName(const PkString &tagString,
         const std::size_t bracket = left.find(u'[');
 
         if (bracket == std::u16string::npos
-            && isStructuredIdentifier(left)
-            && isStructuredIdentifier(prefix)
-            && isStructuredIdentifier(field)) {
+            && KisXmpIOPrivate::isStructuredIdentifier(left)
+            && KisXmpIOPrivate::isStructuredIdentifier(prefix)
+            && KisXmpIOPrivate::isStructuredIdentifier(field)) {
             structName = tagString.left(static_cast<int>(slash));
             tagName = tagString.mid(static_cast<int>(colon + 1));
             *typeInfo = schema->propertyType(structName);
@@ -288,10 +217,10 @@ bool parseTagName(const PkString &tagString,
             const std::u16string arrayName = left.substr(0, bracket);
             const std::u16string digits = left.substr(bracket + 1,
                                                       left.size() - bracket - 2);
-            if (!isStructuredIdentifier(arrayName)
-                || !isStructuredIdentifier(prefix)
-                || !isStructuredIdentifier(field)
-                || !parsePositiveArrayIndex(digits, arrayIndex)) {
+            if (!KisXmpIOPrivate::isStructuredIdentifier(arrayName)
+                || !KisXmpIOPrivate::isStructuredIdentifier(prefix)
+                || !KisXmpIOPrivate::isStructuredIdentifier(field)
+                || !KisXmpIOPrivate::parsePositiveArrayIndex(digits, arrayIndex)) {
                 return false;
             }
             structName = tagString.left(static_cast<int>(bracket));
@@ -454,12 +383,15 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, PkStream *ioDevice) const
             if (isStructureEntry) {
                 structures[schema][structName][tagName] = v;
             } else if (isStructureInArrayEntry) {
-                if (arraysOfStructures[schema][structName].size() <= arrayIndex) {
-                    arraysOfStructures[schema][structName].resize(arrayIndex + 1);
+                auto &array = arraysOfStructures[schema][structName];
+                if (!KisXmpIOPrivate::ensureArraySlot(array, arrayIndex)) {
+                    warnKrita << "WARNING: sparse array index" << arrayIndex
+                              << "in" << structName << "was dropped";
+                    continue;
                 }
 
-                if (!arraysOfStructures[schema][structName][arrayIndex].contains(tagName)) {
-                    arraysOfStructures[schema][structName][arrayIndex][tagName] = v;
+                if (!array[arrayIndex].contains(tagName)) {
+                    array[arrayIndex][tagName] = v;
                 } else {
                     warnKrita << "WARNING: trying to overwrite tag" << tagName << "in" << structName << arrayIndex;
                 }

@@ -1,5 +1,7 @@
 ##### Tests that currently fail and should be fixed #####
 
+find_package(ICU REQUIRED COMPONENTS uc)
+
 # Works under Linux but does not work under Windows
 krita_add_broken_unit_test( kis_exif_test.cpp
     TEST_NAME KisExifTest
@@ -7,7 +9,7 @@ krita_add_broken_unit_test( kis_exif_test.cpp
     )
 
 add_executable(kis_metadata_regression_test kis_metadata_regression_test.cpp)
-target_link_libraries(kis_metadata_regression_test PRIVATE kritaexifcommon)
+target_link_libraries(kis_metadata_regression_test PRIVATE kritaexifcommon ICU::uc)
 target_link_libraries(kis_metadata_regression_test PRIVATE ${CMAKE_DL_LIBS})
 target_compile_definitions(kis_metadata_regression_test PRIVATE
     METADATA_EXIF_MODULE="$<TARGET_FILE:kritaexif>"
@@ -26,3 +28,7 @@ add_test(NAME plugins-metadata-kis_metadata-xmp-unicode-regression
          COMMAND kis_metadata_regression_test xmp-unicode)
 add_test(NAME plugins-metadata-kis_metadata-xmp-array-index-regression
          COMMAND kis_metadata_regression_test xmp-array-index)
+add_test(NAME plugins-metadata-kis_metadata-xmp-array-malformed-regression
+         COMMAND kis_metadata_regression_test xmp-array-malformed)
+add_test(NAME plugins-metadata-kis_metadata-xmp-array-density-regression
+         COMMAND kis_metadata_regression_test xmp-array-density)

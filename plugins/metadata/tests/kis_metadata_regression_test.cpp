@@ -4,6 +4,7 @@
 
 #include "KisExiv2IODevice.h"
 #include "kis_exiv2_common.h"
+#include "../xmp/kis_xmp_io_p.h"
 
 #include <dlfcn.h>
 
@@ -24,6 +25,7 @@
 #include <PkStream.h>
 #include <PkStringHash.h>
 #include <PkVariant.h>
+#include <PkVector.h>
 #include <kis_debug.h>
 #include <kis_meta_data_backend_registry.h>
 #include <kis_meta_data_entry.h>
@@ -341,10 +343,28 @@ int testXmpUnicodeStructuredLoad()
             != PkString("created")) {
         return fail("Unicode continuation in array-of-structure XMP field was dropped");
     }
+    if (KisXmpIOPrivate::isStructuredIdentifier(u"action\u0301")) {
+        return fail("Unicode combining-mark continuation was accepted in an array-of-structure XMP field");
+    }
+    if (KisXmpIOPrivate::isStructuredIdentifier(u"action\u203f")) {
+        return fail("non-underscore connector punctuation was accepted in an array-of-structure XMP field");
+    }
+    if (KisXmpIOPrivate::isStructuredIdentifier(u"a")) {
+        return fail("one-code-point identifier bypassed the legacy \\w+ minimum length");
+    }
+    if (!KisXmpIOPrivate::isStructuredIdentifier(u"a_")) {
+        return fail("ASCII underscore was rejected from the Unicode \\w continuation set");
+    }
+    if (!KisXmpIOPrivate::isStructuredIdentifier(u"a1")) {
+        return fail("Unicode number category was rejected from the Unicode \\w continuation set");
+    }
+    if (KisXmpIOPrivate::isStructuredIdentifier(u"éa")) {
+        return fail("non-ASCII first code point bypassed the legacy identifier boundary");
+    }
     return 0;
 }
 
-int testXmpOversizedArrayIndexLoad()
+int testXmpDenseArrayLoad()
 {
     if (!loadModule(METADATA_XMP_MODULE)) {
         return 1;
@@ -363,7 +383,9 @@ int testXmpOversizedArrayIndexLoad()
    <xmpMM:History>
     <rdf:Seq>)XMP";
     for (int i = 0; i < 1025; ++i) {
-        packet += R"XMP(<rdf:li rdf:parseType="Resource"><stEvt:action>created</stEvt:action></rdf:li>)XMP";
+        packet += R"XMP(<rdf:li rdf:parseType="Resource"><stEvt:action>created-)XMP";
+        packet += std::to_string(i);
+        packet += R"XMP(</stEvt:action><stEvt:instanceID>same-item-field</stEvt:instanceID></rdf:li>)XMP";
     }
     packet += R"XMP(</rdf:Seq></xmpMM:History>
   </rdf:Description></rdf:RDF></x:xmpmeta>)XMP";
@@ -384,8 +406,68 @@ int testXmpOversizedArrayIndexLoad()
     if (!store.containsEntry(schema, PkString("History"))) {
         return fail("bounded XMP array prefix was not preserved");
     }
-    if (store.getEntry(schema, PkString("History")).value().asArray().size() != 1024) {
-        return fail("oversized XMP array index was not dropped at the checked bound");
+    const auto history = store.getEntry(schema, PkString("History")).value().asArray();
+    if (history.size() != 1025) {
+        return fail("valid dense 1,025-entry XMP array was truncated");
+    }
+    const auto lastItem = history[1024].asStructure();
+    if (lastItem[PkString("action")].asVariant().toString() != PkString("created-1024")
+        || lastItem[PkString("instanceID")].asVariant().toString()
+            != PkString("same-item-field")) {
+        return fail("dense XMP array lost the final item or a same-item field");
+    }
+    return 0;
+}
+
+int testXmpMalformedArrayIndices()
+{
+    try {
+        int arrayIndex = -1;
+        if (KisXmpIOPrivate::parsePositiveArrayIndex(u"0", arrayIndex)
+            || KisXmpIOPrivate::parsePositiveArrayIndex(u"-1", arrayIndex)
+            || KisXmpIOPrivate::parsePositiveArrayIndex(u"12x", arrayIndex)
+            || KisXmpIOPrivate::parsePositiveArrayIndex(u"18446744073709551616", arrayIndex)) {
+            return fail("malformed or uint64-overflow XMP array index was accepted");
+        }
+    } catch (const std::exception &error) {
+        std::cerr << "checked XMP array-index parsing threw: " << error.what() << '\n';
+        return 1;
+    }
+    return 0;
+}
+
+int testXmpArrayDensity()
+{
+    try {
+        int arrayIndex = -1;
+        if (!KisXmpIOPrivate::parsePositiveArrayIndex(u"1001", arrayIndex)) {
+            return fail("representable sparse XMP array index did not reach the density check");
+        }
+        PkVector<int> slots;
+        if (KisXmpIOPrivate::ensureArraySlot(slots, arrayIndex) || !slots.isEmpty()) {
+            return fail("sparse XMP array index allocated a hole-filled array");
+        }
+
+        if (!KisXmpIOPrivate::parsePositiveArrayIndex(u"1000000000", arrayIndex)) {
+            return fail("representable sparse XMP array index did not reach the density check");
+        }
+        if (KisXmpIOPrivate::ensureArraySlot(slots, arrayIndex) || !slots.isEmpty()) {
+            return fail("sparse huge XMP array index allocated a hole-filled array");
+        }
+
+        if (!KisXmpIOPrivate::parsePositiveArrayIndex(u"1", arrayIndex)
+            || !KisXmpIOPrivate::ensureArraySlot(slots, arrayIndex)
+            || slots.size() != 1
+            || !KisXmpIOPrivate::ensureArraySlot(slots, arrayIndex)
+            || slots.size() != 1
+            || !KisXmpIOPrivate::parsePositiveArrayIndex(u"2", arrayIndex)
+            || !KisXmpIOPrivate::ensureArraySlot(slots, arrayIndex)
+            || slots.size() != 2) {
+            return fail("dense XMP array slots did not support repeated fields and one-item append");
+        }
+    } catch (const std::exception &error) {
+        std::cerr << "checked XMP array-density handling threw: " << error.what() << '\n';
+        return 1;
     }
     return 0;
 }
@@ -395,7 +477,7 @@ int testXmpOversizedArrayIndexLoad()
 int main(int argc, char **argv)
 {
     if (argc != 2) {
-        return fail("usage: kis_metadata_regression_test path|date|registry|exif-oecf|xmp-unicode|xmp-array-index");
+        return fail("usage: kis_metadata_regression_test path|date|registry|exif-oecf|xmp-unicode|xmp-array-index|xmp-array-malformed|xmp-array-density");
     }
     const std::string testName(argv[1]);
     if (testName == "path") {
@@ -414,7 +496,13 @@ int main(int argc, char **argv)
         return testXmpUnicodeStructuredLoad();
     }
     if (testName == "xmp-array-index") {
-        return testXmpOversizedArrayIndexLoad();
+        return testXmpDenseArrayLoad();
+    }
+    if (testName == "xmp-array-malformed") {
+        return testXmpMalformedArrayIndices();
+    }
+    if (testName == "xmp-array-density") {
+        return testXmpArrayDensity();
     }
     return fail("unknown metadata regression test");
 }
