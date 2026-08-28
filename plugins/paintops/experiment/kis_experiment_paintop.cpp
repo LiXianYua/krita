@@ -11,6 +11,7 @@
 #include <cmath>
 
 #include <PkPainterPath.h>
+#include <PkRegion.h>
 
 #include <KoCompositeOpRegistry.h>
 
@@ -22,6 +23,7 @@
 #include <kis_spacing_information.h>
 #include <krita_utils.h>
 #include <kis_algebra_2d.h>
+#include <KisRegion.h>
 
 
 KisExperimentPaintOp::KisExperimentPaintOp(const KisPaintOpSettingsSP settings, KisPainter *painter, KisNodeSP node, KisImageSP image)
@@ -226,14 +228,14 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
                     changedRegion = changedRect.toRect();
                 }
                 else {
-                    // PkPainterPath has no boolean path-arithmetic backend yet.
-                    // The union of the two bounds is a conservative repaint
-                    // region and preserves correctness until path clipping is
-                    // available in the backend.
-                    PkRectF changedRect = m_path.boundingRect().toRect() |
-                                         m_lastPaintedPath.boundingRect().toRect();
-                    changedRect.adjust(-1, -1, 1, 1);
-                    changedRegion = changedRect.toRect();
+                    // PkPainterPath has no boolean path-arithmetic backend, so
+                    // split each path into narrow intersecting cells and unite
+                    // them. This retains the large-shape bounded-cell repaint
+                    // optimization while conservatively covering the changed
+                    // paths.
+                    const PkRegion currentRegion = KritaUtils::splitPath(m_path).toQRegion();
+                    const PkRegion previousRegion = KritaUtils::splitPath(m_lastPaintedPath).toQRegion();
+                    changedRegion = KisRegion::fromQRegion(currentRegion | previousRegion);
                 }
 
                 paintRegion(changedRegion);

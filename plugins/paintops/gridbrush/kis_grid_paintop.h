@@ -9,7 +9,6 @@
 
 //#define BENCHMARK
 
-#include <klocalizedstring.h>
 #include <brushengine/kis_paintop.h>
 #include <kis_types.h>
 #include <KisColorOptionData.h>
