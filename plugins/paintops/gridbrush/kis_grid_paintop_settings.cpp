@@ -16,7 +16,7 @@
 
 struct KisGridPaintOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 KisGridPaintOpSettings::KisGridPaintOpSettings(KisResourcesInterfaceSP resourcesInterface)
@@ -109,14 +109,14 @@ KisOptimizedBrushOutline KisGridPaintOpSettings::brushOutline(const KisPaintInfo
     if (mode.isVisible) {
         qreal sizex = option.diameter * option.grid_scale;
         qreal sizey = option.diameter * option.grid_scale;
-        QRectF rc(0, 0, sizex, sizey);
+        PkRectF rc(0, 0, sizex, sizey);
         rc.translate(-rc.center());
         path.addRect(rc);
 
         path = outlineFetcher()->fetchOutline(info, this, path, mode, alignForZoom);
 
         if (mode.showTiltDecoration) {
-            QPainterPath tiltLine = makeTiltIndicator(info, QPointF(0.0, 0.0), sizex * 0.5, 3.0);
+            PkPainterPath tiltLine = makeTiltIndicator(info, PkPointF(0.0, 0.0), sizex * 0.5, 3.0);
             path.addPath(outlineFetcher()->fetchOutline(info, this, tiltLine, mode, alignForZoom, 1.0, 0.0, true, 0, 0));
         }
     }
@@ -147,17 +147,17 @@ KisOptimizedBrushOutline KisGridPaintOpSettings::brushOutline(const KisPaintInfo
         //Lock the grid alignment
         posX = posX - std::fmod(posX, cellWidth) + horizontalOffset;
         posY = posY - std::fmod(posY, cellHeight) + verticalOffset;
-        const QRectF dabRect(posX , posY , cellWidth, cellHeight);
+        const PkRectF dabRect(posX , posY , cellWidth, cellHeight);
 
         divide = qMax(1, divide);
         const qreal yStep = cellHeight / (qreal)divide;
         const qreal xStep = cellWidth / (qreal)divide;
 
-        QRectF tile;
-        QPainterPath cellPath;
+        PkRectF tile;
+        PkPainterPath cellPath;
         for (int y = 0; y < (gridHeight)/yStep; y++) {
             for (int x = 0; x < (gridWidth)/xStep; x++) {
-                tile = QRectF(dabRect.x() + x * xStep, dabRect.y() + y * yStep, xStep, yStep);
+                tile = PkRectF(dabRect.x() + x * xStep, dabRect.y() + y * yStep, xStep, yStep);
                 switch (shapeOption.shape) {
                 case 0: {
                     cellPath.addEllipse(tile);
@@ -199,15 +199,15 @@ KisOptimizedBrushOutline KisGridPaintOpSettings::brushOutline(const KisPaintInfo
 #include "kis_paintop_preset.h"
 #include "KisPaintOpPresetUpdateProxy.h"
 
-QList<KisUniformPaintOpPropertySP> KisGridPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisGridPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop = new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
-                                                                                                          KoID("grid_divisionlevel", i18n("Division Level")),
+                                                                                                          KoID("grid_divisionlevel", "Division Level"),
                                                                                                           settings,
                                                                                                           0);
 
@@ -229,7 +229,7 @@ QList<KisUniformPaintOpPropertySP> KisGridPaintOpSettings::uniformProperties(Kis
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

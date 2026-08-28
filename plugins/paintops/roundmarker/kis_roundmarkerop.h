@@ -15,7 +15,7 @@
 #include "KisRoundMarkerOpOptionData.h"
 
 
-class QPointF;
+class PkPointF;
 class KisPaintOpSettings;
 class KisPainter;
 
@@ -39,7 +39,7 @@ private:
     KisPaintDeviceSP          m_tempDev;
     KisSizeOption             m_sizeOption;
     KisSpacingOption          m_spacingOption;
-    QPointF                   m_lastPaintPos;
+    PkPointF                   m_lastPaintPos;
     qreal                     m_lastRadius;
     KisRoundMarkerOpOptionData   m_markerOption;
 };

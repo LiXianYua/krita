@@ -7,18 +7,11 @@
 #ifndef DEFORM_PAINTOP_PLUGIN_H_
 #define DEFORM_PAINTOP_PLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 /**
  * A plugin wrapper that adds the paintop factories to the paintop registry.
  */
-class DeformPaintOpPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    DeformPaintOpPlugin(QObject *parent, const QVariantList &);
-    ~DeformPaintOpPlugin() override;
-};
+// static registration is defined in the implementation unit.
 
 #endif // DEFORM_PAINTOP_PLUGIN_H_

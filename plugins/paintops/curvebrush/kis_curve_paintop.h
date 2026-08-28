@@ -41,7 +41,7 @@ private:
     KisLineWidthOption m_lineWidthOption;
     KisCurvesOpacityOption m_curvesOpacityOption;
 
-    QList<QPointF> m_points;
+    PkList<PkPointF> m_points;
     KisPainter * m_painter;
 
 };

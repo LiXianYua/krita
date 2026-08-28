@@ -7,18 +7,11 @@
 #ifndef CURVE_PAINTOP_PLUGIN_H_
 #define CURVE_PAINTOP_PLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 /**
  * A plugin wrapper that adds the paintop factories to the paintop registry.
  */
-class CurvePaintOpPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    CurvePaintOpPlugin(QObject *parent, const QVariantList &);
-    ~CurvePaintOpPlugin() override;
-};
+// static registration is defined in the implementation unit.
 
 #endif // CURVE_PAINTOP_PLUGIN_H_

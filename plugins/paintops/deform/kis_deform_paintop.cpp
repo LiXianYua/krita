@@ -9,8 +9,7 @@
 
 #include <cmath>
 
-#include <QtGlobal>
-#include <QRect>
+#include <PkRect.h>
 
 #include <kis_image.h>
 #include <kis_debug.h>
@@ -87,7 +86,7 @@ KisSpacingInformation KisDeformPaintOp::paintAt(const KisPaintInformation& info)
     qint32 y;
     qreal subPixelY;
 
-    QPointF pt = info.pos();
+    PkPointF pt = info.pos();
     if (m_brushSizeData.brushJitterMovementEnabled) {
         pt.setX(pt.x() + ((m_brushSizeData.brushDiameter * info.randomSource()->generateNormalized()) - m_brushSizeData.brushDiameter * 0.5) * m_brushSizeData.brushJitterMovement);
         pt.setY(pt.y() + ((m_brushSizeData.brushDiameter * info.randomSource()->generateNormalized()) - m_brushSizeData.brushDiameter * 0.5) * m_brushSizeData.brushJitterMovement);
@@ -103,7 +102,7 @@ KisSpacingInformation KisDeformPaintOp::paintAt(const KisPaintInformation& info)
     rotation += m_brushSizeData.brushRotation;
     scale *= m_brushSizeData.brushScale;
 
-    QPointF pos = pt - m_deformBrush.hotSpot(scale, rotation);
+    PkPointF pos = pt - m_deformBrush.hotSpot(scale, rotation);
 
     splitCoordinate(pos.x(), &x, &subPixelX);
     splitCoordinate(pos.y(), &y, &subPixelY);
@@ -122,7 +121,7 @@ KisSpacingInformation KisDeformPaintOp::paintAt(const KisPaintInformation& info)
 
     m_opacityOption.apply(painter(), info);
     painter()->bltFixedWithFixedSelection(x, y, dab, mask, mask->bounds().width() , mask->bounds().height());
-    painter()->renderMirrorMask(QRect(QPoint(x, y), QSize(mask->bounds().width() , mask->bounds().height())), dab, mask);
+    painter()->renderMirrorMask(PkRect(PkPoint(x, y), PkSize(mask->bounds().width() , mask->bounds().height())), dab, mask);
 
     return updateSpacingImpl(info);
 }

@@ -35,7 +35,7 @@ void ParticleBrush::initParticles()
     m_acceleration.resize(m_properties->particleCount);
 }
 
-void ParticleBrush::setInitialPosition(const QPointF &pos)
+void ParticleBrush::setInitialPosition(const PkPointF &pos)
 {
     for (int i = 0; i < m_properties->particleCount; i++) {
         m_particlePos[i] = pos;
@@ -45,7 +45,7 @@ void ParticleBrush::setInitialPosition(const QPointF &pos)
 }
 
 
-void ParticleBrush::paintParticle(KisRandomAccessorSP accWrite, const KoColorSpace * cs, const QPointF &pos, const KoColor& color, qreal weight, bool respectOpacity)
+void ParticleBrush::paintParticle(KisRandomAccessorSP accWrite, const KoColorSpace * cs, const PkPointF &pos, const KoColor& color, qreal weight, bool respectOpacity)
 {
     // opacity top left, right, bottom left, right
     KoColor myColor(color);
@@ -81,12 +81,12 @@ void ParticleBrush::paintParticle(KisRandomAccessorSP accWrite, const KoColorSpa
 
 
 
-void ParticleBrush::draw(KisPaintDeviceSP dab, const KoColor& color, const QPointF &pos)
+void ParticleBrush::draw(KisPaintDeviceSP dab, const KoColor& color, const PkPointF &pos)
 {
     KisRandomAccessorSP accessor = dab->createRandomAccessorNG();
     const KoColorSpace * cs = dab->colorSpace();
 
-    QRect boundingRect;
+    PkRect boundingRect;
 
     if (m_properties->particleScaleX < 0 || m_properties->particleScaleY < 0 || m_properties->particleGravity < 0) {
         boundingRect = dab->defaultBounds()->bounds();
@@ -96,14 +96,14 @@ void ParticleBrush::draw(KisPaintDeviceSP dab, const KoColor& color, const QPoin
         for (int j = 0; j < m_properties->particleCount; j++) {
             /*
                 m_time = 0.01;
-                QPointF temp = m_position;
-                QPointF dist = m_position - m_oldPosition;
+                PkPointF temp = m_position;
+                PkPointF dist = m_position - m_oldPosition;
                 m_position = m_position + (dist + (m_acceleration*m_time*m_time));
                 m_oldPosition = temp;
             */
 
             /*
-                QPointF dist = info.pos() - m_position;
+                PkPointF dist = info.pos() - m_position;
                 dist *= 0.3; // scale
                 dist *= 10; // force
                 m_oldPosition += dist;
@@ -112,7 +112,7 @@ void ParticleBrush::draw(KisPaintDeviceSP dab, const KoColor& color, const QPoin
             */
 
 
-            QPointF dist = pos - m_particlePos[j];
+            PkPointF dist = pos - m_particlePos[j];
             dist.setX(dist.x() * m_properties->particleScaleX);
             dist.setY(dist.y() * m_properties->particleScaleY);
             dist = dist * m_acceleration[j];
@@ -134,7 +134,7 @@ void ParticleBrush::draw(KisPaintDeviceSP dab, const KoColor& color, const QPoin
             //  and then it will be passed to the lockless hashtable
             //  and then it will crash.
             // Hence better to catch infinity here and just not paint anything.
-            QPointF pointF = m_particlePos[j];
+            PkPointF pointF = m_particlePos[j];
 
             const qint32 max = 2147483600;
             const qint32 min = -max;

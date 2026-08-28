@@ -15,7 +15,7 @@
 class KisPropertiesConfiguration;
 
 
-const QString GRIDSHAPE_SHAPE = "GridShape/shape";
+const PkString GRIDSHAPE_SHAPE = "GridShape/shape";
 
 
 struct KisGridShapeOptionData : boost::equality_comparable<KisGridShapeOptionData>

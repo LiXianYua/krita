@@ -9,8 +9,7 @@
 
 #include <cmath>
 
-#include <QtGlobal>
-#include <QRect>
+#include <PkRect.h>
 
 #include <kis_global.h>
 #include <kis_node.h>
@@ -31,7 +30,7 @@
 
 
 #ifdef BENCHMARK
-#include <QTime>
+#include <PkTime.h>
 #endif
 
 
@@ -67,7 +66,7 @@ KisGridPaintOp::~KisGridPaintOp()
 KisSpacingInformation KisGridPaintOp::paintAt(const KisPaintInformation& info)
 {
 #ifdef BENCHMARK
-    QTime time;
+    PkTime time;
     time.start();
 #endif
 
@@ -102,17 +101,17 @@ KisSpacingInformation KisGridPaintOp::paintAt(const KisPaintInformation& info)
     //Lock the grid alignment
     posX = posX - std::fmod(posX, cellWidth) + horizontalOffset;
     posY = posY - std::fmod(posY, cellHeight) + verticalOffset;
-    const QRectF dabRect(posX , posY , cellWidth, cellHeight);
-    const QRect dabRectAligned = dabRect.toAlignedRect();
+    const PkRectF dabRect(posX , posY , cellWidth, cellHeight);
+    const PkRect dabRectAligned = dabRect.toAlignedRect();
 
     divide = qMax(1, divide);
     const qreal yStep = cellHeight / (qreal)divide;
     const qreal xStep = cellWidth / (qreal)divide;
 
-    QRectF tile;
+    PkRectF tile;
     KoColor color(painter()->paintColor());
 
-    QScopedPointer<KisCrossDeviceColorSampler> colorSampler;
+    PkScopedPointer<KisCrossDeviceColorSampler> colorSampler;
     if (m_node) {
         colorSampler.reset(new KisCrossDeviceColorSampler(m_node->paintDevice(), color));
     }
@@ -137,7 +136,7 @@ KisSpacingInformation KisGridPaintOp::paintAt(const KisPaintInformation& info)
     for (int y = 0; y < (gridHeight)/yStep; y++) {
         for (int x = 0; x < (gridWidth)/xStep; x++) {
             // determine the tile size
-            tile = QRectF(dabRect.x() + x * xStep, dabRect.y() + y * yStep, xStep, yStep);
+            tile = PkRectF(dabRect.x() + x * xStep, dabRect.y() + y * yStep, xStep, yStep);
             tile.adjust(vertBorder, horzBorder, -vertBorder, -horzBorder);
             tile = tile.normalized();
 
@@ -165,7 +164,7 @@ KisSpacingInformation KisGridPaintOp::paintAt(const KisPaintInformation& info)
                 }
 
                 if (m_colorProperties.useRandomHSV) {
-                    QHash<QString, QVariant> params;
+                    PkHash<PkString, PkVariant> params;
                     params["h"] = (m_colorProperties.hue / 180.0) * randomSource->generateNormalized();
                     params["s"] = (m_colorProperties.saturation / 100.0) * randomSource->generateNormalized();
                     params["v"] = (m_colorProperties.value / 100.0) * randomSource->generateNormalized();
@@ -223,7 +222,7 @@ KisSpacingInformation KisGridPaintOp::paintAt(const KisPaintInformation& info)
         }
     }
 
-    QRect rc = m_dab->extent();
+    PkRect rc = m_dab->extent();
     painter()->bitBlt(rc.topLeft(), m_dab, rc);
     painter()->renderMirrorMask(rc, m_dab);
 

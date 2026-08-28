@@ -8,10 +8,10 @@
 #include "kis_properties_configuration.h"
 
 
-const QString ROUNDMARKER_DIAMETER = "diameter";
-const QString ROUNDMARKER_SPACING = "spacing";
-const QString ROUNDMARKER_USE_AUTO_SPACING = "useAutoSpacing";
-const QString ROUNDMARKER_AUTO_SPACING_COEFF = "autoSpacingCoeff";
+const PkString ROUNDMARKER_DIAMETER = "diameter";
+const PkString ROUNDMARKER_SPACING = "spacing";
+const PkString ROUNDMARKER_USE_AUTO_SPACING = "useAutoSpacing";
+const PkString ROUNDMARKER_AUTO_SPACING_COEFF = "autoSpacingCoeff";
 
 
 bool KisRoundMarkerOpOptionData::read(const KisPropertiesConfiguration *setting)

@@ -96,7 +96,7 @@ KisSpacingInformation KisFilterOp::paintAt(const KisPaintInformation& info)
     static const KoColorSpace *cs = KoColorSpaceRegistry::instance()->alpha8();
     static KoColor color(Qt::black, cs);
 
-    QRect dstRect;
+    PkRect dstRect;
     KisFixedPaintDeviceSP dab = m_dabCache->fetchDab(cs, color, info.pos(),
                                                      shape,
                                                      info, 1.0,
@@ -104,14 +104,14 @@ KisSpacingInformation KisFilterOp::paintAt(const KisPaintInformation& info)
 
     if (dstRect.isEmpty()) return KisSpacingInformation(1.0);
 
-    QRect dabRect = dab->bounds();
+    PkRect dabRect = dab->bounds();
 
     // sanity check
     Q_ASSERT(dstRect.size() == dabRect.size());
 
 
     // Filter the paint device
-    QRect neededRect = m_filter->neededRect(dstRect, m_filterConfiguration, painter()->device()->defaultBounds()->currentLevelOfDetail());
+    PkRect neededRect = m_filter->neededRect(dstRect, m_filterConfiguration, painter()->device()->defaultBounds()->currentLevelOfDetail());
 
     KisPainter p(m_tmpDevice);
     if (!m_smudgeMode) {
@@ -142,9 +142,9 @@ KisSpacingInformation KisFilterOp::updateSpacingImpl(const KisPaintInformation &
     return effectiveSpacing(scale, rotation, info);
 }
 
-QList<KoResourceLoadResult> KisFilterOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisFilterOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
 {
-    QList<KoResourceLoadResult> resources = KisBrushBasedPaintOp::prepareLinkedResources(settings, resourcesInterface);
+    PkList<KoResourceLoadResult> resources = KisBrushBasedPaintOp::prepareLinkedResources(settings, resourcesInterface);
 
     KisFilterOptionData data;
     data.read(settings.data());
@@ -159,9 +159,9 @@ QList<KoResourceLoadResult> KisFilterOp::prepareLinkedResources(const KisPaintOp
     return resources;
 }
 
-QList<KoResourceLoadResult> KisFilterOp::prepareEmbeddedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisFilterOp::prepareEmbeddedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
 {
-    QList<KoResourceLoadResult> resources = KisBrushBasedPaintOp::prepareEmbeddedResources(settings, resourcesInterface);
+    PkList<KoResourceLoadResult> resources = KisBrushBasedPaintOp::prepareEmbeddedResources(settings, resourcesInterface);
 
     KisFilterOptionData data;
     data.read(settings.data());

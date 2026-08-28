@@ -9,7 +9,7 @@
 
 struct KisCurvePaintOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 KisCurvePaintOpSettings::KisCurvePaintOpSettings(KisResourcesInterfaceSP resourcesInterface)
@@ -61,21 +61,21 @@ bool KisCurvePaintOpSettings::paintIncremental()
 #include "kis_standard_uniform_properties_factory.h"
 
 
-QList<KisUniformPaintOpPropertySP> KisCurvePaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisCurvePaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop = new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
-                                                                                                          KoID("curve_linewidth", i18n("Line Width")),
+                                                                                                          KoID("curve_linewidth", "Line Width"),
                                                                                                           settings,
                                                                                                           0);
 
             prop->setRange(1, 100);
             prop->setSingleStep(1);
-            prop->setSuffix(i18n(" px"));
+            prop->setSuffix(" px");
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -92,13 +92,13 @@ QList<KisUniformPaintOpPropertySP> KisCurvePaintOpSettings::uniformProperties(Ki
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop = new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
-                                                                                                          KoID("curve_historysize", i18n("History Size")),
+                                                                                                          KoID("curve_historysize", "History Size"),
                                                                                                           settings,
                                                                                                           0);
 
@@ -119,7 +119,7 @@ QList<KisUniformPaintOpPropertySP> KisCurvePaintOpSettings::uniformProperties(Ki
                     option.curve_stroke_history_size = prop->value().toInt();
                     option.write(prop->settings().data());
                 });
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -127,14 +127,14 @@ QList<KisUniformPaintOpPropertySP> KisCurvePaintOpSettings::uniformProperties(Ki
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("curve_lineopacity", i18n("Line Opacity")),
+                                                                KoID("curve_lineopacity", "Line Opacity"),
                                                                 settings,
                                                                 0);
 
             prop->setRange(0, 100.0);
             prop->setSingleStep(0.01);
             prop->setDecimals(2);
-            prop->setSuffix(i18n("%"));
+            prop->setSuffix("%");
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -150,14 +150,14 @@ QList<KisUniformPaintOpPropertySP> KisCurvePaintOpSettings::uniformProperties(Ki
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
 
         {
             KisUniformPaintOpPropertyCallback *prop = new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool,
-                                                                                            KoID("curve_connectionline", i18n("Connection Line")),
+                                                                                            KoID("curve_connectionline", "Connection Line"),
                                                                                             settings,
                                                                                             0);
 
@@ -176,7 +176,7 @@ QList<KisUniformPaintOpPropertySP> KisCurvePaintOpSettings::uniformProperties(Ki
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

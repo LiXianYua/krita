@@ -15,17 +15,17 @@
 class KisPropertiesConfiguration;
 
 
-const QString DIAMETER = "Grid/diameter";
-const QString GRID_WIDTH = "Grid/gridWidth";
-const QString GRID_HEIGHT = "Grid/gridHeight";
-const QString HORIZONTAL_OFFSET = "Grid/horizontalOffset";
-const QString VERTICAL_OFFSET = "Grid/verticalOffset";
-const QString GRID_DIVISION_LEVEL = "Grid/divisionLevel";
-const QString GRID_PRESSURE_DIVISION = "Grid/pressureDivision";
-const QString GRID_SCALE = "Grid/scale";
-const QString GRID_VERTICAL_BORDER = "Grid/verticalBorder";
-const QString GRID_HORIZONTAL_BORDER = "Grid/horizontalBorder";
-const QString GRID_RANDOM_BORDER = "Grid/randomBorder";
+const PkString DIAMETER = "Grid/diameter";
+const PkString GRID_WIDTH = "Grid/gridWidth";
+const PkString GRID_HEIGHT = "Grid/gridHeight";
+const PkString HORIZONTAL_OFFSET = "Grid/horizontalOffset";
+const PkString VERTICAL_OFFSET = "Grid/verticalOffset";
+const PkString GRID_DIVISION_LEVEL = "Grid/divisionLevel";
+const PkString GRID_PRESSURE_DIVISION = "Grid/pressureDivision";
+const PkString GRID_SCALE = "Grid/scale";
+const PkString GRID_VERTICAL_BORDER = "Grid/verticalBorder";
+const PkString GRID_HORIZONTAL_BORDER = "Grid/horizontalBorder";
+const PkString GRID_RANDOM_BORDER = "Grid/randomBorder";
 
 
 struct KisGridOpOptionData : boost::equality_comparable<KisGridOpOptionData>

@@ -8,7 +8,7 @@
 #define KIS_EXPERIMENT_PAINTOP_SETTINGS_H_
 
 #include <brushengine/kis_no_size_paintop_settings.h>
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisExperimentPaintOpSettings : public KisNoSizePaintOpSettings
 {
@@ -19,12 +19,12 @@ public:
     bool paintIncremental() override;
     KisOptimizedBrushOutline brushOutline(const KisPaintInformation &info, const OutlineMode &mode, qreal alignForZoom) override;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
 private:
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif

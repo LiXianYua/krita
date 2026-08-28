@@ -7,18 +7,11 @@
 #ifndef GRID_PAINTOP_PLUGIN_H_
 #define GRID_PAINTOP_PLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 /**
  * A plugin wrapper that adds the paintop factories to the paintop registry.
  */
-class GridPaintOpPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    GridPaintOpPlugin(QObject *parent, const QVariantList &);
-    ~GridPaintOpPlugin() override;
-};
+// static registration is defined in the implementation unit.
 
 #endif // GRID_PAINTOP_PLUGIN_H_

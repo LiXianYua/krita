@@ -8,7 +8,7 @@
 
 #include <cmath>
 #include <memory>
-#include <QRect>
+#include <PkRect.h>
 
 #include <KoColorSpaceRegistry.h>
 #include <KoColor.h>
@@ -73,28 +73,28 @@ KisSpacingInformation KisRoundMarkerOp::paintAt(const KisPaintInformation& info)
     // because then the mirroring tools get wrong position to mirror
     // and the mirroring doesn't work well.
     // Subtracting must happen just before the painting.
-    QPointF pos = info.pos();
+    PkPointF pos = info.pos();
 
     KisMarkerPainter gc(painter()->device(), painter()->paintColor());
 
     if (m_firstRun) {
-        const QVector<QPointF> points =
+        const PkVector<PkPointF> points =
             painter()->calculateAllMirroredPoints(pos);
 
-        Q_FOREACH(const QPointF &pt, points) {
+        Q_FOREACH(const PkPointF &pt, points) {
             // Subtracting .5 from both dimensions, because the final dab tends to exaggerate towards the lower right.
             // This aligns it with the brush cursor.
-            gc.fillFullCircle(pt - QPointF(0.5, 0.5), radius);
+            gc.fillFullCircle(pt - PkPointF(0.5, 0.5), radius);
         }
     } else {
-        const QVector<QPair<QPointF, QPointF>> pairs =
+        const PkVector<std::pair<PkPointF, PkPointF>> pairs =
             painter()->calculateAllMirroredPoints(qMakePair(m_lastPaintPos, pos));
 
         Q_FOREACH(const auto &pair, pairs) {
             // Subtracting .5 from both dimensions, because the final dab tends to exaggerate towards the lower right.
             // This aligns it with the brush cursor.
-            gc.fillCirclesDiff(pair.first - QPointF(0.5, 0.5), m_lastRadius,
-                               pair.second - QPointF(0.5, 0.5), radius);
+            gc.fillCirclesDiff(pair.first - PkPointF(0.5, 0.5), m_lastRadius,
+                               pair.second - PkPointF(0.5, 0.5), radius);
         }
     }
 
@@ -102,16 +102,16 @@ KisSpacingInformation KisRoundMarkerOp::paintAt(const KisPaintInformation& info)
     m_lastPaintPos = pos;
     m_lastRadius = radius;
 
-    QRectF dirtyRect(pos.x() - radius, pos.y() - radius,
+    PkRectF dirtyRect(pos.x() - radius, pos.y() - radius,
                      2 * radius, 2 * radius);
     dirtyRect = kisGrowRect(dirtyRect, 1);
 
-    const QVector<QRect> allDirtyRects =
+    const PkVector<PkRect> allDirtyRects =
         painter()->calculateAllMirroredRects(dirtyRect.toAlignedRect());
 
     painter()->addDirtyRects(allDirtyRects);
 
-    // QPointF scatteredPos =
+    // PkPointF scatteredPos =
     //     m_scatterOption.apply(info,
     //                           brush->maskWidth(shape, 0, 0, info),
     //                           brush->maskHeight(shape, 0, 0, info));
@@ -120,7 +120,7 @@ KisSpacingInformation KisRoundMarkerOp::paintAt(const KisPaintInformation& info)
 
     //updateMask(info, scale, rotation, scatteredPos);
 
-    //QPointF newCenterPos = QRectF(m_dstDabRect).center();
+    //PkPointF newCenterPos = PkRectF(m_dstDabRect).center();
     /**
      * Save the center of the current dab to know where to read the
      * data during the next pass. We do not save scatteredPos here,
@@ -128,7 +128,7 @@ KisSpacingInformation KisRoundMarkerOp::paintAt(const KisPaintInformation& info)
      * brush (due to rounding effects), which will result in a
      * really weird quality.
      */
-    //QRect srcDabRect = m_dstDabRect.translated((m_lastPaintPos - newCenterPos).toPoint());
+    //PkRect srcDabRect = m_dstDabRect.translated((m_lastPaintPos - newCenterPos).toPoint());
 
     //m_lastPaintPos = newCenterPos;
 

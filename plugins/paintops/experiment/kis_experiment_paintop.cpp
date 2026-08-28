@@ -10,7 +10,7 @@
 
 #include <cmath>
 
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 #include <KoCompositeOpRegistry.h>
 
@@ -82,7 +82,7 @@ void KisExperimentPaintOp::paintRegion(const KisRegion &changedRegion)
     if (m_useMirroring) {
         m_originalPainter->setAntiAliasPolygonFill(!m_hardEdge);
 
-        Q_FOREACH (const QRect & rect, changedRegion.rects()) {
+        Q_FOREACH (const PkRect & rect, changedRegion.rects()) {
             m_originalPainter->fillPainterPath(m_path, rect);
             painter()->renderDabWithMirroringNonIncremental(rect, m_originalDevice);
 
@@ -95,25 +95,25 @@ void KisExperimentPaintOp::paintRegion(const KisRegion &changedRegion)
         painter()->setCompositeOpId(COMPOSITE_COPY);
         painter()->setAntiAliasPolygonFill(!m_hardEdge);
 
-        Q_FOREACH (const QRect & rect, changedRegion.rects()) {
+        Q_FOREACH (const PkRect & rect, changedRegion.rects()) {
             painter()->fillPainterPath(m_path, rect);
         }
     }
 }
 
-QPointF KisExperimentPaintOp::speedCorrectedPosition(const KisPaintInformation& pi1,
+PkPointF KisExperimentPaintOp::speedCorrectedPosition(const KisPaintInformation& pi1,
         const KisPaintInformation& pi2)
 {
     const qreal fadeFactor = 0.6;
 
-    QPointF diff = pi2.pos() - pi1.pos();
+    PkPointF diff = pi2.pos() - pi1.pos();
     qreal realLength = sqrt(diff.x() * diff.x() + diff.y() * diff.y());
 
     if (realLength < 0.1) return pi2.pos();
 
     qreal coeff = 0.5 * realLength * m_speedMultiplier;
     m_savedSpeedCoeff = fadeFactor * m_savedSpeedCoeff + (1 - fadeFactor) * coeff;
-    QPointF newPoint = pi1.pos() + diff * m_savedSpeedCoeff / realLength;
+    PkPointF newPoint = pi1.pos() + diff * m_savedSpeedCoeff / realLength;
     m_savedSpeedPoint = fadeFactor * m_savedSpeedPoint + (1 - fadeFactor) * newPoint;
 
     return m_savedSpeedPoint;
@@ -144,8 +144,8 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
     }
     else {
 
-        const QPointF pos1 = pi1.pos();
-        QPointF pos2 = pi2.pos();
+        const PkPointF pos1 = pi1.pos();
+        PkPointF pos2 = pi2.pos();
 
         if (m_speedEnabled) {
             pos2 = speedCorrectedPosition(pi1, pi2);
@@ -158,7 +158,7 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
             m_savedSmoothingDistance += length;
 
             if (m_savedSmoothingDistance > m_smoothingThreshold) {
-                QPointF pt = (m_savedSmoothingPoint + pos2) * 0.5;
+                PkPointF pt = (m_savedSmoothingPoint + pos2) * 0.5;
 
                 // for updates approximate curve with two lines
                 m_savedPoints << m_path.currentPosition();
@@ -180,7 +180,7 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
 
         if (m_displaceEnabled) {
             if (m_path.elementCount() % 16 == 0) {
-                QRectF bounds = m_path.boundingRect();
+                PkRectF bounds = m_path.boundingRect();
                 m_path = applyDisplace(m_path, m_displaceCoeff - length);
                 bounds |= m_path.boundingRect();
 
@@ -198,7 +198,7 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
         const int timeThreshold = 40;
         const int elapsedTime = pi2.currentTime() - m_lastPaintTime;
 
-        QRect pathBounds = m_path.boundingRect().toRect();
+        PkRect pathBounds = m_path.boundingRect().toRect();
         int distanceMetric = qMax(pathBounds.width(), pathBounds.height());
 
         if (elapsedTime > timeThreshold ||
@@ -219,15 +219,15 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
                 KisRegion changedRegion;
                 if (distanceMetric < pathSizeThreshold) {
 
-                    QRectF changedRect = m_path.boundingRect().toRect() |
+                    PkRectF changedRect = m_path.boundingRect().toRect() |
                                          m_lastPaintedPath.boundingRect().toRect();
                     changedRect.adjust(-1, -1, 1, 1);
 
                     changedRegion = changedRect.toRect();
                 }
                 else {
-                    QPainterPath diff1 = m_path - m_lastPaintedPath;
-                    QPainterPath diff2 = m_lastPaintedPath - m_path;
+                    PkPainterPath diff1 = m_path - m_lastPaintedPath;
+                    PkPainterPath diff2 = m_lastPaintedPath - m_path;
 
                     changedRegion = KritaUtils::splitPath(diff1 | diff2);
                 }
@@ -259,9 +259,9 @@ KisSpacingInformation KisExperimentPaintOp::updateSpacingImpl(const KisPaintInfo
     return KisSpacingInformation(1.0);
 }
 
-bool tryMergePoints(QPainterPath &path,
-                    const QPointF &startPoint,
-                    const QPointF &endPoint,
+bool tryMergePoints(PkPainterPath &path,
+                    const PkPointF &startPoint,
+                    const PkPointF &endPoint,
                     qreal &distance,
                     qreal distanceThreshold,
                     bool lastSegment)
@@ -286,53 +286,53 @@ bool tryMergePoints(QPainterPath &path,
     return true;
 }
 
-qreal KisExperimentPaintOp::simplifyThreshold(const QRectF &bounds)
+qreal KisExperimentPaintOp::simplifyThreshold(const PkRectF &bounds)
 {
     qreal maxDimension = qMax(bounds.width(), bounds.height());
     return qMax(0.01 * maxDimension, 1.0);
 }
 
-QPointF KisExperimentPaintOp::getAngle(const QPointF& p1, const QPointF& p2, qreal distance)
+PkPointF KisExperimentPaintOp::getAngle(const PkPointF& p1, const PkPointF& p2, qreal distance)
 {
-    QPointF diff = p1 - p2;
+    PkPointF diff = p1 - p2;
     qreal realLength = sqrt(diff.x() * diff.x() + diff.y() * diff.y());
     return realLength > 0.5 ? p1 + diff * distance / realLength : p1;
 }
 
-QPainterPath KisExperimentPaintOp::applyDisplace(const QPainterPath& path, int speed)
+PkPainterPath KisExperimentPaintOp::applyDisplace(const PkPainterPath& path, int speed)
 {
-    QPointF lastPoint = path.currentPosition();
+    PkPointF lastPoint = path.currentPosition();
 
-    QPainterPath newPath;
+    PkPainterPath newPath;
     int count = path.elementCount();
     int curveElementCounter = 0;
-    QPointF ctrl1;
-    QPointF ctrl2;
-    QPointF endPoint;
+    PkPointF ctrl1;
+    PkPointF ctrl2;
+    PkPointF endPoint;
     for (int i = 0; i < count; i++) {
-        QPainterPath::Element e = path.elementAt(i);
+        PkPainterPath::Element e = path.elementAt(i);
         switch (e.type) {
-        case QPainterPath::MoveToElement: {
-            newPath.moveTo(getAngle(QPointF(e.x, e.y), lastPoint, speed));
+        case PkPainterPath::MoveToElement: {
+            newPath.moveTo(getAngle(PkPointF(e.x, e.y), lastPoint, speed));
             break;
         }
-        case QPainterPath::LineToElement: {
-            newPath.lineTo(getAngle(QPointF(e.x, e.y), lastPoint, speed));
+        case PkPainterPath::LineToElement: {
+            newPath.lineTo(getAngle(PkPointF(e.x, e.y), lastPoint, speed));
             break;
         }
-        case QPainterPath::CurveToElement: {
+        case PkPainterPath::CurveToElement: {
             curveElementCounter = 0;
-            endPoint = getAngle(QPointF(e.x, e.y), lastPoint, speed);
+            endPoint = getAngle(PkPointF(e.x, e.y), lastPoint, speed);
             break;
         }
-        case QPainterPath::CurveToDataElement: {
+        case PkPainterPath::CurveToDataElement: {
             curveElementCounter++;
 
             if (curveElementCounter == 1) {
-                ctrl1 = getAngle(QPointF(e.x, e.y), lastPoint, speed);
+                ctrl1 = getAngle(PkPointF(e.x, e.y), lastPoint, speed);
             }
             else if (curveElementCounter == 2) {
-                ctrl2 = getAngle(QPointF(e.x, e.y), lastPoint, speed);
+                ctrl2 = getAngle(PkPointF(e.x, e.y), lastPoint, speed);
                 newPath.cubicTo(ctrl1, ctrl2, endPoint);
             }
             break;

@@ -11,7 +11,7 @@
 
 struct KisExperimentPaintOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 KisExperimentPaintOpSettings::KisExperimentPaintOpSettings(KisResourcesInterfaceSP resourcesInterface)
@@ -35,10 +35,10 @@ bool KisExperimentPaintOpSettings::paintIncremental()
 
 KisOptimizedBrushOutline KisExperimentPaintOpSettings::brushOutline(const KisPaintInformation &info, const OutlineMode &mode, qreal alignForZoom)
 {
-    QPainterPath path;
+    PkPainterPath path;
     if (mode.isVisible) {
 
-        QRectF ellipse(0, 0, 3, 3);
+        PkRectF ellipse(0, 0, 3, 3);
         ellipse.translate(-ellipse.center());
         path.addEllipse(ellipse);
         ellipse.setRect(0,0, 12, 12);
@@ -46,7 +46,7 @@ KisOptimizedBrushOutline KisExperimentPaintOpSettings::brushOutline(const KisPai
         path.addEllipse(ellipse);
 
         if (mode.showTiltDecoration) {
-            path.addPath(makeTiltIndicator(info, QPointF(0.0, 0.0), 0.0, 3.0));
+            path.addPath(makeTiltIndicator(info, PkPointF(0.0, 0.0), 0.0, 3.0));
         }
 
         path.translate(KisAlgebra2D::alignForZoom(info.pos(), alignForZoom));
@@ -63,19 +63,19 @@ KisOptimizedBrushOutline KisExperimentPaintOpSettings::brushOutline(const KisPai
 
 
 
-QList<KisUniformPaintOpPropertySP> KisExperimentPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisExperimentPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop =
-                new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int, KoID("shape_speed", i18n("Speed")), settings, 0);
+                new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int, KoID("shape_speed", "Speed"), settings, 0);
 
             prop->setRange(0, 100);
             prop->setSingleStep(1);
-            prop->setSuffix(i18n("%"));
+            prop->setSuffix("%");
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -98,17 +98,17 @@ QList<KisUniformPaintOpPropertySP> KisExperimentPaintOpSettings::uniformProperti
                     return option.isSpeedEnabled;
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop =
-                new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int, KoID("shape_smooth", i18n("Smooth")), settings, 0);
+                new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int, KoID("shape_smooth", "Smooth"), settings, 0);
 
             prop->setRange(0, 100);
             prop->setSingleStep(1);
-            prop->setSuffix(i18n(" px"));
+            prop->setSuffix(" px");
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -131,20 +131,20 @@ QList<KisUniformPaintOpPropertySP> KisExperimentPaintOpSettings::uniformProperti
                     return option.isSmoothingEnabled;
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
 
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop = new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
-                                                                                                          KoID("shape_displace", i18n("Displace")),
+                                                                                                          KoID("shape_displace", "Displace"),
                                                                                                           settings,
                                                                                                           0);
 
             prop->setRange(0, 100);
             prop->setSingleStep(1);
-            prop->setSuffix(i18n("%"));
+            prop->setSuffix("%");
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -167,14 +167,14 @@ QList<KisUniformPaintOpPropertySP> KisExperimentPaintOpSettings::uniformProperti
                     return option.isDisplacementEnabled;
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
 
         {
             KisUniformPaintOpPropertyCallback *prop =
-                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("shape_windingfill", i18n("Winding Fill")), settings, 0);
+                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("shape_windingfill", "Winding Fill"), settings, 0);
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -191,14 +191,14 @@ QList<KisUniformPaintOpPropertySP> KisExperimentPaintOpSettings::uniformProperti
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
 
         {
             KisUniformPaintOpPropertyCallback *prop =
-                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("shape_hardedge", i18n("Hard Edge")), settings, 0);
+                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("shape_hardedge", "Hard Edge"), settings, 0);
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -215,7 +215,7 @@ QList<KisUniformPaintOpPropertySP> KisExperimentPaintOpSettings::uniformProperti
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

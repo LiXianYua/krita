@@ -6,12 +6,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "curve_paintop_plugin.h"
-#include <klocalizedstring.h>
-
-#include <kis_debug.h>
-#include <kpluginfactory.h>
-
 #include <brushengine/kis_paintop_registry.h>
 
 #include "kis_curve_paintop_settings.h"
@@ -21,19 +15,12 @@
 #include <kis_node.h>
 #include "kis_global.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(CurvePaintOpPluginFactory, "kritacurvepaintop.json", registerPlugin<CurvePaintOpPlugin>();)
-
-
-CurvePaintOpPlugin::CurvePaintOpPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace { struct CurvePaintOpRegistration { CurvePaintOpRegistration()
 {
     KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
-    r->add(new KisSimplePaintOpFactory<KisCurvePaintOp, KisCurvePaintOpSettings>("curvebrush", i18n("Curve"), KisPaintOpFactory::categoryStable(), "krita-curve.png", QString(), QStringList(), 9));
+    r->add(new KisSimplePaintOpFactory<KisCurvePaintOp, KisCurvePaintOpSettings>("curvebrush", "Curve", KisPaintOpFactory::categoryStable(), "krita-curve.png", PkString(), PkStringList(), 9));
 
 }
 
-CurvePaintOpPlugin::~CurvePaintOpPlugin()
-{
-}
-
-#include "curve_paintop_plugin.moc"
+}; }
+static CurvePaintOpRegistration s_curvePaintOpRegistration;

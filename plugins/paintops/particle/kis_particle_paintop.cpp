@@ -97,7 +97,7 @@ void KisParticlePaintOp::doPaintLine(const KisPaintInformation &pi1, const KisPa
     }
 
     m_particleBrush.draw(m_dab, painter()->paintColor(), pi2.pos());
-    QRect rc = m_dab->extent();
+    PkRect rc = m_dab->extent();
 
     painter()->bitBlt(rc.x(), rc.y(), m_dab, rc.x(), rc.y(), rc.width(), rc.height());
     painter()->renderMirrorMask(rc, m_dab);

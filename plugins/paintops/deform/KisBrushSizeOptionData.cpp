@@ -8,15 +8,15 @@
 #include "kis_properties_configuration.h"
 
 
-const QString BRUSH_SHAPE = "Brush/shape";
-const QString BRUSH_DIAMETER = "Brush/diameter";
-const QString BRUSH_ASPECT = "Brush/aspect";
-const QString BRUSH_SCALE = "Brush/scale";
-const QString BRUSH_ROTATION = "Brush/rotation";
-const QString BRUSH_SPACING = "Brush/spacing";
-const QString BRUSH_DENSITY = "Brush/density";
-const QString BRUSH_JITTER_MOVEMENT = "Brush/jitterMovement";
-const QString BRUSH_JITTER_MOVEMENT_ENABLED = "Brush/jitterMovementEnabled";
+const PkString BRUSH_SHAPE = "Brush/shape";
+const PkString BRUSH_DIAMETER = "Brush/diameter";
+const PkString BRUSH_ASPECT = "Brush/aspect";
+const PkString BRUSH_SCALE = "Brush/scale";
+const PkString BRUSH_ROTATION = "Brush/rotation";
+const PkString BRUSH_SPACING = "Brush/spacing";
+const PkString BRUSH_DENSITY = "Brush/density";
+const PkString BRUSH_JITTER_MOVEMENT = "Brush/jitterMovement";
+const PkString BRUSH_JITTER_MOVEMENT_ENABLED = "Brush/jitterMovementEnabled";
 
 
 bool KisBrushSizeOptionData::read(const KisPropertiesConfiguration *setting)

@@ -7,18 +7,11 @@
 #ifndef SKETCH_PAINTOP_PLUGIN_H_
 #define SKETCH_PAINTOP_PLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 /**
  * A plugin wrapper that adds the paintop factories to the paintop registry.
  */
-class SketchPaintOpPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    SketchPaintOpPlugin(QObject *parent, const QVariantList &);
-    ~SketchPaintOpPlugin() override;
-};
+// static registration is defined in the implementation unit.
 
 #endif // SKETCH_PAINTOP_PLUGIN_H_

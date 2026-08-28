@@ -13,7 +13,7 @@
 
 struct KisDeformPaintOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 KisDeformPaintOpSettings::KisDeformPaintOpSettings(KisResourcesInterfaceSP resourcesInterface)
@@ -80,7 +80,7 @@ KisOptimizedBrushOutline KisDeformPaintOpSettings::brushOutline(const KisPaintIn
         path = outlineFetcher()->fetchOutline(info, this, path, mode, alignForZoom);
 
         if (mode.showTiltDecoration) {
-            QPainterPath tiltLine = makeTiltIndicator(info, QPointF(0.0, 0.0), width * 0.5, 3.0);
+            PkPainterPath tiltLine = makeTiltIndicator(info, PkPointF(0.0, 0.0), width * 0.5, 3.0);
             path.addPath(outlineFetcher()->fetchOutline(info, this, tiltLine, mode, alignForZoom, 1.0, 0.0, true, 0, 0));
         }
     }
@@ -95,16 +95,16 @@ KisOptimizedBrushOutline KisDeformPaintOpSettings::brushOutline(const KisPaintIn
 #include "kis_standard_uniform_properties_factory.h"
 
 
-QList<KisUniformPaintOpPropertySP> KisDeformPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisDeformPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("deform_amount", i18n("Amount")),
+                                                                KoID("deform_amount", "Amount"),
                                                                 settings,
                                                                 0);
 
@@ -126,23 +126,23 @@ QList<KisUniformPaintOpPropertySP> KisDeformPaintOpSettings::uniformProperties(K
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
 
         {
-            KisComboBasedPaintOpPropertyCallback *prop = new KisComboBasedPaintOpPropertyCallback(KoID("deform_mode", i18n("Deform Mode")), settings, 0);
+            KisComboBasedPaintOpPropertyCallback *prop = new KisComboBasedPaintOpPropertyCallback(KoID("deform_mode", "Deform Mode"), settings, 0);
 
-            QList<QString> modes;
-            modes << i18nc("Grow as in deform brush engine", "Grow");
-            modes << i18nc("Shrink as in deform brush engine", "Shrink");
-            modes << i18n("Swirl CW");
-            modes << i18n("Swirl CCW");
-            modes << i18n("Move");
-            modes << i18n("Lens Zoom In");
-            modes << i18n("Lens Zoom Out");
-            modes << i18nc("Rearrange the positions of the pixels under the cursor", "Color Deformation");
+            PkList<PkString> modes;
+            modes << "Grow";
+            modes << "Shrink";
+            modes << "Swirl CW";
+            modes << "Swirl CCW";
+            modes << "Move";
+            modes << "Lens Zoom In";
+            modes << "Lens Zoom Out";
+            modes << "Color Deformation";
 
             prop->setItems(modes);
 
@@ -160,7 +160,7 @@ QList<KisUniformPaintOpPropertySP> KisDeformPaintOpSettings::uniformProperties(K
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -170,11 +170,11 @@ QList<KisUniformPaintOpPropertySP> KisDeformPaintOpSettings::uniformProperties(K
             KisIntSliderBasedPaintOpPropertyCallback *prop =
                 new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
                                                              KisIntSliderBasedPaintOpPropertyCallback::SubType_Angle,
-                                                             KoID("deform_angle", i18n("Angle")),
+                                                             KoID("deform_angle", "Angle"),
                                                              settings,
                                                              0);
 
-            const QString degree(QStringLiteral("°"));
+            const PkString degree("°");
             prop->setRange(0, 360);
             prop->setSingleStep(1);
             prop->setSuffix(degree);
@@ -194,7 +194,7 @@ QList<KisUniformPaintOpPropertySP> KisDeformPaintOpSettings::uniformProperties(K
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

@@ -7,7 +7,7 @@
 #ifndef KIS_CURVE_PAINTOP_SETTINGS_H_
 #define KIS_CURVE_PAINTOP_SETTINGS_H_
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include <brushengine/kis_paintop_settings.h>
 
 class KisCurvePaintOpSettings : public KisPaintOpSettings
@@ -25,10 +25,10 @@ public:
 
     bool paintIncremental() override;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 #endif

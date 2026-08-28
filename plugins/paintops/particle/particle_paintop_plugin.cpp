@@ -3,13 +3,6 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include "particle_paintop_plugin.h"
-
-
-#include <klocalizedstring.h>
-#include <kis_debug.h>
-#include <kpluginfactory.h>
-
 #include <brushengine/kis_paintop_registry.h>
 
 
@@ -21,18 +14,11 @@
 
 #include "kis_global.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ParticlePaintOpPluginFactory, "kritaparticlepaintop.json", registerPlugin<ParticlePaintOpPlugin>();)
-
-
-ParticlePaintOpPlugin::ParticlePaintOpPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace { struct ParticlePaintOpRegistration { ParticlePaintOpRegistration()
 {
     KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
-    r->add(new KisSimplePaintOpFactory<KisParticlePaintOp, KisParticlePaintOpSettings>("particlebrush", i18n("Particle"), KisPaintOpFactory::categoryStable(), "krita-particle.png", QString(), QStringList(), 11, false));
+    r->add(new KisSimplePaintOpFactory<KisParticlePaintOp, KisParticlePaintOpSettings>("particlebrush", "Particle", KisPaintOpFactory::categoryStable(), "krita-particle.png", PkString(), PkStringList(), 11, false));
 }
 
-ParticlePaintOpPlugin::~ParticlePaintOpPlugin()
-{
-}
-
-#include "particle_paintop_plugin.moc"
+}; }
+static ParticlePaintOpRegistration s_particlePaintOpRegistration;

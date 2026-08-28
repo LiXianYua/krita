@@ -9,17 +9,17 @@
 #include <kis_paintop_lod_limitations.h>
 
 
-const QString SKETCH_PROBABILITY = "Sketch/probability";
-const QString SKETCH_DISTANCE_DENSITY = "Sketch/distanceDensity";
-const QString SKETCH_OFFSET = "Sketch/offset";
-const QString SKETCH_USE_SIMPLE_MODE = "Sketch/simpleMode";
-const QString SKETCH_MAKE_CONNECTION = "Sketch/makeConnection";
-const QString SKETCH_MAGNETIFY = "Sketch/magnetify";
-const QString SKETCH_LINE_WIDTH = "Sketch/lineWidth";
-const QString SKETCH_RANDOM_RGB = "Sketch/randomRGB";
-const QString SKETCH_RANDOM_OPACITY = "Sketch/randomOpacity";
-const QString SKETCH_DISTANCE_OPACITY = "Sketch/distanceOpacity";
-const QString SKETCH_ANTIALIASING = "Sketch/antiAliasing";
+const PkString SKETCH_PROBABILITY = "Sketch/probability";
+const PkString SKETCH_DISTANCE_DENSITY = "Sketch/distanceDensity";
+const PkString SKETCH_OFFSET = "Sketch/offset";
+const PkString SKETCH_USE_SIMPLE_MODE = "Sketch/simpleMode";
+const PkString SKETCH_MAKE_CONNECTION = "Sketch/makeConnection";
+const PkString SKETCH_MAGNETIFY = "Sketch/magnetify";
+const PkString SKETCH_LINE_WIDTH = "Sketch/lineWidth";
+const PkString SKETCH_RANDOM_RGB = "Sketch/randomRGB";
+const PkString SKETCH_RANDOM_OPACITY = "Sketch/randomOpacity";
+const PkString SKETCH_DISTANCE_OPACITY = "Sketch/distanceOpacity";
+const PkString SKETCH_ANTIALIASING = "Sketch/antiAliasing";
 
 
 bool KisSketchOpOptionData::read(const KisPropertiesConfiguration *setting)
@@ -57,6 +57,6 @@ void KisSketchOpOptionData::write(KisPropertiesConfiguration *setting) const
 KisPaintopLodLimitations KisSketchOpOptionData::lodLimitations() const
 {
     KisPaintopLodLimitations l;
-    l.limitations << KoID("sketch-brush", i18nc("PaintOp instant preview limitation", "Sketch brush (differences in connecting lines are possible)"));
+    l.limitations << KoID("sketch-brush", "Sketch brush (differences in connecting lines are possible)");
     return l;
 }

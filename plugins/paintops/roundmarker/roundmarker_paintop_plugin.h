@@ -7,18 +7,11 @@
 #ifndef _ROUNDMARKER_PAINTOP_PLUGIN_H_
 #define _ROUNDMARKER_PAINTOP_PLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 /**
  * A plugin wrapper that adds the paintop factories to the paintop registry.
  */
-class RoundMarkerPaintOpPlugin: public QObject
-{
-    Q_OBJECT
-public:
-    RoundMarkerPaintOpPlugin(QObject *parent, const QVariantList &);
-    ~RoundMarkerPaintOpPlugin() override;
-};
+// static registration is defined in the implementation unit.
 
 #endif // _ROUNDMARKER_PAINTOP_PLUGIN_H_

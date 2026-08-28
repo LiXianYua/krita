@@ -12,7 +12,7 @@ struct KisLineWidthOptionData : KisCurveOptionData
 {
     KisLineWidthOptionData()
         : KisCurveOptionData(
-              KoID("Line width", i18n("Line width")),
+              KoID("Line width", "Line width"),
               Checkability::Checkable,
               std::nullopt,
               std::make_pair(0.1, 1.0))
@@ -23,7 +23,7 @@ struct KisCurvesOpacityOptionData : KisCurveOptionData
 {
     KisCurvesOpacityOptionData()
         : KisCurveOptionData(
-              KoID("Curves opacity", i18n("Curves opacity")),
+              KoID("Curves opacity", "Curves opacity"),
               Checkability::Checkable,
               std::nullopt,
               std::make_pair(0.1, 1.0))

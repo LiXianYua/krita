@@ -7,7 +7,7 @@
 #ifndef KIS_GRID_PAINTOP_SETTINGS_H_
 #define KIS_GRID_PAINTOP_SETTINGS_H_
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include <brushengine/kis_paintop_settings.h>
 #include <kis_types.h>
@@ -31,7 +31,7 @@ public:
     KisOptimizedBrushOutline brushOutline(const KisPaintInformation &info, const OutlineMode &mode, qreal alignForZoom) override;
     bool paintIncremental() override;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
     bool mousePressEvent(const KisPaintInformation& pos, Qt::KeyboardModifiers modifiers, KisNodeWSP currentNode) override;
     bool mouseReleaseEvent() override;
@@ -39,7 +39,7 @@ public:
 private:
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 
 public:
     bool m_modifyOffsetWithShortcut;

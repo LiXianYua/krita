@@ -4,12 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "deform_paintop_plugin.h"
-#include <klocalizedstring.h>
-
-#include <kis_debug.h>
-#include <kpluginfactory.h>
-
 #include <KoCompositeOpRegistry.h>
 
 #include <brushengine/kis_paintop_registry.h>
@@ -20,18 +14,11 @@
 #include <kis_image.h>
 #include <kis_node.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(DeformPaintOpPluginFactory, "kritadeformpaintop.json", registerPlugin<DeformPaintOpPlugin>();)
-
-
-DeformPaintOpPlugin::DeformPaintOpPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace { struct DeformPaintOpRegistration { DeformPaintOpRegistration()
 {
     KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
-    r->add(new KisSimplePaintOpFactory<KisDeformPaintOp, KisDeformPaintOpSettings>("deformbrush", i18n("Deform"), KisPaintOpFactory::categoryStable(), "krita-deform.png", QString(), QStringList(COMPOSITE_COPY), 16));
+    r->add(new KisSimplePaintOpFactory<KisDeformPaintOp, KisDeformPaintOpSettings>("deformbrush", "Deform", KisPaintOpFactory::categoryStable(), "krita-deform.png", PkString(), PkStringList(COMPOSITE_COPY), 16));
 }
 
-DeformPaintOpPlugin::~DeformPaintOpPlugin()
-{
-}
-
-#include "deform_paintop_plugin.moc"
+}; }
+static DeformPaintOpRegistration s_deformPaintOpRegistration;

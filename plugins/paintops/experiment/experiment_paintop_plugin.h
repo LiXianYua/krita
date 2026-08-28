@@ -7,18 +7,11 @@
 #ifndef EXPERIMENT_PAINTOP_PLUGIN_H_
 #define EXPERIMENT_PAINTOP_PLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 /**
  * A plugin wrapper that adds the paintop factories to the paintop registry.
  */
-class ExperimentPaintOpPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    ExperimentPaintOpPlugin(QObject *parent, const QVariantList &);
-    ~ExperimentPaintOpPlugin() override;
-};
+// static registration is defined in the implementation unit.
 
 #endif // EXPERIMENT_PAINTOP_PLUGIN_H_

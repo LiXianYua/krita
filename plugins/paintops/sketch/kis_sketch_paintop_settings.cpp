@@ -41,7 +41,7 @@ KisOptimizedBrushOutline KisSketchPaintOpSettings::brushOutline(const KisPaintIn
 
         path = outlineFetcher()->fetchOutline(info, this, path, mode, alignForZoom);
         if (mode.showTiltDecoration) {
-            QPainterPath tiltLine =
+            PkPainterPath tiltLine =
                 makeTiltIndicator(info, path.boundingRect().center(), diameter * 0.5, 3.0);
             path.addPath(outlineFetcher()->fetchOutline(info, this, tiltLine, mode, alignForZoom, 1.0, 0.0, true, path.boundingRect().center().x(), path.boundingRect().center().y()));
         }

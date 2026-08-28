@@ -14,7 +14,7 @@
 #include <kis_brush_based_paintop_settings.h>
 #include <kis_types.h>
 
-class QDomElement;
+class PkXmlElement;
 class KisFilterConfiguration;
 
 class KisFilterOpSettings : public KisBrushBasedPaintOpSettings
@@ -29,10 +29,10 @@ public:
     KisFilterConfigurationSP filterConfig() const;
 
     using KisPaintOpSettings::toXML;
-    void toXML(QDomDocument& doc, QDomElement& root) const override;
+    void toXML(PkXmlDocument& doc, PkXmlElement& root) const override;
 
     using KisPaintOpSettings::fromXML;
-    void fromXML(const QDomElement& e) override;
+    void fromXML(const PkXmlElement& e) override;
 
     bool hasPatternSettings() const override;
 };

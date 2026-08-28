@@ -184,7 +184,7 @@ public:
     ~DeformBrush();
 
     KisFixedPaintDeviceSP paintMask(KisFixedPaintDeviceSP dab, KisPaintDeviceSP layer, KisRandomSourceSP randomSource,
-                                    qreal scale, qreal rotation, QPointF pos,
+                                    qreal scale, qreal rotation, PkPointF pos,
                                     qreal subPixelX, qreal subPixelY, int dabX, int dabY);
 
     void setSizeProperties(KisBrushSizeOptionData * properties) {
@@ -194,12 +194,12 @@ public:
         m_properties = properties;
     }
     void initDeformAction();
-    QPointF hotSpot(qreal scale, qreal rotation);
+    PkPointF hotSpot(qreal scale, qreal rotation);
 
 private:
     // return true if can paint
     bool setupAction(
-        DeformModes mode, const QPointF& pos, QTransform const& rotation);
+        DeformModes mode, const PkPointF& pos, PkTransform const& rotation);
     void debugColor(const quint8* data, KoColorSpace * cs);
 
     qreal maskWidth(qreal scale) {
@@ -221,7 +221,7 @@ private:
     qreal m_prevX {0.0}, m_prevY {0.0};
     int m_counter {1}; // taken from the constructor
 
-    QRectF m_maskRect;
+    PkRectF m_maskRect;
 
     DeformBase * m_deformAction {0};
 

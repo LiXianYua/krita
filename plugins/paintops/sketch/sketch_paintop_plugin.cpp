@@ -3,14 +3,6 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include "sketch_paintop_plugin.h"
-
-
-#include <klocalizedstring.h>
-
-#include <kis_debug.h>
-#include <kpluginfactory.h>
-
 #include <brushengine/kis_paintop_registry.h>
 
 
@@ -21,19 +13,12 @@
 
 #include "kis_global.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(SketchPaintOpPluginFactory, "kritasketchpaintop.json", registerPlugin<SketchPaintOpPlugin>();)
-
-
-SketchPaintOpPlugin::SketchPaintOpPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace { struct SketchPaintOpRegistration { SketchPaintOpRegistration()
 {
     KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
-    r->add(new KisSimplePaintOpFactory<KisSketchPaintOp, KisSketchPaintOpSettings>("sketchbrush", i18n("Sketch"), KisPaintOpFactory::categoryStable(), "krita-sketch.png", QString(), QStringList(), 3));
+    r->add(new KisSimplePaintOpFactory<KisSketchPaintOp, KisSketchPaintOpSettings>("sketchbrush", "Sketch", KisPaintOpFactory::categoryStable(), "krita-sketch.png", PkString(), PkStringList(), 3));
 
 }
 
-SketchPaintOpPlugin::~SketchPaintOpPlugin()
-{
-}
-
-#include "sketch_paintop_plugin.moc"
+}; }
+static SketchPaintOpRegistration s_sketchPaintOpRegistration;

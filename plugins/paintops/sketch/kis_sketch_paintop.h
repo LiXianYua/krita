@@ -34,7 +34,7 @@ public:
 
     void paintLine(const KisPaintInformation &pi1, const KisPaintInformation &pi2, KisDistanceInformation *currentDistance) override;
 
-    static QList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface);
+    static PkList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface);
 
 protected:
     KisSpacingInformation paintAt(const KisPaintInformation& info) override;
@@ -49,8 +49,8 @@ private:
 
     // mask detection area
     KisFixedPaintDeviceSP m_maskDab;
-    QRectF m_brushBoundingBox;
-    QPointF m_hotSpot;
+    PkRectF m_brushBoundingBox;
+    PkPointF m_hotSpot;
 
     // simple mode
     qreal m_radius {1.0};
@@ -67,14 +67,14 @@ private:
     KisBrushOptionProperties m_brushOption;
     KisSketchOpOptionData m_sketchProperties;
 
-    QVector<QPointF> m_points;
+    PkVector<PkPointF> m_points;
     int m_count {0};
     KisPainter * m_painter {nullptr};
     KisBrushSP m_brush;
     KisDabCache *m_dabCache {nullptr};
 
 private:
-    void drawConnection(const QPointF &start, const QPointF &end, double lineWidth);
+    void drawConnection(const PkPointF &start, const PkPointF &end, double lineWidth);
     void updateBrushMask(const KisPaintInformation& info, qreal scale, qreal rotation);
     void doPaintLine(const KisPaintInformation &pi1, const KisPaintInformation &pi2);
 };

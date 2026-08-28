@@ -7,7 +7,7 @@
 #ifndef KIS_EXPERIMENT_PAINTOP_H_
 #define KIS_EXPERIMENT_PAINTOP_H_
 
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 #include <klocalizedstring.h>
 #include <brushengine/kis_paintop.h>
@@ -18,7 +18,7 @@
 
 #include <kis_painter.h>
 
-class QPointF;
+class PkPointF;
 class KisPainter;
 class KisRegion;
 
@@ -39,18 +39,18 @@ protected:
 
 private:
     void paintRegion(const KisRegion &changedRegion);
-    QPointF speedCorrectedPosition(const KisPaintInformation& pi1,
+    PkPointF speedCorrectedPosition(const KisPaintInformation& pi1,
                                    const KisPaintInformation& pi2);
 
 
-    static qreal simplifyThreshold(const QRectF &bounds);
-    static QPointF getAngle(const QPointF& p1, const QPointF& p2, qreal distance);
-    static QPainterPath applyDisplace(const QPainterPath& path, int speed);
+    static qreal simplifyThreshold(const PkRectF &bounds);
+    static PkPointF getAngle(const PkPointF& p1, const PkPointF& p2, qreal distance);
+    static PkPainterPath applyDisplace(const PkPainterPath& path, int speed);
 
 
     bool m_displaceEnabled {false};
     int m_displaceCoeff {0};
-    QPainterPath m_lastPaintedPath;
+    PkPainterPath m_lastPaintedPath;
 
     bool m_windingFill {false};
     bool m_hardEdge {false};
@@ -58,21 +58,21 @@ private:
     bool m_speedEnabled {false};
     int m_speedMultiplier {1};
     qreal m_savedSpeedCoeff {1.0};
-    QPointF m_savedSpeedPoint;
+    PkPointF m_savedSpeedPoint;
 
     bool m_smoothingEnabled {false};
     int m_smoothingThreshold {1};
-    QPointF m_savedSmoothingPoint;
+    PkPointF m_savedSmoothingPoint;
     int m_savedSmoothingDistance {1};
 
     int m_savedUpdateDistance {1};
-    QVector<QPointF> m_savedPoints;
+    PkVector<PkPointF> m_savedPoints;
     int m_lastPaintTime {0};
 
     bool m_firstRun {true};
-    QPointF m_center;
+    PkPointF m_center;
 
-    QPainterPath m_path;
+    PkPainterPath m_path;
     KisExperimentOpOptionData m_experimentOption;
 
     bool m_useMirroring {false};

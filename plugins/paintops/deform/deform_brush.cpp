@@ -12,7 +12,7 @@
 #include <KoColor.h>
 #include <KoColorSpace.h>
 
-#include <QRect>
+#include <PkRect.h>
 
 #include <kis_types.h>
 #include <kis_iterator_ng.h>
@@ -78,7 +78,7 @@ void DeformBrush::initDeformAction()
 }
 
 bool DeformBrush::setupAction(
-    DeformModes mode, const QPointF& pos, QTransform const& rotation)
+    DeformModes mode, const PkPointF& pos, PkTransform const& rotation)
 {
 
     switch (mode) {
@@ -159,7 +159,7 @@ KisFixedPaintDeviceSP DeformBrush::paintMask(KisFixedPaintDeviceSP dab,
         KisRandomSourceSP randomSource,
         qreal scale,
         qreal rotation,
-        QPointF pos, qreal subPixelX, qreal subPixelY, int dabX, int dabY)
+        PkPointF pos, qreal subPixelX, qreal subPixelY, int dabX, int dabY)
 {
     KisFixedPaintDeviceSP mask = new KisFixedPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
     KisCrossDeviceColorSampler colorSampler(layer, dab);
@@ -184,9 +184,9 @@ KisFixedPaintDeviceSP DeformBrush::paintMask(KisFixedPaintDeviceSP dab,
 
     qreal distance;
 
-    QTransform forwardRotationMatrix;
+    PkTransform forwardRotationMatrix;
     forwardRotationMatrix.rotate(rotation);
-    QTransform reverseRotationMatrix;
+    PkTransform reverseRotationMatrix;
     reverseRotationMatrix.rotate(-rotation);
 
     // if can't paint, stop
@@ -264,7 +264,7 @@ KisFixedPaintDeviceSP DeformBrush::paintMask(KisFixedPaintDeviceSP dab,
 
 void DeformBrush::debugColor(const quint8* data, KoColorSpace * cs)
 {
-    QColor rgbcolor;
+    PkColor rgbcolor;
     cs->toQColor(data, &rgbcolor);
     dbgPlugins << "RGBA: ("
                << rgbcolor.red()
@@ -273,16 +273,16 @@ void DeformBrush::debugColor(const quint8* data, KoColorSpace * cs)
                << ", " << rgbcolor.alpha() << ")";
 }
 
-QPointF DeformBrush::hotSpot(qreal scale, qreal rotation)
+PkPointF DeformBrush::hotSpot(qreal scale, qreal rotation)
 {
     qreal fWidth = maskWidth(scale);
     qreal fHeight = maskHeight(scale);
 
-    QTransform m;
+    PkTransform m;
     m.reset();
     m.rotate(-rotation);
 
-    m_maskRect = QRect(0, 0, fWidth, fHeight);
+    m_maskRect = PkRect(0, 0, fWidth, fHeight);
     m_maskRect.translate(-m_maskRect.center());
     m_maskRect = m.mapRect(m_maskRect);
     m_maskRect.translate(-m_maskRect.topLeft());

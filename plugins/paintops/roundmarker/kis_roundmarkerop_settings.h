@@ -7,7 +7,7 @@
 #ifndef __KIS_ROUNDMARKEROP_SETTINGS_H
 #define __KIS_ROUNDMARKEROP_SETTINGS_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include <kis_paintop_settings.h>
 #include <kis_outline_generation_policy.h>
 
@@ -38,11 +38,11 @@ public:
 
     KisOptimizedBrushOutline brushOutline(const KisPaintInformation &info, const OutlineMode &mode, qreal alignForZoom) override;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_ROUNDMARKEROP_SETTINGS_H */

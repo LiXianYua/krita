@@ -11,7 +11,7 @@
 
 struct KisParticlePaintOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 KisParticlePaintOpSettings::KisParticlePaintOpSettings(KisResourcesInterfaceSP resourcesInterface)
@@ -38,15 +38,15 @@ bool KisParticlePaintOpSettings::paintIncremental()
 #include "kis_standard_uniform_properties_factory.h"
 
 
-QList<KisUniformPaintOpPropertySP> KisParticlePaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisParticlePaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop = new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
-                                                                                                          KoID("particle_particles", i18n("Particles")),
+                                                                                                          KoID("particle_particles", "Particles"),
                                                                                                           settings,
                                                                                                           0);
 
@@ -68,14 +68,14 @@ QList<KisUniformPaintOpPropertySP> KisParticlePaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("particle_opecityweight", i18n("Opacity Weight")),
+                                                                KoID("particle_opecityweight", "Opacity Weight"),
                                                                 settings,
                                                                 0);
 
@@ -97,14 +97,14 @@ QList<KisUniformPaintOpPropertySP> KisParticlePaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("particle_dx_scale", i18n("dx scale")),
+                                                                KoID("particle_dx_scale", "dx scale"),
                                                                 settings,
                                                                 0);
 
@@ -126,14 +126,14 @@ QList<KisUniformPaintOpPropertySP> KisParticlePaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("particle_dy_scale", i18n("dy scale")),
+                                                                KoID("particle_dy_scale", "dy scale"),
                                                                 settings,
                                                                 0);
 
@@ -155,14 +155,14 @@ QList<KisUniformPaintOpPropertySP> KisParticlePaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("particle_gravity", i18n("Gravity")),
+                                                                KoID("particle_gravity", "Gravity"),
                                                                 settings,
                                                                 0);
 
@@ -184,13 +184,13 @@ QList<KisUniformPaintOpPropertySP> KisParticlePaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisIntSliderBasedPaintOpPropertyCallback *prop = new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
-                                                                                                          KoID("particle_iterations", i18n("Iterations")),
+                                                                                                          KoID("particle_iterations", "Iterations"),
                                                                                                           settings,
                                                                                                           0);
 
@@ -212,7 +212,7 @@ QList<KisUniformPaintOpPropertySP> KisParticlePaintOpSettings::uniformProperties
                     option.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

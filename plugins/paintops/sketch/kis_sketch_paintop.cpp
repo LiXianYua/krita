@@ -9,7 +9,7 @@
 #include "kis_sketch_paintop_settings.h"
 
 #include <cmath>
-#include <QRect>
+#include <PkRect.h>
 
 #include <KoColor.h>
 #include <KoColorSpace.h>
@@ -31,7 +31,6 @@
 #include <KoResourceLoadResult.h>
 
 
-#include <QtGlobal>
 
 /*
 * Based on Harmony project https://github.com/mrdoob/harmony/
@@ -81,13 +80,13 @@ KisSketchPaintOp::~KisSketchPaintOp()
     delete m_dabCache;
 }
 
-QList<KoResourceLoadResult> KisSketchPaintOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisSketchPaintOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
 {
     KisBrushOptionProperties brushOption;
     return brushOption.prepareLinkedResources(settings, resourcesInterface);
 }
 
-void KisSketchPaintOp::drawConnection(const QPointF& start, const QPointF& end, double lineWidth)
+void KisSketchPaintOp::drawConnection(const PkPointF& start, const PkPointF& end, double lineWidth)
 {
     //Both drawWuLine() and the drawDDALine produce nicer 1px lines than the drawLine()
     if (m_sketchProperties.antiAliasing) {
@@ -110,7 +109,7 @@ void KisSketchPaintOp::drawConnection(const QPointF& start, const QPointF& end, 
 
 void KisSketchPaintOp::updateBrushMask(const KisPaintInformation& info, qreal scale, qreal rotation)
 {
-    QRect dstRect;
+    PkRect dstRect;
     m_maskDab = m_dabCache->fetchDab(m_dab->colorSpace(),
                                      painter()->paintColor(),
                                      info.pos(),
@@ -119,7 +118,7 @@ void KisSketchPaintOp::updateBrushMask(const KisPaintInformation& info, qreal sc
                                      &dstRect);
 
     m_brushBoundingBox = dstRect;
-    m_hotSpot = QPointF(0.5 * m_brushBoundingBox.width(),
+    m_hotSpot = PkPointF(0.5 * m_brushBoundingBox.width(),
                         0.5 * m_brushBoundingBox.height());
 }
 
@@ -148,8 +147,8 @@ void KisSketchPaintOp::doPaintLine(const KisPaintInformation &pi1, const KisPain
         m_dab->clear();
     }
 
-    QPointF prevMouse = pi1.pos();
-    QPointF mousePosition = pi2.pos();
+    PkPointF prevMouse = pi1.pos();
+    PkPointF mousePosition = pi2.pos();
     m_points.append(mousePosition);
 
 
@@ -196,16 +195,16 @@ void KisSketchPaintOp::doPaintLine(const KisPaintInformation &pi1, const KisPain
     // probability behaviour
     qreal probability = 1.0 - currentProbability;
 
-    QColor painterColor = painter()->paintColor().toQColor();
-    QColor randomColor;
+    PkColor painterColor = painter()->paintColor().toQColor();
+    PkColor randomColor;
     KoColor color(m_dab->colorSpace());
 
     int w = m_maskDab->bounds().width();
     quint8 opacityU8 = 0;
     quint8 * pixel;
     qreal distance;
-    QPoint  positionInMask;
-    QPointF diff;
+    PkPoint  positionInMask;
+    PkPointF diff;
 
     int size = m_points.size();
     // MAIN LOOP
@@ -249,7 +248,7 @@ void KisSketchPaintOp::doPaintLine(const KisPaintInformation &pi1, const KisPain
 
         // density check
         if (randomSource->generateNormalized() >= probability) {
-            QPointF offsetPt = diff * currentOffsetScale;
+            PkPointF offsetPt = diff * currentOffsetScale;
 
             if (m_sketchProperties.randomRGB) {
                 /**
@@ -298,7 +297,7 @@ void KisSketchPaintOp::doPaintLine(const KisPaintInformation &pi1, const KisPain
 
     m_count++;
 
-    QRect rc = m_dab->extent();
+    PkRect rc = m_dab->extent();
     m_opacityOption.apply(painter(), pi2);
 
     painter()->bitBlt(rc.x(), rc.y(), m_dab, rc.x(), rc.y(), rc.width(), rc.height());

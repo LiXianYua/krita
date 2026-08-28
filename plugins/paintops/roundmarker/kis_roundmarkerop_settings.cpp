@@ -7,12 +7,12 @@
 #include "kis_roundmarkerop_settings.h"
 #include "KisRoundMarkerOpOptionData.h"
 #include <KisOptimizedBrushOutline.h>
-#include <QPointer>
+#include <PkPointer.h>
 
 
 struct KisRoundMarkerOpSettings::Private
 {
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
 };
 
 KisRoundMarkerOpSettings::KisRoundMarkerOpSettings(KisResourcesInterfaceSP resourcesInterface)
@@ -69,13 +69,13 @@ KisOptimizedBrushOutline KisRoundMarkerOpSettings::brushOutline(const KisPaintIn
         // Adding 1 for the antialiasing/fade.
         const qreal radius = (0.5 * option.diameter) + 1;
 
-        QPainterPath realOutline;
-        realOutline.addEllipse(QPointF(), radius, radius);
+        PkPainterPath realOutline;
+        realOutline.addEllipse(PkPointF(), radius, radius);
 
         path = outlineFetcher()->fetchOutline(info, this, realOutline, mode, alignForZoom, finalScale);
 
         if (mode.showTiltDecoration) {
-            QPainterPath tiltLine = makeTiltIndicator(info,
+            PkPainterPath tiltLine = makeTiltIndicator(info,
                 realOutline.boundingRect().center(),
                 realOutline.boundingRect().width() * 0.5,
                 3.0);
@@ -90,15 +90,15 @@ KisOptimizedBrushOutline KisRoundMarkerOpSettings::brushOutline(const KisPaintIn
 #include <brushengine/kis_slider_based_paintop_property.h>
 #include "KisPaintOpPresetUpdateProxy.h"
 
-QList<KisUniformPaintOpPropertySP> KisRoundMarkerOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisRoundMarkerOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_d->uniformProperties);
 
     if (props.isEmpty()) {
         {
             KisUniformPaintOpPropertyCallback *prop =
-                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("auto_spacing", i18n("Auto Spacing")), settings, 0);
+                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("auto_spacing", "Auto Spacing"), settings, 0);
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -115,7 +115,7 @@ QList<KisUniformPaintOpPropertySP> KisRoundMarkerOpSettings::uniformProperties(K
                     data.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -123,7 +123,7 @@ QList<KisUniformPaintOpPropertySP> KisRoundMarkerOpSettings::uniformProperties(K
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("spacing", i18n("Spacing")),
+                                                                KoID("spacing", "Spacing"),
                                                                 settings,
                                                                 0);
 
@@ -146,7 +146,7 @@ QList<KisUniformPaintOpPropertySP> KisRoundMarkerOpSettings::uniformProperties(K
                     data.write(prop->settings().data());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

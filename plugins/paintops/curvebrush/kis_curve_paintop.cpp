@@ -8,8 +8,8 @@
 
 #include <cmath>
 
-#include <QPainterPath>
-#include <QRect>
+#include <PkPainterPath.h>
+#include <PkRect.h>
 
 #include <kis_image.h>
 #include <kis_debug.h>
@@ -66,7 +66,7 @@ void KisCurvePaintOp::paintLine(const KisPaintInformation &pi1, const KisPaintIn
 
     paintLine(m_dab, pi1, pi2);
 
-    QRect rc = m_dab->extent();
+    PkRect rc = m_dab->extent();
 
     m_opacityOption.apply(painter(), pi2);
     painter()->bitBlt(rc.topLeft(), m_dab, rc);
@@ -91,14 +91,14 @@ void KisCurvePaintOp::paintLine(KisPaintDeviceSP dab, const KisPaintInformation 
     const qreal additionalScale = KisLodTransform::lodToScale(painter()->device());
     const qreal lineWidth = additionalScale * m_lineWidthOption.apply(pi2) * m_curveOpOption.curve_line_width;
 
-    QPen pen(QBrush(Qt::white), lineWidth);
-    QPainterPath path;
+    PkPen pen(Qt::white, lineWidth);
+    PkPainterPath path;
 
     if (m_curveOpOption.curve_paint_connection_line) {
         path.moveTo(pi1.pos());
         path.lineTo(pi2.pos());
         m_painter->drawPainterPath(path, pen);
-        path = QPainterPath();
+        path = PkPainterPath();
     }
 
     if (m_points.length() >= maxPoints) {

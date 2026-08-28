@@ -9,12 +9,12 @@
 #include <kis_paintop_lod_limitations.h>
 
 
-const QString PARTICLE_COUNT = "Particle/count";
-const QString PARTICLE_GRAVITY = "Particle/gravity";
-const QString PARTICLE_WEIGHT = "Particle/weight";
-const QString PARTICLE_ITERATIONS = "Particle/iterations";
-const QString PARTICLE_SCALE_X = "Particle/scaleX";
-const QString PARTICLE_SCALE_Y = "Particle/scaleY";
+const PkString PARTICLE_COUNT = "Particle/count";
+const PkString PARTICLE_GRAVITY = "Particle/gravity";
+const PkString PARTICLE_WEIGHT = "Particle/weight";
+const PkString PARTICLE_ITERATIONS = "Particle/iterations";
+const PkString PARTICLE_SCALE_X = "Particle/scaleX";
+const PkString PARTICLE_SCALE_Y = "Particle/scaleY";
 
 
 bool KisParticleOpOptionData::read(const KisPropertiesConfiguration *setting)
@@ -42,6 +42,6 @@ void KisParticleOpOptionData::write(KisPropertiesConfiguration *setting) const
 KisPaintopLodLimitations KisParticleOpOptionData::lodLimitations() const
 {
     KisPaintopLodLimitations l;
-    l.blockers << KoID("particle-brush", i18nc("PaintOp instant preview limitation", "Particle Brush (not supported)"));
+    l.blockers << KoID("particle-brush", "Particle Brush (not supported)");
     return l;
 }

@@ -10,7 +10,7 @@
 
 #include "kis_filterop_settings.h"
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include <KisFilterOptionData.h>
 #include <filter/kis_filter.h>
@@ -51,22 +51,22 @@ KisFilterConfigurationSP KisFilterOpSettings::filterConfig() const
     return 0;
 }
 
-void KisFilterOpSettings::toXML(QDomDocument& doc, QDomElement& root) const
+void KisFilterOpSettings::toXML(PkXmlDocument& doc, PkXmlElement& root) const
 {
     KisPaintOpSettings::toXML(doc, root);
 
     KisFilterConfigurationSP configuration = filterConfig();
     if (configuration) {
-        QDomElement e = doc.createElement("filterconfig");
+        PkXmlElement e = doc.createElement("filterconfig");
         configuration->toXML(doc, e);
         root.appendChild(e);
     }
 }
 
-void KisFilterOpSettings::fromXML(const QDomElement& e)
+void KisFilterOpSettings::fromXML(const PkXmlElement& e)
 {
     KisPaintOpSettings::fromXML(e);
-    QDomElement element = e.firstChildElement("filterconfig");
+    PkXmlElement element = e.firstChildElement("filterconfig");
 
     if (hasProperty(KisFilterOptionData::filterIdTag())) {
         KisFilterSP filter =
