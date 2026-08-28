@@ -33,10 +33,10 @@
 #include <kis_properties_configuration.h>
 #include <kis_sequential_iterator.h>
 
-extern "C" KRITAIMPEX_EXPORT void registerRGBEExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerRGBEExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/vnd.radiance")}, 1,
         []() -> KisImportExportFilter * { return new RGBEExport(nullptr, PkVariantList()); });
 }

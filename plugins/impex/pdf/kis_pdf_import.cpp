@@ -28,10 +28,10 @@
 // plugins's headers
 #include <KisImportExportErrorCode.h>
 
-extern "C" KRITAIMPEX_EXPORT void registerKisPDFImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisPDFImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("application/pdf")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisPDFImport(nullptr, PkVariantList()); });
 }

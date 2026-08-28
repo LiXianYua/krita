@@ -34,10 +34,10 @@ struct KisBrushExportOptions {
 };
 
 
-extern "C" KRITAIMPEX_EXPORT void registerKisBrushExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisBrushExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/x-gimp-brush"), PkString("image/x-gimp-brush-animated")}, 1,
         []() -> KisImportExportFilter * { return new KisBrushExport(nullptr, PkVariantList()); });
 }

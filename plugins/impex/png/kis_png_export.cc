@@ -28,10 +28,10 @@
 #include "kis_png_document_context.h"
 #include <kis_iterator_ng.h>
 
-extern "C" KRITAIMPEX_EXPORT void registerKisPNGExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisPNGExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/png"), PkString("application/x-krita-paintoppreset")}, 1,
         []() -> KisImportExportFilter * { return new KisPNGExport(nullptr, PkVariantList()); });
 }

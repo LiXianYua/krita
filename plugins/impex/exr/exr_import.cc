@@ -13,10 +13,10 @@
 
 #include "exr_converter.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerexrImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerexrImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/x-exr"), PkString("application/x-extension-exr")}, {}, 1,
         []() -> KisImportExportFilter * { return new exrImport(nullptr, PkVariantList()); });
 }

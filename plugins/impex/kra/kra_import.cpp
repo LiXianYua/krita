@@ -11,10 +11,10 @@
 
 #include "kra_converter.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKraImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKraImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("application/x-krita"), PkString("application/x-krita-archive")}, {}, 1,
         []() -> KisImportExportFilter * { return new KraImport(nullptr, PkVariantList()); });
 }

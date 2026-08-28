@@ -12,10 +12,10 @@
 
 #include "kis_jpeg_converter.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisJPEGImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisJPEGImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/jpeg")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisJPEGImport(nullptr, PkVariantList()); });
 }

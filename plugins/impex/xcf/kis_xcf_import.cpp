@@ -126,10 +126,10 @@ void addLayers(const PkVector<Layer> &layers, KisImageSP image, int depth)
     }
 }
 
-extern "C" KRITAIMPEX_EXPORT void registerKisXCFImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisXCFImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/x-xcf")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisXCFImport(nullptr, PkVariantList()); });
 }

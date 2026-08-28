@@ -6,25 +6,25 @@
 #ifndef KIS_IMPEX_STATIC_REGISTRATION_H
 #define KIS_IMPEX_STATIC_REGISTRATION_H
 
+#include "kis_impex_static_registration_once.h"
+
 #include <KisImportExportManager.h>
 
 #include <utility>
 
 template<typename Factory>
-void registerKisImpexFilterOnce(bool &registered,
+bool registerKisImpexFilterOnce(bool &registered,
                                 PkStringList importMimeTypes,
                                 PkStringList exportMimeTypes,
                                 int weight,
                                 Factory &&factory)
 {
-    if (registered) {
-        return;
-    }
-    registered = true;
-    KisImportExportManager::registerFilter({std::move(importMimeTypes),
-                                            std::move(exportMimeTypes),
-                                            weight,
-                                            std::forward<Factory>(factory)});
+    return invokeKisImpexRegistrationOnce(registered, [&] {
+        KisImportExportManager::registerFilter({std::move(importMimeTypes),
+                                                std::move(exportMimeTypes),
+                                                weight,
+                                                std::forward<Factory>(factory)});
+    });
 }
 
 #endif

@@ -91,10 +91,10 @@ bool stageTiffBytes(PkMemoryStream &stream, const void *data, std::size_t size)
 }
 }
 
-extern "C" KRITAIMPEX_EXPORT void registerKisTIFFImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisTIFFImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/tiff")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisTIFFImport(nullptr, PkVariantList()); });
 }

@@ -73,10 +73,10 @@ PkString pkPath(const std::filesystem::path &path)
 
 } // namespace
 
-extern "C" KRITAIMPEX_EXPORT void registerKisSpriterExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisSpriterExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("application/x-spriter")}, 1,
         []() -> KisImportExportFilter * { return new KisSpriterExport(nullptr, PkVariantList()); });
 }

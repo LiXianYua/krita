@@ -23,10 +23,10 @@
 
 class KisExternalLayer;
 
-extern "C" KRITAIMPEX_EXPORT void registerKrzExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKrzExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("application/x-krita-archive")}, 1,
         []() -> KisImportExportFilter * { return new KrzExport(nullptr, PkVariantList()); });
 }

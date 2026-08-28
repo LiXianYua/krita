@@ -41,10 +41,10 @@
 
 using heif::Error;
 
-extern "C" KRITAIMPEX_EXPORT void registerHeifImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerHeifImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/heic"), PkString("image/avif")}, {}, 1,
         []() -> KisImportExportFilter * { return new HeifImport(nullptr, PkVariantList()); });
 }

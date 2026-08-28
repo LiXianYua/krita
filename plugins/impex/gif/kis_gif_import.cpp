@@ -20,10 +20,10 @@
 
 #include "qgiflibhandler.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisGIFImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisGIFImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/gif")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisGIFImport(nullptr, PkVariantList()); });
 }

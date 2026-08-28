@@ -24,10 +24,10 @@
 #include <KisAnimatedBrushAnnotation.h>
 #include <KisGlobalResourcesInterface.h>
 
-extern "C" KRITAIMPEX_EXPORT void registerKisBrushImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisBrushImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/x-gimp-brush"), PkString("image/x-gimp-brush-animated")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisBrushImport(nullptr, PkVariantList()); });
 }

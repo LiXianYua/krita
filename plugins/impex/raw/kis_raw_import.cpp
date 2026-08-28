@@ -9,10 +9,10 @@
 #include <KisDocument.h>
 #include <KisImportExportErrorCode.h>
 
-extern "C" KRITAIMPEX_EXPORT void registerKisRawImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisRawImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/x-krita-raw")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisRawImport(nullptr, PkVariantList()); });
 }

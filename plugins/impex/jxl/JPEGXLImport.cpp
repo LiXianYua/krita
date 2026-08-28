@@ -41,10 +41,10 @@
 #include <kis_paint_layer.h>
 #include <kis_raster_keyframe_channel.h>
 
-extern "C" KRITAIMPEX_EXPORT void registerJPEGXLImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerJPEGXLImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/jxl")}, {}, 1,
         []() -> KisImportExportFilter * { return new JPEGXLImport(nullptr, PkVariantList()); });
 }

@@ -10,10 +10,10 @@
 
 #include "psd_loader.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerpsdImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerpsdImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/x-psd"), PkString("image/photoshop"), PkString("image/x-photoshop"), PkString("image/vnd.adobe.photoshop"), PkString("image/x-psb")}, {}, 1,
         []() -> KisImportExportFilter * { return new psdImport(nullptr, PkVariantList()); });
 }

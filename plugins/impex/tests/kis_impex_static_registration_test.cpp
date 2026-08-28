@@ -21,53 +21,53 @@
 #define KIS_WEAK_REGISTRATION
 #endif
 
-extern "C" void registerKisBrushExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisBrushImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisCSVExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisCSVImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerEXRExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerexrImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisGIFExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisGIFImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerHeifExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerHeifImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisHeightMapExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisHeightMapImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerjp2ImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisJPEGExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisJPEGImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerJPEGXLExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerJPEGXLImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKraExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKraImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKrzExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerOraExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerOraImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisPDFImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisPNGExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisPNGImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerpsdExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerpsdImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisQImageIOExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisQImageIOImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerQMLExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisRawImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerRGBEExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerRGBEImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisSpriterExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisSVGImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisTGAExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisTGAImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisTIFFExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisTIFFImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisWebPExportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisWebPImportFilter() KIS_WEAK_REGISTRATION;
-extern "C" void registerKisXCFImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisBrushExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisBrushImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisCSVExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisCSVImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerEXRExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerexrImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisGIFExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisGIFImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerHeifExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerHeifImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisHeightMapExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisHeightMapImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerjp2ImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisJPEGExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisJPEGImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerJPEGXLExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerJPEGXLImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKraExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKraImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKrzExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerOraExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerOraImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisPDFImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisPNGExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisPNGImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerpsdExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerpsdImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisQImageIOExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisQImageIOImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerQMLExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisRawImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerRGBEExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerRGBEImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisSpriterExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisSVGImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisTGAExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisTGAImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisTIFFExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisTIFFImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisWebPExportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisWebPImportFilter() KIS_WEAK_REGISTRATION;
+extern "C" bool registerKisXCFImportFilter() KIS_WEAK_REGISTRATION;
 
 namespace
 {
 
-using RegistrationFunction = void (*)();
+using RegistrationFunction = bool (*)();
 
 struct NamedRegistration
 {
@@ -162,14 +162,6 @@ std::set<std::string> toSet(const PkStringList &values)
     return result;
 }
 
-void requireUniqueMimeList(const PkStringList &values, const char *direction)
-{
-    const std::set<std::string> uniqueValues = toSet(values);
-    if (uniqueValues.size() != values.size()) {
-        fail(std::string("duplicate ") + direction + " MIME registration observed");
-    }
-}
-
 template<std::size_t Size>
 std::set<std::string> expectedSet(const char *const (&values)[Size])
 {
@@ -212,7 +204,9 @@ int main()
         if (!registration.function) {
             fail(std::string("registration function is absent: ") + registration.name);
         }
-        registration.function();
+        if (!registration.function()) {
+            fail(std::string("first registration was rejected: ") + registration.name);
+        }
 
 #ifndef TASK6_RED_ONLY
         // Exercise the lower-weight QImageIO WebP factories before the native
@@ -228,26 +222,14 @@ int main()
     }
 
 #ifndef TASK6_RED_ONLY
-    // Registration entry points are intentionally callable more than once:
-    // S9's eventual aggregator may trigger an entry that was already loaded.
-    // Invoke the complete set again and verify the public registry remains
-    // stable.  supportedMimeTypes() de-duplicates by contract, so also check
-    // its raw-list cardinality against the independently computed set.
+    // Registration entry points report whether this call appended their
+    // entry. This observes the per-entry guard directly rather than through
+    // supportedMimeTypes(), whose public projection intentionally removes
+    // duplicates.
     for (const NamedRegistration &registration : registrations) {
-        registration.function();
-    }
-
-    const PkStringList importsAfterDuplicateCalls =
-        KisImportExportManager::supportedMimeTypes(KisImportExportManager::Import);
-    const PkStringList exportsAfterDuplicateCalls =
-        KisImportExportManager::supportedMimeTypes(KisImportExportManager::Export);
-    requireUniqueMimeList(importsAfterDuplicateCalls, "import");
-    requireUniqueMimeList(exportsAfterDuplicateCalls, "export");
-    if (importsAfterDuplicateCalls.size() != std::size(expectedImportMimeTypes) ||
-        exportsAfterDuplicateCalls.size() != std::size(expectedExportMimeTypes) ||
-        toSet(importsAfterDuplicateCalls) != expectedSet(expectedImportMimeTypes) ||
-        toSet(exportsAfterDuplicateCalls) != expectedSet(expectedExportMimeTypes)) {
-        fail("duplicate registration calls changed the MIME registry");
+        if (registration.function()) {
+            fail(std::string("duplicate registration was accepted: ") + registration.name);
+        }
     }
 
     requireDynamicType("image/webp", KisImportExportManager::Import, "KisWebPImport");

@@ -37,10 +37,10 @@
 
 #include "kis_webp_export.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisWebPExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisWebPExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/webp")}, 4,
         []() -> KisImportExportFilter * { return new KisWebPExport(nullptr, PkVariantList()); });
 }

@@ -23,10 +23,10 @@
 
 class KisExternalLayer;
 
-extern "C" KRITAIMPEX_EXPORT void registerEXRExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerEXRExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/x-exr"), PkString("application/x-extension-exr")}, 1,
         []() -> KisImportExportFilter * { return new EXRExport(nullptr, PkVariantList()); });
 }

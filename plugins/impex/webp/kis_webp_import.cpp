@@ -33,10 +33,10 @@
 #include "kis_webp_import.h"
 #include "webp_validation.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisWebPImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisWebPImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/webp")}, {}, 4,
         []() -> KisImportExportFilter * { return new KisWebPImport(nullptr, PkVariantList()); });
 }

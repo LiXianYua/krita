@@ -7,10 +7,10 @@
 #include "kis_svg_import.h"
 #include "../kis_impex_static_registration.h"
 #include "svg_import_policy.h"
-extern "C" KRITAIMPEX_EXPORT void registerKisSVGImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisSVGImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/svg+xml")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisSVGImport(nullptr, PkVariantList()); });
 }

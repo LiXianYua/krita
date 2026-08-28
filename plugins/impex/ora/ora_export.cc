@@ -24,10 +24,10 @@
 
 class KisExternalLayer;
 
-extern "C" KRITAIMPEX_EXPORT void registerOraExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerOraExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/openraster")}, 1,
         []() -> KisImportExportFilter * { return new OraExport(nullptr, PkVariantList()); });
 }

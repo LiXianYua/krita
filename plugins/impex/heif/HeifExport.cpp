@@ -47,10 +47,10 @@ using heif::Error;
 
 class KisExternalLayer;
 
-extern "C" KRITAIMPEX_EXPORT void registerHeifExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerHeifExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/heic"), PkString("image/avif")}, 1,
         []() -> KisImportExportFilter * { return new HeifExport(nullptr, PkVariantList()); });
 }

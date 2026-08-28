@@ -28,10 +28,10 @@
 
 #include "kis_heightmap_utils.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisHeightMapImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisHeightMapImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/x-r32"), PkString("image/x-r16"), PkString("image/x-r8")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisHeightMapImport(nullptr, PkVariantList()); });
 }

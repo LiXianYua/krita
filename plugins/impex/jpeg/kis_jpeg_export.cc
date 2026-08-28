@@ -36,10 +36,10 @@
 
 class KisExternalLayer;
 
-extern "C" KRITAIMPEX_EXPORT void registerKisJPEGExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisJPEGExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/jpeg")}, 1,
         []() -> KisImportExportFilter * { return new KisJPEGExport(nullptr, PkVariantList()); });
 }

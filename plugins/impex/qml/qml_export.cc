@@ -13,10 +13,10 @@
 #include "qml_converter.h"
 #include <KoColorModelStandardIds.h>
 
-extern "C" KRITAIMPEX_EXPORT void registerQMLExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerQMLExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("text/x-qml")}, 1,
         []() -> KisImportExportFilter * { return new QMLExport(nullptr, PkVariantList()); });
 }

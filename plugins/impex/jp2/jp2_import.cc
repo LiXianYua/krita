@@ -11,10 +11,10 @@
 
 #include "jp2_converter.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerjp2ImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerjp2ImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/jp2"), PkString("image/jpeg2000"), PkString("image/jpx"), PkString("image/jpeg2000-image"), PkString("image/x-jpeg2000-image")}, {}, 1,
         []() -> KisImportExportFilter * { return new jp2Import(nullptr, PkVariantList()); });
 }

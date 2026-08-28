@@ -21,10 +21,10 @@
 
 class KisExternalLayer;
 
-extern "C" KRITAIMPEX_EXPORT void registerpsdExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerpsdExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/x-psd"), PkString("image/photoshop"), PkString("image/x-photoshop"), PkString("image/vnd.adobe.photoshop")}, 1,
         []() -> KisImportExportFilter * { return new psdExport(nullptr, PkVariantList()); });
 }

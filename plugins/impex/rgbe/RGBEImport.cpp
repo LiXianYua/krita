@@ -36,10 +36,10 @@
 #include "RGBEImportUtils.h"
 #include "rgbe_codec.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerRGBEImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerRGBEImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/vnd.radiance")}, {}, 1,
         []() -> KisImportExportFilter * { return new RGBEImport(nullptr, PkVariantList()); });
 }

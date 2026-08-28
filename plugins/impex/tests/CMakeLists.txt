@@ -2,6 +2,12 @@ add_executable(kis_impex_static_registration_test
     kis_impex_static_registration_test.cpp
 )
 
+add_executable(kis_impex_registration_once_test
+    kis_impex_registration_once_test.cpp
+)
+
+add_test(NAME kis_impex_registration_once_test COMMAND kis_impex_registration_once_test)
+
 target_link_libraries(kis_impex_static_registration_test PRIVATE
     kritaimpex
     -Wl,--no-as-needed

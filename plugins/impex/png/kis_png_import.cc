@@ -15,10 +15,10 @@
 #include "kis_png_document_context.h"
 #include "kis_png_import_profile_policy.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisPNGImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisPNGImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/png"), PkString("application/x-krita-paintoppreset")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisPNGImport(nullptr, PkVariantList()); });
 }

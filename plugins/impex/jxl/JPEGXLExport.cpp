@@ -77,10 +77,10 @@ bool resizePixelBuffer(PkByteArray &buffer, int width, int height, std::size_t p
 }
 }
 
-extern "C" KRITAIMPEX_EXPORT void registerJPEGXLExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerJPEGXLExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/jxl")}, 1,
         []() -> KisImportExportFilter * { return new JPEGXLExport(nullptr, PkVariantList()); });
 }

@@ -18,10 +18,10 @@
 
 #include "csv_saver.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisCSVExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisCSVExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("text/csv")}, 1,
         []() -> KisImportExportFilter * { return new KisCSVExport(nullptr, PkVariantList()); });
 }

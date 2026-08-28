@@ -11,10 +11,10 @@
 
 #include "ora_converter.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerOraImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerOraImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/openraster")}, {}, 1,
         []() -> KisImportExportFilter * { return new OraImport(nullptr, PkVariantList()); });
 }

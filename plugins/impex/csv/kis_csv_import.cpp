@@ -13,10 +13,10 @@
 
 #include "csv_loader.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisCSVImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisCSVImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("text/csv")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisCSVImport(nullptr, PkVariantList()); });
 }

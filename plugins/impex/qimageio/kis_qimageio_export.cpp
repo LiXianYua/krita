@@ -11,10 +11,10 @@
 #include <KisImportExportBackend.h>
 #include <KisDocument.h>
 
-extern "C" KRITAIMPEX_EXPORT void registerKisQImageIOExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisQImageIOExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/bmp"), PkString("image/x-xpixmap"), PkString("image/x-xbitmap"), PkString("image/vnd.microsoft.icon"), PkString("image/x-portable-pixmap"), PkString("image/x-portable-graymap"), PkString("image/x-portable-bitmap"), PkString("image/webp")}, 1,
         []() -> KisImportExportFilter * { return new KisQImageIOExport(nullptr, PkVariantList()); });
 }

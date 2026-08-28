@@ -28,10 +28,10 @@
 #include <tga.h>
 #include "tga_validation.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisTGAImportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisTGAImportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {PkString("image/x-tga")}, {}, 1,
         []() -> KisImportExportFilter * { return new KisTGAImport(nullptr, PkVariantList()); });
 }

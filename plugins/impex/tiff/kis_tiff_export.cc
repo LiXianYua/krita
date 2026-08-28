@@ -38,10 +38,10 @@
 #include "kis_tiff_logger.h"
 #include "tiff_stream_adapter.h"
 
-extern "C" KRITAIMPEX_EXPORT void registerKisTIFFExportFilter()
+extern "C" KRITAIMPEX_EXPORT bool registerKisTIFFExportFilter()
 {
     static bool registered = false;
-    registerKisImpexFilterOnce(
+    return registerKisImpexFilterOnce(
         registered, {}, {PkString("image/tiff")}, 1,
         []() -> KisImportExportFilter * { return new KisTIFFExport(nullptr, PkVariantList()); });
 }
