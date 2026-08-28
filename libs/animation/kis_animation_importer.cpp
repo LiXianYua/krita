@@ -139,6 +139,7 @@ KisImportExportErrorCode KisAnimationImporter::import(PkStringList files, int fi
 
     for (const PkString &file : files) {
         const bool successfullyLoaded = importDoc->openPath(file, KisDocument::DontAddToRecent);
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(successfullyLoaded, ImportExportCodes::InternalError);
 
         filesProcessed++;
 
@@ -157,10 +158,6 @@ KisImportExportErrorCode KisAnimationImporter::import(PkStringList files, int fi
         if (m_d->stop) {
             status = ImportExportCodes::Cancelled;
             break;
-        }
-
-        if (!successfullyLoaded) {
-            continue;
         }
 
         if ( (!usingPredefinedTimes && frame == firstFrame)
