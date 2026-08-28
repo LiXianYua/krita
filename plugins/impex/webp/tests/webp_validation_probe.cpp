@@ -31,9 +31,24 @@ int main()
             "import duration must include the complete final frame");
     require(webpPlaybackRangeEndFrame(400, 20) == 7,
             "import duration must map exactly to its final frame");
+    const int importTimelineStartTick = 7;
+    const int importTimelineEndTick = webpPlaybackRangeEndFrame(450, 20);
+    require(importTimelineEndTick >= 8 &&
+                importTimelineEndTick - importTimelineStartTick + 1 >= 2,
+            "import timeline must give the final frame at least two ticks");
     require(webpExportPlaybackEndFrame(0, 8, 0, 7) == 8 &&
                 webpFrameToDurationMs(8, 0, 20) == 450,
             "export must honor a playback range extending past the last keyframe");
+    const int exportTimelineStartTick = 7;
+    const int exportTimelineEndTick =
+        webpExportPlaybackEndFrame(exportTimelineStartTick, 8, exportTimelineStartTick,
+                                    exportTimelineStartTick);
+    const int exportFinalFrameDurationMs =
+        webpFrameToDurationMs(exportTimelineEndTick, exportTimelineStartTick, 20);
+    require(exportTimelineEndTick >= 8 &&
+                exportTimelineEndTick - exportTimelineStartTick + 1 >= 2 &&
+                exportFinalFrameDurationMs >= 2 * (1000 / 20),
+            "export document end must give the final frame at least two ticks");
     require(webpExportPlaybackEndFrame(0, 3, 0, 7) == 7 &&
                 webpExportPlaybackEndFrame(9, 3, 0, 7) == 7,
             "export must safely fall back for an invalid or early playback range");
