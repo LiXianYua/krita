@@ -9,7 +9,7 @@
 #include "SeExprExpressionContext.h"
 
 SeExprExpressionContext::SeExprExpressionContext(const PkString &expr)
-    : KSeExpr::Expression(expr.toStdString())
+    : KSeExpr::Expression(expr.PkToUtf8())
     , m_vars(VariableMap())
 {
 }

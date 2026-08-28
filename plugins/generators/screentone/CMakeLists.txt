@@ -8,7 +8,11 @@ set(kritascreentonegenerator_SOURCES
     )
 
 kis_add_library(kritascreentonegenerator MODULE ${kritascreentonegenerator_SOURCES})
-target_link_libraries(kritascreentonegenerator kritaimage)
+set_target_properties(kritascreentonegenerator PROPERTIES AUTOMOC OFF)
+target_link_libraries(kritascreentonegenerator PRIVATE
+    kritaimage
+    pkconcurrent pkstring pkpointer pkcolor pkgeometry pkcontainer pkvariant
+)
 install(TARGETS kritascreentonegenerator DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
 add_subdirectory(tests)

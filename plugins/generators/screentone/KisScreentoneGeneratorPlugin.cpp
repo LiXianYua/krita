@@ -9,9 +9,8 @@
 #include <generator/kis_generator_registry.h>
 
 #include "KisScreentoneGenerator.h"
-#include "KisScreentoneGeneratorPlugin.h"
 
-namespace { const bool registered = [] {
+namespace { const bool screentoneGeneratorRegistered = [] {
     KisGeneratorRegistry::instance()->add(new KisScreentoneGenerator());
     return true;
 }(); }

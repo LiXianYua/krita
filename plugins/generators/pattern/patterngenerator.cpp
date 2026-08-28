@@ -30,7 +30,7 @@
 #include <KisResourcesInterface.h>
 #include <KoResourceLoadResult.h>
 
-namespace { const bool registered = [] {
+namespace { const bool patternGeneratorRegistered = [] {
     KisGeneratorRegistry::instance()->add(new PatternGenerator());
     return true;
 }(); }

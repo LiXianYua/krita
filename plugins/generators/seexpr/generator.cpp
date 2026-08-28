@@ -52,7 +52,7 @@ public:
     }
 };
 
-namespace { const bool registered = [] {
+namespace { const bool seExprGeneratorRegistered = [] {
     KisGeneratorRegistry::instance()->add(new KisSeExprGenerator());
     return true;
 }(); }

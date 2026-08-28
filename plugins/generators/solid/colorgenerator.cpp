@@ -24,7 +24,7 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 
-namespace { const bool registered = [] {
+namespace { const bool solidColorGeneratorRegistered = [] {
     KisGeneratorRegistry::instance()->add(new KisColorGenerator());
     return true;
 }(); }

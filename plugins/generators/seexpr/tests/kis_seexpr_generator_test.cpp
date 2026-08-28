@@ -6,6 +6,14 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QDir>
+#include <QImage>
+#include <QPoint>
+#include <QString>
+#include <QVector>
+
+#include <PkMap.h>
+#include <PkNodeId.h>
 #include <KisGlobalResourcesInterface.h>
 #include <KisImageResolutionProxy.h>
 #include <KoColorSpace.h>
@@ -21,7 +29,10 @@
 #include <resources/KisSeExprScript.h>
 #include <simpletest.h>
 #include <testimage.h>
-#include <testutil.h>
+#include <qimage_test_util.h>
+
+#include <dlfcn.h>
+#include <cstring>
 
 
 #include "kis_seexpr_generator_test.h"
@@ -38,7 +49,30 @@ $color\n\
 
 void KisSeExprGeneratorTest::initTestCase()
 {
-    KisGeneratorRegistry::instance();
+    QVERIFY2(dlopen(SEEXPR_MODULE_PATH, RTLD_NOW | RTLD_GLOBAL), dlerror());
+    QVERIFY(KisGeneratorRegistry::instance()->get("seexpr"));
+}
+
+namespace {
+
+QImage toTestImage(const PkImage &image)
+{
+    QImage result(image.width(), image.height(), static_cast<QImage::Format>(image.format()));
+    for (int y = 0; y < image.height(); ++y) {
+        std::memcpy(result.scanLine(y), image.constScanLine(y),
+                    static_cast<std::size_t>(image.bytesPerLine()));
+    }
+    if (image.colorCount() > 0) {
+        QVector<QRgb> table;
+        table.reserve(image.colorCount());
+        for (int i = 0; i < image.colorCount(); ++i) {
+            table.append(image.color(i));
+        }
+        result.setColorTable(table);
+    }
+    return result;
+}
+
 }
 
 void KisSeExprGeneratorTest::testGenerationFromScript()
@@ -63,12 +97,13 @@ void KisSeExprGeneratorTest::testGenerationFromScript()
     KisFillPainter fillPainter(dev);
     fillPainter.fillRect(point.x(), point.y(), 256, 256, config);
 
-    PkImage qimage(PkString(FILES_DATA_DIR) + QDir::separator() + "noisecolor2.png");
+    QImage qimage(QString(FILES_DATA_DIR) + QDir::separator() + "noisecolor2.png");
 
-    PkPoint errpoint;
-    if (!TestUtil::compareQImages(errpoint, qimage, dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()), 1)) {
-        dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()).save("filtertest.png");
-        QFAIL(PkString("Failed to create image, first different pixel: %1,%2 ").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+    QPoint errpoint;
+    QImage deviceImage = toTestImage(dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()));
+    if (!TestUtil::compareQImages(errpoint, qimage, deviceImage, 1)) {
+        deviceImage.save("filtertest.png");
+        QFAIL(QString("Failed to create image, first different pixel: %1,%2 ").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
     }
 }
 
@@ -84,7 +119,8 @@ void KisSeExprGeneratorTest::testGenerationFromKoResource()
     resource->load(KisGlobalResourcesInterface::instance());
     Q_ASSERT(resource->valid());
 
-    config->setProperty("script", resource->script());
+    const QByteArray scriptUtf8 = resource->script().toUtf8();
+    config->setProperty("script", PkString(scriptUtf8.constData()));
 
     PkPoint point(0, 0);
     PkSize testSize(256, 256);
@@ -98,12 +134,13 @@ void KisSeExprGeneratorTest::testGenerationFromKoResource()
     KisFillPainter fillPainter(dev);
     fillPainter.fillRect(point.x(), point.y(), 256, 256, config);
 
-    PkImage qimage(PkString(FILES_DATA_DIR) + QDir::separator() + "noisecolor2.png");
+    QImage qimage(QString(FILES_DATA_DIR) + QDir::separator() + "noisecolor2.png");
 
-    PkPoint errpoint;
-    if (!TestUtil::compareQImages(errpoint, qimage, dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()), 1)) {
-        dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()).save("filtertest.png");
-        QFAIL(PkString("Failed to create image, first different pixel: %1,%2 ").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+    QPoint errpoint;
+    QImage deviceImage = toTestImage(dev->convertToQImage(nullptr, point.x(), point.y(), testSize.width(), testSize.height()));
+    if (!TestUtil::compareQImages(errpoint, qimage, deviceImage, 1)) {
+        deviceImage.save("filtertest.png");
+        QFAIL(QString("Failed to create image, first different pixel: %1,%2 ").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
     }
 }
 

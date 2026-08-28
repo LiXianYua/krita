@@ -8,17 +8,17 @@
  */
 
 #include "simplexnoisegenerator.h"
+#include "simplexnoiseseed.h"
 #include "3rdparty/c-open-simplex/open-simplex-noise.h"
 
 #include <KisSequentialIteratorProgress.h>
 #include <KoUpdater.h>
-#include <openssl/md5.h>
 #include <filter/kis_filter_configuration.h>
 #include <generator/kis_generator_registry.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorSpaceRegistry.h>
 #include <kis_processing_information.h>
-namespace { const bool registered = [] {
+namespace { const bool simplexNoiseGeneratorRegistered = [] {
     KisGeneratorRegistry::instance()->add(new KisSimplexNoiseGenerator());
     return true;
 }(); }
@@ -112,18 +112,10 @@ KisFilterConfigurationSP KisSimplexNoiseGenerator::defaultConfiguration(KisResou
 
 uint KisSimplexNoiseGenerator::seedFromString(const PkString &string) const
 {
-    const PkByteArray input = string.toUtf8();
-    unsigned char digest[MD5_DIGEST_LENGTH];
-    MD5(reinterpret_cast<const unsigned char *>(input.data()), static_cast<size_t>(input.size()), digest);
-    uint hash = 0;
-    for( int index = 0; index < bytes.length(); index++){
-        hash += rotateLeft(digest[index], index % 32);
-    }
-    return hash;
+    return simplexNoiseSeedFromString(string);
 }
 
 quint64 KisSimplexNoiseGenerator::rotateLeft(const quint64 input, uint shift) const
 {
-    return (input << shift)|(input >> (64 - shift));
+    return simplexNoiseRotateLeft(input, shift);
 }
-

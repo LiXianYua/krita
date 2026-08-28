@@ -9,9 +9,8 @@
 #include <generator/kis_generator_registry.h>
 
 #include "KisGradientGenerator.h"
-#include "KisGradientGeneratorPlugin.h"
 
-namespace { const bool registered = [] {
+namespace { const bool gradientGeneratorRegistered = [] {
     KisGeneratorRegistry::instance()->add(new KisGradientGenerator());
     return true;
 }(); }

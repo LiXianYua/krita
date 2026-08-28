@@ -10,6 +10,7 @@
 #define MULTIGRID_PATTERN_GENERATOR_H
 
 #include <PkVariant.h>
+#include "multigridpatternhelpers.h"
 #include "generator/kis_generator.h"
 
 
@@ -23,14 +24,6 @@
  * http://www.physics.emory.edu/faculty/weeks//software/exquasi.html
  * With extra explanation here: https://www.schoengeometry.com/c-infintil.html
  */
-
-struct KisMultiGridRhomb {
-    PkPolygonF shape;
-    int parallel1;
-    int parallel2;
-    int line1;
-    int line2;
-};
 
 class KisMultigridPatternGenerator : public KisGenerator
 {
@@ -63,16 +56,6 @@ public:
 
     // XXX: Fix the generation to work with tiles
     virtual bool allowsSplittingIntoPatches() const override { return false; }
-
-private:
-    PkList<KisMultiGridRhomb> generateRhombs(int lines, int divisions, qreal offset) const;
-
-    PkList<int> getIndicesFromPoint(PkPointF point, PkList<qreal> angles, qreal offset) const;
-
-    /**
-     * Projects the 5d vertice to a point.
-     */
-    PkPointF getVertice(PkList<int> indices, PkList<qreal> angles) const;
 };
 
 #endif

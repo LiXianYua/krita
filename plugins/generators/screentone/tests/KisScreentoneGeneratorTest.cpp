@@ -6,6 +6,14 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QDir>
+#include <QImage>
+#include <QPoint>
+#include <QString>
+#include <QVector>
+
+#include <PkMap.h>
+#include <PkNodeId.h>
 #include <KisGlobalResourcesInterface.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -17,13 +25,57 @@
 #include <kis_selection.h>
 #include <simpletest.h>
 #include <testimage.h>
-#include <testutil.h>
+#include <qimage_test_util.h>
+
+#include <dlfcn.h>
+#include <cstring>
 
 #include "KisScreentoneGeneratorTest.h"
 
 void KisScreentoneGeneratorTest::initTestCase()
 {
-    KisGeneratorRegistry::instance();
+    QVERIFY2(dlopen(SCREENTONE_MODULE_PATH, RTLD_NOW | RTLD_GLOBAL), dlerror());
+    QVERIFY(KisGeneratorRegistry::instance()->get("screentone"));
+}
+
+namespace {
+
+class TestProgressBar final : public KoProgressProxy
+{
+public:
+    int maximum() const override { return m_maximum; }
+    void setValue(int value) override { m_value = value; }
+    void setRange(int, int maximum) override { m_maximum = maximum; }
+    void setFormat(const PkString &) override {}
+
+private:
+    int m_maximum = 0;
+    int m_value = 0;
+};
+
+QImage toTestImage(const PkImage &image)
+{
+    QImage result(image.width(), image.height(), static_cast<QImage::Format>(image.format()));
+    for (int y = 0; y < image.height(); ++y) {
+        std::memcpy(result.scanLine(y), image.constScanLine(y),
+                    static_cast<std::size_t>(image.bytesPerLine()));
+    }
+    if (image.colorCount() > 0) {
+        QVector<QRgb> table;
+        table.reserve(image.colorCount());
+        for (int i = 0; i < image.colorCount(); ++i) {
+            table.append(image.color(i));
+        }
+        result.setColorTable(table);
+    }
+    return result;
+}
+
+QString toQString(const PkString &text)
+{
+    return QString::fromUtf8(text.PkToUtf8().c_str());
+}
+
 }
 
 void testGenerate(const PkString &testName, const PkHash<PkString, PkVariant> &properties)
@@ -36,7 +88,7 @@ void testGenerate(const PkString &testName, const PkHash<PkString, PkVariant> &p
 
     KisPaintDeviceSP paintDevice = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
     KisProcessingInformation processingInformation(paintDevice, PkPoint(0, 0), KisSelectionSP());
-    TestUtil::TestProgressBar *testProgressBar = new TestUtil::TestProgressBar();
+    TestProgressBar *testProgressBar = new TestProgressBar();
     KoProgressUpdater *progressUpdater = new KoProgressUpdater(testProgressBar);
     KoUpdaterPtr updater = progressUpdater->startSubtask();
 
@@ -48,13 +100,15 @@ void testGenerate(const PkString &testName, const PkHash<PkString, PkVariant> &p
 
     generator->generate(processingInformation, testImageSize, config, updater);
 
-    PkImage referenceImage(PkString(FILES_DATA_DIR) + QDir::separator() + testName + ".png");
-    PkImage deviceImage = paintDevice->convertToQImage(0, 0, 0, testImageSize.width(), testImageSize.height());
+    const QString qtTestName = toQString(testName);
+    QImage referenceImage(QString(FILES_DATA_DIR) + QDir::separator() + qtTestName + ".png");
+    QImage deviceImage = toTestImage(paintDevice->convertToQImage(0, 0, 0, testImageSize.width(), testImageSize.height()));
 
-    PkPoint differingPoint;
+    QPoint differingPoint;
     if (!TestUtil::compareQImages(differingPoint, referenceImage, deviceImage)) {
-        deviceImage.save(testName + "_generated.png");
-        QFAIL(PkString(testName + ": failed to compare images, first different pixel: %1,%2 ").arg(differingPoint.x()).arg(differingPoint.y()).toLatin1());
+        deviceImage.save(qtTestName + "_generated.png");
+        QFAIL(QString(qtTestName + ": failed to compare images, first different pixel: %1,%2 ")
+                  .arg(differingPoint.x()).arg(differingPoint.y()).toLatin1());
     }
 
     delete progressUpdater;
