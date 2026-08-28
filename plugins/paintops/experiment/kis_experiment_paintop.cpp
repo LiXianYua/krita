@@ -229,13 +229,13 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
                 }
                 else {
                     // PkPainterPath has no boolean path-arithmetic backend, so
-                    // split each path into narrow intersecting cells and unite
-                    // them. This retains the large-shape bounded-cell repaint
-                    // optimization while conservatively covering the changed
-                    // paths.
+                    // split each path into narrow intersecting cells and apply
+                    // the same symmetric-difference operation as the original
+                    // QPainterPath implementation. Overlapping cells must not
+                    // remain in the repaint set.
                     const PkRegion currentRegion = KritaUtils::splitPath(m_path).toQRegion();
                     const PkRegion previousRegion = KritaUtils::splitPath(m_lastPaintedPath).toQRegion();
-                    changedRegion = KisRegion::fromQRegion(currentRegion | previousRegion);
+                    changedRegion = KisRegion::fromQRegion(currentRegion ^ previousRegion);
                 }
 
                 paintRegion(changedRegion);
