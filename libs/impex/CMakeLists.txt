@@ -28,6 +28,17 @@ kis_add_library(kritaimpex SHARED ${kritaimpex_HEADERS_MOC} ${kritaimpex_LIB_SRC
 
 generate_export_header(kritaimpex BASE_NAME kritaimpex)
 
+# KisPkImageFileDecoderAdapter.cpp includes these Pk headers directly. Keep
+# the adapter's private closure explicit instead of relying on transitive
+# include directories exported by Krita libraries. pkimageio remains the
+# single shared process-wide decoder registry/provider.
+target_include_directories(kritaimpex PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/image
+    ${CMAKE_SOURCE_DIR}/pk/variant
+    ${CMAKE_SOURCE_DIR}/pk/pointer
+    ${CMAKE_SOURCE_DIR}/pk/string
+)
+
 target_link_libraries(kritaimpex
     PUBLIC
         KF${KF_MAJOR}::CoreAddons
@@ -43,6 +54,10 @@ target_link_libraries(kritaimpex
         kritaresources
         kritastore
         pkimageio
+        pkimage
+        pkvariant
+        pkpointer
+        pkstring
 )
 
 if(UNIX AND NOT APPLE)
