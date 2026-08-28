@@ -26,6 +26,20 @@ bool sameShape(const PkPolygonF &left, const PkPolygonF &right)
 int main()
 {
     const PkString xml = multigridDefaultGradientXml();
+    const PkString legacyXml(
+        "<gradient type=\"stop\">\n"
+        " <stop alpha=\"1\" bitdepth=\"U8\" offset=\"0\" stoptype=\"0\">\n"
+        "  <RGB r=\"0\" g=\"1\" b=\"0\" space=\"sRGB-elle-V2-srgbtrc.icc\"/>\n"
+        " </stop>\n"
+        " <stop alpha=\"1\" bitdepth=\"U8\" offset=\"1\" stoptype=\"0\">\n"
+        "  <RGB r=\"0\" g=\"0\" b=\"1\" space=\"sRGB-elle-V2-srgbtrc.icc\"/>\n"
+        " </stop>\n"
+        "</gradient>\n");
+    if (xml != legacyXml) {
+        std::cerr << "default gradient XML differs byte-for-byte from legacy value\n"
+                  << xml.PkToUtf8() << '\n';
+        return 1;
+    }
     if (xml.isEmpty()) {
         std::cerr << "default gradient XML is empty\n";
         return 1;

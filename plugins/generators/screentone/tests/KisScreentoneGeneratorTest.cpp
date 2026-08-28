@@ -34,7 +34,9 @@
 
 void KisScreentoneGeneratorTest::initTestCase()
 {
-    QVERIFY2(dlopen(SCREENTONE_MODULE_PATH, RTLD_NOW | RTLD_GLOBAL), dlerror());
+    void *module = dlopen(SCREENTONE_MODULE_PATH, RTLD_NOW | RTLD_GLOBAL);
+    const char *error = module ? nullptr : dlerror();
+    QVERIFY2(module, error ? error : "unknown module load error");
     QVERIFY(KisGeneratorRegistry::instance()->get("screentone"));
 }
 

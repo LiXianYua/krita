@@ -3,8 +3,6 @@
 #include "multigridpatternhelpers.h"
 
 #include <PkLine.h>
-#include <PkXmlDocument.h>
-
 #include <cmath>
 
 namespace {
@@ -38,39 +36,22 @@ PkPointF projectedVertex(const PkList<int> &indices,
     return PkPointF(x, y);
 }
 
-void appendGradientStop(PkXmlDocument &document,
-                        PkXmlElement &gradient,
-                        const char *offset,
-                        const char *red,
-                        const char *green,
-                        const char *blue)
-{
-    PkXmlElement stop = document.createElement("stop");
-    stop.setAttribute("offset", offset);
-    stop.setAttribute("bitdepth", "U8");
-    stop.setAttribute("alpha", "1");
-    stop.setAttribute("stoptype", "0");
-
-    PkXmlElement color = document.createElement("RGB");
-    color.setAttribute("r", red);
-    color.setAttribute("g", green);
-    color.setAttribute("b", blue);
-    color.setAttribute("space", "sRGB-elle-V2-srgbtrc.icc");
-    stop.appendChild(color);
-    gradient.appendChild(stop);
-}
-
 }
 
 PkString multigridDefaultGradientXml()
 {
-    PkXmlDocument document;
-    PkXmlElement gradient = document.createElement("gradient");
-    gradient.setAttribute("type", "stop");
-    appendGradientStop(document, gradient, "0", "0", "1", "0");
-    appendGradientStop(document, gradient, "1", "0", "0", "1");
-    document.appendChild(gradient);
-    return document.toString();
+    // Keep the legacy QDomDocument byte representation as a persistence
+    // contract. PkXmlDocument uses a different attribute order/empty-element
+    // spelling, so serialization here must remain an explicit literal.
+    return PkString(
+        "<gradient type=\"stop\">\n"
+        " <stop alpha=\"1\" bitdepth=\"U8\" offset=\"0\" stoptype=\"0\">\n"
+        "  <RGB r=\"0\" g=\"1\" b=\"0\" space=\"sRGB-elle-V2-srgbtrc.icc\"/>\n"
+        " </stop>\n"
+        " <stop alpha=\"1\" bitdepth=\"U8\" offset=\"1\" stoptype=\"0\">\n"
+        "  <RGB r=\"0\" g=\"0\" b=\"1\" space=\"sRGB-elle-V2-srgbtrc.icc\"/>\n"
+        " </stop>\n"
+        "</gradient>\n");
 }
 
 PkList<KisMultiGridRhomb> generateMultigridRhombs(int lines,
