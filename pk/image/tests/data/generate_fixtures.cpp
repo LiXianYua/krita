@@ -127,6 +127,41 @@ bool writeGif(const std::string &path)
     return ok;
 }
 
+bool writePartialGif(const std::string &path, bool transparent)
+{
+    ColorMapObject *colors = GifMakeMapObject(4, nullptr);
+    if (!colors) {
+        return false;
+    }
+    colors->Colors[0] = {0x12, 0x34, 0x56};
+    colors->Colors[1] = {0x44, 0x66, 0x88};
+    colors->Colors[2] = {0xEF, 0x10, 0x20};
+    colors->Colors[3] = {0, 0, 0};
+
+    int error = 0;
+    GifFileType *gif = EGifOpenFileName(path.c_str(), false, &error);
+    if (!gif) {
+        GifFreeMapObject(colors);
+        return false;
+    }
+
+    bool ok = EGifPutScreenDesc(gif, 3, 2, 2, 0, colors) != GIF_ERROR;
+    if (transparent) {
+        GraphicsControlBlock control{};
+        control.DisposalMode = DISPOSAL_UNSPECIFIED;
+        control.TransparentColor = 1;
+        GifByteType extension[4]{};
+        EGifGCBToExtension(&control, extension);
+        ok = ok && EGifPutExtension(gif, GRAPHICS_EXT_FUNC_CODE, 4, extension) != GIF_ERROR;
+    }
+    ok = ok && EGifPutImageDesc(gif, 1, 0, 1, 1, false, nullptr) != GIF_ERROR;
+    GifPixelType row[] = {2};
+    ok = ok && EGifPutLine(gif, row, 1) != GIF_ERROR;
+    ok = EGifCloseFile(gif, &error) != GIF_ERROR && ok;
+    GifFreeMapObject(colors);
+    return ok;
+}
+
 bool writeWebP(const std::string &path)
 {
     const uint8_t rgba[] = {255, 0, 0, 255, 0, 0, 255, 128};
@@ -178,6 +213,8 @@ int main(int argc, char **argv)
     ok = writeJpeg(directory + "/valid.jpg") && ok;
     ok = writeTiff(directory + "/valid.tiff") && ok;
     ok = writeGif(directory + "/valid.gif") && ok;
+    ok = writePartialGif(directory + "/partial-opaque.gif", false) && ok;
+    ok = writePartialGif(directory + "/partial-transparent.gif", true) && ok;
     ok = writeWebP(directory + "/valid.webp") && ok;
     for (const char *extension : {"png", "jpg", "tiff", "gif", "webp"}) {
         ok = writeCorruptAndOversize(directory, extension) && ok;

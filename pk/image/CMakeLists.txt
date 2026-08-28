@@ -4,6 +4,7 @@ project(pkimage CXX)
 # 独立薄壳工程，不接入 Krita 主构建，也不改根 CMakeLists.txt。
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -20,10 +21,19 @@ find_package(WebP REQUIRED)
 # 零 Qt：本工程不得出现 find_package(Qt...)。
 add_library(pkimage STATIC
     PkImage.cpp
+)
+set_target_properties(pkimage PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_library(pkimageio SHARED
     PkImageFileDecoder.cpp
     codecs/PkNativeImageCodecs.cpp
 )
-target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(pkimageio PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES)
+target_compile_definitions(pkimageio PRIVATE PKIMAGEIO_BUILDING_LIBRARY)
+target_include_directories(pkimageio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # ---------------------------------------------------------------------------
 # 依赖：pk/geometry —— 通过 add_subdirectory 引入（它自带 pktest / pk_test_generate）
@@ -40,7 +50,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../geometry
 target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 
 target_link_libraries(pkimage
-    PUBLIC pkgeometry
+    PUBLIC pkgeometry)
+target_link_libraries(pkimageio
+    PUBLIC pkimage
     PRIVATE Threads::Threads PNG::PNG JPEG::JPEG TIFF::TIFF GIF::GIF WebP::webp)
 
 # ---------------------------------------------------------------------------
@@ -66,5 +78,18 @@ add_executable(test_pkimage_file_decoder
 )
 target_compile_definitions(test_pkimage_file_decoder PRIVATE
     PKIMAGE_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
-target_link_libraries(test_pkimage_file_decoder PRIVATE pkimage Threads::Threads)
+target_link_libraries(test_pkimage_file_decoder PRIVATE pkimageio Threads::Threads)
 add_test(NAME test_pkimage_file_decoder COMMAND test_pkimage_file_decoder)
+
+add_library(pkimage_test_registrar SHARED
+    tests/file_decoder_registrar.cpp
+)
+target_link_libraries(pkimage_test_registrar PRIVATE pkimageio)
+
+add_executable(test_pkimage_file_decoder_dso
+    tests/test_file_decoder_dso.cpp
+)
+target_link_libraries(test_pkimage_file_decoder_dso PRIVATE pkimageio ${CMAKE_DL_LIBS})
+add_dependencies(test_pkimage_file_decoder_dso pkimage_test_registrar)
+add_test(NAME test_pkimage_file_decoder_dso
+    COMMAND test_pkimage_file_decoder_dso $<TARGET_FILE:pkimage_test_registrar>)

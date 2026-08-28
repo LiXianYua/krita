@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <set>
 #include <string>
 #include <thread>
@@ -234,6 +235,36 @@ void nativeFormatMatrix()
     }
 }
 
+void partialGifInitializesLogicalScreen()
+{
+    struct GifCase {
+        const char *file;
+        uint32_t outside;
+        uint32_t inside;
+    };
+    const GifCase cases[] = {
+        {"partial-opaque.gif", 0xFF123456u, 0xFFEF1020u},
+        {"partial-transparent.gif", 0x00446688u, 0xFFEF1020u},
+    };
+
+    for (const GifCase &test : cases) {
+        const PkImage image = PkImageFileDecoder::load(
+            std::string(PKIMAGE_TEST_DATA_DIR) + "/" + test.file);
+        expect(!image.isNull(), (std::string(test.file) + " should decode").c_str());
+        if (image.isNull()) {
+            continue;
+        }
+        expect(image.width() == 3 && image.height() == 2,
+               (std::string(test.file) + " should preserve logical-screen dimensions").c_str());
+        expect(image.pixel(0, 0) == test.outside,
+               (std::string(test.file) + " outside pixel should use logical-screen fill").c_str());
+        expect(image.pixel(1, 0) == test.inside,
+               (std::string(test.file) + " descriptor pixel mismatch").c_str());
+        expect(image.pixel(2, 1) == test.outside,
+               (std::string(test.file) + " lower outside pixel should preserve fill").c_str());
+    }
+}
+
 void corruptAndOversizeInputsReturnNull()
 {
     for (const char *file : {"corrupt.png", "corrupt.jpg", "corrupt.tiff",
@@ -257,6 +288,18 @@ void corruptAndOversizeInputsReturnNull()
                "encoded file above the bounded-reader limit should return null");
     }
     std::filesystem::remove(hugePath, error);
+}
+
+void jpegUnsignedLongBoundaryIsRejectedWhereRepresentable()
+{
+    if constexpr (std::numeric_limits<std::size_t>::max() >
+                  std::numeric_limits<unsigned long>::max()) {
+        const uint8_t jpegLike[12] = {0xFFu, 0xD8u, 0xFFu};
+        const std::size_t unrepresentable =
+            static_cast<std::size_t>(std::numeric_limits<unsigned long>::max()) + 1u;
+        expect(PkImageFileDecoder::decode(jpegLike, unrepresentable).isNull(),
+               "JPEG size above unsigned long must be rejected before jpeg_mem_src");
+    }
 }
 
 void nativeHandlersSniffBytesAndPublishExtensions()
@@ -286,7 +329,9 @@ int main()
     callbackMayRegisterWithoutDeadlock();
     concurrentLoadAndRegistrationRemainConsistent();
     nativeFormatMatrix();
+    partialGifInitializesLogicalScreen();
     corruptAndOversizeInputsReturnNull();
+    jpegUnsignedLongBoundaryIsRejectedWhereRepresentable();
     nativeHandlersSniffBytesAndPublishExtensions();
 
     if (failures == 0) {

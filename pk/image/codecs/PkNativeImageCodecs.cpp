@@ -154,6 +154,10 @@ bool isJpeg(const uint8_t *data, std::size_t size)
 
 PkImage decodeJpeg(const uint8_t *data, std::size_t size)
 {
+    if (size > std::numeric_limits<unsigned long>::max()) {
+        return PkImage();
+    }
+
     jpeg_decompress_struct codec{};
     JpegErrorManager errors{};
     PkImage result;
@@ -492,6 +496,18 @@ PkImage decodeGif(const uint8_t *data, std::size_t size)
             PkImage result = makeArgbImage(codec->SWidth, codec->SHeight);
             if (result.isNull()) {
                 break;
+            }
+            if (description.Left != 0 || description.Top != 0 ||
+                description.Width != codec->SWidth ||
+                description.Height != codec->SHeight) {
+                const int fillIndex = transparentIndex != NO_TRANSPARENT_COLOR
+                    ? transparentIndex
+                    : codec->SBackGroundColor;
+                if (fillIndex >= 0 && fillIndex < colors->ColorCount) {
+                    const GifColorType fill = colors->Colors[fillIndex];
+                    const uint8_t alpha = fillIndex == transparentIndex ? 0 : 255;
+                    result.fill(packArgb(alpha, fill.Red, fill.Green, fill.Blue));
+                }
             }
             std::vector<GifPixelType> row(static_cast<std::size_t>(description.Width));
             const int passStarts[] = {0, 4, 2, 1};

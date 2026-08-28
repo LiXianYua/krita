@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PkImage.h"
+#include "PkImageIoExport.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -17,7 +18,7 @@ struct PkImageFileDecoderHandler
     std::function<PkImage(const uint8_t *, std::size_t, const std::string &)> decode;
 };
 
-class PkImageFileDecoder
+class PKIMAGEIO_EXPORT PkImageFileDecoder
 {
 public:
     static bool registerHandler(PkImageFileDecoderHandler handler);

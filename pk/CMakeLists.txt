@@ -137,15 +137,27 @@ target_include_directories(pknamespace INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/nam
 # pk/geometry and the shared pk/test target.
 add_library(pkimage STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImage.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImageFileDecoder.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkNativeImageCodecs.cpp
 )
+set_target_properties(pkimage PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(pkimage PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/image
     ${CMAKE_CURRENT_SOURCE_DIR}/container
 )
-target_link_libraries(pkimage
-    PUBLIC pkgeometry
+target_link_libraries(pkimage PUBLIC pkgeometry)
+
+add_library(pkimageio SHARED
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImageFileDecoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkNativeImageCodecs.cpp
+)
+set_target_properties(pkimageio PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES)
+target_compile_definitions(pkimageio PRIVATE PKIMAGEIO_BUILDING_LIBRARY)
+target_include_directories(pkimageio PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/image
+)
+target_link_libraries(pkimageio
+    PUBLIC pkimage
     PRIVATE Threads::Threads PNG::PNG JPEG::JPEG TIFF::TIFF GIF::GIF WebP::webp)
 
 # =========================================================================
