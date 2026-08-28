@@ -7,9 +7,10 @@
 #define KIS_OPEN_RASTER_STACK_LOAD_VISITOR_H_
 
 #include "kis_global.h"
+#include <PkVector.h>
 #include "kis_types.h"
 
-class QDomElement;
+class PkXmlElement;
 
 class KisUndoStore;
 class KisOpenRasterLoadContext;
@@ -22,17 +23,16 @@ public:
 
 public:
     void loadImage();
-    void loadPaintLayer(const QDomElement& elem, KisPaintLayerSP pL);
-    void loadAdjustmentLayer(const QDomElement& elem, KisAdjustmentLayerSP pL);
-    void loadGroupLayer(const QDomElement& elem, KisGroupLayerSP groupLayer);
+    void loadPaintLayer(const PkXmlElement& elem, KisPaintLayerSP pL);
+    void loadAdjustmentLayer(const PkXmlElement& elem, KisAdjustmentLayerSP pL);
+    void loadGroupLayer(const PkXmlElement& elem, KisGroupLayerSP groupLayer);
     KisImageSP image();
     vKisNodeSP activeNodes();
 private:
-    void loadLayerInfo(const QDomElement& elem, KisLayerSP layer);
+    void loadLayerInfo(const PkXmlElement& elem, KisLayerSP layer);
     struct Private;
     Private* const d;
 };
 
 
 #endif // KIS_LAYER_VISITOR_H_
-

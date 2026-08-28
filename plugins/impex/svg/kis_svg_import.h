@@ -6,7 +6,7 @@
 #ifndef _KIS_SVG_IMPORT_H_
 #define _KIS_SVG_IMPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -14,10 +14,10 @@ class KisSVGImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisSVGImport(QObject *parent, const QVariantList &);
+    KisSVGImport(QObject *parent, const PkVariantList &);
     ~KisSVGImport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration) override;
 };
 
 #endif

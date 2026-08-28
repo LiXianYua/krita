@@ -19,12 +19,12 @@
 #endif
 
 
-const QString SvgMimetype = "image/svg+xml";
+const PkString SvgMimetype = "image/svg+xml";
 
 
 void KisSvgTest::testFiles()
 {
-    TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources", QStringList(), QString(), 30, 50);
+    TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", PkStringList(), PkString(), 30, 50);
 }
 
 

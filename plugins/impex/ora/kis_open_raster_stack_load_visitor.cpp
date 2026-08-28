@@ -7,8 +7,8 @@
 
 #include "kis_open_raster_stack_load_visitor.h"
 
-#include <QDomElement>
-#include <QDomNode>
+#include <PkXmlElement.h>
+#include <PkXmlNode.h>
 
 #include <KoColorSpaceRegistry.h>
 
@@ -65,38 +65,38 @@ vKisNodeSP KisOpenRasterStackLoadVisitor::activeNodes()
 void KisOpenRasterStackLoadVisitor::loadImage()
 {
 
-    QDomDocument doc = d->loadContext->loadStack();
+    PkXmlDocument doc = d->loadContext->loadStack();
 
 
-    for (QDomNode node = doc.firstChild(); !node.isNull(); node = node.nextSibling()) {
+    for (PkXmlNode node = doc.firstChild(); !node.isNull(); node = node.nextSibling()) {
         if (node.isElement() && node.nodeName() == "image") { // it's the image root
-            QDomElement subelem = node.toElement();
+            PkXmlElement subelem = node.toElement();
 
             int width = 0;
-            if (!subelem.attribute("w").isNull()) {
+            if (subelem.hasAttribute("w")) {
                 width = subelem.attribute("w").toInt();
             }
 
             int height = 0;
-            if (!subelem.attribute("h").isNull()) {
+            if (subelem.hasAttribute("h")) {
                 height = subelem.attribute("h").toInt();
             }
 
             d->xRes = 75.0/72; // Setting the default value of the X Resolution = 75ppi
-            if (!subelem.attribute("xres").isNull()){
+            if (subelem.hasAttribute("xres")){
                 d->xRes = (KisDomUtils::toDouble(subelem.attribute("xres")) / 72);
             }
 
             d->yRes = 75.0/72;
-            if (!subelem.attribute("yres").isNull()){
+            if (subelem.hasAttribute("yres")){
                 d->yRes = (KisDomUtils::toDouble(subelem.attribute("yres")) / 72);
             }
 
             dbgFile << ppVar(width) << ppVar(height);
             d->image = new KisImage(d->undoStore, width, height, KoColorSpaceRegistry::instance()->rgb8(), "OpenRaster Image (name)");
-            for (QDomNode node2 = node.firstChild(); !node2.isNull(); node2 = node2.nextSibling()) {
+            for (PkXmlNode node2 = node.firstChild(); !node2.isNull(); node2 = node2.nextSibling()) {
                 if (node2.isElement() && node2.nodeName() == "stack") { // it's the root layer !
-                    QDomElement subelem2 = node2.toElement();
+                    PkXmlElement subelem2 = node2.toElement();
                     loadGroupLayer(subelem2, d->image->rootLayer());
                     break;
                 }
@@ -105,7 +105,7 @@ void KisOpenRasterStackLoadVisitor::loadImage()
     }
 }
 
-void KisOpenRasterStackLoadVisitor::loadLayerInfo(const QDomElement& elem, KisLayerSP layer)
+void KisOpenRasterStackLoadVisitor::loadLayerInfo(const PkXmlElement& elem, KisLayerSP layer)
 {
     layer->setName(elem.attribute("name"));
     layer->setX(elem.attribute("x").toInt());
@@ -122,7 +122,7 @@ void KisOpenRasterStackLoadVisitor::loadLayerInfo(const QDomElement& elem, KisLa
         d->activeNodes.append(layer);
     }
 
-    QString compop = elem.attribute("composite-op");
+    PkString compop = elem.attribute("composite-op");
     if (compop.startsWith("svg:")) {
         //we don't have a 'composite op clear' despite the registry reserving a string for it, doesn't matter, ora doesn't use it.
         //if (compop == "svg:clear") layer->setCompositeOpId(COMPOSITE_CLEAR);
@@ -158,7 +158,7 @@ void KisOpenRasterStackLoadVisitor::loadLayerInfo(const QDomElement& elem, KisLa
         //if (compop == "svg:exclusion") layer->setCompositeOpId(COMPOSITE_EXCLUSION);
     }
     else if (compop.startsWith("krita:")) {
-        compop = compop.remove(0, 6);
+        compop = compop.mid(6);
         layer->setCompositeOpId(compop);
     }
     else {
@@ -173,28 +173,28 @@ void KisOpenRasterStackLoadVisitor::loadLayerInfo(const QDomElement& elem, KisLa
     }
 }
 
-void KisOpenRasterStackLoadVisitor::loadAdjustmentLayer(const QDomElement& elem, KisAdjustmentLayerSP aL)
+void KisOpenRasterStackLoadVisitor::loadAdjustmentLayer(const PkXmlElement& elem, KisAdjustmentLayerSP aL)
 {
     loadLayerInfo(elem, aL);
 }
 
-void KisOpenRasterStackLoadVisitor::loadPaintLayer(const QDomElement& elem, KisPaintLayerSP pL)
+void KisOpenRasterStackLoadVisitor::loadPaintLayer(const PkXmlElement& elem, KisPaintLayerSP pL)
 {
     loadLayerInfo(elem, pL);
 
     dbgFile << "Loading was unsuccessful";
 }
 
-void KisOpenRasterStackLoadVisitor::loadGroupLayer(const QDomElement& elem, KisGroupLayerSP groupLayer)
+void KisOpenRasterStackLoadVisitor::loadGroupLayer(const PkXmlElement& elem, KisGroupLayerSP groupLayer)
 {
     dbgFile << "Loading group layer" << d->image;
     loadLayerInfo(elem, groupLayer);
-    for (QDomNode node = elem.firstChild(); !node.isNull(); node = node.nextSibling()) {
+    for (PkXmlNode node = elem.firstChild(); !node.isNull(); node = node.nextSibling()) {
         if (node.isElement()) {
-            QDomElement subelem = node.toElement();
+            PkXmlElement subelem = node.toElement();
             if (node.nodeName() == "stack") {
                 double opacity = 1.0;
-                if (!subelem.attribute("opacity").isNull()) {
+                if (subelem.hasAttribute("opacity")) {
                     opacity = KisDomUtils::toDouble(subelem.attribute("opacity", "1.0"));
                 }
                 KisGroupLayerSP layer = new KisGroupLayer(d->image, "", opacity * 255);
@@ -206,8 +206,8 @@ void KisOpenRasterStackLoadVisitor::loadGroupLayer(const QDomElement& elem, KisG
                 d->image->addNode(layer, groupLayer.data(), 0);
                 loadGroupLayer(subelem, layer);
             } else if (node.nodeName() == "layer") {
-                QString filename = subelem.attribute("src");
-                if (!filename.isNull()) {
+                PkString filename = subelem.attribute("src");
+                if (!filename.isEmpty()) {
                     const qreal opacity = KisDomUtils::toDouble(subelem.attribute("opacity", "1.0"));
                     KisImageSP pngImage = d->loadContext->loadDeviceData(filename);
                     if (pngImage) {
@@ -224,8 +224,8 @@ void KisOpenRasterStackLoadVisitor::loadGroupLayer(const QDomElement& elem, KisG
                 }
             } else if (node.nodeName() == "filter") {
 
-                QString filterType = subelem.attribute("type");
-                QStringList filterTypeSplit = filterType.split(':');
+                PkString filterType = subelem.attribute("type");
+                const std::vector<PkString> filterTypeSplit = filterType.split(u':');
                 KisFilterSP f = 0;
                 if (filterTypeSplit[0] == "applications" && filterTypeSplit[1] == "krita") {
                     f = KisFilterRegistry::instance()->value(filterTypeSplit[2]);

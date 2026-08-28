@@ -6,9 +6,6 @@
 
 #include "ora_converter.h"
 
-#include <QApplication>
-
-
 #include <KoStore.h>
 #include <KoStoreDevice.h>
 #include <KoColorSpaceRegistry.h>
@@ -24,7 +21,6 @@
 
 OraConverter::OraConverter(KisDocument *doc)
     : m_doc(doc)
-    , m_stop(false)
 {
 }
 
@@ -32,7 +28,7 @@ OraConverter::~OraConverter()
 {
 }
 
-KisImportExportErrorCode OraConverter::buildImage(QIODevice *io)
+KisImportExportErrorCode OraConverter::buildImage(PkStream *io)
 {
     KoStore* store = KoStore::createStore(io, KoStore::Read, "image/openraster", KoStore::Zip);
     if (!store) {
@@ -44,8 +40,6 @@ KisImportExportErrorCode OraConverter::buildImage(QIODevice *io)
     KisOpenRasterStackLoadVisitor orslv(m_doc->createUndoStore(), &olc);
     orslv.loadImage();
     m_image = orslv.image();
-
-    qDebug() << "m_image" << m_image;
 
     if (!m_image) {
         delete store;
@@ -68,7 +62,7 @@ vKisNodeSP OraConverter::activeNodes()
     return m_activeNodes;
 }
 
-KisImportExportErrorCode OraConverter::buildFile(QIODevice *io, KisImageSP image, vKisNodeSP activeNodes)
+KisImportExportErrorCode OraConverter::buildFile(PkStream *io, KisImageSP image, vKisNodeSP activeNodes)
 {
 
     // Open file for writing
@@ -83,30 +77,27 @@ KisImportExportErrorCode OraConverter::buildFile(QIODevice *io, KisImageSP image
 
     image->rootLayer()->accept(orssv);
 
-    if (store->open("Thumbnails/thumbnail.png")) {
-        QSize previewSize = image->bounds().size();
-        previewSize.scale(QSize(256,256), Qt::KeepAspectRatio);
+    PkSize previewSize = image->bounds().size();
+    previewSize.scale(PkSize(256,256), Qt::KeepAspectRatio);
 
-        QImage preview = image->convertToQImage(previewSize, 0);
+    PkImage preview = image->convertToQImage(previewSize, 0);
 
-        KoStoreDevice io(store);
-        if (io.open(QIODevice::WriteOnly)) {
-            preview.save(&io, "PNG");
-        }
-        io.close();
-        store->close();
+    KisPaintDeviceSP previewDevice = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
+    previewDevice->convertFromQImage(preview, nullptr, 0, 0);
+    if (!KisPngCodec::saveDeviceToStore("Thumbnails/thumbnail.png", preview.rect(),
+                                        image->xRes(), image->yRes(), previewDevice, store)) {
+        delete store;
+        return ImportExportCodes::ErrorWhileWriting;
     }
 
     KisPaintDeviceSP dev = image->projection();
-    KisPngCodec::saveDeviceToStore("mergedimage.png", image->bounds(), image->xRes(), image->yRes(), dev, store);
+    if (!KisPngCodec::saveDeviceToStore("mergedimage.png", image->bounds(), image->xRes(),
+                                        image->yRes(), dev, store)) {
+        delete store;
+        return ImportExportCodes::ErrorWhileWriting;
+    }
 
     delete store;
     return ImportExportCodes::OK;
-}
-
-
-void OraConverter::cancel()
-{
-    m_stop = true;
 }
 

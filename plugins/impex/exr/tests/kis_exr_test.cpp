@@ -20,11 +20,11 @@
 #error "FILES_DATA_DIR not set. A directory with the data used for testing the importing of files in krita"
 #endif
 
-const QString ExrMimetype = "application/x-extension-exr";
+const PkString ExrMimetype = "application/x-extension-exr";
 
 void KisExrTest::testFiles()
 {
-    TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources", QStringList(), QString(), 5);
+    TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", PkStringList(), PkString(), 5);
 }
 
 void KisExrTest::testImportFromWriteonly()
@@ -44,7 +44,7 @@ void KisExrTest::testImportIncorrectFormat()
 
 void KisExrTest::testRoundTrip()
 {
-    QString inputFileName(TestUtil::fetchDataFileLazy("CandleGlass.exr"));
+    PkString inputFileName(TestUtil::fetchDataFileLazy("CandleGlass.exr"));
 
     KisDocument *doc1 = KisDocumentRegistry::instance()->createDocument();
 
@@ -59,14 +59,16 @@ void KisExrTest::testRoundTrip()
     savedFile.setAutoRemove(true);
     KIS_ASSERT(savedFile.open());
 
-    QString savedFileName(savedFile.fileName());
+    const QByteArray savedFileNameUtf8 = savedFile.fileName().toUtf8();
+    PkString savedFileName = PkString::PkFromUtf8(savedFileNameUtf8.constData(), savedFileNameUtf8.size());
 
-    QString typeName = KisMimeDatabase::mimeTypeForFile(savedFileName, false);
-    QByteArray mimeType(typeName.toLatin1());
+    PkString typeName = KisMimeDatabase::mimeTypeForFile(savedFileName, false);
+    const std::string mimeTypeUtf8 = typeName.PkToUtf8();
+    PkByteArray mimeType(mimeTypeUtf8.data(), static_cast<int>(mimeTypeUtf8.size()));
 
     r = doc1->exportDocumentSync(savedFileName, mimeType);
     QVERIFY(r);
-    QVERIFY(QFileInfo(savedFileName).exists());
+    QVERIFY(QFileInfo(QString::fromUtf8(savedFileName.PkToUtf8().c_str())).exists());
 
     {
         KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
@@ -95,4 +97,3 @@ void KisExrTest::testRoundTrip()
 }
 
 KISTEST_MAIN(KisExrTest)
-

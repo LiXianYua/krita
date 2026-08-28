@@ -7,8 +7,8 @@
 #ifndef _KIS_OPEN_RASTER_LOAD_CONTEXT_H_
 #define _KIS_OPEN_RASTER_LOAD_CONTEXT_H_
 
-class QString;
-class QDomDocument;
+class PkString;
+class PkXmlDocument;
 class KoStore;
 
 #include <KoStoreDevice.h>
@@ -19,8 +19,8 @@ class KisOpenRasterLoadContext
 {
 public:
     KisOpenRasterLoadContext(KoStore *store);
-    KisImageSP loadDeviceData(const QString &fileName);
-    QDomDocument loadStack();
+    KisImageSP loadDeviceData(const PkString &fileName);
+    PkXmlDocument loadStack();
 private:
     KoStore *m_store;
 };

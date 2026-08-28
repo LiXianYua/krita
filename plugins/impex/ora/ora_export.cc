@@ -6,11 +6,7 @@
 
 #include "ora_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-
 #include <kpluginfactory.h>
-#include <QApplication>
 #include <KoStore.h>
 #include <KisImportExportManager.h>
 #include <KoColorModelStandardIds.h>
@@ -31,7 +27,7 @@ class KisExternalLayer;
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_ora_export.json", registerPlugin<OraExport>();)
 
-OraExport::OraExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+OraExport::OraExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -44,7 +40,7 @@ bool hasShapeLayerChild(KisNodeSP node)
 {
     if (!node) return false;
 
-    Q_FOREACH (KisNodeSP child, node->childNodes(QStringList(), KoProperties())) {
+    for (KisNodeSP child : node->childNodes(PkStringList(), KoProperties())) {
         if (child->inherits("KisShapeLayer")
                 || child->inherits("KisGeneratorLayer")
                 || child->inherits("KisCloneLayer")) {
@@ -59,10 +55,12 @@ bool hasShapeLayerChild(KisNodeSP node)
     return false;
 }
 
-KisImportExportErrorCode OraExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode OraExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     KisImageSP image = document->savingImage();
-    Q_CHECK_PTR(image);
+    if (!image) {
+        return ImportExportCodes::InternalError;
+    }
     OraConverter oraConverter(document);
 
     KisImportExportErrorCode res = oraConverter.buildFile(io, image, {document->preActivatedNode()});
@@ -77,21 +75,21 @@ void OraExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("ColorModelHomogenousCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::SUPPORTED));
-    QList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "OpenRaster");
 }
 
-QString OraExport::verify(const QString &fileName) const
+PkString OraExport::verify(const PkString &fileName) const
 {
-    QString error = KisImportExportFilter::verify(fileName);
+    PkString error = KisImportExportFilter::verify(fileName);
     if (error.isEmpty()) {
         return KisImportExportFilter::verifyZiPBasedFiles(fileName,
-                                                          QStringList()
+                                                          PkStringList()
                                                           << "mimetype"
                                                           << "stack.xml"
                                                           << "mergedimage.png");
@@ -103,4 +101,3 @@ QString OraExport::verify(const QString &fileName) const
 
 
 #include <ora_export.moc>
-

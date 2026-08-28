@@ -8,6 +8,7 @@
 
 
 #include "kis_global.h"
+#include <PkVector.h>
 #include "kis_types.h"
 
 #include "kis_node_visitor.h"
@@ -20,7 +21,7 @@ class KisGroupLayer;
 class KisPaintLayer;
 class KisGeneratorLayer;
 
-class QDomElement;
+class PkXmlElement;
 
 class KisOpenRasterStackSaveVisitor : public KisNodeVisitor
 {
@@ -62,11 +63,10 @@ public:
 
 private:
     bool saveLayer(KisLayer *layer);
-    void saveLayerInfo(QDomElement& elt, KisLayer* layer);
+    void saveLayerInfo(PkXmlElement& elt, KisLayer* layer);
     struct Private;
     Private* const d;
 };
 
 
 #endif // KIS_LAYER_VISITOR_H_
-

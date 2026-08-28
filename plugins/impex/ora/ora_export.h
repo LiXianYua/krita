@@ -7,7 +7,7 @@
 #ifndef _ORA_EXPORT_H_
 #define _ORA_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,12 +15,12 @@ class OraExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    OraExport(QObject *parent, const QVariantList &);
+    OraExport(QObject *parent, const PkVariantList &);
     ~OraExport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
     void initializeCapabilities() override;
-    QString verify(const QString &fileName) const override;
+    PkString verify(const PkString &fileName) const override;
 };
 
 #endif

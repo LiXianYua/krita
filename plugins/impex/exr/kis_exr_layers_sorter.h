@@ -8,20 +8,20 @@
 #define __KIS_EXR_LAYERS_SORTER_H
 
 #include "kis_types.h"
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
-class QDomDocument;
+class PkXmlDocument;
 
 
 class KisExrLayersSorter
 {
 public:
-    KisExrLayersSorter(const QDomDocument &extraData, KisImageSP image);
+    KisExrLayersSorter(const PkXmlDocument &extraData, KisImageSP image);
     ~KisExrLayersSorter();
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_EXR_LAYERS_SORTER_H */

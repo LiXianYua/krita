@@ -8,37 +8,33 @@
 #define _EXR_CONVERTER_H_
 
 #include <stdio.h>
-
-#include <QObject>
+#include <memory>
 
 #include "kis_types.h"
 #include <KisImportExportErrorCode.h>
 
 class KisDocument;
 
-class EXRConverter : public QObject
+class EXRConverter
 {
-    Q_OBJECT
 public:
     EXRConverter(KisDocument *doc, bool showNotifications);
-    ~EXRConverter() override;
+    ~EXRConverter();
 public:
-    KisImportExportErrorCode buildImage(const QString &filename);
-    KisImportExportErrorCode buildFile(const QString &filename, KisPaintLayerSP layer);
-    KisImportExportErrorCode buildFile(const QString &filename, KisGroupLayerSP layer, bool flatten=false);
+    KisImportExportErrorCode buildImage(const PkString &filename);
+    KisImportExportErrorCode buildFile(const PkString &filename, KisPaintLayerSP layer);
+    KisImportExportErrorCode buildFile(const PkString &filename, KisGroupLayerSP layer, bool flatten=false);
     /**
      * Retrieve the constructed image
      */
     KisImageSP image();
-    QString errorMessage() const;
+    PkString errorMessage() const;
 private:
-    KisImportExportErrorCode decode(const QString &filename);
+    KisImportExportErrorCode decode(const PkString &filename);
 
-public Q_SLOTS:
-    virtual void cancel();
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const std::unique_ptr<Private> d;
 };
 
 #endif

@@ -6,8 +6,8 @@
 
 #include "kis_exr_layers_sorter.h"
 
-#include <QDomDocument>
-#include <QDomElement>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include "kis_image.h"
 #include "exr_extra_tags.h"
@@ -17,33 +17,33 @@
 
 struct KisExrLayersSorter::Private
 {
-    Private(const QDomDocument &_extraData, KisImageSP _image)
+    Private(const PkXmlDocument &_extraData, KisImageSP _image)
         : extraData(_extraData), image(_image) {}
 
-    const QDomDocument &extraData;
+    const PkXmlDocument &extraData;
     KisImageSP image;
 
-    QMap<QString, QDomElement> pathToElementMap;
-    QMap<QString, int> pathToOrderingMap;
+    PkMap<PkString, PkXmlElement> pathToElementMap;
+    PkMap<PkString, int> pathToOrderingMap;
 
-    QMap<KisNodeSP, int> nodeToOrderingMap;
+    PkMap<KisNodeSP, int> nodeToOrderingMap;
 
     void createOrderingMap();
     void processLayers(KisNodeSP root);
     void sortLayers(KisNodeSP root);
 };
 
-QString getNodePath(KisNodeSP node) {
+PkString getNodePath(KisNodeSP node) {
     KIS_ASSERT_RECOVER(node) { return "UNDEFINED"; }
 
-    QString path;
+    PkString path;
 
     KisNodeSP parentNode = node->parent();
     while(parentNode) {
         if (!path.isEmpty()) {
-            path.prepend(".");
+            path = PkString(".") + path;
         }
-        path.prepend(node->name());
+        path = node->name() + path;
 
         node = parentNode;
         parentNode = node->parent();
@@ -55,11 +55,11 @@ QString getNodePath(KisNodeSP node) {
 void KisExrLayersSorter::Private::createOrderingMap()
 {
     int index = 0;
-    QDomElement el = extraData.documentElement().firstChildElement();
+    PkXmlElement el = extraData.documentElement().firstChildElement();
 
 
     while (!el.isNull()) {
-        QString path = el.attribute(EXR_NAME);
+        PkString path = el.attribute(EXR_NAME);
         pathToElementMap.insert(path, el);
         pathToOrderingMap.insert(path, index);
 
@@ -69,13 +69,13 @@ void KisExrLayersSorter::Private::createOrderingMap()
 }
 
 template <typename T>
-T fetchMapValueLazy(const QMap<QString, T> &map, QString path)
+T fetchMapValueLazy(const PkMap<PkString, T> &map, PkString path)
 {
     if (map.contains(path)) return map[path];
 
 
-    typename QMap<QString, T>::const_iterator it = map.constBegin();
-    typename QMap<QString, T>::const_iterator end = map.constEnd();
+    typename PkMap<PkString, T>::const_iterator it = map.constBegin();
+    typename PkMap<PkString, T>::const_iterator end = map.constEnd();
 
     for (; it != end; ++it) {
         if (it.key().startsWith(path)) {
@@ -89,12 +89,12 @@ T fetchMapValueLazy(const QMap<QString, T> &map, QString path)
 void KisExrLayersSorter::Private::processLayers(KisNodeSP root)
 {
     if (root && root->parent()) {
-        QString path = getNodePath(root);
+        PkString path = getNodePath(root);
 
         nodeToOrderingMap.insert(root, fetchMapValueLazy(pathToOrderingMap, path));
 
         if (KisPaintLayer *paintLayer = dynamic_cast<KisPaintLayer*>(root.data())) {
-            QDomElement el = pathToElementMap[path];
+            PkXmlElement el = pathToElementMap[path];
 
             /**
              * In older files (before Krita 5.2.7) we used to save the layer offset
@@ -117,7 +117,7 @@ void KisExrLayersSorter::Private::processLayers(KisNodeSP root)
 
 struct CompareNodesFunctor
 {
-    CompareNodesFunctor(const QMap<KisNodeSP, int> &map)
+    CompareNodesFunctor(const PkMap<KisNodeSP, int> &map)
         : m_nodeToOrderingMap(map) {}
 
     bool operator() (KisNodeSP lhs, KisNodeSP rhs) {
@@ -125,13 +125,13 @@ struct CompareNodesFunctor
     }
 
 private:
-    const QMap<KisNodeSP, int> &m_nodeToOrderingMap;
+    const PkMap<KisNodeSP, int> &m_nodeToOrderingMap;
 };
 
 
 void KisExrLayersSorter::Private::sortLayers(KisNodeSP root)
 {
-    QList<KisNodeSP> childNodes;
+    PkList<KisNodeSP> childNodes;
 
     // first move all the children to the list
     KisNodeSP child = root->firstChild();
@@ -147,7 +147,7 @@ void KisExrLayersSorter::Private::sortLayers(KisNodeSP root)
     std::stable_sort(childNodes.begin(), childNodes.end(), CompareNodesFunctor(nodeToOrderingMap));
 
     // put the children back
-    Q_FOREACH (KisNodeSP node, childNodes) {
+    for (KisNodeSP node : childNodes) {
         image->addNode(node, root, root->childCount());
     }
 
@@ -159,7 +159,7 @@ void KisExrLayersSorter::Private::sortLayers(KisNodeSP root)
     }
 }
 
-KisExrLayersSorter::KisExrLayersSorter(const QDomDocument &extraData, KisImageSP image)
+KisExrLayersSorter::KisExrLayersSorter(const PkXmlDocument &extraData, KisImageSP image)
     : m_d(new Private(extraData, image))
 {
     KIS_ASSERT_RECOVER_RETURN(!extraData.isNull());

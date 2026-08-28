@@ -17,7 +17,7 @@
 #endif
 
 
-const QString PdfMimetype = "image/x-gimp-brush";
+const PkString PdfMimetype = "application/pdf";
 
 
 
@@ -41,5 +41,4 @@ void KisPdfTest::testImportIncorrectFormat()
 
 
 KISTEST_MAIN(KisPdfTest)
-
 

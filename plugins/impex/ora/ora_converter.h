@@ -7,34 +7,30 @@
 #ifndef _ORA_CONVERTER_H_
 #define _ORA_CONVERTER_H_
 
-#include <QObject>
-
 #include <KisImportExportErrorCode.h>
+#include <PkVector.h>
 #include <kis_types.h>
 
 class KisDocument;
+class PkStream;
 
-class OraConverter : public QObject
+class OraConverter
 {
-    Q_OBJECT
 public:
     OraConverter(KisDocument *doc);
-    ~OraConverter() override;
+    ~OraConverter();
 
-    KisImportExportErrorCode buildImage(QIODevice *io);
-    KisImportExportErrorCode buildFile(QIODevice *io, KisImageSP image, vKisNodeSP activeNodes);
+    KisImportExportErrorCode buildImage(PkStream *io);
+    KisImportExportErrorCode buildFile(PkStream *io, KisImageSP image, vKisNodeSP activeNodes);
     /**
      * Retrieve the constructed image
      */
     KisImageSP image();
     vKisNodeSP activeNodes();
-public Q_SLOTS:
-    virtual void cancel();
 private:
     KisImageSP m_image;
     KisDocument *m_doc;
     vKisNodeSP m_activeNodes;
-    bool m_stop;
 };
 
 #endif

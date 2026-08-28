@@ -6,7 +6,7 @@
 
 #include "kis_open_raster_save_context.h"
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include <KoStore.h>
 #include <KoStoreDevice.h>
@@ -26,9 +26,9 @@ KisOpenRasterSaveContext::KisOpenRasterSaveContext(KoStore* store)
 {
 }
 
-QString KisOpenRasterSaveContext::saveDeviceData(KisPaintDeviceSP dev, KisMetaData::Store* metaData, const QRect &imageRect, const qreal xRes, const qreal yRes)
+PkString KisOpenRasterSaveContext::saveDeviceData(KisPaintDeviceSP dev, KisMetaData::Store* metaData, const PkRect &imageRect, const qreal xRes, const qreal yRes)
 {
-    QString filename = QString("data/layer%1.png").arg(m_id++);
+    PkString filename = PkString("data/layer%1.png").arg(m_id++);
     if (KisPngCodec::saveDeviceToStore(filename, imageRect, xRes, yRes, dev, m_store, metaData)) {
         return filename;
     }
@@ -36,11 +36,21 @@ QString KisOpenRasterSaveContext::saveDeviceData(KisPaintDeviceSP dev, KisMetaDa
 }
 
 
-void KisOpenRasterSaveContext::saveStack(const QDomDocument& doc)
+void KisOpenRasterSaveContext::saveStack(const PkXmlDocument& doc)
 {
     if (m_store->open("stack.xml")) {
         KoStoreDevice io(m_store);
-        io.write(doc.toByteArray());
+        const std::string xml = doc.toByteArray().PkToUtf8();
+        long long written = 0;
+        while (written < static_cast<long long>(xml.size())) {
+            const long long count = io.write(xml.data() + written,
+                                             static_cast<long long>(xml.size()) - written);
+            if (count <= 0) {
+                dbgFile << "Writing stack.xml failed";
+                break;
+            }
+            written += count;
+        }
         io.close();
         m_store->close();
     } else {

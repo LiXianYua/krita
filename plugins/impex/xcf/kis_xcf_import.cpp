@@ -8,8 +8,8 @@
 
 #include <ctype.h>
 
-#include <QApplication>
-#include <QFile>
+#include <algorithm>
+#include <PkFileStream.h>
 #include <qendian.h>
 
 #include <kpluginfactory.h>
@@ -40,7 +40,7 @@ extern "C" {
 #define GET_ALPHA(x) (x >> ALPHA_SHIFT)
 }
 
-QString layerModeG2K(GimpLayerModeEffects mode)
+PkString layerModeG2K(GimpLayerModeEffects mode)
 {
     switch (mode) {
     case GIMP_NORMAL_MODE:
@@ -104,7 +104,7 @@ struct Layer {
     KisMaskSP mask;
 };
 
-KisGroupLayerSP findGroup(const QVector<Layer> &layers, const Layer& layer, int i)
+KisGroupLayerSP findGroup(const PkVector<Layer> &layers, const Layer& layer, int i)
 {
     for (; i < layers.size(); ++i) {
         KisGroupLayerSP group = dynamic_cast<KisGroupLayer*>(const_cast<KisLayer*>(layers[i].layer.data()));
@@ -115,7 +115,7 @@ KisGroupLayerSP findGroup(const QVector<Layer> &layers, const Layer& layer, int 
     return 0;
 }
 
-void addLayers(const QVector<Layer> &layers, KisImageSP image, int depth)
+void addLayers(const PkVector<Layer> &layers, KisImageSP image, int depth)
 {
     for(int i = 0; i < layers.size(); i++) {
         const Layer &layer = layers[i];
@@ -131,7 +131,7 @@ void addLayers(const QVector<Layer> &layers, KisImageSP image, int depth)
 
 K_PLUGIN_FACTORY_WITH_JSON(XCFImportFactory, "krita_xcf_import.json", registerPlugin<KisXCFImport>();)
 
-KisXCFImport::KisXCFImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+KisXCFImport::KisXCFImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -139,12 +139,12 @@ KisXCFImport::~KisXCFImport()
 {
 }
 
-KisImportExportErrorCode KisXCFImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode KisXCFImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     int errorStatus;
 
     dbgFile << "Start decoding file";
-    QByteArray data = io->readAll();
+    PkByteArray data = io->readAll();
     xcf_file = (uint8_t*)data.data();
     xcf_length = data.size();
     io->close();
@@ -152,7 +152,7 @@ KisImportExportErrorCode KisXCFImport::convert(KisDocument *document, QIODevice 
     // Decode the data
     if (getBasicXcfInfo() != XCF_OK) {
         if (XCF.version < 0 || XCF.version > 2) {
-            document->setErrorMessage(i18n("This XCF file is too new; Krita cannot support XCF files written by GIMP 2.9 or newer."));
+            document->setErrorMessage(PkString("This XCF file is too new; Krita cannot support XCF files written by GIMP 2.9 or newer."));
             return ImportExportCodes::FormatFeaturesUnsupported;
         }
         return ImportExportCodes::FileFormatIncorrect;
@@ -167,7 +167,7 @@ KisImportExportErrorCode KisXCFImport::convert(KisDocument *document, QIODevice 
     // Create the image
     KisImageSP image = new KisImage(document->createUndoStore(), XCF.width, XCF.height, KoColorSpaceRegistry::instance()->rgb8(), "built image");
 
-    QVector<Layer> layers;
+    PkVector<Layer> layers;
     uint maxDepth = 0;
 
     // Read layers
@@ -179,7 +179,7 @@ KisImportExportErrorCode KisXCFImport::convert(KisDocument *document, QIODevice 
         dbgFile << i << " name = " << xcflayer.name << " opacity = " << xcflayer.opacity << "group:" << xcflayer.isGroup << xcflayer.pathLength;
         dbgFile << ppVar(xcflayer.dim.width) << ppVar(xcflayer.dim.height) << ppVar(xcflayer.dim.tilesx) << ppVar(xcflayer.dim.tilesy) << ppVar(xcflayer.dim.ntiles) << ppVar(xcflayer.dim.c.t) << ppVar(xcflayer.dim.c.l) << ppVar(xcflayer.dim.c.r) << ppVar(xcflayer.dim.c.b);
 
-        maxDepth = qMax(maxDepth, xcflayer.pathLength);
+        maxDepth = std::max(maxDepth, xcflayer.pathLength);
 
         bool isRgbA = false;
         // Select the color space
@@ -202,10 +202,10 @@ KisImportExportErrorCode KisXCFImport::convert(KisDocument *document, QIODevice 
         // Create the layer
         KisLayerSP kisLayer;
         if (xcflayer.isGroup) {
-            kisLayer = new KisGroupLayer(image, QString::fromUtf8(xcflayer.name), xcflayer.opacity);
+            kisLayer = new KisGroupLayer(image, PkString(xcflayer.name), xcflayer.opacity);
         }
         else {
-            kisLayer = new KisPaintLayer(image, QString::fromUtf8(xcflayer.name), xcflayer.opacity, colorSpace);
+            kisLayer = new KisPaintLayer(image, PkString(xcflayer.name), xcflayer.opacity, colorSpace);
         }
 
         // Set some properties
@@ -270,7 +270,7 @@ KisImportExportErrorCode KisXCFImport::convert(KisDocument *document, QIODevice 
         }
         // Create the mask
         if (xcflayer.hasMask) {
-            KisTransparencyMaskSP mask = new KisTransparencyMask(image, i18n("Transparency Mask"));
+            KisTransparencyMaskSP mask = new KisTransparencyMask(image, PkString("Transparency Mask"));
             layer.mask = mask;
 
             mask->initSelection(kisLayer);

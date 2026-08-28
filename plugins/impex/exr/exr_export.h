@@ -7,7 +7,7 @@
 #ifndef _EXR_EXPORT_H_
 #define _EXR_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
@@ -15,11 +15,11 @@ class EXRExport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    EXRExport(QObject *parent, const QVariantList &);
+    EXRExport(QObject *parent, const PkVariantList &);
     ~EXRExport() override;
     bool supportsIO() const override { return false; }
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
-    KisPropertiesConfigurationSP defaultConfiguration(const QByteArray& from = "", const QByteArray& to = "") const override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray& from = PkByteArray(), const PkByteArray& to = PkByteArray()) const override;
     void initializeCapabilities() override;
 
 };

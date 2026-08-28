@@ -8,8 +8,9 @@
 #include "kis_open_raster_stack_save_visitor.h"
 
 #include <math.h>
+#include <cmath>
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 
 #include <KoCompositeOpRegistry.h>
 
@@ -26,8 +27,8 @@
 struct KisOpenRasterStackSaveVisitor::Private {
     Private() {}
     KisOpenRasterSaveContext* saveContext {nullptr};
-    QDomDocument layerStack;
-    QDomElement currentElement;
+    PkXmlDocument layerStack;
+    PkXmlElement currentElement;
     vKisNodeSP activeNodes;
 };
 
@@ -43,10 +44,10 @@ KisOpenRasterStackSaveVisitor::~KisOpenRasterStackSaveVisitor()
     delete d;
 }
 
-void KisOpenRasterStackSaveVisitor::saveLayerInfo(QDomElement& elt, KisLayer* layer)
+void KisOpenRasterStackSaveVisitor::saveLayerInfo(PkXmlElement& elt, KisLayer* layer)
 {
     elt.setAttribute("name", layer->name());
-    elt.setAttribute("opacity", QString().setNum(layer->opacity() / 255.0));
+    elt.setAttribute("opacity", PkString("%1").arg(layer->opacity() / 255.0));
     elt.setAttribute("visibility", layer->visible() ? "visible" : "hidden");
 
     if (layer->inherits("KisGroupLayer")) {
@@ -54,12 +55,12 @@ void KisOpenRasterStackSaveVisitor::saveLayerInfo(QDomElement& elt, KisLayer* la
         // MyPaint treats layer's x and y relative to the group's x and y
         //  while Gimp and Krita think those are absolute values.
         // Hence we set x and y on group layers to always be 0.
-        elt.setAttribute("x", QString().setNum(0));
-        elt.setAttribute("y", QString().setNum(0));
+        elt.setAttribute("x", PkString("0"));
+        elt.setAttribute("y", PkString("0"));
 
     } else {
-        elt.setAttribute("x", QString().setNum(layer->exactBounds().x()));
-        elt.setAttribute("y", QString().setNum(layer->exactBounds().y()));
+        elt.setAttribute("x", PkString("%1").arg(layer->exactBounds().x()));
+        elt.setAttribute("y", PkString("%1").arg(layer->exactBounds().y()));
     }
 
     if (layer->userLocked()) {
@@ -68,7 +69,7 @@ void KisOpenRasterStackSaveVisitor::saveLayerInfo(QDomElement& elt, KisLayer* la
     if (d->activeNodes.contains(layer)) {
         elt.setAttribute("selected", "true");
     }
-    QString compop = layer->compositeOpId();
+    PkString compop = layer->compositeOpId();
     if (layer->compositeOpId() == COMPOSITE_CLEAR) compop = "svg:clear";
     else if (layer->compositeOpId() == COMPOSITE_ERASE) compop = "svg:dst-out";
     else if (layer->compositeOpId() == COMPOSITE_DESTINATION_ATOP) compop = "svg:dst-atop";
@@ -91,7 +92,7 @@ void KisOpenRasterStackSaveVisitor::saveLayerInfo(QDomElement& elt, KisLayer* la
     else if (layer->compositeOpId() == COMPOSITE_OVER) compop = "svg:src-over";
 
     //else if (layer->compositeOpId() == COMPOSITE_EXCLUSION) compop = "svg:exclusion";
-    else compop = "krita:" + layer->compositeOpId();
+    else compop = PkString("krita:") + layer->compositeOpId();
 
     // Alpha preserve has a special case with the Normal blend mode, which is
     // stored as src-atop for compatibility with previous Krita versions that
@@ -120,12 +121,12 @@ bool KisOpenRasterStackSaveVisitor::visit(KisGeneratorLayer* layer)
 
 bool KisOpenRasterStackSaveVisitor::visit(KisGroupLayer *layer)
 {
-    QDomElement previousElt = d->currentElement;
+    PkXmlElement previousElt = d->currentElement;
 
-    QDomElement elt = d->layerStack.createElement("stack");
+    PkXmlElement elt = d->layerStack.createElement("stack");
     d->currentElement = elt;
     saveLayerInfo(elt, layer);
-    QString isolate = "isolate";
+    PkString isolate = "isolate";
     if (layer->passThroughMode()) {
         isolate = "auto";
     }
@@ -133,23 +134,23 @@ bool KisOpenRasterStackSaveVisitor::visit(KisGroupLayer *layer)
     visitAll(layer);
 
     if (!previousElt.isNull()) {
-        previousElt.insertBefore(elt, QDomNode());
+        previousElt.insertBefore(elt, PkXmlNode());
         d->currentElement = previousElt;
     } else {
-        QDomElement imageElt = d->layerStack.createElement("image");
+        PkXmlElement imageElt = d->layerStack.createElement("image");
         int width = layer->image()->width();
         int height = layer->image()->height();
-        int xRes = (int)(qRound(layer->image()->xRes() * 72));
-        int yRes = (int)(qRound(layer->image()->yRes() * 72));
+        int xRes = static_cast<int>(std::lround(layer->image()->xRes() * 72));
+        int yRes = static_cast<int>(std::lround(layer->image()->yRes() * 72));
 
         imageElt.setAttribute("version", "0.0.1");
-        imageElt.setAttribute("w", width);
-        imageElt.setAttribute("h", height);
-        imageElt.setAttribute("xres", xRes);
-        imageElt.setAttribute("yres", yRes);
+        imageElt.setAttribute("w", PkString("%1").arg(width));
+        imageElt.setAttribute("h", PkString("%1").arg(height));
+        imageElt.setAttribute("xres", PkString("%1").arg(xRes));
+        imageElt.setAttribute("yres", PkString("%1").arg(yRes));
         imageElt.appendChild(elt);
-        d->layerStack.insertBefore(imageElt, QDomNode());
-        d->currentElement = QDomElement();
+        d->layerStack.insertBefore(imageElt, PkXmlNode());
+        d->currentElement = PkXmlElement();
         d->saveContext->saveStack(d->layerStack);
     }
 
@@ -158,9 +159,9 @@ bool KisOpenRasterStackSaveVisitor::visit(KisGroupLayer *layer)
 
 bool KisOpenRasterStackSaveVisitor::visit(KisAdjustmentLayer *layer)
 {
-    QDomElement elt = d->layerStack.createElement("filter");
+    PkXmlElement elt = d->layerStack.createElement("filter");
     saveLayerInfo(elt, layer);
-    elt.setAttribute("type", "applications:krita:" + layer->filter()->name());
+    elt.setAttribute("type", PkString("applications:krita:") + layer->filter()->name());
     return true;
 }
 
@@ -182,7 +183,7 @@ bool KisOpenRasterStackSaveVisitor::saveLayer(KisLayer *layer)
     }
 
     // here we adjust the bounds to encompass the entire area of the layer, including transforms
-    QRect adjustedBounds = layer->exactBounds();
+    PkRect adjustedBounds = layer->exactBounds();
 
     if (adjustedBounds.isEmpty()) {
         // in case of an empty layer, artificially increase the size of the saved rectangle
@@ -190,12 +191,12 @@ bool KisOpenRasterStackSaveVisitor::saveLayer(KisLayer *layer)
         adjustedBounds.adjust(0, 0, 1, 1);
     }
 
-    QString filename = d->saveContext->saveDeviceData(layer->projection(), layer->metaData(), adjustedBounds, layer->image()->xRes(), layer->image()->yRes());
+    PkString filename = d->saveContext->saveDeviceData(layer->projection(), layer->metaData(), adjustedBounds, layer->image()->xRes(), layer->image()->yRes());
 
-    QDomElement elt = d->layerStack.createElement("layer");
+    PkXmlElement elt = d->layerStack.createElement("layer");
     saveLayerInfo(elt, layer);
     elt.setAttribute("src", filename);
-    d->currentElement.insertBefore(elt, QDomNode());
+    d->currentElement.insertBefore(elt, PkXmlNode());
 
     return true;
 }

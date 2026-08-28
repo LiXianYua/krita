@@ -17,7 +17,7 @@
 #endif
 
 
-const QString OraMimetype = "image/openraster";
+const PkString OraMimetype = "image/openraster";
 
 
 

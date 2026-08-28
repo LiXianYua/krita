@@ -6,7 +6,7 @@
 
 #include "kis_open_raster_load_context.h"
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include <KoStore.h>
 #include <KoStoreDevice.h>
@@ -20,11 +20,11 @@ KisOpenRasterLoadContext::KisOpenRasterLoadContext(KoStore* _store)
 {
 }
 
-KisImageSP KisOpenRasterLoadContext::loadDeviceData(const QString & filename)
+KisImageSP KisOpenRasterLoadContext::loadDeviceData(const PkString & filename)
 {
     if (m_store->open(filename)) {
         KoStoreDevice io(m_store);
-        if (!io.open(QIODevice::ReadOnly)) {
+        if (!io.open(PkStream::ReadOnly)) {
             dbgFile << "Could not open for reading:" << filename;
             return 0;
         }
@@ -39,11 +39,11 @@ KisImageSP KisOpenRasterLoadContext::loadDeviceData(const QString & filename)
     return 0;
 }
 
-QDomDocument KisOpenRasterLoadContext::loadStack()
+PkXmlDocument KisOpenRasterLoadContext::loadStack()
 {
     m_store->open("stack.xml");
     KoStoreDevice io(m_store);
-    QDomDocument doc;
+    PkXmlDocument doc;
     doc.setContent(&io);
     io.close();
     m_store->close();

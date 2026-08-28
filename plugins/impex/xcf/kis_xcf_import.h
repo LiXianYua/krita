@@ -7,8 +7,8 @@
 #ifndef _KIS_XCF_IMPORT_H_
 #define _KIS_XCF_IMPORT_H_
 
-#include <QVariant>
-#include <QIODevice>
+#include <PkVariant.h>
+#include <PkStream.h>
 
 #include <KisImportExportFilter.h>
 
@@ -18,10 +18,10 @@ class KisXCFImport : public KisImportExportFilter
 {
     Q_OBJECT
 public:
-    KisXCFImport(QObject *parent, const QVariantList &);
+    KisXCFImport(QObject *parent, const PkVariantList &);
     ~KisXCFImport() override;
 public:
-    KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+    KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
 };
 
 #endif

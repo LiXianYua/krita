@@ -5,15 +5,12 @@
  */
 
 #include "kis_svg_import.h"
+#include "svg_import_policy.h"
 
 #include <kpluginfactory.h>
-#include <KConfigGroup>
-#include <KSharedConfig>
-#include <QApplication>
-#include <QFileInfo>
-#include <QThread>
+#include <QBuffer>
 
-#include <QInputDialog>
+#include <filesystem>
 #include <KisDocument.h>
 #include <kis_image.h>
 
@@ -25,27 +22,20 @@
 K_PLUGIN_FACTORY_WITH_JSON(SVGImportFactory, "krita_svg_import.json", registerPlugin<KisSVGImport>();)
 
 namespace {
-class ConfigSyncGuard
+QString qtString(const PkString &value)
 {
-public:
-    explicit ConfigSyncGuard(KConfigGroup &config)
-        : m_config(config)
-    {
-    }
-
-    ~ConfigSyncGuard()
-    {
-        if (!qApp || qApp->thread() == QThread::currentThread()) {
-            m_config.sync();
-        }
-    }
-
-private:
-    KConfigGroup &m_config;
-};
+    const std::string utf8 = value.PkToUtf8();
+    return QString::fromUtf8(utf8.data(), static_cast<int>(utf8.size()));
 }
 
-KisSVGImport::KisSVGImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+PkString pkString(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+}
+
+KisSVGImport::KisSVGImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -53,60 +43,49 @@ KisSVGImport::~KisSVGImport()
 {
 }
 
-KisImportExportErrorCode KisSVGImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode KisSVGImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
-    Q_UNUSED(configuration);
+    (void)configuration;
 
     KisDocument * doc = document;
 
-    const QString baseXmlDir = QFileInfo(filename()).canonicalPath();
+    std::error_code pathError;
+    const std::filesystem::path sourcePath = std::filesystem::u8path(filename().PkToUtf8());
+    const std::filesystem::path canonicalPath = std::filesystem::weakly_canonical(sourcePath, pathError);
+    const PkString baseXmlDir(
+        (pathError ? sourcePath.parent_path() : canonicalPath.parent_path()).u8string().c_str());
 
-    KConfigGroup config = KSharedConfig::openConfig()->group(QString());
-    ConfigSyncGuard syncGuard(config);
+    const SvgImportPolicy policy = deterministicSvgImportPolicy();
+    const qreal resolution = policy.resolutionPpi;
 
-    qreal resolutionPPI = 100.0;
-
-    if (!batchMode()) {
-        bool okay = false;
-        const QString name = QFileInfo(filename()).fileName();
-        resolutionPPI = QInputDialog::getInt(0,
-                                             i18n("Import SVG"),
-                                             i18n("Enter preferred resolution (PPI) for \"%1\"", name),
-                                             config.readEntry("preferredVectorImportResolution", 100.0),
-                                             0, 100000, 1, &okay);
-
-        if (!okay) {
-            return ImportExportCodes::Cancelled;
-        }
-
-        config.writeEntry("preferredVectorImportResolution", static_cast<int>(resolutionPPI));
+    // The SVG shape parser is a downstream boundary that still exposes Qt
+    // value types. Keep conversion at this one edge; policy and importer state
+    // remain toolkit-free and deterministic.
+    const PkByteArray sourceBytes = io->readAll();
+    QByteArray qtSource(sourceBytes.constData(), sourceBytes.size());
+    QBuffer parserStream(&qtSource);
+    if (!parserStream.open(QIODevice::ReadOnly)) {
+        return ImportExportCodes::ErrorWhileReading;
     }
 
-    const qreal resolution = resolutionPPI;
-
-    QStringList warnings;
-    QStringList errors;
-
-    QSizeF fragmentSize;
-    QList<KoShape*> shapes =
-            KisShapeLayer::createShapesFromSvg(io, baseXmlDir,
-                                               QRectF(0,0,1200,800), resolutionPPI,
-                                               doc->shapeController()->resourceManager(),
-                                               false,
-                                               &fragmentSize,
-                                               &warnings, &errors);
+    auto warnings = QStringList();
+    auto errors = QStringList();
+    auto fragmentSize = QSizeF();
+    auto shapes = KisShapeLayer::createShapesFromSvg(
+        &parserStream, qtString(baseXmlDir), QRectF(0, 0, 1200, 800), resolution,
+        doc->shapeController()->resourceManager(), false, &fragmentSize, &warnings, &errors);
 
     if (!warnings.isEmpty()) {
-        doc->setWarningMessage(warnings.join('\n'));
+        doc->setWarningMessage(pkString(warnings.join('\n')));
     }
     if (!errors.isEmpty()) {
-        doc->setErrorMessage(errors.join('\n'));
+        doc->setErrorMessage(pkString(errors.join('\n')));
         return ImportExportCodes::FileFormatIncorrect;
     }
 
 
-    QRectF rawImageRect(QPointF(), fragmentSize);
-    QRect imageRect(rawImageRect.toAlignedRect());
+    PkRectF rawImageRect(PkPointF(), PkSizeF(fragmentSize.width(), fragmentSize.height()));
+    PkRect imageRect(rawImageRect.toAlignedRect());
 
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
     KisImageSP image = new KisImage(doc->createUndoStore(), imageRect.width(), imageRect.height(), cs, "svg image");
@@ -115,10 +94,10 @@ KisImportExportErrorCode KisSVGImport::convert(KisDocument *document, QIODevice 
 
     KisShapeLayerSP shapeLayer =
             new KisShapeLayer(doc->shapeController(), image,
-                              i18n("Vector Layer"),
+                              qtString(PkString("Vector Layer")),
                               OPACITY_OPAQUE_U8);
 
-    Q_FOREACH (KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         shapeLayer->addShape(shape);
     }
 

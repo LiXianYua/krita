@@ -6,10 +6,6 @@
 
 #include "exr_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-#include <QApplication>
-
 #include <kpluginfactory.h>
 
 #include <KoColorSpaceRegistry.h>
@@ -31,7 +27,7 @@ class KisExternalLayer;
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_exr_export.json", registerPlugin<EXRExport>();)
 
-EXRExport::EXRExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+EXRExport::EXRExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -39,20 +35,23 @@ EXRExport::~EXRExport()
 {
 }
 
-KisPropertiesConfigurationSP EXRExport::defaultConfiguration(const QByteArray &/*from*/, const QByteArray &/*to*/) const
+KisPropertiesConfigurationSP EXRExport::defaultConfiguration(const PkByteArray &/*from*/, const PkByteArray &/*to*/) const
 {
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
     cfg->setProperty("flatten", false);
     return cfg;
 }
 
-KisImportExportErrorCode EXRExport::convert(KisDocument *document, QIODevice */*io*/,  KisPropertiesConfigurationSP configuration)
+KisImportExportErrorCode EXRExport::convert(KisDocument *document, PkStream */*io*/,  KisPropertiesConfigurationSP configuration)
 {
-    Q_ASSERT(document);
-    Q_ASSERT(configuration);
+    if (!document || !configuration) {
+        return ImportExportCodes::InternalError;
+    }
 
     KisImageSP image = document->savingImage();
-    Q_ASSERT(image);
+    if (!image) {
+        return ImportExportCodes::InternalError;
+    }
 
     EXRConverter exrConverter(document, !batchMode());
 
@@ -65,7 +64,7 @@ KisImportExportErrorCode EXRExport::convert(KisDocument *document, QIODevice */*
         res = exrConverter.buildFile(filename(), image->rootLayer());
     }
 
-    if (!exrConverter.errorMessage().isNull()) {
+    if (!exrConverter.errorMessage().isEmpty()) {
         document->setErrorMessage(exrConverter.errorMessage());
     }
 
@@ -81,16 +80,16 @@ void EXRExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::SUPPORTED));
 
-    QList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Float16BitsColorDepthID)
-            << QPair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Float16BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Float32BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayColorModelID, Float16BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayColorModelID, Float32BitsColorDepthID)
-            << QPair<KoID, KoID>(XYZAColorModelID, Float16BitsColorDepthID)
-            << QPair<KoID, KoID>(XYZAColorModelID, Float32BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Float16BitsColorDepthID)
+            << std::pair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Float16BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Float32BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayColorModelID, Float16BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayColorModelID, Float32BitsColorDepthID)
+            << std::pair<KoID, KoID>(XYZAColorModelID, Float16BitsColorDepthID)
+            << std::pair<KoID, KoID>(XYZAColorModelID, Float32BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "EXR");
 }
 

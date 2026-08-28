@@ -17,7 +17,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_exr_import.json", registerPlugin<exrImport>();)
 
-exrImport::exrImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+exrImport::exrImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -25,15 +25,17 @@ exrImport::~exrImport()
 {
 }
 
-KisImportExportErrorCode exrImport::convert(KisDocument *document, QIODevice */*io*/,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode exrImport::convert(KisDocument *document, PkStream */*io*/,  KisPropertiesConfigurationSP /*configuration*/)
 {
     EXRConverter ib(document, !batchMode());
     KisImportExportErrorCode result = ib.buildImage(filename());
     if (result.isOk()) {
         document->setCurrentImage(ib.image());
+        if (!ib.errorMessage().isEmpty()) {
+            document->setWarningMessage(ib.errorMessage());
+        }
     }
     return result;
 }
 
 #include <exr_import.moc>
-
