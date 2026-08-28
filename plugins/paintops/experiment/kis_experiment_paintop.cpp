@@ -25,6 +25,17 @@
 #include <kis_algebra_2d.h>
 #include <KisRegion.h>
 
+namespace KisExperimentPaintOpDetail
+{
+PkRegion conservativeRepaintRegion(const PkPainterPath &currentPath,
+                                    const PkPainterPath &previousPath)
+{
+    const PkRegion currentRegion = KritaUtils::splitPath(currentPath).toQRegion();
+    const PkRegion previousRegion = KritaUtils::splitPath(previousPath).toQRegion();
+    return currentRegion | previousRegion;
+}
+}
+
 
 KisExperimentPaintOp::KisExperimentPaintOp(const KisPaintOpSettingsSP settings, KisPainter *painter, KisNodeSP node, KisImageSP image)
     : KisPaintOp(painter)
@@ -229,13 +240,12 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
                 }
                 else {
                     // PkPainterPath has no boolean path-arithmetic backend, so
-                    // split each path into narrow intersecting cells and apply
-                    // the same symmetric-difference operation as the original
-                    // QPainterPath implementation. Overlapping cells must not
-                    // remain in the repaint set.
-                    const PkRegion currentRegion = KritaUtils::splitPath(m_path).toQRegion();
-                    const PkRegion previousRegion = KritaUtils::splitPath(m_lastPaintedPath).toQRegion();
-                    changedRegion = KisRegion::fromQRegion(currentRegion ^ previousRegion);
+                    // conservatively repaint the union of their bounded cells.
+                    // Cell-level xor would under-repaint when distinct path
+                    // geometry quantizes to the same 64-pixel cell.
+                    changedRegion = KisRegion::fromQRegion(
+                        KisExperimentPaintOpDetail::conservativeRepaintRegion(
+                            m_path, m_lastPaintedPath));
                 }
 
                 paintRegion(changedRegion);
