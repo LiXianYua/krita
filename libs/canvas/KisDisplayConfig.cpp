@@ -49,7 +49,7 @@ PkDebug operator<<(PkDebug debug, const KisDisplayConfig &value) {
     debug.nospace() << "isHDR: " << value.isHDR;
 
     debug.nospace() << ")";
-    return debug;
+    return debug.space();
 }
 
 

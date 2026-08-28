@@ -8,8 +8,6 @@
 #include <cmath>
 #include <functional>
 
-#include <QtGlobal>
-
 KisStandardBrushSizes::KisStandardBrushSizes(int minSize, int maxSize)
 {
     int brushSize = minSize;

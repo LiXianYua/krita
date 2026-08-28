@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <kritacanvas_export.h>
 
 class KRITACANVAS_EXPORT KisStandardBrushSizes
