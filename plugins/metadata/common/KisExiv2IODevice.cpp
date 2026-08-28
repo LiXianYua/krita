@@ -16,6 +16,7 @@
 
 KisExiv2IODevice::KisExiv2IODevice(PkString path)
     : m_file(path)
+    , m_path(std::filesystem::absolute(path.PkToUtf8()).lexically_normal().string())
     , m_mappedArea(nullptr)
 {
 }
@@ -285,7 +286,7 @@ const std::string& KisExiv2IODevice::path() const noexcept
 std::string KisExiv2IODevice::path() const
 #endif
 {
-    return filePathQString().PkToUtf8();
+    return m_path;
 }
 
 bool KisExiv2IODevice::open(PkStream::OpenMode mode)

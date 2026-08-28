@@ -8,7 +8,7 @@
 #ifndef _KIS_XMP_IO_H_
 #define _KIS_XMP_IO_H_
 
-#include <klocalizedstring.h>
+#include <PkString.h>
 
 #include <kis_meta_data_io_backend.h>
 
@@ -17,13 +17,13 @@ class KisXMPIO : public KisMetaData::IOBackend
 public:
     KisXMPIO();
     ~KisXMPIO() override;
-    QString id() const override
+    PkString id() const override
     {
         return "xmp";
     }
-    QString name() const override
+    PkString name() const override
     {
-        return i18n("XMP");
+        return PkString("XMP");
     }
     BackendType type() const override
     {
@@ -33,7 +33,7 @@ public:
     {
         return true;
     }
-    bool saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, HeaderType headerType = NoHeader) const override;
+    bool saveTo(const KisMetaData::Store *store, PkStream *ioDevice, HeaderType headerType = NoHeader) const override;
     bool canSaveAllEntries(KisMetaData::Store *) const override
     {
         return true;
@@ -42,7 +42,7 @@ public:
     {
         return true;
     }
-    bool loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const override;
+    bool loadFrom(KisMetaData::Store *store, PkStream *ioDevice) const override;
 };
 
 #endif

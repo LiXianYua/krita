@@ -6,10 +6,12 @@
  */
 #include "kis_xmp_io.h"
 
+#include <algorithm>
+#include <cassert>
+#include <regex>
 #include <string>
 
-#include <QIODevice>
-#include <QRegularExpression>
+#include <PkStream.h>
 
 #include <kis_exiv2_common.h>
 #include <kis_meta_data_entry.h>
@@ -35,12 +37,12 @@ KisXMPIO::~KisXMPIO()
 
 inline std::string exiv2Prefix(const KisMetaData::Schema *_schema)
 {
-    const QByteArray latin1SchemaUri = _schema->uri().toLatin1();
-    std::string prefix = Exiv2::XmpProperties::prefix(latin1SchemaUri.constData());
+    const std::string schemaUri = _schema->uri().PkToUtf8();
+    std::string prefix = Exiv2::XmpProperties::prefix(schemaUri);
     if (prefix.empty()) {
         dbgMetaData << "Unknown namespace " << ppVar(_schema->uri()) << ppVar(_schema->prefix());
-        prefix = _schema->prefix().toLatin1().constData();
-        Exiv2::XmpProperties::registerNs(latin1SchemaUri.constData(), prefix);
+        prefix = _schema->prefix().PkToUtf8();
+        Exiv2::XmpProperties::registerNs(schemaUri, prefix);
     }
     return prefix;
 }
@@ -48,16 +50,16 @@ inline std::string exiv2Prefix(const KisMetaData::Schema *_schema)
 namespace
 {
 void saveStructure(Exiv2::XmpData &xmpData_,
-                   const QString &name,
+                   const PkString &name,
                    const std::string &prefix,
-                   const QMap<QString, KisMetaData::Value> &structure,
+                   const PkMap<PkString, KisMetaData::Value> &structure,
                    const KisMetaData::Schema *structureSchema)
 {
     std::string structPrefix = exiv2Prefix(structureSchema);
-    for (QMap<QString, KisMetaData::Value>::const_iterator it = structure.begin(); it != structure.end(); ++it) {
-        Q_ASSERT(it.value().type() != KisMetaData::Value::Structure); // Can't nest structure
-        QString key = QString("%1/%2:%3").arg(name).arg(structPrefix.c_str()).arg(it.key());
-        Exiv2::XmpKey ekey(prefix, key.toLatin1().constData());
+    for (PkMap<PkString, KisMetaData::Value>::const_iterator it = structure.begin(); it != structure.end(); ++it) {
+        assert(it.value().type() != KisMetaData::Value::Structure); // Can't nest structure
+        PkString key = PkString("%1/%2:%3").arg(name).arg(structPrefix.c_str()).arg(it.key());
+        Exiv2::XmpKey ekey(prefix, key.PkToUtf8());
         dbgMetaData << ppVar(key) << ppVar(ekey.key().c_str());
         Exiv2::Value *v = kmdValueToExivXmpValue(it.value());
         if (v) {
@@ -67,7 +69,7 @@ void saveStructure(Exiv2::XmpData &xmpData_,
 }
 }
 
-bool KisXMPIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, HeaderType headerType) const
+bool KisXMPIO::saveTo(const KisMetaData::Store *store, PkStream *ioDevice, HeaderType headerType) const
 {
     dbgMetaData << "Save XMP Data";
     Exiv2::XmpData xmpData_;
@@ -81,7 +83,7 @@ bool KisXMPIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Head
 
         const KisMetaData::TypeInfo *typeInfo = entry.schema()->propertyType(entry.name());
         if (value.type() == KisMetaData::Value::Structure) {
-            QMap<QString, KisMetaData::Value> structure = value.asStructure();
+            PkMap<PkString, KisMetaData::Value> structure = value.asStructure();
             const KisMetaData::Schema *structureSchema = 0;
             if (typeInfo) {
                 structureSchema = typeInfo->structureSchema();
@@ -90,10 +92,10 @@ bool KisXMPIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Head
                 dbgMetaData << "Unknown schema for " << entry.name();
                 structureSchema = entry.schema();
             }
-            Q_ASSERT(structureSchema);
+            assert(structureSchema);
             saveStructure(xmpData_, entry.name(), prefix, structure, structureSchema);
         } else {
-            Exiv2::XmpKey key(prefix, entry.name().toLatin1().constData());
+            Exiv2::XmpKey key(prefix, entry.name().PkToUtf8());
             if (typeInfo
                 && (typeInfo->propertyType() == KisMetaData::TypeInfo::OrderedArrayType
                     || typeInfo->propertyType() == KisMetaData::TypeInfo::UnorderedArrayType
@@ -125,11 +127,11 @@ bool KisXMPIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Head
                     dbgMetaData << "Unknown schema for " << entry.name();
                     structureSchema = entry.schema();
                 }
-                Q_ASSERT(structureSchema);
-                QList<KisMetaData::Value> array = value.asArray();
+                assert(structureSchema);
+                PkList<KisMetaData::Value> array = value.asArray();
                 for (int idx = 0; idx < array.size(); ++idx) {
                     saveStructure(xmpData_,
-                                  QString("%1[%2]").arg(entry.name()).arg(idx + 1),
+                                  PkString("%1[%2]").arg(entry.name()).arg(idx + 1),
                                   prefix,
                                   array[idx].asStructure(),
                                   structureSchema);
@@ -141,7 +143,7 @@ bool KisXMPIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Head
                     xmpData_.add(key, v);
                 } else {
                     warnMetaData << "Invalid metadata value " << value << "for: " << entry.name();
-                    KisUsageLogger::log(QString("Invalid metadata value \"%1\" for key %2. The metadata key is therefore skipped during saving.").arg(value.toString(), entry.name()));
+                    KisUsageLogger::log(PkString("Invalid metadata value \"%1\" for key %2. The metadata key is therefore skipped during saving.").arg(value.toString(), entry.name()));
                 }
             }
         }
@@ -156,7 +158,7 @@ bool KisXMPIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Head
         return false;
     }
     // Save data into the IO device
-    ioDevice->open(QIODevice::WriteOnly);
+    ioDevice->open(PkStream::WriteOnly);
     if (headerType == KisMetaData::IOBackend::JpegHeader) {
         xmpPacket_ = "http://ns.adobe.com/xap/1.0/\0" + xmpPacket_;
     }
@@ -164,37 +166,36 @@ bool KisXMPIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Head
     return true;
 }
 
-bool parseTagName(const QString &tagString,
-                  QString &structName,
+bool parseTagName(const PkString &tagString,
+                  PkString &structName,
                   int &arrayIndex,
-                  QString &tagName,
+                  PkString &tagName,
                   const KisMetaData::TypeInfo **typeInfo,
                   const KisMetaData::Schema *schema)
 {
     arrayIndex = -1;
     *typeInfo = 0;
 
-    int numSubNames = tagString.count('/') + 1;
+    const std::string tagUtf8 = tagString.PkToUtf8();
+    const int numSubNames = static_cast<int>(std::count(tagUtf8.begin(), tagUtf8.end(), '/')) + 1;
 
     if (numSubNames == 1) {
-        structName.clear();
+        structName = PkString();
         tagName = tagString;
         *typeInfo = schema->propertyType(tagName);
         return true;
     }
 
     if (numSubNames == 2) {
-        /**
-         * We use Unicode-matching mode, because according to XML specification
-         * the name of an entity can contain Unicode characters.
-         */
-        QRegularExpression regexp("([A-Za-z]\\w+)/([A-Za-z]\\w+):([A-Za-z]\\w+)");
-        regexp.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
-
-        QRegularExpressionMatch match;
-        if (tagString.contains(regexp, &match)) {
-            structName = match.captured(1);
-            tagName = match.captured(3);
+        const std::string &utf8 = tagUtf8;
+        const std::regex structurePattern(
+            R"(^([A-Za-z][A-Za-z0-9_]*)/([A-Za-z][A-Za-z0-9_]*):([A-Za-z][A-Za-z0-9_]*)$)");
+        std::smatch match;
+        if (std::regex_match(utf8, match, structurePattern)) {
+            const std::string matchedStruct = match[1].str();
+            const std::string matchedTag = match[3].str();
+            structName = PkString::PkFromUtf8(matchedStruct.data(), static_cast<int>(matchedStruct.size()));
+            tagName = PkString::PkFromUtf8(matchedTag.data(), static_cast<int>(matchedTag.size()));
             *typeInfo = schema->propertyType(structName);
 
             if (*typeInfo && (*typeInfo)->propertyType() == KisMetaData::TypeInfo::StructureType) {
@@ -204,18 +205,19 @@ bool parseTagName(const QString &tagString,
             return true;
         }
 
-        QRegularExpression regexp2("([A-Za-z]\\w+)\\[(\\d+)\\]/([A-Za-z]\\w+):([A-Za-z]\\w+)");
-        regexp2.setPatternOptions(QRegularExpression::UseUnicodePropertiesOption);
-
-        QRegularExpressionMatch match2;
-        if (tagString.contains(regexp2, &match2)) {
-            structName = match2.captured(1);
-            arrayIndex = match2.captured(2).toInt() - 1;
-            tagName = match2.captured(4);
+        const std::regex arrayPattern(
+            R"(^([A-Za-z][A-Za-z0-9_]*)\[([0-9]+)\]/([A-Za-z][A-Za-z0-9_]*):([A-Za-z][A-Za-z0-9_]*)$)");
+        std::smatch arrayMatch;
+        if (std::regex_match(utf8, arrayMatch, arrayPattern)) {
+            const std::string matchedStruct = arrayMatch[1].str();
+            const std::string matchedTag = arrayMatch[4].str();
+            structName = PkString::PkFromUtf8(matchedStruct.data(), static_cast<int>(matchedStruct.size()));
+            arrayIndex = std::stoi(arrayMatch[2].str()) - 1;
+            tagName = PkString::PkFromUtf8(matchedTag.data(), static_cast<int>(matchedTag.size()));
 
             if (schema->propertyType(structName)) {
                 *typeInfo = schema->propertyType(structName)->embeddedPropertyType();
-                Q_ASSERT(*typeInfo);
+                assert(*typeInfo);
 
                 if ((*typeInfo)->propertyType() == KisMetaData::TypeInfo::StructureType) {
                     *typeInfo = (*typeInfo)->structureSchema()->propertyType(tagName);
@@ -231,13 +233,13 @@ bool parseTagName(const QString &tagString,
     return false;
 }
 
-bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
+bool KisXMPIO::loadFrom(KisMetaData::Store *store, PkStream *ioDevice) const
 {
-    ioDevice->open(QIODevice::ReadOnly);
+    ioDevice->open(PkStream::ReadOnly);
     dbgMetaData << "Load XMP Data";
     std::string xmpPacket_;
-    QByteArray arr = ioDevice->readAll();
-    xmpPacket_.assign(arr.data(), arr.length());
+    PkByteArray arr = KisExiv2IODeviceDetail::readAllFromStream(ioDevice);
+    xmpPacket_.assign(arr.data(), arr.size());
     dbgMetaData << xmpPacket_.length();
     //     dbgMetaData << xmpPacket_.c_str();
     Exiv2::XmpData xmpData_;
@@ -245,8 +247,8 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
         warnMetaData << "Failed to decode as XMP";
         return false;
     }
-    QMap<const KisMetaData::Schema *, QMap<QString, QMap<QString, KisMetaData::Value>>> structures;
-    QMap<const KisMetaData::Schema *, QMap<QString, QVector<QMap<QString, KisMetaData::Value>>>> arraysOfStructures;
+    PkMap<const KisMetaData::Schema *, PkMap<PkString, PkMap<PkString, KisMetaData::Value>>> structures;
+    PkMap<const KisMetaData::Schema *, PkMap<PkString, PkVector<PkMap<PkString, KisMetaData::Value>>>> arraysOfStructures;
     for (Exiv2::XmpData::iterator it = xmpData_.begin(); it != xmpData_.end(); ++it) {
         dbgMetaData << "Start iteration" << it->key().c_str();
 
@@ -264,7 +266,7 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
                 schema = KisMetaData::SchemaRegistry::instance()->schemaFromUri(key.ns().c_str());
                 if (!schema) {
                     schema = KisMetaData::SchemaRegistry::instance()->create(key.ns().c_str(), key.groupName().c_str());
-                    Q_ASSERT(schema);
+                    assert(schema);
                 }
             }
 #if EXIV2_TEST_VERSION(0,28,0)
@@ -272,9 +274,9 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
 #else
             const Exiv2::Value::AutoPtr value = it->getValue();
 #endif
-            QString structName;
+            PkString structName;
             int arrayIndex = -1;
-            QString tagName;
+            PkString tagName;
             const KisMetaData::TypeInfo *typeInfo = 0;
 
             if (!parseTagName(key.tagName().c_str(), structName, arrayIndex, tagName, &typeInfo, schema))
@@ -282,7 +284,7 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
 
             bool isStructureEntry = !structName.isEmpty() && arrayIndex == -1;
             bool isStructureInArrayEntry = !structName.isEmpty() && arrayIndex != -1;
-            Q_ASSERT(isStructureEntry != isStructureInArrayEntry || !isStructureEntry);
+            assert(isStructureEntry != isStructureInArrayEntry || !isStructureEntry);
 
             KisMetaData::Value v;
             bool ignoreValue = false;
@@ -298,18 +300,19 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
                     parser = embeddedTypeInfo->parser();
                 }
                 const Exiv2::XmpArrayValue *xav = dynamic_cast<const Exiv2::XmpArrayValue *>(value.get());
-                Q_ASSERT(xav);
-                QList<KisMetaData::Value> array;
+                assert(xav);
+                PkList<KisMetaData::Value> array;
 #if EXIV2_TEST_VERSION(0,28,0)
                 for (size_t i = 0; i < xav->count(); ++i) {
 #else
                 for (int i = 0; i < xav->count(); ++i) {
 #endif
-                    QString value = QString::fromStdString(xav->toString(i));
+                    const std::string encodedValue = xav->toString(i);
+                    PkString value = PkString::PkFromUtf8(encodedValue.data(), static_cast<int>(encodedValue.size()));
                     if (parser) {
                         KisMetaData::Value parsed = parser->parse(value);
                         if (parsed.type() == KisMetaData::Value::Invalid) {
-                            KisUsageLogger::log(QString("Cannot parse metadata value \"%1\" for %2. Assigning invalid value.").arg(value, tagName));
+                            KisUsageLogger::log(PkString("Cannot parse metadata value \"%1\" for %2. Assigning invalid value.").arg(value, tagName));
                         }
                         array.push_back(parsed);
 
@@ -338,7 +341,7 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
                 const Exiv2::LangAltValue *xav = dynamic_cast<const Exiv2::LangAltValue *>(value.get());
                 KIS_ASSERT(xav);
 
-                QList<KisMetaData::Value> alt;
+                PkList<KisMetaData::Value> alt;
                 for (std::map<std::string, std::string>::const_iterator it = xav->value_.begin();
                      it != xav->value_.end();
                      ++it) {
@@ -348,11 +351,11 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
                 }
                 v = KisMetaData::Value(alt, KisMetaData::Value::LangArray);
             } else {
-                QString valTxt = value->toString().c_str();
+                PkString valTxt = value->toString().c_str();
                 if (typeInfo && typeInfo->parser()) {
                     v = typeInfo->parser()->parse(valTxt);
                     if (v.type() == KisMetaData::Value::Invalid) {
-                        KisUsageLogger::log(QString("Cannot parse metadata value \"%1\" for %2. Assigning invalid value.").arg(valTxt, tagName));
+                        KisUsageLogger::log(PkString("Cannot parse metadata value \"%1\" for %2. Assigning invalid value.").arg(valTxt, tagName));
                     }
                 } else {
                     dbgMetaData << "No parser " << tagName;
@@ -388,27 +391,27 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
         }
     }
 
-    for (QMap<const KisMetaData::Schema *, QMap<QString, QMap<QString, KisMetaData::Value>>>::iterator it =
+    for (PkMap<const KisMetaData::Schema *, PkMap<PkString, PkMap<PkString, KisMetaData::Value>>>::iterator it =
              structures.begin();
          it != structures.end();
          ++it) {
         const KisMetaData::Schema *schema = it.key();
-        for (QMap<QString, QMap<QString, KisMetaData::Value>>::iterator it2 = it.value().begin();
+        for (PkMap<PkString, PkMap<PkString, KisMetaData::Value>>::iterator it2 = it.value().begin();
              it2 != it.value().end();
              ++it2) {
             store->addEntry(KisMetaData::Entry(schema, it2.key(), KisMetaData::Value(it2.value())));
         }
     }
-    for (QMap<const KisMetaData::Schema *, QMap<QString, QVector<QMap<QString, KisMetaData::Value>>>>::iterator it =
+    for (PkMap<const KisMetaData::Schema *, PkMap<PkString, PkVector<PkMap<PkString, KisMetaData::Value>>>>::iterator it =
              arraysOfStructures.begin();
          it != arraysOfStructures.end();
          ++it) {
         const KisMetaData::Schema *schema = it.key();
-        for (QMap<QString, QVector<QMap<QString, KisMetaData::Value>>>::iterator it2 = it.value().begin();
+        for (PkMap<PkString, PkVector<PkMap<PkString, KisMetaData::Value>>>::iterator it2 = it.value().begin();
              it2 != it.value().end();
              ++it2) {
             KisMetaData::Value::ValueType type = KisMetaData::Value::OrderedArray;
-            QString entryName = it2.key();
+            PkString entryName = it2.key();
             if (schema->propertyType(entryName)) {
                 switch (schema->propertyType(entryName)->propertyType()) {
                 case KisMetaData::TypeInfo::OrderedArrayType:
@@ -432,7 +435,7 @@ bool KisXMPIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
             }
             store->removeEntry(schema, entryName);
             if (type != KisMetaData::Value::Invalid) {
-                QList<KisMetaData::Value> valueList;
+                PkList<KisMetaData::Value> valueList;
                 for (int i = 0; i < it2.value().size(); ++i) {
                     valueList.append(it2.value()[i]);
                 }

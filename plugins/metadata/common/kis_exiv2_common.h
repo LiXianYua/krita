@@ -15,6 +15,7 @@
 #include "pk/container/PkMap.h"
 #include "pk/container/PkStringList.h"
 #include "pk/pointer/PkScopedPointer.h"
+#include "pk/port/PkStream.h"
 #include "pk/string/PkString.h"
 #include "pk/time/PkDateTime.h"
 #include "pk/variant/PkAuxTypes.h"
@@ -63,8 +64,8 @@ inline PkByteArray pkBase64Decode(const std::string &s)
     std::vector<unsigned char> out;
     unsigned int buf = 0;
     int bits = 0;
-    // 解码：遇 '='（padding）终止，对齐 Qt fromBase64 的 padding 语义。
-    // 非法字符处理与 Qt 默认行为不同：Qt 跳过非法字符继续，本 helper 停止。
+    // 解码：遇 '='（padding）终止，对齐旧实现的 padding 语义。
+    // 非法字符处理与旧实现不同：旧实现跳过非法字符继续，本 helper 停止。
     // 对规范 base64（toBase64 产物）两者逐字节一致；非规范输入属损坏数据，
     // Pk 侧按 R-31 显式失败，不静默继续。
     for (char c : s) {
@@ -79,6 +80,23 @@ inline PkByteArray pkBase64Decode(const std::string &s)
         }
     }
     return PkByteArray(out);
+}
+
+inline PkByteArray readAllFromStream(PkStream *stream)
+{
+    if (!stream) {
+        return {};
+    }
+    std::vector<char> bytes;
+    char chunk[8192];
+    for (PkStream::pk_int64 count = 0;
+         (count = stream->read(chunk, sizeof(chunk))) > 0;) {
+        bytes.insert(bytes.end(), chunk, chunk + count);
+    }
+    if (bytes.empty()) {
+        return {};
+    }
+    return PkByteArray(bytes.data(), static_cast<int>(bytes.size()));
 }
 
 } // namespace KisExiv2IODeviceDetail
@@ -120,7 +138,7 @@ exivValueToKMDValue(const Exiv2::Value::AutoPtr &value, bool forceSeq, KisMetaDa
 #endif
         } else {
             PkList<KisMetaData::Value> array;
-            for (int i = 0; i < value->count(); i++)
+            for (decltype(value->count()) i = 0; i < value->count(); ++i)
 #if EXIV2_TEST_VERSION(0,28,0)
                 array.push_back({static_cast<int>(value->toUint32(i))});
 #else
@@ -171,7 +189,7 @@ exivValueToKMDValue(const Exiv2::Value::AutoPtr &value, bool forceSeq, KisMetaDa
         }
     case Exiv2::date:
     case Exiv2::time:
-        return {PkDateTime::fromString(value->toString(), Qt::ISODate)};
+        return {PkDateTime::fromString(value->toString(), PkDateTime::DateFormat::ISODate)};
     case Exiv2::xmpText:
     case Exiv2::xmpAlt:
     case Exiv2::xmpBag:
@@ -179,18 +197,22 @@ exivValueToKMDValue(const Exiv2::Value::AutoPtr &value, bool forceSeq, KisMetaDa
     case Exiv2::langAlt:
     default: {
         dbgMetaData << "Unknown type id :" << static_cast<int>(value->typeId()) << " value =" << value->toString().c_str();
-        // Q_ASSERT(false); // This point must never be reached !
+        // This point must never be reached.
         return {};
     }
     }
     dbgMetaData << "Unknown type id :" << static_cast<int>(value->typeId()) << " value =" << value->toString().c_str();
-    // Q_ASSERT(false); // This point must never be reached !
+    // This point must never be reached.
     return {};
 }
 
-// 零 Qt 等价物：C locale 下 toString(dt, "yyyy:MM:dd hh:mm:ss")，EXIF 规范格式。
+// C locale 下按 "yyyy:MM:dd hh:mm:ss" 输出 EXIF 规范格式。
 static std::string formatExifDateTime(const PkDateTime &dt)
 {
+    if (!dt.isValid()) {
+        return {};
+    }
+
     char buf[32];
     std::snprintf(buf, sizeof(buf), "%04d:%02d:%02d %02d:%02d:%02d",
                   dt.date().year(), dt.date().month(), dt.date().day(),
@@ -235,7 +257,7 @@ inline Exiv2::Value *variantToExivValue(const PkVariant &variant, Exiv2::TypeId 
         return new Exiv2::CommentValue(variant.toString().PkToUtf8());
     default:
         dbgMetaData << "Unhandled type:" << static_cast<int>(type);
-        // Q_ASSERT(false);
+        // Unhandled values are rejected explicitly.
         return nullptr;
     }
 }
@@ -261,7 +283,7 @@ inline Exiv2::Value *kmdValueToExivValue(const KisMetaData::Value &value, Exiv2:
         return variantToExivValue(value.asVariant(), type);
     }
     case KisMetaData::Value::Rational:
-        // Q_ASSERT(type == Exiv2::signedRational || type == Exiv2::unsignedRational);
+        // Rational values require a signed or unsigned rational Exiv2 type.
         if (type == Exiv2::signedRational) {
             return new Exiv2::RationalValue({value.asRational().numerator, value.asRational().denominator});
         } else {
@@ -339,7 +361,7 @@ inline Exiv2::Value *kmdValueToExivValue(const KisMetaData::Value &value, Exiv2:
 /// This function should be used for saving to XMP.
 inline Exiv2::Value *kmdValueToExivXmpValue(const KisMetaData::Value &value)
 {
-    // Q_ASSERT(value.type() != KisMetaData::Value::Structure);
+    // Structures are handled by the XMP backend before this conversion.
     switch (value.type()) {
     case KisMetaData::Value::Invalid:
         return new Exiv2::DataValue(Exiv2::invalidTypeId);
@@ -352,7 +374,7 @@ inline Exiv2::Value *kmdValueToExivXmpValue(const KisMetaData::Value &value)
                 return new Exiv2::XmpTextValue("False");
             }
         } else {
-            // Q_ASSERT(var.canConvert(PkVariant::String));
+            // This conversion expects a string-compatible variant.
             return new Exiv2::XmpTextValue(var.toString().PkToUtf8());
         }
     }
@@ -396,9 +418,9 @@ inline Exiv2::Value *kmdValueToExivXmpValue(const KisMetaData::Value &value)
             if (it.key() != "x-default") {
                 exivVal = PkString("lang=") + it.key() + PkString(" ");
             }
-            // Q_ASSERT(it.value().type() == KisMetaData::Value::Variant);
+            // Language-array entries are scalar variants here.
             PkVariant var = it.value().asVariant();
-            // Q_ASSERT(var.type() == PkVariant::String);
+            // Language-array values are strings here.
             exivVal += var.toString();
             arrV->read(exivVal.PkToUtf8());
         }

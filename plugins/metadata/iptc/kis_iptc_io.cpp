@@ -8,7 +8,12 @@
 
 #include <exiv2/iptc.hpp>
 
-#include <QIODevice>
+#include <cassert>
+#include <cstdint>
+#include <string>
+
+#include <PkStream.h>
+#include <PkStringHash.h>
 
 #include <kis_debug.h>
 #include <kis_exiv2_common.h>
@@ -21,12 +26,12 @@
 const char photoshopMarker[] = "Photoshop 3.0\0";
 const char photoshopBimId_[] = "8BIM";
 const uint16_t photoshopIptc = 0x0404;
-const QByteArray photoshopIptc_((char *)&photoshopIptc, 2);
+const PkByteArray photoshopIptc_((char *)&photoshopIptc, 2);
 
 struct IPTCToKMD {
-    QString exivTag;
-    QString namespaceUri;
-    QString name;
+    PkString exivTag;
+    PkString namespaceUri;
+    PkString name;
 };
 
 static const IPTCToKMD mappings[] = {
@@ -57,8 +62,8 @@ static const IPTCToKMD mappings[] = {
 };
 
 struct KisIptcIO::Private {
-    QHash<QString, IPTCToKMD> iptcToKMD;
-    QHash<QString, IPTCToKMD> kmdToIPTC;
+    PkHash<PkString, IPTCToKMD> iptcToKMD;
+    PkHash<PkString, IPTCToKMD> kmdToIPTC;
 };
 
 // ---- Implementation of KisIptcIO ----//
@@ -88,12 +93,12 @@ void KisIptcIO::initMappingsTable() const
     }
 }
 
-bool KisIptcIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, HeaderType headerType) const
+bool KisIptcIO::saveTo(const KisMetaData::Store *store, PkStream *ioDevice, HeaderType headerType) const
 {
-    QStringList blockedEntries = QStringList() << "photoshop:DateCreated";
+    PkStringList blockedEntries = PkStringList() << "photoshop:DateCreated";
 
     initMappingsTable();
-    ioDevice->open(QIODevice::WriteOnly);
+    ioDevice->open(PkStream::WriteOnly);
     Exiv2::IptcData iptcData;
     for (const KisMetaData::Entry &entry : *store) {
         if (d->kmdToIPTC.contains(entry.qualifiedName())) {
@@ -102,8 +107,8 @@ bool KisIptcIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Hea
                 continue;
             }
             try {
-                QString iptcKeyStr = d->kmdToIPTC[entry.qualifiedName()].exivTag;
-                Exiv2::IptcKey iptcKey(qPrintable(iptcKeyStr));
+                PkString iptcKeyStr = d->kmdToIPTC[entry.qualifiedName()].exivTag;
+                Exiv2::IptcKey iptcKey(iptcKeyStr.PkToUtf8());
                 Exiv2::Value *v =
                     kmdValueToExivValue(entry.value(),
                                         Exiv2::IptcDataSets::dataSetType(iptcKey.tag(), iptcKey.record()));
@@ -127,24 +132,23 @@ bool KisIptcIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Hea
 #endif
 
     if (headerType == KisMetaData::IOBackend::JpegHeader) {
-        QByteArray header;
-        header.append(photoshopMarker);
-        header.append(QByteArray(1, 0)); // Null terminated string
-        header.append(photoshopBimId_);
-        header.append(photoshopIptc_);
-        header.append(QByteArray(2, 0));
+        std::string header(photoshopMarker);
+        header.append(1, '\0');
+        header.append(photoshopBimId_, sizeof(photoshopBimId_) - 1);
+        header.append(photoshopIptc_.constData(), static_cast<std::size_t>(photoshopIptc_.size()));
+        header.append(2, '\0');
 #if EXIV2_TEST_VERSION(0, 28, 0)
-        qint32 size = rawData.size();
+        std::int32_t size = static_cast<std::int32_t>(rawData.size());
 #else
-        qint32 size = rawData.size_;
+        std::int32_t size = static_cast<std::int32_t>(rawData.size_);
 #endif
-        QByteArray sizeArray(4, 0);
-        sizeArray[0] = (char)((size & 0xff000000) >> 24);
-        sizeArray[1] = (char)((size & 0x00ff0000) >> 16);
-        sizeArray[2] = (char)((size & 0x0000ff00) >> 8);
-        sizeArray[3] = (char)(size & 0x000000ff);
-        header.append(sizeArray);
-        ioDevice->write(header);
+        const char sizeArray[] = {
+            static_cast<char>((size & 0xff000000) >> 24),
+            static_cast<char>((size & 0x00ff0000) >> 16),
+            static_cast<char>((size & 0x0000ff00) >> 8),
+            static_cast<char>(size & 0x000000ff)};
+        header.append(sizeArray, sizeof(sizeArray));
+        ioDevice->write(header.data(), static_cast<PkStream::pk_int64>(header.size()));
     }
 
 #if EXIV2_TEST_VERSION(0, 28, 0)
@@ -158,16 +162,16 @@ bool KisIptcIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Hea
 
 bool KisIptcIO::canSaveAllEntries(KisMetaData::Store *store) const
 {
-    Q_UNUSED(store);
+    (void)store;
     return false;
 }
 
-bool KisIptcIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
+bool KisIptcIO::loadFrom(KisMetaData::Store *store, PkStream *ioDevice) const
 {
     initMappingsTable();
     dbgMetaData << "Loading IPTC Tags";
-    ioDevice->open(QIODevice::ReadOnly);
-    QByteArray arr = ioDevice->readAll();
+    ioDevice->open(PkStream::ReadOnly);
+    PkByteArray arr = KisExiv2IODeviceDetail::readAllFromStream(ioDevice);
     Exiv2::IptcData iptcData;
 #if !EXIV2_TEST_VERSION(0, 18, 0)
     iptcData.load((const Exiv2::byte *)arr.data(), arr.size());
@@ -183,12 +187,11 @@ bool KisIptcIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
                 KisMetaData::SchemaRegistry::instance()->schemaFromUri(iptcToKMd.namespaceUri);
             KisMetaData::Value value;
             if (iptcToKMd.exivTag == "Iptc.Application2.Keywords") {
-                Q_ASSERT(it->getValue()->typeId() == Exiv2::string);
-                QString data = it->getValue()->toString().c_str();
+                assert(it->getValue()->typeId() == Exiv2::string);
+                PkString data = it->getValue()->toString().c_str();
 
-                QStringList list = data.split(',');
-                QList<KisMetaData::Value> values;
-                Q_FOREACH (const QString &entry, list) {
+                PkList<KisMetaData::Value> values;
+                for (const PkString &entry : data.split(u',')) {
                     values.push_back(KisMetaData::Value(entry));
                 }
                 value = KisMetaData::Value(values, KisMetaData::Value::UnorderedArray);

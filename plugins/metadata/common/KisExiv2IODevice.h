@@ -13,6 +13,8 @@
 
 #include <exiv2/exiv2.hpp>
 
+#include <string>
+
 #include <kis_global.h>
 
 #include "kritaexifcommon_export.h"
@@ -78,6 +80,7 @@ private:
     PkString filePathQString() const;
 
     mutable PkFileStream m_file;
+    std::string m_path;
     int m_error {0};
 
     Exiv2::byte *m_mappedArea;

@@ -10,7 +10,13 @@ generate_export_header(kritaxmp)
 target_link_libraries(kritaxmp
     PRIVATE
         kritametadata
-        KF${KF_MAJOR}::CoreAddons
+        kritaexifcommon
+        pkstring
+        pkcontainer
+        pkvariant
+        pkport
+        pktime
+        pklog
         LibExiv2::LibExiv2
 )
 

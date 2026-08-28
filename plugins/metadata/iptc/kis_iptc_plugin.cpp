@@ -6,24 +6,21 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_iptc_plugin.h"
-
-#include <kpluginfactory.h>
+#include <PkStringHash.h>
 
 #include <kis_meta_data_backend_registry.h>
 
 #include "kis_iptc_io.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisIptcIOPluginFactory, "kritaiptc.json", registerPlugin<KisIptcPlugin>();)
-
-KisIptcPlugin::KisIptcPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace
 {
-    KisMetadataBackendRegistry::instance()->add(new KisIptcIO());
-}
-
-KisIptcPlugin::~KisIptcPlugin()
+struct KisIptcBackendRegistration
 {
-}
+    KisIptcBackendRegistration()
+    {
+        KisMetadataBackendRegistry::instance()->add(new KisIptcIO());
+    }
+};
 
-#include "kis_iptc_plugin.moc"
+KisIptcBackendRegistration s_kisIptcBackendRegistration;
+} // namespace

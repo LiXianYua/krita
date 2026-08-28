@@ -10,14 +10,18 @@
 #include <exiv2/error.hpp>
 #include <exiv2/exif.hpp>
 
-#include <QByteArray>
-#include <QDate>
-#include <QDateTime>
-#include <QIODevice>
-#include <QTextCodec>
-#include <QTime>
-#include <QVariant>
-#include <QtEndian>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+#include <PkAuxTypes.h>
+#include <PkDateTime.h>
+#include <PkStream.h>
+#include <PkVariant.h>
 
 #include <kis_debug.h>
 #include <kis_exiv2_common.h>
@@ -27,6 +31,147 @@
 #include <kis_meta_data_store.h>
 #include <kis_meta_data_tags.h>
 #include <kis_meta_data_value.h>
+
+namespace
+{
+PkByteArray zeroedBytes(int size)
+{
+    PkByteArray bytes;
+    bytes.resize(size);
+    return bytes;
+}
+
+void appendBytes(PkByteArray &destination, const char *data, int size)
+{
+    if (size <= 0) {
+        return;
+    }
+    const int oldSize = destination.size();
+    destination.resize(oldSize + size);
+    std::memcpy(destination.data() + oldSize, data, static_cast<std::size_t>(size));
+}
+
+int indexOfByte(const PkByteArray &bytes, char value, int start)
+{
+    for (int i = start; i < bytes.size(); ++i) {
+        if (bytes.constData()[i] == value) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int indexOfZeroPair(const PkByteArray &bytes, int start)
+{
+    for (int i = start; i + 1 < bytes.size(); ++i) {
+        if (bytes.constData()[i] == '\0' && bytes.constData()[i + 1] == '\0') {
+            return i;
+        }
+    }
+    return -1;
+}
+
+PkString fromLatin1(const char *data, int size = -1)
+{
+    if (!data) {
+        return {};
+    }
+    if (size < 0) {
+        size = static_cast<int>(std::strlen(data));
+    }
+    std::string utf8;
+    utf8.reserve(static_cast<std::size_t>(size) * 2);
+    for (int i = 0; i < size; ++i) {
+        const auto c = static_cast<unsigned char>(data[i]);
+        if (c < 0x80) {
+            utf8.push_back(static_cast<char>(c));
+        } else {
+            utf8.push_back(static_cast<char>(0xc0 | (c >> 6)));
+            utf8.push_back(static_cast<char>(0x80 | (c & 0x3f)));
+        }
+    }
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
+void appendUtf8CodePoint(std::string &utf8, std::uint32_t codePoint)
+{
+    if (codePoint <= 0x7f) {
+        utf8.push_back(static_cast<char>(codePoint));
+    } else if (codePoint <= 0x7ff) {
+        utf8.push_back(static_cast<char>(0xc0 | (codePoint >> 6)));
+        utf8.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
+    } else if (codePoint <= 0xffff) {
+        utf8.push_back(static_cast<char>(0xe0 | (codePoint >> 12)));
+        utf8.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3f)));
+        utf8.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
+    } else {
+        utf8.push_back(static_cast<char>(0xf0 | (codePoint >> 18)));
+        utf8.push_back(static_cast<char>(0x80 | ((codePoint >> 12) & 0x3f)));
+        utf8.push_back(static_cast<char>(0x80 | ((codePoint >> 6) & 0x3f)));
+        utf8.push_back(static_cast<char>(0x80 | (codePoint & 0x3f)));
+    }
+}
+
+std::uint16_t byteSwap16(std::uint16_t value)
+{
+    return static_cast<std::uint16_t>((value >> 8) | (value << 8));
+}
+
+PkString fromUtf16Bytes(const char *data, int byteCount)
+{
+    if (!data || byteCount < 2) {
+        return {};
+    }
+    std::vector<std::uint16_t> units(static_cast<std::size_t>(byteCount / 2));
+    std::memcpy(units.data(), data, units.size() * sizeof(std::uint16_t));
+    bool swap = false;
+    std::size_t index = 0;
+    if (units[0] == 0xfeff) {
+        index = 1;
+    } else if (units[0] == 0xfffe) {
+        swap = true;
+        index = 1;
+    }
+    std::string utf8;
+    while (index < units.size()) {
+        std::uint16_t first = swap ? byteSwap16(units[index]) : units[index];
+        ++index;
+        std::uint32_t codePoint = first;
+        if (first >= 0xd800 && first <= 0xdbff && index < units.size()) {
+            const std::uint16_t second = swap ? byteSwap16(units[index]) : units[index];
+            if (second >= 0xdc00 && second <= 0xdfff) {
+                ++index;
+                codePoint = 0x10000u + ((first - 0xd800u) << 10) + (second - 0xdc00u);
+            }
+        }
+        appendUtf8CodePoint(utf8, codePoint);
+    }
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
+void appendUtf16WithBom(PkByteArray &destination, const PkString &text)
+{
+    const std::uint16_t bom = 0xfeff;
+    appendBytes(destination, reinterpret_cast<const char *>(&bom), sizeof(bom));
+    const std::u16string units = text.PkToU16();
+    appendBytes(destination,
+                reinterpret_cast<const char *>(units.data()),
+                static_cast<int>(units.size() * sizeof(char16_t)));
+}
+
+template<typename T>
+T byteSwap(T value)
+{
+    using Unsigned = std::make_unsigned_t<T>;
+    Unsigned input = static_cast<Unsigned>(value);
+    Unsigned output = 0;
+    for (std::size_t i = 0; i < sizeof(T); ++i) {
+        output = static_cast<Unsigned>((output << 8) | (input & 0xffu));
+        input >>= 8;
+    }
+    return static_cast<T>(output);
+}
+} // namespace
 
 // ---- Exception conversion functions ---- //
 
@@ -39,13 +184,13 @@ KisMetaData::Value exifVersionToKMDValue(const Exiv2::Value::AutoPtr value)
 {
     const Exiv2::DataValue *dvalue = dynamic_cast<const Exiv2::DataValue *>(&*value);
     if (dvalue) {
-        Q_ASSERT(dvalue);
-        QByteArray array(dvalue->count(), 0);
+        assert(dvalue);
+        PkByteArray array = zeroedBytes(static_cast<int>(dvalue->count()));
         dvalue->copy((Exiv2::byte *)array.data());
-        return KisMetaData::Value(QString(array));
+        return KisMetaData::Value(PkString::PkFromUtf8(array.constData(), array.size()));
     } else {
-        Q_ASSERT(value->typeId() == Exiv2::asciiString);
-        return KisMetaData::Value(QString::fromLatin1(value->toString().c_str()));
+        assert(value->typeId() == Exiv2::asciiString);
+        return KisMetaData::Value(fromLatin1(value->toString().c_str()));
     }
 }
 
@@ -53,8 +198,9 @@ KisMetaData::Value exifVersionToKMDValue(const Exiv2::Value::AutoPtr value)
 Exiv2::Value *kmdValueToExifVersion(const KisMetaData::Value &value)
 {
     Exiv2::DataValue *dvalue = new Exiv2::DataValue;
-    QString ver = value.asVariant().toString();
-    dvalue->read((const Exiv2::byte *)ver.toLatin1().constData(), ver.size());
+    PkString ver = value.asVariant().toString();
+    const std::string encoded = ver.PkToUtf8();
+    dvalue->read((const Exiv2::byte *)encoded.data(), encoded.size());
     return dvalue;
 }
 
@@ -65,7 +211,7 @@ KisMetaData::Value exifArrayToKMDIntOrderedArray(const Exiv2::Value::UniquePtr v
 KisMetaData::Value exifArrayToKMDIntOrderedArray(const Exiv2::Value::AutoPtr value)
 #endif
 {
-    QList<KisMetaData::Value> v;
+    PkList<KisMetaData::Value> v;
     const Exiv2::DataValue *dvalue = dynamic_cast<const Exiv2::DataValue *>(&*value);
     if (dvalue) {
 #if EXIV2_TEST_VERSION(0,28,0)
@@ -77,8 +223,8 @@ KisMetaData::Value exifArrayToKMDIntOrderedArray(const Exiv2::Value::AutoPtr val
 #endif
         }
     } else {
-        Q_ASSERT(value->typeId() == Exiv2::asciiString);
-        QString str = QString::fromLatin1(value->toString().c_str());
+        assert(value->typeId() == Exiv2::asciiString);
+        PkString str = fromLatin1(value->toString().c_str());
         v.push_back(KisMetaData::Value(str.toInt()));
     }
     return KisMetaData::Value(v, KisMetaData::Value::OrderedArray);
@@ -89,18 +235,18 @@ Exiv2::Value *kmdIntOrderedArrayToExifArray(const KisMetaData::Value &value)
 {
     std::vector<Exiv2::byte> v;
     for (const KisMetaData::Value &it : value.asArray()) {
-        v.push_back(static_cast<uint8_t>(it.asVariant().toInt(0)));
+        v.push_back(static_cast<uint8_t>(it.asVariant().toInt()));
     }
     return new Exiv2::DataValue(v.data(), static_cast<long>(v.size()));
 }
 
 #if EXIV2_TEST_VERSION(0,28,0)
-QDateTime exivValueToDateTime(const Exiv2::Value::UniquePtr value)
+PkDateTime exivValueToDateTime(const Exiv2::Value::UniquePtr value)
 #else
-QDateTime exivValueToDateTime(const Exiv2::Value::AutoPtr value)
+PkDateTime exivValueToDateTime(const Exiv2::Value::AutoPtr value)
 #endif
 {
-    return QDateTime::fromString(value->toString().c_str(), Qt::ISODate);
+    return PkDateTime::fromString(value->toString(), PkDateTime::DateFormat::ISODate);
 }
 
 template<typename T>
@@ -110,9 +256,17 @@ inline T fixEndianness(T v, Exiv2::ByteOrder order)
     case Exiv2::invalidByteOrder:
         return v;
     case Exiv2::littleEndian:
-        return qFromLittleEndian<T>(v);
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+        return v;
+#else
+        return byteSwap(v);
+#endif
     case Exiv2::bigEndian:
-        return qFromBigEndian<T>(v);
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        return v;
+#else
+        return byteSwap(v);
+#endif
     }
     warnKrita << "KisExifIO: unknown byte order";
     return v;
@@ -138,18 +292,18 @@ KisMetaData::Value exifOECFToKMDOECFStructure(const Exiv2::Value::UniquePtr valu
 KisMetaData::Value exifOECFToKMDOECFStructure(const Exiv2::Value::AutoPtr value, Exiv2::ByteOrder order)
 #endif
 {
-    QMap<QString, KisMetaData::Value> oecfStructure;
+    PkMap<PkString, KisMetaData::Value> oecfStructure;
     const Exiv2::DataValue *dvalue = dynamic_cast<const Exiv2::DataValue *>(&*value);
-    Q_ASSERT(dvalue);
-    QByteArray array(dvalue->count(), 0);
+    assert(dvalue);
+    PkByteArray array = zeroedBytes(static_cast<int>(dvalue->count()));
 
     dvalue->copy((Exiv2::byte *)array.data());
 #if EXIV2_TEST_VERSION(0,28,0)
-    size_t columns = fixEndianness<qsizetype>((reinterpret_cast<qsizetype *>(array.data()))[0], order);
-    size_t rows = fixEndianness<qsizetype>((reinterpret_cast<qsizetype *>(array.data()))[1], order);
+    size_t columns = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[0], order);
+    size_t rows = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[1], order);
 #else
-    int columns = fixEndianness<quint16>((reinterpret_cast<quint16 *>(array.data()))[0], order);
-    int rows = fixEndianness<quint16>((reinterpret_cast<quint16 *>(array.data()))[1], order);
+    int columns = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[0], order);
+    int rows = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[1], order);
 #endif
 
     if ((columns * rows + 4)
@@ -157,28 +311,30 @@ KisMetaData::Value exifOECFToKMDOECFStructure(const Exiv2::Value::AutoPtr value,
                              // or any library that doesn't save back with the same byte order as the camera)
         order = invertByteOrder(order);
 #if EXIV2_TEST_VERSION(0,28,0)
-        columns = fixEndianness<qsizetype>((reinterpret_cast<qsizetype *>(array.data()))[0], order);
-        rows = fixEndianness<qsizetype>((reinterpret_cast<qsizetype *>(array.data()))[1], order);
+        columns = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[0], order);
+        rows = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[1], order);
 #else
-        columns = fixEndianness<quint16>((reinterpret_cast<quint16 *>(array.data()))[0], order);
-        rows = fixEndianness<quint16>((reinterpret_cast<quint16 *>(array.data()))[1], order);
+        columns = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[0], order);
+        rows = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[1], order);
 #endif
-        Q_ASSERT((columns * rows + 4) > dvalue->count());
+        assert((columns * rows + 4) > dvalue->count());
     }
-    QVariant qcolumns, qrows;
+    PkVariant qcolumns, qrows;
     qcolumns.setValue(columns);
     qrows.setValue(rows);
     oecfStructure["Columns"] = KisMetaData::Value(qcolumns);
     oecfStructure["Rows"] = KisMetaData::Value(qrows);
     int index = 4;
-    QList<KisMetaData::Value> names;
+    PkList<KisMetaData::Value> names;
 #if EXIV2_TEST_VERSION(0,28,0)
     for (size_t i = 0; i < columns; i++) {
 #else
     for (int i = 0; i < columns; i++) {
 #endif
-        int lastIndex = array.indexOf((char)0, index);
-        QString name = array.mid(index, lastIndex - index);
+        int lastIndex = indexOfByte(array, '\0', index);
+        PkString name = lastIndex >= index
+            ? PkString::PkFromUtf8(array.constData() + index, lastIndex - index)
+            : PkString();
         if (index != lastIndex) {
             index = lastIndex + 1;
             dbgMetaData << "Name [" << i << "] =" << name;
@@ -189,8 +345,8 @@ KisMetaData::Value exifOECFToKMDOECFStructure(const Exiv2::Value::AutoPtr value,
     }
 
     oecfStructure["Names"] = KisMetaData::Value(names, KisMetaData::Value::OrderedArray);
-    QList<KisMetaData::Value> values;
-    qint32 *dataIt = reinterpret_cast<qint32 *>(array.data() + index);
+    PkList<KisMetaData::Value> values;
+    std::int32_t *dataIt = reinterpret_cast<std::int32_t *>(array.data() + index);
 #if EXIV2_TEST_VERSION(0,28,0)
     for (size_t i = 0; i < columns; i++) {
         for (size_t j = 0; j < rows; j++) {
@@ -199,7 +355,7 @@ KisMetaData::Value exifOECFToKMDOECFStructure(const Exiv2::Value::AutoPtr value,
         for (int j = 0; j < rows; j++) {
 #endif
             values.append(KisMetaData::Value(
-                KisMetaData::Rational(fixEndianness<qint32>(dataIt[0], order), fixEndianness<qint32>(dataIt[1], order))));
+                KisMetaData::Rational(fixEndianness<std::int32_t>(dataIt[0], order), fixEndianness<std::int32_t>(dataIt[1], order))));
             dataIt += 2;
         }
     }
@@ -210,13 +366,13 @@ KisMetaData::Value exifOECFToKMDOECFStructure(const Exiv2::Value::AutoPtr value,
 
 Exiv2::Value *kmdOECFStructureToExifOECF(const KisMetaData::Value &value)
 {
-    QMap<QString, KisMetaData::Value> oecfStructure = value.asStructure();
-    const quint16 columns = static_cast<quint16>(oecfStructure["Columns"].asVariant().toUInt());
-    const quint16 rows = static_cast<quint16>(oecfStructure["Rows"].asVariant().toUInt());
+    PkMap<PkString, KisMetaData::Value> oecfStructure = value.asStructure();
+    const std::uint16_t columns = static_cast<std::uint16_t>(oecfStructure["Columns"].asVariant().toUInt());
+    const std::uint16_t rows = static_cast<std::uint16_t>(oecfStructure["Rows"].asVariant().toUInt());
 
-    QList<KisMetaData::Value> names = oecfStructure["Names"].asArray();
-    QList<KisMetaData::Value> values = oecfStructure["Values"].asArray();
-    Q_ASSERT(columns * rows == values.size());
+    PkList<KisMetaData::Value> names = oecfStructure["Names"].asArray();
+    PkList<KisMetaData::Value> values = oecfStructure["Values"].asArray();
+    assert(columns * rows == values.size());
     int length = 4 + rows * columns * 8; // The 4 byte for storing rows/columns and the rows*columns*sizeof(rational)
     bool saveNames = (!names.empty() && names[0].asVariant().toString().size() > 0);
     if (saveNames) {
@@ -224,19 +380,19 @@ Exiv2::Value *kmdOECFStructureToExifOECF(const KisMetaData::Value &value)
             length += names[i].asVariant().toString().size() + 1;
         }
     }
-    QByteArray array(length, 0);
-    (reinterpret_cast<quint16 *>(array.data()))[0] = columns;
-    (reinterpret_cast<quint16 *>(array.data()))[1] = rows;
+    PkByteArray array = zeroedBytes(length);
+    (reinterpret_cast<std::uint16_t *>(array.data()))[0] = columns;
+    (reinterpret_cast<std::uint16_t *>(array.data()))[1] = rows;
     int index = 4;
     if (saveNames) {
         for (int i = 0; i < columns; i++) {
-            QByteArray name = names[i].asVariant().toString().toLatin1();
-            name.append((char)0);
-            memcpy(array.data() + index, name.data(), static_cast<size_t>(name.size()));
-            index += name.size();
+            const std::string name = names[i].asVariant().toString().PkToUtf8();
+            memcpy(array.data() + index, name.data(), name.size());
+            index += static_cast<int>(name.size());
+            array.data()[index++] = '\0';
         }
     }
-    qint32 *dataIt = reinterpret_cast<qint32 *>(array.data() + index);
+    std::int32_t *dataIt = reinterpret_cast<std::int32_t *>(array.data() + index);
     for (const KisMetaData::Value &it : values) {
         dataIt[0] = it.asRational().numerator;
         dataIt[1] = it.asRational().denominator;
@@ -251,32 +407,30 @@ KisMetaData::Value deviceSettingDescriptionExifToKMD(const Exiv2::Value::UniqueP
 KisMetaData::Value deviceSettingDescriptionExifToKMD(const Exiv2::Value::AutoPtr value)
 #endif
 {
-    QMap<QString, KisMetaData::Value> deviceSettingStructure;
-    QByteArray array;
+    PkMap<PkString, KisMetaData::Value> deviceSettingStructure;
+    PkByteArray array;
 
     const Exiv2::DataValue *dvalue = dynamic_cast<const Exiv2::DataValue *>(&*value);
     if (dvalue) {
         array.resize(dvalue->count());
         dvalue->copy((Exiv2::byte *)array.data());
     } else {
-        Q_ASSERT(value->typeId() == Exiv2::unsignedShort);
+        assert(value->typeId() == Exiv2::unsignedShort);
         array.resize(2 * value->count());
         value->copy((Exiv2::byte *)array.data(), Exiv2::littleEndian);
     }
-    int columns = (reinterpret_cast<quint16 *>(array.data()))[0];
-    int rows = (reinterpret_cast<quint16 *>(array.data()))[1];
+    int columns = (reinterpret_cast<std::uint16_t *>(array.data()))[0];
+    int rows = (reinterpret_cast<std::uint16_t *>(array.data()))[1];
     deviceSettingStructure["Columns"] = KisMetaData::Value(columns);
     deviceSettingStructure["Rows"] = KisMetaData::Value(rows);
-    QList<KisMetaData::Value> settings;
-    QByteArray null(2, 0);
-
+    PkList<KisMetaData::Value> settings;
     for (int index = 4; index < array.size();) {
-        const int lastIndex = array.indexOf(null, index);
+        const int lastIndex = indexOfZeroPair(array, index);
         if (lastIndex < 0)
             break; // Data is not a String, ignore
         const int numChars = (lastIndex - index) / 2; // including trailing zero
 
-        QString setting = QString::fromUtf16((char16_t *)(void *)(array.data() + index), numChars);
+        PkString setting = fromUtf16Bytes(array.constData() + index, numChars * 2);
         index = lastIndex + 2;
         dbgMetaData << "Setting << " << setting;
         settings.append(KisMetaData::Value(setting));
@@ -287,20 +441,17 @@ KisMetaData::Value deviceSettingDescriptionExifToKMD(const Exiv2::Value::AutoPtr
 
 Exiv2::Value *deviceSettingDescriptionKMDToExif(const KisMetaData::Value &value)
 {
-    QMap<QString, KisMetaData::Value> deviceSettingStructure = value.asStructure();
-    const quint16 columns = static_cast<quint16>(deviceSettingStructure["Columns"].asVariant().toUInt());
-    quint16 rows = static_cast<quint16>(deviceSettingStructure["Rows"].asVariant().toUInt());
+    PkMap<PkString, KisMetaData::Value> deviceSettingStructure = value.asStructure();
+    const std::uint16_t columns = static_cast<std::uint16_t>(deviceSettingStructure["Columns"].asVariant().toUInt());
+    std::uint16_t rows = static_cast<std::uint16_t>(deviceSettingStructure["Rows"].asVariant().toUInt());
 
-    QTextCodec *codec = QTextCodec::codecForName("UTF-16");
-
-    QList<KisMetaData::Value> settings = deviceSettingStructure["Settings"].asArray();
-    QByteArray array(4, 0);
-    (reinterpret_cast<quint16 *>(array.data()))[0] = columns;
-    (reinterpret_cast<quint16 *>(array.data()))[1] = rows;
+    PkList<KisMetaData::Value> settings = deviceSettingStructure["Settings"].asArray();
+    PkByteArray array = zeroedBytes(4);
+    (reinterpret_cast<std::uint16_t *>(array.data()))[0] = columns;
+    (reinterpret_cast<std::uint16_t *>(array.data()))[1] = rows;
     for (const KisMetaData::Value &v : settings) {
-        const QString str = v.asVariant().toString();
-        QByteArray setting = codec->fromUnicode(str);
-        array.append(setting);
+        const PkString str = v.asVariant().toString();
+        appendUtf16WithBom(array, str);
     }
     return new Exiv2::DataValue((const Exiv2::byte *)array.data(), array.size());
 }
@@ -311,35 +462,35 @@ KisMetaData::Value cfaPatternExifToKMD(const Exiv2::Value::UniquePtr value, Exiv
 KisMetaData::Value cfaPatternExifToKMD(const Exiv2::Value::AutoPtr value, Exiv2::ByteOrder order)
 #endif
 {
-    QMap<QString, KisMetaData::Value> cfaPatternStructure;
+    PkMap<PkString, KisMetaData::Value> cfaPatternStructure;
     const Exiv2::DataValue *dvalue = dynamic_cast<const Exiv2::DataValue *>(&*value);
-    Q_ASSERT(dvalue);
-    QByteArray array(dvalue->count(), 0);
+    assert(dvalue);
+    PkByteArray array = zeroedBytes(static_cast<int>(dvalue->count()));
     dvalue->copy((Exiv2::byte *)array.data());
 #if EXIV2_TEST_VERSION(0,28,0)
-    size_t columns = fixEndianness<qsizetype>((reinterpret_cast<qsizetype *>(array.data()))[0], order);
-    size_t rows = fixEndianness<qsizetype>((reinterpret_cast<qsizetype *>(array.data()))[1], order);
+    size_t columns = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[0], order);
+    size_t rows = fixEndianness<std::ptrdiff_t>((reinterpret_cast<std::ptrdiff_t *>(array.data()))[1], order);
 #else
-    int columns = fixEndianness<quint16>((reinterpret_cast<quint16 *>(array.data()))[0], order);
-    int rows = fixEndianness<quint16>((reinterpret_cast<quint16 *>(array.data()))[1], order);
+    int columns = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[0], order);
+    int rows = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[1], order);
 #endif
     if ((columns * rows + 4)
         != dvalue->count()) { // Sometime byteOrder get messed up (especially if metadata got saved with kexiv2 library,
                               // or any library that doesn't save back with the same byte order as the camera)
         order = invertByteOrder(order);
-        columns = fixEndianness<quint16>((reinterpret_cast<quint16 *>(array.data()))[0], order);
-        rows = fixEndianness<quint16>((reinterpret_cast<quint16 *>(array.data()))[1], order);
+        columns = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[0], order);
+        rows = fixEndianness<std::uint16_t>((reinterpret_cast<std::uint16_t *>(array.data()))[1], order);
     }
-    QVariant qcolumns, qrows;
+    PkVariant qcolumns, qrows;
     qcolumns.setValue(columns);
     qrows.setValue(rows);
     cfaPatternStructure["Columns"] = KisMetaData::Value(qcolumns);
     cfaPatternStructure["Rows"] = KisMetaData::Value(qrows);
-    QList<KisMetaData::Value> values;
-    int index = 4;
-    for (int i = 0; i < columns * rows; i++) {
+    PkList<KisMetaData::Value> values;
+    std::size_t index = 4;
+    for (std::size_t i = 0; i < columns * rows; ++i) {
         values.append(KisMetaData::Value(*(array.data() + index)));
-        index++;
+        ++index;
     }
     cfaPatternStructure["Values"] = KisMetaData::Value(values, KisMetaData::Value::OrderedArray);
     dbgMetaData << "CFAPattern " << ppVar(columns) << " " << ppVar(rows) << ppVar(values.size())
@@ -349,17 +500,17 @@ KisMetaData::Value cfaPatternExifToKMD(const Exiv2::Value::AutoPtr value, Exiv2:
 
 Exiv2::Value *cfaPatternKMDToExif(const KisMetaData::Value &value)
 {
-    QMap<QString, KisMetaData::Value> cfaStructure = value.asStructure();
-    const quint16 columns = static_cast<quint16>(cfaStructure["Columns"].asVariant().toUInt());
-    const quint16 rows = static_cast<quint16>(cfaStructure["Rows"].asVariant().toUInt());
+    PkMap<PkString, KisMetaData::Value> cfaStructure = value.asStructure();
+    const std::uint16_t columns = static_cast<std::uint16_t>(cfaStructure["Columns"].asVariant().toUInt());
+    const std::uint16_t rows = static_cast<std::uint16_t>(cfaStructure["Rows"].asVariant().toUInt());
 
-    QList<KisMetaData::Value> values = cfaStructure["Values"].asArray();
-    Q_ASSERT(columns * rows == values.size());
-    QByteArray array(4 + columns * rows, 0);
-    (reinterpret_cast<quint16 *>(array.data()))[0] = columns;
-    (reinterpret_cast<quint16 *>(array.data()))[1] = rows;
+    PkList<KisMetaData::Value> values = cfaStructure["Values"].asArray();
+    assert(columns * rows == values.size());
+    PkByteArray array = zeroedBytes(4 + columns * rows);
+    (reinterpret_cast<std::uint16_t *>(array.data()))[0] = columns;
+    (reinterpret_cast<std::uint16_t *>(array.data()))[1] = rows;
     for (int i = 0; i < columns * rows; i++) {
-        const quint8 val = (quint8)values[i].asVariant().toUInt();
+        const std::uint8_t val = static_cast<std::uint8_t>(values[i].asVariant().toUInt());
         *(array.data() + 4 + i) = (char)val;
     }
     dbgMetaData << "Cfa Array " << ppVar(columns) << ppVar(rows) << ppVar(array.size());
@@ -379,24 +530,24 @@ KisMetaData::Value flashExifToKMD(const Exiv2::Value::AutoPtr value)
 #else
     const uint16_t v = static_cast<uint16_t>(value->toLong());
 #endif
-    QMap<QString, KisMetaData::Value> flashStructure;
+    PkMap<PkString, KisMetaData::Value> flashStructure;
     bool fired = (v & 0x01); // bit 1 is whether flash was fired or not
-    flashStructure["Fired"] = QVariant(fired);
+    flashStructure["Fired"] = PkVariant(fired);
     int ret = ((v >> 1) & 0x03); // bit 2 and 3 are Return
-    flashStructure["Return"] = QVariant(ret);
+    flashStructure["Return"] = PkVariant(ret);
     int mode = ((v >> 3) & 0x03); // bit 4 and 5 are Mode
-    flashStructure["Mode"] = QVariant(mode);
+    flashStructure["Mode"] = PkVariant(mode);
     bool function = ((v >> 5) & 0x01); // bit 6 if function
-    flashStructure["Function"] = QVariant(function);
+    flashStructure["Function"] = PkVariant(function);
     bool redEye = ((v >> 6) & 0x01); // bit 7 if function
-    flashStructure["RedEyeMode"] = QVariant(redEye);
+    flashStructure["RedEyeMode"] = PkVariant(redEye);
     return KisMetaData::Value(flashStructure);
 }
 
 Exiv2::Value *flashKMDToExif(const KisMetaData::Value &value)
 {
     uint16_t v = 0;
-    QMap<QString, KisMetaData::Value> flashStructure = value.asStructure();
+    PkMap<PkString, KisMetaData::Value> flashStructure = value.asStructure();
     v = flashStructure["Fired"].asVariant().toBool();
     v |= ((flashStructure["Return"].asVariant().toInt() & 0x03) << 1);
     v |= ((flashStructure["Mode"].asVariant().toInt() & 0x03) << 3);
@@ -415,34 +566,28 @@ KisExifIO::~KisExifIO()
 {
 }
 
-bool KisExifIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, HeaderType headerType) const
+bool KisExifIO::saveTo(const KisMetaData::Store *store, PkStream *ioDevice, HeaderType headerType) const
 {
-    ioDevice->open(QIODevice::WriteOnly);
+    ioDevice->open(PkStream::WriteOnly);
     Exiv2::ExifData exifData;
     if (headerType == KisMetaData::IOBackend::JpegHeader) {
-        QByteArray header(6, 0);
-        header[0] = 0x45;
-        header[1] = 0x78;
-        header[2] = 0x69;
-        header[3] = 0x66;
-        header[4] = 0x00;
-        header[5] = 0x00;
-        ioDevice->write(header);
+        static const char header[] = {'E', 'x', 'i', 'f', '\0', '\0'};
+        ioDevice->write(header, sizeof(header));
     }
 
     for (const KisMetaData::Entry &entry : *store) {
         try {
             dbgMetaData << "Trying to save: " << entry.name() << " of " << entry.schema()->prefix() << ":"
                         << entry.schema()->uri();
-            QString exivKey;
+            PkString exivKey;
             if (entry.schema()->uri() == KisMetaData::Schema::TIFFSchemaUri) {
-                exivKey = "Exif.Image." + entry.name();
+                exivKey = PkString("Exif.Image.") + entry.name();
             } else if (entry.schema()->uri()
                        == KisMetaData::Schema::EXIFSchemaUri) { // Distinguish between exif and gps
                 if (entry.name().left(3) == "GPS") {
-                    exivKey = "Exif.GPSInfo." + entry.name();
+                    exivKey = PkString("Exif.GPSInfo.") + entry.name();
                 } else {
-                    exivKey = "Exif.Photo." + entry.name();
+                    exivKey = PkString("Exif.Photo.") + entry.name();
                 }
             } else if (entry.schema()->uri() == KisMetaData::Schema::DublinCoreSchemaUri) {
                 if (entry.name() == "description") {
@@ -467,7 +612,7 @@ bool KisExifIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Hea
             if (exivKey.isEmpty()) {
                 dbgMetaData << entry.qualifiedName() << " is unsavable to EXIF";
             } else {
-                Exiv2::ExifKey exifKey(qPrintable(exivKey));
+                Exiv2::ExifKey exifKey(exivKey.PkToUtf8());
                 Exiv2::Value *v = 0;
                 if (exivKey == "Exif.Photo.ExifVersion" || exivKey == "Exif.Photo.FlashpixVersion") {
                     v = kmdValueToExifVersion(entry.value());
@@ -498,8 +643,8 @@ bool KisExifIO::saveTo(const KisMetaData::Store *store, QIODevice *ioDevice, Hea
                 } else if (exivKey == "Exif.Photo.Flash") {
                     v = flashKMDToExif(entry.value());
                 } else if (exivKey == "Exif.Photo.UserComment") {
-                    Q_ASSERT(entry.value().type() == KisMetaData::Value::LangArray);
-                    QMap<QString, KisMetaData::Value> langArr = entry.value().asLangArray();
+                    assert(entry.value().type() == KisMetaData::Value::LangArray);
+                    PkMap<PkString, KisMetaData::Value> langArr = entry.value().asLangArray();
                     if (langArr.contains("x-default")) {
 #if !EXIV2_TEST_VERSION(0, 21, 0)
                         v = kmdValueToExivValue(langArr.value("x-default"),
@@ -556,12 +701,12 @@ bool KisExifIO::canSaveAllEntries(KisMetaData::Store * /*store*/) const
     return false; // It's a known fact that exif can't save all information, but TODO: write the check
 }
 
-bool KisExifIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
+bool KisExifIO::loadFrom(KisMetaData::Store *store, PkStream *ioDevice) const
 {
-    if (!ioDevice->open(QIODevice::ReadOnly)) {
+    if (!ioDevice->open(PkStream::ReadOnly)) {
         return false;
     }
-    QByteArray arr(ioDevice->readAll());
+    PkByteArray arr(KisExiv2IODeviceDetail::readAllFromStream(ioDevice));
     Exiv2::ExifData exifData;
     Exiv2::ByteOrder byteOrder;
 #if !EXIV2_TEST_VERSION(0, 18, 0)
@@ -583,19 +728,19 @@ bool KisExifIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
     dbgMetaData << "There are" << exifData.count() << " entries in the exif section";
     const KisMetaData::Schema *tiffSchema =
         KisMetaData::SchemaRegistry::instance()->schemaFromUri(KisMetaData::Schema::TIFFSchemaUri);
-    Q_ASSERT(tiffSchema);
+    assert(tiffSchema);
     const KisMetaData::Schema *exifSchema =
         KisMetaData::SchemaRegistry::instance()->schemaFromUri(KisMetaData::Schema::EXIFSchemaUri);
-    Q_ASSERT(exifSchema);
+    assert(exifSchema);
     const KisMetaData::Schema *dcSchema =
         KisMetaData::SchemaRegistry::instance()->schemaFromUri(KisMetaData::Schema::DublinCoreSchemaUri);
-    Q_ASSERT(dcSchema);
+    assert(dcSchema);
     const KisMetaData::Schema *xmpSchema =
         KisMetaData::SchemaRegistry::instance()->schemaFromUri(KisMetaData::Schema::XMPSchemaUri);
-    Q_ASSERT(xmpSchema);
+    assert(xmpSchema);
     const KisMetaData::Schema *makerNoteSchema =
         KisMetaData::SchemaRegistry::instance()->schemaFromUri(KisMetaData::Schema::MakerNoteSchemaUri);
-    Q_ASSERT(makerNoteSchema);
+    assert(makerNoteSchema);
 
     for (const Exiv2::Exifdatum &it : exifData) {
         const uint16_t tag = it.tag();
@@ -613,13 +758,13 @@ bool KisExifIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
         } else if (tag == Exif::Image::Software) { // load as "xmp:CreatorTool"
             store->addEntry({xmpSchema, "CreatorTool", exivValueToKMDValue(it.getValue(), false)});
         } else if (tag == Exif::Image::Artist) { // load as dc:creator
-            QList<KisMetaData::Value> creators = {exivValueToKMDValue(it.getValue(), false)};
+            PkList<KisMetaData::Value> creators = {exivValueToKMDValue(it.getValue(), false)};
             store->addEntry({dcSchema, "creator", {creators, KisMetaData::Value::OrderedArray}});
         } else if (tag == Exif::Image::Copyright) { // load as dc:rights
             store->addEntry({dcSchema, "rights", exivValueToKMDValue(it.getValue(), false)});
         } else if (it.groupName() == "Image") {
             // Tiff tags
-            const QString fixedTN(it.tagName().c_str());
+            const PkString fixedTN(it.tagName().c_str());
             if (tag == Exif::Image::ExifTag || tag == Exif::Image::GPSTag) {
                 dbgMetaData << "Ignoring " << it.key().c_str();
             } else if (KisMetaData::Entry::isValidName(fixedTN)) {
@@ -651,20 +796,20 @@ bool KisExifIO::loadFrom(KisMetaData::Store *store, QIODevice *ioDevice) const
             } else if (tag == Exif::Photo::UserComment) {
                 if (it.getValue()->typeId() != Exiv2::undefined) {
                     KisMetaData::Value vUC = exivValueToKMDValue(it.getValue(), false);
-                    Q_ASSERT(vUC.type() == KisMetaData::Value::Variant);
-                    QVariant commentVar = vUC.asVariant();
-                    QString comment;
-                    if (commentVar.type() == QMetaType::QString) {
+                    assert(vUC.type() == KisMetaData::Value::Variant);
+                    PkVariant commentVar = vUC.asVariant();
+                    PkString comment;
+                    if (commentVar.type() == PkVariant::String) {
                         comment = commentVar.toString();
-                    } else if (commentVar.type() == QMetaType::QByteArray) {
-                        const QByteArray commentString = commentVar.toByteArray();
-                        comment = QString::fromLatin1(commentString.constData(), commentString.size());
+                    } else if (commentVar.type() == PkVariant::ByteArray) {
+                        const PkByteArray commentString = commentVar.toByteArray();
+                        comment = fromLatin1(commentString.constData(), commentString.size());
                     } else {
                         warnKrita << "KisExifIO: Unhandled UserComment value type.";
                     }
                     KisMetaData::Value vcomment(comment);
                     vcomment.addPropertyQualifier("xml:lang", KisMetaData::Value("x-default"));
-                    QList<KisMetaData::Value> alt;
+                    PkList<KisMetaData::Value> alt;
                     alt.append(vcomment);
                     metaDataValue = KisMetaData::Value(alt, KisMetaData::Value::LangArray);
                 }

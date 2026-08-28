@@ -6,24 +6,21 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_xmp_plugin.h"
-
-#include <kpluginfactory.h>
+#include <PkStringHash.h>
 
 #include <kis_meta_data_backend_registry.h>
 
 #include "kis_xmp_io.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisIptcIOPluginFactory, "kritaxmp.json", registerPlugin<KisXmpPlugin>();)
-
-KisXmpPlugin::KisXmpPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace
 {
-    KisMetadataBackendRegistry::instance()->add(new KisXMPIO());
-}
-
-KisXmpPlugin::~KisXmpPlugin()
+struct KisXmpBackendRegistration
 {
-}
+    KisXmpBackendRegistration()
+    {
+        KisMetadataBackendRegistry::instance()->add(new KisXMPIO());
+    }
+};
 
-#include "kis_xmp_plugin.moc"
+KisXmpBackendRegistration s_kisXmpBackendRegistration;
+} // namespace
