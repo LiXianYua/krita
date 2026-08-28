@@ -115,7 +115,7 @@ void KisRoundCornersFilter::processImpl(KisPaintDeviceSP device,
         jobs << CornerJob({rc, pt, compositeUpdater.startSubtask()});
     }
 
-    Q_FOREACH (const CornerJob &job, jobs) {
+    for (const CornerJob &job : jobs) {
         const PkRect processRect = job.rc & applyRect;
         if (!processRect.isEmpty()) {
             fadeOneCorner(device, job.pt, processRect, radiusSq, job.progressUpdater);

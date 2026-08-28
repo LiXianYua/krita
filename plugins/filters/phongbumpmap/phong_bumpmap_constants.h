@@ -23,7 +23,7 @@ const PkString PHONG_ILLUMINANT_COLOR[] =
 "illuminantColor1",
 "illuminantColor2",
 "illuminantColor3"};
-const PkString PHONG_ILLUMINANT_AZIMUTH[] = 
+const PkString PHONG_ILLUMINANT_AZIMUTH[] =
 {"Azimuth0",
 "Azimuth1",
 "Azimuth2",

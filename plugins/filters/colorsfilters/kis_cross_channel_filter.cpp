@@ -10,6 +10,7 @@
 
 #include <PkXmlDocument.h>
 #include <regex>
+#include <limits>
 
 #include "KoChannelInfo.h"
 #include "KoBasicHistogramProducers.h"
@@ -32,6 +33,15 @@
 #include <KisGlobalResourcesInterface.h>
 
 #include "../../color/colorspaceextensions/kis_hsv_adjustment.h"
+
+namespace {
+int parseLegacyUnsignedShort(const std::string &text)
+{
+    bool ok = false;
+    const int value = PkString::PkFromUtf8(text.c_str(), static_cast<int>(text.size())).toInt(&ok);
+    return ok && value >= 0 && value <= std::numeric_limits<quint16>::max() ? value : 0;
+}
+}
 
 // KisCrossChannelFilterConfiguration
 
@@ -106,7 +116,7 @@ void KisCrossChannelFilterConfiguration::fromXML(const PkXmlElement& root)
 
         const std::string attributeUtf8 = attributeName.PkToUtf8();
         if (std::regex_search(attributeUtf8, match, rx)) {
-            int channel = static_cast<quint16>(std::stoi(match[1].str()));
+            int channel = parseLegacyUnsignedShort(match[1].str());
             int driver = KisDomUtils::toInt(e.text());
 
             if (0 <= channel && channel < driverChannels.size()) {
@@ -217,7 +227,7 @@ bool KisCrossChannelFilterConfiguration::channelIndexFromDriverPropertyName(cons
         return false;
     }
 
-    driverIndex = static_cast<quint16>(std::stoi(match[1].str()));
+    driverIndex = parseLegacyUnsignedShort(match[1].str());
     return true;
 }
 

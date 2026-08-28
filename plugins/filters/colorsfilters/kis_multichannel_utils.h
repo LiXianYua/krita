@@ -10,7 +10,7 @@
 #ifndef KIS_MULTICHANNEL_FILTER_UTILS
 #define KIS_MULTICHANNEL_FILTER_UTILS
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <PkVector.h>
 #include <PkList.h>
 

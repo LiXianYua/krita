@@ -67,7 +67,7 @@ PkVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs,
         vchannels << VirtualChannelInfo(VirtualChannelInfo::ALL_COLORS, -1, 0, cs);
     }
 
-    Q_FOREACH (KoChannelInfo *channel, sortedChannels) {
+    for (KoChannelInfo *channel : sortedChannels) {
         int pixelIndex = KoChannelInfo::displayPositionToChannelIndex(channel->displayPosition(), cs->channels());
         vchannels << VirtualChannelInfo(VirtualChannelInfo::REAL, pixelIndex, channel, cs);
     }

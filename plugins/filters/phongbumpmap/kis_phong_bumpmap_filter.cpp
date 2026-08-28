@@ -48,7 +48,7 @@ void KisFilterPhongBumpmap::processImpl(KisPaintDeviceSP device,
     const PkList<KoChannelInfo*> channels = device->colorSpace()->channels();
     KoChannelInfo *m_heightChannel = 0;
 
-    Q_FOREACH (KoChannelInfo* channel, channels) {
+    for (KoChannelInfo* channel : channels) {
         if (userChosenHeightChannel == channel->name()) {
             m_heightChannel = channel;
         }

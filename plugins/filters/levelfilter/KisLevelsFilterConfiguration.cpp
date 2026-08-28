@@ -14,6 +14,15 @@
 
 #include "KisLevelsFilterConfiguration.h"
 
+namespace {
+int parseLegacyInt(const std::string &text)
+{
+    bool ok = false;
+    const int value = PkString::PkFromUtf8(text.c_str(), static_cast<int>(text.size())).toInt(&ok);
+    return ok ? value : 0;
+}
+}
+
 KisLevelsFilterConfiguration::KisLevelsFilterConfiguration(int channelCount, qint32 version, KisResourcesInterfaceSP resourcesInterface)
     : KisColorTransformationConfiguration(defaultName(), version, resourcesInterface)
 {
@@ -263,7 +272,7 @@ void KisLevelsFilterConfiguration::fromXML(const PkXmlElement& root)
                 std::smatch match;
                 const std::string attributeUtf8 = attributeName.PkToUtf8();
                 if (std::regex_search(attributeUtf8, match, std::regex("channel_(\\d+)"))) {
-                    const int index = std::stoi(match[1].str());
+                    const int index = parseLegacyInt(match[1].str());
                     if (!e.text().isEmpty()) {
                         levelsCurve.fromString(e.text());
                         unsortedLevelsCurves[index] = levelsCurve;

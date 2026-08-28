@@ -33,6 +33,15 @@
 
 #include "kis_multichannel_utils.h"
 
+namespace {
+int parseLegacyUnsignedShort(const std::string &text)
+{
+    bool ok = false;
+    const int value = PkString::PkFromUtf8(text.c_str(), static_cast<int>(text.size())).toInt(&ok);
+    return ok && value >= 0 && value <= std::numeric_limits<quint16>::max() ? value : 0;
+}
+}
+
 KisMultiChannelFilter::KisMultiChannelFilter(const KoID& id, const PkString &entry)
         : KisColorTransformationFilter(id, FiltersCategoryAdjustId, entry)
 {
@@ -194,7 +203,7 @@ void KisMultiChannelFilterConfiguration::fromXML(const PkXmlElement& root)
             const std::string attributeUtf8 = attributeName.PkToUtf8();
             if (std::regex_search(attributeUtf8, match, curveRegexp)) {
 
-                index = static_cast<quint16>(std::stoi(match[1].str()));
+                index = static_cast<quint16>(parseLegacyUnsignedShort(match[1].str()));
                 index = qMin(index, quint16(curves.count()));
 
                 if (!e.text().isEmpty()) {
@@ -381,7 +390,7 @@ bool KisMultiChannelFilterConfiguration::curveIndexFromCurvePropertyName(const P
         return false;
     }
 
-    curveIndex = std::stoi(match[1].str());
+    curveIndex = parseLegacyUnsignedShort(match[1].str());
     return true;
 }
 
