@@ -6,7 +6,7 @@
 #ifndef KIS_DATAMANAGER_H_
 #define KIS_DATAMANAGER_H_
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <PkContainerAlgo.h>
 #include <PkRect.h>
 #include <PkStream.h>
@@ -345,4 +345,3 @@ protected:
 
 
 #endif // KIS_DATAMANAGER_H_
-
