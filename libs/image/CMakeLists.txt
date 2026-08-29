@@ -79,11 +79,14 @@ set(kritaimage_OBJECT_DEPS
     Eigen3::Eigen
     Boost::boost
     # 判据⑨：pk 库接入主构建（add_subdirectory(pk) 已在顶层无条件开启）。
-    # 与薄壳 SHELL_LINK_LIBRARIES 同集：pkstring pkcontainer pkzip pkxml。
+    # 与薄壳的实测编译闭包同集；KisImageConfig 额外需要
+    # pkconfig 和 pkconcurrent。
     pkstring
     pkcontainer
     pkzip
     pkxml
+    pkconfig
+    pkconcurrent
 )
 if(HAVE_CXX_ATOMICS_WITH_LIB OR HAVE_CXX_ATOMICS64_WITH_LIB)
     list(APPEND kritaimage_OBJECT_DEPS atomic)
@@ -289,7 +292,7 @@ kis_define_image_object_lib(kritaimage_bsplines_objects SOURCES
 # —— 顶层核心（KisImage/KisNode/KisPaintDevice/KisPainter 等）——
 
 kis_define_image_object_lib(kritaimage_core_objects SOURCES
-    # [GAP 排除] 14 个核心 GAP 文件（Task 8 批次A/C2 登记，判据⑨ 严格补）：仍依赖
+    # [GAP 排除] 13 个核心 GAP 文件（Task 8 批次A/C2 登记，判据⑨ 严格补）：仍依赖
     # 真实 Qt 头（QImage/QPainter/QFile/QTimer/KConfig 等），主树去 Qt 配置下编不过
     # （实测 kis_image_config.cpp.o 直接编译 exit=1）。与薄壳 SHELL_SOURCES 的
     # [GAP 排除] 一致，从本 OBJECT 库源清单移除：
@@ -298,12 +301,13 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     #   kis_cage_transform_worker.cpp       kis_liquify_transform_worker.cpp
     #   kis_perspectivetransform_worker.cpp kis_warptransform_worker.cc
     #   kis_file_layer.cpp                  kis_safe_document_loader.cpp
-    #   kis_image_config.cpp                kis_paint_device_debug_utils.cpp
+    #   kis_paint_device_debug_utils.cpp
     #   KisSpatialContainer.cpp             kis_update_time_monitor.cpp
     # 移除后这些文件的符号在 kritaimage.so 中为未定义——链接允许，除非其他 OBJECT
     # 文件强引用（届时逐条登记）。GAP 配套头（kis_grid_interpolation_tools.h 等）
     # 不在源清单，无需移除。
     KisColorSamplerConfig.cpp
+    kis_image_config.cpp
     KisColorSamplingUtils.cpp
     kis_distance_information.cpp
     kis_painter.cc
@@ -531,7 +535,9 @@ target_link_libraries(kritaimage
         pkcontainer
         pkzip
         pkxml
+        pkconfig
 )
+target_link_libraries(kritaimage PRIVATE pkconcurrent)
 
 if(HAVE_CXX_ATOMICS_WITH_LIB OR HAVE_CXX_ATOMICS64_WITH_LIB)
    target_link_libraries(kritaimage PUBLIC atomic)

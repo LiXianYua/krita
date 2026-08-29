@@ -7,9 +7,11 @@
 #ifndef KIS_IMAGE_CONFIG_H_
 #define KIS_IMAGE_CONFIG_H_
 
-#include <kconfiggroup.h>
+#include <PkColor.h>
+#include <PkConfigGroup.h>
+#include <PkList.h>
+#include <PkString.h>
 #include "kritaimage_export.h"
-#include "KisProofingConfiguration.h"
 #include "kis_global.h"
 #include "kis_types.h"
 
@@ -62,10 +64,10 @@ public:
 
     /**
      * @return a specific directory for the swapfile, if set. If not set, return an
-     * empty QString and use the default KDE directory.
+     * empty PkString and use the default platform temporary directory.
      */
-    QString swapDir(bool requestDefault = false);
-    void setSwapDir(const QString &swapDir);
+    PkString swapDir(bool requestDefault = false);
+    void setSwapDir(const PkString &swapDir);
 
     int numberOfOnionSkins() const;
     void setNumberOfOnionSkins(int value);
@@ -79,11 +81,11 @@ public:
     bool onionSkinState(int offset) const;
     void setOnionSkinState(int offset, bool value);
 
-    QColor onionSkinTintColorBackward() const;
-    void setOnionSkinTintColorBackward(const QColor &value);
+    PkColor onionSkinTintColorBackward() const;
+    void setOnionSkinTintColorBackward(const PkColor &value);
 
-    QColor onionSkinTintColorForward() const;
-    void setOnionSkinTintColorForward(const QColor &value);
+    PkColor onionSkinTintColorForward() const;
+    void setOnionSkinTintColorForward(const PkColor &value);
 
     bool autoKeyEnabled(bool requestDefault = false) const;
     void setAutoKeyEnabled(bool value);
@@ -121,8 +123,8 @@ public:
     bool useOnDiskAnimationCacheSwapping(bool defaultValue = false) const;
     void setUseOnDiskAnimationCacheSwapping(bool value);
 
-    QString animationCacheDir(bool defaultValue = false) const;
-    void setAnimationCacheDir(const QString &value);
+    PkString animationCacheDir(bool defaultValue = false) const;
+    void setAnimationCacheDir(const PkString &value);
 
     bool useAnimationCacheFrameSizeLimit(bool defaultValue = false) const;
     void setUseAnimationCacheFrameSizeLimit(bool value);
@@ -139,8 +141,8 @@ public:
     qreal selectionOutlineOpacity(bool defaultValue = false) const;
     void setSelectionOutlineOpacity(qreal value);
 
-    QColor selectionOverlayMaskColor(bool defaultValue = false) const;
-    void setSelectionOverlayMaskColor(const QColor &color);
+    PkColor selectionOverlayMaskColor(bool defaultValue = false) const;
+    void setSelectionOverlayMaskColor(const PkColor &color);
 
     int maxBrushSize(bool defaultValue = false) const;
     void setMaxBrushSize(int value);
@@ -152,7 +154,7 @@ public:
     bool separateEraserCursor(bool defaultValue = false) const;
     CursorStyle eraserCursorStyle(bool defaultValue = false) const;
     OutlineStyle eraserOutlineStyle(bool defaultValue = false) const;
-    QString pressureTabletCurve(bool defaultValue = false) const;
+    PkString pressureTabletCurve(bool defaultValue = false) const;
     bool showOutlineWhilePainting(bool defaultValue = false) const;
     bool forceAlwaysFullSizedOutline(bool defaultValue = false) const;
     bool showEraserOutlineWhilePainting(bool defaultValue = false) const;
@@ -202,22 +204,22 @@ public:
     void setRenameDuplicatedLayers(bool value);
 
     template<class T>
-    void writeEntry(const QString& name, const T& value) {
+    void writeEntry(const PkString& name, const T& value) {
         m_config.writeEntry(name, value);
     }
 
     template<class T>
-    void writeList(const QString& name, const QList<T>& value) {
+    void writeList(const PkString& name, const PkList<T>& value) {
         m_config.writeEntry(name, value);
     }
 
     template<class T>
-    T readEntry(const QString& name, const T& defaultValue=T()) {
+    T readEntry(const PkString& name, const T& defaultValue=T()) {
         return m_config.readEntry(name, defaultValue);
     }
 
     template<class T>
-    QList<T> readList(const QString& name, const QList<T>& defaultValue=QList<T>()) {
+    PkList<T> readList(const PkString& name, const PkList<T>& defaultValue=PkList<T>()) {
         return m_config.readEntry(name, defaultValue);
     }
 
@@ -225,19 +227,20 @@ public:
      * Export configurations can optionally be saved into the file. If no configuration exists,
      * the user should try loading a configuration from the global system instead.
      */
-    QString exportConfigurationXML(const QString &exportConfigId, bool defaultValue = false) const;
-    bool hasExportConfiguration(const QString& exportConfigID);
-    KisPropertiesConfigurationSP exportConfiguration(const QString &exportConfigId, bool defaultValue = false) const;
-    void setExportConfiguration(const QString &exportConfigId, KisPropertiesConfigurationSP properties);
+    PkString exportConfigurationXML(const PkString &exportConfigId, bool defaultValue = false) const;
+    bool hasExportConfiguration(const PkString& exportConfigID);
+    KisPropertiesConfigurationSP exportConfiguration(const PkString &exportConfigId, bool defaultValue = false) const;
+    void setExportConfiguration(const PkString &exportConfigId, KisPropertiesConfigurationSP properties);
 
     static void resetConfig();
 private:
-    Q_DISABLE_COPY(KisImageConfig)
+    KisImageConfig(const KisImageConfig &) = delete;
+    KisImageConfig &operator=(const KisImageConfig &) = delete;
 
-    QString safelyGetWritableTempLocation(const QString &suffix, const QString &configKey, bool requestDefault) const;
+    PkString safelyGetWritableTempLocation(const PkString &suffix, const PkString &configKey, bool requestDefault) const;
 
 private:
-    KConfigGroup m_config;
+    PkConfigGroup m_config;
     bool m_readOnly;
 };
 

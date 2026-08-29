@@ -4,71 +4,177 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-// ===========================================================================
-// [GAP] kis_image_config.cpp 阻塞登记（S-06 Task 8 批次C2）
-// 
-// 本文件不进薄壳，保留 Qt 原样。阻塞原因：
-//   * KConfig 体系未剥：KSharedConfig::openConfig()->group() / KConfigGroup
-//     readEntry/writeEntry 全量落在 libs/config，薄壳无对应；
-//   * QDir/QStandardPaths/QTemporaryFile/QThread/qApp->thread() 等
-//     平台/文件系统依赖未剥，且整文件围绕 swap 目录/临时目录的 OS 交互；
-//   * 调用方（kis_image_config 的消费点）需待 config 子系统剥离批次。
-// ===========================================================================
-
-
 #include "kis_image_config.h"
 
-#include <ksharedconfig.h>
+#include <PkSharedConfig.h>
+#include <PkScopedPointer.h>
+#include <PkThread.h>
+
+// A few not-yet-explicit image headers still carry Qt declaration macros even
+// though their types are already Pk types.  Keep the compatibility local to
+// this translation unit; none of these macros provide behavior.
+#ifndef Q_DECLARE_METATYPE
+#define Q_DECLARE_METATYPE(...)
+#endif
+#ifndef Q_OBJECT
+#define Q_OBJECT
+#endif
+#ifndef Q_SIGNALS
+#define Q_SIGNALS public
+#endif
+#ifndef Q_DISABLE_COPY
+#define Q_DISABLE_COPY(Class) \
+    Class(const Class &) = delete; \
+    Class &operator=(const Class &) = delete;
+#endif
+#ifndef Q_ASSERT_X
+#define Q_ASSERT_X(condition, where, what) Q_ASSERT(condition)
+#endif
+#ifndef Q_DECL_DEPRECATED
+#define Q_DECL_DEPRECATED [[deprecated]]
+#endif
 
 #include <KoConfig.h>
 #include <KoColorProfile.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorConversionTransformation.h>
+#include <KisProofingConfiguration.h>
 #include <kis_properties_configuration.h>
 
 #include <KisImageConfigNotifier.h>
 #include "kis_debug.h"
-#include "kis_cubic_curve.h"
-
-#include <QThread>
-#include <QApplication>
-#include <QColor>
-#include <QDir>
 
 #include "kis_global.h"
-#include <cmath>
-#include <QTemporaryFile>
 
-#ifdef Q_OS_MACOS
+#include <array>
+#include <cmath>
+#include <cstdlib>
+#include <filesystem>
+#include <set>
+#include <string>
+#include <vector>
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
 #include <errno.h>
-#include "KisMacosSecurityBookmarkManager.h"
+#include <unistd.h>
 #endif
 
-#ifdef Q_OS_ANDROID
+#ifdef __ANDROID__
 #include <KisAndroidUtils.h>
 #endif
 
 namespace {
 
-void cleanOldImageCursorStyleKeys(KConfigGroup config)
+void cleanOldImageCursorStyleKeys(PkConfigGroup config)
 {
     if (config.hasKey("newCursorStyle") && config.hasKey("newOutlineStyle")) {
         config.deleteEntry("cursorStyleDef");
     }
 }
 
+PkString numberString(int value)
+{
+    return PkString(std::to_string(value).c_str());
+}
+
+std::set<PkString> &dynamicImageConfigKeys()
+{
+    static std::set<PkString> keys;
+    return keys;
+}
+
+PkString trackedDynamicKey(const PkString &prefix, const PkString &suffix)
+{
+    const PkString key = prefix + suffix;
+    dynamicImageConfigKeys().insert(key);
+    return key;
+}
+
+std::filesystem::path toPath(const PkString &path)
+{
+    return std::filesystem::u8path(path.PkToUtf8());
+}
+
+PkString fromPath(const std::filesystem::path &path)
+{
+    return PkString(path.u8string().c_str());
+}
+
+PkString homeDirectory()
+{
+#ifdef _WIN32
+    const char *home = std::getenv("USERPROFILE");
+    if (!home) {
+        home = std::getenv("HOMEPATH");
+    }
+#else
+    const char *home = std::getenv("HOME");
+#endif
+    return home ? PkString(home) : PkString();
+}
+
+PkString temporaryDirectory()
+{
+    std::error_code error;
+    const std::filesystem::path path = std::filesystem::temp_directory_path(error);
+    if (!error && !path.empty()) {
+        return fromPath(path);
+    }
+    return homeDirectory();
+}
+
+bool canCreateTemporaryFile(const PkString &directory)
+{
+    if (directory.isEmpty()) {
+        return false;
+    }
+
+    std::error_code error;
+    const std::filesystem::path nativeDirectory = toPath(directory);
+    if (!std::filesystem::is_directory(nativeDirectory, error) || error) {
+        return false;
+    }
+
+#ifdef _WIN32
+    const std::filesystem::path candidate = nativeDirectory /
+        (L"krita_test_swap_location_" + std::to_wstring(::GetCurrentProcessId()));
+    const HANDLE handle = ::CreateFileW(candidate.c_str(), GENERIC_WRITE, 0, nullptr,
+                                        CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    ::CloseHandle(handle);
+    std::filesystem::remove(candidate, error);
+    return true;
+#else
+    std::string pattern =
+        (nativeDirectory / "krita_test_swap_location_XXXXXX").u8string();
+    std::vector<char> writablePattern(pattern.begin(), pattern.end());
+    writablePattern.push_back('\0');
+    const int descriptor = ::mkstemp(writablePattern.data());
+    if (descriptor < 0) {
+        return false;
+    }
+    ::close(descriptor);
+    ::unlink(writablePattern.data());
+    return true;
+#endif
+}
+
 }
 
 KisImageConfig::KisImageConfig(bool readOnly)
-    : m_config(KSharedConfig::openConfig()->group(QString()))
+    : m_config(PkSharedConfig::openConfig()->group(PkString()))
     , m_readOnly(readOnly)
 {
     if (!readOnly) {
-        KIS_SAFE_ASSERT_RECOVER_RETURN(qApp->thread() == QThread::currentThread());
+        KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::mainThreadId() == PkThread::currentThreadId());
     }
-#ifdef Q_OS_MACOS
+#ifdef __APPLE__
     // clear /var/folders/ swap path set by old broken Krita swap implementation in order to use new default swap dir.
-    QString swap = m_config.readEntry("swaplocation", "");
+    PkString swap = m_config.readEntry("swaplocation", "");
     if (swap.startsWith("/var/folders/")) {
         m_config.deleteEntry("swaplocation");
     }
@@ -79,7 +185,7 @@ KisImageConfig::~KisImageConfig()
 {
     if (m_readOnly) return;
 
-    if (qApp->thread() != QThread::currentThread()) {
+    if (PkThread::mainThreadId() != PkThread::currentThreadId()) {
         dbgKrita << "KisImageConfig: requested config synchronization from nonGUI thread! Called from" << kisBacktrace();
         return;
     }
@@ -253,76 +359,44 @@ void KisImageConfig::setMemoryPoolLimitPercent(qreal value)
     m_config.writeEntry("memoryPoolLimitPercent", value);
 }
 
-QString KisImageConfig::safelyGetWritableTempLocation(const QString &suffix, const QString &configKey, bool requestDefault) const
+PkString KisImageConfig::safelyGetWritableTempLocation(const PkString &suffix, const PkString &configKey, bool requestDefault) const
 {
-#ifdef Q_OS_MACOS
-    // On OSX, QDir::tempPath() gives us a folder we cannot reply upon (usually
-    // something like /var/folders/.../...) and that will have vanished when we
-    // try to create the tmp file in KisMemoryWindow::KisMemoryWindow using
-    // swapFileTemplate. thus, we just pick the home folder if swapDir does not
-    // tell us otherwise.
-
-    // the other option here would be to use a "garbled name" temp file (i.e. no name
-    // KRITA_SWAP_FILE_XXXXXX) in an obscure /var/folders place, which is not
-    // nice to the user. having a clearly named swap file in the home folder is
-    // much nicer to Krita's users.
-
-    // NOTE: QStandardPaths::AppLocalDataLocation on macos sandboxed envs
-    // does not return writable locations at all times, using QDir static methods
-    // will always return locations inside the sandbox Container
-
-    // furthermore, this is just a default and swapDir can always be configured
-    // to another location.
-
-    QString swap;
-
-    KisMacosSecurityBookmarkManager *bookmarkmngr = KisMacosSecurityBookmarkManager::instance();
-    if ( bookmarkmngr->isSandboxed() ) {
-        QDir sandboxHome = QDir::home();
-        if (sandboxHome.cd("tmp")) {
-            swap = sandboxHome.path();
-        }
-    } else {
-        swap = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + '/' + suffix;
-    }
+#ifdef __APPLE__
+    // QStandardPaths::AppLocalDataLocation maps to this platform location in
+    // the Pk resource-path implementation.  Sandboxed processes receive a
+    // container-local HOME, so the same expression remains inside the sandbox.
+    PkString swap = homeDirectory() + PkString("/Library/Application Support/krita/") + suffix;
 #else
-    Q_UNUSED(suffix);
-    QString swap = QDir::tempPath();
+    (void)suffix;
+    PkString swap = temporaryDirectory();
 #endif
     if (requestDefault) {
        return swap;
     }
-    const QString configuredSwap = m_config.readEntry(configKey, swap);
+    const PkString configuredSwap = m_config.readEntry(configKey, swap);
     if (!configuredSwap.isEmpty()) {
         swap = configuredSwap;
     }
 
-    QString chosenLocation;
-    QStringList proposedSwapLocations;
+    PkString chosenLocation;
+    const std::array<PkString, 3> proposedSwapLocations = {
+        swap,
+        temporaryDirectory(),
+        homeDirectory(),
+    };
 
-    proposedSwapLocations << swap;
-    proposedSwapLocations << QDir::tempPath();
-    proposedSwapLocations << QDir::homePath();
-
-    Q_FOREACH (const QString location, proposedSwapLocations) {
-        if (!QFileInfo(location).isWritable()) continue;
-
-        /**
-         * On NTFS, isWritable() doesn't check for attributes due to performance
-         * reasons, so we should try it in a brute-force way...
-         * (yes, there is a hacky-global-variable workaround, but let's be safe)
-         */
-        QTemporaryFile tempFile;
-        tempFile.setFileTemplate(location + '/' + "krita_test_swap_location");
-        if (tempFile.open() && !tempFile.fileName().isEmpty()) {
+    for (const PkString &location : proposedSwapLocations) {
+        // QFileInfo::isWritable() is insufficient on NTFS, so preserve the
+        // official implementation's final authority: create and remove a real
+        // temporary file in each proposed directory.
+        if (canCreateTemporaryFile(location)) {
             chosenLocation = location;
             break;
         }
     }
 
     if (chosenLocation.isEmpty()) {
-        qCritical() << "CRITICAL: no writable location for a swap file found! Tried the following paths:" << proposedSwapLocations;
-        qCritical() << "CRITICAL: hope I don't crash...";
+        qCritical() << "CRITICAL: no writable location for a swap file found";
         chosenLocation = swap;
     }
 
@@ -334,12 +408,12 @@ QString KisImageConfig::safelyGetWritableTempLocation(const QString &suffix, con
 }
 
 
-QString KisImageConfig::swapDir(bool requestDefault)
+PkString KisImageConfig::swapDir(bool requestDefault)
 {
     return safelyGetWritableTempLocation("swap", "swaplocation", requestDefault);
 }
 
-void KisImageConfig::setSwapDir(const QString &swapDir)
+void KisImageConfig::setSwapDir(const PkString &swapDir)
 {
     m_config.writeEntry("swaplocation", swapDir);
 }
@@ -366,7 +440,7 @@ void KisImageConfig::setOnionSkinTintFactor(int value)
 
 int KisImageConfig::onionSkinOpacity(int offset, bool requestDefault) const
 {
-    int value = m_config.readEntry("onionSkinOpacity_" + QString::number(offset), -1);
+    int value = m_config.readEntry(trackedDynamicKey(PkString("onionSkinOpacity_"), numberString(offset)), -1);
 
     if (value < 0 || requestDefault) {
         const int num = numberOfOnionSkins();
@@ -381,36 +455,36 @@ int KisImageConfig::onionSkinOpacity(int offset, bool requestDefault) const
 
 void KisImageConfig::setOnionSkinOpacity(int offset, int value)
 {
-    m_config.writeEntry("onionSkinOpacity_" + QString::number(offset), value);
+    m_config.writeEntry(trackedDynamicKey(PkString("onionSkinOpacity_"), numberString(offset)), value);
 }
 
 bool KisImageConfig::onionSkinState(int offset) const
 {
     bool enableByDefault = (qAbs(offset) <= 2);
-    return m_config.readEntry("onionSkinState_" + QString::number(offset), enableByDefault);
+    return m_config.readEntry(trackedDynamicKey(PkString("onionSkinState_"), numberString(offset)), enableByDefault);
 }
 
 void KisImageConfig::setOnionSkinState(int offset, bool value)
 {
-    m_config.writeEntry("onionSkinState_" + QString::number(offset), value);
+    m_config.writeEntry(trackedDynamicKey(PkString("onionSkinState_"), numberString(offset)), value);
 }
 
-QColor KisImageConfig::onionSkinTintColorBackward() const
+PkColor KisImageConfig::onionSkinTintColorBackward() const
 {
-    return m_config.readEntry("onionSkinTintColorBackward", QColor(Qt::red));
+    return m_config.readEntry("onionSkinTintColorBackward", PkColor(255, 0, 0));
 }
 
-void KisImageConfig::setOnionSkinTintColorBackward(const QColor &value)
+void KisImageConfig::setOnionSkinTintColorBackward(const PkColor &value)
 {
     m_config.writeEntry("onionSkinTintColorBackward", value);
 }
 
-QColor KisImageConfig::onionSkinTintColorForward() const
+PkColor KisImageConfig::onionSkinTintColorForward() const
 {
-    return m_config.readEntry("oninSkinTintColorForward", QColor(Qt::green));
+    return m_config.readEntry("oninSkinTintColorForward", PkColor(0, 255, 0));
 }
 
-void KisImageConfig::setOnionSkinTintColorForward(const QColor &value)
+void KisImageConfig::setOnionSkinTintColorForward(const PkColor &value)
 {
     m_config.writeEntry("oninSkinTintColorForward", value);
 }
@@ -437,15 +511,15 @@ void KisImageConfig::setAutoKeyModeDuplicate(bool value)
     m_config.writeEntry("lazyFrameModeDuplicate", value);
 }
 
-#if defined Q_OS_LINUX
+#if defined __linux__
 #include <sys/sysinfo.h>
-#elif defined Q_OS_HAIKU
+#elif defined __HAIKU__
 #include <OS.h>
-#elif defined Q_OS_FREEBSD || defined Q_OS_NETBSD || defined Q_OS_OPENBSD
+#elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 #include <sys/sysctl.h>
-#elif defined Q_OS_WIN
+#elif defined _WIN32
 #include <windows.h>
-#elif defined Q_OS_MACOS
+#elif defined __APPLE__
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
@@ -456,21 +530,21 @@ int KisImageConfig::totalRAM()
     int totalMemory = 1000; // MiB
     int error = 1;
 
-#if defined Q_OS_LINUX
+#if defined __linux__
     struct sysinfo info;
 
     error = sysinfo(&info);
     if(!error) {
         totalMemory = info.totalram * info.mem_unit / (1UL << 20);
     }
-#elif defined Q_OS_HAIKU
+#elif defined __HAIKU__
 	system_info info;
 	error = get_system_info(&info) == B_OK ? 0 : 1;
 	if (!error) {
 		uint64_t size = (info.max_pages * B_PAGE_SIZE);
 	totalMemory = size >> 20;
 	}
-#elif defined Q_OS_FREEBSD || defined Q_OS_NETBSD || defined Q_OS_OPENBSD
+#elif defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
     u_long physmem;
 #   if defined HW_PHYSMEM64 // NetBSD only
     int mib[] = {CTL_HW, HW_PHYSMEM64};
@@ -483,7 +557,7 @@ int KisImageConfig::totalRAM()
     if(!error) {
         totalMemory = physmem >> 20;
     }
-#elif defined Q_OS_WIN
+#elif defined _WIN32
     MEMORYSTATUSEX status;
     status.dwLength = sizeof(status);
     error  = !GlobalMemoryStatusEx(&status);
@@ -496,7 +570,7 @@ int KisImageConfig::totalRAM()
 #   if defined ENV32BIT
     totalMemory = qMin(totalMemory, 2000);
 #   endif
-#elif defined Q_OS_MACOS
+#elif defined __APPLE__
     int mib[2] = { CTL_HW, HW_MEMSIZE };
     u_int namelen = sizeof(mib) / sizeof(mib[0]);
     uint64_t size;
@@ -553,7 +627,7 @@ KisProofingConfigurationSP KisImageConfig::defaultProofingconfiguration(bool req
 
         proofingConfig->displayFlags.setFlag(KoColorConversionTransformation::BlackpointCompensation, m_config.readEntry("defaultProofingDisplayBlackpointCompensation", true));
         proofingConfig->displayMode = KisProofingConfiguration::DisplayTransformState(m_config.readEntry("defaultProofingDisplayMode", int(KisProofingConfiguration::Paper)));
-        QColor def(Qt::green);
+        PkColor def(0, 255, 0);
         def = m_config.readEntry("defaultProofingGamutwarning", def);
         KoColor col(KoColorSpaceRegistry::instance()->rgb8());
         col.fromQColor(def);
@@ -573,7 +647,7 @@ void KisImageConfig::setDefaultProofingConfig(const KisProofingConfiguration &co
     m_config.writeEntry("defaultProofingProfileDepth", config.proofingDepth);
     m_config.writeEntry("defaultProofingConversionIntent", int(config.conversionIntent));
     m_config.writeEntry("defaultProofingBlackpointCompensation", config.useBlackPointCompensationFirstTransform);
-    QColor c;
+    PkColor c;
     c = config.warningColor.toQColor();
     m_config.writeEntry("defaultProofingGamutwarning", c);
     m_config.writeEntry("defaultProofingAdaptationState", config.legacyAdaptationState());
@@ -597,12 +671,12 @@ void KisImageConfig::setUseLodForColorizeMask(bool value)
 
 int KisImageConfig::maxNumberOfThreads(bool defaultValue) const
 {
-    return (defaultValue ? QThread::idealThreadCount() : m_config.readEntry("maxNumberOfThreads", QThread::idealThreadCount()));
+    return (defaultValue ? PkThread::idealThreadCount() : m_config.readEntry("maxNumberOfThreads", PkThread::idealThreadCount()));
 }
 
 void KisImageConfig::setMaxNumberOfThreads(int value)
 {
-    if (value == QThread::idealThreadCount()) {
+    if (value == PkThread::idealThreadCount()) {
         m_config.deleteEntry("maxNumberOfThreads");
     } else {
         m_config.writeEntry("maxNumberOfThreads", value);
@@ -662,12 +736,12 @@ void KisImageConfig::setUseOnDiskAnimationCacheSwapping(bool value)
     m_config.writeEntry("useOnDiskAnimationCacheSwapping", value);
 }
 
-QString KisImageConfig::animationCacheDir(bool defaultValue) const
+PkString KisImageConfig::animationCacheDir(bool defaultValue) const
 {
     return safelyGetWritableTempLocation("animation_cache", "animationCacheDir", defaultValue);
 }
 
-void KisImageConfig::setAnimationCacheDir(const QString &value)
+void KisImageConfig::setAnimationCacheDir(const PkString &value)
 {
     m_config.writeEntry("animationCacheDir", value);
 }
@@ -722,13 +796,13 @@ void KisImageConfig::setSelectionOutlineOpacity(qreal value)
     m_config.writeEntry("selectionOutlineOpacity", value);
 }
 
-QColor KisImageConfig::selectionOverlayMaskColor(bool defaultValue) const
+PkColor KisImageConfig::selectionOverlayMaskColor(bool defaultValue) const
 {
-    QColor def(255, 0, 0, 128);
+    PkColor def(255, 0, 0, 128);
     return (defaultValue ? def : m_config.readEntry("selectionOverlayMaskColor", def));
 }
 
-void KisImageConfig::setSelectionOverlayMaskColor(const QColor &color)
+void KisImageConfig::setSelectionOverlayMaskColor(const PkColor &color)
 {
     m_config.writeEntry("selectionOverlayMaskColor", color);
 }
@@ -873,12 +947,12 @@ OutlineStyle KisImageConfig::eraserOutlineStyle(bool defaultValue) const
     return static_cast<OutlineStyle>(style);
 }
 
-QString KisImageConfig::pressureTabletCurve(bool defaultValue) const
+PkString KisImageConfig::pressureTabletCurve(bool defaultValue) const
 {
-    QString fallback = DEFAULT_CURVE_STRING;
-#ifdef Q_OS_ANDROID
+    PkString fallback("0,0;1,1;");
+#ifdef __ANDROID__
     if (KisAndroidUtils::looksLikeXiaomiDevice()) {
-        fallback = QStringLiteral("0,0;0.7,1;");
+        fallback = PkString("0,0;0.7,1;");
     }
 #endif
     return defaultValue ? fallback : m_config.readEntry("tabletPressureCurve", fallback);
@@ -1041,7 +1115,7 @@ void KisImageConfig::setLineSmoothingStabilizeSensors(bool value)
 
 int KisImageConfig::stabilizerSampleSize(bool defaultValue) const
 {
-#ifdef Q_OS_WIN
+#ifdef _WIN32
     const int defaultSampleSize = 50;
 #else
     const int defaultSampleSize = 15;
@@ -1085,33 +1159,124 @@ void KisImageConfig::setRenameDuplicatedLayers(bool value)
     m_config.writeEntry("renameDuplicatedLayers", value);
 }
 
-QString KisImageConfig::exportConfigurationXML(const QString &exportConfigId, bool defaultValue) const
+PkString KisImageConfig::exportConfigurationXML(const PkString &exportConfigId, bool defaultValue) const
 {
-    return (defaultValue ? QString() : m_config.readEntry("ExportConfiguration-" + exportConfigId, QString()));
+    return (defaultValue ? PkString() : m_config.readEntry(trackedDynamicKey(PkString("ExportConfiguration-"), exportConfigId), PkString()));
 }
 
-bool KisImageConfig::hasExportConfiguration(const QString &exportConfigID)
+bool KisImageConfig::hasExportConfiguration(const PkString &exportConfigID)
 {
-    return m_config.hasKey("ExportConfiguration-" + exportConfigID);
+    return m_config.hasKey(trackedDynamicKey(PkString("ExportConfiguration-"), exportConfigID));
 }
 
-KisPropertiesConfigurationSP KisImageConfig::exportConfiguration(const QString &exportConfigId, bool defaultValue) const
+KisPropertiesConfigurationSP KisImageConfig::exportConfiguration(const PkString &exportConfigId, bool defaultValue) const
 {
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
-    const QString xmlData = exportConfigurationXML(exportConfigId, defaultValue);
+    const PkString xmlData = exportConfigurationXML(exportConfigId, defaultValue);
     cfg->fromXML(xmlData);
     return cfg;
 }
 
-void KisImageConfig::setExportConfiguration(const QString &exportConfigId, KisPropertiesConfigurationSP properties)
+void KisImageConfig::setExportConfiguration(const PkString &exportConfigId, KisPropertiesConfigurationSP properties)
 {
-    const QString exportConfig = properties->toXML();
-    QString configId = "ExportConfiguration-" + exportConfigId;
+    const PkString exportConfig = properties->toXML();
+    PkString configId = trackedDynamicKey(PkString("ExportConfiguration-"), exportConfigId);
     m_config.writeEntry(configId, exportConfig);
 }
 
 void KisImageConfig::resetConfig()
 {
-    KConfigGroup config = KSharedConfig::openConfig()->group(QString());
-    config.deleteGroup();
+    PkConfigGroup config = PkSharedConfig::openConfig()->group(PkString());
+    // PkConfigStore is deliberately process-local and PkConfigGroup has no
+    // deleteGroup(): clear this class's complete fixed-key surface plus every
+    // dynamic onion-skin/export key observed through this API.  This preserves
+    // KisImageConfig reset behavior without erasing unrelated root-group
+    // settings owned by other migrated subsystems.
+    const char *fixedKeys[] = {
+        "LineSmoothingDelayDistance",
+        "LineSmoothingDistanceKeepAspectRatio",
+        "LineSmoothingDistanceMax",
+        "LineSmoothingDistanceMin",
+        "LineSmoothingFinishStabilizedCurve",
+        "LineSmoothingScalableDistance",
+        "LineSmoothingSmoothPressure",
+        "LineSmoothingStabilizeSensors",
+        "LineSmoothingTailAggressiveness",
+        "LineSmoothingType",
+        "LineSmoothingUseDelayDistance",
+        "OutlineSizeMinimum",
+        "ShowEraserOutlineWhilePainting",
+        "ShowOutlineWhilePainting",
+        "animationCacheDir",
+        "animationCacheFrameSizeLimit",
+        "animationCacheRegionOfInterestMargin",
+        "compressLayersInKra",
+        "cursorStyleDef",
+        "defaultFrameColorLabel",
+        "defaultProofingAdaptationState",
+        "defaultProofingBlackpointCompensation",
+        "defaultProofingConversionIntent",
+        "defaultProofingDisplayBlackpointCompensation",
+        "defaultProofingDisplayMode",
+        "defaultProofingGamutwarning",
+        "defaultProofingProfileDepth",
+        "defaultProofingProfileIntent",
+        "defaultProofingProfileModel",
+        "defaultProofingProfileName",
+        "detectFpsLimit",
+        "enablePerfLog",
+        "enableProgressReporting",
+        "eraserCursorStyle",
+        "eraserOutlineStyle",
+        "forceAlwaysFullSizedEraserOutline",
+        "forceAlwaysFullSizedOutline",
+        "fpsLimit",
+        "frameRenderingClones",
+        "frameRenderingTimeout",
+        "lazyFrameCreationEnabled",
+        "lazyFrameModeDuplicate",
+        "maxCollectAlpha",
+        "maxMergeAlpha",
+        "maxMergeCollectAlpha",
+        "maxNumberOfThreads",
+        "maxSwapSize",
+        "maximumBrushSize",
+        "memoryHardLimitPercent",
+        "memoryPoolLimitPercent",
+        "memorySoftLimitPercent",
+        "newCursorStyle",
+        "newOutlineStyle",
+        "numberOfOnionSkins",
+        "oninSkinTintColorForward",
+        "onionSkinTintColorBackward",
+        "onionSkinTintFactor",
+        "renameDuplicatedLayers",
+        "renameMergedLayers",
+        "schedulerBalancingRatio",
+        "selectionOutlineOpacity",
+        "selectionOverlayMaskColor",
+        "separateEraserCursor",
+        "showAdditionalOnionSkinsSettings",
+        "stabilizerDelayedPaint",
+        "stabilizerSampleSize",
+        "swapSlabSize",
+        "swapWindowSize",
+        "swaplocation",
+        "tabletPressureCurve",
+        "touchPainting",
+        "transformMaskOffBoundsReadArea",
+        "updatePatchHeight",
+        "updatePatchWidth",
+        "useAnimationCacheFrameSizeLimit",
+        "useAnimationCacheRegionOfInterest",
+        "useLodForColorizeMask",
+        "useOnDiskAnimationCacheSwapping",
+    };
+    for (const char *key : fixedKeys) {
+        config.deleteEntry(PkString(key));
+    }
+    for (const PkString &key : dynamicImageConfigKeys()) {
+        config.deleteEntry(key);
+    }
+    dynamicImageConfigKeys().clear();
 }
