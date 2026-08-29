@@ -32,9 +32,6 @@ enum CopyLayerType {
  **/
 class KRITAIMAGE_EXPORT KisCloneLayer : public KisLayer
 {
-
-    Q_OBJECT
-
 public:
 
     KisCloneLayer(KisLayerSP from, KisImageWSP image, const PkString &name, quint8 opacity);
@@ -122,4 +119,3 @@ private:
 };
 
 #endif // KIS_CLONE_LAYER_H_
-
