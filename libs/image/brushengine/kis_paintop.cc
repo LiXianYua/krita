@@ -29,7 +29,7 @@
 #define BEZIER_FLATNESS_THRESHOLD 0.5
 #include <kis_distance_information.h>
 
-struct Q_DECL_HIDDEN KisPaintOp::Private {
+struct KisPaintOp::Private {
     Private(KisPaintOp *_q)
         : q(_q) {}
 
