@@ -259,6 +259,17 @@ void KisToolFreehandHelper::initPaint(KoPointerEvent *event,
                                       KisImageWSP image, KisNodeSP currentNode,
                                       KisStrokesFacade *strokesFacade,
                                       KisNodeSP overrideNode,
+                                      KisDefaultBoundsBaseSP bounds)
+{
+    initPaintWithMyPaintSlowTrackingPolicy(event, pixelCoords, image, currentNode,
+                                           strokesFacade, overrideNode, bounds, false);
+}
+
+void KisToolFreehandHelper::initPaintWithMyPaintSlowTrackingPolicy(KoPointerEvent *event,
+                                      const QPointF &pixelCoords,
+                                      KisImageWSP image, KisNodeSP currentNode,
+                                      KisStrokesFacade *strokesFacade,
+                                      KisNodeSP overrideNode,
                                       KisDefaultBoundsBaseSP bounds,
                                       bool preserveMyPaintSlowTracking)
 {
@@ -280,7 +291,7 @@ void KisToolFreehandHelper::initPaint(KoPointerEvent *event,
         m_d->infoBuilder->startStroke(event, elapsedStrokeTime(), m_d->resourceManager);
     qreal startAngle = KisAlgebra2D::directionBetweenPoints(prevPoint, pixelCoords, 0.0);
 
-    initPaintImpl(startAngle,
+    initPaintImplWithMyPaintSlowTrackingPolicy(startAngle,
                   pi,
                   m_d->resourceManager,
                   image,
@@ -297,6 +308,20 @@ bool KisToolFreehandHelper::isRunning() const
 }
 
 void KisToolFreehandHelper::initPaintImpl(qreal startAngle,
+                                          const KisPaintInformation &pi,
+                                          KoCanvasResourceProvider *resourceManager,
+                                          KisImageWSP image,
+                                          KisNodeSP currentNode,
+                                          KisStrokesFacade *strokesFacade,
+                                          KisNodeSP overrideNode,
+                                          KisDefaultBoundsBaseSP bounds)
+{
+    initPaintImplWithMyPaintSlowTrackingPolicy(startAngle, pi, resourceManager, image,
+                                               currentNode, strokesFacade, overrideNode,
+                                               bounds, false);
+}
+
+void KisToolFreehandHelper::initPaintImplWithMyPaintSlowTrackingPolicy(qreal startAngle,
                                           const KisPaintInformation &pi,
                                           KoCanvasResourceProvider *resourceManager,
                                           KisImageWSP image,

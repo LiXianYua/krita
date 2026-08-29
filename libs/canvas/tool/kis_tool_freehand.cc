@@ -170,7 +170,7 @@ void KisToolFreehand::deactivate()
 
 void KisToolFreehand::initStroke(KoPointerEvent *event)
 {
-    m_helper->initPaint(event,
+    m_helper->initPaintWithMyPaintSlowTrackingPolicy(event,
                         convertToPixelCoord(event),
                         image(),
                         currentNode(),

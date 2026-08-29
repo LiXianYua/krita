@@ -63,8 +63,15 @@ public:
                    KisNodeSP currentNode,
                    KisStrokesFacade *strokesFacade,
                    KisNodeSP overrideNode = 0,
-                   KisDefaultBoundsBaseSP bounds = 0,
-                   bool preserveMyPaintSlowTracking = false);
+                   KisDefaultBoundsBaseSP bounds = 0);
+    void initPaintWithMyPaintSlowTrackingPolicy(KoPointerEvent *event,
+                                                const QPointF &pixelCoords,
+                                                KisImageWSP image,
+                                                KisNodeSP currentNode,
+                                                KisStrokesFacade *strokesFacade,
+                                                KisNodeSP overrideNode,
+                                                KisDefaultBoundsBaseSP bounds,
+                                                bool preserveMyPaintSlowTracking);
     void paintEvent(KoPointerEvent *event );
     void endPaint();
 
@@ -93,8 +100,16 @@ protected:
                        KisNodeSP node,
                        KisStrokesFacade *strokesFacade,
                        KisNodeSP overrideNode = 0,
-                       KisDefaultBoundsBaseSP bounds = 0,
-                       bool preserveMyPaintSlowTracking = false);
+                       KisDefaultBoundsBaseSP bounds = 0);
+    void initPaintImplWithMyPaintSlowTrackingPolicy(qreal startAngle,
+                                                    const KisPaintInformation &pi,
+                                                    KoCanvasResourceProvider *resourceManager,
+                                                    KisImageWSP image,
+                                                    KisNodeSP node,
+                                                    KisStrokesFacade *strokesFacade,
+                                                    KisNodeSP overrideNode,
+                                                    KisDefaultBoundsBaseSP bounds,
+                                                    bool preserveMyPaintSlowTracking);
 
     KoCanvasResourceProvider *resourceManager() const;
 
