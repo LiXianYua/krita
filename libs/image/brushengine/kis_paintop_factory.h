@@ -36,8 +36,6 @@ class KoResourceLoadResult;
  */
 class KRITAIMAGE_EXPORT KisPaintOpFactory : public PkObject
 {
-    Q_OBJECT
-
 public:
 
     enum PaintopVisibility {

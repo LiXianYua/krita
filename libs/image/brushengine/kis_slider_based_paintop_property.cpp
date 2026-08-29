@@ -71,7 +71,7 @@ void KisSliderBasedPaintOpProperty<T>::setRange(T min, T max)
     m_max = max;
 
     if (valueChanged) {
-        Q_EMIT sigRangeChanged();
+        sigRangeChanged();
     }
 }
 

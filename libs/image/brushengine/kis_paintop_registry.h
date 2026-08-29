@@ -31,8 +31,6 @@ class KisPainter;
 class KRITAIMAGE_EXPORT KisPaintOpRegistry : public PkObject, public KoGenericRegistry<KisPaintOpFactory*>
 {
 
-    Q_OBJECT
-
 public:
     KisPaintOpRegistry();
     ~KisPaintOpRegistry() override;
@@ -89,4 +87,3 @@ private:
 };
 
 #endif // KIS_PAINTOP_REGISTRY_H_
-

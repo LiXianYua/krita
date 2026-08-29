@@ -13,12 +13,10 @@
 class KRITAIMAGE_EXPORT KisSliderBasedPaintOpPropertyBase
     : public KisUniformPaintOpProperty
 {
-    Q_OBJECT
-
 public:
     using KisUniformPaintOpProperty::KisUniformPaintOpProperty;
 
-Q_SIGNALS:
+signals:
     void sigRangeChanged();
 };
 

@@ -10,6 +10,7 @@
 
 #include <PkScopedPointer.h>
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 #include <PkVariant.h>
 #include <PkString.h>
 
@@ -18,7 +19,6 @@
 
 class KRITAIMAGE_EXPORT KisUniformPaintOpProperty : public PkObject
 {
-    Q_OBJECT
 public:
     enum Type {
         Int = 0,
@@ -52,11 +52,11 @@ public:
 
     virtual bool isVisible() const;
 
-public Q_SLOTS:
+public:
     void setValue(const PkVariant &value);
     void requestReadValue();
 
-Q_SIGNALS:
+signals:
     void valueChanged(const PkVariant &value);
 
 protected:
