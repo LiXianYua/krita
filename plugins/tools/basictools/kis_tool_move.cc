@@ -57,13 +57,16 @@ KisToolMove::KisToolMove(KoCanvasBase *canvas)
 
     m_showCoordinatesAction = action("movetool-show-coordinates");
     m_showCoordinatesAction = action("movetool-show-coordinates");
-    connect(&m_updateCursorCompressor, SIGNAL(timeout()), this, SLOT(resetCursorStyle()));
+    m_updateCursorConnection =
+        PkObject::connect(&m_updateCursorCompressor, &KisSignalCompressor::timeout,
+                          &m_updateCursorCompressor, [this]() { resetCursorStyle(); });
 
     m_showCoordinatesAction->setChecked(false);
 }
 
 KisToolMove::~KisToolMove()
 {
+    PkObject::disconnect(m_updateCursorConnection);
     endStroke();
 }
 

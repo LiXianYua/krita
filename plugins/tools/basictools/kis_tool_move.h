@@ -157,6 +157,7 @@ private:
 
     QPoint m_lastCursorPos;
     KisSignalCompressor m_updateCursorCompressor;
+    PkConnection m_updateCursorConnection;
     KisSignalAutoConnectionsStore m_actionConnections;
     KisSignalAutoConnectionsStore m_canvasConnections;
 

@@ -80,6 +80,7 @@ struct KisMeshTransformStrategy::Private
     QSize lastMeshSize;
 
     KisSignalCompressor recalculateSignalCompressor;
+    PkConnection recalculateConnection;
 
     QTransform paintingTransform;
     QPointF paintingOffset;
@@ -98,8 +99,11 @@ KisMeshTransformStrategy::KisMeshTransformStrategy(const KisCoordinatesConverter
       m_d(new Private(this, converter, currentArgs, transaction))
 {
 
-    connect(&m_d->recalculateSignalCompressor, SIGNAL(timeout()),
-            SLOT(recalculateTransformations()));
+    m_d->recalculateConnection =
+        PkObject::connect(&m_d->recalculateSignalCompressor,
+                          &KisSignalCompressor::timeout,
+                          &m_d->recalculateSignalCompressor,
+                          [this]() { m_d->recalculateTransformations(); });
 
     m_d->selectedNodes << KisBezierTransformMesh::NodeIndex(1, 1);
     m_d->hoveredSegment = KisBezierTransformMesh::SegmentIndex(KisBezierTransformMesh::NodeIndex(0,0), 1);
@@ -108,6 +112,7 @@ KisMeshTransformStrategy::KisMeshTransformStrategy(const KisCoordinatesConverter
 
 KisMeshTransformStrategy::~KisMeshTransformStrategy()
 {
+    PkObject::disconnect(m_d->recalculateConnection);
 }
 
 void KisMeshTransformStrategy::setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive)

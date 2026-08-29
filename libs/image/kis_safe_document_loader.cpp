@@ -70,8 +70,20 @@ public:
 
     {
         connect(&m_watcher, SIGNAL(fileChanged(QString)), SLOT(slotFileChanged(QString)));
-        connect(&m_reattachmentCompressor, SIGNAL(timeout()), SLOT(slotReattachFiles()));
-        connect(&m_lostCompressor, SIGNAL(timeout()), SLOT(slotFindLostFiles()));
+        m_reattachmentConnection =
+            PkObject::connect(&m_reattachmentCompressor, &KisSignalCompressor::timeout,
+                              &m_reattachmentCompressor,
+                              [this]() { slotReattachFiles(); });
+        m_lostConnection =
+            PkObject::connect(&m_lostCompressor, &KisSignalCompressor::timeout,
+                              &m_lostCompressor,
+                              [this]() { slotFindLostFiles(); });
+    }
+
+    ~FileSystemWatcherWrapper() override
+    {
+        PkObject::disconnect(m_lostConnection);
+        PkObject::disconnect(m_reattachmentConnection);
     }
 
     bool addPath(const QString &file) {
@@ -212,6 +224,8 @@ private:
     QHash<QString, int> m_pathCount;
     KisSignalCompressor m_reattachmentCompressor;
     KisSignalCompressor m_lostCompressor;
+    PkConnection m_reattachmentConnection;
+    PkConnection m_lostConnection;
     QHash<QString, int> m_lostFilesAbsenceCounter;
     QHash<QString, FileEntry> m_fileEntries;
 };
@@ -228,6 +242,7 @@ struct KisSafeDocumentLoader::Private
     }
 
     KisSignalCompressor fileChangedSignalCompressor;
+    PkConnection fileChangedConnection;
     ImageLoader imageLoader;
     bool isLoading = false;
     bool fileChangedFlag = false;
@@ -257,8 +272,11 @@ KisSafeDocumentLoader::KisSafeDocumentLoader(const QString &path,
     connect(s_fileSystemWatcher, SIGNAL(fileExistsStateChanged(QString, bool)),
             SLOT(slotFileExistsStateChanged(QString, bool)));
 
-    connect(&m_d->fileChangedSignalCompressor, SIGNAL(timeout()),
-            SLOT(fileChangedCompressed()));
+    m_d->fileChangedConnection =
+        PkObject::connect(&m_d->fileChangedSignalCompressor,
+                          &KisSignalCompressor::timeout,
+                          &m_d->fileChangedSignalCompressor,
+                          [this]() { fileChangedCompressed(); });
 
     setPath(path);
 }
@@ -270,6 +288,8 @@ void KisSafeDocumentLoader::setDefaultImageLoader(ImageLoader imageLoader)
 
 KisSafeDocumentLoader::~KisSafeDocumentLoader()
 {
+    PkObject::disconnect(m_d->fileChangedConnection);
+
     if (!m_d->path.isEmpty()) {
         s_fileSystemWatcher->removePath(m_d->path);
     }

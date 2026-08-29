@@ -85,6 +85,7 @@ struct KisWarpTransformStrategy::Private
     // cage transform also uses this logic. This helps this class know what transform type we are using
     TransformType transformType = TransformType::WARP_TRANSFORM;
     KisSignalCompressor recalculateSignalCompressor;
+    PkConnection recalculateConnection;
 
     void recalculateTransformations();
     inline QPointF imageToThumb(const QPointF &pt, bool useFlakeOptimization);
@@ -100,12 +101,16 @@ KisWarpTransformStrategy::KisWarpTransformStrategy(const KisCoordinatesConverter
     : KisSimplifiedActionPolicyStrategy(converter, snapGuide),
       m_d(new Private(this, converter, currentArgs, transaction))
 {
-    connect(&m_d->recalculateSignalCompressor, SIGNAL(timeout()),
-            SLOT(recalculateTransformations()));
+    m_d->recalculateConnection =
+        PkObject::connect(&m_d->recalculateSignalCompressor,
+                          &KisSignalCompressor::timeout,
+                          &m_d->recalculateSignalCompressor,
+                          [this]() { m_d->recalculateTransformations(); });
 }
 
 KisWarpTransformStrategy::~KisWarpTransformStrategy()
 {
+    PkObject::disconnect(m_d->recalculateConnection);
 }
 
 void KisWarpTransformStrategy::setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive)

@@ -27,6 +27,7 @@ struct KisSmoothingOptions::Private {
     }
 
     KisSignalCompressor writeCompressor;
+    PkConnection writeConnection;
 
     SmoothingType smoothingType;
     qreal smoothnessDistanceMin;
@@ -45,11 +46,15 @@ KisSmoothingOptions::KisSmoothingOptions(bool useSavedSmoothing)
     : m_d(new Private(useSavedSmoothing))
 {
 
-    connect(&m_d->writeCompressor, SIGNAL(timeout()), this, SLOT(slotWriteConfig()));
+    m_d->writeConnection =
+        PkObject::connect(&m_d->writeCompressor, &KisSignalCompressor::timeout,
+                          &m_d->writeCompressor,
+                          [this]() { slotWriteConfig(); });
 }
 
 KisSmoothingOptions::~KisSmoothingOptions()
 {
+    PkObject::disconnect(m_d->writeConnection);
 }
 
 KisSmoothingOptions::SmoothingType KisSmoothingOptions::smoothingType() const

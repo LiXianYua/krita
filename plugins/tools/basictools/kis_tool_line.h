@@ -80,6 +80,8 @@ private:
     QScopedPointer<KisToolLineHelper> m_helper;
     KisSignalCompressor m_strokeUpdateCompressor;
     KisSignalCompressor m_longStrokeUpdateCompressor;
+    PkConnection m_strokeUpdateConnection;
+    PkConnection m_longStrokeUpdateConnection;
 };
 
 

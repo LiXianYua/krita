@@ -60,8 +60,12 @@ KisToolLine::KisToolLine(KoCanvasBase * canvas)
 
     setIsOpacityPresetMode(true);
 
-    connect(&m_strokeUpdateCompressor, SIGNAL(timeout()), SLOT(updateStroke()));
-    connect(&m_longStrokeUpdateCompressor, SIGNAL(timeout()), SLOT(updateStroke()));
+    m_strokeUpdateConnection =
+        PkObject::connect(&m_strokeUpdateCompressor, &KisSignalCompressor::timeout,
+                          &m_strokeUpdateCompressor, [this]() { updateStroke(); });
+    m_longStrokeUpdateConnection =
+        PkObject::connect(&m_longStrokeUpdateCompressor, &KisSignalCompressor::timeout,
+                          &m_longStrokeUpdateCompressor, [this]() { updateStroke(); });
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const QVariant &) {
@@ -73,6 +77,8 @@ KisToolLine::KisToolLine(KoCanvasBase * canvas)
 
 KisToolLine::~KisToolLine()
 {
+    PkObject::disconnect(m_longStrokeUpdateConnection);
+    PkObject::disconnect(m_strokeUpdateConnection);
 }
 
 void KisToolLine::resetCursorStyle()

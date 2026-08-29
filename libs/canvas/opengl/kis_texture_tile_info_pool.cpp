@@ -10,11 +10,20 @@ KisTextureTileInfoPoolWorker::KisTextureTileInfoPoolWorker(KisTextureTileInfoPoo
     : m_pool(pool)
     , m_compressor(1000, KisSignalCompressor::POSTPONE)
 {
-    connect(&m_compressor, SIGNAL(timeout()), this, SLOT(slotDelayedPurge()));
+    m_compressorConnection =
+        PkObject::connect(&m_compressor, &KisSignalCompressor::timeout,
+                          &m_compressorReceiver,
+                          [this]() { slotDelayedPurge(); });
+}
+
+KisTextureTileInfoPoolWorker::~KisTextureTileInfoPoolWorker()
+{
+    PkObject::disconnect(m_compressorConnection);
 }
 
 void KisTextureTileInfoPoolWorker::slotPurge(int pixelSize, int numFrees)
 {
+    m_compressorReceiver.moveToThread(PkThread::currentThreadId());
     m_purge[pixelSize] = numFrees;
     m_compressor.start();
 }

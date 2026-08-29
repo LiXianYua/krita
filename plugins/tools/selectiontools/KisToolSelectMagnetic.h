@@ -21,7 +21,7 @@ class KisToolSelectMagnetic : public KisToolSelect
 
 public:
     KisToolSelectMagnetic(KoCanvasBase *canvas);
-    ~KisToolSelectMagnetic() override = default;
+    ~KisToolSelectMagnetic() override;
     void beginPrimaryAction(KoPointerEvent *event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
@@ -89,6 +89,7 @@ private:
     KConfigGroup m_configGroup;
     QVector<vQPointF> m_pointCollection;
     KisSignalCompressor m_mouseHoverCompressor;
+    PkConnection m_mouseHoverConnection;
 };
 
 class KisToolSelectMagneticFactory : public KisSelectionToolFactoryBase

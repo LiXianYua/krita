@@ -75,8 +75,11 @@ void testCompression(int timerInterval, int compressorInterval,
     timer.setTimerType(Qt::PreciseTimer);
     timer.setSingleShot(false);
 
-    QObject::connect(&timer, SIGNAL(timeout()), &compressor, SLOT(start()));
-    QObject::connect(&compressor, SIGNAL(timeout()), &tester, SLOT(start()));
+    QObject::connect(&timer, &QTimer::timeout, &timer,
+                     [&compressor]() { compressor.start(); });
+    PkConnection compressorConnection =
+        PkObject::connect(&compressor, &KisSignalCompressor::timeout,
+                          &compressor, [&tester]() { tester.start(); });
 
     timer.start();
 
@@ -91,6 +94,7 @@ void testCompression(int timerInterval, int compressorInterval,
                 .arg(timerInterval).arg(compressorInterval).arg(handlerDelay));
 
     QTest::qWait(compressorInterval * 10);
+    PkObject::disconnect(compressorConnection);
 }
 
 void KisSignalCompressorTest::test()
@@ -142,10 +146,14 @@ void testIdleChecksImpl(int compressorInterval,
     timer.setTimerType(Qt::PreciseTimer);
     timer.setSingleShot(false);
 
-    QObject::connect(&timer, SIGNAL(timeout()), &compressor, SLOT(start()));
-    QObject::connect(&compressor, SIGNAL(timeout()), &tester, SLOT(start()));
-    QObject::connect(&compressor, &KisSignalCompressor::timeout,
-                     [&elapsedTimer] () { elapsedTimer.restart(); });
+    QObject::connect(&timer, &QTimer::timeout, &timer,
+                     [&compressor]() { compressor.start(); });
+    PkConnection testerConnection =
+        PkObject::connect(&compressor, &KisSignalCompressor::timeout,
+                          &compressor, [&tester]() { tester.start(); });
+    PkConnection elapsedConnection =
+        PkObject::connect(&compressor, &KisSignalCompressor::timeout,
+                          &compressor, [&elapsedTimer]() { elapsedTimer.restart(); });
 
     timer.start();
 
@@ -160,6 +168,8 @@ void testIdleChecksImpl(int compressorInterval,
                 .arg(idleCheckInterval).arg(idleDelay));
 
     QTest::qWait(compressorInterval * 10);
+    PkObject::disconnect(elapsedConnection);
+    PkObject::disconnect(testerConnection);
 }
 
 void KisSignalCompressorTest::testIdleChecks()
@@ -209,8 +219,16 @@ void KisSignalCompressorTest::testDestructionAfterEmit()
         {
             QScopedPointer<SignalToFunctionProxy> proxy(new SignalToFunctionProxy(signalDeliveryCheck));
             KisSignalCompressor compressor(5, mode);
-            connect(&compressor, SIGNAL(timeout()), proxy.data(), SLOT(start()), connectionType);
+            const PkConnectionType pkConnectionType =
+                connectionType == Qt::DirectConnection
+                ? PkConnectionType::Direct
+                : PkConnectionType::Queued;
+            PkConnection connection =
+                PkObject::connect(&compressor, &KisSignalCompressor::timeout,
+                                  proxy.data(), &SignalToFunctionProxy::start,
+                                  pkConnectionType);
             compressor.start();
+            PkObject::disconnect(connection);
         }
         objectIsValid = false;
         QCOMPARE(somethingDelivered, expectToDeliver);

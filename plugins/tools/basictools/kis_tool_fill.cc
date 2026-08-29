@@ -52,7 +52,9 @@ KisToolFill::KisToolFill(KoCanvasBase * canvas)
     , m_fillStrokeId(nullptr)
 {
     setObjectName("tool_fill");
-    connect(&m_compressorFillUpdate, SIGNAL(timeout()), SLOT(slotUpdateFill()));
+    m_fillUpdateConnection =
+        PkObject::connect(&m_compressorFillUpdate, &KisSignalCompressor::timeout,
+                          &m_compressorFillUpdate, [this]() { slotUpdateFill(); });
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const QVariant &) {
@@ -64,6 +66,7 @@ KisToolFill::KisToolFill(KoCanvasBase * canvas)
 
 KisToolFill::~KisToolFill()
 {
+    PkObject::disconnect(m_fillUpdateConnection);
 }
 
 void KisToolFill::resetCursorStyle()

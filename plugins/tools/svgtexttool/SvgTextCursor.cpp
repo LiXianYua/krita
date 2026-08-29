@@ -2183,18 +2183,26 @@ struct SvgTextCursorPropertyInterface::Private {
     SvgTextCursor *parent{nullptr};
     KisSignalCompressor compressor;
     KisSignalCompressor characterCompressor;
+    PkConnection compressorConnection;
+    PkConnection characterCompressorConnection;
 };
 
 SvgTextCursorPropertyInterface::SvgTextCursorPropertyInterface(SvgTextCursor *parent)
     : KoSvgTextPropertiesInterface(parent), d(new Private(parent))
 {
-    connect(&d->compressor, SIGNAL(timeout()), this, SIGNAL(textSelectionChanged()));
-    connect(&d->characterCompressor, SIGNAL(timeout()), this, SIGNAL(textCharacterSelectionChanged()));
+    d->compressorConnection =
+        PkObject::connect(&d->compressor, &KisSignalCompressor::timeout,
+                          &d->compressor, [this]() { Q_EMIT textSelectionChanged(); });
+    d->characterCompressorConnection =
+        PkObject::connect(&d->characterCompressor, &KisSignalCompressor::timeout,
+                          &d->characterCompressor,
+                          [this]() { Q_EMIT textCharacterSelectionChanged(); });
 }
 
 SvgTextCursorPropertyInterface::~SvgTextCursorPropertyInterface()
 {
-
+    PkObject::disconnect(d->characterCompressorConnection);
+    PkObject::disconnect(d->compressorConnection);
 }
 QList<KoSvgTextProperties> SvgTextCursorPropertyInterface::getSelectedProperties()
 {

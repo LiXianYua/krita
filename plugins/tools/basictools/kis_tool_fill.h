@@ -127,6 +127,7 @@ private:
     bool m_isDragging {false};
     QPoint m_fillStartWidgetPosition;
     KisSignalCompressor m_compressorFillUpdate;
+    PkConnection m_fillUpdateConnection;
     QSharedPointer<QRect> m_dirtyRect;
     QVector<QPoint> m_seedPoints;
     KisStrokeId m_fillStrokeId;
@@ -169,4 +170,3 @@ public:
 };
 
 #endif //__filltool_h__
-

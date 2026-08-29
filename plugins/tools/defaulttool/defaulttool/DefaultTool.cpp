@@ -2316,17 +2316,21 @@ struct Q_DECL_HIDDEN DefaultToolTextPropertiesInterface::Private {
     DefaultTool *parent;
     QList<KoShape*> shapes;
     KisSignalCompressor compressor;
+    PkConnection compressorConnection;
 };
 
 DefaultToolTextPropertiesInterface::DefaultToolTextPropertiesInterface(DefaultTool *parent)
     : KoSvgTextPropertiesInterface(parent)
     , d(new Private(parent))
 {
-    connect(&d->compressor, SIGNAL(timeout()), this, SIGNAL(textSelectionChanged()));
+    d->compressorConnection =
+        PkObject::connect(&d->compressor, &KisSignalCompressor::timeout,
+                          &d->compressor, [this]() { Q_EMIT textSelectionChanged(); });
 }
 
 DefaultToolTextPropertiesInterface::~DefaultToolTextPropertiesInterface()
 {
+    PkObject::disconnect(d->compressorConnection);
     clearSelection();
 }
 

@@ -51,6 +51,11 @@ KisToolSelectMagnetic::KisToolSelectMagnetic(KoCanvasBase *canvas)
   , m_mouseHoverCompressor(100, KisSignalCompressor::FIRST_ACTIVE)
 { }
 
+KisToolSelectMagnetic::~KisToolSelectMagnetic()
+{
+    PkObject::disconnect(m_mouseHoverConnection);
+}
+
 void KisToolSelectMagnetic::keyPressEvent(QKeyEvent *event)
 {
     if (isSelecting()) {
@@ -684,7 +689,10 @@ void KisToolSelectMagnetic::activate(const QSet<KoShape *> &shapes)
     m_anchorGap = m_configGroup.readEntry("anchorgap", 20);
 
     connect(action("undo_polygon_selection"), SIGNAL(triggered()), SLOT(undoPoints()), Qt::UniqueConnection);
-    connect(&m_mouseHoverCompressor, SIGNAL(timeout()), this, SLOT(slotCalculateEdge()));
+    PkObject::disconnect(m_mouseHoverConnection);
+    m_mouseHoverConnection =
+        PkObject::connect(&m_mouseHoverCompressor, &KisSignalCompressor::timeout,
+                          &m_mouseHoverCompressor, [this]() { slotCalculateEdge(); });
     KisToolSelect::activate(shapes);
 }
 

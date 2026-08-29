@@ -100,6 +100,7 @@ class KRITACANVAS_EXPORT KisTextureTileInfoPoolWorker : public QObject
     Q_OBJECT
 public:
     KisTextureTileInfoPoolWorker(KisTextureTileInfoPool *pool);
+    ~KisTextureTileInfoPoolWorker() override;
 
 public Q_SLOTS:
     void slotPurge(int pixelSize, int numFrees);
@@ -108,6 +109,8 @@ public Q_SLOTS:
 private:
     KisTextureTileInfoPool *m_pool;
     KisSignalCompressor m_compressor;
+    PkObject m_compressorReceiver;
+    PkConnection m_compressorConnection;
     QMap<int, int> m_purge;
 };
 
