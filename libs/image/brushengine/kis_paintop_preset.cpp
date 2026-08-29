@@ -128,6 +128,20 @@ bool isBase64Character(unsigned char value)
         (value >= '0' && value <= '9') || value == '+' || value == '/' || value == '=';
 }
 
+int base64Value(unsigned char value)
+{
+    if (value >= 'A' && value <= 'Z') {
+        return value - 'A';
+    }
+    if (value >= 'a' && value <= 'z') {
+        return value - 'a' + 26;
+    }
+    if (value >= '0' && value <= '9') {
+        return value - '0' + 52;
+    }
+    return value == '+' ? 62 : value == '/' ? 63 : -1;
+}
+
 void removeInvalidPatternMd5(std::string &xml)
 {
     constexpr const char *parameterName = "name=\"Texture/Pattern/PatternMD5\"";
@@ -178,6 +192,7 @@ bool isValidBase64(const PkString &encoded)
     std::size_t significant = 0;
     std::size_t padding = 0;
     bool sawPadding = false;
+    int finalSextet = -1;
     for (unsigned char value : text) {
         if (std::isspace(value)) {
             continue;
@@ -190,10 +205,17 @@ bool isValidBase64(const PkString &encoded)
             ++padding;
         } else if (sawPadding) {
             return false;
+        } else {
+            finalSextet = base64Value(value);
         }
         ++significant;
     }
-    return significant > 0 && significant % 4 == 0 && padding <= 2;
+    if (significant == 0 || significant % 4 != 0 || padding > 2 ||
+        finalSextet < 0) {
+        return false;
+    }
+    return (padding != 2 || (finalSextet & 0x0f) == 0) &&
+        (padding != 1 || (finalSextet & 0x03) == 0);
 }
 
 PkString encodeBase64(const PkByteArray &data)
@@ -439,7 +461,7 @@ bool KisPaintOpPreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP res
     return true;
 }
 
-bool KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
+bool KisPaintOpPreset::serializeToXml(PkXmlDocument& doc, PkXmlElement& elt) const
 {
     if (!d->settings) {
         return false;
@@ -514,6 +536,11 @@ bool KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
     return true;
 }
 
+void KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
+{
+    (void)serializeToXml(doc, elt);
+}
+
 void KisPaintOpPreset::fromXML(const PkXmlElement& presetElt, KisResourcesInterfaceSP resourcesInterface)
 {
     setName(presetElt.attribute("name"));
@@ -581,13 +608,13 @@ bool KisPaintOpPreset::saveToDevice(PkStream* dev) const
 
     const_cast<KisPaintOpPreset*>(this)->updateLinkedResourcesMetaData();
 
-    if (!toXML(doc, root)) {
+    if (!serializeToXml(doc, root)) {
         return false;
     }
     doc.appendChild(root);
 
     const PkString preset = doc.toString();
-    if (preset.isEmpty()) {
+    if (preset.isEmpty() || preset.PkToUtf8().size() > kMaximumEncodedPresetBytes) {
         return false;
     }
     PkMap<PkString, PkString> text;
@@ -597,6 +624,10 @@ bool KisPaintOpPreset::saveToDevice(PkStream* dev) const
     const PkImage preview = image().isNull()
         ? PkImage(1, 1, PkImage::Format_RGB32) : image();
     const PkByteArray encoded = KisResourceThumbnailCodec::encodePng(preview, text);
+    if (encoded.isEmpty() ||
+        static_cast<std::size_t>(encoded.size()) > kMaximumEncodedPresetBytes) {
+        return false;
+    }
     return writeAll(dev, encoded);
 }
 

@@ -27,6 +27,7 @@ namespace fs = std::filesystem;
 
 constexpr std::size_t kMaxDecodedRgbaBytes = 256u * 1024u * 1024u;
 constexpr std::size_t kMaxDecodedTextBytes = 256u * 1024u * 1024u;
+constexpr std::size_t kMaxEncodedPngBytes = 256u * 1024u * 1024u;
 constexpr std::size_t kPlainTextLimit = 256u;
 
 struct MemoryReader {
@@ -34,6 +35,22 @@ struct MemoryReader {
     std::size_t size = 0;
     std::size_t offset = 0;
 };
+
+struct MemoryWriter {
+    std::vector<std::uint8_t> bytes;
+};
+
+struct ReadDiagnostics {
+    bool warning = false;
+};
+
+void recordReadWarning(png_structp png, png_const_charp)
+{
+    auto *diagnostics = static_cast<ReadDiagnostics *>(png_get_error_ptr(png));
+    if (diagnostics) {
+        diagnostics->warning = true;
+    }
+}
 
 void readMemory(png_structp png, png_bytep destination, png_size_t count)
 {
@@ -48,12 +65,15 @@ void readMemory(png_structp png, png_bytep destination, png_size_t count)
 
 void writeMemory(png_structp png, png_bytep source, png_size_t count)
 {
-    auto *output = static_cast<std::vector<std::uint8_t> *>(png_get_io_ptr(png));
+    auto *output = static_cast<MemoryWriter *>(png_get_io_ptr(png));
     if (!output) {
         png_error(png, "missing PNG output");
     }
+    if (count > kMaxEncodedPngBytes - output->bytes.size()) {
+        png_error(png, "encoded PNG exceeds size limit");
+    }
     try {
-        output->insert(output->end(), source, source + count);
+        output->bytes.insert(output->bytes.end(), source, source + count);
     } catch (...) {
         png_error(png, "PNG output allocation failed");
     }
@@ -77,6 +97,41 @@ bool isValidKeyword(const std::string &keyword)
         std::all_of(keyword.begin(), keyword.end(), [](unsigned char value) {
             return value >= 0x20 && value <= 0x7e;
         });
+}
+
+std::uint32_t readBigEndian32(const std::uint8_t *bytes)
+{
+    return (static_cast<std::uint32_t>(bytes[0]) << 24) |
+        (static_cast<std::uint32_t>(bytes[1]) << 16) |
+        (static_cast<std::uint32_t>(bytes[2]) << 8) |
+        static_cast<std::uint32_t>(bytes[3]);
+}
+
+bool hasValidBoundedChunks(const PkByteArray &data)
+{
+    if (data.size() < 8 ||
+        static_cast<std::size_t>(data.size()) > kMaxEncodedPngBytes) {
+        return false;
+    }
+
+    const auto *bytes = reinterpret_cast<const std::uint8_t *>(data.constData());
+    std::size_t offset = 8;
+    while (offset + 12u <= static_cast<std::size_t>(data.size())) {
+        const std::size_t length = readBigEndian32(bytes + offset);
+        const char *type = reinterpret_cast<const char *>(bytes + offset + 4u);
+        const bool textChunk = std::memcmp(type, "tEXt", 4) == 0 ||
+            std::memcmp(type, "zTXt", 4) == 0 ||
+            std::memcmp(type, "iTXt", 4) == 0;
+        if ((textChunk && length > kMaxDecodedTextBytes) ||
+            length > static_cast<std::size_t>(data.size()) - offset - 12u) {
+            return false;
+        }
+        offset += length + 12u;
+        if (std::memcmp(type, "IEND", 4) == 0) {
+            return offset == static_cast<std::size_t>(data.size());
+        }
+    }
+    return false;
 }
 
 void collectText(png_structp png,
@@ -570,11 +625,15 @@ PkImage loadPng(const PkString &path)
 bool decodePng(const PkByteArray &data, PngPayload &payload)
 {
     payload = PngPayload();
-    if (data.isEmpty()) {
+    if (data.isEmpty() || !hasValidBoundedChunks(data)) {
         return false;
     }
 
-    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    ReadDiagnostics diagnostics;
+    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING,
+                                             &diagnostics,
+                                             nullptr,
+                                             recordReadWarning);
     if (!png) {
         return false;
     }
@@ -606,6 +665,8 @@ bool decodePng(const PkByteArray &data, PngPayload &payload)
     }
 
     png_set_read_fn(png, &reader, readMemory);
+    png_set_chunk_malloc_max(
+        png, static_cast<png_alloc_size_t>(kMaxDecodedTextBytes));
     png_read_info(png, info);
 
     if (!png_get_IHDR(png, info, &width, &height, &bitDepth, &colorType,
@@ -655,6 +716,9 @@ bool decodePng(const PkByteArray &data, PngPayload &payload)
 
     collectText(png, info, decoded.text, totalTextBytes);
     collectText(png, endInfo, decoded.text, totalTextBytes);
+    if (diagnostics.warning) {
+        png_error(png, "PNG text was truncated or ignored");
+    }
     decoded.image = PkImage(static_cast<int>(width), static_cast<int>(height),
                             PkImage::Format_ARGB32);
     if (decoded.image.isNull()) {
@@ -694,14 +758,19 @@ PkByteArray encodePng(const PkImage &image,
 
     std::vector<std::string> keys;
     std::vector<std::string> values;
+    std::size_t totalTextBytes = 0;
     keys.reserve(static_cast<std::size_t>(text.size()));
     values.reserve(static_cast<std::size_t>(text.size()));
     for (auto it = text.constBegin(); it != text.constEnd(); ++it) {
         keys.push_back(it.key().PkToUtf8());
         values.push_back(it.value().PkToUtf8());
-        if (!isValidKeyword(keys.back())) {
+        if (!isValidKeyword(keys.back()) ||
+            values.back().size() > kMaxDecodedTextBytes - totalTextBytes ||
+            values.back().size() >
+                static_cast<std::size_t>(std::numeric_limits<int>::max())) {
             return PkByteArray();
         }
+        totalTextBytes += values.back().size();
     }
 
     std::vector<png_text> entries(static_cast<std::size_t>(text.size()));
@@ -728,7 +797,7 @@ PkByteArray encodePng(const PkImage &image,
         return PkByteArray();
     }
 
-    std::vector<std::uint8_t> encoded;
+    MemoryWriter encoded;
     std::vector<png_bytep> rows(static_cast<std::size_t>(image.height()));
     if (setjmp(png_jmpbuf(png))) {
         png_destroy_write_struct(&png, &info);
@@ -752,7 +821,7 @@ PkByteArray encodePng(const PkImage &image,
     png_write_image(png, rows.data());
     png_write_end(png, info);
     png_destroy_write_struct(&png, &info);
-    return PkByteArray(encoded);
+    return PkByteArray(encoded.bytes);
 }
 
 PkByteArray encodePng(const PkImage &image)

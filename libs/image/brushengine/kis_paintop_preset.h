@@ -155,7 +155,7 @@ public:
 
     void updateLinkedResourcesMetaData();
 
-    bool toXML(PkXmlDocument& doc, PkXmlElement& elt) const;
+    void toXML(PkXmlDocument& doc, PkXmlElement& elt) const;
 
     void fromXML(const PkXmlElement& elt, KisResourcesInterfaceSP resourcesInterface);
 
@@ -273,6 +273,8 @@ public:
     bool sanityCheckResourceCacheIsValid(KoResourceCacheInterfaceSP cacheInterface) const;
 
 private:
+
+    bool serializeToXml(PkXmlDocument& doc, PkXmlElement& elt) const;
 
     struct Private;
     Private * const d;

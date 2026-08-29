@@ -70,6 +70,35 @@ bool hasPngTextChunk(const PkByteArray &png,
     return false;
 }
 
+PkByteArray withOversizedTextChunkLength(const PkByteArray &png)
+{
+    std::vector<std::uint8_t> bytes(
+        reinterpret_cast<const std::uint8_t *>(png.constData()),
+        reinterpret_cast<const std::uint8_t *>(png.constData()) + png.size());
+    std::size_t offset = 8;
+    while (offset + 12 <= bytes.size()) {
+        const std::size_t length =
+            (static_cast<std::size_t>(bytes[offset]) << 24) |
+            (static_cast<std::size_t>(bytes[offset + 1]) << 16) |
+            (static_cast<std::size_t>(bytes[offset + 2]) << 8) |
+            static_cast<std::size_t>(bytes[offset + 3]);
+        if (length > bytes.size() - offset - 12) {
+            return PkByteArray();
+        }
+        if (std::memcmp(bytes.data() + offset + 4, "iTXt", 4) == 0) {
+            constexpr std::uint32_t justOverDecodedTextPolicy =
+                256u * 1024u * 1024u + 1u;
+            bytes[offset] = static_cast<std::uint8_t>(justOverDecodedTextPolicy >> 24);
+            bytes[offset + 1] = static_cast<std::uint8_t>(justOverDecodedTextPolicy >> 16);
+            bytes[offset + 2] = static_cast<std::uint8_t>(justOverDecodedTextPolicy >> 8);
+            bytes[offset + 3] = static_cast<std::uint8_t>(justOverDecodedTextPolicy);
+            return PkByteArray(bytes);
+        }
+        offset += length + 12;
+    }
+    return PkByteArray();
+}
+
 bool checkFixture(const char *name, const char *version)
 {
     const PkByteArray encoded = readFixture(name);
@@ -129,6 +158,36 @@ int main()
                         "preview pixel did not round trip");
         }
     }
+
+
+    std::string aboveLibPngDefault = u8"水彩";
+    aboveLibPngDefault.resize(8000001, 'x');
+    PkMap<PkString, PkString> largeText;
+    largeText.insert(PkString("version"), PkString("5.0"));
+    largeText.insert(
+        PkString("preset"),
+        PkString::PkFromUtf8(aboveLibPngDefault.data(),
+                             static_cast<int>(aboveLibPngDefault.size())));
+    const PkByteArray largeEncoded =
+        KisResourceThumbnailCodec::encodePng(preview, largeText);
+    ok &= check(!largeEncoded.isEmpty(),
+                "compressed iTXt above libpng's default limit did not encode");
+    KisResourceThumbnailCodec::PngPayload largeRoundTrip;
+    ok &= check(KisResourceThumbnailCodec::decodePng(largeEncoded, largeRoundTrip),
+                "compressed iTXt above libpng's default limit did not decode");
+    ok &= check(largeRoundTrip.text == largeText,
+                "compressed iTXt above libpng's default limit was lost");
+
+    const PkByteArray oversizedDeclaredChunk =
+        withOversizedTextChunkLength(largeEncoded);
+    ok &= check(!oversizedDeclaredChunk.isEmpty(),
+                "failed to construct the bounded over-policy PNG probe");
+    KisResourceThumbnailCodec::PngPayload oversizedPayload;
+    ok &= check(!KisResourceThumbnailCodec::decodePng(oversizedDeclaredChunk,
+                                                       oversizedPayload),
+                "a text chunk declared just over policy was accepted");
+    ok &= check(oversizedPayload.image.isNull() && oversizedPayload.text.isEmpty(),
+                "over-policy decode returned a partial payload");
 
     const PkImage oldApiImage = KisResourceThumbnailCodec::decodePng(encoded);
     ok &= check(oldApiImage.pixel(1, 0) == preview.pixel(1, 0),
