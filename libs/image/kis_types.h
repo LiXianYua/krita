@@ -7,8 +7,10 @@
 #define KISTYPES_H_
 
 #include <PkContainerAlgo.h>
+#include <PkList.h>
 #include <PkPointer.h>
 #include <PkPoint.h>
+#include <PkVector.h>
 
 #include "kritaimage_export.h"
 
