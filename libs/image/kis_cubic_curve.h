@@ -46,8 +46,6 @@ private:
     bool m_isCorner { false };
 };
 
-Q_DECLARE_METATYPE(KisCubicCurvePoint)
-
 /**
  * Hold the data for a cubic curve.
  */
@@ -69,7 +67,7 @@ public:
     /**
      * Deprecated. Use curvePoints instead
      */
-    Q_DECL_DEPRECATED PkList<PkPointF> points() const;
+    [[deprecated]] PkList<PkPointF> points() const;
     const PkList<KisCubicCurvePoint>& curvePoints() const;
     void setPoints(const PkList<PkPointF>& points);
     void setPoints(const PkList<KisCubicCurvePoint>& points);
@@ -112,13 +110,11 @@ public:
     const PkVector<qreal> floatTransfer(int size = 256) const;
 public:
     PkString toString() const;
-    Q_DECL_DEPRECATED void fromString(const PkString&);
+    [[deprecated]] void fromString(const PkString&);
 private:
     struct Data;
     struct Private;
     Private* const d {nullptr};
 };
-
-Q_DECLARE_METATYPE(KisCubicCurve)
 
 #endif

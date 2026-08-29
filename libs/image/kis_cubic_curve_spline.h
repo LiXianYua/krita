@@ -45,9 +45,9 @@ public:
         int i;
         int size = b.size();
 
-        Q_ASSERT(a.size() == size - 1 &&
-                 c.size() == size - 1 &&
-                 f.size() == size);
+        KIS_ASSERT(a.size() == size - 1 &&
+                   c.size() == size - 1 &&
+                   f.size() == size);
 
         x.resize(size);
 
@@ -212,10 +212,7 @@ protected:
             return m_intervals - 1;
         }
 
-        qDebug("X value: %f\n", x);
-        qDebug("m_begin: %f\n", m_begin);
-        qDebug("m_end  : %f\n", m_end);
-        Q_ASSERT_X(0, "findRegion", "X value is outside regions");
+        KIS_ASSERT_X(0, "findRegion", "X value is outside regions");
         /* **never reached** */
         return -1;
     }

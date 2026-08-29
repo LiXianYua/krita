@@ -75,7 +75,7 @@ static bool pointLessThan(const KisCubicCurvePoint &a, const KisCubicCurvePoint 
     return a.x() < b.x();
 }
 
-struct Q_DECL_HIDDEN KisCubicCurve::Data {
+struct KisCubicCurve::Data {
     Data() {
     }
     Data(const Data& data) {
@@ -153,7 +153,7 @@ void KisCubicCurve::Data::updateTransfer(PkVector<_T_>* transfer, bool& valid, _
     }
 }
 
-struct Q_DECL_HIDDEN KisCubicCurve::Private {
+struct KisCubicCurve::Private {
     PkSharedPointer<Data> data;
 };
 
