@@ -1038,7 +1038,7 @@ PkRect KisLayer::exactBounds() const
 
 KisLayerSP KisLayer::parentLayer() const
 {
-    return qobject_cast<KisLayer*>(parent().data());
+    return dynamic_cast<KisLayer*>(parent().data());
 }
 
 KisMetaData::Store* KisLayer::metaData()

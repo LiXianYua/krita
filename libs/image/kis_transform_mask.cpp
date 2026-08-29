@@ -286,7 +286,7 @@ void KisTransformMask::startAsyncRegenerationJob()
      * meanwhile. Just ignore the updates in the case.
      */
 
-    KisLayerSP parentLayer = qobject_cast<KisLayer*>(parent().data());
+    KisLayerSP parentLayer = dynamic_cast<KisLayer*>(parent().data());
     if (!parentLayer) return;
 
     KisImageSP image = parentLayer->image();
@@ -319,7 +319,7 @@ KisPaintDeviceSP KisTransformMask::buildPreviewDevice()
      * only job running.
      */
 
-    KisLayerSP parentLayer = qobject_cast<KisLayer*>(parent().data());
+    KisLayerSP parentLayer = dynamic_cast<KisLayer*>(parent().data());
     KIS_ASSERT_RECOVER(parentLayer) { return new KisPaintDevice(colorSpace()); }
 
     KisPaintDeviceSP device =
@@ -341,7 +341,7 @@ KisPaintDeviceSP KisTransformMask::buildSourcePreviewDevice()
      * only job running.
      */
 
-    KisLayerSP parentLayer = qobject_cast<KisLayer*>(parent().data());
+    KisLayerSP parentLayer = dynamic_cast<KisLayer*>(parent().data());
     KIS_ASSERT_RECOVER(parentLayer) { return new KisPaintDevice(colorSpace()); }
 
     KisPaintDeviceSP device =
@@ -384,7 +384,7 @@ void KisTransformMask::recalculateStaticImage()
      * is not entirely safe.
      */
 
-    KisLayerSP parentLayer = qobject_cast<KisLayer*>(parent().data());
+    KisLayerSP parentLayer = dynamic_cast<KisLayer*>(parent().data());
     KIS_SAFE_ASSERT_RECOVER_RETURN(parentLayer);
 
     // It might happen that the mask became invisible in the meantime
@@ -653,7 +653,7 @@ PkRect KisTransformMask::extent() const
 
     PkRect partialChangeRect;
     PkRect existentProjection;
-    KisLayerSP parentLayer = qobject_cast<KisLayer*>(parent().data());
+    KisLayerSP parentLayer = dynamic_cast<KisLayer*>(parent().data());
     if (parentLayer) {
         partialChangeRect = parentLayer->partialChangeRect(const_cast<KisTransformMask*>(this), rc);
         existentProjection = parentLayer->projection()->extent();
@@ -665,7 +665,7 @@ PkRect KisTransformMask::extent() const
 PkRect KisTransformMask::exactBounds() const
 {
     PkRect existentProjection;
-    KisLayerSP parentLayer = qobject_cast<KisLayer*>(parent().data());
+    KisLayerSP parentLayer = dynamic_cast<KisLayer*>(parent().data());
     if (parentLayer) {
         existentProjection = parentLayer->projection()->exactBounds();
 
@@ -692,7 +692,7 @@ PkRect KisTransformMask::sourceDataBounds() const
     ///       that is exactly what partialChangeRect() calculates.
 
     PkRect partialChangeRect;
-    KisLayerSP parentLayer = qobject_cast<KisLayer*>(parent().data());
+    KisLayerSP parentLayer = dynamic_cast<KisLayer*>(parent().data());
     if (parentLayer) {
         const PkRect rc = parentLayer->original()->exactBounds();
         partialChangeRect = parentLayer->partialChangeRect(const_cast<KisTransformMask*>(this), rc);

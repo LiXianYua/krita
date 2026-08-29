@@ -1937,7 +1937,7 @@ KisTIFFImport::convert(KisDocument *document,
             }
 
             // Get layer
-            KisLayer *layer = qobject_cast<KisLayer *>(node.data());
+            KisLayer *layer = dynamic_cast<KisLayer *>(node.data());
             KIS_ASSERT_RECOVER(layer)
             {
                 errFile << "Attempted to import metadata on an empty document";

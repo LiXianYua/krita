@@ -669,7 +669,7 @@ KisLayerSP mergeHelper(ContainerTest &p, KisLayerSP layer)
     //KisLayerUtils::mergeDown(p.image, layer, KisMetaData::MergeStrategyRegistry::instance()->get("Drop"));
     p.image->waitForDone();
 
-    KisLayerSP newLayer = qobject_cast<KisLayer*>(parent->at(newIndex).data());
+    KisLayerSP newLayer = dynamic_cast<KisLayer*>(parent->at(newIndex).data());
     return newLayer;
 }
 

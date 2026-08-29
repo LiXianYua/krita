@@ -19,7 +19,7 @@ KisNodeSP findNode(KisNodeSP node, const QPoint &point, bool wholeGroup, bool ed
 {
     KisNodeSP foundNode = 0;
     while (node) {
-        KisLayerSP layer = qobject_cast<KisLayer*>(node.data());
+        KisLayerSP layer = dynamic_cast<KisLayer*>(node.data());
 
         if (!layer || !layer->isEditable()) {
             node = node->prevSibling();

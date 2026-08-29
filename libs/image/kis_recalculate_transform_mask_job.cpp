@@ -43,7 +43,7 @@ void KisRecalculateTransformMaskJob::run()
     const PkRect oldMaskExtent = m_mask->extent();
     m_mask->recalculateStaticImage();
 
-    KisLayerSP layer = qobject_cast<KisLayer*>(m_mask->parent().data());
+    KisLayerSP layer = dynamic_cast<KisLayer*>(m_mask->parent().data());
 
     if (!layer) {
         warnKrita << "WARNING: KisRecalculateTransformMaskJob::run() Mask has no parent layer! Skipping projection update!";

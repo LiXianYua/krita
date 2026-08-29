@@ -53,8 +53,6 @@ class Store;
 class KRITAIMAGE_EXPORT KisLayer : public KisNode
 {
 
-    Q_OBJECT
-
 public:
 
     /**

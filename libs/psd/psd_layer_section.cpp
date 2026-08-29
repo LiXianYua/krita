@@ -551,7 +551,7 @@ KisNodeSP findOnlyTransparencyMask(KisNodeSP node, FlattenedNode::Type type)
         return 0;
     }
 
-    KisLayer *layer = qobject_cast<KisLayer *>(node.data());
+    KisLayer *layer = dynamic_cast<KisLayer *>(node.data());
     PkList<KisEffectMaskSP> masks = layer->effectMasks();
 
     if (masks.size() != 1)
@@ -563,7 +563,7 @@ KisNodeSP findOnlyTransparencyMask(KisNodeSP node, FlattenedNode::Type type)
 
 PkXmlDocument fetchLayerStyleXmlData(KisNodeSP node)
 {
-    const KisLayer *layer = qobject_cast<KisLayer *>(node.data());
+    const KisLayer *layer = dynamic_cast<KisLayer *>(node.data());
     KisPSDLayerStyleSP layerStyle = layer->layerStyle();
 
     if (!layerStyle)

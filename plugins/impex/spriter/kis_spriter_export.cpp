@@ -475,7 +475,7 @@ KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, QIODev
 
     KisGroupLayerSP root = m_image->rootLayer();
 
-    m_boneLayer = qobject_cast<KisLayer*>(KisLayerUtils::findNodeByName(root,"bone").data());
+    m_boneLayer = dynamic_cast<KisLayer*>(KisLayerUtils::findNodeByName(root,"bone").data());
     //qDebug() << "Found boneLayer" << m_boneLayer;
 
     m_rootLayer= qobject_cast<KisGroupLayer*>(KisLayerUtils::findNodeByName(root,"root").data());

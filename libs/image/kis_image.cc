@@ -994,7 +994,7 @@ void KisImage::purgeUnusedData(bool isCancellable)
 
 void KisImage::cropNode(KisNodeSP node, const PkRect& newRect, const bool activeFrameOnly)
 {
-    const bool isLayer = qobject_cast<KisLayer*>(node.data());
+    const bool isLayer = dynamic_cast<KisLayer*>(node.data());
     KUndo2MagicString actionName = isLayer ?
         kundo2_text("Crop Layer") :
         kundo2_text("Crop Mask");

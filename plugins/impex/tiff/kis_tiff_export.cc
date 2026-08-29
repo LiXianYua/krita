@@ -223,7 +223,7 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, QIODevice
             QBuffer ioDevice;
 
             // Get layer
-            KisLayer *layer = qobject_cast<KisLayer *>(node.data());
+            KisLayer *layer = dynamic_cast<KisLayer *>(node.data());
             Q_ASSERT(layer);
 
             // Inject the data as any other IOBackend

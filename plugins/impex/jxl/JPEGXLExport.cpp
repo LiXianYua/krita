@@ -780,7 +780,7 @@ KisImportExportErrorCode JPEGXLExport::convert(KisDocument *document, QIODevice 
             if (cfgMultiLayer || cfgMultiPage) {
                 for (quint32 pos = 0; pos < image->root()->childCount(); pos++) {
                     KisNodeSP node = image->root()->at(pos);
-                    KisLayer *layer = qobject_cast<KisLayer *>(node.data());
+                    KisLayer *layer = dynamic_cast<KisLayer *>(node.data());
                     if (layer && (layer->inherits("KisGroupLayer") || layer->childCount() > 0 || layer->layerStyle())
                         && layer->visible()) {
                         dbgFile << "Flattening layer" << node->name();

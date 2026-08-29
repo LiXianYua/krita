@@ -324,7 +324,7 @@ KisSelectionSP KisResourcesSnapshot::activeSelection() const
 
     KisLayerSP layer;
     KisSelectionMaskSP mask;
-    if((layer = qobject_cast<KisLayer*>(m_d->currentNode.data()))) {
+    if((layer = dynamic_cast<KisLayer*>(m_d->currentNode.data()))) {
          selection = layer->selection();
     } else if ((mask = dynamic_cast<KisSelectionMask*>(m_d->currentNode.data())) &&
                mask->selection() == selection) {
