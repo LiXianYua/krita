@@ -17,6 +17,7 @@ private Q_SLOTS:
     void testLoadingEmbeddedResources();
 
     void testConflictingEmbeddedPatterns();
+    void testSaveLoadRoundTrip();
 };
 
 #endif // KISPAINTOPPRESETTEST_H

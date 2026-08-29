@@ -6,29 +6,6 @@
  */
 #include <brushengine/kis_paintop_preset.h>
 
-// ===========================================================================
-// [GAP] kis_paintop_preset.cpp 阻塞登记（S-06 Task 4）
-//
-// 本文件不进薄壳，仅剥可机械映射类型；下列阻塞点保留 Qt 原样并标注 [GAP]：
-//   * PNG 编解码 QImageReader / QImageWriter / QImage —— 依赖 S-03-e
-//     （pk/image PNG codec，未交付）
-//   * base64 内存缓冲：PkByteArray 已有（pk/variant/PkAuxTypes.h）但无
-//     fromBase64 / toBase64，且无 PkBuffer 等价物 —— loadFromDevice 的嵌入
-//     资源解码、toXML 的导出都压在它上面
-//   * 正则 QRegularExpression —— 无对应 Pk 模块
-//   * PkString::replace 未实现（name() 的空格归一、loadFromDevice 的 CDATA
-//     清理都压在它上面）
-//   * settings->fromXML(...) 依赖 kis_properties_configuration 的 Qt 兼容层
-//     （本文件进薄壳时由 compat 宏把 QDomElement→PkXmlElement 对上）
-// 关闭条件：上述依赖交付后，把 [GAP] 处换成 Pk 等价物，并将本文件加入薄壳
-// SHELL_SOURCES。当前状态：签名已与剥离后的头文件对齐，可机械映射类型已转 Pk，
-// 其余留 Qt + [GAP] 标记，不参与薄壳构建。
-// ===========================================================================
-#include <QImage>
-#include <QImageWriter>
-#include <QImageReader>
-#include <QBuffer>
-
 #include <PkString.h>
 #include <PkStringList.h>
 #include <PkList.h>
@@ -38,6 +15,18 @@
 #include <PkXmlElement.h>
 #include <PkXmlCDATASection.h>
 #include <PkStream.h>
+#include <PkMemoryStream.h>
+
+#include <KisResourceThumbnailCodec.h>
+#include <asl/kis_asl_byte_utils.h>
+
+#include <algorithm>
+#include <cctype>
+#include <cstdint>
+#include <cstring>
+#include <limits>
+#include <string>
+#include <vector>
 
 #include <KisDirtyStateSaver.h>
 
@@ -62,7 +51,176 @@
 
 #include <KoStore.h>
 
-struct Q_DECL_HIDDEN KisPaintOpPreset::Private {
+namespace {
+
+constexpr std::size_t kMaximumEncodedPresetBytes = 256u * 1024u * 1024u;
+
+bool readStream(PkStream *stream, PkByteArray &result)
+{
+    result = PkByteArray();
+    if (!stream || !stream->isReadable()) {
+        return false;
+    }
+
+    std::vector<std::uint8_t> bytes;
+    char chunk[64 * 1024];
+    while (true) {
+        const PkStream::pk_int64 count = stream->read(chunk, sizeof(chunk));
+        if (count < 0) {
+            return false;
+        }
+        if (count == 0) {
+            break;
+        }
+        if (static_cast<std::size_t>(count) >
+            kMaximumEncodedPresetBytes - bytes.size()) {
+            return false;
+        }
+        bytes.insert(bytes.end(), chunk, chunk + count);
+    }
+    if (bytes.empty() || bytes.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return false;
+    }
+    result = PkByteArray(bytes);
+    return true;
+}
+
+bool writeAll(PkStream *stream, const PkByteArray &data)
+{
+    if (!stream || !stream->isWritable() || data.isEmpty()) {
+        return false;
+    }
+    PkStream::pk_int64 offset = 0;
+    while (offset < data.size()) {
+        const PkStream::pk_int64 count =
+            stream->write(data.constData() + offset, data.size() - offset);
+        if (count <= 0) {
+            return false;
+        }
+        offset += count;
+    }
+    return true;
+}
+
+void replaceAll(std::string &text, const std::string &before, const std::string &after)
+{
+    if (before.empty()) {
+        return;
+    }
+    std::size_t offset = 0;
+    while ((offset = text.find(before, offset)) != std::string::npos) {
+        text.replace(offset, before.size(), after);
+        offset += after.size();
+    }
+}
+
+PkString replaceUtf8(const PkString &text, const std::string &before, const std::string &after)
+{
+    std::string utf8 = text.PkToUtf8();
+    replaceAll(utf8, before, after);
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
+bool isBase64Character(unsigned char value)
+{
+    return (value >= 'A' && value <= 'Z') ||
+        (value >= 'a' && value <= 'z') ||
+        (value >= '0' && value <= '9') || value == '+' || value == '/' || value == '=';
+}
+
+void removeInvalidPatternMd5(std::string &xml)
+{
+    constexpr const char *parameterName = "name=\"Texture/Pattern/PatternMD5\"";
+    constexpr const char *cdataStartText = "<![CDATA[";
+    constexpr const char *cdataEndText = "]]>";
+    constexpr const char *elementEndText = "</param>";
+
+    std::size_t offset = 0;
+    while ((offset = xml.find("<param", offset)) != std::string::npos) {
+        const std::size_t openingEnd = xml.find('>', offset);
+        if (openingEnd == std::string::npos) {
+            return;
+        }
+        const std::string opening = xml.substr(offset, openingEnd - offset + 1);
+        if (opening.find(parameterName) == std::string::npos) {
+            offset = openingEnd + 1;
+            continue;
+        }
+
+        const std::size_t elementEnd = xml.find(elementEndText, openingEnd + 1);
+        const std::size_t cdataStart = xml.find(cdataStartText, openingEnd + 1);
+        if (elementEnd == std::string::npos || cdataStart == std::string::npos ||
+            cdataStart >= elementEnd) {
+            offset = openingEnd + 1;
+            continue;
+        }
+        const std::size_t valueStart = cdataStart + std::strlen(cdataStartText);
+        const std::size_t cdataEnd = xml.find(cdataEndText, valueStart);
+        if (cdataEnd == std::string::npos || cdataEnd > elementEnd) {
+            offset = openingEnd + 1;
+            continue;
+        }
+        const bool invalid = std::any_of(xml.begin() + valueStart, xml.begin() + cdataEnd,
+                                         [](unsigned char value) {
+                                             return !isBase64Character(value);
+                                         });
+        if (invalid) {
+            xml.erase(offset, elementEnd + std::strlen(elementEndText) - offset);
+        } else {
+            offset = elementEnd + std::strlen(elementEndText);
+        }
+    }
+}
+
+bool isValidBase64(const PkString &encoded)
+{
+    const std::string text = encoded.PkToUtf8();
+    std::size_t significant = 0;
+    std::size_t padding = 0;
+    bool sawPadding = false;
+    for (unsigned char value : text) {
+        if (std::isspace(value)) {
+            continue;
+        }
+        if (!isBase64Character(value)) {
+            return false;
+        }
+        if (value == '=') {
+            sawPadding = true;
+            ++padding;
+        } else if (sawPadding) {
+            return false;
+        }
+        ++significant;
+    }
+    return significant > 0 && significant % 4 == 0 && padding <= 2;
+}
+
+PkString encodeBase64(const PkByteArray &data)
+{
+    if (data.isEmpty() || data.size() > std::numeric_limits<int>::max() - 2) {
+        return PkString();
+    }
+
+    const int remainder = data.size() % 3;
+    if (remainder == 0) {
+        return pkToBase64(data);
+    }
+
+    PkByteArray padded = data;
+    const int padding = 3 - remainder;
+    padded.resize(data.size() + padding);
+    std::string encoded = pkToBase64(padded).PkToUtf8();
+    if (encoded.size() < static_cast<std::size_t>(padding)) {
+        return PkString();
+    }
+    std::fill(encoded.end() - padding, encoded.end(), '=');
+    return PkString::PkFromUtf8(encoded.data(), static_cast<int>(encoded.size()));
+}
+
+} // namespace
+
+struct KisPaintOpPreset::Private {
 
     struct UpdateListener : public KisPaintOpSettings::UpdateListener {
         UpdateListener(KisPaintOpPreset *parentPreset)
@@ -114,8 +272,7 @@ KisPaintOpPreset::KisPaintOpPreset(const PkString & fileName)
     : KoResource(fileName)
     , d(new Private(this))
 {
-    // [GAP] PkString::replace 未实现
-    setName(name().replace("_", " "));
+    setName(replaceUtf8(name(), "_", " "));
 }
 
 KisPaintOpPreset::~KisPaintOpPreset()
@@ -157,8 +314,7 @@ KoID KisPaintOpPreset::paintOp() const
 
 PkString KisPaintOpPreset::name() const
 {
-    // [GAP] PkString::replace 未实现
-    return KoResource::name().replace("_", " ");
+    return replaceUtf8(KoResource::name(), "_", " ");
 }
 
 void KisPaintOpPreset::setSettings(KisPaintOpSettingsSP settings)
@@ -195,40 +351,44 @@ KisPaintOpSettingsSP KisPaintOpPreset::settings() const
 
 bool KisPaintOpPreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
-    // [GAP] PNG 解码（QImageReader / QImage）+ preset 字符串提取 —— 依赖 S-03-e
-    QImageReader reader(dev, "PNG");
-
-    d->version = reader.text("version");
-    QString preset = reader.text("preset");
-
-    if (!(d->version == "2.2" || d->version == "5.0")) {
+    if (!resourcesInterface) {
         return false;
     }
 
-    QImage img;
-    if (!reader.read(&img)) {
+    PkByteArray encoded;
+    if (!readStream(dev, encoded)) {
+        return false;
+    }
+    KisResourceThumbnailCodec::PngPayload payload;
+    if (!KisResourceThumbnailCodec::decodePng(encoded, payload) || payload.image.isNull()) {
         dbgImage << "Fail to decode PNG";
         return false;
     }
 
-    // [GAP] preset 字符串清洗：PkString::replace 未实现 + QRegularExpression
-    //       无对应 Pk 模块
-    //Workaround for broken presets
-    //Presets was saved with nested cdata section
-    preset.replace("<curve><![CDATA[", "<curve>");
-    preset.replace("]]></curve>", "</curve>");
-    //Presets with non-base64 pattern md5
-    QRegularExpressionMatch patternMd5 = QRegularExpression("<param (?:type=\"string\" )?name=\"Texture/Pattern/PatternMD5\"(?: type=\"string\")?><!\\[CDATA\\[(.+?)\\]\\]></param>").match(preset);
-    if (patternMd5.hasMatch() && patternMd5.captured(1).contains(QRegularExpression("[^a-zA-Z0-9+/=]"))) {
-        preset.replace(patternMd5.captured(0), "");
+    d->version = payload.text.value(PkString("version"));
+    PkString preset = payload.text.value(PkString("preset"));
+
+    if (!(d->version == "2.2" || d->version == "5.0") || preset.isEmpty()) {
+        return false;
     }
 
+    std::string presetXml = preset.PkToUtf8();
+    replaceAll(presetXml, "<curve><![CDATA[", "<curve>");
+    replaceAll(presetXml, "]]></curve>", "</curve>");
+    removeInvalidPatternMd5(presetXml);
+    preset = PkString::PkFromUtf8(presetXml.data(), static_cast<int>(presetXml.size()));
+
     PkXmlDocument doc;
-    if (!doc.setContent(preset)) {   // preset 仍为 QString（[GAP]），关闭后换 PkString
+    if (!doc.setContent(preset)) {
         return false;
     }
 
     PkXmlElement root = doc.documentElement();
+    if (root.isNull()) {
+        return false;
+    }
+
+    PkList<KoResourceLoadResult> sideLoadedResources;
 
     if (d->version == "5.0") {
         // Load any embedded resources
@@ -248,48 +408,42 @@ bool KisPaintOpPreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP res
                     continue;
                 }
 
-                // [GAP] base64 内存缓冲：PkByteArray 无 fromBase64、无 PkBuffer 等价物
-                QByteArray ba = QByteArray::fromBase64(e.text().toLatin1());
-                QBuffer buf(&ba);
-                buf.open(QBuffer::ReadOnly);
-
-                d->sideLoadedResources.append(
-                            KoEmbeddedResource(
-                                KoResourceSignature(resourceType, md5sum, filename, name),
-                                ba));
+                const PkString base64 = e.text();
+                if (!isValidBase64(base64)) {
+                    return false;
+                }
+                const PkByteArray data = pkFromBase64(base64);
+                if (data.isEmpty()) {
+                    return false;
+                }
+                sideLoadedResources.append(
+                    KoEmbeddedResource(
+                        KoResourceSignature(resourceType, md5sum, filename, name), data));
             }
         }
     }
 
     fromXML(root, resourcesInterface);
 
-    if (!d->settings) {
+    if (!d->settings || !valid() || !d->settings->isValid()) {
+        setValid(false);
         return false;
     }
 
-    setValid(d->settings->isValid());
-
-    // [GAP] 图片去元数据：QImage 纹理剥离 —— 依赖 S-03-e
-    if (!img.textKeys().isEmpty()) {
-        QImage strippedImage(img.size(), img.format());
-        memcpy(strippedImage.bits(), img.bits(), img.sizeInBytes());
-
-        if (img.format() == QImage::Format_Indexed8) {
-            strippedImage.setColorTable(img.colorTable());
-        }
-
-        setImage(strippedImage);
-    } else {
-        setImage(img);
-    }
+    d->sideLoadedResources = sideLoadedResources;
+    setValid(true);
+    setImage(payload.image);
 
     updateLinkedResourcesMetaData();
 
     return true;
 }
 
-void KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
+bool KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
 {
+    if (!d->settings) {
+        return false;
+    }
     PkString paintopid = d->settings->getString("paintop", PkString());
 
     elt.setAttribute("paintopid", paintopid);
@@ -304,41 +458,45 @@ void KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
         PkXmlElement resourcesElement = doc.createElement("resources");
         elt.appendChild(resourcesElement);
         for (const KoResourceLoadResult &linkedResource : linkedResources) {
-            // we have requested linked resources, how can it be an embedded one?
-            KIS_SAFE_ASSERT_RECOVER(linkedResource.type() != KoResourceLoadResult::EmbeddedResource) { continue; }
+            if (linkedResource.type() == KoResourceLoadResult::EmbeddedResource) {
+                warnKrita << "KisPaintOpPreset::toXML got an unexpected embedded resource";
+                return false;
+            }
 
             KoResourceSP resource = linkedResource.resource();
 
             if (!resource) {
-                qWarning() << "WARNING: KisPaintOpPreset::toXML couldn't fetch a linked resource" << linkedResource.signature();
-                continue;
+                warnKrita << "KisPaintOpPreset::toXML couldn't fetch a linked resource";
+                return false;
             }
 
-            //KIS_SAFE_ASSERT_RECOVER_NOOP(resource->isSerializable() && "embedding non-serializable resources is not yet implemented");
             if (!resource->isSerializable()) {
-                qWarning() << "embedding non-serializable resources is not yet implemented. Resource: " << filename() << name()
-                           << "cannot embed" << resource->filename() << resource->name() << resource->resourceType().first << resource->resourceType().second;
-                continue;
+                warnKrita << "KisPaintOpPreset::toXML cannot embed a non-serializable resource";
+                return false;
             }
 
-            // [GAP] base64 导出：QBuffer + PkByteArray::toBase64 + QString::fromLatin1
-            //       未实现（PkByteArray 无 toBase64、无 PkBuffer 等价物）
-            QBuffer buf;
-            buf.open(QBuffer::WriteOnly);
+            PkMemoryStream buffer;
+            if (!buffer.open(PkStream::WriteOnly)) {
+                return false;
+            }
             KisResourceModel model(resource->resourceType().first);
-            bool r = model.exportResource(resource, &buf);
-            buf.close();
-            if (r) {
-                PkXmlCDATASection text = doc.createCDATASection(QString::fromLatin1(buf.data().toBase64()));
-                PkXmlElement e = doc.createElement("resource");
-                e.setAttribute("type", resource->resourceType().first);
-                e.setAttribute("md5sum", resource->md5Sum());
-                e.setAttribute("name", resource->name());
-                e.setAttribute("filename", resource->filename());
-                e.appendChild(text);
-                resourcesElement.appendChild(e);
-
+            if (!model.exportResource(resource, &buffer) || buffer.size() <= 0 ||
+                buffer.size() > std::numeric_limits<int>::max()) {
+                return false;
             }
+            const PkByteArray data(buffer.data(), static_cast<int>(buffer.size()));
+            const PkString encoded = encodeBase64(data);
+            if (encoded.isEmpty() || pkFromBase64(encoded) != data) {
+                return false;
+            }
+            PkXmlCDATASection text = doc.createCDATASection(encoded);
+            PkXmlElement e = doc.createElement("resource");
+            e.setAttribute("type", resource->resourceType().first);
+            e.setAttribute("md5sum", resource->md5Sum());
+            e.setAttribute("name", resource->name());
+            e.setAttribute("filename", resource->filename());
+            e.appendChild(text);
+            resourcesElement.appendChild(e);
         }
     }
 
@@ -353,6 +511,7 @@ void KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
     }
 
     d->settings->toXML(doc, elt);
+    return true;
 }
 
 void KisPaintOpPreset::fromXML(const PkXmlElement& presetElt, KisResourcesInterfaceSP resourcesInterface)
@@ -371,7 +530,6 @@ void KisPaintOpPreset::fromXML(const PkXmlElement& presetElt, KisResourcesInterf
     }
 
     if (KisPaintOpRegistry::instance()->get(paintopid) == 0) {
-        // [GAP] QDebug<<PkString 流运算符缺失
         dbgImage << "No paintop " << paintopid;
         setValid(false);
         return;
@@ -382,13 +540,10 @@ void KisPaintOpPreset::fromXML(const PkXmlElement& presetElt, KisResourcesInterf
     KisPaintOpSettingsSP settings = KisPaintOpRegistry::instance()->createSettings(id, resourcesInterface);
     if (!settings) {
         setValid(false);
-        // [GAP] QDebug<<PkString 流运算符缺失
         warnKrita << "Could not load settings for preset" << paintopid;
         return;
     }
 
-    // settings->fromXML(...) 依赖 kis_properties_configuration 的兼容层
-    //（进薄壳时 compat 宏把 QDomElement→PkXmlElement 对上；见文件头 [GAP] 登记）
     settings->fromXML(presetElt);
 
     // sanitize the settings
@@ -406,15 +561,8 @@ void KisPaintOpPreset::fromXML(const PkXmlElement& presetElt, KisResourcesInterf
 
 bool KisPaintOpPreset::saveToDevice(PkStream* dev) const
 {
-    // [GAP] PNG 编码 QImageWriter —— 依赖 S-03-e
-    QImageWriter writer(dev, "PNG");
-
     PkXmlDocument doc;
     PkXmlElement root = doc.createElement("Preset");
-
-    toXML(doc, root);
-
-    doc.appendChild(root);
 
     /**
      * HACK ALERT: We update the version of the resource format on
@@ -433,19 +581,23 @@ bool KisPaintOpPreset::saveToDevice(PkStream* dev) const
 
     const_cast<KisPaintOpPreset*>(this)->updateLinkedResourcesMetaData();
 
-    writer.setText("version", d->version);
-    writer.setText("preset", doc.toString());
-
-    // [GAP] QImage 纹理 —— 依赖 S-03-e
-    QImage img;
-
-    if (image().isNull()) {
-        img = QImage(1, 1, QImage::Format_RGB32);
-    } else {
-        img = image();
+    if (!toXML(doc, root)) {
+        return false;
     }
+    doc.appendChild(root);
 
-    return writer.write(img);
+    const PkString preset = doc.toString();
+    if (preset.isEmpty()) {
+        return false;
+    }
+    PkMap<PkString, PkString> text;
+    text.insert(PkString("version"), d->version);
+    text.insert(PkString("preset"), preset);
+
+    const PkImage preview = image().isNull()
+        ? PkImage(1, 1, PkImage::Format_RGB32) : image();
+    const PkByteArray encoded = KisResourceThumbnailCodec::encodePng(preview, text);
+    return writeAll(dev, encoded);
 }
 
 void KisPaintOpPreset::updateLinkedResourcesMetaData()
@@ -585,7 +737,7 @@ PkList<KoResourceLoadResult> KisPaintOpPreset::linkedResources(KisResourcesInter
 
     KisPaintOpFactory* f = KisPaintOpRegistry::instance()->value(paintOp().id());
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(f, resources);
-    resources << f->prepareLinkedResources(d->settings, globalResourcesInterface).toVector();
+    resources << f->prepareLinkedResources(d->settings, globalResourcesInterface);
 
     if (hasMaskingPreset()) {
         KisPaintOpPresetSP maskingPreset = createMaskingPreset();
@@ -593,7 +745,7 @@ PkList<KoResourceLoadResult> KisPaintOpPreset::linkedResources(KisResourcesInter
 
         KisPaintOpFactory* f = KisPaintOpRegistry::instance()->value(maskingPreset->paintOp().id());
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(f, resources);
-        resources << f->prepareLinkedResources(maskingPreset->settings(), globalResourcesInterface).toVector();
+        resources << f->prepareLinkedResources(maskingPreset->settings(), globalResourcesInterface);
 
     }
 
@@ -608,14 +760,14 @@ PkList<KoResourceLoadResult> KisPaintOpPreset::embeddedResources(KisResourcesInt
 
     KisPaintOpFactory* f = KisPaintOpRegistry::instance()->value(paintOp().id());
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(f, resources);
-    resources << f->prepareEmbeddedResources(d->settings, globalResourcesInterface).toVector();
+    resources << f->prepareEmbeddedResources(d->settings, globalResourcesInterface);
 
     if (hasMaskingPreset()) {
         KisPaintOpPresetSP maskingPreset = createMaskingPreset();
         Q_ASSERT(maskingPreset);
         KisPaintOpFactory* f = KisPaintOpRegistry::instance()->value(maskingPreset->paintOp().id());
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(f, resources);
-        resources << f->prepareEmbeddedResources(maskingPreset->settings(), globalResourcesInterface).toVector();
+        resources << f->prepareEmbeddedResources(maskingPreset->settings(), globalResourcesInterface);
 
     }
 

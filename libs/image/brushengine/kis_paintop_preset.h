@@ -155,7 +155,7 @@ public:
 
     void updateLinkedResourcesMetaData();
 
-    void toXML(PkXmlDocument& doc, PkXmlElement& elt) const;
+    bool toXML(PkXmlDocument& doc, PkXmlElement& elt) const;
 
     void fromXML(const PkXmlElement& elt, KisResourcesInterfaceSP resourcesInterface);
 

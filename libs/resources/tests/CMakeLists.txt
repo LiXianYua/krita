@@ -17,3 +17,12 @@ kis_add_tests(
     TestTagResourceModel.cpp
     LINK_LIBRARIES kritaglobal kritapigment kritaplugin kritaresources kritaversion kritatestsdk pksql pkconfig
     )
+
+add_executable(KisResourceThumbnailCodecTest
+    KisResourceThumbnailCodecTest.cpp)
+target_link_libraries(KisResourceThumbnailCodecTest
+    kritaresources pkport pkvariant pkimage)
+target_compile_definitions(KisResourceThumbnailCodecTest PRIVATE
+    PAINTOP_PRESET_DATA_DIR="${CMAKE_SOURCE_DIR}/libs/image/tests/data")
+add_test(NAME libs-resources-KisResourceThumbnailCodecTest
+    COMMAND KisResourceThumbnailCodecTest)

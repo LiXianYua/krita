@@ -26,6 +26,89 @@ namespace {
 namespace fs = std::filesystem;
 
 constexpr std::size_t kMaxDecodedRgbaBytes = 256u * 1024u * 1024u;
+constexpr std::size_t kMaxDecodedTextBytes = 256u * 1024u * 1024u;
+constexpr std::size_t kPlainTextLimit = 256u;
+
+struct MemoryReader {
+    const png_byte *data = nullptr;
+    std::size_t size = 0;
+    std::size_t offset = 0;
+};
+
+void readMemory(png_structp png, png_bytep destination, png_size_t count)
+{
+    auto *reader = static_cast<MemoryReader *>(png_get_io_ptr(png));
+    if (!reader || reader->offset > reader->size ||
+        count > reader->size - reader->offset) {
+        png_error(png, "truncated PNG input");
+    }
+    std::memcpy(destination, reader->data + reader->offset, count);
+    reader->offset += count;
+}
+
+void writeMemory(png_structp png, png_bytep source, png_size_t count)
+{
+    auto *output = static_cast<std::vector<std::uint8_t> *>(png_get_io_ptr(png));
+    if (!output) {
+        png_error(png, "missing PNG output");
+    }
+    try {
+        output->insert(output->end(), source, source + count);
+    } catch (...) {
+        png_error(png, "PNG output allocation failed");
+    }
+}
+
+void flushMemory(png_structp)
+{
+}
+
+bool isPlainAscii(const std::string &text)
+{
+    return text.size() <= kPlainTextLimit &&
+        std::all_of(text.begin(), text.end(), [](unsigned char value) {
+            return value >= 0x20 && value <= 0x7e;
+        });
+}
+
+bool isValidKeyword(const std::string &keyword)
+{
+    return !keyword.empty() && keyword.size() <= 79 &&
+        std::all_of(keyword.begin(), keyword.end(), [](unsigned char value) {
+            return value >= 0x20 && value <= 0x7e;
+        });
+}
+
+void collectText(png_structp png,
+                 png_infop info,
+                 PkMap<PkString, PkString> &result,
+                 std::size_t &totalTextBytes)
+{
+    png_textp entries = nullptr;
+    int count = 0;
+    if (png_get_text(png, info, &entries, &count) <= 0) {
+        return;
+    }
+    for (int i = 0; i < count; ++i) {
+        if (!entries[i].key || !entries[i].text) {
+            continue;
+        }
+        const bool internationalText =
+            entries[i].compression == PNG_ITXT_COMPRESSION_NONE ||
+            entries[i].compression == PNG_ITXT_COMPRESSION_zTXt;
+        const std::size_t valueSize = internationalText
+            ? entries[i].itxt_length : entries[i].text_length;
+        if (valueSize > kMaxDecodedTextBytes - totalTextBytes ||
+            valueSize > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+            png_error(png, "decoded PNG text exceeds size limit");
+        }
+        totalTextBytes += valueSize;
+        result.insert(PkString::PkFromUtf8(entries[i].key,
+                                           static_cast<int>(std::strlen(entries[i].key))),
+                      PkString::PkFromUtf8(entries[i].text,
+                                           static_cast<int>(valueSize)));
+    }
+}
 
 struct RgbaPixel {
     png_byte red = 0;
@@ -484,78 +567,197 @@ PkImage loadPng(const PkString &path)
     return image;
 }
 
-PkImage decodePng(const PkByteArray &data)
+bool decodePng(const PkByteArray &data, PngPayload &payload)
 {
+    payload = PngPayload();
     if (data.isEmpty()) {
-        return PkImage();
+        return false;
     }
 
-    png_image pngImage{};
-    pngImage.version = PNG_IMAGE_VERSION;
-    if (!png_image_begin_read_from_memory(&pngImage,
-                                          data.constData(),
-                                          static_cast<std::size_t>(data.size()))) {
-        png_image_free(&pngImage);
-        return PkImage();
+    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    if (!png) {
+        return false;
     }
+    png_infop info = png_create_info_struct(png);
+    png_infop endInfo = png_create_info_struct(png);
+    if (!info || !endInfo) {
+        png_destroy_read_struct(&png, info ? &info : nullptr, endInfo ? &endInfo : nullptr);
+        return false;
+    }
+
+    MemoryReader reader{
+        reinterpret_cast<const png_byte *>(data.constData()),
+        static_cast<std::size_t>(data.size()), 0};
+    png_uint_32 width = 0;
+    png_uint_32 height = 0;
+    int bitDepth = 0;
+    int colorType = 0;
+    png_image sizeImage{};
     std::size_t byteCount = 0;
-    if (!decodedRgbaSize(pngImage, byteCount)) {
-        png_image_free(&pngImage);
-        return PkImage();
+    std::vector<png_byte> pixels;
+    std::vector<png_bytep> rows;
+    PngPayload decoded;
+    std::size_t totalTextBytes = 0;
+
+    if (setjmp(png_jmpbuf(png))) {
+        png_destroy_read_struct(&png, &info, &endInfo);
+        payload = PngPayload();
+        return false;
     }
 
-    pngImage.format = PNG_FORMAT_RGBA;
-    std::vector<png_byte> pixels(byteCount);
-    if (!png_image_finish_read(&pngImage, nullptr, pixels.data(), 0, nullptr)) {
-        png_image_free(&pngImage);
-        return PkImage();
+    png_set_read_fn(png, &reader, readMemory);
+    png_read_info(png, info);
+
+    if (!png_get_IHDR(png, info, &width, &height, &bitDepth, &colorType,
+                      nullptr, nullptr, nullptr)) {
+        png_error(png, "missing PNG header");
     }
 
-    PkImage image(static_cast<int>(pngImage.width),
-                  static_cast<int>(pngImage.height),
-                  PkImage::Format_ARGB32);
-    for (png_uint_32 y = 0; y < pngImage.height; ++y) {
-        for (png_uint_32 x = 0; x < pngImage.width; ++x) {
+    sizeImage.width = width;
+    sizeImage.height = height;
+    if (!decodedRgbaSize(sizeImage, byteCount)) {
+        png_error(png, "decoded PNG exceeds size limit");
+    }
+
+    if (bitDepth == 16) {
+        png_set_strip_16(png);
+    }
+    if (colorType == PNG_COLOR_TYPE_PALETTE) {
+        png_set_palette_to_rgb(png);
+    }
+    if (colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8) {
+        png_set_expand_gray_1_2_4_to_8(png);
+    }
+    const bool hasTransparency = png_get_valid(png, info, PNG_INFO_tRNS) != 0;
+    if (hasTransparency) {
+        png_set_tRNS_to_alpha(png);
+    }
+    if (colorType == PNG_COLOR_TYPE_GRAY || colorType == PNG_COLOR_TYPE_GRAY_ALPHA) {
+        png_set_gray_to_rgb(png);
+    }
+    if (!(colorType & PNG_COLOR_MASK_ALPHA) && !hasTransparency) {
+        png_set_add_alpha(png, 0xff, PNG_FILLER_AFTER);
+    }
+    png_read_update_info(png, info);
+    if (png_get_bit_depth(png, info) != 8 || png_get_channels(png, info) != 4 ||
+        png_get_rowbytes(png, info) != static_cast<png_size_t>(width) * 4u) {
+        png_error(png, "unsupported normalized PNG layout");
+    }
+
+    pixels.resize(byteCount);
+    rows.resize(static_cast<std::size_t>(height));
+    for (png_uint_32 y = 0; y < height; ++y) {
+        rows[static_cast<std::size_t>(y)] =
+            pixels.data() + static_cast<std::size_t>(y) * width * 4u;
+    }
+    png_read_image(png, rows.data());
+    png_read_end(png, endInfo);
+
+    collectText(png, info, decoded.text, totalTextBytes);
+    collectText(png, endInfo, decoded.text, totalTextBytes);
+    decoded.image = PkImage(static_cast<int>(width), static_cast<int>(height),
+                            PkImage::Format_ARGB32);
+    if (decoded.image.isNull()) {
+        png_destroy_read_struct(&png, &info, &endInfo);
+        return false;
+    }
+    for (png_uint_32 y = 0; y < height; ++y) {
+        for (png_uint_32 x = 0; x < width; ++x) {
             const std::size_t offset =
-                (static_cast<std::size_t>(y) * pngImage.width + x) * 4u;
-            image.setPixel(static_cast<int>(x), static_cast<int>(y),
-                           (static_cast<uint32_t>(pixels[offset + 3]) << 24) |
-                           (static_cast<uint32_t>(pixels[offset]) << 16) |
-                           (static_cast<uint32_t>(pixels[offset + 1]) << 8) |
-                           pixels[offset + 2]);
+                (static_cast<std::size_t>(y) * width + x) * 4u;
+            decoded.image.setPixel(
+                static_cast<int>(x), static_cast<int>(y),
+                (static_cast<uint32_t>(pixels[offset + 3]) << 24) |
+                (static_cast<uint32_t>(pixels[offset]) << 16) |
+                (static_cast<uint32_t>(pixels[offset + 1]) << 8) |
+                pixels[offset + 2]);
         }
     }
-    png_image_free(&pngImage);
-    return image;
+    png_destroy_read_struct(&png, &info, &endInfo);
+    payload = std::move(decoded);
+    return true;
 }
 
-PkByteArray encodePng(const PkImage &image)
+PkImage decodePng(const PkByteArray &data)
+{
+    PngPayload payload;
+    return decodePng(data, payload) ? payload.image : PkImage();
+}
+
+PkByteArray encodePng(const PkImage &image,
+                      const PkMap<PkString, PkString> &text)
 {
     std::vector<png_byte> pixels;
     if (!convertToRgba(image, pixels)) {
         return PkByteArray();
     }
 
-    png_image pngImage{};
-    pngImage.version = PNG_IMAGE_VERSION;
-    pngImage.width = static_cast<png_uint_32>(image.width());
-    pngImage.height = static_cast<png_uint_32>(image.height());
-    pngImage.format = PNG_FORMAT_RGBA;
-    png_alloc_size_t byteCount = 0;
-    if (!png_image_write_to_memory(&pngImage, nullptr, &byteCount, 0,
-                                   pixels.data(), 0, nullptr)) {
-        png_image_free(&pngImage);
+    std::vector<std::string> keys;
+    std::vector<std::string> values;
+    keys.reserve(static_cast<std::size_t>(text.size()));
+    values.reserve(static_cast<std::size_t>(text.size()));
+    for (auto it = text.constBegin(); it != text.constEnd(); ++it) {
+        keys.push_back(it.key().PkToUtf8());
+        values.push_back(it.value().PkToUtf8());
+        if (!isValidKeyword(keys.back())) {
+            return PkByteArray();
+        }
+    }
+
+    std::vector<png_text> entries(static_cast<std::size_t>(text.size()));
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        png_text &entry = entries[i];
+        entry.key = const_cast<char *>(keys[i].c_str());
+        entry.text = const_cast<char *>(values[i].data());
+        if (isPlainAscii(values[i])) {
+            entry.compression = PNG_TEXT_COMPRESSION_NONE;
+            entry.text_length = values[i].size();
+        } else {
+            entry.compression = PNG_ITXT_COMPRESSION_zTXt;
+            entry.itxt_length = values[i].size();
+        }
+    }
+
+    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    if (!png) {
         return PkByteArray();
     }
-    std::vector<std::uint8_t> encoded(static_cast<std::size_t>(byteCount));
-    if (!png_image_write_to_memory(&pngImage, encoded.data(), &byteCount, 0,
-                                   pixels.data(), 0, nullptr)) {
-        png_image_free(&pngImage);
+    png_infop info = png_create_info_struct(png);
+    if (!info) {
+        png_destroy_write_struct(&png, nullptr);
         return PkByteArray();
     }
-    png_image_free(&pngImage);
-    encoded.resize(static_cast<std::size_t>(byteCount));
+
+    std::vector<std::uint8_t> encoded;
+    std::vector<png_bytep> rows(static_cast<std::size_t>(image.height()));
+    if (setjmp(png_jmpbuf(png))) {
+        png_destroy_write_struct(&png, &info);
+        return PkByteArray();
+    }
+    png_set_write_fn(png, &encoded, writeMemory, flushMemory);
+    png_set_IHDR(png, info,
+                 static_cast<png_uint_32>(image.width()),
+                 static_cast<png_uint_32>(image.height()),
+                 8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+    if (!entries.empty()) {
+        png_set_text(png, info, entries.data(), static_cast<int>(entries.size()));
+    }
+    png_write_info(png, info);
+    const std::size_t rowBytes = static_cast<std::size_t>(image.width()) * 4u;
+    for (int y = 0; y < image.height(); ++y) {
+        rows[static_cast<std::size_t>(y)] =
+            pixels.data() + static_cast<std::size_t>(y) * rowBytes;
+    }
+    png_write_image(png, rows.data());
+    png_write_end(png, info);
+    png_destroy_write_struct(&png, &info);
     return PkByteArray(encoded);
+}
+
+PkByteArray encodePng(const PkImage &image)
+{
+    return encodePng(image, PkMap<PkString, PkString>());
 }
 
 bool savePng(const PkString &path, const PkImage &image)

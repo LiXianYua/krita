@@ -14,13 +14,25 @@
 #include "kis_paintop_preset.h"
 #include "KisLocalStrokeResources.h"
 #include <KisGlobalResourcesInterface.h>
+#include <KisResourceLoaderRegistry.h>
+#include <KisResourceThumbnailCodec.h>
+#include <KisMimeDatabase.h>
+#include <PkMemoryStream.h>
 
 #include <QFileInfo>
+
+#include <map>
+#include <string>
 
 namespace {
 template <typename C, typename T = typename C::value_type>
 QSet<T> toSet(const C &container) {
     return QSet<T>(container.begin(), container.end());
+}
+
+PkByteArray streamBytes(const PkMemoryStream &stream)
+{
+    return PkByteArray(stream.data(), static_cast<int>(stream.size()));
 }
 }
 
@@ -197,6 +209,87 @@ void KisPaintOpPresetTest::testConflictingEmbeddedPatterns()
 
         QVERIFY(loadedPattern->resourceId() != verticalPatternResourceId);
     }
+}
+
+void KisPaintOpPresetTest::testSaveLoadRoundTrip()
+{
+    const PkString fileName = PkString(FILES_DATA_DIR) +
+        PkString("/test-embedded-resources-5.0.kpp");
+    KisResourcesInterfaceSP sourceResources(new KisLocalStrokeResources());
+    KisPaintOpPresetSP source(new KisPaintOpPreset(fileName));
+    QVERIFY(source->load(sourceResources));
+    QVERIFY(source->valid());
+
+    const PkList<KoResourceLoadResult> sideLoaded =
+        source->sideLoadedResources(sourceResources);
+    QCOMPARE(sideLoaded.size(), 2);
+    std::map<std::string, std::string> expectedResources;
+    for (const KoResourceLoadResult &result : sideLoaded) {
+        const KoEmbeddedResource embedded = result.embeddedResource();
+        QVERIFY(embedded.isValid());
+        expectedResources.emplace(result.signature().md5sum.PkToUtf8(),
+                                  result.signature().type.PkToUtf8());
+
+        PkMemoryStream resourceStream;
+        QVERIFY(resourceStream.open(PkStream::ReadWrite));
+        const PkByteArray data = embedded.data();
+        QCOMPARE(resourceStream.write(data.constData(), data.size()), data.size());
+        QVERIFY(resourceStream.seek(0));
+
+        const KoResourceSignature signature = embedded.signature();
+        KisResourceLoaderBase *loader = KisResourceLoaderRegistry::instance()->loader(
+            signature.type, KisMimeDatabase::mimeTypeForFile(signature.filename));
+        QVERIFY(loader);
+        KoResourceSP resource = loader->load(signature.filename,
+                                             resourceStream,
+                                             sourceResources);
+        QVERIFY(resource);
+        KisResourceModel resourceModel(signature.type);
+        QVERIFY(resourceModel.addResource(resource, "memory"));
+        static_cast<KisLocalStrokeResources *>(sourceResources.data())->addResource(resource);
+    }
+    source->setResourcesInterface(sourceResources);
+
+    PkMemoryStream saved;
+    QVERIFY(saved.open(PkStream::ReadWrite));
+    QVERIFY(source->saveToDevice(&saved));
+    const PkByteArray savedBytes = streamBytes(saved);
+    QVERIFY(!savedBytes.isEmpty());
+
+    KisResourceThumbnailCodec::PngPayload payload;
+    QVERIFY(KisResourceThumbnailCodec::decodePng(savedBytes, payload));
+    QCOMPARE(payload.text.value(PkString("version")), PkString("5.0"));
+    QVERIFY(payload.text.value(PkString("preset")).contains("<Preset"));
+    QVERIFY(payload.text.value(PkString("preset")).contains("<resources>"));
+    QCOMPARE(payload.image.width(), source->image().width());
+    QCOMPARE(payload.image.height(), source->image().height());
+    QCOMPARE(payload.image.pixel(0, 0), source->image().pixel(0, 0));
+    QCOMPARE(payload.image.pixel(100, 100), source->image().pixel(100, 100));
+
+    PkMemoryStream reloadStream;
+    QVERIFY(reloadStream.open(PkStream::ReadWrite));
+    QCOMPARE(reloadStream.write(savedBytes.constData(), savedBytes.size()), savedBytes.size());
+    QVERIFY(reloadStream.seek(0));
+    KisResourcesInterfaceSP emptyResources(new KisLocalStrokeResources());
+    KisPaintOpPresetSP reloaded(new KisPaintOpPreset());
+    QVERIFY(reloaded->loadFromDevice(&reloadStream, emptyResources));
+    QVERIFY(reloaded->valid());
+    QCOMPARE(reloaded->image().width(), source->image().width());
+    QCOMPARE(reloaded->image().height(), source->image().height());
+    QCOMPARE(reloaded->image().pixel(100, 100), source->image().pixel(100, 100));
+
+    const PkList<KoResourceLoadResult> reloadedResources =
+        reloaded->sideLoadedResources(emptyResources);
+    QCOMPARE(reloadedResources.size(), sideLoaded.size());
+    std::map<std::string, std::string> actualResources;
+    for (const KoResourceLoadResult &result : reloadedResources) {
+        QCOMPARE(result.type(), KoResourceLoadResult::EmbeddedResource);
+        QVERIFY(result.embeddedResource().isValid());
+        QVERIFY(result.embeddedResource().sanityCheckMd5());
+        actualResources.emplace(result.signature().md5sum.PkToUtf8(),
+                                result.signature().type.PkToUtf8());
+    }
+    QVERIFY(actualResources == expectedResources);
 }
 
 KISTEST_MAIN(KisPaintOpPresetTest)
