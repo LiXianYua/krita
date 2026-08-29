@@ -6,6 +6,9 @@ set(kritatooldyna_SOURCES
 
 kis_add_library(kritatooldyna MODULE ${kritatooldyna_SOURCES})
 
-target_link_libraries(kritatooldyna kritacanvas kritashapemodel)
+set_target_properties(kritatooldyna PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
+target_include_directories(kritatooldyna PRIVATE ${CMAKE_SOURCE_DIR}/pk/geometry)
+
+target_link_libraries(kritatooldyna kritacanvas kritashapemodel pkgeometry)
 
 install(TARGETS kritatooldyna  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

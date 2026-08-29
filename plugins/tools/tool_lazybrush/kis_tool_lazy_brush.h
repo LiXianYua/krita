@@ -7,24 +7,21 @@
 #ifndef KIS_TOOL_LAZY_BRUSH_H_
 #define KIS_TOOL_LAZY_BRUSH_H_
 
-#include <QScopedPointer>
-#include <QVariant>
+#include <PkScopedPointer.h>
+#include <PkVariant.h>
 #include "kis_tool_freehand.h"
 
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <QKeySequence>
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
 
-class KisKActionCollection;
 class KoCanvasBase;
 
 class KisToolLazyBrush : public KisToolFreehand
 {
-    Q_OBJECT
 public:
     KisToolLazyBrush(KoCanvasBase * canvas);
     ~KisToolLazyBrush() override;
@@ -45,18 +42,16 @@ public:
 
     void explicitUserStrokeEndRequest() override;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
-private Q_SLOTS:
-    void slotCanvasResourceChanged(int key, const QVariant &value);
+private:
+    void slotCanvasResourceChanged(int key, const PkVariant &value);
     void slotCurrentNodeChanged(KisNodeSP node);
-
-Q_SIGNALS:
 
 private:
     bool colorizeMaskActive() const;
@@ -68,7 +63,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 
@@ -79,11 +74,10 @@ public:
     KisToolLazyBrushFactory()
             : KisToolPaintFactoryBase("KritaShape/KisToolLazyBrush") {
 
-        setToolTip(i18n("Colorize Mask Editing Tool"));
+        setToolTip(PkString("Colorize Mask Editing Tool"));
 
         // Temporarily
         setSection(ToolBoxSection::Fill);
-        //setShortcut(QKeySequence(Qt::Key_Shift + Qt::Key_B));
         setPriority(3);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }

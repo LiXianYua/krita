@@ -7,18 +7,6 @@
 #ifndef TOOL_POLYLINE_H_
 #define TOOL_POLYLINE_H_
 
-#include <QObject>
-#include <QVariant>
-
-/**
- * A module that provides a polyline tool.
- */
-class ToolPolyline : public QObject
-{
-    Q_OBJECT
-public:
-    ToolPolyline(QObject *parent, const QVariantList &);
-    ~ToolPolyline() override;
-};
+// Registration occurs during module initialization.
 
 #endif // TOOL_POLYLINE_H_

@@ -49,23 +49,21 @@ public:
 
 class KisToolDyna : public KisToolFreehand
 {
-    Q_OBJECT
-
 public:
     KisToolDyna(KoCanvasBase * canvas);
     ~KisToolDyna() override;
 
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void beginPrimaryAction(KoPointerEvent *event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
 
 protected:
     void initStroke(KoPointerEvent *event) override;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 
-private Q_SLOTS:
+private:
 
     void slotSetDynaWidth(double width);
     void slotSetMass(qreal mass);
@@ -76,12 +74,12 @@ private Q_SLOTS:
 
 private:
     // dyna algorithm
-    QVector<QPointF> m_prevPosition;
+    PkVector<PkPointF> m_prevPosition;
     qreal m_odelx {0.0};
     qreal m_odely {0.0};
 
     // mouse info
-    QPointF m_mousePos;
+    PkPointF m_mousePos;
 
     qreal m_surfaceWidth {0.0};
     qreal m_surfaceHeight {0.0};
@@ -101,7 +99,7 @@ private:
     qreal flerp(qreal f0, qreal f1, qreal p) {
         return ((f0 *(1.0 - p)) + (f1 * p));
     }
-    void setMousePosition(const QPointF &point) {
+    void setMousePosition(const PkPointF &point) {
         m_mousePos.setX(point.x() / m_surfaceWidth );
         m_mousePos.setY(point.y() / m_surfaceHeight);
     }
@@ -120,9 +118,8 @@ public:
     KisToolDynaFactory()
             : KisToolPaintFactoryBase("KritaShape/KisToolDyna") {
 
-        setToolTip(i18n("Dynamic Brush Tool"));
+        setToolTip(PkString("Dynamic Brush Tool"));
         setSection(ToolBoxSection::Shape);
-        //setShortcut(QKeySequence(Qt::Key_F));
         setPriority(10);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }
@@ -137,4 +134,3 @@ public:
 
 
 #endif // KIS_TOOL_DYNA_H_
-

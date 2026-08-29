@@ -7,21 +7,10 @@
 #ifndef TOOL_DYNA_H_
 #define TOOL_DYNA_H_
 
-#include <QObject>
-#include <QVariant>
+// Registration occurs during module initialization.
 
 /**
  * A module that provides a polygon tool.
  */
-class ToolDyna : public QObject
-{
-    Q_OBJECT
-
-public:
-
-    ToolDyna(QObject *parent, const QVariantList &);
-    ~ToolDyna() override;
-
-};
 
 #endif // TOOL_DYNA_H_

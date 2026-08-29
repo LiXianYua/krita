@@ -7,16 +7,6 @@
 #ifndef TOOL_LAZYBRUSH_H_
 #define TOOL_LAZYBRUSH_H_
 
-#include <QObject>
-#include <QVariant>
-
-class ToolLazyBrush : public QObject
-{
-    Q_OBJECT
-public:
-    ToolLazyBrush(QObject *parent, const QVariantList &);
-    ~ToolLazyBrush() override;
-
-};
+// Registration occurs during module initialization.
 
 #endif // TOOL_LAZYBRUSH_H_

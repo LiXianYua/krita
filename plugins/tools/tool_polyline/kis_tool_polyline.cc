@@ -9,7 +9,7 @@
 
 #include "kis_tool_polyline.h"
 
-#include <QVector>
+#include <PkVector.h>
 
 #include <KoCanvasBase.h>
 #include <KoPathShape.h>
@@ -43,13 +43,13 @@ void KisToolPolyline::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolPolyline::finishPolyline(const QVector<QPointF>& points)
+void KisToolPolyline::finishPolyline(const PkVector<PkPointF>& points)
 {
     const KisToolShape::ShapeAddInfo info =
         shouldAddShape(currentNode());
 
     if (!info.shouldAddShape || info.shouldAddSelectionShape) {
-        KisFigurePaintingToolHelper helper(kundo2_i18n("Draw Polyline"),
+        KisFigurePaintingToolHelper helper(kundo2_text("Draw Polyline"),
                                            image(),
                                            currentNode(),
                                            canvas()->resourceManager()->canvasResourcesInterface(),
@@ -61,7 +61,7 @@ void KisToolPolyline::finishPolyline(const QVector<QPointF>& points)
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
 
-        QTransform resolutionMatrix;
+        PkTransform resolutionMatrix;
         resolutionMatrix.scale(1 / currentImage()->xRes(), 1 / currentImage()->yRes());
         path->moveTo(resolutionMatrix.map(points[0]));
         for (int i = 1; i < points.count(); i++)

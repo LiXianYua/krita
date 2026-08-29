@@ -8,7 +8,6 @@
 
 #include "kis_tool_dyna.h"
 
-#include <klocalizedstring.h>
 #include <ksharedconfig.h>
 
 #include "KoPointerEvent.h"
@@ -28,7 +27,7 @@
 
 
 KisToolDyna::KisToolDyna(KoCanvasBase * canvas)
-        : KisToolFreehand(canvas, Qt::ArrowCursor, kundo2_i18n("Dynamic Brush Stroke"), false)
+        : KisToolFreehand(canvas, Qt::ArrowCursor, kundo2_text("Dynamic Brush Stroke"), false)
 {
     setObjectName("tool_dyna");
     setIsOpacityPresetMode(true);
@@ -60,7 +59,7 @@ void KisToolDyna::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolDyna::activate(const QSet<KoShape*> &shapes)
+void KisToolDyna::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
     m_configGroup =  KSharedConfig::openConfig()->group(toolId());
@@ -80,8 +79,8 @@ void KisToolDyna::activate(const QSet<KoShape*> &shapes)
 
 void KisToolDyna::initStroke(KoPointerEvent *event)
 {
-    QRectF imageSize = QRectF(QPointF(0.0,0.0),currentImage()->size());
-    QRectF documentSize = currentImage()->pixelToDocument(imageSize);
+    PkRectF imageSize = PkRectF(PkPointF(0.0,0.0),currentImage()->size());
+    PkRectF documentSize = currentImage()->pixelToDocument(imageSize);
     m_surfaceWidth = documentSize.width();
     m_surfaceHeight = documentSize.height();
     setMousePosition(event->point);
@@ -179,14 +178,14 @@ KoPointerEvent KisToolDyna::filterEvent(KoPointerEvent* event)
     qreal nx = m_mouse.curx;
     qreal ny = m_mouse.cury;
 
-    QPointF prev(px , py);         // previous position
-    QPointF now(nx , ny);           // new position
+    PkPointF prev(px , py);         // previous position
+    PkPointF now(nx , ny);           // new position
 
-    QPointF prevr(px + m_odelx , py + m_odely);
-    QPointF prevl(px - m_odelx , py - m_odely);
+    PkPointF prevr(px + m_odelx , py + m_odely);
+    PkPointF prevl(px - m_odelx , py - m_odely);
 
-    QPointF nowl(nx - delx , ny - dely);
-    QPointF nowr(nx + delx , ny + dely);
+    PkPointF nowl(nx - delx , ny - dely);
+    PkPointF nowr(nx + delx , ny + dely);
 
     // transform coords from float points into image points
     prev.rx() *= m_surfaceWidth;
@@ -276,5 +275,3 @@ void KisToolDyna::slotSetAngle(qreal angle)
 
     m_configGroup.writeEntry("angleAmount", angle);
 }
-
-

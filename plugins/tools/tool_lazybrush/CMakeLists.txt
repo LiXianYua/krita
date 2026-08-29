@@ -5,8 +5,11 @@ set(kritatoollazybrush_SOURCES
 
 kis_add_library(kritatoollazybrush MODULE ${kritatoollazybrush_SOURCES})
 
+set_target_properties(kritatoollazybrush PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
+
 generate_export_header(kritatoollazybrush BASE_NAME kritatoollazybrush)
 
-target_link_libraries(kritatoollazybrush kritacanvas kritashapemodel)
+target_include_directories(kritatoollazybrush PRIVATE ${CMAKE_SOURCE_DIR}/pk/pointer ${CMAKE_SOURCE_DIR}/pk/variant)
+target_link_libraries(kritatoollazybrush kritacanvas kritashapemodel pkpointer pkvariant)
 
 install(TARGETS kritatoollazybrush  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

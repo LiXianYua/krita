@@ -11,13 +11,11 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
-
-#include <klocalizedstring.h>
+#include <PkPoint.h>
 
 #include <kis_debug.h>
 #include <kis_paint_device.h>
-#include <kpluginfactory.h>
+#include <mutex>
 
 #include <kis_global.h>
 #include <kis_types.h>
@@ -26,17 +24,9 @@
 
 #include "kis_tool_dyna.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ToolDynaFactory, "kritatooldyna.json", registerPlugin<ToolDyna>();)
-
-
-ToolDyna::ToolDyna(QObject *parent, const QVariantList &)
-        : QObject(parent)
+void registerToolDyna()
 {
-    KoToolRegistry::instance()->add(new KisToolDynaFactory());
+    static std::once_flag once;
+    std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolDynaFactory()); });
 }
-
-ToolDyna::~ToolDyna()
-{
-}
-
-#include "tool_dyna.moc"
+namespace { struct Registration { Registration() { registerToolDyna(); } } registration; }

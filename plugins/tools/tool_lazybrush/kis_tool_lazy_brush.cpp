@@ -6,9 +6,6 @@
 
 #include "kis_tool_lazy_brush.h"
 
-#include <klocalizedstring.h>
-#include <QAction>
-
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoCanvasResourceProvider.h>
@@ -40,7 +37,7 @@ struct KisToolLazyBrush::Private
 KisToolLazyBrush::KisToolLazyBrush(KoCanvasBase * canvas)
     : KisToolFreehand(canvas,
                       Qt::ArrowCursor,
-                      kundo2_i18n("Colorize Mask Key Stroke")),
+                      kundo2_text("Colorize Mask Key Stroke")),
       m_d(new Private)
 {
     setObjectName("tool_lazybrush");
@@ -64,7 +61,7 @@ void KisToolLazyBrush::tryDisableKeyStrokesOnMask()
 }
 
 
-void KisToolLazyBrush::activate(const QSet<KoShape*> &shapes)
+void KisToolLazyBrush::activate(const PkSet<KoShape*> &shapes)
 {
     m_d->toolConnections.addUniqueConnection(
         canvas()->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
@@ -101,7 +98,7 @@ void KisToolLazyBrush::slotCurrentNodeChanged(KisNodeSP node)
     }
 }
 
-void KisToolLazyBrush::slotCanvasResourceChanged(int key, const QVariant &value)
+void KisToolLazyBrush::slotCanvasResourceChanged(int key, const PkVariant &value)
 {
     if (key == KoCanvasResource::CurrentKritaNode) {
         slotCurrentNodeChanged(value.value<KisNodeWSP>());
@@ -156,7 +153,7 @@ void KisToolLazyBrush::tryCreateColorizeMask()
     properties.setProperty("visible", true);
     properties.setProperty("locked", false);
 
-    QList<KisNodeSP> masks = node->childNodes(QStringList("KisColorizeMask"), properties);
+    PkList<KisNodeSP> masks = node->childNodes(PkStringList{PkString("KisColorizeMask")}, properties);
 
     if (!masks.isEmpty()) {
         nodeActivation->requestNodeActivation(masks.first());
@@ -173,7 +170,7 @@ void KisToolLazyBrush::tryCreateColorizeMask()
         return;
     }
 
-    masks = node->childNodes(QStringList("KisColorizeMask"), properties);
+    masks = node->childNodes(PkStringList{PkString("KisColorizeMask")}, properties);
     if (!masks.isEmpty()) {
         nodeActivation->requestNodeActivation(masks.first());
         return;
@@ -186,7 +183,7 @@ void KisToolLazyBrush::tryCreateColorizeMask()
     if (!node->isEditable(false)) {
         if (KisCanvasFeedback *feedback =
                 dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            feedback->showFloatingMessage(i18n("Layer is locked"), QIcon());
+            feedback->showFloatingMessage(PkString("Layer is locked"), {});
         }
         return;
     }

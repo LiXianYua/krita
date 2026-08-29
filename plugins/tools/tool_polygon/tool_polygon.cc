@@ -10,13 +10,11 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
-
-#include <klocalizedstring.h>
+#include <PkPoint.h>
 
 #include <kis_debug.h>
 #include <kis_paint_device.h>
-#include <kpluginfactory.h>
+#include <mutex>
 
 #include <kis_global.h>
 #include <kis_types.h>
@@ -24,17 +22,9 @@
 
 #include "kis_tool_polygon.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ToolPolygonFactory, "kritatoolpolygon.json", registerPlugin<ToolPolygon>();)
-
-
-ToolPolygon::ToolPolygon(QObject *parent, const QVariantList &)
-        : QObject(parent)
+void registerToolPolygon()
 {
-    KoToolRegistry::instance()->add(new KisToolPolygonFactory());
+    static std::once_flag once;
+    std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolPolygonFactory()); });
 }
-
-ToolPolygon::~ToolPolygon()
-{
-}
-
-#include "tool_polygon.moc"
+namespace { struct Registration { Registration() { registerToolPolygon(); } } registration; }

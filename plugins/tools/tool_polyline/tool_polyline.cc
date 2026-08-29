@@ -10,12 +10,10 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
-
-#include <klocalizedstring.h>
+#include <PkPoint.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
+#include <mutex>
 
 #include <kis_global.h>
 #include <kis_types.h>
@@ -24,17 +22,9 @@
 
 #include "kis_tool_polyline.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ToolPolylineFactory, "kritatoolpolyline.json", registerPlugin<ToolPolyline>();)
-
-
-ToolPolyline::ToolPolyline(QObject *parent, const QVariantList &)
-        : QObject(parent)
+void registerToolPolyline()
 {
-    KoToolRegistry::instance()->add(new KisToolPolylineFactory());
+    static std::once_flag once;
+    std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolPolylineFactory()); });
 }
-
-ToolPolyline::~ToolPolyline()
-{
-}
-
-#include "tool_polyline.moc"
+namespace { struct Registration { Registration() { registerToolPolyline(); } } registration; }

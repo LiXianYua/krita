@@ -15,8 +15,6 @@
 class KisToolPolyline : public KisToolPolylineBase
 {
 
-    Q_OBJECT
-
 public:
     KisToolPolyline(KoCanvasBase * canvas);
     ~KisToolPolyline() override;
@@ -24,9 +22,9 @@ public:
     bool supportsPaintingAssistants() const override;
 
 protected:
-    void finishPolyline(const QVector<QPointF>& points) override;
+    void finishPolyline(const PkVector<PkPointF>& points) override;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 };
 
@@ -39,7 +37,7 @@ class KisToolPolylineFactory : public KisToolPolyLineFactoryBase
 public:
     KisToolPolylineFactory()
             : KisToolPolyLineFactoryBase("KisToolPolyline") {
-        setToolTip(i18n("Polyline Tool: Shift-mouseclick ends the polyline."));
+        setToolTip(PkString("Polyline Tool: Shift-mouseclick ends the polyline."));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(5);

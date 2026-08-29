@@ -44,13 +44,13 @@ void KisToolPolygon::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolPolygon::finishPolyline(const QVector<QPointF>& points)
+void KisToolPolygon::finishPolyline(const PkVector<PkPointF>& points)
 {
     const KisToolShape::ShapeAddInfo info =
         shouldAddShape(currentNode());
 
     if (!info.shouldAddShape) {
-        KisFigurePaintingToolHelper helper(kundo2_i18n("Draw Polygon"),
+        KisFigurePaintingToolHelper helper(kundo2_text("Draw Polygon"),
                                            image(),
                                            currentNode(),
                                            canvas()->resourceManager()->canvasResourcesInterface(),
@@ -60,14 +60,14 @@ void KisToolPolygon::finishPolyline(const QVector<QPointF>& points)
         helper.paintPolygon(points);
     } else {
         // remove the last point if it overlaps with the first
-        QVector<QPointF> newPoints = points;
+        PkVector<PkPointF> newPoints = points;
         if (newPoints.size() > 1 && newPoints.first() == newPoints.last()) {
-            newPoints.removeLast();
+            newPoints.remove(newPoints.size() - 1);
         }
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
 
-        QTransform resolutionMatrix;
+        PkTransform resolutionMatrix;
         resolutionMatrix.scale(1 / currentImage()->xRes(), 1 / currentImage()->yRes());
         path->moveTo(resolutionMatrix.map(newPoints[0]));
         for (int i = 1; i < newPoints.size(); i++)

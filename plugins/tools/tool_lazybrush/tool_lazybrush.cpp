@@ -7,7 +7,7 @@
 #include "tool_lazybrush.h"
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
+#include <mutex>
 
 #include <kis_tool.h>
 #include <KoToolRegistry.h>
@@ -16,17 +16,9 @@
 #include "kis_tool_lazy_brush.h"
 
 
-K_PLUGIN_FACTORY_WITH_JSON(DefaultToolsFactory, "kritatoollazybrush.json", registerPlugin<ToolLazyBrush>();)
-
-
-ToolLazyBrush::ToolLazyBrush(QObject *parent, const QVariantList &)
-        : QObject(parent)
+void registerToolLazyBrush()
 {
-    KoToolRegistry::instance()->add(new KisToolLazyBrushFactory());
+    static std::once_flag once;
+    std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolLazyBrushFactory()); });
 }
-
-ToolLazyBrush::~ToolLazyBrush()
-{
-}
-
-#include "tool_lazybrush.moc"
+namespace { struct Registration { Registration() { registerToolLazyBrush(); } } registration; }
