@@ -8,6 +8,7 @@
 #define KISSTROKESPEEDMEASURER_H
 
 #include "kritaimage_export.h"
+#include <PkGlobal.h>
 #include <PkScopedPointer.h>
 #include <PkVector.h>
 
