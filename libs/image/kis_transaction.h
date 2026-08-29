@@ -7,6 +7,7 @@
 #ifndef KIS_TRANSACTION_H_
 #define KIS_TRANSACTION_H_
 
+#include <PkFlags.h>
 #include <kundo2command.h>
 
 #include "kis_types.h"
@@ -28,7 +29,7 @@ public:
         None = 0x0,
         SuppressUpdates = 0x1
     };
-    Q_DECLARE_FLAGS(Flags, Flag)
+    PK_DECLARE_FLAGS(Flags, Flag)
 
 public:
     KisTransaction(const KUndo2MagicString& name, KisPaintDeviceSP device, KUndo2Command* parent = 0,int timedID = -1, KisTransactionWrapperFactory *interstrokeDataFactory = 0, Flags flags = None) {
@@ -131,13 +132,14 @@ public:
     }
 
 protected:
-    Q_DISABLE_COPY(KisTransaction);
+    KisTransaction(const KisTransaction &) = delete;
+    KisTransaction &operator=(const KisTransaction &) = delete;
 
     KisTransaction() : m_transactionData(0) {}
     KisTransactionData* m_transactionData;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisTransaction::Flags)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisTransaction::Flags)
 
 class KisSelectionTransaction : public KisTransaction
 {
@@ -154,4 +156,3 @@ public:
 };
 
 #endif /* KIS_TRANSACTION_H_ */
-
