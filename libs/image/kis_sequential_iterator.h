@@ -276,7 +276,8 @@ public:
     }
 
 private:
-    Q_DISABLE_COPY(KisSequentialIteratorBase)
+    KisSequentialIteratorBase(const KisSequentialIteratorBase &) = delete;
+    KisSequentialIteratorBase &operator=(const KisSequentialIteratorBase &) = delete;
     IteratorPolicy m_policy;
     ProgressPolicy m_progressPolicy;
     const int m_pixelSize;

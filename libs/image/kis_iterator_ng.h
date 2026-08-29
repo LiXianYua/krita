@@ -11,7 +11,8 @@
 
 class KRITAIMAGE_EXPORT KisBaseConstIteratorNG : public KisBaseConstAccessor
 {
-    Q_DISABLE_COPY(KisBaseConstIteratorNG)
+    KisBaseConstIteratorNG(const KisBaseConstIteratorNG &) = delete;
+    KisBaseConstIteratorNG &operator=(const KisBaseConstIteratorNG &) = delete;
 public:
     KisBaseConstIteratorNG() {}
     ~KisBaseConstIteratorNG() override;
@@ -43,7 +44,8 @@ public:
  */
 class KRITAIMAGE_EXPORT KisHLineConstIteratorNG : public virtual KisBaseConstIteratorNG
 {
-    Q_DISABLE_COPY(KisHLineConstIteratorNG)
+    KisHLineConstIteratorNG(const KisHLineConstIteratorNG &) = delete;
+    KisHLineConstIteratorNG &operator=(const KisHLineConstIteratorNG &) = delete;
 public:
     KisHLineConstIteratorNG() {}
     ~KisHLineConstIteratorNG() override;
@@ -61,7 +63,8 @@ public:
  */
 class KRITAIMAGE_EXPORT KisHLineIteratorNG : public KisHLineConstIteratorNG, public KisBaseAccessor
 {
-    Q_DISABLE_COPY(KisHLineIteratorNG)
+    KisHLineIteratorNG(const KisHLineIteratorNG &) = delete;
+    KisHLineIteratorNG &operator=(const KisHLineIteratorNG &) = delete;
 public:
     KisHLineIteratorNG() {}
     ~KisHLineIteratorNG() override;
@@ -72,7 +75,8 @@ public:
  */
 class KRITAIMAGE_EXPORT KisVLineConstIteratorNG : public virtual KisBaseConstIteratorNG
 {
-    Q_DISABLE_COPY(KisVLineConstIteratorNG)
+    KisVLineConstIteratorNG(const KisVLineConstIteratorNG &) = delete;
+    KisVLineConstIteratorNG &operator=(const KisVLineConstIteratorNG &) = delete;
 public:
     KisVLineConstIteratorNG() {}
     ~KisVLineConstIteratorNG() override;
@@ -90,7 +94,8 @@ public:
  */
 class KRITAIMAGE_EXPORT KisVLineIteratorNG : public KisVLineConstIteratorNG, public KisBaseAccessor
 {
-    Q_DISABLE_COPY(KisVLineIteratorNG)
+    KisVLineIteratorNG(const KisVLineIteratorNG &) = delete;
+    KisVLineIteratorNG &operator=(const KisVLineIteratorNG &) = delete;
 public:
     KisVLineIteratorNG() {}
     ~KisVLineIteratorNG() override;

@@ -26,8 +26,7 @@ KisSwappedDataStore::KisSwappedDataStore()
     const unsigned long long swapWindowSize = config.swapWindowSize() * MiB;
 
     m_allocator = new KisChunkAllocator(swapSlabSize, maxSwapSize);
-    m_swapSpace = new KisMemoryWindow(PkString(config.swapDir().toUtf8().constData()),
-                                      swapWindowSize);
+    m_swapSpace = new KisMemoryWindow(config.swapDir(), swapWindowSize);
 
     // FIXME: use a factory after the patch is committed
     m_compressor = new KisTileCompressor2();
