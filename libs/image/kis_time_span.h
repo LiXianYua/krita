@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <limits>
 #include <boost/operators.hpp>
+#include <PkDebug.h>
 #include "kis_types.h"
 #include <kis_dom_utils.h>
 
@@ -171,10 +172,6 @@ namespace KisDomUtils {
     void KRITAIMAGE_EXPORT saveValue(PkXmlElement *parent, const PkString &tag, const KisTimeSpan &range);
     bool KRITAIMAGE_EXPORT loadValue(const PkXmlElement &parent, const PkString &tag, KisTimeSpan *range);
 }
-
-
-
-Q_DECLARE_METATYPE(KisTimeSpan)
 
 KRITAIMAGE_EXPORT PkDebug operator<<(PkDebug dbg, const KisTimeSpan &r);
 
