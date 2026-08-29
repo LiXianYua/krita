@@ -7,6 +7,7 @@
 #define _KIS_BASE_NODE_H
 
 #include <PkObject.h>
+#include <PkMap.h>
 #include <PkNodeId.h>
 #include <PkSignalCompat.h>
 #include <PkString.h>

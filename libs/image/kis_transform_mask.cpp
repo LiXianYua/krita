@@ -547,7 +547,7 @@ namespace {
 PkRect calculateInterestRect(KisNodeSP node) {
     PkRect resultInterestRect;
 
-    if (KisGroupLayer *group = qobject_cast<KisGroupLayer*>(node.data())) {
+    if (KisGroupLayer *group = dynamic_cast<KisGroupLayer*>(node.data())) {
         resultInterestRect = group->calculateChildrenLooseUserVisibleBounds();
     } else {
         resultInterestRect = node->original()->extent();
@@ -847,4 +847,3 @@ bool KisTransformMask::supportsKeyframeChannel(const PkString &id)
 
     return KisEffectMask::supportsKeyframeChannel(id);
 }
-

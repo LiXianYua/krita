@@ -22,8 +22,6 @@
 
 class KRITAIMAGE_EXPORT KisFilterMask : public KisEffectMask, public KisNodeFilterInterface
 {
-    Q_OBJECT
-
 public:
     /**
      * Create an empty filter mask.

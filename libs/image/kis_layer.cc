@@ -578,7 +578,7 @@ KisFilterMaskSP KisLayer::colorOverlayMask() const
         auto allMasks = effectMasks();
         for (auto iter = allMasks.rbegin(); iter != allMasks.rend(); ++iter) {
             if ((*iter)->inherits("KisFilterMask")) {
-                KisFilterMaskSP filterMask = qobject_cast<KisFilterMask*>((*iter).data());
+                KisFilterMaskSP filterMask = dynamic_cast<KisFilterMask*>((*iter).data());
                 if (filterMask->filter()->name() == "fastcoloroverlay") {
                     return filterMask;
                 }
@@ -1045,4 +1045,3 @@ KisMetaData::Store* KisLayer::metaData()
 {
     return m_d->metaDataStore;
 }
-

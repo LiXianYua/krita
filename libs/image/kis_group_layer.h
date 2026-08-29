@@ -20,8 +20,6 @@ class KoColorSpace;
  **/
 class KRITAIMAGE_EXPORT KisGroupLayer : public KisLayer
 {
-    Q_OBJECT
-
 public:
     KisGroupLayer(KisImageWSP image, const PkString &name, quint8 opacity, const KoColorSpace * colorSpace = 0);
     KisGroupLayer(const KisGroupLayer& rhs);
@@ -119,4 +117,3 @@ private:
 };
 
 #endif // KIS_GROUP_LAYER_H_
-

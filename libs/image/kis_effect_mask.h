@@ -18,9 +18,6 @@
  */
 class KRITAIMAGE_EXPORT KisEffectMask : public KisMask
 {
-
-    Q_OBJECT
-
 public:
 
     /**

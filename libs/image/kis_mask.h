@@ -57,9 +57,6 @@
  */
 class KRITAIMAGE_EXPORT KisMask : public KisNode, public KisIndirectPaintingSupport
 {
-
-    Q_OBJECT
-
 public:
 
     /**

@@ -94,7 +94,7 @@ KisImportExportErrorCode KisSpriterExport::parseFolder(KisGroupLayerSP parentGro
     KisNodeSP child = parentGroup->lastChild();
     while (child) {
         if (child->visible() && child->inherits("KisGroupLayer")) {
-            KisImportExportErrorCode res = parseFolder(qobject_cast<KisGroupLayer*>(child.data()), child->name().split(" ").first(), basePath + "/" + pathName, folderId);
+            KisImportExportErrorCode res = parseFolder(dynamic_cast<KisGroupLayer*>(child.data()), child->name().split(" ").first(), basePath + "/" + pathName, folderId);
             if (!res.isOk()) {
                 return res;
             }
@@ -196,7 +196,7 @@ Bone *KisSpriterExport::parseBone(const Bone *parent, KisGroupLayerSP groupLayer
     KisNodeSP child = groupLayer->lastChild();
     while (child) {
         if (child->visible() && child->inherits("KisGroupLayer")) {
-            bone->bones.append(parseBone(bone, qobject_cast<KisGroupLayer*>(child.data())));
+            bone->bones.append(parseBone(bone, dynamic_cast<KisGroupLayer*>(child.data())));
         }
         child = child->prevSibling();
     }
@@ -478,7 +478,7 @@ KisImportExportErrorCode KisSpriterExport::convert(KisDocument *document, QIODev
     m_boneLayer = dynamic_cast<KisLayer*>(KisLayerUtils::findNodeByName(root,"bone").data());
     //qDebug() << "Found boneLayer" << m_boneLayer;
 
-    m_rootLayer= qobject_cast<KisGroupLayer*>(KisLayerUtils::findNodeByName(root,"root").data());
+    m_rootLayer= dynamic_cast<KisGroupLayer*>(KisLayerUtils::findNodeByName(root,"root").data());
     //qDebug() << "Fond rootLayer" << m_rootLayer;
 
     KisImportExportErrorCode result = parseFolder(m_image->rootLayer(), "", fi.absolutePath());

@@ -679,7 +679,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                 const bool alphaLocked = (paintLayer && paintLayer->alphaLocked());
                 const PkString nodeCompositeOp = node->compositeOpId();
 
-                const KisGroupLayer *groupLayer = qobject_cast<KisGroupLayer *>(node.data());
+                const KisGroupLayer *groupLayer = dynamic_cast<KisGroupLayer *>(node.data());
                 const bool nodeIsPassThrough = groupLayer && groupLayer->passThroughMode();
 
                 const KisGeneratorLayer *fillLayer = qobject_cast<KisGeneratorLayer *>(node.data());
@@ -891,7 +891,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                             maskRect = onlyTransparencyMask->paintDevice()->exactBounds();
                         }
                     } else {
-                        KisTransparencyMask *mask = qobject_cast<KisTransparencyMask*>(onlyTransparencyMask.data());
+                        KisTransparencyMask *mask = dynamic_cast<KisTransparencyMask*>(onlyTransparencyMask.data());
                         if (mask) {
                         KisSelectionSP selection = mask->selection();
                         if(selection) {
@@ -1067,7 +1067,7 @@ void PSDLayerMaskSection::writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_c
                 const bool alphaLocked = (paintLayer && paintLayer->alphaLocked());
                 const PkString nodeCompositeOp = node->compositeOpId();
 
-                const KisGroupLayer *groupLayer = qobject_cast<KisGroupLayer *>(node.data());
+                const KisGroupLayer *groupLayer = dynamic_cast<KisGroupLayer *>(node.data());
                 const bool nodeIsPassThrough = groupLayer && groupLayer->passThroughMode();
 
                 PkXmlDocument stylesXmlDoc = fetchLayerStyleXmlData(node);

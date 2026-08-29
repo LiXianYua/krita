@@ -68,7 +68,7 @@ namespace Private {
 
             Q_FOREACH(KisNodeSP child, (node->childNodes(PkStringList({PkString("KisSelectionMask")}), KoProperties()))) {
 
-                KisSelectionMaskSP mask = qobject_cast<KisSelectionMask*>(child.data());
+                KisSelectionMaskSP mask = dynamic_cast<KisSelectionMask*>(child.data());
                 if (mask) {
                     selectionMasks.append(mask);
                 }

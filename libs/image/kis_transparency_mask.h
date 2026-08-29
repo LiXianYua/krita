@@ -23,8 +23,6 @@ class PkRect;
  */
 class KRITAIMAGE_EXPORT KisTransparencyMask : public KisEffectMask
 {
-    Q_OBJECT
-
 public:
 
     KisTransparencyMask(KisImageWSP image, const PkString &name);
