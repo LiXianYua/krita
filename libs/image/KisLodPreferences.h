@@ -11,7 +11,7 @@ struct KisLodPreferences
         LodSupported = 0x1,
         LodPreferred = 0x2
     };
-    Q_DECLARE_FLAGS(PreferenceFlags, PreferenceFlag)
+    PK_DECLARE_FLAGS(PreferenceFlags, PreferenceFlag)
 
     KisLodPreferences() = default;
 
@@ -49,6 +49,6 @@ private:
     int m_desiredLevelOfDetail = 0;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisLodPreferences::PreferenceFlags)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisLodPreferences::PreferenceFlags)
 
 #endif // KISLODPREFERENCES_H
