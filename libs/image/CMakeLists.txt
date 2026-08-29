@@ -519,6 +519,7 @@ kis_add_library(kritaimage SHARED
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 set(kritaimage_SIGNAL_HEADERS
+    kis_base_node.h
     kis_paint_device.h
     brushengine/KisPaintOpPresetUpdateProxy.h
     brushengine/kis_uniform_paintop_property.h

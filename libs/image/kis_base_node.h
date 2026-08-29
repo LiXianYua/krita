@@ -7,6 +7,7 @@
 #define _KIS_BASE_NODE_H
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 #include <PkString.h>
 
 #include <KoID.h>
@@ -34,9 +35,6 @@ class KisKeyframeChannel;
  */
 class KRITAIMAGE_EXPORT KisBaseNode : public PkShellObject, public KisShared
 {
-
-    Q_OBJECT
-
 public:
     /**
      *  Describes a property of a document section.
@@ -613,7 +611,7 @@ public:
      */
     virtual bool supportsKeyframeChannel(const PkString &id);
 
-Q_SIGNALS:
+signals:
     void keyframeChannelAdded(KisKeyframeChannel *channel);
     void opacityChanged(quint8 value);
 
