@@ -9,10 +9,11 @@
 #define KO_UPDATER_H
 
 #include "KoProgressProxy.h"
-#include <compat/QObject>
+#include <PkObject.h>
 #include <PkPointer.h>
 #include <PkAtomic.h>
 #include <PkString.h>
+#include "../pigment/PkSignalCompat.h"
 
 class KoProgressUpdater;
 class KoUpdaterPrivate;
@@ -34,9 +35,6 @@ class KoUpdaterPrivate;
  * @see KoProgressUpdater::startSubtask()
  */
 class KRITAGLOBAL_EXPORT KoUpdater : public PkObject, public KoProgressProxy {
-
-    Q_OBJECT
-
 public:
     virtual ~KoUpdater();
 
@@ -45,7 +43,7 @@ public:
      */
     void cancel();
 
-public Q_SLOTS:
+public:
     /**
      * Update your progress. Progress is always from 0 to 100.
      * The global progress shown to the user is determined by the total
@@ -78,7 +76,7 @@ public: // KoProgressProxy implementation
     void setFormat( const PkString & format ) override;
     void setAutoNestedName(const PkString &name) override;
 
-Q_SIGNALS:
+signals:
 
     /// emitted whenever the subtask has called cancel on us
     void sigCancel();
@@ -101,7 +99,7 @@ public:
     int min;
     int max;
 
-private Q_SLOTS:
+private:
 
     void setInterrupted(bool value);
 

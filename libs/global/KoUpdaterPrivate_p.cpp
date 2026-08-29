@@ -70,7 +70,7 @@ bool KoUpdaterPrivate::isCompleted() const
 
 void KoUpdaterPrivate::cancel()
 {
-    Q_EMIT sigCancelled();
+    sigCancelled();
 }
 
 void KoUpdaterPrivate::setInterrupted(bool value)
@@ -82,19 +82,19 @@ void KoUpdaterPrivate::setInterrupted(bool value)
 void KoUpdaterPrivate::setProgress(int percent)
 {
     m_progress = percent;
-    Q_EMIT sigUpdated();
+    sigUpdated();
 }
 
 void KoUpdaterPrivate::setAutoNestedName(const PkString &name)
 {
     m_autoNestedName = name;
-    Q_EMIT sigUpdated();
+    sigUpdated();
 }
 
 void KoUpdaterPrivate::setHasValidRange(bool value)
 {
     m_hasValidRange = value;
-    Q_EMIT sigUpdated();
+    sigUpdated();
 }
 
 PkPointer<KoUpdater> KoUpdaterPrivate::connectedUpdater() const

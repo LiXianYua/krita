@@ -8,9 +8,10 @@
 #ifndef KO_UPDATERPRIVATE__P_H
 #define KO_UPDATERPRIVATE__P_H
 
-#include <compat/QObject>
+#include <PkObject.h>
 #include <PkPointer.h>
 #include <PkString.h>
+#include "../pigment/PkSignalCompat.h"
 
 class KoUpdater;
 
@@ -27,9 +28,6 @@ class KoUpdater;
  */
 class KoUpdaterPrivate : public PkObject
 {
-
-    Q_OBJECT
-
 public:
 
     KoUpdaterPrivate(int weight, const PkString& name, bool isPersistent = false);
@@ -54,7 +52,7 @@ public:
 
     PkPointer<KoUpdater> connectedUpdater() const;
 
-public Q_SLOTS:
+public:
 
     /// Cancel comes from KoUpdater
     void cancel();
@@ -67,7 +65,7 @@ public Q_SLOTS:
     void setAutoNestedName(const PkString &name);
     void setHasValidRange(bool value);
 
-Q_SIGNALS:
+signals:
 
     /// Emitted whenever the progress changed
     void sigUpdated();
