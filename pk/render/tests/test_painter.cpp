@@ -169,6 +169,35 @@ void PkPainterCase::styleOverloadsConstructFreshValues()
     PK_COMPARE(brushCommand.brush.style(), Qt::Dense3Pattern);
 }
 
+void PkPainterCase::exactMeasuredConsumerSpellings()
+{
+    static_assert(int(PkPainter::RenderHint::Antialiasing) == 0x01,
+                  "Qt 5.15 nested render-hint value must be preserved");
+    static_assert(int(PkPainter::Antialiasing) == 0x01,
+                  "Qt 5.15 direct render-hint value must be preserved");
+
+    const PkPen solidPen(Qt::SolidLine);
+    compareColor(solidPen.color(), 0, 0, 0);
+    PK_COMPARE(solidPen.widthF(), 1.0);
+    PK_COMPARE(solidPen.style(), Qt::SolidLine);
+    PK_COMPARE(solidPen.capStyle(), Qt::SquareCap);
+    PK_VERIFY(solidPen.dashPattern().empty());
+    PK_VERIFY(!solidPen.isCosmetic());
+
+    RecordingBackend backend;
+    PkPainter painter(backend);
+    painter.setRenderHint(PkPainter::RenderHint::Antialiasing);
+    painter.setRenderHints(PkPainter::Antialiasing, false);
+
+    PK_COMPARE(backend.commands.size(), std::size_t(2));
+    const auto &nested = std::get<PkSetRenderHintCommand>(backend.commands[0]);
+    PK_COMPARE(nested.hint, 0x01u);
+    PK_VERIFY(nested.enabled);
+    const auto &direct = std::get<PkSetRenderHintCommand>(backend.commands[1]);
+    PK_COMPARE(direct.hint, 0x01u);
+    PK_VERIFY(!direct.enabled);
+}
+
 void PkPainterCase::penRetainsBrushAndRoundsWidth()
 {
     const PkBrush denseBrush(PkColor(21, 43, 65));

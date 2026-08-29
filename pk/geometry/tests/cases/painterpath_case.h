@@ -67,6 +67,7 @@ private Q_SLOTS:
 
     // 面积布尔运算（R-39）
     void booleanEmptyIdentities();
+    void degenerateBuilderPaths();
     void booleanRectanglesAndOperators();
     void booleanFillRulesAndCompounds();
     void simplifiedSelfIntersections();

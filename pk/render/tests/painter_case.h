@@ -12,6 +12,7 @@ private Q_SLOTS:
     void commandOrderAndPayloads();
     void nonCommutingCombinedTransform();
     void styleOverloadsConstructFreshValues();
+    void exactMeasuredConsumerSpellings();
     void penRetainsBrushAndRoundsWidth();
     void saveRestoreAndEmptyRestore();
     void copiedPathAndImagePayloadsOutliveSources();

@@ -1,7 +1,8 @@
 #include "PkPainter.h"
 
-void cropPainterCalls(PkPainter &p, const PkPainterPath &path, const PkPen &pen)
+void cropPainterCalls(PkPainter &p, const PkPainterPath &path)
 {
+    PkPen pen(Qt::SolidLine);
     p.save();
     p.setPen(Qt::NoPen);
     p.setPen(pen);
@@ -38,7 +39,7 @@ void knifePainterCalls(PkPainter &p, PkPen pen, const PkLineF &line,
     p.setPen(pen);
     p.setBrush(Qt::NoBrush);
     p.setTransform(p.transform(), false);
-    p.setRenderHint(1u, false);
+    p.setRenderHint(PkPainter::RenderHint::Antialiasing, true);
     p.drawLine(line);
     p.drawLine(PkPointF(0, 0), PkPointF(1, 1));
     p.drawPolygon(polygon);
@@ -50,7 +51,7 @@ void knifePainterCalls(PkPainter &p, PkPen pen, const PkLineF &line,
 void karbonPainterCalls(PkPainter &p, const PkColor &color)
 {
     p.save();
-    p.setRenderHints(1u, false);
+    p.setRenderHints(PkPainter::Antialiasing, false);
     p.setPen(color);
     p.drawRect(PkRectF(0, 0, 2, 2));
     p.setTransform(p.transform());

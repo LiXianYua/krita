@@ -4,6 +4,11 @@
 
 class PkPainter {
 public:
+    // Qt 5.15 QPainter::RenderHint spellings retained by Knife and Karbon.
+    enum RenderHint {
+        Antialiasing = 0x01
+    };
+
     explicit PkPainter(PkPainterBackend &backend);
     void save(); void restore();
     PkPen pen() const; void setPen(const PkPen &); void setPen(const PkColor &, qreal width=1.0); void setPen(Qt::PenStyle);

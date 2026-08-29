@@ -21,6 +21,8 @@
 class PkPen {
 public:
     PkPen() : m_brush(Qt::black), m_widthF(1.0), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
+    explicit PkPen(Qt::PenStyle style)
+        : m_brush(Qt::black), m_widthF(1.0), m_style(style), m_cap(Qt::SquareCap), m_cosmetic(false) {}
     explicit PkPen(Qt::GlobalColor color, qreal widthF = 1.0)
         : m_brush(color), m_widthF(widthF), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
     PkPen(const PkColor &color, qreal widthF = 1.0)

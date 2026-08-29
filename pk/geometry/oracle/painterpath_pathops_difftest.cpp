@@ -55,6 +55,8 @@ namespace {
 enum class ShapeKind {
     Empty,
     MoveOnly,
+    ConsecutiveMoves,
+    ZeroLengthLine,
     Rectangle,
     Ellipse,
     OpenPolyline,
@@ -70,6 +72,8 @@ const char *shapeName(ShapeKind kind)
     switch (kind) {
     case ShapeKind::Empty: return "empty";
     case ShapeKind::MoveOnly: return "move-only";
+    case ShapeKind::ConsecutiveMoves: return "consecutive-moves";
+    case ShapeKind::ZeroLengthLine: return "zero-length-line";
     case ShapeKind::Rectangle: return "rectangle";
     case ShapeKind::Ellipse: return "ellipse";
     case ShapeKind::OpenPolyline: return "open-polyline";
@@ -93,6 +97,14 @@ QPainterPath makeQt(ShapeKind kind, Qt::FillRule rule)
         break;
     case ShapeKind::MoveOnly:
         path.moveTo(17, -23);
+        break;
+    case ShapeKind::ConsecutiveMoves:
+        path.moveTo(1, 1);
+        path.moveTo(2, 2);
+        break;
+    case ShapeKind::ZeroLengthLine:
+        path.moveTo(3, 3);
+        path.lineTo(3, 3);
         break;
     case ShapeKind::Rectangle:
         path.addRect(QRectF(0, 0, 9, 8));
@@ -141,6 +153,14 @@ pkoracle::PkPainterPath makePk(ShapeKind kind, pkoracle::Qt::FillRule rule)
         break;
     case ShapeKind::MoveOnly:
         path.moveTo(17, -23);
+        break;
+    case ShapeKind::ConsecutiveMoves:
+        path.moveTo(1, 1);
+        path.moveTo(2, 2);
+        break;
+    case ShapeKind::ZeroLengthLine:
+        path.moveTo(3, 3);
+        path.lineTo(3, 3);
         break;
     case ShapeKind::Rectangle:
         path.addRect(PkRectF(0, 0, 9, 8));
@@ -482,7 +502,8 @@ int main()
         "oracle-self:normalized-elements:mutation=reorder");
 
     const ShapeKind kinds[] = {
-        ShapeKind::Empty, ShapeKind::MoveOnly,
+        ShapeKind::Empty, ShapeKind::MoveOnly, ShapeKind::ConsecutiveMoves,
+        ShapeKind::ZeroLengthLine,
         ShapeKind::Rectangle, ShapeKind::Ellipse, ShapeKind::OpenPolyline,
         ShapeKind::ClosedPolyline, ShapeKind::NestedRings,
         ShapeKind::DisjointCompound, ShapeKind::BowTie, ShapeKind::Star
@@ -494,8 +515,8 @@ int main()
     };
 
     for (ShapeKind kind : kinds)
-        std::cout << "FAMILY " << shapeName(kind) << '\n';
-    std::cout << "FAMILY adversarial-cubic\n";
+        std::cerr << "FAMILY " << shapeName(kind) << '\n';
+    std::cerr << "FAMILY adversarial-cubic\n";
 
     for (int fillA = 0; fillA < 2; ++fillA) {
         for (ShapeKind a : kinds) {

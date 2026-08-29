@@ -509,8 +509,28 @@ void PkPainterPath::markDirty() { m_dirtyBounds = true; m_dirtyControlRect = tru
 void PkPainterPath::clear() { m_elements.clear(); m_currentPos = PkPointF(0,0); markDirty(); }
 void PkPainterPath::reserve(int size) { m_elements.reserve(size); }
 
-void PkPainterPath::moveTo(const PkPointF &p) { m_elements.append(Element(p.x(),p.y(),MoveToElement)); m_currentPos = p; markDirty(); }
-void PkPainterPath::lineTo(const PkPointF &p) { m_elements.append(Element(p.x(),p.y(),LineToElement)); m_currentPos = p; markDirty(); }
+void PkPainterPath::moveTo(const PkPointF &p)
+{
+    if (!m_elements.isEmpty() && m_elements.last().type == MoveToElement) {
+        m_elements.last().x = p.x();
+        m_elements.last().y = p.y();
+    } else {
+        m_elements.append(Element(p.x(), p.y(), MoveToElement));
+    }
+    m_currentPos = p;
+    markDirty();
+}
+
+void PkPainterPath::lineTo(const PkPointF &p)
+{
+    if (m_elements.isEmpty())
+        moveTo(PkPointF());
+    if (p == m_currentPos)
+        return;
+    m_elements.append(Element(p.x(), p.y(), LineToElement));
+    m_currentPos = p;
+    markDirty();
+}
 void PkPainterPath::cubicTo(const PkPointF &c1, const PkPointF &c2, const PkPointF &ep)
 { m_elements.append(Element(c1.x(),c1.y(),CurveToElement)); m_elements.append(Element(c2.x(),c2.y(),CurveToDataElement)); m_elements.append(Element(ep.x(),ep.y(),CurveToDataElement)); m_currentPos = ep; markDirty(); }
 void PkPainterPath::quadTo(const PkPointF &cp, const PkPointF &ep)

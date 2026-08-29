@@ -18,10 +18,10 @@ pixmaps, gradients, textures, rasterization, and a Qt backend are intentionally 
 | Family | Overloads |
 |---|---|
 | State stack | `save()`, `restore()` |
-| Pen | `pen()`, `setPen(const PkPen &)`, `setPen(const PkColor &, qreal)`, `setPen(Qt::PenStyle)` |
+| Pen | `PkPen(Qt::PenStyle)`, `pen()`, `setPen(const PkPen &)`, `setPen(const PkColor &, qreal)`, `setPen(Qt::PenStyle)` |
 | Brush | `brush()`, `setBrush(const PkBrush &)`, `setBrush(const PkColor &)`, `setBrush(Qt::BrushStyle)` |
 | Transform | `transform()`, `setTransform(const PkTransform &, bool)` |
-| Render hints | `setRenderHint(unsigned, bool)`, `setRenderHints(unsigned, bool)` |
+| Render hints | `PkPainter::RenderHint::Antialiasing` / `PkPainter::Antialiasing` (`0x01`), `setRenderHint(unsigned, bool)`, `setRenderHints(unsigned, bool)` |
 | Clip | `setClipRect(const PkRectF &, Qt::ClipOperation)` |
 | Line | `drawLine(const PkLineF &)`, `drawLine(const PkPointF &, const PkPointF &)` |
 | Rectangle | `drawRect(const PkRectF &)` |
@@ -30,8 +30,9 @@ pixmaps, gradients, textures, rasterization, and a Qt backend are intentionally 
 | Path/polygon | `drawPath(const PkPainterPath &)`, `drawPolygon(const PkPolygonF &)` |
 | Image | `drawImage(const PkRectF &, const PkImage &)` |
 
-`setPen(Qt::PenStyle)` and `setBrush(Qt::BrushStyle)` construct fresh black default
-values of the requested style, matching the measured QPainter overload semantics.
+`PkPen(Qt::PenStyle)`, `setPen(Qt::PenStyle)`, and `setBrush(Qt::BrushStyle)` construct
+fresh black default values of the requested style, matching the measured QPen/QPainter
+overload semantics.
 Combined transforms are tracked as `newTransform * currentTransform`, while the
 submitted command preserves the original transform plus its `combine` flag for the
 backend adapter.

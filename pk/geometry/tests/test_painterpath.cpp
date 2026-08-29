@@ -139,9 +139,10 @@ void PkPainterPathCase::moveTo()
 
     // 连续 moveTo 更新当前位置
     path.moveTo(30, 40);
-    PK_COMPARE(path.elementCount(), 2);
+    PK_COMPARE(path.elementCount(), 1);
     PK_VERIFY(path.elementAt(0).isMoveTo());
-    PK_VERIFY(path.elementAt(1).isMoveTo());
+    PK_COMPARE(path.elementAt(0).x, 30.0);
+    PK_COMPARE(path.elementAt(0).y, 40.0);
     PK_COMPARE(path.currentPosition(), PkPointF(30, 40));
 }
 
@@ -646,6 +647,29 @@ void PkPainterPathCase::booleanEmptyIdentities()
     PK_VERIFY((shape & moveOnly).isEmpty());
     PK_VERIFY((moveOnly - shape).isEmpty());
     PK_COMPARE(shape - moveOnly, shape);
+}
+
+void PkPainterPathCase::degenerateBuilderPaths()
+{
+    const PkPainterPath containing = r39Rectangle(0, 0, 10, 10);
+
+    PkPainterPath consecutiveMoves;
+    consecutiveMoves.moveTo(1, 1);
+    consecutiveMoves.moveTo(2, 2);
+    PK_COMPARE(consecutiveMoves.elementCount(), 1);
+    PK_VERIFY(consecutiveMoves.elementAt(0).isMoveTo());
+    PK_COMPARE(consecutiveMoves.currentPosition(), PkPointF(2, 2));
+    PK_VERIFY(consecutiveMoves.isEmpty());
+    PK_VERIFY(!consecutiveMoves.intersects(containing));
+
+    PkPainterPath zeroLengthLine;
+    zeroLengthLine.moveTo(3, 3);
+    zeroLengthLine.lineTo(3, 3);
+    PK_COMPARE(zeroLengthLine.elementCount(), 1);
+    PK_VERIFY(zeroLengthLine.elementAt(0).isMoveTo());
+    PK_COMPARE(zeroLengthLine.currentPosition(), PkPointF(3, 3));
+    PK_VERIFY(zeroLengthLine.isEmpty());
+    PK_VERIFY(!zeroLengthLine.intersects(containing));
 }
 
 void PkPainterPathCase::equalityUsesBoundingSizeEpsilon()
