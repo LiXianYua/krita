@@ -7,7 +7,7 @@
 
 #include <KoCompositeOp.h>
 #include "kis_node.h"
-#include "commands/kis_node_commands.h"
+#include "commands/kis_node_compositeop_command.h"
 #include "kis_command_ids.h"
 
 KisNodeCompositeOpCommand::KisNodeCompositeOpCommand(KisNodeSP node, const PkString& newCompositeOp) :
