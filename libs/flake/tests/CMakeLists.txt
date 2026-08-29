@@ -51,6 +51,15 @@ kis_add_test(
     )
 target_compile_definitions(TestSvgParserRoundTrip PRIVATE USE_ROUND_TRIP)
 
+kis_add_test(
+    PkQPainterAdapterTest.cpp
+    TEST_NAME PkQPainterAdapterTest
+    LINK_LIBRARIES kritaflake kritatestsdk
+    )
+target_include_directories(PkQPainterAdapterTest PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/render
+    )
+
 ############## broken tests ###############
 
 kis_add_test(TestPointMergeCommand.cpp
