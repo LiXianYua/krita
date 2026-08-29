@@ -147,7 +147,7 @@ public:
     }
 
     inline KisTileSP tile(KisMementoManager *mm) {
-        assert(m_tileData);
+        PK_TILES_ASSERT(m_tileData);
         return KisTileSP(new KisTile(m_col, m_row, m_tileData, mm));
     }
 

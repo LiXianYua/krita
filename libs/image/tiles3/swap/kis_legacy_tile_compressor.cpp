@@ -30,7 +30,7 @@ bool KisLegacyTileCompressor::writeTile(KisTileSP tile, KisPaintDeviceWriter &st
     std::unique_ptr<std::uint8_t[]> headerBuffer(new std::uint8_t[bufferSize]);
 
     bool retval = writeHeader(tile, headerBuffer.get());
-    assert(retval);  // currently the code returns true unconditionally
+    PK_TILES_ASSERT(retval);  // currently the code returns true unconditionally
     if (!retval) {
         return false;
     }
@@ -77,7 +77,7 @@ void KisLegacyTileCompressor::compressTileData(KisTileData *tileData,
     bytesWritten = 0;
     const std::int32_t tileDataSize = TILE_DATA_SIZE(tileData->pixelSize());
     (void)(bufferSize);
-    assert(bufferSize >= tileDataSize);
+    PK_TILES_ASSERT(bufferSize >= tileDataSize);
     memcpy(buffer, tileData->data(), tileDataSize);
     bytesWritten += tileDataSize;
 }

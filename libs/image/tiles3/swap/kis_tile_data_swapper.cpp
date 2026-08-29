@@ -215,9 +215,9 @@ public:
 
 
 template<class strategy>
-std::int64_t KisTileDataSwapper::pass(std::int64_t needToFreeMetric)
+long long KisTileDataSwapper::pass(long long needToFreeMetric)
 {
-    std::int64_t freedMetric = 0;
+    long long freedMetric = 0;
     PkList<KisTileData*> additionalCandidates;
 
     typename strategy::iterator *iter =

@@ -27,7 +27,7 @@ inline std::uint8_t* KisTileData::data() const {
     }
 
 void KisTileData::setData(const std::uint8_t *data) {
-    assert(m_data);
+    PK_TILES_ASSERT(m_data);
     memcpy(m_data, data, m_pixelSize*WIDTH*HEIGHT);
 }
 

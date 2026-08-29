@@ -82,9 +82,9 @@ KisMementoManager::KisMementoManager(const KisMementoManager& rhs)
         m_currentMemento(rhs.m_currentMemento),
         m_registrationBlocked(rhs.m_registrationBlocked)
 {
-    assert((!m_registrationBlocked) &&
-           "KisMementoManager: (impossible happened) "
-           "The device has been copied while registration was blocked");
+    PK_TILES_ASSERT_X(!m_registrationBlocked,
+                      "KisMementoManager", "(impossible happened) "
+                      "The device has been copied while registration was blocked");
 }
 
 KisMementoManager::~KisMementoManager()

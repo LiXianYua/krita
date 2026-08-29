@@ -21,9 +21,9 @@ KisSwappedDataStore::KisSwappedDataStore()
     : m_totalSwapMemoryUsed(0)
 {
     KisImageConfig config(true);
-    const std::uint64_t maxSwapSize = config.maxSwapSize() * MiB;
-    const std::uint64_t swapSlabSize = config.swapSlabSize() * MiB;
-    const std::uint64_t swapWindowSize = config.swapWindowSize() * MiB;
+    const unsigned long long maxSwapSize = config.maxSwapSize() * MiB;
+    const unsigned long long swapSlabSize = config.swapSlabSize() * MiB;
+    const unsigned long long swapWindowSize = config.swapWindowSize() * MiB;
 
     m_allocator = new KisChunkAllocator(swapSlabSize, maxSwapSize);
     m_swapSpace = new KisMemoryWindow(PkString(config.swapDir().toUtf8().constData()),
@@ -40,7 +40,7 @@ KisSwappedDataStore::~KisSwappedDataStore()
     delete m_allocator;
 }
 
-std::uint64_t KisSwappedDataStore::numTiles() const
+unsigned long long KisSwappedDataStore::numTiles() const
 {
     // We are not acquiring the lock here...
 
@@ -49,7 +49,7 @@ std::uint64_t KisSwappedDataStore::numTiles() const
 
 bool KisSwappedDataStore::trySwapOutTileData(KisTileData *td)
 {
-    assert(td->data());
+    PK_TILES_ASSERT(td->data());
     PkMutexLocker locker(&m_lock);
 
     /**
@@ -83,7 +83,7 @@ bool KisSwappedDataStore::trySwapOutTileData(KisTileData *td)
 
 void KisSwappedDataStore::swapInTileData(KisTileData *td)
 {
-    assert(!td->data());
+    PK_TILES_ASSERT(!td->data());
     PkMutexLocker locker(&m_lock);
 
     // see comment in swapOutTileData()
@@ -95,7 +95,7 @@ void KisSwappedDataStore::swapInTileData(KisTileData *td)
     td->setSwapChunk(KisChunk());
 
     std::uint8_t *ptr = m_swapSpace->getReadChunkPtr(chunk);
-    assert(ptr);
+    PK_TILES_ASSERT(ptr);
     m_compressor->decompressTileData(ptr, chunk.size(), td);
     m_allocator->freeChunk(chunk);
 }
@@ -110,7 +110,7 @@ void KisSwappedDataStore::forgetTileData(KisTileData *td)
     td->setSwapChunk(KisChunk());
 }
 
-std::int64_t KisSwappedDataStore::totalSwapMemoryUsed() const
+long long KisSwappedDataStore::totalSwapMemoryUsed() const
 {
     return m_totalSwapMemoryUsed;
 }

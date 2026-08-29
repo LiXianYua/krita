@@ -38,7 +38,7 @@ private:
     void run();
 
     void doJob();
-    template<class strategy> std::int64_t pass(std::int64_t needToFreeMetric);
+    template<class strategy> long long pass(long long needToFreeMetric);
 
 private:
     static const std::int32_t TIMEOUT;

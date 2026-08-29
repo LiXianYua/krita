@@ -164,7 +164,7 @@ bool KisTiledDataManager::read(PkStream *stream)
         std::vector<PkString> lineItems = line.split(u' ');
 
         PkString keyword = lineItems.front();
-        assert(keyword == "VERSION");
+        PK_TILES_ASSERT(keyword == "VERSION");
 
         tilesVersion = lineItems.size() > 1 ? lineItems[1].toInt() : 0;
 
@@ -203,7 +203,7 @@ bool KisTiledDataManager::writeTilesHeader(KisPaintDeviceWriter &store, std::uin
         .arg((int)numTiles);
 
     std::string utf8 = buffer.PkToUtf8();
-    return store.write(utf8.data(), (std::int64_t)utf8.size());
+    return store.write(utf8.data(), (long long)utf8.size());
 }
 
 #define takeOneLine(stream, maxLine, keyword, value)            \

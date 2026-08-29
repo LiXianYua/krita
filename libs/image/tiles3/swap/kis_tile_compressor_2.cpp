@@ -42,7 +42,7 @@ bool KisTileCompressor2::writeTile(KisTileSP tile, KisPaintDeviceWriter &store)
     PkString header = getHeader(tile, bytesWritten);
     bool retval = true;
     const std::string headerUtf8 = header.PkToUtf8();
-    retval = store.write(headerUtf8.data(), static_cast<std::int64_t>(headerUtf8.size()));
+    retval = store.write(headerUtf8.data(), static_cast<long long>(headerUtf8.size()));
     if (!retval) {
         warnFile << "Failed to write the tile header";
     }
@@ -122,7 +122,7 @@ void KisTileCompressor2::compressTileData(KisTileData *tileData,
     std::int32_t compressedBytes;
 
     (void)(bufferSize);
-    assert(bufferSize >= tileDataSize + 1);
+    PK_TILES_ASSERT(bufferSize >= tileDataSize + 1);
 
     prepareWorkBuffers(tileDataSize);
 

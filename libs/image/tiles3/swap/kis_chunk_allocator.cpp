@@ -112,7 +112,7 @@ void KisChunkAllocator::freeChunk(KisChunk chunk)
         return;
     }
 
-    assert(chunk.position()->m_begin == chunk.begin());
+    PK_TILES_ASSERT(chunk.position()->m_begin == chunk.begin());
     m_list.erase(chunk.position());
 }
 
@@ -199,7 +199,7 @@ double KisChunkAllocator::debugFragmentation(bool toStderr)
         DEBUG_FAIL_COUNTER();
     }
 
-    assert(totalSize == allocated + free);
+    PK_TILES_ASSERT(totalSize == allocated + free);
 
     return fragmentation;
 }

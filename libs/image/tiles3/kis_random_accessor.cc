@@ -29,7 +29,7 @@ KisRandomAccessor2::KisRandomAccessor2(KisTiledDataManager *ktm, std::int32_t of
         m_offsetY(offsetY),
         m_completeListener(completeListener)
 {
-    assert(ktm != 0);
+    PK_TILES_ASSERT(ktm != 0);
 }
 
 KisRandomAccessor2::~KisRandomAccessor2()

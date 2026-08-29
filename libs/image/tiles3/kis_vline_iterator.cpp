@@ -19,9 +19,9 @@ KisVLineIterator2::KisVLineIterator2(KisDataManager *dataManager, std::int32_t x
 {
     x -= m_offsetX;
     y -= m_offsetY;
-    assert(dataManager != 0);
+    PK_TILES_ASSERT(dataManager != 0);
 
-    assert(h > 0); // for us, to warn us when abusing the iterators
+    PK_TILES_ASSERT(h > 0); // for us, to warn us when abusing the iterators
     if (h < 1) h = 1;  // for release mode, to make sure there's always at least one pixel read.
 
     m_lineStride = m_pixelSize * KisTileData::WIDTH;
@@ -130,7 +130,7 @@ std::int32_t KisVLineIterator2::nConseqPixels() const
 
 bool KisVLineIterator2::nextPixels(std::int32_t n)
 {
-    assert((!(m_y > 0 && (m_y + n) < 0)) && "vlineIt+=: Integer overflow");
+    PK_TILES_ASSERT_X(!(m_y > 0 && (m_y + n) < 0), "vlineIt+=", "Integer overflow");
 
     std::int32_t previousRow = yToRow(m_y);
     // We won't increment m_x here first as integer can overflow
@@ -180,8 +180,8 @@ const std::uint8_t* KisVLineIterator2::rawDataConst() const
 void KisVLineIterator2::switchToTile(std::int32_t yInTile)
 {
     // The caller must ensure that we are not out of bounds
-    assert(m_index < m_tilesCacheSize);
-    assert(m_index >= 0);
+    PK_TILES_ASSERT(m_index < m_tilesCacheSize);
+    PK_TILES_ASSERT(m_index >= 0);
 
     int offset_row = m_pixelSize * m_xInTile;
     m_data = m_tilesCache[m_index].data;

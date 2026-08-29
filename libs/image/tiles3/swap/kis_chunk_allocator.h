@@ -9,14 +9,10 @@
 
 #include <cstdint>
 #include <type_traits>
-#include <cassert>
 #include <cstdlib>
 #include <cstdio>
 
 #ifndef PK_TILES_ASSERT
-#  ifdef assert
-#    undef assert
-#  endif
 #  if defined(QT_NO_DEBUG) || defined(NDEBUG)
 #    define PK_TILES_ASSERT(condition) ((void)sizeof(condition))
 #    define PK_TILES_ASSERT_X(condition, where, what) \
@@ -28,7 +24,6 @@
         ((condition) ? static_cast<void>(0) : \
          (std::fprintf(stderr, "%s: %s\n", (where), (what)), std::abort()))
 #  endif
-#  define assert PK_TILES_ASSERT
 #endif
 
 #include <list>
@@ -53,9 +48,9 @@ static_assert(std::is_same<PkTilesQint64, long long>::value, "qint64 ABI");
 #ifdef DEBUG_SLAB_FAILS
 
 #define WINDOW_SIZE 2000
-#define DECLARE_FAIL_COUNTER() std::uint64_t __failCount
+#define DECLARE_FAIL_COUNTER() unsigned long long __failCount
 #define INIT_FAIL_COUNTER() __failCount = 0
-#define START_COUNTING() std::uint64_t __numSteps = 0
+#define START_COUNTING() unsigned long long __numSteps = 0
 #define REGISTER_STEP() if(++__numSteps > WINDOW_SIZE) {__numSteps=0; __failCount++;}
 #define REGISTER_FAIL() __failCount++
 #define DEBUG_FAIL_COUNTER() infoTiles << "Slab fail count:\t" << __failCount
@@ -97,7 +92,7 @@ public:
 
     bool operator== (const KisChunkData& other) const
     {
-        assert(m_begin!=other.m_begin || m_end==other.m_end);
+        PK_TILES_ASSERT(m_begin!=other.m_begin || m_end==other.m_end);
 
         /**
          * Chunks cannot overlap, so it is enough to check

@@ -35,9 +35,9 @@ public:
 
     void testingRereadConfig();
 
-    std::int64_t lastPoolMemoryMetric() const;
-    std::int64_t lastRealMemoryMetric() const;
-    std::int64_t lastHistoricalMemoryMetric() const;
+    long long lastPoolMemoryMetric() const;
+    long long lastRealMemoryMetric() const;
+    long long lastHistoricalMemoryMetric() const;
 
 
     /**

@@ -168,18 +168,18 @@ inline void KisTile::blockSwapping() const
      */
 
     PkMutexLocker locker(&m_swapBarrierLock);
-    assert(m_lockCounter >= 0);
+    PK_TILES_ASSERT(m_lockCounter >= 0);
 
     if(!m_lockCounter++)
         m_tileData->blockSwapping();
 
-    assert(data());
+    PK_TILES_ASSERT(data());
 }
 
 inline void KisTile::unblockSwapping() const
 {
     PkMutexLocker locker(&m_swapBarrierLock);
-    assert(m_lockCounter > 0);
+    PK_TILES_ASSERT(m_lockCounter > 0);
 
     if(--m_lockCounter == 0) {
         m_tileData->unblockSwapping();
@@ -197,7 +197,7 @@ inline void KisTile::unblockSwapping() const
 inline void KisTile::safeReleaseOldTileData(KisTileData *td)
 {
     PkMutexLocker locker(&m_swapBarrierLock);
-    assert(m_lockCounter >= 0);
+    PK_TILES_ASSERT(m_lockCounter >= 0);
 
     if(m_lockCounter > 0) {
         m_oldTileData.push(td);

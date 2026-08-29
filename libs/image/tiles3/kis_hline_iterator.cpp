@@ -17,7 +17,7 @@ KisHLineIterator2::KisHLineIterator2(KisDataManager *dataManager, std::int32_t x
 {
     x -= m_offsetX;
     y -= m_offsetY;
-    assert(dataManager);
+    PK_TILES_ASSERT(dataManager);
 
     if (w < 1) w = 1;  // To make sure there's always at least one pixel read.
 
@@ -127,7 +127,7 @@ std::int32_t KisHLineIterator2::nConseqPixels() const
 
 bool KisHLineIterator2::nextPixels(std::int32_t n)
 {
-    assert((!(m_x > 0 && (m_x + n) < 0)) && "hlineIt+=: Integer overflow");
+    PK_TILES_ASSERT_X(!(m_x > 0 && (m_x + n) < 0), "hlineIt+=", "Integer overflow");
 
     std::int32_t previousCol = xToCol(m_x);
     // We won't increment m_x here first as integer can overflow
@@ -177,7 +177,7 @@ const std::uint8_t* KisHLineIterator2::rawDataConst() const
 void KisHLineIterator2::switchToTile(std::int32_t xInTile)
 {
     // The caller must ensure that we are not out of bounds
-    assert(m_index < m_tilesCacheSize);
+    PK_TILES_ASSERT(m_index < m_tilesCacheSize);
 
     m_data = m_tilesCache[m_index].data;
     m_oldData = m_tilesCache[m_index].oldData;

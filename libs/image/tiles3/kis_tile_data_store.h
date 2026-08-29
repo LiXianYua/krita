@@ -37,13 +37,13 @@ public:
     void debugPrintList();
 
     struct MemoryStatistics {
-        std::int64_t totalMemorySize;
-        std::int64_t realMemorySize;
-        std::int64_t historicalMemorySize;
+        long long totalMemorySize;
+        long long realMemorySize;
+        long long historicalMemorySize;
 
-        std::int64_t poolSize;
+        long long poolSize;
 
-        std::int64_t swapSize;
+        long long swapSize;
     };
 
     MemoryStatistics memoryStatistics();
@@ -74,7 +74,7 @@ public:
     /**
      * \see m_memoryMetric
      */
-    inline std::int64_t memoryMetric() const
+    inline long long memoryMetric() const
     {
         return m_memoryMetric.loadAcquire();
     }

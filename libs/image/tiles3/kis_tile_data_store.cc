@@ -38,11 +38,11 @@ KisTileDataStore* s_instance()
 #endif
 
 #ifdef DEBUG_HIT_MISS
-std::int64_t __preclone_miss = 0;
-std::int64_t __preclone_hit = 0;
+long long __preclone_miss = 0;
+long long __preclone_hit = 0;
 
-std::int64_t __preclone_miss_user_count = 0;
-std::int64_t __preclone_miss_age = 0;
+long long __preclone_miss_user_count = 0;
+long long __preclone_miss_age = 0;
 
 #define DEBUG_COUNT_PRECLONE_HIT(td) __preclone_hit++
 #define DEBUG_COUNT_PRECLONE_MISS(td) __preclone_miss++; __preclone_miss_user_count+=td->numUsers(); __preclone_miss_age+=td->age()
@@ -95,7 +95,7 @@ KisTileDataStore::MemoryStatistics KisTileDataStore::memoryStatistics()
 
     MemoryStatistics stats;
 
-    const std::int64_t metricCoeff = std::int64_t(KisTileData::WIDTH) * KisTileData::HEIGHT;
+    const long long metricCoeff = static_cast<long long>(KisTileData::WIDTH) * KisTileData::HEIGHT;
 
     stats.realMemorySize = m_pooler.lastRealMemoryMetric() * metricCoeff;
     stats.historicalMemorySize = m_pooler.lastHistoricalMemoryMetric() * metricCoeff;
@@ -197,7 +197,7 @@ KisTileData *KisTileDataStore::duplicateTileData(KisTileData *rhs)
 
 void KisTileDataStore::freeTileData(KisTileData *td)
 {
-    assert(td->m_store == this);
+    PK_TILES_ASSERT(td->m_store == this);
 
     DEBUG_FREE_ACTION(td);
 

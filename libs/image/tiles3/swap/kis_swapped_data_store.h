@@ -29,7 +29,7 @@ public:
     /**
      * Returns number of swapped out tile data objects
      */
-    std::uint64_t numTiles() const;
+    unsigned long long numTiles() const;
 
     /**
      * Swap out the data stored in the \a td to the swap file
@@ -58,7 +58,7 @@ public:
      * Returns the metric of the total memory stored in the swap
      * in *uncompressed* form!
      */
-    std::int64_t totalSwapMemoryUsed() const;
+    long long totalSwapMemoryUsed() const;
 
     /**
      * Some debugging output
@@ -74,7 +74,7 @@ private:
 
     PkMutex m_lock;
 
-    std::int64_t m_totalSwapMemoryUsed;
+    long long m_totalSwapMemoryUsed;
 };
 
 #endif /* __KIS_SWAPPED_DATA_STORE_H */

@@ -279,17 +279,17 @@ void KisTileDataPooler::forceUpdateMemoryStats()
     m_store->endIteration(iter);
 }
 
-std::int64_t KisTileDataPooler::lastPoolMemoryMetric() const
+long long KisTileDataPooler::lastPoolMemoryMetric() const
 {
     return m_lastPoolMemoryMetric;
 }
 
-std::int64_t KisTileDataPooler::lastRealMemoryMetric() const
+long long KisTileDataPooler::lastRealMemoryMetric() const
 {
     return m_lastRealMemoryMetric;
 }
 
-std::int64_t KisTileDataPooler::lastHistoricalMemoryMetric() const
+long long KisTileDataPooler::lastHistoricalMemoryMetric() const
 {
     return m_lastHistoricalMemoryMetric;
 }
@@ -430,7 +430,7 @@ void KisTileDataPooler::debugTileStatistics()
      * This means m_store is already locked
      */
 
-    std::int64_t preallocatedTiles=0;
+    long long preallocatedTiles=0;
 
     KisTileDataStoreIterator *iter = m_store->beginIteration();
     KisTileData *item;

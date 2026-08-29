@@ -12,28 +12,6 @@
 //#define SHARED_TILES_SANITY_CHECK
 
 #include <cstdint>
-#include <cassert>
-#include <cstdlib>
-#include <cstdio>
-
-#ifndef PK_TILES_ASSERT
-#  ifdef assert
-#    undef assert
-#  endif
-#  if defined(QT_NO_DEBUG) || defined(NDEBUG)
-#    define PK_TILES_ASSERT(condition) ((void)sizeof(condition))
-#    define PK_TILES_ASSERT_X(condition, where, what) \
-        ((void)sizeof(condition), (void)sizeof(where), (void)sizeof(what))
-#  else
-#    define PK_TILES_ASSERT(condition) \
-        ((condition) ? static_cast<void>(0) : std::abort())
-#    define PK_TILES_ASSERT_X(condition, where, what) \
-        ((condition) ? static_cast<void>(0) : \
-         (std::fprintf(stderr, "%s: %s\n", (where), (what)), std::abort()))
-#  endif
-#  define assert PK_TILES_ASSERT
-#endif
-
 
 template<class T>
 KisTileHashTableTraits<T>::KisTileHashTableTraits(KisMementoManager *mm)
@@ -336,7 +314,7 @@ void KisTileHashTableTraits<T>::clear()
         m_hashTable[i] = 0;
     }
 
-    assert(!m_numTiles);
+    PK_TILES_ASSERT(!m_numTiles);
 }
 
 template<class T>
@@ -441,7 +419,7 @@ void KisTileHashTableTraits<T>::sanityChecksumCheck()
      * We assume that the lock should have already been taken
      * by the code that was going to change the table
      */
-    assert(!m_lock.tryLockForWrite());
+    PK_TILES_ASSERT(!m_lock.tryLockForWrite());
 
     TileTypeSP tile = 0;
     std::int32_t exactNumTiles = 0;
@@ -459,6 +437,6 @@ void KisTileHashTableTraits<T>::sanityChecksumCheck()
         dbgKrita << ppVar(exactNumTiles);
         dbgKrita << ppVar(m_numTiles);
         dbgKrita << "Wrong tiles checksum!";
-        assert(0); // not fatalKrita for a backtrace support
+    PK_TILES_ASSERT(0); // not fatalKrita for a backtrace support
     }
 }

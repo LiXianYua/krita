@@ -157,8 +157,8 @@ void KisTiledDataManager::writePlanarBytesBody(PkVector </*const*/ std::uint8_t*
                                                std::int32_t x, std::int32_t y,
                                                std::int32_t width, std::int32_t height)
 {
-    assert(planes.size() == channelSizes.size());
-    assert(planes.size() > 0);
+    PK_TILES_ASSERT(planes.size() == channelSizes.size());
+    PK_TILES_ASSERT(planes.size() > 0);
 
     width  = width < 0  ? 0 : width;
     height = height < 0 ? 0 : height;
@@ -234,7 +234,7 @@ PkVector<std::uint8_t*> KisTiledDataManager::readPlanarBytesBody(PkVector<std::i
                                                           std::int32_t x, std::int32_t y,
                                                           std::int32_t width, std::int32_t height) const
 {
-    assert(channelSizes.size() > 0);
+    PK_TILES_ASSERT(channelSizes.size() > 0);
 
     width  = width < 0  ? 0 : width;
     height = height < 0 ? 0 : height;
@@ -309,5 +309,4 @@ PkVector<std::uint8_t*> KisTiledDataManager::readPlanarBytesBody(PkVector<std::i
     }
     return planes;
 }
-
 

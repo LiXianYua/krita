@@ -128,12 +128,12 @@ void KisTileData::releaseMemory()
         delete clone;
     }
 
-    assert(m_clonesStack.isEmpty());
+    PK_TILES_ASSERT(m_clonesStack.isEmpty());
 }
 
 void KisTileData::allocateMemory()
 {
-    assert(!m_data);
+    PK_TILES_ASSERT(!m_data);
     m_data = allocateData(m_pixelSize);
 }
 
