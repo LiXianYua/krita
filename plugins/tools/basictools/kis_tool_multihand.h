@@ -9,6 +9,7 @@
 #define __KIS_TOOL_MULTIHAND_H
 
 #include "kis_tool_brush.h"
+#include <PkConnection.h>
 #include <QRandomGenerator>
 
 class KisToolMultihandHelper;
@@ -43,6 +44,7 @@ private Q_SLOTS:
     void resetAxes();
 
 private:
+    PkConnection m_imageSizeConnection;
     KisToolMultihandHelper *m_helper;
 
     enum enumTransformModes:int { SYMMETRY=0, MIRROR, TRANSLATE, SNOWFLAKE, COPYTRANSLATE, COPYTRANSLATEINTERVALS };

@@ -6,7 +6,7 @@
 
 #include "kis_processing_applicator_test.h"
 
-#include <QSignalSpy>
+#include <PkConnection.h>
 #include <simpletest.h>
 
 #include <KoColor.h>
@@ -170,7 +170,11 @@ void KisProcessingApplicatorTest::testNoUIUpdates()
     KisPaintLayerSP paintLayer1;
     KisPaintLayerSP paintLayer2;
     KisImageSP image = createImage(undoStore, paintLayer1, paintLayer2);
-    QSignalSpy uiSignalsCounter(image.data(), SIGNAL(sigImageUpdated(QRect)));
+    int uiSignalsCount = 0;
+    PkConnection connection = PkObject::connect(
+        image.data(), &KisImage::sigImageUpdated, image.data(),
+        [&uiSignalsCount](const PkRect &) { ++uiSignalsCount; },
+        PkConnectionType::Direct);
 
     QRect cropRect1(40,40,86,86);
 
@@ -186,14 +190,13 @@ void KisProcessingApplicatorTest::testNoUIUpdates()
         image->waitForDone();
     }
 
-    QCOMPARE(uiSignalsCounter.size(), 0);
-
-    uiSignalsCounter.clear();
+    QCOMPARE(uiSignalsCount, 0);
 
     undoStore->undo();
     image->waitForDone();
 
-    QCOMPARE(uiSignalsCounter.size(), 0);
+    QCOMPARE(uiSignalsCount, 0);
+    PkObject::disconnect(connection);
 }
 
 SIMPLE_TEST_MAIN(KisProcessingApplicatorTest)

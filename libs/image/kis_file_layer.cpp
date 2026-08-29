@@ -105,6 +105,8 @@ KisFileLayer::KisFileLayer(KisImageWSP image, const QString &basePath, const QSt
 
 KisFileLayer::~KisFileLayer()
 {
+    PkObject::disconnect(m_imageSizeConnection);
+    PkObject::disconnect(m_imageResolutionConnection);
 }
 
 KisFileLayer::KisFileLayer(const KisFileLayer &rhs)
@@ -409,14 +411,21 @@ void KisFileLayer::slotImageSizeChanged()
 void KisFileLayer::setImage(KisImageWSP image)
 {
     KisImageWSP oldImage = this->image();
-    m_imageConnections.clear();
+    PkObject::disconnect(m_imageSizeConnection);
+    PkObject::disconnect(m_imageResolutionConnection);
 
     m_paintDevice->setDefaultBounds(new KisDefaultBounds(image));
     KisExternalLayer::setImage(image);
 
     if (image) {
-        m_imageConnections.addUniqueConnection(image, SIGNAL(sigSizeChanged(QPointF,QPointF)), this, SLOT(slotImageSizeChanged()));
-        m_imageConnections.addUniqueConnection(image, SIGNAL(sigResolutionChanged(double, double)), this, SLOT(slotImageResolutionChanged()));
+        m_imageSizeConnection = PkObject::connect(
+            image.data(), &KisImage::sigSizeChanged,
+            this, &KisFileLayer::slotImageSizeChanged,
+            PkConnectionType::Unique);
+        m_imageResolutionConnection = PkObject::connect(
+            image.data(), &KisImage::sigResolutionChanged,
+            this, &KisFileLayer::slotImageResolutionChanged,
+            PkConnectionType::Unique);
     }
 
     if (m_scalingMethod != None && image && oldImage != image) {

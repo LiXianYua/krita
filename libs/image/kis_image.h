@@ -8,6 +8,7 @@
 #define KIS_IMAGE_H_
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 #include <PkString.h>
 #include <PkRect.h>
 #include <KoColorConversionTransformation.h>
@@ -61,9 +62,7 @@ class KRITAIMAGE_EXPORT KisImage : public PkShellObject,
         public KisShared
 {
 
-    Q_OBJECT
-
-public:    
+public:
     /// @p colorSpace can be null. In that case, it will be initialised to a default color space.
     KisImage(KisUndoStore *undoStore, qint32 width, qint32 height, const KoColorSpace *colorSpace, const PkString& name);
     ~KisImage() override;
@@ -756,7 +755,7 @@ public:
      */
     bool allowMasksOnRootNode() const;
 
-public Q_SLOTS:
+public:
 
     /**
      * Explicitly start regeneration of LoD planes of all the devices
@@ -799,7 +798,7 @@ public:
 
     bool startIsolatedMode(KisNodeSP node, bool isolateLayer, bool isolateGroup);
 
-public Q_SLOTS:
+public:
     void stopIsolatedMode();
 
 public:
@@ -807,7 +806,7 @@ public:
     bool isIsolatingLayer() const;
     bool isIsolatingGroup() const;
 
-Q_SIGNALS:
+signals:
 
     /**
      *  Emitted whenever an action has caused the image to be
@@ -868,7 +867,7 @@ Q_SIGNALS:
      * about the node being run in a not-scheduler thread. If you need
      * information about the parent/siblings of the node connect
      * with Qt::DirectConnection, get needed information and then
-     * Q_EMIT another Qt::AutoConnection signal to pass this information
+     * emit another auto-connection signal to pass this information
      * to your thread. See details of the implementation
      * in KisDummiesfacadeBase.
      */
@@ -1172,7 +1171,7 @@ public:
      */
     bool hasUpdatesRunning() const override;
 
-public Q_SLOTS:
+public:
 
     /**
      * This method is called by the UI (*not* by the creator of the

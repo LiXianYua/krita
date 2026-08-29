@@ -12,6 +12,7 @@
 #include "kis_node_dummies_graph.h"
 #include "kis_layer_utils.h"
 #include <KisSynchronizedConnection.h>
+#include <PkConnection.h>
 
 struct KisDummiesFacadeBase::Private
 {
@@ -23,6 +24,10 @@ public:
     KisSynchronizedConnection<KisNodeSP> nodeChangedConnection;
     KisSynchronizedConnection<KisNodeSP,KisNodeSP,KisNodeSP> addNodeConnection;
     KisSynchronizedConnection<KisNodeSP> removeNodeConnection;
+
+    PkConnection nodeAddedBridge;
+    PkConnection removeNodeBridge;
+    PkConnection layersChangedBridge;
 
     /**
      * pendingNodeSet contains the set of nodes that will be present in the
@@ -54,6 +59,15 @@ KisDummiesFacadeBase::KisDummiesFacadeBase(QObject *parent)
 
 KisDummiesFacadeBase::~KisDummiesFacadeBase()
 {
+    PkObject::disconnect(m_d->nodeAddedBridge);
+    PkObject::disconnect(m_d->removeNodeBridge);
+    PkObject::disconnect(m_d->layersChangedBridge);
+    if (m_d->image) {
+        PkObject::disconnect(m_d->image.data(), nullptr,
+                             &m_d->nodeChangedConnection, nullptr);
+        PkObject::disconnect(m_d->image.data(), nullptr,
+                             &m_d->activateNodeConnection, nullptr);
+    }
     delete m_d;
 }
 
@@ -64,12 +78,21 @@ void KisDummiesFacadeBase::setImage(KisImageWSP image)
 
 void KisDummiesFacadeBase::setImage(KisImageWSP image, KisNodeSP activeNode)
 {
+    const bool imageChanged = image != m_d->image;
+
     if (m_d->image) {
+        if (imageChanged) {
+            PkObject::disconnect(m_d->nodeAddedBridge);
+            PkObject::disconnect(m_d->removeNodeBridge);
+            PkObject::disconnect(m_d->layersChangedBridge);
+            PkObject::disconnect(m_d->image.data(), nullptr,
+                                 &m_d->nodeChangedConnection, nullptr);
+            PkObject::disconnect(m_d->image.data(), nullptr,
+                                 &m_d->activateNodeConnection, nullptr);
+        }
+
         Q_EMIT sigActivateNode(0);
         m_d->lastActivatedNode = 0;
-        m_d->image->disconnect(this);
-        m_d->image->disconnect(&m_d->nodeChangedConnection);
-        m_d->image->disconnect(&m_d->activateNodeConnection);
 
         KisNodeList nodesToRemove;
 
@@ -92,15 +115,25 @@ void KisDummiesFacadeBase::setImage(KisImageWSP image, KisNodeSP activeNode)
     if (image) {
         slotNodeAdded(image->root(), KisNodeAdditionFlag::None);
 
-        connect(image, &KisImage::sigNodeAddedAsync,
-                this, &KisDummiesFacadeBase::slotNodeAdded, Qt::DirectConnection);
-        connect(image, &KisImage::sigRemoveNodeAsync,
-                this, &KisDummiesFacadeBase::slotRemoveNode, Qt::DirectConnection);
-        connect(image, &KisImage::sigLayersChangedAsync,
-                this, &KisDummiesFacadeBase::slotLayersChanged, Qt::DirectConnection);
+        if (imageChanged) {
+            m_d->nodeAddedBridge = PkObject::connect(
+                image.data(), &KisImage::sigNodeAddedAsync, image.data(),
+                [this](KisNodeSP node, KisNodeAdditionFlags flags) {
+                    slotNodeAdded(node, flags);
+                },
+                PkConnectionType::Direct);
+            m_d->removeNodeBridge = PkObject::connect(
+                image.data(), &KisImage::sigRemoveNodeAsync, image.data(),
+                [this](KisNodeSP node) { slotRemoveNode(node); },
+                PkConnectionType::Direct);
+            m_d->layersChangedBridge = PkObject::connect(
+                image.data(), &KisImage::sigLayersChangedAsync, image.data(),
+                [this]() { slotLayersChanged(); },
+                PkConnectionType::Direct);
 
-        m_d->nodeChangedConnection.connectInputSignal(image, &KisImage::sigNodeChanged);
-        m_d->activateNodeConnection.connectInputSignal(image, &KisImage::sigNodeAddedAsync);
+            m_d->nodeChangedConnection.connectInputSignal(image, &KisImage::sigNodeChanged);
+            m_d->activateNodeConnection.connectInputSignal(image, &KisImage::sigNodeAddedAsync);
+        }
 
         if (!activeNode) {
             activeNode = findFirstLayer(image->root());

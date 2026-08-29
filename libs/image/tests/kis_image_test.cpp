@@ -6,7 +6,7 @@
 
 #include "kis_image_test.h"
 #include <QApplication>
-#include <QSignalSpy>
+#include <PkConnection.h>
 
 #include <simpletest.h>
 
@@ -577,22 +577,28 @@ struct FlattenTestImage
 template<class ContainerTest>
 KisLayerSP flattenLayerHelper(ContainerTest &p, KisLayerSP layer, bool nothingHappens = false)
 {
-    QSignalSpy spy(p.image.data(), SIGNAL(sigNodeAddedAsync(KisNodeSP, KisNodeAdditionFlags)));
+    int signalCount = 0;
+    KisNodeSP emittedNode;
+    PkConnection connection = PkObject::connect(
+        p.image.data(), &KisImage::sigNodeAddedAsync, p.image.data(),
+        [&signalCount, &emittedNode](KisNodeSP node, KisNodeAdditionFlags) {
+            ++signalCount;
+            emittedNode = node;
+        },
+        PkConnectionType::Direct);
 
     //p.image->flattenLayer(layer);
     KisLayerUtils::flattenLayer(p.image, layer);
     p.image->waitForDone();
+    PkObject::disconnect(connection);
 
     if (nothingHappens) {
-        Q_ASSERT(!spy.count());
+        Q_ASSERT(signalCount == 0);
         return layer;
     }
 
-    Q_ASSERT(spy.count() == 1);
-    QList<QVariant> arguments = spy.takeFirst();
-    KisNodeSP newNode = arguments.first().value<KisNodeSP>();
-
-    KisLayerSP newLayer = qobject_cast<KisLayer*>(newNode.data());
+    Q_ASSERT(signalCount == 1);
+    KisLayerSP newLayer = dynamic_cast<KisLayer*>(emittedNode.data());
     return newLayer;
 }
 
@@ -871,16 +877,23 @@ void KisImageTest::testMergeDownMultipleFrames()
 template<class ContainerTest>
 KisNodeSP mergeMultipleHelper(ContainerTest &p, QList<KisNodeSP> selectedNodes, KisNodeSP putAfter)
 {
-    QSignalSpy spy(p.image.data(), SIGNAL(sigNodeAddedAsync(KisNodeSP, KisNodeAdditionFlags)));
+    int signalCount = 0;
+    KisNodeSP emittedNode;
+    PkConnection connection = PkObject::connect(
+        p.image.data(), &KisImage::sigNodeAddedAsync, p.image.data(),
+        [&signalCount, &emittedNode](KisNodeSP node, KisNodeAdditionFlags) {
+            ++signalCount;
+            emittedNode = node;
+        },
+        PkConnectionType::Direct);
 
     p.image->mergeMultipleLayers(selectedNodes, putAfter);
     //KisLayerUtils::mergeMultipleLayers(p.image, selectedNodes, putAfter);
     p.image->waitForDone();
+    PkObject::disconnect(connection);
 
-    Q_ASSERT(spy.count() == 1);
-    QList<QVariant> arguments = spy.takeFirst();
-    KisNodeSP newNode = arguments.first().value<KisNodeSP>();
-    return newNode;
+    Q_ASSERT(signalCount == 1);
+    return emittedNode;
 }
 void KisImageTest::testMergeMultiple()
 {

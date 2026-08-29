@@ -420,7 +420,7 @@ void KisImage::copyFromImageImpl(const KisImage &rhs, int policy)
     /**
      * We should replace the root before emitting any signals, because some of the layers
      * may be subscribed to sigSizeChanged() signal (e.g. KisSelectionBasedLayer). So the
-     * old layers should be fully detached before we actually Q_EMIT this signal.
+     * old layers should be fully detached before we actually emit this signal.
      *
      * We should also change all the dimensional properties of the image before setting
      * the image on the nodes, because some nodes may emit signals if something changes
@@ -464,8 +464,8 @@ void KisImage::copyFromImageImpl(const KisImage &rhs, int policy)
         oldRoot->disconnect();
     }
 
-    // only when replacing do we need to Q_EMIT signals
-#define EMIT_IF_NEEDED if (!(policy & REPLACE)) {} else emit
+    // only when replacing do we need to emit signals
+#define EMIT_IF_NEEDED if (!(policy & REPLACE)) {} else
 
     if (sizeChanged) {
         EMIT_IF_NEEDED sigSizeChanged(PkPointF(), PkPointF());
@@ -607,7 +607,7 @@ void KisImage::aboutToRemoveANode(KisNode *parent, int index)
     if (!dynamic_cast<KisSelectionMask*>(deletedNode.data()) &&
         deletedNode == m_d->isolationRootNode) {
 
-        Q_EMIT sigInternalStopIsolatedModeRequested();
+        sigInternalStopIsolatedModeRequested();
     }
 
     KisLayerUtils::recursiveApplyNodes(KisSharedPtr<KisNode>(parent), [this](KisNodeSP node){
@@ -1737,7 +1737,7 @@ void KisImage::flattenLayer(KisLayerSP layer)
 void KisImage::setModifiedWithoutUndo()
 {
     m_d->signalRouter.emitNotification(ModifiedWithoutUndoSignal);
-    Q_EMIT sigImageModified();
+    sigImageModified();
 }
 
 PkImage KisImage::convertToQImage(PkRect imageRect,
@@ -1873,7 +1873,7 @@ KoColor KisImage::defaultProjectionColor() const
 
 void KisImage::setRootLayer(KisGroupLayerSP rootLayer)
 {
-    Q_EMIT sigInternalStopIsolatedModeRequested();
+    sigInternalStopIsolatedModeRequested();
 
     KoColor defaultProjectionColor = KoColor::createTransparent(m_d->colorSpace);
 
@@ -1951,7 +1951,7 @@ vKisAnnotationSP_it KisImage::endAnnotations()
 
 void KisImage::notifyAboutToBeDeleted()
 {
-    Q_EMIT sigAboutToBeDeleted();
+    sigAboutToBeDeleted();
 }
 
 KisImageSignalRouter* KisImage::signalRouter()
@@ -2040,7 +2040,7 @@ bool KisImage::startIsolatedMode(KisNodeSP node, bool isolateLayer, bool isolate
             const bool prevRootBeforeVisibility = m_prevRoot ? m_prevRoot->projectionLeaf()->visible() : false;
 
             m_image->m_d->isolationRootNode = m_newRoot;
-            Q_EMIT m_image->sigIsolatedModeChanged();
+            m_image->sigIsolatedModeChanged();
 
             const bool afterVisibility = m_newRoot->projectionLeaf()->visible();
             const bool prevRootAfterVisibility = m_prevRoot ? m_prevRoot->projectionLeaf()->visible() : false;
@@ -2051,7 +2051,7 @@ bool KisImage::startIsolatedMode(KisNodeSP node, bool isolateLayer, bool isolate
 
         void finishStrokeCallback() override {
             // the GUI uses our thread to do the color space conversion so we
-            // need to Q_EMIT this signal in multiple threads
+            // need to emit this signal in multiple threads
 
             if (m_prevRoot && m_prevRootNeedsFullRefresh) {
                 m_image->refreshGraphAsync(m_prevRoot);
@@ -2113,7 +2113,7 @@ void KisImage::stopIsolatedMode()
             m_image->m_d->isolationRootNode = 0;
             m_image->m_d->isolateLayer = false;
             m_image->m_d->isolateGroup = false;
-            Q_EMIT m_image->sigIsolatedModeChanged();
+            m_image->sigIsolatedModeChanged();
             const bool afterVisibility = m_oldRootNode->projectionLeaf()->visible();
 
             m_oldNodeNeedsRefresh = (beforeVisibility != afterVisibility);
@@ -2185,18 +2185,18 @@ bool KisImage::KisImagePrivate::tryCancelCurrentStrokeAsync()
 
 void KisImage::requestUndoDuringStroke()
 {
-    Q_EMIT sigUndoDuringStrokeRequested();
+    sigUndoDuringStrokeRequested();
 }
 
 void KisImage::requestRedoDuringStroke()
 {
-    Q_EMIT sigRedoDuringStrokeRequested();
+    sigRedoDuringStrokeRequested();
 }
 
 void KisImage::requestStrokeCancellation()
 {
     if (!m_d->tryCancelCurrentStrokeAsync()) {
-        Q_EMIT sigStrokeCancellationRequested();
+        sigStrokeCancellationRequested();
     }
 }
 
@@ -2207,13 +2207,13 @@ UndoResult KisImage::tryUndoUnfinishedLod0Stroke()
 
 void KisImage::requestStrokeEnd()
 {
-    Q_EMIT sigStrokeEndRequested();
-    Q_EMIT sigStrokeEndRequestedActiveNodeFiltered();
+    sigStrokeEndRequested();
+    sigStrokeEndRequestedActiveNodeFiltered();
 }
 
 void KisImage::requestStrokeEndActiveNode()
 {
-    Q_EMIT sigStrokeEndRequested();
+    sigStrokeEndRequested();
 }
 
 void KisImage::initialRefreshGraph()
@@ -2382,7 +2382,7 @@ void KisImage::notifyProjectionUpdated(const PkRect &rc)
 
         if (dirtyRect.isEmpty()) return;
 
-        Q_EMIT sigImageUpdated(dirtyRect);
+        sigImageUpdated(dirtyRect);
     } else {
         m_d->savedDisabledUIUpdates.push(rc);
     }
@@ -2637,7 +2637,7 @@ KisLodPreferences KisImage::lodPreferences() const
 void KisImage::nodeCollapsedChanged(KisNode * node)
 {
     Q_UNUSED(node);
-    Q_EMIT sigNodeCollapsedChanged();
+    sigNodeCollapsedChanged();
 }
 
 KisImageAnimationInterface* KisImage::animationInterface() const
@@ -2655,7 +2655,7 @@ void KisImage::setProofingConfiguration(KisProofingConfigurationSP proofingConfi
     m_d->proofingConfig = proofingConfig;
 
     if (changed) {
-        Q_EMIT sigProofingConfigChanged();
+        sigProofingConfigChanged();
     }
 }
 

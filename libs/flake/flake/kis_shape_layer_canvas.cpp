@@ -169,6 +169,7 @@ KisShapeLayerCanvas::KisShapeLayerCanvas(const KisShapeLayerCanvas &rhs, KisShap
 
 KisShapeLayerCanvas::~KisShapeLayerCanvas()
 {
+    PkObject::disconnect(m_imageSizeConnection);
     m_shapeManager->remove(m_parentLayer);
 }
 
@@ -184,13 +185,16 @@ KisPaintDeviceSP KisShapeLayerCanvas::projection() const
 
 void KisShapeLayerCanvas::setImage(KisImageWSP image)
 {
-    m_imageConnections.clear();
+    PkObject::disconnect(m_imageSizeConnection);
 
     KisShapeLayerCanvasBase::setImage(image);
     m_image = image;
 
     if (image) {
-        m_imageConnections.addUniqueConnection(m_image, &KisImage::sigSizeChanged, this, &KisShapeLayerCanvas::slotImageSizeChanged);
+        m_imageSizeConnection = PkObject::connect(
+            m_image.data(), &KisImage::sigSizeChanged, m_image.data(),
+            [this](const PkPointF &, const PkPointF &) { slotImageSizeChanged(); },
+            PkConnectionType::Unique);
         m_cachedImageRect = m_image->bounds();
         m_projection->convertTo(image->colorSpace());
     }

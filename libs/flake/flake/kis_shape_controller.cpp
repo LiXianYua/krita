@@ -18,7 +18,8 @@
 #include "kis_shape_selection.h"
 #include "kis_selection.h"
 #include "kis_selection_mask.h"
-#include "KisQtConnectionsStore.h"
+#include <PkConnection.h>
+#include <PkObject.h>
 #include "kis_selection_component.h"
 #include "kis_image.h"
 #include "kis_group_layer.h"
@@ -39,7 +40,8 @@ struct KisShapeController::Private
 {
 public:
     KisNameServer *nameServer;
-    KisQtConnectionsStore imageConnections;
+    PkConnection imageResolutionConnection;
+    PkConnection imageSizeConnection;
 
     KisNodeShapesGraph shapesGraph;
 };
@@ -55,6 +57,9 @@ KisShapeController::KisShapeController(KisNameServer *nameServer, KUndo2Stack *u
 
 KisShapeController::~KisShapeController()
 {
+    PkObject::disconnect(m_d->imageResolutionConnection);
+    PkObject::disconnect(m_d->imageSizeConnection);
+
     KisNodeDummy *node = m_d->shapesGraph.rootDummy();
     if (node) {
         m_d->shapesGraph.removeNode(node->node());
@@ -206,11 +211,16 @@ qreal KisShapeController::pixelsPerInch() const
 
 void KisShapeController::setImage(KisImageWSP image, KisNodeSP activeNode)
 {
-    m_d->imageConnections.clear();
+    PkObject::disconnect(m_d->imageResolutionConnection);
+    PkObject::disconnect(m_d->imageSizeConnection);
 
     if (image) {
-        m_d->imageConnections.addConnection(image, &KisImage::sigResolutionChanged, this, &KisShapeController::slotUpdateDocumentResolution);
-        m_d->imageConnections.addConnection(image, &KisImage::sigSizeChanged, this, &KisShapeController::slotUpdateDocumentSize);
+        m_d->imageResolutionConnection = PkObject::connect(
+            image.data(), &KisImage::sigResolutionChanged, image.data(),
+            [this](double, double) { slotUpdateDocumentResolution(); });
+        m_d->imageSizeConnection = PkObject::connect(
+            image.data(), &KisImage::sigSizeChanged, image.data(),
+            [this](const PkPointF &, const PkPointF &) { slotUpdateDocumentSize(); });
     }
 
     KisDummiesFacadeBase::setImage(image, activeNode);

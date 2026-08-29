@@ -40,6 +40,7 @@ ToolReferenceImages::ToolReferenceImages(KoCanvasBase * canvas)
 
 ToolReferenceImages::~ToolReferenceImages()
 {
+    PkObject::disconnect(m_imageNodeAddedConnection);
 }
 
 void ToolReferenceImages::activate(const QSet<KoShape*> &shapes)
@@ -49,7 +50,10 @@ void ToolReferenceImages::activate(const QSet<KoShape*> &shapes)
     KIS_ASSERT_RECOVER_RETURN(m_services);
     KisImageSP currentImage = document()->image();
     KIS_ASSERT_RECOVER_RETURN(currentImage);
-    connect(currentImage.data(), SIGNAL(sigNodeAddedAsync(KisNodeSP, KisNodeAdditionFlags)), this, SLOT(slotNodeAdded(KisNodeSP, KisNodeAdditionFlags)));
+    PkObject::disconnect(m_imageNodeAddedConnection);
+    m_imageNodeAddedConnection = PkObject::connect(
+        currentImage.data(), &KisImage::sigNodeAddedAsync, currentImage.data(),
+        [this](KisNodeSP node, KisNodeAdditionFlags flags) { slotNodeAdded(node, flags); });
     connect(document(), &KisDocument::sigReferenceImagesLayerChanged, this, qOverload<KisNodeSP>(&ToolReferenceImages::slotNodeAdded));
 
     auto referenceImageLayer = document()->referenceImagesLayer();
@@ -60,6 +64,7 @@ void ToolReferenceImages::activate(const QSet<KoShape*> &shapes)
 
 void ToolReferenceImages::deactivate()
 {
+    PkObject::disconnect(m_imageNodeAddedConnection);
     DefaultTool::deactivate();
 }
 

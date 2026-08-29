@@ -8,6 +8,7 @@
 #define TOOL_REFERENCE_IMAGES_H
 
 #include <QPointer>
+#include <PkConnection.h>
 
 #include <KoToolFactoryBase.h>
 
@@ -74,6 +75,7 @@ public Q_SLOTS:
 
 
 private:
+    PkConnection m_imageNodeAddedConnection;
     KisWeakSharedPtr<KisReferenceImagesLayer> m_layer;
     KisReferenceImageToolServices *m_services;
 

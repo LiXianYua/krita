@@ -8,7 +8,7 @@
  */
 
 #include "kis_shape_layer.h"
-#include "KisQtConnectionsStore.h"
+#include <PkConnection.h>
 
 #include <QPainter>
 #include <QPainterPath>
@@ -136,7 +136,7 @@ public:
     int x;
     int y;
     bool isAntialiased;
-    KisQtConnectionsStore imageConnections;
+    PkConnection imageResolutionConnection;
 };
 
 
@@ -246,6 +246,8 @@ KisShapeLayer::KisShapeLayer(KoShapeControllerBase* controller,
 
 KisShapeLayer::~KisShapeLayer()
 {
+    PkObject::disconnect(m_d->imageResolutionConnection);
+
     /**
      * Small hack alert: we should avoid updates on shape deletion
      */
@@ -287,7 +289,10 @@ void KisShapeLayer::initShapeLayerImpl(KoShapeControllerBase* controller,
     model->setAssociatedRootShapeManager(m_d->canvas->shapeManager());
 
     if (this->image()) {
-        m_d->imageConnections.addUniqueConnection(this->image(), &KisImage::sigResolutionChanged, this, &KisShapeLayer::slotImageResolutionChanged);
+        m_d->imageResolutionConnection = PkObject::connect(
+            this->image().data(), &KisImage::sigResolutionChanged,
+            this, &KisShapeLayer::slotImageResolutionChanged,
+            PkConnectionType::Unique);
         slotImageResolutionChanged();
     }
 }
@@ -299,14 +304,17 @@ bool KisShapeLayer::allowAsChild(KisNodeSP node) const
 
 void KisShapeLayer::setImage(KisImageWSP _image)
 {
-    m_d->imageConnections.clear();
+    PkObject::disconnect(m_d->imageResolutionConnection);
     KisLayer::setImage(_image);
     m_d->canvas->setImage(_image);
     if (m_d->paintDevice) {
         m_d->paintDevice->setDefaultBounds(new KisDefaultBounds(_image));
     }
     if (_image) {
-        m_d->imageConnections.addUniqueConnection(_image, &KisImage::sigResolutionChanged, this, &KisShapeLayer::slotImageResolutionChanged);
+        m_d->imageResolutionConnection = PkObject::connect(
+            _image.data(), &KisImage::sigResolutionChanged,
+            this, &KisShapeLayer::slotImageResolutionChanged,
+            PkConnectionType::Unique);
         slotImageResolutionChanged();
     }
 }

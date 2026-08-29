@@ -12,7 +12,7 @@
 
 #include "kis_external_layer_iface.h"
 #include "kis_safe_document_loader.h"
-#include "kis_signal_auto_connection.h"
+#include <PkConnection.h>
 
 /**
  * @brief The KisFileLayer class loads a particular file as a layer into the layer stack.
@@ -116,7 +116,8 @@ private:
 
     State m_state = FileNotFound;
 
-    KisSignalAutoConnectionsStore m_imageConnections;
+    PkConnection m_imageSizeConnection;
+    PkConnection m_imageResolutionConnection;
 };
 
 #endif // KIS_FILE_LAYER_H

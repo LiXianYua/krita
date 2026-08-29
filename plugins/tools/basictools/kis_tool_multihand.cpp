@@ -45,13 +45,16 @@ KisToolMultihand::KisToolMultihand(KoCanvasBase *canvas)
     resetHelper(m_helper);
     if (image()) {
         m_axesPoint = QPointF(0.5 * image()->width(), 0.5 * image()->height());
-        connect(image(), SIGNAL(sigSizeChanged(QPointF,QPointF)), this, SLOT(resetAxes()));
+        m_imageSizeConnection = PkObject::connect(
+            image(), &KisImage::sigSizeChanged, image(),
+            [this](const PkPointF &, const PkPointF &) { resetAxes(); });
     }
 
 }
 
 KisToolMultihand::~KisToolMultihand()
 {
+    PkObject::disconnect(m_imageSizeConnection);
 }
 
 void KisToolMultihand::beginPrimaryAction(KoPointerEvent *event)
