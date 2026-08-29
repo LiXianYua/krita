@@ -30,6 +30,7 @@ private Q_SLOTS:
     void cubicTo();
     void quadTo();
     void closeSubpath();
+    void closeSubpathStateInteractions();
     void currentPosition();
 
     // 清理与预留

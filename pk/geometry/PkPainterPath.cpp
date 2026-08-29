@@ -3,9 +3,10 @@
 ** Copyright (C) 2016 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
-** The PkArcBezier helper in this file is adapted from the QtGui module of
-** the Qt Toolkit, qtbase/src/gui/painting/qbezier_p.h and qbezier.cpp from
-** Qt 5.15.7. It is available under the same alternatives as those sources:
+** The PkArcBezier helper and close-subpath state in this file are adapted
+** from the QtGui module of the Qt Toolkit, qtbase/src/gui/painting/
+** qbezier_p.h, qbezier.cpp, and qpainterpath_p.h from Qt 5.15.7. They are
+** available under the same alternatives as those sources:
 ** the Qt commercial license, GNU LGPL version 3, GNU GPL version 2, or GNU
 ** GPL version 3 (or a later version approved by the KDE Free Qt Foundation).
 ** See LICENSE.LGPL3, LICENSE.GPL2, and LICENSE.GPL3 in the Qt distribution.
@@ -24,7 +25,8 @@
 #include <type_traits>
 
 // ---------------------------------------------------------------------------
-// PkPainterPath 实现来自真 Qt 5.15.7 的 qpainterpath.cpp；PkArcBezier 的
+// PkPainterPath 实现来自真 Qt 5.15.7 的 qpainterpath.cpp 与
+// qpainterpath_p.h（QPainterPathData::close/maybeMoveTo）；PkArcBezier 的
 // pointAt/mapBy/getSubRange/tForY/stationaryYPoints 来自同版本 qbezier_p.h
 // 与 qbezier.cpp。源码来自上游 tag `v5.15.7-lts-lgpl`，上方登记其 license。
 // ---------------------------------------------------------------------------
@@ -500,17 +502,66 @@ PkPainterPath::PkPainterPath(const PkPointF &startPoint) : m_fillRule(Qt::OddEve
 void PkPainterPath::swap(PkPainterPath &other) noexcept
 {
     m_elements.swap(other.m_elements); std::swap(m_currentPos, other.m_currentPos);
+    std::swap(m_requireMoveTo, other.m_requireMoveTo);
     std::swap(m_cachedBounds, other.m_cachedBounds); std::swap(m_cachedControlRect, other.m_cachedControlRect);
     std::swap(m_dirtyBounds, other.m_dirtyBounds); std::swap(m_dirtyControlRect, other.m_dirtyControlRect);
     std::swap(m_fillRule, other.m_fillRule);
 }
 
 void PkPainterPath::markDirty() { m_dirtyBounds = true; m_dirtyControlRect = true; }
-void PkPainterPath::clear() { m_elements.clear(); m_currentPos = PkPointF(0,0); markDirty(); }
-void PkPainterPath::reserve(int size) { m_elements.reserve(size); }
+void PkPainterPath::detachForMutation()
+{
+    if (m_elements.PkUseCount() > 1) {
+        m_requireMoveTo = false;
+        (void)m_elements.begin();
+    }
+}
+
+void PkPainterPath::maybeMoveTo()
+{
+    if (!m_requireMoveTo)
+        return;
+    Element move = m_elements.last();
+    move.type = MoveToElement;
+    m_elements.append(move);
+    m_requireMoveTo = false;
+    markDirty();
+}
+
+bool PkPainterPath::currentSubpathClosedExactly() const
+{
+    if (m_elements.isEmpty())
+        return false;
+    for (int i = m_elements.size() - 1; i >= 0; --i) {
+        const Element &start = m_elements.at(i);
+        if (start.type == MoveToElement) {
+            const Element &last = m_elements.last();
+            return start.x == last.x && start.y == last.y;
+        }
+    }
+    return false;
+}
+
+void PkPainterPath::clear()
+{
+    detachForMutation();
+    m_elements.clear();
+    m_currentPos = PkPointF(0,0);
+    m_requireMoveTo = false;
+    markDirty();
+}
+
+void PkPainterPath::reserve(int size)
+{
+    if (size > m_elements.capacity())
+        detachForMutation();
+    m_elements.reserve(size);
+}
 
 void PkPainterPath::moveTo(const PkPointF &p)
 {
+    detachForMutation();
+    m_requireMoveTo = false;
     if (!m_elements.isEmpty() && m_elements.last().type == MoveToElement) {
         m_elements.last().x = p.x();
         m_elements.last().y = p.y();
@@ -523,8 +574,10 @@ void PkPainterPath::moveTo(const PkPointF &p)
 
 void PkPainterPath::lineTo(const PkPointF &p)
 {
+    detachForMutation();
     if (m_elements.isEmpty())
         moveTo(PkPointF());
+    maybeMoveTo();
     if (p == m_currentPos)
         return;
     m_elements.append(Element(p.x(), p.y(), LineToElement));
@@ -532,11 +585,46 @@ void PkPainterPath::lineTo(const PkPointF &p)
     markDirty();
 }
 void PkPainterPath::cubicTo(const PkPointF &c1, const PkPointF &c2, const PkPointF &ep)
-{ m_elements.append(Element(c1.x(),c1.y(),CurveToElement)); m_elements.append(Element(c2.x(),c2.y(),CurveToDataElement)); m_elements.append(Element(ep.x(),ep.y(),CurveToDataElement)); m_currentPos = ep; markDirty(); }
+{
+    detachForMutation();
+    if (m_elements.isEmpty())
+        moveTo(PkPointF());
+    const PkPointF last = m_elements.last();
+    if (last == c1 && c1 == c2 && c2 == ep)
+        return;
+    maybeMoveTo();
+    m_elements.append(Element(c1.x(),c1.y(),CurveToElement));
+    m_elements.append(Element(c2.x(),c2.y(),CurveToDataElement));
+    m_elements.append(Element(ep.x(),ep.y(),CurveToDataElement));
+    m_currentPos = ep;
+    markDirty();
+}
 void PkPainterPath::quadTo(const PkPointF &cp, const PkPointF &ep)
 { const PkPointF sp=m_currentPos; cubicTo(PkPointF(sp.x()+2./3.*(cp.x()-sp.x()),sp.y()+2./3.*(cp.y()-sp.y())),PkPointF(ep.x()+2./3.*(cp.x()-ep.x()),ep.y()+2./3.*(cp.y()-ep.y())),ep); }
 void PkPainterPath::closeSubpath()
-{ for (int i=m_elements.size()-1;i>=0;--i) { const auto &e=m_elements.at(i); if (e.type==MoveToElement) { const PkPointF sp(e.x,e.y); if (m_currentPos!=sp) lineTo(sp); return; } } }
+{
+    if (isEmpty())
+        return;
+    detachForMutation();
+    for (int i=m_elements.size()-1;i>=0;--i) {
+        const Element start = m_elements.at(i);
+        if (start.type != MoveToElement)
+            continue;
+        m_requireMoveTo = true;
+        Element &last = m_elements.last();
+        if (start.x != last.x || start.y != last.y) {
+            if (pkQtFuzzyCompare(start.x, last.x) && pkQtFuzzyCompare(start.y, last.y)) {
+                last.x = start.x;
+                last.y = start.y;
+            } else {
+                m_elements.append(Element(start.x, start.y, LineToElement));
+            }
+        }
+        m_currentPos = PkPointF(start.x, start.y);
+        markDirty();
+        return;
+    }
+}
 PkPointF PkPainterPath::currentPosition() const { return m_currentPos; }
 
 void PkPainterPath::addRect(const PkRectF &rect)
@@ -544,10 +632,25 @@ void PkPainterPath::addRect(const PkRectF &rect)
 void PkPainterPath::addPolygon(const PkPolygonF &polygon)
 { if (polygon.isEmpty()) return; moveTo(polygon.first()); for (int i=1;i<polygon.size();++i) lineTo(polygon.at(i)); closeSubpath(); }
 void PkPainterPath::addPath(const PkPainterPath &path)
-{ m_elements.reserve(m_elements.size()+path.m_elements.size()); for (int i=0;i<path.m_elements.size();++i) m_elements.append(path.m_elements.at(i)); m_currentPos=path.m_currentPos; markDirty(); }
+{
+    if (path.isEmpty())
+        return;
+    const bool otherClosed = path.currentSubpathClosedExactly();
+    const PkPointF otherCurrent = path.m_currentPos;
+    const PkVector<Element> otherElements = path.m_elements;
+    detachForMutation();
+    if (!m_elements.isEmpty() && m_elements.last().type == MoveToElement)
+        m_elements.remove(m_elements.size() - 1);
+    m_elements.reserve(m_elements.size() + otherElements.size());
+    for (int i = 0; i < otherElements.size(); ++i)
+        m_elements.append(otherElements.at(i));
+    m_currentPos = otherCurrent;
+    m_requireMoveTo = otherClosed;
+    markDirty();
+}
 
 void PkPainterPath::addEllipse(const PkRectF &r)
-{ if (r.isNull()) return; PkPointF pts[12]; int pc; PkPointF s=pkCurvesForArc(r,0,-360,pts,&pc); moveTo(s); cubicTo(pts[0],pts[1],pts[2]); cubicTo(pts[3],pts[4],pts[5]); cubicTo(pts[6],pts[7],pts[8]); cubicTo(pts[9],pts[10],pts[11]); }
+{ if (r.isNull()) return; PkPointF pts[12]; int pc; PkPointF s=pkCurvesForArc(r,0,-360,pts,&pc); moveTo(s); cubicTo(pts[0],pts[1],pts[2]); cubicTo(pts[3],pts[4],pts[5]); cubicTo(pts[6],pts[7],pts[8]); cubicTo(pts[9],pts[10],pts[11]); m_requireMoveTo = true; }
 void PkPainterPath::arcTo(const PkRectF &rect, qreal sa, qreal sl)
 { if (rect.isNull()) return; int pc; PkPointF pts[15]; PkPointF cs=pkCurvesForArc(rect,sa,sl,pts,&pc); lineTo(cs); for (int i=0;i<pc;i+=3) cubicTo(pts[i],pts[i+1],pts[i+2]); }
 void PkPainterPath::addRoundedRect(const PkRectF &rect, qreal xr, qreal yr, Qt::SizeMode mode)
@@ -581,7 +684,7 @@ bool PkPainterPath::isClosed() const
 { if (m_elements.isEmpty()) return false; PkPointF sp(0,0),lp(0,0); bool fs=false,fl=false;
   for (int i=0;i<m_elements.size();++i) { const auto &e=m_elements.at(i); if (e.type==MoveToElement) { sp=PkPointF(e.x,e.y); fs=true; } lp=PkPointF(e.x,e.y); fl=true; }
   return fs&&fl&&pkQtFuzzyCompare(lp.x(),sp.x())&&pkQtFuzzyCompare(lp.y(),sp.y()); }
-void PkPainterPath::setElementPositionAt(int i, qreal x, qreal y) { m_elements[i].x=x; m_elements[i].y=y; markDirty(); }
+void PkPainterPath::setElementPositionAt(int i, qreal x, qreal y) { detachForMutation(); m_elements[i].x=x; m_elements[i].y=y; markDirty(); }
 
 bool PkPainterPath::contains(const PkPointF &pt) const
 {
@@ -681,7 +784,7 @@ PkPainterPath &PkPainterPath::operator-=(const PkPainterPath &other)
 { return *this = subtracted(other); }
 
 void PkPainterPath::translate(qreal dx, qreal dy)
-{ if (pkQtFuzzyCompare(dx,0)&&pkQtFuzzyCompare(dy,0)) return; for (int i=0;i<m_elements.size();++i) { m_elements[i].x+=dx; m_elements[i].y+=dy; } m_currentPos+=PkPointF(dx,dy); markDirty(); }
+{ if (pkQtFuzzyCompare(dx,0)&&pkQtFuzzyCompare(dy,0)) return; detachForMutation(); for (int i=0;i<m_elements.size();++i) { m_elements[i].x+=dx; m_elements[i].y+=dy; } m_currentPos+=PkPointF(dx,dy); markDirty(); }
 PkPainterPath PkPainterPath::translated(qreal dx, qreal dy) const { PkPainterPath c(*this); c.translate(dx,dy); return c; }
 
 bool PkPainterPath::operator==(const PkPainterPath &other) const

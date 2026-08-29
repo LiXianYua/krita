@@ -40,7 +40,7 @@ if grep -Ev '^FAMILY [a-z0-9-]+$' "$COVERAGE_LOG" > /dev/null; then
     head -30 "$COVERAGE_LOG" >&2
     exit 1
 fi
-for family in empty move-only consecutive-moves zero-length-line rectangle ellipse open-polyline closed-polyline nested-rings disjoint-compound bow-tie star adversarial-cubic; do
+for family in empty move-only consecutive-moves zero-length-line rectangle ellipse open-polyline closed-polyline nested-rings disjoint-compound bow-tie star adversarial-cubic close-same-line close-different-line fuzzy-close-normalization; do
     grep -qx "FAMILY $family" "$COVERAGE_LOG" || { echo "missing family $family" >&2; exit 1; }
 done
 

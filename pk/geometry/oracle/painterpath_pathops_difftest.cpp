@@ -325,6 +325,50 @@ void compareResult(const QPainterPath &qt, const pkoracle::PkPainterPath &pk,
     }
 }
 
+void compareConstruction(const QPainterPath &qt, const pkoracle::PkPainterPath &pk,
+                         const std::string &tag)
+{
+    rec(qt.elementCount() == pk.elementCount(), tag + ":field=element-count");
+    const int common = std::min(qt.elementCount(), pk.elementCount());
+    for (int i = 0; i < common; ++i) {
+        const auto qe = qt.elementAt(i);
+        const auto pe = pk.elementAt(i);
+        rec(int(qe.type) == int(pe.type), tag + ":field=element-type:index=" + std::to_string(i));
+        rec(qe.x == pe.x, tag + ":field=element-x:index=" + std::to_string(i));
+        rec(qe.y == pe.y, tag + ":field=element-y:index=" + std::to_string(i));
+    }
+    rec(qt.currentPosition().x() == pk.currentPosition().x(), tag + ":field=current-x");
+    rec(qt.currentPosition().y() == pk.currentPosition().y(), tag + ":field=current-y");
+    compareResult(qt, pk, tag + ":construction");
+}
+
+void compareCloseStateFamilies()
+{
+    QPainterPath qtSame;
+    qtSame.moveTo(0, 0); qtSame.lineTo(10, 0); qtSame.closeSubpath(); qtSame.lineTo(0, 0);
+    pkoracle::PkPainterPath pkSame;
+    pkSame.moveTo(0, 0); pkSame.lineTo(10, 0); pkSame.closeSubpath(); pkSame.lineTo(0, 0);
+    compareConstruction(qtSame, pkSame, "close-same-line");
+
+    QPainterPath qtDifferent;
+    qtDifferent.moveTo(0, 0); qtDifferent.lineTo(10, 0); qtDifferent.closeSubpath(); qtDifferent.lineTo(5, 5);
+    pkoracle::PkPainterPath pkDifferent;
+    pkDifferent.moveTo(0, 0); pkDifferent.lineTo(10, 0); pkDifferent.closeSubpath(); pkDifferent.lineTo(5, 5);
+    compareConstruction(qtDifferent, pkDifferent, "close-different-line");
+
+    QPainterPath qtFuzzyAppend;
+    qtFuzzyAppend.moveTo(0, 0); qtFuzzyAppend.lineTo(1, 0); qtFuzzyAppend.lineTo(5e-13, 0); qtFuzzyAppend.closeSubpath();
+    pkoracle::PkPainterPath pkFuzzyAppend;
+    pkFuzzyAppend.moveTo(0, 0); pkFuzzyAppend.lineTo(1, 0); pkFuzzyAppend.lineTo(5e-13, 0); pkFuzzyAppend.closeSubpath();
+    compareConstruction(qtFuzzyAppend, pkFuzzyAppend, "fuzzy-close-normalization:case=append");
+
+    QPainterPath qtFuzzySnap;
+    qtFuzzySnap.moveTo(1, 1); qtFuzzySnap.lineTo(2, 1); qtFuzzySnap.lineTo(1 + 5e-13, 1); qtFuzzySnap.closeSubpath();
+    pkoracle::PkPainterPath pkFuzzySnap;
+    pkFuzzySnap.moveTo(1, 1); pkFuzzySnap.lineTo(2, 1); pkFuzzySnap.lineTo(1 + 5e-13, 1); pkFuzzySnap.closeSubpath();
+    compareConstruction(qtFuzzySnap, pkFuzzySnap, "fuzzy-close-normalization:case=snap");
+}
+
 enum class BinaryOp { NamedAnd, NamedOr, NamedSub, OperatorAnd, OperatorOr, OperatorAdd, OperatorSub };
 
 const char *opName(BinaryOp op)
@@ -517,6 +561,9 @@ int main()
     for (ShapeKind kind : kinds)
         std::cerr << "FAMILY " << shapeName(kind) << '\n';
     std::cerr << "FAMILY adversarial-cubic\n";
+    std::cerr << "FAMILY close-same-line\n";
+    std::cerr << "FAMILY close-different-line\n";
+    std::cerr << "FAMILY fuzzy-close-normalization\n";
 
     for (int fillA = 0; fillA < 2; ++fillA) {
         for (ShapeKind a : kinds) {
@@ -544,6 +591,7 @@ int main()
     compareNearCoincidentPair(1.0e6, 0.0000005, "large");
     compareAdversarialCubics();
     compareEqualityEdgeCases();
+    compareCloseStateFamilies();
 
     std::cout << "DIFF total=" << total << " mismatch=" << mismatches << '\n';
     return 0;

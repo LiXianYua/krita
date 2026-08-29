@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cfloat>
 #include <limits>
+#include <utility>
 
 // ⚠ 这个系统头必须在 oracle/geometry_difftest.cpp 顶部的系统头区里也出现过
 // —— 理由与 PkLine.cpp 顶部同一条纪律。
@@ -209,6 +210,129 @@ void PkPainterPathCase::closeSubpath()
     PkPainterPath empty;
     empty.closeSubpath();
     PK_VERIFY(empty.isEmpty());
+}
+
+void PkPainterPathCase::closeSubpathStateInteractions()
+{
+    PkPainterPath samePoint;
+    samePoint.moveTo(0, 0);
+    samePoint.lineTo(10, 0);
+    samePoint.closeSubpath();
+    samePoint.lineTo(0, 0);
+    PK_COMPARE(samePoint.elementCount(), 4);
+    PK_VERIFY(samePoint.elementAt(3).isMoveTo());
+    PK_COMPARE(samePoint.currentPosition(), PkPointF(0, 0));
+
+    PkPainterPath differentPoint;
+    differentPoint.moveTo(0, 0);
+    differentPoint.lineTo(10, 0);
+    differentPoint.closeSubpath();
+    differentPoint.lineTo(5, 5);
+    PK_COMPARE(differentPoint.elementCount(), 5);
+    PK_VERIFY(differentPoint.elementAt(3).isMoveTo());
+    PK_VERIFY(differentPoint.elementAt(4).isLineTo());
+
+    PkPainterPath fuzzyZero;
+    fuzzyZero.moveTo(0, 0);
+    fuzzyZero.lineTo(1, 0);
+    fuzzyZero.lineTo(5e-13, 0);
+    fuzzyZero.closeSubpath();
+    PK_COMPARE(fuzzyZero.elementCount(), 4);
+    PK_COMPARE(fuzzyZero.elementAt(3).x, 0.0);
+    PK_COMPARE(fuzzyZero.currentPosition(), PkPointF(0, 0));
+
+    PkPainterPath fuzzyOne;
+    fuzzyOne.moveTo(1, 1);
+    fuzzyOne.lineTo(2, 1);
+    fuzzyOne.lineTo(1 + 5e-13, 1);
+    fuzzyOne.closeSubpath();
+    PK_COMPARE(fuzzyOne.elementCount(), 3);
+    PK_COMPARE(fuzzyOne.elementAt(2).x, 1.0);
+    PK_COMPARE(fuzzyOne.currentPosition(), PkPointF(1, 1));
+
+    PkPainterPath copiedSource;
+    copiedSource.moveTo(0, 0);
+    copiedSource.lineTo(10, 0);
+    copiedSource.closeSubpath();
+    PkPainterPath copied(copiedSource);
+    copied.lineTo(5, 5);
+    PK_COMPARE(copied.elementCount(), 4);
+    PK_VERIFY(copied.elementAt(3).isLineTo());
+    copiedSource.lineTo(6, 6);
+    PK_COMPARE(copiedSource.elementCount(), 5);
+    PK_VERIFY(copiedSource.elementAt(3).isMoveTo());
+
+    PkPainterPath assignedSource;
+    assignedSource.moveTo(0, 0);
+    assignedSource.lineTo(10, 0);
+    assignedSource.closeSubpath();
+    PkPainterPath assigned;
+    assigned = assignedSource;
+    assigned.setFillRule(Qt::WindingFill);
+    assigned.lineTo(5, 5);
+    PK_COMPARE(assigned.elementCount(), 4);
+    PK_VERIFY(assigned.elementAt(3).isLineTo());
+
+    PkPainterPath movedSource;
+    movedSource.moveTo(0, 0);
+    movedSource.lineTo(10, 0);
+    movedSource.closeSubpath();
+    PkPainterPath moved(std::move(movedSource));
+    moved.lineTo(5, 5);
+    PK_COMPARE(moved.elementCount(), 5);
+    PK_VERIFY(moved.elementAt(3).isMoveTo());
+
+    PkPainterPath moveAssignedSource;
+    moveAssignedSource.moveTo(0, 0);
+    moveAssignedSource.lineTo(10, 0);
+    moveAssignedSource.closeSubpath();
+    PkPainterPath moveAssigned;
+    moveAssigned = std::move(moveAssignedSource);
+    moveAssigned.lineTo(5, 5);
+    PK_COMPARE(moveAssigned.elementCount(), 5);
+    PK_VERIFY(moveAssigned.elementAt(3).isMoveTo());
+
+    PkPainterPath swappedClosed;
+    swappedClosed.moveTo(0, 0);
+    swappedClosed.lineTo(10, 0);
+    swappedClosed.closeSubpath();
+    PkPainterPath swappedOpen;
+    swappedOpen.moveTo(20, 20);
+    swappedOpen.lineTo(30, 20);
+    swappedClosed.swap(swappedOpen);
+    swappedOpen.lineTo(5, 5);
+    PK_COMPARE(swappedOpen.elementCount(), 5);
+    PK_VERIFY(swappedOpen.elementAt(3).isMoveTo());
+
+    PkPainterPath cleared;
+    cleared.moveTo(0, 0);
+    cleared.lineTo(10, 0);
+    cleared.closeSubpath();
+    cleared.clear();
+    cleared.lineTo(0, 0);
+    PK_COMPARE(cleared.elementCount(), 1);
+    PK_VERIFY(cleared.elementAt(0).isMoveTo());
+
+    PkPainterPath appended;
+    appended.moveTo(-2, -2);
+    appended.lineTo(-1, -1);
+    PkPainterPath closedOther;
+    closedOther.moveTo(0, 0);
+    closedOther.lineTo(10, 0);
+    closedOther.closeSubpath();
+    appended.addPath(closedOther);
+    appended.lineTo(5, 5);
+    PK_COMPARE(appended.elementCount(), 7);
+    PK_VERIFY(appended.elementAt(5).isMoveTo());
+
+    PkPainterPath addEmpty;
+    addEmpty.moveTo(0, 0);
+    addEmpty.lineTo(10, 0);
+    addEmpty.closeSubpath();
+    addEmpty.addPath(PkPainterPath());
+    addEmpty.lineTo(5, 5);
+    PK_COMPARE(addEmpty.elementCount(), 5);
+    PK_VERIFY(addEmpty.elementAt(3).isMoveTo());
 }
 
 void PkPainterPathCase::currentPosition()

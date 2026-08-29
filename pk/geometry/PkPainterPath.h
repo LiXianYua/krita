@@ -3,8 +3,9 @@
 // ---------------------------------------------------------------------------
 // PkPainterPath —— QPainterPath 的零 Qt 替代品（R-22 T1）。
 //
-// 逐字抄自真 Qt 5.15.7 的 qpainterpath.h（class 声明）与 qpainterpath.cpp
-// （out-of-line 成员）。源码取自上游 tag `v5.15.7-lts-lgpl`。
+// 逐字抄自真 Qt 5.15.7 的 qpainterpath.h（class 声明）、qpainterpath.cpp
+// （out-of-line 成员）与 qpainterpath_p.h（close/maybeMoveTo 状态）。源码取自
+// 上游 tag `v5.15.7-lts-lgpl`。
 //
 // COW 由 PkVector<Element> 自带（PkArrayContainer 的 PkMut()/PkConst() 机制），
 // 不复刻 Qt 的 QScopedPointer<QPainterPathPrivate> + detach 调用模式。
@@ -161,7 +162,13 @@ public:
     void setElementPositionAt(int i, qreal x, qreal y);
 
     Qt::FillRule fillRule() const { return m_fillRule; }
-    void setFillRule(Qt::FillRule fillRule) { m_fillRule = fillRule; }
+    void setFillRule(Qt::FillRule fillRule)
+    {
+        if (m_fillRule == fillRule)
+            return;
+        detachForMutation();
+        m_fillRule = fillRule;
+    }
 
     // T3: 查询
     bool contains(const PkPointF &pt) const;
@@ -210,6 +217,12 @@ private:
     // 标记 boundingRect 与控制点矩形为脏（每次元素变更时调用）。
     void markDirty();
 
+    // Qt 5.15 QPainterPathData 的 COW detach 会清 require_moveTo。PkVector
+    // 单独承载元素 COW，因此每个写入口先在这里同步这项路径级状态。
+    void detachForMutation();
+    void maybeMoveTo();
+    bool currentSubpathClosedExactly() const;
+
     // arcMoveTo 内部辅助：仅供 addRoundedRect 使用（qpainterpath.cpp:1033-1041）
     void arcMoveTo(const PkRectF &rect, qreal angle);
 
@@ -218,6 +231,9 @@ private:
     // 当前位置：一个子路径的末端（连续 moveTo 时更新，closeSubpath 时回到
     // 子路径起点）。
     PkPointF m_currentPos{0, 0};
+    // closeSubpath()/closed shape 之后，下一条非 move 构建命令先物化一个
+    // trailing MoveTo。对应 Qt 5.15 QPainterPathData::require_moveTo。
+    bool m_requireMoveTo = false;
     // 缓存：Qt 的 computeBoundingRect/computeControlPointRect 模式。
     mutable PkRectF m_cachedBounds{0, 0, 0, 0};
     mutable PkRectF m_cachedControlRect{0, 0, 0, 0};
