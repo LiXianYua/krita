@@ -37,7 +37,7 @@ filter_real_qt_symbols()
 
 filter_qt_command_tokens()
 {
-    grep -Ei 'Qt5|Qt6|libQt|Qt::[A-Za-z_]|(^|[[:space:]])(-I|-isystem|-iquote|-F)[^[:space:]]*[/\\](qt|Qt)([/\\]|$)|(^|[[:space:]])(-isystem|-iquote)[[:space:]]+[^[:space:]]*[/\\](qt|Qt)([/\\]|$)|(^|[[:space:]])-DQT_[A-Za-z0-9_]*(=|[[:space:]]|$)'
+    grep -Ei 'Qt5|Qt6|libQt|Qt::[A-Za-z_]|(^|[[:space:]])(-I|-isystem|-iquote|-F)[^[:space:]]*[/\\](qt|Qt)([/\\]|$)|(^|[[:space:]])(-I|-isystem|-iquote)[[:space:]]+[^[:space:]]*[/\\](qt|Qt)([/\\]|$)|(^|[[:space:]])-DQT_[A-Za-z0-9_]*(=|[[:space:]]|$)'
 }
 
 # Pressure-test both sides of the matcher: copied compatibility spellings are
@@ -75,11 +75,13 @@ fi
 # Keep the command-closure predicate under test as well: Qt include paths and
 # QT_* defines are dependencies even when no Qt library token is present.
 command_matcher_probe=$(printf '%s\n' \
+    'c++ -I /opt/qt/include -c accidental-separated-I.cpp' \
     'c++ -I/opt/qt/include/QtCore -DQT_CORE_LIB -c accidental.cpp' \
     'c++ -isystem /opt/Qt6/include -DQT_NO_KEYWORDS -c accidental2.cpp' \
     'c++ -I/opt/quiet/include -DNOT_QT_DEFINE -c harmless.cpp' \
     | filter_qt_command_tokens || true)
 expected_command_matcher_probe=$(printf '%s\n' \
+    'c++ -I /opt/qt/include -c accidental-separated-I.cpp' \
     'c++ -I/opt/qt/include/QtCore -DQT_CORE_LIB -c accidental.cpp' \
     'c++ -isystem /opt/Qt6/include -DQT_NO_KEYWORDS -c accidental2.cpp')
 if [[ "$command_matcher_probe" != "$expected_command_matcher_probe" ]]; then
