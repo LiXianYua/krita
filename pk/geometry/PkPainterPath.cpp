@@ -630,7 +630,17 @@ PkPointF PkPainterPath::currentPosition() const { return m_currentPos; }
 void PkPainterPath::addRect(const PkRectF &rect)
 { moveTo(rect.x(),rect.y()); lineTo(rect.x()+rect.width(),rect.y()); lineTo(rect.x()+rect.width(),rect.y()+rect.height()); lineTo(rect.x(),rect.y()+rect.height()); closeSubpath(); }
 void PkPainterPath::addPolygon(const PkPolygonF &polygon)
-{ if (polygon.isEmpty()) return; moveTo(polygon.first()); for (int i=1;i<polygon.size();++i) lineTo(polygon.at(i)); closeSubpath(); }
+{
+    if (polygon.isEmpty())
+        return;
+    moveTo(polygon.first());
+    for (int i = 1; i < polygon.size(); ++i) {
+        const PkPointF &point = polygon.at(i);
+        m_elements.append(Element(point.x(), point.y(), LineToElement));
+    }
+    m_currentPos = polygon.last();
+    markDirty();
+}
 void PkPainterPath::addPath(const PkPainterPath &path)
 {
     if (path.isEmpty())
@@ -684,7 +694,15 @@ bool PkPainterPath::isClosed() const
 { if (m_elements.isEmpty()) return false; PkPointF sp(0,0),lp(0,0); bool fs=false,fl=false;
   for (int i=0;i<m_elements.size();++i) { const auto &e=m_elements.at(i); if (e.type==MoveToElement) { sp=PkPointF(e.x,e.y); fs=true; } lp=PkPointF(e.x,e.y); fl=true; }
   return fs&&fl&&pkQtFuzzyCompare(lp.x(),sp.x())&&pkQtFuzzyCompare(lp.y(),sp.y()); }
-void PkPainterPath::setElementPositionAt(int i, qreal x, qreal y) { detachForMutation(); m_elements[i].x=x; m_elements[i].y=y; markDirty(); }
+void PkPainterPath::setElementPositionAt(int i, qreal x, qreal y)
+{
+    detachForMutation();
+    m_elements[i].x = x;
+    m_elements[i].y = y;
+    if (i == m_elements.size() - 1)
+        m_currentPos = PkPointF(x, y);
+    markDirty();
+}
 
 bool PkPainterPath::contains(const PkPointF &pt) const
 {

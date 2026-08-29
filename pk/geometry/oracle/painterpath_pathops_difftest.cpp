@@ -369,6 +369,79 @@ void compareCloseStateFamilies()
     compareConstruction(qtFuzzySnap, pkFuzzySnap, "fuzzy-close-normalization:case=snap");
 }
 
+void compareElementMutationFamilies()
+{
+    const char *sharingNames[] = {"unique", "cow-shared"};
+    const char *continuationNames[] = {"none", "same-line", "different-line",
+                                       "same-cubic", "different-cubic"};
+    for (int shared = 0; shared < 2; ++shared) {
+        for (int continuation = 0; continuation < 5; ++continuation) {
+            QPainterPath qt;
+            qt.moveTo(0, 0); qt.lineTo(10, 0); qt.closeSubpath();
+            pkoracle::PkPainterPath pk;
+            pk.moveTo(0, 0); pk.lineTo(10, 0); pk.closeSubpath();
+            QPainterPath qtSharedOwner;
+            pkoracle::PkPainterPath pkSharedOwner;
+            if (shared) {
+                qtSharedOwner = qt;
+                pkSharedOwner = pk;
+            }
+            qt.setElementPositionAt(qt.elementCount() - 1, 2, 0);
+            pk.setElementPositionAt(pk.elementCount() - 1, 2, 0);
+
+            switch (continuation) {
+            case 0:
+                break;
+            case 1:
+                qt.lineTo(2, 0); pk.lineTo(2, 0);
+                break;
+            case 2:
+                qt.lineTo(3, 1); pk.lineTo(3, 1);
+                break;
+            case 3:
+                qt.cubicTo(2, 0, 2, 0, 2, 0);
+                pk.cubicTo(pkoracle::PkPointF(2, 0), pkoracle::PkPointF(2, 0),
+                           pkoracle::PkPointF(2, 0));
+                break;
+            case 4:
+                qt.cubicTo(3, 0, 4, 1, 5, 2);
+                pk.cubicTo(pkoracle::PkPointF(3, 0), pkoracle::PkPointF(4, 1),
+                           pkoracle::PkPointF(5, 2));
+                break;
+            }
+            compareConstruction(qt, pk, std::string("edit-last:") + sharingNames[shared] +
+                                ":continuation=" + continuationNames[continuation]);
+        }
+    }
+}
+
+void comparePolygonConstructionFamilies()
+{
+    QPolygonF qtPolygon;
+    qtPolygon << QPointF(0, 0) << QPointF(10, 0) << QPointF(5, 5);
+    pkoracle::PkPolygonF pkPolygon;
+    pkPolygon << pkoracle::PkPointF(0, 0) << pkoracle::PkPointF(10, 0)
+              << pkoracle::PkPointF(5, 5);
+
+    QPainterPath qt;
+    qt.addPolygon(qtPolygon);
+    pkoracle::PkPainterPath pk;
+    pk.addPolygon(pkPolygon);
+    compareConstruction(qt, pk, "add-polygon:continuation=none");
+
+    QPainterPath qtLine = qt;
+    pkoracle::PkPainterPath pkLine = pk;
+    qtLine.lineTo(7, 7); pkLine.lineTo(7, 7);
+    compareConstruction(qtLine, pkLine, "add-polygon:continuation=line");
+
+    QPainterPath qtCubic = qt;
+    pkoracle::PkPainterPath pkCubic = pk;
+    qtCubic.cubicTo(6, 5, 6, 6, 7, 7);
+    pkCubic.cubicTo(pkoracle::PkPointF(6, 5), pkoracle::PkPointF(6, 6),
+                    pkoracle::PkPointF(7, 7));
+    compareConstruction(qtCubic, pkCubic, "add-polygon:continuation=cubic");
+}
+
 enum class BinaryOp { NamedAnd, NamedOr, NamedSub, OperatorAnd, OperatorOr, OperatorAdd, OperatorSub };
 
 const char *opName(BinaryOp op)
@@ -564,6 +637,8 @@ int main()
     std::cerr << "FAMILY close-same-line\n";
     std::cerr << "FAMILY close-different-line\n";
     std::cerr << "FAMILY fuzzy-close-normalization\n";
+    std::cerr << "FAMILY edit-last-element\n";
+    std::cerr << "FAMILY add-polygon\n";
 
     for (int fillA = 0; fillA < 2; ++fillA) {
         for (ShapeKind a : kinds) {
@@ -592,6 +667,8 @@ int main()
     compareAdversarialCubics();
     compareEqualityEdgeCases();
     compareCloseStateFamilies();
+    compareElementMutationFamilies();
+    comparePolygonConstructionFamilies();
 
     std::cout << "DIFF total=" << total << " mismatch=" << mismatches << '\n';
     return 0;

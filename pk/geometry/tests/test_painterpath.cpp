@@ -476,6 +476,39 @@ void PkPainterPathCase::setElementPositionAt()
     // 修改后缓存应重新计算
     PkRectF bounds = path.boundingRect();
     PK_VERIFY(bounds.x() <= 100);
+
+    // Editing the final element changes Qt's observable current position.
+    // A pending close-state MoveTo must be materialized from that edited point,
+    // without appending a duplicate line to the same point.
+    PkPainterPath unique;
+    unique.moveTo(0, 0);
+    unique.lineTo(10, 0);
+    unique.closeSubpath();
+    unique.setElementPositionAt(unique.elementCount() - 1, 2, 0);
+    PK_COMPARE(unique.currentPosition(), PkPointF(2, 0));
+    unique.lineTo(2, 0);
+    PK_COMPARE(unique.elementCount(), 4);
+    PK_VERIFY(unique.elementAt(3).isMoveTo());
+
+    PkPainterPath sharedSource;
+    sharedSource.moveTo(0, 0);
+    sharedSource.lineTo(10, 0);
+    sharedSource.closeSubpath();
+    PkPainterPath shared(sharedSource);
+    shared.setElementPositionAt(shared.elementCount() - 1, 2, 0);
+    PK_COMPARE(shared.currentPosition(), PkPointF(2, 0));
+    shared.lineTo(2, 0);
+    PK_COMPARE(shared.elementCount(), 3);
+    PK_COMPARE(sharedSource.currentPosition(), PkPointF(0, 0));
+
+    PkPainterPath uniqueCubic;
+    uniqueCubic.moveTo(0, 0);
+    uniqueCubic.lineTo(10, 0);
+    uniqueCubic.closeSubpath();
+    uniqueCubic.setElementPositionAt(uniqueCubic.elementCount() - 1, 2, 0);
+    uniqueCubic.cubicTo(2, 0, 2, 0, 2, 0);
+    PK_COMPARE(uniqueCubic.currentPosition(), PkPointF(2, 0));
+    PK_COMPARE(uniqueCubic.elementCount(), 3);
 }
 
 // ============================================================================
@@ -521,7 +554,23 @@ void PkPainterPathCase::addPolygon()
     PkPainterPath path;
     path.addPolygon(poly);
     PK_VERIFY(!path.isEmpty());
-    PK_VERIFY(path.isClosed());
+    PK_VERIFY(!path.isClosed());
+    PK_COMPARE(path.elementCount(), 3);
+    PK_COMPARE(path.currentPosition(), PkPointF(50, 100));
+
+    PkPainterPath continuedLine;
+    continuedLine.addPolygon(poly);
+    continuedLine.lineTo(75, 125);
+    PK_COMPARE(continuedLine.elementCount(), 4);
+    PK_VERIFY(continuedLine.elementAt(3).isLineTo());
+    PK_COMPARE(continuedLine.currentPosition(), PkPointF(75, 125));
+
+    PkPainterPath continuedCubic;
+    continuedCubic.addPolygon(poly);
+    continuedCubic.cubicTo(PkPointF(55, 105), PkPointF(60, 110), PkPointF(75, 125));
+    PK_COMPARE(continuedCubic.elementCount(), 6);
+    PK_VERIFY(continuedCubic.elementAt(3).isCurveTo());
+    PK_COMPARE(continuedCubic.currentPosition(), PkPointF(75, 125));
 
     // 空多边形不做任何事
     PkPolygonF emptyPoly;
