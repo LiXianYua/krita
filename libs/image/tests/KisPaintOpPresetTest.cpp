@@ -327,6 +327,7 @@ void KisPaintOpPresetTest::testSaveLoadRoundTrip()
 
     PkMemoryStream saved;
     QVERIFY(saved.open(PkStream::ReadWrite));
+    const auto sourceSettingsSnapshot = source->settings()->getProperties();
     QVERIFY(source->saveToDevice(&saved));
     const PkByteArray savedBytes = streamBytes(saved);
     QVERIFY(!savedBytes.isEmpty());
@@ -355,8 +356,7 @@ void KisPaintOpPresetTest::testSaveLoadRoundTrip()
     QVERIFY(reloaded->valid());
     QCOMPARE(reloaded->image().width(), source->image().width());
     QCOMPARE(reloaded->image().height(), source->image().height());
-    QVERIFY(reloaded->settings()->getProperties() ==
-            source->settings()->getProperties());
+    QVERIFY(reloaded->settings()->getProperties() == sourceSettingsSnapshot);
     for (int y = 0; y < source->image().height(); ++y) {
         for (int x = 0; x < source->image().width(); ++x) {
             QCOMPARE(reloaded->image().pixel(x, y), source->image().pixel(x, y));
