@@ -10,6 +10,7 @@
 
 #include <PkScopedPointer.h>
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 
 #include "kis_types.h"
 #include "kis_effect_mask.h"
@@ -26,7 +27,6 @@ namespace KisLazyFillTools
 
 class KRITAIMAGE_EXPORT KisColorizeMask : public KisEffectMask
 {
-    Q_OBJECT
 public:
     struct KeyStrokeColors {
         PkVector<KoColor> colors;
@@ -126,7 +126,7 @@ public:
 
     void regeneratePrefilteredDeviceIfNeeded();
 
-private Q_SLOTS:
+private:
     void slotUpdateRegenerateFilling(bool prefilterOnly = false);
     void slotRegenerationFinished(bool prefilterOnly);
     void slotRegenerationCancelled();
@@ -134,7 +134,7 @@ private Q_SLOTS:
     void slotUpdateOnDirtyParent();
     void slotRecalculatePrefilteredImage();
 
-Q_SIGNALS:
+signals:
     void sigKeyStrokesListChanged();
     void sigUpdateOnDirtyParent();
 

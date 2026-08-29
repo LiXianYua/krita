@@ -71,7 +71,7 @@ void KisToolLazyBrush::activate(const QSet<KoShape*> &shapes)
         this, &KisToolLazyBrush::slotCanvasResourceChanged);
 
 
-    KisColorizeMask *mask = qobject_cast<KisColorizeMask*>(currentNode().data());
+    KisColorizeMask *mask = dynamic_cast<KisColorizeMask*>(currentNode().data());
     if (mask) {
         mask->regeneratePrefilteredDeviceIfNeeded();
     }
@@ -94,7 +94,7 @@ void KisToolLazyBrush::slotCurrentNodeChanged(KisNodeSP node)
     if (node != manuallyActivatedNode) {
         tryDisableKeyStrokesOnMask();
 
-        KisColorizeMask *mask = qobject_cast<KisColorizeMask*>(node.data());
+        KisColorizeMask *mask = dynamic_cast<KisColorizeMask*>(node.data());
         if (mask) {
             mask->regeneratePrefilteredDeviceIfNeeded();
         }
