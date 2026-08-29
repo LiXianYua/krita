@@ -449,6 +449,4 @@ private:
     Private * const m_d;
 };
 
-Q_DECLARE_METATYPE(KisLayerSP)
-
 #endif // KIS_LAYER_H_
