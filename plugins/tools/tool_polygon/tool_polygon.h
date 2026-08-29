@@ -7,6 +7,6 @@
 #ifndef TOOL_POLYGON_H_
 #define TOOL_POLYGON_H_
 
-// Registration occurs during module initialization.
+void registerToolPolygon();
 
 #endif // TOOL_POLYGON_H_

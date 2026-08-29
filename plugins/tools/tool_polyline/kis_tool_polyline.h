@@ -9,6 +9,9 @@
 #ifndef KIS_TOOL_POLYLINE_H_
 #define KIS_TOOL_POLYLINE_H_
 
+#include <PkPoint.h>
+#include <PkVector.h>
+
 #include "kis_tool_polyline_base.h"
 //#include "flake/kis_node_shape.h"
 

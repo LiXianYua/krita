@@ -7,7 +7,7 @@
 #ifndef TOOL_DYNA_H_
 #define TOOL_DYNA_H_
 
-// Registration occurs during module initialization.
+void registerToolDyna();
 
 /**
  * A module that provides a polygon tool.

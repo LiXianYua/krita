@@ -36,7 +36,7 @@ struct KisToolLazyBrush::Private
 
 KisToolLazyBrush::KisToolLazyBrush(KoCanvasBase * canvas)
     : KisToolFreehand(canvas,
-                      Qt::ArrowCursor,
+                      PkToolArrowCursor,
                       kundo2_text("Colorize Mask Key Stroke")),
       m_d(new Private)
 {
@@ -109,7 +109,7 @@ void KisToolLazyBrush::resetCursorStyle()
 {
     // If there's no mask yet, we show the hand cursor
     if (!colorizeMaskActive() && canCreateColorizeMask()) {
-        useCursor(Qt::PointingHandCursor);
+        useCursor(PkToolPointingHandCursor);
         m_d->activateMaskMode = true;
         setOutlineVisible(false);
     }
@@ -199,7 +199,7 @@ void KisToolLazyBrush::activatePrimaryAction()
 {
     KisToolFreehand::activatePrimaryAction();
     if (!colorizeMaskActive() && canCreateColorizeMask()) {
-        useCursor(Qt::PointingHandCursor);
+        useCursor(PkToolPointingHandCursor);
         m_d->activateMaskMode = true;
         setOutlineVisible(false);
     }

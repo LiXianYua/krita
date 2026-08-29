@@ -7,6 +7,6 @@
 #ifndef TOOL_LAZYBRUSH_H_
 #define TOOL_LAZYBRUSH_H_
 
-// Registration occurs during module initialization.
+void registerToolLazyBrush();
 
 #endif // TOOL_LAZYBRUSH_H_

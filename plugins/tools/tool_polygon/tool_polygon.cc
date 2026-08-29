@@ -27,4 +27,3 @@ void registerToolPolygon()
     static std::once_flag once;
     std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolPolygonFactory()); });
 }
-namespace { struct Registration { Registration() { registerToolPolygon(); } } registration; }

@@ -27,4 +27,3 @@ void registerToolPolyline()
     static std::once_flag once;
     std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolPolylineFactory()); });
 }
-namespace { struct Registration { Registration() { registerToolPolyline(); } } registration; }

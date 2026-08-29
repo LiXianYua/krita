@@ -7,6 +7,8 @@
 #ifndef KIS_TOOL_LAZY_BRUSH_H_
 #define KIS_TOOL_LAZY_BRUSH_H_
 
+#include <PkSet.h>
+
 #include <PkScopedPointer.h>
 #include <PkVariant.h>
 #include "kis_tool_freehand.h"
@@ -17,6 +19,10 @@
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
+
+using PkToolCursorShape = Qt::CursorShape;
+constexpr PkToolCursorShape PkToolArrowCursor = Qt::ArrowCursor;
+constexpr PkToolCursorShape PkToolPointingHandCursor = Qt::PointingHandCursor;
 
 class KoCanvasBase;
 

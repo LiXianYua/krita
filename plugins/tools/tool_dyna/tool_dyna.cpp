@@ -29,4 +29,3 @@ void registerToolDyna()
     static std::once_flag once;
     std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolDynaFactory()); });
 }
-namespace { struct Registration { Registration() { registerToolDyna(); } } registration; }

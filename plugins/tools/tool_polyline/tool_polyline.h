@@ -7,6 +7,6 @@
 #ifndef TOOL_POLYLINE_H_
 #define TOOL_POLYLINE_H_
 
-// Registration occurs during module initialization.
+void registerToolPolyline();
 
 #endif // TOOL_POLYLINE_H_

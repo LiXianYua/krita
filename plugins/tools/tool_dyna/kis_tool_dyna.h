@@ -7,6 +7,10 @@
 #ifndef KIS_TOOL_DYNA_H_
 #define KIS_TOOL_DYNA_H_
 
+#include <PkPoint.h>
+#include <PkVector.h>
+#include <PkSet.h>
+
 #include "kis_tool_freehand.h"
 
 #include "KisToolPaintFactoryBase.h"
@@ -15,6 +19,9 @@
 #include <flake/kis_node_shape.h>
 #include <kconfig.h>
 #include <kconfiggroup.h>
+
+using PkToolCursorShape = Qt::CursorShape;
+constexpr PkToolCursorShape PkToolArrowCursor = Qt::ArrowCursor;
 
 class KoCanvasBase;
 
