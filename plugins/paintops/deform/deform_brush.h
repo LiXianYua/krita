@@ -31,10 +31,10 @@ public:
     DeformBase() {}
     virtual ~DeformBase() {}
     virtual void transform(qreal * x, qreal * y, qreal distance, KisRandomSourceSP randomSource) {
-        Q_UNUSED(x);
-        Q_UNUSED(y);
-        Q_UNUSED(distance);
-        Q_UNUSED(randomSource);
+        static_cast<void>(x);
+        static_cast<void>(y);
+        static_cast<void>(distance);
+        static_cast<void>(randomSource);
     }
 };
 
@@ -50,7 +50,7 @@ public:
         return m_factor;
     }
     void transform(qreal* x, qreal* y, qreal distance, KisRandomSourceSP randomSource) override {
-        Q_UNUSED(randomSource);
+        static_cast<void>(randomSource);
         qreal scaleFactor = KisAlgebra2D::signPZ(m_factor) * (qAbs((1.0 - distance) * m_factor) + distance);
         *x = *x / scaleFactor;
         *y = *y / scaleFactor;
@@ -69,7 +69,7 @@ public:
         m_alpha = alpha;
     }
     void transform(qreal* maskX, qreal* maskY, qreal distance, KisRandomSourceSP randomSource) override {
-        Q_UNUSED(randomSource);
+        static_cast<void>(randomSource);
         distance = 1.0 - distance;
         qreal rotX = cos(-m_alpha * distance) * (*maskX) - sin(-m_alpha * distance) * (*maskY);
         qreal rotY = sin(-m_alpha * distance) * (*maskX) + cos(-m_alpha * distance) * (*maskY);
@@ -94,7 +94,7 @@ public:
         m_dy = dy;
     }
     void transform(qreal* maskX, qreal* maskY, qreal distance, KisRandomSourceSP randomSource) override {
-        Q_UNUSED(randomSource);
+        static_cast<void>(randomSource);
         *maskX -= m_dx * m_factor * (1.0 - distance);
         *maskY -= m_dy * m_factor * (1.0 - distance);
     }
@@ -122,8 +122,8 @@ public:
     }
 
     void transform(qreal* maskX, qreal* maskY, qreal distance, KisRandomSourceSP randomSource) override {
-        Q_UNUSED(distance);
-        Q_UNUSED(randomSource);
+        static_cast<void>(distance);
+        static_cast<void>(randomSource);
         //normalize
         qreal normX = *maskX / m_maxX;
         qreal normY = *maskY / m_maxY;
@@ -161,7 +161,7 @@ public:
         m_factor = factor;
     }
     void transform(qreal* x, qreal* y, qreal distance, KisRandomSourceSP randomSource) override {
-        Q_UNUSED(distance);
+        static_cast<void>(distance);
         qreal randomX = m_factor * ((randomSource->generateNormalized() * 2.0) - 1.0);
         qreal randomY = m_factor * ((randomSource->generateNormalized() * 2.0) - 1.0);
         *x += randomX;

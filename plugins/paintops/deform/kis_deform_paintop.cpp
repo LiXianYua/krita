@@ -29,7 +29,7 @@
 #include <KoColorSpaceRegistry.h>
 #include <KoCompositeOp.h>
 
-#ifdef Q_OS_WIN
+#ifdef _WIN32
 // quoting DRAND48(3) man-page:
 // These functions are declared obsolete by  SVID  3,
 // which  states  that rand(3) should be used instead.
@@ -43,9 +43,9 @@ KisDeformPaintOp::KisDeformPaintOp(const KisPaintOpSettingsSP settings, KisPaint
     , m_rotationOption(settings.data())
     , m_rateOption(settings.data())
 {
-    Q_UNUSED(image);
-    Q_UNUSED(node);
-    Q_ASSERT(settings);
+    static_cast<void>(image);
+    static_cast<void>(node);
+    KIS_ASSERT(settings);
 
     m_brushSizeData.read(settings.data());
     m_deformData.read(settings.data());

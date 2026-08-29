@@ -49,7 +49,7 @@ qreal KisRoundMarkerOpSettings::paintOpSize() const
 
 void KisRoundMarkerOpSettings::setPaintOpAngle(qreal value)
 {
-    Q_UNUSED(value);
+    static_cast<void>(value);
 }
 
 qreal KisRoundMarkerOpSettings::paintOpAngle() const

@@ -186,7 +186,7 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
     qreal y = info.pos().y();
     KisRandomAccessorSP accessor = dab->createRandomAccessorNG();
 
-    Q_ASSERT(color.colorSpace()->pixelSize() == dab->pixelSize());
+    KIS_ASSERT(color.colorSpace()->pixelSize() == dab->pixelSize());
     m_inkColor = color;
     KisCrossDeviceColorSampler colorSampler(source, m_inkColor);
 

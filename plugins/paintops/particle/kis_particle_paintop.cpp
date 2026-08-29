@@ -34,8 +34,8 @@ KisParticlePaintOp::KisParticlePaintOp(const KisPaintOpSettingsSP settings, KisP
     , m_rateOption(settings.data())
     , m_first(true)
 {
-    Q_UNUSED(image);
-    Q_UNUSED(node);
+    static_cast<void>(image);
+    static_cast<void>(node);
 
     m_particleOpData.read(settings.data());
 

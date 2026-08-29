@@ -62,8 +62,8 @@ KisColorSmudgeOp::KisColorSmudgeOp(const KisPaintOpSettingsSP settings, KisPaint
     , m_colorRateOption(settings.data())
     , m_smudgeRadiusOption(settings.data())
 {
-    Q_UNUSED(node);
-    Q_ASSERT(painter);
+    static_cast<void>(node);
+    KIS_ASSERT(painter);
 
     m_airbrushData.read(settings.data());
     m_overlayModeData.read(settings.data());

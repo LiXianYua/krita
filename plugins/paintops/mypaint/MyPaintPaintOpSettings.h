@@ -42,7 +42,8 @@ public:
     void onPropertyChanged() override;
 
 private:
-    Q_DISABLE_COPY(KisMyPaintOpSettings)
+    KisMyPaintOpSettings(const KisMyPaintOpSettings &) = delete;
+    KisMyPaintOpSettings &operator=(const KisMyPaintOpSettings &) = delete;
 
     struct Private;
     const PkScopedPointer<Private> m_d;

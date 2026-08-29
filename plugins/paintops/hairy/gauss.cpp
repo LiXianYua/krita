@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 
-#ifdef Q_OS_WIN
+#ifdef _WIN32
 // quoting DRAND48(3) man-page:
 // These functions are declared obsolete by  SVID  3,
 // which  states  that rand(3) should be used instead.

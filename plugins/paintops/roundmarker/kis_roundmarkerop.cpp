@@ -36,10 +36,10 @@ KisRoundMarkerOp::KisRoundMarkerOp(KisPaintOpSettingsSP settings, KisPainter* pa
     , m_sizeOption(settings.data())
     , m_spacingOption(settings.data())
 {
-    Q_UNUSED(node);
+    static_cast<void>(node);
 
-    Q_ASSERT(settings);
-    Q_ASSERT(painter);
+    KIS_ASSERT(settings);
+    KIS_ASSERT(painter);
 
     m_firstRun = true;
     m_lastRadius = 1.0;
@@ -81,7 +81,7 @@ KisSpacingInformation KisRoundMarkerOp::paintAt(const KisPaintInformation& info)
         const PkVector<PkPointF> points =
             painter()->calculateAllMirroredPoints(pos);
 
-        Q_FOREACH(const PkPointF &pt, points) {
+        PK_FOREACH(const PkPointF &pt, points) {
             // Subtracting .5 from both dimensions, because the final dab tends to exaggerate towards the lower right.
             // This aligns it with the brush cursor.
             gc.fillFullCircle(pt - PkPointF(0.5, 0.5), radius);
@@ -90,7 +90,7 @@ KisSpacingInformation KisRoundMarkerOp::paintAt(const KisPaintInformation& info)
         const PkVector<std::pair<PkPointF, PkPointF>> pairs =
             painter()->calculateAllMirroredPoints(qMakePair(m_lastPaintPos, pos));
 
-        Q_FOREACH(const auto &pair, pairs) {
+        PK_FOREACH(const auto &pair, pairs) {
             // Subtracting .5 from both dimensions, because the final dab tends to exaggerate towards the lower right.
             // This aligns it with the brush cursor.
             gc.fillCirclesDiff(pair.first - PkPointF(0.5, 0.5), m_lastRadius,

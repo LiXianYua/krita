@@ -73,7 +73,7 @@ void KisColorSmudgeStrategyBase::DabColoringStrategyStamp::blendInColorRate(cons
                                                                             KisFixedPaintDeviceSP dstDevice,
                                                                             const PkRect &dstRect) const
 {
-    Q_UNUSED(paintColor);
+    static_cast<void>(paintColor);
 
     // TODO: check correctness for composition source device (transparency masks)
     KIS_ASSERT_RECOVER_RETURN(*dstDevice->colorSpace() == *m_origDab->colorSpace());
@@ -95,15 +95,15 @@ void KisColorSmudgeStrategyBase::DabColoringStrategyStamp::blendInFusedBackgroun
         const KoColor &preparedDullingColor, const KoCompositeOp *smearOp, const qreal smudgeRateOpacity,
         const KoColor &paintColor, const KoCompositeOp *colorRateOp, const qreal colorRateOpacity) const
 {
-    Q_UNUSED(dst);
-    Q_UNUSED(src);
-    Q_UNUSED(dstRect);
-    Q_UNUSED(preparedDullingColor);
-    Q_UNUSED(smearOp);
-    Q_UNUSED(smudgeRateOpacity);
-    Q_UNUSED(paintColor);
-    Q_UNUSED(colorRateOp);
-    Q_UNUSED(colorRateOpacity);
+    static_cast<void>(dst);
+    static_cast<void>(src);
+    static_cast<void>(dstRect);
+    static_cast<void>(preparedDullingColor);
+    static_cast<void>(smearOp);
+    static_cast<void>(smudgeRateOpacity);
+    static_cast<void>(paintColor);
+    static_cast<void>(colorRateOp);
+    static_cast<void>(colorRateOpacity);
 }
 
 /**********************************************************************************/
@@ -139,14 +139,14 @@ PkString KisColorSmudgeStrategyBase::smearCompositeOp(bool smearAlpha) const
 
 PkString KisColorSmudgeStrategyBase::finalCompositeOp(bool smearAlpha) const
 {
-    Q_UNUSED(smearAlpha);
+    static_cast<void>(smearAlpha);
     return COMPOSITE_COPY;
 }
 
 qreal KisColorSmudgeStrategyBase::finalPainterOpacity(qreal opacity, qreal smudgeRateValue)
 {
-    Q_UNUSED(opacity);
-    Q_UNUSED(smudgeRateValue);
+    static_cast<void>(opacity);
+    static_cast<void>(smudgeRateValue);
 
     return OPACITY_OPAQUE_F;
 }
@@ -154,8 +154,8 @@ qreal KisColorSmudgeStrategyBase::finalPainterOpacity(qreal opacity, qreal smudg
 qreal KisColorSmudgeStrategyBase::colorRateOpacity(qreal opacity, qreal smudgeRateValue, qreal colorRateValue,
                                                    qreal maxPossibleSmudgeRateValue)
 {
-    Q_UNUSED(smudgeRateValue);
-    Q_UNUSED(maxPossibleSmudgeRateValue);
+    static_cast<void>(smudgeRateValue);
+    static_cast<void>(maxPossibleSmudgeRateValue);
     return colorRateValue * colorRateValue * opacity;
 }
 
@@ -287,7 +287,7 @@ void KisColorSmudgeStrategyBase::blendInBackgroundWithDulling(KisFixedPaintDevic
                                                               const PkRect &dstRect, const KoColor &preparedDullingColor,
                                                               const qreal smudgeRateOpacity)
 {
-    Q_UNUSED(preparedDullingColor);
+    static_cast<void>(preparedDullingColor);
 
     if (m_smearOp->id() == COMPOSITE_COPY && qFuzzyCompare(smudgeRateOpacity, OPACITY_OPAQUE_F)) {
         dst->fill(dst->bounds(), m_preparedDullingColor);

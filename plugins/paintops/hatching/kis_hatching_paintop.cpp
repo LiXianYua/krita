@@ -44,7 +44,7 @@ KisHatchingPaintOp::KisHatchingPaintOp(const KisPaintOpSettingsSP settings, KisP
     , m_opacityOption(settings.data(), node)
     , m_sizeOption(settings.data())
 {
-    Q_UNUSED(node);
+    static_cast<void>(node);
 
     m_settings = static_cast<KisHatchingPaintOpSettings*>(settings->clone().data());
     static_cast<const KisHatchingPaintOpSettings*>(settings.data())->initializeTwin(m_settings);
@@ -75,7 +75,7 @@ KisSpacingInformation KisHatchingPaintOp::paintAt(const KisPaintInformation& inf
     KisPaintDeviceSP device = painter()->device();
 
     //Macro to catch errors
-    Q_ASSERT(brush);
+    KIS_ASSERT(brush);
 
     //----------SIMPLE error catching code, maybe it's not even needed------
     if (!brush) return KisSpacingInformation(1.0);

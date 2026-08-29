@@ -37,8 +37,8 @@ KisHairyPaintOp::KisHairyPaintOp(const KisPaintOpSettingsSP settings, KisPainter
     , m_sizeOption(settings.data())
     , m_rotationOption(settings.data())
 {
-    Q_UNUSED(image);
-    Q_ASSERT(settings);
+    static_cast<void>(image);
+    KIS_ASSERT(settings);
 
     m_hairyBristleOption.read(settings.data());
     m_hairyInkOption.read(settings.data());
@@ -110,14 +110,14 @@ KisSpacingInformation KisHairyPaintOp::paintAt(const KisPaintInformation& info)
 
 KisSpacingInformation KisHairyPaintOp::updateSpacingImpl(const KisPaintInformation &info) const
 {
-    Q_UNUSED(info);
+    static_cast<void>(info);
     return KisSpacingInformation(0.5);
 }
 
 
 void KisHairyPaintOp::paintLine(const KisPaintInformation &pi1, const KisPaintInformation &pi2, KisDistanceInformation *currentDistance)
 {
-    Q_UNUSED(currentDistance);
+    static_cast<void>(currentDistance);
     if (!painter()) return;
 
     if (!m_dab) {

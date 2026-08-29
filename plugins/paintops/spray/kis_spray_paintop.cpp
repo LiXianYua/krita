@@ -37,9 +37,9 @@ KisSprayPaintOp::KisSprayPaintOp(const KisPaintOpSettingsSP settings, KisPainter
     , m_node(node)
     
 {
-    Q_ASSERT(settings);
-    Q_ASSERT(painter);
-    Q_UNUSED(image);
+    KIS_ASSERT(settings);
+    KIS_ASSERT(painter);
+    static_cast<void>(image);
 
     m_airbrushData.read(settings.data());
 

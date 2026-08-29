@@ -30,9 +30,9 @@ KisCurvePaintOp::KisCurvePaintOp(const KisPaintOpSettingsSP settings, KisPainter
     , m_curvesOpacityOption(settings.data())
     , m_painter(0)
 {
-    Q_ASSERT(settings);
-    Q_UNUSED(image);
-    Q_UNUSED(node);
+    KIS_ASSERT(settings);
+    static_cast<void>(image);
+    static_cast<void>(node);
 
     m_curveOpOption.read(settings.data());
 }
@@ -49,13 +49,13 @@ KisSpacingInformation KisCurvePaintOp::paintAt(const KisPaintInformation& info)
 
 KisSpacingInformation KisCurvePaintOp::updateSpacingImpl(const KisPaintInformation &info) const
 {
-    Q_UNUSED(info);
+    static_cast<void>(info);
     return KisSpacingInformation(1.0);
 }
 
 void KisCurvePaintOp::paintLine(const KisPaintInformation &pi1, const KisPaintInformation &pi2, KisDistanceInformation *currentDistance)
 {
-    Q_UNUSED(currentDistance);
+    static_cast<void>(currentDistance);
     if (!painter()) return;
 
     if (!m_dab) {

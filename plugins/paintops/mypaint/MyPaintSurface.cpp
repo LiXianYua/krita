@@ -120,8 +120,8 @@ int KisMyPaintSurface::drawDabImpl(MyPaintSurface *self, float x, float y, float
                                 float color_b, float opaque, float hardness, float color_a,
                                 float aspect_ratio, float angle, float lock_alpha, float colorize) {
 
-    Q_UNUSED(self);
-    Q_UNUSED(lock_alpha);
+    static_cast<void>(self);
+    static_cast<void>(lock_alpha);
     const float one_over_radius2 = 1.0f / (radius * radius);
     const double angle_rad = kisDegreesToRadians(angle);
     const float cs = cos(angle_rad);
@@ -277,7 +277,7 @@ int KisMyPaintSurface::drawDabImpl(MyPaintSurface *self, float x, float y, float
 template <typename channelType>
 void KisMyPaintSurface::getColorImpl(MyPaintSurface *self, float x, float y, float radius,
                             float * color_r, float * color_g, float * color_b, float * color_a) {
-    Q_UNUSED(self);
+    static_cast<void>(self);
     if (radius < 1.0f)
         radius = 1.0f;
 

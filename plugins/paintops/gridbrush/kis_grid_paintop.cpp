@@ -237,7 +237,7 @@ KisSpacingInformation KisGridPaintOp::paintAt(const KisPaintInformation& info)
 
 KisSpacingInformation KisGridPaintOp::updateSpacingImpl(const KisPaintInformation &info) const
 {
-    Q_UNUSED(info);
+    static_cast<void>(info);
     return computeSpacing(KisLodTransform::lodToScale(painter()->device()));
 }
 

@@ -39,7 +39,7 @@ qreal KisCurvePaintOpSettings::paintOpSize() const
 
 void KisCurvePaintOpSettings::setPaintOpAngle(qreal value)
 {
-    Q_UNUSED(value);
+    static_cast<void>(value);
 }
 
 qreal KisCurvePaintOpSettings::paintOpAngle() const
@@ -185,7 +185,7 @@ PkList<KisUniformPaintOpPropertySP> KisCurvePaintOpSettings::uniformProperties(K
     {
         using namespace KisStandardUniformPropertiesFactory;
 
-        Q_FOREACH (KisUniformPaintOpPropertySP prop, KisPaintOpSettings::uniformProperties(settings, updateProxy)) {
+        PK_FOREACH(KisUniformPaintOpPropertySP prop, KisPaintOpSettings::uniformProperties(settings, updateProxy)) {
             if (prop->id() == opacity.id()) {
                 props.prepend(prop);
             }

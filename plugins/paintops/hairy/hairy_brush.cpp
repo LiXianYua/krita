@@ -298,7 +298,7 @@ void HairyBrush::opacityDepletion(Bristle* bristle, KoColor& bristleColor, qreal
 
 inline void HairyBrush::addBristleInk(Bristle *bristle,const PkPointF &pos, const KoColor &color)
 {
-    Q_UNUSED(bristle);
+    static_cast<void>(bristle);
     if (m_properties->antialias) {
         if (m_properties->useCompositing) {
             paintParticle(pos, color);

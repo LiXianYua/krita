@@ -60,8 +60,8 @@ KisSketchPaintOp::KisSketchPaintOp(const KisPaintOpSettingsSP settings, KisPaint
     , m_lineWidthOption(settings.data())
     , m_offsetScaleOption(settings.data())
 {
-    Q_UNUSED(image);
-    Q_UNUSED(node);
+    static_cast<void>(image);
+    static_cast<void>(node);
 
     m_airbrushOption.read(settings.data());
     m_sketchProperties.read(settings.data());

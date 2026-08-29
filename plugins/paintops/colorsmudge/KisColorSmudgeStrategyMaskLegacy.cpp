@@ -35,7 +35,7 @@ void KisColorSmudgeStrategyMaskLegacy::sampleDullingColor(const PkRect &srcRect,
 
 PkString KisColorSmudgeStrategyMaskLegacy::smearCompositeOp(bool smearAlpha) const
 {
-    Q_UNUSED(smearAlpha);
+    static_cast<void>(smearAlpha);
     return COMPOSITE_COPY;
 }
 
@@ -54,7 +54,7 @@ qreal KisColorSmudgeStrategyMaskLegacy::finalPainterOpacity(qreal opacity, qreal
 qreal KisColorSmudgeStrategyMaskLegacy::colorRateOpacity(qreal opacity, qreal smudgeRateValue, qreal colorRateValue,
                                                          qreal maxPossibleSmudgeRateValue)
 {
-    Q_UNUSED(smudgeRateValue);
+    static_cast<void>(smudgeRateValue);
 
     const qreal maxColorRate = qMax<qreal>(1.0 - maxPossibleSmudgeRateValue, 0.2);
 
@@ -65,16 +65,16 @@ qreal KisColorSmudgeStrategyMaskLegacy::colorRateOpacity(qreal opacity, qreal sm
 
 qreal KisColorSmudgeStrategyMaskLegacy::dullingRateOpacity(qreal opacity, qreal smudgeRateValue)
 {
-    Q_UNUSED(opacity);
-    Q_UNUSED(smudgeRateValue);
+    static_cast<void>(opacity);
+    static_cast<void>(smudgeRateValue);
 
     return OPACITY_OPAQUE_F;
 }
 
 qreal KisColorSmudgeStrategyMaskLegacy::smearRateOpacity(qreal opacity, qreal smudgeRateValue)
 {
-    Q_UNUSED(opacity);
-    Q_UNUSED(smudgeRateValue);
+    static_cast<void>(opacity);
+    static_cast<void>(smudgeRateValue);
 
     return OPACITY_OPAQUE_F;
 }

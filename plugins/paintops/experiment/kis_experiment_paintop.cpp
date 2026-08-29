@@ -40,8 +40,8 @@ PkRegion conservativeRepaintRegion(const PkPainterPath &currentPath,
 KisExperimentPaintOp::KisExperimentPaintOp(const KisPaintOpSettingsSP settings, KisPainter *painter, KisNodeSP node, KisImageSP image)
     : KisPaintOp(painter)
 {
-    Q_UNUSED(image);
-    Q_UNUSED(node);
+    static_cast<void>(image);
+    static_cast<void>(node);
 
     m_firstRun = true;
 
@@ -95,7 +95,7 @@ void KisExperimentPaintOp::paintRegion(const KisRegion &changedRegion)
     if (m_useMirroring) {
         m_originalPainter->setAntiAliasPolygonFill(!m_hardEdge);
 
-        Q_FOREACH (const PkRect & rect, changedRegion.rects()) {
+        PK_FOREACH(const PkRect & rect, changedRegion.rects()) {
             m_originalPainter->fillPainterPath(m_path, rect);
             painter()->renderDabWithMirroringNonIncremental(rect, m_originalDevice);
 
@@ -108,7 +108,7 @@ void KisExperimentPaintOp::paintRegion(const KisRegion &changedRegion)
         painter()->setCompositeOpId(COMPOSITE_COPY);
         painter()->setAntiAliasPolygonFill(!m_hardEdge);
 
-        Q_FOREACH (const PkRect & rect, changedRegion.rects()) {
+        PK_FOREACH(const PkRect & rect, changedRegion.rects()) {
             painter()->fillPainterPath(m_path, rect);
         }
     }
@@ -134,7 +134,7 @@ PkPointF KisExperimentPaintOp::speedCorrectedPosition(const KisPaintInformation&
 
 void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPaintInformation &pi2, KisDistanceInformation *currentDistance)
 {
-    Q_UNUSED(currentDistance);
+    static_cast<void>(currentDistance);
     if (!painter()) return;
 
     if (m_firstRun) {
@@ -271,7 +271,7 @@ KisSpacingInformation KisExperimentPaintOp::paintAt(const KisPaintInformation& i
 
 KisSpacingInformation KisExperimentPaintOp::updateSpacingImpl(const KisPaintInformation &info) const
 {
-    Q_UNUSED(info);
+    static_cast<void>(info);
     return KisSpacingInformation(1.0);
 }
 

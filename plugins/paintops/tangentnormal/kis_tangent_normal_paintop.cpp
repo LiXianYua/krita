@@ -41,7 +41,7 @@ KisTangentNormalPaintOp::KisTangentNormalPaintOp(const KisPaintOpSettingsSP sett
     , m_tempDev(painter->device()->createCompositionSourceDevice())
 
 {
-    Q_UNUSED(image);
+    static_cast<void>(image);
     //Init, read settings, etc//
     m_airbrushData.read(settings.data());
 
@@ -130,8 +130,8 @@ KisSpacingInformation KisTangentNormalPaintOp::paintAt(const KisPaintInformation
     PkRect dabRect = m_maskDab->bounds();
 
     // sanity check
-    Q_ASSERT(m_dstDabRect.size() == dabRect.size());
-    Q_UNUSED(dabRect);
+    KIS_ASSERT(m_dstDabRect.size() == dabRect.size());
+    static_cast<void>(dabRect);
 
     qreal  oldOpacityF = painter()->opacityF();
     PkString oldCompositeOpId = painter()->compositeOpId();

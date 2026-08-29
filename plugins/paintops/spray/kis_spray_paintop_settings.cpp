@@ -55,7 +55,7 @@ qreal KisSprayPaintOpSettings::paintOpSize() const
 
 void KisSprayPaintOpSettings::setPaintOpAngle(qreal value)
 {
-    Q_UNUSED(value);
+    static_cast<void>(value);
 }
 
 qreal KisSprayPaintOpSettings::paintOpAngle() const
@@ -205,7 +205,7 @@ PkList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(K
     {
         using namespace KisStandardUniformPropertiesFactory;
 
-        Q_FOREACH (KisUniformPaintOpPropertySP prop, KisPaintOpSettings::uniformProperties(settings, updateProxy)) {
+        PK_FOREACH(KisUniformPaintOpPropertySP prop, KisPaintOpSettings::uniformProperties(settings, updateProxy)) {
             if (prop->id() == opacity.id() ||
                 prop->id() == size.id()) {
 

@@ -224,7 +224,7 @@ PkList<KisUniformPaintOpPropertySP> KisExperimentPaintOpSettings::uniformPropert
     {
         using namespace KisStandardUniformPropertiesFactory;
 
-        Q_FOREACH (KisUniformPaintOpPropertySP prop, KisPaintOpSettings::uniformProperties(settings, updateProxy)) {
+        PK_FOREACH(KisUniformPaintOpPropertySP prop, KisPaintOpSettings::uniformProperties(settings, updateProxy)) {
             if (prop->id() == opacity.id()) {
                 props.prepend(prop);
             }

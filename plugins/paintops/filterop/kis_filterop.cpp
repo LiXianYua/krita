@@ -43,10 +43,10 @@ KisFilterOp::KisFilterOp(const KisPaintOpSettingsSP settings, KisPainter *painte
     , m_rotationOption(settings.data())
     , m_filterConfiguration(0)
 {
-    Q_UNUSED(node);
-    Q_UNUSED(image);
-    Q_ASSERT(settings);
-    Q_ASSERT(painter);
+    static_cast<void>(node);
+    static_cast<void>(image);
+    KIS_ASSERT(settings);
+    KIS_ASSERT(painter);
 
     m_tmpDevice = source()->createCompositionSourceDevice();
 
@@ -107,7 +107,7 @@ KisSpacingInformation KisFilterOp::paintAt(const KisPaintInformation& info)
     PkRect dabRect = dab->bounds();
 
     // sanity check
-    Q_ASSERT(dstRect.size() == dabRect.size());
+    KIS_ASSERT(dstRect.size() == dabRect.size());
 
 
     // Filter the paint device

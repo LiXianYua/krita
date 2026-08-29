@@ -81,8 +81,8 @@ struct AveragedSampleWrapper
               m_samplePtr(sampleDab->data()),
               m_sampleStride(sampleDab->bounds().width() * m_samplePixelSize)
     {
-        Q_UNUSED(maskDab);
-        Q_UNUSED(maskRect);
+        static_cast<void>(maskDab);
+        static_cast<void>(maskRect);
     }
 
     inline void samplePixel(const PkPoint &relativeSamplePoint) {
@@ -91,7 +91,7 @@ struct AveragedSampleWrapper
     }
 
     static void verifySampleRadiusValue(qreal *sampleRadiusValue) {
-        Q_UNUSED(sampleRadiusValue);
+        static_cast<void>(sampleRadiusValue);
     }
 
     bool shouldRestartWithBiggerRadius() const {

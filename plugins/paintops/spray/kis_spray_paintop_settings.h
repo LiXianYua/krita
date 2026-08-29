@@ -45,7 +45,8 @@ protected:
     PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
 private:
-    Q_DISABLE_COPY(KisSprayPaintOpSettings)
+    KisSprayPaintOpSettings(const KisSprayPaintOpSettings &) = delete;
+    KisSprayPaintOpSettings &operator=(const KisSprayPaintOpSettings &) = delete;
 
     struct Private;
     const PkScopedPointer<Private> m_d;

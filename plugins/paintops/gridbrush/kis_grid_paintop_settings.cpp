@@ -44,7 +44,7 @@ qreal KisGridPaintOpSettings::paintOpSize() const
 
 void KisGridPaintOpSettings::setPaintOpAngle(qreal value)
 {
-    Q_UNUSED(value);
+    static_cast<void>(value);
 }
 
 qreal KisGridPaintOpSettings::paintOpAngle() const
@@ -65,7 +65,7 @@ bool KisGridPaintOpSettings::paintIncremental()
 
 bool KisGridPaintOpSettings::mousePressEvent(const KisPaintInformation& info, Qt::KeyboardModifiers modifiers, KisNodeWSP currentNode)
 {
-    Q_UNUSED(currentNode);
+    static_cast<void>(currentNode);
 
     KisGridOpOptionData option;
     option.read(this);

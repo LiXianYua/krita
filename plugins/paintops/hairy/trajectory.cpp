@@ -45,7 +45,7 @@ void Trajectory::reset()
 
 const PkVector<PkPointF> &Trajectory::getLinearTrajectory(const PkPointF &start, const PkPointF &end, double space)
 {
-    Q_UNUSED(space);
+    static_cast<void>(space);
     reset();
 
     // Width and height of the line
@@ -104,7 +104,7 @@ const PkVector<PkPointF> &Trajectory::getLinearTrajectory(const PkPointF &start,
 
 PkVector<PkPointF> Trajectory::getDDATrajectory(PkPointF start, PkPointF end, double space)
 {
-    Q_UNUSED(space);
+    static_cast<void>(space);
     reset();
     // Width and height of the line
     int xd = (int)(end.x() - start.x());

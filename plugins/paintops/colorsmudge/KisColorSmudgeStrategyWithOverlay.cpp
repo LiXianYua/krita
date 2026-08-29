@@ -75,7 +75,7 @@ PkVector<PkRect> KisColorSmudgeStrategyWithOverlay::paintDab(const PkRect &srcRe
                                                            qreal maxPossibleSmudgeRateValue,
                                                            qreal lightnessStrengthValue, qreal smudgeRadiusValue)
 {
-    Q_UNUSED(lightnessStrengthValue);
+    static_cast<void>(lightnessStrengthValue);
 
     const PkVector<PkRect> mirroredRects = m_finalPainter.calculateAllMirroredRects(dstRect);
 
