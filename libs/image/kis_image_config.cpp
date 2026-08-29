@@ -52,14 +52,6 @@
 #include <cstdlib>
 #include <filesystem>
 #include <string>
-#include <vector>
-
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <errno.h>
-#include <unistd.h>
-#endif
 
 #ifdef __ANDROID__
 #include <KisAndroidUtils.h>
@@ -109,42 +101,23 @@ PkString temporaryDirectory()
     return homeDirectory();
 }
 
-bool canCreateTemporaryFile(const std::filesystem::path &nativeDirectory)
+struct PlatformSwapPathPolicy
 {
-    if (nativeDirectory.empty()) {
-        return false;
-    }
+    std::filesystem::path stableDefault;
+    KisImageConfigPaths::TransientFallback transientFallback;
+};
 
-    std::error_code error;
-    if (!std::filesystem::is_directory(nativeDirectory, error) || error) {
-        return false;
-    }
-
-#ifdef _WIN32
-    wchar_t candidate[MAX_PATH + 1] = {};
-    if (::GetTempFileNameW(nativeDirectory.c_str(), L"krt", 0, candidate) == 0) {
-        return false;
-    }
-    const HANDLE handle = ::CreateFileW(candidate, GENERIC_WRITE, 0, nullptr,
-                                        OPEN_EXISTING, FILE_ATTRIBUTE_TEMPORARY, nullptr);
-    if (handle == INVALID_HANDLE_VALUE) {
-        ::DeleteFileW(candidate);
-        return false;
-    }
-    ::CloseHandle(handle);
-    return ::DeleteFileW(candidate) != 0;
+PlatformSwapPathPolicy platformSwapPathPolicy(const PkString &suffix)
+{
+#ifdef __APPLE__
+    return {
+        KisGlobalFileSystem::writableLocation(KisGlobalFileSystem::Location::AppData) /
+            toPath(suffix),
+        KisImageConfigPaths::TransientFallback::Reject,
+    };
 #else
-    std::string pattern =
-        (nativeDirectory / "krita_test_swap_location_XXXXXX").u8string();
-    std::vector<char> writablePattern(pattern.begin(), pattern.end());
-    writablePattern.push_back('\0');
-    const int descriptor = ::mkstemp(writablePattern.data());
-    if (descriptor < 0) {
-        return false;
-    }
-    const int closeResult = ::close(descriptor);
-    const int unlinkResult = ::unlink(writablePattern.data());
-    return closeResult == 0 && unlinkResult == 0;
+    (void)suffix;
+    return {std::filesystem::path(), KisImageConfigPaths::TransientFallback::Allow};
 #endif
 }
 
@@ -346,18 +319,11 @@ void KisImageConfig::setMemoryPoolLimitPercent(qreal value)
 
 PkString KisImageConfig::safelyGetWritableTempLocation(const PkString &suffix, const PkString &configKey, bool requestDefault) const
 {
-#ifdef __APPLE__
-    const std::filesystem::path stableDefault =
-        KisGlobalFileSystem::writableLocation(KisGlobalFileSystem::Location::AppData) /
-        toPath(suffix);
-    std::error_code creationError;
-    std::filesystem::create_directories(stableDefault, creationError);
-    const auto transientPolicy = KisImageConfigPaths::TransientFallback::Reject;
-#else
-    (void)suffix;
-    const std::filesystem::path stableDefault;
-    const auto transientPolicy = KisImageConfigPaths::TransientFallback::Allow;
-#endif
+    const PlatformSwapPathPolicy policy = platformSwapPathPolicy(suffix);
+    const std::filesystem::path stableDefault = policy.stableDefault;
+    if (!stableDefault.empty()) {
+        KisImageConfigPaths::ensureDirectory(stableDefault);
+    }
     const std::filesystem::path transientDefault = toPath(temporaryDirectory());
     const std::filesystem::path homeFallback = toPath(homeDirectory());
     const std::filesystem::path platformDefault =
@@ -374,19 +340,23 @@ PkString KisImageConfig::safelyGetWritableTempLocation(const PkString &suffix, c
     const std::filesystem::path preferred = configuredSwap.isEmpty()
         ? platformDefault : toPath(configuredSwap);
 
-    const std::filesystem::path chosenPath = KisImageConfigPaths::chooseWritableLocation(
-        preferred, stableDefault, transientDefault, homeFallback, transientPolicy,
+    const std::filesystem::path lastResort =
+        policy.transientFallback == KisImageConfigPaths::TransientFallback::Reject
+        ? stableDefault : preferred;
+    const KisImageConfigPaths::LocationSelection selection =
+        KisImageConfigPaths::selectWritableLocation(
+        preferred, stableDefault, transientDefault, homeFallback, lastResort,
+        policy.transientFallback,
         [](const std::filesystem::path &location) {
             // QFileInfo::isWritable() is insufficient on NTFS, so preserve the
             // official implementation's final authority: create and remove a
             // real temporary file in each proposed directory.
-            return canCreateTemporaryFile(location);
+            return KisImageConfigPaths::probeWritableDirectory(location);
         });
-    PkString chosenLocation = fromPath(chosenPath);
+    const PkString chosenLocation = fromPath(selection.location);
 
-    if (chosenLocation.isEmpty()) {
+    if (!selection.probeSucceeded) {
         qCritical() << "CRITICAL: no writable location for a swap file found";
-        chosenLocation = fromPath(platformDefault);
     }
 
     if (chosenLocation != fromPath(preferred)) {
