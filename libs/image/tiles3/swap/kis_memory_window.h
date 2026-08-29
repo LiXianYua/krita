@@ -25,7 +25,7 @@ public:
      * @param swapDir If the dir doesn't exist, it'll be created.
      * @param writeWindowSize write window size.
      */
-    KisMemoryWindow(const PkString &swapDir, std::uint64_t writeWindowSize = DEFAULT_WINDOW_SIZE);
+    KisMemoryWindow(const PkString &swapDir, PkTilesQuint64 writeWindowSize = DEFAULT_WINDOW_SIZE);
     ~KisMemoryWindow();
 
     inline std::uint8_t* getReadChunkPtr(KisChunk readChunk) {
@@ -41,7 +41,7 @@ public:
 
 private:
     struct MappingWindow {
-        MappingWindow(std::uint64_t _defaultSize)
+        MappingWindow(PkTilesQuint64 _defaultSize)
             : chunk(0,0),
               window(0),
               defaultSize(_defaultSize)
@@ -60,7 +60,7 @@ private:
          */
         KisChunkData chunk;
         std::uint8_t *window;
-        const std::uint64_t defaultSize;
+        const PkTilesQuint64 defaultSize;
     };
 
 
@@ -69,10 +69,10 @@ private:
                       MappingWindow *adjustingWindow,
                       MappingWindow *otherWindow);
 
-    std::uint8_t* mapFile(std::uint64_t begin, std::uint64_t size);
-    void unmapFile(std::uint8_t *window, std::uint64_t size);
-    std::uint64_t fileSize() const;
-    bool resizeFile(std::uint64_t newSize);
+    std::uint8_t* mapFile(PkTilesQuint64 begin, PkTilesQuint64 size);
+    void unmapFile(std::uint8_t *window, PkTilesQuint64 size);
+    PkTilesQuint64 fileSize() const;
+    bool resizeFile(PkTilesQuint64 newSize);
 
 private:
     int m_fileFd;

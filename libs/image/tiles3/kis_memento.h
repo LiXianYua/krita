@@ -10,6 +10,28 @@
 
 #include <cstdint>
 
+#include <cassert>
+#include <cstdlib>
+#include <cstdio>
+
+#ifndef PK_TILES_ASSERT
+#  ifdef assert
+#    undef assert
+#  endif
+#  if defined(QT_NO_DEBUG) || defined(NDEBUG)
+#    define PK_TILES_ASSERT(condition) ((void)sizeof(condition))
+#    define PK_TILES_ASSERT_X(condition, where, what) \
+        ((void)sizeof(condition), (void)sizeof(where), (void)sizeof(what))
+#  else
+#    define PK_TILES_ASSERT(condition) \
+        ((condition) ? static_cast<void>(0) : std::abort())
+#    define PK_TILES_ASSERT_X(condition, where, what) \
+        ((condition) ? static_cast<void>(0) : \
+         (std::fprintf(stderr, "%s: %s\n", (where), (what)), std::abort()))
+#  endif
+#  define assert PK_TILES_ASSERT
+#endif
+
 #include <PkRect.h>
 #include <PkMutex.h>
 

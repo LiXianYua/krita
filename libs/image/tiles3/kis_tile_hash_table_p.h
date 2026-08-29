@@ -13,6 +13,26 @@
 
 #include <cstdint>
 #include <cassert>
+#include <cstdlib>
+#include <cstdio>
+
+#ifndef PK_TILES_ASSERT
+#  ifdef assert
+#    undef assert
+#  endif
+#  if defined(QT_NO_DEBUG) || defined(NDEBUG)
+#    define PK_TILES_ASSERT(condition) ((void)sizeof(condition))
+#    define PK_TILES_ASSERT_X(condition, where, what) \
+        ((void)sizeof(condition), (void)sizeof(where), (void)sizeof(what))
+#  else
+#    define PK_TILES_ASSERT(condition) \
+        ((condition) ? static_cast<void>(0) : std::abort())
+#    define PK_TILES_ASSERT_X(condition, where, what) \
+        ((condition) ? static_cast<void>(0) : \
+         (std::fprintf(stderr, "%s: %s\n", (where), (what)), std::abort()))
+#  endif
+#  define assert PK_TILES_ASSERT
+#endif
 
 
 template<class T>
@@ -132,8 +152,8 @@ void KisTileHashTableTraits<T>::linkTile(TileTypeSP tile, std::int32_t idx)
     TileTypeSP firstTile = m_hashTable[idx];
 
 #ifdef SHARED_TILES_SANITY_CHECK
-    assert((!tile->next()) &&
-           "KisTileHashTableTraits<T>::linkTile: A tile can't be shared by several hash tables, sorry.");
+    PK_TILES_ASSERT_X(!tile->next(), "KisTileHashTableTraits<T>::linkTile",
+                      "A tile can't be shared by several hash tables, sorry.");
 #endif
 
     tile->setNext(firstTile);

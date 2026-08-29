@@ -48,7 +48,7 @@ bool ensureDirExists(const std::string &path)
 
 } // namespace
 
-KisMemoryWindow::KisMemoryWindow(const PkString &swapDir, std::uint64_t writeWindowSize)
+KisMemoryWindow::KisMemoryWindow(const PkString &swapDir, PkTilesQuint64 writeWindowSize)
     : m_fileFd(-1),
       m_readWindowEx(writeWindowSize / 4),
       m_writeWindowEx(writeWindowSize)
@@ -120,30 +120,30 @@ std::uint8_t* KisMemoryWindow::getWriteChunkPtr(const KisChunkData &writeChunk)
     return m_writeWindowEx.calculatePointer(writeChunk);
 }
 
-std::uint8_t* KisMemoryWindow::mapFile(std::uint64_t begin, std::uint64_t size)
+std::uint8_t* KisMemoryWindow::mapFile(PkTilesQuint64 begin, PkTilesQuint64 size)
 {
     void *ptr = ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fileFd,
                        static_cast<off_t>(begin));
     return ptr == MAP_FAILED ? nullptr : static_cast<std::uint8_t*>(ptr);
 }
 
-void KisMemoryWindow::unmapFile(std::uint8_t *window, std::uint64_t size)
+void KisMemoryWindow::unmapFile(std::uint8_t *window, PkTilesQuint64 size)
 {
     if (window) {
         ::munmap(window, size);
     }
 }
 
-std::uint64_t KisMemoryWindow::fileSize() const
+PkTilesQuint64 KisMemoryWindow::fileSize() const
 {
     struct stat st;
     if (::fstat(m_fileFd, &st) == 0) {
-        return static_cast<std::uint64_t>(st.st_size);
+        return static_cast<PkTilesQuint64>(st.st_size);
     }
     return 0;
 }
 
-bool KisMemoryWindow::resizeFile(std::uint64_t newSize)
+bool KisMemoryWindow::resizeFile(PkTilesQuint64 newSize)
 {
     return ::ftruncate(m_fileFd, static_cast<off_t>(newSize)) == 0;
 }
@@ -161,7 +161,7 @@ bool KisMemoryWindow::adjustWindow(const KisChunkData &requestedChunk,
         unmapFile(adjustingWindow->window, adjustingWindow->chunk.size());
         adjustingWindow->window = 0;
 
-        std::uint64_t windowSize = adjustingWindow->defaultSize;
+        PkTilesQuint64 windowSize = adjustingWindow->defaultSize;
         if(requestedChunk.size() > windowSize) {
             warnKrita <<
                 "KisMemoryWindow: the requested chunk is too "
@@ -175,7 +175,7 @@ bool KisMemoryWindow::adjustWindow(const KisChunkData &requestedChunk,
 
         if(adjustingWindow->chunk.m_end >= fileSize()) {
             // Align by 32 bytes
-            std::uint64_t newSize = (adjustingWindow->chunk.m_end + 1 + 32) & (~31ULL);
+            PkTilesQuint64 newSize = (adjustingWindow->chunk.m_end + 1 + 32) & (~31ULL);
 
             if (!resizeFile(newSize)) {
                 return false;

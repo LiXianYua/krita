@@ -22,7 +22,7 @@
 #define WRAP_PREVIOUS_CHUNK_DATA(iter) (KisChunk(std::prev(iter)))
 
 
-KisChunkAllocator::KisChunkAllocator(std::uint64_t slabSize, std::uint64_t storeSize)
+KisChunkAllocator::KisChunkAllocator(PkTilesQuint64 slabSize, PkTilesQuint64 storeSize)
 {
     m_storeMaxSize = storeSize;
     m_storeSlabSize = slabSize;
@@ -36,7 +36,7 @@ KisChunkAllocator::~KisChunkAllocator()
 {
 }
 
-KisChunk KisChunkAllocator::getChunk(std::uint64_t size)
+KisChunk KisChunkAllocator::getChunk(PkTilesQuint64 size)
 {
     KisChunkDataListIterator startPosition = m_iterator;
     START_COUNTING();
@@ -82,12 +82,12 @@ KisChunk KisChunkAllocator::getChunk(std::uint64_t size)
 
 bool KisChunkAllocator::tryInsertChunk(KisChunkDataList &list,
                                        KisChunkDataListIterator &iterator,
-                                       std::uint64_t size)
+                                       PkTilesQuint64 size)
 {
     bool result = false;
-    std::uint64_t highBound = m_storeSize;
-    std::uint64_t lowBound = 0;
-    std::uint64_t shift = 0;
+    PkTilesQuint64 highBound = m_storeSize;
+    PkTilesQuint64 lowBound = 0;
+    PkTilesQuint64 shift = 0;
 
     if(HAS_NEXT(list, iterator))
         highBound = PEEK_NEXT(iterator).m_begin;
@@ -125,7 +125,7 @@ void KisChunkAllocator::freeChunk(KisChunk chunk)
 
 void KisChunkAllocator::debugChunks()
 {
-    std::uint64_t idx = 0;
+    PkTilesQuint64 idx = 0;
     KisChunkDataListIterator i;
 
     for(i = m_list.begin(); i != m_list.end(); ++i) {
@@ -166,9 +166,9 @@ double KisChunkAllocator::debugFragmentation(bool toStderr)
 {
     KisChunkDataListIterator i;
 
-    std::uint64_t totalSize = 0;
-    std::uint64_t allocated = 0;
-    std::uint64_t free = 0;
+    PkTilesQuint64 totalSize = 0;
+    PkTilesQuint64 allocated = 0;
+    PkTilesQuint64 free = 0;
     double fragmentation = 0;
 
     for(i = m_list.begin(); i != m_list.end(); ++i) {

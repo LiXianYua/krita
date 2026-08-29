@@ -8,7 +8,28 @@
 #define __KIS_CHUNK_LIST_H
 
 #include <cstdint>
+#include <type_traits>
 #include <cassert>
+#include <cstdlib>
+#include <cstdio>
+
+#ifndef PK_TILES_ASSERT
+#  ifdef assert
+#    undef assert
+#  endif
+#  if defined(QT_NO_DEBUG) || defined(NDEBUG)
+#    define PK_TILES_ASSERT(condition) ((void)sizeof(condition))
+#    define PK_TILES_ASSERT_X(condition, where, what) \
+        ((void)sizeof(condition), (void)sizeof(where), (void)sizeof(what))
+#  else
+#    define PK_TILES_ASSERT(condition) \
+        ((condition) ? static_cast<void>(0) : std::abort())
+#    define PK_TILES_ASSERT_X(condition, where, what) \
+        ((condition) ? static_cast<void>(0) : \
+         (std::fprintf(stderr, "%s: %s\n", (where), (what)), std::abort()))
+#  endif
+#  define assert PK_TILES_ASSERT
+#endif
 
 #include <list>
 #include "kritaimage_export.h"
@@ -17,6 +38,14 @@
 
 #define DEFAULT_STORE_SIZE (4096*MiB)
 #define DEFAULT_SLAB_SIZE (64*MiB)
+
+// Qt's qint64/quint64 are long long on the supported LP64 build.  Keep the
+// exported tiles3 signatures ABI-identical instead of inheriting libc's
+// platform-dependent std::(u)int64_t spelling.
+using PkTilesQuint64 = unsigned long long;
+using PkTilesQint64 = long long;
+static_assert(std::is_same<PkTilesQuint64, unsigned long long>::value, "quint64 ABI");
+static_assert(std::is_same<PkTilesQint64, long long>::value, "qint64 ABI");
 
 
 //#define DEBUG_SLAB_FAILS
@@ -52,17 +81,17 @@ typedef KisChunkDataList::iterator KisChunkDataListIterator;
 class KRITAIMAGE_EXPORT KisChunkData
 {
 public:
-    KisChunkData(std::uint64_t begin, std::uint64_t size)
+    KisChunkData(PkTilesQuint64 begin, PkTilesQuint64 size)
     {
         setChunk(begin, size);
     }
 
-    inline void setChunk(std::uint64_t begin, std::uint64_t size) {
+    inline void setChunk(PkTilesQuint64 begin, PkTilesQuint64 size) {
         m_begin = begin;
         m_end = begin + size - 1;
     }
 
-    inline std::uint64_t size() const {
+    inline PkTilesQuint64 size() const {
         return m_end - m_begin +1;
     }
 
@@ -77,8 +106,8 @@ public:
         return m_begin == other.m_begin;
     }
 
-    std::uint64_t m_begin;
-    std::uint64_t m_end;
+    PkTilesQuint64 m_begin;
+    PkTilesQuint64 m_end;
 };
 
 class KRITAIMAGE_EXPORT KisChunk
@@ -91,15 +120,15 @@ public:
     {
     }
 
-    inline std::uint64_t begin() const {
+    inline PkTilesQuint64 begin() const {
         return m_iterator->m_begin;
     }
 
-    inline std::uint64_t end() const {
+    inline PkTilesQuint64 end() const {
         return m_iterator->m_end;
     }
 
-    inline std::uint64_t size() const {
+    inline PkTilesQuint64 size() const {
         return m_iterator->size();
     }
 
@@ -119,15 +148,15 @@ private:
 class KRITAIMAGE_EXPORT KisChunkAllocator
 {
 public:
-    KisChunkAllocator(std::uint64_t slabSize = DEFAULT_SLAB_SIZE,
-                      std::uint64_t storeSize = DEFAULT_STORE_SIZE);
+    KisChunkAllocator(PkTilesQuint64 slabSize = DEFAULT_SLAB_SIZE,
+                      PkTilesQuint64 storeSize = DEFAULT_STORE_SIZE);
     ~KisChunkAllocator();
 
-    inline std::uint64_t numChunks() const {
+    inline PkTilesQuint64 numChunks() const {
         return m_list.size();
     }
 
-    KisChunk getChunk(std::uint64_t size);
+    KisChunk getChunk(PkTilesQuint64 size);
     void freeChunk(KisChunk chunk);
 
     void debugChunks();
@@ -137,16 +166,16 @@ public:
 private:
     bool tryInsertChunk(KisChunkDataList &list,
                         KisChunkDataListIterator &iterator,
-                        std::uint64_t size);
+                        PkTilesQuint64 size);
 
 private:
-    std::uint64_t m_storeMaxSize;
-    std::uint64_t m_storeSlabSize;
+    PkTilesQuint64 m_storeMaxSize;
+    PkTilesQuint64 m_storeSlabSize;
 
 
     KisChunkDataList m_list;
     KisChunkDataListIterator m_iterator;
-    std::uint64_t m_storeSize;
+    PkTilesQuint64 m_storeSize;
     DECLARE_FAIL_COUNTER()
 };
 
