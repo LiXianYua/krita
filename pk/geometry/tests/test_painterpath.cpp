@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cfloat>
+#include <limits>
 
 // ⚠ 这个系统头必须在 oracle/geometry_difftest.cpp 顶部的系统头区里也出现过
 // —— 理由与 PkLine.cpp 顶部同一条纪律。
@@ -664,6 +665,33 @@ void PkPainterPathCase::equalityUsesBoundingSizeEpsilon()
     PkPainterPath largeA = r39Rectangle(1.0e6, 0.0, 1.0, 2.0);
     PkPainterPath largeB = r39Rectangle(1.0e6 + 0.0000005, 0.0, 1.0, 2.0);
     PK_VERIFY(largeA != largeB);
+}
+
+void PkPainterPathCase::equalityEmptyFillRuleAndNaN()
+{
+    // Qt treats an origin-only MoveTo as equal to an empty path only when
+    // both operands carry the same fill rule.
+    PkPainterPath emptyWinding;
+    emptyWinding.setFillRule(Qt::WindingFill);
+    PkPainterPath originWinding(PkPointF(0, 0));
+    originWinding.setFillRule(Qt::WindingFill);
+    PK_VERIFY(emptyWinding == originWinding);
+    PK_VERIFY(originWinding == emptyWinding);
+
+    PkPainterPath originOddEven(PkPointF(0, 0));
+    originOddEven.setFillRule(Qt::OddEvenFill);
+    PK_VERIFY(!(emptyWinding == originOddEven));
+    PK_VERIFY(!(originOddEven == emptyWinding));
+
+    // The Qt coordinate predicate is qAbs(delta) <= epsilon.  In
+    // particular, finite-vs-NaN must be rejected (NaN > epsilon is false).
+    PkPainterPath finite;
+    finite.moveTo(1, 2);
+    PkPainterPath nanPath;
+    nanPath.moveTo(1, 2);
+    nanPath.setElementPositionAt(0, std::numeric_limits<qreal>::quiet_NaN(), 2);
+    PK_VERIFY(!(finite == nanPath));
+    PK_VERIFY(!(nanPath == finite));
 }
 
 void PkPainterPathCase::booleanRectanglesAndOperators()

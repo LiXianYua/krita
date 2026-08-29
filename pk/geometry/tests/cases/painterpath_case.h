@@ -63,6 +63,7 @@ private Q_SLOTS:
     // 比较
     void equality();
     void equalityUsesBoundingSizeEpsilon();
+    void equalityEmptyFillRuleAndNaN();
 
     // 面积布尔运算（R-39）
     void booleanEmptyIdentities();

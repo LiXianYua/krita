@@ -670,7 +670,7 @@ bool PkPainterPath::operator==(const PkPainterPath &other) const
         const PkPainterPath &materialized = m_elements.isEmpty() ? other : *this;
         if (!materialized.isEmpty()
             || materialized.elementAt(0) != PkPointF()
-            || materialized.fillRule() != Qt::OddEvenFill) {
+            || m_fillRule != other.m_fillRule) {
             return false;
         }
         return true;
@@ -686,8 +686,8 @@ bool PkPainterPath::operator==(const PkPainterPath &other) const
         const Element &lhs = m_elements.at(i);
         const Element &rhs = other.m_elements.at(i);
         if (lhs.type != rhs.type
-            || qAbs(lhs.x - rhs.x) > epsilonX
-            || qAbs(lhs.y - rhs.y) > epsilonY) {
+            || !(qAbs(lhs.x - rhs.x) <= epsilonX)
+            || !(qAbs(lhs.y - rhs.y) <= epsilonY)) {
             return false;
         }
     }

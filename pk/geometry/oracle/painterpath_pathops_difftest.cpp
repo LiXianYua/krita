@@ -420,6 +420,47 @@ void compareAdversarialCubics()
                   "adversarial-cubic:operation=simplified");
 }
 
+void compareEqualityEdgeCases()
+{
+    QPainterPath qtEmpty;
+    qtEmpty.setFillRule(Qt::WindingFill);
+    QPainterPath qtOrigin;
+    qtOrigin.setFillRule(Qt::WindingFill);
+    qtOrigin.moveTo(0, 0);
+
+    pkoracle::PkPainterPath pkEmpty;
+    pkEmpty.setFillRule(pkoracle::Qt::WindingFill);
+    pkoracle::PkPainterPath pkOrigin;
+    pkOrigin.setFillRule(pkoracle::Qt::WindingFill);
+    pkOrigin.moveTo(0, 0);
+    rec((qtEmpty == qtOrigin) == (pkEmpty == pkOrigin),
+        "equality-edge:empty-vs-origin:fill=winding");
+
+    QPainterPath qtOddOrigin;
+    qtOddOrigin.setFillRule(Qt::OddEvenFill);
+    qtOddOrigin.moveTo(0, 0);
+    pkoracle::PkPainterPath pkOddOrigin;
+    pkOddOrigin.setFillRule(pkoracle::Qt::OddEvenFill);
+    pkOddOrigin.moveTo(0, 0);
+    rec((qtEmpty == qtOddOrigin) == (pkEmpty == pkOddOrigin),
+        "equality-edge:empty-vs-origin:fill-mismatch");
+
+    QPainterPath qtFinite;
+    qtFinite.moveTo(1, 2);
+    QPainterPath qtNan;
+    qtNan.moveTo(1, 2);
+    qtNan.setElementPositionAt(0, std::numeric_limits<qreal>::quiet_NaN(), 2);
+    pkoracle::PkPainterPath pkFinite;
+    pkFinite.moveTo(1, 2);
+    pkoracle::PkPainterPath pkNan;
+    pkNan.moveTo(1, 2);
+    pkNan.setElementPositionAt(0, std::numeric_limits<qreal>::quiet_NaN(), 2);
+    rec((qtFinite == qtNan) == (pkFinite == pkNan),
+        "equality-edge:finite-vs-nan:x-coordinate");
+    rec((qtNan == qtFinite) == (pkNan == pkFinite),
+        "equality-edge:nan-vs-finite:x-coordinate");
+}
+
 } // namespace
 
 int main()
@@ -481,6 +522,7 @@ int main()
     compareNearCoincidentPair(10.0, 0.1, "small");
     compareNearCoincidentPair(1.0e6, 0.0000005, "large");
     compareAdversarialCubics();
+    compareEqualityEdgeCases();
 
     std::cout << "DIFF total=" << total << " mismatch=" << mismatches << '\n';
     return 0;
