@@ -6,7 +6,9 @@ set -eu
 cd "$(dirname "$0")/../../.." || exit 1     # → fork 仓库根
 
 BUILD=pk/geometry/build
-cmake -S pk/geometry -B "$BUILD" -DCMAKE_BUILD_TYPE=Debug >/dev/null
+cmake -S pk/geometry -B "$BUILD" -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+      -DCMAKE_CXX_COMPILER_LAUNCHER=ccache >/dev/null
 cmake --build "$BUILD" -j"$(nproc)" >/dev/null
 
 "./$BUILD/test_pkgeometry"
@@ -76,3 +78,6 @@ if [ -n "$stray" ]; then
     exit 1
 fi
 printf 'git status --porcelain: 改动全部落在 pk/geometry/ 前缀内\n'
+
+# R-39 path boolean operations: distinct real-Qt/Pk differential oracle.
+pk/geometry/oracle/run_pathops_oracle.sh

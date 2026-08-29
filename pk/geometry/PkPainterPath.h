@@ -167,6 +167,18 @@ public:
     bool contains(const PkPointF &pt) const;
     bool contains(const PkRectF &rect) const;
     bool intersects(const PkRectF &rect) const;
+    bool contains(const PkPainterPath &other) const;
+    bool intersects(const PkPainterPath &other) const;
+
+    PkPainterPath united(const PkPainterPath &other) const;
+    PkPainterPath intersected(const PkPainterPath &other) const;
+    PkPainterPath subtracted(const PkPainterPath &other) const;
+    PkPainterPath simplified() const;
+
+    PkPainterPath &operator&=(const PkPainterPath &other);
+    PkPainterPath &operator|=(const PkPainterPath &other);
+    PkPainterPath &operator+=(const PkPainterPath &other);
+    PkPainterPath &operator-=(const PkPainterPath &other);
 
     // T3: 转换 + 摊平
     PkPolygonF toFillPolygon(const PkTransform &matrix) const;
@@ -218,3 +230,12 @@ private:
 // qpainterpath.h 末尾的 operator*（QPainterPath × QTransform）—— 自由函数。
 // 定义在 T5（偏离 21 闭合）里实现，这里只做声明。
 inline PkPainterPath operator*(const PkPainterPath &p, const PkTransform &t);
+
+inline PkPainterPath operator&(const PkPainterPath &lhs, const PkPainterPath &rhs)
+{ return lhs.intersected(rhs); }
+inline PkPainterPath operator|(const PkPainterPath &lhs, const PkPainterPath &rhs)
+{ return lhs.united(rhs); }
+inline PkPainterPath operator+(const PkPainterPath &lhs, const PkPainterPath &rhs)
+{ return lhs.united(rhs); }
+inline PkPainterPath operator-(const PkPainterPath &lhs, const PkPainterPath &rhs)
+{ return lhs.subtracted(rhs); }

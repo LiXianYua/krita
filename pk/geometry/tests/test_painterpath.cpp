@@ -564,6 +564,161 @@ void PkPainterPathCase::addRoundedRect()
     PK_VERIFY(path3.isEmpty());
 }
 
+// ============================================================================
+// R-39: 面积布尔运算
+// ============================================================================
+
+namespace {
+
+PkPainterPath r39Rectangle(qreal x, qreal y, qreal width, qreal height)
+{
+    PkPainterPath path;
+    path.addRect(PkRectF(x, y, width, height));
+    return path;
+}
+
+PkPainterPath r39Donut(Qt::FillRule rule)
+{
+    PkPainterPath path;
+    path.setFillRule(rule);
+    path.addRect(PkRectF(0, 0, 10, 10));
+    path.addRect(PkRectF(3, 3, 4, 4));
+    return path;
+}
+
+PkPainterPath r39BowTie(Qt::FillRule rule)
+{
+    PkPainterPath path;
+    path.setFillRule(rule);
+    path.moveTo(0, 0);
+    path.lineTo(10, 10);
+    path.lineTo(0, 10);
+    path.lineTo(10, 0);
+    path.closeSubpath();
+    return path;
+}
+
+void verifyR39Membership(const PkPainterPath &path, const char *bits)
+{
+    const PkPointF probes[] = {
+        PkPointF(1, 1), PkPointF(4, 4), PkPointF(5, 5),
+        PkPointF(8, 5), PkPointF(12, 5), PkPointF(5, 9)
+    };
+    for (int i = 0; i < 6; ++i)
+        PK_COMPARE(path.contains(probes[i]), bits[i] == '1');
+}
+
+} // namespace
+
+void PkPainterPathCase::booleanEmptyIdentities()
+{
+    const PkPainterPath empty;
+    PkPainterPath shape = r39Rectangle(0, 0, 8, 10);
+    shape.setFillRule(Qt::WindingFill);
+
+    PK_VERIFY(empty.intersected(shape).isEmpty());
+    PK_VERIFY(shape.intersected(empty).isEmpty());
+    PK_COMPARE(empty.united(shape), shape);
+    PK_COMPARE(shape.united(empty), shape);
+    PK_VERIFY(empty.subtracted(shape).isEmpty());
+    PK_COMPARE(shape.subtracted(empty), shape);
+    PK_VERIFY(empty.simplified().isEmpty());
+}
+
+void PkPainterPathCase::booleanRectanglesAndOperators()
+{
+    const PkPainterPath left = r39Rectangle(0, 0, 8, 10);
+    const PkPainterPath right = r39Rectangle(4, 0, 8, 10);
+
+    const PkPainterPath united = left.united(right);
+    PK_COMPARE(united.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(united.elementCount(), 5);
+    PK_COMPARE(united.boundingRect(), PkRectF(0, 0, 12, 10));
+    verifyR39Membership(united, "111101");
+
+    const PkPainterPath intersected = left.intersected(right);
+    PK_COMPARE(intersected.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(intersected.elementCount(), 5);
+    PK_COMPARE(intersected.boundingRect(), PkRectF(4, 0, 4, 10));
+    verifyR39Membership(intersected, "011001");
+
+    const PkPainterPath subtracted = left.subtracted(right);
+    PK_COMPARE(subtracted.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(subtracted.elementCount(), 5);
+    PK_COMPARE(subtracted.boundingRect(), PkRectF(0, 0, 4, 10));
+    verifyR39Membership(subtracted, "100000");
+
+    PK_COMPARE(left & right, intersected);
+    PK_COMPARE(left | right, united);
+    PK_COMPARE(left + right, united);
+    PK_COMPARE(left - right, subtracted);
+
+    PkPainterPath assigned = left;
+    assigned &= right;
+    PK_COMPARE(assigned, intersected);
+    assigned = left;
+    assigned |= right;
+    PK_COMPARE(assigned, united);
+    assigned = left;
+    assigned += right;
+    PK_COMPARE(assigned, united);
+    assigned = left;
+    assigned -= right;
+    PK_COMPARE(assigned, subtracted);
+}
+
+void PkPainterPathCase::booleanFillRulesAndCompounds()
+{
+    const PkPainterPath oddDonut = r39Donut(Qt::OddEvenFill);
+    PK_COMPARE(oddDonut.elementCount(), 10);
+    PK_COMPARE(oddDonut.boundingRect(), PkRectF(0, 0, 10, 10));
+    verifyR39Membership(oddDonut, "100101");
+
+    const PkPainterPath windingDonut = r39Donut(Qt::WindingFill);
+    PK_COMPARE(windingDonut.elementCount(), 10);
+    PK_COMPARE(windingDonut.boundingRect(), PkRectF(0, 0, 10, 10));
+    verifyR39Membership(windingDonut, "111101");
+
+    PkPainterPath compound;
+    compound.addRect(PkRectF(0, 0, 3, 3));
+    compound.addRect(PkRectF(7, 7, 3, 3));
+    const PkPainterPath result = compound.intersected(r39Rectangle(1, 1, 8, 8));
+    PK_COMPARE(result.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(result.elementCount(), 9);
+    PK_COMPARE(result.boundingRect(), PkRectF(1, 1, 8, 8));
+    verifyR39Membership(result, "100000");
+}
+
+void PkPainterPathCase::simplifiedSelfIntersections()
+{
+    const PkPainterPath odd = r39BowTie(Qt::OddEvenFill).simplified();
+    PK_COMPARE(odd.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(odd.elementCount(), 8);
+    PK_COMPARE(odd.boundingRect(), PkRectF(0, 0, 10, 10));
+    verifyR39Membership(odd, "110001");
+
+    const PkPainterPath winding = r39BowTie(Qt::WindingFill).simplified();
+    PK_COMPARE(winding.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(winding.elementCount(), 8);
+    PK_COMPARE(winding.boundingRect(), PkRectF(0, 0, 10, 10));
+    verifyR39Membership(winding, "110001");
+}
+
+void PkPainterPathCase::pathRelationQueries()
+{
+    const PkPainterPath outer = r39Rectangle(0, 0, 10, 10);
+    const PkPainterPath inner = r39Rectangle(2, 2, 3, 3);
+    const PkPainterPath overlap = r39Rectangle(8, 2, 5, 5);
+    const PkPainterPath disjoint = r39Rectangle(20, 20, 2, 2);
+
+    PK_VERIFY(outer.contains(inner));
+    PK_VERIFY(!inner.contains(outer));
+    PK_VERIFY(outer.intersects(inner));
+    PK_VERIFY(outer.intersects(overlap));
+    PK_VERIFY(!outer.intersects(disjoint));
+    PK_VERIFY(!outer.contains(overlap));
+}
+
 int run_painterpath_tests()
 {
     PkPainterPathCase tc;

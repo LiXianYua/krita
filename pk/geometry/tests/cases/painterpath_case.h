@@ -62,4 +62,11 @@ private Q_SLOTS:
 
     // 比较
     void equality();
+
+    // 面积布尔运算（R-39）
+    void booleanEmptyIdentities();
+    void booleanRectanglesAndOperators();
+    void booleanFillRulesAndCompounds();
+    void simplifiedSelfIntersections();
+    void pathRelationQueries();
 };

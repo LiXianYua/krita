@@ -34,6 +34,13 @@ struct PkArcBezier {
     PkPointF pt3() const { return PkPointF(x3, y3); }
     PkPointF pt4() const { return PkPointF(x4, y4); }
 
+    PkPointF pointAt(qreal t) const;
+    PkRectF bounds() const;
+    PkArcBezier mapBy(const PkTransform &transform) const;
+    PkArcBezier getSubRange(qreal t0, qreal t1) const;
+    qreal tForY(qreal t0, qreal t1, qreal y) const;
+    int stationaryYPoints(qreal &t0, qreal &t1) const;
+
     PkArcBezier bezierOnInterval(qreal t0, qreal t1) const;
     void parameterSplitLeft(qreal t, PkArcBezier *left);
 };
@@ -66,6 +73,112 @@ PkArcBezier PkArcBezier::bezierOnInterval(qreal t0, qreal t1) const
     qreal trueT = (t1 - t0) / (1 - t0);
     bezier.parameterSplitLeft(trueT, &result);
     return result;
+}
+
+PkPointF PkArcBezier::pointAt(qreal t) const
+{
+    const qreal mt = 1 - t;
+    const qreal a = mt * mt * mt;
+    const qreal b = 3 * mt * mt * t;
+    const qreal c = 3 * mt * t * t;
+    const qreal d = t * t * t;
+    return PkPointF(a * x1 + b * x2 + c * x3 + d * x4,
+                    a * y1 + b * y2 + c * y3 + d * y4);
+}
+
+PkRectF PkArcBezier::bounds() const
+{
+    const qreal minX = qMin(qMin(x1, x2), qMin(x3, x4));
+    const qreal maxX = qMax(qMax(x1, x2), qMax(x3, x4));
+    const qreal minY = qMin(qMin(y1, y2), qMin(y3, y4));
+    const qreal maxY = qMax(qMax(y1, y2), qMax(y3, y4));
+    return PkRectF(minX, minY, maxX - minX, maxY - minY);
+}
+
+PkArcBezier PkArcBezier::mapBy(const PkTransform &transform) const
+{
+    return fromPoints(transform.map(pt1()), transform.map(pt2()),
+                      transform.map(pt3()), transform.map(pt4()));
+}
+
+PkArcBezier PkArcBezier::getSubRange(qreal t0, qreal t1) const
+{
+    PkArcBezier result;
+    PkArcBezier temp;
+    if (pkQtFuzzyIsNull(t1 - qreal(1))) {
+        result = *this;
+    } else {
+        temp = *this;
+        temp.parameterSplitLeft(t1, &result);
+    }
+    if (!pkQtFuzzyIsNull(t0))
+        result.parameterSplitLeft(t0 / t1, &temp);
+    return result;
+}
+
+qreal PkArcBezier::tForY(qreal t0, qreal t1, qreal y) const
+{
+    qreal py0 = pointAt(t0).y();
+    qreal py1 = pointAt(t1).y();
+    if (py0 > py1) {
+        std::swap(py0, py1);
+        std::swap(t0, t1);
+    }
+    if (py0 >= y)
+        return t0;
+    if (py1 <= y)
+        return t1;
+
+    qreal lastT = t0;
+    qreal delta;
+    do {
+        const qreal t = qreal(0.5) * (t0 + t1);
+        qreal a, b, c, d;
+        pkBezierCoefficients(t, a, b, c, d);
+        const qreal yt = a * y1 + b * y2 + c * y3 + d * y4;
+        if (yt < y)
+            t0 = t;
+        else
+            t1 = t;
+        delta = lastT - t;
+        lastT = t;
+    } while (qAbs(delta) > qreal(1e-7));
+    return t0;
+}
+
+int PkArcBezier::stationaryYPoints(qreal &t0, qreal &t1) const
+{
+    const qreal a = -y1 + 3 * y2 - 3 * y3 + y4;
+    const qreal b = 2 * y1 - 4 * y2 + 2 * y3;
+    const qreal c = -y1 + y2;
+    if (pkQtFuzzyIsNull(a)) {
+        if (pkQtFuzzyIsNull(b))
+            return 0;
+        t0 = -c / b;
+        return t0 > 0 && t0 < 1;
+    }
+    const qreal discriminant = b * b - 4 * a * c;
+    if (pkQtFuzzyIsNull(discriminant)) {
+        t0 = -b / (2 * a);
+        return t0 > 0 && t0 < 1;
+    }
+    if (discriminant > 0) {
+        const qreal root = std::sqrt(discriminant);
+        t0 = (-b - root) / (2 * a);
+        t1 = (-b + root) / (2 * a);
+        if (t1 < t0)
+            std::swap(t0, t1);
+        int count = 0;
+        qreal values[2] = {0, 1};
+        if (t0 > 0 && t0 < 1)
+            values[count++] = t0;
+        if (t1 > 0 && t1 < 1)
+            values[count++] = t1;
+        t0 = values[0];
+        t1 = values[1];
+        return count;
+    }
+    return 0;
 }
 
 static PkArcBezierSplit pkSplitBezier(const PkArcBezier &b)
@@ -346,6 +459,9 @@ static qreal pkBezierLength(const PkArcBezier &b, qreal error = 0.01)
     return pkBezierLength(halves.first, error) + pkBezierLength(halves.second, error);
 }
 
+// Qt 5.15 winged-edge boolean engine, adapted to the Pk geometry types.
+#include "PkPathClipper.cpp.inc"
+
 // ============================================================================
 // PkPainterPath 成员实现
 // ============================================================================
@@ -450,6 +566,67 @@ bool PkPainterPath::intersects(const PkRectF &rect) const
     for (int i=0;i<m_elements.size();++i) { const auto &e=m_elements.at(i); if (e.type==MoveToElement&&rect.contains(PkPointF(e.x,e.y))) return true; }
     return false;
 }
+
+PkPainterPath PkPainterPath::united(const PkPainterPath &other) const
+{
+    if (isEmpty() || other.isEmpty())
+        return isEmpty() ? other : *this;
+    PkPathClipper clipper(*this, other);
+    return clipper.clip(PkPathClipper::BoolOr);
+}
+
+PkPainterPath PkPainterPath::intersected(const PkPainterPath &other) const
+{
+    if (isEmpty() || other.isEmpty())
+        return PkPainterPath();
+    PkPathClipper clipper(*this, other);
+    return clipper.clip(PkPathClipper::BoolAnd);
+}
+
+PkPainterPath PkPainterPath::subtracted(const PkPainterPath &other) const
+{
+    if (isEmpty() || other.isEmpty())
+        return *this;
+    PkPathClipper clipper(*this, other);
+    return clipper.clip(PkPathClipper::BoolSub);
+}
+
+PkPainterPath PkPainterPath::simplified() const
+{
+    if (isEmpty())
+        return *this;
+    PkPathClipper clipper(*this, PkPainterPath());
+    return clipper.clip(PkPathClipper::Simplify);
+}
+
+bool PkPainterPath::intersects(const PkPainterPath &other) const
+{
+    if (other.elementCount() == 1)
+        return contains(other.elementAt(0));
+    if (isEmpty() || other.isEmpty())
+        return false;
+    PkPathClipper clipper(*this, other);
+    return clipper.intersect();
+}
+
+bool PkPainterPath::contains(const PkPainterPath &other) const
+{
+    if (other.elementCount() == 1)
+        return contains(other.elementAt(0));
+    if (isEmpty() || other.isEmpty())
+        return false;
+    PkPathClipper clipper(*this, other);
+    return clipper.contains();
+}
+
+PkPainterPath &PkPainterPath::operator&=(const PkPainterPath &other)
+{ return *this = intersected(other); }
+PkPainterPath &PkPainterPath::operator|=(const PkPainterPath &other)
+{ return *this = united(other); }
+PkPainterPath &PkPainterPath::operator+=(const PkPainterPath &other)
+{ return *this = united(other); }
+PkPainterPath &PkPainterPath::operator-=(const PkPainterPath &other)
+{ return *this = subtracted(other); }
 
 void PkPainterPath::translate(qreal dx, qreal dy)
 { if (pkQtFuzzyCompare(dx,0)&&pkQtFuzzyCompare(dy,0)) return; for (int i=0;i<m_elements.size();++i) { m_elements[i].x+=dx; m_elements[i].y+=dy; } m_currentPos+=PkPointF(dx,dy); markDirty(); }
