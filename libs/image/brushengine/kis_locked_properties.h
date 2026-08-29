@@ -35,7 +35,8 @@ public:
     KisPropertiesConfigurationSP lockedProperties();
 
 private:
-    Q_DISABLE_COPY(KisLockedProperties)
+    KisLockedProperties(const KisLockedProperties &) = delete;
+    KisLockedProperties &operator=(const KisLockedProperties &) = delete;
     KisPropertiesConfigurationSP m_lockedProperties;
 };
 
