@@ -13,7 +13,7 @@ enum class KisNodeAdditionFlag
     DontActivateNode = 0x1
 };
 
-Q_DECLARE_FLAGS(KisNodeAdditionFlags, KisNodeAdditionFlag)
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisNodeAdditionFlags)
+PK_DECLARE_FLAGS(KisNodeAdditionFlags, KisNodeAdditionFlag)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisNodeAdditionFlags)
 
 #endif // KISNODEADDITIONFLAGS_H
