@@ -6,6 +6,8 @@
 #ifndef KIS_TILED_RANDOM_ACCESSOR_H
 #define KIS_TILED_RANDOM_ACCESSOR_H
 
+#include <cstdint>
+
 
 #include <kis_shared.h>
 
@@ -20,14 +22,14 @@ class KisRandomAccessor2 : public KisRandomAccessorNG
     struct KisTileInfo {
         KisTileSP tile;
         KisTileSP oldtile;
-        quint8* data;
-        const quint8* oldData;
-        qint32 area_x1, area_y1, area_x2, area_y2;
+        std::uint8_t* data;
+        const std::uint8_t* oldData;
+        std::int32_t area_x1, area_y1, area_x2, area_y2;
     };
 
 public:
 
-    KisRandomAccessor2(KisTiledDataManager *ktm, qint32 offsetX, qint32 offsetY, bool writable, KisIteratorCompleteListener *completeListener);
+    KisRandomAccessor2(KisTiledDataManager *ktm, std::int32_t offsetX, std::int32_t offsetY, bool writable, KisIteratorCompleteListener *completeListener);
     KisRandomAccessor2(const KisTiledRandomAccessor& lhs);
     ~KisRandomAccessor2() override;
 
@@ -57,39 +59,39 @@ private:
         tile->unlockForRead();
     }
 
-    inline quint32 xToCol(quint32 x) const {
+    inline std::uint32_t xToCol(std::uint32_t x) const {
         return m_ktm ? m_ktm->xToCol(x) : 0;
     }
-    inline quint32 yToRow(quint32 y) const {
+    inline std::uint32_t yToRow(std::uint32_t y) const {
         return m_ktm ? m_ktm->yToRow(y) : 0;
     }
 
-    KisTileInfo* fetchTileData(qint32 col, qint32 row);
+    KisTileInfo* fetchTileData(std::int32_t col, std::int32_t row);
 
 public:
     /// Move to a given x,y position, fetch tiles and data
-    void moveTo(qint32 x, qint32 y) override;
-    quint8* rawData() override;
-    const quint8* oldRawData() const override;
-    const quint8* rawDataConst() const override;
-    qint32 numContiguousColumns(qint32 x) const override;
-    qint32 numContiguousRows(qint32 y) const override;
-    qint32 rowStride(qint32 x, qint32 y) const override;
-    qint32 x() const override;
-    qint32 y() const override;
+    void moveTo(std::int32_t x, std::int32_t y) override;
+    std::uint8_t* rawData() override;
+    const std::uint8_t* oldRawData() const override;
+    const std::uint8_t* rawDataConst() const override;
+    std::int32_t numContiguousColumns(std::int32_t x) const override;
+    std::int32_t numContiguousRows(std::int32_t y) const override;
+    std::int32_t rowStride(std::int32_t x, std::int32_t y) const override;
+    std::int32_t x() const override;
+    std::int32_t y() const override;
 
 private:
     KisTiledDataManager *m_ktm;
     KisTileInfo** m_tilesCache;
-    quint32 m_tilesCacheSize;
-    qint32 m_pixelSize;
-    quint8* m_data;
-    const quint8* m_oldData;
+    std::uint32_t m_tilesCacheSize;
+    std::int32_t m_pixelSize;
+    std::uint8_t* m_data;
+    const std::uint8_t* m_oldData;
     bool m_writable;
     int m_lastX, m_lastY;
-    qint32 m_offsetX, m_offsetY;
+    std::int32_t m_offsetX, m_offsetY;
     KisIteratorCompleteListener *m_completeListener;
-    static const quint32 CACHESIZE; // Define the number of tiles we keep in cache
+    static const std::uint32_t CACHESIZE; // Define the number of tiles we keep in cache
 
 };
 

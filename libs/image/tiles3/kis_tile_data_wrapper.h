@@ -7,6 +7,8 @@
 #ifndef __KIS_TILE_DATA_WRAPPER_H
 #define __KIS_TILE_DATA_WRAPPER_H
 
+#include <cstdint>
+
 
 /**
  * KisTileDataWrapper is a special object, that fetches the tile from
@@ -26,17 +28,17 @@ public:
      * the data manager \p dm with access \p type
      */
     inline KisTileDataWrapper(KisTiledDataManager *dm,
-                              qint32 x, qint32 y,
+                              std::int32_t x, std::int32_t y,
                               enum KisTileDataWrapper::accessType type)
     {
-        const qint32 col = dm->xToCol(x);
-        const qint32 row = dm->yToRow(y);
+        const std::int32_t col = dm->xToCol(x);
+        const std::int32_t row = dm->yToRow(y);
 
         /* FIXME: Always positive? */
-        const qint32 xInTile = x - col * KisTileData::WIDTH;
-        const qint32 yInTile = y - row * KisTileData::HEIGHT;
+        const std::int32_t xInTile = x - col * KisTileData::WIDTH;
+        const std::int32_t yInTile = y - row * KisTileData::HEIGHT;
 
-        const qint32 pixelIndex = xInTile + yInTile * KisTileData::WIDTH;
+        const std::int32_t pixelIndex = xInTile + yInTile * KisTileData::WIDTH;
 
         KisTileSP tile = dm->getTile(col, row, type == WRITE);
 
@@ -67,7 +69,7 @@ public:
      *
      * \see data()
      */
-    inline qint32 offset() const
+    inline std::int32_t offset() const
     {
         return m_offset;
     }
@@ -87,16 +89,17 @@ public:
      * When (x,y) is the top-left corner of the tile, the pointer
      * will lead to the beginning of the tile's chunk of memory.
      */
-    inline quint8* data() const
+    inline std::uint8_t* data() const
     {
         return m_tile->data() + m_offset;
     }
 
 private:
-    Q_DISABLE_COPY(KisTileDataWrapper)
+    KisTileDataWrapper(const KisTileDataWrapper &) = delete;
+    KisTileDataWrapper &operator=(const KisTileDataWrapper &) = delete;
 
     KisTileSP m_tile;
-    qint32 m_offset;
+    std::int32_t m_offset;
     KisTileDataWrapper::accessType m_type;
 };
 #endif /* __KIS_TILE_DATA_WRAPPER_H */

@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+
 #include "kis_debug.h"
 #include "kis_memory_window.h"
 
@@ -46,7 +48,7 @@ bool ensureDirExists(const std::string &path)
 
 } // namespace
 
-KisMemoryWindow::KisMemoryWindow(const PkString &swapDir, quint64 writeWindowSize)
+KisMemoryWindow::KisMemoryWindow(const PkString &swapDir, std::uint64_t writeWindowSize)
     : m_fileFd(-1),
       m_readWindowEx(writeWindowSize / 4),
       m_writeWindowEx(writeWindowSize)
@@ -100,7 +102,7 @@ KisMemoryWindow::~KisMemoryWindow()
     }
 }
 
-quint8* KisMemoryWindow::getReadChunkPtr(const KisChunkData &readChunk)
+std::uint8_t* KisMemoryWindow::getReadChunkPtr(const KisChunkData &readChunk)
 {
     if (!adjustWindow(readChunk, &m_readWindowEx, &m_writeWindowEx)) {
         return nullptr;
@@ -109,7 +111,7 @@ quint8* KisMemoryWindow::getReadChunkPtr(const KisChunkData &readChunk)
     return m_readWindowEx.calculatePointer(readChunk);
 }
 
-quint8* KisMemoryWindow::getWriteChunkPtr(const KisChunkData &writeChunk)
+std::uint8_t* KisMemoryWindow::getWriteChunkPtr(const KisChunkData &writeChunk)
 {
     if (!adjustWindow(writeChunk, &m_writeWindowEx, &m_readWindowEx)) {
         return nullptr;
@@ -118,30 +120,30 @@ quint8* KisMemoryWindow::getWriteChunkPtr(const KisChunkData &writeChunk)
     return m_writeWindowEx.calculatePointer(writeChunk);
 }
 
-quint8* KisMemoryWindow::mapFile(quint64 begin, quint64 size)
+std::uint8_t* KisMemoryWindow::mapFile(std::uint64_t begin, std::uint64_t size)
 {
     void *ptr = ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fileFd,
                        static_cast<off_t>(begin));
-    return ptr == MAP_FAILED ? nullptr : static_cast<quint8*>(ptr);
+    return ptr == MAP_FAILED ? nullptr : static_cast<std::uint8_t*>(ptr);
 }
 
-void KisMemoryWindow::unmapFile(quint8 *window, quint64 size)
+void KisMemoryWindow::unmapFile(std::uint8_t *window, std::uint64_t size)
 {
     if (window) {
         ::munmap(window, size);
     }
 }
 
-quint64 KisMemoryWindow::fileSize() const
+std::uint64_t KisMemoryWindow::fileSize() const
 {
     struct stat st;
     if (::fstat(m_fileFd, &st) == 0) {
-        return static_cast<quint64>(st.st_size);
+        return static_cast<std::uint64_t>(st.st_size);
     }
     return 0;
 }
 
-bool KisMemoryWindow::resizeFile(quint64 newSize)
+bool KisMemoryWindow::resizeFile(std::uint64_t newSize)
 {
     return ::ftruncate(m_fileFd, static_cast<off_t>(newSize)) == 0;
 }
@@ -150,7 +152,7 @@ bool KisMemoryWindow::adjustWindow(const KisChunkData &requestedChunk,
                                    MappingWindow *adjustingWindow,
                                    MappingWindow *otherWindow)
 {
-    Q_UNUSED(otherWindow);
+    (void)(otherWindow);
 
     if(!(adjustingWindow->window) ||
        !(requestedChunk.m_begin >= adjustingWindow->chunk.m_begin &&
@@ -159,7 +161,7 @@ bool KisMemoryWindow::adjustWindow(const KisChunkData &requestedChunk,
         unmapFile(adjustingWindow->window, adjustingWindow->chunk.size());
         adjustingWindow->window = 0;
 
-        quint64 windowSize = adjustingWindow->defaultSize;
+        std::uint64_t windowSize = adjustingWindow->defaultSize;
         if(requestedChunk.size() > windowSize) {
             warnKrita <<
                 "KisMemoryWindow: the requested chunk is too "
@@ -173,7 +175,7 @@ bool KisMemoryWindow::adjustWindow(const KisChunkData &requestedChunk,
 
         if(adjustingWindow->chunk.m_end >= fileSize()) {
             // Align by 32 bytes
-            quint64 newSize = (adjustingWindow->chunk.m_end + 1 + 32) & (~31ULL);
+            std::uint64_t newSize = (adjustingWindow->chunk.m_end + 1 + 32) & (~31ULL);
 
             if (!resizeFile(newSize)) {
                 return false;

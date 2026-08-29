@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+
 
 #include <stdio.h>
 #include "kis_tile_data.h"
@@ -14,10 +16,10 @@
 #include "kis_image_config.h"
 
 
-const qint32 KisTileDataPooler::MAX_NUM_CLONES = 16;
-const qint32 KisTileDataPooler::MAX_TIMEOUT = 60000; // 01m00s
-const qint32 KisTileDataPooler::MIN_TIMEOUT = 100; // 00m00.100s
-const qint32 KisTileDataPooler::TIMEOUT_FACTOR = 2;
+const std::int32_t KisTileDataPooler::MAX_NUM_CLONES = 16;
+const std::int32_t KisTileDataPooler::MAX_TIMEOUT = 60000; // 01m00s
+const std::int32_t KisTileDataPooler::MIN_TIMEOUT = 100; // 00m00.100s
+const std::int32_t KisTileDataPooler::TIMEOUT_FACTOR = 2;
 
 //#define DEBUG_POOLER
 
@@ -31,9 +33,10 @@ const qint32 KisTileDataPooler::TIMEOUT_FACTOR = 2;
 
 #define RUNTIME_SANITY_CHECK(td) do {                                   \
         if(td->m_usersCount < td->m_refCount) {                         \
-            qInfo("**** Suspicious tiledata: 0x%X (clones: %d, users: %d, refs: %d) ****", \
-                   td, td->m_clonesStack.size(),                         \
-                   (int)td->m_usersCount, (int)td->m_refCount);         \
+            infoTiles << "**** Suspicious tiledata:" << td             \
+                      << "(clones:" << td->m_clonesStack.size()         \
+                      << ", users:" << (int)td->m_usersCount            \
+                      << ", refs:" << (int)td->m_refCount << ") ****"; \
         }                                                               \
         if(td->m_usersCount <= 0) {                                     \
             qFatal("pooler: Tiledata 0x%X has zero users counter. Crashing...", td); \
@@ -67,17 +70,17 @@ const qint32 KisTileDataPooler::TIMEOUT_FACTOR = 2;
 #define RUNTIME_SANITY_CHECK(td)
 #define DEBUG_TILE_STATISTICS()
 #define DEBUG_LISTS(mem, beggars, beggarsMem, donors, donorsMem)               \
-    Q_UNUSED(mem);                                                             \
-    Q_UNUSED(beggars);                                                         \
-    Q_UNUSED(beggarsMem);                                                      \
-    Q_UNUSED(donors);                                                          \
-    Q_UNUSED(donorsMem);
+    (void)(mem);                                                             \
+    (void)(beggars);                                                         \
+    (void)(beggarsMem);                                                      \
+    (void)(donors);                                                          \
+    (void)(donorsMem);
 #define DEBUG_ALLOC_CLONE(mem, totalMem)
 #define DEBUG_FREE_CLONE(freed, demanded)
 #endif
 
 
-KisTileDataPooler::KisTileDataPooler(KisTileDataStore *store, qint32 memoryLimit)
+KisTileDataPooler::KisTileDataPooler(KisTileDataStore *store, std::int32_t memoryLimit)
 {
     m_shouldExitFlag = 0;
     m_store = store;
@@ -141,27 +144,27 @@ void KisTileDataPooler::terminatePooler()
     }
 }
 
-qint32 KisTileDataPooler::numClonesNeeded(KisTileData *td) const
+std::int32_t KisTileDataPooler::numClonesNeeded(KisTileData *td) const
 {
     RUNTIME_SANITY_CHECK(td);
-    qint32 numUsers = td->m_usersCount;
-    qint32 numPresentClones = td->m_clonesStack.size();
-    qint32 totalClones = qMin(numUsers - 1, MAX_NUM_CLONES);
+    std::int32_t numUsers = td->m_usersCount;
+    std::int32_t numPresentClones = td->m_clonesStack.size();
+    std::int32_t totalClones = qMin(numUsers - 1, MAX_NUM_CLONES);
 
     return totalClones - numPresentClones;
 }
 
-void KisTileDataPooler::cloneTileData(KisTileData *td, qint32 numClones) const
+void KisTileDataPooler::cloneTileData(KisTileData *td, std::int32_t numClones) const
 {
     if (numClones > 0) {
         td->blockSwapping();
-        for (qint32 i = 0; i < numClones; i++) {
+        for (std::int32_t i = 0; i < numClones; i++) {
             td->m_clonesStack.push(new KisTileData(*td, false));
         }
         td->unblockSwapping();
     } else {
-        qint32 numUnneededClones = qAbs(numClones);
-        for (qint32 i = 0; i < numUnneededClones; i++) {
+        std::int32_t numUnneededClones = qAbs(numClones);
+        for (std::int32_t i = 0; i < numUnneededClones; i++) {
             KisTileData *clone = 0;
 
             bool result = td->m_clonesStack.pop(clone);
@@ -220,10 +223,10 @@ void KisTileDataPooler::run()
         KisTileDataStoreReverseIterator *iter = m_store->beginReverseIteration();
         PkList<KisTileData*> beggars;
         PkList<KisTileData*> donors;
-        qint32 memoryOccupied;
+        std::int32_t memoryOccupied;
 
-        qint32 statRealMemory;
-        qint32 statHistoricalMemory;
+        std::int32_t statRealMemory;
+        std::int32_t statHistoricalMemory;
 
 
         getLists(iter, beggars, donors,
@@ -258,10 +261,10 @@ void KisTileDataPooler::forceUpdateMemoryStats()
     KisTileDataStoreReverseIterator *iter = m_store->beginReverseIteration();
     PkList<KisTileData*> beggars;
     PkList<KisTileData*> donors;
-    qint32 memoryOccupied;
+    std::int32_t memoryOccupied;
 
-    qint32 statRealMemory;
-    qint32 statHistoricalMemory;
+    std::int32_t statRealMemory;
+    std::int32_t statHistoricalMemory;
 
 
     getLists(iter, beggars, donors,
@@ -276,17 +279,17 @@ void KisTileDataPooler::forceUpdateMemoryStats()
     m_store->endIteration(iter);
 }
 
-qint64 KisTileDataPooler::lastPoolMemoryMetric() const
+std::int64_t KisTileDataPooler::lastPoolMemoryMetric() const
 {
     return m_lastPoolMemoryMetric;
 }
 
-qint64 KisTileDataPooler::lastRealMemoryMetric() const
+std::int64_t KisTileDataPooler::lastRealMemoryMetric() const
 {
     return m_lastRealMemoryMetric;
 }
 
-qint64 KisTileDataPooler::lastHistoricalMemoryMetric() const
+std::int64_t KisTileDataPooler::lastHistoricalMemoryMetric() const
 {
     return m_lastHistoricalMemoryMetric;
 }
@@ -301,20 +304,20 @@ inline int KisTileDataPooler::clonesMetric(KisTileData *td) {
 
 inline void KisTileDataPooler::tryFreeOrphanedClones(KisTileData *td)
 {
-    qint32 extraClones = -numClonesNeeded(td);
+    std::int32_t extraClones = -numClonesNeeded(td);
 
     if(extraClones > 0) {
         cloneTileData(td, -extraClones);
     }
 }
 
-inline qint32 KisTileDataPooler::needMemory(KisTileData *td)
+inline std::int32_t KisTileDataPooler::needMemory(KisTileData *td)
 {
-    qint32 clonesNeeded = !td->age() ? qMax(0, numClonesNeeded(td)) : 0;
+    std::int32_t clonesNeeded = !td->age() ? qMax(0, numClonesNeeded(td)) : 0;
     return clonesMetric(td, clonesNeeded);
 }
 
-inline qint32 KisTileDataPooler::canDonorMemory(KisTileData *td)
+inline std::int32_t KisTileDataPooler::canDonorMemory(KisTileData *td)
 {
     return td->age() && clonesMetric(td);
 }
@@ -323,19 +326,19 @@ template<class Iter>
 void KisTileDataPooler::getLists(Iter *iter,
                                  PkList<KisTileData*> &beggars,
                                  PkList<KisTileData*> &donors,
-                                 qint32 &memoryOccupied,
-                                 qint32 &statRealMemory,
-                                 qint32 &statHistoricalMemory)
+                                 std::int32_t &memoryOccupied,
+                                 std::int32_t &statRealMemory,
+                                 std::int32_t &statHistoricalMemory)
 {
     memoryOccupied = 0;
     statRealMemory = 0;
     statHistoricalMemory = 0;
 
-    qint32 needMemoryTotal = 0;
-    qint32 canDonorMemoryTotal = 0;
+    std::int32_t needMemoryTotal = 0;
+    std::int32_t canDonorMemoryTotal = 0;
 
-    qint32 neededMemory;
-    qint32 donoredMemory;
+    std::int32_t neededMemory;
+    std::int32_t donoredMemory;
 
     KisTileData *item;
 
@@ -368,15 +371,15 @@ void KisTileDataPooler::getLists(Iter *iter,
                 donors, canDonorMemoryTotal);
 }
 
-qint32 KisTileDataPooler::tryGetMemory(PkList<KisTileData*> &donors,
-                                       qint32 memoryMetric)
+std::int32_t KisTileDataPooler::tryGetMemory(PkList<KisTileData*> &donors,
+                                       std::int32_t memoryMetric)
 {
-    qint32 memoryFreed = 0;
+    std::int32_t memoryFreed = 0;
 
     for (int i = donors.size() - 1; i >= 0 && memoryFreed < memoryMetric; --i) {
         KisTileData *item = donors[i];
 
-        qint32 numClones = item->m_clonesStack.size();
+        std::int32_t numClones = item->m_clonesStack.size();
         cloneTileData(item, -numClones);
         memoryFreed += clonesMetric(item, numClones);
 
@@ -388,20 +391,20 @@ qint32 KisTileDataPooler::tryGetMemory(PkList<KisTileData*> &donors,
 
 bool KisTileDataPooler::processLists(PkList<KisTileData*> &beggars,
                                      PkList<KisTileData*> &donors,
-                                     qint32 &memoryOccupied)
+                                     std::int32_t &memoryOccupied)
 {
     bool hadWork = false;
 
 
     for (KisTileData *item : beggars) {
-        qint32 clonesNeeded = numClonesNeeded(item);
-        qint32 clonesMemory = clonesMetric(item, clonesNeeded);
+        std::int32_t clonesNeeded = numClonesNeeded(item);
+        std::int32_t clonesMemory = clonesMetric(item, clonesNeeded);
 
-        qint32 memoryLeft =
+        std::int32_t memoryLeft =
             m_memoryLimit - (memoryOccupied + clonesMemory);
 
         if(memoryLeft < 0) {
-            qint32 freedMemory = tryGetMemory(donors, -memoryLeft);
+            std::int32_t freedMemory = tryGetMemory(donors, -memoryLeft);
             memoryOccupied -= freedMemory;
 
             DEBUG_FREE_CLONE(freedMemory, memoryLeft);
@@ -427,7 +430,7 @@ void KisTileDataPooler::debugTileStatistics()
      * This means m_store is already locked
      */
 
-    qint64 preallocatedTiles=0;
+    std::int64_t preallocatedTiles=0;
 
     KisTileDataStoreIterator *iter = m_store->beginIteration();
     KisTileData *item;

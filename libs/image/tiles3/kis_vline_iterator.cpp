@@ -5,20 +5,23 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 #include "kis_vline_iterator.h"
 
 #include <iostream>
 
-KisVLineIterator2::KisVLineIterator2(KisDataManager *dataManager, qint32 x, qint32 y, qint32 h, qint32 offsetX, qint32 offsetY, bool writable, KisIteratorCompleteListener *completeListener)
+KisVLineIterator2::KisVLineIterator2(KisDataManager *dataManager, std::int32_t x, std::int32_t y, std::int32_t h, std::int32_t offsetX, std::int32_t offsetY, bool writable, KisIteratorCompleteListener *completeListener)
     : KisBaseIterator(dataManager, writable, completeListener),
       m_offsetX(offsetX),
       m_offsetY(offsetY)
 {
     x -= m_offsetX;
     y -= m_offsetY;
-    Q_ASSERT(dataManager != 0);
+    assert(dataManager != 0);
 
-    Q_ASSERT(h > 0); // for us, to warn us when abusing the iterators
+    assert(h > 0); // for us, to warn us when abusing the iterators
     if (h < 1) h = 1;  // for release mode, to make sure there's always at least one pixel read.
 
     m_lineStride = m_pixelSize * KisTileData::WIDTH;
@@ -120,26 +123,26 @@ void KisVLineIterator2::nextColumn()
 }
 
 
-qint32 KisVLineIterator2::nConseqPixels() const
+std::int32_t KisVLineIterator2::nConseqPixels() const
 {
     return 1;
 }
 
-bool KisVLineIterator2::nextPixels(qint32 n)
+bool KisVLineIterator2::nextPixels(std::int32_t n)
 {
-    Q_ASSERT_X(!(m_y > 0 && (m_y + n) < 0), "vlineIt+=", "Integer overflow");
+    assert((!(m_y > 0 && (m_y + n) < 0)) && "vlineIt+=: Integer overflow");
 
-    qint32 previousRow = yToRow(m_y);
+    std::int32_t previousRow = yToRow(m_y);
     // We won't increment m_x here first as integer can overflow
     if (m_y >= m_bottom || (m_y += n) > m_bottom) {
         m_havePixels = false;
     } else {
-        qint32 row = yToRow(m_y);
+        std::int32_t row = yToRow(m_y);
         // if we are in the same column in tiles
         if (row == previousRow) {
             m_data += n * m_pixelSize;
         } else {
-            qint32 yInTile = calcYInTile(m_y, row);
+            std::int32_t yInTile = calcYInTile(m_y, row);
             m_index += row - previousRow;
             switchToTile(yInTile);
         }
@@ -158,27 +161,27 @@ KisVLineIterator2::~KisVLineIterator2()
 }
 
 
-quint8* KisVLineIterator2::rawData()
+std::uint8_t* KisVLineIterator2::rawData()
 {
     return m_data;
 }
 
 
-const quint8* KisVLineIterator2::oldRawData() const
+const std::uint8_t* KisVLineIterator2::oldRawData() const
 {
     return m_oldData;
 }
 
-const quint8* KisVLineIterator2::rawDataConst() const
+const std::uint8_t* KisVLineIterator2::rawDataConst() const
 {
     return m_data;
 }
 
-void KisVLineIterator2::switchToTile(qint32 yInTile)
+void KisVLineIterator2::switchToTile(std::int32_t yInTile)
 {
     // The caller must ensure that we are not out of bounds
-    Q_ASSERT(m_index < m_tilesCacheSize);
-    Q_ASSERT(m_index >= 0);
+    assert(m_index < m_tilesCacheSize);
+    assert(m_index >= 0);
 
     int offset_row = m_pixelSize * m_xInTile;
     m_data = m_tilesCache[m_index].data;
@@ -191,7 +194,7 @@ void KisVLineIterator2::switchToTile(qint32 yInTile)
 }
 
 
-void KisVLineIterator2::fetchTileDataForCache(KisTileInfo& kti, qint32 col, qint32 row)
+void KisVLineIterator2::fetchTileDataForCache(KisTileInfo& kti, std::int32_t col, std::int32_t row)
 {
     m_dataManager->getTilesPair(col, row, m_writable, &kti.tile, &kti.oldtile);
 
@@ -211,12 +214,12 @@ void KisVLineIterator2::preallocateTiles()
     }
 }
 
-qint32 KisVLineIterator2::x() const
+std::int32_t KisVLineIterator2::x() const
 {
     return m_x + m_offsetX;
 }
 
-qint32 KisVLineIterator2::y() const
+std::int32_t KisVLineIterator2::y() const
 {
     return m_y + m_offsetY;
 }

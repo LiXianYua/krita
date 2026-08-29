@@ -4,6 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 #include "kis_legacy_tile_compressor.h"
 #include "kis_paint_device_writer.h"
 #include <PkStream.h>
@@ -21,13 +24,13 @@ KisLegacyTileCompressor::~KisLegacyTileCompressor()
 
 bool KisLegacyTileCompressor::writeTile(KisTileSP tile, KisPaintDeviceWriter &store)
 {
-    const qint32 tileDataSize = TILE_DATA_SIZE(tile->pixelSize());
+    const std::int32_t tileDataSize = TILE_DATA_SIZE(tile->pixelSize());
 
-    const qint32 bufferSize = maxHeaderLength() + 1;
-    std::unique_ptr<quint8[]> headerBuffer(new quint8[bufferSize]);
+    const std::int32_t bufferSize = maxHeaderLength() + 1;
+    std::unique_ptr<std::uint8_t[]> headerBuffer(new std::uint8_t[bufferSize]);
 
     bool retval = writeHeader(tile, headerBuffer.get());
-    Q_ASSERT(retval);  // currently the code returns true unconditionally
+    assert(retval);  // currently the code returns true unconditionally
     if (!retval) {
         return false;
     }
@@ -43,19 +46,19 @@ bool KisLegacyTileCompressor::writeTile(KisTileSP tile, KisPaintDeviceWriter &st
 
 bool KisLegacyTileCompressor::readTile(PkStream *stream, KisTiledDataManager *dm)
 {
-    const qint32 tileDataSize = TILE_DATA_SIZE(pixelSize(dm));
+    const std::int32_t tileDataSize = TILE_DATA_SIZE(pixelSize(dm));
 
-    const qint32 bufferSize = maxHeaderLength() + 1;
-    quint8 *headerBuffer = new quint8[bufferSize];
+    const std::int32_t bufferSize = maxHeaderLength() + 1;
+    std::uint8_t *headerBuffer = new std::uint8_t[bufferSize];
 
-    qint32 x, y;
-    qint32 width, height;
+    std::int32_t x, y;
+    std::int32_t width, height;
 
     stream->readLine((char *)headerBuffer, bufferSize);
     sscanf((char *) headerBuffer, "%d,%d,%d,%d", &x, &y, &width, &height);
 
-    qint32 row = yToRow(dm, y);
-    qint32 col = xToCol(dm, x);
+    std::int32_t row = yToRow(dm, y);
+    std::int32_t col = xToCol(dm, x);
 
     KisTileSP tile = dm->getTile(col, row, true);
 
@@ -67,23 +70,23 @@ bool KisLegacyTileCompressor::readTile(PkStream *stream, KisTiledDataManager *dm
 }
 
 void KisLegacyTileCompressor::compressTileData(KisTileData *tileData,
-                                               quint8 *buffer,
-                                               qint32 bufferSize,
-                                               qint32 &bytesWritten)
+                                               std::uint8_t *buffer,
+                                               std::int32_t bufferSize,
+                                               std::int32_t &bytesWritten)
 {
     bytesWritten = 0;
-    const qint32 tileDataSize = TILE_DATA_SIZE(tileData->pixelSize());
-    Q_UNUSED(bufferSize);
-    Q_ASSERT(bufferSize >= tileDataSize);
+    const std::int32_t tileDataSize = TILE_DATA_SIZE(tileData->pixelSize());
+    (void)(bufferSize);
+    assert(bufferSize >= tileDataSize);
     memcpy(buffer, tileData->data(), tileDataSize);
     bytesWritten += tileDataSize;
 }
 
-bool KisLegacyTileCompressor::decompressTileData(quint8 *buffer,
-                                                 qint32 bufferSize,
+bool KisLegacyTileCompressor::decompressTileData(std::uint8_t *buffer,
+                                                 std::int32_t bufferSize,
                                                  KisTileData *tileData)
 {
-    const qint32 tileDataSize = TILE_DATA_SIZE(tileData->pixelSize());
+    const std::int32_t tileDataSize = TILE_DATA_SIZE(tileData->pixelSize());
     if (bufferSize >= tileDataSize) {
         memcpy(tileData->data(), buffer, tileDataSize);
         return true;
@@ -91,22 +94,22 @@ bool KisLegacyTileCompressor::decompressTileData(quint8 *buffer,
     return false;
 }
 
-qint32 KisLegacyTileCompressor::tileDataBufferSize(KisTileData *tileData)
+std::int32_t KisLegacyTileCompressor::tileDataBufferSize(KisTileData *tileData)
 {
     return TILE_DATA_SIZE(tileData->pixelSize());
 }
 
-inline qint32 KisLegacyTileCompressor::maxHeaderLength()
+inline std::int32_t KisLegacyTileCompressor::maxHeaderLength()
 {
-    static const qint32 LEGACY_MAGIC_NUMBER = 79;
+    static const std::int32_t LEGACY_MAGIC_NUMBER = 79;
     return LEGACY_MAGIC_NUMBER;
 }
 
 inline bool KisLegacyTileCompressor::writeHeader(KisTileSP tile,
-                                                 quint8 *buffer)
+                                                 std::uint8_t *buffer)
 {
-    qint32 x, y;
-    qint32 width, height;
+    std::int32_t x, y;
+    std::int32_t width, height;
 
     tile->extent().getRect(&x, &y, &width, &height);
     snprintf((char *)buffer, (maxHeaderLength() + 1), "%d,%d,%d,%d\n", x, y, width, height);

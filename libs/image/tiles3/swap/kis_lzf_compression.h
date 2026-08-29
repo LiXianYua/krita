@@ -7,6 +7,8 @@
 #ifndef __KIS_LZF_COMPRESSION_H
 #define __KIS_LZF_COMPRESSION_H
 
+#include <cstdint>
+
 #include "kis_abstract_compression.h"
 
 class KRITAIMAGE_EXPORT KisLzfCompression : public KisAbstractCompression
@@ -15,13 +17,12 @@ public:
     KisLzfCompression();
     ~KisLzfCompression() override;
 
-    qint32 compress(const quint8* input, qint32 inputLength, quint8* output, qint32 outputLength) override;
-    qint32 decompress(const quint8* input, qint32 inputLength, quint8* output, qint32 outputLength) override;
+    std::int32_t compress(const std::uint8_t* input, std::int32_t inputLength, std::uint8_t* output, std::int32_t outputLength) override;
+    std::int32_t decompress(const std::uint8_t* input, std::int32_t inputLength, std::uint8_t* output, std::int32_t outputLength) override;
 
-    qint32 outputBufferSize(qint32 dataSize) override;
+    std::int32_t outputBufferSize(std::int32_t dataSize) override;
 
-    //void adjustForDataSize(qint32 dataSize);
+    //void adjustForDataSize(std::int32_t dataSize);
 };
 
 #endif /* __KIS_LZF_COMPRESSION_H */
-

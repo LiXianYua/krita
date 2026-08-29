@@ -8,6 +8,8 @@
 #ifndef KIS_TILEHASHTABLE_H_
 #define KIS_TILEHASHTABLE_H_
 
+#include <cstdint>
+
 #include "kis_tile.h"
 #include <PkReadWriteLock.h>
 
@@ -40,7 +42,7 @@ public:
         return !m_numTiles;
     }
 
-    bool tileExists(qint32 col, qint32 row);
+    bool tileExists(std::int32_t col, std::int32_t row);
 
     /**
      * Returns a tile in position (col,row). If no tile exists,
@@ -48,7 +50,7 @@ public:
      * \param col column of the tile
      * \param row row of the tile
      */
-    TileTypeSP getExistingTile(qint32 col, qint32 row);
+    TileTypeSP getExistingTile(std::int32_t col, std::int32_t row);
 
     /**
      * Returns a tile in position (col,row). If no tile exists,
@@ -58,7 +60,7 @@ public:
      * \param newTile out-parameter, returns true if a new tile
      *                was created
      */
-    TileTypeSP getTileLazy(qint32 col, qint32 row, bool& newTile);
+    TileTypeSP getTileLazy(std::int32_t col, std::int32_t row, bool& newTile);
 
     /**
      * Returns a tile in position (col,row). If no tile exists,
@@ -70,10 +72,10 @@ public:
      * \param existingTile returns true if the tile actually exists in the table
      *                     and it is not a lazily created default wrapper tile
      */
-    TileTypeSP getReadOnlyTileLazy(qint32 col, qint32 row, bool &existingTile);
+    TileTypeSP getReadOnlyTileLazy(std::int32_t col, std::int32_t row, bool &existingTile);
     void addTile(TileTypeSP tile);
     bool deleteTile(TileTypeSP tile);
-    bool deleteTile(qint32 col, qint32 row);
+    bool deleteTile(std::int32_t col, std::int32_t row);
 
     void clear();
 
@@ -81,34 +83,34 @@ public:
     KisTileData* defaultTileData() const;
     KisTileData* refAndFetchDefaultTileData() const;
 
-    qint32 numTiles() {
+    std::int32_t numTiles() {
         return m_numTiles;
     }
 
     void debugPrintInfo();
-    void debugMaxListLength(qint32 &min, qint32 &max);
+    void debugMaxListLength(std::int32_t &min, std::int32_t &max);
 
 private:
 
-    TileTypeSP getTileMinefieldWalk(qint32 col, qint32 row, qint32 idx);
-    TileTypeSP getTile(qint32 col, qint32 row, qint32 idx);
-    void linkTile(TileTypeSP tile, qint32 idx);
-    bool unlinkTile(qint32 col, qint32 row, qint32 idx);
+    TileTypeSP getTileMinefieldWalk(std::int32_t col, std::int32_t row, std::int32_t idx);
+    TileTypeSP getTile(std::int32_t col, std::int32_t row, std::int32_t idx);
+    void linkTile(TileTypeSP tile, std::int32_t idx);
+    bool unlinkTile(std::int32_t col, std::int32_t row, std::int32_t idx);
 
     inline void setDefaultTileDataImp(KisTileData *defaultTileData);
     inline KisTileData* defaultTileDataImp() const;
 
-    static inline quint32 calculateHash(qint32 col, qint32 row);
+    static inline std::uint32_t calculateHash(std::int32_t col, std::int32_t row);
 
-    inline qint32 debugChainLen(qint32 idx);
+    inline std::int32_t debugChainLen(std::int32_t idx);
     void debugListLengthDistribution();
     void sanityChecksumCheck();
 private:
     template<class U, class LockerType> friend class KisTileHashTableIteratorTraits;
 
-    static const qint32 TABLE_SIZE = 1024;
+    static const std::int32_t TABLE_SIZE = 1024;
     TileTypeSP *m_hashTable;
-    qint32 m_numTiles;
+    std::int32_t m_numTiles;
 
     KisTileData *m_defaultTileData;
     KisMementoManager *m_mementoManager;
@@ -152,7 +154,7 @@ public:
         if (m_tile) {
             m_tile = m_tile->next();
             if (!m_tile) {
-                qint32 idx = nextNonEmptyList(m_index + 1);
+                std::int32_t idx = nextNonEmptyList(m_index + 1);
                 if (idx < KisTileHashTableTraits<T>::TABLE_SIZE) {
                     m_index = idx;
                     m_tile = m_hashTable->m_hashTable[idx];
@@ -179,7 +181,7 @@ public:
         TileTypeSP tile = m_tile;
         next();
 
-        const qint32 idx = m_hashTable->calculateHash(tile->col(), tile->row());
+        const std::int32_t idx = m_hashTable->calculateHash(tile->col(), tile->row());
         m_hashTable->unlinkTile(tile->col(), tile->row(), idx);
     }
 
@@ -190,7 +192,7 @@ public:
         TileTypeSP tile = m_tile;
         next();
 
-        const qint32 idx = m_hashTable->calculateHash(tile->col(), tile->row());
+        const std::int32_t idx = m_hashTable->calculateHash(tile->col(), tile->row());
         m_hashTable->unlinkTile(tile->col(), tile->row(), idx);
 
         newHashTable->addTile(tile);
@@ -198,13 +200,13 @@ public:
 
 protected:
     TileTypeSP m_tile;
-    qint32 m_index;
+    std::int32_t m_index;
     KisTileHashTableTraits<T> *m_hashTable;
     LockerType m_locker;
 
 protected:
-    qint32 nextNonEmptyList(qint32 startIdx) {
-        qint32 idx = startIdx;
+    std::int32_t nextNonEmptyList(std::int32_t startIdx) {
+        std::int32_t idx = startIdx;
 
         while (idx < KisTileHashTableTraits<T>::TABLE_SIZE &&
                 !m_hashTable->m_hashTable[idx]) {

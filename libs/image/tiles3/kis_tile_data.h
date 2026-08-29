@@ -6,6 +6,9 @@
 #ifndef KIS_TILE_DATA_H_
 #define KIS_TILE_DATA_H_
 
+#include <cstdint>
+#include <cassert>
+
 /**
  * Some methods of KisTileData have a cyclic dependency
  * to the KisTileDataStore, so we've moved the class
@@ -18,17 +21,17 @@
 #include "kis_tile_data_store.h"
 
 
-inline quint8* KisTileData::data() const {
+inline std::uint8_t* KisTileData::data() const {
         // WARN: be careful - it can be null when swapped out!
         return m_data;
     }
 
-void KisTileData::setData(const quint8 *data) {
-    Q_ASSERT(m_data);
+void KisTileData::setData(const std::uint8_t *data) {
+    assert(m_data);
     memcpy(m_data, data, m_pixelSize*WIDTH*HEIGHT);
 }
 
-inline quint32 KisTileData::pixelSize() const {
+inline std::uint32_t KisTileData::pixelSize() const {
     return m_pixelSize;
 }
 
@@ -117,9 +120,8 @@ inline void KisTileData::markOld() {
     m_age++;
 }
 
-inline qint32 KisTileData::numUsers() const {
+inline std::int32_t KisTileData::numUsers() const {
     return m_usersCount;
 }
 
 #endif /* KIS_TILE_DATA_H_ */
-

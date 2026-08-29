@@ -5,6 +5,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 
 #include <PkMutex.h>
 #include "kis_tile_data.h"
@@ -14,7 +17,7 @@
 #include "kis_debug.h"
 
 
-void KisTile::init(qint32 col, qint32 row,
+void KisTile::init(std::int32_t col, std::int32_t row,
                    KisTileData *defaultTileData, KisMementoManager* mm)
 {
     m_col = col;
@@ -33,13 +36,13 @@ void KisTile::init(qint32 col, qint32 row,
     m_mementoManager.storeRelease(mm);
 }
 
-KisTile::KisTile(qint32 col, qint32 row,
+KisTile::KisTile(std::int32_t col, std::int32_t row,
                  KisTileData *defaultTileData, KisMementoManager* mm)
 {
     init(col, row, defaultTileData, mm);
 }
 
-KisTile::KisTile(const KisTile& rhs, qint32 col, qint32 row, KisMementoManager* mm)
+KisTile::KisTile(const KisTile& rhs, std::int32_t col, std::int32_t row, KisMementoManager* mm)
         : KisShared()
 {
     init(col, row, rhs.tileData(), mm);
@@ -165,18 +168,18 @@ inline void KisTile::blockSwapping() const
      */
 
     PkMutexLocker locker(&m_swapBarrierLock);
-    Q_ASSERT(m_lockCounter >= 0);
+    assert(m_lockCounter >= 0);
 
     if(!m_lockCounter++)
         m_tileData->blockSwapping();
 
-    Q_ASSERT(data());
+    assert(data());
 }
 
 inline void KisTile::unblockSwapping() const
 {
     PkMutexLocker locker(&m_swapBarrierLock);
-    Q_ASSERT(m_lockCounter > 0);
+    assert(m_lockCounter > 0);
 
     if(--m_lockCounter == 0) {
         m_tileData->unblockSwapping();
@@ -194,7 +197,7 @@ inline void KisTile::unblockSwapping() const
 inline void KisTile::safeReleaseOldTileData(KisTileData *td)
 {
     PkMutexLocker locker(&m_swapBarrierLock);
-    Q_ASSERT(m_lockCounter >= 0);
+    assert(m_lockCounter >= 0);
 
     if(m_lockCounter > 0) {
         m_oldTileData.push(td);
@@ -297,7 +300,7 @@ void KisTile::debugPrintInfo()
 void KisTile::debugDumpTile()
 {
     lockForRead();
-    quint8 *data = this->data();
+    std::uint8_t *data = this->data();
 
     for (int i = 0; i < KisTileData::HEIGHT; i++) {
         for (int j = 0; j < KisTileData::WIDTH; j++) {

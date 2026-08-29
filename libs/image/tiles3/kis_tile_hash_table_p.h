@@ -5,12 +5,14 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtGlobal>
 #include <PkString.h>
 #include "kis_debug.h"
 #include "kis_global.h"
 
 //#define SHARED_TILES_SANITY_CHECK
+
+#include <cstdint>
+#include <cassert>
 
 
 template<class T>
@@ -41,7 +43,7 @@ KisTileHashTableTraits<T>::KisTileHashTableTraits(const KisTileHashTableTraits<T
     TileTypeSP foreignTile;
     TileTypeSP nativeTile;
     TileTypeSP nativeTileHead;
-    for (qint32 i = 0; i < TABLE_SIZE; i++) {
+    for (std::int32_t i = 0; i < TABLE_SIZE; i++) {
         nativeTileHead = 0;
 
         foreignTile = ht.m_hashTable[i];
@@ -67,14 +69,14 @@ KisTileHashTableTraits<T>::~KisTileHashTableTraits()
 }
 
 template<class T>
-quint32 KisTileHashTableTraits<T>::calculateHash(qint32 col, qint32 row)
+std::uint32_t KisTileHashTableTraits<T>::calculateHash(std::int32_t col, std::int32_t row)
 {
     return ((row << 5) + (col & 0x1F)) & 0x3FF;
 }
 
 template<class T>
 typename KisTileHashTableTraits<T>::TileTypeSP
-KisTileHashTableTraits<T>::getTileMinefieldWalk(qint32 col, qint32 row, qint32 idx)
+KisTileHashTableTraits<T>::getTileMinefieldWalk(std::int32_t col, std::int32_t row, std::int32_t idx)
 {
     // WARNING: this function is here only for educational purposes! Don't
     //          use it! It causes race condition in a shared pointer copy-ctor
@@ -109,7 +111,7 @@ KisTileHashTableTraits<T>::getTileMinefieldWalk(qint32 col, qint32 row, qint32 i
 
 template<class T>
 typename KisTileHashTableTraits<T>::TileTypeSP
-KisTileHashTableTraits<T>::getTile(qint32 col, qint32 row, qint32 idx)
+KisTileHashTableTraits<T>::getTile(std::int32_t col, std::int32_t row, std::int32_t idx)
 {
     TileTypeSP tile = m_hashTable[idx];
 
@@ -125,13 +127,13 @@ KisTileHashTableTraits<T>::getTile(qint32 col, qint32 row, qint32 idx)
 }
 
 template<class T>
-void KisTileHashTableTraits<T>::linkTile(TileTypeSP tile, qint32 idx)
+void KisTileHashTableTraits<T>::linkTile(TileTypeSP tile, std::int32_t idx)
 {
     TileTypeSP firstTile = m_hashTable[idx];
 
 #ifdef SHARED_TILES_SANITY_CHECK
-    Q_ASSERT_X(!tile->next(), "KisTileHashTableTraits<T>::linkTile",
-               "A tile can't be shared by several hash tables, sorry.");
+    assert((!tile->next()) &&
+           "KisTileHashTableTraits<T>::linkTile: A tile can't be shared by several hash tables, sorry.");
 #endif
 
     tile->setNext(firstTile);
@@ -140,7 +142,7 @@ void KisTileHashTableTraits<T>::linkTile(TileTypeSP tile, qint32 idx)
 }
 
 template<class T>
-bool KisTileHashTableTraits<T>::unlinkTile(qint32 col, qint32 row, qint32 idx)
+bool KisTileHashTableTraits<T>::unlinkTile(std::int32_t col, std::int32_t row, std::int32_t idx)
 {
     TileTypeSP tile = m_hashTable[idx];
     TileTypeSP prevTile;
@@ -195,16 +197,16 @@ inline KisTileData* KisTileHashTableTraits<T>::defaultTileDataImp() const
 
 
 template<class T>
-bool KisTileHashTableTraits<T>::tileExists(qint32 col, qint32 row)
+bool KisTileHashTableTraits<T>::tileExists(std::int32_t col, std::int32_t row)
 {
     return this->getExistingTile(col, row);
 }
 
 template<class T>
 typename KisTileHashTableTraits<T>::TileTypeSP
-KisTileHashTableTraits<T>::getExistingTile(qint32 col, qint32 row)
+KisTileHashTableTraits<T>::getExistingTile(std::int32_t col, std::int32_t row)
 {
-    const qint32 idx = calculateHash(col, row);
+    const std::int32_t idx = calculateHash(col, row);
 
     // NOTE: minefield walk is disabled due to supposed unsafety,
     //       see bug 391270
@@ -215,10 +217,10 @@ KisTileHashTableTraits<T>::getExistingTile(qint32 col, qint32 row)
 
 template<class T>
 typename KisTileHashTableTraits<T>::TileTypeSP
-KisTileHashTableTraits<T>::getTileLazy(qint32 col, qint32 row,
+KisTileHashTableTraits<T>::getTileLazy(std::int32_t col, std::int32_t row,
                                        bool& newTile)
 {
-    const qint32 idx = calculateHash(col, row);
+    const std::int32_t idx = calculateHash(col, row);
 
     // NOTE: minefield walk is disabled due to supposed unsafety,
     //       see bug 391270
@@ -243,9 +245,9 @@ KisTileHashTableTraits<T>::getTileLazy(qint32 col, qint32 row,
 
 template<class T>
 typename KisTileHashTableTraits<T>::TileTypeSP
-KisTileHashTableTraits<T>::getReadOnlyTileLazy(qint32 col, qint32 row, bool &existingTile)
+KisTileHashTableTraits<T>::getReadOnlyTileLazy(std::int32_t col, std::int32_t row, bool &existingTile)
 {
-    const qint32 idx = calculateHash(col, row);
+    const std::int32_t idx = calculateHash(col, row);
 
     // NOTE: minefield walk is disabled due to supposed unsafety,
     //       see bug 391270
@@ -265,16 +267,16 @@ KisTileHashTableTraits<T>::getReadOnlyTileLazy(qint32 col, qint32 row, bool &exi
 template<class T>
 void KisTileHashTableTraits<T>::addTile(TileTypeSP tile)
 {
-    const qint32 idx = calculateHash(tile->col(), tile->row());
+    const std::int32_t idx = calculateHash(tile->col(), tile->row());
 
     PkWriteLocker locker(&m_lock);
     linkTile(tile, idx);
 }
 
 template<class T>
-bool KisTileHashTableTraits<T>::deleteTile(qint32 col, qint32 row)
+bool KisTileHashTableTraits<T>::deleteTile(std::int32_t col, std::int32_t row)
 {
-    const qint32 idx = calculateHash(col, row);
+    const std::int32_t idx = calculateHash(col, row);
 
     PkWriteLocker locker(&m_lock);
     return unlinkTile(col, row, idx);
@@ -291,7 +293,7 @@ void KisTileHashTableTraits<T>::clear()
 {
     PkWriteLocker locker(&m_lock);
     TileTypeSP tile = TileTypeSP();
-    qint32 i;
+    std::int32_t i;
 
     for (i = 0; i < TABLE_SIZE; i++) {
         tile = m_hashTable[i];
@@ -314,7 +316,7 @@ void KisTileHashTableTraits<T>::clear()
         m_hashTable[i] = 0;
     }
 
-    Q_ASSERT(!m_numTiles);
+    assert(!m_numTiles);
 }
 
 template<class T>
@@ -348,31 +350,31 @@ void KisTileHashTableTraits<T>::debugPrintInfo()
 {
     if (!m_numTiles) return;
 
-    qInfo() << "==========================\n"
+    infoTiles << "==========================\n"
              << "TileHashTable:"
              << "\n   def. data:\t\t" << m_defaultTileData
              << "\n   numTiles:\t\t" << m_numTiles;
     debugListLengthDistribution();
-    qInfo() << "==========================\n";
+    infoTiles << "==========================\n";
 }
 
 template<class T>
-qint32 KisTileHashTableTraits<T>::debugChainLen(qint32 idx)
+std::int32_t KisTileHashTableTraits<T>::debugChainLen(std::int32_t idx)
 {
-    qint32 len = 0;
+    std::int32_t len = 0;
     for (TileTypeSP it = m_hashTable[idx]; it; it = it->next(), len++) ;
     return len;
 }
 
 template<class T>
-void KisTileHashTableTraits<T>::debugMaxListLength(qint32 &min, qint32 &max)
+void KisTileHashTableTraits<T>::debugMaxListLength(std::int32_t &min, std::int32_t &max)
 {
     TileTypeSP tile;
-    qint32 maxLen = 0;
-    qint32 minLen = m_numTiles;
-    qint32 tmp = 0;
+    std::int32_t maxLen = 0;
+    std::int32_t minLen = m_numTiles;
+    std::int32_t tmp = 0;
 
-    for (qint32 i = 0; i < TABLE_SIZE; i++) {
+    for (std::int32_t i = 0; i < TABLE_SIZE; i++) {
         tmp = debugChainLen(i);
         if (tmp > maxLen)
             maxLen = tmp;
@@ -387,27 +389,27 @@ void KisTileHashTableTraits<T>::debugMaxListLength(qint32 &min, qint32 &max)
 template<class T>
 void KisTileHashTableTraits<T>::debugListLengthDistribution()
 {
-    qint32 min, max;
-    qint32 arraySize;
-    qint32 tmp;
+    std::int32_t min, max;
+    std::int32_t arraySize;
+    std::int32_t tmp;
 
     debugMaxListLength(min, max);
     arraySize = max - min + 1;
 
-    qint32 *array = new qint32[arraySize];
-    memset(array, 0, sizeof(qint32)*arraySize);
+    std::int32_t *array = new std::int32_t[arraySize];
+    memset(array, 0, sizeof(std::int32_t)*arraySize);
 
-    for (qint32 i = 0; i < TABLE_SIZE; i++) {
+    for (std::int32_t i = 0; i < TABLE_SIZE; i++) {
         tmp = debugChainLen(i);
         array[tmp-min]++;
     }
 
-    qInfo() << PkString("   minChain: %1\n").arg(min);
-    qInfo() << PkString("   maxChain: %1\n").arg(max);
+    infoTiles << PkString("   minChain: %1\n").arg(min);
+    infoTiles << PkString("   maxChain: %1\n").arg(max);
 
-    qInfo() << "   Chain size distribution:";
-    for (qint32 i = 0; i < arraySize; i++)
-        qInfo() << PkString("      %1: %2").arg(i + min).arg(array[i]);
+    infoTiles << "   Chain size distribution:";
+    for (std::int32_t i = 0; i < arraySize; i++)
+        infoTiles << PkString("      %1: %2").arg(i + min).arg(array[i]);
 
     delete[] array;
 }
@@ -419,12 +421,12 @@ void KisTileHashTableTraits<T>::sanityChecksumCheck()
      * We assume that the lock should have already been taken
      * by the code that was going to change the table
      */
-    Q_ASSERT(!m_lock.tryLockForWrite());
+    assert(!m_lock.tryLockForWrite());
 
     TileTypeSP tile = 0;
-    qint32 exactNumTiles = 0;
+    std::int32_t exactNumTiles = 0;
 
-    for (qint32 i = 0; i < TABLE_SIZE; i++) {
+    for (std::int32_t i = 0; i < TABLE_SIZE; i++) {
         tile = m_hashTable[i];
         while (tile) {
             exactNumTiles++;
@@ -437,6 +439,6 @@ void KisTileHashTableTraits<T>::sanityChecksumCheck()
         dbgKrita << ppVar(exactNumTiles);
         dbgKrita << ppVar(m_numTiles);
         dbgKrita << "Wrong tiles checksum!";
-        Q_ASSERT(0); // not fatalKrita for a backtrace support
+        assert(0); // not fatalKrita for a backtrace support
     }
 }

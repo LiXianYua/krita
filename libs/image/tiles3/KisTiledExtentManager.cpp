@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+
 #include "KisTiledExtentManager.h"
 
 #include <PkVector.h>
@@ -28,10 +30,10 @@ KisTiledExtentManager::Data::~Data()
     delete[] m_buffer;
 }
 
-bool KisTiledExtentManager::Data::add(qint32 index)
+bool KisTiledExtentManager::Data::add(std::int32_t index)
 {
     PkReadLocker lock(&m_migrationLock);
-    qint32 currentIndex = m_offset + index;
+    std::int32_t currentIndex = m_offset + index;
 
     if (currentIndex < 0 || currentIndex >= m_capacity) {
         lock.unlock();
@@ -73,10 +75,10 @@ bool KisTiledExtentManager::Data::add(qint32 index)
     return needsUpdateExtent;
 }
 
-bool KisTiledExtentManager::Data::remove(qint32 index)
+bool KisTiledExtentManager::Data::remove(std::int32_t index)
 {
     PkReadLocker lock(&m_migrationLock);
-    qint32 currentIndex = m_offset + index;
+    std::int32_t currentIndex = m_offset + index;
 
     bool needsUpdateExtent = false;
     PkReadLocker rl(&m_extentLock);
@@ -109,12 +111,12 @@ bool KisTiledExtentManager::Data::remove(qint32 index)
     return needsUpdateExtent;
 }
 
-void KisTiledExtentManager::Data::replace(const PkVector<qint32> &indexes)
+void KisTiledExtentManager::Data::replace(const PkVector<std::int32_t> &indexes)
 {
     PkWriteLocker lock(&m_migrationLock);
     PkWriteLocker l(&m_extentLock);
 
-    for (qint32 i = 0; i < m_capacity; ++i) {
+    for (std::int32_t i = 0; i < m_capacity; ++i) {
         m_buffer[i].storeRelaxed(0);
     }
 
@@ -122,7 +124,7 @@ void KisTiledExtentManager::Data::replace(const PkVector<qint32> &indexes)
     m_max = qint32_MIN;
     m_count = 0;
 
-    for (const qint32 index : indexes) {
+    for (const std::int32_t index : indexes) {
         unsafeAdd(index);
     }
 }
@@ -132,7 +134,7 @@ void KisTiledExtentManager::Data::clear()
     PkWriteLocker lock(&m_migrationLock);
     PkWriteLocker l(&m_extentLock);
 
-    for (qint32 i = 0; i < m_capacity; ++i) {
+    for (std::int32_t i = 0; i < m_capacity; ++i) {
         m_buffer[i].storeRelaxed(0);
     }
 
@@ -146,19 +148,19 @@ bool KisTiledExtentManager::Data::isEmpty()
     return m_count == 0;
 }
 
-qint32 KisTiledExtentManager::Data::min()
+std::int32_t KisTiledExtentManager::Data::min()
 {
     return m_min;
 }
 
-qint32 KisTiledExtentManager::Data::max()
+std::int32_t KisTiledExtentManager::Data::max()
 {
     return m_max;
 }
 
-void KisTiledExtentManager::Data::unsafeAdd(qint32 index)
+void KisTiledExtentManager::Data::unsafeAdd(std::int32_t index)
 {
-    qint32 currentIndex = m_offset + index;
+    std::int32_t currentIndex = m_offset + index;
 
     if (currentIndex < 0 || currentIndex >= m_capacity) {
         unsafeMigrate(index);
@@ -172,11 +174,11 @@ void KisTiledExtentManager::Data::unsafeAdd(qint32 index)
     }
 }
 
-void KisTiledExtentManager::Data::unsafeMigrate(qint32 index)
+void KisTiledExtentManager::Data::unsafeMigrate(std::int32_t index)
 {
-    qint32 oldCapacity = m_capacity;
-    qint32 oldOffset = m_offset;
-    qint32 currentIndex = m_offset + index;
+    std::int32_t oldCapacity = m_capacity;
+    std::int32_t oldOffset = m_offset;
+    std::int32_t currentIndex = m_offset + index;
 
     while (currentIndex < 0 || currentIndex >= m_capacity) {
         m_capacity <<= 1;
@@ -189,9 +191,9 @@ void KisTiledExtentManager::Data::unsafeMigrate(qint32 index)
 
     if (m_capacity != oldCapacity) {
         PkAtomicInt *newBuffer = new PkAtomicInt[m_capacity];
-        qint32 start = m_offset - oldOffset;
+        std::int32_t start = m_offset - oldOffset;
 
-        for (qint32 i = 0; i < oldCapacity; ++i) {
+        for (std::int32_t i = 0; i < oldCapacity; ++i) {
             newBuffer[start + i].storeRelaxed(m_buffer[i].loadRelaxed());
         }
 
@@ -200,7 +202,7 @@ void KisTiledExtentManager::Data::unsafeMigrate(qint32 index)
     }
 }
 
-void KisTiledExtentManager::Data::migrate(qint32 index)
+void KisTiledExtentManager::Data::migrate(std::int32_t index)
 {
     PkWriteLocker lock(&m_migrationLock);
     unsafeMigrate(index);
@@ -210,10 +212,10 @@ void KisTiledExtentManager::Data::updateMin()
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(m_min != qint32_MAX);
 
-    qint32 start = m_min + m_offset;
+    std::int32_t start = m_min + m_offset;
 
-    for (qint32 i = start; i < m_capacity; ++i) {
-        qint32 current = m_buffer[i].loadRelaxed();
+    for (std::int32_t i = start; i < m_capacity; ++i) {
+        std::int32_t current = m_buffer[i].loadRelaxed();
 
         if (current > 0) {
             m_min = i - m_offset;
@@ -228,10 +230,10 @@ void KisTiledExtentManager::Data::updateMax()
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(m_min != qint32_MIN);
 
-    qint32 start = m_max + m_offset;
+    std::int32_t start = m_max + m_offset;
 
-    for (qint32 i = start; i >= 0; --i) {
-        qint32 current = m_buffer[i].loadRelaxed();
+    for (std::int32_t i = start; i >= 0; --i) {
+        std::int32_t current = m_buffer[i].loadRelaxed();
 
         if (current > 0) {
             m_max = i - m_offset;
@@ -248,7 +250,7 @@ KisTiledExtentManager::KisTiledExtentManager()
     m_currentExtent = PkRect(0, 0, 0, 0);
 }
 
-void KisTiledExtentManager::notifyTileAdded(qint32 col, qint32 row)
+void KisTiledExtentManager::notifyTileAdded(std::int32_t col, std::int32_t row)
 {
     bool needsUpdateExtent = false;
 
@@ -260,7 +262,7 @@ void KisTiledExtentManager::notifyTileAdded(qint32 col, qint32 row)
     }
 }
 
-void KisTiledExtentManager::notifyTileRemoved(qint32 col, qint32 row)
+void KisTiledExtentManager::notifyTileRemoved(std::int32_t col, std::int32_t row)
 {
     bool needsUpdateExtent = false;
 
@@ -274,8 +276,8 @@ void KisTiledExtentManager::notifyTileRemoved(qint32 col, qint32 row)
 
 void KisTiledExtentManager::replaceTileStats(const PkVector<PkPoint> &indexes)
 {
-    PkVector<qint32> colsIndexes;
-    PkVector<qint32> rowsIndexes;
+    PkVector<std::int32_t> colsIndexes;
+    PkVector<std::int32_t> rowsIndexes;
 
     for (const PkPoint &index : indexes) {
         colsIndexes.append(index.x());
@@ -304,7 +306,7 @@ PkRect KisTiledExtentManager::extent() const
 
 void KisTiledExtentManager::updateExtent()
 {
-    qint32 minX, width, minY, height;
+    std::int32_t minX, width, minY, height;
 
     {
         PkReadLocker cl(&m_colsData.m_extentLock);

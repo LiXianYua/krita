@@ -7,6 +7,8 @@
 #ifndef __KIS_TILE_COMPRESSOR_2_H
 #define __KIS_TILE_COMPRESSOR_2_H
 
+#include <cstdint>
+
 #include "kis_abstract_tile_compressor.h"
 #include <PkString.h>
 #include <PkAuxTypes.h>
@@ -23,25 +25,25 @@ public:
     bool readTile(PkStream *io, KisTiledDataManager *dm) override;
 
 
-    void compressTileData(KisTileData *tileData,quint8 *buffer,
-                          qint32 bufferSize, qint32 &bytesWritten) override;
-    bool decompressTileData(quint8 *buffer, qint32 bufferSize, KisTileData *tileData) override;
-    qint32 tileDataBufferSize(KisTileData *tileData) override;
+    void compressTileData(KisTileData *tileData,std::uint8_t *buffer,
+                          std::int32_t bufferSize, std::int32_t &bytesWritten) override;
+    bool decompressTileData(std::uint8_t *buffer, std::int32_t bufferSize, KisTileData *tileData) override;
+    std::int32_t tileDataBufferSize(KisTileData *tileData) override;
 
 private:
     /**
      * Quite self describing
      */
-    qint32 maxHeaderLength();
+    std::int32_t maxHeaderLength();
 
-    PkString getHeader(KisTileSP tile, qint32 compressedSize);
+    PkString getHeader(KisTileSP tile, std::int32_t compressedSize);
 
-    void prepareWorkBuffers(qint32 tileDataSize);
-    void prepareStreamingBuffer(qint32 tileDataSize);
+    void prepareWorkBuffers(std::int32_t tileDataSize);
+    void prepareStreamingBuffer(std::int32_t tileDataSize);
 
 private:
-    static const qint8 RAW_DATA_FLAG = 0;
-    static const qint8 COMPRESSED_DATA_FLAG = 1;
+    static const std::int8_t RAW_DATA_FLAG = 0;
+    static const std::int8_t COMPRESSED_DATA_FLAG = 1;
 
 private:
     PkByteArray m_linearizationBuffer;
@@ -52,4 +54,3 @@ private:
 };
 
 #endif /* __KIS_TILE_COMPRESSOR_2_H */
-

@@ -4,17 +4,20 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 #include "kis_hline_iterator.h"
 
 
-KisHLineIterator2::KisHLineIterator2(KisDataManager *dataManager, qint32 x, qint32 y, qint32 w, qint32 offsetX, qint32 offsetY, bool writable, KisIteratorCompleteListener *completionListener)
+KisHLineIterator2::KisHLineIterator2(KisDataManager *dataManager, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t offsetX, std::int32_t offsetY, bool writable, KisIteratorCompleteListener *completionListener)
     : KisBaseIterator(dataManager, writable, completionListener),
       m_offsetX(offsetX),
       m_offsetY(offsetY)
 {
     x -= m_offsetX;
     y -= m_offsetY;
-    Q_ASSERT(dataManager);
+    assert(dataManager);
 
     if (w < 1) w = 1;  // To make sure there's always at least one pixel read.
 
@@ -46,7 +49,7 @@ KisHLineIterator2::KisHLineIterator2(KisDataManager *dataManager, qint32 x, qint
     m_tileWidth = m_pixelSize * KisTileData::HEIGHT;
 
     // let's preallocate first row
-    for (quint32 i = 0; i < m_tilesCacheSize; i++){
+    for (std::uint32_t i = 0; i < m_tilesCacheSize; i++){
         fetchTileDataForCache(m_tilesCache[i], m_leftCol + i, m_row);
     }
     m_index = 0;
@@ -115,28 +118,28 @@ void KisHLineIterator2::nextRow()
 }
 
 
-qint32 KisHLineIterator2::nConseqPixels() const
+std::int32_t KisHLineIterator2::nConseqPixels() const
 {
     return qMin(m_rightmostInTile, m_right) - m_x + 1;
 }
 
 
 
-bool KisHLineIterator2::nextPixels(qint32 n)
+bool KisHLineIterator2::nextPixels(std::int32_t n)
 {
-    Q_ASSERT_X(!(m_x > 0 && (m_x + n) < 0), "hlineIt+=", "Integer overflow");
+    assert((!(m_x > 0 && (m_x + n) < 0)) && "hlineIt+=: Integer overflow");
 
-    qint32 previousCol = xToCol(m_x);
+    std::int32_t previousCol = xToCol(m_x);
     // We won't increment m_x here first as integer can overflow
     if (m_x >= m_right || (m_x += n) > m_right) {
         m_havePixels = false;
     } else {
-        qint32 col = xToCol(m_x);
+        std::int32_t col = xToCol(m_x);
         // if we are in the same column in tiles
         if (col == previousCol) {
             m_data += n * m_pixelSize;
         } else {
-            qint32 xInTile = calcXInTile(m_x, col);
+            std::int32_t xInTile = calcXInTile(m_x, col);
             m_index += col - previousCol;
             switchToTile(xInTile);
         }
@@ -155,26 +158,26 @@ KisHLineIterator2::~KisHLineIterator2()
 }
 
 
-quint8* KisHLineIterator2::rawData()
+std::uint8_t* KisHLineIterator2::rawData()
 {
     return m_data;
 }
 
 
-const quint8* KisHLineIterator2::oldRawData() const
+const std::uint8_t* KisHLineIterator2::oldRawData() const
 {
     return m_oldData;
 }
 
-const quint8* KisHLineIterator2::rawDataConst() const
+const std::uint8_t* KisHLineIterator2::rawDataConst() const
 {
     return m_data;
 }
 
-void KisHLineIterator2::switchToTile(qint32 xInTile)
+void KisHLineIterator2::switchToTile(std::int32_t xInTile)
 {
     // The caller must ensure that we are not out of bounds
-    Q_ASSERT(m_index < m_tilesCacheSize);
+    assert(m_index < m_tilesCacheSize);
 
     m_data = m_tilesCache[m_index].data;
     m_oldData = m_tilesCache[m_index].oldData;
@@ -188,7 +191,7 @@ void KisHLineIterator2::switchToTile(qint32 xInTile)
 }
 
 
-void KisHLineIterator2::fetchTileDataForCache(KisTileInfo& kti, qint32 col, qint32 row)
+void KisHLineIterator2::fetchTileDataForCache(KisTileInfo& kti, std::int32_t col, std::int32_t row)
 {
     m_dataManager->getTilesPair(col, row, m_writable, &kti.tile, &kti.oldtile);
 
@@ -201,19 +204,19 @@ void KisHLineIterator2::fetchTileDataForCache(KisTileInfo& kti, qint32 col, qint
 
 void KisHLineIterator2::preallocateTiles()
 {
-    for (quint32 i = 0; i < m_tilesCacheSize; ++i){
+    for (std::uint32_t i = 0; i < m_tilesCacheSize; ++i){
         unlockTile(m_tilesCache[i].tile);
         unlockOldTile(m_tilesCache[i].oldtile);
         fetchTileDataForCache(m_tilesCache[i], m_leftCol + i, m_row);
     }
 }
 
-qint32 KisHLineIterator2::x() const
+std::int32_t KisHLineIterator2::x() const
 {
     return m_x + m_offsetX;
 }
 
-qint32 KisHLineIterator2::y() const
+std::int32_t KisHLineIterator2::y() const
 {
     return m_y + m_offsetY;
 }

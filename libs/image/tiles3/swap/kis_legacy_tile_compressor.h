@@ -7,6 +7,8 @@
 #ifndef __KIS_LEGACY_TILE_COMPRESSOR_H
 #define __KIS_LEGACY_TILE_COMPRESSOR_H
 
+#include <cstdint>
+
 #include "kis_abstract_tile_compressor.h"
 
 
@@ -20,24 +22,23 @@ public:
     bool readTile(PkStream *stream, KisTiledDataManager *dm) override;
 
 
-    void compressTileData(KisTileData *tileData,quint8 *buffer,
-                          qint32 bufferSize, qint32 &bytesWritten) override;
-    bool decompressTileData(quint8 *buffer, qint32 bufferSize, KisTileData *tileData) override;
-    qint32 tileDataBufferSize(KisTileData *tileData) override;
+    void compressTileData(KisTileData *tileData,std::uint8_t *buffer,
+                          std::int32_t bufferSize, std::int32_t &bytesWritten) override;
+    bool decompressTileData(std::uint8_t *buffer, std::int32_t bufferSize, KisTileData *tileData) override;
+    std::int32_t tileDataBufferSize(KisTileData *tileData) override;
 
 private:
     /**
      * Quite self describing
      */
-    qint32 maxHeaderLength();
+    std::int32_t maxHeaderLength();
 
     /**
      * Writes header into the buffer. Buffer size
      * should be maxHeaderLength() + 1 bytes at least
      * (to fit terminating '\0')
      */
-    bool writeHeader(KisTileSP tile, quint8 *buffer);
+    bool writeHeader(KisTileSP tile, std::uint8_t *buffer);
 };
 
 #endif /* __KIS_LEGACY_TILE_COMPRESSOR_H */
-

@@ -7,6 +7,8 @@
 #ifndef _KIS_BASE_ITERATOR_H_
 #define _KIS_BASE_ITERATOR_H_
 
+#include <cstdint>
+
 #include "kis_datamanager.h"
 #include "kis_tiled_data_manager.h"
 #include "kis_tile.h"
@@ -29,7 +31,7 @@ protected:
     }
 
     KisTiledDataManager *m_dataManager;
-    qint32 m_pixelSize;        // bytes per pixel
+    std::int32_t m_pixelSize;        // bytes per pixel
     bool m_writable;
     inline void lockTile(KisTileSP &tile) {
         if (m_writable)
@@ -53,18 +55,18 @@ protected:
         tile->unlockForRead();
     }
 
-    inline quint32 xToCol(quint32 x) const {
+    inline std::uint32_t xToCol(std::uint32_t x) const {
         return m_dataManager ? m_dataManager->xToCol(x) : 0;
     }
-    inline quint32 yToRow(quint32 y) const {
+    inline std::uint32_t yToRow(std::uint32_t y) const {
         return m_dataManager ? m_dataManager->yToRow(y) : 0;
     }
 
-    inline qint32 calcXInTile(qint32 x, qint32 col) const {
+    inline std::int32_t calcXInTile(std::int32_t x, std::int32_t col) const {
         return x - col * KisTileData::WIDTH;
     }
 
-    inline qint32 calcYInTile(qint32 y, qint32 row) const {
+    inline std::int32_t calcYInTile(std::int32_t y, std::int32_t row) const {
         return y - row * KisTileData::HEIGHT;
     }
     

@@ -7,6 +7,8 @@
 #ifndef KIS_MEMENTO_MANAGER_
 #define KIS_MEMENTO_MANAGER_
 
+#include <cstdint>
+
 #include <PkList.h>
 #include <PkMutex.h>
 
@@ -90,7 +92,7 @@ public:
      *                 non-default tile or it was created on the fly
      *                 from the default tile data
      */
-    KisTileSP getCommittedTile(qint32 col, qint32 row, bool &existingTile);
+    KisTileSP getCommittedTile(std::int32_t col, std::int32_t row, bool &existingTile);
 
     KisMementoSP getMemento();
 
@@ -114,7 +116,7 @@ public:
     void purgeHistory(KisMementoSP oldestMemento);
 
 protected:
-    qint32 findRevisionByMemento(KisMementoSP memento) const;
+    std::int32_t findRevisionByMemento(KisMementoSP memento) const;
     void resetRevisionHistory(KisMementoItemList list);
 
 protected:

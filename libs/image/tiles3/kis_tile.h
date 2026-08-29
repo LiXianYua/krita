@@ -7,6 +7,8 @@
 #ifndef KIS_TILE_H_
 #define KIS_TILE_H_
 
+#include <cstdint>
+
 #include <PkMutex.h>
 #include <PkAtomic.h>
 
@@ -38,9 +40,9 @@ class KisMementoManager;
 class KRITAIMAGE_EXPORT KisTile : public KisShared
 {
 public:
-    KisTile(qint32 col, qint32 row,
+    KisTile(std::int32_t col, std::int32_t row,
             KisTileData *defaultTileData, KisMementoManager* mm);
-    KisTile(const KisTile& rhs, qint32 col, qint32 row, KisMementoManager* mm);
+    KisTile(const KisTile& rhs, std::int32_t col, std::int32_t row, KisMementoManager* mm);
     KisTile(const KisTile& rhs, KisMementoManager* mm);
     KisTile(const KisTile& rhs);
     ~KisTile();
@@ -80,17 +82,17 @@ public:
 
 
     /* this allows us work directly on tile's data */
-    inline quint8 *data() const {
+    inline std::uint8_t *data() const {
         return m_tileData->data();
     }
-    inline void setData(const quint8 *data) {
+    inline void setData(const std::uint8_t *data) {
         m_tileData->setData(data);
     }
 
-    inline qint32 row() const {
+    inline std::int32_t row() const {
         return m_row;
     }
-    inline qint32 col() const {
+    inline std::int32_t col() const {
         return m_col;
     }
 
@@ -106,7 +108,7 @@ public:
         m_nextTile = next;
     }
 
-    inline qint32 pixelSize() const {
+    inline std::int32_t pixelSize() const {
         /* don't lock here as pixelSize is constant */
         return m_tileData->pixelSize();
     }
@@ -116,7 +118,7 @@ public:
     }
 
 private:
-    void init(qint32 col, qint32 row,
+    void init(std::int32_t col, std::int32_t row,
               KisTileData *defaultTileData, KisMementoManager* mm);
 
     inline void blockSwapping() const;
@@ -129,8 +131,8 @@ private:
     mutable PkStack<KisTileData*> m_oldTileData;
     mutable volatile int m_lockCounter;
 
-    qint32 m_col;
-    qint32 m_row;
+    std::int32_t m_col;
+    std::int32_t m_row;
 
     /**
      * Added for faster retrieving by processors
@@ -174,4 +176,3 @@ private:
 };
 
 #endif // KIS_TILE_H_
-

@@ -12,6 +12,7 @@
 #include <PkString.h>
 #include <string>
 #include <cstdint>
+#include <cassert>
 
 #include "kis_tile.h"
 
@@ -58,8 +59,8 @@ public:
      * This memento item is considered as committed, so we acquire
      * the tile data right at the beginning.
      */
-    KisMementoItem(qint32 col, qint32 row, KisTileData* defaultTileData, KisMementoManager *mm) {
-        Q_UNUSED(mm);
+    KisMementoItem(std::int32_t col, std::int32_t row, KisTileData* defaultTileData, KisMementoManager *mm) {
+        (void)(mm);
         m_tileData = defaultTileData;
         /* acquire the tileData deliberately and completely */
         m_tileData->acquire();
@@ -75,7 +76,7 @@ public:
      * Just leave it for compatibility with a hash table
      */
     KisMementoItem(const KisMementoItem &rhs, KisMementoManager *mm) {
-        Q_UNUSED(mm);
+        (void)(mm);
         m_tileData = rhs.m_tileData;
         /* Setting counter: m_refCount++ */
         m_tileData->ref();
@@ -99,7 +100,7 @@ public:
     }
 
     void notifyAttachedToDataManager(KisMementoManager *mm) {
-        Q_UNUSED(mm);
+        (void)(mm);
         // just to resemble KisTile...
     }
 
@@ -146,7 +147,7 @@ public:
     }
 
     inline KisTileSP tile(KisMementoManager *mm) {
-        Q_ASSERT(m_tileData);
+        assert(m_tileData);
         return KisTileSP(new KisTile(m_col, m_row, m_tileData, mm));
     }
 
@@ -168,10 +169,10 @@ public:
     inline KisMementoItemSP next() const {
         return m_next;
     }
-    inline qint32 col() const {
+    inline std::int32_t col() const {
         return m_col;
     }
-    inline qint32 row() const {
+    inline std::int32_t row() const {
         return m_row;
     }
     inline KisTileData* tileData() const {
@@ -215,8 +216,8 @@ protected:
     bool m_committedFlag {false};
     enumType m_type {CHANGED};
 
-    qint32 m_col {0};
-    qint32 m_row {0};
+    std::int32_t m_col {0};
+    std::int32_t m_row {0};
 
     KisMementoItemSP m_next;
     KisMementoItemSP m_parent;
@@ -225,4 +226,3 @@ private:
 
 
 #endif /* KIS_MEMENTO_ITEM_H_ */
-

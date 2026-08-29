@@ -6,6 +6,8 @@
 #ifndef KIS_TILE_DATA_SWAPPER_P_H_
 #define KIS_TILE_DATA_SWAPPER_P_H_
 
+#include <cstdint>
+
 #include "kis_image_config.h"
 #include "tiles3/kis_tile_data.h"
 
@@ -63,36 +65,35 @@ public:
      * These methods return the "metric" of the size
      */
 
-    inline qint32 emergencyThreshold() {
+    inline std::int32_t emergencyThreshold() {
         return m_emergencyThreshold;
     }
 
-    inline qint32 hardLimitThreshold() {
+    inline std::int32_t hardLimitThreshold() {
         return m_hardLimitThreshold;
     }
 
-    inline qint32 hardLimit() {
+    inline std::int32_t hardLimit() {
         return m_hardLimit;
     }
 
-    inline qint32 softLimitThreshold() {
+    inline std::int32_t softLimitThreshold() {
         return m_softLimitThreshold;
     }
 
-    inline qint32 softLimit() {
+    inline std::int32_t softLimit() {
         return m_softLimit;
     }
 
 private:
-    qint32 m_emergencyThreshold;
-    qint32 m_hardLimitThreshold;
-    qint32 m_hardLimit;
-    qint32 m_softLimitThreshold;
-    qint32 m_softLimit;
+    std::int32_t m_emergencyThreshold;
+    std::int32_t m_hardLimitThreshold;
+    std::int32_t m_hardLimit;
+    std::int32_t m_softLimitThreshold;
+    std::int32_t m_softLimit;
 };
 
 
 
 
 #endif /* KIS_TILE_DATA_SWAPPER_P_H_ */
-

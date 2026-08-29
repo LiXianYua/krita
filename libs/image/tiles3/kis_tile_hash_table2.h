@@ -7,6 +7,8 @@
 #ifndef KIS_TILEHASHTABLE_2_H
 #define KIS_TILEHASHTABLE_2_H
 
+#include <cstdint>
+
 #include "kis_shared.h"
 #include "kis_shared_ptr.h"
 #include "3rdparty/lock_free_map/concurrent_map.h"
@@ -53,7 +55,7 @@ public:
         return !m_numTiles.loadRelaxed();
     }
 
-    bool tileExists(qint32 col, qint32 row);
+    bool tileExists(std::int32_t col, std::int32_t row);
 
     /**
      * Returns a tile in position (col,row). If no tile exists,
@@ -61,7 +63,7 @@ public:
      * \param col column of the tile
      * \param row row of the tile
      */
-    TileTypeSP getExistingTile(qint32 col, qint32 row);
+    TileTypeSP getExistingTile(std::int32_t col, std::int32_t row);
 
     /**
      * Returns a tile in position (col,row). If no tile exists,
@@ -71,7 +73,7 @@ public:
      * \param newTile out-parameter, returns true if a new tile
      *                was created
      */
-    TileTypeSP getTileLazy(qint32 col, qint32 row, bool& newTile);
+    TileTypeSP getTileLazy(std::int32_t col, std::int32_t row, bool& newTile);
 
     /**
      * Returns a tile in position (col,row). If no tile exists,
@@ -83,10 +85,10 @@ public:
      * \param existingTile returns true if the tile actually exists in the table
      *                     and it is not a lazily created default wrapper tile
      */
-    TileTypeSP getReadOnlyTileLazy(qint32 col, qint32 row, bool &existingTile);
+    TileTypeSP getReadOnlyTileLazy(std::int32_t col, std::int32_t row, bool &existingTile);
     void addTile(TileTypeSP tile);
     bool deleteTile(TileTypeSP tile);
-    bool deleteTile(qint32 col, qint32 row);
+    bool deleteTile(std::int32_t col, std::int32_t row);
 
     void clear();
 
@@ -101,13 +103,13 @@ public:
     KisTileData* refAndFetchDefaultTileData();
 
 
-    qint32 numTiles()
+    std::int32_t numTiles()
     {
         return m_numTiles.loadRelaxed();
     }
 
     void debugPrintInfo();
-    void debugMaxListLength(qint32 &min, qint32 &max);
+    void debugMaxListLength(std::int32_t &min, std::int32_t &max);
 
     friend class KisTileHashTableIteratorTraits2<T>;
 
@@ -125,17 +127,17 @@ private:
         TileType *d;
     };
 
-    inline quint32 calculateHashImpl(qint32 col, qint32 row)
+    inline std::uint32_t calculateHashImpl(std::int32_t col, std::int32_t row)
     {
         if (col == 0 && row == 0) {
             col = 0x7FFF;
             row = 0x7FFF;
         }
 
-        return ((static_cast<quint32>(row) << 16) | (static_cast<quint32>(col) & 0xFFFF));
+        return ((static_cast<std::uint32_t>(row) << 16) | (static_cast<std::uint32_t>(col) & 0xFFFF));
     }
 
-    inline quint32 calculateHash(qint32 col, qint32 row)
+    inline std::uint32_t calculateHash(std::int32_t col, std::int32_t row)
     {
 #ifdef SANITY_CHECK
         KIS_ASSERT_RECOVER_NOOP(qAbs(row) < 0x7FFF && qAbs(col) < 0x7FFF);
@@ -148,13 +150,13 @@ private:
      * A version of the hash function that returns an invalid hash in
      * case the requested tile is out of range
      */
-    inline quint32 calculateHashSafe(qint32 col, qint32 row)
+    inline std::uint32_t calculateHashSafe(std::int32_t col, std::int32_t row)
     {
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(qAbs(row) < 0x7FFF && qAbs(col) < 0x7FFF, 0);
         return calculateHashImpl(col, row);
     }
 
-    inline void insert(quint32 idx, TileTypeSP item)
+    inline void insert(std::uint32_t idx, TileTypeSP item)
     {
         TileTypeSP::ref(&item, item.data());
         TileType *tile = 0;
@@ -177,7 +179,7 @@ private:
         m_map.getGC().update();
     }
 
-    inline bool erase(quint32 idx)
+    inline bool erase(std::uint32_t idx)
     {
         m_map.getGC().lockRawPointerAccess();
 
@@ -199,7 +201,7 @@ private:
     }
 
 private:
-    typedef ConcurrentMap<quint32, TileType*> LockFreeTileMap;
+    typedef ConcurrentMap<std::uint32_t, TileType*> LockFreeTileMap;
     typedef typename LockFreeTileMap::Mutator LockFreeTileMapMutator;
     mutable LockFreeTileMap m_map;
 
@@ -221,7 +223,7 @@ class KisTileHashTableIteratorTraits2
 public:
     typedef T TileType;
     typedef KisSharedPtr<T> TileTypeSP;
-    typedef typename ConcurrentMap<quint32, TileType*>::Iterator Iterator;
+    typedef typename ConcurrentMap<std::uint32_t, TileType*>::Iterator Iterator;
 
     KisTileHashTableIteratorTraits2(KisTileHashTableTraits2<T> *ht) : m_ht(ht)
     {
@@ -260,7 +262,7 @@ public:
         TileTypeSP tile = m_iter.getValue();
         next();
 
-        quint32 idx = m_ht->calculateHash(tile->col(), tile->row());
+        std::uint32_t idx = m_ht->calculateHash(tile->col(), tile->row());
         m_ht->erase(idx);
         newHashTable->insert(idx, tile);
     }
@@ -283,7 +285,7 @@ KisTileHashTableTraits2<T>::KisTileHashTableTraits2(const KisTileHashTableTraits
     setDefaultTileData(ht.m_defaultTileData);
 
     PkWriteLocker locker(&ht.m_iteratorLock);
-    typename ConcurrentMap<quint32, TileType*>::Iterator iter(ht.m_map);
+    typename ConcurrentMap<std::uint32_t, TileType*>::Iterator iter(ht.m_map);
 
     while (iter.isValid()) {
         TileTypeSP tile = new TileType(*iter.getValue(), m_mementoManager);
@@ -300,15 +302,15 @@ KisTileHashTableTraits2<T>::~KisTileHashTableTraits2()
 }
 
 template<class T>
-bool KisTileHashTableTraits2<T>::tileExists(qint32 col, qint32 row)
+bool KisTileHashTableTraits2<T>::tileExists(std::int32_t col, std::int32_t row)
 {
     return getExistingTile(col, row);
 }
 
 template <class T>
-typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getExistingTile(qint32 col, qint32 row)
+typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getExistingTile(std::int32_t col, std::int32_t row)
 {
-    const quint32 idx = calculateHashSafe(col, row);
+    const std::uint32_t idx = calculateHashSafe(col, row);
     if (!idx) {
         /// a tile with invalid index obviously doesn't exist
         return TileTypeSP();
@@ -323,10 +325,10 @@ typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getE
 }
 
 template <class T>
-typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getTileLazy(qint32 col, qint32 row, bool &newTile)
+typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getTileLazy(std::int32_t col, std::int32_t row, bool &newTile)
 {
     newTile = false;
-    const quint32 idx = calculateHashSafe(col, row);
+    const std::uint32_t idx = calculateHashSafe(col, row);
     if (!idx) {
         /// when invalid tile index is requested, just return a
         /// detached tile with the default data
@@ -403,9 +405,9 @@ typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getT
 }
 
 template <class T>
-typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getReadOnlyTileLazy(qint32 col, qint32 row, bool &existingTile)
+typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getReadOnlyTileLazy(std::int32_t col, std::int32_t row, bool &existingTile)
 {
-    const quint32 idx = calculateHashSafe(col, row);
+    const std::uint32_t idx = calculateHashSafe(col, row);
     if (!idx) {
         /// when invalid tile index is requested, just return a
         /// detached tile with the default data
@@ -438,7 +440,7 @@ typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getR
 template <class T>
 void KisTileHashTableTraits2<T>::addTile(TileTypeSP tile)
 {
-    quint32 idx = calculateHash(tile->col(), tile->row());
+    std::uint32_t idx = calculateHash(tile->col(), tile->row());
     insert(idx, tile);
 }
 
@@ -449,9 +451,9 @@ bool KisTileHashTableTraits2<T>::deleteTile(TileTypeSP tile)
 }
 
 template <class T>
-bool KisTileHashTableTraits2<T>::deleteTile(qint32 col, qint32 row)
+bool KisTileHashTableTraits2<T>::deleteTile(std::int32_t col, std::int32_t row)
 {
-    const quint32 idx = calculateHashSafe(col, row);
+    const std::uint32_t idx = calculateHashSafe(col, row);
     if (!idx) {
         /// when invalid tile index is requested, just do nothing
         return false;
@@ -466,7 +468,7 @@ void KisTileHashTableTraits2<T>::clear()
     {
         PkWriteLocker locker(&m_iteratorLock);
 
-        typename ConcurrentMap<quint32, TileType*>::Iterator iter(m_map);
+        typename ConcurrentMap<std::uint32_t, TileType*>::Iterator iter(m_map);
         TileType *tile = 0;
 
         while (iter.isValid()) {
@@ -527,7 +529,7 @@ void KisTileHashTableTraits2<T>::debugPrintInfo()
 }
 
 template <class T>
-void KisTileHashTableTraits2<T>::debugMaxListLength(qint32 &/*min*/, qint32 &/*max*/)
+void KisTileHashTableTraits2<T>::debugMaxListLength(std::int32_t &/*min*/, std::int32_t &/*max*/)
 {
 }
 

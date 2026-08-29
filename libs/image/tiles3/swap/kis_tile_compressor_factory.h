@@ -7,13 +7,15 @@
 #ifndef __KIS_TILE_COMPRESSOR_FACTORY_H
 #define __KIS_TILE_COMPRESSOR_FACTORY_H
 
+#include <cstdint>
+
 #include "tiles3/swap/kis_legacy_tile_compressor.h"
 #include "tiles3/swap/kis_tile_compressor_2.h"
 
 class KRITAIMAGE_EXPORT KisTileCompressorFactory
 {
 public:
-    static KisAbstractTileCompressorSP create(qint32 version) {
+    static KisAbstractTileCompressorSP create(std::int32_t version) {
         switch(version) {
         case 1:
             return KisAbstractTileCompressorSP(new KisLegacyTileCompressor());
@@ -32,4 +34,3 @@ private:
 };
 
 #endif /* __KIS_TILE_COMPRESSOR_FACTORY_H */
-

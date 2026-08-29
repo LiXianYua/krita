@@ -8,6 +8,8 @@
 #ifndef KIS_TILE_DATA_INTERFACE_H_
 #define KIS_TILE_DATA_INTERFACE_H_
 
+#include <cstdint>
+
 #include <PkReadWriteLock.h>
 #include <PkAtomic.h>
 
@@ -33,7 +35,7 @@ public:
     SimpleCache() = default;
     ~SimpleCache();
 
-    bool push(int pixelSize, quint8 *&ptr)
+    bool push(int pixelSize, std::uint8_t *&ptr)
     {
         PkReadLocker l(&m_cacheLock);
         switch (pixelSize) {
@@ -53,7 +55,7 @@ public:
         return true;
     }
 
-    bool pop(int pixelSize, quint8 *&ptr)
+    bool pop(int pixelSize, std::uint8_t *&ptr)
     {
         PkReadLocker l(&m_cacheLock);
         switch (pixelSize) {
@@ -72,9 +74,9 @@ public:
 
 private:
     PkReadWriteLock m_cacheLock;
-    KisLocklessStack<quint8*> m_4Pool;
-    KisLocklessStack<quint8*> m_8Pool;
-    KisLocklessStack<quint8*> m_16Pool;
+    KisLocklessStack<std::uint8_t*> m_4Pool;
+    KisLocklessStack<std::uint8_t*> m_8Pool;
+    KisLocklessStack<std::uint8_t*> m_16Pool;
 };
 
 
@@ -84,7 +86,7 @@ private:
 class KRITAIMAGE_EXPORT KisTileData
 {
 public:
-    KisTileData(qint32 pixelSize, const quint8 *defPixel, KisTileDataStore *store, bool checkFreeMemory = true);
+    KisTileData(std::int32_t pixelSize, const std::uint8_t *defPixel, KisTileDataStore *store, bool checkFreeMemory = true);
 
 private:
     KisTileData(const KisTileData& rhs, bool checkFreeMemory = true);
@@ -101,9 +103,9 @@ public:
     /**
      * Information about data stored
      */
-    inline quint8* data() const;
-    inline void setData(const quint8 *data);
-    inline quint32 pixelSize() const;
+    inline std::uint8_t* data() const;
+    inline void setData(const std::uint8_t *data);
+    inline std::uint32_t pixelSize() const;
 
     /**
      * Increments usersCount of a TD and refs shared pointer counter
@@ -166,7 +168,7 @@ public:
      * Returns number of tiles (or memento items),
      * referencing the tile data.
      */
-    inline qint32 numUsers() const;
+    inline std::int32_t numUsers() const;
 
     /**
      * Convenience method. Returns true iff the tile data is linked to
@@ -205,10 +207,10 @@ public:
     static void releaseInternalPools();
 
 private:
-    void fillWithPixel(const quint8 *defPixel);
+    void fillWithPixel(const std::uint8_t *defPixel);
 
-    static quint8* allocateData(const qint32 pixelSize);
-    static void freeData(quint8 *ptr, const qint32 pixelSize);
+    static std::uint8_t* allocateData(const std::int32_t pixelSize);
+    static void freeData(std::uint8_t *ptr, const std::int32_t pixelSize);
 private:
     friend class KisTileDataPooler;
     friend class KisTileDataPoolerTest;
@@ -256,7 +258,7 @@ private:
      * (m_mementoFlag && m_usersCount == 1) means that
      * the only user of tile data is a memento manager.
      */
-    qint32 m_mementoFlag;
+    std::int32_t m_mementoFlag;
 
     /**
      * Counts up time after last access to the tile data.
@@ -283,7 +285,7 @@ private:
      * FIXME: We should be able to work in const environment
      * even when actual data is swapped out to disk
      */
-    mutable quint8* m_data;
+    mutable std::uint8_t* m_data;
 
     /**
      * How many tiles/mementoes use
@@ -297,15 +299,15 @@ private:
     mutable PkAtomicInt m_refCount;
 
 
-    qint32 m_pixelSize;
-    //qint32 m_timeStamp;
+    std::int32_t m_pixelSize;
+    //std::int32_t m_timeStamp;
 
     KisTileDataStore *m_store;
     static SimpleCache m_cache;
 
 public:
-    static const qint32 WIDTH;
-    static const qint32 HEIGHT;
+    static const std::int32_t WIDTH;
+    static const std::int32_t HEIGHT;
 };
 
 #endif /* KIS_TILE_DATA_INTERFACE_H_ */

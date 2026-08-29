@@ -4,6 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 #include <PkMutex.h>
 //#include "kis_debug.h"
 #include "kis_swapped_data_store.h"
@@ -18,12 +21,13 @@ KisSwappedDataStore::KisSwappedDataStore()
     : m_totalSwapMemoryUsed(0)
 {
     KisImageConfig config(true);
-    const quint64 maxSwapSize = config.maxSwapSize() * MiB;
-    const quint64 swapSlabSize = config.swapSlabSize() * MiB;
-    const quint64 swapWindowSize = config.swapWindowSize() * MiB;
+    const std::uint64_t maxSwapSize = config.maxSwapSize() * MiB;
+    const std::uint64_t swapSlabSize = config.swapSlabSize() * MiB;
+    const std::uint64_t swapWindowSize = config.swapWindowSize() * MiB;
 
     m_allocator = new KisChunkAllocator(swapSlabSize, maxSwapSize);
-    m_swapSpace = new KisMemoryWindow(config.swapDir(), swapWindowSize);
+    m_swapSpace = new KisMemoryWindow(PkString(config.swapDir().toUtf8().constData()),
+                                      swapWindowSize);
 
     // FIXME: use a factory after the patch is committed
     m_compressor = new KisTileCompressor2();
@@ -36,7 +40,7 @@ KisSwappedDataStore::~KisSwappedDataStore()
     delete m_allocator;
 }
 
-quint64 KisSwappedDataStore::numTiles() const
+std::uint64_t KisSwappedDataStore::numTiles() const
 {
     // We are not acquiring the lock here...
 
@@ -45,7 +49,7 @@ quint64 KisSwappedDataStore::numTiles() const
 
 bool KisSwappedDataStore::trySwapOutTileData(KisTileData *td)
 {
-    Q_ASSERT(td->data());
+    assert(td->data());
     PkMutexLocker locker(&m_lock);
 
     /**
@@ -54,15 +58,15 @@ bool KisSwappedDataStore::trySwapOutTileData(KisTileData *td)
      * So we can modify the tile data freely.
      */
 
-    const qint32 expectedBufferSize = m_compressor->tileDataBufferSize(td);
+    const std::int32_t expectedBufferSize = m_compressor->tileDataBufferSize(td);
     if(m_buffer.size() < expectedBufferSize)
         m_buffer.resize(expectedBufferSize);
 
-    qint32 bytesWritten;
-    m_compressor->compressTileData(td, (quint8*) m_buffer.data(), m_buffer.size(), bytesWritten);
+    std::int32_t bytesWritten;
+    m_compressor->compressTileData(td, m_buffer.data(), m_buffer.size(), bytesWritten);
 
     KisChunk chunk = m_allocator->getChunk(bytesWritten);
-    quint8 *ptr = m_swapSpace->getWriteChunkPtr(chunk);
+    std::uint8_t *ptr = m_swapSpace->getWriteChunkPtr(chunk);
     if (!ptr) {
         qWarning() << "swap out of tile failed";
         return false;
@@ -79,7 +83,7 @@ bool KisSwappedDataStore::trySwapOutTileData(KisTileData *td)
 
 void KisSwappedDataStore::swapInTileData(KisTileData *td)
 {
-    Q_ASSERT(!td->data());
+    assert(!td->data());
     PkMutexLocker locker(&m_lock);
 
     // see comment in swapOutTileData()
@@ -90,8 +94,8 @@ void KisSwappedDataStore::swapInTileData(KisTileData *td)
     td->allocateMemory();
     td->setSwapChunk(KisChunk());
 
-    quint8 *ptr = m_swapSpace->getReadChunkPtr(chunk);
-    Q_ASSERT(ptr);
+    std::uint8_t *ptr = m_swapSpace->getReadChunkPtr(chunk);
+    assert(ptr);
     m_compressor->decompressTileData(ptr, chunk.size(), td);
     m_allocator->freeChunk(chunk);
 }
@@ -106,7 +110,7 @@ void KisSwappedDataStore::forgetTileData(KisTileData *td)
     td->setSwapChunk(KisChunk());
 }
 
-qint64 KisSwappedDataStore::totalSwapMemoryUsed() const
+std::int64_t KisSwappedDataStore::totalSwapMemoryUsed() const
 {
     return m_totalSwapMemoryUsed;
 }

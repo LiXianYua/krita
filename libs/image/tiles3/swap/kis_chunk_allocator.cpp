@@ -4,6 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 #include "kis_debug.h"
 #include "kis_chunk_allocator.h"
 #include <iterator>
@@ -19,7 +22,7 @@
 #define WRAP_PREVIOUS_CHUNK_DATA(iter) (KisChunk(std::prev(iter)))
 
 
-KisChunkAllocator::KisChunkAllocator(quint64 slabSize, quint64 storeSize)
+KisChunkAllocator::KisChunkAllocator(std::uint64_t slabSize, std::uint64_t storeSize)
 {
     m_storeMaxSize = storeSize;
     m_storeSlabSize = slabSize;
@@ -33,7 +36,7 @@ KisChunkAllocator::~KisChunkAllocator()
 {
 }
 
-KisChunk KisChunkAllocator::getChunk(quint64 size)
+KisChunk KisChunkAllocator::getChunk(std::uint64_t size)
 {
     KisChunkDataListIterator startPosition = m_iterator;
     START_COUNTING();
@@ -79,12 +82,12 @@ KisChunk KisChunkAllocator::getChunk(quint64 size)
 
 bool KisChunkAllocator::tryInsertChunk(KisChunkDataList &list,
                                        KisChunkDataListIterator &iterator,
-                                       quint64 size)
+                                       std::uint64_t size)
 {
     bool result = false;
-    quint64 highBound = m_storeSize;
-    quint64 lowBound = 0;
-    quint64 shift = 0;
+    std::uint64_t highBound = m_storeSize;
+    std::uint64_t lowBound = 0;
+    std::uint64_t shift = 0;
 
     if(HAS_NEXT(list, iterator))
         highBound = PEEK_NEXT(iterator).m_begin;
@@ -109,7 +112,7 @@ void KisChunkAllocator::freeChunk(KisChunk chunk)
         return;
     }
 
-    Q_ASSERT(chunk.position()->m_begin == chunk.begin());
+    assert(chunk.position()->m_begin == chunk.begin());
     m_list.erase(chunk.position());
 }
 
@@ -122,11 +125,11 @@ void KisChunkAllocator::freeChunk(KisChunk chunk)
 
 void KisChunkAllocator::debugChunks()
 {
-    quint64 idx = 0;
+    std::uint64_t idx = 0;
     KisChunkDataListIterator i;
 
     for(i = m_list.begin(); i != m_list.end(); ++i) {
-        qInfo("chunk #%lld: [%lld %lld]", idx++, i->m_begin, i->m_end);
+        infoTiles << "chunk #" << idx++ << ": [" << i->m_begin << i->m_end << "]";
     }
 }
 
@@ -159,14 +162,14 @@ bool KisChunkAllocator::sanityCheck(bool pleaseCrash)
     return !failed;
 }
 
-qreal KisChunkAllocator::debugFragmentation(bool toStderr)
+double KisChunkAllocator::debugFragmentation(bool toStderr)
 {
     KisChunkDataListIterator i;
 
-    quint64 totalSize = 0;
-    quint64 allocated = 0;
-    quint64 free = 0;
-    qreal fragmentation = 0;
+    std::uint64_t totalSize = 0;
+    std::uint64_t allocated = 0;
+    std::uint64_t free = 0;
+    double fragmentation = 0;
 
     for(i = m_list.begin(); i != m_list.end(); ++i) {
         allocated += i->m_end - i->m_begin + 1;
@@ -182,21 +185,21 @@ qreal KisChunkAllocator::debugFragmentation(bool toStderr)
         totalSize = PEEK_PREVIOUS(i).m_end + 1;
 
     if(totalSize)
-        fragmentation = qreal(free) / totalSize;
+        fragmentation = double(free) / totalSize;
 
     if(toStderr) {
-        qInfo() << "Hard store limit:\t" << m_storeMaxSize;
-        qInfo() << "Slab size:\t\t" << m_storeSlabSize;
-        qInfo() << "Num slabs:\t\t" << m_storeSize / m_storeSlabSize;
-        qInfo() << "Store size:\t\t" << m_storeSize;
-        qInfo() << "Total used:\t\t" << totalSize;
-        qInfo() << "Allocated:\t\t" << allocated;
-        qInfo() << "Free:\t\t\t" << free;
-        qInfo() << "Fragmentation:\t\t" << fragmentation;
+        infoTiles << "Hard store limit:\t" << m_storeMaxSize;
+        infoTiles << "Slab size:\t\t" << m_storeSlabSize;
+        infoTiles << "Num slabs:\t\t" << m_storeSize / m_storeSlabSize;
+        infoTiles << "Store size:\t\t" << m_storeSize;
+        infoTiles << "Total used:\t\t" << totalSize;
+        infoTiles << "Allocated:\t\t" << allocated;
+        infoTiles << "Free:\t\t\t" << free;
+        infoTiles << "Fragmentation:\t\t" << fragmentation;
         DEBUG_FAIL_COUNTER();
     }
 
-    Q_ASSERT(totalSize == allocated + free);
+    assert(totalSize == allocated + free);
 
     return fragmentation;
 }

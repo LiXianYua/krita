@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+
 #include <PkSemaphore.h>
 #include <PkMutex.h>
 #include <PkAtomic.h>
@@ -18,8 +20,8 @@
 
 #define SEC 1000
 
-const qint32 KisTileDataSwapper::TIMEOUT = -1;
-const qint32 KisTileDataSwapper::DELAY = 0.7 * SEC;
+const std::int32_t KisTileDataSwapper::TIMEOUT = -1;
+const std::int32_t KisTileDataSwapper::DELAY = 0.7 * SEC;
 
 //#define DEBUG_SWAPPER
 
@@ -135,7 +137,7 @@ void KisTileDataSwapper::doJob()
      */
     PkMutexLocker locker(&m_d->cycleLock);
 
-    qint32 memoryMetric = m_d->store->memoryMetric();
+    std::int32_t memoryMetric = m_d->store->memoryMetric();
 
     DEBUG_ACTION("Started swap cycle");
     DEBUG_VALUE(m_d->store->numTiles());
@@ -147,14 +149,14 @@ void KisTileDataSwapper::doJob()
 
 
     if(memoryMetric > m_d->limits.softLimitThreshold()) {
-        qint32 softFree =  memoryMetric - m_d->limits.softLimit();
+        std::int32_t softFree =  memoryMetric - m_d->limits.softLimit();
         DEBUG_VALUE(softFree);
         DEBUG_ACTION("\t pass0");
         memoryMetric -= pass<SoftSwapStrategy>(softFree);
         DEBUG_VALUE(memoryMetric);
 
         if(memoryMetric > m_d->limits.hardLimitThreshold()) {
-            qint32 hardFree =  memoryMetric - m_d->limits.hardLimit();
+            std::int32_t hardFree =  memoryMetric - m_d->limits.hardLimit();
             DEBUG_VALUE(hardFree);
             DEBUG_ACTION("\t pass1");
             memoryMetric -= pass<AggressiveSwapStrategy>(hardFree);
@@ -202,7 +204,7 @@ public:
 
     static inline bool isInteresting(KisTileData *td) {
         // Add some aggression...
-        Q_UNUSED(td);
+        (void)(td);
         return true; // >:)
     }
 
@@ -213,9 +215,9 @@ public:
 
 
 template<class strategy>
-qint64 KisTileDataSwapper::pass(qint64 needToFreeMetric)
+std::int64_t KisTileDataSwapper::pass(std::int64_t needToFreeMetric)
 {
-    qint64 freedMetric = 0;
+    std::int64_t freedMetric = 0;
     PkList<KisTileData*> additionalCandidates;
 
     typename strategy::iterator *iter =

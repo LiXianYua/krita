@@ -6,6 +6,8 @@
 #ifndef KIS_TILE_DATA_POOLER_H_
 #define KIS_TILE_DATA_POOLER_H_
 
+#include <cstdint>
+
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -24,7 +26,7 @@ class KRITAIMAGE_EXPORT KisTileDataPooler
 {
 public:
 
-    KisTileDataPooler(KisTileDataStore *store, qint32 memoryLimit = -1);
+    KisTileDataPooler(KisTileDataStore *store, std::int32_t memoryLimit = -1);
     ~KisTileDataPooler();
 
     void start();
@@ -33,9 +35,9 @@ public:
 
     void testingRereadConfig();
 
-    qint64 lastPoolMemoryMetric() const;
-    qint64 lastRealMemoryMetric() const;
-    qint64 lastHistoricalMemoryMetric() const;
+    std::int64_t lastPoolMemoryMetric() const;
+    std::int64_t lastRealMemoryMetric() const;
+    std::int64_t lastHistoricalMemoryMetric() const;
 
 
     /**
@@ -47,34 +49,34 @@ public:
     bool isRunning() const;
 
 protected:
-    static const qint32 MAX_NUM_CLONES;
-    static const qint32 MAX_TIMEOUT;
-    static const qint32 MIN_TIMEOUT;
-    static const qint32 TIMEOUT_FACTOR;
+    static const std::int32_t MAX_NUM_CLONES;
+    static const std::int32_t MAX_TIMEOUT;
+    static const std::int32_t MIN_TIMEOUT;
+    static const std::int32_t TIMEOUT_FACTOR;
 
     void waitForWork();
-    qint32 numClonesNeeded(KisTileData *td) const;
-    void cloneTileData(KisTileData *td, qint32 numClones) const;
+    std::int32_t numClonesNeeded(KisTileData *td) const;
+    void cloneTileData(KisTileData *td, std::int32_t numClones) const;
     void run();
 
     inline int clonesMetric(KisTileData *td, int numClones);
     inline int clonesMetric(KisTileData *td);
 
     inline void tryFreeOrphanedClones(KisTileData *td);
-    inline qint32 needMemory(KisTileData *td);
-    inline qint32 canDonorMemory(KisTileData *td);
-    qint32 tryGetMemory(PkList<KisTileData*> &donors, qint32 memoryMetric);
+    inline std::int32_t needMemory(KisTileData *td);
+    inline std::int32_t canDonorMemory(KisTileData *td);
+    std::int32_t tryGetMemory(PkList<KisTileData*> &donors, std::int32_t memoryMetric);
 
     template<class Iter>
         void getLists(Iter *iter, PkList<KisTileData*> &beggars,
                       PkList<KisTileData*> &donors,
-                      qint32 &memoryOccupied,
-                      qint32 &statRealMemory,
-                      qint32 &statHistoricalMemory);
+                      std::int32_t &memoryOccupied,
+                      std::int32_t &statRealMemory,
+                      std::int32_t &statHistoricalMemory);
 
     bool processLists(PkList<KisTileData*> &beggars,
                       PkList<KisTileData*> &donors,
-                      qint32 &memoryOccupied);
+                      std::int32_t &memoryOccupied);
 
 private:
     void debugTileStatistics();
@@ -82,12 +84,12 @@ protected:
     PkSemaphore m_semaphore;
     PkAtomicInt m_shouldExitFlag;
     KisTileDataStore *m_store;
-    qint32 m_timeout;
+    std::int32_t m_timeout;
     bool m_lastCycleHadWork;
-    qint32 m_memoryLimit;
-    qint32 m_lastPoolMemoryMetric;
-    qint32 m_lastRealMemoryMetric;
-    qint32 m_lastHistoricalMemoryMetric;
+    std::int32_t m_memoryLimit;
+    std::int32_t m_lastPoolMemoryMetric;
+    std::int32_t m_lastRealMemoryMetric;
+    std::int32_t m_lastHistoricalMemoryMetric;
 
     std::thread m_thread;
     mutable std::mutex m_stateMutex;

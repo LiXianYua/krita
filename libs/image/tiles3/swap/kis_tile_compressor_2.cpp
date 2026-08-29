@@ -4,6 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 #include "kis_tile_compressor_2.h"
 #include "kis_lzf_compression.h"
 #include <PkStream.h>
@@ -26,20 +29,20 @@ KisTileCompressor2::~KisTileCompressor2()
 
 bool KisTileCompressor2::writeTile(KisTileSP tile, KisPaintDeviceWriter &store)
 {
-    const qint32 tileDataSize = TILE_DATA_SIZE(tile->pixelSize());
+    const std::int32_t tileDataSize = TILE_DATA_SIZE(tile->pixelSize());
     prepareStreamingBuffer(tileDataSize);
 
-    qint32 bytesWritten;
+    std::int32_t bytesWritten;
 
     tile->lockForRead();
-    compressTileData(tile->tileData(), (quint8*)m_streamingBuffer.data(),
+    compressTileData(tile->tileData(), (std::uint8_t*)m_streamingBuffer.data(),
                      m_streamingBuffer.size(), bytesWritten);
     tile->unlockForRead();
 
     PkString header = getHeader(tile, bytesWritten);
     bool retval = true;
     const std::string headerUtf8 = header.PkToUtf8();
-    retval = store.write(headerUtf8.data(), static_cast<qint64>(headerUtf8.size()));
+    retval = store.write(headerUtf8.data(), static_cast<std::int64_t>(headerUtf8.size()));
     if (!retval) {
         warnFile << "Failed to write the tile header";
     }
@@ -52,7 +55,7 @@ bool KisTileCompressor2::writeTile(KisTileSP tile, KisPaintDeviceWriter &store)
 
 bool KisTileCompressor2::readTile(PkStream *stream, KisTiledDataManager *dm)
 {
-    const qint32 tileDataSize = TILE_DATA_SIZE(pixelSize(dm));
+    const std::int32_t tileDataSize = TILE_DATA_SIZE(pixelSize(dm));
     prepareStreamingBuffer(tileDataSize);
 
     // The header line is "x,y,compressionName,dataSize\n", at most
@@ -64,7 +67,7 @@ bool KisTileCompressor2::readTile(PkStream *stream, KisTiledDataManager *dm)
         return false;
     }
 
-    qint32 x = 0, y = 0, dataSize = 0;
+    std::int32_t x = 0, y = 0, dataSize = 0;
     char compressionName[16] = {0};
     if (sscanf(headerBuf, "%d,%d,%15s,%d", &x, &y, compressionName, &dataSize) != 4) {
         return false;
@@ -74,20 +77,20 @@ bool KisTileCompressor2::readTile(PkStream *stream, KisTiledDataManager *dm)
         return false;
     }
 
-    qint32 row = yToRow(dm, y);
-    qint32 col = xToCol(dm, x);
+    std::int32_t row = yToRow(dm, y);
+    std::int32_t col = xToCol(dm, x);
 
     KisTileSP tile = dm->getTile(col, row, true);
 
     stream->read(m_streamingBuffer.data(), dataSize);
 
     tile->lockForWrite();
-    bool res = decompressTileData((quint8*)m_streamingBuffer.data(), dataSize, tile->tileData());
+    bool res = decompressTileData((std::uint8_t*)m_streamingBuffer.data(), dataSize, tile->tileData());
     tile->unlockForWrite();
     return res;
 }
 
-void KisTileCompressor2::prepareStreamingBuffer(qint32 tileDataSize)
+void KisTileCompressor2::prepareStreamingBuffer(std::int32_t tileDataSize)
 {
     /**
      * TODO: delete this buffer!
@@ -96,9 +99,9 @@ void KisTileCompressor2::prepareStreamingBuffer(qint32 tileDataSize)
     m_streamingBuffer.resize(tileDataSize + 1);
 }
 
-void KisTileCompressor2::prepareWorkBuffers(qint32 tileDataSize)
+void KisTileCompressor2::prepareWorkBuffers(std::int32_t tileDataSize)
 {
-    const qint32 bufferSize = m_compression->outputBufferSize(tileDataSize);
+    const std::int32_t bufferSize = m_compression->outputBufferSize(tileDataSize);
 
     if (m_linearizationBuffer.size() < tileDataSize) {
         m_linearizationBuffer.resize(tileDataSize);
@@ -110,24 +113,24 @@ void KisTileCompressor2::prepareWorkBuffers(qint32 tileDataSize)
 }
 
 void KisTileCompressor2::compressTileData(KisTileData *tileData,
-                                          quint8 *buffer,
-                                          qint32 bufferSize,
-                                          qint32 &bytesWritten)
+                                          std::uint8_t *buffer,
+                                          std::int32_t bufferSize,
+                                          std::int32_t &bytesWritten)
 {
-    const qint32 pixelSize = tileData->pixelSize();
-    const qint32 tileDataSize = TILE_DATA_SIZE(pixelSize);
-    qint32 compressedBytes;
+    const std::int32_t pixelSize = tileData->pixelSize();
+    const std::int32_t tileDataSize = TILE_DATA_SIZE(pixelSize);
+    std::int32_t compressedBytes;
 
-    Q_UNUSED(bufferSize);
-    Q_ASSERT(bufferSize >= tileDataSize + 1);
+    (void)(bufferSize);
+    assert(bufferSize >= tileDataSize + 1);
 
     prepareWorkBuffers(tileDataSize);
 
-    KisAbstractCompression::linearizeColors(tileData->data(), (quint8*)m_linearizationBuffer.data(),
+    KisAbstractCompression::linearizeColors(tileData->data(), (std::uint8_t*)m_linearizationBuffer.data(),
                                             tileDataSize, pixelSize);
 
-    compressedBytes = m_compression->compress((quint8*)m_linearizationBuffer.data(), tileDataSize,
-                                              (quint8*)m_compressionBuffer.data(), m_compressionBuffer.size());
+    compressedBytes = m_compression->compress((std::uint8_t*)m_linearizationBuffer.data(), tileDataSize,
+                                              (std::uint8_t*)m_compressionBuffer.data(), m_compressionBuffer.size());
 
     if(compressedBytes < tileDataSize) {
         buffer[0] = COMPRESSED_DATA_FLAG;
@@ -141,21 +144,21 @@ void KisTileCompressor2::compressTileData(KisTileData *tileData,
     }
 }
 
-bool KisTileCompressor2::decompressTileData(quint8 *buffer,
-                                            qint32 bufferSize,
+bool KisTileCompressor2::decompressTileData(std::uint8_t *buffer,
+                                            std::int32_t bufferSize,
                                             KisTileData *tileData)
 {
-    const qint32 pixelSize = tileData->pixelSize();
-    const qint32 tileDataSize = TILE_DATA_SIZE(pixelSize);
+    const std::int32_t pixelSize = tileData->pixelSize();
+    const std::int32_t tileDataSize = TILE_DATA_SIZE(pixelSize);
 
     if(buffer[0] == COMPRESSED_DATA_FLAG) {
         prepareWorkBuffers(tileDataSize);
 
-        qint32 bytesWritten;
+        std::int32_t bytesWritten;
         bytesWritten = m_compression->decompress(buffer + 1, bufferSize - 1,
-                                                 (quint8*)m_linearizationBuffer.data(), tileDataSize);
+                                                 (std::uint8_t*)m_linearizationBuffer.data(), tileDataSize);
         if (bytesWritten == tileDataSize) {
-            KisAbstractCompression::delinearizeColors((quint8*)m_linearizationBuffer.data(),
+            KisAbstractCompression::delinearizeColors((std::uint8_t*)m_linearizationBuffer.data(),
                                                       tileData->data(),
                                                       tileDataSize, pixelSize);
             return true;
@@ -170,25 +173,25 @@ bool KisTileCompressor2::decompressTileData(quint8 *buffer,
 
 }
 
-qint32 KisTileCompressor2::tileDataBufferSize(KisTileData *tileData)
+std::int32_t KisTileCompressor2::tileDataBufferSize(KisTileData *tileData)
 {
     return TILE_DATA_SIZE(tileData->pixelSize()) + 1;
 }
 
-inline qint32 KisTileCompressor2::maxHeaderLength()
+inline std::int32_t KisTileCompressor2::maxHeaderLength()
 {
-    static const qint32 QINT32_LENGTH = 11;
-    static const qint32 COMPRESSION_NAME_LENGTH = 5;
-    static const qint32 SEPARATORS_LENGTH = 4;
+    static const std::int32_t QINT32_LENGTH = 11;
+    static const std::int32_t COMPRESSION_NAME_LENGTH = 5;
+    static const std::int32_t SEPARATORS_LENGTH = 4;
 
     return 3 * QINT32_LENGTH + COMPRESSION_NAME_LENGTH + SEPARATORS_LENGTH;
 }
 
 inline PkString KisTileCompressor2::getHeader(KisTileSP tile,
-                                              qint32 compressedSize)
+                                              std::int32_t compressedSize)
 {
-    qint32 x, y;
-    qint32 width, height;
+    std::int32_t x, y;
+    std::int32_t width, height;
     tile->extent().getRect(&x, &y, &width, &height);
 
     return PkString("%1,%2,%3,%4\n").arg(x).arg(y).arg(m_compressionName).arg(compressedSize);

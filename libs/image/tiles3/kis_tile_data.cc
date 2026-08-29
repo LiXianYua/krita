@@ -5,6 +5,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 
 #include "kis_tile_data.h"
 #include "kis_tile_data_store.h"
@@ -23,8 +26,8 @@
 typedef boost::singleton_pool<KisTileData, TILE_SIZE_4BPP, boost::default_user_allocator_new_delete, boost::details::pool::default_mutex, 256, 4096> BoostPool4BPP;
 typedef boost::singleton_pool<KisTileData, TILE_SIZE_8BPP, boost::default_user_allocator_new_delete, boost::details::pool::default_mutex, 128, 2048> BoostPool8BPP;
 
-const qint32 KisTileData::WIDTH = __TILE_DATA_WIDTH;
-const qint32 KisTileData::HEIGHT = __TILE_DATA_HEIGHT;
+const std::int32_t KisTileData::WIDTH = __TILE_DATA_WIDTH;
+const std::int32_t KisTileData::HEIGHT = __TILE_DATA_HEIGHT;
 
 SimpleCache KisTileData::m_cache;
 
@@ -36,7 +39,7 @@ SimpleCache::~SimpleCache()
 void SimpleCache::clear()
 {
     PkWriteLocker l(&m_cacheLock);
-    quint8 *ptr = 0;
+    std::uint8_t *ptr = 0;
 
     while (m_4Pool.pop(ptr)) {
         BoostPool4BPP::free(ptr);
@@ -52,7 +55,7 @@ void SimpleCache::clear()
 }
 
 
-KisTileData::KisTileData(qint32 pixelSize, const quint8 *defPixel, KisTileDataStore *store, bool checkFreeMemory)
+KisTileData::KisTileData(std::int32_t pixelSize, const std::uint8_t *defPixel, KisTileDataStore *store, bool checkFreeMemory)
     : m_state(NORMAL),
       m_mementoFlag(0),
       m_age(0),
@@ -104,9 +107,9 @@ KisTileData::~KisTileData()
     releaseMemory();
 }
 
-void KisTileData::fillWithPixel(const quint8 *defPixel)
+void KisTileData::fillWithPixel(const std::uint8_t *defPixel)
 {
-    quint8 *it = m_data;
+    std::uint8_t *it = m_data;
 
     for (int i = 0; i < WIDTH * HEIGHT; i++, it += m_pixelSize) {
         memcpy(it, defPixel, m_pixelSize);
@@ -125,29 +128,29 @@ void KisTileData::releaseMemory()
         delete clone;
     }
 
-    Q_ASSERT(m_clonesStack.isEmpty());
+    assert(m_clonesStack.isEmpty());
 }
 
 void KisTileData::allocateMemory()
 {
-    Q_ASSERT(!m_data);
+    assert(!m_data);
     m_data = allocateData(m_pixelSize);
 }
 
-quint8* KisTileData::allocateData(const qint32 pixelSize)
+std::uint8_t* KisTileData::allocateData(const std::int32_t pixelSize)
 {
-    quint8 *ptr = 0;
+    std::uint8_t *ptr = 0;
 
     if (!m_cache.pop(pixelSize, ptr)) {
         switch (pixelSize) {
         case 4:
-            ptr = (quint8*)BoostPool4BPP::malloc();
+            ptr = (std::uint8_t*)BoostPool4BPP::malloc();
             break;
         case 8:
-            ptr = (quint8*)BoostPool8BPP::malloc();
+            ptr = (std::uint8_t*)BoostPool8BPP::malloc();
             break;
         default:
-            ptr = (quint8*) malloc(pixelSize * WIDTH * HEIGHT);
+            ptr = (std::uint8_t*) malloc(pixelSize * WIDTH * HEIGHT);
             break;
         }
     }
@@ -155,7 +158,7 @@ quint8* KisTileData::allocateData(const qint32 pixelSize)
     return ptr;
 }
 
-void KisTileData::freeData(quint8* ptr, const qint32 pixelSize)
+void KisTileData::freeData(std::uint8_t* ptr, const std::int32_t pixelSize)
 {
     if (!m_cache.push(pixelSize, ptr)) {
         switch (pixelSize) {

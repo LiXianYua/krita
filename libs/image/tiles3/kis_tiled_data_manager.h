@@ -7,7 +7,8 @@
 #ifndef KIS_TILEDDATAMANAGER_H_
 #define KIS_TILEDDATAMANAGER_H_
 
-#include <QtGlobal>
+#include <cstdint>
+
 #include <PkVector.h>
 #include <PkReadWriteLock.h>
 #include <KisRegion.h>
@@ -50,19 +51,19 @@ class PkStream;
  * that may allow deferred loading.
  *
  * A datamanager knows nothing about the type of pixel data except
- * how many quint8's a single pixel takes.
+ * how many std::uint8_t's a single pixel takes.
  */
 
 class KRITAIMAGE_EXPORT KisTiledDataManager : public KisShared
 {
 private:
-    static const qint32 LEGACY_VERSION = 1;
-    static const qint32 CURRENT_VERSION = 2;
+    static const std::int32_t LEGACY_VERSION = 1;
+    static const std::int32_t CURRENT_VERSION = 2;
 
 protected:
     /*FIXME:*/
 public:
-    KisTiledDataManager(quint32 pixelSize, const quint8 *defPixel);
+    KisTiledDataManager(std::uint32_t pixelSize, const std::uint8_t *defPixel);
     virtual ~KisTiledDataManager();
     KisTiledDataManager(const KisTiledDataManager &dm);
     KisTiledDataManager & operator=(const KisTiledDataManager &dm);
@@ -78,8 +79,8 @@ protected:
     friend class KisStressJob;
 
 public:
-    void setDefaultPixel(const quint8 *defPixel);
-    const quint8 *defaultPixel() const {
+    void setDefaultPixel(const std::uint8_t *defPixel);
+    const std::uint8_t *defaultPixel() const {
         return m_defaultPixel;
     }
 
@@ -92,7 +93,7 @@ public:
      * Merging two calls into one allows us to avoid additional tile fetch from
      * the hash table and therefore reduce waiting time.
      */
-    inline void getTilesPair(qint32 col, qint32 row, bool writable, KisTileSP *tile, KisTileSP *oldTile) {
+    inline void getTilesPair(std::int32_t col, std::int32_t row, bool writable, KisTileSP *tile, KisTileSP *oldTile) {
         *tile = getTile(col, row, writable);
 
         bool unused;
@@ -103,7 +104,7 @@ public:
         }
     }
 
-    inline KisTileSP getTile(qint32 col, qint32 row, bool writable) {
+    inline KisTileSP getTile(std::int32_t col, std::int32_t row, bool writable) {
         if (writable) {
             bool newTile;
             KisTileSP tile = m_hashTable->getTileLazy(col, row, newTile);
@@ -118,16 +119,16 @@ public:
         }
     }
 
-    inline KisTileSP getReadOnlyTileLazy(qint32 col, qint32 row, bool &existingTile) {
+    inline KisTileSP getReadOnlyTileLazy(std::int32_t col, std::int32_t row, bool &existingTile) {
         return m_hashTable->getReadOnlyTileLazy(col, row, existingTile);
     }
 
-    inline KisTileSP getOldTile(qint32 col, qint32 row, bool &existingTile) {
+    inline KisTileSP getOldTile(std::int32_t col, std::int32_t row, bool &existingTile) {
         KisTileSP tile = m_mementoManager->getCommittedTile(col, row, existingTile);
         return tile ? tile : getReadOnlyTileLazy(col, row, existingTile);
     }
 
-    inline KisTileSP getOldTile(qint32 col, qint32 row) {
+    inline KisTileSP getOldTile(std::int32_t col, std::int32_t row) {
         bool unused;
         return getOldTile(col, row, unused);
     }
@@ -158,7 +159,7 @@ public:
 
         PkWriteLocker locker(&m_lock);
         m_mementoManager->rollback(m_hashTable, memento);
-        const quint8 *defaultPixel = memento->oldDefaultPixel();
+        const std::uint8_t *defaultPixel = memento->oldDefaultPixel();
         if(memcmp(m_defaultPixel, defaultPixel, m_pixelSize)) {
             setDefaultPixelImpl(defaultPixel);
         }
@@ -169,7 +170,7 @@ public:
 
         PkWriteLocker locker(&m_lock);
         m_mementoManager->rollforward(m_hashTable, memento);
-        const quint8 *defaultPixel = memento->newDefaultPixel();
+        const std::uint8_t *defaultPixel = memento->newDefaultPixel();
         if(memcmp(m_defaultPixel, defaultPixel, m_pixelSize)) {
             setDefaultPixelImpl(defaultPixel);
         }
@@ -202,7 +203,7 @@ protected:
 
     void purge(const PkRect& area);
 
-    inline quint32 pixelSize() const {
+    inline std::uint32_t pixelSize() const {
         return m_pixelSize;
     }
 
@@ -210,17 +211,17 @@ protected:
 public:
 
 
-    void  extent(qint32 &x, qint32 &y, qint32 &w, qint32 &h) const;
-    void  setExtent(qint32 x, qint32 y, qint32 w, qint32 h);
+    void  extent(std::int32_t &x, std::int32_t &y, std::int32_t &w, std::int32_t &h) const;
+    void  setExtent(std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h);
     PkRect extent() const;
     void  setExtent(PkRect newRect);
 
     KisRegion region() const;
 
-    void clear(PkRect clearRect, quint8 clearValue);
-    void clear(PkRect clearRect, const quint8 *clearPixel);
-    void clear(qint32 x, qint32 y, qint32 w, qint32 h, quint8 clearValue);
-    void clear(qint32 x, qint32 y,  qint32 w, qint32 h, const quint8 *clearPixel);
+    void clear(PkRect clearRect, std::uint8_t clearValue);
+    void clear(PkRect clearRect, const std::uint8_t *clearPixel);
+    void clear(std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h, std::uint8_t clearValue);
+    void clear(std::int32_t x, std::int32_t y,  std::int32_t w, std::int32_t h, const std::uint8_t *clearPixel);
     void clear();
 
     /**
@@ -253,7 +254,7 @@ public:
     /**
      * write the specified data to x, y. There is no checking on pixelSize!
      */
-    void setPixel(qint32 x, qint32 y, const quint8 * data);
+    void setPixel(std::int32_t x, std::int32_t y, const std::uint8_t * data);
 
 
     /**
@@ -269,10 +270,10 @@ public:
      *                      added to \p bytes pointer to get to the
      *                      next row
      */
-    void readBytes(quint8 * bytes,
-                   qint32 x, qint32 y,
-                   qint32 w, qint32 h,
-                   qint32 dataRowStride = -1) const;
+    void readBytes(std::uint8_t * bytes,
+                   std::int32_t x, std::int32_t y,
+                   std::int32_t w, std::int32_t h,
+                   std::int32_t dataRowStride = -1) const;
     /**
      * Copy the bytes in the vector to the specified rect. If there are bytes left
      * in the vector after filling the rect, they will be ignored. If there are
@@ -288,10 +289,10 @@ public:
      *                      added to \p bytes pointer to get to the
      *                      next row
      */
-    void writeBytes(const quint8 * bytes,
-                    qint32 x, qint32 y,
-                    qint32 w, qint32 h,
-                    qint32 dataRowStride = -1);
+    void writeBytes(const std::uint8_t * bytes,
+                    std::int32_t x, std::int32_t y,
+                    std::int32_t w, std::int32_t h,
+                    std::int32_t dataRowStride = -1);
 
     /**
      * Copy the bytes in the paint device into a vector of arrays of bytes,
@@ -299,7 +300,7 @@ public:
      * paint device. If the specified area is larger than the paint
      * device's extent, the default pixel will be read.
      */
-    PkVector<quint8*> readPlanarBytes(PkVector<qint32> channelsizes, qint32 x, qint32 y, qint32 w, qint32 h) const;
+    PkVector<std::uint8_t*> readPlanarBytes(PkVector<std::int32_t> channelsizes, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h) const;
 
     /**
      * Write the data in the separate arrays to the channels. If there
@@ -312,31 +313,31 @@ public:
      * your paint device with areas of memory you never wanted to be
      * read. Krita may also crash.
      */
-    void writePlanarBytes(PkVector<quint8*> planes, PkVector<qint32> channelsizes, qint32 x, qint32 y, qint32 w, qint32 h);
+    void writePlanarBytes(PkVector<std::uint8_t*> planes, PkVector<std::int32_t> channelsizes, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h);
 
     /**
      * Get the number of contiguous columns starting at x, valid for all values
      * of y between minY and maxY.
      */
-    qint32 numContiguousColumns(qint32 x, qint32 minY, qint32 maxY) const;
+    std::int32_t numContiguousColumns(std::int32_t x, std::int32_t minY, std::int32_t maxY) const;
 
     /**
      * Get the number of contiguous rows starting at y, valid for all values
      * of x between minX and maxX.
      */
-    qint32 numContiguousRows(qint32 y, qint32 minX, qint32 maxX) const;
+    std::int32_t numContiguousRows(std::int32_t y, std::int32_t minX, std::int32_t maxX) const;
 
     /**
      * Get the row stride at pixel (x, y). This is the number of bytes to add to a
      * pointer to pixel (x, y) to access (x, y + 1).
      */
-    qint32 rowStride(qint32 x, qint32 y) const;
+    std::int32_t rowStride(std::int32_t x, std::int32_t y) const;
 
 private:
     KisTileHashTable *m_hashTable;
     KisMementoManager *m_mementoManager;
-    quint8* m_defaultPixel;
-    qint32 m_pixelSize;
+    std::uint8_t* m_defaultPixel;
+    std::int32_t m_pixelSize;
     KisTiledExtentManager m_extentManager;
 
     mutable PkReadWriteLock m_lock;
@@ -346,22 +347,22 @@ private:
     // and pixel size
     friend class KisAbstractTileCompressor;
     friend class KisTileDataWrapper;
-    inline qint32 xToCol(qint32 x) const
+    inline std::int32_t xToCol(std::int32_t x) const
     {
         return divideRoundDown(x, KisTileData::WIDTH);
     }
-    inline qint32 yToRow(qint32 y) const
+    inline std::int32_t yToRow(std::int32_t y) const
     {
         return divideRoundDown(y, KisTileData::HEIGHT);
     }
 
 private:
-    void setDefaultPixelImpl(const quint8 *defPixel);
+    void setDefaultPixelImpl(const std::uint8_t *defPixel);
 
-    bool writeTilesHeader(KisPaintDeviceWriter &store, quint32 numTiles);
-    bool processTilesHeader(PkStream *stream, quint32 &numTiles);
+    bool writeTilesHeader(KisPaintDeviceWriter &store, std::uint32_t numTiles);
+    bool processTilesHeader(PkStream *stream, std::uint32_t &numTiles);
 
-    inline qint32 divideRoundDown(qint32 x, const qint32 y) const
+    inline std::int32_t divideRoundDown(std::int32_t x, const std::int32_t y) const
     {
         /**
          * Equivalent to the following:
@@ -373,29 +374,29 @@ private:
 
     void recalculateExtent();
 
-    quint8* duplicatePixel(qint32 num, const quint8 *pixel);
+    std::uint8_t* duplicatePixel(std::int32_t num, const std::uint8_t *pixel);
 
     template<bool useOldSrcData>
         void bitBltImpl(KisTiledDataManager *srcDM, const PkRect &rect);
     template<bool useOldSrcData>
         void bitBltRoughImpl(KisTiledDataManager *srcDM, const PkRect &rect);
 
-    void writeBytesBody(const quint8 *data,
-                        qint32 x, qint32 y,
-                        qint32 width, qint32 height,
-                        qint32 dataRowStride = -1);
-    void readBytesBody(quint8 *data,
-                       qint32 x, qint32 y,
-                       qint32 width, qint32 height,
-                       qint32 dataRowStride = -1) const;
+    void writeBytesBody(const std::uint8_t *data,
+                        std::int32_t x, std::int32_t y,
+                        std::int32_t width, std::int32_t height,
+                        std::int32_t dataRowStride = -1);
+    void readBytesBody(std::uint8_t *data,
+                       std::int32_t x, std::int32_t y,
+                       std::int32_t width, std::int32_t height,
+                       std::int32_t dataRowStride = -1) const;
 
     template <bool allChannelsPresent>
-    void writePlanarBytesBody(PkVector<quint8*> planes,
-                              PkVector<qint32> channelsizes,
-                              qint32 x, qint32 y, qint32 w, qint32 h);
-    PkVector<quint8*> readPlanarBytesBody(PkVector<qint32> channelsizes,
-                                         qint32 x, qint32 y,
-                                         qint32 w, qint32 h) const;
+    void writePlanarBytesBody(PkVector<std::uint8_t*> planes,
+                              PkVector<std::int32_t> channelsizes,
+                              std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h);
+    PkVector<std::uint8_t*> readPlanarBytesBody(PkVector<std::int32_t> channelsizes,
+                                         std::int32_t x, std::int32_t y,
+                                         std::int32_t w, std::int32_t h) const;
 public:
     void debugPrintInfo() {
         m_mementoManager->debugPrintInfo();
@@ -408,4 +409,3 @@ public:
 //#include "kis_datamanager.h"
 
 #endif // KIS_TILEDDATAMANAGER_H_
-

@@ -7,10 +7,12 @@
 #ifndef __KIS_SWAPPED_DATA_STORE_H
 #define __KIS_SWAPPED_DATA_STORE_H
 
+#include <cstdint>
+#include <vector>
+
 #include "kritaimage_export.h"
 
 #include <PkMutex.h>
-#include <PkAuxTypes.h>
 
 
 class KisTileData;
@@ -27,7 +29,7 @@ public:
     /**
      * Returns number of swapped out tile data objects
      */
-    quint64 numTiles() const;
+    std::uint64_t numTiles() const;
 
     /**
      * Swap out the data stored in the \a td to the swap file
@@ -56,7 +58,7 @@ public:
      * Returns the metric of the total memory stored in the swap
      * in *uncompressed* form!
      */
-    qint64 totalSwapMemoryUsed() const;
+    std::int64_t totalSwapMemoryUsed() const;
 
     /**
      * Some debugging output
@@ -64,7 +66,7 @@ public:
     void debugStatistics();
 
 private:
-    PkByteArray m_buffer;
+    std::vector<std::uint8_t> m_buffer;
     KisAbstractTileCompressor *m_compressor;
 
     KisChunkAllocator *m_allocator;
@@ -72,8 +74,7 @@ private:
 
     PkMutex m_lock;
 
-    qint64 m_totalSwapMemoryUsed;
+    std::int64_t m_totalSwapMemoryUsed;
 };
 
 #endif /* __KIS_SWAPPED_DATA_STORE_H */
-

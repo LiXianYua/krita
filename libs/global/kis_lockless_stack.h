@@ -17,6 +17,8 @@
 #ifndef __KIS_LOCKLESS_STACK_H
 #define __KIS_LOCKLESS_STACK_H
 
+#include <cstdint>
+
 #include <PkAtomic.h>
 
 template<class T>
@@ -156,7 +158,7 @@ public:
      * in highly concurrent environment. So we return approximate
      * value! Do not rely on this value much!
      */
-    qint32 size() const {
+    std::int32_t size() const {
         return m_numNodes;
     }
 
@@ -209,7 +211,8 @@ private:
     }
 
 private:
-    Q_DISABLE_COPY(KisLocklessStack)
+    KisLocklessStack(const KisLocklessStack &) = delete;
+    KisLocklessStack &operator=(const KisLocklessStack &) = delete;
 
     PkAtomicPointer<Node> m_top;
     PkAtomicPointer<Node> m_freeNodes;
@@ -219,4 +222,3 @@ private:
 };
 
 #endif /* __KIS_LOCKLESS_STACK_H */
-

@@ -8,7 +8,8 @@
 #ifndef KIS_MEMENTO_H_
 #define KIS_MEMENTO_H_
 
-#include <QtGlobal>
+#include <cstdint>
+
 #include <PkRect.h>
 #include <PkMutex.h>
 
@@ -42,7 +43,7 @@ public:
         delete[] m_newDefaultPixel;
     }
 
-    inline void extent(qint32 &x, qint32 &y, qint32 &w, qint32 &h) {
+    inline void extent(std::int32_t &x, std::int32_t &y, std::int32_t &w, std::int32_t &h) {
         const bool extentIsValid =
             m_extentMaxX >= m_extentMinX && m_extentMaxY >= m_extentMinY;
 
@@ -60,37 +61,37 @@ public:
     }
 
     inline PkRect extent() {
-        qint32 x, y, w, h;
+        std::int32_t x, y, w, h;
         extent(x, y, w, h);
         return PkRect(x, y, w, h);
     }
 
-    void saveOldDefaultPixel(const quint8* pixel, quint32 pixelSize) {
-        m_oldDefaultPixel = new quint8[pixelSize];
+    void saveOldDefaultPixel(const std::uint8_t* pixel, std::uint32_t pixelSize) {
+        m_oldDefaultPixel = new std::uint8_t[pixelSize];
         memcpy(m_oldDefaultPixel, pixel, pixelSize);
     }
 
-    void saveNewDefaultPixel(const quint8* pixel, quint32 pixelSize) {
-        m_newDefaultPixel = new quint8[pixelSize];
+    void saveNewDefaultPixel(const std::uint8_t* pixel, std::uint32_t pixelSize) {
+        m_newDefaultPixel = new std::uint8_t[pixelSize];
         memcpy(m_newDefaultPixel, pixel, pixelSize);
     }
 
-    const quint8* oldDefaultPixel() const {
+    const std::uint8_t* oldDefaultPixel() const {
         return m_oldDefaultPixel;
     }
 
-    const quint8* newDefaultPixel() const {
+    const std::uint8_t* newDefaultPixel() const {
         return m_newDefaultPixel;
     }
 
 private:
     friend class KisMementoManager;
 
-    inline void updateExtent(qint32 col, qint32 row, PkMutex *currentMementoExtentLock) {
-        const qint32 tileMinX = col * KisTileData::WIDTH;
-        const qint32 tileMinY = row * KisTileData::HEIGHT;
-        const qint32 tileMaxX = tileMinX + KisTileData::WIDTH - 1;
-        const qint32 tileMaxY = tileMinY + KisTileData::HEIGHT - 1;
+    inline void updateExtent(std::int32_t col, std::int32_t row, PkMutex *currentMementoExtentLock) {
+        const std::int32_t tileMinX = col * KisTileData::WIDTH;
+        const std::int32_t tileMinY = row * KisTileData::HEIGHT;
+        const std::int32_t tileMaxX = tileMinX + KisTileData::WIDTH - 1;
+        const std::int32_t tileMaxY = tileMinY + KisTileData::HEIGHT - 1;
 
         {
             /**
@@ -110,13 +111,13 @@ private:
     }
 
 private:
-    quint8 *m_oldDefaultPixel;
-    quint8 *m_newDefaultPixel;
+    std::uint8_t *m_oldDefaultPixel;
+    std::uint8_t *m_newDefaultPixel;
 
-    qint32 m_extentMinX;
-    qint32 m_extentMaxX;
-    qint32 m_extentMinY;
-    qint32 m_extentMaxY;
+    std::int32_t m_extentMinX;
+    std::int32_t m_extentMaxX;
+    std::int32_t m_extentMinY;
+    std::int32_t m_extentMaxY;
 };
 
 #endif // KIS_MEMENTO_H_

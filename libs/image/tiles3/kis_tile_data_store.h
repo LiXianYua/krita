@@ -8,6 +8,8 @@
 #ifndef KIS_TILE_DATA_STORE_H_
 #define KIS_TILE_DATA_STORE_H_
 
+#include <cstdint>
+
 #include "kritaimage_export.h"
 
 #include <PkReadWriteLock.h>
@@ -35,13 +37,13 @@ public:
     void debugPrintList();
 
     struct MemoryStatistics {
-        qint64 totalMemorySize;
-        qint64 realMemorySize;
-        qint64 historicalMemorySize;
+        std::int64_t totalMemorySize;
+        std::int64_t realMemorySize;
+        std::int64_t historicalMemorySize;
 
-        qint64 poolSize;
+        std::int64_t poolSize;
 
-        qint64 swapSize;
+        std::int64_t swapSize;
     };
 
     MemoryStatistics memoryStatistics();
@@ -51,7 +53,7 @@ public:
      * Returns total number of tiles present: in memory
      * or in a swap file
      */
-    inline qint32 numTiles() const
+    inline std::int32_t numTiles() const
     {
         return m_numTiles.loadAcquire() + m_swappedStore.numTiles();
     }
@@ -59,7 +61,7 @@ public:
     /**
      * Returns the number of tiles present in memory only
      */
-    inline qint32 numTilesInMemory() const
+    inline std::int32_t numTilesInMemory() const
     {
         return m_numTiles.loadAcquire();
     }
@@ -72,7 +74,7 @@ public:
     /**
      * \see m_memoryMetric
      */
-    inline qint64 memoryMetric() const
+    inline std::int64_t memoryMetric() const
     {
         return m_memoryMetric.loadAcquire();
     }
@@ -86,7 +88,7 @@ public:
     KisTileDataStoreClockIterator* beginClockIteration();
     void endIteration(KisTileDataStoreClockIterator* iterator);
 
-    inline KisTileData* createDefaultTileData(qint32 pixelSize, const quint8 *defPixel)
+    inline KisTileData* createDefaultTileData(std::int32_t pixelSize, const std::uint8_t *defPixel)
     {
         return allocTileData(pixelSize, defPixel);
     }
@@ -133,7 +135,7 @@ public:
     void unregisterTileData(KisTileData *td);
 
 private:
-    KisTileData *allocTileData(qint32 pixelSize, const quint8 *defPixel);
+    KisTileData *allocTileData(std::int32_t pixelSize, const std::uint8_t *defPixel);
 
     inline void registerTileDataImp(KisTileData *td);
     inline void unregisterTileDataImp(KisTileData *td);
@@ -179,4 +181,3 @@ inline T MiB_TO_METRIC(T value)
 }
 
 #endif /* KIS_TILE_DATA_STORE_H_ */
-

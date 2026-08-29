@@ -6,6 +6,8 @@
 #ifndef KIS_TILE_DATA_SWAPPER_H_
 #define KIS_TILE_DATA_SWAPPER_H_
 
+#include <cstdint>
+
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -36,11 +38,11 @@ private:
     void run();
 
     void doJob();
-    template<class strategy> qint64 pass(qint64 needToFreeMetric);
+    template<class strategy> std::int64_t pass(std::int64_t needToFreeMetric);
 
 private:
-    static const qint32 TIMEOUT;
-    static const qint32 DELAY;
+    static const std::int32_t TIMEOUT;
+    static const std::int32_t DELAY;
 
 private:
     struct Private;

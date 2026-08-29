@@ -7,8 +7,9 @@
 #ifndef __KIS_ABSTRACT_COMPRESSION_H
 #define __KIS_ABSTRACT_COMPRESSION_H
 
+#include <cstdint>
+
 #include "kritaimage_export.h"
-#include <QtGlobal>
 
 /**
  * Base class for compression operations
@@ -33,7 +34,7 @@ public:
      *
      * \see outputBufferSize()
      */
-    virtual qint32 compress(const quint8* input, qint32 inputLength, quint8* output, qint32 outputLength) = 0;
+    virtual std::int32_t compress(const std::uint8_t* input, std::int32_t inputLength, std::uint8_t* output, std::int32_t outputLength) = 0;
 
     /**
      * Decompresses \p input buffer into \p output buffer.
@@ -45,19 +46,19 @@ public:
      * \return number of bytes written to the output buffer
      * and 0 if error occurred.
      */
-    virtual qint32 decompress(const quint8* input, qint32 inputLength, quint8* output, qint32 outputLength) = 0;
+    virtual std::int32_t decompress(const std::uint8_t* input, std::int32_t inputLength, std::uint8_t* output, std::int32_t outputLength) = 0;
 
     /**
      * Returns minimal allowed size of output buffer for compression
      */
-    virtual qint32 outputBufferSize(qint32 dataSize) = 0;
+    virtual std::int32_t outputBufferSize(std::int32_t dataSize) = 0;
 
     /**
      * Some algorithms may decide to optimize them work depending on
      * the usual size of the data.
      * Default implementation of KisAbstractCompression class does nothing.
      */
-    virtual void adjustForDataSize(qint32 dataSize);
+    virtual void adjustForDataSize(std::int32_t dataSize);
 
 public:
     /**
@@ -68,15 +69,14 @@ public:
      * e.g. RGBARGBARGBA -> RRRGGGBBBAAA
      * NOTE: performs mixing of bytes, not channels!
      */
-    static void linearizeColors(quint8 *input, quint8 *output,
-                                qint32 dataSize, qint32 pixelSize);
+    static void linearizeColors(std::uint8_t *input, std::uint8_t *output,
+                                std::int32_t dataSize, std::int32_t pixelSize);
     /**
      * e.g. RRRGGGBBBAAA -> RGBARGBARGBA
      * NOTE: performs mixing of bytes, not channels!
      */
-    static void delinearizeColors(quint8 *input, quint8 *output,
-                                  qint32 dataSize, qint32 pixelSize);
+    static void delinearizeColors(std::uint8_t *input, std::uint8_t *output,
+                                  std::int32_t dataSize, std::int32_t pixelSize);
 };
 
 #endif /* __KIS_ABSTRACT_COMPRESSION_H */
-

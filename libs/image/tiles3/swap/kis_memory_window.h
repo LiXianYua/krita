@@ -7,6 +7,8 @@
 #ifndef __KIS_MEMORY_WINDOW_H
 #define __KIS_MEMORY_WINDOW_H
 
+#include <cstdint>
+
 #include <string>
 
 #include <PkString.h>
@@ -23,30 +25,30 @@ public:
      * @param swapDir If the dir doesn't exist, it'll be created.
      * @param writeWindowSize write window size.
      */
-    KisMemoryWindow(const PkString &swapDir, quint64 writeWindowSize = DEFAULT_WINDOW_SIZE);
+    KisMemoryWindow(const PkString &swapDir, std::uint64_t writeWindowSize = DEFAULT_WINDOW_SIZE);
     ~KisMemoryWindow();
 
-    inline quint8* getReadChunkPtr(KisChunk readChunk) {
+    inline std::uint8_t* getReadChunkPtr(KisChunk readChunk) {
         return getReadChunkPtr(readChunk.data());
     }
 
-    inline quint8* getWriteChunkPtr(KisChunk writeChunk) {
+    inline std::uint8_t* getWriteChunkPtr(KisChunk writeChunk) {
         return getWriteChunkPtr(writeChunk.data());
     }
 
-    quint8* getReadChunkPtr(const KisChunkData &readChunk);
-    quint8* getWriteChunkPtr(const KisChunkData &writeChunk);
+    std::uint8_t* getReadChunkPtr(const KisChunkData &readChunk);
+    std::uint8_t* getWriteChunkPtr(const KisChunkData &writeChunk);
 
 private:
     struct MappingWindow {
-        MappingWindow(quint64 _defaultSize)
+        MappingWindow(std::uint64_t _defaultSize)
             : chunk(0,0),
               window(0),
               defaultSize(_defaultSize)
         {
         }
 
-        quint8* calculatePointer(const KisChunkData &other) const {
+        std::uint8_t* calculatePointer(const KisChunkData &other) const {
             return window + other.m_begin - chunk.m_begin;
         }
 
@@ -57,8 +59,8 @@ private:
          * madvise(MADV_DONTNEED) on the mapped region.
          */
         KisChunkData chunk;
-        quint8 *window;
-        const quint64 defaultSize;
+        std::uint8_t *window;
+        const std::uint64_t defaultSize;
     };
 
 
@@ -67,10 +69,10 @@ private:
                       MappingWindow *adjustingWindow,
                       MappingWindow *otherWindow);
 
-    quint8* mapFile(quint64 begin, quint64 size);
-    void unmapFile(quint8 *window, quint64 size);
-    quint64 fileSize() const;
-    bool resizeFile(quint64 newSize);
+    std::uint8_t* mapFile(std::uint64_t begin, std::uint64_t size);
+    void unmapFile(std::uint8_t *window, std::uint64_t size);
+    std::uint64_t fileSize() const;
+    bool resizeFile(std::uint64_t newSize);
 
 private:
     int m_fileFd;

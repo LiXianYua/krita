@@ -7,6 +7,8 @@
 #ifndef __KIS_ABSTRACT_TILE_COMPRESSOR_H
 #define __KIS_ABSTRACT_TILE_COMPRESSOR_H
 
+#include <cstdint>
+
 #include "kritaimage_export.h"
 #include "../kis_tile.h"
 #include "../kis_tiled_data_manager.h"
@@ -58,8 +60,8 @@ public:
      *
      * \see tileDataBufferSize()
      */
-    virtual void compressTileData(KisTileData *tileData,quint8 *buffer,
-                                  qint32 bufferSize, qint32 &bytesWritten) = 0;
+    virtual void compressTileData(KisTileData *tileData,std::uint8_t *buffer,
+                                  std::int32_t bufferSize, std::int32_t &bytesWritten) = 0;
 
     /**
      * Decompresses a \p tileData from a given \p buffer.
@@ -71,27 +73,26 @@ public:
      * by the caller.
      *
      */
-    virtual bool decompressTileData(quint8 *buffer, qint32 bufferSize,
+    virtual bool decompressTileData(std::uint8_t *buffer, std::int32_t bufferSize,
                                     KisTileData *tileData) = 0;
 
     /**
      * Return the number of bytes needed for compressing one tile
      */
-    virtual qint32 tileDataBufferSize(KisTileData *tileData) = 0;
+    virtual std::int32_t tileDataBufferSize(KisTileData *tileData) = 0;
 
 protected:
-    inline qint32 xToCol(KisTiledDataManager *dm, qint32 x) {
+    inline std::int32_t xToCol(KisTiledDataManager *dm, std::int32_t x) {
         return dm->xToCol(x);
     }
 
-    inline qint32 yToRow(KisTiledDataManager *dm, qint32 y) {
+    inline std::int32_t yToRow(KisTiledDataManager *dm, std::int32_t y) {
         return dm->yToRow(y);
     }
 
-    inline qint32 pixelSize(KisTiledDataManager *dm) {
+    inline std::int32_t pixelSize(KisTiledDataManager *dm) {
         return dm->pixelSize();
     }
 };
 
 #endif /* __KIS_ABSTRACT_TILE_COMPRESSOR_H */
-

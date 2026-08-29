@@ -6,6 +6,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 #include <PkRect.h>
 #include <PkVector.h>
 #include <PkPoint.h>
@@ -36,15 +39,15 @@
  * They are created on demand
  */
 
-KisTiledDataManager::KisTiledDataManager(quint32 pixelSize,
-                                         const quint8 *defaultPixel)
+KisTiledDataManager::KisTiledDataManager(std::uint32_t pixelSize,
+                                         const std::uint8_t *defaultPixel)
 {
     /* See comment in destructor for details */
     m_mementoManager = new KisMementoManager();
     m_hashTable = new KisTileHashTable(m_mementoManager);
 
     m_pixelSize = pixelSize;
-    m_defaultPixel = new quint8[m_pixelSize];
+    m_defaultPixel = new std::uint8_t[m_pixelSize];
     setDefaultPixel(defaultPixel);
 }
 
@@ -63,7 +66,7 @@ KisTiledDataManager::KisTiledDataManager(const KisTiledDataManager &dm)
     m_hashTable = new KisTileHashTable(*dm.m_hashTable, m_mementoManager);
 
     m_pixelSize = dm.m_pixelSize;
-    m_defaultPixel = new quint8[m_pixelSize];
+    m_defaultPixel = new std::uint8_t[m_pixelSize];
     /**
      * We won't call setDefaultTileData here, as defaultTileDatas
      * has already been made shared in m_hashTable(dm->m_hashTable)
@@ -88,13 +91,13 @@ KisTiledDataManager::~KisTiledDataManager()
     delete[] m_defaultPixel;
 }
 
-void KisTiledDataManager::setDefaultPixel(const quint8 *defaultPixel)
+void KisTiledDataManager::setDefaultPixel(const std::uint8_t *defaultPixel)
 {
     PkWriteLocker locker(&m_lock);
     setDefaultPixelImpl(defaultPixel);
 }
 
-void KisTiledDataManager::setDefaultPixelImpl(const quint8 *defaultPixel)
+void KisTiledDataManager::setDefaultPixelImpl(const std::uint8_t *defaultPixel)
 {
     KisTileData *td = KisTileDataStore::instance()->createDefaultTileData(pixelSize(), defaultPixel);
     m_hashTable->setDefaultTileData(td);
@@ -148,20 +151,20 @@ bool KisTiledDataManager::read(PkStream *stream)
         return false;
     }
 
-    const qint32 maxLineLength = 79; // Legacy magic
+    const std::int32_t maxLineLength = 79; // Legacy magic
     char lineBuf[maxLineLength + 1];
     PkStream::pk_int64 lineLen = stream->readLine(lineBuf, maxLineLength + 1);
     PkString line = lineLen < 0 ? PkString() : PkString::PkFromUtf8(lineBuf, (int)lineLen);
     line = line.trimmed();
 
-    quint32 numTiles;
-    qint32 tilesVersion = LEGACY_VERSION;
+    std::uint32_t numTiles;
+    std::int32_t tilesVersion = LEGACY_VERSION;
 
     if (!line.isEmpty() && line[0] == u'V') {
         std::vector<PkString> lineItems = line.split(u' ');
 
         PkString keyword = lineItems.front();
-        Q_ASSERT(keyword == "VERSION");
+        assert(keyword == "VERSION");
 
         tilesVersion = lineItems.size() > 1 ? lineItems[1].toInt() : 0;
 
@@ -169,14 +172,14 @@ bool KisTiledDataManager::read(PkStream *stream)
             return false;
     }
     else {
-        numTiles = (quint32)line.toInt();
+        numTiles = (std::uint32_t)line.toInt();
     }
 
     KisAbstractTileCompressorSP compressor =
         KisTileCompressorFactory::create(tilesVersion);
 
     bool readSuccess = true;
-    for (quint32 i = 0; i < numTiles; i++) {
+    for (std::uint32_t i = 0; i < numTiles; i++) {
         if (!compressor->readTile(stream, this)) {
             readSuccess = false;
         }
@@ -186,7 +189,7 @@ bool KisTiledDataManager::read(PkStream *stream)
     return readSuccess;
 }
 
-bool KisTiledDataManager::writeTilesHeader(KisPaintDeviceWriter &store, quint32 numTiles)
+bool KisTiledDataManager::writeTilesHeader(KisPaintDeviceWriter &store, std::uint32_t numTiles)
 {
     PkString buffer = PkString("VERSION %1\n"
                                "TILEWIDTH %2\n"
@@ -200,7 +203,7 @@ bool KisTiledDataManager::writeTilesHeader(KisPaintDeviceWriter &store, quint32 
         .arg((int)numTiles);
 
     std::string utf8 = buffer.PkToUtf8();
-    return store.write(utf8.data(), (qint64)utf8.size());
+    return store.write(utf8.data(), (std::int64_t)utf8.size());
 }
 
 #define takeOneLine(stream, maxLine, keyword, value)            \
@@ -215,7 +218,7 @@ bool KisTiledDataManager::writeTilesHeader(KisPaintDeviceWriter &store, quint32 
     } while(0)                                                  \
 
 
-bool KisTiledDataManager::processTilesHeader(PkStream *stream, quint32 &numTiles)
+bool KisTiledDataManager::processTilesHeader(PkStream *stream, std::uint32_t &numTiles)
 {
     /**
      * We assume that there is only one version of this header
@@ -223,13 +226,13 @@ bool KisTiledDataManager::processTilesHeader(PkStream *stream, quint32 &numTiles
      * to modify the behavior
      */
 
-    const qint32 maxLineLength = 25;
-    const qint32 totalNumTests = 4;
+    const std::int32_t maxLineLength = 25;
+    const std::int32_t totalNumTests = 4;
     bool foundDataMark = false;
-    qint32 testsPassed = 0;
+    std::int32_t testsPassed = 0;
 
     PkString keyword;
-    qint32 value;
+    std::int32_t value;
 
     while(!foundDataMark && stream->canReadLine()) {
         takeOneLine(stream, maxLineLength, keyword, value);
@@ -243,7 +246,7 @@ bool KisTiledDataManager::processTilesHeader(PkStream *stream, quint32 &numTiles
                 goto wrongString;
         }
         else if (keyword == "PIXELSIZE") {
-            if((quint32)value != pixelSize())
+            if((std::uint32_t)value != pixelSize())
                 goto wrongString;
         }
         else if (keyword == "DATA") {
@@ -273,10 +276,10 @@ void KisTiledDataManager::purge(const PkRect& area)
 {
     PkList<KisTileSP> tilesToDelete;
     {
-        const qint32 tileDataSize = KisTileData::HEIGHT * KisTileData::WIDTH * pixelSize();
+        const std::int32_t tileDataSize = KisTileData::HEIGHT * KisTileData::WIDTH * pixelSize();
         KisTileData *tileData = m_hashTable->refAndFetchDefaultTileData();
         tileData->blockSwapping();
-        const quint8 *defaultData = tileData->data();
+        const std::uint8_t *defaultData = tileData->data();
 
         KisTileHashTableConstIterator iter(m_hashTable);
         KisTileSP tile;
@@ -302,20 +305,20 @@ void KisTiledDataManager::purge(const PkRect& area)
     }
 }
 
-quint8* KisTiledDataManager::duplicatePixel(qint32 num, const quint8 *pixel)
+std::uint8_t* KisTiledDataManager::duplicatePixel(std::int32_t num, const std::uint8_t *pixel)
 {
-    const qint32 pixelSize = this->pixelSize();
+    const std::int32_t pixelSize = this->pixelSize();
     /* FIXME:  Make a fun filling here */
-    quint8 *dstBuf = new quint8[num * pixelSize];
-    quint8 *dstIt = dstBuf;
-    for (qint32 i = 0; i < num; i++) {
+    std::uint8_t *dstBuf = new std::uint8_t[num * pixelSize];
+    std::uint8_t *dstIt = dstBuf;
+    for (std::int32_t i = 0; i < num; i++) {
         memcpy(dstIt, pixel, pixelSize);
         dstIt += pixelSize;
     }
     return dstBuf;
 }
 
-void KisTiledDataManager::clear(PkRect clearRect, const quint8 *clearPixel)
+void KisTiledDataManager::clear(PkRect clearRect, const std::uint8_t *clearPixel)
 {
     if (clearPixel == 0)
         clearPixel = m_defaultPixel;
@@ -323,12 +326,12 @@ void KisTiledDataManager::clear(PkRect clearRect, const quint8 *clearPixel)
     if (clearRect.isEmpty())
         return;
 
-    const qint32 pixelSize = this->pixelSize();
+    const std::int32_t pixelSize = this->pixelSize();
 
     bool pixelBytesAreDefault = !memcmp(clearPixel, m_defaultPixel, pixelSize);
 
     bool pixelBytesAreTheSame = true;
-    for (qint32 i = 0; i < pixelSize; ++i) {
+    for (std::int32_t i = 0; i < pixelSize; ++i) {
         if (clearPixel[i] != clearPixel[0]) {
             pixelBytesAreTheSame = false;
             break;
@@ -339,17 +342,17 @@ void KisTiledDataManager::clear(PkRect clearRect, const quint8 *clearPixel)
         clearRect &= m_extentManager.extent();
     }
 
-    qint32 firstColumn = xToCol(clearRect.left());
-    qint32 lastColumn = xToCol(clearRect.right());
+    std::int32_t firstColumn = xToCol(clearRect.left());
+    std::int32_t lastColumn = xToCol(clearRect.right());
 
-    qint32 firstRow = yToRow(clearRect.top());
-    qint32 lastRow = yToRow(clearRect.bottom());
+    std::int32_t firstRow = yToRow(clearRect.top());
+    std::int32_t lastRow = yToRow(clearRect.bottom());
 
-    const quint32 rowStride = KisTileData::WIDTH * pixelSize;
+    const std::uint32_t rowStride = KisTileData::WIDTH * pixelSize;
 
     // Generate one row
-    quint8 *clearPixelData = 0;
-    quint32 maxRunLength = qMin(clearRect.width(), KisTileData::WIDTH);
+    std::uint8_t *clearPixelData = 0;
+    std::uint32_t maxRunLength = qMin(clearRect.width(), KisTileData::WIDTH);
     clearPixelData = duplicatePixel(maxRunLength, clearPixel);
 
     KisTileData *td = 0;
@@ -361,8 +364,8 @@ void KisTiledDataManager::clear(PkRect clearRect, const quint8 *clearPixel)
         td->acquire();
     }
 
-    for (qint32 row = firstRow; row <= lastRow; ++row) {
-        for (qint32 column = firstColumn; column <= lastColumn; ++column) {
+    for (std::int32_t row = firstRow; row <= lastRow; ++row) {
+        for (std::int32_t column = firstColumn; column <= lastColumn; ++column) {
 
             PkRect tileRect(column*KisTileData::WIDTH, row*KisTileData::HEIGHT,
                            KisTileData::WIDTH, KisTileData::HEIGHT);
@@ -384,14 +387,14 @@ void KisTiledDataManager::clear(PkRect clearRect, const quint8 *clearPixel)
                      m_extentManager.notifyTileAdded(column, row);
                  }
             } else {
-                const qint32 lineSize = clearTileRect.width() * pixelSize;
-                qint32 rowsRemaining = clearTileRect.height();
+                const std::int32_t lineSize = clearTileRect.width() * pixelSize;
+                std::int32_t rowsRemaining = clearTileRect.height();
 
                 KisTileDataWrapper tw(this,
                                       clearTileRect.left(),
                                       clearTileRect.top(),
                                       KisTileDataWrapper::WRITE);
-                quint8* tileIt = tw.data();
+                std::uint8_t* tileIt = tw.data();
 
                 if (pixelBytesAreTheSame) {
                     while (rowsRemaining > 0) {
@@ -414,19 +417,19 @@ void KisTiledDataManager::clear(PkRect clearRect, const quint8 *clearPixel)
     delete[] clearPixelData;
 }
 
-void KisTiledDataManager::clear(PkRect clearRect, quint8 clearValue)
+void KisTiledDataManager::clear(PkRect clearRect, std::uint8_t clearValue)
 {
-    quint8 *buf = new quint8[pixelSize()];
+    std::uint8_t *buf = new std::uint8_t[pixelSize()];
     memset(buf, clearValue, pixelSize());
     clear(clearRect, buf);
     delete[] buf;
 }
 
-void KisTiledDataManager::clear(qint32 x, qint32 y, qint32 w, qint32 h, const quint8 *clearPixel)
+void KisTiledDataManager::clear(std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h, const std::uint8_t *clearPixel)
 {
     clear(PkRect(x, y, w, h), clearPixel);
 }
-void KisTiledDataManager::clear(qint32 x, qint32 y, qint32 w, qint32 h, quint8 clearValue)
+void KisTiledDataManager::clear(std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h, std::uint8_t clearValue)
 {
     clear(PkRect(x, y, w, h), clearValue);
 }
@@ -443,20 +446,20 @@ void KisTiledDataManager::bitBltImpl(KisTiledDataManager *srcDM, const PkRect &r
 {
     if (rect.isEmpty()) return;
 
-    const qint32 pixelSize = this->pixelSize();
+    const std::int32_t pixelSize = this->pixelSize();
     const bool defaultPixelsCoincide =
         !memcmp(srcDM->defaultPixel(), m_defaultPixel, pixelSize);
 
-    const quint32 rowStride = KisTileData::WIDTH * pixelSize;
+    const std::uint32_t rowStride = KisTileData::WIDTH * pixelSize;
 
-    qint32 firstColumn = xToCol(rect.left());
-    qint32 lastColumn = xToCol(rect.right());
+    std::int32_t firstColumn = xToCol(rect.left());
+    std::int32_t lastColumn = xToCol(rect.right());
 
-    qint32 firstRow = yToRow(rect.top());
-    qint32 lastRow = yToRow(rect.bottom());
+    std::int32_t firstRow = yToRow(rect.top());
+    std::int32_t lastRow = yToRow(rect.bottom());
 
-    for (qint32 row = firstRow; row <= lastRow; ++row) {
-        for (qint32 column = firstColumn; column <= lastColumn; ++column) {
+    for (std::int32_t row = firstRow; row <= lastRow; ++row) {
+        for (std::int32_t column = firstColumn; column <= lastColumn; ++column) {
 
             bool srcTileExists = false;
 
@@ -490,8 +493,8 @@ void KisTiledDataManager::bitBltImpl(KisTiledDataManager *srcDM, const PkRect &r
                  }
 
             } else {
-                const qint32 lineSize = cloneTileRect.width() * pixelSize;
-                qint32 rowsRemaining = cloneTileRect.height();
+                const std::int32_t lineSize = cloneTileRect.width() * pixelSize;
+                std::int32_t rowsRemaining = cloneTileRect.height();
 
                 KisTileDataWrapper tw(this,
                                       cloneTileRect.left(),
@@ -499,8 +502,8 @@ void KisTiledDataManager::bitBltImpl(KisTiledDataManager *srcDM, const PkRect &r
                                       KisTileDataWrapper::WRITE);
                 srcTile->lockForRead();
                 // We suppose that the shift in both tiles is the same
-                const quint8* srcTileIt = srcTile->data() + tw.offset();
-                quint8* dstTileIt = tw.data();
+                const std::uint8_t* srcTileIt = srcTile->data() + tw.offset();
+                std::uint8_t* dstTileIt = tw.data();
 
                 while (rowsRemaining > 0) {
                     memcpy(dstTileIt, srcTileIt, lineSize);
@@ -520,18 +523,18 @@ void KisTiledDataManager::bitBltRoughImpl(KisTiledDataManager *srcDM, const PkRe
 {
     if (rect.isEmpty()) return;
 
-    const qint32 pixelSize = this->pixelSize();
+    const std::int32_t pixelSize = this->pixelSize();
     const bool defaultPixelsCoincide =
         !memcmp(srcDM->defaultPixel(), m_defaultPixel, pixelSize);
 
-    qint32 firstColumn = xToCol(rect.left());
-    qint32 lastColumn = xToCol(rect.right());
+    std::int32_t firstColumn = xToCol(rect.left());
+    std::int32_t lastColumn = xToCol(rect.right());
 
-    qint32 firstRow = yToRow(rect.top());
-    qint32 lastRow = yToRow(rect.bottom());
+    std::int32_t firstRow = yToRow(rect.top());
+    std::int32_t lastRow = yToRow(rect.bottom());
 
-    for (qint32 row = firstRow; row <= lastRow; ++row) {
-        for (qint32 column = firstColumn; column <= lastColumn; ++column) {
+    for (std::int32_t row = firstRow; row <= lastRow; ++row) {
+        for (std::int32_t column = firstColumn; column <= lastColumn; ++column) {
 
             /**
              * We are cloning whole tiles here so let's not be so boring
@@ -586,7 +589,7 @@ void KisTiledDataManager::bitBltRoughOldData(KisTiledDataManager *srcDM, const P
     bitBltRoughImpl<true>(srcDM, rect);
 }
 
-void KisTiledDataManager::setExtent(qint32 x, qint32 y, qint32 w, qint32 h)
+void KisTiledDataManager::setExtent(std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h)
 {
     setExtent(PkRect(x, y, w, h));
 }
@@ -616,11 +619,11 @@ void KisTiledDataManager::setExtent(PkRect newRect)
                 PkRect intersection = newRect & tileRect;
                 intersection.translate(- tileRect.topLeft());
 
-                const qint32 pixelSize = this->pixelSize();
+                const std::int32_t pixelSize = this->pixelSize();
 
                 tile->lockForWrite();
-                quint8* data = tile->data();
-                quint8* ptr;
+                std::uint8_t* data = tile->data();
+                std::uint8_t* ptr;
 
                 /* FIXME: make it faster */
                 for (int y = 0; y < KisTileData::HEIGHT; y++) {
@@ -658,7 +661,7 @@ void KisTiledDataManager::recalculateExtent()
     m_extentManager.replaceTileStats(indexes);
 }
 
-void KisTiledDataManager::extent(qint32 &x, qint32 &y, qint32 &w, qint32 &h) const
+void KisTiledDataManager::extent(std::int32_t &x, std::int32_t &y, std::int32_t &w, std::int32_t &h) const
 {
     PkRect rect = extent();
     rect.getRect(&x, &y, &w, &h);
@@ -684,36 +687,36 @@ KisRegion KisTiledDataManager::region() const
     return KisRegion(std::move(rects));
 }
 
-void KisTiledDataManager::setPixel(qint32 x, qint32 y, const quint8 * data)
+void KisTiledDataManager::setPixel(std::int32_t x, std::int32_t y, const std::uint8_t * data)
 {
     KisTileDataWrapper tw(this, x, y, KisTileDataWrapper::WRITE);
     memcpy(tw.data(), data, pixelSize());
 }
 
-void KisTiledDataManager::writeBytes(const quint8 *data,
-                                     qint32 x, qint32 y,
-                                     qint32 width, qint32 height,
-                                     qint32 dataRowStride)
+void KisTiledDataManager::writeBytes(const std::uint8_t *data,
+                                     std::int32_t x, std::int32_t y,
+                                     std::int32_t width, std::int32_t height,
+                                     std::int32_t dataRowStride)
 {
     PkWriteLocker locker(&m_lock);
     // Actual bytes reading/writing is done in private header
     writeBytesBody(data, x, y, width, height, dataRowStride);
 }
 
-void KisTiledDataManager::readBytes(quint8 *data,
-                                    qint32 x, qint32 y,
-                                    qint32 width, qint32 height,
-                                    qint32 dataRowStride) const
+void KisTiledDataManager::readBytes(std::uint8_t *data,
+                                    std::int32_t x, std::int32_t y,
+                                    std::int32_t width, std::int32_t height,
+                                    std::int32_t dataRowStride) const
 {
     PkReadLocker locker(&m_lock);
     // Actual bytes reading/writing is done in private header
     readBytesBody(data, x, y, width, height, dataRowStride);
 }
 
-PkVector<quint8*>
-KisTiledDataManager::readPlanarBytes(PkVector<qint32> channelSizes,
-                                     qint32 x, qint32 y,
-                                     qint32 width, qint32 height) const
+PkVector<std::uint8_t*>
+KisTiledDataManager::readPlanarBytes(PkVector<std::int32_t> channelSizes,
+                                     std::int32_t x, std::int32_t y,
+                                     std::int32_t width, std::int32_t height) const
 {
     PkReadLocker locker(&m_lock);
     // Actual bytes reading/writing is done in private header
@@ -721,17 +724,17 @@ KisTiledDataManager::readPlanarBytes(PkVector<qint32> channelSizes,
 }
 
 
-void KisTiledDataManager::writePlanarBytes(PkVector<quint8*> planes,
-                                           PkVector<qint32> channelSizes,
-                                           qint32 x, qint32 y,
-                                           qint32 width, qint32 height)
+void KisTiledDataManager::writePlanarBytes(PkVector<std::uint8_t*> planes,
+                                           PkVector<std::int32_t> channelSizes,
+                                           std::int32_t x, std::int32_t y,
+                                           std::int32_t width, std::int32_t height)
 {
     PkWriteLocker locker(&m_lock);
     // Actual bytes reading/writing is done in private header
 
     bool allChannelsPresent = true;
 
-    for (const quint8* plane : planes) {
+    for (const std::uint8_t* plane : planes) {
         if (!plane) {
             allChannelsPresent = false;
             break;
@@ -745,12 +748,12 @@ void KisTiledDataManager::writePlanarBytes(PkVector<quint8*> planes,
     }
 }
 
-qint32 KisTiledDataManager::numContiguousColumns(qint32 x, qint32 minY, qint32 maxY) const
+std::int32_t KisTiledDataManager::numContiguousColumns(std::int32_t x, std::int32_t minY, std::int32_t maxY) const
 {
-    qint32 numColumns;
+    std::int32_t numColumns;
 
-    Q_UNUSED(minY);
-    Q_UNUSED(maxY);
+    (void)(minY);
+    (void)(maxY);
 
     if (x >= 0) {
         numColumns = KisTileData::WIDTH - (x % KisTileData::WIDTH);
@@ -761,12 +764,12 @@ qint32 KisTiledDataManager::numContiguousColumns(qint32 x, qint32 minY, qint32 m
     return numColumns;
 }
 
-qint32 KisTiledDataManager::numContiguousRows(qint32 y, qint32 minX, qint32 maxX) const
+std::int32_t KisTiledDataManager::numContiguousRows(std::int32_t y, std::int32_t minX, std::int32_t maxX) const
 {
-    qint32 numRows;
+    std::int32_t numRows;
 
-    Q_UNUSED(minX);
-    Q_UNUSED(maxX);
+    (void)(minX);
+    (void)(maxX);
 
     if (y >= 0) {
         numRows = KisTileData::HEIGHT - (y % KisTileData::HEIGHT);
@@ -777,10 +780,10 @@ qint32 KisTiledDataManager::numContiguousRows(qint32 y, qint32 minX, qint32 maxX
     return numRows;
 }
 
-qint32 KisTiledDataManager::rowStride(qint32 x, qint32 y) const
+std::int32_t KisTiledDataManager::rowStride(std::int32_t x, std::int32_t y) const
 {
-    Q_UNUSED(x);
-    Q_UNUSED(y);
+    (void)(x);
+    (void)(y);
 
     return KisTileData::WIDTH * pixelSize();
 }

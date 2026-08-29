@@ -7,6 +7,9 @@
 #ifndef __KIS_CHUNK_LIST_H
 #define __KIS_CHUNK_LIST_H
 
+#include <cstdint>
+#include <cassert>
+
 #include <list>
 #include "kritaimage_export.h"
 
@@ -21,12 +24,12 @@
 #ifdef DEBUG_SLAB_FAILS
 
 #define WINDOW_SIZE 2000
-#define DECLARE_FAIL_COUNTER() quint64 __failCount
+#define DECLARE_FAIL_COUNTER() std::uint64_t __failCount
 #define INIT_FAIL_COUNTER() __failCount = 0
-#define START_COUNTING() quint64 __numSteps = 0
+#define START_COUNTING() std::uint64_t __numSteps = 0
 #define REGISTER_STEP() if(++__numSteps > WINDOW_SIZE) {__numSteps=0; __failCount++;}
 #define REGISTER_FAIL() __failCount++
-#define DEBUG_FAIL_COUNTER() qInfo() << "Slab fail count:\t" << __failCount
+#define DEBUG_FAIL_COUNTER() infoTiles << "Slab fail count:\t" << __failCount
 
 #else
 
@@ -49,23 +52,23 @@ typedef KisChunkDataList::iterator KisChunkDataListIterator;
 class KRITAIMAGE_EXPORT KisChunkData
 {
 public:
-    KisChunkData(quint64 begin, quint64 size)
+    KisChunkData(std::uint64_t begin, std::uint64_t size)
     {
         setChunk(begin, size);
     }
 
-    inline void setChunk(quint64 begin, quint64 size) {
+    inline void setChunk(std::uint64_t begin, std::uint64_t size) {
         m_begin = begin;
         m_end = begin + size - 1;
     }
 
-    inline quint64 size() const {
+    inline std::uint64_t size() const {
         return m_end - m_begin +1;
     }
 
     bool operator== (const KisChunkData& other) const
     {
-        Q_ASSERT(m_begin!=other.m_begin || m_end==other.m_end);
+        assert(m_begin!=other.m_begin || m_end==other.m_end);
 
         /**
          * Chunks cannot overlap, so it is enough to check
@@ -74,8 +77,8 @@ public:
         return m_begin == other.m_begin;
     }
 
-    quint64 m_begin;
-    quint64 m_end;
+    std::uint64_t m_begin;
+    std::uint64_t m_end;
 };
 
 class KRITAIMAGE_EXPORT KisChunk
@@ -88,15 +91,15 @@ public:
     {
     }
 
-    inline quint64 begin() const {
+    inline std::uint64_t begin() const {
         return m_iterator->m_begin;
     }
 
-    inline quint64 end() const {
+    inline std::uint64_t end() const {
         return m_iterator->m_end;
     }
 
-    inline quint64 size() const {
+    inline std::uint64_t size() const {
         return m_iterator->size();
     }
 
@@ -116,36 +119,35 @@ private:
 class KRITAIMAGE_EXPORT KisChunkAllocator
 {
 public:
-    KisChunkAllocator(quint64 slabSize = DEFAULT_SLAB_SIZE,
-                      quint64 storeSize = DEFAULT_STORE_SIZE);
+    KisChunkAllocator(std::uint64_t slabSize = DEFAULT_SLAB_SIZE,
+                      std::uint64_t storeSize = DEFAULT_STORE_SIZE);
     ~KisChunkAllocator();
 
-    inline quint64 numChunks() const {
+    inline std::uint64_t numChunks() const {
         return m_list.size();
     }
 
-    KisChunk getChunk(quint64 size);
+    KisChunk getChunk(std::uint64_t size);
     void freeChunk(KisChunk chunk);
 
     void debugChunks();
     bool sanityCheck(bool pleaseCrash = true);
-    qreal debugFragmentation(bool toStderr = true);
+    double debugFragmentation(bool toStderr = true);
 
 private:
     bool tryInsertChunk(KisChunkDataList &list,
                         KisChunkDataListIterator &iterator,
-                        quint64 size);
+                        std::uint64_t size);
 
 private:
-    quint64 m_storeMaxSize;
-    quint64 m_storeSlabSize;
+    std::uint64_t m_storeMaxSize;
+    std::uint64_t m_storeSlabSize;
 
 
     KisChunkDataList m_list;
     KisChunkDataListIterator m_iterator;
-    quint64 m_storeSize;
+    std::uint64_t m_storeSize;
     DECLARE_FAIL_COUNTER()
 };
 
 #endif /* __KIS_CHUNK_ALLOCATOR_H */
-

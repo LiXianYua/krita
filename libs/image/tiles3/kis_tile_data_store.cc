@@ -5,6 +5,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 // to disable assert when the leak tracker is active
 #include "config-memory-leak-tracker.h"
 
@@ -35,11 +38,11 @@ KisTileDataStore* s_instance()
 #endif
 
 #ifdef DEBUG_HIT_MISS
-qint64 __preclone_miss = 0;
-qint64 __preclone_hit = 0;
+std::int64_t __preclone_miss = 0;
+std::int64_t __preclone_hit = 0;
 
-qint64 __preclone_miss_user_count = 0;
-qint64 __preclone_miss_age = 0;
+std::int64_t __preclone_miss_user_count = 0;
+std::int64_t __preclone_miss_age = 0;
 
 #define DEBUG_COUNT_PRECLONE_HIT(td) __preclone_hit++
 #define DEBUG_COUNT_PRECLONE_MISS(td) __preclone_miss++; __preclone_miss_user_count+=td->numUsers(); __preclone_miss_age+=td->age()
@@ -47,10 +50,10 @@ qint64 __preclone_miss_age = 0;
     dbgKrita << "Hits:" << __preclone_hit                       \
              << "of" << __preclone_hit + __preclone_miss        \
              << "("                                             \
-             << qreal(__preclone_hit) / (__preclone_hit + __preclone_miss)       \
+             << double(__preclone_hit) / (__preclone_hit + __preclone_miss)       \
              << ")"                                             \
-             << "miss users" << qreal(__preclone_miss_user_count) / __preclone_miss \
-             << "miss age" << qreal(__preclone_miss_age) / __preclone_miss
+             << "miss users" << double(__preclone_miss_user_count) / __preclone_miss \
+             << "miss age" << double(__preclone_miss_age) / __preclone_miss
 #else
 #define DEBUG_COUNT_PRECLONE_HIT(td)
 #define DEBUG_COUNT_PRECLONE_MISS(td)
@@ -92,7 +95,7 @@ KisTileDataStore::MemoryStatistics KisTileDataStore::memoryStatistics()
 
     MemoryStatistics stats;
 
-    const qint64 metricCoeff = qint64(KisTileData::WIDTH) * KisTileData::HEIGHT;
+    const std::int64_t metricCoeff = std::int64_t(KisTileData::WIDTH) * KisTileData::HEIGHT;
 
     stats.realMemorySize = m_pooler.lastRealMemoryMetric() * metricCoeff;
     stats.historicalMemorySize = m_pooler.lastHistoricalMemoryMetric() * metricCoeff;
@@ -154,7 +157,7 @@ inline void KisTileDataStore::unregisterTileDataImp(KisTileData *td)
     td->m_tileNumber = -1;
     m_tileDataMap.erase(index);
     m_numTiles.deref();
-    m_memoryMetric.fetchAndAddOrdered(-(qint32)td->pixelSize());
+    m_memoryMetric.fetchAndAddOrdered(-(std::int32_t)td->pixelSize());
 
     m_tileDataMap.getGC().unlockRawPointerAccess();
     m_tileDataMap.getGC().update();
@@ -166,7 +169,7 @@ void KisTileDataStore::unregisterTileData(KisTileData *td)
     unregisterTileDataImp(td);
 }
 
-KisTileData *KisTileDataStore::allocTileData(qint32 pixelSize, const quint8 *defPixel)
+KisTileData *KisTileDataStore::allocTileData(std::int32_t pixelSize, const std::uint8_t *defPixel)
 {
     KisTileData *td = new KisTileData(pixelSize, defPixel, this);
     registerTileData(td);
@@ -194,7 +197,7 @@ KisTileData *KisTileDataStore::duplicateTileData(KisTileData *rhs)
 
 void KisTileDataStore::freeTileData(KisTileData *td)
 {
-    Q_ASSERT(td->m_store == this);
+    assert(td->m_store == this);
 
     DEBUG_FREE_ACTION(td);
 

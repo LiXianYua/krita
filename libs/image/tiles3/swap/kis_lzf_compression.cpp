@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+
 #include "kis_lzf_compression.h"
 #include "kis_debug.h"
 
@@ -16,7 +18,7 @@
 #if !defined _MSC_VER
 #pragma GCC diagnostic ignored "-Wcast-align"
 #endif
-#define UPDATE_HASH(v,p) { v = *((quint16*)p); v ^= *((quint16*)(p+1))^(v>>(16-HASH_LOG)); }
+#define UPDATE_HASH(v,p) { v = *((std::uint16_t*)p); v ^= *((std::uint16_t*)(p+1))^(v>>(16-HASH_LOG)); }
 
 #define MAX_COPY       32
 #define MAX_LEN       264  /* 256 + 8 */
@@ -27,19 +29,19 @@
 // the original implementation in http://liblzf.plan9.de/
 int lzff_compress(const void* input, int length, void* output, int /*maxout*/)
 {
-    const quint8* ip = (const quint8*) input;
-    const quint8* ip_limit = ip + length - MAX_COPY - 4;
-    quint8* op = (quint8*) output;
+    const std::uint8_t* ip = (const std::uint8_t*) input;
+    const std::uint8_t* ip_limit = ip + length - MAX_COPY - 4;
+    std::uint8_t* op = (std::uint8_t*) output;
 
-    const quint8* htab[HASH_SIZE];
-    const quint8** hslot;
-    quint32 hval;
+    const std::uint8_t* htab[HASH_SIZE];
+    const std::uint8_t** hslot;
+    std::uint32_t hval;
 
-    quint8* ref;
-    qint32 copy;
-    qint32 len;
-    qint32 distance;
-    quint8* anchor;
+    std::uint8_t* ref;
+    std::int32_t copy;
+    std::int32_t len;
+    std::int32_t distance;
+    std::uint8_t* anchor;
 
     /* initializes hash table */
     for (hslot = htab; hslot < htab + HASH_SIZE; hslot++)
@@ -54,7 +56,7 @@ int lzff_compress(const void* input, int length, void* output, int /*maxout*/)
         /* find potential match */
         UPDATE_HASH(hval, ip);
         hslot = htab + (hval & HASH_MASK);
-        ref = (quint8*) * hslot;
+        ref = (std::uint8_t*) * hslot;
 
         /* update hash table */
         *hslot = ip;
@@ -64,7 +66,7 @@ int lzff_compress(const void* input, int length, void* output, int /*maxout*/)
             goto literal;
 
         /* is this a match? check the first 2 bytes */
-        if (*((quint16*)ref) != *((quint16*)ip))
+        if (*((std::uint16_t*)ref) != *((std::uint16_t*)ip))
             goto literal;
 
         /* now check the 3rd byte */
@@ -79,7 +81,7 @@ int lzff_compress(const void* input, int length, void* output, int /*maxout*/)
             goto literal;
 
         /* here we have 3-byte matches */
-        anchor = (quint8*)ip;
+        anchor = (std::uint8_t*)ip;
         len = 3;
         ref += 3;
         ip += 3;
@@ -151,7 +153,7 @@ int lzff_compress(const void* input, int length, void* output, int /*maxout*/)
     }
 
     /* left-over as literal copy */
-    ip_limit = (const quint8*)input + length;
+    ip_limit = (const std::uint8_t*)input + length;
     while (ip < ip_limit) {
         *op++ = *ip++;
         copy++;
@@ -167,21 +169,21 @@ int lzff_compress(const void* input, int length, void* output, int /*maxout*/)
     else
         op--;
 
-    return op - (quint8*)output;
+    return op - (std::uint8_t*)output;
 }
 
 int lzff_decompress(const void* input, int length, void* output, int maxout)
 {
-    const quint8* ip = (const quint8*) input;
-    const quint8* ip_limit  = ip + length - 1;
-    quint8* op = (quint8*) output;
-    quint8* op_limit = op + maxout;
-    quint8* ref;
+    const std::uint8_t* ip = (const std::uint8_t*) input;
+    const std::uint8_t* ip_limit  = ip + length - 1;
+    std::uint8_t* op = (std::uint8_t*) output;
+    std::uint8_t* op_limit = op + maxout;
+    std::uint8_t* ref;
 
     while (ip < ip_limit) {
-        quint32 ctrl = (*ip) + 1;
-        quint32 ofs = ((*ip) & 31) << 8;
-        quint32 len = (*ip++) >> 5;
+        std::uint32_t ctrl = (*ip) + 1;
+        std::uint32_t ofs = ((*ip) & 31) << 8;
+        std::uint32_t len = (*ip++) >> 5;
 
         if (ctrl < 33) {
             /* literal copy */
@@ -220,7 +222,7 @@ int lzff_decompress(const void* input, int length, void* output, int maxout)
             if (op + len + 3 > op_limit)
                 return 0;
 
-            if (ref < (quint8 *)output)
+            if (ref < (std::uint8_t *)output)
                 return 0;
 
             *op++ = *ref++;
@@ -232,7 +234,7 @@ int lzff_decompress(const void* input, int length, void* output, int maxout)
         }
     }
 
-    return op - (quint8*)output;
+    return op - (std::uint8_t*)output;
 }
 
 
@@ -250,17 +252,17 @@ KisLzfCompression::~KisLzfCompression()
 {
 }
 
-qint32 KisLzfCompression::compress(const quint8* input, qint32 inputLength, quint8* output, qint32 outputLength)
+std::int32_t KisLzfCompression::compress(const std::uint8_t* input, std::int32_t inputLength, std::uint8_t* output, std::int32_t outputLength)
 {
     return lzff_compress(input, inputLength, output, outputLength);
 }
 
-qint32 KisLzfCompression::decompress(const quint8* input, qint32 inputLength, quint8* output, qint32 outputLength)
+std::int32_t KisLzfCompression::decompress(const std::uint8_t* input, std::int32_t inputLength, std::uint8_t* output, std::int32_t outputLength)
 {
     return lzff_decompress(input, inputLength, output, outputLength);
 }
 
-qint32 KisLzfCompression::outputBufferSize(qint32 dataSize)
+std::int32_t KisLzfCompression::outputBufferSize(std::int32_t dataSize)
 {
     // WARNING: Copy-pasted from LZO samples, do not know how to prove it
     return dataSize + dataSize / 16 + 64 + 3;

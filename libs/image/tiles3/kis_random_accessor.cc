@@ -4,15 +4,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cstdint>
+#include <cassert>
+
 #include "kis_random_accessor.h"
 
 
 #include <kis_debug.h>
 
 
-const quint32 KisRandomAccessor2::CACHESIZE = 4; // Define the number of tiles we keep in cache
+const std::uint32_t KisRandomAccessor2::CACHESIZE = 4; // Define the number of tiles we keep in cache
 
-KisRandomAccessor2::KisRandomAccessor2(KisTiledDataManager *ktm, qint32 offsetX, qint32 offsetY, bool writable, KisIteratorCompleteListener *completeListener) :
+KisRandomAccessor2::KisRandomAccessor2(KisTiledDataManager *ktm, std::int32_t offsetX, std::int32_t offsetY, bool writable, KisIteratorCompleteListener *completeListener) :
         m_ktm(ktm),
         m_tilesCache(new KisTileInfo*[CACHESIZE]),
         m_tilesCacheSize(0),
@@ -26,7 +29,7 @@ KisRandomAccessor2::KisRandomAccessor2(KisTiledDataManager *ktm, qint32 offsetX,
         m_offsetY(offsetY),
         m_completeListener(completeListener)
 {
-    Q_ASSERT(ktm != 0);
+    assert(ktm != 0);
 }
 
 KisRandomAccessor2::~KisRandomAccessor2()
@@ -43,7 +46,7 @@ KisRandomAccessor2::~KisRandomAccessor2()
     }
 }
 
-void KisRandomAccessor2::moveTo(qint32 x, qint32 y)
+void KisRandomAccessor2::moveTo(std::int32_t x, std::int32_t y)
 {
     m_lastX = x;
     m_lastY = y;
@@ -56,7 +59,7 @@ void KisRandomAccessor2::moveTo(qint32 x, qint32 y)
         if (x >= m_tilesCache[i]->area_x1 && x <= m_tilesCache[i]->area_x2 &&
                 y >= m_tilesCache[i]->area_y1 && y <= m_tilesCache[i]->area_y2) {
             KisTileInfo* kti = m_tilesCache[i];
-            quint32 offset = x - kti->area_x1 + (y - kti->area_y1) * KisTileData::WIDTH;
+            std::uint32_t offset = x - kti->area_x1 + (y - kti->area_y1) * KisTileData::WIDTH;
             offset *= m_pixelSize;
             m_data = kti->data + offset;
             m_oldData = kti->oldData + offset;
@@ -75,10 +78,10 @@ void KisRandomAccessor2::moveTo(qint32 x, qint32 y)
     } else {
         m_tilesCacheSize++;
     }
-    quint32 col = xToCol(x);
-    quint32 row = yToRow(y);
+    std::uint32_t col = xToCol(x);
+    std::uint32_t row = yToRow(y);
     KisTileInfo* kti = fetchTileData(col, row);
-    quint32 offset = x - kti->area_x1 + (y - kti->area_y1) * KisTileData::WIDTH;
+    std::uint32_t offset = x - kti->area_x1 + (y - kti->area_y1) * KisTileData::WIDTH;
     offset *= m_pixelSize;
     m_data = kti->data + offset;
     m_oldData = kti->oldData + offset;
@@ -87,13 +90,13 @@ void KisRandomAccessor2::moveTo(qint32 x, qint32 y)
 }
 
 
-quint8* KisRandomAccessor2::rawData()
+std::uint8_t* KisRandomAccessor2::rawData()
 {
     return m_data;
 }
 
 
-const quint8* KisRandomAccessor2::oldRawData() const
+const std::uint8_t* KisRandomAccessor2::oldRawData() const
 {
 #ifdef DEBUG
     if (!m_ktm->hasCurrentMemento()) warnTiles << "Accessing oldRawData() when no transaction is in progress.";
@@ -101,12 +104,12 @@ const quint8* KisRandomAccessor2::oldRawData() const
     return m_oldData;
 }
 
-const quint8* KisRandomAccessor2::rawDataConst() const
+const std::uint8_t* KisRandomAccessor2::rawDataConst() const
 {
     return m_data;
 }
 
-KisRandomAccessor2::KisTileInfo* KisRandomAccessor2::fetchTileData(qint32 col, qint32 row)
+KisRandomAccessor2::KisTileInfo* KisRandomAccessor2::fetchTileData(std::int32_t col, std::int32_t row)
 {
     KisTileInfo* kti = new KisTileInfo;
 
@@ -126,27 +129,27 @@ KisRandomAccessor2::KisTileInfo* KisRandomAccessor2::fetchTileData(qint32 col, q
     return kti;
 }
 
-qint32 KisRandomAccessor2::numContiguousColumns(qint32 x) const
+std::int32_t KisRandomAccessor2::numContiguousColumns(std::int32_t x) const
 {
     return m_ktm->numContiguousColumns(x - m_offsetX, 0, 0);
 }
 
-qint32 KisRandomAccessor2::numContiguousRows(qint32 y) const
+std::int32_t KisRandomAccessor2::numContiguousRows(std::int32_t y) const
 {
     return m_ktm->numContiguousRows(y - m_offsetY, 0, 0);
 }
 
-qint32 KisRandomAccessor2::rowStride(qint32 x, qint32 y) const
+std::int32_t KisRandomAccessor2::rowStride(std::int32_t x, std::int32_t y) const
 {
     return m_ktm->rowStride(x - m_offsetX, y - m_offsetY);
 }
 
-qint32 KisRandomAccessor2::x() const
+std::int32_t KisRandomAccessor2::x() const
 {
     return m_lastX;
 }
 
-qint32 KisRandomAccessor2::y() const
+std::int32_t KisRandomAccessor2::y() const
 {
     return m_lastY;
 }

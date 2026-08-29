@@ -4,7 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtGlobal>
+#include <cstdint>
+#include <cassert>
+
 #include "kis_memento_manager.h"
 #include "kis_memento.h"
 
@@ -80,9 +82,9 @@ KisMementoManager::KisMementoManager(const KisMementoManager& rhs)
         m_currentMemento(rhs.m_currentMemento),
         m_registrationBlocked(rhs.m_registrationBlocked)
 {
-    Q_ASSERT_X(!m_registrationBlocked,
-               "KisMementoManager", "(impossible happened) "
-               "The device has been copied while registration was blocked");
+    assert((!m_registrationBlocked) &&
+           "KisMementoManager: (impossible happened) "
+           "The device has been copied while registration was blocked");
 }
 
 KisMementoManager::~KisMementoManager()
@@ -212,7 +214,7 @@ void KisMementoManager::commit()
     KisTileDataStore::instance()->kickPooler();
 }
 
-KisTileSP KisMementoManager::getCommittedTile(qint32 col, qint32 row, bool &existingTile)
+KisTileSP KisMementoManager::getCommittedTile(std::int32_t col, std::int32_t row, bool &existingTile)
 {
     /**
      * Our getOldTile mechanism is supposed to return current
@@ -354,7 +356,7 @@ void KisMementoManager::purgeHistory(KisMementoSP oldestMemento)
         commit();
     }
 
-    qint32 revisionIndex = findRevisionByMemento(oldestMemento);
+    std::int32_t revisionIndex = findRevisionByMemento(oldestMemento);
     if (revisionIndex < 0) return;
 
     for(; revisionIndex > 0; revisionIndex--) {
@@ -368,10 +370,10 @@ void KisMementoManager::purgeHistory(KisMementoSP oldestMemento)
     DEBUG_DUMP_MESSAGE("PURGE_HISTORY");
 }
 
-qint32 KisMementoManager::findRevisionByMemento(KisMementoSP memento) const
+std::int32_t KisMementoManager::findRevisionByMemento(KisMementoSP memento) const
 {
-    qint32 index = -1;
-    for(qint32 i = 0; i < m_revisions.size(); i++) {
+    std::int32_t index = -1;
+    for(std::int32_t i = 0; i < m_revisions.size(); i++) {
         if (m_revisions[i].memento == memento) {
             index = i;
             break;
@@ -414,7 +416,7 @@ void KisMementoManager::debugPrintInfo()
     }
 
     printf("Revisions list:\n");
-    qint32 i = 0;
+    std::int32_t i = 0;
     for (const KisHistoryItem &changeList : m_revisions) {
         printf("--- revision #%d ---\n", i++);
         for (KisMementoItemSP mi : changeList.itemList) {

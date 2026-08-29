@@ -8,6 +8,8 @@
 #ifndef KISTILEDEXTENTMANAGER_H
 #define KISTILEDEXTENTMANAGER_H
 
+#include <cstdint>
+
 #include <PkReadWriteLock.h>
 #include <PkRect.h>
 #include <PkPoint.h>
@@ -18,7 +20,7 @@
 
 class KRITAIMAGE_EXPORT KisTiledExtentManager
 {
-    static const qint32 InitialBufferSize = 256;
+    static const std::int32_t InitialBufferSize = 256;
 
     class KRITAIMAGE_EXPORT Data
     {
@@ -26,30 +28,30 @@ class KRITAIMAGE_EXPORT KisTiledExtentManager
         Data();
         ~Data();
 
-        bool add(qint32 index);
-        bool remove(qint32 index);
-        void replace(const PkVector<qint32> &indexes);
+        bool add(std::int32_t index);
+        bool remove(std::int32_t index);
+        void replace(const PkVector<std::int32_t> &indexes);
         void clear();
         bool isEmpty();
-        qint32 min();
-        qint32 max();
+        std::int32_t min();
+        std::int32_t max();
 
     public:
         PkReadWriteLock m_extentLock;
 
     private:
-        inline void unsafeAdd(qint32 index);
-        inline void unsafeMigrate(qint32 index);
-        inline void migrate(qint32 index);
+        inline void unsafeAdd(std::int32_t index);
+        inline void unsafeMigrate(std::int32_t index);
+        inline void migrate(std::int32_t index);
         inline void updateMin();
         inline void updateMax();
 
     private:
-        qint32 m_min;
-        qint32 m_max;
-        qint32 m_offset;
-        qint32 m_capacity;
-        qint32 m_count;
+        std::int32_t m_min;
+        std::int32_t m_max;
+        std::int32_t m_offset;
+        std::int32_t m_capacity;
+        std::int32_t m_count;
         PkAtomicInt *m_buffer;
         PkReadWriteLock m_migrationLock;
     };
@@ -57,8 +59,8 @@ class KRITAIMAGE_EXPORT KisTiledExtentManager
 public:
     KisTiledExtentManager();
 
-    void notifyTileAdded(qint32 col, qint32 row);
-    void notifyTileRemoved(qint32 col, qint32 row);
+    void notifyTileAdded(std::int32_t col, std::int32_t row);
+    void notifyTileRemoved(std::int32_t col, std::int32_t row);
     void replaceTileStats(const PkVector<PkPoint> &indexes);
     void clear();
     PkRect extent() const;
