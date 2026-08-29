@@ -9,6 +9,7 @@
 #define KIS_PAINT_DEVICE_IMPL_H_
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 #include <PkRect.h>
 #include <PkVector.h>
 #include <PkSharedPointer.h>
@@ -67,9 +68,6 @@ class KRITAIMAGE_EXPORT KisPaintDevice
     : public PkObject
     , public KisShared
 {
-
-    Q_OBJECT
-
 public:
 
     /**
@@ -891,7 +889,7 @@ public:
      */
     KUndo2Command* reincarnateWithDetachedHistory(bool copyContent);
 
-Q_SIGNALS:
+signals:
 
     void profileChanged(const KoColorProfile *  profile);
     void colorSpaceChanged(const KoColorSpace *colorspace);

@@ -87,6 +87,7 @@ set(kritaimage_OBJECT_DEPS
     pkxml
     pkconfig
     pkconcurrent
+    pksignal
 )
 if(HAVE_CXX_ATOMICS_WITH_LIB OR HAVE_CXX_ATOMICS64_WITH_LIB)
     list(APPEND kritaimage_OBJECT_DEPS atomic)
@@ -515,6 +516,33 @@ kis_add_library(kritaimage SHARED
     ${einspline_SRCS}
 )
 
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+set(kritaimage_SIGNAL_HEADERS
+    kis_paint_device.h
+)
+set(kritaimage_SIGNAL_SRCS)
+foreach(signal_header IN LISTS kritaimage_SIGNAL_HEADERS)
+    get_filename_component(signal_name "${signal_header}" NAME_WE)
+    set(signal_source "${CMAKE_CURRENT_BINARY_DIR}/${signal_name}_pk_signals.cpp")
+    add_custom_command(
+        OUTPUT "${signal_source}"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${signal_header}"
+                -o "${signal_source}"
+        DEPENDS
+                "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${signal_header}"
+        COMMENT "pk_signal_moc: generating ${signal_name} signal definitions"
+        VERBATIM
+    )
+    list(APPEND kritaimage_SIGNAL_SRCS "${signal_source}")
+endforeach()
+
+target_sources(kritaimage PRIVATE ${kritaimage_SIGNAL_SRCS})
+set_target_properties(kritaimage PROPERTIES AUTOMOC OFF)
+
 generate_export_header(kritaimage BASE_NAME kritaimage)
 
 target_link_libraries(kritaimage
@@ -535,6 +563,7 @@ target_link_libraries(kritaimage
         pkzip
         pkxml
         pkconfig
+        pksignal
 )
 target_link_libraries(kritaimage PRIVATE pkconcurrent)
 

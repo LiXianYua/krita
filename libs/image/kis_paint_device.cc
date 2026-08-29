@@ -1554,12 +1554,12 @@ bool KisPaintDevice::read(PkStream *stream)
 
 void KisPaintDevice::emitColorSpaceChanged()
 {
-    Q_EMIT colorSpaceChanged(m_d->colorSpace());
+    colorSpaceChanged(m_d->colorSpace());
 }
 
 void KisPaintDevice::emitProfileChanged()
 {
-    Q_EMIT profileChanged(m_d->colorSpace()->profile());
+    profileChanged(m_d->colorSpace()->profile());
 }
 
 void KisPaintDevice::convertTo(const KoColorSpace *dstColorSpace,
