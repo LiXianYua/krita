@@ -10,6 +10,7 @@
 #include <PkPoint.h>
 #include <PkVector.h>
 #include <PkSet.h>
+#include <PkNamespace.h>
 
 #include "kis_tool_freehand.h"
 
@@ -20,8 +21,9 @@
 #include <kconfig.h>
 #include <kconfiggroup.h>
 
-using PkToolCursorShape = Qt::CursorShape;
-constexpr PkToolCursorShape PkToolArrowCursor = Qt::ArrowCursor;
+namespace PkNs = Qt;
+using PkToolCursorShape = PkNs::CursorShape;
+constexpr PkToolCursorShape PkToolArrowCursor = PkNs::ArrowCursor;
 
 class KoCanvasBase;
 
@@ -133,9 +135,7 @@ public:
 
     ~KisToolDynaFactory() override {}
 
-    KoToolBase *createTool(KoCanvasBase *canvas) override {
-        return new KisToolDyna(canvas);
-    }
+    KoToolBase *createTool(KoCanvasBase *canvas) override;
 
 };
 

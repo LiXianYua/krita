@@ -11,6 +11,7 @@
 
 #include <PkScopedPointer.h>
 #include <PkVariant.h>
+#include <PkNamespace.h>
 #include "kis_tool_freehand.h"
 
 #include "KisToolPaintFactoryBase.h"
@@ -20,9 +21,10 @@
 #include <kconfig.h>
 #include <kconfiggroup.h>
 
-using PkToolCursorShape = Qt::CursorShape;
-constexpr PkToolCursorShape PkToolArrowCursor = Qt::ArrowCursor;
-constexpr PkToolCursorShape PkToolPointingHandCursor = Qt::PointingHandCursor;
+namespace PkNs = Qt;
+using PkToolCursorShape = PkNs::CursorShape;
+constexpr PkToolCursorShape PkToolArrowCursor = PkNs::ArrowCursor;
+constexpr PkToolCursorShape PkToolPointingHandCursor = PkNs::PointingHandCursor;
 
 class KoCanvasBase;
 
@@ -90,9 +92,7 @@ public:
 
     ~KisToolLazyBrushFactory() override {}
 
-    KoToolBase * createTool(KoCanvasBase *canvas) override {
-        return new KisToolLazyBrush(canvas);
-    }
+    KoToolBase *createTool(KoCanvasBase *canvas) override;
 
 };
 

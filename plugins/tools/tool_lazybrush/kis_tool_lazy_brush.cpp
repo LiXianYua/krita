@@ -6,6 +6,8 @@
 
 #include "kis_tool_lazy_brush.h"
 
+#include <PkList.h>
+#include <PkStringList.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoCanvasResourceProvider.h>
@@ -370,4 +372,9 @@ void KisToolLazyBrush::explicitUserStrokeEndRequest()
 
         KisLayerPropertiesIcons::setNodePropertyAutoUndo(node, KisLayerPropertiesIcons::colorizeNeedsUpdate, false, image());
     }
+}
+
+KoToolBase *KisToolLazyBrushFactory::createTool(KoCanvasBase *canvas)
+{
+    return new KisToolLazyBrush(canvas);
 }

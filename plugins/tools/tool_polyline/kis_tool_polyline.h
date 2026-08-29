@@ -48,9 +48,7 @@ public:
 
     ~KisToolPolylineFactory() override {}
 
-    KoToolBase * createTool(KoCanvasBase *canvas) override {
-        return new KisToolPolyline(canvas);
-    }
+    KoToolBase *createTool(KoCanvasBase *canvas) override;
 
 };
 

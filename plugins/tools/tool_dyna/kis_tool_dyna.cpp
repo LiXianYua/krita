@@ -8,6 +8,7 @@
 
 #include "kis_tool_dyna.h"
 
+#include <PkRect.h>
 #include <ksharedconfig.h>
 
 #include "KoPointerEvent.h"
@@ -274,4 +275,9 @@ void KisToolDyna::slotSetAngle(qreal angle)
     m_yangle = sin(angle * M_PI/180.0);
 
     m_configGroup.writeEntry("angleAmount", angle);
+}
+
+KoToolBase *KisToolDynaFactory::createTool(KoCanvasBase *canvas)
+{
+    return new KisToolDyna(canvas);
 }

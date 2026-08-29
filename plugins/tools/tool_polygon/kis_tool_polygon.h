@@ -49,9 +49,7 @@ public:
 
     ~KisToolPolygonFactory() override {}
 
-    KoToolBase * createTool(KoCanvasBase *canvas) override {
-        return new KisToolPolygon(canvas);
-    }
+    KoToolBase *createTool(KoCanvasBase *canvas) override;
 };
 
 

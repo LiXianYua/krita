@@ -9,6 +9,7 @@
 
 #include "kis_tool_polyline.h"
 
+#include <PkTransform.h>
 #include <PkVector.h>
 
 #include <KoCanvasBase.h>
@@ -75,4 +76,9 @@ void KisToolPolyline::finishPolyline(const PkVector<PkPointF>& points)
 bool KisToolPolyline::supportsPaintingAssistants() const
 {
     return true;
+}
+
+KoToolBase *KisToolPolylineFactory::createTool(KoCanvasBase *canvas)
+{
+    return new KisToolPolyline(canvas);
 }
