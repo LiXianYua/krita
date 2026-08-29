@@ -8,6 +8,7 @@
 #define KIS_UNDO_ADAPTER_H_
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 
 #include <kritaimage_export.h>
 #include <kis_undo_store.h>
@@ -15,8 +16,6 @@
 
 class KRITAIMAGE_EXPORT KisUndoAdapter : public PkShellObject
 {
-    Q_OBJECT
-
 public:
     KisUndoAdapter(KisUndoStore *undoStore, PkObject *parent = 0);
     ~KisUndoAdapter() override;
@@ -34,7 +33,7 @@ public:
         m_undoStore = undoStore;
     }
 
-Q_SIGNALS:
+signals:
     void selectionChanged();
 
 protected:
@@ -43,10 +42,10 @@ protected:
     }
 
 private:
-    Q_DISABLE_COPY(KisUndoAdapter)
+    KisUndoAdapter(const KisUndoAdapter &) = delete;
+    KisUndoAdapter &operator=(const KisUndoAdapter &) = delete;
     KisUndoStore *m_undoStore;
 };
 
 
 #endif // KIS_UNDO_ADAPTER_H_
-

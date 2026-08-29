@@ -526,6 +526,7 @@ set(kritaimage_SIGNAL_HEADERS
     kis_node.h
     kis_paint_device.h
     kis_transform_mask.h
+    kis_undo_adapter.h
     brushengine/KisPaintOpPresetUpdateProxy.h
     brushengine/kis_uniform_paintop_property.h
     brushengine/kis_slider_based_paintop_property.h

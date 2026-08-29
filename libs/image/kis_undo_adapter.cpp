@@ -19,8 +19,7 @@ KisUndoAdapter::~KisUndoAdapter()
 
 void KisUndoAdapter::emitSelectionChanged()
 {
-    Q_EMIT selectionChanged();
+    selectionChanged();
 }
-
 
 
