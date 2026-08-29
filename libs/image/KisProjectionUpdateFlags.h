@@ -31,7 +31,7 @@ enum class KisProjectionUpdateFlag
      */
     DontInvalidateFrames = 0x2
 };
-Q_DECLARE_FLAGS(KisProjectionUpdateFlags, KisProjectionUpdateFlag)
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisProjectionUpdateFlags)
+PK_DECLARE_FLAGS(KisProjectionUpdateFlags, KisProjectionUpdateFlag)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisProjectionUpdateFlags)
 
 #endif // KISPROJECTIONUPDATEFLAGS_H
