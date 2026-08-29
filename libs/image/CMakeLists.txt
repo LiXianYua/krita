@@ -35,6 +35,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/pk/time
     ${CMAKE_SOURCE_DIR}/pk/config
     ${CMAKE_SOURCE_DIR}/pk/flags
+    ${CMAKE_SOURCE_DIR}/pk/uuid
     ${CMAKE_SOURCE_DIR}/pk/color
     ${CMAKE_SOURCE_DIR}/pk/signal
     ${CMAKE_SOURCE_DIR}/pk/sql
@@ -88,6 +89,7 @@ set(kritaimage_OBJECT_DEPS
     pkconfig
     pkconcurrent
     pksignal
+    pkuuid
 )
 if(HAVE_CXX_ATOMICS_WITH_LIB OR HAVE_CXX_ATOMICS64_WITH_LIB)
     list(APPEND kritaimage_OBJECT_DEPS atomic)
@@ -568,6 +570,7 @@ target_link_libraries(kritaimage
         pkxml
         pkconfig
         pksignal
+        pkuuid
 )
 target_link_libraries(kritaimage PRIVATE pkconcurrent)
 
