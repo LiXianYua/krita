@@ -49,6 +49,7 @@
 #define KUNDO2STACK_H
 
 #include <compat/QObject>
+#include "../pigment/PkSignalCompat.h"
 #include "pk/string/PkString.h"
 #include "pk/container/PkList.h"
 #include "pk/time/PkDateTime.h"
@@ -154,7 +155,6 @@ private:
 
 class KRITACOMMAND_EXPORT KUndo2QStack : public PkObject
 {
-    Q_OBJECT
 //    Q_DECLARE_PRIVATE(KUndo2QStack)
 
 public:
@@ -192,7 +192,7 @@ public:
     void setCumulativeUndoData(const KisCumulativeUndoData &data);
     KisCumulativeUndoData cumulativeUndoData();
 
-public Q_SLOTS:
+public:
     void setClean();
     virtual void setIndex(int idx);
     virtual void undo();
@@ -201,7 +201,7 @@ public Q_SLOTS:
 
     void purgeRedoState();
 
-Q_SIGNALS:
+signals:
     void indexChanged(int idx);
     void cleanChanged(bool clean);
     void canUndoChanged(bool canUndo);

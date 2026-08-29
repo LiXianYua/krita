@@ -45,7 +45,7 @@ void KisMacroBasedUndoStore::addCommand(KUndo2Command *cmd)
     cmd->redo();
     m_d->command->addCommand(toQShared(cmd));
 
-    Q_EMIT historyStateChanged();
+    historyStateChanged();
 }
 
 void KisMacroBasedUndoStore::beginMacro(const KUndo2MagicString& macroName)
@@ -63,4 +63,3 @@ void KisMacroBasedUndoStore::purgeRedoState()
 {
     KIS_ASSERT(0 && "Not implemented");
 }
-

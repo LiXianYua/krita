@@ -8,6 +8,7 @@
 #define KIS_UNDO_STORE_H_
 
 #include <compat/QObject>
+#include "../pigment/PkSignalCompat.h"
 
 #include <kritacommand_export.h>
 
@@ -43,7 +44,6 @@ class KUndo2MagicString;
  */
 class KRITACOMMAND_EXPORT KisUndoStore : public PkObject
 {
-    Q_OBJECT
 public:
     KisUndoStore();
     virtual ~KisUndoStore();
@@ -60,7 +60,7 @@ public:
     virtual void endMacro() = 0;
     virtual void purgeRedoState() = 0;
 
-Q_SIGNALS:
+signals:
     void historyStateChanged();
 
 private:
@@ -70,4 +70,3 @@ private:
 
 
 #endif // KIS_UNDO_STORE_H_
-

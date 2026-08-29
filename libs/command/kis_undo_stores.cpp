@@ -106,7 +106,7 @@ void KisDumbUndoStore::undoLastCommand()
      * Ermm.. Do we actually have one? We are dumb! ;)
      */
 
-    Q_EMIT historyStateChanged();
+    historyStateChanged();
 }
 
 void KisDumbUndoStore::addCommand(KUndo2Command *command)
@@ -117,7 +117,7 @@ void KisDumbUndoStore::addCommand(KUndo2Command *command)
     command->redo();
     delete command;
 
-    Q_EMIT historyStateChanged();
+    historyStateChanged();
 }
 
 void KisDumbUndoStore::beginMacro(const KUndo2MagicString& macroName)
@@ -134,7 +134,7 @@ void KisDumbUndoStore::endMacro()
      * Roger that! :)
      */
 
-    Q_EMIT historyStateChanged();
+    historyStateChanged();
 }
 
 void KisDumbUndoStore::purgeRedoState()
