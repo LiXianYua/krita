@@ -174,7 +174,10 @@ void KisToolFreehand::initStroke(KoPointerEvent *event)
                         convertToPixelCoord(event),
                         image(),
                         currentNode(),
-                        image().data());
+                        image().data(),
+                        0,
+                        0,
+                        toolId() == "KritaShape/KisToolBrush");
 }
 
 void KisToolFreehand::doStroke(KoPointerEvent *event)

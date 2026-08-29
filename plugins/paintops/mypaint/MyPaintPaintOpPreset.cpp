@@ -24,6 +24,7 @@
 #include <kis_debug.h>
 
 #include "MyPaintPaintOpSettings.h"
+#include "MyPaintBrushUtils.h"
 #include "MyPaintSensorPack.h"
 #include "MyPaintStandardOptionData.h"
 
@@ -79,7 +80,7 @@ KisMyPaintPaintOpPreset::KisMyPaintPaintOpPreset(const KisMyPaintPaintOpPreset &
     if (d->json.isEmpty()) {
         mypaint_brush_from_defaults(d->brush);
     } else {
-        mypaint_brush_from_string(d->brush, d->json.constData());
+        MyPaintBrushUtils::parseBrush(d->brush, d->json);
     }
 }
 
@@ -121,7 +122,7 @@ void KisMyPaintPaintOpPreset::apply(KisPaintOpSettingsSP settings) {
     }
     else {
         PkByteArray ba = settings->getProperty(MYPAINT_JSON).toByteArray();
-        mypaint_brush_from_string(d->brush, ba.constData());
+        MyPaintBrushUtils::parseBrush(d->brush, ba);
     }
 
     mypaint_brush_new_stroke(d->brush);
@@ -165,7 +166,7 @@ bool KisMyPaintPaintOpPreset::loadFromDevice(PkStream *dev, KisResourcesInterfac
     // mypaint can handle invalid json files too, so this is the only way to find out if it was correct mypaint file or not...
     // if the json is incorrect, the brush will get the default mypaint brush settings
     // which looks like a round brush with low opacity and high spacing
-    bool success = mypaint_brush_from_string(d->brush, ba.constData());
+    bool success = MyPaintBrushUtils::parseBrush(d->brush, ba);
     const float isEraser = mypaint_brush_get_base_value(d->brush, MYPAINT_BRUSH_SETTING_ERASER);
 
     KisPaintOpSettingsSP s = new KisMyPaintOpSettings(resourcesInterface);

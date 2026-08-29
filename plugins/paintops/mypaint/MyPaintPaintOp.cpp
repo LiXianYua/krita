@@ -5,6 +5,7 @@
  */
 
 #include "MyPaintPaintOp.h"
+#include "MyPaintBrushUtils.h"
 
 #include <KoColorConversions.h>
 #include <KoCompositeOpRegistry.h>
@@ -38,9 +39,7 @@ KisMyPaintPaintOp::KisMyPaintPaintOp(const KisPaintOpSettingsSP settings, KisPai
 
     m_brush->setColor(this->painter()->paintColor(), painter->device()->colorSpace());
 
-    // The algorithm core has no UI tool manager.  Match the former headless
-    // fallback (an empty active-tool id) and disable slow tracking.
-    mypaint_brush_set_base_value(m_brush->brush(), MYPAINT_BRUSH_SETTING_SLOW_TRACKING, 0.0);
+    MyPaintBrushUtils::applySlowTrackingPolicy(m_brush->brush(), settings.data());
 
     m_settings = settings;
     m_airBrushData.read(m_settings.data());

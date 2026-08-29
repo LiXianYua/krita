@@ -259,7 +259,8 @@ void KisToolFreehandHelper::initPaint(KoPointerEvent *event,
                                       KisImageWSP image, KisNodeSP currentNode,
                                       KisStrokesFacade *strokesFacade,
                                       KisNodeSP overrideNode,
-                                      KisDefaultBoundsBaseSP bounds)
+                                      KisDefaultBoundsBaseSP bounds,
+                                      bool preserveMyPaintSlowTracking)
 {
     // When using touch drawing, we only get coordinates when the finger is
     // actually pressed down, never when the finger is in the air. That means we
@@ -286,7 +287,8 @@ void KisToolFreehandHelper::initPaint(KoPointerEvent *event,
                   currentNode,
                   strokesFacade,
                   overrideNode,
-                  bounds);
+                  bounds,
+                  preserveMyPaintSlowTracking);
 }
 
 bool KisToolFreehandHelper::isRunning() const
@@ -301,7 +303,8 @@ void KisToolFreehandHelper::initPaintImpl(qreal startAngle,
                                           KisNodeSP currentNode,
                                           KisStrokesFacade *strokesFacade,
                                           KisNodeSP overrideNode,
-                                          KisDefaultBoundsBaseSP bounds)
+                                          KisDefaultBoundsBaseSP bounds,
+                                          bool preserveMyPaintSlowTracking)
 {
     m_d->strokesFacade = strokesFacade;
 
@@ -316,6 +319,14 @@ void KisToolFreehandHelper::initPaintImpl(qreal startAngle,
                                               currentNode,
                                               resourceManager->canvasResourcesInterface(),
                                               bounds);
+    if (preserveMyPaintSlowTracking) {
+        const KisPaintOpPresetSP preset = m_d->resources->currentPaintOpPreset();
+        if (preset && preset->paintOp().id() == "mypaintbrush") {
+            KisPaintOpSettingsSP settings = preset->settings();
+            settings->setProperty("mypaint/preserve_slow_tracking", true);
+            settings->setPropertyNotSaved("mypaint/preserve_slow_tracking");
+        }
+    }
     if(overrideNode) {
         m_d->resources->setCurrentNode(overrideNode);
     }

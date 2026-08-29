@@ -63,7 +63,8 @@ public:
                    KisNodeSP currentNode,
                    KisStrokesFacade *strokesFacade,
                    KisNodeSP overrideNode = 0,
-                   KisDefaultBoundsBaseSP bounds = 0);
+                   KisDefaultBoundsBaseSP bounds = 0,
+                   bool preserveMyPaintSlowTracking = false);
     void paintEvent(KoPointerEvent *event );
     void endPaint();
 
@@ -92,7 +93,8 @@ protected:
                        KisNodeSP node,
                        KisStrokesFacade *strokesFacade,
                        KisNodeSP overrideNode = 0,
-                       KisDefaultBoundsBaseSP bounds = 0);
+                       KisDefaultBoundsBaseSP bounds = 0,
+                       bool preserveMyPaintSlowTracking = false);
 
     KoCanvasResourceProvider *resourceManager() const;
 

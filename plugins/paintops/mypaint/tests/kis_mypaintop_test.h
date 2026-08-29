@@ -17,6 +17,11 @@ private Q_SLOTS:
     void testDab();
     void testGetColor();
     void testLoading();
+    void testParseBufferIsNulTerminatedWithoutChangingRawBytes();
+    void testSlowTrackingPolicyPreservesFreehandValue();
+    void testSlowTrackingPolicyDefaultsToHeadlessClear();
+    void testSlowTrackingPolicyIsNotPersisted();
+    void testInvalidRawPresetFallsBackWithoutChangingRawBytes();
 };
 
 #endif // KIS_MYPAINTOP_TEST_H

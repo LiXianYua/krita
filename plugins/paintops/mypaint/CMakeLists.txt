@@ -3,6 +3,7 @@ add_subdirectory(tests)
 add_subdirectory(brushes)
 
 set(kritamypaintop_SOURCES
+    MyPaintBrushUtils.cpp
     MyPaintSensorPack.cpp
     MyPaintJson.cpp
     MyPaintCurveOptionData.cpp

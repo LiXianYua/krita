@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -107,7 +108,25 @@ void testNestedCurvesAndUnknownFieldsSurvive()
     }
 }
 
-void testMissingWrongAndInvalidContainersAreRebuilt()
+void testEachMissingContainerLevelIsBuilt()
+{
+    const std::vector<std::string> sources {
+        R"({})",
+        R"({"settings":{}})",
+        R"({"settings":{"opaque":{}}})"
+    };
+    const std::vector<MyPaintJson::InputMapping> inputs {{"pressure", true, {{0.25, 0.75}}}};
+
+    for (const std::string &source : sources) {
+        JsonPtr root(nullptr, &json_object_put);
+        json_object *inputObject = updatedSetting(source, inputs, 0.5, root);
+        require(json_object_get_type(inputObject) == json_type_object, "inputs container was not rebuilt");
+        require(json_object_get_type(member(inputObject, "pressure")) == json_type_array,
+                "active input curve was not written after a missing container");
+    }
+}
+
+void testWrongAndInvalidContainersAreRebuilt()
 {
     const std::vector<std::string> sources {
         "",
@@ -121,13 +140,27 @@ void testMissingWrongAndInvalidContainersAreRebuilt()
 
     for (const std::string &source : sources) {
         JsonPtr root(nullptr, &json_object_put);
-        json_object *inputObject = updatedSetting(source, inputs, 1.7976931348623157e+308, root);
+        json_object *inputObject = updatedSetting(source, inputs, 0.5, root);
         require(json_object_get_type(inputObject) == json_type_object, "inputs container was not rebuilt");
         require(json_object_get_type(member(inputObject, "pressure")) == json_type_array,
                 "active input curve was not written after malformed input");
+    }
+}
+
+void testPositiveAndNegativeDoubleExtremesSurvive()
+{
+    const std::vector<MyPaintJson::InputMapping> inputs;
+    const double extremes[] = {
+        std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::lowest()
+    };
+
+    for (const double value : extremes) {
+        JsonPtr root(nullptr, &json_object_put);
+        updatedSetting(R"({"settings":{"opaque":{"inputs":{}}}})", inputs, value, root);
         json_object *opaque = member(member(root.get(), "settings"), "opaque");
-        require(json_object_get_double(member(opaque, "base_value")) > 1.0e+308,
-                "extreme base value was clamped or converted to an integer");
+        require(json_object_get_double(member(opaque, "base_value")) == value,
+                "positive or negative double extreme changed");
     }
 }
 
@@ -136,6 +169,8 @@ void testMissingWrongAndInvalidContainersAreRebuilt()
 int main()
 {
     testNestedCurvesAndUnknownFieldsSurvive();
-    testMissingWrongAndInvalidContainersAreRebuilt();
+    testEachMissingContainerLevelIsBuilt();
+    testWrongAndInvalidContainersAreRebuilt();
+    testPositiveAndNegativeDoubleExtremesSurvive();
     return 0;
 }

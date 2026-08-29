@@ -16,6 +16,7 @@
 #include <kis_algebra_2d.h>
 #include <kis_properties_configuration.h>
 #include <MyPaintCurveRangeModel.h>
+#include "MyPaintBrushUtils.h"
 #include "MyPaintJson.h"
 
 namespace detail {
@@ -318,7 +319,7 @@ bool MyPaintSensorPack::read(KisCurveOptionDataCommon &data, const KisProperties
 
     const MyPaintBrushSetting brushSetting = optionIdToMyPaintBrushSettings(data.id);
     const PkByteArray json = setting->getProperty(MYPAINT_JSON).toByteArray();
-    mypaint_brush_from_string(brush.get(), json.constData());
+    MyPaintBrushUtils::parseBrush(brush.get(), json);
 
     for (auto it = sensors.begin(); it != sensors.end(); ++it) {
         const MyPaintBrushInput input = sensorIdToMyPaintBrushInput((*it)->id);
