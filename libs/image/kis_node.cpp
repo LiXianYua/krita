@@ -329,7 +329,7 @@ void KisNode::baseNodeChangedCallback()
 {
     if(m_d->graphListener) {
         m_d->graphListener->nodeChanged(this);
-        Q_EMIT sigNodeChangedInternal();
+        sigNodeChangedInternal();
     }
 }
 

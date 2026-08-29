@@ -10,6 +10,7 @@
 
 #include "kis_base_node.h"
 #include "KisNodeAdditionFlags.h"
+#include <PkSignalCompat.h>
 #include <PkStringList.h>
 
 #include "kritaimage_export.h"
@@ -39,14 +40,10 @@ struct KisFrameChangeUpdateRecipe;
  *                are considered to be thread-safe(!). All the others
  *                especially add(), remove() and setParent() must be
  *                protected externally.
- *
- * NOTE: your subclasses must have the Q_OBJECT declaration, even if
- * you do not define new signals or slots.
  */
 class KRITAIMAGE_EXPORT KisNode : public KisBaseNode
 {
     friend class KisFilterMaskTest;
-    Q_OBJECT
 
 public:
     /**
@@ -347,7 +344,7 @@ public: // Graph methods
     virtual bool inherits(const PkString &className) const;
     bool inherits(const char *className) const { return inherits(PkString(className)); }
 
-Q_SIGNALS:
+signals:
     /**
      * Don't use this signal anywhere other than KisNodeShape. It's a hack.
      */

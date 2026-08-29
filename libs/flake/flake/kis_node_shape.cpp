@@ -30,12 +30,17 @@ KisNodeShape::KisNodeShape(KisNodeSP node)
 
     setSelectable(false);
 
-    connect(node, &KisNode::sigNodeChangedInternal, this, &KisNodeShape::editabilityChanged);
+    m_nodeChangedConnection = PkObject::connect(
+        node.data(),
+        &KisNode::sigNodeChangedInternal,
+        node.data(),
+        [this] { editabilityChanged(); });
     editabilityChanged();  // Correctly set the lock at loading
 }
 
 KisNodeShape::~KisNodeShape()
 {
+    PkObject::disconnect(m_nodeChangedConnection);
     if (KisShapeControllerUiAdapter *adapter = KisShapeControllerUiAdapter::instance()) {
         adapter->nodeShapeAboutToBeDestroyed(this);
     }

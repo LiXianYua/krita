@@ -8,6 +8,7 @@
 #define KIS_NODE_SHAPE_H_
 
 #include <QObject>
+#include <PkConnection.h>
 
 #include <KoShapeLayer.h>
 
@@ -40,6 +41,7 @@ private Q_SLOTS:
     void editabilityChanged();
 
 private:
+    PkConnection m_nodeChangedConnection;
     struct Private;
     Private * const m_d;
 };
