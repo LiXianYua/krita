@@ -11,8 +11,12 @@
 #ifndef PkSbr_H
 #define PkSbr_H
 
+#include <cstring>
+
 #include <kis_lockless_stack.h>
 #include <PkAtomic.h>
+
+#include "kis_assert.h"
 
 #define CALL_MEMBER(obj, pmf) ((obj).*(pmf))
 
@@ -21,14 +25,14 @@ class PkSbr
 private:
     struct Action {
         void (*func)(void*);
-        quint64 param[4]; // Size limit found experimentally. Verified by assert below.
+        unsigned long long param[4]; // Size limit found experimentally. Verified by assert below.
 
         Action() = default;
 
-        Action(void (*f)(void*), void* p, quint64 paramSize) : func(f)
+        Action(void (*f)(void*), void* p, unsigned long long paramSize) : func(f)
         {
             KIS_ASSERT(paramSize <= sizeof(param)); // Verify size limit.
-            memcpy(&param, p, paramSize);
+            std::memcpy(&param, p, paramSize);
         }
 
         void operator()()

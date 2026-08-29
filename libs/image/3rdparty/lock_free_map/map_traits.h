@@ -11,9 +11,9 @@
 #ifndef MAPTRAITS_H
 #define MAPTRAITS_H
 
-#include <QtCore>
+#include <cstdint>
 
-inline quint64 roundUpPowerOf2(quint64 v)
+inline unsigned long long roundUpPowerOf2(unsigned long long v)
 {
     v--;
     v |= v >> 1;
@@ -26,12 +26,12 @@ inline quint64 roundUpPowerOf2(quint64 v)
     return v;
 }
 
-inline bool isPowerOf2(quint64 v)
+inline bool isPowerOf2(unsigned long long v)
 {
     return (v & (v - 1)) == 0;
 }
 
-inline quint32 avalanche(quint32 h)
+inline unsigned int avalanche(unsigned int h)
 {
     h ^= h >> 16;
     h *= 0x85ebca6b;
@@ -41,7 +41,7 @@ inline quint32 avalanche(quint32 h)
     return h;
 }
 
-inline quint32 deavalanche(quint32 h)
+inline unsigned int deavalanche(unsigned int h)
 {
     h ^= h >> 16;
     h *= 0x7ed1b41d;
@@ -54,7 +54,7 @@ inline quint32 deavalanche(quint32 h)
 template <class T>
 struct DefaultKeyTraits {
     typedef T Key;
-    typedef quint32 Hash;
+    typedef unsigned int Hash;
     static const Key NullKey = Key(0);
     static const Hash NullHash = Hash(0);
 

@@ -11,6 +11,10 @@
 #ifndef LEAPFROG_H
 #define LEAPFROG_H
 
+#include <algorithm>
+#include <cstdlib>
+#include <new>
+
 #include "map_traits.h"
 #include <PkMutex.h>
 #include "simple_job_coordinator.h"
@@ -25,13 +29,13 @@ struct Leapfrog {
     typedef typename Map::KeyTraits KeyTraits;
     typedef typename Map::ValueTraits ValueTraits;
 
-    static const quint64 InitialSize = 8;
-    static const quint64 TableMigrationUnitSize = 32;
-    static const quint64 LinearSearchLimit = 128;
-    static const quint64 CellsInUseSample = LinearSearchLimit;
+    static const unsigned long long InitialSize = 8;
+    static const unsigned long long TableMigrationUnitSize = 32;
+    static const unsigned long long LinearSearchLimit = 128;
+    static const unsigned long long CellsInUseSample = LinearSearchLimit;
 
-    Q_STATIC_ASSERT(LinearSearchLimit > 0 && LinearSearchLimit < 256);              // Must fit in CellGroup::links
-    Q_STATIC_ASSERT(CellsInUseSample > 0 && CellsInUseSample <= LinearSearchLimit); // Limit sample to failed search chain
+    static_assert(LinearSearchLimit > 0 && LinearSearchLimit < 256);              // Must fit in CellGroup::links
+    static_assert(CellsInUseSample > 0 && CellsInUseSample <= LinearSearchLimit); // Limit sample to failed search chain
 
     struct Cell {
         Atomic<Hash> hash;
@@ -45,33 +49,33 @@ struct Leapfrog {
         // The first cell in the chain is the one that was hashed. It may or may not actually belong in the bucket.
         // The "second" cell in the chain is given by deltas 0 - 3. It's guaranteed to belong in the bucket.
         // All subsequent cells in the chain is given by deltas 4 - 7. Also guaranteed to belong in the bucket.
-        Atomic<quint8> deltas[8];
+        Atomic<unsigned char> deltas[8];
         Cell cells[4];
     };
 
     struct Table {
-        const quint64 sizeMask;                 // a power of two minus one
+        const unsigned long long sizeMask;                 // a power of two minus one
         PkMutex mutex;                   // to DCLI the TableMigration (stored in the jobCoordinator)
         SimpleJobCoordinator jobCoordinator; // makes all blocked threads participate in the migration
 
-        Table(quint64 sizeMask) : sizeMask(sizeMask)
+        Table(unsigned long long sizeMask) : sizeMask(sizeMask)
         {
         }
 
-        static Table* create(quint64 tableSize)
+        static Table* create(unsigned long long tableSize)
         {
 #ifdef SANITY_CHECK
             KIS_ASSERT_RECOVER_NOOP(isPowerOf2(tableSize));
             KIS_ASSERT_RECOVER_NOOP(tableSize >= 4);
 #endif // SANITY_CHECK
-            quint64 numGroups = tableSize >> 2;
+            unsigned long long numGroups = tableSize >> 2;
             Table* table = (Table*) std::malloc(sizeof(Table) + sizeof(CellGroup) * numGroups);
             new (table) Table(tableSize - 1);
 
-            for (quint64 i = 0; i < numGroups; i++) {
+            for (unsigned long long i = 0; i < numGroups; i++) {
                 CellGroup* group = table->getCellGroups() + i;
 
-                for (quint64 j = 0; j < 4; j++) {
+                for (unsigned long long j = 0; j < 4; j++) {
                     group->deltas[j].storeNonatomic(0);
                     group->deltas[j + 4].storeNonatomic(0);
                     group->cells[j].hash.storeNonatomic(KeyTraits::NullHash);
@@ -92,7 +96,7 @@ struct Leapfrog {
             return (CellGroup*)(this + 1);
         }
 
-        quint64 getNumMigrationUnits() const
+        unsigned long long getNumMigrationUnits() const
         {
             return sizeMask / TableMigrationUnitSize + 1;
         }
@@ -103,21 +107,21 @@ struct Leapfrog {
     public:
         struct Source {
             Table* table;
-            Atomic<quint64> sourceIndex;
+            Atomic<unsigned long long> sourceIndex;
         };
 
         Map& m_map;
         Table* m_destination {nullptr};
-        Atomic<quint64> m_workerStatus; // number of workers + end flag
+        Atomic<unsigned long long> m_workerStatus; // number of workers + end flag
         Atomic<bool> m_overflowed;
-        Atomic<qint64> m_unitsRemaining;
-        quint64 m_numSources {0};
+        Atomic<long long> m_unitsRemaining;
+        unsigned long long m_numSources {0};
 
         TableMigration(Map& map) : m_map(map)
         {
         }
 
-        static TableMigration* create(Map& map, quint64 numSources)
+        static TableMigration* create(Map& map, unsigned long long numSources)
         {
             TableMigration* migration =
                 (TableMigration*) std::malloc(sizeof(TableMigration) + sizeof(TableMigration::Source) * numSources);
@@ -138,7 +142,7 @@ struct Leapfrog {
         void destroy()
         {
             // Destroy all source tables.
-            for (quint64 i = 0; i < m_numSources; i++)
+            for (unsigned long long i = 0; i < m_numSources; i++)
                 if (getSources()[i].table)
                     getSources()[i].table->destroy();
             // Delete the migration object itself.
@@ -151,7 +155,7 @@ struct Leapfrog {
             return (Source*)(this + 1);
         }
 
-        bool migrateRange(Table* srcTable, quint64 startIdx);
+        bool migrateRange(Table* srcTable, unsigned long long startIdx);
         virtual void run() override;
     };
 
@@ -161,9 +165,9 @@ struct Leapfrog {
         KIS_ASSERT_RECOVER_NOOP(table);
         KIS_ASSERT_RECOVER_NOOP(hash != KeyTraits::NullHash);
 #endif // SANITY_CHECK
-        quint64 sizeMask = table->sizeMask;
+        unsigned long long sizeMask = table->sizeMask;
         // Optimistically check hashed cell even though it might belong to another bucket
-        quint64 idx = hash & sizeMask;
+        unsigned long long idx = hash & sizeMask;
         CellGroup* group = table->getCellGroups() + (idx >> 2);
         Cell* cell = group->cells + (idx & 3);
         Hash probeHash = cell->hash.load(Relaxed);
@@ -174,7 +178,7 @@ struct Leapfrog {
             return cell = NULL;
         }
         // Follow probe chain for our bucket
-        quint8 delta = group->deltas[idx & 3].load(Relaxed);
+        unsigned char delta = group->deltas[idx & 3].load(Relaxed);
         while (delta) {
             idx = (idx + delta) & sizeMask;
             group = table->getCellGroups() + (idx >> 2);
@@ -193,14 +197,14 @@ struct Leapfrog {
 
     // FIXME: Possible optimization: Dedicated insert for migration? It wouldn't check for InsertResult_AlreadyFound.
     enum InsertResult { InsertResult_AlreadyFound, InsertResult_InsertedNew, InsertResult_Overflow };
-    static InsertResult insertOrFind(Hash hash, Table* table, Cell*& cell, quint64& overflowIdx)
+    static InsertResult insertOrFind(Hash hash, Table* table, Cell*& cell, unsigned long long& overflowIdx)
     {
 #ifdef SANITY_CHECK
         KIS_ASSERT_RECOVER_NOOP(table);
         KIS_ASSERT_RECOVER_NOOP(hash != KeyTraits::NullHash);
 #endif // SANITY_CHECK
-        quint64 sizeMask = table->sizeMask;
-        quint64 idx = quint64(hash);
+        unsigned long long sizeMask = table->sizeMask;
+        unsigned long long idx = static_cast<unsigned long long>(hash);
 
         // Check hashed cell first, though it may not even belong to the bucket.
         CellGroup* group = table->getCellGroups() + ((idx & sizeMask) >> 2);
@@ -221,14 +225,14 @@ struct Leapfrog {
         }
 
         // Follow the link chain for this bucket.
-        quint64 maxIdx = idx + sizeMask;
-        quint64 linkLevel = 0;
-        Atomic<quint8>* prevLink;
+        unsigned long long maxIdx = idx + sizeMask;
+        unsigned long long linkLevel = 0;
+        Atomic<unsigned char>* prevLink;
         for (;;) {
         followLink:
             prevLink = group->deltas + ((idx & 3) + linkLevel);
             linkLevel = 4;
-            quint8 probeDelta = prevLink->load(Relaxed);
+            unsigned char probeDelta = prevLink->load(Relaxed);
 
             if (probeDelta) {
                 idx += probeDelta;
@@ -255,11 +259,12 @@ struct Leapfrog {
             } else {
                 // Reached the end of the link chain for this bucket.
                 // Switch to linear probing until we reserve a new cell or find a late-arriving cell in the same bucket.
-                quint64 prevLinkIdx = idx;
+                unsigned long long prevLinkIdx = idx;
 #ifdef SANITY_CHECK
-                KIS_ASSERT_RECOVER_NOOP(qint64(maxIdx - idx) >= 0); // Nobody would have linked an idx that's out of range.
+                KIS_ASSERT_RECOVER_NOOP(static_cast<long long>(maxIdx - idx) >= 0); // Nobody would have linked an idx that's out of range.
 #endif // SANITY_CHECK
-                quint64 linearProbesRemaining = qMin(maxIdx - idx, quint64(LinearSearchLimit));
+                unsigned long long linearProbesRemaining =
+                    std::min(maxIdx - idx, static_cast<unsigned long long>(LinearSearchLimit));
 
                 while (linearProbesRemaining-- > 0) {
                     idx++;
@@ -274,7 +279,7 @@ struct Leapfrog {
 #ifdef SANITY_CHECK
                             KIS_ASSERT_RECOVER_NOOP(probeDelta == 0);
 #endif // SANITY_CHECK
-                            quint8 desiredDelta = idx - prevLinkIdx;
+                            unsigned char desiredDelta = idx - prevLinkIdx;
                             prevLink->store(desiredDelta, Relaxed);
                             return InsertResult_InsertedNew;
                         } else {
@@ -292,7 +297,7 @@ struct Leapfrog {
                         // This is usually redundant, but if we don't attempt to set the late-arriving cell's link here,
                         // there's no guarantee that our own link chain will be well-formed by the time this function returns.
                         // (Indeed, subsequent lookups sometimes failed during testing, for this exact reason.)
-                        quint8 desiredDelta = idx - prevLinkIdx;
+                        unsigned char desiredDelta = idx - prevLinkIdx;
                         prevLink->store(desiredDelta, Relaxed);
                         goto followLink; // Try to follow link chain for the bucket again.
                     }
@@ -305,7 +310,7 @@ struct Leapfrog {
         }
     }
 
-    static void beginTableMigrationToSize(Map& map, Table* table, quint64 nextTableSize)
+    static void beginTableMigrationToSize(Map& map, Table* table, unsigned long long nextTableSize)
     {
         // Create new migration by DCLI.
         SimpleJobCoordinator::Job* job = table->jobCoordinator.loadConsume();
@@ -330,13 +335,13 @@ struct Leapfrog {
         }
     }
 
-    static void beginTableMigration(Map& map, Table* table, quint64 overflowIdx)
+    static void beginTableMigration(Map& map, Table* table, unsigned long long overflowIdx)
     {
         // Estimate number of cells in use based on a small sample.
-        quint64 sizeMask = table->sizeMask;
-        quint64 idx = overflowIdx - CellsInUseSample;
-        quint64 inUseCells = 0;
-        for (quint64 linearProbesRemaining = CellsInUseSample; linearProbesRemaining > 0; linearProbesRemaining--) {
+        unsigned long long sizeMask = table->sizeMask;
+        unsigned long long idx = overflowIdx - CellsInUseSample;
+        unsigned long long inUseCells = 0;
+        for (unsigned long long linearProbesRemaining = CellsInUseSample; linearProbesRemaining > 0; linearProbesRemaining--) {
             CellGroup* group = table->getCellGroups() + ((idx & sizeMask) >> 2);
             Cell* cell = group->cells + (idx & 3);
             Value value = cell->value.load(Relaxed);
@@ -350,18 +355,20 @@ struct Leapfrog {
         }
         float inUseRatio = float(inUseCells) / CellsInUseSample;
         float estimatedInUse = (sizeMask + 1) * inUseRatio;
-        quint64 nextTableSize = qMax(quint64(InitialSize), roundUpPowerOf2(quint64(estimatedInUse * 2)));
+        unsigned long long nextTableSize =
+            std::max(static_cast<unsigned long long>(InitialSize),
+                     roundUpPowerOf2(static_cast<unsigned long long>(estimatedInUse * 2)));
         beginTableMigrationToSize(map, table, nextTableSize);
     }
 }; // Leapfrog
 
 template <class Map>
-bool Leapfrog<Map>::TableMigration::migrateRange(Table* srcTable, quint64 startIdx)
+bool Leapfrog<Map>::TableMigration::migrateRange(Table* srcTable, unsigned long long startIdx)
 {
-    quint64 srcSizeMask = srcTable->sizeMask;
-    quint64 endIdx = qMin(startIdx + TableMigrationUnitSize, srcSizeMask + 1);
+    unsigned long long srcSizeMask = srcTable->sizeMask;
+    unsigned long long endIdx = std::min(startIdx + TableMigrationUnitSize, srcSizeMask + 1);
     // Iterate over source range.
-    for (quint64 srcIdx = startIdx; srcIdx < endIdx; srcIdx++) {
+    for (unsigned long long srcIdx = startIdx; srcIdx < endIdx; srcIdx++) {
         CellGroup* srcGroup = srcTable->getCellGroups() + ((srcIdx & srcSizeMask) >> 2);
         Cell* srcCell = srcGroup->cells + (srcIdx & 3);
         Hash srcHash;
@@ -407,7 +414,7 @@ bool Leapfrog<Map>::TableMigration::migrateRange(Table* srcTable, quint64 startI
                 KIS_ASSERT_RECOVER_NOOP(srcValue != Value(ValueTraits::Redirect));
 #endif // SANITY_CHECK
                 Cell* dstCell;
-                quint64 overflowIdx;
+                unsigned long long overflowIdx;
                 InsertResult result = insertOrFind(srcHash, m_destination, dstCell, overflowIdx);
                 // During migration, a hash can only exist in one place among all the source tables,
                 // and it is only migrated by one thread. Therefore, the hash will never already exist
@@ -464,7 +471,7 @@ void Leapfrog<Map>::TableMigration::run()
 
 
     // Conditionally increment the shared # of workers.
-    quint64 probeStatus = m_workerStatus.load(Relaxed);
+    unsigned long long probeStatus = m_workerStatus.load(Relaxed);
     do {
         if (probeStatus & 1) {
             // End flag is already set, so do nothing.
@@ -477,14 +484,14 @@ void Leapfrog<Map>::TableMigration::run()
 #endif // SANITY_CHECK
 
     // Iterate over all source tables.
-    for (quint64 s = 0; s < m_numSources; s++) {
+    for (unsigned long long s = 0; s < m_numSources; s++) {
         Source& source = getSources()[s];
         // Loop over all migration units in this source table.
         for (;;) {
             if (m_workerStatus.load(Relaxed) & 1) {
                 goto endMigration;
             }
-            quint64 startIdx = source.sourceIndex.fetchAdd(TableMigrationUnitSize, Relaxed);
+            unsigned long long startIdx = source.sourceIndex.fetchAdd(TableMigrationUnitSize, Relaxed);
             if (startIdx >= source.table->sizeMask + 1)
                 break; // No more migration units in this table. Try next source table.
             bool overflowed = !migrateRange(source.table, startIdx);
@@ -507,7 +514,7 @@ void Leapfrog<Map>::TableMigration::run()
                 goto endMigration;
             }
 
-            qint64 prevRemaining = m_unitsRemaining.fetchSub(1, Relaxed);
+            long long prevRemaining = m_unitsRemaining.fetchSub(1, Relaxed);
 #ifdef SANITY_CHECK
             KIS_ASSERT_RECOVER_NOOP(prevRemaining > 0);
 #endif // SANITY_CHECK
@@ -552,7 +559,7 @@ endMigration:
             // Double the destination table size.
             migration->m_destination = Table::create((m_destination->sizeMask + 1) * 2);
             // Transfer source tables to the new migration.
-            for (quint64 i = 0; i < m_numSources; i++) {
+            for (unsigned long long i = 0; i < m_numSources; i++) {
                 migration->getSources()[i].table = getSources()[i].table;
                 getSources()[i].table = NULL;
                 migration->getSources()[i].sourceIndex.storeNonatomic(0);
@@ -561,8 +568,8 @@ endMigration:
             migration->getSources()[m_numSources].table = m_destination;
             migration->getSources()[m_numSources].sourceIndex.storeNonatomic(0);
             // Calculate total number of migration units to move.
-            quint64 unitsRemaining = 0;
-            for (quint64 s = 0; s < migration->m_numSources; s++) {
+            unsigned long long unitsRemaining = 0;
+            for (unsigned long long s = 0; s < migration->m_numSources; s++) {
                 unitsRemaining += migration->getSources()[s].table->getNumMigrationUnits();
             }
 

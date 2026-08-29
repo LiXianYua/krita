@@ -31,12 +31,12 @@ public:
     };
 
 private:
-    Atomic<quint64> m_job;
+    Atomic<unsigned long long> m_job;
     PkMutex mutex;
     PkWaitCondition condVar;
 
 public:
-    SimpleJobCoordinator() : m_job(quint64(NULL))
+    SimpleJobCoordinator() : m_job(0)
     {
     }
 
@@ -49,7 +49,7 @@ public:
     {
         {
             PkMutexLocker guard(&mutex);
-            m_job.store(quint64(job), Release);
+            m_job.store(reinterpret_cast<unsigned long long>(job), Release);
         }
 
         condVar.wakeAll();
@@ -57,10 +57,10 @@ public:
 
     void participate()
     {
-        quint64 prevJob = quint64(NULL);
+        unsigned long long prevJob = 0;
 
         for (;;) {
-            quint64 job = m_job.load(Consume);
+            unsigned long long job = m_job.load(Consume);
             if (job == prevJob) {
                 PkMutexLocker guard(&mutex);
 

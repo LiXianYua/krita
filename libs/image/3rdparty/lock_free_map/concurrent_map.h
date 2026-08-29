@@ -22,7 +22,7 @@ public:
     typedef V Value;
     typedef KT KeyTraits;
     typedef VT ValueTraits;
-    typedef quint32 Hash;
+    typedef unsigned int Hash;
     typedef Leapfrog<ConcurrentMap> Details;
 
 private:
@@ -30,7 +30,7 @@ private:
     PkSbr m_gc;
 
 public:
-    ConcurrentMap(quint64 capacity = Details::InitialSize) : m_root(Details::Table::create(capacity))
+    ConcurrentMap(unsigned long long capacity = Details::InitialSize) : m_root(Details::Table::create(capacity))
     {
     }
 
@@ -48,7 +48,7 @@ public:
 
     bool migrationInProcess()
     {
-        return quint64(m_root.loadNonatomic()->jobCoordinator.loadConsume()) > 1;
+        return reinterpret_cast<unsigned long long>(m_root.loadNonatomic()->jobCoordinator.loadConsume()) > 1;
     }
 
     // publishTableMigration() is called by exactly one thread from Details::TableMigration::run()
@@ -106,7 +106,7 @@ public:
             Hash hash = KeyTraits::hash(key);
             for (;;) {
                 m_table = m_map.m_root.load(Consume);
-                quint64 overflowIdx;
+                unsigned long long overflowIdx;
                 switch (Details::insertOrFind(hash, m_table, m_cell, overflowIdx)) { // Modifies m_cell
                 case Details::InsertResult_InsertedNew: {
                     // We've inserted a new cell. Don't load m_cell->value.
@@ -175,7 +175,7 @@ public:
                     // Try again in the new table.
                     m_table = m_map.m_root.load(Consume);
                     m_value = Value(ValueTraits::NullValue);
-                    quint64 overflowIdx;
+                    unsigned long long overflowIdx;
 
                     switch (Details::insertOrFind(hash, m_table, m_cell, overflowIdx)) { // Modifies m_cell
                     case Details::InsertResult_AlreadyFound:
@@ -301,7 +301,7 @@ public:
     {
     private:
         typename Details::Table* m_table;
-        quint64 m_idx;
+        unsigned long long m_idx;
         Key m_hash;
         Value m_value;
 
