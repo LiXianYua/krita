@@ -24,6 +24,7 @@ class KisRegion;
 
 #include <PkVector.h>
 #include <PkList.h>
+#include <PkNamespace.h>
 #include "kritaimage_export.h"
 #include "kis_types.h"
 #include "krita_container_utils.h"
