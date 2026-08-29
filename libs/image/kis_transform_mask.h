@@ -7,6 +7,7 @@
 #define _KIS_TRANSFORM_MASK_
 
 #include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 #include "kis_types.h"
 #include "kis_effect_mask.h"
 #include "KisDelayedUpdateNodeInterface.h"
@@ -19,8 +20,6 @@ class KisTransformMaskTestingInterface;
 
 class KRITAIMAGE_EXPORT KisTransformMask : public KisEffectMask, public KisDelayedUpdateNodeInterface
 {
-    Q_OBJECT
-
 public:
 
     /**
@@ -94,10 +93,10 @@ protected:
     KisKeyframeChannel *requestKeyframeChannel(const PkString &id) override;
     bool supportsKeyframeChannel(const PkString &id) override;
 
-Q_SIGNALS:
+signals:
     void sigInternalForceStaticImageUpdate();
 
-private Q_SLOTS:
+private:
     void slotDelayedStaticUpdate();
     void slotInternalForceStaticImageUpdate();
 
