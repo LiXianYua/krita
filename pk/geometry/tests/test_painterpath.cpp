@@ -40,7 +40,7 @@ void PkPainterPathCase::defaultCtor()
 void PkPainterPathCase::startPointCtor()
 {
     PkPainterPath path(PkPointF(10, 20));
-    PK_VERIFY(!path.isEmpty());
+    PK_VERIFY(path.isEmpty());
     PK_COMPARE(path.elementCount(), 1);
     PK_COMPARE(path.currentPosition(), PkPointF(10, 20));
     PK_VERIFY(path.elementAt(0).isMoveTo());
@@ -258,7 +258,8 @@ void PkPainterPathCase::isEmpty()
     PK_VERIFY(empty.isEmpty());
 
     PkPainterPath path(PkPointF(1, 2));
-    PK_VERIFY(!path.isEmpty());
+    PK_VERIFY(path.isEmpty());
+    PK_COMPARE(path.elementCount(), 1);
 
     path.clear();
     PK_VERIFY(path.isEmpty());
@@ -613,6 +614,8 @@ void verifyR39Membership(const PkPainterPath &path, const char *bits)
 void PkPainterPathCase::booleanEmptyIdentities()
 {
     const PkPainterPath empty;
+    PkPainterPath moveOnly;
+    moveOnly.moveTo(17, -23);
     PkPainterPath shape = r39Rectangle(0, 0, 8, 10);
     shape.setFillRule(Qt::WindingFill);
 
@@ -623,6 +626,44 @@ void PkPainterPathCase::booleanEmptyIdentities()
     PK_VERIFY(empty.subtracted(shape).isEmpty());
     PK_COMPARE(shape.subtracted(empty), shape);
     PK_VERIFY(empty.simplified().isEmpty());
+
+    PK_VERIFY(moveOnly.isEmpty());
+    PK_COMPARE(moveOnly.elementCount(), 1);
+    PK_COMPARE(moveOnly.united(shape), shape);
+    PK_COMPARE(shape.united(moveOnly), shape);
+    PK_VERIFY(moveOnly.intersected(shape).isEmpty());
+    PK_VERIFY(shape.intersected(moveOnly).isEmpty());
+    PK_VERIFY(moveOnly.subtracted(shape).isEmpty());
+    PK_COMPARE(shape.subtracted(moveOnly), shape);
+    PK_COMPARE(moveOnly.simplified(), moveOnly);
+
+    PK_COMPARE(moveOnly | shape, shape);
+    PK_COMPARE(shape | moveOnly, shape);
+    PK_COMPARE(moveOnly + shape, shape);
+    PK_COMPARE(shape + moveOnly, shape);
+    PK_VERIFY((moveOnly & shape).isEmpty());
+    PK_VERIFY((shape & moveOnly).isEmpty());
+    PK_VERIFY((moveOnly - shape).isEmpty());
+    PK_COMPARE(shape - moveOnly, shape);
+}
+
+void PkPainterPathCase::equalityUsesBoundingSizeEpsilon()
+{
+    const PkPainterPath empty;
+    PkPainterPath originMove;
+    originMove.moveTo(0, 0);
+    PkPainterPath displacedMove;
+    displacedMove.moveTo(17, -23);
+    PK_VERIFY(empty == originMove);
+    PK_VERIFY(empty != displacedMove);
+
+    PkPainterPath smallA = r39Rectangle(10.0, 0.0, 1.0, 2.0);
+    PkPainterPath smallB = r39Rectangle(10.1, 0.0, 1.0, 2.0);
+    PK_VERIFY(smallA != smallB);
+
+    PkPainterPath largeA = r39Rectangle(1.0e6, 0.0, 1.0, 2.0);
+    PkPainterPath largeB = r39Rectangle(1.0e6 + 0.0000005, 0.0, 1.0, 2.0);
+    PK_VERIFY(largeA != largeB);
 }
 
 void PkPainterPathCase::booleanRectanglesAndOperators()

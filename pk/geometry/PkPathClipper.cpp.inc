@@ -1302,7 +1302,12 @@ static void addLineTo(PkPainterPath &path, const PkPointF &point)
         }
     }
 
-    path.lineTo(point);
+    // QPainterPath::lineTo() suppresses a point equal under QPointF's
+    // coordinate-relative comparison. PkPainterPath deliberately keeps its
+    // lower-level append semantics, so reproduce the Qt builder behavior at
+    // this private port boundary.
+    if (PkPointF(path.elementAt(path.elementCount() - 1)) != point)
+        path.lineTo(point);
 }
 
 static void add(PkPainterPath &path, const PkWingedEdge &list, int edge, PkPathEdge::Traversal traversal)
@@ -1951,11 +1956,11 @@ void addLine(PkPainterPath &path, const PkLineF &line)
 {
     if (path.elementCount() == 0) {
         path.moveTo(line.p1());
-    } else if (!comparePoints(path.elementAt(path.elementCount() - 1), line.p1())) {
+    } else if (PkPointF(path.elementAt(path.elementCount() - 1)) != line.p1()) {
         path.lineTo(line.p1());
     }
 
-    if (!comparePoints(path.elementAt(path.elementCount() - 1), line.p2()))
+    if (PkPointF(path.elementAt(path.elementCount() - 1)) != line.p2())
         path.lineTo(line.p2());
 }
 
@@ -1979,7 +1984,7 @@ void addBezier(PkPainterPath &path, const PkArcBezier &bezier)
 {
     if (path.elementCount() == 0) {
         path.moveTo(bezier.pt1());
-    } else if (!comparePoints(path.elementAt(path.elementCount() - 1), bezier.pt1())) {
+    } else if (PkPointF(path.elementAt(path.elementCount() - 1)) != bezier.pt1()) {
         path.lineTo(bezier.pt1());
     }
 

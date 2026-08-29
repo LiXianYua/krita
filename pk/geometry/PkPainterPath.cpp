@@ -1,3 +1,17 @@
+/****************************************************************************
+**
+** Copyright (C) 2016 The Qt Company Ltd.
+** Contact: https://www.qt.io/licensing/
+**
+** The PkArcBezier helper in this file is adapted from the QtGui module of
+** the Qt Toolkit, qtbase/src/gui/painting/qbezier_p.h and qbezier.cpp from
+** Qt 5.15.7. It is available under the same alternatives as those sources:
+** the Qt commercial license, GNU LGPL version 3, GNU GPL version 2, or GNU
+** GPL version 3 (or a later version approved by the KDE Free Qt Foundation).
+** See LICENSE.LGPL3, LICENSE.GPL2, and LICENSE.GPL3 in the Qt distribution.
+**
+****************************************************************************/
+
 #include "PkPainterPath.h"
 #include "PkLine.h"
 #include "PkTransform.h"
@@ -10,8 +24,9 @@
 #include <type_traits>
 
 // ---------------------------------------------------------------------------
-// PkPainterPath 实现 —— 逐字抄自真 Qt 5.15.7 的 qpainterpath.cpp。
-// 源码来自上游 tag `v5.15.7-lts-lgpl`。
+// PkPainterPath 实现来自真 Qt 5.15.7 的 qpainterpath.cpp；PkArcBezier 的
+// pointAt/mapBy/getSubRange/tForY/stationaryYPoints 来自同版本 qbezier_p.h
+// 与 qbezier.cpp。源码来自上游 tag `v5.15.7-lts-lgpl`，上方登记其 license。
 // ---------------------------------------------------------------------------
 
 // ============================================================================
@@ -77,13 +92,26 @@ PkArcBezier PkArcBezier::bezierOnInterval(qreal t0, qreal t1) const
 
 PkPointF PkArcBezier::pointAt(qreal t) const
 {
-    const qreal mt = 1 - t;
-    const qreal a = mt * mt * mt;
-    const qreal b = 3 * mt * mt * t;
-    const qreal c = 3 * mt * t * t;
-    const qreal d = t * t * t;
-    return PkPointF(a * x1 + b * x2 + c * x3 + d * x4,
-                    a * y1 + b * y2 + c * y3 + d * y4);
+    qreal x, y;
+
+    qreal m_t = 1. - t;
+    {
+        qreal a = x1*m_t + x2*t;
+        qreal b = x2*m_t + x3*t;
+        qreal c = x3*m_t + x4*t;
+        a = a*m_t + b*t;
+        b = b*m_t + c*t;
+        x = a*m_t + b*t;
+    }
+    {
+        qreal a = y1*m_t + y2*t;
+        qreal b = y2*m_t + y3*t;
+        qreal c = y3*m_t + y4*t;
+        a = a*m_t + b*t;
+        b = b*m_t + c*t;
+        y = a*m_t + b*t;
+    }
+    return PkPointF(x, y);
 }
 
 PkRectF PkArcBezier::bounds() const
@@ -514,7 +542,11 @@ void PkPainterPath::arcMoveTo(const PkRectF &rect, qreal angle)
 { if (rect.isNull()) return; PkPointF pt; pkFindEllipseCoords(rect,angle,0,&pt,nullptr); moveTo(pt); }
 
 // 查询
-bool PkPainterPath::isEmpty() const { return m_elements.isEmpty(); }
+bool PkPainterPath::isEmpty() const
+{
+    return m_elements.isEmpty()
+        || (m_elements.size() == 1 && m_elements.first().type == MoveToElement);
+}
 PkRectF PkPainterPath::boundingRect() const
 { if (!m_dirtyBounds) return m_cachedBounds; if (m_elements.isEmpty()) { m_cachedBounds=PkRectF(0,0,0,0); m_dirtyBounds=false; return m_cachedBounds; }
   qreal minx=m_elements.at(0).x,maxx=minx,miny=m_elements.at(0).y,maxy=miny;
@@ -633,7 +665,34 @@ void PkPainterPath::translate(qreal dx, qreal dy)
 PkPainterPath PkPainterPath::translated(qreal dx, qreal dy) const { PkPainterPath c(*this); c.translate(dx,dy); return c; }
 
 bool PkPainterPath::operator==(const PkPainterPath &other) const
-{ if (m_elements.size()!=other.m_elements.size()) return false; if (m_fillRule!=other.m_fillRule) return false; for (int i=0;i<m_elements.size();++i) if (m_elements.at(i)!=other.m_elements.at(i)) return false; return true; }
+{
+    if (m_elements.isEmpty() != other.m_elements.isEmpty()) {
+        const PkPainterPath &materialized = m_elements.isEmpty() ? other : *this;
+        if (!materialized.isEmpty()
+            || materialized.elementAt(0) != PkPointF()
+            || materialized.fillRule() != Qt::OddEvenFill) {
+            return false;
+        }
+        return true;
+    }
+    if (m_fillRule != other.m_fillRule || m_elements.size() != other.m_elements.size())
+        return false;
+
+    const qreal qtEpsilon = sizeof(qreal) == sizeof(double) ? qreal(1e-12) : qreal(1e-5);
+    const PkRectF bounds = boundingRect();
+    const qreal epsilonX = bounds.width() * qtEpsilon;
+    const qreal epsilonY = bounds.height() * qtEpsilon;
+    for (int i = 0; i < m_elements.size(); ++i) {
+        const Element &lhs = m_elements.at(i);
+        const Element &rhs = other.m_elements.at(i);
+        if (lhs.type != rhs.type
+            || qAbs(lhs.x - rhs.x) > epsilonX
+            || qAbs(lhs.y - rhs.y) > epsilonY) {
+            return false;
+        }
+    }
+    return true;
+}
 
 // 摊平 + 转换
 PkVector<PkPolygonF> PkPainterPath::toSubpathPolygons(const PkTransform &matrix) const

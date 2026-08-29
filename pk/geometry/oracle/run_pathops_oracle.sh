@@ -28,7 +28,7 @@ for lib in libQt5Gui.so.5 libQt5Core.so.5; do
 done
 
 LD_LIBRARY_PATH="$QT_ROOT/lib" "$OUT" > "$LOG"
-for family in rectangle ellipse open-polyline closed-polyline nested-rings disjoint-compound bow-tie star; do
+for family in empty move-only rectangle ellipse open-polyline closed-polyline nested-rings disjoint-compound bow-tie star adversarial-cubic; do
     grep -qx "FAMILY $family" "$LOG" || { echo "missing family $family" >&2; exit 1; }
 done
 
