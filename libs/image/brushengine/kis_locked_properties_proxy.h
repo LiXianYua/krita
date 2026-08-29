@@ -44,7 +44,8 @@ public:
     void dump() const override;
 
 private:
-    Q_DISABLE_COPY(KisLockedPropertiesProxy)
+    KisLockedPropertiesProxy(const KisLockedPropertiesProxy &) = delete;
+    KisLockedPropertiesProxy &operator=(const KisLockedPropertiesProxy &) = delete;
     mutable KisLockedPropertiesSP m_lockedProperties;
     KisPropertiesConfiguration* m_parent;
 };
