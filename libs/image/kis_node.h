@@ -10,7 +10,7 @@
 
 #include "kis_base_node.h"
 #include "KisNodeAdditionFlags.h"
-#include <KisQStringListFwd.h>
+#include <PkStringList.h>
 
 #include "kritaimage_export.h"
 
