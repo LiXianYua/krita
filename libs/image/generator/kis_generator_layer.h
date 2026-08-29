@@ -30,8 +30,6 @@ class KRITAIMAGE_EXPORT KisGeneratorLayer
         : public KisSelectionBasedLayer,
           public KisDelayedUpdateNodeInterface
 {
-    Q_OBJECT
-
 public:
     /**
      * Create a new Generator layer with the given configuration
@@ -82,7 +80,7 @@ public:
     void forceUpdateTimedNode() override;
     bool hasPendingTimedUpdates() const override;
 
-private Q_SLOTS:
+private:
     void slotDelayedStaticUpdate();
 
 private:
@@ -107,4 +105,3 @@ private:
 };
 
 #endif
-

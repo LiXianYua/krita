@@ -59,7 +59,7 @@ void KisJPEGXLTest::testAnimation()
 
     QVERIFY(node1->inherits("KisPaintLayer"));
 
-    KisPaintLayerSP layer1 = qobject_cast<KisPaintLayer *>(node1.data());
+    KisPaintLayerSP layer1 = dynamic_cast<KisPaintLayer *>(node1.data());
 
     QVERIFY(layer1->isAnimated());
 
@@ -93,7 +93,7 @@ void KisJPEGXLTest::testAnimationWithTail()
 
     QVERIFY(node1->inherits("KisPaintLayer"));
 
-    KisPaintLayerSP layer1 = qobject_cast<KisPaintLayer *>(node1.data());
+    KisPaintLayerSP layer1 = dynamic_cast<KisPaintLayer *>(node1.data());
 
     QVERIFY(layer1->isAnimated());
 

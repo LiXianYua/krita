@@ -26,9 +26,6 @@ class KoColorSpace;
  */
 class KRITAIMAGE_EXPORT KisPaintLayer : public KisLayer, public KisIndirectPaintingSupport, public KisDecoratedNodeInterface
 {
-
-    Q_OBJECT
-
 public:
     /**
      * Construct a paint layer with the given parameters. The default bounds of the paintdevice are overwritten.
@@ -144,7 +141,7 @@ public:
     void handleKeyframeChannelFrameChange(const KisKeyframeChannel *channel, int time) override;
     void handleKeyframeChannelFrameAdded(const KisKeyframeChannel *channel, int time) override;
 
-public Q_SLOTS:
+public:
     void slotExternalUpdateOnionSkins();
 
 
@@ -173,4 +170,3 @@ private:
 typedef KisSharedPtr<KisPaintLayer> KisPaintLayerSP;
 
 #endif // KIS_PAINT_LAYER_H_
-

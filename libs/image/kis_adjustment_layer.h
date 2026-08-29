@@ -24,8 +24,6 @@ class KisFilterConfiguration;
 
 class KRITAIMAGE_EXPORT KisAdjustmentLayer : public KisSelectionBasedLayer
 {
-    Q_OBJECT
-
 public:
     /**
      * creates a new adjustment layer with the given
@@ -79,7 +77,7 @@ protected:
     // override from KisNode
     PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
 
-public Q_SLOTS:
+public:
     /**
      * gets this AdjustmentLayer. Overrides function in
      * KisIndirectPaintingSupport
@@ -91,4 +89,3 @@ public Q_SLOTS:
 };
 
 #endif // KIS_ADJUSTMENT_LAYER_H_
-

@@ -560,7 +560,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
 
         Q_FOREACH (ChannelInfo *channelInfo, layerRecord->channelInfoRecords) {
             if (channelInfo->channelId < -1) {
-                const KisGeneratorLayer *fillLayer = qobject_cast<KisGeneratorLayer *>(newLayer.data());
+                const KisGeneratorLayer *fillLayer = dynamic_cast<KisGeneratorLayer *>(newLayer.data());
                 const KisShapeLayer *shapeLayer = qobject_cast<KisShapeLayer *>(newLayer.data());
                 KoPathShape *vectorMask = new KoPathShape();
                 if (layerRecord->infoBlocks.keys.contains("vmsk") || layerRecord->infoBlocks.keys.contains("vsms")) {
@@ -663,4 +663,3 @@ void PSDLoader::cancel()
 {
     m_stop = true;
 }
-

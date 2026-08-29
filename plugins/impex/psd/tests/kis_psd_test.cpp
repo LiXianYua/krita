@@ -179,7 +179,7 @@ void KisPSDTest::testOpenFillLayers()
 
         PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
         QVERIFY(doc->image());
-        KisGeneratorLayerSP layer = qobject_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
+        KisGeneratorLayerSP layer = dynamic_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
         QVERIFY(layer);
         QVERIFY(layer->filter()->name() == "gradient");
         QVERIFY(layer->filter()->getDouble("end_position_angle") == 180);
@@ -192,7 +192,7 @@ void KisPSDTest::testOpenFillLayers()
 
         doc = openPsdDocument(sourceFileInfo2);
         QVERIFY(doc->image());
-        layer = qobject_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
+        layer = dynamic_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
         QVERIFY(layer);
         QVERIFY(layer->filter()->name() == "gradient");
         QVERIFY(layer->filter()->getDouble("end_position_angle") == 16.5);
@@ -205,7 +205,7 @@ void KisPSDTest::testOpenFillLayers()
 
         doc = openPsdDocument(sourceFileInfo3);
         QVERIFY(doc->image());
-        layer = qobject_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
+        layer = dynamic_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
         QVERIFY(layer);
         QVERIFY(layer->filter()->name() == "gradient");
         QVERIFY(layer->filter()->getDouble("end_position_angle") == 270);
@@ -217,7 +217,7 @@ void KisPSDTest::testOpenFillLayers()
 
         doc = openPsdDocument(sourceFileInfo4);
         QVERIFY(doc->image());
-        layer = qobject_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
+        layer = dynamic_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
         QVERIFY(layer);
         QVERIFY(layer->filter()->name() == "color");
         KoColor c = layer->filter()->getColor("color");
@@ -234,7 +234,7 @@ void KisPSDTest::testOpenFillLayers()
 
         doc = openPsdDocument(sourceFileInfo5);
         QVERIFY(doc->image());
-        layer = qobject_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
+        layer = dynamic_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
         QVERIFY(layer);
         QVERIFY(layer->filter()->name() == "pattern");
         if (layer) {
@@ -255,7 +255,7 @@ void KisPSDTest::testOpenFillLayers()
 
         doc = openPsdDocument(sourceFileInfo6);
         QVERIFY(doc->image());
-        layer = qobject_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
+        layer = dynamic_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
         QVERIFY(layer);
         QVERIFY(layer->filter()->name() == "pattern");
         if (layer) {

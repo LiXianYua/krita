@@ -675,14 +675,14 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                 const std::uint8_t nodeOpacity = node->opacity();
                 const std::uint8_t nodeClipping = 0;
                 const int nodeLabelColor = node->colorLabelIndex();
-                const KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer *>(node.data());
+                const KisPaintLayer *paintLayer = dynamic_cast<KisPaintLayer *>(node.data());
                 const bool alphaLocked = (paintLayer && paintLayer->alphaLocked());
                 const PkString nodeCompositeOp = node->compositeOpId();
 
                 const KisGroupLayer *groupLayer = dynamic_cast<KisGroupLayer *>(node.data());
                 const bool nodeIsPassThrough = groupLayer && groupLayer->passThroughMode();
 
-                const KisGeneratorLayer *fillLayer = qobject_cast<KisGeneratorLayer *>(node.data());
+                const KisGeneratorLayer *fillLayer = dynamic_cast<KisGeneratorLayer *>(node.data());
                 PkXmlDocument fillConfig;
                 psd_fill_type fillType = psd_fill_solid_color;
                 if (fillLayer) {
@@ -1063,7 +1063,7 @@ void PSDLayerMaskSection::writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_c
                 const std::uint8_t nodeOpacity = node->opacity();
                 const std::uint8_t nodeClipping = 0;
                 const int nodeLabelColor = node->colorLabelIndex();
-                const KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer *>(node.data());
+                const KisPaintLayer *paintLayer = dynamic_cast<KisPaintLayer *>(node.data());
                 const bool alphaLocked = (paintLayer && paintLayer->alphaLocked());
                 const PkString nodeCompositeOp = node->compositeOpId();
 

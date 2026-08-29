@@ -27,8 +27,6 @@ class KisFilterConfiguration;
  */
 class KRITAIMAGE_EXPORT KisSelectionBasedLayer : public KisLayer, public KisIndirectPaintingSupport, public KisNodeFilterInterface
 {
-    Q_OBJECT
-
 public:
     /**
      * creates a new layer with the given selection.
@@ -183,7 +181,7 @@ protected:
     bool supportsKeyframeChannel(const PkString &id) override;
 
 
-public Q_SLOTS:
+public:
     void slotImageSizeChanged();
 
     /**
@@ -201,4 +199,3 @@ private:
 };
 
 #endif /* KIS_SELECTION_BASED_LAYER_H_ */
-

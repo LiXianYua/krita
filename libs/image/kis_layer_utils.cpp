@@ -162,10 +162,10 @@ namespace Private {
 
             pinnedToTimeline = prevLayer->isPinnedToTimeline() || currLayer->isPinnedToTimeline();
 
-            const KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer*>(currLayer.data());
+            const KisPaintLayer *paintLayer = dynamic_cast<KisPaintLayer*>(currLayer.data());
             if (paintLayer) enableOnionSkins |= paintLayer->onionSkinEnabled();
 
-            paintLayer = qobject_cast<KisPaintLayer*>(prevLayer.data());
+            paintLayer = dynamic_cast<KisPaintLayer*>(prevLayer.data());
             if (paintLayer) enableOnionSkins |= paintLayer->onionSkinEnabled();
         }
 
@@ -271,7 +271,7 @@ namespace Private {
         }
 
         KisPaintLayerSP sourcePaintLayer() {
-            return qobject_cast<KisPaintLayer*>(m_sourceNode.data());
+            return dynamic_cast<KisPaintLayer*>(m_sourceNode.data());
         }
 
         bool hasTargetNode() {
@@ -287,7 +287,7 @@ namespace Private {
         }
 
         KisPaintLayerSP targetPaintLayer() {
-            return qobject_cast<KisPaintLayer*>(m_targetNode.data());
+            return dynamic_cast<KisPaintLayer*>(m_targetNode.data());
         }
 
 
@@ -341,7 +341,7 @@ namespace Private {
                 }
                 pinnedToTimeline |= node->isPinnedToTimeline();
 
-                const KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer*>(node.data());
+                const KisPaintLayer *paintLayer = dynamic_cast<KisPaintLayer*>(node.data());
                 if (paintLayer) {
                     enableOnionSkins |= paintLayer->onionSkinEnabled();
                 }
@@ -605,7 +605,7 @@ namespace Private {
             m_info->dstNode->setPinnedToTimeline(m_info->pinnedToTimeline);
             m_info->dstNode->setColorLabelIndex(m_info->allSrcNodes().first()->colorLabelIndex());
 
-            KisPaintLayer *dstPaintLayer = qobject_cast<KisPaintLayer*>(m_info->dstNode.data());
+            KisPaintLayer *dstPaintLayer = dynamic_cast<KisPaintLayer*>(m_info->dstNode.data());
             if (dstPaintLayer) {
                 dstPaintLayer->setOnionSkinEnabled(m_info->enableOnionSkins);
             }
