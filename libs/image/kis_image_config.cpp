@@ -130,13 +130,6 @@ KisImageConfig::KisImageConfig(bool readOnly)
     if (!readOnly) {
         KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::mainThreadId() == PkThread::currentThreadId());
     }
-#ifdef __APPLE__
-    // clear /var/folders/ swap path set by old broken Krita swap implementation in order to use new default swap dir.
-    PkString swap = m_config.readEntry("swaplocation", "");
-    if (swap.startsWith("/var/folders/")) {
-        m_config.deleteEntry("swaplocation");
-    }
-#endif
 }
 
 KisImageConfig::~KisImageConfig()
@@ -331,14 +324,12 @@ PkString KisImageConfig::safelyGetWritableTempLocation(const PkString &suffix, c
     if (requestDefault) {
         return fromPath(platformDefault);
     }
-    PkString configuredSwap = m_config.readEntry(configKey, fromPath(platformDefault));
-#ifdef __APPLE__
-    if (configuredSwap.startsWith("/var/folders/")) {
-        configuredSwap = fromPath(platformDefault);
-    }
-#endif
-    const std::filesystem::path preferred = configuredSwap.isEmpty()
+    const PkString configuredSwap = m_config.readEntry(configKey, fromPath(platformDefault));
+    const std::filesystem::path configured = configuredSwap.isEmpty()
         ? platformDefault : toPath(configuredSwap);
+    const std::filesystem::path preferred =
+        KisImageConfigPaths::normalizeConfiguredLocation(
+            configured, stableDefault, policy.transientFallback);
 
     const std::filesystem::path lastResort =
         policy.transientFallback == KisImageConfigPaths::TransientFallback::Reject

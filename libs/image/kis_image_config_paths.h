@@ -29,6 +29,19 @@ struct LocationSelection {
     bool probeSucceeded = false;
 };
 
+inline std::filesystem::path normalizeConfiguredLocation(
+    const std::filesystem::path &configured,
+    const std::filesystem::path &stableDefault,
+    TransientFallback transientPolicy)
+{
+    const std::string configuredPath = configured.generic_string();
+    if (transientPolicy == TransientFallback::Reject &&
+        configuredPath.compare(0, 13, "/var/folders/") == 0) {
+        return stableDefault;
+    }
+    return configured;
+}
+
 inline bool ensureDirectory(const std::filesystem::path &directory)
 {
     if (directory.empty()) {
@@ -72,31 +85,47 @@ inline bool probeWritableDirectory(const std::filesystem::path &directory)
     }
 
     static std::atomic<std::uint64_t> sequence{0};
-    const std::uint64_t serial = sequence.fetch_add(1, std::memory_order_relaxed);
     const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    const std::filesystem::path candidate = directory /
-        (std::string("krita_test_swap_location_") +
-         std::to_string(probeProcessNonce()) + "_" +
-         std::to_string(static_cast<std::uint64_t>(threadId)) + "_" +
-         std::to_string(serial));
+    constexpr std::uint64_t maximumReservationAttempts = 32;
+    for (std::uint64_t attempt = 0; attempt < maximumReservationAttempts; ++attempt) {
+        const std::uint64_t serial = sequence.fetch_add(1, std::memory_order_relaxed);
+        const std::filesystem::path reservation = directory /
+            (std::string("krita_test_swap_location_") +
+             std::to_string(probeProcessNonce()) + "_" +
+             std::to_string(static_cast<std::uint64_t>(threadId)) + "_" +
+             std::to_string(serial));
 
-    if (std::filesystem::exists(candidate, error) || error) {
-        return false;
+        error.clear();
+        if (!std::filesystem::create_directory(reservation, error)) {
+            if (!error || error == std::errc::file_exists) {
+                continue;
+            }
+            return false;
+        }
+
+        const std::filesystem::path probePath = reservation / "probe";
+        std::ofstream probe(probePath, std::ios::binary | std::ios::out);
+        bool writeSucceeded = false;
+        bool closeSucceeded = false;
+        bool probeCleanupSucceeded = false;
+        if (probe.is_open()) {
+            probe.put('\0');
+            probe.flush();
+            writeSucceeded = probe.good();
+            probe.close();
+            closeSucceeded = !probe.fail();
+
+            error.clear();
+            probeCleanupSucceeded = std::filesystem::remove(probePath, error) && !error;
+        }
+
+        error.clear();
+        const bool reservationCleanupSucceeded =
+            std::filesystem::remove(reservation, error) && !error;
+        return writeSucceeded && closeSucceeded && probeCleanupSucceeded &&
+            reservationCleanupSucceeded;
     }
-
-    std::ofstream probe(candidate, std::ios::binary | std::ios::out);
-    if (!probe.is_open()) {
-        return false;
-    }
-    probe.put('\0');
-    probe.flush();
-    const bool writeSucceeded = probe.good();
-    probe.close();
-    const bool closeSucceeded = !probe.fail();
-
-    error.clear();
-    const bool cleanupSucceeded = std::filesystem::remove(candidate, error) && !error;
-    return writeSucceeded && closeSucceeded && cleanupSucceeded;
+    return false;
 }
 
 inline std::filesystem::path chooseWritableLocation(
