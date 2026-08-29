@@ -54,7 +54,7 @@
 #include "kis_random_source.h"
 #endif
 
-struct Q_DECL_HIDDEN KisPaintOpSettings::Private {
+struct KisPaintOpSettings::Private {
     Private()
 #ifdef SANITY_CHECK_CACHE
         : versionRandomSource(int(reinterpret_cast<std::intptr_t>(this)))
