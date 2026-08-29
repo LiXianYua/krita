@@ -21,7 +21,6 @@ namespace KisAutoKey
 
 class AutoKeyFrameStateHolder : public PkShellObject
 {
-    Q_OBJECT
 public:
 
     AutoKeyFrameStateHolder() {
@@ -43,7 +42,7 @@ public:
         m_mode = mode;
     }
 
-private Q_SLOTS:
+private:
     void slotAutoKeyFrameSettingChanged() {
         PkWriteLocker l(&m_lock);
 
