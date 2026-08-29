@@ -8,6 +8,8 @@
 #ifndef KIS_IMAGE_LAYER_ADD_COMMAND_H_
 #define KIS_IMAGE_LAYER_ADD_COMMAND_H_
 
+#include <PkFlags.h>
+
 #include <kritaimage_export.h>
 
 #include "kis_types.h"
@@ -27,7 +29,7 @@ public:
         DontActivateOnAddition = 0x4,
     };
 
-    Q_DECLARE_FLAGS(Flags, Flag)
+    PK_DECLARE_FLAGS(Flags, Flag)
 
 public:
     /**
@@ -58,6 +60,6 @@ private:
     KisNodeAdditionFlags m_additionFlags;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisImageLayerAddCommand::Flags)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisImageLayerAddCommand::Flags)
 
 #endif
