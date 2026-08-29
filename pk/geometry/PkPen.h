@@ -15,30 +15,28 @@
 // `drawPainterPath` 签名里，libpaintop 的 freehand_stroke（QPAINTER_PATH 透传）
 // 需要完整定义。S-05-b PkNodeId（pk/uuid）同型先例。
 //
-// **只做 data-carrier**：QPainter 路径栅格化在壳/内核里不可用（无 pk 栅格器），
-// 这里只存一条颜色 + 宽度。消费方仅做透传（FreehandStrokeStrategy::Data 把
-// QPAINTER_PATH/QPAINTER_PATH_FILL dab 的 pen 参数传给
-// KisPainter::drawPainterPath）。路径→遮罩栅格化归 S-09/M5 重实现。
-// 禁当完整 QPainter 描边。
+// **只做 measured data-carrier**：保存实测消费方需要的 brush/color、width、
+// pen style、cap、dash pattern 与 cosmetic 状态。QPainter 路径栅格化仍不在
+// pk/geometry；这里只传递值，不实现描边、join/miter 或 rasterization。
 class PkPen {
 public:
-    PkPen() : m_color(Qt::black), m_widthF(1.0), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
+    PkPen() : m_brush(Qt::black), m_widthF(1.0), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
     explicit PkPen(Qt::GlobalColor color, qreal widthF = 1.0)
-        : m_color(color), m_widthF(widthF), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
+        : m_brush(color), m_widthF(widthF), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
     PkPen(const PkColor &color, qreal widthF = 1.0)
-        : m_color(color), m_widthF(widthF), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
+        : m_brush(color), m_widthF(widthF), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
     PkPen(const PkBrush &brush, qreal widthF = 1.0)
-        : m_color(brush.color()), m_widthF(widthF), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
+        : m_brush(brush), m_widthF(widthF), m_style(Qt::SolidLine), m_cap(Qt::SquareCap), m_cosmetic(false) {}
     PkPen(const PkPen &) = default;
     PkPen &operator=(const PkPen &) = default;
 
-    void setColor(Qt::GlobalColor color) { m_color = color; }
-    void setColor(const PkColor &color) { m_color = color; }
-    PkBrush brush() const { PkBrush b(m_color); b.setStyle(Qt::SolidPattern); return b; }
-    void setBrush(const PkBrush &brush) { m_color = brush.color(); }
-    PkColor color() const { return m_color; }
+    void setColor(Qt::GlobalColor color) { m_brush.setColor(color); }
+    void setColor(const PkColor &color) { m_brush.setColor(color); }
+    PkBrush brush() const { return m_brush; }
+    void setBrush(const PkBrush &brush) { m_brush = brush; }
+    PkColor color() const { return m_brush.color(); }
     qreal widthF() const { return m_widthF; }
-    int width() const { return static_cast<int>(m_widthF); }
+    int width() const { return qRound(m_widthF); }
     void setWidth(int w) { m_widthF = w; }
     void setWidthF(qreal w) { m_widthF = w; }
     Qt::PenStyle style() const { return m_style; }
@@ -51,7 +49,7 @@ public:
     void setCosmetic(bool c) { m_cosmetic = c; }
 
 private:
-    PkColor m_color;
+    PkBrush m_brush;
     qreal m_widthF;
     Qt::PenStyle m_style;
     Qt::PenCapStyle m_cap;
