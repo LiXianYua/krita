@@ -520,6 +520,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 set(kritaimage_SIGNAL_HEADERS
     kis_paint_device.h
+    brushengine/KisPaintOpPresetUpdateProxy.h
 )
 set(kritaimage_SIGNAL_SRCS)
 foreach(signal_header IN LISTS kritaimage_SIGNAL_HEADERS)

@@ -9,6 +9,7 @@
 
 #include <PkScopedPointer.h>
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 
 #include "kritaimage_export.h"
 
@@ -18,8 +19,6 @@
  */
 class KRITAIMAGE_EXPORT KisPaintOpPresetUpdateProxy : public PkObject
 {
-    Q_OBJECT
-
 public:
     KisPaintOpPresetUpdateProxy();
     ~KisPaintOpPresetUpdateProxy() override;
@@ -41,7 +40,7 @@ public:
      */
     void unpostponeSettingsChanges();
 
-Q_SIGNALS:
+signals:
     void sigSettingsChanged();
 
     /**
@@ -57,7 +56,7 @@ Q_SIGNALS:
     void sigSettingsChangedUncompressed();
     void sigUniformPropertiesChanged();
 
-private Q_SLOTS:
+private:
     void slotDeliverSettingsChanged();
 
 private:
