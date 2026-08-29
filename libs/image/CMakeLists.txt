@@ -293,9 +293,8 @@ kis_define_image_object_lib(kritaimage_bsplines_objects SOURCES
 
 kis_define_image_object_lib(kritaimage_core_objects SOURCES
     # [GAP 排除] 13 个核心 GAP 文件（Task 8 批次A/C2 登记，判据⑨ 严格补）：仍依赖
-    # 真实 Qt 头（QImage/QPainter/QFile/QTimer/KConfig 等），主树去 Qt 配置下编不过
-    # （实测 kis_image_config.cpp.o 直接编译 exit=1）。与薄壳 SHELL_SOURCES 的
-    # [GAP 排除] 一致，从本 OBJECT 库源清单移除：
+    # 真实 Qt 头（QImage/QPainter/QFile/QTimer/KConfig 等）。与薄壳 SHELL_SOURCES
+    # 的 [GAP 排除] 一致，从本 OBJECT 库源清单移除：
     #   kis_asl_layer_style_serializer.cpp  kis_psd_layer_style.cpp
     #   KisBezierGradientMesh.cpp           KisBezierTransformMesh.cpp
     #   kis_cage_transform_worker.cpp       kis_liquify_transform_worker.cpp

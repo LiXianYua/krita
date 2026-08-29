@@ -17,4 +17,6 @@ private Q_SLOTS:
     void readEntryWithStringLiteralDoesNotBindToBool();
     void twoArgConstructorFromSharedConfigHandle();
     void colorReadEntryRejectsOutOfRangeSegments();
+    void deleteGroupClearsEveryKeyAndPreservesOtherGroups();
+    void concurrentReadsAndGroupClearsAreSafe();
 };

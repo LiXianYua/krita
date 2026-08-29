@@ -4,7 +4,10 @@
 #include "../PkSharedConfig.h"
 #include "../color/PkColor.h"
 
+#include <atomic>
+#include <thread>
 #include <type_traits>
+#include <vector>
 
 void TestConfigGroup::storeBasicGetSet()
 {
@@ -216,6 +219,61 @@ void TestConfigGroup::colorReadEntryRejectsOutOfRangeSegments()
     g.writeEntry("boundary", PkColor(0, 255, 0, 255));
     PkColor boundary = g.readEntry("boundary", fallback);
     PK_VERIFY(boundary == PkColor(0, 255, 0, 255));
+}
+
+void TestConfigGroup::deleteGroupClearsEveryKeyAndPreservesOtherGroups()
+{
+    PkSharedConfig *cfg = PkSharedConfig::openConfig();
+    PkConfigGroup root = cfg->group(PkString());
+    PkConfigGroup other = cfg->group("unrelated-group");
+
+    root.writeEntry("generic-root-key", 17);
+    root.writeEntry("onionSkinOpacity_37", 203);
+    root.writeEntry("ExportConfiguration-unseen", PkString("payload"));
+    other.writeEntry("must-survive", 91);
+
+    root.deleteGroup();
+
+    PK_VERIFY(!root.hasKey("generic-root-key"));
+    PK_VERIFY(!root.hasKey("onionSkinOpacity_37"));
+    PK_VERIFY(!root.hasKey("ExportConfiguration-unseen"));
+    PK_COMPARE(other.readEntry("must-survive", 0), 91);
+    other.deleteGroup();
+}
+
+void TestConfigGroup::concurrentReadsAndGroupClearsAreSafe()
+{
+    PkConfigGroup group = PkSharedConfig::openConfig()->group("concurrent-clear");
+    group.deleteGroup();
+    group.writeEntry("value", 42);
+
+    std::atomic<bool> start{false};
+    std::atomic<bool> invalidRead{false};
+    std::vector<std::thread> readers;
+    for (int reader = 0; reader < 4; ++reader) {
+        readers.emplace_back([&] {
+            while (!start.load(std::memory_order_acquire)) {
+            }
+            for (int iteration = 0; iteration < 4000; ++iteration) {
+                const int value = group.readEntry("value", -1);
+                if (value != -1 && value != 42) {
+                    invalidRead.store(true, std::memory_order_relaxed);
+                }
+            }
+        });
+    }
+
+    start.store(true, std::memory_order_release);
+    for (int iteration = 0; iteration < 1000; ++iteration) {
+        group.deleteGroup();
+        group.writeEntry("value", 42);
+    }
+    for (std::thread &reader : readers) {
+        reader.join();
+    }
+
+    PK_VERIFY(!invalidRead.load(std::memory_order_relaxed));
+    group.deleteGroup();
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

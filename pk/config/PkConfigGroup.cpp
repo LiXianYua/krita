@@ -224,6 +224,11 @@ void PkConfigGroup::deleteEntry(const PkString &key)
     PkConfigStore::instance().remove(m_groupName, key);
 }
 
+void PkConfigGroup::deleteGroup()
+{
+    PkConfigStore::instance().clearGroup(m_groupName);
+}
+
 void PkConfigGroup::sync()
 {
     // 不做真实磁盘持久化（见 task brief「Global Constraints」）：数据一直

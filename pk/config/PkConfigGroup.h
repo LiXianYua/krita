@@ -70,6 +70,8 @@ public:
 
     bool hasKey(const PkString &key) const;
     void deleteEntry(const PkString &key);
+    // 与 KConfigGroup::deleteGroup() 一致：只删除当前 group 的全部 key。
+    void deleteGroup();
     void sync();
     PkString name() const;
 

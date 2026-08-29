@@ -5,6 +5,7 @@
  */
 
 #include "kis_image_config.h"
+#include "kis_image_config_paths.h"
 
 #include <PkSharedConfig.h>
 #include <PkScopedPointer.h>
@@ -45,12 +46,11 @@
 #include "kis_debug.h"
 
 #include "kis_global.h"
+#include <KisGlobalFileSystem.h>
 
-#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -79,17 +79,9 @@ PkString numberString(int value)
     return PkString(std::to_string(value).c_str());
 }
 
-std::set<PkString> &dynamicImageConfigKeys()
+PkString dynamicKey(const PkString &prefix, const PkString &suffix)
 {
-    static std::set<PkString> keys;
-    return keys;
-}
-
-PkString trackedDynamicKey(const PkString &prefix, const PkString &suffix)
-{
-    const PkString key = prefix + suffix;
-    dynamicImageConfigKeys().insert(key);
-    return key;
+    return prefix + suffix;
 }
 
 std::filesystem::path toPath(const PkString &path)
@@ -104,15 +96,7 @@ PkString fromPath(const std::filesystem::path &path)
 
 PkString homeDirectory()
 {
-#ifdef _WIN32
-    const char *home = std::getenv("USERPROFILE");
-    if (!home) {
-        home = std::getenv("HOMEPATH");
-    }
-#else
-    const char *home = std::getenv("HOME");
-#endif
-    return home ? PkString(home) : PkString();
+    return fromPath(KisGlobalFileSystem::detail::homePath());
 }
 
 PkString temporaryDirectory()
@@ -125,29 +109,30 @@ PkString temporaryDirectory()
     return homeDirectory();
 }
 
-bool canCreateTemporaryFile(const PkString &directory)
+bool canCreateTemporaryFile(const std::filesystem::path &nativeDirectory)
 {
-    if (directory.isEmpty()) {
+    if (nativeDirectory.empty()) {
         return false;
     }
 
     std::error_code error;
-    const std::filesystem::path nativeDirectory = toPath(directory);
     if (!std::filesystem::is_directory(nativeDirectory, error) || error) {
         return false;
     }
 
 #ifdef _WIN32
-    const std::filesystem::path candidate = nativeDirectory /
-        (L"krita_test_swap_location_" + std::to_wstring(::GetCurrentProcessId()));
-    const HANDLE handle = ::CreateFileW(candidate.c_str(), GENERIC_WRITE, 0, nullptr,
-                                        CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+    wchar_t candidate[MAX_PATH + 1] = {};
+    if (::GetTempFileNameW(nativeDirectory.c_str(), L"krt", 0, candidate) == 0) {
+        return false;
+    }
+    const HANDLE handle = ::CreateFileW(candidate, GENERIC_WRITE, 0, nullptr,
+                                        OPEN_EXISTING, FILE_ATTRIBUTE_TEMPORARY, nullptr);
     if (handle == INVALID_HANDLE_VALUE) {
+        ::DeleteFileW(candidate);
         return false;
     }
     ::CloseHandle(handle);
-    std::filesystem::remove(candidate, error);
-    return true;
+    return ::DeleteFileW(candidate) != 0;
 #else
     std::string pattern =
         (nativeDirectory / "krita_test_swap_location_XXXXXX").u8string();
@@ -157,9 +142,9 @@ bool canCreateTemporaryFile(const PkString &directory)
     if (descriptor < 0) {
         return false;
     }
-    ::close(descriptor);
-    ::unlink(writablePattern.data());
-    return true;
+    const int closeResult = ::close(descriptor);
+    const int unlinkResult = ::unlink(writablePattern.data());
+    return closeResult == 0 && unlinkResult == 0;
 #endif
 }
 
@@ -362,46 +347,50 @@ void KisImageConfig::setMemoryPoolLimitPercent(qreal value)
 PkString KisImageConfig::safelyGetWritableTempLocation(const PkString &suffix, const PkString &configKey, bool requestDefault) const
 {
 #ifdef __APPLE__
-    // QStandardPaths::AppLocalDataLocation maps to this platform location in
-    // the Pk resource-path implementation.  Sandboxed processes receive a
-    // container-local HOME, so the same expression remains inside the sandbox.
-    PkString swap = homeDirectory() + PkString("/Library/Application Support/krita/") + suffix;
+    const std::filesystem::path stableDefault =
+        KisGlobalFileSystem::writableLocation(KisGlobalFileSystem::Location::AppData) /
+        toPath(suffix);
+    std::error_code creationError;
+    std::filesystem::create_directories(stableDefault, creationError);
+    const auto transientPolicy = KisImageConfigPaths::TransientFallback::Reject;
 #else
     (void)suffix;
-    PkString swap = temporaryDirectory();
+    const std::filesystem::path stableDefault;
+    const auto transientPolicy = KisImageConfigPaths::TransientFallback::Allow;
 #endif
+    const std::filesystem::path transientDefault = toPath(temporaryDirectory());
+    const std::filesystem::path homeFallback = toPath(homeDirectory());
+    const std::filesystem::path platformDefault =
+        stableDefault.empty() ? transientDefault : stableDefault;
     if (requestDefault) {
-       return swap;
+        return fromPath(platformDefault);
     }
-    const PkString configuredSwap = m_config.readEntry(configKey, swap);
-    if (!configuredSwap.isEmpty()) {
-        swap = configuredSwap;
+    PkString configuredSwap = m_config.readEntry(configKey, fromPath(platformDefault));
+#ifdef __APPLE__
+    if (configuredSwap.startsWith("/var/folders/")) {
+        configuredSwap = fromPath(platformDefault);
     }
+#endif
+    const std::filesystem::path preferred = configuredSwap.isEmpty()
+        ? platformDefault : toPath(configuredSwap);
 
-    PkString chosenLocation;
-    const std::array<PkString, 3> proposedSwapLocations = {
-        swap,
-        temporaryDirectory(),
-        homeDirectory(),
-    };
-
-    for (const PkString &location : proposedSwapLocations) {
-        // QFileInfo::isWritable() is insufficient on NTFS, so preserve the
-        // official implementation's final authority: create and remove a real
-        // temporary file in each proposed directory.
-        if (canCreateTemporaryFile(location)) {
-            chosenLocation = location;
-            break;
-        }
-    }
+    const std::filesystem::path chosenPath = KisImageConfigPaths::chooseWritableLocation(
+        preferred, stableDefault, transientDefault, homeFallback, transientPolicy,
+        [](const std::filesystem::path &location) {
+            // QFileInfo::isWritable() is insufficient on NTFS, so preserve the
+            // official implementation's final authority: create and remove a
+            // real temporary file in each proposed directory.
+            return canCreateTemporaryFile(location);
+        });
+    PkString chosenLocation = fromPath(chosenPath);
 
     if (chosenLocation.isEmpty()) {
         qCritical() << "CRITICAL: no writable location for a swap file found";
-        chosenLocation = swap;
+        chosenLocation = fromPath(platformDefault);
     }
 
-    if (chosenLocation != swap) {
-        qWarning() << "WARNING: configured swap location is not writable, using a fall-back location" << swap << "->" << chosenLocation;
+    if (chosenLocation != fromPath(preferred)) {
+        qWarning() << "WARNING: configured swap location is not writable, using a fall-back location" << fromPath(preferred) << "->" << chosenLocation;
     }
 
     return chosenLocation;
@@ -440,7 +429,7 @@ void KisImageConfig::setOnionSkinTintFactor(int value)
 
 int KisImageConfig::onionSkinOpacity(int offset, bool requestDefault) const
 {
-    int value = m_config.readEntry(trackedDynamicKey(PkString("onionSkinOpacity_"), numberString(offset)), -1);
+    int value = m_config.readEntry(dynamicKey(PkString("onionSkinOpacity_"), numberString(offset)), -1);
 
     if (value < 0 || requestDefault) {
         const int num = numberOfOnionSkins();
@@ -455,18 +444,18 @@ int KisImageConfig::onionSkinOpacity(int offset, bool requestDefault) const
 
 void KisImageConfig::setOnionSkinOpacity(int offset, int value)
 {
-    m_config.writeEntry(trackedDynamicKey(PkString("onionSkinOpacity_"), numberString(offset)), value);
+    m_config.writeEntry(dynamicKey(PkString("onionSkinOpacity_"), numberString(offset)), value);
 }
 
 bool KisImageConfig::onionSkinState(int offset) const
 {
     bool enableByDefault = (qAbs(offset) <= 2);
-    return m_config.readEntry(trackedDynamicKey(PkString("onionSkinState_"), numberString(offset)), enableByDefault);
+    return m_config.readEntry(dynamicKey(PkString("onionSkinState_"), numberString(offset)), enableByDefault);
 }
 
 void KisImageConfig::setOnionSkinState(int offset, bool value)
 {
-    m_config.writeEntry(trackedDynamicKey(PkString("onionSkinState_"), numberString(offset)), value);
+    m_config.writeEntry(dynamicKey(PkString("onionSkinState_"), numberString(offset)), value);
 }
 
 PkColor KisImageConfig::onionSkinTintColorBackward() const
@@ -1161,12 +1150,12 @@ void KisImageConfig::setRenameDuplicatedLayers(bool value)
 
 PkString KisImageConfig::exportConfigurationXML(const PkString &exportConfigId, bool defaultValue) const
 {
-    return (defaultValue ? PkString() : m_config.readEntry(trackedDynamicKey(PkString("ExportConfiguration-"), exportConfigId), PkString()));
+    return (defaultValue ? PkString() : m_config.readEntry(dynamicKey(PkString("ExportConfiguration-"), exportConfigId), PkString()));
 }
 
 bool KisImageConfig::hasExportConfiguration(const PkString &exportConfigID)
 {
-    return m_config.hasKey(trackedDynamicKey(PkString("ExportConfiguration-"), exportConfigID));
+    return m_config.hasKey(dynamicKey(PkString("ExportConfiguration-"), exportConfigID));
 }
 
 KisPropertiesConfigurationSP KisImageConfig::exportConfiguration(const PkString &exportConfigId, bool defaultValue) const
@@ -1180,103 +1169,12 @@ KisPropertiesConfigurationSP KisImageConfig::exportConfiguration(const PkString 
 void KisImageConfig::setExportConfiguration(const PkString &exportConfigId, KisPropertiesConfigurationSP properties)
 {
     const PkString exportConfig = properties->toXML();
-    PkString configId = trackedDynamicKey(PkString("ExportConfiguration-"), exportConfigId);
+    PkString configId = dynamicKey(PkString("ExportConfiguration-"), exportConfigId);
     m_config.writeEntry(configId, exportConfig);
 }
 
 void KisImageConfig::resetConfig()
 {
     PkConfigGroup config = PkSharedConfig::openConfig()->group(PkString());
-    // PkConfigStore is deliberately process-local and PkConfigGroup has no
-    // deleteGroup(): clear this class's complete fixed-key surface plus every
-    // dynamic onion-skin/export key observed through this API.  This preserves
-    // KisImageConfig reset behavior without erasing unrelated root-group
-    // settings owned by other migrated subsystems.
-    const char *fixedKeys[] = {
-        "LineSmoothingDelayDistance",
-        "LineSmoothingDistanceKeepAspectRatio",
-        "LineSmoothingDistanceMax",
-        "LineSmoothingDistanceMin",
-        "LineSmoothingFinishStabilizedCurve",
-        "LineSmoothingScalableDistance",
-        "LineSmoothingSmoothPressure",
-        "LineSmoothingStabilizeSensors",
-        "LineSmoothingTailAggressiveness",
-        "LineSmoothingType",
-        "LineSmoothingUseDelayDistance",
-        "OutlineSizeMinimum",
-        "ShowEraserOutlineWhilePainting",
-        "ShowOutlineWhilePainting",
-        "animationCacheDir",
-        "animationCacheFrameSizeLimit",
-        "animationCacheRegionOfInterestMargin",
-        "compressLayersInKra",
-        "cursorStyleDef",
-        "defaultFrameColorLabel",
-        "defaultProofingAdaptationState",
-        "defaultProofingBlackpointCompensation",
-        "defaultProofingConversionIntent",
-        "defaultProofingDisplayBlackpointCompensation",
-        "defaultProofingDisplayMode",
-        "defaultProofingGamutwarning",
-        "defaultProofingProfileDepth",
-        "defaultProofingProfileIntent",
-        "defaultProofingProfileModel",
-        "defaultProofingProfileName",
-        "detectFpsLimit",
-        "enablePerfLog",
-        "enableProgressReporting",
-        "eraserCursorStyle",
-        "eraserOutlineStyle",
-        "forceAlwaysFullSizedEraserOutline",
-        "forceAlwaysFullSizedOutline",
-        "fpsLimit",
-        "frameRenderingClones",
-        "frameRenderingTimeout",
-        "lazyFrameCreationEnabled",
-        "lazyFrameModeDuplicate",
-        "maxCollectAlpha",
-        "maxMergeAlpha",
-        "maxMergeCollectAlpha",
-        "maxNumberOfThreads",
-        "maxSwapSize",
-        "maximumBrushSize",
-        "memoryHardLimitPercent",
-        "memoryPoolLimitPercent",
-        "memorySoftLimitPercent",
-        "newCursorStyle",
-        "newOutlineStyle",
-        "numberOfOnionSkins",
-        "oninSkinTintColorForward",
-        "onionSkinTintColorBackward",
-        "onionSkinTintFactor",
-        "renameDuplicatedLayers",
-        "renameMergedLayers",
-        "schedulerBalancingRatio",
-        "selectionOutlineOpacity",
-        "selectionOverlayMaskColor",
-        "separateEraserCursor",
-        "showAdditionalOnionSkinsSettings",
-        "stabilizerDelayedPaint",
-        "stabilizerSampleSize",
-        "swapSlabSize",
-        "swapWindowSize",
-        "swaplocation",
-        "tabletPressureCurve",
-        "touchPainting",
-        "transformMaskOffBoundsReadArea",
-        "updatePatchHeight",
-        "updatePatchWidth",
-        "useAnimationCacheFrameSizeLimit",
-        "useAnimationCacheRegionOfInterest",
-        "useLodForColorizeMask",
-        "useOnDiskAnimationCacheSwapping",
-    };
-    for (const char *key : fixedKeys) {
-        config.deleteEntry(PkString(key));
-    }
-    for (const PkString &key : dynamicImageConfigKeys()) {
-        config.deleteEntry(key);
-    }
-    dynamicImageConfigKeys().clear();
+    config.deleteGroup();
 }
