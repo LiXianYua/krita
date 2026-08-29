@@ -12,7 +12,8 @@
 
 class KRITAIMAGE_EXPORT KisBaseConstAccessor : public KisShared
 {
-    Q_DISABLE_COPY(KisBaseConstAccessor)
+    KisBaseConstAccessor(const KisBaseConstAccessor &) = delete;
+    KisBaseConstAccessor &operator=(const KisBaseConstAccessor &) = delete;
 public:
     KisBaseConstAccessor() {}
     virtual ~KisBaseConstAccessor();
@@ -33,7 +34,8 @@ public:
 
 class KRITAIMAGE_EXPORT KisBaseAccessor
 {
-    Q_DISABLE_COPY(KisBaseAccessor)
+    KisBaseAccessor(const KisBaseAccessor &) = delete;
+    KisBaseAccessor &operator=(const KisBaseAccessor &) = delete;
 public:
     KisBaseAccessor() {}
     virtual ~KisBaseAccessor();

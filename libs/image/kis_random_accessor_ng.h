@@ -11,7 +11,8 @@
 
 class KRITAIMAGE_EXPORT KisRandomConstAccessorNG : public KisBaseConstAccessor
 {
-    Q_DISABLE_COPY(KisRandomConstAccessorNG)
+    KisRandomConstAccessorNG(const KisRandomConstAccessorNG &) = delete;
+    KisRandomConstAccessorNG &operator=(const KisRandomConstAccessorNG &) = delete;
 public:
     KisRandomConstAccessorNG() {}
     ~KisRandomConstAccessorNG() override;
@@ -23,7 +24,8 @@ public:
 
 class KRITAIMAGE_EXPORT KisRandomAccessorNG : public KisRandomConstAccessorNG, public KisBaseAccessor
 {
-    Q_DISABLE_COPY(KisRandomAccessorNG)
+    KisRandomAccessorNG(const KisRandomAccessorNG &) = delete;
+    KisRandomAccessorNG &operator=(const KisRandomAccessorNG &) = delete;
 public:
     KisRandomAccessorNG() {}
     ~KisRandomAccessorNG() override;
