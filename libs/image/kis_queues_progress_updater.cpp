@@ -11,7 +11,7 @@
 #include <KoProgressProxy.h>
 
 
-struct Q_DECL_HIDDEN KisQueuesProgressUpdater::Private
+struct KisQueuesProgressUpdater::Private
 {
     Private()
         : queueSizeMetric(0)
@@ -72,14 +72,14 @@ void KisQueuesProgressUpdater::updateProgress(int queueSizeMetric, const PkStrin
     if (m_d->queueSizeMetric && !m_d->tickingRequested) {
 
         m_d->tickingRequested = true;
-        Q_EMIT sigStartTicking();
+        sigStartTicking();
 
     } else if (!m_d->queueSizeMetric && m_d->tickingRequested) {
 
         m_d->initialQueueSizeMetric = 0;
         m_d->jobName = PkString();
         m_d->tickingRequested = false;
-        Q_EMIT sigStopTicking();
+        sigStopTicking();
     }
 }
 

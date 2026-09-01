@@ -535,6 +535,7 @@ set(kritaimage_SIGNAL_HEADERS
     kis_node.h
     kis_node_progress_proxy.h
     kis_onion_skin_compositor.h
+    kis_queues_progress_updater.h
     kis_paint_device.h
     kis_scalar_keyframe_channel.h
     kis_transform_mask.h
