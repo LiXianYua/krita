@@ -10,6 +10,7 @@
 #define KIS_KEYFRAME_H
 
 #include <PkObject.h>
+#include <PkScopedPointer.h>
 
 #include "kritaimage_export.h"
 #include "kis_types.h"
@@ -21,7 +22,6 @@ class KisKeyframeChannel;
  * A core part of Krita's animation bankend.
  */
 class KRITAIMAGE_EXPORT KisKeyframe : public PkObject {
-    Q_OBJECT
 public:
     KisKeyframe();
     virtual ~KisKeyframe();
