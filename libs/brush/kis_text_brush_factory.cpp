@@ -3,10 +3,10 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include "kis_text_brush_factory.h"
-
 #include <QFont>
 #include <QString>
+
+#include "kis_text_brush_factory.h"
 #include <kis_dom_utils.h>
 #include "kis_text_brush.h"
 #include <KoResourceLoadResult.h>

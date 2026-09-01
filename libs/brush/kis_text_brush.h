@@ -8,12 +8,12 @@
 #ifndef _KIS_TEXT_BRUSH_H_
 #define _KIS_TEXT_BRUSH_H_
 
-#include <QFont>
-
 #include "kis_scaling_size_brush.h"
 #include "kritabrush_export.h"
 
 class KisTextBrushesPipe;
+class QFont;
+class QString;
 
 
 class BRUSH_EXPORT KisTextBrush : public KisScalingSizeBrush
@@ -29,8 +29,8 @@ public:
     KoResourceSP clone() const override;
 
     bool isEphemeral() const override;
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice *dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream *dev) const override;
 
     void notifyStrokeStarted() override;
     void prepareForSeqNo(const KisPaintInformation& info, int seqNo) override;
@@ -53,7 +53,7 @@ public:
     bool pipeMode() const;
 
     void updateBrush();
-    void toXML(QDomDocument& , QDomElement&) const override;
+    void toXML(PkXmlDocument& , PkXmlElement&) const override;
 
     quint32 brushIndex() const override;
     qint32 maskWidth(KisDabShape const&, double subPixelX, double subPixelY, const KisPaintInformation& info) const override;
@@ -63,13 +63,13 @@ public:
     void setSpacing(double _spacing) override;
 
 private:
-    QFont m_font;
-    QString m_text;
+    QFont *m_font;
+    QString *m_text;
 
 private:
     KisTextBrushesPipe *m_brushesPipe;
 };
 
-typedef QSharedPointer<KisTextBrush> KisTextBrushSP;
+typedef PkSharedPointer<KisTextBrush> KisTextBrushSP;
 
 #endif
