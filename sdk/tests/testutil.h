@@ -23,6 +23,10 @@
 #include <QTime>
 #include <QDir>
 
+#include <PkImage.h>
+#include <PkRect.h>
+#include <PkString.h>
+
 #include <KoResource.h>
 #include <KoTestConfig.h>
 #include <KoColorSpace.h>
@@ -78,7 +82,39 @@ do {\
 namespace TestUtil
 {
 
-inline KisNodeSP findNode(KisNodeSP root, const QString &name) {
+inline QImage diagnosticQImage(const PkImage &image)
+{
+    if (image.isNull()) return QImage();
+    return QImage(reinterpret_cast<const uchar *>(image.constBits()), image.width(), image.height(),
+                  image.bytesPerLine(), QImage::Format_ARGB32).copy();
+}
+
+inline PkImage pkImageFromQImage(const QImage &image)
+{
+    PkImage result(image.width(), image.height(), PkImage::Format_ARGB32);
+    for (int y = 0; y < image.height(); ++y) {
+        memcpy(result.scanLine(y), image.constScanLine(y), static_cast<size_t>(image.bytesPerLine()));
+    }
+    return result;
+}
+
+inline bool checkQImage(const PkImage &image, const QString &testName,
+                        const QString &prefix, const QString &caseName,
+                        int fuzzy = 0, int fuzzyAlpha = 0, int maxNumFailingPixels = 0)
+{
+    return checkQImage(diagnosticQImage(image), testName, prefix, caseName,
+                       fuzzy, fuzzyAlpha, maxNumFailingPixels);
+}
+
+inline bool checkQImageExternal(const PkImage &image, const QString &testName,
+                                const QString &prefix, const QString &caseName,
+                                int fuzzy = 0, int fuzzyAlpha = 0, int maxNumFailingPixels = 0)
+{
+    return checkQImageExternal(diagnosticQImage(image), testName, prefix, caseName,
+                               fuzzy, fuzzyAlpha, maxNumFailingPixels);
+}
+
+inline KisNodeSP findNode(KisNodeSP root, const PkString &name) {
     if(root->name() == name) return root;
 
     KisNodeSP child = root->firstChild();
@@ -90,9 +126,9 @@ inline KisNodeSP findNode(KisNodeSP root, const QString &name) {
     return KisNodeSP();
 }
 
-inline void dumpNodeStack(KisNodeSP node, QString prefix = QString("\t"))
+inline void dumpNodeStack(KisNodeSP node, PkString prefix = PkString("\t"))
 {
-    qDebug() << node->name();
+    qDebug() << node->name().PkToUtf8().c_str();
     KisNodeSP child = node->firstChild();
 
     while (child) {
@@ -100,7 +136,7 @@ inline void dumpNodeStack(KisNodeSP node, QString prefix = QString("\t"))
         if (child->childCount() > 0) {
             dumpNodeStack(child, prefix + "\t");
         } else {
-            qDebug() << prefix << child->name();
+            qDebug() << prefix.PkToUtf8().c_str() << child->name().PkToUtf8().c_str();
         }
         child = child->nextSibling();
     }
@@ -122,11 +158,11 @@ public:
         m_min = min;
         m_max = max;
     }
-    void setFormat(const QString &format) override {
+    void setFormat(const PkString &format) override {
         m_format = format;
     }
 
-    void setAutoNestedName(const QString &name) override {
+    void setAutoNestedName(const PkString &name) override {
         m_autoNestedName = name;
         KoProgressProxy::setAutoNestedName(name);
     }
@@ -134,16 +170,16 @@ public:
     int min() { return m_min; }
     int max() { return m_max; }
     int value() { return m_value; }
-    QString format() { return m_format; }
-    QString autoNestedName() { return m_autoNestedName; }
+    PkString format() { return m_format; }
+    PkString autoNestedName() { return m_autoNestedName; }
 
 
 private:
     int m_min;
     int m_max;
     int m_value;
-    QString m_format;
-    QString m_autoNestedName;
+    PkString m_format;
+    PkString m_autoNestedName;
 };
 
 inline bool comparePaintDevices(QPoint & pt, const KisPaintDeviceSP dev1, const KisPaintDeviceSP dev2)
@@ -151,8 +187,8 @@ inline bool comparePaintDevices(QPoint & pt, const KisPaintDeviceSP dev1, const 
     //     QTime t;
     //     t.start();
 
-    QRect rc1 = dev1->exactBounds();
-    QRect rc2 = dev2->exactBounds();
+    PkRect rc1 = dev1->exactBounds();
+    PkRect rc2 = dev2->exactBounds();
 
     if (rc1 != rc2) {
         pt.setX(-1);
@@ -181,11 +217,12 @@ inline bool comparePaintDevices(QPoint & pt, const KisPaintDeviceSP dev1, const 
 template <typename channel_type>
 inline bool comparePaintDevicesClever(const KisPaintDeviceSP dev1, const KisPaintDeviceSP dev2, channel_type alphaThreshold = 0)
 {
-    QRect rc1 = dev1->exactBounds();
-    QRect rc2 = dev2->exactBounds();
+    PkRect rc1 = dev1->exactBounds();
+    PkRect rc2 = dev2->exactBounds();
 
     if (rc1 != rc2) {
-        qDebug() << "Devices have different size" << ppVar(rc1) << ppVar(rc2);
+        qDebug() << "Devices have different size" << rc1.x() << rc1.y() << rc1.width() << rc1.height()
+                 << rc2.x() << rc2.y() << rc2.width() << rc2.height();
         return false;
     }
 
@@ -254,12 +291,16 @@ struct ReferenceImageChecker
 
 
         if (m_storageType == ExternalStorage) {
-            result = checkQImageExternal(device->convertToQImage(0, image->bounds()),
+            const PkImage converted = device->convertToQImage(0, image->bounds());
+            const QImage diagnostic(reinterpret_cast<const uchar *>(converted.constBits()), converted.width(), converted.height(), converted.bytesPerLine(), QImage::Format_ARGB32);
+            result = checkQImageExternal(diagnostic.copy(),
                                          m_testName,
                                          m_prefix,
                                          caseName, m_fuzzy, m_fuzzy, m_maxFailingPixels);
         } else {
-            result = checkQImage(device->convertToQImage(0, image->bounds()),
+            const PkImage converted = device->convertToQImage(0, image->bounds());
+            const QImage diagnostic(reinterpret_cast<const uchar *>(converted.constBits()), converted.width(), converted.height(), converted.bytesPerLine(), QImage::Format_ARGB32);
+            result = checkQImage(diagnostic.copy(),
                                  m_testName,
                                  m_prefix,
                                  caseName, m_fuzzy, m_fuzzy, m_maxFailingPixels);

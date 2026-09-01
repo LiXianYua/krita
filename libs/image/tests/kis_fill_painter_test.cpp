@@ -28,9 +28,9 @@ void KisFillPainterTest::benchmarkFillPainter(const QPoint &startPoint, bool use
     QImage srcImage(TestUtil::fetchDataFileLazy("heavy_labyrinth.png"));
     QVERIFY(!srcImage.isNull());
 
-    QRect imageRect = srcImage.rect();
+    PkRect imageRect(0, 0, srcImage.width(), srcImage.height());
 
-    dev->convertFromQImage(srcImage, 0, 0, 0);
+    dev->convertFromQImage(TestUtil::pkImageFromQImage(srcImage), 0, 0, 0);
 
 
     QBENCHMARK_ONCE {
@@ -43,7 +43,7 @@ void KisFillPainterTest::benchmarkFillPainter(const QPoint &startPoint, bool use
         gc.fillColor(startPoint.x(), startPoint.y(), dev);
     }
 
-    QImage resultImage =
+    PkImage resultImage =
         dev->convertToQImage(0,
                              imageRect.x(), imageRect.y(),
                              imageRect.width(), imageRect.height());
@@ -83,18 +83,18 @@ void KisFillPainterTest::benchmarkFillingScanlineColor()
     QImage srcImage(TestUtil::fetchDataFileLazy("heavy_labyrinth.png"));
     QVERIFY(!srcImage.isNull());
 
-    QRect imageRect = srcImage.rect();
+    PkRect imageRect(0, 0, srcImage.width(), srcImage.height());
 
-    dev->convertFromQImage(srcImage, 0, 0, 0);
+    dev->convertFromQImage(TestUtil::pkImageFromQImage(srcImage), 0, 0, 0);
 
 
     QBENCHMARK_ONCE {
-        KisScanlineFill gc(dev, QPoint(), imageRect);
+        KisScanlineFill gc(dev, PkPoint(), imageRect);
         gc.setThreshold(THRESHOLD);
         gc.fill(KoColor(Qt::red, dev->colorSpace()));
     }
 
-    QImage resultImage =
+    PkImage resultImage =
         dev->convertToQImage(0,
                              imageRect.x(), imageRect.y(),
                              imageRect.width(), imageRect.height());
@@ -113,21 +113,21 @@ void KisFillPainterTest::benchmarkFillSelection(int closeGap)
     QImage srcImage(TestUtil::fetchDataFileLazy("heavy_labyrinth.png"));
     QVERIFY(!srcImage.isNull());
 
-    QRect imageRect = srcImage.rect();
+    PkRect imageRect(0, 0, srcImage.width(), srcImage.height());
 
-    dev->convertFromQImage(srcImage, 0, 0, 0);
+    dev->convertFromQImage(TestUtil::pkImageFromQImage(srcImage), 0, 0, 0);
 
 
     KisPixelSelectionSP pixelSelection = new KisPixelSelection();
 
     QBENCHMARK_ONCE {
-        KisScanlineFill gc(dev, QPoint(), imageRect);
+        KisScanlineFill gc(dev, PkPoint(), imageRect);
         gc.setThreshold(THRESHOLD);
         gc.setCloseGap(closeGap);
         gc.fillSelection(pixelSelection);
     }
 
-    QImage resultImage =
+    PkImage resultImage =
         pixelSelection->convertToQImage(0,
                                         imageRect.x(), imageRect.y(),
                                         imageRect.width(), imageRect.height());
@@ -156,21 +156,21 @@ void KisFillPainterTest::testPatternFill()
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
 
     KisPaintDeviceSP pattern = new KisPaintDevice(cs);
-    pattern->fill(QRect(0,0,32,32), KoColor(Qt::red, cs));
-    pattern->fill(QRect(32,32,32,32), KoColor(Qt::red, cs));
-    pattern->fill(QRect(32,0,32,32), KoColor(Qt::yellow, cs));
-    pattern->fill(QRect(0,32,32,32), KoColor(Qt::white, cs));
+    pattern->fill(PkRect(0,0,32,32), KoColor(Qt::red, cs));
+    pattern->fill(PkRect(32,32,32,32), KoColor(Qt::red, cs));
+    pattern->fill(PkRect(32,0,32,32), KoColor(Qt::yellow, cs));
+    pattern->fill(PkRect(0,32,32,32), KoColor(Qt::white, cs));
 
-    const QRect fillRect(-128,-128,384,384);
+    const PkRect fillRect(-128,-128,384,384);
     KisFillPainter painter(dst);
 
 
     { // fill aligned
-        const QRect patternRect = pattern->exactBounds();
+        const PkRect patternRect = pattern->exactBounds();
         painter.fillRect(fillRect.x(), fillRect.y(), fillRect.width(), fillRect.height(), pattern, patternRect);
-        dst->fill(QRect(0,0,10,10), KoColor(Qt::black, cs));
+        dst->fill(PkRect(0,0,10,10), KoColor(Qt::black, cs));
 
-        QImage resultImage =
+        PkImage resultImage =
                 dst->convertToQImage(0,
                                      fillRect.x(), fillRect.y(),
                                      fillRect.width(), fillRect.height());
@@ -187,12 +187,12 @@ void KisFillPainterTest::testPatternFill()
         pattern->setY(-13);
 
 
-        const QRect patternRect = pattern->exactBounds();
+        const PkRect patternRect = pattern->exactBounds();
 
         painter.fillRect(fillRect.x(), fillRect.y(), fillRect.width(), fillRect.height(), pattern, patternRect);
-        dst->fill(QRect(0,0,10,10), KoColor(Qt::black, cs));
+        dst->fill(PkRect(0,0,10,10), KoColor(Qt::black, cs));
 
-        QImage resultImage =
+        PkImage resultImage =
                 dst->convertToQImage(0,
                                      fillRect.x(), fillRect.y(),
                                      fillRect.width(), fillRect.height());

@@ -30,16 +30,26 @@
 #include <KisGlobalResourcesInterface.h>
 #include <KisLocalStrokeResources.h>
 
+static PkSharedPointer<KoStopGradient> makeTestGradient()
+{
+    PkGradient gradient(PkGradientEnums::LinearGradient);
+    gradient.setColorAt(0.0, PkColor(Qt::white));
+    gradient.setColorAt(0.5, PkColor(Qt::green));
+    gradient.setColorAt(1.0, PkColor(Qt::black));
+    gradient.setSpread(PkGradientEnums::ReflectSpread);
+    return KoStopGradient::fromQGradient(&gradient);
+}
+
 
 void KisLayerStyleProjectionPlaneTest::test(KisPSDLayerStyleSP style, const QString testName)
 {
-    const QRect imageRect(0, 0, 200, 200);
-    const QRect rFillRect(10, 10, 100, 100);
-    const QRect tMaskRect(50, 50, 20, 20);
-    const QRect partialSelectionRect(90, 50, 20, 20);
+    const PkRect imageRect(0, 0, 200, 200);
+    const PkRect rFillRect(10, 10, 100, 100);
+    const PkRect tMaskRect(50, 50, 20, 20);
+    const PkRect partialSelectionRect(90, 50, 20, 20);
 
-    const QRect updateRect1(10, 10, 50, 100);
-    const QRect updateRect2(60, 10, 50, 100);
+    const PkRect updateRect1(10, 10, 50, 100);
+    const PkRect updateRect2(60, 10, 50, 100);
 
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisImageSP image = new KisImage(0, imageRect.width(), imageRect.height(), cs, "styles test");
@@ -65,8 +75,8 @@ void KisLayerStyleProjectionPlaneTest::test(KisPSDLayerStyleSP style, const QStr
 
     {
         projection->clear();
-        const QRect changeRect = plane.changeRect(rFillRect, KisLayer::N_FILTHY);
-        dbgKrita << ppVar(rFillRect) << ppVar(changeRect);
+        const PkRect changeRect = plane.changeRect(rFillRect, KisLayer::N_FILTHY);
+        dbgKrita << rFillRect.x() << rFillRect.y() << changeRect.x() << changeRect.y();
 
         plane.recalculate(changeRect, layer, KisRenderPassFlag::None);
 
@@ -87,8 +97,8 @@ void KisLayerStyleProjectionPlaneTest::test(KisPSDLayerStyleSP style, const QStr
                                                        clonedLayer.data(),
                                                        style));
 
-        const QRect changeRect = clonedPlane->changeRect(rFillRect, KisLayer::N_FILTHY);
-        dbgKrita << ppVar(rFillRect) << ppVar(changeRect);
+        const PkRect changeRect = clonedPlane->changeRect(rFillRect, KisLayer::N_FILTHY);
+        dbgKrita << rFillRect.x() << rFillRect.y() << changeRect.x() << changeRect.y();
 
         KIS_DUMP_DEVICE_2(clonedLayer->projection(), imageRect, "04L_clone_state_after_copy", testName);
 
@@ -140,10 +150,10 @@ void KisLayerStyleProjectionPlaneTest::test(KisPSDLayerStyleSP style, const QStr
     selection->pixelSelection()->select(partialSelectionRect, OPACITY_OPAQUE_U8);
 
     {
-        const QRect changeRect = plane.changeRect(partialSelectionRect, KisLayer::N_FILTHY);
+        const PkRect changeRect = plane.changeRect(partialSelectionRect, KisLayer::N_FILTHY);
         projection->clear(changeRect);
 
-        dbgKrita << ppVar(partialSelectionRect) << ppVar(changeRect);
+        dbgKrita << partialSelectionRect.x() << partialSelectionRect.y() << changeRect.x() << changeRect.y();
 
         plane.recalculate(changeRect, layer, KisRenderPassFlag::None);
 
@@ -159,10 +169,10 @@ void KisLayerStyleProjectionPlaneTest::test(KisPSDLayerStyleSP style, const QStr
     transparencyMask->setVisible(false);
 
     {
-        const QRect changeRect = plane.changeRect(updateRect1, KisLayer::N_FILTHY);
+        const PkRect changeRect = plane.changeRect(updateRect1, KisLayer::N_FILTHY);
         projection->clear(changeRect);
 
-        dbgKrita << ppVar(updateRect1) << ppVar(changeRect);
+        dbgKrita << updateRect1.x() << updateRect1.y() << changeRect.x() << changeRect.y();
 
         plane.recalculate(changeRect, layer, KisRenderPassFlag::None);
 
@@ -175,10 +185,10 @@ void KisLayerStyleProjectionPlaneTest::test(KisPSDLayerStyleSP style, const QStr
     }
 
     {
-        const QRect changeRect = plane.changeRect(updateRect2, KisLayer::N_FILTHY);
+        const PkRect changeRect = plane.changeRect(updateRect2, KisLayer::N_FILTHY);
         projection->clear(changeRect);
 
-        dbgKrita << ppVar(updateRect2) << ppVar(changeRect);
+        dbgKrita << updateRect2.x() << updateRect2.y() << changeRect.x() << changeRect.y();
 
         plane.recalculate(changeRect, layer, KisRenderPassFlag::None);
 
@@ -236,13 +246,7 @@ void KisLayerStyleProjectionPlaneTest::testGlowGradient()
     style->outerGlow()->setEffectEnabled(true);
     style->outerGlow()->setColor(KoColor::fromXML("<color channeldepth='U8'><sRGB r='0.0' g='1.0' b='0.0'/></color>"));
 
-    QLinearGradient testGradient;
-    testGradient.setColorAt(0.0, Qt::white);
-    testGradient.setColorAt(0.5, Qt::green);
-    testGradient.setColorAt(1.0, Qt::black);
-    testGradient.setSpread(QGradient::ReflectSpread);
-    QSharedPointer<KoStopGradient> gradient(
-        KoStopGradient::fromQGradient(&testGradient));
+    PkSharedPointer<KoStopGradient> gradient = makeTestGradient();
 
     style->outerGlow()->setGradient(gradient);
     style->outerGlow()->setFillType(psd_fill_gradient);
@@ -260,13 +264,7 @@ void KisLayerStyleProjectionPlaneTest::testGlowGradientJitter()
     style->outerGlow()->setEffectEnabled(true);
     style->outerGlow()->setColor(KoColor::fromXML("<color channeldepth='U8'><sRGB r='0.0' g='1.0' b='0.0'/></color>"));
 
-    QLinearGradient testGradient;
-    testGradient.setColorAt(0.0, Qt::white);
-    testGradient.setColorAt(0.5, Qt::green);
-    testGradient.setColorAt(1.0, Qt::black);
-    testGradient.setSpread(QGradient::ReflectSpread);
-    QSharedPointer<KoStopGradient> gradient(
-        KoStopGradient::fromQGradient(&testGradient));
+    PkSharedPointer<KoStopGradient> gradient = makeTestGradient();
 
     style->outerGlow()->setGradient(gradient);
     style->outerGlow()->setFillType(psd_fill_gradient);
@@ -287,13 +285,7 @@ void KisLayerStyleProjectionPlaneTest::testGlowInnerGradient()
     style->innerGlow()->setEffectEnabled(true);
     style->innerGlow()->setColor(KoColor::fromXML("<color channeldepth='U8'><sRGB r='1.0' g='1.0' b='1.0'/></color>"));
 
-    QLinearGradient testGradient;
-    testGradient.setColorAt(0.0, Qt::white);
-    testGradient.setColorAt(0.5, Qt::green);
-    testGradient.setColorAt(1.0, Qt::black);
-    testGradient.setSpread(QGradient::ReflectSpread);
-    QSharedPointer<KoStopGradient> gradient(
-        KoStopGradient::fromQGradient(&testGradient));
+    PkSharedPointer<KoStopGradient> gradient = makeTestGradient();
 
     style->innerGlow()->setGradient(gradient);
     style->innerGlow()->setFillType(psd_fill_gradient);
@@ -343,13 +335,7 @@ void KisLayerStyleProjectionPlaneTest::testGradientOverlay()
     style->gradientOverlay()->setScale(100);
     style->gradientOverlay()->setStyle(psd_gradient_style_diamond);
 
-    QLinearGradient testGradient;
-    testGradient.setColorAt(0.0, Qt::white);
-    testGradient.setColorAt(0.5, Qt::green);
-    testGradient.setColorAt(1.0, Qt::black);
-    testGradient.setSpread(QGradient::ReflectSpread);
-    QSharedPointer<KoStopGradient> gradient(
-        KoStopGradient::fromQGradient(&testGradient));
+    PkSharedPointer<KoStopGradient> gradient = makeTestGradient();
 
     style->gradientOverlay()->setGradient(gradient);
 
@@ -368,12 +354,12 @@ void KisLayerStyleProjectionPlaneTest::testPatternOverlay()
 
     QString fileName(TestUtil::fetchDataFileLazy("pattern.pat"));
 
-    KoPatternSP pattern(new KoPattern(fileName));
+    KoPatternSP pattern(new KoPattern(PkString(fileName.toUtf8().constData())));
 
     QVERIFY(pattern->load(KisGlobalResourcesInterface::instance()));
 
 
-    QSharedPointer<KisLocalStrokeResources> resourcesInterface(new KisLocalStrokeResources());
+    PkSharedPointer<KisLocalStrokeResources> resourcesInterface(new KisLocalStrokeResources());
     resourcesInterface->addResource(pattern);
     style->setResourcesInterface(resourcesInterface);
 
@@ -405,10 +391,10 @@ void KisLayerStyleProjectionPlaneTest::testStroke()
 
 
     QString fileName(TestUtil::fetchDataFileLazy("pattern.pat"));
-    KoPatternSP pattern(new KoPattern(fileName));
+    KoPatternSP pattern(new KoPattern(PkString(fileName.toUtf8().constData())));
     QVERIFY(pattern->load(KisGlobalResourcesInterface::instance()));
 
-    QSharedPointer<KisLocalStrokeResources> resourcesInterface(new KisLocalStrokeResources());
+    PkSharedPointer<KisLocalStrokeResources> resourcesInterface(new KisLocalStrokeResources());
     resourcesInterface->addResource(pattern);
     style->setResourcesInterface(resourcesInterface);
 
@@ -418,13 +404,7 @@ void KisLayerStyleProjectionPlaneTest::testStroke()
     test(style, "stroke_pat");
 
 
-    QLinearGradient testGradient;
-    testGradient.setColorAt(0.0, Qt::white);
-    testGradient.setColorAt(0.5, Qt::green);
-    testGradient.setColorAt(1.0, Qt::black);
-    testGradient.setSpread(QGradient::ReflectSpread);
-    QSharedPointer<KoStopGradient> gradient(
-        KoStopGradient::fromQGradient(&testGradient));
+    PkSharedPointer<KoStopGradient> gradient = makeTestGradient();
 
     style->stroke()->setGradient(gradient);
     style->stroke()->setFillType(psd_fill_gradient);
@@ -442,8 +422,8 @@ void KisLayerStyleProjectionPlaneTest::testBumpmap()
     const int numCycles = 30;
     const int step = 5;
 
-    QRect applyRect(200, 100, 100, 100);
-    QRect fillRect(210, 110, 80, 80);
+    PkRect applyRect(200, 100, 100, 100);
+    PkRect fillRect(210, 110, 80, 80);
     quint8 selectedness = 256 - numCycles * step;
 
 
@@ -491,10 +471,10 @@ void KisLayerStyleProjectionPlaneTest::testBevel()
     style->bevelAndEmboss()->setShadowOpacity(100);
 
     QString fileName(TestUtil::fetchDataFileLazy("pattern.pat"));
-    KoPatternSP pattern(new KoPattern(fileName));
+    KoPatternSP pattern(new KoPattern(PkString(fileName.toUtf8().constData())));
     QVERIFY(pattern->load(KisGlobalResourcesInterface::instance()));
     Q_ASSERT(!pattern->md5Sum().isEmpty());
-    QSharedPointer<KisLocalStrokeResources> resourcesInterface(new KisLocalStrokeResources());
+    PkSharedPointer<KisLocalStrokeResources> resourcesInterface(new KisLocalStrokeResources());
     resourcesInterface->addResource(pattern);
 
     style->setResourcesInterface(resourcesInterface);
@@ -554,36 +534,36 @@ void KisLayerStyleProjectionPlaneTest::testBlending()
 
     const int width = 20;
 
-    QVector<QColor> layerColors;
-    QVector<QColor> overlayColors;
-    QVector<QColor> bgColors;
+    PkVector<PkColor> layerColors;
+    PkVector<PkColor> overlayColors;
+    PkVector<PkColor> bgColors;
 
-    layerColors << QColor(0,   255, 0);
-    layerColors << QColor(128, 255, 64);
+    layerColors << PkColor(0,   255, 0);
+    layerColors << PkColor(128, 255, 64);
 
-    overlayColors << QColor(255,   0, 0);
-    overlayColors << QColor(255, 128, 64);
+    overlayColors << PkColor(255,   0, 0);
+    overlayColors << PkColor(255, 128, 64);
 
-    bgColors << QColor(0, 0, 0, 0);
-    bgColors << QColor(0, 0, 0, 255);
-    bgColors << QColor(255, 255, 255, 255);
-    bgColors << QColor(64, 128, 255, 255);
+    bgColors << PkColor(0, 0, 0, 0);
+    bgColors << PkColor(0, 0, 0, 255);
+    bgColors << PkColor(255, 255, 255, 255);
+    bgColors << PkColor(64, 128, 255, 255);
 
-    bgColors << QColor(0, 0, 0, 128);
-    bgColors << QColor(255, 255, 255, 128);
-    bgColors << QColor(64, 128, 255, 128);
+    bgColors << PkColor(0, 0, 0, 128);
+    bgColors << PkColor(255, 255, 255, 128);
+    bgColors << PkColor(64, 128, 255, 128);
 
     const int overlayOpacity = 255;
     const int layerOpacity = 255;
     int y = 1;
-    Q_FOREACH(const QColor &layerColor, layerColors) {
-        Q_FOREACH(const QColor &overlayColor, overlayColors) {
-            Q_FOREACH(const QColor &bgColor, bgColors) {
+    Q_FOREACH(const PkColor &layerColor, layerColors) {
+        Q_FOREACH(const PkColor &overlayColor, overlayColors) {
+            Q_FOREACH(const PkColor &bgColor, bgColors) {
                 bg->setPixel(0, y, layerColor);
                 bg->setPixel(1, y, overlayColor);
                 bg->setPixel(2, y, bgColor);
-                bg->setPixel(3, y, QColor(layerOpacity, layerOpacity, layerOpacity, 255));
-                bg->setPixel(4, y, QColor(overlayOpacity, overlayOpacity, overlayOpacity, 255));
+                bg->setPixel(3, y, PkColor(layerOpacity, layerOpacity, layerOpacity, 255));
+                bg->setPixel(4, y, PkColor(overlayOpacity, overlayOpacity, overlayOpacity, 255));
 
                 for (int i = 5; i < width; i++) {
                     bg->setPixel(i, y, bgColor);
@@ -593,13 +573,13 @@ void KisLayerStyleProjectionPlaneTest::testBlending()
                     const quint8 alpha = i == 0 ? 71 : qRound(255 * qreal(i) / 10);
 
                     {
-                        QColor c(layerColor);
+                        PkColor c(layerColor);
                         c.setAlpha(alpha);
                         layer->setPixel(7 + i, y, c);
                     }
 
                     {
-                        QColor c(overlayColor);
+                        PkColor c(overlayColor);
                         c.setAlpha(alpha);
                         overlay->setPixel(7 + i, y, c);
                     }
@@ -610,7 +590,7 @@ void KisLayerStyleProjectionPlaneTest::testBlending()
         }
     }
 
-    const QRect rc = bg->exactBounds() | layer->exactBounds();
+    const PkRect rc = bg->exactBounds() | layer->exactBounds();
 
 
     KIS_DUMP_DEVICE_2(layer, rc, "00_layer", "dd");

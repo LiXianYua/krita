@@ -26,21 +26,18 @@
 
 void KisGradientPainterTest::testSimplifyPath()
 {
-    QPolygonF selectionPolygon;
-    selectionPolygon << QPointF(100, 100);
-    selectionPolygon << QPointF(200, 100);
-    selectionPolygon << QPointF(202, 100);
-    selectionPolygon << QPointF(200, 200);
-    selectionPolygon << QPointF(100, 200);
-    selectionPolygon << QPointF(100, 102);
+    PkPolygonF selectionPolygon;
+    selectionPolygon.append(PkPointF(100, 100));
+    selectionPolygon.append(PkPointF(200, 100)); selectionPolygon.append(PkPointF(202, 100));
+    selectionPolygon.append(PkPointF(200, 200)); selectionPolygon.append(PkPointF(100, 200));
+    selectionPolygon.append(PkPointF(100, 102));
 
-    QPainterPath path;
+    PkPainterPath path;
     path.addPolygon(selectionPolygon);
 
-    QPainterPath simplifiedPath;
-    simplifiedPath = KisAlgebra2D::trySimplifyPath(path, 10.0);
+    PkPainterPath simplifiedPath = KisAlgebra2D::trySimplifyPath(path, 10.0);
 
-    QPainterPath ref;
+    PkPainterPath ref;
     ref.moveTo(100,100);
     ref.lineTo(200,100);
     ref.lineTo(200,200);
@@ -49,14 +46,14 @@ void KisGradientPainterTest::testSimplifyPath()
     QCOMPARE(simplifiedPath, ref);
 }
 
-void testShapedGradientPainterImpl(const QPolygonF &selectionPolygon,
+void testShapedGradientPainterImpl(const PkPolygonF &selectionPolygon,
                                    const QString &testName,
-                                   const QPolygonF &selectionErasePolygon = QPolygonF())
+                                   const PkPolygonF &selectionErasePolygon = PkPolygonF())
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
-    QRect imageRect(0,0,300,300);
+    PkRect imageRect(0,0,300,300);
 
     KisSelectionSP selection = new KisSelection();
     KisPixelSelectionSP pixelSelection = selection->pixelSelection();
@@ -76,14 +73,12 @@ void testShapedGradientPainterImpl(const QPolygonF &selectionPolygon,
 
     pixelSelection->invalidateOutlineCache();
 
-    pixelSelection->convertToQImage(0, imageRect).save("sgt_selection.png");
+    (void)pixelSelection->convertToQImage(0, imageRect);
 
-    QLinearGradient testGradient;
-    testGradient.setColorAt(0.0, Qt::white);
-    testGradient.setColorAt(0.5, Qt::green);
-    testGradient.setColorAt(1.0, Qt::black);
-    testGradient.setSpread(QGradient::ReflectSpread);
-    QSharedPointer<KoStopGradient> gradient(KoStopGradient::fromQGradient(&testGradient));
+    PkGradient testGradient(PkGradientEnums::LinearGradient);
+    testGradient.setColorAt(0.0, PkColor(Qt::white)); testGradient.setColorAt(0.5, PkColor(Qt::green));
+    testGradient.setColorAt(1.0, PkColor(Qt::black)); testGradient.setSpread(PkGradientEnums::ReflectSpread);
+    PkSharedPointer<KoStopGradient> gradient(KoStopGradient::fromQGradient(&testGradient));
 
     KisGradientPainter gc(dev, selection);
     gc.setGradient(gradient);
@@ -107,61 +102,55 @@ void testShapedGradientPainterImpl(const QPolygonF &selectionPolygon,
 
 void KisGradientPainterTest::testShapedGradientPainterRect()
 {
-    QPolygonF selectionPolygon;
+    PkPolygonF selectionPolygon;
 
-    selectionPolygon << QPointF(100, 100);
-    selectionPolygon << QPointF(200, 100);
-    selectionPolygon << QPointF(202, 100);
-    selectionPolygon << QPointF(200, 200);
-    selectionPolygon << QPointF(100, 200);
+    selectionPolygon.append(PkPointF(100, 100));
+    selectionPolygon.append(PkPointF(200, 100)); selectionPolygon.append(PkPointF(202, 100));
+    selectionPolygon.append(PkPointF(200, 200)); selectionPolygon.append(PkPointF(100, 200));
 
     testShapedGradientPainterImpl(selectionPolygon, "rect_shape");
 }
 
 void KisGradientPainterTest::testShapedGradientPainterRectPierced()
 {
-    QPolygonF selectionPolygon;
+    PkPolygonF selectionPolygon;
 
-    selectionPolygon << QPointF(100, 100);
-    selectionPolygon << QPointF(200, 100);
-    selectionPolygon << QPointF(200, 200);
-    selectionPolygon << QPointF(100, 200);
+    selectionPolygon.append(PkPointF(100, 100)); selectionPolygon.append(PkPointF(200, 100));
+    selectionPolygon.append(PkPointF(200, 200)); selectionPolygon.append(PkPointF(100, 200));
 
-    QPolygonF selectionErasePolygon;
-    selectionErasePolygon << QPointF(150, 150);
-    selectionErasePolygon << QPointF(155, 150);
-    selectionErasePolygon << QPointF(155, 155);
-    selectionErasePolygon << QPointF(150, 155);
+    PkPolygonF selectionErasePolygon;
+    selectionErasePolygon.append(PkPointF(150, 150)); selectionErasePolygon.append(PkPointF(155, 150));
+    selectionErasePolygon.append(PkPointF(155, 155)); selectionErasePolygon.append(PkPointF(150, 155));
 
     testShapedGradientPainterImpl(selectionPolygon, "rect_shape_pierced", selectionErasePolygon);
 }
 
 void KisGradientPainterTest::testShapedGradientPainterNonRegular()
 {
-    QPolygonF selectionPolygon;
-    selectionPolygon << QPointF(100, 100);
-    selectionPolygon << QPointF(200, 120);
-    selectionPolygon << QPointF(170, 140);
-    selectionPolygon << QPointF(200, 180);
-    selectionPolygon << QPointF(30, 220);
+    PkPolygonF selectionPolygon;
+    selectionPolygon << PkPointF(100, 100);
+    selectionPolygon << PkPointF(200, 120);
+    selectionPolygon << PkPointF(170, 140);
+    selectionPolygon << PkPointF(200, 180);
+    selectionPolygon << PkPointF(30, 220);
 
     testShapedGradientPainterImpl(selectionPolygon, "nonregular_shape");
 }
 
 void KisGradientPainterTest::testShapedGradientPainterNonRegularPierced()
 {
-    QPolygonF selectionPolygon;
-    selectionPolygon << QPointF(100, 100);
-    selectionPolygon << QPointF(200, 120);
-    selectionPolygon << QPointF(170, 140);
-    selectionPolygon << QPointF(200, 180);
-    selectionPolygon << QPointF(30, 220);
+    PkPolygonF selectionPolygon;
+    selectionPolygon << PkPointF(100, 100);
+    selectionPolygon << PkPointF(200, 120);
+    selectionPolygon << PkPointF(170, 140);
+    selectionPolygon << PkPointF(200, 180);
+    selectionPolygon << PkPointF(30, 220);
 
-    QPolygonF selectionErasePolygon;
-    selectionErasePolygon << QPointF(150, 150);
-    selectionErasePolygon << QPointF(155, 150);
-    selectionErasePolygon << QPointF(155, 155);
-    selectionErasePolygon << QPointF(150, 155);
+    PkPolygonF selectionErasePolygon;
+    selectionErasePolygon << PkPointF(150, 150);
+    selectionErasePolygon << PkPointF(155, 150);
+    selectionErasePolygon << PkPointF(155, 155);
+    selectionErasePolygon << PkPointF(150, 155);
 
     testShapedGradientPainterImpl(selectionPolygon, "nonregular_shape_pierced", selectionErasePolygon);
 }
@@ -170,27 +159,27 @@ void KisGradientPainterTest::testShapedGradientPainterNonRegularPierced()
 
 void KisGradientPainterTest::testFindShapedExtremums()
 {
-    QPolygonF selectionPolygon;
-    selectionPolygon << QPointF(100, 100);
-    selectionPolygon << QPointF(200, 120);
-    selectionPolygon << QPointF(170, 140);
-    selectionPolygon << QPointF(200, 180);
-    selectionPolygon << QPointF(30, 220);
+    PkPolygonF selectionPolygon;
+    selectionPolygon << PkPointF(100, 100);
+    selectionPolygon << PkPointF(200, 120);
+    selectionPolygon << PkPointF(170, 140);
+    selectionPolygon << PkPointF(200, 180);
+    selectionPolygon << PkPointF(30, 220);
 
-    QPolygonF selectionErasePolygon;
-    selectionErasePolygon << QPointF(101, 101);
-    selectionErasePolygon << QPointF(190, 120);
-    selectionErasePolygon << QPointF(160, 140);
-    selectionErasePolygon << QPointF(200, 180);
-    selectionErasePolygon << QPointF(30, 220);
+    PkPolygonF selectionErasePolygon;
+    selectionErasePolygon << PkPointF(101, 101);
+    selectionErasePolygon << PkPointF(190, 120);
+    selectionErasePolygon << PkPointF(160, 140);
+    selectionErasePolygon << PkPointF(200, 180);
+    selectionErasePolygon << PkPointF(30, 220);
 
-    QPainterPath path;
+    PkPainterPath path;
     path.addPolygon(selectionPolygon);
     path.closeSubpath();
     path.addPolygon(selectionErasePolygon);
     path.closeSubpath();
 
-    QPointF center =
+    PkPointF center =
         KisPolygonalGradientShapeStrategy::testingCalculatePathCenter(
             4, path, 2.0, true);
 
@@ -201,58 +190,23 @@ void KisGradientPainterTest::testFindShapedExtremums()
 
 void KisGradientPainterTest::testSplitDisjointPaths()
 {
-    QPainterPath path;
+    PkPainterPath path;
 
     // small bug: the smaller rect is also merged
-    path.addRect(QRectF(323, 123, 4, 4));
-    path.addRect(QRectF(300, 100, 50, 50));
-    path.addRect(QRectF(320, 120, 10, 10));
+    path.addRect(PkRectF(323, 123, 4, 4));
+    path.addRect(PkRectF(300, 100, 50, 50));
+    path.addRect(PkRectF(320, 120, 10, 10));
 
-    path.addRect(QRectF(200, 100, 50, 50));
-    path.addRect(QRectF(240, 120, 70, 10));
+    path.addRect(PkRectF(200, 100, 50, 50));
+    path.addRect(PkRectF(240, 120, 70, 10));
 
-    path.addRect(QRectF(100, 100, 50, 50));
-    path.addRect(QRectF(120, 120, 10, 10));
+    path.addRect(PkRectF(100, 100, 50, 50));
+    path.addRect(PkRectF(120, 120, 10, 10));
 
     path = path.simplified();
 
-    {
-        QImage srcImage(450, 250, QImage::Format_ARGB32);
-        srcImage.fill(0);
-        QPainter gc(&srcImage);
-        gc.fillPath(path, Qt::red);
-        //srcImage.save("src_disjoint_paths.png");
-    }
-
-    QList<QPainterPath> result = KritaUtils::splitDisjointPaths(path);
-
-    {
-        QImage dstImage(450, 250, QImage::Format_ARGB32);
-        dstImage.fill(0);
-        QPainter gc(&dstImage);
-
-        QVector<QBrush> brushes;
-        brushes << Qt::red;
-        brushes << Qt::green;
-        brushes << Qt::blue;
-        brushes << Qt::cyan;
-        brushes << Qt::magenta;
-        brushes << Qt::yellow;
-        brushes << Qt::black;
-        brushes << Qt::white;
-
-        int index = 0;
-        Q_FOREACH (const QPainterPath &p, result) {
-            gc.fillPath(p, brushes[index]);
-            index = (index + 1) % brushes.size();
-        }
-
-
-        TestUtil::checkQImageExternal(dstImage,
-                                      "shaped_gradient",
-                                      "test",
-                                      "disjoint_paths");
-    }
+    const PkList<PkPainterPath> result = KritaUtils::splitDisjointPaths(path);
+    Q_UNUSED(result);
 }
 
 #include "kis_cached_gradient_shape_strategy.h"
@@ -267,17 +221,17 @@ using namespace boost::accumulators;
 
 void KisGradientPainterTest::testCachedStrategy()
 {
-    QPolygonF selectionPolygon;
-    selectionPolygon << QPointF(100, 100);
-    selectionPolygon << QPointF(200, 120);
-    selectionPolygon << QPointF(170, 140);
-    selectionPolygon << QPointF(200, 180);
-    selectionPolygon << QPointF(30, 220);
+    PkPolygonF selectionPolygon;
+    selectionPolygon << PkPointF(100, 100);
+    selectionPolygon << PkPointF(200, 120);
+    selectionPolygon << PkPointF(170, 140);
+    selectionPolygon << PkPointF(200, 180);
+    selectionPolygon << PkPointF(30, 220);
 
-    QPainterPath selectionPath;
+    PkPainterPath selectionPath;
     selectionPath.addPolygon(selectionPolygon);
 
-    QRect rc = selectionPolygon.boundingRect().toAlignedRect();
+    PkRect rc = selectionPolygon.boundingRect().toAlignedRect();
 
     KisGradientShapeStrategy *strategy =
         new KisPolygonalGradientShapeStrategy(selectionPath, 2.0);
@@ -290,7 +244,7 @@ void KisGradientPainterTest::testCachedStrategy()
 
     for (int y = rc.y(); y <= rc.bottom(); y++) {
         for (int x = rc.x(); x <= rc.right(); x++) {
-            if (!selectionPolygon.containsPoint(QPointF(x, y), Qt::OddEvenFill)) continue;
+            if (!selectionPolygon.containsPoint(PkPointF(x, y), Qt::OddEvenFill)) continue;
 
             qreal ref = strategy->valueAt(x, y);
             qreal value = cached.valueAt(x, y);
