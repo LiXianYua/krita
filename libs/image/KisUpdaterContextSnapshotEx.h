@@ -7,6 +7,8 @@
 #ifndef KISUPDATERCONTEXTSNAPSHOTEX_H
 #define KISUPDATERCONTEXTSNAPSHOTEX_H
 
+#include <PkFlags.h>
+
 enum KisUpdaterContextSnapshotExTag {
     ContextEmpty = 0x00,
     HasSequentialJob = 0x01,
@@ -16,7 +18,7 @@ enum KisUpdaterContextSnapshotExTag {
     HasMergeJob = 0x10
 };
 
-Q_DECLARE_FLAGS(KisUpdaterContextSnapshotEx, KisUpdaterContextSnapshotExTag);
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisUpdaterContextSnapshotEx);
+PK_DECLARE_FLAGS(KisUpdaterContextSnapshotEx, KisUpdaterContextSnapshotExTag);
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisUpdaterContextSnapshotEx);
 
 #endif // KISUPDATERCONTEXTSNAPSHOTEX_H
