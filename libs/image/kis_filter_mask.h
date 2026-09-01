@@ -11,6 +11,7 @@
 
 #include "kis_node_filter_interface.h"
 #include "kis_filter_configuration.h"
+#include <PkScopedPointer.h>
 
 
 /**
