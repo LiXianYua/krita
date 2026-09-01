@@ -524,6 +524,7 @@ set(kritaimage_SIGNAL_HEADERS
     kis_base_node.h
     kis_image.h
     kis_image_animation_interface.h
+    kis_image_signal_router.h
     kis_keyframe_channel.h
     kis_node.h
     kis_paint_device.h

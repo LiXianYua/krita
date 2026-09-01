@@ -63,7 +63,7 @@ KisImageSignalRouter::~KisImageSignalRouter()
 
 void KisImageSignalRouter::emitImageModifiedNotification()
 {
-    Q_EMIT sigImageModified();
+    sigImageModified();
 }
 
 void KisImageSignalRouter::emitNotifications(KisImageSignalVector notifications)
@@ -86,13 +86,13 @@ void KisImageSignalRouter::emitNotification(KisImageSignalType type)
         type.id == SizeChangedSignal) {
         slotNotification(type);
     } else {
-        Q_EMIT sigNotification(type);
+        sigNotification(type);
     }
 }
 
 void KisImageSignalRouter::emitNodeChanged(KisNodeSP node)
 {
-    Q_EMIT sigNodeChanged(node);
+    sigNodeChanged(node);
 }
 
 void KisImageSignalRouter::emitNodeHasBeenAdded(KisNode *parent, int index, KisNodeAdditionFlags flags)
@@ -107,7 +107,7 @@ void KisImageSignalRouter::emitNodeHasBeenAdded(KisNode *parent, int index, KisN
         }
     }
 
-    Q_EMIT sigNodeAddedAsync(newNode, flags);
+    sigNodeAddedAsync(newNode, flags);
 }
 
 void KisImageSignalRouter::emitAboutToRemoveANode(KisNode *parent, int index)
@@ -122,22 +122,22 @@ void KisImageSignalRouter::emitAboutToRemoveANode(KisNode *parent, int index)
         }
     }
 
-    Q_EMIT sigRemoveNodeAsync(removedNode);
+    sigRemoveNodeAsync(removedNode);
 }
 
 void KisImageSignalRouter::emitRequestLodPlanesSyncBlocked(bool value)
 {
-    Q_EMIT sigRequestLodPlanesSyncBlocked(value);
+    sigRequestLodPlanesSyncBlocked(value);
 }
 
 void KisImageSignalRouter::emitNotifyBatchUpdateStarted()
 {
-    Q_EMIT sigNotifyBatchUpdateStarted();
+    sigNotifyBatchUpdateStarted();
 }
 
 void KisImageSignalRouter::emitNotifyBatchUpdateEnded()
 {
-    Q_EMIT sigNotifyBatchUpdateEnded();
+    sigNotifyBatchUpdateEnded();
 }
 
 void KisImageSignalRouter::slotNotification(KisImageSignalType type)
@@ -150,34 +150,34 @@ void KisImageSignalRouter::slotNotification(KisImageSignalType type)
     switch(type.id) {
     case LayersChangedSignal:
         image->invalidateAllFrames();
-        Q_EMIT sigLayersChangedAsync();
+        sigLayersChangedAsync();
         break;
     case ModifiedWithoutUndoSignal:
-        Q_EMIT sigImageModifiedWithoutUndo();
+        sigImageModifiedWithoutUndo();
         break;
     case SizeChangedSignal:
         image->invalidateAllFrames();
-        Q_EMIT sigSizeChanged(type.sizeChangedSignal.oldStillPoint,
-                            type.sizeChangedSignal.newStillPoint);
+        sigSizeChanged(type.sizeChangedSignal.oldStillPoint,
+                       type.sizeChangedSignal.newStillPoint);
         break;
     case ProfileChangedSignal:
         image->invalidateAllFrames();
-        Q_EMIT sigProfileChanged(image->profile());
+        sigProfileChanged(image->profile());
         break;
     case ColorSpaceChangedSignal:
         image->invalidateAllFrames();
-        Q_EMIT sigColorSpaceChanged(image->colorSpace());
+        sigColorSpaceChanged(image->colorSpace());
         break;
     case ResolutionChangedSignal:
         image->invalidateAllFrames();
-        Q_EMIT sigResolutionChanged(image->xRes(), image->yRes());
+        sigResolutionChanged(image->xRes(), image->yRes());
         break;
     case NodeReselectionRequestSignal:
         if (type.nodeReselectionSignal.newActiveNode ||
             !type.nodeReselectionSignal.newSelectedNodes.isEmpty()) {
 
-            Q_EMIT sigRequestNodeReselection(type.nodeReselectionSignal.newActiveNode,
-                                           type.nodeReselectionSignal.newSelectedNodes);
+            sigRequestNodeReselection(type.nodeReselectionSignal.newActiveNode,
+                                      type.nodeReselectionSignal.newSelectedNodes);
         }
         break;
     }

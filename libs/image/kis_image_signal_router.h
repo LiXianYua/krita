@@ -8,6 +8,7 @@
 #define __KIS_IMAGE_SIGNAL_ROUTER_H
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 #include "KisImageSignals.h"
 #include "KisNodeAdditionFlags.h"
 
@@ -17,8 +18,6 @@ class KoColorProfile;
 
 class KRITAIMAGE_EXPORT KisImageSignalRouter : public PkShellObject
 {
-    Q_OBJECT
-
 public:
     KisImageSignalRouter(KisImageWSP image);
     ~KisImageSignalRouter() override;
@@ -34,13 +33,13 @@ public:
     void emitNotifyBatchUpdateStarted();
     void emitNotifyBatchUpdateEnded();
 
-public Q_SLOTS:
+public:
     void emitImageModifiedNotification();
 
-private Q_SLOTS:
+private:
     void slotNotification(KisImageSignalType type);
 
-Q_SIGNALS:
+signals:
 
     void sigNotification(KisImageSignalType type);
 
