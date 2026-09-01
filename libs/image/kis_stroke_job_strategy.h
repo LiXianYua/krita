@@ -7,6 +7,8 @@
 #ifndef __KIS_STROKE_JOB_STRATEGY_H
 #define __KIS_STROKE_JOB_STRATEGY_H
 
+#include <PkString.h>
+
 #include "kritaimage_export.h"
 
 
