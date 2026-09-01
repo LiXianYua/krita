@@ -12,8 +12,11 @@
 // 测试类必须真的走 qExec，不能绕开它直接调用测试方法。
 #include "../PkStream.h"
 #include "PkTest.h"
+#include "../../variant/PkAuxTypes.h"
+#include "../../string/PkString.h"
 
 #include <cstring>
+#include <algorithm>
 
 namespace {
 
@@ -84,6 +87,45 @@ private:
     pk_int64 m_cursor;
 };
 
+class ScriptedStream : public PkStream
+{
+public:
+    ScriptedStream(std::string data, bool sequential, pk_int64 cap, pk_int64 failAfter = -1)
+        : m_data(std::move(data)), m_sequential(sequential), m_cap(cap), m_failAfter(failAfter) {}
+    bool isSequential() const override { return m_sequential; }
+    pk_int64 size() const override { return static_cast<pk_int64>(m_data.size()); }
+    pk_int64 calls() const { return m_calls; }
+    pk_int64 requested() const { return m_requested; }
+
+protected:
+    pk_int64 readData(char *data, pk_int64 maxSize) override
+    {
+        ++m_calls;
+        m_requested += maxSize;
+        if (m_failAfter >= 0 && m_cursor >= m_failAfter) {
+            setErrorString(PkString("scripted-error"));
+            return -1;
+        }
+        const pk_int64 remaining = static_cast<pk_int64>(m_data.size()) - m_cursor;
+        if (remaining <= 0) return 0;
+        pk_int64 n = std::min({maxSize, m_cap, remaining});
+        if (m_failAfter >= 0) n = std::min(n, m_failAfter - m_cursor);
+        std::memcpy(data, m_data.data() + m_cursor, static_cast<std::size_t>(n));
+        m_cursor += n;
+        return n;
+    }
+    pk_int64 writeData(const char *, pk_int64) override { return -1; }
+
+private:
+    std::string m_data;
+    bool m_sequential;
+    pk_int64 m_cap;
+    pk_int64 m_failAfter;
+    pk_int64 m_cursor = 0;
+    pk_int64 m_calls = 0;
+    pk_int64 m_requested = 0;
+};
+
 } // namespace
 
 class PkStreamTestCase : public PkTestObject
@@ -136,7 +178,59 @@ public:
     // Important③：readLine 在 EOF 返回 -1（不是 0），真 Qt 四种情形全覆盖：
     // 末尾带 '\n' / 末尾不带 '\n' / 空设备 / 多行读完后。
     void testReadLineEofReturnsMinusOneAllScenarios();
+    void testReadAllRandomAccessStopsOnPositiveShortRead();
+    void testReadAllSequentialAccumulatesShortReadsToEof();
+    void testReadAllEofAndImmediateErrorReturnEmpty();
+    void testReadAllSequentialPartialErrorKeepsPrefix();
 };
+
+void PkStreamTestCase::testReadAllRandomAccessStopsOnPositiveShortRead()
+{
+    ScriptedStream dev("abcdef", false, 2);
+    dev.open(PkStream::ReadOnly);
+    const PkByteArray bytes = dev.readAll();
+    PK_COMPARE(bytes.size(), 2);
+    PK_VERIFY(std::memcmp(bytes.constData(), "ab", 2) == 0);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)2);
+    PK_VERIFY(!dev.atEnd());
+    PK_COMPARE(dev.calls(), (PkStream::pk_int64)1);
+}
+
+void PkStreamTestCase::testReadAllSequentialAccumulatesShortReadsToEof()
+{
+    ScriptedStream dev("abcdef", true, 2);
+    dev.open(PkStream::ReadOnly);
+    const PkByteArray bytes = dev.readAll();
+    PK_COMPARE(bytes.size(), 6);
+    PK_VERIFY(std::memcmp(bytes.constData(), "abcdef", 6) == 0);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)0);
+    PK_VERIFY(dev.atEnd());
+}
+
+void PkStreamTestCase::testReadAllEofAndImmediateErrorReturnEmpty()
+{
+    ScriptedStream empty("", false, 2);
+    empty.open(PkStream::ReadOnly);
+    PK_COMPARE(empty.readAll().size(), 0);
+    PK_COMPARE(empty.errorString().PkToUtf8(), std::string("Unknown error"));
+    ScriptedStream unopened("abcdef", false, 2);
+    PK_COMPARE(unopened.readAll().size(), 0);
+    PK_COMPARE(unopened.calls(), (PkStream::pk_int64)0);
+    ScriptedStream error("abcdef", false, 2, 0);
+    error.open(PkStream::ReadOnly);
+    PK_COMPARE(error.readAll().size(), 0);
+    PK_COMPARE(error.errorString().PkToUtf8(), std::string("scripted-error"));
+}
+
+void PkStreamTestCase::testReadAllSequentialPartialErrorKeepsPrefix()
+{
+    ScriptedStream dev("abcdef", true, 2, 3);
+    dev.open(PkStream::ReadOnly);
+    const PkByteArray bytes = dev.readAll();
+    PK_COMPARE(bytes.size(), 3);
+    PK_VERIFY(std::memcmp(bytes.constData(), "abc", 3) == 0);
+    PK_COMPARE(dev.errorString().PkToUtf8(), std::string("scripted-error"));
+}
 
 void PkStreamTestCase::testEofReturnsZeroNotMinusOne()
 {
@@ -555,10 +649,22 @@ struct PkTestBinder<PkStreamTestCase> {
             {"testReadLineEofReturnsMinusOneAllScenarios",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadLineEofReturnsMinusOneAllScenarios(); },
              nullptr},
+            {"testReadAllRandomAccessStopsOnPositiveShortRead",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadAllRandomAccessStopsOnPositiveShortRead(); },
+             nullptr},
+            {"testReadAllSequentialAccumulatesShortReadsToEof",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadAllSequentialAccumulatesShortReadsToEof(); },
+             nullptr},
+            {"testReadAllEofAndImmediateErrorReturnEmpty",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadAllEofAndImmediateErrorReturnEmpty(); },
+             nullptr},
+            {"testReadAllSequentialPartialErrorKeepsPrefix",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadAllSequentialPartialErrorKeepsPrefix(); },
+             nullptr},
         };
         return fns;
     }
-    static int count() { return 20; }
+    static int count() { return 24; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }

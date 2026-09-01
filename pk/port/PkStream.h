@@ -43,12 +43,9 @@ class PkString;
 //
 // ── 一个刻意的设计，不要「修正」它 ──────────────────────────────────────
 //
-// readAll() / peek(pk_int64) / readLine() 这三个返回 PkByteArray 的重载，本
-// 任务**只声明，不定义，也不写任何占位实现**。PkByteArray 由 R-02 交付；这里
-// 先把「这三个符号存在、签名是什么」这件「形状」钉下来——形状正是本任务的
-// 全部交付。不定义会在**链接期**响亮报错（"undefined reference to
-// PkStream::readAll()"），不会静默变成一个错的行为。不要为了让它编过去自己
-// 造一个 PkByteArray 或注释掉这三行。登记见 pk/port/README.md。
+// readAll() 由本端口实现，使用 read() 的短读、EOF、错误和顺序设备语义；
+// PkByteArray 已由 R-02 交付。peek()/readLine() 的 PkByteArray 重载仍由后续任务
+// 实现。
 class PkStream
 {
 public:
@@ -88,7 +85,6 @@ public:
     void     ungetChar(char c);
     PkString errorString() const;
 
-    // 声明但不定义——见上方「一个刻意的设计」。PkByteArray 归 R-02。
     PkByteArray readAll();
     PkByteArray peek(pk_int64 maxSize);
     PkByteArray readLine();

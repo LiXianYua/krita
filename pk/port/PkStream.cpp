@@ -1,6 +1,10 @@
 #include "PkStream.h"
 
+#include "../variant/PkAuxTypes.h"
 #include "PkString.h"
+
+#include <limits>
+#include <vector>
 
 PkStream::PkStream()
     : m_openMode(NotOpen)
@@ -174,6 +178,39 @@ PkStream::pk_int64 PkStream::read(char *data, pk_int64 maxSize)
         }
     }
     return total;
+}
+
+PkByteArray PkStream::readAll()
+{
+    if (!isOpen() || !isReadable()) {
+        return PkByteArray();
+    }
+
+    constexpr pk_int64 minimumChunkSize = 16384;
+    std::vector<uint8_t> bytes;
+    for (;;) {
+        pk_int64 request = minimumChunkSize;
+        if (!isSequential() && bytesAvailable() > request) {
+            request = bytesAvailable();
+        }
+        const std::size_t oldSize = bytes.size();
+        const std::size_t maxResult = static_cast<std::size_t>(std::numeric_limits<int>::max());
+        if (request < 0 || static_cast<std::size_t>(request) > maxResult - oldSize) {
+            setErrorString(PkString("readAll result exceeds PkByteArray capacity"));
+            break;
+        }
+        bytes.resize(oldSize + static_cast<std::size_t>(request));
+        const pk_int64 count = read(reinterpret_cast<char *>(bytes.data() + oldSize), request);
+        if (count <= 0) {
+            bytes.resize(oldSize);
+            break;
+        }
+        bytes.resize(oldSize + static_cast<std::size_t>(count));
+        if (!isSequential() && (count < request || atEnd())) {
+            break;
+        }
+    }
+    return PkByteArray(bytes);
 }
 
 PkStream::pk_int64 PkStream::peek(char *data, pk_int64 maxSize)
