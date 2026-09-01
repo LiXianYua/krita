@@ -8,7 +8,6 @@
 #define KISRUNNABLESTROKEJOBSINTERFACE_H
 
 #include "kritaimage_export.h"
-#include <QtGlobal>
 #include "kis_pointer_utils.h"
 
 class KisRunnableStrokeJobDataBase;
