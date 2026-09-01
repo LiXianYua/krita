@@ -8,6 +8,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(PK_STRING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../string)
 set(PK_TEST_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/../test)
+set(PK_CONTAINER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../container)
+
+if (NOT TARGET pkcontainer)
+    set(PKCONTAINER_LIBRARY_ONLY ON)
+    add_subdirectory(${PK_CONTAINER_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pkcontainer EXCLUDE_FROM_ALL)
+    unset(PKCONTAINER_LIBRARY_ONLY)
+endif()
 
 # 零 Qt：本工程不得出现 find_package(Qt...)。判据靠 nm -u 自证（见报告）。
 #
@@ -38,7 +45,7 @@ target_include_directories(pkport PUBLIC
 # 一整套依赖获取逻辑（见该文件注释），塞进本文件会让两件不相关的事情
 # （"pkport 自己编什么" vs "minizip-ng 从哪来"）绞在一起，隔成子目录更薄。
 add_subdirectory(zip)
-target_link_libraries(pkport PUBLIC pkzip)
+target_link_libraries(pkport PUBLIC pkcontainer pkzip)
 
 # 测试用 pk/test（R-11）的 PK_* 宏。同样直接加源文件、不 add_subdirectory：
 # pk/test/CMakeLists.txt 会额外要求 Python3、跑代码生成、建它自己的

@@ -14,7 +14,6 @@ enable_testing()
 # 自证——静态库允许留未定义符号，真混进 Qt 依赖就会在那里现形。
 
 add_library(pkvariant STATIC
-    PkAuxTypes.cpp
     PkDataStream.cpp
     PkDataStreamColor.cpp
     PkVariant.cpp
@@ -93,7 +92,7 @@ target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../time)
 
 # pkvariant 链接 pkstring、pkgeometry、pktime（时间类型归位后依赖 pk/time）
 target_include_directories(pkvariant PUBLIC ${PKCOLOR_DIR})
-target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime pkport pkcolor)
+target_link_libraries(pkvariant PUBLIC pkcontainer pkstring pkgeometry pktime pkport pkcolor)
 
 # ---------------------------------------------------------------------------
 # 单测：用 pk/test 的 PK_* harness

@@ -11,7 +11,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # 13 个可执行文件。**必须在 add_test() 之前调用**，且必须在**本工程的**顶层
 # CMakeLists 里调用（pk/test、pk/string 是 add_subdirectory 进来的子目录，
 # 它们各自的 enable_testing() 不管本目录）。
-enable_testing()
+if (NOT PKCONTAINER_LIBRARY_ONLY)
+    enable_testing()
+endif()
 
 # 零 Qt：本工程不得出现 find_package(Qt...)。判据③ 靠
 #   nm -u <build>/libpkcontainer.a | grep -i qt
@@ -24,6 +26,7 @@ enable_testing()
 #  - PkPair.h 只有一个类型别名与一个函数模板，没有可实例化的类，加 .cpp 也
 #    生不出任何符号。
 add_library(pkcontainer STATIC
+    PkByteArray.cpp
     PkArrayData.cpp
     PkVector.cpp
     PkList.cpp
@@ -45,6 +48,10 @@ target_include_directories(pkcontainer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # pk/test 内部已包含 pk/string 的 add_subdirectory（见 pk/test/CMakeLists.txt:
 # 24-25），所以 pk/string 的库目标在这里已可用，无需再重复添加。
 # ---------------------------------------------------------------------------
+# Focused consumers set this normal (non-cache) variable while adding the
+# canonical library target. Existing standalone consumers that also need this
+# directory's test harness leave it unset and retain the full test surface.
+if (NOT PKCONTAINER_LIBRARY_ONLY)
 set(PKTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test)
 add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest EXCLUDE_FROM_ALL)
 
@@ -148,3 +155,4 @@ pk_test_add_executable(test_pkcompat
 target_include_directories(test_pkcompat PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/compat
     ${PKSTRING_DIR}/compat)
+endif()

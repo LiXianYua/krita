@@ -27,15 +27,25 @@ if (NOT pugixml_FOUND)
     FetchContent_MakeAvailable(pugixml)
 endif()
 
+# 测试用 R-11 的 PK_* harness。pktest 会带出 pkstring 目标，所以要在
+# 下方消费 pkstring 之前先建立这条边，避免同一源目录/二进制目录被
+# add_subdirectory 两次。
+set(PKTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test)
+if (NOT TARGET pktest)
+    add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest)
+endif()
+
 # 复用已交付的 pk/string（PkString，真正链接的编译期依赖）。
-# 守卫式 add_subdirectory：pk/string 自己不 add_subdirectory(pk/test)，
-# 所以这里与下面的 pktest 守卫互不冲突（照抄 pk/config/CMakeLists.txt 的模式，
-# 该文件顶部注释详细记录了 pk/container/pk/geometry 各自无条件
-# add_subdirectory(pk/test) 会撞目标名的坑——pk/xml 不需要 pk/container/
-# pk/geometry，不涉及那个坑）。
 set(PKSTRING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../string)
 if (NOT TARGET pkstring)
     add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring)
+endif()
+
+set(PKCONTAINER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../container)
+if (NOT TARGET pkcontainer)
+    set(PKCONTAINER_LIBRARY_ONLY ON)
+    add_subdirectory(${PKCONTAINER_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pkcontainer EXCLUDE_FROM_ALL)
+    unset(PKCONTAINER_LIBRARY_ONLY)
 endif()
 
 # R-25 Task 2：setContent(PkStream*, ...) 两个重载要真的链接 PkStream::read()
@@ -44,8 +54,8 @@ endif()
 # project()/test_pkport/pkzip/FetchContent(minizip-ng) 一整条依赖链拖进来，
 # 与本库无关。参照 pk/port/CMakeLists.txt 自己对 pk/string 的处理选型（同一
 # 文件"直接加 .cpp、不 add_subdirectory"的注释），采用同样的做法——
-# `PkStream.cpp` 只 `#include "PkStream.h"`/`"PkString.h"`，没有更深依赖，可以
-# 安全地这样引入。见 docs/superpowers/plans/R-25.md 设计①-a。
+# `PkStream.cpp` 的值类型依赖由上方 pkcontainer 目标供给；这里仍仅内联
+# stream 实现，不拉入 port/zip 适配层。见 docs/superpowers/plans/R-25.md 设计①-a。
 set(PKPORT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../port)
 
 add_library(pkxml STATIC
@@ -63,13 +73,7 @@ target_include_directories(pkxml PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PKPORT_DIR
 # 只有 pkxml 自己的 .cpp 能找到 <pugixml.hpp>，链接 pkxml 的下游全部编不过。
 # 同理 PkStream.h（PUBLIC 头文件 PkXmlDocument.h 里 `setContent(PkStream*...)`
 # 要用到）也要传递给下游。
-target_link_libraries(pkxml PUBLIC pkstring pugixml::pugixml)
-
-# 测试用 R-11 的 PK_* harness。只是消费它，一个字节都不改。
-set(PKTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test)
-if (NOT TARGET pktest)
-    add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest)
-endif()
+target_link_libraries(pkxml PUBLIC pkcontainer pkstring pugixml::pugixml)
 
 pk_test_generate(PKXML_BINDERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_document.h

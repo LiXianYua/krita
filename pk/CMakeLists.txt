@@ -16,10 +16,10 @@
 #   7. time（无 pk 依赖）
 #   8. config（依赖 string）
 #   9. pointer（无 pk 依赖）
-#  10. xml（依赖 string，内联 PkStream.cpp，pugixml）
-#  11. color + variant（color 依赖 string；variant 依赖 string、geometry、time、port、color；
+#  10. xml（依赖 container、string，内联 PkStream.cpp，pugixml）
+#  11. color + variant（color 依赖 string；variant 依赖 container、string、geometry、time、port、color；
 #      port target 在后续段定义，CMake 按 target link edge 建立真实构建顺序）
-#  12. port（依赖 minizip-ng FetchContent，内联 PkZipArchive.cpp + pk/string .cpp）
+#  12. port（依赖 container、minizip-ng FetchContent，内联 PkZipArchive.cpp + pk/string .cpp）
 #  13. signal（依赖 concurrent，Python3）
 #  14. sql（依赖 variant、geometry、string，SQLite3）
 #  15. test（依赖 string，Python3——仅库目标，不生成测试 binder）
@@ -47,6 +47,7 @@ endif()
 # 1. pk/container
 # =========================================================================
 add_library(pkcontainer STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/container/PkByteArray.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/container/PkArrayData.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/container/PkVector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/container/PkList.cpp
@@ -279,7 +280,7 @@ target_include_directories(pkxml PUBLIC
     ${PKPORT_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/string
 )
-target_link_libraries(pkxml PUBLIC pkstring pugixml)
+target_link_libraries(pkxml PUBLIC pkcontainer pkstring pugixml)
 
 # =========================================================================
 # 11. pk/color + pk/variant（variant 依赖 pkport + pkcolor）
@@ -297,7 +298,6 @@ target_include_directories(pkcolor PUBLIC
 target_link_libraries(pkcolor PUBLIC pkstring pkglobal)
 
 add_library(pkvariant STATIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkAuxTypes.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkDataStream.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkDataStreamColor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkVariant.cpp
@@ -310,7 +310,7 @@ target_include_directories(pkvariant PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/color
 )
 target_compile_options(pkvariant PUBLIC -fwrapv)
-target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime pkport pkcolor)
+target_link_libraries(pkvariant PUBLIC pkcontainer pkstring pkgeometry pktime pkport pkcolor)
 
 # =========================================================================
 # 12. pk/port/zip（minizip-ng FetchContent）—— PkZipArchive.cpp 内联到 pkport
@@ -370,7 +370,7 @@ target_include_directories(pkport PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/string
     ${CMAKE_CURRENT_SOURCE_DIR}/container
 )
-target_link_libraries(pkport PUBLIC minizip-ng)
+target_link_libraries(pkport PUBLIC pkcontainer minizip-ng)
 # 全局 CMAKE_CXX_FLAGS 含 -fvisibility=hidden，覆盖 target 属性。
 # 显式加 -fvisibility=default 覆盖全局隐藏设置。
 target_compile_options(pkport PRIVATE -fvisibility=default)

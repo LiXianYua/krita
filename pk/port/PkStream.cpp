@@ -1,6 +1,6 @@
 #include "PkStream.h"
 
-#include "../variant/PkAuxTypes.h"
+#include "../container/PkByteArray.h"
 #include "PkString.h"
 
 #include <limits>

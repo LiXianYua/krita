@@ -12,7 +12,7 @@
 // 测试类必须真的走 qExec，不能绕开它直接调用测试方法。
 #include "../PkStream.h"
 #include "PkTest.h"
-#include "../../variant/PkAuxTypes.h"
+#include "../../container/PkByteArray.h"
 #include "../../string/PkString.h"
 
 #include <cstring>
