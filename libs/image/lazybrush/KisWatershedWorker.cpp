@@ -959,7 +959,7 @@ void KisWatershedWorker::Private::calcNumGroupMaps()
     KisSequentialConstIterator groupIt(groupsMap, boundingRect);
     KisSequentialConstIterator levelIt(heightMap, boundingRect);
 
-    PkSet<PkPair<qint32, quint8>> groups;
+    std::set<GroupLevelPair> groups;
 
     while (groupIt.nextPixel() && levelIt.nextPixel()) {
 
