@@ -15,6 +15,7 @@
 #include "KisRunnableBasedStrokeStrategy.h"
 
 class KoColor;
+class PkRect;
 
 namespace KisLazyFillTools {
 struct FilteringOptions;
