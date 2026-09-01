@@ -24,7 +24,7 @@ const qreal MIN_TIMED_INTERVAL = 0.5;
 // Largest allowed interval when timed spacing is enabled, in milliseconds.
 const qreal MAX_TIMED_INTERVAL = LONG_TIME;
 
-struct Q_DECL_HIDDEN KisDistanceInformation::Private {
+struct KisDistanceInformation::Private {
     Private() :
         accumDistance(),
         accumTime(0.0),
@@ -73,7 +73,7 @@ struct Q_DECL_HIDDEN KisDistanceInformation::Private {
     qreal lastMaxPressure = 0.0;
 };
 
-struct Q_DECL_HIDDEN KisDistanceInitInfo::Private {
+struct KisDistanceInitInfo::Private {
     Private() :
         hasLastInfo(false),
         lastPosition(),
@@ -465,7 +465,7 @@ qreal KisDistanceInformation::getNextPointPositionIsotropic(const PkPointF &star
         return -1;
     }
 
-    qreal dragVecLength = QVector2D(end - start).length();
+    qreal dragVecLength = PkVector2D(end - start).length();
     qreal nextPointDistance = spacing - distance;
 
     qreal t;
@@ -611,4 +611,3 @@ qreal KisDistanceInformation::scalarDistanceApprox() const
 {
     return m_d->totalDistance;
 }
-
