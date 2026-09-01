@@ -12,6 +12,8 @@
 #include "kritaimage_export.h"
 
 class KisLayerStyleFilterEnvironment;
+class PkBitArray;
+class PkRect;
 
 class KRITAIMAGE_EXPORT KisMultipleProjection
 {
