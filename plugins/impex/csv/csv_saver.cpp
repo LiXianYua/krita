@@ -6,20 +6,23 @@
 
 #include "csv_saver.h"
 
-#include <QCoreApplication>
-#include <QDebug>
-#include <QDir>
-#include <QFile>
-#include <QIODevice>
-#include <QRect>
-#include <QVector>
-#include <QRegularExpression>
+#include <filesystem>
+#include <iomanip>
+#include <locale>
+#include <sstream>
+#include <string>
+#include <system_error>
+
+#include <PkFileStream.h>
+#include <PkScopedPointer.h>
+#include <PkStream.h>
+#include <PkRect.h>
+#include <PkVector.h>
 
 #include <KisDocument.h>
 #include <KisDocumentRegistry.h>
 #include <KisMimeDatabase.h>
 #include <KoColorModelStandardIds.h>
-#include <KoCompositeOpRegistry.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <kis_annotation.h>
@@ -34,16 +37,51 @@
 #include <kis_raster_keyframe_channel.h>
 #include <kis_time_span.h>
 #include <kis_types.h>
-#include <KisCursorOverrideLock.h>
 
 #include "csv_layer_record.h"
+
+namespace
+{
+bool writeAll(PkStream *stream, const std::string &bytes)
+{
+    return stream && stream->write(bytes.data(), static_cast<PkStream::pk_int64>(bytes.size()))
+        == static_cast<PkStream::pk_int64>(bytes.size());
+}
+
+std::string fixedSix(double value)
+{
+    std::ostringstream stream;
+    stream.imbue(std::locale::classic());
+    stream << std::fixed << std::setprecision(6) << value;
+    return stream.str();
+}
+
+std::string paddedFive(int value)
+{
+    std::ostringstream stream;
+    stream.imbue(std::locale::classic());
+    stream << std::setw(5) << std::setfill('0') << value;
+    return stream.str();
+}
+
+PkString sanitizedLayerName(const PkString &name)
+{
+    std::string bytes = name.PkToUtf8();
+    for (char &byte : bytes) {
+        if (byte == '"' || byte == '\r' || byte == '\n') {
+            byte = '_';
+        }
+    }
+    return PkString::PkFromUtf8(bytes.data(), static_cast<int>(bytes.size()));
+}
+}
 
 CSVSaver::CSVSaver(KisDocument *doc, bool batchMode)
     : m_image(doc->savingImage())
     , m_doc(doc)
-    , m_batchMode(batchMode)
     , m_stop(false)
 {
+    (void)batchMode;
 }
 
 CSVSaver::~CSVSaver()
@@ -55,26 +93,19 @@ KisImageSP CSVSaver::image()
     return m_image;
 }
 
-KisImportExportErrorCode CSVSaver::encode(QIODevice *io)
+KisImportExportErrorCode CSVSaver::encode(PkStream *io)
 {
     int idx;
     int start, end;
     KisNodeSP node;
-    QByteArray ba;
 //    KisTimeKeyframePair keyframeEntry;
     KisKeyframeSP keyframe;
-    QVector<CSVLayerRecord*> layers;
+    PkVector<CSVLayerRecord*> layers;
 
     KisImageAnimationInterface *animation = m_image->animationInterface();
 
-    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
-
-// XXX: Stream was unused?
-//    //DataStream instead of TextStream for correct line endings
-//    QDataStream stream(&f);
-
     //Using the original local path
-    QString path = m_doc->localFilePath();
+    PkString path = m_doc->localFilePath();
 
     if (path.right(4).toUpper() == ".CSV")
         path = path.left(path.size() - 4);
@@ -88,13 +119,12 @@ KisImportExportErrorCode CSVSaver::encode(QIODevice *io)
     }
     path.append(".frames");
 
-    //create directory
-
-    QDir dir(path);
-    if (!dir.exists()) {
-        dir.mkpath(".");
+    std::error_code directoryError;
+    const std::filesystem::path framesDirectory = std::filesystem::u8path(path.PkToUtf8());
+    std::filesystem::create_directories(framesDirectory, directoryError);
+    if (directoryError || !std::filesystem::is_directory(framesDirectory, directoryError)) {
+        return ImportExportCodes::NoAccessToWrite;
     }
-    //according to the QT docs, the slash is a universal directory separator
     path.append("/");
 
     node = m_image->rootLayer()->firstChild();
@@ -105,16 +135,14 @@ KisImportExportErrorCode CSVSaver::encode(QIODevice *io)
     idx = 0;
 
     while (node) {
-        if (node->inherits("KisLayer")) {
-            KisLayer* paintLayer = dynamic_cast<KisLayer*>(node.data());
+        if (KisLayer *paintLayer = dynamic_cast<KisLayer *>(node.data())) {
             CSVLayerRecord* layerRecord = new CSVLayerRecord();
             layers.prepend(layerRecord); //reverse order!
 
-            layerRecord->name = paintLayer->name();
-            layerRecord->name.replace(QRegularExpression("[\"\\r\\n]"), "_");
+            layerRecord->name = sanitizedLayerName(paintLayer->name());
 
             if (layerRecord->name.isEmpty())
-                layerRecord->name= QString("Unnamed-%1").arg(idx);
+                layerRecord->name= PkString("Unnamed-%1").arg(idx);
 
             layerRecord->visible = (paintLayer->visible()) ? 1 : 0;
             layerRecord->density = (float)(paintLayer->opacity()) / OPACITY_OPAQUE_U8;
@@ -154,136 +182,88 @@ KisImportExportErrorCode CSVSaver::encode(QIODevice *io)
     }
 
     //create temporary doc for exporting
-    QScopedPointer<KisDocument> exportDoc(KisDocumentRegistry::instance()->createDocument());
+    PkScopedPointer<KisDocument> exportDoc(KisDocumentRegistry::instance()->createDocument());
     createTempImage(exportDoc.data());
 
     KisImportExportErrorCode retval= ImportExportCodes::OK;
 
-    if (!m_batchMode) {
-        // TODO: use other systems of progress reporting (KisViewManager::createUnthreadedUpdater()
-        //emit m_doc->statusBarMessage(i18n("Saving CSV file..."));
-        //emit m_doc->sigProgress(0);
-        //connect(m_doc, SIGNAL(sigProgressCanceled()), this, SLOT(cancel()));
-    }
     int frame = start;
     int step = 0;
 
     do {
-        QCoreApplication::processEvents();
-
-        if (m_stop) {
+        // Cancellation is cooperative at record boundaries; the headless core
+        // has no UI event queue to pump.
+        if (m_stop.load()) {
             retval = ImportExportCodes::Cancelled;
             break;
         }
 
         switch(step) {
-
-        case 0 :    //first row
-            if (io->write("UTF-8, TVPaint, \"CSV 1.0\"\r\n") < 0) {
+        case 0:
+            if (!writeAll(io, "UTF-8, TVPaint, \"CSV 1.0\"\r\n")) retval = ImportExportCodes::Failure;
+            break;
+        case 1:
+            if (!writeAll(io, "Project Name, Width, Height, Frame Count, Layer Count, Frame Rate, Pixel Aspect Ratio, Field Mode\r\n")) {
                 retval = ImportExportCodes::Failure;
             }
             break;
-
-        case 1 :    //scene header names
-            if (io->write("Project Name, Width, Height, Frame Count, Layer Count, Frame Rate, Pixel Aspect Ratio, Field Mode\r\n") < 0) {
+        case 2:
+            if (!writeAll(io, "\"" + m_image->objectName().PkToUtf8() + "\", ")
+                || !writeAll(io, std::to_string(m_image->width()) + ", " + std::to_string(m_image->height()) + ", ")
+                || !writeAll(io, std::to_string(end - start + 1) + ", " + std::to_string(layers.size()) + ", ")
+                || !writeAll(io, fixedSix(static_cast<double>(animation->framerate())) + ", ")
+                || !writeAll(io, fixedSix(m_image->xRes() / m_image->yRes()) + ", Progressive\r\n")) {
                 retval = ImportExportCodes::Failure;
             }
             break;
-
-        case 2 :    //scene header values
-            ba = QString("\"%1\", ").arg(m_image->objectName()).toUtf8();
-            if (io->write(ba.data()) < 0) {
-                retval = ImportExportCodes::Failure;
-                break;
-            }
-            ba = QString("%1, %2, ").arg(m_image->width()).arg(m_image->height()).toUtf8();
-            if (io->write(ba.data()) < 0) {
-                retval = ImportExportCodes::Failure;
-                break;
-            }
-
-            ba = QString("%1, %2, ").arg(end - start + 1).arg(layers.size()).toUtf8();
-            if (io->write(ba.data()) < 0) {
-                retval = ImportExportCodes::Failure;
-                break;
-            }
-            //the framerate is an integer here
-            ba = QString("%1, ").arg((double)(animation->framerate()),0,'f',6).toUtf8();
-            if (io->write(ba.data()) < 0) {
-                retval = ImportExportCodes::Failure;
-                break;
-            }
-            ba = QString("%1, Progressive\r\n").arg((double)(m_image->xRes() / m_image->yRes()),0,'f',6).toUtf8();
-            if (io->write(ba.data()) < 0) {
-                retval = ImportExportCodes::Failure;
-                break;
-            }
-            break;
-
-        case 3 :    //layer header values
-            if (io->write("#Layers") < 0) {          //Layers
-                retval = ImportExportCodes::Failure;
-                break;
-            }
-
-            for (idx = 0; idx < layers.size(); idx++) {
-                ba = QString(", \"%1\"").arg(layers.at(idx)->name).toUtf8();
-                if (io->write(ba.data()) < 0)
-                    break;
-            }
-            break;
-
-        case 4 :
-            if (io->write("\r\n#Density") < 0) {     //Density
+        case 3:
+            if (!writeAll(io, "#Layers")) {
                 retval = ImportExportCodes::Failure;
                 break;
             }
             for (idx = 0; idx < layers.size(); idx++) {
-                ba = QString(", %1").arg((double)(layers.at(idx)->density), 0, 'f', 6).toUtf8();
-                if (io->write(ba.data()) < 0)
-                    break;
+                if (!writeAll(io, ", \"" + layers.at(idx)->name.PkToUtf8() + "\"")) break;
             }
+            if (idx < layers.size()) retval = ImportExportCodes::Failure;
             break;
-
-        case 5 :
-            if (io->write("\r\n#Blending") < 0) {     //Blending
+        case 4:
+            if (!writeAll(io, "\r\n#Density")) {
                 retval = ImportExportCodes::Failure;
                 break;
             }
             for (idx = 0; idx < layers.size(); idx++) {
-                ba = QString(", \"%1\"").arg(layers.at(idx)->blending).toUtf8();
-                if (io->write(ba.data()) < 0)
-                    break;
+                if (!writeAll(io, ", " + fixedSix(static_cast<double>(layers.at(idx)->density)))) break;
             }
+            if (idx < layers.size()) retval = ImportExportCodes::Failure;
             break;
-
-        case 6 :
-            if (io->write("\r\n#Visible") < 0) {     //Visible
+        case 5:
+            if (!writeAll(io, "\r\n#Blending")) {
                 retval = ImportExportCodes::Failure;
                 break;
             }
             for (idx = 0; idx < layers.size(); idx++) {
-                ba = QString(", %1").arg(layers.at(idx)->visible).toUtf8();
-                if (io->write(ba.data()) < 0)
-                    break;
+                if (!writeAll(io, ", \"" + layers.at(idx)->blending.PkToUtf8() + "\"")) break;
             }
-            if (idx < layers.size()) {
-                retval = ImportExportCodes::Failure;
-            }
+            if (idx < layers.size()) retval = ImportExportCodes::Failure;
             break;
-
-        default :    //frames
-
+        case 6:
+            if (!writeAll(io, "\r\n#Visible")) {
+                retval = ImportExportCodes::Failure;
+                break;
+            }
+            for (idx = 0; idx < layers.size(); idx++) {
+                if (!writeAll(io, ", " + std::to_string(layers.at(idx)->visible))) break;
+            }
+            if (idx < layers.size()) retval = ImportExportCodes::Failure;
+            break;
+        default:
             if (frame > end) {
-                if (io->write("\r\n") < 0)
-                    retval = ImportExportCodes::Failure;
-
+                if (!writeAll(io, "\r\n")) retval = ImportExportCodes::Failure;
                 step = 8;
                 break;
             }
 
-            ba = QString("\r\n#%1").arg(frame, 5, 10, QChar('0')).toUtf8();
-            if (io->write(ba.data()) < 0) {
+            if (!writeAll(io, "\r\n#" + paddedFive(frame))) {
                 retval = ImportExportCodes::Failure;
                 break;
             }
@@ -291,57 +271,35 @@ KisImportExportErrorCode CSVSaver::encode(QIODevice *io)
             for (idx = 0; idx < layers.size(); idx++) {
                 CSVLayerRecord *layer = layers.at(idx);
                 KisRasterKeyframeChannel *channel = layer->channel;
-
                 if (channel) {
-                    if (frame == start) {
-                        keyframe = channel->activeKeyframeAt(frame);
-                    } else {
-                        keyframe = channel->keyframeAt(frame); //TODO: Ugly...
-                    }
+                    keyframe = frame == start ? channel->activeKeyframeAt(frame) : channel->keyframeAt(frame);
                 } else {
-                    keyframe.clear(); // without animation
+                    keyframe.clear();
                 }
 
-                if ( keyframe || (frame == start) ) {
-
-                    if (!m_batchMode) {
-                        //emit m_doc->sigProgress(((frame - start) * layers.size() + idx) * 100 /
-                        //                        ((end - start) * layers.size()));
-                    }
+                if (keyframe || frame == start) {
                     retval = getLayer(layer, exportDoc.data(), keyframe, path, frame, idx);
-
-                    if (!retval.isOk())
-                        break;
+                    if (!retval.isOk()) break;
                 }
-                ba = QString(", \"%1\"").arg(layer->last).toUtf8();
-
-                if (io->write(ba.data()) < 0)
-                    break;
+                if (!writeAll(io, ", \"" + layer->last.PkToUtf8() + "\"")) break;
             }
-            if (idx < layers.size())
-                retval = ImportExportCodes::Failure;
+            if (idx < layers.size()) retval = ImportExportCodes::Failure;
 
             frame++;
-            step = 6; //keep step here
+            step = 6;
             break;
         }
         step++;
-    } while((retval.isOk()) && (step < 8));
+    } while (retval.isOk() && step < 8);
 
-    qDeleteAll(layers);
-
-    // io->close();  it seems this is not required anymore
-
-    if (!m_batchMode) {
-        //disconnect(m_doc, SIGNAL(sigProgressCanceled()), this, SLOT(cancel()));
-        //emit m_doc->sigProgress(100);
-        //emit m_doc->clearStatusBarMessage();
+    for (CSVLayerRecord *layer : layers) {
+        delete layer;
     }
 
     return retval;
 }
 
-QString CSVSaver::convertToBlending(const QString &opid)
+PkString CSVSaver::convertToBlending(const PkString &opid)
 {
     if (opid == COMPOSITE_OVER) return "Color";
     if (opid == COMPOSITE_BEHIND) return "Behind";
@@ -375,7 +333,7 @@ QString CSVSaver::convertToBlending(const QString &opid)
     return "Color";
 }
 
-KisImportExportErrorCode CSVSaver::getLayer(CSVLayerRecord* layer, KisDocument* exportDoc, KisKeyframeSP keyframe, const QString &path, int frame, int idx)
+KisImportExportErrorCode CSVSaver::getLayer(CSVLayerRecord* layer, KisDocument* exportDoc, KisKeyframeSP keyframe, const PkString &path, int frame, int idx)
 {
     //render to the temp layer
     KisImageSP image = exportDoc->savingImage();
@@ -392,15 +350,16 @@ KisImportExportErrorCode CSVSaver::getLayer(CSVLayerRecord* layer, KisDocument* 
     } else {
         device->makeCloneFrom(layer->layer->projection(),image->bounds()); // without animation
     }
-    QRect bounds = device->exactBounds();
+    PkRect bounds = device->exactBounds();
 
     if (bounds.isEmpty()) {
         layer->last = "";                   //empty frame
         return ImportExportCodes::OK;
     }
-    layer->last = QString("frame%1-%2.png").arg(idx + 1,5,10,QChar('0')).arg(frame,5,10,QChar('0'));
+    const std::string frameName = "frame" + paddedFive(idx + 1) + "-" + paddedFive(frame) + ".png";
+    layer->last = PkString::PkFromUtf8(frameName.data(), static_cast<int>(frameName.size()));
 
-    QString filename = path;
+    PkString filename = path;
     filename.append(layer->last);
 
     //save to PNG
@@ -425,16 +384,21 @@ KisImportExportErrorCode CSVSaver::getLayer(CSVLayerRecord* layer, KisDocument* 
     options.interlace = false;
     options.compression = 8;
     options.tryToSaveAsIndexed = false;
-    options.transparencyFillColor = QColor(0,0,0);
+    options.transparencyFillColor = PkColor(0,0,0);
     options.saveSRGBProfile = true;                 //TVPaint can use only sRGB
     options.forceSRGB = false;
 
+    PkFileStream frameFile(filename);
+    if (!frameFile.open(PkStream::WriteOnly | PkStream::Truncate)) {
+        return ImportExportCodes::NoAccessToWrite;
+    }
+
     KisPngCodec kpc;
 
-    KisImportExportErrorCode result = kpc.buildFile(filename, image->bounds(),
-                                                  image->xRes(), image->yRes(), device,
-                                                  image->beginAnnotations(), image->endAnnotations(),
-                                                  options, (KisMetaData::Store* )0 );
+    KisImportExportErrorCode result = kpc.buildFile(&frameFile, image->bounds(),
+                                                    image->xRes(), image->yRes(), device,
+                                                    image->beginAnnotations(), image->endAnnotations(),
+                                                    options, (KisMetaData::Store* )0 );
 
     return result;
 }
@@ -446,7 +410,7 @@ void CSVSaver::createTempImage(KisDocument* exportDoc)
 
     KisImageSP exportImage = new KisImage(exportDoc->createUndoStore(),
                                            m_image->width(), m_image->height(), m_image->colorSpace(),
-                                           QString());
+                                           PkString());
 
     exportImage->setResolution(m_image->xRes(), m_image->yRes());
     exportDoc->setCurrentImage(exportImage);
@@ -456,7 +420,7 @@ void CSVSaver::createTempImage(KisDocument* exportDoc)
 }
 
 
-KisImportExportErrorCode CSVSaver::buildAnimation(QIODevice *io)
+KisImportExportErrorCode CSVSaver::buildAnimation(PkStream *io)
 {
     KIS_ASSERT_RECOVER_RETURN_VALUE(m_image, ImportExportCodes::InternalError);
     return encode(io);
