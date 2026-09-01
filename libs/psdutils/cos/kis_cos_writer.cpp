@@ -206,7 +206,7 @@ PkByteArray KisCosWriter::writeCosFromVariantHash(const PkVariantHash doc)
         writeVariant(dev, doc, indent, prettyPrint);
         dev.close();
     } else {
-        qWarning() << dev.errorString();
+        qWarning() << dev.errorString().PkToUtf8().c_str();
     }
     return ba;
 }
@@ -220,7 +220,7 @@ PkByteArray KisCosWriter::writeTxt2FromVariantHash(const PkVariantHash doc)
         writeVariant(dev, doc, 0, false, false);
         dev.close();
     } else {
-        qWarning() << dev.errorString();
+        qWarning() << dev.errorString().PkToUtf8().c_str();
     }
     if (ba.size() > 0 && ba.constData()[ba.size() - 1] == ' ') {
         ba.resize(ba.size() - 1);

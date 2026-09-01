@@ -41,14 +41,14 @@ public:
         if (path == "/Nm  ") {
             m_name = value;
         } else {
-            warnKrita << "XML (ASL): failed to parse curve object" << path << value;
+            warnKrita << "XML (ASL): failed to parse curve object" << path.PkToUtf8().c_str() << value.PkToUtf8().c_str();
         }
     }
 
     void addPoint(const PkString &path, const PkPointF &value) override
     {
         if (!m_arrayMode) {
-            warnKrita << "XML (ASL): failed to parse curve object (array fault)" << path << value << ppVar(m_arrayMode);
+            warnKrita << "XML (ASL): failed to parse curve object (array fault)" << path.PkToUtf8().c_str() << value << ppVar(m_arrayMode);
         }
 
         m_points.append(value);
@@ -83,7 +83,7 @@ KoColor parseColorObject(PkXmlElement parent, PkString classID)
         root = doc.createElement("Gray");
     } else {
         // Can be 'UnsC', or something else.
-        warnKrita << "Unknown color type:" << ppVar(classID);
+        warnKrita << "Unknown color type:" << "classID" << "=" << classID.PkToUtf8().c_str();
         return error;
     }
 
@@ -107,7 +107,7 @@ KoColor parseColorObject(PkXmlElement parent, PkString classID)
                 } else if (key == "Bl  ") {
                     color.data()[0] = value;
                 } else {
-                    warnKrita << "Unknown color key value double:" << ppVar(key);
+                    warnKrita << "Unknown color key value double:" << "key" << "=" << key.PkToUtf8().c_str();
                     return error;
                 }
             } else if (classID == "CMYC") {
@@ -122,7 +122,7 @@ KoColor parseColorObject(PkXmlElement parent, PkString classID)
                 } else if (key == "Blck") {
                     root.setAttribute("k", KisDomUtils::toString(value));
                 } else {
-                    warnKrita << "Unknown color key value double:" << ppVar(key);
+                    warnKrita << "Unknown color key value double:" << "key" << "=" << key.PkToUtf8().c_str();
                     return error;
                 }
             } else if (classID == "LbCl") {
@@ -133,7 +133,7 @@ KoColor parseColorObject(PkXmlElement parent, PkString classID)
                 } else if (key == "B   ") {
                     root.setAttribute("b", childEl.attribute("value", "0"));
                 } else {
-                    warnKrita << "Unknown color key value:" << ppVar(key);
+                    warnKrita << "Unknown color key value:" << "key" << "=" << key.PkToUtf8().c_str();
                     return error;
                 }
             } else if (classID == "Grsc") {
@@ -142,7 +142,7 @@ KoColor parseColorObject(PkXmlElement parent, PkString classID)
                 if (key == "Gry ") {
                     root.setAttribute("g", KisDomUtils::toString(value));
                 } else {
-                    warnKrita << "Unknown color key value:" << ppVar(key);
+                    warnKrita << "Unknown color key value:" << "key" << "=" << key.PkToUtf8().c_str();
                     return error;
                 }
             } else if (classID == "HSBC") {
@@ -154,7 +154,7 @@ KoColor parseColorObject(PkXmlElement parent, PkString classID)
                 } else if (key == "Brgh") {
                     v = value * 0.01;
                 } else {
-                    warnKrita << "Unknown color key value:" << ppVar(key);
+                    warnKrita << "Unknown color key value:" << "key" << "=" << key.PkToUtf8().c_str();
                     return error;
                 }
             }
@@ -164,16 +164,17 @@ KoColor parseColorObject(PkXmlElement parent, PkString classID)
             } else if (key== "Nm  ") {
                 spotName = childEl.attribute("value", "");
             } else {
-                warnKrita << "Unknown color key value string:" << ppVar(key);
+                warnKrita << "Unknown color key value string:" << "key" << "=" << key.PkToUtf8().c_str();
             }
         } else if (type == "Integer") {
             if (key== "bookID") {
                 spotValue = KisDomUtils::toInt(childEl.attribute("value", "0"));
             } else {
-                warnKrita << "Unknown color key value integer:" << ppVar(key);
+                warnKrita << "Unknown color key value integer:" << "key" << "=" << key.PkToUtf8().c_str();
             }
         } else {
-            qDebug() << "Unknown color component type:" << ppVar(type) << ppVar(key);
+            qDebug() << "Unknown color component type:" << "type" << "=" << type.PkToUtf8().c_str()
+                     << "key" << "=" << key.PkToUtf8().c_str();
             return error;
         }
 
@@ -240,7 +241,7 @@ void parseColorStopsList(PkXmlElement parent,
                     PkString typeId = childEl.attribute("typeId", "");
 
                     if (typeId != "Clry") {
-                        warnKrita << "WARNING: Invalid typeId of a gradient stop type" << typeId;
+                        warnKrita << "WARNING: Invalid typeId of a gradient stop type" << typeId.PkToUtf8().c_str();
                     }
 
                     PkString value = childEl.attribute("value", "");
@@ -256,7 +257,10 @@ void parseColorStopsList(PkXmlElement parent,
                 child = child.nextSibling();
             }
         } else {
-            warnKrita << "WARNING: Unrecognized object in color stops list" << ppVar(type) << ppVar(key) << ppVar(classId);
+            warnKrita << "WARNING: Unrecognized object in color stops list"
+                      << "type" << "=" << type.PkToUtf8().c_str()
+                      << "key" << "=" << key.PkToUtf8().c_str()
+                      << "classId" << "=" << classId.PkToUtf8().c_str();
         }
 
         child = child.nextSibling();
@@ -291,7 +295,7 @@ void parseTransparencyStopsList(PkXmlElement parent, PkVector<qreal> &startLocat
                 } else if (type == "UnitFloat" && key == "Opct") {
                     PkString unit = childEl.attribute("unit", "");
                     if (unit != "#Prc") {
-                        warnKrita << "WARNING: Invalid unit of a gradient stop transparency" << unit;
+                        warnKrita << "WARNING: Invalid unit of a gradient stop transparency" << unit.PkToUtf8().c_str();
                     }
 
                     qreal value = KisDomUtils::toDouble(childEl.attribute("value", "100"));
@@ -302,7 +306,10 @@ void parseTransparencyStopsList(PkXmlElement parent, PkVector<qreal> &startLocat
             }
 
         } else {
-            warnKrita << "WARNING: Unrecognized object in transparency stops list" << ppVar(type) << ppVar(key) << ppVar(classId);
+            warnKrita << "WARNING: Unrecognized object in transparency stops list"
+                      << "type" << "=" << type.PkToUtf8().c_str()
+                      << "key" << "=" << key.PkToUtf8().c_str()
+                      << "classId" << "=" << classId.PkToUtf8().c_str();
         }
 
         child = child.nextSibling();
@@ -351,14 +358,18 @@ bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkSt
 
             if (type == "Boolean" && key == "Cnty") {
                 warnKrita << "WARNING: tryParseDescriptor: The points of the curve object contain \'Cnty\' flag which is unsupported by Krita";
-                warnKrita << "        " << ppVar(type) << ppVar(key) << ppVar(path);
+                warnKrita << "        " << "type" << "=" << type.PkToUtf8().c_str()
+                          << "key" << "=" << key.PkToUtf8().c_str()
+                          << "path" << "=" << path.PkToUtf8().c_str();
 
                 child = child.nextSibling();
                 continue;
             }
 
             if (type != "Double") {
-                warnKrita << "Unknown point component type:" << ppVar(type) << ppVar(key) << ppVar(path);
+                warnKrita << "Unknown point component type:" << "type" << "=" << type.PkToUtf8().c_str()
+                          << "key" << "=" << key.PkToUtf8().c_str()
+                          << "path" << "=" << path.PkToUtf8().c_str();
                 return false;
             }
 
@@ -369,7 +380,8 @@ bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkSt
             } else if (key == "Vrtc") {
                 point.setY(value);
             } else {
-                warnKrita << "Unknown point key value:" << ppVar(key) << ppVar(path);
+                warnKrita << "Unknown point key value:" << "key" << "=" << key.PkToUtf8().c_str()
+                          << "path" << "=" << path.PkToUtf8().c_str();
                 return false;
             }
 
@@ -390,7 +402,10 @@ bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkSt
             PkString unit = childEl.attribute("unit", "");
 
             if (type != "Double" && !(type == "UnitFloat" && unit == "#Prc")) {
-                warnKrita << "Unknown point component type:" << ppVar(unit) << ppVar(type) << ppVar(key) << ppVar(path);
+                warnKrita << "Unknown point component type:" << "unit" << "=" << unit.PkToUtf8().c_str()
+                          << "type" << "=" << type.PkToUtf8().c_str()
+                          << "key" << "=" << key.PkToUtf8().c_str()
+                          << "path" << "=" << path.PkToUtf8().c_str();
                 return false;
             }
 
@@ -401,7 +416,8 @@ bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkSt
             } else if (key == "Vrtc") {
                 point.setY(value);
             } else {
-                warnKrita << "Unknown point key value:" << ppVar(key) << ppVar(path);
+                warnKrita << "Unknown point key value:" << "key" << "=" << key.PkToUtf8().c_str()
+                          << "path" << "=" << path.PkToUtf8().c_str();
                 return false;
             }
 
@@ -461,10 +477,10 @@ bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkSt
                 catcher.addPattern(path, pattern, patternUuid);
             }
             else {
-                warnKrita << "WARNING: failed to create pattern:" << ppVar(patternUuid) << ppVar(pattern);
+                warnKrita << "WARNING: failed to create pattern:" << "patternUuid" << "=" << patternUuid.PkToUtf8().c_str() << ppVar(pattern);
             }
         } else {
-            warnKrita << "WARNING: failed to load KisPattern XML section!" << ppVar(patternUuid);
+            warnKrita << "WARNING: failed to load KisPattern XML section!" << "patternUuid" << "=" << patternUuid.PkToUtf8().c_str();
         }
 
     } else if (classId == "Ptrn") { // reference to an existing pattern
@@ -483,7 +499,8 @@ bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkSt
             } else if (type == "Text" && key == "Nm  ") {
                 patternName = childEl.attribute("value", "");
             } else {
-                warnKrita << "WARNING: unrecognized pattern-ref section key:" << ppVar(type) << ppVar(key);
+                warnKrita << "WARNING: unrecognized pattern-ref section key:" << "type" << "=" << type.PkToUtf8().c_str()
+                          << "key" << "=" << key.PkToUtf8().c_str();
             }
 
             child = child.nextSibling();
@@ -518,7 +535,7 @@ bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkSt
                 PkString value = childEl.attribute("value", "");
 
                 if (typeId != "GrdF" || value != "CstS") {
-                    warnKrita << "WARNING: Unsupported gradient type (probably, noise-based):" << value;
+                    warnKrita << "WARNING: Unsupported gradient type (probably, noise-based):" << value.PkToUtf8().c_str();
                     return true;
                 }
             } else if (type == "Double" && key == "Intr") {
@@ -783,7 +800,9 @@ void parseElement(const PkXmlElement &el, const PkString &parentPath, KisAslObje
         }
         catcher.addRawData(buildPath(parentPath, key), data);
     } else {
-        warnKrita << "WARNING: XML (ASL) Unknown element type:" << type << ppVar(parentPath) << ppVar(key);
+        warnKrita << "WARNING: XML (ASL) Unknown element type:" << type.PkToUtf8().c_str()
+                  << "parentPath" << "=" << parentPath.PkToUtf8().c_str()
+                  << "key" << "=" << key.PkToUtf8().c_str();
     }
 }
 
