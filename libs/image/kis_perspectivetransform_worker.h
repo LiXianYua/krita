@@ -11,17 +11,18 @@
 #include "kis_types.h"
 #include "kritaimage_export.h"
 
-#include <QRect>
+#include <PkPolygon.h>
+#include <PkRect.h>
+#include <PkTransform.h>
 #include <KisRegion.h>
-#include <QTransform>
 #include <KoUpdater.h>
 
 
 class KRITAIMAGE_EXPORT KisPerspectiveTransformWorker
 {
 public:
-    KisPerspectiveTransformWorker(KisPaintDeviceSP dev, QPointF center, double aX, double aY, double distance, bool cropDst, KoUpdaterPtr progress);
-    KisPerspectiveTransformWorker(KisPaintDeviceSP dev, const QTransform &transform, bool cropDst, KoUpdaterPtr progress);
+    KisPerspectiveTransformWorker(KisPaintDeviceSP dev, PkPointF center, double aX, double aY, double distance, bool cropDst, KoUpdaterPtr progress);
+    KisPerspectiveTransformWorker(KisPaintDeviceSP dev, const PkTransform &transform, bool cropDst, KoUpdaterPtr progress);
 
     ~KisPerspectiveTransformWorker();
 
@@ -33,23 +34,23 @@ public:
     void run(SampleType sampleType = Bilinear);
     void runPartialDst(KisPaintDeviceSP srcDev,
                        KisPaintDeviceSP dstDev,
-                       const QRect &dstRect);
+                       const PkRect &dstRect);
 
-    void setForwardTransform(const QTransform &transform);
+    void setForwardTransform(const PkTransform &transform);
 
-    QTransform forwardTransform() const;
-    QTransform backwardTransform() const;
+    PkTransform forwardTransform() const;
+    PkTransform backwardTransform() const;
 
     bool forceSubPixelTranslation() const;
     void setForceSubPixelTranslation(bool value);
 
 private:
-    void init(const QTransform &transform);
+    void init(const PkTransform &transform);
 
-    void fillParams(const QRectF &srcRect,
-                    const QRect &dstBaseClipRect,
+    void fillParams(const PkRectF &srcRect,
+                    const PkRect &dstBaseClipRect,
                     KisRegion *dstRegion,
-                    QPolygonF *dstClipPolygon);
+                    PkPolygonF *dstClipPolygon);
 
     template <class SrcAccessorPolicy>
     void runImpl();
@@ -58,9 +59,9 @@ private:
     KisPaintDeviceSP m_dev;
     KoUpdaterPtr m_progressUpdater;
     KisRegion m_dstRegion;
-    QRectF m_srcRect;
-    QTransform m_backwardTransform;
-    QTransform m_forwardTransform;
+    PkRectF m_srcRect;
+    PkTransform m_backwardTransform;
+    PkTransform m_forwardTransform;
     bool m_isIdentity;
     bool m_isTranslating;
     bool m_cropDst;

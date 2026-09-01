@@ -11,10 +11,11 @@
 
 #include "kis_perspectivetransform_worker.h"
 
-#include <QMatrix4x4>
-#include <QTransform>
-#include <QVector3D>
-#include <QPolygonF>
+#include <PkMatrix4x4.h>
+#include <PkPainterPath.h>
+#include <PkPolygon.h>
+#include <PkTransform.h>
+#include <PkVectorND.h>
 
 #include <KoUpdater.h>
 #include <KoColor.h>
@@ -32,55 +33,124 @@
 #include "kis_image.h"
 #include "kis_algebra_2d.h"
 
+namespace {
 
-KisPerspectiveTransformWorker::KisPerspectiveTransformWorker(KisPaintDeviceSP dev, QPointF center, double aX, double aY, double distance, bool cropDst, KoUpdaterPtr progress)
+PkPointF lineSegmentIntersection(const PkPointF &p1, const PkPointF &p2,
+                                 const PkPointF &a, const PkPointF &b)
+{
+    const PkPointF d1 = p2 - p1;
+    const PkPointF d2 = b - a;
+    const qreal denominator = d1.x() * d2.y() - d1.y() * d2.x();
+    if (qAbs(denominator) < 1e-12) return p1;
+
+    const PkPointF difference = a - p1;
+    const qreal t = (difference.x() * d2.y() - difference.y() * d2.x()) / denominator;
+    return PkPointF(p1.x() + t * d1.x(), p1.y() + t * d1.y());
+}
+
+PkPolygonF intersectPolygon(const PkPolygonF &subject, const PkPolygonF &clip)
+{
+    if (subject.isEmpty() || clip.size() < 3) {
+        return PkPolygonF();
+    }
+
+    PkPointF centroid;
+    for (const PkPointF &point : clip) {
+        centroid += point;
+    }
+    centroid *= 1.0 / clip.size();
+
+    PkPolygonF input = subject;
+    for (int i = 0; i < clip.size(); ++i) {
+        if (input.isEmpty()) break;
+
+        const PkPointF &edgeStart = clip[i];
+        const PkPointF &edgeEnd = clip[(i + 1) % clip.size()];
+        const PkPointF edgeVector = edgeEnd - edgeStart;
+        const qreal centroidSide = edgeVector.x() * (centroid.y() - edgeStart.y())
+            - edgeVector.y() * (centroid.x() - edgeStart.x());
+        const bool insideIsNonNegative = centroidSide >= 0.0;
+
+        PkPolygonF output;
+        PkPointF previous = input[input.size() - 1];
+        qreal previousSide = edgeVector.x() * (previous.y() - edgeStart.y())
+            - edgeVector.y() * (previous.x() - edgeStart.x());
+        bool previousInside = insideIsNonNegative ? previousSide >= 0.0 : previousSide <= 0.0;
+
+        for (const PkPointF &current : input) {
+            const qreal currentSide = edgeVector.x() * (current.y() - edgeStart.y())
+                - edgeVector.y() * (current.x() - edgeStart.x());
+            const bool currentInside = insideIsNonNegative ? currentSide >= 0.0 : currentSide <= 0.0;
+
+            if (currentInside) {
+                if (!previousInside) {
+                    output << lineSegmentIntersection(previous, current, edgeStart, edgeEnd);
+                }
+                output << current;
+            } else if (previousInside) {
+                output << lineSegmentIntersection(previous, current, edgeStart, edgeEnd);
+            }
+
+            previous = current;
+            previousInside = currentInside;
+        }
+        input = output;
+    }
+
+    return input;
+}
+
+} // namespace
+
+
+KisPerspectiveTransformWorker::KisPerspectiveTransformWorker(KisPaintDeviceSP dev, PkPointF center, double aX, double aY, double distance, bool cropDst, KoUpdaterPtr progress)
         : m_dev(dev), m_progressUpdater(progress), m_cropDst(cropDst)
 
 {
-    QMatrix4x4 m;
-    m.rotate(180. * aX / M_PI, QVector3D(1, 0, 0));
-    m.rotate(180. * aY / M_PI, QVector3D(0, 1, 0));
+    PkMatrix4x4 m;
+    m.rotate(180. * aX / M_PI, PkVector3D(1, 0, 0));
+    m.rotate(180. * aY / M_PI, PkVector3D(0, 1, 0));
 
-    QTransform project = m.toTransform(distance);
-    QTransform t = QTransform::fromTranslate(center.x(), center.y());
+    PkTransform project = m.toTransform(distance);
+    PkTransform t = PkTransform::fromTranslate(center.x(), center.y());
 
-    QTransform forwardTransform = t.inverted() * project * t;
+    PkTransform forwardTransform = t.inverted() * project * t;
 
     init(forwardTransform);
 }
 
-KisPerspectiveTransformWorker::KisPerspectiveTransformWorker(KisPaintDeviceSP dev, const QTransform &transform, bool cropDst, KoUpdaterPtr progress)
+KisPerspectiveTransformWorker::KisPerspectiveTransformWorker(KisPaintDeviceSP dev, const PkTransform &transform, bool cropDst, KoUpdaterPtr progress)
     : m_dev(dev), m_progressUpdater(progress), m_cropDst(cropDst)
 {
     init(transform);
 }
 
-void KisPerspectiveTransformWorker::fillParams(const QRectF &srcRect,
-                                               const QRect &dstBaseClipRect,
+void KisPerspectiveTransformWorker::fillParams(const PkRectF &srcRect,
+                                               const PkRect &dstBaseClipRect,
                                                KisRegion *dstRegion,
-                                               QPolygonF *dstClipPolygon)
+                                               PkPolygonF *dstClipPolygon)
 {
-    QPolygonF bounds = srcRect;
-    QPolygonF newBounds = m_forwardTransform.map(bounds);
+    PkPolygonF bounds = srcRect;
+    PkPolygonF newBounds = m_forwardTransform.map(bounds);
 
-    QRectF clipRect = dstBaseClipRect;
+    PkRectF clipRect = dstBaseClipRect;
 
     if (!m_cropDst) {
         clipRect |= srcRect;
         clipRect = KisAlgebra2D::blowRect(clipRect, 3.0);
     }
 
-    newBounds = newBounds.intersected(clipRect);
-    QPainterPath path;
+    newBounds = intersectPolygon(newBounds, PkPolygonF(clipRect));
+    PkPainterPath path;
     path.addPolygon(newBounds);
     *dstRegion = KritaUtils::splitPath(path);
     *dstClipPolygon = newBounds;
 }
 
-void KisPerspectiveTransformWorker::init(const QTransform &transform)
+void KisPerspectiveTransformWorker::init(const PkTransform &transform)
 {
     m_isIdentity = transform.isIdentity();
-    m_isTranslating = transform.type() == QTransform::TxTranslate;
+    m_isTranslating = transform.type() == PkTransform::TxTranslate;
 
     m_forwardTransform = transform;
     m_backwardTransform = transform.inverted();
@@ -88,7 +158,7 @@ void KisPerspectiveTransformWorker::init(const QTransform &transform)
     if (m_dev) {
         m_srcRect = kisGrowRect(m_dev->exactBounds(), 1.0);
 
-        QPolygonF dstClipPolygonUnused;
+        PkPolygonF dstClipPolygonUnused;
 
         fillParams(m_srcRect,
                    m_dev->defaultBounds()->bounds(),
@@ -101,7 +171,7 @@ KisPerspectiveTransformWorker::~KisPerspectiveTransformWorker()
 {
 }
 
-void KisPerspectiveTransformWorker::setForwardTransform(const QTransform &transform)
+void KisPerspectiveTransformWorker::setForwardTransform(const PkTransform &transform)
 {
     init(transform);
 }
@@ -116,7 +186,7 @@ struct BilinearWrapper
     {
     }
 
-    void samplePixel(const QPointF &pt, quint8 *dst) {
+    void samplePixel(const PkPointF &pt, quint8 *dst) {
         m_accessor->moveTo(pt.x(), pt.y());
         m_accessor->sampledOldRawData(dst);
     }
@@ -134,7 +204,7 @@ struct NearestNeighbourWrapper
     {
     }
 
-    void samplePixel(const QPointF &pt, quint8 *dst) {
+    void samplePixel(const PkPointF &pt, quint8 *dst) {
         m_accessor->moveTo(qRound(pt.x()), qRound(pt.y()));
         memcpy(dst, m_accessor->oldRawData(), m_pixelSize);
     }
@@ -172,12 +242,12 @@ void KisPerspectiveTransformWorker::runImpl()
     SrcAccessorWrapper srcAcc(cloneDevice);
     KisRandomAccessorSP accessor = m_dev->createRandomAccessorNG();
 
-    Q_FOREACH (const QRect &rect, m_dstRegion.rects()) {
+    for (const PkRect &rect : m_dstRegion.rects()) {
         for (int y = rect.y(); y < rect.y() + rect.height(); ++y) {
             for (int x = rect.x(); x < rect.x() + rect.width(); ++x) {
 
-                QPointF dstPoint(x, y);
-                QPointF srcPoint = m_backwardTransform.map(dstPoint);
+                PkPointF dstPoint(x, y);
+                PkPointF srcPoint = m_backwardTransform.map(dstPoint);
 
                 if (m_srcRect.contains(srcPoint)) {
                     accessor->moveTo(dstPoint.x(), dstPoint.y());
@@ -200,12 +270,12 @@ void KisPerspectiveTransformWorker::run(SampleType sampleType)
 
 void KisPerspectiveTransformWorker::runPartialDst(KisPaintDeviceSP srcDev,
                                                   KisPaintDeviceSP dstDev,
-                                                  const QRect &dstRect)
+                                                  const PkRect &dstRect)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(srcDev->pixelSize() == dstDev->pixelSize());
     KIS_SAFE_ASSERT_RECOVER_NOOP(*srcDev->colorSpace() == *dstDev->colorSpace());
 
-    QRectF srcClipRect = kisGrowRect(srcDev->exactBounds(), 1) | srcDev->defaultBounds()->imageBorderRect();
+    PkRectF srcClipRect = kisGrowRect(srcDev->exactBounds(), 1) | srcDev->defaultBounds()->imageBorderRect();
     if (srcClipRect.isEmpty()) return;
 
     if (m_isIdentity || (m_isTranslating && !m_forceSubPixelTranslation)) {
@@ -221,8 +291,8 @@ void KisPerspectiveTransformWorker::runPartialDst(KisPaintDeviceSP srcDev,
         for (int y = dstRect.y(); y < dstRect.y() + dstRect.height(); ++y) {
             for (int x = dstRect.x(); x < dstRect.x() + dstRect.width(); ++x) {
 
-                QPointF dstPoint(x, y);
-                QPointF srcPoint = m_backwardTransform.map(dstPoint);
+                PkPointF dstPoint(x, y);
+                PkPointF srcPoint = m_backwardTransform.map(dstPoint);
 
                 if (srcClipRect.contains(srcPoint) || srcDev->defaultBounds()->wrapAroundMode()) {
                     accessor->moveTo(dstPoint.x(), dstPoint.y());
@@ -235,12 +305,12 @@ void KisPerspectiveTransformWorker::runPartialDst(KisPaintDeviceSP srcDev,
     }
 }
 
-QTransform KisPerspectiveTransformWorker::forwardTransform() const
+PkTransform KisPerspectiveTransformWorker::forwardTransform() const
 {
     return m_forwardTransform;
 }
 
-QTransform KisPerspectiveTransformWorker::backwardTransform() const
+PkTransform KisPerspectiveTransformWorker::backwardTransform() const
 {
     return m_backwardTransform;
 }
