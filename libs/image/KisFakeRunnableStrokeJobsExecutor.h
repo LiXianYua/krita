@@ -7,6 +7,8 @@
 #ifndef KISFAKERUNNABLESTROKEJOBSEXECUTOR_H
 #define KISFAKERUNNABLESTROKEJOBSEXECUTOR_H
 
+#include <PkFlags.h>
+
 #include "KisRunnableStrokeJobsInterface.h"
 
 
@@ -25,7 +27,7 @@ public:
         None = 0x0,
         AllowBarrierJobs = 0x1
     };
-    Q_DECLARE_FLAGS(Flags, Flag)
+    PK_DECLARE_FLAGS(Flags, Flag)
 
 public:
     KisFakeRunnableStrokeJobsExecutor();
@@ -37,7 +39,7 @@ private:
     Flags m_flags;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisFakeRunnableStrokeJobsExecutor::Flags)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisFakeRunnableStrokeJobsExecutor::Flags)
 
 
 #endif // KISFAKERUNNABLESTROKEJOBSEXECUTOR_H
