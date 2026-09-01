@@ -40,7 +40,7 @@ int emitCase(const RasterCase &c)
     QImage image(c.clipWidth, c.clipHeight, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::black);
     QPainter painter(&image);
-    painter.translate(-c.clipX, -c.clipY);
+    painter.translate(-double(c.clipX), -double(c.clipY));
     painter.setRenderHint(QPainter::Antialiasing, c.antialiased);
     const QPainterPath path = makePath(c);
     if (c.mode == RasterMode::Fill) {
@@ -69,6 +69,7 @@ int main(int argc, char **argv)
 {
     if (argc == 2 && std::strcmp(argv[1], "--version") == 0) { std::printf("%s\n", qVersion()); return 0; }
     if (argc == 2 && std::strcmp(argv[1], "--list") == 0) { for (const auto &c : pathRasterizerCases()) std::printf("%s\n", c.name); return 0; }
+    if (argc == 2 && std::strcmp(argv[1], "--list-fill") == 0) { for (const auto &c : pathRasterizerCases()) if (c.mode == RasterMode::Fill) std::printf("%s\n", c.name); return 0; }
     if (argc == 3 && std::strcmp(argv[1], "--case") == 0) {
         for (const auto &c : pathRasterizerCases()) if (std::strcmp(argv[2], c.name) == 0) return emitCase(c);
         return 2;

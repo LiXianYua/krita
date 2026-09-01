@@ -44,8 +44,10 @@
 #include <PkPainterPath.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <limits>
+#include <new>
 
 namespace KisPathRasterizer {
 namespace {
@@ -53,24 +55,38 @@ namespace {
 void writeSpans(const Private::Span *spans, int count, void *userData)
 {
     auto *mask = static_cast<CoverageMask *>(userData);
-    const int left = mask->bounds.x();
-    const int right = left + mask->bounds.width();
-    const int top = mask->bounds.y();
-    const int bottom = top + mask->bounds.height();
+    const int64_t left = mask->bounds.x();
+    const int64_t right = left + int64_t(mask->bounds.width());
+    const int64_t top = mask->bounds.y();
+    const int64_t bottom = top + int64_t(mask->bounds.height());
     for (int i = 0; i < count; ++i) {
         const auto &span = spans[i];
-        if (span.y < top || span.y >= bottom || span.length <= 0) {
+        const int64_t spanY = span.y;
+        if (spanY < top || spanY >= bottom || span.length <= 0) {
             continue;
         }
-        const int start = std::max(left, span.x);
-        const int end = std::min(right, span.x + span.length);
+        const int64_t start = std::max(left, int64_t(span.x));
+        const int64_t end = std::min(right, int64_t(span.x) + int64_t(span.length));
         if (start >= end) {
             continue;
         }
         uint8_t *row = mask->alpha.data()
-            + std::size_t(span.y - top) * std::size_t(mask->stride);
-        std::fill(row + (start - left), row + (end - left), span.coverage);
+            + std::size_t(spanY - top) * std::size_t(mask->stride);
+        std::fill(row + std::size_t(start - left),
+                  row + std::size_t(end - left),
+                  span.coverage);
     }
+}
+
+bool hasOnlyFiniteElements(const PkPainterPath &path)
+{
+    for (int i = 0; i < path.elementCount(); ++i) {
+        const auto element = path.elementAt(i);
+        if (!std::isfinite(element.x) || !std::isfinite(element.y)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace
@@ -80,7 +96,7 @@ CoverageMask rasterizeFill(const PkPainterPath &path,
                            bool antialiased)
 {
     CoverageMask mask;
-    if (clip.isEmpty() || path.isEmpty()) {
+    if (clip.isEmpty() || path.isEmpty() || !hasOnlyFiniteElements(path)) {
         return mask;
     }
     const std::size_t width = std::size_t(clip.width());
@@ -88,10 +104,18 @@ CoverageMask rasterizeFill(const PkPainterPath &path,
     if (height != 0 && width > std::numeric_limits<std::size_t>::max() / height) {
         return mask;
     }
-    mask.bounds = clip;
-    mask.stride = clip.width();
-    mask.alpha.assign(width * height, uint8_t(0));
-    Private::rasterizePath(path, clip, antialiased, writeSpans, &mask);
+    const std::size_t pixelCount = width * height;
+    if (pixelCount > mask.alpha.max_size()) {
+        return mask;
+    }
+    try {
+        mask.alpha.assign(pixelCount, uint8_t(0));
+        mask.bounds = clip;
+        mask.stride = clip.width();
+        Private::rasterizePath(path, clip, antialiased, writeSpans, &mask);
+    } catch (const std::bad_alloc &) {
+        return CoverageMask{};
+    }
     return mask;
 }
 

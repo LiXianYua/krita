@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <limits>
 
 namespace {
 
@@ -60,10 +61,48 @@ int emitCase(const RasterCase &c)
     return 0;
 }
 
+int verifyNonFiniteInputsAreRejected()
+{
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double infinity = std::numeric_limits<double>::infinity();
+    const PkRect clip(0, 0, 16, 16);
+    const auto isEmptyMask = [](const KisPathRasterizer::CoverageMask &mask) {
+        return mask.bounds.isEmpty() && mask.stride == 0 && mask.alpha.empty();
+    };
+
+    PkPainterPath line;
+    line.moveTo(1.0, 1.0);
+    line.lineTo(nan, 8.0);
+    line.lineTo(8.0, 8.0);
+    if (!isEmptyMask(KisPathRasterizer::rasterizeFill(line, clip, false))) {
+        return 10;
+    }
+
+    PkPainterPath cubic;
+    cubic.moveTo(1.0, 1.0);
+    cubic.cubicTo(2.0, infinity, 7.0, 3.0, 8.0, 8.0);
+    cubic.lineTo(1.0, 8.0);
+    if (!isEmptyMask(KisPathRasterizer::rasterizeFill(cubic, clip, true))) {
+        return 11;
+    }
+
+    PkPainterPath negativeInfinity;
+    negativeInfinity.moveTo(-infinity, 1.0);
+    negativeInfinity.lineTo(8.0, 1.0);
+    negativeInfinity.lineTo(8.0, 8.0);
+    if (!isEmptyMask(KisPathRasterizer::rasterizeFill(negativeInfinity, clip, false))) {
+        return 12;
+    }
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
 {
+    if (argc == 2 && std::strcmp(argv[1], "--self-test-invalid") == 0) {
+        return verifyNonFiniteInputsAreRejected();
+    }
     if (argc == 2 && std::strcmp(argv[1], "--list") == 0) {
         for (const auto &c : pathRasterizerCases()) {
             if (isFillCase(c)) {

@@ -186,6 +186,7 @@ typedef ptrdiff_t  QT_FT_PtrDist;
 #include <PkRect.h>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -193,6 +194,8 @@ typedef ptrdiff_t  QT_FT_PtrDist;
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <memory>
+#include <new>
 #include <utility>
 #include <vector>
 
@@ -2194,8 +2197,10 @@ struct OutlineStorage {
 
 bool containsPoint(const PkRect &clip, const Point &point)
 {
-    return point.x >= clip.x() && point.x <= clip.x() + clip.width()
-        && point.y >= clip.y() && point.y <= clip.y() + clip.height();
+    const double right = double(clip.x()) + double(clip.width());
+    const double bottom = double(clip.y()) + double(clip.height());
+    return point.x >= double(clip.x()) && point.x <= right
+        && point.y >= double(clip.y()) && point.y <= bottom;
 }
 
 bool controlBoundsIntersectClip(const Cubic &curve, const PkRect &clip)
@@ -2204,11 +2209,16 @@ bool controlBoundsIntersectClip(const Cubic &curve, const PkRect &clip)
     const double maximumX = std::max({curve.p1.x, curve.p2.x, curve.p3.x, curve.p4.x});
     const double minimumY = std::min({curve.p1.y, curve.p2.y, curve.p3.y, curve.p4.y});
     const double maximumY = std::max({curve.p1.y, curve.p2.y, curve.p3.y, curve.p4.y});
-    return maximumX >= clip.x() && minimumX <= clip.x() + clip.width()
-        && maximumY >= clip.y() && minimumY <= clip.y() + clip.height();
+    const double right = double(clip.x()) + double(clip.width());
+    const double bottom = double(clip.y()) + double(clip.height());
+    return maximumX >= double(clip.x()) && minimumX <= right
+        && maximumY >= double(clip.y()) && minimumY <= bottom;
 }
 
-OutlineStorage makeOutline(const PkPainterPath &path, const PkRect &clip)
+OutlineStorage makeOutline(const PkPainterPath &path,
+                           const PkRect &clip,
+                           double originX,
+                           double originY)
 {
     OutlineStorage result;
     std::vector<Point> flattened;
@@ -2229,11 +2239,11 @@ OutlineStorage makeOutline(const PkPainterPath &path, const PkRect &clip)
             }
             currentContour = int(flattened.size());
             contourStarts.push_back(currentContour);
-            flattened.push_back({element.x, element.y});
+            flattened.push_back({element.x - originX, element.y - originY});
             break;
         case PkPainterPath::LineToElement:
             if (currentContour >= 0) {
-                flattened.push_back({element.x, element.y});
+                flattened.push_back({element.x - originX, element.y - originY});
             }
             break;
         case PkPainterPath::CurveToElement:
@@ -2242,9 +2252,9 @@ OutlineStorage makeOutline(const PkPainterPath &path, const PkRect &clip)
                 const auto end = path.elementAt(index + 2);
                 const Point start = flattened.back();
                 const Cubic curve{start,
-                                  {element.x, element.y},
-                                  {control2.x, control2.y},
-                                  {end.x, end.y}};
+                                  {element.x - originX, element.y - originY},
+                                  {control2.x - originX, control2.y - originY},
+                                  {end.x - originX, end.y - originY}};
                 if (!containsPoint(clip, curve.p4) && !controlBoundsIntersectClip(curve, clip)) {
                     flattened.push_back(curve.p4);
                 } else {
@@ -2289,86 +2299,484 @@ OutlineStorage makeOutline(const PkPainterPath &path, const PkRect &clip)
 struct GrayCallback {
     ProcessSpans process;
     void *userData;
+    std::array<Span, QT_FT_MAX_GRAY_SPANS> converted;
 };
 
 void processGraySpans(int count, const QT_FT_Span *spans, void *userData)
 {
     auto *callback = static_cast<GrayCallback *>(userData);
-    std::vector<Span> converted;
-    converted.reserve(std::size_t(count));
+    assert(count >= 0 && count <= int(callback->converted.size()));
     for (int i = 0; i < count; ++i) {
-        converted.push_back({spans[i].x, spans[i].y, spans[i].len, spans[i].coverage});
+        callback->converted[std::size_t(i)] = {
+            spans[i].x, spans[i].y, spans[i].len, spans[i].coverage
+        };
     }
-    callback->process(converted.data(), count, callback->userData);
+    callback->process(callback->converted.data(), count, callback->userData);
 }
+
+struct GrayRasterDeleter {
+    void operator()(TRaster_ *raster) const
+    {
+        if (raster) {
+            gray_raster_done(raster);
+        }
+    }
+};
 
 void rasterizeAntialiased(QT_FT_Outline &outline,
                           const PkRect &clip,
                           ProcessSpans process,
                           void *userData)
 {
+    constexpr std::size_t poolSize = 1024 * 1024;
+    std::unique_ptr<unsigned char[]> pool(new (std::nothrow) unsigned char[poolSize + 15]);
+    if (!pool) {
+        return;
+    }
+
     QT_FT_Raster raster = nullptr;
     if (gray_raster_new(&raster) != 0) {
         return;
     }
-    constexpr std::size_t poolSize = 1024 * 1024;
-    std::vector<unsigned char> pool(poolSize + 15);
-    const uintptr_t alignedAddress = (reinterpret_cast<uintptr_t>(pool.data()) + 15u) & ~uintptr_t(15u);
+    const std::unique_ptr<TRaster_, GrayRasterDeleter> rasterOwner(raster);
+    const uintptr_t alignedAddress = (reinterpret_cast<uintptr_t>(pool.get()) + 15u) & ~uintptr_t(15u);
     auto *aligned = reinterpret_cast<unsigned char *>(alignedAddress);
     gray_raster_reset(raster, reinterpret_cast<char *>(aligned), poolSize);
 
-    GrayCallback callback{process, userData};
+    GrayCallback callback{process, userData, {}};
     QT_FT_Raster_Params params{};
     params.source = &outline;
     params.flags = QT_FT_RASTER_FLAG_AA | QT_FT_RASTER_FLAG_DIRECT | QT_FT_RASTER_FLAG_CLIP;
     params.gray_spans = processGraySpans;
     params.user = &callback;
-    params.clip_box = {clip.x(), clip.y(), clip.x() + clip.width(), clip.y() + clip.height()};
+    params.clip_box = {clip.x(), clip.y(),
+                       int(int64_t(clip.x()) + clip.width()),
+                       int(int64_t(clip.y()) + clip.height())};
     gray_raster_render(raster, &params);
-    gray_raster_done(raster);
 }
 
 using Q16Dot16 = int;
-constexpr Q16Dot16 fixedOne = 1 << 16;
+constexpr Q16Dot16 fixedOne = 65536;
+constexpr int spanBufferSize = 256;
+constexpr int scanChunkSize = 64;
 
 Q16Dot16 fixedMultiply(Q16Dot16 x, Q16Dot16 y)
 {
     return Q16Dot16((int64_t(x) * int64_t(y)) >> 16);
 }
 
-struct ScanLine {
-    Q16Dot16 x;
-    Q16Dot16 delta;
-    int top;
-    int bottom;
-    int winding;
+Q16Dot16 intToFixed(int value)
+{
+    const int64_t fixed = int64_t(value) * fixedOne;
+    assert(fixed >= std::numeric_limits<Q16Dot16>::min()
+           && fixed <= std::numeric_limits<Q16Dot16>::max());
+    return Q16Dot16(fixed);
+}
+
+int fixedToInt(Q16Dot16 value)
+{
+    if (value >= 0) {
+        return value / fixedOne;
+    }
+    return -int((-int64_t(value) + fixedOne - 1) / fixedOne);
+}
+
+Q16Dot16 floatToFixed(double value)
+{
+    const double scaled = value * fixedOne;
+    if (scaled >= std::numeric_limits<Q16Dot16>::max()) {
+        return std::numeric_limits<Q16Dot16>::max();
+    }
+    if (scaled <= std::numeric_limits<Q16Dot16>::min()) {
+        return std::numeric_limits<Q16Dot16>::min();
+    }
+    return Q16Dot16(scaled);
+}
+
+class SpanBuffer
+{
+public:
+    SpanBuffer(ProcessSpans process, void *userData, const PkRect &clip)
+        : m_process(process)
+        , m_userData(userData)
+        , m_clip(clip)
+    {
+    }
+
+    ~SpanBuffer()
+    {
+        flush();
+    }
+
+    void addSpan(int x, unsigned int length, int y, uint8_t coverage)
+    {
+        if (!coverage || !length) {
+            return;
+        }
+        const int64_t right = int64_t(m_clip.x()) + m_clip.width();
+        const int64_t bottom = int64_t(m_clip.y()) + m_clip.height();
+        if (y < m_clip.y() || int64_t(y) >= bottom
+            || x < m_clip.x() || int64_t(x) + length > right) {
+            return;
+        }
+        m_spans[std::size_t(m_count++)] = {x, y, int(length), coverage};
+        if (m_count == spanBufferSize) {
+            flush();
+        }
+    }
+
+private:
+    void flush()
+    {
+        if (m_count) {
+            m_process(m_spans.data(), m_count, m_userData);
+            m_count = 0;
+        }
+    }
+
+    std::array<Span, spanBufferSize> m_spans{};
+    int m_count = 0;
+    ProcessSpans m_process;
+    void *m_userData;
+    PkRect m_clip;
 };
 
-void addScanLine(std::vector<ScanLine> &lines,
-                 QT_FT_Vector a,
-                 QT_FT_Vector b,
-                 const PkRect &clip)
+class ScanConverter
+{
+public:
+    struct Line {
+        Q16Dot16 x;
+        Q16Dot16 delta;
+        int top;
+        int bottom;
+        int winding;
+    };
+
+    void begin(int top, int bottom, int left, int right,
+               bool windingFill, SpanBuffer *spanBuffer)
+    {
+        m_top = top;
+        m_bottom = bottom;
+        m_leftFixed = intToFixed(left);
+        m_rightFixed = intToFixed(right + 1);
+        m_lines.clear();
+        m_fillRuleMask = windingFill ? ~0 : 1;
+        m_spanBuffer = spanBuffer;
+    }
+
+    void mergeCurve(const QT_FT_Vector &pa, const QT_FT_Vector &pb,
+                    const QT_FT_Vector &pc, const QT_FT_Vector &pd);
+    void mergeLine(QT_FT_Vector a, QT_FT_Vector b);
+    void end();
+
+private:
+    struct Intersection {
+        int x;
+        int winding;
+        int left;
+        int right;
+    };
+
+    bool clipLine(Q16Dot16 &xFixed, int &top, int &bottom,
+                  Q16Dot16 slopeFixed, Q16Dot16 edgeFixed, int winding);
+    void prepareChunk()
+    {
+        m_size = scanChunkSize;
+        m_intersections.assign(scanChunkSize, Intersection{});
+    }
+    void allocate(int size)
+    {
+        if (int(m_intersections.size()) < size) {
+            m_intersections.resize(std::size_t(size));
+        }
+    }
+    void mergeIntersection(Intersection *root, const Intersection &intersection);
+    void emitNode(const Intersection *node);
+    void emitSpans(int chunk);
+
+    std::vector<Line> m_lines;
+    std::vector<Line *> m_active;
+    std::vector<Intersection> m_intersections;
+    int m_size = 0;
+    int m_top = 0;
+    int m_bottom = -1;
+    Q16Dot16 m_leftFixed = 0;
+    Q16Dot16 m_rightFixed = 0;
+    int m_fillRuleMask = 1;
+    int m_x = 0;
+    int m_y = 0;
+    int m_winding = 0;
+    SpanBuffer *m_spanBuffer = nullptr;
+};
+
+void ScanConverter::emitNode(const Intersection *node)
+{
+tail_call:
+    if (node->left) {
+        emitNode(node + node->left);
+    }
+    if (m_winding & m_fillRuleMask) {
+        m_spanBuffer->addSpan(m_x, unsigned(node->x - m_x), m_y, 0xff);
+    }
+    m_x = node->x;
+    m_winding += node->winding;
+    if (node->right) {
+        node += node->right;
+        goto tail_call;
+    }
+}
+
+void ScanConverter::emitSpans(int chunk)
+{
+    for (int dy = 0; dy < scanChunkSize; ++dy) {
+        m_x = 0;
+        m_y = chunk + dy;
+        m_winding = 0;
+        emitNode(&m_intersections[std::size_t(dy)]);
+    }
+}
+
+void ScanConverter::mergeIntersection(Intersection *root,
+                                      const Intersection &intersection)
+{
+    Intersection *current = root;
+    while (intersection.x != current->x) {
+        int &next = intersection.x < current->x ? current->left : current->right;
+        if (next) {
+            current += next;
+        } else {
+            Intersection *last = m_intersections.data() + m_size;
+            next = int(last - current);
+            *last = intersection;
+            ++m_size;
+            return;
+        }
+    }
+    current->winding += intersection.winding;
+}
+
+void ScanConverter::mergeCurve(const QT_FT_Vector &pa, const QT_FT_Vector &pb,
+                               const QT_FT_Vector &pc, const QT_FT_Vector &pd)
+{
+    QT_FT_Vector beziers[4 + 3 * 32];
+    QT_FT_Vector *b = beziers;
+    b[0] = pa;
+    b[1] = pb;
+    b[2] = pc;
+    b[3] = pd;
+    constexpr QT_FT_Pos flatness = 16;
+
+    while (b >= beziers) {
+        const QT_FT_Vector delta = {b[3].x - b[0].x, b[3].y - b[0].y};
+        const QT_FT_Pos length = std::abs(delta.x) + std::abs(delta.y);
+        bool belowThreshold;
+        if (length > 64) {
+            const int64_t d2 = std::abs(int64_t(b[1].x - b[0].x) * delta.y
+                                        - int64_t(b[1].y - b[0].y) * delta.x);
+            const int64_t d3 = std::abs(int64_t(b[2].x - b[0].x) * delta.y
+                                        - int64_t(b[2].y - b[0].y) * delta.x);
+            belowThreshold = d2 + d3 <= int64_t(flatness) * length;
+        } else {
+            const QT_FT_Pos distance = std::abs(b[0].x - b[1].x)
+                + std::abs(b[0].y - b[1].y)
+                + std::abs(b[0].x - b[2].x)
+                + std::abs(b[0].y - b[2].y);
+            belowThreshold = distance <= flatness;
+        }
+        if (belowThreshold || b == beziers + 3 * 32) {
+            mergeLine(b[0], b[3]);
+            b -= 3;
+            continue;
+        }
+
+        b[6] = b[3];
+        const QT_FT_Pos xMiddle = (b[1].x + b[2].x) / 2;
+        b[1].x = (b[0].x + b[1].x) / 2;
+        b[5].x = (b[2].x + b[3].x) / 2;
+        b[2].x = (b[1].x + xMiddle) / 2;
+        b[4].x = (b[5].x + xMiddle) / 2;
+        b[3].x = (b[2].x + b[4].x) / 2;
+        const QT_FT_Pos yMiddle = (b[1].y + b[2].y) / 2;
+        b[1].y = (b[0].y + b[1].y) / 2;
+        b[5].y = (b[2].y + b[3].y) / 2;
+        b[2].y = (b[1].y + yMiddle) / 2;
+        b[4].y = (b[5].y + yMiddle) / 2;
+        b[3].y = (b[2].y + b[4].y) / 2;
+        b += 3;
+    }
+}
+
+bool ScanConverter::clipLine(Q16Dot16 &xFixed, int &top, int &bottom,
+                             Q16Dot16 slopeFixed, Q16Dot16 edgeFixed,
+                             int winding)
+{
+    const bool right = edgeFixed == m_rightFixed;
+    if (xFixed == edgeFixed) {
+        if ((slopeFixed > 0) ^ right) {
+            return false;
+        }
+        m_lines.push_back({edgeFixed, 0, top, bottom, winding});
+        return true;
+    }
+
+    const Q16Dot16 lastFixed = Q16Dot16(int64_t(xFixed)
+        + int64_t(slopeFixed) * (bottom - top));
+    if (lastFixed == edgeFixed) {
+        if ((slopeFixed < 0) ^ right) {
+            return false;
+        }
+        m_lines.push_back({edgeFixed, 0, top, bottom, winding});
+        return true;
+    }
+
+    if ((lastFixed < edgeFixed) ^ (xFixed < edgeFixed)) {
+        const Q16Dot16 deltaY = Q16Dot16((edgeFixed - xFixed)
+                                         / (double(slopeFixed) / fixedOne));
+        if ((xFixed < edgeFixed) ^ right) {
+            const int height = fixedToInt(deltaY + 1);
+            const int middle = top + height;
+            m_lines.push_back({edgeFixed, 0, top, middle, winding});
+            if (middle != bottom) {
+                xFixed += slopeFixed * (height + 1);
+                top = middle + 1;
+            } else {
+                return true;
+            }
+        } else {
+            const int height = fixedToInt(deltaY);
+            const int middle = top + height;
+            if (middle != bottom) {
+                m_lines.push_back({edgeFixed, 0, middle + 1, bottom, winding});
+                bottom = middle;
+            }
+        }
+        return false;
+    }
+    if ((xFixed < edgeFixed) ^ right) {
+        m_lines.push_back({edgeFixed, 0, top, bottom, winding});
+        return true;
+    }
+    return false;
+}
+
+void ScanConverter::mergeLine(QT_FT_Vector a, QT_FT_Vector b)
 {
     int winding = 1;
     if (a.y > b.y) {
         std::swap(a, b);
         winding = -1;
     }
-    const int top = std::max(clip.y(), int((a.y + 32) >> 6));
-    const int bottom = std::min(clip.y() + clip.height() - 1, int((b.y - 32) >> 6));
+
+    int top = std::max(m_top, int((a.y + 32) >> 6));
+    int bottom = std::min(m_bottom, int((b.y - 32) >> 6));
     if (top > bottom) {
         return;
     }
-    const Q16Dot16 aFixed = fixedOne / 2 + a.x * (1 << 10);
+
+    const Q16Dot16 aFixed = Q16Dot16(fixedOne / 2 + int64_t(a.x) * 1024);
     if (b.x == a.x) {
-        lines.push_back({aFixed, 0, top, bottom, winding});
+        m_lines.push_back({std::clamp(aFixed, m_leftFixed, m_rightFixed),
+                           0, top, bottom, winding});
         return;
     }
+
     const double slope = double(b.x - a.x) / double(b.y - a.y);
-    const Q16Dot16 slopeFixed = Q16Dot16(slope * fixedOne);
-    const Q16Dot16 yOffset = (top << 16) + fixedOne / 2 - a.y * (1 << 10);
-    const Q16Dot16 x = aFixed + fixedMultiply(slopeFixed, yOffset);
-    lines.push_back({x, slopeFixed, top, bottom, winding});
+    const Q16Dot16 slopeFixed = floatToFixed(slope);
+    const Q16Dot16 yOffset = Q16Dot16(int64_t(intToFixed(top))
+                                      + fixedOne / 2
+                                      - int64_t(a.y) * 1024);
+    Q16Dot16 xFixed = aFixed + fixedMultiply(slopeFixed, yOffset);
+    if (clipLine(xFixed, top, bottom, slopeFixed, m_leftFixed, winding)) {
+        return;
+    }
+    if (clipLine(xFixed, top, bottom, slopeFixed, m_rightFixed, winding)) {
+        return;
+    }
+    assert(xFixed >= m_leftFixed);
+    m_lines.push_back({xFixed, slopeFixed, top, bottom, winding});
+}
+
+void ScanConverter::end()
+{
+    if (m_lines.empty()) {
+        m_active.clear();
+        return;
+    }
+    std::sort(m_lines.begin(), m_lines.end(),
+              [](const Line &a, const Line &b) { return a.top < b.top; });
+
+    if (m_lines.size() <= 32) {
+        const bool allVertical = std::all_of(m_lines.begin(), m_lines.end(),
+                                             [](const Line &line) { return line.delta == 0; });
+        std::size_t lineIndex = 0;
+        for (int y = m_lines.front().top; y <= m_bottom; ++y) {
+            while (lineIndex < m_lines.size() && m_lines[lineIndex].top == y) {
+                Line *line = &m_lines[lineIndex++];
+                if (allVertical) {
+                    const auto position = std::upper_bound(
+                        m_active.begin(), m_active.end(), line,
+                        [](const Line *a, const Line *b) { return a->x < b->x; });
+                    m_active.insert(position, line);
+                } else {
+                    m_active.push_back(line);
+                }
+            }
+            if (!allVertical) {
+                std::stable_sort(m_active.begin(), m_active.end(),
+                                 [](const Line *a, const Line *b) { return a->x < b->x; });
+            }
+            int x = 0;
+            int winding = 0;
+            for (std::size_t i = 0; i < m_active.size();) {
+                Line *line = m_active[i];
+                const int current = fixedToInt(line->x);
+                if (winding & m_fillRuleMask) {
+                    m_spanBuffer->addSpan(x, unsigned(current - x), y, 0xff);
+                }
+                x = current;
+                winding += line->winding;
+                if (line->bottom == y) {
+                    m_active.erase(m_active.begin() + std::ptrdiff_t(i));
+                } else {
+                    if (!allVertical) {
+                        line->x += line->delta;
+                    }
+                    ++i;
+                }
+            }
+        }
+        m_active.clear();
+    } else {
+        for (int chunkTop = m_top; chunkTop <= m_bottom; chunkTop += scanChunkSize) {
+            prepareChunk();
+            Intersection intersection{0, 0, 0, 0};
+            const int chunkBottom = chunkTop + scanChunkSize;
+            for (Line &line : m_lines) {
+                if (line.bottom < chunkTop || line.top > chunkBottom) {
+                    continue;
+                }
+                const int top = std::max(0, line.top - chunkTop);
+                const int bottom = std::min(scanChunkSize, line.bottom + 1 - chunkTop);
+                allocate(m_size + bottom - top);
+                intersection.winding = line.winding;
+                Intersection *it = m_intersections.data() + top;
+                Intersection *end = m_intersections.data() + bottom;
+                if (line.delta) {
+                    for (; it != end; ++it) {
+                        intersection.x = fixedToInt(line.x);
+                        line.x += line.delta;
+                        mergeIntersection(it, intersection);
+                    }
+                } else {
+                    intersection.x = fixedToInt(line.x);
+                    for (; it != end; ++it) {
+                        mergeIntersection(it, intersection);
+                    }
+                }
+            }
+            emitSpans(chunkTop);
+        }
+    }
 }
 
 void rasterizeBinary(const QT_FT_Outline &outline,
@@ -2376,49 +2784,71 @@ void rasterizeBinary(const QT_FT_Outline &outline,
                      ProcessSpans process,
                      void *userData)
 {
-    std::vector<ScanLine> lines;
+    if (outline.n_points < 3 || outline.n_contours == 0) {
+        return;
+    }
+    QT_FT_Pos minimumY = outline.points[0].y;
+    QT_FT_Pos maximumY = outline.points[0].y;
+    for (int i = 1; i < outline.n_points; ++i) {
+        minimumY = std::min(minimumY, outline.points[i].y);
+        maximumY = std::max(maximumY, outline.points[i].y);
+    }
+    const int64_t clipBottom = int64_t(clip.y()) + clip.height() - 1;
+    const int top = std::max(clip.y(), int((minimumY + 32) >> 6));
+    const int bottom = std::min(int(clipBottom), int((maximumY - 32) >> 6));
+    if (top > bottom) {
+        return;
+    }
+
+    SpanBuffer spanBuffer(process, userData, clip);
+    ScanConverter converter;
+    const int right = int(int64_t(clip.x()) + clip.width() - 1);
+    converter.begin(top, bottom, clip.x(), right,
+                    outline.flags == QT_FT_OUTLINE_NONE, &spanBuffer);
     int first = 0;
     for (int contour = 0; contour < outline.n_contours; ++contour) {
         const int last = outline.contours[contour];
         for (int point = first; point < last; ++point) {
-            addScanLine(lines, outline.points[point], outline.points[point + 1], clip);
+            if (outline.tags[point + 1] == QT_FT_CURVE_TAG_CUBIC) {
+                assert(outline.tags[point + 2] == QT_FT_CURVE_TAG_CUBIC);
+                converter.mergeCurve(outline.points[point], outline.points[point + 1],
+                                     outline.points[point + 2], outline.points[point + 3]);
+                point += 2;
+            } else {
+                converter.mergeLine(outline.points[point], outline.points[point + 1]);
+            }
         }
         first = last + 1;
     }
-    const int fillRuleMask = outline.flags == QT_FT_OUTLINE_NONE ? ~0 : 1;
-    std::vector<Span> output;
-    for (int y = clip.y(); y < clip.y() + clip.height(); ++y) {
-        struct Intersection { int x; int winding; };
-        std::vector<Intersection> intersections;
-        for (ScanLine &line : lines) {
-            if (y >= line.top && y <= line.bottom) {
-                int x = line.x >> 16;
-                x = std::max(clip.x(), std::min(clip.x() + clip.width(), x));
-                intersections.push_back({x, line.winding});
-            }
-            if (y >= line.top && y < line.bottom) {
-                line.x += line.delta;
-            }
+    converter.end();
+}
+
+struct OffsetCallback {
+    ProcessSpans process;
+    void *userData;
+    int originX;
+    int originY;
+    std::array<Span, spanBufferSize> spans;
+};
+
+void processOffsetSpans(const Span *spans, int count, void *userData)
+{
+    auto *callback = static_cast<OffsetCallback *>(userData);
+    assert(count >= 0 && count <= int(callback->spans.size()));
+    int outputCount = 0;
+    for (int i = 0; i < count; ++i) {
+        const int64_t x = int64_t(callback->originX) + spans[i].x;
+        const int64_t y = int64_t(callback->originY) + spans[i].y;
+        if (x < std::numeric_limits<int>::min() || x > std::numeric_limits<int>::max()
+            || y < std::numeric_limits<int>::min() || y > std::numeric_limits<int>::max()) {
+            continue;
         }
-        std::sort(intersections.begin(), intersections.end(),
-                  [](const Intersection &a, const Intersection &b) { return a.x < b.x; });
-        int x = 0;
-        int winding = 0;
-        std::size_t index = 0;
-        while (index < intersections.size()) {
-            const int current = intersections[index].x;
-            if ((winding & fillRuleMask) && current > x) {
-                output.push_back({x, y, current - x, 255});
-            }
-            x = current;
-            while (index < intersections.size() && intersections[index].x == current) {
-                winding += intersections[index].winding;
-                ++index;
-            }
-        }
+        callback->spans[std::size_t(outputCount++)] = {
+            int(x), int(y), spans[i].length, spans[i].coverage
+        };
     }
-    if (!output.empty()) {
-        process(output.data(), int(output.size()), userData);
+    if (outputCount) {
+        callback->process(callback->spans.data(), outputCount, callback->userData);
     }
 }
 
@@ -2433,14 +2863,26 @@ void rasterizePath(const PkPainterPath &path,
     if (!process || clip.isEmpty() || path.isEmpty()) {
         return;
     }
-    OutlineStorage storage = makeOutline(path, clip);
+    for (int i = 0; i < path.elementCount(); ++i) {
+        const auto element = path.elementAt(i);
+        if (!std::isfinite(element.x) || !std::isfinite(element.y)) {
+            return;
+        }
+    }
+
+    const PkRect localClip(0, 0, clip.width(), clip.height());
+    OutlineStorage storage = makeOutline(path, localClip,
+                                         double(clip.x()), double(clip.y()));
     if (storage.outline.n_points < 3 || storage.outline.n_contours == 0) {
         return;
     }
+    OffsetCallback callback{process, userData, clip.x(), clip.y(), {}};
     if (antialiased) {
-        rasterizeAntialiased(storage.outline, clip, process, userData);
+        rasterizeAntialiased(storage.outline, localClip,
+                             processOffsetSpans, &callback);
     } else {
-        rasterizeBinary(storage.outline, clip, process, userData);
+        rasterizeBinary(storage.outline, localClip,
+                        processOffsetSpans, &callback);
     }
 }
 

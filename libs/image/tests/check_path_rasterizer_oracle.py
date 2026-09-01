@@ -39,7 +39,7 @@ def main():
     if args.candidate and args.mode != "fill":
         ap.error("--candidate requires --mode fill")
 
-    listed = run(args.oracle, "--list")
+    listed = run(args.oracle, "--list-fill" if args.candidate else "--list")
     if listed.returncode:
         raise AssertionError(f"--list exited {listed.returncode}: {listed.stderr}")
     names = listed.stdout.splitlines()
@@ -66,11 +66,15 @@ def main():
         if (not candidate_names or any(not n for n in candidate_names)
                 or len(candidate_names) != len(set(candidate_names))):
             raise AssertionError("candidate --list contains an empty or duplicate name")
-        unknown = [name for name in candidate_names if name not in payloads]
-        if unknown:
-            raise AssertionError(f"candidate listed unknown case {unknown[0]!r}")
+        missing = [name for name in names if name not in candidate_names]
+        unexpected = [name for name in candidate_names if name not in payloads]
+        if missing or unexpected:
+            raise AssertionError(
+                "candidate fill fixture set differs from oracle: "
+                f"missing={missing!r} unexpected={unexpected!r}"
+            )
 
-        for name in candidate_names:
+        for name in names:
             result = run(args.candidate, "--case", name)
             if result.returncode:
                 raise AssertionError(
@@ -102,7 +106,7 @@ def main():
                     f"row_digest_expected={hashlib.sha256(expected_row).hexdigest()} "
                     f"row_digest_actual={hashlib.sha256(actual_row).hexdigest()}"
                 )
-        print(f"fill parity: {len(candidate_names)} cases, byte-identical")
+        print(f"fill parity: {len(names)} cases, byte-identical")
         return 0
 
     def data(name):
