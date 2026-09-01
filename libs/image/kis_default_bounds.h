@@ -7,6 +7,9 @@
 #ifndef KIS_DEFAULT_BOUNDS_H
 #define KIS_DEFAULT_BOUNDS_H
 
+#include <PkRect.h>
+#include <PkScopedPointer.h>
+
 #include "kis_types.h"
 #include "kis_default_bounds_base.h"
 
@@ -39,7 +42,8 @@ protected:
     static const PkRect infiniteRect;
 
 private:
-    Q_DISABLE_COPY(KisDefaultBounds)
+    KisDefaultBounds(const KisDefaultBounds &) = delete;
+    KisDefaultBounds &operator=(const KisDefaultBounds &) = delete;
 
     struct Private;
     Private * const m_d;
@@ -77,7 +81,8 @@ protected:
     virtual KisPaintDeviceSP parentPaintDevice() const = 0;
 
 private:
-    Q_DISABLE_COPY(KisSelectionDefaultBoundsBase)
+    KisSelectionDefaultBoundsBase(const KisSelectionDefaultBoundsBase &) = delete;
+    KisSelectionDefaultBoundsBase &operator=(const KisSelectionDefaultBoundsBase &) = delete;
 };
 
 /**
@@ -96,7 +101,8 @@ protected:
     virtual KisPaintDeviceSP parentPaintDevice() const override;
 
 private:
-    Q_DISABLE_COPY(KisSelectionDefaultBounds)
+    KisSelectionDefaultBounds(const KisSelectionDefaultBounds &) = delete;
+    KisSelectionDefaultBounds &operator=(const KisSelectionDefaultBounds &) = delete;
     KisPaintDeviceWSP m_paintDevice;
 };
 
@@ -117,7 +123,8 @@ protected:
     virtual KisPaintDeviceSP parentPaintDevice() const override;
 
 private:
-    Q_DISABLE_COPY(KisMaskDefaultBounds)
+    KisMaskDefaultBounds(const KisMaskDefaultBounds &) = delete;
+    KisMaskDefaultBounds &operator=(const KisMaskDefaultBounds &) = delete;
     KisNodeWSP m_parentNode;
 };
 
@@ -158,7 +165,8 @@ protected:
     friend class KisPaintDeviceTest;
 
 private:
-    Q_DISABLE_COPY(KisWrapAroundBoundsWrapper)
+    KisWrapAroundBoundsWrapper(const KisWrapAroundBoundsWrapper &) = delete;
+    KisWrapAroundBoundsWrapper &operator=(const KisWrapAroundBoundsWrapper &) = delete;
 
     struct Private;
     const PkScopedPointer<Private> m_d;
