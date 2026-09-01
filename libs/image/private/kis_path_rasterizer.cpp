@@ -40,8 +40,10 @@
 #include "kis_path_rasterizer_p.h"
 
 #include "kis_path_scan_converter_p.h"
+#include "kis_path_stroker_p.h"
 
 #include <PkPainterPath.h>
+#include <PkPen.h>
 
 #include <algorithm>
 #include <cmath>
@@ -89,6 +91,33 @@ bool hasOnlyFiniteElements(const PkPainterPath &path)
     return true;
 }
 
+bool hasValidStrokeState(const PkPen &pen)
+{
+    if (!std::isfinite(pen.widthF()) || pen.widthF() < 0
+        || !std::isfinite(pen.miterLimit()) || pen.miterLimit() < 0
+        || !std::isfinite(pen.dashOffset())) {
+        return false;
+    }
+    if (pen.style() < Qt::NoPen || pen.style() > Qt::CustomDashLine) {
+        return false;
+    }
+    if (pen.capStyle() != Qt::FlatCap && pen.capStyle() != Qt::SquareCap
+        && pen.capStyle() != Qt::RoundCap) {
+        return false;
+    }
+    if (pen.joinStyle() != Qt::MiterJoin && pen.joinStyle() != Qt::BevelJoin
+        && pen.joinStyle() != Qt::RoundJoin && pen.joinStyle() != Qt::SvgMiterJoin) {
+        return false;
+    }
+    const auto pattern = pen.dashPattern();
+    for (int i = 0; i < pattern.size(); ++i) {
+        if (!std::isfinite(pattern.at(i))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 CoverageMask rasterizeFill(const PkPainterPath &path,
@@ -117,6 +146,22 @@ CoverageMask rasterizeFill(const PkPainterPath &path,
         return CoverageMask{};
     }
     return mask;
+}
+
+CoverageMask rasterizeStroke(const PkPainterPath &path,
+                             const PkPen &pen,
+                             const PkRect &clip,
+                             bool antialiased)
+{
+    if (clip.isEmpty() || path.isEmpty() || pen.style() == Qt::NoPen
+        || !hasOnlyFiniteElements(path) || !hasValidStrokeState(pen)) {
+        return {};
+    }
+    const PkPainterPath outline = Private::createStrokeOutline(path, pen, clip);
+    if (outline.isEmpty()) {
+        return {};
+    }
+    return rasterizeFill(outline, clip, antialiased);
 }
 
 } // namespace KisPathRasterizer

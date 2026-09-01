@@ -31,15 +31,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--oracle", required=True)
     ap.add_argument("--candidate")
-    ap.add_argument("--mode", choices=("fill",))
+    ap.add_argument("--mode", choices=("fill", "stroke", "all"))
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test == bool(args.candidate):
         ap.error("select exactly one of --self-test or --candidate")
-    if args.candidate and args.mode != "fill":
-        ap.error("--candidate requires --mode fill")
+    if args.candidate and args.mode is None:
+        ap.error("--candidate requires --mode")
 
-    listed = run(args.oracle, "--list-fill" if args.candidate else "--list")
+    list_option = "--list"
+    if args.candidate and args.mode != "all":
+        list_option = f"--list-{args.mode}"
+    listed = run(args.oracle, list_option)
     if listed.returncode:
         raise AssertionError(f"--list exited {listed.returncode}: {listed.stderr}")
     names = listed.stdout.splitlines()
@@ -56,7 +59,7 @@ def main():
         payloads[name] = (dimensions, data)
 
     if args.candidate:
-        candidate_list = run(args.candidate, "--list")
+        candidate_list = run(args.candidate, list_option)
         if candidate_list.returncode:
             raise AssertionError(
                 f"candidate --list exited {candidate_list.returncode}: "
@@ -70,7 +73,7 @@ def main():
         unexpected = [name for name in candidate_names if name not in payloads]
         if missing or unexpected:
             raise AssertionError(
-                "candidate fill fixture set differs from oracle: "
+                f"candidate {args.mode} fixture set differs from oracle: "
                 f"missing={missing!r} unexpected={unexpected!r}"
             )
 
@@ -106,7 +109,7 @@ def main():
                     f"row_digest_expected={hashlib.sha256(expected_row).hexdigest()} "
                     f"row_digest_actual={hashlib.sha256(actual_row).hexdigest()}"
                 )
-        print(f"fill parity: {len(names)} cases, byte-identical")
+        print(f"{args.mode} parity: {len(names)} cases, byte-identical")
         return 0
 
     def data(name):
@@ -122,6 +125,22 @@ def main():
     aa_on = "aa_on_curve"
     assert aa_off in payloads and aa_on in payloads, "missing matched AA curve fixtures"
     assert data(aa_off) != data(aa_on), "AA on/off produced identical masks"
+    for family in (("cap_flat", "cap_square", "cap_round"),
+                   ("join_miter_limit_8", "join_bevel", "join_round"),
+                   ("style_solid", "style_dash", "style_dot",
+                    "style_dash_dot", "style_dash_dot_dot",
+                    "style_custom_offset")):
+        assert all(name in payloads for name in family), f"missing semantic family {family}"
+        assert len({data(name) for name in family}) == len(family), \
+            f"semantic family produced duplicate masks: {family}"
+    assert data("join_miter_limit_1") != data("join_miter_limit_8"), \
+        "miter limits produced identical masks"
+    assert data("join_svg_miter_limit_1") != data("join_miter_limit_1"), \
+        "SvgMiterJoin and MiterJoin clipping produced identical masks"
+    assert data("zero_width_cosmetic") == data("unit_width"), \
+        "zero-width cosmetic stroke did not normalize to one pixel"
+    assert data("closed_flat_cap") == data("closed_round_cap"), \
+        "closed subpath incorrectly applied end caps"
     for name in names:
         if any(tag in name for tag in ("mirror", "chunk_boundary")):
             first = run(args.oracle, "--case", name)
