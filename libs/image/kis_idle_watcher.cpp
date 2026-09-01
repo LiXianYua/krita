@@ -127,7 +127,7 @@ void KisIdleWatcher::slotImageModified()
     if (m_d->idleCheckCounter >= 0) {
         restartCountdown();
     }
-    Q_EMIT imageModified();
+    imageModified();
 }
 
 void KisIdleWatcher::startIdleCheck()
@@ -150,7 +150,7 @@ void KisIdleWatcher::slotIdleCheckTick()
 
             stopIdleCheck();
             if (!m_d->trackedImages.isEmpty()) {
-                Q_EMIT startedIdleMode();
+                startedIdleMode();
             }
         } else {
             m_d->idleCheckCounter++;

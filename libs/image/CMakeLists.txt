@@ -526,6 +526,7 @@ set(kritaimage_SIGNAL_HEADERS
     KisSafeNodeProjectionStore.h
     kis_base_node.h
     kis_busy_progress_indicator.h
+    kis_idle_watcher.h
     kis_image.h
     kis_image_animation_interface.h
     kis_image_signal_router.h

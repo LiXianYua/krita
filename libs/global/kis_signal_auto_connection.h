@@ -42,7 +42,7 @@ public:
     template<class Sender, class Signal, class Receiver, class Method>
     inline KisSignalAutoConnection(Sender sender, Signal signal,
                                   Receiver receiver, Method method,
-                                  Qt::ConnectionType type = Qt::AutoConnection)
+                                  PkConnectionType type = PkConnectionType::Auto)
         : m_connection(PkObject::connect(sender, signal, receiver, method, type))
     {
     }
@@ -80,7 +80,7 @@ public:
     template<class Sender, class Signal, class Receiver, class Method>
     inline void addConnection(Sender sender, Signal signal,
                               Receiver receiver, Method method,
-                              Qt::ConnectionType type = Qt::AutoConnection)
+                              PkConnectionType type = PkConnectionType::Auto)
     {
         m_connections.append(KisSignalAutoConnectionSP(
                                  new KisSignalAutoConnection(sender, signal,
@@ -98,7 +98,7 @@ public:
     {
         m_connections.append(KisSignalAutoConnectionSP(
                                  new KisSignalAutoConnection(sender, signal,
-                                                             receiver, method, Qt::UniqueConnection)));
+                                                             receiver, method, PkConnectionType::Unique)));
     }
 
     /**

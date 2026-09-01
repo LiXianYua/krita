@@ -10,13 +10,14 @@
 #include "kritaimage_export.h"
 
 #include <PkObject.h>
+#include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 
 #include "kis_types.h"
 
 
 class KRITAIMAGE_EXPORT KisIdleWatcher : public PkShellObject
 {
-    Q_OBJECT
 public:
     KisIdleWatcher(int delay = 200, PkObject* parent = 0);
     ~KisIdleWatcher() override;
@@ -32,11 +33,11 @@ public:
     void restartCountdown();
     void triggerCountdownNoDelay();
 
-Q_SIGNALS:
+signals:
     void startedIdleMode();
     void imageModified();
 
-private Q_SLOTS:
+private:
     void slotImageModified();
     void slotIdleCheckTick();
 
