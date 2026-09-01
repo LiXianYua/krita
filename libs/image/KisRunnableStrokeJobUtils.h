@@ -8,6 +8,7 @@
 #define KISRUNNABLESTROKEJOBUTILS_H
 
 #include <PkContainerAlgo.h>
+#include <PkVector.h>
 
 #include "kis_stroke_job_strategy.h"
 #include "KisRunnableStrokeJobData.h"
