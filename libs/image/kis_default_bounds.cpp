@@ -21,7 +21,7 @@ const PkRect KisDefaultBounds::infiniteRect =
 /*                  KisDefaultBounds                              */
 /******************************************************************/
 
-struct Q_DECL_HIDDEN KisDefaultBounds::Private
+struct KisDefaultBounds::Private
 {
     KisImageWSP image;
 };
@@ -218,7 +218,7 @@ PkRect KisSelectionEmptyBounds::bounds() const
 /******************************************************************/
 
 
-struct Q_DECL_HIDDEN KisWrapAroundBoundsWrapper::Private
+struct KisWrapAroundBoundsWrapper::Private
 {
     KisDefaultBoundsBaseSP base;
     PkRect bounds;
