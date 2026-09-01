@@ -11,6 +11,7 @@
 #include <PkImage.h>
 
 #include <KoResource.h>
+#include <KisResourceTypes.h>
 
 #include <kis_types.h>
 #include <kis_shared.h>
@@ -388,7 +389,4 @@ private:
 
 };
 
-Q_DECLARE_METATYPE(KisBrushSP)
-
 #endif // KIS_BRUSH_
-

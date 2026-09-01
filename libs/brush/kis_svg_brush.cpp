@@ -4,15 +4,48 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_svg_brush.h"
-
-#include <QDomElement>
-#include <QFileInfo>
+#include <QByteArray>
+#include <QImage>
 #include <QPainter>
-#include <QImageReader>
 #include <QSvgRenderer>
 
-KisSvgBrush::KisSvgBrush(const QString& filename)
+#include "kis_svg_brush.h"
+
+#include <cstring>
+#include <filesystem>
+#include <vector>
+
+namespace {
+
+PkImage toPkImage(const QImage &image)
+{
+    PkImage result(image.width(), image.height(), static_cast<PkImage::Format>(image.format()));
+
+    if (image.colorCount() > 0) {
+        std::vector<uint32_t> colors;
+        colors.reserve(static_cast<size_t>(image.colorCount()));
+        for (int i = 0; i < image.colorCount(); ++i) {
+            colors.push_back(image.color(i));
+        }
+        result.setColorTable(colors);
+    }
+
+    for (int y = 0; y < image.height(); ++y) {
+        std::memcpy(result.scanLine(y), image.constScanLine(y), static_cast<size_t>(image.bytesPerLine()));
+    }
+
+    return result;
+}
+
+PkString pathCompleteBaseName(const PkString &path)
+{
+    const std::string name = std::filesystem::u8path(path.PkToUtf8()).stem().string();
+    return PkString::PkFromUtf8(name.c_str(), static_cast<int>(name.size()));
+}
+
+} // namespace
+
+KisSvgBrush::KisSvgBrush(const PkString& filename)
     : KisScalingSizeBrush(filename)
 {
     setBrushType(INVALID);
@@ -30,13 +63,14 @@ KoResourceSP KisSvgBrush::clone() const
     return KoResourceSP(new KisSvgBrush(*this));
 }
 
-bool KisSvgBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisSvgBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
     m_svg = dev->readAll();
 
-    QSvgRenderer renderer(m_svg);
+    const QByteArray svgBytes(m_svg.constData(), m_svg.size());
+    QSvgRenderer renderer(svgBytes);
 
     QRect box = renderer.viewBox();
     if (box.isEmpty()) return false;
@@ -52,7 +86,7 @@ bool KisSvgBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
     for (int i = 0; i < 256; ++i) table.push_back(qRgb(i, i, i));
     image_ = image_.convertToFormat(QImage::Format_Indexed8, table);
 
-    setBrushTipImage(image_);
+    setBrushTipImage(toPkImage(image_));
 
     setValid(true);
 
@@ -61,23 +95,22 @@ bool KisSvgBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
     setWidth(brushTipImage().width());
     setHeight(brushTipImage().height());
 
-    QFileInfo fi(filename());
-    setName(fi.completeBaseName());
+    setName(pathCompleteBaseName(filename()));
 
     return !brushTipImage().isNull() && valid();
 }
 
-bool KisSvgBrush::saveToDevice(QIODevice *dev) const
+bool KisSvgBrush::saveToDevice(PkStream *dev) const
 {
     return dev->write(m_svg.constData(), m_svg.size()) == m_svg.size();
 }
 
-QString KisSvgBrush::defaultFileExtension() const
+PkString KisSvgBrush::defaultFileExtension() const
 {
-    return QString(".svg");
+    return PkString(".svg");
 }
 
-void KisSvgBrush::toXML(QDomDocument& d, QDomElement& e) const
+void KisSvgBrush::toXML(PkXmlDocument& d, PkXmlElement& e) const
 {
     predefinedBrushToXML("svg_brush", e);
     KisBrush::toXML(d, e);

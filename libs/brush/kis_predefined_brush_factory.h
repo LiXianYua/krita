@@ -10,6 +10,8 @@
 #include <PkString.h>
 #include <PkXmlElement.h>
 
+#include <variant>
+
 #include "kis_brush_factory.h"
 #include "kis_brush.h"
 

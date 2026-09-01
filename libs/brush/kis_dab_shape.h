@@ -5,7 +5,7 @@
  */
 
 #pragma once
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 class KisDabShape {
     qreal m_scale;

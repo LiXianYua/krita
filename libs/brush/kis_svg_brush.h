@@ -7,29 +7,37 @@
 #ifndef KIS_SVG_BRUSH_
 #define KIS_SVG_BRUSH_
 
+#include <PkAuxTypes.h>
+#include <PkStream.h>
+#include <PkString.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+
+#include <utility>
+
 #include "kis_scaling_size_brush.h"
 
 class BRUSH_EXPORT KisSvgBrush : public KisScalingSizeBrush
 {
 public:
     /// Construct brush to load filename later as brush
-    KisSvgBrush(const QString &filename);
+    KisSvgBrush(const PkString &filename);
     KisSvgBrush(const KisSvgBrush &rhs);
     KisSvgBrush &operator=(const KisSvgBrush &rhs) = delete;
 
     KoResourceSP clone() const override;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice *dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream *dev) const override;
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(ResourceType::Brushes, ResourceSubType::SvgBrushes);
+    std::pair<PkString, PkString> resourceType() const override {
+        return std::pair<PkString, PkString>(ResourceType::Brushes, ResourceSubType::SvgBrushes);
     }
 
-    QString defaultFileExtension() const override;
-    void toXML(QDomDocument& d, QDomElement& e) const override;
+    PkString defaultFileExtension() const override;
+    void toXML(PkXmlDocument& d, PkXmlElement& e) const override;
 private:
-    QByteArray m_svg;
+    PkByteArray m_svg;
 };
 
 #endif
