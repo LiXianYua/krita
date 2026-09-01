@@ -11,6 +11,8 @@
 #include "kis_base_node.h"
 #include "commands_new/KisAsynchronouslyMergeableCommandInterface.h"
 
+#include <PkSet.h>
+
 /// The command for changing the property list of a layer
 class KRITAIMAGE_EXPORT KisNodePropertyListCommand : public KisNodeCommand, public KisAsynchronouslyMergeableCommandInterface
 {
