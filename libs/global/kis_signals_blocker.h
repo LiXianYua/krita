@@ -7,12 +7,13 @@
 #ifndef __KIS_SIGNALS_BLOCKER_H
 #define __KIS_SIGNALS_BLOCKER_H
 
-#include <PkObject.h>
-#include <PkConnect.h>
-#include <PkVector.h>
+#if defined(QT_CORE_LIB)
+#  include <QObject>
+#  include <QVector>
+#endif
 
 /**
- * Block PkObject's signals in a safe and sane way.
+ * Block the owning object's signals in a safe and sane way.
  *
  * Avoid using direct calls to PkObject::blockSignals(bool),
  * because:
@@ -26,18 +27,15 @@
  *    the code unreadable.
  */
 
+#if defined(QT_CORE_LIB)
 class KisSignalsBlocker
 {
 public:
     /**
      * Six should be enough for all usage cases! (c)
      */
-    KisSignalsBlocker(PkObject *o1,
-                      PkObject *o2,
-                      PkObject *o3 = 0,
-                      PkObject *o4 = 0,
-                      PkObject *o5 = 0,
-                      PkObject *o6 = 0)
+    KisSignalsBlocker(QObject *o1, QObject *o2, QObject *o3 = 0,
+                      QObject *o4 = 0, QObject *o5 = 0, QObject *o6 = 0)
     {
         if (o1) addObject(o1);
         if (o2) addObject(o2);
@@ -49,7 +47,7 @@ public:
         blockObjects();
     }
 
-    KisSignalsBlocker(PkObject *object)
+    KisSignalsBlocker(QObject *object)
     {
         addObject(object);
         blockObjects();
@@ -73,7 +71,8 @@ private:
         }
     }
 
-    inline void addObject(PkObject *object) {
+    inline void addObject(QObject *object)
+    {
         m_objects.append(qMakePair(object, object->signalsBlocked()));
     }
 
@@ -81,7 +80,8 @@ private:
     Q_DISABLE_COPY(KisSignalsBlocker)
 
 private:
-    PkVector<PkPair<PkObject*,bool>> m_objects;
+    QVector<QPair<QObject*, bool>> m_objects;
 };
+#endif
 
 #endif /* __KIS_SIGNALS_BLOCKER_H */

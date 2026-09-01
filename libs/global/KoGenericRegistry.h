@@ -8,9 +8,21 @@
 #ifndef _KO_GENERIC_REGISTRY_H_
 #define _KO_GENERIC_REGISTRY_H_
 
-#include <PkList.h>
-#include <PkString.h>
-#include <PkHash.h>
+#if defined(QT_CORE_LIB)
+#  include <QHash>
+#  include <QList>
+#  include <QString>
+template <typename T> using KoRegistryList = QList<T>;
+template <typename K, typename V> using KoRegistryHash = QHash<K, V>;
+using KoRegistryString = QString;
+#else
+#  include <PkList.h>
+#  include <PkString.h>
+#  include <PkHash.h>
+template <typename T> using KoRegistryList = PkList<T>;
+template <typename K, typename V> using KoRegistryHash = PkHash<K, V>;
+using KoRegistryString = PkString;
+#endif
 
 #include "kis_assert.h"
 
@@ -19,7 +31,7 @@
  *
  * Registered objects are owned by the registry.
  *
- * Items are mapped by PkString as a unique Id.
+ * Items are mapped by the target's native string type as a unique Id.
  *
  * Example of use:
  * @code
@@ -65,7 +77,7 @@ public:
     {
         KIS_SAFE_ASSERT_RECOVER_RETURN(item);
 
-        const PkString id = item->id();
+        const KoRegistryString id = item->id();
         KIS_SAFE_ASSERT_RECOVER_NOOP(!m_aliases.contains(id));
 
         if (m_hash.contains(id)) {
@@ -80,7 +92,7 @@ public:
      * @param id the id of the object
      * @param item the item to add
      */
-    void add(const PkString &id, T item)
+    void add(const KoRegistryString &id, T item)
     {
         KIS_SAFE_ASSERT_RECOVER_RETURN(item);
         KIS_SAFE_ASSERT_RECOVER_NOOP(!m_aliases.contains(id));
@@ -95,18 +107,18 @@ public:
     /**
      * This function removes an item from the registry
      */
-    void remove(const PkString &id)
+    void remove(const KoRegistryString &id)
     {
         m_hash.remove(id);
     }
 
-    void addAlias(const PkString &alias, const PkString &id)
+    void addAlias(const KoRegistryString &alias, const KoRegistryString &id)
     {
         KIS_SAFE_ASSERT_RECOVER_NOOP(!m_hash.contains(alias));
         m_aliases[alias] = id;
     }
 
-    void removeAlias(const PkString &alias)
+    void removeAlias(const KoRegistryString &alias)
     {
         m_aliases.remove(alias);
     }
@@ -117,7 +129,7 @@ public:
      *
      * @param id the id
      */
-    T get(const PkString &id) const
+    T get(const KoRegistryString &id) const
     {
         return value(id);
     }
@@ -127,7 +139,7 @@ public:
      * by the id.
      * @param id the unique identifier string
      */
-    bool contains(const PkString &id) const
+    bool contains(const KoRegistryString &id) const
     {
         bool result = m_hash.contains(id);
 
@@ -142,7 +154,7 @@ public:
      * Retrieve the object from the registry based on the unique identifier string
      * @param id the id
      */
-    const T value(const PkString &id) const
+    const T value(const KoRegistryString &id) const
     {
         T result = m_hash.value(id);
 
@@ -156,7 +168,7 @@ public:
     /**
      * @return a list of all keys
      */
-    PkList<PkString> keys() const
+    KoRegistryList<KoRegistryString> keys() const
     {
         return m_hash.keys();
     }
@@ -166,32 +178,32 @@ public:
         return m_hash.count();
     }
 
-    PkList<T> values() const
+    KoRegistryList<T> values() const
     {
         return m_hash.values();
     }
 
-    PkList<T> doubleEntries() const
+    KoRegistryList<T> doubleEntries() const
     {
         return m_doubleEntries;
     }
 
-    typename PkHash<PkString, T>::const_iterator constBegin() const {
+    typename KoRegistryHash<KoRegistryString, T>::const_iterator constBegin() const {
         return m_hash.constBegin();
     }
 
-    typename PkHash<PkString, T>::const_iterator constEnd() const {
+    typename KoRegistryHash<KoRegistryString, T>::const_iterator constEnd() const {
         return m_hash.constEnd();
     }
 
 private:
 
-    PkList<T> m_doubleEntries;
+    KoRegistryList<T> m_doubleEntries;
 
 private:
 
-    PkHash<PkString, T> m_hash;
-    PkHash<PkString, PkString> m_aliases;
+    KoRegistryHash<KoRegistryString, T> m_hash;
+    KoRegistryHash<KoRegistryString, KoRegistryString> m_aliases;
 };
 
 #endif

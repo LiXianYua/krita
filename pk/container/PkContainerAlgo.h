@@ -2,6 +2,13 @@
 
 #include <type_traits>
 
+// qDeleteAll is also declared by Qt's qalgorithms.h.  In a mixed target make
+// the owning provider arrive before this compatibility header, even when a
+// Pk container header was the first include in the translation unit.
+#if defined(QT_CORE_LIB) && !defined(QALGORITHMS_H)
+#  include <QtCore/qalgorithms.h>
+#endif
+
 // ---------------------------------------------------------------------------
 // 容器族的两件"自由设施"：PK_FOREACH（Q_FOREACH/foreach 的等价物）与 qDeleteAll。
 //
