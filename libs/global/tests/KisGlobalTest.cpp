@@ -11,6 +11,7 @@
 #include "KisFileUtils.h"
 
 #include <QTest>
+#include <PkString.h>
 
 void KisGlobalTest::testDeduplicateFileName_data()
 {
@@ -118,13 +119,20 @@ void KisGlobalTest::testDeduplicateFileName()
     QFETCH(QStringList, existingFiles);
     QFETCH(QString, expectedResult);
 
-    auto fileAllowedCallback = [&existingFiles](const QString &name) {
-        return !existingFiles.contains(name);
+    auto fileAllowedCallback = [&existingFiles](PkString name) {
+        const std::string utf8 = name.PkToUtf8();
+        return !existingFiles.contains(QString::fromUtf8(utf8.c_str()));
     };
 
-    const QString result = KritaUtils::deduplicateFileName(fileName, separator, fileAllowedCallback);
+    const QByteArray fileNameUtf8 = fileName.toUtf8();
+    const QByteArray separatorUtf8 = separator.toUtf8();
+    const PkString result = KritaUtils::deduplicateFileName(
+        PkString::PkFromUtf8(fileNameUtf8.constData(), fileNameUtf8.size()),
+        PkString::PkFromUtf8(separatorUtf8.constData(), separatorUtf8.size()),
+        fileAllowedCallback);
 
-    QCOMPARE(result, expectedResult);
+    const std::string resultUtf8 = result.PkToUtf8();
+    QCOMPARE(QString::fromUtf8(resultUtf8.c_str()), expectedResult);
 }
 
 SIMPLE_TEST_MAIN(KisGlobalTest);
