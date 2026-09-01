@@ -7,6 +7,8 @@
 #ifndef KISCURVEOPTIONDATA_H
 #define KISCURVEOPTIONDATA_H
 
+#include <optional>
+
 #include <KisCurveOptionDataCommon.h>
 #include <KisKritaSensorPack.h>
 

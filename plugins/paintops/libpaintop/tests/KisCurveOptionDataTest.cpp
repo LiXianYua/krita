@@ -6,6 +6,9 @@
 #include "KisCurveOptionDataTest.h"
 
 #include <KisCurveOptionData.h>
+#include <KisDynamicSensorIds.h>
+#include <KisSensorData.h>
+#include <PkXmlDocument.h>
 #include <kis_properties_configuration.h>
 
 void KisCurveOptionDataTest::testCurveOptionData()
@@ -104,6 +107,41 @@ void KisCurveOptionDataTest::testSerializeNoSensors()
 
     QCOMPARE(data.sensorStruct().sensorPressure.isActive, true);
     QCOMPARE(data.sensorStruct().sensorPressure.curve, DEFAULT_CURVE_STRING);
+}
+
+void KisCurveOptionDataTest::testLengthSensorTagRoundTrip()
+{
+    PkXmlDocument distanceDocument;
+    PkXmlElement distanceElement = distanceDocument.createElement("sensor");
+    distanceDocument.appendChild(distanceElement);
+
+    KisSensorWithLengthData distance(DistanceId);
+    distance.length = 73;
+    distance.write(distanceDocument, distanceElement);
+
+    const PkString distanceXml = distanceDocument.toString(-1);
+    QVERIFY(distanceXml.contains(PkString(" length=\"73\"")));
+    QVERIFY(!distanceXml.contains(PkString(" duration=")));
+
+    KisSensorWithLengthData restoredDistance(DistanceId);
+    restoredDistance.read(distanceElement);
+    QCOMPARE(restoredDistance.length, 73);
+
+    PkXmlDocument timeDocument;
+    PkXmlElement timeElement = timeDocument.createElement("sensor");
+    timeDocument.appendChild(timeElement);
+
+    KisSensorWithLengthData time(TimeId, PkString("duration"));
+    time.length = 41;
+    time.write(timeDocument, timeElement);
+
+    const PkString timeXml = timeDocument.toString(-1);
+    QVERIFY(timeXml.contains(PkString(" duration=\"41\"")));
+    QVERIFY(!timeXml.contains(PkString(" length=")));
+
+    KisSensorWithLengthData restoredTime(TimeId, PkString("duration"));
+    restoredTime.read(timeElement);
+    QCOMPARE(restoredTime.length, 41);
 }
 
 SIMPLE_TEST_MAIN(KisCurveOptionDataTest)

@@ -60,9 +60,9 @@ void KisSensorData::reset()
     *this = KisSensorData(id);
 }
 
-KisSensorWithLengthData::KisSensorWithLengthData(const KoID &sensorId, const QLatin1String &lengthTag)
+KisSensorWithLengthData::KisSensorWithLengthData(const KoID &sensorId, const PkString &lengthTag)
     : KisSensorData(sensorId)
-    , m_lengthTag(lengthTag.isEmpty() ? QLatin1String("length") : lengthTag)
+    , m_lengthTag(lengthTag.isEmpty() ? PkString("length") : lengthTag)
 {
     if (sensorId == FadeId) {
         isPeriodic = false;

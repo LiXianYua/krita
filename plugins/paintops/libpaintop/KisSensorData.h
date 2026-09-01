@@ -41,7 +41,7 @@ struct PAINTOP_EXPORT KisSensorData : public boost::equality_comparable<KisSenso
 
 struct PAINTOP_EXPORT KisSensorWithLengthData : public KisSensorData, public boost::equality_comparable<KisSensorWithLengthData>
 {
-    KisSensorWithLengthData(const KoID &sensorId, const QLatin1String &lengthTag = {});
+    KisSensorWithLengthData(const KoID &sensorId, const PkString &lengthTag = {});
 
     inline friend bool operator==(const KisSensorWithLengthData &lhs, const KisSensorWithLengthData &rhs) {
         return *static_cast<const KisSensorData*>(&lhs) == *static_cast<const KisSensorData*>(&rhs) &&
@@ -57,7 +57,7 @@ struct PAINTOP_EXPORT KisSensorWithLengthData : public KisSensorData, public boo
     int length = 30;
     bool isPeriodic = false;
 private:
-    QLatin1String m_lengthTag;
+    PkString m_lengthTag;
 };
 
 struct PAINTOP_EXPORT KisDrawingAngleSensorData : public KisSensorData, public boost::equality_comparable<KisDrawingAngleSensorData>
