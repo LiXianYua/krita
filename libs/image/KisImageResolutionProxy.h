@@ -11,6 +11,7 @@
 #include <kritaimage_export.h>
 
 #include <PkObject.h>
+#include <PkScopedPointer.h>
 
 class KisImageResolutionProxy;
 using KisImageResolutionProxySP = PkSharedPointer<KisImageResolutionProxy>;
@@ -28,7 +29,6 @@ using KisImageResolutionProxySP = PkSharedPointer<KisImageResolutionProxy>;
  */
 class KRITAIMAGE_EXPORT KisImageResolutionProxy : public PkShellObject
 {
-    Q_OBJECT
 public:
     KisImageResolutionProxy();
     KisImageResolutionProxy(KisImageWSP image);
