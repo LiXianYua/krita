@@ -221,6 +221,55 @@ void KisToolCrop::paint(PkPainter &painter, const KoViewConverter &converter)
     paintOutlineWithHandles(painter);
 }
 
+PkString KisToolCrop::cropActionsSection() const
+{
+    return i18n("Crop Tool Actions");
+}
+
+PkList<KisToolCrop::CropAction> KisToolCrop::cropActions() const
+{
+    PkList<CropAction> actions;
+
+    if (m_haveCropSelection) {
+        actions.append({CropActionId::ApplyCrop, i18n("Crop"), false, false, 0});
+    }
+
+    actions.append({CropActionId::Center, i18n("Center"), true, growCenter(), 1});
+    actions.append({CropActionId::Grow, i18nc("Grow as in crop tool", "Grow"), true, allowGrow(), 1});
+    actions.append({CropActionId::LockWidth, i18n("Lock Width"), true, lockWidth(), 2});
+    actions.append({CropActionId::LockHeight, i18n("Lock Height"), true, lockHeight(), 2});
+    actions.append({CropActionId::LockRatio, i18n("Lock Ratio"), true, lockRatio(), 2});
+    return actions;
+}
+
+bool KisToolCrop::triggerCropAction(CropActionId action, bool checked)
+{
+    switch (action) {
+    case CropActionId::ApplyCrop:
+        if (!m_haveCropSelection) {
+            return false;
+        }
+        crop();
+        return true;
+    case CropActionId::Center:
+        setGrowCenter(checked);
+        return true;
+    case CropActionId::Grow:
+        setAllowGrow(checked);
+        return true;
+    case CropActionId::LockWidth:
+        setLockWidth(checked);
+        return true;
+    case CropActionId::LockHeight:
+        setLockHeight(checked);
+        return true;
+    case CropActionId::LockRatio:
+        setLockRatio(checked);
+        return true;
+    }
+    return false;
+}
+
 void KisToolCrop::beginPrimaryAction(KoPointerEvent *event)
 {
     m_finalRect.setCropRect(image()->bounds());

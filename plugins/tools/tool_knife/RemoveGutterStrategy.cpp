@@ -113,7 +113,7 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
         return;
     }
 
-    PkList<bool> isSelected = PkList<bool>();
+    PkList<quint8> isSelected;
     isSelected.reserve(m_allShapes.length());
     for (int i = 0; i < m_allShapes.length(); i++) {
         isSelected.append(m_selectedShapes.contains(m_allShapes[i]));

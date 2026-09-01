@@ -43,6 +43,23 @@ public:
         FrameCropType
     };
 
+    enum class CropActionId {
+        ApplyCrop,
+        Center,
+        Grow,
+        LockWidth,
+        LockHeight,
+        LockRatio
+    };
+
+    struct CropAction {
+        CropActionId id;
+        PkString text;
+        bool checkable {false};
+        bool checked {false};
+        int group {0};
+    };
+
     KisToolCrop(KoCanvasBase * canvas);
     ~KisToolCrop() override;
 
@@ -69,6 +86,10 @@ public:
     int decoration() const;
     bool growCenter() const;
     bool allowGrow() const;
+
+    PkString cropActionsSection() const;
+    PkList<CropAction> cropActions() const;
+    bool triggerCropAction(CropActionId action, bool checked);
 
 public:
     void cropTypeSelectableChanged();
