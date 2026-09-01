@@ -6,9 +6,8 @@
 
 #include "kis_bookmarked_configuration_manager.h"
 
-#include <ksharedconfig.h>
-#include <klocalizedstring.h>
-#include <kconfiggroup.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 
 #include <KoID.h>
@@ -20,7 +19,7 @@
 const char KisBookmarkedConfigurationManager::ConfigDefault[] = "Default";
 const char KisBookmarkedConfigurationManager::ConfigLastUsed[] = "Last Used";
 
-struct Q_DECL_HIDDEN KisBookmarkedConfigurationManager::Private {
+struct KisBookmarkedConfigurationManager::Private {
 
     PkString configEntryGroup;
     KisSerializableConfigurationFactory* configFactory;
@@ -48,7 +47,7 @@ KisSerializableConfigurationSP KisBookmarkedConfigurationManager::load(const PkS
         else
             return 0;
     }
-    KConfigGroup cfg =  KSharedConfig::openConfig()->group(configEntryGroup());
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group(configEntryGroup());
 
     PkXmlDocument doc;
     doc.setContent(cfg.readEntry<PkString>(configname, ""));
@@ -62,13 +61,13 @@ void KisBookmarkedConfigurationManager::save(const PkString & configname, const 
 {
     dbgImage << "Saving configuration " << config << " to " << configname;
     if (!config) return;
-    KConfigGroup cfg =  KSharedConfig::openConfig()->group(configEntryGroup());
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group(configEntryGroup());
     cfg.writeEntry(configname, config->toXML());
 }
 
 bool KisBookmarkedConfigurationManager::exists(const PkString & configname) const
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group(configEntryGroup());
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group(configEntryGroup());
     return cfg.hasKey(configname);
 }
 
@@ -97,8 +96,8 @@ PkString KisBookmarkedConfigurationManager::configEntryGroup() const
 
 void KisBookmarkedConfigurationManager::remove(const PkString & name)
 {
-    KSharedConfig::Ptr cfg =  KSharedConfig::openConfig();
-    KConfigGroup group = cfg->group(configEntryGroup());
+    PkSharedConfig::Ptr cfg = PkSharedConfig::openConfig();
+    PkConfigGroup group = cfg->group(configEntryGroup());
     group.deleteEntry(name);
 }
 
