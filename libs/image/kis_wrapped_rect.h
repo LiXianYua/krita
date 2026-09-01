@@ -10,7 +10,6 @@
 #include <PkContainerAlgo.h>
 #include <PkPoint.h>
 #include <PkRect.h>
-#include <QtMath>
 
 #include "KisWraparoundAxis.h"
 
