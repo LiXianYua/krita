@@ -464,6 +464,7 @@ bool DefaultTool::dispatchAction(DefaultToolActionId actionId, bool checked)
 
     DefaultToolAction *toolAction = action(descriptor->actionId);
     if (!toolAction) return false;
+    if (!toolAction->isEnabled()) return false;
     toolAction->setChecked(checked);
 
     if (descriptor->scope == DefaultToolActionScope::Host) {
@@ -474,6 +475,30 @@ bool DefaultTool::dispatchAction(DefaultToolActionId actionId, bool checked)
 
     toolAction->triggered();
     return true;
+}
+
+DefaultToolActionState DefaultTool::actionState(DefaultToolActionId actionId) const
+{
+    const DefaultToolActionDescriptor *descriptor = defaultToolActionDescriptor(actionId);
+    if (!descriptor) return {actionId, false, false};
+    const DefaultToolAction *toolAction = action(descriptor->actionId);
+    if (!toolAction) return {actionId, false, false};
+    return {actionId, toolAction->isEnabled(), toolAction->isChecked()};
+}
+
+DefaultToolMenuState DefaultTool::menuState() const
+{
+    return {action("object_unite") && action("object_unite")->isEnabled() ||
+                action("object_intersect") && action("object_intersect")->isEnabled() ||
+                action("object_subtract") && action("object_subtract")->isEnabled() ||
+                action("object_split") && action("object_split")->isEnabled(),
+            action("object_group") && action("object_group")->isEnabled() ||
+                action("object_ungroup") && action("object_ungroup")->isEnabled()};
+}
+
+void DefaultTool::refreshPlatformActionState()
+{
+    updateActions();
 }
 
 void DefaultTool::slotActivateEditFillGradient(bool value)

@@ -26,6 +26,13 @@ Entry submenu(const char *path, const char *label)
     return {EntryKind::Submenu, PkString(path), PkString(label), Action::ObjectOrderFront};
 }
 
+Entry conditionalSubmenu(const char *path, const char *label)
+{
+    Entry result = submenu(path, label);
+    result.conditional = true;
+    return result;
+}
+
 Entry action(const char *path, Action id)
 {
     return {EntryKind::Action, PkString(path), {}, id};
@@ -120,7 +127,7 @@ PkList<DefaultToolMenuEntryDescriptor> defaultToolMenuDescriptors(DefaultToolVar
         action("Transform", Action::ObjectTransformMirrorHorizontally),
         action("Transform", Action::ObjectTransformMirrorVertically), separator("Transform"),
         action("Transform", Action::ObjectTransformReset),
-        submenu("Logical Operations", "Logical Operations"),
+        conditionalSubmenu("Logical Operations", "Logical Operations"),
         action("Logical Operations", Action::ObjectUnite), action("Logical Operations", Action::ObjectIntersect),
         action("Logical Operations", Action::ObjectSubtract), action("Logical Operations", Action::ObjectSplit),
         separator(), action("", Action::EditCut), action("", Action::EditCopy), action("", Action::EditPaste),
@@ -135,6 +142,16 @@ PkList<DefaultToolMenuEntryDescriptor> defaultToolMenuDescriptors(DefaultToolVar
         action("Text", Action::FlowShapeOrderBack), action("Text", Action::FlowShapeOrderEarlier),
         action("Text", Action::FlowShapeOrderLater), action("Text", Action::FlowShapeOrderFront)
     };
+}
+
+DefaultToolActionState defaultToolActionState(const DefaultTool *tool, DefaultToolActionId action)
+{
+    return tool ? tool->actionState(action) : DefaultToolActionState{action, false, false};
+}
+
+DefaultToolMenuState defaultToolMenuState(const DefaultTool *tool)
+{
+    return tool ? tool->menuState() : DefaultToolMenuState{};
 }
 
 const PkList<DefaultToolCursorDescriptor> &defaultToolCursorDescriptors()

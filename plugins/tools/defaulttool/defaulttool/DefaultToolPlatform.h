@@ -78,6 +78,12 @@ struct DefaultToolActionDescriptor {
     bool availableInReferenceImages {false};
 };
 
+struct DefaultToolActionState {
+    DefaultToolActionId action {DefaultToolActionId::ObjectOrderFront};
+    bool enabled {false};
+    bool checked {false};
+};
+
 enum class DefaultToolMenuEntryKind {
     Section,
     Separator,
@@ -90,6 +96,12 @@ struct DefaultToolMenuEntryDescriptor {
     PkString path;
     PkString label;
     DefaultToolActionId action {DefaultToolActionId::ObjectOrderFront};
+    bool conditional {false};
+};
+
+struct DefaultToolMenuState {
+    bool logicalOperationsVisible {false};
+    bool groupOperationsVisible {false};
 };
 
 enum class DefaultToolCursorKind {
@@ -122,6 +134,8 @@ public:
 const PkList<DefaultToolActionDescriptor> &defaultToolActionDescriptors();
 const DefaultToolActionDescriptor *defaultToolActionDescriptor(DefaultToolActionId action);
 PkList<DefaultToolMenuEntryDescriptor> defaultToolMenuDescriptors(DefaultToolVariant variant);
+DefaultToolActionState defaultToolActionState(const DefaultTool *tool, DefaultToolActionId action);
+DefaultToolMenuState defaultToolMenuState(const DefaultTool *tool);
 const PkList<DefaultToolCursorDescriptor> &defaultToolCursorDescriptors();
 
 bool dispatchDefaultToolAction(DefaultTool *tool, DefaultToolActionId action, bool checked = false);

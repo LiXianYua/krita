@@ -82,6 +82,9 @@ public:
 
     DefaultToolMenu *popupActionsMenu() override;
     bool dispatchAction(DefaultToolActionId action, bool checked = false);
+    DefaultToolActionState actionState(DefaultToolActionId action) const;
+    DefaultToolMenuState menuState() const;
+    void refreshPlatformActionState();
 
     /**
      * Returns which selection handle is at params point (or NoHandle if none).
