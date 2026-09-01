@@ -8,6 +8,8 @@
 
 #include <algorithm>
 
+#include <PkRegion.h>
+
 #include <KoColorSpaceConstants.h>
 #include <KoProperties.h>
 

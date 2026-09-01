@@ -11,6 +11,8 @@
 #include "kritaimage_export.h"
 #include "kis_types.h"
 
+#include <PkRect.h>
+
 #include <mutex>
 
 class PkBitArray;

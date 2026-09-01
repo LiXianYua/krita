@@ -7,7 +7,9 @@
 #ifndef __KIS_SIMPLE_UPDATE_QUEUE_H
 #define __KIS_SIMPLE_UPDATE_QUEUE_H
 
+#include <PkListIterator.h>
 #include <PkMutex.h>
+#include <PkVector.h>
 #include "kis_updater_context.h"
 #include <KisProjectionUpdateFlags.h>
 
@@ -121,4 +123,3 @@ public:
 };
 
 #endif /* __KIS_SIMPLE_UPDATE_QUEUE_H */
-

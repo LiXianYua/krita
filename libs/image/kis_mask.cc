@@ -276,7 +276,7 @@ PkRect KisMask::decorateRect(KisPaintDeviceSP &src,
     Q_UNUSED(dst);
     Q_UNUSED(maskPos);
     Q_UNUSED(flags);
-    Q_ASSERT_X(0, "KisMask::decorateRect", "Should be overridden by successors");
+    KIS_ASSERT_X(0, "KisMask::decorateRect", "Should be overridden by successors");
     return rc;
 }
 

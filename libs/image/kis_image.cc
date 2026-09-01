@@ -13,11 +13,12 @@
 #include <math.h>
 
 #include <PkImage.h>
+#include <PkQueue.h>
 #include <PkSize.h>
 #include <PkDateTime.h>
 #include <PkRect.h>
+#include <PkStack.h>
 #include <PkThread.h>
-#include <klocalizedstring.h>
 
 #include "KoColorSpaceRegistry.h"
 #include "KoColor.h"
@@ -84,8 +85,6 @@
 #include "kis_update_time_monitor.h"
 #include "kis_lockless_stack.h"
 
-#include <QtCore>
-
 #include <functional>
 #include <memory>
 
@@ -97,7 +96,6 @@
 #include "KisRunnableStrokeJobsInterface.h"
 
 #include "KisBusyWaitBroker.h"
-#include <KisStaticInitializer.h>
 #include "KisImageGlobalSelectionManagementInterface.h"
 
 
@@ -111,10 +109,6 @@
 #else
 #define SANITY_CHECK_LOCKED(name)
 #endif
-
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KisImageSP>("KisImageSP");
-}
 
 class KisImage::KisImagePrivate
 {

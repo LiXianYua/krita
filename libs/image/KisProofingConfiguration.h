@@ -51,6 +51,4 @@ public:
     bool operator!=(const KisProofingConfiguration &other) const;
 };
 
-Q_DECLARE_METATYPE(KisProofingConfiguration::DisplayTransformState);
-
 #endif // KISPROOFINGCONFIGURATION_H

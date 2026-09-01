@@ -9,6 +9,9 @@
 #ifndef KIS_TRANSFORM_WORKER_H_
 #define KIS_TRANSFORM_WORKER_H_
 
+#include <PkNamespace.h>
+#include <PkRect.h>
+
 #include "kis_types.h"
 #include "kritaimage_export.h"
 

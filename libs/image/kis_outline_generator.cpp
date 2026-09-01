@@ -10,6 +10,9 @@
  */
 
 #include "kis_outline_generator.h"
+
+#include <PkScopedPointer.h>
+
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 

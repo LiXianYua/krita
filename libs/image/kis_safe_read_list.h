@@ -73,7 +73,8 @@ public:
     using PkList<T>::clear;
 
 private:
-    Q_DISABLE_COPY(KisSafeReadList)
+    KisSafeReadList(const KisSafeReadList &) = delete;
+    KisSafeReadList &operator=(const KisSafeReadList &) = delete;
 };
 
 

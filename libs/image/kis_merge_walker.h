@@ -7,6 +7,8 @@
 #ifndef __KIS_MERGE_WALKER_H
 #define __KIS_MERGE_WALKER_H
 
+#include <PkFlags.h>
+
 #include "kis_types.h"
 #include "kis_base_rects_walker.h"
 
@@ -30,7 +32,7 @@ public:
         CLONES_DONT_INVALIDATE_FRAMES = 0x2
     };
 
-    Q_DECLARE_FLAGS(Flags, Flag)
+    PK_DECLARE_FLAGS(Flags, Flag)
 
     KisMergeWalker(PkRect cropRect, Flags flags = DEFAULT);
 
@@ -78,7 +80,6 @@ private:
     const Flags m_flags;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisMergeWalker::Flags)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisMergeWalker::Flags)
 
 #endif /* __KIS_MERGE_WALKER_H */
-

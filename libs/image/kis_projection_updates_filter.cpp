@@ -7,7 +7,7 @@
 #include "kis_projection_updates_filter.h"
 
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <PkRect.h>
 
 KisProjectionUpdatesFilter::~KisProjectionUpdatesFilter()

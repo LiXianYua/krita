@@ -1,6 +1,8 @@
 #ifndef __KIS_CONVEX_HULL_H
 #define __KIS_CONVEX_HULL_H
 
+#include <PkPolygon.h>
+
 #include "kis_types.h"
 
 namespace KisConvexHull

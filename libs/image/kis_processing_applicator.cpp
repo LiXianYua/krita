@@ -7,6 +7,8 @@
 #include "kis_processing_applicator.h"
 #include <cstdlib>
 
+#include <PkRegion.h>
+
 #include "kis_image.h"
 #include "kis_paint_layer.h"
 #include "kis_node.h"

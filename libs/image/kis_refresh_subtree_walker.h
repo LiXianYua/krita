@@ -7,6 +7,8 @@
 #ifndef __KIS_REFRESH_SUBTREE_WALKER_H
 #define __KIS_REFRESH_SUBTREE_WALKER_H
 
+#include <PkFlags.h>
+
 #include "kis_types.h"
 #include <PkRect.h>
 #include "kis_base_rects_walker.h"
@@ -23,7 +25,7 @@ public:
         ClonesDontInvalidateFrames = 0x8
     };
 
-    Q_DECLARE_FLAGS(Flags, Flag);
+    PK_DECLARE_FLAGS(Flags, Flag);
 
 public:
     KisRefreshSubtreeWalker(PkRect cropRect, Flags flags = None)
@@ -140,7 +142,6 @@ private:
     Flags m_flags = None;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisRefreshSubtreeWalker::Flags);
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisRefreshSubtreeWalker::Flags);
 
 #endif /* __KIS_REFRESH_SUBTREE_WALKER_H */
-

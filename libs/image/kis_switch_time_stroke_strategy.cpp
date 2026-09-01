@@ -30,7 +30,7 @@ KisSwitchTimeStrokeStrategy::KisSwitchTimeStrokeStrategy(int frameId,
                                                          bool needsRegeneration,
                                                          KisImageAnimationInterface *interface,
                                                          KisPostExecutionUndoAdapter *undoAdapter)
-    : KisSimpleStrokeStrategy(QLatin1String("switch_current_frame_stroke"), kundo2_text("Switch Frames")),
+    : KisSimpleStrokeStrategy(PkString("switch_current_frame_stroke"), kundo2_text("Switch Frames")),
       m_d(new Private(frameId, needsRegeneration))
 {
     m_d->interface = interface;

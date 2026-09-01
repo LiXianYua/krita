@@ -10,8 +10,11 @@
 #include <iomanip>
 #include <sstream>
 
+#include <PkRegion.h>
+
 #include "kis_algebra_2d.h"
 
+#include <KoColor.h>
 #include <KoColorSpaceRegistry.h>
 
 #include "kis_image.h"
@@ -81,6 +84,17 @@ namespace KritaUtils
     }
 
     PkVector<PkRect> splitRegionIntoPatches(const PkRegion &region, const PkSize &patchSize)
+    {
+        PkVector<PkRect> patches;
+
+        for (const PkRect rect : region.rects()) {
+            patches.append(KritaUtils::splitRectIntoPatches(rect, patchSize));
+        }
+
+        return patches;
+    }
+
+    PkVector<PkRect> splitRegionIntoPatches(const KisRegion &region, const PkSize &patchSize)
     {
         PkVector<PkRect> patches;
 
@@ -300,20 +314,6 @@ namespace KritaUtils
         }
 
         return newNode;
-    }
-
-    void renderExactRect(PkPainter *p, const PkRect &rc)
-    {
-        // NOTE: 壳 PkPainter::drawRect 为 no-op 桩（渲染路径在壳外，见批次 D）。
-        p->drawRect(rc.adjusted(0,0,-1,-1));
-    }
-
-    void renderExactRect(PkPainter *p, const PkRect &rc, const PkPen &pen)
-    {
-        PkPen oldPen = p->pen();
-        p->setPen(pen);
-        renderExactRect(p, rc);
-        p->setPen(oldPen);
     }
 
     PkImage convertQImageToGrayA(const PkImage &image)

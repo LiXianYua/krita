@@ -6,8 +6,6 @@
 
 #include "kis_layer_properties_icons.h"
 
-Q_GLOBAL_STATIC(KisLayerPropertiesIcons, s_instance)
-
 #include <KoColorSpace.h>
 #include <KoColorProfile.h>
 
@@ -49,7 +47,8 @@ KisLayerPropertiesIcons::~KisLayerPropertiesIcons()
 
 KisLayerPropertiesIcons *KisLayerPropertiesIcons::instance()
 {
-    return s_instance;
+    static KisLayerPropertiesIcons instance;
+    return &instance;
 }
 
 KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool state)

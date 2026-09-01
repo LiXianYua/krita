@@ -7,6 +7,7 @@
 #define KISTRANSLATELAYERNAMESVISITOR_H
 
 #include <PkMap.h>
+#include <PkString.h>
 #include "kis_node_visitor.h"
 
 #include <kritaimage_export.h>

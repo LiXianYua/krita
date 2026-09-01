@@ -33,29 +33,28 @@ int KisCompositeProgressProxy::maximum() const
 
 void KisCompositeProgressProxy::setValue(int value)
 {
-    Q_FOREACH (KoProgressProxy *proxy, m_uniqueProxies) {
+    for (KoProgressProxy *proxy : m_uniqueProxies) {
         proxy->setValue(value);
     }
 }
 
 void KisCompositeProgressProxy::setRange(int minimum, int maximum)
 {
-    Q_FOREACH (KoProgressProxy *proxy, m_uniqueProxies) {
+    for (KoProgressProxy *proxy : m_uniqueProxies) {
         proxy->setRange(minimum, maximum);
     }
 }
 
 void KisCompositeProgressProxy::setFormat(const PkString &format)
 {
-    Q_FOREACH (KoProgressProxy *proxy, m_uniqueProxies) {
+    for (KoProgressProxy *proxy : m_uniqueProxies) {
         proxy->setFormat(format);
     }
 }
 
 void KisCompositeProgressProxy::setAutoNestedName(const PkString &name)
 {
-    Q_FOREACH (KoProgressProxy *proxy, m_uniqueProxies) {
+    for (KoProgressProxy *proxy : m_uniqueProxies) {
         proxy->setAutoNestedName(name);
     }
 }
-

@@ -7,8 +7,7 @@
 
 #include "kis_pixel_selection.h"
 
-
-
+#include <PkMutex.h>
 
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -125,9 +124,9 @@ void KisPixelSelection::select(const PkRect & rc, quint8 selectedness)
         path.addRect(r);
 
         if (selectedness != MIN_SELECTED) {
-            m_d->outlineCache += path;
+            m_d->outlineCache.addPath(path);
         } else {
-            m_d->outlineCache -= path;
+            m_d->outlineCacheValid = false;
         }
     }
     m_d->invalidateThumbnailImage();
@@ -201,7 +200,7 @@ void KisPixelSelection::addSelection(KisPixelSelectionSP selection)
     m_d->outlineCacheValid &= selection->outlineCacheValid();
 
     if (m_d->outlineCacheValid) {
-        m_d->outlineCache += selection->outlineCache();
+        m_d->outlineCache.addPath(selection->outlineCache());
     }
 
     m_d->invalidateThumbnailImage();
@@ -232,11 +231,7 @@ void KisPixelSelection::subtractSelection(KisPixelSelectionSP selection)
                             : *defaultPixel().data() - *selection->defaultPixel().data();
     setDefaultPixel(KoColor(&defPixel, colorSpace()));
 
-    m_d->outlineCacheValid &= selection->outlineCacheValid();
-
-    if (m_d->outlineCacheValid) {
-        m_d->outlineCache -= selection->outlineCache();
-    }
+    m_d->outlineCacheValid = false;
 
     m_d->invalidateThumbnailImage();
 }
@@ -264,11 +259,7 @@ void KisPixelSelection::intersectSelection(KisPixelSelectionSP selection)
 
     crop(r);
 
-    m_d->outlineCacheValid &= selection->outlineCacheValid();
-
-    if (m_d->outlineCacheValid) {
-        m_d->outlineCache = KritaUtils::tryCloseTornSubpathsAfterIntersection(m_d->outlineCache & selection->outlineCache());
-    }
+    m_d->outlineCacheValid = false;
 
     m_d->invalidateThumbnailImage();
 }
@@ -293,11 +284,7 @@ void KisPixelSelection::symmetricdifferenceSelection(KisPixelSelectionSP selecti
     const quint8 defPixel = abs(*defaultPixel().data() - *selection->defaultPixel().data());
     setDefaultPixel(KoColor(&defPixel, colorSpace()));
     
-    m_d->outlineCacheValid &= selection->outlineCacheValid();
-
-    if (m_d->outlineCacheValid) {
-       m_d->outlineCache = (m_d->outlineCache | selection->outlineCache()) - (m_d->outlineCache & selection->outlineCache());
-    }
+    m_d->outlineCacheValid = false;
 
     m_d->invalidateThumbnailImage();
 }
@@ -312,12 +299,7 @@ void KisPixelSelection::clear(const PkRect & r)
         KisPaintDevice::clear(r);
     }
 
-    if (m_d->outlineCacheValid) {
-        PkPainterPath path;
-        path.addRect(r);
-
-        m_d->outlineCache -= path;
-    }
+    m_d->outlineCacheValid = false;
 
     m_d->invalidateThumbnailImage();
 }
@@ -350,12 +332,7 @@ void KisPixelSelection::invert()
     quint8 defPixel = MAX_SELECTED - *defaultPixel().data();
     setDefaultPixel(KoColor(&defPixel, colorSpace()));
 
-    if (m_d->outlineCacheValid) {
-        PkPainterPath path;
-        path.addRect(defaultBounds()->bounds());
-
-        m_d->outlineCache = path - m_d->outlineCache;
-    }
+    m_d->outlineCacheValid = false;
 
     m_d->invalidateThumbnailImage();
 }

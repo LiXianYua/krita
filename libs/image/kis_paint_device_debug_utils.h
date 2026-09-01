@@ -36,12 +36,11 @@ void KRITAIMAGE_EXPORT kis_debug_save_device_incremental(KisPaintDeviceSP device
  * adding this macro will let you track the whole history of updates.
  *
  * The files are saved with pattern: \<counter\>_\<suffix\>.png
+ *
+ * The Qt-free core cannot encode the PNG dump, so this diagnostic macro is
+ * intentionally disabled while the implementation remains a GAP source.
  */
-#define KIS_DUMP_DEVICE_1(device, rc, suffix)                           \
-    do {                                                                \
-        static int i = -1; i++;                                         \
-        kis_debug_save_device_incremental((device), i, (rc), (suffix), QString()); \
-    } while(0)
+#define KIS_DUMP_DEVICE_1(device, rc, suffix) do { } while (0)
 
 /**
  * Saves the paint device incrementally. Put this macro into a
@@ -54,11 +53,10 @@ void KRITAIMAGE_EXPORT kis_debug_save_device_incremental(KisPaintDeviceSP device
  * different functions.
  *
  * The files are saved with pattern: \<prefix\>_\<counter\>_\<suffix\>.png
+ *
+ * The Qt-free core cannot encode the PNG dump, so this diagnostic macro is
+ * intentionally disabled while the implementation remains a GAP source.
  */
-#define KIS_DUMP_DEVICE_2(device, rc, suffix, prefix)                   \
-    do {                                                                \
-        static int i = -1; i++;                                         \
-        kis_debug_save_device_incremental((device), i, (rc), (suffix), (prefix)); \
-    } while(0)
+#define KIS_DUMP_DEVICE_2(device, rc, suffix, prefix) do { } while (0)
 
 #endif /* __KIS_PAINT_DEVICE_DEBUG_UTILS_H */

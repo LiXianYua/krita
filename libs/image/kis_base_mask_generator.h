@@ -8,6 +8,8 @@
 #ifndef _KIS_MASK_GENERATOR_H_
 #define _KIS_MASK_GENERATOR_H_
 
+#include <PkGlobal.h>
+#include <PkList.h>
 #include <PkScopedPointer.h>
 #include <PkContainerAlgo.h>
 #include <PkString.h>

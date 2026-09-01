@@ -7,6 +7,8 @@
 #ifndef __KIS_POLYGONAL_GRADIENT_SHAPE_STRATEGY_H
 #define __KIS_POLYGONAL_GRADIENT_SHAPE_STRATEGY_H
 
+#include <PkPainterPath.h>
+
 #include "kis_gradient_shape_strategy.h"
 
 

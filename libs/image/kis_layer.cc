@@ -9,12 +9,9 @@
 #include "kis_layer.h"
 
 
-#include <klocalizedstring.h>
 #include <PkImage.h>
 #include <PkBitArray.h>
 #include <PkStack.h>
-#include <PkReadWriteLock.h>
-#include <PkReadWriteLock.h>
 #include <PkReadWriteLock.h>
 #include <KoProperties.h>
 #include <KoCompositeOpRegistry.h>

@@ -7,6 +7,8 @@
 #ifndef __KIS_ONION_SKIN_CACHE_H
 #define __KIS_ONION_SKIN_CACHE_H
 
+#include <PkScopedPointer.h>
+
 #include "kis_types.h"
 
 

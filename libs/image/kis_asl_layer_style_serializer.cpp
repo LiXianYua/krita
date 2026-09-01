@@ -8,8 +8,6 @@
 #include "kis_asl_layer_style_serializer.h"
 #include "kis_image.h"
 
-#include <klocalizedstring.h>
-
 #include <PkXmlDocument.h>
 #include <unordered_map>
 #include <PkFileStream.h>
@@ -1290,7 +1288,7 @@ PkVector<KisPSDLayerStyleSP> KisAslLayerStyleSerializer::collectAllLayerStyles(K
 
     if (layer && layer->layerStyle()) {
         KisPSDLayerStyleSP clone = layer->layerStyle()->clone().dynamicCast<KisPSDLayerStyle>();
-        clone->setName(i18nc("Auto-generated layer style name for embedded styles (style itself)", "<%1> (embedded)", layer->name()));
+        clone->setName(PkString("<%1> (embedded)").arg(layer->name()));
         layerStyles << clone;
     }
 

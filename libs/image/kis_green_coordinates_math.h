@@ -7,6 +7,9 @@
 #ifndef __KIS_GREEN_COORDINATES_MATH_H
 #define __KIS_GREEN_COORDINATES_MATH_H
 
+#include <PkPoint.h>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
 
 #include "kritaimage_export.h"
 

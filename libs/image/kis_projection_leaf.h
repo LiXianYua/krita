@@ -7,6 +7,7 @@
 #ifndef __KIS_PROJECTION_LEAF_H
 #define __KIS_PROJECTION_LEAF_H
 
+#include <PkBitArray.h>
 #include <PkScopedPointer.h>
 
 #include "kis_types.h"

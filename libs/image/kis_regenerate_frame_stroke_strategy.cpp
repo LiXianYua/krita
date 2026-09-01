@@ -6,6 +6,8 @@
 
 #include "kis_regenerate_frame_stroke_strategy.h"
 
+#include <optional>
+
 #include <KisRegion.h>
 #include "kis_image_interfaces.h"
 #include "kis_image_animation_interface.h"
@@ -74,7 +76,7 @@ KisRegenerateFrameStrokeStrategy::KisRegenerateFrameStrokeStrategy(int frameId,
                                                                    bool isCancellable,
                                                                    KisImageAnimationInterface *interface,
                                                                    KisLockFrameGenerationLock &&frameGenerationLock)
-    : KisSimpleStrokeStrategy(QLatin1String("regenerate_external_frame_stroke")),
+    : KisSimpleStrokeStrategy(PkString("regenerate_external_frame_stroke")),
       m_d(new Private)
 {
     m_d->type = EXTERNAL_FRAME;
@@ -99,7 +101,7 @@ KisRegenerateFrameStrokeStrategy::KisRegenerateFrameStrokeStrategy(int frameId,
 }
 
 KisRegenerateFrameStrokeStrategy::KisRegenerateFrameStrokeStrategy(KisImageAnimationInterface *interface)
-    : KisSimpleStrokeStrategy(QLatin1String("regenerate_current_frame_stroke"), kundo2_text("Render Animation")),
+    : KisSimpleStrokeStrategy(PkString("regenerate_current_frame_stroke"), kundo2_text("Render Animation")),
       m_d(new Private)
 {
     m_d->type = CURRENT_FRAME;
@@ -208,7 +210,7 @@ KisStrokeStrategy* KisRegenerateFrameStrokeStrategy::createLodClone(int levelOfD
      */
     return m_d->type == CURRENT_FRAME ?
         new KisRegenerateFrameStrokeStrategy(m_d->interface) :
-        new KisSimpleStrokeStrategy(QLatin1String("dumb-lodn-KisRegenerateFrameStrokeStrategy"));
+        new KisSimpleStrokeStrategy(PkString("dumb-lodn-KisRegenerateFrameStrokeStrategy"));
 }
 
 void KisRegenerateFrameStrokeStrategy::suspendStrokeCallback()

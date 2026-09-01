@@ -580,7 +580,7 @@ void KisStrokesQueue::Private::forceResetLodAndCloseCurrentLodRange()
     if (!strokesQueue.isEmpty() && strokesQueue.last()->type() != KisStroke::LEGACY) {
 
         std::pair<KisStrokeStrategy*, PkList<KisStrokeJobData*>> fakeStrokePair
-                (new KisStrokeStrategy(QLatin1String("fake_sync")), {});
+                (new KisStrokeStrategy(PkString("fake_sync")), {});
 
         executeStrokePair(fakeStrokePair, this->strokesQueue, this->strokesQueue.end(),  KisStroke::LEGACY, 0, q);
     }

@@ -10,12 +10,10 @@
 class PkRect;
 class PkRectF;
 class PkSize;
-class PkPen;
 class PkPoint;
 class PkPointF;
 class PkPainterPath;
 class PkBitArray;
-class PkPainter;
 class PkImage;
 class PkRegion;
 class PkTransform;
@@ -70,23 +68,6 @@ namespace KritaUtils
     PkString KRITAIMAGE_EXPORT toLocalizedOnOff(bool value);
 
     KisNodeSP KRITAIMAGE_EXPORT nearestNodeAfterRemoval(KisNodeSP node);
-
-    /**
-     * When drawing a rect Qt uses quite a weird algorithm. It
-     * draws 4 lines:
-     *  o at X-es: rect.x() and rect.right() + 1
-     *  o at Y-s: rect.y() and rect.bottom() + 1
-     *
-     *  Which means that bottom and right lines of the rect are painted
-     *  outside the virtual rectangle the rect defines. This methods overcome this issue by
-     *  painting the adjusted rect.
-     */
-    void KRITAIMAGE_EXPORT renderExactRect(PkPainter *p, const PkRect &rc);
-
-    /**
-     * \see renderExactRect(PkPainter *p, const PkRect &rc)
-     */
-    void KRITAIMAGE_EXPORT renderExactRect(PkPainter *p, const PkRect &rc, const PkPen &pen);
 
     PkImage KRITAIMAGE_EXPORT convertQImageToGrayA(const PkImage &image);
 

@@ -9,7 +9,6 @@
 
 #include "kis_time_span.h"
 #include <PkRect.h>
-#include <QtGlobal>
 
 
 struct KisNodeGraphListener::Private

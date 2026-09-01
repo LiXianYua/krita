@@ -9,6 +9,7 @@
 #include "kritaimage_export.h"
 
 #include <PkScopedPointer.h>
+#include <PkVector.h>
 #include <KisProjectionUpdateFlags.h>
 #include <KisNodeAdditionFlags.h>
 

@@ -9,6 +9,7 @@
 
 #include "kis_perspective_math.h"
 
+#include <PkRect.h>
 
 #include <Eigen/LU>
 

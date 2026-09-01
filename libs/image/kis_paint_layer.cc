@@ -10,7 +10,6 @@
 #include "kis_paint_layer.h"
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 #include <KoColorSpace.h>
 #include <KoColorProfile.h>
 #include <KoCompositeOpRegistry.h>

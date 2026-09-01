@@ -7,6 +7,8 @@
 #ifndef KISRUNNABLESTROKEJOBSINTERFACE_H
 #define KISRUNNABLESTROKEJOBSINTERFACE_H
 
+#include <PkVector.h>
+
 #include "kritaimage_export.h"
 #include "kis_pointer_utils.h"
 

@@ -9,8 +9,6 @@
 
 #include <algorithm>
 
-#include <klocalizedstring.h>
-
 #include <KoColorSpace.h>
 #include "kis_convolution_painter.h"
 #include "kis_convolution_kernel.h"

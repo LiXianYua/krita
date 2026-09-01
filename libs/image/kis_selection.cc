@@ -8,6 +8,9 @@
 
 #include "kis_selection.h"
 
+#include <PkImage.h>
+#include <PkReadWriteLock.h>
+
 #include "kundo2command.h"
 
 #include "kis_selection_component.h"
@@ -60,7 +63,7 @@ void KisSelection::Private::safeDeleteShapeSelection(T *object, KisSelection *se
 {
     struct ShapeSelectionReleaseStroke : public KisSimpleStrokeStrategy {
         ShapeSelectionReleaseStroke(T *object)
-            : KisSimpleStrokeStrategy(QLatin1String("ShapeSelectionReleaseStroke")),
+            : KisSimpleStrokeStrategy(PkString("ShapeSelectionReleaseStroke")),
               m_objectWrapper(makeKisDeleteLaterWrapper(object))
         {
             setRequestsOtherStrokesToEnd(false);
@@ -357,9 +360,9 @@ PkPainterPath KisSelection::outlineCache() const
     PkPainterPath outline;
 
     if (m_d->shapeSelection) {
-        outline += m_d->shapeSelection->outlineCache();
+        outline.addPath(m_d->shapeSelection->outlineCache());
     } else if (m_d->pixelSelection->outlineCacheValid()) {
-        outline += m_d->pixelSelection->outlineCache();
+        outline.addPath(m_d->pixelSelection->outlineCache());
     }
 
     return outline;

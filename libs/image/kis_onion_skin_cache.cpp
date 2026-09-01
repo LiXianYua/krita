@@ -6,6 +6,7 @@
 
 #include "kis_onion_skin_cache.h"
 
+#include <PkReadWriteLock.h>
 
 
 #include "kis_paint_device.h"

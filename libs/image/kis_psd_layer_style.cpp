@@ -5,7 +5,6 @@
  */
 #include "kis_psd_layer_style.h"
 
-#include <klocalizedstring.h>
 #include <PkNodeId.h>
 
 
@@ -102,7 +101,7 @@ KisPSDLayerStyle::KisPSDLayerStyle(const PkString &filename, KisResourcesInterfa
     : KoResource(filename)
     , d(new Private(resourcesInterface))
 {
-    d->name = i18n("Unnamed");
+    d->name = PkString("Unnamed");
     d->version = 7;
 }
 
