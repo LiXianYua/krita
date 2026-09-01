@@ -5,6 +5,18 @@
 #include <PkThread.h>
 #include <PkThreadCallQueue.h>
 
+#include <type_traits>
+
+#ifdef KRITA_TESTSDK_PK_NATIVE
+class QObject;
+namespace QTest
+{
+int qExec(QObject *testObject, int argc, char **argv);
+}
+#else
+#include <QTest>
+#endif
+
 // SIMPLE_TEST_MAIN/SIMPLE_MAIN_IMPL：零 Qt 版测试入口。
 //
 // 原实现会创建一个 GUI 应用对象（含 locale 默认值 / 测试模式路径 / DPI /
@@ -16,11 +28,26 @@
 // 目录 qputenv（EXTRA_RESOURCE_DIRS / KRITA_PLUGIN_PATH）归 S-00 处理；
 // KisSynchronizedConnectionBase::setAutoModeForUnittestsEnabled 由 D-30 裁定删除。
 
+namespace KritaTestSdk
+{
+
+template <typename TestObject>
+int runSimpleTest(TestObject *test, int argc, char **argv)
+{
+    if constexpr (std::is_base_of<PkTestObject, TestObject>::value) {
+        return PkTest::qExec(test, argc, argv);
+    } else {
+        return QTest::qExec(test, argc, argv);
+    }
+}
+
+} // namespace KritaTestSdk
+
 #define SIMPLE_MAIN_IMPL(TestObject) \
     PkThread::registerMainThread(); \
     PkThreadCallQueue::warmUpCurrentThread(); \
     TestObject tc; \
-    return PkTest::qExec(&tc, argc, argv);
+    return KritaTestSdk::runSimpleTest(&tc, argc, argv);
 
 #define SIMPLE_TEST_MAIN(TestObject) \
 int main(int argc, char *argv[]) \
