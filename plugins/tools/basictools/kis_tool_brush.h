@@ -17,7 +17,6 @@
 #include <QKeySequence>
 
 
-class KisKActionCollection;
 
 class KoCanvasBase;
 
