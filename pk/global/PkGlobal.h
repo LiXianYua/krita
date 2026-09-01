@@ -16,6 +16,7 @@
 #  include <QtCore/qnamespace.h>
 #  include <QtCore/qmath.h>
 #  include <QtCore/qalgorithms.h>
+#  include <QtCore/qhashfunctions.h>
 #  include <QtCore/qnumeric.h>
 #endif
 

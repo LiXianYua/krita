@@ -82,6 +82,18 @@ do {\
 namespace TestUtil
 {
 
+inline QString diagnosticQString(const PkString &text)
+{
+    const std::string utf8 = text.PkToUtf8();
+    return QString::fromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
+inline PkString pkStringFromQString(const QString &text)
+{
+    const QByteArray utf8 = text.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
 inline QImage diagnosticQImage(const PkImage &image)
 {
     if (image.isNull()) return QImage();
@@ -110,6 +122,22 @@ inline bool checkQImage(const PkImage &image, const QString &testName,
                        fuzzy, fuzzyAlpha, maxNumFailingPixels);
 }
 
+inline bool checkQImage(const PkImage &image, const QString &testName,
+                        const QString &prefix, const PkString &caseName,
+                        int fuzzy = 0, int fuzzyAlpha = -1, int maxNumFailingPixels = 0)
+{
+    return checkQImage(image, testName, prefix, diagnosticQString(caseName),
+                       fuzzy, fuzzyAlpha, maxNumFailingPixels);
+}
+
+inline bool checkQImage(const PkImage &image, const QString &testName,
+                        const QString &prefix, const char *caseName,
+                        int fuzzy = 0, int fuzzyAlpha = -1, int maxNumFailingPixels = 0)
+{
+    return checkQImage(image, testName, prefix, QString::fromUtf8(caseName),
+                       fuzzy, fuzzyAlpha, maxNumFailingPixels);
+}
+
 inline bool checkQImageExternal(const PkImage &image, const QString &testName,
                                 const QString &prefix, const QString &caseName,
                                 int fuzzy = 0, int fuzzyAlpha = -1, int maxNumFailingPixels = 0)
@@ -128,6 +156,11 @@ inline KisNodeSP findNode(KisNodeSP root, const PkString &name) {
     }
 
     return KisNodeSP();
+}
+
+inline KisNodeSP findNode(KisNodeSP root, const QString &name)
+{
+    return findNode(root, pkStringFromQString(name));
 }
 
 inline void dumpNodeStack(KisNodeSP node, PkString prefix = PkString("\t"))
@@ -174,7 +207,7 @@ public:
     int min() { return m_min; }
     int max() { return m_max; }
     int value() { return m_value; }
-    PkString format() { return m_format; }
+    QString format() const { return diagnosticQString(m_format); }
     PkString autoNestedName() { return m_autoNestedName; }
 
 

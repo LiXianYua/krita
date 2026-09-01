@@ -8,21 +8,14 @@
 #ifndef _KO_GENERIC_REGISTRY_H_
 #define _KO_GENERIC_REGISTRY_H_
 
-#if defined(QT_CORE_LIB) && __has_include(<QHash>)
-#  include <QHash>
-#  include <QList>
-#  include <QString>
-template <typename T> using KoRegistryList = QList<T>;
-template <typename K, typename V> using KoRegistryHash = QHash<K, V>;
-using KoRegistryString = QString;
-#else
-#  include <PkList.h>
-#  include <PkString.h>
-#  include <PkHash.h>
+#include <PkList.h>
+#include <PkString.h>
+#include <PkHash.h>
+#include <PkStringHash.h>
+
 template <typename T> using KoRegistryList = PkList<T>;
 template <typename K, typename V> using KoRegistryHash = PkHash<K, V>;
 using KoRegistryString = PkString;
-#endif
 
 #include "kis_assert.h"
 
@@ -57,6 +50,22 @@ using KoRegistryString = PkString;
 template<typename T>
 class KoGenericRegistry
 {
+private:
+    static KoRegistryString registryKey(const KoRegistryString &id)
+    {
+        return id;
+    }
+
+    // Some transitional factories still expose QString ids. Convert only at
+    // that boundary; registry keys and containers remain Pk-owned.
+    template <typename String>
+    static auto registryKey(const String &id)
+        -> decltype(id.toUtf8(), KoRegistryString())
+    {
+        const auto utf8 = id.toUtf8();
+        return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+    }
+
 public:
     KoGenericRegistry() { }
     virtual ~KoGenericRegistry()
@@ -77,7 +86,7 @@ public:
     {
         KIS_SAFE_ASSERT_RECOVER_RETURN(item);
 
-        const KoRegistryString id = item->id();
+        const KoRegistryString id = registryKey(item->id());
         KIS_SAFE_ASSERT_RECOVER_NOOP(!m_aliases.contains(id));
 
         if (m_hash.contains(id)) {
