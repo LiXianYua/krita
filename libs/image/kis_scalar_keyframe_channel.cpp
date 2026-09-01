@@ -317,7 +317,7 @@ void KisScalarKeyframeChannel::insertKeyframe(int time, KisKeyframeSP keyframe, 
                              this,
                              [this, time](const KisScalarKeyframe* key){
                                  Q_UNUSED(key);
-                                 Q_EMIT sigKeyframeChanged(this, time);
+                                 sigKeyframeChanged(this, time);
                              });
     }
 

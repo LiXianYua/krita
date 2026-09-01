@@ -11,6 +11,12 @@
 
 #include <kundo2command.h>
 #include <PkObject.h>
+#include <PkPair.h>
+#include <PkScopedPointer.h>
+#include <PkSet.h>
+#include <PkSignalCompat.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include "kis_types.h"
 #include "KoID.h"
@@ -30,8 +36,6 @@ class KisTimeSpan;
  */
 class KRITAIMAGE_EXPORT KisKeyframeChannel : public PkObject
 {
-    Q_OBJECT
-
 public:
     static const KoID Raster;
     static const KoID Opacity;
@@ -148,7 +152,7 @@ public:
 
     static KoID channelIdToKoId(const PkString &id);
 
-Q_SIGNALS:
+signals:
     /** @brief This signal is emitted just AFTER a keyframe was added to the channel. */
     void sigAddedKeyframe(const KisKeyframeChannel *channel, int time);
 
@@ -187,7 +191,7 @@ protected:
      *
      * TODO: remove this workaround in Krita 5.0, when no such file are left :)
      */
-    Q_DECL_DEPRECATED void workaroundBrokenFrameTimeBug(int *time);
+    [[deprecated]] void workaroundBrokenFrameTimeBug(int *time);
 
 private:
     struct Private;

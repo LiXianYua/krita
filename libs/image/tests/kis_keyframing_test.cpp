@@ -8,7 +8,6 @@
 
 #include "kis_keyframing_test.h"
 #include <simpletest.h>
-#include <qsignalspy.h>
 #include <QRandomGenerator>
 
 #include "kis_paint_device_frames_interface.h"
@@ -56,71 +55,75 @@ void KisKeyframingTest::testChannelSignals()
     // Create raster channel..
     KisRasterKeyframeChannel *channel = dev->createKeyframeChannel(KoID());
 
-    qRegisterMetaType<const KisKeyframeChannel*>("const KisKeyframeChannel*");
-    qRegisterMetaType<KisKeyframeSP>("KisKeyframeSP");
-    QSignalSpy spyUpdated(channel, SIGNAL(sigAnyKeyframeChange()));
-    QSignalSpy spyAdded(channel, SIGNAL(sigAddedKeyframe(const KisKeyframeChannel*,int)));
-    QSignalSpy spyRemoving(channel, SIGNAL(sigKeyframeAboutToBeRemoved(const KisKeyframeChannel*,int)));
+    int updatedCount = 0;
+    int addedCount = 0;
+    int removingCount = 0;
+    QVERIFY(PkObject::connect(channel, &KisKeyframeChannel::sigAnyKeyframeChange,
+                              channel, [&updatedCount]() { ++updatedCount; }).isValid());
+    QVERIFY(PkObject::connect(channel, &KisKeyframeChannel::sigAddedKeyframe,
+                              channel, [&addedCount](const KisKeyframeChannel *, int) { ++addedCount; }).isValid());
+    QVERIFY(PkObject::connect(channel, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved,
+                              channel, [&removingCount](const KisKeyframeChannel *, int) { ++removingCount; }).isValid());
 
-    QVERIFY(spyUpdated.isValid());
-    QVERIFY(spyAdded.isValid());
-    QVERIFY(spyRemoving.isValid());
-
-    int updateSignalCount = spyUpdated.count();
+    int updateSignalCount = updatedCount;
 
     {   // Adding a keyframe..
-        int originalSignalCount = spyAdded.count();
+        int originalSignalCount = addedCount;
         channel->addKeyframe(7);
 
-        QVERIFY(spyAdded.count() == originalSignalCount + 1);
-        QVERIFY(spyUpdated.count() > updateSignalCount);
+        QVERIFY(addedCount == originalSignalCount + 1);
+        QVERIFY(updatedCount > updateSignalCount);
     }
 
-    updateSignalCount = spyUpdated.count();
+    updateSignalCount = updatedCount;
 
     {    // Moving a keyframe (7->11)..
         channel->moveKeyframe(7, 11);
 
-        QVERIFY(spyUpdated.count() > updateSignalCount);
+        QVERIFY(updatedCount > updateSignalCount);
 
         // No-op move (no signals) ...why?
     }
 
-    updateSignalCount = spyUpdated.count();
+    updateSignalCount = updatedCount;
 
     {   // Removing a keyframe..
-        int originalSignalCount = spyRemoving.count();
+        int originalSignalCount = removingCount;
         channel->removeKeyframe(11);
 
-        QVERIFY(spyRemoving.count() == originalSignalCount + 1);
-        QVERIFY(spyUpdated.count() > updateSignalCount);
+        QVERIFY(removingCount == originalSignalCount + 1);
+        QVERIFY(updatedCount > updateSignalCount);
     }
 
 
     // Setup scalar channel test environment
-    qRegisterMetaType<const KisScalarKeyframeChannel*>("const KisScalarKeyframeChannel*");
     QScopedPointer<KisScalarKeyframeChannel> scalarChannel( new KisScalarKeyframeChannel(KoID(), bounds) );
     scalarChannel->setLimits(0, 64);
     scalarChannel->addScalarKeyframe(0, 32);
     scalarChannel->addScalarKeyframe(10, 64);
-    QSignalSpy spyScalarKeyframeChanged(scalarChannel.data(), SIGNAL(sigKeyframeChanged(const KisKeyframeChannel*,int)));
+    int scalarKeyframeChangedCount = 0;
+    QVERIFY(PkObject::connect(scalarChannel.data(), &KisKeyframeChannel::sigKeyframeChanged,
+                              scalarChannel.data(),
+                              [&scalarKeyframeChangedCount](const KisKeyframeChannel *, int) {
+                                  ++scalarKeyframeChangedCount;
+                              }).isValid());
 
     {   // Test changing value of scalar keyframe. Should always Q_EMIT **1** signal per assignment, undo or redo.
         KUndo2Command undoCmd;
         KisScalarKeyframeSP scalarKey = scalarChannel->keyframeAt<KisScalarKeyframe>(0);
         scalarKey->setValue(20, &undoCmd);
 
-        QVERIFY(spyScalarKeyframeChanged.count() == 1);
-        spyScalarKeyframeChanged.clear();
+        QVERIFY(scalarKeyframeChangedCount == 1);
+        scalarKeyframeChangedCount = 0;
 
         undoCmd.undo();
 
-        QVERIFY(spyScalarKeyframeChanged.count() == 1);
-        spyScalarKeyframeChanged.clear();
+        QVERIFY(scalarKeyframeChangedCount == 1);
+        scalarKeyframeChangedCount = 0;
 
         undoCmd.redo();
 
-        QVERIFY(spyScalarKeyframeChanged.count() == 1);
+        QVERIFY(scalarKeyframeChangedCount == 1);
     }
 }
 

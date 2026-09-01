@@ -523,6 +523,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(kritaimage_SIGNAL_HEADERS
     kis_base_node.h
     kis_image.h
+    kis_keyframe_channel.h
     kis_node.h
     kis_paint_device.h
     kis_transform_mask.h

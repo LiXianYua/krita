@@ -1628,7 +1628,7 @@ void KisPaintDeviceTest::testFramesSignals()
     std::optional<int> receivedHasBeenRemovedKey;
     bool receivedAnyFrameChange = false;
 
-    connect(channel, &KisKeyframeChannel::sigAddedKeyframe, channel,
+    PkObject::connect(channel, &KisKeyframeChannel::sigAddedKeyframe, channel,
             [&] (const KisKeyframeChannel *ch, int time) {
                 QVERIFY(!receivedAddedKey);
                 QVERIFY(ch == channel);
@@ -1653,7 +1653,7 @@ void KisPaintDeviceTest::testFramesSignals()
                 receivedAddedKey = time;
             });
 
-    connect(channel, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved, channel,
+    PkObject::connect(channel, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved, channel,
             [&] (const KisKeyframeChannel *ch, int time) {
                 QVERIFY(!receivedToBeRemovedKey);
                 QVERIFY(ch == channel);
@@ -1677,7 +1677,7 @@ void KisPaintDeviceTest::testFramesSignals()
                 receivedToBeRemovedKey = time;
             });
 
-    connect(channel, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, channel,
+    PkObject::connect(channel, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, channel,
             [&] (const KisKeyframeChannel *ch, int time) {
                 QVERIFY(!receivedHasBeenRemovedKey);
                 QVERIFY(ch == channel);
@@ -1692,7 +1692,7 @@ void KisPaintDeviceTest::testFramesSignals()
                 receivedHasBeenRemovedKey = time;
             });
 
-    connect(channel, &KisKeyframeChannel::sigAnyKeyframeChange, channel,
+    PkObject::connect(channel, &KisKeyframeChannel::sigAnyKeyframeChange, channel,
             [&] () {
                 QVERIFY(!receivedAnyFrameChange);
                 receivedAnyFrameChange = true;
