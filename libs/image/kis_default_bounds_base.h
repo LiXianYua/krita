@@ -11,6 +11,8 @@
 #include "kis_shared_ptr.h"
 #include "kritaimage_export.h"
 #include "KisWraparoundAxis.h"
+#include <PkRect.h>
+
 class KisDefaultBoundsBase;
 
 typedef KisSharedPtr<KisDefaultBoundsBase> KisDefaultBoundsBaseSP;
