@@ -8,6 +8,8 @@
 #define KIS_GENERATOR_REGISTRY_H_
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
+#include <PkString.h>
 
 #include "kis_generator.h"
 #include "kis_types.h"
@@ -23,9 +25,6 @@ class KisFilterConfiguration;
  */
 class KRITAIMAGE_EXPORT KisGeneratorRegistry : public PkObject, public KoGenericRegistry<KisGeneratorSP>
 {
-
-    Q_OBJECT
-
 public:
     ~KisGeneratorRegistry() override;
 
@@ -33,7 +32,7 @@ public:
     void add(KisGeneratorSP item);
     void add(const PkString &id, KisGeneratorSP item);
 
-Q_SIGNALS:
+signals:
 
     void generatorAdded(PkString id);
 
