@@ -11,11 +11,13 @@
 #include "kritaimage_export.h"
 
 #include <PkObject.h>
+#include <PkRect.h>
+#include <PkScopedPointer.h>
+#include <PkSet.h>
+#include <PkSignalCompat.h>
 
 class KRITAIMAGE_EXPORT KisOnionSkinCompositor : public PkObject
 {
-    Q_OBJECT
-
 public:
     KisOnionSkinCompositor();
     ~KisOnionSkinCompositor() override;
@@ -34,10 +36,10 @@ public:
     void setColorLabelFilter(PkSet<int> colors);
     PkSet<int> colorLabelFilter();
 
-public Q_SLOTS:
+public:
     void configChanged();
 
-Q_SIGNALS:
+signals:
     void sigOnionSkinChanged();
 
 private:

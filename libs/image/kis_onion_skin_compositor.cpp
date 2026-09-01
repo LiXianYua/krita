@@ -332,5 +332,5 @@ PkRect KisOnionSkinCompositor::updateExtentOnAddition(const KisPaintDeviceSP dev
 void KisOnionSkinCompositor::configChanged()
 {
     m_d->refreshConfig();
-    Q_EMIT sigOnionSkinChanged();
+    sigOnionSkinChanged();
 }
