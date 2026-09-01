@@ -12,46 +12,46 @@ void KisRectsGridTest::test()
 {
     KisRectsGrid grid;
 
-    QVector<QRect> result;
+    PkVector<PkRect> result;
 
-    result = grid.addRect(QRect(5,5,10,10));
+    result = grid.addRect(PkRect(5,5,10,10));
 
-    QCOMPARE(result, QVector<QRect>({QRect(0,0,64,64)}));
+    QCOMPARE(result, PkVector<PkRect>({PkRect(0,0,64,64)}));
 
-    QVERIFY(grid.contains(QRect(10,10,15,15)));
-    QVERIFY(grid.contains(QRect(0,0,64,64)));
-    QVERIFY(!grid.contains(QRect(64,10,1,1)));
-    QVERIFY(!grid.contains(QRect(0,0,65,65)));
-    QVERIFY(!grid.contains(QRect(64,64,1,1)));
+    QVERIFY(grid.contains(PkRect(10,10,15,15)));
+    QVERIFY(grid.contains(PkRect(0,0,64,64)));
+    QVERIFY(!grid.contains(PkRect(64,10,1,1)));
+    QVERIFY(!grid.contains(PkRect(0,0,65,65)));
+    QVERIFY(!grid.contains(PkRect(64,64,1,1)));
 
-    result = grid.addRect(QRect(5,5,128,10));
+    result = grid.addRect(PkRect(5,5,128,10));
 
-    QCOMPARE(result, QVector<QRect>({QRect(64,0,64,64), QRect(128,0,64,64)}));
+    QCOMPARE(result, PkVector<PkRect>({PkRect(64,0,64,64), PkRect(128,0,64,64)}));
 
-    QVERIFY(grid.contains(QRect(10,10,15,15)));
-    QVERIFY(grid.contains(QRect(0,0,64,64)));
-    QVERIFY(grid.contains(QRect(64,10,1,1)));
-    QVERIFY(!grid.contains(QRect(0,0,65,65)));
-    QVERIFY(!grid.contains(QRect(64,64,1,1)));
+    QVERIFY(grid.contains(PkRect(10,10,15,15)));
+    QVERIFY(grid.contains(PkRect(0,0,64,64)));
+    QVERIFY(grid.contains(PkRect(64,10,1,1)));
+    QVERIFY(!grid.contains(PkRect(0,0,65,65)));
+    QVERIFY(!grid.contains(PkRect(64,64,1,1)));
 
-    result = grid.removeRect(QRect(64,65,10,10));
+    result = grid.removeRect(PkRect(64,65,10,10));
 
     QVERIFY(result.isEmpty());
-    QVERIFY(grid.contains(QRect(64,10,1,1)));
+    QVERIFY(grid.contains(PkRect(64,10,1,1)));
 
-    result = grid.removeRect(QRect(64,0,64,64));
+    result = grid.removeRect(PkRect(64,0,64,64));
 
     //qDebug() << ppVar(result);
 
-    QCOMPARE(result, QVector<QRect>({QRect(64,0,64,64)}));
-    QVERIFY(!grid.contains(QRect(64,10,1,1)));
-    QVERIFY(grid.contains(QRect(128,10,1,1)));
+    QCOMPARE(result, PkVector<PkRect>({PkRect(64,0,64,64)}));
+    QVERIFY(!grid.contains(PkRect(64,10,1,1)));
+    QVERIFY(grid.contains(PkRect(128,10,1,1)));
 
-    result = grid.removeRect(QRect(64,-1,128,70));
+    result = grid.removeRect(PkRect(64,-1,128,70));
 
-    QCOMPARE(result, QVector<QRect>({QRect(128,0,64,64)}));
-    QVERIFY(!grid.contains(QRect(64,10,1,1)));
-    QVERIFY(!grid.contains(QRect(128,10,1,1)));
+    QCOMPARE(result, PkVector<PkRect>({PkRect(128,0,64,64)}));
+    QVERIFY(!grid.contains(PkRect(64,10,1,1)));
+    QVERIFY(!grid.contains(PkRect(128,10,1,1)));
 }
 
 QTEST_MAIN(KisRectsGridTest)

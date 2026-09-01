@@ -15,6 +15,14 @@ int qExec(QObject *testObject, int argc, char **argv);
 }
 #else
 #include <QTest>
+#include <KoTestConfig.h>
+#endif
+
+#ifdef KRITA_TESTSDK_PK_NATIVE
+#define KRITA_SIMPLE_TEST_PLUGIN_PATH_SETUP
+#else
+#define KRITA_SIMPLE_TEST_PLUGIN_PATH_SETUP \
+    qputenv("KRITA_PLUGIN_PATH", QByteArray(KRITA_PLUGINS_DIR_FOR_TESTS));
 #endif
 
 // SIMPLE_TEST_MAIN/SIMPLE_MAIN_IMPL：过渡期双 Pk/Qt 测试入口。
@@ -27,7 +35,7 @@ int qExec(QObject *testObject, int argc, char **argv);
 // （登记当前线程为主线程，KisImage 等对象 moveToThread(mainThreadId()) 转的
 // 就是它）+ PkThreadCallQueue::warmUpCurrentThread()（为当前线程准备调用队列，
 // 跨线程投递的 PkThreadCallQueue::post 才能落到这里）承接。qExec 之前的资源
-// 目录 qputenv（EXTRA_RESOURCE_DIRS / KRITA_PLUGIN_PATH）归 S-00 处理；
+// 目录 qputenv（KRITA_PLUGIN_PATH）由本文件接入生成的测试配置；
 // KisSynchronizedConnectionBase::setAutoModeForUnittestsEnabled 由 D-30 裁定删除。
 
 namespace KritaTestSdk
@@ -46,6 +54,7 @@ int runSimpleTest(TestObject *test, int argc, char **argv)
 } // namespace KritaTestSdk
 
 #define SIMPLE_MAIN_IMPL(TestObject) \
+    KRITA_SIMPLE_TEST_PLUGIN_PATH_SETUP \
     PkThread::registerMainThread(); \
     PkThreadCallQueue::warmUpCurrentThread(); \
     TestObject tc; \
