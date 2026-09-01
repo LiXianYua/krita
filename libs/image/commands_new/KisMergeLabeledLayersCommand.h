@@ -9,6 +9,7 @@
 #define __KIS_MERGE_LABELED_LAYERS_H
 
 #include <PkList.h>
+#include <PkPair.h>
 #include <PkString.h>
 #include <PkSharedPointer.h>
 
