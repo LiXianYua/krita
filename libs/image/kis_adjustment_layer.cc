@@ -7,7 +7,6 @@
 
 #include "kis_adjustment_layer.h"
 
-#include <klocalizedstring.h>
 #include "kis_debug.h"
 
 #include <KoCompositeOpRegistry.h>
@@ -128,4 +127,3 @@ void KisAdjustmentLayer::setChannelFlags(const PkBitArray & channelFlags)
     }
     KisLayer::setChannelFlags(channelFlags);
 }
-
