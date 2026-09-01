@@ -7,6 +7,9 @@
 #ifndef KISMASKINGBRUSHRENDERER_H
 #define KISMASKINGBRUSHRENDERER_H
 
+#include <PkRect.h>
+#include <PkScopedPointer.h>
+
 #include "kis_types.h"
 
 class KisMaskingBrushCompositeOpBase;

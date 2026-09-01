@@ -5,7 +5,6 @@
  */
 #include "KisColorSourceOptionData.h"
 
-#include <klocalizedstring.h>
 #include <KoID.h>
 #include <kis_properties_configuration.h>
 

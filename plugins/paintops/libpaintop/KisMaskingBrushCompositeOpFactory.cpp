@@ -7,6 +7,8 @@
 
 #include "KisMaskingBrushCompositeOpFactory.h"
 
+#include <cstring>
+
 #include "kis_assert.h"
 
 #include <KoCompositeOpRegistry.h>

@@ -7,7 +7,7 @@
 #ifndef KISMASKINGBRUSHCOMPOSITEOPBASE_H
 #define KISMASKINGBRUSHCOMPOSITEOPBASE_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 #include <kritapaintop_export.h>
 

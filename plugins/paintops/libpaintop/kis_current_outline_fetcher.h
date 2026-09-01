@@ -50,7 +50,8 @@ public:
 
 
 private:
-    Q_DISABLE_COPY(KisCurrentOutlineFetcher);
+    KisCurrentOutlineFetcher(const KisCurrentOutlineFetcher &) = delete;
+    KisCurrentOutlineFetcher &operator=(const KisCurrentOutlineFetcher &) = delete;
     struct Private;
     const PkScopedPointer<Private> d;
 };

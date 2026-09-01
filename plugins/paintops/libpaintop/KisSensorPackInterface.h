@@ -7,6 +7,10 @@
 #ifndef KISSENSORPACKINTERFACE_H
 #define KISSENSORPACKINTERFACE_H
 
+#include <vector>
+
+#include <PkString.h>
+
 #include "kritapaintop_export.h"
 #include "PkSharedDataPointer.h"
 

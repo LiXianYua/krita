@@ -67,7 +67,7 @@ void KisStrokeEfficiencyMeasurer::addSamples(const PkVector<PkPointF> &points)
 {
     if (!m_d->isEnabled) return;
 
-    Q_FOREACH (const PkPointF &pt, points) {
+    for (const PkPointF &pt : points) {
         addSample(pt);
     }
 }
@@ -111,5 +111,4 @@ qreal KisStrokeEfficiencyMeasurer::averageFps() const
 {
     return m_d->renderingTime ? m_d->framesCount * 1000.0 / m_d->renderingTime : 0.0;
 }
-
 

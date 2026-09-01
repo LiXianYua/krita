@@ -8,9 +8,9 @@
 #define KISSTROKEEFFICIENCYMEASURER_H
 
 #include <kritapaintop_export.h>
+#include <PkGlobal.h>
 #include <PkScopedPointer.h>
-
-#include <QtGlobal>
+#include <PkVector.h>
 
 class PkPointF;
 

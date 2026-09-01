@@ -63,7 +63,8 @@ protected:
 
 private:
 
-    Q_DISABLE_COPY(KisBrushBasedPaintOpSettings)
+    KisBrushBasedPaintOpSettings(const KisBrushBasedPaintOpSettings &) = delete;
+    KisBrushBasedPaintOpSettings &operator=(const KisBrushBasedPaintOpSettings &) = delete;
 
 };
 
