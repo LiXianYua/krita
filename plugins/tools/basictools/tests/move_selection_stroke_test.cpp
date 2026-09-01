@@ -33,9 +33,9 @@ KisPaintDeviceSP lodDevice(KisPaintDeviceSP dev)
 
 void MoveSelectionStrokeTest::test()
 {
-    const QRect imageRect(0,0,800,800);
+    const PkRect imageRect(0,0,800,800);
     KisImageSP image = utils::createImage(0, imageRect.size());
-    QScopedPointer<KoCanvasResourceProvider> manager(
+    PkScopedPointer<KoCanvasResourceProvider> manager(
         utils::createResourceManager(image));
 
     image->setLodPreferences(KisLodPreferences(2));
@@ -55,15 +55,15 @@ void MoveSelectionStrokeTest::test()
     {
         KisImageBarrierLock lock(image);
 
-        device->fill(QRect(0,0,400,400),     KoColor(Qt::red, image->colorSpace()));
-        device->fill(QRect(400,0,400,400),   KoColor(Qt::green, image->colorSpace()));
-        device->fill(QRect(0,400,400,400),   KoColor(Qt::blue, image->colorSpace()));
-        device->fill(QRect(400,400,400,400), KoColor(Qt::yellow, image->colorSpace()));
+        device->fill(PkRect(0,0,400,400),     KoColor(Qt::red, image->colorSpace()));
+        device->fill(PkRect(400,0,400,400),   KoColor(Qt::green, image->colorSpace()));
+        device->fill(PkRect(0,400,400,400),   KoColor(Qt::blue, image->colorSpace()));
+        device->fill(PkRect(400,400,400,400), KoColor(Qt::yellow, image->colorSpace()));
     }
 
     {
         KisSelectionSP newSelection = new KisSelection();
-        newSelection->pixelSelection()->select(QRect(200,200,400,400), OPACITY_OPAQUE_U8);
+        newSelection->pixelSelection()->select(PkRect(200,200,400,400), OPACITY_OPAQUE_U8);
 
         KisSetGlobalSelectionCommand cmd(image, newSelection);
         cmd.redo();
@@ -80,7 +80,7 @@ void MoveSelectionStrokeTest::test()
                                             image.data());
 
         KisStrokeId id = image->startStroke(strategy);
-        image->addJob(id, new MoveStrokeStrategy::Data(QPoint(100,100)));
+        image->addJob(id, new MoveStrokeStrategy::Data(PkPoint(100,100)));
         image->endStroke(id);
 
         image->waitForDone();
@@ -101,7 +101,7 @@ void MoveSelectionStrokeTest::test()
                                             image.data());
 
         KisStrokeId id = image->startStroke(strategy);
-        image->addJob(id, new MoveStrokeStrategy::Data(QPoint(-200,50)));
+        image->addJob(id, new MoveStrokeStrategy::Data(PkPoint(-200,50)));
         image->endStroke(id);
 
         image->waitForDone();

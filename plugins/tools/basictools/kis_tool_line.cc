@@ -14,7 +14,6 @@
 
 
 
-#include <QIcon>
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
 #include <KoPointerEvent.h>
@@ -32,6 +31,7 @@
 #include <kis_painting_information_builder.h>
 
 #include "kis_tool_line_helper.h"
+#include "kis_basic_tools_string_utils.h"
 
 
 const KisCoordinatesConverter* getCoordinatesConverter(KoCanvasBase * canvas)
@@ -68,7 +68,7 @@ KisToolLine::KisToolLine(KoCanvasBase * canvas)
                           &m_longStrokeUpdateCompressor, [this]() { updateStroke(); });
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -92,7 +92,7 @@ void KisToolLine::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolLine::activate(const QSet<KoShape*> &shapes)
+void KisToolLine::activate(const PkSet<KoShape*> &shapes)
 {
    KisToolPaint::activate(shapes);
 }
@@ -128,12 +128,12 @@ void KisToolLine::updatePreviewTimer(bool showGuideline)
 }
 
 
-void KisToolLine::paint(QPainter& gc, const KoViewConverter &converter)
+void KisToolLine::paint(PkPainter& gc, const KoViewConverter &converter)
 {
-    Q_UNUSED(converter);
+    (void)converter;
 
     if(mode() == KisTool::PAINT_MODE) {
-        paintLine(gc,QRect());
+        paintLine(gc,PkRect());
     }
     KisToolPaint::paint(gc,converter);
 }
@@ -152,8 +152,8 @@ void KisToolLine::beginPrimaryAction(KoPointerEvent *event)
             event->ignore();
             return;
         }
-        QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, QIcon(), 4500,
+        PkString message("The MyPaint Brush Engine is not available for this colorspace");
+        feedback->showFloatingMessage(message, {}, 4500,
                                       KisCanvasFeedback::Priority::Medium,
                                       Qt::AlignCenter | Qt::TextWordWrap);
         event->ignore();
@@ -217,10 +217,10 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
     // First ensure the old guideline is deleted
     updateGuideline();
 
-    QPointF pos = convertToPixelCoordAndSnap(event);
+    PkPointF pos = convertToPixelCoordAndSnap(event);
 
     if (effectiveModifiers == Qt::AltModifier) {
-        QPointF trans = pos - m_endPoint;
+        PkPointF trans = pos - m_endPoint;
         m_helper->translatePoints(trans);
         m_startPoint += trans;
         m_endPoint += trans;
@@ -251,9 +251,12 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_NOOP(feedback);
         if (feedback) {
-            feedback->showFloatingMessage(i18n("X: %1 px\nY: %2 px", QString::number(m_startPoint.x(), 'f',1)
-                                                               , QString::number(m_startPoint.y(), 'f',1))
-                                                               , QIcon(), 1000, KisCanvasFeedback::Priority::High,  Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+            feedback->showFloatingMessage(
+                PkString("X: %1 px\nY: %2 px")
+                    .arg(KisBasicToolsString::numberFixed(m_startPoint.x(), 1))
+                    .arg(KisBasicToolsString::numberFixed(m_startPoint.y(), 1)),
+                {}, 1000, KisCanvasFeedback::Priority::High,
+                Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
         }
     }
     else {
@@ -266,7 +269,7 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
 
 void KisToolLine::endPrimaryAction(KoPointerEvent *event)
 {
-    Q_UNUSED(event);
+    (void)event;
     CHECK_MODE_SANITY_OR_RETURN(KisTool::PAINT_MODE);
     setMode(KisTool::HOVER_MODE);
 
@@ -308,7 +311,7 @@ void KisToolLine::endStroke()
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
 
-        QTransform resolutionMatrix;
+        PkTransform resolutionMatrix;
         resolutionMatrix.scale(1 / currentImage()->xRes(), 1 / currentImage()->yRes());
         path->moveTo(resolutionMatrix.map(m_startPoint));
         path->lineTo(resolutionMatrix.map(m_endPoint));
@@ -343,9 +346,9 @@ void KisToolLine::cancelStroke()
     m_endPoint = m_startPoint;
 }
 
-QPointF KisToolLine::straightLine(QPointF point)
+PkPointF KisToolLine::straightLine(PkPointF point)
 {
-    const QPointF lineVector = point - m_startPoint;
+    const PkPointF lineVector = point - m_startPoint;
     qreal lineAngle = std::atan2(lineVector.y(), lineVector.x());
 
     if (lineAngle < 0) {
@@ -359,9 +362,9 @@ QPointF KisToolLine::straightLine(QPointF point)
 
     const qreal lineLength = std::sqrt((lineVector.x() * lineVector.x()) + (lineVector.y() * lineVector.y()));
 
-    const QPointF constrainedLineVector(lineLength * std::cos(constrainedLineAngle), lineLength * std::sin(constrainedLineAngle));
+    const PkPointF constrainedLineVector(lineLength * std::cos(constrainedLineAngle), lineLength * std::sin(constrainedLineAngle));
 
-    const QPointF result = m_startPoint + constrainedLineVector;
+    const PkPointF result = m_startPoint + constrainedLineVector;
 
     return result;
 }
@@ -369,7 +372,7 @@ QPointF KisToolLine::straightLine(QPointF point)
 void KisToolLine::updateGuideline()
 {
     if (canvas()) {
-        QRectF bound(m_startPoint, m_endPoint);
+        PkRectF bound(m_startPoint, m_endPoint);
         canvas()->updateCanvas(convertToPt(bound.normalized().adjusted(-3, -3, 3, 3)));
     }
 }
@@ -379,25 +382,28 @@ void KisToolLine::showSize()
 {
     KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
-    feedback->showFloatingMessage(i18n("Length: %1 px", QString::number(QLineF(m_startPoint,m_endPoint).length(), 'f',1))
-                                                        , QIcon(), 1000, KisCanvasFeedback::Priority::High,  Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+    feedback->showFloatingMessage(
+        PkString("Length: %1 px").arg(
+            KisBasicToolsString::numberFixed(PkLineF(m_startPoint, m_endPoint).length(), 1)),
+        {}, 1000, KisCanvasFeedback::Priority::High,
+        Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
 }
-void KisToolLine::paintLine(QPainter& gc, const QRect&)
+void KisToolLine::paintLine(PkPainter& gc, const PkRect&)
 {
-    QPointF viewStartPos = pixelToView(m_startPoint);
-    QPointF viewStartEnd = pixelToView(m_endPoint);
+    PkPointF viewStartPos = pixelToView(m_startPoint);
+    PkPointF viewStartEnd = pixelToView(m_endPoint);
 
     if (m_showGuideline && canvas()) {
-        QPainterPath path;
+        PkPainterPath path;
         path.moveTo(viewStartPos);
         path.lineTo(viewStartEnd);
         paintToolOutline(&gc, path);
     }
 }
 
-QString KisToolLine::quickHelp() const
+PkString KisToolLine::quickHelp() const
 {
-    return i18n("Alt+Drag will move the origin of the currently displayed line around, Shift+Drag will force you to draw straight lines");
+    return PkString("Alt+Drag will move the origin of the currently displayed line around, Shift+Drag will force you to draw straight lines");
 }
 
 bool KisToolLine::supportsPaintingAssistants() const

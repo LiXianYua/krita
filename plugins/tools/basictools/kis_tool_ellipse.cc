@@ -29,7 +29,7 @@ KisToolEllipse::KisToolEllipse(KoCanvasBase * canvas)
     setIsOpacityPresetMode(true);
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -51,10 +51,10 @@ void KisToolEllipse::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolEllipse::finishRect(const QRectF& rect, qreal roundCornersX, qreal roundCornersY)
+void KisToolEllipse::finishRect(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY)
 {
-    Q_UNUSED(roundCornersX);
-    Q_UNUSED(roundCornersY);
+    (void)roundCornersX;
+    (void)roundCornersY;
 
     if (rect.isEmpty())
         return;
@@ -70,7 +70,7 @@ void KisToolEllipse::finishRect(const QRectF& rect, qreal roundCornersX, qreal r
                                            strokeStyle(),
                                            fillStyle(),
                                            fillTransform());
-        QPainterPath path;
+        PkPainterPath path;
         path.addEllipse(rect);
         getRotatedPath(path, rect.center(), getRotationAngle());
         helper.paintPainterPath(path);
@@ -78,7 +78,7 @@ void KisToolEllipse::finishRect(const QRectF& rect, qreal roundCornersX, qreal r
         KisResourcesSnapshot resources(image(),
                                        currentNode(),
                                        canvas()->resourceManager()->canvasResourcesInterface());
-        QRectF r = convertToPt(rect);
+        PkRectF r = convertToPt(rect);
         KoShape* shape = KisShapeToolHelper::createEllipseShape(r);
         shape->rotate(qRadiansToDegrees(getRotationAngle()));
         KoShapeStrokeSP border(new KoShapeStroke(currentStrokeWidth(), resources.currentFgColor().toQColor()));

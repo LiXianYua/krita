@@ -5,7 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QIcon>
 #include "kis_tool_pencil.h"
 #include <KoPathShape.h>
 #include <KoCanvasBase.h>
@@ -22,7 +21,7 @@ KisToolPencil::KisToolPencil(KoCanvasBase * canvas)
 {
     setIsOpacityPresetMode(true);
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -50,12 +49,12 @@ void KisToolPencil::updatePencilCursor(bool value)
 
 void KisToolPencil::mousePressEvent(KoPointerEvent *event)
 {
-    Q_UNUSED(event);
+    (void)event;
 }
 
 void KisToolPencil::mouseDoubleClickEvent(KoPointerEvent *event)
 {
-    Q_UNUSED(event)
+    (void)event;
 }
 
 void KisToolPencil::beginPrimaryAction(KoPointerEvent *event)
@@ -68,8 +67,8 @@ void KisToolPencil::beginPrimaryAction(KoPointerEvent *event)
             event->ignore();
             return;
         }
-        QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, QIcon(), 4500,
+        PkString message("The MyPaint Brush Engine is not available for this colorspace");
+        feedback->showFloatingMessage(message, {}, 4500,
                                       KisCanvasFeedback::Priority::Medium,
                                       Qt::AlignCenter | Qt::TextWordWrap);
         event->ignore();
@@ -94,7 +93,7 @@ __KisToolPencilLocalTool::__KisToolPencilLocalTool(KoCanvasBase * canvas, KisToo
     setIsOpacityPresetMode(true);
 }
 
-void __KisToolPencilLocalTool::paint(QPainter &painter, const KoViewConverter &converter)
+void __KisToolPencilLocalTool::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     if (m_parentTool->strokeStyle() == KisToolShapeUtils::StrokeStyleNone) {
         paintPath(path(), painter, converter);
@@ -105,14 +104,14 @@ void __KisToolPencilLocalTool::paint(QPainter &painter, const KoViewConverter &c
 
 
 
-void __KisToolPencilLocalTool::paintPath(KoPathShape *pathShape, QPainter &painter, const KoViewConverter &converter)
+void __KisToolPencilLocalTool::paintPath(KoPathShape *pathShape, PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(converter);
+    (void)converter;
     if (!pathShape) {
         return;
     }
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(m_parentTool->image()->xRes(), m_parentTool->image()->yRes());
     matrix.translate(pathShape->position().x(), pathShape->position().y());
     m_parentTool->paintToolOutline(&painter, m_parentTool->pixelToView(matrix.map(pathShape->outline())));

@@ -6,11 +6,11 @@
  */
 
 #include "kis_tool_measure.h"
+#include "kis_basic_tools_string_utils.h"
 
 #include <math.h>
 
-#include <QPainter>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 #include <KoUnit.h>
 
@@ -37,9 +37,9 @@ KisToolMeasure::KisToolMeasure(KoCanvasBase * canvas)
 KisToolMeasure::~KisToolMeasure()
 {
 }
-QPointF KisToolMeasure::lockedAngle(QPointF pos)
+PkPointF KisToolMeasure::lockedAngle(PkPointF pos)
 {
-    const QPointF lineVector = pos - m_startPos;
+    const PkPointF lineVector = pos - m_startPos;
     qreal lineAngle = normalizeAngle(std::atan2(lineVector.y(), lineVector.x()));
 
     const qreal ANGLE_BETWEEN_CONSTRAINED_LINES = (2 * M_PI) / 24;
@@ -49,27 +49,28 @@ QPointF KisToolMeasure::lockedAngle(QPointF pos)
 
     const qreal lineLength = KisAlgebra2D::norm(lineVector);
 
-    const QPointF constrainedLineVector(lineLength * std::cos(constrainedLineAngle), lineLength * std::sin(constrainedLineAngle));
+    const PkPointF constrainedLineVector(lineLength * std::cos(constrainedLineAngle), lineLength * std::sin(constrainedLineAngle));
 
-    const QPointF result = m_startPos + constrainedLineVector;
+    const PkPointF result = m_startPos + constrainedLineVector;
 
     return result;
 }
 
-void KisToolMeasure::paint(QPainter& gc, const KoViewConverter &converter)
+void KisToolMeasure::paint(PkPainter& gc, const KoViewConverter &converter)
 {
-    QPen old = gc.pen();
-    QPen pen(Qt::SolidLine);
+    PkPen old = gc.pen();
+    PkPen pen(PkColor(0, 0, 0));
+    pen.setStyle(Qt::SolidLine);
     gc.setPen(pen);
 
-    QPainterPath elbowPath;
+    PkPainterPath elbowPath;
     elbowPath.moveTo(m_endPos);
     elbowPath.lineTo(m_startPos);
 
-    QPointF offset = (m_baseLineVec * INNER_RADIUS).toPoint();
-    QPointF diff = m_endPos-m_startPos;
+    PkPointF offset = (m_baseLineVec * INNER_RADIUS).toPoint();
+    PkPointF diff = m_endPos-m_startPos;
 
-    bool switch_elbow = QPointF::dotProduct(diff, offset) > 0.0;
+    bool switch_elbow = PkPointF::dotProduct(diff, offset) > 0.0;
     if(switch_elbow) {
         elbowPath.lineTo(m_startPos + offset);
     } else {
@@ -77,7 +78,7 @@ void KisToolMeasure::paint(QPainter& gc, const KoViewConverter &converter)
     }
 
     if (distance() >= INNER_RADIUS) {
-        QRectF rectangle(m_startPos.x() - INNER_RADIUS, m_startPos.y() - INNER_RADIUS, 2*INNER_RADIUS, 2*INNER_RADIUS);
+        PkRectF rectangle(m_startPos.x() - INNER_RADIUS, m_startPos.y() - INNER_RADIUS, 2*INNER_RADIUS, 2*INNER_RADIUS);
         
         double det = diff.x() * m_baseLineVec.y() - diff.y() * m_baseLineVec.x();
         int startAngle = -atan2(m_baseLineVec.y(), m_baseLineVec.x()) / (2*M_PI) * 360;
@@ -95,10 +96,10 @@ void KisToolMeasure::paint(QPainter& gc, const KoViewConverter &converter)
         elbowPath.arcTo(rectangle, startAngle, spanAngle);
     }
 
-    // The opengl renderer doesn't take the QPainter's transform, so the path is scaled here
+    // The renderer does not apply the painter transform, so scale the path here.
     qreal sx, sy;
     converter.zoom(&sx, &sy);
-    QTransform transf;
+    PkTransform transf;
     transf.scale(sx / currentImage()->xRes(), sy / currentImage()->yRes());
     paintToolOutline(&gc, transf.map(elbowPath));
 
@@ -108,11 +109,11 @@ void KisToolMeasure::showDistanceAngleOnCanvas()
 {
     KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
-    QString message = i18nc("%1=distance %2=unit of distance %3=angle in degrees", "%1 %2\n%3°",
-                            KritaUtils::prettyFormatReal(distance() / currentImage()->xRes()),
-                            KoUnit(KoUnit::Pixel).symbol(),
-                            QString::number(angle(),'f',1));
-    feedback->showFloatingMessage(message, QIcon(), 2000, KisCanvasFeedback::Priority::High);
+    PkString message = PkString("%1 %2\n%3°")
+        .arg(KritaUtils::prettyFormatReal(distance() / currentImage()->xRes()))
+        .arg(KoUnit(KoUnit::Pixel).symbol())
+        .arg(KisBasicToolsString::numberFixed(angle(), 1));
+    feedback->showFloatingMessage(message, {}, 2000, KisCanvasFeedback::Priority::High);
 }
 void KisToolMeasure::beginPrimaryAction(KoPointerEvent *event)
 {
@@ -123,7 +124,7 @@ void KisToolMeasure::beginPrimaryAction(KoPointerEvent *event)
 
     m_startPos = convertToPixelCoord(event);
     m_endPos = m_startPos;
-    m_baseLineVec = QVector2D(1.0f, 0.0f);
+    m_baseLineVec = PkVector2D(1.0f, 0.0f);
 }
 
 void KisToolMeasure::continuePrimaryAction(KoPointerEvent *event)
@@ -133,10 +134,10 @@ void KisToolMeasure::continuePrimaryAction(KoPointerEvent *event)
     // Erase old temporary lines
     canvas()->updateCanvas(convertToPt(boundingRect()));
 
-    QPointF pos = convertToPixelCoord(event);
+    PkPointF pos = convertToPixelCoord(event);
 
     if (event->modifiers() & Qt::AltModifier) {
-        QPointF trans = pos - m_endPos;
+        PkPointF trans = pos - m_endPos;
         m_startPos += trans;
         m_endPos += trans;
     } else if(event->modifiers() & Qt::ShiftModifier){
@@ -149,7 +150,7 @@ void KisToolMeasure::continuePrimaryAction(KoPointerEvent *event)
         m_chooseBaseLineVec = false;
     } else if(!m_chooseBaseLineVec) {
         m_chooseBaseLineVec = true;
-        m_baseLineVec = QVector2D(m_endPos-m_startPos).normalized();
+        m_baseLineVec = PkVector2D(m_endPos-m_startPos).normalized();
     }
 
     canvas()->updateCanvas(convertToPt(boundingRect()));
@@ -160,26 +161,26 @@ void KisToolMeasure::endPrimaryAction(KoPointerEvent *event)
 {
     CHECK_MODE_SANITY_OR_RETURN(KisTool::PAINT_MODE);
 
-    Q_UNUSED(event);
+    (void)event;
     setMode(KisTool::HOVER_MODE);
 }
 
 double KisToolMeasure::angle()
 {
-    double dot = QVector2D::dotProduct(QVector2D(m_endPos-m_startPos).normalized(), m_baseLineVec);
+    double dot = PkVector2D::dotProduct(PkVector2D(m_endPos-m_startPos).normalized(), m_baseLineVec);
     return acos(qAbs(dot)) / (2*M_PI)*360;
 }
 
 double KisToolMeasure::distance()
 {
-    return QVector2D(m_endPos - m_startPos).length();
+    return PkVector2D(m_endPos - m_startPos).length();
 }
 
-QRectF KisToolMeasure::boundingRect()
+PkRectF KisToolMeasure::boundingRect()
 {
-    QRectF bound;
+    PkRectF bound;
     bound.setTopLeft(m_startPos);
     bound.setBottomRight(m_endPos);
-    bound = bound.united(QRectF(m_startPos.x() - INNER_RADIUS, m_startPos.y() - INNER_RADIUS, 2 * INNER_RADIUS, 2 * INNER_RADIUS));
+    bound = bound.united(PkRectF(m_startPos.x() - INNER_RADIUS, m_startPos.y() - INNER_RADIUS, 2 * INNER_RADIUS, 2 * INNER_RADIUS));
     return bound.normalized();
 }

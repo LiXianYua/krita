@@ -9,6 +9,8 @@
 
 #include <KoCreatePathTool.h>
 #include <KoToolFactoryBase.h>
+#include <PkPainter.h>
+#include <PkString.h>
 
 #include "flake/kis_node_shape.h"
 #include "kis_tool_shape.h"
@@ -22,7 +24,7 @@ class __KisToolPathLocalTool : public KoCreatePathTool {
 public:
     __KisToolPathLocalTool(KoCanvasBase * canvas, KisToolPath* parentTool);
 
-    void paintPath(KoPathShape &path, QPainter &painter, const KoViewConverter &converter) override;
+    void paintPath(KoPathShape &path, PkPainter &painter, const KoViewConverter &converter) override;
     void addPathShape(KoPathShape* pathShape) override;
 
     using KoCreatePathTool::createOptionWidgets;
@@ -41,13 +43,9 @@ typedef KisDelegatedTool<KisToolShape,
 
 class KisToolPath : public DelegatedPathTool
 {
-    Q_OBJECT
-
 public:
     KisToolPath(KoCanvasBase * canvas);
     void mousePressEvent(KoPointerEvent *event) override;
-
-    bool eventFilter(QObject *obj, QEvent *event) override;
 
     void beginPrimaryAction(KoPointerEvent* event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
@@ -65,7 +63,7 @@ protected:
     void requestStrokeCancellation() override;
     void requestStrokeEnd() override;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 
 private:
@@ -78,7 +76,7 @@ class KisToolPathFactory : public KisToolPaintFactoryBase
 public:
     KisToolPathFactory()
             : KisToolPaintFactoryBase("KisToolPath") {
-        setToolTip(i18n("Bezier Curve Tool: Shift-mouseclick ends the curve."));
+        setToolTip(PkString("Bezier Curve Tool: Shift-mouseclick ends the curve."));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(7);

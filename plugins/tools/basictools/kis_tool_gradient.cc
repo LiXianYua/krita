@@ -13,10 +13,6 @@
 
 #include <cfloat>
 
-#include <QApplication>
-#include <QPainter>
-#include <QLayout>
-
 #include <kis_transaction.h>
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -47,8 +43,8 @@ KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
 {
     setObjectName("tool_gradient");
 
-    m_startPos = QPointF(0, 0);
-    m_endPos = QPointF(0, 0);
+    m_startPos = PkPointF(0, 0);
+    m_endPos = PkPointF(0, 0);
 
     m_dither = false;
     m_reverse = false;
@@ -57,7 +53,7 @@ KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
     m_antiAliasThreshold = 0.0;
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -79,12 +75,12 @@ void KisToolGradient::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolGradient::activate(const QSet<KoShape*> &shapes)
+void KisToolGradient::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
 }
 
-void KisToolGradient::paint(QPainter &painter, const KoViewConverter &converter)
+void KisToolGradient::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     if (mode() == KisTool::PAINT_MODE && m_startPos != m_endPos) {
         paintLine(painter);
@@ -101,7 +97,7 @@ void KisToolGradient::beginPrimaryAction(KoPointerEvent *event)
 
     setMode(KisTool::PAINT_MODE);
 
-    m_startPos = convertToPixelCoordAndSnap(event, QPointF(), false);
+    m_startPos = convertToPixelCoordAndSnap(event, PkPointF(), false);
     m_endPos = m_startPos;
 }
 
@@ -118,7 +114,7 @@ void KisToolGradient::continuePrimaryAction(KoPointerEvent *event)
     // First ensure the old guideline is deleted
     updateGuideline();
 
-    QPointF pos = convertToPixelCoordAndSnap(event, QPointF(), false);
+    PkPointF pos = convertToPixelCoordAndSnap(event, PkPointF(), false);
 
     if (event->modifiers() == Qt::ShiftModifier) {
         m_endPos = straightLine(pos);
@@ -131,7 +127,7 @@ void KisToolGradient::continuePrimaryAction(KoPointerEvent *event)
 
 void KisToolGradient::endPrimaryAction(KoPointerEvent *event)
 {
-    Q_UNUSED(event);
+    (void)event;
     CHECK_MODE_SANITY_OR_RETURN(KisTool::PAINT_MODE);
     setMode(KisTool::HOVER_MODE);
 
@@ -163,7 +159,7 @@ void KisToolGradient::endPrimaryAction(KoPointerEvent *event)
                     KisNodeSP node = resources->currentNode();
                     KisPaintDeviceSP device = node->paintDevice();
                     KisProcessingVisitor::ProgressHelper helper(node);
-                    const QRect bounds = device->defaultBounds()->bounds();
+                    const PkRect bounds = device->defaultBounds()->bounds();
 
                     KisGradientPainter painter(device, resources->activeSelection());
                     resources->setupPainter(&painter);
@@ -186,10 +182,10 @@ void KisToolGradient::endPrimaryAction(KoPointerEvent *event)
     updateGuideline();
 }
 
-QPointF KisToolGradient::straightLine(QPointF point)
+PkPointF KisToolGradient::straightLine(PkPointF point)
 {
-    QPointF comparison = point - m_startPos;
-    QPointF result;
+    PkPointF comparison = point - m_startPos;
+    PkPointF result;
 
     if (fabs(comparison.x()) > fabs(comparison.y())) {
         result.setX(point.x());
@@ -202,13 +198,13 @@ QPointF KisToolGradient::straightLine(QPointF point)
     return result;
 }
 
-void KisToolGradient::paintLine(QPainter& gc)
+void KisToolGradient::paintLine(PkPainter& gc)
 {
-    QPointF viewStartPos = pixelToView(m_startPos);
-    QPointF viewStartEnd = pixelToView(m_endPos);
+    PkPointF viewStartPos = pixelToView(m_startPos);
+    PkPointF viewStartEnd = pixelToView(m_endPos);
 
     if (canvas()) {
-        QPainterPath path;
+        PkPainterPath path;
         path.moveTo(viewStartPos);
         path.lineTo(viewStartEnd);
         paintToolOutline(&gc, path);
@@ -218,7 +214,7 @@ void KisToolGradient::paintLine(QPainter& gc)
 void KisToolGradient::updateGuideline()
 {
     if (canvas()) {
-        QRectF bound(m_startPos, m_endPos);
+        PkRectF bound(m_startPos, m_endPos);
         canvas()->updateCanvas(convertToPt(bound.normalized().adjusted(-3, -3, 3, 3)));
     }
 }

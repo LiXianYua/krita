@@ -9,9 +9,6 @@
 
 #include "kis_tool_brush.h"
 
-#include <klocalizedstring.h>
-#include <QAction>
-
 #include <KoCanvasBase.h>
 
 #include <KisCanvasToolServices.h>
@@ -21,17 +18,6 @@
 #include "kis_types.h"
 #include "kis_tool.h"
 
-void KisToolBrush::addSmoothingAction(int enumId, const QString &id)
-{
-    /**
-     * KisToolBrush is the base of several tools, but the actions
-     * should be unique, so let's be careful with them
-     */
-    QAction *a = action(id);
-    connect(a, SIGNAL(triggered()), &m_signalMapper, SLOT(map()));
-    m_signalMapper.setMapping(a, enumId);
-}
-
 KisToolBrush::KisToolBrush(KoCanvasBase * canvas)
     : KisToolFreehand(canvas,
                       dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_freehand_cursor.xpm", 2, 2),
@@ -40,23 +26,18 @@ KisToolBrush::KisToolBrush(KoCanvasBase * canvas)
     setObjectName("tool_brush");
     setIsOpacityPresetMode(true);
 
-    connect(this, SIGNAL(smoothingTypeChanged()), this, SLOT(resetCursorStyle()));
-
-    addSmoothingAction(KisSmoothingOptions::NO_SMOOTHING, "set_no_brush_smoothing");
-    addSmoothingAction(KisSmoothingOptions::SIMPLE_SMOOTHING, "set_simple_brush_smoothing");
-    addSmoothingAction(KisSmoothingOptions::WEIGHTED_SMOOTHING, "set_weighted_brush_smoothing");
-    addSmoothingAction(KisSmoothingOptions::STABILIZER, "set_stabilizer_brush_smoothing");
-    addSmoothingAction(KisSmoothingOptions::PIXEL_PERFECT, "set_pixel_perfect_smoothing");
+    m_smoothingCursorConnection = PkObject::connect(
+        this, &KisToolBrush::smoothingTypeChanged,
+        this, &KisToolBrush::resetCursorStyle);
 }
 
 KisToolBrush::~KisToolBrush()
 {
 }
 
-void KisToolBrush::activate(const QSet<KoShape*> &shapes)
+void KisToolBrush::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolFreehand::activate(shapes);
-    connect(&m_signalMapper, SIGNAL(mapped(int)), SLOT(slotSetSmoothingType(int)), Qt::UniqueConnection);
 
     KisImageConfig cfg(true);
     slotSetSmoothingType(cfg.lineSmoothingType());
@@ -64,8 +45,6 @@ void KisToolBrush::activate(const QSet<KoShape*> &shapes)
 
 void KisToolBrush::deactivate()
 {
-    disconnect(&m_signalMapper, 0, this, 0);
-
     KisToolFreehand::deactivate();
 }
 
@@ -114,19 +93,19 @@ void KisToolBrush::slotSetSmoothingType(int index)
         smoothingOptions()->setSmoothingType(KisSmoothingOptions::PIXEL_PERFECT);
     }
 
-    Q_EMIT smoothingTypeChanged();
+    smoothingTypeChanged();
 }
 
 void KisToolBrush::slotSetSmoothnessDistanceMin(qreal distance)
 {
     smoothingOptions()->setSmoothnessDistanceMin(distance);
-    Q_EMIT smoothnessQualityChanged();
+    smoothnessQualityChanged();
 }
 
 void KisToolBrush::slotSetSmoothnessDistanceMax(qreal distance)
 {
     smoothingOptions()->setSmoothnessDistanceMax(distance);
-    Q_EMIT smoothnessQualityChanged();
+    smoothnessQualityChanged();
 }
 
 void KisToolBrush::slotSetSmoothnessDistanceKeepAspectRatio(bool value)
@@ -137,7 +116,7 @@ void KisToolBrush::slotSetSmoothnessDistanceKeepAspectRatio(bool value)
 void KisToolBrush::slotSetTailAggressiveness(qreal argh_rhhrr)
 {
     smoothingOptions()->setTailAggressiveness(argh_rhhrr);
-    Q_EMIT smoothnessFactorChanged();
+    smoothnessFactorChanged();
 }
 
 // used with weighted smoothing
@@ -156,7 +135,7 @@ void KisToolBrush::setUseScalableDistance(bool value)
 {
     smoothingOptions()->setUseScalableDistance(value);
 
-    Q_EMIT useScalableDistanceChanged();
+    useScalableDistanceChanged();
 }
 
 void KisToolBrush::resetCursorStyle()
@@ -194,20 +173,20 @@ void KisToolBrush::setUseDelayDistance(bool value)
 {
     smoothingOptions()->setUseDelayDistance(value);
 
-    Q_EMIT useDelayDistanceChanged();
+    useDelayDistanceChanged();
 }
 
 void KisToolBrush::setDelayDistance(qreal value)
 {
     smoothingOptions()->setDelayDistance(value);
-    Q_EMIT delayDistanceChanged();
+    delayDistanceChanged();
 }
 
 void KisToolBrush::setFinishStabilizedCurve(bool value)
 {
     smoothingOptions()->setFinishStabilizedCurve(value);
 
-    Q_EMIT finishStabilizedCurveChanged();
+    finishStabilizedCurveChanged();
 }
 
 bool KisToolBrush::finishStabilizedCurve() const
@@ -218,7 +197,7 @@ bool KisToolBrush::finishStabilizedCurve() const
 void KisToolBrush::setStabilizeSensors(bool value)
 {
     smoothingOptions()->setStabilizeSensors(value);
-    Q_EMIT stabilizeSensorsChanged();
+    stabilizeSensorsChanged();
 }
 
 bool KisToolBrush::stabilizeSensors() const
@@ -228,31 +207,49 @@ bool KisToolBrush::stabilizeSensors() const
 
 void KisToolBrush::updateSettingsViews()
 {
-    Q_EMIT smoothnessQualityChanged();
-    Q_EMIT smoothnessFactorChanged();
-    Q_EMIT smoothPressureChanged();
-    Q_EMIT smoothingTypeChanged();
-    Q_EMIT useScalableDistanceChanged();
-    Q_EMIT useDelayDistanceChanged();
-    Q_EMIT delayDistanceChanged();
-    Q_EMIT finishStabilizedCurveChanged();
-    Q_EMIT stabilizeSensorsChanged();
+    smoothnessQualityChanged();
+    smoothnessFactorChanged();
+    smoothPressureChanged();
+    smoothingTypeChanged();
+    useScalableDistanceChanged();
+    useDelayDistanceChanged();
+    delayDistanceChanged();
+    finishStabilizedCurveChanged();
+    stabilizeSensorsChanged();
 
     KisTool::updateSettingsViews();
 }
 
 
-QList<QAction *> KisToolBrushFactory::createActionsImpl()
+PkList<PkString> KisToolBrush::smoothingActionIds() const
 {
-
-    QList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
-
-    { QAction *action = new QAction(this); action->setObjectName("set_no_brush_smoothing"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("set_simple_brush_smoothing"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("set_weighted_brush_smoothing"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("set_stabilizer_brush_smoothing"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("set_pixel_perfect_smoothing"); actions << action; }
-
-    return actions;
-
+    return {
+        PkString("set_no_brush_smoothing"),
+        PkString("set_simple_brush_smoothing"),
+        PkString("set_weighted_brush_smoothing"),
+        PkString("set_stabilizer_brush_smoothing"),
+        PkString("set_pixel_perfect_smoothing")
+    };
 }
+
+bool KisToolBrush::triggerSmoothingAction(const PkString &id)
+{
+    const PkList<PkString> ids = smoothingActionIds();
+    for (int index = 0; index < ids.size(); ++index) {
+        if (ids[index] == id) {
+            slotSetSmoothingType(index);
+            return true;
+        }
+    }
+    return false;
+}
+
+void KisToolBrush::smoothnessQualityChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::smoothnessQualityChanged)); }
+void KisToolBrush::smoothnessFactorChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::smoothnessFactorChanged)); }
+void KisToolBrush::smoothPressureChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::smoothPressureChanged)); }
+void KisToolBrush::smoothingTypeChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::smoothingTypeChanged)); }
+void KisToolBrush::useScalableDistanceChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::useScalableDistanceChanged)); }
+void KisToolBrush::useDelayDistanceChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::useDelayDistanceChanged)); }
+void KisToolBrush::delayDistanceChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::delayDistanceChanged)); }
+void KisToolBrush::finishStabilizedCurveChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::finishStabilizedCurveChanged)); }
+void KisToolBrush::stabilizeSensorsChanged() { activateSignal<>(this, PkMemberFnKey::from(&KisToolBrush::stabilizeSensorsChanged)); }

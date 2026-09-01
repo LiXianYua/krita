@@ -11,15 +11,14 @@
 #include "kis_types.h"
 #include "kis_selection.h"
 #include "kis_paint_layer.h"
+#include <PkObject.h>
 
 class KisPostExecutionUndoAdapter;
 class KisUpdatesFacade;
 
 
-class MoveSelectionStrokeStrategy : public QObject, public KisStrokeStrategyUndoCommandBased
+class MoveSelectionStrokeStrategy : public PkObject, public KisStrokeStrategyUndoCommandBased
 {
-    Q_OBJECT
-
 public:
     struct ShowSelectionData : public KisStrokeJobData
     {
@@ -47,8 +46,7 @@ public:
     void cancelStrokeCallback() override;
     void doStrokeCallback(KisStrokeJobData *data) override;
 
-Q_SIGNALS:
-    void sigHandlesRectCalculated(const QRect &handlesRect);
+    void sigHandlesRectCalculated(const PkRect &handlesRect);
     void sigStrokeStartedEmpty();
 
 private:
@@ -60,9 +58,9 @@ private:
     KisPaintLayerSP m_paintLayer;
     KisSelectionSP m_selection;
     KisUpdatesFacade *m_updatesFacade;
-    QPoint m_finalOffset;
-    QPoint m_initialDeviceOffset;
-    QPoint m_initialSelectionOffset;
+    PkPoint m_finalOffset;
+    PkPoint m_initialDeviceOffset;
+    PkPoint m_initialSelectionOffset;
 };
 
 #endif /* __MOVE_SELECTION_STROKE_STRATEGY_H */

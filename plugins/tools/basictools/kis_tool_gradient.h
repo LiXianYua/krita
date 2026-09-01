@@ -13,7 +13,8 @@
 #ifndef KIS_TOOL_GRADIENT_H_
 #define KIS_TOOL_GRADIENT_H_
 
-#include <QKeySequence>
+#include <PkPainter.h>
+#include <PkString.h>
 
 #include <KisToolPaintFactoryBase.h>
 
@@ -24,13 +25,10 @@
 #include <flake/kis_node_shape.h>
 
 
-class QPoint;
-class QWidget;
+class PkPoint;
 
 class KisToolGradient : public KisToolPaint
 {
-
-    Q_OBJECT
 
 public:
     KisToolGradient(KoCanvasBase * canvas);
@@ -40,29 +38,29 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
-protected Q_SLOTS:
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
+protected:
     void resetCursorStyle() override;
 
-private Q_SLOTS:
+private:
 
-    void areaDone(const QRect & rc) {
+    void areaDone(const PkRect & rc) {
         currentNode()->setDirty(rc); // Starts computing the projection for the area we've done.
 
     }
 
 private:
 
-    void paintLine(QPainter& gc);
+    void paintLine(PkPainter& gc);
     void updateGuideline();
 
-    QPointF straightLine(QPointF point);
+    PkPointF straightLine(PkPointF point);
 
-    QPointF m_startPos;
-    QPointF m_endPos;
+    PkPointF m_startPos;
+    PkPointF m_endPos;
 
     KisGradientPainter::enumGradientShape m_shape;
     KisGradientPainter::enumGradientRepeat m_repeat;
@@ -78,9 +76,9 @@ class KisToolGradientFactory : public KisToolPaintFactoryBase
 public:
     KisToolGradientFactory()
             : KisToolPaintFactoryBase("KritaFill/KisToolGradient") {
-        setToolTip(i18n("Gradient Tool"));
+        setToolTip(PkString("Gradient Tool"));
         setSection(ToolBoxSection::Fill);
-        setShortcut(QKeySequence(Qt::Key_G));
+        setShortcut(PkString("G"));
         setPriority(1);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }
@@ -94,4 +92,3 @@ public:
 };
 
 #endif //KIS_TOOL_GRADIENT_H_
-

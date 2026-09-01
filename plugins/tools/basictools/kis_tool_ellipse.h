@@ -22,19 +22,17 @@ class KoCanvasBase;
 
 class KisToolEllipse : public KisToolEllipseBase
 {
-    Q_OBJECT
-
 public:
     KisToolEllipse(KoCanvasBase * canvas);
     ~KisToolEllipse() override;
 
     bool supportsPaintingAssistants() const override;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 
 protected:
-    void finishRect(const QRectF& rect, qreal roundCornersX, qreal roundCornersY) override;
+    void finishRect(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY) override;
 };
 
 class KisToolEllipseFactory : public KisToolPaintFactoryBase
@@ -43,7 +41,7 @@ class KisToolEllipseFactory : public KisToolPaintFactoryBase
 public:
     KisToolEllipseFactory()
             : KisToolPaintFactoryBase("KritaShape/KisToolEllipse") {
-        setToolTip(i18n("Ellipse Tool"));
+        setToolTip(PkString("Ellipse Tool"));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(3);
@@ -59,4 +57,3 @@ public:
 
 
 #endif //__KIS_TOOL_ELLIPSE_H__
-

@@ -21,11 +21,16 @@ KisToolColorSampler::KisToolColorSampler(KoCanvasBase *canvas)
       m_helper(canvas, dynamic_cast<KisColorSamplingCanvas *>(canvas))
 {
     setObjectName("tool_colorsampler");
-    connect(&m_helper, SIGNAL(sigRequestCursor(QCursor)), this, SLOT(slotColorPickerRequestedCursor(QCursor)));
-    connect(&m_helper, SIGNAL(sigRequestCursorReset()), this, SLOT(slotColorPickerRequestedCursorReset()));
-    connect(&m_helper, SIGNAL(sigRequestUpdateOutline()), this, SLOT(slotColorPickerRequestedOutlineUpdate()));
-    connect(&m_helper, SIGNAL(sigRawColorSelected(KoColor)), this, SLOT(slotColorPickerSelectedColor(KoColor)));
-    connect(&m_helper, SIGNAL(sigFinalColorSelected(KoColor)), this, SLOT(slotColorPickerSelectionFinished(KoColor)));
+    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestCursor,
+                      this, [this](const auto &cursor) { useCursor(cursor); });
+    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestCursorReset,
+                      this, &KisToolColorSampler::slotColorPickerRequestedCursorReset);
+    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestUpdateOutline,
+                      this, &KisToolColorSampler::slotColorPickerRequestedOutlineUpdate);
+    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRawColorSelected,
+                      this, &KisToolColorSampler::slotColorPickerSelectedColor);
+    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigFinalColorSelected,
+                      this, &KisToolColorSampler::slotColorPickerSelectionFinished);
 }
 
 KisToolColorSampler::~KisToolColorSampler()
@@ -33,11 +38,6 @@ KisToolColorSampler::~KisToolColorSampler()
     if (m_isActivated) {
         m_config->save();
     }
-}
-
-void KisToolColorSampler::slotColorPickerRequestedCursor(const QCursor &cursor)
-{
-    useCursor(cursor);
 }
 
 void KisToolColorSampler::slotColorPickerRequestedCursorReset()
@@ -62,7 +62,7 @@ void KisToolColorSampler::slotColorPickerSelectedColor(const KoColor &color)
 
 void KisToolColorSampler::slotColorPickerSelectionFinished(const KoColor &color)
 {
-    Q_UNUSED(color);
+    (void)color;
 
     // Body removed with the options panel (now deleted): it used to add the
     // sampled colour as a swatch to whichever palette the panel's cmbPalette
@@ -75,12 +75,12 @@ void KisToolColorSampler::slotColorPickerSelectionFinished(const KoColor &color)
     // that re-wiring only has to fill this body back in.
 }
 
-void KisToolColorSampler::paint(QPainter &gc, const KoViewConverter &converter)
+void KisToolColorSampler::paint(PkPainter &gc, const KoViewConverter &converter)
 {
     m_helper.paint(gc, converter);
 }
 
-void KisToolColorSampler::activate(const QSet<KoShape*> &shapes)
+void KisToolColorSampler::activate(const PkSet<KoShape*> &shapes)
 {
 
     m_isActivated = true;
@@ -150,11 +150,11 @@ void KisToolColorSampler::deactivatePrimaryAction()
      */
 }
 
-void KisToolColorSampler::requestUpdateOutline(const QPointF &outlineDocPoint, const KoPointerEvent *event)
+void KisToolColorSampler::requestUpdateOutline(const PkPointF &outlineDocPoint, const KoPointerEvent *event)
 {
-    Q_UNUSED(event);
+    (void)event;
 
-    QRectF colorPreviewDocUpdateRect;
+    PkRectF colorPreviewDocUpdateRect;
 
     qreal zoomX;
     qreal zoomY;

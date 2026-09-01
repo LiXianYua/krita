@@ -7,30 +7,30 @@
 #ifndef KISMOVEBOUNDSCALCULATIONJOB_H
 #define KISMOVEBOUNDSCALCULATIONJOB_H
 
-#include <QObject>
+#include <PkObject.h>
+#include <PkRect.h>
+#include <PkString.h>
 #include "kis_spontaneous_job.h"
 #include "kis_types.h"
 #include "kis_selection.h"
 
-class KisMoveBoundsCalculationJob : public QObject, public KisSpontaneousJob
+class KisMoveBoundsCalculationJob : public PkObject, public KisSpontaneousJob
 {
-    Q_OBJECT
 public:
-    KisMoveBoundsCalculationJob(KisNodeList nodes, KisSelectionSP selection, QObject *requestedBy);
+    KisMoveBoundsCalculationJob(KisNodeList nodes, KisSelectionSP selection, PkObject *requestedBy);
 
     void run() override;
     bool overrides(const KisSpontaneousJob *otherJob) override;
     int levelOfDetail() const override;
 
-    QString debugName() const override;
+    PkString debugName() const override;
 
-Q_SIGNALS:
-    void sigCalculationFinished(const QRect &bounds);
+    void sigCalculationFinished(const PkRect &bounds);
 
 private:
     KisNodeList m_nodes;
     KisSelectionSP m_selection;
-    QObject *m_requestedBy;
+    PkObject *m_requestedBy;
 };
 
 #endif // KISMOVEBOUNDSCALCULATIONJOB_H

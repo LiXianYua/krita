@@ -9,12 +9,13 @@
 
 #include "kis_tool_freehand.h"
 
-#include <KisSignalMapper.h>
+#include <PkConnection.h>
+#include <PkList.h>
+#include <PkString.h>
 
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <QKeySequence>
 
 
 
@@ -22,21 +23,6 @@ class KoCanvasBase;
 
 class KisToolBrush : public KisToolFreehand
 {
-    Q_OBJECT
-    Q_PROPERTY(int smoothnessQualityMin READ smoothnessQualityMin WRITE slotSetSmoothnessDistanceMin NOTIFY smoothnessQualityChanged)
-    Q_PROPERTY(int smoothnessQualityMax READ smoothnessQualityMax WRITE slotSetSmoothnessDistanceMax NOTIFY smoothnessQualityChanged)
-    Q_PROPERTY(qreal smoothnessFactor READ smoothnessFactor WRITE slotSetTailAggressiveness NOTIFY smoothnessFactorChanged)
-    Q_PROPERTY(bool smoothPressure READ smoothPressure WRITE setSmoothPressure NOTIFY smoothPressureChanged)
-    Q_PROPERTY(int smoothingType READ smoothingType WRITE slotSetSmoothingType NOTIFY smoothingTypeChanged)
-    Q_PROPERTY(bool useScalableDistance READ useScalableDistance WRITE setUseScalableDistance NOTIFY useScalableDistanceChanged)
-
-    Q_PROPERTY(bool useDelayDistance READ useDelayDistance WRITE setUseDelayDistance NOTIFY useDelayDistanceChanged)
-    Q_PROPERTY(qreal delayDistance READ delayDistance WRITE setDelayDistance NOTIFY delayDistanceChanged)
-
-    Q_PROPERTY(bool finishStabilizedCurve READ finishStabilizedCurve WRITE setFinishStabilizedCurve NOTIFY finishStabilizedCurveChanged)
-    Q_PROPERTY(bool stabilizeSensors READ stabilizeSensors WRITE setStabilizeSensors NOTIFY stabilizeSensorsChanged)
-
-
 public:
     KisToolBrush(KoCanvasBase * canvas);
     ~KisToolBrush() override;
@@ -54,11 +40,11 @@ public:
     bool finishStabilizedCurve() const;
     bool stabilizeSensors() const;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void slotSetSmoothnessDistanceMin(qreal distance);
     void slotSetSmoothnessDistanceMax(qreal distance);
@@ -77,7 +63,9 @@ public Q_SLOTS:
 
     void updateSettingsViews() override;
 
-Q_SIGNALS:
+    PkList<PkString> smoothingActionIds() const;
+    bool triggerSmoothingAction(const PkString &id);
+
     void smoothnessQualityChanged();
     void smoothnessFactorChanged();
     void smoothPressureChanged();
@@ -90,9 +78,7 @@ Q_SIGNALS:
     void stabilizeSensorsChanged();
 
 private:
-    void addSmoothingAction(int enumId, const QString &id);
-private:
-    KisSignalMapper m_signalMapper;
+    PkConnection m_smoothingCursorConnection;
 };
 
 
@@ -103,16 +89,16 @@ public:
     KisToolBrushFactory()
             : KisToolPaintFactoryBase("KritaShape/KisToolBrush") {
 
-        setToolTip(i18n("Freehand Brush Tool"));
+        setToolTip(PkString("Freehand Brush Tool"));
 
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setShortcut(QKeySequence(Qt::Key_B));
+        setShortcut(PkString("B"));
         setPriority(0);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }
 
-    KisToolBrushFactory(const QString &id)
+    KisToolBrushFactory(const PkString &id)
         : KisToolPaintFactoryBase(id)
     {
     }
@@ -123,7 +109,6 @@ public:
         return new KisToolBrush(canvas);
     }
 
-    QList<QAction *> createActionsImpl() override;
     void showFloatingMessage();
 
 };

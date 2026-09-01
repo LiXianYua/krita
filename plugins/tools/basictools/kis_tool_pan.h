@@ -9,10 +9,11 @@
 
 #include <kis_tool.h>
 #include <KoToolFactoryBase.h>
+#include <PkPainter.h>
+#include <PkString.h>
 
 class KisToolPan : public KisTool
 {
-    Q_OBJECT
 public:
     KisToolPan(KoCanvasBase *canvas);
     ~KisToolPan() override;
@@ -21,14 +22,14 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
 
-    void keyPressEvent(QKeyEvent *event) override;
+    bool panByKey(int key);
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
     bool wantsAutoScroll() const override;
 
 private:
-    QPoint m_lastPosition;
+    PkPoint m_lastPosition;
 };
 
 

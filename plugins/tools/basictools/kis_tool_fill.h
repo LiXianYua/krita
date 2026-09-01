@@ -9,9 +9,9 @@
 #ifndef KIS_TOOL_FILL_H_
 #define KIS_TOOL_FILL_H_
 
-#include <QPoint>
-#include <QList>
-#include <QVector>
+#include <PkPoint.h>
+#include <PkList.h>
+#include <PkVector.h>
 
 #include "kis_tool_paint.h"
 #include <flake/kis_node_shape.h>
@@ -25,8 +25,6 @@
 
 class KisToolFill : public KisToolPaint
 {
-    Q_OBJECT
-
 public:
     enum FillMode
     {
@@ -72,14 +70,14 @@ public:
     void continueAlternateAction(KoPointerEvent *event, AlternateAction action) override;
     void endAlternateAction(KoPointerEvent *event, AlternateAction action) override;
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
 protected:
     bool wantsAutoScroll() const override { return false; }
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
     void slotUpdateFill();
 
@@ -94,7 +92,7 @@ private:
     qreal m_patternRotation {0.0};
     bool m_useCustomBlendingOptions {false};
     int m_customOpacity {100};
-    QString m_customCompositeOp {COMPOSITE_OVER};
+    PkString m_customCompositeOp {COMPOSITE_OVER};
 
     ContiguousFillMode m_contiguousFillMode {ContiguousFillMode_FloodFill};
     KoColor m_contiguousFillBoundaryColor;
@@ -109,34 +107,34 @@ private:
     int m_feather {0};
 
     Reference m_reference {Reference_CurrentLayer};
-    QList<int> m_selectedColorLabels;
+    PkList<int> m_selectedColorLabels;
     bool m_useActiveLayer {false};
 
     ContinuousFillMode m_continuousFillMode {ContinuousFillMode_FillAnyRegion};
     
     KisSelectionSP m_fillMask;
-    QSharedPointer<KoColor> m_referenceColor;
+    PkSharedPointer<KoColor> m_referenceColor;
     KisPaintDeviceSP m_referencePaintDevice;
     KisMergeLabeledLayersCommand::ReferenceNodeInfoListSP m_referenceNodeList;
     int m_previousTime;
     KisResourcesSnapshotSP m_resourcesSnapshot;
-    QTransform m_transform;
+    PkTransform m_transform;
 
     FillMode m_effectiveFillMode {FillMode_FillSelection};
     bool m_isFilling {false};
     bool m_isDragging {false};
-    QPoint m_fillStartWidgetPosition;
+    PkPoint m_fillStartWidgetPosition;
     KisSignalCompressor m_compressorFillUpdate;
     PkConnection m_fillUpdateConnection;
-    QSharedPointer<QRect> m_dirtyRect;
-    QVector<QPoint> m_seedPoints;
+    PkSharedPointer<PkRect> m_dirtyRect;
+    PkVector<PkPoint> m_seedPoints;
     KisStrokeId m_fillStrokeId;
 
     KConfigGroup m_configGroup;
 
-    void beginFilling(const QPoint &seedPoint);
-    void addFillingOperation(const QPoint &seedPoint);
-    void addFillingOperation(const QVector<QPoint> &seedPoints);
+    void beginFilling(const PkPoint &seedPoint);
+    void addFillingOperation(const PkPoint &seedPoint);
+    void addFillingOperation(const PkVector<PkPoint> &seedPoints);
     void addUpdateOperation();
     void endFilling();
 
@@ -153,11 +151,11 @@ class KisToolFillFactory : public KisToolPaintFactoryBase
 public:
     KisToolFillFactory()
             : KisToolPaintFactoryBase("KritaFill/KisToolFill") {
-        setToolTip(i18n("Fill Tool"));
+        setToolTip(PkString("Fill Tool"));
         setSection(ToolBoxSection::Fill);
         setPriority(0);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setShortcut( QKeySequence( Qt::Key_F ) );
+        setShortcut(PkString("F"));
         setPriority(14);
     }
 

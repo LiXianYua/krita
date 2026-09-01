@@ -9,7 +9,7 @@
 #include "default_tools.h"
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
+#include <mutex>
 
 #include <kis_tool.h>
 #include <KoToolRegistry.h>
@@ -30,29 +30,22 @@
 #include "kis_tool_pencil.h"
 #include "kis_tool_pan.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(DefaultToolsFactory, "kritadefaulttools.json", registerPlugin<DefaultTools>();)
-
-
-DefaultTools::DefaultTools(QObject *parent, const QVariantList &)
-        : QObject(parent)
+void registerDefaultTools()
 {
-    KoToolRegistry::instance()->add(new KisToolFillFactory());
-    KoToolRegistry::instance()->add(new KisToolGradientFactory());
-    KoToolRegistry::instance()->add(new KisToolBrushFactory());
-    KoToolRegistry::instance()->add(new KisToolColorSamplerFactory());
-    KoToolRegistry::instance()->add(new KisToolLineFactory());
-    KoToolRegistry::instance()->add(new KisToolEllipseFactory());
-    KoToolRegistry::instance()->add(new KisToolRectangleFactory());
-    KoToolRegistry::instance()->add(new KisToolMeasureFactory());
-    KoToolRegistry::instance()->add(new KisToolPathFactory());
-    KoToolRegistry::instance()->add(new KisToolMoveFactory());
-    KoToolRegistry::instance()->add(new KisToolMultiBrushFactory());
-    KoToolRegistry::instance()->add(new KisToolPencilFactory());
-    KoToolRegistry::instance()->add(new KisToolPanFactory());
+    static std::once_flag once;
+    std::call_once(once, [] {
+        KoToolRegistry::instance()->add(new KisToolFillFactory());
+        KoToolRegistry::instance()->add(new KisToolGradientFactory());
+        KoToolRegistry::instance()->add(new KisToolBrushFactory());
+        KoToolRegistry::instance()->add(new KisToolColorSamplerFactory());
+        KoToolRegistry::instance()->add(new KisToolLineFactory());
+        KoToolRegistry::instance()->add(new KisToolEllipseFactory());
+        KoToolRegistry::instance()->add(new KisToolRectangleFactory());
+        KoToolRegistry::instance()->add(new KisToolMeasureFactory());
+        KoToolRegistry::instance()->add(new KisToolPathFactory());
+        KoToolRegistry::instance()->add(new KisToolMoveFactory());
+        KoToolRegistry::instance()->add(new KisToolMultiBrushFactory());
+        KoToolRegistry::instance()->add(new KisToolPencilFactory());
+        KoToolRegistry::instance()->add(new KisToolPanFactory());
+    });
 }
-
-DefaultTools::~DefaultTools()
-{
-}
-
-#include "default_tools.moc"

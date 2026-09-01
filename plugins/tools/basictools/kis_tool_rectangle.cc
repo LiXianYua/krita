@@ -12,6 +12,7 @@
  */
 
 #include "kis_tool_rectangle.h"
+#include "kis_basic_tools_geometry_utils.h"
 
 #include <kis_debug.h>
 #include <brushengine/kis_paintop_registry.h>
@@ -34,7 +35,7 @@ KisToolRectangle::KisToolRectangle(KoCanvasBase * canvas)
     setIsOpacityPresetMode(true);
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -56,7 +57,7 @@ void KisToolRectangle::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolRectangle::finishRect(const QRectF &rect, qreal roundCornersX, qreal roundCornersY)
+void KisToolRectangle::finishRect(const PkRectF &rect, qreal roundCornersX, qreal roundCornersY)
 {
     if (rect.isNull())
         return;
@@ -73,17 +74,17 @@ void KisToolRectangle::finishRect(const QRectF &rect, qreal roundCornersX, qreal
                                            fillStyle(),
                                            fillTransform());
 
-        QPainterPath path;
+        PkPainterPath path;
 
         if (roundCornersX > 0 || roundCornersY > 0) {
-            path.addRoundedRect(rect, roundCornersX, roundCornersY);
+            KisBasicToolsGeometry::addAbsoluteRoundedRect(path, rect, roundCornersX, roundCornersY);
         } else {
             path.addRect(rect);
         }
         getRotatedPath(path, rect.center(), getRotationAngle());
         helper.paintPainterPath(path);
     } else {
-        const QRectF r = convertToPt(rect);
+        const PkRectF r = convertToPt(rect);
         const qreal docRoundCornersX = convertToPt(roundCornersX);
         const qreal docRoundCornersY = convertToPt(roundCornersY);
         KoShape* shape = KisShapeToolHelper::createRectangleShape(r, docRoundCornersX, docRoundCornersY);
@@ -91,7 +92,7 @@ void KisToolRectangle::finishRect(const QRectF &rect, qreal roundCornersX, qreal
 
         KoShapeStrokeSP border;
         if (strokeStyle() != KisToolShapeUtils::StrokeStyleNone) {
-            const QColor color = strokeStyle() == KisToolShapeUtils::StrokeStyleForeground ?
+            const PkColor color = strokeStyle() == KisToolShapeUtils::StrokeStyleForeground ?
                         canvas()->resourceManager()->foregroundColor().toQColor() :
                         canvas()->resourceManager()->backgroundColor().toQColor();
 

@@ -19,14 +19,12 @@
 #include <kis_tool_rectangle_base.h>
 
 
-class QRect;
+class PkRect;
 
 class KoCanvasBase;
 
 class KisToolRectangle : public KisToolRectangleBase
 {
-    Q_OBJECT
-
 public:
     KisToolRectangle(KoCanvasBase * canvas);
     ~KisToolRectangle() override;
@@ -34,9 +32,9 @@ public:
     bool supportsPaintingAssistants() const override;
 
 protected:
-    void finishRect(const QRectF& rect, qreal roundCornersX, qreal roundCornersY) override;
+    void finishRect(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY) override;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 };
 
@@ -46,11 +44,11 @@ class KisToolRectangleFactory : public KisToolPaintFactoryBase
 public:
     KisToolRectangleFactory()
             : KisToolPaintFactoryBase("KritaShape/KisToolRectangle") {
-        setToolTip(i18n("Rectangle Tool"));
+        setToolTip(PkString("Rectangle Tool"));
 
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        //setShortcut( Qt::Key_F6 );
+        // No retained default shortcut.
         setPriority(2);
     }
 
@@ -64,4 +62,3 @@ public:
 
 
 #endif // __KIS_TOOL_RECTANGLE_H__
-

@@ -8,10 +8,12 @@
 #include "kis_node.h"
 #include "kis_selection.h"
 #include "kis_layer_utils.h"
+#include "kis_basic_tools_string_utils.h"
+#include <cstdint>
 
 KisMoveBoundsCalculationJob::KisMoveBoundsCalculationJob(KisNodeList nodes,
                                                          KisSelectionSP selection,
-                                                         QObject *requestedBy)
+                                                         PkObject *requestedBy)
     : m_nodes(nodes),
       m_selection(selection),
       m_requestedBy(requestedBy)
@@ -21,9 +23,9 @@ KisMoveBoundsCalculationJob::KisMoveBoundsCalculationJob(KisNodeList nodes,
 
 void KisMoveBoundsCalculationJob::run()
 {
-    QRect handlesRect;
+    PkRect handlesRect;
 
-    Q_FOREACH (KisNodeSP node, m_nodes) {
+    for (const KisNodeSP &node : m_nodes) {
         handlesRect |= KisLayerUtils::recursiveTightNodeVisibleBounds(node);
     }
 
@@ -31,7 +33,15 @@ void KisMoveBoundsCalculationJob::run()
         handlesRect &= m_selection->selectedExactRect();
     }
 
-    Q_EMIT sigCalculationFinished(handlesRect);
+    sigCalculationFinished(handlesRect);
+}
+
+void KisMoveBoundsCalculationJob::sigCalculationFinished(const PkRect &bounds)
+{
+    PkObject::activateSignal<const PkRect &>(
+        this,
+        PkMemberFnKey::from(&KisMoveBoundsCalculationJob::sigCalculationFinished),
+        bounds);
 }
 
 bool KisMoveBoundsCalculationJob::overrides(const KisSpontaneousJob *_otherJob)
@@ -47,10 +57,9 @@ int KisMoveBoundsCalculationJob::levelOfDetail() const
     return 0;
 }
 
-QString KisMoveBoundsCalculationJob::debugName() const
+PkString KisMoveBoundsCalculationJob::debugName() const
 {
-    QString result;
-    QDebug dbg(&result);
-    dbg << "KisMoveBoundsCalculationJob" << ppVar(m_requestedBy) << m_nodes;
-    return result;
+    return PkString("KisMoveBoundsCalculationJob requestedBy=%1 nodes=%2")
+        .arg(KisBasicToolsString::number(reinterpret_cast<std::uintptr_t>(m_requestedBy)))
+        .arg(KisBasicToolsString::number(m_nodes.size()));
 }

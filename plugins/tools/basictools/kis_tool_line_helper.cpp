@@ -6,7 +6,7 @@
 
 #include "kis_tool_line_helper.h"
 
-#include <QtMath>
+#include <cmath>
 
 #include "kis_algebra_2d.h"
 #include "kis_painting_information_builder.h"
@@ -24,7 +24,7 @@ struct KisToolLineHelper::Private
     {
     }
 
-    QVector<KisPaintInformation> linePoints;
+    PkVector<KisPaintInformation> linePoints;
     KisPaintingInformationBuilder *infoBuilder;
     bool useSensors;
     bool enabled;
@@ -83,8 +83,8 @@ void KisToolLineHelper::repaintLine(KisImageWSP image, KisNodeSP node,
         adjustPointsToDDA(m_d->linePoints);
     }
 
-    QVector<KisPaintInformation>::const_iterator it = m_d->linePoints.constBegin();
-    QVector<KisPaintInformation>::const_iterator end = m_d->linePoints.constEnd();
+    PkVector<KisPaintInformation>::const_iterator it = m_d->linePoints.constBegin();
+    PkVector<KisPaintInformation>::const_iterator end = m_d->linePoints.constEnd();
 
     initPaintImpl(startAngle, *it, resourceManager(), image, node, strokesFacade);
     ++it;
@@ -111,7 +111,7 @@ void KisToolLineHelper::start(KoPointerEvent *event, KoCanvasResourceProvider *r
     m_d->linePoints.append(pi);
 }
 
-void KisToolLineHelper::addPoint(KoPointerEvent *event, const QPointF &overridePos)
+void KisToolLineHelper::addPoint(KoPointerEvent *event, const PkPointF &overridePos)
 {
     if (!m_d->enabled) return;
 
@@ -123,7 +123,7 @@ void KisToolLineHelper::addPoint(KoPointerEvent *event, const QPointF &overrideP
     addPoint(pi, overridePos);
 }
 
-void KisToolLineHelper::addPoint(KisPaintInformation pi, const QPointF &overridePos)
+void KisToolLineHelper::addPoint(KisPaintInformation pi, const PkPointF &overridePos)
 {
     if (!m_d->enabled) return;
     if (!m_d->useSensors) {
@@ -135,19 +135,19 @@ void KisToolLineHelper::addPoint(KisPaintInformation pi, const QPointF &override
     }
 
     if (m_d->linePoints.size() > 1) {
-        const QPointF startPos = m_d->linePoints.first().pos();
-        const QPointF endPos = pi.pos();
+        const PkPointF startPos = m_d->linePoints.first().pos();
+        const PkPointF endPos = pi.pos();
 
         if (!KisAlgebra2D::fuzzyPointCompare(startPos, endPos)) {
             const qreal maxDistance = kisDistance(startPos, endPos);
-            const QPointF unit = (endPos - startPos) / maxDistance;
+            const PkPointF unit = (endPos - startPos) / maxDistance;
 
-            QVector<KisPaintInformation>::iterator it = m_d->linePoints.begin();
+            PkVector<KisPaintInformation>::iterator it = m_d->linePoints.begin();
             ++it;
             while (it != m_d->linePoints.end()) {
                 qreal dist = kisDistance(startPos, it->pos());
                 if (dist < maxDistance) {
-                    QPointF pos = startPos + unit * dist;
+                    PkPointF pos = startPos + unit * dist;
                     it->setPos(pos);
                     ++it;
                 } else {
@@ -163,18 +163,18 @@ void KisToolLineHelper::addPoint(KisPaintInformation pi, const QPointF &override
 
 }
 
-void KisToolLineHelper::translatePoints(const QPointF &offset)
+void KisToolLineHelper::translatePoints(const PkPointF &offset)
 {
     if (!m_d->enabled) return;
 
-    QVector<KisPaintInformation>::iterator it = m_d->linePoints.begin();
+    PkVector<KisPaintInformation>::iterator it = m_d->linePoints.begin();
     while (it != m_d->linePoints.end()) {
         it->setPos(it->pos() + offset);
         ++it;
     }
 }
 
-void KisToolLineHelper::movePointsTo(const QPointF &startPoint, const QPointF &endPoint)
+void KisToolLineHelper::movePointsTo(const PkPointF &startPoint, const PkPointF &endPoint)
 {
     if (m_d->linePoints.size() <= 1 ) {
         return;
@@ -186,13 +186,13 @@ void KisToolLineHelper::movePointsTo(const QPointF &startPoint, const QPointF &e
 
     if (m_d->linePoints.size() > 1) {
         const qreal maxDistance = kisDistance(startPoint, endPoint);
-        const QPointF unit = (endPoint - startPoint) / maxDistance;
+        const PkPointF unit = (endPoint - startPoint) / maxDistance;
 
-        QVector<KisPaintInformation>::iterator it = m_d->linePoints.begin();
+        PkVector<KisPaintInformation>::iterator it = m_d->linePoints.begin();
         ++it;
         while (it != m_d->linePoints.end()) {
             qreal dist = kisDistance(startPoint, it->pos());
-            QPointF pos = startPoint + unit * dist;
+            PkPointF pos = startPoint + unit * dist;
             it->setPos(pos);
             ++it;
         }
@@ -232,7 +232,7 @@ void KisToolLineHelper::clearPaint()
     cancelPaint();
 }
 
-void KisToolLineHelper::adjustPointsToDDA(QVector<KisPaintInformation> &points)
+void KisToolLineHelper::adjustPointsToDDA(PkVector<KisPaintInformation> &points)
 {
     int x = qFloor(points.first().pos().x());
     int y = qFloor(points.first().pos().y());
@@ -269,7 +269,7 @@ void KisToolLineHelper::adjustPointsToDDA(QVector<KisPaintInformation> &points)
             dist = abs(qFloor(points.at(i).pos().y()) - y);
             fy = y + (dist * inc);
             fx = qRound(x + (dist * m));
-            points[i].setPos(QPointF(fx,fy));
+            points[i].setPos(PkPointF(fx,fy));
         }
 
     } else {
@@ -280,7 +280,7 @@ void KisToolLineHelper::adjustPointsToDDA(QVector<KisPaintInformation> &points)
             dist = abs(qFloor(points.at(i).pos().x()) - x);
             fx = x + (dist * inc);
             fy = qRound(y + (dist * m));
-            points[i].setPos(QPointF(fx,fy));
+            points[i].setPos(PkPointF(fx,fy));
         }
     }
 }

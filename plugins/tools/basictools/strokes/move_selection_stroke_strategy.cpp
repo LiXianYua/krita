@@ -20,6 +20,7 @@
 #include <commands_new/kis_selection_move_command2.h>
 #include "kis_lod_transform.h"
 #include "KisAnimAutoKey.h"
+#include <PkRegion.h>
 
 
 MoveSelectionStrokeStrategy::MoveSelectionStrokeStrategy(KisPaintLayerSP paintLayer,
@@ -41,7 +42,7 @@ MoveSelectionStrokeStrategy::MoveSelectionStrokeStrategy(KisPaintLayerSP paintLa
 }
 
 MoveSelectionStrokeStrategy::MoveSelectionStrokeStrategy(const MoveSelectionStrokeStrategy &rhs)
-    : QObject(),
+    : PkObject(),
       KisStrokeStrategyUndoCommandBased(rhs),
       m_paintLayer(rhs.m_paintLayer),
       m_selection(rhs.m_selection),
@@ -64,7 +65,7 @@ void MoveSelectionStrokeStrategy::initStrokeCallback()
         runAndSaveCommand(toQShared(autoKeyframeCommand), KisStrokeJobData::BARRIER, KisStrokeJobData::NORMAL);
     }
 
-    QRect copyRect = m_selection->selectedRect();
+    PkRect copyRect = m_selection->selectedRect();
     KisPainter gc(movedDevice);
     gc.setSelection(m_selection);
     gc.bitBlt(copyRect.topLeft(), paintDevice, copyRect);
@@ -82,20 +83,20 @@ void MoveSelectionStrokeStrategy::initStrokeCallback()
     indirect->setTemporaryCompositeOp(COMPOSITE_OVER);
     indirect->setTemporaryOpacity(OPACITY_OPAQUE_F);
     indirect->setTemporarySelection(0);
-    indirect->setTemporaryChannelFlags(QBitArray());
+    indirect->setTemporaryChannelFlags(PkBitArray());
 
-    m_initialDeviceOffset = QPoint(movedDevice->x(), movedDevice->y());
-    m_initialSelectionOffset = QPoint(m_selection->x(), m_selection->y());
+    m_initialDeviceOffset = PkPoint(movedDevice->x(), movedDevice->y());
+    m_initialSelectionOffset = PkPoint(m_selection->x(), m_selection->y());
 
     {
-        QRect handlesRect = movedDevice->exactBounds();
+        PkRect handlesRect = movedDevice->exactBounds();
         KisLodTransform t(paintDevice);
         handlesRect = t.mapInverted(handlesRect);
 
         if (!handlesRect.isEmpty()) {
-            Q_EMIT this->sigHandlesRectCalculated(handlesRect);
+            this->sigHandlesRectCalculated(handlesRect);
         } else {
-            Q_EMIT this->sigStrokeStartedEmpty();
+            this->sigStrokeStartedEmpty();
         }
 
     }
@@ -171,10 +172,10 @@ void MoveSelectionStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
 
         KisPaintDeviceSP movedDevice = indirect->temporaryTarget();
 
-        QRegion dirtyRegion = movedDevice->region().toQRegion();
+        PkRegion dirtyRegion = movedDevice->region().toQRegion();
 
-        QPoint currentDeviceOffset(movedDevice->x(), movedDevice->y());
-        QPoint newDeviceOffset(m_initialDeviceOffset + d->offset);
+        PkPoint currentDeviceOffset(movedDevice->x(), movedDevice->y());
+        PkPoint newDeviceOffset(m_initialDeviceOffset + d->offset);
 
         dirtyRegion |= dirtyRegion.translated(newDeviceOffset - currentDeviceOffset);
 
@@ -200,14 +201,30 @@ void MoveSelectionStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
 
 KisStrokeStrategy* MoveSelectionStrokeStrategy::createLodClone(int levelOfDetail)
 {
-    Q_UNUSED(levelOfDetail);
+    (void)levelOfDetail;
 
     // Vector selections don't support lod-moves
     if (m_selection->hasShapeSelection()) return 0;
 
     MoveSelectionStrokeStrategy *clone = new MoveSelectionStrokeStrategy(*this);
-    connect(clone, SIGNAL(sigHandlesRectCalculated(QRect)), this, SIGNAL(sigHandlesRectCalculated(QRect)));
+    PkObject::connect(clone, &MoveSelectionStrokeStrategy::sigHandlesRectCalculated,
+                      this, &MoveSelectionStrokeStrategy::sigHandlesRectCalculated);
     return clone;
+}
+
+void MoveSelectionStrokeStrategy::sigHandlesRectCalculated(const PkRect &handlesRect)
+{
+    PkObject::activateSignal<const PkRect &>(
+        this,
+        PkMemberFnKey::from(&MoveSelectionStrokeStrategy::sigHandlesRectCalculated),
+        handlesRect);
+}
+
+void MoveSelectionStrokeStrategy::sigStrokeStartedEmpty()
+{
+    PkObject::activateSignal<>(
+        this,
+        PkMemberFnKey::from(&MoveSelectionStrokeStrategy::sigStrokeStartedEmpty));
 }
 
 KisStrokeJobData *MoveSelectionStrokeStrategy::ShowSelectionData::createLodClone(int levelOfDetail)

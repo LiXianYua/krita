@@ -27,11 +27,11 @@ public:
                      KisStrokesFacade *strokesFacade);
 
     void start(KoPointerEvent *event, KoCanvasResourceProvider *resourceManager);
-    void addPoint(KoPointerEvent *event, const QPointF &overridePos = QPointF());
-    void addPoint(KisPaintInformation pi, const QPointF &overridePos = QPointF());
-    void translatePoints(const QPointF &offset);
+    void addPoint(KoPointerEvent *event, const PkPointF &overridePos = PkPointF());
+    void addPoint(KisPaintInformation pi, const PkPointF &overridePos = PkPointF());
+    void translatePoints(const PkPointF &offset);
     // overwrites the first and last points, and adjusts the rest of the points to fit the line
-    void movePointsTo(const QPointF& startPoint, const QPointF& endPoint);
+    void movePointsTo(const PkPointF& startPoint, const PkPointF& endPoint);
     void end();
     void cancel();
     void clearPoints();
@@ -40,7 +40,7 @@ public:
     using KisToolFreehandHelper::isRunning;
 
 private:
-    void adjustPointsToDDA(QVector<KisPaintInformation> &points);
+    void adjustPointsToDDA(PkVector<KisPaintInformation> &points);
 
 private:
     struct Private;

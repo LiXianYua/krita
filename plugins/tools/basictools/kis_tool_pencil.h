@@ -22,8 +22,8 @@ class KisToolPencil;
 class __KisToolPencilLocalTool : public KoPencilTool {
 public:
     __KisToolPencilLocalTool(KoCanvasBase * canvas, KisToolPencil* parentTool);
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
-    virtual void paintPath(KoPathShape * path, QPainter &painter, const KoViewConverter &converter);
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
+    virtual void paintPath(KoPathShape * path, PkPainter &painter, const KoViewConverter &converter);
     void addPathShape(KoPathShape* pathShape, bool closePath) override;
 
     using KoPencilTool::createOptionWidgets;
@@ -41,8 +41,6 @@ DeselectShapesActivationPolicy> DelegatedPencilTool;
 
 class KisToolPencil : public DelegatedPencilTool
 {
-    Q_OBJECT
-
 public:
     KisToolPencil(KoCanvasBase * canvas);
     void mousePressEvent(KoPointerEvent *event) override;
@@ -54,7 +52,7 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 
 private:
@@ -70,7 +68,7 @@ class KisToolPencilFactory : public KisToolPaintFactoryBase
 public:
     KisToolPencilFactory()
         : KisToolPaintFactoryBase("KisToolPencil") {
-        setToolTip(i18n("Freehand Path Tool"));
+        setToolTip(PkString("Freehand Path Tool"));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(9);
@@ -86,4 +84,3 @@ public:
 
 
 #endif // KIS_TOOL_PENCIL_H_
-

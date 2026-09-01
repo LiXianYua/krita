@@ -10,13 +10,13 @@
 
 #include "kis_tool_brush.h"
 #include <PkConnection.h>
-#include <QRandomGenerator>
+#include <PkPainter.h>
+#include <random>
 
 class KisToolMultihandHelper;
 
 class KisToolMultihand : public KisToolBrush
 {
-    Q_OBJECT
 public:
     KisToolMultihand(KoCanvasBase *canvas);
     ~KisToolMultihand() override;
@@ -32,15 +32,15 @@ public:
 
 
 protected:
-    void paint(QPainter& gc, const KoViewConverter &converter) override;
+    void paint(PkPainter& gc, const KoViewConverter &converter) override;
 
 private:
     void initTransformations();
     void finishAxesSetup();
     void updateCanvas();
-    QVector<QPoint> intervalLocations();
+    PkVector<PkPoint> intervalLocations();
 
-private Q_SLOTS:
+private:
     void resetAxes();
 
 private:
@@ -49,7 +49,7 @@ private:
 
     enum enumTransformModes:int { SYMMETRY=0, MIRROR, TRANSLATE, SNOWFLAKE, COPYTRANSLATE, COPYTRANSLATEINTERVALS };
     enumTransformModes m_transformMode;
-    QPointF m_axesPoint;
+    PkPointF m_axesPoint;
     qreal m_angle;
     int m_handsCount;
     bool m_mirrorVertically;
@@ -59,12 +59,12 @@ private:
 
     bool m_setupAxesFlag;
     bool m_addSubbrushesMode;
-    QPointF m_lastToolPos;
-    QVector<QPointF> m_subbrOriginalLocations;
+    PkPointF m_lastToolPos;
+    PkVector<PkPointF> m_subbrOriginalLocations;
 
     int m_intervalX;
     int m_intervalY;
-    QRandomGenerator m_randomGenerator;
+    std::mt19937 m_randomGenerator;
 };
 
 
@@ -75,11 +75,11 @@ public:
     KisToolMultiBrushFactory()
         : KisToolBrushFactory("KritaShape/KisToolMultiBrush") {
 
-        setToolTip(i18n("Multibrush Tool"));
+        setToolTip(PkString("Multibrush Tool"));
 
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setShortcut(QKeySequence(Qt::Key_Q));
+        setShortcut(PkString("Q"));
         setPriority(11);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }

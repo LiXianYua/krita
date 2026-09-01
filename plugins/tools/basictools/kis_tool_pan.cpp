@@ -4,16 +4,11 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QKeyEvent>
-
 #include "kis_tool_pan.h"
 #include <KisCanvasToolServices.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoPointerEvent.h>
-
-#include <klocalizedstring.h>
-
 
 KisToolPan::KisToolPan(KoCanvasBase *canvas)
     : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolOpenHandCursor())
@@ -32,41 +27,42 @@ void KisToolPan::beginPrimaryAction(KoPointerEvent *event)
 
 void KisToolPan::continuePrimaryAction(KoPointerEvent *event)
 {
-    QPoint pos = event->pos();
-    QPoint delta = m_lastPosition - pos;
+    PkPoint pos = event->pos();
+    PkPoint delta = m_lastPosition - pos;
     canvas()->canvasController()->pan(delta);
     m_lastPosition = pos;
 }
 
 void KisToolPan::endPrimaryAction(KoPointerEvent *event)
 {
-    Q_UNUSED(event);
+    (void)event;
     useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolOpenHandCursor());
 }
 
-void KisToolPan::keyPressEvent(QKeyEvent *event)
+bool KisToolPan::panByKey(int key)
 {
-    switch (event->key()) {
+    switch (key) {
         case Qt::Key_Up:
             canvas()->canvasController()->panUp();
-            break;
+            return true;
         case Qt::Key_Down:
             canvas()->canvasController()->panDown();
-            break;
+            return true;
         case Qt::Key_Left:
             canvas()->canvasController()->panLeft();
-            break;
+            return true;
         case Qt::Key_Right:
             canvas()->canvasController()->panRight();
-            break;
+            return true;
+        default:
+            return false;
     }
-    event->accept();
 }
 
-void KisToolPan::paint(QPainter &painter, const KoViewConverter &converter)
+void KisToolPan::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(painter);
-    Q_UNUSED(converter);
+    (void)painter;
+    (void)converter;
 }
 
 bool KisToolPan::wantsAutoScroll() const
@@ -77,7 +73,7 @@ bool KisToolPan::wantsAutoScroll() const
 KisToolPanFactory::KisToolPanFactory()
     : KoToolFactoryBase("PanTool")
 {
-    setToolTip(i18n("Pan Tool"));
+    setToolTip(PkString("Pan Tool"));
     setSection(ToolBoxSection::Navigation);
     setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     setPriority(2);

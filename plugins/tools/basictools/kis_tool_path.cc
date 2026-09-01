@@ -6,9 +6,6 @@
  */
 
 #include "kis_tool_path.h"
-#include <QIcon>
-#include <QMouseEvent>
-#include <QTabletEvent>
 #include <KoPathShape.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
@@ -22,7 +19,7 @@ KisToolPath::KisToolPath(KoCanvasBase * canvas)
 {
     setIsOpacityPresetMode(true);
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -58,33 +55,7 @@ KisPopupWidgetInterface* KisToolPath::popupWidget()
 
 void KisToolPath::mousePressEvent(KoPointerEvent *event)
 {
-    Q_UNUSED(event)
-}
-
-// Install an event filter to catch right-click events.
-// The simplest way to accommodate the popup palette binding.
-// This code is duplicated in kis_tool_select_path.cc
-bool KisToolPath::eventFilter(QObject *obj, QEvent *event)
-{
-    Q_UNUSED(obj);
-    if (!localTool()->pathStarted()) {
-        return false;
-    }
-    if (event->type() == QEvent::MouseButtonPress ||
-            event->type() == QEvent::MouseButtonDblClick) {
-        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        if (mouseEvent->button() == Qt::RightButton) {
-            localTool()->removeLastPoint();
-            return true;
-        }
-    } else if (event->type() == QEvent::TabletPress) {
-        QTabletEvent *tabletEvent = static_cast<QTabletEvent*>(event);
-        if (tabletEvent->button() == Qt::RightButton) {
-            localTool()->removeLastPoint();
-            return true;
-        }
-    }
-    return false;
+    (void)event;
 }
 
 void KisToolPath::beginAlternateAction(KoPointerEvent *event, AlternateAction action) {
@@ -97,8 +68,8 @@ void KisToolPath::beginAlternateAction(KoPointerEvent *event, AlternateAction ac
             event->ignore();
             return;
         }
-        QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, QIcon(), 4500,
+        PkString message("The MyPaint Brush Engine is not available for this colorspace");
+        feedback->showFloatingMessage(message, {}, 4500,
                                       KisCanvasFeedback::Priority::Medium,
                                       Qt::AlignCenter | Qt::TextWordWrap);
         event->ignore();
@@ -133,11 +104,11 @@ __KisToolPathLocalTool::__KisToolPathLocalTool(KoCanvasBase * canvas, KisToolPat
     setIsOpacityPresetMode(true);
 }
 
-void __KisToolPathLocalTool::paintPath(KoPathShape &pathShape, QPainter &painter, const KoViewConverter &converter)
+void __KisToolPathLocalTool::paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(converter);
+    (void)converter;
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(m_parentTool->image()->xRes(), m_parentTool->image()->yRes());
     matrix.translate(pathShape.position().x(), pathShape.position().y());
     m_parentTool->paintToolOutline(&painter, m_parentTool->pixelToView(matrix.map(pathShape.outline())));

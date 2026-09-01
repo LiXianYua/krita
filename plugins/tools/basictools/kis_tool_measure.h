@@ -14,19 +14,17 @@
 #include "KoToolFactoryBase.h"
 #include "flake/kis_node_shape.h"
 
-#include <QVector2D>
+#include <PkPainter.h>
+#include <PkString.h>
+#include <PkVectorND.h>
 
-class QPointF;
-class QWidget;
-class QVector2D;
+class PkPointF;
 
 class KoCanvasBase;
 
 
 class KisToolMeasure : public KisTool
 {
-
-    Q_OBJECT
 
 public:
     KisToolMeasure(KoCanvasBase * canvas);
@@ -37,19 +35,19 @@ public:
     void endPrimaryAction(KoPointerEvent *event) override;
     void showDistanceAngleOnCanvas();
 
-    QPointF lockedAngle(QPointF pos);
+    PkPointF lockedAngle(PkPointF pos);
 
-    void paint(QPainter& gc, const KoViewConverter &converter) override;
+    void paint(PkPainter& gc, const KoViewConverter &converter) override;
 
 private:
-    QRectF boundingRect();
+    PkRectF boundingRect();
     double angle();
     double distance();
 
 private:
-    QPointF m_startPos {QPointF(0, 0)};
-    QPointF m_endPos {QPointF(0, 0)}; 
-    QVector2D m_baseLineVec {QPointF(1, 0)};
+    PkPointF m_startPos {PkPointF(0, 0)};
+    PkPointF m_endPos {PkPointF(0, 0)};
+    PkVector2D m_baseLineVec {PkPointF(1, 0)};
     bool m_chooseBaseLineVec {false};
 };
 
@@ -62,7 +60,7 @@ public:
     KisToolMeasureFactory()
             : KoToolFactoryBase("KritaShape/KisToolMeasure") {
         setSection(ToolBoxSection::View);
-        setToolTip(i18n("Measure Tool"));
+        setToolTip(PkString("Measure Tool"));
         setPriority(1);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }

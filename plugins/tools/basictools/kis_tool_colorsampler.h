@@ -13,15 +13,14 @@
 #include "KoToolFactoryBase.h"
 #include "kis_tool.h"
 #include <KoColorSet.h>
-#include <QPainter>
-#include <QKeySequence>
+#include <PkPainter.h>
+#include <PkScopedPointer.h>
+#include <PkString.h>
 #include <KisAsyncColorSamplerHelper.h>
 #include <KisColorSamplerConfig.h>
 
 class KisToolColorSampler : public KisTool
 {
-    Q_OBJECT
-
 public:
     KisToolColorSampler(KoCanvasBase *canvas);
     ~KisToolColorSampler() override;
@@ -47,19 +46,18 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
-    void requestUpdateOutline(const QPointF &outlineDocPoint, const KoPointerEvent *event);
+    void requestUpdateOutline(const PkPointF &outlineDocPoint, const KoPointerEvent *event);
 
     void activatePrimaryAction() override;
     void deactivatePrimaryAction() override;
 
-    void paint(QPainter &gc, const KoViewConverter &converter) override;
+    void paint(PkPainter &gc, const KoViewConverter &converter) override;
 
 protected:
-    void activate(const QSet<KoShape*> &) override;
+    void activate(const PkSet<KoShape*> &) override;
     void deactivate() override;
 
-private Q_SLOTS:
-    void slotColorPickerRequestedCursor(const QCursor &cursor);
+private:
     void slotColorPickerRequestedCursorReset();
     void slotColorPickerRequestedOutlineUpdate();
     void slotColorPickerSelectedColor(const KoColor &color);
@@ -67,12 +65,12 @@ private Q_SLOTS:
 
 private:
     // Configuration
-    QScopedPointer<KisColorSamplerConfig> m_config;
+    PkScopedPointer<KisColorSamplerConfig> m_config;
 
     bool m_isActivated {false};
-    QPointF m_outlineDocPoint;
+    PkPointF m_outlineDocPoint;
 
-    QRectF m_oldColorPreviewUpdateRect;
+    PkRectF m_oldColorPreviewUpdateRect;
 
     KoColor m_sampledColor;
 
@@ -84,10 +82,10 @@ class KisToolColorSamplerFactory : public KoToolFactoryBase
 public:
     KisToolColorSamplerFactory()
             : KoToolFactoryBase("KritaSelected/KisToolColorSampler") {
-        setToolTip(i18n("Color Sampler Tool"));
+        setToolTip(PkString("Color Sampler Tool"));
         setSection(ToolBoxSection::Fill);
         setPriority(2);
-        setShortcut(QKeySequence(Qt::Key_P));
+        setShortcut(PkString("P"));
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }
 

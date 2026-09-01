@@ -13,10 +13,10 @@
 #include <kis_types.h>
 #include <kis_tool.h>
 #include <flake/kis_node_shape.h>
-#include <QKeySequence>
-#include <QGroupBox>
-#include <QRadioButton>
-#include <QVariant>
+#include <PkList.h>
+#include <PkPainter.h>
+#include <PkString.h>
+#include <PkVariant.h>
 #include "KisToolChangesTracker.h"
 #include "kis_signal_compressor.h"
 #include "kis_signal_auto_connection.h"
@@ -26,8 +26,6 @@ class KoCanvasBase;
 
 class KisToolMove : public KisTool
 {
-    Q_OBJECT
-    Q_ENUMS(MoveToolMode);
 public:
     KisToolMove(KoCanvasBase * canvas);
     ~KisToolMove() override;
@@ -44,17 +42,17 @@ public:
         return false;
     }
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
-public Q_SLOTS:
+public:
     void requestStrokeEnd() override;
     void requestStrokeCancellation() override;
     void requestUndoDuringStroke() override;
     void requestRedoDuringStroke() override;
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 
 public:
@@ -85,46 +83,47 @@ public:
     void continueAction(KoPointerEvent *event);
     void endAction(KoPointerEvent *event);
 
-    void paint(QPainter& gc, const KoViewConverter &converter) override;
+    void paint(PkPainter& gc, const KoViewConverter &converter) override;
 
     void updateUIUnit(int newUnit);
 
     MoveToolMode moveToolMode() const;
 
     void setShowCoordinates(bool value);
+    PkList<PkString> moveActionIds() const;
+    bool triggerMoveAction(const PkString &id, bool checked = false);
 
-public Q_SLOTS:
+public:
     void moveDiscrete(MoveDirection direction, bool big);
 
     void slotNodeChanged(const KisNodeList &nodes);
     void slotSelectionChanged();
     void commitChanges();
 
-    void slotHandlesRectCalculated(const QRect &handlesRect);
+    void slotHandlesRectCalculated(const PkRect &handlesRect);
     void slotStrokeStartedEmpty();
     void slotStrokePickedLayers(const KisNodeList &nodes);
 
-Q_SIGNALS:
     void moveToolModeChanged();
 
 private:
-    void drag(const QPoint& newPos);
+    void drag(const PkPoint& newPos);
     void cancelStroke();
-    QPoint applyModifiers(Qt::KeyboardModifiers modifiers, QPoint pos);
+    PkPoint applyModifiers(Qt::KeyboardModifiers modifiers, PkPoint pos);
 
-    bool startStrokeImpl(MoveToolMode mode, const QPoint *pos);
+    bool startStrokeImpl(MoveToolMode mode, const PkPoint *pos);
 
-    QPoint currentOffset() const;
+    PkPoint currentOffset() const;
     void notifyGuiAfterMove(bool showFloatingMessage = true);
     bool tryEndPreviousStroke(const KisNodeList &nodes);
     void requestHandlesRectUpdate();
     void invalidateCanvas();
 
 
-private Q_SLOTS:
+private:
     void endStroke();
     void slotTrackerChangedConfig(KisToolChangesTrackerDataSP state);
-    void slotCanvasResourceChanged(int key, const QVariant &value);
+    void slotCanvasResourceChanged(int key, const PkVariant &value);
 
     void slotMoveDiscreteLeft();
     void slotMoveDiscreteRight();
@@ -137,8 +136,8 @@ private Q_SLOTS:
 
 private:
 
-    QPoint m_dragStart; ///< Point where current cursor dragging began
-    QPoint m_accumulatedOffset; ///< Total offset including multiple clicks, up/down/left/right keys, etc. added together
+    PkPoint m_dragStart; ///< Point where current cursor dragging began
+    PkPoint m_accumulatedOffset; ///< Total offset including multiple clicks, up/down/left/right keys, etc. added together
 
     KisStrokeId m_strokeId;
 
@@ -148,17 +147,16 @@ private:
 
     int m_resolution {0};
 
-    QAction *m_showCoordinatesAction {0};
+    bool m_showCoordinates {false};
 
-    QPoint m_dragPos;
-    QRect m_handlesRect;
+    PkPoint m_dragPos;
+    PkRect m_handlesRect;
 
     KisToolChangesTracker m_changesTracker;
 
-    QPoint m_lastCursorPos;
+    PkPoint m_lastCursorPos;
     KisSignalCompressor m_updateCursorCompressor;
     PkConnection m_updateCursorConnection;
-    KisSignalAutoConnectionsStore m_actionConnections;
     KisSignalAutoConnectionsStore m_canvasConnections;
 
     KisAsynchronousStrokeUpdateHelper m_asyncUpdateHelper;
@@ -171,11 +169,11 @@ class KisToolMoveFactory : public KisToolPaintFactoryBase
 public:
     KisToolMoveFactory()
             : KisToolPaintFactoryBase("KritaTransform/KisToolMove") {
-        setToolTip(i18n("Move Tool"));
+        setToolTip(PkString("Move Tool"));
         setSection(ToolBoxSection::Transform);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(3);
-        setShortcut(QKeySequence(Qt::Key_T));
+        setShortcut(PkString("T"));
     }
 
     ~KisToolMoveFactory() override {}
@@ -184,7 +182,6 @@ public:
         return new KisToolMove(canvas);
     }
 
-    QList<QAction *> createActionsImpl() override;
 };
 
 #endif // KIS_TOOL_MOVE_H_

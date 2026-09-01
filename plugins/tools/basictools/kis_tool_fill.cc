@@ -9,8 +9,10 @@
 */
 
 #include "kis_tool_fill.h"
+#include "kis_basic_tools_geometry_utils.h"
 
 #include <kis_debug.h>
+#include <PkXmlDocument.h>
 #include <klocalizedstring.h>
 
 #include <ksharedconfig.h>
@@ -21,6 +23,7 @@
 
 #include <kis_layer.h>
 #include <resources/KoPattern.h>
+#include <vector>
 #include <kis_selection.h>
 
 #include <KisCanvasFeedback.h>
@@ -57,7 +60,7 @@ KisToolFill::KisToolFill(KoCanvasBase * canvas)
                           &m_compressorFillUpdate, [this]() { slotUpdateFill(); });
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -80,7 +83,7 @@ void KisToolFill::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolFill::activate(const QSet<KoShape*> &shapes)
+void KisToolFill::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
     m_configGroup = KSharedConfig::openConfig()->group(toolId());
@@ -105,8 +108,8 @@ void KisToolFill::beginPrimaryAction(KoPointerEvent *event)
             return;
         }
         feedback->showFloatingMessage(
-            i18n("You cannot use this tool with the selected layer type"),
-            QIcon(), 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
+            PkString("You cannot use this tool with the selected layer type"),
+            {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         event->ignore();
         return;
     }
@@ -117,7 +120,7 @@ void KisToolFill::beginPrimaryAction(KoPointerEvent *event)
     }
 
     m_fillStartWidgetPosition = event->pos();
-    const QPoint lastImagePosition = convertToImagePixelCoordFloored(event);
+    const PkPoint lastImagePosition = convertToImagePixelCoordFloored(event);
 
     if (!currentNode() ||
         (!image()->wrapAroundModePermitted() &&
@@ -168,7 +171,7 @@ void KisToolFill::continuePrimaryAction(KoPointerEvent *event)
         m_isDragging = true;
     }
 
-    const QPoint newImagePosition = convertToImagePixelCoordFloored(event);
+    const PkPoint newImagePosition = convertToImagePixelCoordFloored(event);
     m_seedPoints.append(newImagePosition);
 
     m_compressorFillUpdate.start();
@@ -213,7 +216,7 @@ void KisToolFill::endAlternateAction(KoPointerEvent *event, AlternateAction acti
     KisToolPaint::endAlternateAction(event, action);
 }
 
-void KisToolFill::beginFilling(const QPoint &seedPoint)
+void KisToolFill::beginFilling(const PkPoint &seedPoint)
 {
     setMode(KisTool::PAINT_MODE);
 
@@ -265,7 +268,7 @@ void KisToolFill::beginFilling(const QPoint &seedPoint)
             m_previousTime = currentTime;
         }
 
-        QSharedPointer<KoColor> referenceColor(new KoColor);
+        PkSharedPointer<KoColor> referenceColor(new KoColor);
         if (m_reference == Reference_ColorLabeledLayers) {
             // We need to obtain the reference color from the reference paint
             // device, but it is produced in a stroke, so we must get the color
@@ -300,21 +303,21 @@ void KisToolFill::beginFilling(const QPoint &seedPoint)
         m_fillMask = new KisSelection;
     }
 
-    m_dirtyRect.reset(new QRect);
+    m_dirtyRect.reset(new PkRect);
     m_transform.reset();
-    m_transform.rotate(m_patternRotation);
+    KisBasicToolsGeometry::rotateDegrees(m_transform, m_patternRotation);
     const qreal normalizedScale = m_patternScale * 0.01;
     m_transform.scale(normalizedScale, normalizedScale);
     m_resourcesSnapshot->setFillTransform(m_transform);
 }
 
-void KisToolFill::addFillingOperation(const QPoint &seedPoint)
+void KisToolFill::addFillingOperation(const PkPoint &seedPoint)
 {
-    const QVector<QPoint> seedPoints({seedPoint});
+    const PkVector<PkPoint> seedPoints({seedPoint});
     addFillingOperation(seedPoints);
 }
 
-void KisToolFill::addFillingOperation(const QVector<QPoint> &seedPoints)
+void KisToolFill::addFillingOperation(const PkVector<PkPoint> &seedPoints)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_fillStrokeId);
 
@@ -388,13 +391,13 @@ void KisToolFill::addFillingOperation(const QVector<QPoint> &seedPoints)
         );
     } else {
         KisSelectionSP fillMask = m_fillMask;
-        QSharedPointer<KisProcessingVisitor::ProgressHelper>
+        PkSharedPointer<KisProcessingVisitor::ProgressHelper>
             progressHelper(new KisProcessingVisitor::ProgressHelper(currentNode()));
 
         {
             KisSelectionSP selection = m_resourcesSnapshot->activeSelection();
             KisFillPainter painter;
-            QRect bounds = currentImage()->bounds();
+            PkRect bounds = currentImage()->bounds();
             if (selection) {
                 bounds = bounds.intersected(selection->projection()->selectedRect());
             }
@@ -406,7 +409,7 @@ void KisToolFill::addFillingOperation(const QVector<QPoint> &seedPoints)
             painter.setStopGrowingAtDarkestPixel(m_stopGrowingAtDarkestPixel);
             painter.setFeather(m_feather);
 
-            QVector<KisStrokeJobData*> jobs =
+            PkVector<KisStrokeJobData*> jobs =
                 painter.createSimilarColorsSelectionJobs(
                     fillMask->pixelSelection(), m_referenceColor, m_referencePaintDevice,
                     bounds, selection ? selection->projection() : nullptr, progressHelper
@@ -491,7 +494,7 @@ void KisToolFill::slotUpdateFill()
 void KisToolFill::loadConfiguration()
 {
     {
-        const QString whatToFillStr = m_configGroup.readEntry<QString>("whatToFill", "");
+        const PkString whatToFillStr = m_configGroup.readEntry<PkString>("whatToFill", "");
         if (whatToFillStr == "fillSelection") {
             m_fillMode = FillMode_FillSelection;
         } else if (whatToFillStr == "fillContiguousRegion") {
@@ -507,7 +510,7 @@ void KisToolFill::loadConfiguration()
         }
     }
     {
-        const QString fillTypeStr = m_configGroup.readEntry<QString>("fillWith", "");
+        const PkString fillTypeStr = m_configGroup.readEntry<PkString>("fillWith", "");
         if (fillTypeStr == "foregroundColor") {
             m_fillType = FillType_FillWithForegroundColor;
         } else if (fillTypeStr == "backgroundColor") {
@@ -526,12 +529,12 @@ void KisToolFill::loadConfiguration()
     m_patternRotation = m_configGroup.readEntry<qreal>("patternRotate", 0.0);
     m_useCustomBlendingOptions = m_configGroup.readEntry<bool>("useCustomBlendingOptions", false);
     m_customOpacity = qBound(0, m_configGroup.readEntry<int>("customOpacity", 100), 100);
-    m_customCompositeOp = m_configGroup.readEntry<QString>("customCompositeOp", COMPOSITE_OVER);
-    if (KoCompositeOpRegistry::instance().getKoID(m_customCompositeOp).id().isNull()) {
+    m_customCompositeOp = m_configGroup.readEntry<PkString>("customCompositeOp", COMPOSITE_OVER);
+    if (KoCompositeOpRegistry::instance().getKoID(m_customCompositeOp).id().isEmpty()) {
         m_customCompositeOp = COMPOSITE_OVER;
     }
     {
-        const QString contiguousFillModeStr = m_configGroup.readEntry<QString>("contiguousFillMode", "");
+        const PkString contiguousFillModeStr = m_configGroup.readEntry<PkString>("contiguousFillMode", "");
         m_contiguousFillMode = contiguousFillModeStr == "boundaryFill"
                                ? ContiguousFillMode_BoundaryFill
                                : ContiguousFillMode_FloodFill;
@@ -546,7 +549,7 @@ void KisToolFill::loadConfiguration()
     m_stopGrowingAtDarkestPixel = m_configGroup.readEntry<bool>("stopGrowingAtDarkestPixel", false);
     m_feather = m_configGroup.readEntry<int>("featherAmount", 0);
     {
-        const QString sampleLayersModeStr = m_configGroup.readEntry<QString>("sampleLayersMode", "");
+        const PkString sampleLayersModeStr = m_configGroup.readEntry<PkString>("sampleLayersMode", "");
         if (sampleLayersModeStr == "currentLayer") {
             m_reference = Reference_CurrentLayer;
         } else if (sampleLayersModeStr == "allLayers") {
@@ -562,9 +565,13 @@ void KisToolFill::loadConfiguration()
         }
     }
     {
-        const QStringList colorLabelsStr = m_configGroup.readEntry<QString>("colorLabels", "").split(',', Qt::SkipEmptyParts);
+        const std::vector<PkString> colorLabelsStr =
+            m_configGroup.readEntry<PkString>("colorLabels", "").split(u',');
         m_selectedColorLabels.clear();
-        for (const QString &colorLabelStr : colorLabelsStr) {
+        for (const PkString &colorLabelStr : colorLabelsStr) {
+            if (colorLabelStr.isEmpty()) {
+                continue;
+            }
             bool ok;
             const int colorLabel = colorLabelStr.toInt(&ok);
             if (ok) {
@@ -574,7 +581,7 @@ void KisToolFill::loadConfiguration()
         m_useActiveLayer = m_configGroup.readEntry<bool>("useActiveLayer", false);
     }
     {
-        const QString continuousFillModeStr = m_configGroup.readEntry<QString>("continuousFillMode", "fillAnyRegion");
+        const PkString continuousFillModeStr = m_configGroup.readEntry<PkString>("continuousFillMode", "fillAnyRegion");
         if (continuousFillModeStr == "doNotUse") {
             m_continuousFillMode = ContinuousFillMode_DoNotUse;
         } else if (continuousFillModeStr == "fillSimilarRegions") {
@@ -587,11 +594,11 @@ void KisToolFill::loadConfiguration()
 
 KoColor KisToolFill::loadContiguousFillBoundaryColorFromConfig()
 {
-    const QString xmlColor = m_configGroup.readEntry("contiguousFillBoundaryColor", QString());
-    QDomDocument doc;
+    const PkString xmlColor = m_configGroup.readEntry("contiguousFillBoundaryColor", PkString());
+    PkXmlDocument doc;
     if (doc.setContent(xmlColor)) {
-        QDomElement e = doc.documentElement().firstChild().toElement();
-        QString channelDepthID = doc.documentElement().attribute("channeldepth", Integer16BitsColorDepthID.id());
+        PkXmlElement e = doc.documentElement().firstChild().toElement();
+        PkString channelDepthID = doc.documentElement().attribute("channeldepth", Integer16BitsColorDepthID.id());
         bool ok;
         if (e.hasAttribute("space") || e.tagName().toLower() == "srgb") {
             return KoColor::fromXML(e, channelDepthID, &ok);

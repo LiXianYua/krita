@@ -21,6 +21,18 @@ set(kritadefaulttools_static_SRCS
 
 kis_add_library(kritadefaulttools_static STATIC ${kritadefaulttools_static_SRCS})
 
+set_target_properties(kritadefaulttools_static PROPERTIES AUTOMOC OFF)
+target_include_directories(kritadefaulttools_static PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/color
+    ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/geometry
+    ${CMAKE_SOURCE_DIR}/pk/pointer
+    ${CMAKE_SOURCE_DIR}/pk/render
+    ${CMAKE_SOURCE_DIR}/pk/signal
+    ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/variant
+    ${CMAKE_SOURCE_DIR}/pk/xml)
+
 target_link_libraries(kritadefaulttools_static 
     PUBLIC
         kritacanvas
@@ -28,6 +40,15 @@ target_link_libraries(kritadefaulttools_static
         kritashapemodel
         kritaimage
         Boost::boost
+        pkcolor
+        pkcontainer
+        pkgeometry
+        pkpointer
+        pkrender
+        pksignal
+        pkstring
+        pkvariant
+        pkxml
 )
 
 set(kritadefaulttools_SOURCES
@@ -37,6 +58,18 @@ set(kritadefaulttools_SOURCES
 qt_add_resources(kritadefaulttools_SOURCES defaulttools.qrc )
 
 kis_add_library(kritadefaulttools MODULE ${kritadefaulttools_SOURCES})
+
+set_target_properties(kritadefaulttools PROPERTIES AUTOMOC OFF)
+target_include_directories(kritadefaulttools PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/color
+    ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/geometry
+    ${CMAKE_SOURCE_DIR}/pk/pointer
+    ${CMAKE_SOURCE_DIR}/pk/render
+    ${CMAKE_SOURCE_DIR}/pk/signal
+    ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/variant
+    ${CMAKE_SOURCE_DIR}/pk/xml)
 
 generate_export_header(kritadefaulttools BASE_NAME kritadefaulttools)
 
