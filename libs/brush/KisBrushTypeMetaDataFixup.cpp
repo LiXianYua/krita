@@ -8,7 +8,7 @@
 
 #include "kis_debug.h"
 
-#include <QSqlQuery>
+#include <PkSqlQuery.h>
 
 #include <KisResourceLocator.h>
 #include "kis_brush.h"
@@ -18,7 +18,7 @@ PkStringList KisBrushTypeMetaDataFixup::executeFix()
 {
     PkStringList errorMessages;
 
-    QSqlQuery q;
+    PkSqlQuery q;
     const bool r = q.prepare("SELECT resources.id FROM resources "
               "INNER JOIN resource_types ON resources.resource_type_id = resource_types.id "
               "LEFT JOIN metadata ON metadata.foreign_id = resources.id AND metadata.key = :metadata_key "
@@ -53,7 +53,7 @@ PkStringList KisBrushTypeMetaDataFixup::executeFix()
         }
 
         if (updatedAtLeastOneResource) {
-            qWarning() << "Successfully updated brush type metadata in the database";
+            warnKrita << "Successfully updated brush type metadata in the database";
         }
     }
 
