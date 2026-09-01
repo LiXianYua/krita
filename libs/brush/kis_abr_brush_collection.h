@@ -22,6 +22,7 @@
 
 class PkString;
 class PkStream;
+class AbrDataStream;
 
 
 struct AbrInfo;
@@ -91,9 +92,9 @@ protected:
 
 private:
 
-    qint32 abr_brush_load(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
-    qint32 abr_brush_load_v12(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
-    quint32 abr_brush_load_v6(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
+    qint32 abr_brush_load(AbrDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
+    qint32 abr_brush_load_v12(AbrDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
+    quint32 abr_brush_load_v6(AbrDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
 
     bool m_isLoaded;
     PkDateTime m_lastModified;
@@ -104,4 +105,3 @@ private:
 typedef PkSharedPointer<KisAbrBrushCollection> KisAbrBrushCollectionSP;
 
 #endif
-

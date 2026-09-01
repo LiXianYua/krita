@@ -14,8 +14,6 @@
 #include <PkPoint.h>
 #include <PkMemoryStream.h>
 
-#include <klocalizedstring.h>
-
 #include <KoColor.h>
 
 #include "kis_datamanager.h"

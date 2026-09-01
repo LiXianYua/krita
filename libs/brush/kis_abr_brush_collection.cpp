@@ -19,14 +19,34 @@
 #include <kis_debug.h>
 #include <PkString.h>
 #include <PkMemoryStream.h>
+#include <PkRgb.h>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <system_error>
 #include <KoMD5Generator.h>
-#include <klocalizedstring.h>
-
 #include <KoColor.h>
+#include "KisBrushStreamUtils.h"
+
+class AbrDataStream : public PkDataStream
+{
+public:
+    explicit AbrDataStream(PkStream *device)
+        : PkDataStream(device)
+        , m_device(device)
+    {
+    }
+
+    PkStream *device() const { return m_device; }
+    bool atEnd() const { return m_device->atEnd(); }
+    int readRawData(char *data, int size)
+    {
+        return static_cast<int>(m_device->read(data, size));
+    }
+
+private:
+    PkStream *m_device;
+};
 
 
 struct AbrInfo {
@@ -48,7 +68,7 @@ static PkImage convertToQImage(char * buffer, qint32 width, qint32 height)
         PkRgb *pixel = reinterpret_cast<PkRgb *>(img.scanLine(y));
         for (int x = 0; x < width; x++, pos++) {
             value = 255 - buffer[pos];
-            pixel[x] = qRgb(value, value , value);
+            pixel[x] = pkRgb(value, value , value);
         }
 
     }
@@ -56,7 +76,7 @@ static PkImage convertToQImage(char * buffer, qint32 width, qint32 height)
     return img;
 }
 
-static qint32 rle_decode(PkDataStream & abr, char *buffer, qint32 height)
+static qint32 rle_decode(AbrDataStream & abr, char *buffer, qint32 height)
 {
     qint32 n;
     char ptmp;
@@ -147,7 +167,7 @@ static bool abr_supported_content(AbrInfo *abr_hdr)
     return false;
 }
 
-static bool abr_reach_8BIM_section(PkDataStream & abr, const PkString name)
+static bool abr_reach_8BIM_section(AbrDataStream & abr, const PkString name)
 {
     char tag[4];
     char tagname[5];
@@ -190,7 +210,7 @@ static bool abr_reach_8BIM_section(PkDataStream & abr, const PkString name)
     return true;
 }
 
-static qint32 find_sample_count_v6(PkDataStream & abr, AbrInfo *abr_info)
+static qint32 find_sample_count_v6(AbrDataStream & abr, AbrInfo *abr_info)
 {
     qint64 origin;
     qint32 sample_section_size;
@@ -247,7 +267,7 @@ static qint32 find_sample_count_v6(PkDataStream & abr, AbrInfo *abr_info)
 
 
 
-static bool abr_read_content(PkDataStream & abr, AbrInfo *abr_hdr)
+static bool abr_read_content(AbrDataStream & abr, AbrInfo *abr_hdr)
 {
 
     abr >> abr_hdr->version;
@@ -322,7 +342,7 @@ static PkString abr_ucs2_to_utf8(const char16_t *ucs2, int len)
     return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
 }
 
-static PkString abr_read_ucs2_text(PkDataStream & abr)
+static PkString abr_read_ucs2_text(AbrDataStream & abr)
 {
     quint32 name_size;
     quint32 buf_size;
@@ -361,7 +381,7 @@ static PkString abr_read_ucs2_text(PkDataStream & abr)
 }
 
 
-quint32 KisAbrBrushCollection::abr_brush_load_v6(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
+quint32 KisAbrBrushCollection::abr_brush_load_v6(AbrDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
 {
     Q_UNUSED(image_ID);
     qint32 brush_size = 0;
@@ -459,7 +479,7 @@ quint32 KisAbrBrushCollection::abr_brush_load_v6(PkDataStream & abr, AbrInfo *ab
 }
 
 
-qint32 KisAbrBrushCollection::abr_brush_load_v12(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
+qint32 KisAbrBrushCollection::abr_brush_load_v12(AbrDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
 {
     Q_UNUSED(image_ID);
     short brush_type;
@@ -561,7 +581,7 @@ qint32 KisAbrBrushCollection::abr_brush_load_v12(PkDataStream & abr, AbrInfo *ab
 }
 
 
-qint32 KisAbrBrushCollection::abr_brush_load(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
+qint32 KisAbrBrushCollection::abr_brush_load(AbrDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
 {
     qint32 layer_ID = -1;
     switch (abr_hdr->version) {
@@ -647,14 +667,14 @@ bool KisAbrBrushCollection::loadFromDevice(PkStream *dev)
     int i;
     qint32 layer_ID;
 
-    PkByteArray ba = dev->readAll();
+    PkByteArray ba = kisBrushReadAll(dev);
     // QBuffer(QByteArray*) 语义：以既有字节为内容的内存设备。PkMemoryStream
     // （libs/store S-01 交付）没有该构造，改成 ReadWrite 写入字节再回卷读取。
     PkMemoryStream buf;
     buf.open(PkStream::ReadWrite);
     buf.write(ba.constData(), ba.size());
     buf.seek(0);
-    PkDataStream abr(&buf);
+    AbrDataStream abr(&buf);
 
 
     if (!abr_read_content(abr, &abr_hdr)) {
