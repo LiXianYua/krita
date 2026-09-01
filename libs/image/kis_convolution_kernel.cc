@@ -10,7 +10,7 @@
 
 #include <kis_mask_generator.h>
 
-struct Q_DECL_HIDDEN KisConvolutionKernel::Private {
+struct KisConvolutionKernel::Private {
     qreal offset;
     qreal factor;
     Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> data;
