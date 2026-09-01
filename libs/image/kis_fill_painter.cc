@@ -257,7 +257,6 @@ void KisFillPainter::fillColor(int startX, int startY, KisPaintDeviceSP sourceDe
 
         // Now create a layer and fill it
         KisPaintDeviceSP filled = device()->createCompositionSourceDevice();
-        Q_CHECK_PTR(filled);
         KisFillPainter painter(filled);
         painter.fillRect(0, 0, m_width, m_height, paintColor());
         painter.end();
@@ -272,7 +271,6 @@ void KisFillPainter::fillPattern(int startX, int startY, KisPaintDeviceSP source
 
     // Now create a layer and fill it
     KisPaintDeviceSP filled = device()->createCompositionSourceDevice();
-    Q_CHECK_PTR(filled);
     KisFillPainter painter(filled);
     painter.fillRectNoCompose(PkRect(0, 0, m_width, m_height), pattern(), patternTransform);
     painter.end();
