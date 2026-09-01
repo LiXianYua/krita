@@ -7,6 +7,8 @@
 #ifndef KIS_CHANGE_CLONE_LAYERS_COMMAND_H_
 #define KIS_CHANGE_CLONE_LAYERS_COMMAND_H_
 
+#include <PkScopedPointer.h>
+
 #include <kritaimage_export.h>
 #include <kundo2command.h>
 #include "kis_types.h"
@@ -16,6 +18,7 @@ class KRITAIMAGE_EXPORT KisChangeCloneLayersCommand : public KUndo2Command
 
 public:
     KisChangeCloneLayersCommand(PkList<KisCloneLayerSP> cloneLayers, KisLayerSP newSource, KUndo2Command *parent = 0);
+    ~KisChangeCloneLayersCommand() override;
 
     void undo() override;
     void redo() override;

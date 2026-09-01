@@ -15,6 +15,8 @@ struct KisChangeCloneLayersCommand::Private
     KisLayerSP newSource;
 };
 
+KisChangeCloneLayersCommand::~KisChangeCloneLayersCommand() = default;
+
 KisChangeCloneLayersCommand::KisChangeCloneLayersCommand(PkList<KisCloneLayerSP> cloneLayers, KisLayerSP newSource, KUndo2Command *parent)
     : KUndo2Command(kundo2_text("Change Clone Layers"), parent)
     , d(new Private())
