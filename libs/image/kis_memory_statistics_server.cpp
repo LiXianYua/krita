@@ -11,11 +11,11 @@
 #include "kis_image_config.h"
 #include "kis_signal_compressor.h"
 
+#include <PkSet.h>
+
 #include "tiles3/kis_tile_data_store.h"
 
-Q_GLOBAL_STATIC(KisMemoryStatisticsServer, s_instance)
-
-struct Q_DECL_HIDDEN KisMemoryStatisticsServer::Private
+struct KisMemoryStatisticsServer::Private
 {
     Private(KisMemoryStatisticsServer *q)
         : updateCompressor(1000 /* ms */, KisSignalCompressor::POSTPONE, q)
@@ -45,7 +45,8 @@ KisMemoryStatisticsServer::~KisMemoryStatisticsServer()
 
 KisMemoryStatisticsServer* KisMemoryStatisticsServer::instance()
 {
-    return s_instance;
+    static KisMemoryStatisticsServer instance;
+    return &instance;
 }
 
 inline void addDevice(KisPaintDeviceSP dev,
@@ -164,5 +165,4 @@ void KisMemoryStatisticsServer::notifyImageChanged()
 {
     m_d->updateCompressor.start();
 }
-
 

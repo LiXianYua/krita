@@ -531,6 +531,7 @@ set(kritaimage_SIGNAL_HEADERS
     kis_image_animation_interface.h
     kis_image_signal_router.h
     kis_keyframe_channel.h
+    kis_memory_statistics_server.h
     kis_node.h
     kis_paint_device.h
     kis_scalar_keyframe_channel.h

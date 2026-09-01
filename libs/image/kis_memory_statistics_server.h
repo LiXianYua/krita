@@ -9,6 +9,7 @@
 
 #include <PkObject.h>
 #include <pk/pointer/PkScopedPointer.h>
+#include <PkSignalCompat.h>
 
 #include "kritaimage_export.h"
 #include "kis_types.h"
@@ -16,7 +17,6 @@
 
 class KRITAIMAGE_EXPORT KisMemoryStatisticsServer : public PkShellObject
 {
-    Q_OBJECT
 public:
     struct Statistics
     {
@@ -67,11 +67,11 @@ public:
 
     Statistics fetchMemoryStatistics(KisImageSP image) const;
 
-public Q_SLOTS:
+public:
     void notifyImageChanged();
     void tryForceUpdateMemoryStatisticsWhileIdle();
 
-Q_SIGNALS:
+signals:
     void sigUpdateMemoryStatistics();
 
 
