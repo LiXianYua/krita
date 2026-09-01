@@ -7,6 +7,7 @@
 #ifndef __KIS_PAINTER_BASED_STROKE_STRATEGY_H
 #define __KIS_PAINTER_BASED_STROKE_STRATEGY_H
 
+#include <PkString.h>
 #include <PkVector.h>
 
 #include "KisRunnableBasedStrokeStrategy.h"
@@ -27,12 +28,12 @@ class KisUndoStore;
 class PAINTOP_EXPORT KisPainterBasedStrokeStrategy : public KisRunnableBasedStrokeStrategy
 {
 public:
-    KisPainterBasedStrokeStrategy(const QLatin1String &id,
+    KisPainterBasedStrokeStrategy(const PkString &id,
                                   const KUndo2MagicString &name,
                                   KisResourcesSnapshotSP resources,
                                   PkVector<KisFreehandStrokeInfo*> strokeInfos);
 
-    KisPainterBasedStrokeStrategy(const QLatin1String &id,
+    KisPainterBasedStrokeStrategy(const PkString &id,
                                   const KUndo2MagicString &name,
                                   KisResourcesSnapshotSP resources,
                                   KisFreehandStrokeInfo *strokeInfo);

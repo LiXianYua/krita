@@ -11,6 +11,7 @@
 #include <KisStrokeSpeedMonitor.h>
 #include <PkObject.h>
 #include <PkXmlDocument.h>
+#include <strokes/kis_painter_based_stroke_strategy.h>
 #include <kis_properties_configuration.h>
 
 void KisCurveOptionDataTest::testCurveOptionData()
@@ -163,6 +164,17 @@ void KisCurveOptionDataTest::testStrokeSpeedMonitorSignalLifetime()
 
     monitor->setHaveStrokeSpeedMeasurement(originalValue);
     QCOMPARE(emissions, 1);
+}
+
+void KisCurveOptionDataTest::testPainterStrategyRuntimeId()
+{
+    KisPainterBasedStrokeStrategy strategy(
+        PkString("FREEHAND_STROKE"),
+        KUndo2MagicString(),
+        KisResourcesSnapshotSP(),
+        PkVector<KisFreehandStrokeInfo *>());
+
+    QCOMPARE(strategy.id(), PkString("FREEHAND_STROKE"));
 }
 
 SIMPLE_TEST_MAIN(KisCurveOptionDataTest)

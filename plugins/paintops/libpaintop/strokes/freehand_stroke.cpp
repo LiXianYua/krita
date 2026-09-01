@@ -68,7 +68,7 @@ FreehandStrokeStrategy::FreehandStrokeStrategy(KisResourcesSnapshotSP resources,
                                                KisFreehandStrokeInfo *strokeInfo,
                                                const KUndo2MagicString &name,
                                                Flags flags)
-    : KisPainterBasedStrokeStrategy(QLatin1String("FREEHAND_STROKE"), name,
+    : KisPainterBasedStrokeStrategy(PkString("FREEHAND_STROKE"), name,
                                     resources, strokeInfo),
       m_d(new Private(resources))
 {
@@ -79,7 +79,7 @@ FreehandStrokeStrategy::FreehandStrokeStrategy(KisResourcesSnapshotSP resources,
                                                PkVector<KisFreehandStrokeInfo*> strokeInfos,
                                                const KUndo2MagicString &name,
                                                Flags flags)
-    : KisPainterBasedStrokeStrategy(QLatin1String("FREEHAND_STROKE"), name,
+    : KisPainterBasedStrokeStrategy(PkString("FREEHAND_STROKE"), name,
                                     resources, strokeInfos),
       m_d(new Private(resources))
 {

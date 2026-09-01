@@ -17,6 +17,7 @@ private Q_SLOTS:
     void testSerializeNoSensors();
     void testLengthSensorTagRoundTrip();
     void testStrokeSpeedMonitorSignalLifetime();
+    void testPainterStrategyRuntimeId();
 };
 
 #endif // KISCURVEOPTIONDATATEST_H

@@ -38,7 +38,7 @@
 #include "KisAnimAutoKey.h"
 
 
-KisPainterBasedStrokeStrategy::KisPainterBasedStrokeStrategy(const QLatin1String &id,
+KisPainterBasedStrokeStrategy::KisPainterBasedStrokeStrategy(const PkString &id,
                                                              const KUndo2MagicString &name,
                                                              KisResourcesSnapshotSP resources,
                                                              PkVector<KisFreehandStrokeInfo*> strokeInfos)
@@ -53,7 +53,7 @@ KisPainterBasedStrokeStrategy::KisPainterBasedStrokeStrategy(const QLatin1String
     init();
 }
 
-KisPainterBasedStrokeStrategy::KisPainterBasedStrokeStrategy(const QLatin1String &id,
+KisPainterBasedStrokeStrategy::KisPainterBasedStrokeStrategy(const PkString &id,
                                                              const KUndo2MagicString &name,
                                                              KisResourcesSnapshotSP resources,
                                                              KisFreehandStrokeInfo *strokeInfo)
