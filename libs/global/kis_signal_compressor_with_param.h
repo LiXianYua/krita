@@ -31,7 +31,6 @@
  */
 class KRITAGLOBAL_EXPORT SignalToFunctionProxy : public PkObject
 {
-    Q_OBJECT
 public:
     using TrivialFunction = std::function<void ()>;
 
@@ -41,7 +40,7 @@ public:
     {
     }
 
-public Q_SLOTS:
+public:
     void start() {
         m_function();
     }
@@ -68,14 +67,12 @@ private:
  */
 class KRITAGLOBAL_EXPORT FunctionToSignalProxy : public PkObject
 {
-    Q_OBJECT
-
 public:
     void start() {
-        Q_EMIT timeout();
+        timeout();
     }
 
-Q_SIGNALS:
+signals:
     void timeout();
 };
 
