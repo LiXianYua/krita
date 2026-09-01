@@ -15,6 +15,7 @@
 
 #include "kis_types.h"
 
+class PkRect;
 
 
 enum BumpmapType
