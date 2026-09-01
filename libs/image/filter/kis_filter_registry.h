@@ -9,6 +9,7 @@
 #define KIS_FILTER_REGISTRY_H_
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 #include <PkString.h>
 
 #include "kis_filter.h"
@@ -22,8 +23,6 @@ class KisFilterConfiguration;
 class KRITAIMAGE_EXPORT KisFilterRegistry : public PkObject, public KoGenericRegistry<KisFilterSP>
 {
 
-    Q_OBJECT
-
 public:
 
     ~KisFilterRegistry() override;
@@ -34,7 +33,7 @@ public:
 
     KisFilterSP fallbackFilter() const;
 
-Q_SIGNALS:
+signals:
 
     void filterAdded(PkString id);
 

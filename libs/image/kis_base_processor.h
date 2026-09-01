@@ -10,8 +10,6 @@
 
 #include <PkString.h>
 
-#include <klocalizedstring.h>
-
 #include "KoID.h"
 #include "KoColorSpace.h"
 

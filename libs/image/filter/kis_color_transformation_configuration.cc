@@ -12,7 +12,7 @@
 #include <PkThread.h>
 #include "filter/kis_color_transformation_filter.h"
 
-struct Q_DECL_HIDDEN KisColorTransformationConfiguration::Private {
+struct KisColorTransformationConfiguration::Private {
     Private()
     {}
 

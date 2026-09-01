@@ -28,7 +28,7 @@
 #include <KisRequiredResourcesOperators.h>
 
 
-struct Q_DECL_HIDDEN KisFilterConfiguration::Private {
+struct KisFilterConfiguration::Private {
     PkString name;
     qint32 version;
     PkBitArray channelFlags;
