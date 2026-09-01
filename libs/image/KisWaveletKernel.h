@@ -11,6 +11,7 @@
 #include "kritaimage_export.h"
 
 #include <Eigen/Core>
+#include <PkBitArray.h>
 
 class PkRect;
 
