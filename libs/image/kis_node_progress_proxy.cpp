@@ -9,7 +9,7 @@
 
 #include "kis_node.h"
 
-struct Q_DECL_HIDDEN KisNodeProgressProxy::Private {
+struct KisNodeProgressProxy::Private {
     Private()
         : minimum(0)
         , maximum(100)
@@ -69,7 +69,7 @@ void KisNodeProgressProxy::setValue(int _value)
 {
     d->value = _value;
     if (d->node && d->computePercentage()) {
-        emit(percentageChanged(d->percentage, d->node));
+        percentageChanged(d->percentage, d->node);
     }
 }
 
@@ -78,7 +78,7 @@ void KisNodeProgressProxy::setRange(int _minimum, int _maximum)
     d->minimum = _minimum;
     d->maximum = _maximum;
     if (d->node && d->computePercentage()) {
-        emit(percentageChanged(d->percentage, d->node));
+        percentageChanged(d->percentage, d->node);
     }
 }
 

@@ -9,6 +9,7 @@
 
 #include <KoProgressProxy.h>
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 
 #include <kis_types.h>
 #include "kis_node.h" // 信号 percentageChanged(int, const KisNodeSP&) 的参数是 KisSharedPtr<KisNode>，
@@ -21,7 +22,6 @@
  */
 class KRITAIMAGE_EXPORT KisNodeProgressProxy : public PkShellObject, public KoProgressProxy
 {
-    Q_OBJECT
     friend class KisNode;
     /**
      * Create a proxy to report progress when processing, this proxy is associated
@@ -40,7 +40,7 @@ public:
      * @return the current percentage (return -1 if no progress)
      */
     int percentage() const;
-Q_SIGNALS:
+signals:
     /**
      * Emitted when the percentage of the proxy is changed.
      * @param _percentage is the progress value in percent

@@ -533,6 +533,7 @@ set(kritaimage_SIGNAL_HEADERS
     kis_keyframe_channel.h
     kis_memory_statistics_server.h
     kis_node.h
+    kis_node_progress_proxy.h
     kis_paint_device.h
     kis_scalar_keyframe_channel.h
     kis_transform_mask.h
