@@ -11,12 +11,14 @@ def run(exe, *args):
 
 
 def parse_payload(text):
-    lines = text.splitlines()
-    if len(lines) < 3 or lines[0] != "KPR1":
+    if not text.endswith("\n"):
+        raise AssertionError("payload is missing the required final newline")
+    lines = text.split("\n")
+    if len(lines) != 5 or lines[0] != "KPR1" or lines[4] != "":
         raise AssertionError(f"invalid header: {text[:80]!r}")
     name = lines[1]
     x, y, width, height = map(int, lines[2].split())
-    payload = "".join(lines[3:])
+    payload = lines[3]
     if not name or width <= 0 or height <= 0 or len(payload) != width * height * 2:
         raise AssertionError(f"invalid payload dimensions for {name!r}")
     if re.fullmatch(r"[0-9a-f]+", payload) is None:
@@ -54,8 +56,9 @@ def main():
     odd = next(n for n in names if "nested_oddeven" in n)
     winding = next(n for n in names if "nested_winding" in n)
     assert data(odd) != data(winding), "fill rules produced identical masks"
-    aa_off = next(n for n in names if "aa_off" in n and "rect" not in n)
-    aa_on = next(n for n in names if "aa_on" in n)
+    aa_off = "aa_off_curve"
+    aa_on = "aa_on_curve"
+    assert aa_off in payloads and aa_on in payloads, "missing matched AA curve fixtures"
     assert data(aa_off) != data(aa_on), "AA on/off produced identical masks"
     for name in names:
         if any(tag in name for tag in ("mirror", "chunk_boundary")):
