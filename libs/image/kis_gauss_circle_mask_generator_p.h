@@ -11,7 +11,7 @@
 #include <PkScopedPointer.h>
 #include "kis_brush_mask_applicator_base.h"
 
-struct Q_DECL_HIDDEN KisGaussCircleMaskGenerator::Private
+struct KisGaussCircleMaskGenerator::Private
 {
     Private(bool enableAntialiasing)
         : fadeMaker(*this, enableAntialiasing)

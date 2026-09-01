@@ -34,7 +34,7 @@
 #include "kis_time_span.h"
 
 
-struct Q_DECL_HIDDEN KisPaintLayer::Private
+struct KisPaintLayer::Private
 {
 public:
     Private(KisPaintLayer *_q) : q(_q), contentChannel(0) {}

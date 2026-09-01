@@ -22,7 +22,7 @@
 #include "kis_asl_layer_style_serializer.h"
 
 
-struct Q_DECL_HIDDEN KisPSDLayerStyle::Private
+struct KisPSDLayerStyle::Private
 {
     Private(KisResourcesInterfaceSP _resourcesInterface)
         : version(-1)

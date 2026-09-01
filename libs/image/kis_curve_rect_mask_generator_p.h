@@ -14,7 +14,7 @@
 #include "kis_brush_mask_applicator_base.h"
 #include "kis_cubic_curve.h"
 
-struct Q_DECL_HIDDEN KisCurveRectangleMaskGenerator::Private
+struct KisCurveRectangleMaskGenerator::Private
 {
     Private(bool enableAntialiasing)
         : fadeMaker(*this, enableAntialiasing)

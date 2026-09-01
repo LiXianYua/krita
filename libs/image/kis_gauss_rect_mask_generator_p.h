@@ -13,7 +13,7 @@
 #include "kis_antialiasing_fade_maker.h"
 #include "kis_brush_mask_applicator_base.h"
 
-struct Q_DECL_HIDDEN KisGaussRectangleMaskGenerator::Private
+struct KisGaussRectangleMaskGenerator::Private
 {
     Private(bool enableAntialiasing)
         : fadeMaker(*this, enableAntialiasing)

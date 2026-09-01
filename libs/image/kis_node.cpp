@@ -71,7 +71,7 @@ typedef KisSafeReadList<KisNodeSP> KisSafeReadNodeList;
  *    read by the reader threads yourself!
  */
 
-struct Q_DECL_HIDDEN KisNode::Private
+struct KisNode::Private
 {
 public:
     Private(KisNode *node)

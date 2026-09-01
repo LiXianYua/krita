@@ -91,7 +91,7 @@ PkPolygonF pkPolygonIntersect(const PkPolygonF &subject, const PkPolygonF &clip)
 
 
 
-struct Q_DECL_HIDDEN KisSafeTransform::Private
+struct KisSafeTransform::Private
 {
     bool needsClipping = true;
 
@@ -281,4 +281,3 @@ PkRect KisSafeTransform::mapRectBackward(const PkRect &rc)
 {
     return mapRectBackward(PkRectF(rc)).toAlignedRect();
 }
-

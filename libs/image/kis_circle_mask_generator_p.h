@@ -8,7 +8,7 @@
 #define _KIS_CIRCLE_MASK_GENERATOR_P_H_
 
 #include <PkScopedPointer.h>
-struct Q_DECL_HIDDEN KisCircleMaskGenerator::Private {
+struct KisCircleMaskGenerator::Private {
     Private()
         : xcoef(0),
         ycoef(0),

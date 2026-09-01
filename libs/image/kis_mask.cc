@@ -33,7 +33,7 @@
 #include "KisSafeNodeProjectionStore.h"
 
 
-struct Q_DECL_HIDDEN KisMask::Private {
+struct KisMask::Private {
     Private(KisMask *_q)
         : q(_q),
           projectionPlane(new KisMaskProjectionPlane(q))

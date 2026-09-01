@@ -154,7 +154,7 @@ private:
     PkList<KisEffectMaskSP> m_effectMasks;
 };
 
-struct Q_DECL_HIDDEN KisLayer::Private
+struct KisLayer::Private
 {
     Private(KisLayer *q)
         : masksCache(q)

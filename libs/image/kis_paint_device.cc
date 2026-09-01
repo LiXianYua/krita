@@ -579,7 +579,7 @@ private:
 
     void transferFromData(Data *data, KisPaintDeviceSP targetDevice);
 
-    struct Q_DECL_HIDDEN StrategyPolicy;
+    struct StrategyPolicy;
     typedef KisSequentialIteratorBase<ReadOnlyIteratorPolicy<StrategyPolicy>, StrategyPolicy> InternalSequentialConstIterator;
     typedef KisSequentialIteratorBase<WritableIteratorPolicy<StrategyPolicy>, StrategyPolicy> InternalSequentialIterator;
 

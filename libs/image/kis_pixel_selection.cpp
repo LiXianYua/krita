@@ -27,7 +27,7 @@
 #include "kundo2command.h"
 
 
-struct Q_DECL_HIDDEN KisPixelSelection::Private {
+struct KisPixelSelection::Private {
     KisSelectionWSP parentSelection;
 
     PkPainterPath outlineCache;

@@ -23,7 +23,7 @@
 #include "kis_clone_layer.h"
 
 
-struct Q_DECL_HIDDEN KisProjectionLeaf::Private
+struct KisProjectionLeaf::Private
 {
     Private(KisNode *_node) : node(_node) {}
 

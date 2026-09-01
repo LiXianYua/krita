@@ -26,7 +26,7 @@
 #include <kis_abstract_projection_plane.h>
 
 
-struct Q_DECL_HIDDEN KisGroupLayer::Private
+struct KisGroupLayer::Private
 {
 public:
     Private()

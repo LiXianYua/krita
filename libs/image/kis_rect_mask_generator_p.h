@@ -9,7 +9,7 @@
 #define KIS_RECT_MASK_GENERATOR_P_H
 
 #include <PkScopedPointer.h>
-struct Q_DECL_HIDDEN KisRectangleMaskGenerator::Private {
+struct KisRectangleMaskGenerator::Private {
     Private()
         : xcoeff(0),
         ycoeff(0),

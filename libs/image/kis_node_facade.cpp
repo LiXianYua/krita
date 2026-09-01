@@ -8,7 +8,7 @@
 #include "kis_node_graph_listener.h"
 #include <kis_debug.h>
 
-struct Q_DECL_HIDDEN KisNodeFacade::Private
+struct KisNodeFacade::Private
 {
 public:
     KisNodeWSP root;
@@ -130,4 +130,3 @@ bool KisNodeFacade::removeNode(KisNodeSP node)
     return node->parent()->remove(node);
 
 }
-

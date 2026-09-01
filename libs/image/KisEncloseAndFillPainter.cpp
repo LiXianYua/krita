@@ -327,7 +327,6 @@ void KisEncloseAndFillPainter::encloseAndFillColor(KisPixelSelectionSP enclosing
 
     // Now create a layer and fill it
     KisPaintDeviceSP filled = device()->createCompositionSourceDevice();
-    Q_CHECK_PTR(filled);
     KisFillPainter painter(filled);
     painter.fillRect(fillRect, paintColor());
     painter.end();
@@ -348,7 +347,6 @@ void KisEncloseAndFillPainter::encloseAndFillPattern(KisPixelSelectionSP enclosi
 
     // Now create a layer and fill it
     KisPaintDeviceSP filled = device()->createCompositionSourceDevice();
-    Q_CHECK_PTR(filled);
     KisFillPainter painter(filled);
     painter.fillRectNoCompose(fillRect, pattern(), patternTransform);
     painter.end();

@@ -12,7 +12,7 @@
 #include <QtGlobal>
 
 
-struct Q_DECL_HIDDEN KisNodeGraphListener::Private
+struct KisNodeGraphListener::Private
 {
     Private() : sequenceNumber(0) {}
     int sequenceNumber;

@@ -21,7 +21,7 @@
 #include "kis_pointer_utils.h"
 
 
-struct Q_DECL_HIDDEN KisIndirectPaintingSupport::Private {
+struct KisIndirectPaintingSupport::Private {
     // To simulate the indirect painting
     KisPaintDeviceSP temporaryTarget;
     PkString compositeOp;

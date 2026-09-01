@@ -27,7 +27,7 @@
 #include "KisImageConfigNotifier.h"
 
 
-struct Q_DECL_HIDDEN KisSelectionMask::Private
+struct KisSelectionMask::Private
 {
 public:
     Private(KisSelectionMask *_q)
@@ -332,4 +332,3 @@ void KisSelectionMask::Private::slotConfigChanged()
 {
     slotConfigChangedImpl(true);
 }
-

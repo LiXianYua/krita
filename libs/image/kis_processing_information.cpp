@@ -9,7 +9,7 @@
 #include "kis_selection.h"
 #include "kis_image.h"
 
-struct Q_DECL_HIDDEN KisConstProcessingInformation::Private {
+struct KisConstProcessingInformation::Private {
     Private() : device(0), selection(0) {}
     KisPaintDeviceSP device;
     KisSelectionSP selection;
@@ -54,7 +54,7 @@ const PkPoint& KisConstProcessingInformation::topLeft() const
     return d->topLeft;
 }
 
-struct Q_DECL_HIDDEN KisProcessingInformation::Private {
+struct KisProcessingInformation::Private {
     KisPaintDeviceSP device;
 };
 

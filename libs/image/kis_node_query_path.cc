@@ -25,7 +25,7 @@ struct PathElement {
     unsigned int index {0};
 };
 
-struct Q_DECL_HIDDEN KisNodeQueryPath::Private {
+struct KisNodeQueryPath::Private {
     PkList<PathElement> elements;
     bool relative;
     /// This function will remove unneeded call to parent, for instance, "1/../3/../5" => "5"
@@ -212,5 +212,4 @@ KisNodeQueryPath KisNodeQueryPath::absolutePath(KisNodeSP node)
     }
     return path;
 }
-
 

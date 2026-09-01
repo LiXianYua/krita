@@ -13,7 +13,7 @@
 #include "KisSpatialContainer.h"
 
 
-struct Q_DECL_HIDDEN KisLiquifyTransformWorker::Private
+struct KisLiquifyTransformWorker::Private
 {
     Private(const QRect &_srcBounds,
             KoUpdater *_progress,

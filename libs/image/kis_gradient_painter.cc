@@ -433,7 +433,6 @@ GradientRepeatNoneStrategy *GradientRepeatNoneStrategy::instance()
 {
     if (m_instance == 0) {
         m_instance = new GradientRepeatNoneStrategy();
-        Q_CHECK_PTR(m_instance);
     }
 
     return m_instance;
@@ -473,7 +472,6 @@ GradientRepeatForwardsStrategy *GradientRepeatForwardsStrategy::instance()
 {
     if (m_instance == 0) {
         m_instance = new GradientRepeatForwardsStrategy();
-        Q_CHECK_PTR(m_instance);
     }
 
     return m_instance;
@@ -513,7 +511,6 @@ GradientRepeatAlternateStrategy *GradientRepeatAlternateStrategy::instance()
 {
     if (m_instance == 0) {
         m_instance = new GradientRepeatAlternateStrategy();
-        Q_CHECK_PTR(m_instance);
     }
 
     return m_instance;
@@ -556,7 +553,6 @@ GradientRepeatModuloDivisiveContinuousHalfStrategy *GradientRepeatModuloDivisive
 {
     if (m_instance == 0) {
         m_instance = new GradientRepeatModuloDivisiveContinuousHalfStrategy();
-        Q_CHECK_PTR(m_instance);
     }
 
     return m_instance;
@@ -989,7 +985,7 @@ const quint8 *NoAntialiasPaintPolicy::colorAt(qreal x, qreal y) const
 
 }
 
-struct Q_DECL_HIDDEN KisGradientPainter::Private
+struct KisGradientPainter::Private
 {
     enumGradientShape shape;
 

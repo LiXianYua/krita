@@ -27,7 +27,7 @@
 
 
 
-struct Q_DECL_HIDDEN KisSelection::Private {
+struct KisSelection::Private {
     Private(KisSelection *q)
         : isVisible(true),
           shapeSelection(0),
@@ -616,4 +616,3 @@ quint8 KisSelection::selected(qint32 x, qint32 y) const
 
     return *pix;
 }
-

@@ -19,7 +19,7 @@
 
 #include <qnumeric.h>
 
-struct Q_DECL_HIDDEN KisCageTransformWorker::Private
+struct KisCageTransformWorker::Private
 {
     Private(const QVector<QPointF> &_origCage,
             KoUpdater *_progress,

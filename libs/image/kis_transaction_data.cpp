@@ -34,7 +34,7 @@ struct OptionalInterstrokeInfo
     PkScopedPointer<KUndo2Command> endTransactionCommand;
 };
 
-class Q_DECL_HIDDEN KisTransactionData::Private
+class KisTransactionData::Private
 {
 public:
     KisPaintDeviceSP device;

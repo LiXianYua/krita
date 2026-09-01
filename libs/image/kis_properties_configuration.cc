@@ -87,7 +87,7 @@ PkString pkToBase64(const PkByteArray &data)
 
 } // namespace
 
-struct Q_DECL_HIDDEN KisPropertiesConfiguration::Private {
+struct KisPropertiesConfiguration::Private {
     PkMap<PkString, PkVariant> properties;
     PkSet<PkString> notSavedProperties;
 };
@@ -508,7 +508,7 @@ bool KisPropertiesConfiguration::compareTo(const KisPropertiesConfiguration* rhs
 
 // --- factory ---
 
-struct Q_DECL_HIDDEN KisPropertiesConfigurationFactory::Private {
+struct KisPropertiesConfigurationFactory::Private {
 };
 
 KisPropertiesConfigurationFactory::KisPropertiesConfigurationFactory() : d(new Private)
@@ -531,4 +531,3 @@ KisSerializableConfigurationSP KisPropertiesConfigurationFactory::create(const P
     pc->fromXML(e);
     return pc;
 }
-

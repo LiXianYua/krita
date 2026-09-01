@@ -59,7 +59,7 @@ private:
 };
 
 
-struct Q_DECL_HIDDEN KisStrokesQueue::Private {
+struct KisStrokesQueue::Private {
     Private(KisStrokesQueue *_q)
         : q(_q),
           openedStrokesCounter(0),
