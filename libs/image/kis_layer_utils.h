@@ -7,6 +7,8 @@
 #ifndef __KIS_LAYER_UTILS_H
 #define __KIS_LAYER_UTILS_H
 
+#include <PkFlags.h>
+
 #include <functional>
 
 #include "kundo2command.h"
@@ -31,7 +33,7 @@ namespace KisLayerUtils
         None,
         SkipMergingFrames = 0x1
     };
-    Q_DECLARE_FLAGS(MergeFlags, MergeFlag)
+    PK_DECLARE_FLAGS(MergeFlags, MergeFlag)
 
     KRITAIMAGE_EXPORT void sortMergeableNodes(KisNodeSP root, PkList<KisNodeSP> &inputNodes, PkList<KisNodeSP> &outputNodes);
     KRITAIMAGE_EXPORT KisNodeList sortMergeableNodes(KisNodeSP root, KisNodeList nodes);
@@ -283,6 +285,6 @@ namespace KisLayerUtils
     KRITAIMAGE_EXPORT PkSet<int> fetchUniqueFrameTimes(KisNodeSP node, PkSet<int> selectedTimes, bool filterActiveFrameID);
 }
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisLayerUtils::MergeFlags);
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisLayerUtils::MergeFlags);
 
 #endif /* __KIS_LAYER_UTILS_H */
