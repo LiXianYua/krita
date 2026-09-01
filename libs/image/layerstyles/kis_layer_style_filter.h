@@ -19,6 +19,7 @@ typedef PkSharedPointer<KisPSDLayerStyle> KisPSDLayerStyleSP;
 class KisLayerStyleFilterEnvironment;
 class KisMultipleProjection;
 class KisLayerStyleKnockoutBlower;
+class PkRect;
 
 class KRITAIMAGE_EXPORT KisLayerStyleFilter : public KisShared
 {
