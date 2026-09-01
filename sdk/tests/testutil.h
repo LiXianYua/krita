@@ -85,22 +85,26 @@ namespace TestUtil
 inline QImage diagnosticQImage(const PkImage &image)
 {
     if (image.isNull()) return QImage();
-    return QImage(reinterpret_cast<const uchar *>(image.constBits()), image.width(), image.height(),
-                  image.bytesPerLine(), QImage::Format_ARGB32).copy();
+    const QImage source(reinterpret_cast<const uchar *>(image.constBits()),
+                        image.width(), image.height(), image.bytesPerLine(),
+                        static_cast<QImage::Format>(image.format()));
+    return source.convertToFormat(QImage::Format_ARGB32).copy();
 }
 
 inline PkImage pkImageFromQImage(const QImage &image)
 {
-    PkImage result(image.width(), image.height(), PkImage::Format_ARGB32);
-    for (int y = 0; y < image.height(); ++y) {
-        memcpy(result.scanLine(y), image.constScanLine(y), static_cast<size_t>(image.bytesPerLine()));
+    const QImage converted = image.convertToFormat(QImage::Format_ARGB32);
+    PkImage result(converted.width(), converted.height(), PkImage::Format_ARGB32);
+    const size_t rowBytes = static_cast<size_t>(converted.width()) * sizeof(QRgb);
+    for (int y = 0; y < converted.height(); ++y) {
+        memcpy(result.scanLine(y), converted.constScanLine(y), rowBytes);
     }
     return result;
 }
 
 inline bool checkQImage(const PkImage &image, const QString &testName,
                         const QString &prefix, const QString &caseName,
-                        int fuzzy = 0, int fuzzyAlpha = 0, int maxNumFailingPixels = 0)
+                        int fuzzy = 0, int fuzzyAlpha = -1, int maxNumFailingPixels = 0)
 {
     return checkQImage(diagnosticQImage(image), testName, prefix, caseName,
                        fuzzy, fuzzyAlpha, maxNumFailingPixels);
@@ -108,7 +112,7 @@ inline bool checkQImage(const PkImage &image, const QString &testName,
 
 inline bool checkQImageExternal(const PkImage &image, const QString &testName,
                                 const QString &prefix, const QString &caseName,
-                                int fuzzy = 0, int fuzzyAlpha = 0, int maxNumFailingPixels = 0)
+                                int fuzzy = 0, int fuzzyAlpha = -1, int maxNumFailingPixels = 0)
 {
     return checkQImageExternal(diagnosticQImage(image), testName, prefix, caseName,
                                fuzzy, fuzzyAlpha, maxNumFailingPixels);
@@ -292,15 +296,13 @@ struct ReferenceImageChecker
 
         if (m_storageType == ExternalStorage) {
             const PkImage converted = device->convertToQImage(0, image->bounds());
-            const QImage diagnostic(reinterpret_cast<const uchar *>(converted.constBits()), converted.width(), converted.height(), converted.bytesPerLine(), QImage::Format_ARGB32);
-            result = checkQImageExternal(diagnostic.copy(),
+            result = checkQImageExternal(diagnosticQImage(converted),
                                          m_testName,
                                          m_prefix,
                                          caseName, m_fuzzy, m_fuzzy, m_maxFailingPixels);
         } else {
             const PkImage converted = device->convertToQImage(0, image->bounds());
-            const QImage diagnostic(reinterpret_cast<const uchar *>(converted.constBits()), converted.width(), converted.height(), converted.bytesPerLine(), QImage::Format_ARGB32);
-            result = checkQImage(diagnostic.copy(),
+            result = checkQImage(diagnosticQImage(converted),
                                  m_testName,
                                  m_prefix,
                                  caseName, m_fuzzy, m_fuzzy, m_maxFailingPixels);

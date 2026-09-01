@@ -6,6 +6,8 @@
 
 #include "kis_gradient_painter_test.h"
 
+#include <QPainter>
+#include <QPainterPath>
 #include <simpletest.h>
 #include "kis_gradient_painter.h"
 
@@ -22,6 +24,40 @@
 #include "krita_utils.h"
 #include <kis_algebra_2d.h>
 #include <testutil.h>
+
+namespace {
+
+QPainterPath diagnosticQPainterPath(const PkPainterPath &path)
+{
+    QPainterPath result;
+    result.setFillRule(path.fillRule());
+
+    for (int i = 0; i < path.elementCount(); ++i) {
+        const PkPainterPath::Element element = path.elementAt(i);
+        switch (element.type) {
+        case PkPainterPath::MoveToElement:
+            result.moveTo(element.x, element.y);
+            break;
+        case PkPainterPath::LineToElement:
+            result.lineTo(element.x, element.y);
+            break;
+        case PkPainterPath::CurveToElement: {
+            const PkPainterPath::Element control2 = path.elementAt(++i);
+            const PkPainterPath::Element endPoint = path.elementAt(++i);
+            result.cubicTo(element.x, element.y,
+                           control2.x, control2.y,
+                           endPoint.x, endPoint.y);
+            break;
+        }
+        case PkPainterPath::CurveToDataElement:
+            break;
+        }
+    }
+
+    return result;
+}
+
+}
 
 
 void KisGradientPainterTest::testSimplifyPath()
@@ -75,7 +111,7 @@ void testShapedGradientPainterImpl(const PkPolygonF &selectionPolygon,
 
     (void)pixelSelection->convertToQImage(0, imageRect);
 
-    PkGradient testGradient(PkGradientEnums::LinearGradient);
+    PkGradient testGradient = PkGradient::linear(PkPointF(0.0, 0.0), PkPointF(1.0, 1.0));
     testGradient.setColorAt(0.0, PkColor(Qt::white)); testGradient.setColorAt(0.5, PkColor(Qt::green));
     testGradient.setColorAt(1.0, PkColor(Qt::black)); testGradient.setSpread(PkGradientEnums::ReflectSpread);
     PkSharedPointer<KoStopGradient> gradient(KoStopGradient::fromQGradient(&testGradient));
@@ -206,7 +242,31 @@ void KisGradientPainterTest::testSplitDisjointPaths()
     path = path.simplified();
 
     const PkList<PkPainterPath> result = KritaUtils::splitDisjointPaths(path);
-    Q_UNUSED(result);
+
+    QImage dstImage(450, 250, QImage::Format_ARGB32);
+    dstImage.fill(0);
+    QPainter gc(&dstImage);
+
+    QVector<QBrush> brushes;
+    brushes << Qt::red;
+    brushes << Qt::green;
+    brushes << Qt::blue;
+    brushes << Qt::cyan;
+    brushes << Qt::magenta;
+    brushes << Qt::yellow;
+    brushes << Qt::black;
+    brushes << Qt::white;
+
+    int index = 0;
+    for (const PkPainterPath &p : result) {
+        gc.fillPath(diagnosticQPainterPath(p), brushes[index]);
+        index = (index + 1) % brushes.size();
+    }
+
+    TestUtil::checkQImageExternal(dstImage,
+                                  "shaped_gradient",
+                                  "test",
+                                  "disjoint_paths");
 }
 
 #include "kis_cached_gradient_shape_strategy.h"

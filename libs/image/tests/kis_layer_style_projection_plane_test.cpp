@@ -32,7 +32,7 @@
 
 static PkSharedPointer<KoStopGradient> makeTestGradient()
 {
-    PkGradient gradient(PkGradientEnums::LinearGradient);
+    PkGradient gradient = PkGradient::linear(PkPointF(0.0, 0.0), PkPointF(1.0, 1.0));
     gradient.setColorAt(0.0, PkColor(Qt::white));
     gradient.setColorAt(0.5, PkColor(Qt::green));
     gradient.setColorAt(1.0, PkColor(Qt::black));
