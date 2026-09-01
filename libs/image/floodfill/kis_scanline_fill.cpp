@@ -274,7 +274,7 @@ private:
 
 } // anonymous namespace
 
-struct Q_DECL_HIDDEN KisScanlineFill::Private
+struct KisScanlineFill::Private
 {
     KisPaintDeviceSP device;
     PkPoint startPoint;
