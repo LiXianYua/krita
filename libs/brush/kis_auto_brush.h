@@ -14,6 +14,7 @@
 #include "kis_brush.h"
 
 #include <PkPointer.h>
+#include <PkScopedPointer.h>
 
 class KisMaskGenerator;
 
