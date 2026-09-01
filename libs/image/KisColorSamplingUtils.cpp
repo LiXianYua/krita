@@ -7,6 +7,7 @@
 #include <KoColor.h>
 #include <KoColorSpace.h>
 #include <KoMixColorsOp.h>
+#include <PkScopedPointer.h>
 
 #include "kis_global.h"
 #include "kis_paint_device.h"
