@@ -7,6 +7,35 @@
 #ifndef SELECTION_TOOLS_H_
 #define SELECTION_TOOLS_H_
 
+#include <PkList.h>
+#include <PkString.h>
+
+class KoToolBase;
+
+enum class SelectionToolAction {
+    UndoPolygonSelection,
+    MagneticContinuedModeModifier
+};
+
+enum class SelectionToolActionPhase {
+    Trigger,
+    Press,
+    Release
+};
+
+struct SelectionToolActionDescriptor {
+    PkString toolId;
+    PkString actionId;
+    SelectionToolAction action;
+    bool acceptsPressRelease {false};
+};
+
+PkList<SelectionToolActionDescriptor> selectionToolActionDescriptors();
+bool dispatchSelectionToolAction(
+    KoToolBase *tool,
+    SelectionToolAction action,
+    SelectionToolActionPhase phase = SelectionToolActionPhase::Trigger);
+
 /**
  * A module wrapper around Krita's selection tools.
  * Despite the fact that new tools are created for every new view,

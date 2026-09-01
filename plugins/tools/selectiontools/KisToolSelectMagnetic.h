@@ -46,8 +46,7 @@ public:
     void slotSetSearchRadius(int);
     void slotSetAnchorGap(int);
     void slotCalculateEdge();
-    PkList<PkString> actionIds() const;
-    bool triggerAction(const PkString &id);
+    void setContinuedModeModifierPressed(bool pressed);
 
 protected:
     using KisToolSelectBase::m_widgetHelper;

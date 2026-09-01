@@ -156,16 +156,28 @@ void KisToolSelectMagnetic::updateContinuedModeFromModifiers(Qt::KeyboardModifie
     if (!isSelecting()) return;
 
     if (modifiers & Qt::ControlModifier) {
-        m_continuedMode = true;
+        setContinuedModeModifierPressed(true);
         return;
     }
 
     if (m_continuedMode) {
-        m_continuedMode = false;
-        if (mode() != PAINT_MODE) {
-            if (m_points.count() > 1) finishSelectionAction();
-            m_points.clear();
-        }
+        setContinuedModeModifierPressed(false);
+    }
+}
+
+void KisToolSelectMagnetic::setContinuedModeModifierPressed(bool pressed)
+{
+    if (!isSelecting()) return;
+
+    if (pressed) {
+        m_continuedMode = true;
+        return;
+    }
+
+    m_continuedMode = false;
+    if (mode() != PAINT_MODE) {
+        if (m_points.count() > 1) finishSelectionAction();
+        m_points.clear();
     }
 }
 
@@ -717,18 +729,6 @@ void KisToolSelectMagnetic::requestStrokeCancellation()
     m_complete = false;
     m_finished = false;
     resetVariables();
-}
-
-PkList<PkString> KisToolSelectMagnetic::actionIds() const
-{
-    return {PkString("undo_polygon_selection")};
-}
-
-bool KisToolSelectMagnetic::triggerAction(const PkString &id)
-{
-    if (id != PkString("undo_polygon_selection")) return false;
-    undoPoints();
-    return true;
 }
 
 void KisToolSelectMagnetic::slotSetFilterRadius(qreal r)

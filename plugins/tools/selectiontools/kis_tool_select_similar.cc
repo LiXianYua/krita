@@ -80,6 +80,8 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
 
     beginSelectInteraction();
 
+    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
+
     // Create the stroke
     KisStrokeStrategyUndoCommandBased *strategy =
             new KisStrokeStrategyUndoCommandBased(kundo2_i18n("Select Similar Color"), false, image().data());

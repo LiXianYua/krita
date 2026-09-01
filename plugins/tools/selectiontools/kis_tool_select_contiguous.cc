@@ -108,6 +108,8 @@ void KisToolSelectContiguous::beginPrimaryAction(KoPointerEvent *event)
 
     beginSelectInteraction();
 
+    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
+
     // -------------------------------
 
     KisProcessingApplicator applicator(currentImage(), currentNode(),

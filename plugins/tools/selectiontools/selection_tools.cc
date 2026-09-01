@@ -37,3 +37,47 @@ void registerSelectionTools()
         KoToolRegistry::instance()->add(new KisToolSelectMagneticFactory());
     });
 }
+
+PkList<SelectionToolActionDescriptor> selectionToolActionDescriptors()
+{
+    return {
+        {PkString("KisToolSelectPolygonal"), PkString("undo_polygon_selection"),
+         SelectionToolAction::UndoPolygonSelection, false},
+        {PkString("KisToolSelectMagnetic"), PkString("undo_polygon_selection"),
+         SelectionToolAction::UndoPolygonSelection, false},
+        {PkString("KisToolSelectMagnetic"),
+         PkString("magnetic_continued_mode_modifier"),
+         SelectionToolAction::MagneticContinuedModeModifier, true}
+    };
+}
+
+bool dispatchSelectionToolAction(
+    KoToolBase *tool,
+    SelectionToolAction action,
+    SelectionToolActionPhase phase)
+{
+    if (!tool) return false;
+
+    if (action == SelectionToolAction::UndoPolygonSelection &&
+        phase == SelectionToolActionPhase::Trigger) {
+        if (auto *polygon = dynamic_cast<KisToolSelectPolygonal *>(tool)) {
+            polygon->undoSelectionOrCancel();
+            return true;
+        }
+        if (auto *magnetic = dynamic_cast<KisToolSelectMagnetic *>(tool)) {
+            magnetic->undoPoints();
+            return true;
+        }
+        return false;
+    }
+
+    if (action == SelectionToolAction::MagneticContinuedModeModifier) {
+        auto *magnetic = dynamic_cast<KisToolSelectMagnetic *>(tool);
+        if (!magnetic || phase == SelectionToolActionPhase::Trigger) return false;
+        magnetic->setContinuedModeModifierPressed(
+            phase == SelectionToolActionPhase::Press);
+        return true;
+    }
+
+    return false;
+}

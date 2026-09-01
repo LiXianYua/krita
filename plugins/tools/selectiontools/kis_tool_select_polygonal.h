@@ -12,6 +12,13 @@
 #ifndef KIS_TOOL_SELECT_POLYGONAL_H_
 #define KIS_TOOL_SELECT_POLYGONAL_H_
 
+#include <PkPainter.h>
+#include <PkPainterPath.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSet.h>
+#include <PkVector.h>
+
 #include "KisSelectionToolFactoryBase.h"
 #include "kis_tool_polyline_base.h"
 #include <kis_tool_select_base.h>
@@ -21,6 +28,38 @@ class __KisToolSelectPolygonalLocal : public KisToolPolylineBase
 {
 public:
     __KisToolSelectPolygonalLocal(KoCanvasBase *canvas);
+
+    void beginPrimaryAction(KoPointerEvent *event) override;
+    void endPrimaryAction(KoPointerEvent *event) override;
+    void beginPrimaryDoubleClickAction(KoPointerEvent *event) override;
+    void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
+    void mouseMoveEvent(KoPointerEvent *event) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
+    void activate(const PkSet<KoShape *> &shapes) override;
+    void deactivate() override;
+    void requestStrokeEnd() override;
+    void requestStrokeCancellation() override;
+    KisPopupWidgetInterface *popupWidget() override;
+
+    void undoSelectionOrCancel();
+
+protected:
+    virtual void finishPolyline(const PkVector<PkPointF> &points) = 0;
+    virtual void beginShape() {}
+    virtual void endShape() {}
+
+private:
+    void undoSelection();
+    void endStroke();
+    void cancelStroke();
+    void updateArea();
+    PkRectF dragBoundingRect();
+
+    PkPointF m_dragStart;
+    PkPointF m_dragEnd;
+    bool m_dragging {false};
+    PkVector<PkPointF> m_points;
+    bool m_closeSnappingActivated {false};
 };
 
 class KisToolSelectPolygonal : public KisToolSelectBase<__KisToolSelectPolygonalLocal>
@@ -28,6 +67,8 @@ class KisToolSelectPolygonal : public KisToolSelectBase<__KisToolSelectPolygonal
 public:
     KisToolSelectPolygonal(KoCanvasBase* canvas);
     void resetCursorStyle() override;
+    void undoSelectionOrCancel()
+    { __KisToolSelectPolygonalLocal::undoSelectionOrCancel(); }
 private:
     void finishPolyline(const PkVector<PkPointF> &points) override;
     void beginShape() override;
