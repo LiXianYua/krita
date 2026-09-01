@@ -9,16 +9,6 @@
 #ifndef KISTOOLENCLOSEANDFILLPLUGIN_H
 #define KISTOOLENCLOSEANDFILLPLUGIN_H
 
-#include <QObject>
-#include <QVariant>
-
-class KisToolEncloseAndFillPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    KisToolEncloseAndFillPlugin(QObject *parent, const QVariantList &);
-    ~KisToolEncloseAndFillPlugin() override;
-
-};
+void registerToolEncloseAndFill();
 
 #endif

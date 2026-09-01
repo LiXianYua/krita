@@ -11,12 +11,12 @@
 #include "KisBrushEnclosingProducer.h"
 
 KisBrushEnclosingProducer::KisBrushEnclosingProducer(KoCanvasBase * canvas)
-    : KisDynamicDelegateTool<KisToolBasicBrushBase>(canvas, KisToolBasicBrushBase::PAINT, Qt::ArrowCursor)
+    : KisDynamicDelegateTool<KisToolBasicBrushBase>(canvas, KisToolBasicBrushBase::PAINT)
 {
     setObjectName("enclosing_tool_brush");
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -37,13 +37,21 @@ void  KisBrushEnclosingProducer::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisBrushEnclosingProducer::finishStroke(const QPainterPath &stroke)
+void KisBrushEnclosingProducer::enclosingMaskProduced(KisPixelSelectionSP enclosingMask)
+{
+    PkObject::activateSignal<KisPixelSelectionSP>(
+        this,
+        PkMemberFnKey::from(&KisBrushEnclosingProducer::enclosingMaskProduced),
+        enclosingMask);
+}
+
+void KisBrushEnclosingProducer::finishStroke(const PkPainterPath &stroke)
 {
     if (stroke.isEmpty()) {
         return;
     }
     
-    KisPixelSelectionSP enclosingMask = new KisPixelSelection();
+    KisPixelSelectionSP enclosingMask(new KisPixelSelection());
 
     KisPainter painter(enclosingMask);
     painter.setPaintColor(KoColor(Qt::white, enclosingMask->colorSpace()));
@@ -53,7 +61,7 @@ void KisBrushEnclosingProducer::finishStroke(const QPainterPath &stroke)
 
     painter.fillPainterPath(stroke);
 
-    Q_EMIT enclosingMaskProduced(enclosingMask);
+    enclosingMaskProduced(enclosingMask);
 }
 
 bool KisBrushEnclosingProducer::hasUserInteractionRunning() const

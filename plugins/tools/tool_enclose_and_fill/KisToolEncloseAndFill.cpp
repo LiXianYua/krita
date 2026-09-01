@@ -29,6 +29,9 @@
 #include <commands_new/kis_update_command.h>
 #include <kis_command_utils.h>
 #include <functional>
+#include <PkXmlDocument.h>
+#include <PkStringList.h>
+#include <PkTransform.h>
 #include <kis_group_layer.h>
 #include <kis_layer_utils.h>
 
@@ -48,7 +51,7 @@
 #include "subtools/KisBrushEnclosingProducer.h"
 
 KisToolEncloseAndFill::KisToolEncloseAndFill(KoCanvasBase * canvas)
-    : KisDynamicDelegatedTool<KisToolShape>(canvas, QCursor())
+    : KisDynamicDelegatedTool<KisToolShape>(canvas)
 {
     setObjectName("tool_enclose_and_fill");
 }
@@ -62,7 +65,7 @@ void KisToolEncloseAndFill::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolEncloseAndFill::activate(const QSet<KoShape*> &shapes)
+void KisToolEncloseAndFill::activate(const PkSet<KoShape*> &shapes)
 {
     KisDynamicDelegatedTool::activate(shapes);
     m_configGroup = KSharedConfig::openConfig()->group(toolId());
@@ -78,7 +81,7 @@ void KisToolEncloseAndFill::activate(const QSet<KoShape*> &shapes)
                 &KoCanvasResourceProvider::canvasResourceChanged,
                 this,
                 &KisToolEncloseAndFill::slot_canvasResourceChanged,
-                Qt::UniqueConnection);
+                PkConnectionType::Unique);
         slot_currentNodeChanged(currentNode());
     }
 }
@@ -104,32 +107,35 @@ void KisToolEncloseAndFill::setupEnclosingSubtool()
         delegateTool()->deactivate();
     }
 
+    const auto installDelegate = [this](auto *newDelegateTool) {
+        using Producer = std::remove_pointer_t<decltype(newDelegateTool)>;
+        setDelegateTool(reinterpret_cast<KisDynamicDelegateTool<KisToolShape>*>(newDelegateTool));
+        setCursor(newDelegateTool->cursor());
+        connect(newDelegateTool,
+                &Producer::enclosingMaskProduced,
+                this,
+                &KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced);
+    };
+
     if (m_enclosingMethod == Ellipse) {
         KisEllipseEnclosingProducer *newDelegateTool = new KisEllipseEnclosingProducer(canvas());
-        setDelegateTool(reinterpret_cast<KisDynamicDelegateTool<KisToolShape>*>(newDelegateTool));
-        setCursor(newDelegateTool->cursor());
+        installDelegate(newDelegateTool);
     } else if (m_enclosingMethod == Path) {
         KisPathEnclosingProducer *newDelegateTool = new KisPathEnclosingProducer(canvas());
-        setDelegateTool(reinterpret_cast<KisDynamicDelegateTool<KisToolShape>*>(newDelegateTool));
-        setCursor(newDelegateTool->cursor());
+        installDelegate(newDelegateTool);
     } else if (m_enclosingMethod == Lasso) {
         KisLassoEnclosingProducer *newDelegateTool = new KisLassoEnclosingProducer(canvas());
-        setDelegateTool(reinterpret_cast<KisDynamicDelegateTool<KisToolShape>*>(newDelegateTool));
-        setCursor(newDelegateTool->cursor());
+        installDelegate(newDelegateTool);
     } else if (m_enclosingMethod == Brush) {
         KisBrushEnclosingProducer *newDelegateTool = new KisBrushEnclosingProducer(canvas());
-        setDelegateTool(reinterpret_cast<KisDynamicDelegateTool<KisToolShape>*>(newDelegateTool));
-        setCursor(newDelegateTool->cursor());
+        installDelegate(newDelegateTool);
     } else {
         KisRectangleEnclosingProducer *newDelegateTool = new KisRectangleEnclosingProducer(canvas());
-        setDelegateTool(reinterpret_cast<KisDynamicDelegateTool<KisToolShape>*>(newDelegateTool));
-        setCursor(newDelegateTool->cursor());
+        installDelegate(newDelegateTool);
     }
 
-    connect(delegateTool(), SIGNAL(enclosingMaskProduced(KisPixelSelectionSP)), SLOT(slot_delegateTool_enclosingMaskProduced(KisPixelSelectionSP)));
-
     if (isActivated()) {
-        delegateTool()->activate(QSet<KoShape*>());
+        delegateTool()->activate(PkSet<KoShape*>());
     }
 }
 
@@ -161,8 +167,8 @@ void KisToolEncloseAndFill::beginPrimaryAction(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-            i18n("You cannot use this tool with the selected layer type"),
-            QIcon(), 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
+            PkString("You cannot use this tool with the selected layer type"),
+            {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         event->ignore();
         return;
     }
@@ -254,10 +260,10 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
     m_fillStrokeId = image()->startStroke(strategy);
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_fillStrokeId);
 
-    m_dirtyRect.reset(new QRect);
+    m_dirtyRect.reset(new PkRect);
 
-    KisResourcesSnapshotSP resources =
-        new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager()->canvasResourcesInterface());
+    KisResourcesSnapshotSP resources(
+        new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager()->canvasResourcesInterface()));
 
     if (m_reference == CurrentLayer) {
         m_referencePaintDevice = currentNode()->paintDevice();
@@ -301,13 +307,13 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
         m_referenceNodeList.reset();
     }
 
-    QTransform transform;
+    PkTransform transform;
     transform.rotate(m_patternRotation);
     const qreal normalizedScale = m_patternScale * 0.01;
     transform.scale(normalizedScale, normalizedScale);
     resources->setFillTransform(transform);
 
-    KisProcessingVisitorSP visitor =
+    KisProcessingVisitorSP visitor(
         new KisEncloseAndFillProcessingVisitor(m_referencePaintDevice,
                                                enclosingMask,
                                                resources->activeSelection(),
@@ -331,7 +337,7 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
                                                m_useCustomBlendingOptions,
                                                m_customOpacity / 100.0,
                                                m_customCompositeOp,
-                                               m_dirtyRect);
+                                               m_dirtyRect));
 
     image()->addJob(
         m_fillStrokeId,
@@ -372,7 +378,7 @@ void KisToolEncloseAndFill::loadConfiguration()
     m_regionSelectionInvert = m_configGroup.readEntry<bool>("regionSelectionInvert", false);
     m_regionSelectionIncludeContourRegions = m_configGroup.readEntry<bool>("regionSelectionIncludeContourRegions", false);
     {
-        const QString fillTypeStr = m_configGroup.readEntry<QString>("fillWith", "");
+        const PkString fillTypeStr = m_configGroup.readEntry<PkString>("fillWith", "");
         if (fillTypeStr == "foregroundColor") {
             m_fillType = FillWithForegroundColor;
         } else if (fillTypeStr == "backgroundColor") {
@@ -391,8 +397,8 @@ void KisToolEncloseAndFill::loadConfiguration()
     m_patternRotation = m_configGroup.readEntry<qreal>("patternRotate", 0.0);
     m_useCustomBlendingOptions = m_configGroup.readEntry<bool>("useCustomBlendingOptions", false);
     m_customOpacity = qBound(0, m_configGroup.readEntry<int>("customOpacity", 100), 100);
-    m_customCompositeOp = m_configGroup.readEntry<QString>("customCompositeOp", COMPOSITE_OVER);
-    if (KoCompositeOpRegistry::instance().getKoID(m_customCompositeOp).id().isNull()) {
+    m_customCompositeOp = m_configGroup.readEntry<PkString>("customCompositeOp", COMPOSITE_OVER);
+    if (KoCompositeOpRegistry::instance().getKoID(m_customCompositeOp).id().isEmpty()) {
         m_customCompositeOp = COMPOSITE_OVER;
     }
     m_fillThreshold = m_configGroup.readEntry<int>("fillThreshold", 8);
@@ -404,7 +410,7 @@ void KisToolEncloseAndFill::loadConfiguration()
     m_stopGrowingAtDarkestPixel = m_configGroup.readEntry<bool>("stopGrowingAtDarkestPixel", false);
     m_feather = m_configGroup.readEntry<int>("feather", 0);
     {
-        const QString sampleLayersModeStr = m_configGroup.readEntry<QString>("reference", "currentLayer");
+        const PkString sampleLayersModeStr = m_configGroup.readEntry<PkString>("reference", "currentLayer");
         if (sampleLayersModeStr == "allLayers") {
             m_reference = AllLayers;
         } else if (sampleLayersModeStr == "colorLabeledLayers") {
@@ -414,10 +420,13 @@ void KisToolEncloseAndFill::loadConfiguration()
         }
     }
     {
-        const QStringList colorLabelsStr = m_configGroup.readEntry<QString>("colorLabels", "").split(',', Qt::SkipEmptyParts);
+        const auto colorLabelsStr = m_configGroup.readEntry<PkString>("colorLabels", "").split(',');
 
         m_selectedColorLabels.clear();
-        for (const QString &colorLabelStr : colorLabelsStr) {
+        for (const PkString &colorLabelStr : colorLabelsStr) {
+            if (colorLabelStr.isEmpty()) {
+                continue;
+            }
             bool ok;
             const int colorLabel = colorLabelStr.toInt(&ok);
             if (ok) {
@@ -440,7 +449,7 @@ void KisToolEncloseAndFill::saveEnclosingMethodToConfig(EnclosingMethod enclosin
     m_configGroup.writeEntry("enclosingMethod", enclosingMethodToConfigString(enclosingMethod));
 }
 
-QString KisToolEncloseAndFill::enclosingMethodToConfigString(EnclosingMethod enclosingMethod) const
+PkString KisToolEncloseAndFill::enclosingMethodToConfigString(EnclosingMethod enclosingMethod) const
 {
     switch (enclosingMethod) {
         case Rectangle: return "rectangle";
@@ -451,7 +460,7 @@ QString KisToolEncloseAndFill::enclosingMethodToConfigString(EnclosingMethod enc
     }
 }
 
-KisToolEncloseAndFill::EnclosingMethod KisToolEncloseAndFill::configStringToEnclosingMethod(const QString &configString) const
+KisToolEncloseAndFill::EnclosingMethod KisToolEncloseAndFill::configStringToEnclosingMethod(const PkString &configString) const
 {
     if (configString == "rectangle") {
         return Rectangle;
@@ -465,40 +474,30 @@ KisToolEncloseAndFill::EnclosingMethod KisToolEncloseAndFill::configStringToEncl
     return Lasso;
 }
 
-QString KisToolEncloseAndFill::regionSelectionMethodToUserString(RegionSelectionMethod regionSelectionMethod) const
+PkString KisToolEncloseAndFill::regionSelectionMethodToUserString(RegionSelectionMethod regionSelectionMethod) const
 {
     if (regionSelectionMethod == RegionSelectionMethod::SelectAllRegions) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "All");
+        return PkString("All");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectRegionsFilledWithSpecificColor) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "Specific color");
+        return PkString("Specific color");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectRegionsFilledWithTransparent) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "Transparency");
+        return PkString("Transparency");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectRegionsFilledWithSpecificColorOrTransparent) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "Specific color or transparency");
+        return PkString("Specific color or transparency");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectAllRegionsExceptFilledWithSpecificColor) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "All, excluding a specific color");
+        return PkString("All, excluding a specific color");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectAllRegionsExceptFilledWithTransparent) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "All, excluding transparency");
+        return PkString("All, excluding transparency");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectAllRegionsExceptFilledWithSpecificColorOrTransparent) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "All, excluding a specific color or transparency");
+        return PkString("All, excluding a specific color or transparency");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectRegionsSurroundedBySpecificColor) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "Any surrounded by a specific color");
+        return PkString("Any surrounded by a specific color");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectRegionsSurroundedByTransparent) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "Any surrounded by transparency");
+        return PkString("Any surrounded by transparency");
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectRegionsSurroundedBySpecificColorOrTransparent) {
-        return i18nc("Region selection method in enclose and fill tool",
-                     "Any surrounded by a specific color or transparency");
+        return PkString("Any surrounded by a specific color or transparency");
     }
-    return QString();
+    return PkString();
 }
 
 KisToolEncloseAndFill::RegionSelectionMethod KisToolEncloseAndFill::loadRegionSelectionMethodFromConfig() const
@@ -511,7 +510,7 @@ void KisToolEncloseAndFill::saveRegionSelectionMethodToConfig(RegionSelectionMet
     m_configGroup.writeEntry("regionSelectionMethod", regionSelectionMethodToConfigString(regionSelectionMethod));
 }
 
-QString KisToolEncloseAndFill::regionSelectionMethodToConfigString(RegionSelectionMethod regionSelectionMethod) const
+PkString KisToolEncloseAndFill::regionSelectionMethodToConfigString(RegionSelectionMethod regionSelectionMethod) const
 {
     if (regionSelectionMethod == RegionSelectionMethod::SelectAllRegions) {
         return "allRegions";
@@ -534,10 +533,10 @@ QString KisToolEncloseAndFill::regionSelectionMethodToConfigString(RegionSelecti
     } else if (regionSelectionMethod == RegionSelectionMethod::SelectRegionsSurroundedBySpecificColorOrTransparent) {
         return "regionsSurroundedBySpecificColorOrTransparent";
     }
-    return QString();
+    return PkString();
 }
 
-KisToolEncloseAndFill::RegionSelectionMethod KisToolEncloseAndFill::configStringToRegionSelectionMethod(const QString &configString) const
+KisToolEncloseAndFill::RegionSelectionMethod KisToolEncloseAndFill::configStringToRegionSelectionMethod(const PkString &configString) const
 {
     if (configString == "regionsFilledWithSpecificColor") {
         return RegionSelectionMethod::SelectRegionsFilledWithSpecificColor;
@@ -563,11 +562,11 @@ KisToolEncloseAndFill::RegionSelectionMethod KisToolEncloseAndFill::configString
 
 KoColor KisToolEncloseAndFill::loadRegionSelectionColorFromConfig()
 {
-    const QString xmlColor = m_configGroup.readEntry("regionSelectionColor", QString());
-    QDomDocument doc;
+    const PkString xmlColor = m_configGroup.readEntry("regionSelectionColor", PkString());
+    PkXmlDocument doc;
     if (doc.setContent(xmlColor)) {
-        QDomElement e = doc.documentElement().firstChild().toElement();
-        QString channelDepthID = doc.documentElement().attribute("channeldepth", Integer16BitsColorDepthID.id());
+        PkXmlElement e = doc.documentElement().firstChild().toElement();
+        PkString channelDepthID = doc.documentElement().attribute("channeldepth", Integer16BitsColorDepthID.id());
         bool ok;
         if (e.hasAttribute("space") || e.tagName().toLower() == "srgb") {
             return KoColor::fromXML(e, channelDepthID, &ok);
@@ -594,7 +593,7 @@ void KisToolEncloseAndFill::saveReferenceToConfig(Reference reference)
     m_configGroup.writeEntry("reference", referenceToConfigString(reference));
 }
 
-QString KisToolEncloseAndFill::referenceToConfigString(Reference reference) const
+PkString KisToolEncloseAndFill::referenceToConfigString(Reference reference) const
 {
     if (reference == AllLayers) {
         return "allLayers";
@@ -604,7 +603,7 @@ QString KisToolEncloseAndFill::referenceToConfigString(Reference reference) cons
     return "currentLayer";
 }
 
-KisToolEncloseAndFill::Reference KisToolEncloseAndFill::configStringToReference(const QString &configString) const
+KisToolEncloseAndFill::Reference KisToolEncloseAndFill::configStringToReference(const PkString &configString) const
 {
     if (configString == "allLayers") {
         return AllLayers;
@@ -744,21 +743,21 @@ void KisToolEncloseAndFill::slot_currentNodeChanged(const KisNodeSP node)
 {
     if (m_previousNode && m_previousNode->paintDevice()) {
         disconnect(m_previousNode->paintDevice().data(),
-                   SIGNAL(colorSpaceChanged(const KoColorSpace*)),
+                   &KisPaintDevice::colorSpaceChanged,
                    this,
-                   SLOT(slot_colorSpaceChanged(const KoColorSpace*)));
+                   &KisToolEncloseAndFill::slot_colorSpaceChanged);
     }
     if (node && node->paintDevice()) {
         connect(node->paintDevice().data(),
-                SIGNAL(colorSpaceChanged(const KoColorSpace*)),
+                &KisPaintDevice::colorSpaceChanged,
                 this,
-                SLOT(slot_colorSpaceChanged(const KoColorSpace*)));
+                &KisToolEncloseAndFill::slot_colorSpaceChanged);
         slot_colorSpaceChanged(node->paintDevice()->colorSpace());
     }
     m_previousNode = node;
 }
 
-void KisToolEncloseAndFill::slot_canvasResourceChanged(int key, const QVariant &value)
+void KisToolEncloseAndFill::slot_canvasResourceChanged(int key, const PkVariant &value)
 {
     if (key == KoCanvasResource::CurrentKritaNode) {
         slot_currentNodeChanged(value.value<KisNodeWSP>());
@@ -767,7 +766,7 @@ void KisToolEncloseAndFill::slot_canvasResourceChanged(int key, const QVariant &
 
 void KisToolEncloseAndFill::slot_colorSpaceChanged(const KoColorSpace *colorSpace)
 {
-    Q_UNUSED(colorSpace);
+    (void)colorSpace;
     // Was forwarded to the options panel's composite-op combobox (grey out
     // composite ops unsupported by the current color space); the panel has
     // been removed, nothing left to validate against. Still connected from

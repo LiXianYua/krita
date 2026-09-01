@@ -11,31 +11,29 @@
 
 #include <kis_tool_rectangle_base.h>
 #include <kis_pixel_selection.h>
+#include <PkRect.h>
 
 #include "KisDynamicDelegatedTool.h"
 
 class KisRectangleEnclosingProducer : public KisDynamicDelegateTool<KisToolRectangleBase>
 {
-    Q_OBJECT
-
 public:
     KisRectangleEnclosingProducer(KoCanvasBase *canvas);
     ~KisRectangleEnclosingProducer() override;
     
     bool hasUserInteractionRunning() const;
 
+    void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
+
 protected:
-    void finishRect(const QRectF& rect, qreal roundCornersX, qreal roundCornersY) override;
+    void finishRect(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY) override;
     void beginShape() override;
     void endShape() override;
-
-Q_SIGNALS:
-    void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
 
 private:
     bool m_hasUserInteractionRunning {false};
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 };
 

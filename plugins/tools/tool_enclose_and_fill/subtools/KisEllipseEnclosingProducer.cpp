@@ -18,7 +18,7 @@ KisEllipseEnclosingProducer::KisEllipseEnclosingProducer(KoCanvasBase * canvas)
     setOutlineEnabled(false);
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -39,18 +39,26 @@ void  KisEllipseEnclosingProducer::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisEllipseEnclosingProducer::finishRect(const QRectF& rect, qreal roundCornersX, qreal roundCornersY)
+void KisEllipseEnclosingProducer::enclosingMaskProduced(KisPixelSelectionSP enclosingMask)
 {
-    Q_UNUSED(roundCornersX);
-    Q_UNUSED(roundCornersY);
+    PkObject::activateSignal<KisPixelSelectionSP>(
+        this,
+        PkMemberFnKey::from(&KisEllipseEnclosingProducer::enclosingMaskProduced),
+        enclosingMask);
+}
+
+void KisEllipseEnclosingProducer::finishRect(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY)
+{
+    (void)roundCornersX;
+    (void)roundCornersY;
     
-    QRect rc(rect.normalized().toRect());
+    PkRect rc(rect.normalized().toRect());
     if (!rc.isValid()) {
         return;
     }
 
     KisPixelSelectionSP enclosingMask = KisPixelSelectionSP(new KisPixelSelection());
-    QPainterPath path;
+    PkPainterPath path;
 
     path.addEllipse(rc);
     getRotatedPath(path, rc.center(), getRotationAngle());
@@ -63,7 +71,7 @@ void KisEllipseEnclosingProducer::finishRect(const QRectF& rect, qreal roundCorn
 
     painter.paintPainterPath(path);
 
-    Q_EMIT enclosingMaskProduced(enclosingMask);
+    enclosingMaskProduced(enclosingMask);
 }
 
 bool KisEllipseEnclosingProducer::hasUserInteractionRunning() const

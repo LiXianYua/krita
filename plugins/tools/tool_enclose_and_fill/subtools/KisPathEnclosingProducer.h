@@ -13,6 +13,7 @@
 #include <kis_pixel_selection.h>
 #include <kis_delegated_tool.h>
 #include <kis_tool_shape.h>
+#include <PkPainter.h>
 
 #include "KisDynamicDelegatedTool.h"
 
@@ -22,7 +23,7 @@ class KisToolPathLocalTool : public KoCreatePathTool {
 public:
     KisToolPathLocalTool(KoCanvasBase * canvas, KisPathEnclosingProducer* parentTool);
 
-    void paintPath(KoPathShape &pathShape, QPainter &painter, const KoViewConverter &converter) override;
+    void paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter) override;
     void addPathShape(KoPathShape* pathShape) override;
     void beginShape() override;
     void endShape() override;
@@ -41,8 +42,6 @@ typedef KisDelegatedTool<KisToolShape, KisToolPathLocalTool, DeselectShapesActiv
 
 class KisPathEnclosingProducer : public KisDynamicDelegateTool<DelegatedPathTool>
 {
-    Q_OBJECT
-
 public:
     KisPathEnclosingProducer(KoCanvasBase *canvas);
     ~KisPathEnclosingProducer() override;
@@ -50,7 +49,6 @@ public:
     bool hasUserInteractionRunning() const;
 
     void mousePressEvent(KoPointerEvent *event) override;
-    bool eventFilter(QObject *obj, QEvent *event) override;
     void beginPrimaryAction(KoPointerEvent* event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
@@ -60,6 +58,7 @@ public:
     void beginPrimaryDoubleClickAction(KoPointerEvent* event) override;
 
     KisPopupWidgetInterface* popupWidget() override;
+    void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
     
 protected:
     void requestStrokeCancellation() override;
@@ -71,13 +70,10 @@ protected:
 
     friend class KisToolPathLocalTool;
 
-Q_SIGNALS:
-    void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
-
 private:
     bool m_hasUserInteractionRunning {false};
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 };
 

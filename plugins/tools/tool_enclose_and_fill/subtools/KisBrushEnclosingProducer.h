@@ -10,32 +10,30 @@
 #define KISBRUSHENCLOSINGPRODUCER
 
 #include <kis_pixel_selection.h>
+#include <PkPainterPath.h>
 
 #include "KisToolBasicBrushBase.h"
 #include "KisDynamicDelegatedTool.h"
 
 class KisBrushEnclosingProducer : public KisDynamicDelegateTool<KisToolBasicBrushBase>
 {
-    Q_OBJECT
-
 public:
     KisBrushEnclosingProducer(KoCanvasBase *canvas);
     ~KisBrushEnclosingProducer() override;
     
     bool hasUserInteractionRunning() const;
     
+    void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
+
 protected:
-    void finishStroke(const QPainterPath &stroke) override;
+    void finishStroke(const PkPainterPath &stroke) override;
     void beginShape() override;
     void endShape() override;
-
-Q_SIGNALS:
-    void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
 
 private:
     bool m_hasUserInteractionRunning {false};
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 };
 

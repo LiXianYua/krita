@@ -11,31 +11,30 @@
 
 #include <kis_pixel_selection.h>
 #include <KisToolOutlineBase.h>
+#include <PkPoint.h>
+#include <PkVector.h>
 
 #include "KisDynamicDelegatedTool.h"
 
 class KisLassoEnclosingProducer : public KisDynamicDelegateTool<KisToolOutlineBase>
 {
-    Q_OBJECT
-
 public:
     KisLassoEnclosingProducer(KoCanvasBase *canvas);
     ~KisLassoEnclosingProducer() override;
     
     bool hasUserInteractionRunning() const;
     
+    void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
+
 protected:
-    void finishOutline(const QVector<QPointF> &points) override;
+    void finishOutline(const PkVector<PkPointF> &points) override;
     void beginShape() override;
     void endShape() override;
-
-Q_SIGNALS:
-    void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
 
 private:
     bool m_hasUserInteractionRunning {false};
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
 };
 

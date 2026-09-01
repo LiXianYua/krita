@@ -18,7 +18,7 @@ KisRectangleEnclosingProducer::KisRectangleEnclosingProducer(KoCanvasBase * canv
     setOutlineEnabled(false);
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -39,15 +39,23 @@ void  KisRectangleEnclosingProducer::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisRectangleEnclosingProducer::finishRect(const QRectF& rect, qreal roundCornersX, qreal roundCornersY)
+void KisRectangleEnclosingProducer::enclosingMaskProduced(KisPixelSelectionSP enclosingMask)
 {
-    QRect rc(rect.normalized().toRect());
+    PkObject::activateSignal<KisPixelSelectionSP>(
+        this,
+        PkMemberFnKey::from(&KisRectangleEnclosingProducer::enclosingMaskProduced),
+        enclosingMask);
+}
+
+void KisRectangleEnclosingProducer::finishRect(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY)
+{
+    PkRect rc(rect.normalized().toRect());
     if (!rc.isValid()) {
         return;
     }
 
     KisPixelSelectionSP enclosingMask = KisPixelSelectionSP(new KisPixelSelection());
-    QPainterPath path;
+    PkPainterPath path;
 
     if (roundCornersX > 0 || roundCornersY > 0) {
         path.addRoundedRect(rc, roundCornersX, roundCornersY);
@@ -64,7 +72,7 @@ void KisRectangleEnclosingProducer::finishRect(const QRectF& rect, qreal roundCo
 
     painter.paintPainterPath(path);
 
-    Q_EMIT enclosingMaskProduced(enclosingMask);
+    enclosingMaskProduced(enclosingMask);
 }
 
 bool KisRectangleEnclosingProducer::hasUserInteractionRunning() const

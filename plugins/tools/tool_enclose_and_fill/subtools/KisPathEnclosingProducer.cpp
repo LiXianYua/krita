@@ -6,12 +6,10 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QIcon>
-#include <QMouseEvent>
-#include <QTabletEvent>
 #include <KoCanvasResourceProvider.h>
 #include <KoPathShape.h>
 #include <KisCanvasFeedback.h>
+#include <PkTransform.h>
 
 #include "KisPathEnclosingProducer.h"
 
@@ -20,11 +18,11 @@ KisToolPathLocalTool::KisToolPathLocalTool(KoCanvasBase * canvas, KisPathEnclosi
     , m_parentTool(parentTool)
 {}
 
-void KisToolPathLocalTool::paintPath(KoPathShape &pathShape, QPainter &painter, const KoViewConverter &converter)
+void KisToolPathLocalTool::paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(converter);
+    (void)converter;
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(m_parentTool->image()->xRes(), m_parentTool->image()->yRes());
     matrix.translate(pathShape.position().x(), pathShape.position().y());
     m_parentTool->paintToolOutline(&painter, m_parentTool->pixelToView(matrix.map(pathShape.outline())));
@@ -55,7 +53,7 @@ KisPathEnclosingProducer::KisPathEnclosingProducer(KoCanvasBase * canvas)
     setOutlineEnabled(false);
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -95,33 +93,7 @@ KisPopupWidgetInterface* ::KisPathEnclosingProducer::popupWidget()
 
 void KisPathEnclosingProducer::mousePressEvent(KoPointerEvent *event)
 {
-    Q_UNUSED(event)
-}
-
-// Install an event filter to catch right-click events.
-// The simplest way to accommodate the popup palette binding.
-// This code is duplicated in kis_tool_select_path.cc
-bool KisPathEnclosingProducer::eventFilter(QObject *obj, QEvent *event)
-{
-    Q_UNUSED(obj);
-    if (!m_hasUserInteractionRunning) {
-        return false;
-    }
-    if (event->type() == QEvent::MouseButtonPress ||
-            event->type() == QEvent::MouseButtonDblClick) {
-        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        if (mouseEvent->button() == Qt::RightButton) {
-            localTool()->removeLastPoint();
-            return true;
-        }
-    } else if (event->type() == QEvent::TabletPress) {
-        QTabletEvent *tabletEvent = static_cast<QTabletEvent*>(event);
-        if (tabletEvent->button() == Qt::RightButton) {
-            localTool()->removeLastPoint();
-            return true;
-        }
-    }
-    return false;
+    (void)event;
 }
 
 void KisPathEnclosingProducer::beginAlternateAction(KoPointerEvent *event, AlternateAction action) {
@@ -131,8 +103,8 @@ void KisPathEnclosingProducer::beginAlternateAction(KoPointerEvent *event, Alter
     if (nodePaintAbility() == KisDynamicDelegateTool::MYPAINTBRUSH_UNPAINTABLE) {
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
-        QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, QIcon());
+        PkString message("The MyPaint Brush Engine is not available for this colorspace");
+        feedback->showFloatingMessage(message, {});
         event->ignore();
         return;
     }
@@ -166,7 +138,7 @@ void KisPathEnclosingProducer::addPathShape(KoPathShape* pathShape)
         return;
     }
 
-    KisPixelSelectionSP enclosingMask = new KisPixelSelection();
+    KisPixelSelectionSP enclosingMask(new KisPixelSelection());
 
     pathShape->normalize();
     pathShape->close();
@@ -177,17 +149,25 @@ void KisPathEnclosingProducer::addPathShape(KoPathShape* pathShape)
     painter.setFillStyle(KisPainter::FillStyleForegroundColor);
     painter.setStrokeStyle(KisPainter::StrokeStyleNone);
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(currentImage->xRes(), currentImage->yRes());
     matrix.translate(pathShape->position().x(), pathShape->position().y());
 
-    QPainterPath path = matrix.map(pathShape->outline());
+    PkPainterPath path = matrix.map(pathShape->outline());
     painter.fillPainterPath(path);
     enclosingMask->setOutlineCache(path);
 
     delete pathShape;
 
-    Q_EMIT enclosingMaskProduced(enclosingMask);
+    enclosingMaskProduced(enclosingMask);
+}
+
+void KisPathEnclosingProducer::enclosingMaskProduced(KisPixelSelectionSP enclosingMask)
+{
+    PkObject::activateSignal<KisPixelSelectionSP>(
+        this,
+        PkMemberFnKey::from(&KisPathEnclosingProducer::enclosingMaskProduced),
+        enclosingMask);
 }
 
 bool KisPathEnclosingProducer::hasUserInteractionRunning() const

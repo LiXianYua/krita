@@ -9,9 +9,12 @@
 #ifndef KISTOOLENCLOSEANDFILL_H
 #define KISTOOLENCLOSEANDFILL_H
 
-#include <QPoint>
-#include <QList>
-#include <QVariant>
+#include <PkList.h>
+#include <PkRect.h>
+#include <PkSet.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
+#include <PkVariant.h>
 
 #include <kis_tool_shape.h>
 #include <flake/kis_node_shape.h>
@@ -25,8 +28,6 @@
 
 class KisToolEncloseAndFill : public KisDynamicDelegatedTool<KisToolShape>
 {
-    Q_OBJECT
-
 public:
     enum EnclosingMethod
     {
@@ -66,9 +67,10 @@ public:
 
     int flags() const override;
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
+    void slot_colorSpaceChanged(const KoColorSpace *colorSpace);
 
 private:
     EnclosingMethod m_enclosingMethod {Lasso};
@@ -83,7 +85,7 @@ private:
     qreal m_patternRotation {0.0};
     bool m_useCustomBlendingOptions {false};
     int m_customOpacity {100};
-    QString m_customCompositeOp {COMPOSITE_OVER};
+    PkString m_customCompositeOp {COMPOSITE_OVER};
 
     int m_fillThreshold {8};
     int m_fillOpacitySpread {100};
@@ -97,13 +99,13 @@ private:
     bool m_useActiveLayer {false};
 
     Reference m_reference {CurrentLayer};
-    QList<int> m_selectedColorLabels;
+    PkList<int> m_selectedColorLabels;
 
     KisPaintDeviceSP m_referencePaintDevice {nullptr};
     KisMergeLabeledLayersCommand::ReferenceNodeInfoListSP m_referenceNodeList {nullptr};
     int m_previousTime {0};
     KisNodeSP m_previousNode {nullptr};
-    QSharedPointer<QRect> m_dirtyRect {nullptr};
+    PkSharedPointer<PkRect> m_dirtyRect {nullptr};
     KisStrokeId m_fillStrokeId {nullptr};
 
     KConfigGroup m_configGroup;
@@ -114,24 +116,24 @@ private:
 
     EnclosingMethod loadEnclosingMethodFromConfig() const;
     void saveEnclosingMethodToConfig(EnclosingMethod enclosingMethod);
-    QString enclosingMethodToConfigString(EnclosingMethod enclosingMethod) const;
-    EnclosingMethod configStringToEnclosingMethod(const QString &configString) const;
+    PkString enclosingMethodToConfigString(EnclosingMethod enclosingMethod) const;
+    EnclosingMethod configStringToEnclosingMethod(const PkString &configString) const;
     static constexpr EnclosingMethod defaultEnclosingMethod() { return Lasso; }
 
-    QString regionSelectionMethodToUserString(RegionSelectionMethod regionSelectionMethod) const;
+    PkString regionSelectionMethodToUserString(RegionSelectionMethod regionSelectionMethod) const;
     RegionSelectionMethod loadRegionSelectionMethodFromConfig() const;
     void saveRegionSelectionMethodToConfig(RegionSelectionMethod regionSelectionMethod);
-    QString regionSelectionMethodToConfigString(RegionSelectionMethod regionSelectionMethod) const;
-    RegionSelectionMethod configStringToRegionSelectionMethod(const QString &configString) const;
+    PkString regionSelectionMethodToConfigString(RegionSelectionMethod regionSelectionMethod) const;
+    RegionSelectionMethod configStringToRegionSelectionMethod(const PkString &configString) const;
     static constexpr RegionSelectionMethod defaultRegionSelectionMethod() { return RegionSelectionMethod::SelectAllRegions; }
 
     KoColor loadRegionSelectionColorFromConfig();
 
-    QString referenceToUserString(Reference reference) const;
+    PkString referenceToUserString(Reference reference) const;
     Reference loadReferenceFromConfig() const;
     void saveReferenceToConfig(Reference reference);
-    QString referenceToConfigString(Reference reference) const;
-    Reference configStringToReference(const QString &configString) const;
+    PkString referenceToConfigString(Reference reference) const;
+    Reference configStringToReference(const PkString &configString) const;
     static constexpr Reference defaultReference() { return CurrentLayer; }
 
     void setupEnclosingSubtool();
@@ -139,7 +141,7 @@ private:
 
     void loadConfiguration();
 
-private Q_SLOTS:
+private:
     void slot_buttonRegionSelectionColor_changed(const KoColor &color);
     void slot_checkBoxRegionSelectionInvert_toggled(bool checked);
     void slot_checkBoxRegionSelectionIncludeContourRegions_toggled(bool checked);
@@ -156,9 +158,7 @@ private Q_SLOTS:
     void slot_sliderFeather_valueChanged(int value);
 
     void slot_currentNodeChanged(const KisNodeSP node);
-    void slot_canvasResourceChanged(int key, const QVariant &value);
-    void slot_colorSpaceChanged(const KoColorSpace *colorSpace);
-
+    void slot_canvasResourceChanged(int key, const PkVariant &value);
     void slot_delegateTool_enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
     void slot_checkBoxUseActiveLayer_toggled(bool checked);
 

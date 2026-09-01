@@ -6,22 +6,16 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <kpluginfactory.h>
 #include <KoToolRegistry.h>
+#include <mutex>
 
 #include "KisToolEncloseAndFillPlugin.h"
 #include "KisToolEncloseAndFillFactory.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisToolEncloseAndFillPluginFactory, "kritatoolencloseandfill.json", registerPlugin<KisToolEncloseAndFillPlugin>();)
-
-KisToolEncloseAndFillPlugin::KisToolEncloseAndFillPlugin(QObject *parent, const QVariantList &)
-        : QObject(parent)
+void registerToolEncloseAndFill()
 {
-    KoToolRegistry::instance()->add(new KisToolEncloseAndFillFactory());
+    static std::once_flag once;
+    std::call_once(once, [] {
+        KoToolRegistry::instance()->add(new KisToolEncloseAndFillFactory());
+    });
 }
-
-KisToolEncloseAndFillPlugin::~KisToolEncloseAndFillPlugin()
-{
-}
-
-#include "KisToolEncloseAndFillPlugin.moc"

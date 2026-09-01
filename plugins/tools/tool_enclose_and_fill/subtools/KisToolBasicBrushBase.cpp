@@ -5,7 +5,6 @@
  */
 
 
-#include <QIcon>
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
@@ -18,16 +17,20 @@
 #include <kis_config_notifier.h>
 #include <kis_image_config.h>
 #include <brushengine/kis_paintop_preset.h>
+#include <type_traits>
 
 #include "KisToolBasicBrushBase.h"
 
-KisToolBasicBrushBase::KisToolBasicBrushBase(KoCanvasBase * canvas, ToolType type, const QCursor & cursor)
-    : KisToolShape(canvas, cursor)
+KisToolBasicBrushBase::KisToolBasicBrushBase(KoCanvasBase * canvas, ToolType type)
+    : KisToolShape(canvas, Qt::ArrowCursor)
     , m_type(type)
     , m_previewColor(0, 255, 0, 128)
 {
     setSupportOutline(true);
-    connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(updateSettings()));
+    connect(KisConfigNotifier::instance(),
+            &KisConfigNotifier::configChanged,
+            this,
+            &KisToolBasicBrushBase::updateSettings);
     updateSettings();
 }
 
@@ -62,15 +65,15 @@ void KisToolBasicBrushBase::beginPrimaryAction(KoPointerEvent *event)
         if (paintability == KisToolPaint::CLONE){
             KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
             KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
-            QString message = i18n("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            feedback->showFloatingMessage(message, QIcon());
+            PkString message("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
+            feedback->showFloatingMessage(message, {});
         }
 
         if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
             KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
             KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
-            QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            feedback->showFloatingMessage(message, QIcon());
+            PkString message("The MyPaint Brush Engine is not available for this colorspace");
+            feedback->showFloatingMessage(message, {});
         }
 
         event->ignore();
@@ -81,10 +84,10 @@ void KisToolBasicBrushBase::beginPrimaryAction(KoPointerEvent *event)
 
     beginShape();
 
-    const QPointF position = convertToPixelCoord(event);
+    const PkPointF position = convertToPixelCoord(event);
     const qreal pressure = pressureToCurve(event->pressure());
     const qreal radius = pressure * currentPaintOpPreset()->settings()->paintOpSize() / 2.0;
-    m_path = QPainterPath(position);
+    m_path = PkPainterPath(position);
     m_path.setFillRule(Qt::WindingFill);
     m_path.addEllipse(position, radius, radius);
 
@@ -98,10 +101,10 @@ void KisToolBasicBrushBase::continuePrimaryAction(KoPointerEvent *event)
 {
     CHECK_MODE_SANITY_OR_RETURN(KisTool::PAINT_MODE);
 
-    const QPointF position = convertToPixelCoord(event);
+    const PkPointF position = convertToPixelCoord(event);
     const qreal pressure = pressureToCurve(event->pressure());
     const qreal brushRadius = currentPaintOpPreset()->settings()->paintOpSize() / 2.0;
-    const QPainterPath segment = generateSegment(m_lastPosition, m_lastPressure * brushRadius, position, pressure * brushRadius);
+    const PkPainterPath segment = generateSegment(m_lastPosition, m_lastPressure * brushRadius, position, pressure * brushRadius);
     m_path.addPath(segment);
 
     m_lastPosition = position;
@@ -113,7 +116,7 @@ void KisToolBasicBrushBase::continuePrimaryAction(KoPointerEvent *event)
 
 void KisToolBasicBrushBase::endPrimaryAction(KoPointerEvent *event)
 {
-    Q_UNUSED(event);
+    (void)event;
 
     CHECK_MODE_SANITY_OR_RETURN(KisTool::PAINT_MODE);
     setMode(KisTool::HOVER_MODE);
@@ -153,7 +156,8 @@ void KisToolBasicBrushBase::beginAlternateAction(KoPointerEvent *event, Alternat
 
     setMode(GESTURE_MODE);
     m_changeSizeInitialGestureDocPoint = event->point;
-    m_changeSizeInitialGestureGlobalPoint = QCursor::pos();
+    using CursorType = std::remove_reference_t<decltype(cursor())>;
+    m_changeSizeInitialGestureGlobalPoint = CursorType::pos();
 
     m_changeSizeLastDocumentPoint = event->point;
     m_changeSizeLastPaintOpSize = currentPaintOpPreset()->settings()->paintOpSize();
@@ -166,17 +170,17 @@ void KisToolBasicBrushBase::continueAlternateAction(KoPointerEvent *event, Alter
         return;
     }
 
-    QPointF lastWidgetPosition = convertDocumentToWidget(m_changeSizeLastDocumentPoint);
-    QPointF actualWidgetPosition = convertDocumentToWidget(event->point);
+    PkPointF lastWidgetPosition = convertDocumentToWidget(m_changeSizeLastDocumentPoint);
+    PkPointF actualWidgetPosition = convertDocumentToWidget(event->point);
 
-    QPointF offset = actualWidgetPosition - lastWidgetPosition;
+    PkPointF offset = actualWidgetPosition - lastWidgetPosition;
 
     const KisCoordinatesConverter *converter =
         dynamic_cast<const KisCoordinatesConverter *>(canvas()->viewConverter());
     KIS_ASSERT(converter);
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(services);
-    const QRect screenRect = services->toolAvailableVirtualScreenGeometry();
+    const PkRect screenRect = services->toolAvailableVirtualScreenGeometry();
 
     qreal scaleX = 0;
     qreal scaleY = 0;
@@ -222,10 +226,10 @@ void KisToolBasicBrushBase::endAlternateAction(KoPointerEvent *event, AlternateA
     setMode(HOVER_MODE);
 }
 
-void KisToolBasicBrushBase::update(const QRectF &strokeSegmentRect)
+void KisToolBasicBrushBase::update(const PkRectF &strokeSegmentRect)
 {
-    QRectF segmentRect;
-    QRectF outlineRect;
+    PkRectF segmentRect;
+    PkRectF outlineRect;
     // Segment rect
     if (mode() == KisTool::PAINT_MODE) {
         if (strokeSegmentRect.isValid()) {
@@ -241,7 +245,7 @@ void KisToolBasicBrushBase::update(const QRectF &strokeSegmentRect)
             : m_lastPressure * currentPaintOpPreset()->settings()->paintOpSize() / 2.0;
         outlineRect = 
             kisGrowRect(
-                QRectF(m_lastPosition - QPointF(radius, radius), m_lastPosition + QPointF(radius, radius)),
+                PkRectF(m_lastPosition - PkPointF(radius, radius), m_lastPosition + PkPointF(radius, radius)),
                 feedbackLineWidth
             );
     }
@@ -255,12 +259,12 @@ void KisToolBasicBrushBase::update(const QRectF &strokeSegmentRect)
     }
 }
 
-KisOptimizedBrushOutline KisToolBasicBrushBase::getOutlinePath(const QPointF &documentPos,
+KisOptimizedBrushOutline KisToolBasicBrushBase::getOutlinePath(const PkPointF &documentPos,
                                                                const KoPointerEvent *event,
                                                                KisPaintOpSettings::OutlineMode outlineMode)
 {
-    Q_UNUSED(documentPos);
-    Q_UNUSED(event);
+    (void)documentPos;
+    (void)event;
 
     if (!outlineMode.isVisible) {
         return {};
@@ -269,20 +273,24 @@ KisOptimizedBrushOutline KisToolBasicBrushBase::getOutlinePath(const QPointF &do
         mode() != KisTool::PAINT_MODE || outlineMode.forceFullSize
         ? currentPaintOpPreset()->settings()->paintOpSize() / 2.0
         : m_lastPressure * currentPaintOpPreset()->settings()->paintOpSize() / 2.0;
-    QPainterPath outline;
+    PkPainterPath outline;
     outline.addEllipse(m_lastPosition, radius, radius);
     return outline;
 }
 
-void KisToolBasicBrushBase::paint(QPainter &gc, const KoViewConverter &converter)
+void KisToolBasicBrushBase::paint(PkPainter &gc, const KoViewConverter &converter)
 {
     if (mode() == KisTool::PAINT_MODE) {
-        gc.fillPath(pixelToView(m_path), m_previewColor);
+        gc.save();
+        gc.setPen(Qt::NoPen);
+        gc.setBrush(m_previewColor);
+        gc.drawPath(pixelToView(m_path));
+        gc.restore();
     }
     KisToolShape::paint(gc, converter);
 }
 
-void KisToolBasicBrushBase::activate(const QSet<KoShape*> &shapes)
+void KisToolBasicBrushBase::activate(const PkSet<KoShape*> &shapes)
 {
     m_lastPressure = 1.0;
     
@@ -298,7 +306,7 @@ void KisToolBasicBrushBase::deactivate()
     KisToolShape::deactivate();
 }
 
-void KisToolBasicBrushBase::setPreviewColor(const QColor &color)
+void KisToolBasicBrushBase::setPreviewColor(const PkColor &color)
 {
     m_previewColor = color;
 }
@@ -344,27 +352,27 @@ qreal KisToolBasicBrushBase::pressureToCurve(qreal pressure)
     return KisCubicCurve::interpolateLinear(pressure, m_pressureSamples);
 }
 
-QPainterPath KisToolBasicBrushBase::generateSegment(const QPointF &point1, qreal radius1, const QPointF &point2, qreal radius2) const
+PkPainterPath KisToolBasicBrushBase::generateSegment(const PkPointF &point1, qreal radius1, const PkPointF &point2, qreal radius2) const
 {
-    const QPointF &p1 = radius1 < radius2 ? point2 : point1;
-    const QPointF &p2 = radius1 < radius2 ? point1 : point2;
+    const PkPointF &p1 = radius1 < radius2 ? point2 : point1;
+    const PkPointF &p2 = radius1 < radius2 ? point1 : point2;
     const qreal &r1 = radius1 < radius2 ? radius2 : radius1;
     const qreal &r2 = radius1 < radius2 ? radius1 : radius2;
-    const QPointF deltaP1P2 = p2 - p1;
+    const PkPointF deltaP1P2 = p2 - p1;
     const qreal deltaR1R2 = r1 - r2;
-    QPointF tangentPointP11, tangentPointP12, tangentPointP21, tangentPointP22;
+    PkPointF tangentPointP11, tangentPointP12, tangentPointP21, tangentPointP22;
 
     if (qFuzzyIsNull(deltaR1R2)) {
         // Same radius case
         const qreal deltaP1P2Length = std::sqrt(deltaP1P2.x() * deltaP1P2.x() + deltaP1P2.y() * deltaP1P2.y());
-        const QPointF deltaP1P2Normalized = deltaP1P2 / deltaP1P2Length;
-        tangentPointP11 = p1 + QPointF(deltaP1P2Normalized.y(), -deltaP1P2Normalized.x()) * r1;
-        tangentPointP12 = p1 + QPointF(-deltaP1P2Normalized.y(), deltaP1P2Normalized.x()) * r1;
-        tangentPointP21 = p2 + QPointF(deltaP1P2Normalized.y(), -deltaP1P2Normalized.x()) * r2;
-        tangentPointP22 = p2 + QPointF(-deltaP1P2Normalized.y(), deltaP1P2Normalized.x()) * r2;
+        const PkPointF deltaP1P2Normalized = deltaP1P2 / deltaP1P2Length;
+        tangentPointP11 = p1 + PkPointF(deltaP1P2Normalized.y(), -deltaP1P2Normalized.x()) * r1;
+        tangentPointP12 = p1 + PkPointF(-deltaP1P2Normalized.y(), deltaP1P2Normalized.x()) * r1;
+        tangentPointP21 = p2 + PkPointF(deltaP1P2Normalized.y(), -deltaP1P2Normalized.x()) * r2;
+        tangentPointP22 = p2 + PkPointF(-deltaP1P2Normalized.y(), deltaP1P2Normalized.x()) * r2;
     } else {
         // General case
-        const QPointF tangentIntersectionPoint(
+        const PkPointF tangentIntersectionPoint(
             (p2.x() * r1 - p1.x() * r2) / deltaR1R2,
             (p2.y() * r1 - p1.y() * r2) / deltaR1R2
         );
@@ -374,41 +382,41 @@ QPainterPath KisToolBasicBrushBase::generateSegment(const QPointF &point1, qreal
         };
         {
             const qreal r1Squared = r1 * r1;
-            const QPointF deltaP1TangentIntersectionPoint = tangentIntersectionPoint - p1;
+            const PkPointF deltaP1TangentIntersectionPoint = tangentIntersectionPoint - p1;
             const qreal deltaP1TangentIntersectionPointLengthSquared = 
                 deltaP1TangentIntersectionPoint.x() * deltaP1TangentIntersectionPoint.x() +
                 deltaP1TangentIntersectionPoint.y() * deltaP1TangentIntersectionPoint.y();
-            const QPointF t11 = r1Squared * deltaP1TangentIntersectionPoint;
-            const QPointF t12 = r1 * deltaP1TangentIntersectionPoint * std::sqrt(deltaP1TangentIntersectionPointLengthSquared - r1Squared);
-            tangentPointP11 = QPointF(
+            const PkPointF t11 = r1Squared * deltaP1TangentIntersectionPoint;
+            const PkPointF t12 = r1 * deltaP1TangentIntersectionPoint * std::sqrt(deltaP1TangentIntersectionPointLengthSquared - r1Squared);
+            tangentPointP11 = PkPointF(
                 f(t11.x(), t12.y(), deltaP1TangentIntersectionPointLengthSquared, p1.x(), 1.0),
                 f(t11.y(), t12.x(), deltaP1TangentIntersectionPointLengthSquared, p1.y(), -1.0)
             );
-            tangentPointP12 = QPointF(
+            tangentPointP12 = PkPointF(
                 f(t11.x(), t12.y(), deltaP1TangentIntersectionPointLengthSquared, p1.x(), -1.0),
                 f(t11.y(), t12.x(), deltaP1TangentIntersectionPointLengthSquared, p1.y(), 1.0)
             );
         }
         {
             const qreal r2Squared = r2 * r2;
-            const QPointF deltaP2TangentIntersectionPoint = tangentIntersectionPoint - p2;
+            const PkPointF deltaP2TangentIntersectionPoint = tangentIntersectionPoint - p2;
             const qreal deltaP2TangentIntersectionPointLengthSquared = 
                 deltaP2TangentIntersectionPoint.x() * deltaP2TangentIntersectionPoint.x() +
                 deltaP2TangentIntersectionPoint.y() * deltaP2TangentIntersectionPoint.y();
-            const QPointF t11 = r2Squared * deltaP2TangentIntersectionPoint;
-            const QPointF t12 = r2 * deltaP2TangentIntersectionPoint * std::sqrt(deltaP2TangentIntersectionPointLengthSquared - r2Squared);
-            tangentPointP21 = QPointF(
+            const PkPointF t11 = r2Squared * deltaP2TangentIntersectionPoint;
+            const PkPointF t12 = r2 * deltaP2TangentIntersectionPoint * std::sqrt(deltaP2TangentIntersectionPointLengthSquared - r2Squared);
+            tangentPointP21 = PkPointF(
                 f(t11.x(), t12.y(), deltaP2TangentIntersectionPointLengthSquared, p2.x(), 1.0),
                 f(t11.y(), t12.x(), deltaP2TangentIntersectionPointLengthSquared, p2.y(), -1.0)
             );
-            tangentPointP22 = QPointF(
+            tangentPointP22 = PkPointF(
                 f(t11.x(), t12.y(), deltaP2TangentIntersectionPointLengthSquared, p2.x(), -1.0),
                 f(t11.y(), t12.x(), deltaP2TangentIntersectionPointLengthSquared, p2.y(), 1.0)
             );
         }
     }
 
-    QPainterPath path;
+    PkPainterPath path;
     path.setFillRule(Qt::WindingFill);
     path.moveTo(tangentPointP11);
     path.lineTo(tangentPointP21);

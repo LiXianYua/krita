@@ -18,7 +18,7 @@ KisLassoEnclosingProducer::KisLassoEnclosingProducer(KoCanvasBase * canvas)
     setOutlineEnabled(false);
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &) {
+            this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();
                 }
@@ -39,13 +39,21 @@ void  KisLassoEnclosingProducer::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisLassoEnclosingProducer::finishOutline(const QVector<QPointF> &points)
+void KisLassoEnclosingProducer::enclosingMaskProduced(KisPixelSelectionSP enclosingMask)
+{
+    PkObject::activateSignal<KisPixelSelectionSP>(
+        this,
+        PkMemberFnKey::from(&KisLassoEnclosingProducer::enclosingMaskProduced),
+        enclosingMask);
+}
+
+void KisLassoEnclosingProducer::finishOutline(const PkVector<PkPointF> &points)
 {
     if (points.size() < 3) {
         return;
     }
     
-    KisPixelSelectionSP enclosingMask = new KisPixelSelection();
+    KisPixelSelectionSP enclosingMask(new KisPixelSelection());
 
     KisPainter painter(enclosingMask);
     painter.setPaintColor(KoColor(Qt::white, enclosingMask->colorSpace()));
@@ -55,7 +63,7 @@ void KisLassoEnclosingProducer::finishOutline(const QVector<QPointF> &points)
 
     painter.paintPolygon(points);
 
-    Q_EMIT enclosingMaskProduced(enclosingMask);
+    enclosingMaskProduced(enclosingMask);
 }
 
 bool KisLassoEnclosingProducer::hasUserInteractionRunning() const

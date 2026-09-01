@@ -10,7 +10,14 @@
 #define KISDYNAMICDELEGATEDTOOL_H
 
 #include <functional>
+#include <tuple>
 #include <type_traits>
+
+#include <PkPainter.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSet.h>
+#include <PkVariant.h>
 
 #include <KoToolBase.h>
 #include <KoToolBase_p.h>
@@ -24,6 +31,25 @@
 #include <KoShapeControllerBase.h>
 #include <KoToolSelection.h>
 #include <KoCanvasController.h>
+
+template <typename Method>
+struct KisDynamicMethodTraits;
+
+template <typename Class, typename Return, typename... Args>
+struct KisDynamicMethodTraits<Return (Class::*)(Args...)>
+{
+    using ReturnType = Return;
+    template <std::size_t Index>
+    using Argument = typename std::tuple_element<Index, std::tuple<Args...>>::type;
+};
+
+template <typename Class, typename Return, typename... Args>
+struct KisDynamicMethodTraits<Return (Class::*)(Args...) const>
+{
+    using ReturnType = Return;
+    template <std::size_t Index>
+    using Argument = typename std::tuple_element<Index, std::tuple<Args...>>::type;
+};
 
 template <typename BaseClass>
 class KisDynamicDelegateTool : public BaseClass
@@ -63,8 +89,13 @@ class KisDynamicDelegatedTool : public BaseClass
 public:
     using DelegateType = KisDynamicDelegateTool<BaseClass>;
 
-    explicit KisDynamicDelegatedTool(KoCanvasBase *canvas, const QCursor &cursor)
-        : BaseClass(canvas, cursor)
+    using CursorType = typename KisDynamicMethodTraits<decltype(&BaseClass::cursor)>::ReturnType;
+    using KeyPressEvent = typename KisDynamicMethodTraits<decltype(&BaseClass::keyPressEvent)>::template Argument<0>;
+    using KeyReleaseEvent = typename KisDynamicMethodTraits<decltype(&BaseClass::keyReleaseEvent)>::template Argument<0>;
+    using PopupMenu = typename KisDynamicMethodTraits<decltype(&BaseClass::popupActionsMenu)>::ReturnType;
+
+    explicit KisDynamicDelegatedTool(KoCanvasBase *canvas)
+        : BaseClass(canvas, CursorType())
         , m_delegateTool(nullptr)
     {}
 
@@ -94,17 +125,21 @@ public:
         }
         m_delegateTool = newDelegateTool;
         if (m_delegateTool) {
-            BaseClass::connect(m_delegateTool, SIGNAL(activateTool(QString)), SIGNAL(activateTool(QString)));
-            BaseClass::connect(m_delegateTool, &DelegateType::cursorChanged, [this](const QCursor &c) { this->BaseClass::useCursor(c); });
-            BaseClass::connect(m_delegateTool, SIGNAL(selectionChanged(bool)), SIGNAL(selectionChanged(bool)));
-            BaseClass::connect(m_delegateTool, SIGNAL(statusTextChanged(QString)), SIGNAL(statusTextChanged(QString)));
+            BaseClass::connect(m_delegateTool, &DelegateType::activateTool,
+                               this, &BaseClass::activateTool);
+            BaseClass::connect(m_delegateTool, &DelegateType::cursorChanged,
+                               this, [this](const auto &cursor) { this->BaseClass::useCursor(cursor); });
+            BaseClass::connect(m_delegateTool, &DelegateType::selectionChanged,
+                               this, &BaseClass::selectionChanged);
+            BaseClass::connect(m_delegateTool, &DelegateType::statusTextChanged,
+                               this, &BaseClass::statusTextChanged);
         }
     }
 
-    QRectF decorationsRect() const override
+    PkRectF decorationsRect() const override
     {
         if (m_delegateTool) return m_delegateTool->decorationsRect();
-        return QRect();
+        return PkRect();
     }
 
     bool wantsAutoScroll() const override
@@ -113,7 +148,7 @@ public:
         return false;
     }
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override
+    void paint(PkPainter &painter, const KoViewConverter &converter) override
     {
         if (m_delegateTool) m_delegateTool->paint(painter, converter);
     }
@@ -143,12 +178,12 @@ public:
         if (m_delegateTool) m_delegateTool->mouseReleaseEvent(event);
     }
 
-    void keyPressEvent(QKeyEvent *event) override
+    void keyPressEvent(KeyPressEvent event) override
     {
         if (m_delegateTool) m_delegateTool->keyPressEvent(event);
     }
 
-    void keyReleaseEvent(QKeyEvent *event) override
+    void keyReleaseEvent(KeyReleaseEvent event) override
     {
         if (m_delegateTool) m_delegateTool->keyReleaseEvent(event);
     }
@@ -158,7 +193,7 @@ public:
         if (m_delegateTool) m_delegateTool->explicitUserStrokeEndRequest();
     }
 
-    QMenu* popupActionsMenu() override
+    PopupMenu popupActionsMenu() override
     {
         if (m_delegateTool) return m_delegateTool->popupActionsMenu();
         return nullptr;
@@ -247,12 +282,12 @@ public:
         if (m_delegateTool) m_delegateTool->newActivationWithExternalSource(externalSource);
     }
 
-    void requestUpdateOutline(const QPointF &outlineDocPoint, const KoPointerEvent *event) override
+    void requestUpdateOutline(const PkPointF &outlineDocPoint, const KoPointerEvent *event) override
     {
         if (m_delegateTool) m_delegateTool->requestUpdateOutline(outlineDocPoint, event);
     }
 
-public Q_SLOTS:
+public:
     void requestUndoDuringStroke() override
     {
         if (m_delegateTool) m_delegateTool->requestUndoDuringStroke();
@@ -273,7 +308,7 @@ public Q_SLOTS:
         if (m_delegateTool) m_delegateTool->requestStrokeEnd();
     }
 
-    void activate(const QSet<KoShape*> &shapes) override
+    void activate(const PkSet<KoShape*> &shapes) override
     {
         if (m_delegateTool) m_delegateTool->activate(shapes);
         KisTool::activate(shapes);
@@ -285,12 +320,12 @@ public Q_SLOTS:
         KisTool::deactivate();
     }
 
-    void canvasResourceChanged(int key, const QVariant &res) override
+    void canvasResourceChanged(int key, const PkVariant &res) override
     {
         if (m_delegateTool) m_delegateTool->canvasResourceChanged(key, res);
     }
 
-    void documentResourceChanged(int key, const QVariant &res) override
+    void documentResourceChanged(int key, const PkVariant &res) override
     {
         if (m_delegateTool) m_delegateTool->documentResourceChanged(key, res);
     }
@@ -317,13 +352,13 @@ protected:
         if (m_delegateTool) m_delegateTool->listenToModifiers(listen);
     }
 
-    QCursor cursor() const
+    CursorType cursor() const
     {
         if (m_delegateTool) return m_delegateTool->cursor();
         return BaseClass::cursor();
     }
 
-    void setCursor(const QCursor &cursor)
+    void setCursor(const CursorType &cursor)
     {
         if (m_delegateTool) m_delegateTool->setCursor(cursor);
         BaseClass::setCursor(cursor);
@@ -341,7 +376,7 @@ protected:
         return BaseClass::mode();
     }
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override
     {
         if (m_delegateTool) m_delegateTool->resetCursorStyle();
