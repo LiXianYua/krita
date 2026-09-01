@@ -101,7 +101,7 @@ KisImageAnimationInterface::KisImageAnimationInterface(KisImage *image)
     m_d->framerate = 24;
     m_d->documentRange = KisTimeSpan::fromTimeToTime(0, 100);
 
-    connect(this, &KisImageAnimationInterface::sigInternalRequestTimeSwitch, this, [this](int frame, bool useUndo) {
+    PkObject::connect(this, &KisImageAnimationInterface::sigInternalRequestTimeSwitch, this, [this](int frame, bool useUndo) {
         this->switchCurrentTimeAsync(frame, useUndo ? STAO_USE_UNDO : STAO_NONE);
     });
 }
@@ -109,7 +109,7 @@ KisImageAnimationInterface::KisImageAnimationInterface(KisImage *image)
 KisImageAnimationInterface::KisImageAnimationInterface(const KisImageAnimationInterface &rhs, KisImage *newImage)
     : m_d(new Private(*rhs.m_d, newImage))
 {
-    connect(this, &KisImageAnimationInterface::sigInternalRequestTimeSwitch, this, [this](int frame, bool useUndo) {
+    PkObject::connect(this, &KisImageAnimationInterface::sigInternalRequestTimeSwitch, this, [this](int frame, bool useUndo) {
         this->switchCurrentTimeAsync(frame, useUndo ? STAO_USE_UNDO : STAO_NONE);
     });
 }
@@ -150,7 +150,7 @@ void KisImageAnimationInterface::setDocumentRange(const KisTimeSpan range)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(!range.isInfinite());
     m_d->documentRange = range;
-    Q_EMIT sigDocumentRangeChanged();
+    sigDocumentRangeChanged();
 }
 
 void KisImageAnimationInterface::setDocumentRangeStartFrame(int column)
@@ -174,7 +174,7 @@ void KisImageAnimationInterface::setActivePlaybackRange(const KisTimeSpan range)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(!range.isInfinite());
     m_d->activePlaybackRange = range;
-    Q_EMIT sigPlaybackRangeChanged();
+    sigPlaybackRangeChanged();
 }
 
 int KisImageAnimationInterface::framerate() const
@@ -226,7 +226,7 @@ void KisImageAnimationInterface::setFramerate(int fps)
 {
     if (fps > 0) {
         m_d->framerate = fps;
-        Q_EMIT sigFramerateChanged();
+        sigFramerateChanged();
     }
 }
 
@@ -257,7 +257,7 @@ void KisImageAnimationInterface::setDefaultProjectionColor(const KoColor &color)
 
 void KisImageAnimationInterface::requestTimeSwitchNonGUI(int time, bool useUndo)
 {
-    Q_EMIT sigInternalRequestTimeSwitch(time, useUndo);
+    sigInternalRequestTimeSwitch(time, useUndo);
 }
 
 void KisImageAnimationInterface::explicitlySetCurrentTime(int frameId)
@@ -308,7 +308,7 @@ void KisImageAnimationInterface::switchCurrentTimeAsync(int frameId, SwitchTimeA
 
 
     m_d->setCurrentUITime(frameId);
-    Q_EMIT sigUiTimeChanged(frameId);
+    sigUiTimeChanged(frameId);
 }
 
 void KisImageAnimationInterface::requestFrameRegeneration(int frameId, const KisRegion &dirtyRegion, bool isCancellable, KisLockFrameGenerationLock &&lock)
@@ -344,17 +344,17 @@ void KisImageAnimationInterface::restoreCurrentTime(int *savedValue)
 
 void KisImageAnimationInterface::notifyFrameReady()
 {
-    Q_EMIT sigFrameReady(m_d->currentTime());
+    sigFrameReady(m_d->currentTime());
 }
 
 void KisImageAnimationInterface::notifyFrameCancelled()
 {
-    Q_EMIT sigFrameCancelled();
+    sigFrameCancelled();
 }
 
 void KisImageAnimationInterface::notifyFrameRegenerated()
 {
-    Q_EMIT sigFrameRegenerated(m_d->currentTime());
+    sigFrameRegenerated(m_d->currentTime());
 }
 
 bool KisImageAnimationInterface::requiresOnionSkinRendering() {
@@ -426,18 +426,18 @@ void KisImageAnimationInterface::notifyNodeChanged(const KisNode *node,
 void KisImageAnimationInterface::invalidateFrames(const KisTimeSpan &range, const PkRect &rect)
 {
     m_d->cachedLastFrameValue = -1;
-    Q_EMIT sigFramesChanged(range, rect);
+    sigFramesChanged(range, rect);
 }
 
 void KisImageAnimationInterface::invalidateFrame(const int time, KisNodeSP target)
 {
     m_d->cachedLastFrameValue = -1;
 
-    Q_EMIT sigFramesChanged(KisLayerUtils::fetchLayerActiveRasterFrameSpan(target, time), m_d->image->bounds());
+    sigFramesChanged(KisLayerUtils::fetchLayerActiveRasterFrameSpan(target, time), m_d->image->bounds());
 
     PkSet<int> identicalFrames = KisLayerUtils::fetchLayerIdenticalRasterFrameTimes(target, time);
     Q_FOREACH(const int& identicalTime, identicalFrames) {
-        Q_EMIT sigFramesChanged(KisLayerUtils::fetchLayerActiveRasterFrameSpan(target, identicalTime), m_d->image->bounds());
+        sigFramesChanged(KisLayerUtils::fetchLayerActiveRasterFrameSpan(target, identicalTime), m_d->image->bounds());
     }
 }
 

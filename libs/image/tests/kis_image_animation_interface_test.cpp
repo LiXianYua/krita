@@ -6,8 +6,9 @@
 
 #include "kis_image_animation_interface_test.h"
 
-#include <QSignalSpy>
 #include <simpletest.h>
+
+#include <vector>
 
 #include <testutil.h>
 #include <KoColor.h>
@@ -97,7 +98,10 @@ void KisImageAnimationInterfaceTest::testFrameRegeneration()
     {
         KisLockFrameGenerationLock lock(p.image->animationInterface());
         SignalToFunctionProxy proxy1(std::bind(checkFrame, i, p.image, 0, true, rc1 | rc2));
-        connect(i, SIGNAL(sigFrameReady(int)), &proxy1, SLOT(start()), Qt::DirectConnection);
+        PkObject connectionReceiver;
+        QVERIFY(PkObject::connect(i, &KisImageAnimationInterface::sigFrameReady,
+                                  &connectionReceiver, [&proxy1](int) { proxy1.start(); },
+                                  PkConnectionType::Direct).isValid());
         i->requestFrameRegeneration(0, KisRegion(refRect), false, std::move(lock));
         QTest::qWait(200);
     }
@@ -121,7 +125,10 @@ void KisImageAnimationInterfaceTest::testFrameRegeneration()
     {
         KisLockFrameGenerationLock lock(p.image->animationInterface());
         SignalToFunctionProxy proxy2(std::bind(checkFrame, i, p.image, 10, true, rc3 | rc4));
-        connect(i, SIGNAL(sigFrameReady(int)), &proxy2, SLOT(start()), Qt::DirectConnection);
+        PkObject connectionReceiver;
+        QVERIFY(PkObject::connect(i, &KisImageAnimationInterface::sigFrameReady,
+                                  &connectionReceiver, [&proxy2](int) { proxy2.start(); },
+                                  PkConnectionType::Direct).isValid());
         i->requestFrameRegeneration(10, KisRegion(refRect), false, std::move(lock));
         QTest::qWait(200);
     }
@@ -151,37 +158,42 @@ void KisImageAnimationInterfaceTest::testFramesChangedSignal()
     channel->addKeyframe(20);
 
     // check switching a frame doesn't invalidate cache
-    QSignalSpy spy(i, SIGNAL(sigFramesChanged(KisTimeSpan,QRect)));
+    PkObject connectionReceiver;
+    std::vector<KisTimeSpan> changedRanges;
+    QVERIFY(PkObject::connect(i, &KisImageAnimationInterface::sigFramesChanged,
+                              &connectionReceiver,
+                              [&changedRanges](const KisTimeSpan &range, const PkRect &) {
+                                  changedRanges.push_back(range);
+                              }).isValid());
 
     p.image->animationInterface()->switchCurrentTimeAsync(15);
     p.image->waitForDone();
 
-    QCOMPARE(spy.count(), 0);
+    QCOMPARE(int(changedRanges.size()), 0);
 
     i->notifyNodeChanged(layer1.data(), QRect(), false);
 
-    QCOMPARE(spy.count(), 1);
-    QList<QVariant> arguments = spy.takeFirst();
-    QCOMPARE(arguments.at(0).value<KisTimeSpan>(), KisTimeSpan::infinite(0));
+    QCOMPARE(int(changedRanges.size()), 1);
+    QCOMPARE(changedRanges.front(), KisTimeSpan::infinite(0));
+    changedRanges.clear();
 
     i->notifyNodeChanged(layer2.data(), QRect(), false);
 
-    QCOMPARE(spy.count(), 1);
-    arguments = spy.takeFirst();
-    QCOMPARE(arguments.at(0).value<KisTimeSpan>(), KisTimeSpan::fromTimeWithDuration(10, 10));
+    QCOMPARE(int(changedRanges.size()), 1);
+    QCOMPARE(changedRanges.front(), KisTimeSpan::fromTimeWithDuration(10, 10));
+    changedRanges.clear();
 
     // Recursive
 
     channel = dev1->keyframeChannel();
     channel->addKeyframe(13);
 
-    spy.clear();
+    changedRanges.clear();
     i->notifyNodeChanged(p.image->root().data(), QRect(), true);
 
-    QCOMPARE(spy.count(), 1);
-    arguments = spy.takeFirst();
+    QCOMPARE(int(changedRanges.size()), 1);
     QEXPECT_FAIL("", "Infinite time range is expected to be (0, -2147483648), but is (1, -2147483648)", Continue);
-    QCOMPARE(arguments.at(0).value<KisTimeSpan>(), KisTimeSpan::infinite(10));
+    QCOMPARE(changedRanges.front(), KisTimeSpan::infinite(10));
 
 }
 
@@ -207,7 +219,10 @@ void KisImageAnimationInterfaceTest::testAnimationCompositionBug()
     p.image->initialRefreshGraph();
 
     m_image = p.image;
-    connect(p.image->animationInterface(), SIGNAL(sigFrameReady(int)), this, SLOT(slotFrameDone()), Qt::DirectConnection);
+    PkObject connectionReceiver;
+    QVERIFY(PkObject::connect(p.image->animationInterface(), &KisImageAnimationInterface::sigFrameReady,
+                              &connectionReceiver, [this](int) { slotFrameDone(); },
+                              PkConnectionType::Direct).isValid());
 
     {
         KisLockFrameGenerationLock lock(p.image->animationInterface());

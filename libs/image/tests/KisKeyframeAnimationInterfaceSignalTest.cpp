@@ -7,7 +7,6 @@
 #include "KisKeyframeAnimationInterfaceSignalTest.h"
 
 #include <simpletest.h>
-#include <qsignalspy.h>
 
 
 void KisKeyframeAnimationInterfaceSignalTest::initTestCase()
@@ -36,19 +35,22 @@ void KisKeyframeAnimationInterfaceSignalTest::testSignalFromKeyframeChannelToInt
     QCOMPARE(m_channel->keyframeCount(), 1);
 
     //add keyframe
-    qRegisterMetaType<const KisKeyframeChannel*>("const KisKeyframeChannel*");
-    QSignalSpy spyFrameAdded(m_image1->animationInterface() , SIGNAL(sigKeyframeAdded(const KisKeyframeChannel*, int)));
-    QVERIFY(spyFrameAdded.isValid());
+    PkObject connectionReceiver;
+    int frameAddedCount = 0;
+    int frameRemovedCount = 0;
+    QVERIFY(PkObject::connect(m_image1->animationInterface(), &KisImageAnimationInterface::sigKeyframeAdded,
+                              &connectionReceiver,
+                              [&frameAddedCount](const KisKeyframeChannel *, int) { ++frameAddedCount; }).isValid());
+    QVERIFY(PkObject::connect(m_image1->animationInterface(), &KisImageAnimationInterface::sigKeyframeRemoved,
+                              &connectionReceiver,
+                              [&frameRemovedCount](const KisKeyframeChannel *, int) { ++frameRemovedCount; }).isValid());
 
     m_channel->addKeyframe(2);
-    QCOMPARE(spyFrameAdded.count(), 1);
+    QCOMPARE(frameAddedCount, 1);
 
     //remove keyframe
-    QSignalSpy spyFrameRemoved(m_image1->animationInterface() , SIGNAL(sigKeyframeRemoved(const KisKeyframeChannel*, int)));
-    QVERIFY(spyFrameRemoved.isValid());
-
     m_channel->removeKeyframe(5);
-    QCOMPARE(spyFrameRemoved.count(), 1);
+    QCOMPARE(frameRemovedCount, 1);
 }
 
 void KisKeyframeAnimationInterfaceSignalTest::testSignalOnImageReset()
@@ -63,28 +65,33 @@ void KisKeyframeAnimationInterfaceSignalTest::testSignalOnImageReset()
                               m_image2->animationInterface(), &KisImageAnimationInterface::sigKeyframeAdded,
                               PkConnectionType::Unique).isValid());
 
-    //test signals from the old image on changing m_channel after image reset
-    QSignalSpy spyFrameAdded(m_image1->animationInterface() , SIGNAL(sigKeyframeAdded(const KisKeyframeChannel*, int)));
-    QVERIFY(spyFrameAdded.isValid());
-    
-    QSignalSpy spyFrameRemoved(m_image1->animationInterface() , SIGNAL(sigKeyframeRemoved(const KisKeyframeChannel*, int)));
-    QVERIFY(spyFrameRemoved.isValid());
-
-    //check if signal are emitted from the new image on changing m_channel
-    QSignalSpy newSpyFrameAdded(m_image2->animationInterface() , SIGNAL(sigKeyframeAdded(const KisKeyframeChannel*, int)));
-    QVERIFY(newSpyFrameAdded.isValid());
-
-    QSignalSpy newSpyFrameRemoved(m_image2->animationInterface() , SIGNAL(sigKeyframeRemoved(const KisKeyframeChannel*, int)));
-    QVERIFY(newSpyFrameRemoved.isValid());
+    //test signals from the old and new images after image reset
+    PkObject connectionReceiver;
+    int oldFrameAddedCount = 0;
+    int oldFrameRemovedCount = 0;
+    int newFrameAddedCount = 0;
+    int newFrameRemovedCount = 0;
+    QVERIFY(PkObject::connect(m_image1->animationInterface(), &KisImageAnimationInterface::sigKeyframeAdded,
+                              &connectionReceiver,
+                              [&oldFrameAddedCount](const KisKeyframeChannel *, int) { ++oldFrameAddedCount; }).isValid());
+    QVERIFY(PkObject::connect(m_image1->animationInterface(), &KisImageAnimationInterface::sigKeyframeRemoved,
+                              &connectionReceiver,
+                              [&oldFrameRemovedCount](const KisKeyframeChannel *, int) { ++oldFrameRemovedCount; }).isValid());
+    QVERIFY(PkObject::connect(m_image2->animationInterface(), &KisImageAnimationInterface::sigKeyframeAdded,
+                              &connectionReceiver,
+                              [&newFrameAddedCount](const KisKeyframeChannel *, int) { ++newFrameAddedCount; }).isValid());
+    QVERIFY(PkObject::connect(m_image2->animationInterface(), &KisImageAnimationInterface::sigKeyframeRemoved,
+                              &connectionReceiver,
+                              [&newFrameRemovedCount](const KisKeyframeChannel *, int) { ++newFrameRemovedCount; }).isValid());
 
     m_channel->addKeyframe(2);
     m_channel->removeKeyframe(2);
 
-    QCOMPARE(spyFrameAdded.count(), 0);
-    QCOMPARE(spyFrameRemoved.count(), 0);
+    QCOMPARE(oldFrameAddedCount, 0);
+    QCOMPARE(oldFrameRemovedCount, 0);
 
-    QCOMPARE(newSpyFrameAdded.count(), 1);
-    QCOMPARE(newSpyFrameRemoved.count(), 1);
+    QCOMPARE(newFrameAddedCount, 1);
+    QCOMPARE(newFrameRemovedCount, 1);
 
     QCOMPARE(m_channel->keyframeCount(), 1);
 }

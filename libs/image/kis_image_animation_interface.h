@@ -7,8 +7,14 @@
 #ifndef __KIS_IMAGE_ANIMATION_INTERFACE_H
 #define __KIS_IMAGE_ANIMATION_INTERFACE_H
 
+#include <PkFlags.h>
 #include <PkObject.h>
+#include <PkRect.h>
 #include <PkScopedPointer.h>
+#include <PkSet.h>
+#include <PkSignalCompat.h>
+#include <PkString.h>
+#include <PkVector.h>
 #include "kis_types.h"
 #include "kis_time_span.h"
 #include "kritaimage_export.h"
@@ -26,8 +32,6 @@ namespace KisLayerUtils {
 
 class KRITAIMAGE_EXPORT KisImageAnimationInterface : public PkShellObject
 {
-    Q_OBJECT
-
 public:
     KisImageAnimationInterface(KisImage *image);
     KisImageAnimationInterface(const KisImageAnimationInterface &rhs, KisImage *newImage);
@@ -199,9 +203,9 @@ public:
         STAO_USE_UNDO = 1 << 1,
         STAO_FORCE_REGENERATION = 1 << 2
     };
-    Q_DECLARE_FLAGS(SwitchTimeAsyncFlags, SwitchTimeAsyncOption);
+    PK_DECLARE_FLAGS(SwitchTimeAsyncFlags, SwitchTimeAsyncOption)
 
-public Q_SLOTS:
+public:
 
     /**
      * Switches current frame (synchronously) and starts an
@@ -214,7 +218,7 @@ public Q_SLOTS:
 
     void setFramerate(int fps);
 
-Q_SIGNALS:
+signals:
     /**
      * @brief sigFrameReady notifies when an External frame has been regenerated and is available.
      * @param time -- frame index
