@@ -4,18 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-// ===========================================================================
-// [GAP] kis_node_property_list_command.cpp 阻塞登记（S-06 Task 5，修复轮更新）
-//
-// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。原「协变返回断裂」
-// 阻塞点已由 KoResource 族 PkVector→PkList 修复解除（修复轮验证：编过）。现阻塞：
-//   * PkSet 缺 `contains(const PkSet<T>&)` 子集重载（Pk 对应的 Qt 容器有：
-//     redo/undo 的 `propsWithNoUpdates().contains(changed)`，changed 是
-//     PkSet<PkString>）。编译错误 `cannot convert 'const PkSet<PkString>'
-//     to 'const PkString&'`（kis_node_property_list_command.cpp:92/106）。
-// 关闭条件：给 PkSet 补 `contains(const PkSet<T>&)`（子集判定），或改写该调用。
-
-
 #include "kis_node.h"
 #include "kis_layer.h"
 #include "kis_image.h"
@@ -65,6 +53,17 @@ PkSet<PkString> changedProperties(const KisBaseNode::PropertyList &before,
     return changedIds;
 }
 
+bool containsAll(const PkSet<PkString> &set, const PkSet<PkString> &values)
+{
+    for (const PkString &value : values) {
+        if (!set.contains(value)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }
 
 KisNodePropertyListCommand::KisNodePropertyListCommand(KisNodeSP node, KisBaseNode::PropertyList newPropertyList)
@@ -88,7 +87,7 @@ void KisNodePropertyListCommand::redo()
     const PkRect oldExtent = m_node->projectionPlane()->tightUserVisibleBounds();
     m_node->setSectionModelProperties(m_newPropertyList);
 
-    if (!propsWithNoUpdates().contains(changed)) {
+    if (!containsAll(propsWithNoUpdates(), changed)) {
         doUpdate(propsBefore, m_node->sectionModelProperties(), oldExtent | m_node->projectionPlane()->tightUserVisibleBounds());
     }
 }
@@ -102,7 +101,7 @@ void KisNodePropertyListCommand::undo()
     const PkRect oldExtent = m_node->projectionPlane()->tightUserVisibleBounds();
     m_node->setSectionModelProperties(m_oldPropertyList);
 
-    if (!propsWithNoUpdates().contains(changed)) {
+    if (!containsAll(propsWithNoUpdates(), changed)) {
         doUpdate(propsBefore, m_node->sectionModelProperties(), oldExtent | m_node->projectionPlane()->tightUserVisibleBounds());
     }
 }
