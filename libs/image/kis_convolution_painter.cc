@@ -13,7 +13,6 @@
 #include <PkRect.h>
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 
 #include "kis_convolution_kernel.h"
 #include "kis_global.h"

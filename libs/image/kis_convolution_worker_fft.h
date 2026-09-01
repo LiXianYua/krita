@@ -21,8 +21,6 @@
 #include <PkMutex.h>
 #include <PkContainerAlgo.h>
 
-#include <KisPortingUtils.h>
-
 #include <fftw3.h>
 
 template<class _IteratorFactory_> class KisConvolutionWorkerFFT;

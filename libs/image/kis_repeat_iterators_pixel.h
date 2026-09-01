@@ -24,7 +24,8 @@ class KisRepeatVLineIteratorPixelBase;
 template<class T>
 class KisRepeatLineIteratorPixelBase : public KisShared
 {
-    Q_DISABLE_COPY(KisRepeatLineIteratorPixelBase)
+    KisRepeatLineIteratorPixelBase(const KisRepeatLineIteratorPixelBase &) = delete;
+    KisRepeatLineIteratorPixelBase &operator=(const KisRepeatLineIteratorPixelBase &) = delete;
 public:
 
     friend class KisRepeatHLineIteratorPixelBase<T>;
