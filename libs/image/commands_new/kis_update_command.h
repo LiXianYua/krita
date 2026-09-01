@@ -7,6 +7,8 @@
 #ifndef __KIS_UPDATE_COMMAND_H
 #define __KIS_UPDATE_COMMAND_H
 
+#include <PkRect.h>
+
 #include "kundo2command.h"
 #include "kritaimage_export.h"
 #include "kis_types.h"
