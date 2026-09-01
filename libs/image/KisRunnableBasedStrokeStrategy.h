@@ -7,6 +7,8 @@
 #ifndef KISRUNNABLEBASEDSTROKESTRATEGY_H
 #define KISRUNNABLEBASEDSTROKESTRATEGY_H
 
+#include <PkScopedPointer.h>
+
 #include "kis_simple_stroke_strategy.h"
 
 class KisRunnableStrokeJobsInterface;
