@@ -9,21 +9,23 @@
 #ifndef KIS_TOOL_CROP_H_
 #define KIS_TOOL_CROP_H_
 
-#include <QPoint>
-#include <QPainterPath>
+#include <PkPoint.h>
+#include <PkList.h>
+#include <PkPainter.h>
+#include <PkPainterPath.h>
+#include <PkSet.h>
+#include <PkString.h>
+#include <PkVariant.h>
 
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
 
-#include <QKeySequence>
 #include <KoToolFactoryBase.h>
 #include "kis_tool.h"
 #include "flake/kis_node_shape.h"
 #include "kis_constrained_rect.h"
 
-class QRect;
-class QAction;
 struct DecorationLine;
 
 
@@ -32,20 +34,6 @@ struct DecorationLine;
  */
 class KisToolCrop : public KisTool
 {
-
-    Q_OBJECT
-    Q_ENUMS(CropToolType);
-    Q_PROPERTY(CropToolType cropType READ cropType WRITE setCropType NOTIFY cropTypeChanged);
-    Q_PROPERTY(bool cropTypeSelectable READ cropTypeSelectable WRITE setCropTypeSelectable NOTIFY cropTypeSelectableChanged);
-    Q_PROPERTY(int cropX READ cropX WRITE setCropX NOTIFY cropXChanged);
-    Q_PROPERTY(int cropY READ cropY WRITE setCropY NOTIFY cropYChanged);
-    Q_PROPERTY(int cropWidth READ cropWidth WRITE setCropWidth NOTIFY cropWidthChanged);
-    Q_PROPERTY(bool lockWidth READ lockWidth WRITE setLockWidth NOTIFY lockWidthChanged);
-    Q_PROPERTY(int cropHeight READ cropHeight WRITE setCropHeight NOTIFY cropHeightChanged);
-    Q_PROPERTY(bool lockHeight READ lockHeight WRITE setLockHeight NOTIFY lockHeightChanged);
-    Q_PROPERTY(double ratio READ ratio WRITE setRatio NOTIFY ratioChanged);
-    Q_PROPERTY(bool lockRatio READ lockRatio WRITE setLockRatio NOTIFY lockRatioChanged);
-    Q_PROPERTY(int decoration READ decoration WRITE setDecoration NOTIFY decorationChanged);
 
 public:
     enum CropToolType {
@@ -64,11 +52,9 @@ public:
     void beginPrimaryDoubleClickAction(KoPointerEvent *event) override;
 
     void mouseMoveEvent(KoPointerEvent *e) override;
-    void canvasResourceChanged(int key, const QVariant &res) override;
+    void canvasResourceChanged(int key, const PkVariant &res) override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
-
-    QMenu *popupActionsMenu() override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
     CropToolType cropType() const;
     bool cropTypeSelectable() const;
@@ -84,7 +70,7 @@ public:
     bool growCenter() const;
     bool allowGrow() const;
 
-Q_SIGNALS:
+public:
     void cropTypeSelectableChanged();
     void cropTypeChanged(int value);
     void decorationChanged(int value);
@@ -103,9 +89,9 @@ Q_SIGNALS:
     void canGrowChanged(bool value);
     void isCenteredChanged(bool value);
 
-public Q_SLOTS:
+public:
 
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
     void requestStrokeEnd() override;
@@ -135,30 +121,30 @@ public Q_SLOTS:
     void slotRectChanged();
 
 private:
-    void doCanvasUpdate(const QRect &updateRect);
+    void doCanvasUpdate(const PkRect &updateRect);
 
 private:
     void cancelStroke();
-    QRectF boundingRect();
-    QRectF borderLineRect();
-    QPainterPath handlesPath();
-    void paintOutlineWithHandles(QPainter& gc);
-    qint32 mouseOnHandle(const QPointF currentViewPoint);
+    PkRectF boundingRect();
+    PkRectF borderLineRect();
+    PkPainterPath handlesPath();
+    void paintOutlineWithHandles(PkPainter& gc);
+    qint32 mouseOnHandle(const PkPointF currentViewPoint);
     void setMoveResizeCursor(qint32 handle);
-    QRectF lowerRightHandleRect(QRectF cropBorderRect);
-    QRectF upperRightHandleRect(QRectF cropBorderRect);
-    QRectF lowerLeftHandleRect(QRectF cropBorderRect);
-    QRectF upperLeftHandleRect(QRectF cropBorderRect);
-    QRectF lowerHandleRect(QRectF cropBorderRect);
-    QRectF rightHandleRect(QRectF cropBorderRect);
-    QRectF upperHandleRect(QRectF cropBorderRect);
-    QRectF leftHandleRect(QRectF cropBorderRect);
-    void drawDecorationLine(QPainter *p, DecorationLine *decorLine, QRectF rect);
+    PkRectF lowerRightHandleRect(PkRectF cropBorderRect);
+    PkRectF upperRightHandleRect(PkRectF cropBorderRect);
+    PkRectF lowerLeftHandleRect(PkRectF cropBorderRect);
+    PkRectF upperLeftHandleRect(PkRectF cropBorderRect);
+    PkRectF lowerHandleRect(PkRectF cropBorderRect);
+    PkRectF rightHandleRect(PkRectF cropBorderRect);
+    PkRectF upperHandleRect(PkRectF cropBorderRect);
+    PkRectF leftHandleRect(PkRectF cropBorderRect);
+    void drawDecorationLine(PkPainter *p, DecorationLine *decorLine, PkRectF rect);
 
     bool tryContinueLastCropAction();
 
 private:
-    QPoint m_dragStart;
+    PkPoint m_dragStart;
 
     qint32 m_handleSize {13};
     bool m_haveCropSelection {false};
@@ -169,17 +155,9 @@ private:
 
     int m_decoration {1};
     bool m_resettingStroke {false};
-    QRect m_lastCanvasUpdateRect;
+    PkRect m_lastCanvasUpdateRect;
 
     KConfigGroup configGroup;
-
-    QScopedPointer<QMenu> m_contextMenu;
-    QAction* applyCrop {nullptr};
-    QAction* centerToggleOption {nullptr};
-    QAction* growToggleOption {nullptr};
-    QAction* lockWidthToggleOption {nullptr};
-    QAction* lockHeightToggleOption {nullptr};
-    QAction* lockRatioToggleOption {nullptr};
 
     enum handleType {
         None = 0,
@@ -193,11 +171,11 @@ private:
         Right = 8,
         Inside = 9
     };
-    QList<DecorationLine *> m_decorations;
+    PkList<DecorationLine *> m_decorations;
 
     KisConstrainedRect m_finalRect;
-    QRect m_initialDragRect;
-    QPointF m_dragOffsetDoc;
+    PkRect m_initialDragRect;
+    PkPointF m_dragOffsetDoc;
 };
 
 class KisToolCropFactory : public KoToolFactoryBase
@@ -206,18 +184,16 @@ class KisToolCropFactory : public KoToolFactoryBase
 public:
     KisToolCropFactory()
             : KoToolFactoryBase("KisToolCrop") {
-        setToolTip(i18n("Crop Tool"));
+        setToolTip(PkString("Crop Tool"));
         setSection(ToolBoxSection::Transform);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(11);
-        setShortcut(QKeySequence("C"));
+        setShortcut(PkString("C"));
     }
 
     ~KisToolCropFactory() override {}
 
-    KoToolBase * createTool(KoCanvasBase *canvas) override {
-        return new KisToolCrop(canvas);
-    }
+    KoToolBase *createTool(KoCanvasBase *canvas) override;
 
 };
 

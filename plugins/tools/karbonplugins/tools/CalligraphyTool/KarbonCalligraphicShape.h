@@ -8,14 +8,14 @@
 #define KARBONCALLIGRAPHICSHAPE_H
 
 #include <KoParameterShape.h>
-#include <QDebug>
+#include <PkSharedPointer.h>
 
 #define KarbonCalligraphicShapeId "KarbonCalligraphicShape"
 
 class KarbonCalligraphicPoint
 {
 public:
-    KarbonCalligraphicPoint(const QPointF &point, qreal angle, qreal width)
+    KarbonCalligraphicPoint(const PkPointF &point, qreal angle, qreal width)
         : m_point(point), m_angle(angle), m_width(width) {}
 
     KarbonCalligraphicPoint(const KarbonCalligraphicPoint &rhs) = default;
@@ -27,7 +27,7 @@ public:
             qFuzzyCompare(m_width, rhs.m_width);
     }
 
-    QPointF point() const
+    PkPointF point() const
     {
         return m_point;
     }
@@ -40,7 +40,7 @@ public:
         return m_width;
     }
 
-    void setPoint(const QPointF &point)
+    void setPoint(const PkPointF &point)
     {
         m_point = point;
     }
@@ -50,37 +50,10 @@ public:
     }
 
 private:
-    QPointF m_point; // in shape coordinates
+    PkPointF m_point; // in shape coordinates
     qreal m_angle = 0.0;
     qreal m_width = 0.0;
 };
-
-inline QDebug operator<<(QDebug dbg, const KarbonCalligraphicPoint &pt)
-{
-    dbg.nospace() << "(" << pt.point() << ", a: " << pt.angle() << ", w: " << pt.width() << ")";
-    return dbg.space();
-}
-
-/*class KarbonCalligraphicShape::Point
-{
-public:
-    KoPainterPath(KoPathPoint *point) : m_prev(point), m_next(0) {}
-
-    // calculates the effective point
-    QPointF point() {
-        if (m_next = 0)
-            return m_prev.point();
-
-        // m_next != 0
-        qDebug() << "not implemented yet!!!!";
-        return QPointF();
-    }
-
-private:
-    KoPainterPath m_prev;
-    KoPainterPath m_next;
-    qreal m_percentage;
-};*/
 
 // the indexes of the path will be similar to:
 //        7--6--5--4   <- pointCount() / 2
@@ -94,33 +67,33 @@ public:
 
     KoShape* cloneShape() const override;
 
-    void appendPoint(const QPointF &p1, qreal angle, qreal width);
+    void appendPoint(const PkPointF &p1, qreal angle, qreal width);
     void appendPointToPath(const KarbonCalligraphicPoint &p);
 
     // returns the bounding rect of what needs to be repainted
     // after new points are added
-    const QRectF lastPieceBoundingRect();
+    const PkRectF lastPieceBoundingRect();
 
-    void setSize(const QSizeF &newSize) override;
-    //virtual QPointF normalize();
+    void setSize(const PkSizeF &newSize) override;
+    //virtual PkPointF normalize();
 
-    QPointF normalize() override;
+    PkPointF normalize() override;
 
     void simplifyPath();
 
     void simplifyGuidePath();
 
     // reimplemented
-    QString pathShapeId() const override;
+    PkString pathShapeId() const override;
 
 protected:
     // reimplemented
     void moveHandleAction(int handleId,
-                          const QPointF &point,
+                          const PkPointF &point,
                           Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
 
     // reimplemented
-    void updatePath(const QSizeF &size) override;
+    void updatePath(const PkSizeF &size) override;
 
 private:
     KarbonCalligraphicShape(const KarbonCalligraphicShape &rhs);
@@ -128,10 +101,10 @@ private:
     // auxiliary function that actually inserts the points
     // without doing any additional checks
     // the points should be given in canvas coordinates
-    void appendPointsToPathAux(const QPointF &p1, const QPointF &p2);
+    void appendPointsToPathAux(const PkPointF &p1, const PkPointF &p2);
 
     // function to detect a flip, given the points being inserted
-    bool flipDetected(const QPointF &p1, const QPointF &p2);
+    bool flipDetected(const PkPointF &p1, const PkPointF &p2);
 
     void smoothLastPoints();
     void smoothPoint(const int index);
@@ -139,14 +112,13 @@ private:
     // determine whether the points given are in counterclockwise order or not
     // returns +1 if they are, -1 if they are given in clockwise order
     // and 0 if they form a degenerate triangle
-    static int ccw(const QPointF &p1, const QPointF &p2, const QPointF &p3);
+    static int ccw(const PkPointF &p1, const PkPointF &p2, const PkPointF &p3);
 
     //
     void addCap(int index1, int index2, int pointIndex, bool inverted = false);
 
     struct Private;
-    QSharedDataPointer<Private> s;
+    PkSharedPointer<Private> s;
 };
 
 #endif // KARBONCALLIGRAPHICSHAPE_H
-

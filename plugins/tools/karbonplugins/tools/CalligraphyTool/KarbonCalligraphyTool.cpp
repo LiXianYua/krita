@@ -23,8 +23,7 @@
 #include <KoViewConverter.h>
 #include <KisPopupWidgetInterface.h>
 
-#include <QDebug>
-#include <QPainter>
+#include <PkPainter.h>
 
 #include <cmath>
 
@@ -53,7 +52,8 @@ KarbonCalligraphyTool::KarbonCalligraphyTool(KoCanvasBase *canvas)
     , m_isDrawing(false)
     , m_speed(0, 0)
 {
-    connect(canvas->selectedShapesProxy(), SIGNAL(selectionChanged()), SLOT(updateSelectedPath()));
+    PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+                      this, &KarbonCalligraphyTool::updateSelectedPath);
 
     updateSelectedPath();
 }
@@ -62,16 +62,16 @@ KarbonCalligraphyTool::~KarbonCalligraphyTool()
 {
 }
 
-void KarbonCalligraphyTool::paint(QPainter &painter, const KoViewConverter &converter)
+void KarbonCalligraphyTool::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     if (m_selectedPath) {
         painter.save();
-        painter.setRenderHints(QPainter::Antialiasing, false);
+        painter.setRenderHints(PkPainter::Antialiasing, false);
         painter.setPen(Qt::red);   // TODO make configurable
-        QRectF rect = m_selectedPath->boundingRect();
-        QPointF p1 = converter.documentToView(rect.topLeft());
-        QPointF p2 = converter.documentToView(rect.bottomRight());
-        painter.drawRect(QRectF(p1, p2));
+        PkRectF rect = m_selectedPath->boundingRect();
+        PkPointF p1 = converter.documentToView(rect.topLeft());
+        PkPointF p2 = converter.documentToView(rect.bottomRight());
+        painter.drawRect(PkRectF(p1, p2));
         painter.restore();
     }
 
@@ -97,12 +97,12 @@ void KarbonCalligraphyTool::mousePressEvent(KoPointerEvent *event)
     }
 
     m_lastPoint = event->point;
-    m_speed = QPointF(0, 0);
+    m_speed = PkPointF(0, 0);
 
     m_isDrawing = true;
     m_pointCount = 0;
     m_shape = new KarbonCalligraphicShape(m_caps);
-    m_shape->setBackground(QSharedPointer<KoShapeBackground>(new KoColorBackground(canvas()->resourceManager()->foregroundColor().toQColor())));
+    m_shape->setBackground(PkSharedPointer<KoShapeBackground>(new KoColorBackground(canvas()->resourceManager()->foregroundColor().toQColor())));
     //addPoint( event );
 }
 
@@ -179,8 +179,8 @@ void KarbonCalligraphyTool::addPoint(KoPointerEvent *event)
 
     setAngle(event);
 
-    QPointF newSpeed;
-    QPointF newPoint = calculateNewPoint(event->point, &newSpeed);
+    PkPointF newSpeed;
+    PkPointF newPoint = calculateNewPoint(event->point, &newSpeed);
     qreal width = calculateWidth(event->pressure());
     qreal angle = calculateAngle(m_speed, newSpeed);
 
@@ -192,7 +192,7 @@ void KarbonCalligraphyTool::addPoint(KoPointerEvent *event)
     canvas()->updateCanvas(m_shape->lastPieceBoundingRect());
 
     if (m_usePath && m_selectedPath) {
-        m_speed = QPointF(0, 0);    // following path
+        m_speed = PkPointF(0, 0);    // following path
     }
 }
 
@@ -224,20 +224,20 @@ void KarbonCalligraphyTool::setAngle(KoPointerEvent *event)
     }
 }
 
-QPointF KarbonCalligraphyTool::calculateNewPoint(const QPointF &mousePos, QPointF *speed)
+PkPointF KarbonCalligraphyTool::calculateNewPoint(const PkPointF &mousePos, PkPointF *speed)
 {
     if (!m_usePath || !m_selectedPath) { // don't follow path
-        QPointF force = mousePos - m_lastPoint;
-        QPointF dSpeed = force / m_mass;
+        PkPointF force = mousePos - m_lastPoint;
+        PkPointF dSpeed = force / m_mass;
         *speed = m_speed * (1.0 - m_drag) + dSpeed;
         return m_lastPoint + *speed;
     }
 
-    QPointF sp = mousePos - m_lastMousePos;
+    PkPointF sp = mousePos - m_lastMousePos;
     m_lastMousePos = mousePos;
 
     // follow selected path
-    qreal step = QLineF(QPointF(0, 0), sp).length();
+    qreal step = PkLineF(PkPointF(0, 0), sp).length();
     m_followPathPosition += step;
 
     qreal t;
@@ -248,7 +248,7 @@ QPointF KarbonCalligraphyTool::calculateNewPoint(const QPointF &mousePos, QPoint
         t = m_selectedPathOutline.percentAtLength(m_followPathPosition);
     }
 
-    QPointF res = m_selectedPathOutline.pointAtPercent(t);
+    PkPointF res = m_selectedPathOutline.pointAtPercent(t);
     *speed = res - m_lastPoint;
     return res;
 }
@@ -277,16 +277,16 @@ qreal KarbonCalligraphyTool::calculateWidth(qreal pressure)
     return strokeWidth;
 }
 
-qreal KarbonCalligraphyTool::calculateAngle(const QPointF &oldSpeed, const QPointF &newSpeed)
+qreal KarbonCalligraphyTool::calculateAngle(const PkPointF &oldSpeed, const PkPointF &newSpeed)
 {
     // calculate the average of the speed (sum of the normalized values)
-    qreal oldLength = QLineF(QPointF(0, 0), oldSpeed).length();
-    qreal newLength = QLineF(QPointF(0, 0), newSpeed).length();
-    QPointF oldSpeedNorm = !qFuzzyCompare(oldLength + 1, 1) ?
-                oldSpeed / oldLength : QPointF(0, 0);
-    QPointF newSpeedNorm = !qFuzzyCompare(newLength + 1, 1) ?
-                newSpeed / newLength : QPointF(0, 0);
-    QPointF speed = oldSpeedNorm + newSpeedNorm;
+    qreal oldLength = PkLineF(PkPointF(0, 0), oldSpeed).length();
+    qreal newLength = PkLineF(PkPointF(0, 0), newSpeed).length();
+    PkPointF oldSpeedNorm = !qFuzzyCompare(oldLength + 1, 1) ?
+                oldSpeed / oldLength : PkPointF(0, 0);
+    PkPointF newSpeedNorm = !qFuzzyCompare(newLength + 1, 1) ?
+                newSpeed / newLength : PkPointF(0, 0);
+    PkPointF speed = oldSpeedNorm + newSpeedNorm;
 
     // angle solely based on the speed
     qreal speedAngle = 0;
@@ -335,7 +335,7 @@ qreal KarbonCalligraphyTool::calculateAngle(const QPointF &oldSpeed, const QPoin
     return angle;
 }
 
-void KarbonCalligraphyTool::activate(const QSet<KoShape*> &shapes)
+void KarbonCalligraphyTool::activate(const PkSet<KoShape*> &shapes)
 {
     KoToolBase::activate(shapes);
 

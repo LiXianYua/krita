@@ -9,32 +9,11 @@
 #include "tool_crop.h"
 #include "kis_tool_crop.h"
 
-#include <stdlib.h>
-#include <vector>
-
-#include <QPoint>
-
-#include <klocalizedstring.h>
-#include <ksharedconfig.h>
-
-#include <kis_debug.h>
-#include <kpluginfactory.h>
-
-#include <kis_global.h>
-#include <kis_types.h>
 #include <KoToolRegistry.h>
+#include <mutex>
 
-K_PLUGIN_FACTORY_WITH_JSON(ToolCropFactory, "kritatoolcrop.json", registerPlugin<ToolCrop>();)
-
-
-ToolCrop::ToolCrop(QObject *parent, const QVariantList &)
-    : QObject(parent)
+void registerToolCrop()
 {
-    KoToolRegistry::instance()->add(new KisToolCropFactory());
+    static std::once_flag once;
+    std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolCropFactory()); });
 }
-
-ToolCrop::~ToolCrop()
-{
-}
-
-#include "tool_crop.moc"

@@ -7,15 +7,13 @@
 #ifndef __KIS_CONSTRAINED_RECT_H
 #define __KIS_CONSTRAINED_RECT_H
 
-#include <QObject>
-#include <QRect>
+#include <PkObject.h>
+#include <PkRect.h>
 
 
 
-class KisConstrainedRect : public QObject
+class KisConstrainedRect : public PkObject
 {
-    Q_OBJECT
-
 public:
     enum HandleType {
         None = 0,
@@ -35,8 +33,8 @@ public:
     KisConstrainedRect();
     ~KisConstrainedRect() override;
 
-    void setRectInitial(const QRect &rect);
-    void setCropRect(const QRect &cropRect);
+    void setRectInitial(const PkRect &rect);
+    void setCropRect(const PkRect &cropRect);
 
     bool centered() const;
     void setCentered(bool value);
@@ -44,15 +42,15 @@ public:
     bool canGrow() const;
     void setCanGrow(bool value);
 
-    QRect rect() const;
+    PkRect rect() const;
 
     qreal ratio() const;
 
-    void moveHandle(HandleType handle, const QPoint &offset, const QRect &oldRect);
-    QPointF handleSnapPoint(HandleType handle, const QPointF &cursorPos);
+    void moveHandle(HandleType handle, const PkPoint &offset, const PkRect &oldRect);
+    PkPointF handleSnapPoint(HandleType handle, const PkPointF &cursorPos);
 
     void setRatio(qreal value);
-    void setOffset(const QPoint &offset);
+    void setOffset(const PkPoint &offset);
     void setWidth(int value);
     void setHeight(int value);
 
@@ -67,7 +65,7 @@ public:
 
     void normalize();
 
-Q_SIGNALS:
+public:
     void sigValuesChanged();
     void sigLockValuesChanged();
 
@@ -76,19 +74,19 @@ private:
     int widthFromHeightUnsignedRatio(int height, qreal ratio, int oldWidth) const;
     int heightFromWidthUnsignedRatio(int width, qreal ratio, int oldHeight) const;
 
-    void assignNewSize(const QSize &newSize);
-    void storeRatioSafe(const QSize &newSize);
+    void assignNewSize(const PkSize &newSize);
+    void storeRatioSafe(const PkSize &newSize);
 private:
     bool m_centered {false};
     bool m_canGrow {true};
-    QRect m_rect;
+    PkRect m_rect;
     qreal m_ratio {1.0};
 
     bool m_widthLocked {false};
     bool m_heightLocked {false};
     bool m_ratioLocked {false};
 
-    QRect m_cropRect;
+    PkRect m_cropRect;
 };
 
 #endif /* __KIS_CONSTRAINED_RECT_H */

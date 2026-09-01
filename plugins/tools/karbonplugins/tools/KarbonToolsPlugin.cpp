@@ -11,14 +11,13 @@
 #include <KoToolRegistry.h>
 #include <KoShapeRegistry.h>
 
-#include <kpluginfactory.h>
+#include <mutex>
 
-K_PLUGIN_FACTORY_WITH_JSON(KarbonToolsPluginFactory, "karbon_tools.json", registerPlugin<KarbonToolsPlugin>();)
-
-KarbonToolsPlugin::KarbonToolsPlugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+void registerKarbonTools()
 {
-    KoToolRegistry::instance()->add(new KarbonCalligraphyToolFactory());
-    KoShapeRegistry::instance()->add(new KarbonCalligraphicShapeFactory());
+    static std::once_flag once;
+    std::call_once(once, [] {
+        KoToolRegistry::instance()->add(new KarbonCalligraphyToolFactory());
+        KoShapeRegistry::instance()->add(new KarbonCalligraphicShapeFactory());
+    });
 }
-#include <KarbonToolsPlugin.moc>

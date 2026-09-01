@@ -7,13 +7,12 @@
 #include "KarbonCalligraphicShapeFactory.h"
 #include "KarbonCalligraphicShape.h"
 
-#include <klocalizedstring.h>
 #include <KoShapeLoadingContext.h>
 
 KarbonCalligraphicShapeFactory::KarbonCalligraphicShapeFactory()
-    : KoShapeFactoryBase(KarbonCalligraphicShapeId, i18n("A calligraphic shape"))
+    : KoShapeFactoryBase(KarbonCalligraphicShapeId, PkString("A calligraphic shape"))
 {
-    setToolTip(i18n("Calligraphic Shape"));
+    setToolTip(PkString("Calligraphic Shape"));
     setLoadingPriority(1);
     setHidden(true);
 }
@@ -32,9 +31,9 @@ KoShape *KarbonCalligraphicShapeFactory::createDefaultShape(KoDocumentResourceMa
     return path;
 }
 
-bool KarbonCalligraphicShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &context) const
+bool KarbonCalligraphicShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &context) const
 {
-    Q_UNUSED(e);
-    Q_UNUSED(context);
+    (void)e;
+    (void)context;
     return false;
 }

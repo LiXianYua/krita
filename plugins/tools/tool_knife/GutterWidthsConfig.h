@@ -7,9 +7,9 @@
 #ifndef GUTTER_WIDTHS_CONFIG_H_
 #define GUTTER_WIDTHS_CONFIG_H_
 
-#include <QScopedPointer>
-#include <QPoint>
-#include <QRectF>
+#include <PkScopedPointer.h>
+#include <PkPoint.h>
+#include <PkRect.h>
 #include <KoUnit.h>
 
 

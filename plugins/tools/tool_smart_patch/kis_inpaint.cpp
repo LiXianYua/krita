@@ -19,6 +19,7 @@
 #include <random>
 #include <iostream>
 #include <functional>
+#include <cassert>
 
 
 #include "kis_paint_device.h"
@@ -29,8 +30,7 @@
 #include "kis_paint_device_debug_utils.h"
 //#include "kis_random_accessor_ng.h"
 
-#include <QtMath>
-#include <QList>
+#include <PkList.h>
 #include <kis_transform_worker.h>
 #include <kis_filter_strategy.h>
 #include "KoColor.h"
@@ -81,8 +81,8 @@ public:
 
     quint8* operator()(int x, int y) const
     {
-        Q_ASSERT(m_data);
-        Q_ASSERT((x >= 0) && (x < m_imageWidth) && (y >= 0) && (y < m_imageHeight));
+        assert(m_data);
+        assert((x >= 0) && (x < m_imageWidth) && (y >= 0) && (y < m_imageHeight));
         return (m_data + x * m_pixelSize + y * m_imageWidth * m_pixelSize);
     }
 
@@ -137,15 +137,15 @@ public:
         return m_pixelSize;
     }
 
-    void saveToDevice(KisPaintDeviceSP outDev, QRect rect)
+    void saveToDevice(KisPaintDeviceSP outDev, PkRect rect)
     {
-        Q_ASSERT(outDev->colorSpace()->pixelSize() == (quint32) m_pixelSize);
+        assert(outDev->colorSpace()->pixelSize() == (quint32) m_pixelSize);
         outDev->writeBytes(m_data, rect);
     }
 
-    void DebugDump(const QString& fnamePrefix)
+    void DebugDump(const PkString& fnamePrefix)
     {
-        QRect imSize(QPoint(0, 0), QSize(m_imageWidth, m_imageHeight));
+        PkRect imSize(PkPoint(0, 0), PkSize(m_imageWidth, m_imageHeight));
         const KoColorSpace* cs = (m_pixelSize == 1) ?
                                  KoColorSpaceRegistry::instance()->alpha8() : (m_pixelSize == 3) ? KoColorSpaceRegistry::instance()->colorSpace("RGB", "U8", "") :
                                  KoColorSpaceRegistry::instance()->colorSpace("RGBA", "U8", "");
@@ -172,7 +172,7 @@ public:
         Init(_imageWidth, _imageHeight, _pixelSize);
     }
 
-    void Init(KisPaintDeviceSP imageDev, const QRect& imageSize)
+    void Init(KisPaintDeviceSP imageDev, const PkRect& imageSize)
     {
         const KoColorSpace* cs = imageDev->colorSpace();
         m_pixelSize = cs->pixelSize();
@@ -182,7 +182,7 @@ public:
         ImageView::Init(m_data, imageSize.width(), imageSize.height(), m_pixelSize);
     }
 
-    ImageData(KisPaintDeviceSP imageDev, const QRect& imageSize) : ImageView()
+    ImageData(KisPaintDeviceSP imageDev, const PkRect& imageSize) : ImageView()
     {
         Init(imageDev, imageSize);
     }
@@ -202,7 +202,7 @@ private:
 
     template <typename T> friend float distance_impl(const MaskedImage& my, int x, int y, const MaskedImage& other, int xo, int yo);
 
-    QRect imageSize;
+    PkRect imageSize;
     int nChannels {0};
 
     const KoColorSpace* cs {nullptr};
@@ -212,7 +212,7 @@ private:
     ImageData imageData;
 
 
-    void cacheImage(KisPaintDeviceSP imageDev, QRect rect)
+    void cacheImage(KisPaintDeviceSP imageDev, PkRect rect)
     {
         cs = imageDev->colorSpace();
         nChannels = cs->channelCount();
@@ -221,9 +221,9 @@ private:
     }
 
 
-    void cacheMask(KisPaintDeviceSP maskDev, QRect rect)
+    void cacheMask(KisPaintDeviceSP maskDev, PkRect rect)
     {
-        Q_ASSERT(maskDev->colorSpace()->pixelSize() == 1);
+        assert(maskDev->colorSpace()->pixelSize() == 1);
         csMask = maskDev->colorSpace();
         maskData.Init(maskDev, rect);
 
@@ -239,7 +239,7 @@ private:
 public:
     std::function< float(const MaskedImage&, int, int, const MaskedImage& , int , int ) > distance;
 
-    void toPaintDevice(KisPaintDeviceSP imageDev, QRect rect, KisSelectionSP selection)
+    void toPaintDevice(KisPaintDeviceSP imageDev, PkRect rect, KisSelectionSP selection)
     {
         if (!selection) {
             imageData.saveToDevice(imageDev, rect);
@@ -253,7 +253,7 @@ public:
         }
     }
 
-    void DebugDump(const QString& name)
+    void DebugDump(const PkString& name)
     {
         imageData.DebugDump(name + "_img");
         maskData.DebugDump(name + "_mask");
@@ -264,7 +264,7 @@ public:
         std::fill(maskData.data(), maskData.data() + maskData.num_bytes(), MASK_CLEAR);
     }
 
-    void initialize(KisPaintDeviceSP _imageDev, KisPaintDeviceSP _maskDev, QRect _maskRect)
+    void initialize(KisPaintDeviceSP _imageDev, KisPaintDeviceSP _maskDev, PkRect _maskRect)
     {
         cacheImage(_imageDev, _maskRect);
         cacheMask(_maskDev, _maskRect);
@@ -289,7 +289,7 @@ public:
             distance = &distance_impl<KoRgbF64Traits::channels_type>;
     }
 
-    MaskedImage(KisPaintDeviceSP _imageDev, KisPaintDeviceSP _maskDev, QRect _maskRect)
+    MaskedImage(KisPaintDeviceSP _imageDev, KisPaintDeviceSP _maskDev, PkRect _maskRect)
     {
         initialize(_imageDev, _maskDev, _maskRect);
     }
@@ -331,7 +331,7 @@ public:
                 *maskPix = MASK_CLEAR;
             }
         }
-        imageSize = QRect(0, 0, newW, newH);
+        imageSize = PkRect(0, 0, newW, newH);
     }
 
     void upscale(int newW, int newH)
@@ -342,8 +342,8 @@ public:
         ImageData newImage(newW, newH, cs->pixelSize());
         ImageData newMask(newW, newH, 1);
 
-        QVector<float> colors(nChannels, 0.f);
-        QVector<float> v(nChannels, 0.f);
+        PkVector<float> colors(nChannels, 0.f);
+        PkVector<float> v(nChannels, 0.f);
 
         for (int y = 0; y < newH; ++y) {
             for (int x = 0; x < newW; ++x) {
@@ -365,10 +365,10 @@ public:
 
         imageData = std::move(newImage);
         maskData = std::move(newMask);
-        imageSize = QRect(0, 0, newW, newH);
+        imageSize = PkRect(0, 0, newW, newH);
     }
 
-    QRect size()
+    PkRect size()
     {
         return imageSize;
     }
@@ -423,9 +423,9 @@ public:
         return cs->scaleToU8(imageData(x, y), chan);
     }
 
-    inline QVector<float> getImagePixels(int x, int y) const
+    inline PkVector<float> getImagePixels(int x, int y) const
     {
-        QVector<float> v(cs->channelCount());
+        PkVector<float> v(cs->channelCount());
         cs->normalisedChannelsValue(imageData(x, y), v);
         return v;
     }
@@ -435,7 +435,7 @@ public:
         return imageData(x, y);
     }
 
-    inline void setImagePixels(int x, int y, QVector<float>& value)
+    inline void setImagePixels(int x, int y, PkVector<float>& value)
     {
         cs->fromNormalisedChannelsValue(imageData(x, y), value);
     }
@@ -506,7 +506,7 @@ struct NNPixel {
 typedef boost::multi_array<NNPixel, 2> NNArray_type;
 
 struct Vote_elem {
-    QVector<float> channel_values;
+    PkVector<float> channel_values;
     float w;
 };
 typedef boost::multi_array<Vote_elem, 2> Vote_type;
@@ -564,11 +564,11 @@ private:
 public:
     MaskedImageSP input;
     MaskedImageSP output;
-    QRect imSize;
+    PkRect imSize;
     NNArray_type field;
     std::vector<float> similarity;
     quint32 nColors;
-    QList<KoChannelInfo *> channels;
+    PkList<KoChannelInfo *> channels;
 
 public:
     NearestNeighborField(const MaskedImageSP _input, MaskedImageSP _output, int _patchsize) : patchSize(_patchsize), input(_input), output(_output)
@@ -743,7 +743,7 @@ public:
         return qFloor(MAX_DIST * (qreal(distance) / wsum));
     }
 
-    static MaskedImageSP ExpectationMaximization(KisSharedPtr<NearestNeighborField> TargetToSource, int level, int radius, QList<MaskedImageSP>& pyramid);
+    static MaskedImageSP ExpectationMaximization(KisSharedPtr<NearestNeighborField> TargetToSource, int level, int radius, PkList<MaskedImageSP>& pyramid);
 
     static void ExpectationStep(KisSharedPtr<NearestNeighborField> nnf, MaskedImageSP source, MaskedImageSP target, bool upscale);
 
@@ -760,11 +760,11 @@ private:
     NearestNeighborFieldSP nnf_TargetToSource;
     NearestNeighborFieldSP nnf_SourceToTarget;
     int radius;
-    QList<MaskedImageSP> pyramid;
+    PkList<MaskedImageSP> pyramid;
 
 
 public:
-    Inpaint(KisPaintDeviceSP dev, KisPaintDeviceSP devMask, int _radius, QRect maskRect)
+    Inpaint(KisPaintDeviceSP dev, KisPaintDeviceSP devMask, int _radius, PkRect maskRect)
     : devCache(dev)
     , initial(new MaskedImage(dev, devMask, maskRect))
     , radius(_radius)
@@ -782,7 +782,7 @@ MaskedImageSP Inpaint::patch()
 
     pyramid.append(initial);
 
-    QRect size = source->size();
+    PkRect size = source->size();
 
     //qDebug() << "countMasked: " <<  source->countMasked() << "\n";
     while ((size.width() > radius) && (size.height() > radius) && source->countMasked() > 0) {
@@ -827,7 +827,7 @@ MaskedImageSP Inpaint::patch()
 
 //EM-Like algorithm (see "PatchMatch" - page 6)
 //Returns a float sized target image
-MaskedImageSP NearestNeighborField::ExpectationMaximization(NearestNeighborFieldSP nnf_TargetToSource, int level, int radius, QList<MaskedImageSP>& pyramid)
+MaskedImageSP NearestNeighborField::ExpectationMaximization(NearestNeighborFieldSP nnf_TargetToSource, int level, int radius, PkList<MaskedImageSP>& pyramid)
 {
     int iterEM = std::min(2 * level, 4);
     int iterNNF = std::min(5, 1 + level);
@@ -866,7 +866,7 @@ MaskedImageSP NearestNeighborField::ExpectationMaximization(NearestNeighborField
         // So the final target is less blurry (see "Space-Time Video Completion" - page 5)
         if (level >= 1 && (emloop == iterEM)) {
             newsource = pyramid.at(level - 1);
-            QRect sz = newsource->size();
+            PkRect sz = newsource->size();
             newtarget = target->copy();
             newtarget->upscale(sz.width(), sz.height());
             upscaled = true;
@@ -969,17 +969,17 @@ void NearestNeighborField::ExpectationStep(NearestNeighborFieldSP nnf, MaskedIma
     }
 }
 
-QRect getMaskBoundingBox(KisPaintDeviceSP maskDev)
+PkRect getMaskBoundingBox(KisPaintDeviceSP maskDev)
 {
-    QRect maskRect = maskDev->nonDefaultPixelArea();
+    PkRect maskRect = maskDev->nonDefaultPixelArea();
     return maskRect;
 }
 
 
-QRect patchImage(const KisPaintDeviceSP imageDev, const KisPaintDeviceSP maskDev, int patchRadius, int accuracy, KisSelectionSP selection)
+PkRect patchImage(const KisPaintDeviceSP imageDev, const KisPaintDeviceSP maskDev, int patchRadius, int accuracy, KisSelectionSP selection)
 {
-    QRect maskRect = getMaskBoundingBox(maskDev);
-    QRect imageRect = imageDev->exactBounds();
+    PkRect maskRect = getMaskBoundingBox(maskDev);
+    PkRect imageRect = imageDev->exactBounds();
 
     float scale = 1.0 + (accuracy / 25.0); //higher accuracy means we include more surrounding area around the patch. Minimum 2x padding.
     int dx = maskRect.width() * scale;
@@ -995,4 +995,3 @@ QRect patchImage(const KisPaintDeviceSP imageDev, const KisPaintDeviceSP maskDev
 
     return maskRect;
 }
-

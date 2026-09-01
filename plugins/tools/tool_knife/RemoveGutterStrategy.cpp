@@ -6,8 +6,8 @@
 #include "RemoveGutterStrategy.h"
 
 
-#include <QDebug>
-#include <QPainter>
+#include <PkBrush.h>
+#include <PkPainter.h>
 
 #include <kis_algebra_2d.h>
 #include <KoToolBase.h>
@@ -20,7 +20,7 @@
 #include <krita_utils.h>
 #include <kis_image.h>
 #include <kis_shape_controller.h>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <KoShapeController.h>
 #include <kundo2command.h>
 #include <KoKeepShapesSelectedCommand.h>
@@ -28,7 +28,7 @@
 
 
 
-RemoveGutterStrategy::RemoveGutterStrategy(KoToolBase *tool, KoSelection *selection, const QList<KoShape *> &shapes, QPointF startPoint)
+RemoveGutterStrategy::RemoveGutterStrategy(KoToolBase *tool, KoSelection *selection, const PkList<KoShape *> &shapes, PkPointF startPoint)
     : KoInteractionStrategy(tool)
     , m_startPoint(startPoint)
     , m_endPoint(startPoint)
@@ -47,46 +47,46 @@ KUndo2Command *RemoveGutterStrategy::createCommand()
     return 0;
 }
 
-void RemoveGutterStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void RemoveGutterStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
     m_endPoint = mouseLocation;
-    QRectF dirtyRect;
+    PkRectF dirtyRect;
     KisAlgebra2D::accumulateBounds(m_startPoint, &dirtyRect);
     KisAlgebra2D::accumulateBounds(m_endPoint, &dirtyRect);
-    QLineF l = QLine(QPoint(), QPoint(50, 50));
+    PkLineF l(PkPoint(), PkPoint(50, 50));
 
     l = tool()->canvas()->viewConverter()->viewToDocument().map(l);
     dirtyRect = kisGrowRect(dirtyRect, l.length()); // twice as much as it should need to account for lines showing the effect
 
-    QRectF accumulatedWithPrevious = m_previousLineDirtyRect | dirtyRect;
+    PkRectF accumulatedWithPrevious = m_previousLineDirtyRect | dirtyRect;
 
     tool()->canvas()->updateCanvas(accumulatedWithPrevious);
     m_previousLineDirtyRect = dirtyRect;
 }
 
 #ifdef KNIFE_DEBUG
-void convertShapeToDebugArray(const QPainterPath& shape) {
+void convertShapeToDebugArray(const PkPainterPath& shape) {
     // useful to use with Geogebra
     // TODO: to remove later
     for (int i = 0; i < shape.elementCount(); i++) {
-        QPainterPath::Element el = shape.elementAt(i);
+        PkPainterPath::Element el = shape.elementAt(i);
         qCritical() << el.x << "\t" << el.y << "\t" << el.type;
     }
 
 }
 
-void convertShapeToDebugArray(const QRectF& rect) {
+void convertShapeToDebugArray(const PkRectF& rect) {
     // useful to use with Geogebra
     // TODO: to remove later
-    QPolygonF poly = QPolygonF(rect);
+    PkPolygonF poly = PkPolygonF(rect);
     for (int i = 0; i < poly.length(); i++) {
-        QPointF p = poly[i];
+        PkPointF p = poly[i];
         qCritical() << p.x() << "\t" << p.y();
     }
 
 }
 
-void convertShapeToDebugArray(const QLineF& line) {
+void convertShapeToDebugArray(const PkLineF& line) {
     // useful to use with Geogebra
     // TODO: to remove later
     qCritical() << line.p1().x() << "\t" << line.p1().y();
@@ -103,25 +103,24 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     KisShapeController *shapeController =
         dynamic_cast<KisShapeController *>(tool()->canvas()->shapeController()->documentBase());
     KIS_SAFE_ASSERT_RECOVER_RETURN(shapeController);
-    const QTransform booleanWorkaroundTransform =
+    const PkTransform booleanWorkaroundTransform =
         KritaUtils::pathShapeBooleanSpaceWorkaround(shapeController->currentImage());
 
-    QList<QPainterPath> srcOutlines;
-    QList<QPainterPath> srcOutlinesOutside;
+    PkList<PkPainterPath> srcOutlines;
+    PkList<PkPainterPath> srcOutlinesOutside;
 
     if (m_allShapes.length() == 0) {
-        qCritical() << "No shapes on the layer";
         return;
     }
 
-    QList<bool> isSelected = QList<bool>();
+    PkList<bool> isSelected = PkList<bool>();
     isSelected.reserve(m_allShapes.length());
     for (int i = 0; i < m_allShapes.length(); i++) {
         isSelected.append(m_selectedShapes.contains(m_allShapes[i]));
     }
 
-    QLineF mouseLine = QLineF(m_startPoint, m_endPoint);
-    QRectF lineRect = KisAlgebra2D::createRectFromCorners(m_startPoint, m_endPoint);
+    PkLineF mouseLine = PkLineF(m_startPoint, m_endPoint);
+    PkRectF lineRect = KisAlgebra2D::createRectFromCorners(m_startPoint, m_endPoint);
 
     mouseLine = booleanWorkaroundTransform.map(mouseLine);
     lineRect = KisAlgebra2D::createRectFromCorners(mouseLine);
@@ -132,12 +131,12 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 #endif
 
 
-    QList<int> indexes;
-    QList<int> indexesOutside;
+    PkList<int> indexes;
+    PkList<int> indexesOutside;
 
     for (int i = 0; i < m_allShapes.length(); i++) {
         KoShape* shape = m_allShapes[i];
-        QPainterPath outlineHere =
+        PkPainterPath outlineHere =
             booleanWorkaroundTransform.map(
             shape->absoluteTransformation().map(
                 shape->outline()));
@@ -159,17 +158,17 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     }
 
 
-    QList<int> shapeNewIndexes;
-    QList<int> shapeOrigIndexes;
-    QList<int> lineSegmentIndexes;
+    PkList<int> shapeNewIndexes;
+    PkList<int> shapeOrigIndexes;
+    PkList<int> lineSegmentIndexes;
 
 
     for (int i = 0; i < srcOutlines.length(); i++) {
-        QList<int> lineIndexes = KisAlgebra2D::getLineSegmentCrossingLineIndexes(mouseLine, srcOutlines[i]);
+        PkList<int> lineIndexes = KisAlgebra2D::getLineSegmentCrossingLineIndexes(mouseLine, srcOutlines[i]);
         int shapeOrigIndex = indexes[i];
 
         if (lineIndexes.length() > 0) {
-            Q_FOREACH(int lineIndex, lineIndexes) {
+            for (int lineIndex : lineIndexes) {
                 shapeNewIndexes << i;
                 lineSegmentIndexes << lineIndex;
                 shapeOrigIndexes << shapeOrigIndex;
@@ -185,13 +184,13 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
         qCritical() << "Shape indexes count isn't correct: " << ppVar(shapeNewIndexes.length()) << ppVar(lineSegmentIndexes.length());
         qCritical() << "Mouse line in used coordinates: " << mouseLine;
         qCritical() << "Number of shapes even considered: " << srcOutlines.length();
-        Q_FOREACH(QPainterPath path, srcOutlines) {
+        for (const PkPainterPath &path : srcOutlines) {
             qCritical() << "> A path: ";
             convertShapeToDebugArray(path);
         }
         qCritical() << "That's the end of shapes considered.";
         qCritical() << "Shapes not considered: " << srcOutlinesOutside.length();
-        Q_FOREACH(QPainterPath path, srcOutlinesOutside) {
+        for (const PkPainterPath &path : srcOutlinesOutside) {
             qCritical() << "> A path: ";
             convertShapeToDebugArray(path);
         }
@@ -205,7 +204,7 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
         }
         // TODO: this if should end here; code below adds a debug line showing the mouse line
 
-        QPainterPath newLineShape = QPainterPath();
+        PkPainterPath newLineShape = PkPainterPath();
         newLineShape.moveTo(mouseLine.p1());
         newLineShape.lineTo(mouseLine.p2());
 
@@ -232,11 +231,11 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     qCritical() << "Found two shapes.";
     qCritical() << "Shape 1:";
     convertShapeToDebugArray(srcOutlines[shapeNewIndexes[0]]);
-    qCritical() << ppVar(srcOutlines[shapeNewIndexes[0]].toFillPolygon());
+    qCritical() << ppVar(srcOutlines[shapeNewIndexes[0]].toFillPolygon(PkTransform()));
 
     qCritical() << "Shape 2:";
     convertShapeToDebugArray(srcOutlines[shapeNewIndexes[1]]);
-    qCritical() << ppVar(srcOutlines[shapeNewIndexes[1]].toFillPolygon());
+    qCritical() << ppVar(srcOutlines[shapeNewIndexes[1]].toFillPolygon(PkTransform()));
 #endif
 
     if (shapeNewIndexes[0] == shapeNewIndexes[1]) {
@@ -252,17 +251,17 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 
 
 
-    QPainterPath result = KisAlgebra2D::removeGutterSmart(srcOutlines[shapeNewIndexes[0]], lineSegmentIndexes[0], srcOutlines[shapeNewIndexes[1]], lineSegmentIndexes[1], shapeNewIndexes[0]==shapeNewIndexes[1]);
+    PkPainterPath result = KisAlgebra2D::removeGutterSmart(srcOutlines[shapeNewIndexes[0]], lineSegmentIndexes[0], srcOutlines[shapeNewIndexes[1]], lineSegmentIndexes[1], shapeNewIndexes[0]==shapeNewIndexes[1]);
 
 #ifdef KNIFE_DEBUG
     qCritical() << "Finally got a result:";
     convertShapeToDebugArray(result);
-    qCritical() << ppVar(result.toFillPolygon());
+    qCritical() << ppVar(result.toFillPolygon(PkTransform()));
 #endif
 
-    QList<KoShape*> resultSelectedShapes;
+    PkList<KoShape*> resultSelectedShapes;
 
-    Q_FOREACH(int index, indexesOutside) {
+    for (int index : indexesOutside) {
         if (isSelected[index]) {
             resultSelectedShapes << m_allShapes[index];
         }
@@ -304,7 +303,7 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
         resultSelectedShapes << resultShape;
     }
 
-    QList<KoShape*> shapesToRemove;
+    PkList<KoShape*> shapesToRemove;
     shapesToRemove << m_allShapes[shapeOrigIndexes[0]];
     if (shapeOrigIndexes[0] != shapeOrigIndexes[1]) { // there is a good reason in the workflow to allow doing this operation on the same shape
         shapesToRemove << m_allShapes[shapeOrigIndexes[1]];
@@ -318,28 +317,28 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 
 }
 
-void RemoveGutterStrategy::paint(QPainter &painter, const KoViewConverter &converter)
+void RemoveGutterStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     painter.save();
-    painter.setPen(QPen(QBrush(Qt::darkGray), 2));
+    painter.setPen(PkPen(PkBrush(Qt::darkGray), 2));
 
-    QLineF line = converter.documentToView().map(QLineF(m_startPoint, m_endPoint));
+    PkLineF line = converter.documentToView().map(PkLineF(m_startPoint, m_endPoint));
     if (line.length() > 0) {
-        QPointF vector = line.p2() - line.p1();
+        PkPointF vector = line.p2() - line.p1();
         vector = vector/line.length();
         int arrowLength = 15;
         int arrowThickness = 5;
 
-        QPointF before = line.p1() - vector*arrowLength;
-        QPointF after = line.p2() + vector*arrowLength;
+        PkPointF before = line.p1() - vector*arrowLength;
+        PkPointF after = line.p2() + vector*arrowLength;
 
-        QPointF perpendicular = QPointF(vector.y(), -vector.x());
+        PkPointF perpendicular = PkPointF(vector.y(), -vector.x());
 
-        painter.drawLine(QPointF(before + arrowThickness*perpendicular), line.p1());
-        painter.drawLine(QPointF(before - arrowThickness*perpendicular), line.p1());
+        painter.drawLine(PkPointF(before + arrowThickness*perpendicular), line.p1());
+        painter.drawLine(PkPointF(before - arrowThickness*perpendicular), line.p1());
 
-        painter.drawLine(QPointF(after + arrowThickness*perpendicular), line.p2());
-        painter.drawLine(QPointF(after - arrowThickness*perpendicular), line.p2());
+        painter.drawLine(PkPointF(after + arrowThickness*perpendicular), line.p2());
+        painter.drawLine(PkPointF(after - arrowThickness*perpendicular), line.p2());
 
 
     }

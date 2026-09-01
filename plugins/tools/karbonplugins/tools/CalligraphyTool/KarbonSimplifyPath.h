@@ -7,7 +7,7 @@
 #ifndef KARBONSIMPLIFYPATH_H
 #define KARBONSIMPLIFYPATH_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 class KoPathShape;
 

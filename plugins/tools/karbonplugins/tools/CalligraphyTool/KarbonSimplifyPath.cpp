@@ -9,7 +9,6 @@
 #include <KoCurveFit.h>
 #include <KoPathShape.h>
 #include <KoPathPoint.h>
-#include <QDebug>
 
 /*
 the algorithm proceeds as following:
@@ -34,22 +33,22 @@ int recursiveDepth;
 
 void removeDuplicates(KoPathShape *path);
 
-QList<KoSubpath *> split(const KoPathShape &path);
+PkList<KoSubpath *> split(const KoPathShape &path);
 
 // subdivides the path adding additional points where to "complicated"
 void subdivide(KoSubpath *subpath);
 // returns the points that needs to be inserted between p1 and p2
 KoSubpath subdivideAux(KoPathPoint *p1, KoPathPoint *p2);
 // auxiliary function
-bool isSufficientlyFlat(QPointF curve[4]);
+bool isSufficientlyFlat(PkPointF curve[4]);
 
 // after this call the points _are_ owned by the subpaths
-void simplifySubpaths(QList<KoSubpath *> *subpaths, qreal error);
+void simplifySubpaths(PkList<KoSubpath *> *subpaths, qreal error);
 // auxiliary function for the above
 void simplifySubpath(KoSubpath *subpath, qreal error);
 
 // put the result into path
-void mergeSubpaths(QList<KoSubpath *> subpaths, KoPathShape *path);
+void mergeSubpaths(PkList<KoSubpath *> subpaths, KoPathShape *path);
 }
 
 using namespace KarbonSimplifyPath;
@@ -71,8 +70,8 @@ void karbonSimplifyPath(KoPathShape *path, qreal error)
         path->insertPoint(new KoPathPoint(*firstPoint), end);
     }
 
-    QList<KoSubpath *> subpaths = split(*path);
-    Q_FOREACH (KoSubpath *subpath, subpaths) {
+    PkList<KoSubpath *> subpaths = split(*path);
+    for (KoSubpath *subpath : subpaths) {
         subdivide(subpath);
     }
 
@@ -97,7 +96,7 @@ void KarbonSimplifyPath::removeDuplicates(KoPathShape *path)
     for (int i = 1; i < path->pointCount(); ++i) {
         KoPathPoint *p = path->pointByIndex(KoPathPointIndex(0, i));
         KoPathPoint *prev = path->pointByIndex(KoPathPointIndex(0, i - 1));
-        QPointF diff = p->point() - prev->point();
+        PkPointF diff = p->point() - prev->point();
         // if diff = 0 remove point
         if (qFuzzyCompare(diff.x() + 1, 1) && qFuzzyCompare(diff.y() + 1, 1)) {
             if (prev->activeControlPoint1()) {
@@ -111,9 +110,9 @@ void KarbonSimplifyPath::removeDuplicates(KoPathShape *path)
     }
 }
 
-QList<KoSubpath *> KarbonSimplifyPath::split(const KoPathShape &path)
+PkList<KoSubpath *> KarbonSimplifyPath::split(const KoPathShape &path)
 {
-    QList<KoSubpath *> res;
+    PkList<KoSubpath *> res;
     KoSubpath *subpath = new KoSubpath;
     res.append(subpath);
 
@@ -142,7 +141,7 @@ void KarbonSimplifyPath::subdivide(KoSubpath *subpath)
     for (int i = 1; i < subpath->size(); ++i) {
         recursiveDepth = 0;
         KoSubpath newPoints = subdivideAux((*subpath)[i - 1], (*subpath)[i]);
-        Q_FOREACH (KoPathPoint *p, newPoints) {
+        for (KoPathPoint *p : newPoints) {
             subpath->insert(i, p);
             ++i;
         }
@@ -153,10 +152,10 @@ KoSubpath KarbonSimplifyPath::subdivideAux(KoPathPoint *p1,
         KoPathPoint *p2)
 {
     if (!p1->activeControlPoint1() && !p2->activeControlPoint2()) {
-        return QList<KoPathPoint *>();
+        return PkList<KoPathPoint *>();
     }
 
-    QPointF curve[4] = {
+    PkPointF curve[4] = {
         p1->point(),
         p1->activeControlPoint2() ? p1->controlPoint2() : p1->point(),
         p2->activeControlPoint1() ? p2->controlPoint1() : p2->point(),
@@ -165,18 +164,17 @@ KoSubpath KarbonSimplifyPath::subdivideAux(KoPathPoint *p1,
 
     // if there is no need to add points do nothing
     if (isSufficientlyFlat(curve)) {
-        return QList<KoPathPoint *>();
+        return PkList<KoPathPoint *>();
     }
 
     ++recursiveDepth;
     if (recursiveDepth >= MAX_RECURSIVE_DEPTH) {
-        qDebug() << "reached MAX_RECURSIVE_DEPTH";
         --recursiveDepth;
-        return QList<KoPathPoint *>();
+        return PkList<KoPathPoint *>();
     }
 
     // calculate the new point using the de Casteljau algorithm
-    QPointF p[3];
+    PkPointF p[3];
 
     for (unsigned short j = 1; j <= 3; ++j) {
         for (unsigned short i = 0; i <= 3 - j; ++i) {
@@ -198,7 +196,7 @@ KoSubpath KarbonSimplifyPath::subdivideAux(KoPathPoint *p1,
     return res;
 }
 
-bool KarbonSimplifyPath::isSufficientlyFlat(QPointF curve[4])
+bool KarbonSimplifyPath::isSufficientlyFlat(PkPointF curve[4])
 {
     qreal ux = 3 * curve[1].x() - 2 * curve[0].x() - curve[3].x();
     qreal uy = 3 * curve[1].y() - 2 * curve[0].y() - curve[3].y();
@@ -215,10 +213,10 @@ bool KarbonSimplifyPath::isSufficientlyFlat(QPointF curve[4])
     return max2 <= dist2;
 }
 
-void KarbonSimplifyPath::simplifySubpaths(QList<KoSubpath *> *subpaths,
+void KarbonSimplifyPath::simplifySubpaths(PkList<KoSubpath *> *subpaths,
         qreal error)
 {
-    Q_FOREACH (KoSubpath *subpath, *subpaths) {
+    for (KoSubpath *subpath : *subpaths) {
         if (subpath->size() > 2) {
             simplifySubpath(subpath, error);
         }
@@ -227,7 +225,7 @@ void KarbonSimplifyPath::simplifySubpaths(QList<KoSubpath *> *subpaths,
 
 void KarbonSimplifyPath::simplifySubpath(KoSubpath *subpath, qreal error)
 {
-    QList<QPointF> points;
+    PkList<PkPointF> points;
 
     for (int i = 0; i < subpath->size(); ++i) {
         points.append((*subpath)[i]->point());
@@ -246,7 +244,7 @@ void KarbonSimplifyPath::simplifySubpath(KoSubpath *subpath, qreal error)
     delete simplified;
 }
 
-void KarbonSimplifyPath::mergeSubpaths(QList<KoSubpath *> subpaths, KoPathShape *path)
+void KarbonSimplifyPath::mergeSubpaths(PkList<KoSubpath *> subpaths, KoPathShape *path)
 {
     path->clear();
     path->moveTo(subpaths.first()->first()->point());

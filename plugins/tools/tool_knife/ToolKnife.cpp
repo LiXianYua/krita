@@ -6,25 +6,12 @@
 
 #include "ToolKnife.h"
 
-#include <kpluginfactory.h>
-
-#include <kis_tool.h>
 #include <KoToolRegistry.h>
-
 #include "KisToolKnife.h"
+#include <mutex>
 
-
-K_PLUGIN_FACTORY_WITH_JSON(DefaultToolsFactory, "kritatoolknife.json", registerPlugin<ToolKnife>();)
-
-
-ToolKnife::ToolKnife(QObject *parent, const QVariantList &)
-    : QObject(parent)
+void registerToolKnife()
 {
-    KoToolRegistry::instance()->add(new KisToolKnifeFactory());
+    static std::once_flag once;
+    std::call_once(once, [] { KoToolRegistry::instance()->add(new KisToolKnifeFactory()); });
 }
-
-ToolKnife::~ToolKnife()
-{
-}
-
-#include "ToolKnife.moc"

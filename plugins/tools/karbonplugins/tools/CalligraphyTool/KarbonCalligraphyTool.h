@@ -9,19 +9,19 @@
 
 #include <KoToolBase.h>
 #include <KoPathShape.h>
-#include <QPainterPath>
+#include <PkPainter.h>
+#include <PkPainterPath.h>
 
 class KoPathShape;
 class KarbonCalligraphicShape;
 
 class KarbonCalligraphyTool : public KoToolBase
 {
-    Q_OBJECT
 public:
     explicit KarbonCalligraphyTool(KoCanvasBase *canvas);
     ~KarbonCalligraphyTool() override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
     void mousePressEvent(KoPointerEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event) override;
@@ -29,10 +29,10 @@ public:
 
     KisPopupWidgetInterface *popupWidget() override;
 
-    void activate(const QSet<KoShape *> &shapes) override;
+    void activate(const PkSet<KoShape *> &shapes) override;
     void deactivate() override;
 
-private Q_SLOTS:
+private:
     void updateSelectedPath();
 
 private:
@@ -41,11 +41,11 @@ private:
     void setAngle(KoPointerEvent *event);
     // auxiliary functions to calculate the dynamic parameters
     // returns the new point and sets speed to the speed
-    QPointF calculateNewPoint(const QPointF &mousePos, QPointF *speed);
+    PkPointF calculateNewPoint(const PkPointF &mousePos, PkPointF *speed);
     qreal calculateWidth(qreal pressure);
-    qreal calculateAngle(const QPointF &oldSpeed, const QPointF &newSpeed);
+    qreal calculateAngle(const PkPointF &oldSpeed, const PkPointF &newSpeed);
 
-    QPointF m_lastPoint;
+    PkPointF m_lastPoint;
     KarbonCalligraphicShape *m_shape;
 
     // used to determine if the device supports tilt
@@ -65,16 +65,16 @@ private:
     qreal m_drag;  // from 0.0 to 1.0
 
     KoPathShape *m_selectedPath;
-    QPainterPath m_selectedPathOutline;
+    PkPainterPath m_selectedPathOutline;
     qreal m_followPathPosition;
     bool m_endOfPath;
-    QPointF m_lastMousePos;
+    PkPointF m_lastMousePos;
 
     bool m_isDrawing;
     int m_pointCount;
 
     // dynamic parameters
-    QPointF m_speed; // used as a vector
+    PkPointF m_speed; // used as a vector
 };
 
 #endif // KARBONCALLIGRAPHYTOOL_H

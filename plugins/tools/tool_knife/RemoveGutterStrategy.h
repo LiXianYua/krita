@@ -6,8 +6,9 @@
 #ifndef REMOVEGUTTERSTRATEGY_H
 #define REMOVEGUTTERSTRATEGY_H
 
-#include <QScopedPointer>
-#include <QRectF>
+#include <PkScopedPointer.h>
+#include <PkRect.h>
+#include <PkPainter.h>
 
 #include <KoInteractionStrategy.h>
 #include <KoShape.h>
@@ -18,22 +19,22 @@ class KoSelection;
 class RemoveGutterStrategy : public KoInteractionStrategy
 {
 public:
-    RemoveGutterStrategy(KoToolBase *tool, KoSelection *selection, const QList<KoShape*> &shapes, QPointF startPoint);
+    RemoveGutterStrategy(KoToolBase *tool, KoSelection *selection, const PkList<KoShape*> &shapes, PkPointF startPoint);
     ~RemoveGutterStrategy() override;
 
     KUndo2Command *createCommand() override;
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
 private:
-    QPointF m_startPoint = QPointF();
-    QPointF m_endPoint = QPointF();
-    QRectF m_previousLineDirtyRect = QRectF();
+    PkPointF m_startPoint = PkPointF();
+    PkPointF m_endPoint = PkPointF();
+    PkRectF m_previousLineDirtyRect = PkRectF();
 
-    QList<KoShape *> m_allShapes;
-    QList<KoShape *> m_selectedShapes;
+    PkList<KoShape *> m_allShapes;
+    PkList<KoShape *> m_selectedShapes;
 
 };
 

@@ -7,21 +7,18 @@
 #ifndef KIS_TOOL_KNIFE_H_
 #define KIS_TOOL_KNIFE_H_
 
-#include <QScopedPointer>
-#include <QPainterPath>
+#include <PkScopedPointer.h>
+#include <PkPainterPath.h>
+#include <PkPainter.h>
 
 #include "KoInteractionTool.h"
 
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <QKeySequence>
-#include <klocalizedstring.h>
-
 #include <kconfig.h>
 #include <kconfiggroup.h>
 
-class KisKActionCollection;
 class KoCanvasBase;
 class KisPaintInformation;
 class KisSpacingInformation;
@@ -29,17 +26,14 @@ class KisSpacingInformation;
 
 class KisToolKnife : public KoInteractionTool
 {
-    Q_OBJECT
 public:
     KisToolKnife(KoCanvasBase * canvas);
     ~KisToolKnife() override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
-protected Q_SLOTS:
-
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void mousePressEvent(KoPointerEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event)  override;
@@ -50,7 +44,7 @@ public Q_SLOTS:
     bool isValidForCurrentLayer() const;
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 
@@ -62,7 +56,7 @@ public:
         : KisToolPaintFactoryBase("KritaShape/KisToolKnife")
     {
 
-        setToolTip(i18n("Comic Panel Editing Tool"));
+        setToolTip(PkString("Comic Panel Editing Tool"));
 
         setSection(ToolBoxSection::Main);
         setPriority(7);
@@ -71,10 +65,7 @@ public:
 
     ~KisToolKnifeFactory() override {}
 
-    KoToolBase * createTool(KoCanvasBase *canvas) override
-    {
-        return new KisToolKnife(canvas);
-    }
+    KoToolBase *createTool(KoCanvasBase *canvas) override;
 
 };
 

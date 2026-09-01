@@ -6,8 +6,8 @@
 
 #include "CutThroughShapeStrategy.h"
 
-#include <QDebug>
-#include <QPainter>
+#include <PkBrush.h>
+#include <PkPainter.h>
 
 #include <kis_algebra_2d.h>
 #include <KoToolBase.h>
@@ -21,15 +21,14 @@
 #include <kis_coordinates_converter.h>
 #include <kis_image.h>
 #include <kis_shape_controller.h>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <KoShapeController.h>
 #include <kundo2command.h>
 #include <KoKeepShapesSelectedCommand.h>
-#include <QtMath>
 #include <KoSvgTextShape.h>
 
 
-CutThroughShapeStrategy::CutThroughShapeStrategy(KoToolBase *tool, KoSelection *selection, const QList<KoShape *> &shapes, QPointF startPoint, const GutterWidthsConfig &width)
+CutThroughShapeStrategy::CutThroughShapeStrategy(KoToolBase *tool, KoSelection *selection, const PkList<KoShape *> &shapes, PkPointF startPoint, const GutterWidthsConfig &width)
     : KoInteractionStrategy(tool)
     , m_startPoint(startPoint)
     , m_endPoint(startPoint)
@@ -50,21 +49,21 @@ KUndo2Command *CutThroughShapeStrategy::createCommand()
     return 0;
 }
 
-QPointF snapEndPoint(const QPointF &startPoint, const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) {
+PkPointF snapEndPoint(const PkPointF &startPoint, const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) {
 
-    QPointF nicePoint = snapToClosestNiceAngle(mouseLocation, startPoint); // by default the function gives you 15 degrees increments
+    PkPointF nicePoint = snapToClosestNiceAngle(mouseLocation, startPoint); // by default the function gives you 15 degrees increments
 
     if (modifiers & Qt::KeyboardModifier::ShiftModifier) {
         return nicePoint;
         if (qAbs(mouseLocation.x() - startPoint.x()) >= qAbs(mouseLocation.y() - startPoint.y())) {
             // do horizontal line
-            return QPointF(mouseLocation.x(), startPoint.y());
+            return PkPointF(mouseLocation.x(), startPoint.y());
         } else {
-            return QPointF(startPoint.x(), mouseLocation.y());
+            return PkPointF(startPoint.x(), mouseLocation.y());
         }
     }
-    QLineF line = QLineF(startPoint, mouseLocation);
-    qreal angle = line.angleTo(QLineF(startPoint, nicePoint));
+    PkLineF line = PkLineF(startPoint, mouseLocation);
+    qreal angle = line.angleTo(PkLineF(startPoint, nicePoint));
     qreal eps = kisDegreesToRadians(2.0f);
     if (angle < eps) {
         return nicePoint;
@@ -72,15 +71,15 @@ QPointF snapEndPoint(const QPointF &startPoint, const QPointF &mouseLocation, Qt
     return mouseLocation;
 }
 
-void CutThroughShapeStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void CutThroughShapeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
     m_endPoint = snapEndPoint(m_startPoint, mouseLocation, modifiers);
-    QRectF dirtyRect;
+    PkRectF dirtyRect;
     KisAlgebra2D::accumulateBounds(m_startPoint, &dirtyRect);
     KisAlgebra2D::accumulateBounds(m_endPoint, &dirtyRect);
     dirtyRect = kisGrowRect(dirtyRect, gutterWidthInDocumentCoordinates(calculateLineAngle(m_startPoint, m_endPoint))); // twice as much as it should need to account for lines showing the effect
 
-    QRectF accumulatedWithPrevious = m_previousLineDirtyRect | dirtyRect;
+    PkRectF accumulatedWithPrevious = m_previousLineDirtyRect | dirtyRect;
 
     if (tool() && tool()->canvas()) {
         tool()->canvas()->updateCanvas(accumulatedWithPrevious);
@@ -90,7 +89,7 @@ void CutThroughShapeStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::
 }
 
 
-bool CutThroughShapeStrategy::willShapeBeCutGeneral(KoShape* referenceShape, const QPainterPath& srcOutline, bool checkGapLineRect, const QRectF& gapLineRect)
+bool CutThroughShapeStrategy::willShapeBeCutGeneral(KoShape* referenceShape, const PkPainterPath& srcOutline, bool checkGapLineRect, const PkRectF& gapLineRect)
 {
     if (dynamic_cast<KoSvgTextShape*>(referenceShape)) {
         // skip all text
@@ -106,7 +105,7 @@ bool CutThroughShapeStrategy::willShapeBeCutGeneral(KoShape* referenceShape, con
     return true;
 }
 
-bool CutThroughShapeStrategy::willShapeBeCutPrecise(const QPainterPath& srcOutline, const QLineF gapLine, const QLineF& leftLine, const QLineF& rightLine, const QPolygonF& gapLinePolygon)
+bool CutThroughShapeStrategy::willShapeBeCutPrecise(const PkPainterPath& srcOutline, const PkLineF gapLine, const PkLineF& leftLine, const PkLineF& rightLine, const PkPolygonF& gapLinePolygon)
 {
     bool containsGapLinePointStart = srcOutline.contains(gapLine.p1());
     bool containsGapLinePointEnd = srcOutline.contains(gapLine.p2());
@@ -138,7 +137,7 @@ bool CutThroughShapeStrategy::willShapeBeCutPrecise(const QPainterPath& srcOutli
         return true;
     }
 
-    Q_FOREACH(QPointF p, srcOutline.toFillPolygon()) {
+    for (const PkPointF &p : srcOutline.toFillPolygon(PkTransform())) {
         if (gapLinePolygon.containsPoint(p, Qt::WindingFill)) {
             // a shape point is inside the gap shape
             return true;
@@ -149,11 +148,11 @@ bool CutThroughShapeStrategy::willShapeBeCutPrecise(const QPainterPath& srcOutli
 
 }
 
-void CutThroughShapeStrategy::initializeOutlineObjects(const QTransform &booleanWorkaroundTransform, QList<KoShape *> allShapes, QList<QPainterPath> &outSrcOutlines, QRectF &outOutlineRect)
+void CutThroughShapeStrategy::initializeOutlineObjects(const PkTransform &booleanWorkaroundTransform, PkList<KoShape *> allShapes, PkList<PkPainterPath> &outSrcOutlines, PkRectF &outOutlineRect)
 {
-    Q_FOREACH (KoShape *shape, allShapes) {
+    for (KoShape *shape : allShapes) {
 
-        QPainterPath outlineHere =
+        PkPainterPath outlineHere =
             booleanWorkaroundTransform.map(
             shape->absoluteTransformation().map(
                 shape->outline()));
@@ -163,27 +162,27 @@ void CutThroughShapeStrategy::initializeOutlineObjects(const QTransform &boolean
     }
 }
 
-void CutThroughShapeStrategy::initializeGapShapes(QRectF outlineRect, QLineF leftLine, QLineF rightLine, QPainterPath& outLeft, QPainterPath& outRight,
-                                                  QRectF& outGapLineRect, QPolygonF& outGapLinePolygon)
+void CutThroughShapeStrategy::initializeGapShapes(PkRectF outlineRect, PkLineF leftLine, PkLineF rightLine, PkPainterPath& outLeft, PkPainterPath& outRight,
+                                                  PkRectF& outGapLineRect, PkPolygonF& outGapLinePolygon)
 {
 
 
-    QRect outlineRectBiggerInt = kisGrowRect(outlineRect, 10).toRect();
-    QLineF leftLineLong = leftLine;
-    QLineF rightLineLong = rightLine;
+    PkRect outlineRectBiggerInt = kisGrowRect(outlineRect, 10).toRect();
+    PkLineF leftLineLong = leftLine;
+    PkLineF rightLineLong = rightLine;
 
 
     KisAlgebra2D::cropLineToRect(leftLineLong, outlineRectBiggerInt, true, true);
     KisAlgebra2D::cropLineToRect(rightLineLong, outlineRectBiggerInt, true, true);
 
 
-    QList<QPainterPath> paths = KisAlgebra2D::getPathsFromRectangleCutThrough(QRectF(outlineRectBiggerInt), leftLineLong, rightLineLong);
+    PkList<PkPainterPath> paths = KisAlgebra2D::getPathsFromRectangleCutThrough(PkRectF(outlineRectBiggerInt), leftLineLong, rightLineLong);
     outLeft = paths[0];
     outRight = paths[1];
 
     outGapLineRect = KisAlgebra2D::createRectFromCorners(leftLine) | KisAlgebra2D::createRectFromCorners(rightLine); // will not be empty if the gutterWidth > 0
 
-    outGapLinePolygon = QPolygonF({leftLine.p1(), leftLine.p2(), rightLine.p2(), rightLine.p1(), leftLine.p1()});
+    outGapLinePolygon = PkPolygonF({leftLine.p1(), leftLine.p2(), rightLine.p2(), rightLine.p1(), leftLine.p1()});
 
 }
 
@@ -195,14 +194,13 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     KisShapeController *shapeController =
         dynamic_cast<KisShapeController *>(tool()->canvas()->shapeController()->documentBase());
     KIS_SAFE_ASSERT_RECOVER_RETURN(shapeController);
-    const QTransform booleanWorkaroundTransform =
+    const PkTransform booleanWorkaroundTransform =
         KritaUtils::pathShapeBooleanSpaceWorkaround(shapeController->currentImage());
 
-    QList<QPainterPath> srcOutlines;
-    QRectF outlineRect;
+    PkList<PkPainterPath> srcOutlines;
+    PkRectF outlineRect;
 
     if (m_allShapes.length() == 0) {
-        qCritical() << "No shapes are available";
         return;
     }
 
@@ -216,7 +214,7 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     }
 
 
-    QLineF gapLine = QLineF(m_startPoint, m_endPoint);
+    PkLineF gapLine = PkLineF(m_startPoint, m_endPoint);
     qreal eps = 0.0000001;
     if (gapLine.length() < eps) {
         return;
@@ -224,14 +222,14 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 
     qreal gutterWidth = gutterWidthInDocumentCoordinates(calculateLineAngle(m_startPoint, m_endPoint));
 
-    QList<QLineF> gapLines = KisAlgebra2D::getParallelLines(gapLine, gutterWidth/2);
+    PkList<PkLineF> gapLines = KisAlgebra2D::getParallelLines(gapLine, gutterWidth/2);
 
     gapLine = booleanWorkaroundTransform.map(gapLine);
     gapLines[0] = booleanWorkaroundTransform.map(gapLines[0]);
     gapLines[1] = booleanWorkaroundTransform.map(gapLines[1]);
 
-    QLineF leftLine = gapLines[0];
-    QLineF rightLine = gapLines[1];
+    PkLineF leftLine = gapLines[0];
+    PkLineF rightLine = gapLines[1];
 
 
     if (leftLine.length() == 0 || rightLine.length() == 0) {
@@ -241,19 +239,19 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 
     // -------------
 
-    QPainterPath left, right;
+    PkPainterPath left, right;
 
-    QRectF gapLineRect;
-    QPolygonF gapLinePolygon;
+    PkRectF gapLineRect;
+    PkPolygonF gapLinePolygon;
     initializeGapShapes(outlineRect, leftLine, rightLine, left, right, gapLineRect, gapLinePolygon);
 
 
     bool checkGapLineRect = !gapLineRect.isEmpty();
 
-    QList<KoShape*> newSelectedShapes;
-    QList<KoShape*> shapesToRemove;
+    PkList<KoShape*> newSelectedShapes;
+    PkList<KoShape*> shapesToRemove;
     int affectedShapes = 0;
-    QTransform booleanWorkaroundTransformInverted = booleanWorkaroundTransform.inverted();
+    PkTransform booleanWorkaroundTransformInverted = booleanWorkaroundTransform.inverted();
 
 
     std::unique_ptr<KUndo2Command> cmd = std::unique_ptr<KUndo2Command>(new KUndo2Command(kundo2_i18n("Knife tool: cut through shapes")));
@@ -278,14 +276,14 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
         affectedShapes++;
 
 
-        QPainterPath leftPath = srcOutlines[i] & left;
-        QPainterPath rightPath = srcOutlines[i] & right;
+        PkPainterPath leftPath = srcOutlines[i] & left;
+        PkPainterPath rightPath = srcOutlines[i] & right;
 
-        QList<QPainterPath> bothSides;
+        PkList<PkPainterPath> bothSides;
         bothSides << leftPath << rightPath;
 
 
-        Q_FOREACH(QPainterPath path, bothSides) {
+        for (PkPainterPath path : bothSides) {
             if (path.isEmpty()) {
                 continue;
             }
@@ -334,37 +332,37 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 
 }
 
-void CutThroughShapeStrategy::paint(QPainter &painter, const KoViewConverter &converter)
+void CutThroughShapeStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     painter.save();
 
-    QColor semitransparentGray = QColor(Qt::darkGray);
+    PkColor semitransparentGray = PkColor(Qt::darkGray);
     semitransparentGray.setAlphaF(0.6);
-    QPen pen = QPen(QBrush(semitransparentGray), 2);
+    PkPen pen(PkBrush(semitransparentGray), 2);
     painter.setPen(pen);
 
-    painter.setRenderHint(QPainter::RenderHint::Antialiasing, true);
+    painter.setRenderHint(PkPainter::RenderHint::Antialiasing, true);
 
     qreal gutterWidth = gutterWidthInDocumentCoordinates(calculateLineAngle(m_startPoint, m_endPoint));
 
-    QLineF gutterCenterLine = QLineF(m_startPoint, m_endPoint);
+    PkLineF gutterCenterLine = PkLineF(m_startPoint, m_endPoint);
     gutterCenterLine = converter.documentToView().map(gutterCenterLine);
-    QLineF gutterWidthHelperLine = QLineF(QPointF(0, 0), QPointF(gutterWidth, 0));
+    PkLineF gutterWidthHelperLine = PkLineF(PkPointF(0, 0), PkPointF(gutterWidth, 0));
     gutterWidthHelperLine = converter.documentToView().map(gutterWidthHelperLine);
 
     gutterWidth = gutterWidthHelperLine.length();
 
-    QList<QLineF> gutterLines = KisAlgebra2D::getParallelLines(gutterCenterLine, gutterWidth/2);
+    PkList<PkLineF> gutterLines = KisAlgebra2D::getParallelLines(gutterCenterLine, gutterWidth/2);
 
-    QLineF gutterLine1 = gutterLines.length() > 0 ? gutterLines[0] : gutterCenterLine;
-    QLineF gutterLine2 = gutterLines.length() > 1 ? gutterLines[1] : gutterCenterLine;
+    PkLineF gutterLine1 = gutterLines.length() > 0 ? gutterLines[0] : gutterCenterLine;
+    PkLineF gutterLine2 = gutterLines.length() > 1 ? gutterLines[1] : gutterCenterLine;
 
 
     painter.drawLine(gutterLine1);
     painter.drawLine(gutterLine2);
 
-    QRectF arcRect1 = QRectF(gutterCenterLine.p1() - QPointF(gutterWidth/2, gutterWidth/2), gutterCenterLine.p1() + QPointF(gutterWidth/2, gutterWidth/2));
-    QRectF arcRect2 = QRectF(gutterCenterLine.p2() - QPointF(gutterWidth/2, gutterWidth/2), gutterCenterLine.p2() + QPointF(gutterWidth/2, gutterWidth/2));
+    PkRectF arcRect1 = PkRectF(gutterCenterLine.p1() - PkPointF(gutterWidth/2, gutterWidth/2), gutterCenterLine.p1() + PkPointF(gutterWidth/2, gutterWidth/2));
+    PkRectF arcRect2 = PkRectF(gutterCenterLine.p2() - PkPointF(gutterWidth/2, gutterWidth/2), gutterCenterLine.p2() + PkPointF(gutterWidth/2, gutterWidth/2));
 
     int qtAngleFactor = 16;
     int qtHalfCircle = qtAngleFactor*180;
@@ -374,14 +372,14 @@ void CutThroughShapeStrategy::paint(QPainter &painter, const KoViewConverter &co
 
 
     int xLength = 3;
-    qreal xLengthEllipse = 2*qSqrt(2);
+    qreal xLengthEllipse = 2 * std::sqrt(2.0);
 
     if (false) { // drawing X
-    painter.drawLine({QLineF(gutterCenterLine.p1() - QPointF(xLength, xLength), gutterCenterLine.p1() + QPointF(xLength, xLength))});
-    painter.drawLine({QLineF(gutterCenterLine.p2() - QPointF(xLength, xLength), gutterCenterLine.p2() + QPointF(xLength, xLength))});
+    painter.drawLine({PkLineF(gutterCenterLine.p1() - PkPointF(xLength, xLength), gutterCenterLine.p1() + PkPointF(xLength, xLength))});
+    painter.drawLine({PkLineF(gutterCenterLine.p2() - PkPointF(xLength, xLength), gutterCenterLine.p2() + PkPointF(xLength, xLength))});
 
-    painter.drawLine({QLineF(gutterCenterLine.p1() - QPointF(xLength, -xLength), gutterCenterLine.p1() + QPointF(xLength, -xLength))});
-    painter.drawLine({QLineF(gutterCenterLine.p2() - QPointF(xLength, -xLength), gutterCenterLine.p2() + QPointF(xLength, -xLength))});
+    painter.drawLine({PkLineF(gutterCenterLine.p1() - PkPointF(xLength, -xLength), gutterCenterLine.p1() + PkPointF(xLength, -xLength))});
+    painter.drawLine({PkLineF(gutterCenterLine.p2() - PkPointF(xLength, -xLength), gutterCenterLine.p2() + PkPointF(xLength, -xLength))});
     }
 
     // ellipse at the both ends of the gutter center line
@@ -406,14 +404,14 @@ qreal CutThroughShapeStrategy::gutterWidthInDocumentCoordinates(qreal lineAngle)
     const KisCoordinatesConverter *converter =
         dynamic_cast<const KisCoordinatesConverter *>(tool()->canvas()->viewConverter());
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, m_width.widthForAngleInPixels(lineAngle));
-    QLineF helperGapWidthLine = QLineF(QPointF(0, 0), QPointF(0, m_width.widthForAngleInPixels(lineAngle)));
-    QLineF helperGapWidthLineTransformed = converter->imageToDocument(helperGapWidthLine);
+    PkLineF helperGapWidthLine = PkLineF(PkPointF(0, 0), PkPointF(0, m_width.widthForAngleInPixels(lineAngle)));
+    PkLineF helperGapWidthLineTransformed = converter->imageToDocument(helperGapWidthLine);
     return helperGapWidthLineTransformed.length();
 }
 
-qreal CutThroughShapeStrategy::calculateLineAngle(QPointF start, QPointF end)
+qreal CutThroughShapeStrategy::calculateLineAngle(PkPointF start, PkPointF end)
 {
-    QPointF vec = end - start;
+    PkPointF vec = end - start;
     qreal angleDegrees = KisAlgebra2D::wrapValue(kisRadiansToDegrees(std::atan2(vec.y(), vec.x())), 0.0, 360.0);
     return angleDegrees;
 }

@@ -6,8 +6,8 @@
 
 #include "kis_tool_smart_patch.h"
 
-#include "QApplication"
-#include "QPainterPath"
+#include <PkPainter.h>
+#include <PkPainterPath.h>
 
 #include <klocalizedstring.h>
 #include <KoColor.h>
@@ -35,7 +35,7 @@
 #include "kis_algebra_2d.h"
 #include "kis_resources_snapshot.h"
 
-QRect patchImage(KisPaintDeviceSP imageDev, KisPaintDeviceSP maskDev, int radius, int accuracy, KisSelectionSP selection);
+PkRect patchImage(KisPaintDeviceSP imageDev, KisPaintDeviceSP maskDev, int radius, int accuracy, KisSelectionSP selection);
 
 class KisToolSmartPatch::InpaintCommand : public KisTransactionBasedCommand {
 public:
@@ -58,8 +58,8 @@ struct KisToolSmartPatch::Private {
     KisPaintDeviceSP maskDev = nullptr;
     KisPainter maskDevPainter;
     float brushRadius = 50.; //initial default. actually read from ui.
-    QRectF oldOutlineRect;
-    QPainterPath brushOutline;
+    PkRectF oldOutlineRect;
+    PkPainterPath brushOutline;
 };
 
 
@@ -82,7 +82,7 @@ KisToolSmartPatch::~KisToolSmartPatch()
     m_d->maskDevPainter.end();
 }
 
-void KisToolSmartPatch::activate(const QSet<KoShape*> &shapes)
+void KisToolSmartPatch::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
 }
@@ -114,8 +114,8 @@ void KisToolSmartPatch::addMaskPath( KoPointerEvent *event )
     const KisCoordinatesConverter *converter = dynamic_cast<const KisCoordinatesConverter *>(canvas()->viewConverter());
     KIS_ASSERT(converter);
 
-    QPointF imagePos = currentImage()->documentToPixel(event->point);
-    QPainterPath currentBrushOutline = brushOutline().translated(KisAlgebra2D::alignForZoom(imagePos, converter->effectivePhysicalZoom()));
+    PkPointF imagePos = currentImage()->documentToPixel(event->point);
+    PkPainterPath currentBrushOutline = brushOutline().translated(KisAlgebra2D::alignForZoom(imagePos, converter->effectivePhysicalZoom()));
     m_d->maskDevPainter.fillPainterPath(currentBrushOutline);
 
     canvas()->updateCanvas(currentImage()->pixelToDocument(m_d->maskDev->exactBounds()));
@@ -128,8 +128,8 @@ void KisToolSmartPatch::beginPrimaryAction(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-            i18n("Select a paint layer to use this tool"),
-            QIcon(), 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
+            PkString("Select a paint layer to use this tool"),
+            {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         event->ignore();
         return;
     }
@@ -177,39 +177,39 @@ void KisToolSmartPatch::endPrimaryAction(KoPointerEvent *event)
     m_d->maskDev->clear();
 }
 
-QPainterPath KisToolSmartPatch::brushOutline( void )
+PkPainterPath KisToolSmartPatch::brushOutline( void )
 {
     const qreal diameter = m_d->brushRadius;
-    QPainterPath outline;
-    outline.addEllipse(QPointF(0,0), -0.5 * diameter, -0.5 * diameter );
+    PkPainterPath outline;
+    outline.addEllipse(PkPointF(0,0), -0.5 * diameter, -0.5 * diameter );
     return outline;
 }
 
-QPainterPath KisToolSmartPatch::getBrushOutlinePath(const QPointF &documentPos,
+PkPainterPath KisToolSmartPatch::getBrushOutlinePath(const PkPointF &documentPos,
                                           const KoPointerEvent *event)
 {
-    Q_UNUSED(event);
+    (void)event;
 
-    QPointF imagePos = currentImage()->documentToPixel(documentPos);
-    QPainterPath path = brushOutline();
+    PkPointF imagePos = currentImage()->documentToPixel(documentPos);
+    PkPainterPath path = brushOutline();
 
     const KisCoordinatesConverter *converter = dynamic_cast<const KisCoordinatesConverter *>(canvas()->viewConverter());
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, QPainterPath());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, PkPainterPath());
 
     return path.translated(KisAlgebra2D::alignForZoom(imagePos, converter->effectivePhysicalZoom()));
 }
 
-void KisToolSmartPatch::requestUpdateOutline(const QPointF &outlineDocPoint, const KoPointerEvent *event)
+void KisToolSmartPatch::requestUpdateOutline(const PkPointF &outlineDocPoint, const KoPointerEvent *event)
 {
-    static QPointF lastDocPoint = QPointF(0,0);
+    static PkPointF lastDocPoint = PkPointF(0,0);
     if( event )
         lastDocPoint=outlineDocPoint;
 
     m_d->brushRadius = currentPaintOpPreset()->settings()->paintOpSize();
     m_d->brushOutline = getBrushOutlinePath(lastDocPoint, event);
 
-    QRectF outlinePixelRect = m_d->brushOutline.boundingRect();
-    QRectF outlineDocRect = currentImage()->pixelToDocument(outlinePixelRect);
+    PkRectF outlinePixelRect = m_d->brushOutline.boundingRect();
+    PkRectF outlineDocRect = currentImage()->pixelToDocument(outlinePixelRect);
 
     // This adjusted call is needed as we paint with a 3 pixel wide brush and the pen is outside the bounds of the path
     // Pen uses view coordinates so we have to zoom the document value to match 2 pixel in view coordinates
@@ -235,20 +235,25 @@ void KisToolSmartPatch::requestUpdateOutline(const QPointF &outlineDocPoint, con
     m_d->oldOutlineRect = outlineDocRect;
 }
 
-void KisToolSmartPatch::paint(QPainter &painter, const KoViewConverter &converter)
+void KisToolSmartPatch::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(converter);
+    (void)converter;
 
     painter.save();
-    QPainterPath path = pixelToView(m_d->brushOutline);
+    PkPainterPath path = pixelToView(m_d->brushOutline);
     paintToolOutline(&painter, path);
     painter.restore();
 
     painter.save();
     painter.setBrush(Qt::magenta);
-    QImage img = m_d->maskDev->convertToQImage(0);
+    PkImage img = m_d->maskDev->convertToQImage(0);
     if( !img.size().isEmpty() ){
         painter.drawImage(pixelToView(m_d->maskDev->exactBounds()), img);
     }
     painter.restore();
+}
+
+KoToolBase *KisToolSmartPatchFactory::createTool(KoCanvasBase *canvas)
+{
+    return new KisToolSmartPatch(canvas);
 }

@@ -19,16 +19,26 @@ KisConstrainedRect::~KisConstrainedRect()
 {
 }
 
-void KisConstrainedRect::setRectInitial(const QRect &rect)
+void KisConstrainedRect::sigValuesChanged()
+{
+    PkObject::activateSignal<>(this, PkMemberFnKey::from(&KisConstrainedRect::sigValuesChanged));
+}
+
+void KisConstrainedRect::sigLockValuesChanged()
+{
+    PkObject::activateSignal<>(this, PkMemberFnKey::from(&KisConstrainedRect::sigLockValuesChanged));
+}
+
+void KisConstrainedRect::setRectInitial(const PkRect &rect)
 {
     m_rect = rect;
     if (!ratioLocked()) {
         storeRatioSafe(m_rect.size());
     }
-    Q_EMIT sigValuesChanged();
+    sigValuesChanged();
 }
 
-void KisConstrainedRect::setCropRect(const QRect &cropRect)
+void KisConstrainedRect::setCropRect(const PkRect &cropRect)
 {
     m_cropRect = cropRect;
 }
@@ -47,7 +57,7 @@ void KisConstrainedRect::setCanGrow(bool value) {
     m_canGrow = value;
 }
 
-QRect KisConstrainedRect::rect() const {
+PkRect KisConstrainedRect::rect() const {
     return m_rect.normalized();
 }
 
@@ -55,11 +65,11 @@ qreal KisConstrainedRect::ratio() const {
     return qAbs(m_ratio);
 }
 
-void KisConstrainedRect::moveHandle(HandleType handle, const QPoint &offset, const QRect &oldRect)
+void KisConstrainedRect::moveHandle(HandleType handle, const PkPoint &offset, const PkRect &oldRect)
 {
-    const QSize oldSize = oldRect.size();
-    QSize newSize = oldSize;
-    QPoint newOffset = oldRect.topLeft();
+    const PkSize oldSize = oldRect.size();
+    PkSize newSize = oldSize;
+    PkPoint newOffset = oldRect.topLeft();
 
     int xSizeCoeff = 1;
     int ySizeCoeff = 1;
@@ -86,7 +96,7 @@ void KisConstrainedRect::moveHandle(HandleType handle, const QPoint &offset, con
         break;
     case Creation:
         baseSizeCoeff = 0;
-        Q_FALLTHROUGH();
+        [[fallthrough]];
     case LowerRight:
         xSizeCoeff =  1;
         ySizeCoeff =  1;
@@ -138,10 +148,10 @@ void KisConstrainedRect::moveHandle(HandleType handle, const QPoint &offset, con
         }
 
 
-        QSize sizeDiff(offset.x() * xSizeCoeff * centeringSizeCoeff,
+        PkSize sizeDiff(offset.x() * xSizeCoeff * centeringSizeCoeff,
                        offset.y() * ySizeCoeff * centeringSizeCoeff);
 
-        QSize tempSize = baseSizeCoeff * oldSize + sizeDiff;
+        PkSize tempSize = baseSizeCoeff * oldSize + sizeDiff;
         bool widthPreferable = qAbs(tempSize.width()) > qAbs(tempSize.height() * m_ratio);
 
         if (ratioLocked()) {
@@ -178,8 +188,8 @@ void KisConstrainedRect::moveHandle(HandleType handle, const QPoint &offset, con
             storeRatioSafe(newSize);
         }
 
-        QSize realSizeDiff = newSize - baseSizeCoeff * oldSize;
-        QPoint offsetDiff(realSizeDiff.width() * xOffsetFromSizeChange,
+        PkSize realSizeDiff = newSize - baseSizeCoeff * oldSize;
+        PkPoint offsetDiff(realSizeDiff.width() * xOffsetFromSizeChange,
                           realSizeDiff.height() * yOffsetFromSizeChange);
 
         newOffset = oldRect.topLeft() + offsetDiff;
@@ -187,7 +197,7 @@ void KisConstrainedRect::moveHandle(HandleType handle, const QPoint &offset, con
         newOffset = oldRect.topLeft() + offset;
     }
 
-    QPoint prevOffset = newOffset;
+    PkPoint prevOffset = newOffset;
 
     if (!m_canGrow) {
         if (newOffset.x() + newSize.width() > m_cropRect.width()) {
@@ -209,7 +219,7 @@ void KisConstrainedRect::moveHandle(HandleType handle, const QPoint &offset, con
         newOffset = prevOffset;
     }
 
-    m_rect = QRect(newOffset, newSize);
+    m_rect = PkRect(newOffset, newSize);
 
     if (!m_canGrow) {
         m_rect &= m_cropRect;
@@ -225,27 +235,27 @@ void KisConstrainedRect::moveHandle(HandleType handle, const QPoint &offset, con
         }
     }
 
-    Q_EMIT sigValuesChanged();
+    sigValuesChanged();
 }
 
-QPointF KisConstrainedRect::handleSnapPoint(HandleType handle, const QPointF &cursorPos)
+PkPointF KisConstrainedRect::handleSnapPoint(HandleType handle, const PkPointF &cursorPos)
 {
-    QPointF snapPoint = cursorPos;
+    PkPointF snapPoint = cursorPos;
 
     switch (handle) {
     case UpperLeft:
         snapPoint = m_rect.topLeft();
         break;
     case UpperRight:
-        snapPoint = m_rect.topRight() + QPointF(1, 0);
+        snapPoint = m_rect.topRight() + PkPointF(1, 0);
         break;
     case Creation:
         break;
     case LowerRight:
-        snapPoint = m_rect.bottomRight() + QPointF(1, 1);
+        snapPoint = m_rect.bottomRight() + PkPointF(1, 1);
         break;
     case LowerLeft:
-        snapPoint = m_rect.bottomLeft() + QPointF(0, 1);
+        snapPoint = m_rect.bottomLeft() + PkPointF(0, 1);
         break;
     case Upper:
         snapPoint.ry() = m_rect.y();
@@ -273,9 +283,9 @@ void KisConstrainedRect::normalize()
     setRectInitial(m_rect.normalized());
 }
 
-void KisConstrainedRect::setOffset(const QPoint &offset)
+void KisConstrainedRect::setOffset(const PkPoint &offset)
 {
-    QRect newRect = m_rect;
+    PkRect newRect = m_rect;
     newRect.moveTo(offset);
 
     if (!m_canGrow) {
@@ -286,7 +296,7 @@ void KisConstrainedRect::setOffset(const QPoint &offset)
         m_rect = newRect;
     }
 
-    Q_EMIT sigValuesChanged();
+    sigValuesChanged();
 }
 
 void KisConstrainedRect::setRatio(qreal value) {
@@ -296,12 +306,12 @@ void KisConstrainedRect::setRatio(qreal value) {
     const qreal invEps = 1.0 / eps;
 
     if (value < eps || value > invEps) {
-        Q_EMIT sigValuesChanged();
+        sigValuesChanged();
         return;
     }
 
-    const QSize oldSize = m_rect.size();
-    QSize newSize = oldSize;
+    const PkSize oldSize = m_rect.size();
+    PkSize newSize = oldSize;
 
     if (widthLocked() && heightLocked()) {
         setHeightLocked(false);
@@ -326,8 +336,8 @@ void KisConstrainedRect::setWidth(int value)
 {
     KIS_ASSERT_RECOVER_RETURN(value >= 0);
 
-    const QSize oldSize = m_rect.size();
-    QSize newSize = oldSize;
+    const PkSize oldSize = m_rect.size();
+    PkSize newSize = oldSize;
 
     if (ratioLocked()) {
         newSize.setWidth(value);
@@ -344,8 +354,8 @@ void KisConstrainedRect::setHeight(int value)
 {
     KIS_ASSERT_RECOVER_RETURN(value >= 0);
 
-    const QSize oldSize = m_rect.size();
-    QSize newSize = oldSize;
+    const PkSize oldSize = m_rect.size();
+    PkSize newSize = oldSize;
 
     if (ratioLocked()) {
         newSize.setHeight(value);
@@ -358,12 +368,12 @@ void KisConstrainedRect::setHeight(int value)
     assignNewSize(newSize);
 }
 
-void KisConstrainedRect::assignNewSize(const QSize &newSize)
+void KisConstrainedRect::assignNewSize(const PkSize &newSize)
 {
     if (!m_centered) {
         m_rect.setSize(newSize);
     } else {
-        QSize sizeDiff = newSize - m_rect.size();
+        PkSize sizeDiff = newSize - m_rect.size();
         m_rect.translate(-qRound(sizeDiff.width() / 2.0), -qRound(sizeDiff.height() / 2.0));
         m_rect.setSize(newSize);
     }
@@ -372,10 +382,10 @@ void KisConstrainedRect::assignNewSize(const QSize &newSize)
         m_rect &= m_cropRect;
     }
 
-    Q_EMIT sigValuesChanged();
+    sigValuesChanged();
 }
 
-void KisConstrainedRect::storeRatioSafe(const QSize &newSize)
+void KisConstrainedRect::storeRatioSafe(const PkSize &newSize)
 {
     m_ratio = qAbs(qreal(newSize.width()) / newSize.height());
 }
@@ -406,14 +416,14 @@ void KisConstrainedRect::setWidthLocked(bool value) {
     m_widthLocked = value;
     m_ratioLocked &= !(m_widthLocked || m_heightLocked);
 
-    Q_EMIT sigLockValuesChanged();
+    sigLockValuesChanged();
 }
 
 void KisConstrainedRect::setHeightLocked(bool value) {
     m_heightLocked = value;
     m_ratioLocked &= !(m_widthLocked || m_heightLocked);
 
-    Q_EMIT sigLockValuesChanged();
+    sigLockValuesChanged();
 }
 
 void KisConstrainedRect::setRatioLocked(bool value) {
@@ -422,6 +432,5 @@ void KisConstrainedRect::setRatioLocked(bool value) {
     m_widthLocked &= !m_ratioLocked;
     m_heightLocked &= !m_ratioLocked;
 
-    Q_EMIT sigLockValuesChanged();
+    sigLockValuesChanged();
 }
-

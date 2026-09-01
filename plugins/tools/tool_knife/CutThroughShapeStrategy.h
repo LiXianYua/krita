@@ -7,8 +7,9 @@
 #ifndef CUT_THROUGH_SHAPE_STRATEGY_H_
 #define CUT_THROUGH_SHAPE_STRATEGY_H_
 
-#include <QScopedPointer>
-#include <QRectF>
+#include <PkScopedPointer.h>
+#include <PkRect.h>
+#include <PkPainter.h>
 
 #include <KoInteractionStrategy.h>
 #include <KoShape.h>
@@ -23,38 +24,38 @@ class KoSelection;
 class CutThroughShapeStrategy : public KoInteractionStrategy
 {
 public:
-    CutThroughShapeStrategy(KoToolBase *tool, KoSelection *selection, const QList<KoShape *> &allShapes, QPointF startPoint, const GutterWidthsConfig &width);
+    CutThroughShapeStrategy(KoToolBase *tool, KoSelection *selection, const PkList<KoShape *> &allShapes, PkPointF startPoint, const GutterWidthsConfig &width);
 
     ~CutThroughShapeStrategy() override;
 
 
     KUndo2Command *createCommand() override;
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
 private:
 
     qreal gutterWidthInDocumentCoordinates(qreal lineAngle);
-    qreal calculateLineAngle(QPointF start, QPointF end);
+    qreal calculateLineAngle(PkPointF start, PkPointF end);
 
-    static bool willShapeBeCutGeneral(KoShape* referenceShape, const QPainterPath &srcOutline, bool checkGapLineRect, const QRectF &gapLineRect);
-    static bool willShapeBeCutPrecise(const QPainterPath& srcOutline, const QLineF gapLine, const QLineF& leftLine, const QLineF& rightLine, const QPolygonF& gapLinePolygon);
+    static bool willShapeBeCutGeneral(KoShape* referenceShape, const PkPainterPath &srcOutline, bool checkGapLineRect, const PkRectF &gapLineRect);
+    static bool willShapeBeCutPrecise(const PkPainterPath& srcOutline, const PkLineF gapLine, const PkLineF& leftLine, const PkLineF& rightLine, const PkPolygonF& gapLinePolygon);
 
-    static void initializeOutlineObjects(const QTransform &booleanWorkaroundTransform, QList<KoShape *> allShapes, QList<QPainterPath> &outSrcOutlines, QRectF &outOutlineRect);
-    static void initializeGapShapes(QRectF outlineRect, QLineF leftLine, QLineF rightLine, QPainterPath& outLeft, QPainterPath& outRight, QRectF& outGapLineRect, QPolygonF& outGapLinePolygon);
+    static void initializeOutlineObjects(const PkTransform &booleanWorkaroundTransform, PkList<KoShape *> allShapes, PkList<PkPainterPath> &outSrcOutlines, PkRectF &outOutlineRect);
+    static void initializeGapShapes(PkRectF outlineRect, PkLineF leftLine, PkLineF rightLine, PkPainterPath& outLeft, PkPainterPath& outRight, PkRectF& outGapLineRect, PkPolygonF& outGapLinePolygon);
 
 
 
 private:
     friend class CutThroughShapeStrategyTest;
 
-    QPointF m_startPoint = QPointF();
-    QPointF m_endPoint = QPointF();
-    QRectF m_previousLineDirtyRect = QRectF();
-    QList<KoShape *> m_selectedShapes;
-    QList<KoShape *> m_allShapes;
+    PkPointF m_startPoint = PkPointF();
+    PkPointF m_endPoint = PkPointF();
+    PkRectF m_previousLineDirtyRect = PkRectF();
+    PkList<KoShape *> m_selectedShapes;
+    PkList<KoShape *> m_allShapes;
     GutterWidthsConfig m_width;
 };
 

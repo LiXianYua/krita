@@ -7,17 +7,6 @@
 #ifndef _KARBONTOOLSPLUGIN_H_
 #define _KARBONTOOLSPLUGIN_H_
 
-#include <QObject>
-#include <QVariant>
-
-class KarbonToolsPlugin : public QObject
-{
-    Q_OBJECT
-
-public:
-    KarbonToolsPlugin(QObject *parent,  const QVariantList &);
-    ~KarbonToolsPlugin() override {}
-
-};
+void registerKarbonTools();
 
 #endif // _KARBONTOOLSPLUGIN_H_

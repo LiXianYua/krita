@@ -7,16 +7,6 @@
 #ifndef TOOL_SMARTPATCH_H_
 #define TOOL_SMARTPATCH_H_
 
-#include <QObject>
-#include <QVariant>
-
-class ToolSmartPatch : public QObject
-{
-    Q_OBJECT
-public:
-    ToolSmartPatch(QObject *parent, const QVariantList &);
-    ~ToolSmartPatch() override;
-
-};
+void registerToolSmartPatch();
 
 #endif // TOOL_SMARTPATCH_H_

@@ -13,9 +13,8 @@
 #include <KoCurveFit.h>
 #include <KoColorBackground.h>
 
-#include <QDebug>
-#include <QColor>
-#include <QPainterPath>
+#include <PkColor.h>
+#include <PkPainterPath.h>
 
 #include <cmath>
 #include <cstdlib>
@@ -23,7 +22,7 @@
 #undef M_PI
 const qreal M_PI = 3.1415927;
 
-struct KarbonCalligraphicShape::Private : public QSharedData
+struct KarbonCalligraphicShape::Private
 {
     Private(qreal _caps)
         : lastWasFlip(false),
@@ -37,7 +36,7 @@ struct KarbonCalligraphicShape::Private : public QSharedData
     bool lastWasFlip;
     qreal caps = 0.0;
     // the actual data then determines it's shape (guide path + data for points)
-    QList<KarbonCalligraphicPoint> points;
+    PkList<KarbonCalligraphicPoint> points;
 };
 
 KarbonCalligraphicShape::KarbonCalligraphicShape(qreal caps)
@@ -45,13 +44,13 @@ KarbonCalligraphicShape::KarbonCalligraphicShape(qreal caps)
 {
     setShapeId(KoPathShapeId);
     setFillRule(Qt::WindingFill);
-    setBackground(QSharedPointer<KoShapeBackground>(new KoColorBackground(QColor(Qt::black))));
+    setBackground(PkSharedPointer<KoShapeBackground>(new KoColorBackground(PkColor(Qt::black))));
     setStroke(KoShapeStrokeModelSP());
 }
 
 KarbonCalligraphicShape::KarbonCalligraphicShape(const KarbonCalligraphicShape &rhs)
     : KoParameterShape(rhs),
-      s(rhs.s)
+      s(PkSharedPointer<Private>::create(*rhs.s))
 {
 }
 
@@ -64,13 +63,13 @@ KoShape *KarbonCalligraphicShape::cloneShape() const
     return new KarbonCalligraphicShape(*this);
 }
 
-void KarbonCalligraphicShape::appendPoint(const QPointF &point, qreal angle, qreal width)
+void KarbonCalligraphicShape::appendPoint(const PkPointF &point, qreal angle, qreal width)
 {
     // convert the point from canvas to shape coordinates
-    QPointF p = point - position();
+    PkPointF p = point - position();
     KarbonCalligraphicPoint calligraphicPoint(p, angle, width);
 
-    QList<QPointF> handles = this->handles();
+    PkList<PkPointF> handles = this->handles();
     handles.append(p);
     setHandles(handles);
     s->points.append(calligraphicPoint);
@@ -93,8 +92,8 @@ void KarbonCalligraphicShape::appendPointToPath(const KarbonCalligraphicPoint &p
     qreal dy = std::sin(p.angle()) * p.width();
 
     // find the outline points
-    QPointF p1 = p.point() - QPointF(dx / 2, dy / 2);
-    QPointF p2 = p.point() + QPointF(dx / 2, dy / 2);
+    PkPointF p1 = p.point() - PkPointF(dx / 2, dy / 2);
+    PkPointF p2 = p.point() + PkPointF(dx / 2, dy / 2);
 
     if (pointCount() == 0) {
         moveTo(p1);
@@ -165,7 +164,7 @@ void KarbonCalligraphicShape::appendPointToPath(const KarbonCalligraphicPoint &p
     }
 }
 
-void KarbonCalligraphicShape::appendPointsToPathAux(const QPointF &p1, const QPointF &p2)
+void KarbonCalligraphicShape::appendPointsToPathAux(const PkPointF &p1, const PkPointF &p2)
 {
     KoPathPoint *pathPoint1 = new KoPathPoint(this, p1);
     KoPathPoint *pathPoint2 = new KoPathPoint(this, p2);
@@ -196,46 +195,46 @@ void KarbonCalligraphicShape::smoothPoint(const int index)
     const KoPathPointIndex INDEX(0, index);
     const KoPathPointIndex NEXT(0, index + 1);
 
-    QPointF prev = pointByIndex(PREV)->point();
-    QPointF point = pointByIndex(INDEX)->point();
-    QPointF next = pointByIndex(NEXT)->point();
+    PkPointF prev = pointByIndex(PREV)->point();
+    PkPointF point = pointByIndex(INDEX)->point();
+    PkPointF next = pointByIndex(NEXT)->point();
 
-    QPointF vector = next - prev;
-    qreal dist = (QLineF(prev, next)).length();
+    PkPointF vector = next - prev;
+    qreal dist = (PkLineF(prev, next)).length();
     // normalize the vector (make it's size equal to 1)
     if (!qFuzzyCompare(dist + 1, 1)) {
         vector /= dist;
     }
     qreal mult = 0.35; // found by trial and error, might not be perfect...
     // distance of the control points from the point
-    qreal dist1 = (QLineF(point, prev)).length() * mult;
-    qreal dist2 = (QLineF(point, next)).length() * mult;
-    QPointF vector1 = vector * dist1;
-    QPointF vector2 = vector * dist2;
-    QPointF controlPoint1 = point - vector1;
-    QPointF controlPoint2 = point + vector2;
+    qreal dist1 = (PkLineF(point, prev)).length() * mult;
+    qreal dist2 = (PkLineF(point, next)).length() * mult;
+    PkPointF vector1 = vector * dist1;
+    PkPointF vector2 = vector * dist2;
+    PkPointF controlPoint1 = point - vector1;
+    PkPointF controlPoint2 = point + vector2;
 
     pointByIndex(INDEX)->setControlPoint1(controlPoint1);
     pointByIndex(INDEX)->setControlPoint2(controlPoint2);
 }
 
-const QRectF KarbonCalligraphicShape::lastPieceBoundingRect()
+const PkRectF KarbonCalligraphicShape::lastPieceBoundingRect()
 {
     if (pointCount() < 6) {
-        return QRectF();
+        return PkRectF();
     }
 
     int index = pointCount() / 2;
 
-    QPointF p1 = pointByIndex(KoPathPointIndex(0, index - 3))->point();
-    QPointF p2 = pointByIndex(KoPathPointIndex(0, index - 2))->point();
-    QPointF p3 = pointByIndex(KoPathPointIndex(0, index - 1))->point();
-    QPointF p4 = pointByIndex(KoPathPointIndex(0, index))->point();
-    QPointF p5 = pointByIndex(KoPathPointIndex(0, index + 1))->point();
-    QPointF p6 = pointByIndex(KoPathPointIndex(0, index + 2))->point();
+    PkPointF p1 = pointByIndex(KoPathPointIndex(0, index - 3))->point();
+    PkPointF p2 = pointByIndex(KoPathPointIndex(0, index - 2))->point();
+    PkPointF p3 = pointByIndex(KoPathPointIndex(0, index - 1))->point();
+    PkPointF p4 = pointByIndex(KoPathPointIndex(0, index))->point();
+    PkPointF p5 = pointByIndex(KoPathPointIndex(0, index + 1))->point();
+    PkPointF p6 = pointByIndex(KoPathPointIndex(0, index + 2))->point();
 
     // TODO: also take the control points into account
-    QPainterPath p;
+    PkPainterPath p;
     p.moveTo(p1);
     p.lineTo(p2);
     p.lineTo(p3);
@@ -246,13 +245,13 @@ const QRectF KarbonCalligraphicShape::lastPieceBoundingRect()
     return p.boundingRect().translated(position());
 }
 
-bool KarbonCalligraphicShape::flipDetected(const QPointF &p1, const QPointF &p2)
+bool KarbonCalligraphicShape::flipDetected(const PkPointF &p1, const PkPointF &p2)
 {
     // detect the flip caused by the angle changing 180 degrees
     // thus detect the boundary crossing
     int index = pointCount() / 2;
-    QPointF last1 = pointByIndex(KoPathPointIndex(0, index - 1))->point();
-    QPointF last2 = pointByIndex(KoPathPointIndex(0, index))->point();
+    PkPointF last1 = pointByIndex(KoPathPointIndex(0, index - 1))->point();
+    PkPointF last2 = pointByIndex(KoPathPointIndex(0, index))->point();
 
     int sum1 = std::abs(ccw(p1, p2, last1) + ccw(p1, last2, last1));
     int sum2 = std::abs(ccw(p2, p1, last2) + ccw(p2, last1, last2));
@@ -260,7 +259,7 @@ bool KarbonCalligraphicShape::flipDetected(const QPointF &p1, const QPointF &p2)
     return sum1 < 2 && sum2 < 2;
 }
 
-int KarbonCalligraphicShape::ccw(const QPointF &p1, const QPointF &p2,const QPointF &p3)
+int KarbonCalligraphicShape::ccw(const PkPointF &p1, const PkPointF &p2,const PkPointF &p3)
 {
     // calculate two times the area of the triangle formed by the points given
     qreal area2 = (p2.x() - p1.x()) * (p3.y() - p1.y()) -
@@ -274,17 +273,17 @@ int KarbonCalligraphicShape::ccw(const QPointF &p1, const QPointF &p2,const QPoi
     }
 }
 
-void KarbonCalligraphicShape::setSize(const QSizeF &newSize)
+void KarbonCalligraphicShape::setSize(const PkSizeF &newSize)
 {
-    // QSizeF oldSize = size();
+    // PkSizeF oldSize = size();
     // TODO: check
     KoParameterShape::setSize(newSize);
 }
 
-QPointF KarbonCalligraphicShape::normalize()
+PkPointF KarbonCalligraphicShape::normalize()
 {
-    QPointF offset(KoParameterShape::normalize());
-    QTransform matrix;
+    PkPointF offset(KoParameterShape::normalize());
+    PkTransform matrix;
     matrix.translate(-offset.x(), -offset.y());
 
     for (int i = 0; i < s->points.size(); ++i) {
@@ -295,29 +294,29 @@ QPointF KarbonCalligraphicShape::normalize()
 }
 
 void KarbonCalligraphicShape::moveHandleAction(int handleId,
-        const QPointF &point,
+        const PkPointF &point,
         Qt::KeyboardModifiers modifiers)
 {
-    Q_UNUSED(modifiers);
+    (void)modifiers;
     s->points[handleId].setPoint(point);
 }
 
-void KarbonCalligraphicShape::updatePath(const QSizeF &size)
+void KarbonCalligraphicShape::updatePath(const PkSizeF &size)
 {
-    Q_UNUSED(size);
+    (void)size;
 
-    QPointF pos = position();
+    PkPointF pos = position();
 
     // remove all points
     clear();
-    setPosition(QPoint(0, 0));
+    setPosition(PkPoint(0, 0));
 
-    Q_FOREACH (const KarbonCalligraphicPoint &p, s->points) {
+    for (const KarbonCalligraphicPoint &p : s->points) {
         appendPointToPath(p);
     }
 
-    QList<QPointF> handles;
-    Q_FOREACH (const KarbonCalligraphicPoint &p, s->points) {
+    PkList<PkPointF> handles;
+    for (const KarbonCalligraphicPoint &p : s->points) {
         handles.append(p.point());
     }
     setHandles(handles);
@@ -344,18 +343,18 @@ void KarbonCalligraphicShape::simplifyPath()
 
 void KarbonCalligraphicShape::addCap(int index1, int index2, int pointIndex, bool inverted)
 {
-    QPointF p1 = s->points[index1].point();
-    QPointF p2 = s->points[index2].point();
+    PkPointF p1 = s->points[index1].point();
+    PkPointF p2 = s->points[index2].point();
 
     // TODO: review why spikes can appear with a lower limit
-    QPointF delta = p2 - p1;
+    PkPointF delta = p2 - p1;
     if (delta.manhattanLength() < 1.0) {
         return;
     }
 
-    QPointF direction = QLineF(QPointF(0, 0), delta).unitVector().p2();
+    PkPointF direction = PkLineF(PkPointF(0, 0), delta).unitVector().p2();
     qreal width = s->points[index2].width();
-    QPointF p = p2 + direction * s->caps * width;
+    PkPointF p = p2 + direction * s->caps * width;
 
     KoPathPoint *newPoint = new KoPathPoint(this, p);
 
@@ -366,13 +365,13 @@ void KarbonCalligraphicShape::addCap(int index1, int index2, int pointIndex, boo
 
     qreal dx = std::cos(angle) * width;
     qreal dy = std::sin(angle) * width;
-    newPoint->setControlPoint1(QPointF(p.x() - dx / 2, p.y() - dy / 2));
-    newPoint->setControlPoint2(QPointF(p.x() + dx / 2, p.y() + dy / 2));
+    newPoint->setControlPoint1(PkPointF(p.x() - dx / 2, p.y() - dy / 2));
+    newPoint->setControlPoint2(PkPointF(p.x() + dx / 2, p.y() + dy / 2));
 
     insertPoint(newPoint, KoPathPointIndex(0, pointIndex));
 }
 
-QString KarbonCalligraphicShape::pathShapeId() const
+PkString KarbonCalligraphicShape::pathShapeId() const
 {
     return KarbonCalligraphicShapeId;
 }
@@ -384,18 +383,18 @@ void KarbonCalligraphicShape::simplifyGuidePath()
         return;
     }
 
-    QList<QPointF> points;
-    Q_FOREACH (const KarbonCalligraphicPoint &p, s->points) {
+    PkList<PkPointF> points;
+    for (const KarbonCalligraphicPoint &p : s->points) {
         points.append(p.point());
     }
 
     // cumulative data used to determine if the point can be removed
     qreal widthChange = 0;
     qreal directionChange = 0;
-    QList<KarbonCalligraphicPoint>::iterator i = s->points.begin() + 2;
+    PkList<KarbonCalligraphicPoint>::iterator i = s->points.begin() + 2;
 
     while (i != std::prev(s->points.end())) {
-        QPointF point = i->point();
+        PkPointF point = i->point();
 
         qreal width = i->width();
         qreal prevWidth = std::prev(i)->width();
@@ -404,10 +403,10 @@ void KarbonCalligraphicShape::simplifyGuidePath()
 
         qreal directionDiff = 0;
         if (std::next(i) != s->points.end()) {
-            QPointF prev = std::prev(i)->point();
-            QPointF next = std::next(i)->point();
+            PkPointF prev = std::prev(i)->point();
+            PkPointF next = std::next(i)->point();
 
-            directionDiff = QLineF(prev, point).angleTo(QLineF(point, next));
+            directionDiff = PkLineF(prev, point).angleTo(PkLineF(point, next));
             if (directionDiff > 180) {
                 directionDiff -= 360;
             }
@@ -429,5 +428,5 @@ void KarbonCalligraphicShape::simplifyGuidePath()
         }
     }
 
-    updatePath(QSizeF());
+    updatePath(PkSizeF());
 }

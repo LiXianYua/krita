@@ -9,13 +9,10 @@
 
 #include <KoToolRegistry.h>
 
-#include <klocalizedstring.h>
-#include <QDebug>
-
 KarbonCalligraphyToolFactory::KarbonCalligraphyToolFactory()
     : KoToolFactoryBase("KarbonCalligraphyTool")
 {
-    setToolTip(i18n("Calligraphy"));
+    setToolTip(PkString("Calligraphy"));
     setSection(ToolBoxSection::Main);
     setPriority(6);
     setActivationShapeId("flake/edit");
