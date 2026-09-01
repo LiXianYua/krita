@@ -95,7 +95,6 @@ KisPainter::~KisPainter()
     end();
 
     delete d->paintOp;
-    delete d->maskPainter;
     delete d->fillPainter;
     delete d;
 }
@@ -2434,7 +2433,6 @@ void KisPainter::setMaskImageSize(qint32 width, qint32 height)
     d->maskImageWidth = qBound(1, width, 256);
     d->maskImageHeight = qBound(1, height, 256);
     d->fillPainter = 0;
-    d->polygonMaskImage = PkImage();
 }
 
 //void KisPainter::setLockAlpha(bool protect)

@@ -6,55 +6,48 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-// ============================================================================
-// [GAP] 登记（2026-08-24 修复轮 C1，S-06 全分支评审 Critical）
-//
-// 本文件自 libs/image/kis_painter.cc 拆出的**路径填充/绘制族**，共 13 个函数：
-//   KisPainter::Private::fillPainterPathImpl
-//   KisPainter::drawPainterPath（两个重载）
-//   KisPainter::fillPainterPath（两个重载）
-//   KisPainter::fillPolygon / paintPolygon / paintPainterPath
-//   KisPainter::paintPolyline / paintRect（两个重载）/ paintEllipse（两个重载）
-//
-// 这一族的共同落点是 fillPainterPathImpl/drawPainterPath 的**路径栅格化**：
-// maskPainter->fillPath(path, brush) / drawPath(path) 把路径画进遮罩位图，
-// 再以 applyAlphaU8Mask 把覆盖率叠到多边形填充结果上；paintRect/paintEllipse/
-// paintPolyline/paintPainterPath 等只是先算出点列/路径再汇入 paintPolygon →
-// fillPainterPath → 栅格化。薄壳内 PkPainter 是 no-op 桩（shell compat/QPainter，
-// fillPath/drawPath 空实现）：遮罩保持 fill(black) 全不透明黑 → qRed()==0 →
-// applyAlphaU8Mask(alpha=0) → 多边形保持包围盒填充。这是**语义降级**而非崩溃，
-// 与批次 A/F2c 对同一降级的判法（不可接受、维持 GAP）一致（task8-report 批次
-// A/F2c 段）。壳内以 --no-undefined 链接，任何壳内函数引用本族符号都会链接失败，
-// 因此整族必须一起离开薄壳；留在 kis_painter.cc 的 getBezierCurvePoints（static
-// + 成员）是纯几何辅助、无 Qt 依赖，留在壳内，仅被 GAP 侧 paintEllipse 调用。
-//
-// 关闭条件：KisFillPainter 重实现路径栅格化后，将本文件加入薄壳 SHELL_SOURCES
-// 回编。PkPainter/PkPen/PkBrush 与 qRed/Q_CHECK_PTR/Q_FALLTHROUGH 等宏由壳
-// compat PkCompatAll.h 预激活提供（-include PkCompatAll.h），随 SHELL_SOURCES
-// 编译即齐。回编时注意：
-//   - 栅格化状态 polygonMaskImage/maskPainter 仍留在 KisPainterPrivate（壳侧
-//     析构 delete d->maskPainter 与 setMaskImageSize 重置均引用，非仅本文件使用，
-//     按任务「若只被拆出的函数用」条件不迁）；
-//   - 原 Qt QPainter 实现（QPainterPath/QPainter/QImage/QPen/QBrush 签名）见
-//     官方 clone /home/liyang/projects-ssd/krita libs/image/kis_painter.cc
-//     L1427-1634（v6.0.3 同源），语义参照以它为准；本文件为剥 Qt 后的 Pk 形态。
-// ============================================================================
+// This path family preserves the official Krita v6.0.3 fill-source ->
+// chunked coverage mask -> applyAlphaU8Mask -> bitBlt pipeline. Coverage is
+// produced by the private Qt-5.15-derived, oracle-checked rasterizer in
+// private/kis_path_rasterizer.cpp; no painter/image shell is involved.
 
 #include "kis_painter.h"
 #include "kis_painter_p.h"
 #include "kis_algebra_2d.h"   // KisAlgebra2D::directionBetweenPoints（paintPolygon/paintPolyline 用）
+#include <brushengine/kis_paint_information.h>
+#include "kis_lod_transform.h"
 
 #include "kis_iterator_ng.h"
 
-#include <PkImage.h>
 #include <PkRect.h>
 #include <PkPainterPath.h>
+#include <PkPen.h>
 
-// 下列符号由薄壳 compat 层提供，回编时随 PkCompatAll.h 预激活：
-//   PkPainter / PkPen / PkBrush —— shell compat/QPainter QPen QBrush 三桩
-//   qRed —— compat/QRgb
-//   Q_CHECK_PTR / Q_FALLTHROUGH —— PkCompatAll.h 宏
-//   qMin / qRound / qBound —— PkGlobal.h
+#include "private/kis_path_rasterizer_p.h"
+
+namespace {
+
+void applyCoverageMask(KisPaintDeviceSP &device,
+                       const KisPathRasterizer::CoverageMask &mask,
+                       const PkRect &chunk)
+{
+    if (mask.isEmpty()) {
+        device->clear(chunk);
+        return;
+    }
+
+    for (int row = mask.bounds.y(); row <= mask.bounds.bottom(); ++row) {
+        const uint8_t *coverage = mask.scanLine(row);
+        KisHLineIteratorSP it = device->createHLineIteratorNG(
+            mask.bounds.x(), row, mask.bounds.width());
+        do {
+            const uint8_t alpha = coverage[it->x() - mask.bounds.x()];
+            device->colorSpace()->applyAlphaU8Mask(it->rawData(), &alpha, 1);
+        } while (it->nextPixel());
+    }
+}
+
+} // namespace
 
 void KisPainter::Private::fillPainterPathImpl(const PkPainterPath& path, const PkRect &requestedRect)
 {
@@ -72,7 +65,7 @@ void KisPainter::Private::fillPainterPathImpl(const PkPainterPath& path, const P
         polygon->clear();
     }
 
-    Q_CHECK_PTR(polygon);
+    KIS_SAFE_ASSERT_RECOVER_RETURN(polygon);
 
     PkRectF boundingRect = path.boundingRect();
     PkRect fillRect = boundingRect.toAlignedRect();
@@ -86,7 +79,7 @@ void KisPainter::Private::fillPainterPathImpl(const PkPainterPath& path, const P
 
     switch (fillStyle) {
     default:
-        Q_FALLTHROUGH();
+        [[fallthrough]];
     case FillStyleForegroundColor:
         fillPainter->fillRect(fillRect, q->paintColor(), OPACITY_OPAQUE_U8);
         break;
@@ -105,38 +98,15 @@ void KisPainter::Private::fillPainterPathImpl(const PkPainterPath& path, const P
         break;
     }
 
-    if (polygonMaskImage.isNull() || (maskPainter == 0)) {
-        polygonMaskImage = PkImage(maskImageWidth, maskImageHeight, PkImage::Format_ARGB32_Premultiplied);
-        maskPainter = new PkPainter(&polygonMaskImage);
-        maskPainter->setRenderHint(PkPainter::Antialiasing, q->antiAliasPolygonFill());
-    }
-
-    // Break the mask up into chunks so we don't have to allocate a potentially very large PkImage.
-    const PkColor black(Qt::black);
-    const PkBrush brush(Qt::white);
+    // Break the mask up into chunks so we don't allocate one potentially huge mask.
     for (qint32 x = fillRect.x(); x < fillRect.x() + fillRect.width(); x += maskImageWidth) {
         for (qint32 y = fillRect.y(); y < fillRect.y() + fillRect.height(); y += maskImageHeight) {
-
-            polygonMaskImage.fill(black.rgb());
-            maskPainter->translate(-x, -y);
-            maskPainter->fillPath(path, brush);
-            maskPainter->translate(x, y);
-
-            qint32 rectWidth = qMin(fillRect.x() + fillRect.width() - x, maskImageWidth);
-            qint32 rectHeight = qMin(fillRect.y() + fillRect.height() - y, maskImageHeight);
-
-            KisHLineIteratorSP lineIt = polygon->createHLineIteratorNG(x, y, rectWidth);
-
-            quint8 tmp;
-            for (int row = y; row < y + rectHeight; row++) {
-                PkRgb* line = reinterpret_cast<PkRgb*>(polygonMaskImage.scanLine(row - y));
-                do {
-                    tmp = qRed(line[lineIt->x() - x]);
-                    polygon->colorSpace()->applyAlphaU8Mask(lineIt->rawData(), &tmp, 1);
-                } while (lineIt->nextPixel());
-                lineIt->nextRow();
-            }
-
+            const PkRect chunk(x, y,
+                               qMin(fillRect.x() + fillRect.width() - x, maskImageWidth),
+                               qMin(fillRect.y() + fillRect.height() - y, maskImageHeight));
+            const KisPathRasterizer::CoverageMask mask =
+                KisPathRasterizer::rasterizeFill(path, chunk, q->antiAliasPolygonFill());
+            applyCoverageMask(polygon, mask, chunk);
         }
     }
 
@@ -161,7 +131,7 @@ void KisPainter::drawPainterPath(const PkPainterPath& path, const PkPen& _pen, c
         d->polygon->clear();
     }
 
-    Q_CHECK_PTR(d->polygon);
+    KIS_SAFE_ASSERT_RECOVER_RETURN(d->polygon);
 
     PkRectF boundingRect = path.boundingRect();
     PkRect fillRect = boundingRect.toAlignedRect();
@@ -179,44 +149,18 @@ void KisPainter::drawPainterPath(const PkPainterPath& path, const PkPen& _pen, c
 
     d->fillPainter->fillRect(fillRect, paintColor(), OPACITY_OPAQUE_U8);
 
-    if (d->polygonMaskImage.isNull() || (d->maskPainter == 0)) {
-        d->polygonMaskImage = PkImage(d->maskImageWidth, d->maskImageHeight, PkImage::Format_ARGB32_Premultiplied);
-        d->maskPainter = new PkPainter(&d->polygonMaskImage);
-        d->maskPainter->setRenderHint(PkPainter::Antialiasing, antiAliasPolygonFill());
-    }
-
-    // Break the mask up into chunks so we don't have to allocate a potentially very large PkImage.
-    const PkColor black(Qt::black);
-    PkPen oldPen = d->maskPainter->pen();
-    d->maskPainter->setPen(pen);
-
+    // Break the mask up into chunks so we don't allocate one potentially huge mask.
     for (qint32 x = fillRect.x(); x < fillRect.x() + fillRect.width(); x += d->maskImageWidth) {
         for (qint32 y = fillRect.y(); y < fillRect.y() + fillRect.height(); y += d->maskImageHeight) {
-
-            d->polygonMaskImage.fill(black.rgb());
-            d->maskPainter->translate(-x, -y);
-            d->maskPainter->drawPath(path);
-            d->maskPainter->translate(x, y);
-
-            qint32 rectWidth = qMin(fillRect.x() + fillRect.width() - x, d->maskImageWidth);
-            qint32 rectHeight = qMin(fillRect.y() + fillRect.height() - y, d->maskImageHeight);
-
-            KisHLineIteratorSP lineIt = d->polygon->createHLineIteratorNG(x, y, rectWidth);
-
-            quint8 tmp;
-            for (int row = y; row < y + rectHeight; row++) {
-                PkRgb* line = reinterpret_cast<PkRgb*>(d->polygonMaskImage.scanLine(row - y));
-                do {
-                    tmp = qRed(line[lineIt->x() - x]);
-                    d->polygon->colorSpace()->applyAlphaU8Mask(lineIt->rawData(), &tmp, 1);
-                } while (lineIt->nextPixel());
-                lineIt->nextRow();
-            }
-
+            const PkRect chunk(x, y,
+                               qMin(fillRect.x() + fillRect.width() - x, d->maskImageWidth),
+                               qMin(fillRect.y() + fillRect.height() - y, d->maskImageHeight));
+            const KisPathRasterizer::CoverageMask mask =
+                KisPathRasterizer::rasterizeStroke(path, pen, chunk, antiAliasPolygonFill());
+            applyCoverageMask(d->polygon, mask, chunk);
         }
     }
 
-    d->maskPainter->setPen(oldPen);
     PkRect r = d->polygon->extent();
 
     bitBlt(r.x(), r.y(), d->polygon, r.x(), r.y(), r.width(), r.height());

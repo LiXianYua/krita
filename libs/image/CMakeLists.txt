@@ -1,5 +1,12 @@
 add_subdirectory( tests )
 
+target_sources(kis_painter_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/private/kis_path_rasterizer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/private/kis_path_scan_converter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/private/kis_path_stroker.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/private/kis_cosmetic_stroker.cpp
+)
+
 add_subdirectory( tiles3 )
 
 # 判据⑧：与薄壳 SHELL_INCLUDE_DIRS 的 libs/image 子目录集一致（补上
@@ -311,6 +318,11 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     KisColorSamplingUtils.cpp
     kis_distance_information.cpp
     kis_painter.cc
+    kis_painter_rasterize.cpp
+    private/kis_path_rasterizer.cpp
+    private/kis_path_scan_converter.cpp
+    private/kis_path_stroker.cpp
+    private/kis_cosmetic_stroker.cpp
     kis_resources_snapshot.cpp
     kis_filter_stroke_strategy.cpp
     kis_painter_blt_multi_fixed.cpp

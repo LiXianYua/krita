@@ -7,13 +7,13 @@
 #ifndef KIS_PAINTER_TEST_H
 #define KIS_PAINTER_TEST_H
 
-#include <simpletest.h>
+#include <PkTest.h>
 
 class KoColorSpace;
 
-class KisPainterTest : public QObject
+class KisPainterTest : public PkTestObject
 {
-    Q_OBJECT
+    template <typename PkTestBinderArgT> friend struct PkTestBinder;
 
 private:
 
@@ -26,7 +26,7 @@ private:
     void checkPerformance();
 
 
-private Q_SLOTS:
+private:
 
     void testSimpleBlt();
     void testSelectionBltSelectionIrregular(); // Irregular selection
@@ -49,9 +49,14 @@ private Q_SLOTS:
 
     void testMassiveBltFixedCornerCases();
 
+    void testFillPainterPathRules();
+    void testFillPainterPathMirroring();
+    void testFillPainterPathRequestedRect();
+    void testFillPainterPathChunking();
+    void testDrawPainterPathStroke();
+
 
     void testOptimizedCopying();
 };
 
 #endif
-
