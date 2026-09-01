@@ -6,17 +6,14 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkStringHash.h>
+
 #include "kis_filter_strategy.h"
 
 #include <math.h>
 
-#include <klocalizedstring.h>
-
 #include "kis_debug.h"
-#include <QtMath>
 #include <PkSize.h>
-
-Q_GLOBAL_STATIC(KisFilterStrategyRegistry, s_instance)
 
 qreal KisHermiteFilterStrategy::valueAt(qreal t, qreal weightsPositionScale) const
 {
@@ -193,7 +190,7 @@ KisFilterStrategyRegistry::KisFilterStrategyRegistry()
 
 KisFilterStrategyRegistry::~KisFilterStrategyRegistry()
 {
-    Q_FOREACH (const PkString &id, keys()) {
+    for (const PkString &id : keys()) {
         delete get(id);
     }
     dbgRegistry << "deleting KisFilterStrategyRegistry";
@@ -201,25 +198,28 @@ KisFilterStrategyRegistry::~KisFilterStrategyRegistry()
 
 KisFilterStrategyRegistry* KisFilterStrategyRegistry::instance()
 {
-    if (!s_instance.exists()) {
-        s_instance->add(new KisBoxFilterStrategy);
-        s_instance->addAlias("Box", "NearestNeighbor");
+    static KisFilterStrategyRegistry s_instance;
+    static const bool initialized = [] {
+        s_instance.add(new KisBoxFilterStrategy);
+        s_instance.addAlias("Box", "NearestNeighbor");
 
-        s_instance->add(new KisHermiteFilterStrategy);
-        s_instance->add(new KisBicubicFilterStrategy);
-        s_instance->add(new KisBilinearFilterStrategy);
-        s_instance->add(new KisBellFilterStrategy);
-        s_instance->add(new KisBSplineFilterStrategy);
-        s_instance->add(new KisLanczos3FilterStrategy);
-        s_instance->add(new KisMitchellFilterStrategy);
-    }
-    return s_instance;
+        s_instance.add(new KisHermiteFilterStrategy);
+        s_instance.add(new KisBicubicFilterStrategy);
+        s_instance.add(new KisBilinearFilterStrategy);
+        s_instance.add(new KisBellFilterStrategy);
+        s_instance.add(new KisBSplineFilterStrategy);
+        s_instance.add(new KisLanczos3FilterStrategy);
+        s_instance.add(new KisMitchellFilterStrategy);
+        return true;
+    }();
+    (void)initialized;
+    return &s_instance;
 }
 
 PkList<KoID> KisFilterStrategyRegistry::listKeys() const
 {
     PkList<KoID> answer;
-    Q_FOREACH (const PkString key, keys()) {
+    for (const PkString &key : keys()) {
         answer.append(KoID(key, get(key)->name()));
     }
 
@@ -230,7 +230,7 @@ PkString KisFilterStrategyRegistry::formattedDescriptions() const
 {
     PkString formatedDescription("<html><head/><body>");
 
-    Q_FOREACH (const PkString key, keys()) {
+    for (const PkString &key : keys()) {
         KisFilterStrategy *strategy = get(key);
         PkString description = strategy->description();
 
