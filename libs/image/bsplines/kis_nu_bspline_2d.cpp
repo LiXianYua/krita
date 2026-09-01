@@ -16,7 +16,7 @@
 
 namespace KisBSplines {
 
-struct Q_DECL_HIDDEN KisNUBSpline2D::Private
+struct KisNUBSpline2D::Private
 {
     BorderCondition bcX;
     BorderCondition bcY;
