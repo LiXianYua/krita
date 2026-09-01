@@ -144,7 +144,8 @@ private:
 #endif
 
 private:
-    Q_DISABLE_COPY(KisGapMap);
+    KisGapMap(const KisGapMap &) = delete;
+    KisGapMap &operator=(const KisGapMap &) = delete;
 
     /** For the purpose of lazy loading, the data is fetched in tile increments. */
     static constexpr int TileSize = 64;

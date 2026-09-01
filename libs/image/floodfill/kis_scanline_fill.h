@@ -140,7 +140,8 @@ public:
 
 private:
     friend class KisScanlineFillTest;
-    Q_DISABLE_COPY(KisScanlineFill)
+    KisScanlineFill(const KisScanlineFill &) = delete;
+    KisScanlineFill &operator=(const KisScanlineFill &) = delete;
 
     template <typename DifferencePolicy, typename SelectionPolicy, typename PixelAccessPolicy>
     void processLine(KisFillInterval interval, const int rowIncrement,
