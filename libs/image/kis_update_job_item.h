@@ -23,7 +23,6 @@
 
 class KRITAIMAGE_EXPORT KisUpdateJobItem : public PkShellObject, public PkRunnable
 {
-    Q_OBJECT
 public:
     enum class Type : int {
         EMPTY = 0,
