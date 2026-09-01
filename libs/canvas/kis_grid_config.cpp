@@ -7,11 +7,14 @@
 #include "kis_grid_config.h"
 
 #include <QDomElement>
+#include <QLocale>
+#include <QVariant>
 #include <QtMath>
+
+#include <type_traits>
 
 #include <KConfigGroup>
 #include <KSharedConfig>
-#include "kis_dom_utils.h"
 #include "kis_algebra_2d.h"
 #include <KisStaticInitializer.h>
 
@@ -20,6 +23,128 @@ KIS_DECLARE_STATIC_INITIALIZER {
 }
 
 Q_GLOBAL_STATIC(KisGridConfig, staticDefaultObject)
+
+namespace {
+
+PkTransform toPkTransform(const QTransform &transform)
+{
+    return PkTransform(transform.m11(), transform.m12(), transform.m13(),
+                       transform.m21(), transform.m22(), transform.m23(),
+                       transform.m31(), transform.m32(), transform.m33());
+}
+
+PkPoint toPkPoint(const QPoint &point)
+{
+    return PkPoint(point.x(), point.y());
+}
+
+QPoint toQPoint(const PkPoint &point)
+{
+    return QPoint(point.x(), point.y());
+}
+
+template <typename T>
+QString scalarToString(T value)
+{
+    if constexpr (std::is_same<T, double>::value || std::is_same<T, qreal>::value) {
+        return QString::number(value, 'g', 15);
+    } else if constexpr (std::is_enum<T>::value) {
+        return QString::number(static_cast<typename std::underlying_type<T>::type>(value));
+    } else {
+        return QString::number(value);
+    }
+}
+
+template <typename T>
+void saveQtValue(QDomElement *parent, const QString &tag, T value)
+{
+    QDomDocument doc = parent->ownerDocument();
+    QDomElement element = doc.createElement(tag);
+    parent->appendChild(element);
+    element.setAttribute(QStringLiteral("type"), QStringLiteral("value"));
+    element.setAttribute(QStringLiteral("value"), scalarToString(value));
+}
+
+void saveQtValue(QDomElement *parent, const QString &tag, const QPoint &point)
+{
+    QDomDocument doc = parent->ownerDocument();
+    QDomElement element = doc.createElement(tag);
+    parent->appendChild(element);
+    element.setAttribute(QStringLiteral("type"), QStringLiteral("point"));
+    element.setAttribute(QStringLiteral("x"), scalarToString(point.x()));
+    element.setAttribute(QStringLiteral("y"), scalarToString(point.y()));
+}
+
+void saveQtValue(QDomElement *parent, const QString &tag, const QColor &color)
+{
+    QDomDocument doc = parent->ownerDocument();
+    QDomElement element = doc.createElement(tag);
+    parent->appendChild(element);
+    element.setAttribute(QStringLiteral("type"), QStringLiteral("qcolor"));
+    element.setAttribute(QStringLiteral("value"), color.name(QColor::HexArgb));
+}
+
+bool findOnlyQtElement(const QDomElement &parent, const QString &tag, QDomElement *element)
+{
+    const QDomNodeList list = parent.elementsByTagName(tag);
+    if (list.size() != 1 || !list.at(0).isElement()) {
+        return false;
+    }
+    *element = list.at(0).toElement();
+    return true;
+}
+
+bool hasQtType(const QDomElement &element, const QString &type)
+{
+    return element.attribute(QStringLiteral("type"), QStringLiteral("unknown-type")) == type;
+}
+
+template <typename T>
+bool loadQtValue(const QDomElement &element, T *value)
+{
+    if (!hasQtType(element, QStringLiteral("value"))) return false;
+    *value = QVariant(element.attribute(QStringLiteral("value"), QStringLiteral("no-value"))).value<T>();
+    return true;
+}
+
+bool loadQtValue(const QDomElement &element, double *value)
+{
+    if (!hasQtType(element, QStringLiteral("value"))) return false;
+    const QString text = element.attribute(QStringLiteral("value"), QStringLiteral("0"));
+    bool ok = false;
+    *value = text.toDouble(&ok);
+    if (!ok) {
+        *value = QLocale(QLocale::German).toDouble(text, &ok);
+    }
+    if (!ok) {
+        *value = 0.0;
+    }
+    return true;
+}
+
+bool loadQtValue(const QDomElement &element, QPoint *point)
+{
+    if (!hasQtType(element, QStringLiteral("point"))) return false;
+    point->setX(element.attribute(QStringLiteral("x"), QStringLiteral("0")).toInt());
+    point->setY(element.attribute(QStringLiteral("y"), QStringLiteral("0")).toInt());
+    return true;
+}
+
+bool loadQtValue(const QDomElement &element, QColor *color)
+{
+    if (!hasQtType(element, QStringLiteral("qcolor"))) return false;
+    color->setNamedColor(element.attribute(QStringLiteral("value"), QStringLiteral("#FFFF0000")));
+    return true;
+}
+
+template <typename T>
+bool loadQtValue(const QDomElement &parent, const QString &tag, T *value)
+{
+    QDomElement element;
+    return findOnlyQtElement(parent, tag, &element) && loadQtValue(element, value);
+}
+
+}
 
 const KisGridConfig& KisGridConfig::defaultGrid()
 {
@@ -31,10 +156,11 @@ void KisGridConfig::transform(const QTransform &transform)
 {
     if (transform.type() >= QTransform::TxShear) return;
 
-    KisAlgebra2D::DecomposedMatrix m(transform);
+    const PkTransform pkTransform = toPkTransform(transform);
+    KisAlgebra2D::DecomposedMatrix m(pkTransform);
 
     if (m_gridType == GRID_RECTANGULAR) {
-        QTransform t = m.scaleTransform();
+        PkTransform t = m.scaleTransform();
 
         const qreal eps = 1e-3;
         const qreal wrappedRotation = KisAlgebra2D::wrapValue(m.angle, 90.0);
@@ -42,7 +168,7 @@ void KisGridConfig::transform(const QTransform &transform)
             t *= m.rotateTransform();
         }
 
-        m_spacing = KisAlgebra2D::abs(t.map(m_spacing));
+        m_spacing = toQPoint(KisAlgebra2D::abs(t.map(toPkPoint(m_spacing))));
         // Transform map may round spacing down to 0, but it must be at least 1
         m_spacing.setX(qMax(1, m_spacing.x()));
         m_spacing.setY(qMax(1, m_spacing.y()));
@@ -52,7 +178,8 @@ void KisGridConfig::transform(const QTransform &transform)
             m_cellSpacing = qRound(qAbs(m_cellSpacing * m.scaleX));
         }
     }
-    m_offset = KisAlgebra2D::wrapValue(transform.map(m_offset), m_spacing);
+    m_offset = toQPoint(KisAlgebra2D::wrapValue(pkTransform.map(toPkPoint(m_offset)),
+                                                toPkPoint(m_spacing)));
 }
 
 void KisGridConfig::loadStaticData()
@@ -85,31 +212,31 @@ void KisGridConfig::saveStaticData() const
 QDomElement KisGridConfig::saveDynamicDataToXml(QDomDocument& doc, const QString &tag) const
 {
     QDomElement gridElement = doc.createElement(tag);
-    KisDomUtils::saveValue(&gridElement, "showGrid", m_showGrid);
-    KisDomUtils::saveValue(&gridElement, "snapToGrid", m_snapToGrid);
-    KisDomUtils::saveValue(&gridElement, "offsetActive", m_offsetActive);
-    KisDomUtils::saveValue(&gridElement, "offset", m_offset);
-    KisDomUtils::saveValue(&gridElement, "spacing", m_spacing);
-    KisDomUtils::saveValue(&gridElement, "xSpacingActive", m_xSpacingActive);
-    KisDomUtils::saveValue(&gridElement, "ySpacingActive", m_ySpacingActive);
-    KisDomUtils::saveValue(&gridElement, "offsetAspectLocked", m_offsetAspectLocked);
-    KisDomUtils::saveValue(&gridElement, "spacingAspectLocked", m_spacingAspectLocked);
-    KisDomUtils::saveValue(&gridElement, "subdivision", m_subdivision);
-    KisDomUtils::saveValue(&gridElement, "angleLeft", m_angleLeft);
-    KisDomUtils::saveValue(&gridElement, "angleRight", m_angleRight);
-    KisDomUtils::saveValue(&gridElement, "angleLeftActive", m_angleLeftActive);
-    KisDomUtils::saveValue(&gridElement, "angleRightActive", m_angleRightActive);
-    KisDomUtils::saveValue(&gridElement, "angleAspectLocked", m_angleAspectLocked);
-    KisDomUtils::saveValue(&gridElement, "cellSpacing", m_cellSpacing);
-    KisDomUtils::saveValue(&gridElement, "cellSize", m_cellSize);
-    KisDomUtils::saveValue(&gridElement, "gridType", m_gridType);
+    saveQtValue(&gridElement, "showGrid", m_showGrid);
+    saveQtValue(&gridElement, "snapToGrid", m_snapToGrid);
+    saveQtValue(&gridElement, "offsetActive", m_offsetActive);
+    saveQtValue(&gridElement, "offset", m_offset);
+    saveQtValue(&gridElement, "spacing", m_spacing);
+    saveQtValue(&gridElement, "xSpacingActive", m_xSpacingActive);
+    saveQtValue(&gridElement, "ySpacingActive", m_ySpacingActive);
+    saveQtValue(&gridElement, "offsetAspectLocked", m_offsetAspectLocked);
+    saveQtValue(&gridElement, "spacingAspectLocked", m_spacingAspectLocked);
+    saveQtValue(&gridElement, "subdivision", m_subdivision);
+    saveQtValue(&gridElement, "angleLeft", m_angleLeft);
+    saveQtValue(&gridElement, "angleRight", m_angleRight);
+    saveQtValue(&gridElement, "angleLeftActive", m_angleLeftActive);
+    saveQtValue(&gridElement, "angleRightActive", m_angleRightActive);
+    saveQtValue(&gridElement, "angleAspectLocked", m_angleAspectLocked);
+    saveQtValue(&gridElement, "cellSpacing", m_cellSpacing);
+    saveQtValue(&gridElement, "cellSize", m_cellSize);
+    saveQtValue(&gridElement, "gridType", m_gridType);
 
-    KisDomUtils::saveValue(&gridElement, "colorMain", m_colorMain);
-    KisDomUtils::saveValue(&gridElement, "colorSubdivision", m_colorSubdivision);
-    KisDomUtils::saveValue(&gridElement, "colorVertical", m_colorIsoVertical);
-    KisDomUtils::saveValue(&gridElement, "lineTypeMain", m_lineTypeMain);
-    KisDomUtils::saveValue(&gridElement, "lineTypeSubdivision", m_lineTypeSubdivision);
-    KisDomUtils::saveValue(&gridElement, "lineTypeVertical", m_lineTypeIsoVertical);
+    saveQtValue(&gridElement, "colorMain", m_colorMain);
+    saveQtValue(&gridElement, "colorSubdivision", m_colorSubdivision);
+    saveQtValue(&gridElement, "colorVertical", m_colorIsoVertical);
+    saveQtValue(&gridElement, "lineTypeMain", m_lineTypeMain);
+    saveQtValue(&gridElement, "lineTypeSubdivision", m_lineTypeSubdivision);
+    saveQtValue(&gridElement, "lineTypeVertical", m_lineTypeIsoVertical);
 
     return gridElement;
 }
@@ -119,47 +246,47 @@ bool KisGridConfig::loadDynamicDataFromXml(const QDomElement &gridElement)
     const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
     bool result = true;
 
-    result &= KisDomUtils::loadValue(gridElement, "showGrid", &m_showGrid);
-    result &= KisDomUtils::loadValue(gridElement, "snapToGrid", &m_snapToGrid);
-    result &= KisDomUtils::loadValue(gridElement, "offset", &m_offset);
-    result &= KisDomUtils::loadValue(gridElement, "spacing", &m_spacing);
-    result &= KisDomUtils::loadValue(gridElement, "offsetAspectLocked", &m_offsetAspectLocked);
-    result &= KisDomUtils::loadValue(gridElement, "spacingAspectLocked", &m_spacingAspectLocked);
-    result &= KisDomUtils::loadValue(gridElement, "subdivision", &m_subdivision);
-    result &= KisDomUtils::loadValue(gridElement, "angleLeft", &m_angleLeft);
-    result &= KisDomUtils::loadValue(gridElement, "angleRight", &m_angleRight);
-    result &= KisDomUtils::loadValue(gridElement, "cellSpacing", &m_cellSpacing);
-    result &= KisDomUtils::loadValue(gridElement, "gridType", (int*)(&m_gridType));
+    result &= loadQtValue(gridElement, "showGrid", &m_showGrid);
+    result &= loadQtValue(gridElement, "snapToGrid", &m_snapToGrid);
+    result &= loadQtValue(gridElement, "offset", &m_offset);
+    result &= loadQtValue(gridElement, "spacing", &m_spacing);
+    result &= loadQtValue(gridElement, "offsetAspectLocked", &m_offsetAspectLocked);
+    result &= loadQtValue(gridElement, "spacingAspectLocked", &m_spacingAspectLocked);
+    result &= loadQtValue(gridElement, "subdivision", &m_subdivision);
+    result &= loadQtValue(gridElement, "angleLeft", &m_angleLeft);
+    result &= loadQtValue(gridElement, "angleRight", &m_angleRight);
+    result &= loadQtValue(gridElement, "cellSpacing", &m_cellSpacing);
+    result &= loadQtValue(gridElement, "gridType", (int*)(&m_gridType));
 
     // following variables may not be present in older files; do not update result variable
-    KisDomUtils::loadValue(gridElement, "offsetActive", &m_offsetActive);
-    KisDomUtils::loadValue(gridElement, "xSpacingActive", &m_xSpacingActive);
-    KisDomUtils::loadValue(gridElement, "ySpacingActive", &m_ySpacingActive);
-    KisDomUtils::loadValue(gridElement, "angleLeftActive", &m_angleLeftActive);
-    KisDomUtils::loadValue(gridElement, "angleRightActive", &m_angleRightActive);
-    KisDomUtils::loadValue(gridElement, "angleAspectLocked", &m_angleAspectLocked);
-    KisDomUtils::loadValue(gridElement, "cellSize", &m_cellSize);
+    loadQtValue(gridElement, "offsetActive", &m_offsetActive);
+    loadQtValue(gridElement, "xSpacingActive", &m_xSpacingActive);
+    loadQtValue(gridElement, "ySpacingActive", &m_ySpacingActive);
+    loadQtValue(gridElement, "angleLeftActive", &m_angleLeftActive);
+    loadQtValue(gridElement, "angleRightActive", &m_angleRightActive);
+    loadQtValue(gridElement, "angleAspectLocked", &m_angleAspectLocked);
+    loadQtValue(gridElement, "cellSize", &m_cellSize);
 
     int lineTypeMain = qBound(0, cfg.readEntry("gridmainstyle", 0), 2);
-    KisDomUtils::loadValue(gridElement, "lineTypeMain", &lineTypeMain);
+    loadQtValue(gridElement, "lineTypeMain", &lineTypeMain);
     m_lineTypeMain = LineTypeInternal(lineTypeMain);
 
     int lineTypeSubdivision = qMin(cfg.readEntry("gridsubdivisionstyle", 1), 2);
-    KisDomUtils::loadValue(gridElement, "lineTypeSubdivision", &lineTypeSubdivision);
+    loadQtValue(gridElement, "lineTypeSubdivision", &lineTypeSubdivision);
     m_lineTypeSubdivision = LineTypeInternal(lineTypeSubdivision);
 
     int lineTypeVertical = qBound(0, cfg.readEntry("gridisoverticalstyle", 0), 3);
-    KisDomUtils::loadValue(gridElement, "lineTypeVertical", &lineTypeVertical);
+    loadQtValue(gridElement, "lineTypeVertical", &lineTypeVertical);
     m_lineTypeIsoVertical = LineTypeInternal(lineTypeVertical);
 
     m_colorMain = cfg.readEntry("gridmaincolor", QColor(99, 99, 99));
-    KisDomUtils::loadValue(gridElement, "colorMain", &m_colorMain);
+    loadQtValue(gridElement, "colorMain", &m_colorMain);
 
     m_colorSubdivision = cfg.readEntry("gridsubdivisioncolor", QColor(150, 150, 150));
-    KisDomUtils::loadValue(gridElement, "colorSubdivision", &m_colorSubdivision);
+    loadQtValue(gridElement, "colorSubdivision", &m_colorSubdivision);
 
     m_colorIsoVertical = cfg.readEntry("gridisoverticalcolor", QColor(150, 150, 150));
-    KisDomUtils::loadValue(gridElement, "colorVertical", &m_colorIsoVertical);
+    loadQtValue(gridElement, "colorVertical", &m_colorIsoVertical);
 
     updatePenStyle(&m_penMain, m_colorMain, m_lineTypeMain);
     updatePenStyle(&m_penSubdivision, m_colorSubdivision, m_lineTypeSubdivision);

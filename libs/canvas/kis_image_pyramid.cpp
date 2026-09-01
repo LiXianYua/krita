@@ -42,6 +42,29 @@
 #define ceiledSize(sz) QSize(ceil((sz).width()), ceil((sz).height()))
 #define isOdd(x) ((x) & 0x01)
 
+namespace {
+
+PkRect toPkRect(const QRect &rect)
+{
+    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+PkBitArray toPkBitArray(const QBitArray &bits)
+{
+    PkBitArray result(bits.size());
+    for (int i = 0; i < bits.size(); ++i) {
+        result.setBit(i, bits.testBit(i));
+    }
+    return result;
+}
+
+}
+
 /**
  * Aligns @p value to the lowest integer not smaller than @p value and
  * that is a divident of alignment
@@ -92,11 +115,14 @@ KisImagePyramid::KisImagePyramid(qint32 pyramidHeight)
         , m_pyramidHeight(pyramidHeight)
 {
     configChanged();
-    connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), this, SLOT(configChanged()));
+    m_configConnection =
+        PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged,
+                          &m_configReceiver, [this]() { configChanged(); });
 }
 
 KisImagePyramid::~KisImagePyramid()
 {
+    PkObject::disconnect(m_configConnection);
     setImage(0);
 }
 
@@ -118,13 +144,13 @@ void KisImagePyramid::setMonitorProfile(const KoColorProfile* monitorProfile,
 
 void KisImagePyramid::setChannelFlags(const QBitArray &channelFlags)
 {
-    m_channelFlags = channelFlags;
+    m_channelFlags = toPkBitArray(channelFlags);
     int selectedChannels = 0;
     const KoColorSpace *projectionCs = m_originalImage->projection()->colorSpace();
-    const QList<KoChannelInfo*> channelInfo = projectionCs->channels();
+    const auto channelInfo = projectionCs->channels();
 
     if (channelInfo.size() != m_channelFlags.size()) {
-        m_channelFlags = QBitArray();
+        m_channelFlags = PkBitArray();
     }
 
     for (int i = 0; i < m_channelFlags.size(); ++i) {
@@ -166,7 +192,7 @@ void KisImagePyramid::setImage(KisImageWSP newImage)
         setImageSize(m_originalImage->width(), m_originalImage->height());
 
         // Get the full image size
-        QRect rc = m_originalImage->projection()->exactBounds();
+        QRect rc = toQRect(m_originalImage->projection()->exactBounds());
 
         KisImageConfig config(true);
 
@@ -222,7 +248,7 @@ void KisImagePyramid::retrieveImageData(const QRect &rect)
     std::unique_ptr<quint8[]> originalBytes(
         new quint8[originalProjection->colorSpace()->pixelSize() * numPixels]);
 
-    originalProjection->readBytes(originalBytes.get(), rect);
+    originalProjection->readBytes(originalBytes.get(), toPkRect(rect));
 
     if (m_displayFilter &&
         m_useOcio &&
@@ -284,7 +310,7 @@ void KisImagePyramid::retrieveImageData(const QRect &rect)
         originalBytes.swap(dst);
     }
 
-    m_pyramid[ORIGINAL_INDEX]->writeBytes(originalBytes.get(), rect);
+    m_pyramid[ORIGINAL_INDEX]->writeBytes(originalBytes.get(), toPkRect(rect));
 }
 
 void KisImagePyramid::recalculateCache(KisPPUpdateInfoSP info)

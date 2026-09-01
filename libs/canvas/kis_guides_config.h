@@ -14,6 +14,7 @@
 #include <QList>
 #include <boost/operators.hpp>
 #include <KoUnit.h>
+#include <QTransform>
 
 class QDomElement;
 class QDomDocument;

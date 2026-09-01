@@ -15,12 +15,35 @@
 #include <QReadLocker>
 #include <QWriteLocker>
 
+namespace {
+
+PkRect toPkRect(const QRect &rect)
+{
+    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+PkBitArray toPkBitArray(const QBitArray &bits)
+{
+    PkBitArray result(bits.size());
+    for (int i = 0; i < bits.size(); ++i) {
+        result.setBit(i, bits.testBit(i));
+    }
+    return result;
+}
+
+}
+
 
 struct KRITACANVAS_NO_EXPORT KisOpenGLUpdateInfoBuilder::Private
 {
     ConversionOptions conversionOptions;
 
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     bool onlyOneChannelSelected = false;
     int selectedChannelIndex = -1;
 
@@ -46,14 +69,14 @@ KisOpenGLUpdateInfoBuilder::~KisOpenGLUpdateInfoBuilder()
 
 KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const QRect &rect, KisImageSP srcImage, bool convertColorSpace)
 {
-    return buildUpdateInfo(rect, srcImage->projection(), srcImage->bounds(), srcImage->currentLevelOfDetail(), convertColorSpace);
+    return buildUpdateInfo(toPkRect(rect), srcImage->projection(), srcImage->bounds(), srcImage->currentLevelOfDetail(), convertColorSpace);
 }
 
-KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const QRect &rect, KisPaintDeviceSP projection, const QRect &bounds, int levelOfDetail, bool convertColorSpace)
+KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const PkRect &rect, KisPaintDeviceSP projection, const PkRect &bounds, int levelOfDetail, bool convertColorSpace)
 {
     KisOpenGLUpdateInfoSP info = new KisOpenGLUpdateInfo();
 
-    QRect updateRect = rect & bounds;
+    PkRect updateRect = rect & bounds;
     if (updateRect.isEmpty()) return info;
 
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->pool, info);
@@ -100,7 +123,7 @@ KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const QRect &r
      * involved into update process
      */
 
-    QRect artificialRect = kisGrowRect(updateRect, m_d->textureBorder);
+    PkRect artificialRect = kisGrowRect(updateRect, m_d->textureBorder);
     artificialRect &= bounds;
 
     int firstColumn = xToCol(artificialRect.left());
@@ -108,7 +131,7 @@ KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const QRect &r
     int firstRow = yToRow(artificialRect.top());
     int lastRow = yToRow(artificialRect.bottom());
 
-    QBitArray channelFlags; // empty by default
+    PkBitArray channelFlags; // empty by default
 
     if (!m_d->channelFlags.isEmpty() &&
         m_d->channelFlags.size() == projection->colorSpace()->channelCount()) {
@@ -119,8 +142,8 @@ KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const QRect &r
     qint32 numItems = (lastColumn - firstColumn + 1) * (lastRow - firstRow + 1);
     info->tileList.reserve(numItems);
 
-    QRect alignedUpdateRect = updateRect;
-    QRect alignedBounds = bounds;
+    PkRect alignedUpdateRect = updateRect;
+    PkRect alignedBounds = bounds;
 
     if (levelOfDetail) {
         alignedUpdateRect = KisLodTransform::alignedRect(alignedUpdateRect, levelOfDetail);
@@ -130,7 +153,7 @@ KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const QRect &r
     for (int col = firstColumn; col <= lastColumn; col++) {
         for (int row = firstRow; row <= lastRow; row++) {
 
-            const QRect alignedTileTextureRect = calculatePhysicalTileRect(col, row, bounds, levelOfDetail);
+            const PkRect alignedTileTextureRect = calculatePhysicalTileRect(col, row, bounds, levelOfDetail);
 
             KisTextureTileUpdateInfoSP tileInfo(
                         new KisTextureTileUpdateInfo(col, row,
@@ -154,31 +177,37 @@ KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const QRect &r
                 info->tileList.append(tileInfo);
             }
             else {
-                dbgUI << "Trying to create an empty tileinfo record" << col << row << alignedTileTextureRect << updateRect << bounds;
+                dbgUI << "Trying to create an empty tileinfo record" << col << row
+                      << toQRect(alignedTileTextureRect) << toQRect(updateRect) << toQRect(bounds);
             }
         }
     }
 
-    info->assignDirtyImageRect(rect);
+    info->assignDirtyImageRect(toQRect(rect));
     info->assignLevelOfDetail(levelOfDetail);
     return info;
 }
 
-QRect KisOpenGLUpdateInfoBuilder::calculateEffectiveTileRect(int col, int row, const QRect &imageBounds) const
+QRect KisOpenGLUpdateInfoBuilder::calculateEffectiveTileRect(int col, int row, const PkRect &imageBounds) const
 {
-    return imageBounds &
-            QRect(col * m_d->effectiveTextureSize.width(),
-                  row * m_d->effectiveTextureSize.height(),
-                  m_d->effectiveTextureSize.width(),
-                  m_d->effectiveTextureSize.height());
+    const PkRect rect = imageBounds &
+            PkRect(col * m_d->effectiveTextureSize.width(),
+                   row * m_d->effectiveTextureSize.height(),
+                   m_d->effectiveTextureSize.width(),
+                   m_d->effectiveTextureSize.height());
+    return toQRect(rect);
 }
 
-QRect KisOpenGLUpdateInfoBuilder::calculatePhysicalTileRect(int col, int row, const QRect &imageBounds, int levelOfDetail) const
+PkRect KisOpenGLUpdateInfoBuilder::calculatePhysicalTileRect(int col, int row, const PkRect &imageBounds, int levelOfDetail) const
 {
-    const QRect tileRect = calculateEffectiveTileRect(col, row, imageBounds);
-    const QRect tileTextureRect = kisGrowRect(tileRect, m_d->textureBorder);
+    const PkRect tileRect = imageBounds &
+            PkRect(col * m_d->effectiveTextureSize.width(),
+                   row * m_d->effectiveTextureSize.height(),
+                   m_d->effectiveTextureSize.width(),
+                   m_d->effectiveTextureSize.height());
+    const PkRect tileTextureRect = kisGrowRect(tileRect, m_d->textureBorder);
 
-    const QRect alignedTileTextureRect = levelOfDetail ?
+    const PkRect alignedTileTextureRect = levelOfDetail ?
                 KisLodTransform::alignedRect(tileTextureRect, levelOfDetail) :
                 tileTextureRect;
 
@@ -216,7 +245,7 @@ void KisOpenGLUpdateInfoBuilder::setChannelFlags(const QBitArray &channelFrags, 
 {
     QWriteLocker lock(&m_d->lock);
 
-    m_d->channelFlags = channelFrags;
+    m_d->channelFlags = toPkBitArray(channelFrags);
     m_d->onlyOneChannelSelected = onlyOneChannelSelected;
     m_d->selectedChannelIndex = selectedChannelIndex;
 }

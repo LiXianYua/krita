@@ -5,6 +5,7 @@
  */
 
 #include "KisCanvasState.h"
+#include <QDebug>
 #include "kis_coordinates_converter.h"
 #include "KoZoomState.h"
 

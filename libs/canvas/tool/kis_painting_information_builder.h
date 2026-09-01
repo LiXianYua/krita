@@ -8,7 +8,11 @@
 #define __KIS_PAINTING_INFORMATION_BUILDER_H
 
 #include <QObject>
-#include <QVector>
+#include <QPointF>
+#include <QScopedPointer>
+#include <QVariant>
+
+#include <PkVector.h>
 
 #include "kis_types.h"
 #include "kritacanvas_export.h"
@@ -67,7 +71,7 @@ private:
     static const int LEVEL_OF_PRESSURE_RESOLUTION;
 
 private:
-    QVector<qreal> m_pressureSamples;
+    PkVector<qreal> m_pressureSamples;
     QPointF m_startPoint;
     QScopedPointer<KisSpeedSmoother> m_speedSmoother;
     bool m_pressureDisabled;

@@ -8,6 +8,7 @@
 #define __KIS_SPEED_SMOOTHER_H
 
 #include <PkScopedPointer.h>
+#include <PkGlobal.h>
 #include <kritacanvas_export.h>
 
 class PkPointF;

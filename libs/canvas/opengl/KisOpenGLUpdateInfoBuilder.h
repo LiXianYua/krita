@@ -7,23 +7,18 @@
 #define KISOPENGLUPDATEINFOBUILDER_H
 
 #include "kritacanvas_export.h"
+#include <QBitArray>
+#include <QRect>
 #include <QScopedPointer>
-#include <QSharedPointer>
+#include <QSize>
 
-class KisProofingConfiguration;
-typedef QSharedPointer<KisProofingConfiguration> KisProofingConfigurationSP;
+#include <PkRect.h>
+#include <PkSharedPointer.h>
+
+#include "kis_types.h"
 
 class KisTextureTileInfoPool;
-typedef QSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
-
-template<class T>
-class KisSharedPtr;
-
-class KisImage;
-typedef KisSharedPtr<KisImage> KisImageSP;
-
-class KisPaintDevice;
-typedef KisSharedPtr<KisPaintDevice> KisPaintDeviceSP;
+typedef PkSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
 
 class KisOpenGLUpdateInfo;
 typedef KisSharedPtr<KisOpenGLUpdateInfo> KisOpenGLUpdateInfoSP;
@@ -39,10 +34,10 @@ public:
     ~KisOpenGLUpdateInfoBuilder();
 
     KisOpenGLUpdateInfoSP buildUpdateInfo(const QRect& rect, KisImageSP srcImage, bool convertColorSpace);
-    KisOpenGLUpdateInfoSP buildUpdateInfo(const QRect& rect, KisPaintDeviceSP projection, const QRect &bounds, int levelOfDetail, bool convertColorSpace);
+    KisOpenGLUpdateInfoSP buildUpdateInfo(const PkRect& rect, KisPaintDeviceSP projection, const PkRect &bounds, int levelOfDetail, bool convertColorSpace);
 
-    QRect calculatePhysicalTileRect(int col, int row, const QRect &imageBounds, int levelOfDetail) const;
-    QRect calculateEffectiveTileRect(int col, int row, const QRect &imageBounds) const;
+    PkRect calculatePhysicalTileRect(int col, int row, const PkRect &imageBounds, int levelOfDetail) const;
+    QRect calculateEffectiveTileRect(int col, int row, const PkRect &imageBounds) const;
     int xToCol(int x) const;
     int yToRow(int y) const;
 

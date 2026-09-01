@@ -7,9 +7,18 @@
 #ifndef __KIS_IMAGE_PYRAMID
 #define __KIS_IMAGE_PYRAMID
 
+#include <QBitArray>
 #include <QImage>
+#include <QPoint>
+#include <QRect>
+#include <QSharedPointer>
+#include <QSize>
 #include <QVector>
 #include <QThreadStorage>
+
+#include <PkBitArray.h>
+#include <PkConnection.h>
+#include <PkObject.h>
 
 #include <KoColorSpace.h>
 #include <kis_image.h>
@@ -122,10 +131,13 @@ private:
 
     bool m_useOcio {false};
 
-    QBitArray m_channelFlags;
+    PkBitArray m_channelFlags;
     bool m_allChannelsSelected {false};
     bool m_onlyOneChannelSelected {false};
     int m_selectedChannelIndex {-1};
+
+    PkObject m_configReceiver;
+    PkConnection m_configConnection;
 
 };
 

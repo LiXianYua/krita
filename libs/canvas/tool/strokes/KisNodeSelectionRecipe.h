@@ -7,6 +7,9 @@
 #ifndef KISNODESELECTIONRECIPE_H
 #define KISNODESELECTIONRECIPE_H
 
+#include <QHash>
+#include <QPoint>
+
 #include "kis_types.h"
 #include <kritacanvas_export.h>
 

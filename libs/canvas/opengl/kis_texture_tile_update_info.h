@@ -9,6 +9,16 @@
 #include <QMessageBox>
 #include <QThreadStorage>
 #include <QScopedArrayPointer>
+#include <QPoint>
+#include <QRect>
+#include <QSize>
+
+#include <PkBitArray.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSharedPointer.h>
+#include <PkSize.h>
+#include <PkVector.h>
 
 #include "KisCanvasConfig.h"
 #include "kis_image.h"
@@ -24,8 +34,8 @@
 #include <KisDisplayConfig.h>
 
 class KisTextureTileUpdateInfo;
-typedef QSharedPointer<KisTextureTileUpdateInfo> KisTextureTileUpdateInfoSP;
-typedef QVector<KisTextureTileUpdateInfoSP> KisTextureTileUpdateInfoSPList;
+typedef PkSharedPointer<KisTextureTileUpdateInfo> KisTextureTileUpdateInfoSP;
+typedef PkVector<KisTextureTileUpdateInfoSP> KisTextureTileUpdateInfoSPList;
 
 /**
  * A buffer object for temporary data needed during the update process.
@@ -121,7 +131,7 @@ public:
     }
 
     KisTextureTileUpdateInfo(qint32 col, qint32 row,
-                             const QRect &tileRect, const QRect &updateRect, const QRect &currentImageRect,
+                             const PkRect &tileRect, const PkRect &updateRect, const PkRect &currentImageRect,
                              int levelOfDetail,
                              KisTextureTileInfoPoolSP pool)
         : m_patchPixels(pool),
@@ -149,7 +159,7 @@ public:
     ~KisTextureTileUpdateInfo() {
     }
 
-    void retrieveData(KisPaintDeviceSP projectionDevice, const QBitArray &channelFlags, bool onlyOneChannelSelected, int selectedChannelIndex)
+    void retrieveData(KisPaintDeviceSP projectionDevice, const PkBitArray &channelFlags, bool onlyOneChannelSelected, int selectedChannelIndex)
     {
         m_patchColorSpace = projectionDevice->colorSpace();
         m_patchPixels.allocate(m_patchColorSpace->pixelSize());
@@ -244,15 +254,16 @@ public:
     }
 
     inline QSize realPatchSize() const {
-        return m_patchRect.size();
+        return QSize(m_patchRect.width(), m_patchRect.height());
     }
 
     inline QRect realPatchRect() const {
-        return m_patchRect;
+        return QRect(m_patchRect.x(), m_patchRect.y(),
+                     m_patchRect.width(), m_patchRect.height());
     }
 
     inline QSize realTileSize() const {
-        return m_tileRect.size();
+        return QSize(m_tileRect.width(), m_tileRect.height());
     }
 
     inline bool isTopmost() const {
@@ -314,18 +325,18 @@ private:
 private:
     qint32 m_tileCol {0};
     qint32 m_tileRow {0};
-    QRect m_currentImageRect;
-    QRect m_tileRect;
-    QRect m_patchRect;
+    PkRect m_currentImageRect;
+    PkRect m_tileRect;
+    PkRect m_patchRect;
     const KoColorSpace* m_patchColorSpace {nullptr};
 
-    QRect m_realPatchRect;
-    QRect m_realPatchOffset;
-    QRect m_realTileSize;
+    PkRect m_realPatchRect;
+    PkRect m_realPatchOffset;
+    PkRect m_realTileSize;
     int m_patchLevelOfDetail {0};
 
-    QRect m_originalPatchRect;
-    QRect m_originalTileRect;
+    PkRect m_originalPatchRect;
+    PkRect m_originalTileRect;
 
     DataBuffer m_patchPixels;
     KisTextureTileInfoPoolSP m_pool;
@@ -333,4 +344,3 @@ private:
 
 
 #endif /* KIS_TEXTURE_TILE_UPDATE_INFO_H_ */
-

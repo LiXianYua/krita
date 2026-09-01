@@ -8,6 +8,7 @@
 #define __KIS_COLOR_SAMPLER_STROKE_STRATEGY_H
 
 #include <QObject>
+#include <PkPoint.h>
 #include "kis_simple_stroke_strategy.h"
 #include "kis_lod_transform.h"
 #include "KoColor.h"
@@ -18,19 +19,19 @@ class KisColorSamplerStrokeStrategy : public QObject, public KisSimpleStrokeStra
 public:
     class Data : public KisStrokeJobData {
     public:
-        Data(KisPaintDeviceSP _dev, const QPoint _pt, KoColor _currentColor)
+        Data(KisPaintDeviceSP _dev, const PkPoint _pt, KoColor _currentColor)
             : dev(_dev), pt(_pt), currentColor(_currentColor)
         {}
 
         KisStrokeJobData* createLodClone(int levelOfDetail) override {
             KisLodTransform t(levelOfDetail);
-            const QPoint realPoint = t.map(pt);
+            const PkPoint realPoint = t.map(pt);
 
             return new Data(dev, realPoint, currentColor);
         }
 
         KisPaintDeviceSP dev;
-        QPoint pt;
+        PkPoint pt;
         KoColor currentColor; // Used for color sampler blending.
     };
 
