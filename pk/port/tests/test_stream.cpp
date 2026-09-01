@@ -204,6 +204,9 @@ void PkStreamTestCase::testReadAllSequentialAccumulatesShortReadsToEof()
     PK_COMPARE(bytes.size(), 6);
     PK_VERIFY(std::memcmp(bytes.constData(), "abcdef", 6) == 0);
     PK_COMPARE(dev.pos(), (PkStream::pk_int64)0);
+    // Three capped reads produce the payload; the fourth read must probe EOF.
+    PK_COMPARE(dev.calls(), (PkStream::pk_int64)4);
+    PK_COMPARE(dev.requested(), (PkStream::pk_int64)(4 * 16384));
     PK_VERIFY(dev.atEnd());
 }
 
