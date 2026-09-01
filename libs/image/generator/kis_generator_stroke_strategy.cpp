@@ -18,6 +18,7 @@
 // ===========================================================================
 
 #include <KisRunnableStrokeJobUtils.h>
+#include <PkRegion.h>
 #include <filter/kis_filter_configuration.h>
 #include <kis_generator_layer.h>
 #include <kis_processing_information.h>
