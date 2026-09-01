@@ -14,8 +14,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QApplication>
-
-#include <PkSharedPointer.h>
+#include <QSharedPointer>
 
 #include "kis_assert.h"
 #include "kis_debug.h"
@@ -191,11 +190,11 @@ private:
     KisTextureTileInfoPoolWorker *m_worker;
 };
 
-typedef PkSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
+typedef QSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
 
 class KRITACANVAS_EXPORT KisTextureTileInfoPoolRegistry
 {
-    typedef PkWeakPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolWSP;
+    typedef QWeakPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolWSP;
     typedef QPair<int, int> PoolId;
 
 public:
@@ -208,8 +207,7 @@ public:
             m_storage[id].toStrongRef();
 
         if (!pool) {
-            pool = toQShared(
-                new KisTextureTileInfoPool(tileWidth, tileHeight));
+            pool.reset(new KisTextureTileInfoPool(tileWidth, tileHeight));
             m_storage[id] = pool;
         }
 

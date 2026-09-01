@@ -99,6 +99,26 @@ bool hasQtType(const QDomElement &element, const QString &type)
     return element.attribute(QStringLiteral("type"), QStringLiteral("unknown-type")) == type;
 }
 
+int qtToInt(const QString &text, bool *ok = nullptr)
+{
+    bool okLocale = false;
+    int value = text.toInt(&okLocale);
+
+    if (!okLocale) {
+        value = QLocale(QLocale::German).toInt(text, &okLocale);
+    }
+
+    if (!okLocale && ok == nullptr) {
+        value = 0;
+    }
+
+    if (ok != nullptr) {
+        *ok = okLocale;
+    }
+
+    return value;
+}
+
 template <typename T>
 bool loadQtValue(const QDomElement &element, T *value)
 {
@@ -125,8 +145,8 @@ bool loadQtValue(const QDomElement &element, double *value)
 bool loadQtValue(const QDomElement &element, QPoint *point)
 {
     if (!hasQtType(element, QStringLiteral("point"))) return false;
-    point->setX(element.attribute(QStringLiteral("x"), QStringLiteral("0")).toInt());
-    point->setY(element.attribute(QStringLiteral("y"), QStringLiteral("0")).toInt());
+    point->setX(qtToInt(element.attribute(QStringLiteral("x"), QStringLiteral("0"))));
+    point->setY(qtToInt(element.attribute(QStringLiteral("y"), QStringLiteral("0"))));
     return true;
 }
 

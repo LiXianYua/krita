@@ -10,15 +10,15 @@
 #include <QBitArray>
 #include <QRect>
 #include <QScopedPointer>
+#include <QSharedPointer>
 #include <QSize>
 
 #include <PkRect.h>
-#include <PkSharedPointer.h>
 
 #include "kis_types.h"
 
 class KisTextureTileInfoPool;
-typedef PkSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
+typedef QSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
 
 class KisOpenGLUpdateInfo;
 typedef KisSharedPtr<KisOpenGLUpdateInfo> KisOpenGLUpdateInfoSP;
