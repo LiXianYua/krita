@@ -34,7 +34,7 @@
 #endif
 
 
-struct Q_DECL_HIDDEN KisUpdateScheduler::Private {
+struct KisUpdateScheduler::Private {
     Private(KisUpdateScheduler *_q, KisProjectionUpdateListener *p)
         : q(_q)
         , updaterContext(KisImageConfig(true).maxNumberOfThreads(), q)

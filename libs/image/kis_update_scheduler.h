@@ -26,8 +26,6 @@ class KisPostExecutionUndoAdapter;
 
 class KRITAIMAGE_EXPORT KisUpdateScheduler : public PkShellObject, public KisStrokesFacade
 {
-    Q_OBJECT
-
 public:
     KisUpdateScheduler(KisProjectionUpdateListener *projectionUpdateListener, PkObject *parent = 0);
     ~KisUpdateScheduler() override;
@@ -226,7 +224,7 @@ protected:
     void connectSignals();
     void processQueues();
 
-protected Q_SLOTS:
+protected:
     /**
      * Called when it is necessary to reread configuration
      */
@@ -260,4 +258,3 @@ public:
 };
 
 #endif /* __KIS_UPDATE_SCHEDULER_H */
-
