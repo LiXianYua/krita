@@ -18,6 +18,8 @@
 #include "kis_paintop_preset.h"
 #include <KisFakeRunnableStrokeJobsExecutor.h>
 
+class PkPainter;
+
 struct KisPainter::Private {
     Private(KisPainter *_q) : q(_q) {}
     Private(KisPainter *_q, const KoColorSpace *cs)
