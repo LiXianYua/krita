@@ -538,6 +538,7 @@ set(kritaimage_SIGNAL_HEADERS
     kis_queues_progress_updater.h
     kis_paint_device.h
     kis_scalar_keyframe_channel.h
+    kis_timed_signal_threshold.h
     kis_transform_mask.h
     kis_undo_adapter.h
     filter/kis_filter_registry.h

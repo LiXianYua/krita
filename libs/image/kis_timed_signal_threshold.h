@@ -9,6 +9,8 @@
 
 #include "kritaimage_export.h"
 #include <PkObject.h>
+#include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 
 
 /**
@@ -19,12 +21,11 @@
  */
 class KRITAIMAGE_EXPORT KisTimedSignalThreshold : public PkShellObject
 {
-    Q_OBJECT
 public:
     KisTimedSignalThreshold(int delay, int cancelDelay = -1, PkObject *parent = 0);
     ~KisTimedSignalThreshold() override;
 
-public Q_SLOTS:
+public:
     /**
      * Stops counting and emits the signal forcefully
      */
@@ -53,7 +54,7 @@ public Q_SLOTS:
      */
     void setDelayThreshold(int delay, int cancelDelay = -1);
 
-Q_SIGNALS:
+signals:
     void timeout();
 
 private:
