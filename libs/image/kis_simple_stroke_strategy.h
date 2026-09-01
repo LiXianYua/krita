@@ -27,7 +27,15 @@ public:
     };
 
 public:
-    KisSimpleStrokeStrategy(const QLatin1String &id, const KUndo2MagicString &name = KUndo2MagicString());
+    KisSimpleStrokeStrategy(const PkString &id, const KUndo2MagicString &name = KUndo2MagicString());
+
+    template <typename LegacyString,
+              typename LegacyData = decltype(std::declval<const LegacyString &>().data()),
+              typename = std::enable_if_t<std::is_convertible_v<LegacyData, const char *>>>
+    KisSimpleStrokeStrategy(const LegacyString &id, const KUndo2MagicString &name = KUndo2MagicString())
+        : KisSimpleStrokeStrategy(PkString(id.data()), name)
+    {
+    }
 
     KisStrokeJobStrategy* createInitStrategy() override;
     KisStrokeJobStrategy* createFinishStrategy() override;
@@ -49,7 +57,7 @@ public:
     virtual void suspendStrokeCallback();
     virtual void resumeStrokeCallback();
 
-    static QLatin1String jobTypeToString(JobType type);
+    static PkString jobTypeToString(JobType type);
 
 protected:
     void enableJob(JobType type, bool enable = true,

@@ -10,7 +10,7 @@
 #include "KisStrokesQueueMutatedJobInterface.h"
 
 
-KisStrokeStrategy::KisStrokeStrategy(const QLatin1String &id, const KUndo2MagicString &name)
+KisStrokeStrategy::KisStrokeStrategy(const PkString &id, const KUndo2MagicString &name)
     : m_exclusive(false),
       m_supportsWrapAroundMode(false),
       m_clearsRedoOnStart(true),

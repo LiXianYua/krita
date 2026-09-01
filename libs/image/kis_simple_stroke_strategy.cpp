@@ -65,7 +65,7 @@ private:
 /*                 KisSimpleStrokeStrategy                     */
 /***************************************************************/
 
-KisSimpleStrokeStrategy::KisSimpleStrokeStrategy(const QLatin1String &id, const KUndo2MagicString &name)
+KisSimpleStrokeStrategy::KisSimpleStrokeStrategy(const PkString &id, const KUndo2MagicString &name)
     : KisStrokeStrategy(id, name),
       m_jobEnabled(NJOBS, false),
       m_jobSequentiality(NJOBS, KisStrokeJobData::SEQUENTIAL),
@@ -190,28 +190,28 @@ void KisSimpleStrokeStrategy::resumeStrokeCallback()
 {
 }
 
-QLatin1String KisSimpleStrokeStrategy::jobTypeToString(KisSimpleStrokeStrategy::JobType type)
+PkString KisSimpleStrokeStrategy::jobTypeToString(KisSimpleStrokeStrategy::JobType type)
 {
-    QLatin1String result;
+    PkString result;
 
     switch (type) {
     case JOB_INIT:
-        result = QLatin1String("init");
+        result = PkString("init");
         break;
     case JOB_DOSTROKE:
-        result = QLatin1String("dostroke");
+        result = PkString("dostroke");
         break;
     case JOB_FINISH:
-        result = QLatin1String("finish");
+        result = PkString("finish");
         break;
     case JOB_CANCEL:
-        result = QLatin1String("cancel");
+        result = PkString("cancel");
         break;
     case JOB_SUSPEND:
-        result = QLatin1String("suspend");
+        result = PkString("suspend");
         break;
     case JOB_RESUME:
-        result = QLatin1String("resume");
+        result = PkString("resume");
         break;
     case NJOBS:
         qFatal("Undefined stroke job type: %d", type);

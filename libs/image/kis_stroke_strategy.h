@@ -8,6 +8,9 @@
 #define __KIS_STROKE_STRATEGY_H
 
 #include <PkString.h>
+#include <type_traits>
+#include <utility>
+
 #include "kis_types.h"
 #include "kundo2magicstring.h"
 #include "kritaimage_export.h"
@@ -20,7 +23,16 @@ class KisStrokesQueueMutatedJobInterface;
 class KRITAIMAGE_EXPORT KisStrokeStrategy
 {
 public:
-    KisStrokeStrategy(const QLatin1String &id, const KUndo2MagicString &name = KUndo2MagicString());
+    KisStrokeStrategy(const PkString &id, const KUndo2MagicString &name = KUndo2MagicString());
+
+    template <typename LegacyString,
+              typename LegacyData = decltype(std::declval<const LegacyString &>().data()),
+              typename = std::enable_if_t<std::is_convertible_v<LegacyData, const char *>>>
+    KisStrokeStrategy(const LegacyString &id, const KUndo2MagicString &name = KUndo2MagicString())
+        : KisStrokeStrategy(PkString(id.data()), name)
+    {
+    }
+
     virtual ~KisStrokeStrategy();
 
     /**
@@ -204,7 +216,7 @@ private:
     bool m_forceLodModeIfPossible;
     qreal m_balancingRatioOverride;
 
-    QLatin1String m_id;
+    PkString m_id;
     KUndo2MagicString m_name;
 
     KisStrokeId m_strokeId;
