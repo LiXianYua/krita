@@ -15,6 +15,8 @@
 #include <filesystem>
 #include <vector>
 
+#include "KisBrushStreamUtils.h"
+
 namespace {
 
 PkImage toPkImage(const QImage &image)
@@ -39,7 +41,8 @@ PkImage toPkImage(const QImage &image)
 
 PkString pathCompleteBaseName(const PkString &path)
 {
-    const std::string name = std::filesystem::u8path(path.PkToUtf8()).stem().string();
+    const auto utf8 = std::filesystem::u8path(path.PkToUtf8()).stem().u8string();
+    const std::string name(utf8.begin(), utf8.end());
     return PkString::PkFromUtf8(name.c_str(), static_cast<int>(name.size()));
 }
 
@@ -67,7 +70,7 @@ bool KisSvgBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
 {
     Q_UNUSED(resourcesInterface);
 
-    m_svg = dev->readAll();
+    m_svg = kisBrushReadAll(dev);
 
     const QByteArray svgBytes(m_svg.constData(), m_svg.size());
     QSvgRenderer renderer(svgBytes);
