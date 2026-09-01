@@ -121,7 +121,7 @@ bool hasValidStrokeState(const PkPen &pen)
         return false;
     }
     const auto pattern = pen.dashPattern();
-    for (int i = 0; i < pattern.size(); ++i) {
+    for (std::size_t i = 0; i < pattern.size(); ++i) {
         if (!std::isfinite(pattern.at(i))) {
             return false;
         }

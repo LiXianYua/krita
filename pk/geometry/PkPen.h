@@ -5,6 +5,7 @@
 #include <PkGlobal.h>
 #include <PkVector.h>
 
+#include <initializer_list>
 #include <vector>
 
 // ---------------------------------------------------------------------------
@@ -106,6 +107,11 @@ public:
             values.push_back(value);
         }
         setDashPattern(values);
+    }
+
+    void setDashPattern(std::initializer_list<qreal> pattern)
+    {
+        setDashPattern(std::vector<qreal>(pattern));
     }
 
     std::vector<qreal> dashPattern() const

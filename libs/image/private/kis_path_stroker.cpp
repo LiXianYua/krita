@@ -1074,11 +1074,11 @@ public:
     {
         setHooks(dashMoveTo, dashLineTo, dashCubicTo);
     }
-    void setDashPattern(const PkVector<qreal> &pattern)
+    void setDashPattern(const std::vector<qreal> &pattern)
     {
         m_dashPattern.clear();
-        m_dashPattern.reserve(std::size_t(pattern.size()));
-        for (int i = 0; i < pattern.size(); ++i) m_dashPattern.push_back(pattern.at(i));
+        m_dashPattern.reserve(pattern.size());
+        for (qreal value : pattern) m_dashPattern.push_back(value);
     }
     void setDashOffset(qreal offset) { m_dashOffset = offset; }
     void begin(void *data) override
@@ -1248,11 +1248,8 @@ PkPainterPath createStrokeOutline(const PkPainterPath &path,
     stroker.setJoinStyle(pen.joinStyle());
     stroker.setMiterLimit(pen.miterLimit());
 
-    PkVector<qreal> pattern;
-    for (qreal value : pen.dashPattern()) {
-        pattern.append(value);
-    }
-    if (pattern.isEmpty()) {
+    const std::vector<qreal> pattern = pen.dashPattern();
+    if (pattern.empty()) {
         stroker.strokePath(path, &outline);
     } else {
         DashStroker dashStroker(&stroker);

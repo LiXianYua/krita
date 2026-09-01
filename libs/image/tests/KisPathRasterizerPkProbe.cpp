@@ -72,15 +72,15 @@ bool valid(const RasterCase &c)
         && c.commands != nullptr && c.commandCount > 0;
 }
 
-bool samePattern(const PkVector<qreal> &actual,
+bool samePattern(const std::vector<qreal> &actual,
                  std::initializer_list<qreal> expected)
 {
-    if (actual.size() != int(expected.size())) {
+    if (actual.size() != expected.size()) {
         return false;
     }
-    int index = 0;
+    std::size_t index = 0;
     for (qreal value : expected) {
-        if (actual.at(index++) != value) {
+        if (actual[index++] != value) {
             return false;
         }
     }
@@ -215,7 +215,7 @@ int verifyPenCarrierTransitions()
         || defaults.capStyle() != Qt::SquareCap
         || defaults.joinStyle() != Qt::BevelJoin
         || defaults.miterLimit() != 2.0 || defaults.dashOffset() != 0.0
-        || !defaults.dashPattern().isEmpty()) {
+        || !defaults.dashPattern().empty()) {
         return 20;
     }
 

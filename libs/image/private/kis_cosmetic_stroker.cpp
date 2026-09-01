@@ -113,17 +113,17 @@ public:
         mask.alpha.assign(width * height, uint8_t(0));
 
         const auto dashPattern = pen.dashPattern();
-        if (!dashPattern.isEmpty() && dashPattern.size() <= 1024) {
+        if (!dashPattern.empty() && dashPattern.size() <= 1024) {
             pattern.resize(std::size_t(dashPattern.size()));
             reversePattern.resize(std::size_t(dashPattern.size()));
             patternLength = 0;
-            for (int i = 0; i < dashPattern.size(); ++i) {
+            for (std::size_t i = 0; i < dashPattern.size(); ++i) {
                 patternLength += int(std::clamp(dashPattern.at(i) * 64.0,
                                                 qreal(1.0), qreal(65536.0)));
                 pattern[std::size_t(i)] = patternLength;
             }
             patternLength = 0;
-            for (int i = 0; i < dashPattern.size(); ++i) {
+            for (std::size_t i = 0; i < dashPattern.size(); ++i) {
                 patternLength += int(std::clamp(
                     dashPattern.at(dashPattern.size() - 1 - i) * 64.0,
                     qreal(1.0), qreal(65536.0)));

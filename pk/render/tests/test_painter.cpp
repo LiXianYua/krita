@@ -151,7 +151,7 @@ void PkPainterCase::styleOverloadsConstructFreshValues()
     PK_COMPARE(resetPen.widthF(), 1.0);
     PK_COMPARE(resetPen.style(), Qt::DotLine);
     PK_COMPARE(resetPen.capStyle(), Qt::SquareCap);
-    PK_VERIFY(resetPen.dashPattern().empty());
+    PK_VERIFY(resetPen.dashPattern() == std::vector<qreal>({1.0, 2.0}));
     PK_VERIFY(!resetPen.isCosmetic());
     const auto &penCommand = std::get<PkSetPenCommand>(backend.commands.back());
     PK_COMPARE(penCommand.pen.style(), Qt::DotLine);
@@ -210,7 +210,8 @@ void PkPainterCase::penRetainsBrushAndRoundsWidth()
     PK_COMPARE(pen.width(), 2);
 
     pen.setWidthF(-1.6);
-    PK_COMPARE(pen.width(), -2);
+    PK_COMPARE(pen.widthF(), 1.6);
+    PK_COMPARE(pen.width(), 2);
     pen.setColor(PkColor(11, 22, 33));
     compareColor(pen.brush().color(), 11, 22, 33);
     PK_COMPARE(pen.brush().style(), Qt::Dense5Pattern);
