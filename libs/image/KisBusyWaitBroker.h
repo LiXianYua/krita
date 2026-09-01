@@ -51,7 +51,8 @@ public:
 private:
 
 private:
-    Q_DISABLE_COPY(KisBusyWaitBroker);
+    KisBusyWaitBroker(const KisBusyWaitBroker &) = delete;
+    KisBusyWaitBroker &operator=(const KisBusyWaitBroker &) = delete;
 
     struct Private;
     PkScopedPointer<Private> m_d;

@@ -12,9 +12,6 @@
 #include "kis_image.h"
 
 
-Q_GLOBAL_STATIC(KisBusyWaitBroker, s_instance)
-
-
 struct KisBusyWaitBroker::Private
 {
     PkMutex lock;
@@ -36,7 +33,8 @@ KisBusyWaitBroker::~KisBusyWaitBroker()
 
 KisBusyWaitBroker *KisBusyWaitBroker::instance()
 {
-    return s_instance;
+    static KisBusyWaitBroker instance;
+    return &instance;
 }
 
 void KisBusyWaitBroker::notifyWaitOnImageStarted(KisImage* image)
@@ -101,5 +99,4 @@ bool KisBusyWaitBroker::guiThreadIsWaitingForBetterWeather() const
 {
     return m_d->guiThreadLockCount;
 }
-
 
