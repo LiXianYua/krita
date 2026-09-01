@@ -9,6 +9,7 @@
 
 #include <compat/QObject>
 #include "kritaglobal_export.h"
+#include "../pigment/PkSignalCompat.h"
 
 #include "kis_signal_compressor.h"
 
@@ -26,18 +27,17 @@
  */
 class KRITAGLOBAL_EXPORT KisThreadSafeSignalCompressor : public PkObject
 {
-    Q_OBJECT
 public:
     KisThreadSafeSignalCompressor(int delay, KisSignalCompressor::Mode mode);
 
     bool isActive() const;
 
-public Q_SLOTS:
+public:
     void setDelay(int delay);
     void start();
     void stop();
 
-Q_SIGNALS:
+signals:
     void timeout();
     void internalRequestSignal();
     void internalStopSignal();

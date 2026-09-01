@@ -36,15 +36,15 @@ bool KisThreadSafeSignalCompressor::isActive() const
 
 void KisThreadSafeSignalCompressor::setDelay(int delay)
 {
-    Q_EMIT internalSetDelay(delay);
+    internalSetDelay(delay);
 }
 
 void KisThreadSafeSignalCompressor::start()
 {
-    Q_EMIT internalRequestSignal();
+    internalRequestSignal();
 }
 
 void KisThreadSafeSignalCompressor::stop()
 {
-    Q_EMIT internalStopSignal();
+    internalStopSignal();
 }
