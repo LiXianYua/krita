@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QDebug>
+
 #include "kis_asl_xml_parser.h"
 
 #include <stdexcept>

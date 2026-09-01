@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QDebug>
+
 #include "kis_cos_writer.h"
 
 #include "PkCosMemoryStream.h"
