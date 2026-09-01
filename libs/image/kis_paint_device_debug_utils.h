@@ -10,6 +10,7 @@
 
 class QRect;
 class QString;
+class PkRect;
 
 #include <kis_types.h>
 #include <kritaimage_export.h>
@@ -18,6 +19,14 @@ void KRITAIMAGE_EXPORT kis_debug_save_device_incremental(KisPaintDeviceSP device
                                                          int i,
                                                          const QRect &rc,
                                                          const QString &suffix, const QString &prefix);
+void KRITAIMAGE_EXPORT kis_debug_save_device_incremental(KisPaintDeviceSP device,
+                                                         int i,
+                                                         const PkRect &rc,
+                                                         const QString &suffix, const QString &prefix);
+void KRITAIMAGE_EXPORT kis_debug_save_device_incremental(KisPaintDeviceSP device,
+                                                         int i,
+                                                         const PkRect &rc,
+                                                         const char *suffix, const char *prefix);
 
 /**
  * Saves the paint device incrementally. Put this macro into a

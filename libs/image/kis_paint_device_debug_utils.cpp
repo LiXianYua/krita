@@ -18,6 +18,7 @@
 
 #include <QRect>
 #include <QImage>
+#include <PkRect.h>
 
 #include "kis_paint_device.h"
 
@@ -41,4 +42,24 @@ void kis_debug_save_device_incremental(KisPaintDeviceSP device,
 
     qDebug() << "Dumping:" << filename;
     device->convertToQImage(0, saveRect).save(filename);
+}
+
+void kis_debug_save_device_incremental(KisPaintDeviceSP device,
+                                       int i,
+                                       const PkRect &rc,
+                                       const QString &suffix, const QString &prefix)
+{
+    kis_debug_save_device_incremental(device, i,
+                                      QRect(rc.x(), rc.y(), rc.width(), rc.height()),
+                                      suffix, prefix);
+}
+
+void kis_debug_save_device_incremental(KisPaintDeviceSP device,
+                                       int i,
+                                       const PkRect &rc,
+                                       const char *suffix, const char *prefix)
+{
+    kis_debug_save_device_incremental(device, i, rc,
+                                      QString::fromUtf8(suffix),
+                                      QString::fromUtf8(prefix));
 }
