@@ -7,6 +7,7 @@
 #ifndef __KIS_MARKER_PAINTER_H
 #define __KIS_MARKER_PAINTER_H
 
+#include <PkRect.h>
 #include <PkScopedPointer.h>
 
 #include "kis_types.h"
