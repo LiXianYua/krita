@@ -4,6 +4,11 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QObject>
+#include <QPointF>
+#include <QVariant>
+#include <QVector>
+
 #include "kis_painting_information_builder.h"
 
 #include <KoPointerEvent.h>
@@ -17,6 +22,7 @@
 #include <PkPoint.h>
 
 #include <KoCanvasResourceProvider.h>
+#include <PkObject.h>
 
 
 /***********************************************************************/
@@ -31,8 +37,14 @@ KisPaintingInformationBuilder::KisPaintingInformationBuilder()
     : m_speedSmoother(new KisSpeedSmoother()),
       m_pressureDisabled(false)
 {
-    connect(KisConfigNotifier::instance(), SIGNAL(configChanged()),
-            SLOT(updateSettings()));
+    KisConfigNotifier *notifier = KisConfigNotifier::instance();
+    PkConnection configConnection = PkObject::connect(
+        notifier, &KisConfigNotifier::configChanged, notifier,
+        [this]() { updateSettings(); });
+    QObject::connect(this, &QObject::destroyed,
+                     [configConnection](QObject *) mutable {
+                         PkObject::disconnect(configConnection);
+                     });
 
     updateSettings();
 }
@@ -46,7 +58,12 @@ void KisPaintingInformationBuilder::updateSettings()
 {
     KisImageConfig cfg(true);
     const KisCubicCurve curve(cfg.pressureTabletCurve());
-    m_pressureSamples = curve.floatTransfer(LEVEL_OF_PRESSURE_RESOLUTION + 1);
+    m_pressureSamples.clear();
+    const PkVector<qreal> pressureSamples = curve.floatTransfer(LEVEL_OF_PRESSURE_RESOLUTION + 1);
+    m_pressureSamples.reserve(pressureSamples.size());
+    for (qreal pressure : pressureSamples) {
+        m_pressureSamples.append(pressure);
+    }
     m_maxAllowedSpeedValue = cfg.readEntry("maxAllowedSpeedValue", 30);
 
     // The setting is stored in [-180, 180] degrees range to match the UI.
@@ -129,7 +146,7 @@ KisPaintInformation KisPaintingInformationBuilder::createPaintingInformation(KoP
     const QPointF viewPoint = imageToView(imagePoint);
     const qreal speed = m_speedSmoother->getNextSpeed(PkPointF(viewPoint.x(), viewPoint.y()), event->time());
 
-    KisPaintInformation pi(imagePoint,
+    KisPaintInformation pi(PkPointF(imagePoint.x(), imagePoint.y()),
                            !m_pressureDisabled ? 1.0 : pressureToCurve(event->pressure()),
                            event->xTilt(), event->yTilt(),
                            event->rotation(),
@@ -161,7 +178,7 @@ KisPaintInformation KisPaintingInformationBuilder::hover(const QPointF &imagePoi
     }
 
     if (event) {
-        return KisPaintInformation::createHoveringModeInfo(imagePoint,
+        return KisPaintInformation::createHoveringModeInfo(PkPointF(imagePoint.x(), imagePoint.y()),
                                                            PRESSURE_DEFAULT,
                                                            event->xTilt(), event->yTilt(),
                                                            event->rotation(),
@@ -173,7 +190,7 @@ KisPaintInformation KisPaintingInformationBuilder::hover(const QPointF &imagePoi
                                                            canvasMirroredY(),
                                                            m_tiltDirectionOffset);
     } else {
-        KisPaintInformation pi = KisPaintInformation::createHoveringModeInfo(imagePoint);
+        KisPaintInformation pi = KisPaintInformation::createHoveringModeInfo(PkPointF(imagePoint.x(), imagePoint.y()));
         pi.setCanvasRotation(canvasRotation());
         pi.setCanvasMirroredH(canvasMirroredX());
         pi.setCanvasMirroredV(canvasMirroredY());
@@ -184,7 +201,12 @@ KisPaintInformation KisPaintingInformationBuilder::hover(const QPointF &imagePoi
 
 qreal KisPaintingInformationBuilder::pressureToCurve(qreal pressure)
 {
-    return KisCubicCurve::interpolateLinear(pressure, m_pressureSamples);
+    PkVector<qreal> pressureSamples;
+    pressureSamples.reserve(m_pressureSamples.size());
+    for (qreal sample : m_pressureSamples) {
+        pressureSamples.append(sample);
+    }
+    return KisCubicCurve::interpolateLinear(pressure, pressureSamples);
 }
 
 void KisPaintingInformationBuilder::reset()

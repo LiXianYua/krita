@@ -9,10 +9,12 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_tool_freehand.h"
 #include <QPainter>
+#include <QPointF>
 #include <QRect>
 #include <QThreadPool>
+
+#include "kis_tool_freehand.h"
 
 #include <Eigen/Core>
 
@@ -37,6 +39,7 @@
 #include "kis_painting_information_builder.h"
 #include "kis_tool_freehand_helper.h"
 #include "strokes/freehand_stroke.h"
+#include <PkObject.h>
 
 using namespace std::placeholders; // For _1 placeholder
 
@@ -49,14 +52,21 @@ KisToolFreehand::KisToolFreehand(KoCanvasBase * canvas, const QCursor & cursor,
 
     setSupportOutline(true);
     updateMaskSyntheticEventsFromTouch();
-    connect(KisConfigNotifier::instance(), SIGNAL(touchPaintingChanged()),
-            SLOT(updateMaskSyntheticEventsFromTouch()));
+    KisConfigNotifier *notifier = KisConfigNotifier::instance();
+    PkConnection touchPaintingConnection = PkObject::connect(
+        notifier, &KisConfigNotifier::touchPaintingChanged, notifier,
+        [this]() { updateMaskSyntheticEventsFromTouch(); });
+    QObject::connect(this, &QObject::destroyed,
+                     [touchPaintingConnection](QObject *) mutable {
+                         PkObject::disconnect(touchPaintingConnection);
+                     });
 
     m_infoBuilder = new KisToolFreehandPaintingInformationBuilder(this);
     m_helper = new KisToolFreehandHelper(m_infoBuilder, canvas->resourceManager(), transactionText,
                                          new KisSmoothingOptions(useSavedSmoothing));
 
-    connect(m_helper, SIGNAL(requestExplicitUpdateOutline()), SLOT(explicitUpdateOutline()));
+    QObject::connect(m_helper, &KisToolFreehandHelper::requestExplicitUpdateOutline,
+                     this, &KisToolFreehand::explicitUpdateOutline);
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
     KIS_ASSERT(services);
@@ -274,7 +284,8 @@ bool KisToolFreehand::trySampleByPaintOp(KoPointerEvent *event, AlternateAction 
     if (!currentPaintOpPreset()) {
         return false;
     }
-    KisPaintInformation info(convertToPixelCoord(event->point),
+    const QPointF pixelPoint = convertToPixelCoord(event->point);
+    KisPaintInformation info(PkPointF(pixelPoint.x(), pixelPoint.y()),
                              m_infoBuilder->pressureToCurve(event->pressure()),
                              event->xTilt(), event->yTilt(),
                              event->rotation(),

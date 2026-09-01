@@ -30,6 +30,27 @@
 #include "commands_new/KisSimpleModifyTransformMaskCommand.h"
 #include "commands_new/KisLazyCreateTransformMaskKeyframesCommand.h"
 
+#include <PkVector.h>
+
+namespace {
+
+PkPoint toPkPoint(const QPoint &point)
+{
+    return PkPoint(point.x(), point.y());
+}
+
+QPoint toQPoint(const PkPoint &point)
+{
+    return QPoint(point.x(), point.y());
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+}
+
 /* MoveNodeStrategyBase and descendants
  *
  * A set of strategies that define how to actually move
@@ -48,21 +69,21 @@ struct MoveNodeStrategyBase
 
     virtual ~MoveNodeStrategyBase() {}
 
-    virtual QRect moveNode(const QPoint &offset) = 0;
+    virtual PkRect moveNode(const PkPoint &offset) = 0;
     virtual void finishMove(KUndo2Command *parentCommand) = 0;
-    virtual QRect cancelMove() = 0;
+    virtual PkRect cancelMove() = 0;
 
 protected:
-    QRect moveNodeCommon(const QPoint &offset) {
-        const QPoint newOffset = m_initialOffset + offset;
+    PkRect moveNodeCommon(const PkPoint &offset) {
+        const PkPoint newOffset = m_initialOffset + offset;
 
-        QRect dirtyRect = m_node->projectionPlane()->tightUserVisibleBounds();
+        PkRect dirtyRect = m_node->projectionPlane()->tightUserVisibleBounds();
 
         /**
          * Some layers, e.g. clones need an update to change extent(), so
          * calculate the dirty rect manually
          */
-        QPoint currentOffset(m_node->x(), m_node->y());
+        PkPoint currentOffset(m_node->x(), m_node->y());
         dirtyRect |= dirtyRect.translated(newOffset - currentOffset);
 
         m_node->setX(newOffset.x());
@@ -74,7 +95,7 @@ protected:
 
 protected:
     KisNodeSP m_node;
-    QPoint m_initialOffset;
+    PkPoint m_initialOffset;
 };
 
 struct MoveNormalNodeStrategy : public MoveNodeStrategyBase
@@ -84,17 +105,17 @@ struct MoveNormalNodeStrategy : public MoveNodeStrategyBase
     {
     }
 
-    QRect moveNode(const QPoint &offset) override {
+    PkRect moveNode(const PkPoint &offset) override {
         return moveNodeCommon(offset);
     }
 
     void finishMove(KUndo2Command *parentCommand) override {
-        const QPoint nodeOffset(m_node->x(), m_node->y());
+        const PkPoint nodeOffset(m_node->x(), m_node->y());
         new KisNodeMoveCommand2(m_node, m_initialOffset, nodeOffset, parentCommand);
     }
 
-    QRect cancelMove() override {
-        return moveNode(QPoint());
+    PkRect cancelMove() override {
+        return moveNode(PkPoint());
     }
 
 };
@@ -106,12 +127,12 @@ struct MoveTransformMaskStrategy : public MoveNodeStrategyBase
     {
     }
 
-    QRect moveNode(const QPoint &offset) override {
+    PkRect moveNode(const PkPoint &offset) override {
         std::unique_ptr<KUndo2Command> cmd;
-        QRect dirtyRect = m_node->projectionPlane()->tightUserVisibleBounds();
+        PkRect dirtyRect = m_node->projectionPlane()->tightUserVisibleBounds();
 
         KisTransformMask *mask = dynamic_cast<KisTransformMask*>(m_node.data());
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(mask, QRect());
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(mask, PkRect());
 
         KisTransformMaskParamsInterfaceSP oldParams = mask->transformParams();
         KisTransformMaskParamsInterfaceSP params = oldParams->clone();
@@ -140,12 +161,12 @@ struct MoveTransformMaskStrategy : public MoveNodeStrategyBase
         cmd->addCommand(m_undoCommand.release());
     }
 
-    QRect cancelMove() override {
-        return moveNode(QPoint());
+    PkRect cancelMove() override {
+        return moveNode(PkPoint());
     }
 
 private:
-    QPoint m_currentOffset;
+    PkPoint m_currentOffset;
     std::unique_ptr<KUndo2Command> m_undoCommand;
 };
 
@@ -158,7 +179,7 @@ struct MovePaintableNodeStrategy : public MoveNodeStrategyBase
         // TODO: disable updates in the transaction
     }
 
-    QRect moveNode(const QPoint &offset) override {
+    PkRect moveNode(const PkPoint &offset) override {
         return moveNodeCommon(offset);
     }
 
@@ -170,8 +191,8 @@ struct MovePaintableNodeStrategy : public MoveNodeStrategyBase
         cmd->addCommand(transactionCommand);
     }
 
-    QRect cancelMove() override {
-        QRect dirtyRect = m_node->projectionPlane()->tightUserVisibleBounds();
+    PkRect cancelMove() override {
+        PkRect dirtyRect = m_node->projectionPlane()->tightUserVisibleBounds();
 
         m_transaction.revert();
 
@@ -211,7 +232,7 @@ void MoveStrokeStrategy::recursiveApplyNodes(const KisNodeList &nodes, Functor &
 MoveStrokeStrategy::MoveStrokeStrategy(KisNodeSelectionRecipe nodeSelection,
                                        KisUpdatesFacade *updatesFacade,
                                        KisStrokeUndoFacade *undoFacade)
-    : KisStrokeStrategyUndoCommandBased(kundo2_i18n("Move"), false, undoFacade),
+    : KisStrokeStrategyUndoCommandBased(kundo2_text("Move"), false, undoFacade),
       m_d(new Private()),
       m_requestedNodeSelection(nodeSelection),
       m_updatesFacade(updatesFacade),
@@ -299,7 +320,7 @@ void MoveStrokeStrategy::initStrokeCallback()
         return;
     }
 
-    QVector<KisRunnableStrokeJobData*> jobs;
+    PkVector<KisRunnableStrokeJobData*> jobs;
 
     KritaUtils::addJobBarrier(jobs, [this]() {
         Q_FOREACH(KisNodeSP node, m_nodes) {
@@ -314,7 +335,7 @@ void MoveStrokeStrategy::initStrokeCallback()
     });
 
     KritaUtils::addJobBarrier(jobs, [this]() {
-        QRect handlesRect;
+        PkRect handlesRect;
 
         /**
          * Collect handles rect
@@ -373,7 +394,7 @@ void MoveStrokeStrategy::initStrokeCallback()
             KisLodTransform t(m_nodes.first()->image()->currentLevelOfDetail());
             handlesRect = t.mapInverted(handlesRect);
 
-            Q_EMIT this->sigHandlesRectCalculated(handlesRect);
+            Q_EMIT this->sigHandlesRectCalculated(toQRect(handlesRect));
         }
 
         m_updateTimer.start();
@@ -413,14 +434,14 @@ void MoveStrokeStrategy::finishStrokeCallback()
 void MoveStrokeStrategy::cancelStrokeCallback()
 {
     if (!m_nodes.isEmpty()) {
-        m_finalOffset = QPoint();
+        m_finalOffset = PkPoint();
         m_hasPostponedJob = true;
 
-        QVector<KisRunnableStrokeJobData*> jobs;
+        PkVector<KisRunnableStrokeJobData*> jobs;
 
         KritaUtils::addJobBarrierExclusive(jobs, [this]() {
             Q_FOREACH (KisNodeSP node, m_nodes) {
-                QRect dirtyRect;
+                PkRect dirtyRect;
 
                 recursiveApplyNodes({node},
                     [this, &dirtyRect] (KisNodeSP node) {
@@ -474,7 +495,7 @@ void MoveStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
          * NOTE: we do not care about threading here, because
          * all our jobs are declared sequential
          */
-        m_finalOffset = d->offset;
+        m_finalOffset = toPkPoint(d->offset);
         m_hasPostponedJob = true;
         tryPostUpdateJob(false);
 
@@ -505,7 +526,7 @@ void MoveStrokeStrategy::doCanvasUpdate(bool forceUpdate)
     if (!m_hasPostponedJob) return;
 
     Q_FOREACH (KisNodeSP node, m_nodes) {
-        QRect dirtyRect;
+        PkRect dirtyRect;
 
         recursiveApplyNodes({node},
             [this, &dirtyRect] (KisNodeSP node) {
@@ -567,7 +588,7 @@ KisStrokeStrategy* MoveStrokeStrategy::createLodClone(int levelOfDetail)
     connect(clone, SIGNAL(sigStrokeStartedEmpty()), this, SIGNAL(sigStrokeStartedEmpty()));
     connect(clone, SIGNAL(sigLayersPicked(const KisNodeList&)), this, SIGNAL(sigLayersPicked(const KisNodeList&)));
     this->setUpdatesEnabled(false);
-    m_sharedNodes.reset(new std::pair<KisNodeList, QSet<KisNodeSP>>());
+    m_sharedNodes.reset(new std::pair<KisNodeList, PkSet<KisNodeSP>>());
     clone->m_sharedNodes = m_sharedNodes;
     return clone;
 }
@@ -587,7 +608,7 @@ MoveStrokeStrategy::Data::Data(const MoveStrokeStrategy::Data &rhs, int levelOfD
     : KisStrokeJobData(rhs)
 {
     KisLodTransform t(levelOfDetail);
-    offset = t.map(rhs.offset);
+    offset = toQPoint(t.map(toPkPoint(rhs.offset)));
 }
 
 MoveStrokeStrategy::PickLayerData::PickLayerData(QPoint _pos)
@@ -604,7 +625,7 @@ MoveStrokeStrategy::PickLayerData::PickLayerData(const MoveStrokeStrategy::PickL
     : KisStrokeJobData(rhs)
 {
     KisLodTransform t(levelOfDetail);
-    pos = t.map(rhs.pos);
+    pos = toQPoint(t.map(toPkPoint(rhs.pos)));
 }
 
 MoveStrokeStrategy::BarrierUpdateData::BarrierUpdateData(bool _forceUpdate)

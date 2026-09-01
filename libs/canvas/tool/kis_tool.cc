@@ -3,12 +3,26 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include "kis_tool.h"
 #include <QCursor>
+#include <QIcon>
 #include <QLabel>
-#include <QWidget>
+#include <QPainterPath>
+#include <QPoint>
+#include <QPointF>
 #include <QPolygonF>
+#include <QRect>
+#include <QRectF>
+#include <QString>
 #include <QTransform>
+#include <QVariant>
+#include <QWidget>
+
+#include "kis_tool.h"
+
+#include <PkObject.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkTransform.h>
 
 #include <klocalizedstring.h>
 #include <KoColorSpaceRegistry.h>
@@ -46,7 +60,14 @@
 #include <KisOptimizedBrushOutline.h>
 #include <KisCanvasFeedback.h>
 #include <KisCanvasToolServices.h>
-#include <QIcon>
+
+Q_DECLARE_METATYPE(KoColor)
+Q_DECLARE_METATYPE(KoPatternSP)
+Q_DECLARE_METATYPE(KoAbstractGradientSP)
+Q_DECLARE_METATYPE(KisPaintOpPresetSP)
+Q_DECLARE_METATYPE(KisFilterConfiguration*)
+Q_DECLARE_METATYPE(KisNodeWSP)
+Q_DECLARE_METATYPE(KisNodeList)
 
 
 struct Q_DECL_HIDDEN KisTool::Private {
@@ -65,6 +86,33 @@ struct Q_DECL_HIDDEN KisTool::Private {
 };
 
 namespace {
+
+PkPoint toPkPoint(const QPoint &point)
+{
+    return PkPoint(point.x(), point.y());
+}
+
+PkPointF toPkPointF(const QPointF &point)
+{
+    return PkPointF(point.x(), point.y());
+}
+
+QPoint toQPoint(const PkPoint &point)
+{
+    return QPoint(point.x(), point.y());
+}
+
+QPointF toQPointF(const PkPointF &point)
+{
+    return QPointF(point.x(), point.y());
+}
+
+PkTransform toPkTransform(const QTransform &transform)
+{
+    return PkTransform(transform.m11(), transform.m12(), transform.m13(),
+                       transform.m21(), transform.m22(), transform.m23(),
+                       transform.m31(), transform.m32(), transform.m33());
+}
 
 QString nodeEditableMessage(KisNodeSP node, bool blockedNoIndirectPainting)
 {
@@ -103,7 +151,7 @@ bool clearImage(KisImageSP image, KisNodeList nodes, KisSelectionSP selection)
     }
 
     KisProcessingApplicator applicator(image, 0, KisProcessingApplicator::NONE,
-                                       KisImageSignalVector(), kundo2_i18n("Clear"));
+                                       KisImageSignalVector(), kundo2_text("Clear"));
 
     Q_FOREACH (KisNodeSP node, nodes) {
         KisLayerUtils::recursiveApplyNodes(node, [&applicator, selection, masks] (KisNodeSP node) {
@@ -113,7 +161,7 @@ bool clearImage(KisImageSP image, KisNodeList nodes, KisSelectionSP selection)
 
             if (node->hasEditablePaintDevice()) {
                 KUndo2Command *cmd = new KisCommandUtils::LambdaCommand(
-                    kundo2_i18n("Clear"), [node, selection] () {
+                    kundo2_text("Clear"), [node, selection] () {
                         KisPaintDeviceSP device = node->paintDevice();
                         std::unique_ptr<KisCommandUtils::CompositeCommand> parentCommand(
                             new KisCommandUtils::CompositeCommand());
@@ -123,8 +171,8 @@ bool clearImage(KisImageSP image, KisNodeList nodes, KisSelectionSP selection)
                             parentCommand->addCommand(autoKeyframeCommand);
                         }
 
-                        KisTransaction transaction(kundo2_noi18n("internal-clear-command"), device);
-                        QRect dirtyRect;
+                        KisTransaction transaction(kundo2_text_raw("internal-clear-command"), device);
+                        PkRect dirtyRect;
                         if (selection) {
                             dirtyRect = selection->selectedRect();
                             device->clearSelection(selection);
@@ -154,7 +202,14 @@ KisTool::KisTool(KoCanvasBase * canvas, const QCursor & cursor)
 {
     d->cursor = cursor;
 
-    connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(resetCursorStyle()));
+    KisConfigNotifier *notifier = KisConfigNotifier::instance();
+    PkConnection configConnection = PkObject::connect(
+        notifier, &KisConfigNotifier::configChanged, notifier,
+        [this]() { resetCursorStyle(); });
+    QObject::connect(this, &QObject::destroyed,
+                     [configConnection](QObject *) mutable {
+                         PkObject::disconnect(configConnection);
+                     });
     connect(this, SIGNAL(isActiveChanged(bool)), SLOT(resetCursorStyle()));
 }
 
@@ -261,7 +316,7 @@ QPointF KisTool::convertToPixelCoord(KoPointerEvent *e)
     if (!image())
         return e->point;
 
-    return image()->documentToPixel(e->point);
+    return toQPointF(image()->documentToPixel(toPkPointF(e->point)));
 }
 
 QPointF KisTool::convertToPixelCoord(const QPointF& pt)
@@ -269,7 +324,7 @@ QPointF KisTool::convertToPixelCoord(const QPointF& pt)
     if (!image())
         return pt;
 
-    return image()->documentToPixel(pt);
+    return toQPointF(image()->documentToPixel(toPkPointF(pt)));
 }
 
 QPointF KisTool::convertToPixelCoordAndAlignOnWidget(const QPointF &pt)
@@ -287,7 +342,7 @@ QPointF KisTool::convertToPixelCoordAndSnap(KoPointerEvent *e, const QPointF &of
     KoSnapGuide *snapGuide = canvas()->snapGuide();
     QPointF pos = snapGuide->snap(e->point, offset, useModifiers ? e->modifiers() : Qt::NoModifier);
 
-    return image()->documentToPixel(pos);
+    return toQPointF(image()->documentToPixel(toPkPointF(pos)));
 }
 
 QPointF KisTool::convertToPixelCoordAndSnap(const QPointF& pt, const QPointF &offset)
@@ -298,7 +353,7 @@ QPointF KisTool::convertToPixelCoordAndSnap(const QPointF& pt, const QPointF &of
     KoSnapGuide *snapGuide = canvas()->snapGuide();
     QPointF pos = snapGuide->snap(pt, offset, Qt::NoModifier);
 
-    return image()->documentToPixel(pos);
+    return toQPointF(image()->documentToPixel(toPkPointF(pos)));
 }
 
 QPoint KisTool::convertToImagePixelCoordFloored(KoPointerEvent *e)
@@ -306,7 +361,7 @@ QPoint KisTool::convertToImagePixelCoordFloored(KoPointerEvent *e)
     if (!image())
         return e->point.toPoint();
 
-    return image()->documentToImagePixelFloored(e->point);
+    return toQPoint(image()->documentToImagePixelFloored(toPkPointF(e->point)));
 }
 
 QPointF KisTool::viewToPixel(const QPointF &viewCoord) const
@@ -314,7 +369,8 @@ QPointF KisTool::viewToPixel(const QPointF &viewCoord) const
     if (!image())
         return viewCoord;
 
-    return image()->documentToPixel(canvas()->viewConverter()->viewToDocument(viewCoord));
+    return toQPointF(image()->documentToPixel(
+        toPkPointF(canvas()->viewConverter()->viewToDocument(viewCoord))));
 }
 
 QRectF KisTool::convertToPt(const QRectF &rect)
@@ -338,7 +394,7 @@ QPointF KisTool::pixelToView(const QPoint &pixelCoord) const
 {
     if (!image())
         return pixelCoord;
-    QPointF documentCoord = image()->pixelToDocument(pixelCoord);
+    QPointF documentCoord = toQPointF(image()->pixelToDocument(toPkPoint(pixelCoord)));
     return canvas()->viewConverter()->documentToView(documentCoord);
 }
 
@@ -346,7 +402,7 @@ QPointF KisTool::pixelToView(const QPointF &pixelCoord) const
 {
     if (!image())
         return pixelCoord;
-    QPointF documentCoord = image()->pixelToDocument(pixelCoord);
+    QPointF documentCoord = toQPointF(image()->pixelToDocument(toPkPointF(pixelCoord)));
     return canvas()->viewConverter()->documentToView(documentCoord);
 }
 
@@ -373,7 +429,7 @@ KisOptimizedBrushOutline KisTool::pixelToView(const KisOptimizedBrushOutline &pa
 {
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_ASSERT(services);
-    return path.mapped(services->toolImageToViewTransform());
+    return path.mapped(toPkTransform(services->toolImageToViewTransform()));
 }
 
 

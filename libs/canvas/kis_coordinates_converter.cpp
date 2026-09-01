@@ -7,11 +7,18 @@
 
 #include <cmath>
 
+#include <QDebug>
+#include <QPoint>
+#include <QPointF>
+#include <QRect>
+#include <QRectF>
+#include <QSize>
+#include <QSizeF>
+#include <QTransform>
+#include <QtMath>
+
 #include "kis_coordinates_converter.h"
 #include "KoViewTransformStillPoint.h"
-
-#include <QtMath>
-#include <QTransform>
 #include <KoViewConverter.h>
 
 #include "KisCanvasConfig.h"
@@ -20,6 +27,7 @@
 #include <kis_assert.h>
 #include <KisValueCache.h>
 #include <KisPortingUtils.h>
+#include <PkFlakeBridge.h>
 
 
 struct KisCoordinatesConverter::Private {
@@ -250,7 +258,9 @@ void KisCoordinatesConverter::setImage(KisImageWSP image)
     // it is a different kind of resolution that is used
     // to convert the image to the physical size of the display
 
-    m_d->imageBounds = image->bounds();
+    const PkRect imageBounds = image->bounds();
+    m_d->imageBounds = QRect(imageBounds.x(), imageBounds.y(),
+                             imageBounds.width(), imageBounds.height());
     recalculateZoomLevelLimits();
     recalculateTransformations();
 
@@ -634,7 +644,8 @@ void KisCoordinatesConverter::mirror(const std::optional<KoViewTransformStillPoi
         KoViewTransformStillPoint(m_d->preferredTransformationCenterInDocumentPixels(), widgetCenterPoint());
 
 
-    if (kisSquareDistance(effectiveStillPoint.viewPoint(), widgetCenterPoint()) > 2.0) {
+    if (kisSquareDistance(toPkPointF(effectiveStillPoint.viewPoint()),
+                          toPkPointF(widgetCenterPoint())) > 2.0) {
         // when mirroring not against the center, reset the zoom mode
         setZoomMode(KoZoomMode::ZOOM_CONSTANT);
     }

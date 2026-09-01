@@ -5,27 +5,33 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_tool_paint.h"
-
 #include <algorithm>
 
-#include <QWidget>
-#include <QRect>
-#include <QLayout>
-#include <QPushButton>
-#include <QWhatsThis>
-#include <QCheckBox>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGridLayout>
-#include <QEvent>
-#include <QVariant>
 #include <QAction>
-#include <kis_debug.h>
+#include <QCheckBox>
+#include <QEvent>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QIcon>
+#include <QLayout>
+#include <QPainterPath>
 #include <QPoint>
+#include <QPointF>
+#include <QPushButton>
+#include <QRect>
+#include <QRectF>
+#include <QString>
+#include <QVariant>
+#include <QVBoxLayout>
+#include <QWhatsThis>
+#include <QWidget>
+
+#include <PkObject.h>
+
+#include "kis_tool_paint.h"
+#include <kis_debug.h>
 
 #include <klocalizedstring.h>
-#include <QIcon>
 
 #include <kis_algebra_2d.h>
 #include <KoShape.h>
@@ -52,8 +58,54 @@
 #include <brushengine/kis_paintop.h>
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/KisOptimizedBrushOutline.h>
+#define QPoint PkPoint
 #include "strokes/kis_color_sampler_stroke_strategy.h"
+#undef QPoint
 #include "kis_paintop_utils.h"
+
+namespace {
+
+QString r44ToQString(const PkString &value)
+{
+    return QString::fromUtf8(value.PkToUtf8().c_str());
+}
+
+QRectF r44ToQRectF(const PkRectF &rect)
+{
+    return QRectF(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+PkPointF r44ToPkPointF(const QPointF &point)
+{
+    return PkPointF(point.x(), point.y());
+}
+
+PkPainterPath r44ToPkPainterPath(const QPainterPath &path)
+{
+    PkPainterPath result;
+    result.setFillRule(path.fillRule());
+
+    const int elementCount = path.elementCount();
+    for (int i = 0; i < elementCount; ++i) {
+        const QPainterPath::Element element = path.elementAt(i);
+        if (element.isMoveTo()) {
+            result.moveTo(element.x, element.y);
+        } else if (element.isLineTo()) {
+            result.lineTo(element.x, element.y);
+        } else if (element.isCurveTo()) {
+            const QPainterPath::Element controlPoint2 = path.elementAt(i + 1);
+            const QPainterPath::Element endPoint = path.elementAt(i + 2);
+            result.cubicTo(element.x, element.y,
+                           controlPoint2.x, controlPoint2.y,
+                           endPoint.x, endPoint.y);
+            i += 2;
+        }
+    }
+
+    return result;
+}
+
+}
 
 
 struct KisToolPaint::Private
@@ -118,7 +170,18 @@ void KisToolPaint::canvasResourceChanged(int key, const QVariant& v)
         break;
     }
 
-    connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(resetCursorStyle()), Qt::UniqueConnection);
+    static const char configConnectionProperty[] = "r44ConfigConnection";
+    if (!property(configConnectionProperty).toBool()) {
+        KisConfigNotifier *notifier = KisConfigNotifier::instance();
+        PkConnection configConnection = PkObject::connect(
+            notifier, &KisConfigNotifier::configChanged, notifier,
+            [this]() { resetCursorStyle(); });
+        QObject::connect(this, &QObject::destroyed,
+                         [configConnection](QObject *) mutable {
+                             PkObject::disconnect(configConnection);
+                         });
+        setProperty(configConnectionProperty, true);
+    }
 
 }
 
@@ -150,7 +213,7 @@ void KisToolPaint::tryRestoreOpacitySnapshot()
 void KisToolPaint::activate(const QSet<KoShape*> &shapes)
 {
     if (currentPaintOpPreset()) {
-        const QString formattedBrushName = currentPaintOpPreset() ? currentPaintOpPreset()->name().replace("_", " ") : QString();
+        const QString formattedBrushName = currentPaintOpPreset() ? r44ToQString(currentPaintOpPreset()->name()).replace("_", " ") : QString();
         Q_EMIT statusTextChanged(formattedBrushName);
     }
 
@@ -227,7 +290,7 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
     const int maxThresholdSum = widgetSize.width() + widgetSize.height();
 
     KisOptimizedBrushOutline outline = originalOutline;
-    QRectF boundingRect = outline.boundingRect();
+    QRectF boundingRect = r44ToQRectF(outline.boundingRect());
     const qreal sum = boundingRect.width() + boundingRect.height();
 
     QPointF center = boundingRect.center();
@@ -243,11 +306,11 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
         crossIcon.moveTo(center.x() - hairOffset, center.y());
         crossIcon.lineTo(center.x() + hairOffset, center.y());
 
-        outline.addPath(crossIcon);
+        outline.addPath(r44ToPkPainterPath(crossIcon));
 
     } else if (sum < minThresholdSize && !outline.isEmpty()) {
-        outline = QPainterPath();
-        outline.addEllipse(center, 0.5 * minThresholdSize, 0.5 * minThresholdSize);
+        outline = KisOptimizedBrushOutline();
+        outline.addEllipse(r44ToPkPointF(center), 0.5 * minThresholdSize, 0.5 * minThresholdSize);
     }
 
     return outline;
@@ -614,8 +677,9 @@ void KisToolPaint::requestUpdateOutline(const QPointF &outlineDocPoint, const Ko
         m_outlineDocPoint = outlineDocPoint;
         m_currentOutline = getOutlinePath(m_outlineDocPoint, event, outlineMode);
 
-        outlinePixelRect = tryFixBrushOutline(m_currentOutline).boundingRect();
-        outlineDocRect = currentImage()->pixelToDocument(outlinePixelRect);
+        const PkRectF pkOutlinePixelRect = tryFixBrushOutline(m_currentOutline).boundingRect();
+        outlinePixelRect = r44ToQRectF(pkOutlinePixelRect);
+        outlineDocRect = r44ToQRectF(currentImage()->pixelToDocument(pkOutlinePixelRect));
 
         // This adjusted call is needed as we paint with a 3 pixel wide brush and the pen is outside the bounds of the path
         // Pen uses view coordinates so we have to zoom the document value to match 2 pixel in view coordinates
@@ -704,7 +768,7 @@ void KisToolPaint::requestUpdateOutline(const QPointF &outlineDocPoint, const Ko
 }
 
 bool KisToolPaint::isEraser() const {
-    return canvas()->resourceManager()->resource(KoCanvasResource::CurrentEffectiveCompositeOp).toString() == COMPOSITE_ERASE;
+    return canvas()->resourceManager()->resource(KoCanvasResource::CurrentEffectiveCompositeOp).toString() == r44ToQString(COMPOSITE_ERASE);
 }
 
 KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const QPointF &documentPos,
@@ -715,14 +779,15 @@ KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const QPointF &documentPos
     KIS_ASSERT(services);
 
     const QPointF pixelPos = convertToPixelCoord(documentPos);
+    const PkPointF pkPixelPos = r44ToPkPointF(pixelPos);
     // When touch drawing, a "hover" event means the finger was just pressed
     // down. The last cursor position is invalid with regards to distance and
     // speed, since it isn't updated while the finger isn't down, so reset it.
     if (event && event->isTouchEvent() && mode() == HOVER_MODE) {
-        m_d->lastCursorPos.reset(pixelPos);
+        m_d->lastCursorPos.reset(pkPixelPos);
     }
 
-    KisPaintInformation info(pixelPos);
+    KisPaintInformation info(pkPixelPos);
     info.setCanvasMirroredH(services->toolCanvasMirroredHorizontally());
     info.setCanvasMirroredV(services->toolCanvasMirroredVertically());
     info.setCanvasRotation(services->toolCanvasRotation());
@@ -731,8 +796,8 @@ KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const QPointF &documentPos
 
     const qreal currentZoom = services->toolEffectiveZoom();
 
-    QPointF prevPoint = m_d->lastCursorPos.pushThroughHistory(pixelPos, currentZoom);
-    qreal startAngle = KisAlgebra2D::directionBetweenPoints(prevPoint, pixelPos, 0);
+    PkPointF prevPoint = m_d->lastCursorPos.pushThroughHistory(pkPixelPos, currentZoom);
+    qreal startAngle = KisAlgebra2D::directionBetweenPoints(prevPoint, pkPixelPos, 0);
     KisDistanceInformation distanceInfo(prevPoint, startAngle);
 
     KisPaintInformation::DistanceInformationRegistrar registrar =

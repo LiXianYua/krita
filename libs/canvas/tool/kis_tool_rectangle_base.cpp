@@ -4,16 +4,20 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include "kis_tool_rectangle_base.h"
-
-#include <QtCore/qmath.h>
 #include <QKeyEvent>
+#include <QPainterPath>
+#include <QtCore/qmath.h>
+
+#include <klocalizedstring.h>
+
+#include "kis_tool_rectangle_base.h"
 
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoPointerEvent.h>
 #include <KoViewConverter.h>
 #include <KisCanvasToolServices.h>
+#include <PkFlakeBridge.h>
 
 KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, const QCursor & cursor)
     : KisToolShape(canvas, cursor)
@@ -371,7 +375,7 @@ void KisToolRectangleBase::paintRectangle(QPainter &gc, const QRectF &imageRect)
     getRotatedPath(path, viewRect.center(), getRotationAngle());
     path.addPath(drawX(pixelToView(m_dragStart)));
     path.addPath(drawX(pixelToView(m_dragCenter)));
-    paintToolOutline(&gc, path);
+    paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(path)));
 }
 
 void KisToolRectangleBase::updateArea() {

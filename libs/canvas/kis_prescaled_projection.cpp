@@ -10,11 +10,19 @@
 #include <math.h>
 
 #include <QImage>
+#include <QBitArray>
 #include <QColor>
 #include <QRect>
 #include <QPoint>
+#include <QSharedPointer>
 #include <QSize>
+#include <QVector>
 #include <QPainter>
+
+#include <PkObject.h>
+#include <PkRect.h>
+#include <PkSize.h>
+#include <PkVector.h>
 
 #include <KoColorProfile.h>
 #include <KoViewConverter.h>
@@ -25,6 +33,14 @@
 #include "krita_utils.h"
 
 #include "kis_coordinates_converter.h"
+
+// This consumer uses only the generic update-info interfaces. Avoid instantiating
+// the unrelated OpenGL tile implementation whose producer-native private types
+// are intentionally outside R-44's writable closure.
+class KisTextureTileUpdateInfo;
+typedef QSharedPointer<KisTextureTileUpdateInfo> KisTextureTileUpdateInfoSP;
+typedef QVector<KisTextureTileUpdateInfoSP> KisTextureTileUpdateInfoSPList;
+#define KIS_TEXTURE_TILE_UPDATE_INFO_H_
 #include "kis_projection_backend.h"
 #include "kis_image_pyramid.h"
 #include "kis_display_filter.h"
@@ -33,6 +49,22 @@
 #include <KisCanvasState.h>
 
 namespace {
+
+PkRect toPkRect(const QRect &rect)
+{
+    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+PkSize toPkSize(const QSize &size)
+{
+    return PkSize(size.width(), size.height());
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
 /**
  * RelevantCanvasState represents a part of the canvas state
  * which is relevant for the prescaled projection. Basically,
@@ -123,7 +155,14 @@ KisPrescaledProjection::KisPrescaledProjection()
     // XXX: setting it higher than 1 is broken because it's not updated until you show/hide the layer
     m_d->projectionBackend = new KisImagePyramid(1);
 
-    connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(updateSettings()));
+    KisConfigNotifier *notifier = KisConfigNotifier::instance();
+    PkConnection configConnection = PkObject::connect(
+        notifier, &KisConfigNotifier::configChanged, notifier,
+        [this]() { updateSettings(); });
+    QObject::connect(this, &QObject::destroyed,
+                     [configConnection](QObject *) mutable {
+                         PkObject::disconnect(configConnection);
+                     });
 }
 
 KisPrescaledProjection::~KisPrescaledProjection()
@@ -219,10 +258,11 @@ void KisPrescaledProjection::viewportMoved(const QPointF &offset)
         QRect rect = *rc;
         QRect imageRect =
             m_d->coordinatesConverter->viewportToImage(rect).toAlignedRect();
-        QVector<QRect> patches =
-            KritaUtils::splitRectIntoPatches(imageRect, m_d->updatePatchSize);
+        const PkVector<PkRect> patches = KritaUtils::splitRectIntoPatches(
+            toPkRect(imageRect), toPkSize(m_d->updatePatchSize));
 
-        Q_FOREACH (const QRect& rc, patches) {
+        Q_FOREACH (const PkRect &pkRect, patches) {
+            const QRect rc = toQRect(pkRect);
             QRect viewportPatch =
                 m_d->coordinatesConverter->imageToViewport(rc).toAlignedRect();
 
@@ -247,7 +287,7 @@ void KisPrescaledProjection::slotImageSizeChanged(qint32 w, qint32 h)
 KisUpdateInfoSP KisPrescaledProjection::updateCache(const QRect &dirtyImageRect)
 {
     if (!m_d->image) {
-        dbgRender.noquote() << "Calling updateCache without an image:" << kisBacktrace() << Qt::endl;
+        dbgRender.noquote() << "Calling updateCache without an image:" << kisBacktrace();
         // return invalid info
         return new KisPPUpdateInfo();
     }
@@ -256,7 +296,7 @@ KisUpdateInfoSP KisPrescaledProjection::updateCache(const QRect &dirtyImageRect)
      * We needn't this stuff outside KisImage's area. We're not displaying
      * anything painted outside the image anyway.
      */
-    QRect croppedImageRect = dirtyImageRect & m_d->image->bounds();
+    QRect croppedImageRect = dirtyImageRect & toQRect(m_d->image->bounds());
     if (croppedImageRect.isEmpty()) return new KisPPUpdateInfo();
 
     KisPPUpdateInfoSP info = getInitialUpdateInformation(croppedImageRect);
@@ -292,10 +332,11 @@ void KisPrescaledProjection::preScale()
     QRect imageRect =
         m_d->coordinatesConverter->viewportToImage(viewportRect).toAlignedRect();
 
-    QVector<QRect> patches =
-        KritaUtils::splitRectIntoPatches(imageRect, m_d->updatePatchSize);
+    const PkVector<PkRect> patches = KritaUtils::splitRectIntoPatches(
+        toPkRect(imageRect), toPkSize(m_d->updatePatchSize));
 
-    Q_FOREACH (const QRect& rc, patches) {
+    Q_FOREACH (const PkRect &pkRect, patches) {
+        const QRect rc = toQRect(pkRect);
         QRect viewportPatch = m_d->coordinatesConverter->imageToViewport(rc).toAlignedRect();
         KisPPUpdateInfoSP info = getInitialUpdateInformation(QRect());
         fillInUpdateInformation(viewportPatch, info);
@@ -383,7 +424,7 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
     const int borderSize = BORDER_SIZE(qMax(info->scaleX, info->scaleY));
     info->imageRect.adjust(-borderSize, -borderSize, borderSize, borderSize);
 
-    info->imageRect = info->imageRect & m_d->image->bounds();
+    info->imageRect = info->imageRect & toQRect(m_d->image->bounds());
 
     m_d->projectionBackend->alignSourceRect(info->imageRect, info->scaleX);
 
@@ -393,7 +434,7 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
     info->borderWidth = 0;
     if (SCALE_MORE_OR_EQUAL_TO(info->scaleX, info->scaleY, 1.0)) {
         if (SCALE_LESS_THAN(info->scaleX, info->scaleY, 2.0)) {
-            dbgRender << "smoothBetween100And200Percent" << Qt::endl;
+            dbgRender << "smoothBetween100And200Percent";
             info->renderHints = QPainter::SmoothPixmapTransform;
             info->borderWidth = borderSize;
         }

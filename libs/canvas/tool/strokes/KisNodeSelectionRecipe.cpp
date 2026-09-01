@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QPoint>
+
 #include "KisNodeSelectionRecipe.h"
 
 #include "kis_layer_utils.h"
@@ -12,6 +14,7 @@
 #include "kis_layer.h"
 #include "kis_group_layer.h"
 #include <KoColor.h>
+#include <PkPoint.h>
 
 namespace {
 
@@ -66,7 +69,8 @@ KisNodeSelectionRecipe::KisNodeSelectionRecipe(const KisNodeSelectionRecipe &rhs
     : KisNodeSelectionRecipe(rhs)
 {
     KisLodTransform t(levelOfDetail);
-    pickPoint = t.map(rhs.pickPoint);
+    const PkPoint mappedPoint = t.map(PkPoint(rhs.pickPoint.x(), rhs.pickPoint.y()));
+    pickPoint = QPoint(mappedPoint.x(), mappedPoint.y());
 }
 
 KisNodeList KisNodeSelectionRecipe::selectNodesToProcess() const

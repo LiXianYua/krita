@@ -9,12 +9,23 @@
 
 #include <QHash>
 #include <QObject>
+#include <QElapsedTimer>
+#include <QPoint>
+#include <QRect>
+#include <QScopedPointer>
+#include <QSet>
+#include <QSharedPointer>
+
+#include <PkHash.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSet.h>
+#include <PkSharedPointer.h>
 
 #include <kritacanvas_export.h>
 #include "kis_stroke_strategy_undo_command_based.h"
 #include "kis_types.h"
 #include "kis_lod_transform.h"
-#include <QElapsedTimer>
 #include "KisAsynchronousStrokeUpdateHelper.h"
 #include "KisNodeSelectionRecipe.h"
 #include "kis_transaction.h"
@@ -99,11 +110,11 @@ private:
 
     KisNodeSelectionRecipe m_requestedNodeSelection;
     KisNodeList m_nodes;
-    QSharedPointer<std::pair<KisNodeList, QSet<KisNodeSP>>> m_sharedNodes;
-    QSet<KisNodeSP> m_blacklistedNodes;
+    PkSharedPointer<std::pair<KisNodeList, PkSet<KisNodeSP>>> m_sharedNodes;
+    PkSet<KisNodeSP> m_blacklistedNodes;
     KisUpdatesFacade *m_updatesFacade {nullptr};
-    QPoint m_finalOffset;
-    QHash<KisNodeSP, QRect> m_dirtyRects;
+    PkPoint m_finalOffset;
+    PkHash<KisNodeSP, PkRect> m_dirtyRects;
     bool m_updatesEnabled {true};
 
     QElapsedTimer m_updateTimer;

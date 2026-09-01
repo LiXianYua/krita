@@ -6,6 +6,17 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QPoint>
+#include <QRect>
+#include <QSharedPointer>
+#include <QString>
+#include <QVector>
+
+#include <PkRect.h>
+#include <PkSize.h>
+#include <PkString.h>
+#include <PkVector.h>
+
 #include <kis_node.h>
 #include <kis_image.h>
 #include <kis_wrapped_rect.h>
@@ -13,6 +24,20 @@
 #include <KoCompositeOpRegistry.h>
 
 #include "KisEncloseAndFillProcessingVisitor.h"
+
+namespace {
+
+PkString toPkString(const QString &value)
+{
+    return PkString(value.toUtf8().constData());
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+}
 
 KisEncloseAndFillProcessingVisitor::KisEncloseAndFillProcessingVisitor(KisPaintDeviceSP referencePaintDevice,
         KisPixelSelectionSP enclosingMask,
@@ -83,7 +108,7 @@ void KisEncloseAndFillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device
 {
     Q_ASSERT(m_enclosingMask);
 
-    const QRect fillRect = m_resources->image()->bounds();
+    const PkRect fillRect = m_resources->image()->bounds();
 
     KisEncloseAndFillPainter painter(device, m_selection, fillRect.size());
     painter.beginTransaction();
@@ -110,7 +135,7 @@ void KisEncloseAndFillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device
     painter.setFeather(m_feather);
     if (m_useCustomBlendingOptions) {
         painter.setOpacityF(m_customOpacity);
-        painter.setCompositeOpId(m_customCompositeOp);
+        painter.setCompositeOpId(toPkString(m_customCompositeOp));
     }
 
     KisPaintDeviceSP sourceDevice = m_unmerged ? device : m_referencePaintDevice;
@@ -124,10 +149,10 @@ void KisEncloseAndFillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device
     painter.endTransaction(undoAdapter);
 
     if (m_outDirtyRect) {
-        *m_outDirtyRect = m_enclosingMask->selectedRect();
-        QVector<QRect> dirtyRects = painter.takeDirtyRegion();
-        Q_FOREACH(const QRect &r, dirtyRects) {
-            *m_outDirtyRect = m_outDirtyRect->united(r);
+        *m_outDirtyRect = toQRect(m_enclosingMask->selectedRect());
+        const PkVector<PkRect> dirtyRects = painter.takeDirtyRegion();
+        Q_FOREACH(const PkRect &r, dirtyRects) {
+            *m_outDirtyRect = m_outDirtyRect->united(toQRect(r));
         }
     }
 }

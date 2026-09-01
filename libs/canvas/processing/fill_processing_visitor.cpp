@@ -4,6 +4,17 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QPoint>
+#include <QRect>
+#include <QSharedPointer>
+#include <QString>
+#include <QVector>
+
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkString.h>
+#include <PkVector.h>
+
 #include "fill_processing_visitor.h"
 
 #include <kis_node.h>
@@ -15,6 +26,35 @@
 #include <KoCompositeOpRegistry.h>
 #include "KisAnimAutoKey.h"
 #include "kis_undo_adapter.h"
+
+namespace {
+
+PkString toPkString(const QString &value)
+{
+    return PkString(value.toUtf8().constData());
+}
+
+PkPoint toPkPoint(const QPoint &point)
+{
+    return PkPoint(point.x(), point.y());
+}
+
+QPoint toQPoint(const PkPoint &point)
+{
+    return QPoint(point.x(), point.y());
+}
+
+PkRect toPkRect(const QRect &rect)
+{
+    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+}
 
 
 FillProcessingVisitor::FillProcessingVisitor(KisPaintDeviceSP refPaintDevice,
@@ -42,7 +82,7 @@ FillProcessingVisitor::FillProcessingVisitor(KisPaintDeviceSP refPaintDevice,
     , m_useBgColor(false)
     , m_useCustomBlendingOptions(false)
     , m_customOpacity(OPACITY_OPAQUE_F)
-    , m_customCompositeOp(COMPOSITE_OVER)
+    , m_customCompositeOp(QString::fromUtf8(COMPOSITE_OVER.PkToUtf8().c_str()))
     , m_progressHelper(nullptr)
 {}
 
@@ -76,7 +116,7 @@ void FillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device, KisUndoAdap
 {
     KIS_ASSERT(!m_seedPoints.isEmpty());
 
-    QRect fillRect = m_resources->image()->bounds();
+    const QRect fillRect = toQRect(m_resources->image()->bounds());
 
     KUndo2Command *autoKeyframeCommand = KisAutoKey::tryAutoCreateDuplicatedFrame(device, KisAutoKey::AllowBlankMode);
     if (autoKeyframeCommand) {
@@ -100,7 +140,9 @@ void FillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device, KisUndoAdap
     } else {
         for (QPoint seedPoint : m_seedPoints) {
             if (device->defaultBounds()->wrapAroundMode()) {
-                seedPoint = KisWrappedRect::ptToWrappedPt(seedPoint, device->defaultBounds()->imageBorderRect(), device->defaultBounds()->wrapAroundModeAxis());
+                seedPoint = toQPoint(KisWrappedRect::ptToWrappedPt(
+                    toPkPoint(seedPoint), device->defaultBounds()->imageBorderRect(),
+                    device->defaultBounds()->wrapAroundModeAxis()));
             }
 
             if (m_continuousFillMode == ContinuousFillMode_DoNotUse) {
@@ -114,7 +156,7 @@ void FillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device, KisUndoAdap
 
 void FillProcessingVisitor::selectionFill(KisPaintDeviceSP device, const QRect &fillRect, KisUndoAdapter *undoAdapter)
 {
-    const QRect fillRect_ = m_selection ? m_selection->selectedRect() : fillRect;
+    const PkRect fillRect_ = m_selection ? m_selection->selectedRect() : toPkRect(fillRect);
     KisPaintDeviceSP filledDevice = device->createCompositionSourceDevice();
     KisFillPainter fillPainter(filledDevice);
     fillPainter.setProgress(m_progressHelper->updater());
@@ -127,7 +169,7 @@ void FillProcessingVisitor::selectionFill(KisPaintDeviceSP device, const QRect &
         fillPainter.fillRect(fillRect_, m_resources->currentFgColor(), OPACITY_OPAQUE_U8);
     }
 
-    QVector<QRect> dirtyRect = fillPainter.takeDirtyRegion();
+    const PkVector<PkRect> dirtyRect = fillPainter.takeDirtyRegion();
 
     KisPainter painter(device, m_selection);
     painter.beginTransaction();
@@ -136,13 +178,13 @@ void FillProcessingVisitor::selectionFill(KisPaintDeviceSP device, const QRect &
 
     if (m_useCustomBlendingOptions) {
         painter.setOpacityF(m_customOpacity);
-        painter.setCompositeOpId(m_customCompositeOp);
+        painter.setCompositeOpId(toPkString(m_customCompositeOp));
     }
 
-    Q_FOREACH (const QRect &rc, dirtyRect) {
+    Q_FOREACH (const PkRect &rc, dirtyRect) {
         painter.bitBlt(rc.topLeft(), filledDevice, rc);
         if (m_outDirtyRect) {
-            *m_outDirtyRect = m_outDirtyRect->united(rc);
+            *m_outDirtyRect = m_outDirtyRect->united(toQRect(rc));
         }
     }
 
@@ -178,7 +220,7 @@ void FillProcessingVisitor::normalFill(KisPaintDeviceSP device, const QRect &fil
     fillPainter.setUseCompositing(!m_useFastMode);
     if (m_useCustomBlendingOptions) {
         fillPainter.setOpacityF(m_customOpacity);
-        fillPainter.setCompositeOpId(m_customCompositeOp);
+        fillPainter.setCompositeOpId(toPkString(m_customCompositeOp));
     }
 
     KisPaintDeviceSP sourceDevice = m_unmerged ? device : m_refPaintDevice;
@@ -192,9 +234,9 @@ void FillProcessingVisitor::normalFill(KisPaintDeviceSP device, const QRect &fil
     fillPainter.endTransaction(undoAdapter);
 
     if (m_outDirtyRect) {
-        QVector<QRect> dirtyRects = fillPainter.takeDirtyRegion();
-        Q_FOREACH(const QRect &r, dirtyRects) {
-            *m_outDirtyRect = m_outDirtyRect->united(r);
+        const PkVector<PkRect> dirtyRects = fillPainter.takeDirtyRegion();
+        Q_FOREACH(const PkRect &r, dirtyRects) {
+            *m_outDirtyRect = m_outDirtyRect->united(toQRect(r));
         }
     }
 }
@@ -215,10 +257,10 @@ void FillProcessingVisitor::continuousFill(KisPaintDeviceSP device, const QRect 
         // the continuous fill points that lie outside of it.
         // This avoids unnecessary and expensive flood fill operations
         // when the user drags the mouse outside the selection.
-        if (!m_selection->selectedRect().contains(seedPoint)) {
+        if (!m_selection->selectedRect().contains(toPkPoint(seedPoint))) {
             return;
         }
-        const quint8 opacity = m_selection->projection()->pixel(seedPoint).opacityU8();
+        const quint8 opacity = m_selection->projection()->pixel(toPkPoint(seedPoint)).opacityU8();
         if (opacity == OPACITY_TRANSPARENT_U8) {
             return;
         }
@@ -230,7 +272,7 @@ void FillProcessingVisitor::continuousFill(KisPaintDeviceSP device, const QRect 
         // If the color in the m_continuous fill mask under the start point
         // equals white we return early and don't fill. This means the area
         // under the start point was already filled
-        const quint8 opacity = m_continuousFillMask->pixelSelection()->pixel(seedPoint).opacityU8();
+        const quint8 opacity = m_continuousFillMask->pixelSelection()->pixel(toPkPoint(seedPoint)).opacityU8();
         if (opacity == OPACITY_OPAQUE_U8) {
             return;
         }
@@ -239,7 +281,7 @@ void FillProcessingVisitor::continuousFill(KisPaintDeviceSP device, const QRect 
         // If the color in the reference device under the start point
         // differs from the reference color we return early and don't fill
         const KoColor referenceColor = m_continuousFillReferenceColor->convertedTo(m_refPaintDevice->colorSpace());
-        const KoColor referenceDeviceColor = m_refPaintDevice->pixel(seedPoint);
+        const KoColor referenceDeviceColor = m_refPaintDevice->pixel(toPkPoint(seedPoint));
         if (referenceColor != referenceDeviceColor) {
             return;
         }

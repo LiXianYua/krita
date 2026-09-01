@@ -6,10 +6,12 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include "KoZoomHandler.h"
-#include <KoUnit.h> // for POINT_TO_INCH
 #include <QPointF>
 #include <QRectF>
+#include <QSizeF>
+
+#include "KoZoomHandler.h"
+#include <KoUnit.h> // for POINT_TO_INCH
 
 KoZoomHandler::KoZoomHandler()
     : KoViewConverter()
