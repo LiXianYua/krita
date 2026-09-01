@@ -15,7 +15,6 @@
 
 class KisGeneratorStrokeStrategy: public PkObject, public KisRunnableBasedStrokeStrategy
 {
-    Q_OBJECT
 public:
     KisGeneratorStrokeStrategy();
     ~KisGeneratorStrokeStrategy() override;
