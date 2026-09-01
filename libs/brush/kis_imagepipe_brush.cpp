@@ -7,7 +7,10 @@
 #include "kis_imagepipe_brush.h"
 #include "kis_pipebrush_parasite.h"
 #include "kis_brushes_pipe.h"
+#include "KisBrushStreamUtils.h"
 #include <KisOptimizedBrushOutline.h>
+
+#include <cstring>
 
 class KisImageBrushesPipe : public KisBrushesPipe<KisGbrBrush>
 {
@@ -278,7 +281,7 @@ bool KisImagePipeBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP re
 {
     Q_UNUSED(resourcesInterface);
 
-    PkByteArray data = dev->readAll();
+    PkByteArray data = kisBrushReadAll(dev);
     return initFromData(data);
 }
 
@@ -348,7 +351,7 @@ bool KisImagePipeBrush::saveToDevice(PkStream* dev) const
 {
     const std::string utf8Name = name().PkToUtf8(); // Names in v2 brushes are in UTF-8
     char const* name = utf8Name.data();
-    int len = qstrlen(name);
+    int len = static_cast<int>(std::strlen(name));
 
     if (d->brushesPipe.parasite().dim >= KisPipeBrushParasite::MaxDim) {
         warnImage << "Save to file for pipe brushes with dim != not yet supported!";

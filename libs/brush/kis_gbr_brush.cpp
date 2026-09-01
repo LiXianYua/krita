@@ -18,9 +18,9 @@
 #include <PkFileStream.h>
 #include <PkImage.h>
 #include <PkPoint.h>
+#include <PkRgb.h>
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 
 #include <KoColor.h>
 #include <KoColorSpaceRegistry.h>
@@ -29,6 +29,8 @@
 #include "kis_paint_device.h"
 #include "kis_global.h"
 #include "kis_image.h"
+#include "KisBrushPixelUtils.h"
+#include "KisBrushStreamUtils.h"
 
 struct GimpBrushV1Header {
     quint32 header_size;  /*  header_size = sizeof (BrushHeader) + brush name  */
@@ -125,7 +127,7 @@ KisGbrBrush::~KisGbrBrush()
 bool KisGbrBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
-    d->data = dev->readAll();
+    d->data = kisBrushReadAll(dev);
     return init();
 }
 
@@ -134,7 +136,7 @@ bool KisGbrBrush::init()
     GimpBrushHeader bh;
 
     if (sizeof(GimpBrushHeader) > (uint)d->data.size()) {
-        qWarning() << filename() << "GBR could not be loaded: expected header size larger than bytearray size. Header Size:" << sizeof(GimpBrushHeader) << "Byte array size" << d->data.size();
+        warnKrita << filename() << "GBR could not be loaded: expected header size larger than bytearray size. Header Size:" << sizeof(GimpBrushHeader) << "Byte array size" << d->data.size();
         return false;
     }
 
@@ -162,7 +164,7 @@ bool KisGbrBrush::init()
         bh.spacing = qFromBigEndian(bh.spacing);
 
         if (bh.spacing > 1000) {
-            qWarning() << filename()  << "GBR could not be loaded, spacing above 1000. Spacing:" << bh.spacing;
+            warnKrita << filename()  << "GBR could not be loaded, spacing above 1000. Spacing:" << bh.spacing;
             return false;
         }
     }
@@ -170,7 +172,7 @@ bool KisGbrBrush::init()
     setSpacing(bh.spacing / 100.0);
 
     if (bh.header_size > (uint)d->data.size() || bh.header_size == 0) {
-        qWarning() << "GBR could not be loaded: header size larger than bytearray size. Header Size:" << bh.header_size << "Byte array size" << d->data.size();
+        warnKrita << "GBR could not be loaded: header size larger than bytearray size. Header Size:" << bh.header_size << "Byte array size" << d->data.size();
         return false;
     }
 
@@ -195,7 +197,7 @@ bool KisGbrBrush::init()
     setName(name);
 
     if (bh.width == 0 || bh.height == 0) {
-        qWarning() << filename()  << "GBR loading failed: width or height is 0" << bh.width << bh.height;
+        warnKrita << filename()  << "GBR loading failed: width or height is 0" << bh.width << bh.height;
         return false;
     }
 
@@ -210,7 +212,7 @@ bool KisGbrBrush::init()
     PkImage image(PkImage(bh.width, bh.height, imageFormat));
 
     if (image.isNull()) {
-        qWarning() << filename()  << "GBR loading failed; image could not be created from following dimensions" << bh.width << bh.height
+        warnKrita << filename()  << "GBR loading failed; image could not be created from following dimensions" << bh.width << bh.height
                    << "PkImage::Format" << imageFormat;
         return false;
     }
@@ -221,12 +223,12 @@ bool KisGbrBrush::init()
         // PkImage::setColorTable 收 std::vector<uint32_t>（PkRgb 即 uint32_t，
         // qRgb 合成值类型一致），用 std::vector 直配。
         std::vector<uint32_t> table;
-        for (int i = 0; i < 256; ++i) table.push_back(qRgb(i, i, i));
+        for (int i = 0; i < 256; ++i) table.push_back(pkRgb(i, i, i));
         image.setColorTable(table);
         // Grayscale
 
         if (static_cast<qint32>(k + bh.width * bh.height) > d->data.size()) {
-            qWarning() << filename()  << "GBR file dimensions bigger than bytearray size. Header:"<< k << "Width:" << bh.width << "height" << bh.height
+            warnKrita << filename()  << "GBR file dimensions bigger than bytearray size. Header:"<< k << "Width:" << bh.width << "height" << bh.height
                        << "expected byte array size:" << (k + (bh.width * bh.height)) << "actual byte array size" << d->data.size();
             return false;
         }
@@ -247,7 +249,7 @@ bool KisGbrBrush::init()
         // RGBA
 
         if (static_cast<qint32>(k + (bh.width * bh.height * 4)) > d->data.size()) {
-            qWarning() << filename()  << "GBR file dimensions bigger than bytearray size. Header:"<< k << "Width:" << bh.width << "height" << bh.height
+            warnKrita << filename()  << "GBR file dimensions bigger than bytearray size. Header:"<< k << "Width:" << bh.width << "height" << bh.height
                        << "expected byte array size:" << (k + (bh.width * bh.height * 4)) << "actual byte array size" << d->data.size();
             return false;
         }
@@ -258,7 +260,10 @@ bool KisGbrBrush::init()
         for (quint32 y = 0; y < bh.height; y++) {
             PkRgb *pixel = reinterpret_cast<PkRgb *>(image.scanLine(y));
             for (quint32 x = 0; x < bh.width; x++, k += 4) {
-                *pixel = qRgba(d->data.constData()[k], d->data.constData()[k + 1], d->data.constData()[k + 2], d->data.constData()[k + 3]);
+                *pixel = pkRgba(static_cast<uchar>(d->data.constData()[k]),
+                                static_cast<uchar>(d->data.constData()[k + 1]),
+                                static_cast<uchar>(d->data.constData()[k + 2]),
+                                static_cast<uchar>(d->data.constData()[k + 3]));
                 ++pixel;
             }
         }
@@ -296,7 +301,7 @@ bool KisGbrBrush::initFromPaintDev(KisPaintDeviceSP image, int x, int y, int w, 
 bool KisGbrBrush::saveToDevice(PkStream* dev) const
 {
     if (!valid() || brushTipImage().isNull()) {
-        qWarning() << "this brush is not valid, set a brush tip image" << filename();
+        warnKrita << "this brush is not valid, set a brush tip image" << filename();
         return false;
     }
     GimpBrushHeader bh;
@@ -343,7 +348,7 @@ bool KisGbrBrush::saveToDevice(PkStream* dev) const
         for (qint32 y = 0; y < height(); y++) {
             for (qint32 x = 0; x < width(); x++) {
                 PkRgb c = image.pixel(x, y);
-                bytes.data()[k++] = static_cast<char>(255 - qRed(c)); // red == blue == green
+                bytes.data()[k++] = static_cast<char>(255 - pkRed(c)); // red == blue == green
             }
         }
     } else {
@@ -352,10 +357,10 @@ bool KisGbrBrush::saveToDevice(PkStream* dev) const
             for (qint32 x = 0; x < width(); x++) {
                 // order for gimp brushes, v2 is: RGBA
                 PkRgb pixel = image.pixel(x, y);
-                bytes.data()[k++] = static_cast<char>(qRed(pixel));
-                bytes.data()[k++] = static_cast<char>(qGreen(pixel));
-                bytes.data()[k++] = static_cast<char>(qBlue(pixel));
-                bytes.data()[k++] = static_cast<char>(qAlpha(pixel));
+                bytes.data()[k++] = static_cast<char>(pkRed(pixel));
+                bytes.data()[k++] = static_cast<char>(pkGreen(pixel));
+                bytes.data()[k++] = static_cast<char>(pkBlue(pixel));
+                bytes.data()[k++] = static_cast<char>(pkAlpha(pixel));
             }
         }
     }
@@ -387,7 +392,7 @@ void KisGbrBrush::makeMaskImage(bool preserveAlpha)
         PkImage image(imageWidth, imageHeight, PkImage::Format_Indexed8);
         std::vector<uint32_t> table;
         for (int i = 0; i < 256; ++i) {
-            table.push_back(qRgb(i, i, i));
+            table.push_back(pkRgb(i, i, i));
         }
         image.setColorTable(table);
 
@@ -396,11 +401,11 @@ void KisGbrBrush::makeMaskImage(bool preserveAlpha)
             uchar * dstPixel = image.scanLine(y);
             for (int x = 0; x < imageWidth; x++) {
                 PkRgb c = pixel[x];
-                float alpha = qAlpha(c) / 255.0f;
+                float alpha = pkAlpha(c) / 255.0f;
                 // linear interpolation with maximum gray value which is transparent in the mask
                 //int a = (qGray(c) * alpha) + ((1.0 - alpha) * 255);
                 // single multiplication version
-                int a = 255 + int(alpha * (qGray(c) - 255));
+                int a = 255 + int(alpha * (kisBrushGray(c) - 255));
                 dstPixel[x] = (uchar)a;
             }
         }

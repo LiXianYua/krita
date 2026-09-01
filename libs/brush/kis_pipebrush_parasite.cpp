@@ -6,7 +6,7 @@
  */
 #include "kis_pipebrush_parasite.h"
 
-#include <PkTextStream.h>
+#include <string>
 
 KisPipeBrushParasite::KisPipeBrushParasite(const PkString& source)
 {
@@ -129,37 +129,35 @@ bool KisPipeBrushParasite::saveToDevice(PkStream* dev) const
     // write out something like
     // <count> ncells:<count> dim:<dim> rank0:<rank0> sel0:<sel0> <...>
 
-    PkTextStream stream(dev);
-    // setUtf8OnStream 无 Qt 世界为空操作（PkTextStream 原生 UTF-8），且
-    // KisPortingUtils::setUtf8OnStream 只接受真 QTextStream&，故不调用、不引
-    // libs/global/KisPortingUtils.h（与 libs/pigment KoSegmentGradient 同口径）。
-
     // XXX: FIXME things like step, placement and so are not added (nor loaded, as a matter of fact)"
-    stream << ncells << " ncells:" << ncells << " dim:" << dim;
+    std::string output = std::to_string(ncells) + " ncells:" + std::to_string(ncells)
+        + " dim:" + std::to_string(dim);
 
     for (int i = 0; i < dim; i++) {
-        stream << " rank" << i << ":" << rank[i] << " sel" << i << ":";
+        output += " rank" + std::to_string(i) + ":" + std::to_string(rank[i])
+            + " sel" + std::to_string(i) + ":";
         switch (selection[i]) {
         case KisParasite::Constant:
-            stream << "constant"; break;
+            output += "constant"; break;
         case KisParasite::Incremental:
-            stream << "incremental"; break;
+            output += "incremental"; break;
         case KisParasite::Angular:
-            stream << "angular"; break;
+            output += "angular"; break;
         case KisParasite::Velocity:
-            stream << "velocity"; break;
+            output += "velocity"; break;
         case KisParasite::Random:
-            stream << "random"; break;
+            output += "random"; break;
         case KisParasite::Pressure:
-            stream << "pressure"; break;
+            output += "pressure"; break;
         case KisParasite::TiltX:
-            stream << "xtilt"; break;
+            output += "xtilt"; break;
         case KisParasite::TiltY:
-            stream << "ytilt"; break;
+            output += "ytilt"; break;
         }
     }
 
-    return true;
+    return dev->write(output.data(), static_cast<PkStream::pk_int64>(output.size()))
+        == static_cast<PkStream::pk_int64>(output.size());
 }
 
 bool loadFromDevice(PkStream */*dev*/)

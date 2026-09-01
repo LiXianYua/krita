@@ -42,12 +42,7 @@
 #include <KoResourceLoadResult.h>
 #include <KisLazySharedCacheStorage.h>
 #include <KisOptimizedBrushOutline.h>
-#include <KisStaticInitializer.h>
-
-
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KisBrushSP>("KisBrushSP");
-}
+#include "KisBrushPixelUtils.h"
 
 const PkString KisBrush::brushTypeMetaDataKey = "image-based-brush";
 
@@ -108,6 +103,71 @@ KisOptimizedBrushOutline* outlineFactory(const KisBrush *brush) {
     boundary.generateBoundary();
     return new KisOptimizedBrushOutline(boundary.path(), dev->bounds());
 }
+}
+
+namespace {
+
+template <typename T, typename... Args>
+class BrushLinkedCacheStorage
+{
+public:
+    using ConstType = std::add_const_t<T>;
+    using FactoryType = T*(Args...);
+    using DataWrapper = KisLazySharedCacheStorageDetail::DataWrapperShared<T, Args...>;
+
+    BrushLinkedCacheStorage() = default;
+
+    explicit BrushLinkedCacheStorage(std::function<FactoryType> factory)
+        : m_factory(std::move(factory))
+    {
+    }
+
+    BrushLinkedCacheStorage(const BrushLinkedCacheStorage &rhs)
+    {
+        PkMutexLocker locker(&rhs.m_mutex);
+        m_factory = rhs.m_factory;
+        m_dataWrapper = rhs.m_dataWrapper;
+        m_cachedValue.storeRelease(rhs.m_cachedValue.loadAcquire());
+    }
+
+    ConstType *value(Args... args)
+    {
+        ConstType *result = m_cachedValue.loadAcquire();
+        if (!result) {
+            PkMutexLocker locker(&m_mutex);
+            result = m_cachedValue.loadAcquire();
+            if (!result) {
+                result = m_dataWrapper.lazyInitialize(m_factory, std::forward<Args>(args)...);
+                m_cachedValue.storeRelease(result);
+            }
+        }
+        return result;
+    }
+
+    bool isNull() const
+    {
+        return !m_cachedValue.loadAcquire() && !m_dataWrapper.hasValue();
+    }
+
+    void initialize(Args... args)
+    {
+        (void)value(std::forward<Args>(args)...);
+    }
+
+    void reset()
+    {
+        PkMutexLocker locker(&m_mutex);
+        m_cachedValue.storeRelaxed(nullptr);
+        m_dataWrapper.reset();
+    }
+
+private:
+    std::function<FactoryType> m_factory;
+    DataWrapper m_dataWrapper;
+    PkAtomicPointer<ConstType> m_cachedValue;
+    mutable PkMutex m_mutex;
+};
+
 }
 
 struct KisBrush::Private {
@@ -189,8 +249,8 @@ struct KisBrush::Private {
     bool threadingAllowed;
 
     PkImage brushTipImage;
-    mutable KisLazySharedCacheStorageLinked<KisQImagePyramid, const KisBrush*> brushPyramid;
-    mutable KisLazySharedCacheStorageLinked<KisOptimizedBrushOutline, const KisBrush*> brushOutline;
+    mutable BrushLinkedCacheStorage<KisQImagePyramid, const KisBrush*> brushPyramid;
+    mutable BrushLinkedCacheStorage<KisOptimizedBrushOutline, const KisBrush*> brushOutline;
 };
 
 KisBrush::KisBrush()
@@ -347,7 +407,7 @@ bool KisBrush::isPiercedApprox() const
         for (int x = x0; x <= x1; x++) {
             PkRgb pixel = image.pixel(x,y);
 
-            if (qRed(pixel) > thresholdValue) {
+            if (pkRed(pixel) > thresholdValue) {
                 failedPixels++;
             }
         }
@@ -360,7 +420,7 @@ namespace {
 void fetchPremultipliedRed(const PkRgb* src, quint8 *dst, int maskWidth)
 {
     for (int x = 0; x < maskWidth; x++) {
-        *dst = KoColorSpaceMaths<quint8>::multiply(255 - *src, qAlpha(*src));
+        *dst = KoColorSpaceMaths<quint8>::multiply(255 - *src, pkAlpha(*src));
         src++;
         dst++;
     }
@@ -406,7 +466,7 @@ void KisBrush::setBrushTipImage(const PkImage& image)
 
     if (!image.isNull()) {
         if (image.width() > 128 || image.height() > 128) {
-            KoResource::setImage(image.scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            KoResource::setImage(image.scaled(PkSize(128, 128), Qt::KeepAspectRatio, Qt::SmoothTransformation));
         }
         else {
             KoResource::setImage(image);
@@ -645,9 +705,9 @@ void KisBrush::generateMaskAndApplyMaskOrCreateDab(KisFixedPaintDeviceSP dst,
                 quint8* pixel = rowPointer;
                 for (int x = 0; x < maskWidth; x++) {
                     const PkRgb* maskQRgb = reinterpret_cast<const PkRgb*>(maskPointer);
-                    qreal maskOpacity = qreal(qAlpha(*maskQRgb)) / 255.0;
+                    qreal maskOpacity = qreal(pkAlpha(*maskQRgb)) / 255.0;
                     if (maskOpacity > 0) {
-                        qreal gradientvalue = qreal(qGray(*maskQRgb)) / 255.0;
+                        qreal gradientvalue = qreal(kisBrushGray(*maskQRgb)) / 255.0;
                         gradientcolor.setColor(d->cachedGradient->cachedAt(gradientvalue), cs);
                     }
                     qreal gradientOpacity = gradientcolor.opacityF();
@@ -702,7 +762,6 @@ KisFixedPaintDeviceSP KisBrush::paintDevice(const KoColorSpace * colorSpace,
                 KisDabShape(scale, shape.ratio(), -angle), subPixelX, subPixelY);
 
     KisFixedPaintDeviceSP dab = new KisFixedPaintDevice(colorSpace);
-    Q_CHECK_PTR(dab);
     dab->convertFromQImage(outputImage, "");
 
     return dab;

@@ -115,7 +115,6 @@ void KisImagePipeBrushTest::testChangingBrushes()
 
     qreal rotation = 0;
     KisPaintInformation info(PkPointF(100.0, 100.0), 0.5, 0, 0, rotation);
-
     for (int i = 0; i < 100; i++) {
         checkConsistency(brush);
         brush->testingSelectNextBrush(info);
@@ -124,6 +123,7 @@ void KisImagePipeBrushTest::testChangingBrushes()
 
 void checkIncrementalPainting(KisBrushSP brush, const PkString &prefix)
 {
+    Q_UNUSED(prefix);
     qreal realScale = 1;
     qreal realAngle = 0;
 
@@ -148,8 +148,6 @@ void checkIncrementalPainting(KisBrushSP brush, const PkString &prefix)
         brush->mask(fixedDab, fillColor, KisDabShape(realScale, 1.0, realAngle), info);
         QCOMPARE(fixedDab->bounds(), fillRect);
 
-        PkImage result = fixedDab->convertToQImage(0);
-        result.save(PkString("fixed_dab_%1_%2.png").arg(prefix).arg(i));
     }
 }
 
@@ -223,9 +221,6 @@ void KisImagePipeBrushTest::testColoredDabWash()
 
     PkRect rc = layer->exactBounds();
 
-    PkImage result = layer->convertToQImage(0, rc.x(), rc.y(), rc.width(), rc.height());
-
-
 #if 0
     // if you want to see the result on white background, set #if 1
     PkImage bg(result.size(), result.format());
@@ -234,7 +229,6 @@ void KisImagePipeBrushTest::testColoredDabWash()
     qPainter.drawImage(0, 0, result);
     result = bg;
 #endif
-    result.save("z_spark_alpha_darken.png");
 }
 
 

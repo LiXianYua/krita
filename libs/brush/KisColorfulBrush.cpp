@@ -5,6 +5,7 @@
  */
 
 #include "KisColorfulBrush.h"
+#include "KisBrushPixelUtils.h"
 
 
 KisColorfulBrush::KisColorfulBrush(const PkString &filename)
@@ -27,8 +28,8 @@ qreal estimateImageAverage(const PkImage &image) {
         const PkRgb *pixel = reinterpret_cast<const PkRgb*>(image.scanLine(y));
 
         for (int i = 0; i < image.width(); ++i) {
-            lightnessSum += qRound(qGray(*pixel) * qAlpha(*pixel) / 255.0);
-            alphaSum += qAlpha(*pixel);
+            lightnessSum += qRound(kisBrushGray(*pixel) * pkAlpha(*pixel) / 255.0);
+            alphaSum += pkAlpha(*pixel);
             pixel++;
         }
     }
@@ -109,7 +110,7 @@ PkImage KisColorfulBrush::brushTipImage() const
                 for (int x = 0; x < image.width(); x++) {
                     PkRgb c = pixel[x];
 
-                    int v = qGray(c);
+                    int v = kisBrushGray(c);
 
                     if (v >= midX) {
                         v = qMin(unit, qRound(hiA * v + hiB));
@@ -117,7 +118,7 @@ PkImage KisColorfulBrush::brushTipImage() const
                         v = qMax(0, qRound(loA * v + loB));
                     }
 
-                    pixel[x] = qRgba(v, v, v, qAlpha(c));
+                    pixel[x] = pkRgba(v, v, v, pkAlpha(c));
                 }
             }
         } else {
@@ -126,8 +127,8 @@ PkImage KisColorfulBrush::brushTipImage() const
                 for (int x = 0; x < image.width(); x++) {
                     PkRgb c = pixel[x];
 
-                    int v = qGray(c);
-                    pixel[x] = qRgba(v, v, v, qAlpha(c));
+                    int v = kisBrushGray(c);
+                    pixel[x] = pkRgba(v, v, v, pkAlpha(c));
                 }
             }
         }

@@ -4,18 +4,20 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_png_brush.h"
-
-#include <PkXmlElement.h>
 #include <QBuffer>
 #include <QImageReader>
-#include <PkAuxTypes.h>
 #include <QPainter>
 
+#include "kis_png_brush.h"
+
+#include <PkAuxTypes.h>
+#include <PkStream.h>
+#include <PkXmlElement.h>
 #include <cstring>
 #include <filesystem>
 
 #include <kis_dom_utils.h>
+#include "KisBrushStreamUtils.h"
 
 // ── 图像编解码 GAP（登记，关闭条件 R-15/S-03-e libpng 通道）──────────────────
 // PNG 解码走 Qt 通道：QImageReader 只能消费 QIODevice，PkMemoryStream 不是
@@ -81,7 +83,7 @@ bool KisPngBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
 
     // Workaround for some OS (Debian, Ubuntu), where loading directly from the PkStream
     // fails with "libpng error: IDAT: CRC error"
-    PkByteArray data = dev->readAll();
+    PkByteArray data = kisBrushReadAll(dev);
     QByteArray bytes(data.data(), data.size());
     QBuffer buf(&bytes);
     buf.open(QIODevice::ReadOnly);
