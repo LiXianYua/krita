@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 #include <limits>
 
 namespace {
@@ -39,6 +40,75 @@ bool valid(const RasterCase &c)
     return c.clipWidth > 0 && c.clipHeight > 0
         && c.clipWidth <= 4096 && c.clipHeight <= 4096
         && c.commands != nullptr && c.commandCount > 0;
+}
+
+bool samePattern(const PkVector<qreal> &actual,
+                 std::initializer_list<qreal> expected)
+{
+    if (actual.size() != int(expected.size())) {
+        return false;
+    }
+    int index = 0;
+    for (qreal value : expected) {
+        if (actual.at(index++) != value) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int verifyPenCarrierTransitions()
+{
+    const PkPen defaults;
+    if (defaults.widthF() != 1.0 || defaults.style() != Qt::SolidLine
+        || defaults.capStyle() != Qt::SquareCap
+        || defaults.joinStyle() != Qt::BevelJoin
+        || defaults.miterLimit() != 2.0 || defaults.dashOffset() != 0.0
+        || !defaults.dashPattern().isEmpty()) {
+        return 20;
+    }
+
+    PkVector<qreal> custom;
+    custom.append(2.0);
+    custom.append(3.0);
+    PkPen resetByStyle;
+    resetByStyle.setDashPattern(custom);
+    resetByStyle.setDashOffset(0.75);
+    resetByStyle.setStyle(Qt::DashLine);
+    if (resetByStyle.style() != Qt::DashLine
+        || resetByStyle.dashOffset() != 0.0
+        || !samePattern(resetByStyle.dashPattern(), {4.0, 2.0})) {
+        return 21;
+    }
+
+    PkPen promoted;
+    promoted.setStyle(Qt::DashDotLine);
+    promoted.setDashOffset(1.25);
+    if (promoted.style() != Qt::CustomDashLine
+        || promoted.dashOffset() != 1.25
+        || !samePattern(promoted.dashPattern(), {4.0, 2.0, 1.0, 2.0})) {
+        return 22;
+    }
+
+    PkPen emptyNoOp;
+    emptyNoOp.setStyle(Qt::DotLine);
+    emptyNoOp.setDashPattern({});
+    if (emptyNoOp.style() != Qt::DotLine
+        || !samePattern(emptyNoOp.dashPattern(), {1.0, 2.0})) {
+        return 23;
+    }
+
+    PkVector<qreal> odd;
+    odd.append(5.0);
+    odd.append(2.0);
+    odd.append(1.5);
+    PkPen completedOddPattern;
+    completedOddPattern.setDashPattern(odd);
+    if (completedOddPattern.style() != Qt::CustomDashLine
+        || !samePattern(completedOddPattern.dashPattern(), {5.0, 2.0, 1.5, 1.0})) {
+        return 24;
+    }
+    return 0;
 }
 
 int emitCase(const RasterCase &c)
@@ -158,6 +228,47 @@ int verifyNonFiniteInputsAreRejected()
             finiteLine, invalidDash, clip, true))) {
         return 18;
     }
+
+    PkPen invalidStyle;
+    invalidStyle.setStyle(static_cast<Qt::PenStyle>(99));
+    if (!isEmptyMask(KisPathRasterizer::rasterizeStroke(
+            finiteLine, invalidStyle, clip, true))) {
+        return 25;
+    }
+
+    PkPen invalidCap;
+    invalidCap.setCapStyle(static_cast<Qt::PenCapStyle>(99));
+    if (!isEmptyMask(KisPathRasterizer::rasterizeStroke(
+            finiteLine, invalidCap, clip, true))) {
+        return 26;
+    }
+
+    PkPen invalidJoin;
+    invalidJoin.setJoinStyle(static_cast<Qt::PenJoinStyle>(99));
+    if (!isEmptyMask(KisPathRasterizer::rasterizeStroke(
+            finiteLine, invalidJoin, clip, true))) {
+        return 27;
+    }
+
+    PkPen invalidOffset;
+    invalidOffset.setDashOffset(infinity);
+    if (!isEmptyMask(KisPathRasterizer::rasterizeStroke(
+            finiteLine, invalidOffset, clip, true))) {
+        return 28;
+    }
+
+    PkPen negativeWidth(Qt::black, -1.0);
+    if (!isEmptyMask(KisPathRasterizer::rasterizeStroke(
+            finiteLine, negativeWidth, clip, true))) {
+        return 29;
+    }
+
+    PkPen negativeMiter;
+    negativeMiter.setMiterLimit(-1.0);
+    if (!isEmptyMask(KisPathRasterizer::rasterizeStroke(
+            finiteLine, negativeMiter, clip, true))) {
+        return 30;
+    }
     return 0;
 }
 
@@ -167,6 +278,9 @@ int main(int argc, char **argv)
 {
     if (argc == 2 && std::strcmp(argv[1], "--self-test-invalid") == 0) {
         return verifyNonFiniteInputsAreRejected();
+    }
+    if (argc == 2 && std::strcmp(argv[1], "--self-test-carrier") == 0) {
+        return verifyPenCarrierTransitions();
     }
     const bool listAll = argc == 2 && std::strcmp(argv[1], "--list") == 0;
     const bool listFill = argc == 2 && std::strcmp(argv[1], "--list-fill") == 0;

@@ -41,6 +41,7 @@
 
 #include "kis_path_scan_converter_p.h"
 #include "kis_path_stroker_p.h"
+#include "kis_cosmetic_stroker_p.h"
 
 #include <PkPainterPath.h>
 #include <PkPen.h>
@@ -156,6 +157,9 @@ CoverageMask rasterizeStroke(const PkPainterPath &path,
     if (clip.isEmpty() || path.isEmpty() || pen.style() == Qt::NoPen
         || !hasOnlyFiniteElements(path) || !hasValidStrokeState(pen)) {
         return {};
+    }
+    if (pen.widthF() <= 1.0) {
+        return Private::rasterizeCosmeticStroke(path, pen, clip, antialiased);
     }
     const PkPainterPath outline = Private::createStrokeOutline(path, pen, clip);
     if (outline.isEmpty()) {

@@ -139,6 +139,14 @@ def main():
         "SvgMiterJoin and MiterJoin clipping produced identical masks"
     assert data("zero_width_cosmetic") == data("unit_width"), \
         "zero-width cosmetic stroke did not normalize to one pixel"
+    assert data("cosmetic_half_binary") != data("cosmetic_half_aa"), \
+        "subpixel cosmetic AA on/off produced identical masks"
+    assert data("cosmetic_half_aa") != data("unit_width"), \
+        "subpixel cosmetic opacity did not differ from unit width"
+    assert data("cosmetic_dash_flat") != data("cosmetic_dash_square"), \
+        "cosmetic dash caps produced identical masks"
+    assert any(data("cosmetic_closed_dash")), \
+        "closed cosmetic dash fixture produced an empty mask"
     assert data("closed_flat_cap") == data("closed_round_cap"), \
         "closed subpath incorrectly applied end caps"
     for name in names:
