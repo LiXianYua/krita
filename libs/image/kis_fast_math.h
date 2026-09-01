@@ -11,6 +11,8 @@
 #define _KIS_IMAGE_FAST_
 
 
+#include <PkGlobal.h>
+
 #include "kritaimage_export.h"
 
 /**
