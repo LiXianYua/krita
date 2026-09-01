@@ -17,6 +17,12 @@ add_executable(KisRandomGenerator2DDemo ${KisRandomGenerator2DDemoSources})
 target_link_libraries(KisRandomGenerator2DDemo kritaimage)
 ecm_mark_as_test(KisRandomGenerator2DDemo)
 
+add_executable(KisPathRasterizerQtOracle
+    KisPathRasterizerQtOracle.cpp
+    path_rasterizer_cases.h)
+target_link_libraries(KisPathRasterizerQtOracle PRIVATE Qt5::Gui)
+ecm_mark_as_test(KisPathRasterizerQtOracle)
+
 
 kis_add_tests(
     kis_base_node_test.cpp
