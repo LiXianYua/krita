@@ -534,6 +534,7 @@ set(kritaimage_SIGNAL_HEADERS
     filter/kis_filter_registry.h
     generator/kis_generator_registry.h
     lazybrush/kis_colorize_mask.h
+    lazybrush/kis_colorize_stroke_strategy.h
     brushengine/KisPaintOpPresetUpdateProxy.h
     brushengine/kis_uniform_paintop_property.h
     brushengine/kis_slider_based_paintop_property.h

@@ -9,6 +9,7 @@
 
 #include <PkScopedPointer.h>
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 
 #include "kis_types.h"
 #include "KisRunnableBasedStrokeStrategy.h"
@@ -22,8 +23,6 @@ struct FilteringOptions;
 
 class KisColorizeStrokeStrategy : public PkObject, public KisRunnableBasedStrokeStrategy
 {
-    Q_OBJECT
-
 public:
     KisColorizeStrokeStrategy(KisPaintDeviceSP src,
                               KisPaintDeviceSP dst,
@@ -47,7 +46,7 @@ public:
 
     KisStrokeStrategy *createLodClone(int levelOfDetail) override;
 
-Q_SIGNALS:
+signals:
     void sigFinished(bool prefilterOnly);
     void sigCancelled();
 
