@@ -7,7 +7,7 @@
  */
 #include "KisScatterOption.h"
 
-#include <QVector2D>
+#include <PkVectorND.h>
 
 #include <kis_properties_configuration.h>
 #include <kis_paint_information.h>
@@ -49,13 +49,13 @@ PkPointF KisScatterOption::apply(const KisPaintInformation& info, qreal width, q
     }
 
     qreal drawingAngle = info.drawingAngle();
-    QVector2D movement(cos(drawingAngle), sin(drawingAngle));
+    PkVector2D movement(cos(drawingAngle), sin(drawingAngle));
     if (m_axisX) {
         movement *= jitter;
         result = movement.toPointF();
     }
     else if (m_axisY) {
-        QVector2D movementNormal(-movement.y(), movement.x());
+        PkVector2D movementNormal(-movement.y(), movement.x());
         movementNormal *= jitter;
         result = movementNormal.toPointF();
     }

@@ -9,8 +9,6 @@
 
 #include <PkString.h>
 
-#include <klocalizedstring.h>
-
 #include <KoPattern.h>
 #include <KoAbstractGradient.h>
 #include <KoResource.h>
