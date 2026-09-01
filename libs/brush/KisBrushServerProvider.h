@@ -19,8 +19,6 @@
 class BRUSH_EXPORT KisBrushServerProvider : public PkObject
 {
 
-    Q_OBJECT
-
 public:
     KisBrushServerProvider();
     ~KisBrushServerProvider() override;

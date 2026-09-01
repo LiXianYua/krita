@@ -23,8 +23,6 @@ class PkXmlElement;
 class BRUSH_EXPORT KisBrushRegistry : public PkObject, public KoGenericRegistry<KisBrushFactory*>
 {
 
-    Q_OBJECT
-
 public:
     KisBrushRegistry();
     ~KisBrushRegistry() override;
