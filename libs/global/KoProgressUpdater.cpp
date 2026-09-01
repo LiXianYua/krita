@@ -78,7 +78,7 @@ KoProgressUpdater::KoProgressUpdater(KoProgressProxy *progressProxy, Mode mode)
                       this, &KoProgressUpdater::updateUi);
     PkObject::connect(this, &KoProgressUpdater::triggerUpdateAsynchronously,
                       d->updateCompressor, &KisSignalCompressor::start);
-    Q_EMIT triggerUpdateAsynchronously();
+    triggerUpdateAsynchronously();
 }
 
 KoProgressUpdater::KoProgressUpdater(PkPointer<KoUpdater> updater)
@@ -89,7 +89,7 @@ KoProgressUpdater::KoProgressUpdater(PkPointer<KoUpdater> updater)
                       this, &KoProgressUpdater::updateUi);
     PkObject::connect(this, &KoProgressUpdater::triggerUpdateAsynchronously,
                       d->updateCompressor, &KisSignalCompressor::start);
-    Q_EMIT triggerUpdateAsynchronously();
+    triggerUpdateAsynchronously();
 }
 
 KoProgressUpdater::~KoProgressUpdater()
@@ -122,7 +122,7 @@ void KoProgressUpdater::start(int range, const PkString &text)
         d->currentProgress = 0;
     }
 
-    Q_EMIT triggerUpdateAsynchronously();
+    triggerUpdateAsynchronously();
 }
 
 PkPointer<KoUpdater> KoProgressUpdater::startSubtask(int weight,
@@ -147,7 +147,7 @@ PkPointer<KoUpdater> KoProgressUpdater::startSubtask(int weight,
 
     PkPointer<KoUpdater> updater = p->connectedUpdater();
 
-    Q_EMIT triggerUpdateAsynchronously();
+    triggerUpdateAsynchronously();
     return updater;
 }
 
@@ -168,7 +168,7 @@ void KoProgressUpdater::removePersistentSubtask(PkPointer<KoUpdater> updater)
         }
     }
 
-    Q_EMIT triggerUpdateAsynchronously();
+    triggerUpdateAsynchronously();
 }
 
 void KoProgressUpdater::cancel()
@@ -190,7 +190,13 @@ void KoProgressUpdater::cancel()
     }
     d->canceled = true;
 
-    Q_EMIT triggerUpdateAsynchronously();
+    triggerUpdateAsynchronously();
+}
+
+void KoProgressUpdater::triggerUpdateAsynchronously()
+{
+    activateSignal<>(this,
+                     PkMemberFnKey::from(&KoProgressUpdater::triggerUpdateAsynchronously));
 }
 
 void KoProgressUpdater::update()

@@ -7,12 +7,14 @@
  */
 #include "kis_progress_updater.h"
 
+#include <kis_assert.h>
+
 KisProgressUpdater::KisProgressUpdater(KisProgressInterface* progressInterface, KoProgressProxy* proxy, KoProgressUpdater::Mode mode)
     : KoProgressUpdater(proxy, mode)
     , m_interface(progressInterface)
 {
-    Q_ASSERT(progressInterface);
-    Q_ASSERT(proxy);
+    KIS_ASSERT(progressInterface);
+    KIS_ASSERT(proxy);
     m_interface->attachUpdater(this);
 }
 

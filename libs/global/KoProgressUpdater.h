@@ -8,8 +8,8 @@
 
 #include "kritaglobal_export.h"
 
+#include <PkObject.h>
 #include <PkString.h>
-#include <compat/QObject>
 #include <PkPointer.h>
 
 class KoUpdater;
@@ -52,7 +52,6 @@ class PkTime;
  */
 class KRITAGLOBAL_EXPORT KoProgressUpdater : public PkObject
 {
-    Q_OBJECT
 public:
 
     enum Mode {
@@ -118,7 +117,7 @@ public:
     void setAutoNestNames(bool value);
     bool autoNestNames() const;
 
-public Q_SLOTS:
+public:
     /**
      * Cancelling the action will make each subtask be marked as 'interrupted' and
      * set the total progress to 100%.
@@ -128,12 +127,12 @@ public Q_SLOTS:
      */
     void cancel();
 
-private Q_SLOTS:
+private:
 
     void update();
     void updateUi();
 
-Q_SIGNALS:
+public:
     void triggerUpdateAsynchronously();
 
 private:
