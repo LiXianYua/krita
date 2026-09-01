@@ -17,7 +17,9 @@ int qExec(QObject *testObject, int argc, char **argv);
 #include <QTest>
 #endif
 
-// SIMPLE_TEST_MAIN/SIMPLE_MAIN_IMPL：零 Qt 版测试入口。
+// SIMPLE_TEST_MAIN/SIMPLE_MAIN_IMPL：过渡期双 Pk/Qt 测试入口。
+// 默认分支保留 QtTest 给未迁移的 QObject fixture；只有
+// KRITA_TESTSDK_PK_NATIVE 会抑制 QtTest include，供 Pk-native fixture 使用。
 //
 // 原实现会创建一个 GUI 应用对象（含 locale 默认值 / 测试模式路径 / DPI /
 // 键盘导航禁用等六件事），按 R-10 PkObject 线程模型改写：那个对象的作用是
