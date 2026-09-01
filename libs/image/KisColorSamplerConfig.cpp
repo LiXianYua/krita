@@ -6,11 +6,25 @@
 
 #include <KConfigGroup>
 #include <KSharedConfig>
+#include <QByteArray>
+#include <QString>
 
 #include "kis_properties_configuration.h"
 
 namespace {
 const PkString configGroupName = PkString("tool_color_sampler");
+
+QString pkToQString(const PkString &value)
+{
+    const std::string utf8 = value.PkToUtf8();
+    return QString::fromUtf8(utf8.data(), int(utf8.size()));
+}
+
+PkString qStringToPk(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
 }
 
 KisColorSamplerConfig::KisColorSamplerConfig()
@@ -35,15 +49,15 @@ void KisColorSamplerConfig::save() const
     props.setProperty("radius", radius);
     props.setProperty("blend", blend);
 
-    KConfigGroup config = KSharedConfig::openConfig()->group(configGroupName);
-    config.writeEntry("ColorSamplerDefaultActivation", props.toXML());
+    KConfigGroup config = KSharedConfig::openConfig()->group(pkToQString(configGroupName));
+    config.writeEntry("ColorSamplerDefaultActivation", pkToQString(props.toXML()));
 }
 
 void KisColorSamplerConfig::load()
 {
     KisPropertiesConfiguration props;
-    KConfigGroup config = KSharedConfig::openConfig()->group(configGroupName);
-    props.fromXML(config.readEntry("ColorSamplerDefaultActivation", PkString()));
+    KConfigGroup config = KSharedConfig::openConfig()->group(pkToQString(configGroupName));
+    props.fromXML(qStringToPk(config.readEntry("ColorSamplerDefaultActivation", QString())));
 
     toForegroundColor = props.getBool("toForegroundColor", true);
     updateColor = props.getBool("updateColor", true);
