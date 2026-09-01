@@ -15,8 +15,6 @@
 
 #include <PkRect.h>
 
-#include <klocalizedstring.h>
-
 #include <KoUpdater.h>
 
 #include "generator/kis_generator.h"
