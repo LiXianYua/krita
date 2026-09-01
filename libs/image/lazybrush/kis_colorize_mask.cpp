@@ -24,6 +24,7 @@
 #include <PkStack.h>
 #include <string>
 
+#include <KisMpl.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoProperties.h>
 #include <kundo2command.h>
