@@ -10,6 +10,8 @@
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoViewConverter.h>
+#include <KisOptimizedBrushOutline.h>
+#include <PkFlakeBridge.h>
 KisToolEllipseBase::KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, const QCursor & cursor)
     : KisToolRectangleBase(canvas, type, cursor)
 {
@@ -26,7 +28,7 @@ void KisToolEllipseBase::paintRectangle(QPainter &gc, const QRectF &imageRect)
     getRotatedPath(path, viewRect.center(), getRotationAngle());
     path.addPath(drawX(pixelToView(m_dragStart)));
     path.addPath(drawX(pixelToView(m_dragCenter)));
-    paintToolOutline(&gc, path);
+    paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(path)));
 }
 
 bool KisToolEllipseBase::showRoundCornersGUI() const

@@ -35,6 +35,7 @@
 #include "strokes/KisFreehandStrokeInfo.h"
 #include "KisAsynchronousStrokeUpdateHelper.h"
 #include <KisOptimizedBrushOutline.h>
+#include <PkFlakeBridge.h>
 
 #include <math.h>
 
@@ -63,7 +64,7 @@ struct KisToolFreehandHelper::Private
     KUndo2MagicString transactionText;
 
     bool haveTangent;
-    QPointF previousTangent;
+    PkPointF previousTangent;
 
     bool hasPaintAtLeastOnce;
 
@@ -80,8 +81,8 @@ struct KisToolFreehandHelper::Private
     // Used only by pixel smoothing.
     KisPaintInformation tentativePaintInformation;
 
-    QPoint lastDrawnPixel;
-    QPoint tentativePixel;
+    PkPoint lastDrawnPixel;
+    PkPoint tentativePixel;
     bool hasLastDrawnPixel;
     bool hasTentativePixel;
 
@@ -112,22 +113,22 @@ struct KisToolFreehandHelper::Private
 
     qreal effectiveSmoothnessDistance(qreal speed) const;
 
-    bool isTentativePixel(const QPoint &currentPixelPos) const
+    bool isTentativePixel(const PkPoint &currentPixelPos) const
     {
         return abs(currentPixelPos.x() - lastDrawnPixel.x()) <= 1 && abs(currentPixelPos.y() - lastDrawnPixel.y()) <= 1;
     }
 
-    static QPoint toPixelPos(const QPointF &pos)
+    static PkPoint toPixelPos(const PkPointF &pos)
     {
         // Don't replace this with QPointF::toPoint, that rounds! Flooring is
         // the correct operation here.
-        return QPoint(qFloor(pos.x()), qFloor(pos.y()));
+        return PkPoint(qFloor(pos.x()), qFloor(pos.y()));
     }
 
-    static void setPaintInfoPixelPos(KisPaintInformation &info, const QPoint &pixelPos)
+    static void setPaintInfoPixelPos(KisPaintInformation &info, const PkPoint &pixelPos)
     {
         // Offset the position to the center of the pixel.
-        info.setPos(QPointF(qreal(pixelPos.x()) + 0.5, qreal(pixelPos.y()) + 0.5));
+        info.setPos(PkPointF(qreal(pixelPos.x()) + 0.5, qreal(pixelPos.y()) + 0.5));
     }
 };
 
@@ -184,8 +185,8 @@ KisOptimizedBrushOutline KisToolFreehandHelper::paintOpOutline(const QPointF &sa
                                                                KisPaintOpSettings::OutlineMode mode) const
 {
     KisPaintOpSettingsSP settings = globalSettings;
-    QPointF prevPoint = m_d->lastCursorPos.pushThroughHistory(savedCursorPos, currentZoom());
-    qreal startAngle = KisAlgebra2D::directionBetweenPoints(prevPoint, savedCursorPos, 0);
+    PkPointF prevPoint = m_d->lastCursorPos.pushThroughHistory(toPkPointF(savedCursorPos), currentZoom());
+    qreal startAngle = KisAlgebra2D::directionBetweenPoints(prevPoint, toPkPointF(savedCursorPos), 0);
     KisDistanceInformation distanceInfo(prevPoint, startAngle);
 
     KisPaintInformation info;
@@ -251,7 +252,7 @@ KisOptimizedBrushOutline KisToolFreehandHelper::paintOpOutline(const QPointF &sa
 
 void KisToolFreehandHelper::cursorMoved(const QPointF &cursorPos)
 {
-    m_d->lastCursorPos.pushThroughHistory(cursorPos, currentZoom());
+    m_d->lastCursorPos.pushThroughHistory(toPkPointF(cursorPos), currentZoom());
 }
 
 void KisToolFreehandHelper::initPaint(KoPointerEvent *event,
@@ -281,15 +282,15 @@ void KisToolFreehandHelper::initPaintWithMyPaintSlowTrackingPolicy(KoPointerEven
     // can't sensibly be done in endPaint since there can be stylus or mouse
     // events in the meantime, whose distance and speed is also unrelated.
     if (event->isTouchEvent()) {
-        m_d->lastCursorPos.reset(pixelCoords);
+        m_d->lastCursorPos.reset(toPkPointF(pixelCoords));
         m_d->infoBuilder->reset();
     }
 
-    QPointF prevPoint = m_d->lastCursorPos.pushThroughHistory(pixelCoords, currentZoom());
+    PkPointF prevPoint = m_d->lastCursorPos.pushThroughHistory(toPkPointF(pixelCoords), currentZoom());
     m_d->strokeTime.start();
     KisPaintInformation pi =
         m_d->infoBuilder->startStroke(event, elapsedStrokeTime(), m_d->resourceManager);
-    qreal startAngle = KisAlgebra2D::directionBetweenPoints(prevPoint, pixelCoords, 0.0);
+    qreal startAngle = KisAlgebra2D::directionBetweenPoints(prevPoint, toPkPointF(pixelCoords), 0.0);
 
     initPaintImplWithMyPaintSlowTrackingPolicy(startAngle,
                   pi,
@@ -334,7 +335,7 @@ void KisToolFreehandHelper::initPaintImplWithMyPaintSlowTrackingPolicy(qreal sta
     m_d->strokesFacade = strokesFacade;
 
     m_d->haveTangent = false;
-    m_d->previousTangent = QPointF();
+    m_d->previousTangent = PkPointF();
 
     m_d->hasPaintAtLeastOnce = false;
 
@@ -369,9 +370,15 @@ void KisToolFreehandHelper::initPaintImplWithMyPaintSlowTrackingPolicy(qreal sta
     createPainters(m_d->strokeInfos,
                    startDist);
 
+    PkVector<KisFreehandStrokeInfo*> strokeInfos;
+    strokeInfos.reserve(m_d->strokeInfos.size());
+    for (KisFreehandStrokeInfo *strokeInfo : m_d->strokeInfos) {
+        strokeInfos.append(strokeInfo);
+    }
+
     KisStrokeStrategy *stroke =
         new FreehandStrokeStrategy(m_d->resources,
-                                   m_d->strokeInfos,
+                                   strokeInfos,
                                    m_d->transactionText,
                                    FreehandStrokeStrategy::SupportsContinuedInterstrokeData |
                                    FreehandStrokeStrategy::SupportsTimedMergeId);
@@ -414,24 +421,27 @@ void KisToolFreehandHelper::paintBezierSegment(KisPaintInformation pi1, KisPaint
 
     const qreal maxSanePoint = 1e6;
 
-    QPointF controlTarget1;
-    QPointF controlTarget2;
+    const PkPointF pkTangent1 = toPkPointF(tangent1);
+    const PkPointF pkTangent2 = toPkPointF(tangent2);
+
+    PkPointF controlTarget1;
+    PkPointF controlTarget2;
 
     // Shows the direction in which control points go
-    QPointF controlDirection1 = pi1.pos() + tangent1;
-    QPointF controlDirection2 = pi2.pos() - tangent2;
+    PkPointF controlDirection1 = pi1.pos() + pkTangent1;
+    PkPointF controlDirection2 = pi2.pos() - pkTangent2;
 
     // Lines in the direction of the control points
-    QLineF line1(pi1.pos(), controlDirection1);
-    QLineF line2(pi2.pos(), controlDirection2);
+    PkLineF line1(pi1.pos(), controlDirection1);
+    PkLineF line2(pi2.pos(), controlDirection2);
 
     // Lines to check whether the control points lay on the opposite
     // side of the line
-    QLineF line3(controlDirection1, controlDirection2);
-    QLineF line4(pi1.pos(), pi2.pos());
+    PkLineF line3(controlDirection1, controlDirection2);
+    PkLineF line4(pi1.pos(), pi2.pos());
 
-    QPointF intersection;
-    if (line3.intersects(line4, &intersection) == QLineF::BoundedIntersection) {
+    PkPointF intersection;
+    if (line3.intersects(line4, &intersection) == PkLineF::BoundedIntersection) {
         qreal controlLength = line4.length() / 2;
 
         line1.setLength(controlLength);
@@ -440,9 +450,9 @@ void KisToolFreehandHelper::paintBezierSegment(KisPaintInformation pi1, KisPaint
         controlTarget1 = line1.p2();
         controlTarget2 = line2.p2();
     } else {
-        QLineF::IntersectType type = line1.intersects(line2, &intersection);
+        PkLineF::IntersectType type = line1.intersects(line2, &intersection);
 
-        if (type == QLineF::NoIntersection ||
+        if (type == PkLineF::NoIntersection ||
             intersection.manhattanLength() > maxSanePoint) {
 
             intersection = 0.5 * (pi1.pos() + pi2.pos());
@@ -457,8 +467,8 @@ void KisToolFreehandHelper::paintBezierSegment(KisPaintInformation pi1, KisPaint
     // shows how near to the controlTarget the value raises
     qreal coeff = 0.8;
 
-    qreal velocity1 = QLineF(QPointF(), tangent1).length();
-    qreal velocity2 = QLineF(QPointF(), tangent2).length();
+    qreal velocity1 = PkLineF(PkPointF(), pkTangent1).length();
+    qreal velocity2 = PkLineF(PkPointF(), pkTangent2).length();
 
     if (velocity1 == 0.0 || velocity2 == 0.0) {
         velocity1 = 1e-6;
@@ -478,8 +488,8 @@ void KisToolFreehandHelper::paintBezierSegment(KisPaintInformation pi1, KisPaint
     Q_ASSERT(coeff > 0);
 
 
-    QPointF control1;
-    QPointF control2;
+    PkPointF control1;
+    PkPointF control2;
 
     if (velocity1 > velocity2) {
         control1 = pi1.pos() * (1.0 - coeff) + coeff * controlTarget1;
@@ -492,8 +502,8 @@ void KisToolFreehandHelper::paintBezierSegment(KisPaintInformation pi1, KisPaint
     }
 
     paintBezierCurve(pi1,
-                     control1,
-                     control2,
+                     toQPointF(control1),
+                     toQPointF(control2),
                      pi2);
 }
 
@@ -553,7 +563,7 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
             || m_d->smoothingOptions->smoothnessDistanceMax() > 0.0)) {
 
         { // initialize current distance
-            QPointF prevPos;
+            PkPointF prevPos;
 
             if (!m_d->history.isEmpty()) {
                 const KisPaintInformation &prevPi = m_d->history.last();
@@ -562,7 +572,7 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
                 prevPos = m_d->previousPaintInformation.pos();
             }
 
-            qreal currentDistance = QVector2D(info.pos() - prevPos).length();
+            qreal currentDistance = PkLineF(prevPos, info.pos()).length();
             m_d->distanceHistory.append(currentDistance);
         }
 
@@ -632,7 +642,7 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
             }
 
             if ((x != 0.0 && y != 0.0) || (x == info.pos().x() && y == info.pos().y())) {
-                info.setPos(QPointF(x, y));
+                info.setPos(PkPointF(x, y));
                 if (m_d->smoothingOptions->smoothPressure()) {
                     info.setPressure(pressure);
                 }
@@ -651,7 +661,7 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
                     (info.pos() - m_d->previousPaintInformation.pos()) /
                     qMax(qreal(1.0), info.currentTime() - m_d->previousPaintInformation.currentTime());
             } else {
-                QPointF newTangent = (info.pos() - m_d->olderPaintInformation.pos()) /
+                PkPointF newTangent = (info.pos() - m_d->olderPaintInformation.pos()) /
                     qMax(qreal(1.0), info.currentTime() - m_d->olderPaintInformation.currentTime());
 
                 if (newTangent.isNull() || m_d->previousTangent.isNull())
@@ -659,7 +669,7 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
                     paintLine(m_d->previousPaintInformation, info);
                 } else {
                     paintBezierSegment(m_d->olderPaintInformation, m_d->previousPaintInformation,
-                                    m_d->previousTangent, newTangent);
+                                    toQPointF(m_d->previousTangent), toQPointF(newTangent));
                 }
 
                 m_d->previousTangent = newTangent;
@@ -677,7 +687,7 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
     }
 
     if (m_d->smoothingOptions->smoothingType() == KisSmoothingOptions::PIXEL_PERFECT) {
-        QPoint currentPixelPos = Private::toPixelPos(info.pos());
+        PkPoint currentPixelPos = Private::toPixelPos(info.pos());
 
         // First pixel is always perfect.
         if (!m_d->hasLastDrawnPixel) {
@@ -769,7 +779,7 @@ void KisToolFreehandHelper::endPaint()
        new KisAsynchronousStrokeUpdateHelper::UpdateData(true));
 
     m_d->strokesFacade->endStroke(m_d->strokeId);
-    m_d->strokeId.clear();
+    m_d->strokeId = nullptr;
     m_d->infoBuilder->reset();
 }
 
@@ -799,7 +809,7 @@ void KisToolFreehandHelper::cancelPaint()
     m_d->strokeInfos.clear();
 
     m_d->strokesFacade->cancelStroke(m_d->strokeId);
-    m_d->strokeId.clear();
+    m_d->strokeId = nullptr;
 
 }
 
@@ -900,7 +910,7 @@ void KisToolFreehandHelper::stabilizerPollAndPaint()
             const qreal R = m_d->smoothingOptions->delayDistance() /
                     m_d->resources->effectiveZoom();
 
-            QPointF diff = sampledInfo.pos() - m_d->previousPaintInformation.pos();
+            PkPointF diff = sampledInfo.pos() - m_d->previousPaintInformation.pos();
             qreal dx = sqrt(pow2(diff.x()) + pow2(diff.y()));
 
             if (!(dx > R)) {
@@ -988,13 +998,13 @@ void KisToolFreehandHelper::finishStroke()
     if (m_d->haveTangent) {
         m_d->haveTangent = false;
 
-        QPointF newTangent = (m_d->previousPaintInformation.pos() - m_d->olderPaintInformation.pos()) /
+        PkPointF newTangent = (m_d->previousPaintInformation.pos() - m_d->olderPaintInformation.pos()) /
             qMax(qreal(1.0), m_d->previousPaintInformation.currentTime() - m_d->olderPaintInformation.currentTime());
 
         paintBezierSegment(m_d->olderPaintInformation,
                            m_d->previousPaintInformation,
-                           m_d->previousTangent,
-                           newTangent);
+                           toQPointF(m_d->previousTangent),
+                           toQPointF(newTangent));
     }
     
 }
@@ -1092,7 +1102,7 @@ void KisToolFreehandHelper::paintBezierCurve(int strokeInfoId,
     m_d->hasPaintAtLeastOnce = true;
     m_d->strokesFacade->addJob(m_d->strokeId,
                                new FreehandStrokeStrategy::Data(strokeInfoId,
-                                                                pi1, control1, control2, pi2));
+                                                                pi1, toPkPointF(control1), toPkPointF(control2), pi2));
 
 }
 

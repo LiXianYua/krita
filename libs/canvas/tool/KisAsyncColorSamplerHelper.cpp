@@ -15,6 +15,8 @@
 #include <QTimer>
 #include <QTransform>
 
+#include <klocalizedstring.h>
+
 #include <KConfigGroup>
 #include <KSharedConfig>
 
@@ -30,6 +32,7 @@
 #include "kis_image_interfaces.h"
 #include "kis_node.h"
 #include "strokes/kis_color_sampler_stroke_strategy.h"
+#include <PkFlakeBridge.h>
 
 
 namespace {
@@ -345,7 +348,7 @@ void KisAsyncColorSamplerHelper::endAction()
         new KisColorSamplerStrokeStrategy::FinalizeData());
 
     m_d->strokesFacade()->endStroke(m_d->strokeId);
-    m_d->strokeId.clear();
+    m_d->strokeId = nullptr;
 }
 
 QRectF KisAsyncColorSamplerHelper::colorPreviewDocRect(const QPointF &docPoint)
@@ -567,11 +570,11 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const QPointF &docPoint)
 
     KisImageSP image = m_d->samplingCanvas->samplingImage();
 
-    const QPoint imagePoint = image->documentToImagePixelFloored(docPoint);
+    const PkPoint imagePoint = image->documentToImagePixelFloored(toPkPointF(docPoint));
 
     if (!m_d->sampleCurrentLayer) {
         const std::optional<KoColor> referenceColor =
-            m_d->samplingCanvas->sampleVisibleReferenceColor(imagePoint);
+            m_d->samplingCanvas->sampleVisibleReferenceColor(QPoint(imagePoint.x(), imagePoint.y()));
         if (referenceColor) {
             slotColorSamplingFinished(*referenceColor);
             return;
@@ -581,6 +584,7 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const QPointF &docPoint)
     KisPaintDeviceSP device;
     if (m_d->sampleCurrentLayer) {
         KisNodeSP currentNode = m_d->canvas->resourceManager()
+                                    ->canvasResourcesInterface()
                                     ->resource(KoCanvasResource::CurrentKritaNode)
                                     .value<KisNodeWSP>();
         if (currentNode) {

@@ -11,6 +11,7 @@
 #include "kis_painter.h"
 #include <strokes/KisFreehandStrokeInfo.h>
 #include "kis_algebra_2d.h"
+#include <PkFlakeBridge.h>
 
 struct KisToolMultihandHelper::Private
 {
@@ -39,7 +40,7 @@ void KisToolMultihandHelper::createPainters(QVector<KisFreehandStrokeInfo*> &str
                                             const KisDistanceInformation &startDist)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
-        const QTransform &transform = d->transformations[i];
+        const PkTransform transform = toPkTransform(d->transformations[i]);
         KisDistanceInitInfo __startDistInfo(transform.map(startDist.lastPosition()),
                                             startDist.lastDrawingAngle(),
                                             startDist.getSpacingInterval(),
@@ -51,7 +52,7 @@ void KisToolMultihandHelper::createPainters(QVector<KisFreehandStrokeInfo*> &str
     }
 }
 
-void adjustPointInformationRotation(KisPaintInformation &pi, const QTransform &t)
+void adjustPointInformationRotation(KisPaintInformation &pi, const PkTransform &t)
 {
     KisAlgebra2D::DecomposedMatrix d(t);
 
@@ -73,7 +74,7 @@ void adjustPointInformationRotation(KisPaintInformation &pi, const QTransform &t
 void KisToolMultihandHelper::paintAt(const KisPaintInformation &pi)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
-        const QTransform &transform = d->transformations[i];
+        const PkTransform transform = toPkTransform(d->transformations[i]);
         KisPaintInformation __pi = pi;
         __pi.setPos(transform.map(__pi.pos()));
         adjustPointInformationRotation(__pi, transform);
@@ -85,7 +86,7 @@ void KisToolMultihandHelper::paintLine(const KisPaintInformation &pi1,
                                        const KisPaintInformation &pi2)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
-        const QTransform &transform = d->transformations[i];
+        const PkTransform transform = toPkTransform(d->transformations[i]);
 
         KisPaintInformation __pi1 = pi1;
         KisPaintInformation __pi2 = pi2;
@@ -105,7 +106,7 @@ void KisToolMultihandHelper::paintBezierCurve(const KisPaintInformation &pi1,
                                               const KisPaintInformation &pi2)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
-        const QTransform &transform = d->transformations[i];
+        const PkTransform transform = toPkTransform(d->transformations[i]);
 
         KisPaintInformation __pi1 = pi1;
         KisPaintInformation __pi2 = pi2;
@@ -115,8 +116,8 @@ void KisToolMultihandHelper::paintBezierCurve(const KisPaintInformation &pi1,
         adjustPointInformationRotation(__pi1, transform);
         adjustPointInformationRotation(__pi2, transform);
 
-        QPointF __control1 = transform.map(control1);
-        QPointF __control2 = transform.map(control2);
+        QPointF __control1 = toQPointF(transform.map(toPkPointF(control1)));
+        QPointF __control2 = toQPointF(transform.map(toPkPointF(control2)));
 
         paintBezierCurve(i, __pi1, __control1, __control2, __pi2);
     }

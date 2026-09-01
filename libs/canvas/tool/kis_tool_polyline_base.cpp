@@ -9,12 +9,16 @@
 #include <QMouseEvent>
 #include <QTabletEvent>
 
+#include <klocalizedstring.h>
+
 #include <KoPointerEvent.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoViewConverter.h>
 #include "kis_tool_polyline_base.h"
 #include <KisCanvasToolServices.h>
+#include <KisOptimizedBrushOutline.h>
+#include <PkFlakeBridge.h>
 
 #define SNAPPING_THRESHOLD 10
 #define SNAPPING_HANDLE_RADIUS 8
@@ -131,7 +135,7 @@ void KisToolPolylineBase::endPrimaryAction(KoPointerEvent *event)
     if(m_dragging) {
         m_dragStart = convertToPixelCoordAndSnap(event);
         m_dragEnd = m_dragStart;
-        m_points.append(m_dragStart);
+        m_points.append(toPkPointF(m_dragStart));
     }
 }
 
@@ -167,7 +171,7 @@ void KisToolPolylineBase::mouseMoveEvent(KoPointerEvent *event)
         updateCanvasViewRect(updateRect);
 
 
-        QPointF basePoint = pixelToView(m_points.first());
+        QPointF basePoint = pixelToView(toQPointF(m_points.first()));
         m_closeSnappingActivated =
             m_points.size() > 1 &&
             (basePoint - pixelToView(m_dragEnd)).manhattanLength() < SNAPPING_THRESHOLD;
@@ -188,13 +192,14 @@ void KisToolPolylineBase::undoSelection()
         if (m_points.size() > 1) {
             // Add the rect for the last segment
             const QRectF lastSegmentRect =
-                pixelToView(QRectF(m_points.last(), m_points.at(m_points.size() - 2)).normalized())
+                pixelToView(QRectF(toQPointF(m_points.last()),
+                                   toQPointF(m_points.at(m_points.size() - 2))).normalized())
                 .adjusted(-PREVIEW_LINE_WIDTH, -PREVIEW_LINE_WIDTH, PREVIEW_LINE_WIDTH, PREVIEW_LINE_WIDTH);
             updateRect = updateRect.united(lastSegmentRect);
 
-            m_points.pop_back();
+            m_points.remove(m_points.size() - 1);
         }
-        m_dragStart = m_points.last();
+        m_dragStart = toQPointF(m_points.last());
 
         // Add the new dragging segment's rect
         updateRect = updateRect.united(dragBoundingRect());
@@ -233,9 +238,9 @@ void KisToolPolylineBase::paint(QPainter& gc, const KoViewConverter &converter)
     for (vQPointF::iterator it = m_points.begin(); it != m_points.end(); ++it) {
 
         if (it == m_points.begin()) {
-            start = (*it);
+            start = toQPointF(*it);
         } else {
-            end = (*it);
+            end = toQPointF(*it);
 
             startPos = pixelToView(start);
             endPos = pixelToView(end);
@@ -246,17 +251,18 @@ void KisToolPolylineBase::paint(QPainter& gc, const KoViewConverter &converter)
     }
 
     if (m_closeSnappingActivated) {
-        QPointF basePoint = pixelToView(m_points.first());
+        QPointF basePoint = pixelToView(toQPointF(m_points.first()));
         path.addEllipse(basePoint, SNAPPING_HANDLE_RADIUS, SNAPPING_HANDLE_RADIUS);
     }
 
-    paintToolOutline(&gc, path);
+    paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(path)));
     KisToolPaint::paint(gc,converter);
 }
 
 void KisToolPolylineBase::updateArea()
 {
-    updateCanvasPixelRect(image()->bounds());
+    const PkRect bounds = image()->bounds();
+    updateCanvasPixelRect(QRectF(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
 }
 
 void KisToolPolylineBase::endStroke()
@@ -265,7 +271,12 @@ void KisToolPolylineBase::endStroke()
 
     m_dragging = false;
     if(m_points.count() > 1) {
-        finishPolyline(m_points);
+        QVector<QPointF> points;
+        points.reserve(m_points.size());
+        for (const PkPointF &point : m_points) {
+            points.append(toQPointF(point));
+        }
+        finishPolyline(points);
     }
     m_points.clear();
     m_closeSnappingActivated = false;

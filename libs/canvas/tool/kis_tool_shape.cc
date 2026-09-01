@@ -16,6 +16,7 @@
 #include <KoShapeStroke.h>
 #include <KoDocumentResourceManager.h>
 #include <KoPathShape.h>
+#include <PkFlakeBridge.h>
 
 #include <klocalizedstring.h>
 #include <ksharedconfig.h>
@@ -133,10 +134,10 @@ void KisToolShape::addShape(KoShape* shape)
                                    canvas()->resourceManager()->canvasResourcesInterface());
     switch(fillStyle()) {
         case FillStyleForegroundColor:
-            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(resources.currentFgColor().toQColor())));
+            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(toQColor(resources.currentFgColor().toQColor()))));
             break;
         case FillStyleBackgroundColor:
-            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(resources.currentBgColor().toQColor())));
+            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(toQColor(resources.currentBgColor().toQColor()))));
             break;
         case FillStylePattern:
             shape->setBackground(QSharedPointer<KoShapeBackground>(0));
@@ -155,8 +156,8 @@ void KisToolShape::addShape(KoShape* shape)
         KoShapeStrokeSP stroke(new KoShapeStroke());
         stroke->setLineWidth(currentStrokeWidth());
         const QColor color = strokeStyle() == KisToolShapeUtils::StrokeStyleForeground ?
-                    resources.currentFgColor().toQColor() :
-                    resources.currentBgColor().toQColor();
+                    toQColor(resources.currentFgColor().toQColor()) :
+                    toQColor(resources.currentBgColor().toQColor());
         stroke->setColor(color);
         shape->setStroke(stroke);
         break;
@@ -170,10 +171,10 @@ void KisToolShape::addShape(KoShape* shape)
 
     // reset selection on the newly added shape :)
     // TODO: think about moving this into controller->addShape?
-    new KoKeepShapesSelectedCommand(oldSelectedShapes, {shape}, canvas()->selectedShapesProxy(), false, parentCommand);
+    new KoKeepShapesSelectedCommand(toPkList(oldSelectedShapes), PkList<KoShape*>{shape}, canvas()->selectedShapesProxy(), false, parentCommand);
     KUndo2Command *cmd = canvas()->shapeController()->addShape(shape, 0, parentCommand);
     parentCommand->setText(cmd->text());
-    new KoKeepShapesSelectedCommand(oldSelectedShapes, {shape}, canvas()->selectedShapesProxy(), true, parentCommand);
+    new KoKeepShapesSelectedCommand(toPkList(oldSelectedShapes), PkList<KoShape*>{shape}, canvas()->selectedShapesProxy(), true, parentCommand);
 
     KisProcessingApplicator::runSingleCommandStroke(image(), cmd, KisStrokeJobData::SEQUENTIAL, KisStrokeJobData::EXCLUSIVE);
 }
@@ -199,8 +200,8 @@ void KisToolShape::addPathShape(KoPathShape* pathShape, const KUndo2MagicString&
                                            canvas()->resourceManager()->canvasResourcesInterface(),
                                            strokeStyle(),
                                            fillStyle(),
-                                           fillTransform());
-        helper.paintPainterPath(mappedOutline);
+                                           toPkTransform(fillTransform()));
+        helper.paintPainterPath(toPkPainterPath(mappedOutline));
     } else if (node->inherits("KisShapeLayer")) {
         pathShape->normalize();
         addShape(pathShape);

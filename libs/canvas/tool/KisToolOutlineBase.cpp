@@ -12,11 +12,15 @@
 #include <QMouseEvent>
 #include <QTabletEvent>
 
+#include <klocalizedstring.h>
+
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
 #include <KoCanvasBase.h>
 #include <KisCanvasToolServices.h>
+#include <KisOptimizedBrushOutline.h>
+#include <PkFlakeBridge.h>
 
 #include "KisToolOutlineBase.h"
 #include "input/KisInputActionGroup.h"
@@ -219,7 +223,7 @@ void KisToolOutlineBase::paint(QPainter& gc, const KoViewConverter &converter)
         if (m_continuedMode && mode() != KisTool::PAINT_MODE) {
             outline.lineTo(pixelToView(m_lastCursorPos));
         }
-        paintToolOutline(&gc, outline);
+        paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(outline)));
     }
 
     KisToolShape::paint(gc, converter);
