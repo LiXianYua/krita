@@ -14,7 +14,7 @@
 #include <KoShapeController.h>
 #include "KisMimeDatabase.h"
 
-#include <KisReferenceImageToolServices.h>
+#include "KisReferenceImagePlatform.h"
 #include <KisDocument.h>
 #include <KisReferenceImage.h>
 #include <KisReferenceImagesLayer.h>
@@ -25,7 +25,7 @@
 
 ToolReferenceImages::ToolReferenceImages(KoCanvasBase * canvas)
     : DefaultTool(canvas, false)
-    , m_services(dynamic_cast<KisReferenceImageToolServices *>(canvas))
+    , m_services(dynamic_cast<KisReferenceImagePlatformServices *>(canvas))
 {
     setObjectName("ToolReferenceImages");
 }
@@ -99,7 +99,8 @@ void ToolReferenceImages::addReferenceImage()
 {
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    const PkString filename = m_services->chooseReferenceImageFile();
+    const PkString filename = m_services->chooseReferenceImageFile(
+        KisReferenceImageFileRequest::OpenImage);
     if (filename.isEmpty()) return;
 
     auto *reference = m_services->referenceImageFromFile(filename);
@@ -134,8 +135,7 @@ void ToolReferenceImages::pasteReferenceImage()
         }
         canvas()->addCommand(KisReferenceImagesLayer::addReferenceImages(document(), {reference}));
     } else {
-        m_services->showReferenceImageError(
-            PkString("Could not load reference image from clipboard"));
+        m_services->showReferenceImageError(KisReferenceImageError::ClipboardLoadFailed);
     }
 }
 
@@ -161,17 +161,18 @@ void ToolReferenceImages::loadReferenceImages()
 {
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    const PkString filename = m_services->chooseReferenceImagesOpenFile();
+    const PkString filename = m_services->chooseReferenceImageFile(
+        KisReferenceImageFileRequest::OpenCollection);
     if (filename.isEmpty()) return;
 
     PkFileStream file(filename);
     if (!file.open(PkStream::ReadOnly)) {
         m_services->showReferenceImageError(
-            PkString("Could not open reference image collection: ") + filename);
+            KisReferenceImageError::CollectionOpenFailed, filename);
         return;
     }
 
-    KisReferenceImageCollection collection;
+    KisReferenceImageCollection collection(m_services->referenceImageCodec());
 
     int currentZIndex = 0;
     if (document()->referenceImagesLayer()) {
@@ -189,12 +190,12 @@ void ToolReferenceImages::loadReferenceImages()
         canvas()->addCommand(KisReferenceImagesLayer::addReferenceImages(document(), shapes));
         if (!collection.loadFailures().isEmpty()) {
             m_services->showReferenceImageError(
-                PkString("Some reference images could not be loaded: ") +
-                collection.loadFailures().join('\n'));
+                KisReferenceImageError::CollectionPartialLoad, filename,
+                collection.loadFailures());
         }
     } else {
         m_services->showReferenceImageError(
-            PkString("Could not load reference images from: ") + filename);
+            KisReferenceImageError::CollectionLoadFailed, filename);
     }
     file.close();
 }
@@ -208,7 +209,8 @@ void ToolReferenceImages::saveReferenceImages()
 
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    PkString filename = m_services->chooseReferenceImagesSaveFile();
+    PkString filename = m_services->chooseReferenceImageFile(
+        KisReferenceImageFileRequest::SaveCollection);
     if (filename.isEmpty()) return;
 
     PkString fileMime = KisMimeDatabase::mimeTypeForFile(filename, false);
@@ -219,16 +221,18 @@ void ToolReferenceImages::saveReferenceImages()
     PkFileStream file(filename);
     if (!file.open(PkStream::WriteOnly)) {
         m_services->showReferenceImageError(
-            PkString("Could not open reference image collection for saving: ") + filename);
+            KisReferenceImageError::CollectionSaveOpenFailed, filename);
         return;
     }
 
-    KisReferenceImageCollection collection(layer->referenceImages());
+    KisReferenceImageCollection collection(
+        m_services->referenceImageCodec(), layer->referenceImages());
     bool ok = collection.save(&file);
     file.close();
 
     if (!ok) {
-        m_services->showReferenceImageError(PkString("Failed to save reference images."));
+        m_services->showReferenceImageError(
+            KisReferenceImageError::CollectionSaveFailed, filename);
     }
 }
 
@@ -365,20 +369,15 @@ PkList<DefaultToolAction *> ToolReferenceImagesFactory::createActionsImpl()
     PkList<DefaultToolAction *> defaultActions = DefaultToolFactory::createActionsImpl();
     PkList<DefaultToolAction *> actions;
 
-    PkStringList actionNames;
-    actionNames << "object_order_front"
-                << "object_order_raise"
-                << "object_order_lower"
-                << "object_order_back"
-                << "object_transform_rotate_90_cw"
-                << "object_transform_rotate_90_ccw"
-                << "object_transform_rotate_180"
-                << "object_transform_mirror_horizontally"
-                << "object_transform_mirror_vertically"
-                << "object_transform_reset";
-
     for (DefaultToolAction *action : defaultActions) {
-        if (actionNames.contains(action->objectName())) {
+        bool available = false;
+        for (const auto &descriptor : defaultToolActionDescriptors()) {
+            if (descriptor.actionId == action->objectName()) {
+                available = descriptor.availableInReferenceImages;
+                break;
+            }
+        }
+        if (available) {
             actions << action;
         } else {
             delete action;

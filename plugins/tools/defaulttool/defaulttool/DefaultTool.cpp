@@ -412,6 +412,7 @@ DefaultTool::DefaultTool(KoCanvasBase *canvas, bool connectToSelectedShapesProxy
     , m_textOutlineHelper(new KoSvgTextShapeOutlineHelper(canvas))
     , m_selectionHandler(new SelectionHandler(this))
     , m_textPropertyInterface(new DefaultToolTextPropertiesInterface(this))
+    , m_platformServices(dynamic_cast<DefaultToolPlatformServices *>(canvas))
 {
     DefaultToolFactory actionFactory;
     for (DefaultToolAction *toolAction : actionFactory.createActionsImpl()) {
@@ -419,19 +420,15 @@ DefaultTool::DefaultTool(KoCanvasBase *canvas, bool connectToSelectedShapesProxy
     }
     setupActions();
 
-    static const int cursorAngles[8] = {45, 90, 135, 180, 225, 270, 315, 0};
-    for (int i = 0; i < 8; ++i) {
-        m_rotateCursors[i] = DefaultToolCursor(PkString("cursor_rotate.png"), cursorAngles[i]);
-        m_shearCursors[i] = DefaultToolCursor(PkString("cursor_shear.png"), cursorAngles[(i + 7) % 8]);
+    for (const auto &descriptor : defaultToolCursorDescriptors()) {
+        if (descriptor.kind == DefaultToolCursorKind::Rotate) {
+            m_rotateCursors[descriptor.slot] = DefaultToolCursor(descriptor);
+        } else if (descriptor.kind == DefaultToolCursorKind::Shear) {
+            m_shearCursors[descriptor.slot] = DefaultToolCursor(descriptor);
+        } else {
+            m_sizeCursors[descriptor.slot] = DefaultToolCursor(descriptor);
+        }
     }
-    m_sizeCursors[0] = Qt::SizeVerCursor;
-    m_sizeCursors[1] = Qt::SizeBDiagCursor;
-    m_sizeCursors[2] = Qt::SizeHorCursor;
-    m_sizeCursors[3] = Qt::SizeFDiagCursor;
-    m_sizeCursors[4] = Qt::SizeVerCursor;
-    m_sizeCursors[5] = Qt::SizeBDiagCursor;
-    m_sizeCursors[6] = Qt::SizeHorCursor;
-    m_sizeCursors[7] = Qt::SizeFDiagCursor;
 
     if (connectToSelectedShapesProxy) {
         PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
@@ -458,6 +455,25 @@ DefaultTool::~DefaultTool()
 DefaultToolAction *DefaultTool::action(const PkString &actionId) const
 {
     return m_actions.value(actionId);
+}
+
+bool DefaultTool::dispatchAction(DefaultToolActionId actionId, bool checked)
+{
+    const DefaultToolActionDescriptor *descriptor = defaultToolActionDescriptor(actionId);
+    if (!descriptor) return false;
+
+    DefaultToolAction *toolAction = action(descriptor->actionId);
+    if (!toolAction) return false;
+    toolAction->setChecked(checked);
+
+    if (descriptor->scope == DefaultToolActionScope::Host) {
+        m_lastHostDispatchResult = false;
+        toolAction->triggered();
+        return m_lastHostDispatchResult;
+    }
+
+    toolAction->triggered();
+    return true;
 }
 
 void DefaultTool::slotActivateEditFillGradient(bool value)
@@ -774,6 +790,18 @@ void DefaultTool::addMappedAction(KisSignalMapper *mapper, const PkString &actio
 
 void DefaultTool::setupActions()
 {
+    for (const auto &descriptor : defaultToolActionDescriptors()) {
+        if (descriptor.scope != DefaultToolActionScope::Host) continue;
+        DefaultToolAction *hostAction = action(descriptor.actionId);
+        if (!hostAction) continue;
+        PkObject::connect(hostAction, &DefaultToolAction::triggered, this,
+                          [this, descriptor, hostAction] {
+            m_lastHostDispatchResult = m_platformServices &&
+                m_platformServices->dispatchDefaultToolHostAction(
+                    descriptor.action, hostAction->isChecked());
+        });
+    }
+
     m_alignSignalsMapper = new KisSignalMapper(this);
 
     addMappedAction(m_alignSignalsMapper, "object_align_horizontal_left", KoShapeAlignCommand::HorizontalLeftAlignment);
@@ -1067,7 +1095,9 @@ void DefaultTool::updateCursor()
     } else {
         // there used to be guides... :'''(
     }
-    useCursor(cursor);
+    if (m_platformServices) {
+        m_platformServices->useDefaultToolCursor(cursor.descriptor());
+    }
     if (currentStrategy() == 0) {
         statusTextChanged(statusText);
     }

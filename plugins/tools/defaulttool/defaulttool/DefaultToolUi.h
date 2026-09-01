@@ -10,6 +10,8 @@
 #include <PkObject.h>
 #include <PkString.h>
 
+#include "DefaultToolPlatform.h"
+
 class DefaultToolActionGroup;
 
 class DefaultToolAction : public PkObject
@@ -102,17 +104,36 @@ class DefaultToolCursor
 {
 public:
     DefaultToolCursor() = default;
-    DefaultToolCursor(Qt::CursorShape shape) : m_shape(shape) {}
+    DefaultToolCursor(Qt::CursorShape shape)
+        : m_descriptor(cursorDescriptor(shape)) {}
+    explicit DefaultToolCursor(const DefaultToolCursorDescriptor &descriptor)
+        : m_descriptor(descriptor) {}
     DefaultToolCursor(const PkString &resource, int angle = 0)
-        : m_resource(resource), m_angle(angle) {}
-    const PkString &resource() const { return m_resource; }
-    int angle() const { return m_angle; }
-    Qt::CursorShape shape() const { return m_shape; }
+        : m_descriptor({DefaultToolCursorKind::Rotate, 0, resource, angle}) {}
+    const PkString &resource() const { return m_descriptor.resource; }
+    int angle() const { return m_descriptor.angle; }
+    const DefaultToolCursorDescriptor &descriptor() const { return m_descriptor; }
 
 private:
-    PkString m_resource;
-    int m_angle {0};
-    Qt::CursorShape m_shape {Qt::ArrowCursor};
+    static DefaultToolCursorDescriptor cursorDescriptor(Qt::CursorShape shape)
+    {
+        switch (shape) {
+        case Qt::SizeAllCursor:
+            return {DefaultToolCursorKind::Move, 0, {}, 0};
+        case Qt::SizeVerCursor:
+            return {DefaultToolCursorKind::ResizeVertical, 0, {}, 0};
+        case Qt::SizeBDiagCursor:
+            return {DefaultToolCursorKind::ResizeBackwardDiagonal, 0, {}, 0};
+        case Qt::SizeHorCursor:
+            return {DefaultToolCursorKind::ResizeHorizontal, 0, {}, 0};
+        case Qt::SizeFDiagCursor:
+            return {DefaultToolCursorKind::ResizeForwardDiagonal, 0, {}, 0};
+        default:
+            return {DefaultToolCursorKind::Arrow, 0, {}, 0};
+        }
+    }
+
+    DefaultToolCursorDescriptor m_descriptor;
 };
 
 class DefaultToolKeyEvent

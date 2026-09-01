@@ -21,7 +21,7 @@
 
 class KisReferenceImagesLayer;
 class KisDocument;
-class KisReferenceImageToolServices;
+class KisReferenceImagePlatformServices;
 
 class ToolReferenceImages : public DefaultTool
 {
@@ -78,7 +78,7 @@ public :
 private:
     PkConnection m_imageNodeAddedConnection;
     KisWeakSharedPtr<KisReferenceImagesLayer> m_layer;
-    KisReferenceImageToolServices *m_services;
+    KisReferenceImagePlatformServices *m_services;
 
     KisDocument *document() const;
     void setReferenceImageLayer(KisSharedPtr<KisReferenceImagesLayer> layer);

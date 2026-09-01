@@ -10,14 +10,17 @@
 #include <PkVector.h>
 #include <PkStringList.h>
 
+#include "KisReferenceImagePlatform.h"
+
 class PkStream;
 class KisReferenceImage;
 
 class KisReferenceImageCollection
 {
 public:
-    explicit KisReferenceImageCollection() = default;
-    explicit KisReferenceImageCollection(const PkVector<KisReferenceImage*> &references);
+    explicit KisReferenceImageCollection(KisReferenceImageCodec &codec);
+    KisReferenceImageCollection(KisReferenceImageCodec &codec,
+                                const PkVector<KisReferenceImage*> &references);
 
     const PkVector<KisReferenceImage*> &referenceImages() const;
 
@@ -26,8 +29,11 @@ public:
     const PkStringList &loadFailures() const { return m_loadFailures; }
 
 private:
+    KisReferenceImageCodec &m_codec;
     PkVector<KisReferenceImage*> references;
     PkStringList m_loadFailures;
 };
+
+const PkString &referenceImageCollectionMetadataFile();
 
 #endif

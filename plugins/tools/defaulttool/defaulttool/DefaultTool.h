@@ -18,6 +18,7 @@
 #include "KoShapeMeshGradientHandles.h"
 #include <KoSvgTextPropertiesInterface.h>
 #include "DefaultToolUi.h"
+#include "DefaultToolPlatform.h"
 
 #include <PkPolygon.h>
 #include <PkDateTime.h>
@@ -80,6 +81,7 @@ public:
     KoToolSelection *selection() override;
 
     DefaultToolMenu *popupActionsMenu() override;
+    bool dispatchAction(DefaultToolActionId action, bool checked = false);
 
     /**
      * Returns which selection handle is at params point (or NoHandle if none).
@@ -213,6 +215,8 @@ private:
 
     DefaultToolTextPropertiesInterface *m_textPropertyInterface{0};
     PkMap<PkString, DefaultToolAction *> m_actions;
+    DefaultToolPlatformServices *m_platformServices {nullptr};
+    bool m_lastHostDispatchResult {false};
 };
 
 #include <KoSvgTextShape.h>

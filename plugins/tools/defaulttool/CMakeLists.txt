@@ -3,6 +3,7 @@ project( defaulttools )
 set ( defaulttools_SRCS
     Plugin.cpp
     defaulttool/DefaultTool.cpp
+    defaulttool/DefaultToolPlatform.cpp
     defaulttool/DefaultToolFactory.cpp
     defaulttool/ShapeMoveStrategy.cpp
     defaulttool/ShapeResizeStrategy.cpp
@@ -44,7 +45,6 @@ target_include_directories(krita_flaketools PRIVATE
 target_link_libraries(krita_flaketools
     kritaflake
     kritacanvas
-    kritaimpex
     kritapigment
     kritastore
     pkcolor
