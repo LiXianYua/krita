@@ -8,7 +8,6 @@
 
 #include "kis_selection_based_layer.h"
 
-#include <klocalizedstring.h>
 #include "kis_debug.h"
 
 #include <KoCompositeOpRegistry.h>
@@ -28,7 +27,7 @@
 #include "kis_raster_keyframe_channel.h"
 
 
-struct Q_DECL_HIDDEN KisSelectionBasedLayer::Private
+struct KisSelectionBasedLayer::Private
 {
 public:
     Private() : useSelectionInProjection(true) {}
@@ -384,4 +383,3 @@ int KisSelectionBasedLayer::thumbnailSeqNo() const
 
     return originalDevice && originalSelection ? originalDevice->sequenceNumber() : -1;
 }
-
