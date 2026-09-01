@@ -7,6 +7,7 @@
 #include <PkMutex.h>
 #include <PkMutex.h>
 #include <KoCompositeOpRegistry.h>
+#include <optional>
 
 #include "kis_filter_mask.h"
 #include "filter/kis_filter.h"
