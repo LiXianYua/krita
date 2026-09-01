@@ -58,9 +58,6 @@
 #include <brushengine/kis_paintop.h>
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/KisOptimizedBrushOutline.h>
-#define QPoint PkPoint
-#include "strokes/kis_color_sampler_stroke_strategy.h"
-#undef QPoint
 #include "kis_paintop_utils.h"
 
 namespace {

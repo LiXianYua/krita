@@ -34,13 +34,6 @@
 
 #include "kis_coordinates_converter.h"
 
-// This consumer uses only the generic update-info interfaces. Avoid instantiating
-// the unrelated OpenGL tile implementation whose producer-native private types
-// are intentionally outside R-44's writable closure.
-class KisTextureTileUpdateInfo;
-typedef QSharedPointer<KisTextureTileUpdateInfo> KisTextureTileUpdateInfoSP;
-typedef QVector<KisTextureTileUpdateInfoSP> KisTextureTileUpdateInfoSPList;
-#define KIS_TEXTURE_TILE_UPDATE_INFO_H_
 #include "kis_projection_backend.h"
 #include "kis_image_pyramid.h"
 #include "kis_display_filter.h"
