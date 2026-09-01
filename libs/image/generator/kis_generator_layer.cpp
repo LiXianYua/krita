@@ -20,6 +20,7 @@
 //
 
 #include <PkMutex.h>
+#include <PkRegion.h>
 
 #include "kis_generator_layer.h"
 
