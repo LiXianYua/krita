@@ -8,6 +8,7 @@
 #define __KIS_LAYER_UTILS_H
 
 #include <PkFlags.h>
+#include <PkSet.h>
 
 #include <functional>
 
