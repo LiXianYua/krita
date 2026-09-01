@@ -167,19 +167,6 @@ void KisToolPaint::canvasResourceChanged(int key, const QVariant& v)
         break;
     }
 
-    static const char configConnectionProperty[] = "r44ConfigConnection";
-    if (!property(configConnectionProperty).toBool()) {
-        KisConfigNotifier *notifier = KisConfigNotifier::instance();
-        PkConnection configConnection = PkObject::connect(
-            notifier, &KisConfigNotifier::configChanged, notifier,
-            [this]() { resetCursorStyle(); });
-        QObject::connect(this, &QObject::destroyed,
-                         [configConnection](QObject *) mutable {
-                             PkObject::disconnect(configConnection);
-                         });
-        setProperty(configConnectionProperty, true);
-    }
-
 }
 
 void KisToolPaint::tryRestoreOpacitySnapshot()
