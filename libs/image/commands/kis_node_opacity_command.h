@@ -9,6 +9,7 @@
 
 #include "kis_node_command.h"
 #include "commands_new/KisAsynchronouslyMergeableCommandInterface.h"
+#include <PkScopedPointer.h>
 #include "boost/optional.hpp"
 
 /// The command for setting the node opacity
