@@ -8,6 +8,8 @@
 #define KISSTROKESPEEDMONITOR_H
 
 #include <PkObject.h>
+#include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 
 #include "kis_types.h"
 #include <kritapaintop_export.h>
@@ -38,7 +40,7 @@ public:
     qreal avgFps() const;
 
 
-Q_SIGNALS:
+signals:
     void sigStatsUpdated();
 
 public:

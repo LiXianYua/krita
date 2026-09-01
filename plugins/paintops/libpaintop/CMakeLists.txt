@@ -61,6 +61,24 @@ set(kritalibpaintop_LIB_SRCS
     sensors/KisDynamicSensorTime.cpp
 )
 
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+set(kritalibpaintop_SIGNAL_SOURCE
+    "${CMAKE_CURRENT_BINARY_DIR}/KisStrokeSpeedMonitor_pk_signals.cpp")
+add_custom_command(
+    OUTPUT "${kritalibpaintop_SIGNAL_SOURCE}"
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/KisStrokeSpeedMonitor.h"
+            -o "${kritalibpaintop_SIGNAL_SOURCE}"
+    DEPENDS
+            "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/KisStrokeSpeedMonitor.h"
+    COMMENT "pk_signal_moc: generating KisStrokeSpeedMonitor signal definitions"
+    VERBATIM
+)
+list(APPEND kritalibpaintop_LIB_SRCS "${kritalibpaintop_SIGNAL_SOURCE}")
+
 kis_add_library(kritalibpaintop SHARED ${kritalibpaintop_LIB_SRCS} )
 generate_export_header(kritalibpaintop BASE_NAME kritapaintop EXPORT_MACRO_NAME PAINTOP_EXPORT)
 

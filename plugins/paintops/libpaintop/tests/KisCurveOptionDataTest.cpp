@@ -8,6 +8,8 @@
 #include <KisCurveOptionData.h>
 #include <KisDynamicSensorIds.h>
 #include <KisSensorData.h>
+#include <KisStrokeSpeedMonitor.h>
+#include <PkObject.h>
 #include <PkXmlDocument.h>
 #include <kis_properties_configuration.h>
 
@@ -142,6 +144,25 @@ void KisCurveOptionDataTest::testLengthSensorTagRoundTrip()
     KisSensorWithLengthData restoredTime(TimeId, PkString("duration"));
     restoredTime.read(timeElement);
     QCOMPARE(restoredTime.length, 41);
+}
+
+void KisCurveOptionDataTest::testStrokeSpeedMonitorSignalLifetime()
+{
+    KisStrokeSpeedMonitor *monitor = KisStrokeSpeedMonitor::instance();
+    const bool originalValue = monitor->haveStrokeSpeedMeasurement();
+    int emissions = 0;
+
+    {
+        PkObject receiver;
+        PkObject::connect(monitor, &KisStrokeSpeedMonitor::sigStatsUpdated,
+                          &receiver, [&emissions] { ++emissions; });
+
+        monitor->setHaveStrokeSpeedMeasurement(!originalValue);
+        QCOMPARE(emissions, 1);
+    }
+
+    monitor->setHaveStrokeSpeedMeasurement(originalValue);
+    QCOMPARE(emissions, 1);
 }
 
 SIMPLE_TEST_MAIN(KisCurveOptionDataTest)

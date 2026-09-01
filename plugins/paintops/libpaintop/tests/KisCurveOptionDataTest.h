@@ -16,6 +16,7 @@ private Q_SLOTS:
     void testSerializeDisabledSensors();
     void testSerializeNoSensors();
     void testLengthSensorTagRoundTrip();
+    void testStrokeSpeedMonitorSignalLifetime();
 };
 
 #endif // KISCURVEOPTIONDATATEST_H

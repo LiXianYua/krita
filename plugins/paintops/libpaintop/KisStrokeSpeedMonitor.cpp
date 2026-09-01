@@ -61,7 +61,7 @@ KisStrokeSpeedMonitor::KisStrokeSpeedMonitor()
     PkObject::connect(KisImageConfigNotifier::instance(), &KisImageConfigNotifier::configChanged,
                       this, &KisStrokeSpeedMonitor::resetAccumulatedValues);
     PkObject::connect(KisImageConfigNotifier::instance(), &KisImageConfigNotifier::configChanged,
-                      this, [this] { emit sigStatsUpdated(); });
+                      this, [this] { sigStatsUpdated(); });
 }
 
 KisStrokeSpeedMonitor::~KisStrokeSpeedMonitor()
@@ -86,7 +86,7 @@ void KisStrokeSpeedMonitor::setHaveStrokeSpeedMeasurement(bool value)
 
     m_d->haveStrokeSpeedMeasurement = value;
     resetAccumulatedValues();
-    Q_EMIT sigStatsUpdated();
+    sigStatsUpdated();
 }
 
 void KisStrokeSpeedMonitor::resetAccumulatedValues()
@@ -133,7 +133,7 @@ void KisStrokeSpeedMonitor::notifyStrokeFinished(qreal cursorSpeed, qreal render
         m_d->cachedAvgFps = m_d->avgFps.rollingMean();
     }
 
-    Q_EMIT sigStatsUpdated();
+    sigStatsUpdated();
 
 
     ENTER_FUNCTION() <<
