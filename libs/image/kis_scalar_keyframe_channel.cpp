@@ -70,7 +70,7 @@ void KisScalarKeyframe::setValue(qreal value, KUndo2Command *parentUndoCmd)
             m_value = limits->clamp(m_value);
         }
 
-        Q_EMIT sigChanged(this);
+        sigChanged(this);
     }
 }
 
@@ -81,7 +81,7 @@ void KisScalarKeyframe::setInterpolationMode(InterpolationMode mode, KUndo2Comma
         cmd->redo();
     } else {
         m_interpolationMode = mode;
-        Q_EMIT sigChanged(this);
+        sigChanged(this);
     }
 }
 
@@ -97,7 +97,7 @@ void KisScalarKeyframe::setTangentsMode(TangentsMode mode, KUndo2Command *parent
         cmd->redo();
     } else {
         m_tangentsMode = mode;
-        Q_EMIT sigChanged(this);
+        sigChanged(this);
     }
 }
 
@@ -114,7 +114,7 @@ void KisScalarKeyframe::setInterpolationTangents(PkPointF leftTangent, PkPointF 
     } else {
         m_leftTangent = leftTangent;
         m_rightTangent = rightTangent;
-        Q_EMIT sigChanged(this);
+        sigChanged(this);
     }
 }
 
@@ -328,7 +328,7 @@ void KisScalarKeyframeChannel::removeKeyframe(int time, KUndo2Command *parentUnd
 {
     KisScalarKeyframeSP keyframe = keyframeAt<KisScalarKeyframe>(time);
     if (keyframe) {
-        disconnect(keyframe->valueChangedChannelConnection);
+        PkObject::disconnect(keyframe->valueChangedChannelConnection);
     }
 
     KisKeyframeChannel::removeKeyframe(time, parentUndoCmd);

@@ -7,7 +7,12 @@
 #define _KIS_SCALAR_KEYFRAME_CHANNEL_H
 
 #include "kis_keyframe_channel.h"
+#include <PkConnection.h>
 #include <PkObject.h>
+#include <PkPoint.h>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
+#include <PkSignalCompat.h>
 
 
 /** @brief This structure represents an optional limited range of
@@ -39,7 +44,6 @@ struct ScalarKeyframeLimits {
 */
 class KRITAIMAGE_EXPORT KisScalarKeyframe : public KisKeyframe
 {
-    Q_OBJECT
 public:
     /** @brief Controls the type of interpolation between
      * this KisScalarKeyframe and the next. */
@@ -86,7 +90,7 @@ public:
     // Friend class for commands to avoid multi-signal calls..
     friend class KisScalarKeyframeUpdateCommand;
 
-Q_SIGNALS:
+signals:
     void sigChanged(const KisScalarKeyframe* scalarKey);
 
 private:
@@ -119,7 +123,6 @@ private:
 */
 class KRITAIMAGE_EXPORT KisScalarKeyframeChannel : public KisKeyframeChannel
 {
-    Q_OBJECT
 public:
     KisScalarKeyframeChannel(const KoID& id, KisDefaultBoundsBaseSP bounds);
     KisScalarKeyframeChannel(const KisScalarKeyframeChannel &rhs);

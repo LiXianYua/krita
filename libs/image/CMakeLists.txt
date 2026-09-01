@@ -526,6 +526,7 @@ set(kritaimage_SIGNAL_HEADERS
     kis_keyframe_channel.h
     kis_node.h
     kis_paint_device.h
+    kis_scalar_keyframe_channel.h
     kis_transform_mask.h
     kis_undo_adapter.h
     filter/kis_filter_registry.h
