@@ -17,10 +17,11 @@
 #include <KoSvgTextShapeOutlineHelper.h>
 #include "KoShapeMeshGradientHandles.h"
 #include <KoSvgTextPropertiesInterface.h>
+#include "DefaultToolUi.h"
 
-#include <QPolygonF>
-#include <QTime>
-#include <QCursor>
+#include <PkPolygon.h>
+#include <PkDateTime.h>
+#include <PkMap.h>
 
 class KisSignalMapper;
 class KoInteractionStrategy;
@@ -39,7 +40,7 @@ class DefaultToolTextPropertiesInterface;
  */
 class DefaultTool : public KoInteractionTool
 {
-    Q_OBJECT
+
 public:
     /**
      * Constructor for basic interaction tool where user actions are translated
@@ -56,9 +57,9 @@ public:
 public:
 
     bool wantsAutoScroll() const override;
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
-    QRectF decorationsRect() const override;
+    PkRectF decorationsRect() const override;
 
     ///reimplemented
     void copy() const override;
@@ -78,7 +79,7 @@ public:
     ///reimplemented
     KoToolSelection *selection() override;
 
-    QMenu *popupActionsMenu() override;
+    DefaultToolMenu *popupActionsMenu() override;
 
     /**
      * Returns which selection handle is at params point (or NoHandle if none).
@@ -88,17 +89,17 @@ public:
      *   is inside the selection rectangle and false if it is just outside.
      *   The value of innerHandleMeaning is undefined if the handle location is NoHandle
      */
-    KoFlake::SelectionHandle handleAt(const QPointF &point, bool *innerHandleMeaning = 0);
+    KoFlake::SelectionHandle handleAt(const PkPointF &point, bool *innerHandleMeaning = 0);
 
     bool updateTextContourMode();
 
     KoSvgTextShape* tryFetchCurrentShapeManagerOwnerTextShape() const;
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape *> &shapes) override;
+public :
+    void activate(const PkSet<KoShape *> &shapes) override;
     void deactivate() override;
 
-private Q_SLOTS:
+private :
     void selectionAlign(int _align);
     void selectionDistribute(int _distribute);
 
@@ -128,9 +129,10 @@ private Q_SLOTS:
     void slotToggleFlowShapeType();
     void slotReorderFlowShapes(int type);
 
-protected Q_SLOTS:
+protected :
     /// Update actions on selection change
     void updateActions();
+    DefaultToolAction *action(const PkString &actionId) const;
 
 public: // Events
 
@@ -139,7 +141,7 @@ public: // Events
     void mouseReleaseEvent(KoPointerEvent *event) override;
     void mouseDoubleClickEvent(KoPointerEvent *event) override;
 
-    void keyPressEvent(QKeyEvent *event) override;
+    void keyPressEvent(DefaultToolKeyEvent *event) override;
 
     void explicitUserStrokeEndRequest() override;
 protected:
@@ -154,10 +156,10 @@ protected:
     /**
      * Enable/disable actions specific to the tool (vector vs. reference images)
      */
-    virtual void updateDistinctiveActions(const QList<KoShape*> &editableShapes);
+    virtual void updateDistinctiveActions(const PkList<KoShape*> &editableShapes);
 
-    void addTransformActions(QMenu *menu) const;
-    QScopedPointer<QMenu> m_contextMenu;
+    void addTransformActions(DefaultToolMenu *menu) const;
+    PkScopedPointer<DefaultToolMenu> m_contextMenu;
 
 private:
     class MoveGradientHandleInteractionFactory;
@@ -170,34 +172,34 @@ private:
     /// Returns rotation angle of given handle of the current selection
     qreal rotationOfHandle(KoFlake::SelectionHandle handle, bool useEdgeRotation);
 
-    void addMappedAction(KisSignalMapper *mapper, const QString &actionId, int type);
+    void addMappedAction(KisSignalMapper *mapper, const PkString &actionId, int type);
 
     void selectionReorder(KoShapeReorderCommand::MoveShapeType order);
     bool moveSelection(int direction, Qt::KeyboardModifiers modifiers);
 
     /// Returns selection rectangle adjusted by handle proximity threshold
-    QRectF handlesSize();
+    PkRectF handlesSize();
 
 
-    void canvasResourceChanged(int key, const QVariant &res) override;
+    void canvasResourceChanged(int key, const PkVariant &res) override;
 
     KoFlake::SelectionHandle m_lastHandle;
     KoFlake::AnchorPosition m_hotPosition;
     bool m_mouseWasInsideHandles;
-    QPointF m_selectionBox[8];
-    QPolygonF m_selectionOutline;
-    QPointF m_lastPoint;
+    PkPointF m_selectionBox[8];
+    PkPolygonF m_selectionOutline;
+    PkPointF m_lastPoint;
 
-    QScopedPointer<SelectionDecorator> m_decorator;
-    QScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
+    PkScopedPointer<SelectionDecorator> m_decorator;
+    PkScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
 
     KoShapeMeshGradientHandles::Handle m_selectedMeshHandle;
     KoShapeMeshGradientHandles::Handle m_hoveredMeshHandle;
 
     // TODO alter these 3 arrays to be static const instead
-    QCursor m_sizeCursors[8];
-    QCursor m_rotateCursors[8];
-    QCursor m_shearCursors[8];
+    DefaultToolCursor m_sizeCursors[8];
+    DefaultToolCursor m_rotateCursors[8];
+    DefaultToolCursor m_shearCursors[8];
     qreal m_angle;
     KoToolSelection *m_selectionHandler;
     friend class SelectionHandler;
@@ -210,6 +212,7 @@ private:
     KisSignalMapper *m_textFlowSignalsMapper {0};
 
     DefaultToolTextPropertiesInterface *m_textPropertyInterface{0};
+    PkMap<PkString, DefaultToolAction *> m_actions;
 };
 
 #include <KoSvgTextShape.h>
@@ -217,15 +220,15 @@ private:
 /// Interface to interact with the text property manager.
 class DefaultToolTextPropertiesInterface: public KoSvgTextPropertiesInterface, public KoSvgTextShape::TextCursorChangeListener
 {
-    Q_OBJECT
+
 public:
     DefaultToolTextPropertiesInterface(DefaultTool *parent);
     ~DefaultToolTextPropertiesInterface();
-    virtual QList<KoSvgTextProperties> getSelectedProperties() override;
-    virtual QList<KoSvgTextProperties> getCharacterProperties() override;
+    virtual PkList<KoSvgTextProperties> getSelectedProperties() override;
+    virtual PkList<KoSvgTextProperties> getCharacterProperties() override;
     virtual KoSvgTextProperties getInheritedProperties() override;
-    virtual void setPropertiesOnSelected(KoSvgTextProperties properties, QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>()) override;
-    virtual void setCharacterPropertiesOnSelected(KoSvgTextProperties properties, QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>()) override;
+    virtual void setPropertiesOnSelected(KoSvgTextProperties properties, PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>()) override;
+    virtual void setCharacterPropertiesOnSelected(KoSvgTextProperties properties, PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>()) override;
     virtual bool spanSelection() override;
     virtual bool characterPropertiesEnabled() override;
 
@@ -234,11 +237,15 @@ public:
     virtual void notifyShapeChanged(KoShape::ChangeType type, KoShape *shape) override;
 
     void clearSelection();
-public Q_SLOTS:
+public :
+    void textSelectionChanged()
+    {
+        activateSignal<>(this, PkMemberFnKey::from(&DefaultToolTextPropertiesInterface::textSelectionChanged));
+    }
     void slotSelectionChanged();
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
 

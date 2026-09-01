@@ -7,7 +7,7 @@
 #ifndef SHAPEGRADIENTEDITSTRATEGY_H
 #define SHAPEGRADIENTEDITSTRATEGY_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include <KoInteractionStrategy.h>
 #include "KoShapeGradientHandles.h"
 
@@ -18,17 +18,17 @@ public:
                               KoFlake::FillVariant fillVariant,
                               KoShape *shape,
                               KoShapeGradientHandles::Handle::Type startHandleType,
-                              const QPointF &clicked);
+                              const PkPointF &clicked);
     ~ShapeGradientEditStrategy() override;
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif // SHAPEGRADIENTEDITSTRATEGY_H

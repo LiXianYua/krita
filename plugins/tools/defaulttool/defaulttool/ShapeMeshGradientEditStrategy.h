@@ -18,11 +18,11 @@ public:
                                   KoFlake::FillVariant fillVariant,
                                   KoShape *shape,
                                   KoShapeMeshGradientHandles::Handle startHandle,
-                                  const QPointF &clicked);
+                                  const PkPointF &clicked);
 
     ~ShapeMeshGradientEditStrategy();
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
 
     KUndo2Command* createCommand() override;
 
@@ -30,7 +30,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif // __SHAPEMESHGRADIENTEDITSTRATEGY_H_

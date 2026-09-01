@@ -8,7 +8,7 @@
 #ifndef __KOSHAPEMESHGRADIENTHANDLES_H_
 #define __KOSHAPEMESHGRADIENTHANDLES_H_
 
-#include <QPointF>
+#include <PkPoint.h>
 #include <KoFlake.h>
 
 #include <SvgMeshGradient.h>
@@ -30,7 +30,7 @@ public:
         };
 
         Handle() : type(None) {}
-        Handle(Type t, const QPointF &p, int row, int col, SvgMeshPatch::Type segmentType, Index index = First)
+        Handle(Type t, const PkPointF &p, int row, int col, SvgMeshPatch::Type segmentType, Index index = First)
             : type(t) , pos(p)
             , row(row) , col(col)
             , segmentType(segmentType)
@@ -43,7 +43,7 @@ public:
         }
 
         Type type {None};
-        QPointF pos;
+        PkPointF pos;
         int row {0};
         int col {0};
         SvgMeshPatch::Type segmentType {SvgMeshPatch::Top};
@@ -54,35 +54,35 @@ public:
     KoShapeMeshGradientHandles(KoFlake::FillVariant fillVariant, KoShape *shape);
 
     /// get all nodes in the mesh, don't use this for drawing the path but use path()
-    QVector<Handle> handles() const;
+    PkVector<Handle> handles() const;
 
     /// convenience method to get a handle by its position in the mesharray
     Handle getHandle(SvgMeshPosition position) const;
 
-    KUndo2Command* moveGradientHandle(const Handle &handle, const QPointF &newPos);
+    KUndo2Command* moveGradientHandle(const Handle &handle, const PkPointF &newPos);
 
-    QPainterPath path() const;
-    QVector<QPainterPath> getConnectedPath(const Handle &handle) const;
+    PkPainterPath path() const;
+    PkVector<PkPainterPath> getConnectedPath(const Handle &handle) const;
 
     /// get the attached corner node of the bezierHandle
-    QPointF getAttachedCorner(const Handle &bezierHandle) const;
+    PkPointF getAttachedCorner(const Handle &bezierHandle) const;
 
 private:
     const SvgMeshGradient* gradient() const;
 
     /// get handles including the corner
-    QVector<Handle> getHandles(const SvgMeshArray *mesharray,
+    PkVector<Handle> getHandles(const SvgMeshArray *mesharray,
                                 SvgMeshPatch::Type type,
                                 int row,
                                 int col) const;
 
     // get only bezier handles
-    QVector<Handle> getBezierHandles(const SvgMeshArray *mesharray,
+    PkVector<Handle> getBezierHandles(const SvgMeshArray *mesharray,
                                      SvgMeshPatch::Type type,
                                      int row,
                                      int col) const;
 
-    QTransform absoluteTransformation(KoFlake::CoordinateSystem system) const;
+    PkTransform absoluteTransformation(KoFlake::CoordinateSystem system) const;
 
 private:
     KoFlake::FillVariant m_fillVariant {KoFlake::Fill};

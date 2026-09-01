@@ -6,7 +6,7 @@
 
 #include "KoShapeGradientHandles.h"
 
-#include <QGradient>
+#include <PkGradient.h>
 #include <KoShape.h>
 #include <KoGradientBackground.h>
 #include <KoShapeBackgroundCommand.h>
@@ -20,21 +20,21 @@ KoShapeGradientHandles::KoShapeGradientHandles(KoFlake::FillVariant fillVariant,
 {
 }
 
-QVector<KoShapeGradientHandles::Handle> KoShapeGradientHandles::handles() const {
-    QVector<Handle> result;
+PkVector<KoShapeGradientHandles::Handle> KoShapeGradientHandles::handles() const {
+    PkVector<Handle> result;
 
-    const QGradient *g = gradient();
+    const PkGradient *g = gradient();
     if (!g) return result;
 
     switch (g->type()) {
-    case QGradient::LinearGradient: {
-        const QLinearGradient *lgradient = static_cast<const QLinearGradient*>(g);
+    case PkGradientEnums::LinearGradient: {
+        const PkGradient *lgradient = g;
         result << Handle(Handle::LinearStart, lgradient->start());
         result << Handle(Handle::LinearEnd, lgradient->finalStop());
         break;
     }
-    case QGradient::RadialGradient: {
-        const QRadialGradient *rgradient = static_cast<const QRadialGradient*>(g);
+    case PkGradientEnums::RadialGradient: {
+        const PkGradient *rgradient = g;
 
         result << Handle(Handle::RadialCenter, rgradient->center());
 
@@ -43,24 +43,24 @@ QVector<KoShapeGradientHandles::Handle> KoShapeGradientHandles::handles() const 
         }
 
         result << Handle(Handle::RadialRadius,
-                         rgradient->center() + QPointF(rgradient->centerRadius(), 0));
+                         rgradient->center() + PkPointF(rgradient->radius(), 0));
         break;
     }
-    case QGradient::ConicalGradient:
+    case PkGradientEnums::ConicalGradient:
         // not supported
         break;
-    case QGradient::NoGradient:
+    case PkGradientEnums::NoGradient:
         // not supported
         break;
     }
 
-    if (g->coordinateMode() == QGradient::ObjectBoundingMode) {
-        const QRectF boundingRect = m_shape->outlineRect();
-        const QTransform gradientToUser(boundingRect.width(), 0, 0, boundingRect.height(),
+    if (g->coordinateMode() == PkGradientEnums::ObjectBoundingMode) {
+        const PkRectF boundingRect = m_shape->outlineRect();
+        const PkTransform gradientToUser(boundingRect.width(), 0, 0, boundingRect.height(),
                                         boundingRect.x(), boundingRect.y());
-        const QTransform t = gradientToUser * m_shape->absoluteTransformation();
+        const PkTransform t = gradientToUser * m_shape->absoluteTransformation();
 
-        QVector<Handle>::iterator it = result.begin();
+        PkVector<Handle>::iterator it = result.begin();
 
 
 
@@ -72,30 +72,30 @@ QVector<KoShapeGradientHandles::Handle> KoShapeGradientHandles::handles() const 
     return result;
 }
 
-QGradient::Type KoShapeGradientHandles::type() const
+PkGradientEnums::Type KoShapeGradientHandles::type() const
 {
-    const QGradient *g = gradient();
-    return g ? g->type() : QGradient::NoGradient;
+    const PkGradient *g = gradient();
+    return g ? g->type() : PkGradientEnums::NoGradient;
 }
 
-KUndo2Command *KoShapeGradientHandles::moveGradientHandle(KoShapeGradientHandles::Handle::Type handleType, const QPointF &absoluteOffset)
+KUndo2Command *KoShapeGradientHandles::moveGradientHandle(KoShapeGradientHandles::Handle::Type handleType, const PkPointF &absoluteOffset)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(handleType != Handle::None, 0);
 
     KoShapeFillWrapper wrapper(m_shape, m_fillVariant);
-    const QGradient *originalGradient = wrapper.gradient();
-    QTransform originalTransform = wrapper.gradientTransform();
+    const PkGradient *originalGradient = wrapper.gradient();
+    PkTransform originalTransform = wrapper.gradientTransform();
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(originalGradient, 0);
 
-    QScopedPointer<QGradient> newGradient;
+    PkScopedPointer<PkGradient> newGradient;
 
     switch (originalGradient->type()) {
-    case QGradient::LinearGradient: {
+    case PkGradientEnums::LinearGradient: {
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(handleType == Handle::LinearStart ||
                                              handleType == Handle::LinearEnd, 0);
 
         newGradient.reset(KoFlake::cloneGradient(originalGradient));
-        QLinearGradient *lgradient = static_cast<QLinearGradient*>(newGradient.data());
+        PkGradient *lgradient = newGradient.data();
 
         if (handleType == Handle::LinearStart) {
             lgradient->setStart(getNewHandlePos(lgradient->start(), absoluteOffset, newGradient->coordinateMode()));
@@ -105,25 +105,25 @@ KUndo2Command *KoShapeGradientHandles::moveGradientHandle(KoShapeGradientHandles
         }
         break;
     }
-    case QGradient::RadialGradient: {
+    case PkGradientEnums::RadialGradient: {
         newGradient.reset(KoFlake::cloneGradient(originalGradient));
-        QRadialGradient *rgradient = static_cast<QRadialGradient*>(newGradient.data());
+        PkGradient *rgradient = newGradient.data();
 
         if (handleType == Handle::RadialCenter) {
             rgradient->setCenter(getNewHandlePos(rgradient->center(), absoluteOffset, newGradient->coordinateMode()));
         } else if (handleType == Handle::RadialFocalPoint) {
             rgradient->setFocalPoint(getNewHandlePos(rgradient->focalPoint(), absoluteOffset, newGradient->coordinateMode()));
         } else if (handleType == Handle::RadialRadius) {
-            QPointF radiusPos = rgradient->center() + QPointF(QPointF(rgradient->radius(), 0));
+            PkPointF radiusPos = rgradient->center() + PkPointF(rgradient->radius(), 0);
             radiusPos = getNewHandlePos(radiusPos, absoluteOffset, newGradient->coordinateMode());
             rgradient->setRadius(radiusPos.x() - rgradient->center().x());
         }
         break;
     }
-    case QGradient::ConicalGradient:
+    case PkGradientEnums::ConicalGradient:
         // not supported
         break;
-    case QGradient::NoGradient:
+    case PkGradientEnums::NoGradient:
         // not supported
         break;
     }
@@ -135,7 +135,7 @@ KoShapeGradientHandles::Handle KoShapeGradientHandles::getHandle(KoShapeGradient
 {
     Handle result;
 
-    Q_FOREACH (const Handle &h, handles()) {
+    for (const Handle &h : handles()) {
         if (h.type == handleType) {
             result = h;
             break;
@@ -145,25 +145,25 @@ KoShapeGradientHandles::Handle KoShapeGradientHandles::getHandle(KoShapeGradient
     return result;
 }
 
-const QGradient *KoShapeGradientHandles::gradient() const {
+const PkGradient *KoShapeGradientHandles::gradient() const {
     KoShapeFillWrapper wrapper(m_shape, m_fillVariant);
     return wrapper.gradient();
 }
 
-QPointF KoShapeGradientHandles::getNewHandlePos(const QPointF &oldPos, const QPointF &absoluteOffset, QGradient::CoordinateMode mode)
+PkPointF KoShapeGradientHandles::getNewHandlePos(const PkPointF &oldPos, const PkPointF &absoluteOffset, PkGradientEnums::CoordinateMode mode)
 {
-    const QTransform offset = QTransform::fromTranslate(absoluteOffset.x(), absoluteOffset.y());
-    QTransform localToAbsolute = m_shape->absoluteTransformation();
-    QTransform absoluteToLocal = localToAbsolute.inverted();
+    const PkTransform offset = PkTransform::fromTranslate(absoluteOffset.x(), absoluteOffset.y());
+    PkTransform localToAbsolute = m_shape->absoluteTransformation();
+    PkTransform absoluteToLocal = localToAbsolute.inverted();
 
-    if (mode == QGradient::ObjectBoundingMode) {
-        const QRectF rect = m_shape->outlineRect();
-        const QTransform gradientToUser = KisAlgebra2D::mapToRect(rect);
+    if (mode == PkGradientEnums::ObjectBoundingMode) {
+        const PkRectF rect = m_shape->outlineRect();
+        const PkTransform gradientToUser = KisAlgebra2D::mapToRect(rect);
         localToAbsolute = gradientToUser * localToAbsolute;
 
         /// Some shapes may have zero-width/height, then inverted transform will not
         /// exist. Therefore we should use a special method for that.
-        const QTransform userToGradient = KisAlgebra2D::mapToRectInverse(rect);
+        const PkTransform userToGradient = KisAlgebra2D::mapToRectInverse(rect);
         absoluteToLocal = absoluteToLocal * userToGradient;
     }
 

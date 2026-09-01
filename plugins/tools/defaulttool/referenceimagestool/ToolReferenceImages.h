@@ -7,8 +7,9 @@
 #ifndef TOOL_REFERENCE_IMAGES_H
 #define TOOL_REFERENCE_IMAGES_H
 
-#include <QPointer>
+#include <PkPointer.h>
 #include <PkConnection.h>
+#include <pk/signal/compat/QPointer>
 
 #include <KoToolFactoryBase.h>
 
@@ -24,7 +25,7 @@ class KisReferenceImageToolServices;
 
 class ToolReferenceImages : public DefaultTool
 {
-    Q_OBJECT
+
 
 public:
     ToolReferenceImages(KoCanvasBase * canvas);
@@ -40,17 +41,17 @@ public:
 
     void deleteSelection() override;
 
-    QMenu* popupActionsMenu() override;
+    DefaultToolMenu* popupActionsMenu() override;
 
 protected:
     bool isValidForCurrentLayer() const override;
     KoShapeManager *shapeManager() const override;
     KoSelection *koSelection() const override;
 
-    void updateDistinctiveActions(const QList<KoShape*> &editableShapes) override;
+    void updateDistinctiveActions(const PkList<KoShape*> &editableShapes) override;
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public :
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
     void addReferenceImage();
@@ -89,7 +90,7 @@ class ToolReferenceImagesFactory : public DefaultToolFactory
 public:
     ToolReferenceImagesFactory()
     : DefaultToolFactory("ToolReferenceImages") {
-        setToolTip(i18n("Reference Images Tool"));
+        setToolTip(PkString("Reference Images Tool"));
         setSection(ToolBoxSection::View);
         setPriority(2);
         setActivationShapeId("flake/always");
@@ -102,7 +103,7 @@ public:
         return new ToolReferenceImages(canvas);
     }
 
-    QList<QAction *> createActionsImpl() override;
+    PkList<DefaultToolAction *> createActionsImpl();
 
 };
 

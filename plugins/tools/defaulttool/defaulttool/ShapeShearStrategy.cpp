@@ -8,6 +8,7 @@
 
 #include "ShapeShearStrategy.h"
 #include "SelectionDecorator.h"
+#include "DefaultToolStrategyMath.h"
 
 #include <KoToolBase.h>
 #include <KoCanvasBase.h>
@@ -19,14 +20,13 @@
 #include <KoShapeBulkActionLock.h>
 
 #include <KoSelection.h>
-#include <QPointF>
+#include <PkPoint.h>
 
 #include <math.h>
-#include <QDebug>
 #include <klocalizedstring.h>
 #include "kis_algebra_2d.h"
 
-ShapeShearStrategy::ShapeShearStrategy(KoToolBase *tool, KoSelection *selection, const QPointF &clicked, KoFlake::SelectionHandle direction)
+ShapeShearStrategy::ShapeShearStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, KoFlake::SelectionHandle direction)
     : KoInteractionStrategy(tool)
     , m_start(clicked)
 {
@@ -37,7 +37,7 @@ ShapeShearStrategy::ShapeShearStrategy(KoToolBase *tool, KoSelection *selection,
     m_transformedShapesAndSelection = selection->selectedEditableShapes();
     m_transformedShapesAndSelection << selection;
 
-    Q_FOREACH (KoShape *shape, m_transformedShapesAndSelection) {
+    for (KoShape *shape : m_transformedShapesAndSelection) {
         m_oldTransforms << shape->transformation();
     }
 
@@ -60,26 +60,25 @@ ShapeShearStrategy::ShapeShearStrategy(KoToolBase *tool, KoSelection *selection,
     case KoFlake::TopLeftHandle:
         m_top = true; m_bottom = false; m_left = true; m_right = false; break;
     default:
-        Q_UNREACHABLE();
-        ;// throw exception ?  TODO
+        std::terminate();
     }
     m_initialSize = selection->size();
-    m_solidPoint = QPointF(m_initialSize.width() / 2, m_initialSize.height() / 2);
+    m_solidPoint = PkPointF(m_initialSize.width() / 2, m_initialSize.height() / 2);
 
     if (m_top) {
-        m_solidPoint += QPointF(0, m_initialSize.height() / 2);
+        m_solidPoint += PkPointF(0, m_initialSize.height() / 2);
     } else if (m_bottom) {
-        m_solidPoint -= QPointF(0, m_initialSize.height() / 2);
+        m_solidPoint -= PkPointF(0, m_initialSize.height() / 2);
     }
     if (m_left) {
-        m_solidPoint += QPointF(m_initialSize.width() / 2, 0);
+        m_solidPoint += PkPointF(m_initialSize.width() / 2, 0);
     } else if (m_right) {
-        m_solidPoint -= QPointF(m_initialSize.width() / 2, 0);
+        m_solidPoint -= PkPointF(m_initialSize.width() / 2, 0);
     }
 
     m_solidPoint = selection->absoluteTransformation().map(selection->outlineRect().topLeft() + m_solidPoint);
 
-    QPointF edge;
+    PkPointF edge;
     qreal angle = 0.0;
     if (m_top) {
         edge = selection->absolutePosition(KoFlake::BottomLeft) - selection->absolutePosition(KoFlake::BottomRight);
@@ -99,17 +98,17 @@ ShapeShearStrategy::ShapeShearStrategy(KoToolBase *tool, KoSelection *selection,
 
     // use cross product of top edge and left edge of selection bounding rect
     // to determine if the selection is mirrored
-    QPointF top = selection->absolutePosition(KoFlake::TopRight) - selection->absolutePosition(KoFlake::TopLeft);
-    QPointF left = selection->absolutePosition(KoFlake::BottomLeft) - selection->absolutePosition(KoFlake::TopLeft);
+    PkPointF top = selection->absolutePosition(KoFlake::TopRight) - selection->absolutePosition(KoFlake::TopLeft);
+    PkPointF left = selection->absolutePosition(KoFlake::BottomLeft) - selection->absolutePosition(KoFlake::TopLeft);
     m_isMirrored = (top.x() * left.y() - top.y() * left.x()) < 0.0;
 }
 
-void ShapeShearStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModifiers modifiers)
+void ShapeShearStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModifiers modifiers)
 {
-    Q_UNUSED(modifiers);
-    QPointF shearVector = point - m_start;
+    (void)modifiers;
+    PkPointF shearVector = point - m_start;
 
-    QTransform m;
+    PkTransform m;
     m.rotate(-m_initialSelectionAngle);
     shearVector = m.map(shearVector);
 
@@ -119,10 +118,10 @@ void ShapeShearStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModif
         shearVector = - shearVector;
     }
     if (m_top || m_bottom) {
-        shearX = m_initialSize.height() > 0 ? shearVector.x() / m_initialSize.height() : 0;
+        shearX = DefaultToolStrategyMath::shearFactor(shearVector.x(), m_initialSize.height());
     }
     if (m_left || m_right) {
-        shearY = m_initialSize.width() > 0 ? shearVector.y() / m_initialSize.width() : 0;
+        shearY = DefaultToolStrategyMath::shearFactor(shearVector.y(), m_initialSize.width());
     }
 
     // if selection is mirrored invert the shear values
@@ -139,18 +138,18 @@ void ShapeShearStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModif
         return;
     }
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.translate(m_solidPoint.x(), m_solidPoint.y());
     matrix.rotate(m_initialSelectionAngle);
     matrix.shear(shearX, shearY);
     matrix.rotate(-m_initialSelectionAngle);
     matrix.translate(-m_solidPoint.x(), -m_solidPoint.y());
 
-    QTransform applyMatrix = matrix * m_shearMatrix.inverted();
+    PkTransform applyMatrix = matrix * m_shearMatrix.inverted();
 
     KoShapeBulkActionLock lock(m_transformedShapesAndSelection);
 
-    Q_FOREACH (KoShape *shape, m_transformedShapesAndSelection) {
+    for (KoShape *shape : m_transformedShapesAndSelection) {
         shape->applyAbsoluteTransformation(applyMatrix);
     }
 
@@ -159,22 +158,22 @@ void ShapeShearStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModif
     m_shearMatrix = matrix;
 }
 
-void ShapeShearStrategy::paint(QPainter &painter, const KoViewConverter &converter)
+void ShapeShearStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(painter);
-    Q_UNUSED(converter);
+    (void)painter;
+    (void)converter;
 }
 
 KUndo2Command *ShapeShearStrategy::createCommand()
 {
-    QList<QTransform> newTransforms;
-    Q_FOREACH (KoShape *shape, m_transformedShapesAndSelection) {
+    PkList<PkTransform> newTransforms;
+    for (KoShape *shape : m_transformedShapesAndSelection) {
         newTransforms << shape->transformation();
     }
     const bool nothingChanged =
         std::equal(m_oldTransforms.begin(), m_oldTransforms.end(),
                    newTransforms.begin(),
-                   [] (const QTransform &t1, const QTransform &t2) {
+                   [] (const PkTransform &t1, const PkTransform &t2) {
                        return KisAlgebra2D::fuzzyMatrixCompare(t1, t2, 1e-6);
                    });
 

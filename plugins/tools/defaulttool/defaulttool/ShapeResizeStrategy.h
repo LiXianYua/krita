@@ -10,10 +10,10 @@
 #include <KoInteractionStrategy.h>
 #include <KoFlake.h>
 
-#include <QScopedPointer>
-#include <QPointF>
-#include <QList>
-#include <QTransform>
+#include <PkScopedPointer.h>
+#include <PkPoint.h>
+#include <PkList.h>
+#include <PkTransform.h>
 
 #include <memory>
 
@@ -33,29 +33,29 @@ public:
     /**
      * Constructor
      */
-    ShapeResizeStrategy(KoToolBase *tool, KoSelection *selection, const QPointF &clicked, KoFlake::SelectionHandle direction, bool forceUniformScalingMode);
+    ShapeResizeStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, KoFlake::SelectionHandle direction, bool forceUniformScalingMode);
     ~ShapeResizeStrategy() override;
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 private:
-    void resizeBy(const QPointF &stillPoint, qreal zoomX, qreal zoomY);
+    void resizeBy(const PkPointF &stillPoint, qreal zoomX, qreal zoomY);
 
-    QPointF m_start;
-    QList<KoShape *> m_selectedShapes;
+    PkPointF m_start;
+    PkList<KoShape *> m_selectedShapes;
 
-    QTransform m_postScalingCoveringTransform;
-    QSizeF m_initialSelectionSize;
-    QTransform m_unwindMatrix;
+    PkTransform m_postScalingCoveringTransform;
+    PkSizeF m_initialSelectionSize;
+    PkTransform m_unwindMatrix;
     bool m_top {false};
     bool m_left{false};
     bool m_bottom {false};
     bool m_right {false};
 
-    QPointF m_globalStillPoint;
-    QPointF m_globalCenterPoint;
+    PkPointF m_globalStillPoint;
+    PkPointF m_globalCenterPoint;
     std::unique_ptr<KoShapeResizeCommand> m_executedCommand;
 
     bool m_forceUniformScalingMode {false};

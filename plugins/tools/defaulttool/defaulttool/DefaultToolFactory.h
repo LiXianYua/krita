@@ -9,6 +9,7 @@
 #define DEFAULTTOOLFACTORY_H
 
 #include <KoToolFactoryBase.h>
+#include "DefaultToolUi.h"
 
 /// Factory for the KoInteractionTool
 class DefaultToolFactory : public KoToolFactoryBase
@@ -16,10 +17,10 @@ class DefaultToolFactory : public KoToolFactoryBase
 public:
     /// constructor
     DefaultToolFactory();
-    DefaultToolFactory(const QString &id);
+    DefaultToolFactory(const PkString &id);
     ~DefaultToolFactory() override;
 
     KoToolBase *createTool(KoCanvasBase *canvas) override;
-    QList<QAction *> createActionsImpl() override;
+    PkList<DefaultToolAction *> createActionsImpl();
 };
 #endif

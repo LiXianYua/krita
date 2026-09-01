@@ -7,8 +7,8 @@
 #ifndef KOSHAPEGRADIENTHANDLES_H
 #define KOSHAPEGRADIENTHANDLES_H
 
-#include <QPointF>
-#include <QGradient>
+#include <PkPoint.h>
+#include <PkGradient.h>
 #include <KoFlake.h>
 
 class KoShape;
@@ -29,25 +29,25 @@ public:
         };
 
         Handle() : type(None) {}
-        Handle(Type t, const QPointF &p) : type(t), pos(p) {}
+        Handle(Type t, const PkPointF &p) : type(t), pos(p) {}
 
         Type type;
-        QPointF pos;
+        PkPointF pos;
     };
 
 public:
     KoShapeGradientHandles(KoFlake::FillVariant fillVariant, KoShape *shape);
-    QVector<Handle> handles() const;
-    QGradient::Type type() const;
+    PkVector<Handle> handles() const;
+    PkGradientEnums::Type type() const;
 
-    KUndo2Command* moveGradientHandle(Handle::Type handleType, const QPointF &absoluteOffset);
+    KUndo2Command* moveGradientHandle(Handle::Type handleType, const PkPointF &absoluteOffset);
     Handle getHandle(Handle::Type handleType);
 
 
 
 private:
-    const QGradient* gradient() const;
-    QPointF getNewHandlePos(const QPointF &oldPos, const QPointF &absoluteOffset, QGradient::CoordinateMode mode);
+    const PkGradient* gradient() const;
+    PkPointF getNewHandlePos(const PkPointF &oldPos, const PkPointF &absoluteOffset, PkGradientEnums::CoordinateMode mode);
 
 private:
     KoFlake::FillVariant m_fillVariant;

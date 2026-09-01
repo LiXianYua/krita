@@ -7,24 +7,27 @@
 #ifndef KISREFERENCEIMAGECOLLECTION_H
 #define KISREFERENCEIMAGECOLLECTION_H
 
-#include <QVector>
+#include <PkVector.h>
+#include <PkStringList.h>
 
-class QIODevice;
+class PkStream;
 class KisReferenceImage;
 
 class KisReferenceImageCollection
 {
 public:
     explicit KisReferenceImageCollection() = default;
-    explicit KisReferenceImageCollection(const QVector<KisReferenceImage*> &references);
+    explicit KisReferenceImageCollection(const PkVector<KisReferenceImage*> &references);
 
-    const QVector<KisReferenceImage*> &referenceImages() const;
+    const PkVector<KisReferenceImage*> &referenceImages() const;
 
-    bool save(QIODevice *io);
-    bool load(QIODevice *io);
+    bool save(PkStream *io);
+    bool load(PkStream *io);
+    const PkStringList &loadFailures() const { return m_loadFailures; }
 
 private:
-    QVector<KisReferenceImage*> references;
+    PkVector<KisReferenceImage*> references;
+    PkStringList m_loadFailures;
 };
 
 #endif

@@ -8,6 +8,7 @@
 
 #include "ShapeResizeStrategy.h"
 #include "SelectionDecorator.h"
+#include "DefaultToolStrategyMath.h"
 
 #include <KoShapeManager.h>
 #include <KoPointerEvent.h>
@@ -25,7 +26,7 @@
 #include <kis_debug.h>
 #include "kis_algebra_2d.h"
 
-ShapeResizeStrategy::ShapeResizeStrategy(KoToolBase *tool, KoSelection *selection, const QPointF &clicked, KoFlake::SelectionHandle direction, bool forceUniformScalingMode)
+ShapeResizeStrategy::ShapeResizeStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, KoFlake::SelectionHandle direction, bool forceUniformScalingMode)
     : KoInteractionStrategy(tool),
       m_forceUniformScalingMode(forceUniformScalingMode)
 {
@@ -43,48 +44,48 @@ ShapeResizeStrategy::ShapeResizeStrategy(KoToolBase *tool, KoSelection *selectio
     case KoFlake::TopMiddleHandle:
         m_start = 0.5 * (shape->absolutePosition(KoFlake::TopLeft) + shape->absolutePosition(KoFlake::TopRight));
         m_top = true; m_bottom = false; m_left = false; m_right = false;
-        m_globalStillPoint = QPointF(0.5 * w, h);
+        m_globalStillPoint = PkPointF(0.5 * w, h);
         break;
     case KoFlake::TopRightHandle:
         m_start = shape->absolutePosition(KoFlake::TopRight);
         m_top = true; m_bottom = false; m_left = false; m_right = true;
-        m_globalStillPoint = QPointF(0, h);
+        m_globalStillPoint = PkPointF(0, h);
         break;
     case KoFlake::RightMiddleHandle:
         m_start = 0.5 * (shape->absolutePosition(KoFlake::TopRight) + shape->absolutePosition(KoFlake::BottomRight));
         m_top = false; m_bottom = false; m_left = false; m_right = true;
-        m_globalStillPoint = QPointF(0, 0.5 * h);
+        m_globalStillPoint = PkPointF(0, 0.5 * h);
         break;
     case KoFlake::BottomRightHandle:
         m_start = shape->absolutePosition(KoFlake::BottomRight);
         m_top = false; m_bottom = true; m_left = false; m_right = true;
-        m_globalStillPoint = QPointF(0, 0);
+        m_globalStillPoint = PkPointF(0, 0);
         break;
     case KoFlake::BottomMiddleHandle:
         m_start = 0.5 * (shape->absolutePosition(KoFlake::BottomRight) + shape->absolutePosition(KoFlake::BottomLeft));
         m_top = false; m_bottom = true; m_left = false; m_right = false;
-        m_globalStillPoint = QPointF(0.5 * w, 0);
+        m_globalStillPoint = PkPointF(0.5 * w, 0);
         break;
     case KoFlake::BottomLeftHandle:
         m_start = shape->absolutePosition(KoFlake::BottomLeft);
         m_top = false; m_bottom = true; m_left = true; m_right = false;
-        m_globalStillPoint = QPointF(w, 0);
+        m_globalStillPoint = PkPointF(w, 0);
         break;
     case KoFlake::LeftMiddleHandle:
         m_start = 0.5 * (shape->absolutePosition(KoFlake::BottomLeft) + shape->absolutePosition(KoFlake::TopLeft));
         m_top = false; m_bottom = false; m_left = true; m_right = false;
-        m_globalStillPoint = QPointF(w, 0.5 * h);
+        m_globalStillPoint = PkPointF(w, 0.5 * h);
         break;
     case KoFlake::TopLeftHandle:
         m_start = shape->absolutePosition(KoFlake::TopLeft);
         m_top = true; m_bottom = false; m_left = true; m_right = false;
-        m_globalStillPoint = QPointF(w, h);
+        m_globalStillPoint = PkPointF(w, h);
         break;
     default:
-        Q_ASSERT(0); // illegal 'corner'
+        KIS_ASSERT(0); // illegal 'corner'
     }
 
-    const QPointF p0 = shape->outlineRect().topLeft();
+    const PkPointF p0 = shape->outlineRect().topLeft();
     m_globalStillPoint = shape->absoluteTransformation().map(p0 + m_globalStillPoint);
     m_globalCenterPoint = shape->absolutePosition(KoFlake::Center);
 
@@ -93,7 +94,7 @@ ShapeResizeStrategy::ShapeResizeStrategy(KoToolBase *tool, KoSelection *selectio
     m_postScalingCoveringTransform = shape->transformation();
 
 
-    tool->setStatusText(i18n("Press CTRL to resize from center."));
+    tool->setStatusText(PkString("Press CTRL to resize from center."));
     tool->canvas()->snapGuide()->setIgnoredShapes(KoShape::linearizeSubtree(m_selectedShapes));
 }
 
@@ -102,12 +103,12 @@ ShapeResizeStrategy::~ShapeResizeStrategy()
 
 }
 
-void ShapeResizeStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModifiers modifiers)
+void ShapeResizeStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModifiers modifiers)
 {
-    QPointF newPos = tool()->canvas()->snapGuide()->snap(point, modifiers);
+    PkPointF newPos = tool()->canvas()->snapGuide()->snap(point, modifiers);
 
     bool keepAspect = modifiers & Qt::ShiftModifier;
-    Q_FOREACH (KoShape *shape, m_selectedShapes) {
+    for (KoShape *shape : m_selectedShapes) {
         keepAspect = keepAspect || shape->keepAspectRatio();
     }
 
@@ -120,7 +121,7 @@ void ShapeResizeStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModi
         startHeight = std::numeric_limits<qreal>::epsilon();
     }
 
-    QPointF distance = m_unwindMatrix.map(newPos) - m_unwindMatrix.map(m_start);
+    PkPointF distance = m_unwindMatrix.map(newPos) - m_unwindMatrix.map(m_start);
 
     // guard against resizing zero width shapes, which would result in huge zoom factors
     if (m_initialSelectionSize.width() < std::numeric_limits<qreal>::epsilon()) {
@@ -156,8 +157,8 @@ void ShapeResizeStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModi
      * coordinates.  If the user wants it to be smaller, he can just
      * zoom-in a bit.
      */
-    QSizeF minViewSize(1.0, 1.0);
-    QSizeF minDocSize = tool()->canvas()->viewConverter()->viewToDocument(minViewSize);
+    PkSizeF minViewSize(1.0, 1.0);
+    PkSizeF minDocSize = tool()->canvas()->viewConverter()->viewToDocument(minViewSize);
 
     if (qAbs(newWidth) < minDocSize.width()) {
         newWidth = KisAlgebra2D::signPZ(newWidth) * minDocSize.width();
@@ -167,8 +168,10 @@ void ShapeResizeStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModi
         newHeight = KisAlgebra2D::signPZ(newHeight) * minDocSize.height();
     }
 
-    qreal zoomX = qAbs(startWidth) >= minDocSize.width() ? newWidth / startWidth : 1.0;
-    qreal zoomY = qAbs(startHeight) >= minDocSize.height() ? newHeight / startHeight : 1.0;
+    qreal zoomX = qAbs(startWidth) >= minDocSize.width()
+        ? DefaultToolStrategyMath::resizeScale(startWidth, newWidth) : 1.0;
+    qreal zoomY = qAbs(startHeight) >= minDocSize.height()
+        ? DefaultToolStrategyMath::resizeScale(startHeight, newHeight) : 1.0;
 
     if (keepAspect) {
         const bool cornerUsed = m_bottom + m_top + m_left + m_right == 2;
@@ -190,7 +193,7 @@ void ShapeResizeStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModi
     resizeBy(scaleFromCenter ? m_globalCenterPoint : m_globalStillPoint, zoomX, zoomY);
 }
 
-void ShapeResizeStrategy::resizeBy(const QPointF &stillPoint, qreal zoomX, qreal zoomY)
+void ShapeResizeStrategy::resizeBy(const PkPointF &stillPoint, qreal zoomX, qreal zoomY)
 {
     if (!m_executedCommand) {
         const bool usePostScaling = m_selectedShapes.size() > 1 || m_forceUniformScalingMode;
@@ -220,11 +223,11 @@ KUndo2Command *ShapeResizeStrategy::createCommand()
 
 void ShapeResizeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 {
-    Q_UNUSED(modifiers);
+    (void)modifiers;
 }
 
-void ShapeResizeStrategy::paint(QPainter &painter, const KoViewConverter &converter)
+void ShapeResizeStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(painter);
-    Q_UNUSED(converter);
+    (void)painter;
+    (void)converter;
 }

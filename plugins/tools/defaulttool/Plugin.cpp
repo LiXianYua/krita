@@ -9,15 +9,13 @@
 
 #include <KoToolRegistry.h>
 
-#include <kpluginfactory.h>
+#include <mutex>
 
-K_PLUGIN_FACTORY_WITH_JSON(PluginFactory, "calligra_tool_defaults.json", registerPlugin<Plugin>();)
-
-Plugin::Plugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+void registerDefaultToolPlugin()
 {
-    KoToolRegistry::instance()->add(new DefaultToolFactory());
-    KoToolRegistry::instance()->add(new ToolReferenceImagesFactory());
+    static std::once_flag once;
+    std::call_once(once, [] {
+        KoToolRegistry::instance()->add(new DefaultToolFactory());
+        KoToolRegistry::instance()->add(new ToolReferenceImagesFactory());
+    });
 }
-
-#include <Plugin.moc>

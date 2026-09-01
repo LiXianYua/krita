@@ -5,6 +5,7 @@
  */
 
 #include "ShapeGradientEditStrategy.h"
+#include "DefaultToolStrategyMath.h"
 
 #include <KoToolBase.h>
 #include <KoCanvasBase.h>
@@ -23,16 +24,16 @@
 
 struct ShapeGradientEditStrategy::Private
 {
-    Private(const QPointF &_start, KoShape *shape, KoFlake::FillVariant fillVariant)
+    Private(const PkPointF &_start, KoShape *shape, KoFlake::FillVariant fillVariant)
         : start(_start),
           gradientHandles(fillVariant, shape)
     {
         previous = start;
     }
 
-    QPointF start;
-    QPointF previous;
-    QPointF initialOffset;
+    PkPointF start;
+    PkPointF previous;
+    PkPointF initialOffset;
     KoShapeGradientHandles gradientHandles;
     KoShapeGradientHandles::Handle::Type handleType {KoShapeGradientHandles::Handle::Type::None};
     std::unique_ptr<KUndo2Command> intermediateCommand;
@@ -43,7 +44,7 @@ ShapeGradientEditStrategy::ShapeGradientEditStrategy(KoToolBase *tool,
                                                      KoFlake::FillVariant fillVariant,
                                                      KoShape *shape,
                                                      KoShapeGradientHandles::Handle::Type startHandleType,
-                                                     const QPointF &clicked)
+                                                     const PkPointF &clicked)
     : KoInteractionStrategy(tool)
     , m_d(new Private(clicked, shape, fillVariant))
 {
@@ -55,7 +56,7 @@ ShapeGradientEditStrategy::ShapeGradientEditStrategy(KoToolBase *tool,
     m_d->initialOffset = handle.pos - clicked;
 
     KisSnapPointStrategy *strategy = new KisSnapPointStrategy();
-    Q_FOREACH (const KoShapeGradientHandles::Handle &h, m_d->gradientHandles.handles()) {
+    for (const KoShapeGradientHandles::Handle &h : m_d->gradientHandles.handles()) {
         strategy->addPoint(h.pos);
     }
     tool->canvas()->snapGuide()->addCustomSnapStrategy(strategy);
@@ -65,10 +66,11 @@ ShapeGradientEditStrategy::~ShapeGradientEditStrategy()
 {
 }
 
-void ShapeGradientEditStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void ShapeGradientEditStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
-    const QPointF snappedPosition = tool()->canvas()->snapGuide()->snap(mouseLocation, m_d->initialOffset, modifiers);
-    const QPointF diff = snappedPosition - m_d->previous;
+    const PkPointF snappedPosition = tool()->canvas()->snapGuide()->snap(mouseLocation, m_d->initialOffset, modifiers);
+    const PkPointF diff = DefaultToolStrategyMath::gradientHandlePosition(
+        m_d->previous, snappedPosition - m_d->previous) - m_d->previous;
     m_d->previous = snappedPosition;
 
     KisCommandUtils::redoAndMergeIntoAccumulatingCommand(
@@ -85,13 +87,12 @@ KUndo2Command *ShapeGradientEditStrategy::createCommand()
 
 void ShapeGradientEditStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 {
-    Q_UNUSED(modifiers);
+    (void)modifiers;
     tool()->canvas()->snapGuide()->reset();
 }
 
-void ShapeGradientEditStrategy::paint(QPainter &painter, const KoViewConverter &converter)
+void ShapeGradientEditStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(painter);
-    Q_UNUSED(converter);
+    (void)painter;
+    (void)converter;
 }
-

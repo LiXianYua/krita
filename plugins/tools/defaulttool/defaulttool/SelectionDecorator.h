@@ -14,13 +14,13 @@
 
 #include "KoShapeMeshGradientHandles.h"
 
-#include <QPainter>
+#include <PkPainter.h>
 
 class KoSelection;
 class KoCanvasResourceProvider;
 
 static const struct DecoratorIconPositions {
-    QPoint uiOffset = QPoint(0, 40);
+    PkPoint uiOffset = PkPoint(0, 40);
 } decoratorIconPositions;
 
 /**
@@ -43,7 +43,7 @@ public:
      * @param painter the painter to paint to.
      * @param converter to convert between internal and view coordinates.
      */
-    void paint(QPainter &painter, const KoViewConverter &converter);
+    void paint(PkPainter &painter, const KoViewConverter &converter);
 
     /**
      * set the selection that is to be painted.
@@ -82,9 +82,9 @@ public:
     void setForceShapeOutlines(bool value);
 
 private:
-    void paintGradientHandles(KoShape *shape, KoFlake::FillVariant fillVariant, QPainter &painter, const KoViewConverter &converter);
+    void paintGradientHandles(KoShape *shape, KoFlake::FillVariant fillVariant, PkPainter &painter, const KoViewConverter &converter);
 
-    void paintMeshGradientHandles(KoShape *shape, KoFlake::FillVariant fillVariant, QPainter &painter, const KoViewConverter &converter);
+    void paintMeshGradientHandles(KoShape *shape, KoFlake::FillVariant fillVariant, PkPainter &painter, const KoViewConverter &converter);
 
 private:
     KoFlake::AnchorPosition m_hotPosition;

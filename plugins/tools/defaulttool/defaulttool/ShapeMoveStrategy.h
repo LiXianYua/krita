@@ -11,9 +11,9 @@
 
 #include <KoInteractionStrategy.h>
 
-#include <QPointer>
-#include <QPointF>
-#include <QList>
+#include <PkPointer.h>
+#include <PkPoint.h>
+#include <PkList.h>
 
 #include <KoCanvasBase.h>
 
@@ -33,20 +33,20 @@ public:
      * @param canvas the canvas interface which will supply things like a selection object
      * @param clicked the initial point that the user depressed (in pt).
      */
-    ShapeMoveStrategy(KoToolBase *tool, KoSelection *selection, const QPointF &clicked);
+    ShapeMoveStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked);
     ~ShapeMoveStrategy() override {}
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 private:
-    void moveSelection(const QPointF &diff);
-    QList<QPointF> m_previousPositions;
-    QList<QPointF> m_newPositions;
-    QPointF m_start, m_finalMove, m_initialOffset;
-    QList<KoShape *> m_selectedShapes;
-    QPointer<KoCanvasBase> m_canvas;
+    void moveSelection(const PkPointF &diff);
+    PkList<PkPointF> m_previousPositions;
+    PkList<PkPointF> m_newPositions;
+    PkPointF m_start, m_finalMove, m_initialOffset;
+    PkList<KoShape *> m_selectedShapes;
+    PkPointer<KoCanvasBase> m_canvas;
 };
 
 #endif

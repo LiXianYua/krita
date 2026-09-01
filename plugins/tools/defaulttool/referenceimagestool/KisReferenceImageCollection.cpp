@@ -5,38 +5,41 @@
  */
 #include "KisReferenceImageCollection.h"
 
-#include <QIODevice>
-#include <QMessageBox>
+#include <PkStream.h>
+#include <PkAuxTypes.h>
+
 
 #include <libs/store/KoStore.h>
 #include <KisReferenceImage.h>
 #include <KisReferenceImageDocumentFallback.h>
 #include <libs/store/KoStoreDevice.h>
 
-const QString METADATA_FILE = "reference_images.xml";
+const PkString METADATA_FILE = "reference_images.xml";
 
-KisReferenceImageCollection::KisReferenceImageCollection(const QVector<KisReferenceImage *> &references)
+KisReferenceImageCollection::KisReferenceImageCollection(const PkVector<KisReferenceImage *> &references)
     : references(references)
 {}
 
-const QVector<KisReferenceImage*> &KisReferenceImageCollection::referenceImages() const
+const PkVector<KisReferenceImage*> &KisReferenceImageCollection::referenceImages() const
 {
     return references;
 }
 
-bool KisReferenceImageCollection::save(QIODevice *io)
+bool KisReferenceImageCollection::save(PkStream *io)
 {
-    QScopedPointer<KoStore> store(KoStore::createStore(io, KoStore::Write, "application/x-krita-reference-images]", KoStore::Zip));
+    static const char appId[] = "application/x-krita-reference-images";
+    PkScopedPointer<KoStore> store(KoStore::createStore(
+        io, KoStore::Write, PkByteArray(appId, int(sizeof(appId) - 1)), KoStore::Zip));
     if (store.isNull()) return false;
 
-    QDomDocument doc;
-    QDomElement root = doc.createElement("referenceimages");
-    doc.insertBefore(root, QDomNode());
+    PkXmlDocument doc;
+    PkXmlElement root = doc.createElement("referenceimages");
+    doc.insertBefore(root, PkXmlNode());
 
     std::sort(references.begin(), references.end(), KoShape::compareShapeZIndex);
 
     int nextId = 0;
-    Q_FOREACH(KisReferenceImage *reference, references) {
+    for (KisReferenceImage *reference : references) {
         reference->saveXml(doc, root, nextId++);
 
         if (reference->embed()) {
@@ -50,16 +53,19 @@ bool KisReferenceImageCollection::save(QIODevice *io)
     }
 
     KoStoreDevice xmlDev(store.data());
-    xmlDev.write(doc.toByteArray());
+    const std::string xml = doc.toByteArray().PkToUtf8();
+    xmlDev.write(xml.data(), static_cast<PkStream::pk_int64>(xml.size()));
     xmlDev.close();
     store->close();
 
     return true;
 }
 
-bool KisReferenceImageCollection::load(QIODevice *io)
+bool KisReferenceImageCollection::load(PkStream *io)
 {
-    QScopedPointer<KoStore> store(KoStore::createStore(io, KoStore::Read, "application/x-krita-reference-images", KoStore::Zip));
+    static const char appId[] = "application/x-krita-reference-images";
+    PkScopedPointer<KoStore> store(KoStore::createStore(
+        io, KoStore::Read, PkByteArray(appId, int(sizeof(appId) - 1)), KoStore::Zip));
     if (!store || store->bad()) {
         return false;
     }
@@ -68,36 +74,27 @@ bool KisReferenceImageCollection::load(QIODevice *io)
         return false;
     }
 
-    QByteArray xml = store->device()->readAll();
+    PkXmlDocument doc;
+    if (!doc.setContent(store->device())) {
+        store->close();
+        return false;
+    }
     store->close();
+    PkXmlElement root = doc.documentElement();
 
-    QDomDocument doc;
-    doc.setContent(xml);
-    QDomElement root = doc.documentElement();
+    m_loadFailures.clear();
 
-    QStringList failures;
-
-    QDomElement element = root.firstChildElement("referenceimage");
+    PkXmlElement element = root.firstChildElement("referenceimage");
     while (!element.isNull()) {
         KisReferenceImage *reference = KisReferenceImage::fromXml(element);
 
         if (loadReferenceImageWithDocumentFallback(reference, store.data())) {
             references.append(reference);
         } else {
-            failures << (reference->embed() ? reference->internalFile() : reference->filename());
+            m_loadFailures << (reference->embed() ? reference->internalFile() : reference->filename());
             delete reference;
         }
         element = element.nextSiblingElement("referenceimage");
-    }
-
-    if (!failures.isEmpty()) {
-        QMessageBox::warning(
-                0,
-                i18nc("@title:window", "Krita"),
-                i18n("The following reference images could not be loaded:\n%1", failures.join('\n')),
-                QMessageBox::Ok, QMessageBox::Ok
-        );
-
     }
 
     return true;

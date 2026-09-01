@@ -6,19 +6,12 @@
 
 #include "ToolReferenceImages.h"
 
-#include <QDesktopServices>
-#include <QFile>
-#include <QLayout>
-#include <QMenu>
-#include <QMessageBox>
-#include <QAction>
-#include <QApplication>
+#include <PkFileStream.h>
 
 #include <KoSelection.h>
 #include <KoShapeRegistry.h>
 #include <KoShapeManager.h>
 #include <KoShapeController.h>
-#include <QFileDialog>
 #include "KisMimeDatabase.h"
 
 #include <KisReferenceImageToolServices.h>
@@ -26,7 +19,6 @@
 #include <KisReferenceImage.h>
 #include <KisReferenceImagesLayer.h>
 #include <kis_image.h>
-#include "QClipboard"
 #include <KisCursorOverrideLock.h>
 
 #include "KisReferenceImageCollection.h"
@@ -43,7 +35,7 @@ ToolReferenceImages::~ToolReferenceImages()
     PkObject::disconnect(m_imageNodeAddedConnection);
 }
 
-void ToolReferenceImages::activate(const QSet<KoShape*> &shapes)
+void ToolReferenceImages::activate(const PkSet<KoShape*> &shapes)
 {
     DefaultTool::activate(shapes);
 
@@ -52,9 +44,11 @@ void ToolReferenceImages::activate(const QSet<KoShape*> &shapes)
     KIS_ASSERT_RECOVER_RETURN(currentImage);
     PkObject::disconnect(m_imageNodeAddedConnection);
     m_imageNodeAddedConnection = PkObject::connect(
-        currentImage.data(), &KisImage::sigNodeAddedAsync, currentImage.data(),
+        currentImage.data(), &KisImage::sigNodeAddedAsync, this,
         [this](KisNodeSP node, KisNodeAdditionFlags flags) { slotNodeAdded(node, flags); });
-    connect(document(), &KisDocument::sigReferenceImagesLayerChanged, this, qOverload<KisNodeSP>(&ToolReferenceImages::slotNodeAdded));
+    PkObject::connect(
+        document(), &KisDocument::sigReferenceImagesLayerChanged,
+        this, static_cast<void (ToolReferenceImages::*)(KisNodeSP)>(&ToolReferenceImages::slotNodeAdded));
 
     auto referenceImageLayer = document()->referenceImagesLayer();
     if (referenceImageLayer) {
@@ -75,7 +69,7 @@ void ToolReferenceImages::slotNodeAdded(KisNodeSP node)
 
 void ToolReferenceImages::slotNodeAdded(KisNodeSP node, KisNodeAdditionFlags flags)
 {
-    Q_UNUSED(flags)
+    (void)flags;
 
     auto *referenceImagesLayer = dynamic_cast<KisReferenceImagesLayer*>(node.data());
 
@@ -87,9 +81,12 @@ void ToolReferenceImages::slotNodeAdded(KisNodeSP node, KisNodeAdditionFlags fla
 void ToolReferenceImages::setReferenceImageLayer(KisSharedPtr<KisReferenceImagesLayer> layer)
 {
     m_layer = layer;
-    connect(layer.data(), SIGNAL(selectionChanged()), this, SLOT(slotSelectionChanged()));
-    connect(layer->shapeManager(), SIGNAL(selectionChanged()), this, SLOT(repaintDecorations()));
-    connect(layer->shapeManager(), SIGNAL(selectionContentChanged()), this, SLOT(repaintDecorations()));
+    PkObject::connect(layer.data(), &KisReferenceImagesLayer::selectionChanged,
+                      this, &ToolReferenceImages::slotSelectionChanged);
+    PkObject::connect(layer->shapeManager(), &KoShapeManager::selectionChanged,
+                      this, &ToolReferenceImages::repaintDecorations);
+    PkObject::connect(layer->shapeManager(), &KoShapeManager::selectionContentChanged,
+                      this, &ToolReferenceImages::repaintDecorations);
 }
 
 bool ToolReferenceImages::hasSelection()
@@ -102,19 +99,8 @@ void ToolReferenceImages::addReferenceImage()
 {
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    QFileDialog dialog(m_services->referenceImageDialogParent());
-    dialog.setFileMode(QFileDialog::ExistingFile);
-    dialog.setWindowTitle(i18n("Select a Reference Image"));
-
-    QStringList locations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
-    if (!locations.isEmpty()) {
-        dialog.setDirectory(locations.first());
-    }
-
-    QString filename;
-    if (dialog.exec()) filename = dialog.selectedFiles().value(0);
+    const PkString filename = m_services->chooseReferenceImageFile();
     if (filename.isEmpty()) return;
-    if (!QFileInfo(filename).exists()) return;
 
     auto *reference = m_services->referenceImageFromFile(filename);
     if (reference) {
@@ -148,9 +134,8 @@ void ToolReferenceImages::pasteReferenceImage()
         }
         canvas()->addCommand(KisReferenceImagesLayer::addReferenceImages(document(), {reference}));
     } else {
-        if (canvas()->canvasWidget()) {
-            QMessageBox::critical(canvas()->canvasWidget(), i18nc("@title:window", "Krita"), i18n("Could not load reference image from clipboard"));
-        }
+        m_services->showReferenceImageError(
+            PkString("Could not load reference image from clipboard"));
     }
 }
 
@@ -176,24 +161,13 @@ void ToolReferenceImages::loadReferenceImages()
 {
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    QFileDialog dialog(m_services->referenceImageDialogParent());
-    dialog.setFileMode(QFileDialog::ExistingFile);
-    dialog.setMimeTypeFilters(QStringList() << "application/x-krita-reference-images");
-    dialog.setWindowTitle(i18n("Load Reference Images"));
-
-    QStringList locations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
-    if (!locations.isEmpty()) {
-        dialog.setDirectory(locations.first());
-    }
-
-    QString filename;
-    if (dialog.exec()) filename = dialog.selectedFiles().value(0);
+    const PkString filename = m_services->chooseReferenceImagesOpenFile();
     if (filename.isEmpty()) return;
-    if (!QFileInfo(filename).exists()) return;
 
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(qApp->activeWindow(), i18nc("@title:window", "Krita"), i18n("Could not open '%1'.", filename));
+    PkFileStream file(filename);
+    if (!file.open(PkStream::ReadOnly)) {
+        m_services->showReferenceImageError(
+            PkString("Could not open reference image collection: ") + filename);
         return;
     }
 
@@ -205,16 +179,22 @@ void ToolReferenceImages::loadReferenceImages()
     }
 
     if (collection.load(&file)) {
-        QList<KoShape*> shapes;
-        Q_FOREACH(auto *reference, collection.referenceImages()) {
+        PkList<KoShape*> shapes;
+        for (auto *reference : collection.referenceImages()) {
             reference->setZIndex(currentZIndex);
             shapes.append(reference);
             currentZIndex += 1;
         }
 
         canvas()->addCommand(KisReferenceImagesLayer::addReferenceImages(document(), shapes));
+        if (!collection.loadFailures().isEmpty()) {
+            m_services->showReferenceImageError(
+                PkString("Some reference images could not be loaded: ") +
+                collection.loadFailures().join('\n'));
+        }
     } else {
-        QMessageBox::critical(qApp->activeWindow(), i18nc("@title:window", "Krita"), i18n("Could not load reference images from '%1'.", filename));
+        m_services->showReferenceImageError(
+            PkString("Could not load reference images from: ") + filename);
     }
     file.close();
 }
@@ -228,30 +208,18 @@ void ToolReferenceImages::saveReferenceImages()
 
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    QFileDialog dialog(m_services->referenceImageDialogParent());
-    dialog.setAcceptMode(QFileDialog::AcceptSave);
-    dialog.setFileMode(QFileDialog::AnyFile);
-    QString mimetype = "application/x-krita-reference-images";
-    dialog.setMimeTypeFilters(QStringList() << mimetype);
-    dialog.setWindowTitle(i18n("Save Reference Images"));
-
-    QStringList locations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
-    if (!locations.isEmpty()) {
-        dialog.setDirectory(locations.first());
-    }
-
-    QString filename;
-    if (dialog.exec()) filename = dialog.selectedFiles().value(0);
+    PkString filename = m_services->chooseReferenceImagesSaveFile();
     if (filename.isEmpty()) return;
 
-    QString fileMime = KisMimeDatabase::mimeTypeForFile(filename, false);
+    PkString fileMime = KisMimeDatabase::mimeTypeForFile(filename, false);
     if (fileMime != "application/x-krita-reference-images") {
-        filename.append(filename.endsWith(".") ? "krf" : ".krf");
+        filename.append(filename.right(1) == "." ? "krf" : ".krf");
     }
 
-    QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly)) {
-        QMessageBox::critical(qApp->activeWindow(), i18nc("@title:window", "Krita"), i18n("Could not open '%1' for saving.", filename));
+    PkFileStream file(filename);
+    if (!file.open(PkStream::WriteOnly)) {
+        m_services->showReferenceImageError(
+            PkString("Could not open reference image collection for saving: ") + filename);
         return;
     }
 
@@ -260,7 +228,7 @@ void ToolReferenceImages::saveReferenceImages()
     file.close();
 
     if (!ok) {
-        QMessageBox::critical(qApp->activeWindow(), i18nc("@title:window", "Krita"), i18n("Failed to save reference images."));
+        m_services->showReferenceImageError(PkString("Failed to save reference images."));
     }
 }
 
@@ -289,7 +257,7 @@ KoSelection *ToolReferenceImages::koSelection() const
     return manager ? manager->selection() : nullptr;
 }
 
-void ToolReferenceImages::updateDistinctiveActions(const QList<KoShape*> &)
+void ToolReferenceImages::updateDistinctiveActions(const PkList<KoShape*> &)
 {
     action("object_group")->setEnabled(false);
     action("object_unite")->setEnabled(false);
@@ -304,21 +272,21 @@ void ToolReferenceImages::deleteSelection()
     auto layer = m_layer.toStrongRef();
     if (!layer) return;
 
-    QList<KoShape *> shapes = koSelection()->selectedShapes();
+    PkList<KoShape *> shapes = koSelection()->selectedShapes();
 
     if (!shapes.empty()) {
         canvas()->addCommand(layer->removeReferenceImages(document(), shapes));
     }
 }
 
-QMenu* ToolReferenceImages::popupActionsMenu()
+DefaultToolMenu* ToolReferenceImages::popupActionsMenu()
 {
     if (m_contextMenu) {
         m_contextMenu->clear();
-        m_contextMenu->addSection(i18n("Reference Image Actions"));
+        m_contextMenu->addSection(PkString("Reference Image Actions"));
         m_contextMenu->addSeparator();
 
-        QMenu *transform = m_contextMenu->addMenu(i18n("Transform"));
+        DefaultToolMenu *transform = m_contextMenu->addMenu(PkString("Transform"));
 
         transform->addAction(action("object_transform_rotate_90_cw"));
         transform->addAction(action("object_transform_rotate_90_ccw"));
@@ -354,13 +322,12 @@ void ToolReferenceImages::cut()
 
 void ToolReferenceImages::copy() const
 {
-    QList<KoShape *> shapes = koSelection()->selectedShapes();
+    PkList<KoShape *> shapes = koSelection()->selectedShapes();
     if (!shapes.isEmpty()) {
         KoShape* shape = shapes.at(0);
         KisReferenceImage *reference = dynamic_cast<KisReferenceImage*>(shape);
         KIS_SAFE_ASSERT_RECOVER_RETURN(reference);
-        QClipboard *cb = QApplication::clipboard();
-        cb->setImage(reference->getImage());
+        m_services->setReferenceImageClipboard(reference);
     }
 }
 
@@ -372,7 +339,7 @@ bool ToolReferenceImages::paste()
 
 bool ToolReferenceImages::selectAll()
 {
-    Q_FOREACH(KoShape *shape, shapeManager()->shapes()) {
+    for (KoShape *shape : shapeManager()->shapes()) {
         if (!shape->isSelectable()) continue;
         koSelection()->select(shape);
     }
@@ -393,12 +360,12 @@ KisDocument *ToolReferenceImages::document() const
     return m_services->referenceImageDocument();
 }
 
-QList<QAction *> ToolReferenceImagesFactory::createActionsImpl()
+PkList<DefaultToolAction *> ToolReferenceImagesFactory::createActionsImpl()
 {
-    QList<QAction *> defaultActions = DefaultToolFactory::createActionsImpl();
-    QList<QAction *> actions;
+    PkList<DefaultToolAction *> defaultActions = DefaultToolFactory::createActionsImpl();
+    PkList<DefaultToolAction *> actions;
 
-    QStringList actionNames;
+    PkStringList actionNames;
     actionNames << "object_order_front"
                 << "object_order_raise"
                 << "object_order_lower"
@@ -410,7 +377,7 @@ QList<QAction *> ToolReferenceImagesFactory::createActionsImpl()
                 << "object_transform_mirror_vertically"
                 << "object_transform_reset";
 
-    Q_FOREACH(QAction *action, defaultActions) {
+    for (DefaultToolAction *action : defaultActions) {
         if (actionNames.contains(action->objectName())) {
             actions << action;
         } else {

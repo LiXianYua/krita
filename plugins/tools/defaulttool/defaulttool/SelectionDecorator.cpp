@@ -7,8 +7,9 @@
 */
 
 #include "SelectionDecorator.h"
+#include "DefaultToolStrategyMath.h"
 
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 #include <KoShape.h>
 #include <KoSelection.h>
@@ -80,9 +81,9 @@ void SelectionDecorator::setCurrentMeshGradientHandles(const KoShapeMeshGradient
     m_currentHoveredMeshHandle = hoveredHandle;
 }
 
-void SelectionDecorator::paint(QPainter &painter, const KoViewConverter &converter)
+void SelectionDecorator::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    QList<KoShape*> selectedShapes = m_selection->selectedVisibleShapes();
+    PkList<KoShape*> selectedShapes = m_selection->selectedVisibleShapes();
     if (selectedShapes.isEmpty()) return;
 
     const bool haveOnlyOneEditableShape =
@@ -92,7 +93,7 @@ void SelectionDecorator::paint(QPainter &painter, const KoViewConverter &convert
     bool editable = false;
     bool forceBoundingRubberLine = false;
 
-    Q_FOREACH (KoShape *shape, KoShape::linearizeSubtree(selectedShapes)) {
+    for (KoShape *shape : KoShape::linearizeSubtree(selectedShapes)) {
         if (!haveOnlyOneEditableShape || !m_showStrokeFillGradientHandles) {
             KisHandlePainterHelper helper =
                 KoShape::createHandlePainterHelperView(&painter, shape, converter, m_handleRadius, m_decorationThickness);
@@ -102,17 +103,15 @@ void SelectionDecorator::paint(QPainter &painter, const KoViewConverter &convert
             if (!m_forceShapeOutlines) {
                 helper.drawRubberLine(shape->outlineRect());
             } else {
-                QList<QPolygonF> polys = shape->outline().toSubpathPolygons();
+                PkVector<PkPolygonF> polys = shape->outline().toSubpathPolygons(PkTransform());
 
                 if (polys.size() == 1) {
-                    const QPolygonF poly1 = polys[0];
-                    const QPolygonF poly2 = QPolygonF(polys[0].boundingRect());
-                    const QPolygonF nonoverlap = poly2.subtracted(poly1);
-
-                    forceBoundingRubberLine |= !nonoverlap.isEmpty();
+                    const PkPolygonF poly1 = polys[0];
+                    forceBoundingRubberLine |=
+                        DefaultToolStrategyMath::polygonLeavesBoundingRect(poly1);
                 }
 
-                Q_FOREACH (const QPolygonF &poly, polys) {
+                for (const PkPolygonF &poly : polys) {
                     helper.drawRubberLine(poly);
                 }
             }
@@ -123,7 +122,7 @@ void SelectionDecorator::paint(QPainter &painter, const KoViewConverter &convert
         }
     }
 
-    const QRectF handleArea = m_selection->outlineRect();
+    const PkRectF handleArea = m_selection->outlineRect();
 
     // draw extra rubber line around all the shapes
     if (selectedShapes.size() > 1 || forceBoundingRubberLine) {
@@ -141,7 +140,7 @@ void SelectionDecorator::paint(QPainter &painter, const KoViewConverter &convert
             KoShape::createHandlePainterHelperView(&painter, m_selection, converter, m_handleRadius, m_decorationThickness);
         helper.setHandleStyle(KisHandleStyle::primarySelection());
 
-        QPolygonF outline = handleArea;
+        PkPolygonF outline = handleArea;
 
         {
             helper.drawHandleRect(outline.value(0));
@@ -153,7 +152,7 @@ void SelectionDecorator::paint(QPainter &painter, const KoViewConverter &convert
             helper.drawHandleRect(0.5 * (outline.value(2) + outline.value(3)));
             helper.drawHandleRect(0.5 * (outline.value(3) + outline.value(0)));
 
-            QPointF hotPos = KoFlake::anchorToPoint(m_hotPosition, handleArea);
+            PkPointF hotPos = KoFlake::anchorToPoint(m_hotPosition, handleArea);
             helper.setHandleStyle(KisHandleStyle::highlightedPrimaryHandles());
             helper.drawHandleRect(hotPos);
         }
@@ -176,17 +175,17 @@ void SelectionDecorator::paint(QPainter &painter, const KoViewConverter &convert
 
 }
 
-void SelectionDecorator::paintGradientHandles(KoShape *shape, KoFlake::FillVariant fillVariant, QPainter &painter, const KoViewConverter &converter)
+void SelectionDecorator::paintGradientHandles(KoShape *shape, KoFlake::FillVariant fillVariant, PkPainter &painter, const KoViewConverter &converter)
 {
     KoShapeGradientHandles gradientHandles(fillVariant, shape);
-    QVector<KoShapeGradientHandles::Handle> handles = gradientHandles.handles();
+    PkVector<KoShapeGradientHandles::Handle> handles = gradientHandles.handles();
 
     KisHandlePainterHelper helper =
         KoShape::createHandlePainterHelperView(&painter, shape, converter, m_handleRadius, m_decorationThickness);
 
-    const QTransform t = shape->absoluteTransformation().inverted();
+    const PkTransform t = shape->absoluteTransformation().inverted();
 
-    if (gradientHandles.type() == QGradient::LinearGradient) {
+    if (gradientHandles.type() == PkGradientEnums::LinearGradient) {
         KIS_SAFE_ASSERT_RECOVER_NOOP(handles.size() == 2);
 
         if (handles.size() == 2) {
@@ -197,7 +196,7 @@ void SelectionDecorator::paintGradientHandles(KoShape *shape, KoFlake::FillVaria
 
     helper.setHandleStyle(KisHandleStyle::gradientHandles());
 
-    Q_FOREACH (const KoShapeGradientHandles::Handle &h, handles) {
+    for (const KoShapeGradientHandles::Handle &h : handles) {
         if (h.type == KoShapeGradientHandles::Handle::RadialCenter) {
             helper.drawGradientCrossHandle(t.map(h.pos), 1.2 * m_handleRadius);
         } else {
@@ -208,7 +207,7 @@ void SelectionDecorator::paintGradientHandles(KoShape *shape, KoFlake::FillVaria
 
 void SelectionDecorator::paintMeshGradientHandles(KoShape *shape,
                                                   KoFlake::FillVariant fillVariant,
-                                                  QPainter &painter,
+                                                  PkPainter &painter,
                                                   const KoViewConverter &converter)
 {
     KoShapeMeshGradientHandles gradientHandles(fillVariant, shape);
@@ -220,10 +219,10 @@ void SelectionDecorator::paintMeshGradientHandles(KoShape *shape,
     helper.drawPath(gradientHandles.path());
 
     // invert them, because we draw in logical coordinates.
-    const QTransform t = shape->absoluteTransformation().inverted();
-    const QVector<KoShapeMeshGradientHandles::Handle> cornerHandles = gradientHandles.handles();
+    const PkTransform t = shape->absoluteTransformation().inverted();
+    const PkVector<KoShapeMeshGradientHandles::Handle> cornerHandles = gradientHandles.handles();
     for (const auto& corner: cornerHandles) {
-        const QPointF point = t.map(corner.pos);
+        const PkPointF point = t.map(corner.pos);
         if (corner.type == KoShapeMeshGradientHandles::Handle::BezierHandle) {
             helper.drawConnectionLine(gradientHandles.getAttachedCorner(corner), point);
             helper.drawHandleSmallCircle(point);
@@ -241,7 +240,7 @@ void SelectionDecorator::paintMeshGradientHandles(KoShape *shape,
 
     // highlight the path which is being hovered/moved
     if (m_currentHoveredMeshHandle.type != KoShapeMeshGradientHandles::Handle::None) {
-        QVector<QPainterPath> paths = gradientHandles.getConnectedPath(m_currentHoveredMeshHandle);
+        PkVector<PkPainterPath> paths = gradientHandles.getConnectedPath(m_currentHoveredMeshHandle);
         for (const auto &path: paths) {
             helper.drawPath(path);
         }

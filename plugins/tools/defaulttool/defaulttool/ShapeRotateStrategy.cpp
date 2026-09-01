@@ -7,6 +7,7 @@
 
 #include "ShapeRotateStrategy.h"
 #include "SelectionDecorator.h"
+#include "DefaultToolStrategyMath.h"
 
 #include <KoToolBase.h>
 #include <KoCanvasBase.h>
@@ -17,11 +18,11 @@
 #include <commands/KoShapeTransformCommand.h>
 #include <KoShapeBulkActionLock.h>
 
-#include <QPointF>
+#include <PkPoint.h>
 #include <math.h>
 #include <klocalizedstring.h>
 
-ShapeRotateStrategy::ShapeRotateStrategy(KoToolBase *tool, KoSelection *selection, const QPointF &clicked, Qt::MouseButtons buttons)
+ShapeRotateStrategy::ShapeRotateStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, Qt::MouseButtons buttons)
     : KoInteractionStrategy(tool)
     , m_start(clicked)
 {
@@ -32,7 +33,7 @@ ShapeRotateStrategy::ShapeRotateStrategy(KoToolBase *tool, KoSelection *selectio
     m_transformedShapesAndSelection = selection->selectedEditableShapes();
     m_transformedShapesAndSelection << selection;
 
-    Q_FOREACH (KoShape *shape, m_transformedShapesAndSelection) {
+    for (KoShape *shape : m_transformedShapesAndSelection) {
         m_oldTransforms << shape->transformation();
     }
 
@@ -42,63 +43,54 @@ ShapeRotateStrategy::ShapeRotateStrategy(KoToolBase *tool, KoSelection *selectio
 
     m_rotationCenter = selection->absolutePosition(anchor);
 
-    tool->setStatusText(i18n("Press ALT to rotate in 45 degree steps."));
+    tool->setStatusText(PkString("Press ALT to rotate in 45 degree steps."));
 }
 
-void ShapeRotateStrategy::handleMouseMove(const QPointF &point, Qt::KeyboardModifiers modifiers)
+void ShapeRotateStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModifiers modifiers)
 {
     qreal angle = atan2(point.y() - m_rotationCenter.y(), point.x() - m_rotationCenter.x()) -
                   atan2(m_start.y() - m_rotationCenter.y(), m_start.x() - m_rotationCenter.x());
     angle = angle / M_PI * 180;  // convert to degrees.
-    if (modifiers & (Qt::AltModifier | Qt::ControlModifier)) {
-        // limit to 45 degree angles
-        qreal modula = qAbs(angle);
-        while (modula > 45.0) {
-            modula -= 45.0;
-        }
-        if (modula > 22.5) {
-            modula -= 45.0;
-        }
-        angle += (angle > 0 ? -1 : 1) * modula;
-    }
+    angle = DefaultToolStrategyMath::snappedRotationDegrees(
+        angle, modifiers & (Qt::AltModifier | Qt::ControlModifier));
 
     rotateBy(angle);
 }
 
 void ShapeRotateStrategy::rotateBy(qreal angle)
 {
-    QTransform matrix;
+    PkTransform matrix;
     matrix.translate(m_rotationCenter.x(), m_rotationCenter.y());
     matrix.rotate(angle);
     matrix.translate(-m_rotationCenter.x(), -m_rotationCenter.y());
 
-    QTransform applyMatrix = matrix * m_rotationMatrix.inverted();
+    PkTransform applyMatrix = matrix * m_rotationMatrix.inverted();
     m_rotationMatrix = matrix;
 
     KoShapeBulkActionLock lock(m_transformedShapesAndSelection);
 
-    Q_FOREACH (KoShape *shape, m_transformedShapesAndSelection) {
+    for (KoShape *shape : m_transformedShapesAndSelection) {
         shape->applyAbsoluteTransformation(applyMatrix);
     }
 
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());
 }
 
-void ShapeRotateStrategy::paint(QPainter &painter, const KoViewConverter &converter)
+void ShapeRotateStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     // paint the rotation center
-    painter.setPen(QPen(Qt::red));
-    painter.setBrush(QBrush(Qt::red));
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    QRectF circle(0, 0, handleRadius(), handleRadius());
+    painter.setPen(PkPen(Qt::red));
+    painter.setBrush(PkBrush(Qt::red));
+    painter.setRenderHint(PkPainter::Antialiasing, true);
+    PkRectF circle(0, 0, handleRadius(), handleRadius());
     circle.moveCenter(converter.documentToView(m_rotationCenter));
     painter.drawEllipse(circle);
 }
 
 KUndo2Command *ShapeRotateStrategy::createCommand()
 {
-    QList<QTransform> newTransforms;
-    Q_FOREACH (KoShape *shape, m_transformedShapesAndSelection) {
+    PkList<PkTransform> newTransforms;
+    for (KoShape *shape : m_transformedShapesAndSelection) {
         newTransforms << shape->transformation();
     }
 
