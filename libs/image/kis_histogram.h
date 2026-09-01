@@ -13,6 +13,7 @@
 #include "kis_shared.h"
 #include "kis_types.h"
 #include "kritaimage_export.h"
+#include <PkRect.h>
 
 enum enumHistogramType {
     LINEAR,
