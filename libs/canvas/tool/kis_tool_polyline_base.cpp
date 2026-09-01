@@ -5,6 +5,8 @@
  */
 
 
+#include <PkFlakeBridge.h>
+
 #include <QAction>
 #include <QMouseEvent>
 #include <QTabletEvent>
@@ -18,7 +20,6 @@
 #include "kis_tool_polyline_base.h"
 #include <KisCanvasToolServices.h>
 #include <KisOptimizedBrushOutline.h>
-#include <PkFlakeBridge.h>
 
 #define SNAPPING_THRESHOLD 10
 #define SNAPPING_HANDLE_RADIUS 8

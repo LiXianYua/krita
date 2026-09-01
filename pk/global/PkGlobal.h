@@ -7,19 +7,6 @@
 #include <cmath>
 #include <limits>
 
-// A mixed translation unit may reach this provider before one of the Qt
-// headers that owns the same free functions.  Pull the real providers in
-// first whenever the target is a Qt build; this makes the choice independent
-// of which project header happened to be included first.
-#if defined(QT_CORE_LIB) && __has_include(<QtCore/qglobal.h>)
-#  include <QtCore/qglobal.h>
-#  include <QtCore/qnamespace.h>
-#  include <QtCore/qmath.h>
-#  include <QtCore/qalgorithms.h>
-#  include <QtCore/qhashfunctions.h>
-#  include <QtCore/qnumeric.h>
-#endif
-
 // ---------------------------------------------------------------------------
 // R-18 的标量地基：qreal / 整数别名 / qAbs / qMin / qMax / qBound / qRound /
 // qFuzzyCompare / qFuzzyIsNull / qFloor / qCeil / qNextPowerOfTwo / qIsNaN /

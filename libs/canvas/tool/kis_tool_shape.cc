@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "kis_tool_shape.h"
 
 #include <KoUnit.h>
@@ -16,7 +18,6 @@
 #include <KoShapeStroke.h>
 #include <KoDocumentResourceManager.h>
 #include <KoPathShape.h>
-#include <PkFlakeBridge.h>
 
 #include <klocalizedstring.h>
 #include <ksharedconfig.h>

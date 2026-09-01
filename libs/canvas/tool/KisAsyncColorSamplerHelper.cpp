@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "KisAsyncColorSamplerHelper.h"
 
 #include <QApplication>
@@ -32,7 +34,6 @@
 #include "kis_image_interfaces.h"
 #include "kis_node.h"
 #include "strokes/kis_color_sampler_stroke_strategy.h"
-#include <PkFlakeBridge.h>
 
 
 namespace {

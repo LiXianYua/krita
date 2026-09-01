@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "kis_tool_multihand_helper.h"
 
 #include <QTransform>
@@ -11,7 +13,6 @@
 #include "kis_painter.h"
 #include <strokes/KisFreehandStrokeInfo.h>
 #include "kis_algebra_2d.h"
-#include <PkFlakeBridge.h>
 
 struct KisToolMultihandHelper::Private
 {

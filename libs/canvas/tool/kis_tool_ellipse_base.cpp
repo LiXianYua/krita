@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "kis_tool_ellipse_base.h"
 
 #include <KoPointerEvent.h>
@@ -11,7 +13,6 @@
 #include <KoCanvasController.h>
 #include <KoViewConverter.h>
 #include <KisOptimizedBrushOutline.h>
-#include <PkFlakeBridge.h>
 KisToolEllipseBase::KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, const QCursor & cursor)
     : KisToolRectangleBase(canvas, type, cursor)
 {

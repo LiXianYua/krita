@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "kis_tool_freehand_helper.h"
 
 #include <QTimer>
@@ -36,7 +38,6 @@
 #include "strokes/KisFreehandStrokeInfo.h"
 #include "KisAsynchronousStrokeUpdateHelper.h"
 #include <KisOptimizedBrushOutline.h>
-#include <PkFlakeBridge.h>
 
 #include <math.h>
 

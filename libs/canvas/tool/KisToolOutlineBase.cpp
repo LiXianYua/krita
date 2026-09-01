@@ -8,6 +8,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include <QAction>
 #include <QMouseEvent>
 #include <QTabletEvent>
@@ -20,7 +22,6 @@
 #include <KoCanvasBase.h>
 #include <KisCanvasToolServices.h>
 #include <KisOptimizedBrushOutline.h>
-#include <PkFlakeBridge.h>
 
 #include "KisToolOutlineBase.h"
 #include "input/KisInputActionGroup.h"
