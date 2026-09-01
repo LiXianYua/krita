@@ -8,11 +8,12 @@
 #define KISIMAGECONFIGNOTIFIER_H
 
 #include <PkObject.h>
+#include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 #include "kritaimage_export.h"
 
 class KRITAIMAGE_EXPORT KisImageConfigNotifier : public PkShellObject
 {
-    Q_OBJECT
 public:
     explicit KisImageConfigNotifier();
     ~KisImageConfigNotifier() override;
@@ -38,7 +39,7 @@ public:
      */
     void notifyGlobalProofingConfigChanged();
 
-Q_SIGNALS:
+signals:
     /**
      * This signal is emitted whenever notifyConfigChanged() is called.
      */
@@ -55,7 +56,8 @@ Q_SIGNALS:
     void globalProofingConfigChanged();
 
 private:
-    Q_DISABLE_COPY(KisImageConfigNotifier)
+    KisImageConfigNotifier(const KisImageConfigNotifier &) = delete;
+    KisImageConfigNotifier &operator=(const KisImageConfigNotifier &) = delete;
 
 private:
     struct Private;

@@ -59,5 +59,5 @@ void KisImageConfigNotifier::notifyAutoKeyFrameConfigurationChanged()
 
 void KisImageConfigNotifier::notifyGlobalProofingConfigChanged()
 {
-    Q_EMIT globalProofingConfigChanged();
+    globalProofingConfigChanged();
 }
