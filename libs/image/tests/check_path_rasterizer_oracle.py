@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Contract checks for the independent Qt path-rasterizer oracle."""
 import argparse
+import hashlib
 import re
 import subprocess
 import sys
@@ -29,8 +30,15 @@ def parse_payload(text):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--oracle", required=True)
+    ap.add_argument("--candidate")
+    ap.add_argument("--mode", choices=("fill",))
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
+    if args.self_test == bool(args.candidate):
+        ap.error("select exactly one of --self-test or --candidate")
+    if args.candidate and args.mode != "fill":
+        ap.error("--candidate requires --mode fill")
+
     listed = run(args.oracle, "--list")
     if listed.returncode:
         raise AssertionError(f"--list exited {listed.returncode}: {listed.stderr}")
@@ -46,6 +54,56 @@ def main():
         if parsed_name != name:
             raise AssertionError(f"case name mismatch: {parsed_name!r} != {name!r}")
         payloads[name] = (dimensions, data)
+
+    if args.candidate:
+        candidate_list = run(args.candidate, "--list")
+        if candidate_list.returncode:
+            raise AssertionError(
+                f"candidate --list exited {candidate_list.returncode}: "
+                f"{candidate_list.stderr}"
+            )
+        candidate_names = candidate_list.stdout.splitlines()
+        if (not candidate_names or any(not n for n in candidate_names)
+                or len(candidate_names) != len(set(candidate_names))):
+            raise AssertionError("candidate --list contains an empty or duplicate name")
+        unknown = [name for name in candidate_names if name not in payloads]
+        if unknown:
+            raise AssertionError(f"candidate listed unknown case {unknown[0]!r}")
+
+        for name in candidate_names:
+            result = run(args.candidate, "--case", name)
+            if result.returncode:
+                raise AssertionError(
+                    f"candidate case {name} exited {result.returncode}: {result.stderr}"
+                )
+            actual_name, actual_dimensions, actual = parse_payload(result.stdout)
+            expected_dimensions, expected = payloads[name]
+            if actual_name != name:
+                raise AssertionError(
+                    f"candidate case name mismatch: {actual_name!r} != {name!r}"
+                )
+            if actual_dimensions != expected_dimensions:
+                raise AssertionError(
+                    f"case={name} expected_bounds={expected_dimensions} "
+                    f"actual_bounds={actual_dimensions}"
+                )
+            if actual != expected:
+                x, y, width, _ = expected_dimensions
+                mismatch = next(i for i, pair in enumerate(zip(expected, actual))
+                                if pair[0] != pair[1])
+                row = mismatch // width
+                column = mismatch % width
+                row_start = row * width
+                expected_row = expected[row_start:row_start + width]
+                actual_row = actual[row_start:row_start + width]
+                raise AssertionError(
+                    f"case={name} x={x + column} y={y + row} "
+                    f"expected={expected[mismatch]} actual={actual[mismatch]} "
+                    f"row_digest_expected={hashlib.sha256(expected_row).hexdigest()} "
+                    f"row_digest_actual={hashlib.sha256(actual_row).hexdigest()}"
+                )
+        print(f"fill parity: {len(candidate_names)} cases, byte-identical")
+        return 0
 
     def data(name):
         return payloads[name][1]
