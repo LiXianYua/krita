@@ -7,7 +7,7 @@
 #ifndef __KIS_SIGNALS_BLOCKER_H
 #define __KIS_SIGNALS_BLOCKER_H
 
-#if defined(QT_CORE_LIB)
+#if defined(QT_CORE_LIB) && __has_include(<QObject>)
 #  include <QObject>
 #  include <QVector>
 #endif
@@ -27,7 +27,7 @@
  *    the code unreadable.
  */
 
-#if defined(QT_CORE_LIB)
+#if defined(QT_CORE_LIB) && __has_include(<QObject>)
 class KisSignalsBlocker
 {
 public:

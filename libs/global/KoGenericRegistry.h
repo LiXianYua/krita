@@ -8,7 +8,7 @@
 #ifndef _KO_GENERIC_REGISTRY_H_
 #define _KO_GENERIC_REGISTRY_H_
 
-#if defined(QT_CORE_LIB)
+#if defined(QT_CORE_LIB) && __has_include(<QHash>)
 #  include <QHash>
 #  include <QList>
 #  include <QString>

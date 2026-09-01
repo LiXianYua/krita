@@ -11,7 +11,7 @@
 // headers that owns the same free functions.  Pull the real providers in
 // first whenever the target is a Qt build; this makes the choice independent
 // of which project header happened to be included first.
-#if defined(QT_CORE_LIB)
+#if defined(QT_CORE_LIB) && __has_include(<QtCore/qglobal.h>)
 #  include <QtCore/qglobal.h>
 #  include <QtCore/qnamespace.h>
 #  include <QtCore/qmath.h>

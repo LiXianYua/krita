@@ -5,7 +5,7 @@
 // qDeleteAll is also declared by Qt's qalgorithms.h.  In a mixed target make
 // the owning provider arrive before this compatibility header, even when a
 // Pk container header was the first include in the translation unit.
-#if defined(QT_CORE_LIB) && !defined(QALGORITHMS_H)
+#if defined(QT_CORE_LIB) && __has_include(<QtCore/qalgorithms.h>) && !defined(QALGORITHMS_H)
 #  include <QtCore/qalgorithms.h>
 #endif
 
