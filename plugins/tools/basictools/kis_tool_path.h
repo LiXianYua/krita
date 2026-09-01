@@ -19,13 +19,6 @@
 class KoCanvasBase;
 class KisToolPath;
 
-enum class KisToolPathInputType {
-    MouseButtonPress,
-    MouseButtonDoubleClick,
-    TabletPress
-};
-
-
 class __KisToolPathLocalTool : public KoCreatePathTool {
 public:
     __KisToolPathLocalTool(KoCanvasBase * canvas, KisToolPath* parentTool);
@@ -53,14 +46,12 @@ public:
     KisToolPath(KoCanvasBase * canvas);
     void mousePressEvent(KoPointerEvent *event) override;
 
-    /** Handle input that the priority filter may consume before the delegate. */
-    bool handlePathInput(KisToolPathInputType type, Qt::MouseButton button);
-
     void beginPrimaryAction(KoPointerEvent* event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
 
     void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
+    void beginAlternateDoubleClickAction(KoPointerEvent *event, AlternateAction action) override;
 
     // reimplementing KisTool's method because that method calls beginPrimaryAction
     // which now is used to start the path tool.
