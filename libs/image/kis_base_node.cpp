@@ -5,7 +5,6 @@
  */
 
 #include "kis_base_node.h"
-#include <klocalizedstring.h>
 
 #include <kis_image.h>
 #include <KoProperties.h>
@@ -21,7 +20,7 @@
 
 #include "kis_scalar_keyframe_channel.h"
 
-struct Q_DECL_HIDDEN KisBaseNode::Private
+struct KisBaseNode::Private
 {
     PkString compositeOp;
     KoProperties properties;
