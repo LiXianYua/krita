@@ -6,6 +6,8 @@
 
 #include "kis_filter_stroke_strategy.h"
 
+#include <utility>
+
 #include <filter/kis_filter.h>
 #include <filter/kis_filter_configuration.h>
 #include <krita_utils.h>
@@ -189,7 +191,7 @@ void KisFilterStrokeStrategy::initStrokeCallback()
 {
     KisStrokeStrategyUndoCommandBased::initStrokeCallback();
 
-    qSwap(m_d->nextExternalUpdateRect, m_d->cancelledUpdates->updateRect);
+    std::swap(m_d->nextExternalUpdateRect, m_d->cancelledUpdates->updateRect);
     KisLodTransform t(m_d->levelOfDetail);
     m_d->nextExternalUpdateRect = t.map(m_d->nextExternalUpdateRect);
 
@@ -302,7 +304,7 @@ void KisFilterStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
 
             if (shared->shouldRedraw()) {
                 PkRect extraUpdateRect;
-                qSwap(extraUpdateRect, m_d->nextExternalUpdateRect);
+                std::swap(extraUpdateRect, m_d->nextExternalUpdateRect);
 
                 shared->node()->setDirty(shared->processRect | extraUpdateRect);
 

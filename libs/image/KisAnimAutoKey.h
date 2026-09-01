@@ -9,6 +9,7 @@
 #define _KIS_ANIM_AUTOKEY_H
 
 #include "kritaimage_export.h"
+#include <PkFlags.h>
 
 template<class T>
 class KisSharedPtr;
@@ -35,7 +36,7 @@ enum AutoCreateKeyframeFlag {
     SupportsLod = 0x2
 };
 
-Q_DECLARE_FLAGS(AutoCreateKeyframeFlags, AutoCreateKeyframeFlag)
+PK_DECLARE_FLAGS(AutoCreateKeyframeFlags, AutoCreateKeyframeFlag)
 
 /**
  * @brief create a new **duplicated** keyframe if auto-keyframe mode is on
@@ -47,7 +48,6 @@ KUndo2Command* tryAutoCreateDuplicatedFrame(KisPaintDeviceSP device, AutoCreateK
 
 }
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisAutoKey::AutoCreateKeyframeFlags)
-Q_DECLARE_METATYPE(KisAutoKey::Mode)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisAutoKey::AutoCreateKeyframeFlags)
 
 #endif //_KIS_ANIM_AUTOKEY_H
