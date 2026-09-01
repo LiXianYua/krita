@@ -7,6 +7,8 @@
 #include "kis_base_rects_walker.h"
 #include "kis_clone_layer.h"
 
+#include <PkRegion.h>
+
 void KisBaseRectsWalker::addCloneSourceRegenerationJobs()
 {
     /**

@@ -7,6 +7,9 @@
 #ifndef __KIS_BASE_RECTS_WALKER_H
 #define __KIS_BASE_RECTS_WALKER_H
 
+#include <PkFlags.h>
+#include <PkMessageLogger.h>
+#include <PkStack.h>
 
 #include "kis_layer.h"
 
@@ -112,7 +115,7 @@ public:
         DontNotifyClones = 0x4
     };
 
-    Q_DECLARE_FLAGS(SubtreeVisitFlags, SubtreeVisitFlag);
+    PK_DECLARE_FLAGS(SubtreeVisitFlags, SubtreeVisitFlag);
 
 public:
     KisBaseRectsWalker()
@@ -147,11 +150,12 @@ public:
         int calculatedLevelOfDetail = getNodeLevelOfDetail(startLeaf);
 
         if (m_levelOfDetail != calculatedLevelOfDetail) {
-            qWarning() << "WARNING: KisBaseRectsWalker::recalculate()"
-                       << "The levelOfDetail has changes with time,"
-                       << "which couldn't have happened!"
-                       << ppVar(m_levelOfDetail)
-                       << ppVar(calculatedLevelOfDetail);
+            PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                << "WARNING: KisBaseRectsWalker::recalculate()"
+                << "The levelOfDetail has changes with time,"
+                << "which couldn't have happened!"
+                << "m_levelOfDetail=" << m_levelOfDetail
+                << "calculatedLevelOfDetail=" << calculatedLevelOfDetail;
 
             m_levelOfDetail = calculatedLevelOfDetail;
         }
@@ -481,9 +485,10 @@ private:
              * Such errors may happen during undo or too quick node removal,
              * they shouldn't cause any real problems in Krita work.
              */
-            qWarning() << "WARNING: KisBaseRectsWalker::getNodeLevelOfDetail() "
-                          "failed to fetch currentLevelOfDetail() from the node. "
-                          "Perhaps the node was removed from the image in the meantime.";
+            PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                << "WARNING: KisBaseRectsWalker::getNodeLevelOfDetail() "
+                   "failed to fetch currentLevelOfDetail() from the node. "
+                   "Perhaps the node was removed from the image in the meantime.";
             return 0;
         }
 
@@ -538,7 +543,6 @@ private:
     bool m_clonesDontInvalidateFrames {false};
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisBaseRectsWalker::SubtreeVisitFlags);
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisBaseRectsWalker::SubtreeVisitFlags);
 
 #endif /* __KIS_BASE_RECTS_WALKER_H */
-
