@@ -1216,20 +1216,11 @@ void KisPainter::paintAt(const KisPaintInformation& pi,
 }
 
 // ----------------------------------------------------------------------------
-// [GAP] 路径填充/绘制族已拆出（2026-08-24 修复轮 C1，评审 Critical）：
-//   KisPainter::Private::fillPainterPathImpl · drawPainterPath（两个重载）·
-//   fillPainterPath（两个重载）· fillPolygon · paintPolygon · paintPainterPath ·
-//   paintPolyline · paintRect（两个重载）· paintEllipse（两个重载）
-//   —— 共 13 个函数全部移到 libs/image/kis_painter_rasterize.cpp。
-// 这一族函数的落点都是 fillPainterPathImpl/drawPainterPath 的**路径栅格化**：
-// 依赖 Qt 画家对象的 fillPath/drawPath 把路径画进遮罩位图再叠 alpha 覆盖率；
-// 薄壳 PkPainter 为 no-op 桩（fillPath/drawPath 空实现）会语义降级为包围盒
-// 填充，故整族维持 GAP、不进薄壳（同批次 A/F2c 对同一降级的判法：不可接受）。
-// 留在本文件的函数不再引用本族任何符号（薄壳按 --no-undefined 链接，引了
-// 链接即断）。getBezierCurvePoints（static + 成员）留在本文件，是纯几何辅助，
-// 无 Qt 依赖，仅被 GAP 侧的 paintEllipse 调用。
-// 关闭条件 = KisFillPainter 重实现路径栅格化后，将 kis_painter_rasterize.cpp
-// 加入薄壳 SHELL_SOURCES 回编，本族随之一并回归。
+// Path entry points are split between this owner and
+// kis_painter_rasterize.cpp.  The latter contains the live private,
+// oracle-checked native coverage backend; this file retains the shared
+// painter lifecycle and geometry helpers.  The backend is private to the
+// image target and intentionally does not expose the thin-shell PkPainter.
 // ----------------------------------------------------------------------------
 
 inline void KisPainter::compositeOnePixel(quint8 *dst, const KoColor &color)
