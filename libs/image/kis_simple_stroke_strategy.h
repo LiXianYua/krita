@@ -29,11 +29,13 @@ public:
 public:
     KisSimpleStrokeStrategy(const PkString &id, const KUndo2MagicString &name = KUndo2MagicString());
 
-    template <typename LegacyString,
-              typename LegacyData = decltype(std::declval<const LegacyString &>().data()),
-              typename = std::enable_if_t<std::is_convertible_v<LegacyData, const char *>>>
-    KisSimpleStrokeStrategy(const LegacyString &id, const KUndo2MagicString &name = KUndo2MagicString())
-        : KisSimpleStrokeStrategy(PkString(id.data()), name)
+    template <typename ExactLatin1String,
+              std::enable_if_t<std::is_same_v<std::decay_t<ExactLatin1String>, QLatin1String>, int> = 0>
+    KisSimpleStrokeStrategy(const ExactLatin1String &id, const KUndo2MagicString &name = KUndo2MagicString())
+        : KisStrokeStrategy(id, name),
+          m_jobEnabled(NJOBS, false),
+          m_jobSequentiality(NJOBS, KisStrokeJobData::SEQUENTIAL),
+          m_jobExclusivity(NJOBS, KisStrokeJobData::NORMAL)
     {
     }
 

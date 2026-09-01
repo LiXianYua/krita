@@ -8,8 +8,9 @@
 #define __KIS_STROKE_STRATEGY_H
 
 #include <PkString.h>
+
+#include <string>
 #include <type_traits>
-#include <utility>
 
 #include "kis_types.h"
 #include "kundo2magicstring.h"
@@ -19,17 +20,17 @@
 class KisStrokeJobStrategy;
 class KisStrokeJobData;
 class KisStrokesQueueMutatedJobInterface;
+class QLatin1String;
 
 class KRITAIMAGE_EXPORT KisStrokeStrategy
 {
 public:
     KisStrokeStrategy(const PkString &id, const KUndo2MagicString &name = KUndo2MagicString());
 
-    template <typename LegacyString,
-              typename LegacyData = decltype(std::declval<const LegacyString &>().data()),
-              typename = std::enable_if_t<std::is_convertible_v<LegacyData, const char *>>>
-    KisStrokeStrategy(const LegacyString &id, const KUndo2MagicString &name = KUndo2MagicString())
-        : KisStrokeStrategy(PkString(id.data()), name)
+    template <typename ExactLatin1String,
+              std::enable_if_t<std::is_same_v<std::decay_t<ExactLatin1String>, QLatin1String>, int> = 0>
+    KisStrokeStrategy(const ExactLatin1String &id, const KUndo2MagicString &name = KUndo2MagicString())
+        : KisStrokeStrategy(latin1StrokeId(id), name)
     {
     }
 
@@ -205,6 +206,46 @@ protected:
     KisStrokeStrategy(const KisStrokeStrategy &rhs);
 
 private:
+    template <typename ExactLatin1String>
+    static PkString latin1StrokeId(const ExactLatin1String &id)
+    {
+        static_assert(std::is_same_v<std::decay_t<ExactLatin1String>, QLatin1String>);
+
+        // Preserve QLatin1String's explicit length and map every Latin-1 byte
+        // to its Unicode code point. Bounded chunks keep PkFromUtf8's int
+        // length contract valid for the entire legacy view.
+        constexpr std::size_t chunkCapacity = 4096;
+
+        PkString result;
+        std::string utf8;
+        utf8.reserve(chunkCapacity);
+
+        const auto appendChunk = [&]() {
+            if (!utf8.empty()) {
+                result.append(PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size())));
+                utf8.clear();
+            }
+        };
+
+        for (int i = 0; i < id.size(); ++i) {
+            const unsigned char byte = static_cast<unsigned char>(id.data()[i]);
+            const std::size_t encodedSize = byte < 0x80 ? 1 : 2;
+            if (utf8.size() + encodedSize > chunkCapacity) {
+                appendChunk();
+            }
+
+            if (byte < 0x80) {
+                utf8.push_back(static_cast<char>(byte));
+            } else {
+                utf8.push_back(static_cast<char>(0xc0 | (byte >> 6)));
+                utf8.push_back(static_cast<char>(0x80 | (byte & 0x3f)));
+            }
+        }
+
+        appendChunk();
+        return result;
+    }
+
     bool m_exclusive;
     bool m_supportsWrapAroundMode;
 
