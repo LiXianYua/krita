@@ -9,6 +9,7 @@
 #define KIS_PROPERTY_WRAPPER_H
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 #include <PkVariant.h>
 #include "kis_scalar_keyframe_channel.h"
 #include "kis_time_span.h"
@@ -18,7 +19,6 @@
 #include "kritaimage_export.h"
 
 class KRITAIMAGE_EXPORT KisAnimatedOpacityProperty : public PkShellObject {
-    Q_OBJECT
 public:
     KisAnimatedOpacityProperty(KisDefaultBoundsBaseSP bounds, KoProperties* const props, quint8 defaultValue, PkShellObject *parent = nullptr);
 
@@ -33,10 +33,10 @@ public:
 
     void updateDefaultBounds(KisDefaultBoundsBaseSP bounds);
 
-Q_SIGNALS:
+signals:
     void changed(quint8 value);
 
-public Q_SLOTS:
+public:
     void slotKeyChanged(const KisKeyframeChannel*, int time);
     void slotKeyRemoval(const KisKeyframeChannel*, int);
 
