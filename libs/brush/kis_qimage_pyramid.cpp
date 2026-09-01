@@ -6,13 +6,47 @@
 
 #include "kis_qimage_pyramid.h"
 
+#include <algorithm>
+#include <cstring>
 #include <limits>
+#include <PkRgb.h>
 #include <kis_debug.h>
 
 #define MIPMAP_SIZE_THRESHOLD 512
 #define MAX_MIPMAP_SCALE 8.0
 
 #define QPAINTER_WORKAROUND_BORDER 1
+
+namespace {
+
+PkImage copyArgb32Rect(const PkImage &source, int x, int y, int width, int height)
+{
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(source.format() == PkImage::Format_ARGB32, PkImage());
+
+    PkImage result(width, height, PkImage::Format_ARGB32);
+    result.fill(0);
+
+    const int sourceLeft = std::max(0, x);
+    const int sourceTop = std::max(0, y);
+    const int sourceRight = std::min(source.width(), x + width);
+    const int sourceBottom = std::min(source.height(), y + height);
+
+    if (sourceLeft >= sourceRight || sourceTop >= sourceBottom) {
+        return result;
+    }
+
+    const std::size_t rowBytes = static_cast<std::size_t>(sourceRight - sourceLeft) * sizeof(PkRgb);
+    const int destinationX = sourceLeft - x;
+    for (int sourceY = sourceTop; sourceY < sourceBottom; ++sourceY) {
+        const auto *sourceRow = source.constScanLine(sourceY) + sourceLeft * sizeof(PkRgb);
+        auto *destinationRow = result.scanLine(sourceY - y) + destinationX * sizeof(PkRgb);
+        std::memcpy(destinationRow, sourceRow, rowBytes);
+    }
+
+    return result;
+}
+
+}
 
 
 KisQImagePyramid::KisQImagePyramid(const PkImage &baseImage, bool useSmoothingForEnlarging)
@@ -262,10 +296,11 @@ void KisQImagePyramid::appendPyramidLevel(const PkImage &image)
     
 PkSize levelSize = image.size();
     PkImage tmp = image.convertToFormat(PkImage::Format_ARGB32);
-    tmp = tmp.copy(-QPAINTER_WORKAROUND_BORDER,
-                   -QPAINTER_WORKAROUND_BORDER,
-                   image.width() + 2 * QPAINTER_WORKAROUND_BORDER,
-                   image.height() + 2 * QPAINTER_WORKAROUND_BORDER);
+    tmp = copyArgb32Rect(tmp,
+                        -QPAINTER_WORKAROUND_BORDER,
+                        -QPAINTER_WORKAROUND_BORDER,
+                        image.width() + 2 * QPAINTER_WORKAROUND_BORDER,
+                        image.height() + 2 * QPAINTER_WORKAROUND_BORDER);
     m_levels.append(PyramidLevel(tmp, levelSize));
 }
 
@@ -289,15 +324,12 @@ PkImage KisQImagePyramid::createImage(KisDabShape const& shape,
     if (transform.isIdentity() &&
             srcImage.format() == PkImage::Format_ARGB32) {
 
-        return srcImage.copy(QPAINTER_WORKAROUND_BORDER,
+        return copyArgb32Rect(srcImage,
+                             QPAINTER_WORKAROUND_BORDER,
                              QPAINTER_WORKAROUND_BORDER,
                              srcImage.width() - 2 * QPAINTER_WORKAROUND_BORDER,
                              srcImage.height() - 2 * QPAINTER_WORKAROUND_BORDER);
     }
-
-    PkImage dstImage(dstSize, PkImage::Format_ARGB32);
-    dstImage.fill(0);
-
 
     /**
      * QPainter has one more bug: when a PkTransform is TxTranslate, it
@@ -313,15 +345,18 @@ PkImage KisQImagePyramid::createImage(KisDabShape const& shape,
         transform *= PkTransform::fromScale(fakeScale, fakeScale);
     }
 
-    PkPainter gc(&dstImage);
-    gc.setTransform(
+    const PkTransform effectiveTransform =
         PkTransform::fromTranslate(-QPAINTER_WORKAROUND_BORDER,
-                                  -QPAINTER_WORKAROUND_BORDER) * transform);
-    gc.setRenderHint(PkPainter::SmoothPixmapTransform);
-    gc.drawImage(PkPointF(), srcImage);
-    gc.end();
+                                   -QPAINTER_WORKAROUND_BORDER) * transform;
+    const PkRect transformedBounds = effectiveTransform.mapRect(srcImage.rect());
+    const PkImage transformedImage =
+        srcImage.transformed(effectiveTransform, Qt::SmoothTransformation);
 
-    return dstImage;
+    return copyArgb32Rect(transformedImage,
+                         -transformedBounds.x(),
+                         -transformedBounds.y(),
+                         dstSize.width(),
+                         dstSize.height());
 }
 
 PkImage KisQImagePyramid::getClosest(PkTransform transform, qreal *scale) const
@@ -341,8 +376,9 @@ PkImage KisQImagePyramid::getClosest(PkTransform transform, qreal *scale) const
 PkImage KisQImagePyramid::getClosestWithoutWorkaroundBorder(PkTransform transform, qreal *scale) const
 {
     PkImage image = getClosest(transform, scale);
-    return image.copy(QPAINTER_WORKAROUND_BORDER,
-               QPAINTER_WORKAROUND_BORDER,
-               image.width() - 2 * QPAINTER_WORKAROUND_BORDER,
-               image.height() - 2 * QPAINTER_WORKAROUND_BORDER);
+    return copyArgb32Rect(image,
+                         QPAINTER_WORKAROUND_BORDER,
+                         QPAINTER_WORKAROUND_BORDER,
+                         image.width() - 2 * QPAINTER_WORKAROUND_BORDER,
+                         image.height() - 2 * QPAINTER_WORKAROUND_BORDER);
 }

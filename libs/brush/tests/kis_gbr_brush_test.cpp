@@ -7,6 +7,7 @@
 #include "kis_gbr_brush_test.h"
 
 #include <QRandomGenerator>
+#include <PkRgb.h>
 #include <PkString.h>
 #include <QDir>
 
@@ -245,49 +246,32 @@ void KisGbrBrushTest::testPyramidDabTransform()
 // see comment in KisQImagePyramid::appendPyramidLevel
 void KisGbrBrushTest::testQPainterTransformationBorder()
 {
-    PkImage image1(10, 10, PkImage::Format_ARGB32);
-    PkImage image2(12, 12, PkImage::Format_ARGB32);
+    PkImage source(10, 10, PkImage::Format_ARGB32);
+    source.fill(pkRgba(0, 0, 0, 255));
 
-    image1.fill(0);
-    image2.fill(0);
+    KisQImagePyramid pyramid(source);
+    const KisDabShape shape(1.0, 1.0, 15.0 * M_PI / 180.0);
+    const PkImage transformed = pyramid.createImage(shape, 0.0, 0.0);
 
-    {
-        QPainter gc(&image1);
-        gc.fillRect(PkRect(0, 0, 10, 10), Qt::black);
+    QVERIFY(!transformed.isNull());
+    QCOMPARE(transformed.size(), KisQImagePyramid::imageSize(source.size(), shape, 0.0, 0.0));
+    QCOMPARE(transformed.format(), PkImage::Format_ARGB32);
+
+    bool foundTransparentPixel = false;
+    bool foundOpaquePixel = false;
+    bool foundSmoothedEdgePixel = false;
+    for (int y = 0; y < transformed.height(); ++y) {
+        for (int x = 0; x < transformed.width(); ++x) {
+            const int alpha = pkAlpha(transformed.pixel(x, y));
+            foundTransparentPixel |= alpha == 0;
+            foundOpaquePixel |= alpha == 255;
+            foundSmoothedEdgePixel |= alpha > 0 && alpha < 255;
+        }
     }
 
-    {
-        QPainter gc(&image2);
-        gc.fillRect(PkRect(1, 1, 10, 10), Qt::black);
-    }
-
-    image1.save("src1.png");
-    image2.save("src2.png");
-
-    {
-        PkImage canvas(100, 100, PkImage::Format_ARGB32);
-        canvas.fill(0);
-        QPainter gc(&canvas);
-        PkTransform transform;
-        transform.rotate(15);
-        gc.setTransform(transform);
-        gc.setRenderHints(QPainter::SmoothPixmapTransform);
-        gc.drawImage(PkPointF(50, 50), image1);
-        gc.end();
-        canvas.save("canvas1.png");
-    }
-    {
-        PkImage canvas(100, 100, PkImage::Format_ARGB32);
-        canvas.fill(0);
-        QPainter gc(&canvas);
-        PkTransform transform;
-        transform.rotate(15);
-        gc.setTransform(transform);
-        gc.setRenderHints(QPainter::SmoothPixmapTransform);
-        gc.drawImage(PkPointF(50, 50), image2);
-        gc.end();
-        canvas.save("canvas2.png");
-    }
+    QVERIFY(foundTransparentPixel);
+    QVERIFY(foundOpaquePixel);
+    QVERIFY(foundSmoothedEdgePixel);
 }
 
 SIMPLE_TEST_MAIN(KisGbrBrushTest)
