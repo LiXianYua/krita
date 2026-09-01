@@ -11,6 +11,7 @@
 #include <PkSet.h>
 
 #include <functional>
+#include <optional>
 
 #include "kundo2command.h"
 #include "kis_types.h"
