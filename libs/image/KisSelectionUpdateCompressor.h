@@ -16,16 +16,15 @@
 
 class KisSelectionUpdateCompressor : public PkShellObject
 {
-    Q_OBJECT
 public:
     KisSelectionUpdateCompressor(KisSelection *selection);
     ~KisSelectionUpdateCompressor();
 
-public Q_SLOTS:
+public:
     void requestUpdate(const PkRect &updateRect);
     void tryProcessStalledUpdate();
 
-private Q_SLOTS:
+private:
     void startUpdateJob();
 
 private:
