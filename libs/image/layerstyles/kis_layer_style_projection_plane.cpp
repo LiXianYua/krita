@@ -36,7 +36,7 @@
 #include "KisLayerStyleKnockoutBlower.h"
 #include "krita_utils.h"
 
-struct Q_DECL_HIDDEN KisLayerStyleProjectionPlane::Private
+struct KisLayerStyleProjectionPlane::Private
 {
     KisLayerProjectionPlaneWSP sourceProjectionPlane;
 
