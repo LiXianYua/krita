@@ -9,7 +9,7 @@
 #ifndef KIS_LEVELS_CURVE_H
 #define KIS_LEVELS_CURVE_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <PkString.h>
 #include <PkContainerAlgo.h>
 
