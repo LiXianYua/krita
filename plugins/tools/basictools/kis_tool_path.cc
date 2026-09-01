@@ -58,6 +58,23 @@ void KisToolPath::mousePressEvent(KoPointerEvent *event)
     (void)event;
 }
 
+bool KisToolPath::handlePathInput(KisToolPathInputType type, Qt::MouseButton button)
+{
+    if (!localTool()->pathStarted() || button != Qt::RightButton) {
+        return false;
+    }
+
+    switch (type) {
+    case KisToolPathInputType::MouseButtonPress:
+    case KisToolPathInputType::MouseButtonDoubleClick:
+    case KisToolPathInputType::TabletPress:
+        localTool()->removeLastPoint();
+        return true;
+    }
+
+    return false;
+}
+
 void KisToolPath::beginAlternateAction(KoPointerEvent *event, AlternateAction action) {
     DelegatedPathTool::beginAlternateAction(event, action);
     if (!nodeEditable()) return;
