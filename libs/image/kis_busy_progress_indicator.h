@@ -9,12 +9,12 @@
 
 #include <PkObject.h>
 #include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 
 class KoProgressProxy;
 
 class KisBusyProgressIndicator : public PkShellObject
 {
-    Q_OBJECT
 public:
     explicit KisBusyProgressIndicator(KoProgressProxy *progressProxy);
     ~KisBusyProgressIndicator() override;
@@ -26,13 +26,13 @@ public:
      */
     void prepareDestroying();
 
-public Q_SLOTS:
+public:
     /**
      * Trigger update of progress state.
      */
     void update();
 
-private Q_SLOTS:
+private:
     /**
      * Call only via emitting sigStartTimer, to ensure it is called in
      * the context of the PkShellObject's thread.
@@ -40,7 +40,7 @@ private Q_SLOTS:
     void slotStartTimer();
     void timerFinished();
 
-Q_SIGNALS:
+signals:
     void sigStartTimer();
 
 private:
