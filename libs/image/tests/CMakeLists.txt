@@ -23,6 +23,11 @@ add_executable(KisPathRasterizerQtOracle
 target_link_libraries(KisPathRasterizerQtOracle PRIVATE Qt5::Gui)
 ecm_mark_as_test(KisPathRasterizerQtOracle)
 
+kis_add_test(
+    KisPathCoverageMaskTest.cpp
+    LINK_LIBRARIES kritatestsdk
+    )
+
 
 kis_add_tests(
     kis_base_node_test.cpp
