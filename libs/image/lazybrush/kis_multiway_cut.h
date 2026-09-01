@@ -13,6 +13,7 @@
 #include "kritaimage_export.h"
 
 class KoColor;
+class PkRect;
 
 class KRITAIMAGE_EXPORT KisMultiwayCut
 {
