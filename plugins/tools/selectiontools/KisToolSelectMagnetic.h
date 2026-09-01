@@ -7,30 +7,29 @@
 #ifndef KIS_TOOL_SELECT_MAGNETIC_H_
 #define KIS_TOOL_SELECT_MAGNETIC_H_
 
-#include <QPoint>
+#include <PkPoint.h>
 #include "KisSelectionToolFactoryBase.h"
 #include <kis_tool_select_base.h>
 #include <kis_signal_compressor.h>
 #include "KisMagneticWorker.h"
+#include <PkPainter.h>
+#include <PkPainterPath.h>
+#include <PkScopedPointer.h>
+#include <PkString.h>
 
-class QPainterPath;
+class PkPainterPath;
 
 class KisToolSelectMagnetic : public KisToolSelect
 {
-    Q_OBJECT
-
 public:
     KisToolSelectMagnetic(KoCanvasBase *canvas);
     ~KisToolSelectMagnetic() override;
     void beginPrimaryAction(KoPointerEvent *event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
-    void paint(QPainter& gc, const KoViewConverter &converter) override;
+    void paint(PkPainter& gc, const KoViewConverter &converter) override;
 
     //void beginPrimaryDoubleClickAction(KoPointerEvent *event) override;
-
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
 
     void mouseMoveEvent(KoPointerEvent *event) override;
 
@@ -38,18 +37,17 @@ public:
     void requestStrokeEnd() override;
     void requestStrokeCancellation() override;
 
-Q_SIGNALS:
-    void setButtonsEnabled(bool);
-
-public Q_SLOTS:
+public:
     void deactivate() override;
-    void activate(const QSet<KoShape *> &shapes) override;
+    void activate(const PkSet<KoShape *> &shapes) override;
     void undoPoints();
     void slotSetFilterRadius(qreal);
     void slotSetThreshold(int);
     void slotSetSearchRadius(int);
     void slotSetAnchorGap(int);
     void slotCalculateEdge();
+    PkList<PkString> actionIds() const;
+    bool triggerAction(const PkString &id);
 
 protected:
     using KisToolSelectBase::m_widgetHelper;
@@ -61,33 +59,34 @@ private:
     void updateCanvas();
     void updatePaintPath();
     void resetVariables();
-    void drawAnchors(QPainter &gc);
-    void checkIfAnchorIsSelected(QPointF pt);
-    vQPointF computeEdgeWrapper(QPoint a, QPoint b);
+    void drawAnchors(PkPainter &gc);
+    void checkIfAnchorIsSelected(PkPointF pt);
+    PkVector<PkPointF> computeEdgeWrapper(PkPoint a, PkPoint b);
     void reEvaluatePoints();
-    void calculateCheckPoints(vQPointF points);
+    void calculateCheckPoints(PkVector<PkPointF> points);
     void deleteSelectedAnchor();
     void updateSelectedAnchor();
-    int updateInitialAnchorBounds(QPoint pt);
+    int updateInitialAnchorBounds(PkPoint pt);
+    void updateContinuedModeFromModifiers(Qt::KeyboardModifiers modifiers);
 
-    QPainterPath m_paintPath;
-    QVector<QPointF> m_points;
-    QVector<QPoint> m_anchorPoints;
+    PkPainterPath m_paintPath;
+    PkVector<PkPointF> m_points;
+    PkVector<PkPoint> m_anchorPoints;
     bool m_continuedMode {false};
-    QPointF m_lastCursorPos, m_cursorOnPress;
-    QPoint m_lastAnchor;
+    PkPointF m_lastCursorPos, m_cursorOnPress;
+    PkPoint m_lastAnchor;
     bool m_complete {false};
     bool m_selected {false};
     bool m_finished {false};
-    QScopedPointer<KisMagneticWorker> m_worker;
+    PkScopedPointer<KisMagneticWorker> m_worker;
     int m_threshold {70};
     int m_searchRadius {30};
     int m_selectedAnchor {0};
     int m_anchorGap {30};
     qreal m_filterRadius {3.0};
-    QRectF m_snapBound;
+    PkRectF m_snapBound;
     KConfigGroup m_configGroup;
-    QVector<vQPointF> m_pointCollection;
+    PkVector<PkVector<PkPointF>> m_pointCollection;
     KisSignalCompressor m_mouseHoverCompressor;
     PkConnection m_mouseHoverConnection;
 };
@@ -98,7 +97,7 @@ public:
     KisToolSelectMagneticFactory()
         : KisSelectionToolFactoryBase("KisToolSelectMagnetic")
     {
-        setToolTip(i18n("Magnetic Selection Tool"));
+        setToolTip(PkString("Magnetic Selection Tool"));
         setSection(ToolBoxSection::Select);
         setPriority(8);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
@@ -111,14 +110,6 @@ public:
         return new KisToolSelectMagnetic(canvas);
     }
 
-    QList<QAction *> createActionsImpl() override
-    {
-        QList<QAction *> actions = KisSelectionToolFactoryBase::createActionsImpl();
-
-        { QAction *a = new QAction(this); a->setObjectName("undo_polygon_selection"); actions << a; }
-
-        return actions;
-    }
 };
 
 

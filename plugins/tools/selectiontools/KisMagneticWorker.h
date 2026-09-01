@@ -11,33 +11,39 @@
 #include <kritaselectiontools_export.h>
 
 struct KisMagneticGraph;
+struct VertexDescriptor;
 
 class KisMagneticLazyTiles {
 private:
-    QVector<QRect> m_tiles;
-    QVector<qreal> m_radiusRecord;
+    PkVector<PkRect> m_tiles;
+    PkVector<qreal> m_radiusRecord;
     KisPaintDeviceSP m_dev;
-    QSize m_tileSize;
+    PkSize m_tileSize;
     int m_tilesPerRow;
 
 public:
     KisMagneticLazyTiles(KisPaintDeviceSP dev);
-    void filter(qreal radius, QRect &rect);
+    void filter(qreal radius, PkRect &rect);
     inline KisPaintDeviceSP device(){ return m_dev; }
-    inline QVector<QRect> tiles(){ return m_tiles; }
+    inline PkVector<PkRect> tiles(){ return m_tiles; }
 };
 
 class KRITASELECTIONTOOLS_EXPORT KisMagneticWorker {
 public:
     KisMagneticWorker(const KisPaintDeviceSP &dev);
 
-    QVector<QPointF> computeEdge(int bounds, QPoint start, QPoint end, qreal radius);
-    void saveTheImage(vQPointF points);
-    qreal intensity(QPoint pt);
+    PkVector<PkPointF> computeEdge(int bounds, PkPoint start, PkPoint end, qreal radius);
+    void saveTheImage(PkVector<PkPointF> points);
+    qreal intensity(PkPoint pt);
 
 private:
     KisMagneticLazyTiles m_lazyTileFilter;
     KisMagneticGraph *m_graph {nullptr};
 };
+
+KRITASELECTIONTOOLS_EXPORT double magneticEdgeWeight(
+    KisMagneticGraph &graph,
+    const VertexDescriptor &first,
+    const VertexDescriptor &second);
 
 #endif // ifndef KISMAGNETICWORKER_H

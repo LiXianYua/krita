@@ -12,9 +12,8 @@
 #include <kis_paint_device.h>
 #include <kis_random_accessor_ng.h>
 
-#include <QDebug>
-#include <QRect>
-#include <QColor>
+#include <PkRect.h>
+#include <PkColor.h>
 
 struct VertexDescriptor {
     long x, y;
@@ -28,7 +27,7 @@ struct VertexDescriptor {
         x(_x), y(_y)
     { }
 
-    VertexDescriptor(QPoint pt) :
+    VertexDescriptor(PkPoint pt) :
         x(pt.x()), y(pt.y())
     { }
 
@@ -41,7 +40,7 @@ struct VertexDescriptor {
         return rhs.x == x && rhs.y == y;
     }
 
-    bool operator == (QPoint const &rhs) const
+    bool operator == (PkPoint const &rhs) const
     {
         return rhs.x() == x && rhs.y() == y;
     }
@@ -64,16 +63,16 @@ struct VertexDescriptor {
 
         switch (direction) {
             case W:
-                Q_FALLTHROUGH();
+                [[fallthrough]];
             case SW:
-                Q_FALLTHROUGH();
+                [[fallthrough]];
             case NW:
                 dx = -1;
                 break;
             case E:
-                Q_FALLTHROUGH();
+                [[fallthrough]];
             case SE:
-                Q_FALLTHROUGH();
+                [[fallthrough]];
             case NE:
                 dx = 1;
             default:
@@ -82,16 +81,16 @@ struct VertexDescriptor {
 
         switch (direction) {
             case N:
-                Q_FALLTHROUGH();
+                [[fallthrough]];
             case NW:
-                Q_FALLTHROUGH();
+                [[fallthrough]];
             case NE:
                 dy = -1;
                 break;
             case S:
-                Q_FALLTHROUGH();
+                [[fallthrough]];
             case SW:
-                Q_FALLTHROUGH();
+                [[fallthrough]];
             case SE:
                 dy = 1;
             default:
@@ -102,12 +101,6 @@ struct VertexDescriptor {
         return neighbor;
     } // neighbor
 };
-
-QDebug operator << (QDebug dbg, const VertexDescriptor &v)
-{
-    dbg.nospace() << "(" << v.x << ", " << v.y << ")";
-    return dbg.space();
-}
 
 struct neighbour_iterator;
 
@@ -122,7 +115,7 @@ struct KisMagneticGraph {
         m_randAccess = m_dev->createRandomAccessorNG();
     }
 
-    KisMagneticGraph(KisPaintDeviceSP dev, QRect graphRect) :
+    KisMagneticGraph(KisPaintDeviceSP dev, PkRect graphRect) :
         m_rect(graphRect), m_dev(dev)
     {
         m_randAccess = m_dev->createRandomAccessorNG();
@@ -168,7 +161,7 @@ struct KisMagneticGraph {
         return 8;
     }
 
-    QRect               m_rect;
+    PkRect               m_rect;
 
 private:
     KisPaintDeviceSP    m_dev;
@@ -248,19 +241,19 @@ struct graph_traits<KisMagneticGraph> {
 };
 }
 
-typename KisMagneticGraph::vertex_descriptor source(typename KisMagneticGraph::edge_descriptor e, KisMagneticGraph g)
+inline typename KisMagneticGraph::vertex_descriptor source(typename KisMagneticGraph::edge_descriptor e, KisMagneticGraph g)
 {
-    Q_UNUSED(g);
+    (void)g;
     return e.first;
 }
 
-typename KisMagneticGraph::vertex_descriptor target(typename KisMagneticGraph::edge_descriptor e, KisMagneticGraph g)
+inline typename KisMagneticGraph::vertex_descriptor target(typename KisMagneticGraph::edge_descriptor e, KisMagneticGraph g)
 {
-    Q_UNUSED(g);
+    (void)g;
     return e.second;
 }
 
-std::pair<KisMagneticGraph::out_edge_iterator, KisMagneticGraph::out_edge_iterator> out_edges(
+inline std::pair<KisMagneticGraph::out_edge_iterator, KisMagneticGraph::out_edge_iterator> out_edges(
      typename KisMagneticGraph::vertex_descriptor v, KisMagneticGraph g)
 {
     return std::make_pair(
@@ -269,7 +262,7 @@ std::pair<KisMagneticGraph::out_edge_iterator, KisMagneticGraph::out_edge_iterat
         );
 }
 
-typename KisMagneticGraph::degree_size_type out_degree(typename KisMagneticGraph::vertex_descriptor v,
+inline typename KisMagneticGraph::degree_size_type out_degree(typename KisMagneticGraph::vertex_descriptor v,
      KisMagneticGraph                                                                               g)
 {
     return g.outDegree(v);

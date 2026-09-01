@@ -48,10 +48,10 @@ __KisToolSelectOutlineLocal::__KisToolSelectOutlineLocal(KoCanvasBase * canvas)
 
 
 KisToolSelectOutline::KisToolSelectOutline(KoCanvasBase * canvas)
-    : KisToolSelectBase<__KisToolSelectOutlineLocal>(canvas, i18n("Freehand Selection"))
+    : KisToolSelectBase<__KisToolSelectOutlineLocal>(canvas, PkString("Freehand Selection"))
 {}
 
-void KisToolSelectOutline::finishOutline(const QVector<QPointF>& points)
+void KisToolSelectOutline::finishOutline(const PkVector<PkPointF>& points)
 {
     KisImageSP image = currentImage().toStrongRef();
     KIS_ASSERT_RECOVER_RETURN(image);
@@ -60,8 +60,8 @@ void KisToolSelectOutline::finishOutline(const QVector<QPointF>& points)
     KIS_ASSERT_RECOVER_RETURN(invalidation);
     invalidation->invalidateAll();
 
-    const QRectF boundingRect = KisAlgebra2D::accumulateBounds(points);
-    const QRectF boundingViewRect = pixelToView(boundingRect);
+    const PkRectF boundingRect = KisAlgebra2D::accumulateBounds(points);
+    const PkRectF boundingViewRect = pixelToView(boundingRect);
 
     KisSelectionToolHelper helper(
         canvas(), image, currentNode(), kundo2_i18n("Freehand Selection"));
@@ -97,7 +97,7 @@ void KisToolSelectOutline::finishOutline(const QVector<QPointF>& points)
         const int grow = growSelection();
         const int feather = featherSelection();
 
-        QPainterPath path;
+        PkPainterPath path;
         path.addPolygon(points);
         path.closeSubpath();
 
@@ -151,7 +151,7 @@ void KisToolSelectOutline::finishOutline(const QVector<QPointF>& points)
         KoPathShape *path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
 
-        QTransform resolutionMatrix;
+        PkTransform resolutionMatrix;
         resolutionMatrix.scale(1 / currentImage()->xRes(),
                                1 / currentImage()->yRes());
         path->moveTo(resolutionMatrix.map(points[0]));
@@ -187,7 +187,7 @@ bool KisToolSelectOutline::alternateActionSupportsHiResEvents(AlternateAction ac
      * good precision for them
      */
 
-    Q_UNUSED(action);
+    (void)action;
     return !isMovingSelection();
 }
 

@@ -12,23 +12,19 @@
 #ifndef KIS_TOOL_SELECT_OUTLINE_H_
 #define KIS_TOOL_SELECT_OUTLINE_H_
 
-#include <QPoint>
+#include <PkPoint.h>
 #include <KisSelectionToolFactoryBase.h>
 #include <KisToolOutlineBase.h>
 #include <kis_tool_select_base.h>
 
 class __KisToolSelectOutlineLocal : public KisToolOutlineBase
 {
-    Q_OBJECT
-
 public:
     __KisToolSelectOutlineLocal(KoCanvasBase * canvas);
 };
 
 class KisToolSelectOutline : public KisToolSelectBase<__KisToolSelectOutlineLocal>
 {
-    Q_OBJECT
-
 public:
     KisToolSelectOutline(KoCanvasBase *canvas);
 
@@ -37,7 +33,7 @@ public:
     void resetCursorStyle() override;
 
 private:
-    void finishOutline(const QVector<QPointF>& points) override;
+    void finishOutline(const PkVector<PkPointF>& points) override;
     void beginShape() override;
     void endShape() override;
 };
@@ -48,7 +44,7 @@ public:
     KisToolSelectOutlineFactory()
         : KisSelectionToolFactoryBase("KisToolSelectOutline")
     {
-        setToolTip(i18n("Freehand Selection Tool"));
+        setToolTip(PkString("Freehand Selection Tool"));
         setSection(ToolBoxSection::Select);
         setPriority(3);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
@@ -63,4 +59,3 @@ public:
 
 
 #endif //__selecttoolfreehand_h__
-

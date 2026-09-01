@@ -10,8 +10,6 @@
 
 #include "kis_tool_select_elliptical.h"
 
-#include <QVBoxLayout>
-
 #include "KisSelectionUtils.h"
 #include "kis_painter.h"
 #include "kis_pixel_selection.h"
@@ -33,13 +31,13 @@ __KisToolSelectEllipticalLocal::__KisToolSelectEllipticalLocal(KoCanvasBase *can
 
 
 KisToolSelectElliptical::KisToolSelectElliptical(KoCanvasBase *canvas):
-    KisToolSelectBase<__KisToolSelectEllipticalLocal>(canvas, i18n("Elliptical Selection"))
+    KisToolSelectBase<__KisToolSelectEllipticalLocal>(canvas, PkString("Elliptical Selection"))
 {}
 
-void KisToolSelectElliptical::finishRect(const QRectF &rect, qreal roundCornersX, qreal roundCornersY)
+void KisToolSelectElliptical::finishRect(const PkRectF &rect, qreal roundCornersX, qreal roundCornersY)
 {
-    Q_UNUSED(roundCornersX);
-    Q_UNUSED(roundCornersY);
+    (void)roundCornersX;
+    (void)roundCornersY;
 
     KisImageSP image = currentImage().toStrongRef();
     KIS_SAFE_ASSERT_RECOVER_RETURN(image);
@@ -75,7 +73,7 @@ void KisToolSelectElliptical::finishRect(const QRectF &rect, qreal roundCornersX
         const int grow = growSelection();
         const int feather = featherSelection();
 
-        QPainterPath path;
+        PkPainterPath path;
         path.addEllipse(rect);
         getRotatedPath(path, rect.center(), getRotationAngle());
 
@@ -126,7 +124,7 @@ void KisToolSelectElliptical::finishRect(const QRectF &rect, qreal roundCornersX
         applicator.end();
 
     } else {
-        QRectF ptRect = convertToPt(rect);
+        PkRectF ptRect = convertToPt(rect);
         KoShape* shape = KisShapeToolHelper::createEllipseShape(ptRect);
         shape->rotate(qRadiansToDegrees(getRotationAngle()));
 

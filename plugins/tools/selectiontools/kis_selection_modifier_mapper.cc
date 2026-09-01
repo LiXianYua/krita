@@ -28,19 +28,16 @@
 #include <KConfigGroup>
 #include <KSharedConfig>
 
-Q_GLOBAL_STATIC(KisSelectionModifierMapper, s_instance)
-
-
 // This numerically serializes modifier flags... let's keep it around for later.
 #if 0
 #include <bitset>
-QString QMOD_BINARY(Qt::KeyboardModifiers m)
+PkString modifierBinary(Qt::KeyboardModifiers m)
 {
-    return QString(std::bitset<sizeof(int) * 8>(m).to_string().c_str());
+    return PkString(std::bitset<sizeof(int) * 8>(m).to_string().c_str());
 };
 #endif
 
-struct Q_DECL_HIDDEN KisSelectionModifierMapper::Private
+struct KisSelectionModifierMapper::Private
 {
     SelectionAction map(Qt::KeyboardModifiers m);
     void slotConfigChanged();
@@ -55,9 +52,8 @@ struct Q_DECL_HIDDEN KisSelectionModifierMapper::Private
 KisSelectionModifierMapper::KisSelectionModifierMapper()
     : m_d(new Private)
 {
-    connect(KisConfigNotifier::instance(),
-            SIGNAL(configChanged()),
-            SLOT(slotConfigChanged()));
+    PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged,
+                      this, &KisSelectionModifierMapper::slotConfigChanged);
     slotConfigChanged();
 }
 
@@ -68,7 +64,8 @@ KisSelectionModifierMapper::~KisSelectionModifierMapper()
 
 KisSelectionModifierMapper *KisSelectionModifierMapper::instance()
 {
-    return s_instance;
+    static KisSelectionModifierMapper instance;
+    return &instance;
 }
 
 void KisSelectionModifierMapper::slotConfigChanged()
@@ -80,7 +77,7 @@ void KisSelectionModifierMapper::slotConfigChanged()
 void KisSelectionModifierMapper::Private::slotConfigChanged()
 {
     const bool switchSelectionCtrlAlt =
-        KSharedConfig::openConfig()->group(QString()).readEntry("switchSelectionCtrlAlt", false);
+        KSharedConfig::openConfig()->group(PkString()).readEntry("switchSelectionCtrlAlt", false);
     if (!switchSelectionCtrlAlt) {
         replaceModifiers   = Qt::ControlModifier;
         intersectModifiers = (Qt::KeyboardModifiers)(Qt::AltModifier | Qt::ShiftModifier);
@@ -98,7 +95,7 @@ void KisSelectionModifierMapper::Private::slotConfigChanged()
 
 SelectionAction KisSelectionModifierMapper::map(Qt::KeyboardModifiers m)
 {
-    return s_instance->m_d->map(m);
+    return instance()->m_d->map(m);
 }
 
 SelectionAction KisSelectionModifierMapper::Private::map(Qt::KeyboardModifiers m)

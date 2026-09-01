@@ -24,8 +24,6 @@
 class KisToolSelectContiguous : public KisToolSelect
 {
 
-    Q_OBJECT
-
 public:
     enum ContiguousSelectionMode
     {
@@ -36,7 +34,7 @@ public:
     KisToolSelectContiguous(KoCanvasBase *canvas);
     ~KisToolSelectContiguous() override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
     void beginPrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
@@ -50,8 +48,8 @@ protected:
     bool isPixelOnly() const override { return true; }
     bool usesColorLabels() const override { return true; }
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
     void slotSetContiguousSelectionMode(ContiguousSelectionMode);
@@ -85,7 +83,7 @@ public:
     KisToolSelectContiguousFactory()
         : KisSelectionToolFactoryBase("KisToolSelectContiguous")
     {
-        setToolTip(i18n("Contiguous Selection Tool"));
+        setToolTip(PkString("Contiguous Selection Tool"));
         setSection(ToolBoxSection::Select);
         setPriority(4);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);

@@ -21,7 +21,7 @@ class KisToolSelectPath;
 class __KisToolSelectPathLocalTool : public KoCreatePathTool {
 public:
     __KisToolSelectPathLocalTool(KoCanvasBase *canvas, KisToolSelectPath *parentTool);
-    void paintPath(KoPathShape &path, QPainter &painter, const KoViewConverter &converter) override;
+    void paintPath(KoPathShape &path, PkPainter &painter, const KoViewConverter &converter) override;
     void addPathShape(KoPathShape* pathShape) override;
 
     using KoCreatePathTool::createOptionWidgets;
@@ -41,13 +41,7 @@ typedef KisDelegatedTool<KisTool, __KisToolSelectPathLocalTool,
 DeselectShapesActivationPolicy> DelegatedSelectPathTool;
 
 struct KisDelegatedSelectPathWrapper : public DelegatedSelectPathTool {
-    KisDelegatedSelectPathWrapper(KoCanvasBase *canvas,
-                                  const QCursor &cursor,
-                                  KoToolBase *delegateTool)
-        : DelegatedSelectPathTool(canvas, cursor, dynamic_cast<__KisToolSelectPathLocalTool*>(delegateTool))
-    {
-        Q_ASSERT(dynamic_cast<__KisToolSelectPathLocalTool*>(delegateTool));
-    }
+    using DelegatedSelectPathTool::DelegatedSelectPathTool;
 
     // If an event is explicitly forwarded only as an action (e.g. shift-click is captured by "change size")
     // we will receive a primary action but no mousePressEvent.  Thus these events must be explicitly forwarded.
@@ -66,17 +60,16 @@ struct KisDelegatedSelectPathWrapper : public DelegatedSelectPathTool {
 
 class KisToolSelectPath : public KisToolSelectBase<KisDelegatedSelectPathWrapper>
 {
-    Q_OBJECT
 public:
     KisToolSelectPath(KoCanvasBase * canvas);
-    bool eventFilter(QObject *obj, QEvent *event) override;
+    void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
+    void beginAlternateDoubleClickAction(KoPointerEvent *event, AlternateAction action) override;
     void resetCursorStyle() override;
 
 protected:
     void requestStrokeCancellation() override;
     void requestStrokeEnd() override;
     friend class __KisToolSelectPathLocalTool;
-    QList<QPointer<QWidget> > createOptionWidgets() override;
 };
 
 class KisToolSelectPathFactory : public KisSelectionToolFactoryBase
@@ -84,7 +77,7 @@ class KisToolSelectPathFactory : public KisSelectionToolFactoryBase
 public:
     KisToolSelectPathFactory()
         : KisSelectionToolFactoryBase("KisToolSelectPath") {
-        setToolTip(i18n("Bezier Curve Selection Tool"));
+        setToolTip(PkString("Bezier Curve Selection Tool"));
         setSection(ToolBoxSection::Select);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(6);

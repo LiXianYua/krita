@@ -22,7 +22,7 @@
 KisToolSelectPath::KisToolSelectPath(KoCanvasBase * canvas)
     : KisToolSelectBase<KisDelegatedSelectPathWrapper>(canvas,
                                                        dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_polygonal_selection_cursor.png", 6, 6),
-                                                       i18n("Select path"),
+                                                       PkString("Select path"),
                                                        new __KisToolSelectPathLocalTool(canvas, this))
 {}
 
@@ -36,42 +36,22 @@ void KisToolSelectPath::requestStrokeCancellation()
     localTool()->cancelPath();
 }
 
-// Install an event filter to catch right-click events.
-// This code is duplicated in kis_tool_path.cc
-bool KisToolSelectPath::eventFilter(QObject *obj, QEvent *event)
+void KisToolSelectPath::beginAlternateAction(KoPointerEvent *event, AlternateAction action)
 {
-    Q_UNUSED(obj);
-    if (!localTool()->pathStarted()) {
-        return false;
+    if (localTool()->pathStarted() && isSelecting() && action == Secondary) {
+        localTool()->removeLastPoint();
+        return;
     }
-    if (event->type() == QEvent::MouseButtonPress ||
-            event->type() == QEvent::MouseButtonDblClick) {
-        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        if (mouseEvent->button() == Qt::RightButton && isSelecting()) {
-            localTool()->removeLastPoint();
-            return true;
-        }
-    } else if (event->type() == QEvent::TabletPress) {
-        QTabletEvent *tabletEvent = static_cast<QTabletEvent*>(event);
-        if (tabletEvent->button() == Qt::RightButton && isSelecting()) {
-            localTool()->removeLastPoint();
-            return true;
-        }
-    }
-    return false;
+    KisToolSelectBase<KisDelegatedSelectPathWrapper>::beginAlternateAction(event, action);
 }
 
-QList<QPointer<QWidget> > KisToolSelectPath::createOptionWidgets()
+void KisToolSelectPath::beginAlternateDoubleClickAction(KoPointerEvent *event, AlternateAction action)
 {
-    QList<QPointer<QWidget> > widgetsList =
-            DelegatedSelectPathTool::createOptionWidgets();
-    QList<QPointer<QWidget> > filteredWidgets;
-    Q_FOREACH (QWidget* widget, widgetsList) {
-        if (widget->objectName() != "Stroke widget") {
-            filteredWidgets.push_back(widget);
-        }
+    if (localTool()->pathStarted() && isSelecting() && action == Secondary) {
+        localTool()->removeLastPoint();
+        return;
     }
-    return filteredWidgets;
+    KisToolSelectBase<KisDelegatedSelectPathWrapper>::beginAlternateDoubleClickAction(event, action);
 }
 
 void KisDelegatedSelectPathWrapper::beginPrimaryAction(KoPointerEvent *event) {
@@ -94,7 +74,7 @@ void KisDelegatedSelectPathWrapper::beginPrimaryDoubleClickAction(KoPointerEvent
 void KisDelegatedSelectPathWrapper::mousePressEvent(KoPointerEvent *event)
 {
     // this event will be forwarded using beginPrimaryAction
-    Q_UNUSED(event);
+    (void)event;
 }
 
 void KisDelegatedSelectPathWrapper::mouseMoveEvent(KoPointerEvent *event)
@@ -110,13 +90,13 @@ void KisDelegatedSelectPathWrapper::mouseMoveEvent(KoPointerEvent *event)
 void KisDelegatedSelectPathWrapper::mouseReleaseEvent(KoPointerEvent *event)
 {
     // this event will be forwarded using continuePrimaryAction
-    Q_UNUSED(event);
+    (void)event;
 }
 
 void KisDelegatedSelectPathWrapper::mouseDoubleClickEvent(KoPointerEvent *event)
 {
     // this event will be forwarded using endPrimaryAction
-    Q_UNUSED(event);
+    (void)event;
 }
 
 __KisToolSelectPathLocalTool::__KisToolSelectPathLocalTool(KoCanvasBase * canvas, KisToolSelectPath* parentTool)
@@ -125,14 +105,14 @@ __KisToolSelectPathLocalTool::__KisToolSelectPathLocalTool(KoCanvasBase * canvas
     setEnableClosePathShortcut(false);
 }
 
-void __KisToolSelectPathLocalTool::paintPath(KoPathShape &pathShape, QPainter &painter, const KoViewConverter &converter)
+void __KisToolSelectPathLocalTool::paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(converter);
+    (void)converter;
     KisImageSP image = m_selectionTool->currentImage().toStrongRef();
     if (!image)
         return;
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(image->xRes(), image->yRes());
     matrix.translate(pathShape.position().x(), pathShape.position().y());
     m_selectionTool->paintToolOutline(&painter, m_selectionTool->pixelToView(matrix.map(pathShape.outline())));
@@ -173,11 +153,11 @@ void __KisToolSelectPathLocalTool::addPathShape(KoPathShape* pathShape)
         const int grow = m_selectionTool->growSelection();
         const int feather = m_selectionTool->featherSelection();
 
-        QTransform matrix;
+        PkTransform matrix;
         matrix.scale(image->xRes(), image->yRes());
         matrix.translate(pathShape->position().x(), pathShape->position().y());
 
-        QPainterPath path = matrix.map(pathShape->outline());
+        PkPainterPath path = matrix.map(pathShape->outline());
 
         KUndo2Command *cmd = new KisCommandUtils::LambdaCommand(
             [tmpSel, antiAlias, grow, feather, path]() mutable

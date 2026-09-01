@@ -36,17 +36,17 @@ __KisToolSelectPolygonalLocal::__KisToolSelectPolygonalLocal(KoCanvasBase *canva
 
 
 KisToolSelectPolygonal::KisToolSelectPolygonal(KoCanvasBase *canvas):
-    KisToolSelectBase<__KisToolSelectPolygonalLocal>(canvas, i18n("Polygonal Selection"))
+    KisToolSelectBase<__KisToolSelectPolygonalLocal>(canvas, PkString("Polygonal Selection"))
 {
 }
 
-void KisToolSelectPolygonal::finishPolyline(const QVector<QPointF> &points)
+void KisToolSelectPolygonal::finishPolyline(const PkVector<PkPointF> &points)
 {
     KisImageSP image = currentImage().toStrongRef();
     if (!image)
         return;
 
-    const QRectF boundingViewRect = pixelToView(KisAlgebra2D::accumulateBounds(points));
+    const PkRectF boundingViewRect = pixelToView(KisAlgebra2D::accumulateBounds(points));
 
     KisSelectionToolHelper helper(
         canvas(), image, currentNode(), kundo2_i18n("Select Polygon"));
@@ -75,7 +75,7 @@ void KisToolSelectPolygonal::finishPolyline(const QVector<QPointF> &points)
         const int grow = growSelection();
         const int feather = featherSelection();
 
-        QPainterPath path;
+        PkPainterPath path;
         path.addPolygon(points);
         path.closeSubpath();
 
@@ -129,7 +129,7 @@ void KisToolSelectPolygonal::finishPolyline(const QVector<QPointF> &points)
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
 
-        QTransform resolutionMatrix;
+        PkTransform resolutionMatrix;
         resolutionMatrix.scale(1 / currentImage()->xRes(), 1 / currentImage()->yRes());
         path->moveTo(resolutionMatrix.map(points[0]));
         for (int i = 1; i < points.count(); i++)

@@ -7,10 +7,7 @@
  */
 
 #include "selection_tools.h"
-#include <klocalizedstring.h>
-
-#include <kis_debug.h>
-#include <kpluginfactory.h>
+#include <mutex>
 
 #include "KoToolRegistry.h"
 
@@ -26,24 +23,17 @@
 #include "kis_tool_select_similar.h"
 #include "KisToolSelectMagnetic.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(SelectionToolsFactory, "kritaselectiontools.json", registerPlugin<SelectionTools>();)
-
-
-SelectionTools::SelectionTools(QObject *parent, const QVariantList &)
-        : QObject(parent)
+void registerSelectionTools()
 {
-    KoToolRegistry::instance()->add(new KisToolSelectOutlineFactory());
-    KoToolRegistry::instance()->add(new KisToolSelectPolygonalFactory());
-    KoToolRegistry::instance()->add(new KisToolSelectRectangularFactory());
-    KoToolRegistry::instance()->add(new KisToolSelectEllipticalFactory());
-    KoToolRegistry::instance()->add(new KisToolSelectContiguousFactory());
-    KoToolRegistry::instance()->add(new KisToolSelectPathFactory());
-    KoToolRegistry::instance()->add(new KisToolSelectSimilarFactory());
-    KoToolRegistry::instance()->add(new KisToolSelectMagneticFactory());
+    static std::once_flag once;
+    std::call_once(once, [] {
+        KoToolRegistry::instance()->add(new KisToolSelectOutlineFactory());
+        KoToolRegistry::instance()->add(new KisToolSelectPolygonalFactory());
+        KoToolRegistry::instance()->add(new KisToolSelectRectangularFactory());
+        KoToolRegistry::instance()->add(new KisToolSelectEllipticalFactory());
+        KoToolRegistry::instance()->add(new KisToolSelectContiguousFactory());
+        KoToolRegistry::instance()->add(new KisToolSelectPathFactory());
+        KoToolRegistry::instance()->add(new KisToolSelectSimilarFactory());
+        KoToolRegistry::instance()->add(new KisToolSelectMagneticFactory());
+    });
 }
-
-SelectionTools::~SelectionTools()
-{
-}
-
-#include "selection_tools.moc"

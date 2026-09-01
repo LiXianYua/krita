@@ -12,24 +12,23 @@
  */
 
 #include "kis_selection.h"
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
 
-class KisSelectionModifierMapper : public QObject
+class KisSelectionModifierMapper : public PkObject
 {
-    Q_OBJECT
-
 public:
     KisSelectionModifierMapper();
     ~KisSelectionModifierMapper() override;
     static KisSelectionModifierMapper *instance();
     static SelectionAction map(Qt::KeyboardModifiers m);
 
-public Q_SLOTS:
+public:
     void slotConfigChanged();
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif

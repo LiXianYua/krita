@@ -34,10 +34,10 @@ __KisToolSelectRectangularLocal::__KisToolSelectRectangularLocal(KoCanvasBase * 
 
 
 KisToolSelectRectangular::KisToolSelectRectangular(KoCanvasBase *canvas):
-    KisToolSelectBase<__KisToolSelectRectangularLocal>(canvas, i18n("Rectangular Selection"))
+    KisToolSelectBase<__KisToolSelectRectangularLocal>(canvas, PkString("Rectangular Selection"))
 {}
 
-void KisToolSelectRectangular::finishRect(const QRectF& rect, qreal roundCornersX, qreal roundCornersY)
+void KisToolSelectRectangular::finishRect(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY)
 {
     KisImageSP image = currentImage().toStrongRef();
     if (!image)
@@ -46,7 +46,7 @@ void KisToolSelectRectangular::finishRect(const QRectF& rect, qreal roundCorners
     KisSelectionToolHelper helper(
         canvas(), image, currentNode(), kundo2_i18n("Select Rectangle"));
 
-    QRect rc(rect.normalized().toRect());
+    PkRect rc(rect.normalized().toRect());
 
     if (helper.tryDeselectCurrentSelection(pixelToView(rc), selectionAction())) {
         return;
@@ -79,7 +79,7 @@ void KisToolSelectRectangular::finishRect(const QRectF& rect, qreal roundCorners
         const int grow = growSelection();
         const int feather = featherSelection();
 
-        QPainterPath path;
+        PkPainterPath path;
         if (roundCornersX > 0 || roundCornersY > 0) {
             path.addRoundedRect(rc, roundCornersX, roundCornersY);
         } else {
@@ -134,7 +134,7 @@ void KisToolSelectRectangular::finishRect(const QRectF& rect, qreal roundCorners
         applicator.end();
 
     } else {
-        QRectF documentRect = convertToPt(rc);
+        PkRectF documentRect = convertToPt(rc);
         const qreal docRoundCornersX = convertToPt(roundCornersX);
         const qreal docRoundCornersY = convertToPt(roundCornersY);
 

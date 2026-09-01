@@ -19,19 +19,17 @@
 
 class __KisToolSelectPolygonalLocal : public KisToolPolylineBase
 {
-    Q_OBJECT
 public:
     __KisToolSelectPolygonalLocal(KoCanvasBase *canvas);
 };
 
 class KisToolSelectPolygonal : public KisToolSelectBase<__KisToolSelectPolygonalLocal>
 {
-    Q_OBJECT
 public:
     KisToolSelectPolygonal(KoCanvasBase* canvas);
     void resetCursorStyle() override;
 private:
-    void finishPolyline(const QVector<QPointF> &points) override;
+    void finishPolyline(const PkVector<PkPointF> &points) override;
     void beginShape() override;
     void endShape() override;
 };
@@ -44,7 +42,7 @@ public:
     KisToolSelectPolygonalFactory()
         : KisSelectionToolFactoryBase("KisToolSelectPolygonal")
     {
-        setToolTip(i18n("Polygonal Selection Tool"));
+        setToolTip(PkString("Polygonal Selection Tool"));
         setSection(ToolBoxSection::Select);
         setPriority(2);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
@@ -56,18 +54,6 @@ public:
         return new KisToolSelectPolygonal(canvas);
     }
 
-    QList<QAction *> createActionsImpl() override
-    {
-        QList<QAction *> actions = KisSelectionToolFactoryBase::createActionsImpl();
-
-        { QAction *a = new QAction(this); a->setObjectName("undo_polygon_selection"); actions << a; }
-        { QAction *a = new QAction(this); a->setObjectName("selection_tool_mode_add"); actions << a; }
-
-        return actions;
-    }
-
-
 };
 
 #endif //__selecttoolpolygonal_h__
-

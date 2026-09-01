@@ -7,9 +7,6 @@
 #ifndef SELECTION_TOOLS_H_
 #define SELECTION_TOOLS_H_
 
-#include <QObject>
-#include <QVariant>
-
 /**
  * A module wrapper around Krita's selection tools.
  * Despite the fact that new tools are created for every new view,
@@ -20,13 +17,6 @@
  * class that is registered with the tool registry, and that is used to create
  * new instances of the tools.
  */
-class SelectionTools : public QObject
-{
-    Q_OBJECT
-public:
-    SelectionTools(QObject *parent, const QVariantList &);
-    ~SelectionTools() override;
-
-};
+void registerSelectionTools();
 
 #endif // SELECTION_TOOLS_H_

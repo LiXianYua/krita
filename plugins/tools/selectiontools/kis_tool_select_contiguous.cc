@@ -11,10 +11,7 @@
  */
 
 #include "kis_tool_select_contiguous.h"
-#include <QPainter>
-#include <QLayout>
-#include <QApplication>
-#include <QVBoxLayout>
+#include <PkPainter.h>
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -45,7 +42,7 @@ KisToolSelectContiguous::KisToolSelectContiguous(KoCanvasBase *canvas)
     : KisToolSelect(
         canvas,
         dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_contiguous_selection_cursor.png", 6, 6),
-        i18n("Contiguous Area Selection"))
+        PkString("Contiguous Area Selection"))
     , m_threshold(8)
     , m_opacitySpread(100)
     , m_useSelectionAsBoundary(false)
@@ -58,7 +55,7 @@ KisToolSelectContiguous::~KisToolSelectContiguous()
 {
 }
 
-void KisToolSelectContiguous::activate(const QSet<KoShape*> &shapes)
+void KisToolSelectContiguous::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolSelect::activate(shapes);
     m_configGroup =  KSharedConfig::openConfig()->group(toolId());
@@ -67,8 +64,8 @@ void KisToolSelectContiguous::activate(const QSet<KoShape*> &shapes)
     // was created; that ran on every tool activation, so these are the
     // effective defaults with no panel too -- same keys, same fallbacks
     // (including the legacy "fuzziness" -> "threshold" migration).
-    const QString contiguousSelectionModeStr =
-        m_configGroup.readEntry<QString>("contiguousSelectionMode", "");
+    const PkString contiguousSelectionModeStr =
+        m_configGroup.readEntry<PkString>("contiguousSelectionMode", "");
     m_contiguousSelectionMode =
         contiguousSelectionModeStr == "boundaryFill"
         ? BoundaryFill
@@ -111,8 +108,6 @@ void KisToolSelectContiguous::beginPrimaryAction(KoPointerEvent *event)
 
     beginSelectInteraction();
 
-    KisCursorOverrideLock cursorLock(QCursor(Qt::WaitCursor));
-
     // -------------------------------
 
     KisProcessingApplicator applicator(currentImage(), currentNode(),
@@ -120,8 +115,8 @@ void KisToolSelectContiguous::beginPrimaryAction(KoPointerEvent *event)
                                        KisImageSignalVector(),
                                        kundo2_i18n("Select Contiguous Area"));
 
-    QPoint pos = convertToImagePixelCoordFloored(event);
-    QRect rc = currentImage()->bounds();
+    PkPoint pos = convertToImagePixelCoordFloored(event);
+    PkRect rc = currentImage()->bounds();
 
     KisPaintDeviceSP sourceDevice;
 
@@ -258,10 +253,10 @@ void KisToolSelectContiguous::endPrimaryAction(KoPointerEvent *event)
     endSelectInteraction();
 }
 
-void KisToolSelectContiguous::paint(QPainter &painter, const KoViewConverter &converter)
+void KisToolSelectContiguous::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_UNUSED(painter);
-    Q_UNUSED(converter);
+    (void)painter;
+    (void)converter;
 }
 
 void KisToolSelectContiguous::slotSetContiguousSelectionMode(
@@ -316,12 +311,12 @@ void KisToolSelectContiguous::slotSetUseSelectionAsBoundary(bool useSelectionAsB
 
 KoColor KisToolSelectContiguous::loadContiguousSelectionBoundaryColorFromConfig()
 {
-    const QString xmlColor =
-        m_configGroup.readEntry("contiguousSelectionBoundaryColor", QString());
-    QDomDocument doc;
+    const PkString xmlColor =
+        m_configGroup.readEntry("contiguousSelectionBoundaryColor", PkString());
+    PkXmlDocument doc;
     if (doc.setContent(xmlColor)) {
-        QDomElement e = doc.documentElement().firstChild().toElement();
-        QString channelDepthID =
+        PkXmlElement e = doc.documentElement().firstChild().toElement();
+        PkString channelDepthID =
             doc.documentElement().attribute("channeldepth",
                                             Integer16BitsColorDepthID.id());
         bool ok;

@@ -18,17 +18,15 @@
  */
 class KisToolSelectSimilar: public KisToolSelect
 {
-    Q_OBJECT
-
 public:
     KisToolSelectSimilar(KoCanvasBase * canvas);
     void beginPrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
-    void paint(QPainter&, const KoViewConverter &) override {}
+    void paint(PkPainter&, const KoViewConverter &) override {}
     void resetCursorStyle() override;
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void slotSetThreshold(int);
     void slotSetOpacitySpread(int);
@@ -54,7 +52,7 @@ public:
     KisToolSelectSimilarFactory()
         : KisSelectionToolFactoryBase("KisToolSelectSimilar")
     {
-        setToolTip(i18n("Similar Color Selection Tool"));
+        setToolTip(PkString("Similar Color Selection Tool"));
         setSection(ToolBoxSection::Select);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(5);
@@ -67,4 +65,3 @@ public:
 
 
 #endif // KIS_TOOL_SELECT_SIMILAR_H_
-

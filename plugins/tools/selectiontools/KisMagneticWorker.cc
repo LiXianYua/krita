@@ -11,10 +11,10 @@
 #include <kis_algebra_2d.h>
 #include <kis_painter.h>
 
-#include <QtCore>
-#include <QPolygon>
-#include <QPainter>
-#include <QPainterPath>
+#include <PkPolygon.h>
+#include <PkImage.h>
+#include <PkString.h>
+#include <KisResourceThumbnailCodec.h>
 
 #include <boost/graph/astar_search.hpp>
 #include <krita_utils.h>
@@ -100,7 +100,7 @@ public:
 
     void examine_vertex(VertexDescriptor u, KisMagneticGraph const &g)
     {
-        Q_UNUSED(g);
+        (void)g;
         if (u == m_goal) {
             throw GoalFound();
         }
@@ -124,8 +124,7 @@ struct WeightMap {
     data_type &operator [] (key_type const &k)
     {
         if (m_map.find(k) == m_map.end()) {
-            double edge_gradient = (m_graph.getIntensity(k.first) + m_graph.getIntensity(k.second)) / 2.0;
-            m_map[k] = EuclideanDistance(k.first, k.second) + 255.0 - edge_gradient;
+            m_map[k] = magneticEdgeWeight(m_graph, k.first, k.second);
         }
         return m_map[k];
     }
@@ -135,10 +134,19 @@ private:
     KisMagneticGraph              m_graph;
 };
 
+double magneticEdgeWeight(KisMagneticGraph &graph,
+                          const VertexDescriptor &first,
+                          const VertexDescriptor &second)
+{
+    const double edgeGradient =
+        (graph.getIntensity(first) + graph.getIntensity(second)) / 2.0;
+    return EuclideanDistance(first, second) + 255.0 - edgeGradient;
+}
+
 KisMagneticLazyTiles::KisMagneticLazyTiles(KisPaintDeviceSP dev)
 {
     m_dev = KisPainter::convertToAlphaAsGray(dev);
-    QSize s = dev->defaultBounds()->bounds().size();
+    PkSize s = dev->defaultBounds()->bounds().size();
     m_tileSize    = KritaUtils::optimalPatchSize();
     m_tilesPerRow = (int) std::ceil((double) s.width() / (double) m_tileSize.width());
     int tilesPerColumn = (int) std::ceil((double) s.height() / (double) m_tileSize.height());
@@ -148,29 +156,29 @@ KisMagneticLazyTiles::KisMagneticLazyTiles(KisPaintDeviceSP dev)
         for (int j = 0; j < m_tilesPerRow; j++) {
             int width  = std::min(s.width() - j * m_tileSize.width(), m_tileSize.width());
             int height = std::min(s.height() - i * m_tileSize.height(), m_tileSize.height());
-            QRect temp(j *m_tileSize.width(), i *m_tileSize.height(), width, height);
+            PkRect temp(j *m_tileSize.width(), i *m_tileSize.height(), width, height);
             m_tiles.push_back(temp);
         }
     }
-    m_radiusRecord = QVector<qreal>(m_tiles.size(), -1);
+    m_radiusRecord = PkVector<qreal>(m_tiles.size(), -1);
 }
 
-void KisMagneticLazyTiles::filter(qreal radius, QRect &rect)
+void KisMagneticLazyTiles::filter(qreal radius, PkRect &rect)
 {
-    auto divide = [](QPoint p, QSize s){
-                      return QPoint(p.x() / s.width(), p.y() / s.height());
+    auto divide = [](PkPoint p, PkSize s){
+                      return PkPoint(p.x() / s.width(), p.y() / s.height());
                   };
 
-    QPoint firstTile = divide(rect.topLeft(), m_tileSize);
-    QPoint lastTile  = divide(rect.bottomRight(), m_tileSize);
+    PkPoint firstTile = divide(rect.topLeft(), m_tileSize);
+    PkPoint lastTile  = divide(rect.bottomRight(), m_tileSize);
     for (int i = firstTile.y(); i <= lastTile.y(); i++) {
         for (int j = firstTile.x(); j <= lastTile.x(); j++) {
             int currentTile = i * m_tilesPerRow + j;
             if (currentTile < m_tiles.size()
                     && currentTile < m_radiusRecord.size()
                     && radius != m_radiusRecord[currentTile]) {
-                QRect bounds = m_tiles[currentTile];
-                KisGaussianKernel::applyTightLoG(m_dev, bounds, radius, -1.0, QBitArray(), nullptr);
+                PkRect bounds = m_tiles[currentTile];
+                KisGaussianKernel::applyTightLoG(m_dev, bounds, radius, -1.0, PkBitArray(), nullptr);
                 KisLazyFillTools::normalizeAlpha8Device(m_dev, bounds);
                 m_radiusRecord[currentTile] = radius;
             }
@@ -182,10 +190,10 @@ KisMagneticWorker::KisMagneticWorker(const KisPaintDeviceSP &dev) :
     m_lazyTileFilter(dev)
 { }
 
-QVector<QPointF> KisMagneticWorker::computeEdge(int bounds, QPoint begin, QPoint end, qreal radius)
+PkVector<PkPointF> KisMagneticWorker::computeEdge(int bounds, PkPoint begin, PkPoint end, qreal radius)
 {
-    QRect rect;
-    KisAlgebra2D::accumulateBounds(QVector<QPoint> { begin, end }, &rect);
+    PkRect rect;
+    KisAlgebra2D::accumulateBounds(PkVector<PkPoint> { begin, end }, &rect);
     rect = kisGrowRect(rect, bounds);
     m_lazyTileFilter.filter(radius, rect);
 
@@ -204,7 +212,7 @@ QVector<QPointF> KisMagneticWorker::computeEdge(int bounds, QPoint begin, QPoint
     std::map<VertexDescriptor, double> imap;
     WeightMap wmap(*m_graph);
     AStarHeuristic heuristic(goal);
-    QVector<QPointF> result;
+    PkVector<PkPointF> result;
 
     try {
         boost::astar_search_no_init(
@@ -222,53 +230,72 @@ QVector<QPointF> KisMagneticWorker::computeEdge(int bounds, QPoint begin, QPoint
             );
     } catch (GoalFound const &) {
         for (VertexDescriptor u = goal; u != start; u = pmap[u]) {
-            result.push_front(QPointF(u.x, u.y));
+            result.push_front(PkPointF(u.x, u.y));
         }
     }
 
-    result.push_front(QPoint(start.x, start.y));
+    result.push_front(PkPoint(start.x, start.y));
 
     return result;
 } // KisMagneticWorker::computeEdge
 
-qreal KisMagneticWorker::intensity(QPoint pt)
+qreal KisMagneticWorker::intensity(PkPoint pt)
 {
     return m_graph->getIntensity(VertexDescriptor(pt));
 }
 
-void KisMagneticWorker::saveTheImage(vQPointF points)
+void KisMagneticWorker::saveTheImage(PkVector<PkPointF> points)
 {
-    QImage img = m_lazyTileFilter.device()->convertToQImage(nullptr, m_lazyTileFilter.device()->exactBounds());
+    PkImage img = m_lazyTileFilter.device()->convertToQImage(nullptr, m_lazyTileFilter.device()->exactBounds());
 
-    const QPointF offset = m_lazyTileFilter.device()->exactBounds().topLeft();
-    for (QPointF &pt : points) {
+    const PkPointF offset = m_lazyTileFilter.device()->exactBounds().topLeft();
+    for (PkPointF &pt : points) {
         pt -= offset;
     }
 
-    img.convertTo(QImage::Format_ARGB32);
-    QPainter gc(&img);
+    img.convertTo(PkImage::Format_ARGB32);
 
-    QPainterPath path;
+    const auto putPixel = [&img](int x, int y, std::uint32_t color) {
+        if (x >= 0 && y >= 0 && x < img.width() && y < img.height()) {
+            img.setPixel(x, y, color);
+        }
+    };
+    const auto drawLine = [&putPixel](PkPoint a, PkPoint b, std::uint32_t color) {
+        int x = a.x();
+        int y = a.y();
+        const int dx = std::abs(b.x() - x);
+        const int sx = x < b.x() ? 1 : -1;
+        const int dy = -std::abs(b.y() - y);
+        const int sy = y < b.y() ? 1 : -1;
+        int error = dx + dy;
+        for (;;) {
+            putPixel(x, y, color);
+            if (x == b.x() && y == b.y()) break;
+            const int twiceError = 2 * error;
+            if (twiceError >= dy) { error += dy; x += sx; }
+            if (twiceError <= dx) { error += dx; y += sy; }
+        }
+    };
 
-    for (int i = 0; i < points.size(); i++) {
-        if (i == 0) {
-            path.moveTo(points[i]);
-        } else {
-            path.lineTo(points[i]);
+    for (int i = 1; i < points.size(); ++i) {
+        drawLine(points[i - 1].toPoint(), points[i].toPoint(), 0xff0000ffu);
+    }
+    if (!points.isEmpty()) {
+        const PkPoint first = points.first().toPoint();
+        const PkPoint last = points.last().toPoint();
+        for (int y = -3; y <= 3; ++y) {
+            for (int x = -3; x <= 3; ++x) {
+                if (x * x + y * y <= 9) putPixel(first.x() + x, first.y() + y, 0xff00ff00u);
+                if (x * x + y * y <= 4) putPixel(last.x() + x, last.y() + y, 0xffff0000u);
+            }
         }
     }
-
-    gc.setPen(Qt::blue);
-    gc.drawPath(path);
-
-    gc.setPen(Qt::green);
-    gc.drawEllipse(points[0], 3, 3);
-    gc.setPen(Qt::red);
-    gc.drawEllipse(points[points.count() - 1], 2, 2);
-
-    for (QRect &r : m_lazyTileFilter.tiles() ) {
-        gc.drawRect(r);
+    for (const PkRect &rect : m_lazyTileFilter.tiles()) {
+        drawLine(rect.topLeft(), rect.topRight(), 0xff0000ffu);
+        drawLine(rect.topRight(), rect.bottomRight(), 0xff0000ffu);
+        drawLine(rect.bottomRight(), rect.bottomLeft(), 0xff0000ffu);
+        drawLine(rect.bottomLeft(), rect.topLeft(), 0xff0000ffu);
     }
 
-    img.save("result.png");
+    KisResourceThumbnailCodec::savePng(PkString("result.png"), img);
 } // KisMagneticWorker::saveTheImage

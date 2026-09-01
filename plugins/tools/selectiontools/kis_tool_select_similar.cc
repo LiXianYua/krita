@@ -9,10 +9,6 @@
 
 #include "kis_tool_select_similar.h"
 
-#include <QApplication>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-
 #include <ksharedconfig.h>
 
 #include <KoColorSpace.h>
@@ -34,14 +30,14 @@
 KisToolSelectSimilar::KisToolSelectSimilar(KoCanvasBase *canvas)
     : KisToolSelect(canvas,
                     dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_similar_selection_cursor.png", 6, 6),
-                    i18n("Similar Color Selection"))
+                    PkString("Similar Color Selection"))
     , m_threshold(20)
     , m_opacitySpread(100)
     , m_previousTime(0)
 {
 }
 
-void KisToolSelectSimilar::activate(const QSet<KoShape*> &shapes)
+void KisToolSelectSimilar::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolSelect::activate(shapes);
     m_configGroup =  KSharedConfig::openConfig()->group(toolId());
@@ -83,8 +79,6 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
     }
 
     beginSelectInteraction();
-
-    KisCursorOverrideLock cursorLock(QCursor(Qt::WaitCursor));
 
     // Create the stroke
     KisStrokeStrategyUndoCommandBased *strategy =
@@ -132,8 +126,8 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
 
     // Get the color of the pixel where the user clicked
     KisPaintDeviceSP sourceDevice = m_referencePaintDevice;
-    const QPoint pos = convertToImagePixelCoordFloored(event);
-    QSharedPointer<KoColor> referenceColor = QSharedPointer<KoColor>(new KoColor(sourceDevice->colorSpace()));
+    const PkPoint pos = convertToImagePixelCoordFloored(event);
+    PkSharedPointer<KoColor> referenceColor = PkSharedPointer<KoColor>(new KoColor(sourceDevice->colorSpace()));
     // We need to obtain the reference color from the reference paint
     // device, but it is produced in a stroke, so we must get the color
     // after the device is ready. So we get it in the stroke
@@ -155,8 +149,8 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
 
     // Get the similar colors selection
     KisFillPainter painter;
-    QRect bounds = currentImage()->bounds();
-    QSharedPointer<KisProcessingVisitor::ProgressHelper>
+    PkRect bounds = currentImage()->bounds();
+    PkSharedPointer<KisProcessingVisitor::ProgressHelper>
         progressHelper(new KisProcessingVisitor::ProgressHelper(currentNode()));
     KisPixelSelectionSP tmpSel = new KisPixelSelection(new KisSelectionDefaultBounds(currentNode()->projection()));
 
@@ -167,7 +161,7 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
     painter.setStopGrowingAtDarkestPixel(this->stopGrowingAtDarkestPixel());
     painter.setFeather(featherSelection());
 
-    QVector<KisStrokeJobData*> jobs =
+    PkVector<KisStrokeJobData*> jobs =
         painter.createSimilarColorsSelectionJobs(
             tmpSel, referenceColor, sourceDevice,
             bounds, nullptr, progressHelper

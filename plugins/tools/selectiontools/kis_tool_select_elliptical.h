@@ -16,24 +16,21 @@
 #include "kis_tool_ellipse_base.h"
 #include <kis_tool_select_base.h>
 #include "kis_selection_tool_config_widget_helper.h"
-#include <QKeySequence>
+#include <PkString.h>
 
 class __KisToolSelectEllipticalLocal : public KisToolEllipseBase
 {
-    Q_OBJECT
-
 public:
     __KisToolSelectEllipticalLocal(KoCanvasBase *canvas);
 };
 
 class KisToolSelectElliptical : public KisToolSelectBase<__KisToolSelectEllipticalLocal>
 {
-    Q_OBJECT
 public:
     KisToolSelectElliptical(KoCanvasBase* canvas);
     void resetCursorStyle() override;
 private:
-    void finishRect(const QRectF &rect, qreal roundCornersX, qreal roundCornersY) override;
+    void finishRect(const PkRectF &rect, qreal roundCornersX, qreal roundCornersY) override;
     void beginShape() override;
     void endShape() override;
 };
@@ -44,10 +41,10 @@ public:
     KisToolSelectEllipticalFactory()
         : KisSelectionToolFactoryBase("KisToolSelectElliptical")
     {
-        setToolTip(i18n("Elliptical Selection Tool"));
+        setToolTip(PkString("Elliptical Selection Tool"));
         setSection(ToolBoxSection::Select);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setShortcut(QKeySequence(Qt::Key_J));
+        setShortcut(PkString("J"));
         setPriority(1);
     }
 
@@ -60,4 +57,3 @@ public:
 };
 
 #endif //__KIS_TOOL_SELECT_ELLIPTICAL_H__
-
