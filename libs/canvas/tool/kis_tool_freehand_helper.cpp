@@ -17,6 +17,7 @@
 
 #include "kis_algebra_2d.h"
 #include "kis_distance_information.h"
+#include <PkVectorND.h>
 #include "kis_painting_information_builder.h"
 #include "kis_image.h"
 #include "kis_painter.h"
@@ -572,7 +573,7 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
                 prevPos = m_d->previousPaintInformation.pos();
             }
 
-            qreal currentDistance = PkLineF(prevPos, info.pos()).length();
+            qreal currentDistance = PkVector2D(info.pos() - prevPos).length();
             m_d->distanceHistory.append(currentDistance);
         }
 
