@@ -8,7 +8,7 @@
 #include "kis_global.h"
 #include <PkRect.h>
 
-struct Q_DECL_HIDDEN KisDefaultBoundsNodeWrapper::Private {
+struct KisDefaultBoundsNodeWrapper::Private {
     KisBaseNodeWSP node;
 };
 
