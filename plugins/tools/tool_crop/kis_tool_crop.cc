@@ -17,7 +17,6 @@
 #include <PkRect.h>
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 #include <ksharedconfig.h>
 
 #include <KoCanvasBase.h>
@@ -223,7 +222,7 @@ void KisToolCrop::paint(PkPainter &painter, const KoViewConverter &converter)
 
 PkString KisToolCrop::cropActionsSection() const
 {
-    return i18n("Crop Tool Actions");
+    return PkString("Crop Tool Actions");
 }
 
 PkList<KisToolCrop::CropAction> KisToolCrop::cropActions() const
@@ -231,14 +230,14 @@ PkList<KisToolCrop::CropAction> KisToolCrop::cropActions() const
     PkList<CropAction> actions;
 
     if (m_haveCropSelection) {
-        actions.append({CropActionId::ApplyCrop, i18n("Crop"), false, false, 0});
+        actions.append({CropActionId::ApplyCrop, PkString("Crop"), false, false, 0});
     }
 
-    actions.append({CropActionId::Center, i18n("Center"), true, growCenter(), 1});
-    actions.append({CropActionId::Grow, i18nc("Grow as in crop tool", "Grow"), true, allowGrow(), 1});
-    actions.append({CropActionId::LockWidth, i18n("Lock Width"), true, lockWidth(), 2});
-    actions.append({CropActionId::LockHeight, i18n("Lock Height"), true, lockHeight(), 2});
-    actions.append({CropActionId::LockRatio, i18n("Lock Ratio"), true, lockRatio(), 2});
+    actions.append({CropActionId::Center, PkString("Center"), true, growCenter(), 1});
+    actions.append({CropActionId::Grow, PkString("Grow"), true, allowGrow(), 1});
+    actions.append({CropActionId::LockWidth, PkString("Lock Width"), true, lockWidth(), 2});
+    actions.append({CropActionId::LockHeight, PkString("Lock Height"), true, lockHeight(), 2});
+    actions.append({CropActionId::LockRatio, PkString("Lock Ratio"), true, lockRatio(), 2});
     return actions;
 }
 
