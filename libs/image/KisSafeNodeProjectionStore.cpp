@@ -188,7 +188,7 @@ void KisSafeNodeProjectionStoreBase::releaseDevice()
     PkMutexLocker locker(&m_d->lock);
     if (m_d->store->releaseDevice()) {
         locker.unlock();
-        Q_EMIT internalInitiateProjectionsCleanup();
+        internalInitiateProjectionsCleanup();
     }
 }
 
@@ -275,4 +275,3 @@ KisSelectionSP KisSafeSelectionNodeProjectionStore::getDeviceLazy(KisSelectionSP
 
     return store->getDeviceLazy(prototype);
 }
-

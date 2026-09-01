@@ -8,6 +8,7 @@
 #define KISSAFENODEPROJECTIONSTORE_H
 
 #include <PkObject.h>
+#include <PkSignalCompat.h>
 
 #include <PkScopedPointer.h>
 #include "kritaimage_export.h"
@@ -19,8 +20,6 @@ struct StoreImplementationInterface;
 
 class KRITAIMAGE_EXPORT KisSafeNodeProjectionStoreBase : public PkShellObject, public KisShared
 {
-    Q_OBJECT
-
 public:
     KisSafeNodeProjectionStoreBase(const KisSafeNodeProjectionStoreBase &rhs);
     ~KisSafeNodeProjectionStoreBase();
@@ -34,10 +33,10 @@ public:
 
     void setImage(KisImageWSP image);
 
-Q_SIGNALS:
+signals:
     void internalInitiateProjectionsCleanup();
 
-private Q_SLOTS:
+private:
     void slotInitiateProjectionsCleanup();
 
 protected:

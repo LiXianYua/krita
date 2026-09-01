@@ -523,6 +523,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(kritaimage_SIGNAL_HEADERS
     KisAnimatedOpacityProperty.h
     KisImageConfigNotifier.h
+    KisSafeNodeProjectionStore.h
     kis_base_node.h
     kis_image.h
     kis_image_animation_interface.h
