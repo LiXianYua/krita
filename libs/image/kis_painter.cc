@@ -27,8 +27,7 @@
 #include <kundo2command.h>
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
-
+#include <kis_assert.h>
 #include "kis_image.h"
 #include "filter/kis_filter.h"
 #include "kis_layer.h"
@@ -310,27 +309,27 @@ void KisPainter::begin(KisPaintDeviceSP device, KisSelectionSP selection)
 
 void KisPainter::end()
 {
-    Q_ASSERT_X(!d->transaction, "KisPainter::end()",
-               "end() was called for the painter having a transaction. "
-               "Please use end/deleteTransaction() instead");
+    KIS_ASSERT_X(!d->transaction, "KisPainter::end()",
+                 "end() was called for the painter having a transaction. "
+                 "Please use end/deleteTransaction() instead");
 }
 
 void KisPainter::beginTransaction(const KUndo2MagicString& transactionName,int timedID)
 {
-    Q_ASSERT_X(!d->transaction, "KisPainter::beginTransaction()",
-               "You asked for a new transaction while still having "
-               "another one. Please finish the first one with "
-               "end/deleteTransaction() first");
+    KIS_ASSERT_X(!d->transaction, "KisPainter::beginTransaction()",
+                 "You asked for a new transaction while still having "
+                 "another one. Please finish the first one with "
+                 "end/deleteTransaction() first");
 
     d->transaction = new KisTransaction(transactionName, d->device);
-    Q_CHECK_PTR(d->transaction);
+    KIS_ASSERT(d->transaction);
     d->transaction->undoCommand()->setTimedID(timedID);
 }
 
 void KisPainter::revertTransaction()
 {
-    Q_ASSERT_X(d->transaction, "KisPainter::revertTransaction()",
-               "No transaction is in progress");
+    KIS_ASSERT_X(d->transaction, "KisPainter::revertTransaction()",
+                 "No transaction is in progress");
 
     d->transaction->revert();
     delete d->transaction;
@@ -339,8 +338,8 @@ void KisPainter::revertTransaction()
 
 void KisPainter::endTransaction(KisUndoAdapter *undoAdapter)
 {
-    Q_ASSERT_X(d->transaction, "KisPainter::endTransaction()",
-               "No transaction is in progress");
+    KIS_ASSERT_X(d->transaction, "KisPainter::endTransaction()",
+                 "No transaction is in progress");
 
     d->transaction->commit(undoAdapter);
     delete d->transaction;
@@ -349,8 +348,8 @@ void KisPainter::endTransaction(KisUndoAdapter *undoAdapter)
 
 void KisPainter::endTransaction(KisPostExecutionUndoAdapter *undoAdapter)
 {
-    Q_ASSERT_X(d->transaction, "KisPainter::endTransaction()",
-               "No transaction is in progress");
+    KIS_ASSERT_X(d->transaction, "KisPainter::endTransaction()",
+                 "No transaction is in progress");
 
     d->transaction->commit(undoAdapter);
     delete d->transaction;
@@ -359,8 +358,8 @@ void KisPainter::endTransaction(KisPostExecutionUndoAdapter *undoAdapter)
 
 KUndo2Command* KisPainter::endAndTakeTransaction()
 {
-    Q_ASSERT_X(d->transaction, "KisPainter::endTransaction()",
-               "No transaction is in progress");
+    KIS_ASSERT_X(d->transaction, "KisPainter::endTransaction()",
+                 "No transaction is in progress");
 
     KUndo2Command *transactionData = d->transaction->endAndTake();
     delete d->transaction;
@@ -379,18 +378,18 @@ void KisPainter::deleteTransaction()
 
 void KisPainter::putTransaction(KisTransaction* transaction)
 {
-    Q_ASSERT_X(!d->transaction, "KisPainter::putTransaction()",
-               "You asked for a new transaction while still having "
-               "another one. Please finish the first one with "
-               "end/deleteTransaction() first");
+    KIS_ASSERT_X(!d->transaction, "KisPainter::putTransaction()",
+                 "You asked for a new transaction while still having "
+                 "another one. Please finish the first one with "
+                 "end/deleteTransaction() first");
 
     d->transaction = transaction;
 }
 
 KisTransaction* KisPainter::takeTransaction()
 {
-    Q_ASSERT_X(d->transaction, "KisPainter::takeTransaction()",
-               "No transaction is in progress");
+    KIS_ASSERT_X(d->transaction, "KisPainter::takeTransaction()",
+                 "No transaction is in progress");
     KisTransaction *temp = d->transaction;
     d->transaction = 0;
     return temp;
