@@ -9,6 +9,8 @@
 
 #include <future>
 
+#include <PkFlags.h>
+
 #include <kundo2commandextradata.h>
 #include <kundo2magicstring.h>
 
@@ -29,7 +31,7 @@ public:
         NO_IMAGE_UPDATES = 0x8
     };
 
-    Q_DECLARE_FLAGS(ProcessingFlags, ProcessingFlag)
+    PK_DECLARE_FLAGS(ProcessingFlags, ProcessingFlag)
 
 public:
     KisProcessingApplicator(KisImageWSP image,
@@ -119,7 +121,7 @@ private:
     std::future<bool> m_successfullyCompletedFuture;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisProcessingApplicator::ProcessingFlags)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisProcessingApplicator::ProcessingFlags)
 
 
 #endif /* __KIS_PROCESSING_APPLICATOR_H */
