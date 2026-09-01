@@ -151,7 +151,7 @@ private:
 
 #define UPDATE_DELAY 3000 /*ms */
 
-struct Q_DECL_HIDDEN KisTransformMask::Private
+struct KisTransformMask::Private
 {
     Private(KisImageSP image)
         : worker(0, PkTransform(), true, 0),
@@ -432,9 +432,9 @@ PkRect KisTransformMask::decorateRect(KisPaintDeviceSP &src,
                                      PositionToFilthy maskPos,
                                      KisRenderPassFlags flags) const
 {
-    Q_ASSERT_X(src != dst, "KisTransformMask::decorateRect",
-               "src must be != dst, because we can't create transactions "
-               "during merge, as it breaks reentrancy");
+    KIS_ASSERT_X(src != dst, "KisTransformMask::decorateRect",
+                 "src must be != dst, because we can't create transactions "
+                 "during merge, as it breaks reentrancy");
 
     KisTransformMaskParamsInterfaceSP params = m_d->paramsHolder->bakeIntoParams();
 
