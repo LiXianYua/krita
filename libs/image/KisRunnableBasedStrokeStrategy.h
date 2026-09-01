@@ -19,7 +19,7 @@ private:
     struct JobsInterface;
 
 public:
-    KisRunnableBasedStrokeStrategy(const QLatin1String &id, const KUndo2MagicString &name = KUndo2MagicString());
+    KisRunnableBasedStrokeStrategy(const PkString &id, const KUndo2MagicString &name = KUndo2MagicString());
     KisRunnableBasedStrokeStrategy(const KisRunnableBasedStrokeStrategy &rhs);
     ~KisRunnableBasedStrokeStrategy();
 

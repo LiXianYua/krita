@@ -19,7 +19,7 @@ struct KisSyncLodCacheStrokeStrategy::Private
 };
 
 KisSyncLodCacheStrokeStrategy::KisSyncLodCacheStrokeStrategy(KisImageWSP image, bool forgettable)
-    : KisRunnableBasedStrokeStrategy(QLatin1String("SyncLodCacheStroke"), kundo2_text("Instant Preview")),
+    : KisRunnableBasedStrokeStrategy(PkString("SyncLodCacheStroke"), kundo2_text("Instant Preview")),
       m_d(new Private)
 {
     m_d->image = image;

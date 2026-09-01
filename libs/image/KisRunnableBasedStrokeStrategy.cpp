@@ -36,7 +36,7 @@ private:
 };
 
 
-KisRunnableBasedStrokeStrategy::KisRunnableBasedStrokeStrategy(const QLatin1String &id, const KUndo2MagicString &name)
+KisRunnableBasedStrokeStrategy::KisRunnableBasedStrokeStrategy(const PkString &id, const KUndo2MagicString &name)
     : KisSimpleStrokeStrategy(id, name),
       m_jobsInterface(new JobsInterface(this))
 {
