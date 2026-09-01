@@ -145,6 +145,31 @@ def main():
         "subpixel cosmetic opacity did not differ from unit width"
     assert data("cosmetic_dash_flat") != data("cosmetic_dash_square"), \
         "cosmetic dash caps produced identical masks"
+    assert "cosmetic_dash_flat_binary" in payloads, \
+        "missing aliased cosmetic dash fixture"
+    assert any(data("cosmetic_dash_flat_binary")), \
+        "aliased cosmetic dash fixture produced an empty mask"
+    assert set(data("cosmetic_dash_flat_binary")) <= {0, 255}, \
+        "aliased cosmetic dash fixture is not binary"
+    assert data("cosmetic_dash_flat_binary") != data("cosmetic_dash_flat"), \
+        "aliased and antialiased cosmetic dash fixtures produced identical masks"
+    assert "cosmetic_dash_offset_pos_limit" in payloads \
+        and "cosmetic_dash_offset_neg_limit" in payloads, \
+        "missing supported cosmetic dash-offset boundary fixtures"
+    assert any(data("cosmetic_dash_offset_pos_limit")) \
+        and any(data("cosmetic_dash_offset_neg_limit")), \
+        "supported cosmetic dash-offset boundary fixture produced an empty mask"
+    assert data("cosmetic_dash_offset_pos_limit") \
+        != data("cosmetic_dash_offset_neg_limit"), \
+        "positive and negative cosmetic dash-offset limits produced identical masks"
+    assert "wide_dash_binary" in payloads, \
+        "missing wide binary dash fixture"
+    assert any(data("wide_dash_binary")), \
+        "wide binary dash fixture produced an empty mask"
+    assert set(data("wide_dash_binary")) <= {0, 255}, \
+        "wide binary dash fixture is not binary"
+    assert data("wide_dash_binary") != data("style_custom_offset"), \
+        "wide binary and antialiased dash fixtures produced identical masks"
     assert any(data("cosmetic_closed_dash")), \
         "closed cosmetic dash fixture produced an empty mask"
     assert data("closed_flat_cap") == data("closed_round_cap"), \

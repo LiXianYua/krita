@@ -55,6 +55,16 @@
 namespace KisPathRasterizer {
 namespace {
 
+// clipLine() expands the local clip by one pixel. At this limit its largest
+// F26.6 coordinate is (32766 + 1) * 64 = 2097088; the aliased/AA walkers can
+// still promote it to F16.16 with * 1024 without leaving signed int.
+constexpr int cosmeticCoordinateLimit = 32766;
+
+// 32000000 * 64 leaves room in signed int for the largest accepted clipped
+// line delta (2097152), 1024 clamped pattern elements (1024 * 65536), and the
+// half-pixel phase adjustment used by Dasher.
+constexpr qreal cosmeticDashOffsetLimit = 32000000.0;
+
 void writeSpans(const Private::Span *spans, int count, void *userData)
 {
     auto *mask = static_cast<CoverageMask *>(userData);
@@ -119,6 +129,28 @@ bool hasValidStrokeState(const PkPen &pen)
     return true;
 }
 
+bool hasValidCosmeticDomain(const PkPainterPath &path,
+                            const PkPen &pen,
+                            const PkRect &clip)
+{
+    if (clip.width() > cosmeticCoordinateLimit
+        || clip.height() > cosmeticCoordinateLimit
+        || std::abs(pen.dashOffset()) > cosmeticDashOffsetLimit) {
+        return false;
+    }
+    for (int i = 0; i < path.elementCount(); ++i) {
+        const auto element = path.elementAt(i);
+        const qreal localX = element.x - qreal(clip.x());
+        const qreal localY = element.y - qreal(clip.y());
+        if (!std::isfinite(localX) || !std::isfinite(localY)
+            || std::abs(localX) > cosmeticCoordinateLimit
+            || std::abs(localY) > cosmeticCoordinateLimit) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 CoverageMask rasterizeFill(const PkPainterPath &path,
@@ -154,18 +186,25 @@ CoverageMask rasterizeStroke(const PkPainterPath &path,
                              const PkRect &clip,
                              bool antialiased)
 {
-    if (clip.isEmpty() || path.isEmpty() || pen.style() == Qt::NoPen
-        || !hasOnlyFiniteElements(path) || !hasValidStrokeState(pen)) {
+    try {
+        if (clip.isEmpty() || path.isEmpty() || pen.style() == Qt::NoPen
+            || !hasOnlyFiniteElements(path) || !hasValidStrokeState(pen)) {
+            return {};
+        }
+        if (pen.widthF() <= 1.0) {
+            if (!hasValidCosmeticDomain(path, pen, clip)) {
+                return {};
+            }
+            return Private::rasterizeCosmeticStroke(path, pen, clip, antialiased);
+        }
+        const PkPainterPath outline = Private::createStrokeOutline(path, pen, clip);
+        if (outline.isEmpty()) {
+            return {};
+        }
+        return rasterizeFill(outline, clip, antialiased);
+    } catch (const std::bad_alloc &) {
         return {};
     }
-    if (pen.widthF() <= 1.0) {
-        return Private::rasterizeCosmeticStroke(path, pen, clip, antialiased);
-    }
-    const PkPainterPath outline = Private::createStrokeOutline(path, pen, clip);
-    if (outline.isEmpty()) {
-        return {};
-    }
-    return rasterizeFill(outline, clip, antialiased);
 }
 
 } // namespace KisPathRasterizer
