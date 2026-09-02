@@ -5,6 +5,7 @@
  */
 
 #include <klocalizedstring.h>
+#include <QDebug>
 #include "kra_converter.h"
 
 #include <PkVersionNumber.h>
@@ -33,6 +34,18 @@
 static const char CURRENT_DTD_VERSION[] = "2.0";
 
 namespace {
+
+PkString toPkString(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
+QString toQString(const PkString &value)
+{
+    const std::string utf8 = value.PkToUtf8();
+    return QString::fromUtf8(utf8.data(), int(utf8.size()));
+}
 
 // Minimal PNG (8-bit RGBA, non-interlaced) writer. The kernel has no Qt image
 // encoder, so the .kra thumbnail is produced directly with zlib.
@@ -159,7 +172,7 @@ KisImportExportErrorCode KraConverter::buildImage(PkStream *io)
     m_store = KoStore::createStore(io, KoStore::Read, PkByteArray(), KoStore::Zip);
 
     if (m_store->bad()) {
-        m_doc->setErrorMessage(i18n("Not a valid Krita file"));
+        m_doc->setErrorMessage(toPkString(i18n("Not a valid Krita file")));
         return ImportExportCodes::FileFormatIncorrect;
     }
 
@@ -177,7 +190,7 @@ KisImportExportErrorCode KraConverter::buildImage(PkStream *io)
 
         } else {
             errUI << "ERROR: No maindoc.xml";
-            m_doc->setErrorMessage(i18n("Invalid document: no file 'maindoc.xml'."));
+        m_doc->setErrorMessage(toPkString(i18n("Invalid document: no file 'maindoc.xml'.")));
             return ImportExportCodes::FileFormatIncorrect;
         }
 
@@ -234,7 +247,7 @@ KisImportExportErrorCode KraConverter::buildFile(PkStream *io, const PkString &f
     bool success = true;
 
     if (m_store->bad()) {
-        m_doc->setErrorMessage(i18n("Could not create the file for saving"));
+        m_doc->setErrorMessage(toPkString(i18n("Could not create the file for saving")));
         return ImportExportCodes::CannotCreateFile;
     }
 
@@ -313,7 +326,7 @@ KisImportExportErrorCode KraConverter::saveRootDocuments(KoStore *store)
             return ImportExportCodes::NoAccessToWrite;
         }
     } else {
-        m_doc->setErrorMessage(i18n("Not able to write '%1'. Partition full?", PkString("maindoc.xml")));
+        m_doc->setErrorMessage(toPkString(i18n("Not able to write '%1'. Partition full?", QStringLiteral("maindoc.xml"))));
         return ImportExportCodes::ErrorWhileWriting;
     }
 
@@ -414,7 +427,7 @@ KisImportExportErrorCode KraConverter::oldLoadAndParse(KoStore *store, const PkS
 
     if (!store->open(filename)) {
         warnUI << "Entry " << filename << " not found!";
-        m_doc->setErrorMessage(i18n("Could not find %1", filename));
+        m_doc->setErrorMessage(toPkString(i18n("Could not find %1", toQString(filename))));
         return ImportExportCodes::FileNotExist;
     }
     // Error variables for PkXmlDocument::setContent
@@ -426,8 +439,8 @@ KisImportExportErrorCode KraConverter::oldLoadAndParse(KoStore *store, const PkS
         errUI << "Parsing error in " << filename << "! Aborting!\n"
               << " In line: " << errorLine << ", column: " << errorColumn << "\n"
               << " Error message: " << errorMsg;
-        m_doc->setErrorMessage(i18n("Parsing error in %1 at line %2, column %3\nError message: %4",
-                                    filename, errorLine, errorColumn, errorMsg));
+        m_doc->setErrorMessage(toPkString(i18n("Parsing error in %1 at line %2, column %3\nError message: %4",
+                                    toQString(filename), errorLine, errorColumn, toQString(errorMsg))));
         return ImportExportCodes::FileFormatIncorrect;
     }
     dbgUI << "File" << filename << " loaded and parsed";
@@ -443,7 +456,7 @@ KisImportExportErrorCode KraConverter::loadXML(const PkXmlDocument &doc, KoStore
 
     if (doc.doctype().name() != "DOC") {
        errUI << "The format is not supported or the file is corrupted";
-       m_doc->setErrorMessage(i18n("The format is not supported or the file is corrupted"));
+       m_doc->setErrorMessage(toPkString(i18n("The format is not supported or the file is corrupted")));
        return ImportExportCodes::FileFormatIncorrect;
     }
     root = doc.documentElement();
@@ -454,13 +467,13 @@ KisImportExportErrorCode KraConverter::loadXML(const PkXmlDocument &doc, KoStore
     
     if (syntaxVersion > 2) {
         errUI << "The file is too new for this version of Krita:" << syntaxVersion;
-        m_doc->setErrorMessage(i18n("The file is too new for this version of Krita (%1).", syntaxVersion));
+        m_doc->setErrorMessage(toPkString(i18n("The file is too new for this version of Krita (%1).", syntaxVersion)));
         return ImportExportCodes::FormatFeaturesUnsupported;
     }
 
     if (!root.hasChildNodes()) {
         errUI << "The file has no layers.";
-        m_doc->setErrorMessage(i18n("The file has no layers."));
+        m_doc->setErrorMessage(toPkString(i18n("The file has no layers.")));
         return ImportExportCodes::FileFormatIncorrect;
     }
 
@@ -483,7 +496,7 @@ KisImportExportErrorCode KraConverter::loadXML(const PkXmlDocument &doc, KoStore
 
                     if (m_kraLoader->errorMessages().isEmpty()) {
                         errUI << "Unknown error while opening the .kra file.";
-                        m_doc->setErrorMessage(i18n("Unknown error."));
+                        m_doc->setErrorMessage(toPkString(i18n("Unknown error.")));
                     }
                     else {
                         m_doc->setErrorMessage(m_kraLoader->errorMessages().join("\n"));
@@ -499,7 +512,7 @@ KisImportExportErrorCode KraConverter::loadXML(const PkXmlDocument &doc, KoStore
             }
             else {
                 if (m_kraLoader->errorMessages().isEmpty()) {
-                    m_doc->setErrorMessage(i18n("The file does not contain an image."));
+                    m_doc->setErrorMessage(toPkString(i18n("The file does not contain an image.")));
                 }
                 return ImportExportCodes::FileFormatIncorrect;
             }
@@ -512,7 +525,7 @@ bool KraConverter::completeLoading(KoStore* store)
 {
     if (!m_image) {
         if (m_kraLoader->errorMessages().isEmpty()) {
-           m_doc->setErrorMessage(i18n("Unknown error."));
+           m_doc->setErrorMessage(toPkString(i18n("Unknown error.")));
         }
         else {
            m_doc->setErrorMessage(m_kraLoader->errorMessages().join("\n"));

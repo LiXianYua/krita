@@ -7,6 +7,14 @@
 #define KIS_KRA_LOADER_H
 
 
+#include <QtCore/qnamespace.h>
+#include <QtGlobal>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+#include <QtCore/qpair.h>
+
 #include <PkStringList.h>
 #include <PkString.h>
 #include "PkXmlDocument.h"
@@ -50,7 +58,7 @@ public:
     void loadStoryboards(KoStore *store, KisDocument *doc);
     void loadAnimationMetadata(KoStore *store, KisImageSP image);
     void loadAudio(KoStore *store, KisDocument *kisDoc);
-    Q_DECL_DEPRECATED void backCompat_loadAudio(const PkXmlElement &elem, KisDocument *document);
+    [[deprecated]] void backCompat_loadAudio(const PkXmlElement &elem, KisDocument *document);
 
     vKisNodeSP selectedNodes() const;
 

@@ -8,7 +8,16 @@
 #ifndef KIS_KRA_LOAD_VISITOR_H_
 #define KIS_KRA_LOAD_VISITOR_H_
 
+#include <QtCore/qnamespace.h>
+#include <QtGlobal>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+#include <QtCore/qpair.h>
+
 #include <PkStringList.h>
+#include <PkMap.h>
 
 // kritaimage
 #include "kis_types.h"
@@ -101,4 +110,3 @@ private:
 };
 
 #endif // KIS_KRA_LOAD_VISITOR_H_
-

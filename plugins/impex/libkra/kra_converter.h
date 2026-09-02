@@ -7,6 +7,14 @@
 #ifndef _KRA_CONVERTER_H_
 #define _KRA_CONVERTER_H_
 
+#include <QtCore/qnamespace.h>
+#include <QtGlobal>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+#include <QtCore/qpair.h>
+
 #include <PkXmlDocument.h>
 #include <PkObject.h>
 #include <PkPointer.h>
@@ -26,8 +34,6 @@ class KisImportUserFeedbackInterface;
 
 class KRITALIBKRA_EXPORT KraConverter : public PkObject
 {
-    Q_OBJECT
-
 public:
 
     KraConverter(KisDocument *doc);
@@ -44,8 +50,6 @@ public:
     PkList<KisPaintingAssistantSP> assistants();
     StoryboardItemList storyboardItemList();
     StoryboardCommentList storyboardCommentList();
-
-public Q_SLOTS:
 
     virtual void cancel();
 
