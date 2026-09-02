@@ -4,6 +4,11 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <QtGui/QtGui>
+#include <QtWidgets/QtWidgets>
+#include <QtXml/QtXml>
+#include <PkFlakeBridge.h>
 #include "kis_shape_controller.h"
 
 
@@ -12,6 +17,7 @@
 #include <KoShape.h>
 #include <KoShapeContainer.h>
 #include <KoShapeManager.h>
+#include <KoSelectedShapesProxy.h>
 #include <KoShapeLayer.h>
 #include <KoColorSpaceConstants.h>
 
@@ -83,7 +89,9 @@ void KisShapeController::slotUpdateDocumentSize()
     KisImageSP image = this->image();
 
     if (image) {
-        resourceManager()->setResource(KoDocumentResourceManager::DocumentRectInPixels, image->bounds());
+        const PkRect bounds = image->bounds();
+        resourceManager()->setResource(KoDocumentResourceManager::DocumentRectInPixels,
+                                        QRect(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
     }
 }
 
@@ -96,12 +104,13 @@ void KisShapeController::addNodeImpl(KisNodeSP node, KisNodeSP parent, KisNodeSP
 
     KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(node.data());
     if (shapeLayer) {
-        // Forward local shape-manager signals through the stable controller.
-        connect(shapeLayer, &KisShapeLayer::selectionChanged,
+        // Forward QObject-backed manager/proxy notifications through the
+        // stable controller; the node itself is PkObject-backed.
+        connect(shapeLayer->shapeManager(), &KoShapeManager::selectionChanged,
                 this, &KisShapeController::selectionChanged);
         connect(shapeLayer->shapeManager(), &KoShapeManager::selectionContentChanged,
                 this, &KisShapeController::selectionContentChanged);
-        connect(shapeLayer, &KisShapeLayer::currentLayerChanged,
+        connect(shapeLayer->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
                 this, &KisShapeController::currentLayerChanged);
     }
 }
@@ -110,7 +119,8 @@ void KisShapeController::removeNodeImpl(KisNodeSP node)
 {
     KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(node.data());
     if (shapeLayer) {
-        shapeLayer->disconnect(this);
+        QObject::disconnect(shapeLayer->shapeManager(), nullptr, this, nullptr);
+        QObject::disconnect(shapeLayer->selectedShapesProxy(), nullptr, this, nullptr);
     }
 
     m_d->shapesGraph.removeNode(node);
@@ -200,7 +210,11 @@ KoShapeContainer *KisShapeController::createParentForShapes(const QList<KoShape 
 QRectF KisShapeController::documentRectInPixels() const
 {
     KisImageSP image = this->image();
-    return image ? image->bounds() : QRect(0, 0, 666, 777);
+    if (image) {
+        const PkRect bounds = image->bounds();
+        return QRectF(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+    }
+    return QRectF(0, 0, 666, 777);
 }
 
 qreal KisShapeController::pixelsPerInch() const

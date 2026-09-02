@@ -4,6 +4,11 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <QtGui/QtGui>
+#include <QtWidgets/QtWidgets>
+#include <QtXml/QtXml>
+#include <PkFlakeBridge.h>
 #include "KisToolKnife.h"
 
 #include <PkBrush.h>
@@ -49,6 +54,8 @@
 #include <KoUnit.h>
 #include <ksharedconfig.h>
 
+Q_DECLARE_METATYPE(KisNodeWSP)
+
 
 struct KisToolKnife::Private {
     PkPointF startPoint = PkPointF(0, 0);
@@ -62,7 +69,7 @@ KisToolKnife::KisToolKnife(KoCanvasBase * canvas)
       m_d(new Private)
 {
     setObjectName("tool_knife");
-    useCursor(Qt::ArrowCursor);
+    useCursor(QCursor(Qt::ArrowCursor));
     repaintDecorations();
 }
 
@@ -70,126 +77,15 @@ KisToolKnife::~KisToolKnife()
 {
 }
 
-void paintSelectedEdge(PkPainter &painter, const KoViewConverter &converter, const PkLineF &lineSegment)
+void KisToolKnife::paint(QPainter &painter, const KoViewConverter &converter)
 {
-    PkLineF lineInView = converter.documentToView().map(lineSegment);
-    PkList<PkLineF> parallels = KisAlgebra2D::getParallelLines(lineInView, 5);
-
-    painter.save();
-    qreal width = 2;
-    PkColor color = Qt::blue;
-    color.setAlphaF(0.8);
-    PkColor white = Qt::white;
-    white.setAlphaF(0.75);
-
-    PkPen pen = PkPen(color, width);
-    PkPen alternative = PkPen(white, width);
-
-    alternative.setStyle(Qt::CustomDashLine);
-    qreal dashLength = 6;
-    alternative.setDashPattern({dashLength - 1, dashLength + 1});
-    alternative.setCapStyle(Qt::RoundCap);
-
-    pen.setCosmetic(true);
-    painter.setPen(pen);
-
-    //painter.drawLines(parallels.toVector());
-    painter.drawLine(lineInView);
-
-    alternative.setCosmetic(true);
-    painter.setPen(alternative);
-    //painter.drawLines(parallels.toVector());
-    painter.drawLine(lineInView);
-
-
-    painter.restore();
-
-}
-
-PkPolygonF createDiamond(int size, PkPointF location = PkPointF())
-{
-    PkPolygonF polygon;
-    polygon << PkPointF(-size, 0);
-    polygon << PkPointF(0, size);
-    polygon << PkPointF(size, 0);
-    polygon << PkPointF(0, -size);
-    polygon.translate(location);
-    return polygon;
-}
-
-void paintSelectedPoint(PkPainter &painter, const KoViewConverter &converter, const PkPointF &point)
-{
-    PkPointF p = point;
-    p = converter.documentToView().map(p);
-    PkPolygonF diamond = createDiamond(6, p);
-    painter.save();
-    PkColor color = Qt::blue;
-    color.setAlphaF(0.9);
-    PkColor white = Qt::white;
-    white.setAlphaF(0.75);
-
-    PkPen pen = PkPen(color, 2);
-    pen.setCosmetic(true);
-    PkBrush brush(white);
-    painter.setPen(pen);
-    painter.setBrush(brush);
-
-    painter.drawPolygon(diamond);
-    painter.restore();
-}
-
-void KisToolKnife::paint(PkPainter &painter, const KoViewConverter &converter)
-{
-    (void)converter;
-
-    painter.save();
-    painter.restore();
-
-    painter.save();
-    painter.setBrush(Qt::darkGray);
-    //painter.drawEllipse(converter.documentToView(m_d->mousePoint), 4, 4);
-
-    painter.restore();
-
     KoInteractionTool::paint(painter, converter);
-
-
-#ifdef KNIFE_DEBUG
-    bool paintSelection = true;
-    if (paintSelection) {
-
-        KIS_SAFE_ASSERT_RECOVER_RETURN(canvas());
-        KIS_SAFE_ASSERT_RECOVER_RETURN(canvas()->selectedShapesProxy());
-
-        KIS_SAFE_ASSERT_RECOVER_RETURN(canvas()->selectedShapesProxy()->selection());
-
-        KoSelection *selection = canvas()->selectedShapesProxy()->selection();
-
-        PkList<KoShape*> shapes = selection->selectedEditableShapes();
-
-        for (KoShape *shape : shapes) {
-            KisAlgebra2D::VectorPath vector = KisAlgebra2D::VectorPath(shape->outline());
-            painter.save();
-            painter.setTransform(painter.transform());
-            for (int i = 0; i < vector.segmentsCount(); i++) {
-                paintSelectedEdge(painter, converter, shape->absoluteTransformation().map(vector.segmentAtAsLine(i)));
-            }
-            for (int i =  0; i < vector.pointsCount(); i++) {
-                paintSelectedPoint(painter, converter, shape->absoluteTransformation().map(vector.pointAt(i).endPoint));
-            }
-            painter.restore();
-
-        }
-    }
-#endif
-
-
 }
 
-void KisToolKnife::activate(const PkSet<KoShape *> &shapes)
+void KisToolKnife::activate(const QSet<KoShape *> &shapes)
 {
     KoInteractionTool::activate(shapes);
-    useCursor(Qt::ArrowCursor);
+        useCursor(QCursor(Qt::ArrowCursor));
 
 }
 
@@ -205,7 +101,7 @@ void KisToolKnife::mousePressEvent(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-                PkString("This tool only works on vector layers. You probably want to create a vector layer and a starting shape first."),
+                toQString(PkString("This tool only works on vector layers. You probably want to create a vector layer and a starting shape first.")),
                 {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         return;
     }
@@ -219,7 +115,7 @@ void KisToolKnife::mouseMoveEvent(KoPointerEvent *event)
 
     if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
 
-        m_d->endPoint = event->point;
+        m_d->endPoint = toPkPointF(event->point);
         PkRectF dirtyRect;
         KisAlgebra2D::accumulateBounds(m_d->startPoint, &dirtyRect);
         KisAlgebra2D::accumulateBounds(m_d->endPoint, &dirtyRect);
@@ -227,7 +123,7 @@ void KisToolKnife::mouseMoveEvent(KoPointerEvent *event)
         PkRectF accumulatedWithPrevious = m_d->previousLineDirtyRect;
         accumulatedWithPrevious |= dirtyRect;
 
-        canvas()->updateCanvas(accumulatedWithPrevious);
+        canvas()->updateCanvas(toQRectF(accumulatedWithPrevious));
         m_d->previousLineDirtyRect = dirtyRect;
 
     }
@@ -239,7 +135,7 @@ void KisToolKnife::mouseReleaseEvent(KoPointerEvent *event)
 {
     KoInteractionTool::mouseReleaseEvent(event);
 
-    m_d->endPoint = event->point;
+    m_d->endPoint = toPkPointF(event->point);
 
     PkRectF dirtyRect;
     KisAlgebra2D::accumulateBounds(m_d->startPoint, &dirtyRect);
@@ -247,7 +143,7 @@ void KisToolKnife::mouseReleaseEvent(KoPointerEvent *event)
 
     PkRectF accumulatedWithPrevious = m_d->previousLineDirtyRect | dirtyRect;
 
-    canvas()->updateCanvas(accumulatedWithPrevious);
+    canvas()->updateCanvas(toQRectF(accumulatedWithPrevious));
     m_d->previousLineDirtyRect = dirtyRect;
 }
 
@@ -275,7 +171,7 @@ GutterWidthType gutterWidthTypeFromConfigString(const PkString &type)
 
 KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
 {
-    PkList<KoShape*> shapes = canvas()->shapeManager()->shapes();
+    PkList<KoShape*> shapes = toPkList(canvas()->shapeManager()->shapes());
 
     KisShapeController *shapeController =
         dynamic_cast<KisShapeController *>(canvas()->shapeController()->documentBase());
@@ -294,7 +190,7 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
     // thick/thin/special/automatic was active -- so any value the user had
     // already saved (including a non-default width type) is still honoured.
     KConfigGroup configGroup = KSharedConfig::openConfig()->group(toolId());
-    PkString unitSymbol = configGroup.readEntry("gutter_unit_symbol", "px");
+    PkString unitSymbol = toPkString(configGroup.readEntry("gutter_unit_symbol", "px"));
     bool unitConversionSuccess = false;
     KoUnit unit = KoUnit::fromSymbol(unitSymbol, &unitConversionSuccess);
     if (!unitConversionSuccess) {
@@ -324,16 +220,16 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
     };
 
     const GutterWidthType currentWidthType =
-        gutterWidthTypeFromConfigString(configGroup.readEntry("current_gutter_width_type", "thick"));
+        gutterWidthTypeFromConfigString(toPkString(configGroup.readEntry("current_gutter_width_type", "thick")));
 
     GutterWidthsConfig widthsConfig = [&]() {
         if (currentWidthType == GutterWidthType::Automatic) {
             const GutterWidthType horizontalType =
-                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_horizontal_type", "thick"));
+                gutterWidthTypeFromConfigString(toPkString(configGroup.readEntry("automatic_horizontal_type", "thick")));
             const GutterWidthType verticalType =
-                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_vertical_type", "thin"));
+                gutterWidthTypeFromConfigString(toPkString(configGroup.readEntry("automatic_vertical_type", "thin")));
             const GutterWidthType diagonalType =
-                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_diagonal_type", "thin"));
+                gutterWidthTypeFromConfigString(toPkString(configGroup.readEntry("automatic_diagonal_type", "thin")));
             return GutterWidthsConfig(unit, resolution,
                                        widthForType(horizontalType),
                                        widthForType(verticalType),
@@ -343,7 +239,8 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
         return GutterWidthsConfig(unit, resolution, widthForType(currentWidthType), gutterAngleDegrees);
     }();
 
-    return new CutThroughShapeStrategy(this, canvas()->selectedShapesProxy()->selection(), shapes, event->point, widthsConfig);
+    return new CutThroughShapeStrategy(this, canvas()->selectedShapesProxy()->selection(), shapes,
+                                       toPkPointF(event->point), widthsConfig);
 }
 
 bool KisToolKnife::isValidForCurrentLayer() const
