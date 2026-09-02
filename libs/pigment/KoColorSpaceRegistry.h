@@ -54,6 +54,7 @@ class KoColorConversionTransformation;
 class KRITAPIGMENT_EXPORT KoColorSpaceRegistry
 {
 public:
+    using InitializationCallback = void (*)();
     KoColorSpaceRegistry();
 
     enum ColorSpaceListVisibility {
@@ -70,6 +71,7 @@ public:
      * Creates an instance if that has never happened before and returns the singleton instance.
      */
     static KoColorSpaceRegistry * instance();
+    static void addInitializationCallback(InitializationCallback callback);
 
     virtual ~KoColorSpaceRegistry();
 

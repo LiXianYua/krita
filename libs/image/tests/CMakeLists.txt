@@ -151,7 +151,7 @@ kis_add_tests(
     KisFourPointInterpolatorTest.cpp
     KisSpatialContainerTest.cpp
     KisGridInterpolationToolsTest.cpp
-    LINK_LIBRARIES kritaimage kritatestsdk kritalcmsengine
+    LINK_LIBRARIES kritaimage kritatestsdk -Wl,--no-as-needed kritalcmsengine -Wl,--as-needed
     )
 
 kis_add_test(

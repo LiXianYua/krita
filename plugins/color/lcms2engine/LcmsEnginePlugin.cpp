@@ -312,7 +312,7 @@ struct LcmsEngineRegistration
 {
     LcmsEngineRegistration()
     {
-        registerLcmsEngine();
+        KoColorSpaceRegistry::addInitializationCallback(&registerLcmsEngine);
     }
 };
 

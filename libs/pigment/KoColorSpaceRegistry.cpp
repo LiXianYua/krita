@@ -40,6 +40,11 @@
 // statically-linked test/host targets can provide the same entry directly.
 extern void registerLcmsEngine() __attribute__((weak));
 
+namespace {
+bool s_registryInitialized = false;
+PkList<KoColorSpaceRegistry::InitializationCallback> s_initializationCallbacks;
+}
+
 
 struct Q_DECL_HIDDEN KoColorSpaceRegistry::Private {
 
@@ -146,12 +151,20 @@ KoColorSpaceRegistry* KoColorSpaceRegistry::instance()
     // 旗标再 init()，递归重入时看到 s_initDone 为真即返回。测试路径单线程，
     // 与 Q_GLOBAL_STATIC 的并发首调用保护语义有偏差（可接受的薄壳差异）。
     static KoColorSpaceRegistry s_instance;
-    static bool s_initDone = false;
-    if (!s_initDone) {
-        s_initDone = true;
+    if (!s_registryInitialized) {
+        s_registryInitialized = true;
         s_instance.init();
     }
     return &s_instance;
+}
+
+void KoColorSpaceRegistry::addInitializationCallback(InitializationCallback callback)
+{
+    if (s_registryInitialized) {
+        callback();
+    } else {
+        s_initializationCallbacks.push_back(callback);
+    }
 }
 
 
@@ -171,10 +184,6 @@ void KoColorSpaceRegistry::init()
     d->colorConversionCache = new KoColorConversionCache;
 
     KoColorSpaceEngineRegistry::instance()->add(new KoSimpleColorSpaceEngine());
-
-    if (registerLcmsEngine) {
-        registerLcmsEngine();
-    }
 
     // 原 KoPluginLoader::load("Krita/ColorSpace") 与 load("Krita/ColorSpaceExtension")
     // 已随 D-01 移除；lcms2engine（IccColorSpaceEngine）与 colorspaceextensions 的
@@ -197,6 +206,21 @@ void KoColorSpaceRegistry::init()
     for (KoColorSpaceFactory *factory : localFactories) {
         add(factory);
     }
+
+    // Register the lcms provider after the built-in factories exist.  The
+    // provider adds conversion links to those factories, so doing this from
+    // a static module constructor would leave the conversion graph partial
+    // when the module is linked directly into a host/test executable.
+    if (registerLcmsEngine) {
+        registerLcmsEngine();
+    }
+
+    for (InitializationCallback callback : s_initializationCallbacks) {
+        if (callback != registerLcmsEngine) {
+            callback();
+        }
+    }
+    s_initializationCallbacks.clear();
 
     dbgPigment << "Loaded the following colorspaces:";
     for (const KoID& id : listKeys()) {
