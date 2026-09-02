@@ -1094,6 +1094,9 @@ PkByteArray KisDocument::serializeToNativeByteArray()
     PkMemoryStream buffer;
 
     PkScopedPointer<KisImportExportFilter> filter(KisImportExportManager::filterForMimeType(pkFromByteArray(nativeFormatMimeType()), KisImportExportManager::Export));
+    if (!filter) {
+        return PkByteArray(buffer.data(), (int)buffer.size());
+    }
     filter->setBatchMode(true);
     filter->setMimeType(pkFromByteArray(nativeFormatMimeType()));
 
