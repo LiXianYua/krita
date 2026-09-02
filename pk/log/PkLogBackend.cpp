@@ -6,10 +6,17 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <mutex>
+#include <string>
+#include <unordered_map>
 
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#ifdef _WIN32
+#include <spdlog/sinks/wincolor_sink-inl.h>
+#else
+#include <spdlog/sinks/ansicolor_sink-inl.h>
+#endif
 
 #include "PkLogSink.h"
 
@@ -36,34 +43,76 @@ spdlog::level::level_enum mapLevel(PkLogLevel level)
     return spdlog::level::info;
 }
 
-// task-9 缺陷修复：spdlog::get() 落空 → spdlog::stderr_color_mt() 建，
-// 这两步以前不是原子的（check-then-act）。spdlog::registry::register_logger_
-// 撞见重名会 throw spdlog_ex，两个线程第一次用到同一个从未注册过的分类名、
-// 又几乎同时撞进来时都会看到 get() 落空，都去建——其中一个必然撞异常，
-// 未捕获时在工作线程里直接 std::terminate（SIGABRT）。用一把 mutex 把
-// "查 + 建"这一整段包成原子操作：后到的线程拿到锁时再查一次，会看见前一个
-// 线程已经建好，只做 set_level，不会重复注册。
+// spdlog 的 registry 和默认 console mutex 都是普通函数局部静态对象。
+// 跨 DSO 的析构顺序无法保证：其他静态对象的析构函数仍然可能记日志，
+// 此时再进 spdlog::get()/stderr_color_mt() 就会访问已析构的 registry。
 //
-// 用 std::mutex 而不是 std::call_once：categoryName 是运行期任意字符串，
-// 不是唯一一个全局初始化点——call_once 需要一个 once_flag 挂在"这个分类"
-// 上，等价于还要另建一张 name → once_flag 的表，其本身的插入也要加锁，
-// 并不比直接用一把 mutex 包住查+建更省事。
-//
-// 只保护 PkLogEnsureLogger 自身：不持锁期间调用任何 sink 回调（那是
-// PkLogSink.cpp 的另一把锁，PkLogEmit 里 PkLogDispatchToSinks 在触碰
-// spdlog logger 之前就已经跑完并解锁了），不存在跨锁调用顺序问题。
-std::mutex g_ensureLoggerMutex;
+// pk/log 因此保有自己的具名 logger 表，并让这个表、它的锁以及彩色
+// stderr sink 的锁都持续到进程结束。这些对象故意不析构：它们正是
+// 静态析构日志所依赖的最后一层基础设施。直接构造 spdlog::logger 与
+// stderr color sink 仍保留原有的级别过滤、源位置、格式化和彩色 stderr
+// 输出语义，只不再把生命周期交给 spdlog 的全局 registry。
+struct ProcessLifetimeConsoleMutex
+{
+    using mutex_t = std::mutex;
+
+    static mutex_t &mutex()
+    {
+        static auto *const mutex = new mutex_t;
+        return *mutex;
+    }
+};
+
+#ifdef _WIN32
+using ProcessLifetimeStderrSink =
+    spdlog::sinks::wincolor_stderr_sink<ProcessLifetimeConsoleMutex>;
+#else
+using ProcessLifetimeStderrSink =
+    spdlog::sinks::ansicolor_stderr_sink<ProcessLifetimeConsoleMutex>;
+#endif
+
+struct BackendState
+{
+    std::mutex mutex;
+    std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> loggers;
+};
+
+BackendState &backendState()
+{
+    static auto *const state = new BackendState;
+    return *state;
+}
+
+std::shared_ptr<spdlog::logger> ensureLogger(const char *categoryName,
+                                             PkLogLevel minLevel)
+{
+    BackendState &state = backendState();
+    std::lock_guard<std::mutex> lock(state.mutex);
+
+    auto it = state.loggers.find(categoryName);
+    if (it == state.loggers.end()) {
+        auto sink = std::make_shared<ProcessLifetimeStderrSink>(
+            spdlog::color_mode::automatic);
+        auto logger = std::make_shared<spdlog::logger>(categoryName, std::move(sink));
+        it = state.loggers.emplace(categoryName, std::move(logger)).first;
+    }
+    it->second->set_level(mapLevel(minLevel));
+    return it->second;
+}
+
+std::shared_ptr<spdlog::logger> findLogger(const char *categoryName)
+{
+    BackendState &state = backendState();
+    std::lock_guard<std::mutex> lock(state.mutex);
+    const auto it = state.loggers.find(categoryName);
+    return it == state.loggers.end() ? nullptr : it->second;
+}
 
 } // namespace
 
 void PkLogEnsureLogger(const char *categoryName, PkLogLevel minLevel)
 {
-    std::lock_guard<std::mutex> lock(g_ensureLoggerMutex);
-    auto logger = spdlog::get(categoryName);
-    if (!logger) {
-        logger = spdlog::stderr_color_mt(categoryName);
-    }
-    logger->set_level(mapLevel(minLevel));
+    ensureLogger(categoryName, minLevel);
 }
 
 void PkLogEmit(PkLogLevel level, const PkLogContext &ctx, const std::string &message)
@@ -72,7 +121,7 @@ void PkLogEmit(PkLogLevel level, const PkLogContext &ctx, const std::string &mes
     // 语义由 tests/test_sink.cpp 钉住。
     PkLogDispatchToSinks(level, ctx, message.c_str());
 
-    auto logger = spdlog::get(ctx.category);
+    auto logger = findLogger(ctx.category);
     if (!logger && std::strcmp(ctx.category, "default") == 0) {
         // 评审 Critical 项：无分类日志族一条都不落盘。
         //
@@ -89,8 +138,7 @@ void PkLogEmit(PkLogLevel level, const PkLogContext &ctx, const std::string &mes
         // 仍然落进下面的诊断分支，不会被这条特判捞走。
         // minLevel 给最低档 PkLogDebug：无分类版本本身不受 QLoggingCategory
         // 管（PkMessageLogger.h 顶部注释），这里给最低档等价于"不过滤"。
-        PkLogEnsureLogger(ctx.category, PkLogDebug);
-        logger = spdlog::get(ctx.category);
+        logger = ensureLogger(ctx.category, PkLogDebug);
     }
     if (!logger) {
         // 评审 Important 项：不再静默兜底创建 logger。旧行为是
