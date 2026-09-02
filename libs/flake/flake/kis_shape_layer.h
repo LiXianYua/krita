@@ -84,7 +84,7 @@ public:
 
     void setImage(KisImageWSP image) override;
 
-    KisLayerSP tryCreateInternallyMergedLayerFromMutipleLayers(QList<KisLayerSP> layers) override;
+    KisLayerSP tryCreateInternallyMergedLayerFromMutipleLayers(PkList<KisLayerSP> layers) override;
 
     KisLayerSP createMergedLayerTemplate(KisLayerSP prevLayer) override;
     void fillMergedLayerTemplate(KisLayerSP dstLayer, KisLayerSP prevLayer, bool skipPaintingThisLayer) override;
@@ -98,13 +98,13 @@ public:
     void setParent(KoShapeContainer *parent);
 
     // KisExternalLayer implementation
-    QIcon icon() const override;
+    QIcon icon() const;
     void resetCache(const KoColorSpace *colorSpace) override;
 
     KisPaintDeviceSP original() const override;
     KisPaintDeviceSP paintDevice() const override;
 
-    QRect theoreticalBoundingRect() const override;
+    PkRect theoreticalBoundingRect() const override;
 
     qint32 x() const override;
     qint32 y() const override;
@@ -131,8 +131,8 @@ public:
     bool saveLayer(KoStore * store) const;
     bool loadLayer(KoStore* store, QStringList *warnings = 0);
 
-    KUndo2Command* crop(const QRect & rect) override;
-    KUndo2Command* transform(const QTransform &transform) override;
+    KUndo2Command* crop(const PkRect & rect) override;
+    KUndo2Command* transform(const PkTransform &transform) override;
     KUndo2Command* setProfile(const KoColorProfile *profile) override;
     KUndo2Command* convertTo(const KoColorSpace * dstColorSpace,
                                  KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),

@@ -342,7 +342,7 @@ void KisShapeLayer::setSectionModelProperties(const KisBaseNode::PropertyList &p
     KisLayer::setSectionModelProperties(properties);
 }
 
-KisLayerSP KisShapeLayer::tryCreateInternallyMergedLayerFromMutipleLayers(QList<KisLayerSP> layers)
+KisLayerSP KisShapeLayer::tryCreateInternallyMergedLayerFromMutipleLayers(PkList<KisLayerSP> layers)
 {
     // NOTE: layers.first() may possibly point to `this`!
 
@@ -426,9 +426,10 @@ KisPaintDeviceSP KisShapeLayer::paintDevice() const
     return 0;
 }
 
-QRect KisShapeLayer::theoreticalBoundingRect() const
+PkRect KisShapeLayer::theoreticalBoundingRect() const
 {
-    return kisGrowRect(m_d->canvas->viewConverter()->documentToView(this->boundingRect()).toAlignedRect(), 1);
+    const QRect rect = kisGrowRect(m_d->canvas->viewConverter()->documentToView(this->boundingRect()).toAlignedRect(), 1);
+    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
 }
 
 qint32 KisShapeLayer::x() const
@@ -716,10 +717,10 @@ void KisShapeLayer::resetCache(const KoColorSpace *colorSpace)
     m_d->canvas->resetCache(colorSpace);
 }
 
-KUndo2Command* KisShapeLayer::crop(const QRect & rect)
+KUndo2Command* KisShapeLayer::crop(const PkRect & rect)
 {
     QPoint oldPos(x(), y());
-    QPoint newPos = oldPos - rect.topLeft();
+    QPoint newPos = oldPos - QPoint(rect.left(), rect.top());
 
     return new KisNodeMoveCommand2(this, PkPoint(oldPos.x(), oldPos.y()), PkPoint(newPos.x(), newPos.y()));
 }
@@ -759,7 +760,7 @@ private:
 };
 
 
-KUndo2Command* KisShapeLayer::transform(const QTransform &transform)
+KUndo2Command* KisShapeLayer::transform(const PkTransform &transform)
 {
     QList<KoShape*> shapes = shapesToBeTransformed();
     if (shapes.isEmpty()) return 0;
@@ -771,8 +772,9 @@ KUndo2Command* KisShapeLayer::transform(const QTransform &transform)
      */
     const KisImageViewConverter *converter = dynamic_cast<const KisImageViewConverter*>(this->converter());
     KIS_ASSERT(converter);
+    const QTransform qTransform = toQTransform(transform);
     QTransform docSpaceTransform = converter->documentToView() *
-        transform * converter->viewToDocument();
+        qTransform * converter->viewToDocument();
 
     return new TransformShapeLayerDeferred(this, docSpaceTransform);
 }
