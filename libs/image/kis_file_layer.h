@@ -20,7 +20,6 @@
  */
 class KRITAIMAGE_EXPORT KisFileLayer : public KisExternalLayer
 {
-    Q_OBJECT
 public:
     using FileOpener = std::function<void(const QString &path)>;
     using IconProvider = std::function<QIcon()>;
@@ -83,7 +82,7 @@ public:
 
     void setImage(KisImageWSP image) override;
 
-private Q_SLOTS:
+private:
     void slotLoadingFinished(KisPaintDeviceSP projection, qreal xRes, qreal yRes, const QSize &size);
     void slotLoadingFailed();
     void slotFileExistsStateChanged(bool exists);
@@ -91,10 +90,6 @@ private Q_SLOTS:
     void slotImageSizeChanged();
     void slotImageResolutionChanged();
 
-Q_SIGNALS:
-    void sigRequestOpenFile();
-
-private:
     enum State {
         FileLoaded,
         FileNotFound,
