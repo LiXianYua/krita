@@ -8,16 +8,6 @@
 #ifndef KISDOCUMENT_H
 #define KISDOCUMENT_H
 
-// Load the real Qt provider declarations before Pk compatibility headers.  The
-// Pk providers intentionally yield to these declarations when they are present;
-// this header is consumed by both ordinary TUs and generated moc sources.
-#include <QtCore/qglobal.h>
-#include <QtCore/qnamespace.h>
-#include <QtCore/qhashfunctions.h>
-#include <QtCore/qalgorithms.h>
-#include <QtCore/qmath.h>
-#include <QtCore/qnumeric.h>
-
 #include <PkList.h>
 #include <PkVector.h>
 #include <PkString.h>
@@ -41,14 +31,10 @@
 #include <KisImportExportFilter.h>
 #include <kis_properties_configuration.h>
 #include <kis_types.h>
-#include <KisReferenceImagesLayer.h>
 #include <kis_debug.h>
 #include <KisImportExportUtils.h>
 #include "StoryboardItem.h"
-#include <KoUnit.h>
 #include <KisImportExportErrorCode.h>
-#include <kis_grid_config.h>
-#include <kis_guides_config.h>
 #include <KisMirrorAxisConfig.h>
 
 #include "kritaimpex_export.h"
@@ -63,8 +49,12 @@ class KoShapeControllerBase;
 class KoShapeLayer;
 class KoStore;
 class KoDocumentInfo;
+class KoUnit;
 class KisImportExportManager;
 class KisUndoStore;
+class KisReferenceImagesLayer;
+class KisGridConfig;
+class KisGuidesConfig;
 
 #define KIS_MIME_TYPE "application/x-krita"
 
