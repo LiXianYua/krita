@@ -5,6 +5,14 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/qglobal.h>
+#include <QtCore/qnamespace.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+#include <QDebug>
+
 #include <KisMimeDatabase.h>
 
 #include <KoColor.h>
@@ -700,7 +708,7 @@ KisDocument::KisDocument(bool addStorage)
         d->wasStorageAdded = true;
     }
 
-    d->shapeController = new KisShapeController(d->nserver, d->undoStack, this);
+    d->shapeController = new KisShapeController(d->nserver, d->undoStack);
     d->koShapeController = new KoShapeController(0, d->shapeController);
 
     slotConfigChanged();
@@ -789,6 +797,31 @@ KisDocument::~KisDocument()
 
     delete d;
 }
+
+void KisDocument::unitChanged(const KoUnit &v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::unitChanged), v); }
+void KisDocument::statusBarMessage(const PkString &v, int t) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::statusBarMessage), v, t); }
+void KisDocument::clearStatusBarMessage() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::clearStatusBarMessage)); }
+void KisDocument::modified(bool v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::modified), v); }
+void KisDocument::sigReadWriteChanged(bool v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigReadWriteChanged), v); }
+void KisDocument::sigRecoveredChanged(bool v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigRecoveredChanged), v); }
+void KisDocument::sigPathChanged(const PkString &v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigPathChanged), v); }
+void KisDocument::sigLoadingFinished() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigLoadingFinished)); }
+void KisDocument::sigSavingFinished(const PkString &v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigSavingFinished), v); }
+void KisDocument::sigGuidesConfigChanged(const KisGuidesConfig &v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigGuidesConfigChanged), v); }
+void KisDocument::sigBackgroundSavingFinished(KisImportExportErrorCode s, const PkString &e, const PkString &w) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigBackgroundSavingFinished), s, e, w); }
+void KisDocument::sigCompleteBackgroundSaving(const KritaUtils::ExportFileJob &j, KisImportExportErrorCode s, const PkString &e, const PkString &w) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigCompleteBackgroundSaving), j, s, e, w); }
+void KisDocument::sigReferenceImagesChanged() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigReferenceImagesChanged)); }
+void KisDocument::sigMirrorAxisConfigChanged() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigMirrorAxisConfigChanged)); }
+void KisDocument::sigGridConfigChanged(const KisGridConfig &v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigGridConfigChanged), v); }
+void KisDocument::sigReferenceImagesLayerChanged(KisSharedPtr<KisReferenceImagesLayer> v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigReferenceImagesLayerChanged), v); }
+void KisDocument::sigPaletteListChanged(const PkList<KoColorSetSP> &a, const PkList<KoColorSetSP> &b) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigPaletteListChanged), a, b); }
+void KisDocument::sigAssistantsChanged() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigAssistantsChanged)); }
+void KisDocument::sigStoryboardItemListChanged() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigStoryboardItemListChanged)); }
+void KisDocument::sigStoryboardCommentListChanged() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigStoryboardCommentListChanged)); }
+void KisDocument::sigAudioTracksChanged() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigAudioTracksChanged)); }
+void KisDocument::sigAudioLevelChanged(qreal v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::sigAudioLevelChanged), v); }
+void KisDocument::completed() { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::completed)); }
+void KisDocument::canceled(const PkString &v) { PkObject::activateSignal(this, PkMemberFnKey::from(&KisDocument::canceled), v); }
 
 PkString KisDocument::embeddedResourcesStorageId() const
 {
@@ -902,7 +935,9 @@ bool KisDocument::exportDocumentImpl(const KritaUtils::ExportFileJob &job, KisPr
 
         if (numOfBackupsKept == 1) {
             if (!KisBackup::simpleBackupFile(job.filePath, backupDir, suffix)) {
-                qWarning() << "Failed to create simple backup file!" << job.filePath << backupDir << suffix;
+                qWarning() << "Failed to create simple backup file!"
+                           << job.filePath.PkToUtf8().c_str()
+                           << backupDir.PkToUtf8().c_str() << suffix.PkToUtf8().c_str();
                 KisUsageLogger::log(PkString("Failed to create a simple backup for %1 in %2.")
                                         .arg(job.filePath, backupDir.isEmpty()
                                                                ? "the same location as the file"
@@ -919,7 +954,9 @@ bool KisDocument::exportDocumentImpl(const KritaUtils::ExportFileJob &job, KisPr
         }
         else if (numOfBackupsKept > 1) {
             if (!KisBackup::numberedBackupFile(job.filePath, backupDir, suffix, numOfBackupsKept)) {
-                qWarning() << "Failed to create numbered backup file!" << job.filePath << backupDir << suffix;
+                qWarning() << "Failed to create numbered backup file!"
+                           << job.filePath.PkToUtf8().c_str()
+                           << backupDir.PkToUtf8().c_str() << suffix.PkToUtf8().c_str();
                 KisUsageLogger::log(PkString("Failed to create a numbered backup for %2.")
                                         .arg(job.filePath, backupDir.isEmpty()
                                                                ? "the same location as the file"
@@ -1205,7 +1242,8 @@ void KisDocument::Private::uploadLinkedResourcesFromLayersToStorage()
                     KoResourceSP resource = result.resource();
 
                     if (!resource) {
-                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to fetch a resource" << result.signature();
+                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to fetch a resource"
+                                   << result.signature().filename.PkToUtf8().c_str();
                         continue;
                     }
 
@@ -1218,7 +1256,8 @@ void KisDocument::Private::uploadLinkedResourcesFromLayersToStorage()
                     buf.close();
 
                     if (!res) {
-                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to export resource" << result.signature();
+                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to export resource"
+                                   << result.signature().filename.PkToUtf8().c_str();
                         continue;
                     }
 
@@ -1229,7 +1268,8 @@ void KisDocument::Private::uploadLinkedResourcesFromLayersToStorage()
                     buf.close();
 
                     if (!res) {
-                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to import resource" << result.signature();
+                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to import resource"
+                                   << result.signature().filename.PkToUtf8().c_str();
                         continue;
                     }
                 }
@@ -1291,7 +1331,7 @@ void KisDocument::copyFromDocumentImpl(const KisDocument &rhs, CopyPolicy policy
         PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged, this, &KisDocument::slotConfigChanged);
         PkObject::connect(d->undoStack, &KUndo2Stack::cleanChanged, this, &KisDocument::slotUndoStackCleanChanged);
     
-        d->shapeController = new KisShapeController(d->nserver, d->undoStack, this);
+        d->shapeController = new KisShapeController(d->nserver, d->undoStack);
         d->koShapeController = new KoShapeController(0, d->shapeController);
     }
 
@@ -2416,7 +2456,8 @@ void KisDocument::setGridConfig(const KisGridConfig &config)
         sigGridConfigChanged(config);
 
         // Store last assigned value as future default...
-        KisDocumentApplicationServices::instance()->setDefaultGridSpacing(config.spacing());
+        KisDocumentApplicationServices::instance()->setDefaultGridSpacing(
+            PkPoint(config.spacing().x(), config.spacing().y()));
     }
 }
 
@@ -2977,7 +3018,8 @@ PkRectF KisDocument::documentBounds() const
     KisReferenceImagesLayerSP referenceImagesLayer = this->referenceImagesLayer();
 
     if (referenceImagesLayer) {
-        bounds |= referenceImagesLayer->boundingImageRect();
+        const QRectF rect = referenceImagesLayer->boundingImageRect();
+        bounds |= PkRectF(rect.x(), rect.y(), rect.width(), rect.height());
     }
 
     return bounds;

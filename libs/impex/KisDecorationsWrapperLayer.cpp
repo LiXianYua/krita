@@ -4,6 +4,14 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/qglobal.h>
+#include <QtCore/qnamespace.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+#include <QTransform>
+
 #include "KisDecorationsWrapperLayer.h"
 
 #include <PkList.h>
@@ -17,6 +25,13 @@
 #include "kis_guides_config.h"
 #include "kis_painting_assistant.h"
 #include "kis_default_bounds.h"
+
+static QTransform toQTransform(const PkTransform &transform)
+{
+    return QTransform(transform.m11(), transform.m12(), 0,
+                      transform.m21(), transform.m22(), 0,
+                      transform.m31(), transform.m32(), 1);
+}
 
 struct KisDecorationsWrapperLayer::Private
 {
@@ -140,13 +155,13 @@ KUndo2Command *KisDecorationsWrapperLayer::transform(const PkTransform &transfor
             // Qt 变换引用参数 —— S-08 剥 canvas 时需对齐。
             KisGridConfig gridConfig = m_document->gridConfig();
             if (gridConfig.showGrid()) {
-                gridConfig.transform(transform);
+                gridConfig.transform(toQTransform(transform));
                 m_document->setGridConfig(gridConfig);
             }
 
             KisGuidesConfig guidesConfig = m_document->guidesConfig();
             if (guidesConfig.hasGuides()) {
-                guidesConfig.transform(imageToDocument.inverted() * transform * imageToDocument);
+                guidesConfig.transform(toQTransform(imageToDocument.inverted() * transform * imageToDocument));
                 m_document->setGuidesConfig(guidesConfig);
             }
 

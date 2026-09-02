@@ -72,7 +72,7 @@ public:
 
 
 private:
-    bool check(PkList<KoShape*> shapes) {
+    bool check(const QList<KoShape*> &shapes) {
         for (KoShape *shape : shapes) {
             if (KoShapeGroup *group = dynamic_cast<KoShapeGroup*>(shape)) {
                 // ShapeGroups have no id...
@@ -82,14 +82,14 @@ private:
                 check(group->shapes());
             } else if (KoPathShape *path = dynamic_cast<KoPathShape*>(shape)) {
                 if (!m_pathShapeId.isEmpty()) {
-                    if (path->pathShapeId() == m_pathShapeId
-                            && m_shapeId == path->shapeId()) {
+                    if (path->pathShapeId() == QString::fromUtf8(m_pathShapeId.PkToUtf8().c_str())
+                            && QString::fromUtf8(m_shapeId.PkToUtf8().c_str()) == path->shapeId()) {
                         m_count ++;
                     }
-                } else if (m_shapeId == path->shapeId()) {
+                } else if (QString::fromUtf8(m_shapeId.PkToUtf8().c_str()) == path->shapeId()) {
                     m_count ++;
                 }
-            } else if (m_shapeId == shape->shapeId()) {
+            } else if (QString::fromUtf8(m_shapeId.PkToUtf8().c_str()) == shape->shapeId()) {
                 m_count ++;
             }
         }

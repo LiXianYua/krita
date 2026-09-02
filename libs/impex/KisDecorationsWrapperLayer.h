@@ -20,7 +20,6 @@ class KisDocument;
  */
 class KisDecorationsWrapperLayer : public KisExternalLayer
 {
-    Q_OBJECT
 public:
     KisDecorationsWrapperLayer(KisDocument *document);
     KisDecorationsWrapperLayer(const KisDecorationsWrapperLayer &rhs);

@@ -3,6 +3,13 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <QtCore/qglobal.h>
+#include <QtCore/qnamespace.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+
 #include "KisCloneDocumentStroke.h"
 
 #include <PkString.h>
@@ -48,6 +55,19 @@ void KisCloneDocumentStroke::finishStrokeCallback()
     KisDocument *doc = m_d->document->clone();
     doc->moveToThread(PkThread::mainThreadId());
     sigDocumentCloned(doc);
+}
+
+void KisCloneDocumentStroke::sigDocumentCloned(KisDocument *image)
+{
+    PkObject::activateSignal(this,
+                              PkMemberFnKey::from(&KisCloneDocumentStroke::sigDocumentCloned),
+                              image);
+}
+
+void KisCloneDocumentStroke::sigCloningCancelled()
+{
+    PkObject::activateSignal(this,
+                              PkMemberFnKey::from(&KisCloneDocumentStroke::sigCloningCancelled));
 }
 
 void KisCloneDocumentStroke::cancelStrokeCallback()

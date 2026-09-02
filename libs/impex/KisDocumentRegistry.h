@@ -22,8 +22,6 @@ class KisDocument;
  */
 class KRITAIMPEX_EXPORT KisDocumentRegistry : public PkObject
 {
-    Q_OBJECT
-
 public:
     explicit KisDocumentRegistry(PkObject *parent = nullptr);
     ~KisDocumentRegistry() override;
@@ -38,7 +36,7 @@ public:
     int documentCount() const;
     void removeDocument(KisDocument *document, bool deleteDocument = true);
 
-Q_SIGNALS:
+public:
     void sigDocumentAdded(KisDocument *document);
     void sigDocumentSaved(const PkString &path);
     void sigDocumentRemoved(const PkString &path);

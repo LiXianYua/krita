@@ -4,6 +4,13 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/qglobal.h>
+#include <QtCore/qnamespace.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+
 #include "KisReferenceImagesLayer.h"
 
 #include <PkList.h>
@@ -16,6 +23,15 @@
 #include <kundo2magicstring.h>
 
 #include "KisDocument.h"
+
+static PkList<KoShape *> toPkList(const QList<KoShape *> &shapes)
+{
+    PkList<KoShape *> result;
+    for (KoShape *shape : shapes) {
+        result.append(shape);
+    }
+    return result;
+}
 
 struct AddReferenceImagesCommand : KoShapeCreateCommand
 {
@@ -98,8 +114,12 @@ private:
 };
 
 KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document,
-                                                           const PkList<KoShape *> referenceImages)
+                                                           QList<KoShape *> referenceImages)
 {
+    PkList<KoShape *> pkReferenceImages;
+    for (KoShape *shape : referenceImages) {
+        pkReferenceImages.append(shape);
+    }
     KisSharedPtr<KisReferenceImagesLayer> layer = document->referenceImagesLayer();
     if (!layer) {
         layer = new KisReferenceImagesLayer(document->shapeController(), document->image());
@@ -107,16 +127,16 @@ KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document
 
     KUndo2Command *parentCommand = new KUndo2Command();
 
-    new KoKeepShapesSelectedCommand(layer->shapeManager()->selection()->selectedShapes(),
-                                    {},
+    new KoKeepShapesSelectedCommand(toPkList(layer->shapeManager()->selection()->selectedShapes()),
+                                    PkList<KoShape *>(),
                                     layer->selectedShapesProxy(),
                                     KisCommandUtils::FlipFlopCommand::State::INITIALIZING,
                                     parentCommand);
     AddReferenceImagesCommand *command =
-        new AddReferenceImagesCommand(document, layer, referenceImages, parentCommand);
+        new AddReferenceImagesCommand(document, layer, pkReferenceImages, parentCommand);
     parentCommand->setText(command->text());
-    new KoKeepShapesSelectedCommand({},
-                                    referenceImages,
+    new KoKeepShapesSelectedCommand(PkList<KoShape *>(),
+                                    pkReferenceImages,
                                     layer->selectedShapesProxy(),
                                     KisCommandUtils::FlipFlopCommand::State::FINALIZING,
                                     parentCommand);
@@ -125,7 +145,11 @@ KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document
 }
 
 KUndo2Command *KisReferenceImagesLayer::removeReferenceImages(KisDocument *document,
-                                                              PkList<KoShape *> referenceImages)
+                                                              QList<KoShape *> referenceImages)
 {
-    return new RemoveReferenceImagesCommand(document, this, referenceImages);
+    PkList<KoShape *> pkReferenceImages;
+    for (KoShape *shape : referenceImages) {
+        pkReferenceImages.append(shape);
+    }
+    return new RemoveReferenceImagesCommand(document, this, pkReferenceImages);
 }

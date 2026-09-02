@@ -3,6 +3,14 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/qglobal.h>
+#include <QtCore/qnamespace.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+#include <QImage>
+
 #include "KisReferenceImageDocumentFallback.h"
 
 #include <filesystem>
@@ -43,5 +51,15 @@ PkImage loadReferenceImageFileWithDocumentFallback(const PkString &filename)
 
 bool loadReferenceImageWithDocumentFallback(KisReferenceImage *reference, KoStore *store)
 {
-    return reference->loadImage(store, loadReferenceImageFileWithDocumentFallback);
+    return reference->loadImage(store, [](const QString &path) {
+        const QByteArray utf8 = path.toUtf8();
+        const PkString pkPath = PkString::PkFromUtf8(utf8.constData(), utf8.size());
+        const PkImage image = loadReferenceImageFileWithDocumentFallback(pkPath);
+        if (image.isNull()) {
+            return QImage();
+        }
+        return QImage(reinterpret_cast<const uchar *>(image.constBits()),
+                      image.width(), image.height(), image.bytesPerLine(),
+                      static_cast<QImage::Format>(image.format())).copy();
+    });
 }

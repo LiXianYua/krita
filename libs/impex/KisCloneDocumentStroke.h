@@ -15,7 +15,6 @@ class KisDocument;
 
 class KisCloneDocumentStroke : public PkObject, public KisSimpleStrokeStrategy
 {
-    Q_OBJECT
 public:
     KisCloneDocumentStroke(KisDocument *document);
     ~KisCloneDocumentStroke();
@@ -24,7 +23,7 @@ public:
     void finishStrokeCallback() override;
     void cancelStrokeCallback() override;
 
-Q_SIGNALS:
+public:
     void sigDocumentCloned(KisDocument *image);
     void sigCloningCancelled();
 

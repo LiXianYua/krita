@@ -1,3 +1,10 @@
+#include <QtCore/qglobal.h>
+#include <QtCore/qnamespace.h>
+#include <QtCore/qhashfunctions.h>
+#include <QtCore/qalgorithms.h>
+#include <QtCore/qmath.h>
+#include <QtCore/qnumeric.h>
+
 #include "KisImportExportBackend.h"
 #include "KisDocument.h"
 #include "KisImportUserFeedbackInterface.h"
