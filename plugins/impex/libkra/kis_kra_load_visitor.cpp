@@ -234,7 +234,7 @@ bool KisKraLoadVisitor::visit(KisPaintLayer *layer)
             if (!pixelSelection->read(m_store->device())) {
                 pixelSelection->disconnect();
             } else {
-                KisTransparencyMask* mask = new KisTransparencyMask(m_image, "Transparency Mask");
+                KisTransparencyMask* mask = new KisTransparencyMask(m_image, toPkString(i18n("Transparency Mask")));
                 mask->setSelection(selection);
                 m_image->addNode(mask, layer, layer->firstChild());
             }
