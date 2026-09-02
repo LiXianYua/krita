@@ -103,7 +103,7 @@ void KoDocumentInfo::setActiveAuthorInfo(const PkString &info, const PkString &d
     } else {
         m_authorInfo.insert(info, data);
     }
-    Q_EMIT infoUpdated(info, data);
+    infoUpdated(info, data);
 }
 
 PkString KoDocumentInfo::authorInfo(const PkString &info) const
@@ -125,7 +125,12 @@ void KoDocumentInfo::setAboutInfo(const PkString &info, const PkString &data)
         return;
 
     m_aboutInfo.insert(info, data);
-    Q_EMIT infoUpdated(info, data);
+    infoUpdated(info, data);
+}
+
+void KoDocumentInfo::infoUpdated(const PkString &info, const PkString &data)
+{
+    PkObject::activateSignal(this, PkMemberFnKey::from(&KoDocumentInfo::infoUpdated), info, data);
 }
 
 PkString KoDocumentInfo::aboutInfo(const PkString &info) const

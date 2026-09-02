@@ -10,6 +10,7 @@
 #define KO_DOCUMENT_INFO_H
 
 #include <PkObject.h>
+#include <compat/QObject>
 #include <PkMap.h>
 #include <PkString.h>
 #include <PkStringList.h>
@@ -34,8 +35,6 @@ class KoStore;
  */
 class KRITAIMPEX_EXPORT KoDocumentInfo : public PkObject
 {
-    Q_OBJECT
-
 public:
     /**
      * The constructor
@@ -176,7 +175,7 @@ private:
     /** The original meta:generator of the document */
     PkString m_generator;
 
-Q_SIGNALS:
+public:
     void infoUpdated(const PkString &info, const PkString &data);
 };
 

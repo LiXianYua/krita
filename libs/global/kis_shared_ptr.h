@@ -315,7 +315,7 @@ public:
      */
     inline T* data() {
         if (!isConsistent()) {
-            warnKrita.noquote() << kisBacktrace();
+            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
             Q_ASSERT(0);
         }
 
@@ -327,7 +327,7 @@ public:
      */
     inline const T* data() const {
         if (!isConsistent()) {
-            warnKrita.noquote() << kisBacktrace();
+            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
             Q_ASSERT(0);
         }
 
@@ -339,7 +339,7 @@ public:
      */
     inline const T* constData() const {
         if (!isConsistent()) {
-            warnKrita.noquote() << kisBacktrace();
+            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
             Q_ASSERT(0);
         }
 
@@ -360,7 +360,7 @@ public:
 
     inline const T& operator*() const {
         if (!isValid()) {
-            warnKrita.noquote() << kisBacktrace();
+            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
             Q_ASSERT(0);
         }
 
@@ -369,7 +369,7 @@ public:
 
     inline T& operator*() {
         if (!isValid()) {
-            warnKrita.noquote() << kisBacktrace();
+            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
             Q_ASSERT(0);
         }
 
@@ -378,7 +378,7 @@ public:
 
     inline const T* operator->() const {
         if (!isValid()) {
-            warnKrita.noquote() << kisBacktrace();
+            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
             Q_ASSERT(0);
         }
 
@@ -387,7 +387,7 @@ public:
 
     inline T* operator->() {
         if (!isValid()) {
-            warnKrita.noquote() << kisBacktrace();
+            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
             Q_ASSERT(0);
         }
 

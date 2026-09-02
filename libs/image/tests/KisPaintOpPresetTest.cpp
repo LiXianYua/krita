@@ -12,12 +12,14 @@
 #include <KisResourceModel.h>
 
 #include "kis_paintop_preset.h"
+#include "kis_paintop_settings.h"
 #include "KisLocalStrokeResources.h"
 #include <KisGlobalResourcesInterface.h>
 #include <KisResourceLoaderRegistry.h>
 #include <KisResourceThumbnailCodec.h>
 #include <KisMimeDatabase.h>
 #include <PkMemoryStream.h>
+#include <PkFileStream.h>
 
 #include <QFileInfo>
 
@@ -28,6 +30,12 @@
 #include <type_traits>
 
 namespace {
+PkString toPkString(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
 template <typename C, typename T = typename C::value_type>
 QSet<T> toSet(const C &container) {
     return QSet<T>(container.begin(), container.end());
@@ -146,9 +154,10 @@ void KisPaintOpPresetTest::testLoadingEmbeddedResources()
 
     QVERIFY(QFileInfo(fileName).exists());
 
-    QSharedPointer<KisLocalStrokeResources> linkedResources(new KisLocalStrokeResources());
+    KisResourcesInterfaceSP linkedResources(new KisLocalStrokeResources());
 
-    KisPaintOpPresetSP preset(new KisPaintOpPreset(fileName));
+    const QByteArray fileNameUtf8 = fileName.toUtf8();
+    KisPaintOpPresetSP preset(new KisPaintOpPreset(PkString::PkFromUtf8(fileNameUtf8.constData(), fileNameUtf8.size())));
     preset->load(linkedResources);
 
     QVERIFY(preset->valid());
@@ -163,7 +172,7 @@ void KisPaintOpPresetTest::testLoadingEmbeddedResources()
         QVERIFY(result.embeddedResource().isValid());
         QVERIFY(result.embeddedResource().sanityCheckMd5());
 
-        realSideLoadedSignatures << result.signature().md5sum;
+            realSideLoadedSignatures << QString::fromUtf8(result.signature().md5sum.PkToUtf8().c_str());
     }
 
     // check if clearing the side-loaded resources actually clears them
@@ -185,14 +194,14 @@ void KisPaintOpPresetTest::testLoadingEmbeddedResources()
          */
         realLinkedSignatures <<
             (!result.signature().md5sum.isEmpty() ?
-                result.signature().md5sum :
-                result.signature().filename);
+                QString::fromUtf8(result.signature().md5sum.PkToUtf8().c_str()) :
+                QString::fromUtf8(result.signature().filename.PkToUtf8().c_str()));
     }
 
     Q_FOREACH (const KoResourceLoadResult &result, preset->embeddedResources(linkedResources)) {
         //qDebug() << "embedded" << result.type() << result.signature();
         QCOMPARE(result.type(), KoResourceLoadResult::EmbeddedResource);
-        realEmbeddedSignatures << result.signature().md5sum;
+        realEmbeddedSignatures << QString::fromUtf8(result.signature().md5sum.PkToUtf8().c_str());
     }
 
     QCOMPARE(realSideLoadedSignatures, toSet(expectedSideLoadedResources));
@@ -202,7 +211,7 @@ void KisPaintOpPresetTest::testLoadingEmbeddedResources()
 
 void KisPaintOpPresetTest::testConflictingEmbeddedPatterns()
 {
-    QSharedPointer<KisLocalStrokeResources> emptyLocalResources(new KisLocalStrokeResources());
+    KisResourcesInterfaceSP emptyLocalResources(new KisLocalStrokeResources());
     KisResourcesInterfaceSP resourcesInterface = KisGlobalResourcesInterface::instance();
 
     KisResourceModel model(ResourceType::PaintOpPresets);
@@ -214,10 +223,11 @@ void KisPaintOpPresetTest::testConflictingEmbeddedPatterns()
         /// "stripes-pat.png" name
 
         QString presetFileName(TestUtil::fetchDataFileLazy("conflicting-patterns/preset-stripes-vert.kpp"));
-        QFile file(presetFileName);
-        KIS_ASSERT(file.open(QFile::ReadOnly));
+        PkFileStream file(toPkString(presetFileName));
+        KIS_ASSERT(file.open(PkStream::ReadOnly));
 
-        KoResourceSP resource = model.importResource(QFileInfo(presetFileName).fileName(), &file, false, "memory");
+        const QString resourceName = QFileInfo(presetFileName).fileName();
+        KoResourceSP resource = model.importResource(toPkString(resourceName), &file, false, "memory");
         QVERIFY(resource);
 
         KisPaintOpPresetSP preset = resource.dynamicCast<KisPaintOpPreset>();
@@ -236,10 +246,11 @@ void KisPaintOpPresetTest::testConflictingEmbeddedPatterns()
         /// the same pattern object
 
         QString presetFileName(TestUtil::fetchDataFileLazy("conflicting-patterns/preset-stripes-vert-v2.kpp"));
-        QFile file(presetFileName);
-        KIS_ASSERT(file.open(QFile::ReadOnly));
+        PkFileStream file(toPkString(presetFileName));
+        KIS_ASSERT(file.open(PkStream::ReadOnly));
 
-        KoResourceSP resource = model.importResource(QFileInfo(presetFileName).fileName(), &file, false, "memory");
+        const QString resourceName = QFileInfo(presetFileName).fileName();
+        KoResourceSP resource = model.importResource(toPkString(resourceName), &file, false, "memory");
         QVERIFY(resource);
 
         KisPaintOpPresetSP preset = resource.dynamicCast<KisPaintOpPreset>();
@@ -258,10 +269,11 @@ void KisPaintOpPresetTest::testConflictingEmbeddedPatterns()
         /// but a different one (with a different md5sum)
 
         QString presetFileName(TestUtil::fetchDataFileLazy("conflicting-patterns/preset-stripes-cross.kpp"));
-        QFile file(presetFileName);
-        KIS_ASSERT(file.open(QFile::ReadOnly));
+        PkFileStream file(toPkString(presetFileName));
+        KIS_ASSERT(file.open(PkStream::ReadOnly));
 
-        KoResourceSP resource = model.importResource(QFileInfo(presetFileName).fileName(), &file, false, "memory");
+        const QString resourceName = QFileInfo(presetFileName).fileName();
+        KoResourceSP resource = model.importResource(toPkString(resourceName), &file, false, "memory");
         QVERIFY(resource);
 
         KisPaintOpPresetSP preset = resource.dynamicCast<KisPaintOpPreset>();
@@ -271,14 +283,14 @@ void KisPaintOpPresetTest::testConflictingEmbeddedPatterns()
         auto resourcesForEmptyEnvironment = preset->linkedResources(emptyLocalResources);
         QCOMPARE(resourcesForEmptyEnvironment.size(), 1);
         QCOMPARE(resourcesForEmptyEnvironment.first().type(), KoResourceLoadResult::FailedLink);
-        const QString requiredMd5Sum = resourcesForEmptyEnvironment.first().signature().md5sum;
+        const QString requiredMd5Sum = QString::fromUtf8(resourcesForEmptyEnvironment.first().signature().md5sum.PkToUtf8().c_str());
         QCOMPARE(requiredMd5Sum, "cca80dd27e4085ef089729462714e942");
 
         // now try to load in real environment, it should fetch the correct
         // deduplicated resource (with a different filename, but same MD5)
         KoPatternSP loadedPattern = preset->linkedResources(resourcesInterface).first().resource<KoPattern>();
         QVERIFY(loadedPattern);
-        QCOMPARE(loadedPattern->md5Sum(), requiredMd5Sum);
+        QCOMPARE(QString::fromUtf8(loadedPattern->md5Sum().PkToUtf8().c_str()), requiredMd5Sum);
 
         QVERIFY(loadedPattern->resourceId() != verticalPatternResourceId);
     }

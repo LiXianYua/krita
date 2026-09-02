@@ -11,6 +11,7 @@
 #include <PkLoggingCategory.h>
 #include <PkMessageLogger.h>
 #include <PkString.h>
+#include <string>
 
 #include "kritaglobal_export.h"
 
@@ -154,7 +155,20 @@ KRITAGLOBAL_EXPORT PkString kisBacktrace();
  *
  * Use this macro to display in the output stream the name of a variable followed by its value.
  */
-#define ppVar( var ) #var << "=" << (var)
+inline const char *kisDebugValue(const PkString &value)
+{
+    thread_local std::string storage;
+    storage = value.PkToUtf8();
+    return storage.c_str();
+}
+
+template <typename T>
+const T &kisDebugValue(const T &value)
+{
+    return value;
+}
+
+#define ppVar( var ) #var << "=" << kisDebugValue(var)
 
 #ifdef __GNUC__
 KRITAGLOBAL_EXPORT PkString __methodName(const char *prettyFunction);

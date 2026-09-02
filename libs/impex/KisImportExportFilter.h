@@ -11,6 +11,7 @@
 #define KIS_IMPORT_EXPORT_FILTER_H
 
 #include <PkObject.h>
+#include <compat/QObject>
 #include <PkStream.h>
 #include <PkMap.h>
 #include <PkPointer.h>
@@ -53,7 +54,6 @@ class KisImportUserFeedbackInterface;
  */
 class KRITAIMPEX_EXPORT KisImportExportFilter : public PkObject
 {
-    Q_OBJECT
 public:
     static const PkString ImageContainsTransparencyTag;
     static const PkString ColorModelIDTag;

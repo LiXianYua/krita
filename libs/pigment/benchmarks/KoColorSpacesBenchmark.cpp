@@ -16,9 +16,11 @@ void KoColorSpacesBenchmark::createRowsColumns()
 {
     QTest::addColumn<QString>("modelID");
     QTest::addColumn<QString>("depthID");
-    QList<const KoColorSpace*> colorSpaces = KoColorSpaceRegistry::instance()->allColorSpaces(KoColorSpaceRegistry::AllColorSpaces, KoColorSpaceRegistry::OnlyDefaultProfile);
+    PkList<const KoColorSpace*> colorSpaces = KoColorSpaceRegistry::instance()->allColorSpaces(KoColorSpaceRegistry::AllColorSpaces, KoColorSpaceRegistry::OnlyDefaultProfile);
     Q_FOREACH (const KoColorSpace* colorSpace, colorSpaces) {
-        QTest::newRow(colorSpace->name().toLatin1().data()) << colorSpace->colorModelId().id() << colorSpace->colorDepthId().id();
+        QTest::newRow(colorSpace->name().PkToUtf8().c_str())
+            << QString::fromUtf8(colorSpace->colorModelId().id().PkToUtf8().c_str())
+            << QString::fromUtf8(colorSpace->colorDepthId().id().PkToUtf8().c_str());
     }
 }
 
@@ -26,7 +28,9 @@ void KoColorSpacesBenchmark::createRowsColumns()
     QFETCH(QString, modelID); \
     QFETCH(QString, depthID); \
     \
-    const KoColorSpace* colorSpace = KoColorSpaceRegistry::instance()->colorSpace(modelID, depthID, 0); \
+    const KoColorSpace* colorSpace = KoColorSpaceRegistry::instance()->colorSpace( \
+        PkString::PkFromUtf8(modelID.toUtf8().constData(), modelID.toUtf8().size()), \
+        PkString::PkFromUtf8(depthID.toUtf8().constData(), depthID.toUtf8().size()), 0); \
     int pixelSize = colorSpace->pixelSize(); \
     quint8* data = new quint8[NB_PIXELS * pixelSize]; \
     memset(data, 0, NB_PIXELS * pixelSize);

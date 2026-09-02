@@ -8,6 +8,7 @@
 #define KIS_IMPORT_EXPORT_MANAGER_H
 
 #include <PkObject.h>
+#include <compat/QObject>
 #include <PkString.h>
 #include <PkStringList.h>
 #include <PkAuxTypes.h>
@@ -40,7 +41,6 @@ class PkWidget;
 class KisImportExportBackend;
 class KRITAIMPEX_EXPORT KisImportExportManager : public PkObject
 {
-    Q_OBJECT
 public:
     /**
      * This enum is used to distinguish the import/export cases

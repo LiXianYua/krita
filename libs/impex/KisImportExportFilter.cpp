@@ -37,7 +37,7 @@ const PkString KisImportExportFilter::CICPPrimariesTag = "CICPCompatiblePrimarie
 const PkString KisImportExportFilter::CICPTransferCharacteristicsTag = "CICPCompatibleTransferFunction";
 const PkString KisImportExportFilter::HDRTag = "HDRSupported";
 
-class Q_DECL_HIDDEN KisImportExportFilter::Private
+class KisImportExportFilter::Private
 {
 public:
     PkPointer<KoUpdater> updater;
