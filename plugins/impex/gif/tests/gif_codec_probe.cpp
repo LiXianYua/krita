@@ -1,4 +1,5 @@
 #include "../qgiflibhandler.h"
+#include "gif_multiframe_fixture.h"
 
 #include <PkRgb.h>
 
@@ -107,6 +108,23 @@ int main()
     require(pkBlue(decoded.pixel(1, 0)) > 0 && pkAlpha(decoded.pixel(1, 0)) == 255,
             "opaque dark blue must not collide with the reserved transparent index");
     require(pkAlpha(decoded.pixel(2, 0)) == 0, "transparent pixel alpha must round-trip");
+
+    const std::vector<char> multiImageBytes = GifMultiframeFixture::create();
+    require(!multiImageBytes.empty(), "two-image GIF fixture must encode");
+    require(GifMultiframeFixture::hasExpectedStructure(multiImageBytes),
+            "fixture must contain two descriptors with offset, interlace, local palette, transparency, and disposal");
+    GifTestMemoryStream multiImageInput(multiImageBytes);
+    require(multiImageInput.open(PkStream::ReadOnly), "two-image input stream must open");
+    PkImage multiImage;
+    require(GifLibCodec(&multiImageInput).read(&multiImage),
+            "giflib must accept a second image descriptor");
+    require(multiImage.width() == 3 && multiImage.height() == 2,
+            "multi-image GIF logical screen dimensions must be preserved");
+    require(pkAlpha(multiImage.pixel(0, 0)) == 0 && pkAlpha(multiImage.pixel(1, 1)) == 0,
+            "the selected frame background must use its transparent local palette entry");
+    require(pkBlue(multiImage.pixel(2, 0)) == 255 && pkAlpha(multiImage.pixel(2, 0)) == 255 &&
+                pkBlue(multiImage.pixel(2, 1)) == 255 && pkAlpha(multiImage.pixel(2, 1)) == 255,
+            "the interlaced second frame must retain its offset and local palette");
 
     ShortWriteStream shortOutput(static_cast<PkStream::pk_int64>(encoded.bytes().size() - 1));
     require(shortOutput.open(PkStream::WriteOnly), "short output stream must open");

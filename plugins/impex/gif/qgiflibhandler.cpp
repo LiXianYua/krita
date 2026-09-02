@@ -88,7 +88,6 @@ bool GifLibCodec::read(PkImage *image)
     }
 
     *image = PkImage(gif->SWidth, gif->SHeight, PkImage::Format_Indexed8);
-    image->fill(static_cast<std::uint32_t>(gif->SBackGroundColor));
 
     int transparentColor = -1;
     ColorMapObject *activeColorMap = gif->SColorMap;
@@ -120,7 +119,7 @@ bool GifLibCodec::read(PkImage *image)
         if (recordType != IMAGE_DESC_RECORD_TYPE) {
             continue;
         }
-        if (foundImage || DGifGetImageDesc(gif.get()) == GIF_ERROR) {
+        if (DGifGetImageDesc(gif.get()) == GIF_ERROR) {
             return false;
         }
 
@@ -133,6 +132,7 @@ bool GifLibCodec::read(PkImage *image)
             return false;
         }
         activeColorMap = gif->Image.ColorMap ? gif->Image.ColorMap : gif->SColorMap;
+        image->fill(static_cast<std::uint32_t>(gif->SBackGroundColor));
 
         if (gif->Image.Interlace) {
             for (int pass = 0; pass < 4; ++pass) {
