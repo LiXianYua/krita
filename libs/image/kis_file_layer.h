@@ -10,8 +10,8 @@
 
 #include "kritaimage_export.h"
 
-#include "kis_external_layer_iface.h"
 #include "kis_safe_document_loader.h"
+#include "kis_external_layer_iface.h"
 #include <PkConnection.h>
 #include <PkTransform.h>
 
