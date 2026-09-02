@@ -7,26 +7,28 @@
 #ifndef __TRANSFORM_STROKE_STRATEGY_H
 #define __TRANSFORM_STROKE_STRATEGY_H
 
-#include <QObject>
-#include <QMutex>
+#include <PkObject.h>
+#include <PkHash.h>
+#include <PkSignalCompat.h>
+#include <PkMutex.h>
 #include <KoUpdater.h>
 #include <kis_stroke_strategy_undo_command_based.h>
 #include <kis_types.h>
 #include "tool_transform_args.h"
+#include "transform_transaction_properties.h"
 #include <kis_processing_visitor.h>
 #include <kritatooltransform_export.h>
 #include <boost/optional.hpp>
 #include "commands_new/KisUpdateCommandEx.h"
 
 class KisPostExecutionUndoAdapter;
-class TransformTransactionProperties;
 class KisUpdatesFacade;
 class KisDecoratedNodeInterface;
+class KisSavedMacroCommand;
 
 
-class TransformStrokeStrategy : public QObject, public KisStrokeStrategyUndoCommandBased
+class TransformStrokeStrategy : public PkShellObject, public KisStrokeStrategyUndoCommandBased
 {
-    Q_OBJECT
 public:
     struct TransformAllData : public KisStrokeJobData {
         TransformAllData(const ToolTransformArgs &_config)
@@ -85,7 +87,7 @@ public:
 
 public:
     TransformStrokeStrategy(ToolTransformArgs::TransformMode mode,
-                            const QString &filterId,
+                            const PkString &filterId,
                             bool forceReset,
                             KisNodeList rootNodes,
                             KisSelectionSP selection,
@@ -98,10 +100,10 @@ public:
     void cancelStrokeCallback() override;
     void doStrokeCallback(KisStrokeJobData *data) override;
 
-Q_SIGNALS:
+signals:
     void sigTransactionGenerated(TransformTransactionProperties transaction, ToolTransformArgs args, void *cookie);
     void sigPreviewDeviceReady(KisPaintDeviceSP device);
-    void sigConvexHullCalculated(QPolygon convexHull, void *cookie);
+    void sigConvexHullCalculated(PkPolygon convexHull, void *cookie);
 
 protected:
     void postProcessToplevelCommand(KUndo2Command *command) override;
@@ -122,20 +124,20 @@ private:
     void finishStrokeImpl(bool applyTransform,
                           const ToolTransformArgs &args);
 
-    QPolygon calculateConvexHull();
+    PkPolygon calculateConvexHull();
 
 private:
     KisUpdatesFacade *m_updatesFacade;
     KisBatchNodeUpdateSP m_updateData;
     bool m_updatesDisabled = false;
     ToolTransformArgs::TransformMode m_mode;
-    QString m_filterId;
+    PkString m_filterId;
     bool m_forceReset;
 
     KisSelectionSP m_selection;
 
-    QMutex m_devicesCacheMutex;
-    QHash<KisPaintDevice*, KisPaintDeviceSP> m_devicesCacheHash;
+    PkMutex m_devicesCacheMutex;
+    PkHash<KisPaintDevice*, KisPaintDeviceSP> m_devicesCacheHash;
 
     KisTransformMaskSP writeToTransformMask;
 
@@ -144,13 +146,13 @@ private:
     KisNodeList m_rootNodes;
     KisNodeList m_processedNodes;
     int m_currentTime = -1;
-    QList<KisSelectionSP> m_deactivatedSelections;
-    QList<KisNodeSP> m_hiddenProjectionLeaves;
-    QList<KisSelectionMaskSP> m_deactivatedOverlaySelectionMasks;
-    QVector<KisDecoratedNodeInterface*> m_disabledDecoratedNodes;
+    PkList<KisSelectionSP> m_deactivatedSelections;
+    PkList<KisNodeSP> m_hiddenProjectionLeaves;
+    PkList<KisSelectionMaskSP> m_deactivatedOverlaySelectionMasks;
+    PkVector<KisDecoratedNodeInterface*> m_disabledDecoratedNodes;
 
     const KisSavedMacroCommand *m_overriddenCommand = 0;
-    QVector<const KUndo2Command*> m_skippedWhileMergeCommands;
+    PkVector<const KUndo2Command*> m_skippedWhileMergeCommands;
 
     bool m_finalizingActionsStarted = false;
     bool m_convexHullHasBeenCalculated = false;

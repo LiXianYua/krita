@@ -7,8 +7,8 @@
 #ifndef __TRANSFORM_TRANSACTION_PROPERTIES_H
 #define __TRANSFORM_TRANSACTION_PROPERTIES_H
 
-#include <QRectF>
-#include <QPointF>
+#include <PkRect.h>
+#include <PkPoint.h>
 #include "kis_node.h"
 #include "kis_layer_utils.h"
 #include "kis_external_layer_iface.h"
@@ -23,10 +23,10 @@ public:
     {
     }
 
-TransformTransactionProperties(const QRectF &originalRect,
+TransformTransactionProperties(const PkRectF &originalRect,
                                ToolTransformArgs *currentConfig,
                                KisNodeList rootNodes,
-                               const QList<KisNodeSP> &transformedNodes)
+                               const PkList<KisNodeSP> &transformedNodes)
         : m_originalRect(originalRect),
           m_currentConfig(currentConfig),
           m_rootNodes(rootNodes),
@@ -35,7 +35,7 @@ TransformTransactionProperties(const QRectF &originalRect,
           m_boundsRotationAllowed(true)
     {
         m_hasInvisibleNodes = false;
-        Q_FOREACH (KisNodeSP node, transformedNodes) {
+        for (const KisNodeSP &node : transformedNodes) {
             if (KisExternalLayer *extLayer = dynamic_cast<KisExternalLayer*>(node.data())) {
                 if (!extLayer->supportsPerspectiveTransform()) {
                     m_shouldAvoidPerspectiveTransform = true;
@@ -58,51 +58,51 @@ TransformTransactionProperties(const QRectF &originalRect,
         return m_originalRect.height() / 2.0;
     }
 
-    QRectF originalRect() const {
+    PkRectF originalRect() const {
         return m_originalRect;
     }
 
-    QPointF originalCenterGeometric() const {
+    PkPointF originalCenterGeometric() const {
         return m_originalRect.center();
     }
 
-    QPointF originalTopLeft() const {
+    PkPointF originalTopLeft() const {
         return m_originalRect.topLeft();
     }
 
-    QPointF originalBottomLeft() const {
+    PkPointF originalBottomLeft() const {
         return m_originalRect.bottomLeft();
     }
 
-    QPointF originalBottomRight() const {
+    PkPointF originalBottomRight() const {
         return m_originalRect.bottomRight();
     }
 
-    QPointF originalTopRight() const {
+    PkPointF originalTopRight() const {
         return m_originalRect.topRight();
     }
 
-    QPointF originalMiddleLeft() const {
-        return QPointF(m_originalRect.left(), (m_originalRect.top() + m_originalRect.bottom()) / 2.0);
+    PkPointF originalMiddleLeft() const {
+        return PkPointF(m_originalRect.left(), (m_originalRect.top() + m_originalRect.bottom()) / 2.0);
     }
 
-    QPointF originalMiddleRight() const {
-        return QPointF(m_originalRect.right(), (m_originalRect.top() + m_originalRect.bottom()) / 2.0);
+    PkPointF originalMiddleRight() const {
+        return PkPointF(m_originalRect.right(), (m_originalRect.top() + m_originalRect.bottom()) / 2.0);
     }
 
-    QPointF originalMiddleTop() const {
-        return QPointF((m_originalRect.left() + m_originalRect.right()) / 2.0, m_originalRect.top());
+    PkPointF originalMiddleTop() const {
+        return PkPointF((m_originalRect.left() + m_originalRect.right()) / 2.0, m_originalRect.top());
     }
 
-    QPointF originalMiddleBottom() const {
-        return QPointF((m_originalRect.left() + m_originalRect.right()) / 2.0, m_originalRect.bottom());
+    PkPointF originalMiddleBottom() const {
+        return PkPointF((m_originalRect.left() + m_originalRect.right()) / 2.0, m_originalRect.bottom());
     }
 
-    QPoint originalTopLeftAligned() const {
+    PkPoint originalTopLeftAligned() const {
         return m_originalRect.toAlignedRect().topLeft();
     }
 
-    QPoint originalBottomRightAligned() const {
+    PkPoint originalBottomRightAligned() const {
         return m_originalRect.toAlignedRect().bottomRight();
     }
 
@@ -123,7 +123,7 @@ TransformTransactionProperties(const QRectF &originalRect,
         return 0.9 * qreal(m_rootNodes[0]->opacity()) / 255.0;
     }
 
-    const QPolygonF convexHull() {
+    const PkPolygonF convexHull() {
         return m_convexHull;
     }
 
@@ -147,7 +147,7 @@ TransformTransactionProperties(const QRectF &originalRect,
         m_currentConfig = config;
     }
 
-    void setConvexHull(const QPolygonF &hull) {
+    void setConvexHull(const PkPolygonF &hull) {
         m_convexHull = hull;
     }
 
@@ -160,11 +160,11 @@ private:
      * Information about the original selected rect
      * (before any transformations)
      */
-    QRectF m_originalRect;
+    PkRectF m_originalRect;
     ToolTransformArgs *m_currentConfig {0};
     KisNodeList m_rootNodes;
     KisNodeList m_transformedNodes;
-    QPolygonF m_convexHull;
+    PkPolygonF m_convexHull;
     bool m_convexHullHasBeenRequested {false};
     bool m_shouldAvoidPerspectiveTransform {false};
     bool m_hasInvisibleNodes {false};

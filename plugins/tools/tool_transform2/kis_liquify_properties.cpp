@@ -6,14 +6,15 @@
 
 #include "kis_liquify_properties.h"
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include "kis_debug.h"
 #include "kis_dom_utils.h"
+
+#include <stdexcept>
 
 KisLiquifyProperties::KisLiquifyProperties(const KisLiquifyProperties &rhs)
 {
@@ -57,9 +58,9 @@ bool KisLiquifyProperties::operator==(const KisLiquifyProperties &other) const
         m_flow == other.m_flow;
 }
 
-QString liquifyModeString(KisLiquifyProperties::LiquifyMode mode)
+PkString liquifyModeString(KisLiquifyProperties::LiquifyMode mode)
 {
-    QString result;
+    PkString result;
 
     switch (mode) {
     case KisLiquifyProperties::MOVE:
@@ -78,16 +79,16 @@ QString liquifyModeString(KisLiquifyProperties::LiquifyMode mode)
         result = "Undo";
         break;
     case KisLiquifyProperties::N_MODES:
-        qFatal("Unsupported mode");
+        throw std::invalid_argument("unsupported liquify mode");
     }
 
-    return QString("LiquifyTool/%1").arg(result);
+    return PkString("LiquifyTool/%1").arg(result);
 }
 
 void KisLiquifyProperties::saveMode() const
 {
-    KConfigGroup cfg =
-         KSharedConfig::openConfig()->group(liquifyModeString(m_mode));
+    PkConfigGroup cfg =
+         PkSharedConfig::openConfig()->group(liquifyModeString(m_mode));
 
     cfg.writeEntry("size", m_size);
     cfg.writeEntry("amount", m_amount);
@@ -98,14 +99,14 @@ void KisLiquifyProperties::saveMode() const
     cfg.writeEntry("useWashMode", m_useWashMode);
     cfg.writeEntry("flow", m_flow);
 
-    KConfigGroup globalCfg =  KSharedConfig::openConfig()->group("LiquifyTool");
+    PkConfigGroup globalCfg =  PkSharedConfig::openConfig()->group("LiquifyTool");
     globalCfg.writeEntry("mode", (int)m_mode);
 }
 
 void KisLiquifyProperties::loadMode()
 {
-    KConfigGroup cfg =
-         KSharedConfig::openConfig()->group(liquifyModeString(m_mode));
+    PkConfigGroup cfg =
+         PkSharedConfig::openConfig()->group(liquifyModeString(m_mode));
 
     m_size = cfg.readEntry("size", m_size);
     m_amount = cfg.readEntry("amount", m_amount);
@@ -119,16 +120,16 @@ void KisLiquifyProperties::loadMode()
 
 void KisLiquifyProperties::loadAndResetMode()
 {
-    KConfigGroup globalCfg =  KSharedConfig::openConfig()->group("LiquifyTool");
+    PkConfigGroup globalCfg =  PkSharedConfig::openConfig()->group("LiquifyTool");
     m_mode = (LiquifyMode) globalCfg.readEntry("mode", (int)m_mode);
 
     loadMode();
 }
 
-void KisLiquifyProperties::toXML(QDomElement *e) const
+void KisLiquifyProperties::toXML(PkXmlElement *e) const
 {
-    QDomDocument doc = e->ownerDocument();
-    QDomElement liqEl = doc.createElement("liquify_properties");
+    PkXmlDocument doc = e->ownerDocument();
+    PkXmlElement liqEl = doc.createElement("liquify_properties");
     e->appendChild(liqEl);
 
     KisDomUtils::saveValue(&liqEl, "mode", (int)m_mode);
@@ -142,12 +143,12 @@ void KisLiquifyProperties::toXML(QDomElement *e) const
     KisDomUtils::saveValue(&liqEl, "flow", m_flow);
 }
 
-KisLiquifyProperties KisLiquifyProperties::fromXML(const QDomElement &e)
+KisLiquifyProperties KisLiquifyProperties::fromXML(const PkXmlElement &e)
 {
     KisLiquifyProperties props;
     bool result = false;
 
-    QDomElement liqEl;
+    PkXmlElement liqEl;
     int newMode = 0;
 
     result =
@@ -173,7 +174,7 @@ KisLiquifyProperties KisLiquifyProperties::fromXML(const QDomElement &e)
 }
 
 
-QDebug operator<<(QDebug dbg, const KisLiquifyProperties &props)
+PkDebug operator<<(PkDebug dbg, const KisLiquifyProperties &props)
 {
     dbg.nospace() << "\nKisLiquifyProperties(";
     dbg.space() << "\n    " << ppVar(props.mode());

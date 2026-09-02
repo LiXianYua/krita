@@ -7,12 +7,12 @@
 #ifndef __KIS_LIQUIFY_PROPERTIES_H
 #define __KIS_LIQUIFY_PROPERTIES_H
 
-#include <QtGlobal>
-#include <QDebug>
+#include <PkGlobal.h>
+#include <PkDebug.h>
 #include <boost/operators.hpp>
 #include "kritatooltransform_export.h"
 
-class QDomElement;
+class PkXmlElement;
 
 
 class KRITATOOLTRANSFORM_EXPORT KisLiquifyProperties : boost::equality_comparable<KisLiquifyProperties>
@@ -124,8 +124,8 @@ public:
 
     void loadAndResetMode();
 
-    void toXML(QDomElement *e) const;
-    static KisLiquifyProperties fromXML(const QDomElement &e);
+    void toXML(PkXmlElement *e) const;
+    static KisLiquifyProperties fromXML(const PkXmlElement &e);
 
 private:
     LiquifyMode m_mode;
@@ -140,6 +140,6 @@ private:
     qreal m_flow;
 };
 
-QDebug KRITATOOLTRANSFORM_EXPORT operator<<(QDebug dbg, const KisLiquifyProperties &properties);
+PkDebug KRITATOOLTRANSFORM_EXPORT operator<<(PkDebug dbg, const KisLiquifyProperties &properties);
 
 #endif /* __KIS_LIQUIFY_PROPERTIES_H */

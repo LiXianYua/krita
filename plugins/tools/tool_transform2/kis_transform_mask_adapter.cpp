@@ -6,8 +6,8 @@
 
 #include "kis_transform_mask_adapter.h"
 
-#include <QTransform>
-#include <QDomElement>
+#include <PkTransform.h>
+#include <PkXmlElement.h>
 #include "kis_dom_utils.h"
 
 #include "tool_transform_args.h"
@@ -19,7 +19,7 @@
 
 struct KisTransformMaskAdapter::Private
 {
-    QSharedPointer<ToolTransformArgs> args;
+    PkSharedPointer<ToolTransformArgs> args;
     bool isHidden {false};
     bool isInitialized {true};
 };
@@ -43,7 +43,7 @@ KisTransformMaskAdapter::~KisTransformMaskAdapter()
 {
 }
 
-QTransform KisTransformMaskAdapter::finalAffineTransform() const
+PkTransform KisTransformMaskAdapter::finalAffineTransform() const
 {
     KisTransformUtils::MatricesPack m(*transformArgs());
     return m.finalTransform();
@@ -81,7 +81,7 @@ void KisTransformMaskAdapter::transformDevice(KisNodeSP node, KisPaintDeviceSP s
     KisTransformUtils::transformDeviceWithCroppedDst(*transformArgs(), src, dst, &helper, forceSubPixelTranslation);
 }
 
-const QSharedPointer<ToolTransformArgs> KisTransformMaskAdapter::transformArgs() const {
+const PkSharedPointer<ToolTransformArgs> KisTransformMaskAdapter::transformArgs() const {
     return m_d->args;
 }
 
@@ -90,19 +90,19 @@ void KisTransformMaskAdapter::setBaseArgs(const ToolTransformArgs &args)
     *m_d->args = args;
 }
 
-QString KisTransformMaskAdapter::id() const
+PkString KisTransformMaskAdapter::id() const
 {
     return "tooltransformparams";
 }
 
-void KisTransformMaskAdapter::toXML(QDomElement *e) const
+void KisTransformMaskAdapter::toXML(PkXmlElement *e) const
 {
     // bounds rotation cannot be used on transform masks currently
     KIS_SAFE_ASSERT_RECOVER_NOOP(qFuzzyIsNull(m_d->args->boundsRotation()));
     m_d->args->toXML(e);
 }
 
-KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromXML(const QDomElement &e)
+KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromXML(const PkXmlElement &e)
 {
     ToolTransformArgs args(ToolTransformArgs::fromXML(e));
 
@@ -113,15 +113,15 @@ KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromXML(const QDomEle
         new KisTransformMaskAdapter(args));
 }
 
-KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromDumbXML(const QDomElement &e)
+KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromDumbXML(const PkXmlElement &e)
 {
     ToolTransformArgs args;
 
     {
-        QDomElement transformEl;
+        PkXmlElement transformEl;
         bool result = false;
 
-        QTransform transform;
+        PkTransform transform;
 
         result =
             KisDomUtils::findOnlyElement(e, "dumb_transform", &transformEl) &&
@@ -131,7 +131,7 @@ KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromDumbXML(const QDo
             warnKrita << "WARNING: couldn't load dumb transform. Ignoring...";
         }
 
-        args.translateDstSpace(QPointF(transform.dx(), transform.dy()));
+        args.translateDstSpace(PkPointF(transform.dx(), transform.dy()));
     }
 
     // bounds rotation cannot be used on transform masks currently
@@ -141,35 +141,35 @@ KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromDumbXML(const QDo
         new KisTransformMaskAdapter(args));
 }
 
-void KisTransformMaskAdapter::translateSrcAndDst(const QPointF &offset)
+void KisTransformMaskAdapter::translateSrcAndDst(const PkPointF &offset)
 {
     m_d->args->translateSrcAndDst(offset);
 }
 
-void KisTransformMaskAdapter::transformSrcAndDst(const QTransform &t)
+void KisTransformMaskAdapter::transformSrcAndDst(const PkTransform &t)
 {
     m_d->args->transformSrcAndDst(t);
 }
 
-void KisTransformMaskAdapter::translateDstSpace(const QPointF &offset)
+void KisTransformMaskAdapter::translateDstSpace(const PkPointF &offset)
 {
     m_d->args->translateDstSpace(offset);
 }
 
-QRect KisTransformMaskAdapter::nonAffineChangeRect(const QRect &rc)
+PkRect KisTransformMaskAdapter::nonAffineChangeRect(const PkRect &rc)
 {
     return KisTransformUtils::changeRect(*transformArgs(), rc);
 }
 
-QRect KisTransformMaskAdapter::nonAffineNeedRect(const QRect &rc, const QRect &srcBounds)
+PkRect KisTransformMaskAdapter::nonAffineNeedRect(const PkRect &rc, const PkRect &srcBounds)
 {
     return KisTransformUtils::needRect(*transformArgs(), rc, srcBounds);
 }
 
-KisKeyframeChannel *KisTransformMaskAdapter::getKeyframeChannel(const QString &id, KisDefaultBoundsBaseSP defaultBounds)
+KisKeyframeChannel *KisTransformMaskAdapter::getKeyframeChannel(const PkString &id, KisDefaultBoundsBaseSP defaultBounds)
 {
-    Q_UNUSED(id);
-    Q_UNUSED(defaultBounds);
+    (void)id;
+    (void)defaultBounds;
     return 0;
 }
 
@@ -179,11 +179,11 @@ KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::clone() const {
 
 bool KisTransformMaskAdapter::compareTransform(KisTransformMaskParamsInterfaceSP rhs) const
 {
-    QSharedPointer<KisTransformMaskAdapter> adapter = rhs.dynamicCast<KisTransformMaskAdapter>();
+    PkSharedPointer<KisTransformMaskAdapter> adapter = rhs.dynamicCast<KisTransformMaskAdapter>();
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(adapter, false);
 
-    QSharedPointer<ToolTransformArgs> lhsArgs = transformArgs();
-    QSharedPointer<ToolTransformArgs> rhsArgs = adapter->transformArgs();
+    PkSharedPointer<ToolTransformArgs> lhsArgs = transformArgs();
+    PkSharedPointer<ToolTransformArgs> rhsArgs = adapter->transformArgs();
 
     return lhsArgs->isSameMode(*rhsArgs);
 }

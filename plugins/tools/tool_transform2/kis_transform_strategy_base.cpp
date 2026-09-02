@@ -6,16 +6,16 @@
 
 #include "kis_transform_strategy_base.h"
 
-#include <QImage>
-#include <QPainterPath>
-#include <QTransform>
+#include <PkImage.h>
+#include <PkPainterPath.h>
+#include <PkTransform.h>
 #include "KoPointerEvent.h"
 
 
 struct KisTransformStrategyBase::Private
 {
-    QTransform thumbToImageTransform;
-    QImage originalImage;
+    PkTransform thumbToImageTransform;
+    PkImage originalImage;
     int decorationThickness = 1;
 };
 
@@ -29,9 +29,9 @@ KisTransformStrategyBase::~KisTransformStrategyBase()
 {
 }
 
-QPainterPath KisTransformStrategyBase::getCursorOutline() const
+PkPainterPath KisTransformStrategyBase::getCursorOutline() const
 {
-    return QPainterPath();
+    return PkPainterPath();
 }
 
 void KisTransformStrategyBase::activatePrimaryAction()
@@ -52,17 +52,17 @@ int KisTransformStrategyBase::decorationThickness() const
     return m_d->decorationThickness;
 }
 
-QImage KisTransformStrategyBase::originalImage() const
+PkImage KisTransformStrategyBase::originalImage() const
 {
     return m_d->originalImage;
 }
 
-QTransform KisTransformStrategyBase::thumbToImageTransform() const
+PkTransform KisTransformStrategyBase::thumbToImageTransform() const
 {
     return m_d->thumbToImageTransform;
 }
 
-void KisTransformStrategyBase::setThumbnailImage(const QImage &image, QTransform thumbToImageTransform)
+void KisTransformStrategyBase::setThumbnailImage(const PkImage &image, PkTransform thumbToImageTransform)
 {
     m_d->originalImage = image;
     m_d->thumbToImageTransform = thumbToImageTransform;
@@ -75,40 +75,40 @@ bool KisTransformStrategyBase::acceptsClicks() const
 
 void KisTransformStrategyBase::activateAlternateAction(KisTool::AlternateAction action)
 {
-    Q_UNUSED(action);
+    (void)action;
 }
 
 void KisTransformStrategyBase::deactivateAlternateAction(KisTool::AlternateAction action)
 {
-    Q_UNUSED(action);
+    (void)action;
 }
 
 bool KisTransformStrategyBase::beginAlternateAction(KoPointerEvent *event, KisTool::AlternateAction action)
 {
-    Q_UNUSED(event);
-    Q_UNUSED(action);
+    (void)event;
+    (void)action;
     return false;
 }
 
 void KisTransformStrategyBase::continueAlternateAction(KoPointerEvent *event, KisTool::AlternateAction action)
 {
-    Q_UNUSED(event);
-    Q_UNUSED(action);
+    (void)event;
+    (void)action;
 }
 
 bool KisTransformStrategyBase::endAlternateAction(KoPointerEvent *event, KisTool::AlternateAction action)
 {
-    Q_UNUSED(event);
-    Q_UNUSED(action);
+    (void)event;
+    (void)action;
     return false;
 }
 
 void KisTransformStrategyBase::increaseBrushSize(KoCanvasBase *canvas)
 {
-    Q_UNUSED(canvas);
+    (void)canvas;
 }
 
 void KisTransformStrategyBase::decreaseBrushSize(KoCanvasBase *canvas)
 {
-    Q_UNUSED(canvas);
+    (void)canvas;
 }

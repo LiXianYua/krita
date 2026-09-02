@@ -7,8 +7,8 @@
 #include "kis_cage_transform_strategy.h"
 #include "tool_transform_args.h"
 
-#include <QPointF>
-#include <QPainter>
+#include <PkPoint.h>
+#include <PkPainter.h>
 
 #include "kis_painting_tweaks.h"
 #include <kis_cage_transform_worker.h>
@@ -43,16 +43,16 @@ KisCageTransformStrategy::~KisCageTransformStrategy()
 {
 }
 
-void KisCageTransformStrategy::drawConnectionLines(QPainter &gc,
-                                                   const QVector<QPointF> &origPoints,
-                                                   const QVector<QPointF> &transfPoints,
+void KisCageTransformStrategy::drawConnectionLines(PkPainter &gc,
+                                                   const PkVector<PkPointF> &origPoints,
+                                                   const PkVector<PkPointF> &transfPoints,
                                                    bool isEditingPoints)
 {
     const int numPoints = origPoints.size();
     if (numPoints <= 1) return;
 
-    QPen antsPen;
-    QPen outlinePen;
+    PkPen antsPen;
+    PkPen outlinePen;
 
     KisPaintingTweaks::initAntsPen(&antsPen, &outlinePen);
     antsPen.setWidth(qMax(1, decorationThickness()));
@@ -71,12 +71,12 @@ void KisCageTransformStrategy::drawConnectionLines(QPainter &gc,
     }
 }
 
-QImage KisCageTransformStrategy::calculateTransformedImage(ToolTransformArgs &currentArgs,
-                                                           const QImage &srcImage,
-                                                           const QVector<QPointF> &origPoints,
-                                                           const QVector<QPointF> &transfPoints,
-                                                           const QPointF &srcOffset,
-                                                           QPointF *dstOffset)
+PkImage KisCageTransformStrategy::calculateTransformedImage(ToolTransformArgs &currentArgs,
+                                                           const PkImage &srcImage,
+                                                           const PkVector<PkPointF> &origPoints,
+                                                           const PkVector<PkPointF> &transfPoints,
+                                                           const PkPointF &srcOffset,
+                                                           PkPointF *dstOffset)
 {
     KisCageTransformWorker worker(srcImage,
                                   srcOffset,

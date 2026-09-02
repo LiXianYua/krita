@@ -7,38 +7,39 @@
 #ifndef __KIS_TRANSFORM_STRATEGY_BASE_H
 #define __KIS_TRANSFORM_STRATEGY_BASE_H
 
-#include <QObject>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
+#include <PkScopedPointer.h>
 
 #include "kis_tool.h"
+#include "TransformToolPlatform.h"
 
 
-class QImage;
-class QTransform;
-class QPainter;
-class QCursor;
+class PkImage;
+class PkTransform;
+class PkPainter;
 class KoPointerEvent;
-class QPainterPath;
+class PkPainterPath;
 
 
-class KisTransformStrategyBase : public QObject
+class KisTransformStrategyBase : public PkShellObject
 {
 public:
     KisTransformStrategyBase();
     ~KisTransformStrategyBase() override;
 
-    QImage originalImage() const;
-    QTransform thumbToImageTransform() const;
+    PkImage originalImage() const;
+    PkTransform thumbToImageTransform() const;
 
-    void setThumbnailImage(const QImage &image, QTransform thumbToImageTransform);
+    void setThumbnailImage(const PkImage &image, PkTransform thumbToImageTransform);
 
 public:
 
     virtual bool acceptsClicks() const;
 
-    virtual void paint(QPainter &gc) = 0;
-    virtual QCursor getCurrentCursor() const = 0;
-    virtual QPainterPath getCursorOutline() const;
+    virtual void paint(TransformToolPainter &gc) = 0;
+    virtual TransformCursorDescriptor getCurrentCursor() const = 0;
+    virtual PkPainterPath getCursorOutline() const;
 
     virtual void externalConfigChanged() = 0;
 
@@ -65,7 +66,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_TRANSFORM_STRATEGY_BASE_H */

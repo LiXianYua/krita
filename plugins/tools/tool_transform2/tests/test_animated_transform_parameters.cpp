@@ -24,7 +24,7 @@ void KisAnimatedTransformParametersTest::initTestCase()
     KoToolRegistry::instance();
 }
 
-QSharedPointer<KisTransformMaskAdapter> adapterFromParams(KisTransformMaskParamsInterfaceSP params)
+PkSharedPointer<KisTransformMaskAdapter> adapterFromParams(KisTransformMaskParamsInterfaceSP params)
 {
     return params.dynamicCast<KisTransformMaskAdapter>();
 }
@@ -40,7 +40,7 @@ void KisAnimatedTransformParametersTest::testTransformKeyframing()
     p.image->addNode(mask, p.layer);
 
     // Make mask animated
-    QList<KoID> ids = {
+    PkList<KoID> ids = {
         KisKeyframeChannel::PositionX,
         KisKeyframeChannel::PositionY,
         KisKeyframeChannel::ScaleX,
@@ -52,7 +52,7 @@ void KisAnimatedTransformParametersTest::testTransformKeyframing()
         KisKeyframeChannel::RotationZ
     };
 
-    Q_FOREACH( const KoID& koid, ids ) {
+    for (const KoID &koid : ids) {
         mask->getKeyframeChannel(koid.id(), true);
         QVERIFY(mask->getKeyframeChannel(koid.id(), false));
     }

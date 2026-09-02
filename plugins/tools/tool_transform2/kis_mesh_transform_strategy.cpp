@@ -7,19 +7,22 @@
 #include "kis_mesh_transform_strategy.h"
 #include "tool_transform_args.h"
 
-#include <QPointF>
-#include <QPainter>
-#include <QPainterPath>
+#include <PkPoint.h>
+#include <PkPainter.h>
+#include <PkPainterPath.h>
+
+#include <boost/optional.hpp>
 
 #include "kis_painting_tweaks.h"
 
 #include "transform_transaction_properties.h"
-#include "KisHandlePainterHelper.h"
+#include "TransformToolPlatform.h"
+#include "kis_algebra_2d.h"
 #include "kis_transform_utils.h"
 #include "kis_signal_compressor.h"
 
 
-uint qHash(const QPoint &value) {
+uint qHash(const PkPoint &value) {
     return uint((0xffffffffffffffff - quint64(value.y())) ^ quint64(value.x()));
 }
 
@@ -61,33 +64,33 @@ struct KisMeshTransformStrategy::Private
     ToolTransformArgs &currentArgs;
     TransformTransactionProperties &transaction;
 
-    QSet<KisBezierTransformMesh::NodeIndex> selectedNodes;
+    PkSet<KisBezierTransformMesh::NodeIndex> selectedNodes;
     boost::optional<KisBezierTransformMesh::SegmentIndex> hoveredSegment;
     boost::optional<KisBezierTransformMesh::ControlPointIndex> hoveredControl;
     boost::optional<KisBezierTransformMesh::PatchIndex> hoveredPatch;
     qreal localSegmentPosition = 0.0;
-    QPointF localPatchPosition;
-    QPointF hoveredHandleOffset;
+    PkPointF localPatchPosition;
+    PkPointF hoveredHandleOffset;
 
-    QPointF mouseClickPos;
+    PkPointF mouseClickPos;
 
-    QPointF initialRotationCenter;
+    PkPointF initialRotationCenter;
     qreal initialSelectionMaxDimension = 0.0;
     KisBezierTransformMesh initialMeshState;
 
     bool pointWasDragged = false;
-    QPointF lastMousePos;
-    QSize lastMeshSize;
+    PkPointF lastMousePos;
+    PkSize lastMeshSize;
 
     KisSignalCompressor recalculateSignalCompressor;
     PkConnection recalculateConnection;
 
-    QTransform paintingTransform;
-    QPointF paintingOffset;
-    QImage transformedImage;
+    PkTransform paintingTransform;
+    PkPointF paintingOffset;
+    PkImage transformedImage;
 
     void recalculateTransformations();
-    QTransform imageToThumb(bool useFlakeOptimization);
+    PkTransform imageToThumb(bool useFlakeOptimization);
 };
 
 
@@ -105,7 +108,7 @@ KisMeshTransformStrategy::KisMeshTransformStrategy(const KisCoordinatesConverter
                           &m_d->recalculateSignalCompressor,
                           [this]() { m_d->recalculateTransformations(); });
 
-    m_d->selectedNodes << KisBezierTransformMesh::NodeIndex(1, 1);
+    m_d->selectedNodes.insert(KisBezierTransformMesh::NodeIndex(1, 1));
     m_d->hoveredSegment = KisBezierTransformMesh::SegmentIndex(KisBezierTransformMesh::NodeIndex(0,0), 1);
     m_d->hoveredControl = KisBezierTransformMesh::ControlPointIndex(KisBezierTransformMesh::NodeIndex(1, 0), KisBezierTransformMesh::ControlType::Node);
 }
@@ -115,7 +118,7 @@ KisMeshTransformStrategy::~KisMeshTransformStrategy()
     PkObject::disconnect(m_d->recalculateConnection);
 }
 
-void KisMeshTransformStrategy::setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive)
+void KisMeshTransformStrategy::setTransformFunction(const PkPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive)
 {
     const qreal grabRadius = KisTransformUtils::effectiveHandleGrabRadius(m_d->converter);
 
@@ -123,7 +126,7 @@ void KisMeshTransformStrategy::setTransformFunction(const QPointF &mousePos, boo
     boost::optional<KisBezierTransformMesh::ControlPointIndex> hoveredControl;
     boost::optional<KisBezierTransformMesh::PatchIndex> hoveredPatch;
     Private::Mode mode = Private::NOTHING;
-    QPointF localPatchPos;
+    PkPointF localPatchPos;
     qreal localSegmentPos = 0.0;
 
     const bool symmetricalMode = shiftModifierActive ^ m_d->currentArgs.meshSymmetricalHandles();
@@ -219,7 +222,7 @@ void KisMeshTransformStrategy::setTransformFunction(const QPointF &mousePos, boo
         m_d->hoveredPatch = hoveredPatch;
 
         m_d->mode = mode;
-        Q_EMIT requestCanvasUpdate();
+        requestCanvasUpdate();
     }
 
     m_d->localPatchPosition = localPatchPos;
@@ -232,13 +235,13 @@ void KisMeshTransformStrategy::setTransformFunction(const QPointF &mousePos, boo
             m_d->currentArgs.meshTransform()->find(*hoveredSegment);
         m_d->hoveredHandleOffset = segmentIt.pointAtParam(m_d->localSegmentPosition) - mousePos;
     } else {
-        m_d->hoveredHandleOffset = QPointF();
+        m_d->hoveredHandleOffset = PkPointF();
     }
 
     verifyExpectedMeshSize();
 }
 
-QPointF KisMeshTransformStrategy::handleSnapPoint(const QPointF &imagePos)
+PkPointF KisMeshTransformStrategy::handleSnapPoint(const PkPointF &imagePos)
 {
     return imagePos + m_d->hoveredHandleOffset;
 }
@@ -252,7 +255,7 @@ void KisMeshTransformStrategy::verifyExpectedMeshSize()
 {
     bool shouldUpdate = false;
 
-    const QSize currentMeshSize = m_d->currentArgs.meshTransform()->size();
+    const PkSize currentMeshSize = m_d->currentArgs.meshTransform()->size();
     if (currentMeshSize != m_d->lastMeshSize) {
         m_d->selectedNodes.clear();
         shouldUpdate = true;
@@ -260,11 +263,11 @@ void KisMeshTransformStrategy::verifyExpectedMeshSize()
     m_d->lastMeshSize = currentMeshSize;
 
     if (shouldUpdate) {
-        Q_EMIT requestCanvasUpdate();
+        requestCanvasUpdate();
     }
 }
 
-void KisMeshTransformStrategy::paint(QPainter &gc)
+void KisMeshTransformStrategy::paint(TransformToolPainter &gc)
 {
     gc.save();
 
@@ -277,19 +280,19 @@ void KisMeshTransformStrategy::paint(QPainter &gc)
     gc.save();
     gc.setTransform(KisTransformUtils::imageToFlakeTransform(m_d->converter), true);
 
-    KisHandlePainterHelper handlePainter(&gc, 0.5 * KisTransformUtils::handleRadius, decorationThickness());
+    TransformToolHandlePainter handlePainter(gc, 0.5 * KisTransformUtils::handleRadius, decorationThickness());
 
     for (auto it = m_d->currentArgs.meshTransform()->beginSegments();
          it != m_d->currentArgs.meshTransform()->endSegments();
          ++it) {
 
         if (m_d->hoveredSegment && it.segmentIndex() == *m_d->hoveredSegment) {
-            handlePainter.setHandleStyle(KisHandleStyle::highlightedPrimaryHandlesWithSolidOutline());
+            handlePainter.setHandleStyle(TransformHandleStyle::HighlightedPrimaryHandlesWithSolidOutline);
         } else {
-            handlePainter.setHandleStyle(KisHandleStyle::primarySelection());
+            handlePainter.setHandleStyle(TransformHandleStyle::PrimarySelection);
         }
 
-        QPainterPath path;
+        PkPainterPath path;
         path.moveTo(it.p0());
         path.cubicTo(it.p1(), it.p2(), it.p3());
 
@@ -309,15 +312,15 @@ void KisMeshTransformStrategy::paint(QPainter &gc)
 
         if (m_d->hoveredControl && *m_d->hoveredControl == it.controlIndex()) {
 
-            handlePainter.setHandleStyle(KisHandleStyle::highlightedPrimaryHandles());
+            handlePainter.setHandleStyle(TransformHandleStyle::HighlightedPrimaryHandles);
 
         } else if (it.type() == KisBezierTransformMesh::ControlType::Node &&
                    m_d->selectedNodes.contains(it.nodeIndex())) {
 
-            handlePainter.setHandleStyle(KisHandleStyle::selectedPrimaryHandles());
+            handlePainter.setHandleStyle(TransformHandleStyle::SelectedPrimaryHandles);
 
         } else {
-            handlePainter.setHandleStyle(KisHandleStyle::primarySelection());
+            handlePainter.setHandleStyle(TransformHandleStyle::PrimarySelection);
         }
 
         if (it.type() == KisBezierTransformMesh::ControlType::Node) {
@@ -331,56 +334,56 @@ void KisMeshTransformStrategy::paint(QPainter &gc)
     gc.restore();
 }
 
-QCursor KisMeshTransformStrategy::getCurrentCursor() const
+TransformCursorDescriptor KisMeshTransformStrategy::getCurrentCursor() const
 {
-    QCursor cursor;
+    TransformCursorDescriptor cursor;
 
     switch (m_d->mode) {
     case Private::OVER_NODE:
     case Private::OVER_POINT:
     case Private::OVER_SEGMENT:
-        cursor = Qt::PointingHandCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::PointingHand};
         break;
     case Private::OVER_NODE_WHOLE_LINE:
     case Private::OVER_POINT_SYMMETRIC:
     case Private::OVER_SEGMENT_SYMMETRIC:
     case Private::OVER_PATCH:
     case Private::OVER_PATCH_LOCKED:
-        cursor = Qt::CrossCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Cross};
         break;
     case Private::SPLIT_SEGMENT: {
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->hoveredSegment || m_d->hoveredControl,
-                                             Qt::ArrowCursor);
+                                             TransformCursorDescriptor{TransformCursorKind::Arrow});
 
         if (m_d->hoveredControl) {
             auto it = m_d->currentArgs.meshTransform()->find(*m_d->hoveredControl);
             cursor = it.isTopBorder() || it.isBottomBorder() ?
-                Qt::SplitHCursor : Qt::SplitVCursor;
+                TransformCursorDescriptor{TransformCursorKind::SplitHorizontal} : TransformCursorDescriptor{TransformCursorKind::SplitVertical};
 
         } else if (m_d->hoveredSegment) {
             auto it = m_d->currentArgs.meshTransform()->find(*m_d->hoveredSegment);
 
-            const QRectF segmentRect(it.p0(), it.p3());
+            const PkRectF segmentRect(it.p0(), it.p3());
             cursor = segmentRect.width() > segmentRect.height() ?
-                Qt::SplitHCursor : Qt::SplitVCursor;
+                TransformCursorDescriptor{TransformCursorKind::SplitHorizontal} : TransformCursorDescriptor{TransformCursorKind::SplitVertical};
         }
 
         break;
     }
     case Private::MULTIPLE_POINT_SELECTION:
-        cursor = Qt::CrossCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Cross};
         break;
     case Private::MOVE_MODE:
-        cursor = Qt::SizeAllCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::SizeAll};
         break;
     case Private::ROTATE_MODE:
-        cursor = Qt::CrossCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Cross};
         break;
     case Private::SCALE_MODE:
-        cursor = Qt::SizeVerCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::SizeVertical};
         break;
     case Private::NOTHING:
-        cursor = Qt::ArrowCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Arrow};
         break;
     }
 
@@ -393,7 +396,7 @@ void KisMeshTransformStrategy::externalConfigChanged()
     m_d->recalculateTransformations();
 }
 
-bool KisMeshTransformStrategy::splitHoveredSegment(const QPointF &pt)
+bool KisMeshTransformStrategy::splitHoveredSegment(const PkPointF &pt)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->hoveredSegment || m_d->hoveredControl, false);
 
@@ -410,8 +413,8 @@ bool KisMeshTransformStrategy::splitHoveredSegment(const QPointF &pt)
              &resultSegment,
              &resultDistance,
              &resultRemovedNodeIndex] (const KisBezierTransformMesh::segment_iterator &segment,
-                               const QPoint &removedNodeOffset,
-                               const QPointF &pt,
+                               const PkPoint &removedNodeOffset,
+                               const PkPointF &pt,
                                KisBezierTransformMesh &mesh)
         {
             if (segment != mesh.endSegments()) {
@@ -430,11 +433,11 @@ bool KisMeshTransformStrategy::splitHoveredSegment(const QPointF &pt)
 
 
         if (it.isTopBorder() || it.isBottomBorder()) {
-            estimateSegment(it.leftSegment(), QPoint(2, 0), pt, *m_d->currentArgs.meshTransform());
-            estimateSegment(it.rightSegment(), QPoint(0, 0), pt, *m_d->currentArgs.meshTransform());
+            estimateSegment(it.leftSegment(), PkPoint(2, 0), pt, *m_d->currentArgs.meshTransform());
+            estimateSegment(it.rightSegment(), PkPoint(0, 0), pt, *m_d->currentArgs.meshTransform());
         } else {
-            estimateSegment(it.topSegment(), QPoint(0, 2), pt, *m_d->currentArgs.meshTransform());
-            estimateSegment(it.bottomSegment(), QPoint(0, 0), pt, *m_d->currentArgs.meshTransform());
+            estimateSegment(it.topSegment(), PkPoint(0, 2), pt, *m_d->currentArgs.meshTransform());
+            estimateSegment(it.bottomSegment(), PkPoint(0, 0), pt, *m_d->currentArgs.meshTransform());
         }
 
         if (resultSegment != m_d->currentArgs.meshTransform()->endSegments()) {
@@ -479,14 +482,14 @@ bool KisMeshTransformStrategy::shouldDeleteNode(qreal distance, qreal param)
 
 }
 
-bool KisMeshTransformStrategy::beginPrimaryAction(const QPointF &pt)
+bool KisMeshTransformStrategy::beginPrimaryAction(const PkPointF &pt)
 {
     // retval shows if the stroke may have a continuation
     bool retval = false;
 
     m_d->mouseClickPos = pt;
 
-    QRectF selectionBounds;
+    PkRectF selectionBounds;
 
     if (m_d->selectedNodes.size() > 1) {
         for (auto it = m_d->selectedNodes.begin(); it != m_d->selectedNodes.end(); ++it) {
@@ -512,7 +515,7 @@ bool KisMeshTransformStrategy::beginPrimaryAction(const QPointF &pt)
             !m_d->selectedNodes.contains(m_d->hoveredControl->nodeIndex)) {
 
             m_d->selectedNodes.clear();
-            m_d->selectedNodes << m_d->hoveredControl->nodeIndex;
+            m_d->selectedNodes.insert(m_d->hoveredControl->nodeIndex);
         }
 
         retval = true;
@@ -523,11 +526,11 @@ bool KisMeshTransformStrategy::beginPrimaryAction(const QPointF &pt)
 
         if (it.isTopBorder() || it.isBottomBorder()) {
             for (int i = 0; i < m_d->currentArgs.meshTransform()->size().height(); i++) {
-                m_d->selectedNodes << KisBezierTransformMesh::NodeIndex(m_d->hoveredControl->nodeIndex.x(), i);
+                m_d->selectedNodes.insert(KisBezierTransformMesh::NodeIndex(m_d->hoveredControl->nodeIndex.x(), i));
             }
         } else {
             for (int i = 0; i < m_d->currentArgs.meshTransform()->size().width(); i++) {
-                m_d->selectedNodes << KisBezierTransformMesh::NodeIndex(i, m_d->hoveredControl->nodeIndex.y());
+                m_d->selectedNodes.insert(KisBezierTransformMesh::NodeIndex(i, m_d->hoveredControl->nodeIndex.y()));
             }
         }
         retval = true;
@@ -578,10 +581,10 @@ bool KisMeshTransformStrategy::beginPrimaryAction(const QPointF &pt)
     return retval;
 }
 
-void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shiftModifierActive, bool altModifierActive)
+void KisMeshTransformStrategy::continuePrimaryAction(const PkPointF &pt, bool shiftModifierActive, bool altModifierActive)
 {
-    Q_UNUSED(shiftModifierActive);
-    Q_UNUSED(altModifierActive);
+    (void)shiftModifierActive;
+    (void)altModifierActive;
 
     if (m_d->mode == Private::OVER_POINT ||
         m_d->mode == Private::OVER_POINT_SYMMETRIC ||
@@ -609,10 +612,10 @@ void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
         //       function for that in KisBezierUtils::interpolateQuadric(), but
         //       it seems like not working properly.
 
-        const QPointF offset = pt - m_d->lastMousePos;
+        const PkPointF offset = pt - m_d->lastMousePos;
 
-        QPointF offsetP1;
-        QPointF offsetP2;
+        PkPointF offsetP1;
+        PkPointF offsetP2;
 
         std::tie(offsetP1, offsetP2) =
             KisBezierUtils::offsetSegment(m_d->localSegmentPosition, offset);
@@ -636,15 +639,15 @@ void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
 
         auto patchIt = m_d->currentArgs.meshTransform()->find(*m_d->hoveredPatch);
 
-        QPointF offset = pt - m_d->mouseClickPos;
+        PkPointF offset = pt - m_d->mouseClickPos;
 
         auto offsetSegment =
             [this] (KisBezierTransformMesh::segment_iterator it,
                     qreal t,
-                    const QPointF &offset) {
+                    const PkPointF &offset) {
 
-            QPointF offsetP1;
-            QPointF offsetP2;
+            PkPointF offsetP1;
+            PkPointF offsetP2;
 
             std::tie(offsetP1, offsetP2) =
                 KisBezierUtils::offsetSegment(t, offset);
@@ -655,7 +658,7 @@ void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
         };
 
 
-        const QPointF center = patchIt->localToGlobal(QPointF(0.5, 0.5));
+        const PkPointF center = patchIt->localToGlobal(PkPointF(0.5, 0.5));
         const qreal centerDistance = kisDistance(m_d->mouseClickPos, center);
 
         KisBezierTransformMesh::segment_iterator nearestSegment = mesh.endSegments();
@@ -673,7 +676,7 @@ void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
                  centerDistance,
                  this] (KisBezierTransformMesh::segment_iterator it, qreal param) {
 
-            const QPointF movedPoint = KisBezierUtils::bezierCurve(it.p0(), it.p1(), it.p2(), it.p3(), param);
+            const PkPointF movedPoint = KisBezierUtils::bezierCurve(it.p0(), it.p1(), it.p2(), it.p3(), param);
             const qreal distance = kisDistance(m_d->mouseClickPos, movedPoint);
 
             if (distance < nearestSegmentDistance) {
@@ -709,10 +712,10 @@ void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
                    linearReshapeFunc(1.0 - nearestSegmentDistanceSignificance,
                                      0.95, 0.75, 1.0, 0.0),
                    1.0);
-        const QPointF translationOffset = translationOffsetCoeff * offset;
+        const PkPointF translationOffset = translationOffsetCoeff * offset;
         offset -= translationOffset;
 
-        QPointF segmentOffset;
+        PkPointF segmentOffset;
 
         if (nearestSegmentSignificance > 0) {
             segmentOffset = nearestSegmentSignificance * offset;
@@ -747,7 +750,7 @@ void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
         KIS_SAFE_ASSERT_RECOVER_NOOP(sanitySplitResult);
 
     } else if (m_d->mode == Private::MOVE_MODE || m_d->mode == Private::OVER_NODE_WHOLE_LINE) {
-        const QPointF offset = pt - m_d->lastMousePos;
+        const PkPointF offset = pt - m_d->lastMousePos;
         if (m_d->selectedNodes.size() > 1) {
             for (auto it = m_d->selectedNodes.begin(); it != m_d->selectedNodes.end(); ++it) {
                 m_d->currentArgs.meshTransform()->node(*it).translate(offset);
@@ -759,10 +762,10 @@ void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
         const qreal scale = 1.0 - (pt - m_d->lastMousePos).y() / m_d->initialSelectionMaxDimension;
 
 
-        const QTransform t =
-            QTransform::fromTranslate(-m_d->initialRotationCenter.x(), -m_d->initialRotationCenter.y()) *
-            QTransform::fromScale(scale, scale) *
-            QTransform::fromTranslate(m_d->initialRotationCenter.x(), m_d->initialRotationCenter.y());
+        const PkTransform t =
+            PkTransform::fromTranslate(-m_d->initialRotationCenter.x(), -m_d->initialRotationCenter.y()) *
+            PkTransform::fromScale(scale, scale) *
+            PkTransform::fromTranslate(m_d->initialRotationCenter.x(), m_d->initialRotationCenter.y());
 
         if (m_d->selectedNodes.size() > 1) {
             for (auto it = m_d->selectedNodes.begin(); it != m_d->selectedNodes.end(); ++it) {
@@ -773,17 +776,17 @@ void KisMeshTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
         }
 
     } else if (m_d->mode == Private::ROTATE_MODE) {
-        const QPointF oldDirection = m_d->lastMousePos - m_d->initialRotationCenter;
-        const QPointF newDirection = pt - m_d->initialRotationCenter;
+        const PkPointF oldDirection = m_d->lastMousePos - m_d->initialRotationCenter;
+        const PkPointF newDirection = pt - m_d->initialRotationCenter;
         const qreal rotateAngle = KisAlgebra2D::angleBetweenVectors(oldDirection, newDirection);
 
-        QTransform R;
+        PkTransform R;
         R.rotateRadians(rotateAngle);
 
-        const QTransform t =
-            QTransform::fromTranslate(-m_d->initialRotationCenter.x(), -m_d->initialRotationCenter.y()) *
+        const PkTransform t =
+            PkTransform::fromTranslate(-m_d->initialRotationCenter.x(), -m_d->initialRotationCenter.y()) *
             R *
-            QTransform::fromTranslate(m_d->initialRotationCenter.x(), m_d->initialRotationCenter.y());
+            PkTransform::fromTranslate(m_d->initialRotationCenter.x(), m_d->initialRotationCenter.y());
 
         if (m_d->selectedNodes.size() > 1) {
             for (auto it = m_d->selectedNodes.begin(); it != m_d->selectedNodes.end(); ++it) {
@@ -808,7 +811,7 @@ bool KisMeshTransformStrategy::acceptsClicks() const
     return m_d->mode == Private::SPLIT_SEGMENT;
 }
 
-QTransform KisMeshTransformStrategy::Private::imageToThumb(bool useFlakeOptimization)
+PkTransform KisMeshTransformStrategy::Private::imageToThumb(bool useFlakeOptimization)
 {
     return useFlakeOptimization ?
         converter->documentToFlakeTransform() * converter->imageToDocumentTransform() :
@@ -817,15 +820,15 @@ QTransform KisMeshTransformStrategy::Private::imageToThumb(bool useFlakeOptimiza
 
 void KisMeshTransformStrategy::Private::recalculateTransformations()
 {
-    const QTransform scaleTransform = KisTransformUtils::imageToFlakeTransform(converter);
+    const PkTransform scaleTransform = KisTransformUtils::imageToFlakeTransform(converter);
 
-    const QTransform resultThumbTransform = q->thumbToImageTransform() * scaleTransform;
+    const PkTransform resultThumbTransform = q->thumbToImageTransform() * scaleTransform;
     const qreal scale = KisTransformUtils::scaleFromAffineMatrix(resultThumbTransform);
     const bool useFlakeOptimization = scale < 1.0 &&
         !KisTransformUtils::thumbnailTooSmall(resultThumbTransform, q->originalImage().rect());
 
-    const QTransform imageToThumb = this->imageToThumb(useFlakeOptimization);
-    KIS_SAFE_ASSERT_RECOVER_RETURN(imageToThumb.type() <= QTransform::TxScale);
+    const PkTransform imageToThumb = this->imageToThumb(useFlakeOptimization);
+    KIS_SAFE_ASSERT_RECOVER_RETURN(imageToThumb.type() <= PkTransform::TxScale);
 
     KisBezierTransformMesh mesh(*currentArgs.meshTransform());
     mesh.transformSrcAndDst(imageToThumb);
@@ -833,18 +836,18 @@ void KisMeshTransformStrategy::Private::recalculateTransformations()
     paintingOffset = transaction.originalTopLeft();
 
     if (!q->originalImage().isNull()) {
-        const QPointF origTLInFlake = imageToThumb.map(transaction.originalTopLeft());
+        const PkPointF origTLInFlake = imageToThumb.map(transaction.originalTopLeft());
         if (useFlakeOptimization) {
             transformedImage = q->originalImage().transformed(resultThumbTransform);
-            paintingTransform = QTransform();
+            paintingTransform = PkTransform();
         } else {
             transformedImage = q->originalImage();
             paintingTransform = resultThumbTransform;
 
         }
 
-        const QRect dstImageRect = mesh.dstBoundingRect().toAlignedRect();
-        QImage dstImage(dstImageRect.size(), transformedImage.format());
+        const PkRect dstImageRect = mesh.dstBoundingRect().toAlignedRect();
+        PkImage dstImage(dstImageRect.size(), transformedImage.format());
         dstImage.fill(0);
 
         mesh.transformMesh(origTLInFlake.toPoint(), transformedImage,
@@ -859,8 +862,6 @@ void KisMeshTransformStrategy::Private::recalculateTransformations()
         paintingTransform = resultThumbTransform;
     }
 
-    Q_EMIT q->requestCanvasUpdate();
-    Q_EMIT q->requestImageRecalculation();
+    q->requestCanvasUpdate();
+    q->requestImageRecalculation();
 }
-
-#include "moc_kis_mesh_transform_strategy.cpp"

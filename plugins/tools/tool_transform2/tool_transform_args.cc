@@ -8,22 +8,21 @@
 
 #include "tool_transform_args.h"
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 
-#include <ksharedconfig.h>
-#include <kconfig.h>
-#include <kconfiggroup.h>
+#include <PkSharedConfig.h>
+#include <PkConfigGroup.h>
 
 #include "kis_liquify_transform_worker.h"
 #include "kis_dom_utils.h"
-#include <QMatrix4x4>
+#include <PkMatrix4x4.h>
 
 
 ToolTransformArgs::ToolTransformArgs()
     : m_liquifyProperties(new KisLiquifyProperties())
 {
-    KConfigGroup configGroup =  KSharedConfig::openConfig()->group("KisToolTransform");
-    QString savedFilterId = configGroup.readEntry("filterId", "Bicubic");
+    PkConfigGroup configGroup =  PkSharedConfig::openConfig()->group("KisToolTransform");
+    PkString savedFilterId = configGroup.readEntry("filterId", "Bicubic");
     setFilterId(savedFilterId);
     m_transformAroundRotationCenter = configGroup.readEntry("transformAroundRotationCenter", "0").toInt();
     m_meshShowHandles = configGroup.readEntry("meshShowHandles", true);
@@ -31,11 +30,11 @@ ToolTransformArgs::ToolTransformArgs()
     m_meshScaleHandles = configGroup.readEntry("meshScaleHandles", false);
 }
 
-void ToolTransformArgs::setFilterId(const QString &id) {
+void ToolTransformArgs::setFilterId(const PkString &id) {
     m_filter = KisFilterStrategyRegistry::instance()->value(id);
 
     if (m_filter) {
-        KConfigGroup configGroup =  KSharedConfig::openConfig()->group("KisToolTransform");
+        PkConfigGroup configGroup =  PkSharedConfig::openConfig()->group("KisToolTransform");
         configGroup.writeEntry("filterId", id);
     }
 }
@@ -44,7 +43,7 @@ void ToolTransformArgs::setTransformAroundRotationCenter(bool value)
 {
     m_transformAroundRotationCenter = value;
 
-    KConfigGroup configGroup =  KSharedConfig::openConfig()->group("KisToolTransform");
+    PkConfigGroup configGroup =  PkSharedConfig::openConfig()->group("KisToolTransform");
     configGroup.writeEntry("transformAroundRotationCenter", int(value));
 }
 
@@ -98,7 +97,7 @@ void ToolTransformArgs::setMeshScaleHandles(bool meshScaleHandles)
 {
     m_meshScaleHandles = meshScaleHandles;
 
-    KConfigGroup configGroup =  KSharedConfig::openConfig()->group("KisToolTransform");
+    PkConfigGroup configGroup =  PkSharedConfig::openConfig()->group("KisToolTransform");
     configGroup.writeEntry("meshScaleHandles", meshScaleHandles);
 }
 
@@ -227,9 +226,9 @@ bool ToolTransformArgs::isSameMode(const ToolTransformArgs& other) const
 }
 
 ToolTransformArgs::ToolTransformArgs(TransformMode mode,
-                                     QPointF transformedCenter,
-                                     QPointF originalCenter,
-                                     QPointF rotationCenterOffset,
+                                     PkPointF transformedCenter,
+                                     PkPointF originalCenter,
+                                     PkPointF rotationCenterOffset,
                                      bool transformAroundRotationCenter,
                                      double aX, double aY, double aZ,
                                      double scaleX, double scaleY,
@@ -238,13 +237,13 @@ ToolTransformArgs::ToolTransformArgs(TransformMode mode,
                                      KisWarpTransformWorker::WarpType warpType,
                                      double alpha,
                                      bool defaultPoints,
-                                     const QString &filterId,
+                                     const PkString &filterId,
                                      int pixelPrecision, int previewPixelPrecision,
                                      KisPaintDeviceSP externalSource)
     : m_mode(mode)
     , m_defaultPoints(defaultPoints)
-    , m_origPoints {QVector<QPointF>()}
-    , m_transfPoints {QVector<QPointF>()}
+    , m_origPoints {PkVector<PkPointF>()}
+    , m_transfPoints {PkVector<PkPointF>()}
     , m_warpType(warpType)
     , m_alpha(alpha)
     , m_transformedCenter(transformedCenter)
@@ -273,18 +272,18 @@ ToolTransformArgs::~ToolTransformArgs()
     clear();
 }
 
-void ToolTransformArgs::translateSrcAndDst(const QPointF &offset)
+void ToolTransformArgs::translateSrcAndDst(const PkPointF &offset)
 {
-    transformSrcAndDst(QTransform::fromTranslate(offset.x(), offset.y()));
+    transformSrcAndDst(PkTransform::fromTranslate(offset.x(), offset.y()));
 }
 
-void ToolTransformArgs::transformSrcAndDst(const QTransform &t)
+void ToolTransformArgs::transformSrcAndDst(const PkTransform &t)
 {
     if (m_mode == FREE_TRANSFORM ) {
         m_originalCenter = t.map(m_originalCenter);
         m_transformedCenter = t.map(m_transformedCenter);
 
-        QMatrix4x4 m(t);
+        PkMatrix4x4 m(t);
         m_cameraPos = m.map(m_cameraPos);
     } else if (m_mode == PERSPECTIVE_4POINT) {
         m_originalCenter = t.map(m_originalCenter);
@@ -310,7 +309,7 @@ void ToolTransformArgs::transformSrcAndDst(const QTransform &t)
     }
 }
 
-void ToolTransformArgs::translateDstSpace(const QPointF &offset)
+void ToolTransformArgs::translateDstSpace(const PkPointF &offset)
 {
     if (m_mode == FREE_TRANSFORM || m_mode == PERSPECTIVE_4POINT) {
         m_transformedCenter += offset;
@@ -359,7 +358,7 @@ bool ToolTransformArgs::isUnchanging() const
     return !m_externalSource && isIdentity();
 }
 
-void ToolTransformArgs::initLiquifyTransformMode(const QRect &srcRect)
+void ToolTransformArgs::initLiquifyTransformMode(const PkRect &srcRect)
 {
     m_liquifyWorker.reset(new KisLiquifyTransformWorker(srcRect, 0, 8));
     m_liquifyProperties->loadAndResetMode();
@@ -370,15 +369,15 @@ void ToolTransformArgs::saveLiquifyTransformMode() const
     m_liquifyProperties->saveMode();
 }
 
-void ToolTransformArgs::toXML(QDomElement *e) const
+void ToolTransformArgs::toXML(PkXmlElement *e) const
 {
-    e->setAttribute("mode", (int) m_mode);
+    e->setAttribute("mode", PkString("%1").arg(static_cast<int>(m_mode)));
 
-    QDomDocument doc = e->ownerDocument();
+    PkXmlDocument doc = e->ownerDocument();
 
     if (m_mode == FREE_TRANSFORM || m_mode == PERSPECTIVE_4POINT) {
 
-        QDomElement freeEl = doc.createElement("free_transform");
+        PkXmlElement freeEl = doc.createElement("free_transform");
         e->appendChild(freeEl);
 
         KisDomUtils::saveValue(&freeEl, "transformedCenter", m_transformedCenter);
@@ -407,7 +406,7 @@ void ToolTransformArgs::toXML(QDomElement *e) const
         KisDomUtils::saveValue(&freeEl, "filterId", m_filter->id());
 
     } else if (m_mode == WARP || m_mode == CAGE) {
-        QDomElement warpEl = doc.createElement("warp_transform");
+        PkXmlElement warpEl = doc.createElement("warp_transform");
         e->appendChild(warpEl);
 
         KisDomUtils::saveValue(&warpEl, "defaultPoints", m_defaultPoints);
@@ -423,13 +422,13 @@ void ToolTransformArgs::toXML(QDomElement *e) const
         }
 
     } else if (m_mode == LIQUIFY) {
-        QDomElement liqEl = doc.createElement("liquify_transform");
+        PkXmlElement liqEl = doc.createElement("liquify_transform");
         e->appendChild(liqEl);
 
         m_liquifyProperties->toXML(&liqEl);
         m_liquifyWorker->toXML(&liqEl);
     } else if (m_mode == MESH) {
-        QDomElement meshEl = doc.createElement("mesh_transform");
+        PkXmlElement meshEl = doc.createElement("mesh_transform");
         e->appendChild(meshEl);
 
         KisDomUtils::saveValue(&meshEl, "mesh", m_meshTransform);
@@ -440,7 +439,7 @@ void ToolTransformArgs::toXML(QDomElement *e) const
     // m_editTransformPoints should not be saved since it is reset explicitly
 }
 
-ToolTransformArgs ToolTransformArgs::fromXML(const QDomElement &e)
+ToolTransformArgs ToolTransformArgs::fromXML(const PkXmlElement &e)
 {
     ToolTransformArgs args;
 
@@ -456,9 +455,9 @@ ToolTransformArgs ToolTransformArgs::fromXML(const QDomElement &e)
 
     if (args.m_mode == FREE_TRANSFORM || args.m_mode == PERSPECTIVE_4POINT) {
 
-        QDomElement freeEl;
+        PkXmlElement freeEl;
 
-        QString filterId;
+        PkString filterId;
 
         result =
             KisDomUtils::findOnlyElement(e, "free_transform", &freeEl) &&
@@ -500,7 +499,7 @@ ToolTransformArgs ToolTransformArgs::fromXML(const QDomElement &e)
         }
 
     } else if (args.m_mode == WARP || args.m_mode == CAGE) {
-        QDomElement warpEl;
+        PkXmlElement warpEl;
 
         int warpType = 0;
 
@@ -531,7 +530,7 @@ ToolTransformArgs ToolTransformArgs::fromXML(const QDomElement &e)
         }
 
     } else if (args.m_mode == LIQUIFY) {
-        QDomElement liquifyEl;
+        PkXmlElement liquifyEl;
 
         result =
             KisDomUtils::findOnlyElement(e, "liquify_transform", &liquifyEl);
@@ -539,7 +538,7 @@ ToolTransformArgs ToolTransformArgs::fromXML(const QDomElement &e)
         *args.m_liquifyProperties = KisLiquifyProperties::fromXML(e);
         args.m_liquifyWorker.reset(KisLiquifyTransformWorker::fromXML(e));
     } else if (args.m_mode == MESH) {
-        QDomElement meshEl;
+        PkXmlElement meshEl;
 
         result =
             KisDomUtils::findOnlyElement(e, "mesh_transform", &meshEl);
@@ -596,7 +595,7 @@ void ToolTransformArgs::setMeshShowHandles(bool value)
 {
     m_meshShowHandles = value;
 
-    KConfigGroup configGroup =  KSharedConfig::openConfig()->group("KisToolTransform");
+    PkConfigGroup configGroup =  PkSharedConfig::openConfig()->group("KisToolTransform");
     configGroup.writeEntry("meshShowHandles", value);
 }
 
@@ -609,21 +608,21 @@ void ToolTransformArgs::setMeshSymmetricalHandles(bool value)
 {
     m_meshSymmetricalHandles = value;
 
-    KConfigGroup configGroup =  KSharedConfig::openConfig()->group("KisToolTransform");
+    PkConfigGroup configGroup =  PkSharedConfig::openConfig()->group("KisToolTransform");
     configGroup.writeEntry("meshSymmetricalHandles", value);
 }
 
 void ToolTransformArgs::scale3dSrcAndDst(qreal scale)
 {
-    const QTransform t = QTransform::fromScale(scale, scale);
+    const PkTransform t = PkTransform::fromScale(scale, scale);
 
     if (m_mode == FREE_TRANSFORM ) {
         m_originalCenter = t.map(m_originalCenter);
         m_transformedCenter = t.map(m_transformedCenter);
 
         // we need to scale Z-coordinate of the camera pos as well,
-        // so we cannot just do `QMatrix4x4 m(t)`.
-        QMatrix4x4 m;
+        // so we cannot just do `PkMatrix4x4 m(t)`.
+        PkMatrix4x4 m;
         m.scale(scale);
         m_cameraPos = m.map(m_cameraPos);
     } else {

@@ -7,7 +7,7 @@
 #ifndef __KIS_TRANSFORM_MASK_ADAPTER_H
 #define __KIS_TRANSFORM_MASK_ADAPTER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include "kis_transform_mask_params_interface.h"
 #include "kritatooltransform_export.h"
 
@@ -21,7 +21,7 @@ public:
     KisTransformMaskAdapter(const ToolTransformArgs &args, bool isHidden = false, bool isInitialized = true);
     ~KisTransformMaskAdapter() override;
 
-    QTransform finalAffineTransform() const override;
+    PkTransform finalAffineTransform() const override;
     bool isAffine() const override;
 
     bool isInitialized() const;
@@ -31,23 +31,23 @@ public:
 
     void transformDevice(KisNodeSP node, KisPaintDeviceSP src, KisPaintDeviceSP dst, bool forceSubPixelTranslation) const override;
 
-    virtual const QSharedPointer<ToolTransformArgs> transformArgs() const;
+    virtual const PkSharedPointer<ToolTransformArgs> transformArgs() const;
     void setBaseArgs(const ToolTransformArgs& args);
 
-    QString id() const override;
-    void toXML(QDomElement *e) const override;
-    static KisTransformMaskParamsInterfaceSP fromXML(const QDomElement &e);
-    static KisTransformMaskParamsInterfaceSP fromDumbXML(const QDomElement &e);
+    PkString id() const override;
+    void toXML(PkXmlElement *e) const override;
+    static KisTransformMaskParamsInterfaceSP fromXML(const PkXmlElement &e);
+    static KisTransformMaskParamsInterfaceSP fromDumbXML(const PkXmlElement &e);
 
-    void translateSrcAndDst(const QPointF &offset) override;
-    void transformSrcAndDst(const QTransform &t) override;
-    void translateDstSpace(const QPointF &offset) override;
+    void translateSrcAndDst(const PkPointF &offset) override;
+    void transformSrcAndDst(const PkTransform &t) override;
+    void translateDstSpace(const PkPointF &offset) override;
 
 
-    QRect nonAffineChangeRect(const QRect &rc) override;
-    QRect nonAffineNeedRect(const QRect &rc, const QRect &srcBounds) override;
+    PkRect nonAffineChangeRect(const PkRect &rc) override;
+    PkRect nonAffineNeedRect(const PkRect &rc, const PkRect &srcBounds) override;
 
-    KisKeyframeChannel *getKeyframeChannel(const QString &id, KisDefaultBoundsBaseSP defaultBounds);
+    KisKeyframeChannel *getKeyframeChannel(const PkString &id, KisDefaultBoundsBaseSP defaultBounds);
 
     KisTransformMaskParamsInterfaceSP clone() const override;
 
@@ -55,7 +55,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_TRANSFORM_MASK_ADAPTER_H */

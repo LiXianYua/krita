@@ -8,9 +8,9 @@
 
 #include <algorithm>
 
-#include <QPointF>
-#include <QPainter>
-#include <QPainterPath>
+#include <PkPoint.h>
+#include <PkPainter.h>
+#include <PkPainterPath.h>
 
 #include "kis_coordinates_converter.h"
 #include "tool_transform_args.h"
@@ -18,7 +18,7 @@
 #include "kis_painting_tweaks.h"
 #include "kis_transform_utils.h"
 #include "kis_algebra_2d.h"
-#include "KisHandlePainterHelper.h"
+#include "TransformToolPlatform.h"
 #include "kis_signal_compressor.h"
 
 
@@ -48,14 +48,14 @@ struct KisWarpTransformStrategy::Private
     //////
     TransformTransactionProperties &transaction;
 
-    QTransform paintingTransform;
-    QPointF paintingOffset;
+    PkTransform paintingTransform;
+    PkPointF paintingOffset;
 
-    QTransform handlesTransform;
+    PkTransform handlesTransform;
 
     /// custom members ///
 
-    QImage transformedImage;
+    PkImage transformedImage;
 
     int pointIndexUnderCursor {0};
 
@@ -69,7 +69,7 @@ struct KisWarpTransformStrategy::Private
     };
     Mode mode {NOTHING};
 
-    QVector<int> pointsInAction;
+    PkVector<int> pointsInAction;
     int lastNumPoints {0};
 
     bool drawConnectionLines {false}; // useful while developing
@@ -77,10 +77,10 @@ struct KisWarpTransformStrategy::Private
     bool drawTransfPoints {true};
     bool closeOnStartPointClick {false};
     bool clipOriginalPointsPosition {true};
-    QPointF pointPosOnClick;
+    PkPointF pointPosOnClick;
     bool pointWasDragged {false};
 
-    QPointF lastMousePos;
+    PkPointF lastMousePos;
 
     // cage transform also uses this logic. This helps this class know what transform type we are using
     TransformType transformType = TransformType::WARP_TRANSFORM;
@@ -88,10 +88,10 @@ struct KisWarpTransformStrategy::Private
     PkConnection recalculateConnection;
 
     void recalculateTransformations();
-    inline QPointF imageToThumb(const QPointF &pt, bool useFlakeOptimization);
+    inline PkPointF imageToThumb(const PkPointF &pt, bool useFlakeOptimization);
 
     bool shouldCloseTheCage() const;
-    QVector<QPointF*> getSelectedPoints(QPointF *center, bool limitToSelectedOnly = false) const;
+    PkVector<PkPointF*> getSelectedPoints(PkPointF *center, bool limitToSelectedOnly = false) const;
 };
 
 KisWarpTransformStrategy::KisWarpTransformStrategy(const KisCoordinatesConverter *converter,
@@ -113,10 +113,10 @@ KisWarpTransformStrategy::~KisWarpTransformStrategy()
     PkObject::disconnect(m_d->recalculateConnection);
 }
 
-void KisWarpTransformStrategy::setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive)
+void KisWarpTransformStrategy::setTransformFunction(const PkPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive)
 {
-    Q_UNUSED(shiftModifierActive);
-    Q_UNUSED(altModifierActive);
+    (void)shiftModifierActive;
+    (void)altModifierActive;
 
     const double handleRadius = KisTransformUtils::effectiveHandleGrabRadius(m_d->converter);
 
@@ -126,7 +126,7 @@ void KisWarpTransformStrategy::setTransformFunction(const QPointF &mousePos, boo
     KisTransformUtils::HandleChooser<Private::Mode>
         handleChooser(mousePos, Private::NOTHING);
 
-    const QVector<QPointF> &points = m_d->currentArgs.transfPoints();
+    const PkVector<PkPointF> &points = m_d->currentArgs.transfPoints();
     for (int i = 0; i < points.size(); ++i) {
         if (handleChooser.addFunction(points[i],
                                       handleRadius, Private::NOTHING)) {
@@ -142,7 +142,7 @@ void KisWarpTransformStrategy::setTransformFunction(const QPointF &mousePos, boo
             Private::MULTIPLE_POINT_SELECTION : Private::OVER_POINT;
 
     } else if (!m_d->currentArgs.isEditingTransformPoints()) {
-        QPolygonF polygon(m_d->currentArgs.transfPoints());
+        PkPolygonF polygon(m_d->currentArgs.transfPoints());
         bool insidePolygon = polygon.boundingRect().contains(mousePos);
         m_d->mode = insidePolygon ? Private::MOVE_MODE :
             !perspectiveModifierActive ? Private::ROTATE_MODE :
@@ -152,28 +152,28 @@ void KisWarpTransformStrategy::setTransformFunction(const QPointF &mousePos, boo
     }
 }
 
-QCursor KisWarpTransformStrategy::getCurrentCursor() const
+TransformCursorDescriptor KisWarpTransformStrategy::getCurrentCursor() const
 {
-    QCursor cursor;
+    TransformCursorDescriptor cursor;
 
     switch (m_d->mode) {
     case Private::OVER_POINT:
-        cursor = Qt::PointingHandCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::PointingHand};
         break;
     case Private::MULTIPLE_POINT_SELECTION:
-        cursor = Qt::CrossCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Cross};
         break;
     case Private::MOVE_MODE:
-        cursor = Qt::SizeAllCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::SizeAll};
         break;
     case Private::ROTATE_MODE:
-        cursor = Qt::CrossCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Cross};
         break;
     case Private::SCALE_MODE:
-        cursor = Qt::SizeVerCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::SizeVertical};
         break;
     case Private::NOTHING:
-        cursor = Qt::ArrowCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Arrow};
         break;
     }
 
@@ -203,15 +203,15 @@ void KisWarpTransformStrategy::setTransformType(TransformType type) {
     m_d->transformType = type;
 }
 
-void KisWarpTransformStrategy::drawConnectionLines(QPainter &gc,
-                                                   const QVector<QPointF> &origPoints,
-                                                   const QVector<QPointF> &transfPoints,
+void KisWarpTransformStrategy::drawConnectionLines(PkPainter &gc,
+                                                   const PkVector<PkPointF> &origPoints,
+                                                   const PkVector<PkPointF> &transfPoints,
                                                    bool isEditingPoints)
 {
-    Q_UNUSED(isEditingPoints);
+    (void)isEditingPoints;
 
-    QPen antsPen;
-    QPen outlinePen;
+    PkPen antsPen;
+    PkPen outlinePen;
 
     KisPaintingTweaks::initAntsPen(&antsPen, &outlinePen);
     antsPen.setWidth(decorationThickness());
@@ -227,7 +227,7 @@ void KisWarpTransformStrategy::drawConnectionLines(QPainter &gc,
     }
 }
 
-void KisWarpTransformStrategy::paint(QPainter &gc)
+void KisWarpTransformStrategy::paint(TransformToolPainter &gc)
 {
     // Draw preview image
 
@@ -253,10 +253,10 @@ void KisWarpTransformStrategy::paint(QPainter &gc)
     }
 
 
-    QPen mainPen(Qt::black);
+    PkPen mainPen(Qt::black);
     mainPen.setCosmetic(true);
     mainPen.setWidth(decorationThickness());
-    QPen outlinePen(Qt::white);
+    PkPen outlinePen(Qt::white);
     outlinePen.setCosmetic(true);
     outlinePen.setWidth(decorationThickness());
 
@@ -273,8 +273,8 @@ void KisWarpTransformStrategy::paint(QPainter &gc)
         qreal srcIn = 6 / handlesExtraScale;
         qreal srcOut = 6 / handlesExtraScale;
 
-        QRectF handleRect1(-0.5 * dstIn, -0.5 * dstIn, dstIn, dstIn);
-        QRectF handleRect2(-0.5 * dstOut, -0.5 * dstOut, dstOut, dstOut);
+        PkRectF handleRect1(-0.5 * dstIn, -0.5 * dstIn, dstIn, dstIn);
+        PkRectF handleRect2(-0.5 * dstOut, -0.5 * dstOut, dstOut, dstOut);
 
         if (m_d->drawTransfPoints) {
             gc.setOpacity(1.0);
@@ -286,14 +286,14 @@ void KisWarpTransformStrategy::paint(QPainter &gc)
                 gc.drawEllipse(handleRect1.translated(m_d->currentArgs.transfPoints()[i]));
             }
 
-            QPointF center;
-            QVector<QPointF*> selectedPoints = m_d->getSelectedPoints(&center, true);
+            PkPointF center;
+            PkVector<PkPointF*> selectedPoints = m_d->getSelectedPoints(&center, true);
 
-            QBrush selectionBrush = selectedPoints.size() > 1 ? Qt::red : Qt::black;
+            PkBrush selectionBrush(selectedPoints.size() > 1 ? Qt::red : Qt::black);
 
-            QBrush oldBrush = gc.brush();
+            PkBrush oldBrush = gc.brush();
             gc.setBrush(selectionBrush);
-            Q_FOREACH (const QPointF *pt, selectedPoints) {
+            for (const PkPointF *pt : selectedPoints) {
                 gc.drawEllipse(handleRect1.translated(*pt));
             }
             gc.setBrush(oldBrush);
@@ -301,13 +301,13 @@ void KisWarpTransformStrategy::paint(QPainter &gc)
         }
 
         if (m_d->drawOrigPoints) {
-            QPainterPath inLine;
+            PkPainterPath inLine;
             inLine.moveTo(-0.5 * srcIn,            0);
             inLine.lineTo( 0.5 * srcIn,            0);
             inLine.moveTo(           0, -0.5 * srcIn);
             inLine.lineTo(           0,  0.5 * srcIn);
 
-            QPainterPath outLine;
+            PkPainterPath outLine;
             outLine.moveTo(-0.5 * srcOut, -0.5 * srcOut);
             outLine.lineTo( 0.5 * srcOut, -0.5 * srcOut);
             outLine.lineTo( 0.5 * srcOut,  0.5 * srcOut);
@@ -338,8 +338,8 @@ void KisWarpTransformStrategy::paint(QPainter &gc)
     int rowsInWarp = sqrt(m_d->currentArgs.origPoints().size());
 
 
-        KisHandlePainterHelper handlePainter(&gc, 0.0, decorationThickness());
-        handlePainter.setHandleStyle(KisHandleStyle::primarySelection());
+        TransformToolHandlePainter handlePainter(gc, 0.0, decorationThickness());
+        handlePainter.setHandleStyle(TransformHandleStyle::PrimarySelection);
 
         // draw horizontal lines
         for (int i = 0; i < numPoints; i++) {
@@ -374,7 +374,7 @@ void KisWarpTransformStrategy::externalConfigChanged()
     m_d->recalculateTransformations();
 }
 
-bool KisWarpTransformStrategy::beginPrimaryAction(const QPointF &pt)
+bool KisWarpTransformStrategy::beginPrimaryAction(const PkPointF &pt)
 {
     const bool isEditingPoints = m_d->currentArgs.isEditingTransformPoints();
     bool retval = false;
@@ -388,7 +388,7 @@ bool KisWarpTransformStrategy::beginPrimaryAction(const QPointF &pt)
         retval = true;
 
     } else if (isEditingPoints) {
-        QPointF newPos = m_d->clipOriginalPointsPosition ?
+        PkPointF newPos = m_d->clipOriginalPointsPosition ?
             KisTransformUtils::clipInRect(pt, m_d->transaction.originalRect()) :
             pt;
 
@@ -412,7 +412,7 @@ bool KisWarpTransformStrategy::beginPrimaryAction(const QPointF &pt)
         m_d->pointsInAction << m_d->pointIndexUnderCursor;
         m_d->lastNumPoints = m_d->currentArgs.transfPoints().size();
     } else if (m_d->mode == Private::MULTIPLE_POINT_SELECTION) {
-        QVector<int>::iterator it =
+        PkVector<int>::iterator it =
             std::find(m_d->pointsInAction.begin(),
                       m_d->pointsInAction.end(),
                       m_d->pointIndexUnderCursor);
@@ -430,20 +430,20 @@ bool KisWarpTransformStrategy::beginPrimaryAction(const QPointF &pt)
     return retval;
 }
 
-QVector<QPointF*> KisWarpTransformStrategy::Private::getSelectedPoints(QPointF *center, bool limitToSelectedOnly) const
+PkVector<PkPointF*> KisWarpTransformStrategy::Private::getSelectedPoints(PkPointF *center, bool limitToSelectedOnly) const
 {
-    QVector<QPointF> &points = currentArgs.refTransformedPoints();
+    PkVector<PkPointF> &points = currentArgs.refTransformedPoints();
 
-    QRectF boundingRect;
-    QVector<QPointF*> selectedPoints;
+    PkRectF boundingRect;
+    PkVector<PkPointF*> selectedPoints;
     if (limitToSelectedOnly || pointsInAction.size() > 1) {
-        Q_FOREACH (int index, pointsInAction) {
+        for (int index : pointsInAction) {
             selectedPoints << &points[index];
             KisAlgebra2D::accumulateBounds(points[index], &boundingRect);
         }
     } else {
-        QVector<QPointF>::iterator it = points.begin();
-        QVector<QPointF>::iterator end = points.end();
+        PkVector<PkPointF>::iterator it = points.begin();
+        PkVector<PkPointF>::iterator end = points.end();
         for (; it != end; ++it) {
             selectedPoints << &(*it);
             KisAlgebra2D::accumulateBounds(*it, &boundingRect);
@@ -454,10 +454,10 @@ QVector<QPointF*> KisWarpTransformStrategy::Private::getSelectedPoints(QPointF *
     return selectedPoints;
 }
 
-void KisWarpTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shiftModifierActive, bool altModifierActive)
+void KisWarpTransformStrategy::continuePrimaryAction(const PkPointF &pt, bool shiftModifierActive, bool altModifierActive)
 {
-    Q_UNUSED(shiftModifierActive);
-    Q_UNUSED(altModifierActive);
+    (void)shiftModifierActive;
+    (void)altModifierActive;
 
     // toplevel code switches to HOVER mode if nothing is selected
     KIS_ASSERT_RECOVER_RETURN(m_d->mode == Private::MOVE_MODE ||
@@ -471,7 +471,7 @@ void KisWarpTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
 
     if (m_d->mode == Private::OVER_POINT) {
         if (m_d->currentArgs.isEditingTransformPoints()) {
-            QPointF newPos = m_d->clipOriginalPointsPosition ?
+            PkPointF newPos = m_d->clipOriginalPointsPosition ?
                 KisTransformUtils::clipInRect(pt, m_d->transaction.originalRect()) :
                 pt;
             m_d->currentArgs.origPoint(m_d->pointIndexUnderCursor) = newPos;
@@ -491,54 +491,54 @@ void KisWarpTransformStrategy::continuePrimaryAction(const QPointF &pt, bool shi
             m_d->pointWasDragged = true;
         }
     } else if (m_d->mode == Private::MOVE_MODE) {
-        QPointF center;
-        QVector<QPointF*> selectedPoints = m_d->getSelectedPoints(&center);
+        PkPointF center;
+        PkVector<PkPointF*> selectedPoints = m_d->getSelectedPoints(&center);
 
-        QPointF diff = pt - m_d->lastMousePos;
+        PkPointF diff = pt - m_d->lastMousePos;
 
-        QVector<QPointF*>::iterator it = selectedPoints.begin();
-        QVector<QPointF*>::iterator end = selectedPoints.end();
+        PkVector<PkPointF*>::iterator it = selectedPoints.begin();
+        PkVector<PkPointF*>::iterator end = selectedPoints.end();
         for (; it != end; ++it) {
             **it += diff;
         }
     } else if (m_d->mode == Private::ROTATE_MODE) {
-        QPointF center;
-        QVector<QPointF*> selectedPoints = m_d->getSelectedPoints(&center);
+        PkPointF center;
+        PkVector<PkPointF*> selectedPoints = m_d->getSelectedPoints(&center);
 
-        QPointF oldDirection = m_d->lastMousePos - center;
-        QPointF newDirection = pt - center;
+        PkPointF oldDirection = m_d->lastMousePos - center;
+        PkPointF newDirection = pt - center;
 
         qreal rotateAngle = KisAlgebra2D::angleBetweenVectors(oldDirection, newDirection);
-        QTransform R;
+        PkTransform R;
         R.rotateRadians(rotateAngle);
 
-        QTransform t =
-            QTransform::fromTranslate(-center.x(), -center.y()) *
+        PkTransform t =
+            PkTransform::fromTranslate(-center.x(), -center.y()) *
             R *
-            QTransform::fromTranslate(center.x(), center.y());
+            PkTransform::fromTranslate(center.x(), center.y());
 
-        QVector<QPointF*>::iterator it = selectedPoints.begin();
-        QVector<QPointF*>::iterator end = selectedPoints.end();
+        PkVector<PkPointF*>::iterator it = selectedPoints.begin();
+        PkVector<PkPointF*>::iterator end = selectedPoints.end();
         for (; it != end; ++it) {
             **it = t.map(**it);
         }
     } else if (m_d->mode == Private::SCALE_MODE) {
-        QPointF center;
-        QVector<QPointF*> selectedPoints = m_d->getSelectedPoints(&center);
+        PkPointF center;
+        PkVector<PkPointF*> selectedPoints = m_d->getSelectedPoints(&center);
 
-        QPolygonF polygon(m_d->currentArgs.origPoints());
-        QSizeF maxSize = polygon.boundingRect().size();
+        PkPolygonF polygon(m_d->currentArgs.origPoints());
+        PkSizeF maxSize = polygon.boundingRect().size();
         qreal maxDimension = qMax(maxSize.width(), maxSize.height());
 
         qreal scale = 1.0 - (pt - m_d->lastMousePos).y() / maxDimension;
 
-        QTransform t =
-            QTransform::fromTranslate(-center.x(), -center.y()) *
-            QTransform::fromScale(scale, scale) *
-            QTransform::fromTranslate(center.x(), center.y());
+        PkTransform t =
+            PkTransform::fromTranslate(-center.x(), -center.y()) *
+            PkTransform::fromScale(scale, scale) *
+            PkTransform::fromTranslate(center.x(), center.y());
 
-        QVector<QPointF*>::iterator it = selectedPoints.begin();
-        QVector<QPointF*>::iterator end = selectedPoints.end();
+        PkVector<PkPointF*>::iterator it = selectedPoints.begin();
+        PkVector<PkPointF*>::iterator end = selectedPoints.end();
         for (; it != end; ++it) {
             **it = t.map(**it);
         }
@@ -573,22 +573,22 @@ bool KisWarpTransformStrategy::endPrimaryAction()
     return true;
 }
 
-inline QPointF KisWarpTransformStrategy::Private::imageToThumb(const QPointF &pt, bool useFlakeOptimization)
+inline PkPointF KisWarpTransformStrategy::Private::imageToThumb(const PkPointF &pt, bool useFlakeOptimization)
 {
     return useFlakeOptimization ? converter->imageToDocument(converter->documentToFlake((pt))) : q->thumbToImageTransform().inverted().map(pt);
 }
 
 void KisWarpTransformStrategy::Private::recalculateTransformations()
 {
-    QTransform scaleTransform = KisTransformUtils::imageToFlakeTransform(converter);
+    PkTransform scaleTransform = KisTransformUtils::imageToFlakeTransform(converter);
 
-    QTransform resultThumbTransform = q->thumbToImageTransform() * scaleTransform;
+    PkTransform resultThumbTransform = q->thumbToImageTransform() * scaleTransform;
     qreal scale = KisTransformUtils::scaleFromAffineMatrix(resultThumbTransform);
     bool useFlakeOptimization = scale < 1.0 &&
         !KisTransformUtils::thumbnailTooSmall(resultThumbTransform, q->originalImage().rect());
 
-    QVector<QPointF> thumbOrigPoints(currentArgs.numPoints());
-    QVector<QPointF> thumbTransfPoints(currentArgs.numPoints());
+    PkVector<PkPointF> thumbOrigPoints(currentArgs.numPoints());
+    PkVector<PkPointF> thumbTransfPoints(currentArgs.numPoints());
 
     for (int i = 0; i < currentArgs.numPoints(); ++i) {
         thumbOrigPoints[i] = imageToThumb(currentArgs.origPoints()[i], useFlakeOptimization);
@@ -598,11 +598,11 @@ void KisWarpTransformStrategy::Private::recalculateTransformations()
     paintingOffset = transaction.originalTopLeft();
 
     if (!q->originalImage().isNull() && !currentArgs.isEditingTransformPoints()) {
-        QPointF origTLInFlake = imageToThumb(transaction.originalTopLeft(), useFlakeOptimization);
+        PkPointF origTLInFlake = imageToThumb(transaction.originalTopLeft(), useFlakeOptimization);
 
         if (useFlakeOptimization) {
             transformedImage = q->originalImage().transformed(resultThumbTransform);
-            paintingTransform = QTransform();
+            paintingTransform = PkTransform();
         } else {
             transformedImage = q->originalImage();
             paintingTransform = resultThumbTransform;
@@ -622,16 +622,16 @@ void KisWarpTransformStrategy::Private::recalculateTransformations()
     }
 
     handlesTransform = scaleTransform;
-    Q_EMIT q->requestCanvasUpdate();
-    Q_EMIT q->requestImageRecalculation();
+    q->requestCanvasUpdate();
+    q->requestImageRecalculation();
 }
 
-QImage KisWarpTransformStrategy::calculateTransformedImage(ToolTransformArgs &currentArgs,
-                                                           const QImage &srcImage,
-                                                           const QVector<QPointF> &origPoints,
-                                                           const QVector<QPointF> &transfPoints,
-                                                           const QPointF &srcOffset,
-                                                           QPointF *dstOffset)
+PkImage KisWarpTransformStrategy::calculateTransformedImage(ToolTransformArgs &currentArgs,
+                                                           const PkImage &srcImage,
+                                                           const PkVector<PkPointF> &origPoints,
+                                                           const PkVector<PkPointF> &transfPoints,
+                                                           const PkPointF &srcOffset,
+                                                           PkPointF *dstOffset)
 {
     return KisWarpTransformWorker::transformQImage(
         currentArgs.warpType(),
@@ -640,5 +640,3 @@ QImage KisWarpTransformStrategy::calculateTransformedImage(ToolTransformArgs &cu
         srcImage,
         srcOffset, dstOffset);
 }
-
-#include "moc_kis_warp_transform_strategy.cpp"

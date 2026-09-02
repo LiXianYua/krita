@@ -7,9 +7,9 @@
 #include "kis_transform_utils.h"
 
 #include <cmath>
-#include <QPainterPath>
-#include <QTransform>
-#include <QVector3D>
+#include <PkPainterPath.h>
+#include <PkTransform.h>
+#include <PkVectorND.h>
 #include <KoUnit.h>
 #include "tool_transform_args.h"
 #include "kis_paint_device.h"
@@ -30,6 +30,9 @@
 #include "kis_selection.h"
 #include "kis_image.h"
 #include "kis_image_animation_interface.h"
+#include "kis_layer_utils.h"
+#include "krita_utils.h"
+#include "kundo2commandextradata.h"
 
 const int KisTransformUtils::rotationHandleVisualRadius = 12;
 const int KisTransformUtils::rotationHandleRadius = 8;
@@ -37,47 +40,47 @@ const int KisTransformUtils::handleVisualRadius = 12;
 const int KisTransformUtils::handleRadius = 8;
 
 
-QTransform KisTransformUtils::imageToFlakeTransform(const KisCoordinatesConverter *converter)
+PkTransform KisTransformUtils::imageToFlakeTransform(const KisCoordinatesConverter *converter)
 {
     return converter->imageToDocumentTransform() * converter->documentToFlakeTransform();
 }
 
 qreal KisTransformUtils::effectiveHandleGrabRadius(const KisCoordinatesConverter *converter)
 {
-    QPointF handleRadiusPt = flakeToImage(converter, QPointF(handleRadius, handleRadius));
+    PkPointF handleRadiusPt = flakeToImage(converter, PkPointF(handleRadius, handleRadius));
     return (handleRadiusPt.x() > handleRadiusPt.y()) ? handleRadiusPt.x() : handleRadiusPt.y();
 }
 
 qreal KisTransformUtils::effectiveRotationHandleGrabRadius(const KisCoordinatesConverter *converter)
 {
-    QPointF handleRadiusPt = flakeToImage(converter, QPointF(rotationHandleRadius, rotationHandleRadius));
+    PkPointF handleRadiusPt = flakeToImage(converter, PkPointF(rotationHandleRadius, rotationHandleRadius));
     return (handleRadiusPt.x() > handleRadiusPt.y()) ? handleRadiusPt.x() : handleRadiusPt.y();
 }
 
-qreal KisTransformUtils::scaleFromAffineMatrix(const QTransform &t) {
+qreal KisTransformUtils::scaleFromAffineMatrix(const PkTransform &t) {
     return KoUnit::approxTransformScale(t);
 }
 
-qreal KisTransformUtils::scaleFromPerspectiveMatrixX(const QTransform &t, const QPointF &basePt) {
-    const QPointF pt = basePt + QPointF(1.0, 0);
+qreal KisTransformUtils::scaleFromPerspectiveMatrixX(const PkTransform &t, const PkPointF &basePt) {
+    const PkPointF pt = basePt + PkPointF(1.0, 0);
     return kisDistance(t.map(pt), t.map(basePt));
 }
 
-qreal KisTransformUtils::scaleFromPerspectiveMatrixY(const QTransform &t, const QPointF &basePt) {
-    const QPointF pt = basePt + QPointF(0, 1.0);
+qreal KisTransformUtils::scaleFromPerspectiveMatrixY(const PkTransform &t, const PkPointF &basePt) {
+    const PkPointF pt = basePt + PkPointF(0, 1.0);
     return kisDistance(t.map(pt), t.map(basePt));
 }
 
-qreal KisTransformUtils::effectiveSize(const QRectF &rc) {
+qreal KisTransformUtils::effectiveSize(const PkRectF &rc) {
     return 0.5 * (rc.width() + rc.height());
 }
 
-bool KisTransformUtils::thumbnailTooSmall(const QTransform &resultThumbTransform, const QRect &originalImageRect)
+bool KisTransformUtils::thumbnailTooSmall(const PkTransform &resultThumbTransform, const PkRect &originalImageRect)
 {
     return KisAlgebra2D::minDimension(resultThumbTransform.mapRect(originalImageRect)) < 32;
 }
 
-QRectF handleRectImpl(qreal radius, const QTransform &t, const QRectF &limitingRect, const QPointF &basePoint, qreal *dOutX, qreal *dOutY) {
+PkRectF handleRectImpl(qreal radius, const PkTransform &t, const PkRectF &limitingRect, const PkPointF &basePoint, qreal *dOutX, qreal *dOutY) {
     const qreal handlesExtraScaleX =
         KisTransformUtils::scaleFromPerspectiveMatrixX(t, basePoint);
     const qreal handlesExtraScaleY =
@@ -87,7 +90,7 @@ QRectF handleRectImpl(qreal radius, const QTransform &t, const QRectF &limitingR
     const qreal dX = qMin(maxD, radius / handlesExtraScaleX);
     const qreal dY = qMin(maxD, radius / handlesExtraScaleY);
 
-    QRectF handleRect(-0.5 * dX, -0.5 * dY, dX, dY);
+    PkRectF handleRect(-0.5 * dX, -0.5 * dY, dX, dY);
 
     if (dOutX) {
         *dOutX = dX;
@@ -101,18 +104,18 @@ QRectF handleRectImpl(qreal radius, const QTransform &t, const QRectF &limitingR
 
 }
 
-QRectF KisTransformUtils::handleRect(qreal radius, const QTransform &t, const QRectF &limitingRect, qreal *dOutX, qreal *dOutY) {
+PkRectF KisTransformUtils::handleRect(qreal radius, const PkTransform &t, const PkRectF &limitingRect, qreal *dOutX, qreal *dOutY) {
     return handleRectImpl(radius, t, limitingRect, limitingRect.center(), dOutX, dOutY);
 }
 
-QRectF KisTransformUtils::handleRect(qreal radius, const QTransform &t, const QRectF &limitingRect, const QPointF &basePoint) {
+PkRectF KisTransformUtils::handleRect(qreal radius, const PkTransform &t, const PkRectF &limitingRect, const PkPointF &basePoint) {
     return handleRectImpl(radius, t, limitingRect, basePoint, 0, 0);
 }
 
-QPointF KisTransformUtils::clipInRect(QPointF p, QRectF r)
+PkPointF KisTransformUtils::clipInRect(PkPointF p, PkRectF r)
 {
-    QPointF center = r.center();
-    QPointF t = p - center;
+    PkPointF center = r.center();
+    PkPointF t = p - center;
     r.translate(- center);
 
     if (t.y() != 0) {
@@ -158,15 +161,15 @@ QPointF KisTransformUtils::clipInRect(QPointF p, QRectF r)
 
 KisTransformUtils::MatricesPack::MatricesPack(const ToolTransformArgs &args)
 {
-    TS = QTransform::fromTranslate(-args.originalCenter().x(), -args.originalCenter().y());
-    SC = QTransform::fromScale(args.scaleX(), args.scaleY());
+    TS = PkTransform::fromTranslate(-args.originalCenter().x(), -args.originalCenter().y());
+    SC = PkTransform::fromScale(args.scaleX(), args.scaleY());
     S.shear(0, args.shearY()); S.shear(args.shearX(), 0);
 
     if (args.mode() == ToolTransformArgs::FREE_TRANSFORM) {
         BRI.rotate(180. * -args.boundsRotation() / M_PI);
-        P.rotate(180. * normalizeAngle(args.aX()) / M_PI, QVector3D(1, 0, 0));
-        P.rotate(180. * normalizeAngle(args.aY()) / M_PI, QVector3D(0, 1, 0));
-        P.rotate(180. * normalizeAngle(args.aZ()) / M_PI, QVector3D(0, 0, 1));
+        P.rotate(180. * normalizeAngle(args.aX()) / M_PI, PkVector3D(1, 0, 0));
+        P.rotate(180. * normalizeAngle(args.aY()) / M_PI, PkVector3D(0, 1, 0));
+        P.rotate(180. * normalizeAngle(args.aZ()) / M_PI, PkVector3D(0, 0, 1));
         projectedP = P.toTransform(args.cameraPos().z());
     } else if (args.mode() == ToolTransformArgs::PERSPECTIVE_4POINT) {
         // see a comment in KisPerspectiveTransformStrategy::Private::transformIntoArgs()
@@ -176,31 +179,31 @@ KisTransformUtils::MatricesPack::MatricesPack(const ToolTransformArgs &args)
 #else
         projectedP = args.flattenedPerspectiveTransform();
 #endif
-        P = QMatrix4x4(projectedP);
+        P = PkMatrix4x4(projectedP);
     }
 
-    QPointF translation = args.transformedCenter();
-    T = QTransform::fromTranslate(translation.x(), translation.y());
+    PkPointF translation = args.transformedCenter();
+    T = PkTransform::fromTranslate(translation.x(), translation.y());
 }
 
-QTransform KisTransformUtils::MatricesPack::finalTransform() const
+PkTransform KisTransformUtils::MatricesPack::finalTransform() const
 {
     return TS * BRI * SC * S * projectedP * T;
 }
 
-bool KisTransformUtils::checkImageTooBig(const QRectF &bounds, const MatricesPack &m, qreal cameraHeight)
+bool KisTransformUtils::checkImageTooBig(const PkRectF &bounds, const MatricesPack &m, qreal cameraHeight)
 {
     bool imageTooBig = false;
 
-    QMatrix4x4 unprojectedMatrix = QMatrix4x4(m.T) * m.P * QMatrix4x4(m.TS * m.SC * m.S);
-    QVector<QPointF> points;
+    PkMatrix4x4 unprojectedMatrix = PkMatrix4x4(m.T) * m.P * PkMatrix4x4(m.TS * m.SC * m.S);
+    PkVector<PkPointF> points;
     points << bounds.topLeft();
     points << bounds.topRight();
     points << bounds.bottomRight();
     points << bounds.bottomLeft();
 
-    Q_FOREACH (const QPointF &pt, points) {
-        QVector4D v(pt.x(), pt.y(), 0, 1);
+    for (const PkPointF &pt : points) {
+        PkVector4D v(pt.x(), pt.y(), 0, 1);
 
         v = unprojectedMatrix * v;
         qreal z = v.z() / v.w();
@@ -227,8 +230,8 @@ KisTransformWorker KisTransformUtils::createTransformWorker(const ToolTransformA
 
     if (config.boundsRotation() != 0.0) {
         const KisTransformUtils::MatricesPack m(config);
-        QTransform Z; Z.rotateRadians(aZ);
-        QTransform desired = m.BRI * m.SC * m.S * Z;
+        PkTransform Z; Z.rotateRadians(aZ);
+        PkTransform desired = m.BRI * m.SC * m.S * Z;
         KisAlgebra2D::DecomposedMatrix dm(desired);
         if (dm.isValid()) {
             scaleX = dm.scaleX;
@@ -239,7 +242,7 @@ KisTransformWorker KisTransformUtils::createTransformWorker(const ToolTransformA
         }
     }
 
-    QPointF transformedCenter;
+    PkPointF transformedCenter;
     {
         KisTransformWorker t(0,
                              scaleX, scaleY,
@@ -253,7 +256,7 @@ KisTransformWorker KisTransformUtils::createTransformWorker(const ToolTransformA
         transformedCenter = t.transform().map(config.originalCenter());
     }
 
-    QPointF translation = config.transformedCenter() - transformedCenter;
+    PkPointF translation = config.transformedCenter() - transformedCenter;
 
     KisTransformWorker transformWorker(device,
                                        scaleX, scaleY,
@@ -313,13 +316,13 @@ void transformDeviceImpl(const ToolTransformArgs &config,
     } else if (config.mode() == ToolTransformArgs::LIQUIFY && config.liquifyWorker()) {
         KoUpdaterPtr updater = helper->updater();
         //FIXME:
-        Q_UNUSED(updater);
+        (void)updater;
 
         config.liquifyWorker()->run(srcDevice, dstDevice);
     } else if (config.mode() == ToolTransformArgs::MESH) {
         KoUpdaterPtr updater = helper->updater();
         //FIXME:
-        Q_UNUSED(updater);
+        (void)updater;
 
         dstDevice->clear();
         config.meshTransform()->transformMesh(srcDevice, dstDevice);
@@ -352,8 +355,8 @@ void transformDeviceImpl(const ToolTransformArgs &config,
             perspectiveWorker.setForceSubPixelTranslation(forceSubPixelTranslation);
             perspectiveWorker.run(sampleType);
         } else if (config.mode() == ToolTransformArgs::PERSPECTIVE_4POINT) {
-            QTransform T =
-                QTransform::fromTranslate(config.transformedCenter().x(),
+            PkTransform T =
+                PkTransform::fromTranslate(config.transformedCenter().x(),
                                           config.transformedCenter().y());
 
             KisPerspectiveTransformWorker perspectiveWorker(dstDevice,
@@ -381,11 +384,11 @@ void KisTransformUtils::transformDeviceWithCroppedDst(const ToolTransformArgs &c
     transformDeviceImpl(config, srcDevice, dstDevice, helper, true, forceSubPixelTranslation);
 }
 
-QRect KisTransformUtils::needRect(const ToolTransformArgs &config,
-                                  const QRect &rc,
-                                  const QRect &srcBounds)
+PkRect KisTransformUtils::needRect(const ToolTransformArgs &config,
+                                  const PkRect &rc,
+                                  const PkRect &srcBounds)
 {
-    QRect result = rc;
+    PkRect result = rc;
 
     if (config.mode() == ToolTransformArgs::WARP) {
         KisWarpTransformWorker worker(config.warpType(),
@@ -415,10 +418,10 @@ QRect KisTransformUtils::needRect(const ToolTransformArgs &config,
     return result;
 }
 
-QRect KisTransformUtils::changeRect(const ToolTransformArgs &config,
-                                    const QRect &rc)
+PkRect KisTransformUtils::changeRect(const ToolTransformArgs &config,
+                                    const PkRect &rc)
 {
-    QRect result = rc;
+    PkRect result = rc;
 
     if (config.mode() == ToolTransformArgs::WARP) {
         KisWarpTransformWorker worker(config.warpType(),
@@ -466,9 +469,9 @@ KisTransformUtils::AnchorHolder::~AnchorHolder() {
     if (!m_enabled) return;
 
     const KisTransformUtils::MatricesPack m(*m_config);
-    const QPointF newStaticPointInView = m.finalTransform().map(m_staticPoint);
+    const PkPointF newStaticPointInView = m.finalTransform().map(m_staticPoint);
 
-    const QPointF diff = m_oldStaticPointInView - newStaticPointInView;
+    const PkPointF diff = m_oldStaticPointInView - newStaticPointInView;
 
     m_config->setTransformedCenter(m_config->transformedCenter() + diff);
 }
@@ -484,8 +487,8 @@ void KisTransformUtils::setDefaultWarpPoints(int pointsPerLine,
     }
 
     int nbPoints = pointsPerLine * pointsPerLine;
-    QVector<QPointF> origPoints(nbPoints);
-    QVector<QPointF> transfPoints(nbPoints);
+    PkVector<PkPointF> origPoints(nbPoints);
+    PkVector<PkPointF> transfPoints(nbPoints);
     qreal gridSpaceX, gridSpaceY;
 
     if (nbPoints == 1) {
@@ -500,8 +503,8 @@ void KisTransformUtils::setDefaultWarpPoints(int pointsPerLine,
         for (int i = 0; i < pointsPerLine; ++i) {
             double x = transaction->originalRect().left();
             for (int j = 0 ; j < pointsPerLine; ++j) {
-                origPoints[i * pointsPerLine + j] = QPointF(x, y);
-                transfPoints[i * pointsPerLine + j] = QPointF(x, y);
+                origPoints[i * pointsPerLine + j] = PkPointF(x, y);
+                transfPoints[i * pointsPerLine + j] = PkPointF(x, y);
                 x += gridSpaceX;
             }
             y += gridSpaceY;
@@ -513,7 +516,7 @@ void KisTransformUtils::setDefaultWarpPoints(int pointsPerLine,
 }
 
 ToolTransformArgs KisTransformUtils::resetArgsForMode(ToolTransformArgs::TransformMode mode,
-                                                      const QString &filterId,
+                                                      const PkString &filterId,
                                                       const TransformTransactionProperties &transaction,
                                                       KisPaintDeviceSP externalSource)
 {
@@ -535,15 +538,15 @@ ToolTransformArgs KisTransformUtils::resetArgsForMode(ToolTransformArgs::Transfo
         args.setEditingTransformPoints(true);
     } else if (mode == ToolTransformArgs::LIQUIFY) {
         args.setMode(ToolTransformArgs::LIQUIFY);
-        const QRect srcRect = transaction.originalRect().toAlignedRect();
+        const PkRect srcRect = transaction.originalRect().toAlignedRect();
         if (!srcRect.isEmpty()) {
             args.initLiquifyTransformMode(srcRect);
         }
     } else if (mode == ToolTransformArgs::MESH) {
         args.setMode(ToolTransformArgs::MESH);
-        const QRect srcRect = transaction.originalRect().toAlignedRect();
+        const PkRect srcRect = transaction.originalRect().toAlignedRect();
         if (!srcRect.isEmpty()) {
-            *args.meshTransform() = KisBezierTransformMesh(QRectF(srcRect));
+            *args.meshTransform() = KisBezierTransformMesh(PkRectF(srcRect));
         }
     } else if (mode == ToolTransformArgs::PERSPECTIVE_4POINT) {
         args.setMode(ToolTransformArgs::PERSPECTIVE_4POINT);
@@ -555,7 +558,7 @@ ToolTransformArgs KisTransformUtils::resetArgsForMode(ToolTransformArgs::Transfo
 bool KisTransformUtils::shouldRestartStrokeOnModeChange(ToolTransformArgs::TransformMode oldMode, ToolTransformArgs::TransformMode newMode, KisNodeList processedNodes)
 {
     bool hasExternalLayers = false;
-    Q_FOREACH (KisNodeSP node, processedNodes) {
+    for (KisNodeSP node : processedNodes) {
         if (node->inherits("KisShapeLayer")) {
             hasExternalLayers = true;
             break;
@@ -585,7 +588,7 @@ void KisTransformUtils::transformAndMergeDevice(const ToolTransformArgs &config,
 
     KisTransformUtils::transformDevice(config, src, tmp, helper);
 
-    QRect mergeRect = tmp->extent();
+    PkRect mergeRect = tmp->extent();
     KisPainter painter(dst);
     painter.setProgress(mergeUpdater);
     painter.bitBlt(mergeRect.topLeft(), tmp, mergeRect);
@@ -657,7 +660,7 @@ KisNodeSP KisTransformUtils::tryOverrideRootToTransformMask(KisNodeSP root)
 
 int KisTransformUtils::fetchCurrentImageTime(KisNodeList rootNodes)
 {
-    Q_FOREACH(KisNodeSP node, rootNodes) {
+    for (KisNodeSP node : rootNodes) {
         /**
          * We cannot just use projection's default bounds, because masks don't have
          * any projection
@@ -669,11 +672,11 @@ int KisTransformUtils::fetchCurrentImageTime(KisNodeList rootNodes)
     return -1;
 }
 
-QList<KisNodeSP> KisTransformUtils::fetchNodesList(ToolTransformArgs::TransformMode mode, KisNodeList rootNodes, bool isExternalSourcePresent, KisSelectionSP selection)
+PkList<KisNodeSP> KisTransformUtils::fetchNodesList(ToolTransformArgs::TransformMode mode, KisNodeList rootNodes, bool isExternalSourcePresent, KisSelectionSP selection)
 {
-    QList<KisNodeSP> result;
+    PkList<KisNodeSP> result;
 
-    Q_FOREACH (KisNodeSP root, rootNodes) {
+    for (KisNodeSP root : rootNodes) {
         bool hasTransformMaskDescendant =
             KisLayerUtils::recursiveFindNode(root, [root] (KisNodeSP node) {
                 return node != root && node->visible() && node->inherits("KisTransformMask");
@@ -685,7 +688,7 @@ QList<KisNodeSP> KisTransformUtils::fetchNodesList(ToolTransformArgs::TransformM
         /// stroke initialization routine.
         KIS_SAFE_ASSERT_RECOVER_NOOP(!hasTransformMaskDescendant);
 
-        KisNodeSP selectionNode = selection ? selection->parentNode() : 0;
+        KisNodeSP selectionNode = selection ? selection->parentNode() : nullptr;
 
         auto fetchFunc =
             [&result, mode, root, selectionNode] (KisNodeSP node) {
@@ -715,7 +718,7 @@ bool KisTransformUtils::tryInitArgsFromNode(KisNodeList rootNodes, ToolTransform
 {
     bool result = false;
 
-    Q_FOREACH(KisNodeSP node, rootNodes) {
+    for (KisNodeSP node : rootNodes) {
         if (KisTransformMaskSP mask =
             dynamic_cast<KisTransformMask*>(node.data())) {
 
@@ -741,7 +744,7 @@ bool KisTransformUtils::tryFetchArgsFromCommandAndUndo(ToolTransformArgs *outArg
                                                        KisNodeList selectedNodes,
                                                        KisStrokeUndoFacade *undoFacade,
                                                        int currentTime,
-                                                       QVector<KisStrokeJobData *> *undoJobs,
+                                                       PkVector<KisStrokeJobData *> *undoJobs,
                                                        const KisSavedMacroCommand **overriddenCommand)
 {
     bool result = false;

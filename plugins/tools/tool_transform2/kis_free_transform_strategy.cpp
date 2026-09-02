@@ -6,10 +6,10 @@
 
 #include "kis_free_transform_strategy.h"
 
-#include <QPointF>
-#include <QPainter>
-#include <QPainterPath>
-#include <QMatrix4x4>
+#include <PkPoint.h>
+#include <PkPainter.h>
+#include <PkPainterPath.h>
+#include <PkMatrix4x4.h>
 
 #include <KoResourcePaths.h>
 
@@ -57,17 +57,15 @@ struct KisFreeTransformStrategy::Private
           imageTooBig(false),
           isTransforming(false)
     {
-        scaleCursors[0] = Qt::SizeHorCursor;
-        scaleCursors[1] = Qt::SizeFDiagCursor;
-        scaleCursors[2] = Qt::SizeVerCursor;
-        scaleCursors[3] = Qt::SizeBDiagCursor;
-        scaleCursors[4] = Qt::SizeHorCursor;
-        scaleCursors[5] = Qt::SizeFDiagCursor;
-        scaleCursors[6] = Qt::SizeVerCursor;
-        scaleCursors[7] = Qt::SizeBDiagCursor;
-
-        shearCursorPixmap.load(":/shear_cursor.png");
-        rotateHandlesCursor = QCursor(QPixmap(":/rotate_cursor_handles.xpm"));
+        scaleCursors[0] = {TransformCursorKind::SizeHorizontal};
+        scaleCursors[1] = {TransformCursorKind::SizeForwardDiagonal};
+        scaleCursors[2] = {TransformCursorKind::SizeVertical};
+        scaleCursors[3] = {TransformCursorKind::SizeBackwardDiagonal};
+        scaleCursors[4] = {TransformCursorKind::SizeHorizontal};
+        scaleCursors[5] = {TransformCursorKind::SizeForwardDiagonal};
+        scaleCursors[6] = {TransformCursorKind::SizeVertical};
+        scaleCursors[7] = {TransformCursorKind::SizeBackwardDiagonal};
+        rotateHandlesCursor = {TransformCursorKind::RotateHandles};
     }
 
     KisFreeTransformStrategy *q;
@@ -82,52 +80,51 @@ struct KisFreeTransformStrategy::Private
     TransformTransactionProperties &transaction;
 
 
-    QTransform thumbToImageTransform;
-    QImage originalImage;
+    PkTransform thumbToImageTransform;
+    PkImage originalImage;
 
-    QTransform paintingTransform;
-    QPointF paintingOffset;
+    PkTransform paintingTransform;
+    PkPointF paintingOffset;
 
-    QTransform handlesTransform;
+    PkTransform handlesTransform;
 
     /// custom members ///
 
     StrokeFunction function {MOVE};
 
     struct HandlePoints {
-        QPointF topLeft;
-        QPointF topMiddle;
-        QPointF topRight;
+        PkPointF topLeft;
+        PkPointF topMiddle;
+        PkPointF topRight;
 
-        QPointF middleLeft;
-        QPointF rotationCenter;
-        QPointF middleRight;
+        PkPointF middleLeft;
+        PkPointF rotationCenter;
+        PkPointF middleRight;
 
-        QPointF bottomLeft;
-        QPointF bottomMiddle;
-        QPointF bottomRight;
+        PkPointF bottomLeft;
+        PkPointF bottomMiddle;
+        PkPointF bottomRight;
     };
     HandlePoints transformedHandles;
 
-    QRectF bounds;
-    QTransform boundsTransform; // Transforms bounds into original image space (rotates by boundsRotation)
+    PkRectF bounds;
+    PkTransform boundsTransform; // Transforms bounds into original image space (rotates by boundsRotation)
 
-    QTransform transform;
+    PkTransform transform;
 
-    QCursor scaleCursors[8]; // cursors for the 8 directions
-    QPixmap shearCursorPixmap;
-    QCursor rotateHandlesCursor;
+    TransformCursorDescriptor scaleCursors[8]; // cursors for the 8 directions
+    TransformCursorDescriptor rotateHandlesCursor;
 
     bool imageTooBig {false};
 
     ToolTransformArgs clickArgs;
-    QPointF clickPos;
-    QTransform clickTransform;
+    PkPointF clickPos;
+    PkTransform clickTransform;
 
     bool isTransforming {false};
 
-    QCursor getScaleCursor(const QPointF &handlePt);
-    QCursor getShearCursor(const QPointF &start, const QPointF &end);
+    TransformCursorDescriptor getScaleCursor(const PkPointF &handlePt);
+    TransformCursorDescriptor getShearCursor(const PkPointF &start, const PkPointF &end);
     void recalculateTransformations();
     void recalculateTransformedHandles();
     void recalculateBounds();
@@ -147,19 +144,19 @@ KisFreeTransformStrategy::~KisFreeTransformStrategy()
 }
 
 namespace {
-QPointF middleLeft(const QRectF &rect)
+PkPointF middleLeft(const PkRectF &rect)
 {
     return (rect.topLeft() + rect.bottomLeft()) * 0.5;
 }
-QPointF middleRight(const QRectF &rect)
+PkPointF middleRight(const PkRectF &rect)
 {
     return (rect.topRight() + rect.bottomRight()) * 0.5;
 }
-QPointF bottomMiddle(const QRectF &rect)
+PkPointF bottomMiddle(const PkRectF &rect)
 {
     return (rect.bottomLeft() + rect.bottomRight()) * 0.5;
 }
-QPointF topMiddle(const QRectF &rect)
+PkPointF topMiddle(const PkRectF &rect)
 {
     return (rect.topLeft() + rect.topRight()) * 0.5;
 }
@@ -167,7 +164,7 @@ QPointF topMiddle(const QRectF &rect)
 
 void KisFreeTransformStrategy::Private::recalculateBounds()
 {
-    const QPolygonF &convexHull = transaction.convexHull();
+    const PkPolygonF &convexHull = transaction.convexHull();
     if (!convexHull.isEmpty()) {
         bounds = boundsTransform.inverted().map(convexHull).boundingRect();
     } else {
@@ -178,7 +175,7 @@ void KisFreeTransformStrategy::Private::recalculateBounds()
 
 void KisFreeTransformStrategy::Private::recalculateTransformedHandles()
 {
-    QTransform boundsFullTransform = boundsTransform * transform;
+    PkTransform boundsFullTransform = boundsTransform * transform;
     transformedHandles.topLeft = boundsFullTransform.map(bounds.topLeft());
     transformedHandles.topMiddle = boundsFullTransform.map(topMiddle(bounds));
     transformedHandles.topRight = boundsFullTransform.map(bounds.topRight());
@@ -193,17 +190,17 @@ void KisFreeTransformStrategy::Private::recalculateTransformedHandles()
     transformedHandles.rotationCenter = transform.map(currentArgs.originalCenter() + currentArgs.rotationCenterOffset());
 }
 
-void KisFreeTransformStrategy::setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive)
+void KisFreeTransformStrategy::setTransformFunction(const PkPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive)
 {
-    Q_UNUSED(shiftModifierActive);
+    (void)shiftModifierActive;
 
     if (perspectiveModifierActive && !m_d->transaction.shouldAvoidPerspectiveTransform()) {
         m_d->function = PERSPECTIVE;
         return;
     }
 
-    QTransform boundsFullTransform = m_d->boundsTransform * m_d->transform;
-    QPolygonF transformedPolygon = boundsFullTransform.map(QPolygonF(m_d->bounds));
+    PkTransform boundsFullTransform = m_d->boundsTransform * m_d->transform;
+    PkPolygonF transformedPolygon = boundsFullTransform.map(PkPolygonF(m_d->bounds));
     qreal handleRadius = KisTransformUtils::effectiveHandleGrabRadius(m_d->converter);
     qreal rotationHandleRadius = KisTransformUtils::effectiveHandleGrabRadius(m_d->converter);
 
@@ -241,8 +238,8 @@ void KisFreeTransformStrategy::setTransformFunction(const QPointF &mousePos, boo
     m_d->function = handleChooser.function();
 
     if (m_d->function == ROTATE || m_d->function == MOVE) {
-        QRectF bounds = m_d->bounds;
-        QPointF t = boundsFullTransform.inverted().map(mousePos);
+        PkRectF bounds = m_d->bounds;
+        PkPointF t = boundsFullTransform.inverted().map(mousePos);
 
         if (t.x() >= bounds.left() && t.x() <= bounds.right()) {
             if (fabs(t.y() - bounds.top()) <= handleRadius)
@@ -264,12 +261,12 @@ bool KisFreeTransformStrategy::shiftModifierIsUsed() const
     return true;
 }
 
-QCursor KisFreeTransformStrategy::Private::getScaleCursor(const QPointF &handlePt)
+TransformCursorDescriptor KisFreeTransformStrategy::Private::getScaleCursor(const PkPointF &handlePt)
 {
-    QPointF handlePtInWidget = converter->imageToWidget(handlePt);
-    QPointF centerPtInWidget = converter->imageToWidget(currentArgs.transformedCenter());
+    PkPointF handlePtInWidget = converter->imageToWidget(handlePt);
+    PkPointF centerPtInWidget = converter->imageToWidget(currentArgs.transformedCenter());
 
-    QPointF direction = handlePtInWidget - centerPtInWidget;
+    PkPointF direction = handlePtInWidget - centerPtInWidget;
     qreal angle = atan2(direction.y(), direction.x());
     angle = normalizeAngle(angle);
 
@@ -277,33 +274,33 @@ QCursor KisFreeTransformStrategy::Private::getScaleCursor(const QPointF &handleP
     return scaleCursors[octant];
 }
 
-QCursor KisFreeTransformStrategy::Private::getShearCursor(const QPointF &start, const QPointF &end)
+TransformCursorDescriptor KisFreeTransformStrategy::Private::getShearCursor(const PkPointF &start, const PkPointF &end)
 {
-    QPointF startPtInWidget = converter->imageToWidget(start);
-    QPointF endPtInWidget = converter->imageToWidget(end);
-    QPointF direction = endPtInWidget - startPtInWidget;
+    PkPointF startPtInWidget = converter->imageToWidget(start);
+    PkPointF endPtInWidget = converter->imageToWidget(end);
+    PkPointF direction = endPtInWidget - startPtInWidget;
 
     qreal angle = atan2(-direction.y(), direction.x());
-    return QCursor(shearCursorPixmap.transformed(QTransform().rotateRadians(-angle)));
+    return {TransformCursorKind::Shear, -angle};
 }
 
-QCursor KisFreeTransformStrategy::getCurrentCursor() const
+TransformCursorDescriptor KisFreeTransformStrategy::getCurrentCursor() const
 {
-    QCursor cursor;
+    TransformCursorDescriptor cursor;
 
     switch (m_d->function) {
     case MOVE:
-        cursor = Qt::SizeAllCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::SizeAll};
         break;
     case ROTATEBOUNDS:
         cursor = m_d->rotateHandlesCursor;
         break;
     case ROTATE:
-        cursor = Qt::CrossCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Cross};
         break;
     case PERSPECTIVE:
         //TODO: find another cursor for perspective
-        cursor = Qt::CrossCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::Cross};
         break;
     case RIGHTSCALE:
         cursor = m_d->getScaleCursor(m_d->transformedHandles.middleRight);
@@ -330,7 +327,7 @@ QCursor KisFreeTransformStrategy::getCurrentCursor() const
         cursor = m_d->getScaleCursor(m_d->transformedHandles.bottomRight);
         break;
     case MOVECENTER:
-        cursor = Qt::PointingHandCursor;
+        cursor = TransformCursorDescriptor{TransformCursorKind::PointingHand};
         break;
     case BOTTOMSHEAR:
         cursor = m_d->getShearCursor(m_d->transformedHandles.bottomLeft, m_d->transformedHandles.bottomRight);
@@ -349,7 +346,7 @@ QCursor KisFreeTransformStrategy::getCurrentCursor() const
     return cursor;
 }
 
-void KisFreeTransformStrategy::paint(QPainter &gc)
+void KisFreeTransformStrategy::paint(TransformToolPainter &gc)
 {
     gc.save();
 
@@ -361,21 +358,21 @@ void KisFreeTransformStrategy::paint(QPainter &gc)
 
     // Draw Handles
 
-    QRectF handleRect =
+    PkRectF handleRect =
         KisTransformUtils::handleRect(KisTransformUtils::handleVisualRadius,
                                       m_d->handlesTransform,
                                       m_d->bounds, 0, 0);
 
     qreal rX = 1;
     qreal rY = 1;
-    QRectF rotationCenterRect =
+    PkRectF rotationCenterRect =
         KisTransformUtils::handleRect(KisTransformUtils::rotationHandleVisualRadius,
                                       m_d->handlesTransform,
                                       m_d->bounds,
                                       &rX,
                                       &rY);
 
-    QPainterPath handles;
+    PkPainterPath handles;
 
     handles.moveTo(m_d->bounds.topLeft());
     handles.lineTo(m_d->bounds.topRight());
@@ -392,9 +389,9 @@ void KisFreeTransformStrategy::paint(QPainter &gc)
     handles.addRect(handleRect.translated(topMiddle(m_d->bounds)));
     handles.addRect(handleRect.translated(bottomMiddle(m_d->bounds)));
 
-    QPointF rotationCenter = m_d->boundsTransform.inverted().map(m_d->currentArgs.originalCenter() + m_d->currentArgs.rotationCenterOffset());
-    QPointF dx(rX + 3, 0);
-    QPointF dy(0, rY + 3);
+    PkPointF rotationCenter = m_d->boundsTransform.inverted().map(m_d->currentArgs.originalCenter() + m_d->currentArgs.rotationCenterOffset());
+    PkPointF dx(rX + 3, 0);
+    PkPointF dy(0, rY + 3);
     handles.addEllipse(rotationCenterRect.translated(rotationCenter));
     handles.moveTo(rotationCenter - dx);
     handles.lineTo(rotationCenter + dx);
@@ -408,9 +405,9 @@ void KisFreeTransformStrategy::paint(QPainter &gc)
     }
 
     //gc.setTransform(m_d->handlesTransform, true); <-- don't do like this!
-    QPainterPath mappedHandles = m_d->handlesTransform.map(handles);
+    PkPainterPath mappedHandles = m_d->handlesTransform.map(handles);
 
-    QPen pen[2];
+    PkPen pen[2];
     pen[0].setWidth(decorationThickness());
     pen[0].setCosmetic(true);
     pen[1].setWidth(decorationThickness() * 2);
@@ -430,7 +427,7 @@ void KisFreeTransformStrategy::externalConfigChanged()
     m_d->recalculateTransformations();
 }
 
-bool KisFreeTransformStrategy::beginPrimaryAction(const QPointF &pt)
+bool KisFreeTransformStrategy::beginPrimaryAction(const PkPointF &pt)
 {
     m_d->clickArgs = m_d->currentArgs;
     m_d->clickPos = pt;
@@ -439,13 +436,13 @@ bool KisFreeTransformStrategy::beginPrimaryAction(const QPointF &pt)
     m_d->clickTransform = m.finalTransform();
 
     if (m_d->function == ROTATEBOUNDS) {
-        Q_EMIT requestConvexHullCalculation();
+        requestConvexHullCalculation();
     }
 
     return true;
 }
 
-void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
+void KisFreeTransformStrategy::continuePrimaryAction(const PkPointF &mousePos,
                                                      bool shiftModifierActive,
                                                      bool altModifierActive)
 {
@@ -453,17 +450,17 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
     // Note: "altModifierActive" just tells us if the alt key is being pressed
 
     m_d->isTransforming = true;
-    const QPointF anchorPoint = m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset();
+    const PkPointF anchorPoint = m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset();
 
     switch (m_d->function) {
     case MOVE: {
-        QPointF diff = mousePos - m_d->clickPos;
+        PkPointF diff = mousePos - m_d->clickPos;
 
         if (shiftModifierActive) {
 
             KisTransformUtils::MatricesPack m(m_d->clickArgs);
-            QTransform t = m.S * m.projectedP;
-            QPointF originalDiff = t.inverted().map(diff);
+            PkTransform t = m.S * m.projectedP;
+            PkPointF originalDiff = t.inverted().map(diff);
 
             if (qAbs(originalDiff.x()) >= qAbs(originalDiff.y())) {
                 originalDiff.setY(0);
@@ -482,11 +479,11 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
     case ROTATEBOUNDS:
     {
         const KisTransformUtils::MatricesPack clickM(m_d->clickArgs);
-        const QTransform clickT = clickM.finalTransform();
+        const PkTransform clickT = clickM.finalTransform();
 
-        const QPointF rotationCenter = m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset();
-        const QPointF clickMouseImagePos = clickT.inverted().map(m_d->clickPos) - rotationCenter;
-        const QPointF mouseImagePosClickSpace = clickT.inverted().map(mousePos) - rotationCenter;
+        const PkPointF rotationCenter = m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset();
+        const PkPointF clickMouseImagePos = clickT.inverted().map(m_d->clickPos) - rotationCenter;
+        const PkPointF mouseImagePosClickSpace = clickT.inverted().map(mousePos) - rotationCenter;
 
         const qreal a1 = atan2(clickMouseImagePos.y(), clickMouseImagePos.x());
         const qreal a2 = atan2(mouseImagePosClickSpace.y(), mouseImagePosClickSpace.x());
@@ -495,11 +492,11 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
         m_d->currentArgs.setBoundsRotation(m_d->clickArgs.boundsRotation() + theta);
         
         // Find new scale/shear/rotation for the rotated bounds
-        QTransform newBR; newBR.rotateRadians(m_d->currentArgs.boundsRotation());
-        QTransform clickZ; clickZ.rotateRadians(m_d->clickArgs.aZ());
+        PkTransform newBR; newBR.rotateRadians(m_d->currentArgs.boundsRotation());
+        PkTransform clickZ; clickZ.rotateRadians(m_d->clickArgs.aZ());
         // newM.BRI * newM.SC * newM.S * newZ = clickM.BRI * clickM.SC * clickM.S * clickZ
         // newM.SC * newM.S * newZ = newM.BR * clickM.BRI * clickM.SC * clickM.S * clickZ
-        QTransform desired = newBR * clickM.BRI * clickM.SC * clickM.S * clickZ;
+        PkTransform desired = newBR * clickM.BRI * clickM.SC * clickM.S * clickZ;
         KisAlgebra2D::DecomposedMatrix dm(desired);
         if (dm.isValid()) {
             m_d->currentArgs.setScaleX(dm.scaleX);
@@ -521,11 +518,11 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
     case ROTATE:
     {
         const KisTransformUtils::MatricesPack clickM(m_d->clickArgs);
-        const QTransform clickT = clickM.finalTransform();
+        const PkTransform clickT = clickM.finalTransform();
 
-        const QPointF rotationCenter = m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset();
-        const QPointF clickMouseImagePos = clickT.inverted().map(m_d->clickPos) - rotationCenter;
-        const QPointF mouseImagePosClickSpace = clickT.inverted().map(mousePos) - rotationCenter;
+        const PkPointF rotationCenter = m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset();
+        const PkPointF clickMouseImagePos = clickT.inverted().map(m_d->clickPos) - rotationCenter;
+        const PkPointF mouseImagePosClickSpace = clickT.inverted().map(mousePos) - rotationCenter;
 
         const qreal a1 = atan2(clickMouseImagePos.y(), clickMouseImagePos.x());
         const qreal a2 = atan2(mouseImagePosClickSpace.y(), mouseImagePosClickSpace.x());
@@ -553,16 +550,16 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
         }
 
         KisTransformUtils::MatricesPack m(m_d->currentArgs);
-        QTransform t = m.finalTransform();
-        QPointF newRotationCenter = t.map(m_d->currentArgs.originalCenter() + m_d->currentArgs.rotationCenterOffset());
-        QPointF oldRotationCenter = clickT.map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
+        PkTransform t = m.finalTransform();
+        PkPointF newRotationCenter = t.map(m_d->currentArgs.originalCenter() + m_d->currentArgs.rotationCenterOffset());
+        PkPointF oldRotationCenter = clickT.map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
 
         m_d->currentArgs.setTransformedCenter(m_d->currentArgs.transformedCenter() + oldRotationCenter - newRotationCenter);
     }
     break;
     case PERSPECTIVE:
     {
-        QPointF diff = mousePos - m_d->clickPos;
+        PkPointF diff = mousePos - m_d->clickPos;
         double thetaX = - diff.y() * M_PI / m_d->transaction.originalHalfHeight() / 2 / fabs(m_d->currentArgs.scaleY());
         m_d->currentArgs.setAX(normalizeAngle(m_d->clickArgs.aX() + thetaX));
 
@@ -571,20 +568,20 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
         m_d->currentArgs.setAY(normalizeAngle(m_d->clickArgs.aY() + thetaY));
 
         KisTransformUtils::MatricesPack m(m_d->currentArgs);
-        QTransform t = m.finalTransform();
-        QPointF newRotationCenter = t.map(m_d->currentArgs.originalCenter() + m_d->currentArgs.rotationCenterOffset());
+        PkTransform t = m.finalTransform();
+        PkPointF newRotationCenter = t.map(m_d->currentArgs.originalCenter() + m_d->currentArgs.rotationCenterOffset());
 
         KisTransformUtils::MatricesPack clickM(m_d->clickArgs);
-        QTransform clickT = clickM.finalTransform();
-        QPointF oldRotationCenter = clickT.map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
+        PkTransform clickT = clickM.finalTransform();
+        PkPointF oldRotationCenter = clickT.map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
 
         m_d->currentArgs.setTransformedCenter(m_d->currentArgs.transformedCenter() + oldRotationCenter - newRotationCenter);
     }
     break;
     case TOPSCALE:
     case BOTTOMSCALE: {
-        QPointF staticPoint;
-        QPointF movingPoint;
+        PkPointF staticPoint;
+        PkPointF movingPoint;
 
         if (m_d->function == TOPSCALE) {
             staticPoint = m_d->boundsTransform.map(bottomMiddle(m_d->bounds));
@@ -594,16 +591,16 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
             movingPoint = m_d->boundsTransform.map(bottomMiddle(m_d->bounds));
         }
 
-        QPointF staticPointInView = m_d->clickTransform.map(staticPoint);
-        const QPointF movingPointInView = m_d->clickTransform.map(movingPoint);
+        PkPointF staticPointInView = m_d->clickTransform.map(staticPoint);
+        const PkPointF movingPointInView = m_d->clickTransform.map(movingPoint);
 
-        const QPointF projNormVector =
+        const PkPointF projNormVector =
             KisAlgebra2D::normalize(movingPointInView - staticPointInView);
 
         const qreal projLength =
             KisAlgebra2D::dotProduct(mousePos - staticPointInView, projNormVector);
 
-        const QPointF targetMovingPointInView = staticPointInView + projNormVector * projLength;
+        const PkPointF targetMovingPointInView = staticPointInView + projNormVector * projLength;
 
         // override scale static point if it is locked
         if ((m_d->clickArgs.transformAroundRotationCenter() ^ altModifierActive) &&
@@ -636,8 +633,8 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
 
     case LEFTSCALE:
     case RIGHTSCALE: {
-        QPointF staticPoint;
-        QPointF movingPoint;
+        PkPointF staticPoint;
+        PkPointF movingPoint;
 
         if (m_d->function == LEFTSCALE) {
             staticPoint = m_d->boundsTransform.map(middleRight(m_d->bounds));
@@ -647,16 +644,16 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
             movingPoint = m_d->boundsTransform.map(middleRight(m_d->bounds));
         }
 
-        QPointF staticPointInView = m_d->clickTransform.map(staticPoint);
-        const QPointF movingPointInView = m_d->clickTransform.map(movingPoint);
+        PkPointF staticPointInView = m_d->clickTransform.map(staticPoint);
+        const PkPointF movingPointInView = m_d->clickTransform.map(movingPoint);
 
-        const QPointF projNormVector =
+        const PkPointF projNormVector =
             KisAlgebra2D::normalize(movingPointInView - staticPointInView);
 
         const qreal projLength =
             KisAlgebra2D::dotProduct(mousePos - staticPointInView, projNormVector);
 
-        const QPointF targetMovingPointInView = staticPointInView + projNormVector * projLength;
+        const PkPointF targetMovingPointInView = staticPointInView + projNormVector * projLength;
 
         // override scale static point if it is locked
         if ((m_d->currentArgs.transformAroundRotationCenter() ^ altModifierActive) &&
@@ -690,8 +687,8 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
     case BOTTOMRIGHTSCALE:
     case TOPLEFTSCALE:
     case BOTTOMLEFTSCALE: {
-        QPointF staticPoint;
-        QPointF movingPoint;
+        PkPointF staticPoint;
+        PkPointF movingPoint;
 
         if (m_d->function == TOPRIGHTSCALE) {
             staticPoint = m_d->boundsTransform.map(m_d->bounds.bottomLeft());
@@ -715,12 +712,12 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
             staticPoint = anchorPoint;
         }
 
-        QPointF staticPointInView = m_d->clickTransform.map(staticPoint);
-        QPointF movingPointInView = mousePos;
+        PkPointF staticPointInView = m_d->clickTransform.map(staticPoint);
+        PkPointF movingPointInView = mousePos;
 
         if (shiftModifierActive  ||  m_d->currentArgs.keepAspectRatio()) {
-            QPointF refDiff = m_d->clickTransform.map(movingPoint) - staticPointInView;
-            QPointF realDiff = mousePos - staticPointInView;
+            PkPointF refDiff = m_d->clickTransform.map(movingPoint) - staticPointInView;
+            PkPointF realDiff = mousePos - staticPointInView;
             realDiff = kisProjectOnVector(refDiff, realDiff);
 
             movingPointInView = staticPointInView + realDiff;
@@ -753,7 +750,7 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
     }
     case MOVECENTER: {
 
-        QPointF pt;
+        PkPointF pt;
         if (altModifierActive) {
             pt = (m_d->boundsTransform * m_d->transform).inverted().map(mousePos);
             pt = KisTransformUtils::clipInRect(pt, m_d->bounds);
@@ -762,7 +759,7 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
             pt = m_d->transform.inverted().map(mousePos);
         }
 
-        QPointF newRotationCenterOffset = pt - m_d->currentArgs.originalCenter();
+        PkPointF newRotationCenterOffset = pt - m_d->currentArgs.originalCenter();
 
         if (shiftModifierActive) {
             if (qAbs(newRotationCenterOffset.x()) > qAbs(newRotationCenterOffset.y())) {
@@ -773,17 +770,17 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
         }
 
         m_d->currentArgs.setRotationCenterOffset(newRotationCenterOffset);
-        Q_EMIT requestResetRotationCenterButtons();
+        requestResetRotationCenterButtons();
     }
         break;
     case TOPSHEAR:
     case BOTTOMSHEAR: {
         KisTransformUtils::MatricesPack m(m_d->clickArgs);
 
-        QPointF oldStaticPoint = m.finalTransform().map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
+        PkPointF oldStaticPoint = m.finalTransform().map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
 
-        QTransform backwardT = (m.S * m.projectedP).inverted();
-        QPointF diff = backwardT.map(mousePos - m_d->clickPos);
+        PkTransform backwardT = (m.S * m.projectedP).inverted();
+        PkPointF diff = backwardT.map(mousePos - m_d->clickPos);
 
         qreal sign = m_d->function == BOTTOMSHEAR ? 1.0 : -1.0;
 
@@ -795,8 +792,8 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
         m_d->currentArgs.setShearX(sign * dx / m_d->currentArgs.scaleY() / (m_d->bounds.height() / 2.0)); // calculate the new shearX factor
 
         KisTransformUtils::MatricesPack currentM(m_d->currentArgs);
-        QTransform t = currentM.finalTransform();
-        QPointF newStaticPoint = t.map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
+        PkTransform t = currentM.finalTransform();
+        PkPointF newStaticPoint = t.map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
         m_d->currentArgs.setTransformedCenter(m_d->currentArgs.transformedCenter() + oldStaticPoint - newStaticPoint);
         break;
     }
@@ -805,10 +802,10 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
     case RIGHTSHEAR: {
         KisTransformUtils::MatricesPack m(m_d->clickArgs);
 
-        QPointF oldStaticPoint = m.finalTransform().map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
+        PkPointF oldStaticPoint = m.finalTransform().map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
 
-        QTransform backwardT = (m.S * m.projectedP).inverted();
-        QPointF diff = backwardT.map(mousePos - m_d->clickPos);
+        PkTransform backwardT = (m.S * m.projectedP).inverted();
+        PkPointF diff = backwardT.map(mousePos - m_d->clickPos);
 
         qreal sign = m_d->function == RIGHTSHEAR ? 1.0 : -1.0;
 
@@ -820,8 +817,8 @@ void KisFreeTransformStrategy::continuePrimaryAction(const QPointF &mousePos,
         m_d->currentArgs.setShearY(sign * dy / m_d->clickArgs.scaleX() / (m_d->bounds.width() / 2.0));
 
         KisTransformUtils::MatricesPack currentM(m_d->currentArgs);
-        QTransform t = currentM.finalTransform();
-        QPointF newStaticPoint = t.map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
+        PkTransform t = currentM.finalTransform();
+        PkPointF newStaticPoint = t.map(m_d->clickArgs.originalCenter() + m_d->clickArgs.rotationCenterOffset());
         m_d->currentArgs.setTransformedCenter(m_d->currentArgs.transformedCenter() + oldStaticPoint - newStaticPoint);
         break;
     }
@@ -846,7 +843,7 @@ bool KisFreeTransformStrategy::endPrimaryAction()
 void KisFreeTransformStrategy::Private::recalculateTransformations()
 {
     KisTransformUtils::MatricesPack m(currentArgs);
-    QTransform sanityCheckMatrix = m.TS * m.SC * m.S * m.projectedP;
+    PkTransform sanityCheckMatrix = m.TS * m.SC * m.S * m.projectedP;
 
     /**
      * The center of the original image should still
@@ -858,10 +855,10 @@ void KisFreeTransformStrategy::Private::recalculateTransformations()
     boundsTransform = m.BRI.inverted();
     recalculateBounds();
 
-    QTransform viewScaleTransform = converter->imageToDocumentTransform() * converter->documentToFlakeTransform();
+    PkTransform viewScaleTransform = converter->imageToDocumentTransform() * converter->documentToFlakeTransform();
     handlesTransform = boundsTransform * transform * viewScaleTransform;
 
-    QTransform tl = QTransform::fromTranslate(transaction.originalTopLeft().x(), transaction.originalTopLeft().y());
+    PkTransform tl = PkTransform::fromTranslate(transaction.originalTopLeft().x(), transaction.originalTopLeft().y());
     paintingTransform = tl.inverted() * q->thumbToImageTransform() * tl * transform * viewScaleTransform;
     paintingOffset = transaction.originalTopLeft();
 
@@ -871,6 +868,6 @@ void KisFreeTransformStrategy::Private::recalculateTransformations()
     // recalculate cached handles position
     recalculateTransformedHandles();
 
-    Q_EMIT q->requestShowImageTooBig(imageTooBig);
-    Q_EMIT q->requestImageRecalculation();
+    q->requestShowImageTooBig(imageTooBig);
+    q->requestImageRecalculation();
 }

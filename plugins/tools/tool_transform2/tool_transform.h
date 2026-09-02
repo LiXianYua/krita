@@ -7,18 +7,25 @@
 #ifndef TOOL_TRANSFORM_H_
 #define TOOL_TRANSFORM_H_
 
-#include <QObject>
-#include <QVariant>
+#include <functional>
+
+#include "kritatooltransform_export.h"
+
+enum class TransformToolRegistrationStep {
+    ToolFactory,
+    AnimatedParamsHolderFactory,
+    TransformMaskFactory,
+    DumbTransformMaskFactory
+};
+
+using TransformToolRegistrationCallback =
+    std::function<void(TransformToolRegistrationStep)>;
 
 /**
  * A module that provides a transform tool.
  */
-class ToolTransform : public QObject
-{
-    Q_OBJECT
-public:
-    ToolTransform(QObject *parent, const QVariantList &);
-    ~ToolTransform() override;
-};
+KRITATOOLTRANSFORM_EXPORT void registerToolTransformPlugin(
+    const TransformToolRegistrationCallback &callback);
+KRITATOOLTRANSFORM_EXPORT void registerToolTransformPlugin();
 
 #endif // TOOL_TRANSFORM_H_

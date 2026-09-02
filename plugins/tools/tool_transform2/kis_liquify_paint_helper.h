@@ -7,13 +7,13 @@
 #ifndef __KIS_LIQUIFY_PAINT_HELPER_H
 #define __KIS_LIQUIFY_PAINT_HELPER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisLiquifyTransformWorker;
 class KisCoordinatesConverter;
 class KoPointerEvent;
 class KisLiquifyProperties;
-class QPainterPath;
+class PkPainterPath;
 class KoCanvasResourceProvider;
 
 class KisLiquifyPaintHelper
@@ -31,11 +31,11 @@ public:
 
     void hoverPaint(KoPointerEvent *event);
 
-    QPainterPath brushOutline(const KisLiquifyProperties &props);
+    PkPainterPath brushOutline(const KisLiquifyProperties &props);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_LIQUIFY_PAINT_HELPER_H */

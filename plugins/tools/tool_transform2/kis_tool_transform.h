@@ -11,13 +11,9 @@
 #ifndef KIS_TOOL_TRANSFORM_H_
 #define KIS_TOOL_TRANSFORM_H_
 
-#include <QPoint>
-#include <QPointF>
-#include <QVector2D>
-#include <QVector3D>
-#include <QButtonGroup>
-
-#include <QKeySequence>
+#include <PkPoint.h>
+#include <PkVectorND.h>
+#include <PkString.h>
 
 #include <KoToolFactoryBase.h>
 
@@ -33,12 +29,8 @@
 #include "tool_transform_args.h"
 #include "KisToolChangesTracker.h"
 #include "transform_transaction_properties.h"
-#include "kis_signal_auto_connection.h"
-
 #include "strokes/inplace_transform_stroke_strategy.h"
 
-class QTouchEvent;
-class QAction;
 class KisTransformStrategyBase;
 class KisCoordinatesConverter;
 class KisWarpTransformStrategy;
@@ -47,6 +39,18 @@ class KisLiquifyTransformStrategy;
 class KisFreeTransformStrategy;
 class KisPerspectiveTransformStrategy;
 class KisMeshTransformStrategy;
+
+struct TransformToolFactoryDescriptor {
+    PkString id;
+    PkString toolTip;
+    PkString section;
+    PkString iconName;
+    PkString shortcut;
+    PkString activationShapeId;
+    int priority {0};
+};
+
+KRITATOOLTRANSFORM_EXPORT TransformToolFactoryDescriptor transformToolFactoryDescriptor();
 
 
 /**
@@ -74,26 +78,12 @@ class KisMeshTransformStrategy;
 class KisToolTransform : public KisTool
 {
 
-    Q_OBJECT
 
-    Q_PROPERTY(TransformToolMode transformMode READ transformMode WRITE setTransformMode NOTIFY transformModeChanged)
 
-    Q_PROPERTY(double translateX READ translateX WRITE setTranslateX NOTIFY freeTransformChanged)
-    Q_PROPERTY(double translateY READ translateY WRITE setTranslateY NOTIFY freeTransformChanged)
 
-    Q_PROPERTY(double rotateX READ rotateX WRITE setRotateX NOTIFY freeTransformChanged)
-    Q_PROPERTY(double rotateY READ rotateY WRITE setRotateY NOTIFY freeTransformChanged)
-    Q_PROPERTY(double rotateZ READ rotateZ WRITE setRotateZ NOTIFY freeTransformChanged)
 
-    Q_PROPERTY(double scaleX READ scaleX WRITE setScaleX NOTIFY freeTransformChanged)
-    Q_PROPERTY(double scaleY READ scaleY WRITE setScaleY NOTIFY freeTransformChanged)
 
-    Q_PROPERTY(double shearX READ shearX WRITE setShearX NOTIFY freeTransformChanged)
-    Q_PROPERTY(double shearY READ shearY WRITE setShearY NOTIFY freeTransformChanged)
 
-    Q_PROPERTY(WarpType warpType READ warpType WRITE setWarpType NOTIFY warpTransformChanged)
-    Q_PROPERTY(double warpFlexibility READ warpFlexibility WRITE setWarpFlexibility NOTIFY warpTransformChanged)
-    Q_PROPERTY(int warpPointDensity READ warpPointDensity WRITE setWarpPointDensity NOTIFY warpTransformChanged)
 
 
 
@@ -106,14 +96,12 @@ public:
         PerspectiveTransformMode,
         MeshTransformMode
     };
-    Q_ENUMS(TransformToolMode)
 
     enum WarpType {
         RigidWarpType,
         AffineWarpType,
         SimilitudeWarpType
     };
-    Q_ENUMS(WarpType)
 
     KisToolTransform(KoCanvasBase * canvas);
     ~KisToolTransform() override;
@@ -136,8 +124,6 @@ public:
     void beginActionImpl(KoPointerEvent *event, bool usePrimaryAction, KisTool::AlternateAction action);
     void continueActionImpl(KoPointerEvent *event, bool usePrimaryAction, KisTool::AlternateAction action);
     void endActionImpl(KoPointerEvent *event, bool usePrimaryAction, KisTool::AlternateAction action);
-    QMenu* popupActionsMenu() override;
-
     void activatePrimaryAction() override;
     void deactivatePrimaryAction() override;
     void beginPrimaryAction(KoPointerEvent *event) override;
@@ -150,7 +136,7 @@ public:
     void continueAlternateAction(KoPointerEvent *event, AlternateAction action) override;
     void endAlternateAction(KoPointerEvent *event, AlternateAction action) override;
 
-    void paint(QPainter& gc, const KoViewConverter &converter) override;
+    void paint(PkPainter& gc, const KoViewConverter &converter) override;
 
     void newActivationWithExternalSource(KisPaintDeviceSP externalSource) override;
 
@@ -176,8 +162,18 @@ public:
 
     static ToolTransformArgs::TransformMode toArgsMode(KisToolTransform::TransformToolMode toolMode);
 
-public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+    enum class PlatformAction {
+        Free, Perspective, Warp, Cage, Liquify, Mesh,
+        MirrorHorizontal, MirrorVertical, RotateClockwise, RotateCounterClockwise,
+        KeepAspectRatio, Apply, Reset,
+        MoveUp, MoveUpMore, MoveDown, MoveDownMore,
+        MoveLeft, MoveLeftMore, MoveRight, MoveRightMore,
+        IncreaseBrushSize, DecreaseBrushSize
+    };
+    bool dispatchPlatformAction(PlatformAction action, bool checked = false);
+
+public:
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     // Applies the current transformation to the original paint device and commits it to the undo stack
     void applyTransform();
@@ -203,22 +199,22 @@ public Q_SLOTS:
     void setWarpFlexibility(double flexibility);
     void setWarpPointDensity(int density);
 
-protected Q_SLOTS:
+protected:
     void resetCursorStyle() override;
     void slotGlobalConfigChanged();
 
-Q_SIGNALS:
+signals:
     void transformModeChanged();
     void freeTransformChanged();
     void warpTransformChanged();
 
-public Q_SLOTS:
+public:
     void requestUndoDuringStroke() override;
     void requestRedoDuringStroke() override;
     void requestStrokeEnd() override;
     void requestStrokeCancellation() override;
     void canvasUpdateRequested();
-    void cursorOutlineUpdateRequested(const QPointF &imagePos);
+    void cursorOutlineUpdateRequested(const PkPointF &imagePos);
 
     // Update the widget according to m_currentArgs
     void updateOptionWidget();
@@ -226,11 +222,9 @@ public Q_SLOTS:
     void resetRotationCenterButtonsRequested();
     void imageTooBigRequested(bool value);
     void convexHullCalculationRequested();
-    void slotConvexHullCalculated(QPolygon hull, void *strokeStrategyCookie);
+    void slotConvexHullCalculated(PkPolygon hull, void *strokeStrategyCookie);
 
 private:
-    QScopedPointer<QMenu> m_contextMenu;
-
     void startStroke(ToolTransformArgs::TransformMode mode, bool forceReset);
     void endStroke();
     void cancelStroke();
@@ -240,7 +234,7 @@ private:
     // Sets the cursor according to mouse position (doesn't take shearing into account well yet)
     void setFunctionalCursor();
     // Sets m_function according to mouse position and modifier
-    void setTransformFunction(QPointF mousePos, Qt::KeyboardModifiers modifiers);
+    void setTransformFunction(PkPointF mousePos, Qt::KeyboardModifiers modifiers);
 
     void commitChanges();
 
@@ -267,7 +261,7 @@ private:
     bool m_forceLodMode {false};
 
 
-    QPainterPath m_selectionPath; // original (unscaled) selection outline, used for painting decorations
+    PkPainterPath m_selectionPath; // original (unscaled) selection outline, used for painting decorations
 
     const KisCoordinatesConverter *m_converter {nullptr};
 
@@ -278,50 +272,28 @@ private:
 
     TransformTransactionProperties m_transaction;
     KisToolChangesTracker m_changesTracker;
-    KisSignalAutoConnectionsStore m_actionConnections;
-
     TransformToolMode nextActivationTransformMode {FreeTransformMode};
-
-    /// actions for the context click menu
-    QAction* warpAction {0};
-    QAction* meshAction {0};
-    QAction* liquifyAction {0};
-    QAction* cageAction {0};
-    QAction* freeTransformAction {0};
-    QAction* perspectiveAction {0};
-    QAction* applyTransformation {0};
-    QAction* resetTransformation {0};
-
-    // a few extra context click options if free transform is active
-    QAction* mirrorHorizontalAction {0};
-    QAction* mirrorVerticalAction {0};
-    QAction* rotateNinetyCWAction {0};
-    QAction* rotateNinetyCCWAction {0};
-    QAction* keepAspectRatioAction {0};
-
-
-
 
     /**
      * This artificial rect is used to store the image to flake
      * transformation. We check against this rect to get to know
      * whether zoom has changed.
      */
-    QRectF m_refRect;
+    PkRectF m_refRect;
 
-    QScopedPointer<KisWarpTransformStrategy> m_warpStrategy;
-    QScopedPointer<KisCageTransformStrategy> m_cageStrategy;
-    QScopedPointer<KisLiquifyTransformStrategy> m_liquifyStrategy;
-    QScopedPointer<KisMeshTransformStrategy> m_meshStrategy;
-    QScopedPointer<KisFreeTransformStrategy> m_freeStrategy;
-    QScopedPointer<KisPerspectiveTransformStrategy> m_perspectiveStrategy;
+    PkScopedPointer<KisWarpTransformStrategy> m_warpStrategy;
+    PkScopedPointer<KisCageTransformStrategy> m_cageStrategy;
+    PkScopedPointer<KisLiquifyTransformStrategy> m_liquifyStrategy;
+    PkScopedPointer<KisMeshTransformStrategy> m_meshStrategy;
+    PkScopedPointer<KisFreeTransformStrategy> m_freeStrategy;
+    PkScopedPointer<KisPerspectiveTransformStrategy> m_perspectiveStrategy;
     KisTransformStrategyBase* currentStrategy() const;
 
-    QPainterPath m_cursorOutline;
+    PkPainterPath m_cursorOutline;
 
     KisAsynchronousStrokeUpdateHelper m_asyncUpdateHelper;
 
-private Q_SLOTS:
+private:
     void slotTrackerChangedConfig(KisToolChangesTrackerDataSP status);
     void slotUiChangedConfig(bool needsPreviewRecalculation);
     void slotApplyTransform();
@@ -371,17 +343,18 @@ private Q_SLOTS:
 class KisToolTransformFactory : public KisToolPaintFactoryBase
 {
 
-    Q_OBJECT
 
 public:
 
     KisToolTransformFactory()
-            : KisToolPaintFactoryBase("KisToolTransform") {
-        setToolTip(i18n("Transform a layer or a selection"));
-        setSection(ToolBoxSection::Transform);
-        setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
-        setPriority(2);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+            : KisToolPaintFactoryBase(transformToolFactoryDescriptor().id) {
+        const TransformToolFactoryDescriptor descriptor = transformToolFactoryDescriptor();
+        setToolTip(descriptor.toolTip);
+        setSection(descriptor.section);
+        setIconName(descriptor.iconName);
+        setShortcut(descriptor.shortcut);
+        setPriority(descriptor.priority);
+        setActivationShapeId(descriptor.activationShapeId);
     }
 
     ~KisToolTransformFactory() override {}
@@ -390,18 +363,8 @@ public:
         return new KisToolTransform(canvas);
     }
 
-    QList<QAction *> createActionsImpl() override;
-
-private:
+public:
     void activateSubtool(KisToolTransform::TransformToolMode mode);
-
-private Q_SLOTS:
-    void activateSubtoolFree();
-    void activateSubtoolPerspective();
-    void activateSubtoolWarp();
-    void activateSubtoolCage();
-    void activateSubtoolLiquify();
-    void activateSubtoolMesh();
 };
 
 

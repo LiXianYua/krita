@@ -26,8 +26,8 @@ struct KisSimplifiedActionPolicyStrategy::Private
     bool sampleFromNodeModifierActive;
     bool changeSizeModifierActive;
     bool anySamplerModifierActive;
-    QPointF dragOffset;
-    QPointF lastImagePos;
+    PkPointF dragOffset;
+    PkPointF lastImagePos;
 };
 
 
@@ -40,14 +40,14 @@ KisSimplifiedActionPolicyStrategy::~KisSimplifiedActionPolicyStrategy()
 {
 }
 
-QPointF KisSimplifiedActionPolicyStrategy::handleSnapPoint(const QPointF &imagePos)
+PkPointF KisSimplifiedActionPolicyStrategy::handleSnapPoint(const PkPointF &imagePos)
 {
     return imagePos;
 }
 
-QPointF KisSimplifiedActionPolicyStrategy::snapDocPoint(const QPointF &point, Qt::KeyboardModifiers modifiers) const
+PkPointF KisSimplifiedActionPolicyStrategy::snapDocPoint(const PkPointF &point, Qt::KeyboardModifiers modifiers) const
 {
-    QPointF pos = point;
+    PkPointF pos = point;
 
     if (m_d->snapGuide) {
         Qt::KeyboardModifiers modifiersForSnapping = modifiers;
@@ -64,8 +64,8 @@ QPointF KisSimplifiedActionPolicyStrategy::snapDocPoint(const QPointF &point, Qt
 
 bool KisSimplifiedActionPolicyStrategy::beginPrimaryAction(KoPointerEvent *event)
 {
-    const QPointF rawImagePoint = m_d->converter->documentToImage(event->point);
-    const QPointF snappedImagePoint = handleSnapPoint(rawImagePoint);
+    const PkPointF rawImagePoint = m_d->converter->documentToImage(event->point);
+    const PkPointF snappedImagePoint = handleSnapPoint(rawImagePoint);
 
     /**
      * Note: Snapping with Offset is not yet used in the transform
@@ -75,13 +75,13 @@ bool KisSimplifiedActionPolicyStrategy::beginPrimaryAction(KoPointerEvent *event
      *       Crop Tool.
      */
     if (m_d->snapGuide && rawImagePoint != snappedImagePoint) {
-        QPointF imageOffset = snappedImagePoint - rawImagePoint;
+        PkPointF imageOffset = snappedImagePoint - rawImagePoint;
         m_d->dragOffset = m_d->converter->imageToDocument(imageOffset);
     }
 
-    const QPointF pos = snapDocPoint(event->point, event->modifiers());
+    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
 
-    QPointF imagePos = m_d->converter->documentToImage(pos);
+    PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
     return beginPrimaryAction(imagePos);
@@ -104,8 +104,8 @@ void KisSimplifiedActionPolicyStrategy::continuePrimaryAction(KoPointerEvent *ev
     const bool shiftIsActive = event->modifiers() & Qt::ShiftModifier;
     const bool altIsActive = event->modifiers() & Qt::AltModifier;
 
-    const QPointF pos = snapDocPoint(event->point, event->modifiers());
-    QPointF imagePos = m_d->converter->documentToImage(pos);
+    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
     return continuePrimaryAction(imagePos, shiftIsActive, altIsActive);
@@ -113,7 +113,7 @@ void KisSimplifiedActionPolicyStrategy::continuePrimaryAction(KoPointerEvent *ev
 
 void KisSimplifiedActionPolicyStrategy::hoverActionCommon(KoPointerEvent *event)
 {
-    QPointF imagePos = m_d->converter->documentToImage(event->point);
+    PkPointF imagePos = m_d->converter->documentToImage(event->point);
     m_d->lastImagePos = imagePos;
 
     hoverActionCommon(imagePos);
@@ -121,8 +121,8 @@ void KisSimplifiedActionPolicyStrategy::hoverActionCommon(KoPointerEvent *event)
 
 bool KisSimplifiedActionPolicyStrategy::endPrimaryAction(KoPointerEvent *event)
 {
-    const QPointF pos = snapDocPoint(event->point, event->modifiers());
-    QPointF imagePos = m_d->converter->documentToImage(pos);
+    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
     return endPrimaryAction();
@@ -162,12 +162,12 @@ void KisSimplifiedActionPolicyStrategy::deactivateAlternateAction(KisTool::Alter
 
 bool KisSimplifiedActionPolicyStrategy::beginAlternateAction(KoPointerEvent *event, KisTool::AlternateAction action)
 {
-    Q_UNUSED(action);
+    (void)action;
 
     if (!m_d->changeSizeModifierActive && !m_d->anySamplerModifierActive) return false;
 
-    const QPointF pos = snapDocPoint(event->point, event->modifiers());
-    QPointF imagePos = m_d->converter->documentToImage(pos);
+    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
     return beginPrimaryAction(imagePos);
@@ -175,13 +175,13 @@ bool KisSimplifiedActionPolicyStrategy::beginAlternateAction(KoPointerEvent *eve
 
 void KisSimplifiedActionPolicyStrategy::continueAlternateAction(KoPointerEvent *event, KisTool::AlternateAction action)
 {
-    Q_UNUSED(action);
+    (void)action;
 
     if (!m_d->changeSizeModifierActive && !m_d->anySamplerModifierActive) return;
     const bool altIsActive = event->modifiers() & Qt::AltModifier;
 
-    const QPointF pos = snapDocPoint(event->point, event->modifiers());
-    QPointF imagePos = m_d->converter->documentToImage(pos);
+    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
     continuePrimaryAction(imagePos, m_d->changeSizeModifierActive, altIsActive);
@@ -189,12 +189,12 @@ void KisSimplifiedActionPolicyStrategy::continueAlternateAction(KoPointerEvent *
 
 bool KisSimplifiedActionPolicyStrategy::endAlternateAction(KoPointerEvent *event, KisTool::AlternateAction action)
 {
-    Q_UNUSED(action);
+    (void)action;
 
     if (!m_d->changeSizeModifierActive && !m_d->anySamplerModifierActive) return false;
 
-    const QPointF pos = snapDocPoint(event->point, event->modifiers());
-    QPointF imagePos = m_d->converter->documentToImage(pos);
+    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
     return endPrimaryAction();
@@ -205,7 +205,7 @@ bool KisSimplifiedActionPolicyStrategy::shiftModifierIsUsed() const
     return false;
 }
 
-void KisSimplifiedActionPolicyStrategy::hoverActionCommon(const QPointF &pt)
+void KisSimplifiedActionPolicyStrategy::hoverActionCommon(const PkPointF &pt)
 {
     setTransformFunction(pt, m_d->anySamplerModifierActive && !m_d->sampleFromNodeModifierActive, m_d->changeSizeModifierActive, m_d->sampleFromNodeModifierActive);
 }

@@ -7,23 +7,22 @@
 #ifndef __KIS_LIQUIFY_TRANSFORM_STRATEGY_H
 #define __KIS_LIQUIFY_TRANSFORM_STRATEGY_H
 
-#include <QObject>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
+#include <PkScopedPointer.h>
 
 #include "kis_transform_strategy_base.h"
 
-class QPointF;
-class QPainter;
+class PkPointF;
+class PkPainter;
 class KisCoordinatesConverter;
 class ToolTransformArgs;
 class TransformTransactionProperties;
-class QCursor;
 class KisCanvasToolServices;
 
 
 class KisLiquifyTransformStrategy : public KisTransformStrategyBase
 {
-    Q_OBJECT
 public:
     KisLiquifyTransformStrategy(const KisCoordinatesConverter *converter,
                              ToolTransformArgs &currentArgs,
@@ -32,10 +31,10 @@ public:
                              KisCanvasToolServices *canvasServices);
     ~KisLiquifyTransformStrategy() override;
 
-    void setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive);
-    void paint(QPainter &gc) override;
-    QCursor getCurrentCursor() const override;
-    QPainterPath getCursorOutline() const override;
+    void setTransformFunction(const PkPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive);
+    void paint(TransformToolPainter &gc) override;
+    TransformCursorDescriptor getCurrentCursor() const override;
+    PkPainterPath getCursorOutline() const override;
 
     bool acceptsClicks() const override;
 
@@ -56,17 +55,17 @@ public:
     void increaseBrushSize(KoCanvasBase *canvas) override;
     void decreaseBrushSize(KoCanvasBase *canvas) override;
 
-Q_SIGNALS:
+signals:
     void requestCanvasUpdate();
     void requestUpdateOptionWidget();
-    void requestCursorOutlineUpdate(const QPointF &imagePoint);
+    void requestCursorOutlineUpdate(const PkPointF &imagePoint);
     void requestImageRecalculation();
 
 private:
     void changeBrushSize(KoCanvasBase *canvas, bool increase);
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_LIQUIFY_TRANSFORM_STRATEGY_H */

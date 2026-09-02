@@ -5,8 +5,8 @@
  */
 #include "kis_liquify_paint_helper.h"
 
-#include <QElapsedTimer>
-#include <QPainterPath>
+#include <PkElapsedTimer.h>
+#include <PkPainterPath.h>
 
 #include "kis_algebra_2d.h"
 #include "KoPointerEvent.h"
@@ -29,12 +29,12 @@ struct KisLiquifyPaintHelper::Private
 
     KisPaintInformation previousPaintInfo;
 
-    QScopedPointer<KisLiquifyPaintop> paintOp;
+    PkScopedPointer<KisLiquifyPaintop> paintOp;
     KisDistanceInformation currentDistance;
     const KisCoordinatesConverter *converter;
-    QScopedPointer<KisPaintingInformationBuilder> infoBuilder;
+    PkScopedPointer<KisPaintingInformationBuilder> infoBuilder;
 
-    QElapsedTimer strokeTime;
+    PkElapsedTimer strokeTime;
 
     bool hasPaintedAtLeastOnce;
 
@@ -55,7 +55,7 @@ KisLiquifyPaintHelper::~KisLiquifyPaintHelper()
 
 void KisLiquifyPaintHelper::Private::updatePreviousPaintInfo(const KisPaintInformation &info)
 {
-    QPointF prevPos = lastOutlinePos.pushThroughHistory(info.pos(), converter->effectiveZoom());
+    PkPointF prevPos = lastOutlinePos.pushThroughHistory(info.pos(), converter->effectiveZoom());
     qreal angle = KisAlgebra2D::directionBetweenPoints(prevPos, info.pos(), 0);
 
     previousDistanceInfo =
@@ -64,7 +64,7 @@ void KisLiquifyPaintHelper::Private::updatePreviousPaintInfo(const KisPaintInfor
     previousPaintInfo = info;
 }
 
-QPainterPath KisLiquifyPaintHelper::brushOutline(const KisLiquifyProperties &props)
+PkPainterPath KisLiquifyPaintHelper::brushOutline(const KisLiquifyProperties &props)
 {
     KisPaintInformation::DistanceInformationRegistrar registrar =
         m_d->previousPaintInfo.registerDistanceInformation(&m_d->previousDistanceInfo);
@@ -125,7 +125,7 @@ bool KisLiquifyPaintHelper::endPaint(KoPointerEvent *event)
 
 void KisLiquifyPaintHelper::hoverPaint(KoPointerEvent *event)
 {
-    QPointF imagePoint = m_d->converter->documentToImage(event->pos());
+    PkPointF imagePoint = m_d->converter->documentToImage(event->pos());
     KisPaintInformation pi = m_d->infoBuilder->hover(imagePoint, event, bool(m_d->paintOp));
 
     m_d->updatePreviousPaintInfo(pi);

@@ -13,7 +13,8 @@
 #include "kis_transform_mask.h"
 #include "kis_image.h"
 #include "kis_transform_utils.h"
-#include <QHash>
+#include <PkHash.h>
+#include <PkStringHash.h>
 
 #include <kis_lod_transform.h>
 #include <kis_lod_capable_layer_offset.h>
@@ -33,7 +34,7 @@ using KisLodCapableTransformArgs = KisLodSwitchingWrapper<ToolTransformArgs>;
 
 struct KisAnimatedTransformMaskParamsHolder::Private
 {
-    using TransformChannels = QHash<QString, QSharedPointer<KisScalarKeyframeChannel>>;
+    using TransformChannels = PkHash<PkString, PkSharedPointer<KisScalarKeyframeChannel>>;
 
     Private(KisDefaultBoundsBaseSP _defaultBounds)
         : baseArgs(_defaultBounds)
@@ -48,7 +49,7 @@ struct KisAnimatedTransformMaskParamsHolder::Private
         , isInitialized(rhs.isInitialized)
     {
 
-        Q_FOREACH(QString otherKey, rhs.transformChannels.keys()) {
+        for (PkString otherKey : rhs.transformChannels.keys()) {
             if (rhs.transformChannels[otherKey]){
                 transformChannels.insert(otherKey, toQShared(new KisScalarKeyframeChannel(*rhs.transformChannels[otherKey])));
             }
@@ -64,14 +65,14 @@ struct KisAnimatedTransformMaskParamsHolder::Private
 };
 
 namespace {
-QPointF centerOffsetCurvesToArgs(const ToolTransformArgs &args)
+PkPointF centerOffsetCurvesToArgs(const ToolTransformArgs &args)
 {
     KisTransformUtils::MatricesPack m(args);
 
-    QTransform t = m.TS * m.SC * m.S * m.projectedP;
+    PkTransform t = m.TS * m.SC * m.S * m.projectedP;
 
 
-    const QPointF calculatedOffset = t.map(args.originalCenter() + args.rotationCenterOffset());
+    const PkPointF calculatedOffset = t.map(args.originalCenter() + args.rotationCenterOffset());
 
     /**
      * We add args.rotationCenterOffset() due to legacy reasons, since it was
@@ -82,11 +83,11 @@ QPointF centerOffsetCurvesToArgs(const ToolTransformArgs &args)
     return (args.transformedCenter() + args.rotationCenterOffset()) - calculatedOffset;
 }
 
-QPointF centerOffsetArgsToCurves(const ToolTransformArgs &args)
+PkPointF centerOffsetArgsToCurves(const ToolTransformArgs &args)
 {
     KisTransformUtils::MatricesPack m(args);
 
-    const QPointF expectedCurveOffset =
+    const PkPointF expectedCurveOffset =
         m.finalTransform().map(args.originalCenter() + args.rotationCenterOffset());
 
     /**
@@ -119,16 +120,16 @@ bool KisAnimatedTransformMaskParamsHolder::isAnimated() const
     return !m_d->transformChannels.isEmpty();
 }
 
-const QSharedPointer<ToolTransformArgs> KisAnimatedTransformMaskParamsHolder::transformArgs() const
+const PkSharedPointer<ToolTransformArgs> KisAnimatedTransformMaskParamsHolder::transformArgs() const
 {
-    QSharedPointer<ToolTransformArgs> args(new ToolTransformArgs(*m_d->baseArgs));
+    PkSharedPointer<ToolTransformArgs> args(new ToolTransformArgs(*m_d->baseArgs));
 
     if (m_d->transformChannels.isEmpty()) return args;
     if (m_d->defaultBounds->currentLevelOfDetail() > 0) return args;
     if (args->mode() != ToolTransformArgs::FREE_TRANSFORM) return args;
 
 
-    auto channelFor = [this] (const QString &id) -> KisScalarKeyframeChannel* {
+    auto channelFor = [this] (const PkString &id) -> KisScalarKeyframeChannel* {
         KisScalarKeyframeChannel *channel = this->m_d->transformChannels.value(id, nullptr).data();
 
         if (channel && channel->keyframeCount() > 0) {
@@ -148,7 +149,7 @@ const QSharedPointer<ToolTransformArgs> KisAnimatedTransformMaskParamsHolder::tr
             qreal xPosition = posXChannel ? posXChannel->currentValue() : args->transformedCenter().x();
             qreal yPosition = posYChannel ? posYChannel->currentValue() : args->transformedCenter().y();
 
-            args->setTransformedCenter(QPointF(xPosition, yPosition));
+            args->setTransformedCenter(PkPointF(xPosition, yPosition));
         }
     }
 
@@ -210,7 +211,7 @@ void KisAnimatedTransformMaskParamsHolder::setDefaultBounds(KisDefaultBoundsBase
     m_d->defaultBounds = bounds;
     m_d->baseArgs.setDefaultBounds(bounds);
 
-    Q_FOREACH(QSharedPointer<KisScalarKeyframeChannel> channel, m_d->transformChannels) {
+    for (PkSharedPointer<KisScalarKeyframeChannel> channel : m_d->transformChannels) {
         channel->setDefaultBounds(bounds);
     }
 }
@@ -220,7 +221,7 @@ KisDefaultBoundsBaseSP KisAnimatedTransformMaskParamsHolder::defaultBounds() con
     return m_d->defaultBounds;
 }
 
-KisKeyframeChannel *KisAnimatedTransformMaskParamsHolder::requestKeyframeChannel(const QString &id)
+KisKeyframeChannel *KisAnimatedTransformMaskParamsHolder::requestKeyframeChannel(const PkString &id)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!m_d->transformChannels.contains(id), m_d->transformChannels.value(id).data());
 
@@ -245,14 +246,14 @@ KisKeyframeChannel *KisAnimatedTransformMaskParamsHolder::requestKeyframeChannel
     return channel;
 }
 
-KisKeyframeChannel *KisAnimatedTransformMaskParamsHolder::getKeyframeChannel(const QString &id) const
+KisKeyframeChannel *KisAnimatedTransformMaskParamsHolder::getKeyframeChannel(const PkString &id) const
 {
     return m_d->transformChannels.value(id, nullptr).data();
 }
 
 qreal KisAnimatedTransformMaskParamsHolder::defaultValueForScalarChannel(const KoID &id)
 {
-    QSharedPointer<ToolTransformArgs> args = transformArgs();
+    PkSharedPointer<ToolTransformArgs> args = transformArgs();
 
     if (id == KisKeyframeChannel::PositionX) {
         return args->transformedCenter().x();
@@ -320,7 +321,7 @@ void KisAnimatedTransformMaskParamsHolder::setNewTransformArgs(const ToolTransfo
         }
     };
 
-    const QPointF layerCenterOffset = args.originalCenter() - m_d->baseArgs->originalCenter();
+    const PkPointF layerCenterOffset = args.originalCenter() - m_d->baseArgs->originalCenter();
 
     new ChangeParamsCommand(m_d.data(), std::make_pair(m_d->defaultBounds->currentLevelOfDetail(), args), parentCommand);
 
@@ -339,7 +340,7 @@ void KisAnimatedTransformMaskParamsHolder::setNewTransformArgs(const ToolTransfo
             KisScalarKeyframeChannel *channel = m_d->transformChannels.value(channelId.id()).data();
             KIS_SAFE_ASSERT_RECOVER_RETURN(channel);
 
-            Q_FOREACH(int time, channel->allKeyframeTimes()) {
+            for (int time : channel->allKeyframeTimes()) {
                 KisScalarKeyframeSP keyframe = channel->keyframeAt(time).dynamicCast<KisScalarKeyframe>();
                 KIS_SAFE_ASSERT_RECOVER(keyframe) { break; }
                 keyframe->setValue(keyframe->value() + offset, parentCommand);
@@ -363,7 +364,7 @@ void KisAnimatedTransformMaskParamsHolder::setNewTransformArgs(const ToolTransfo
         }
     };
 
-    const QPointF curvesCenterOffset = centerOffsetArgsToCurves(args);
+    const PkPointF curvesCenterOffset = centerOffsetArgsToCurves(args);
 
     setKeyframe(KisKeyframeChannel::PositionX, currentTime, curvesCenterOffset.x(), parentCommand);
     setKeyframe(KisKeyframeChannel::PositionY, currentTime, curvesCenterOffset.y(), parentCommand);
@@ -378,4 +379,3 @@ void KisAnimatedTransformMaskParamsHolder::setNewTransformArgs(const ToolTransfo
     setKeyframe(KisKeyframeChannel::RotationY, currentTime, kisRadiansToDegrees(args.aY()), parentCommand);
     setKeyframe(KisKeyframeChannel::RotationZ, currentTime, kisRadiansToDegrees(args.aZ()), parentCommand);
 }
-

@@ -25,13 +25,13 @@ public:
 
     bool isAnimated() const override;
 
-    const QSharedPointer<ToolTransformArgs> transformArgs() const;
+    const PkSharedPointer<ToolTransformArgs> transformArgs() const;
 
     void setDefaultBounds(KisDefaultBoundsBaseSP bounds) override;
     KisDefaultBoundsBaseSP defaultBounds() const override;
 
-    KisKeyframeChannel *requestKeyframeChannel(const QString &id) override;
-    KisKeyframeChannel* getKeyframeChannel(const QString &id) const override;
+    KisKeyframeChannel *requestKeyframeChannel(const PkString &id) override;
+    KisKeyframeChannel* getKeyframeChannel(const PkString &id) const override;
 
     void syncLodCache() override;
 
@@ -46,7 +46,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif

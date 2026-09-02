@@ -8,9 +8,9 @@
 
 #include <algorithm>
 
-#include <QPointF>
-#include <QPainter>
-#include <QPainterPath>
+#include <PkPoint.h>
+#include <PkPainter.h>
+#include <PkPainterPath.h>
 
 #include "KoPointerEvent.h"
 
@@ -60,22 +60,22 @@ struct KisLiquifyTransformStrategy::Private
     //////
     TransformTransactionProperties &transaction;
 
-    QTransform paintingTransform;
-    QPointF paintingOffset;
+    PkTransform paintingTransform;
+    PkPointF paintingOffset;
 
-    QTransform handlesTransform;
+    PkTransform handlesTransform;
 
     /// custom members ///
 
-    QImage transformedImage;
+    PkImage transformedImage;
 
     // size-gesture-related
-    QPointF lastMouseWidgetPos;
-    QPointF startResizeImagePos;
-    QPoint startResizeGlobalCursorPos;
+    PkPointF lastMouseWidgetPos;
+    PkPointF startResizeImagePos;
+    PkPoint startResizeGlobalCursorPos;
 
     // for increase/decrease brush size
-    QPointF lastDocPos;
+    PkPointF lastDocPos;
     KisStandardBrushSizes standardBrushSizes{int(KisLiquifyProperties::minSize()),
                                               int(KisLiquifyProperties::maxSize())};
 
@@ -84,7 +84,7 @@ struct KisLiquifyTransformStrategy::Private
     bool recalculateOnNextRedraw;
 
     void recalculateTransformations();
-    inline QPointF imageToThumb(const QPointF &pt, bool useFlakeOptimization);
+    inline PkPointF imageToThumb(const PkPointF &pt, bool useFlakeOptimization);
 };
 
 KisLiquifyTransformStrategy::KisLiquifyTransformStrategy(const KisCoordinatesConverter *converter,
@@ -101,24 +101,24 @@ KisLiquifyTransformStrategy::~KisLiquifyTransformStrategy()
 {
 }
 
-QPainterPath KisLiquifyTransformStrategy::getCursorOutline() const
+PkPainterPath KisLiquifyTransformStrategy::getCursorOutline() const
 {
     return m_d->helper.brushOutline(*m_d->currentArgs.liquifyProperties());
 }
 
-void KisLiquifyTransformStrategy::setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive)
+void KisLiquifyTransformStrategy::setTransformFunction(const PkPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive)
 {
-    Q_UNUSED(mousePos);
-    Q_UNUSED(perspectiveModifierActive);
-    Q_UNUSED(shiftModifierActive);
+    (void)mousePos;
+    (void)perspectiveModifierActive;
+    (void)shiftModifierActive;
 }
 
-QCursor KisLiquifyTransformStrategy::getCurrentCursor() const
+TransformCursorDescriptor KisLiquifyTransformStrategy::getCurrentCursor() const
 {
-    return Qt::BlankCursor;
+    return TransformCursorDescriptor{TransformCursorKind::Blank};
 }
 
-void KisLiquifyTransformStrategy::paint(QPainter &gc)
+void KisLiquifyTransformStrategy::paint(TransformToolPainter &gc)
 {
     // Draw preview image
 
@@ -165,7 +165,7 @@ void KisLiquifyTransformStrategy::continuePrimaryAction(KoPointerEvent *event)
 
     // the updates should be compressed
     m_d->recalculateOnNextRedraw = true;
-    Q_EMIT requestCanvasUpdate();
+    requestCanvasUpdate();
 }
 
 bool KisLiquifyTransformStrategy::endPrimaryAction(KoPointerEvent *event)
@@ -173,7 +173,7 @@ bool KisLiquifyTransformStrategy::endPrimaryAction(KoPointerEvent *event)
     m_d->lastDocPos = event->point;
     if (m_d->helper.endPaint(event)) {
         m_d->recalculateTransformations();
-        Q_EMIT requestCanvasUpdate();
+        requestCanvasUpdate();
     }
 
     return true;
@@ -192,7 +192,7 @@ void KisLiquifyTransformStrategy::activateAlternateAction(KisTool::AlternateActi
 
         KisLiquifyProperties *props = m_d->currentArgs.liquifyProperties();
         props->setReverseDirection(!props->reverseDirection());
-        Q_EMIT requestUpdateOptionWidget();
+        requestUpdateOptionWidget();
     }
 }
 
@@ -203,7 +203,7 @@ void KisLiquifyTransformStrategy::deactivateAlternateAction(KisTool::AlternateAc
 
         KisLiquifyProperties *props = m_d->currentArgs.liquifyProperties();
         props->setReverseDirection(!props->reverseDirection());
-        Q_EMIT requestUpdateOptionWidget();
+        requestUpdateOptionWidget();
     }
 }
 
@@ -211,7 +211,7 @@ bool KisLiquifyTransformStrategy::beginAlternateAction(KoPointerEvent *event, Ki
 {
     m_d->lastDocPos = event->point;
     if (action == KisTool::ChangeSize || action == KisTool::ChangeSizeSnap) {
-        QPointF widgetPoint = m_d->converter->documentToWidget(event->point);
+        PkPointF widgetPoint = m_d->converter->documentToWidget(event->point);
         m_d->lastMouseWidgetPos = widgetPoint;
         m_d->startResizeImagePos = m_d->converter->documentToImage(event->point);
         m_d->startResizeGlobalCursorPos = event->globalPos();
@@ -229,9 +229,9 @@ void KisLiquifyTransformStrategy::continueAlternateAction(KoPointerEvent *event,
 {
     m_d->lastDocPos = event->point;
     if (action == KisTool::ChangeSize || action == KisTool::ChangeSizeSnap) {
-        QPointF widgetPoint = m_d->converter->documentToWidget(event->point);
+        PkPointF widgetPoint = m_d->converter->documentToWidget(event->point);
 
-        QPointF diff = widgetPoint - m_d->lastMouseWidgetPos;
+        PkPointF diff = widgetPoint - m_d->lastMouseWidgetPos;
 
         KisLiquifyProperties *props = m_d->currentArgs.liquifyProperties();
         const qreal linearizedOffset = diff.x() / KisTransformUtils::scaleFromAffineMatrix(m_d->converter->imageToWidgetTransform());
@@ -245,7 +245,7 @@ void KisLiquifyTransformStrategy::continueAlternateAction(KoPointerEvent *event,
 
         m_d->lastMouseWidgetPos = widgetPoint;
 
-        Q_EMIT requestCursorOutlineUpdate(m_d->startResizeImagePos);
+        requestCursorOutlineUpdate(m_d->startResizeImagePos);
     } else if (action == KisTool::SampleFgNode || action == KisTool::SampleBgNode ||
                action == KisTool::SampleFgImage || action == KisTool::SampleBgImage) {
 
@@ -292,11 +292,11 @@ void KisLiquifyTransformStrategy::changeBrushSize(KoCanvasBase *canvas, bool inc
 
     props->setSize(newSize);
     m_d->canvasServices->toolShowBrushSize(newSize);
-    Q_EMIT requestCursorOutlineUpdate( m_d->converter->documentToImage(m_d->lastDocPos));
-    Q_EMIT requestUpdateOptionWidget();
+    requestCursorOutlineUpdate( m_d->converter->documentToImage(m_d->lastDocPos));
+    requestUpdateOptionWidget();
 }
 
-inline QPointF KisLiquifyTransformStrategy::Private::imageToThumb(const QPointF &pt, bool useFlakeOptimization)
+inline PkPointF KisLiquifyTransformStrategy::Private::imageToThumb(const PkPointF &pt, bool useFlakeOptimization)
 {
     return useFlakeOptimization ? converter->imageToDocument(converter->documentToFlake((pt))) : q->thumbToImageTransform().inverted().map(pt);
 }
@@ -305,9 +305,9 @@ void KisLiquifyTransformStrategy::Private::recalculateTransformations()
 {
     KIS_ASSERT_RECOVER_RETURN(currentArgs.liquifyWorker());
 
-    QTransform scaleTransform = KisTransformUtils::imageToFlakeTransform(converter);
+    PkTransform scaleTransform = KisTransformUtils::imageToFlakeTransform(converter);
 
-    QTransform resultThumbTransform = q->thumbToImageTransform() * scaleTransform;
+    PkTransform resultThumbTransform = q->thumbToImageTransform() * scaleTransform;
     qreal scale = KisTransformUtils::scaleFromAffineMatrix(resultThumbTransform);
     bool useFlakeOptimization = scale < 1.0 &&
         !KisTransformUtils::thumbnailTooSmall(resultThumbTransform, q->originalImage().rect());
@@ -316,18 +316,18 @@ void KisLiquifyTransformStrategy::Private::recalculateTransformations()
     if (!q->originalImage().isNull()) {
         if (useFlakeOptimization) {
             transformedImage = q->originalImage().transformed(resultThumbTransform);
-            paintingTransform = QTransform();
+            paintingTransform = PkTransform();
         } else {
             transformedImage = q->originalImage();
             paintingTransform = resultThumbTransform;
         }
 
-        QTransform imageToRealThumbTransform =
+        PkTransform imageToRealThumbTransform =
             useFlakeOptimization ?
             scaleTransform :
             q->thumbToImageTransform().inverted();
 
-        QPointF origTLInFlake =
+        PkPointF origTLInFlake =
             imageToRealThumbTransform.map(transaction.originalTopLeft());
 
         transformedImage =
@@ -342,5 +342,5 @@ void KisLiquifyTransformStrategy::Private::recalculateTransformations()
     }
 
     handlesTransform = scaleTransform;
-    Q_EMIT q->requestImageRecalculation();
+    q->requestImageRecalculation();
 }

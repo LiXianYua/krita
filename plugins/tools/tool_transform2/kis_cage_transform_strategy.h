@@ -7,22 +7,22 @@
 #ifndef __KIS_CAGE_TRANSFORM_STRATEGY_H
 #define __KIS_CAGE_TRANSFORM_STRATEGY_H
 
-#include <QObject>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
+#include <PkScopedPointer.h>
 
 #include "kis_warp_transform_strategy.h"
 
-class QPointF;
-class QPainter;
+class PkPointF;
+class PkPainter;
 class KisCoordinatesConverter;
 class ToolTransformArgs;
 class TransformTransactionProperties;
-class QImage;
+class PkImage;
 
 
 class KisCageTransformStrategy : public KisWarpTransformStrategy
 {
-    Q_OBJECT
 public:
     KisCageTransformStrategy(const KisCoordinatesConverter *converter, KoSnapGuide *snapGuide,
                              ToolTransformArgs &currentArgs,
@@ -30,21 +30,21 @@ public:
     ~KisCageTransformStrategy() override;
 
 protected:
-    void drawConnectionLines(QPainter &gc,
-                             const QVector<QPointF> &origPoints,
-                             const QVector<QPointF> &transfPoints,
+    void drawConnectionLines(PkPainter &gc,
+                             const PkVector<PkPointF> &origPoints,
+                             const PkVector<PkPointF> &transfPoints,
                              bool isEditingPoints) override;
 
-    QImage calculateTransformedImage(ToolTransformArgs &currentArgs,
-                                     const QImage &srcImage,
-                                     const QVector<QPointF> &origPoints,
-                                     const QVector<QPointF> &transfPoints,
-                                     const QPointF &srcOffset,
-                                     QPointF *dstOffset) override;
+    PkImage calculateTransformedImage(ToolTransformArgs &currentArgs,
+                                     const PkImage &srcImage,
+                                     const PkVector<PkPointF> &origPoints,
+                                     const PkVector<PkPointF> &transfPoints,
+                                     const PkPointF &srcOffset,
+                                     PkPointF *dstOffset) override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_CAGE_TRANSFORM_STRATEGY_H */

@@ -8,11 +8,6 @@
 
 #include "tool_transform.h"
 
-#include <klocalizedstring.h>
-
-#include <kis_debug.h>
-#include <kpluginfactory.h>
-
 #include <kis_global.h>
 #include <kis_types.h>
 #include <KoToolRegistry.h>
@@ -22,8 +17,6 @@
 #include "kis_transform_mask_params_factory_registry.h"
 #include "kis_transform_mask_adapter.h"
 #include "KisAnimatedTransformMaskParamsHolder.h"
-
-K_PLUGIN_FACTORY_WITH_JSON(ToolTransformFactory, "kritatooltransform.json", registerPlugin<ToolTransform>();)
 
 namespace {
 
@@ -36,20 +29,22 @@ KisAnimatedTransformParamsHolderInterfaceSP createAnimatedParamsHolder(KisDefaul
 
 
 
-ToolTransform::ToolTransform(QObject *parent, const QVariantList &)
-        : QObject(parent)
+void registerToolTransformPlugin()
 {
-    KoToolRegistry::instance()->add(new KisToolTransformFactory());
-    KisTransformMaskParamsFactoryRegistry::instance()->setAnimatedParamsHolderFactory(&createAnimatedParamsHolder);
-    KisTransformMaskParamsFactoryRegistry::instance()->addFactory("tooltransformparams", &KisTransformMaskAdapter::fromXML);
-    KisTransformMaskParamsFactoryRegistry::instance()->addFactory("dumbparams", &KisTransformMaskAdapter::fromDumbXML);
-    qRegisterMetaType<TransformTransactionProperties>("TransformTransactionProperties");
-    qRegisterMetaType<ToolTransformArgs>("ToolTransformArgs");
-    qRegisterMetaType<QPainterPath>("QPainterPath");
+    registerToolTransformPlugin([](TransformToolRegistrationStep step) {
+        switch (step) {
+        case TransformToolRegistrationStep::ToolFactory:
+            KoToolRegistry::instance()->add(new KisToolTransformFactory());
+            break;
+        case TransformToolRegistrationStep::AnimatedParamsHolderFactory:
+            KisTransformMaskParamsFactoryRegistry::instance()->setAnimatedParamsHolderFactory(&createAnimatedParamsHolder);
+            break;
+        case TransformToolRegistrationStep::TransformMaskFactory:
+            KisTransformMaskParamsFactoryRegistry::instance()->addFactory("tooltransformparams", &KisTransformMaskAdapter::fromXML);
+            break;
+        case TransformToolRegistrationStep::DumbTransformMaskFactory:
+            KisTransformMaskParamsFactoryRegistry::instance()->addFactory("dumbparams", &KisTransformMaskAdapter::fromDumbXML);
+            break;
+        }
+    });
 }
-
-ToolTransform::~ToolTransform()
-{
-}
-
-#include "tool_transform.moc"

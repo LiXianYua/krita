@@ -7,7 +7,8 @@
 #ifndef __KIS_LIQUIFY_PAINTOP_H
 #define __KIS_LIQUIFY_PAINTOP_H
 
-#include <QScopedPointer>
+#include <PkGlobal.h>
+#include <PkScopedPointer.h>
 
 class KisLiquifyTransformWorker;
 class KisPaintInformation;
@@ -15,7 +16,7 @@ class KisSpacingInformation;
 class KisTimingInformation;
 class KisDistanceInformation;
 class KisLiquifyProperties;
-class QPainterPath;
+class PkPainterPath;
 
 
 class KisLiquifyPaintop
@@ -41,7 +42,7 @@ public:
 
     KisTimingInformation updateTimingImpl(const KisPaintInformation &pi) const;
 
-    static QPainterPath brushOutline(const KisLiquifyProperties &props, const KisPaintInformation &info);
+    static PkPainterPath brushOutline(const KisLiquifyProperties &props, const KisPaintInformation &info);
 
 protected:
     KisSpacingInformation updateSpacingImpl(const KisPaintInformation &pi) const;
@@ -51,7 +52,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_LIQUIFY_PAINTOP_H */

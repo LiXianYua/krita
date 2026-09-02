@@ -7,7 +7,8 @@
 #ifndef __INPLACE_TRANSFORM_STROKE_STRATEGY_H
 #define __INPLACE_TRANSFORM_STROKE_STRATEGY_H
 
-#include <QObject>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
 #include <KoUpdater.h>
 #include <kis_stroke_strategy_undo_command_based.h>
 #include <kis_types.h>
@@ -25,9 +26,8 @@ class KisUpdatesFacade;
 class KisDecoratedNodeInterface;
 
 
-class InplaceTransformStrokeStrategy : public QObject, public KisStrokeStrategyUndoCommandBased
+class InplaceTransformStrokeStrategy : public PkShellObject, public KisStrokeStrategyUndoCommandBased
 {
-    Q_OBJECT
 public:
     class UpdateTransformData : public KisStrokeJobData {
     public:
@@ -53,7 +53,7 @@ public:
               args(rhs.args),
               destination(rhs.destination)
         {
-            Q_UNUSED(levelOfDetail);
+            (void)levelOfDetail;
         }
 
     public:
@@ -119,11 +119,10 @@ public:
         TransformLod,
         TransformLodTemporary
     };
-    Q_ENUM(CommandGroup);
 
 public:
     InplaceTransformStrokeStrategy(ToolTransformArgs::TransformMode mode,
-                                   const QString &filterId,
+                                   const PkString &filterId,
                                    bool forceReset,
                                    KisNodeList rootNodes,
                                    KisSelectionSP selection,
@@ -138,9 +137,9 @@ public:
     void cancelStrokeCallback() override;
     void doStrokeCallback(KisStrokeJobData *data) override;
 
-Q_SIGNALS:
+signals:
     void sigTransactionGenerated(TransformTransactionProperties transaction, ToolTransformArgs args, void *cookie);
-    void sigConvexHullCalculated(QPolygon convexHull, void *cookie);
+    void sigConvexHullCalculated(PkPolygon convexHull, void *cookie);
 
 protected:
     void postProcessToplevelCommand(KUndo2Command *command) override;
@@ -152,9 +151,9 @@ private:
 
     void tryPostUpdateJob(bool forceUpdate);
     void doCanvasUpdate(bool forceUpdate);
-    QPolygon calculateConvexHull();
+    PkPolygon calculateConvexHull();
 
-    int calculatePreferredLevelOfDetail(const QRect &srcRect);
+    int calculatePreferredLevelOfDetail(const PkRect &srcRect);
 
     void executeAndAddCommand(KUndo2Command *cmd, CommandGroup group, KisStrokeJobData::Sequentiality seq);
 
@@ -166,18 +165,18 @@ private:
 
     void transformNode(KisNodeSP node, const ToolTransformArgs &config, int levelOfDetail);
     void createCacheAndClearNode(KisNodeSP node);
-    void reapplyTransform(ToolTransformArgs args, QVector<KisStrokeJobData *> &mutatedJobs, int levelOfDetail, bool useHoldUI);
-    void finalizeStrokeImpl(QVector<KisStrokeJobData *> &mutatedJobs, bool saveCommands);
+    void reapplyTransform(ToolTransformArgs args, PkVector<KisStrokeJobData *> &mutatedJobs, int levelOfDetail, bool useHoldUI);
+    void finalizeStrokeImpl(PkVector<KisStrokeJobData *> &mutatedJobs, bool saveCommands);
 
-    void finishAction(QVector<KisStrokeJobData *> &mutatedJobs);
-    void cancelAction(QVector<KisStrokeJobData *> &mutatedJobs);
-    void addDirtyRect(KisNodeSP node, const QRect &rect, int levelOfDetail);
+    void finishAction(PkVector<KisStrokeJobData *> &mutatedJobs);
+    void cancelAction(PkVector<KisStrokeJobData *> &mutatedJobs);
+    void addDirtyRect(KisNodeSP node, const PkRect &rect, int levelOfDetail);
 
-    static void repopulateUI(QVector<KisStrokeJobData *> &mutatedJobs, KisUpdatesFacade *updatesFacade, const QRect &dirtyRect);
+    static void repopulateUI(PkVector<KisStrokeJobData *> &mutatedJobs, KisUpdatesFacade *updatesFacade, const PkRect &dirtyRect);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __INPLACE_TRANSFORM_STROKE_STRATEGY_H */

@@ -7,18 +7,18 @@
 #ifndef __KIS_WARP_TRANSFORM_STRATEGY_H
 #define __KIS_WARP_TRANSFORM_STRATEGY_H
 
-#include <QObject>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
+#include <PkScopedPointer.h>
 
 #include "kis_simplified_action_policy_strategy.h"
 
-class QPointF;
-class QPainter;
+class PkPointF;
+class PkPainter;
 class KisCoordinatesConverter;
 class ToolTransformArgs;
 class TransformTransactionProperties;
-class QCursor;
-class QImage;
+class PkImage;
 
 enum TransformType {
     WARP_TRANSFORM,
@@ -28,7 +28,6 @@ enum TransformType {
 
 class KisWarpTransformStrategy : public KisSimplifiedActionPolicyStrategy
 {
-    Q_OBJECT
 public:
     KisWarpTransformStrategy(const KisCoordinatesConverter *converter,
                              KoSnapGuide *snapGuide,
@@ -36,11 +35,11 @@ public:
                              TransformTransactionProperties &transaction);
     ~KisWarpTransformStrategy() override;
 
-    void setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive) override;
+    void setTransformFunction(const PkPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive) override;
     void setTransformType(TransformType type);
 
-    void paint(QPainter &gc) override;
-    QCursor getCurrentCursor() const override;
+    void paint(TransformToolPainter &gc) override;
+    TransformCursorDescriptor getCurrentCursor() const override;
 
     void externalConfigChanged() override;
 
@@ -48,16 +47,14 @@ public:
     using KisTransformStrategyBase::continuePrimaryAction;
     using KisTransformStrategyBase::endPrimaryAction;
 
-    bool beginPrimaryAction(const QPointF &pt) override;
-    void continuePrimaryAction(const QPointF &pt, bool shiftModifierActive, bool altModifierActive) override;
+    bool beginPrimaryAction(const PkPointF &pt) override;
+    void continuePrimaryAction(const PkPointF &pt, bool shiftModifierActive, bool altModifierActive) override;
     bool endPrimaryAction() override;
 
     bool acceptsClicks() const override;
 
 private:
-    Q_PRIVATE_SLOT(m_d, void recalculateTransformations());
-
-Q_SIGNALS:
+signals:
     void requestCanvasUpdate();
     void requestImageRecalculation();
 
@@ -72,20 +69,20 @@ protected:
                               bool drawOrigPoints,
                               bool drawTransfPoints);
 
-    virtual void drawConnectionLines(QPainter &gc,
-                                     const QVector<QPointF> &origPoints,
-                                     const QVector<QPointF> &transfPoints,
+    virtual void drawConnectionLines(PkPainter &gc,
+                                     const PkVector<PkPointF> &origPoints,
+                                     const PkVector<PkPointF> &transfPoints,
                                      bool isEditingPoints);
 
-    virtual QImage calculateTransformedImage(ToolTransformArgs &currentArgs,
-                                             const QImage &srcImage,
-                                             const QVector<QPointF> &origPoints,
-                                             const QVector<QPointF> &transfPoints,
-                                             const QPointF &srcOffset,
-                                             QPointF *dstOffset);
+    virtual PkImage calculateTransformedImage(ToolTransformArgs &currentArgs,
+                                             const PkImage &srcImage,
+                                             const PkVector<PkPointF> &origPoints,
+                                             const PkVector<PkPointF> &transfPoints,
+                                             const PkPointF &srcOffset,
+                                             PkPointF *dstOffset);
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_WARP_TRANSFORM_STRATEGY_H */

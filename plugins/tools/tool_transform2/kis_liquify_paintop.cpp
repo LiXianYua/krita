@@ -6,8 +6,9 @@
 
 #include "kis_liquify_paintop.h"
 
-#include <QPainterPath>
-#include <QTransform>
+#include <PkPainterPath.h>
+#include <PkTransform.h>
+#include <PkMessageLogger.h>
 
 
 #include <brushengine/kis_paint_information.h>
@@ -36,13 +37,13 @@ KisLiquifyPaintop::~KisLiquifyPaintop()
 {
 }
 
-QPainterPath KisLiquifyPaintop::brushOutline(const KisLiquifyProperties &props,
+PkPainterPath KisLiquifyPaintop::brushOutline(const KisLiquifyProperties &props,
                                              const KisPaintInformation &info)
 {
     const qreal diameter = props.size();
     const qreal reverseCoeff = props.reverseDirection() ? -1.0 : 1.0;
 
-    QPainterPath outline;
+    PkPainterPath outline;
     outline.addEllipse(-0.5 * diameter, -0.5 * diameter,
                        diameter, diameter);
 
@@ -51,19 +52,19 @@ QPainterPath KisLiquifyPaintop::brushOutline(const KisLiquifyProperties &props,
     case KisLiquifyProperties::SCALE:
         break;
     case KisLiquifyProperties::ROTATE: {
-        QPainterPath p;
+        PkPainterPath p;
         p.lineTo(-3.0, 4.0);
         p.moveTo(0.0, 0.0);
         p.lineTo(-3.0, -4.0);
 
-        QTransform S;
+        PkTransform S;
         if (diameter < 15.0) {
             const qreal scale = diameter / 15.0;
-            S = QTransform::fromScale(scale, scale);
+            S = PkTransform::fromScale(scale, scale);
         }
-        QTransform R;
+        PkTransform R;
         R.rotateRadians(-reverseCoeff * 0.5 * M_PI);
-        QTransform T = QTransform::fromTranslate(0.5 * diameter, 0.0);
+        PkTransform T = PkTransform::fromTranslate(0.5 * diameter, 0.0);
 
         p = (S * R * T).map(p);
         outline.addPath(p);
@@ -73,13 +74,13 @@ QPainterPath KisLiquifyPaintop::brushOutline(const KisLiquifyProperties &props,
     case KisLiquifyProperties::OFFSET: {
         qreal normalAngle = info.drawingAngle() + reverseCoeff * 0.5 * M_PI;
 
-        QPainterPath p = KisAlgebra2D::smallArrow();
+        PkPainterPath p = KisAlgebra2D::smallArrow();
 
         const qreal offset = qMax(0.8 * diameter, 15.0);
 
-        QTransform R;
+        PkTransform R;
         R.rotateRadians(normalAngle);
-        QTransform T = QTransform::fromTranslate(offset, 0.0);
+        PkTransform T = PkTransform::fromTranslate(offset, 0.0);
         p = (T * R).map(p);
 
         outline.addPath(p);
@@ -188,7 +189,7 @@ KisSpacingInformation KisLiquifyPaintop::updateSpacingImpl(const KisPaintInforma
 
 KisTimingInformation KisLiquifyPaintop::updateTimingImpl(const KisPaintInformation &pi) const
 {
-    Q_UNUSED(pi);
+    (void)pi;
     // Don't use airbrushing.
     return KisTimingInformation();
 }

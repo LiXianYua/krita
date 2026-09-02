@@ -7,21 +7,20 @@
 #ifndef __KIS_FREE_TRANSFORM_STRATEGY_H
 #define __KIS_FREE_TRANSFORM_STRATEGY_H
 
-#include <QObject>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
+#include <PkScopedPointer.h>
 
 #include "kis_simplified_action_policy_strategy.h"
 
-class QPointF;
-class QPainter;
+class PkPointF;
+class PkPainter;
 class KisCoordinatesConverter;
 class ToolTransformArgs;
 class TransformTransactionProperties;
-class QCursor;
 
 class KisFreeTransformStrategy : public KisSimplifiedActionPolicyStrategy
 {
-    Q_OBJECT
 public:
     KisFreeTransformStrategy(const KisCoordinatesConverter *converter,
                              KoSnapGuide *snapGuide,
@@ -29,11 +28,11 @@ public:
                              TransformTransactionProperties &transaction);
     ~KisFreeTransformStrategy() override;
 
-    void setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive) override;
+    void setTransformFunction(const PkPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive, bool altModifierActive) override;
     bool shiftModifierIsUsed() const override;
 
-    void paint(QPainter &gc) override;
-    QCursor getCurrentCursor() const override;
+    void paint(TransformToolPainter &gc) override;
+    TransformCursorDescriptor getCurrentCursor() const override;
 
     void externalConfigChanged() override;
 
@@ -41,11 +40,11 @@ public:
     using KisTransformStrategyBase::continuePrimaryAction;
     using KisTransformStrategyBase::endPrimaryAction;
 
-    bool beginPrimaryAction(const QPointF &pt) override;
-    void continuePrimaryAction(const QPointF &pt, bool shiftModifierActive, bool altModifierActive) override;
+    bool beginPrimaryAction(const PkPointF &pt) override;
+    void continuePrimaryAction(const PkPointF &pt, bool shiftModifierActive, bool altModifierActive) override;
     bool endPrimaryAction() override;
 
-Q_SIGNALS:
+signals:
     void requestCanvasUpdate();
     void requestResetRotationCenterButtons();
     void requestShowImageTooBig(bool value);
@@ -54,7 +53,7 @@ Q_SIGNALS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_FREE_TRANSFORM_STRATEGY_H */

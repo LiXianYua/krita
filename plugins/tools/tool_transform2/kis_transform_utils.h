@@ -7,12 +7,12 @@
 #ifndef __KIS_TRANSFORM_UTILS_H
 #define __KIS_TRANSFORM_UTILS_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 #include "kis_coordinates_converter.h"
 
-#include <QTransform>
-#include <QMatrix4x4>
+#include <PkTransform.h>
+#include <PkMatrix4x4.h>
 #include <kis_processing_visitor.h>
 #include <limits>
 
@@ -47,41 +47,41 @@ public:
         return converter->documentToFlake(converter->imageToDocument(object));
     }
 
-    static QTransform imageToFlakeTransform(const KisCoordinatesConverter *converter);
+    static PkTransform imageToFlakeTransform(const KisCoordinatesConverter *converter);
     static qreal effectiveHandleGrabRadius(const KisCoordinatesConverter *converter);
 
     static qreal effectiveRotationHandleGrabRadius(const KisCoordinatesConverter *converter);
 
-    static qreal scaleFromAffineMatrix(const QTransform &t);
-    static qreal scaleFromPerspectiveMatrixX(const QTransform &t, const QPointF &basePt);
-    static qreal scaleFromPerspectiveMatrixY(const QTransform &t, const QPointF &basePt);
-    static qreal effectiveSize(const QRectF &rc);
-    static bool thumbnailTooSmall(const QTransform &resultThumbTransform, const QRect &originalImageRect);
+    static qreal scaleFromAffineMatrix(const PkTransform &t);
+    static qreal scaleFromPerspectiveMatrixX(const PkTransform &t, const PkPointF &basePt);
+    static qreal scaleFromPerspectiveMatrixY(const PkTransform &t, const PkPointF &basePt);
+    static qreal effectiveSize(const PkRectF &rc);
+    static bool thumbnailTooSmall(const PkTransform &resultThumbTransform, const PkRect &originalImageRect);
 
-    static QRectF handleRect(qreal radius, const QTransform &t, const QRectF &limitingRect, qreal *dOutX, qreal *dOutY);
-    static QRectF handleRect(qreal radius, const QTransform &t, const QRectF &limitingRect, const QPointF &basePoint);
+    static PkRectF handleRect(qreal radius, const PkTransform &t, const PkRectF &limitingRect, qreal *dOutX, qreal *dOutY);
+    static PkRectF handleRect(qreal radius, const PkTransform &t, const PkRectF &limitingRect, const PkPointF &basePoint);
 
-    static QPointF clipInRect(QPointF p, QRectF r);
+    static PkPointF clipInRect(PkPointF p, PkRectF r);
 
     struct MatricesPack
     {
         MatricesPack(const ToolTransformArgs &args);
 
-        QTransform TS;
-        QTransform SC;
-        QTransform S;
-        QMatrix4x4 P;
-        QTransform projectedP;
-        QTransform T;
+        PkTransform TS;
+        PkTransform SC;
+        PkTransform S;
+        PkMatrix4x4 P;
+        PkTransform projectedP;
+        PkTransform T;
 
-        QTransform BRI;
+        PkTransform BRI;
 
         // the final transformation looks like
         // transform = TS * BRI * SC * S * projectedP * T
-        QTransform finalTransform() const;
+        PkTransform finalTransform() const;
     };
 
-    static bool checkImageTooBig(const QRectF &bounds, const MatricesPack &m, qreal cameraHeight);
+    static bool checkImageTooBig(const PkRectF &bounds, const MatricesPack &m, qreal cameraHeight);
 
     static KisTransformWorker createTransformWorker(const ToolTransformArgs &config,
                                                     KisPaintDeviceSP device,
@@ -102,24 +102,24 @@ public:
                                               KisProcessingVisitor::ProgressHelper *helper,
                                               bool forceSubPixelTranslation);
 
-    static QRect needRect(const ToolTransformArgs &config,
-                          const QRect &rc,
-                          const QRect &srcBounds);
+    static PkRect needRect(const ToolTransformArgs &config,
+                          const PkRect &rc,
+                          const PkRect &srcBounds);
 
-    static QRect changeRect(const ToolTransformArgs &config,
-                            const QRect &rc);
+    static PkRect changeRect(const ToolTransformArgs &config,
+                            const PkRect &rc);
 
     template<typename Function>
     class HandleChooser {
     public:
-        HandleChooser(const QPointF &cursorPos, Function defaultFunction)
+        HandleChooser(const PkPointF &cursorPos, Function defaultFunction)
             : m_cursorPos(cursorPos),
               m_minDistance(std::numeric_limits<qreal>::max()),
               m_function(defaultFunction)
         {
         }
 
-        bool addFunction(const QPointF &pt, qreal radius, Function function) {
+        bool addFunction(const PkPointF &pt, qreal radius, Function function) {
             bool result = false;
             qreal distance = kisSquareDistance(pt, m_cursorPos);
 
@@ -137,7 +137,7 @@ public:
         }
 
     private:
-        QPointF m_cursorPos;
+        PkPointF m_cursorPos;
         qreal m_minDistance;
         Function m_function;
     };
@@ -154,8 +154,8 @@ public:
     private:
         bool m_enabled;
         ToolTransformArgs *m_config;
-        QPointF m_staticPoint;
-        QPointF m_oldStaticPointInView;
+        PkPointF m_staticPoint;
+        PkPointF m_oldStaticPointInView;
 
     };
 
@@ -164,7 +164,7 @@ public:
                                      ToolTransformArgs *config);
 
     static ToolTransformArgs resetArgsForMode(ToolTransformArgs::TransformMode mode,
-                                              const QString &filterId,
+                                              const PkString &filterId,
                                               const TransformTransactionProperties &transaction, KisPaintDeviceSP externalSource);
 
     static bool shouldRestartStrokeOnModeChange(ToolTransformArgs::TransformMode oldMode,
@@ -190,9 +190,9 @@ public:
     static KisNodeSP tryOverrideRootToTransformMask(KisNodeSP root);
 
     static int fetchCurrentImageTime(KisNodeList rootNodes);
-    static QList<KisNodeSP> fetchNodesList(ToolTransformArgs::TransformMode mode, KisNodeList rootNodes, bool isExternalSourcePresent, KisSelectionSP selection);
+    static PkList<KisNodeSP> fetchNodesList(ToolTransformArgs::TransformMode mode, KisNodeList rootNodes, bool isExternalSourcePresent, KisSelectionSP selection);
     static bool tryInitArgsFromNode(KisNodeList rootNodes, ToolTransformArgs *args);
-    static bool tryFetchArgsFromCommandAndUndo(ToolTransformArgs *outArgs, ToolTransformArgs::TransformMode mode, KisNodeList currentNodes, KisNodeList selectedNodes, KisStrokeUndoFacade *undoFacade, int currentTime, QVector<KisStrokeJobData *> *undoJobs, const KisSavedMacroCommand **overriddenCommand);
+    static bool tryFetchArgsFromCommandAndUndo(ToolTransformArgs *outArgs, ToolTransformArgs::TransformMode mode, KisNodeList currentNodes, KisNodeList selectedNodes, KisStrokeUndoFacade *undoFacade, int currentTime, PkVector<KisStrokeJobData *> *undoJobs, const KisSavedMacroCommand **overriddenCommand);
 
 };
 

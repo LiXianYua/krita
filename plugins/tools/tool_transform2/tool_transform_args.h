@@ -9,8 +9,8 @@
 #ifndef TOOL_TRANSFORM_ARGS_H_
 #define TOOL_TRANSFORM_ARGS_H_
 
-#include <QPointF>
-#include <QVector3D>
+#include <PkPoint.h>
+#include <PkVectorND.h>
 #include <kis_warptransform_worker.h>
 #include <kis_filter_strategy.h>
 #include "kis_liquify_properties.h"
@@ -22,9 +22,9 @@
 
 #include <memory>
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 class KisLiquifyTransformWorker;
-class QDomElement;
+class PkXmlElement;
 
 /**
  * Class used to store the parameters of a transformation.
@@ -62,9 +62,9 @@ public:
      * Use setPoints method to set those vectors.
      */
     ToolTransformArgs(TransformMode mode,
-                      QPointF transformedCenter,
-                      QPointF originalCenter,
-                      QPointF rotationCenterOffset, bool transformAroundRotationCenter,
+                      PkPointF transformedCenter,
+                      PkPointF originalCenter,
+                      PkPointF rotationCenterOffset, bool transformAroundRotationCenter,
                       double aX, double aY, double aZ,
                       double scaleX, double scaleY,
                       double shearX, double shearY,
@@ -72,7 +72,7 @@ public:
                       KisWarpTransformWorker::WarpType warpType,
                       double alpha,
                       bool defaultPoints,
-                      const QString &filterId,
+                      const PkString &filterId,
                       int pixelPrecision, int previewPixelPrecision,
                       KisPaintDeviceSP externalSource);
     ~ToolTransformArgs();
@@ -117,23 +117,23 @@ public:
         KIS_ASSERT_RECOVER_NOOP(m_origPoints.size() == m_transfPoints.size());
         return m_origPoints.size();
     }
-    inline QPointF &origPoint(int i) {
+    inline PkPointF &origPoint(int i) {
         return m_origPoints[i];
     }
-    inline QPointF &transfPoint(int i) {
+    inline PkPointF &transfPoint(int i) {
         return m_transfPoints[i];
     }
-    inline const QVector<QPointF> &origPoints() const {
+    inline const PkVector<PkPointF> &origPoints() const {
         return m_origPoints;
     }
-    inline const QVector<QPointF> &transfPoints() const {
+    inline const PkVector<PkPointF> &transfPoints() const {
         return m_transfPoints;
     }
 
-    inline QVector<QPointF> &refOriginalPoints() {
+    inline PkVector<PkPointF> &refOriginalPoints() {
         return m_origPoints;
     }
-    inline QVector<QPointF> &refTransformedPoints() {
+    inline PkVector<PkPointF> &refTransformedPoints() {
         return m_transfPoints;
     }
 
@@ -146,9 +146,9 @@ public:
     inline bool defaultPoints() const {
         return m_defaultPoints;
     }
-    inline void setPoints(QVector<QPointF> origPoints, QVector<QPointF> transfPoints) {
-        m_origPoints = QVector<QPointF>(origPoints);
-        m_transfPoints = QVector<QPointF>(transfPoints);
+    inline void setPoints(PkVector<PkPointF> origPoints, PkVector<PkPointF> transfPoints) {
+        m_origPoints = PkVector<PkPointF>(origPoints);
+        m_transfPoints = PkVector<PkPointF>(transfPoints);
     }
     inline void setWarpType(KisWarpTransformWorker::WarpType warpType) {
         m_warpType = warpType;
@@ -168,13 +168,13 @@ public:
     }
 
     //"free transform"-related
-    inline QPointF transformedCenter() const {
+    inline PkPointF transformedCenter() const {
         return m_transformedCenter;
     }
-    inline QPointF originalCenter() const {
+    inline PkPointF originalCenter() const {
         return m_originalCenter;
     }
-    inline QPointF rotationCenterOffset() const {
+    inline PkPointF rotationCenterOffset() const {
         return m_rotationCenterOffset;
     }
     inline bool transformAroundRotationCenter() const {
@@ -189,7 +189,7 @@ public:
     inline double aZ() const {
         return m_aZ;
     }
-    inline QVector3D cameraPos() const {
+    inline PkVector3D cameraPos() const {
         return m_cameraPos;
     }
     inline double scaleX() const {
@@ -211,13 +211,13 @@ public:
         return m_boundsRotation;
     }
 
-    inline void setTransformedCenter(QPointF transformedCenter) {
+    inline void setTransformedCenter(PkPointF transformedCenter) {
         m_transformedCenter = transformedCenter;
     }
-    inline void setOriginalCenter(QPointF originalCenter) {
+    inline void setOriginalCenter(PkPointF originalCenter) {
         m_originalCenter = originalCenter;
     }
-    inline void setRotationCenterOffset(QPointF rotationCenterOffset) {
+    inline void setRotationCenterOffset(PkPointF rotationCenterOffset) {
         m_rotationCenterOffset = rotationCenterOffset;
     }
     void setTransformAroundRotationCenter(bool value);
@@ -231,7 +231,7 @@ public:
     inline void setAZ(double aZ) {
         m_aZ = aZ;
     }
-    inline void setCameraPos(const QVector3D &pos) {
+    inline void setCameraPos(const PkVector3D &pos) {
         m_cameraPos = pos;
     }
     inline void setScaleX(double scaleX) {
@@ -253,11 +253,11 @@ public:
         m_boundsRotation = boundsRotation;
     }
 
-    inline QString filterId() const {
+    inline PkString filterId() const {
         return m_filter->id();
     }
 
-    void setFilterId(const QString &id);
+    void setFilterId(const PkString &id);
 
     inline KisFilterStrategy* filter() const {
         return m_filter;
@@ -272,11 +272,11 @@ public:
     // one and the source image is not external.
     bool isUnchanging() const;
 
-    inline QTransform flattenedPerspectiveTransform() const {
+    inline PkTransform flattenedPerspectiveTransform() const {
         return m_flattenedPerspectiveTransform;
     }
 
-    inline void setFlattenedPerspectiveTransform(const QTransform &value) {
+    inline void setFlattenedPerspectiveTransform(const PkTransform &value) {
         m_flattenedPerspectiveTransform = value;
     }
 
@@ -296,19 +296,19 @@ public:
         return m_liquifyProperties.data();
     }
 
-    void initLiquifyTransformMode(const QRect &srcRect);
+    void initLiquifyTransformMode(const PkRect &srcRect);
     void saveLiquifyTransformMode() const;
 
     KisLiquifyTransformWorker* liquifyWorker() const {
         return m_liquifyWorker.data();
     }
 
-    void toXML(QDomElement *e) const;
-    static ToolTransformArgs fromXML(const QDomElement &e);
+    void toXML(PkXmlElement *e) const;
+    static ToolTransformArgs fromXML(const PkXmlElement &e);
 
-    void translateSrcAndDst(const QPointF &offset);
-    void transformSrcAndDst(const QTransform &t);
-    void translateDstSpace(const QPointF &offset);
+    void translateSrcAndDst(const PkPointF &offset);
+    void transformSrcAndDst(const PkTransform &t);
+    void translateDstSpace(const PkPointF &offset);
 
     void saveContinuedState();
     void restoreContinuedState();
@@ -337,17 +337,17 @@ private:
     // these are basically the arguments taken by the warp transform worker
     bool m_defaultPoints {true}; // true : the original points are set to make a grid
                           // which density is given by numPoints()
-    QVector<QPointF> m_origPoints;
-    QVector<QPointF> m_transfPoints;
+    PkVector<PkPointF> m_origPoints;
+    PkVector<PkPointF> m_transfPoints;
     KisWarpTransformWorker::WarpType m_warpType {KisWarpTransformWorker::WarpType_::RIGID_TRANSFORM};
     KisWarpTransformWorker::WarpCalculation m_warpCalculation {KisWarpTransformWorker::WarpCalculation::DRAW}; // DRAW or GRID
     double m_alpha {1.0};
 
     //'free transform'-related
     // basically the arguments taken by the transform worker
-    QPointF m_transformedCenter;
-    QPointF m_originalCenter;
-    QPointF m_rotationCenterOffset; // the position of the rotation center relative to
+    PkPointF m_transformedCenter;
+    PkPointF m_originalCenter;
+    PkPointF m_rotationCenterOffset; // the position of the rotation center relative to
                                     // the original top left corner of the selection
                                     // before any transformation
     bool m_transformAroundRotationCenter {false}; // In freehand mode makes the scaling and other transformations
@@ -356,7 +356,7 @@ private:
     double m_aX {0};
     double m_aY {0};
     double m_aZ {0};
-    QVector3D m_cameraPos {QVector3D(0,0,1024)};
+    PkVector3D m_cameraPos {PkVector3D(0,0,1024)};
     double m_scaleX {1.0};
     double m_scaleY {1.0};
     double m_shearX {0.0};
@@ -365,12 +365,12 @@ private:
     bool m_keepAspectRatio {false};
 
     // perspective transform related
-    QTransform m_flattenedPerspectiveTransform;
+    PkTransform m_flattenedPerspectiveTransform;
 
     KisFilterStrategy *m_filter {0};
     bool m_editTransformPoints {false};
-    QSharedPointer<KisLiquifyProperties> m_liquifyProperties;
-    QScopedPointer<KisLiquifyTransformWorker> m_liquifyWorker;
+    PkSharedPointer<KisLiquifyProperties> m_liquifyProperties;
+    PkScopedPointer<KisLiquifyTransformWorker> m_liquifyWorker;
 
     KisBezierTransformMesh m_meshTransform;
     bool m_meshShowHandles = true;

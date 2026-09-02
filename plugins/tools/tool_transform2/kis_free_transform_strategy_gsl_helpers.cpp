@@ -9,7 +9,7 @@
 #include "tool_transform_args.h"
 #include "kis_transform_utils.h"
 
-#include <QMessageBox>
+#include "TransformToolPlatform.h"
 #include <kis_algebra_2d.h>
 
 #include <Eigen/Dense>
@@ -18,7 +18,7 @@
 namespace KisAlgebra2D {
 
 // TODO: avoid code-duplication
-inline Eigen::Matrix3d fromQTransformStraight(const QTransform &t)
+inline Eigen::Matrix3d fromQTransformStraight(const PkTransform &t)
 {
     Eigen::Matrix3d m;
 
@@ -61,10 +61,10 @@ namespace GSL
     };
 
     struct Params1D {
-        QPointF staticPointSrc;
-        QPointF staticPointDst;
-        QPointF movingPointSrc;
-        QPointF movingPointDst;
+        PkPointF staticPointSrc;
+        PkPointF staticPointDst;
+        PkPointF movingPointSrc;
+        PkPointF movingPointDst;
 
         const ToolTransformArgs *srcArgs;
     };
@@ -81,13 +81,13 @@ namespace GSL
         ToolTransformArgs args(*params->srcArgs);
 
         Strategy::setScale(&args, scale);
-        args.setTransformedCenter(QPointF(tX, tY));
+        args.setTransformedCenter(PkPointF(tX, tY));
 
         KisTransformUtils::MatricesPack m(args);
-        QTransform t = m.finalTransform();
+        PkTransform t = m.finalTransform();
 
-        QPointF transformedStaticPoint = t.map(params->staticPointSrc);
-        QPointF transformedMovingPoint = t.map(params->movingPointSrc);
+        PkPointF transformedStaticPoint = t.map(params->staticPointSrc);
+        PkPointF transformedMovingPoint = t.map(params->movingPointSrc);
 
         qreal result =
             qAbs((transformedMovingPoint - params->movingPointDst).manhattanLength()) +
@@ -98,10 +98,10 @@ namespace GSL
 
     template <class Strategy>
         ScaleResult1D calculateScale1D(const ToolTransformArgs &args,
-                                       const QPointF &staticPointSrc,
-                                       const QPointF &staticPointDst,
-                                       const QPointF &movingPointSrc,
-                                       const QPointF &movingPointDst)
+                                       const PkPointF &staticPointSrc,
+                                       const PkPointF &staticPointDst,
+                                       const PkPointF &movingPointSrc,
+                                       const PkPointF &movingPointDst)
     {
         const gsl_multimin_fminimizer_type *T =
             gsl_multimin_fminimizer_nmsimplex2;
@@ -120,14 +120,14 @@ namespace GSL
         gsl_vector_set (x, 2, args.transformedCenter().y());
 
         KisTransformUtils::MatricesPack m(args);
-        QTransform t = m.finalTransform();
+        PkTransform t = m.finalTransform();
 
         /**
          * Approximate initial offset step by 10% of the moving point
          * offset. It means that the destination point will be reached
          * in at most 10 steps.
          */
-        const QPointF transformedMovingPoint = t.map(movingPointSrc);
+        const PkPointF transformedMovingPoint = t.map(movingPointSrc);
         const qreal initialStep = 0.1 * kisDistance(transformedMovingPoint, movingPointDst);
 
         /* Set initial step sizes to 0.1 */
@@ -185,7 +185,7 @@ namespace GSL
                 //          << "|" << s->fval << size;
                 result.scale = gsl_vector_get (s->x, 0);
                 result.transformedCenter =
-                    QPointF(gsl_vector_get (s->x, 1),
+                    PkPointF(gsl_vector_get (s->x, 1),
                             gsl_vector_get (s->x, 2));
                 result.isValid = true;
             }
@@ -200,11 +200,11 @@ namespace GSL
     }
 
     struct Params2D {
-        QPointF staticPointSrc;
-        QPointF staticPointDst;
+        PkPointF staticPointSrc;
+        PkPointF staticPointDst;
 
-        QPointF movingPointSrc;
-        QPointF movingPointDst;
+        PkPointF movingPointSrc;
+        PkPointF movingPointDst;
 
         const ToolTransformArgs *srcArgs;
     };
@@ -222,13 +222,13 @@ namespace GSL
 
         args.setScaleX(scaleX);
         args.setScaleY(scaleY);
-        args.setTransformedCenter(QPointF(tX, tY));
+        args.setTransformedCenter(PkPointF(tX, tY));
 
         KisTransformUtils::MatricesPack m(args);
-        QTransform t = m.finalTransform();
+        PkTransform t = m.finalTransform();
 
-        QPointF transformedStaticPoint = t.map(params->staticPointSrc);
-        QPointF transformedMovingPoint = t.map(params->movingPointSrc);
+        PkPointF transformedStaticPoint = t.map(params->staticPointSrc);
+        PkPointF transformedMovingPoint = t.map(params->movingPointSrc);
 
         qreal result =
             qAbs(transformedMovingPoint.x() - params->movingPointDst.x()) +
@@ -240,10 +240,10 @@ namespace GSL
     }
 
     ScaleResult2D calculateScale2D(const ToolTransformArgs &args,
-                                   const QPointF &staticPointSrc,
-                                   const QPointF &staticPointDst,
-                                   const QPointF &movingPointSrc,
-                                   const QPointF &movingPointDst)
+                                   const PkPointF &staticPointSrc,
+                                   const PkPointF &staticPointDst,
+                                   const PkPointF &movingPointSrc,
+                                   const PkPointF &movingPointDst)
     {
         const gsl_multimin_fminimizer_type *T =
             gsl_multimin_fminimizer_nmsimplex2;
@@ -321,7 +321,7 @@ namespace GSL
                 result.scaleX = gsl_vector_get (s->x, 0);
                 result.scaleY = gsl_vector_get (s->x, 1);
                 result.transformedCenter =
-                    QPointF(gsl_vector_get (s->x, 2),
+                    PkPointF(gsl_vector_get (s->x, 2),
                             gsl_vector_get (s->x, 3));
                 result.isValid = true;
             }
@@ -336,10 +336,10 @@ namespace GSL
     }
 
     ScaleResult2D calculateScale2DAffine(const ToolTransformArgs &args,
-                                         const QPointF &staticPointSrc,
-                                         const QPointF &staticPointDst,
-                                         const QPointF &movingPointSrc,
-                                         const QPointF &movingPointDst)
+                                         const PkPointF &staticPointSrc,
+                                         const PkPointF &staticPointDst,
+                                         const PkPointF &movingPointSrc,
+                                         const PkPointF &movingPointDst)
     {
         KisTransformUtils::MatricesPack m(args);
 
@@ -399,10 +399,10 @@ namespace GSL
     }
 
     ScaleResult1D calculateScaleX(const ToolTransformArgs &args,
-                                  const QPointF &staticPointSrc,
-                                  const QPointF &staticPointDst,
-                                  const QPointF &movingPointSrc,
-                                  const QPointF &movingPointDst)
+                                  const PkPointF &staticPointSrc,
+                                  const PkPointF &staticPointDst,
+                                  const PkPointF &movingPointSrc,
+                                  const PkPointF &movingPointDst)
     {
         return calculateScale1D<XScaleStrategy>(args,
                                                 staticPointSrc,
@@ -412,10 +412,10 @@ namespace GSL
     }
 
     ScaleResult1D calculateScaleY(const ToolTransformArgs &args,
-                                  const QPointF &staticPointSrc,
-                                  const QPointF &staticPointDst,
-                                  const QPointF &movingPointSrc,
-                                  const QPointF &movingPointDst)
+                                  const PkPointF &staticPointSrc,
+                                  const PkPointF &staticPointDst,
+                                  const PkPointF &movingPointSrc,
+                                  const PkPointF &movingPointDst)
     {
         return calculateScale1D<YScaleStrategy>(args,
                                                 staticPointSrc,
@@ -433,20 +433,14 @@ namespace GSL
 
     void warnNoGSL()
     {
-        QMessageBox::warning(qApp->activeWindow(),
-                             i18nc("@title:window", "Krita"),
-                             i18n("Krita was built without the support "
-                                  "of GNU Scientific Library, so you cannot scale "
-                                  "the selection with handles. Please compile "
-                                  "Krita with GNU Scientific Library support, or use "
-                                  "options widget for editing scale values manually."));
+        showTransformToolNoGslWarning();
     }
 
     ScaleResult2D calculateScale2D(const ToolTransformArgs &args,
-                                   const QPointF &staticPointSrc,
-                                   const QPointF &staticPointDst,
-                                   const QPointF &movingPointSrc,
-                                   const QPointF &movingPointDst)
+                                   const PkPointF &staticPointSrc,
+                                   const PkPointF &staticPointDst,
+                                   const PkPointF &movingPointSrc,
+                                   const PkPointF &movingPointDst)
     {
         warnNoGSL();
 
@@ -458,19 +452,19 @@ namespace GSL
     }
 
     ScaleResult2D calculateScale2DAffine(const ToolTransformArgs &args,
-                                         const QPointF &staticPointSrc,
-                                         const QPointF &staticPointDst,
-                                         const QPointF &movingPointSrc,
-                                         const QPointF &movingPointDst)
+                                         const PkPointF &staticPointSrc,
+                                         const PkPointF &staticPointDst,
+                                         const PkPointF &movingPointSrc,
+                                         const PkPointF &movingPointDst)
     {
         return calculateScale2D(args, staticPointSrc, staticPointDst, movingPointSrc, movingPointDst);
     }
 
     ScaleResult1D calculateScaleX(const ToolTransformArgs &args,
-                                  const QPointF &staticPointSrc,
-                                  const QPointF &staticPointDst,
-                                  const QPointF &movingPointSrc,
-                                  const QPointF &movingPointDst)
+                                  const PkPointF &staticPointSrc,
+                                  const PkPointF &staticPointDst,
+                                  const PkPointF &movingPointSrc,
+                                  const PkPointF &movingPointDst)
     {
         warnNoGSL();
 
@@ -481,10 +475,10 @@ namespace GSL
     }
 
     ScaleResult1D calculateScaleY(const ToolTransformArgs &args,
-                                  const QPointF &staticPointSrc,
-                                  const QPointF &staticPointDst,
-                                  const QPointF &movingPointSrc,
-                                  const QPointF &movingPointDst)
+                                  const PkPointF &staticPointSrc,
+                                  const PkPointF &staticPointDst,
+                                  const PkPointF &movingPointSrc,
+                                  const PkPointF &movingPointDst)
     {
         warnNoGSL();
 
