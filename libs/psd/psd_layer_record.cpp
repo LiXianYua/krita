@@ -4,6 +4,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <PkFlakeBridge.h>
+
 #include "psd_layer_record.h"
 
 #include <KoColor.h>
@@ -54,6 +56,11 @@ PkString toBinaryString(unsigned int value)
 }
 
 } // namespace
+
+QDebug operator<<(QDebug dbg, const PSDLayerRecord::LayerBlendingRanges::LayerBlendingRange &data)
+{
+    return dbg << data.blackValues[0] << data.blackValues[1] << data.whiteValues[0] << data.whiteValues[1];
+}
 
 // Just for pretty debug messages
 PkString channelIdToChannelType(int channelId, psd_color_mode colormode)
@@ -495,7 +502,7 @@ bool PSDLayerRecord::readImpl(PkStream &io)
                     return false;
                 }
                 dbgFile << "\t\tread range " << src << "to" << dst << "for channel" << i;
-                blendingRanges.sourceDestinationRanges << qMakePair(src, dst);
+                blendingRanges.sourceDestinationRanges << std::make_pair(src, dst);
             }
         }
 
@@ -971,13 +978,15 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
         for (int i = 0; i < subPath.nodes.size(); i++) {
             psd_path_node node = subPath.nodes.at(i);
             if (i == 0) {
-                shape->moveTo(tf.map(node.node));
+                shape->moveTo(toQPointF(tf.map(node.node)));
             } else {
                 psd_path_node previousNode = subPath.nodes.at(i-1);
                 if (previousNode.node == previousNode.control2 && node.node == node.control1) {
-                    shape->lineTo(tf.map(node.node));
+                    shape->lineTo(toQPointF(tf.map(node.node)));
                 } else {
-                    shape->curveTo(tf.map(previousNode.control2), tf.map(node.control1), tf.map(node.node));
+                    shape->curveTo(toQPointF(tf.map(previousNode.control2)),
+                                   toQPointF(tf.map(node.control1)),
+                                   toQPointF(tf.map(node.node)));
                 }
             }
             if (node.isSmooth) {
@@ -990,16 +999,18 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
             psd_path_node lastNode = subPath.nodes.last();
             psd_path_node firstNode = subPath.nodes.first();
             if (lastNode.node == lastNode.control2 && firstNode.node == firstNode.control1) {
-                shape->lineTo(tf.map(firstNode.node));
+                shape->lineTo(toQPointF(tf.map(firstNode.node)));
             } else {
-                shape->curveTo(tf.map(lastNode.control2), tf.map(firstNode.control1), tf.map(firstNode.node));
+                shape->curveTo(toQPointF(tf.map(lastNode.control2)),
+                               toQPointF(tf.map(firstNode.control1)),
+                               toQPointF(tf.map(firstNode.node)));
             }
             shape->closeMerge();
         }
 
     }
     if (shape->pointCount() > 0) {
-        shape->loadNodeTypes(nodeTypes);
+        shape->loadNodeTypes(toQString(nodeTypes));
     }
 
     return shape;
@@ -1008,7 +1019,7 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
 void PSDLayerRecord::addPathShapeToPSDPath(psd_path &path, KoPathShape *shape, double shapeWidth, double shapeHeight)
 {
     PkTransform tf = PkTransform::fromScale(shapeWidth, shapeHeight).inverted();
-    tf = shape->absoluteTransformation()*tf;
+    tf = toPkTransform(shape->absoluteTransformation()) * tf;
 
 
     for (int i = 0; i < shape->subpathCount(); i++) {
@@ -1017,9 +1028,9 @@ void PSDLayerRecord::addPathShapeToPSDPath(psd_path &path, KoPathShape *shape, d
         while(subPath.nodes.size() < shape->subpathPointCount(i)) {
             const KoPathPoint *point = shape->pointByIndex(KoPathPointIndex(i, subPath.nodes.size()));
             psd_path_node node;
-            node.node = tf.map(point->point());
-            node.control1 = point->activeControlPoint1()? tf.map(point->controlPoint1()): node.node;
-            node.control2 = point->activeControlPoint2()? tf.map(point->controlPoint2()): node.node;
+            node.node = tf.map(toPkPointF(point->point()));
+            node.control1 = point->activeControlPoint1() ? tf.map(toPkPointF(point->controlPoint1())) : node.node;
+            node.control2 = point->activeControlPoint2() ? tf.map(toPkPointF(point->controlPoint2())) : node.node;
 
             node.isSmooth = (point->properties().testFlag(KoPathPoint::IsSmooth)
                     || point->properties().testFlag(KoPathPoint::IsSymmetric));

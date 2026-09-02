@@ -9,10 +9,16 @@
 
 #include "kritapsd_export.h"
 
+#include <PkFlakeBridge.h>
+
+#include <PkDebug.h>
 #include <PkByteArray.h>
+#include <PkRect.h>
 #include <PkString.h>
 #include <PkVector.h>
+#include <PkXmlDocument.h>
 
+#include <array>
 #include <cstdint>
 #include <utility>
 

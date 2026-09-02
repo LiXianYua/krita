@@ -9,8 +9,11 @@
 
 #include "kritapsd_export.h"
 
+#include <PkFlakeBridge.h>
+
 #include <cstdint>
 #include <PkString.h>
+#include <PkVector.h>
 
 class PkStream;
 
