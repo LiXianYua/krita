@@ -13,6 +13,7 @@
 #include "kis_external_layer_iface.h"
 #include "kis_safe_document_loader.h"
 #include <PkConnection.h>
+#include <PkTransform.h>
 
 /**
  * @brief The KisFileLayer class loads a particular file as a layer into the layer stack.
@@ -77,8 +78,8 @@ public:
     bool accept(KisNodeVisitor&) override;
     void accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter) override;
 
-    KUndo2Command* crop(const QRect & rect) override;
-    KUndo2Command* transform(const QTransform &transform) override;
+    KUndo2Command* crop(const PkRect & rect) override;
+    KUndo2Command* transform(const PkTransform &transform) override;
 
     void setImage(KisImageWSP image) override;
 
