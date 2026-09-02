@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "kis_image_view_converter.h"
 #include "kis_image.h"
 #include "kis_pointer_utils.h"

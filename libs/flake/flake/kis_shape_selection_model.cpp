@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "kis_shape_selection_model.h"
 #include "kis_debug.h"
 
@@ -35,7 +37,8 @@ void KisShapeSelectionModel::requestUpdate(const QRect &updateRect)
     m_shapeSelection->recalculateOutlineCache();
 
     if (m_updatesEnabled) {
-        m_parentSelection->requestCompressedProjectionUpdate(updateRect);
+        m_parentSelection->requestCompressedProjectionUpdate(
+            PkRect(updateRect.x(), updateRect.y(), updateRect.width(), updateRect.height()));
     }
 }
 

@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "GutterWidthsConfig.h"
 #include <kis_algebra_2d.h>
 #include <kis_debug.h>
