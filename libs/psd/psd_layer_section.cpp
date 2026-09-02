@@ -9,9 +9,12 @@
 #include "psd_layer_section.h"
 
 #include <PkStream.h>
+#include <PkByteArray.h>
 
 #include <algorithm>
 #include <cstdlib>
+#include <limits>
+#include <vector>
 
 #include <KoColor.h>
 #include <KoColorSpace.h>
@@ -403,7 +406,18 @@ bool PSDLayerMaskSection::readTiffImpl(PkStream &io)
         return false;
     }
 
-    dbgFile << "Leftover data after parsing layer/extra blocks:" << io.pos() << io.bytesAvailable() << io.peek(io.bytesAvailable());
+    const PkStream::pk_int64 remaining = io.bytesAvailable();
+    PkByteArray leftover;
+    if (remaining > 0) {
+        const PkStream::pk_int64 request = std::min(remaining, static_cast<PkStream::pk_int64>(std::numeric_limits<int>::max()));
+        std::vector<char> buffer(static_cast<std::size_t>(request));
+        const PkStream::pk_int64 peeked = io.peek(buffer.data(), request);
+        if (peeked > 0) {
+            const int materialized = static_cast<int>(std::min(peeked, request));
+            leftover = PkByteArray(buffer.data(), materialized);
+        }
+    }
+    dbgFile << "Leftover data after parsing layer/extra blocks:" << io.pos() << remaining << leftover;
 
     return true;
 }
