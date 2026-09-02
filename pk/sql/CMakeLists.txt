@@ -61,6 +61,14 @@ endif()
 # 同 pk/variant/CMakeLists.txt 对 pk/container 的处理方式。
 set(PKCONTAINER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 
+# The canonical PkByteArray provider is the existing pkcontainer target.  SQL
+# already brings in pktest (and therefore pkstring) above, so request the
+# library-only container subdirectory variant to avoid re-adding its test
+# harness while preserving the same provider ownership as the main graph.
+set(PKCONTAINER_LIBRARY_ONLY ON)
+add_subdirectory(${PKCONTAINER_DIR} ${CMAKE_BINARY_DIR}/pkcontainer EXCLUDE_FROM_ALL)
+unset(PKCONTAINER_LIBRARY_ONLY)
+
 # ---------------------------------------------------------------------------
 # 依赖：pk/variant（PkVariant/PkVariantList，bindValue/value 的值类型）—— Task 2
 # 新增。**不走 add_subdirectory(pk/variant)**，原因是本任务实测发现的一个
@@ -132,7 +140,7 @@ add_library(pksql STATIC
     PkSqlCursor.cpp
 )
 target_include_directories(pksql PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PKCONTAINER_DIR})
-target_link_libraries(pksql PUBLIC pkstring pkvariant)
+target_link_libraries(pksql PUBLIC pkstring pkvariant pkcontainer)
 # PRIVATE：<sqlite3.h> 只出现在 .cpp 里，公开头文件只前置声明 `struct sqlite3;`
 # （PkSqlError.h/PkSqlDatabase.h 顶部注释），不需要传递给 pksql 的使用者。
 target_link_libraries(pksql PRIVATE SQLite::SQLite3)

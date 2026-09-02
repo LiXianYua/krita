@@ -81,10 +81,11 @@ target_include_directories(pkcolor PUBLIC
 target_link_libraries(pkcolor PUBLIC pkstring pkglobal)
 
 # ---------------------------------------------------------------------------
-# 依赖：pk/container —— 仅通过 include 路径引入（纯头文件）
+# 依赖：pk/container —— canonical PkByteArray provider。
 # pk/geometry 和 pk/container 都通过 add_subdirectory 引入 pk/test，
-# 不能同时作为子目录。PkStringList.h、PkStringHash.h 是纯头文件，
-# 通过 include 路径引入即可。
+# 不能同时作为子目录。该 focused graph 通过 library-only container
+# subdirectory 保持 provider 唯一；PkStringList.h、PkStringHash.h 仍是
+# 纯头文件，通过 include 路径引入即可。
 # ---------------------------------------------------------------------------
 target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 # pk/time：PkVariant.h 用 ../time/PkDateTime.h 相对 include，这里显式给上。

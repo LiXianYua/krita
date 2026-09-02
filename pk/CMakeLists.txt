@@ -413,7 +413,7 @@ target_include_directories(pksql PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/sql
     ${PKCONTAINER_DIR}
 )
-target_link_libraries(pksql PUBLIC SQLite::SQLite3 pkvariant pkgeometry pkstring)
+target_link_libraries(pksql PUBLIC SQLite::SQLite3 pkvariant pkgeometry pkstring pkcontainer)
 
 # =========================================================================
 # 16. pk/test（仅库目标，不生成测试 binder）
