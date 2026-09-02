@@ -157,7 +157,7 @@ public:
         static_assert (std::is_convertible<Dptr, const PkObject*>::value, "Source object should be convertible into PkObject");
 
         PkObject::connect(static_cast<const C*>(object), memfn,
-                         this, &KisSynchronizedConnection::start, Qt::DirectConnection);
+                         this, &KisSynchronizedConnection::start, PkConnectionType::Direct);
     }
 
     /**
