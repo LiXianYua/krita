@@ -7,6 +7,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+#include <compat/QIODevice>
 #include "kis_shape_layer.h"
 #include <PkConnection.h>
 
@@ -237,7 +239,7 @@ KisShapeLayer::KisShapeLayer(KoShapeControllerBase* controller,
                              const QString &name,
                              quint8 opacity,
                              std::function<KisShapeLayerCanvasBase *()> canvasFactory)
-        : KisExternalLayer(image, name, opacity)
+        : KisExternalLayer(image, toPkString(name), opacity)
         , KoShapeLayer(new ShapeLayerContainerModel(this))
         , m_d(new Private())
 {
@@ -273,16 +275,16 @@ void KisShapeLayer::initShapeLayerImpl(KoShapeControllerBase* controller,
     m_d->paintDevice = canvas->projection();
 
     m_d->canvas = canvas;
-    m_d->canvas->moveToThread(this->thread());
+    m_d->canvas->moveToThread(QThread::currentThread());
     m_d->controller = controller;
 
-    m_d->canvas->shapeManager()->selection()->disconnect(this);
+    QObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+                     [this]() { selectionChanged(); });
+    QObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
+                     [this](const KoShapeLayer *layer) { currentLayerChanged(layer); });
 
-    connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged, this, &KisShapeLayer::selectionChanged);
-    connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
-            this, &KisShapeLayer::currentLayerChanged);
-
-    connect(this, &KisShapeLayer::sigMoveShapes, this, &KisShapeLayer::slotMoveShapes);
+    PkObject::connect(this, &KisShapeLayer::sigMoveShapes,
+                      this, &KisShapeLayer::slotMoveShapes);
 
     ShapeLayerContainerModel *model = dynamic_cast<ShapeLayerContainerModel*>(this->model());
     KIS_SAFE_ASSERT_RECOVER_RETURN(model);
@@ -332,7 +334,7 @@ KisBaseNode::PropertyList KisShapeLayer::sectionModelProperties() const
 void KisShapeLayer::setSectionModelProperties(const KisBaseNode::PropertyList &properties)
 {
     Q_FOREACH (const KisBaseNode::Property &property, properties) {
-        if (property.name == i18n("Anti-aliasing")) {
+        if (property.name == PkString("Anti-aliasing")) {
             setAntialiased(property.state.toBool());
         }
     }
@@ -353,7 +355,7 @@ KisLayerSP KisShapeLayer::tryCreateInternallyMergedLayerFromMutipleLayers(QList<
     }
 
     QList<KoShape*> allShapes;
-    QList<KoShapeReorderCommand::IndexedShape> allIndexedShapes;
+    PkList<KoShapeReorderCommand::IndexedShape> allIndexedShapes;
     Q_FOREACH(KisShapeLayer *layer, shapeLayers) {
         QList<KoShape*> shapes = layer->shapes();
         std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
@@ -500,13 +502,15 @@ void KisShapeLayer::slotMoveShapes(const QPointF &diff)
     QList<KoShape*> shapes = shapesToBeTransformed();
     if (shapes.isEmpty()) return;
 
-    KoShapeMoveCommand cmd(shapes, diff);
+    KoShapeMoveCommand cmd(toPkList(shapes), toPkPointF(diff));
     cmd.redo();
 }
 
 void KisShapeLayer::slotTransformShapes(const QTransform &newTransform)
 {
-    KoShapeTransformCommand cmd({this}, {transformation()}, {newTransform});
+    KoShapeTransformCommand cmd(PkList<KoShape*>{this},
+                                PkList<PkTransform>{toPkTransform(transformation())},
+                                PkList<PkTransform>{toPkTransform(newTransform)});
     cmd.redo();
 }
 
@@ -613,13 +617,13 @@ QList<KoShape *> KisShapeLayer::createShapesFromSvg(QIODevice *device, const QSt
 
     QDomDocument doc = SvgParser::createDocumentFromSvg(device, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
-        errKrita << "Parsing error in contents.svg! Aborting!" << Qt::endl
-        << " In line: " << errorLine << ", column: " << errorColumn << Qt::endl
-        << " Error message: " << errorMsg << Qt::endl;
+        errKrita << "Parsing error in contents.svg! Aborting!" << '\n'
+        << " In line: " << errorLine << ", column: " << errorColumn << '\n'
+        << " Error message: " << errorMsg << '\n';
 
         if (errors) {
-            *errors << i18n("Parsing error in the main document at line %1, column %2\nError message: %3"
-                         , errorLine , errorColumn , errorMsg);
+            *errors << QStringLiteral("Parsing error in the main document at line %1, column %2\nError message: %3")
+                         .arg(errorLine).arg(errorColumn).arg(errorMsg);
         }
         return QList<KoShape*>();
     }
@@ -654,7 +658,8 @@ bool KisShapeLayer::saveLayer(KoStore * store) const
 {
     // FIXME: we handle xRes() only!
 
-    const QSizeF sizeInPx = image()->bounds().size();
+    const PkSize size = image()->bounds().size();
+    const QSizeF sizeInPx(size.width(), size.height());
     const QSizeF sizeInPt(sizeInPx.width() / image()->xRes(), sizeInPx.height() / image()->yRes());
 
     return saveShapesToStore(store, this->shapes(), sizeInPt);
@@ -671,7 +676,7 @@ bool KisShapeLayer::loadSvg(QIODevice *device, const QString &baseXmlDir, QStrin
 
     QList<KoShape*> shapes =
         createShapesFromSvg(device, baseXmlDir,
-                            image->bounds(), resolutionPPI,
+                            toQRectF(image->bounds()), resolutionPPI,
                             m_d->controller->resourceManager(),
                             true,
                             &fragmentSize,
@@ -716,7 +721,7 @@ KUndo2Command* KisShapeLayer::crop(const QRect & rect)
     QPoint oldPos(x(), y());
     QPoint newPos = oldPos - rect.topLeft();
 
-    return new KisNodeMoveCommand2(this, oldPos, newPos);
+    return new KisNodeMoveCommand2(this, PkPoint(oldPos.x(), oldPos.y()), PkPoint(newPos.x(), newPos.y()));
 }
 
 class TransformShapeLayerDeferred : public KUndo2Command
