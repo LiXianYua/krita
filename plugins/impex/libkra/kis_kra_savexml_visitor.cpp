@@ -13,6 +13,7 @@
 #include <filesystem>
 
 #include <PkNodeId.h>
+#include <PkFlakeBridge.h>
 #include <KoProperties.h>
 #include <KoColorSpace.h>
 #include <KoCompositeOp.h>
@@ -82,7 +83,7 @@ bool KisSaveXmlVisitor::visit(KisExternalLayer * layer)
         KisFileLayer *fileLayer = dynamic_cast<KisFileLayer*>(layer);
         KIS_ASSERT(fileLayer);
 
-        PkString path = fileLayer->path();
+        PkString path = toPkString(fileLayer->path());
 
 #ifndef Q_OS_ANDROID
         // 对拍 relativeFilePath：计算 source 相对 .kra 所在目录的相对路径。
@@ -105,7 +106,7 @@ bool KisSaveXmlVisitor::visit(KisExternalLayer * layer)
         }
         layerElement.setAttribute("scalingmethod", PkString("%1").arg((int)fileLayer->scalingMethod()));
         layerElement.setAttribute(COLORSPACE_NAME, layer->original()->colorSpace()->id());
-        layerElement.setAttribute("scalingfilter", fileLayer->scalingFilter());
+        layerElement.setAttribute("scalingfilter", toPkString(fileLayer->scalingFilter()));
 
         m_elem.appendChild(layerElement);
         m_count++;
@@ -503,20 +504,25 @@ bool KisSaveXmlVisitor::saveReferenceImagesLayer(KisExternalLayer *layer)
     auto *referencesLayer = dynamic_cast<KisReferenceImagesLayer*>(layer);
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(referencesLayer, false);
 
-    PkXmlElement layerElement = m_doc.createElement(LAYER);
-    layerElement.setAttribute(NODE_TYPE, REFERENCE_IMAGES_LAYER);
+    QDomDocument qtDocument;
+    QDomElement qtLayerElement = qtDocument.createElement(toQString(LAYER));
+    qtLayerElement.setAttribute(toQString(NODE_TYPE), toQString(REFERENCE_IMAGES_LAYER));
+    qtDocument.appendChild(qtLayerElement);
 
     int nextId = 0;
     Q_FOREACH(KoShape *shape, referencesLayer->shapes()) {
         auto *reference = dynamic_cast<KisReferenceImage*>(shape);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(reference, false);
-        reference->saveXml(m_doc, layerElement, nextId);
+        reference->saveXml(qtDocument, qtLayerElement, nextId);
         nextId++;
     }
+
+    const PkXmlElement convertedLayerElement = toPkXmlElement(qtLayerElement);
+    PkXmlElement layerElement = m_doc.importNode(convertedLayerElement, true).toElement();
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!layerElement.isNull(), false);
 
     m_elem.appendChild(layerElement);
     m_count++;
     return true;
 }
-
 

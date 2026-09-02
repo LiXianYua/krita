@@ -8,6 +8,7 @@
 
 #include <PkString.h>
 #include <PkBitArray.h>
+#include <PkByteArray.h>
 
 #include <string>
 

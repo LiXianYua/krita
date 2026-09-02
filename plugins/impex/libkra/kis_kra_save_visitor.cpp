@@ -12,7 +12,6 @@
 
 #include <PkMemoryStream.h>
 #include <PkAuxTypes.h> // PkByteArray
-#include <PkTextStream.h>
 
 #include <KoColorProfile.h>
 #include <KoStore.h>
@@ -52,12 +51,30 @@
 #include "kis_paint_device_frames_interface.h"
 
 #include "lazybrush/kis_lazy_fill_tools.h"
-#include <KoStoreDevice.h>
 #include "kis_colorize_dom_utils.h"
 #include "kis_dom_utils.h"
 
 
 using namespace KRA;
+
+namespace {
+PkString toPkMessage(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
+QString toQStringArgument(const PkString &value)
+{
+    const std::string utf8 = value.PkToUtf8();
+    return QString::fromUtf8(utf8.data(), int(utf8.size()));
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+}
 
 KisKraSaveVisitor::KisKraSaveVisitor(KoStore *store, const PkString & name, PkMap<const KisNode*, PkString> nodeFileNames)
     : KisNodeVisitor()
@@ -85,28 +102,32 @@ bool KisKraSaveVisitor::visit(KisExternalLayer * layer)
     bool result = false;
     if (auto* referencesLayer = dynamic_cast<KisReferenceImagesLayer*>(layer)) {
         result = true;
-        PkList <KoShape *> shapes = referencesLayer->shapes();
+        PkList<KoShape *> shapes;
+        const QList<KoShape *> qtShapes = referencesLayer->shapes();
+        for (KoShape *shape : qtShapes) {
+            shapes.append(shape);
+        }
         std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
         Q_FOREACH(KoShape *shape, shapes) {
             auto *reference = dynamic_cast<KisReferenceImage*>(shape);
             KIS_ASSERT_RECOVER_RETURN_VALUE(reference, false);
             bool saved = reference->saveImage(m_store);
             if (!saved) {
-                m_errorMessages << i18n("Failed to save reference image %1.", reference->internalFile());
+                m_errorMessages << toPkMessage(i18n("Failed to save reference image %1.", reference->internalFile()));
                 result = false;
             }
         }
     }
     else if (KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(layer)) {
         if (!saveMetaData(layer)) {
-            m_errorMessages << i18n("Failed to save the metadata for layer %1.", layer->name());
+            m_errorMessages << toPkMessage(i18n("Failed to save the metadata for layer %1.", toQStringArgument(layer->name())));
             return false;
         }
         m_store->pushDirectory();
         PkString location = getLocation(layer, DOT_SHAPE_LAYER);
         result = m_store->enterDirectory(location);
         if (!result) {
-            m_errorMessages << i18n("Failed to open %1.", location);
+            m_errorMessages << toPkMessage(i18n("Failed to open %1.", toQStringArgument(location)));
         }
         else {
             result = shapeLayer->saveLayer(m_store);
@@ -123,15 +144,15 @@ bool KisKraSaveVisitor::visit(KisExternalLayer * layer)
 bool KisKraSaveVisitor::visit(KisPaintLayer *layer)
 {
     if (!savePaintDevice(layer->paintDevice(), getLocation(layer))) {
-        m_errorMessages << i18n("Failed to save the pixel data for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the pixel data for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     if (!saveAnnotations(layer)) {
-        m_errorMessages << i18n("Failed to save the annotations for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the annotations for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     if (!saveMetaData(layer)) {
-        m_errorMessages << i18n("Failed to save the metadata for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the metadata for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     return visitAllInverse(layer);
@@ -140,7 +161,7 @@ bool KisKraSaveVisitor::visit(KisPaintLayer *layer)
 bool KisKraSaveVisitor::visit(KisGroupLayer *layer)
 {
     if (!saveMetaData(layer)) {
-        m_errorMessages << i18n("Failed to save the metadata for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the metadata for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     return visitAllInverse(layer);
@@ -149,19 +170,19 @@ bool KisKraSaveVisitor::visit(KisGroupLayer *layer)
 bool KisKraSaveVisitor::visit(KisAdjustmentLayer* layer)
 {
     if (!layer->filter()) {
-        m_errorMessages << i18n("Failed to save the filter layer %1: it has no filter.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the filter layer %1: it has no filter.", toQStringArgument(layer->name())));
         return false;
     }
     if (!saveSelection(layer)) {
-        m_errorMessages << i18n("Failed to save the selection for filter layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the selection for filter layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     if (!saveFilterConfiguration(layer)) {
-        m_errorMessages << i18n("Failed to save the filter configuration for filter layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the filter configuration for filter layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     if (!saveMetaData(layer)) {
-        m_errorMessages << i18n("Failed to save the metadata for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the metadata for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     return visitAllInverse(layer);
@@ -170,15 +191,15 @@ bool KisKraSaveVisitor::visit(KisAdjustmentLayer* layer)
 bool KisKraSaveVisitor::visit(KisGeneratorLayer * layer)
 {
     if (!saveSelection(layer)) {
-        m_errorMessages << i18n("Failed to save the selection for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the selection for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     if (!saveFilterConfiguration(layer)) {
-        m_errorMessages << i18n("Failed to save the generator configuration for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the generator configuration for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     if (!saveMetaData(layer)) {
-        m_errorMessages << i18n("Failed to save the metadata for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the metadata for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     return visitAllInverse(layer);
@@ -188,7 +209,7 @@ bool KisKraSaveVisitor::visit(KisCloneLayer *layer)
 {
     // Clone layers do not have a profile
     if (!saveMetaData(layer)) {
-        m_errorMessages << i18n("Failed to save the metadata for layer %1.", layer->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the metadata for layer %1.", toQStringArgument(layer->name())));
         return false;
     }
     return visitAllInverse(layer);
@@ -197,15 +218,15 @@ bool KisKraSaveVisitor::visit(KisCloneLayer *layer)
 bool KisKraSaveVisitor::visit(KisFilterMask *mask)
 {
     if (!mask->filter()) {
-        m_errorMessages << i18n("Failed to save filter mask %1. It has no filter.", mask->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save filter mask %1. It has no filter.", toQStringArgument(mask->name())));
         return false;
     }
     if (!saveSelection(mask)) {
-        m_errorMessages << i18n("Failed to save the selection for filter mask %1.", mask->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the selection for filter mask %1.", toQStringArgument(mask->name())));
         return false;
     }
     if (!saveFilterConfiguration(mask)) {
-        m_errorMessages << i18n("Failed to save the filter configuration for filter mask %1.", mask->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the filter configuration for filter mask %1.", toQStringArgument(mask->name())));
         return false;
     }
     return true;
@@ -248,7 +269,7 @@ bool KisKraSaveVisitor::visit(KisTransformMask *mask)
 bool KisKraSaveVisitor::visit(KisTransparencyMask *mask)
 {
     if (!saveSelection(mask)) {
-        m_errorMessages << i18n("Failed to save the selection for transparency mask %1.", mask->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the selection for transparency mask %1.", toQStringArgument(mask->name())));
         return false;
     }
     return true;
@@ -257,7 +278,7 @@ bool KisKraSaveVisitor::visit(KisTransparencyMask *mask)
 bool KisKraSaveVisitor::visit(KisSelectionMask *mask)
 {
     if (!saveSelection(mask)) {
-        m_errorMessages << i18n("Failed to save the selection for local selection %1.", mask->name());
+        m_errorMessages << toPkMessage(i18n("Failed to save the selection for local selection %1.", toQStringArgument(mask->name())));
         return false;
     }
     return true;
@@ -270,24 +291,32 @@ bool KisKraSaveVisitor::visit(KisColorizeMask *mask)
     bool result = m_store->enterDirectory(location);
 
     if (!result) {
-        m_errorMessages << i18n("Failed to open %1.", location);
+        m_errorMessages << toPkMessage(i18n("Failed to open %1.", toQStringArgument(location)));
         return false;
     }
 
     if (!m_store->open("content.xml"))
         return false;
 
-    KoStoreDevice storeDev(m_store);
-
     PkXmlDocument doc("doc");
     PkXmlElement root = doc.createElement("colorize");
     doc.appendChild(root);
     KisDomUtils::saveValue(&root, COLORIZE_KEYSTROKES_SECTION, mask->fetchKeyStrokesDirect().toVector());
 
-    PkTextStream stream(&storeDev);
-    stream << doc.toString();
+    const std::string xml = doc.toString().PkToUtf8();
+    PkStream::pk_int64 written = 0;
+    while (written < static_cast<PkStream::pk_int64>(xml.size())) {
+        const PkStream::pk_int64 result =
+            m_store->write(xml.data() + written,
+                           static_cast<PkStream::pk_int64>(xml.size()) - written);
+        if (result <= 0) {
+            break;
+        }
+        written += result;
+    }
+    const bool wroteXml = written == static_cast<PkStream::pk_int64>(xml.size());
 
-    if (!m_store->close())
+    if (!m_store->close() || !wroteXml)
         return false;
 
     int i = 0;
@@ -451,7 +480,7 @@ bool KisKraSaveVisitor::saveSelection(KisNode* node)
     if (node->isAnimated() || selection->hasNonEmptyPixelSelection()) {
         KisPaintDeviceSP dev = selection->pixelSelection();
         if (!savePaintDevice(dev, getLocation(node, DOT_PIXEL_SELECTION))) {
-            m_errorMessages << i18n("Failed to save the pixel selection data for layer %1.", node->name());
+            m_errorMessages << toPkMessage(i18n("Failed to save the pixel selection data for layer %1.", toQStringArgument(node->name())));
             retval = false;
         }
     }
@@ -465,8 +494,8 @@ bool KisKraSaveVisitor::saveSelection(KisNode* node)
                 retval = false;
             }
 
-            if (retval && !shapeSelection->saveSelection(m_store, node->image()->bounds())) {
-                m_errorMessages << i18n("Failed to save the vector selection data for layer %1.", node->name());
+            if (retval && !shapeSelection->saveSelection(m_store, toQRect(node->image()->bounds()))) {
+                m_errorMessages << toPkMessage(i18n("Failed to save the vector selection data for layer %1.", toQStringArgument(node->name())));
                 retval = false;
             }
         }
@@ -521,7 +550,7 @@ bool KisKraSaveVisitor::saveMetaData(KisNode* node)
     bool retval = backend->saveTo(metadata, &buffer);
 
     if (!retval) {
-        m_errorMessages << i18n("The metadata backend failed to save the metadata for %1", node->name());
+        m_errorMessages << toPkMessage(i18n("The metadata backend failed to save the metadata for %1", toQStringArgument(node->name())));
     }
     else {
         PkByteArray data(buffer.data(), static_cast<int>(buffer.size()));
@@ -532,7 +561,7 @@ bool KisKraSaveVisitor::saveMetaData(KisNode* node)
             m_store->close();
         }
         if (!retval) {
-            m_errorMessages << i18n("Could not write for %1 metadata to the file.", node->name());
+            m_errorMessages << toPkMessage(i18n("Could not write for %1 metadata to the file.", toQStringArgument(node->name())));
         }
     }
     return retval;

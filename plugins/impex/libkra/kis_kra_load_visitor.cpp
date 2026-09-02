@@ -396,7 +396,7 @@ bool KisKraLoadVisitor::visit(KisTransformMask *mask)
         m_store->close();
         if (!data.isEmpty()) {
             PkXmlDocument doc;
-            doc.setContent(data);
+            doc.setContent(PkString::PkFromUtf8(data.constData(), data.size()));
 
             PkXmlElement rootElement = doc.documentElement();
 
@@ -483,7 +483,7 @@ bool KisKraLoadVisitor::visit(KisColorizeMask *mask)
         return false;
 
     PkXmlDocument doc;
-    if (!doc.setContent(data))
+    if (!doc.setContent(PkString::PkFromUtf8(data.constData(), data.size())))
         return false;
 
     PkVector<KisLazyFillTools::KeyStroke> strokes;
@@ -702,7 +702,7 @@ bool KisKraLoadVisitor::loadFilterConfiguration(KisFilterConfigurationSP kfc, co
         m_store->close();
         if (!data.isEmpty()) {
             PkXmlDocument doc;
-            doc.setContent(data);
+            doc.setContent(PkString::PkFromUtf8(data.constData(), data.size()));
             PkXmlElement e = doc.documentElement();
             if (e.tagName() == "filterconfig") {
                 kfc->fromLegacyXML(e);

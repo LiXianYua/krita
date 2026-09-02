@@ -625,7 +625,7 @@ void KisKraLoader::loadStoryboards(KoStore *store, KisDocument */*doc*/)
     if (store->open(m_d->imageName + STORYBOARD_PATH + "index.xml")) {
         PkByteArray data = store->read(store->size());
         PkXmlDocument document;
-        document.setContent(data);
+        document.setContent(PkString::PkFromUtf8(data.constData(), data.size()));
         store->close();
 
         PkXmlElement root = document.documentElement();
@@ -650,7 +650,7 @@ void KisKraLoader::loadAnimationMetadata(KoStore *store, KisImageSP image)
     if (store->open(m_d->imageName + ANIMATION_METADATA_PATH + "index.xml")) {
         PkByteArray data = store->read(store->size());
         PkXmlDocument document;
-        document.setContent(data);
+        document.setContent(PkString::PkFromUtf8(data.constData(), data.size()));
         store->close();
 
         PkXmlElement root = document.documentElement();
@@ -665,7 +665,7 @@ void KisKraLoader::loadAudio(KoStore *store, KisDocument *kisDoc)
     if (store->open(m_d->imageName + AUDIO_PATH + "index.xml")) {
         PkByteArray byteData = store->read(store->size());
         PkXmlDocument xmlDocument;
-        xmlDocument.setContent(byteData);
+        xmlDocument.setContent(PkString::PkFromUtf8(byteData.constData(), byteData.size()));
         store->close();
 
         PkXmlElement root = xmlDocument.documentElement();
