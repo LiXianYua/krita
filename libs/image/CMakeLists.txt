@@ -308,12 +308,13 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     #   KisBezierGradientMesh.cpp           KisBezierTransformMesh.cpp
     #   kis_cage_transform_worker.cpp       kis_liquify_transform_worker.cpp
     #   kis_warptransform_worker.cc
-    #   kis_file_layer.cpp                  kis_safe_document_loader.cpp
+    #   kis_safe_document_loader.cpp
     #   kis_paint_device_debug_utils.cpp
     #   KisSpatialContainer.cpp
     # GAP 文件不得被其余 OBJECT 强引用；若出现强引用，需迁回 owner 或显式断开纯诊断
     # 调用。GAP 配套头（kis_grid_interpolation_tools.h 等）不在源清单，无需移除。
     KisColorSamplerConfig.cpp
+    kis_file_layer.cpp
     kis_image_config.cpp
     KisColorSamplingUtils.cpp
     kis_distance_information.cpp
