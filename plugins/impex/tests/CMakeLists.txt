@@ -27,11 +27,21 @@ list(LENGTH kis_impex_registration_existing_targets kis_impex_registration_exist
 if(kis_impex_registration_target_count EQUAL kis_impex_registration_existing_count)
     add_executable(kis_impex_static_registration_test kis_impex_static_registration_test.cpp)
     target_link_libraries(kis_impex_static_registration_test PRIVATE kritaimpex)
+    # The registration entry points are weak references in the oracle, so an
+    # ELF linker's as-needed default can otherwise discard these shared
+    # libraries before their constructors/exports are available. Keep the
+    # linker policy positional: it must surround the codec libraries, rather
+    # than putting both switches in the target's global link options.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND
+       CMAKE_SYSTEM_NAME MATCHES "^(Linux|Android|FreeBSD|NetBSD|OpenBSD|DragonFly|SunOS)$")
+        target_link_libraries(kis_impex_static_registration_test PRIVATE "-Wl,--no-as-needed")
+    endif()
     foreach(target IN LISTS kis_impex_registration_existing_targets)
         target_link_libraries(kis_impex_static_registration_test PRIVATE "$<TARGET_FILE:${target}>")
     endforeach()
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_link_options(kis_impex_static_registration_test PRIVATE -Wl,--no-as-needed -Wl,--as-needed)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND
+       CMAKE_SYSTEM_NAME MATCHES "^(Linux|Android|FreeBSD|NetBSD|OpenBSD|DragonFly|SunOS)$")
+        target_link_libraries(kis_impex_static_registration_test PRIVATE "-Wl,--as-needed")
     endif()
     add_dependencies(kis_impex_static_registration_test ${kis_impex_registration_existing_targets})
     add_test(NAME kis_impex_static_registration_test COMMAND kis_impex_static_registration_test)
