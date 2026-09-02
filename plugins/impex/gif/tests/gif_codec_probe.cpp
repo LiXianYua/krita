@@ -109,7 +109,7 @@ int main()
             "opaque dark blue must not collide with the reserved transparent index");
     require(pkAlpha(decoded.pixel(2, 0)) == 0, "transparent pixel alpha must round-trip");
 
-    const std::vector<char> multiImageBytes = GifMultiframeFixture::create();
+    const std::vector<char> multiImageBytes = GifMultiframeFixture::create(DISPOSE_BACKGROUND);
     require(!multiImageBytes.empty(), "two-image GIF fixture must encode");
     require(GifMultiframeFixture::hasExpectedStructure(multiImageBytes),
             "fixture must contain two descriptors with offset, interlace, local palette, transparency, and disposal");
@@ -118,13 +118,35 @@ int main()
     PkImage multiImage;
     require(GifLibCodec(&multiImageInput).read(&multiImage),
             "giflib must accept a second image descriptor");
-    require(multiImage.width() == 3 && multiImage.height() == 2,
+    require(multiImage.width() == 5 && multiImage.height() == 8,
             "multi-image GIF logical screen dimensions must be preserved");
-    require(pkAlpha(multiImage.pixel(0, 0)) == 0 && pkAlpha(multiImage.pixel(1, 1)) == 0,
+    require(pkAlpha(multiImage.pixel(0, 0)) == 0 && pkAlpha(multiImage.pixel(4, 7)) == 0,
             "the selected frame background must use its transparent local palette entry");
-    require(pkBlue(multiImage.pixel(2, 0)) == 255 && pkAlpha(multiImage.pixel(2, 0)) == 255 &&
-                pkBlue(multiImage.pixel(2, 1)) == 255 && pkAlpha(multiImage.pixel(2, 1)) == 255,
-            "the interlaced second frame must retain its offset and local palette");
+    const uint8_t expectedRed[] = {0, 255, 255, 255, 255, 0, 0, 255};
+    const uint8_t expectedGreen[] = {0, 255, 0, 0, 255, 0, 0, 255};
+    const uint8_t expectedBlue[] = {255, 0, 255, 255, 0, 255, 255, 0};
+    for (int y = 0; y < 8; ++y) {
+        const auto pixel = multiImage.pixel(2, y);
+        require(pkAlpha(pixel) == 255 && pkRed(pixel) == expectedRed[y] &&
+                    pkGreen(pixel) == expectedGreen[y] && pkBlue(pixel) == expectedBlue[y],
+                "interlaced rows must be restored in logical row order");
+    }
+
+    const std::vector<char> previousBytes = GifMultiframeFixture::create(DISPOSE_PREVIOUS);
+    require(!previousBytes.empty() && GifMultiframeFixture::hasDisposal(previousBytes, DISPOSE_PREVIOUS),
+            "paired fixture must differ only in disposal mode");
+    GifTestMemoryStream previousInput(previousBytes);
+    require(previousInput.open(PkStream::ReadOnly), "paired input stream must open");
+    PkImage previousImage;
+    require(GifLibCodec(&previousInput).read(&previousImage), "paired disposal GIF must decode");
+    require(previousImage.width() == multiImage.width() && previousImage.height() == multiImage.height(),
+            "paired disposal GIF dimensions must match");
+    for (int y = 0; y < multiImage.height(); ++y) {
+        for (int x = 0; x < multiImage.width(); ++x) {
+            require(previousImage.pixel(x, y) == multiImage.pixel(x, y),
+                    "disposal mode must not alter the selected-raster result");
+        }
+    }
 
     ShortWriteStream shortOutput(static_cast<PkStream::pk_int64>(encoded.bytes().size() - 1));
     require(shortOutput.open(PkStream::WriteOnly), "short output stream must open");

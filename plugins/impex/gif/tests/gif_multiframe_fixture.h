@@ -89,7 +89,7 @@ inline int readBytes(GifFileType *gif, GifByteType *data, int count)
     return actual > 0 ? static_cast<int>(actual) : 0;
 }
 
-inline std::vector<char> create()
+inline std::vector<char> create(int disposal = DISPOSE_BACKGROUND)
 {
     std::vector<char> bytes;
     int error = 0;
@@ -101,7 +101,7 @@ inline std::vector<char> create()
     std::unique_ptr<ColorMapObject, decltype(&GifFreeMapObject)> globalMap(
         GifMakeMapObject(2, nullptr), &GifFreeMapObject);
     std::unique_ptr<ColorMapObject, decltype(&GifFreeMapObject)> localMap(
-        GifMakeMapObject(2, nullptr), &GifFreeMapObject);
+        GifMakeMapObject(4, nullptr), &GifFreeMapObject);
     if (!globalMap || !localMap) {
         return {};
     }
@@ -110,28 +110,33 @@ inline std::vector<char> create()
     globalMap->Colors[1] = GifColorType{255, 0, 0};
     localMap->Colors[0] = GifColorType{0, 255, 0};
     localMap->Colors[1] = GifColorType{0, 0, 255};
+    localMap->Colors[2] = GifColorType{255, 255, 0};
+    localMap->Colors[3] = GifColorType{255, 0, 255};
 
-    if (EGifPutScreenDesc(gif.get(), 3, 2, GifBitSize(2), 0, globalMap.get()) == GIF_ERROR ||
-        EGifPutImageDesc(gif.get(), 0, 0, 3, 2, false, nullptr) == GIF_ERROR) {
+    if (EGifPutScreenDesc(gif.get(), 5, 8, GifBitSize(2), 0, globalMap.get()) == GIF_ERROR ||
+        EGifPutImageDesc(gif.get(), 0, 0, 5, 8, false, nullptr) == GIF_ERROR) {
         return {};
     }
-    GifPixelType firstRow[] = {1, 1, 1};
-    if (EGifPutLine(gif.get(), firstRow, 3) == GIF_ERROR ||
-        EGifPutLine(gif.get(), firstRow, 3) == GIF_ERROR) {
-        return {};
+    GifPixelType firstRow[] = {1, 1, 1, 1, 1};
+    for (int row = 0; row < 8; ++row) {
+        if (EGifPutLine(gif.get(), firstRow, 5) == GIF_ERROR) {
+            return {};
+        }
     }
 
-    GraphicsControlBlock control = {DISPOSE_BACKGROUND, false, 0, 0};
+    GraphicsControlBlock control = {disposal, false, 0, 0};
     GifByteType extension[4] = {};
     EGifGCBToExtension(&control, extension);
     if (EGifPutExtension(gif.get(), GRAPHICS_EXT_FUNC_CODE, sizeof(extension), extension) == GIF_ERROR ||
-        EGifPutImageDesc(gif.get(), 2, 0, 1, 2, true, localMap.get()) == GIF_ERROR) {
+        EGifPutImageDesc(gif.get(), 2, 0, 1, 8, true, localMap.get()) == GIF_ERROR) {
         return {};
     }
-    GifPixelType secondRow[] = {1};
-    if (EGifPutLine(gif.get(), secondRow, 1) == GIF_ERROR ||
-        EGifPutLine(gif.get(), secondRow, 1) == GIF_ERROR) {
-        return {};
+
+    const GifPixelType rows[] = {1, 2, 3, 1, 2, 3, 1, 2};
+    for (GifPixelType row : rows) {
+        if (EGifPutLine(gif.get(), &row, 1) == GIF_ERROR) {
+            return {};
+        }
     }
 
     const int closeResult = EGifCloseFile(gif.release(), &error);
@@ -147,16 +152,32 @@ inline bool hasExpectedStructure(const std::vector<char> &bytes)
     int error = 0;
     std::unique_ptr<GifFileType, GifReadCloser> gif(DGifOpen(&stream, readBytes, &error));
     if (!gif || DGifSlurp(gif.get()) == GIF_ERROR || gif->ImageCount != 2 ||
-        gif->SWidth != 3 || gif->SHeight != 2) {
+        gif->SWidth != 5 || gif->SHeight != 8) {
         return false;
     }
 
     const GifImageDesc &second = gif->SavedImages[1].ImageDesc;
     GraphicsControlBlock control = {};
-    return second.Left == 2 && second.Top == 0 && second.Width == 1 && second.Height == 2 &&
-        second.Interlace && second.ColorMap && second.ColorMap->ColorCount == 2 &&
+    return second.Left == 2 && second.Top == 0 && second.Width == 1 && second.Height == 8 &&
+        second.Interlace && second.ColorMap && second.ColorMap->ColorCount == 4 &&
         DGifSavedExtensionToGCB(gif.get(), 1, &control) != GIF_ERROR &&
         control.DisposalMode == DISPOSE_BACKGROUND && control.TransparentColor == 0;
+}
+
+inline bool hasDisposal(const std::vector<char> &bytes, int expectedDisposal)
+{
+    GifTestMemoryStream stream(bytes);
+    if (!stream.open(PkStream::ReadOnly)) {
+        return false;
+    }
+    int error = 0;
+    std::unique_ptr<GifFileType, GifReadCloser> gif(DGifOpen(&stream, readBytes, &error));
+    if (!gif || DGifSlurp(gif.get()) == GIF_ERROR || gif->ImageCount != 2) {
+        return false;
+    }
+    GraphicsControlBlock control = {};
+    return DGifSavedExtensionToGCB(gif.get(), 1, &control) != GIF_ERROR &&
+        control.DisposalMode == expectedDisposal;
 }
 
 } // namespace GifMultiframeFixture
