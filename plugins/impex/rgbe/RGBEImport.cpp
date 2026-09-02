@@ -10,11 +10,12 @@
  *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
+#include <KisDocument.h>
+
 #include <PkMemoryStream.h>
 #include "../kis_impex_static_registration.h"
 #include <PkAuxTypes.h>
 
-#include <KisDocument.h>
 #include <KisImportExportErrorCode.h>
 #include <PkDataStream.h>
 #include <KoColorModelStandardIds.h>

@@ -7,6 +7,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "HeifImport.h"
 #include "../kis_impex_static_registration.h"
 #include "heif_chroma_dispatch.h"
@@ -20,7 +22,6 @@
 #include <libheif/heif.h>
 #include <libheif/heif_cxx.h>
 
-#include <KisDocument.h>
 #include <KisImportExportManager.h>
 #include <KoColorProfile.h>
 #include <KoColorSpace.h>

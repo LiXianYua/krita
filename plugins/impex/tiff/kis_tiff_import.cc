@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kis_tiff_import.h"
 #include "../kis_impex_static_registration.h"
 #include "tiff_validation.h"
@@ -22,7 +24,6 @@
 #include <exiv2/exiv2.hpp>
 #include <tiffio.h>
 
-#include <KisDocument.h>
 #include <KoColorProfile.h>
 #include <KoDocumentInfo.h>
 #include <KoUnit.h>

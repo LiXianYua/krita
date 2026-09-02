@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kis_gif_import.h"
 #include "../kis_impex_static_registration.h"
 #include <KoColorSpace.h>
@@ -14,7 +16,6 @@
 #include <kis_paint_layer.h>
 #include <kis_node.h>
 #include <kis_group_layer.h>
-#include <KisDocument.h>
 #include <KisImportExportAdditionalChecks.h>
 
 #include "qgiflibhandler.h"

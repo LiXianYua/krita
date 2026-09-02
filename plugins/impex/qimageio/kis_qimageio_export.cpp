@@ -4,12 +4,13 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kis_qimageio_export.h"
 #include "../kis_impex_static_registration.h"
 #include <KisMimeDatabase.h>
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportBackend.h>
-#include <KisDocument.h>
 
 extern "C" KRITAIMPEX_EXPORT bool registerKisQImageIOExportFilter()
 {
@@ -43,7 +44,7 @@ void KisQImageIOExport::initializeCapabilities()
     supportedColorModels << std::pair<KoID, KoID>()
             << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, KisMimeDatabase::descriptionForMimeType(mimeString));
-    addCapability(KisExportCheckRegistry::instance()->get("ColorModelPerLayerCheck/" + RGBAColorModelID.id() + "/" + Integer8BitsColorDepthID.id())->create(KisExportCheckBase::SUPPORTED));
+    addCapability(KisExportCheckRegistry::instance()->get(PkString("ColorModelPerLayerCheck/") + RGBAColorModelID.id() + "/" + Integer8BitsColorDepthID.id())->create(KisExportCheckBase::SUPPORTED));
 }
 
 KisPropertiesConfigurationSP KisQImageIOExport::defaultConfiguration(const PkByteArray &, const PkByteArray &) const

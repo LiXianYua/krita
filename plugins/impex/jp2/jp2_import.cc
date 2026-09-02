@@ -4,9 +4,10 @@
  *  SPDX-License-Identifier: LGPL-2.1-only
  */
 
+#include <KisDocument.h>
+
 #include "jp2_import.h"
 #include "../kis_impex_static_registration.h"
-#include <KisDocument.h>
 #include <kis_image.h>
 
 #include "jp2_converter.h"

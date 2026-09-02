@@ -6,6 +6,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "JPEGXLExport.h"
 
 #include "../kis_impex_static_registration.h"
@@ -24,7 +26,6 @@
 #include <limits>
 #include <string>
 
-#include <KisDocument.h>
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportErrorCode.h>
 #include <KoAlwaysInline.h>

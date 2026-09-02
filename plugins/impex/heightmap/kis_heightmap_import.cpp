@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kis_heightmap_import.h"
 
 #include "../kis_impex_static_registration.h"
@@ -18,7 +20,6 @@
 #include <KoColorSpaceTraits.h>
 
 #include <kis_debug.h>
-#include <KisDocument.h>
 #include <kis_group_layer.h>
 #include <kis_image.h>
 #include <kis_paint_layer.h>

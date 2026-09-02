@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "exr_converter.h"
 
 #include <half.h>
@@ -35,7 +37,6 @@
 #include <KoColor.h>
 #include <KoColorProfile.h>
 
-#include <KisDocument.h>
 #include <kis_group_layer.h>
 #include <kis_image.h>
 #include <kis_paint_device.h>

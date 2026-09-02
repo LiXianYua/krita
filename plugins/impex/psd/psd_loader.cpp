@@ -3,6 +3,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <KisDocument.h>
+
 #include "psd_loader.h"
 
 #include <stack>
@@ -28,7 +30,6 @@
 #include <kis_annotation.h>
 #include <kis_types.h>
 #include <kis_paint_layer.h>
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_group_layer.h>
 #include <kis_paint_device.h>

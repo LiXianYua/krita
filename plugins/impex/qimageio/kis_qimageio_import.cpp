@@ -4,9 +4,10 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kis_qimageio_import.h"
 #include "../kis_impex_static_registration.h"
-#include <KisDocument.h>
 
 
 extern "C" KRITAIMPEX_EXPORT bool registerKisQImageIOImportFilter()

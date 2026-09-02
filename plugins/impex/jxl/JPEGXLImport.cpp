@@ -6,6 +6,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "JPEGXLImport.h"
 #include "../kis_impex_static_registration.h"
 #include "jxl_validation.h"
@@ -22,7 +24,6 @@
 #include <map>
 #include <limits>
 
-#include <KisDocument.h>
 #include <KisImportExportErrorCode.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>

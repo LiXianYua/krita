@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "csv_loader.h"
 
 #include <algorithm>
@@ -17,7 +19,6 @@
 #include <PkVector.h>
 #include <PkStream.h>
 
-#include <KisDocument.h>
 #include <KisDocumentRegistry.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>

@@ -3,6 +3,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <KisDocument.h>
+
 #include "psd_saver.h"
 
 #include <KoColorSpace.h>
@@ -16,7 +18,6 @@
 #include <kis_types.h>
 #include <kis_paint_layer.h>
 #include "kis_painter.h"
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_group_layer.h>
 #include <kis_paint_device.h>

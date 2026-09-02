@@ -4,11 +4,12 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kis_png_import.h"
 #include "../kis_impex_static_registration.h"
 #include <KisImportExportManager.h>
 
-#include <KisDocument.h>
 #include <KisPngCodec.h>
 #include <kis_image.h>
 

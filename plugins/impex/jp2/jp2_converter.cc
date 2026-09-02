@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: LGPL-2.1-only
  */
 
+#include <KisDocument.h>
+
 #include "jp2_converter.h"
 #include "jp2_validation.h"
 
@@ -18,7 +20,6 @@
 #include <KoColorSpace.h>
 #include <KoColorModelStandardIds.h>
 
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_group_layer.h>
 #include <kis_paint_layer.h>

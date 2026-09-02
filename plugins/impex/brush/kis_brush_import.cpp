@@ -4,13 +4,14 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kis_brush_import.h"
 #include "../kis_impex_static_registration.h"
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
 
-#include <KisDocument.h>
 
 #include <kis_paint_device.h>
 #include <kis_image.h>

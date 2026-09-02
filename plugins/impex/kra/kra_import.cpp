@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kra_import.h"
 #include "../kis_impex_static_registration.h"
-#include <KisDocument.h>
 #include <kis_image.h>
 
 #include "kra_converter.h"

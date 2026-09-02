@@ -5,6 +5,8 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <KisDocument.h>
+
 #include <webp/demux.h>
 
 #include "../kis_impex_static_registration.h"
@@ -16,7 +18,6 @@
 #include <memory>
 #include <vector>
 
-#include <KisDocument.h>
 #include <KisImportExportErrorCode.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>

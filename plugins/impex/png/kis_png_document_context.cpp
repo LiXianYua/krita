@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <KisDocument.h>
+
 #include "kis_png_document_context.h"
 
-#include <KisDocument.h>
 
 KisPngDocumentContext::KisPngDocumentContext(KisDocument *document)
     : m_document(document)
