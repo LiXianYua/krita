@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "kis_shape_selection.h"
 
 
@@ -43,6 +45,18 @@
 #include "kis_lod_transform.h"
 
 #include <kis_debug.h>
+
+namespace {
+PkRect toPkRect(const QRect &rect)
+{
+    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+}
 
 
 KisShapeSelection::KisShapeSelection(KoShapeControllerBase *shapeControllerBase, KisSelectionWSP selection)
@@ -129,7 +143,7 @@ bool KisShapeSelection::loadSelection(KoStore* store, const QRect &imageRect)
 
     if (store->open("content.svg")) {
         KoStoreDevice storeDev(store);
-        storeDev.open(QIODevice::ReadOnly);
+        storeDev.open(PkStream::ReadOnly);
 
         shapes = KisShapeLayer::createShapesFromSvg(&storeDev,
                                                     "", imageRect,
@@ -169,7 +183,7 @@ bool KisShapeSelection::isEmpty() const
     return !m_model->count();
 }
 
-QPainterPath KisShapeSelection::outlineCache() const
+PkPainterPath KisShapeSelection::outlineCache() const
 {
     return m_outline;
 }
@@ -200,7 +214,7 @@ void KisShapeSelection::recalculateOutlineCache()
         outline = outline.united(resolutionMatrix.map(shapeMatrix.map(shape->outline())));
     }
 
-    m_outline = outline;
+    m_outline = toPkPainterPath(outline);
 }
 
 void KisShapeSelection::paintComponent(QPainter& painter) const
@@ -212,28 +226,28 @@ void KisShapeSelection::renderToProjection(KisPaintDeviceSP projection)
 {
     Q_ASSERT(projection);
 
-    QRectF boundingRect = outlineCache().boundingRect();
-    renderSelection(projection, boundingRect.toAlignedRect());
+    PkRectF boundingRect = outlineCache().boundingRect();
+    renderSelection(projection, toPkRect(QRectF(boundingRect.x(), boundingRect.y(), boundingRect.width(), boundingRect.height()).toAlignedRect()));
 }
 
-void KisShapeSelection::renderToProjection(KisPaintDeviceSP projection, const QRect& r)
+void KisShapeSelection::renderToProjection(KisPaintDeviceSP projection, const PkRect& r)
 {
     Q_ASSERT(projection);
     renderSelection(projection, r);
 }
 
-void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const QRect& requestedRect)
+void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRect& requestedRect)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(projection);
 
     const qint32 MASK_IMAGE_WIDTH = 256;
     const qint32 MASK_IMAGE_HEIGHT = 256;
 
-    QPainterPath selectionOutline = outlineCache();
+    QPainterPath selectionOutline = toQPainterPath(outlineCache());
 
     if (projection->defaultBounds()->currentLevelOfDetail() > 0) {
         KisLodTransform t(projection);
-        selectionOutline = t.map(selectionOutline);
+        selectionOutline = toQTransform(t.transform()).map(selectionOutline);
     }
 
     if (*projection->defaultPixel().data() == OPACITY_TRANSPARENT_U8) {
@@ -242,7 +256,7 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const QRect
         KoColor transparentColor = KoColor::createTransparent(projection->colorSpace());
         projection->fill(requestedRect, transparentColor);
     }
-    const QRect r = requestedRect & selectionOutline.boundingRect().toAlignedRect();
+    const QRect r = toQRect(requestedRect) & selectionOutline.boundingRect().toAlignedRect();
 
     QImage polygonMaskImage(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, QImage::Format_ARGB32);
     QPainter maskPainter(&polygonMaskImage);
@@ -260,7 +274,7 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const QRect
             qint32 rectWidth = qMin(r.x() + r.width() - x, MASK_IMAGE_WIDTH);
             qint32 rectHeight = qMin(r.y() + r.height() - y, MASK_IMAGE_HEIGHT);
 
-            KisSequentialIterator it(projection, QRect(x, y, rectWidth, rectHeight));
+            KisSequentialIterator it(projection, PkRect(x, y, rectWidth, rectHeight));
             while (it.nextPixel()) {
                 (*it.rawData()) = qRed(polygonMaskImage.pixel(it.x() - x, it.y() - y));
             }
@@ -302,33 +316,33 @@ void KisShapeSelection::slotMoveShapes(const QPointF &diff)
 }
 
 // TODO same code as in vector layer, refactor!
-KUndo2Command* KisShapeSelection::transform(const QTransform &transform) {
+KUndo2Command* KisShapeSelection::transform(const PkTransform &transform) {
     QList<KoShape*> shapes = m_canvas->shapeManager()->shapes();
     if(shapes.isEmpty()) return 0;
 
     QTransform realTransform = m_converter->documentToView() *
-            transform * m_converter->viewToDocument();
+            toQTransform(transform) * m_converter->viewToDocument();
 
-    QList<QTransform> oldTransformations;
-    QList<QTransform> newTransformations;
+    PkList<PkTransform> oldTransformations;
+    PkList<PkTransform> newTransformations;
 
     // this code won't work if there are shapes, that inherit the transformation from the parent container.
     // the chart and tree shapes are examples for that, but they aren't used in krita and there are no other shapes like that.
     Q_FOREACH (const KoShape* shape, shapes) {
         QTransform oldTransform = shape->transformation();
-        oldTransformations.append(oldTransform);
+        oldTransformations.append(toPkTransform(oldTransform));
 
         // don't transform the container
         if (dynamic_cast<const KoShapeGroup *>(shape) || !shape->parent()) {
-            newTransformations.append(oldTransform);
+            newTransformations.append(toPkTransform(oldTransform));
         } else {
             QTransform globalTransform = shape->absoluteTransformation();
             QTransform localTransform = globalTransform * realTransform * globalTransform.inverted();
-            newTransformations.append(localTransform*oldTransform);
+            newTransformations.append(toPkTransform(localTransform*oldTransform));
         }
     }
 
-    return new KoShapeTransformCommand(shapes, oldTransformations, newTransformations);
+    return new KoShapeTransformCommand(toPkList(shapes), oldTransformations, newTransformations);
 }
 
 void KisShapeSelection::setResolutionProxy(KisImageResolutionProxySP resolutionProxy)

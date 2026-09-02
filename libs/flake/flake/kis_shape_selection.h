@@ -7,6 +7,9 @@
 #define KIS_SHAPE_SELECTION_H
 
 #include <QPainterPath>
+#include <PkPainterPath.h>
+#include <PkRect.h>
+#include <PkTransform.h>
 
 #include <KoShapeLayer.h>
 #include <KoShapeFactoryBase.h>
@@ -51,12 +54,12 @@ public:
      * @param projection the target selection
      */
     void renderToProjection(KisPaintDeviceSP projection) override;
-    void renderToProjection(KisPaintDeviceSP projection, const QRect& r) override;
+    void renderToProjection(KisPaintDeviceSP projection, const PkRect& r) override;
 
     KUndo2Command* resetToEmpty() override;
     bool isEmpty() const override;
 
-    QPainterPath outlineCache() const override;
+    PkPainterPath outlineCache() const override;
     bool outlineCacheValid() const override;
     void recalculateOutlineCache() override;
 
@@ -65,7 +68,7 @@ public:
     void moveX(qint32 x) override;
     void moveY(qint32 y) override;
 
-    KUndo2Command* transform(const QTransform &transform) override;
+    KUndo2Command* transform(const PkTransform &transform) override;
 
     void setResolutionProxy(KisImageResolutionProxySP resolutionProxy ) override;
 
@@ -87,9 +90,9 @@ private:
 private:
     KisShapeSelectionModel* initModel(KisImageWSP image, KisSelectionWSP selection);
 
-    void renderSelection(KisPaintDeviceSP projection, const QRect& requestedRect);
+    void renderSelection(KisPaintDeviceSP projection, const PkRect& requestedRect);
 
-    QPainterPath m_outline;
+    PkPainterPath m_outline;
     KisImageViewConverter *m_converter {nullptr};
     KisShapeSelectionCanvas *m_canvas {nullptr};
     KisShapeSelectionModel *m_model;

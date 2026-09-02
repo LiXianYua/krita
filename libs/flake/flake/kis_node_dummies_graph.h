@@ -9,6 +9,7 @@
 
 #include <QList>
 #include <QMap>
+#include <QObject>
 
 #include "kritashapemodel_export.h"
 #include "kis_types.h"

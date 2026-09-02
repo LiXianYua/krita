@@ -6,6 +6,11 @@
 #ifndef KIS_SELECTION_TOOL_HELPER_H
 #define KIS_SELECTION_TOOL_HELPER_H
 
+#include <QList>
+#include <QRect>
+#include <QRectF>
+#include <PkObject.h>
+
 #include <kritashapemodel_export.h>
 
 #include "kundo2magicstring.h"
@@ -47,6 +52,7 @@ private:
     KisImageSP m_image;
     KisNodeSP m_activeNode;
     KUndo2MagicString m_name;
+    PkObject m_guiContext;
 };
 
 

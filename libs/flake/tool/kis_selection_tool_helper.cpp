@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
+
 #include "kis_selection_tool_helper.h"
 
 
@@ -34,6 +36,7 @@
 #include "kis_algebra_2d.h"
 #include <KSharedConfig>
 #include <KConfigGroup>
+#include <klocalizedstring.h>
 
 
 KisSelectionToolHelper::KisSelectionToolHelper(KoCanvasBase *canvas,
@@ -44,6 +47,7 @@ KisSelectionToolHelper::KisSelectionToolHelper(KoCanvasBase *canvas,
         , m_image(image)
         , m_activeNode(activeNode)
         , m_name(name)
+        , m_guiContext()
 {
 }
 
@@ -127,7 +131,7 @@ void KisSelectionToolHelper::selectPixelSelection(KisProcessingApplicator& appli
 
                 pixelSelection->applySelection(m_selection, m_action);
 
-                QRect dirtyRect = m_image->bounds();
+                PkRect dirtyRect = m_image->bounds();
                 if (hasSelection &&
                     m_action != SELECTION_REPLACE &&
                     m_action != SELECTION_INTERSECT &&
@@ -277,7 +281,7 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
                     }
 
                     const QTransform booleanWorkaroundTransform =
-                        KritaUtils::pathShapeBooleanSpaceWorkaround(m_image);
+                        toQTransform(KritaUtils::pathShapeBooleanSpaceWorkaround(m_image));
 
                     path1 = booleanWorkaroundTransform.map(path1);
                     path2 = booleanWorkaroundTransform.map(path2);
@@ -292,7 +296,7 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
 
                     case SELECTION_INTERSECT:
                         path = path1 & path2;
-                        path = KritaUtils::tryCloseTornSubpathsAfterIntersection(path);
+                        path = toQPainterPath(KritaUtils::tryCloseTornSubpathsAfterIntersection(toPkPainterPath(path)));
                         break;
                     case SELECTION_ADD:
                         path = path1 | path2;
@@ -349,9 +353,9 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
     };
 
     applicator.applyCommand(
-        new KisGuiContextCommand(
+            new KisGuiContextCommand(
             new AddSelectionShape(m_canvas, m_image, m_activeNode, shapes, action),
-            m_canvas));
+            &m_guiContext));
     applicator.end();
 }
 

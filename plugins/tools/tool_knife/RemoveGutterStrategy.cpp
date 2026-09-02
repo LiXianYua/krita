@@ -3,6 +3,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <PkFlakeBridge.h>
+
 #include "RemoveGutterStrategy.h"
 
 
@@ -24,6 +26,7 @@
 #include <KoShapeController.h>
 #include <kundo2command.h>
 #include <KoKeepShapesSelectedCommand.h>
+#include <klocalizedstring.h>
 
 
 
@@ -33,7 +36,7 @@ RemoveGutterStrategy::RemoveGutterStrategy(KoToolBase *tool, KoSelection *select
     , m_startPoint(startPoint)
     , m_endPoint(startPoint)
 {
-    m_selectedShapes = selection->selectedEditableShapes();
+    m_selectedShapes = toPkList(selection->selectedEditableShapes());
     m_allShapes = shapes;
 }
 
@@ -55,12 +58,12 @@ void RemoveGutterStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::Ke
     KisAlgebra2D::accumulateBounds(m_endPoint, &dirtyRect);
     PkLineF l(PkPoint(), PkPoint(50, 50));
 
-    l = tool()->canvas()->viewConverter()->viewToDocument().map(l);
+    l = toPkTransform(tool()->canvas()->viewConverter()->viewToDocument()).map(l);
     dirtyRect = kisGrowRect(dirtyRect, l.length()); // twice as much as it should need to account for lines showing the effect
 
     PkRectF accumulatedWithPrevious = m_previousLineDirtyRect | dirtyRect;
 
-    tool()->canvas()->updateCanvas(accumulatedWithPrevious);
+    tool()->canvas()->updateCanvas(toQRectF(accumulatedWithPrevious));
     m_previousLineDirtyRect = dirtyRect;
 }
 
@@ -97,7 +100,7 @@ void convertShapeToDebugArray(const PkLineF& line) {
 
 void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 {
-    tool()->canvas()->updateCanvas(m_previousLineDirtyRect);
+    tool()->canvas()->updateCanvas(toQRectF(m_previousLineDirtyRect));
 
 
     KisShapeController *shapeController =
@@ -138,8 +141,7 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
         KoShape* shape = m_allShapes[i];
         PkPainterPath outlineHere =
             booleanWorkaroundTransform.map(
-            shape->absoluteTransformation().map(
-                shape->outline()));
+                toPkPainterPath(shape->absoluteTransformation().map(shape->outline())));
 #ifdef KNIFE_DEBUG
         convertShapeToDebugArray(outlineHere);
 #endif
@@ -209,7 +211,7 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
         newLineShape.lineTo(mouseLine.p2());
 
         newLineShape = booleanWorkaroundTransform.inverted().map(newLineShape);
-        KoPathShape* newLineShapeToAdd = KoPathShape::createShapeFromPainterPath(newLineShape);
+        KoPathShape* newLineShapeToAdd = KoPathShape::createShapeFromPainterPath(toQPainterPath(newLineShape));
 
         newLineShapeToAdd->setBackground(m_allShapes[0]->background());
         newLineShapeToAdd->setStroke(m_allShapes[0]->stroke());
@@ -217,7 +219,7 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 
 
 
-        KUndo2Command *cmd = new KUndo2Command(kundo2_i18n("Knife tool: cut through shapes"));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString("Knife tool: cut through shapes")));
         tool()->canvas()->shapeController()->addShapeDirect(newLineShapeToAdd, m_allShapes[0]->parent(), cmd);
         tool()->canvas()->addCommand(cmd);
 
@@ -272,14 +274,14 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 
 
     result = booleanWorkaroundTransform.inverted().map(result);
-    KoPathShape* resultShape = KoPathShape::createShapeFromPainterPath(result);
+    KoPathShape* resultShape = KoPathShape::createShapeFromPainterPath(toQPainterPath(result));
     resultShape->closeMerge();
 
     if (resultShape->boundingRect().isEmpty()) {
         return;
     }
 
-    KUndo2Command *cmd = new KUndo2Command(kundo2_i18n("Knife tool: remove a gutter"));
+    KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString("Knife tool: remove a gutter")));
 
 
 
@@ -310,7 +312,7 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     }
 
 
-    tool()->canvas()->shapeController()->removeShapes(shapesToRemove, cmd);
+    tool()->canvas()->shapeController()->removeShapes(toQList(shapesToRemove), cmd);
     new KoKeepShapesSelectedCommand({}, resultSelectedShapes, tool()->canvas()->selectedShapesProxy(), true, cmd);
     tool()->canvas()->addCommand(cmd);
 
@@ -322,7 +324,7 @@ void RemoveGutterStrategy::paint(PkPainter &painter, const KoViewConverter &conv
     painter.save();
     painter.setPen(PkPen(PkBrush(Qt::darkGray), 2));
 
-    PkLineF line = converter.documentToView().map(PkLineF(m_startPoint, m_endPoint));
+    PkLineF line = toPkTransform(converter.documentToView()).map(PkLineF(m_startPoint, m_endPoint));
     if (line.length() > 0) {
         PkPointF vector = line.p2() - line.p1();
         vector = vector/line.length();
