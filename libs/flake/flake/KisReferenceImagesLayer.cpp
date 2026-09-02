@@ -9,6 +9,7 @@
 #include <QColor>
 #include <QImage>
 #include <QDomElement>
+#include <klocalizedstring.h>
 #include <PkFlakeBridge.h>
 #include <kis_node_visitor.h>
 #include <kis_processing_visitor.h>
@@ -160,6 +161,12 @@ KUndo2Command *KisReferenceImagesLayer::convertTo(const KoColorSpace *dstColorSp
 void KisReferenceImagesLayer::signalUpdate(const QRectF &rect)
 {
     Q_EMIT sigUpdateCanvas(rect);
+}
+
+void KisReferenceImagesLayer::sigUpdateCanvas(const QRectF &rect)
+{
+    PkObject::activateSignal<const QRectF &>(
+        this, PkMemberFnKey::from(&KisReferenceImagesLayer::sigUpdateCanvas), rect);
 }
 
 QRectF KisReferenceImagesLayer::boundingImageRect() const

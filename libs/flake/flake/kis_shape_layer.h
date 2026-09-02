@@ -47,7 +47,6 @@ class KRITASHAPEMODEL_EXPORT KisShapeLayer
         public KisDelayedUpdateNodeInterface,
         public KisCroppedOriginalLayerInterface
 {
-    Q_OBJECT
 public:
 
     KisShapeLayer(KoShapeControllerBase* shapeController, KisImageWSP image, const QString &name, quint8 opacity);

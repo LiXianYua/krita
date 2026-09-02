@@ -299,6 +299,23 @@ void KisShapeLayer::initShapeLayerImpl(KoShapeControllerBase* controller,
     }
 }
 
+void KisShapeLayer::selectionChanged()
+{
+    PkObject::activateSignal<>(this, PkMemberFnKey::from(&KisShapeLayer::selectionChanged));
+}
+
+void KisShapeLayer::currentLayerChanged(const KoShapeLayer *layer)
+{
+    PkObject::activateSignal<const KoShapeLayer *>(
+        this, PkMemberFnKey::from(&KisShapeLayer::currentLayerChanged), layer);
+}
+
+void KisShapeLayer::sigMoveShapes(const QPointF &diff)
+{
+    PkObject::activateSignal<const QPointF &>(
+        this, PkMemberFnKey::from(&KisShapeLayer::sigMoveShapes), diff);
+}
+
 bool KisShapeLayer::allowAsChild(KisNodeSP node) const
 {
     return node->inherits("KisMask");

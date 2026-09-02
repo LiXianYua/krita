@@ -17,7 +17,6 @@ class KoCanvasBase;
 
 class KRITASHAPEMODEL_EXPORT KisReferenceImagesLayer : public KisShapeLayer
 {
-    Q_OBJECT
 public:
     KisReferenceImagesLayer(KoShapeControllerBase* shapeController, KisImageWSP image);
     KisReferenceImagesLayer(const KisReferenceImagesLayer &rhs);
