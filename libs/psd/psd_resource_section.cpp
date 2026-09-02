@@ -47,7 +47,7 @@ bool PSDImageResourceSection::read(PkStream &io)
     while (!buf.atEnd()) {
         PSDResourceBlock *block = new PSDResourceBlock();
         if (!block->read(buf)) {
-            error = "Error reading block: " + block->error;
+            error = PkString("Error reading block: ") + block->error;
             dbgFile << error << ", skipping.";
             delete block;
             continue;
