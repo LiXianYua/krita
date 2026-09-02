@@ -1151,13 +1151,13 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                     ImportExportCodes::FileFormatIncorrect);
                 dbgFile << PkString("Uncompressed tile size (plane %1): %2")
                                .arg(static_cast<int>(i))
-                               .arg(static_cast<int>(uncompressedTileSize))
+                               .arg(PkString(std::to_string(uncompressedTileSize).c_str()))
                                .PkToUtf8()
                                .c_str();
                 tsize_t scanLineSize = uncompressedTileSize / tileHeight;
                 dbgFile << PkString("scan line size (plane %1): %2")
                                .arg(static_cast<int>(i))
-                               .arg(static_cast<int>(scanLineSize))
+                               .arg(PkString(std::to_string(scanLineSize).c_str()))
                                .PkToUtf8()
                                .c_str();
                 (*ps_buf)[i] =
@@ -1370,11 +1370,11 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                     ImportExportCodes::FileFormatIncorrect);
                 dbgFile << PkString("Uncompressed strip size (plane %1): %2")
                                .arg(static_cast<int>(i))
-                               .arg(static_cast<int>(uncompressedStripsize));
+                               .arg(PkString(std::to_string(uncompressedStripsize).c_str()));
                 tsize_t scanLineSize = uncompressedStripsize / rowsPerStrip;
                 dbgFile << PkString("scan line size (plane %1): %2")
                                .arg(static_cast<int>(i))
-                               .arg(static_cast<int>(scanLineSize));
+                               .arg(PkString(std::to_string(scanLineSize).c_str()));
                 (*ps_buf)[i] = static_cast<uint8_t*>(_TIFFmalloc(uncompressedStripsize));
                 if (!(*ps_buf)[i] || scanLineSize <= 0) {
                     return ImportExportCodes::FileFormatIncorrect;

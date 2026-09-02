@@ -40,14 +40,11 @@
 #include <kis_types.h>
 
 #include "csv_layer_record.h"
+#include "csv_write_all.h"
 
 namespace
 {
-bool writeAll(PkStream *stream, const std::string &bytes)
-{
-    return stream && stream->write(bytes.data(), static_cast<PkStream::pk_int64>(bytes.size()))
-        == static_cast<PkStream::pk_int64>(bytes.size());
-}
+using CsvPrivate::writeAll;
 
 std::string fixedSix(double value)
 {
@@ -201,7 +198,7 @@ KisImportExportErrorCode CSVSaver::encode(PkStream *io)
 
         switch(step) {
         case 0:
-            if (!writeAll(io, "UTF-8, TVPaint, \"CSV 1.0\"\r\n")) retval = ImportExportCodes::Failure;
+            if (!CsvPrivate::writeAll(io, "UTF-8, TVPaint, \"CSV 1.0\"\r\n")) retval = ImportExportCodes::Failure;
             break;
         case 1:
             if (!writeAll(io, "Project Name, Width, Height, Frame Count, Layer Count, Frame Rate, Pixel Aspect Ratio, Field Mode\r\n")) {
