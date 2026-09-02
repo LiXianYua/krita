@@ -13,14 +13,15 @@
 #include "kritaflake_export.h"
 
 #include <Qt>
+#include <QPainter>
 
 class KoPointerEvent;
 class KoViewConverter;
 class KoInteractionStrategyPrivate;
 class KoToolBase;
 class KUndo2Command;
-class QPointF;
-class QPainter;
+class PkPainter;
+class PkPointF;
 
 /**
  * Abstract interface to define what actions a KoInteractionTool can do based on
@@ -46,6 +47,7 @@ public:
      * Reimplement this if the action needs to draw a "blob" on the canvas;
      * that is, a transient decoration like a rubber band.
      */
+    virtual void paint(PkPainter &painter, const KoViewConverter &converter);
     virtual void paint(QPainter &painter, const KoViewConverter &converter);
     /**
      * Extending classes should implement this method to update the selectedShapes
@@ -53,7 +55,8 @@ public:
      * @param mouseLocation the new location in pt
      * @param modifiers OR-ed set of keys pressed.
      */
-    virtual void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) = 0;
+    virtual void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers);
+    virtual void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers);
 
     /**
      * For interactions that are undo-able this method should be implemented to return such

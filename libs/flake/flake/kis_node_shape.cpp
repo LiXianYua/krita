@@ -6,6 +6,11 @@
 
 #include "kis_node_shape.h"
 
+#include <QSizeF>
+#include <QRectF>
+#include <QPainter>
+#include <PkFlakeBridge.h>
+
 #include <kis_types.h>
 #include <kis_layer.h>
 #include <kis_node.h>

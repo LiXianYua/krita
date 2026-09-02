@@ -6,6 +6,8 @@
 
 #include "CutThroughShapeStrategy.h"
 
+#include <PkFlakeBridge.h>
+
 #include <PkBrush.h>
 #include <PkPainter.h>
 
@@ -82,7 +84,7 @@ void CutThroughShapeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt:
     PkRectF accumulatedWithPrevious = m_previousLineDirtyRect | dirtyRect;
 
     if (tool() && tool()->canvas()) {
-        tool()->canvas()->updateCanvas(accumulatedWithPrevious);
+        tool()->canvas()->updateCanvas(toQRectF(accumulatedWithPrevious));
     }
     m_previousLineDirtyRect = dirtyRect;
 
@@ -188,7 +190,7 @@ void CutThroughShapeStrategy::initializeGapShapes(PkRectF outlineRect, PkLineF l
 
 void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 {
-    tool()->canvas()->updateCanvas(m_previousLineDirtyRect);
+    tool()->canvas()->updateCanvas(toQRectF(m_previousLineDirtyRect));
 
 
     KisShapeController *shapeController =
@@ -346,9 +348,9 @@ void CutThroughShapeStrategy::paint(PkPainter &painter, const KoViewConverter &c
     qreal gutterWidth = gutterWidthInDocumentCoordinates(calculateLineAngle(m_startPoint, m_endPoint));
 
     PkLineF gutterCenterLine = PkLineF(m_startPoint, m_endPoint);
-    gutterCenterLine = converter.documentToView().map(gutterCenterLine);
+    gutterCenterLine = toPkTransform(converter.documentToView()).map(gutterCenterLine);
     PkLineF gutterWidthHelperLine = PkLineF(PkPointF(0, 0), PkPointF(gutterWidth, 0));
-    gutterWidthHelperLine = converter.documentToView().map(gutterWidthHelperLine);
+    gutterWidthHelperLine = toPkTransform(converter.documentToView()).map(gutterWidthHelperLine);
 
     gutterWidth = gutterWidthHelperLine.length();
 
@@ -405,7 +407,7 @@ qreal CutThroughShapeStrategy::gutterWidthInDocumentCoordinates(qreal lineAngle)
         dynamic_cast<const KisCoordinatesConverter *>(tool()->canvas()->viewConverter());
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, m_width.widthForAngleInPixels(lineAngle));
     PkLineF helperGapWidthLine = PkLineF(PkPointF(0, 0), PkPointF(0, m_width.widthForAngleInPixels(lineAngle)));
-    PkLineF helperGapWidthLineTransformed = converter->imageToDocument(helperGapWidthLine);
+    PkLineF helperGapWidthLineTransformed = toPkTransform(converter->imageToDocument()).map(helperGapWidthLine);
     return helperGapWidthLineTransformed.length();
 }
 

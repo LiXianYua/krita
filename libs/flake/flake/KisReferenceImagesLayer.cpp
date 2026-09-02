@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QPainter>
+#include <QTransform>
+#include <QColor>
+#include <QImage>
+#include <QDomElement>
+#include <PkFlakeBridge.h>
 #include <kis_node_visitor.h>
 #include <kis_processing_visitor.h>
 #include <kis_shape_layer_canvas.h>

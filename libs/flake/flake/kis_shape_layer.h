@@ -15,6 +15,7 @@
 #include <kritashapemodel_export.h>
 #include <KisDelayedUpdateNodeInterface.h>
 #include <KisCroppedOriginalLayerInterface.h>
+#include <PkStream.h>
 
 class QRect;
 class QIcon;
@@ -47,7 +48,6 @@ class KRITASHAPEMODEL_EXPORT KisShapeLayer
         public KisCroppedOriginalLayerInterface
 {
     Q_OBJECT
-
 public:
 
     KisShapeLayer(KoShapeControllerBase* shapeController, KisImageWSP image, const QString &name, quint8 opacity);
@@ -118,7 +118,7 @@ public:
 
     static bool saveShapesToStore(KoStore *store, QList<KoShape*> shapes, const QSizeF &sizeInPt);
 
-    static QList<KoShape *> createShapesFromSvg(QIODevice *device,
+    static QList<KoShape *> createShapesFromSvg(PkStream *device,
                                                 const QString &baseXmlDir,
                                                 const QRectF &rectInPixels,
                                                 qreal resolutionPPI,
@@ -179,7 +179,7 @@ public:
 protected:
     using KoShape::isVisible;
 
-    bool loadSvg(QIODevice *device, const QString &baseXmlDir, QStringList *warnings = 0);
+    bool loadSvg(PkStream *device, const QString &baseXmlDir, QStringList *warnings = 0);
 
 
     friend class ShapeLayerContainerModel;

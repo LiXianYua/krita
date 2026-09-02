@@ -4,11 +4,11 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkMutex.h>
 #include "kis_dummies_facade_base.h"
 
 #include "kis_image.h"
+#include <PkFlakeBridge.h>
 #include "kis_node_dummies_graph.h"
 #include "kis_layer_utils.h"
 #include <KisSynchronizedConnection.h>
@@ -35,8 +35,8 @@ public:
      * thread. This set is used to reset the graph when the image changes its root
      * during the 'flatten' operation.
      */
-    QList<KisNodeSP> pendingNodeSet;
-    QMutex pendingNodeSetLock;
+    KisNodeList pendingNodeSet;
+    PkMutex pendingNodeSetLock;
 
     /**
      * The node activation signal may be emitted while the facade was
@@ -97,7 +97,7 @@ void KisDummiesFacadeBase::setImage(KisImageWSP image, KisNodeSP activeNode)
         KisNodeList nodesToRemove;
 
         {
-            QMutexLocker l(&m_d->pendingNodeSetLock);
+            PkMutexLocker l(&m_d->pendingNodeSetLock);
             std::swap(nodesToRemove, m_d->pendingNodeSet);
             m_d->pendingNodeSet.clear();
         }
@@ -207,7 +207,7 @@ void KisDummiesFacadeBase::slotNodeAdded(KisNodeSP node, KisNodeAdditionFlags fl
     Q_UNUSED(flags)
 
     {
-        QMutexLocker l(&m_d->pendingNodeSetLock);
+        PkMutexLocker l(&m_d->pendingNodeSetLock);
         m_d->pendingNodeSet.append(node);
     }
 
@@ -223,7 +223,7 @@ void KisDummiesFacadeBase::slotNodeAdded(KisNodeSP node, KisNodeAdditionFlags fl
 void KisDummiesFacadeBase::slotRemoveNode(KisNodeSP node)
 {
     {
-        QMutexLocker l(&m_d->pendingNodeSetLock);
+        PkMutexLocker l(&m_d->pendingNodeSetLock);
         KIS_SAFE_ASSERT_RECOVER_RETURN(m_d->pendingNodeSet.contains(node));
     }
 
@@ -234,7 +234,7 @@ void KisDummiesFacadeBase::slotRemoveNode(KisNodeSP node)
     }
 
     {
-        QMutexLocker l(&m_d->pendingNodeSetLock);
+        PkMutexLocker l(&m_d->pendingNodeSetLock);
         m_d->pendingNodeSet.removeOne(node);
     }
     m_d->removeNodeConnection.start(node);
@@ -247,7 +247,7 @@ void KisDummiesFacadeBase::slotContinueAddNode(KisNodeSP node, KisNodeSP parent,
     // Add one because this node does not exist yet
     int index = parentDummy && aboveThisDummy ?
         parentDummy->indexOf(aboveThisDummy) + 1 : 0;
-    Q_EMIT sigBeginInsertDummy(parentDummy, index, node->metaObject()->className());
+    Q_EMIT sigBeginInsertDummy(parentDummy, index, toQString(node->name()));
 
     addNodeImpl(node, parent, aboveThis);
 

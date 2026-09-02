@@ -609,14 +609,15 @@ bool KisShapeLayer::saveShapesToStore(KoStore *store, QList<KoShape *> shapes, c
     return true;
 }
 
-QList<KoShape *> KisShapeLayer::createShapesFromSvg(QIODevice *device, const QString &baseXmlDir, const QRectF &rectInPixels, qreal resolutionPPI, KoDocumentResourceManager *resourceManager, bool loadingFromKra, QSizeF *fragmentSize, QStringList *warnings, QStringList *errors)
+QList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const QString &baseXmlDir, const QRectF &rectInPixels, qreal resolutionPPI, KoDocumentResourceManager *resourceManager, bool loadingFromKra, QSizeF *fragmentSize, QStringList *warnings, QStringList *errors)
 {
 
     QString errorMsg;
     int errorLine = 0;
     int errorColumn;
 
-    QDomDocument doc = SvgParser::createDocumentFromSvg(device, &errorMsg, &errorLine, &errorColumn);
+    const QByteArray data = toQByteArray(device->readAll());
+    QDomDocument doc = SvgParser::createDocumentFromSvg(data, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
         errKrita << "Parsing error in contents.svg! Aborting!" << '\n'
         << " In line: " << errorLine << ", column: " << errorColumn << '\n'
@@ -666,7 +667,7 @@ bool KisShapeLayer::saveLayer(KoStore * store) const
     return saveShapesToStore(store, this->shapes(), sizeInPt);
 }
 
-bool KisShapeLayer::loadSvg(QIODevice *device, const QString &baseXmlDir, QStringList *warnings)
+bool KisShapeLayer::loadSvg(PkStream *device, const QString &baseXmlDir, QStringList *warnings)
 {
     QSizeF fragmentSize; // unused!
     KisImageSP image = this->image();
