@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <functional>
+#include <memory>
 
 #include <kis_types.h>
 #include <kis_global.h>
@@ -42,6 +43,119 @@
 #include <PkVariant.h>
 
 #include "psd_header.h"
+
+namespace psd_detail
+{
+
+inline QGradientStops toQGradientStops(const PkGradientStops &stops)
+{
+    QGradientStops result;
+    result.reserve(stops.size());
+    for (const PkGradientStop &stop : stops) {
+        result.append(QGradientStop(stop.offset, toQColor(stop.color)));
+    }
+    return result;
+}
+
+inline PkGradientStops toPkGradientStops(const QGradientStops &stops)
+{
+    PkGradientStops result;
+    result.reserve(stops.size());
+    for (const QGradientStop &stop : stops) {
+        result.append(PkGradientStop{stop.first, toPkColor(stop.second)});
+    }
+    return result;
+}
+
+inline QGradient *toQGradient(const PkGradient &gradient)
+{
+    QGradient *result = nullptr;
+    switch (gradient.type()) {
+    case PkGradientEnums::LinearGradient:
+        result = new QLinearGradient(toQPointF(gradient.start()),
+                                     toQPointF(gradient.finalStop()));
+        break;
+    case PkGradientEnums::RadialGradient:
+        result = new QRadialGradient(toQPointF(gradient.center()),
+                                     gradient.radius(),
+                                     toQPointF(gradient.focalPoint()));
+        break;
+    case PkGradientEnums::ConicalGradient:
+        result = new QConicalGradient(toQPointF(gradient.center()),
+                                      gradient.angle());
+        break;
+    case PkGradientEnums::NoGradient:
+        return nullptr;
+    }
+
+    result->setSpread(static_cast<QGradient::Spread>(gradient.spread()));
+    result->setCoordinateMode(
+        gradient.coordinateMode() == PkGradientEnums::ObjectBoundingMode
+            ? QGradient::ObjectBoundingMode
+            : QGradient::LogicalMode);
+    result->setStops(toQGradientStops(gradient.stops()));
+    return result;
+}
+
+inline PkGradient toPkGradient(const QGradient &gradient)
+{
+    PkGradient result;
+    switch (gradient.type()) {
+    case QGradient::LinearGradient: {
+        const QLinearGradient &linear = static_cast<const QLinearGradient &>(gradient);
+        result = PkGradient::linear(toPkPointF(linear.start()),
+                                    toPkPointF(linear.finalStop()));
+        break;
+    }
+    case QGradient::RadialGradient: {
+        const QRadialGradient &radial = static_cast<const QRadialGradient &>(gradient);
+        result = PkGradient::radial(toPkPointF(radial.center()),
+                                    radial.radius(),
+                                    toPkPointF(radial.focalPoint()));
+        break;
+    }
+    case QGradient::ConicalGradient: {
+        const QConicalGradient &conical = static_cast<const QConicalGradient &>(gradient);
+        result = PkGradient::conical(toPkPointF(conical.center()), conical.angle());
+        break;
+    }
+    case QGradient::NoGradient:
+        break;
+    }
+
+    result.setSpread(static_cast<PkGradientEnums::Spread>(gradient.spread()));
+    result.setCoordinateMode(
+        gradient.coordinateMode() == QGradient::ObjectBoundingMode ||
+                gradient.coordinateMode() == QGradient::ObjectMode
+            ? PkGradientEnums::ObjectBoundingMode
+            : PkGradientEnums::LogicalMode);
+    result.setStops(toPkGradientStops(gradient.stops()));
+    return result;
+}
+
+template<typename T>
+inline PkVector<T> toPkVector(const QVector<T> &values)
+{
+    PkVector<T> result;
+    result.reserve(values.size());
+    for (const T &value : values) {
+        result.append(value);
+    }
+    return result;
+}
+
+template<typename T>
+inline QVector<T> toQVector(const PkVector<T> &values)
+{
+    QVector<T> result;
+    result.reserve(values.size());
+    for (const T &value : values) {
+        result.append(value);
+    }
+    return result;
+}
+
+} // namespace psd_detail
 
 // additional layer information
 
@@ -235,7 +349,7 @@ struct KRITAPSD_EXPORT psd_layer_solid_color {
     }
 
     PkSharedPointer<KoShapeBackground> getBackground() {
-        return PkSharedPointer<KoColorBackground>(new KoColorBackground(getBrush()));
+        return PkSharedPointer<KoColorBackground>(new KoColorBackground(toQColor(getBrush())));
     }
 };
 
@@ -520,8 +634,11 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         w.writePoint("Ofst", offset);
     }
 
-    PkGradient *getBrush() {
-        return getGradient();
+    QBrush getBrush() {
+        std::unique_ptr<PkGradient> gradient(getGradient());
+        std::unique_ptr<QGradient> qGradient(
+            gradient ? psd_detail::toQGradient(*gradient) : nullptr);
+        return qGradient ? QBrush(*qGradient) : QBrush(Qt::transparent);
     }
     PkGradient *getGradient() {
         PkGradient *pointer = nullptr;
@@ -616,8 +733,17 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         }
     }
 
+    void setFromQGradient(const QGradient *gradient) {
+        if (!gradient) {
+            return;
+        }
+        const PkGradient converted = psd_detail::toPkGradient(*gradient);
+        setFromQGradient(&converted);
+    }
+
     PkSharedPointer<KoShapeBackground> getBackground() {
-        PkGradient *pointer = getGradient();
+        std::unique_ptr<PkGradient> gradient(getGradient());
+        QGradient *pointer = gradient ? psd_detail::toQGradient(*gradient) : nullptr;
         PkSharedPointer<KoGradientBackground> bg = PkSharedPointer<KoGradientBackground>(new KoGradientBackground(pointer));
         return bg;
     }
@@ -764,16 +890,17 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
 
         loadPattern(embeddedProxy);
         if (pattern) {
-            bg->setPattern(pattern->pattern());
+            bg->setPattern(toQImage(pattern->pattern()));
         } else {
             KoResourceLoadResult res = KisGlobalResourcesInterface::instance()->source(ResourceType::Patterns).fallbackResource();
-            bg->setPattern(res.resource<KoPattern>()->pattern());
+            bg->setPattern(toQImage(res.resource<KoPattern>()->pattern()));
         }
-        PkSizeF size = bg->patternOriginalSize();
+        const QSizeF originalSize = bg->patternOriginalSize();
+        PkSizeF size = toPkSizeF(originalSize);
         PkPointF refPoint(offset.x()/size.width(), offset.y()/size.height());
         size = PkSizeF(size.width() * (0.01*scale), size.height() * (0.01*scale));
-        bg->setPatternDisplaySize(size);
-        bg->setReferencePointOffset(refPoint);
+        bg->setPatternDisplaySize(toQSizeF(size));
+        bg->setReferencePointOffset(toQPointF(refPoint));
         return bg;
     }
 };
@@ -1059,12 +1186,14 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         penJoinStyle = pen.joinStyle();
         penDashOffset = pen.dashOffset();
         penMiterLimit = pen.miterLimit();
-        gradient = stroke->lineBrush().gradient()? true: false;
+        const QBrush lineBrush = stroke->lineBrush();
+        const QGradient *lineGradient = lineBrush.gradient();
+        gradient = lineGradient != nullptr;
         opacity = stroke->color().alphaF();
-        dashPattern = stroke->lineDashes();
+        dashPattern = psd_detail::toPkVector(stroke->lineDashes());
         penColor = toPkColor(pen.color());
-        if (gradient) {
-            penGradient = toPkGradient(stroke->lineBrush().gradient());
+        if (lineGradient) {
+            penGradient = psd_detail::toPkGradient(*lineGradient);
         }
     }
 
@@ -1171,14 +1300,14 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         stroke->setDashOffset(penDashOffset);
         stroke->setMiterLimit(penMiterLimit);
         if (dashPattern.isEmpty()) {
-            stroke->setLineStyle(Qt::SolidLine, PkVector<double>());
+            stroke->setLineStyle(Qt::SolidLine, QVector<double>());
         } else {
             if (dashPattern.size() % 2 > 0) {
                 PkVector<double> pattern = dashPattern;
                 pattern.append(dashPattern);
-                stroke->setLineStyle(Qt::CustomDashLine, pattern);
+                stroke->setLineStyle(Qt::CustomDashLine, psd_detail::toQVector(pattern));
             } else {
-                stroke->setLineStyle(Qt::CustomDashLine, dashPattern);
+                stroke->setLineStyle(Qt::CustomDashLine, psd_detail::toQVector(dashPattern));
             }
         }
     }
