@@ -7,6 +7,11 @@
 #include "CutThroughShapeStrategyTest.h"
 
 #include "CutThroughShapeStrategy.h"
+#include <PkFlakeBridge.h>
+#include <PkLine.h>
+#include <PkPainterPath.h>
+#include <PkPolygon.h>
+#include <PkRect.h>
 #include "KisToolKnife.h"
 #include <KoSelection.h>
 #include <KoCanvasBase.h>
@@ -19,15 +24,11 @@
 #include <KoPathShape.h>
 #include <KoShape.h>
 
-#include <QPainterPath>
-#include <QRectF>
-#include <QLineF>
-#include <QPolygonF>
 #include <QSharedPointer>
 #include <kis_algebra_2d.h>
 #include <QRandomGenerator>
 
-Q_DECLARE_METATYPE(QPainterPath)
+Q_DECLARE_METATYPE(PkPainterPath)
 Q_DECLARE_METATYPE(QSharedPointer<KoShape>)
 
 
@@ -40,22 +41,22 @@ void CutThroughShapeStrategyTest::addRandom() {
     gen.bounded(range);
 
 
-    QPainterPath shapeLeft;
-    shapeLeft.addPolygon(QPolygonF({QPointF(gen.bounded(range), gen.bounded(range)), QPointF(gen.bounded(range), gen.bounded(range)), QPointF(gen.bounded(range), gen.bounded(range)), QPointF(gen.bounded(range), gen.bounded(range)), QPointF(gen.bounded(range), gen.bounded(range))}));
+    PkPainterPath shapeLeft;
+    shapeLeft.addPolygon(PkPolygonF({PkPointF(gen.bounded(range), gen.bounded(range)), PkPointF(gen.bounded(range), gen.bounded(range)), PkPointF(gen.bounded(range), gen.bounded(range)), PkPointF(gen.bounded(range), gen.bounded(range)), PkPointF(gen.bounded(range), gen.bounded(range))}));
 
-    QPainterPath shapeRight;
-    shapeRight.addPolygon(QPolygonF({QPointF(300, 100), QPointF(800, 100), QPointF(800, 500), QPointF(400, 500), QPointF(300, 100)}));
+    PkPainterPath shapeRight;
+    shapeRight.addPolygon(PkPolygonF({PkPointF(300, 100), PkPointF(800, 100), PkPointF(800, 500), PkPointF(400, 500), PkPointF(300, 100)}));
 
-    QRectF outlineRect = shapeLeft.boundingRect() | shapeRight.boundingRect();
+    PkRectF outlineRect = shapeLeft.boundingRect() | shapeRight.boundingRect();
 
-    QLineF gapLine1 = QLineF(QPointF(0, 300), QPointF(150, 600));
+    PkLineF gapLine1 = PkLineF(PkPointF(0, 300), PkPointF(150, 600));
     qreal width = 20;
 
-    QList<QLineF> gapLines = KisAlgebra2D::getParallelLines(gapLine1, width/2);
+    PkList<PkLineF> gapLines = KisAlgebra2D::getParallelLines(gapLine1, width/2);
 
-    QPainterPath left, right;
-    QRectF gapLineRect;
-    QPolygonF gapLinePolygon;
+    PkPainterPath left, right;
+    PkRectF gapLineRect;
+    PkPolygonF gapLinePolygon;
 
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines[0], gapLines[1], left, right, gapLineRect, gapLinePolygon);
 
@@ -74,25 +75,25 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
 {
 
     QTest::addColumn<QSharedPointer<KoShape>>("referenceShape");
-    QTest::addColumn<QPainterPath>("srcOutline");
+    QTest::addColumn<PkPainterPath>("srcOutline");
     QTest::addColumn<bool>("checkGapLineRect");
-    QTest::addColumn<QRectF>("gapLineRect");
-    QTest::addColumn<QLineF>("gapLine");
-    QTest::addColumn<QLineF>("leftLine");
-    QTest::addColumn<QLineF>("rightLine");
-    QTest::addColumn<QPolygonF>("gapLinePolygon");
+    QTest::addColumn<PkRectF>("gapLineRect");
+    QTest::addColumn<PkLineF>("gapLine");
+    QTest::addColumn<PkLineF>("leftLine");
+    QTest::addColumn<PkLineF>("rightLine");
+    QTest::addColumn<PkPolygonF>("gapLinePolygon");
     QTest::addColumn<bool>("expectedGeneral");
     QTest::addColumn<bool>("expectedPrecise");
 
     //QTest::addRow() << referenceShape << srcOutline << leftOppositeRect << rightOppositeRect << checkGapLineRect << gapLineRect << gapLine << leftLine << rightLine << gapLinePolygon << expectedGeneral << expectedPrecise;
 
-    QPainterPath path;
+    PkPainterPath path;
     path.moveTo(20, 40);
     path.lineTo(200, 400);
     path.lineTo(40, 50);
 
 
-    QSharedPointer<KoShape> referenceShape(KoPathShape::createShapeFromPainterPath(path));
+    QSharedPointer<KoShape> referenceShape(KoPathShape::createShapeFromPainterPath(toQPainterPath(path)));
 
     //
     //QTest::addRow("a") << referenceShape << QPainterPath() << QRectF() << QRectF() << false << QRectF() << QLineF() << QLineF() << QLineF() << QPolygonF() << true << true;
@@ -109,22 +110,22 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
     QTest::addRow("check 1: cannot be text") << textP << QPainterPath() << false << QRectF() << QLineF() << QLineF() << QLineF() << QPolygonF() << false << false;
 
 
-    QPainterPath shapeLeft;
+    PkPainterPath shapeLeft;
     shapeLeft.addPolygon(QPolygonF({QPointF(100, 100), QPointF(200, 100), QPointF(300, 500), QPointF(100, 500), QPointF(100, 100)}));
 
-    QPainterPath shapeRight;
+    PkPainterPath shapeRight;
     shapeRight.addPolygon(QPolygonF({QPointF(300, 100), QPointF(800, 100), QPointF(800, 500), QPointF(400, 500), QPointF(300, 100)}));
 
-    QRectF outlineRect = shapeLeft.boundingRect() | shapeRight.boundingRect();
+    PkRectF outlineRect = shapeLeft.boundingRect() | shapeRight.boundingRect();
 
-    QLineF gapLine1 = QLineF(QPointF(0, 300), QPointF(50, 900));
+    PkLineF gapLine1 = PkLineF(PkPointF(0, 300), PkPointF(50, 900));
     qreal width = 20;
 
-    QList<QLineF> gapLines1 = KisAlgebra2D::getParallelLines(gapLine1, width/2);
+    PkList<PkLineF> gapLines1 = KisAlgebra2D::getParallelLines(gapLine1, width/2);
 
-    QPainterPath left, right;
-    QRectF gapLineRect;
-    QPolygonF gapLinePolygon;
+    PkPainterPath left, right;
+    PkRectF gapLineRect;
+    PkPolygonF gapLinePolygon;
 
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines1[0], gapLines1[1], left, right, gapLineRect, gapLinePolygon);
 
@@ -139,7 +140,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << false << false;
 
 
-    gapLine1 = QLineF(QPointF(0, 300), QPointF(150, 300));
+    gapLine1 = PkLineF(PkPointF(0, 300), PkPointF(150, 300));
     gapLines1 = KisAlgebra2D::getParallelLines(gapLine1, width/2);
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines1[0], gapLines1[1], left, right, gapLineRect, gapLinePolygon);
 
@@ -150,7 +151,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
 
 
 
-    gapLine1 = QLineF(QPointF(150, 300), QPointF(200, 300));
+    gapLine1 = PkLineF(PkPointF(150, 300), PkPointF(200, 300));
     gapLines1 = KisAlgebra2D::getParallelLines(gapLine1, width/2);
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines1[0], gapLines1[1], left, right, gapLineRect, gapLinePolygon);
 
@@ -159,7 +160,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << true << true;
 
 
-    gapLine1 = QLineF(QPointF(150, 300), QPointF(200, 300));
+    gapLine1 = PkLineF(PkPointF(150, 300), PkPointF(200, 300));
     gapLines1 = KisAlgebra2D::getParallelLines(gapLine1, width/2);
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines1[0], gapLines1[1], left, right, gapLineRect, gapLinePolygon);
 
@@ -168,7 +169,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << true << true;
 
 
-    gapLine1 = QLineF(QPointF(80, 80), QPointF(310, 510));
+    gapLine1 = PkLineF(PkPointF(80, 80), PkPointF(310, 510));
     gapLines1 = KisAlgebra2D::getParallelLines(gapLine1, 200);
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines1[0], gapLines1[1], left, right, gapLineRect, gapLinePolygon);
 
@@ -190,13 +191,13 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest()
 {
 
     QFETCH(QSharedPointer<KoShape>, referenceShape);
-    QFETCH(QPainterPath, srcOutline);
+    QFETCH(PkPainterPath, srcOutline);
     QFETCH(bool, checkGapLineRect);
-    QFETCH(QRectF, gapLineRect);
-    QFETCH(QLineF, gapLine);
-    QFETCH(QLineF, leftLine);
-    QFETCH(QLineF, rightLine);
-    QFETCH(QPolygonF, gapLinePolygon);
+    QFETCH(PkRectF, gapLineRect);
+    QFETCH(PkLineF, gapLine);
+    QFETCH(PkLineF, leftLine);
+    QFETCH(PkLineF, rightLine);
+    QFETCH(PkPolygonF, gapLinePolygon);
     QFETCH(bool, expectedGeneral);
     QFETCH(bool, expectedPrecise);
 
