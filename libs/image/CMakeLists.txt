@@ -302,19 +302,19 @@ kis_define_image_object_lib(kritaimage_bsplines_objects SOURCES
 # —— 顶层核心（KisImage/KisNode/KisPaintDevice/KisPainter 等）——
 
 kis_define_image_object_lib(kritaimage_core_objects SOURCES
-    # [GAP 排除] 9 个核心 GAP 文件（Task 8 批次A/C2 登记，判据⑨ 严格补）：仍依赖
+    # [GAP 排除] 8 个核心 GAP 文件（Task 8 批次A/C2 登记，判据⑨ 严格补）：仍依赖
     # 真实 Qt 头（QImage/QPainter/QFile/QTimer/KConfig 等）。与薄壳 SHELL_SOURCES
     # 的 [GAP 排除] 一致，从本 OBJECT 库源清单移除：
     #   KisBezierGradientMesh.cpp           KisBezierTransformMesh.cpp
     #   kis_cage_transform_worker.cpp       kis_liquify_transform_worker.cpp
     #   kis_warptransform_worker.cc
-    #   kis_safe_document_loader.cpp
     #   kis_paint_device_debug_utils.cpp
     #   KisSpatialContainer.cpp
     # GAP 文件不得被其余 OBJECT 强引用；若出现强引用，需迁回 owner 或显式断开纯诊断
     # 调用。GAP 配套头（kis_grid_interpolation_tools.h 等）不在源清单，无需移除。
     KisColorSamplerConfig.cpp
     kis_file_layer.cpp
+    kis_safe_document_loader.cpp
     kis_image_config.cpp
     KisColorSamplingUtils.cpp
     kis_distance_information.cpp
