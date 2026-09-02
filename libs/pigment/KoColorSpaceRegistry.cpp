@@ -35,6 +35,11 @@
 
 #include <KoColorModelStandardIds.h>
 
+// The lcms MODULE supplies the production registration entry.  A weak reference
+// keeps the core independent when the module is loaded dynamically, while
+// statically-linked test/host targets can provide the same entry directly.
+extern void registerLcmsEngine() __attribute__((weak));
+
 
 struct Q_DECL_HIDDEN KoColorSpaceRegistry::Private {
 
@@ -166,6 +171,10 @@ void KoColorSpaceRegistry::init()
     d->colorConversionCache = new KoColorConversionCache;
 
     KoColorSpaceEngineRegistry::instance()->add(new KoSimpleColorSpaceEngine());
+
+    if (registerLcmsEngine) {
+        registerLcmsEngine();
+    }
 
     // 原 KoPluginLoader::load("Krita/ColorSpace") 与 load("Krita/ColorSpaceExtension")
     // 已随 D-01 移除；lcms2engine（IccColorSpaceEngine）与 colorspaceextensions 的
