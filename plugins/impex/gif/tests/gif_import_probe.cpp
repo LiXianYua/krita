@@ -1,3 +1,5 @@
+#include <QCoreApplication>
+
 #include <KisDocument.h>
 
 #include "../kis_gif_import.h"
@@ -5,8 +7,6 @@
 
 #include <KisDocumentRegistry.h>
 #include <PkScopedPointer.h>
-
-#include <QCoreApplication>
 
 #include <cstdlib>
 #include <iostream>
