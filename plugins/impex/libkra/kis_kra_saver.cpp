@@ -3,7 +3,9 @@
  *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
+#include <QtCore/qmath.h>
 #include <klocalizedstring.h>
+#include <QDebug>
 #include "kis_kra_saver.h"
 #include "kis_kra_utils.h"
 
@@ -49,11 +51,20 @@
 #include "kis_asl_layer_style_serializer.h"
 
 #include <KisMirrorAxisConfig.h>
+#include <PkFlakeBridge.h>
 
 #include <filesystem>
 
 
 using namespace KRA;
+
+namespace {
+PkString localized(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+}
 
 struct KisKraSaver::Private
 {
@@ -84,7 +95,7 @@ KisKraSaver::KisKraSaver(KisDocument* document, const PkString &filename, bool a
 
     m_d->imageName = m_d->doc->documentInfo()->aboutInfo("title");
     if (m_d->imageName.isEmpty()) {
-        m_d->imageName = i18n("Unnamed");
+        m_d->imageName = localized(i18n("Unnamed"));
     }
 }
 
@@ -211,7 +222,7 @@ bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const PkString
         KIS_SAFE_ASSERT_RECOVER(result.type() != KoResourceLoadResult::ExistingResource) { continue; }
 
         if (result.type() == KoResourceLoadResult::FailedLink) {
-            m_d->warningMessages << i18nc("Error message when saving a .kra file", "Could not export resource for embedding: %1", result.signature().filename);
+            m_d->warningMessages << localized(i18nc("Error message when saving a .kra file", "Could not export resource for embedding: %1", toQString(result.signature().filename)));
             continue;
         }
 
@@ -226,7 +237,7 @@ bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const PkString
         const PkString fileName = resource.signature().filename;
 
         if (!store->open(path + "/" + fileName)) {
-            m_d->warningMessages << i18nc("Error message when saving a .kra file", "Could not write resource: %1", result.signature().filename);
+            m_d->warningMessages << localized(i18nc("Error message when saving a .kra file", "Could not write resource: %1", toQString(result.signature().filename)));
             continue;
         }
 
@@ -238,13 +249,13 @@ bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const PkString
         if (!ba.isEmpty()) {
             nwritten = store->write(ba);
         } else {
-            m_d->warningMessages << i18nc("Error message when saving a .kra file", "Written resource is empty: %1", result.signature().filename);
+            m_d->warningMessages << localized(i18nc("Error message when saving a .kra file", "Written resource is empty: %1", toQString(result.signature().filename)));
         }
 
         store->close();
 
         if (nwritten != ba.size()) {
-            m_d->warningMessages << i18nc("Error message when saving a .kra file", "Written resource is incomplete: %1", result.signature().filename);
+            m_d->warningMessages << localized(i18nc("Error message when saving a .kra file", "Written resource is incomplete: %1", toQString(result.signature().filename)));
         }
     }
 
@@ -261,7 +272,7 @@ bool KisKraSaver::saveStoryboard(KoStore *store, KisImageSP image, const PkStrin
         return true;
     } else {
         if (!store->open(m_d->imageName + STORYBOARD_PATH + "index.xml")) {
-            m_d->errorMessages << i18nc("Error message when saving a .kra file", "Could not save storyboards.");
+            m_d->errorMessages << localized(i18nc("Error message when saving a .kra file", "Could not save storyboards."));
             return false;
         }
 
@@ -285,7 +296,7 @@ bool KisKraSaver::saveStoryboard(KoStore *store, KisImageSP image, const PkStrin
     }
 
     if (!success) {
-        m_d->errorMessages << i18nc("Error message when saving a .kra file", "Could not save storyboards.");
+        m_d->errorMessages << localized(i18nc("Error message when saving a .kra file", "Could not save storyboards."));
         return false;
     }
 
@@ -297,7 +308,7 @@ bool KisKraSaver::saveAnimationMetadata(KoStore *store, KisImageSP image, const 
     Q_UNUSED(uri);
 
     if (!store->open(m_d->imageName + ANIMATION_METADATA_PATH + "index.xml")) {
-        m_d->errorMessages << i18nc("Error message when saving a .kra file", "Could not save animation meta data.");
+        m_d->errorMessages << localized(i18nc("Error message when saving a .kra file", "Could not save animation meta data."));
         return false;
     }
 
@@ -323,7 +334,7 @@ bool KisKraSaver::saveAnimationMetadata(KoStore *store, KisImageSP image, const 
     success = success && r && (nwritten == ba.size());
 
     if (!success) {
-        m_d->errorMessages << i18nc("Error message when saving a .kra file", "Could not save animation meta data.");
+        m_d->errorMessages << localized(i18nc("Error message when saving a .kra file", "Could not save animation meta data."));
         return false;
     }
 
@@ -336,7 +347,7 @@ bool KisKraSaver::saveAudio(KoStore *store)
         return true;
 
     if (!store->open(m_d->imageName + AUDIO_PATH + "index.xml")) {
-        m_d->errorMessages << i18nc("Error message when saving a .kra file", "Could not save audio meta data.");
+        m_d->errorMessages << localized(i18nc("Error message when saving a .kra file", "Could not save audio meta data."));
         return false;
     }
 
@@ -361,7 +372,7 @@ bool KisKraSaver::saveAudio(KoStore *store)
     success = success && closeOK && (bytesWriteCount == byteArray.size());
 
     if (!success) {
-        m_d->errorMessages << i18nc("Error message when saving a .kra file", "Could not save audio meta data.");
+        m_d->errorMessages << localized(i18nc("Error message when saving a .kra file", "Could not save audio meta data."));
         return false;
     }
 
@@ -476,7 +487,7 @@ bool KisKraSaver::saveNodeKeyframes(KoStore *store, PkString location, const Kis
         success = false;
     }
     if (!success) {
-        m_d->errorMessages << i18nc("Error message on saving a .kra file", "Could not save keyframes.");
+        m_d->errorMessages << localized(i18nc("Error message on saving a .kra file", "Could not save keyframes."));
         return false;
     }
 
@@ -520,7 +531,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const PkStrin
     }
 
     if (!savingAnnotationsSuccess) {
-        m_d->errorMessages.append(i18nc("Saving .kra file error message", "Could not save annotations."));
+        m_d->errorMessages.append(localized(i18nc("Saving .kra file error message", "Could not save annotations.")));
     }
 
     success = success && savingAnnotationsSuccess;
@@ -554,7 +565,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const PkStrin
     }
 
     if (!savingImageProfileSuccess) {
-        m_d->errorMessages.append(i18nc("Saving .kra file error message", "Could not save image profile."));
+        m_d->errorMessages.append(localized(i18nc("Saving .kra file error message", "Could not save image profile.")));
     }
     success = success && savingImageProfileSuccess;
 
@@ -584,7 +595,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const PkStrin
     }
 
     if (!savingSoftproofingProfileSuccess) {
-        m_d->errorMessages.append(i18nc("Saving .kra file error message", "Could not save softproofing color profile."));
+        m_d->errorMessages.append(localized(i18nc("Saving .kra file error message", "Could not save softproofing color profile.")));
     }
 
     success = success && savingSoftproofingProfileSuccess;
@@ -619,7 +630,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const PkStrin
     }
 
     if (!savingRemainingAnnotationsSuccess) {
-        m_d->errorMessages.append(i18nc("Saving .kra file error message", "Could not save additional annotations."));
+        m_d->errorMessages.append(localized(i18nc("Saving .kra file error message", "Could not save additional annotations.")));
     }
 
     success = success && savingRemainingAnnotationsSuccess;
@@ -652,7 +663,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const PkStrin
     }
 
     if (!savingLayerStylesSuccess) {
-        m_d->errorMessages.append(i18nc("Saving .kra file error message", "Could not save layer styles."));
+        m_d->errorMessages.append(localized(i18nc("Saving .kra file error message", "Could not save layer styles.")));
     }
 
     success = success && savingLayerStylesSuccess;
@@ -667,7 +678,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const PkStrin
     }
 
     if (!savingMergedImageSuccess) {
-        m_d->errorMessages.append(i18nc("Saving .kra file error message", "Could not save merged image."));
+        m_d->errorMessages.append(localized(i18nc("Saving .kra file error message", "Could not save merged image.")));
     }
 
     success = success && savingMergedImageSuccess;
@@ -760,7 +771,8 @@ bool KisKraSaver::saveGrid(PkXmlDocument& doc, PkXmlElement& element)
     KisGridConfig config = m_d->doc->gridConfig();
 
     if (!config.isDefault()) {
-        PkXmlElement gridElement = config.saveDynamicDataToXml(doc, "grid");
+        QDomDocument qdoc;
+        PkXmlElement gridElement = toPkXmlElement(config.saveDynamicDataToXml(qdoc, "grid"));
         element.appendChild(gridElement);
     }
 
@@ -772,7 +784,8 @@ bool KisKraSaver::saveGuides(PkXmlDocument& doc, PkXmlElement& element)
     KisGuidesConfig guides = m_d->doc->guidesConfig();
 
     if (!guides.isDefault()) {
-        PkXmlElement guidesElement = guides.saveToXml(doc, "guides");
+        QDomDocument qdoc;
+        PkXmlElement guidesElement = toPkXmlElement(guides.saveToXml(qdoc, "guides"));
         element.appendChild(guidesElement);
     }
 

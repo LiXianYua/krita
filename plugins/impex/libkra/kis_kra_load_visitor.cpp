@@ -60,6 +60,25 @@
 
 using namespace KRA;
 
+namespace {
+PkString toPkString(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
+QString toQString(const PkString &value)
+{
+    const std::string utf8 = value.PkToUtf8();
+    return QString::fromUtf8(utf8.data(), int(utf8.size()));
+}
+
+QRect toQRect(const PkRect &rect)
+{
+    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+}
+}
+
 PkString expandEncodedDirectory(const PkString& _intern)
 {
 
@@ -139,14 +158,14 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
 
             while (!loadReferenceImageWithDocumentFallback(reference, m_store)) {
                 if (reference->embed()) {
-                    m_errorMessages << i18n("Could not load embedded reference image %1 ", reference->internalFile());
+                    m_errorMessages << toPkString(i18n("Could not load embedded reference image %1 ", reference->internalFile()));
                     break;
                 } else {
-                    PkString msg = i18nc(
+                    PkString msg = toPkString(i18nc(
                         "@info",
                         "A reference image linked to an external file could not be loaded.\n\n"
                         "Path: %1\n\n"
-                        "Do you want to select another location?", reference->filename());
+                        "Do you want to select another location?", reference->filename()));
 
                     PkString url;
                     if (m_feedbackInterface) {
@@ -159,7 +178,7 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
                     if (url.isEmpty()) {
                         break;
                     } else {
-                        reference->setFilename(url);
+                        reference->setFilename(toQString(url));
                         reference->setEmbed(false);
                     }
                 }
@@ -172,14 +191,16 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
             return false;
         }
 
-        PkStringList vectorWarnings;
+        QStringList vectorWarnings;
 
         m_store->pushDirectory();
         m_store->enterDirectory(getLocation(layer, DOT_SHAPE_LAYER)) ;
         result =  shapeLayer->loadLayer(m_store, &vectorWarnings);
         m_store->popDirectory();
 
-        m_warningMessages << vectorWarnings;
+        for (const QString &warning : vectorWarnings) {
+            m_warningMessages << toPkString(warning);
+        }
     }
 
     result = visitAll(layer) && result;
@@ -213,7 +234,7 @@ bool KisKraLoadVisitor::visit(KisPaintLayer *layer)
             if (!pixelSelection->read(m_store->device())) {
                 pixelSelection->disconnect();
             } else {
-                KisTransparencyMask* mask = new KisTransparencyMask(m_image, i18n("Transparency Mask"));
+                KisTransparencyMask* mask = new KisTransparencyMask(m_image, "Transparency Mask");
                 mask->setSelection(selection);
                 m_image->addNode(mask, layer, layer->firstChild());
             }
@@ -256,8 +277,8 @@ bool KisKraLoadVisitor::visit(KisAdjustmentLayer* layer)
     }
 
     if (!result) {
-        m_warningMessages.append(i18nc("Warning during loading a kra file with a filter layer",
-                                       "Selection on layer %s couldn't be loaded. It will be replaced by an empty selection.", layer->name()));
+        m_warningMessages.append(toPkString(i18nc("Warning during loading a kra file with a filter layer",
+                                       "Selection on layer %s couldn't be loaded. It will be replaced by an empty selection.", toQString(layer->name()))));
         // otherwise ignore and just use what is there already
         // (most probably an empty selection)
     }
@@ -320,8 +341,8 @@ bool KisKraLoadVisitor::visit(KisCloneLayer *layer)
 
         layer->setCopyFrom(srcLayer);
     } else {
-        m_warningMessages.append(i18nc("Loading a .kra file", "The file contains a clone layer that has an incorrect source node id. "
-                                                              "This layer will be converted into a paint layer."));
+        m_warningMessages.append(toPkString(i18nc("Loading a .kra file", "The file contains a clone layer that has an incorrect source node id. "
+                                                              "This layer will be converted into a paint layer.")));
     }
 
     // Clone layers have no data except for their masks
@@ -392,14 +413,14 @@ bool KisKraLoadVisitor::visit(KisTransformMask *mask)
                 id = "tooltransformparams";
             }
             if (id == "not-valid") {
-                m_errorMessages << i18n("Could not load \"id\" of the transform mask");
+                m_errorMessages << toPkString(i18n("Could not load \"id\" of the transform mask"));
                 return false;
             }
 
             PkXmlElement data;
 
             if (!KisDomUtils::findOnlyElement(rootElement, "data", &data, &m_errorMessages)) {
-                m_errorMessages << i18n("Could not find transform mask XML element");
+                m_errorMessages << toPkString(i18n("Could not find transform mask XML element"));
                 return false;
             }
 
@@ -421,7 +442,7 @@ bool KisKraLoadVisitor::visit(KisTransformMask *mask)
             }
 
             if (!params) {
-                m_errorMessages << i18n("Could not create transform mask params");
+                m_errorMessages << toPkString(i18n("Could not create transform mask params"));
                 return false;
             }
 
@@ -577,7 +598,7 @@ bool KisKraLoadVisitor::loadPaintDevice(KisPaintDeviceSP device, const PkString&
         for (int i = 0; i < frames.count(); i++) {
             int id = frames[i];
             if (keyframeChannel->frameFilename(id).isEmpty()) {
-                m_warningMessages << i18n("Could not find keyframe pixel data for frame %1 in %2.", id, location);
+            m_warningMessages << toPkString(i18n("Could not find keyframe pixel data for frame %1 in %2.", id, toQString(location)));
             }
             else {
                 Q_ASSERT(!keyframeChannel->frameFilename(id).isEmpty());
@@ -585,7 +606,7 @@ bool KisKraLoadVisitor::loadPaintDevice(KisPaintDeviceSP device, const PkString&
                 Q_ASSERT(!frameFilename.isEmpty());
 
                 if (!loadPaintDeviceFrame(device, frameFilename, FramedDevicePolicy(id))) {
-                    m_warningMessages << i18n("Could not load keyframe pixel data for frame %1 in %2.", id, location);
+                    m_warningMessages << toPkString(i18n("Could not load keyframe pixel data for frame %1 in %2.", id, toQString(location)));
                 }
             }
         }
@@ -614,14 +635,14 @@ bool KisKraLoadVisitor::loadPaintDeviceFrame(KisPaintDeviceSP device, const PkSt
 
     if (m_store->open(location)) {
         if (!policy.read(device, m_store->device())) {
-            m_warningMessages << i18n("Could not read pixel data: %1.", location);
+            m_warningMessages << toPkString(i18n("Could not read pixel data: %1.", toQString(location)));
             device->disconnect();
             m_store->close();
             return true;
         }
         m_store->close();
     } else {
-        m_warningMessages << i18n("Could not load pixel data: %1.", location);
+        m_warningMessages << toPkString(i18n("Could not load pixel data: %1.", toQString(location)));
         return true;
     }
 
@@ -637,7 +658,7 @@ bool KisKraLoadVisitor::loadProfile(KisPaintDeviceSP device, const PkString& loc
         // TODO: check result!
         device->setProfile(profile, 0);
     } else {
-        m_warningMessages << i18n("Could not load profile: %1.", location);
+        m_warningMessages << toPkString(i18n("Could not load profile: %1.", toQString(location)));
     }
 
     return true;
@@ -692,7 +713,7 @@ bool KisKraLoadVisitor::loadFilterConfiguration(KisFilterConfigurationSP kfc, co
             return true;
         }
     }
-    m_warningMessages << i18n("Could not filter configuration %1.", location);
+    m_warningMessages << toPkString(i18n("Could not filter configuration %1.", toQString(location)));
     return true;
 }
 
@@ -737,7 +758,7 @@ bool KisKraLoadVisitor::loadMetaData(KisNode* node)
         buffer.seek(0);
         buffer.open(PkStream::ReadOnly);
         if (!backend->loadFrom(layer->metaData(), &buffer)) {
-            m_warningMessages << i18n("Could not load metadata for layer %1.", layer->name());
+            m_warningMessages << toPkString(i18n("Could not load metadata for layer %1.", toQString(layer->name())));
         }
     }
     return true;
@@ -764,7 +785,7 @@ bool KisKraLoadVisitor::loadSelection(const PkString& location, KisSelectionSP d
 
         KisShapeSelection* shapeSelection = new KisShapeSelection(m_shapeController, dstSelection.data());
         dstSelection->convertToVectorSelectionNoUndo(shapeSelection);
-        result = shapeSelection->loadSelection(m_store, m_image->bounds());
+        result = shapeSelection->loadSelection(m_store, toQRect(m_image->bounds()));
 
         /**
          * We need to explicitly call updateProjection() here, because
@@ -780,7 +801,7 @@ bool KisKraLoadVisitor::loadSelection(const PkString& location, KisSelectionSP d
         dstSelection->updateProjection();
         m_store->popDirectory();
         if (!result) {
-            m_warningMessages << i18n("Could not load vector selection %1.", location);
+            m_warningMessages << toPkString(i18n("Could not load vector selection %1.", toQString(location)));
         }
     } else {
         /**
@@ -796,7 +817,7 @@ bool KisKraLoadVisitor::loadSelection(const PkString& location, KisSelectionSP d
             KisPixelSelectionSP pixelSelection = dstSelection->pixelSelection();
             result = loadPaintDevice(pixelSelection, pixelSelectionLocation);
             if (!result) {
-                m_warningMessages << i18n("Could not load raster selection %1.", location);
+                m_warningMessages << toPkString(i18n("Could not load raster selection %1.", toQString(location)));
             }
             pixelSelection->invalidateOutlineCache();
         }
@@ -826,7 +847,7 @@ void KisKraLoadVisitor::loadNodeKeyframes(KisNode *node)
     const PkString &location = getLocation(m_keyframeFilenames[node]);
 
     if (!m_store->open(location)) {
-        m_errorMessages << i18n("Could not load keyframes from %1.", location);
+        m_errorMessages << toPkString(i18n("Could not load keyframes from %1.", toQString(location)));
         return;
     }
 
@@ -839,7 +860,7 @@ void KisKraLoadVisitor::loadNodeKeyframes(KisNode *node)
     m_store->close();
 
     if (!ok) {
-        m_errorMessages << i18n("parsing error in the keyframe file %1 at line %2, column %3\nError message: %4", location, errorLine, errorColumn, errorMsg);
+        m_errorMessages << toPkString(i18n("parsing error in the keyframe file %1 at line %2, column %3\nError message: %4", toQString(location), errorLine, errorColumn, toQString(errorMsg)));
         return;
     }
 
@@ -852,7 +873,7 @@ void KisKraLoadVisitor::loadNodeKeyframes(KisNode *node)
             KisKeyframeChannel *channel = node->getKeyframeChannel(id, true);
 
             if (!channel) {
-                m_warningMessages << i18n("unknown keyframe channel type: %1 in %2", id, location);
+                m_warningMessages << toPkString(i18n("unknown keyframe channel type: %1 in %2", toQString(id), toQString(location)));
                 continue;
             }
 

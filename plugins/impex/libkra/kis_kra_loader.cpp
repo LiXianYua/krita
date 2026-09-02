@@ -75,6 +75,7 @@
 #include "KisProofingConfiguration.h"
 #include "kis_layer_properties_icons.h"
 #include "KisMirrorAxisConfig.h"
+#include <PkFlakeBridge.h>
 
 /*
   Color model id comparison through the ages:
@@ -111,22 +112,6 @@ YCbCrAU16  YCBCRAU16    YCBCRAU16
  */
 
 using namespace KRA;
-
-namespace {
-
-PkString toPkString(const QString &value)
-{
-    const QByteArray utf8 = value.toUtf8();
-    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
-}
-
-QString toQString(const PkString &value)
-{
-    const std::string utf8 = value.PkToUtf8();
-    return QString::fromUtf8(utf8.data(), int(utf8.size()));
-}
-
-}
 
 struct KisKraLoader::Private
 {
@@ -1026,7 +1011,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
                     "behavior for CMYK color in Krita 5.2. Please check the "
                     "result and consider enabling legacy \"Additive\" algorithm in "
                     "Settings->Configure Krita->General->Tools->CMYK blending mode",
-                    toQString(name), KoCompositeOpRegistry::instance().getKoID(compositeOpName).name()));
+                    toQString(name), toQString(KoCompositeOpRegistry::instance().getKoID(compositeOpName).name())));
         }
     }
 
@@ -1459,7 +1444,7 @@ void KisKraLoader::loadGrid(const PkXmlElement& elem)
 
     KisGridConfig config;
     config.loadStaticData();
-    config.loadDynamicDataFromXml(domElement);
+    config.loadDynamicDataFromXml(toQDomElement(domElement));
     m_d->document->setGridConfig(config);
 }
 
@@ -1470,7 +1455,7 @@ void KisKraLoader::loadGuides(const PkXmlElement& elem)
     PkXmlElement domElement = dom.firstChildElement();
 
     KisGuidesConfig guides;
-    guides.loadFromXml(domElement);
+    guides.loadFromXml(toQDomElement(domElement));
     m_d->document->setGuidesConfig(guides);
 }
 
@@ -1554,7 +1539,7 @@ KisNodeSP KisKraLoader::loadReferenceImagesLayer(const PkXmlElement &elem, KisIm
 
     for (PkXmlElement child = elem.firstChildElement(); !child.isNull(); child = child.nextSiblingElement()) {
         if (child.nodeName().toLower() == "referenceimage") {
-            auto* reference = KisReferenceImage::fromXml(child);
+            auto* reference = KisReferenceImage::fromXml(toQDomElement(child));
             reference->setZIndex(layer->shapes().size());
             layer->addShape(reference);
         }
