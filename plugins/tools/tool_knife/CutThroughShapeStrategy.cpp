@@ -36,7 +36,7 @@ CutThroughShapeStrategy::CutThroughShapeStrategy(KoToolBase *tool, KoSelection *
     , m_endPoint(startPoint)
     , m_width(width)
 {
-    m_selectedShapes = selection->selectedEditableShapes();
+    m_selectedShapes = toPkList(selection->selectedEditableShapes());
     m_allShapes = shapes;
 }
 
@@ -155,9 +155,8 @@ void CutThroughShapeStrategy::initializeOutlineObjects(const PkTransform &boolea
     for (KoShape *shape : allShapes) {
 
         PkPainterPath outlineHere =
-            booleanWorkaroundTransform.map(
-            shape->absoluteTransformation().map(
-                shape->outline()));
+            booleanWorkaroundTransform.map(toPkPainterPath(
+                shape->absoluteTransformation().map(shape->outline())));
 
         outSrcOutlines << outlineHere;
         outOutlineRect |= outlineHere.boundingRect();
@@ -256,7 +255,7 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     PkTransform booleanWorkaroundTransformInverted = booleanWorkaroundTransform.inverted();
 
 
-    std::unique_ptr<KUndo2Command> cmd = std::unique_ptr<KUndo2Command>(new KUndo2Command(kundo2_i18n("Knife tool: cut through shapes")));
+    std::unique_ptr<KUndo2Command> cmd = std::unique_ptr<KUndo2Command>(new KUndo2Command(KUndo2MagicString()));
     new KoKeepShapesSelectedCommand(m_selectedShapes, {}, tool()->canvas()->selectedShapesProxy(), false, cmd.get());
 
 
@@ -297,7 +296,7 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
             // this is needed because Qt linearize curves; this allows for a
             // "sane" linearization instead of a very blocky appearance
             path = booleanWorkaroundTransformInverted.map(path);
-            std::unique_ptr<KoPathShape> shape = std::unique_ptr<KoPathShape>(KoPathShape::createShapeFromPainterPath(path));
+            std::unique_ptr<KoPathShape> shape = std::unique_ptr<KoPathShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(path)));
             shape->closeMerge();
 
             if (shape->boundingRect().isEmpty()) {
@@ -325,7 +324,7 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     }
 
     if (affectedShapes > 0) {
-        tool()->canvas()->shapeController()->removeShapes(shapesToRemove, cmd.get());
+        tool()->canvas()->shapeController()->removeShapes(toQList(shapesToRemove), cmd.get());
         new KoKeepShapesSelectedCommand({}, newSelectedShapes, tool()->canvas()->selectedShapesProxy(), true, cmd.get());
         tool()->canvas()->addCommand(cmd.release());
     }
@@ -407,7 +406,7 @@ qreal CutThroughShapeStrategy::gutterWidthInDocumentCoordinates(qreal lineAngle)
         dynamic_cast<const KisCoordinatesConverter *>(tool()->canvas()->viewConverter());
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, m_width.widthForAngleInPixels(lineAngle));
     PkLineF helperGapWidthLine = PkLineF(PkPointF(0, 0), PkPointF(0, m_width.widthForAngleInPixels(lineAngle)));
-    PkLineF helperGapWidthLineTransformed = toPkTransform(converter->imageToDocument()).map(helperGapWidthLine);
+    PkLineF helperGapWidthLineTransformed = toPkTransform(converter->imageToDocumentTransform()).map(helperGapWidthLine);
     return helperGapWidthLineTransformed.length();
 }
 

@@ -26,6 +26,7 @@ class KoShapeGroup;
 class KoShape;
 class KoPathShape;
 class QIODevice;
+class PkStream;
 class QString;
 
 /// Implements exporting shapes to SVG
@@ -43,6 +44,9 @@ public:
 
     /// Writes svg to specified output device
     bool save(QIODevice &outputDevice, const QSizeF &pageSize);
+#ifndef QIODevice
+    bool save(PkStream &outputDevice, const QSizeF &pageSize);
+#endif
 
     /// Writes svg to the specified file
     bool save(const QString &filename, const QSizeF &pageSize, bool writeInlineImages);

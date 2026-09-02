@@ -128,6 +128,13 @@ bool SvgWriter::save(QIODevice &outputDevice, const QSizeF &pageSize)
     return true;
 }
 
+bool SvgWriter::save(PkStream &outputDevice, const QSizeF &pageSize)
+{
+    PkStreamIoDevice device;
+    device.attach(&outputDevice);
+    return save(device, pageSize);
+}
+
 bool SvgWriter::saveDetached(QIODevice &outputDevice)
 {
     if (m_toplevelShapes.isEmpty())
@@ -314,4 +321,3 @@ void SvgWriter::setDocumentDescription(QString description)
 {
     m_documentDescription = description;
 }
-
