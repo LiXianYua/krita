@@ -7,6 +7,8 @@
 #ifndef CUT_THROUGH_SHAPE_STRATEGY_H_
 #define CUT_THROUGH_SHAPE_STRATEGY_H_
 
+#include <Qt>
+#include <QtMath>
 #include <PkScopedPointer.h>
 #include <PkRect.h>
 #include <PkPainter.h>

@@ -7,6 +7,7 @@
 #ifndef KIS_NODE_SHAPE_H_
 #define KIS_NODE_SHAPE_H_
 
+#include <QtMath>
 #include <QObject>
 #include <PkConnection.h>
 

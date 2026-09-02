@@ -7,6 +7,7 @@
 #ifndef __KIS_NODE_DUMMIES_GRAPH_H
 #define __KIS_NODE_DUMMIES_GRAPH_H
 
+#include <QtMath>
 #include <QList>
 #include <QMap>
 #include <QObject>

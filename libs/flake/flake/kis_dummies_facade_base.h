@@ -7,6 +7,7 @@
 #ifndef __KIS_DUMMIES_FACADE_BASE_H
 #define __KIS_DUMMIES_FACADE_BASE_H
 
+#include <QtMath>
 #include <QObject>
 
 #include "kis_types.h"
