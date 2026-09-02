@@ -5,10 +5,15 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtGlobal>
+
 #include "psd_additional_layer_info_block.h"
 #include "psd.h"
 
 #include <PkXmlDocument.h>
+
+#include <QPointF>
+#include <QRectF>
 
 #include <asl/kis_offset_on_exit_verifier.h>
 
@@ -264,7 +269,9 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
                     bounds.setRight(psdreadFixedPoint<byteOrder>(io));
                     vectorMask.path.clipBoardBounds = bounds;
                     vectorMask.path.clipBoardResolution = psdreadFixedPoint<byteOrder>(io);
-                    dbgFile << "\trecord" << recordType << "top" << bounds << "res" << vectorMask.path.clipBoardResolution;
+                    dbgFile << "\trecord" << recordType << "top"
+                            << QRectF(bounds.left(), bounds.top(), bounds.width(), bounds.height())
+                            << "res" << vectorMask.path.clipBoardResolution;
                     io.skip(4);
                 } else if (recordType == 0 || recordType == 3) {
                     std::uint16_t length;
@@ -294,8 +301,10 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
                     node.control2.setY(psdreadFixedPoint<byteOrder>(io));
                     node.control2.setX(psdreadFixedPoint<byteOrder>(io));
                     node.isSmooth = (recordType == 1 || recordType == 4);
-                    dbgFile << "\trecord" << recordType << "c1" << node.control1
-                             << "node" << node.node << "c2" << node.control2;
+                    dbgFile << "\trecord" << recordType << "c1"
+                             << QPointF(node.control1.x(), node.control1.y())
+                             << "node" << QPointF(node.node.x(), node.node.y())
+                             << "c2" << QPointF(node.control2.x(), node.control2.y());
                     currentPath.nodes.append(node);
                 }
 

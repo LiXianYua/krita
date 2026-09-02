@@ -84,7 +84,7 @@ bool PSDHeader::write(PkStream &device)
 bool PSDHeader::valid()
 {
     if (signature != "8BPS") {
-        error = "Not a PhotoShop document. Signature is: " + signature;
+        error = PkString("Not a PhotoShop document. Signature is: ") + signature;
         return false;
     }
     if (version < 1 || version > 2) {
