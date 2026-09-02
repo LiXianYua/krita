@@ -15,6 +15,10 @@
 // ===========================================================================
 
 
+#include <QtCore/QDebug>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QHash>
+
 #include "kis_safe_document_loader.h"
 
 #include <utility>
@@ -36,6 +40,12 @@
 #include <kis_global.h>
 
 namespace {
+
+PkString toPkString(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
 
 KisSafeDocumentLoader::ImageLoader &defaultImageLoader()
 {
@@ -389,9 +399,9 @@ void KisSafeDocumentLoader::delayedLoadStart()
         };
 
         if (m_d->path.toLower().endsWith("ora") || m_d->path.toLower().endsWith("kra")) {
-            QScopedPointer<KoStore> store(KoStore::createStore(m_d->temporaryPath, KoStore::Read));
+            QScopedPointer<KoStore> store(KoStore::createStore(toPkString(m_d->temporaryPath), KoStore::Read));
             if (store && !store->bad()) {
-                if (store->open(QString("mergedimage.png"))) {
+                if (store->open(toPkString(QStringLiteral("mergedimage.png")))) {
                     /**
                      * TODO: Ideally the configured image loader should allow
                      * loading from a QIODevice, but currently its contract
