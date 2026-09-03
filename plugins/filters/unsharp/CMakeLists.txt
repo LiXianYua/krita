@@ -5,7 +5,7 @@ set(kritaunsharpfilter_SOURCES
     kis_unsharp_filter.cpp
     )
 
-kis_add_library(kritaunsharpfilter MODULE ${kritaunsharpfilter_SOURCES})
+kis_add_library(kritaunsharpfilter STATIC ${kritaunsharpfilter_SOURCES})
 
 target_link_libraries(kritaunsharpfilter kritaimage)
 

@@ -9,7 +9,7 @@ set(kritatoolencloseandfill_SOURCES
     subtools/KisBrushEnclosingProducer.cpp
     )
 
-kis_add_library(kritatoolencloseandfill MODULE ${kritatoolencloseandfill_SOURCES})
+kis_add_library(kritatoolencloseandfill STATIC ${kritatoolencloseandfill_SOURCES})
 
 set_target_properties(kritatoolencloseandfill PROPERTIES
     AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)

@@ -75,7 +75,7 @@ set(kritaxcfimport_SOURCES
     kis_xcf_import.cpp
 )
 
-kis_add_library(kritaxcfimport MODULE ${kritaxcfimport_SOURCES})
+kis_add_library(kritaxcfimport STATIC ${kritaxcfimport_SOURCES})
 
 target_link_libraries(kritaxcfimport kritaimpex xcftools)
 

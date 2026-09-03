@@ -7,7 +7,7 @@ set(kritapngimport_SOURCES
     kis_dlg_png_import.cpp
 )
 
-kis_add_library(kritapngimport MODULE ${kritapngimport_SOURCES})
+kis_add_library(kritapngimport STATIC ${kritapngimport_SOURCES})
 
 include_directories(SYSTEM ${PNG_INCLUDE_DIR})
 
@@ -27,7 +27,7 @@ set(kritapngexport_SOURCES
     kis_png_document_context.cpp
 )
 
-kis_add_library(kritapngexport MODULE ${kritapngexport_SOURCES})
+kis_add_library(kritapngexport STATIC ${kritapngexport_SOURCES})
 
 target_link_libraries(kritapngexport
     PRIVATE

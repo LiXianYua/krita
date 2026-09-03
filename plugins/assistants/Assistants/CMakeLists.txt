@@ -51,7 +51,7 @@ target_link_libraries(kritaassistanttool_static
 )
 set_target_properties(kritaassistanttool_static PROPERTIES AUTOMOC OFF)
 
-kis_add_library(kritaassistanttool MODULE assistant_tool.cc)
+kis_add_library(kritaassistanttool STATIC assistant_tool.cc)
 target_link_libraries(kritaassistanttool PRIVATE kritaassistanttool_static)
 set_target_properties(kritaassistanttool PROPERTIES AUTOMOC OFF)
 

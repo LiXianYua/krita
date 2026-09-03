@@ -4,7 +4,7 @@ set(kritatooldyna_SOURCES
     )
 
 
-kis_add_library(kritatooldyna MODULE ${kritatooldyna_SOURCES})
+kis_add_library(kritatooldyna STATIC ${kritatooldyna_SOURCES})
 
 set_target_properties(kritatooldyna PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatooldyna PRIVATE

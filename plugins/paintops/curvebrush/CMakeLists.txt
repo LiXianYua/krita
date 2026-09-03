@@ -6,7 +6,7 @@ set(kritacurvepaintop_SOURCES
 
     )
 
-kis_add_library(kritacurvepaintop MODULE ${kritacurvepaintop_SOURCES})
+kis_add_library(kritacurvepaintop STATIC ${kritacurvepaintop_SOURCES})
 
 target_link_libraries(kritacurvepaintop kritalibpaintop)
 

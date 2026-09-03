@@ -12,7 +12,7 @@ set(kritaexrimport_SOURCES
     ${libkritaconverter_LIB_SRCS}
     )
 
-kis_add_library(kritaexrimport MODULE ${kritaexrimport_SOURCES})
+kis_add_library(kritaexrimport STATIC ${kritaexrimport_SOURCES})
 
 target_link_libraries(kritaexrimport kritaimpex kritalibkra OpenEXR::IlmImf pkconfig)
 
@@ -23,7 +23,7 @@ set(kritaexrexport_SOURCES
     ${libkritaconverter_LIB_SRCS}
     )
 
-kis_add_library(kritaexrexport MODULE ${kritaexrexport_SOURCES})
+kis_add_library(kritaexrexport STATIC ${kritaexrexport_SOURCES})
 
 target_link_libraries(kritaexrexport kritalibkra kritaimpex OpenEXR::IlmImf pkconfig)
 

@@ -7,7 +7,7 @@ set(kritadeformpaintop_SOURCES
     KisDeformOptionData.cpp
     )
 
-kis_add_library(kritadeformpaintop MODULE ${kritadeformpaintop_SOURCES})
+kis_add_library(kritadeformpaintop STATIC ${kritadeformpaintop_SOURCES})
 
 target_link_libraries(kritadeformpaintop kritalibpaintop)
 

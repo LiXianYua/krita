@@ -9,7 +9,7 @@ set(karbon_tools_SOURCES
 
 qt_add_resources(karbon_tools_SOURCES karbontools.qrc)
 
-kis_add_library(krita_karbontools MODULE ${karbon_tools_SOURCES})
+kis_add_library(krita_karbontools STATIC ${karbon_tools_SOURCES})
 
 set_target_properties(krita_karbontools PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(krita_karbontools PRIVATE

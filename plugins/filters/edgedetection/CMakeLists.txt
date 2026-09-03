@@ -2,6 +2,6 @@ set(kritaedgedetection_SOURCES
     kis_edge_detection_filter.cpp
 )
 
-kis_add_library(kritaedgedetection MODULE ${kritaedgedetection_SOURCES})
+kis_add_library(kritaedgedetection STATIC ${kritaedgedetection_SOURCES})
 target_link_libraries(kritaedgedetection kritaimage)
 install(TARGETS kritaedgedetection  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

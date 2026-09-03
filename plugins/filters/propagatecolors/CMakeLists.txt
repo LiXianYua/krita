@@ -4,7 +4,7 @@ set(kritapropagatecolors_SOURCES
     KisPropagateColorsFilterPlugin.cpp
 )
 
-kis_add_library(kritapropagatecolors MODULE ${kritapropagatecolors_SOURCES})
+kis_add_library(kritapropagatecolors STATIC ${kritapropagatecolors_SOURCES})
 
 target_link_libraries(kritapropagatecolors kritaimage)
 

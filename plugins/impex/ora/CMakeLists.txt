@@ -14,7 +14,7 @@ set(kritaoraimport_SOURCES
     ${libkritaconverter_LIB_SRCS}
     )
 
-kis_add_library(kritaoraimport MODULE ${kritaoraimport_SOURCES})
+kis_add_library(kritaoraimport STATIC ${kritaoraimport_SOURCES})
 
 target_link_libraries(kritaoraimport kritaimpex )
 
@@ -25,7 +25,7 @@ set(kritaoraexport_SOURCES
     ${libkritaconverter_LIB_SRCS}
     )
 
-kis_add_library(kritaoraexport MODULE ${kritaoraexport_SOURCES})
+kis_add_library(kritaoraexport STATIC ${kritaoraexport_SOURCES})
 
 target_link_libraries(kritaoraexport kritaimpex)
 

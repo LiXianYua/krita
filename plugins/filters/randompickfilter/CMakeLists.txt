@@ -2,7 +2,7 @@ set(kritarandompickfilter_SOURCES
     randompickfilter.cpp
     )
 
-kis_add_library(kritarandompickfilter MODULE ${kritarandompickfilter_SOURCES})
+kis_add_library(kritarandompickfilter STATIC ${kritarandompickfilter_SOURCES})
 
 target_link_libraries(kritarandompickfilter kritaimage)
 

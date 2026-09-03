@@ -10,7 +10,7 @@ set(kritacolorsfilters_SOURCES
     kis_desaturate_filter.cpp
     )
 
-kis_add_library(kritacolorsfilters MODULE ${kritacolorsfilters_SOURCES})
+kis_add_library(kritacolorsfilters STATIC ${kritacolorsfilters_SOURCES})
 target_link_libraries(kritacolorsfilters kritaimage)
 install(TARGETS kritacolorsfilters  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 install( FILES

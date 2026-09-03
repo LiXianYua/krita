@@ -16,7 +16,7 @@ set(kritargbeexport_SOURCES
     RGBEExport.cpp
 )
 
-kis_add_library(kritargbeexport MODULE ${kritargbeexport_SOURCES})
+kis_add_library(kritargbeexport STATIC ${kritargbeexport_SOURCES})
 
 target_link_libraries(kritargbeexport kritaimpex)
 

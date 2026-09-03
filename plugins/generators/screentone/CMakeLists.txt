@@ -7,7 +7,7 @@ set(kritascreentonegenerator_SOURCES
     KisScreentoneGeneratorTemplate.cpp
     )
 
-kis_add_library(kritascreentonegenerator MODULE ${kritascreentonegenerator_SOURCES})
+kis_add_library(kritascreentonegenerator STATIC ${kritascreentonegenerator_SOURCES})
 set_target_properties(kritascreentonegenerator PROPERTIES AUTOMOC OFF)
 target_link_libraries(kritascreentonegenerator PRIVATE
     kritaimage

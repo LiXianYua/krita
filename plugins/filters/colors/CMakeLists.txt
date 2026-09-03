@@ -5,6 +5,6 @@ set(kritaextensioncolorsfilters_SOURCES
     KisFilterFastColorOverlay.cpp
     )
 
-kis_add_library(kritaextensioncolorsfilters MODULE ${kritaextensioncolorsfilters_SOURCES})
+kis_add_library(kritaextensioncolorsfilters STATIC ${kritaextensioncolorsfilters_SOURCES})
 target_link_libraries(kritaextensioncolorsfilters kritaimage)
 install(TARGETS kritaextensioncolorsfilters  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

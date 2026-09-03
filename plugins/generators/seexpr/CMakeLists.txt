@@ -4,7 +4,7 @@ set(kritaseexprgenerator_SOURCES
     generator.cpp
     )
 
-kis_add_library(kritaseexprgenerator MODULE ${kritaseexprgenerator_SOURCES})
+kis_add_library(kritaseexprgenerator STATIC ${kritaseexprgenerator_SOURCES})
 set_target_properties(kritaseexprgenerator PROPERTIES AUTOMOC OFF)
 
 target_link_libraries(kritaseexprgenerator PRIVATE

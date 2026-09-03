@@ -41,7 +41,7 @@ set(SvgTextTool_SOURCES
 
 
 kis_add_library(krita_tool_svgtext_static STATIC ${SvgTextTool_SRCS})
-kis_add_library(krita_tool_svgtext MODULE ${SvgTextTool_SOURCES})
+kis_add_library(krita_tool_svgtext STATIC ${SvgTextTool_SOURCES})
 generate_export_header(krita_tool_svgtext_static BASE_NAME kritatoolsvgtext)
 
 target_link_libraries(krita_tool_svgtext_static

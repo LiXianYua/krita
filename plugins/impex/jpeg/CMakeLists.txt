@@ -22,7 +22,7 @@ set(kritajpegimport_SOURCES
     ${libkritaconverter_LIB_SRCS}
     )
 
-kis_add_library(kritajpegimport MODULE ${kritajpegimport_SOURCES})
+kis_add_library(kritajpegimport STATIC ${kritajpegimport_SOURCES})
 
 target_link_libraries(kritajpegimport kritaimpex ${JPEG_LIBRARIES} ${LCMS2_LIBRARIES} LibExiv2::LibExiv2 )
 
@@ -33,7 +33,7 @@ set(kritajpegexport_SOURCES
     ${libkritaconverter_LIB_SRCS}
     )
 
-kis_add_library(kritajpegexport MODULE ${kritajpegexport_SOURCES})
+kis_add_library(kritajpegexport STATIC ${kritajpegexport_SOURCES})
 
 target_link_libraries(kritajpegexport kritaimpex ${JPEG_LIBRARIES} ${LCMS2_LIBRARIES} LibExiv2::LibExiv2 )
 

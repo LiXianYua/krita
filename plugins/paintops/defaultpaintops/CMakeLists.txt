@@ -22,7 +22,7 @@ generate_export_header(kritadefaultpaintops_static BASE_NAME kritadefaultpaintop
 
 target_link_libraries(kritadefaultpaintops_static kritalibpaintop)
 
-kis_add_library(kritadefaultpaintops MODULE defaultpaintops_plugin.cc)
+kis_add_library(kritadefaultpaintops STATIC defaultpaintops_plugin.cc)
 
 target_link_libraries(kritadefaultpaintops kritadefaultpaintops_static)
 

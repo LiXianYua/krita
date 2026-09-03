@@ -17,7 +17,7 @@ kis_add_library(kritatoolKnife_static STATIC ${kritatoolKnife_static_SOURCES})
 generate_export_header(kritatoolKnife_static BASE_NAME kritatoolKnife)
 
 
-kis_add_library(kritatoolKnife MODULE ${kritatoolKnife_SOURCES})
+kis_add_library(kritatoolKnife STATIC ${kritatoolKnife_SOURCES})
 
 set_target_properties(kritatoolKnife_static kritatoolKnife PROPERTIES
     AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)

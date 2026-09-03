@@ -4,7 +4,7 @@ set(kritasimplexnoisegenerator_SOURCES
     3rdparty/c-open-simplex/open-simplex-noise.c
     )
 
-kis_add_library(kritasimplexnoisegenerator MODULE ${kritasimplexnoisegenerator_SOURCES})
+kis_add_library(kritasimplexnoisegenerator STATIC ${kritasimplexnoisegenerator_SOURCES})
 set_target_properties(kritasimplexnoisegenerator PROPERTIES AUTOMOC OFF)
 target_include_directories(kritasimplexnoisegenerator PRIVATE ${CMAKE_SOURCE_DIR}/libs/resources)
 target_link_libraries(kritasimplexnoisegenerator PRIVATE

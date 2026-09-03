@@ -6,7 +6,7 @@ set(kritabrushexport_PART_SRCS
     animated_brush_annotation_data.cpp
     )
 
-kis_add_library(kritabrushexport MODULE ${kritabrushexport_PART_SRCS})
+kis_add_library(kritabrushexport STATIC ${kritabrushexport_PART_SRCS})
 
 target_link_libraries(kritabrushexport kritalibbrush kritaimpex kritastore)
 
@@ -18,7 +18,7 @@ set(kritabrushimport_PART_SRCS
     animated_brush_annotation_data.cpp
     )
 
-kis_add_library(kritabrushimport MODULE ${kritabrushimport_PART_SRCS})
+kis_add_library(kritabrushimport STATIC ${kritabrushimport_PART_SRCS})
 
 target_link_libraries(kritabrushimport kritalibbrush kritaimpex kritastore)
 

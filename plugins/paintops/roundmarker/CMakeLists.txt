@@ -5,7 +5,7 @@ set(kritaroundmarkerpaintop_SOURCES
     KisRoundMarkerOpOptionData.cpp
 )
 
-kis_add_library(kritaroundmarkerpaintop MODULE ${kritaroundmarkerpaintop_SOURCES})
+kis_add_library(kritaroundmarkerpaintop STATIC ${kritaroundmarkerpaintop_SOURCES})
 target_link_libraries(kritaroundmarkerpaintop kritalibpaintop)
 
 

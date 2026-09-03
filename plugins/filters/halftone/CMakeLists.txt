@@ -3,7 +3,7 @@ set(kritahalftone_SOURCES
     KisHalftoneFilterConfiguration.cpp
 )
 
-kis_add_library(kritahalftone MODULE ${kritahalftone_SOURCES})
+kis_add_library(kritahalftone STATIC ${kritahalftone_SOURCES})
 target_link_libraries(kritahalftone kritaimage)
 install(TARGETS kritahalftone DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 install( FILES

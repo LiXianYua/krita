@@ -34,7 +34,7 @@ target_link_libraries(kritamypaintop_static
         PNG::PNG
         json-c::json-c)
 
-kis_add_library(kritamypaintop MODULE MyPaintPaintOpPlugin.cpp)
+kis_add_library(kritamypaintop STATIC MyPaintPaintOpPlugin.cpp)
 
 target_link_libraries(kritamypaintop kritamypaintop_static kritalibpaintop)
 

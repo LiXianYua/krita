@@ -6,7 +6,7 @@ set(kritaparticlepaintop_SOURCES
     KisParticleOpOptionData.cpp
     )
 
-kis_add_library(kritaparticlepaintop MODULE ${kritaparticlepaintop_SOURCES})
+kis_add_library(kritaparticlepaintop STATIC ${kritaparticlepaintop_SOURCES})
 
 target_link_libraries(kritaparticlepaintop kritalibpaintop)
 

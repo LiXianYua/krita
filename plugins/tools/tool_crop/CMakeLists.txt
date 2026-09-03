@@ -5,7 +5,7 @@ set(kritatoolcrop_SOURCES
     )
 qt_add_resources(kritatoolcrop_SOURCES toolcrop.qrc)
 
-kis_add_library(kritatoolcrop MODULE ${kritatoolcrop_SOURCES})
+kis_add_library(kritatoolcrop STATIC ${kritatoolcrop_SOURCES})
 
 set_target_properties(kritatoolcrop PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatoolcrop PRIVATE

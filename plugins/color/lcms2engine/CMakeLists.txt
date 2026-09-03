@@ -79,7 +79,7 @@ endif ()
 
 
 
-kis_add_library(kritalcmsengine MODULE ${lcmsengine_SRCS})
+kis_add_library(kritalcmsengine STATIC ${lcmsengine_SRCS})
 set_target_properties(kritalcmsengine PROPERTIES AUTOMOC OFF)
 
 target_link_libraries(kritalcmsengine PRIVATE

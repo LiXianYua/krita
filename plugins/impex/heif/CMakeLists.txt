@@ -12,7 +12,7 @@ foreach(_obj IN LISTS __per_arch_heif)
     message("    * ${_obj}")
 endforeach()
 
-kis_add_library(kritaheifimport MODULE ${kritaheifimport_SOURCES} ${__per_arch_heif})
+kis_add_library(kritaheifimport STATIC ${kritaheifimport_SOURCES} ${__per_arch_heif})
 
 target_link_libraries(kritaheifimport kritaimpex kritalibkra HEIF::heif)
 
@@ -23,7 +23,7 @@ set(kritaheifexport_SOURCES
     HeifError.cpp
 )
 
-kis_add_library(kritaheifexport MODULE ${kritaheifexport_SOURCES})
+kis_add_library(kritaheifexport STATIC ${kritaheifexport_SOURCES})
 
 target_link_libraries(kritaheifexport kritalibkra kritaimpex HEIF::heif)
 

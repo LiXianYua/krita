@@ -11,7 +11,7 @@ set( extensions_plugin_SOURCES
     kis_desaturate_adjustment.cpp
 )
 
-kis_add_library(krita_colorspaces_extensions MODULE ${extensions_plugin_SOURCES})
+kis_add_library(krita_colorspaces_extensions STATIC ${extensions_plugin_SOURCES})
 set_target_properties(krita_colorspaces_extensions PROPERTIES AUTOMOC OFF)
 target_link_libraries(krita_colorspaces_extensions PRIVATE
     kritapigment

@@ -2,7 +2,7 @@ set(kritakraimport_SOURCES
     kra_import.cpp
 )
 
-kis_add_library(kritakraimport MODULE ${kritakraimport_SOURCES})
+kis_add_library(kritakraimport STATIC ${kritakraimport_SOURCES})
 
 target_link_libraries(kritakraimport kritaimpex kritalibkra)
 
@@ -12,7 +12,7 @@ set(kritakraexport_SOURCES
     kra_export.cpp
 )
 
-kis_add_library(kritakraexport MODULE ${kritakraexport_SOURCES})
+kis_add_library(kritakraexport STATIC ${kritakraexport_SOURCES})
 
 target_link_libraries(kritakraexport kritalibkra kritaimpex)
 

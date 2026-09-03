@@ -14,7 +14,7 @@ set(pathshapes_SOURCES
     PathShapesPlugin.cpp
 )
 
-kis_add_library(krita_shape_paths MODULE ${pathshapes_SOURCES})
+kis_add_library(krita_shape_paths STATIC ${pathshapes_SOURCES})
 set_target_properties(krita_shape_paths PROPERTIES AUTOMOC OFF)
 
 target_include_directories(krita_shape_paths PRIVATE

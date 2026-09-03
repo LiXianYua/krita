@@ -4,7 +4,7 @@ set(kritatoolSmartPatch_SOURCES
     kis_inpaint.cpp
     )
 
-kis_add_library(kritatoolSmartPatch MODULE ${kritatoolSmartPatch_SOURCES})
+kis_add_library(kritatoolSmartPatch STATIC ${kritatoolSmartPatch_SOURCES})
 
 set_target_properties(kritatoolSmartPatch PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatoolSmartPatch PRIVATE

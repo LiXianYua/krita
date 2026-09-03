@@ -7,7 +7,7 @@ set(kritagridpaintop_SOURCES
     KisGridShapeOptionData.cpp
     )
 
-kis_add_library(kritagridpaintop MODULE ${kritagridpaintop_SOURCES})
+kis_add_library(kritagridpaintop STATIC ${kritagridpaintop_SOURCES})
 
 target_link_libraries(kritagridpaintop kritalibpaintop)
 

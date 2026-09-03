@@ -4,7 +4,7 @@ set(kritajxlimport_SOURCES
     JPEGXLImport.cpp
 )
 
-kis_add_library(kritajxlimport MODULE ${kritajxlimport_SOURCES})
+kis_add_library(kritajxlimport STATIC ${kritajxlimport_SOURCES})
 
 target_link_libraries(kritajxlimport kritaimpex kritalibkra kritametadata ${JPEGXL_LIBRARIES})
 
@@ -15,7 +15,7 @@ set(kritajxlexport_SOURCES
     kis_jpegxl_export_tools.h
 )
 
-kis_add_library(kritajxlexport MODULE ${kritajxlexport_SOURCES})
+kis_add_library(kritajxlexport STATIC ${kritajxlexport_SOURCES})
 
 target_link_libraries(kritajxlexport kritalibkra kritaimpex ${JPEGXL_LIBRARIES})
 

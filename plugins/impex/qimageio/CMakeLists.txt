@@ -4,7 +4,7 @@ set(kritaqimageioexport_SOURCES
     kis_qimageio_export.cpp
     )
 
-kis_add_library(kritaqimageioexport MODULE ${kritaqimageioexport_SOURCES})
+kis_add_library(kritaqimageioexport STATIC ${kritaqimageioexport_SOURCES})
 
 target_link_libraries(kritaqimageioexport kritaimpex)
 
@@ -15,7 +15,7 @@ set(kritaqimageioimport_SOURCES
     )
 
 
-kis_add_library(kritaqimageioimport MODULE ${kritaqimageioimport_SOURCES})
+kis_add_library(kritaqimageioimport STATIC ${kritaqimageioimport_SOURCES})
 
 target_link_libraries(kritaqimageioimport kritaimpex)
 

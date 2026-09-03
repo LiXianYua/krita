@@ -7,7 +7,7 @@ set(kritaspriterexport_SOURCES
     spriter_format.cpp
 )
 
-kis_add_library(kritaspriterexport MODULE ${kritaspriterexport_SOURCES})
+kis_add_library(kritaspriterexport STATIC ${kritaspriterexport_SOURCES})
 
 target_link_libraries(kritaspriterexport kritaimpex pkxml)
 

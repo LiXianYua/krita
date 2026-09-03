@@ -4,7 +4,7 @@ add_subdirectory(tests)
 
 set(kritapdfimport_SOURCES kis_pdf_import.cpp pdf_import_policy.cpp)
 
-kis_add_library(kritapdfimport MODULE ${kritapdfimport_SOURCES})
+kis_add_library(kritapdfimport STATIC ${kritapdfimport_SOURCES})
 
 target_link_libraries(kritapdfimport kritaimpex Poppler::Cpp)
 

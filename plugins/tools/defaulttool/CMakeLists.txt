@@ -20,7 +20,7 @@ set ( defaulttools_SRCS
     referenceimagestool/KisReferenceImageCollection.cpp
 )
 
-kis_add_library(krita_flaketools MODULE ${defaulttools_SRCS})
+kis_add_library(krita_flaketools STATIC ${defaulttools_SRCS})
 
 set_target_properties(krita_flaketools PROPERTIES AUTOMOC OFF)
 target_include_directories(krita_flaketools PRIVATE

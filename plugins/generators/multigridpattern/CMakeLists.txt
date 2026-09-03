@@ -3,7 +3,7 @@ set(kritamultigridpatterngenerator_SOURCES
     multigridpatternhelpers.cpp
     )
 
-kis_add_library(kritamultigridpatterngenerator MODULE ${kritamultigridpatterngenerator_SOURCES})
+kis_add_library(kritamultigridpatterngenerator STATIC ${kritamultigridpatterngenerator_SOURCES})
 set_target_properties(kritamultigridpatterngenerator PROPERTIES AUTOMOC OFF)
 
 target_link_libraries(kritamultigridpatterngenerator PRIVATE

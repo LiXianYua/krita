@@ -61,7 +61,7 @@ set(kritatooltransform_SOURCES
   tool_transform.cc
 )
 
-kis_add_library(kritatooltransform MODULE ${kritatooltransform_SOURCES})
+kis_add_library(kritatooltransform STATIC ${kritatooltransform_SOURCES})
 
 set_target_properties(kritatooltransform_static kritatooltransform PROPERTIES
     AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)

@@ -57,7 +57,7 @@ set(kritadefaulttools_SOURCES
 
 qt_add_resources(kritadefaulttools_SOURCES defaulttools.qrc )
 
-kis_add_library(kritadefaulttools MODULE ${kritadefaulttools_SOURCES})
+kis_add_library(kritadefaulttools STATIC ${kritadefaulttools_SOURCES})
 
 set_target_properties(kritadefaulttools PROPERTIES AUTOMOC OFF)
 target_include_directories(kritadefaulttools PRIVATE

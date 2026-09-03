@@ -6,20 +6,19 @@
  */
 #include "Plugin.h"
 
-#include <kpluginfactory.h>
-
 #include <KoShapeRegistry.h>
 #include <KoToolRegistry.h>
 
 #include "SvgTextToolFactory.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(PluginFactory, "krita_tool_svgtext.json", registerPlugin<Plugin>();)
-
-Plugin::Plugin(QObject *parent, const QVariantList &)
-    : QObject(parent)
+// D-12 静态注册：原 K_PLUGIN_FACTORY_WITH_JSON 动态加载改为由 registerAllPlugins() 调用的静态注册。
+void registerSvgTextTool()
 {
+    static bool registered = false;
+    if (registered) {
+        return;
+    }
+    registered = true;
     KoToolRegistry::instance()->add(new SvgTextToolFactory());
 }
-
-#include <Plugin.moc>
 

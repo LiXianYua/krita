@@ -7,7 +7,7 @@ set(kritaheightmapimport_SOURCES
     kis_heightmap_utils.cpp
     )
 
-kis_add_library(kritaheightmapimport MODULE ${kritaheightmapimport_SOURCES})
+kis_add_library(kritaheightmapimport STATIC ${kritaheightmapimport_SOURCES})
 
 target_link_libraries(kritaheightmapimport kritaimpex )
 
@@ -18,7 +18,7 @@ set(kritaheightmapexport_SOURCES
     kis_heightmap_utils.cpp
     )
 
-kis_add_library(kritaheightmapexport MODULE ${kritaheightmapexport_SOURCES})
+kis_add_library(kritaheightmapexport STATIC ${kritaheightmapexport_SOURCES})
 
 target_link_libraries(kritaheightmapexport kritaimpex)
 

@@ -14,7 +14,7 @@ set(kritaselectiontools_SOURCES
 
 qt_add_resources(kritaselectiontools_SOURCES selectiontools.qrc)
 
-kis_add_library(kritaselectiontools MODULE ${kritaselectiontools_SOURCES})
+kis_add_library(kritaselectiontools STATIC ${kritaselectiontools_SOURCES})
 
 set_target_properties(kritaselectiontools PROPERTIES AUTOMOC OFF)
 target_include_directories(kritaselectiontools PRIVATE

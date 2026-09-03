@@ -3,7 +3,7 @@ set(kritatoollazybrush_SOURCES
     kis_tool_lazy_brush.cpp
     )
 
-kis_add_library(kritatoollazybrush MODULE ${kritatoollazybrush_SOURCES})
+kis_add_library(kritatoollazybrush STATIC ${kritatoollazybrush_SOURCES})
 
 set_target_properties(kritatoollazybrush PROPERTIES AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 

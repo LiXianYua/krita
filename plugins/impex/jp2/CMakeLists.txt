@@ -10,7 +10,7 @@ set(kritajp2import_SOURCES
     ${libkritaconverter_LIB_SRCS}
 )
 
-kis_add_library(kritajp2import MODULE ${kritajp2import_SOURCES})
+kis_add_library(kritajp2import STATIC ${kritajp2import_SOURCES})
 
 target_link_libraries(kritajp2import kritaimpex OpenJPEG::openjp2)
 

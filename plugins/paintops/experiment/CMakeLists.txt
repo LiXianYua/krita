@@ -6,7 +6,7 @@ set(kritaexperimentpaintop_SOURCES
 
     )
 
-kis_add_library(kritaexperimentpaintop MODULE ${kritaexperimentpaintop_SOURCES})
+kis_add_library(kritaexperimentpaintop STATIC ${kritaexperimentpaintop_SOURCES})
 
 target_link_libraries(kritaexperimentpaintop kritalibpaintop)
 

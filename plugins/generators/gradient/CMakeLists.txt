@@ -4,7 +4,7 @@ set(kritagradientgenerator_SOURCES
     KisGradientGeneratorConfiguration.cpp
     )
 
-kis_add_library(kritagradientgenerator MODULE ${kritagradientgenerator_SOURCES})
+kis_add_library(kritagradientgenerator STATIC ${kritagradientgenerator_SOURCES})
 set_target_properties(kritagradientgenerator PROPERTIES AUTOMOC OFF)
 target_link_libraries(kritagradientgenerator PRIVATE
     kritaimage

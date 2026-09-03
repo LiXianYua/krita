@@ -5,7 +5,7 @@ set(kritasketchpaintop_SOURCES
     KisSketchOpOptionData.cpp
     )
 
-kis_add_library(kritasketchpaintop MODULE ${kritasketchpaintop_SOURCES})
+kis_add_library(kritasketchpaintop STATIC ${kritasketchpaintop_SOURCES})
 
 target_link_libraries(kritasketchpaintop kritalibpaintop)
 

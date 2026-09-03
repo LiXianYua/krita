@@ -25,7 +25,7 @@ set(kritatiffimport_SOURCES
     kis_buffer_stream.cc
 )
 
-kis_add_library(kritatiffimport MODULE ${kritatiffimport_SOURCES})
+kis_add_library(kritatiffimport STATIC ${kritatiffimport_SOURCES})
 
 target_link_libraries(kritatiffimport
     kritaimpex
@@ -54,7 +54,7 @@ set(kritatiffexport_SOURCES
 )
 endif()
 
-kis_add_library(kritatiffexport MODULE ${kritatiffexport_SOURCES})
+kis_add_library(kritatiffexport STATIC ${kritatiffexport_SOURCES})
 
 target_link_libraries(kritatiffexport
     kritaimpex

@@ -18,7 +18,7 @@ set(kritapsdimport_SOURCES
     psd_loader.cpp
 )
 
-kis_add_library(kritapsdimport MODULE ${kritapsdimport_SOURCES})
+kis_add_library(kritapsdimport STATIC ${kritapsdimport_SOURCES})
 
 target_link_libraries(kritapsdimport kritapsd_static kritaglobal kritaimpex)
 
@@ -33,7 +33,7 @@ set(kritapsdexport_SOURCES
     psd_saver.cpp
 )
 
-kis_add_library(kritapsdexport MODULE ${kritapsdexport_SOURCES})
+kis_add_library(kritapsdexport STATIC ${kritapsdexport_SOURCES})
 
 target_link_libraries(kritapsdexport kritapsd_static kritapsd kritaimpex kritastore)
 

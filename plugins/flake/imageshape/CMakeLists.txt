@@ -8,7 +8,7 @@ set ( ImageShape_SRCS
     ImageShapeFactory.cpp
 )
 
-kis_add_library(krita_shape_image MODULE ${ImageShape_SRCS})
+kis_add_library(krita_shape_image STATIC ${ImageShape_SRCS})
 set_target_properties(krita_shape_image PROPERTIES AUTOMOC OFF)
 
 target_include_directories(krita_shape_image PRIVATE
