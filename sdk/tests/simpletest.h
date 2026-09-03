@@ -15,6 +15,7 @@ int qExec(QObject *testObject, int argc, char **argv);
 }
 #else
 #include <QTest>
+#include <QApplication>
 #include <KoTestConfig.h>
 #endif
 
@@ -47,6 +48,10 @@ int runSimpleTest(TestObject *test, int argc, char **argv)
     if constexpr (std::is_base_of<PkTestObject, TestObject>::value) {
         return PkTest::qExec(test, argc, argv);
     } else {
+        // 未迁移的 Qt QObject fixture 仍走 QtTest；原实现会创建 GUI 应用对象
+        // （事件循环 / 主线程界定），迁移时只补了 PkThread 主线程登记，漏了
+        // QApplication，导致 QEventLoop/QSignalSpy 在无应用对象下死等。这里补回。
+        QApplication app(argc, argv);
         return QTest::qExec(test, argc, argv);
     }
 }

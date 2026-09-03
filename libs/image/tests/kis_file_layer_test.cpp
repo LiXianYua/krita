@@ -16,6 +16,13 @@
 #include <kis_transform_mask.h>
 #include <kis_transform_mask_params_interface.h>
 
+#include <pk/geometry/PkRect.h>
+#include <pk/geometry/PkTransform.h>
+#include <PkImage.h>
+#include <cstdint>
+#include <cstring>
+#include <vector>
+
 #include <testutil.h>
 #include <kistest.h>
 
@@ -26,6 +33,27 @@
 
 namespace {
 
+// 真 Qt QImage -> PkImage 桥接（同 libs/canvas 匿名命名空间里的 toPkImage，
+// 此处因测试只链 kritaimage/kritatestsdk、够不到 canvas 而本地复刻）。
+PkImage toPkImage(const QImage &image)
+{
+    PkImage result(image.width(), image.height(),
+                   static_cast<PkImage::Format>(image.format()));
+    for (int y = 0; y < image.height(); ++y) {
+        std::memcpy(result.scanLine(y), image.constScanLine(y),
+                    static_cast<std::size_t>(image.bytesPerLine()));
+    }
+    if (image.colorCount() > 0) {
+        std::vector<std::uint32_t> colorTable;
+        colorTable.reserve(static_cast<std::size_t>(image.colorCount()));
+        for (int i = 0; i < image.colorCount(); ++i) {
+            colorTable.push_back(static_cast<std::uint32_t>(image.color(i)));
+        }
+        result.setColorTable(colorTable);
+    }
+    return result;
+}
+
 KisSafeDocumentLoader::LoadResult loadImage(const QString &path)
 {
     const QImage image(path);
@@ -34,7 +62,8 @@ KisSafeDocumentLoader::LoadResult loadImage(const QString &path)
     }
 
     KisPaintDeviceSP device(new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8()));
-    device->convertFromQImage(image, 0);
+    device->convertFromQImage(toPkImage(image), 0);
+
     return {device, 1.0, 1.0, image.size()};
 }
 
@@ -80,7 +109,7 @@ void KisFileLayerTest::testFileLayerPlusTransformMaskOffImage()
     KisTransformMaskSP mask1 = new KisTransformMask(p.image, "mask1");
     p.image->addNode(mask1, flayer);
 
-    flayer->setDirty(refRect);
+    flayer->setDirty(PkRect(refRect.x(), refRect.y(), refRect.width(), refRect.height()));
     p.image->waitForDone();
     chk.checkImage(p.image, "00_initial_layer_update");
 
@@ -90,7 +119,7 @@ void KisFileLayerTest::testFileLayerPlusTransformMaskOffImage()
 
     flayer->setX(580);
     flayer->setY(400);
-    flayer->setDirty(refRect);
+    flayer->setDirty(PkRect(refRect.x(), refRect.y(), refRect.width(), refRect.height()));
     p.image->waitForDone();
     chk.checkImage(p.image, "01_file_layer_moved");
 
@@ -98,11 +127,11 @@ void KisFileLayerTest::testFileLayerPlusTransformMaskOffImage()
     p.image->waitForDone();
     chk.checkImage(p.image, "01X_file_layer_moved");
 
-    const QTransform transform = QTransform::fromTranslate(-580, -400);
+    const PkTransform transform = PkTransform::fromTranslate(-580, -400);
     mask1->setTransformParams(KisTransformMaskParamsInterfaceSP(
         new KisDumbTransformMaskParams(transform)));
 
-    mask1->setDirty(refRect);
+    mask1->setDirty(PkRect(refRect.x(), refRect.y(), refRect.width(), refRect.height()));
     p.image->waitForDone();
     chk.checkImage(p.image, "02_mask1_moved_mask_update");
 
@@ -132,7 +161,7 @@ void KisFileLayerTest::testFileLayerPlusTransformMaskSmallFileBigOffset()
     KisTransformMaskSP mask1 = new KisTransformMask(p.image, "mask1");
     p.image->addNode(mask1, flayer);
 
-    flayer->setDirty(refRect);
+    flayer->setDirty(PkRect(refRect.x(), refRect.y(), refRect.width(), refRect.height()));
     p.image->waitForDone();
     chk.checkImage(p.image, "00_initial_layer_update");
 
@@ -140,11 +169,11 @@ void KisFileLayerTest::testFileLayerPlusTransformMaskSmallFileBigOffset()
     p.image->waitForDone();
     chk.checkImage(p.image, "00X_initial_layer_update");
 
-    const QTransform transform = QTransform::fromTranslate(1200, 300);
+    const PkTransform transform = PkTransform::fromTranslate(1200, 300);
     mask1->setTransformParams(KisTransformMaskParamsInterfaceSP(
         new KisDumbTransformMaskParams(transform)));
 
-    mask1->setDirty(refRect);
+    mask1->setDirty(PkRect(refRect.x(), refRect.y(), refRect.width(), refRect.height()));
     p.image->waitForDone();
     chk.checkImage(p.image, "01_mask1_moved_mask_update");
 

@@ -14,7 +14,7 @@
 #include "kis_painter.h"
 #include <kis_perspectivetransform_worker.h>
 
-struct Q_DECL_HIDDEN KisDumbTransformMaskParams::Private
+struct __attribute__((visibility("hidden"))) KisDumbTransformMaskParams::Private
 {
     Private() : isHidden(false) {}
 
