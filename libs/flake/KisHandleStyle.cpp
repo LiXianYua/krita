@@ -18,8 +18,8 @@ void initDashedStyle(const PkColor &baseColor, const PkColor &handleFill, KisHan
 
     ants.setColor(baseColor);
 
-    style->lineIterations << KisHandleStyle::IterationStyle(outline, Pk::NoBrush);
-    style->lineIterations << KisHandleStyle::IterationStyle(ants, Pk::NoBrush);
+    style->lineIterations << KisHandleStyle::IterationStyle(outline, toQBrush(Pk::NoBrush));
+    style->lineIterations << KisHandleStyle::IterationStyle(ants, toQBrush(Pk::NoBrush));
 
     PkPen handlePen(baseColor);
     handlePen.setWidth(2);
@@ -118,7 +118,7 @@ KisHandleStyle &KisHandleStyle::highlightedPrimaryHandlesWithSolidOutline()
         PkPen l = PkPen(highlightOutlineColor, 1);
         l.setCosmetic(true);
         l.setJoinStyle(Pk::RoundJoin);
-        style->lineIterations << KisHandleStyle::IterationStyle(l, Pk::NoBrush);
+        style->lineIterations << KisHandleStyle::IterationStyle(l, toQBrush(Pk::NoBrush));
     }
 
     return *style;

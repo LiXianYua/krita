@@ -103,6 +103,67 @@ public:
     std::string PkToUtf8() const;
     static PkString PkFromUtf8(const char* s, int len);
     static PkString fromUtf8(const char* s);                       // 对齐 QString::fromUtf8
+    static PkString fromUtf8(const char* s, int len)               // 定长重载（S-09-g KoFontGlyphModel）
+    {
+        return PkFromUtf8(s, len);
+    }
+    static PkString fromUtf8(const PkByteArray& ba)                // PkByteArray 字节（UTF-8 语义）
+    {
+        return PkFromUtf8(ba.data(), int(ba.size()));
+    }
+    // 对齐 QString::fromUcs4（Qt5 uint* 口径；hb_codepoint_t 即 uint32_t）。
+    static PkString fromUcs4(const uint32_t* u, int len = -1)
+    {
+        std::u16string out;
+        if (!u) return PkString();
+        int n = len;
+        if (n < 0) { n = 0; while (u[n]) ++n; }
+        for (int i = 0; i < n; ++i) {
+            uint32_t cp = u[i];
+            if (cp >= 0x10000u) {
+                cp -= 0x10000u;
+                out.push_back(char16_t(0xD800 + (cp >> 10)));
+                out.push_back(char16_t(0xDC00 + (cp & 0x3FF)));
+            } else {
+                out.push_back(char16_t(cp));
+            }
+        }
+        return fromUtf16(out.data(), int(out.size()));
+    }
+    // 对齐 QVector<T>::join 的静态形式（std::vector 没法加成员；调用点写成
+    // PkString::join(list, sep)——S-09-g 实测改写 3 处）。
+    template <typename Range>
+    static PkString join(const Range& list, const PkString& sep)
+    {
+        PkString out;
+        bool first = true;
+        for (const PkString& item : list) {
+            if (!first) out += sep;
+            out += item;
+            first = false;
+        }
+        return out;
+    }
+    void clear() { _data().clear(); }
+    // 对齐 QString::toUcs4：UTF-16 → UCS-4 码点序列（S-09-g KoFontGlyphModel）。
+    std::vector<uint32_t> toUcs4() const
+    {
+        std::vector<uint32_t> out;
+        const std::u16string u16 = PkToU16();
+        for (std::size_t i = 0; i < u16.size(); ++i) {
+            uint32_t c = static_cast<uint16_t>(u16[i]);
+            if (c >= 0xD800u && c <= 0xDBFFu && i + 1 < u16.size()) {
+                uint32_t lo = static_cast<uint16_t>(u16[i + 1]);
+                if (lo >= 0xDC00u && lo <= 0xDFFFu) {
+                    out.push_back(0x10000u + ((c - 0xD800u) << 10) + (lo - 0xDC00u));
+                    ++i;
+                    continue;
+                }
+            }
+            out.push_back(c);
+        }
+        return out;
+    }
     static PkString fromUtf16(const char16_t* s, int len = -1);    // 对齐 QString::fromUtf16
     bool PkIsSharedWith(const PkString& other) const;
 

@@ -49,13 +49,15 @@ getShapes(PkList<KoShape *> shapesInside, PkList<KoShape *> shapesSubtract, cons
             // grow each polygon here with the shape margin size.
             if (shapeMargin > 0) {
                 PkList<PkPolygon> subpathPolygons;
-                Q_FOREACH(PkPolygonF subPath, p.toSubpathPolygons()) {
-                    subpathPolygons.append(toPkPolygon(precisionTF.map(subPath).toPolygon()));
+                Q_FOREACH(PkPolygonF subPath, p.toSubpathPolygons(PkTransform())) {
+                    subpathPolygons.append(precisionTF.map(subPath).toPolygon());
                 }
                 subpathPolygons = KoPolygonUtils::offsetPolygons(subpathPolygons, shapeMargin);
                 p.clear();
                 for (const PkPolygon &poly : subpathPolygons) {
-                    p.addPolygon(toQPolygon(poly));
+                    PkPolygonF polyF;
+                    for (int j = 0; j < poly.size(); j++) polyF.append(PkPointF(poly.at(j)));
+                    p.addPolygon(polyF);
                 }
             } else {
                 p = precisionTF.map(p);
@@ -75,21 +77,24 @@ getShapes(PkList<KoShape *> shapesInside, PkList<KoShape *> shapesSubtract, cons
             p2.setFillRule(path->fillRule());
 
             PkList<PkPolygon> subpathPolygons;
-            Q_FOREACH(PkPolygonF subPath, p.toSubpathPolygons()) {
-                subpathPolygons.append(toPkPolygon(precisionTF.map(subPath).toPolygon()));
+            Q_FOREACH(PkPolygonF subPath, p.toSubpathPolygons(PkTransform())) {
+                subpathPolygons.append(precisionTF.map(subPath).toPolygon());
             }
             subpathPolygons = KoPolygonUtils::offsetPolygons(subpathPolygons, -shapePadding);
 
+            // S-09-g：PkPolygonF 未实现 intersects/subtracted（登记在案）。
+            // 与非相交多边形相减是恒等操作，故把全部子路径并入路径后整体减去
+            // subtract，与逐个“相交才减”语义等价。
+            PkPainterPath subpathPath;
+            subpathPath.setFillRule(path->fillRule());
             for (int i=0; i < subpathPolygons.size(); i++) {
-                PkPolygonF subpathPoly = toQPolygon(subpathPolygons.at(i));
-                Q_FOREACH(PkPolygonF subtractPoly, subtract.toSubpathPolygons()) {
-                    if (subpathPoly.intersects(subtractPoly)) {
-                        subpathPoly = subpathPoly.subtracted(subtractPoly);
-                    }
-                }
-                p2.addPolygon(subpathPoly);
+                const PkPolygon &poly = subpathPolygons.at(i);
+                PkPolygonF polyF;
+                for (int j = 0; j < poly.size(); j++) polyF.append(PkPointF(poly.at(j)));
+                subpathPath.addPolygon(polyF);
             }
-            p2 = toQPainterPath(KisAlgebra2D::trySimplifyPath(toPkPainterPath(precisionTF.inverted().map(p2)), 1.0));
+            p2 = subpathPath.subtracted(subtract);
+            p2 = precisionTF.inverted().map(KisAlgebra2D::trySimplifyPath(p2, 1.0));
             p2.closeSubpath();
             shapes.append(p2);
         }
@@ -135,7 +140,7 @@ static bool getFirstPosition(PkPointF &firstPoint,
     word.adjust(SHAPE_PRECISION, SHAPE_PRECISION, -SHAPE_PRECISION, -SHAPE_PRECISION);
 
     PkPointF terminatorAdjusted = terminator;
-    Q_FOREACH(const PkPolygonF polygon, p.toFillPolygons()) {
+    Q_FOREACH(const PkPolygonF polygon, p.toFillPolygons(PkTransform())) {
         PkVector<PkLineF> offsetPoly;
         for(int i = 0; i < polygon.size()-1; i++) {
             PkLineF line;
@@ -155,7 +160,7 @@ static bool getFirstPosition(PkPointF &firstPoint,
             } else {
                 qreal tAngle = fmod(line.angle(), 180.0);
                 PkPointF cPos = tAngle > 90? line.center() + PkPointF(-word.center().x(), word.center().y()): line.center() + word.center();
-                qreal offset = kisDistanceToLine(toPkPointF(cPos), toPkLineF(line));
+                qreal offset = kisDistanceToLine(cPos, line);
                 const PkPointF vectorT(qCos(qDegreesToRadians(tAngle)), -qSin(qDegreesToRadians(tAngle)));
                 PkPointF vectorN(-vectorT.y(), vectorT.x());
                 PkPointF offsetP = PkPointF() - (0.0 * vectorT) + (offset * vectorN);
@@ -304,7 +309,7 @@ findLineBoxesForFirstPos(PkPainterPath shape, PkPointF firstPos, const PkRectF w
         }
     }
 
-    PkPolygonF polygon = shape.toFillPolygon();
+    PkPolygonF polygon = shape.toFillPolygon(PkTransform());
     PkList<PkPointF> intersects;
     PkLineF topLine = baseLine.translated(lineTop);
     PkLineF bottomLine = baseLine.translated(lineBottom);
@@ -380,7 +385,7 @@ findLineBoxesForFirstPos(PkPainterPath shape, PkPointF firstPos, const PkRectF w
             if (!lines.isEmpty()) {
                 if (lines.last().p2() == intersects.at(i)) {
                     newLine.setP1(lines.last().p1());
-                    lines.removeLast();
+                    lines.takeLast();
                 }
             }
             lines.append(newLine);
@@ -389,7 +394,7 @@ findLineBoxesForFirstPos(PkPainterPath shape, PkPointF firstPos, const PkRectF w
             if (!lines.isEmpty()) {
                 if (lines.last().p2() == intersects.at(i)) {
                     newLine.setP1(lines.last().p1());
-                    lines.removeLast();
+                    lines.takeLast();
                 }
             }
             lines.append(newLine);
@@ -490,8 +495,9 @@ PkVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
                                                              : shapes.first().boundingRect().topLeft(); ///< Current position with advances of each character.
     PkPointF lineOffset = currentPos; ///< Current line offset.
 
-    QListIterator<int> it(logicalToVisual.keys());
-    QListIterator<PkPainterPath> shapesIt(shapes);
+    PkList<int> visualKeys = logicalToVisual.keys();
+    unsigned visualKeyIdx = 0; ///< QListIterator 替代：当前键游标
+    unsigned shapesIdx = 0;    ///< QListIterator 替代：当前形状游标
     if (shapes.isEmpty()) {
         return lineBoxes;
     }
@@ -503,8 +509,8 @@ PkVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
         getFirstPosition(startPos, shapes.first(), wordBox, currentPos, writingMode, ltr);
     }
     PkPainterPath currentShape;
-    while (it.hasNext()) {
-        int index = it.next();
+    while (visualKeyIdx < visualKeys.size()) {
+        int index = visualKeys.at(visualKeyIdx++);
         result[index].calculateAndApplyTabsize(wordAdvance + currentPos, isHorizontal, resHandler);
         CharacterResult charResult = result.at(index);
         if (!charResult.addressable) {
@@ -525,7 +531,7 @@ PkVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
             }
         }
         wordIndices.append(index);
-        currentLine.lastLine = !it.hasNext();
+        currentLine.lastLine = (visualKeyIdx >= visualKeys.size());
         if (currentLine.lastLine) {
             currentLine.justifyLine = alignLast == KoSvgText::AlignJustify;
         }
@@ -606,10 +612,10 @@ PkVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
              */
             while(!foundFirst) {
                 foundFirst = getFirstPosition(currentPos, currentShape, wordBox, lineOffset, writingMode, ltr);
-                if (foundFirst || !shapesIt.hasNext()) {
+                if (foundFirst || shapesIdx >= shapes.size()) {
                     break;
                 }
-                currentShape = shapesIt.next();
+                currentShape = shapes.at(shapesIdx++);
                 getEstimatedHeight(result, index, wordBox, currentShape.boundingRect(), writingMode);
 
                 bool indentPercent = textIndentInfo.length.unit == KoSvgText::CssLengthPercentage::Percentage;

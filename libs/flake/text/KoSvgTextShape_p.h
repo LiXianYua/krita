@@ -921,7 +921,7 @@ public:
 
         if (alsoCollapseLowSurrogate) {
             for (int i = 0; i < allText.size(); i++) {
-                if (i > 0 && allText.at(i).isLowSurrogate() && allText.at(i-1).isHighSurrogate()) {
+                if (i > 0 && ((allText.at(i) & 0xFC00) == 0xDC00) && ((allText.at(i-1) & 0xFC00) == 0xD800)) {
                     collapsed[i] = true;
                 }
             }
@@ -1188,7 +1188,7 @@ public:
                     inTextPath = false;
                 }
                 // When there's no new chunk, we're not at the start of the text and there isn't already a line feed, insert a line feed.
-                if (startsNewChunk && !resolvedTransforms.isEmpty() && current->text.at(j) != char16_t::LineFeed) {
+                if (startsNewChunk && !resolvedTransforms.isEmpty() && current->text.at(j) != u'\n') {
                     current->text.insert(j, "\n");
                 }
             }
@@ -1257,7 +1257,7 @@ public:
                 transforms.append(transform);
             }
             current->localTransformations = transforms;
-            current->text = current->text.split("\n").join(" ");
+            current->text = PkString::join(current->text.split("\n"), " ");
             globalIndex += length;
         }
     }

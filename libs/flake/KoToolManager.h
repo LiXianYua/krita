@@ -304,14 +304,18 @@ private:
     KoToolManager(const KoToolManager&);
     KoToolManager operator=(const KoToolManager&);
 
-    Q_PRIVATE_SLOT(d_func(), void detachCanvas(KoCanvasController *controller))
-    Q_PRIVATE_SLOT(d_func(), void attachCanvas(KoCanvasController *controller))
-    Q_PRIVATE_SLOT(d_func(), void movedFocus(QWidget *from, QWidget *to))
-    Q_PRIVATE_SLOT(d_func(), void updateCursor(const QCursor &cursor))
-    Q_PRIVATE_SLOT(d_func(), void selectionChanged(const PkList<KoShape*> &shapes))
-    Q_PRIVATE_SLOT(d_func(), void currentLayerChanged(const KoShapeLayer *layer))
+    Q_PRIVATE_SLOT(d, void detachCanvas(KoCanvasController *controller))
+    Q_PRIVATE_SLOT(d, void attachCanvas(KoCanvasController *controller))
+    Q_PRIVATE_SLOT(d, void movedFocus(QWidget *from, QWidget *to))
+    Q_PRIVATE_SLOT(d, void updateCursor(const QCursor &cursor))
+    Q_PRIVATE_SLOT(d, void selectionChanged(const PkList<KoShape*> &shapes))
+    Q_PRIVATE_SLOT(d, void currentLayerChanged(const KoShapeLayer *layer))
 
     Private *const d;
 };
 
 #endif
+
+// S-09-g：Q_PRIVATE_SLOT(d, …) 的独立 automoc 编译单元需要完整 Private。
+// 放在类定义之后（本头自底向上可见），include 顺序两种都由 include-guard 兜底。
+#include "KoToolManager_p.h"

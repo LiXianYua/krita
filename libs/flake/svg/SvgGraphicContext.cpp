@@ -51,7 +51,7 @@ void SvgGraphicsContext::workaroundClearInheritedFillProperties()
     stroke->setJoinStyle(Qt::MiterJoin);
 
     fillType = Solid;
-    fillRule = Qt::WindingFill;
+    fillRule = Pk::WindingFill;
     fillColor = PkColor(Pk::black);   // default is black fill as per svg spec
 
     opacity = 1.0;

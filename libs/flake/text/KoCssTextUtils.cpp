@@ -6,7 +6,7 @@
 #include "KoCssTextUtils.h"
 #include "KoLcLocale.h"
 #include "graphemebreak.h"
-#include <uchar>
+#include <uchar.h>
 #include <kis_assert.h>
 
 PkVector<std::pair<int, int>> positionDifference(PkStringList a, PkStringList b) {

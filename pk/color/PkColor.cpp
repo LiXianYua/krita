@@ -712,6 +712,12 @@ void PkColor::setAlphaF(qreal alpha)
     ct.argb.alpha = quint16(pkRound(alpha * kUShortMax));
 }
 
+qreal PkColor::lightnessF() const noexcept
+{
+    // 对齐 QColor：lightness() 返回 [0,255]，F 版归一。
+    return static_cast<qreal>(lightness()) / 255.0;
+}
+
 // qcolor.cpp:1365 setRgb(int,int,int,int)：越界 → 置无效。
 void PkColor::setRgb(int r, int g, int b, int a)
 {

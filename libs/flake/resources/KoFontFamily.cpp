@@ -109,7 +109,7 @@ PkVariantMap localeHashToPkVariantMap(const PkHash<QLocale, PkString> &names)
 {
     PkVariantMap map;
     for (auto it = names.constBegin(); it != names.constEnd(); ++it) {
-        map.emplace(KoLc::bcp47Name(qStringToPk(it.key().name())), PkVariant(qStringToPk(it.value())));
+        map.emplace(KoLc::bcp47Name(toPkString(it.key().name())), PkVariant(toPkString(it.value())));
     }
     return map;
 }
@@ -176,12 +176,12 @@ KoFontFamily::KoFontFamily(KoFontFamilyWWSRepresentation representation)
 
     PkVariantMap samples;
     for (auto it = representation.sampleStrings.constBegin(); it != representation.sampleStrings.constEnd(); ++it) {
-        samples.emplace(qStringToPk(it.key()), PkVariant(qStringToPk(it.value())));
+        samples.emplace(qStringToPk(it.key()), PkVariant(toPkString(it.value())));
     }
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_STRING, samples);
     PkVariantList supportedLanguages;
     for (const QLocale &l : representation.supportedLanguages) {
-        supportedLanguages.push_back(PkVariant(KoLc::bcp47Name(qStringToPk(l.name()))));
+        supportedLanguages.push_back(PkVariant(KoLc::bcp47Name(toPkString(l.name()))));
     }
     addMetaData(KoFontFamilyMetadata::KEY_SUPPORTED_LANGUAGES, supportedLanguages);
 
@@ -271,7 +271,7 @@ void KoFontFamily::updateThumbnail()
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_BBOX, sampleSVGBbox);
     PkString sample;
     if (samples.empty()) {
-        sample = QStringLiteral("AaBbGg");
+        sample = PkString("AaBbGg");
     } else {
         // ⚠ 行为归一化：旧 getter 用 .toHash()，对 Map(8) 类型的 SAMPLE_STRING 恒返回
         // 空，缩略图实际总用默认 "AaBbGg"；这里改 .toMap()，真正用上存的样本——

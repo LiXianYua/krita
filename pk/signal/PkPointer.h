@@ -39,7 +39,11 @@ public:
         m_alive.reset();
         if (p) {
             // PkObject::aliveFlag() 返回 shared_ptr<atomic<bool>>，转 weak 观察。
-            m_alive = p->aliveFlag();
+            // SFINAE 降级：过渡期部分 QObject 系类型（KoShapeManager/KoCanvasBase/
+            // KoDocumentResourceManager）还不是 PkObject 派生，没有 aliveFlag()——
+            // 此时弱视图为空，isNull() 退化为纯空指针判断（无析构防护）。这些类型
+            // 迁到 PkObject 后防护自动生效，调用点零改写。
+            m_alive = hasAliveFlag(p, 0);
         }
     }
 
@@ -53,6 +57,11 @@ public:
     bool operator!=(std::nullptr_t) const { return !isNull(); }
 
 private:
+    template <typename U>
+    static auto hasAliveFlag(U* p, int) -> decltype(p->aliveFlag()) { return p->aliveFlag(); }
+    template <typename U>
+    static std::shared_ptr<std::atomic<bool>> hasAliveFlag(U*, long) { return nullptr; }
+
     T* m_ptr = nullptr;
     std::weak_ptr<std::atomic<bool>> m_alive;
 };

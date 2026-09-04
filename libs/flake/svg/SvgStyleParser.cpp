@@ -423,9 +423,9 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, co
         gc->shapeSubtractValue = params;
     } else if (command == "clip-rule") {
         if (params == "nonzero")
-            gc->clipRule = Qt::WindingFill;
+            gc->clipRule = Pk::WindingFill;
         else if (params == "evenodd")
-            gc->clipRule = Qt::OddEvenFill;
+            gc->clipRule = Pk::OddEvenFill;
     } else if (command == "mask") {
         if (params != "none" && params.startsWith("url(")) {
             int start = pkIndexOf(params, u'#') + 1;

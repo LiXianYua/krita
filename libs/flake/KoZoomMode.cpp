@@ -26,11 +26,11 @@ PkString KoZoomMode::toString(Mode mode)
     case KoZoomMode::ZOOM_CONSTANT:
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(0 && "constant zoom has no user-friendly representation", "XXX");
     case KoZoomMode::ZOOM_PAGE:
-        return i18n("Fit View");
+        return toPkString(i18n("Fit View"));
     case KoZoomMode::ZOOM_WIDTH:
-        return i18n("Fit Width");
+        return toPkString(i18n("Fit Width"));
     case KoZoomMode::ZOOM_HEIGHT:
-        return i18n("Fit Height");
+        return toPkString(i18n("Fit Height"));
     }
     return "";
 }

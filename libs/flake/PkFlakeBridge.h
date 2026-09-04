@@ -169,6 +169,25 @@ inline PK_QPOLYGONF_ toQPolygonF(const PkPolygonF &p)
     return out;
 }
 
+// Pk::BrushStyle / PkColor → QBrush（KisHandleStyle 迭代样式过渡桥）
+inline PK_CAT_(Q, Brush) toQBrush(Pk::BrushStyle style)
+{
+    return PK_CAT_(Q, Brush)(static_cast<PK_CAT_(Q, t)::BrushStyle>(style));
+}
+inline PK_CAT_(Q, Brush) toQBrush(const PkColor &color)
+{
+    return PK_CAT_(Q, Brush)(toQColor(color));
+}
+
+// QStringList → PkStringList（过渡期 KLocalizedString::languages() 等 Qt 侧来源）
+inline PkStringList toPkStringList(const PK_CAT_(Q, StringList) &sl)
+{
+    PkStringList out;
+    out.reserve(static_cast<std::size_t>(sl.size()));
+    for (const auto &str : sl) out.push_back(toPkString(str));
+    return out;
+}
+
 inline PK_QPEN_ toQPen(const PkPen &pen)
 {
     PK_QPEN_ q(toQColor(pen.color()), pen.widthF());

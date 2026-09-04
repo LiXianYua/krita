@@ -53,7 +53,7 @@ KoMarkerCollection::~KoMarkerCollection()
 void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
 {
     PkFileStream file(svgFile);
-    if (!file.exists()) return;
+    if (!QFileInfo(toQString(file.fileName())).exists()) return;
 
     if (!file.open(PkStream::ReadOnly)) return;
 
@@ -74,7 +74,7 @@ void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
     KoDocumentResourceManager manager;
     SvgParser parser(&manager);
     parser.setResolution(PkRectF(0,0,100,100), 72); // initialize with default values
-    parser.setXmlBaseDir(QFileInfo(svgFile).absolutePath());
+    parser.setXmlBaseDir(toPkString(QFileInfo(toQString(svgFile)).absolutePath()));
 
     parser.setFileFetcher(
         [](const PkString &fileName) {
@@ -95,7 +95,7 @@ void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
 
 void KoMarkerCollection::loadDefaultMarkers()
 {
-    PkString filePath = toQString(KoResourcePaths::findAsset("markers", "markers.svg"));
+    PkString filePath = KoResourcePaths::findAsset("markers", "markers.svg");
     loadMarkersFromFile(filePath);
 }
 

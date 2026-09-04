@@ -43,7 +43,7 @@ struct KoCssStylePreset::Private {
 
     KoSvgTextProperties properties;
     PkString beforeText;
-    PkString sample = SAMPLE_PLACEHOLDER.toString();
+    PkString sample = toPkString(SAMPLE_PLACEHOLDER.toString());
     PkString afterText;
 
     PkSizeF paragraphSampleSize = PkSizeF(120, 120);
@@ -162,7 +162,7 @@ KoShape* KoCssStylePreset::generateSampleShape() const
     const PkString before = d->beforeText;
 
     std::unique_ptr<KoSvgTextShape> sampleText(new KoSvgTextShape());
-    sampleText->insertText(0, sample.isEmpty()? name().isEmpty()? SAMPLE_PLACEHOLDER.toString(): name(): sample);
+    sampleText->insertText(0, sample.isEmpty()? name().isEmpty()? toPkString(SAMPLE_PLACEHOLDER.toString()): name(): sample);
     const PkString type = styleType().isEmpty()? STYLE_TYPE_CHARACTER: styleType();
 
     bool removeParagraph = type == STYLE_TYPE_CHARACTER;
@@ -407,7 +407,11 @@ bool KoCssStylePreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP res
     PkString errorMsg;
     int errorLine = 0;
     int errorColumn = 0;
-    PkByteArray ba = pkReadAllAsQByteArray(dev);
+    std::string data;
+    char buf[4096];
+    PkStream::pk_int64 n = 0;
+    while ((n = dev->read(buf, sizeof(buf))) > 0) data.append(buf, static_cast<std::size_t>(n));
+    PkByteArray ba(data.data(), int(data.size()));
     PkXmlDocument xmlDocument = SvgParser::createDocumentFromSvg(ba, &errorMsg, &errorLine, &errorColumn);
     if (xmlDocument.isNull()) {
 
@@ -485,9 +489,7 @@ bool KoCssStylePreset::saveToDevice(PkStream *dev) const
 
     const PkRectF boundingRect = shape->boundingRect();
     SvgWriter writer({shape.release()});
-    PkStreamIoDevice devIo;
-    devIo.attach(dev);
-    return writer.save(devIo, boundingRect.size());
+    return writer.save(*dev, boundingRect.size());
 }
 
 PkString KoCssStylePreset::defaultFileExtension() const
@@ -523,7 +525,7 @@ void KoCssStylePreset::updateThumbnail()
     addMetaData(SAMPLE_SVG, PkVariant(generateSVG(shape.data())));
     updateAlignSample();
 
-    setImage(toPkImage(img));
+    setImage(img);
 }
 
 std::pair<PkString, PkString> KoCssStylePreset::resourceType() const

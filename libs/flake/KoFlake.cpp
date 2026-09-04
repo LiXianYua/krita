@@ -330,7 +330,7 @@ PkPointF KoFlake::anchorToPoint(AnchorPosition anchor, const PkRectF rect, bool 
         case AnchorPosition::BottomRight:
             if (valid)
                 *valid = true;
-            return toQPointF(KisAlgebra2D::relativeToAbsolute(toPkPointF(anchorTable[int(anchor)]), toPkRectF(rect)));
+            return KisAlgebra2D::relativeToAbsolute(anchorTable[int(anchor)], rect);
         default:
             KIS_SAFE_ASSERT_RECOVER_NOOP(anchor >= AnchorPosition::TopLeft && anchor < AnchorPosition::NumAnchorPositions);
             return rect.topLeft();

@@ -592,4 +592,4 @@ PkList<PkPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
 }
 
 //have to include this because of Q_PRIVATE_SLOT
-#include <moc_KoCreatePathTool.cpp>
+#include "KoCreatePathTool.moc"

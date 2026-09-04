@@ -9,6 +9,8 @@
 #include <QObject>
 // [migrate] missing include for Pk/Qt type
 #include <PkScopedPointer.h>
+#include <PkString.h>
+#include <PkStringList.h>
 
 /**
  * @brief The KoFontChangeTracker class

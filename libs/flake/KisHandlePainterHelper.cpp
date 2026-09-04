@@ -7,6 +7,7 @@
 #include "KisHandlePainterHelper.h"
 
 #include <QPainter>
+#include <PkFlakeBridge.h>
 #include <QPainterPath>
 #include <PkPainterPath.h>
 #include "KisAlgebra2D.h"

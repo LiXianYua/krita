@@ -8,21 +8,22 @@
 
 #include <PkGradient.h>
 #include <math.h>
-// [migrate] missing include for Pk/Qt type
-#include <QGradient>
+
+// S-09-g：PkGradient 是值类型（S-03-a，非多态），QGradient 的多态 clone/cast
+// 模式全部换成 PkGradient 的静态工厂 + 非虚接口。
 
 PkGradient* KoGradientHelper::defaultGradient(PkGradient::Type type, PkGradient::Spread spread, const PkGradientStops &stops)
 {
     PkGradient *gradient = 0;
     switch (type) {
     case PkGradient::LinearGradient:
-        gradient = new QLinearGradient(PkPointF(0.0, 0.5), PkPointF(1, 0.5));
+        gradient = new PkGradient(PkGradient::linear(PkPointF(0.0, 0.5), PkPointF(1, 0.5)));
         break;
     case PkGradient::RadialGradient:
-        gradient = new QRadialGradient(PkPointF(0.5, 0.5), sqrt(0.5));
+        gradient = new PkGradient(PkGradient::radial(PkPointF(0.5, 0.5), sqrt(0.5), PkPointF(0.5, 0.5)));
         break;
     case PkGradient::ConicalGradient:
-        gradient = new QConicalGradient(PkPointF(0.5, 0.5), 0.0);
+        gradient = new PkGradient(PkGradient::conical(PkPointF(0.5, 0.5), 0.0));
         break;
     default:
         return 0;
@@ -40,21 +41,18 @@ PkGradient* KoGradientHelper::convertGradient(const PkGradient * gradient, PkGra
     // try to preserve gradient positions
     switch (gradient->type()) {
     case PkGradient::LinearGradient: {
-        const QLinearGradient *g = static_cast<const QLinearGradient*>(gradient);
-        start = g->start();
-        stop = g->finalStop();
+        start = gradient->start();
+        stop = gradient->finalStop();
         break;
     }
     case PkGradient::RadialGradient: {
-        const QRadialGradient *g = static_cast<const QRadialGradient*>(gradient);
-        start = g->center();
-        stop = PkPointF(g->radius(), 0.0);
+        start = gradient->center();
+        stop = PkPointF(gradient->radius(), 0.0);
         break;
     }
     case PkGradient::ConicalGradient: {
-        const QConicalGradient *g = static_cast<const QConicalGradient*>(gradient);
-        start = g->center();
-        qreal radAngle = g->angle() * M_PI / 180.0;
+        start = gradient->center();
+        qreal radAngle = gradient->angle() * M_PI / 180.0;
         stop = PkPointF(0.5 * cos(radAngle), 0.5 * sin(radAngle));
         break;
     }
@@ -66,12 +64,12 @@ PkGradient* KoGradientHelper::convertGradient(const PkGradient * gradient, PkGra
     PkGradient *newGradient = 0;
     switch (newType) {
     case PkGradient::LinearGradient:
-        newGradient = new QLinearGradient(start, stop);
+        newGradient = new PkGradient(PkGradient::linear(start, stop));
         break;
     case PkGradient::RadialGradient: {
         PkPointF diff(stop - start);
         qreal radius = sqrt(diff.x()*diff.x() + diff.y()*diff.y());
-        newGradient = new QRadialGradient(start, radius, start);
+        newGradient = new PkGradient(PkGradient::radial(start, radius, start));
         break;
     }
     case PkGradient::ConicalGradient: {
@@ -79,7 +77,7 @@ PkGradient* KoGradientHelper::convertGradient(const PkGradient * gradient, PkGra
         qreal angle = atan2(diff.y(), diff.x());
         if (angle < 0.0)
             angle += 2 * M_PI;
-        newGradient = new QConicalGradient(start, angle * 180/M_PI);
+        newGradient = new PkGradient(PkGradient::conical(start, angle * 180/M_PI));
         break;
     }
     default:
@@ -98,34 +96,34 @@ PkColor KoGradientHelper::colorAt(qreal position, const PkGradientStops &stops)
         return PkColor();
 
     if (stops.count() == 1)
-        return stops.first().second;
+        return stops.first().color;
 
     PkGradientStop prevStop(-1.0, PkColor());
     PkGradientStop nextStop(2.0, PkColor());
     // find framing gradient stops
     Q_FOREACH (const PkGradientStop & stop, stops) {
-        if (stop.first > prevStop.first && stop.first < position)
+        if (stop.offset > prevStop.offset && stop.offset < position)
             prevStop = stop;
-        if (stop.first < nextStop.first && stop.first > position)
+        if (stop.offset < nextStop.offset && stop.offset > position)
             nextStop = stop;
     }
 
     PkColor theColor;
 
-    if (prevStop.first < 0.0) {
+    if (prevStop.offset < 0.0) {
         // new stop is before the first stop
-        theColor = nextStop.second;
-    } else if (nextStop.first > 1.0) {
+        theColor = nextStop.color;
+    } else if (nextStop.offset > 1.0) {
         // new stop is after the last stop
-        theColor = prevStop.second;
+        theColor = prevStop.color;
     } else {
         // linear interpolate colors between framing stops
-        PkColor prevColor = prevStop.second, nextColor = nextStop.second;
-        qreal colorScale = (position - prevStop.first) / (nextStop.first - prevStop.first);
-        theColor.setRedF(prevColor.redF() + colorScale *(nextColor.redF() - prevColor.redF()));
-        theColor.setGreenF(prevColor.greenF() + colorScale *(nextColor.greenF() - prevColor.greenF()));
-        theColor.setBlueF(prevColor.blueF() + colorScale *(nextColor.blueF() - prevColor.blueF()));
-        theColor.setAlphaF(prevColor.alphaF() + colorScale *(nextColor.alphaF() - prevColor.alphaF()));
+        PkColor prevColor = prevStop.color, nextColor = nextStop.color;
+        qreal colorScale = (position - prevStop.offset) / (nextStop.offset - prevStop.offset);
+        theColor.setRgbF(prevColor.redF() + colorScale * (nextColor.redF() - prevColor.redF()),
+                         prevColor.greenF() + colorScale * (nextColor.greenF() - prevColor.greenF()),
+                         prevColor.blueF() + colorScale * (nextColor.blueF() - prevColor.blueF()),
+                         prevColor.alphaF() + colorScale * (nextColor.alphaF() - prevColor.alphaF()));
     }
     return theColor;
 }

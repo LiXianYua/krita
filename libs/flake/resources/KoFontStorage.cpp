@@ -62,7 +62,7 @@ public:
     bool hasNext() const override {
         if (m_resourceType != ResourceType::FontFamilies) return false;
         if (!m_isLoaded) {
-            const_cast<FontIterator*>(this)->m_representationIterator.reset(new QListIterator<KoFontFamilyWWSRepresentation>(KoFontRegistry::instance()->collectRepresentations()));
+            const_cast<FontIterator*>(this)->m_representationIterator.reset(new QListIterator<KoFontFamilyWWSRepresentation>(toQList(KoFontRegistry::instance()->collectRepresentations())));
             const_cast<FontIterator*>(this)->m_isLoaded = true;
         }
 
@@ -114,8 +114,8 @@ KisResourceStorage::ResourceItem KoFontStorage::resourceItem(const PkString &url
 KoResourceSP KoFontStorage::resource(const PkString &url)
 {
     KoFontFamilySP fam;
-    PkString familyName = toQString(url);
-    PkString prefix(toQString(ResourceType::FontFamilies) + "/");
+    PkString familyName = url;
+    PkString prefix(ResourceType::FontFamilies + "/");
     if (familyName.startsWith(prefix)) {
         familyName.remove(0, prefix.size());
     }

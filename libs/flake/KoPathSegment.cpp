@@ -122,7 +122,7 @@ PkList<qreal> KoPathSegment::Private::roots() const
     PkList<PkPointF> pkControlPoints;
     pkControlPoints.reserve(segmentControlPoints.size());
     for (const PkPointF &pt : segmentControlPoints) {
-        pkControlPoints.append(toPkPointF(pt));
+        pkControlPoints.append(pt);
     }
     int xAxisCrossings = KisBezierUtils::controlPolygonZeros(pkControlPoints);
 
@@ -1048,7 +1048,7 @@ qreal KoPathSegment::nearestPoint(const PkPointF &point) const
     PkList<PkPointF> pkControlPoints;
     pkControlPoints.reserve(segmentControlPoints.size());
     for (const PkPointF &pt : segmentControlPoints) {
-        pkControlPoints.append(toPkPointF(pt));
+        pkControlPoints.append(pt);
     }
     return KisBezierUtils::nearestPoint(pkControlPoints, toPkPointF(point));
 }

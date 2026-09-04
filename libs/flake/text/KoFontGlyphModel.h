@@ -47,7 +47,7 @@ public:
         ChildCount
     };
 
-    PkVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
     QModelIndex parent(const QModelIndex &child) const override;
@@ -66,7 +66,7 @@ public:
      */
     void setFace(FT_FaceSP face, QLatin1String language = QLatin1String(), bool samplesOnly = false);
 
-    PkHash<int, PkByteArray> roleNames() const override;
+    QHash<int, QByteArray> roleNames() const override;
 
     /**
      * @brief blocks

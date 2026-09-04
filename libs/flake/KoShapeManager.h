@@ -275,8 +275,12 @@ private:
 
     class Private;
     Private * const d;
-    Q_PRIVATE_SLOT(d_func(), void updateTree())
-    Q_PRIVATE_SLOT(d_func(), void forwardCompressedUpdate())
+    Q_PRIVATE_SLOT(d, void updateTree())
+    Q_PRIVATE_SLOT(d, void forwardCompressedUpdate())
 };
 
 #endif
+
+// S-09-g：Q_PRIVATE_SLOT(d, …) 的独立 automoc 编译单元需要完整 Private。
+// 放在类定义之后（本头自底向上可见），include 顺序两种都由 include-guard 兜底。
+#include "KoShapeManager_p.h"

@@ -117,6 +117,7 @@ public:
     void setGreen(int green);
     void setBlue(int blue);
     void setAlpha(int alpha);
+    qreal lightnessF() const noexcept;                 // 对齐 QColor::lightnessF（S-09-g kis_painting_tweaks 12 处）
     void setAlphaF(qreal alpha);
     void setRgb(int r, int g, int b, int a = 255);   // 越界 → 置无效
     void setRgb(quint32 rgb) noexcept;   // opaque，alpha 置 255

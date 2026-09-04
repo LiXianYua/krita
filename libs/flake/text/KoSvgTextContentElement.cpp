@@ -56,7 +56,7 @@ PkVector<qreal> parseListAttributeX(const PkString &value, SvgLoadingContext &co
 {
     PkVector<qreal> result;
 
-    PkStringList list = SvgUtil::simplifyList(toPkString(value));
+    PkStringList list = SvgUtil::simplifyList(value);
     for (const PkString &str : list) {
         result << SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), str);
     }
@@ -68,7 +68,7 @@ PkVector<qreal> parseListAttributeY(const PkString &value, SvgLoadingContext &co
 {
     PkVector<qreal> result;
 
-    PkStringList list = SvgUtil::simplifyList(toPkString(value));
+    PkStringList list = SvgUtil::simplifyList(value);
     for (const PkString &str : list) {
         result << SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), str);
     }
@@ -80,7 +80,7 @@ PkVector<qreal> parseListAttributeAngular(const PkString &value, SvgLoadingConte
 {
     PkVector<qreal> result;
 
-    PkStringList list = SvgUtil::simplifyList(toPkString(value));
+    PkStringList list = SvgUtil::simplifyList(value);
     for (const PkString &str : list) {
         result << SvgUtil::parseUnitAngular(context.currentGC(), str);
     }
@@ -92,7 +92,7 @@ PkString convertListAttribute(const PkVector<qreal> &values) {
     PkStringList stringValues;
 
     Q_FOREACH (qreal value, values) {
-        stringValues.append(toQString(KisDomUtils::toString(value)));
+        stringValues.append(KisDomUtils::toString(value));
     }
 
     return stringValues.join(',');
@@ -102,7 +102,7 @@ void writeTextListAttribute(const PkString &attribute, const PkVector<qreal> &va
 {
     const PkString value = convertListAttribute(values);
     if (!value.isEmpty()) {
-        writer.addAttribute(attribute.toLatin1().data(), toPkString(value));
+        writer.addAttribute(attribute.toLatin1().data(), value);
     }
 }
 }
@@ -226,10 +226,10 @@ bool KoSvgTextContentElement::loadSvg(const PkXmlElement &e, SvgLoadingContext &
         if (e.hasAttribute("startOffset")) {
             PkString offset = e.attribute("startOffset", "0");
             if (offset.endsWith("%")) {
-                textPathInfo.startOffset = SvgUtil::parseNumber(toPkString(offset.left(offset.size() - 1)));
+                textPathInfo.startOffset = SvgUtil::parseNumber(offset.left(offset.size() - 1));
                 textPathInfo.startOffsetIsPercentage = true;
             } else {
-                textPathInfo.startOffset = SvgUtil::parseUnit(context.currentGC(), context.resolvedProperties(), toPkString(offset));
+                textPathInfo.startOffset = SvgUtil::parseUnit(context.currentGC(), context.resolvedProperties(), offset);
             }
         }
     }
@@ -241,7 +241,7 @@ bool KoSvgTextContentElement::loadSvg(const PkXmlElement &e, SvgLoadingContext &
             if (resolution.endsWith("dpi")) {
                 resolution.chop(3);
             }
-            properties.setProperty(KoSvgTextProperties::KraTextStyleResolution, KisDomUtils::toInt(toPkString(resolution)));
+            properties.setProperty(KoSvgTextProperties::KraTextStyleResolution, KisDomUtils::toInt(resolution));
         }
     }
 
@@ -260,7 +260,7 @@ bool KoSvgTextContentElement::loadSvgTextNode(const PkXmlText &text, SvgLoadingC
     // so we can replace all CRLF and CR into LF here for simplicity.
     static const QRegularExpression s_regexCrlf(R"==((?:\r\n|\r(?!\n)))==");
     PkString content = text.data();
-    content.replace(s_regexCrlf, QStringLiteral("\n"));
+    content = PkString::join(content.split("\r\n"), "\n");
 
     this->text = std::move(content);
 
@@ -280,24 +280,24 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
             PkString id = textPath->isVisible(false) && !context.strippedTextMode()? context.getID(textPath): SvgStyleWriter::embedShape(textPath, context);
             // inkscape can only read 'xlink:href'
             if (!id.isEmpty()) {
-                context.shapeWriter().addAttribute("xlink:href", toPkString("#" + id));
+                context.shapeWriter().addAttribute("xlink:href", "#" + id);
             }
         }
         if (textPathInfo.startOffset != 0) {
-            PkString offset = toQString(KisDomUtils::toString(textPathInfo.startOffset));
+            PkString offset = KisDomUtils::toString(textPathInfo.startOffset);
             if (textPathInfo.startOffsetIsPercentage) {
                 offset += "%";
             }
             context.shapeWriter().addAttribute("startOffset", toPkString(offset));
         }
         if (textPathInfo.method != KoSvgText::TextPathAlign) {
-            context.shapeWriter().addAttribute("method", toPkString(KoSvgText::writeTextPathMethod(textPathInfo.method)));
+            context.shapeWriter().addAttribute("method", KoSvgText::writeTextPathMethod(textPathInfo.method));
         }
         if (textPathInfo.side != KoSvgText::TextPathSideLeft) {
-            context.shapeWriter().addAttribute("side", toPkString(KoSvgText::writeTextPathSide(textPathInfo.side)));
+            context.shapeWriter().addAttribute("side", KoSvgText::writeTextPathSide(textPathInfo.side));
         }
         if (textPathInfo.spacing != KoSvgText::TextPathAuto) {
-            context.shapeWriter().addAttribute("spacing", toPkString(KoSvgText::writeTextPathSpacing(textPathInfo.spacing)));
+            context.shapeWriter().addAttribute("spacing", KoSvgText::writeTextPathSpacing(textPathInfo.spacing));
         }
     }
 
@@ -359,24 +359,24 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
     }
     for (auto it = attributes.constBegin(); it != attributes.constEnd(); ++it) {
         if (allowedAttributes.contains(it.key())) {
-            context.shapeWriter().addAttribute(it.key().toLatin1().data(), toPkString(it.value()));
+            context.shapeWriter().addAttribute(it.key().toLatin1().data(), it.value());
         } else {
             styleString.append(it.key().toLatin1().data()).append(": ").append(it.value()).append(";");
         }
     }
     if (!styleString.isEmpty()) {
-        context.shapeWriter().addAttribute("style", toPkString(styleString));
+        context.shapeWriter().addAttribute("style", styleString);
     }
 
     if (properties.hasProperty(KoSvgTextProperties::KraTextStyleType)) {
-        context.shapeWriter().addAttribute(TEXT_STYLE_TYPE.toLatin1().data(), toPkString(properties.property(KoSvgTextProperties::KraTextStyleType).toString()));
+        context.shapeWriter().addAttribute(TEXT_STYLE_TYPE.toLatin1().data(), properties.property(KoSvgTextProperties::KraTextStyleType).toString());
         if (properties.hasProperty(KoSvgTextProperties::KraTextStyleResolution)) {
-            context.shapeWriter().addAttribute(TEXT_STYLE_RES.toLatin1().data(), toPkString(PkString::number(properties.property(KoSvgTextProperties::KraTextStyleResolution).toInt())+"dpi"));
+            context.shapeWriter().addAttribute(TEXT_STYLE_RES.toLatin1().data(), PkString::number(properties.property(KoSvgTextProperties::KraTextStyleResolution).toInt())+"dpi");
         }
     }
 
     if (saveText) {
-        context.shapeWriter().addTextNode(toPkString(text));
+        context.shapeWriter().addTextNode(text);
     }
     return true;
 }
@@ -413,7 +413,7 @@ int KoSvgTextContentElement::numChars(bool withControls, KoSvgTextProperties res
         KoSvgText::Direction direction = KoSvgText::Direction(resolvedProps.propertyOrDefault(KoSvgTextProperties::DirectionId).toInt());
         KoSvgText::TextTransformInfo textTransformInfo =
             resolvedProps.propertyOrDefault(KoSvgTextProperties::TextTransformId).value<KoSvgText::TextTransformInfo>();
-        PkString lang = resolvedProps.property(KoSvgTextProperties::TextLanguage).toString().toUtf8();
+        PkString lang = resolvedProps.property(KoSvgTextProperties::TextLanguage).toString();
         PkVector<std::pair<int, int>> positions;
 
         result = KoCssTextUtils::getBidiOpening(direction == KoSvgText::DirectionLeftToRight, bidi).size();
@@ -439,7 +439,7 @@ PkString KoSvgTextContentElement::getTransformedString(PkVector<std::pair<int, i
 {
     KoSvgText::TextTransformInfo textTransformInfo =
         resolvedProps.propertyOrDefault(KoSvgTextProperties::TextTransformId).value<KoSvgText::TextTransformInfo>();
-    PkString lang = resolvedProps.property(KoSvgTextProperties::TextLanguage).toString().toUtf8();
+    PkString lang = resolvedProps.property(KoSvgTextProperties::TextLanguage).toString();
     return transformText(text, textTransformInfo, lang, positions);
 }
 

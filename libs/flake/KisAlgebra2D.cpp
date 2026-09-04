@@ -9,6 +9,7 @@
 // ppVar 调试转储（仅在断言即将失败时执行，功能等价），断言保留。
 
 #include "KisAlgebra2D.h"
+#include <PkFlakeBridge.h>
 
 #include <kis_assert.h>
 

@@ -199,10 +199,8 @@ handleCollapseAndHang(PkVector<CharacterResult> &result, LineChunk &chunk, bool 
     PkPointF endPos = chunk.length.p2();
 
     if (!lineIndices.isEmpty()) {
-        QVectorIterator<int> it(lineIndices);
-        it.toBack();
-        while (it.hasPrevious()) {
-            int lastIndex = it.previous();
+        for (int rev = lineIndices.size() - 1; rev >= 0; --rev) {
+            int lastIndex = lineIndices.at(rev);
             if (result.at(lastIndex).lineEnd == LineEdgeBehaviour::Collapse) {
                 result[lastIndex].hidden = true;
                 // We literally collapse the advance of the last collapsed white-space to ensure it may
@@ -491,9 +489,10 @@ PkVector<LineBox> breakLines(const KoSvgTextProperties &properties,
 
     PkVector<int> lineIndices; ///< Indices of characters in line.
 
-    QListIterator<int> it(logicalToVisual.keys());
-    while (it.hasNext()) {
-        int index = it.next();
+    PkList<int> visualKeys = logicalToVisual.keys();
+    unsigned visualKeyIdx = 0;
+    while (visualKeyIdx < visualKeys.size()) {
+        int index = visualKeys.at(visualKeyIdx++);
         result[index].calculateAndApplyTabsize(wordAdvance + currentPos, isHorizontal, resHandler);
         CharacterResult charResult = result.at(index);
         if (!charResult.addressable) {
@@ -511,7 +510,7 @@ PkVector<LineBox> breakLines(const KoSvgTextProperties &properties,
             }
         }
         wordIndices.append(index);
-        currentLine.lastLine = !it.hasNext();
+        currentLine.lastLine = (visualKeyIdx >= visualKeys.size());
 
         if (charResult.breakType != BreakType::NoBreak || currentLine.lastLine) {
             qreal lineLength = isHorizontal ? (currentPos - startPos + wordAdvance).x()

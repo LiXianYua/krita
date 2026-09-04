@@ -10,6 +10,7 @@
 #include <PkScopedPointer.h>
 #include <PkSharedPointer.h>
 #include <QObject>
+#include <PkVariant.h>
 
 #include "kritaflake_export.h"
 

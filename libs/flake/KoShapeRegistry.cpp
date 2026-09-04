@@ -62,9 +62,9 @@ void KoShapeRegistry::Private::init(KoShapeRegistry *q)
 
     // Also add our hard-coded basic shapes
     KoShapeFactoryBase *svgTextFactory = new KoSvgTextShapeFactory();
-    q->add(toPkString(svgTextFactory->id()), svgTextFactory);
+    q->add(svgTextFactory->id(), svgTextFactory);
     KoShapeFactoryBase *pathFactory = new KoPathShapeFactory(PkStringList());
-    q->add(toPkString(pathFactory->id()), pathFactory);
+    q->add(pathFactory->id(), pathFactory);
     // S-08: ImageShape/RectangleShape 原由 Krita/Shape 插件提供，D-12 删插件加载后
     // 在此硬编码补注册（D-07 崩溃根因 + TestKoDrag 缺 rect 工厂）。
     KoShapeFactoryBase *imageFactory = new ImageShapeFactory();

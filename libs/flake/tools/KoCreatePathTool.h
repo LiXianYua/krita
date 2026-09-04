@@ -109,3 +109,7 @@ private:
     Q_PRIVATE_SLOT(d_func(), void autoSmoothCurvesChanged(bool))
 };
 #endif
+
+// S-09-g：Q_PRIVATE_SLOT(d, …) 的独立 automoc 编译单元需要完整 Private。
+// 放在类定义之后（本头自底向上可见），include 顺序两种都由 include-guard 兜底。
+#include "KoCreatePathTool_p.h"

@@ -155,7 +155,7 @@ KoOpenTypeFeatureInfoFactory::KoOpenTypeFeatureInfoFactory()
                       {KoOpenTypeFeatureInfo::GSUB1}));
     initialMap.append(KoOpenTypeFeatureInfo(PkByteArray("frac"),
                       toPkString(i18nc("@title", "Fractions")),
-                      toPkString(i18nc("@tooltip", "Replaces figures separated by a slash with a proper diagonal fraction form. If a font has the numerator and denominator features, and the numbers are separated by a 'fraction slash' (U+2044)), then this will replace the figures with numerators before the slash and denominators after the slash."),
+                      toPkString(i18nc("@tooltip", "Replaces figures separated by a slash with a proper diagonal fraction form. If a font has the numerator and denominator features, and the numbers are separated by a 'fraction slash' (U+2044)), then this will replace the figures with numerators before the slash and denominators after the slash.")),
                       {KoOpenTypeFeatureInfo::GSUB1, KoOpenTypeFeatureInfo::GSUB4}, false));
     initialMap.append(KoOpenTypeFeatureInfo(PkByteArray("lnum"),
                       toPkString(i18nc("@title", "Lining Figures")),
@@ -357,7 +357,7 @@ KoOpenTypeFeatureInfoFactory::KoOpenTypeFeatureInfoFactory()
                       {KoOpenTypeFeatureInfo::GSUB1, KoOpenTypeFeatureInfo::GSUB3}));
     initialMap.append(KoOpenTypeFeatureInfo(PkByteArray("hojo"),
                       toPkString(i18nc("@title", "Hojo Kanji Forms")),
-                      toPkString(i18nc("@tooltip", "Replaces 'JIS X 0213:2004' form kanji in Japanese fonts with the Hojo ('JIS X 0212-1990')) forms."),
+                      toPkString(i18nc("@tooltip", "Replaces 'JIS X 0213:2004' form kanji in Japanese fonts with the Hojo ('JIS X 0212-1990')) forms.")),
                       {KoOpenTypeFeatureInfo::GSUB1}, true));
     initialMap.append(KoOpenTypeFeatureInfo(PkByteArray("hwid"),
                       toPkString(i18nc("@title", "Half Widths")),
@@ -569,7 +569,7 @@ KoOpenTypeFeatureInfoFactory::~KoOpenTypeFeatureInfoFactory()
 KoOpenTypeFeatureInfo KoOpenTypeFeatureInfoFactory::infoByTag(const PkByteArray &tag) const
 {
     KoOpenTypeFeatureInfo def(tag, PkString(), PkString(), {});
-    return d->infoMap.value(tag, def);
+    return d->infoMap.value(PkString::fromUtf8(tag.data(), int(tag.size())), def);
 }
 
 PkList<PkString> KoOpenTypeFeatureInfoFactory::tags() const

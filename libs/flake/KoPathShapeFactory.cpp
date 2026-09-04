@@ -21,13 +21,13 @@
 #include "kis_pointer_utils.h"
 
 KoPathShapeFactory::KoPathShapeFactory(const PkStringList&)
-        : KoShapeFactoryBase(KoPathShapeId, i18n("Simple path shape"))
+        : KoShapeFactoryBase(KoPathShapeId, toPkString(i18n("Simple path shape")))
 {
-    setToolTip(i18n("A simple path shape"));
+    setToolTip(toPkString(i18n("A simple path shape")));
     setIconName("pathshape");
     PkStringList elementNames;
     elementNames << "path" << "line" << "polyline" << "polygon";
-    setXmlElementNames(toQString(KoXmlNS::draw), elementNames);
+    setXmlElementNames(KoXmlNS::draw, elementNames);
     setLoadingPriority(0);
 }
 
