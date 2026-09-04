@@ -427,3 +427,33 @@ add_library(pktest STATIC
 )
 target_include_directories(pktest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/test)
 target_link_libraries(pktest PUBLIC pkstring)
+
+# =========================================================================
+# 17. R-50 三族：pk/dom + pk/font + pk/textstream（QDom / QFont / QTextStream 的零 Qt 替代）
+#     用新子目录 pk/dom、pk/font、pk/textstream，避免与 R-07/R-25 的 pk/xml 锁重叠。
+#     依赖拓扑：dom→pugixml（已在 §10 解析，target 名 pugixml 已存在）；
+#     textstream→pkport（PkStream）/ pkstring / pkcontainer。
+# =========================================================================
+add_library(pkdom STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/dom/PkDom.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dom/PkDomDocument.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dom/PkDomElement.cpp
+)
+target_include_directories(pkdom PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/dom)
+target_link_libraries(pkdom PUBLIC pugixml)
+
+add_library(pkfont STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/font/PkFontDatabase.cpp
+)
+target_include_directories(pkfont PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/font)
+
+add_library(pktextstream STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/textstream/PkTextStream.cpp
+)
+target_include_directories(pktextstream PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/textstream
+    ${CMAKE_CURRENT_SOURCE_DIR}/port
+    ${CMAKE_CURRENT_SOURCE_DIR}/string
+    ${CMAKE_CURRENT_SOURCE_DIR}/container
+)
+target_link_libraries(pktextstream PUBLIC pkport pkstring pkcontainer)
