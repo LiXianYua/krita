@@ -73,19 +73,19 @@ void KoMeshGradientBackground::paint(QPainter &painter,
 
     PkScopedPointer<SvgMeshGradient> gradient(new SvgMeshGradient(*d->gradient));
 
-    PkRectF meshBoundingRect = toQRectF(gradient->boundingRect());
+    PkRectF meshBoundingRect = gradient->boundingRect();
 
     if (gradient->gradientUnits() == KoFlake::ObjectBoundingBox) {
         // KisAlgebra2D::mapToRect 剥离后收 PkRectF 返 PkTransform；gradient->setTransform
         // 也收 PkTransform，故此处 relativeToShape 直接用 Pk 侧类型。
-        const PkTransform relativeToShape = KisAlgebra2D::mapToRect(toPkRectF(fillPath.boundingRect()));
+        const PkTransform relativeToShape = KisAlgebra2D::mapToRect(fillPath.boundingRect());
         gradient->setTransform(relativeToShape);
-        meshBoundingRect = toQRectF(gradient->boundingRect());
+        meshBoundingRect = gradient->boundingRect();
     }
 
     if (d->renderer->patchImage()->isNull()) {
 
-        d->renderer->configure(meshBoundingRect, painter.transform());
+        d->renderer->configure(meshBoundingRect, toPkTransform(painter.transform()));
         SvgMeshArray *mesharray = gradient->getMeshArray().data();
 
         for (int row = 0; row < mesharray->numRows(); ++row) {
@@ -98,10 +98,10 @@ void KoMeshGradientBackground::paint(QPainter &painter,
         //  d->renderer->patchImage()->save("mesh-patch.png");
     }
 
-    painter.setClipPath(fillPath);
+    painter.setClipPath(toQPainterPath(fillPath));
 
     // patch is to be drawn wrt. to "user" coordinates
-    painter.drawImage(meshBoundingRect, *d->renderer->patchImage());
+    painter.drawImage(toQRectF(meshBoundingRect), *d->renderer->patchImage());
 
     painter.restore();
 }

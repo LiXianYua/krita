@@ -10,6 +10,7 @@
 #define KORTREE_H
 
 #include <utility>
+#include <PkFlakeBridge.h>
 #include <PkMap.h>
 #include <PkList.h>
 #include <PkVector.h>
@@ -609,7 +610,7 @@ std::pair< typename KoRTree<T>::Node*, typename KoRTree<T>::Node* > KoRTree<T>::
     // clear is needed as the data items are not removed
     n1->clear();
     delete n1;
-    return qMakePair(node, n2);
+    return std::make_pair(node, n2);
 }
 
 template <typename T>
@@ -634,7 +635,7 @@ std::pair<int, int> KoRTree<T>::pickSeeds(Node *node)
             }
         }
     }
-    return qMakePair(s1, s2);
+    return std::make_pair(s1, s2);
 }
 
 template <typename T>
@@ -666,7 +667,7 @@ std::pair<int, int> KoRTree<T>::pickNext(Node * node, PkVector<bool> & marker, N
         }
     }
     marker[select] = true;
-    return qMakePair(group, select);
+    return std::make_pair(group, select);
 }
 
 template <typename T>

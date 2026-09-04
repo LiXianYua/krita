@@ -226,7 +226,7 @@ PkString KoResourceManager::stringResource(int key) const
         PkString empty;
         return empty;
     }
-    return toPkString(resource(key).toString());
+    return resource(key).toString();
 }
 
 PkSizeF KoResourceManager::sizeResource(int key) const
@@ -235,7 +235,7 @@ PkSizeF KoResourceManager::sizeResource(int key) const
         PkSizeF empty;
         return empty;
     }
-    return qvariant_cast<PkSizeF>(resource(key));
+    return resource(key).value<PkSizeF>();
 }
 
 bool KoResourceManager::hasResource(int key) const

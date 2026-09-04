@@ -115,7 +115,10 @@ public:
         return m_d.PkConst()[static_cast<std::size_t>(i)];
     }
 
-    T &operator[](int i)
+    // 返回容器原生引用类型：std::vector<bool> 的 operator[] 返回代理
+    // （bool 纯右值），T& 会绑不上——PkVector<bool> 是真实调用点
+    // （KoCssTextUtils collapsed[i] = true，S-09-g 实测）。
+    auto operator[](int i) -> decltype(std::declval<std::vector<T>&>()[0])
     {
         assert(i >= 0 && i < size());
         return m_d.PkMut()[static_cast<std::size_t>(i)];

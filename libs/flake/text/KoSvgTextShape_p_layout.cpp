@@ -149,14 +149,14 @@ void KoSvgTextShape::Private::relayout()
     const bool isHorizontal = writingMode == KoSvgText::HorizontalTB;
 
     const auto getUcs4At = [](const PkString &s, int i) -> char32_t {
-        const char16_t high = s.at(i);
+        const PkChar high = s.at(i);
         if (!high.isSurrogate()) {
             return high.unicode();
         }
         if (high.isHighSurrogate() && s.length() > i + 1) {
-            const char16_t low = s[i + 1];
+            const PkChar low = s[i + 1];
             if (low.isLowSurrogate()) {
-                return char16_t::surrogateToUcs4(high, low);
+                return PkChar::surrogateToUcs4(high, low);
             }
         }
         // Don't return U+FFFD replacement character but return the
@@ -229,7 +229,7 @@ void KoSvgTextShape::Private::relayout()
     // Without replacing hardbreaks with spaces, hardbreaks in rtl will break the bidi.
     for (int i = 0; i < text.size(); i++) {
         if (lineBreaks[i] == LINEBREAK_MUSTBREAK) {
-            text[i] = char16_t::Space;
+            text[i] = PkChar::Space;
         }
     }
     for (int i=0; i < clusterToOriginalString.size(); i++) {
@@ -474,9 +474,9 @@ void KoSvgTextShape::Private::relayout()
                                                        static_cast<size_t>(length));
                 }
 
-                PkHash<char16_t::Script, KoSvgText::FontMetrics> metricsList;
+                PkHash<PkChar::Script, KoSvgText::FontMetrics> metricsList;
                 for (int j=start; j<start+length; j++) {
-                    const char16_t::Script currentScript = char16_t::script(getUcs4At(text, j));
+                    const PkChar::Script currentScript = PkChar::script(getUcs4At(text, j));
                     if (!metricsList.contains(currentScript)) {
                         metricsList.insert(currentScript, KoFontRegistry::generateFontMetrics(face, isHorizontal, KoWritingSystemUtils::scriptTagForQCharScript(currentScript), textRendering));
                     }
@@ -487,7 +487,7 @@ void KoSvgTextShape::Private::relayout()
 
                     const KoSvgText::FontMetrics currentMetrics = properties.applyLineHeight(result[j].metrics);
 
-                    if (text.at(j) == char16_t::Tabulation) {
+                    if (text.at(j) == PkChar::Tabulation) {
                         qreal tabSize = 0;
                         if (tabInfo.isNumber) {
                             // Try to avoid Nan situations.
@@ -909,7 +909,7 @@ void KoSvgTextShape::Private::resolveTransforms(KisForest<KoSvgTextContentElemen
             }
 
             bool bidi = bidiControls.contains(text.at(k));
-            bool softHyphen = text.at(k) == char16_t::SoftHyphen;
+            bool softHyphen = text.at(k) == PkChar::SoftHyphen;
 
             // Apparently when there's bidi controls in the text, they participate in line-wrapping,
             // so we don't check for it when wrapping.

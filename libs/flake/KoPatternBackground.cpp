@@ -5,6 +5,8 @@
  */
 
 #include "KoPatternBackground.h"
+#include <PkImage.h>
+#include <PkFlakeBridge.h>
 #include "KoShapeSavingContext.h"
 #include <KoXmlNS.h>
 #include <KoUnit.h>
@@ -239,17 +241,17 @@ void KoPatternBackground::paint(QPainter &painter, const PkPainterPath &fillPath
         PkTransform matrix;
         matrix.scale(scaleX, scaleY);
 
-        painter.setClipPath(fillPath);
-        painter.setWorldTransform(matrix, true);
+        painter.setClipPath(toQPainterPath(fillPath));
+        painter.setWorldTransform(toQTransform(matrix), true);
         painter.drawTiledPixmap(targetRect, QPixmap::fromImage(d->pattern), -offset);
     } else if (d->repeat == Original) {
         PkRectF sourceRect(PkPointF(0, 0), d->pattern.size());
         PkRectF targetRect(PkPoint(0, 0), d->targetSize());
         targetRect.moveCenter(fillPath.boundingRect().center());
-        painter.setClipPath(fillPath);
+        painter.setClipPath(toQPainterPath(fillPath));
         painter.drawPixmap(targetRect, QPixmap::fromImage(d->pattern).scaled(sourceRect.size().toSize()), sourceRect);
     } else if (d->repeat == Stretched) {
-        painter.setClipPath(fillPath);
+        painter.setClipPath(toQPainterPath(fillPath));
         // undo conversion of the scaling so that we can use a nicely scaled image of the correct size
         qWarning() << "WARNING: stretched KoPatternBackground painting code is abandoned. The result might be not correct";
         const PkRectF targetRect = fillPath.boundingRect();

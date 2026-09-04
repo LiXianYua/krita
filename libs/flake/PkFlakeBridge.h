@@ -162,6 +162,16 @@ inline PK_QSIZEF_ toQSizeF(const PkSizeF &s)
 
 
 // PkPen ↔ QPen（值照抄 Qt，static_cast 往返；S-09-g HandlePainter 收口）
+inline PK_CAT_(Q, Size) toQSize(const PkSize &s)
+{
+    return PK_CAT_(Q, Size)(s.width(), s.height());
+}
+
+inline PK_CAT_(Q, Rect) toQRect(const PkRect &r)
+{
+    return PK_CAT_(Q, Rect)(r.x(), r.y(), r.width(), r.height());
+}
+
 inline PK_QPOLYGONF_ toQPolygonF(const PkPolygonF &p)
 {
     PK_QPOLYGONF_ out;
@@ -179,7 +189,32 @@ inline PK_CAT_(Q, Brush) toQBrush(const PkColor &color)
     return PK_CAT_(Q, Brush)(toQColor(color));
 }
 
+// 恒等重载：让 `toPkString(pkStringVar)` / `toQString(qstringVar)` 这类
+// 过渡期冗余包装在真 Qt 分支也可编译（S-09-g 实测大量残留）。
+inline PkPoint toPkPoint(const PK_CAT_(Q, Point) &p) { return PkPoint(p.x(), p.y()); }
+inline PK_CAT_(Q, Point) toQPoint(const PkPoint &p) { return PK_CAT_(Q, Point)(p.x(), p.y()); }
+inline PkPointF toPkPointF(const PkPointF &p) { return p; }
+inline PkRectF toPkRectF(const PkRectF &r) { return r; }
+inline PkSizeF toPkSizeF(const PkSizeF &s) { return s; }
+inline PkLineF toPkLineF(const PkLineF &l) { return l; }
+inline PkPoint toPkPoint(const PkPoint &p) { return p; }
+inline PkString toPkString(const PkString &s) { return s; }
+inline PK_QSTRING_ toQString(const PK_QSTRING_ &s) { return s; }
+inline PkVariant toQVariant(const PkVariant &v) { return v; }
+
+inline PK_QLINEF_ toQLineF(const PkLineF &l)
+{
+    return PK_QLINEF_(toQPointF(l.p1()), toQPointF(l.p2()));
+}
+
 // QStringList → PkStringList（过渡期 KLocalizedString::languages() 等 Qt 侧来源）
+inline PK_CAT_(Q, StringList) toQStringList(const PkStringList &sl)
+{
+    PK_CAT_(Q, StringList) out;
+    for (const PkString &str : sl) out << toQString(str);
+    return out;
+}
+
 inline PkStringList toPkStringList(const PK_CAT_(Q, StringList) &sl)
 {
     PkStringList out;
@@ -220,6 +255,14 @@ inline PkPen toPkPen(const PK_QPEN_ &qpen)
         pen.setDashPattern(pattern);
     }
     return pen;
+}
+
+// 真 Qt 多边形 → PkPolygonF（KoClipMask 过渡）
+inline PkPolygonF toPkPolygonF(const PK_CAT_(Q, PolygonF) &p)
+{
+    PkPolygonF out;
+    for (const auto &pt : p) out.append(PkPointF(pt.x(), pt.y()));
+    return out;
 }
 
 // PkPainterPath → 真 Qt 路径：按元素逐段重建。PkPainterPath 的 Element 与真 Qt 同构
@@ -447,6 +490,14 @@ inline PK_QIMAGE_ toQImage(const PkImage &img)
 // 真 Qt 调试流 << PkString：剥离头（kis_dom_utils.h 的 toInt/toDouble 等）里
 // `warnKrita << ... << PkString` 在 real-Qt-first TU 落到真 Qt 调试流，PkString 在全局
 // 命名空间 → ADL 自动命中本操作符，无需在各剥离头里加东西。
+inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkPointF &p)
+{
+    return dbg << toQPointF(p);
+}
+inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkRectF &r)
+{
+    return dbg << toQRectF(r);
+}
 inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkString &s)
 {
     dbg << s.PkToUtf8().c_str();
@@ -465,6 +516,11 @@ inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkByteArray &b)
 // 真 Qt 调试流 << PkTransform：TestSvgParser.cpp 等测试里 `qDebug() << ppVar(p.transform())`
 // （p.transform() 返回 PkTransform）落到真 Qt 调试流时命中。直接复用 toQTransform 转成
 // 真 Qt 变换再流进 QDebug（PkTransform 自带调试输出），打印语义与真 Qt 完全一致。
+// QDebug << PkSizeF（KoRTree 调试输出）
+inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkSizeF &s)
+{
+    return dbg << toQSizeF(s);
+}
 inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkTransform &t)
 {
     dbg << toQTransform(t);

@@ -26,32 +26,7 @@ Overloaded(Visitors...) -> Overloaded<Visitors...>;
 QBrush toQBrush(const PkBrush &brush)
 {
     QBrush result(toQColor(brush.color()));
-    result.setStyle(brush.style());
-    return result;
-}
-
-PkPen toQPen(const PkPen &pen)
-{
-    PkPen result(toQBrush(pen.brush()), pen.widthF(), pen.style(), pen.capStyle());
-    if (!pen.dashPattern().empty()) {
-        PkVector<qreal> pattern;
-        pattern.reserve(static_cast<int>(pen.dashPattern().size()));
-        for (qreal length : pen.dashPattern()) {
-            pattern.append(length);
-        }
-        result.setDashPattern(pattern);
-    }
-    result.setCosmetic(pen.isCosmetic());
-    return result;
-}
-
-PkPolygonF toQPolygonF(const PkPolygonF &polygon)
-{
-    PkPolygonF result;
-    result.reserve(polygon.size());
-    for (const PkPointF &point : polygon) {
-        result.append(toQPointF(point));
-    }
+    result.setStyle(static_cast<Qt::BrushStyle>(brush.style()));
     return result;
 }
 
@@ -84,10 +59,10 @@ void PkQPainterAdapter::submit(const PkPaintCommand &command)
             m_painter.setRenderHint(static_cast<QPainter::RenderHint>(value.hint), value.enabled);
         },
         [this](const PkSetClipRectCommand &value) {
-            m_painter.setClipRect(toQRectF(value.rect), value.operation);
+            m_painter.setClipRect(toQRectF(value.rect), static_cast<Qt::ClipOperation>(value.operation));
         },
         [this](const PkDrawLineCommand &value) {
-            m_painter.drawLine(PkLineF(toQPointF(value.line.p1()), toQPointF(value.line.p2())));
+            m_painter.drawLine(QLineF(toQPointF(value.line.p1()), toQPointF(value.line.p2())));
         },
         [this](const PkDrawRectCommand &value) {
             m_painter.drawRect(toQRectF(value.rect));

@@ -176,7 +176,7 @@ KoFontFamily::KoFontFamily(KoFontFamilyWWSRepresentation representation)
 
     PkVariantMap samples;
     for (auto it = representation.sampleStrings.constBegin(); it != representation.sampleStrings.constEnd(); ++it) {
-        samples.emplace(qStringToPk(it.key()), PkVariant(toPkString(it.value())));
+        samples.emplace(toPkString(it.key()), PkVariant(it.value()));
     }
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_STRING, samples);
     PkVariantList supportedLanguages;
@@ -344,7 +344,7 @@ PkList<KoSvgText::FontFamilyAxis> KoFontFamily::axes() const
         KoSvgText::FontFamilyAxis axis;
         axis.tag = pkToQString(entry->tag);
         for (auto it = entry->localizedLabels.begin(); it != entry->localizedLabels.end(); ++it) {
-            axis.localizedLabels.insert(QLocale(pkToQString(it->first)), pkToQString(it->second.toString()));
+            axis.localizedLabels.insert(QLocale(toQString(it->first)), it->second.toString());
         }
         axis.min = entry->min;
         axis.max = entry->max;
@@ -369,7 +369,7 @@ PkList<KoSvgText::FontFamilyStyleInfo> KoFontFamily::styles() const
         }
         KoSvgText::FontFamilyStyleInfo style;
         for (auto it = entry->localizedLabels.begin(); it != entry->localizedLabels.end(); ++it) {
-            style.localizedLabels.insert(QLocale(pkToQString(it->first)), pkToQString(it->second.toString()));
+            style.localizedLabels.insert(QLocale(toQString(it->first)), it->second.toString());
         }
         for (auto it = entry->instanceCoords.begin(); it != entry->instanceCoords.end(); ++it) {
             style.instanceCoords.insert(pkToQString(it->first), float(it->second.toDouble()));

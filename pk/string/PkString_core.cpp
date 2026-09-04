@@ -1,3 +1,4 @@
+#include <cassert>
 #include "PkString.h"
 
 #include "PkStringCodec.h"
@@ -145,4 +146,11 @@ PkString PkString::fromUtf16(const char16_t* s, int len)
         r._data().assign(s, s + n);
     }
     return r;
+}
+
+char16_t& PkString::operator[](int i)
+{
+    // 写访问：先 detach，再直取底层码元（对齐 Qt 的 operator[] 可写语义）
+    assert(i >= 0 && i < size());
+    return _data()[static_cast<std::size_t>(i)];
 }

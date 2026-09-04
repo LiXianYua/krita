@@ -136,18 +136,22 @@ void KisHandlePainterHelper::drawHandleLine(const PkLineF &line, qreal width, Pk
     QPainterPathStroker s;
     s.setWidth(width);
     if (!dashPattern.isEmpty()) {
-        s.setDashPattern(dashPattern);
+        {
+            QVector<qreal> dp;
+            for (qreal v : dashPattern) dp << v;
+            s.setDashPattern(dp);
+        }
         s.setDashOffset(dashOffset);
     }
     s.setCapStyle(Qt::RoundCap);
     s.setJoinStyle(Qt::RoundJoin);
-    p = s.createStroke(p);
+    p = toPkPainterPath(s.createStroke(toQPainterPath(p)));
 
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
-        m_painter->strokePath(p, m_painter->pen());
-        m_painter->fillPath(p, m_painter->brush());
+        m_painter->strokePath(toQPainterPath(p), m_painter->pen());
+        m_painter->fillPath(toQPainterPath(p), m_painter->brush());
     }
 }
 
@@ -203,7 +207,7 @@ void KisHandlePainterHelper::drawGradientCrossHandle(const PkPointF &center, qre
         Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
             it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
             PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
-            m_painter->drawPath(p);
+            m_painter->drawPath(toQPainterPath(p));
         }
     }
 
@@ -250,7 +254,7 @@ void KisHandlePainterHelper::drawArrow(const PkPointF &pos, const PkPointF &from
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
-        m_painter->drawPath(p);
+        m_painter->drawPath(toQPainterPath(p));
     }
 }
 
@@ -266,7 +270,7 @@ void KisHandlePainterHelper::drawGradientArrow(const PkPointF &start, const PkPo
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF()*m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
-        m_painter->drawPath(p);
+        m_painter->drawPath(toQPainterPath(p));
     }
 
     const qreal length = kisDistance(start, end);
@@ -318,7 +322,7 @@ void KisHandlePainterHelper::drawPath(const PkPainterPath &path)
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
-        m_painter->drawPath(realPath);
+        m_painter->drawPath(toQPainterPath(realPath));
     }
 }
 
@@ -354,5 +358,5 @@ void KisHandlePainterHelper::fillHandleRect(const PkPointF &center, qreal radius
 
     const PkPainterPath pathToSend = painterPath;
     const QBrush brushStyle(toQColor(fillColor));
-    m_painter->fillPath(pathToSend, brushStyle);
+    m_painter->fillPath(toQPainterPath(pathToSend), brushStyle);
 }

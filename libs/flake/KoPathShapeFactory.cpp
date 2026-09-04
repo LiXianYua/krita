@@ -45,7 +45,7 @@ KoShape *KoPathShapeFactory::createDefaultShape(KoDocumentResourceManager *) con
 bool KoPathShapeFactory::supports(const PkXmlElement & e, KoShapeLoadingContext &context) const
 {
     Q_UNUSED(context);
-    if (e.namespaceURI() == toQString(KoXmlNS::draw)) {
+    if (toQString(e.namespaceURI()) == toQString(KoXmlNS::draw)) {
         if (e.localName() == "path")
             return true;
         if (e.localName() == "line")

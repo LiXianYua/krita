@@ -6,6 +6,7 @@
  */
 
 #include "KoDrag.h"
+#include <PkFlakeBridge.h>
 
 #include <QApplication>
 #include <PkMemoryStream.h>
@@ -71,7 +72,7 @@ bool KoDrag::setSvg(const PkList<KoShape *> originalShapes)
 
     qDeleteAll(shapes);
 
-    setData(mimeType, buffer.data());
+    setData(PkString(mimeType), PkByteArray(buffer.data(), static_cast<int>(buffer.size())));
     return true;
 }
 
@@ -80,7 +81,7 @@ void KoDrag::setData(const PkString &mimeType, const PkByteArray &data)
     if (d->mimeData == 0) {
         d->mimeData = new QMimeData();
     }
-    d->mimeData->setData(mimeType, data);
+    d->mimeData->setData(toQString(mimeType), QByteArray(data.data(), int(data.size())));
 }
 
 void KoDrag::addToClipboard()

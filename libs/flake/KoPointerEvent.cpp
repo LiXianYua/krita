@@ -238,13 +238,13 @@ PkPoint KoPointerEvent::globalPos() const
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     struct Visitor {
         PkPoint operator() (const QMouseEvent *event) {
-            return event->globalPos();
+            return toPkPoint(event->globalPos());
         }
         PkPoint operator() (const QTabletEvent *event) {
-            return event->globalPos();
+            return toPkPoint(event->globalPos());
         }
         PkPoint operator() (const QTouchEvent *event) {
-            return event->touchPoints().constFirst().screenPos().toPoint();
+            return toPkPoint(event->touchPoints().constFirst().screenPos().toPoint());
         }
 #else
     struct Visitor {
@@ -269,13 +269,13 @@ PkPoint KoPointerEvent::pos() const
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     struct Visitor {
         PkPoint operator() (const QMouseEvent *event) {
-            return event->pos();
+            return toPkPoint(event->pos());
         }
         PkPoint operator() (const QTabletEvent *event) {
-            return event->pos();
+            return toPkPoint(event->pos());
         }
         PkPoint operator() (const QTouchEvent *event) {
-            return event->touchPoints().at(0).pos().toPoint();
+            return toPkPoint(event->touchPoints().at(0).pos().toPoint());
         }
     };
 #else
@@ -512,7 +512,7 @@ std::optional<PkPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEve
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         const PkList<QEventPoint> &touchPoints = touchEvent->points();
 #else
-        const PkList<QTouchEvent::TouchPoint> &touchPoints = touchEvent->touchPoints();
+        const QList<QTouchEvent::TouchPoint> touchPoints = touchEvent->touchPoints();
 #endif
         if (touchPoints.isEmpty()) {
             // Getting zero touch points can happen on Android when pressing
@@ -531,7 +531,7 @@ std::optional<PkPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEve
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         return tabletEvent->globalPosition();
 #else
-        return tabletEvent->globalPos();
+        return toPkPoint(tabletEvent->globalPos());
 #endif
     } else if (event->type() == QEvent::MouseButtonPress ||
                event->type() == QEvent::MouseButtonRelease ||
@@ -540,7 +540,7 @@ std::optional<PkPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEve
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         return mouseEvent->globalPosition();
 #else
-        return mouseEvent->globalPos();
+        return toPkPoint(mouseEvent->globalPos());
 #endif
     }
 

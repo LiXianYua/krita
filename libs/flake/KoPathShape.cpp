@@ -40,7 +40,7 @@ static bool qIsNaNPoint(const PkPointF &p) {
 }
 
 KoPathShape::Private::Private()
-    : fillRule(Qt::OddEvenFill)
+    : fillRule(Pk::OddEvenFill)
     , autoFillMarkers(false)
 {
 }
@@ -188,12 +188,12 @@ PkPainterPath KoPathShape::outline() const
     PkPainterPath path;
     for (auto subpathIt = d->subpaths.constBegin(); subpathIt != d->subpaths.constEnd(); ++subpathIt) {
         const KoSubpath * subpath = *subpathIt;
-        const KoPathPoint * lastPoint = subpath->constFirst();
+        const KoPathPoint * lastPoint = subpath->first();
         bool activeCP = false;
         for (auto pointIt = subpath->constBegin(); pointIt != subpath->constEnd(); ++pointIt) {
             const KoPathPoint * currPoint = *pointIt;
             KoPathPoint::PointProperties currProperties = currPoint->properties();
-            if (currPoint == subpath->constFirst()) {
+            if (currPoint == subpath->first()) {
                 if (currProperties & KoPathPoint::StartSubpath) {
                     Q_ASSERT(!qIsNaNPoint(currPoint->point()));
                     path.moveTo(currPoint->point());
@@ -1200,13 +1200,13 @@ void updateNodeType(KoPathPoint * point, const char16_t & nodeType)
 
 void KoPathShape::loadNodeTypes(const PkString &nodeTypes)
 {
-    PkString::const_iterator nIt(nodeTypes.constBegin());
+    const char16_t *nIt = nodeTypes.utf16();
     KoSubpathList::const_iterator pathIt(d->subpaths.constBegin());
     for (; pathIt != d->subpaths.constEnd(); ++pathIt) {
         KoSubpath::const_iterator it((*pathIt)->constBegin());
         for (; it != (*pathIt)->constEnd(); ++it, nIt++) {
             // be sure not to crash if there are not enough nodes in nodeTypes
-            if (nIt == nodeTypes.constEnd()) {
+            if (nIt == nodeTypes.utf16() + nodeTypes.size()) {
                 warnFlake << "not enough nodes in sodipodi:nodetypes";
                 return;
             }
@@ -1243,7 +1243,7 @@ KoPathShape * KoPathShape::createShapeFromPainterPath(const PkPainterPath &path)
     for (int i = 0; i < elementCount; i++) {
         PkPainterPath::Element element = path.elementAt(i);
         bool nextIsMove = (i == elementCount - 1) || (path.elementAt(i + 1).isMoveTo());
-        bool merge = nextIsMove && KisAlgebra2D::fuzzyPointCompare(toPkPointF(lastTeleportedToPoint), toPkPointF(PkPointF(element.x, element.y)));
+        bool merge = nextIsMove && KisAlgebra2D::fuzzyPointCompare(lastTeleportedToPoint, PkPointF(element.x, element.y)));
 
         switch (element.type) {
         case PkPainterPath::MoveToElement:
@@ -1348,7 +1348,7 @@ KoPathSegment KoPathShape::segmentAtPoint(const PkPointF &point, const PkRectF &
     foreach (KoPathSegment s, segments) {
         const qreal nearestPointParam = s.nearestPoint(p);
         const PkPointF nearestPoint = s.pointAt(nearestPointParam);
-        const qreal distance = kisDistance(toPkPointF(p), toPkPointF(nearestPoint));
+        const qreal distance = kisDistance(p, nearestPoint);
 
         // are we within the allowed distance ?
         if (distance > distanceThreshold)
@@ -1393,16 +1393,20 @@ PkPainterPath KoPathShape::pathStroke(const PkPen &pen) const
     stroker.setWidth(0);
     stroker.setJoinStyle(Qt::MiterJoin);
     stroker.setWidth(pen.widthF());
-    stroker.setJoinStyle(pen.joinStyle());
+    stroker.setJoinStyle(static_cast<Qt::PenJoinStyle>(pen.joinStyle()));
     stroker.setMiterLimit(pen.miterLimit());
-    stroker.setCapStyle(pen.capStyle());
+    stroker.setCapStyle(static_cast<Qt::PenCapStyle>(pen.capStyle()));
     stroker.setDashOffset(pen.dashOffset());
-    stroker.setDashPattern(pen.dashPattern());
+    {
+        QVector<qreal> dp;
+        for (qreal v : pen.dashPattern()) dp << v;
+        stroker.setDashPattern(dp);
+    }
 
-    PkPainterPath path = stroker.createStroke(outline());
+    PkPainterPath path = toPkPainterPath(stroker.createStroke(toQPainterPath(outline())));
 
     pathOutline.addPath(path);
-    pathOutline.setFillRule(Qt::WindingFill);
+    pathOutline.setFillRule(Pk::WindingFill);
 
     return pathOutline;
 }

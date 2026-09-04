@@ -8,6 +8,7 @@
 #define KOPATHSEGMENT_H
 
 #include "kritaflake_export.h"
+#include <PkGlobal.h>
 #include <PkList.h>
 #include <utility>
 

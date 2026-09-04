@@ -50,7 +50,7 @@ void KoPathShapeLoaderPrivate::parseSvg(const PkString &s, bool process)
 
         const PkByteArray buffer = d.toLatin1();
         const char *ptr = buffer.constData();
-        const char *end = buffer.constData() + buffer.length() + 1;
+        const char *end = buffer.data() + buffer.size() + 1;
 
         qreal curx = 0.0;
         qreal cury = 0.0;

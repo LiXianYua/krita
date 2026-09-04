@@ -40,17 +40,17 @@ static unsigned int firstCharUcs4(const PkString qsv)
     if (Q_UNLIKELY(qsv.isEmpty())) {
         return 0;
     }
-    const char16_t high = qsv.first();
+    const PkChar high = qsv.first();
     if (Q_LIKELY(!high.isSurrogate())) {
         return high.unicode();
     }
     if (Q_LIKELY(high.isHighSurrogate() && qsv.length() >= 2)) {
-        const char16_t low = qsv[1];
+        const PkChar low = qsv[1];
         if (Q_LIKELY(low.isLowSurrogate())) {
-            return char16_t::surrogateToUcs4(high, low);
+            return PkChar::surrogateToUcs4(high, low);
         }
     }
-    return char16_t::ReplacementCharacter;
+    return PkChar::ReplacementCharacter;
 }
 
 namespace {
@@ -448,8 +448,8 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
                     // Don't worry about matching controls directly,
                     // as they are not important to font-selection (and many
                     // fonts have no glyph entry for these)
-                    if (const uint first = firstCharUcs4(grapheme); char16_t::category(first) == char16_t::Other_Control
-                            || char16_t::category(first) == char16_t::Other_Format) {
+                    if (const uint first = firstCharUcs4(grapheme); PkChar::category(first) == PkChar::Other_Control
+                            || PkChar::category(first) == PkChar::Other_Format) {
                         index += grapheme.size();
                         continue;
                     }

@@ -7,6 +7,7 @@
 #include "KoGradientHelper.h"
 
 #include <PkGradient.h>
+#include <QtCore/QtCore>
 #include <math.h>
 
 // S-09-g：PkGradient 是值类型（S-03-a，非多态），QGradient 的多态 clone/cast
@@ -28,7 +29,7 @@ PkGradient* KoGradientHelper::defaultGradient(PkGradient::Type type, PkGradient:
     default:
         return 0;
     }
-    gradient->setCoordinateMode(PkGradient::ObjectBoundingMode);
+    gradient->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
     gradient->setSpread(spread);
     gradient->setStops(stops);
 
@@ -83,7 +84,7 @@ PkGradient* KoGradientHelper::convertGradient(const PkGradient * gradient, PkGra
     default:
         return 0;
     }
-    newGradient->setCoordinateMode(PkGradient::ObjectBoundingMode);
+    newGradient->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
     newGradient->setSpread(gradient->spread());
     newGradient->setStops(gradient->stops());
 
@@ -98,8 +99,8 @@ PkColor KoGradientHelper::colorAt(qreal position, const PkGradientStops &stops)
     if (stops.count() == 1)
         return stops.first().color;
 
-    PkGradientStop prevStop(-1.0, PkColor());
-    PkGradientStop nextStop(2.0, PkColor());
+    PkGradientStop prevStop{-1.0, PkColor()};
+    PkGradientStop nextStop{2.0, PkColor()};
     // find framing gradient stops
     Q_FOREACH (const PkGradientStop & stop, stops) {
         if (stop.offset > prevStop.offset && stop.offset < position)

@@ -200,11 +200,11 @@ PkString SvgSavingContext::saveImage(const PkImage &image)
         QTemporaryFile imgFile;
         if (toQImage(image).save(&imgFile, "PNG")) {
             PkString dstFilename = createFileName(".png");
-            if (QFile::copy(toQString(imgFile.fileName()), toQString(dstFilename))) {
+            if (QFile::copy(imgFile.fileName(), toQString(dstFilename))) {
                 return dstFilename;
             }
             else {
-                QFile::remove(toQString(imgFile.fileName()));
+                QFile::remove(imgFile.fileName());
             }
         }
     }

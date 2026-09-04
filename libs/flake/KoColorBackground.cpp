@@ -5,6 +5,7 @@
  */
 
 #include "KoColorBackground.h"
+#include <PkFlakeBridge.h>
 #include "KoShapeSavingContext.h"
 #include <KoXmlNS.h>
 
@@ -80,12 +81,12 @@ Qt::BrushStyle KoColorBackground::style() const
 
 QBrush KoColorBackground::brush() const
 {
-    return QBrush(d->color, d->style);
+    return QBrush(toQColor(d->color), d->style);
 }
 
 void KoColorBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
 {
     painter.setBrush(brush());
-    painter.drawPath(fillPath);
+    painter.drawPath(toQPainterPath(fillPath));
 }
 

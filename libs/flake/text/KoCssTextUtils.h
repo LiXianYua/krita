@@ -7,6 +7,7 @@
 #define KOCSSTEXTUTILS_H
 
 #include <KoSvgText.h>
+#include <PkChar.h>
 #include <QDebug>
 #include <QLocale>
 #include <PkString.h>
@@ -109,7 +110,7 @@ public:
      * @return whether the character should collapse if it's the last space in a
      * line.
      */
-    static bool collapseLastSpace(char16_t c, KoSvgText::TextSpaceCollapse collapseMethod);
+    static bool collapseLastSpace(PkChar c, KoSvgText::TextSpaceCollapse collapseMethod);
 
     /**
      * @brief hangLastSpace
@@ -122,7 +123,7 @@ public:
      * @param nextCharIsHardBreak whether the next char is a line break.
      * @return
      */
-    static bool hangLastSpace(const char16_t c,
+    static bool hangLastSpace(const PkChar c,
                               KoSvgText::TextSpaceCollapse collapseMethod,
                               KoSvgText::TextWrap wrapMethod,
                               bool &force, bool nextCharIsHardBreak);
@@ -136,7 +137,7 @@ public:
      * @param hangType how to hang.
      * @return whether the character can hang.
      */
-    static bool characterCanHang(char16_t c, KoSvgText::HangingPunctuations hangType);
+    static bool characterCanHang(PkChar c, KoSvgText::HangingPunctuations hangType);
 
     /**
      * @brief IsCssWordSeparator

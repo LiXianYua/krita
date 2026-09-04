@@ -8,6 +8,7 @@
 #define KOMESHPATCHESRENDERER_H
 
 #include <PkImage.h>
+#include <QImage>
 #include <QPainter>
 #include <PkPainterPath.h>
 #include <PkVector.h>
@@ -41,16 +42,16 @@ public:
         // boundingRect of the scaled version
         PkRectF scaledGradientRect = scaledTransform.mapRect(gradientRect);
 
-        m_patch = PkImage(scaledGradientRect.size().toSize(), PkImage::Format_ARGB32);
+        m_patch = QImage(toQSizeF(scaledGradientRect.size()).toSize(), QImage::Format_ARGB32);
         m_patch.fill(Qt::transparent);
 
         m_patchPainter.begin(&m_patch);
 
         // this ensures that the patch renders inside the boundingRect
-        m_patchPainter.translate(-scaledGradientRect.topLeft());
+        m_patchPainter.translate(-scaledGradientRect.left(), -scaledGradientRect.top());
 
         // upscale the patch to the same scaling factor as the painterTransform
-        m_patchPainter.setTransform(scaledTransform, true);
+        m_patchPainter.setTransform(toQTransform(scaledTransform), true);
         m_patchPainter.setCompositionMode(QPainter::CompositionMode_Source);
     }
 
@@ -60,18 +61,18 @@ public:
                    const int row = -1,
                    const int col = -1) {
 
-        PkColor color0 = toQColor(patch->getStop(SvgMeshPatch::Top).color);
-        PkColor color1 = toQColor(patch->getStop(SvgMeshPatch::Right).color);
-        PkColor color2 = toQColor(patch->getStop(SvgMeshPatch::Bottom).color);
-        PkColor color3 = toQColor(patch->getStop(SvgMeshPatch::Left).color);
+        PkColor color0 = patch->getStop(SvgMeshPatch::Top).color;
+        PkColor color1 = patch->getStop(SvgMeshPatch::Right).color;
+        PkColor color2 = patch->getStop(SvgMeshPatch::Bottom).color;
+        PkColor color3 = patch->getStop(SvgMeshPatch::Left).color;
 
         const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
 
         quint8 c[4][4];
-        cs->fromQColor(toPkColor(color0), c[0]);
-        cs->fromQColor(toPkColor(color1), c[1]);
-        cs->fromQColor(toPkColor(color2), c[2]);
-        cs->fromQColor(toPkColor(color3), c[3]);
+        cs->fromQColor(color0, c[0]);
+        cs->fromQColor(color1, c[1]);
+        cs->fromQColor(color2, c[2]);
+        cs->fromQColor(color3, c[3]);
 
         bool verticalDiv = patch->isDivisibleVertically();
         bool horizontalDiv = patch->isDivisibleHorizontally();
@@ -93,7 +94,7 @@ public:
 
             // SvgMeshPatch::subdivide* 收 PkVector<PkColor>，此处把 PkVector<PkColor> 转过去。
             PkVector<PkColor> colorsPk;
-            for (const PkColor &c : colors) colorsPk.append(toPkColor(c));
+            for (const PkColor &c : colors) colorsPk.append(c);
 
             if (verticalDiv && horizontalDiv) {
                 PkVector<SvgMeshPatch*> patches;
@@ -125,7 +126,7 @@ public:
             }
 
         } else {
-            const PkPainterPath outline = toQPainterPath(patch->getPath());
+            const PkPainterPath outline = patch->getPath();
             const PkRectF patchRect = outline.boundingRect();
 
             quint8 mixed[4];
@@ -134,19 +135,19 @@ public:
             // KoColorSpace::toQColor 剥离后收 PkColor*，先转 Pk 再经桥接回真 Qt 颜色。
             PkColor averagePk;
             cs->toQColor(mixed, &averagePk);
-            PkColor average = toQColor(averagePk);
+            PkColor average = toPkColor(averagePk);
 
             PkPen pen(average);
             pen.setWidth(0);
-            m_patchPainter.setPen(pen);
+            m_patchPainter.setPen(toQPen(pen));
 
             if (patchRect.width() <= 1 && patchRect.height() <= 1) {
-                m_patchPainter.drawPoint(patchRect.topLeft());
-                m_patchPainter.fillPath(outline, average);
+                m_patchPainter.drawPoint(toQPointF(patchRect.topLeft()));
+                m_patchPainter.fillPath(toQPainterPath(outline), toQColor(average));
 
             } else {
-                m_patchPainter.setBrush(average);
-                m_patchPainter.drawPath(outline);
+                m_patchPainter.setBrush(toQColor(average));
+                m_patchPainter.drawPath(toQPainterPath(outline));
             }
         }
     }
@@ -289,7 +290,7 @@ public:
 
     PkVector<qreal> secant(const SvgMeshStop& stop1, const SvgMeshStop& stop2)
     {
-        qreal distance = PkLineF(toQPointF(stop1.point), toQPointF(stop2.point)).length();
+        qreal distance = PkLineF(stop1.point, stop2.point).length();
 
         if (distance == 0.0) {  // NaN
             return {0.0, 0.0, 0.0, 0.0};
@@ -534,14 +535,14 @@ public:
                              mesharray->getPatch(row + 1, col));
         }
 
-        PkVector<PkVector<qreal>> c = {split(toQColor(f11.color)), split(toQColor(f12.color)), split(toQColor(f21.color)), split(toQColor(f22.color))};
+        PkVector<PkVector<qreal>> c = {split(f11.color), split(f12.color), split(f21.color), split(f22.color)};
         PkVector<PkVector<qreal>> alpha(4, PkVector<qreal>(16, 0));
 
-        qreal width01 = PkLineF(toQPointF(f11.point), toQPointF(f12.point)).length();
-        qreal width23 = PkLineF(toQPointF(f21.point), toQPointF(f22.point)).length();
+        qreal width01 = PkLineF(f11.point, f12.point).length();
+        qreal width23 = PkLineF(f21.point, f22.point).length();
 
-        qreal height01 = PkLineF(toQPointF(f11.point), toQPointF(f21.point)).length();
-        qreal height23 = PkLineF(toQPointF(f12.point), toQPointF(f22.point)).length();
+        qreal height01 = PkLineF(f11.point, f21.point).length();
+        qreal height23 = PkLineF(f12.point, f22.point).length();
 
         for (int i = 0; i < 4; ++i) {
             PkVector<qreal> X {
@@ -574,10 +575,10 @@ public:
 
     PkVector<PkColor> getColorsBicubic(const SvgMeshPatch* patch)
     {
-        PkPointF midTop    = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Top));
-        PkPointF midRight  = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Right));
-        PkPointF midBottom = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Bottom));
-        PkPointF midLeft   = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Left));
+        PkPointF midTop    = patch->getMidpointParametric(SvgMeshPatch::Top);
+        PkPointF midRight  = patch->getMidpointParametric(SvgMeshPatch::Right);
+        PkPointF midBottom = patch->getMidpointParametric(SvgMeshPatch::Bottom);
+        PkPointF midLeft   = patch->getMidpointParametric(SvgMeshPatch::Left);
         PkPointF center    = (midTop + midBottom) / 2;
 
         PkVector<PkColor> result(5);
@@ -606,10 +607,10 @@ public:
     {
         PkVector<PkColor> result(5);
 
-        PkColor c1 = toQColor(patch->getStop(SvgMeshPatch::Top).color);
-        PkColor c2 = toQColor(patch->getStop(SvgMeshPatch::Right).color);
-        PkColor c3 = toQColor(patch->getStop(SvgMeshPatch::Bottom).color);
-        PkColor c4 = toQColor(patch->getStop(SvgMeshPatch::Left).color);
+        PkColor c1 = patch->getStop(SvgMeshPatch::Top).color;
+        PkColor c2 = patch->getStop(SvgMeshPatch::Right).color;
+        PkColor c3 = patch->getStop(SvgMeshPatch::Bottom).color;
+        PkColor c4 = patch->getStop(SvgMeshPatch::Left).color;
 
         result[0] = midPointColor(c1, c2);
         result[1] = midPointColor(c2, c3);
@@ -620,12 +621,12 @@ public:
         return result;
     }
 
-    PkImage* patchImage() {
+    QImage* patchImage() {
         return &m_patch;
     }
 
 private:
-    PkImage m_patch;
+    QImage m_patch;   // S-09-g：QPainter 需 QPaintDevice（过渡期真 Qt）
     QPainter m_patchPainter;
     // TODO: make them local
     PkVector<PkVector<qreal>> m_alpha;

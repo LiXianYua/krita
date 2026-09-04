@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KoCssTextUtils.h"
+#include <PkChar.h>
 #include "KoLcLocale.h"
 #include "graphemebreak.h"
 #include <uchar.h>
@@ -21,12 +22,12 @@ PkVector<std::pair<int, int>> positionDifference(PkStringList a, PkStringList b)
         if (textA.size() > textB.size()) {
             for (int j=0; j < textA.size(); j++) {
                 int k = j < textB.size()? countB+j: -1;
-                positions.append(qMakePair(countA+j, k));
+                positions.append(std::make_pair(countA+j, k));
             }
         } else {
             for (int j=0; j < textB.size(); j++) {
                 int k = j < textA.size()? countA+j: -1;
-                positions.append(qMakePair(k, countB+j));
+                positions.append(std::make_pair(k, countB+j));
             }
         }
         countA += textA.size();
@@ -109,15 +110,15 @@ PkString KoCssTextUtils::transformTextCapitalize(const PkString &text, const PkS
     return graphemes.join("");
 }
 
-static char16_t findProportionalToFullWidth(const char16_t &value, const char16_t &defaultValue)
+static PkChar findProportionalToFullWidth(const PkChar &value, const PkChar &defaultValue)
 {
-    static PkMap<char16_t, char16_t> map = []() {
-        PkMap<char16_t, char16_t> map;
+    static PkMap<PkChar, PkChar> map = []() {
+        PkMap<PkChar, PkChar> map;
         // https://stackoverflow.com/questions/8326846/
         for (int i = 0x0021; i < 0x007F; i++) {
-            map.insert(char16_t(i), char16_t(i + 0xFF00 - 0x0020));
+            map.insert(PkChar(i), PkChar(i + 0xFF00 - 0x0020));
         }
-        map.insert(char16_t(0x0020), char16_t(0x3000)); // Ideographic space.
+        map.insert(PkChar(0x0020), PkChar(0x3000)); // Ideographic space.
 
         return map;
     }();
@@ -129,82 +130,82 @@ PkString KoCssTextUtils::transformTextFullWidth(const PkString &text)
 {
     if (text.isEmpty()) return text;
     PkString transformedText;
-    Q_FOREACH (const char16_t &c, text) {
-        if (c.decompositionTag() == char16_t::Narrow) {
+    Q_FOREACH (const PkChar &c, text) {
+        if (c.decompositionTag() == PkChar::Narrow) {
             transformedText.append(c.decomposition());
         } else {
-            transformedText.append(findProportionalToFullWidth(c, c));
+            transformedText.append(PkString(findProportionalToFullWidth(c, c).unicode()));
         }
     }
 
     return transformedText;
 }
 
-static char16_t findSmallKanaToBigKana(const char16_t &value, const char16_t &defaultValue)
+static PkChar findSmallKanaToBigKana(const PkChar &value, const PkChar &defaultValue)
 {
-    static PkMap<char16_t, char16_t> map = {
+    static PkMap<PkChar, PkChar> map = {
         // NOTE: these are not fully sequential!
         // clang-format off
-        {char16_t{0x3041}, char16_t{0x3042}},
-        {char16_t{0x3043}, char16_t{0x3044}},
-        {char16_t{0x3045}, char16_t{0x3046}},
-        {char16_t{0x3047}, char16_t{0x3048}},
-        {char16_t{0x3049}, char16_t{0x304A}},
-        {char16_t{0x3095}, char16_t{0x304B}},
-        {char16_t{0x3096}, char16_t{0x3051}},
-        {char16_t{0x1B132}, char16_t{0x3053}},
-        {char16_t{0x3063}, char16_t{0x3064}},
-        {char16_t{0x3083}, char16_t{0x3084}},
-        {char16_t{0x3085}, char16_t{0x3086}},
-        {char16_t{0x3087}, char16_t{0x3088}},
-        {char16_t{0x308E}, char16_t{0x308F}},
-        {char16_t{0x1B150}, char16_t{0x3090}},
-        {char16_t{0x1B151}, char16_t{0x3091}},
-        {char16_t{0x1B152}, char16_t{0x3092}},
+        {PkChar{0x3041}, PkChar{0x3042}},
+        {PkChar{0x3043}, PkChar{0x3044}},
+        {PkChar{0x3045}, PkChar{0x3046}},
+        {PkChar{0x3047}, PkChar{0x3048}},
+        {PkChar{0x3049}, PkChar{0x304A}},
+        {PkChar{0x3095}, PkChar{0x304B}},
+        {PkChar{0x3096}, PkChar{0x3051}},
+        {PkChar{0x1B132}, PkChar{0x3053}},
+        {PkChar{0x3063}, PkChar{0x3064}},
+        {PkChar{0x3083}, PkChar{0x3084}},
+        {PkChar{0x3085}, PkChar{0x3086}},
+        {PkChar{0x3087}, PkChar{0x3088}},
+        {PkChar{0x308E}, PkChar{0x308F}},
+        {PkChar{0x1B150}, PkChar{0x3090}},
+        {PkChar{0x1B151}, PkChar{0x3091}},
+        {PkChar{0x1B152}, PkChar{0x3092}},
 
-        {char16_t{0x30A1}, char16_t{0x30A2}},
-        {char16_t{0x30A3}, char16_t{0x30A4}},
-        {char16_t{0x30A5}, char16_t{0x30A6}},
-        {char16_t{0x30A7}, char16_t{0x30A8}},
-        {char16_t{0x30A9}, char16_t{0x30AA}},
-        {char16_t{0x30F5}, char16_t{0x30AB}},
-        {char16_t{0x31F0}, char16_t{0x30AF}},
-        {char16_t{0x30F6}, char16_t{0x30B1}},
-        {char16_t{0x1B155}, char16_t{0x30B3}},
-        {char16_t{0x31F1}, char16_t{0x30B7}},
-        {char16_t{0x31F2}, char16_t{0x30B9}},
-        {char16_t{0x30C3}, char16_t{0x30C4}},
-        {char16_t{0x31F3}, char16_t{0x30C8}},
-        {char16_t{0x31F4}, char16_t{0x30CC}},
-        {char16_t{0x31F5}, char16_t{0x30CF}},
-        {char16_t{0x31F6}, char16_t{0x30D2}},
-        {char16_t{0x31F7}, char16_t{0x30D5}},
-        {char16_t{0x31F8}, char16_t{0x30D8}},
-        {char16_t{0x31F9}, char16_t{0x30DB}},
-        {char16_t{0x31FA}, char16_t{0x30E0}},
-        {char16_t{0x30E3}, char16_t{0x30E4}},
-        {char16_t{0x30E5}, char16_t{0x30E6}},
-        {char16_t{0x30E7}, char16_t{0x30E8}},
-        {char16_t{0x31FB}, char16_t{0x30E9}},
-        {char16_t{0x31FC}, char16_t{0x30EA}},
-        {char16_t{0x31FD}, char16_t{0x30EB}},
-        {char16_t{0x31FE}, char16_t{0x30EC}},
-        {char16_t{0x31FF}, char16_t{0x30ED}},
-        {char16_t{0x30EE}, char16_t{0x30EF}},
-        {char16_t{0x1B164}, char16_t{0x30F0}},
-        {char16_t{0x1B165}, char16_t{0x30F1}},
-        {char16_t{0x1B166}, char16_t{0x30F2}},
-        {char16_t{0x1B167}, char16_t{0x30F3}},
+        {PkChar{0x30A1}, PkChar{0x30A2}},
+        {PkChar{0x30A3}, PkChar{0x30A4}},
+        {PkChar{0x30A5}, PkChar{0x30A6}},
+        {PkChar{0x30A7}, PkChar{0x30A8}},
+        {PkChar{0x30A9}, PkChar{0x30AA}},
+        {PkChar{0x30F5}, PkChar{0x30AB}},
+        {PkChar{0x31F0}, PkChar{0x30AF}},
+        {PkChar{0x30F6}, PkChar{0x30B1}},
+        {PkChar{0x1B155}, PkChar{0x30B3}},
+        {PkChar{0x31F1}, PkChar{0x30B7}},
+        {PkChar{0x31F2}, PkChar{0x30B9}},
+        {PkChar{0x30C3}, PkChar{0x30C4}},
+        {PkChar{0x31F3}, PkChar{0x30C8}},
+        {PkChar{0x31F4}, PkChar{0x30CC}},
+        {PkChar{0x31F5}, PkChar{0x30CF}},
+        {PkChar{0x31F6}, PkChar{0x30D2}},
+        {PkChar{0x31F7}, PkChar{0x30D5}},
+        {PkChar{0x31F8}, PkChar{0x30D8}},
+        {PkChar{0x31F9}, PkChar{0x30DB}},
+        {PkChar{0x31FA}, PkChar{0x30E0}},
+        {PkChar{0x30E3}, PkChar{0x30E4}},
+        {PkChar{0x30E5}, PkChar{0x30E6}},
+        {PkChar{0x30E7}, PkChar{0x30E8}},
+        {PkChar{0x31FB}, PkChar{0x30E9}},
+        {PkChar{0x31FC}, PkChar{0x30EA}},
+        {PkChar{0x31FD}, PkChar{0x30EB}},
+        {PkChar{0x31FE}, PkChar{0x30EC}},
+        {PkChar{0x31FF}, PkChar{0x30ED}},
+        {PkChar{0x30EE}, PkChar{0x30EF}},
+        {PkChar{0x1B164}, PkChar{0x30F0}},
+        {PkChar{0x1B165}, PkChar{0x30F1}},
+        {PkChar{0x1B166}, PkChar{0x30F2}},
+        {PkChar{0x1B167}, PkChar{0x30F3}},
 
-        {char16_t{0xFF67}, char16_t{0xFF71}},
-        {char16_t{0xFF68}, char16_t{0xFF72}},
-        {char16_t{0xFF69}, char16_t{0xFF73}},
-        {char16_t{0xFF6A}, char16_t{0xFF74}},
-        {char16_t{0xFF6B}, char16_t{0xFF75}},
-        {char16_t{0xFF6F}, char16_t{0xFF82}},
-        {char16_t{0xFF6C}, char16_t{0xFF94}},
-        {char16_t{0xFF6D}, char16_t{0xFF95}},
-        {char16_t{0xFF6E}, char16_t{0xFF96}},
+        {PkChar{0xFF67}, PkChar{0xFF71}},
+        {PkChar{0xFF68}, PkChar{0xFF72}},
+        {PkChar{0xFF69}, PkChar{0xFF73}},
+        {PkChar{0xFF6A}, PkChar{0xFF74}},
+        {PkChar{0xFF6B}, PkChar{0xFF75}},
+        {PkChar{0xFF6F}, PkChar{0xFF82}},
+        {PkChar{0xFF6C}, PkChar{0xFF94}},
+        {PkChar{0xFF6D}, PkChar{0xFF95}},
+        {PkChar{0xFF6E}, PkChar{0xFF96}},
         // clang-format on
     };
 
@@ -214,8 +215,8 @@ static char16_t findSmallKanaToBigKana(const char16_t &value, const char16_t &de
 PkString KoCssTextUtils::transformTextFullSizeKana(const PkString &text)
 {
     PkString transformedText;
-    Q_FOREACH (const char16_t &c, text) {
-        transformedText.append(findSmallKanaToBigKana(c, c));
+    Q_FOREACH (const PkChar &c, text) {
+        transformedText.append(PkString(findSmallKanaToBigKana(c, c).unicode()));
     }
 
     return transformedText;
@@ -228,7 +229,7 @@ PkVector<bool> KoCssTextUtils::collapseSpaces(PkString *text, PkMap<int, KoSvgTe
     PkVector<bool> collapseList(modifiedText.size());
     collapseList.fill(false);
     int spaceSequenceCount = 0;
-    KoSvgText::TextSpaceCollapse collapseMethod = collapseMethods.first();
+    KoSvgText::TextSpaceCollapse collapseMethod = collapseMethods.begin().value();
     for (int i = 0; i < modifiedText.size(); i++) {
         bool firstOrLast = (i == 0 || i == modifiedText.size() - 1);
         bool collapse = false;
@@ -237,19 +238,19 @@ PkVector<bool> KoCssTextUtils::collapseSpaces(PkString *text, PkMap<int, KoSvgTe
             if (collapseMethods.value(i) != collapseMethod) spaceSequenceCount = 0;
             collapseMethod = collapseMethods.value(i);
         }
-        const char16_t c = modifiedText.at(i);
-        if (c == char16_t::LineFeed || c == char16_t::Tabulation) {
+        const PkChar c = modifiedText.at(i);
+        if (c == PkChar::LineFeed || c == PkChar::Tabulation) {
             if (collapseMethod == KoSvgText::Collapse ||
                     collapseMethod == KoSvgText::PreserveSpaces) {
-                modifiedText[i] = char16_t::Space;
+                modifiedText[i] = PkChar::Space;
                 spaceSequenceCount += 1;
                 collapseList[i] = spaceSequenceCount > 1 || firstOrLast? true: false;
                 continue;
             }
         }
         if (c.isSpace()) {
-            bool isSegmentBreak = c == char16_t::LineFeed;
-            bool isTab = c == char16_t::Tabulation;
+            bool isSegmentBreak = c == PkChar::LineFeed;
+            bool isTab = c == PkChar::Tabulation;
             spaceSequenceCount += 1;
             if (spaceSequenceCount > 1 || firstOrLast) {
                 switch (collapseMethod) {
@@ -265,7 +266,7 @@ PkVector<bool> KoCssTextUtils::collapseSpaces(PkString *text, PkMap<int, KoSvgTe
                 case KoSvgText::PreserveBreaks:
                     collapse = !isSegmentBreak;
                     if (isTab) {
-                        modifiedText[i] = char16_t::Space;
+                        modifiedText[i] = PkChar::Space;
                     }
                     break;
                 }
@@ -282,7 +283,7 @@ PkVector<bool> KoCssTextUtils::collapseSpaces(PkString *text, PkMap<int, KoSvgTe
             collapseMethod = collapseMethods.value(collapseMethods.keys().value(pos-1, 0), KoSvgText::Collapse);
             if (collapseMethod != KoSvgText::Collapse) break;
         }
-        if (modifiedText.at(i).isSpace()) {
+        if (PkChar(modifiedText.at(i)).isSpace()) {
             if (collapseMethod == KoSvgText::Collapse) {
                 collapseList[i] = true;
             }
@@ -294,10 +295,10 @@ PkVector<bool> KoCssTextUtils::collapseSpaces(PkString *text, PkMap<int, KoSvgTe
     return collapseList;
 }
 
-bool KoCssTextUtils::collapseLastSpace(const char16_t c, KoSvgText::TextSpaceCollapse collapseMethod)
+bool KoCssTextUtils::collapseLastSpace(const PkChar c, KoSvgText::TextSpaceCollapse collapseMethod)
 {
     bool collapse = false;
-    if (c == char16_t::LineFeed) {
+    if (c == PkChar::LineFeed) {
         collapse = true;
     } else if (c.isSpace()) {
         switch (collapseMethod) {
@@ -320,7 +321,7 @@ bool KoCssTextUtils::collapseLastSpace(const char16_t c, KoSvgText::TextSpaceCol
     return collapse;
 }
 
-bool KoCssTextUtils::hangLastSpace(const char16_t c,
+bool KoCssTextUtils::hangLastSpace(const PkChar c,
                                    KoSvgText::TextSpaceCollapse collapseMethod,
                                    KoSvgText::TextWrap wrapMethod,
                                    bool &force,
@@ -351,44 +352,44 @@ bool KoCssTextUtils::hangLastSpace(const char16_t c,
     return false;
 }
 
-bool KoCssTextUtils::characterCanHang(const char16_t c, KoSvgText::HangingPunctuations hangType)
+bool KoCssTextUtils::characterCanHang(const PkChar c, KoSvgText::HangingPunctuations hangType)
 {
     if (hangType.testFlag(KoSvgText::HangFirst)) {
-        if (c.category() == char16_t::Punctuation_InitialQuote || // Pi
-            c.category() == char16_t::Punctuation_Open || // Ps
-            c.category() == char16_t::Punctuation_FinalQuote || // Pf
-            c == "\u0027" || // Apostrophe
-            c == "\uFF07" || // Fullwidth Apostrophe
-            c == "\u0022" || // Quotation Mark
-            c == "\uFF02") { // Fullwidth Quotation Mark
+        if (c.category() == PkChar::Punctuation_InitialQuote || // Pi
+            c.category() == PkChar::Punctuation_Open || // Ps
+            c.category() == PkChar::Punctuation_FinalQuote || // Pf
+            c == PkChar(0x0027) || // Apostrophe
+            c == PkChar(0xFF07) || // Fullwidth Apostrophe
+            c == PkChar(0x0022) || // Quotation Mark
+            c == PkChar(0xFF02)) { // Fullwidth Quotation Mark
             return true;
         }
     }
     if (hangType.testFlag(KoSvgText::HangLast)) {
-        if (c.category() == char16_t::Punctuation_InitialQuote || // Pi
-            c.category() == char16_t::Punctuation_FinalQuote || // Pf
-            c.category() == char16_t::Punctuation_Close || // Pe
-            c == "\u0027" || // Apostrophe
-            c == "\uFF07" || // Fullwidth Apostrophe
-            c == "\u0022" || // Quotation Mark
-            c == "\uFF02") { // Fullwidth Quotation Mark
+        if (c.category() == PkChar::Punctuation_InitialQuote || // Pi
+            c.category() == PkChar::Punctuation_FinalQuote || // Pf
+            c.category() == PkChar::Punctuation_Close || // Pe
+            c == PkChar(0x0027) || // Apostrophe
+            c == PkChar(0xFF07) || // Fullwidth Apostrophe
+            c == PkChar(0x0022) || // Quotation Mark
+            c == PkChar(0xFF02)) { // Fullwidth Quotation Mark
             return true;
         }
     }
     if (hangType.testFlag(KoSvgText::HangEnd)) {
-        if (c == "\u002c" || // Comma
-            c == "\u002e" || // Full Stop
-            c == "\u060c" || // Arabic Comma
-            c == "\u06d4" || // Arabic Full Stop
-            c == "\u3001" || // Ideographic Comma
-            c == "\u3002" || // Ideographic Full Stop
-            c == "\uff0c" || // Fullwidth Comma
-            c == "\uff0e" || // Fullwidth full stop
-            c == "\ufe50" || // Small comma
-            c == "\ufe51" || // Small ideographic comma
-            c == "\ufe52" || // Small full stop
-            c == "\uff61" || // Halfwidth ideographic full stop
-            c == "\uff64" // halfwidth ideographic comma
+        if (c == PkChar(0x002c) || // Comma
+            c == PkChar(0x002e) || // Full Stop
+            c == PkChar(0x060c) || // Arabic Comma
+            c == PkChar(0x06d4) || // Arabic Full Stop
+            c == PkChar(0x3001) || // Ideographic Comma
+            c == PkChar(0x3002) || // Ideographic Full Stop
+            c == PkChar(0xff0c) || // Fullwidth Comma
+            c == PkChar(0xff0e) || // Fullwidth full stop
+            c == PkChar(0xfe50) || // Small comma
+            c == PkChar(0xfe51) || // Small ideographic comma
+            c == PkChar(0xfe52) || // Small full stop
+            c == PkChar(0xff61) || // Halfwidth ideographic full stop
+            c == PkChar(0xff64) // halfwidth ideographic comma
         ) {
             return true;
         }
@@ -409,7 +410,7 @@ bool KoCssTextUtils::IsCssWordSeparator(const PkString grapheme)
 PkStringList KoCssTextUtils::textToUnicodeGraphemeClusters(const PkString &text, const PkString &langCode)
 {
     PkVector<char> graphemeBreaks(text.size());
-    set_graphemebreaks_utf16(text.utf16(), static_cast<size_t>(text.size()), langCode.toUtf8().data(), graphemeBreaks.data());
+    set_graphemebreaks_utf16(reinterpret_cast<const utf16_t*>(text.utf16()), static_cast<size_t>(text.size()), langCode.toUtf8().data(), graphemeBreaks.data());
     PkStringList graphemes;
     int graphemeLength = 0;
     int lastGrapheme = 0;
@@ -426,24 +427,24 @@ PkStringList KoCssTextUtils::textToUnicodeGraphemeClusters(const PkString &text,
     return graphemes;
 }
 
-static PkVector<char16_t::Script> blockScript {
-    char16_t::Script_Bopomofo,
-    char16_t::Script_Han,
-    char16_t::Script_Hangul,
-    char16_t::Script_Hiragana,
-    char16_t::Script_Katakana,
-    char16_t::Script_Yi
+static PkVector<PkChar::Script> blockScript {
+    PkChar::Script_Bopomofo,
+    PkChar::Script_Han,
+    PkChar::Script_Hangul,
+    PkChar::Script_Hiragana,
+    PkChar::Script_Katakana,
+    PkChar::Script_Yi
 };
 
-static PkVector<char16_t::Script> clusterScript {
-    char16_t::Script_Khmer,
-    char16_t::Script_Lao,
-    char16_t::Script_Myanmar,
-    char16_t::Script_NewTaiLue,
-    char16_t::Script_TaiLe,
-    char16_t::Script_TaiTham,
-    char16_t::Script_TaiViet,
-    char16_t::Script_Thai
+static PkVector<PkChar::Script> clusterScript {
+    PkChar::Script_Khmer,
+    PkChar::Script_Lao,
+    PkChar::Script_Myanmar,
+    PkChar::Script_NewTaiLue,
+    PkChar::Script_TaiLe,
+    PkChar::Script_TaiTham,
+    PkChar::Script_TaiViet,
+    PkChar::Script_Thai
 };
 
 PkVector<std::pair<bool, bool> > KoCssTextUtils::justificationOpportunities(PkString text, PkString langCode)
@@ -453,8 +454,8 @@ PkVector<std::pair<bool, bool> > KoCssTextUtils::justificationOpportunities(PkSt
     PkStringList graphemes = textToUnicodeGraphemeClusters(text, langCode);
     for (int i = 0; i < graphemes.size(); i++) {
         PkString grapheme = graphemes.at(i);
-        if (IsCssWordSeparator(grapheme) || blockScript.contains(grapheme.at(0).script())
-                || clusterScript.contains(grapheme.at(0).script())) {
+        if (IsCssWordSeparator(grapheme) || blockScript.contains(PkChar(grapheme.at(0)).script())
+                || clusterScript.contains(PkChar(grapheme.at(0)).script())) {
             opportunities[i] = std::pair<bool, bool>(true, true);
         }
     }
@@ -473,7 +474,7 @@ const PkString BIDI_CONTROL_PDI = "\u2069";
 const PkString UNICODE_BIDI_ISOLATE_OVERRIDE_LR_START = "\u2068\u202d";
 const PkString UNICODE_BIDI_ISOLATE_OVERRIDE_RL_START = "\u2068\u202e";
 const PkString UNICODE_BIDI_ISOLATE_OVERRIDE_END = "\u202c\u2069";
-const char16_t ZERO_WIDTH_JOINER = char16_t{0x200d};
+const PkChar ZERO_WIDTH_JOINER = PkChar{0x200d};
 
 PkString KoCssTextUtils::getBidiOpening(bool ltr, KoSvgText::UnicodeBidi bidi)
 {
@@ -566,7 +567,7 @@ void KoCssTextUtils::removeText(PkString &text, int &start, int length)
     bool startFound = false;
     bool addToEnd = true;
     Q_FOREACH(const uint i, text.toUcs4()) {
-        v = char16_t::requiresSurrogates(i)? 2: 1;
+        v = PkChar::requiresSurrogates(i)? 2: 1;
         int index = (j+v) -1;
         bool ZWJ = text.at(index) == ZERO_WIDTH_JOINER;
         if (isVariationSelector(i)) {

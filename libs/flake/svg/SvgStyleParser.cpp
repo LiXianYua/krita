@@ -471,7 +471,7 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, co
     }
 
     gc->fillColor = fillcolor;
-    gc->stroke->setColor(toQColor(strokecolor));
+    gc->stroke->setColor(strokecolor);
 }
 
 bool SvgStyleParser::parseColor(PkColor &color, const PkString &s)

@@ -16,6 +16,8 @@
 #include <FlakeDebug.h>
 
 #include <PkColor.h>
+#include <PkPen.h>
+#include <PkFlakeBridge.h>
 #include <PkString.h>
 #include <QPainter>
 #include <PkPainterPath.h>
@@ -56,11 +58,11 @@ void KoHatchBackground::paint(QPainter &painter, const PkPainterPath &fillPath) 
 
     const PkRectF targetRect = fillPath.boundingRect();
     painter.save();
-    painter.setClipPath(fillPath);
+    painter.setClipPath(toQPainterPath(fillPath));
     PkPen pen(d->lineColor);
     // we set the pen width to 0.5 pt for the hatch. This is not defined in the spec.
     pen.setWidthF(0.5);
-    painter.setPen(pen);
+    painter.setPen(toQPen(pen));
     PkVector<PkLineF> lines;
 
     // The different styles are handled by painting the lines multiple times with a different
@@ -109,6 +111,8 @@ void KoHatchBackground::paint(QPainter &painter, const PkPainterPath &fillPath) 
         }
     }
 
-    painter.drawLines(lines);
+    for (const PkLineF &line : lines) {
+        painter.drawLine(toQLineF(line));
+    }
     painter.restore();
 }

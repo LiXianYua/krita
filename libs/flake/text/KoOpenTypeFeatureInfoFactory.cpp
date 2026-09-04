@@ -558,7 +558,7 @@ KoOpenTypeFeatureInfoFactory::KoOpenTypeFeatureInfoFactory()
     }
 
     Q_FOREACH(KoOpenTypeFeatureInfo feature, initialMap) {
-        d->infoMap.insert(feature.tag, feature);
+        d->infoMap.insert(PkString::fromUtf8(feature.tag.data(), int(feature.tag.size())), feature);
     }
 }
 

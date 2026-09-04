@@ -152,21 +152,21 @@ void KoClipMask::drawMask(QPainter *painter, KoShape *shape)
     PkPainterPath clipPathInShapeSpace;
 
     if (m_d->coordinates == KoFlake::ObjectBoundingBox) {
-        PkTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shape->outlineRect())));
-        clipPathInShapeSpace.addPolygon(relativeToShape.map(m_d->maskRect));
+        QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(shape->outlineRect()));
+        clipPathInShapeSpace.addPolygon(toPkPolygonF(relativeToShape.map(toQRectF(m_d->maskRect))));
     } else {
         clipPathInShapeSpace.addRect(m_d->maskRect);
         clipPathInShapeSpace = m_d->extraShapeTransform.map(clipPathInShapeSpace);
     }
 
-    painter->setClipPath(clipPathInShapeSpace, Qt::IntersectClip);
+    painter->setClipPath(toQPainterPath(clipPathInShapeSpace), Qt::IntersectClip);
 
     if (m_d->contentCoordinates == KoFlake::ObjectBoundingBox) {
-        PkTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shape->outlineRect())));
+        QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(shape->outlineRect()));
 
         painter->setTransform(relativeToShape, true);
     } else {
-        painter->setTransform(m_d->extraShapeTransform, true);
+        painter->setTransform(toQTransform(m_d->extraShapeTransform), true);
     }
 
     KoShapePainter p;

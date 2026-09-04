@@ -5,6 +5,8 @@
  */
 
 #include "KoClipMaskPainter.h"
+#include <QPainterPath>
+#include <PkFlakeBridge.h>
 
 #include <QPainter>
 #include <PkPainterPath.h>
@@ -31,8 +33,8 @@ struct Q_DECL_HIDDEN KoClipMaskPainter::Private
 {
     QPainter *globalPainter;
 
-    PkImage shapeImage;
-    PkImage maskImage;
+    QImage shapeImage;
+    QImage maskImage;
 
     QPainter shapePainter;
     QPainter maskPainter;
@@ -49,8 +51,8 @@ KoClipMaskPainter::KoClipMaskPainter(QPainter *painter, const PkRectF &globalCli
     if (!m_d->alignedGlobalClipRect.isValid()) {
         m_d->alignedGlobalClipRect = PkRect();
     }
-    m_d->shapeImage = PkImage(m_d->alignedGlobalClipRect.size(), PkImage::Format_ARGB32);
-    m_d->maskImage = PkImage(m_d->alignedGlobalClipRect.size(), PkImage::Format_ARGB32);
+    m_d->shapeImage = QImage(toQSize(m_d->alignedGlobalClipRect.size()), QImage::Format_ARGB32);
+    m_d->maskImage = QImage(toQSize(m_d->alignedGlobalClipRect.size()), QImage::Format_ARGB32);
 
     PkTransform moveToBufferTransform =
         PkTransform::fromTranslate(-m_d->alignedGlobalClipRect.x(),
@@ -60,10 +62,10 @@ KoClipMaskPainter::KoClipMaskPainter(QPainter *painter, const PkRectF &globalCli
 
     m_d->shapePainter.save();
     m_d->shapePainter.setCompositionMode(QPainter::CompositionMode_Source);
-    m_d->shapePainter.fillRect(PkRect(PkPoint(), m_d->alignedGlobalClipRect.size()), Qt::transparent);
+    m_d->shapePainter.fillRect(toQRect(PkRect(PkPoint(), m_d->alignedGlobalClipRect.size())), Qt::transparent);
     m_d->shapePainter.restore();
 
-    m_d->shapePainter.setTransform(moveToBufferTransform);
+    m_d->shapePainter.setTransform(toQTransform(moveToBufferTransform));
     m_d->shapePainter.setTransform(painter->transform(), true);
     if (painter->hasClipping()) {
         m_d->shapePainter.setClipPath(painter->clipPath());
@@ -76,10 +78,10 @@ KoClipMaskPainter::KoClipMaskPainter(QPainter *painter, const PkRectF &globalCli
 
     m_d->maskPainter.save();
     m_d->maskPainter.setCompositionMode(QPainter::CompositionMode_Source);
-    m_d->maskPainter.fillRect(PkRect(PkPoint(), m_d->alignedGlobalClipRect.size()), Qt::transparent);
+    m_d->maskPainter.fillRect(toQRect(PkRect(PkPoint(), m_d->alignedGlobalClipRect.size())), Qt::transparent);
     m_d->maskPainter.restore();
 
-    m_d->maskPainter.setTransform(moveToBufferTransform);
+    m_d->maskPainter.setTransform(toQTransform(moveToBufferTransform));
     m_d->maskPainter.setTransform(painter->transform(), true);
     if (painter->hasClipping()) {
         m_d->maskPainter.setClipPath(painter->clipPath());
@@ -117,8 +119,8 @@ void KoClipMaskPainter::renderOnGlobalPainter()
                                   m_d->maskImage.bits(),
                                   nPixels);
 
-    KIS_ASSERT_RECOVER_RETURN(m_d->shapeImage.size() == m_d->alignedGlobalClipRect.size());
-    PkPainterPath globalClipPath;
+    KIS_ASSERT_RECOVER_RETURN(m_d->shapeImage.size() == toQSize(m_d->alignedGlobalClipRect.size()));
+    QPainterPath globalClipPath;
 
     if (m_d->globalPainter->hasClipping()) {
         globalClipPath = m_d->globalPainter->transform().map(m_d->globalPainter->clipPath());
@@ -126,12 +128,13 @@ void KoClipMaskPainter::renderOnGlobalPainter()
 
     m_d->globalPainter->save();
 
-    m_d->globalPainter->setTransform(PkTransform());
+    m_d->globalPainter->setTransform(toQTransform(PkTransform()));
 
     if (!globalClipPath.isEmpty()) {
         m_d->globalPainter->setClipPath(globalClipPath);
     }
 
-    m_d->globalPainter->drawImage(m_d->alignedGlobalClipRect.topLeft(), m_d->shapeImage);
+    const PkPoint tp = m_d->alignedGlobalClipRect.topLeft();
+        m_d->globalPainter->drawImage(QPoint(tp.x(), tp.y()), m_d->shapeImage);
     m_d->globalPainter->restore();
 }

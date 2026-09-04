@@ -5,6 +5,7 @@
  */
 
 #include "kis_painting_tweaks.h"
+#include <PkFlakeBridge.h>
 
 #include <PkPen.h>
 #include <QRegion>
@@ -29,7 +30,7 @@ namespace KisPaintingTweaks {
 
 QRegion safeClipRegion(const QPainter &painter)
 {
-    const PkTransform t = painter.transform();
+    const PkTransform t = toPkTransform(painter.transform());
 
     QRegion region = t.type() <= PkTransform::TxScale ?
         painter.clipRegion() :
@@ -45,7 +46,8 @@ QRegion safeClipRegion(const QPainter &painter)
 
 PkRect safeClipBoundingRect(const QPainter &painter)
 {
-    return painter.clipBoundingRect().toAlignedRect();
+    const QRect r = painter.clipBoundingRect().toAlignedRect();
+    return PkRect(r.x(), r.y(), r.width(), r.height());
 }
 
 void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
@@ -54,19 +56,19 @@ void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
     PkVector<qreal> antDashPattern;
     antDashPattern << antLength << antSpace;
 
-    *antsPen = PkPen(Qt::CustomDashLine);
+    *antsPen = PkPen(Pk::CustomDashLine);
     antsPen->setDashPattern(antDashPattern);
     antsPen->setCosmetic(true);
     antsPen->setColor(Pk::black);
 
-    *outlinePen = PkPen(Qt::SolidLine);
+    *outlinePen = PkPen(Pk::SolidLine);
     outlinePen->setCosmetic(true);
-    outlinePen->setColor(Qt::white);
+    outlinePen->setColor(PkColor(Pk::white));
 }
 
 PenBrushSaver::PenBrushSaver(QPainter *painter)
     : m_painter(painter),
-      m_pen(painter->pen()),
+      m_pen(toPkPen(painter->pen())),
       m_brush(painter->brush())
 {
 }
@@ -74,14 +76,14 @@ PenBrushSaver::PenBrushSaver(QPainter *painter)
 PenBrushSaver::PenBrushSaver(QPainter *painter, const PkPen &pen, const QBrush &brush)
     : PenBrushSaver(painter)
 {
-    m_painter->setPen(pen);
+    m_painter->setPen(toQPen(pen));
     m_painter->setBrush(brush);
 }
 
 PenBrushSaver::PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &pair)
     : PenBrushSaver(painter)
 {
-    m_painter->setPen(pair.first);
+    m_painter->setPen(toQPen(pair.first));
     m_painter->setBrush(pair.second);
 }
 
@@ -89,9 +91,9 @@ PenBrushSaver::PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &
     : m_painter(painter)
 {
     if (m_painter) {
-        m_pen = m_painter->pen();
+        m_pen = toPkPen(m_painter->pen());
         m_brush = m_painter->brush();
-        m_painter->setPen(pair.first);
+        m_painter->setPen(toQPen(pair.first));
         m_painter->setBrush(pair.second);
     }
 }
@@ -99,7 +101,7 @@ PenBrushSaver::PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &
 PenBrushSaver::~PenBrushSaver()
 {
     if (m_painter) {
-        m_painter->setPen(m_pen);
+        m_painter->setPen(toQPen(m_pen));
         m_painter->setBrush(m_brush);
     }
 }

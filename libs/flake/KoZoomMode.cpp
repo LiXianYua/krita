@@ -6,6 +6,7 @@
 */
 
 #include "KoZoomMode.h"
+#include <PkFlakeBridge.h>
 
 #include <QDebug>
 

@@ -569,10 +569,10 @@ qreal calcLineWidth(const QTextBlock &block)
 static bool guessIsRightToLeft(PkString text) {
     // Is this just a worse version of PkString::isRightToLeft??
     for (int i = 0; i < text.size(); i++) {
-        const char16_t ch = text[i];
-        if (ch.direction() == char16_t::DirR || ch.direction() == char16_t::DirAL) {
+        const PkChar ch = text[i];
+        if (ch.direction() == PkChar::DirR || ch.direction() == PkChar::DirAL) {
             return true;
-        } else if (ch.direction() == char16_t::DirL) {
+        } else if (ch.direction() == PkChar::DirL) {
             return false;
         }
     }

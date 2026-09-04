@@ -214,8 +214,8 @@ struct KoFontGlyphModel::Private {
                 }
                 featureIndicesProcessed.append(featureIndex);
 
-                KoOpenTypeFeatureInfo info = featureInfo.value(PkString::fromUtf8(tagName), openTypeFeaturesFactory.infoByTag(PkString::fromUtf8(tagName)));
-                if (!featureInfo.contains(PkString::fromUtf8(tagName))) {
+                KoOpenTypeFeatureInfo info = featureInfo.value(PkString::fromUtf8(tagName.data(), int(tagName.size())), openTypeFeaturesFactory.infoByTag(tagName));
+                if (!featureInfo.contains(PkString::fromUtf8(tagName.data(), int(tagName.size())))) {
                     hb_ot_name_id_t labelId = HB_OT_NAME_ID_INVALID;
                     hb_ot_name_id_t toolTipId = HB_OT_NAME_ID_INVALID;
                     hb_ot_name_id_t sampleId = HB_OT_NAME_ID_INVALID;
@@ -386,23 +386,23 @@ PkString unicodeHexFromUCS(const uint codePoint) {
     return PkString("U+%1").arg(hex);
 }
 
-PkVariant KoFontGlyphModel::data(const QModelIndex &index, int role) const
+QVariant KoFontGlyphModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()) {
-        return PkVariant();
+        return QVariant();
     }
     if (role == Qt::DisplayRole) {
         //qDebug() << Q_FUNC_INFO<< index << index.parent().isValid() << index.parent();
         if (!index.parent().isValid()) {
-            return d->codePoints.value(index.row()).utfString;
+            return QVariant(d->codePoints.value(index.row()).utfString);
         } else {
             const Private::CodePointInfo &codePoint = d->codePoints.value(index.parent().row());
             const Private::GlyphInfo &glyph = codePoint.glyphs.value(index.row());
             //qDebug () << index.parent().row() << index.row() << codePoint.utfString << codePoint.ucs;
             if (glyph.type == UnicodeVariationSelector) {
-                return QVariant(PkString(codePoint.utfString + glyph.baseString));
+                return QVariant(toQString(PkString(codePoint.utfString + glyph.baseString)));
             } else {
-                return codePoint.utfString;
+                return QVariant(codePoint.utfString);
             }
         }
     } else if (role == Qt::ToolTipRole) {
@@ -413,9 +413,9 @@ PkVariant KoFontGlyphModel::data(const QModelIndex &index, int role) const
             PkVector<Private::GlyphInfo> glyphList = codePoint.glyphs;
             glyphNames.append(PkString("%1 (%2)").arg(base).arg(unicodeHexFromUCS(codePoint.ucs)));
             if (glyphList.size() > 0) {
-                glyphNames.append(i18nc("@info:tooltip", "%1 glyph variants.").arg(glyphList.size()));
+                glyphNames.append(toPkString(i18nc("@info:tooltip", "%1 glyph variants.").arg(glyphList.size())));
             }
-            return QVariant(PkString::join(glyphNames, " "));
+            return QVariant(toQString(PkString::join(glyphNames, " ")));
         } else {
             const Private::CodePointInfo &codePoint = d->codePoints.value(index.parent().row());
             const Private::GlyphInfo &glyph = codePoint.glyphs.value(index.row());
@@ -423,12 +423,12 @@ PkVariant KoFontGlyphModel::data(const QModelIndex &index, int role) const
                 KoOpenTypeFeatureInfo info = d->featureData.value(glyph.baseString);
                 PkString parameterString = info.namedParameters.value(glyph.featureIndex-1);
                 if (parameterString.isEmpty()) {
-                    return QVariant(info.name.isEmpty()? glyph.baseString: info.name);
+                    return QVariant(toQString(info.name.isEmpty()? glyph.baseString: info.name));
                 } else {
-                    return QVariant(PkString("%1: %2").arg(info.name).arg(parameterString));
+                    return QVariant(toQString(PkString("%1: %2").arg(info.name).arg(parameterString)));
                 }
             } else {
-                return QVariant(PkString(codePoint.utfString + glyph.baseString));
+                return QVariant(toQString(PkString(codePoint.utfString + glyph.baseString)));
             }
         }
     } else if (role == OpenTypeFeatures) {
@@ -458,7 +458,7 @@ PkVariant KoFontGlyphModel::data(const QModelIndex &index, int role) const
                 glyphId = unicodeHexFromUCS(codePoint.ucs);
             }
         }
-        return QVariant(glyphId);
+        return QVariant(toQString(glyphId));
     } else if (role == ChildCount) {
         int childCount = 0;
         if (!index.parent().isValid()) {

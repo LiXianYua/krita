@@ -21,7 +21,7 @@
 
 uint qHash(const KoShapeLoadingContext::AdditionalAttributeData & attributeData)
 {
-    return qHash(attributeData.name);
+    return qHash(toQString(attributeData.name));
 }
 
 static PkSet<KoShapeLoadingContext::AdditionalAttributeData> s_additionalAttributes;

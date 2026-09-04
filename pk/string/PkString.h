@@ -97,9 +97,17 @@ public:
     PkString operator+(const PkString& other) const;
     PkString& operator+=(const PkString& other);
     char16_t operator[](int i) const;
+    // 可变下标（detach + 直接引用；KoCssTextUtils 按下标改写，S-09-g）
+    char16_t& operator[](int i);
 
     // ── 互操作（Pk 前缀 → 不计入清单外 API）──────────────
     std::u16string PkToU16() const;
+    // 对齐 QString::utf16（S-09-g graphemebreak 链路）：null 结尾保证由 PkArrayData 提供
+    const char16_t* utf16() const { return _cdata(); }
+    // std 容器迭代协议（Q_FOREACH / range-for 用；逐 UTF-16 码元）
+    using const_iterator = const char16_t*;
+    const char16_t* begin() const { return _cdata(); }
+    const char16_t* end() const { return _cdata() + size(); }
     std::string PkToUtf8() const;
     static PkString PkFromUtf8(const char* s, int len);
     static PkString fromUtf8(const char* s);                       // 对齐 QString::fromUtf8

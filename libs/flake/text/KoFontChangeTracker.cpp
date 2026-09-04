@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KoFontChangeTracker.h"
+#include <PkFlakeBridge.h>
 
 #include <QFileSystemWatcher>
 #include <kis_signal_compressor.h>
@@ -12,7 +13,7 @@
 struct KoFontChangeTracker::Private {
 
     Private(PkStringList paths = PkStringList())
-        : fileSystemWatcher(paths) {
+        : fileSystemWatcher(toQStringList(paths)) {
 
     }
     QFileSystemWatcher fileSystemWatcher;

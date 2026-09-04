@@ -85,7 +85,7 @@ public:
             return;
 
         clipPath = PkPainterPath();
-        clipPath.setFillRule(Qt::WindingFill);
+        clipPath.setFillRule(Pk::WindingFill);
 
         std::sort(clipShapes.begin(), clipShapes.end(), KoShape::compareShapeZIndex);
 
@@ -98,7 +98,7 @@ public:
 
     PkList<KoShape*> shapes;
     PkPainterPath clipPath; ///< the compiled clip path in shape coordinates of the clipped shape
-    Pk::FillRule clipRule = Qt::WindingFill;
+    Pk::FillRule clipRule = Pk::WindingFill;
     KoFlake::CoordinateSystem coordinates = KoFlake::ObjectBoundingBox;
     PkTransform initialTransformToShape; ///< initial transformation to shape coordinates of the clipped shape
     PkSizeF initialShapeSize; ///< initial size of clipped shape
@@ -154,11 +154,11 @@ void KoClipPath::applyClipping(KoShape *shape, QPainter &painter)
 
         if (shape->clipPath()->coordinates() == KoFlake::ObjectBoundingBox) {
             const PkRectF shapeLocalBoundingRect = shape->outline().boundingRect();
-            path = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shapeLocalBoundingRect))).map(path);
+            path = KisAlgebra2D::mapToRect(shapeLocalBoundingRect).map(path);
         }
 
         if (!path.isEmpty()) {
-            painter.setClipPath(path, Qt::IntersectClip);
+            painter.setClipPath(toQPainterPath(path), Qt::IntersectClip);
         }
     }
 }

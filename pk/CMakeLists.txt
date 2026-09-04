@@ -67,7 +67,24 @@ add_library(pkstring STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/string/PkString_core.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/string/PkString_query.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/string/PkString_format.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/string/PkChar.cpp
 )
+# ICU（PkChar 的 Unicode 属性源）：ci-env Qt 自带的一套优先（与 Qt 同版本，
+# 避免系统 libicu74 与 ci-env ICU 70/72 混链）；本机无 ci-env 时退回系统。
+find_path(ICU_UCHAR_H unicode/uchar.h
+    PATHS /mnt/ssd-disk/liyang/projects/krita-ci-env/_install/include
+    /usr/include /usr/include/x86_64-linux-gnu)
+find_library(ICU_UC_LIB icuuc
+    PATHS /mnt/ssd-disk/liyang/projects/krita-ci-env/_install/lib)
+if (NOT ICU_UC_LIB)
+    find_library(ICU_UC_LIB icuuc)
+endif()
+if (ICU_UCHAR_H AND ICU_UC_LIB)
+    target_include_directories(pkstring SYSTEM PUBLIC ${ICU_UCHAR_H})
+    target_link_libraries(pkstring PUBLIC ${ICU_UC_LIB})
+else()
+    message(FATAL_ERROR "PkChar 需要 ICU（unicode/uchar.h + libicuuc）")
+endif()
 target_include_directories(pkstring PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/string
     ${CMAKE_CURRENT_SOURCE_DIR}/container

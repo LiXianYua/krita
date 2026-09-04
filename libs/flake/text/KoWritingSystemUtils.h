@@ -19,7 +19,7 @@
  * @brief The KoScriptUtils class
  *
  * Collection of utility functions to wrangle the different
- * script and writing system enums in QFontDataBase, QLocale and char16_t and ISO 15924 tags
+ * script and writing system enums in QFontDataBase, QLocale and PkChar and ISO 15924 tags
  */
 
 class KRITAFLAKE_EXPORT KoWritingSystemUtils
@@ -32,8 +32,8 @@ public:
     static PkString scriptTagForQLocaleScript(QLocale::Script script);
     static QLocale::Script scriptForScriptTag(const PkString &tag);
 
-    static PkString scriptTagForQCharScript(char16_t::Script script);
-    static char16_t::Script qCharScriptForScriptTag(const PkString &tag);
+    static PkString scriptTagForQCharScript(PkChar::Script script);
+    static PkChar::Script qCharScriptForScriptTag(const PkString &tag);
 
     /**
      * This returns a map of samples and an associated tag. Note that the Sample is the first entry, the tag the second.

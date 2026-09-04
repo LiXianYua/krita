@@ -76,7 +76,7 @@ void KoShapeRegistry::Private::init(KoShapeRegistry *q)
     // associated odf tagname & priority and prepare ourselves for
     // loading ODF.
 
-    PkList<KoShapeFactoryBase*> factories = toQList(q->values());
+    PkList<KoShapeFactoryBase*> factories = toPkList(q->values());
     for (int i = 0; i < factories.size(); ++i) {
         insertFactory(factories[i]);
     }

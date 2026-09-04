@@ -28,6 +28,12 @@ enum CoordinateMode { LogicalMode, ObjectBoundingMode };
 struct PkGradientStop {
     qreal offset;
     PkColor color;
+
+    bool operator==(const PkGradientStop &o) const
+    {
+        return offset == o.offset && color == o.color;
+    }
+    bool operator!=(const PkGradientStop &o) const { return !(*this == o); }
 };
 using PkGradientStops = PkVector<PkGradientStop>;
 
@@ -74,6 +80,18 @@ public:
     void setColorAt(qreal pos, const PkColor &color);
     // 线性插值：pos 夹在 [0,1]，按 stops 排序插值；无 stops 返回黑（0,0,0）。
     PkColor colorAt(qreal pos) const;
+
+    // 值相等（S-09-g KoGradientBackground 的 QBrush(QGradient) 相等比较桥）。
+    // 对齐 Qt 语义：type/spread/coordinateMode/stops/几何参数全等。
+    bool operator==(const PkGradient &o) const
+    {
+        return m_type == o.m_type && m_spread == o.m_spread
+            && m_coordinateMode == o.m_coordinateMode && m_stops == o.m_stops
+            && m_start == o.m_start && m_finalStop == o.m_finalStop
+            && m_center == o.m_center && m_radius == o.m_radius
+            && m_focalPoint == o.m_focalPoint && m_angle == o.m_angle;
+    }
+    bool operator!=(const PkGradient &o) const { return !(*this == o); }
 
     // 几何参数（按 type 各取所需；未用到的参数保持默认值）
     PkPointF start() const;

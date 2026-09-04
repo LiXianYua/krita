@@ -12,6 +12,8 @@
 #include <FlakeDebug.h>
 
 #include <QBrush>
+#include <PkGradient.h>
+#include <PkFlakeBridge.h>
 #include <QPainter>
 #include <QSharedData>
 #include <PkPainterPath.h>
@@ -27,6 +29,35 @@ public:
     PkGradient *gradient;
     PkTransform matrix;
 };
+
+namespace {
+QGradient toQGradient(const PkGradient &g)
+{
+    QGradient out;
+    switch (g.type()) {
+    case PkGradient::LinearGradient:
+        out = QLinearGradient(toQPointF(g.start()), toQPointF(g.finalStop()));
+        break;
+    case PkGradient::RadialGradient:
+        out = QRadialGradient(toQPointF(g.center()), g.radius(), toQPointF(g.focalPoint()));
+        break;
+    case PkGradient::ConicalGradient:
+        out = QConicalGradient(toQPointF(g.center()), g.angle());
+        break;
+    default:
+        break;
+    }
+    out.setCoordinateMode(static_cast<QGradient::CoordinateMode>(g.coordinateMode()));
+    out.setSpread(static_cast<QGradient::Spread>(g.spread()));
+    QGradientStops stops;
+    const PkGradientStops src = g.stops();
+    for (const PkGradientStop &stop : src) {
+        stops << qMakePair(stop.offset, toQColor(stop.color));
+    }
+    out.setStops(stops);
+    return out;
+}
+}
 
 KoGradientBackground::KoGradientBackground(PkGradient * gradient, const PkTransform &matrix)
     : KoShapeBackground()
@@ -98,7 +129,7 @@ void KoGradientBackground::paint(QPainter &painter, const PkPainterPath &fillPat
 {
     if (!d->gradient) return;
 
-    if (d->gradient->coordinateMode() == PkGradient::ObjectBoundingMode) {
+    if (d->gradient->coordinateMode() == PkGradientEnums::ObjectBoundingMode) {
 
         /**
          * NOTE: important hack!
@@ -111,7 +142,7 @@ void KoGradientBackground::paint(QPainter &painter, const PkPainterPath &fillPat
          * matrices and someone just mistyped the stuff long ago :(
          *
          * So here we basically emulate this feature by converting the gradient into
-         * PkGradient::LogicalMode and doing transformations manually.
+         * PkGradientEnums::LogicalMode and doing transformations manually.
          */
 
         const PkRectF boundingRect = fillPath.boundingRect();
@@ -120,16 +151,16 @@ void KoGradientBackground::paint(QPainter &painter, const PkPainterPath &fillPat
 
         // TODO: how about slicing the object?
         PkGradient g = *d->gradient;
-        g.setCoordinateMode(PkGradient::LogicalMode);
+        g.setCoordinateMode(PkGradientEnums::LogicalMode);
 
-        QBrush b(g);
-        b.setTransform(d->matrix * gradientToUser);
+        QBrush b(toQGradient(g));
+        b.setTransform(toQTransform(d->matrix * gradientToUser));
         painter.setBrush(b);
     } else {
-        QBrush b(*d->gradient);
-        b.setTransform(d->matrix);
+        QBrush b(toQGradient(*d->gradient));
+        b.setTransform(toQTransform(d->matrix));
         painter.setBrush(b);
     }
 
-    painter.drawPath(fillPath);
+    painter.drawPath(toQPainterPath(fillPath));
 }
