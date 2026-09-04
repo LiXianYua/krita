@@ -121,7 +121,7 @@ void KisSpatialContainer::initializeFor(int numPoints, QRectF startArea)
     clear();
 
     int levels = 1;
-    int leaves = (int)qCeil(numPoints/(double)m_maxPointsInDict);
+    int leaves = (int)pkCeil(numPoints/(double)m_maxPointsInDict);
     int nodes = leaves;
     while (nodes > 0) {
         nodes >>= 2;
@@ -343,7 +343,7 @@ KisSpatialContainer::SpatialNode *KisSpatialContainer::createNodeForPoint(int in
 
 
 bool isInRange(const QPointF &center, qreal range, const SpatialNodeData& data) {
-    if(qAbs(data.position.x() - center.x()) <= range && qAbs(data.position.y() - center.y()) <= range) {
+    if(pkAbs(data.position.x() - center.x()) <= range && pkAbs(data.position.y() - center.y()) <= range) {
         if(KisAlgebra2D::norm(data.position - center) <= range) {
             return true;
         }
@@ -495,9 +495,9 @@ std::optional<qreal> KisSpatialContainer::getBoundaryOnAxis(bool positive, bool 
         }
 
         if (positive) {
-            return qMax(response1.value(), response2.value());
+            return pkMax(response1.value(), response2.value());
         } else {
-            return qMin(response1.value(), response2.value());
+            return pkMin(response1.value(), response2.value());
         }
     }
 }
@@ -569,8 +569,8 @@ void KisSpatialContainer::initializeWithGridPointsRec(QRectF gridRect, int pixel
 
     // ceiling will always be on the corner or outside
     // floor will always be on the corner or inside
-    QPoint topLeftDividableCeiling = QPoint((qCeil(gridRect.left()/(qreal)pixelPrecision))*pixelPrecision, (qCeil(gridRect.top()/(qreal)pixelPrecision))*pixelPrecision);
-    QPoint topLeftDividableFloor = QPoint((qFloor(gridRect.left()/(qreal)pixelPrecision))*pixelPrecision, (qFloor(gridRect.top()/(qreal)pixelPrecision))*pixelPrecision);
+    QPoint topLeftDividableCeiling = QPoint((pkCeil(gridRect.left()/(qreal)pixelPrecision))*pixelPrecision, (pkCeil(gridRect.top()/(qreal)pixelPrecision))*pixelPrecision);
+    QPoint topLeftDividableFloor = QPoint((pkFloor(gridRect.left()/(qreal)pixelPrecision))*pixelPrecision, (pkFloor(gridRect.top()/(qreal)pixelPrecision))*pixelPrecision);
 
 
     if (width * height <= m_maxPointsInDict) {
@@ -609,7 +609,7 @@ void KisSpatialContainer::initializeWithGridPointsRec(QRectF gridRect, int pixel
 
         node->isLeaf = false;
 
-        QPoint bottomRightDividable = QPoint((qFloor(gridRect.right()/(qreal)pixelPrecision))*pixelPrecision, (qFloor(gridRect.bottom()/(qreal)pixelPrecision))*pixelPrecision);
+        QPoint bottomRightDividable = QPoint((pkFloor(gridRect.right()/(qreal)pixelPrecision))*pixelPrecision, (pkFloor(gridRect.bottom()/(qreal)pixelPrecision))*pixelPrecision);
         QPoint topLeftDividable = topLeftDividableCeiling;
 
         QPoint sizeDividable = QPoint(bottomRightDividable - topLeftDividable);

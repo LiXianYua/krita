@@ -14,10 +14,10 @@
 
 class KoPatternBackgroundPrivate;
 
-class QTransform;
-class QImage;
-class QPointF;
-class QRectF;
+class PkTransform;
+class PkImage;
+class PkPointF;
+class PkRectF;
 
 /// A pattern shape background
 class KRITAFLAKE_EXPORT KoPatternBackground : public KoShapeBackground
@@ -53,16 +53,16 @@ public:
     bool compareTo(const KoShapeBackground *other) const override;
 
     /// Sets the transform matrix
-    void setTransform(const QTransform &matrix);
+    void setTransform(const PkTransform &matrix);
 
     /// Returns the transform matrix
-    QTransform transform() const;
+    PkTransform transform() const;
 
     /// Sets a new pattern
-    void setPattern(const QImage &pattern);
+    void setPattern(const PkImage &pattern);
 
     /// Returns the pattern
-    QImage pattern() const;
+    PkImage pattern() const;
 
     /// Sets the pattern repeatgfl
     void setRepeat(PatternRepeat repeat);
@@ -77,31 +77,31 @@ public:
     void setReferencePoint(ReferencePoint referencePoint);
 
     /// Returns reference point offset in percent of the pattern display size
-    QPointF referencePointOffset() const;
+    PkPointF referencePointOffset() const;
 
     /// Sets the reference point offset in percent of the pattern display size
-    void setReferencePointOffset(const QPointF &offset);
+    void setReferencePointOffset(const PkPointF &offset);
 
     /// Returns tile repeat offset in percent of the pattern display size
-    QPointF tileRepeatOffset() const;
+    PkPointF tileRepeatOffset() const;
 
     /// Sets the tile repeat offset in percent of the pattern display size
-    void setTileRepeatOffset(const QPointF &offset);
+    void setTileRepeatOffset(const PkPointF &offset);
 
     /// Returns the pattern display size
-    QSizeF patternDisplaySize() const;
+    PkSizeF patternDisplaySize() const;
 
     /// Sets pattern display size
-    void setPatternDisplaySize(const QSizeF &size);
+    void setPatternDisplaySize(const PkSizeF &size);
 
     /// Returns the original image size
-    QSizeF patternOriginalSize() const;
+    PkSizeF patternOriginalSize() const;
 
     /// reimplemented from KoShapeBackground
-    void paint(QPainter &painter, const QPainterPath &fillPath) const override;
+    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
 
     /// Returns the bounding rect of the pattern image based on the given fill size
-    QRectF patternRectFromFillSize(const QSizeF &size);
+    PkRectF patternRectFromFillSize(const PkSizeF &size);
 private:
     class Private;
     QSharedDataPointer<Private> d;

@@ -5,7 +5,7 @@
  */
 
 #include "KoCanvasObserverBase.h"
-#include <QPointer>
+#include <PkPointer.h>
 #include <KoCanvasBase.h>
 
 class KoCanvasObserverBasePrivate
@@ -18,7 +18,7 @@ public:
     ~KoCanvasObserverBasePrivate()
     {}
 
-    QPointer<KoCanvasBase> canvas;
+    PkPointer<KoCanvasBase> canvas;
 };
 
 KoCanvasObserverBase::KoCanvasObserverBase()

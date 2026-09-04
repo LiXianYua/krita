@@ -16,7 +16,7 @@
 // 独立字段**。
 //
 // 日历字段（年/月/日/时/分/秒）↔ TimePoint 的换算统一按 **LocalTime** 处理，
-// 对齐真 Qt 默认 `timeSpec()==Qt::LocalTime`（`fromSecsSinceEpoch`/
+// 对齐真 Qt 默认 `timeSpec()==Pk::LocalTime`（`fromSecsSinceEpoch`/
 // `fromMSecsSinceEpoch`/`fromString` 单参默认 LocalTime、`toString` 按本地墙钟
 // 渲染——2026-08-18 裁决，见 `R线-spec.md`「PkDateTime 时区」一节）。全部走
 // C 库 `localtime_r`/`mktime`（读系统 `TZ`）：C++17 `std::chrono` 无 tzdb，拿
@@ -594,7 +594,7 @@ PkDateTime PkDateTime::fromString(const std::string &s, DateFormat fmt)
         return fromString(s, std::string("yyyy-MM-ddThh:mm:ss"));
     }
     // RFC2822Date/ISODateWithMs 目前没有真实调用点（真实调用点只有
-    // kis_exif_io.cpp / kis_exiv2_common.h，两处都传 Qt::ISODate）——按"不需要
+    // kis_exif_io.cpp / kis_exiv2_common.h，两处都传 Pk::ISODate）——按"不需要
     // 的不做"，先返回无效实例，等真的出现调用点再补。
     return PkDateTime();
 }

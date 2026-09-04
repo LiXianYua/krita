@@ -40,7 +40,7 @@ HairyBrush::HairyBrush()
 HairyBrush::~HairyBrush()
 {
     delete m_transfo;
-    qDeleteAll(m_bristles.begin(), m_bristles.end());
+    pkDeleteAll(m_bristles.begin(), m_bristles.end());
     m_bristles.clear();
 }
 
@@ -307,8 +307,8 @@ inline void HairyBrush::addBristleInk(Bristle *bristle,const PkPointF &pos, cons
         }
     }
     else {
-        int ix = qRound(pos.x());
-        int iy = qRound(pos.y());
+        int ix = pkRound(pos.x());
+        int iy = pkRound(pos.y());
         if (m_properties->useCompositing) {
             plotPixel(ix, iy, color);
         }
@@ -326,13 +326,13 @@ void HairyBrush::paintParticle(PkPointF pos, const KoColor& color, qreal weight)
 
     int ipx = int (pos.x());
     int ipy = int (pos.y());
-    qreal fx = qAbs(pos.x() - ipx);
-    qreal fy = qAbs(pos.y() - ipy);
+    qreal fx = pkAbs(pos.x() - ipx);
+    qreal fy = pkAbs(pos.y() - ipy);
 
-    quint8 btl = qRound((1.0 - fx) * (1.0 - fy) * opacity);
-    quint8 btr = qRound((fx)  * (1.0 - fy) * opacity);
-    quint8 bbl = qRound((1.0 - fx) * (fy)  * opacity);
-    quint8 bbr = qRound((fx)  * (fy)  * opacity);
+    quint8 btl = pkRound((1.0 - fx) * (1.0 - fy) * opacity);
+    quint8 btr = pkRound((fx)  * (1.0 - fy) * opacity);
+    quint8 bbl = pkRound((1.0 - fx) * (fy)  * opacity);
+    quint8 bbr = pkRound((fx)  * (fy)  * opacity);
 
     const KoColorSpace * cs = m_dab->colorSpace();
 
@@ -365,13 +365,13 @@ void HairyBrush::paintParticle(PkPointF pos, const KoColor& color)
 
     int ipx = int (pos.x());
     int ipy = int (pos.y());
-    qreal fx = qAbs(pos.x() - ipx);
-    qreal fy = qAbs(pos.y() - ipy);
+    qreal fx = pkAbs(pos.x() - ipx);
+    qreal fy = pkAbs(pos.y() - ipy);
 
-    quint8 btl = qRound((1.0 - fx) * (1.0 - fy) * opacity);
-    quint8 btr = qRound((fx)  * (1.0 - fy) * opacity);
-    quint8 bbl = qRound((1.0 - fx) * (fy)  * opacity);
-    quint8 bbr = qRound((fx)  * (fy)  * opacity);
+    quint8 btl = pkRound((1.0 - fx) * (1.0 - fy) * opacity);
+    quint8 btr = pkRound((fx)  * (1.0 - fy) * opacity);
+    quint8 bbl = pkRound((1.0 - fx) * (fy)  * opacity);
+    quint8 bbr = pkRound((fx)  * (fy)  * opacity);
 
     m_color.setOpacity(btl);
     plotPixel(ipx  , ipy, m_color);
@@ -427,8 +427,8 @@ void HairyBrush::colorifyBristles(KisPaintDeviceSP source, PkPointF point)
     int size = m_bristles.size();
     for (int i = 0; i < size; i++) {
         b = m_bristles[i];
-        int x = qRound(b->x() + point.x());
-        int y = qRound(b->y() + point.y());
+        int x = pkRound(b->x() + point.x());
+        int y = pkRound(b->y() + point.y());
 
         colorSampler.sampleOldColor(x, y, bristleColor.data());
         b->setColor(bristleColor);

@@ -80,8 +80,8 @@ void paintBevelSelection(KisPixelSelectionSP srcSelection,
         const int growSize = initialSize - i - 1;
 
         quint8 selectedness = invert ?
-            qRound(qreal(size - i - 1) / size * 255.0) :
-            qRound(qreal(i + 1) / size * 255.0);
+            pkRound(qreal(size - i - 1) / size * 255.0) :
+            pkRound(qreal(i + 1) / size * 255.0);
         fillDevice->setDefaultPixel(KoColor(&selectedness, fillDevice->colorSpace()));
 
         tmpSelection->makeCloneFromRough(srcSelection, srcSelection->selectedRect());
@@ -107,7 +107,7 @@ struct ContrastOp {
         qreal slant = std::tan ((m_contrast + 1) * M_PI_4);
         value = (value - 0.5) * slant + 0.5;
 
-        return qRound(value * 255.0);
+        return pkRound(value * 255.0);
     }
 
 private:
@@ -118,7 +118,7 @@ struct HighlightsFetchOp {
     static const bool supportsCaching = true;
 
     int operator() (int value) {
-        return qRound(qMax(0, value - 127) * (255.0 / (255 - 127)));
+        return pkRound(pkMax(0, value - 127) * (255.0 / (255 - 127)));
     }
 };
 
@@ -126,7 +126,7 @@ struct ShadowsFetchOp {
     static const bool supportsCaching = true;
 
     int operator() (int value) {
-        return 255 - qRound(qMin(value, 127) * (255.0 / 127.0));
+        return 255 - pkRound(pkMin(value, 127) * (255.0 / 127.0));
     }
 };
 
@@ -343,21 +343,21 @@ void KisLsBevelEmbossFilter::applyBevelEmboss(KisPaintDeviceSP srcDevice,
 
             if (tex_depth >= 0.0) {
                 if (tex_depth <= 100.0) {
-                    contrastadj = int(qRound((1-(tex_depth/100.0)) * -127));
+                    contrastadj = int(pkRound((1-(tex_depth/100.0)) * -127));
                 } else {
-                    contrastadj = int(qRound(((tex_depth-100.0)/900.0) * 127));
+                    contrastadj = int(pkRound(((tex_depth-100.0)/900.0) * 127));
                 }
             } else {
                 textureSelection->invert();
                 if (tex_depth >= -100.0) {
-                    contrastadj = int(qRound((1-(abs(tex_depth)/100.0)) * -127));
+                    contrastadj = int(pkRound((1-(abs(tex_depth)/100.0)) * -127));
                 } else {
-                    contrastadj = int(qRound(((abs(tex_depth)-100.0)/900.0) * 127));
+                    contrastadj = int(pkRound(((abs(tex_depth)-100.0)/900.0) * 127));
                 }
             }
         }
 
-        qreal contrast = qBound(-1.0, qreal(contrastadj) / 127.0, 1.0);
+        qreal contrast = pkBound(-1.0, qreal(contrastadj) / 127.0, 1.0);
         mapPixelValues(textureSelection, ContrastOp(contrast), d.applyTextureRect);
 
         {

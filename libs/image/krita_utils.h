@@ -193,7 +193,7 @@ namespace KritaUtils
             }
             while (currentPosition.y() != endPoint.y()) {
                 currentPositionF.setX(currentPositionF.x() + m);
-                currentPosition = PkPoint(static_cast<int>(qRound(currentPositionF.x())),
+                currentPosition = PkPoint(static_cast<int>(pkRound(currentPositionF.x())),
                                         currentPosition.y() + increment);
                 visitor(currentPosition);
             }
@@ -207,7 +207,7 @@ namespace KritaUtils
             while (currentPosition.x() != endPoint.x()) {
                 currentPositionF.setY(currentPositionF.y() + m);
                 currentPosition = PkPoint(currentPosition.x() + increment,
-                                        static_cast<int>(qRound(currentPositionF.y())));
+                                        static_cast<int>(pkRound(currentPositionF.y())));
                 visitor(currentPosition);
             }
         }

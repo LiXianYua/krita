@@ -14,9 +14,9 @@
 #include <QFlags>
 
 class KoPathShape;
-class QPointF;
-class QTransform;
-class QRectF;
+class PkPointF;
+class PkTransform;
+class PkRectF;
 class QPainter;
 class KisHandlePainterHelper;
 
@@ -63,7 +63,7 @@ public:
      * @param point the position relative to the shape origin
      * @param properties describing the point
      */
-    KoPathPoint(KoPathShape *path, const QPointF &point, PointProperties properties = Normal);
+    KoPathPoint(KoPathShape *path, const PkPointF &point, PointProperties properties = Normal);
 
     /**
      * @brief Copy Constructor
@@ -89,7 +89,7 @@ public:
      *
      * @return point
      */
-    QPointF point() const;
+    PkPointF point() const;
 
     /**
      * @brief get the control point 1
@@ -98,7 +98,7 @@ public:
      *
      * @return control point 1 of this point
      */
-    QPointF controlPoint1() const;
+    PkPointF controlPoint1() const;
 
     /**
      * @brief get the second control point
@@ -107,28 +107,28 @@ public:
      *
      * @return control point 2 of this point
      */
-    QPointF controlPoint2() const;
+    PkPointF controlPoint2() const;
 
     /**
      * @brief alter the point
      *
      * @param point to set
      */
-    void setPoint(const QPointF &point);
+    void setPoint(const PkPointF &point);
 
     /**
      * @brief Set the control point 1
      *
      * @param point to set
      */
-    void setControlPoint1(const QPointF &point);
+    void setControlPoint1(const PkPointF &point);
 
     /**
      * @brief Set the control point 2
      *
      * @param point to set
      */
-    void setControlPoint2(const QPointF &point);
+    void setControlPoint2(const PkPointF &point);
 
     /// Removes the first control point
     void removeControlPoint1();
@@ -192,7 +192,7 @@ public:
      *
      * @param matrix which will be applied to all points
      */
-    void map(const QTransform &matrix);
+    void map(const PkTransform &matrix);
 
     /**
      * Paints the path point with the actual brush and pen
@@ -226,7 +226,7 @@ public:
      *
      * @return bounding rect in document coordinates
      */
-    QRectF boundingRect(bool active = true) const;
+    PkRectF boundingRect(bool active = true) const;
 
     /**
      * @brief Reverses the path point.
@@ -259,12 +259,12 @@ private:
 };
 
 //   /// a KoSubpath contains a path from a moveTo until a close or a new moveTo
-//   typedef QList<KoPathPoint *> KoSubpath;
-//   typedef QList<KoSubpath *> KoSubpathList;
+//   typedef PkList<KoPathPoint *> KoSubpath;
+//   typedef PkList<KoSubpath *> KoSubpathList;
 //   /// A KoPathSegment is a pair two neighboring KoPathPoints
-//   typedef QPair<KoPathPoint*,KoPathPoint*> KoPathSegment;
+//   typedef std::pair<KoPathPoint*,KoPathPoint*> KoPathSegment;
 //   /// The position of a path point within a path shape
-//   typedef QPair<KoSubpath*, int> KoPointPosition;
+//   typedef std::pair<KoSubpath*, int> KoPointPosition;
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(KoPathPoint::PointProperties)
 Q_DECLARE_OPERATORS_FOR_FLAGS(KoPathPoint::PointTypes)

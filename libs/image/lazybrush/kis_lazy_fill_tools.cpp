@@ -208,9 +208,9 @@ FilteringOptions::FilteringOptions(bool _useEdgeDetection, qreal _edgeDetectionS
 bool operator==(const FilteringOptions &t1, const FilteringOptions &t2)
 {
     return t1.useEdgeDetection == t2.useEdgeDetection &&
-           qFuzzyCompare(t1.edgeDetectionSize, t2.edgeDetectionSize) &&
-           qFuzzyCompare(t1.fuzzyRadius, t2.fuzzyRadius) &&
-           qFuzzyCompare(t1.cleanUpAmount, t2.cleanUpAmount);
+           pkQtFuzzyCompare(t1.edgeDetectionSize, t2.edgeDetectionSize) &&
+           pkQtFuzzyCompare(t1.fuzzyRadius, t2.fuzzyRadius) &&
+           pkQtFuzzyCompare(t1.cleanUpAmount, t2.cleanUpAmount);
 }
 
 }

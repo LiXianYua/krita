@@ -10,10 +10,10 @@
 class KoShapeStroke;
 class KoShapeStrokeModel;
 
-template<class T> class QSharedPointer;
+template<class T> class PkSharedPointer;
 
-typedef QSharedPointer<KoShapeStrokeModel> KoShapeStrokeModelSP;
-typedef QSharedPointer<KoShapeStroke> KoShapeStrokeSP;
+typedef PkSharedPointer<KoShapeStrokeModel> KoShapeStrokeModelSP;
+typedef PkSharedPointer<KoShapeStroke> KoShapeStrokeSP;
 
 #endif // KOFLAKETYPES_H
 

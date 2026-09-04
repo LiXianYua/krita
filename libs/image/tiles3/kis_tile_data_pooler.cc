@@ -62,7 +62,7 @@ const std::int32_t KisTileDataPooler::TIMEOUT_FACTOR = 2;
 
 #define DEBUG_FREE_CLONE(freed, demanded)                               \
             dbgKrita << "Freed mem for clones:" << freed                \
-                     << "/" << qAbs(demanded)
+                     << "/" << pkAbs(demanded)
 
 #else
 #define DEBUG_CLONE_ACTION(td, numClones)
@@ -149,7 +149,7 @@ std::int32_t KisTileDataPooler::numClonesNeeded(KisTileData *td) const
     RUNTIME_SANITY_CHECK(td);
     std::int32_t numUsers = td->m_usersCount;
     std::int32_t numPresentClones = td->m_clonesStack.size();
-    std::int32_t totalClones = qMin(numUsers - 1, MAX_NUM_CLONES);
+    std::int32_t totalClones = pkMin(numUsers - 1, MAX_NUM_CLONES);
 
     return totalClones - numPresentClones;
 }
@@ -163,7 +163,7 @@ void KisTileDataPooler::cloneTileData(KisTileData *td, std::int32_t numClones) c
         }
         td->unblockSwapping();
     } else {
-        std::int32_t numUnneededClones = qAbs(numClones);
+        std::int32_t numUnneededClones = pkAbs(numClones);
         for (std::int32_t i = 0; i < numUnneededClones; i++) {
             KisTileData *clone = 0;
 
@@ -193,7 +193,7 @@ void KisTileDataPooler::waitForWork()
         m_timeout = MIN_TIMEOUT;
     } else {
         m_timeout *= TIMEOUT_FACTOR;
-        m_timeout = qMin(m_timeout, MAX_TIMEOUT);
+        m_timeout = pkMin(m_timeout, MAX_TIMEOUT);
     }
 }
 
@@ -313,7 +313,7 @@ inline void KisTileDataPooler::tryFreeOrphanedClones(KisTileData *td)
 
 inline std::int32_t KisTileDataPooler::needMemory(KisTileData *td)
 {
-    std::int32_t clonesNeeded = !td->age() ? qMax(0, numClonesNeeded(td)) : 0;
+    std::int32_t clonesNeeded = !td->age() ? pkMax(0, numClonesNeeded(td)) : 0;
     return clonesMetric(td, clonesNeeded);
 }
 

@@ -211,7 +211,7 @@ KisSpacingInformation KisDuplicateOp::paintAt(const KisPaintInformation& info)
                 tmpCs->toLabA16(tmpIt->rawData(), (quint8*)tmpData, 1);
                 // Division
                 for (int k = 0; k < 3; k++) {
-                    matrixIt[k] = srcData[k] / (qreal)qMax((int)tmpData [k], 1);
+                    matrixIt[k] = srcData[k] / (qreal)pkMax((int)tmpData [k], 1);
                 }
                 srcIt->nextPixel();
                 tmpIt->nextPixel();
@@ -243,7 +243,7 @@ KisSpacingInformation KisDuplicateOp::paintAt(const KisPaintInformation& info)
                 tmpCs->toLabA16(tmpIt2->rawData(), (quint8*)tmpData, 1);
                 // Multiplication
                 for (int k = 0; k < 3; k++) {
-                    tmpData[k] = (int)CLAMP(matrixIt[k] * qMax((int) tmpData[k], 1), 0, 65535);
+                    tmpData[k] = (int)CLAMP(matrixIt[k] * pkMax((int) tmpData[k], 1), 0, 65535);
                 }
                 tmpCs->fromLabA16((quint8*)tmpData, tmpIt2->rawData(), 1);
                 tmpIt2->nextPixel();

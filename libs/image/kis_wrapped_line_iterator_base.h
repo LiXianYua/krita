@@ -92,7 +92,7 @@ public:
     qint32 nConseqPixels() const {
         qint32 iteratorChunk =
             m_currentIterator->nConseqPixels();
-        return qMin(iteratorChunk,
+        return pkMin(iteratorChunk,
                     m_iterationAreaSize.width() - m_currentPos.x());
     }
 

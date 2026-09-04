@@ -37,8 +37,8 @@ public:
     void workaroundClearInheritedFillProperties();
 
     StyleType     fillType  {Solid};  ///< the current fill type
-    Qt::FillRule  fillRule  {Qt::WindingFill};  ///< the current fill rule
-    PkColor        fillColor {PkColor(Qt::black)}; ///< the current fill color. Default is black fill as per svg spec
+    Pk::FillRule  fillRule  {Qt::WindingFill};  ///< the current fill rule
+    PkColor        fillColor {PkColor(Pk::black)}; ///< the current fill color. Default is black fill as per svg spec
     PkString       fillId;    ///< the current fill id (used for gradient/pattern fills)
 
     StyleType     strokeType {None};///< the current stroke type
@@ -48,11 +48,11 @@ public:
     PkString filterId;       ///< the current filter id
     PkString clipPathId;     ///< the current clip path id
     PkString clipMaskId;     ///< the current clip mask id
-    Qt::FillRule clipRule {Qt::WindingFill};  ///< the current clip rule
+    Pk::FillRule clipRule {Qt::WindingFill};  ///< the current clip rule
     qreal opacity {1.0};    ///< the shapes opacity
 
     PkTransform matrix;      ///< the current transformation matrix
-    PkColor  currentColor {Qt::black};   ///< the current color
+    PkColor  currentColor {Pk::black};   ///< the current color
     PkString xmlBaseDir;     ///< the current base directory (used for loading external content)
     bool preserveWhitespace {false}; ///< preserve whitespace in element text
 

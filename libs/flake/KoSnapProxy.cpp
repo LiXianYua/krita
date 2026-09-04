@@ -18,12 +18,12 @@ KoSnapProxy::KoSnapProxy(KoSnapGuide * snapGuide)
 {
 }
 
-QList<QPointF> KoSnapProxy::pointsInRect(const QRectF &rect, bool omitEditedShape)
+PkList<PkPointF> KoSnapProxy::pointsInRect(const PkRectF &rect, bool omitEditedShape)
 {
-    QList<QPointF> points;
-    QList<KoShape*> shapes = shapesInRect(rect, omitEditedShape);
+    PkList<PkPointF> points;
+    PkList<KoShape*> shapes = shapesInRect(rect, omitEditedShape);
     Q_FOREACH (KoShape * shape, shapes) {
-        Q_FOREACH (const QPointF & point, pointsFromShape(shape)) {
+        Q_FOREACH (const PkPointF & point, pointsFromShape(shape)) {
             if (rect.contains(point))
                 points.append(point);
         }
@@ -32,9 +32,9 @@ QList<QPointF> KoSnapProxy::pointsInRect(const QRectF &rect, bool omitEditedShap
     return points;
 }
 
-QList<KoShape*> KoSnapProxy::shapesInRect(const QRectF &rect, bool omitEditedShape)
+PkList<KoShape*> KoSnapProxy::shapesInRect(const PkRectF &rect, bool omitEditedShape)
 {
-    QList<KoShape*> shapes = m_snapGuide->canvas()->shapeManager()->shapesAt(rect);
+    PkList<KoShape*> shapes = m_snapGuide->canvas()->shapeManager()->shapesAt(rect);
     Q_FOREACH (KoShape * shape, m_snapGuide->ignoredShapes()) {
         const int index = shapes.indexOf(shape);
         if (index >= 0) {
@@ -53,16 +53,16 @@ QList<KoShape*> KoSnapProxy::shapesInRect(const QRectF &rect, bool omitEditedSha
     }
 
     if (!omitEditedShape && m_snapGuide->additionalEditedShape()) {
-        QRectF bound = m_snapGuide->additionalEditedShape()->boundingRect();
+        PkRectF bound = m_snapGuide->additionalEditedShape()->boundingRect();
         if (rect.intersects(bound) || rect.contains(bound))
             shapes.append(m_snapGuide->additionalEditedShape());
     }
     return shapes;
 }
 
-QList<QPointF> KoSnapProxy::pointsFromShape(KoShape * shape)
+PkList<PkPointF> KoSnapProxy::pointsFromShape(KoShape * shape)
 {
-    QList<QPointF> snapPoints;
+    PkList<PkPointF> snapPoints;
     // no snapping to hidden shapes
     if (! shape->isVisible())
         return snapPoints;
@@ -72,9 +72,9 @@ QList<QPointF> KoSnapProxy::pointsFromShape(KoShape * shape)
 
     KoPathShape * path = dynamic_cast<KoPathShape*>(shape);
     if (path) {
-        QTransform m = path->absoluteTransformation();
+        PkTransform m = path->absoluteTransformation();
 
-        QList<KoPathPoint*> ignoredPoints = m_snapGuide->ignoredPathPoints();
+        PkList<KoPathPoint*> ignoredPoints = m_snapGuide->ignoredPathPoints();
 
         int subpathCount = path->subpathCount();
         for (int subpathIndex = 0; subpathIndex < subpathCount; ++subpathIndex) {
@@ -91,7 +91,7 @@ QList<QPointF> KoSnapProxy::pointsFromShape(KoShape * shape)
     else
     {
         // add the bounding box corners as default snap points
-        QRectF bbox = shape->boundingRect();
+        PkRectF bbox = shape->boundingRect();
         snapPoints.append(bbox.topLeft());
         snapPoints.append(bbox.topRight());
         snapPoints.append(bbox.bottomRight());
@@ -101,32 +101,32 @@ QList<QPointF> KoSnapProxy::pointsFromShape(KoShape * shape)
     return snapPoints;
 }
 
-QList<KoPathSegment> KoSnapProxy::segmentsInRect(const QRectF &rect, bool omitEditedShape)
+PkList<KoPathSegment> KoSnapProxy::segmentsInRect(const PkRectF &rect, bool omitEditedShape)
 {
     
-    QList<KoShape*> shapes = shapesInRect(rect, omitEditedShape);
-    QList<KoPathPoint*> ignoredPoints = m_snapGuide->ignoredPathPoints();
+    PkList<KoShape*> shapes = shapesInRect(rect, omitEditedShape);
+    PkList<KoPathPoint*> ignoredPoints = m_snapGuide->ignoredPathPoints();
 
-    QList<KoPathSegment> segments;
+    PkList<KoPathSegment> segments;
     Q_FOREACH (KoShape * shape, shapes) {
-        QList<KoPathSegment> shapeSegments;
-        QRectF rectOnShape = shape->documentToShape(rect);
+        PkList<KoPathSegment> shapeSegments;
+        PkRectF rectOnShape = shape->documentToShape(rect);
         KoPathShape * path = dynamic_cast<KoPathShape*>(shape);
         if (path) {
             shapeSegments = path->segmentsAt(rectOnShape);
         } else {
             Q_FOREACH (const KoPathSegment & s, shape->snapData().snapSegments()) {
-                QRectF controlRect = s.controlPointRect();
+                PkRectF controlRect = s.controlPointRect();
                 if (! rect.intersects(controlRect) && ! controlRect.contains(rect))
                     continue;
-                QRectF bound = s.boundingRect();
+                PkRectF bound = s.boundingRect();
                 if (! rect.intersects(bound) && ! bound.contains(rect))
                     continue;
                 shapeSegments.append(s);
             }
         }
 
-        QTransform m = shape->absoluteTransformation();
+        PkTransform m = shape->absoluteTransformation();
         // transform segments to document coordinates
         Q_FOREACH (const KoPathSegment & s, shapeSegments) {
             if (ignoredPoints.contains(s.first()) || ignoredPoints.contains(s.second()))
@@ -137,11 +137,11 @@ QList<KoPathSegment> KoSnapProxy::segmentsInRect(const QRectF &rect, bool omitEd
     return segments;
 }
 
-QList<KoShape*> KoSnapProxy::shapes(bool omitEditedShape)
+PkList<KoShape*> KoSnapProxy::shapes(bool omitEditedShape)
 {
-    QList<KoShape*> allShapes = m_snapGuide->canvas()->shapeManager()->shapes();
-    QList<KoShape*> filteredShapes;
-    QList<KoShape*> ignoredShapes = m_snapGuide->ignoredShapes();
+    PkList<KoShape*> allShapes = m_snapGuide->canvas()->shapeManager()->shapes();
+    PkList<KoShape*> filteredShapes;
+    PkList<KoShape*> ignoredShapes = m_snapGuide->ignoredShapes();
 
     // filter all hidden and ignored shapes
     Q_FOREACH (KoShape * shape, allShapes) {

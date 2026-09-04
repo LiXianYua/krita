@@ -188,21 +188,21 @@ void KisToolBasicBrushBase::continueAlternateAction(KoPointerEvent *event, Alter
 
     const qreal maxBrushSize = KisImageConfig(true).maxBrushSize();
     const qreal effectiveMaxDragSize = 0.5 * screenRect.width();
-    const qreal effectiveMaxBrushSize = qMin(maxBrushSize, effectiveMaxDragSize / scaleX);
+    const qreal effectiveMaxBrushSize = pkMin(maxBrushSize, effectiveMaxDragSize / scaleX);
 
     const qreal scaleCoeff = effectiveMaxBrushSize / effectiveMaxDragSize;
     const qreal sizeDiff = scaleCoeff * offset.x() ;
 
-    if (qAbs(sizeDiff) > 0.01) {
+    if (pkAbs(sizeDiff) > 0.01) {
         KisPaintOpSettingsSP settings = currentPaintOpPreset()->settings();
 
         qreal newSize = m_changeSizeLastPaintOpSize + sizeDiff;
 
         if (action == ChangeSizeSnap) {
-            newSize = qMax(qRound(newSize), 1);
+            newSize = pkMax(pkRound(newSize), 1);
         }
 
-        newSize = qBound(0.01, newSize, maxBrushSize);
+        newSize = pkBound(0.01, newSize, maxBrushSize);
 
         settings->setPaintOpSize(newSize);
 
@@ -362,7 +362,7 @@ PkPainterPath KisToolBasicBrushBase::generateSegment(const PkPointF &point1, qre
     const qreal deltaR1R2 = r1 - r2;
     PkPointF tangentPointP11, tangentPointP12, tangentPointP21, tangentPointP22;
 
-    if (qFuzzyIsNull(deltaR1R2)) {
+    if (pkQtFuzzyIsNull(deltaR1R2)) {
         // Same radius case
         const qreal deltaP1P2Length = std::sqrt(deltaP1P2.x() * deltaP1P2.x() + deltaP1P2.y() * deltaP1P2.y());
         const PkPointF deltaP1P2Normalized = deltaP1P2 / deltaP1P2Length;

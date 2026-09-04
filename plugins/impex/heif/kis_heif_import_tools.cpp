@@ -137,7 +137,7 @@ template<typename Arch,
                                    int> = 0>
 constexpr int bufferSize()
 {
-    return qMax<int>(4, KoStreamedMath<Arch>::float_v::size);
+    return pkMax<int>(4, KoStreamedMath<Arch>::float_v::size);
 }
 #endif
 
@@ -500,7 +500,7 @@ template<typename Arch,
                                    int> = 0>
 constexpr int bufferSize()
 {
-    return qMax<int>(channels, KoStreamedMath<Arch>::float_v::size);
+    return pkMax<int>(channels, KoStreamedMath<Arch>::float_v::size);
 }
 #endif
 
@@ -802,7 +802,7 @@ template<typename Arch,
                                    int> = 0>
 constexpr int bufferSize()
 {
-    return qMax<int>(channels, KoStreamedMath<Arch>::float_v::size);
+    return pkMax<int>(channels, KoStreamedMath<Arch>::float_v::size);
 }
 #endif
 

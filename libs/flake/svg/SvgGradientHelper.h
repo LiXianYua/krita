@@ -9,8 +9,8 @@
 #define SVGGRADIENTHELPER_H
 
 #include <KoFlakeCoordinateSystem.h>
-#include <QTransform>
-#include <QGradient>
+#include <PkTransform.h>
+#include <PkGradient.h>
 #include <SvgMeshGradient.h>
 
 class SvgGradientHelper
@@ -27,40 +27,40 @@ public:
     KoFlake::CoordinateSystem gradientUnits() const;
 
     /// Sets the gradient
-    void setGradient(QGradient * g);
+    void setGradient(PkGradient * g);
     /// Returns the gradient
-    QGradient * gradient() const;
+    PkGradient * gradient() const;
 
     /// Sets the meshgradient
     void setMeshGradient(SvgMeshGradient* g);
     /// Returns the meshgradient
-    QScopedPointer<SvgMeshGradient>& meshgradient();
+    PkScopedPointer<SvgMeshGradient>& meshgradient();
 
-    // To distinguish between SvgMeshGradient and QGradient
+    // To distinguish between SvgMeshGradient and PkGradient
     bool isMeshGradient() const;
 
     /// Returns the gradient transformation
-    QTransform transform() const;
+    PkTransform transform() const;
     /// Sets the gradient transformation
-    void setTransform(const QTransform &transform);
+    void setTransform(const PkTransform &transform);
 
     /// Assignment operator
     SvgGradientHelper & operator = (const SvgGradientHelper & rhs);
 
-    QGradient * adjustedGradient(const QRectF &bound) const;
+    PkGradient * adjustedGradient(const PkRectF &bound) const;
 
     /// Converts a gradient from LogicalMode to ObjectBoundingMode 
-    static QGradient *convertGradient(const QGradient * originalGradient, const QTransform &userToRelativeTransform, const QRectF &size);
+    static PkGradient *convertGradient(const PkGradient * originalGradient, const PkTransform &userToRelativeTransform, const PkRectF &size);
 
-    QGradient::Spread spreadMode() const;
-    void setSpreadMode(const QGradient::Spread &spreadMode);
+    PkGradient::Spread spreadMode() const;
+    void setSpreadMode(const PkGradient::Spread &spreadMode);
 
 private:
 
-    QScopedPointer<QGradient> m_gradient;
-    QScopedPointer<SvgMeshGradient> m_meshgradient;
+    PkScopedPointer<PkGradient> m_gradient;
+    PkScopedPointer<SvgMeshGradient> m_meshgradient;
     KoFlake::CoordinateSystem m_gradientUnits;
-    QTransform m_gradientTransform;
+    PkTransform m_gradientTransform;
 };
 
 #endif // SVGGRADIENTHELPER_H

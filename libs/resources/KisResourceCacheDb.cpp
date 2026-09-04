@@ -52,11 +52,6 @@
 
 namespace {
 
-PkString operator+(const char *lhs, const PkString &rhs)
-{
-    return PkString(lhs) + rhs;
-}
-
 struct SchemaVersion
 {
     int major = 0;

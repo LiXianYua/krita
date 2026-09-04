@@ -11,10 +11,10 @@
 
 class KoXmlWriter;
 class KoShape;
-class QIODevice;
-class QString;
-class QTransform;
-class QImage;
+class PkStream;
+class PkString;
+class PkTransform;
+class PkImage;
 
 #include "kritaflake_export.h"
 
@@ -23,8 +23,8 @@ class KRITAFLAKE_EXPORT SvgSavingContext
 {
 public:
     /// Creates a new svg saving context on the specified output device
-    explicit SvgSavingContext(QIODevice &outputDevice, bool saveInlineImages = true);
-    explicit SvgSavingContext(QIODevice &shapesDevice, QIODevice &styleDevice, bool saveInlineImages = true);
+    explicit SvgSavingContext(PkStream &outputDevice, bool saveInlineImages = true);
+    explicit SvgSavingContext(PkStream &shapesDevice, PkStream &styleDevice, bool saveInlineImages = true);
 
     /// Virtual destructor
     virtual ~SvgSavingContext();
@@ -36,22 +36,22 @@ public:
     KoXmlWriter &shapeWriter();
 
     /// Create a unique id from the specified base text
-    QString createUID(const QString &base);
+    PkString createUID(const PkString &base);
 
     /// Returns the unique id for the given shape
-    QString getID(const KoShape *obj);
+    PkString getID(const KoShape *obj);
 
     /// Returns the transformation used to transform into user space
-    QTransform userSpaceTransform() const;
+    PkTransform userSpaceTransform() const;
 
     /// Returns if image should be saved inline
     bool isSavingInlineImages() const;
 
     /// Create a filename suitable for saving external data
-    QString createFileName(const QString &extension);
+    PkString createFileName(const PkString &extension);
 
     /// Saves given image and returns the href used
-    QString saveImage(const QImage &image);
+    PkString saveImage(const PkImage &image);
 
     void setStrippedTextMode(bool value);
     bool strippedTextMode() const;

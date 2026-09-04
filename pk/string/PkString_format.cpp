@@ -540,3 +540,211 @@ double PkString::toDouble(bool* ok) const
     }
     return v;   // 不再是 "good ? v : 0.0"——v 已经按上面的分支被正确设置过
 }
+
+// ── 用量表 · 扩（flake 实测补入）────────────────────────
+// 方法名与 QString 一致；转换/变更类。toLatin1/toUtf8 返回 PkByteArray（对齐
+// Qt 的 QByteArray 返回），调用点 .toLatin1().constData() / .toUtf8().data() 等
+// 原样可用。变更类方法经 _data() 自动 detach（COW 语义对齐 Qt）。
+
+PkByteArray PkString::toLatin1() const
+{
+    const std::vector<char16_t>& b = _cbuf();
+    std::string out;
+    out.reserve(b.size());
+    for (char16_t c : b) {
+        out.push_back(static_cast<char>(c < 256 ? static_cast<unsigned char>(c) : '?'));
+    }
+    return PkByteArray(out.data(), static_cast<int>(out.size()));
+}
+
+PkByteArray PkString::toUtf8() const
+{
+    const std::string s = PkStringCodec::ToUtf8(_cbuf());
+    return PkByteArray(s.data(), static_cast<int>(s.size()));
+}
+
+void PkString::chop(int n)
+{
+    if (n <= 0) {
+        return;
+    }
+    const std::vector<char16_t>& src = _cbuf();
+    const int sz = static_cast<int>(src.size());
+    std::vector<char16_t>& buf = _data();
+    if (n >= sz) {
+        buf.clear();
+    } else {
+        buf.resize(static_cast<std::size_t>(sz - n));
+    }
+}
+
+PkString& PkString::replace(int pos, int n, const PkString& after)
+{
+    const std::vector<char16_t>& src = _cbuf();
+    const int sz = static_cast<int>(src.size());
+    int p = pos;
+    if (p < 0) {
+        p = 0;
+    }
+    if (p > sz) {
+        p = sz;
+    }
+    int count = (n < 0) ? 0 : n;
+    if (p + count > sz) {
+        count = sz - p;
+    }
+    const std::vector<char16_t>& rep = after._cbuf();
+    std::vector<char16_t> tmp;
+    tmp.reserve(static_cast<std::size_t>(sz - count + rep.size()));
+    tmp.insert(tmp.end(), src.begin(), src.begin() + p);
+    tmp.insert(tmp.end(), rep.begin(), rep.end());
+    tmp.insert(tmp.end(), src.begin() + p + count, src.end());
+    _data() = std::move(tmp);
+    return *this;
+}
+
+PkString& PkString::replace(const PkString& before, const PkString& after)
+{
+    const int n = before.size();
+    if (n == 0) {
+        return *this;
+    }
+    const int m = size();
+    if (n > m) {
+        return *this;
+    }
+    std::vector<int> positions;
+    for (int i = 0; i <= m - n; ++i) {
+        if (mid(i, n) == before) {
+            positions.push_back(i);
+        }
+    }
+    if (positions.empty()) {
+        return *this;
+    }
+    const std::vector<char16_t>& rep = after._cbuf();
+    const std::vector<char16_t>& src = _cbuf();
+    std::vector<char16_t> tmp;
+    int prev = 0;
+    for (int pos : positions) {
+        tmp.insert(tmp.end(), src.begin() + prev, src.begin() + pos);
+        tmp.insert(tmp.end(), rep.begin(), rep.end());
+        prev = pos + n;
+    }
+    tmp.insert(tmp.end(), src.begin() + prev, src.end());
+    _data() = std::move(tmp);
+    return *this;
+}
+
+PkString& PkString::replace(char16_t before, char16_t after)
+{
+    std::vector<char16_t>& buf = _data();
+    for (char16_t& c : buf) {
+        if (c == before) {
+            c = after;
+        }
+    }
+    return *this;
+}
+
+PkString& PkString::remove(int pos, int n)
+{
+    if (n <= 0) {
+        return *this;
+    }
+    const std::vector<char16_t>& src = _cbuf();
+    const int sz = static_cast<int>(src.size());
+    int p = pos;
+    if (p < 0) {
+        p = 0;
+    }
+    if (p >= sz) {
+        return *this;
+    }
+    int count = n;
+    if (p + count > sz) {
+        count = sz - p;
+    }
+    std::vector<char16_t>& buf = _data();
+    buf.erase(buf.begin() + p, buf.begin() + p + count);
+    return *this;
+}
+
+PkString& PkString::remove(const PkString& sub)
+{
+    return replace(sub, PkString());
+}
+
+PkString& PkString::insert(int pos, const PkString& s)
+{
+    if (s.isEmpty()) {
+        return *this;
+    }
+    const std::vector<char16_t>& src = _cbuf();
+    const int sz = static_cast<int>(src.size());
+    int p = pos;
+    if (p < 0) {
+        p = 0;
+    }
+    if (p > sz) {
+        p = sz;
+    }
+    const std::vector<char16_t>& ins = s._cbuf();
+    std::vector<char16_t> tmp;
+    tmp.reserve(static_cast<std::size_t>(sz + ins.size()));
+    tmp.insert(tmp.end(), src.begin(), src.begin() + p);
+    tmp.insert(tmp.end(), ins.begin(), ins.end());
+    tmp.insert(tmp.end(), src.begin() + p, src.end());
+    _data() = std::move(tmp);
+    return *this;
+}
+
+PkString& PkString::insert(int pos, char16_t c)
+{
+    PkString s;
+    s._data().assign(1, c);
+    return insert(pos, s);
+}
+
+PkString& PkString::setNum(int n)
+{
+    return *this = PkString::number(n);
+}
+
+PkString& PkString::setNum(int n, int base)
+{
+    return *this = PkString::number(n, base);
+}
+
+PkString& PkString::setNum(double n)
+{
+    return *this = PkString::number(n);
+}
+
+PkString PkString::number(int n, int base)
+{
+    char tmp[32];
+    const std::to_chars_result res = (base == 10)
+        ? std::to_chars(tmp, tmp + sizeof(tmp), n)
+        : std::to_chars(tmp, tmp + sizeof(tmp), n, base);
+    PkString r;
+    r._data() = PkStringCodec::FromUtf8(tmp, static_cast<std::size_t>(res.ptr - tmp));
+    return r;
+}
+
+PkString PkString::number(double n)
+{
+    PkString r;
+    if (n == 0.0) {
+        r._data() = PkStringCodec::FromUtf8("0", 1);
+    } else {
+        char tmp[64];
+        const std::to_chars_result res =
+            std::to_chars(tmp, tmp + sizeof(tmp), n, std::chars_format::general, 6);
+        if (res.ec != std::errc()) {
+            return PkString();
+        }
+        r._data() = PkStringCodec::FromUtf8(tmp, static_cast<std::size_t>(res.ptr - tmp));
+    }
+    return r;
+}

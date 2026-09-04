@@ -143,7 +143,7 @@ inline PK_QTRANSFORM_ toQTransform(const PkTransform &t)
                           t.m31(), t.m32(), t.m33());
 }
 
-// PkSizeF <-> QSizeF（命令类存 shape->size() 到 PkList<PkSizeF> 等边界用）。
+// PkSizeF <-> PkSizeF（命令类存 shape->size() 到 PkList<PkSizeF> 等边界用）。
 inline PkSizeF toPkSizeF(const PK_QSIZEF_ &s)
 {
     return PkSizeF(s.width(), s.height());
@@ -160,7 +160,7 @@ inline PK_QSIZEF_ toQSizeF(const PkSizeF &s)
 inline PK_QPAINTERPATH_ toQPainterPath(const PkPainterPath &path)
 {
     PK_QPAINTERPATH_ out;
-    out.setFillRule(path.fillRule());
+    out.setFillRule(static_cast<Qt::FillRule>(path.fillRule()));
     const int n = path.elementCount();
     for (int i = 0; i < n; ++i) {
         const PkPainterPath::Element e = path.elementAt(i);
@@ -179,12 +179,12 @@ inline PK_QPAINTERPATH_ toQPainterPath(const PkPainterPath &path)
 }
 
 // 真 Qt 路径 → PkPainterPath：toQPainterPath 的反方向，按元素逐段重建。真 Qt
-// 的 QPainterPath::Element 与 PkPainterPath 同构（isMoveTo/isLineTo/isCurveTo +
+// 的 PkPainterPath::Element 与 PkPainterPath 同构（isMoveTo/isLineTo/isCurveTo +
 // 后续两个 CurveToDataElement 构成 cubic），逐元素 moveTo/lineTo/cubicTo 拷贝。
 inline PkPainterPath toPkPainterPath(const PK_QPAINTERPATH_ &path)
 {
     PkPainterPath out;
-    out.setFillRule(path.fillRule());
+    out.setFillRule(static_cast<Pk::FillRule>(path.fillRule()));
     const int n = path.elementCount();
     for (int i = 0; i < n; ++i) {
         const PK_QPAINTERPATH_::Element e = path.elementAt(i);
@@ -203,7 +203,7 @@ inline PkPainterPath toPkPainterPath(const PK_QPAINTERPATH_ &path)
 }
 
 // 真 Qt 多边形 ↔ PkPolygon：逐点拷贝（PkPolygon 继承自 PkVector<PkPoint>，
-// 真 Qt 的 QPolygon 是 QVector<QPoint>，逐点 PkPoint(int)/QPoint(int,int) 互转）。
+// 真 Qt 的 PkPolygon 是 PkVector<PkPoint>，逐点 PkPoint(int)/PkPoint(int,int) 互转）。
 inline PK_QPOLYGON_ toQPolygon(const PkPolygon &p)
 {
     PK_QPOLYGON_ out;
@@ -257,6 +257,18 @@ inline PkList<T> toPkList(const PK_QLIST_<T> &l)
     return out;
 }
 
+// PkList→PkList 恒等（冗余包裹透传）：真实 Qt 构建分支也需可见，否则调用点
+// `toPkList(pkListVar)` 只剩上面的 QList 版重载会匹配失败（薄壳 #else 分支已有同载）。
+template <typename T>
+inline PkList<T> toPkList(const PkList<T> &l) { return l; }
+
+// QLocale 作为 PkHash key 时需要的哈希（Qt 提供 qHash(QLocale)）。覆盖 PkHashFunctions.h
+// 通用 pkHash(Enum) 的转发点；放在全局命名空间，QLocale 关联命名空间（全局）的 ADL 可见。
+inline unsigned int pkHash(const PK_CAT_(Q, Locale) &key, unsigned int seed = 0) noexcept
+{
+    return qHash(key, seed);
+}
+
 template <typename T>
 inline PK_QLIST_<T> toQList(const PkList<T> &l)
 {
@@ -269,7 +281,7 @@ inline PK_QLIST_<T> toQList(const PkList<T> &l)
 // 拿到 PkStream*，读全部字节转真 Qt 字节数组再走真 Qt 解析路径。
 // PkStream::readAll()/peek()/readLine() 按 pk/port/README.md 登记**只声明不定义**（等 R-02
 // 交付 PkByteArray 语义）。消费方要「读完整个设备」时不能用它——这里用 read()/atEnd() 循环
-// 手工读完，直接累积进真 Qt QByteArray（调用方 data 成员就是 QByteArray）。
+// 手工读完，直接累积进真 Qt PkByteArray（调用方 data 成员就是 PkByteArray）。
 inline PK_QBYTEARRAY_ pkReadAllAsQByteArray(PkStream *dev)
 {
     PK_QBYTEARRAY_ buf;
@@ -307,9 +319,9 @@ inline PkXmlElement toPkXmlElement(const PK_QDOMEL_ &el)
 
 // PkXmlElement → 真 Qt 元素：toPkXmlElement 的反方向。SvgParser.cpp 的
 // SvgLoadingContext::definition() 返回 PkXmlElement，而该文件是 real-Qt-first
-// （内部用 QDomElement），需要转回真 Qt 元素。toPkXmlElement 造出的 PkXmlElement
+// （内部用 PkXmlElement），需要转回真 Qt 元素。toPkXmlElement 造出的 PkXmlElement
 // 是「每元素一文档」，ownerDocument().toString() 序列化出的正是该元素子树，再交给
-// 真 Qt QDomDocument 解析、取 documentElement 即还原。过渡期行为——每次跨界一次
+// 真 Qt PkXmlDocument 解析、取 documentElement 即还原。过渡期行为——每次跨界一次
 // 序列化+解析，正确性优先；flake 剥完后（源码层 Q* 归零）本转换连同调用点一起删。
 inline PK_QDOMEL_ toQDomElement(const PkXmlElement &el)
 {
@@ -388,17 +400,17 @@ inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkByteArray &b)
 
 // 真 Qt 调试流 << PkTransform：TestSvgParser.cpp 等测试里 `qDebug() << ppVar(p.transform())`
 // （p.transform() 返回 PkTransform）落到真 Qt 调试流时命中。直接复用 toQTransform 转成
-// 真 Qt 变换再流进 QDebug（QTransform 自带调试输出），打印语义与真 Qt 完全一致。
+// 真 Qt 变换再流进 QDebug（PkTransform 自带调试输出），打印语义与真 Qt 完全一致。
 inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkTransform &t)
 {
     dbg << toQTransform(t);
     return dbg;
 }
 
-// PkSharedPointer ↔ QSharedPointer（保活 deleter 模式，与 KoShapeBackgroundCommand.cpp
-// 内匿名 namespace 的同名助手同款）：真 Qt 的 QSharedPointer 无 std::shared_ptr 互操作
+// PkSharedPointer ↔ PkSharedPointer（保活 deleter 模式，与 KoShapeBackgroundCommand.cpp
+// 内匿名 namespace 的同名助手同款）：真 Qt 的 PkSharedPointer 无 std::shared_ptr 互操作
 // 构造，两边各自持有独立控制块，转换方把原指针的副本捕获进 deleter，借副本维持所有权；
-// 对象只被原控制块删除一次，不会双删。测试 TU 传 QSharedPointer 给收 PkSharedPointer
+// 对象只被原控制块删除一次，不会双删。测试 TU 传 PkSharedPointer 给收 PkSharedPointer
 // 的 stripped 命令类（KoShapeBackgroundCommand 等）时用。flake 剥完（共享指针归 Pk）
 // 后本转换连同调用点一起删。
 template <typename T>
@@ -577,7 +589,7 @@ template <typename T>
 inline PkList<T> toQList(const PkList<T> &l) { return l; }
 
 // 共享指针互转的 Qt-free 恒等版：真 Qt 分支的 toPkSharedPointer/toQSharedPointer 在
-// 保活 deleter（Pk↔Q 各持控制块）；Qt-free 下 QSharedPointer 已宏映射到 PkSharedPointer，
+// 保活 deleter（Pk↔Q 各持控制块）；Qt-free 下 PkSharedPointer 已宏映射到 PkSharedPointer，
 // 恒等透传即可。KoShapeBackgroundCommand.cpp 等剥离源在薄壳编译时依赖本对。
 template <typename T>
 inline PkSharedPointer<T> toPkSharedPointer(const PkSharedPointer<T> &p) { return p; }

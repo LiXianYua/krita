@@ -6,55 +6,55 @@
 #include "KoViewConverter.h"
 #include "KoViewTransformStillPoint.h"
 
-#include <QPointF>
-#include <QRectF>
-#include <QTransform>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkTransform.h>
 
 KoViewConverter::KoViewConverter()
     : m_zoomLevel(1.0)
 {
 }
 
-QPointF KoViewConverter::documentToView(const QPointF &documentPoint) const
+PkPointF KoViewConverter::documentToView(const PkPointF &documentPoint) const
 {
     if (qFuzzyCompare(m_zoomLevel, 1))
         return documentPoint;
-    return QPointF(documentToViewX(documentPoint.x()), documentToViewY(documentPoint.y()));
+    return PkPointF(documentToViewX(documentPoint.x()), documentToViewY(documentPoint.y()));
 }
 
-QPointF KoViewConverter::viewToDocument(const QPointF &viewPoint) const
+PkPointF KoViewConverter::viewToDocument(const PkPointF &viewPoint) const
 {
     if (qFuzzyCompare(m_zoomLevel, 1))
         return viewPoint;
-    return QPointF(viewToDocumentX(viewPoint.x()), viewToDocumentY(viewPoint.y()));
+    return PkPointF(viewToDocumentX(viewPoint.x()), viewToDocumentY(viewPoint.y()));
 }
 
-QRectF KoViewConverter::documentToView(const QRectF &documentRect) const
+PkRectF KoViewConverter::documentToView(const PkRectF &documentRect) const
 {
     if (qFuzzyCompare(m_zoomLevel, 1))
         return documentRect;
-    return QRectF(documentToView(documentRect.topLeft()), documentToView(documentRect.size()));
+    return PkRectF(documentToView(documentRect.topLeft()), documentToView(documentRect.size()));
 }
 
-QRectF KoViewConverter::viewToDocument(const QRectF &viewRect) const
+PkRectF KoViewConverter::viewToDocument(const PkRectF &viewRect) const
 {
     if (qFuzzyCompare(m_zoomLevel, 1))
         return viewRect;
-    return QRectF(viewToDocument(viewRect.topLeft()), viewToDocument(viewRect.size()));
+    return PkRectF(viewToDocument(viewRect.topLeft()), viewToDocument(viewRect.size()));
 }
 
-QSizeF KoViewConverter::documentToView(const QSizeF &documentSize) const
+PkSizeF KoViewConverter::documentToView(const PkSizeF &documentSize) const
 {
     if (qFuzzyCompare(m_zoomLevel, 1))
         return documentSize;
-    return QSizeF(documentToViewX(documentSize.width()), documentToViewY(documentSize.height()));
+    return PkSizeF(documentToViewX(documentSize.width()), documentToViewY(documentSize.height()));
 }
 
-QSizeF KoViewConverter::viewToDocument(const QSizeF &viewSize) const
+PkSizeF KoViewConverter::viewToDocument(const PkSizeF &viewSize) const
 {
     if (qFuzzyCompare(m_zoomLevel, 1))
         return viewSize;
-    return QSizeF(viewToDocumentX(viewSize.width()), viewToDocumentY(viewSize.height()));
+    return PkSizeF(viewToDocumentX(viewSize.width()), viewToDocumentY(viewSize.height()));
 }
 
 void KoViewConverter::zoom(qreal *zoomX, qreal *zoomY) const
@@ -98,36 +98,36 @@ qreal KoViewConverter::zoom() const
     return m_zoomLevel;
 }
 
-KoViewTransformStillPoint KoViewConverter::makeWidgetStillPoint(const QPointF &viewPoint) const
+KoViewTransformStillPoint KoViewConverter::makeWidgetStillPoint(const PkPointF &viewPoint) const
 {
     return { viewToDocument(widgetToView().map(viewPoint)), viewPoint };
 }
 
-KoViewTransformStillPoint KoViewConverter::makeDocStillPoint(const QPointF &docPoint) const
+KoViewTransformStillPoint KoViewConverter::makeDocStillPoint(const PkPointF &docPoint) const
 {
     return {docPoint, viewToWidget().map(documentToView(docPoint))};
 }
 
-QTransform KoViewConverter::documentToView() const
+PkTransform KoViewConverter::documentToView() const
 {
     qreal zoomX, zoomY;
     zoom(&zoomX, &zoomY);
-    return QTransform::fromScale(zoomX, zoomY);
+    return PkTransform::fromScale(zoomX, zoomY);
 }
 
-QTransform KoViewConverter::viewToDocument() const
+PkTransform KoViewConverter::viewToDocument() const
 {
     qreal zoomX, zoomY;
     zoom(&zoomX, &zoomY);
-    return QTransform::fromScale(1.0 / zoomX, 1.0 / zoomY);
+    return PkTransform::fromScale(1.0 / zoomX, 1.0 / zoomY);
 }
 
-QTransform KoViewConverter::viewToWidget() const
+PkTransform KoViewConverter::viewToWidget() const
 {
-    return QTransform();
+    return PkTransform();
 }
 
-QTransform KoViewConverter::widgetToView() const
+PkTransform KoViewConverter::widgetToView() const
 {
-    return QTransform();
+    return PkTransform();
 }

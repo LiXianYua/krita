@@ -50,7 +50,7 @@ void HatchingBrush::hatch(KisPaintDeviceSP dev, qreal x, qreal y, double width, 
 
     angle = givenAngle;
     double tempthickness = m_settings->thickness * m_settings->thicknesssensorvalue;
-    thickness = qMax(1, qRound(additionalScale * tempthickness));
+    thickness = pkMax(1, pkRound(additionalScale * tempthickness));
     separation = additionalScale *
         (m_settings->enabledcurveseparation ?
          separationAsFunctionOfParameter(m_settings->separationsensorvalue, m_settings->separation, m_settings->separationintervals) :

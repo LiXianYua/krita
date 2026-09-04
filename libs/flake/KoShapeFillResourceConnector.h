@@ -8,7 +8,7 @@
 #define KOSHAPEFILLRESOURCECONNECTOR_H
 
 #include <QObject>
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KoCanvasBase;
 
@@ -23,11 +23,11 @@ public:
     void disconnect();
 
 private Q_SLOTS:
-    void slotCanvasResourceChanged(int key, const QVariant &value);
+    void slotCanvasResourceChanged(int key, const PkVariant &value);
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif // KOSHAPEFILLRESOURCECONNECTOR_H

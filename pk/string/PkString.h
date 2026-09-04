@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../container/PkArrayData.h"
+#include "../container/PkByteArray.h"
 
 // PkString —— 零 Qt 依赖的 COW UTF-16 字符串。
 //
@@ -18,6 +19,8 @@ class PkString
 public:
     PkString();
     PkString(const char* utf8);          // 刻意不加 explicit：调用点靠 const char* 隐式转换
+    PkString(char ch);                   // 单字节（ASCII）→ 单 UTF-16 码元
+    PkString(char16_t ch);               // 单 UTF-16 码元
     PkString(const PkString& other);
     PkString(PkString&& other) noexcept;
     ~PkString();
@@ -37,6 +40,12 @@ public:
     bool startsWith(const PkString& prefix) const;
     PkString trimmed() const;
     std::vector<PkString> split(char16_t sep) const;
+    // split(const char*)：对齐 QString::split(const char*) 的常见单 ASCII 字符分隔用法
+    // （如 split("/")、split(",")），将 c 串首字符转 char16_t 后复用 split(char16_t)。
+    std::vector<PkString> split(const char* sep) const
+    {
+        return split(static_cast<char16_t>(PkString(sep)[0]));
+    }
     PkString toLower() const;
     PkString toUpper() const;
 
@@ -51,6 +60,36 @@ public:
     int toInt(bool* ok = nullptr) const;
     double toDouble(bool* ok = nullptr) const;
 
+    // ── 用量表 · 扩（flake 实测补入）────────────────────────
+    // 以下方法原不在 QString 14 项用量表内。libs/flake 机械迁移后实测有真实用量
+    // （toLatin1 127 / indexOf 82 / count 127 / isNull 69 / length 41 / remove 48
+    // / replace 13 / toUtf8 27 / endsWith 15 / chop 7 / insert·simplified·setNum
+    // ·compare 各若干），按「新发现的缺口直接补进用量表」原则补入，方法名与
+    // QString 一致，flake 调用点无需改写即可编过。
+    PkByteArray toLatin1() const;                 // 对齐 Qt：返回 PkByteArray（QByteArray 替代）
+    PkByteArray toUtf8() const;                   // 与 PkToUtf8() 并存（后者返 std::string）
+    int indexOf(const PkString& sub, int from = 0) const;
+    bool endsWith(const PkString& suffix) const;
+    void chop(int n);
+    int count() const;                            // 同 size()
+    int count(const PkString& sub) const;         // 子串出现次数
+    bool isNull() const;                          // PkString 无 null 态：等价 isEmpty()
+    int length() const;                           // 同 size()
+    PkString simplified() const;                  // 去首尾空白并折叠内部空白为单空格
+    int compare(const PkString& other) const;     // <0/0/>0，码元序
+    PkString& replace(int pos, int n, const PkString& after);
+    PkString& replace(const PkString& before, const PkString& after);
+    PkString& replace(char16_t before, char16_t after);
+    PkString& remove(int pos, int n);
+    PkString& remove(const PkString& sub);
+    PkString& insert(int pos, const PkString& s);
+    PkString& insert(int pos, char16_t c);
+    PkString& setNum(int n);
+    PkString& setNum(int n, int base);
+    PkString& setNum(double n);
+    static PkString number(int n, int base = 10);
+    static PkString number(double n);
+
     // ── 运算符（不计入用量表：调用点靠它们，Qt 侧也是运算符）──
     bool operator==(const PkString& other) const;
     bool operator!=(const PkString& other) const;
@@ -63,6 +102,8 @@ public:
     std::u16string PkToU16() const;
     std::string PkToUtf8() const;
     static PkString PkFromUtf8(const char* s, int len);
+    static PkString fromUtf8(const char* s);                       // 对齐 QString::fromUtf8
+    static PkString fromUtf16(const char16_t* s, int len = -1);    // 对齐 QString::fromUtf16
     bool PkIsSharedWith(const PkString& other) const;
 
 private:
@@ -74,3 +115,10 @@ private:
 
     PkArrayData<std::vector<char16_t>> _d;
 };
+
+// 自由运算符：const char* + PkString（字面量在左）。PkString + const char* 走成员
+// operator+(const PkString&) 经隐式 const char* 构造，无需此处。
+inline PkString operator+(const char* a, const PkString& b)
+{
+    return PkString(a) + b;
+}

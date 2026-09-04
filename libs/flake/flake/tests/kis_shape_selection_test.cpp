@@ -8,7 +8,7 @@
 #include <simpletest.h>
 
 #include <kis_debug.h>
-#include <QRect>
+#include <PkRect.h>
 
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -33,8 +33,8 @@ public:
 void KisShapeSelectionTest::testAddChild()
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
-    QScopedPointer<KisDocument> doc(new TestKisDocument);
-    QColor qc(Qt::white);
+    PkScopedPointer<KisDocument> doc(new TestKisDocument);
+    PkColor qc(Qt::white);
     qc.setAlpha(0);
     KoColor bgColor(qc, cs);
     doc->newImage("test", 300, 300, cs, bgColor, KisDocument::NewImageBackgroundStyle::CanvasColor, 1, "test", 100);
@@ -48,13 +48,13 @@ void KisShapeSelectionTest::testAddChild()
     QVERIFY(!selection->hasNonEmptyShapeSelection());
 
     KisPixelSelectionSP pixelSelection = selection->pixelSelection();
-    pixelSelection->select(QRect(0, 0, 100, 100));
+    pixelSelection->select(PkRect(0, 0, 100, 100));
 
     QCOMPARE(TestUtil::alphaDevicePixel(pixelSelection, 25, 25), MAX_SELECTED);
-    QCOMPARE(selection->selectedExactRect(), QRect(0, 0, 100, 100));
+    QCOMPARE(selection->selectedExactRect(), PkRect(0, 0, 100, 100));
 
-    QRectF rect(50, 50, 100, 100);
-    QTransform matrix;
+    PkRectF rect(50, 50, 100, 100);
+    PkTransform matrix;
     matrix.scale(1 / image->xRes(), 1 / image->yRes());
     rect = matrix.mapRect(rect);
 
@@ -75,10 +75,10 @@ void KisShapeSelectionTest::testAddChild()
     selection->updateProjection();
     image->waitForDone();
 
-    QCOMPARE(selection->selectedExactRect(), QRect(50, 50, 100, 100));
+    QCOMPARE(selection->selectedExactRect(), PkRect(50, 50, 100, 100));
 }
 
-KoPathShape *createRectangularShape(const QRectF &rect)
+KoPathShape *createRectangularShape(const PkRectF &rect)
 {
     KoPathShape* shape = new KoPathShape();
     shape->setShapeId(KoPathShapeId);
@@ -94,8 +94,8 @@ KoPathShape *createRectangularShape(const QRectF &rect)
 void KisShapeSelectionTest::testUndoFlattening()
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
-    QScopedPointer<KisDocument> doc(new TestKisDocument);
-    KoColor bgColor(QColor(255, 255, 255, 0), cs);
+    PkScopedPointer<KisDocument> doc(new TestKisDocument);
+    KoColor bgColor(PkColor(255, 255, 255, 0), cs);
     doc->newImage("test", 300, 300, cs, bgColor, KisDocument::NewImageBackgroundStyle::CanvasColor, 1, "test", 100);
     KisImageSP image = doc->image();
 
@@ -111,15 +111,15 @@ void KisShapeSelectionTest::testUndoFlattening()
     selection->setParentNode(image->root());
 
     KisPixelSelectionSP pixelSelection = selection->pixelSelection();
-    pixelSelection->select(QRect(0, 0, 100, 100));
+    pixelSelection->select(PkRect(0, 0, 100, 100));
 
     QCOMPARE(TestUtil::alphaDevicePixel(pixelSelection, 25, 25), MAX_SELECTED);
-    QCOMPARE(selection->selectedExactRect(), QRect(0, 0, 100, 100));
+    QCOMPARE(selection->selectedExactRect(), PkRect(0, 0, 100, 100));
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(1 / image->xRes(), 1 / image->yRes());
-    const QRectF srcRect1(50, 50, 100, 100);
-    const QRectF rect1 = matrix.mapRect(srcRect1);
+    const PkRectF srcRect1(50, 50, 100, 100);
+    const PkRectF rect1 = matrix.mapRect(srcRect1);
 
     KisShapeSelection * shapeSelection1 = new KisShapeSelection(doc->shapeController(), selection);
     selection->convertToVectorSelectionNoUndo(shapeSelection1);
@@ -130,7 +130,7 @@ void KisShapeSelectionTest::testUndoFlattening()
     QVERIFY(selection->hasNonEmptyShapeSelection());
 
     selection->pixelSelection()->clear();
-    QCOMPARE(selection->selectedExactRect(), QRect());
+    QCOMPARE(selection->selectedExactRect(), PkRect());
 
     selection->updateProjection();
     image->waitForDone();
@@ -148,13 +148,13 @@ void KisShapeSelectionTest::testUndoFlattening()
     QTest::qWait(400);
     image->waitForDone();
 
-    QCOMPARE(selection->selectedExactRect(), QRect());
+    QCOMPARE(selection->selectedExactRect(), PkRect());
     QCOMPARE(selection->outlineCacheValid(), true);
-    QCOMPARE(selection->outlineCache().boundingRect(), QRectF());
+    QCOMPARE(selection->outlineCache().boundingRect(), PkRectF());
     QCOMPARE(selection->hasNonEmptyShapeSelection(), false);
 
-    const QRectF srcRect2(10, 10, 20, 20);
-    const QRectF rect2 = matrix.mapRect(srcRect2);
+    const PkRectF srcRect2(10, 10, 20, 20);
+    const PkRectF rect2 = matrix.mapRect(srcRect2);
     KoPathShape *shape2 = createRectangularShape(rect2);
 
     KisShapeSelection * shapeSelection2 = new KisShapeSelection(doc->shapeController(), selection);
@@ -176,9 +176,9 @@ void KisShapeSelectionTest::testUndoFlattening()
     QTest::qWait(400);
     image->waitForDone();
 
-    QCOMPARE(selection->selectedExactRect(), QRect());
+    QCOMPARE(selection->selectedExactRect(), PkRect());
     QCOMPARE(selection->outlineCacheValid(), true);
-    QCOMPARE(selection->outlineCache().boundingRect(), QRectF());
+    QCOMPARE(selection->outlineCache().boundingRect(), PkRectF());
     QCOMPARE(selection->hasNonEmptyShapeSelection(), false);
 
     cmd2->undo();
@@ -203,8 +203,8 @@ void KisShapeSelectionTest::testUndoFlattening()
 void KisShapeSelectionTest::testHistoryOnFlattening()
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
-    QScopedPointer<KisDocument> doc(new TestKisDocument);
-    KoColor bgColor(QColor(255, 255, 255, 0), cs);
+    PkScopedPointer<KisDocument> doc(new TestKisDocument);
+    KoColor bgColor(PkColor(255, 255, 255, 0), cs);
     doc->newImage("test", 300, 300, cs, bgColor, KisDocument::NewImageBackgroundStyle::CanvasColor, 1, "test", 100);
     KisImageSP image = doc->image();
 
@@ -222,36 +222,36 @@ void KisShapeSelectionTest::testHistoryOnFlattening()
     KisPixelSelectionSP pixelSelection = selection->pixelSelection();
 
     KisSelectionTransaction t0(pixelSelection);
-    pixelSelection->select(QRect(70, 70, 180, 20));
-    QScopedPointer<KUndo2Command> cmd0(t0.endAndTake());
+    pixelSelection->select(PkRect(70, 70, 180, 20));
+    PkScopedPointer<KUndo2Command> cmd0(t0.endAndTake());
     cmd0->redo(); // first redo
 
     KisSelectionTransaction t1(pixelSelection);
     pixelSelection->clear();
-    pixelSelection->select(QRect(0, 0, 100, 100));
-    QScopedPointer<KUndo2Command> cmd1(t1.endAndTake());
+    pixelSelection->select(PkRect(0, 0, 100, 100));
+    PkScopedPointer<KUndo2Command> cmd1(t1.endAndTake());
     cmd1->redo(); // first redo
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "00_0pixel", "dd");
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "00_0pixel", "dd");
     QCOMPARE(TestUtil::alphaDevicePixel(pixelSelection, 25, 25), MAX_SELECTED);
-    QCOMPARE(selection->selectedExactRect(), QRect(0, 0, 100, 100));
+    QCOMPARE(selection->selectedExactRect(), PkRect(0, 0, 100, 100));
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(1 / image->xRes(), 1 / image->yRes());
-    const QRectF srcRect1(50, 50, 100, 100);
-    const QRectF rect1 = matrix.mapRect(srcRect1);
+    const PkRectF srcRect1(50, 50, 100, 100);
+    const PkRectF rect1 = matrix.mapRect(srcRect1);
 
     KisShapeSelection * shapeSelection = new KisShapeSelection(doc->shapeController(), selection);
 
-    QScopedPointer<KUndo2Command> cmd2(selection->convertToVectorSelection(shapeSelection));
+    PkScopedPointer<KUndo2Command> cmd2(selection->convertToVectorSelection(shapeSelection));
     cmd2->redo();
 
     QVERIFY(!selection->hasNonEmptyShapeSelection());
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "00_1converted", "dd");
-    QCOMPARE(selection->selectedExactRect(), QRect());
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "00_1converted", "dd");
+    QCOMPARE(selection->selectedExactRect(), PkRect());
 
     KoPathShape *shape1 = createRectangularShape(rect1);
     shapeSelection->addShape(shape1);
@@ -260,41 +260,41 @@ void KisShapeSelectionTest::testHistoryOnFlattening()
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "01_vector", "dd");
-    QCOMPARE(selection->selectedExactRect(), QRect(50, 50, 100, 100));
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "01_vector", "dd");
+    QCOMPARE(selection->selectedExactRect(), PkRect(50, 50, 100, 100));
 
     KisSelectionTransaction flatteningTransaction(pixelSelection);
-    pixelSelection->select(QRect(80, 80, 100, 83));
+    pixelSelection->select(PkRect(80, 80, 100, 83));
 
-    QScopedPointer<KUndo2Command> cmd3(flatteningTransaction.endAndTake());
+    PkScopedPointer<KUndo2Command> cmd3(flatteningTransaction.endAndTake());
     cmd3->redo(); // first redo!
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "02_flattened", "dd");
-    QCOMPARE(selection->selectedExactRect(), QRect(50, 50, 130, 113));
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "02_flattened", "dd");
+    QCOMPARE(selection->selectedExactRect(), PkRect(50, 50, 130, 113));
     QVERIFY(!selection->hasNonEmptyShapeSelection());
 
     cmd3->undo();
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "03_undo_flattening", "dd");
-    QCOMPARE(selection->selectedExactRect(), QRect(50, 50, 100, 100));
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "03_undo_flattening", "dd");
+    QCOMPARE(selection->selectedExactRect(), PkRect(50, 50, 100, 100));
     QVERIFY(selection->hasNonEmptyShapeSelection());
 
     cmd3->redo();
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "04_redo_flattening", "dd");
-    QCOMPARE(selection->selectedExactRect(), QRect(50, 50, 130, 113));
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "04_redo_flattening", "dd");
+    QCOMPARE(selection->selectedExactRect(), PkRect(50, 50, 130, 113));
     QVERIFY(!selection->hasNonEmptyShapeSelection());
 
     cmd3->undo();
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "05_2ndundo_flattening", "dd");
-    QCOMPARE(selection->selectedExactRect(), QRect(50, 50, 100, 100));
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "05_2ndundo_flattening", "dd");
+    QCOMPARE(selection->selectedExactRect(), PkRect(50, 50, 100, 100));
     QVERIFY(selection->hasNonEmptyShapeSelection());
 
     shapeSelection->removeShape(shape1);
@@ -302,40 +302,40 @@ void KisShapeSelectionTest::testHistoryOnFlattening()
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "06_undo_add_shape", "dd");
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "06_undo_add_shape", "dd");
     QVERIFY(selection->shapeSelection());
     QVERIFY(!selection->hasNonEmptyShapeSelection());
-    QCOMPARE(selection->selectedExactRect(), QRect());
+    QCOMPARE(selection->selectedExactRect(), PkRect());
 
     cmd2->undo();
 
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "07_undo_conversion", "dd");
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "07_undo_conversion", "dd");
     QVERIFY(!selection->shapeSelection());
     QVERIFY(!selection->hasNonEmptyShapeSelection());
-    QCOMPARE(selection->selectedExactRect(), QRect(0, 0, 100, 100));
+    QCOMPARE(selection->selectedExactRect(), PkRect(0, 0, 100, 100));
 
     cmd1->undo();
 
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "08_undo_initial_paint", "dd");
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "08_undo_initial_paint", "dd");
     QVERIFY(!selection->shapeSelection());
     QVERIFY(!selection->hasNonEmptyShapeSelection());
-    QCOMPARE(selection->selectedExactRect(), QRect(70, 70, 180, 20));
+    QCOMPARE(selection->selectedExactRect(), PkRect(70, 70, 180, 20));
 
     cmd0->undo();
 
     QTest::qWait(200);
     image->waitForDone();
 
-    // KIS_DUMP_DEVICE_2(pixelSelection, QRect(0,0,300,300), "09_undo_zero_paint", "dd");
+    // KIS_DUMP_DEVICE_2(pixelSelection, PkRect(0,0,300,300), "09_undo_zero_paint", "dd");
     QVERIFY(!selection->shapeSelection());
     QVERIFY(!selection->hasNonEmptyShapeSelection());
-    QCOMPARE(selection->selectedExactRect(), QRect());
+    QCOMPARE(selection->selectedExactRect(), PkRect());
 }
 
 

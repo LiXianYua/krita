@@ -25,7 +25,7 @@ KoSvgTextContentElement::KoSvgTextContentElement()
 }
 
 namespace {
-void appendLazy(QVector<qreal> *list, boost::optional<qreal> value, int iteration, bool hasDefault = true, qreal defaultValue = 0.0)
+void appendLazy(PkVector<qreal> *list, boost::optional<qreal> value, int iteration, bool hasDefault = true, qreal defaultValue = 0.0)
 {
     if (!value) return;
     if (value && *value == defaultValue && hasDefault == true && list->isEmpty()) return;
@@ -37,8 +37,8 @@ void appendLazy(QVector<qreal> *list, boost::optional<qreal> value, int iteratio
     list->append(*value);
 }
 
-void fillTransforms(QVector<qreal> *xPos, QVector<qreal> *yPos, QVector<qreal> *dxPos, QVector<qreal> *dyPos, QVector<qreal> *rotate,
-                    QVector<KoSvgText::CharTransformation> localTransformations)
+void fillTransforms(PkVector<qreal> *xPos, PkVector<qreal> *yPos, PkVector<qreal> *dxPos, PkVector<qreal> *dyPos, PkVector<qreal> *rotate,
+                    PkVector<KoSvgText::CharTransformation> localTransformations)
 {
     for (int i = 0; i < localTransformations.size(); i++) {
         const KoSvgText::CharTransformation &t = localTransformations[i];
@@ -52,9 +52,9 @@ void fillTransforms(QVector<qreal> *xPos, QVector<qreal> *yPos, QVector<qreal> *
 
 
 
-QVector<qreal> parseListAttributeX(const QString &value, SvgLoadingContext &context)
+PkVector<qreal> parseListAttributeX(const PkString &value, SvgLoadingContext &context)
 {
-    QVector<qreal> result;
+    PkVector<qreal> result;
 
     PkStringList list = SvgUtil::simplifyList(toPkString(value));
     for (const PkString &str : list) {
@@ -64,9 +64,9 @@ QVector<qreal> parseListAttributeX(const QString &value, SvgLoadingContext &cont
     return result;
 }
 
-QVector<qreal> parseListAttributeY(const QString &value, SvgLoadingContext &context)
+PkVector<qreal> parseListAttributeY(const PkString &value, SvgLoadingContext &context)
 {
-    QVector<qreal> result;
+    PkVector<qreal> result;
 
     PkStringList list = SvgUtil::simplifyList(toPkString(value));
     for (const PkString &str : list) {
@@ -76,9 +76,9 @@ QVector<qreal> parseListAttributeY(const QString &value, SvgLoadingContext &cont
     return result;
 }
 
-QVector<qreal> parseListAttributeAngular(const QString &value, SvgLoadingContext &context)
+PkVector<qreal> parseListAttributeAngular(const PkString &value, SvgLoadingContext &context)
 {
-    QVector<qreal> result;
+    PkVector<qreal> result;
 
     PkStringList list = SvgUtil::simplifyList(toPkString(value));
     for (const PkString &str : list) {
@@ -88,8 +88,8 @@ QVector<qreal> parseListAttributeAngular(const QString &value, SvgLoadingContext
     return result;
 }
 
-QString convertListAttribute(const QVector<qreal> &values) {
-    QStringList stringValues;
+PkString convertListAttribute(const PkVector<qreal> &values) {
+    PkStringList stringValues;
 
     Q_FOREACH (qreal value, values) {
         stringValues.append(toQString(KisDomUtils::toString(value)));
@@ -98,9 +98,9 @@ QString convertListAttribute(const QVector<qreal> &values) {
     return stringValues.join(',');
 }
 
-void writeTextListAttribute(const QString &attribute, const QVector<qreal> &values, KoXmlWriter &writer)
+void writeTextListAttribute(const PkString &attribute, const PkVector<qreal> &values, KoXmlWriter &writer)
 {
-    const QString value = convertListAttribute(values);
+    const PkString value = convertListAttribute(values);
     if (!value.isEmpty()) {
         writer.addAttribute(attribute.toLatin1().data(), toPkString(value));
     }
@@ -159,10 +159,10 @@ KoSvgTextProperties adjustPropertiesForFontSizeWorkaround(const KoSvgTextPropert
 
 }
 
-const QString TEXT_STYLE_TYPE = "krita:style-type";
-const QString TEXT_STYLE_RES = "krita:style-resolution";
+const PkString TEXT_STYLE_TYPE = "krita:style-type";
+const PkString TEXT_STYLE_RES = "krita:style-resolution";
 
-bool KoSvgTextContentElement::loadSvg(const QDomElement &e, SvgLoadingContext &context, bool rootNode)
+bool KoSvgTextContentElement::loadSvg(const PkXmlElement &e, SvgLoadingContext &context, bool rootNode)
 {
     SvgGraphicsContext *gc = context.currentGC();
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(gc, false);
@@ -170,7 +170,7 @@ bool KoSvgTextContentElement::loadSvg(const QDomElement &e, SvgLoadingContext &c
     KoSvgTextProperties props = rootNode? context.resolvedProperties(true): gc->textProperties;
 
 
-    QVector<KoSvgTextProperties::PropertyId> generic = {KoSvgTextProperties::FillId,
+    PkVector<KoSvgTextProperties::PropertyId> generic = {KoSvgTextProperties::FillId,
                                                         KoSvgTextProperties::StrokeId,
                                                         KoSvgTextProperties::PaintOrder,
                                                         KoSvgTextProperties::Opacity,
@@ -186,11 +186,11 @@ bool KoSvgTextContentElement::loadSvg(const QDomElement &e, SvgLoadingContext &c
     textLength = KoSvgText::parseAutoValueXY(e.attribute("textLength", ""), context, "");
     lengthAdjust = KoSvgText::parseLengthAdjust(e.attribute("lengthAdjust", "spacing"));
 
-    QVector<qreal> xPos = parseListAttributeX(e.attribute("x", ""), context);
-    QVector<qreal> yPos = parseListAttributeY(e.attribute("y", ""), context);
-    QVector<qreal> dxPos = parseListAttributeX(e.attribute("dx", ""), context);
-    QVector<qreal> dyPos = parseListAttributeY(e.attribute("dy", ""), context);
-    QVector<qreal> rotate = parseListAttributeAngular(e.attribute("rotate", ""), context);
+    PkVector<qreal> xPos = parseListAttributeX(e.attribute("x", ""), context);
+    PkVector<qreal> yPos = parseListAttributeY(e.attribute("y", ""), context);
+    PkVector<qreal> dxPos = parseListAttributeX(e.attribute("dx", ""), context);
+    PkVector<qreal> dyPos = parseListAttributeY(e.attribute("dy", ""), context);
+    PkVector<qreal> rotate = parseListAttributeAngular(e.attribute("rotate", ""), context);
 
     const int numLocalTransformations =
         std::max({xPos.size(), yPos.size(),
@@ -224,7 +224,7 @@ bool KoSvgTextContentElement::loadSvg(const QDomElement &e, SvgLoadingContext &c
         textPathInfo.spacing = KoSvgText::parseTextPathSpacing(e.attribute("spacing", "auto"));
         // This depends on pathLength;
         if (e.hasAttribute("startOffset")) {
-            QString offset = e.attribute("startOffset", "0");
+            PkString offset = e.attribute("startOffset", "0");
             if (offset.endsWith("%")) {
                 textPathInfo.startOffset = SvgUtil::parseNumber(toPkString(offset.left(offset.size() - 1)));
                 textPathInfo.startOffsetIsPercentage = true;
@@ -237,7 +237,7 @@ bool KoSvgTextContentElement::loadSvg(const QDomElement &e, SvgLoadingContext &c
     if (e.hasAttribute(TEXT_STYLE_TYPE.toLatin1().data())) {
         properties.setProperty(KoSvgTextProperties::KraTextStyleType, e.attribute(TEXT_STYLE_TYPE.toLatin1().data()));
         if (e.hasAttribute(TEXT_STYLE_RES.toLatin1().data())) {
-            QString resolution = e.attribute(TEXT_STYLE_RES.toLatin1().data()).toLower();
+            PkString resolution = e.attribute(TEXT_STYLE_RES.toLatin1().data()).toLower();
             if (resolution.endsWith("dpi")) {
                 resolution.chop(3);
             }
@@ -248,7 +248,7 @@ bool KoSvgTextContentElement::loadSvg(const QDomElement &e, SvgLoadingContext &c
     return true;
 }
 
-bool KoSvgTextContentElement::loadSvgTextNode(const QDomText &text, SvgLoadingContext &context)
+bool KoSvgTextContentElement::loadSvgTextNode(const PkXmlText &text, SvgLoadingContext &context)
 {
     SvgGraphicsContext *gc = context.currentGC();
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(gc, false);
@@ -259,7 +259,7 @@ bool KoSvgTextContentElement::loadSvgTextNode(const QDomText &text, SvgLoadingCo
     // newlines in SVG are to be represented by a single LF (U+000A) character,
     // so we can replace all CRLF and CR into LF here for simplicity.
     static const QRegularExpression s_regexCrlf(R"==((?:\r\n|\r(?!\n)))==");
-    QString content = text.data();
+    PkString content = text.data();
     content.replace(s_regexCrlf, QStringLiteral("\n"));
 
     this->text = std::move(content);
@@ -270,21 +270,21 @@ bool KoSvgTextContentElement::loadSvgTextNode(const QDomText &text, SvgLoadingCo
 bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
                                       bool rootText,
                                       bool saveText,
-                                      QMap<QString, QString> shapeSpecificAttributes,
+                                      PkMap<PkString, PkString> shapeSpecificAttributes,
                                       KoShape *textPath)
 {
     if (textPath) {
         if (textPath) {
             // we'll always save as an embedded shape as "path" is an svg 2.0
             // feature.
-            QString id = textPath->isVisible(false) && !context.strippedTextMode()? context.getID(textPath): SvgStyleWriter::embedShape(textPath, context);
+            PkString id = textPath->isVisible(false) && !context.strippedTextMode()? context.getID(textPath): SvgStyleWriter::embedShape(textPath, context);
             // inkscape can only read 'xlink:href'
             if (!id.isEmpty()) {
                 context.shapeWriter().addAttribute("xlink:href", toPkString("#" + id));
             }
         }
         if (textPathInfo.startOffset != 0) {
-            QString offset = toQString(KisDomUtils::toString(textPathInfo.startOffset));
+            PkString offset = toQString(KisDomUtils::toString(textPathInfo.startOffset));
             if (textPathInfo.startOffsetIsPercentage) {
                 offset += "%";
             }
@@ -303,11 +303,11 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
 
     if (!localTransformations.isEmpty()) {
 
-        QVector<qreal> xPos;
-        QVector<qreal> yPos;
-        QVector<qreal> dxPos;
-        QVector<qreal> dyPos;
-        QVector<qreal> rotate;
+        PkVector<qreal> xPos;
+        PkVector<qreal> yPos;
+        PkVector<qreal> dxPos;
+        PkVector<qreal> dyPos;
+        PkVector<qreal> rotate;
 
         fillTransforms(&xPos, &yPos, &dxPos, &dyPos, &rotate, localTransformations);
 
@@ -341,7 +341,7 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
                                         false,
                                         this->associatedOutline.boundingRect(),
                                         associatedOutline.boundingRect().size(),
-                                        QTransform(),
+                                        PkTransform(),
                                         context);
         }
 
@@ -350,9 +350,9 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
         }
     }
 
-    QMap<QString, QString> attributes = ownProperties.convertToSvgTextAttributes();
-    QStringList allowedAttributes = properties.supportedXmlAttributes();
-    QString styleString;
+    PkMap<PkString, PkString> attributes = ownProperties.convertToSvgTextAttributes();
+    PkStringList allowedAttributes = properties.supportedXmlAttributes();
+    PkString styleString;
 
     for (auto it = shapeSpecificAttributes.constBegin(); it != shapeSpecificAttributes.constEnd(); ++it) {
         styleString.append(it.key().toLatin1().data()).append(": ").append(it.value()).append(";");
@@ -371,7 +371,7 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
     if (properties.hasProperty(KoSvgTextProperties::KraTextStyleType)) {
         context.shapeWriter().addAttribute(TEXT_STYLE_TYPE.toLatin1().data(), toPkString(properties.property(KoSvgTextProperties::KraTextStyleType).toString()));
         if (properties.hasProperty(KoSvgTextProperties::KraTextStyleResolution)) {
-            context.shapeWriter().addAttribute(TEXT_STYLE_RES.toLatin1().data(), toPkString(QString::number(properties.property(KoSvgTextProperties::KraTextStyleResolution).toInt())+"dpi"));
+            context.shapeWriter().addAttribute(TEXT_STYLE_RES.toLatin1().data(), toPkString(PkString::number(properties.property(KoSvgTextProperties::KraTextStyleResolution).toInt())+"dpi"));
         }
     }
 
@@ -381,7 +381,7 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
     return true;
 }
 
-static QString transformText(QString text, KoSvgText::TextTransformInfo textTransformInfo, const QString &lang, QVector<QPair<int, int>> &positions)
+static PkString transformText(PkString text, KoSvgText::TextTransformInfo textTransformInfo, const PkString &lang, PkVector<std::pair<int, int>> &positions)
 {
     if (textTransformInfo.capitals == KoSvgText::TextTransformCapitalize) {
         text = KoCssTextUtils::transformTextCapitalize(text, lang, positions);
@@ -392,7 +392,7 @@ static QString transformText(QString text, KoSvgText::TextTransformInfo textTran
     } else {
         positions.clear();
         for (int i = 0; i < text.size(); i++) {
-            positions.append(QPair<int, int>(i, i));
+            positions.append(std::pair<int, int>(i, i));
         }
     }
 
@@ -413,8 +413,8 @@ int KoSvgTextContentElement::numChars(bool withControls, KoSvgTextProperties res
         KoSvgText::Direction direction = KoSvgText::Direction(resolvedProps.propertyOrDefault(KoSvgTextProperties::DirectionId).toInt());
         KoSvgText::TextTransformInfo textTransformInfo =
             resolvedProps.propertyOrDefault(KoSvgTextProperties::TextTransformId).value<KoSvgText::TextTransformInfo>();
-        QString lang = resolvedProps.property(KoSvgTextProperties::TextLanguage).toString().toUtf8();
-        QVector<QPair<int, int>> positions;
+        PkString lang = resolvedProps.property(KoSvgTextProperties::TextLanguage).toString().toUtf8();
+        PkVector<std::pair<int, int>> positions;
 
         result = KoCssTextUtils::getBidiOpening(direction == KoSvgText::DirectionLeftToRight, bidi).size();
         result += transformText(text, textTransformInfo, lang, positions).size();
@@ -425,7 +425,7 @@ int KoSvgTextContentElement::numChars(bool withControls, KoSvgTextProperties res
     return result;
 }
 
-void KoSvgTextContentElement::insertText(int start, QString insertText)
+void KoSvgTextContentElement::insertText(int start, PkString insertText)
 {
     if (start >= text.size()) {
         text.append(insertText);
@@ -435,11 +435,11 @@ void KoSvgTextContentElement::insertText(int start, QString insertText)
 }
 
 
-QString KoSvgTextContentElement::getTransformedString(QVector<QPair<int, int> > &positions, KoSvgTextProperties resolvedProps) const
+PkString KoSvgTextContentElement::getTransformedString(PkVector<std::pair<int, int> > &positions, KoSvgTextProperties resolvedProps) const
 {
     KoSvgText::TextTransformInfo textTransformInfo =
         resolvedProps.propertyOrDefault(KoSvgTextProperties::TextTransformId).value<KoSvgText::TextTransformInfo>();
-    QString lang = resolvedProps.property(KoSvgTextProperties::TextLanguage).toString().toUtf8();
+    PkString lang = resolvedProps.property(KoSvgTextProperties::TextLanguage).toString().toUtf8();
     return transformText(text, textTransformInfo, lang, positions);
 }
 

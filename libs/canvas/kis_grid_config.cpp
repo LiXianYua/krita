@@ -190,12 +190,12 @@ void KisGridConfig::transform(const QTransform &transform)
 
         m_spacing = toQPoint(KisAlgebra2D::abs(t.map(toPkPoint(m_spacing))));
         // Transform map may round spacing down to 0, but it must be at least 1
-        m_spacing.setX(qMax(1, m_spacing.x()));
-        m_spacing.setY(qMax(1, m_spacing.y()));
+        m_spacing.setX(pkMax(1, m_spacing.x()));
+        m_spacing.setY(pkMax(1, m_spacing.y()));
 
     } else if (m_gridType == GRID_ISOMETRIC_LEGACY) {
-        if (qFuzzyCompare(m.scaleX, m.scaleY)) {
-            m_cellSpacing = qRound(qAbs(m_cellSpacing * m.scaleX));
+        if (pkQtFuzzyCompare(m.scaleX, m.scaleY)) {
+            m_cellSpacing = pkRound(pkAbs(m_cellSpacing * m.scaleX));
         }
     }
     m_offset = toQPoint(KisAlgebra2D::wrapValue(pkTransform.map(toPkPoint(m_offset)),
@@ -206,9 +206,9 @@ void KisGridConfig::loadStaticData()
 {
     const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
 
-    m_lineTypeMain = LineTypeInternal(qBound(0, cfg.readEntry("gridmainstyle", 0), 2));
-    m_lineTypeSubdivision = LineTypeInternal(qMin(cfg.readEntry("gridsubdivisionstyle", 1), 2));
-    m_lineTypeIsoVertical = LineTypeInternal(qBound(0, cfg.readEntry("gridisoverticalstyle", 0), 3));
+    m_lineTypeMain = LineTypeInternal(pkBound(0, cfg.readEntry("gridmainstyle", 0), 2));
+    m_lineTypeSubdivision = LineTypeInternal(pkMin(cfg.readEntry("gridsubdivisionstyle", 1), 2));
+    m_lineTypeIsoVertical = LineTypeInternal(pkBound(0, cfg.readEntry("gridisoverticalstyle", 0), 3));
 
     m_colorMain = cfg.readEntry("gridmaincolor", QColor(99, 99, 99));
     m_colorSubdivision = cfg.readEntry("gridsubdivisioncolor", QColor(150, 150, 150));
@@ -287,15 +287,15 @@ bool KisGridConfig::loadDynamicDataFromXml(const QDomElement &gridElement)
     loadQtValue(gridElement, "angleAspectLocked", &m_angleAspectLocked);
     loadQtValue(gridElement, "cellSize", &m_cellSize);
 
-    int lineTypeMain = qBound(0, cfg.readEntry("gridmainstyle", 0), 2);
+    int lineTypeMain = pkBound(0, cfg.readEntry("gridmainstyle", 0), 2);
     loadQtValue(gridElement, "lineTypeMain", &lineTypeMain);
     m_lineTypeMain = LineTypeInternal(lineTypeMain);
 
-    int lineTypeSubdivision = qMin(cfg.readEntry("gridsubdivisionstyle", 1), 2);
+    int lineTypeSubdivision = pkMin(cfg.readEntry("gridsubdivisionstyle", 1), 2);
     loadQtValue(gridElement, "lineTypeSubdivision", &lineTypeSubdivision);
     m_lineTypeSubdivision = LineTypeInternal(lineTypeSubdivision);
 
-    int lineTypeVertical = qBound(0, cfg.readEntry("gridisoverticalstyle", 0), 3);
+    int lineTypeVertical = pkBound(0, cfg.readEntry("gridisoverticalstyle", 0), 3);
     loadQtValue(gridElement, "lineTypeVertical", &lineTypeVertical);
     m_lineTypeIsoVertical = LineTypeInternal(lineTypeVertical);
 

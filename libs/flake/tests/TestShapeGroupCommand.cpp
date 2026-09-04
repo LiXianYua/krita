@@ -34,7 +34,7 @@ TestShapeGroupCommand::~TestShapeGroupCommand()
 {
 }
 
-MockShape* createMockShape(const QRectF &rect)
+MockShape* createMockShape(const PkRectF &rect)
 {
     MockShape *result = new MockShape();
     result->setAbsolutePosition(rect.topLeft(), KoFlake::TopLeft);
@@ -52,22 +52,22 @@ void removeShape(Shape* &shape) {
 
 void TestShapeGroupCommand::init()
 {
-    toplevelShape1 = createMockShape(QRectF(50, 50, 50, 50));
-    toplevelShape2 = createMockShape(QRectF(50, 150, 50, 50));
-    toplevelShape3 = createMockShape(QRectF(50, 250, 50, 50));
-    toplevelShape4 = createMockShape(QRectF(50, 350, 50, 50));
+    toplevelShape1 = createMockShape(PkRectF(50, 50, 50, 50));
+    toplevelShape2 = createMockShape(PkRectF(50, 150, 50, 50));
+    toplevelShape3 = createMockShape(PkRectF(50, 250, 50, 50));
+    toplevelShape4 = createMockShape(PkRectF(50, 350, 50, 50));
 
-    sublevelShape1 = createMockShape(QRectF(150, 150, 50, 50));
-    sublevelShape2 = createMockShape(QRectF(250, 150, 50, 50));
+    sublevelShape1 = createMockShape(PkRectF(150, 150, 50, 50));
+    sublevelShape2 = createMockShape(PkRectF(250, 150, 50, 50));
 
-    extraShape1 = createMockShape(QRectF(150, 50, 50, 50));
-    extraShape2 = createMockShape(QRectF(250, 50, 50, 50));
+    extraShape1 = createMockShape(PkRectF(150, 50, 50, 50));
+    extraShape2 = createMockShape(PkRectF(250, 50, 50, 50));
 
     toplevelGroup = new KoShapeGroup();
     sublevelGroup = new KoShapeGroup();
 
-    strokeShape1 = createMockShape(QRectF(0, 0, 50, 50));
-    strokeShape2 = createMockShape(QRectF(25, 25, 50, 50));
+    strokeShape1 = createMockShape(PkRectF(0, 0, 50, 50));
+    strokeShape2 = createMockShape(PkRectF(25, 25, 50, 50));
 }
 
 void TestShapeGroupCommand::cleanup()
@@ -101,17 +101,17 @@ void TestShapeGroupCommand::cleanup()
 
 void TestShapeGroupCommand::testToplevelGroup()
 {
-    QList<KoShape*> toplevelShapes;
+    PkList<KoShape*> toplevelShapes;
     toplevelShapes << toplevelShape1 << toplevelShape2;
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF());
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF());
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF());
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
 
     cmd1 = KoShapeGroupCommand::createCommand(toplevelGroup, toPkList(toplevelShapes));
     cmd1->redo();
@@ -119,20 +119,20 @@ void TestShapeGroupCommand::testToplevelGroup()
     QCOMPARE(toplevelShape1->parent(), toplevelGroup);
     QCOMPARE(toplevelShape2->parent(), toplevelGroup);
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF(50, 50, 50, 150));
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF(50, 50, 50, 150));
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF(50, 50, 50, 150));
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF(50, 50, 50, 150));
     QVERIFY(toplevelGroup->transformation().isIdentity());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape1->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(50, 50)),
+                                             toPkTransform(PkTransform::fromTranslate(50, 50)),
                                              0.01));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape2->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(50, 150)),
+                                             toPkTransform(PkTransform::fromTranslate(50, 150)),
                                              0.01));
 
     cmd1->undo();
@@ -140,31 +140,31 @@ void TestShapeGroupCommand::testToplevelGroup()
     QVERIFY(!toplevelShape1->parent());
     QVERIFY(!toplevelShape2->parent());
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF());
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF());
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF());
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
 }
 
 void TestShapeGroupCommand::testToplevelGroupWithExistingTransform()
 {
-    QList<KoShape*> toplevelShapes;
+    PkList<KoShape*> toplevelShapes;
     toplevelShapes << toplevelShape1 << toplevelShape2;
 
-    toplevelGroup->setAbsolutePosition(QPointF(100,100), KoFlake::TopLeft);
+    toplevelGroup->setAbsolutePosition(PkPointF(100,100), KoFlake::TopLeft);
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF());
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF());
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF());
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
 
     cmd1 = KoShapeGroupCommand::createCommand(toplevelGroup, toPkList(toplevelShapes));
     cmd1->redo();
@@ -172,52 +172,52 @@ void TestShapeGroupCommand::testToplevelGroupWithExistingTransform()
     QCOMPARE(toplevelShape1->parent(), toplevelGroup);
     QCOMPARE(toplevelShape2->parent(), toplevelGroup);
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF(50, 50, 50, 150));
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF(50, 50, 50, 150));
     // NOTE: The shapes are now at the negative side of the group coordinate system!
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF(-50, -50, 50, 150));
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF(-50, -50, 50, 150));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelGroup->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(100, 100)),
+                                             toPkTransform(PkTransform::fromTranslate(100, 100)),
                                              0.01));
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape1->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(-50, -50)),
+                                             toPkTransform(PkTransform::fromTranslate(-50, -50)),
                                              0.01));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape2->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(-50, 50)),
+                                             toPkTransform(PkTransform::fromTranslate(-50, 50)),
                                              0.01));
 
     cmd1->undo();
     QVERIFY(!toplevelShape1->parent());
     QVERIFY(!toplevelShape2->parent());
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF());
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF());
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF());
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
 }
 
 void TestShapeGroupCommand::testToplevelGroupTransformLater()
 {
-    QList<KoShape*> toplevelShapes;
+    PkList<KoShape*> toplevelShapes;
     toplevelShapes << toplevelShape1 << toplevelShape2;
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF());
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF());
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF());
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
 
     cmd1 = KoShapeGroupCommand::createCommand(toplevelGroup, toPkList(toplevelShapes));
     cmd1->redo();
@@ -225,57 +225,57 @@ void TestShapeGroupCommand::testToplevelGroupTransformLater()
     QCOMPARE(toplevelShape1->parent(), toplevelGroup);
     QCOMPARE(toplevelShape2->parent(), toplevelGroup);
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF(50, 50, 50, 150));
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF(50, 50, 50, 150));
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF(50, 50, 50, 150));
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF(50, 50, 50, 150));
     QVERIFY(toplevelGroup->transformation().isIdentity());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape1->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(50, 50)),
+                                             toPkTransform(PkTransform::fromTranslate(50, 50)),
                                              0.01));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape2->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(50, 150)),
+                                             toPkTransform(PkTransform::fromTranslate(50, 150)),
                                              0.01));
 
-    toplevelGroup->applyAbsoluteTransformation(QTransform::fromTranslate(100, 100));
+    toplevelGroup->applyAbsoluteTransformation(PkTransform::fromTranslate(100, 100));
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF(150, 150, 50, 150));
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF(50, 50, 50, 150));
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF(150, 150, 50, 150));
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF(50, 50, 50, 150));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelGroup->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(100, 100)),
+                                             toPkTransform(PkTransform::fromTranslate(100, 100)),
                                              0.01));
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(150, 150, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(150, 150, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape1->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(50, 50)),
+                                             toPkTransform(PkTransform::fromTranslate(50, 50)),
                                              0.01));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(150, 250, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(150, 250, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape2->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(50, 150)),
+                                             toPkTransform(PkTransform::fromTranslate(50, 150)),
                                              0.01));
 
 }
 
 void TestShapeGroupCommand::testToplevelGroupWithNormalization()
 {
-    QList<KoShape*> toplevelShapes;
+    PkList<KoShape*> toplevelShapes;
     toplevelShapes << toplevelShape1 << toplevelShape2;
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF());
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF());
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF());
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
 
     cmd1 = KoShapeGroupCommand::createCommand(toplevelGroup, toPkList(toplevelShapes), true);
     cmd1->redo();
@@ -283,20 +283,20 @@ void TestShapeGroupCommand::testToplevelGroupWithNormalization()
     QCOMPARE(toplevelShape1->parent(), toplevelGroup);
     QCOMPARE(toplevelShape2->parent(), toplevelGroup);
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF(50, 50, 50, 150));
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF(0, 0, 50, 150));
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF(50, 50, 50, 150));
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF(0, 0, 50, 150));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelGroup->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(50, 50)),
+                                             toPkTransform(PkTransform::fromTranslate(50, 50)),
                                              0.01));
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(toplevelShape1->transformation().isIdentity());
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
     QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(toplevelShape2->transformation()),
-                                             toPkTransform(QTransform::fromTranslate(0, 100)),
+                                             toPkTransform(PkTransform::fromTranslate(0, 100)),
                                              0.01));
 
 
@@ -305,26 +305,26 @@ void TestShapeGroupCommand::testToplevelGroupWithNormalization()
     QVERIFY(!toplevelShape1->parent());
     QVERIFY(!toplevelShape2->parent());
 
-    QCOMPARE(toplevelGroup->boundingRect(), QRectF());
-    QCOMPARE(toplevelGroup->outlineRect(), QRectF());
+    QCOMPARE(toplevelGroup->boundingRect(), PkRectF());
+    QCOMPARE(toplevelGroup->outlineRect(), PkRectF());
 
-    QCOMPARE(toplevelShape1->boundingRect(), QRectF(50, 50, 50, 50));
-    QCOMPARE(toplevelShape1->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape1->boundingRect(), PkRectF(50, 50, 50, 50));
+    QCOMPARE(toplevelShape1->outlineRect(), PkRectF(0, 0, 50, 50));
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape2->outlineRect(), QRectF(0, 0, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape2->outlineRect(), PkRectF(0, 0, 50, 50));
 }
 
-KoShapeGroupCommand * createAddCommand(KoShapeContainer *container, const QList<KoShape *> &shapes, KUndo2Command *parent = 0)
+KoShapeGroupCommand * createAddCommand(KoShapeContainer *container, const PkList<KoShape *> &shapes, KUndo2Command *parent = 0)
 {
-    QList<KoShape*> orderedShapes(shapes);
+    PkList<KoShape*> orderedShapes(shapes);
     std::stable_sort(orderedShapes.begin(), orderedShapes.end(), KoShape::compareShapeZIndex);
     return new KoShapeGroupCommand(container, toPkList(orderedShapes), false, parent);
 }
 
 void TestShapeGroupCommand::testZIndexFromNowhere()
 {
-    QList<KoShape*> toplevelShapes;
+    PkList<KoShape*> toplevelShapes;
 
     toplevelShapes << toplevelShape1 << toplevelShape2 << toplevelShape3;
 
@@ -414,7 +414,7 @@ void TestShapeGroupCommand::testZIndexFromNowhereReordered()
 
 void TestShapeGroupCommand::testZIndexFromSameGroup()
 {
-    QList<KoShape*> toplevelShapes;
+    PkList<KoShape*> toplevelShapes;
     toplevelShapes << toplevelShape1 << toplevelShape2 << toplevelShape3 << toplevelShape4;
 
     QCOMPARE(int(toplevelShape1->zIndex()), 0);
@@ -423,7 +423,7 @@ void TestShapeGroupCommand::testZIndexFromSameGroup()
     QCOMPARE(int(toplevelShape4->zIndex()), 0);
 
     // create initial group of 4 shapes
-    QScopedPointer<KUndo2Command> cmd1(
+    PkScopedPointer<KUndo2Command> cmd1(
         KoShapeGroupCommand::createCommand(toplevelGroup, toPkList(toplevelShapes)));
     cmd1->redo();
 
@@ -433,7 +433,7 @@ void TestShapeGroupCommand::testZIndexFromSameGroup()
     QCOMPARE(int(toplevelShape4->zIndex()), 3);
 
     // add two middle shapes to a subgroup
-    QScopedPointer<KUndo2Command> cmd2(
+    PkScopedPointer<KUndo2Command> cmd2(
         KoShapeGroupCommand::createCommand(sublevelGroup, PkList<KoShape*>{toplevelShape2, toplevelShape3}));
     cmd2->redo();
 
@@ -445,9 +445,9 @@ void TestShapeGroupCommand::testZIndexFromSameGroup()
 
 
     // offset z-index of subgroup'ed shape to higher values
-    QScopedPointer<KUndo2Command> cmd3;
+    PkScopedPointer<KUndo2Command> cmd3;
     {
-        QList<KoShapeReorderCommand::IndexedShape> indexedShapes({toplevelShape2, toplevelShape3});
+        PkList<KoShapeReorderCommand::IndexedShape> indexedShapes({toplevelShape2, toplevelShape3});
         indexedShapes[0].zIndex = 11;
         indexedShapes[1].zIndex = 12;
         cmd3.reset(new KoShapeReorderCommand(toPkList(indexedShapes)));
@@ -461,7 +461,7 @@ void TestShapeGroupCommand::testZIndexFromSameGroup()
     QCOMPARE(int(sublevelGroup->zIndex()), 2);
 
     // add the last shape and check it is **appended**
-    QScopedPointer<KUndo2Command> cmd4(createAddCommand(sublevelGroup, {toplevelShape4}));
+    PkScopedPointer<KUndo2Command> cmd4(createAddCommand(sublevelGroup, {toplevelShape4}));
     cmd4->redo();
 
     QCOMPARE(int(toplevelShape1->zIndex()), 0);
@@ -471,9 +471,9 @@ void TestShapeGroupCommand::testZIndexFromSameGroup()
     QCOMPARE(int(sublevelGroup->zIndex()), 2);
 
     // add a bit of poison to the toplevel group by setting z-index to higher values
-    QScopedPointer<KUndo2Command> cmd5;
+    PkScopedPointer<KUndo2Command> cmd5;
     {
-        QList<KoShapeReorderCommand::IndexedShape> indexedShapes({toplevelShape1, sublevelGroup});
+        PkList<KoShapeReorderCommand::IndexedShape> indexedShapes({toplevelShape1, sublevelGroup});
         indexedShapes[0].zIndex = 100;
         indexedShapes[1].zIndex = 101;
         cmd5.reset(new KoShapeReorderCommand(toPkList(indexedShapes)));
@@ -488,7 +488,7 @@ void TestShapeGroupCommand::testZIndexFromSameGroup()
 
 
     // add the first shape and check it is prepended
-    QScopedPointer<KUndo2Command> cmd6(createAddCommand(sublevelGroup, {toplevelShape1}));
+    PkScopedPointer<KUndo2Command> cmd6(createAddCommand(sublevelGroup, {toplevelShape1}));
     cmd6->redo();
 
     QCOMPARE(int(toplevelShape1->zIndex()), 100); // added and all the shapes are offset
@@ -554,16 +554,16 @@ void TestShapeGroupCommand::testZIndexFromSameGroup()
 
 void TestShapeGroupCommand::testUngrouping()
 {
-    QList<KoShape*> toplevelShapes;
+    PkList<KoShape*> toplevelShapes;
     toplevelShapes << toplevelShape1 << toplevelShape2 << toplevelShape3 << toplevelShape4;
 
     // create initial group of 4 shapes
-    QScopedPointer<KUndo2Command> cmd1(
+    PkScopedPointer<KUndo2Command> cmd1(
         KoShapeGroupCommand::createCommand(toplevelGroup, toPkList(toplevelShapes)));
     cmd1->redo();
 
     // add two middle shapes to a subgroup
-    QScopedPointer<KUndo2Command> cmd2(
+    PkScopedPointer<KUndo2Command> cmd2(
         KoShapeGroupCommand::createCommand(sublevelGroup, PkList<KoShape*>{toplevelShape2, toplevelShape3}));
     cmd2->redo();
 
@@ -574,9 +574,9 @@ void TestShapeGroupCommand::testUngrouping()
     QCOMPARE(int(sublevelGroup->zIndex()), 2);
 
     // offset z-index of subgroup'ed shape to higher values
-    QScopedPointer<KUndo2Command> cmd3;
+    PkScopedPointer<KUndo2Command> cmd3;
     {
-        QList<KoShapeReorderCommand::IndexedShape> indexedShapes({toplevelShape2, toplevelShape3});
+        PkList<KoShapeReorderCommand::IndexedShape> indexedShapes({toplevelShape2, toplevelShape3});
         indexedShapes[0].zIndex = 11;
         indexedShapes[1].zIndex = 12;
         cmd3.reset(new KoShapeReorderCommand(toPkList(indexedShapes)));
@@ -592,20 +592,20 @@ void TestShapeGroupCommand::testUngrouping()
     QCOMPARE(toplevelShape2->parent(), sublevelGroup);
     QCOMPARE(toplevelShape3->parent(), sublevelGroup);
 
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(50, 150, 50, 50));
-    QCOMPARE(toplevelShape3->boundingRect(), QRectF(50, 250, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(50, 150, 50, 50));
+    QCOMPARE(toplevelShape3->boundingRect(), PkRectF(50, 250, 50, 50));
 
-    QScopedPointer<KUndo2Command> cmd4(
+    PkScopedPointer<KUndo2Command> cmd4(
                 new KoShapeTransformCommand({sublevelGroup},
                                             {toPkTransform(sublevelGroup->transformation())},
-                                            {toPkTransform(QTransform::fromTranslate(100, 100))}));
+                                            {toPkTransform(PkTransform::fromTranslate(100, 100))}));
     cmd4->redo();
 
     // child shapes got transformed
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(150, 250, 50, 50));
-    QCOMPARE(toplevelShape3->boundingRect(), QRectF(150, 350, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(150, 250, 50, 50));
+    QCOMPARE(toplevelShape3->boundingRect(), PkRectF(150, 350, 50, 50));
 
-    QScopedPointer<KUndo2Command> cmd5(
+    PkScopedPointer<KUndo2Command> cmd5(
         new KoShapeUngroupCommand(sublevelGroup, toPkList(sublevelGroup->shapes()), {toplevelGroup}));
     cmd5->redo();
 
@@ -619,8 +619,8 @@ void TestShapeGroupCommand::testUngrouping()
     QCOMPARE(int(sublevelGroup->zIndex()), 2);
 
     // transformations didn't change!
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(150, 250, 50, 50));
-    QCOMPARE(toplevelShape3->boundingRect(), QRectF(150, 350, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(150, 250, 50, 50));
+    QCOMPARE(toplevelShape3->boundingRect(), PkRectF(150, 350, 50, 50));
 
     cmd5->undo();
 
@@ -634,8 +634,8 @@ void TestShapeGroupCommand::testUngrouping()
     QCOMPARE(toplevelShape3->parent(), sublevelGroup);
 
     // transformations didn't change!
-    QCOMPARE(toplevelShape2->boundingRect(), QRectF(150, 250, 50, 50));
-    QCOMPARE(toplevelShape3->boundingRect(), QRectF(150, 350, 50, 50));
+    QCOMPARE(toplevelShape2->boundingRect(), PkRectF(150, 250, 50, 50));
+    QCOMPARE(toplevelShape3->boundingRect(), PkRectF(150, 350, 50, 50));
 
 }
 

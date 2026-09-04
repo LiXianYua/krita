@@ -397,7 +397,7 @@ void KisDistanceInformation::registerPaintedDab(const KisPaintInformation &info,
 
     m_d->currentDabSeqNo++;
 
-    m_d->lastMaxPressure = qMax(info.pressure(), m_d->lastMaxPressure);
+    m_d->lastMaxPressure = pkMax(info.pressure(), m_d->lastMaxPressure);
 }
 
 qreal KisDistanceInformation::getNextPointPosition(const PkPointF &start,
@@ -426,7 +426,7 @@ qreal KisDistanceInformation::getNextPointPosition(const PkPointF &start,
     } else if (timeFactor < 0.0) {
         t = distanceFactor;
     } else {
-        t = qMin(distanceFactor, timeFactor);
+        t = pkMin(distanceFactor, timeFactor);
     }
 
     // If we aren't ready to paint a dab, accumulate time for the spacing/timing updates that might
@@ -459,7 +459,7 @@ qreal KisDistanceInformation::getNextPointPositionIsotropic(const PkPointF &star
                                                             const PkPointF &end)
 {
     qreal distance = m_d->accumDistance.x();
-    qreal spacing = qMax(MIN_DISTANCE_SPACING, m_d->spacing.distanceSpacing().x());
+    qreal spacing = pkMax(MIN_DISTANCE_SPACING, m_d->spacing.distanceSpacing().x());
 
     if (start == end) {
         return -1;
@@ -494,8 +494,8 @@ qreal KisDistanceInformation::getNextPointPositionAnisotropic(const PkPointF &st
         return -1;
     }
 
-    qreal a_rev = 1.0 / qMax(MIN_DISTANCE_SPACING, m_d->spacing.distanceSpacing().x());
-    qreal b_rev = 1.0 / qMax(MIN_DISTANCE_SPACING, m_d->spacing.distanceSpacing().y());
+    qreal a_rev = 1.0 / pkMax(MIN_DISTANCE_SPACING, m_d->spacing.distanceSpacing().x());
+    qreal b_rev = 1.0 / pkMax(MIN_DISTANCE_SPACING, m_d->spacing.distanceSpacing().y());
 
     qreal x = m_d->accumDistance.x();
     qreal y = m_d->accumDistance.y();
@@ -527,8 +527,8 @@ qreal KisDistanceInformation::getNextPointPositionAnisotropic(const PkPointF &st
         diff = rot.map(diff);
     }
 
-    qreal dx = qAbs(diff.x());
-    qreal dy = qAbs(diff.y());
+    qreal dx = pkAbs(diff.x());
+    qreal dy = pkAbs(diff.y());
 
     qreal alpha = pow2(dx * a_rev) + pow2(dy * b_rev);
     qreal beta = x * dx * a_rev * a_rev + y * dy * b_rev * b_rev;
@@ -560,7 +560,7 @@ qreal KisDistanceInformation::getNextPointPositionTimed(qreal startTime,
         return -1.0;
     }
 
-    qreal timedSpacingInterval = qBound(MIN_TIMED_INTERVAL, m_d->timing.timedSpacingInterval(),
+    qreal timedSpacingInterval = pkBound(MIN_TIMED_INTERVAL, m_d->timing.timedSpacingInterval(),
                                         MAX_TIMED_INTERVAL);
     qreal nextPointInterval = timedSpacingInterval - m_d->accumTime;
     

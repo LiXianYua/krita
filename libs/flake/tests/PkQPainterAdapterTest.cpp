@@ -5,7 +5,7 @@
 
 #include "PkQPainterAdapter.h"
 
-#include <QtGui/QImage>
+#include <QtGui/PkImage>
 #include <QtGui/QPainter>
 #include <QtTest/QtTest>
 
@@ -15,12 +15,12 @@
 namespace
 {
 
-QColor pixelColor(const QImage &image, int x, int y)
+PkColor pixelColor(const PkImage &image, int x, int y)
 {
     return image.pixelColor(x, y);
 }
 
-int coloredPixels(const QImage &image, const QRect &area)
+int coloredPixels(const PkImage &image, const PkRect &area)
 {
     int count = 0;
     for (int y = area.top(); y <= area.bottom(); ++y) {
@@ -49,7 +49,7 @@ private Q_SLOTS:
 
 void PkQPainterAdapterTest::restoresSavedPenAndBrushState()
 {
-    QImage image(48, 24, QImage::Format_ARGB32_Premultiplied);
+    PkImage image(48, 24, PkImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
@@ -69,15 +69,15 @@ void PkQPainterAdapterTest::restoresSavedPenAndBrushState()
     painter.drawRect(PkRectF(27, 3, 14, 14));
     qtPainter.end();
 
-    QCOMPARE(pixelColor(image, 10, 10), QColor(255, 255, 0));
-    QCOMPARE(pixelColor(image, 3, 10), QColor(0, 255, 0));
-    QCOMPARE(pixelColor(image, 34, 10), QColor(0, 0, 255));
-    QCOMPARE(pixelColor(image, 27, 10), QColor(255, 0, 0));
+    QCOMPARE(pixelColor(image, 10, 10), PkColor(255, 255, 0));
+    QCOMPARE(pixelColor(image, 3, 10), PkColor(0, 255, 0));
+    QCOMPARE(pixelColor(image, 34, 10), PkColor(0, 0, 255));
+    QCOMPARE(pixelColor(image, 27, 10), PkColor(255, 0, 0));
 }
 
 void PkQPainterAdapterTest::clipsTranslucentCropPath()
 {
-    QImage image(32, 32, QImage::Format_ARGB32_Premultiplied);
+    PkImage image(32, 32, PkImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
@@ -91,18 +91,18 @@ void PkQPainterAdapterTest::clipsTranslucentCropPath()
     painter.drawPath(cropShade);
     qtPainter.end();
 
-    const QColor inside = pixelColor(image, 12, 12);
+    const PkColor inside = pixelColor(image, 12, 12);
     QCOMPARE(inside.alpha(), 128);
     QVERIFY(qAbs(inside.red() - 240) <= 1);
     QVERIFY(qAbs(inside.green() - 20) <= 1);
     QVERIFY(qAbs(inside.blue() - 40) <= 1);
-    QCOMPARE(pixelColor(image, 2, 2), QColor(0, 0, 0, 0));
-    QCOMPARE(pixelColor(image, 25, 12), QColor(0, 0, 0, 0));
+    QCOMPARE(pixelColor(image, 2, 2), PkColor(0, 0, 0, 0));
+    QCOMPARE(pixelColor(image, 25, 12), PkColor(0, 0, 0, 0));
 }
 
 void PkQPainterAdapterTest::drawsKnifePrimitives()
 {
-    QImage image(72, 48, QImage::Format_ARGB32_Premultiplied);
+    PkImage image(72, 48, PkImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
@@ -124,15 +124,15 @@ void PkQPainterAdapterTest::drawsKnifePrimitives()
     painter.drawPolygon(polygon);
     qtPainter.end();
 
-    QVERIFY(coloredPixels(image, QRect(2, 4, 22, 5)) >= 30);
-    QVERIFY(coloredPixels(image, QRect(26, 1, 19, 19)) >= 12);
-    QVERIFY(coloredPixels(image, QRect(46, 2, 19, 17)) >= 24);
-    QVERIFY(coloredPixels(image, QRect(2, 28, 20, 16)) >= 30);
+    QVERIFY(coloredPixels(image, PkRect(2, 4, 22, 5)) >= 30);
+    QVERIFY(coloredPixels(image, PkRect(26, 1, 19, 19)) >= 12);
+    QVERIFY(coloredPixels(image, PkRect(46, 2, 19, 17)) >= 24);
+    QVERIFY(coloredPixels(image, PkRect(2, 28, 20, 16)) >= 30);
 }
 
 void PkQPainterAdapterTest::appliesKarbonTransformToRectangle()
 {
-    QImage image(44, 32, QImage::Format_ARGB32_Premultiplied);
+    PkImage image(44, 32, PkImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
@@ -146,13 +146,13 @@ void PkQPainterAdapterTest::appliesKarbonTransformToRectangle()
     painter.drawRect(PkRectF(0, 0, 9, 7));
     qtPainter.end();
 
-    QCOMPARE(pixelColor(image, 24, 14), QColor(20, 210, 80));
-    QCOMPARE(pixelColor(image, 3, 3), QColor(0, 0, 0, 0));
+    QCOMPARE(pixelColor(image, 24, 14), PkColor(20, 210, 80));
+    QCOMPARE(pixelColor(image, 3, 3), PkColor(0, 0, 0, 0));
 }
 
 void PkQPainterAdapterTest::blitsSmartPatchImage()
 {
-    QImage image(30, 24, QImage::Format_ARGB32_Premultiplied);
+    PkImage image(30, 24, PkImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
@@ -163,8 +163,8 @@ void PkQPainterAdapterTest::blitsSmartPatchImage()
     painter.drawImage(PkRectF(8, 6, 12, 8), patch);
     qtPainter.end();
 
-    QCOMPARE(pixelColor(image, 12, 9), QColor(0x32, 0x64, 0xc8));
-    QCOMPARE(pixelColor(image, 3, 3), QColor(0, 0, 0, 0));
+    QCOMPARE(pixelColor(image, 12, 9), PkColor(0x32, 0x64, 0xc8));
+    QCOMPARE(pixelColor(image, 3, 3), PkColor(0, 0, 0, 0));
 }
 
 QTEST_GUILESS_MAIN(PkQPainterAdapterTest)

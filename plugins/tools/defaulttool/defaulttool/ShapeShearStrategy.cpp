@@ -131,9 +131,9 @@ void ShapeShearStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModi
     }
 
     const qreal maxSaneShear = 1e6;
-    if ((qAbs(shearX) == 0.0 && qAbs(shearY) == 0.0) ||
-        qAbs(shearX) > maxSaneShear ||
-        qAbs(shearY) > maxSaneShear) {
+    if ((pkAbs(shearX) == 0.0 && pkAbs(shearY) == 0.0) ||
+        pkAbs(shearX) > maxSaneShear ||
+        pkAbs(shearY) > maxSaneShear) {
 
         return;
     }

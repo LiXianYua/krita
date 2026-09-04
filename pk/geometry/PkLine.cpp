@@ -18,7 +18,7 @@
 //                     mismatch=0。公式：hypot 展开 sqrt(dx*dx+dy*dy)。
 //   angle()        —— 同一批 591 119 次，mismatch=0。公式：
 //                     atan2(-dy,dx) 转角度、归一化到 [0,360)，
-//                     且 qFuzzyCompare(归一化值,360) 时收成 0（避免浮点误差
+//                     且 pkQtFuzzyCompare(归一化值,360) 时收成 0（避免浮点误差
 //                     把 359.999999999999… 归一化后又蹦回 360）。
 //   setAngle()     —— 6 条基底线（含零长退化线）× 14 个角度值，mismatch=0。
 //                     公式：新 p2 = p1 + (cos(θ)*len, -sin(θ)*len)，θ 是角度

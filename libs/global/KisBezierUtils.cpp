@@ -74,7 +74,7 @@ PkVector<qreal> mergeLinearizationSteps(const PkVector<qreal> &a, const PkVector
                std::back_inserter(result));
     result.erase(
                 std::unique(result.begin(), result.end(),
-                            [] (qreal x, qreal y) { return qFuzzyCompare(x, y); }),
+                            [] (qreal x, qreal y) { return pkQtFuzzyCompare(x, y); }),
             result.end());
 
     return result;
@@ -262,10 +262,10 @@ public:
         qreal max_distance_below = 0.0;
         for (int i = 1; i < deg; i++) {
             if (distance[i] < 0.0) {
-                max_distance_below = qMin(max_distance_below, distance[i]);
+                max_distance_below = pkMin(max_distance_below, distance[i]);
             }
             if (distance[i] > 0.0) {
-                max_distance_above = qMax(max_distance_above, distance[i]);
+                max_distance_above = pkMax(max_distance_above, distance[i]);
             }
         }
         delete [] distance;
@@ -296,8 +296,8 @@ public:
         qreal intercept_2 = (b1 * c2 - b2 * c1) * dInv;
 
         // Compute intercepts of bounding box
-        qreal left_intercept = qMin(intercept_1, intercept_2);
-        qreal right_intercept = qMax(intercept_1, intercept_2);
+        qreal left_intercept = pkMin(intercept_1, intercept_2);
+        qreal right_intercept = pkMax(intercept_1, intercept_2);
 
         qreal error = 0.5 * (right_intercept-left_intercept);
 
@@ -421,9 +421,9 @@ qreal nearestPoint(const PkList<PkPointF> controlPoints, const PkPointF &point, 
 
     // Set f(u)-values.
     for (int k = 0; k <= 2 * deg - 1; ++k) {
-        int min = qMin(k, deg);
+        int min = pkMin(k, deg);
 
-        for (unsigned short i = qMax(0, k - (deg - 1)); i <= min; ++i) {
+        for (unsigned short i = pkMax(0, k - (deg - 1)); i <= min; ++i) {
             unsigned short j = k - i;
 
             // p_k += products[j][i] * z[j][i].

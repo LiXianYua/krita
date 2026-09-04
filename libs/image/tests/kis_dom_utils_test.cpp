@@ -23,9 +23,9 @@ const int i3 = -13;
 
 inline bool checkDifference(qreal a, qreal b, qreal portionTolerance)
 {
-    return qAbs(a) > 1e-10 ?
-        qAbs(a - b) / qAbs(a) < portionTolerance :
-        qAbs(a - b) < 1e-10;
+    return pkAbs(a) > 1e-10 ?
+        pkAbs(a - b) / pkAbs(a) < portionTolerance :
+        pkAbs(a - b) < 1e-10;
 }
 
 QString saveData()

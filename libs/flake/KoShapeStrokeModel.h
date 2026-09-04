@@ -18,7 +18,7 @@ class KoShape;
 class KoShapeSavingContext;
 struct KoInsets;
 
-class QColor;
+class PkColor;
 class QPainter;
 
 /**

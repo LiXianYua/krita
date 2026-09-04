@@ -119,7 +119,7 @@ void KisMultiChannelFilterConfiguration::setCurves(PkList<KisCubicCurve> &curves
     m_curves.clear();
     m_curves = curves;
     m_channelCount = curves.size();
-    m_activeCurve = qMin(m_activeCurve, m_channelCount - 1);
+    m_activeCurve = pkMin(m_activeCurve, m_channelCount - 1);
 
     updateTransfers();
 
@@ -204,7 +204,7 @@ void KisMultiChannelFilterConfiguration::fromXML(const PkXmlElement& root)
             if (std::regex_search(attributeUtf8, match, curveRegexp)) {
 
                 index = static_cast<quint16>(parseLegacyUnsignedShort(match[1].str()));
-                index = qMin(index, quint16(curves.count()));
+                index = pkMin(index, quint16(curves.count()));
 
                 if (!e.text().isEmpty()) {
                     curve = KisCubicCurve(e.text());
@@ -362,7 +362,7 @@ void KisMultiChannelFilterConfiguration::setProperty(const PkString& name, const
     }
 
     if (name == "activeCurve") {
-        setActiveCurve(qBound(0, value.toInt(), m_channelCount));
+        setActiveCurve(pkBound(0, value.toInt(), m_channelCount));
     }
 
     int curveIndex;

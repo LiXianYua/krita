@@ -103,7 +103,7 @@ void KoSubpathJoinCommand::redo()
     PkList<KoPathPointIndex> pointIndexes;
     pointIndexes << pathShape->pathPointIndex(point1);
     pointIndexes << pathShape->pathPointIndex(point2);
-    pathShape->recommendPointSelectionChange(toQList(pointIndexes));
+    pathShape->recommendPointSelectionChange(pointIndexes);
 
     pathShape->normalize();
     pathShape->update();

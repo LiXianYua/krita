@@ -104,7 +104,7 @@ public:
         else {
             const quint8 colorDifference = m_colorSpace->difference(m_referenceColorPtr, colorPtr);
             const quint8 opacityDifference = m_colorSpace->opacityU8(colorPtr) * 100 / quint8_MAX;
-            return qMin(colorDifference, opacityDifference);
+            return pkMin(colorDifference, opacityDifference);
         }
     }
 };
@@ -130,7 +130,7 @@ public:
         } else {
             const quint8 colorDifference = this->m_colorSpace->difference(this->m_referenceColorPtr, colorPtr);
             const quint8 opacityDifference = this->m_colorSpace->opacityU8(colorPtr) * 100 / quint8_MAX;
-            result = qMin(colorDifference, opacityDifference);
+            result = pkMin(colorDifference, opacityDifference);
             this->m_differences.insert(key, result);
         }
 

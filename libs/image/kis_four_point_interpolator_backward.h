@@ -57,8 +57,8 @@ public:
     inline bool isValid(const qreal tolerance = 0.1) const {
         const qreal toleranceSq = pow2(tolerance);
 
-        const qreal sq1 = qAbs(m_qB_const);
-        const qreal sq2 = qAbs(KisAlgebra2D::crossProduct(m_b, m_c - m_b + m_a));
+        const qreal sq1 = pkAbs(m_qB_const);
+        const qreal sq2 = pkAbs(KisAlgebra2D::crossProduct(m_b, m_c - m_b + m_a));
 
         return sq1 + sq2 > 2 * toleranceSq;
     }
@@ -109,7 +109,7 @@ public:
 
         bool dontCheckOtherNu = false;
 
-        if (qAbs(m_qA) < eps) {
+        if (pkAbs(m_qA) < eps) {
             nu = -qC / qB;
             dontCheckOtherNu = true;
         } else {
@@ -184,7 +184,7 @@ public:
         int meaningfulCount = dontCheckOtherNu ? 2 : 4;
         for (int i = 0; i < meaningfulCount; i++) {
 
-            if (qAbs(denoms[i]) < eps) {
+            if (pkAbs(denoms[i]) < eps) {
                 continue;
             }
 

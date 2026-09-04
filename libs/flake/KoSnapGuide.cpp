@@ -17,7 +17,7 @@
 #include <KoCanvasResourceProvider.h>
 
 #include <QPainter>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 #include <math.h>
 #include "kis_pointer_utils.h"
@@ -40,27 +40,27 @@ public:
     KoCanvasBase *canvas;
     KoShape *additionalEditedShape;
 
-    typedef QSharedPointer<KoSnapStrategy> KoSnapStrategySP;
-    typedef QList<KoSnapStrategySP> StrategiesList;
+    typedef PkSharedPointer<KoSnapStrategy> KoSnapStrategySP;
+    typedef PkList<KoSnapStrategySP> StrategiesList;
     StrategiesList strategies;
     KoSnapStrategySP currentStrategy;
 
     KoSnapGuide::Strategies usedStrategies;
     bool active;
     int snapDistance;
-    QList<KoPathPoint*> ignoredPoints;
-    QList<KoShape*> ignoredShapes;
+    PkList<KoPathPoint*> ignoredPoints;
+    PkList<KoShape*> ignoredShapes;
 };
 
 KoSnapGuide::KoSnapGuide(KoCanvasBase *canvas)
     : d(new Private(canvas))
 {
-    d->strategies.append(QSharedPointer<GridSnapStrategy>(new GridSnapStrategy()));
-    d->strategies.append(QSharedPointer<NodeSnapStrategy>(new NodeSnapStrategy()));
-    d->strategies.append(QSharedPointer<OrthogonalSnapStrategy>(new OrthogonalSnapStrategy()));
-    d->strategies.append(QSharedPointer<ExtensionSnapStrategy>(new ExtensionSnapStrategy()));
-    d->strategies.append(QSharedPointer<IntersectionSnapStrategy>(new IntersectionSnapStrategy()));
-    d->strategies.append(QSharedPointer<BoundingBoxSnapStrategy>(new BoundingBoxSnapStrategy()));
+    d->strategies.append(PkSharedPointer<GridSnapStrategy>(new GridSnapStrategy()));
+    d->strategies.append(PkSharedPointer<NodeSnapStrategy>(new NodeSnapStrategy()));
+    d->strategies.append(PkSharedPointer<OrthogonalSnapStrategy>(new OrthogonalSnapStrategy()));
+    d->strategies.append(PkSharedPointer<ExtensionSnapStrategy>(new ExtensionSnapStrategy()));
+    d->strategies.append(PkSharedPointer<IntersectionSnapStrategy>(new IntersectionSnapStrategy()));
+    d->strategies.append(PkSharedPointer<BoundingBoxSnapStrategy>(new BoundingBoxSnapStrategy()));
 }
 
 KoSnapGuide::~KoSnapGuide()
@@ -106,7 +106,7 @@ bool KoSnapGuide::addCustomSnapStrategy(KoSnapStrategy *customStrategy)
     if (!customStrategy || customStrategy->type() != CustomSnapping)
         return false;
 
-    d->strategies.append(QSharedPointer<KoSnapStrategy>(customStrategy));
+    d->strategies.append(PkSharedPointer<KoSnapStrategy>(customStrategy));
     return true;
 }
 
@@ -115,7 +115,7 @@ void KoSnapGuide::overrideSnapStrategy(Strategy type, KoSnapStrategy *strategy)
     for (auto it = d->strategies.begin(); it != d->strategies.end(); /*noop*/) {
         if ((*it)->type() == type) {
             if (strategy) {
-                *it = QSharedPointer<KoSnapStrategy>(strategy);
+                *it = PkSharedPointer<KoSnapStrategy>(strategy);
             } else {
                 it = d->strategies.erase(it);
             }
@@ -126,7 +126,7 @@ void KoSnapGuide::overrideSnapStrategy(Strategy type, KoSnapStrategy *strategy)
     }
 
     if (strategy) {
-        d->strategies.append(QSharedPointer<KoSnapStrategy>(strategy));
+        d->strategies.append(PkSharedPointer<KoSnapStrategy>(strategy));
     }
 }
 
@@ -150,14 +150,14 @@ int KoSnapGuide::snapDistance() const
     return d->snapDistance;
 }
 
-QPointF KoSnapGuide::snap(const QPointF &mousePosition, const QPointF &dragOffset, Qt::KeyboardModifiers modifiers)
+PkPointF KoSnapGuide::snap(const PkPointF &mousePosition, const PkPointF &dragOffset, Qt::KeyboardModifiers modifiers)
 {
-    QPointF pos = mousePosition + dragOffset;
+    PkPointF pos = mousePosition + dragOffset;
     pos = snap(pos, modifiers);
     return pos - dragOffset;
 }
 
-QPointF KoSnapGuide::snap(const QPointF &mousePosition, Qt::KeyboardModifiers modifiers)
+PkPointF KoSnapGuide::snap(const PkPointF &mousePosition, Qt::KeyboardModifiers modifiers)
 {
     d->currentStrategy.clear();
 
@@ -170,7 +170,7 @@ QPointF KoSnapGuide::snap(const QPointF &mousePosition, Qt::KeyboardModifiers mo
     PriorityTuple minPriority(KoSnapStrategy::ToLine, HUGE_VAL);
 
     const qreal maxSnapDistance = d->canvas->viewConverter()->
-            viewToDocument(QSizeF(d->snapDistance,
+            viewToDocument(PkSizeF(d->snapDistance,
                                   d->snapDistance)).width();
 
     foreach (Private::KoSnapStrategySP strategy, d->strategies) {
@@ -181,7 +181,7 @@ QPointF KoSnapGuide::snap(const QPointF &mousePosition, Qt::KeyboardModifiers mo
             if (! strategy->snap(mousePosition, &proxy, maxSnapDistance))
                 continue;
 
-            QPointF snapCandidate = strategy->snappedPosition();
+            PkPointF snapCandidate = strategy->snappedPosition();
             qreal distance = KoSnapStrategy::squareDistance(snapCandidate, mousePosition);
 
             const PriorityTuple priority(strategy->snappedType(), distance);
@@ -198,9 +198,9 @@ QPointF KoSnapGuide::snap(const QPointF &mousePosition, Qt::KeyboardModifiers mo
     return d->currentStrategy->snappedPosition();
 }
 
-QRectF KoSnapGuide::boundingRect()
+PkRectF KoSnapGuide::boundingRect()
 {
-    QRectF rect;
+    PkRectF rect;
 
     if (d->currentStrategy) {
         rect = d->currentStrategy->decoration(*d->canvas->viewConverter()).boundingRect();
@@ -215,19 +215,19 @@ void KoSnapGuide::paint(QPainter &painter, const KoViewConverter &converter)
     if (! d->currentStrategy || ! d->active)
         return;
 
-    QPainterPath decoration = d->currentStrategy->decoration(converter);
+    PkPainterPath decoration = d->currentStrategy->decoration(converter);
 
     int thickness = d->canvas->resourceManager()? d->canvas->resourceManager()->decorationThickness(): 1;
 
     painter.setBrush(Qt::NoBrush);
 
-    QPen whitePen(Qt::white, thickness);
+    PkPen whitePen(Qt::white, thickness);
     whitePen.setCosmetic(true);
     whitePen.setStyle(Qt::SolidLine);
     painter.setPen(whitePen);
     painter.drawPath(decoration);
 
-    QPen redPen(Qt::red, thickness);
+    PkPen redPen(Qt::red, thickness);
     redPen.setCosmetic(true);
     redPen.setStyle(Qt::DotLine);
     painter.setPen(redPen);
@@ -239,22 +239,22 @@ KoCanvasBase *KoSnapGuide::canvas() const
     return d->canvas;
 }
 
-void KoSnapGuide::setIgnoredPathPoints(const QList<KoPathPoint*> &ignoredPoints)
+void KoSnapGuide::setIgnoredPathPoints(const PkList<KoPathPoint*> &ignoredPoints)
 {
     d->ignoredPoints = ignoredPoints;
 }
 
-QList<KoPathPoint*> KoSnapGuide::ignoredPathPoints() const
+PkList<KoPathPoint*> KoSnapGuide::ignoredPathPoints() const
 {
     return d->ignoredPoints;
 }
 
-void KoSnapGuide::setIgnoredShapes(const QList<KoShape*> &ignoredShapes)
+void KoSnapGuide::setIgnoredShapes(const PkList<KoShape*> &ignoredShapes)
 {
     d->ignoredShapes = ignoredShapes;
 }
 
-QList<KoShape*> KoSnapGuide::ignoredShapes() const
+PkList<KoShape*> KoSnapGuide::ignoredShapes() const
 {
     return d->ignoredShapes;
 }

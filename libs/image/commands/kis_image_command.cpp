@@ -50,7 +50,7 @@ void KisImageCommand::UpdateTarget::update() {
     }
 
     if (!node) {
-        index = qMax(0, m_removedNodeIndex - 1);
+        index = pkMax(0, m_removedNodeIndex - 1);
 
         while ((node = m_removedNodeParent->at(index)) && !isLayer(node)) {
             index--;

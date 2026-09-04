@@ -153,7 +153,7 @@ KUndo2Command::KUndo2Command(KUndo2Command *parent)
 
 KUndo2Command::~KUndo2Command()
 {
-    qDeleteAll(d->child_list);
+    pkDeleteAll(d->child_list);
     delete d;
 }
 
@@ -630,7 +630,7 @@ void KUndo2QStack::clear()
     bool was_clean = isClean();
 
     m_macro_stack.clear();
-    qDeleteAll(m_command_list);
+    pkDeleteAll(m_command_list);
     m_command_list.clear();
 
     m_index = 0;

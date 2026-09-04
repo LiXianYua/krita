@@ -91,7 +91,7 @@ void KisShapeController::slotUpdateDocumentSize()
     if (image) {
         const PkRect bounds = image->bounds();
         resourceManager()->setResource(KoDocumentResourceManager::DocumentRectInPixels,
-                                        QRect(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
+                                        PkRect(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
     }
 }
 
@@ -149,7 +149,7 @@ static inline bool belongsToShapeSelection(KoShape* shape) {
     return dynamic_cast<KisShapeSelectionMarker*>(shape->userData());
 }
 
-KoShapeContainer *KisShapeController::createParentForShapes(const QList<KoShape *> shapes, bool forceNewLayer, KUndo2Command *parentCommand)
+KoShapeContainer *KisShapeController::createParentForShapes(const PkList<KoShape *> shapes, bool forceNewLayer, KUndo2Command *parentCommand)
 {
     KoShapeContainer *resultParent = 0;
     KisCommandUtils::CompositeCommand *resultCommand =
@@ -207,14 +207,14 @@ KoShapeContainer *KisShapeController::createParentForShapes(const QList<KoShape 
     return resultParent;
 }
 
-QRectF KisShapeController::documentRectInPixels() const
+PkRectF KisShapeController::documentRectInPixels() const
 {
     KisImageSP image = this->image();
     if (image) {
         const PkRect bounds = image->bounds();
-        return QRectF(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        return PkRectF(bounds.x(), bounds.y(), bounds.width(), bounds.height());
     }
-    return QRectF(0, 0, 666, 777);
+    return PkRectF(0, 0, 666, 777);
 }
 
 qreal KisShapeController::pixelsPerInch() const

@@ -473,7 +473,7 @@ PkImage readVirtualArrayList(PkStream &device, int numPlanes, const PkVector<PkR
 
         for (int i = 0; i < dataLength; i++) {
             for (int j = 0; j <= 2; j++) {
-                const int plane = qMin(numPlanes, j);
+                const int plane = pkMin(numPlanes, j);
                 const quint16 *dataPlane = reinterpret_cast<const quint16 *>(dataPlanes[plane].constData());
                 *dstPtr++ = psdFromBigEndian<quint16>(dataPlane[i]);
             }

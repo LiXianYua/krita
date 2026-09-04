@@ -23,19 +23,19 @@ KisTransformComponents componentsForTransform(const PkTransform &t)
     KisAlgebra2D::DecomposedMatrix m(t);
 
     result.setFlag(KisTransformComponent::Translate,
-        !qFuzzyIsNull(m.dx) || !qFuzzyIsNull(m.dy));
+        !pkQtFuzzyIsNull(m.dx) || !pkQtFuzzyIsNull(m.dy));
 
     result.setFlag(KisTransformComponent::Scale,
-        !qFuzzyCompare(m.scaleX, 1.0) || !qFuzzyCompare(m.scaleY, 1.0));
+        !pkQtFuzzyCompare(m.scaleX, 1.0) || !pkQtFuzzyCompare(m.scaleY, 1.0));
 
     result.setFlag(KisTransformComponent::Shear,
-        !qFuzzyIsNull(m.shearXY));
+        !pkQtFuzzyIsNull(m.shearXY));
 
     result.setFlag(KisTransformComponent::Rotate,
-        !qFuzzyIsNull(m.angle));
+        !pkQtFuzzyIsNull(m.angle));
 
     result.setFlag(KisTransformComponent::Project,
-        !qFuzzyIsNull(m.proj[0]) || !qFuzzyIsNull(m.proj[1]) || !qFuzzyCompare(m.proj[2], 1.0));
+        !pkQtFuzzyIsNull(m.proj[0]) || !pkQtFuzzyIsNull(m.proj[1]) || !pkQtFuzzyCompare(m.proj[2], 1.0));
 
     return result;
 }
@@ -47,25 +47,25 @@ KisTransformComponents compareTransformComponents(const PkTransform &lhs, const 
 
     KisTransformComponents result;
 
-    if (qFuzzyCompare(m1.dx, m2.dx) && qFuzzyCompare(m1.dy, m2.dy)) {
+    if (pkQtFuzzyCompare(m1.dx, m2.dx) && pkQtFuzzyCompare(m1.dy, m2.dy)) {
         result.setFlag(KisTransformComponent::Translate);
     }
 
-    if (qFuzzyCompare(m1.scaleX, m2.scaleX) && qFuzzyCompare(m1.scaleX, m2.scaleY)) {
+    if (pkQtFuzzyCompare(m1.scaleX, m2.scaleX) && pkQtFuzzyCompare(m1.scaleX, m2.scaleY)) {
         result.setFlag(KisTransformComponent::Scale);
     }
 
-    if (qFuzzyCompare(m1.shearXY, m2.shearXY)) {
+    if (pkQtFuzzyCompare(m1.shearXY, m2.shearXY)) {
         result.setFlag(KisTransformComponent::Shear);
     }
 
-    if (qFuzzyCompare(m1.angle, m2.angle)) {
+    if (pkQtFuzzyCompare(m1.angle, m2.angle)) {
         result.setFlag(KisTransformComponent::Rotate);
     }
 
-    if (qFuzzyCompare(m1.proj[0], m2.proj[0]) &&
-        qFuzzyCompare(m1.proj[1], m2.proj[1]) &&
-        qFuzzyCompare(m1.proj[2], m2.proj[2])) {
+    if (pkQtFuzzyCompare(m1.proj[0], m2.proj[0]) &&
+        pkQtFuzzyCompare(m1.proj[1], m2.proj[1]) &&
+        pkQtFuzzyCompare(m1.proj[2], m2.proj[2])) {
 
         result.setFlag(KisTransformComponent::Project);
     }

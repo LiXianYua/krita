@@ -7,21 +7,21 @@
 #include <QDebug>
 #include "KoViewTransformStillPoint.h"
 
-KoViewTransformStillPoint::KoViewTransformStillPoint(const QPointF &docPoint, const QPointF &viewPoint)
-    : std::pair<QPointF, QPointF>(docPoint, viewPoint)
+KoViewTransformStillPoint::KoViewTransformStillPoint(const PkPointF &docPoint, const PkPointF &viewPoint)
+    : std::pair<PkPointF, PkPointF>(docPoint, viewPoint)
 {
 }
 
-KoViewTransformStillPoint::KoViewTransformStillPoint(const std::pair<QPointF, QPointF> &rhs)
-    : std::pair<QPointF, QPointF>(rhs)
+KoViewTransformStillPoint::KoViewTransformStillPoint(const std::pair<PkPointF, PkPointF> &rhs)
+    : std::pair<PkPointF, PkPointF>(rhs)
 {
 }
 
-QPointF KoViewTransformStillPoint::docPoint() const {
+PkPointF KoViewTransformStillPoint::docPoint() const {
     return first;
 }
 
-QPointF KoViewTransformStillPoint::viewPoint() const {
+PkPointF KoViewTransformStillPoint::viewPoint() const {
     return second;
 }
 

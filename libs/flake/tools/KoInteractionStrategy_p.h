@@ -18,7 +18,7 @@ public:
     }
     virtual ~KoInteractionStrategyPrivate()
     {
-        tool->setStatusText(QString());
+        tool->setStatusText(PkString());
     }
 
     KoToolBase *tool; ///< the KoToolBase instance that controls this strategy.

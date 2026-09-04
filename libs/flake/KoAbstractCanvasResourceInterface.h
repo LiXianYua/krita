@@ -8,10 +8,12 @@
 #define KOABSTRACTCANVASRESOURCEINTERFACE_H
 
 #include <QObject>
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
 
-class QVariant;
+class PkVariant;
 
 /**
  * \class KoAbstractCanvasResourceInterface
@@ -22,17 +24,17 @@ class KRITAFLAKE_EXPORT KoAbstractCanvasResourceInterface : public QObject
 {
     Q_OBJECT
 public:
-    KoAbstractCanvasResourceInterface(int key, const QString debugTag = QString());
+    KoAbstractCanvasResourceInterface(int key, const PkString debugTag = PkString());
 
     /**
      * Return the current value of the resource
      */
-    virtual QVariant value() const = 0;
+    virtual PkVariant value() const = 0;
 
     /**
      * @brief set the value of the current resource
      */
-    virtual void setValue(const QVariant value) = 0;
+    virtual void setValue(const PkVariant value) = 0;
 
     /**
      * The key corresponding to the resource
@@ -44,13 +46,13 @@ Q_SIGNALS:
      * The signal is emitted when the resource is changed outside
      * the setValue() call by some external entity
      */
-    void sigResourceChangedExternal(int key, const QVariant &value);
+    void sigResourceChangedExternal(int key, const PkVariant &value);
 
 private:
     int m_key = -1;
-    QString m_debugTag;
+    PkString m_debugTag;
 };
 
-typedef QSharedPointer<KoAbstractCanvasResourceInterface> KoAbstractCanvasResourceInterfaceSP;
+typedef PkSharedPointer<KoAbstractCanvasResourceInterface> KoAbstractCanvasResourceInterfaceSP;
 
 #endif // KOABSTRACTCANVASRESOURCEINTERFACE_H

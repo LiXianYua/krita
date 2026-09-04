@@ -18,12 +18,12 @@
 
 #define qHash pkOracleHash
 #include <PkSet.h>
-#include <PkStringHash.h>   // qHash(const PkString &) —— PkSet<PkString> 要它
+#include <PkStringHash.h>   // pkHash(const PkString &) —— PkSet<PkString> 要它
 #undef qHash
 
 #include "difftest_common.h"
 
-static_assert(std::is_same<decltype(qHash(QString())), uint>::value,
+static_assert(std::is_same<decltype(pkHash(QString())), uint>::value,
               "qHash 改名误伤了真 Qt 那一侧");
 
 #include <string>

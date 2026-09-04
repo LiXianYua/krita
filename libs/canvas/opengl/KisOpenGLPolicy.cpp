@@ -271,7 +271,7 @@ int assistantPixmapCacheLimitKiB(int width, int height)
 {
     const int minimumCacheSize = 20 * 1024;
     const int cacheSize = 2048 + 5 * 4 * width * height / 1024;
-    return qMax(minimumCacheSize, cacheSize);
+    return pkMax(minimumCacheSize, cacheSize);
 }
 
 bool rejectAngleD3d9(bool isWindows, bool isUsingAngle, const QString &rendererString)

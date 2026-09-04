@@ -380,7 +380,7 @@ void SvgTextCursor::setPosToPoint(QPointF point, bool moveAnchor)
         }
 
         const int finalPos = d->shape->posForIndex(d->shape->plainText().size());
-        d->pos = qBound(0, pos, finalPos);
+        d->pos = pkBound(0, pos, finalPos);
         if (moveAnchor || d->anchor < 0 || d->anchor > finalPos) {
             d->anchor = d->pos;
         }
@@ -594,7 +594,7 @@ void SvgTextCursor::moveCursor(MoveMode mode, bool moveAnchor)
     if (d->shape) {
 
         const int finalPos = d->shape->posForIndex(d->shape->plainText().size());
-        d->pos = qBound(0, moveModeResult(mode, d->pos, d->visualNavigation), finalPos);
+        d->pos = pkBound(0, moveModeResult(mode, d->pos, d->visualNavigation), finalPos);
 
         if (moveAnchor) {
             d->anchor = d->pos;
@@ -646,8 +646,8 @@ void SvgTextCursor::removeText(SvgTextCursor::MoveMode first, SvgTextCursor::Mov
             int posA = moveModeResult(first, d->pos, d->visualNavigation);
             int posB = moveModeResult(second, d->pos, d->visualNavigation);
 
-            int posStart = qMin(posA, posB);
-            int posEnd = qMax(posA, posB);
+            int posStart = pkMin(posA, posB);
+            int posEnd = pkMax(posA, posB);
             int indexEnd = d->shape->indexForPos(posEnd);
             int length = indexEnd - d->shape->indexForPos(posStart);
 
@@ -685,8 +685,8 @@ QList<KoSvgTextProperties> SvgTextCursor::propertiesForRange() const
     if (!d->shape) return QList<KoSvgTextProperties>();
     int start = -1;
     int end = -1;
-    start = qMin(d->pos, d->anchor);
-    end = qMax(d->pos, d->anchor);
+    start = pkMin(d->pos, d->anchor);
+    end = pkMax(d->pos, d->anchor);
     return d->shape->propertiesForRange(start, end);
 }
 
@@ -707,8 +707,8 @@ void SvgTextCursor::mergePropertiesIntoSelection(const KoSvgTextProperties props
         }
         if (selectWord && d->pos == d->anchor) {
             const int finalPos = d->shape->posForIndex(d->shape->plainText().size());
-            start = qBound(0, moveModeResult(MoveWordStart, d->pos, d->visualNavigation), finalPos);
-            end = qBound(0, moveModeResult(MoveWordEnd, d->pos, d->visualNavigation), finalPos);
+            start = pkBound(0, moveModeResult(MoveWordStart, d->pos, d->visualNavigation), finalPos);
+            end = pkBound(0, moveModeResult(MoveWordEnd, d->pos, d->visualNavigation), finalPos);
         }
         KUndo2Command *cmd = new SvgTextMergePropertiesRangeCommand(d->shape, props, start, end, removeProperties);
         addCommandToUndoAdapter(cmd);
@@ -726,8 +726,8 @@ SvgTextRemoveCommand *SvgTextCursor::removeSelectionImpl(bool allowCleanUp, KUnd
     SvgTextRemoveCommand *removeCmd = nullptr;
     if (d->shape) {
         if (d->anchor != d->pos) {
-            int end = d->shape->indexForPos(qMax(d->anchor, d->pos));
-            int length = d->shape->indexForPos(qMax(d->anchor, d->pos)) - d->shape->indexForPos(qMin(d->anchor, d->pos));
+            int end = d->shape->indexForPos(pkMax(d->anchor, d->pos));
+            int length = d->shape->indexForPos(pkMax(d->anchor, d->pos)) - d->shape->indexForPos(pkMin(d->anchor, d->pos));
             removeCmd = new SvgTextRemoveCommand(d->shape, end, d->pos, d->anchor, length, allowCleanUp, parent);
         }
     }
@@ -737,8 +737,8 @@ SvgTextRemoveCommand *SvgTextCursor::removeSelectionImpl(bool allowCleanUp, KUnd
 void SvgTextCursor::copy() const
 {
     if (d->shape) {
-        int start = d->shape->indexForPos(qMin(d->anchor, d->pos));
-        int length = d->shape->indexForPos(qMax(d->anchor, d->pos)) - start;
+        int start = d->shape->indexForPos(pkMin(d->anchor, d->pos));
+        int length = d->shape->indexForPos(pkMax(d->anchor, d->pos)) - start;
         QString copied = d->shape->plainText().mid(start, length);
         std::unique_ptr<KoSvgTextShape> copy = d->shape->copyRange(start, length);
         QClipboard *cb = QApplication::clipboard();
@@ -1005,8 +1005,8 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
             QString surroundingText = d->shape->plainText();
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
-            int start = d->shape->indexForPos(qMin(d->anchor, d->pos));
-            int length = d->shape->indexForPos(qMax(d->anchor, d->pos)) - start;
+            int start = d->shape->indexForPos(pkMin(d->anchor, d->pos));
+            int length = d->shape->indexForPos(pkMax(d->anchor, d->pos)) - start;
             return surroundingText.mid(start, length);
         }
         break;
@@ -1321,7 +1321,7 @@ void SvgTextCursor::canvasResourceChanged(int key, const QVariant &value)
         return;
 
     KoSvgTextProperties props;
-    KoSvgTextProperties shapeProps = hasSelection()? d->shape->propertiesForPos(qMin(d->pos, d->anchor), true): d->shape->textProperties();
+    KoSvgTextProperties shapeProps = hasSelection()? d->shape->propertiesForPos(pkMin(d->pos, d->anchor), true): d->shape->textProperties();
     if (key == KoCanvasResource::ForegroundColor) {
         QSharedPointer<KoShapeBackground> bg(new KoColorBackground(value.value<KoColor>().toQColor()));
         if (!bg->compareTo(shapeProps.background().data())
@@ -1353,7 +1353,7 @@ void SvgTextCursor::propertyAction()
     QAction *action = dynamic_cast<QAction*>(QObject::sender());
     if (!action || !d->shape) return;
 
-    const QList<KoSvgTextProperties> p = d->shape->propertiesForRange(qMin(d->pos, d->anchor), qMax(d->pos, d->anchor));
+    const QList<KoSvgTextProperties> p = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor));
     KoSvgTextProperties properties = SvgTextShortCuts::getModifiedProperties(action, p);
     if (properties.isEmpty()) return;
     mergePropertiesIntoSelection(properties);
@@ -1888,8 +1888,8 @@ void SvgTextCursor::updateTypeSettingDecoration()
             metricInfos = d->shape->getPositionsAndRotationsForRange(0, d->shape->posForIndex(d->shape->plainText().size()));
         }
         const bool isHorizontal = d->shape->writingMode() == KoSvgText::HorizontalTB;
-        const int minPos = qMin(d->pos, d->anchor);
-        const int maxPos = qMax(d->pos, d->anchor);
+        const int minPos = pkMin(d->pos, d->anchor);
+        const int maxPos = pkMax(d->pos, d->anchor);
         const int endPos = d->shape->posForIndex(d->shape->plainText().size());
 
         /// This adds the start and end decoration...
@@ -1906,7 +1906,7 @@ void SvgTextCursor::updateTypeSettingDecoration()
             QList<KoSvgTextCharacterInfo> parentInfos;
             QList<int> positions;
             positions << 0;
-            positions << qMax(0, minPos-1);
+            positions << pkMax(0, minPos-1);
             positions << maxPos;
             positions << endPos;
 
@@ -2140,7 +2140,7 @@ void SvgTextCursor::updateCanvasResources()
     // Only update canvas resources when there's no selection.
     // This relies on Krita not setting anything on the text when there's no selection.
     if (d->shape && d->canvas->resourceManager() && d->pos == d->anchor) {
-        KoSvgTextProperties props = hasSelection()? d->shape->propertiesForPos(qMin(d->pos, d->anchor), true): d->shape->textProperties();
+        KoSvgTextProperties props = hasSelection()? d->shape->propertiesForPos(pkMin(d->pos, d->anchor), true): d->shape->textProperties();
         KoColorBackground *bg = dynamic_cast<KoColorBackground *>(props.background().data());
         if (bg && props.hasProperty(KoSvgTextProperties::FillId)) {
             KoColor c;
@@ -2163,7 +2163,7 @@ void SvgTextCursor::updateCanvasResources()
         Q_FOREACH (QAction *action, d->actions) {
             // Blocking signals so that we don't get a toggle action while evaluating the checked-ness.
             action->blockSignals(true);
-            const QList<KoSvgTextProperties> r = d->shape->propertiesForRange(qMin(d->pos, d->anchor), qMax(d->pos, d->anchor), true);
+            const QList<KoSvgTextProperties> r = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor), true);
             if (action->isCheckable() && SvgTextShortCuts::possibleActions().contains(action->objectName())) {
                 const bool checked = SvgTextShortCuts::actionEnabled(action, r);
                 if (action->isChecked() != checked) {

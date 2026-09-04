@@ -38,8 +38,8 @@ public:
             const qreal frequencyX = config->frequencyX();
             // Ensure that the frequency y component is equal to the x component if constrainFrequency is true
             const qreal frequencyY = constrainFrequency ? frequencyX : config->frequencyY();
-            sizeX = qMax(1.0, resolution / frequencyX);
-            sizeY = qMax(1.0, resolution / frequencyY);
+            sizeX = pkMax(1.0, resolution / frequencyX);
+            sizeY = pkMax(1.0, resolution / frequencyY);
         }
         const qreal positionX = config->positionX();
         const qreal positionY = config->positionY();
@@ -63,13 +63,13 @@ public:
             // corner of the macrocell. v2 is the aligned version
             const PkPointF u1 = t.map(PkPointF(macrocellSize.width(), 0.0));
             const PkPointF u2 = t.map(PkPointF(0.0, macrocellSize.height()));
-            PkPointF v1(qRound(u1.x()), qRound(u1.y()));
-            PkPointF v2(qRound(u2.x()), qRound(u2.y()));
+            PkPointF v1(pkRound(u1.x()), pkRound(u1.y()));
+            PkPointF v2(pkRound(u2.x()), pkRound(u2.y()));
             // If the following condition is met, that means that the screen is
             // transformed in such a way that the cell corners are colinear so we move
             // v1 or v2 to a neighbor position
-            if (qFuzzyCompare(v1.y() * v2.x(), v2.y() * v1.x()) &&
-                !qFuzzyIsNull(v1.x() * v2.x() + v1.y() * v2.y())) {
+            if (pkQtFuzzyCompare(v1.y() * v2.x(), v2.y() * v1.x()) &&
+                !pkQtFuzzyIsNull(v1.x() * v2.x() + v1.y() * v2.y())) {
                 // Choose point to move based on distance from non aligned point to
                 // aligned point
                 const qreal dist1 = kisSquareDistance(u1, v1);
@@ -108,10 +108,10 @@ public:
             quad.append(v1 / macrocellSize.width() + v2 / macrocellSize.height());
             quad.append(v2 / macrocellSize.height());
             PkTransform::quadToSquare(quad, t);
-            t.translate(qRound(positionX), qRound(positionY));
+            t.translate(pkRound(positionX), pkRound(positionY));
         } else {
             t.shear(shearX, shearY);
-            t.scale(qFuzzyIsNull(sizeX) ? 0.0 : 1.0 / sizeX, qFuzzyIsNull(sizeY) ? 0.0 : 1.0 / sizeY);
+            t.scale(pkQtFuzzyIsNull(sizeX) ? 0.0 : 1.0 / sizeX, pkQtFuzzyIsNull(sizeY) ? 0.0 : 1.0 / sizeY);
             t.rotate(rotation);
             t.translate(positionX, positionY);
         }

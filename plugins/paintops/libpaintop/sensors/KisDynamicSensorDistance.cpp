@@ -25,7 +25,7 @@ qreal KisDynamicSensorDistance::value(const KisPaintInformation &pi) const
     const qreal distance =
         m_periodic ?
         fmod(pi.totalStrokeLength(), m_length) :
-        qMin(pi.totalStrokeLength(), (qreal)m_length);
+        pkMin(pi.totalStrokeLength(), (qreal)m_length);
 
     return distance / m_length;
 }

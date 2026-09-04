@@ -156,7 +156,7 @@ void KisSketchPaintOp::doPaintLine(const KisPaintInformation &pi1, const KisPain
     const qreal scale = lodAdditionalScale * m_sizeOption.apply(pi2);
     if ((scale * m_brush->width()) <= 0.01 || (scale * m_brush->height()) <= 0.01) return;
 
-    const qreal currentLineWidth = qMax(0.9, lodAdditionalScale * m_lineWidthOption.apply(pi2) * m_sketchProperties.lineWidth);
+    const qreal currentLineWidth = pkMax(0.9, lodAdditionalScale * m_lineWidthOption.apply(pi2) * m_sketchProperties.lineWidth);
 
     const qreal currentOffsetScale = m_offsetScaleOption.apply(pi2) * m_sketchProperties.offset * 0.01;
     const double rotation = m_rotationOption.apply(pi2);
@@ -174,13 +174,13 @@ void KisSketchPaintOp::doPaintLine(const KisPaintInformation &pi1, const KisPain
     // determine the radius
     if (m_count == 0 && m_sketchProperties.simpleMode) {
         updateBrushMask(pi2, 1.0, 0.0);
-        //m_radius = qMax(m_maskDab->bounds().width(),m_maskDab->bounds().height()) * 0.5;
-        m_radius = 0.5 * qMax(m_brush->width(), m_brush->height());
+        //m_radius = pkMax(m_maskDab->bounds().width(),m_maskDab->bounds().height()) * 0.5;
+        m_radius = 0.5 * pkMax(m_brush->width(), m_brush->height());
     }
 
     if (!m_sketchProperties.simpleMode) {
         updateBrushMask(pi2, scale, rotation);
-        m_radius = qMax(m_maskDab->bounds().width(), m_maskDab->bounds().height()) * 0.5;
+        m_radius = pkMax(m_maskDab->bounds().width(), m_maskDab->bounds().height()) * 0.5;
         thresholdDistance = pow(m_radius, 2);
     }
 
@@ -274,7 +274,7 @@ void KisSketchPaintOp::doPaintLine(const KisPaintInformation &pi1, const KisPain
             if (m_sketchProperties.distanceOpacity) {
                 // TODO: check if the formula is correct, do we actually
                 //       need rounding here?
-                opacity *= qRound((1.0 - (distance / thresholdDistance)));
+                opacity *= pkRound((1.0 - (distance / thresholdDistance)));
             }
 
             if (m_sketchProperties.randomOpacity) {

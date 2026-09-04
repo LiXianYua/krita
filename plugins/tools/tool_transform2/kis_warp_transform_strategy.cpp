@@ -528,7 +528,7 @@ void KisWarpTransformStrategy::continuePrimaryAction(const PkPointF &pt, bool sh
 
         PkPolygonF polygon(m_d->currentArgs.origPoints());
         PkSizeF maxSize = polygon.boundingRect().size();
-        qreal maxDimension = qMax(maxSize.width(), maxSize.height());
+        qreal maxDimension = pkMax(maxSize.width(), maxSize.height());
 
         qreal scale = 1.0 - (pt - m_d->lastMousePos).y() / maxDimension;
 

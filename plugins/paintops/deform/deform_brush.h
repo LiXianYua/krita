@@ -51,7 +51,7 @@ public:
     }
     void transform(qreal* x, qreal* y, qreal distance, KisRandomSourceSP randomSource) override {
         static_cast<void>(randomSource);
-        qreal scaleFactor = KisAlgebra2D::signPZ(m_factor) * (qAbs((1.0 - distance) * m_factor) + distance);
+        qreal scaleFactor = KisAlgebra2D::signPZ(m_factor) * (pkAbs((1.0 - distance) * m_factor) + distance);
         *x = *x / scaleFactor;
         *y = *y / scaleFactor;
     }

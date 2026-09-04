@@ -135,7 +135,7 @@ std::variant<KisBrushModel::BrushData, KoResourceSignature> KisPredefinedBrushFa
          * automatically means the adjustments should be applied in the new way.
          */
         if (adjustmentVersion < 2 && !hasAutoAdjustMidPoint) {
-            adjustmentMidPoint = qBound(0, 127 + (int(adjustmentMidPoint) - 127) * 2, 255);
+            adjustmentMidPoint = pkBound(0, 127 + (int(adjustmentMidPoint) - 127) * 2, 255);
             brightnessAdjustment *= 2.0;
             contrastAdjustment *= 2.0;
 

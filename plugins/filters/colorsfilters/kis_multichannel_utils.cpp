@@ -185,7 +185,7 @@ KoColorTransformation* createPerChannelTransformationFromTransfers(const KoColor
      * Sometimes the realTransfers are too low, this often happens with faulty config,
      * which in turn leads to trouble when creating a transform.
      */
-    int missingTransfers = qMax(0, int(cs->channelCount()-realTransfers.size()));
+    int missingTransfers = pkMax(0, int(cs->channelCount()-realTransfers.size()));
     for (int i=0; i < missingTransfers; i++) {
         realTransfers.append(KisCubicCurve().uint16Transfer());
     }

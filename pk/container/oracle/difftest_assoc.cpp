@@ -23,15 +23,15 @@
 
 // ── 一个只在对拍里出现的冲突，以及它为什么必须这样解 ────
 // `PkHashFunctions.h` 在**全局命名空间**给内建类型定义了一整组 `qHash` 重载
-// （`qHash(char)`/`qHash(short)`/…），签名与真 Qt 的 `qhashfunctions.h` 逐字相同。
-// 这是**设计要求**：Krita 里那 18 处自定义 `uint qHash(const KoID &)` 靠的正是
+// （`pkHash(char)`/`pkHash(short)`/…），签名与真 Qt 的 `qhashfunctions.h` 逐字相同。
+// 这是**设计要求**：Krita 里那 18 处自定义 `uint pkHash(const KoID &)` 靠的正是
 // 这个名字与这套 ADL 规则，替代品必须原样承接。代价是**真 Qt 与替代品的这组
 // 重载没法出现在同一个翻译单元里**（重复定义，编译期报错）。
 //
 // 解法：把替代品那一侧的 `qHash` 在预处理层改名。宏在**扫描到头文件正文时**展开，
 // 所以先 include 的 Qt 头文件里那些 `qHash` token 早已定型、不受影响；替代品这边
 // 定义处（PkHashFunctions.h / PkStringHash.h）与调用处（PkHasher 里的
-// `qHash(key)`）同时被改名，ADL 仍然命中，哈希值本身在 Qt 里也不可观察
+// `pkHash(key)`）同时被改名，ADL 仍然命中，哈希值本身在 Qt 里也不可观察
 // （QHash 迭代顺序未定义），所以被测行为一点没变。
 //
 // 改名有没有误伤 Qt 那一侧，下面有一条 `static_assert` 当场验，不靠推断。
@@ -43,14 +43,14 @@
 #define qHash pkOracleHash
 #include <PkMap.h>
 #include <PkHash.h>
-#include <PkStringHash.h>   // qHash(const PkString &) —— PkHash<PkString,V> 要它
+#include <PkStringHash.h>   // pkHash(const PkString &) —— PkHash<PkString,V> 要它
 #undef qHash
 
 #include "difftest_common.h"
 
-// 真 Qt 的 `uint qHash(const QString &, uint)` 必须原样还在 —— 证明上面那个宏
+// 真 Qt 的 `uint pkHash(const QString &, uint)` 必须原样还在 —— 证明上面那个宏
 // 只改了替代品一侧。
-static_assert(std::is_same<decltype(qHash(QString())), uint>::value,
+static_assert(std::is_same<decltype(pkHash(QString())), uint>::value,
               "qHash 改名误伤了真 Qt 那一侧");
 
 #include <string>

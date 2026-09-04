@@ -68,9 +68,9 @@
 static inline bool fuzzyIsNull(qreal d)
 {
     if (sizeof(qreal) == sizeof(double))
-        return qAbs(d) <= 1e-12;
+        return pkAbs(d) <= 1e-12;
     else
-        return qAbs(d) <= 1e-5f;
+        return pkAbs(d) <= 1e-5f;
 }
 
 static inline bool comparePoints(const PkPointF &a, const PkPointF &b)
@@ -191,10 +191,10 @@ bool PkIntersectionFinder::hasIntersections(const PkPathSegments &a, const PkPat
 
     for (int i = 1; i < b.segments(); ++i) {
         const PkRectF &r = b.elementBounds(i);
-        minX = qMin(minX, r.left());
-        minY = qMin(minY, r.top());
-        maxX = qMax(maxX, r.right());
-        maxY = qMax(maxY, r.bottom());
+        minX = pkMin(minX, r.left());
+        minY = pkMin(minY, r.top());
+        maxX = pkMax(maxX, r.right());
+        maxY = pkMax(maxY, r.bottom());
     }
 
     PkRectF rb(minX, minY, maxX - minX, maxY - minY);
@@ -954,7 +954,7 @@ void PkPathSegments::addPath(const PkPainterPath &path)
                     PkRectF bounds = bezier.bounds();
 
                     // threshold based on similar algorithm as in qtriangulatingstroker.cpp
-                    int threshold = qMin<float>(64, qMax(bounds.width(), bounds.height()) * (2 * qreal(3.14) / 6));
+                    int threshold = pkMin<float>(64, pkMax(bounds.width(), bounds.height()) * (2 * qreal(3.14) / 6));
 
                     if (threshold < 3) threshold = 3;
                     qreal one_over_threshold_minus_1 = qreal(1) / (threshold - 1);
@@ -1373,8 +1373,8 @@ bool PkPathClipper::intersect()
 
     PkRectF r1 = subjectPath.controlPointRect();
     PkRectF r2 = clipPath.controlPointRect();
-    if (qMax(r1.x(), r2.x()) > qMin(r1.x() + r1.width(), r2.x() + r2.width()) ||
-        qMax(r1.y(), r2.y()) > qMin(r1.y() + r1.height(), r2.y() + r2.height())) {
+    if (pkMax(r1.x(), r2.x()) > pkMin(r1.x() + r1.width(), r2.x() + r2.width()) ||
+        pkMax(r1.y(), r2.y()) > pkMin(r1.y() + r1.height(), r2.y() + r2.height())) {
         // no way we could intersect
         return false;
     }
@@ -1424,8 +1424,8 @@ bool PkPathClipper::contains()
 
     PkRectF r1 = subjectPath.controlPointRect();
     PkRectF r2 = clipPath.controlPointRect();
-    if (qMax(r1.x(), r2.x()) > qMin(r1.x() + r1.width(), r2.x() + r2.width()) ||
-        qMax(r1.y(), r2.y()) > qMin(r1.y() + r1.height(), r2.y() + r2.height())) {
+    if (pkMax(r1.x(), r2.x()) > pkMin(r1.x() + r1.width(), r2.x() + r2.width()) ||
+        pkMax(r1.y(), r2.y()) > pkMin(r1.y() + r1.height(), r2.y() + r2.height())) {
         // no intersection -> not contained
         return false;
     }
@@ -1433,7 +1433,7 @@ bool PkPathClipper::contains()
     bool clipIsRect = pathToRect(clipPath);
     if (clipIsRect) {
         PkRectF subjectRect;
-        const bool sameOddRect = subjectPath.fillRule() == Qt::OddEvenFill
+        const bool sameOddRect = subjectPath.fillRule() == Pk::OddEvenFill
             && pathToRect(subjectPath, &subjectRect) && subjectRect == r2;
         return !sameOddRect && subjectPath.contains(r2);
     }
@@ -1463,8 +1463,8 @@ PkPathClipper::PkPathClipper(const PkPainterPath &subject,
     : subjectPath(subject)
     , clipPath(clip)
 {
-    aMask = subjectPath.fillRule() == Qt::WindingFill ? ~0x0 : 0x1;
-    bMask = clipPath.fillRule() == Qt::WindingFill ? ~0x0 : 0x1;
+    aMask = subjectPath.fillRule() == Pk::WindingFill ? ~0x0 : 0x1;
+    bMask = clipPath.fillRule() == Pk::WindingFill ? ~0x0 : 0x1;
 }
 
 static void clear(PkWingedEdge& list, int edge, PkPathEdge::Traversal traversal)
@@ -1560,7 +1560,7 @@ PkPainterPath PkPathClipper::clip(Operation operation)
                 PkPainterPath result = subjectPath;
                 if (result.fillRule() == clipPath.fillRule()) {
                     result.addPath(clipPath);
-                } else if (result.fillRule() == Qt::WindingFill) {
+                } else if (result.fillRule() == Pk::WindingFill) {
                     result = result.simplified();
                     result.addPath(clipPath);
                 } else {
@@ -1590,7 +1590,7 @@ PkPainterPath PkPathClipper::clip(Operation operation)
             if (subjectIsRect) {
                 switch (op) {
                 case BoolSub:
-                    if (clipPath.fillRule() == Qt::OddEvenFill) {
+                    if (clipPath.fillRule() == Pk::OddEvenFill) {
                         PkPainterPath result = clipPath;
                         result.addRect(subjectBounds);
                         return result;
@@ -1662,7 +1662,7 @@ bool PkPathClipper::doClip(PkWingedEdge &list, ClipperMode mode)
 
             found = true;
 
-            qreal height = qAbs(a->y - b->y);
+            qreal height = pkAbs(a->y - b->y);
             if (height > maxHeight) {
                 index = i;
                 maxHeight = height;
@@ -1676,8 +1676,8 @@ bool PkPathClipper::doClip(PkWingedEdge &list, ClipperMode mode)
             PkPathVertex *b = list.vertex(edge->second);
 
             // FIXME: this can be optimized by using binary search
-            const int first = pkFuzzyFind(y_coords.cbegin(), y_coords.cend(), qMin(a->y, b->y)) - y_coords.cbegin();
-            const int last = pkFuzzyFind(y_coords.cbegin() + first, y_coords.cend(), qMax(a->y, b->y)) - y_coords.cbegin();
+            const int first = pkFuzzyFind(y_coords.cbegin(), y_coords.cend(), pkMin(a->y, b->y)) - y_coords.cbegin();
+            const int last = pkFuzzyFind(y_coords.cbegin() + first, y_coords.cend(), pkMax(a->y, b->y)) - y_coords.cbegin();
 
             assert(first < y_coords.size() - 1);
             assert(last < y_coords.size());

@@ -36,24 +36,24 @@
 #include <KoShapePainter.h>
 #include <KoXmlNS.h>
 
-#include <QFile>
-#include <QString>
-#include <QTextStream>
-#include <QBuffer>
+#include <PkFileStream.h>
+#include <PkString.h>
+#include <PkTextStream.h>
+#include <PkMemoryStream.h>
 #include <QPainter>
 #include <QSvgGenerator>
 
 #include <kis_debug.h>
 #include <KisPortingUtils.h>
 
-SvgWriter::SvgWriter(const QList<KoShapeLayer*> &layers)
+SvgWriter::SvgWriter(const PkList<KoShapeLayer*> &layers)
     : m_writeInlineImages(true)
 {
     Q_FOREACH (KoShapeLayer *layer, layers)
         m_toplevelShapes.append(layer);
 }
 
-SvgWriter::SvgWriter(const QList<KoShape*> &toplevelShapes)
+SvgWriter::SvgWriter(const PkList<KoShape*> &toplevelShapes)
     : m_toplevelShapes(toplevelShapes)
     , m_writeInlineImages(true)
 {
@@ -64,10 +64,10 @@ SvgWriter::~SvgWriter()
 
 }
 
-bool SvgWriter::save(const QString &filename, const QSizeF &pageSize, bool writeInlineImages)
+bool SvgWriter::save(const PkString &filename, const PkSizeF &pageSize, bool writeInlineImages)
 {
-    QFile fileOut(filename);
-    if (!fileOut.open(QIODevice::WriteOnly))
+    PkFileStream fileOut(filename);
+    if (!fileOut.open(PkStream::WriteOnly))
         return false;
 
     m_writeInlineImages = writeInlineImages;
@@ -81,13 +81,13 @@ bool SvgWriter::save(const QString &filename, const QSizeF &pageSize, bool write
     return success;
 }
 
-bool SvgWriter::save(QIODevice &outputDevice, const QSizeF &pageSize)
+bool SvgWriter::save(PkStream &outputDevice, const PkSizeF &pageSize)
 {
     if (m_toplevelShapes.isEmpty()) {
         return false;
     }
 
-    QTextStream svgStream(&outputDevice);
+    PkTextStream svgStream(&outputDevice);
     KisPortingUtils::setUtf8OnStream(svgStream);
 
     // standard header:
@@ -100,7 +100,7 @@ bool SvgWriter::save(QIODevice &outputDevice, const QSizeF &pageSize)
 
     svgStream << "<svg xmlns=\"http://www.w3.org/2000/svg\" \n";
     svgStream << "    xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n";
-    svgStream << QString("    xmlns:krita=\"%1\"\n").arg(toQString(KoXmlNS::krita));
+    svgStream << PkString("    xmlns:krita=\"%1\"\n").arg(toQString(KoXmlNS::krita));
     svgStream << "    xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\"\n";
     svgStream << "    width=\"" << pageSize.width() << "pt\"\n";
     svgStream << "    height=\"" << pageSize.height() << "pt\"\n";
@@ -128,14 +128,14 @@ bool SvgWriter::save(QIODevice &outputDevice, const QSizeF &pageSize)
     return true;
 }
 
-bool SvgWriter::save(PkStream &outputDevice, const QSizeF &pageSize)
+bool SvgWriter::save(PkStream &outputDevice, const PkSizeF &pageSize)
 {
     PkStreamIoDevice device;
     device.attach(&outputDevice);
     return save(device, pageSize);
 }
 
-bool SvgWriter::saveDetached(QIODevice &outputDevice)
+bool SvgWriter::saveDetached(PkStream &outputDevice)
 {
     if (m_toplevelShapes.isEmpty())
         return false;
@@ -156,7 +156,7 @@ bool SvgWriter::saveDetached(SvgSavingContext &savingContext)
     return true;
 }
 
-void SvgWriter::saveShapes(const QList<KoShape *> shapes, SvgSavingContext &savingContext)
+void SvgWriter::saveShapes(const PkList<KoShape *> shapes, SvgSavingContext &savingContext)
 {
     // top level shapes
     Q_FOREACH (KoShape *shape, shapes) {
@@ -178,7 +178,7 @@ void SvgWriter::saveLayer(KoShapeLayer *layer, SvgSavingContext &context)
     context.shapeWriter().startElement("g");
     context.shapeWriter().addAttribute("id", toPkString(context.getID(layer)));
 
-    QList<KoShape*> sortedShapes = layer->shapes();
+    PkList<KoShape*> sortedShapes = layer->shapes();
     std::sort(sortedShapes.begin(), sortedShapes.end(), KoShape::compareShapeZIndex);
 
     Q_FOREACH (KoShape * shape, sortedShapes) {
@@ -204,7 +204,7 @@ void SvgWriter::saveGroup(KoShapeGroup * group, SvgSavingContext &context)
 
     SvgStyleWriter::saveSvgStyle(group, context);
 
-    QList<KoShape*> sortedShapes = group->shapes();
+    PkList<KoShape*> sortedShapes = group->shapes();
     std::sort(sortedShapes.begin(), sortedShapes.end(), KoShape::compareShapeZIndex);
 
     Q_FOREACH (KoShape * shape, sortedShapes) {
@@ -251,14 +251,14 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(shape);
 
-    const QRectF bbox = shape->boundingRect();
+    const PkRectF bbox = shape->boundingRect();
 
     // paint shape to the image
     KoShapePainter painter;
-    painter.setShapes(QList<KoShape*>()<< shape);
+    painter.setShapes(PkList<KoShape*>()<< shape);
 
     // generate svg from shape
-    QBuffer svgBuffer;
+    PkMemoryStream svgBuffer;
     QSvgGenerator svgGenerator;
     svgGenerator.setOutputDevice(&svgBuffer);
 
@@ -289,7 +289,7 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
     // check if painting to svg produced any output
     if (svgBuffer.buffer().isEmpty()) {
         // prepare a transparent image, make it twice as big as the original size
-        QImage image(2*bbox.size().toSize(), QImage::Format_ARGB32);
+        PkImage image(2*bbox.size().toSize(), PkImage::Format_ARGB32);
         image.fill(0);
         painter.paint(image);
 
@@ -312,12 +312,12 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
     // we can embed these here to have full support for generic shapes
 }
 
-void SvgWriter::setDocumentTitle(QString title)
+void SvgWriter::setDocumentTitle(PkString title)
 {
     m_documentTitle = title;
 }
 
-void SvgWriter::setDocumentDescription(QString description)
+void SvgWriter::setDocumentDescription(PkString description)
 {
     m_documentDescription = description;
 }

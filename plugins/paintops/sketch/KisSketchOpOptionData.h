@@ -16,8 +16,8 @@ class KisPaintopLodLimitations;
 struct KisSketchOpOptionData : boost::equality_comparable<KisSketchOpOptionData>
 {
     inline friend bool operator==(const KisSketchOpOptionData &lhs, const KisSketchOpOptionData &rhs) {
-        return qFuzzyCompare(lhs.offset, rhs.offset)
-            && qFuzzyCompare(lhs.probability, rhs.probability)
+        return pkQtFuzzyCompare(lhs.offset, rhs.offset)
+            && pkQtFuzzyCompare(lhs.probability, rhs.probability)
             && lhs.simpleMode == rhs.simpleMode
             && lhs.makeConnection == rhs.makeConnection
             && lhs.magnetify == rhs.magnetify

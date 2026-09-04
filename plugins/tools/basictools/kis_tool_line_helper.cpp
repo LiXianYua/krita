@@ -234,11 +234,11 @@ void KisToolLineHelper::clearPaint()
 
 void KisToolLineHelper::adjustPointsToDDA(PkVector<KisPaintInformation> &points)
 {
-    int x = qFloor(points.first().pos().x());
-    int y = qFloor(points.first().pos().y());
+    int x = pkFloor(points.first().pos().x());
+    int y = pkFloor(points.first().pos().y());
 
-    int x2 = qFloor(points.last().pos().x());
-    int y2 = qFloor(points.last().pos().y());
+    int x2 = pkFloor(points.last().pos().x());
+    int y2 = pkFloor(points.last().pos().y());
 
     // Width and height of the line
     int xd = x2 - x;
@@ -266,9 +266,9 @@ void KisToolLineHelper::adjustPointsToDDA(PkVector<KisPaintInformation> &points)
         m *= inc;
 
         for (int i = 0; i < points.size(); i++){
-            dist = abs(qFloor(points.at(i).pos().y()) - y);
+            dist = abs(pkFloor(points.at(i).pos().y()) - y);
             fy = y + (dist * inc);
-            fx = qRound(x + (dist * m));
+            fx = pkRound(x + (dist * m));
             points[i].setPos(PkPointF(fx,fy));
         }
 
@@ -277,9 +277,9 @@ void KisToolLineHelper::adjustPointsToDDA(PkVector<KisPaintInformation> &points)
         m *= inc;
 
         for (int i = 0; i < points.size(); i++){
-            dist = abs(qFloor(points.at(i).pos().x()) - x);
+            dist = abs(pkFloor(points.at(i).pos().x()) - x);
             fx = x + (dist * inc);
-            fy = qRound(y + (dist * m));
+            fy = pkRound(y + (dist * m));
             points[i].setPos(PkPointF(fx,fy));
         }
     }

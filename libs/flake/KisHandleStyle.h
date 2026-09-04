@@ -7,8 +7,8 @@
 #ifndef KISHANDLESTYLE_H
 #define KISHANDLESTYLE_H
 
-#include <QVector>
-#include <QPen>
+#include <PkVector.h>
+#include <PkPen.h>
 #include <QBrush>
 
 #include "kritaflake_export.h"
@@ -76,18 +76,18 @@ public:
 
     struct IterationStyle {
         IterationStyle() : isValid(false) {}
-        IterationStyle(const QPen &pen, const QBrush &brush)
+        IterationStyle(const PkPen &pen, const QBrush &brush)
             : isValid(true),
               stylePair(pen, brush)
         {
         }
 
         bool isValid;
-        QPair<QPen, QBrush> stylePair;
+        std::pair<PkPen, QBrush> stylePair;
     };
 
-    QVector<IterationStyle> handleIterations;
-    QVector<IterationStyle> lineIterations;
+    PkVector<IterationStyle> handleIterations;
+    PkVector<IterationStyle> lineIterations;
 };
 
 #endif // KISHANDLESTYLE_H

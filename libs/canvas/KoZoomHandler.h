@@ -90,7 +90,7 @@ public:
      * @return the global zoom factor (e.g. 100 for 100%).
      * Only use this to display to the user, don't use in calculations
      */
-    inline int zoomInPercent() const { return qRound(KoViewConverter::zoom() * 100); }
+    inline int zoomInPercent() const { return pkRound(KoViewConverter::zoom() * 100); }
     /**
      * @return the global zoom mode (e.g. KoZoomMode::ZOOM_WIDTH).
      * use this to determine how to zoom

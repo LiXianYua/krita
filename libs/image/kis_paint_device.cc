@@ -1747,7 +1747,7 @@ KisPaintDeviceSP KisPaintDevice::createThumbnailDevice(qint32 w, qint32 h, PkRec
 KisPaintDeviceSP KisPaintDevice::createThumbnailDeviceOversampled(qint32 w, qint32 h, qreal oversample, PkRect rect,  PkRect outputTileRect) const
 {
     PkSize thumbnailSize(w, h);
-    qreal oversampleAdjusted = qMax(oversample, 1.);
+    qreal oversampleAdjusted = pkMax(oversample, 1.);
     PkSize thumbnailOversampledSize = oversampleAdjusted * thumbnailSize;
 
     PkRect outputRect;

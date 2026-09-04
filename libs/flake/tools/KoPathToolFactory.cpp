@@ -30,9 +30,9 @@ KoToolBase * KoPathToolFactory::createTool(KoCanvasBase *canvas)
     return new KoPathTool(canvas);
 }
 
-QList<QAction *> KoPathToolFactory::createActionsImpl()
+PkList<QAction *> KoPathToolFactory::createActionsImpl()
 {
-    QList<QAction *> actions;
+    PkList<QAction *> actions;
 
     QAction *action = new QAction(this);
     action->setObjectName("pathpoint-corner");

@@ -41,7 +41,7 @@ PkPointF lineSegmentIntersection(const PkPointF &p1, const PkPointF &p2,
     const PkPointF d1 = p2 - p1;
     const PkPointF d2 = b - a;
     const qreal denominator = d1.x() * d2.y() - d1.y() * d2.x();
-    if (qAbs(denominator) < 1e-12) return p1;
+    if (pkAbs(denominator) < 1e-12) return p1;
 
     const PkPointF difference = a - p1;
     const qreal t = (difference.x() * d2.y() - difference.y() * d2.x()) / denominator;
@@ -205,7 +205,7 @@ struct NearestNeighbourWrapper
     }
 
     void samplePixel(const PkPointF &pt, quint8 *dst) {
-        m_accessor->moveTo(qRound(pt.x()), qRound(pt.y()));
+        m_accessor->moveTo(pkRound(pt.x()), pkRound(pt.y()));
         memcpy(dst, m_accessor->oldRawData(), m_pixelSize);
     }
 
@@ -225,7 +225,7 @@ void KisPerspectiveTransformWorker::runImpl()
     //       theoretically
     //
     // if (m_isTranslating) {
-    //     m_dev->moveTo(m_dev->offset() + QPoint(qRound(m_forwardTransform.dx()), qRound(m_forwardTransform.dy())));
+    //     m_dev->moveTo(m_dev->offset() + QPoint(pkRound(m_forwardTransform.dx()), pkRound(m_forwardTransform.dy())));
     //     return;
     // }
 

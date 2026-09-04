@@ -56,8 +56,8 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
     Q_ASSERT(device);
 
     KisLodTransformScalar t(device);
-    const int pixelWidth = qCeil(t.scale(config ? qMax(1, config->getInt("pixelWidth", 10)) : 10));
-    const int pixelHeight = qCeil(t.scale(config ? qMax(1, config->getInt("pixelHeight", 10)) : 10));
+    const int pixelWidth = pkCeil(t.scale(config ? pkMax(1, config->getInt("pixelWidth", 10)) : 10));
+    const int pixelHeight = pkCeil(t.scale(config ? pkMax(1, config->getInt("pixelHeight", 10)) : 10));
 
     const qint32 pixelSize = device->pixelSize();
 
@@ -116,8 +116,8 @@ PkRect KisPixelizeFilter::neededRect(const PkRect &rect, const KisFilterConfigur
 {
     KisLodTransformScalar t(lod);
 
-    const int pixelWidth = qCeil(t.scale(config ? qMax(1, config->getInt("pixelWidth", 10)) : 10));
-    const int pixelHeight = qCeil(t.scale(config ? qMax(1, config->getInt("pixelHeight", 10)) : 10));
+    const int pixelWidth = pkCeil(t.scale(config ? pkMax(1, config->getInt("pixelWidth", 10)) : 10));
+    const int pixelHeight = pkCeil(t.scale(config ? pkMax(1, config->getInt("pixelHeight", 10)) : 10));
 
     // TODO: make more precise calculation of the rect, including the alignment
     return rect.adjusted(-2*pixelWidth, -2*pixelHeight, 2*pixelWidth, 2*pixelHeight);

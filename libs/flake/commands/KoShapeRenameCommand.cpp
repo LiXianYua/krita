@@ -16,7 +16,7 @@ public:
     Private(KoShape *shape, const PkString &newName)
     : shape(shape)
     , newName(newName)
-    , oldName(toPkString(shape->name()))
+    , oldName(shape->name())
     {}
 
     KoShape *shape;
@@ -38,11 +38,11 @@ KoShapeRenameCommand::~KoShapeRenameCommand()
 void KoShapeRenameCommand::redo()
 {
     KUndo2Command::redo();
-    d->shape->setName(toQString(d->newName));
+    d->shape->setName(d->newName);
 }
 
 void KoShapeRenameCommand::undo()
 {
     KUndo2Command::undo();
-    d->shape->setName(toQString(d->oldName));
+    d->shape->setName(d->oldName);
 }

@@ -769,7 +769,7 @@ namespace Private {
             int layerArea = layerProjectionExtent.width() * layerProjectionExtent.height();
 
             PkList<double> scores;
-            double norm = qMax(prevLayerArea, layerArea);
+            double norm = pkMax(prevLayerArea, layerArea);
             scores.append(prevLayerArea / norm);
             scores.append(layerArea / norm);
 
@@ -1807,7 +1807,7 @@ namespace Private {
         }
 
         if (!visibleNodes.isEmpty() && putAfterIndex >= 0) {
-            putAfterIndex = qBound(0, putAfterIndex, visibleNodes.size() - 1);
+            putAfterIndex = pkBound(0, putAfterIndex, visibleNodes.size() - 1);
             *putAfter = visibleNodes[putAfterIndex];
         }
 

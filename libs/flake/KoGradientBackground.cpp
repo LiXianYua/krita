@@ -14,7 +14,7 @@
 #include <QBrush>
 #include <QPainter>
 #include <QSharedData>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 class KoGradientBackground::Private : public QSharedData
 {
@@ -24,11 +24,11 @@ public:
         , gradient(0)
     {}
 
-    QGradient *gradient;
-    QTransform matrix;
+    PkGradient *gradient;
+    PkTransform matrix;
 };
 
-KoGradientBackground::KoGradientBackground(QGradient * gradient, const QTransform &matrix)
+KoGradientBackground::KoGradientBackground(PkGradient * gradient, const PkTransform &matrix)
     : KoShapeBackground()
     , d(new Private)
 {
@@ -37,7 +37,7 @@ KoGradientBackground::KoGradientBackground(QGradient * gradient, const QTransfor
     Q_ASSERT(d->gradient);
 }
 
-KoGradientBackground::KoGradientBackground(const QGradient & gradient, const QTransform &matrix)
+KoGradientBackground::KoGradientBackground(const PkGradient & gradient, const PkTransform &matrix)
     : KoShapeBackground()
     , d(new Private)
 {
@@ -71,17 +71,17 @@ bool KoGradientBackground::compareTo(const KoShapeBackground *other) const
         *d->gradient == *otherGradient->d->gradient;
 }
 
-void KoGradientBackground::setTransform(const QTransform &matrix)
+void KoGradientBackground::setTransform(const PkTransform &matrix)
 {
     d->matrix = matrix;
 }
 
-QTransform KoGradientBackground::transform() const
+PkTransform KoGradientBackground::transform() const
 {
     return d->matrix;
 }
 
-void KoGradientBackground::setGradient(const QGradient &gradient)
+void KoGradientBackground::setGradient(const PkGradient &gradient)
 {
     delete d->gradient;
 
@@ -89,16 +89,16 @@ void KoGradientBackground::setGradient(const QGradient &gradient)
     Q_ASSERT(d->gradient);
 }
 
-const QGradient * KoGradientBackground::gradient() const
+const PkGradient * KoGradientBackground::gradient() const
 {
     return d->gradient;
 }
 
-void KoGradientBackground::paint(QPainter &painter, const QPainterPath &fillPath) const
+void KoGradientBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
 {
     if (!d->gradient) return;
 
-    if (d->gradient->coordinateMode() == QGradient::ObjectBoundingMode) {
+    if (d->gradient->coordinateMode() == PkGradient::ObjectBoundingMode) {
 
         /**
          * NOTE: important hack!
@@ -111,16 +111,16 @@ void KoGradientBackground::paint(QPainter &painter, const QPainterPath &fillPath
          * matrices and someone just mistyped the stuff long ago :(
          *
          * So here we basically emulate this feature by converting the gradient into
-         * QGradient::LogicalMode and doing transformations manually.
+         * PkGradient::LogicalMode and doing transformations manually.
          */
 
-        const QRectF boundingRect = fillPath.boundingRect();
-        QTransform gradientToUser(boundingRect.width(), 0, 0, boundingRect.height(),
+        const PkRectF boundingRect = fillPath.boundingRect();
+        PkTransform gradientToUser(boundingRect.width(), 0, 0, boundingRect.height(),
                                   boundingRect.x(), boundingRect.y());
 
         // TODO: how about slicing the object?
-        QGradient g = *d->gradient;
-        g.setCoordinateMode(QGradient::LogicalMode);
+        PkGradient g = *d->gradient;
+        g.setCoordinateMode(PkGradient::LogicalMode);
 
         QBrush b(g);
         b.setTransform(d->matrix * gradientToUser);

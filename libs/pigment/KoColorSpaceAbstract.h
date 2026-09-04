@@ -153,7 +153,7 @@ public:
         PkColor c;
         const_cast<KoColorSpaceAbstract<_CSTrait> *>(this)->toQColor(src, &c);
         // Integer version of:
-        //      static_cast<quint8>(qRound(c.red() * 0.30 + c.green() * 0.59 + c.blue() * 0.11))
+        //      static_cast<quint8>(pkRound(c.red() * 0.30 + c.green() * 0.59 + c.blue() * 0.11))
         // The "+ 50" is used for rounding
         return static_cast<quint8>((c.red() * 30 + c.green() * 59 + c.blue() * 11 + 50) / 100);
     }

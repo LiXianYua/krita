@@ -25,14 +25,14 @@ class PkPainterPath;
 //     列向量约定会得到 (14,18)。**搞反了每一个 map 都错**，而对称矩阵看不出来。
 //   · **TransformationType 是位标志**：TxNone=0 TxTranslate=1 TxScale=2
 //     TxRotate=4 TxShear=8 TxProject=16。照 `enum { TxNone, TxTranslate, ... }`
-//     的顺序写会得到 0,1,2,3,4,5，**全错**（而且 `qMax(thisType, otherType)`
+//     的顺序写会得到 0,1,2,3,4,5，**全错**（而且 `pkMax(thisType, otherType)`
 //     与 `t <= TxTranslate` 这类比较会跟着全错）。
 //   · **`type()` 是有状态的，不是矩阵九个分量的纯函数。** 见下面「惰性缓存」。
 //   · **直角特判**：`rotate(90/-90/180/270/-270)` 直接填 ±1/0，不走 sin/cos，
 //     所以结果是精确的（m11 恰为 0 而不是 6.1e-17）。去掉特判对拍立刻分家。
-//   · **`inverted` 的三条路径门槛互不相同**：TxScale 用 `qFuzzyIsNull(m11)` 与
-//     `qFuzzyIsNull(m22)`；TxRotate/TxShear 走 QMatrix::inverted，判据是
-//     **`det == 0.0` 精确零**；TxProject 用 `qFuzzyIsNull(det)`。
+//   · **`inverted` 的三条路径门槛互不相同**：TxScale 用 `pkQtFuzzyIsNull(m11)` 与
+//     `pkQtFuzzyIsNull(m22)`；TxRotate/TxShear 走 QMatrix::inverted，判据是
+//     **`det == 0.0` 精确零**；TxProject 用 `pkQtFuzzyIsNull(det)`。
 //     失败时返回的是**单位阵**，且此时 m_type/m_dirty **不**从源矩阵拷贝。
 //   · **`map(PkPoint)` / `map(PkPointF)` 不夹持 w**，而
 //     `map(int,int,int*,int*)` / `map(qreal,qreal,qreal*,qreal*)` 走 MAP 宏、
@@ -81,7 +81,7 @@ class PkPainterPath;
 //      **没有** sizeof 相等的 static_assert（Point/Size/Rect 三族都有）。
 //   ③ **不复刻 `#ifndef QT_NO_DEBUG` 的 NaN 早退分支。** qtransform.cpp 里
 //      translate/scale/shear/rotate/rotateRadians/fromTranslate/fromScale 七个
-//      都有 `if (qIsNaN(...)) { nanWarning(); return; }`，**只在非 QT_NO_DEBUG
+//      都有 `if (pkIsNaN(...)) { nanWarning(); return; }`，**只在非 QT_NO_DEBUG
 //      构建里存在**。实测本机 libQt5Gui.so 是带 QT_NO_DEBUG 编的（探针 §B：
 //      `translate(NaN,1)` 之后 dx == nan，说明早退分支不在），Krita 的发布构建
 //      同样带 QT_NO_DEBUG（与 PkSize 那边 Q_ASSERT 的处置同一条口径）。
@@ -120,7 +120,7 @@ class PkPainterPath;
 // 【归别的线】：
 //   · `qHash`（R-02 容器）、`QDataStream operator<<>>`（R-12 端口）、
 //     `QDebug operator<<`（R-08 日志）、`operator QVariant()`（QVariant 不在范围）
-//   · `explicit QTransform(Qt::Initialization)` —— Qt::Uninitialized 归 R-02，
+//   · `explicit QTransform(Pk::Initialization)` —— Pk::Uninitialized 归 R-02，
 //     且实测 0 用量
 //   · `QTransform(const QMatrix&)` —— QMatrix 是 Qt5 已废弃类型，0 用量
 // 【交给编译器生成】：
@@ -193,12 +193,12 @@ public:
     PkTransform &translate(qreal dx, qreal dy);
     PkTransform &scale(qreal sx, qreal sy);
     PkTransform &shear(qreal sh, qreal sv);
-    PkTransform &rotate(qreal a, Qt::Axis axis = Qt::ZAxis);
-    PkTransform &rotateRadians(qreal a, Qt::Axis axis = Qt::ZAxis);
+    PkTransform &rotate(qreal a, Pk::Axis axis = Pk::ZAxis);
+    PkTransform &rotateRadians(qreal a, Pk::Axis axis = Pk::ZAxis);
 
     // qtransform.cpp:810-821 / 851-854。**只比九个分量，不比 m_type/m_dirty**，
     // 且用的是裸 `==`（不是 qFuzzyCompare）—— 于是 NaN 矩阵永远不等于自己，
-    // ±0.0 判等。自由函数 qFuzzyCompare(PkTransform,PkTransform) 才是模糊版。
+    // ±0.0 判等。自由函数 pkQtFuzzyCompare(PkTransform,PkTransform) 才是模糊版。
     bool operator==(const PkTransform &) const;
     bool operator!=(const PkTransform &) const;
 
@@ -424,7 +424,7 @@ inline PkTransform &PkTransform::operator-=(qreal num)
 // ⚠ 用 pkQtFuzzyCompare 而不是 qFuzzyCompare：后者在「pk/test 的垫片先进 TU」
 // 那条路径上是个 #define，会把这里的公式静默换成 pk/test 那套（理由与
 // PkPointF::operator== 相同，见 PkGlobal.h 的 pkQt* 一节）。
-inline bool qFuzzyCompare(const PkTransform &t1, const PkTransform &t2)
+inline bool pkQtFuzzyCompare(const PkTransform &t1, const PkTransform &t2)
 {
     return pkQtFuzzyCompare(t1.m11(), t2.m11())
         && pkQtFuzzyCompare(t1.m12(), t2.m12())

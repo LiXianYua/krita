@@ -21,12 +21,12 @@ public:
     KisReferenceImagesLayer(KoShapeControllerBase* shapeController, KisImageWSP image);
     KisReferenceImagesLayer(const KisReferenceImagesLayer &rhs);
 
-    static KUndo2Command * addReferenceImages(KisDocument *document, QList<KoShape*> referenceImages);
-    KUndo2Command * removeReferenceImages(KisDocument *document, QList<KoShape*> referenceImages);
-    QVector<KisReferenceImage*> referenceImages() const;
+    static KUndo2Command * addReferenceImages(KisDocument *document, PkList<KoShape*> referenceImages);
+    KUndo2Command * removeReferenceImages(KisDocument *document, PkList<KoShape*> referenceImages);
+    PkVector<KisReferenceImage*> referenceImages() const;
 
-    QRectF boundingImageRect() const;
-    QColor getPixel(QPointF position) const;
+    PkRectF boundingImageRect() const;
+    PkColor getPixel(PkPointF position) const;
 
     void paintReferences(QPainter &painter);
 
@@ -52,10 +52,10 @@ Q_SIGNALS:
      * The content of the layer has changed, and the canvas decoration
      * needs to update.
      */
-    void sigUpdateCanvas(const QRectF &rect);
+    void sigUpdateCanvas(const PkRectF &rect);
 
 private:
-    void signalUpdate(const QRectF &rect);
+    void signalUpdate(const PkRectF &rect);
     friend struct AddReferenceImagesCommand;
     friend struct RemoveReferenceImagesCommand;
     friend class ReferenceImagesCanvas;

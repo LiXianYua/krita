@@ -140,10 +140,10 @@ public:
     { arcTo(PkRectF(x, y, w, h), startAngle, sweepLength); }
 
     void addRoundedRect(const PkRectF &rect, qreal xRadius, qreal yRadius,
-                        Qt::SizeMode mode = Qt::AbsoluteSize);
+                        Pk::SizeMode mode = Pk::AbsoluteSize);
     inline void addRoundedRect(qreal x, qreal y, qreal w, qreal h,
                                 qreal xRadius, qreal yRadius,
-                                Qt::SizeMode mode = Qt::AbsoluteSize)
+                                Pk::SizeMode mode = Pk::AbsoluteSize)
     { addRoundedRect(PkRectF(x, y, w, h), xRadius, yRadius, mode); }
 
     void addPath(const PkPainterPath &path);
@@ -161,8 +161,8 @@ public:
     Element elementAt(int i) const { return m_elements.at(i); }
     void setElementPositionAt(int i, qreal x, qreal y);
 
-    Qt::FillRule fillRule() const { return m_fillRule; }
-    void setFillRule(Qt::FillRule fillRule)
+    Pk::FillRule fillRule() const { return m_fillRule; }
+    void setFillRule(Pk::FillRule fillRule)
     {
         if (m_fillRule == fillRule)
             return;
@@ -240,7 +240,7 @@ private:
     mutable bool m_dirtyBounds = true;
     mutable bool m_dirtyControlRect = true;
     // 填充规则。
-    Qt::FillRule m_fillRule = Qt::OddEvenFill;
+    Pk::FillRule m_fillRule = Pk::OddEvenFill;
 };
 
 // qpainterpath.h 末尾的 operator*（QPainterPath × QTransform）—— 自由函数。

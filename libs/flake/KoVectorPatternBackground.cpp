@@ -8,7 +8,7 @@
 #include <PkFlakeBridge.h>
 #include "KoVectorPatternBackground.h"
 
-#include <QTransform>
+#include <PkTransform.h>
 #include <KoShape.h>
 #include <KoShapePainter.h>
 #include <KoBakedShapeRenderer.h>
@@ -27,13 +27,13 @@ public:
         shapes.clear();
     }
 
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     KoFlake::CoordinateSystem referenceCoordinates =
             KoFlake::ObjectBoundingBox;
     KoFlake::CoordinateSystem contentCoordinates =
             KoFlake::UserSpaceOnUse;
-    QRectF referenceRect;
-    QTransform patternTransform;
+    PkRectF referenceRect;
+    PkTransform patternTransform;
 };
 
 KoVectorPatternBackground::KoVectorPatternBackground()
@@ -73,27 +73,27 @@ KoFlake::CoordinateSystem KoVectorPatternBackground::contentCoordinates() const
     return d->contentCoordinates;
 }
 
-void KoVectorPatternBackground::setReferenceRect(const QRectF &value)
+void KoVectorPatternBackground::setReferenceRect(const PkRectF &value)
 {
     d->referenceRect = value;
 }
 
-QRectF KoVectorPatternBackground::referenceRect() const
+PkRectF KoVectorPatternBackground::referenceRect() const
 {
     return d->referenceRect;
 }
 
-void KoVectorPatternBackground::setPatternTransform(const QTransform &value)
+void KoVectorPatternBackground::setPatternTransform(const PkTransform &value)
 {
     d->patternTransform = value;
 }
 
-QTransform KoVectorPatternBackground::patternTransform() const
+PkTransform KoVectorPatternBackground::patternTransform() const
 {
     return d->patternTransform;
 }
 
-void KoVectorPatternBackground::setShapes(const QList<KoShape*> value)
+void KoVectorPatternBackground::setShapes(const PkList<KoShape*> value)
 {
     qDeleteAll(d->shapes);
     d->shapes.clear();
@@ -101,18 +101,18 @@ void KoVectorPatternBackground::setShapes(const QList<KoShape*> value)
     d->shapes = value;
 }
 
-QList<KoShape *> KoVectorPatternBackground::shapes() const
+PkList<KoShape *> KoVectorPatternBackground::shapes() const
 {
     return d->shapes;
 }
 
-void KoVectorPatternBackground::paint(QPainter &painter, const QPainterPath &fillPath) const
+void KoVectorPatternBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
 {
-    const QPainterPath dstShapeOutline = fillPath;
-    const QRectF dstShapeBoundingBox = dstShapeOutline.boundingRect();
+    const PkPainterPath dstShapeOutline = fillPath;
+    const PkRectF dstShapeBoundingBox = dstShapeOutline.boundingRect();
 
-    KoBakedShapeRenderer renderer(dstShapeOutline, QTransform(),
-                                  QTransform(),
+    KoBakedShapeRenderer renderer(dstShapeOutline, PkTransform(),
+                                  PkTransform(),
                                   d->referenceRect,
                                   d->contentCoordinates != KoFlake::UserSpaceOnUse,
                                   dstShapeBoundingBox,

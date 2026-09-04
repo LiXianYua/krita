@@ -6,7 +6,7 @@
 
 #include "KoSnapData.h"
 
-#include <QPointF>
+#include <PkPoint.h>
 
 KoSnapData::KoSnapData()
 {
@@ -16,22 +16,22 @@ KoSnapData::~KoSnapData()
 {
 }
 
-QList<QPointF> KoSnapData::snapPoints() const
+PkList<PkPointF> KoSnapData::snapPoints() const
 {
     return m_points;
 }
 
-void KoSnapData::setSnapPoints(const QList<QPointF> &snapPoints)
+void KoSnapData::setSnapPoints(const PkList<PkPointF> &snapPoints)
 {
     m_points = snapPoints;
 }
 
-QList<KoPathSegment> KoSnapData::snapSegments() const
+PkList<KoPathSegment> KoSnapData::snapSegments() const
 {
     return m_segments;
 }
 
-void KoSnapData::setSnapSegments(const QList<KoPathSegment> &snapSegments)
+void KoSnapData::setSnapSegments(const PkList<KoPathSegment> &snapSegments)
 {
     m_segments = snapSegments;
 }

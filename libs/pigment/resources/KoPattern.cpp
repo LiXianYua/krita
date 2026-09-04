@@ -831,7 +831,7 @@ KoPatternSP KoPattern::cloneWithoutAlpha() const
 
         for (int x = 0; x < image.width(); ++x) {
             const qreal coeff = pkAlpha(*ptr) / 255.0;
-            *ptr = pkRgba(qRound(coeff * pkRed(*ptr)), qRound(coeff * pkGreen(*ptr)), qRound(coeff * pkBlue(*ptr)), 255);
+            *ptr = pkRgba(pkRound(coeff * pkRed(*ptr)), pkRound(coeff * pkGreen(*ptr)), pkRound(coeff * pkBlue(*ptr)), 255);
             ptr++;
         }
     }

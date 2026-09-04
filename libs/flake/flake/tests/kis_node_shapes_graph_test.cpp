@@ -54,8 +54,8 @@ void KisNodeShapesGraphTest::init()
         m_shapesGraph->addNode(nodeFromId(i), parent, 0);
     }
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 9 10 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 9 10 11 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
@@ -74,13 +74,13 @@ void KisNodeShapesGraphTest::cleanup()
 void KisNodeShapesGraphTest::testShapeChildren()
 {
     KisNodeShape *parent = m_shapesGraph->nodeToShape(findNodeById(m_rootDummy, 4));
-    QList<KisNodeShape*> expectedChildren;
+    PkList<KisNodeShape*> expectedChildren;
 
     for(int i = 9; i <= 11; i++) {
         expectedChildren.append(m_shapesGraph->nodeToShape(findNodeById(m_rootDummy, i)));
     }
 
-    QList<KoShape*> realChildren = parent->shapes();
+    PkList<KoShape*> realChildren = parent->shapes();
 
     Q_FOREACH (KoShape *shape, realChildren) {
         KisNodeShape *nodeShape = dynamic_cast<KisNodeShape*>(shape);
@@ -101,8 +101,8 @@ void KisNodeShapesGraphTest::testInsert()
     KisNodeShape *addedShape =
         m_shapesGraph->addNode(node, parent, aboveThis);
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 9 10 13 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 9 10 13 11 5 6";
     QCOMPARE(realGraph, expectedGraph);
 
     KisNodeShape *nodeShape = m_shapesGraph->nodeToShape(node);
@@ -122,8 +122,8 @@ void KisNodeShapesGraphTest::testRemove()
     m_shapesGraph->removeNode(node);
     QCOMPARE(parentShape->shapeCount(), 2);
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 9 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 9 11 5 6";
     QCOMPARE(realGraph, expectedGraph);
 }
 

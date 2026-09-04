@@ -44,7 +44,7 @@ KisSpacingInformation effectiveSpacing(qreal dabWidth, qreal dabHeight, qreal ex
         }
     }
     else {
-        qreal significantDimension = qMax(dabWidth, dabHeight);
+        qreal significantDimension = pkMax(dabWidth, dabHeight);
         if (autoSpacingActive) {
             significantDimension = calcAutoSpacing(significantDimension, autoSpacingCoeff);
         } else {
@@ -99,7 +99,7 @@ PkVector<PkRect> splitDabsIntoRects(const PkVector<PkRect> &dabRects, int idealN
     constexpr int halfPatchStep = patchStep >> 1;
 
 
-    int idealPatchSize = qBound(minPatchSize,
+    int idealPatchSize = pkBound(minPatchSize,
                                 (int(diameter * (2.0 - spacing)) + halfPatchStep) & ~(patchStep - 1),
                                 maxPatchSize);
 
@@ -107,7 +107,7 @@ PkVector<PkRect> splitDabsIntoRects(const PkVector<PkRect> &dabRects, int idealN
     PkVector<PkRect> rects = splitAndFilterDabRect(totalRect, dabRects, idealPatchSize);
 
     while (rects.size() < idealNumRects && idealPatchSize >minPatchSize) {
-        idealPatchSize = qMax(minPatchSize, idealPatchSize - patchStep);
+        idealPatchSize = pkMax(minPatchSize, idealPatchSize - patchStep);
         rects = splitAndFilterDabRect(totalRect, dabRects, idealPatchSize);
     }
 

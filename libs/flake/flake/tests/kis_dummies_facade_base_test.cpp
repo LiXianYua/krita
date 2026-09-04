@@ -35,36 +35,36 @@ void KisDummiesFacadeBaseTest::cleanup()
 
 void KisDummiesFacadeBaseTest::slotNodeActivated(KisNodeSP node)
 {
-    QString prefix = m_activatedNodes.isEmpty() ? "" : " ";
-    QString name = node ? node->name() : "__null";
+    PkString prefix = m_activatedNodes.isEmpty() ? "" : " ";
+    PkString name = node ? node->name() : "__null";
 
     m_activatedNodes += prefix + name;
 }
 
 void KisDummiesFacadeBaseTest::slotEndInsertDummy(KisNodeDummy *dummy)
 {
-    QString prefix = m_movedDummies.isEmpty() ? "" : " ";
-    QString name = dummy->node()->name();
+    PkString prefix = m_movedDummies.isEmpty() ? "" : " ";
+    PkString name = dummy->node()->name();
 
     m_movedDummies += prefix + "A_" + name;
 }
 
 void KisDummiesFacadeBaseTest::slotBeginRemoveDummy(KisNodeDummy *dummy)
 {
-    QString prefix = m_movedDummies.isEmpty() ? "" : " ";
-    QString name = dummy->node()->name();
+    PkString prefix = m_movedDummies.isEmpty() ? "" : " ";
+    PkString name = dummy->node()->name();
 
     m_movedDummies += prefix + "R_" + name;
 }
 
-void KisDummiesFacadeBaseTest::verifyActivatedNodes(const QString &nodes)
+void KisDummiesFacadeBaseTest::verifyActivatedNodes(const PkString &nodes)
 {
     if (nodes != m_activatedNodes)
         QEXPECT_FAIL("", "Expected nodes string is not the same as the activated nodes string", Continue);
     QCOMPARE(m_activatedNodes, nodes);
 }
 
-void KisDummiesFacadeBaseTest::verifyMovedDummies(const QString &nodes)
+void KisDummiesFacadeBaseTest::verifyMovedDummies(const PkString &nodes)
 {
     if (nodes != m_movedDummies)
         QEXPECT_FAIL("", "Expected nodes string is not the same as the moved dummies", Continue);
@@ -73,8 +73,8 @@ void KisDummiesFacadeBaseTest::verifyMovedDummies(const QString &nodes)
 
 void KisDummiesFacadeBaseTest::testSetImage_data()
 {
-    QTest::addColumn<QString>("activeNodeName");
-    QTest::addColumn<QString>("expectedActiveNodeName");
+    QTest::addColumn<PkString>("activeNodeName");
+    QTest::addColumn<PkString>("expectedActiveNodeName");
     QTest::newRow("activate-default") << "" << "layer1";
     QTest::newRow("activate-layer2") << "layer2" << "layer2";
 }
@@ -83,8 +83,8 @@ void KisDummiesFacadeBaseTest::testSetImage()
 {
     KisSynchronizedConnectionBase::setAutoModeForUnittestsEnabled(false);
 
-    QFETCH(QString, activeNodeName);
-    QFETCH(QString, expectedActiveNodeName);
+    QFETCH(PkString, activeNodeName);
+    QFETCH(PkString, expectedActiveNodeName);
 
     constructImage();
     QVERIFY(!m_dummiesFacade->rootDummy());
@@ -103,8 +103,8 @@ void KisDummiesFacadeBaseTest::testSetImage()
 
     QVERIFY(m_dummiesFacade->rootDummy());
 
-    QString actualGraph = collectGraphPatternFull(m_dummiesFacade->rootDummy());
-    QString expectedGraph = "root layer1 layer2 layer3 mask1 layer4";
+    PkString actualGraph = collectGraphPatternFull(m_dummiesFacade->rootDummy());
+    PkString expectedGraph = "root layer1 layer2 layer3 mask1 layer4";
 
     QCOMPARE(actualGraph, expectedGraph);
     QCOMPARE(m_dummiesFacade->dummiesCount(), 6);
@@ -119,7 +119,7 @@ void KisDummiesFacadeBaseTest::testSetImage()
 
     QCOMPARE(m_dummiesFacade->dummiesCount(), 0);
 
-    verifyActivatedNodes(QString("%1 __null").arg(expectedActiveNodeName));
+    verifyActivatedNodes(PkString("%1 __null").arg(expectedActiveNodeName));
     verifyMovedDummies("A_root A_layer1 A_layer2 A_layer3 A_mask1 A_layer4 "
                        "R_layer4 R_mask1 R_layer3 R_layer2 R_layer1 R_root");
 
@@ -128,8 +128,8 @@ void KisDummiesFacadeBaseTest::testSetImage()
 
 void KisDummiesFacadeBaseTest::testAddNode()
 {
-    QString actualGraph;
-    QString expectedGraph;
+    PkString actualGraph;
+    PkString expectedGraph;
 
     m_dummiesFacade->setImage(m_image);
     QTest::qWait(200);
@@ -161,8 +161,8 @@ void KisDummiesFacadeBaseTest::testAddNode()
 
 void KisDummiesFacadeBaseTest::testRemoveNode()
 {
-    QString actualGraph;
-    QString expectedGraph;
+    PkString actualGraph;
+    PkString expectedGraph;
 
     constructImage();
 
@@ -205,8 +205,8 @@ void KisDummiesFacadeBaseTest::testRemoveNode()
 
 void KisDummiesFacadeBaseTest::testMoveNodeSameParent()
 {
-    QString actualGraph;
-    QString expectedGraph;
+    PkString actualGraph;
+    PkString expectedGraph;
 
     constructImage();
 
@@ -241,8 +241,8 @@ void KisDummiesFacadeBaseTest::testMoveNodeSameParent()
 
 void KisDummiesFacadeBaseTest::testMoveNodeDifferentParent()
 {
-    QString actualGraph;
-    QString expectedGraph;
+    PkString actualGraph;
+    PkString expectedGraph;
 
     constructImage();
 
@@ -286,8 +286,8 @@ void KisDummiesFacadeBaseTest::testMoveNodeDifferentParent()
 
 void KisDummiesFacadeBaseTest::testSubstituteRootNode()
 {
-    QString actualGraph;
-    QString expectedGraph;
+    PkString actualGraph;
+    PkString expectedGraph;
 
     constructImage();
 
@@ -322,8 +322,8 @@ void KisDummiesFacadeBaseTest::testSubstituteRootNode()
 
 void KisDummiesFacadeBaseTest::testAddSelectionMasksNoActivation()
 {
-    QString actualGraph;
-    QString expectedGraph;
+    PkString actualGraph;
+    PkString expectedGraph;
 
     m_dummiesFacade->setImage(m_image);
     QTest::qWait(200);

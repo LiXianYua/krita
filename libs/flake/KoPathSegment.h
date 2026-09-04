@@ -8,13 +8,13 @@
 #define KOPATHSEGMENT_H
 
 #include "kritaflake_export.h"
-#include <QList>
-#include <QPair>
+#include <PkList.h>
+#include <utility>
 
 class KoPathPoint;
-class QTransform;
-class QPointF;
-class QRectF;
+class PkTransform;
+class PkPointF;
+class PkRectF;
 
 /// A KoPathSegment consist of two neighboring KoPathPoints
 class KRITAFLAKE_EXPORT KoPathSegment
@@ -31,11 +31,11 @@ public:
     KoPathSegment(const KoPathSegment &segment);
 
     /// Creates a new line segment
-    KoPathSegment(const QPointF &p0, const QPointF &p1);
+    KoPathSegment(const PkPointF &p0, const PkPointF &p1);
     /// Creates a new quadratic segment
-    KoPathSegment(const QPointF &p0, const QPointF &p1, const QPointF &p2);
+    KoPathSegment(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2);
     /// Creates a new cubic segment
-    KoPathSegment(const QPointF &p0, const QPointF &p1, const QPointF &p2, const QPointF &p3);
+    KoPathSegment(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3);
 
     /// Assigns segment
     KoPathSegment& operator=(const KoPathSegment &other);
@@ -65,25 +65,25 @@ public:
     int degree() const;
 
     /// Returns list of intersections with the given path segment
-    QList<QPointF> intersections(const KoPathSegment &segment) const;
+    PkList<PkPointF> intersections(const KoPathSegment &segment) const;
 
     /// Returns the convex hull polygon of the segment
-    QList<QPointF> convexHull() const;
+    PkList<PkPointF> convexHull() const;
 
     /// Splits segment at given position returning the two resulting segments
-    QPair<KoPathSegment, KoPathSegment> splitAt(qreal t) const;
+    std::pair<KoPathSegment, KoPathSegment> splitAt(qreal t) const;
 
     /// Returns point at given t
-    QPointF pointAt(qreal t) const;
+    PkPointF pointAt(qreal t) const;
 
     /// Returns the axis aligned tight bounding rect
-    QRectF boundingRect() const;
+    PkRectF boundingRect() const;
 
     /// Returns the control point bounding rect
-    QRectF controlPointRect() const;
+    PkRectF controlPointRect() const;
 
     /// Returns transformed segment
-    KoPathSegment mapped(const QTransform &matrix) const;
+    KoPathSegment mapped(const PkTransform &matrix) const;
 
     /// Returns cubic bezier curve segment of this segment
     KoPathSegment toCubic() const;
@@ -128,16 +128,16 @@ public:
      * @param point the point to find nearest point to
      * @return the parameter of the curve point nearest to the given point
      */
-    qreal nearestPoint(const QPointF &point) const;
+    qreal nearestPoint(const PkPointF &point) const;
 
     /// Returns ordered list of control points
-    QList<QPointF> controlPoints() const;
+    PkList<PkPointF> controlPoints() const;
 
     /**
      * Interpolates quadric bezier curve.
      * @return the interpolated bezier segment
      */
-    static KoPathSegment interpolate(const QPointF &p0, const QPointF &p1, const QPointF &p2, qreal t);
+    static KoPathSegment interpolate(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, qreal t);
 
     /**
      * @brief angleVectorAtParam
@@ -145,7 +145,7 @@ public:
      * @param t -- param for this segment.
      * @return normalized angle vector.
      */
-    QPointF angleVectorAtParam(qreal t);
+    PkPointF angleVectorAtParam(qreal t);
 
 private:
     class Private;

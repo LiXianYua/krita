@@ -66,7 +66,7 @@ PSDLayerMaskSection::PSDLayerMaskSection(const PSDHeader &header)
 
 PSDLayerMaskSection::~PSDLayerMaskSection()
 {
-    qDeleteAll(layers);
+    pkDeleteAll(layers);
 }
 
 bool PSDLayerMaskSection::read(PkStream &io)

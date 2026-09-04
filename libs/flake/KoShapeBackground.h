@@ -11,9 +11,9 @@
 
 #include <QtGlobal>
 
-class QSizeF;
+class PkSizeF;
 class QPainter;
-class QPainterPath;
+class PkPainterPath;
 class KoShapeSavingContext;
 
 /**
@@ -28,7 +28,7 @@ public:
     virtual ~KoShapeBackground();
 
     /// Paints the background using the given fill path
-    virtual void paint(QPainter &painter, const QPainterPath &fillPath) const = 0;
+    virtual void paint(QPainter &painter, const PkPainterPath &fillPath) const = 0;
 
     /// Returns if the background has some transparency.
     virtual bool hasTransparency() const;

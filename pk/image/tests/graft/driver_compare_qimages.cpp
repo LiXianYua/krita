@@ -40,12 +40,12 @@
 // → PkRect.h → PkGlobal.h 传递进来，R-03 已交付）。
 static inline bool compareChannels(int ch1, int ch2, int fuzzy)
 {
-    return qAbs(ch1 - ch2) <= fuzzy;
+    return pkAbs(ch1 - ch2) <= fuzzy;
 }
 
 static inline bool compareChannelsPremultiplied(int ch1, int alpha1, int ch2, int alpha2, int fuzzy, int fuzzyAlpha)
 {
-    return qAbs(ch1 * alpha1 - ch2 * alpha2) / 255 <= fuzzy * qMax(1, fuzzyAlpha);
+    return pkAbs(ch1 * alpha1 - ch2 * alpha2) / 255 <= fuzzy * pkMax(1, fuzzyAlpha);
 }
 
 // 逐字照抄 qimage_test_util.h:96-165（唯一替换见文件头注释④：scanLine 的 const

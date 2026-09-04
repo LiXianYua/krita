@@ -166,7 +166,7 @@ void sampleColor(const PkRect &srcRect,
         PkScopedPointer<KoMixColorsOp::Mixer> mixer(cs->mixColorsOp()->createMixer());
 
         const int minSamples =
-                qMin(numPixels, qMax(64, qRound(0.02 * numPixels)));
+                pkMin(numPixels, pkMax(64, pkRound(0.02 * numPixels)));
 
         WeightingModeWrapper weightingModeWrapper(mixer.data(),
                                                   maskDab, srcRect,
@@ -188,7 +188,7 @@ void sampleColor(const PkRect &srcRect,
         int numSamplesLeft = numPixels - minSamples;
 
         while (numSamplesLeft > 0) {
-            const int currentBatchSize = qMin(numSamplesLeft, batchSize);
+            const int currentBatchSize = pkMin(numSamplesLeft, batchSize);
             for (int i = 0; i < currentBatchSize; i++) {
                 const PkPoint pt(hGen.generate(sampleRect.width() - 1),
                                 vGen.generate(sampleRect.height() - 1));
@@ -211,7 +211,7 @@ void sampleColor(const PkRect &srcRect,
             break;
         }
 
-        sampleRadiusValue = qMin(1.0, sampleRadiusValue + 0.05);
+        sampleRadiusValue = pkMin(1.0, sampleRadiusValue + 0.05);
 
     } while (1);
 }

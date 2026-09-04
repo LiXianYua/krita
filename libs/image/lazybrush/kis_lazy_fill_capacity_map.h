@@ -128,12 +128,12 @@ public:
                 const quint8 i0 = *((quint8*)map.m_srcPixelBuf.data());
                 const quint8 i1 = *map.m_mainAccessor->rawDataConst();
 
-                const quint8 diff = qAbs(i1 - i0);
+                const quint8 diff = pkAbs(i1 - i0);
 
-                const qreal diffPenalty = qBound(0.0, qreal(diff) / 10.0, 1.0);
+                const qreal diffPenalty = pkBound(0.0, qreal(diff) / 10.0, 1.0);
                 const qreal intensityPenalty = 1.0 - i1 / 255.0;
 
-                const qreal totalPenalty = qMax(0.0 * diffPenalty, intensityPenalty);
+                const qreal totalPenalty = pkMax(0.0 * diffPenalty, intensityPenalty);
 
                 value = 1.0 + k * (1.0 - pow2(totalPenalty));
             }

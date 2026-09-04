@@ -95,7 +95,7 @@ PkRect KisSimpleNoiseReducer::neededRect(const PkRect & rect, const KisFilterCon
     KisLodTransformScalar t(lod);
 
     const int windowsize = _config->getInt("windowsize", 1);
-    const int margin  = qCeil(t.scale(qreal(windowsize))) + 1;
+    const int margin  = pkCeil(t.scale(qreal(windowsize))) + 1;
     return kisGrowRect(rect, margin);
 }
 

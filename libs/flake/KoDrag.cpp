@@ -8,11 +8,11 @@
 #include "KoDrag.h"
 
 #include <QApplication>
-#include <QBuffer>
-#include <QByteArray>
+#include <PkMemoryStream.h>
+#include <PkByteArray.h>
 #include <QClipboard>
 #include <QMimeData>
-#include <QString>
+#include <PkString.h>
 
 #include <FlakeDebug.h>
 
@@ -23,7 +23,7 @@
 #include <KoShapeContainer.h>
 #include <KoShape.h>
 
-#include <QRect>
+#include <PkRect.h>
 #include <SvgWriter.h>
 
 
@@ -44,10 +44,10 @@ KoDrag::~KoDrag()
     delete d;
 }
 
-bool KoDrag::setSvg(const QList<KoShape *> originalShapes)
+bool KoDrag::setSvg(const PkList<KoShape *> originalShapes)
 {
-    QRectF boundingRect;
-    QList<KoShape*> shapes;
+    PkRectF boundingRect;
+    PkList<KoShape*> shapes;
 
     Q_FOREACH (KoShape *shape, originalShapes) {
         boundingRect |= shape->boundingRect();
@@ -58,12 +58,12 @@ bool KoDrag::setSvg(const QList<KoShape *> originalShapes)
 
     std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 
-    QBuffer buffer;
+    PkMemoryStream buffer;
     QLatin1String mimeType("image/svg+xml");
 
-    buffer.open(QIODevice::WriteOnly);
+    buffer.open(PkStream::WriteOnly);
 
-    const QSizeF pageSize(boundingRect.right(), boundingRect.bottom());
+    const PkSizeF pageSize(boundingRect.right(), boundingRect.bottom());
     SvgWriter writer(shapes);
     writer.save(buffer, pageSize);
 
@@ -75,7 +75,7 @@ bool KoDrag::setSvg(const QList<KoShape *> originalShapes)
     return true;
 }
 
-void KoDrag::setData(const QString &mimeType, const QByteArray &data)
+void KoDrag::setData(const PkString &mimeType, const PkByteArray &data)
 {
     if (d->mimeData == 0) {
         d->mimeData = new QMimeData();

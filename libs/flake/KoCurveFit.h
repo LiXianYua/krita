@@ -8,8 +8,8 @@
 #ifndef KOCURVEFIT_H
 #define KOCURVEFIT_H
 
-#include <QList>
-#include <QPointF>
+#include <PkList.h>
+#include <PkPoint.h>
 
 #include "kritaflake_export.h"
 
@@ -30,7 +30,7 @@ class KoPathShape;
  * @return a path shape representing the fitted curve
  */
 
-KRITAFLAKE_EXPORT KoPathShape * bezierFit(const QList<QPointF> &points, float error);
+KRITAFLAKE_EXPORT KoPathShape * bezierFit(const PkList<PkPointF> &points, float error);
 
 #endif
 

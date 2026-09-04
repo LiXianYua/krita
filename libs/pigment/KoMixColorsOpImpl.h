@@ -62,13 +62,13 @@ public:
     void mixTwoColorArrays(const quint8* colorsA, const quint8* colorsB, int nColors, qreal weight, quint8* dst) const override {
         const quint8* pixelA = colorsA;
         const quint8* pixelB = colorsB;
-        weight = qBound(0.0, weight, 1.0);
+        weight = pkBound(0.0, weight, 1.0);
         for (int i = 0; i < nColors; i++) {
             const quint8* colors[2];
             colors[0] = pixelA;
             colors[1] = pixelB;
             qint16 weights[2];
-            weights[1] = qRound(weight * 255.0);
+            weights[1] = pkRound(weight * 255.0);
             weights[0] = 255 - weights[1];
             mixColorsImpl(ArrayOfPointers(colors), WeightsWrapper(weights, 255), 2, dst);
 
@@ -80,13 +80,13 @@ public:
 
     void mixArrayWithColor(const quint8* colorArray, const quint8* color, int nColors, qreal weight, quint8* dst) const override {
         const quint8* pixelA = colorArray;
-        weight = qBound(0.0, weight, 1.0);
+        weight = pkBound(0.0, weight, 1.0);
         for (int i = 0; i < nColors; i++) {
             const quint8* colors[2];
             colors[0] = pixelA;
             colors[1] = color;
             qint16 weights[2];
-            weights[1] = qRound(weight * 255.0);
+            weights[1] = pkRound(weight * 255.0);
             weights[0] = 255 - weights[1];
             mixColorsImpl(ArrayOfPointers(colors), WeightsWrapper(weights, 255), 2, dst);
 

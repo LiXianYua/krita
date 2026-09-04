@@ -224,7 +224,7 @@ qreal KisScalarKeyframeChannel::valueAt(int time) const
     const int activeKeyTime = activeKeyframeTime(time);
     KisScalarKeyframeSP activeKey = keyframeAt<KisScalarKeyframe>(activeKeyTime);
     KisScalarKeyframeSP nextKeyframe = keyframeAt<KisScalarKeyframe>(nextKeyframeTime(time));
-    qreal result = qQNaN();
+    qreal result = pkQNaN();
 
     if (activeKey) {
         if (!nextKeyframe) {
@@ -271,7 +271,7 @@ qreal KisScalarKeyframeChannel::valueAt(int time) const
         if (nextKeyframe) {
             result = nextKeyframe->value();
         } else {
-            return qQNaN();
+            return pkQNaN();
         }
     }
 

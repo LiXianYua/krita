@@ -15,7 +15,7 @@
 #include "commands/KoPathControlPointMoveCommand.h"
 #include "kis_command_utils.h"
 
-KoPathControlPointMoveStrategy::KoPathControlPointMoveStrategy(KoPathTool *tool, const KoPathPointData &pointData, KoPathPoint::PointType type, const QPointF &pos)
+KoPathControlPointMoveStrategy::KoPathControlPointMoveStrategy(KoPathTool *tool, const KoPathPointData &pointData, KoPathPoint::PointType type, const PkPointF &pos)
         : KoInteractionStrategy(tool)
         , m_lastPosition(pos)
         , m_move(0, 0)
@@ -30,11 +30,11 @@ KoPathControlPointMoveStrategy::~KoPathControlPointMoveStrategy()
 {
 }
 
-void KoPathControlPointMoveStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void KoPathControlPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
-    QPointF docPoint = m_tool->canvas()->snapGuide()->snap(mouseLocation, modifiers);
-    QPointF localPos = m_path->documentToShape(docPoint);
-    QPointF move = localPos - m_path->documentToShape(m_lastPosition);
+    PkPointF docPoint = m_tool->canvas()->snapGuide()->snap(mouseLocation, modifiers);
+    PkPointF localPos = m_path->documentToShape(docPoint);
+    PkPointF move = localPos - m_path->documentToShape(m_lastPosition);
     // as the last position can change when the top left is changed we have
     // to save it in document pos and not in shape pos
     m_lastPosition = docPoint;

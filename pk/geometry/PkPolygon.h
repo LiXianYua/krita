@@ -53,8 +53,8 @@
 //    的处置模式）──────────────────────────────────────────────────────────
 //
 // 任务文件与 R-21 plan.md 明确点名的四项：
-//   · `containsPoint(const QPointF&, Qt::FillRule)` —— 真实调用点 ≥15 处，
-//     全部经 `Qt::FillRule` 落地（枚举本身见 PkGlobal.h）。
+//   · `containsPoint(const QPointF&, Pk::FillRule)` —— 真实调用点 ≥15 处，
+//     全部经 `Pk::FillRule` 落地（枚举本身见 PkGlobal.h）。
 //   · `QPolygonF(const QRectF&)` 构造 —— 真实调用点不止任务文件点名的那一处
 //     （`kis_perspective_transform_strategy.cpp:165`），实测另有
 //     `KisHandlePainterHelper.cpp:62,82,343`、
@@ -189,7 +189,7 @@ public:
 
     // qpolygon.h:167 —— out-of-line（qpolygon.cpp:831-853，射线穿越/环绕数
     // 算法，见 PkPolygon.cpp 顶部）。真实调用点 ≥15 处，见文件头。
-    bool containsPoint(const PkPointF &pt, Qt::FillRule fillRule) const;
+    bool containsPoint(const PkPointF &pt, Pk::FillRule fillRule) const;
 
     // qpolygon.h:161 —— out-of-line（qpolygon.cpp:689-696）。真实调用点见
     // 文件头。

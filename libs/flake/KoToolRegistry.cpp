@@ -38,8 +38,8 @@ void KoToolRegistry::init()
     add(toPkString(zoomToolFactory->id()), zoomToolFactory);
 
     KConfigGroup cfg =  KSharedConfig::openConfig()->group("krita");
-    QStringList toolsBlacklist = cfg.readEntry("ToolsBlacklist", QStringList());
-    foreach (const QString& toolID, toolsBlacklist) {
+    PkStringList toolsBlacklist = cfg.readEntry("ToolsBlacklist", PkStringList());
+    foreach (const PkString& toolID, toolsBlacklist) {
         delete value(toPkString(toolID));
         remove(toPkString(toolID));
     }

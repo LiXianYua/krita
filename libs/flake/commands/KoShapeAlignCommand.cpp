@@ -40,9 +40,9 @@ KoShapeAlignCommand::KoShapeAlignCommand(const PkList<KoShape*> &shapes, Align a
 //       debugFlake <<"Found Container";
 //   else
 //       debugFlake <<"Found shape";
-        position = toPkPointF(shape->absolutePosition());
+        position = shape->absolutePosition();
         previousPositions  << position;
-        bRect = toPkRectF(shape->absoluteOutlineRect());
+        bRect = shape->absoluteOutlineRect();
         switch (align) {
         case HorizontalLeftAlignment:
             delta = PkPointF(boundingRect.left(), bRect.y()) - bRect.topLeft();

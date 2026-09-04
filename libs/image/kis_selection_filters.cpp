@@ -344,7 +344,7 @@ void KisBorderSelectionFilter::process(KisPixelSelectionSP pixelSelection, const
                 if (dist > maxRadius) {
                     a = 0;
                 } else if (dist > minRadius) {
-                    a = qRound((1.0 - dist + minRadius) * 255.0);
+                    a = pkRound((1.0 - dist + minRadius) * 255.0);
                 } else {
                     a = 255;
                 }
@@ -515,7 +515,7 @@ void KisFeatherSelectionFilter::process(KisPixelSelectionSP pixelSelection, cons
     const qreal exponentMultiplicand = 1.0 / (2.0 * m_radius * m_radius);
 
     for (uint x = 0; x < kernelSize; x++) {
-        uint xDistance = qAbs((int)m_radius - (int)x);
+        uint xDistance = pkAbs((int)m_radius - (int)x);
         gaussianMatrix(0, x) = multiplicand * exp( -(qreal)((xDistance * xDistance) + (m_radius * m_radius)) * exponentMultiplicand );
     }
 
@@ -992,7 +992,7 @@ void KisAntiAliasSelectionFilter::findSpanExtreme(quint8 **scanlines, qint32 x, 
         // Get how different are these edge pixels from the current pixels and
         // stop searching if they are too different
         *pixelDiff = ((*pixel1 + *pixel2) >> 1) - pixelAvg;
-        if (qAbs(*pixelDiff) > scaledGradient) {
+        if (pkAbs(*pixelDiff) > scaledGradient) {
             // If this is the end of the span then check if the corner belongs
             // to a jagged border or to a right angled part of the shape
             qint32 pixelDiff2;
@@ -1007,7 +1007,7 @@ void KisAntiAliasSelectionFilter::findSpanExtreme(quint8 **scanlines, qint32 x, 
                 const quint8 *pixel3 = scanlines[row3] + col3;
                 pixelDiff2 = ((*pixel1 + *pixel3) >> 1) - pixelAvg;
             }
-            *spanExtremeValid = !(qAbs(pixelDiff2) > scaledGradient);
+            *spanExtremeValid = !(pkAbs(pixelDiff2) > scaledGradient);
             break;
         }
     }
@@ -1050,7 +1050,7 @@ void KisAntiAliasSelectionFilter::process(KisPixelSelectionSP pixelSelection, co
         memset(scanlines[i], defaultPixel, bytesPerScanline);
     }
     // Copy the first scanlines of the image
-    const quint32 numberOfFirstRows = qMin(rect.height(), numberOfScanlines - verticalBorderSize);
+    const quint32 numberOfFirstRows = pkMin(rect.height(), numberOfScanlines - verticalBorderSize);
     for (quint32 i = verticalBorderSize; i < verticalBorderSize + numberOfFirstRows; ++i) {
         // Set the border pixels on the left
         memset(scanlines[i], defaultPixel, horizontalBorderSize);
@@ -1109,14 +1109,14 @@ void KisAntiAliasSelectionFilter::process(KisPixelSelectionSP pixelSelection, co
             const qint32 colWSum = (pixelNW >> 2) + (pixelW >> 1) + (pixelSW >> 2);
             const qint32 colMSum = (pixelN  >> 2) + (pixelM >> 1) + (pixelS  >> 2);
             const qint32 colESum = (pixelNE >> 2) + (pixelE >> 1) + (pixelSE >> 2);
-            const qint32 gradientN = qAbs(rowMSum - rowNSum);
-            const qint32 gradientS = qAbs(rowSSum - rowMSum);
-            const qint32 gradientW = qAbs(colMSum - colWSum);
-            const qint32 gradientE = qAbs(colESum - colMSum);
+            const qint32 gradientN = pkAbs(rowMSum - rowNSum);
+            const qint32 gradientS = pkAbs(rowSSum - rowMSum);
+            const qint32 gradientW = pkAbs(colMSum - colWSum);
+            const qint32 gradientE = pkAbs(colESum - colMSum);
             // Get the maximum gradient
-            const qint32 maxGradientNS = qMax(gradientN, gradientS);
-            const qint32 maxGradientWE = qMax(gradientW, gradientE);
-            const qint32 maxGradient = qMax(maxGradientNS, maxGradientWE);
+            const qint32 maxGradientNS = pkMax(gradientN, gradientS);
+            const qint32 maxGradientWE = pkMax(gradientW, gradientE);
+            const qint32 maxGradient = pkMax(maxGradientNS, maxGradientWE);
             // Return early if the gradient is bellow some threshold (given by
             // the value bellow which the jagged edge is not noticeable)
             if (maxGradient < edgeThreshold) {

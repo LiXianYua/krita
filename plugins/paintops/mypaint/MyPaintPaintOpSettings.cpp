@@ -156,7 +156,7 @@ KisOptimizedBrushOutline KisMyPaintOpSettings::brushOutline(const KisPaintInform
 
         qreal radius = 0.5 * m_d->cache.value().paintOpSize;
         radius = radius + 2 * radius * offset;
-        radius = qBound(3.5, radius, 500.0);
+        radius = pkBound(3.5, radius, 500.0);
 
         PkPainterPath realOutline;
         realOutline.addEllipse(PkPointF(), radius, radius);

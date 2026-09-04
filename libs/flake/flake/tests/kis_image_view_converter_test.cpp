@@ -25,17 +25,17 @@ void KisImageViewConverterTest::testDocumentToView()
 
     image->setResolution(1.38888888, 1.38888888);
 
-    QVERIFY(viewConverter.documentToView(QPointF(0.0, 0.0))
-            == QPointF(0.0, 0.0));
+    QVERIFY(viewConverter.documentToView(PkPointF(0.0, 0.0))
+            == PkPointF(0.0, 0.0));
 
-    QPointF f = viewConverter.documentToView(QPointF(3.2, 5.2));
+    PkPointF f = viewConverter.documentToView(PkPointF(3.2, 5.2));
     QVERIFY(f.x() < 4.44445 && f.x() > 4.44443 && f.y() < 7.22223 && f.y() > 7.22221);
 
-    QRectF r = viewConverter.documentToView(QRectF(0.0, 0.0, 10.0, 10.0));
+    PkRectF r = viewConverter.documentToView(PkRectF(0.0, 0.0, 10.0, 10.0));
     QVERIFY(r.width() < 13.889 && r.width() > 13.8888
             && r.height() < 13.889 && r.height() > 13.8888);
 
-    QSizeF s = viewConverter.documentToView(QSizeF(1.0, 1.0));
+    PkSizeF s = viewConverter.documentToView(PkSizeF(1.0, 1.0));
     QVERIFY(s.width() < 1.3888889 && s.width() > 1.388887
             && s.height() < 1.3888889 && s.height() > 1.388887);
 
@@ -55,17 +55,17 @@ void KisImageViewConverterTest::testViewToDocument()
 
     image->setResolution(1.38888888, 1.38888888);
 
-    QVERIFY(viewConverter.viewToDocument(QPointF(0.0, 0.0))
-            == QPointF(0.0, 0.0));
+    QVERIFY(viewConverter.viewToDocument(PkPointF(0.0, 0.0))
+            == PkPointF(0.0, 0.0));
 
-    QPointF f = viewConverter.viewToDocument(QPointF(5, 5));
+    PkPointF f = viewConverter.viewToDocument(PkPointF(5, 5));
     QVERIFY(f.x() < 3.7 && f.x() > 3.5 && f.y() < 3.7 && f.y() > 3.5);
 
-    QRectF r = viewConverter.viewToDocument(QRectF(0.0, 0.0, 5, 5));
+    PkRectF r = viewConverter.viewToDocument(PkRectF(0.0, 0.0, 5, 5));
     QVERIFY(r.width() < 3.7 && r.width() > 3.5
             && r.height() < 3.7 && r.height() > 3.5);
 
-    QSizeF s = viewConverter.viewToDocument(QSizeF(1.0, 1.0));
+    PkSizeF s = viewConverter.viewToDocument(PkSizeF(1.0, 1.0));
     QVERIFY(s.width() < 0.721 && s.width() > 0.719
             && s.height() < 0.721 && s.height() > 0.719);
 

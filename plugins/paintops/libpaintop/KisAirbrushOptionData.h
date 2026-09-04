@@ -17,7 +17,7 @@ struct PAINTOP_EXPORT KisAirbrushOptionData : boost::equality_comparable<KisAirb
 {
     inline friend bool operator==(const KisAirbrushOptionData &lhs, const KisAirbrushOptionData &rhs) {
         return lhs.isChecked == rhs.isChecked &&
-                qFuzzyCompare(lhs.airbrushRate, rhs.airbrushRate) &&
+                pkQtFuzzyCompare(lhs.airbrushRate, rhs.airbrushRate) &&
                 lhs.ignoreSpacing == rhs.ignoreSpacing;
     }
 

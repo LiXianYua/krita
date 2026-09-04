@@ -10,7 +10,7 @@
 #ifndef KOCANVASBASE_H
 #define KOCANVASBASE_H
 
-#include <QPoint>
+#include <PkPoint.h>
 
 #include "kritaflake_export.h"
 
@@ -30,9 +30,9 @@ class KoSelectedShapesProxy;
 
 class QWidget;
 class QCursor;
-class QPointF;
-class QRectF;
-class QSizeF;
+class PkPointF;
+class PkRectF;
+class PkSizeF;
 
 #include <QObject>
 
@@ -67,7 +67,7 @@ public:
      * @param horizontal a pointer to a qreal that will be filled with the horizontal grid-spacing
      * @param vertical a pointer to a qreal that will be filled with the vertical grid-spacing
      */
-    virtual void gridSize(QPointF *offset, QSizeF *spacing) const = 0;
+    virtual void gridSize(PkPointF *offset, PkSizeF *spacing) const = 0;
 
     /**
      * return if snap to grid is enabled.
@@ -156,7 +156,7 @@ public:
      * Tell the canvas to repaint the specified rectangle. The coordinates
      * are document coordinates, not view coordinates.
      */
-    virtual void updateCanvas(const QRectF &rc) = 0;
+    virtual void updateCanvas(const PkRectF &rc) = 0;
 
     /**
      * Return the proxy to the active tool (determining which tool
@@ -176,7 +176,7 @@ public:
      * Convert a coordinate in pixels to pt.
      * @param viewPoint the point in the coordinate system of the widget, or window.
      */
-    virtual QPointF viewToDocument(const QPointF &viewPoint) const;
+    virtual PkPointF viewToDocument(const PkPointF &viewPoint) const;
 
     /**
      * Return the widget that will be added to the scrollArea.
@@ -204,15 +204,15 @@ public:
      * @param shape the shape that will be moved soon.
      * @param move the distance the caller intends to move the shape.
      */
-    virtual void clipToDocument(const KoShape *shape, QPointF &move) const;
+    virtual void clipToDocument(const KoShape *shape, PkPointF &move) const;
 
     /**
      * Return the position of the document origin inside the canvas widget, in pixels.
      * By default the origin of the canvas widget and the position of the
      * document origin are coincident, thus an empty point is returned.
      */
-    virtual QPoint documentOrigin() const {
-        return QPoint(0, 0);
+    virtual PkPoint documentOrigin() const {
+        return PkPoint(0, 0);
     }
 
     /**

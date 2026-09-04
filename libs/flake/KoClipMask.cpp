@@ -8,11 +8,11 @@
 #include <PkFlakeBridge.h>
 #include "KoClipMask.h"
 
-#include <QRectF>
-#include <QTransform>
+#include <PkRect.h>
+#include <PkTransform.h>
 #include <QPainter>
 #include <QSharedData>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <KoShape.h>
 #include "kis_algebra_2d.h"
 
@@ -48,10 +48,10 @@ struct Q_DECL_HIDDEN KoClipMask::Private : public QSharedData
     KoFlake::CoordinateSystem coordinates = KoFlake::ObjectBoundingBox;
     KoFlake::CoordinateSystem contentCoordinates = KoFlake::UserSpaceOnUse;
 
-    QRectF maskRect = QRectF(-0.1, -0.1, 1.2, 1.2);
+    PkRectF maskRect = PkRectF(-0.1, -0.1, 1.2, 1.2);
 
-    QList<KoShape*> shapes;
-    QTransform extraShapeTransform; // TODO: not used anymore, use direct shape transform instead
+    PkList<KoShape*> shapes;
+    PkTransform extraShapeTransform; // TODO: not used anymore, use direct shape transform instead
 
 };
 
@@ -100,22 +100,22 @@ void KoClipMask::setContentCoordinates(KoFlake::CoordinateSystem value)
     m_d->contentCoordinates = value;
 }
 
-QRectF KoClipMask::maskRect() const
+PkRectF KoClipMask::maskRect() const
 {
     return m_d->maskRect;
 }
 
-void KoClipMask::setMaskRect(const QRectF &value)
+void KoClipMask::setMaskRect(const PkRectF &value)
 {
     m_d->maskRect = value;
 }
 
-QList<KoShape *> KoClipMask::shapes() const
+PkList<KoShape *> KoClipMask::shapes() const
 {
     return m_d->shapes;
 }
 
-void KoClipMask::setShapes(const QList<KoShape *> &value)
+void KoClipMask::setShapes(const PkList<KoShape *> &value)
 {
     m_d->shapes = value;
 }
@@ -125,7 +125,7 @@ bool KoClipMask::isEmpty() const
     return m_d->shapes.isEmpty();
 }
 
-void KoClipMask::setExtraShapeOffset(const QPointF &value)
+void KoClipMask::setExtraShapeOffset(const PkPointF &value)
 {
     /**
      * TODO: when we implement source shapes sharing, please wrap the shapes
@@ -133,7 +133,7 @@ void KoClipMask::setExtraShapeOffset(const QPointF &value)
      */
 
     if (m_d->contentCoordinates == KoFlake::UserSpaceOnUse) {
-        const QTransform t = QTransform::fromTranslate(value.x(), value.y());
+        const PkTransform t = PkTransform::fromTranslate(value.x(), value.y());
 
         Q_FOREACH (KoShape *shape, m_d->shapes) {
             shape->applyAbsoluteTransformation(t);
@@ -149,10 +149,10 @@ void KoClipMask::drawMask(QPainter *painter, KoShape *shape)
 {
     painter->save();
 
-    QPainterPath clipPathInShapeSpace;
+    PkPainterPath clipPathInShapeSpace;
 
     if (m_d->coordinates == KoFlake::ObjectBoundingBox) {
-        QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shape->outlineRect())));
+        PkTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shape->outlineRect())));
         clipPathInShapeSpace.addPolygon(relativeToShape.map(m_d->maskRect));
     } else {
         clipPathInShapeSpace.addRect(m_d->maskRect);
@@ -162,7 +162,7 @@ void KoClipMask::drawMask(QPainter *painter, KoShape *shape)
     painter->setClipPath(clipPathInShapeSpace, Qt::IntersectClip);
 
     if (m_d->contentCoordinates == KoFlake::ObjectBoundingBox) {
-        QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shape->outlineRect())));
+        PkTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shape->outlineRect())));
 
         painter->setTransform(relativeToShape, true);
     } else {

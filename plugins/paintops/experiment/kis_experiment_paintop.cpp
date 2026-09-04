@@ -212,7 +212,7 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
         const int elapsedTime = pi2.currentTime() - m_lastPaintTime;
 
         PkRect pathBounds = m_path.boundingRect().toRect();
-        int distanceMetric = qMax(pathBounds.width(), pathBounds.height());
+        int distanceMetric = pkMax(pathBounds.width(), pathBounds.height());
 
         if (elapsedTime > timeThreshold ||
                 (!m_displaceEnabled &&
@@ -304,8 +304,8 @@ bool tryMergePoints(PkPainterPath &path,
 
 qreal KisExperimentPaintOp::simplifyThreshold(const PkRectF &bounds)
 {
-    qreal maxDimension = qMax(bounds.width(), bounds.height());
-    return qMax(0.01 * maxDimension, 1.0);
+    qreal maxDimension = pkMax(bounds.width(), bounds.height());
+    return pkMax(0.01 * maxDimension, 1.0);
 }
 
 PkPointF KisExperimentPaintOp::getAngle(const PkPointF& p1, const PkPointF& p2, qreal distance)

@@ -15,7 +15,7 @@
 #include <KoFlake.h>
 
 SvgGradientHelper::SvgGradientHelper()
-    : m_gradient(new QGradient())
+    : m_gradient(new PkGradient())
     , m_meshgradient(new SvgMeshGradient)
     , m_gradientUnits(KoFlake::ObjectBoundingBox)
 {
@@ -56,12 +56,12 @@ KoFlake::CoordinateSystem SvgGradientHelper::gradientUnits() const
     return m_gradientUnits;
 }
 
-QGradient * SvgGradientHelper::gradient() const
+PkGradient * SvgGradientHelper::gradient() const
 {
     return m_gradient.data();
 }
 
-void SvgGradientHelper::setGradient(QGradient * g)
+void SvgGradientHelper::setGradient(PkGradient * g)
 {
     m_gradient.reset(g);
 }
@@ -71,7 +71,7 @@ void SvgGradientHelper::setMeshGradient(SvgMeshGradient *g)
     m_meshgradient.reset(new SvgMeshGradient(*g));
 }
 
-QScopedPointer<SvgMeshGradient>& SvgGradientHelper::meshgradient()
+PkScopedPointer<SvgMeshGradient>& SvgGradientHelper::meshgradient()
 {
     return m_meshgradient;
 }
@@ -81,22 +81,22 @@ bool SvgGradientHelper::isMeshGradient() const
     return m_meshgradient->isValid();
 }
 
-QTransform SvgGradientHelper::transform() const
+PkTransform SvgGradientHelper::transform() const
 {
     return m_gradientTransform;
 }
 
-void SvgGradientHelper::setTransform(const QTransform &transform)
+void SvgGradientHelper::setTransform(const PkTransform &transform)
 {
     m_gradientTransform = transform;
 }
 
-QGradient::Spread SvgGradientHelper::spreadMode() const
+PkGradient::Spread SvgGradientHelper::spreadMode() const
 {
     return m_gradient->spread();
 }
 
-void SvgGradientHelper::setSpreadMode(const QGradient::Spread &spreadMode)
+void SvgGradientHelper::setSpreadMode(const PkGradient::Spread &spreadMode)
 {
     m_gradient->setSpread(spreadMode);
 }

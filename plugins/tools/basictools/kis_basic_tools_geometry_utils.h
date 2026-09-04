@@ -53,8 +53,8 @@ inline void addAbsoluteRoundedRect(PkPainterPath &path,
 
     const qreal halfWidth = normalizedRect.width() / 2.0;
     const qreal halfHeight = normalizedRect.height() / 2.0;
-    xRadius = halfWidth ? 100.0 * qMin(xRadius, halfWidth) / halfWidth : 0.0;
-    yRadius = halfHeight ? 100.0 * qMin(yRadius, halfHeight) / halfHeight : 0.0;
+    xRadius = halfWidth ? 100.0 * pkMin(xRadius, halfWidth) / halfWidth : 0.0;
+    yRadius = halfHeight ? 100.0 * pkMin(yRadius, halfHeight) / halfHeight : 0.0;
     if (xRadius <= 0.0 || yRadius <= 0.0) {
         path.addRect(normalizedRect);
         return;

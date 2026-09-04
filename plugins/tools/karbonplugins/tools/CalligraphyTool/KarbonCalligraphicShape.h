@@ -23,8 +23,8 @@ public:
 
     bool operator==(const KarbonCalligraphicPoint &rhs) const {
         return m_point == rhs.m_point &&
-            qFuzzyCompare(m_angle, rhs.m_angle) &&
-            qFuzzyCompare(m_width, rhs.m_width);
+            pkQtFuzzyCompare(m_angle, rhs.m_angle) &&
+            pkQtFuzzyCompare(m_width, rhs.m_width);
     }
 
     PkPointF point() const

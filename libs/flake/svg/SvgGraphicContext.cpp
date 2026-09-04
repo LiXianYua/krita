@@ -14,17 +14,17 @@
 
 
 SvgGraphicsContext::SvgGraphicsContext()
-: stroke(QSharedPointer<KoShapeStroke>(new KoShapeStroke()))
+: stroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke()))
 , textProperties(KoSvgTextProperties())
 {
-    stroke->setLineStyle(Qt::NoPen, QVector<qreal>());   // default is no stroke
+    stroke->setLineStyle(Qt::NoPen, PkVector<qreal>());   // default is no stroke
     stroke->setLineWidth(1.0);
     stroke->setCapStyle(Qt::FlatCap);
     stroke->setJoinStyle(Qt::MiterJoin);
 }
 
 SvgGraphicsContext::SvgGraphicsContext(const SvgGraphicsContext &gc)
-    : stroke(QSharedPointer<KoShapeStroke>(new KoShapeStroke(*(gc.stroke.data()))))
+    : stroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke(*(gc.stroke.data()))))
 {
     KoShapeStrokeSP newStroke = stroke;
     *this = gc;
@@ -44,17 +44,17 @@ void SvgGraphicsContext::workaroundClearInheritedFillProperties()
 
     strokeType = None;
 
-    stroke = QSharedPointer<KoShapeStroke>(new KoShapeStroke());
-    stroke->setLineStyle(Qt::NoPen, QVector<qreal>());   // default is no stroke
+    stroke = PkSharedPointer<KoShapeStroke>(new KoShapeStroke());
+    stroke->setLineStyle(Qt::NoPen, PkVector<qreal>());   // default is no stroke
     stroke->setLineWidth(1.0);
     stroke->setCapStyle(Qt::FlatCap);
     stroke->setJoinStyle(Qt::MiterJoin);
 
     fillType = Solid;
     fillRule = Qt::WindingFill;
-    fillColor = PkColor(Qt::black);   // default is black fill as per svg spec
+    fillColor = PkColor(Pk::black);   // default is black fill as per svg spec
 
     opacity = 1.0;
 
-    currentColor = Qt::black;
+    currentColor = Pk::black;
 }

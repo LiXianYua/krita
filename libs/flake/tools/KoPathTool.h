@@ -15,7 +15,7 @@
 #include "KoPathToolSelection.h"
 #include "kis_signal_auto_connection.h"
 #include "KisQtConnectionsStore.h"
-#include <QList>
+#include <PkList.h>
 #include <QCursor>
 #include <KoShapeFillResourceConnector.h>
 #include "KoPathPointTypeCommand.h"
@@ -43,14 +43,14 @@ public:
 
     void paint(QPainter &painter, const KoViewConverter &converter) override;
     void repaintDecorations() override;
-    QRectF decorationsRect() const override;
+    PkRectF decorationsRect() const override;
     void mousePressEvent(KoPointerEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event) override;
     void mouseReleaseEvent(KoPointerEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
     void mouseDoubleClickEvent(KoPointerEvent *event) override;
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void deleteSelection() override;
     KoToolSelection* selection() override;
@@ -68,12 +68,12 @@ public:
     void notifyPathPointsChanged(KoPathShape *shape);
 
 public Q_SLOTS:
-    void canvasResourceChanged(int key, const QVariant & res) override;
+    void canvasResourceChanged(int key, const PkVariant & res) override;
 
 private:
     struct PathSegment;
 
-    PathSegment* segmentAtPoint(const QPointF &point);
+    PathSegment* segmentAtPoint(const PkPointF &point);
 
 private Q_SLOTS:
     void pointTypeChangedCorner();
@@ -98,8 +98,8 @@ private Q_SLOTS:
 
 private:
     void clearActivePointSelectionReferences();
-    void initializeWithShapes(const QList<KoShape*> shapes);
-    KUndo2Command* createPointToCurveCommand(const QList<KoPathPointData> &points);
+    void initializeWithShapes(const PkList<KoShape*> shapes);
+    KUndo2Command* createPointToCurveCommand(const PkList<KoPathPointData> &points);
     void mergePointsImpl(bool doJoin);
 
 protected:
@@ -107,14 +107,14 @@ protected:
     QCursor m_selectCursor;
 
 private:
-    QScopedPointer<KoPathToolHandle> m_activeHandle;       ///< the currently active handle
-    QPointF m_lastPoint; ///< needed for interaction strategy
-    QScopedPointer<PathSegment> m_activeSegment;
+    PkScopedPointer<KoPathToolHandle> m_activeHandle;       ///< the currently active handle
+    PkPointF m_lastPoint; ///< needed for interaction strategy
+    PkScopedPointer<PathSegment> m_activeSegment;
 
     // make a friend so that it can test private member/methods
     friend class TestPathTool;
 
-    QScopedPointer<KoInteractionStrategy> m_currentStrategy; ///< the rubber selection strategy
+    PkScopedPointer<KoInteractionStrategy> m_currentStrategy; ///< the rubber selection strategy
 
     QAction *m_actionPathPointCorner;
     QAction *m_actionPathPointSmooth;
@@ -132,8 +132,8 @@ private:
     QAction *m_actionMergePoints;
     QAction *m_actionConvertToPath;
     QCursor m_moveCursor;
-    QScopedPointer<QMenu> m_contextMenu;
-    QScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
+    PkScopedPointer<QMenu> m_contextMenu;
+    PkScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
     KisQtConnectionsStore m_canvasConnections;
     KoShapeFillResourceConnector m_shapeFillResourceConnector;
 

@@ -41,7 +41,7 @@
 //     实现，理由与 PkRect 构造函数/运算符同一条（见该文件头）——它们在 Qt 的
 //     public 面里、且实现是几行直写公式，砍掉省不了多少却让对拍的覆盖面对不上。
 //     唯一按 0 用量砍掉的是 `project`/`unproject`（依赖 T4 的类型，不是几行公式）。
-//   · `Qt::Initialization` 构造 —— 无类型调用点（它需要一个 `Qt::Initialization`
+//   · `Pk::Initialization` 构造 —— 无类型调用点（它需要一个 `Pk::Initialization`
 //     哨兵类型），不做。
 // ---------------------------------------------------------------------------
 
@@ -61,7 +61,7 @@ public:
     explicit PkVector2D(const PkVector3D &vector);
     explicit PkVector2D(const PkVector4D &vector);
 
-    // qvector2d.h:76 —— isNull = qIsNull(v[0]) && qIsNull(v[1])，其中
+    // qvector2d.h:76 —— isNull = pkIsNull(v[0]) && pkIsNull(v[1])，其中
     // qIsNull 是**精确零**（==0.0f），不是 qFuzzyIsNull 的 1e-5 阈值。见
     // PkGlobal.h 里 qIsNull 的注释。
     bool isNull() const;
@@ -101,7 +101,7 @@ public:
     friend constexpr PkVector2D operator-(const PkVector2D &vector);
     friend constexpr PkVector2D operator/(const PkVector2D &vector, float divisor);
     friend constexpr PkVector2D operator/(const PkVector2D &vector, const PkVector2D &divisor);
-    friend constexpr bool qFuzzyCompare(const PkVector2D &v1, const PkVector2D &v2);
+    friend constexpr bool pkQtFuzzyCompare(const PkVector2D &v1, const PkVector2D &v2);
 
     PkVector3D toVector3D() const;
     PkVector4D toVector4D() const;
@@ -171,7 +171,7 @@ public:
     friend constexpr PkVector3D operator-(const PkVector3D &vector);
     friend constexpr PkVector3D operator/(const PkVector3D &vector, float divisor);
     friend constexpr PkVector3D operator/(const PkVector3D &vector, const PkVector3D &divisor);
-    friend constexpr bool qFuzzyCompare(const PkVector3D &v1, const PkVector3D &v2);
+    friend constexpr bool pkQtFuzzyCompare(const PkVector3D &v1, const PkVector3D &v2);
 
     PkVector2D toVector2D() const;
     PkVector4D toVector4D() const;
@@ -236,7 +236,7 @@ public:
     friend constexpr PkVector4D operator-(const PkVector4D &vector);
     friend constexpr PkVector4D operator/(const PkVector4D &vector, float divisor);
     friend constexpr PkVector4D operator/(const PkVector4D &vector, const PkVector4D &divisor);
-    friend constexpr bool qFuzzyCompare(const PkVector4D &v1, const PkVector4D &v2);
+    friend constexpr bool pkQtFuzzyCompare(const PkVector4D &v1, const PkVector4D &v2);
 
     PkVector2D toVector2D() const;
     PkVector2D toVector2DAffine() const;
@@ -269,7 +269,7 @@ constexpr inline PkVector2D::PkVector2D(const PkPointF &point) : v{float(point.x
 // 注释：这两个名字语义不同，QVector2D::isNull 照 Qt 用精确零。
 inline bool PkVector2D::isNull() const
 {
-    return qIsNull(v[0]) && qIsNull(v[1]);
+    return pkIsNull(v[0]) && pkIsNull(v[1]);
 }
 
 constexpr inline float PkVector2D::x() const { return v[0]; }
@@ -380,14 +380,14 @@ constexpr inline PkVector2D operator/(const PkVector2D &vector, const PkVector2D
     return PkVector2D(vector.v[0] / divisor.v[0], vector.v[1] / divisor.v[1]);
 }
 
-constexpr inline bool qFuzzyCompare(const PkVector2D &v1, const PkVector2D &v2)
+constexpr inline bool pkQtFuzzyCompare(const PkVector2D &v1, const PkVector2D &v2)
 {
     return pkQtFuzzyCompare(v1.v[0], v2.v[0]) && pkQtFuzzyCompare(v1.v[1], v2.v[1]);
 }
 
 constexpr inline PkPoint PkVector2D::toPoint() const
 {
-    return PkPoint(qRound(v[0]), qRound(v[1]));
+    return PkPoint(pkRound(v[0]), pkRound(v[1]));
 }
 
 constexpr inline PkPointF PkVector2D::toPointF() const
@@ -409,7 +409,7 @@ constexpr inline PkVector3D::PkVector3D(const PkPointF &point) : v{float(point.x
 
 inline bool PkVector3D::isNull() const
 {
-    return qIsNull(v[0]) && qIsNull(v[1]) && qIsNull(v[2]);
+    return pkIsNull(v[0]) && pkIsNull(v[1]) && pkIsNull(v[2]);
 }
 
 constexpr inline float PkVector3D::x() const { return v[0]; }
@@ -521,7 +521,7 @@ constexpr inline PkVector3D operator/(const PkVector3D &vector, const PkVector3D
     return PkVector3D(vector.v[0] / divisor.v[0], vector.v[1] / divisor.v[1], vector.v[2] / divisor.v[2]);
 }
 
-constexpr inline bool qFuzzyCompare(const PkVector3D &v1, const PkVector3D &v2)
+constexpr inline bool pkQtFuzzyCompare(const PkVector3D &v1, const PkVector3D &v2)
 {
     return pkQtFuzzyCompare(v1.v[0], v2.v[0]) && pkQtFuzzyCompare(v1.v[1], v2.v[1])
         && pkQtFuzzyCompare(v1.v[2], v2.v[2]);
@@ -529,7 +529,7 @@ constexpr inline bool qFuzzyCompare(const PkVector3D &v1, const PkVector3D &v2)
 
 constexpr inline PkPoint PkVector3D::toPoint() const
 {
-    return PkPoint(qRound(v[0]), qRound(v[1]));
+    return PkPoint(pkRound(v[0]), pkRound(v[1]));
 }
 
 constexpr inline PkPointF PkVector3D::toPointF() const
@@ -554,7 +554,7 @@ constexpr inline PkVector4D::PkVector4D(const PkPointF &point)
 
 inline bool PkVector4D::isNull() const
 {
-    return qIsNull(v[0]) && qIsNull(v[1]) && qIsNull(v[2]) && qIsNull(v[3]);
+    return pkIsNull(v[0]) && pkIsNull(v[1]) && pkIsNull(v[2]) && pkIsNull(v[3]);
 }
 
 constexpr inline float PkVector4D::x() const { return v[0]; }
@@ -674,7 +674,7 @@ constexpr inline PkVector4D operator/(const PkVector4D &vector, const PkVector4D
     return PkVector4D(vector.v[0] / divisor.v[0], vector.v[1] / divisor.v[1], vector.v[2] / divisor.v[2], vector.v[3] / divisor.v[3]);
 }
 
-constexpr inline bool qFuzzyCompare(const PkVector4D &v1, const PkVector4D &v2)
+constexpr inline bool pkQtFuzzyCompare(const PkVector4D &v1, const PkVector4D &v2)
 {
     return pkQtFuzzyCompare(v1.v[0], v2.v[0]) && pkQtFuzzyCompare(v1.v[1], v2.v[1])
         && pkQtFuzzyCompare(v1.v[2], v2.v[2]) && pkQtFuzzyCompare(v1.v[3], v2.v[3]);
@@ -682,7 +682,7 @@ constexpr inline bool qFuzzyCompare(const PkVector4D &v1, const PkVector4D &v2)
 
 constexpr inline PkPoint PkVector4D::toPoint() const
 {
-    return PkPoint(qRound(v[0]), qRound(v[1]));
+    return PkPoint(pkRound(v[0]), pkRound(v[1]));
 }
 
 constexpr inline PkPointF PkVector4D::toPointF() const

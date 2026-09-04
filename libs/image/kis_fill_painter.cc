@@ -185,14 +185,14 @@ void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const Ki
         const int dstRowsRemaining = fillRect.bottom() - dstY + 1;
 
         const int srcY = toPatternLocal(dstY, patternRect.y(), patternRect.height());
-        const int height = qMin(patternRect.height() - srcY + patternRect.y(), dstRowsRemaining);
+        const int height = pkMin(patternRect.height() - srcY + patternRect.y(), dstRowsRemaining);
 
         int dstX = fillRect.x();
         while (dstX <= fillRect.right()) {
             const int dstColumnsRemaining = fillRect.right() - dstX + 1;
 
             const int srcX = toPatternLocal(dstX, patternRect.x(), patternRect.width());
-            const int width = qMin(patternRect.width() - srcX  + patternRect.x(), dstColumnsRemaining);
+            const int width = pkMin(patternRect.width() - srcX  + patternRect.x(), dstColumnsRemaining);
 
             bitBlt(dstX, dstY, device, srcX, srcY, width, height);
 

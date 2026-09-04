@@ -149,7 +149,7 @@ public:
 
         // 像素大小（<0 表示未指定）。来源：FC_PIXEL_SIZE，
         // KoFontRegistry.cpp:398-399
-        // `pixelSize = info.size * (qMin(xRes, yRes) / 72.0)`——DPI 换算在
+        // `pixelSize = info.size * (pkMin(xRes, yRes) / 72.0)`——DPI 换算在
         // 端口之外，调用方传入换算结果。
         double pixelSize = -1.0;
 

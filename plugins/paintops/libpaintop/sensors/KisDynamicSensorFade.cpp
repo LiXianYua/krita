@@ -25,7 +25,7 @@ qreal KisDynamicSensorFade::value(const KisPaintInformation &pi) const
     const int currentValue =
         m_periodic ?
         pi.currentDabSeqNo() % m_length :
-        qMin(pi.currentDabSeqNo(), m_length);
+        pkMin(pi.currentDabSeqNo(), m_length);
 
     return qreal(currentValue) / m_length;
 }

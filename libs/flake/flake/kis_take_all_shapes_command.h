@@ -7,7 +7,7 @@
 #ifndef __KIS_TAKE_ALL_SHAPES_COMMAND_H
 #define __KIS_TAKE_ALL_SHAPES_COMMAND_H
 
-#include <QList>
+#include <PkList.h>
 
 #include "kundo2command.h"
 
@@ -30,7 +30,7 @@ public:
 
 private:
     KisShapeSelection *m_shapeSelection;
-    QList<KoShape*> m_shapes;
+    PkList<KoShape*> m_shapes;
     bool m_takeSilently;
     bool m_restoreSilently;
 };

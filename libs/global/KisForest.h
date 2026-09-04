@@ -322,7 +322,7 @@ template <typename value_type, bool is_const>
 ChildIterator<value_type, is_const> parent(const ChildIterator<value_type, is_const> &it)
 {
     if (it.m_parent->isRoot()) {
-        return ChildIterator<value_type, is_const>(nullptr, it.m_parent, qMax(-1, it.m_offsetToParent - 1));
+        return ChildIterator<value_type, is_const>(nullptr, it.m_parent, pkMax(-1, it.m_offsetToParent - 1));
     } else if (it.m_offsetToParent == 0) {
         using NodeType = typename ChildIterator<value_type, is_const>::NodeType;
         NodeType *parentNode = static_cast<NodeType*>(it.m_parent);

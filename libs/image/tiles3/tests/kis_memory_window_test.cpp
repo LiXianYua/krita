@@ -66,7 +66,7 @@ void KisMemoryWindowTest::testTopReports()
             int chunkIndex = QRandomGenerator::global()->bounded(1024);
 
             qint64 chunkStart = chunkIndex * chunkLength;
-            maxChunk = qMax(chunkStart, maxChunk);
+            maxChunk = pkMax(chunkStart, maxChunk);
 
             quint8 *ptr;
             ptr = memory.getWriteChunkPtr(KisChunkData(chunkStart, chunkLength));

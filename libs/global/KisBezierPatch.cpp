@@ -42,8 +42,8 @@ void KisBezierPatch::sampleRegularGrid(PkSize &gridSize, PkVector<PkPointF> &ori
     using KisBezierUtils::bezierCurve;
 
     const PkRectF bounds = dstBoundingRect();
-    gridSize.rwidth() = qCeil(bounds.width() / dstStep.x());
-    gridSize.rheight() = qCeil(bounds.height() / dstStep.y());
+    gridSize.rwidth() = pkCeil(bounds.width() / dstStep.x());
+    gridSize.rheight() = pkCeil(bounds.height() / dstStep.y());
 
     const qreal topLength = KisBezierUtils::curveLength(points[TL], points[TL_HC], points[TR_HC], points[TR], 0.01);
     const qreal bottomLength = KisBezierUtils::curveLength(points[BL], points[BL_HC], points[BR_HC], points[BR], 0.01);
@@ -131,8 +131,8 @@ void KisBezierPatch::sampleRegularGridSVG2(PkSize &gridSize, PkVector<PkPointF> 
     using KisBezierUtils::bezierCurve;
 
     const PkRectF bounds = dstBoundingRect();
-    gridSize.rwidth() = qCeil(bounds.width() / dstStep.x());
-    gridSize.rheight() = qCeil(bounds.height() / dstStep.y());
+    gridSize.rwidth() = pkCeil(bounds.width() / dstStep.x());
+    gridSize.rheight() = pkCeil(bounds.height() / dstStep.y());
 
     const qreal topLength = KisBezierUtils::curveLength(points[TL], points[TL_HC], points[TR_HC], points[TR], 0.01);
     const qreal bottomLength = KisBezierUtils::curveLength(points[BL], points[BL_HC], points[BR_HC], points[BR], 0.01);

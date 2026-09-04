@@ -7,12 +7,14 @@
 #ifndef KOTOOLPROXYPRIVATE_P
 #define KOTOOLPROXYPRIVATE_P
 
-#include <QTimer>
-#include <QElapsedTimer>
-#include <QPointF>
+#include <PkTimer.h>
+#include <PkElapsedTimer.h>
+#include <PkPoint.h>
 #include <QEvent>
 #include <KoPointerEvent.h>
 #include <boost/optional.hpp>
+// [migrate] missing include for Pk/Qt type
+#include <PkVector.h>
 
 class KoPointerEvent;
 class KoToolBase;
@@ -37,13 +39,13 @@ public:
 
     KoToolBase *activeTool {0};
     bool hasSelection {false};
-    QTimer scrollTimer;
-    QPointF widgetScrollPointDoc;
+    PkTimer scrollTimer;
+    PkPointF widgetScrollPointDoc;
     KoCanvasController *controller {0};
     KoToolProxy *parent {0};
 
     // used to determine if the mouse-release is after a drag or a simple click
-    QPoint mouseDownPoint;
+    PkPoint mouseDownPoint;
 
     // up until at least 4.3.0 we get a mouse move event when the tablet leaves the canvas.
     bool mouseLeaveWorkaround {false};
@@ -52,11 +54,11 @@ public:
 
     // for multi clicking (double click or triple click) we need the following
     int multiClickCount {0};
-    QPointF multiClickGlobalPoint;
-    QElapsedTimer multiClickTimeStamp;
+    PkPointF multiClickGlobalPoint;
+    PkElapsedTimer multiClickTimeStamp;
     QEvent::Type multiClickSource;
 
-    QVector<QKeySequence> toolPriorityShortcuts;
+    PkVector<QKeySequence> toolPriorityShortcuts;
 
     boost::optional<KoPointerEventWrapper> lastPointerEvent;
 };

@@ -26,7 +26,7 @@ struct KoSvgTextAddRemoveShapeCommandImpl::Private {
     ~Private() {}
     KoSvgTextShape *textShape = nullptr;
     KoShape* shape = nullptr;
-    QList<KoShape*> oldTextPaths;
+    PkList<KoShape*> oldTextPaths;
     std::optional<KoShapeContainer*> originalShapeParent;
     KoSvgTextShapeMementoSP memento;
     int startPos = -1;
@@ -49,7 +49,7 @@ KoSvgTextAddRemoveShapeCommandImpl::KoSvgTextAddRemoveShapeCommandImpl(KoSvgText
         } else if (d->textShape->shapeInContours(shape)){
             d->type = TextPath;
             KoSvgTextNodeIndex idx = textShape->nodeForTextPath(shape);
-            QPair<int, int> range = textShape->findRangeForNodeIndex(idx);
+            std::pair<int, int> range = textShape->findRangeForNodeIndex(idx);
             d->startPos = range.first;
             d->endPos = range.second;
         } else {
@@ -73,11 +73,11 @@ void KoSvgTextAddRemoveShapeCommandImpl::partB()
         d->oldTextPaths = d->textShape->textPathsAtRange(d->startPos, d->endPos);
     }
 
-    KoShapeBulkActionLock lock(QList<KoShape*>({d->textShape, d->shape}));
+    KoShapeBulkActionLock lock(PkList<KoShape*>({d->textShape, d->shape}));
 
     KoShapeContainer *newParent = d->originalShapeParent.has_value() ? d->originalShapeParent.value() : d->textShape->parent();
-    const QTransform newParentTransform = newParent ? newParent->absoluteTransformation() : QTransform();
-    const QTransform absoluteTf = newParentTransform.inverted() * d->textShape->absoluteTransformation();
+    const PkTransform newParentTransform = newParent ? newParent->absoluteTransformation() : PkTransform();
+    const PkTransform absoluteTf = newParentTransform.inverted() * d->textShape->absoluteTransformation();
 
     d->textShape->removeShapesFromContours({d->shape}, true);
     // by this time d->shape->parent() is set to nullptr
@@ -111,11 +111,11 @@ void KoSvgTextAddRemoveShapeCommandImpl::partA()
         d->originalShapeParent = d->shape->parent();
     }
 
-    KoShapeBulkActionLock lock(QList<KoShape*>({d->textShape, d->shape}));
+    KoShapeBulkActionLock lock(PkList<KoShape*>({d->textShape, d->shape}));
 
     KoShapeContainer *oldParent = d->shape->parent();
-    const QTransform oldParentTransform = oldParent ? oldParent->absoluteTransformation() : QTransform();
-    const QTransform absoluteTf = d->textShape->absoluteTransformation().inverted() * oldParentTransform;
+    const PkTransform oldParentTransform = oldParent ? oldParent->absoluteTransformation() : PkTransform();
+    const PkTransform absoluteTf = d->textShape->absoluteTransformation().inverted() * oldParentTransform;
 
     if (d->type == Inside) {
         d->textShape->addShapeContours({d->shape}, true);
@@ -171,7 +171,7 @@ KoSvgTextRemoveShapeCommand::~KoSvgTextRemoveShapeCommand()
 
 void KoSvgTextRemoveShapeCommand::removeContourShapesFromFlow(KoSvgTextShape *textShape, KUndo2Command *parent, bool textInShape, bool textPaths)
 {
-   QList<KoShape*> shapes;
+   PkList<KoShape*> shapes;
    if (textInShape) {
        shapes.append(textShape->shapesInside());
        shapes.append(textShape->shapesSubtract());

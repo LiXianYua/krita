@@ -144,7 +144,7 @@ void mergeHeightmapOntoStroke(KisPaintDeviceSP stroke, KisPaintDeviceSP heightMa
 
         if (*dstPtr > 0) {
             const quint8 *mapPtr = mapIt.rawDataConst();
-            *dstPtr = qMax(quint8(1), *mapPtr);
+            *dstPtr = pkMax(quint8(1), *mapPtr);
         } else {
             *dstPtr = 0;
         }
@@ -685,7 +685,7 @@ void KisWatershedWorker::Private::processQueue(qint32 _backgroundGroupId)
 
             if (progressUpdater && !(numFilledPixels & progressReportingMask)) {
                 const int progressPercent =
-                    qBound(0, qRound(100.0 * numFilledPixels / totalPixelsToFill), 100);
+                    pkBound(0, pkRound(100.0 * numFilledPixels / totalPixelsToFill), 100);
                 progressUpdater->setProgress(progressPercent);
                 if (progressUpdater->interrupted()) {
                     break;
@@ -808,7 +808,7 @@ void KisWatershedWorker::Private::cleanupForeignEdgeGroups(qreal cleanUpAmount)
     KIS_SAFE_ASSERT_RECOVER_NOOP(cleanUpAmount > 0.0);
 
     // convert into the threshold range [0.05...0.5]
-    const qreal foreignEdgePortionThreshold = 0.05 + 0.45 * (1.0 - qBound(0.0, cleanUpAmount, 1.0));
+    const qreal foreignEdgePortionThreshold = 0.05 + 0.45 * (1.0 - pkBound(0.0, cleanUpAmount, 1.0));
 
     PkVector<GroupLevelPair> conflicts = calculateConflictingPairs();
 

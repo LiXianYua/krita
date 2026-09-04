@@ -53,7 +53,7 @@ static_assert(std::is_same<decltype(std::declval<PkStringList &>() += PkString()
                            PkStringList &>::value,
               "operator+=(PkString) 必须返回 PkStringList&");
 
-// 枚举值与 Qt 对齐（Qt::CaseInsensitive == 0、Qt::CaseSensitive == 1），
+// 枚举值与 Qt 对齐（Pk::CaseInsensitive == 0、Pk::CaseSensitive == 1），
 // 这样 compat 垫片可以直接改写名字而不必翻译数值。
 static_assert(static_cast<int>(PkCaseInsensitive) == 0, "PkCaseInsensitive 必须是 0");
 static_assert(static_cast<int>(PkCaseSensitive) == 1, "PkCaseSensitive 必须是 1");

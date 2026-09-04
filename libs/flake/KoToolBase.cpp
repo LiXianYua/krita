@@ -27,9 +27,9 @@
 
 #include <klocalizedstring.h>
 #include <QWidget>
-#include <QFile>
-#include <QDomDocument>
-#include <QDomElement>
+#include <PkFileStream.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 #include <QApplication>
 
 #include <QKeyEvent>
@@ -72,7 +72,7 @@ KoPointerEvent *KoToolBase::lastDeliveredPointerEvent() const
     return d->canvas->toolProxy()->lastDeliveredPointerEvent();
 }
 
-void KoToolBase::activate(const QSet<KoShape *> &shapes)
+void KoToolBase::activate(const PkSet<KoShape *> &shapes)
 {
     Q_UNUSED(shapes);
 
@@ -86,13 +86,13 @@ void KoToolBase::deactivate()
     d->isActivated = false;
 }
 
-void KoToolBase::canvasResourceChanged(int key, const QVariant & res)
+void KoToolBase::canvasResourceChanged(int key, const PkVariant & res)
 {
     Q_UNUSED(key);
     Q_UNUSED(res);
 }
 
-void KoToolBase::documentResourceChanged(int key, const QVariant &res)
+void KoToolBase::documentResourceChanged(int key, const PkVariant &res)
 {
     Q_UNUSED(key);
     Q_UNUSED(res);
@@ -128,21 +128,21 @@ void KoToolBase::explicitUserStrokeEndRequest()
 {
 }
 
-QVariant KoToolBase::inputMethodQuery(Qt::InputMethodQuery query) const
+PkVariant KoToolBase::inputMethodQuery(Qt::InputMethodQuery query) const
 {
     Q_D(const KoToolBase);
     if (d->canvas->canvasWidget() == 0)
-        return QVariant();
+        return PkVariant();
 
     switch (query) {
     case Qt::ImEnabled:
         return isInTextMode();
     case Qt::ImCursorRectangle:
-        return QRect(d->canvas->canvasWidget()->width() / 2, 0, 1, d->canvas->canvasWidget()->height());
+        return PkRect(d->canvas->canvasWidget()->width() / 2, 0, 1, d->canvas->canvasWidget()->height());
     case Qt::ImFont:
         return d->canvas->canvasWidget()->font();
     default:
-        return QVariant();
+        return PkVariant();
     }
 }
 
@@ -187,7 +187,7 @@ void KoToolBase::useCursor(const QCursor &cursor)
     Q_EMIT cursorChanged(d->currentCursor);
 }
 
-QList<QPointer<QWidget> > KoToolBase::optionWidgets()
+PkList<PkPointer<QWidget> > KoToolBase::optionWidgets()
 {
     Q_D(KoToolBase);
     if (!d->optionWidgetsCreated) {
@@ -197,7 +197,7 @@ QList<QPointer<QWidget> > KoToolBase::optionWidgets()
     return d->optionWidgets;
 }
 
-QAction *KoToolBase::action(const QString &name) const
+QAction *KoToolBase::action(const PkString &name) const
 {
     Q_D(const KoToolBase);
     if (d->canvas && d->canvas->canvasController() && d->canvas->canvasController()) {
@@ -212,9 +212,9 @@ QWidget * KoToolBase::createOptionWidget()
     return 0;
 }
 
-QList<QPointer<QWidget> >  KoToolBase::createOptionWidgets()
+PkList<PkPointer<QWidget> >  KoToolBase::createOptionWidgets()
 {
-    QList<QPointer<QWidget> > ow;
+    PkList<PkPointer<QWidget> > ow;
     if (QWidget *widget = createOptionWidget()) {
         if (widget->objectName().isEmpty()) {
             widget->setObjectName(toolId());
@@ -236,7 +236,7 @@ KoToolFactoryBase* KoToolBase::factory() const
     return d->factory;
 }
 
-QString KoToolBase::toolId() const
+PkString KoToolBase::toolId() const
 {
     Q_D(const KoToolBase);
     return d->factory ? d->factory->id() : 0;
@@ -264,7 +264,7 @@ KoCanvasBase * KoToolBase::canvas() const
     return d->canvas;
 }
 
-void KoToolBase::setStatusText(const QString &statusText)
+void KoToolBase::setStatusText(const PkString &statusText)
 {
     Q_EMIT statusTextChanged(statusText);
 }
@@ -287,7 +287,7 @@ qreal KoToolBase::handleDocRadius() const
 {
     Q_D(const KoToolBase);
     const KoViewConverter * converter = d->canvas->viewConverter();
-    const QPointF doc = converter->viewToDocument(QPointF(handleRadius(), handleRadius()));
+    const PkPointF doc = converter->viewToDocument(PkPointF(handleRadius(), handleRadius()));
     return qMax(doc.x(), doc.y());
 }
 
@@ -316,22 +316,22 @@ int KoToolBase::grabSensitivity() const
     }
 }
 
-QRectF KoToolBase::handleGrabRect(const QPointF &position) const
+PkRectF KoToolBase::handleGrabRect(const PkPointF &position) const
 {
     Q_D(const KoToolBase);
     const KoViewConverter * converter = d->canvas->viewConverter();
     uint handleSize = 2*grabSensitivity();
-    QRectF r = converter->viewToDocument(QRectF(0, 0, handleSize, handleSize));
+    PkRectF r = converter->viewToDocument(PkRectF(0, 0, handleSize, handleSize));
     r.moveCenter(position);
     return r;
 }
 
-QRectF KoToolBase::handlePaintRect(const QPointF &position) const
+PkRectF KoToolBase::handlePaintRect(const PkPointF &position) const
 {
     Q_D(const KoToolBase);
     const KoViewConverter * converter = d->canvas->viewConverter();
     uint handleSize = 2*handleRadius();
-    QRectF r = converter->viewToDocument(QRectF(0, 0, handleSize, handleSize));
+    PkRectF r = converter->viewToDocument(PkRectF(0, 0, handleSize, handleSize));
     r.moveCenter(position);
     return r;
 }
@@ -362,7 +362,7 @@ void KoToolBase::copy() const
 {
 }
 
-void KoToolBase::dragMoveEvent(QDragMoveEvent *event, const QPointF &point)
+void KoToolBase::dragMoveEvent(QDragMoveEvent *event, const PkPointF &point)
 {
     Q_UNUSED(event);
     Q_UNUSED(point);
@@ -373,7 +373,7 @@ void KoToolBase::dragLeaveEvent(QDragLeaveEvent *event)
     Q_UNUSED(event);
 }
 
-void KoToolBase::dropEvent(QDropEvent *event, const QPointF &point)
+void KoToolBase::dropEvent(QDropEvent *event, const PkPointF &point)
 {
     Q_UNUSED(event);
     Q_UNUSED(point);
@@ -394,7 +394,7 @@ void KoToolBase::repaintDecorations()
 {
     Q_D(KoToolBase);
 
-    QRectF dirtyRect = d->lastDecorationsRect;
+    PkRectF dirtyRect = d->lastDecorationsRect;
     d->lastDecorationsRect = decorationsRect();
     dirtyRect |= d->lastDecorationsRect;
 
@@ -403,9 +403,9 @@ void KoToolBase::repaintDecorations()
     }
 }
 
-QRectF KoToolBase::decorationsRect() const
+PkRectF KoToolBase::decorationsRect() const
 {
-    return QRectF();
+    return PkRectF();
 }
 
 bool KoToolBase::isInTextMode() const
@@ -469,13 +469,13 @@ void KoToolBase::setAbstractResource(KoAbstractCanvasResourceInterfaceSP abstrac
     d->toolCanvasResources.abstractResources[abstractResource->key()] = abstractResource;
 }
 
-QHash<int, KoAbstractCanvasResourceInterfaceSP> KoToolBase::toolAbstractResources()
+PkHash<int, KoAbstractCanvasResourceInterfaceSP> KoToolBase::toolAbstractResources()
 {
     Q_D(KoToolBase);
     return d->toolCanvasResources.abstractResources;
 }
 
-QHash<int, KoDerivedResourceConverterSP> KoToolBase::toolConverters()
+PkHash<int, KoDerivedResourceConverterSP> KoToolBase::toolConverters()
 {
     Q_D(KoToolBase);
     return d->toolCanvasResources.converters;

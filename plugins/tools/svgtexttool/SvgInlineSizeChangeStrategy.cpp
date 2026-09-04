@@ -119,7 +119,7 @@ void SvgInlineSizeChangeStrategy::handleMouseMove(const QPointF &mouseLocation, 
     if (newInlineSize >= -1.0 && newInlineSize < 1.0) {
         newInlineSize = 1.0;
     } else {
-        newInlineSize = qRound(newInlineSize * 100.0) / 100.0;
+        newInlineSize = pkRound(newInlineSize * 100.0) / 100.0;
 
     }
 
@@ -132,7 +132,7 @@ void SvgInlineSizeChangeStrategy::handleMouseMove(const QPointF &mouseLocation, 
             newAnchor = KoSvgText::AnchorStart;
         }
     }
-    if (qFuzzyCompare(m_finalInlineSize, newInlineSize)
+    if (pkQtFuzzyCompare(m_finalInlineSize, newInlineSize)
             && m_initialPosition == newPosition
             && m_originalAnchor == newAnchor) {
         return;
@@ -149,7 +149,7 @@ void SvgInlineSizeChangeStrategy::handleMouseMove(const QPointF &mouseLocation, 
 KUndo2Command *SvgInlineSizeChangeStrategy::createCommand()
 {
     tool()->canvas()->snapGuide()->reset();
-    if (qFuzzyCompare(m_initialInlineSize, m_finalInlineSize)
+    if (pkQtFuzzyCompare(m_initialInlineSize, m_finalInlineSize)
             && m_initialPosition == m_finalPos
             && m_originalAnchor == m_finalAnchor) {
         return nullptr;
@@ -160,7 +160,7 @@ KUndo2Command *SvgInlineSizeChangeStrategy::createCommand()
 
 void SvgInlineSizeChangeStrategy::cancelInteraction()
 {
-    if (qFuzzyCompare(m_initialInlineSize, m_finalInlineSize)
+    if (pkQtFuzzyCompare(m_initialInlineSize, m_finalInlineSize)
             && m_initialPosition == m_finalPos
             && m_originalAnchor == m_finalAnchor) {
         return;

@@ -164,7 +164,7 @@ void KisGradientMapFilter::processImpl(KisPaintDeviceSP device,
         const qreal pixelOpacity = colorSpace->opacityF(it.oldRawData());
         const quint8 *color = colorModeStrategy.colorAt(t, it.x(), it.y());
         memcpy(it.rawData(), color, pixelSize);
-        colorSpace->setOpacity(it.rawData(), qMin(pixelOpacity, colorSpace->opacityF(color)), 1);
+        colorSpace->setOpacity(it.rawData(), pkMin(pixelOpacity, colorSpace->opacityF(color)), 1);
     }
 }
 

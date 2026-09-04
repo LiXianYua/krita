@@ -24,8 +24,8 @@
 
 #include <KoXmlNS.h>
 
-#include <QString>
-#include <QHash>
+#include <PkString.h>
+#include <PkHash.h>
 #include <QMultiMap>
 #include <QPainter>
 #include <QGlobalStatic>
@@ -41,7 +41,7 @@ public:
     void init(KoShapeRegistry *q);
 
     // Map namespace,tagname to priority:factory
-    QHash<QPair<QString, QString>, QMultiMap<int, KoShapeFactoryBase*> > factoryMap;
+    PkHash<std::pair<PkString, PkString>, QMultiMap<int, KoShapeFactoryBase*> > factoryMap;
 };
 
 KoShapeRegistry::KoShapeRegistry()
@@ -63,7 +63,7 @@ void KoShapeRegistry::Private::init(KoShapeRegistry *q)
     // Also add our hard-coded basic shapes
     KoShapeFactoryBase *svgTextFactory = new KoSvgTextShapeFactory();
     q->add(toPkString(svgTextFactory->id()), svgTextFactory);
-    KoShapeFactoryBase *pathFactory = new KoPathShapeFactory(QStringList());
+    KoShapeFactoryBase *pathFactory = new KoPathShapeFactory(PkStringList());
     q->add(toPkString(pathFactory->id()), pathFactory);
     // S-08: ImageShape/RectangleShape 原由 Krita/Shape 插件提供，D-12 删插件加载后
     // 在此硬编码补注册（D-07 崩溃根因 + TestKoDrag 缺 rect 工厂）。
@@ -76,7 +76,7 @@ void KoShapeRegistry::Private::init(KoShapeRegistry *q)
     // associated odf tagname & priority and prepare ourselves for
     // loading ODF.
 
-    QList<KoShapeFactoryBase*> factories = toQList(q->values());
+    PkList<KoShapeFactoryBase*> factories = toQList(q->values());
     for (int i = 0; i < factories.size(); ++i) {
         insertFactory(factories[i]);
     }
@@ -98,16 +98,16 @@ void KoShapeRegistry::addFactory(KoShapeFactoryBase * factory)
 
 void KoShapeRegistry::Private::insertFactory(KoShapeFactoryBase *factory)
 {
-    const QList<QPair<QString, QStringList> > odfElements(factory->odfElements());
+    const PkList<std::pair<PkString, PkStringList> > odfElements(factory->odfElements());
 
     if (odfElements.isEmpty()) {
         debugFlake << "Shape factory" << factory->id() << " does not have OdfNamespace defined, ignoring";
     }
     else {
         int priority = factory->loadingPriority();
-        for (QList<QPair<QString, QStringList> >::const_iterator it(odfElements.begin()); it != odfElements.end(); ++it) {
-            foreach (const QString &elementName, (*it).second) {
-                QPair<QString, QString> p((*it).first, elementName);
+        for (PkList<std::pair<PkString, PkStringList> >::const_iterator it(odfElements.begin()); it != odfElements.end(); ++it) {
+            foreach (const PkString &elementName, (*it).second) {
+                std::pair<PkString, PkString> p((*it).first, elementName);
 
                 QMultiMap<int, KoShapeFactoryBase*> & priorityMap = factoryMap[p];
 
@@ -130,13 +130,13 @@ void KoShapeRegistry::Private::insertFactory(KoShapeFactoryBase *factory)
 #include <KoShapeGroupCommand.h>
 
 
-QList<KoShapeFactoryBase*> KoShapeRegistry::factoriesForElement(const QString &nameSpace, const QString &elementName)
+PkList<KoShapeFactoryBase*> KoShapeRegistry::factoriesForElement(const PkString &nameSpace, const PkString &elementName)
 {
     // Pair of namespace, tagname
-    QPair<QString, QString> p = QPair<QString, QString>(nameSpace, elementName);
+    std::pair<PkString, PkString> p = std::pair<PkString, PkString>(nameSpace, elementName);
 
     QMultiMap<int, KoShapeFactoryBase*> priorityMap = d->factoryMap.value(p);
-    QList<KoShapeFactoryBase*> shapeFactories;
+    PkList<KoShapeFactoryBase*> shapeFactories;
     // sort list by priority
     Q_FOREACH (KoShapeFactoryBase *f, priorityMap.values()) {
         shapeFactories.prepend(f);

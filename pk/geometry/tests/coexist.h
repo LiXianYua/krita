@@ -20,7 +20,7 @@
 // pk/test 的 pkFuzzyCompare，而 pk/test 不在 R-03 的 locks 里、R-11 随时可能动它。
 // 探针只取非零点（1.0 vs 1.0、1.0 vs 1.0000001）时，给 pkFuzzyCompare 注入一个
 // 「任一侧为 0 就走 fuzzyIsNull」的分支——一条真实的对 Qt 偏离——这些 TU 会全绿。
-// 所以 fuzzyZeroA/fuzzyZeroB 是必需项：Qt 的右端取 qMin(|p1|,|p2|)，任一侧为 0
+// 所以 fuzzyZeroA/fuzzyZeroB 是必需项：Qt 的右端取 pkMin(|p1|,|p2|)，任一侧为 0
 // 就恒 false，让位路径必须给出同样的 false。
 //
 // 本头**不得** include 任何提供 qAbs/qFuzzy*/qRound/qreal 的东西：两个 TU 的
@@ -31,16 +31,16 @@
 
 struct PkCoexistProbe
 {
-    double absNeg;         // qAbs(-2.5)
-    int roundHalfPos;      // qRound(0.5)
-    int roundHalfNeg;      // qRound(-0.5)
-    int boundAbove;        // qBound(0, 5, 3)
-    bool fuzzyEqual;       // qFuzzyCompare(1.0, 1.0)
-    bool fuzzyDiffer;      // qFuzzyCompare(1.0, 1.0000001)
-    bool fuzzyZeroA;       // qFuzzyCompare(0.0, 1e-300)  —— Qt 恒 false
-    bool fuzzyZeroB;       // qFuzzyCompare(1e-300, 0.0)  —— Qt 恒 false
-    bool fuzzyNull;        // qFuzzyIsNull(0.0)
-    bool fuzzyNotNull;     // qFuzzyIsNull(1e-11)
+    double absNeg;         // pkAbs(-2.5)
+    int roundHalfPos;      // pkRound(0.5)
+    int roundHalfNeg;      // pkRound(-0.5)
+    int boundAbove;        // pkBound(0, 5, 3)
+    bool fuzzyEqual;       // pkQtFuzzyCompare(1.0, 1.0)
+    bool fuzzyDiffer;      // pkQtFuzzyCompare(1.0, 1.0000001)
+    bool fuzzyZeroA;       // pkQtFuzzyCompare(0.0, 1e-300)  —— Qt 恒 false
+    bool fuzzyZeroB;       // pkQtFuzzyCompare(1e-300, 0.0)  —— Qt 恒 false
+    bool fuzzyNull;        // pkQtFuzzyIsNull(0.0)
+    bool fuzzyNotNull;     // pkQtFuzzyIsNull(1e-11)
     unsigned long qrealSize;
     bool qrealIsDouble;
 };
@@ -92,20 +92,20 @@ PkCompatIncludeProbe pkCompatRectFirstProbe();
     {                                                                   \
         /* qBound 照抄 Qt 的签名返回 const T&，实参是字面量时返回的引用只在   */ \
         /* 本条 full-expression 内有效——先拷进具名 int 再存，别把悬垂当结果。 */ \
-        const int boundAbove_ = qBound(0, 5, 3);                        \
+        const int boundAbove_ = pkBound(0, 5, 3);                        \
         PkCoexistProbe p;                                               \
-        p.absNeg = qAbs(-2.5);                                          \
-        p.roundHalfPos = qRound(0.5);                                   \
-        p.roundHalfNeg = qRound(-0.5);                                  \
+        p.absNeg = pkAbs(-2.5);                                          \
+        p.roundHalfPos = pkRound(0.5);                                   \
+        p.roundHalfNeg = pkRound(-0.5);                                  \
         p.boundAbove = boundAbove_;                                     \
-        p.fuzzyEqual = qFuzzyCompare(1.0, 1.0);                         \
-        p.fuzzyDiffer = qFuzzyCompare(1.0, 1.0000001);                  \
-        /* 零侧：Qt 的右端是 qMin(|p1|,|p2|)，任一侧为 0 就恒 false。    */ \
+        p.fuzzyEqual = pkQtFuzzyCompare(1.0, 1.0);                         \
+        p.fuzzyDiffer = pkQtFuzzyCompare(1.0, 1.0000001);                  \
+        /* 零侧：Qt 的右端是 pkMin(|p1|,|p2|)，任一侧为 0 就恒 false。    */ \
         /* 两个方向都取，因为「只有一侧特判」的实现只会漏其中一个。      */ \
-        p.fuzzyZeroA = qFuzzyCompare(0.0, 1e-300);                      \
-        p.fuzzyZeroB = qFuzzyCompare(1e-300, 0.0);                      \
-        p.fuzzyNull = qFuzzyIsNull(0.0);                                \
-        p.fuzzyNotNull = qFuzzyIsNull(1e-11);                           \
+        p.fuzzyZeroA = pkQtFuzzyCompare(0.0, 1e-300);                      \
+        p.fuzzyZeroB = pkQtFuzzyCompare(1e-300, 0.0);                      \
+        p.fuzzyNull = pkQtFuzzyIsNull(0.0);                                \
+        p.fuzzyNotNull = pkQtFuzzyIsNull(1e-11);                           \
         p.qrealSize = sizeof(qreal);                                    \
         p.qrealIsDouble = std::is_same<qreal, double>::value;           \
         return p;                                                       \

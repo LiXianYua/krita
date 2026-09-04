@@ -22,7 +22,7 @@ using ThumbnailCacheKey = std::tuple<PkSize, qreal, KisThumbnailBoundsMode>;
 size_t qHash(const ThumbnailCacheKey &key) {
     const auto &[size, oversample, mode] = key;
 
-    size_t result = size.width() * size.height() * qRound(oversample * 1024);
+    size_t result = size.width() * size.height() * pkRound(oversample * 1024);
     if (mode == KisThumbnailBoundsMode::Coarse) {
         result = ~result;
     }

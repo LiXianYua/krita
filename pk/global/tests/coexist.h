@@ -35,10 +35,10 @@
 
 struct PkGlobalCoexistProbe
 {
-    int absNeg;        // qAbs(-3)                    → 3
-    int roundHalfNeg;  // qRound(-1.5)                → -1（负半值向 +∞）
-    bool fuzzyEqual;   // qFuzzyCompare(1.0, 1.0)     → true
-    int minPair;       // qMin(2, 3)                  → 2
+    int absNeg;        // pkAbs(-3)                    → 3
+    int roundHalfNeg;  // pkRound(-1.5)                → -1（负半值向 +∞）
+    bool fuzzyEqual;   // pkQtFuzzyCompare(1.0, 1.0)     → true
+    int minPair;       // pkMin(2, 3)                  → 2
     int qrealInt;      // (int)(qreal)1.5             → 1
 };
 
@@ -64,10 +64,10 @@ PkGlobalCoexistProbe pkCoexistTestShimFirst();
     PkGlobalCoexistProbe fnName()                           \
     {                                                       \
         PkGlobalCoexistProbe p;                             \
-        p.absNeg = qAbs(-3);                                \
-        p.roundHalfNeg = qRound(-1.5);                      \
-        p.fuzzyEqual = qFuzzyCompare(1.0, 1.0);             \
-        p.minPair = qMin(2, 3);                             \
+        p.absNeg = pkAbs(-3);                                \
+        p.roundHalfNeg = pkRound(-1.5);                      \
+        p.fuzzyEqual = pkQtFuzzyCompare(1.0, 1.0);             \
+        p.minPair = pkMin(2, 3);                             \
         p.qrealInt = static_cast<int>(static_cast<qreal>(1.5)); \
         return p;                                           \
     }

@@ -146,8 +146,8 @@ void PkMarginsCase::marginsMulDivQrealRounds()
 {
     // qmargins.h —— 标量是 qreal 时结果**按 qRound 取整**（int 分量装不下
     // 浮点），与 int 版直接乘不同。真 Qt 5.15.7 实测
-    // `QMargins(1,2,3,4) * 1.5` 得 (2,3,5,6)（qRound(1.5)=2, qRound(3)=3,
-    // qRound(4.5)=5——qRound 对半值向 +∞ 取整、qRound(6)=6）。
+    // `QMargins(1,2,3,4) * 1.5` 得 (2,3,5,6)（pkRound(1.5)=2, pkRound(3)=3,
+    // pkRound(4.5)=5——qRound 对半值向 +∞ 取整、pkRound(6)=6）。
     PK_VERIFY(marginsAre(PkMargins(1, 2, 3, 4) * 1.5, 2, 3, 5, 6));
     PK_VERIFY(marginsAre(1.5 * PkMargins(1, 2, 3, 4), 2, 3, 5, 6));
 

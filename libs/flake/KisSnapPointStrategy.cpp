@@ -8,13 +8,13 @@
 #include <PkFlakeBridge.h>
 #include "KisSnapPointStrategy.h"
 
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <KoViewConverter.h>
 #include "kis_global.h"
 
 struct KisSnapPointStrategy::Private
 {
-    QList<QPointF> points;
+    PkList<PkPointF> points;
 };
 
 KisSnapPointStrategy::KisSnapPointStrategy(KoSnapGuide::Strategy type)
@@ -27,14 +27,14 @@ KisSnapPointStrategy::~KisSnapPointStrategy()
 {
 }
 
-bool KisSnapPointStrategy::snap(const QPointF &mousePosition, KoSnapProxy *proxy, qreal maxSnapDistance)
+bool KisSnapPointStrategy::snap(const PkPointF &mousePosition, KoSnapProxy *proxy, qreal maxSnapDistance)
 {
     Q_UNUSED(proxy);
 
-    QPointF snappedPoint = mousePosition;
+    PkPointF snappedPoint = mousePosition;
     qreal minDistance = std::numeric_limits<qreal>::max();
 
-    Q_FOREACH (const QPointF &pt, m_d->points) {
+    Q_FOREACH (const PkPointF &pt, m_d->points) {
         const qreal dist = kisDistance(toPkPointF(mousePosition), toPkPointF(pt));
 
         if (dist < maxSnapDistance && dist < minDistance) {
@@ -47,16 +47,16 @@ bool KisSnapPointStrategy::snap(const QPointF &mousePosition, KoSnapProxy *proxy
     return minDistance < std::numeric_limits<qreal>::max();
 }
 
-QPainterPath KisSnapPointStrategy::decoration(const KoViewConverter &converter) const
+PkPainterPath KisSnapPointStrategy::decoration(const KoViewConverter &converter) const
 {
-    QRectF unzoomedRect = converter.viewToDocument(QRectF(0, 0, 11, 11));
+    PkRectF unzoomedRect = converter.viewToDocument(PkRectF(0, 0, 11, 11));
     unzoomedRect.moveCenter(snappedPosition());
-    QPainterPath decoration;
+    PkPainterPath decoration;
     decoration.addEllipse(unzoomedRect);
     return decoration;
 }
 
-void KisSnapPointStrategy::addPoint(const QPointF &pt)
+void KisSnapPointStrategy::addPoint(const PkPointF &pt)
 {
     m_d->points << pt;
 }

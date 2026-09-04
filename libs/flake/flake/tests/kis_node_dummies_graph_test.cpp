@@ -60,8 +60,8 @@ void KisNodeDummiesGraphTest::init()
         m_dummiesGraph->addNode(dummy, parent, 0);
     }
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 9 10 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 9 10 11 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
@@ -88,8 +88,8 @@ void KisNodeDummiesGraphTest::testPrepend()
     KisNodeDummy *dummy = nodeDummyFromId(13);
     m_dummiesGraph->addNode(dummy, parent, 0);
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 13 9 10 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 13 9 10 11 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
@@ -100,8 +100,8 @@ void KisNodeDummiesGraphTest::testAppend()
     KisNodeDummy *dummy = nodeDummyFromId(13);
     m_dummiesGraph->addNode(dummy, parent, parent->lastChild());
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 9 10 11 13 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 9 10 11 13 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
@@ -114,8 +114,8 @@ void KisNodeDummiesGraphTest::testInsert()
     KisNodeDummy *dummy = nodeDummyFromId(13);
     m_dummiesGraph->addNode(dummy, parent, aboveThis);
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 9 10 13 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 9 10 13 11 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
@@ -127,8 +127,8 @@ void KisNodeDummiesGraphTest::testNewSubgraph()
     KisNodeDummy *dummy = nodeDummyFromId(13);
     m_dummiesGraph->addNode(dummy, parent, 0);
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 13 4 9 10 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 13 4 9 10 11 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
@@ -140,8 +140,8 @@ void KisNodeDummiesGraphTest::testRemoveFirst()
     m_dummiesGraph->removeNode(child);
     delete child;
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 10 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 10 11 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
@@ -153,8 +153,8 @@ void KisNodeDummiesGraphTest::testRemoveLast()
     m_dummiesGraph->removeNode(child);
     delete child;
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 7 8 2 3 4 9 10 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 7 8 2 3 4 9 10 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
@@ -172,16 +172,16 @@ void KisNodeDummiesGraphTest::testRemoveBranch()
     m_dummiesGraph->removeNode(child);
     delete child;
 
-    QString realGraph = collectGraphPattern(m_rootDummy);
-    QString expectedGraph = "0 1 2 3 4 9 10 11 5 6";
+    PkString realGraph = collectGraphPattern(m_rootDummy);
+    PkString expectedGraph = "0 1 2 3 4 9 10 11 5 6";
 
     QCOMPARE(realGraph, expectedGraph);
 }
 
 void KisNodeDummiesGraphTest::testReverseTraversing()
 {
-    QString forwardGraph = collectGraphPattern(m_rootDummy);
-    QString reverseGraph = collectGraphPatternReverse(m_rootDummy);
+    PkString forwardGraph = collectGraphPattern(m_rootDummy);
+    PkString reverseGraph = collectGraphPatternReverse(m_rootDummy);
 
     QCOMPARE(reverseGraph, forwardGraph);
 }

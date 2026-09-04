@@ -1,6 +1,6 @@
 #pragma once
 
-// PK_FOREACH（Q_FOREACH / foreach 的等价物）与 qDeleteAll 的单测。
+// PK_FOREACH（Q_FOREACH / foreach 的等价物）与 pkDeleteAll 的单测。
 // 函数定义在 test_pkforeach.cpp。
 //
 // PK_FOREACH 是整个容器族用量最大的单项（保留范围 1543 + 101 处），它的性质
@@ -30,11 +30,11 @@ private Q_SLOTS:
     // 7. Q_FOREACH / foreach 两个 Qt 名字都在，且与 PK_FOREACH 等价
     void qtSpellingsWork();
 
-    // ---- qDeleteAll ----
+    // ---- pkDeleteAll ----
     // 每个元素恰好 delete 一次，且**不清空容器**（Qt 语义）
-    void qDeleteAllDeletesEachElementOnce();
+    void pkDeleteAllDeletesEachElementOnce();
     // 双实参 (begin, end) 重载（hairy_brush.cpp 的形态）
-    void qDeleteAllIteratorRangeOverload();
+    void pkDeleteAllIteratorRangeOverload();
     // 关联容器上删的是 value 那一侧
-    void qDeleteAllOnAssociativeContainers();
+    void pkDeleteAllOnAssociativeContainers();
 };

@@ -57,6 +57,6 @@ private:
     KisImageResolutionProxySP m_proxy;
 };
 
-using KisImageViewConverterSP = QSharedPointer<KisImageViewConverter>;
+using KisImageViewConverterSP = PkSharedPointer<KisImageViewConverter>;
 
 #endif

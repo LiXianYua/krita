@@ -6,8 +6,8 @@
 
 #include "kis_node_shape.h"
 
-#include <QSizeF>
-#include <QRectF>
+#include <PkSize.h>
+#include <PkRect.h>
 #include <QPainter>
 #include <PkFlakeBridge.h>
 
@@ -78,17 +78,17 @@ void KisNodeShape::editabilityChanged()
     }
 }
 
-QSizeF KisNodeShape::size() const
+PkSizeF KisNodeShape::size() const
 {
     return boundingRect().size();
 }
 
-QRectF KisNodeShape::boundingRect() const
+PkRectF KisNodeShape::boundingRect() const
 {
-    return QRectF();
+    return PkRectF();
 }
 
-void KisNodeShape::setPosition(const QPointF &)
+void KisNodeShape::setPosition(const PkPointF &)
 {
 }
 

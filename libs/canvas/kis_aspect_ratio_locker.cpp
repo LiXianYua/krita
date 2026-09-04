@@ -25,7 +25,7 @@ struct SliderWrapper
             slider->setValue(value);
 
         } else if (auto *slider = m_slider.value<QSpinBox*>()) {
-            slider->setValue(qRound(value));
+            slider->setValue(pkRound(value));
 
         }
     }

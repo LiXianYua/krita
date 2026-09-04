@@ -49,8 +49,8 @@ public:
                      const PkString &filename,
                      const PkImage &source = PkImage(),
                      const PkSize size = PkSize(),
-                     Qt::AspectRatioMode aspectMode = Qt::IgnoreAspectRatio,
-                     Qt::TransformationMode transformMode = Qt::FastTransformation);
+                     Pk::AspectRatioMode aspectMode = Pk::IgnoreAspectRatio,
+                     Pk::TransformationMode transformMode = Pk::FastTransformation);
 
 private:
     friend class KisResourceQueryMapper;

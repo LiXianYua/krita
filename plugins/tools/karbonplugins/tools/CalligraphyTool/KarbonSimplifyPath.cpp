@@ -80,7 +80,7 @@ void karbonSimplifyPath(KoPathShape *path, qreal error)
 
     while (! subpaths.isEmpty()) {
         KoSubpath *subpath = subpaths.takeLast();
-        qDeleteAll(*subpath);
+        pkDeleteAll(*subpath);
         delete subpath;
     }
 
@@ -98,7 +98,7 @@ void KarbonSimplifyPath::removeDuplicates(KoPathShape *path)
         KoPathPoint *prev = path->pointByIndex(KoPathPointIndex(0, i - 1));
         PkPointF diff = p->point() - prev->point();
         // if diff = 0 remove point
-        if (qFuzzyCompare(diff.x() + 1, 1) && qFuzzyCompare(diff.y() + 1, 1)) {
+        if (pkQtFuzzyCompare(diff.x() + 1, 1) && pkQtFuzzyCompare(diff.y() + 1, 1)) {
             if (prev->activeControlPoint1()) {
                 p->setControlPoint1(prev->controlPoint1());
             } else {
@@ -207,7 +207,7 @@ bool KarbonSimplifyPath::isSufficientlyFlat(PkPointF curve[4])
     qreal dx = curve[0].x() - curve[3].y();
     qreal dy = curve[0].y() - curve[3].y();
     qreal dist2 = dx * dx + dy * dy;
-    qreal max2 = qMax(ux * ux, vx * vx) + qMax(uy * uy, vy * vy);
+    qreal max2 = pkMax(ux * ux, vx * vx) + pkMax(uy * uy, vy * vy);
     max2 *= (SUBDIVISION_COEFF * SUBDIVISION_COEFF);
 
     return max2 <= dist2;
@@ -233,7 +233,7 @@ void KarbonSimplifyPath::simplifySubpath(KoSubpath *subpath, qreal error)
 
     KoPathShape *simplified = bezierFit(points, error);
 
-    qDeleteAll(*subpath);
+    pkDeleteAll(*subpath);
     subpath->clear();
 
     for (int i = 0; i < simplified->pointCount(); ++i) {

@@ -33,9 +33,9 @@ public:
     KisNodeSP node();
 
     // Empty implementations as the node is not painted anywhere
-    QSizeF size() const override;
-    QRectF boundingRect() const override;
-    void setPosition(const QPointF &) override;
+    PkSizeF size() const override;
+    PkRectF boundingRect() const override;
+    void setPosition(const PkPointF &) override;
     void paint(QPainter &painter) const override;
 
 private Q_SLOTS:

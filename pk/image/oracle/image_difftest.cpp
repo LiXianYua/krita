@@ -13,7 +13,7 @@
 // ── namespace pkoracle 隔离（同 geometry 先例的理由）────────────────────
 // PkGlobal.h 与 Qt 的 qglobal.h 在同一个全局作用域里定义签名相同的 qAbs 等
 // 符号，PkImage.h 依赖的 PkSize/PkRect/PkTransform/PkGlobal 同理会撞
-// QSize/QRect/QTransform/Qt::。解法：把 pk/image 与 pk/geometry 两侧的
+// QSize/QRect/QTransform/Pk::。解法：把 pk/image 与 pk/geometry 两侧的
 // 全部头文件与 out-of-line 的 .cpp 一起塞进 `namespace pkoracle { ... }`，
 // Qt 侧 `#include <QImage>` 等留在 namespace 外面。
 //   · PkImage.cpp 也必须进来：copy()/convertToFormat()/convertTo()/scaled()/
@@ -138,21 +138,21 @@ static_assert((int)QImage::Format_Invalid == (int)PkImage::Format_Invalid
               && (int)QImage::Format_Grayscale16 == (int)PkImage::Format_Grayscale16
               && (int)QImage::Format_BGR888 == (int)PkImage::Format_BGR888,
               "QImage::Format 与 PkImage::Format 的枚举取值两侧不一致");
-static_assert(!std::is_same<Qt::GlobalColor, pkoracle::Qt::GlobalColor>::value,
-              "Qt::GlobalColor 两侧解析成了同一个类型");
-static_assert((int)Qt::white == (int)pkoracle::Qt::white
-              && (int)Qt::black == (int)pkoracle::Qt::black
-              && (int)Qt::red == (int)pkoracle::Qt::red
-              && (int)Qt::gray == (int)pkoracle::Qt::gray
-              && (int)Qt::transparent == (int)pkoracle::Qt::transparent,
-              "Qt::GlobalColor 的枚举取值两侧不一致");
-static_assert(!std::is_same<Qt::TransformationMode, pkoracle::Qt::TransformationMode>::value,
-              "Qt::TransformationMode 两侧解析成了同一个类型");
-static_assert((int)Qt::FastTransformation == (int)pkoracle::Qt::FastTransformation
-              && (int)Qt::SmoothTransformation == (int)pkoracle::Qt::SmoothTransformation,
-              "Qt::TransformationMode 的枚举取值两侧不一致");
-static_assert(!std::is_same<Qt::AspectRatioMode, pkoracle::Qt::AspectRatioMode>::value,
-              "Qt::AspectRatioMode 两侧解析成了同一个类型");
+static_assert(!std::is_same<Pk::GlobalColor, pkoracle::Pk::GlobalColor>::value,
+              "Pk::GlobalColor 两侧解析成了同一个类型");
+static_assert((int)Pk::white == (int)pkoracle::Pk::white
+              && (int)Pk::black == (int)pkoracle::Pk::black
+              && (int)Pk::red == (int)pkoracle::Pk::red
+              && (int)Pk::gray == (int)pkoracle::Pk::gray
+              && (int)Pk::transparent == (int)pkoracle::Pk::transparent,
+              "Pk::GlobalColor 的枚举取值两侧不一致");
+static_assert(!std::is_same<Pk::TransformationMode, pkoracle::Pk::TransformationMode>::value,
+              "Pk::TransformationMode 两侧解析成了同一个类型");
+static_assert((int)Pk::FastTransformation == (int)pkoracle::Pk::FastTransformation
+              && (int)Pk::SmoothTransformation == (int)pkoracle::Pk::SmoothTransformation,
+              "Pk::TransformationMode 的枚举取值两侧不一致");
+static_assert(!std::is_same<Pk::AspectRatioMode, pkoracle::Pk::AspectRatioMode>::value,
+              "Pk::AspectRatioMode 两侧解析成了同一个类型");
 
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
@@ -512,7 +512,7 @@ static void runHandPicked()
         }
     }
 
-    // fill() 两个重载各一次（PkImage 只实现了 uint32_t 与 Qt::GlobalColor 两个
+    // fill() 两个重载各一次（PkImage 只实现了 uint32_t 与 Pk::GlobalColor 两个
     // 重载——真 Qt 还有第三个 fill(const QColor&)，Task 2 的简化决策没有对应
     // 的 Pk 参数类型可用，image.deviation 底部记这一条范围裁剪，不在这里
     // 空跑一个测不了的重载）。
@@ -524,15 +524,15 @@ static void runHandPicked()
         rec("fill_uint32", q.pixel(1, 1) == p.pixel(1, 1), "argb32_0xFF334455",
             "fill(0xFF334455)", hstr(q.pixel(1, 1)), hstr(p.pixel(1, 1)));
     }
-    // fill(Qt::GlobalColor)：5 个真实调用点用到的值（PkGlobal.h 头注释），
+    // fill(Pk::GlobalColor)：5 个真实调用点用到的值（PkGlobal.h 头注释），
     // 只在非索引高频格式上测（索引格式 fill(GlobalColor) 的既有实现细节不在
     // 本 Task 判据①范围内，image.deviation 底部说明）。
     {
         struct GC { int code; const char *name; };
         static const GC kColors[] = {
-            {(int)pkoracle::Qt::white, "white"}, {(int)pkoracle::Qt::black, "black"},
-            {(int)pkoracle::Qt::red, "red"}, {(int)pkoracle::Qt::gray, "gray"},
-            {(int)pkoracle::Qt::transparent, "transparent"},
+            {(int)pkoracle::Pk::white, "white"}, {(int)pkoracle::Pk::black, "black"},
+            {(int)pkoracle::Pk::red, "red"}, {(int)pkoracle::Pk::gray, "gray"},
+            {(int)pkoracle::Pk::transparent, "transparent"},
         };
         static const int kFmts[] = {
             (int)PkImage::Format_ARGB32, (int)PkImage::Format_RGB32,
@@ -543,8 +543,8 @@ static void runHandPicked()
             for (const GC &gc : kColors) {
                 QImage q(3, 3, static_cast<QImage::Format>(f));
                 PkImage p(3, 3, static_cast<PkImage::Format>(f));
-                q.fill(static_cast<Qt::GlobalColor>(gc.code));
-                p.fill(static_cast<pkoracle::Qt::GlobalColor>(gc.code));
+                q.fill(static_cast<Pk::GlobalColor>(gc.code));
+                p.fill(static_cast<pkoracle::Pk::GlobalColor>(gc.code));
                 std::string tag = std::string("fmt=") + fmtName(f) + "_color=" + gc.name;
                 rec("fill_globalColor", q.pixel(0, 0) == p.pixel(0, 0), tag, tag,
                     hstr(q.pixel(0, 0)), hstr(p.pixel(0, 0)));
@@ -801,14 +801,14 @@ static void runCombinatorial()
 
             // ── scaled() / transformed()：Fast 模式硬判据，Smooth 已声明偏离 ──
             for (int mode = 0; mode <= 1; ++mode) {
-                Qt::TransformationMode qm = static_cast<Qt::TransformationMode>(mode);
-                pkoracle::Qt::TransformationMode pm = static_cast<pkoracle::Qt::TransformationMode>(mode);
+                Pk::TransformationMode qm = static_cast<Pk::TransformationMode>(mode);
+                pkoracle::Pk::TransformationMode pm = static_cast<pkoracle::Pk::TransformationMode>(mode);
                 const char *modeName = mode == 0 ? "fast" : "smooth";
 
                 QSize target(std::max(1, w / 2 + 1), std::max(1, h / 2 + 1));
-                QImage qs = q.scaled(target, Qt::IgnoreAspectRatio, qm);
+                QImage qs = q.scaled(target, Pk::IgnoreAspectRatio, qm);
                 PkImage ps = p.scaled(PkSize(target.width(), target.height()),
-                                       pkoracle::Qt::IgnoreAspectRatio, pm);
+                                       pkoracle::Pk::IgnoreAspectRatio, pm);
                 std::string tagBase = shapeTag(f, w, h) + "_mode=" + modeName;
                 bool sameHeader = qs.width() == ps.width() && qs.height() == ps.height();
                 rec("scaled", sameHeader, tagBase + "_header", tagBase,

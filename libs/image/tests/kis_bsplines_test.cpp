@@ -63,7 +63,7 @@ void KisBSplinesTest::test1D()
     dbgKrita << ppVar((min)(accum));
     dbgKrita << ppVar((max)(accum));
 
-    qreal maxError = qMax(qAbs((min)(accum)), qAbs((max)(accum)));
+    qreal maxError = pkMax(pkAbs((min)(accum)), pkAbs((max)(accum)));
     QVERIFY(maxError < 0.10); // Error is less than 10%
 
 }
@@ -100,7 +100,7 @@ bool test2DSpline(const Spline &spline, const Op &op, qreal start, qreal end)
     dbgKrita << ppVar((min)(accum));
     dbgKrita << ppVar((max)(accum));
 
-    qreal maxError = qMax(qAbs((min)(accum)), qAbs((max)(accum)));
+    qreal maxError = pkMax(pkAbs((min)(accum)), pkAbs((max)(accum)));
     return maxError < 0.10; // Error is less than 10%
 }
 

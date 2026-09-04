@@ -97,7 +97,7 @@ static_assert(PkHasOrEq<IntSet>::value,
 // PkHasher 的模板定义点（PkHashFunctions.h）根本不可见。
 //
 // Krita 侧的真实样例：libs/image/brushengine/kis_paintop_lod_limitations.h:14
-//   `inline uint qHash(const KoID &id) { return qHash(id.id()); }`
+//   `inline uint pkHash(const KoID &id) { return pkHash(id.id()); }`
 // 而同一个文件里 :34-35 就是 `QSet<KoID> limitations; QSet<KoID> blockers;`
 // ——PkSet 必须能找到那条重载，否则那个文件当场编不过。
 // ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ struct PkTagged
 };
 
 // 故意只看 group：同 group 不同 id 必然哈希冲突，把 operator== 那一环也压到。
-inline unsigned int qHash(const PkTagged &t)
+inline unsigned int pkHash(const PkTagged &t)
 {
     return static_cast<unsigned int>(t.group);
 }
@@ -123,7 +123,7 @@ struct PkSetCounted
     bool operator==(const PkSetCounted &o) const { return v == o.v; }
 };
 
-inline unsigned int qHash(const PkSetCounted &k)
+inline unsigned int pkHash(const PkSetCounted &k)
 {
     ++g_setHashCalls;
     return static_cast<unsigned int>(k.v);
@@ -152,7 +152,7 @@ struct PkSetElem
     inline static int s_copies = 0;
 };
 
-inline unsigned int qHash(const PkSetElem &e)
+inline unsigned int pkHash(const PkSetElem &e)
 {
     return static_cast<unsigned int>(e.v);
 }
@@ -643,7 +643,7 @@ void PkSetTest::moveLeavesSourceUsable()
 }
 
 // 自定义 qHash 经 ADL 命中。Krita 的真实样例就是
-// kis_paintop_lod_limitations.h：同一个文件里既定义 `uint qHash(const KoID &)`
+// kis_paintop_lod_limitations.h：同一个文件里既定义 `uint pkHash(const KoID &)`
 // 又声明 `QSet<KoID> limitations;`——这条链断了那个文件当场编不过。
 void PkSetTest::customQHashViaAdl()
 {
@@ -712,7 +712,7 @@ void PkSetTest::pkStringElement()
     // 相等的两个 PkString（不同实例）必须去重成一个 —— 哈希只看内容
     const PkString sameContent = PkString("alph") + PkString("a");
     PK_VERIFY(PkString("alpha") == sameContent);
-    PK_COMPARE(qHash(PkString("alpha")), qHash(sameContent));
+    PK_COMPARE(pkHash(PkString("alpha")), pkHash(sameContent));
     s.insert(sameContent);
     PK_COMPARE(s.size(), 2);
 

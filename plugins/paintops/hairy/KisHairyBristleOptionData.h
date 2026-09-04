@@ -17,10 +17,10 @@ struct KisHairyBristleOptionData : boost::equality_comparable<KisHairyBristleOpt
 {
     inline friend bool operator==(const KisHairyBristleOptionData &lhs, const KisHairyBristleOptionData &rhs) {
         return lhs.useMousePressure == rhs.useMousePressure
-            && qFuzzyCompare(lhs.scaleFactor, rhs.scaleFactor)
-            && qFuzzyCompare(lhs.randomFactor, rhs.randomFactor)
-            && qFuzzyCompare(lhs.shearFactor, rhs.shearFactor)
-            && qFuzzyCompare(lhs.densityFactor, rhs.densityFactor)
+            && pkQtFuzzyCompare(lhs.scaleFactor, rhs.scaleFactor)
+            && pkQtFuzzyCompare(lhs.randomFactor, rhs.randomFactor)
+            && pkQtFuzzyCompare(lhs.shearFactor, rhs.shearFactor)
+            && pkQtFuzzyCompare(lhs.densityFactor, rhs.densityFactor)
             && lhs.threshold == rhs.threshold
             && lhs.antialias == rhs.antialias
             && lhs.useCompositing == rhs.useCompositing

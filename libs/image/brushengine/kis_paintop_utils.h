@@ -129,8 +129,8 @@ public:
          * We use per-axis distance to avoid artifacts when using devices that
          * send events in a staircase way.
          */
-        const qreal distance = qMin(qAbs(pt.x() - m_second.x()), qAbs(pt.y() - m_second.y()));
-        const qreal coeff = qMin(1.0, distance / pointSwapThreshold);
+        const qreal distance = pkMin(pkAbs(pt.x() - m_second.x()), pkAbs(pt.y() - m_second.y()));
+        const qreal coeff = pkMin(1.0, distance / pointSwapThreshold);
 
         if (coeff > 1.0 - std::numeric_limits<qreal>::epsilon()) {
             result = m_second;

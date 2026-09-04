@@ -354,8 +354,8 @@ void KoResourceBundle::setThumbnail(PkImage image)
 {
     if (!image.isNull()) {
         m_thumbnail = image.scaled(PkSize(256, 256),
-                                   Qt::KeepAspectRatio,
-                                   Qt::SmoothTransformation);
+                                   Pk::KeepAspectRatio,
+                                   Pk::SmoothTransformation);
         return;
     }
     m_thumbnail = PkImage(256, 256, PkImage::Format_ARGB32);

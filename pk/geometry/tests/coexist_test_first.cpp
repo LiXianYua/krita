@@ -7,7 +7,7 @@
 //
 // ⚠ 本 TU 的 compat/QtGlobal 落在**匿名 namespace** 里（判据见 README「被污染的
 // include 与匿名 namespace」：带进来的只有函数式内容，所以必须落）。不这么做，
-// 本 TU 与 coexist_geometry_first 编出来的 `qAbs<double>` 会以弱符号发射、被链接器
+// 本 TU 与 coexist_geometry_first 编出来的 `pkAbs<double>` 会以弱符号发射、被链接器
 // 合并成一份，「每种 include 顺序各测一遍」当场变成「两个 TU 测同一份实现」。
 
 // —— 匿名 namespace 之外：本 TU 对外的接口，以及它带进来的全部系统头 ——

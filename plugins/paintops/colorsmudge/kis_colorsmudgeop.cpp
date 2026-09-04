@@ -129,7 +129,7 @@ KisColorSmudgeOp::KisColorSmudgeOp(const KisPaintOpSettingsSP settings, KisPaint
 
 KisColorSmudgeOp::~KisColorSmudgeOp()
 {
-    qDeleteAll(m_hsvOptions);
+    pkDeleteAll(m_hsvOptions);
     delete m_hsvTransform;
 }
 

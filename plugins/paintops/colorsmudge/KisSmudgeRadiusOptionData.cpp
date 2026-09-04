@@ -22,7 +22,7 @@ KisSmudgeRadiusOptionData::KisSmudgeRadiusOptionData()
         lengthData.read(setting);
 
         data->strengthMaxValue = lengthData.useNewEngine ? 1.0 : 3.0;
-        data->strengthValue = qMin(data->strengthValue, data->strengthMaxValue);
+        data->strengthValue = pkMin(data->strengthValue, data->strengthMaxValue);
     };
 
     valueFixUpWriteCallback = [] (qreal, KisPropertiesConfiguration *setting) {

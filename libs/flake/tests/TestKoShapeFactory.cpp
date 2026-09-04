@@ -6,7 +6,7 @@
 #include "TestKoShapeFactory.h"
 
 #include <simpletest.h>
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 #include <KoShapeLoadingContext.h>
 #include <KoPathShapeFactory.h>
@@ -17,7 +17,7 @@
 
 void TestKoShapeFactory::testCreateFactory()
 {
-    KoShapeFactoryBase * factory = new KoPathShapeFactory(QStringList());
+    KoShapeFactoryBase * factory = new KoPathShapeFactory(PkStringList());
     QVERIFY(factory != 0);
     delete factory;
 }
@@ -28,14 +28,14 @@ void TestKoShapeFactory::testSupportsQDomElement()
 
 void TestKoShapeFactory::testPriority()
 {
-    KoShapeFactoryBase * factory = new KoPathShapeFactory(QStringList());
+    KoShapeFactoryBase * factory = new KoPathShapeFactory(PkStringList());
     QVERIFY(factory->loadingPriority() == 0);
     delete factory;
 }
 
 void TestKoShapeFactory::testCreateDefaultShape()
 {
-    KoShapeFactoryBase * factory = new KoPathShapeFactory(QStringList());
+    KoShapeFactoryBase * factory = new KoPathShapeFactory(PkStringList());
     KoShape *shape = factory->createDefaultShape();
     QVERIFY(shape != 0);
     delete shape;
@@ -44,7 +44,7 @@ void TestKoShapeFactory::testCreateDefaultShape()
 
 void TestKoShapeFactory::testCreateShape()
 {
-    KoShapeFactoryBase * factory = new KoPathShapeFactory(QStringList());
+    KoShapeFactoryBase * factory = new KoPathShapeFactory(PkStringList());
     KoShape *shape = factory->createShape(0);
     QVERIFY(shape != 0);
     delete shape;

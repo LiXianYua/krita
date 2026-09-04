@@ -132,7 +132,7 @@ void roudTripHdrImage(const KoColorSpace *savingColorSpace)
         bool resultIsValid = true;
         float *resultPtr = reinterpret_cast<float*>(resultColor.data());
         for (int i = 0; i < 4; i++) {
-            resultIsValid &= qAbs(resultPtr[i] - pixelPtr[i]) < tolerance;
+            resultIsValid &= pkAbs(resultPtr[i] - pixelPtr[i]) < tolerance;
         }
 
         if (!resultIsValid) {

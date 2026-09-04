@@ -61,7 +61,7 @@ struct DefaultKoColorInitializer
         const KoColorSpace *defaultColorSpace = KoColorSpaceRegistry::instance()->rgb16(0);
         KIS_ASSERT(defaultColorSpace);
 
-        value = new KoColor(Qt::black, defaultColorSpace);
+        value = new KoColor(Pk::black, defaultColorSpace);
 #ifndef NODEBUG
 #ifndef QT_NO_DEBUG
         // warn about rather expensive checks in assertPermanentColorspace().

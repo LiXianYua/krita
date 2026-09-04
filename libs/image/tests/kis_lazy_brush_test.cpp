@@ -147,14 +147,14 @@ get(const ImageToCapacityMap<Graph> &map,
     const int y1 = tgt[1];
 
     const int k  = 2 * (map.m_image.width() + map.m_image.height());
-    const int maxDimension = qMax(map.m_image.width(), map.m_image.height());
+    const int maxDimension = pkMax(map.m_image.width(), map.m_image.height());
 
     //if (x0 <= 5 && x1 <= 5 && y0 == 0 && y1 ==0) return 255;
     //if (x0 >= 5 && x1 >= 5 && y0 == 8 && y1 ==8) return 255;
 
     //const QRgb *p0 = map.m_bits + y0 * map.m_rowStride + x0 * map.m_pixelSize;
     //const QRgb *p1 = map.m_bits + y1 * map.m_rowStride + x1 * map.m_pixelSize;
-    //float value = 255.0 - qAbs(qGray(*p0) - qGray(*p1));
+    //float value = 255.0 - pkAbs(qGray(*p0) - qGray(*p1));
 
     if ((!x0 && !y0) || (!x1 && !y1) ||
         (x0 == map.m_image.width() - 1 && y0 == map.m_image.height() - 1) ||
@@ -170,10 +170,10 @@ get(const ImageToCapacityMap<Graph> &map,
     const int i0 = map.m_intensities[x0 + y0 * map.m_image.width()];
     const int i1 = map.m_intensities[x1 + y1 * map.m_image.width()];
 
-    const int diff = qAbs(i0 - i1);
+    const int diff = pkAbs(i0 - i1);
     qreal normDiff = qreal(diff) / (map.m_maxIntensity - map.m_minIntensity);
 
-    float value = 1.0 + k * (1.0 - normDiff) + qMin(y0, y1);
+    float value = 1.0 + k * (1.0 - normDiff) + pkMin(y0, y1);
 
     qDebug() << x0 << y0 << "->" << x1 << y1 << value;//  << ppVar(normDiff);
 
@@ -747,7 +747,7 @@ public:
             Q_ASSERT(!srcLabelA && !srcLabelB);
 
             const int k  = 2 * (map.m_mainImage.width() + map.m_mainImage.height());
-            //const int maxDimension = qMax(map.m_mainImage.width(), map.m_mainImage.height());
+            //const int maxDimension = pkMax(map.m_mainImage.width(), map.m_mainImage.height());
 
             float value = 0.0;
 
@@ -784,7 +784,7 @@ public:
                 const int i0 = map.m_intensities[(src.x - xOffset) + (src.y - xOffset) * map.m_mainImage.width()];
                 const int i1 = map.m_intensities[(dst.x - xOffset) + (dst.y - yOffset) * map.m_mainImage.width()];
 
-                const int diff = qAbs(i0 - i1);
+                const int diff = pkAbs(i0 - i1);
                 qreal normDiff = qreal(diff) / (map.m_maxIntensity - map.m_minIntensity);
 
                 value = 1.0 + k * (1.0 - normDiff);
@@ -1319,15 +1319,15 @@ void KisLazyBrushTest::testEstimateTransparentPixels()
 
     dev->fill(QRect(0,0,25,50), KoColor(Qt::red, dev->colorSpace()));
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);
-    QVERIFY(qAbs(value - 0.75) < 0.05);
+    QVERIFY(pkAbs(value - 0.75) < 0.05);
 
     dev->fill(QRect(25,0,25,50), KoColor(Qt::green, dev->colorSpace()));
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);
-    QVERIFY(qAbs(value - 0.5) < 0.05);
+    QVERIFY(pkAbs(value - 0.5) < 0.05);
 
     dev->fill(QRect(25,50,25,50), KoColor(Qt::blue, dev->colorSpace()));
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);
-    QVERIFY(qAbs(value - 0.25) < 0.05);
+    QVERIFY(pkAbs(value - 0.25) < 0.05);
 
     dev->fill(QRect(0,50,25,50), KoColor(Qt::blue, dev->colorSpace()));
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);

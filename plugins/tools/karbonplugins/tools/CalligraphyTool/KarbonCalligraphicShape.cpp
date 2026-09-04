@@ -202,7 +202,7 @@ void KarbonCalligraphicShape::smoothPoint(const int index)
     PkPointF vector = next - prev;
     qreal dist = (PkLineF(prev, next)).length();
     // normalize the vector (make it's size equal to 1)
-    if (!qFuzzyCompare(dist + 1, 1)) {
+    if (!pkQtFuzzyCompare(dist + 1, 1)) {
         vector /= dist;
     }
     qreal mult = 0.35; // found by trial and error, might not be perfect...
@@ -399,7 +399,7 @@ void KarbonCalligraphicShape::simplifyGuidePath()
         qreal width = i->width();
         qreal prevWidth = std::prev(i)->width();
         qreal widthDiff = width - prevWidth;
-        widthDiff /= qMax(width, prevWidth);
+        widthDiff /= pkMax(width, prevWidth);
 
         qreal directionDiff = 0;
         if (std::next(i) != s->points.end()) {
@@ -413,9 +413,9 @@ void KarbonCalligraphicShape::simplifyGuidePath()
         }
 
         if (directionChange * directionDiff >= 0 &&
-                qAbs(directionChange + directionDiff) < 20 &&
+                pkAbs(directionChange + directionDiff) < 20 &&
                 widthChange * widthDiff >= 0 &&
-                qAbs(widthChange + widthDiff) < 0.1) {
+                pkAbs(widthChange + widthDiff) < 0.1) {
             // deleted point
             i = s->points.erase(i);
             directionChange += directionDiff;

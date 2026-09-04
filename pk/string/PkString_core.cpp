@@ -12,6 +12,16 @@ PkString::PkString(const char* utf8)
 {
 }
 
+PkString::PkString(char ch)
+{
+    _data().push_back(static_cast<char16_t>(static_cast<unsigned char>(ch)));
+}
+
+PkString::PkString(char16_t ch)
+{
+    _data().push_back(ch);
+}
+
 PkString::PkString(const PkString& other) = default;
 PkString::PkString(PkString&& other) noexcept = default;
 PkString::~PkString() = default;
@@ -118,4 +128,21 @@ PkString PkString::PkFromUtf8(const char* s, int len)
 bool PkString::PkIsSharedWith(const PkString& other) const
 {
     return _d.PkIsSharedWith(other._d);
+}
+
+PkString PkString::fromUtf8(const char* s)
+{
+    return PkFromUtf8(s, s != nullptr ? static_cast<int>(std::strlen(s)) : 0);
+}
+
+PkString PkString::fromUtf16(const char16_t* s, int len)
+{
+    PkString r;
+    const std::size_t n = (len < 0)
+        ? (s != nullptr ? std::char_traits<char16_t>::length(s) : 0)
+        : static_cast<std::size_t>(len);
+    if (s != nullptr && n > 0) {
+        r._data().assign(s, s + n);
+    }
+    return r;
 }

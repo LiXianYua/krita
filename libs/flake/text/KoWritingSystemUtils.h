@@ -9,25 +9,31 @@
 #include <QFontDatabase>
 #include <QLocale>
 #include <kritaflake_export.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkMap.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkStringList.h>
 /**
  * @brief The KoScriptUtils class
  *
  * Collection of utility functions to wrangle the different
- * script and writing system enums in QFontDataBase, QLocale and QChar and ISO 15924 tags
+ * script and writing system enums in QFontDataBase, QLocale and char16_t and ISO 15924 tags
  */
 
 class KRITAFLAKE_EXPORT KoWritingSystemUtils
 {
 public:
-    static QString scriptTagForWritingSystem(QFontDatabase::WritingSystem system);
-    static QFontDatabase::WritingSystem writingSystemForScriptTag(const QString &tag);
+    static PkString scriptTagForWritingSystem(QFontDatabase::WritingSystem system);
+    static QFontDatabase::WritingSystem writingSystemForScriptTag(const PkString &tag);
 
     // Qt6 has a function to get the ISO 15924 for the QLocale::Script, but we're not qt 6 yet...
-    static QString scriptTagForQLocaleScript(QLocale::Script script);
-    static QLocale::Script scriptForScriptTag(const QString &tag);
+    static PkString scriptTagForQLocaleScript(QLocale::Script script);
+    static QLocale::Script scriptForScriptTag(const PkString &tag);
 
-    static QString scriptTagForQCharScript(QChar::Script script);
-    static QChar::Script qCharScriptForScriptTag(const QString &tag);
+    static PkString scriptTagForQCharScript(char16_t::Script script);
+    static char16_t::Script qCharScriptForScriptTag(const PkString &tag);
 
     /**
      * This returns a map of samples and an associated tag. Note that the Sample is the first entry, the tag the second.
@@ -35,9 +41,9 @@ public:
      * String it is stored with is s_<ISO 15924> tag for scripts and l_<BCP 47 Language> tag for languages.
      * This way we can have samples per language as is useful for vietnamese.
      */
-    static QMap<QString, QString> samples();
+    static PkMap<PkString, PkString> samples();
 
-    static QString sampleTagForQLocale(const QLocale &locale);
+    static PkString sampleTagForQLocale(const QLocale &locale);
 
     /**
      * @brief The Bcp47Locale class
@@ -48,26 +54,26 @@ public:
      * @see ietf rfc5646
      */
     struct KRITAFLAKE_EXPORT Bcp47Locale {
-        QStringList languageTags;
-        QString scriptTag;
-        QString regionTag;
-        QStringList variantTags;
-        QStringList extensionTags;
-        QStringList privateUseTags;
+        PkStringList languageTags;
+        PkString scriptTag;
+        PkString regionTag;
+        PkStringList variantTags;
+        PkStringList extensionTags;
+        PkStringList privateUseTags;
 
         bool isValid() const;
-        QString toPosixLocaleFormat() const;
-        QString toString() const;
+        PkString toPosixLocaleFormat() const;
+        PkString toString() const;
     };
 
     // Parse a BCP 47 string into a locale;
-    static Bcp47Locale parseBcp47Locale(const QString &locale);
+    static Bcp47Locale parseBcp47Locale(const PkString &locale);
 
     // Return a QLocale for a bcp 47 locale struct.
     static QLocale localeFromBcp47Locale(const Bcp47Locale &locale);
 
     // Return a QLocale by parsing a BCP 47 string into a struct and constructing the QLocale from that.
-    static QLocale localeFromBcp47Locale(const QString &locale);
+    static QLocale localeFromBcp47Locale(const PkString &locale);
 };
 
 #endif // KOWRITINGSYSTEMUTILS_H

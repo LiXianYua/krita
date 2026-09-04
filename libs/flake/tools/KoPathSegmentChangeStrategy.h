@@ -10,7 +10,7 @@
 #include "KoInteractionStrategy.h"
 #include "KoPathSegment.h"
 #include "KoPathPointData.h"
-#include <QPointF>
+#include <PkPoint.h>
 
 class KoPathTool;
 class KoPathShape;
@@ -21,24 +21,24 @@ class KoPathShape;
 class KoPathSegmentChangeStrategy : public KoInteractionStrategy
 {
 public:
-    KoPathSegmentChangeStrategy(KoPathTool *tool, const QPointF &pos, const KoPathPointData &segment, qreal segmentParam);
+    KoPathSegmentChangeStrategy(KoPathTool *tool, const PkPointF &pos, const KoPathPointData &segment, qreal segmentParam);
     ~KoPathSegmentChangeStrategy() override;
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
 
 private:
-    QPointF m_originalPosition;
-    QPointF m_lastPosition;
+    PkPointF m_originalPosition;
+    PkPointF m_lastPosition;
     /// the accumulated point move amount
-    QPointF m_move;
+    PkPointF m_move;
     /// pointer to the path tool
     KoPathTool *m_tool;
     KoPathShape *m_path;
     KoPathSegment m_segment;
     qreal m_segmentParam;
-    QPointF m_ctrlPoint1Move;
-    QPointF m_ctrlPoint2Move;
+    PkPointF m_ctrlPoint1Move;
+    PkPointF m_ctrlPoint2Move;
     KoPathPointData m_pointData1;
     KoPathPointData m_pointData2;
     int m_originalSegmentDegree;

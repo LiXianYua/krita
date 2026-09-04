@@ -29,12 +29,12 @@ public:
      * The rectangle is normalized and immutable.
      * @return a rectangle in pt.
      */
-    QRectF selectedRect() const {
+    PkRectF selectedRect() const {
         return selectRect.normalized();
     }
 
-    QRectF selectRect;
-    QPointF lastPos;
+    PkRectF selectRect;
+    PkPointF lastPos;
     KoSnapGuide *snapGuide;
 };
 

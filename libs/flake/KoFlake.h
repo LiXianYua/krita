@@ -10,13 +10,13 @@
 
 #include "kritaflake_export.h"
 
-class QGradient;
-class QRectF;
-class QPointF;
-class QSizeF;
+class PkGradient;
+class PkRectF;
+class PkPointF;
+class PkSizeF;
 
 class KoShape;
-class QTransform;
+class PkTransform;
 
 #include <Qt>
 
@@ -96,16 +96,16 @@ namespace KoFlake
         NumAnchorPositions
     };
 
-    KRITAFLAKE_EXPORT QPointF anchorToPoint(AnchorPosition anchor, const QRectF rect, bool *valid = 0);
+    KRITAFLAKE_EXPORT PkPointF anchorToPoint(AnchorPosition anchor, const PkRectF rect, bool *valid = 0);
 
     enum CanvasResource {
         HotPosition = 1410100299
     };
 
     /// clones the given gradient
-    KRITAFLAKE_EXPORT QGradient *cloneGradient(const QGradient *gradient);
+    KRITAFLAKE_EXPORT PkGradient *cloneGradient(const PkGradient *gradient);
 
-    KRITAFLAKE_EXPORT QGradient *mergeGradient(const QGradient *coordsSource, const QGradient *fillSource);
+    KRITAFLAKE_EXPORT PkGradient *mergeGradient(const PkGradient *coordsSource, const PkGradient *fillSource);
 
     /**
      * Convert absolute to relative position
@@ -115,7 +115,7 @@ namespace KoFlake
      *
      * @return relative position
      */
-    KRITAFLAKE_EXPORT QPointF toRelative(const QPointF &absolute, const QSizeF &size);
+    KRITAFLAKE_EXPORT PkPointF toRelative(const PkPointF &absolute, const PkSizeF &size);
 
     /**
      * Convert relative size to absolute size
@@ -125,26 +125,26 @@ namespace KoFlake
      *
      * @return absolute position
      */
-    KRITAFLAKE_EXPORT QPointF toAbsolute(const QPointF &relative, const QSizeF &size);
+    KRITAFLAKE_EXPORT PkPointF toAbsolute(const PkPointF &relative, const PkSizeF &size);
 
     KRITAFLAKE_EXPORT Qt::Orientation significantScaleOrientation(qreal scaleX, qreal scaleY);
 
     KRITAFLAKE_EXPORT void scaleShape(KoShape *shape, qreal scaleX, qreal scaleY,
-                                      const QPointF &absoluteStillPoint,
-                                      const QTransform &postScalingCoveringTransform);
+                                      const PkPointF &absoluteStillPoint,
+                                      const PkTransform &postScalingCoveringTransform);
 
     KRITAFLAKE_EXPORT void scaleShapeGlobal(KoShape *shape, qreal scaleX, qreal scaleY,
-                          const QPointF &absoluteStillPoint);
+                          const PkPointF &absoluteStillPoint);
 
 
     KRITAFLAKE_EXPORT void resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
-                              const QPointF &absoluteStillPoint,
+                              const PkPointF &absoluteStillPoint,
                               bool useGlobalMode);
 
     KRITAFLAKE_EXPORT void resizeShapeCommon(KoShape *shape, qreal scaleX, qreal scaleY,
-                                       const QPointF &absoluteStillPoint,
+                                       const PkPointF &absoluteStillPoint,
                                        bool useGlobalMode,
-                                       bool usePostScaling, const QTransform &postScalingCoveringTransform);
+                                       bool usePostScaling, const PkTransform &postScalingCoveringTransform);
 }
 
 #endif

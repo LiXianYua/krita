@@ -453,7 +453,7 @@ qreal KisPaintInformation::maxPressure() const
         return d->pressure;
     }
 
-    return qMax(d->directionHistoryInfo->lastMaxPressure, d->pressure);
+    return pkMax(d->directionHistoryInfo->lastMaxPressure, d->pressure);
 }
 
 qreal KisPaintInformation::drawingSpeed() const
@@ -658,7 +658,7 @@ qreal KisPaintInformation::tiltDirection(const KisPaintInformation& info, bool n
     // radians -PI, PI
     qreal tiltDirection = 0.0;
 
-    if (qFuzzyIsNull(xTilt) && qFuzzyIsNull(yTilt)) {
+    if (pkQtFuzzyIsNull(xTilt) && pkQtFuzzyIsNull(yTilt)) {
         /**
          * When the stylus is in fully vertical position, stick it
          * to a "neutral position", which is a 3 o'clock tilt of the stylus
@@ -672,7 +672,7 @@ qreal KisPaintInformation::tiltDirection(const KisPaintInformation& info, bool n
         tiltDirection = atan2(-xTilt, yTilt);
     }
 
-    if (!qFuzzyIsNull(info.d->tiltDirectionOffset)) {
+    if (!pkQtFuzzyIsNull(info.d->tiltDirectionOffset)) {
         tiltDirection += kisDegreesToRadians(info.d->tiltDirectionOffset);
         // ensure we stay in the -PI, PI range
         if (tiltDirection < -M_PI) {
@@ -688,8 +688,8 @@ qreal KisPaintInformation::tiltDirection(const KisPaintInformation& info, bool n
 
 qreal KisPaintInformation::tiltElevation(const KisPaintInformation& info, qreal maxTiltX, qreal maxTiltY, bool normalize)
 {
-    qreal xTilt = qBound(qreal(-1.0), info.xTilt() / maxTiltX , qreal(1.0));
-    qreal yTilt = qBound(qreal(-1.0), info.yTilt() / maxTiltY , qreal(1.0));
+    qreal xTilt = pkBound(qreal(-1.0), info.xTilt() / maxTiltX , qreal(1.0));
+    qreal yTilt = pkBound(qreal(-1.0), info.yTilt() / maxTiltY , qreal(1.0));
 
     qreal e;
     if (fabs(xTilt) > fabs(yTilt)) {

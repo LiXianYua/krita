@@ -28,9 +28,9 @@ inline void possiblyFixNegativeValuesNearZeroPoint(float& dstR, float& dstG, flo
      * channel is not of an integer type
      */
     if constexpr (!std::numeric_limits<channels_type>::is_integer) {
-        dstR = qMax(dstR, 0.0f);
-        dstG = qMax(dstG, 0.0f);
-        dstB = qMax(dstB, 0.0f);
+        dstR = pkMax(dstR, 0.0f);
+        dstG = pkMax(dstG, 0.0f);
+        dstB = pkMax(dstB, 0.0f);
     }
 }
 
@@ -43,9 +43,9 @@ inline void possiblyClampValuesToSDR(float& dstR, float& dstG, float& dstB)
      * and is not going to be clamped later.
      */
     if constexpr (!std::numeric_limits<channels_type>::is_integer) {
-        dstR = qBound(0.0f, dstR, 1.0f);
-        dstG = qBound(0.0f, dstG, 1.0f);
-        dstB = qBound(0.0f, dstB, 1.0f);
+        dstR = pkBound(0.0f, dstR, 1.0f);
+        dstG = pkBound(0.0f, dstG, 1.0f);
+        dstB = pkBound(0.0f, dstB, 1.0f);
     }
 }
 }
@@ -576,8 +576,8 @@ struct CFPinLight : KoClampedSourceAndDestinationCompositeOpGenericFunctorBase<T
         // TODO: verify that the formula is correct (the first max would be useless here)
         // max(0, max(2*src-1, min(dst, 2*src)))
         composite_type src2 = composite_type(src) + src;
-        composite_type a    = qMin<composite_type>(dst, src2);
-        composite_type b    = qMax<composite_type>(src2-Arithmetic::unitValue<T>(), a);
+        composite_type a    = pkMin<composite_type>(dst, src2);
+        composite_type b    = pkMax<composite_type>(src2-Arithmetic::unitValue<T>(), a);
 
         /**
          * `b` is guaranteed to be in range 0...1 since the inputs are clamped,
@@ -639,7 +639,7 @@ struct CFEquivalence : KoClampedSourceAndDestinationBottomCompositeOpGenericFunc
         typedef typename KoColorSpaceMathsTraits<T>::compositetype composite_type;
         // TODO: is the formula correct?
         // 1 - abs(dst - src)
-        composite_type x = qAbs(composite_type(dst) - src);
+        composite_type x = pkAbs(composite_type(dst) - src);
         return clamp<T>(x);
     }
 };
@@ -715,7 +715,7 @@ struct CFAdditiveSubtractive : KoClampedSourceAndDestinationBottomCompositeOpGen
 
         // min(1,max(0,abs(sqr(CB)-sqr(CT))))
         qreal x = sqrt(scale<qreal>(dst)) - sqrt(scale<qreal>(src));
-        return scale<T>(qAbs(x));
+        return scale<T>(pkAbs(x));
     }
 };
 
@@ -837,16 +837,16 @@ struct CFHardOverlay : KoClampedSourceFullAndDestinationBottomCompositeOpGeneric
 };
 
 template<class T>
-inline T cfDifference(T src, T dst) { return qMax(src,dst) - qMin(src,dst); }
+inline T cfDifference(T src, T dst) { return pkMax(src,dst) - pkMin(src,dst); }
 
 template<class T>
 inline T cfScreen(T src, T dst) { return Arithmetic::unionShapeOpacity(src, dst); }
 
 template<class T>
-inline T cfDarkenOnly(T src, T dst) { return qMin(src, dst); }
+inline T cfDarkenOnly(T src, T dst) { return pkMin(src, dst); }
 
 template<class T>
-inline T cfLightenOnly(T src, T dst) { return qMax(src, dst); }
+inline T cfLightenOnly(T src, T dst) { return pkMax(src, dst); }
 
 template<class T>
 inline T cfGlow(T src, T dst) {

@@ -782,7 +782,7 @@ void KisKeyframingTest::testScalarValueInterpolation()
         keyB->setInterpolationTangents(QPointF(-4,2), QPointF());
 
         QVERIFY(keyA->interpolationMode() == KisScalarKeyframe::Bezier);
-        QVERIFY(qAbs(channel->valueAt(timeA + 4) - 24.9812f) < 0.1f);
+        QVERIFY(pkAbs(channel->valueAt(timeA + 4) - 24.9812f) < 0.1f);
         QVERIFY(channel->valueAt(timeA) == valueA);
     }
 
@@ -796,7 +796,7 @@ void KisKeyframingTest::testScalarValueInterpolation()
         keyA->setInterpolationTangents(QPointF(), QPointF(13,10));
         keyB->setInterpolationTangents(QPointF(-13,10), QPointF());
 
-        QVERIFY(qAbs(channel->valueAt(timeA + 5) - 20.769f) < 0.1f);
+        QVERIFY(pkAbs(channel->valueAt(timeA + 5) - 20.769f) < 0.1f);
     }
 
     {   // Bezier, result outside allowed range (clamp)

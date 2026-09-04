@@ -11,7 +11,7 @@
 
 struct KoFontChangeTracker::Private {
 
-    Private(QStringList paths = QStringList())
+    Private(PkStringList paths = PkStringList())
         : fileSystemWatcher(paths) {
 
     }
@@ -21,7 +21,7 @@ struct KoFontChangeTracker::Private {
     bool configStale = false;
 };
 
-KoFontChangeTracker::KoFontChangeTracker(QStringList paths, QObject *parent)
+KoFontChangeTracker::KoFontChangeTracker(PkStringList paths, QObject *parent)
     : QObject(parent)
     , d(new Private(paths))
 {

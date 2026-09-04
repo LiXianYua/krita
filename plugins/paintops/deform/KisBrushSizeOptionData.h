@@ -15,13 +15,13 @@ class KisPropertiesConfiguration;
 struct KisBrushSizeOptionData : boost::equality_comparable<KisBrushSizeOptionData>
 {
     inline friend bool operator==(const KisBrushSizeOptionData &lhs, const KisBrushSizeOptionData &rhs) {
-        return qFuzzyCompare(lhs.brushDiameter, rhs.brushDiameter)
-            && qFuzzyCompare(lhs.brushAspect, rhs.brushAspect)
-            && qFuzzyCompare(lhs.brushRotation, rhs.brushRotation)
-            && qFuzzyCompare(lhs.brushScale, rhs.brushScale)
-            && qFuzzyCompare(lhs.brushSpacing, rhs.brushSpacing)
-            && qFuzzyCompare(lhs.brushDensity, rhs.brushDensity)
-            && qFuzzyCompare(lhs.brushJitterMovement, rhs.brushJitterMovement)
+        return pkQtFuzzyCompare(lhs.brushDiameter, rhs.brushDiameter)
+            && pkQtFuzzyCompare(lhs.brushAspect, rhs.brushAspect)
+            && pkQtFuzzyCompare(lhs.brushRotation, rhs.brushRotation)
+            && pkQtFuzzyCompare(lhs.brushScale, rhs.brushScale)
+            && pkQtFuzzyCompare(lhs.brushSpacing, rhs.brushSpacing)
+            && pkQtFuzzyCompare(lhs.brushDensity, rhs.brushDensity)
+            && pkQtFuzzyCompare(lhs.brushJitterMovement, rhs.brushJitterMovement)
             && lhs.brushJitterMovementEnabled == rhs.brushJitterMovementEnabled;
     }
 

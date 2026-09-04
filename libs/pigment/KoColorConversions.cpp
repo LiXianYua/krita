@@ -131,8 +131,8 @@ void hsv_to_rgb(int H, int S, int V, int *R, int *G, int *B)
 
 void RGBToHSV(float r, float g, float b, float *h, float *s, float *v)
 {
-    float max = qMax(r, qMax(g, b));
-    float min = qMin(r, qMin(g, b));
+    float max = pkMax(r, pkMax(g, b));
+    float min = pkMin(r, pkMin(g, b));
 
     *v = max;
 
@@ -231,11 +231,11 @@ void rgb_to_hls(quint8 red, quint8 green, quint8 blue, float * hue, float * ligh
 
     float max, min, delta;
 
-    max = qMax(r, g);
-    max = qMax(max, b);
+    max = pkMax(r, g);
+    max = pkMax(max, b);
 
-    min = qMin(r, g);
-    min = qMin(min, b);
+    min = pkMin(r, g);
+    min = pkMin(min, b);
 
     delta = max - min;
 
@@ -339,10 +339,10 @@ void RGBToHSL(float r, float g, float b, float *h, float *s, float *l)
     float vm;
     float r2, g2, b2;
 
-    v = qMax(r, g);
-    v = qMax(v, b);
-    m = qMin(r, g);
-    m = qMin(m, b);
+    v = pkMax(r, g);
+    v = pkMax(v, b);
+    m = pkMin(r, g);
+    m = pkMin(m, b);
 
     if ((*l = (m + v) / 2.0) <= 0.0) {
         *h = UNDEFINED_HUE;
@@ -547,8 +547,8 @@ void RGBToHSY(const qreal r,const qreal g,const qreal b, qreal *h, qreal *s, qre
     if (g<0.0){green=0.0;} else {green=g;}
     if (b<0.0){blue=0.0;} else {blue=b;}
 
-    qreal minval = qMin(r, qMin(g, b));
-    qreal maxval = qMax(r, qMax(g, b));
+    qreal minval = pkMin(r, pkMin(g, b));
+    qreal maxval = pkMax(r, pkMax(g, b));
     qreal hue = 0.0;
     qreal sat = 0.0;
     qreal luma = 0.0;
@@ -672,8 +672,8 @@ void HCIToRGB(const qreal h, const qreal c, const qreal i, qreal *red, qreal *gr
 
 void RGBToHCI(const qreal r,const qreal g,const qreal b, qreal *h, qreal *c, qreal *i)
 {
-    qreal minval = qMin(r, qMin(g, b));
-    qreal maxval = qMax(r, qMax(g, b));
+    qreal minval = pkMin(r, pkMin(g, b));
+    qreal maxval = pkMax(r, pkMax(g, b));
     qreal hue = 0.0;
     qreal sat = 0.0;
     qreal intensity = 0.0;
@@ -738,8 +738,8 @@ void HCYToRGB(const qreal h, const qreal c, const qreal y, qreal *red, qreal *gr
 
 void RGBToHCY(const qreal r,const qreal g,const qreal b, qreal *h, qreal *c, qreal *y, qreal R, qreal G, qreal B)
 {
-    qreal minval = qMin(r, qMin(g, b));
-    qreal maxval = qMax(r, qMax(g, b));
+    qreal minval = pkMin(r, pkMin(g, b));
+    qreal maxval = pkMax(r, pkMax(g, b));
     qreal hue = 0.0;
     qreal chroma = 0.0;
     qreal luma = 0.0;
@@ -774,7 +774,7 @@ void RGBToHCY(const qreal r,const qreal g,const qreal b, qreal *h, qreal *c, qre
     if (chroma<0.0){chroma=0.0;}
     if (luma<0.0){luma=0.0;}
 
-    *h=qBound(0.0,hue,1.0);
+    *h=pkBound(0.0,hue,1.0);
     *c=chroma;
     *y=luma;
 
@@ -786,15 +786,15 @@ void RGBToYUV(const qreal r,const qreal g,const qreal b, qreal *y, qreal *u, qre
     qreal chromaBlue = uvmax*( (b - luma) / (1.0-B) );
     qreal chromaRed  = uvmax*( (r - luma) / (1.0-R) );
 
-    *y = luma; //qBound(0.0,luma,1.0);
-    *u = chromaBlue+uvmax;//qBound(0.0,chromaBlue+ uvmax,1.0);
-    *v = chromaRed+uvmax;//qBound(0.0,chromaRed + uvmax,1.0);
+    *y = luma; //pkBound(0.0,luma,1.0);
+    *u = chromaBlue+uvmax;//pkBound(0.0,chromaBlue+ uvmax,1.0);
+    *v = chromaRed+uvmax;//pkBound(0.0,chromaRed + uvmax,1.0);
 }
 void YUVToRGB(const qreal y, const qreal u, const qreal v, qreal *r, qreal *g, qreal *b, qreal R, qreal G, qreal B)
 {
     qreal uvmax = 0.5;
-    qreal chromaBlue = u-uvmax;//qBound(0.0,u,1.0)- uvmax;//put into -0.5-+0.5 range//
-    qreal chromaRed = v-uvmax;//qBound(0.0,v,1.0)- uvmax;
+    qreal chromaBlue = u-uvmax;//pkBound(0.0,u,1.0)- uvmax;//put into -0.5-+0.5 range//
+    qreal chromaRed = v-uvmax;//pkBound(0.0,v,1.0)- uvmax;
 
     qreal negB  = 1.0-B;
     qreal negR  = 1.0-R;
@@ -802,16 +802,16 @@ void YUVToRGB(const qreal y, const qreal u, const qreal v, qreal *r, qreal *g, q
     qreal green = y-(chromaBlue * ((B*negB) / (uvmax*G)) ) - (chromaRed* ((R*negR) / (uvmax*G)));
     qreal blue  = y+(chromaBlue * (negB / uvmax) );
 
-    *r=red;//qBound(0.0,red  ,1.0);
-    *g=green;//qBound(0.0,green,1.0);
-    *b=blue;//qBound(0.0,blue ,1.0);
+    *r=red;//pkBound(0.0,red  ,1.0);
+    *g=green;//pkBound(0.0,green,1.0);
+    *b=blue;//pkBound(0.0,blue ,1.0);
 }
 
 void LabToLCH(const qreal l, const qreal a, const qreal b, qreal *L, qreal *C, qreal *H)
 {
     qreal atemp =  (a - 0.5)*10.0;//the multiplication is only so that we get out of floating-point maths
     qreal btemp =  (b - 0.5)*10.0;
-    *L=qBound(0.0,l,1.0);
+    *L=pkBound(0.0,l,1.0);
     *C=sqrt( pow(atemp,2.0) + pow(btemp,2.0) )*0.1;
     qreal hue = (atan2(btemp,atemp))* 180.0 / M_PI;
     
@@ -825,9 +825,9 @@ void LabToLCH(const qreal l, const qreal a, const qreal b, qreal *L, qreal *C, q
 
 void LCHToLab(const qreal L, const qreal C, const qreal H, qreal *l, qreal *a, qreal *b)
 {
-    qreal chroma = qBound(0.0,C,1.0);
-    qreal hue = (qBound(0.0,H,1.0)*360.0)* M_PI / 180.0;
-    *l=qBound(0.0,L,1.0);
+    qreal chroma = pkBound(0.0,C,1.0);
+    qreal hue = (pkBound(0.0,H,1.0)*360.0)* M_PI / 180.0;
+    *l=pkBound(0.0,L,1.0);
     *a=(chroma * cos(hue) ) + 0.5;
     *b=(chroma * sin(hue) ) + 0.5;
 }
@@ -872,10 +872,10 @@ void CMYToCMYK(qreal *c, qreal *m, qreal *y, qreal *k)
         yellow  = ( yellow  - key ) / ( 1.0 - key );
     }
     
-    *c=qBound(0.0,cyan   ,1.0);
-    *m=qBound(0.0,magenta,1.0);
-    *y=qBound(0.0,yellow ,1.0);
-    *k=qBound(0.0,key    ,1.0);
+    *c=pkBound(0.0,cyan   ,1.0);
+    *m=pkBound(0.0,magenta,1.0);
+    *y=pkBound(0.0,yellow ,1.0);
+    *k=pkBound(0.0,key    ,1.0);
 }
 
 /*code from easyrgb.com*/
@@ -890,7 +890,7 @@ void CMYKToCMY(qreal *c, qreal *m, qreal *y, qreal *k)
     magenta = ( magenta * ( 1.0 - key ) + key );
     yellow  = ( yellow  * ( 1.0 - key ) + key );
     
-    *c=qBound(0.0,cyan   ,1.0);
-    *m=qBound(0.0,magenta,1.0);
-    *y=qBound(0.0,yellow ,1.0);
+    *c=pkBound(0.0,cyan   ,1.0);
+    *m=pkBound(0.0,magenta,1.0);
+    *y=pkBound(0.0,yellow ,1.0);
 }

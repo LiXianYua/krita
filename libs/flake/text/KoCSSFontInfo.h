@@ -7,7 +7,7 @@
 #define KOCSSFONTINFO_H
 
 #include <QFont>
-#include <QMap>
+#include <PkMap.h>
 #include <kritaflake_export.h>
 #include <boost/operators.hpp>
 
@@ -20,7 +20,7 @@
 
 struct KRITAFLAKE_EXPORT KoCSSFontInfo: public boost::equality_comparable<KoCSSFontInfo> {
 
-    QStringList families;
+    PkStringList families;
 
     double size = -1; /// < Size in Pt.
     bool automaticOpticalSizing = true;
@@ -32,10 +32,10 @@ struct KRITAFLAKE_EXPORT KoCSSFontInfo: public boost::equality_comparable<KoCSSF
     bool autoSlant = true;
     double slantValue = 0.0;
 
-    QMap<QString, double> axisSettings;
+    PkMap<PkString, double> axisSettings;
 
-    QMap<QString, double> computedAxisSettings() const {
-        QMap<QString, double> settings;
+    PkMap<PkString, double> computedAxisSettings() const {
+        PkMap<PkString, double> settings;
         settings.insert("wght", weight);
         settings.insert("wdth", width);
         if (automaticOpticalSizing) {

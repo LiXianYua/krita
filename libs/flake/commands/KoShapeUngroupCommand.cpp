@@ -58,7 +58,7 @@ void KoShapeUngroupCommand::redo()
     PkList<KoShape*> perspectiveSiblings;
 
     if (newParent) {
-        perspectiveSiblings = toPkList(newParent->shapes());
+        perspectiveSiblings = newParent->shapes();
         std::sort(perspectiveSiblings.begin(), perspectiveSiblings.end(), KoShape::compareShapeZIndex);
     } else {
         perspectiveSiblings = m_d->topLevelShapes;
@@ -79,13 +79,13 @@ void KoShapeUngroupCommand::redo()
 
     indexedSiblings = KoShapeReorderCommand::homogenizeZIndexesLazy(indexedSiblings);
 
-    const PkTransform ungroupTransform = toPkTransform(m_d->container->absoluteTransformation());
+    const PkTransform ungroupTransform = m_d->container->absoluteTransformation();
     for (auto it = m_d->shapes.begin(); it != m_d->shapes.end(); ++it) {
         KoShape *shape = *it;
         KIS_SAFE_ASSERT_RECOVER(shape->parent() == m_d->container) { continue; }
 
         shape->setParent(newParent);
-        shape->applyAbsoluteTransformation(toQTransform(ungroupTransform));
+        shape->applyAbsoluteTransformation(ungroupTransform);
     }
 
     if (!indexedSiblings.isEmpty()) {
@@ -96,12 +96,12 @@ void KoShapeUngroupCommand::redo()
 
 void KoShapeUngroupCommand::undo()
 {
-    const PkTransform groupTransform = toPkTransform(m_d->container->absoluteTransformation().inverted());
+    const PkTransform groupTransform = m_d->container->absoluteTransformation().inverted();
     for (auto it = m_d->shapes.begin(); it != m_d->shapes.end(); ++it) {
         KoShape *shape = *it;
 
         shape->setParent(m_d->container);
-        shape->applyAbsoluteTransformation(toQTransform(groupTransform));
+        shape->applyAbsoluteTransformation(groupTransform);
     }
 
     if (m_d->shapesReorderCommand) {

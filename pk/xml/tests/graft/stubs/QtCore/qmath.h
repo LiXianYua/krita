@@ -21,8 +21,8 @@
 // 与写占位一样，直接照 `<cmath>` 语义转发，不留假结果。
 using qreal = double;
 
-inline int qCeil(qreal v) { return int(std::ceil(v)); }
-inline int qFloor(qreal v) { return int(std::floor(v)); }
+inline int pkCeil(qreal v) { return int(std::ceil(v)); }
+inline int pkFloor(qreal v) { return int(std::floor(v)); }
 inline qreal qFabs(qreal v) { return std::fabs(v); }
 inline qreal qSin(qreal v) { return std::sin(v); }
 inline qreal qCos(qreal v) { return std::cos(v); }

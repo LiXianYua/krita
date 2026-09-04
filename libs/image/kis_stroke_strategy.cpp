@@ -167,7 +167,7 @@ void KisStrokeStrategy::setMutatedJobsInterface(KisStrokesQueueMutatedJobInterfa
 void KisStrokeStrategy::addMutatedJobs(const PkVector<KisStrokeJobData *> list)
 {
     KIS_SAFE_ASSERT_RECOVER(m_mutatedJobsInterface && m_strokeId) {
-        qDeleteAll(list);
+        pkDeleteAll(list);
         return;
     }
 

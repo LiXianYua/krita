@@ -16,13 +16,13 @@
 #include <simpletest.h>
 
 
-// QList<QTransform> → PkList<PkTransform>：KoShapeTransformCommand 收 Pk 变换表
-// （stripped 命令类），本测试 TU 真 Qt 头在前、构造 QList<QTransform>，逐点
+// PkList<PkTransform> → PkList<PkTransform>：KoShapeTransformCommand 收 Pk 变换表
+// （stripped 命令类），本测试 TU 真 Qt 头在前、构造 PkList<PkTransform>，逐点
 // toPkTransform 转（PkFlakeBridge）。flake 剥完（变换归 Pk）后本辅助连同调用点一起删。
-static PkList<PkTransform> toPkTransforms(const QList<QTransform> &transforms)
+static PkList<PkTransform> toPkTransforms(const PkList<PkTransform> &transforms)
 {
     PkList<PkTransform> out;
-    for (const QTransform &t : transforms) {
+    for (const PkTransform &t : transforms) {
         out.append(toPkTransform(t));
     }
     return out;
@@ -41,7 +41,7 @@ void TestShapeContainer::testModel()
     QCOMPARE(model->childChangedCalled(), 1);
     QCOMPARE(model->proposeMoveCalled(), 0);
 
-    shape1->setPosition(QPointF(300, 300));
+    shape1->setPosition(PkPointF(300, 300));
     QCOMPARE(model->containerChangedCalled(), 0);
     QCOMPARE(model->childChangedCalled(), 2);
     QCOMPARE(model->proposeMoveCalled(), 0);
@@ -51,18 +51,18 @@ void TestShapeContainer::testModel()
     QCOMPARE(model->childChangedCalled(), 3);
     QCOMPARE(model->proposeMoveCalled(), 0);
 
-    shape1->setAbsolutePosition(shape1->absolutePosition() + QPointF(10., 40.));
+    shape1->setAbsolutePosition(shape1->absolutePosition() + PkPointF(10., 40.));
     QCOMPARE(model->containerChangedCalled(), 0);
     QCOMPARE(model->childChangedCalled(), 5); // we get a generic Matrix as well as a position change...
     QCOMPARE(model->proposeMoveCalled(), 0);
 
-    shape1->setTransformation(QTransform());
+    shape1->setTransformation(PkTransform());
     QCOMPARE(model->containerChangedCalled(), 0);
     QCOMPARE(model->childChangedCalled(), 6);
     QCOMPARE(model->proposeMoveCalled(), 0);
 
     model->resetCounts();
-    container.setPosition(QPointF(30, 30));
+    container.setPosition(PkPointF(30, 30));
     QCOMPARE(model->containerChangedCalled(), 1);
     QCOMPARE(model->childChangedCalled(), 0);
     QCOMPARE(model->proposeMoveCalled(), 0);
@@ -112,13 +112,13 @@ void TestShapeContainer::testScaling()
     KoShape *shape1 = new MockShape();
     KoShape *shape2 = new MockShape();
 
-    shape1->setSize(QSizeF(10., 10.));
-    shape1->setPosition(QPointF(20., 20.));
+    shape1->setSize(PkSizeF(10., 10.));
+    shape1->setPosition(PkPointF(20., 20.));
 
-    shape2->setSize(QSizeF(30., 10.));
-    shape2->setPosition(QPointF(10., 40.));
+    shape2->setSize(PkSizeF(30., 10.));
+    shape2->setPosition(PkPointF(10., 40.));
 
-    QList<KoShape*> groupedShapes;
+    PkList<KoShape*> groupedShapes;
     groupedShapes.append(shape1);
     groupedShapes.append(shape2);
 
@@ -126,23 +126,23 @@ void TestShapeContainer::testScaling()
     KoShapeGroupCommand* groupCommand = KoShapeGroupCommand::createCommand(group, toPkList(groupedShapes));
     groupCommand->redo();
 
-    QList<KoShape*> transformShapes;
+    PkList<KoShape*> transformShapes;
     transformShapes.append(groupedShapes);
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(0.5, 0.5);
 
-    QList<QTransform> oldTransformations;
-    QList<QTransform> newTransformations;
+    PkList<PkTransform> oldTransformations;
+    PkList<PkTransform> newTransformations;
     Q_FOREACH (const KoShape* shape, transformShapes) {
-        QTransform oldTransform = shape->transformation();
+        PkTransform oldTransform = shape->transformation();
         oldTransformations.append(oldTransform);
-        QTransform globalTransform = shape->absoluteTransformation();
-        QTransform localTransform = globalTransform * matrix * globalTransform.inverted();
+        PkTransform globalTransform = shape->absoluteTransformation();
+        PkTransform localTransform = globalTransform * matrix * globalTransform.inverted();
         newTransformations.append(localTransform*oldTransform);
     }
 
-    QList<QPointF> oldPositions;
+    PkList<PkPointF> oldPositions;
     for(int i=0; i< transformShapes.size(); i++) {
         oldPositions.append(transformShapes.at(i)->absolutePosition(KoFlake::TopLeft));
     }
@@ -169,46 +169,46 @@ void TestShapeContainer::testScaling2()
     KoShape *shape1 = new MockShape();
     KoShape *shape2 = new MockShape();
 
-    shape1->setPosition(QPointF(20., 20.));
-    shape1->setSize(QSizeF(10., 10.));
+    shape1->setPosition(PkPointF(20., 20.));
+    shape1->setSize(PkSizeF(10., 10.));
 
-    shape2->setPosition(QPointF(10., 40.));
-    shape2->setSize(QSizeF(30., 10.));
+    shape2->setPosition(PkPointF(10., 40.));
+    shape2->setSize(PkSizeF(30., 10.));
 
-    QList<KoShape*> groupedShapes;
+    PkList<KoShape*> groupedShapes;
     groupedShapes.append(shape1);
     groupedShapes.append(shape2);
 
-    QScopedPointer<KoShapeGroup> group(new KoShapeGroup());
-    QScopedPointer<KoShapeGroupCommand> groupCommand(
+    PkScopedPointer<KoShapeGroup> group(new KoShapeGroup());
+    PkScopedPointer<KoShapeGroupCommand> groupCommand(
         KoShapeGroupCommand::createCommand(group.data(), toPkList(groupedShapes)));
     groupCommand->redo();
 
-    QScopedPointer<KoSelection> selection(new KoSelection());
+    PkScopedPointer<KoSelection> selection(new KoSelection());
 
     // the topmost shape is selected, not shape1!
     selection->select(shape1);
 
-    QList<KoShape*> transformShapes;
+    PkList<KoShape*> transformShapes;
     transformShapes.append(selection->selectedShapes());
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(0.5, 0.5);
 
-    QList<QTransform> oldTransformations;
-    QList<QTransform> newTransformations;
+    PkList<PkTransform> oldTransformations;
+    PkList<PkTransform> newTransformations;
     Q_FOREACH (const KoShape* shape, transformShapes) {
-        QTransform oldTransform = shape->transformation();
+        PkTransform oldTransform = shape->transformation();
         oldTransformations.append(oldTransform);
         newTransformations.append(oldTransform*matrix);
     }
 
-    QList<QPointF> oldPositions;
+    PkList<PkPointF> oldPositions;
     for(int i=0; i< transformShapes.size(); i++) {
         oldPositions.append(transformShapes.at(i)->absolutePosition(KoFlake::TopLeft));
     }
 
-    QScopedPointer<KoShapeTransformCommand> transformCommand(
+    PkScopedPointer<KoShapeTransformCommand> transformCommand(
         new KoShapeTransformCommand(toPkList(transformShapes), toPkTransforms(oldTransformations), toPkTransforms(newTransformations)));
     transformCommand->redo();
 

@@ -167,8 +167,8 @@ KisFixedPaintDeviceSP DeformBrush::paintMask(KisFixedPaintDeviceSP dab,
     qreal fWidth = maskWidth(scale);
     qreal fHeight = maskHeight(scale);
 
-    int dstWidth =  qRound(m_maskRect.width());
-    int dstHeight = qRound(m_maskRect.height());
+    int dstWidth =  pkRound(m_maskRect.width());
+    int dstHeight = pkRound(m_maskRect.height());
 
     // clear
     if (dab->bounds().width() != dstWidth || dab->bounds().height() != dstHeight) {
@@ -238,8 +238,8 @@ KisFixedPaintDeviceSP DeformBrush::paintMask(KisFixedPaintDeviceSP dab,
             maskY += pos.y();
 
             if (!m_properties->deformUseBilinear) {
-                maskX = qRound(maskX);
-                maskY = qRound(maskY);
+                maskX = pkRound(maskX);
+                maskY = pkRound(maskY);
             }
 
             if (m_properties->deformUseOldData) {

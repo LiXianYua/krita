@@ -18,7 +18,7 @@
 
 #include <kis_global.h>
 
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <QtMath>
 
 #include <utility>
@@ -35,19 +35,21 @@
 #include <hb-ft.h>
 
 #include <raqm.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkRgb.h>
 
 
-static QPainterPath convertFromFreeTypeOutline(FT_GlyphSlotRec *glyphSlot);
-static QImage convertFromFreeTypeBitmap(FT_GlyphSlotRec *glyphSlot);
+static PkPainterPath convertFromFreeTypeOutline(FT_GlyphSlotRec *glyphSlot);
+static PkImage convertFromFreeTypeBitmap(FT_GlyphSlotRec *glyphSlot);
 
-static QString glyphFormatToStr(const FT_Glyph_Format _v)
+static PkString glyphFormatToStr(const FT_Glyph_Format _v)
 {
     const unsigned int v = _v;
-    QString s;
-    s += QChar((v >> 24) & 0xFF);
-    s += QChar((v >> 16) & 0xFF);
-    s += QChar((v >> 8) & 0xFF);
-    s += QChar((v >> 0) & 0xFF);
+    PkString s;
+    s += char16_t((v >> 24) & 0xFF);
+    s += char16_t((v >> 16) & 0xFF);
+    s += char16_t((v >> 8) & 0xFF);
+    s += char16_t((v >> 0) & 0xFF);
     return s;
 }
 
@@ -144,15 +146,15 @@ bool faceIsItalic(const FT_Face face) {
  * @param currentGlyph
  * @param charResult
  * @param isHorizontal
- * @return std::pair<QTransform, QTransform> {outlineGlyphTf, glyphObliqueTf}
+ * @return std::pair<PkTransform, PkTransform> {outlineGlyphTf, glyphObliqueTf}
  */
-static std::pair<QTransform, QTransform> calcOutlineGlyphTransform(const QTransform &ftTF,
+static std::pair<PkTransform, PkTransform> calcOutlineGlyphTransform(const PkTransform &ftTF,
                                                                    const raqm_glyph_t &currentGlyph,
                                                                    const CharacterResult &charResult,
                                                                    const bool isHorizontal)
 {
-    QTransform outlineGlyphTf = QTransform::fromTranslate(currentGlyph.x_offset, currentGlyph.y_offset);
-    QTransform glyphObliqueTf;
+    PkTransform outlineGlyphTf = PkTransform::fromTranslate(currentGlyph.x_offset, currentGlyph.y_offset);
+    PkTransform glyphObliqueTf;
 
     // Check whether we need to synthesize italic by shearing the glyph:
     if (charResult.fontStyle != QFont::StyleNormal && !faceIsItalic(currentGlyph.ftface)) {
@@ -214,20 +216,20 @@ public:
      * @param faceLoadFlags
      * @param x_advance Pointer to the X advance to be adjusted if needed.
      * @param y_advance Pointer to the Y advance to be adjusted if needed.
-     * @return std::tuple<QPainterPath, QBrush, bool> {glyphOutline, layerColor, isForeGroundColor}
+     * @return std::tuple<PkPainterPath, QBrush, bool> {glyphOutline, layerColor, isForeGroundColor}
      */
-    std::tuple<QPainterPath, QBrush, bool>
+    std::tuple<PkPainterPath, QBrush, bool>
     layer(const CharacterResult &charResult, const FT_Int32 faceLoadFlags, int *x_advance, int *y_advance)
     {
         QBrush layerColor;
         bool isForeGroundColor = false;
 
         if (m_layerColorIndex == 0xFFFF) {
-            layerColor = Qt::black;
+            layerColor = Pk::black;
             isForeGroundColor = true;
         } else {
             const FT_Color color = m_palette[m_layerColorIndex];
-            layerColor = QColor(color.red, color.green, color.blue, color.alpha);
+            layerColor = PkColor(color.red, color.green, color.blue, color.alpha);
         }
         if (const FT_Error err = FT_Load_Glyph(m_face, m_layerGlyphIndex, faceLoadFlags)) {
             warnFlake << "Failed to load glyph, freetype error" << err;
@@ -237,7 +239,7 @@ public:
             // Check whether we need to synthesize bold by emboldening the glyph:
             emboldenGlyphIfNeeded(m_face, charResult, x_advance, y_advance);
 
-            const QPainterPath p = convertFromFreeTypeOutline(m_face->glyph);
+            const PkPainterPath p = convertFromFreeTypeOutline(m_face->glyph);
             return {p, layerColor, isForeGroundColor};
         } else {
             warnFlake << "Unsupported glyph format" << glyphFormatToStr(m_face->glyph->format) << "in glyph layers";
@@ -272,12 +274,12 @@ private:
 /**
  * @brief Load the glyph if possible. The glyph is loaded into `charResult.glyph`.
  *
- * @return std::pair<QTransform, qreal>
- *   - QTransform glyphObliqueTf - The matrix for Italic (oblique) synthesis.
+ * @return std::pair<PkTransform, qreal>
+ *   - PkTransform glyphObliqueTf - The matrix for Italic (oblique) synthesis.
  *   - qreal bitmapScale - The scaling factor for color bitmap glyphs, otherwise always 1.0
  */
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTransform &ftTF,
+std::pair<PkTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const PkTransform &ftTF,
                                                                     const FT_Int32 faceLoadFlags,
                                                                     const bool isHorizontal,
                                                                     raqm_glyph_t &currentGlyph,
@@ -286,7 +288,7 @@ std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTrans
 {
     /// The matrix for Italic (oblique) synthesis of outline glyphs, or for
     /// adjusting the bounding box of bitmap glyphs.
-    QTransform glyphObliqueTf;
+    PkTransform glyphObliqueTf;
 
     /// The scaling factor for color bitmap glyphs, otherwise always 1.0
     qreal bitmapScale = 1.0;
@@ -311,7 +313,7 @@ std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTrans
         }
 
         /// The combined offset * italic * ftTf transform for outline glyphs.
-        QTransform outlineGlyphTf;
+        PkTransform outlineGlyphTf;
 
         // Calculate the transforms
         std::tie(outlineGlyphTf, glyphObliqueTf) =
@@ -324,7 +326,7 @@ std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTrans
         do {
             new_x_advance = orig_x_advance;
             new_y_advance = orig_y_advance;
-            QPainterPath p;
+            PkPainterPath p;
             QBrush layerColor;
             bool isForeGroundColor = false;
             std::tie(p, layerColor, isForeGroundColor) = loader.layer(charResult, faceLoadFlags, &new_x_advance, &new_y_advance);
@@ -368,13 +370,13 @@ std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTrans
             }
 
             /// The combined offset * italic * ftTf transform for outline glyphs.
-            QTransform outlineGlyphTf;
+            PkTransform outlineGlyphTf;
 
             // Calculate the transforms
             std::tie(outlineGlyphTf, glyphObliqueTf) =
                 calcOutlineGlyphTransform(ftTF, currentGlyph, charResult, isHorizontal);
 
-            QPainterPath glyph = convertFromFreeTypeOutline(currentGlyph.ftface->glyph);
+            PkPainterPath glyph = convertFromFreeTypeOutline(currentGlyph.ftface->glyph);
             glyph = outlineGlyphTf.map(glyph);
 
             if (charResult.visualIndex > -1) {
@@ -387,7 +389,7 @@ std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTrans
                 outlineGlyph->path = glyph;
             }
         } else {
-            QTransform bitmapTf;
+            PkTransform bitmapTf;
 
             if (currentGlyph.ftface->glyph->format == FT_GLYPH_FORMAT_BITMAP) {
                 if (FT_HAS_COLOR(currentGlyph.ftface)) {
@@ -400,9 +402,9 @@ std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTrans
                     bitmapTf.setMatrix(matrix.xx * FACTOR_16, matrix.xy * FACTOR_16, 0, matrix.yx * FACTOR_16, matrix.yy * FACTOR_16, 0, 0, 0, 1);
                     KIS_SAFE_ASSERT_RECOVER_NOOP(bitmapTf.m11() == bitmapTf.m22());
                     bitmapScale = bitmapTf.m11();
-                    QPointF anchor(-currentGlyph.ftface->glyph->bitmap_left, currentGlyph.ftface->glyph->bitmap_top);
-                    bitmapTf = QTransform::fromTranslate(-anchor.x(), -anchor.y()) * bitmapTf
-                        * QTransform::fromTranslate(anchor.x(), anchor.y());
+                    PkPointF anchor(-currentGlyph.ftface->glyph->bitmap_left, currentGlyph.ftface->glyph->bitmap_top);
+                    bitmapTf = PkTransform::fromTranslate(-anchor.x(), -anchor.y()) * bitmapTf
+                        * PkTransform::fromTranslate(anchor.x(), anchor.y());
                 }
             } else if (currentGlyph.ftface->glyph->format == FT_GLYPH_FORMAT_SVG) {
                 debugFlake << "Unsupported glyph format" << glyphFormatToStr(currentGlyph.ftface->glyph->format);
@@ -428,7 +430,7 @@ std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTrans
                 bitmapGlyph = &charResult.glyph.emplace<Glyph::Bitmap>();
             }
 
-            QImage image = convertFromFreeTypeBitmap(currentGlyph.ftface->glyph);
+            PkImage image = convertFromFreeTypeBitmap(currentGlyph.ftface->glyph);
             bitmapGlyph->images.append(image);
 
             // Check whether we need to synthesize italic by shearing the glyph:
@@ -437,31 +439,31 @@ std::pair<QTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const QTrans
                 // Since we are dealing with a bitmap glyph, we'll just use a nice
                 // round floating point number.
                 constexpr double SLANT_BITMAP = 0.25;
-                QTransform shearTf;
-                QPoint shearAt;
+                PkTransform shearTf;
+                PkPoint shearAt;
                 if (isHorizontal) {
                     shearTf.shear(-SLANT_BITMAP, 0);
                     glyphObliqueTf.shear(SLANT_BITMAP, 0);
-                    shearAt = QPoint(0, currentGlyph.ftface->glyph->bitmap_top);
+                    shearAt = PkPoint(0, currentGlyph.ftface->glyph->bitmap_top);
                 } else {
                     shearTf.shear(0, SLANT_BITMAP);
                     glyphObliqueTf.shear(0, -SLANT_BITMAP);
-                    shearAt = QPoint(image.width() / 2, 0);
+                    shearAt = PkPoint(image.width() / 2, 0);
                 }
                 // We need to shear around the baseline, hence the translation.
-                bitmapTf = (QTransform::fromTranslate(-shearAt.x(), -shearAt.y()) * shearTf
-                    * QTransform::fromTranslate(shearAt.x(), shearAt.y())) * bitmapTf;
+                bitmapTf = (PkTransform::fromTranslate(-shearAt.x(), -shearAt.y()) * shearTf
+                    * PkTransform::fromTranslate(shearAt.x(), shearAt.y())) * bitmapTf;
             }
 
             if (!bitmapTf.isIdentity()) {
-                const QSize srcSize = image.size();
+                const PkSize srcSize = image.size();
                 bitmapGlyph->images.replace(bitmapGlyph->images.size()-1, std::move(image).transformed(
                     bitmapTf,
                     rendering == KoSvgText::RenderingOptimizeSpeed ? Qt::FastTransformation : Qt::SmoothTransformation));
 
-                // This does the same as `QImage::trueMatrix` to get the image
+                // This does the same as `PkImage::trueMatrix` to get the image
                 // offset after transforming.
-                const QPoint offset = bitmapTf.mapRect(QRectF({0, 0}, srcSize)).toAlignedRect().topLeft();
+                const PkPoint offset = bitmapTf.mapRect(PkRectF({0, 0}, srcSize)).toAlignedRect().topLeft();
                 currentGlyph.ftface->glyph->bitmap_left += offset.x();
                 currentGlyph.ftface->glyph->bitmap_top -= offset.y();
             }
@@ -483,13 +485,13 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
                                         const KoSvgText::TextRendering rendering,
                                         raqm_glyph_t &currentGlyph,
                                         CharacterResult &charResult,
-                                        QPointF &totalAdvanceFTFontCoordinates)
+                                        PkPointF &totalAdvanceFTFontCoordinates)
 {
-    const QTransform ftTF = resHandler.freeTypeToPointTransform();
+    const PkTransform ftTF = resHandler.freeTypeToPointTransform();
 
     /// The matrix for Italic (oblique) synthesis of outline glyphs, or for
     /// adjusting the bounding box of bitmap glyphs.
-    QTransform glyphObliqueTf;
+    PkTransform glyphObliqueTf;
 
     /// The scaling factor for color bitmap glyphs, otherwise always 1.0
     qreal bitmapScale = 1.0;
@@ -510,8 +512,8 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
                     offset = descender * slope;
                 }
             }
-            QLineF caret(QPointF(), QPointF(lineHeight*slope, lineHeight));
-            caret.translate(-QPointF(-offset, -descender));
+            PkLineF caret(PkPointF(), PkPointF(lineHeight*slope, lineHeight));
+            caret.translate(-PkPointF(-offset, -descender));
             cursorInfo.caret = ftTF.map(glyphObliqueTf.map(caret));
 
         } else {
@@ -522,8 +524,8 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
                     offset = descender * slope;
                 }
             }
-            QLineF caret(QPointF(), QPointF(lineHeight, lineHeight*slope));
-            caret.translate(-QPointF(-descender, -offset));
+            PkLineF caret(PkPointF(), PkPointF(lineHeight, lineHeight*slope));
+            caret.translate(-PkPointF(-descender, -offset));
             cursorInfo.caret = ftTF.map(glyphObliqueTf.map(caret));
         }
 
@@ -531,7 +533,7 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
     }
 
     {
-        QPointF advance(currentGlyph.x_advance, currentGlyph.y_advance);
+        PkPointF advance(currentGlyph.x_advance, currentGlyph.y_advance);
         if (charResult.tabSize) {
             charResult.glyph.emplace<Glyph::Outline>();
         }
@@ -539,12 +541,12 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
         if (std::holds_alternative<std::monostate>(charResult.glyph)) {
             // For whatever reason we don't have a glyph for this char. Draw a
             // tofu block for it.
-            const auto height = ftTF.map(QPointF(currentGlyph.ftface->size->metrics.height, 0)).x() * 0.6;
-            QPainterPath glyph = toQPainterPath(KisTofuGlyph::create(firstCodepoint, height));
+            const auto height = ftTF.map(PkPointF(currentGlyph.ftface->size->metrics.height, 0)).x() * 0.6;
+            PkPainterPath glyph = toQPainterPath(KisTofuGlyph::create(firstCodepoint, height));
             if (isHorizontal) {
                 glyph.translate(0, -height);
                 const qreal newAdvance =
-                    ftTF.inverted().map(QPointF(glyph.boundingRect().width() + height * (1. / 15.), 0)).x();
+                    ftTF.inverted().map(PkPointF(glyph.boundingRect().width() + height * (1. / 15.), 0)).x();
                 if (newAdvance > advance.x()) {
                     advance.setX(newAdvance);
                 }
@@ -563,38 +565,38 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
             const int height = bitmapGlyph->images.last().height();
             const int left = currentGlyph.ftface->glyph->bitmap_left;
             const int top = currentGlyph.ftface->glyph->bitmap_top - height;
-            QRect bboxPixel(left, top, width, height);
+            PkRect bboxPixel(left, top, width, height);
             if (!isHorizontal) {
                 bboxPixel.moveLeft(-(bboxPixel.width() / 2));
                 bboxPixel.moveTop(-bboxPixel.height());
             }
-            QRectF drawRect = ftTF.mapRect(QRectF(bboxPixel.topLeft() * resHandler.freeTypePixel, bboxPixel.size() * resHandler.freeTypePixel));
+            PkRectF drawRect = ftTF.mapRect(PkRectF(bboxPixel.topLeft() * resHandler.freeTypePixel, bboxPixel.size() * resHandler.freeTypePixel));
             drawRect.translate(charResult.advance - ftTF.map(advance));
             bitmapGlyph->drawRects.append(drawRect);
         }
 
-        QRectF bbox;
+        PkRectF bbox;
         if (isHorizontal) {
-            bbox = QRectF(0,
+            bbox = PkRectF(0,
                           charResult.metrics.descender * bitmapScale,
                           ftTF.inverted().map(charResult.advance).x(),
                           (charResult.metrics.ascender - charResult.metrics.descender) * bitmapScale);
 
         } else {
-            bbox = QRectF(charResult.metrics.descender * bitmapScale,
+            bbox = PkRectF(charResult.metrics.descender * bitmapScale,
                           0,
                           (charResult.metrics.ascender - charResult.metrics.descender) * bitmapScale,
                           ftTF.inverted().map(charResult.advance).y());
         }
         bbox = glyphObliqueTf.mapRect(bbox);
         charResult.isHorizontal = isHorizontal;
-        QRectF scaledBBox = resHandler.adjust(ftTF.mapRect(bbox));
-        charResult.scaledHalfLeading = resHandler.adjust(ftTF.map(QPointF(charResult.fontHalfLeading, charResult.fontHalfLeading))).x();
+        PkRectF scaledBBox = resHandler.adjust(ftTF.mapRect(bbox));
+        charResult.scaledHalfLeading = resHandler.adjust(ftTF.map(PkPointF(charResult.fontHalfLeading, charResult.fontHalfLeading))).x();
         charResult.scaledAscent = isHorizontal? scaledBBox.top(): scaledBBox.right();
         charResult.scaledDescent = isHorizontal? scaledBBox.bottom(): scaledBBox.left();
 
         if (charResult.tabSize) {
-            charResult.tabSize = ftTF.map(QPointF(*charResult.tabSize, *charResult.tabSize)).x();
+            charResult.tabSize = ftTF.map(PkPointF(*charResult.tabSize, *charResult.tabSize)).x();
         }
 
         if(!qFuzzyCompare(bitmapScale, 1.0)) {
@@ -609,7 +611,7 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
         } else if (const auto *outlineGlyph = std::get_if<Glyph::Outline>(&charResult.glyph)) {
             charResult.inkBoundingBox |= outlineGlyph->path.boundingRect();
         } else if (const auto *colorGlyph = std::get_if<Glyph::ColorLayers>(&charResult.glyph)) {
-            Q_FOREACH (const QPainterPath &p, colorGlyph->paths) {
+            Q_FOREACH (const PkPainterPath &p, colorGlyph->paths) {
                 charResult.inkBoundingBox |= p.boundingRect();
             }
         } else if (!std::holds_alternative<std::monostate>(charResult.glyph)) {
@@ -621,10 +623,10 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
     return true;
 }
 
-QVector<QPointF> KoSvgTextShape::Private::getLigatureCarets(const KoSvgText::ResolutionHandler &resHandler, const bool isHorizontal, raqm_glyph_t &currentGlyph)
+PkVector<PkPointF> KoSvgTextShape::Private::getLigatureCarets(const KoSvgText::ResolutionHandler &resHandler, const bool isHorizontal, raqm_glyph_t &currentGlyph)
 {
-    QVector<QPointF> positions;
-    const QTransform ftTF = resHandler.freeTypeToPointTransform();
+    PkVector<PkPointF> positions;
+    const PkTransform ftTF = resHandler.freeTypeToPointTransform();
     // Ligature caret list only uses direction to determine whether horizontal or vertical.
     hb_direction_t dir = isHorizontal? HB_DIRECTION_LTR: HB_DIRECTION_TTB;
     hb_font_t_sp font(hb_ft_font_create_referenced(currentGlyph.ftface));
@@ -634,44 +636,44 @@ QVector<QPointF> KoSvgTextShape::Private::getLigatureCarets(const KoSvgText::Res
         hb_position_t caretPos = 0;
         uint caretCount = 1;
         hb_ot_layout_get_ligature_carets(font.data(), dir, currentGlyph.index, 0, &caretCount, &caretPos);
-        QPointF pos = isHorizontal? QPointF(caretPos, 0): QPointF(0, caretPos);
+        PkPointF pos = isHorizontal? PkPointF(caretPos, 0): PkPointF(0, caretPos);
         positions.append(ftTF.map(pos));
     }
     return positions;
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-static QPainterPath convertFromFreeTypeOutline(FT_GlyphSlotRec *glyphSlot)
+static PkPainterPath convertFromFreeTypeOutline(FT_GlyphSlotRec *glyphSlot)
 {
-    QPointF cp = QPointF();
+    PkPointF cp = PkPointF();
     // convert the outline to a painter path
     // This is taken from qfontengine_ft.cpp.
-    QPainterPath glyph;
+    PkPainterPath glyph;
     glyph.setFillRule(Qt::WindingFill);
     int i = 0;
     for (int j = 0; j < glyphSlot->outline.n_contours; ++j) {
         int last_point = glyphSlot->outline.contours[j];
         // qDebug() << "contour:" << i << "to" << last_point;
-        QPointF start = QPointF(glyphSlot->outline.points[i].x, glyphSlot->outline.points[i].y);
+        PkPointF start = PkPointF(glyphSlot->outline.points[i].x, glyphSlot->outline.points[i].y);
         if (!(glyphSlot->outline.tags[i] & 1)) { // start point is not on curve:
             if (!(glyphSlot->outline.tags[last_point] & 1)) { // end point is not on curve:
                 // qDebug() << "  start and end point are not on curve";
-                start = (QPointF(glyphSlot->outline.points[last_point].x, glyphSlot->outline.points[last_point].y) + start) / 2.0;
+                start = (PkPointF(glyphSlot->outline.points[last_point].x, glyphSlot->outline.points[last_point].y) + start) / 2.0;
             } else {
                 // qDebug() << "  end point is on curve, start is not";
-                start = QPointF(glyphSlot->outline.points[last_point].x, glyphSlot->outline.points[last_point].y);
+                start = PkPointF(glyphSlot->outline.points[last_point].x, glyphSlot->outline.points[last_point].y);
             }
             --i; // to use original start point as control point below
         }
         start += cp;
         // qDebug() << "  start at" << start;
         glyph.moveTo(start);
-        std::array<QPointF, 4> curve;
+        std::array<PkPointF, 4> curve;
         curve[0] = start;
         size_t n = 1;
         while (i < last_point) {
             ++i;
-            curve.at(n) = cp + QPointF(glyphSlot->outline.points[i].x, glyphSlot->outline.points[i].y);
+            curve.at(n) = cp + PkPointF(glyphSlot->outline.points[i].x, glyphSlot->outline.points[i].y);
             // qDebug() << "    " << i << c[n] << "tag =" <<
             // (int)g->outline.tags[i]
             //                    << ": on curve =" << (bool)(g->outline.tags[i]
@@ -731,16 +733,16 @@ static QPainterPath convertFromFreeTypeOutline(FT_GlyphSlotRec *glyphSlot)
     return glyph;
 }
 
-static QImage convertFromFreeTypeBitmap(FT_GlyphSlotRec *glyphSlot)
+static PkImage convertFromFreeTypeBitmap(FT_GlyphSlotRec *glyphSlot)
 {
     KIS_ASSERT(glyphSlot->bitmap.width <= INT32_MAX);
     KIS_ASSERT(glyphSlot->bitmap.rows <= INT32_MAX);
-    QImage img;
+    PkImage img;
     const int height = static_cast<int>(glyphSlot->bitmap.rows);
-    const QSize size(static_cast<int>(glyphSlot->bitmap.width), height);
+    const PkSize size(static_cast<int>(glyphSlot->bitmap.width), height);
 
     if (glyphSlot->bitmap.pixel_mode == FT_PIXEL_MODE_MONO) {
-        img = QImage(size, QImage::Format_Mono);
+        img = PkImage(size, PkImage::Format_Mono);
         uchar *src = glyphSlot->bitmap.buffer;
         KIS_ASSERT(glyphSlot->bitmap.pitch >= 0);
         for (int y = 0; y < height; y++) {
@@ -748,7 +750,7 @@ static QImage convertFromFreeTypeBitmap(FT_GlyphSlotRec *glyphSlot)
             src += glyphSlot->bitmap.pitch;
         }
     } else if (glyphSlot->bitmap.pixel_mode == FT_PIXEL_MODE_GRAY) {
-        img = QImage(size, QImage::Format_Grayscale8);
+        img = PkImage(size, PkImage::Format_Grayscale8);
         uchar *src = glyphSlot->bitmap.buffer;
         KIS_ASSERT(glyphSlot->bitmap.pitch >= 0);
         for (int y = 0; y < height; y++) {
@@ -756,10 +758,10 @@ static QImage convertFromFreeTypeBitmap(FT_GlyphSlotRec *glyphSlot)
             src += glyphSlot->bitmap.pitch;
         }
     } else if (glyphSlot->bitmap.pixel_mode == FT_PIXEL_MODE_BGRA) {
-        img = QImage(size, QImage::Format_ARGB32_Premultiplied);
+        img = PkImage(size, PkImage::Format_ARGB32_Premultiplied);
         const uint8_t *src = glyphSlot->bitmap.buffer;
         for (int y = 0; y < height; y++) {
-            auto *argb = reinterpret_cast<QRgb *>(img.scanLine(y));
+            auto *argb = reinterpret_cast<PkRgb *>(img.scanLine(y));
             for (unsigned int x = 0; x < glyphSlot->bitmap.width; x++) {
                 argb[x] = qRgba(src[2], src[1], src[0], src[3]);
                 src += 4;

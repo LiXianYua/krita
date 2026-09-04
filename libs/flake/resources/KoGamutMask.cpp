@@ -10,15 +10,15 @@
 
 #include <cstring>
 
-#include <QVector>
-#include <QString>
-#include <QFile>
-#include <QList>
-#include <QDomDocument>
-#include <QDomElement>
-#include <QByteArray>
-#include <QBuffer>
-#include <QScopedPointer>
+#include <PkVector.h>
+#include <PkString.h>
+#include <PkFileStream.h>
+#include <PkList.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkByteArray.h>
+#include <PkMemoryStream.h>
+#include <PkScopedPointer.h>
 
 #include <FlakeDebug.h>
 
@@ -29,7 +29,7 @@
 #include <SvgWriter.h>
 #include <KoShape.h>
 #include <kis_assert.h>
-#include <QTransform>
+#include <PkTransform.h>
 #include <KoMarker.h>
 
 //#include <kis_debug.h>
@@ -53,7 +53,7 @@ KoShape* KoGamutMaskShape::koShape()
     return m_maskShape;
 }
 
-bool KoGamutMaskShape::coordIsClear(const QPointF& coord) const
+bool KoGamutMaskShape::coordIsClear(const PkPointF& coord) const
 {
     bool isClear = m_maskShape->hitTest(coord);
 
@@ -77,12 +77,12 @@ void KoGamutMaskShape::paintStroke(QPainter &painter)
 }
 
 struct KoGamutMask::Private {
-    QString name;
-    QString title;
-    QByteArray data;
-    QVector<KoGamutMaskShape*> maskShapes;
-    QVector<KoGamutMaskShape*> previewShapes;
-    QSizeF maskSize;
+    PkString name;
+    PkString title;
+    PkByteArray data;
+    PkVector<KoGamutMaskShape*> maskShapes;
+    PkVector<KoGamutMaskShape*> previewShapes;
+    PkSizeF maskSize;
     int rotation {0};
 };
 
@@ -90,15 +90,15 @@ KoGamutMask::KoGamutMask(const PkString &filename)
     : KoResource(filename)
     , d(new Private)
 {
-    d->maskSize = QSizeF(144.0,144.0);
+    d->maskSize = PkSizeF(144.0,144.0);
     setRotation(0);
 }
 
-KoGamutMask::KoGamutMask(const QString& filename)
+KoGamutMask::KoGamutMask(const PkString& filename)
     : KoResource(toPkString(filename))
     , d(new Private)
 {
-    d->maskSize = QSizeF(144.0,144.0);
+    d->maskSize = PkSizeF(144.0,144.0);
     setRotation(0);
 }
 
@@ -106,7 +106,7 @@ KoGamutMask::KoGamutMask()
     : KoResource(PkString())
     , d(new Private)
 {
-    d->maskSize = QSizeF(144.0,144.0);
+    d->maskSize = PkSizeF(144.0,144.0);
     setRotation(0);
 }
 
@@ -124,7 +124,7 @@ KoGamutMask::KoGamutMask(const KoGamutMask &rhs)
     setDescription(rhs.description());
     d->maskSize = rhs.d->maskSize;
 
-    QList<KoShape*> newShapes;
+    PkList<KoShape*> newShapes;
     for(KoShape* sh: rhs.koShapes()) {
         newShapes.append(sh->cloneShape());
     }
@@ -143,9 +143,9 @@ KoGamutMask::~KoGamutMask()
     delete d;
 }
 
-bool KoGamutMask::coordIsClear(const QPointF& coord, bool preview)
+bool KoGamutMask::coordIsClear(const PkPointF& coord, bool preview)
 {
-    QVector<KoGamutMaskShape*>* shapeVector;
+    PkVector<KoGamutMaskShape*>* shapeVector;
 
     if (preview && !d->previewShapes.isEmpty()) {
         shapeVector = &d->previewShapes;
@@ -164,7 +164,7 @@ bool KoGamutMask::coordIsClear(const QPointF& coord, bool preview)
 
 void KoGamutMask::paint(QPainter &painter, bool preview)
 {
-    QVector<KoGamutMaskShape*>* shapeVector;
+    PkVector<KoGamutMaskShape*>* shapeVector;
 
     if (preview && !d->previewShapes.isEmpty()) {
         shapeVector = &d->previewShapes;
@@ -179,7 +179,7 @@ void KoGamutMask::paint(QPainter &painter, bool preview)
 
 void KoGamutMask::paintStroke(QPainter &painter, bool preview)
 {
-    QVector<KoGamutMaskShape*>* shapeVector;
+    PkVector<KoGamutMaskShape*>* shapeVector;
 
     if (preview && !d->previewShapes.isEmpty()) {
         shapeVector = &d->previewShapes;
@@ -192,12 +192,12 @@ void KoGamutMask::paintStroke(QPainter &painter, bool preview)
     }
 }
 
-QTransform KoGamutMask::maskToViewTransform(qreal viewSize)
+PkTransform KoGamutMask::maskToViewTransform(qreal viewSize)
 {
     // apply mask rotation before drawing
-    QPointF centerPoint(viewSize*0.5, viewSize*0.5);
+    PkPointF centerPoint(viewSize*0.5, viewSize*0.5);
 
-    QTransform transform;
+    PkTransform transform;
     transform.translate(centerPoint.x(), centerPoint.y());
     transform.rotate(rotation());
     transform.translate(-centerPoint.x(), -centerPoint.y());
@@ -208,11 +208,11 @@ QTransform KoGamutMask::maskToViewTransform(qreal viewSize)
     return transform;
 }
 
-QTransform KoGamutMask::viewToMaskTransform(qreal viewSize)
+PkTransform KoGamutMask::viewToMaskTransform(qreal viewSize)
 {
-    QPointF centerPoint(viewSize*0.5, viewSize*0.5);
+    PkPointF centerPoint(viewSize*0.5, viewSize*0.5);
 
-    QTransform transform;
+    PkTransform transform;
     qreal scale = viewSize/(maskSize().width());
     transform.scale(1/scale, 1/scale);
 
@@ -240,13 +240,13 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
     }
 
     if (d->data.isNull()) {
-        QFile file(toQString(filename()));
+        PkFileStream file(toQString(filename()));
         if (file.size() == 0) {
             warnFlake << "Cannot load gamut mask" << name() << "there is no data available";
             return false;
         }
 
-        if (!file.open(QIODevice::ReadOnly)) {
+        if (!file.open(PkStream::ReadOnly)) {
             warnFlake << "Cannot load gamut mask" << name() << ":" << file.errorString();
             return false;
         }
@@ -254,31 +254,31 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
         file.close();
     }
 
-    QBuffer buf(&d->data);
-    buf.open(QBuffer::ReadOnly);
+    PkMemoryStream buf(&d->data);
+    buf.open(PkMemoryStream::ReadOnly);
     PkDeviceStream bufStream;
     bufStream.attach(&buf);
 
-    QScopedPointer<KoStore> store(KoStore::createStore(&bufStream, KoStore::Read, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
+    PkScopedPointer<KoStore> store(KoStore::createStore(&bufStream, KoStore::Read, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
     if (!store || store->bad()) return false;
 
     bool storeOpened = store->open("gamutmask.svg");
     if (!storeOpened) { return false; }
 
-    QByteArray ba = toQByteArray(store->read(store->size()));
+    PkByteArray ba = toQByteArray(store->read(store->size()));
     store->close();
 
     if (ba.size() == 0) { // empty gamutmask.svg is possible when the first temporary resource is saved
-        setMaskShapes(QList<KoShape*>());
-        d->maskSize = QSizeF(0, 0);
+        setMaskShapes(PkList<KoShape*>());
+        d->maskSize = PkSizeF(0, 0);
         d->title = "";
     } else {
 
-        QString errorMsg;
+        PkString errorMsg;
         int errorLine = 0;
         int errorColumn = 0;
 
-        QDomDocument xmlDocument = SvgParser::createDocumentFromSvg(ba, &errorMsg, &errorLine, &errorColumn);
+        PkXmlDocument xmlDocument = SvgParser::createDocumentFromSvg(ba, &errorMsg, &errorLine, &errorColumn);
         if (xmlDocument.isNull()) {
 
             errorFlake << "Parsing error in " << filename() << "! Aborting!" << Qt::endl
@@ -293,10 +293,10 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
 
         KoDocumentResourceManager manager;
         SvgParser parser(&manager);
-        parser.setResolution(QRectF(0,0,100,100), 72); // initialize with default values
-        QSizeF fragmentSize;
+        parser.setResolution(PkRectF(0,0,100,100), 72); // initialize with default values
+        PkSizeF fragmentSize;
 
-        QList<KoShape*> shapes = parser.parseSvg(xmlDocument.documentElement(), &fragmentSize);
+        PkList<KoShape*> shapes = parser.parseSvg(xmlDocument.documentElement(), &fragmentSize);
 
         d->maskSize = fragmentSize;
 
@@ -316,7 +316,7 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
         PkStreamIoDevice previewIo;
         previewIo.attach(&previewDev);
 
-        QImage preview = QImage();
+        PkImage preview = PkImage();
         preview.load(&previewIo, "PNG");
         setImage(toPkImage(preview));
 
@@ -330,14 +330,14 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
     return true;
 }
 
-void KoGamutMask::setMaskShapes(QList<KoShape*> shapes)
+void KoGamutMask::setMaskShapes(PkList<KoShape*> shapes)
 {
     setMaskShapesToVector(shapes, d->maskShapes);
 }
 
-QList<KoShape*> KoGamutMask::koShapes() const
+PkList<KoShape*> KoGamutMask::koShapes() const
 {
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     for(KoGamutMaskShape* maskShape: d->maskShapes) {
         shapes.append(maskShape->koShape());
     }
@@ -350,7 +350,7 @@ bool KoGamutMask::saveToDevice(PkStream *dev) const
     KoStore* store(KoStore::createStore(dev, KoStore::Write, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
     if (!store || store->bad()) return false;
 
-    QList<KoShape*> shapes = koShapes();
+    PkList<KoShape*> shapes = koShapes();
 
     std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 
@@ -387,24 +387,24 @@ bool KoGamutMask::saveToDevice(PkStream *dev) const
     return store->finalize();
 }
 
-QString KoGamutMask::title() const
+PkString KoGamutMask::title() const
 {
     return d->title;
 }
 
-void KoGamutMask::setTitle(QString title)
+void KoGamutMask::setTitle(PkString title)
 {
     d->title = title;
     setName(toPkString(title));
 }
 
-QString KoGamutMask::description() const
+PkString KoGamutMask::description() const
 {
     PkMap<PkString, PkVariant> m = metadata();
     return toQString(m.value(PkString("description")).toString());
 }
 
-void KoGamutMask::setDescription(QString description)
+void KoGamutMask::setDescription(PkString description)
 {
     addMetaData(PkString("description"), PkVariant(toPkString(description)));
 }
@@ -424,17 +424,17 @@ void KoGamutMask::setRotation(int rotation)
     d->rotation = rotation;
 }
 
-QSizeF KoGamutMask::maskSize()
+PkSizeF KoGamutMask::maskSize()
 {
     return d->maskSize;
 }
 
-void KoGamutMask::setPreviewMaskShapes(QList<KoShape*> shapes)
+void KoGamutMask::setPreviewMaskShapes(PkList<KoShape*> shapes)
 {
     setMaskShapesToVector(shapes, d->previewShapes);
 }
 
-void KoGamutMask::setMaskShapesToVector(QList<KoShape *> shapes, QVector<KoGamutMaskShape *> &targetVector)
+void KoGamutMask::setMaskShapesToVector(PkList<KoShape *> shapes, PkVector<KoGamutMaskShape *> &targetVector)
 {
     targetVector.clear();
 

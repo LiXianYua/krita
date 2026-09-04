@@ -57,10 +57,10 @@ protected:
             index = static_cast<int>(angle / (2.0 * M_PI) * rank);
             break;
         case KisParasite::TiltX:
-            index = qRound(info.xTilt() / 2.0 * rank) + rank / 2;
+            index = pkRound(info.xTilt() / 2.0 * rank) + rank / 2;
             break;
         case KisParasite::TiltY:
-            index = qRound(info.yTilt() / 2.0 * rank) + rank / 2;
+            index = pkRound(info.yTilt() / 2.0 * rank) + rank / 2;
             break;
         case KisParasite::Velocity:
             // log is slow, but allows for nicer dab transition
@@ -70,7 +70,7 @@ protected:
             }
             velocity /= capSpeed;
             velocity *= (rank - 1) + 0.5;
-            index = qRound(velocity);
+            index = pkRound(velocity);
             break;
         default:
             warnImage << "Parasite" << mode << "is not implemented";

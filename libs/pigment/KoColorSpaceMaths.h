@@ -288,7 +288,7 @@ public:
         if constexpr (std::numeric_limits<_T>::is_integer) {
             return val;
         } else {
-            return qMax<_T>(KoColorSpaceMathsTraits<_T>::zeroValue, val);
+            return pkMax<_T>(KoColorSpaceMathsTraits<_T>::zeroValue, val);
         }
     }
 
@@ -297,11 +297,11 @@ public:
     }
 
     inline static dst_compositetype clampToSDRTop(dst_compositetype val) {
-        return qMin<dst_compositetype>(val, KoColorSpaceMathsTraits<_Tdst>::unitValue);
+        return pkMin<dst_compositetype>(val, KoColorSpaceMathsTraits<_Tdst>::unitValue);
     }
 
     inline static dst_compositetype clampToSDRBottom(dst_compositetype val) {
-        return qMax<dst_compositetype>(KoColorSpaceMathsTraits<_Tdst>::zeroValue, val);
+        return pkMax<dst_compositetype>(KoColorSpaceMathsTraits<_Tdst>::zeroValue, val);
     }
 
     inline static dst_compositetype divideInCompositeSpace(dst_compositetype a, dst_compositetype b) {
@@ -325,7 +325,7 @@ public:
      * for scale-only transformations
      */
     inline static _Tdst clampAfterScale(dst_compositetype val) {
-        return qMin<dst_compositetype>(val, KoColorSpaceMathsTraits<_Tdst>::max);
+        return pkMin<dst_compositetype>(val, KoColorSpaceMathsTraits<_Tdst>::max);
     }
 
     inline static _T isUnsafeAsDivisor(_T value) {
@@ -400,31 +400,31 @@ inline double KoColorSpaceMaths<double>::isUnsafeAsDivisor(double value) {
 
 template<>
 inline bool KoColorSpaceMaths<double>::isUnitValueFuzzy(double value) {
-    return qFuzzyCompare(value, KoColorSpaceMathsTraits<double>::unitValue);
+    return pkQtFuzzyCompare(value, KoColorSpaceMathsTraits<double>::unitValue);
 }
 
 template<>
 inline bool KoColorSpaceMaths<double>::isZeroValueFuzzy(double value) {
-    return qFuzzyIsNull(value);
+    return pkQtFuzzyIsNull(value);
 }
 
 template<>
 inline bool KoColorSpaceMaths<double>::isZeroValueClampedFuzzy(double d)
 {
-    // constant is from qFuzzyIsNull()
+    // constant is from pkQtFuzzyIsNull()
     return d <= 0.000000000001;
 }
 
 template<>
 inline bool KoColorSpaceMaths<double>::isUnitValueClampedFuzzy(double d)
 {
-    // constant is from qFuzzyIsNull()
+    // constant is from pkQtFuzzyIsNull()
     return d > 1.0 - 0.000000000001;
 }
 
 template<>
 inline bool KoColorSpaceMaths<double>::isHalfValueFuzzy(double value) {
-    return qFuzzyCompare(value, KoColorSpaceMathsTraits<double>::halfValue);
+    return pkQtFuzzyCompare(value, KoColorSpaceMathsTraits<double>::halfValue);
 }
 
 //------------------------------ float specialization ------------------------------//
@@ -486,31 +486,31 @@ inline float KoColorSpaceMaths<float>::isUnsafeAsDivisor(float value) {
 
 template<>
 inline bool KoColorSpaceMaths<float>::isUnitValueFuzzy(float value) {
-    return qFuzzyCompare(value, KoColorSpaceMathsTraits<float>::unitValue);
+    return pkQtFuzzyCompare(value, KoColorSpaceMathsTraits<float>::unitValue);
 }
 
 template<>
 inline bool KoColorSpaceMaths<float>::isZeroValueFuzzy(float value) {
-    return qFuzzyIsNull(value);
+    return pkQtFuzzyIsNull(value);
 }
 
 template<>
 inline bool KoColorSpaceMaths<float>::isZeroValueClampedFuzzy(float f)
 {
-    // constant is from qFuzzyIsNull()
+    // constant is from pkQtFuzzyIsNull()
     return f <= 0.00001f;
 }
 
 template<>
 inline bool KoColorSpaceMaths<float>::isUnitValueClampedFuzzy(float f)
 {
-    // constant is from qFuzzyIsNull()
+    // constant is from pkQtFuzzyIsNull()
     return f > 1.0 - 0.00001f;
 }
 
 template<>
 inline bool KoColorSpaceMaths<float>::isHalfValueFuzzy(float value) {
-    return qFuzzyCompare(value, KoColorSpaceMathsTraits<float>::halfValue);
+    return pkQtFuzzyCompare(value, KoColorSpaceMathsTraits<float>::halfValue);
 }
 
 //------------------------------ half specialization ------------------------------//
@@ -592,13 +592,13 @@ inline half KoColorSpaceMaths<half>::isUnsafeAsDivisor(half value) {
 template<>
 inline bool KoColorSpaceMaths<half>::isUnitValueFuzzy(half value) {
     // ~ 2 * HALF_ESPILON
-    return qAbs(value - KoColorSpaceMathsTraits<half>::unitValue) < 0.002f;
+    return pkAbs(value - KoColorSpaceMathsTraits<half>::unitValue) < 0.002f;
 }
 
 template<>
 inline bool KoColorSpaceMaths<half>::isZeroValueFuzzy(half value) {
     // ~ 2 * HALF_ESPILON
-    return qAbs(value) < 0.002f;
+    return pkAbs(value) < 0.002f;
 }
 
 template<>
@@ -618,7 +618,7 @@ inline bool KoColorSpaceMaths<half>::isUnitValueClampedFuzzy(half f)
 template<>
 inline bool KoColorSpaceMaths<half>::isHalfValueFuzzy(half value) {
     // TODO: check actual constant
-    return qAbs(value - 0.5f) < 0.001f;
+    return pkAbs(value - 0.5f) < 0.001f;
 }
 
 #endif
@@ -1087,9 +1087,9 @@ inline void ToneMapping(TReal& r, TReal& g, TReal& b)
             if constexpr (HSXType::lightnessIsAverage) {
                 r = g = b = TReal(1.0);
             } else {
-                r = qMin(r, TReal(1.0));
-                g = qMin(g, TReal(1.0));
-                b = qMin(b, TReal(1.0));
+                r = pkMin(r, TReal(1.0));
+                g = pkMin(g, TReal(1.0));
+                b = pkMin(b, TReal(1.0));
             }
         };
 

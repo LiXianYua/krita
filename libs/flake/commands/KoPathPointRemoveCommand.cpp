@@ -99,7 +99,7 @@ KUndo2Command *KoPathPointRemoveCommand::createCommand(
         new KoSubpathRemoveCommand(pd.pathShape, pd.pointIndex.first, cmd);
     }
     if (shapesToDelete.size() > 0) {
-        shapeController->removeShapes(toQList(shapesToDelete), cmd);
+        shapeController->removeShapes(shapesToDelete, cmd);
     }
 
     return cmd;
@@ -139,12 +139,12 @@ void KoPathPointRemoveCommand::redo()
 
         if (lastPathShape != pd.pathShape) {
             if (lastPathShape) {
-                PkPointF offset = toPkPointF(lastPathShape->normalize());
+                PkPointF offset = lastPathShape->normalize();
 
                 PkTransform matrix;
                 matrix.translate(-offset.x(), -offset.y());
                 for (int j = i + 1; j < updateBefore; ++j) {
-                    d->points.at(j)->map(toQTransform(matrix));
+                    d->points.at(j)->map(matrix);
                 }
                 lastPathShape->update();
                 updateBefore = i + 1;
@@ -154,12 +154,12 @@ void KoPathPointRemoveCommand::redo()
     }
 
     if (lastPathShape) {
-        PkPointF offset = toPkPointF(lastPathShape->normalize());
+        PkPointF offset = lastPathShape->normalize();
 
         PkTransform matrix;
         matrix.translate(-offset.x(), -offset.y());
         for (int j = 0; j < updateBefore; ++j) {
-            d->points.at(j)->map(toQTransform(matrix));
+            d->points.at(j)->map(matrix);
         }
         lastPathShape->update();
     }
@@ -192,7 +192,7 @@ void KoPathPointRemoveCommand::undo()
     }
 
     for (auto it = pointsMap.constBegin(); it != pointsMap.constEnd(); ++it) {
-        it.key()->recommendPointSelectionChange(toQList(it.value()));
+        it.key()->recommendPointSelectionChange(it.value());
     }
 
     d->deletePoints = false;

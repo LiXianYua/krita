@@ -101,7 +101,7 @@ KUndo2Command *SvgTextTypeSettingStrategy::createCommand()
 
         if (m_editingType == int(SvgTextCursor::Ascender) || m_editingType == int(SvgTextCursor::Descender)) {
             const qreal distOld = kisDistanceToLine(dragStart, line);
-            const qreal scale = qMax(0.000001, distNew/distOld);
+            const qreal scale = pkMax(0.000001, distNew/distOld);
             KoSvgText::CssLengthPercentage length = oldProps.fontSize();
             length.value *= scale;
             props.setFontSize(length);

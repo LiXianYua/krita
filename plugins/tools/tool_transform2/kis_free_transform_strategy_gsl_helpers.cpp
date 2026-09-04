@@ -90,8 +90,8 @@ namespace GSL
         PkPointF transformedMovingPoint = t.map(params->movingPointSrc);
 
         qreal result =
-            qAbs((transformedMovingPoint - params->movingPointDst).manhattanLength()) +
-            qAbs((transformedStaticPoint - params->staticPointDst).manhattanLength());
+            pkAbs((transformedMovingPoint - params->movingPointDst).manhattanLength()) +
+            pkAbs((transformedStaticPoint - params->staticPointDst).manhattanLength());
 
         return result;
     }
@@ -231,10 +231,10 @@ namespace GSL
         PkPointF transformedMovingPoint = t.map(params->movingPointSrc);
 
         qreal result =
-            qAbs(transformedMovingPoint.x() - params->movingPointDst.x()) +
-            qAbs(transformedMovingPoint.y() - params->movingPointDst.y()) +
-            qAbs(transformedStaticPoint.x() - params->staticPointDst.x()) +
-            qAbs(transformedStaticPoint.y() - params->staticPointDst.y());
+            pkAbs(transformedMovingPoint.x() - params->movingPointDst.x()) +
+            pkAbs(transformedMovingPoint.y() - params->movingPointDst.y()) +
+            pkAbs(transformedStaticPoint.x() - params->staticPointDst.x()) +
+            pkAbs(transformedStaticPoint.y() - params->staticPointDst.y());
 
         return result;
     }
@@ -386,7 +386,7 @@ namespace GSL
 
         Eigen::Matrix<double, 4, 1> X = A.inverse() * B;
 
-        result.isValid = !qFuzzyIsNull(A.determinant());
+        result.isValid = !pkQtFuzzyIsNull(A.determinant());
 
         if (result.isValid) {
             result.scaleX = X(0);

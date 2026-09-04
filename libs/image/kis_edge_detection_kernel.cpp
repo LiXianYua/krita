@@ -170,7 +170,7 @@ KisConvolutionKernelSP KisEdgeDetectionKernel::createVerticalKernel(qreal radius
 
 int KisEdgeDetectionKernel::kernelSizeFromRadius(qreal radius)
 {
-    return qMax((int)(2 * ceil(sigmaFromRadius(radius)) + 1), 3);
+    return pkMax((int)(2 * ceil(sigmaFromRadius(radius)) + 1), 3);
 }
 
 qreal KisEdgeDetectionKernel::sigmaFromRadius(qreal radius)
@@ -255,7 +255,7 @@ void KisEdgeDetectionKernel::applyEdgeDetection(KisPaintDeviceSP device,
                     alpha = alpha+finalNorm[c];
                 }
 
-                alpha = qMin(alpha/(channels-1), col.opacityF());
+                alpha = pkMin(alpha/(channels-1), col.opacityF());
                 col.setOpacity(alpha);
                 memcpy(finalIt.rawData(), col.data(), pixelSize);
             } else {
@@ -301,7 +301,7 @@ void KisEdgeDetectionKernel::applyEdgeDetection(KisPaintDeviceSP device,
                 for (int c = 0; c<channels; c++) {
                     alpha = alpha+normalised[c];
                 }
-                alpha = qMin(alpha/channels, col.opacityF());
+                alpha = pkMin(alpha/channels, col.opacityF());
                 col.setOpacity(alpha);
                 memcpy(finalIt.rawData(), col.data(), pixelSize);
 

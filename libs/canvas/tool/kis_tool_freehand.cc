@@ -368,21 +368,21 @@ void KisToolFreehand::continueAlternateAction(KoPointerEvent *event, AlternateAc
 
     const qreal maxBrushSize = KisImageConfig(true).maxBrushSize();
     const qreal effectiveMaxDragSize = 0.5 * screenRect.width();
-    const qreal effectiveMaxBrushSize = qMin(maxBrushSize, effectiveMaxDragSize / scaleX);
+    const qreal effectiveMaxBrushSize = pkMin(maxBrushSize, effectiveMaxDragSize / scaleX);
 
     const qreal scaleCoeff = effectiveMaxBrushSize / effectiveMaxDragSize;
     const qreal sizeDiff = scaleCoeff * offset.x() ;
 
-    if (qAbs(sizeDiff) > 0.01) {
+    if (pkAbs(sizeDiff) > 0.01) {
         KisPaintOpSettingsSP settings = currentPaintOpPreset()->settings();
 
         qreal newSize = m_lastPaintOpSize + sizeDiff;
 
         if (action == ChangeSizeSnap) {
-            newSize = qMax(qRound(newSize), 1);
+            newSize = pkMax(pkRound(newSize), 1);
         }
 
-        newSize = qBound(0.01, newSize, maxBrushSize);
+        newSize = pkBound(0.01, newSize, maxBrushSize);
 
         settings->setPaintOpSize(newSize);
 

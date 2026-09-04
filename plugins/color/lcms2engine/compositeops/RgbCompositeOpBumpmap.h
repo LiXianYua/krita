@@ -24,7 +24,7 @@ public:
 
     inline static channels_type selectAlpha(channels_type srcAlpha, channels_type dstAlpha)
     {
-        return qMin(srcAlpha, dstAlpha);
+        return pkMin(srcAlpha, dstAlpha);
     }
 
     inline static void composeColorChannels(channels_type srcBlend,

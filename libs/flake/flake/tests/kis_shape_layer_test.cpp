@@ -35,16 +35,16 @@ public:
 
 void testMergeDownImpl(bool useImageTransformations)
 {
-    const QString testName = useImageTransformations ? "scale_and_merge_down" : "merge_down";
+    const PkString testName = useImageTransformations ? "scale_and_merge_down" : "merge_down";
 
     using namespace TestUtil;
 
     ReferenceImageChecker chk(testName, "shape_layer_test", ReferenceImageChecker::InternalStorage);
     chk.setMaxFailingPixels(10);
 
-    QScopedPointer<KisDocument> doc(new TestKisDocument);
+    PkScopedPointer<KisDocument> doc(new TestKisDocument);
 
-    const QRect refRect(0,0,64,64);
+    const PkRect refRect(0,0,64,64);
     MaskParent p(refRect);
 
     const qreal resolution = 72.0 / 72.0;
@@ -58,10 +58,10 @@ void testMergeDownImpl(bool useImageTransformations)
     {
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
-        path->moveTo(QPointF(5, 5));
-        path->lineTo(QPointF(5, 55));
-        path->lineTo(QPointF(20, 55));
-        path->lineTo(QPointF(20,  5));
+        path->moveTo(PkPointF(5, 5));
+        path->lineTo(PkPointF(5, 55));
+        path->lineTo(PkPointF(20, 55));
+        path->lineTo(PkPointF(20,  5));
         path->close();
         path->normalize();
         path->setBackground(toQShared(new KoColorBackground(Qt::red)));
@@ -76,10 +76,10 @@ void testMergeDownImpl(bool useImageTransformations)
     {
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
-        path->moveTo(QPointF(15, 10));
-        path->lineTo(QPointF(15, 55));
-        path->lineTo(QPointF(50, 55));
-        path->lineTo(QPointF(50,  10));
+        path->moveTo(PkPointF(15, 10));
+        path->lineTo(PkPointF(15, 55));
+        path->lineTo(PkPointF(50, 55));
+        path->lineTo(PkPointF(50,  10));
         path->close();
         path->normalize();
         path->setBackground(toQShared(new KoColorBackground(Qt::green)));
@@ -103,7 +103,7 @@ void testMergeDownImpl(bool useImageTransformations)
     if (useImageTransformations) {
 
         KisFilterStrategy *strategy = new KisBilinearFilterStrategy();
-        p.image->scaleImage(QSize(32, 32), p.image->xRes(), p.image->yRes(), strategy);
+        p.image->scaleImage(PkSize(32, 32), p.image->xRes(), p.image->yRes(), strategy);
         p.waitForImageAndShapeLayers();
 
         chk.checkImage(p.image, "01_after_scale_down");
@@ -140,15 +140,15 @@ KoPathShape* createSimpleShape(int zIndex)
 {
     KoPathShape* path = new KoPathShape();
     path->setShapeId(KoPathShapeId);
-    path->moveTo(QPointF(15, 10));
-    path->lineTo(QPointF(15, 55));
-    path->lineTo(QPointF(50, 55));
-    path->lineTo(QPointF(50,  10));
+    path->moveTo(PkPointF(15, 10));
+    path->lineTo(PkPointF(15, 55));
+    path->lineTo(PkPointF(50, 55));
+    path->lineTo(PkPointF(50,  10));
     path->close();
     path->normalize();
     path->setBackground(toQShared(new KoColorBackground(Qt::green)));
 
-    path->setName(QString("shape_%1").arg(zIndex));
+    path->setName(PkString("shape_%1").arg(zIndex));
     path->setZIndex(zIndex);
 
     return path;
@@ -165,8 +165,8 @@ void testMergingShapeZIndexesImpl(int firstIndexStart,
                                   int secondIndexStep,
                                   int secondIndexSize)
 {
-    QList<KoShape *> shapesBelow;
-    QList<KoShape *> shapesAbove;
+    PkList<KoShape *> shapesBelow;
+    PkList<KoShape *> shapesAbove;
 
     qDebug() << "Test zIndex merge:";
     qDebug() << "    " << ppVar(firstIndexStart) << ppVar(firstIndexStep) << ppVar(firstIndexSize);
@@ -181,7 +181,7 @@ void testMergingShapeZIndexesImpl(int firstIndexStart,
         shapesAbove.append(createSimpleShape(secondIndexStart + secondIndexStep * i));
     }
 
-    QList<KoShapeReorderCommand::IndexedShape> shapes =
+    PkList<KoShapeReorderCommand::IndexedShape> shapes =
         KoShapeReorderCommand::mergeDownShapes(shapesBelow, shapesAbove);
 
     KoShapeReorderCommand cmd(shapes);
@@ -240,9 +240,9 @@ void KisShapeLayerTest::testCloneScaledLayer()
     ReferenceImageChecker chk("scale_and_clone", "shape_layer_test", ReferenceImageChecker::InternalStorage);
     chk.setMaxFailingPixels(10);
 
-    QScopedPointer<KisDocument> doc(new TestKisDocument);
+    PkScopedPointer<KisDocument> doc(new TestKisDocument);
 
-    const QRect refRect(0,0,64,64);
+    const PkRect refRect(0,0,64,64);
     MaskParent p(refRect);
 
     const qreal resolution = 72.0 / 72.0;
@@ -256,10 +256,10 @@ void KisShapeLayerTest::testCloneScaledLayer()
     {
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
-        path->moveTo(QPointF(5, 5));
-        path->lineTo(QPointF(5, 55));
-        path->lineTo(QPointF(20, 55));
-        path->lineTo(QPointF(20,  5));
+        path->moveTo(PkPointF(5, 5));
+        path->lineTo(PkPointF(5, 55));
+        path->lineTo(PkPointF(20, 55));
+        path->lineTo(PkPointF(20,  5));
         path->close();
         path->normalize();
         path->setBackground(toQShared(new KoColorBackground(Qt::red)));
@@ -281,7 +281,7 @@ void KisShapeLayerTest::testCloneScaledLayer()
     {
 
         KisFilterStrategy *strategy = new KisBilinearFilterStrategy();
-        p.image->scaleImage(QSize(32, 32), p.image->xRes(), p.image->yRes(), strategy);
+        p.image->scaleImage(PkSize(32, 32), p.image->xRes(), p.image->yRes(), strategy);
         p.waitForImageAndShapeLayers();
 
         chk.checkImage(p.image, "01_after_scale_down");

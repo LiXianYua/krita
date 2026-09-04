@@ -58,7 +58,7 @@ PkPointF PerspectiveAssistant::project(const PkPointF& pt, const PkPointF& strok
             return nullPoint;
         }
 
-        if (!poly.containsPoint(strokeBegin, Qt::OddEvenFill)) {
+        if (!poly.containsPoint(strokeBegin, Pk::OddEvenFill)) {
             return nullPoint; // avoid problems with multiple assistants: only snap if starting in the grid
         }
 
@@ -117,7 +117,7 @@ bool PerspectiveAssistant::contains(const PkPointF& pt) const
 {
     PkPolygonF poly;
     if (!PerspectiveBasedAssistantHelper::getTetragon(handles(), isAssistantComplete(), poly)) return false;
-    return poly.containsPoint(pt, Qt::OddEvenFill);
+    return poly.containsPoint(pt, Pk::OddEvenFill);
 }
 
 qreal PerspectiveAssistant::distance(const PkPointF& pt) const

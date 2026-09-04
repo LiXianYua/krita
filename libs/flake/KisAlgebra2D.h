@@ -11,7 +11,7 @@
 //
 // libs/global 的 kis_algebra_2d.h 已按 S-02-a Pk 化（DecomposedMatrix 以
 // PkTransform 为构造参数），而上层绘图闭包（S-02-b 交接，随本任务搬入
-// libs/flake）保留过渡 Qt（QPainter/QTransform）。此处提供 Qt 兼容的
+// libs/flake）保留过渡 Qt（QPainter/PkTransform）。此处提供 Qt 兼容的
 // DecomposedMatrix 与 leftUnitNormal，仅覆盖 KisHandlePainterHelper 需要的
 // 子集，类型还原自官方 v6.0.3 的 kis_algebra_2d.h/.cpp。
 //
@@ -22,8 +22,8 @@
 
 #include <kis_assert.h>
 
-#include <QTransform>
-#include <QPointF>
+#include <PkTransform.h>
+#include <PkPoint.h>
 #include <QDebug>
 
 #include <array>
@@ -31,11 +31,11 @@
 
 #include <Eigen/Dense>
 
-// 官方 kis_global.h 的全局工具 kisDistance 是 PkPointF 版，此处补 QPointF 版
+// 官方 kis_global.h 的全局工具 kisDistance 是 PkPointF 版，此处补 PkPointF 版
 // 供绘图闭包使用（见文件头注释）。不定义全局 pow2 —— libs/global/kis_global.h
 // 已提供同名同签名模板，重定义会与它撞（实测 KoPencilTool/KisHandlePainterHelper
 // 两个 TU 压出）；距离计算直接平方内联。
-inline qreal kisDistance(const QPointF &pt1, const QPointF &pt2)
+inline qreal kisDistance(const PkPointF &pt1, const PkPointF &pt2)
 {
     const qreal dx = pt1.x() - pt2.x();
     const qreal dy = pt1.y() - pt2.y();
@@ -85,47 +85,47 @@ T leftUnitNormal(const T &a)
     return -result;
 }
 
-bool KRITAFLAKE_EXPORT fuzzyMatrixCompare(const QTransform &t1, const QTransform &t2, qreal delta);
+bool KRITAFLAKE_EXPORT fuzzyMatrixCompare(const PkTransform &t1, const PkTransform &t2, qreal delta);
 
 struct KRITAFLAKE_EXPORT DecomposedMatrix {
     DecomposedMatrix();
 
-    DecomposedMatrix(const QTransform &t0);
+    DecomposedMatrix(const PkTransform &t0);
 
-    inline QTransform scaleTransform() const
+    inline PkTransform scaleTransform() const
     {
-        return QTransform::fromScale(scaleX, scaleY);
+        return PkTransform::fromScale(scaleX, scaleY);
     }
 
-    inline QTransform shearTransform() const
+    inline PkTransform shearTransform() const
     {
-        QTransform t;
+        PkTransform t;
         t.shear(shearXY, 0);
         return t;
     }
 
-    inline QTransform rotateTransform() const
+    inline PkTransform rotateTransform() const
     {
-        QTransform t;
+        PkTransform t;
         t.rotate(angle);
         return t;
     }
 
-    inline QTransform translateTransform() const
+    inline PkTransform translateTransform() const
     {
-        return QTransform::fromTranslate(dx, dy);
+        return PkTransform::fromTranslate(dx, dy);
     }
 
-    inline QTransform projectTransform() const
+    inline PkTransform projectTransform() const
     {
         return
-            QTransform(
+            PkTransform(
                 1,0,proj[0],
                 0,1,proj[1],
                 0,0,proj[2]);
     }
 
-    inline QTransform transform() const {
+    inline PkTransform transform() const {
         return
             scaleTransform() *
             shearTransform() *

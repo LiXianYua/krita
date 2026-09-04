@@ -11,6 +11,8 @@
 
 
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 class KoShapeSavingContext;
 class KoShapeLoadingContext;
@@ -44,12 +46,12 @@ public:
     /// This implementation is empty since a group is itself not visible.
     void paintComponent(QPainter &painter) const override;
     /// always returns false since the group itself can't be selected or hit
-    bool hitTest(const QPointF &position) const override;
-    QSizeF size() const override;
-    void setSize(const QSizeF &size) override;
-    QRectF outlineRect() const override;
+    bool hitTest(const PkPointF &position) const override;
+    PkSizeF size() const override;
+    void setSize(const PkSizeF &size) override;
+    PkRectF outlineRect() const override;
     /// a group's boundingRect
-    QRectF boundingRect() const override;
+    PkRectF boundingRect() const override;
 
 private:
     friend class ShapeGroupContainerModel;
@@ -72,7 +74,7 @@ private:
     void shapeChanged(ChangeType type, KoShape *shape = 0) override;
 
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif

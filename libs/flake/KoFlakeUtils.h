@@ -18,12 +18,12 @@
 namespace KoFlake {
 
 template <typename ModifyFunction>
-    auto modifyShapesStrokes(QList<KoShape*> shapes, ModifyFunction modifyFunction)
+    auto modifyShapesStrokes(PkList<KoShape*> shapes, ModifyFunction modifyFunction)
         -> decltype(modifyFunction(KoShapeStrokeSP()), (KUndo2Command*)(0))
     {
         if (shapes.isEmpty()) return 0;
 
-        QList<KoShapeStrokeModelSP> newStrokes;
+        PkList<KoShapeStrokeModelSP> newStrokes;
 
         Q_FOREACH(KoShape *shape, shapes) {
             KoShapeStrokeSP shapeStroke = shape->stroke() ?
@@ -31,7 +31,7 @@ template <typename ModifyFunction>
                 KoShapeStrokeSP();
 
             KoShapeStrokeSP newStroke =
-                QSharedPointer<KoShapeStroke>(shapeStroke ?
+                PkSharedPointer<KoShapeStroke>(shapeStroke ?
                               new KoShapeStroke(*shapeStroke) :
                               new KoShapeStroke());
 
@@ -44,7 +44,7 @@ template <typename ModifyFunction>
 }
 
 template <class Policy>
-bool compareShapePropertiesEqual(const QList<KoShape*> shapes, const Policy &policy)
+bool compareShapePropertiesEqual(const PkList<KoShape*> shapes, const Policy &policy)
 {
     if (shapes.size() == 1) return true;
 
@@ -68,7 +68,7 @@ bool compareShapePropertiesEqual(const QList<KoShape*> shapes, const Policy &pol
 }
 
 template <class Policy>
-bool compareShapePropertiesEqual(const QList<KoShape*> shapes)
+bool compareShapePropertiesEqual(const PkList<KoShape*> shapes)
 {
     return compareShapePropertiesEqual<Policy>(shapes, Policy());
 }

@@ -941,8 +941,8 @@ PkRectF KisPaintingAssistant::getLocalRect() const
     KisPaintingAssistantHandleSP first = firstLocalHandle();
     KisPaintingAssistantHandleSP second = secondLocalHandle();
 
-    PkPointF topLeft = PkPointF(qMin(first->x(), second->x()), qMin(first->y(), second->y()));
-    PkPointF bottomRight = PkPointF(qMax(first->x(), second->x()), qMax(first->y(), second->y()));
+    PkPointF topLeft = PkPointF(pkMin(first->x(), second->x()), pkMin(first->y(), second->y()));
+    PkPointF bottomRight = PkPointF(pkMax(first->x(), second->x()), pkMax(first->y(), second->y()));
 
     PkRectF rect(topLeft, bottomRight);
     return rect;

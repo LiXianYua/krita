@@ -5,8 +5,8 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QRectF>
-#include <QPointer>
+#include <PkRect.h>
+#include <PkPointer.h>
 #include <QDebug>
 
 #include "KoCanvasBase.h"
@@ -39,8 +39,8 @@ public:
         }
         delete snapGuide;
     }
-    QPointer<KoShapeController> shapeController;
-    QPointer<KoCanvasResourceProvider> resourceManager;
+    PkPointer<KoShapeController> shapeController;
+    PkPointer<KoCanvasResourceProvider> resourceManager;
     bool isResourceManagerShared;
     KoCanvasController *controller;
     KoSnapGuide *snapGuide;
@@ -63,7 +63,7 @@ KoCanvasBase::~KoCanvasBase()
     delete d;
 }
 
-QPointF KoCanvasBase::viewToDocument(const QPointF &viewPoint) const
+PkPointF KoCanvasBase::viewToDocument(const PkPointF &viewPoint) const
 {
     return viewConverter()->viewToDocument(viewPoint - documentOrigin());
 }
@@ -101,7 +101,7 @@ KoCanvasController *KoCanvasBase::canvasController() const
     return d->controller;
 }
 
-void KoCanvasBase::clipToDocument(const KoShape *, QPointF &) const
+void KoCanvasBase::clipToDocument(const KoShape *, PkPointF &) const
 {
 }
 

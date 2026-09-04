@@ -329,9 +329,9 @@ void KisToolFill::addFillingOperation(const PkVector<PkPoint> &seedPoints)
                                                                     m_resourcesSnapshot);
 
         const bool blendingOptionsAreNoOp = m_useCustomBlendingOptions
-                                            ? (qFuzzyCompare(customOpacity, OPACITY_OPAQUE_F) &&
+                                            ? (pkQtFuzzyCompare(customOpacity, OPACITY_OPAQUE_F) &&
                                                m_customCompositeOp == COMPOSITE_OVER)
-                                            : (qFuzzyCompare(m_resourcesSnapshot->opacity(), OPACITY_OPAQUE_F) &&
+                                            : (pkQtFuzzyCompare(m_resourcesSnapshot->opacity(), OPACITY_OPAQUE_F) &&
                                                m_resourcesSnapshot->compositeOpId() == COMPOSITE_OVER);
 
         const bool useFastMode = !m_resourcesSnapshot->activeSelection() &&
@@ -528,7 +528,7 @@ void KisToolFill::loadConfiguration()
     m_patternScale = m_configGroup.readEntry<qreal>("patternScale", 100.0);
     m_patternRotation = m_configGroup.readEntry<qreal>("patternRotate", 0.0);
     m_useCustomBlendingOptions = m_configGroup.readEntry<bool>("useCustomBlendingOptions", false);
-    m_customOpacity = qBound(0, m_configGroup.readEntry<int>("customOpacity", 100), 100);
+    m_customOpacity = pkBound(0, m_configGroup.readEntry<int>("customOpacity", 100), 100);
     m_customCompositeOp = m_configGroup.readEntry<PkString>("customCompositeOp", COMPOSITE_OVER);
     if (KoCompositeOpRegistry::instance().getKoID(m_customCompositeOp).id().isEmpty()) {
         m_customCompositeOp = COMPOSITE_OVER;

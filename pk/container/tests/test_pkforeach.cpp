@@ -96,7 +96,7 @@ struct PkForeachCounted
 
 int PkForeachCounted::s_copies = 0;
 
-// 带析构计数器的元素类型，专供 qDeleteAll —— 证明"每个元素恰好 delete 一次"。
+// 带析构计数器的元素类型，专供 pkDeleteAll —— 证明"每个元素恰好 delete 一次"。
 struct PkDeleteProbe
 {
     int v = 0;
@@ -589,10 +589,10 @@ void PkForeachTest::qtSpellingsWork()
 }
 
 // ---------------------------------------------------------------------------
-// qDeleteAll
+// pkDeleteAll
 // ---------------------------------------------------------------------------
 
-void PkForeachTest::qDeleteAllDeletesEachElementOnce()
+void PkForeachTest::pkDeleteAllDeletesEachElementOnce()
 {
     PkDeleteProbe::s_destroyed = 0;
 
@@ -601,7 +601,7 @@ void PkForeachTest::qDeleteAllDeletesEachElementOnce()
     v.append(new PkDeleteProbe(2));
     v.append(new PkDeleteProbe(3));
 
-    qDeleteAll(v);
+    pkDeleteAll(v);
 
     // 每个元素恰好 delete 一次
     PK_COMPARE(PkDeleteProbe::s_destroyed, 3);
@@ -614,7 +614,7 @@ void PkForeachTest::qDeleteAllDeletesEachElementOnce()
     PkList<PkDeleteProbe *> l;
     l.append(new PkDeleteProbe(4));
     l.append(new PkDeleteProbe(5));
-    qDeleteAll(l);
+    pkDeleteAll(l);
     PK_COMPARE(PkDeleteProbe::s_destroyed, 2);
     PK_COMPARE(l.size(), 2);
     l.clear();
@@ -622,27 +622,27 @@ void PkForeachTest::qDeleteAllDeletesEachElementOnce()
     // 空容器：什么都不做，也不该崩
     PkDeleteProbe::s_destroyed = 0;
     PkVector<PkDeleteProbe *> emptyVec;
-    qDeleteAll(emptyVec);
+    pkDeleteAll(emptyVec);
     PK_COMPARE(PkDeleteProbe::s_destroyed, 0);
 
-    // qDeleteAll 收 const 引用 → 不 detach。共享态下调用后仍然共享。
+    // pkDeleteAll 收 const 引用 → 不 detach。共享态下调用后仍然共享。
     PkDeleteProbe::s_destroyed = 0;
     PkVector<PkDeleteProbe *> owner;
     owner.append(new PkDeleteProbe(6));
     PkVector<PkDeleteProbe *> alias(owner);
     PK_VERIFY(owner.PkIsSharedWith(alias));
-    qDeleteAll(owner);
+    pkDeleteAll(owner);
     PK_VERIFY(owner.PkIsSharedWith(alias));
     PK_COMPARE(PkDeleteProbe::s_destroyed, 1);
     owner.clear();
     alias.clear();
 }
 
-void PkForeachTest::qDeleteAllIteratorRangeOverload()
+void PkForeachTest::pkDeleteAllIteratorRangeOverload()
 {
     // 双实参重载的唯一真实调用点形态：
     //   plugins/paintops/hairy/hairy_brush.cpp
-    //     qDeleteAll(m_bristles.begin(), m_bristles.end());
+    //     pkDeleteAll(m_bristles.begin(), m_bristles.end());
     // 注意实参是**非 const** 容器上的 begin()/end()（会 detach），照抄这个形态。
     PkDeleteProbe::s_destroyed = 0;
 
@@ -650,7 +650,7 @@ void PkForeachTest::qDeleteAllIteratorRangeOverload()
     v.append(new PkDeleteProbe(1));
     v.append(new PkDeleteProbe(2));
 
-    qDeleteAll(v.begin(), v.end());
+    pkDeleteAll(v.begin(), v.end());
     PK_COMPARE(PkDeleteProbe::s_destroyed, 2);
     PK_COMPARE(v.size(), 2);
     v.clear();
@@ -659,7 +659,7 @@ void PkForeachTest::qDeleteAllIteratorRangeOverload()
     PkDeleteProbe::s_destroyed = 0;
     PkVector<PkDeleteProbe *> w;
     w.append(new PkDeleteProbe(3));
-    qDeleteAll(w.constBegin(), w.constEnd());
+    pkDeleteAll(w.constBegin(), w.constEnd());
     PK_COMPARE(PkDeleteProbe::s_destroyed, 1);
     w.clear();
 
@@ -669,20 +669,20 @@ void PkForeachTest::qDeleteAllIteratorRangeOverload()
     part.append(new PkDeleteProbe(1));
     part.append(new PkDeleteProbe(2));
     part.append(new PkDeleteProbe(3));
-    qDeleteAll(part.constBegin(), part.constBegin() + 2);
+    pkDeleteAll(part.constBegin(), part.constBegin() + 2);
     PK_COMPARE(PkDeleteProbe::s_destroyed, 2);
     delete part.at(2);
     part.clear();
 }
 
-void PkForeachTest::qDeleteAllOnAssociativeContainers()
+void PkForeachTest::pkDeleteAllOnAssociativeContainers()
 {
     // 关联容器上 `*it` 是 value，所以删的是 value 那一侧的指针（Qt 一致）。
     PkDeleteProbe::s_destroyed = 0;
     PkMap<int, PkDeleteProbe *> map;
     map.insert(1, new PkDeleteProbe(1));
     map.insert(2, new PkDeleteProbe(2));
-    qDeleteAll(map);
+    pkDeleteAll(map);
     PK_COMPARE(PkDeleteProbe::s_destroyed, 2);
     PK_COMPARE(map.size(), 2);
     map.clear();
@@ -692,7 +692,7 @@ void PkForeachTest::qDeleteAllOnAssociativeContainers()
     hash.insert(1, new PkDeleteProbe(1));
     hash.insert(2, new PkDeleteProbe(2));
     hash.insert(3, new PkDeleteProbe(3));
-    qDeleteAll(hash);
+    pkDeleteAll(hash);
     PK_COMPARE(PkDeleteProbe::s_destroyed, 3);
     PK_COMPARE(hash.size(), 3);
     hash.clear();
@@ -702,7 +702,7 @@ void PkForeachTest::qDeleteAllOnAssociativeContainers()
     PkSet<PkDeleteProbe *> set;
     set.insert(new PkDeleteProbe(1));
     set.insert(new PkDeleteProbe(2));
-    qDeleteAll(set);
+    pkDeleteAll(set);
     PK_COMPARE(PkDeleteProbe::s_destroyed, 2);
     PK_COMPARE(set.size(), 2);
     set.clear();

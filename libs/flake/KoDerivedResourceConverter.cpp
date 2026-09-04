@@ -6,7 +6,7 @@
 
 #include "KoDerivedResourceConverter.h"
 
-#include "QVariant"
+#include "PkVariant"
 #include "kis_assert.h"
 
 struct KoDerivedResourceConverter::Private
@@ -17,7 +17,7 @@ struct KoDerivedResourceConverter::Private
     int key;
     int sourceKey;
 
-    QVariant lastKnownValue;
+    PkVariant lastKnownValue;
     bool invisibleChangeHappened = false;
 };
 
@@ -41,9 +41,9 @@ int KoDerivedResourceConverter::sourceKey() const
     return m_d->sourceKey;
 }
 
-bool KoDerivedResourceConverter::notifySourceChanged(const QVariant &sourceValue)
+bool KoDerivedResourceConverter::notifySourceChanged(const PkVariant &sourceValue)
 {
-    const QVariant newValue = fromSource(sourceValue);
+    const PkVariant newValue = fromSource(sourceValue);
 
     const bool valueChanged = m_d->lastKnownValue != newValue || m_d->invisibleChangeHappened;
     m_d->lastKnownValue = newValue;
@@ -52,19 +52,19 @@ bool KoDerivedResourceConverter::notifySourceChanged(const QVariant &sourceValue
     return valueChanged;
 }
 
-QVariant KoDerivedResourceConverter::readFromSource(const QVariant &sourceValue)
+PkVariant KoDerivedResourceConverter::readFromSource(const PkVariant &sourceValue)
 {
-    const QVariant result = fromSource(sourceValue);
+    const PkVariant result = fromSource(sourceValue);
     m_d->invisibleChangeHappened |= result != m_d->lastKnownValue;
     m_d->lastKnownValue = result;
     return m_d->lastKnownValue;
 }
 
-QVariant KoDerivedResourceConverter::writeToSource(const QVariant &value,
-                                                   const QVariant &sourceValue,
+PkVariant KoDerivedResourceConverter::writeToSource(const PkVariant &value,
+                                                   const PkVariant &sourceValue,
                                                    bool *changed)
 {
-    QVariant newSourceValue = sourceValue;
+    PkVariant newSourceValue = sourceValue;
     const bool hasChanged = m_d->lastKnownValue != value || m_d->invisibleChangeHappened;
     m_d->invisibleChangeHappened = false;
 

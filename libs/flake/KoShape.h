@@ -13,20 +13,22 @@
 #include "KoFlake.h"
 #include "KoFlakeTypes.h"
 
-#include <QSharedPointer>
-#include <QSet>
-#include <QMap>
+#include <PkSharedPointer.h>
+#include <PkSet.h>
+#include <PkMap.h>
 #include <QMetaType>
 #include <QSharedDataPointer>
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 class QPainter;
-class QRectF;
-class QPainterPath;
-class QTransform;
+class PkRectF;
+class PkPainterPath;
+class PkTransform;
 
 class KoShapeContainer;
 class KoShapeStrokeModel;
@@ -214,7 +216,7 @@ public:
      * Easiest example of this difference is that using this method will not distort the
      * size of pattern-fills and strokes.
      */
-    virtual void setSize(const QSizeF &size);
+    virtual void setSize(const PkSizeF &size);
 
     /**
      * @brief Get the size of the shape in pt.
@@ -223,28 +225,28 @@ public:
      *
      * @return the size of the shape as set by setSize()
      */
-    virtual QSizeF size() const;
+    virtual PkSizeF size() const;
 
     /**
      * @brief Set the position of the shape in pt
      *
      * @param position the new position of the shape
      */
-    virtual void setPosition(const QPointF &position);
+    virtual void setPosition(const PkPointF &position);
 
     /**
      * @brief Get the position of the shape in pt
      *
      * @return the position of the shape
      */
-    QPointF position() const;
+    PkPointF position() const;
 
     /**
      * @brief Check if the shape is hit on position
      * @param position the position where the user clicked.
      * @return true when it hits.
      */
-    virtual bool hitTest(const QPointF &position) const;
+    virtual bool hitTest(const PkPointF &position) const;
 
     /**
      * @brief Get the bounding box of the shape
@@ -253,13 +255,13 @@ public:
      *
      * @return the bounding box of the shape
      */
-    virtual QRectF boundingRect() const;
+    virtual PkRectF boundingRect() const;
 
     /**
      * Get the united bounding box of a group of shapes. This is a utility
      * function used in many places in Krita.
      */
-    static QRectF boundingRect(const QList<KoShape*> &shapes);
+    static PkRectF boundingRect(const PkList<KoShape*> &shapes);
 
     /**
      * @return the bounding rect of the outline of the shape measured
@@ -267,13 +269,13 @@ public:
      *         boundingRect() this rect doesn't include the stroke and other
      *         insets.
      */
-    QRectF absoluteOutlineRect() const;
+    PkRectF absoluteOutlineRect() const;
 
     /**
      * Same as a member function, but applies to a list of shapes and returns a
      * united rect.
      */
-    static QRectF absoluteOutlineRect(const QList<KoShape*> &shapes);
+    static PkRectF absoluteOutlineRect(const PkList<KoShape*> &shapes);
 
     /**
      * Set the KoShapeAnchor
@@ -311,7 +313,7 @@ public:
      *
      * @param background the new shape background.
      */
-    virtual void setBackground(QSharedPointer<KoShapeBackground> background);
+    virtual void setBackground(PkSharedPointer<KoShapeBackground> background);
 
     /**
      * Return the brush used to paint the background of this shape with.
@@ -320,7 +322,7 @@ public:
      * will be able to tell if its transparent or not.
      * @return the background-brush
      */
-    virtual QSharedPointer<KoShapeBackground> background() const;
+    virtual PkSharedPointer<KoShapeBackground> background() const;
 
     /**
      * @brief setInheritBackground marks a shape as inheriting the background
@@ -492,7 +494,7 @@ public:
      *        in recursive way.
      * @return true if there is a (transitive) transformation-wise parent found in \p ancestorsInQuestion
      */
-    bool inheritsTransformFromAny(const QList<KoShape*> ancestorsInQuestion) const;
+    bool inheritsTransformFromAny(const PkList<KoShape*> ancestorsInQuestion) const;
 
     /**
      * @return true if this shape has a common parent with \p shape
@@ -517,7 +519,7 @@ public:
      * will be merged into an appropriate repaint action.
      * @param rect the rectangle (in pt) to queue for repaint.
      */
-    virtual void updateAbsolute(const QRectF &rect) const;
+    virtual void updateAbsolute(const PkRectF &rect) const;
 
     /// Used by compareShapeZIndex() to order shapes
     enum ChildZOrderPolicy {
@@ -552,7 +554,7 @@ public:
      * on, for example.
      * @returns the outline of the shape in the form of a path.
      */
-    virtual QPainterPath outline() const;
+    virtual PkPainterPath outline() const;
 
     /**
      * returns the outline of the shape in the form of a rect.
@@ -561,7 +563,7 @@ public:
      * the boundingRect.
      * @returns the outline of the shape in the form of a rect.
      */
-    virtual QRectF outlineRect() const;
+    virtual PkRectF outlineRect() const;
 
     /**
      * Returns the currently set stroke, or 0 if there is no stroke.
@@ -608,13 +610,13 @@ public:
      * @brief paintOrder
      * @return vector of paint orders, will always be 3 big and contain a fill, stroke and marker entry.
      */
-    virtual QVector<PaintOrder> paintOrder() const;
+    virtual PkVector<PaintOrder> paintOrder() const;
 
     /**
      * @brief default paint order as per SVG specification
      * @return constant value of {Fill, Stroke, Markers}
      */
-    static QVector<PaintOrder> defaultPaintOrder();
+    static PkVector<PaintOrder> defaultPaintOrder();
 
     /**
      * @brief setInheritPaintOrder
@@ -663,7 +665,7 @@ public:
      * @param anchor The place on the (unaltered) shape that you want the position of.
      * @return the point that is the absolute, centered position of this shape.
      */
-    QPointF absolutePosition(KoFlake::AnchorPosition anchor = KoFlake::Center) const;
+    PkPointF absolutePosition(KoFlake::AnchorPosition anchor = KoFlake::Center) const;
 
     /**
      * Move this shape to an absolute position where the end location will be the same
@@ -671,15 +673,15 @@ public:
      * a parent (being in a group) or not.<br>
      * The newPosition is going to be the center of the shape.
      * This has the convenient effect that: <pre>
-    shape-&gt;setAbsolutePosition(QPointF(0,0));
+    shape-&gt;setAbsolutePosition(PkPointF(0,0));
     shape-&gt;rotate(45);</pre>
         Will result in the same visual position of the shape as the opposite:<pre>
     shape-&gt;rotate(45);
-    shape-&gt;setAbsolutePosition(QPointF(0,0));</pre>
+    shape-&gt;setAbsolutePosition(PkPointF(0,0));</pre>
      * @param newPosition the new absolute center of the shape.
      * @param anchor The place on the (unaltered) shape that you set the position of.
      */
-    void setAbsolutePosition(const QPointF &newPosition, KoFlake::AnchorPosition anchor = KoFlake::Center);
+    void setAbsolutePosition(const PkPointF &newPosition, KoFlake::AnchorPosition anchor = KoFlake::Center);
 
     /**
      * Set a data object on the shape to be used by an application.
@@ -698,7 +700,7 @@ public:
      * @see KoShapeFactoryBase::shapeId()
      * @return the id of the shape-type
      */
-    QString shapeId() const;
+    PkString shapeId() const;
 
     /**
      * Set the Id of this shape.  A shapeFactory is expected to set the Id at creation
@@ -706,7 +708,7 @@ public:
      * @see KoShapeFactoryBase::shapeId()
      * @param id the ID from the factory that created this shape
      */
-    void setShapeId(const QString &id);
+    void setShapeId(const PkString &id);
 
     /**
      * Create a matrix that describes all the transformations done on this shape.
@@ -714,7 +716,7 @@ public:
      * The absolute transformation is the combined transformation of this shape
      * and all its parents and grandparents.
      */
-    QTransform absoluteTransformation() const;
+    PkTransform absoluteTransformation() const;
 
     /**
      * Applies a transformation to this shape.
@@ -725,16 +727,16 @@ public:
      *
      * @param matrix the transformation matrix to apply
      */
-    void applyAbsoluteTransformation(const QTransform &matrix);
+    void applyAbsoluteTransformation(const PkTransform &matrix);
 
     /**
      * Sets a new transformation matrix describing the local transformations on this shape.
      * @param matrix the new transformation matrix
      */
-    void setTransformation(const QTransform &matrix);
+    void setTransformation(const PkTransform &matrix);
 
     /// Returns the shapes local transformation matrix
-    QTransform transformation() const;
+    PkTransform transformation() const;
 
     /**
      * Applies a transformation to this shape.
@@ -743,7 +745,7 @@ public:
      *
      * @param matrix the transformation matrix to apply
      */
-    void applyTransformation(const QTransform &matrix);
+    void applyTransformation(const PkTransform &matrix);
 
     /**
      * Copy all the settings from the parameter shape and apply them to this shape.
@@ -766,40 +768,40 @@ public:
      * @param point in shape coordinates
      * @return point in document coordinates
      */
-    QPointF shapeToDocument(const QPointF &point) const;
+    PkPointF shapeToDocument(const PkPointF &point) const;
 
     /**
      * @brief Transforms rect from shape coordinates to document coordinates
      * @param rect in shape coordinates
      * @return rect in document coordinates
      */
-    QRectF shapeToDocument(const QRectF &rect) const;
+    PkRectF shapeToDocument(const PkRectF &rect) const;
 
     /**
      * @brief Transforms point from document coordinates to shape coordinates
      * @param point in document coordinates
      * @return point in shape coordinates
      */
-    QPointF documentToShape(const QPointF &point) const;
+    PkPointF documentToShape(const PkPointF &point) const;
 
     /**
      * @brief Transform rect from document coordinates to shape coordinates
      * @param rect in document coordinates
      * @return rect in shape coordinates
      */
-    QRectF documentToShape(const QRectF &rect) const;
+    PkRectF documentToShape(const PkRectF &rect) const;
 
     /**
      * Returns the name of the shape.
      * @return the shapes name
      */
-    QString name() const;
+    PkString name() const;
 
     /**
      * Sets the name of the shape.
      * @param name the new shape name
      */
-    void setName(const QString &name);
+    void setName(const PkString &name);
 
     /**
      * Update the position of the shape in the tree of the KoShapeManager.
@@ -847,7 +849,7 @@ public:
     bool hasDependee(KoShape *shape) const;
 
     /// Returns list of shapes depending on this shape
-    QList<KoShape*> dependees() const;
+    PkList<KoShape*> dependees() const;
 
     /// Returns additional snap data the shape wants to have snapping to
     virtual KoSnapData snapData() const;
@@ -861,14 +863,14 @@ public:
      * @param name The name of the attribute in the following form prefix:tag e.g. presentation:placeholder
      * @param value The value of the attribute
      */
-    void setAdditionalAttribute(const QString &name, const QString &value);
+    void setAdditionalAttribute(const PkString &name, const PkString &value);
 
     /**
      * Remove additional attribute
      *
      * @param name The name of the attribute in the following form prefix:tag e.g. presentation:placeholder
      */
-    void removeAdditionalAttribute(const QString &name);
+    void removeAdditionalAttribute(const PkString &name);
 
     /**
      * Check if additional attribute is set
@@ -877,7 +879,7 @@ public:
      *
      * @return true if there is a attribute with prefix:tag set, false otherwise
      */
-    bool hasAdditionalAttribute(const QString &name) const;
+    bool hasAdditionalAttribute(const PkString &name) const;
 
     /**
      * Get additional attribute
@@ -886,9 +888,9 @@ public:
      *
      * @return The value of the attribute if it exists or a null string if not found.
      */
-    QString additionalAttribute(const QString &name) const;
+    PkString additionalAttribute(const PkString &name) const;
 
-    void setAdditionalStyleAttribute(const char *name, const QString &value);
+    void setAdditionalStyleAttribute(const char *name, const PkString &value);
 
     void removeAdditionalStyleAttribute(const char *name);
 
@@ -901,25 +903,25 @@ public:
      * Notice that if the set is non-empty 'this' shape is no longer looked at. You can choose
      * to add itself to the set too.
      */
-    QSet<KoShape*> toolDelegates() const;
+    PkSet<KoShape*> toolDelegates() const;
 
     /**
      * Set the tool delegates.
      * @param delegates the new delegates.
      * @see toolDelegates()
      */
-    void setToolDelegates(const QSet<KoShape*> &delegates);
+    void setToolDelegates(const PkSet<KoShape*> &delegates);
 
     /**
      * Return the hyperlink for this shape.
      */
-    QString hyperLink () const;
+    PkString hyperLink () const;
 
     /**
      * Set hyperlink for this shape.
      * @param hyperLink name.
      */
-    void setHyperLink(const QString &hyperLink);
+    void setHyperLink(const PkString &hyperLink);
 
     /**
      * Update the image resolution in pixels per inch. Shapes should override
@@ -942,19 +944,19 @@ public:
         void unregisterShape(KoShape *shape);
         void notifyShapeChangedImpl(ChangeType type, KoShape *shape);
 
-        QList<KoShape*> m_registeredShapes;
+        PkList<KoShape*> m_registeredShapes;
     };
 
     void addShapeChangeListener(ShapeChangeListener *listener);
     void removeShapeChangeListener(ShapeChangeListener *listener);
 
 protected:
-    QList<ShapeChangeListener *> listeners() const;
-    void setSizeImpl(const QSizeF &size) const;
+    PkList<ShapeChangeListener *> listeners() const;
+    void setSizeImpl(const PkSizeF &size) const;
 
 public:
-    static QList<KoShape*> linearizeSubtree(const QList<KoShape*> &shapes);
-    static QList<KoShape *> linearizeSubtreeSorted(const QList<KoShape *> &shapes);
+    static PkList<KoShape*> linearizeSubtree(const PkList<KoShape*> &shapes);
+    static PkList<KoShape *> linearizeSubtreeSorted(const PkList<KoShape *> &shapes);
 protected:
     KoShape(const KoShape &rhs);
 
@@ -967,11 +969,11 @@ protected:
     virtual void shapeChanged(ChangeType type, KoShape *shape = 0);
 
     /// return the current matrix that contains the rotation/scale/position of this shape
-    QTransform transform() const;
+    PkTransform transform() const;
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 
     class SharedData;
     QSharedDataPointer<SharedData> s;
@@ -991,6 +993,6 @@ private:
 };
 
 Q_DECLARE_METATYPE(KoShape*)
-Q_DECLARE_METATYPE(QVector<KoShape::PaintOrder>)
+Q_DECLARE_METATYPE(PkVector<KoShape::PaintOrder>)
 
 #endif

@@ -230,12 +230,12 @@ public:
             int columns = 1;
 
             for (int y = rc.y(); y <= rc.bottom(); y += rows) {
-                int rows = qMin(srcIt->numContiguousRows(y), dstIt->numContiguousRows(y));
-                rows = qMin(rows, rc.bottom() - y + 1);
+                int rows = pkMin(srcIt->numContiguousRows(y), dstIt->numContiguousRows(y));
+                rows = pkMin(rows, rc.bottom() - y + 1);
 
                 for (int x = rc.x(); x <= rc.right(); x += columns) {
-                    int columns = qMin(srcIt->numContiguousColumns(x), dstIt->numContiguousColumns(x));
-                    columns = qMin(columns, rc.right() - x + 1);
+                    int columns = pkMin(srcIt->numContiguousColumns(x), dstIt->numContiguousColumns(x));
+                    columns = pkMin(columns, rc.right() - x + 1);
 
                     srcIt->moveTo(x, y);
                     dstIt->moveTo(x, y);
@@ -394,21 +394,21 @@ public:
                 PkPoint leftRectOrigin = splitRect[leftIndex].topLeft();
                 PkPoint rightRectOrigin = splitRect[rightIndex].topLeft();
 
-                int height = qMin(splitRect[leftIndex].height(), totalHeight - row);
+                int height = pkMin(splitRect[leftIndex].height(), totalHeight - row);
 
                 int col = 0;
                 while (col < totalWidth) {
                     int width;
                     quint8 *dataPtr;
 
-                    width = qMin(leftWidth, totalWidth - col);
+                    width = pkMin(leftWidth, totalWidth - col);
                     dataPtr = data + pixelSize * (col + row * totalWidth);
                     readBytesImpl(dataPtr, PkRect(leftRectOrigin, PkSize(width, height)), dataRowStride);
                     col += width;
 
                     if (col >= totalWidth) break;
 
-                    width = qMin(rightWidth, totalWidth - col);
+                    width = pkMin(rightWidth, totalWidth - col);
                     dataPtr = data + pixelSize * (col + row * totalWidth);
                     readBytesImpl(dataPtr, PkRect(rightRectOrigin, PkSize(width, height)), dataRowStride);
                     col += width;

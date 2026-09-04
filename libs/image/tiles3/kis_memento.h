@@ -103,10 +103,10 @@ private:
              * under the lock held.
              */
             PkMutexLocker l(currentMementoExtentLock);
-            m_extentMinX = qMin(m_extentMinX, tileMinX);
-            m_extentMaxX = qMax(m_extentMaxX, tileMaxX);
-            m_extentMinY = qMin(m_extentMinY, tileMinY);
-            m_extentMaxY = qMax(m_extentMaxY, tileMaxY);
+            m_extentMinX = pkMin(m_extentMinX, tileMinX);
+            m_extentMaxX = pkMax(m_extentMaxX, tileMaxX);
+            m_extentMinY = pkMin(m_extentMinY, tileMinY);
+            m_extentMaxY = pkMax(m_extentMaxY, tileMaxY);
         }
     }
 

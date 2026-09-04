@@ -57,7 +57,7 @@ ALWAYS_INLINE float removeSmpte2048Curve(float x) noexcept
     const float c3 = 2392.0f / 4096.0f * 32.0f;
 
     const float x_p = powf(x, m2_r);
-    const float res = powf(qMax(0.0f, x_p - a1) / (c2 - c3 * x_p), m1_r);
+    const float res = powf(pkMax(0.0f, x_p - a1) / (c2 - c3 * x_p), m1_r);
     return res * 125.0f;
 }
 

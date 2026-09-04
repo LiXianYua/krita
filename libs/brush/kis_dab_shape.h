@@ -27,9 +27,9 @@ public:
 
     bool operator==(const KisDabShape &rhs) const {
         return
-            qFuzzyCompare(m_scale, rhs.m_scale) &&
-            qFuzzyCompare(m_ratio, rhs.m_ratio) &&
-            qFuzzyCompare(m_rotation, rhs.m_rotation);
+            pkQtFuzzyCompare(m_scale, rhs.m_scale) &&
+            pkQtFuzzyCompare(m_ratio, rhs.m_ratio) &&
+            pkQtFuzzyCompare(m_rotation, rhs.m_rotation);
     }
 
     qreal scale()    const { return m_scale; }

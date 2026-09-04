@@ -11,9 +11,9 @@
 #include "KoCanvasResourceProvider.h"
 #include "KoCanvasBase.h"
 #include "KoShapeController.h"
-#include <QHash>
+#include <PkHash.h>
 #include <QWidget>
-#include <QPointer>
+#include <PkPointer.h>
 #include <string.h> // for the qt version check
 
 class QAction;
@@ -34,7 +34,7 @@ public:
 
     virtual ~KoToolBasePrivate()
     {
-        Q_FOREACH (QPointer<QWidget> optionWidget, optionWidgets) {
+        Q_FOREACH (PkPointer<QWidget> optionWidget, optionWidgets) {
             if (optionWidget) {
                 optionWidget->setParent(0);
                 delete optionWidget;
@@ -61,11 +61,11 @@ public:
     }
 
     struct ToolCanvasResources {
-        QHash<int, KoAbstractCanvasResourceInterfaceSP> abstractResources;
-        QHash<int, KoDerivedResourceConverterSP> converters;
+        PkHash<int, KoAbstractCanvasResourceInterfaceSP> abstractResources;
+        PkHash<int, KoDerivedResourceConverterSP> converters;
     };
 
-    QList<QPointer<QWidget> > optionWidgets; ///< the optionwidgets associated with this tool
+    PkList<PkPointer<QWidget> > optionWidgets; ///< the optionwidgets associated with this tool
     bool optionWidgetsCreated {false};
     QCursor currentCursor;
     KoToolBase *q;
@@ -74,7 +74,7 @@ public:
     bool isInTextMode;
     bool maskSyntheticEvents{false}; ///< Whether this tool masks synthetic events
     bool isActivated;
-    QRectF lastDecorationsRect;
+    PkRectF lastDecorationsRect;
     bool isOpacityPresetMode{false}; ///< Whether the opacity is preset or tool
     ToolCanvasResources toolCanvasResources;
 

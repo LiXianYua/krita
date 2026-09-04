@@ -74,7 +74,7 @@ void PointHandle::paint(QPainter &painter, const KoViewConverter &converter, qre
     m_activePoint->paint(helper, m_activePointType);
 }
 
-QRectF PointHandle::boundingRect() const
+PkRectF PointHandle::boundingRect() const
 {
     bool active = false;
     KoPathToolSelection * selection = dynamic_cast<KoPathToolSelection*>(m_tool->selection());
@@ -106,7 +106,7 @@ KoInteractionStrategy * PointHandle::handleMousePress(KoPointerEvent *event)
         }
         // TODO remove canvas from call ?
         if (m_activePointType == KoPathPoint::Node) {
-            QPointF movedPointPosition = m_activePoint->parent()->shapeToDocument(m_activePoint->point());
+            PkPointF movedPointPosition = m_activePoint->parent()->shapeToDocument(m_activePoint->point());
             return new KoPathPointMoveStrategy(m_tool, event->point, movedPointPosition);
         } else {
             KoPathShape * pathShape = m_activePoint->parent();
@@ -125,14 +125,14 @@ KoInteractionStrategy * PointHandle::handleMousePress(KoPointerEvent *event)
         else if (props & KoPathPoint::IsSymmetric)
             pointType = KoPathPointTypeCommand::Corner;
 
-        QList<KoPathPointData> pointData;
+        PkList<KoPathPointData> pointData;
         pointData.append(KoPathPointData(m_activePoint->parent(), m_activePoint->parent()->pathPointIndex(m_activePoint)));
         m_tool->canvas()->addCommand(new KoPathPointTypeCommand(toPkList(pointData), pointType));
     }
     return 0;
 }
 
-bool PointHandle::check(const QList<KoPathShape*> &selectedShapes)
+bool PointHandle::check(const PkList<KoPathShape*> &selectedShapes)
 {
     if (selectedShapes.contains(m_activePoint->parent())) {
         return m_activePoint->parent()->pathPointIndex(m_activePoint) != KoPathPointIndex(-1, -1);
@@ -175,9 +175,9 @@ void ParameterHandle::paint(QPainter &painter, const KoViewConverter &converter,
     m_parameterShape->paintHandle(helper, m_handleId);
 }
 
-QRectF ParameterHandle::boundingRect() const
+PkRectF ParameterHandle::boundingRect() const
 {
-    return m_parameterShape->shapeToDocument(QRectF(m_parameterShape->handlePosition(m_handleId), QSize(1, 1)));
+    return m_parameterShape->shapeToDocument(PkRectF(m_parameterShape->handlePosition(m_handleId), PkSize(1, 1)));
 }
 
 KoInteractionStrategy * ParameterHandle::handleMousePress(KoPointerEvent *event)
@@ -191,7 +191,7 @@ KoInteractionStrategy * ParameterHandle::handleMousePress(KoPointerEvent *event)
     return 0;
 }
 
-bool ParameterHandle::check(const QList<KoPathShape*> &selectedShapes)
+bool ParameterHandle::check(const PkList<KoPathShape*> &selectedShapes)
 {
     return selectedShapes.contains(m_parameterShape);
 }

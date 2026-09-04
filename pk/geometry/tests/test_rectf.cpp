@@ -595,7 +595,7 @@ void PkRectFCase::rectfToRectRoundsFourEdges()
     PK_VERIFY(coordsAre(PkRectF(2.5, 2.5, 1, 1).toRect(), 3, 3, 3, 3));
     PK_VERIFY(coordsAre(PkRectF(0, 0, 10, 10).toRect(), 0, 0, 9, 9));
     // ⚠ 这一条把"分开对 w 取整"这个误解钉死：实测 coords(1,0,1,0)。
-    // 左边界 qRound(0.49999999999999994) 进位到 1；而 xp+w 在 double 里恰好舍入
+    // 左边界 pkRound(0.49999999999999994) 进位到 1；而 xp+w 在 double 里恰好舍入
     // 成 1.5，qRound 给 2、减 1 得 1。对 w=1 单独取整得不到这个结果。
     PK_VERIFY(coordsAre(PkRectF(0.49999999999999994, 0, 1, 1).toRect(), 1, 0, 1, 0));
     // 退化矩形照样往下传：(0,0,0,0) -> coords(0,0,-1,-1)（正好是 PkRect() 的形状）

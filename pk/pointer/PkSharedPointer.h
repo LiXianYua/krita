@@ -177,21 +177,21 @@ template <class T> bool operator!=(const PkSharedPointer<T> &a, std::nullptr_t) 
 
 // ---- Step 9：接 pk/container 的哈希 ----
 //
-// pk/container/PkHashFunctions.h（只读，一个字节没改）靠**非限定名字 qHash(k) +
+// pk/container/PkHashFunctions.h（只读，一个字节没改）靠**非限定名字 pkHash(k) +
 // ADL** 求哈希：PkHasher<K>::operator() 在 PkSharedPointer<T> 的实例化点找
 // qHash 时，ADL 把 PkSharedPointer 所在的命名空间（全局）纳入关联集合，
 // 于是这里给出的重载会被找到——不需要改 pk/container 一个字节。
 //
 // 名字是 **qHash 不是 pkHash**：pk/container 的 hasher 硬编码调用
-// `qHash(k)`（无命名空间前缀），起别的名字它找不到。这一处签名与最初计划稿
+// `pkHash(k)`（无命名空间前缀），起别的名字它找不到。这一处签名与最初计划稿
 // 里的 `pkHash` 不同，是按 pk/container 实测机制定的，见任务报告。
 //
-// 哈希值取 data() 的指针哈希，与 Qt 的 qHash(const QSharedPointer<T>&)
+// 哈希值取 data() 的指针哈希，与 Qt 的 pkHash(const QSharedPointer<T>&)
 // 同源——探针 P13 证明"拷贝的哈希相等"，指针哈希天然满足这条（同一 data()）。
 template <class T>
-inline unsigned int qHash(const PkSharedPointer<T> &p, unsigned int seed = 0) noexcept
+inline unsigned int pkHash(const PkSharedPointer<T> &p, unsigned int seed = 0) noexcept
 {
-    return qHash(p.data(), seed);
+    return pkHash(p.data(), seed);
 }
 
 #endif // PK_SHARED_POINTER_H

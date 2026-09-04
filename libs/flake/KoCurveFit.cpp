@@ -7,7 +7,7 @@
 
 #include "KoCurveFit.h"
 #include <KoPathShape.h>
-#include <QVector>
+#include <PkVector.h>
 #include <math.h>
 
 /// our equivalent to zero
@@ -24,7 +24,7 @@ const qreal Zero = 10e-12;
 
 class FitVector {
 public:
-    FitVector(const QPointF &p)
+    FitVector(const PkPointF &p)
     : m_X(p.x())
     , m_Y(p.y())
 	{
@@ -36,7 +36,7 @@ public:
 	{
     }
 
-    FitVector(const QPointF &a, const QPointF &b)
+    FitVector(const PkPointF &a, const PkPointF &b)
     : m_X(a.x() - b.x())
     , m_Y(a.y() - b.y())
 	{
@@ -72,8 +72,8 @@ public:
         return (qreal) sqrt(m_X*m_X + m_Y*m_Y);
     }
 
-    QPointF operator+(const QPointF &p) {
-        QPointF b(p.x() + m_X, p.y() + m_Y);
+    PkPointF operator+(const PkPointF &p) {
+        PkPointF b(p.x() + m_X, p.y() + m_Y);
         return b;
     }
 
@@ -81,7 +81,7 @@ public:
     qreal m_X, m_Y;
 };
 
-qreal distance(const QPointF &p1, const QPointF &p2)
+qreal distance(const PkPointF &p1, const PkPointF &p2)
 {
     qreal dx = (p1.x() - p2.x());
     qreal dy = (p1.y() - p2.y());
@@ -89,7 +89,7 @@ qreal distance(const QPointF &p1, const QPointF &p2)
 }
 
 
-FitVector ComputeLeftTangent(const QList<QPointF> &points, int end)
+FitVector ComputeLeftTangent(const PkList<PkPointF> &points, int end)
 {
     FitVector tHat1(points.at(end + 1), points.at(end));
 
@@ -98,7 +98,7 @@ FitVector ComputeLeftTangent(const QList<QPointF> &points, int end)
     return tHat1;
 }
 
-FitVector ComputeRightTangent(const QList<QPointF> &points, int end)
+FitVector ComputeRightTangent(const PkList<PkPointF> &points, int end)
 {
     FitVector tHat1(points.at(end - 1), points.at(end));
 
@@ -112,7 +112,7 @@ FitVector ComputeRightTangent(const QList<QPointF> &points, int end)
  *  Assign parameter values to digitized points
  *  using relative distances between points.
  */
-static qreal *ChordLengthParameterize(const QList<QPointF> &points, int first, int last)
+static qreal *ChordLengthParameterize(const PkList<PkPointF> &points, int first, int last)
 {
     int     i;
     qreal   *u;         /*  Parameterization        */
@@ -157,7 +157,7 @@ static FitVector VectorSub(FitVector a, FitVector b)
     return (c);
 }
 
-static FitVector ComputeCenterTangent(const QList<QPointF> &points, int center)
+static FitVector ComputeCenterTangent(const PkList<PkPointF> &points, int center)
 {
     FitVector V1, V2, tHatCenter;
 
@@ -206,7 +206,7 @@ static qreal B3(qreal u)
  *  Use least-squares method to find Bezier control points for region.
  *
  */
-QPointF* GenerateBezier(const QList<QPointF> &points, int first, int last, qreal *uPrime, FitVector tHat1, FitVector tHat2)
+PkPointF* GenerateBezier(const PkList<PkPointF> &points, int first, int last, qreal *uPrime, FitVector tHat1, FitVector tHat2)
 {
     int     i;
     int     nPts;           /* Number of pts in sub-curve */
@@ -218,14 +218,14 @@ QPointF* GenerateBezier(const QList<QPointF> &points, int first, int last, qreal
     qreal   alpha_l,        /* Alpha values, left and right */
     alpha_r;
     FitVector   tmp;            /* Utility variable     */
-    QPointF *curve;
+    PkPointF *curve;
 
-    curve = new QPointF[4];
+    curve = new PkPointF[4];
     nPts = last - first + 1;
 
     /* Precomputed rhs for eqn      */
     // FitVector A[nPts][2]
-    QVector< QVector<FitVector> > A(nPts, QVector<FitVector>(2));
+    PkVector< PkVector<FitVector> > A(nPts, PkVector<FitVector>(2));
 
     /* Compute the A's  */
     for (i = 0; i < nPts; ++i) {
@@ -325,13 +325,13 @@ QPointF* GenerateBezier(const QList<QPointF> &points, int first, int last, qreal
  *      Evaluate a Bezier curve at a particular parameter value
  *
  */
-static QPointF BezierII(int degree, QPointF *V, qreal t)
+static PkPointF BezierII(int degree, PkPointF *V, qreal t)
 {
     int     i, j;
-    QPointF     Q;          /* Point on curve at parameter t    */
-    QPointF     *Vtemp;     /* Local copy of control points     */
+    PkPointF     Q;          /* Point on curve at parameter t    */
+    PkPointF     *Vtemp;     /* Local copy of control points     */
 
-    Vtemp = new QPointF[degree+1];
+    Vtemp = new PkPointF[degree+1];
 
     for (i = 0; i <= degree; ++i) {
         Vtemp[i] = V[i];
@@ -355,12 +355,12 @@ static QPointF BezierII(int degree, QPointF *V, qreal t)
  *  Find the maximum squared distance of digitized points
  *  to fitted curve.
 */
-static qreal ComputeMaxError(const QList<QPointF> &points, int first, int last, QPointF *curve, qreal *u, int *splitPoint)
+static qreal ComputeMaxError(const PkList<PkPointF> &points, int first, int last, PkPointF *curve, qreal *u, int *splitPoint)
 {
     int     i;
     qreal   maxDist;        /*  Maximum error       */
     qreal   dist;       /*  Current error       */
-    QPointF P;          /*  Point on curve      */
+    PkPointF P;          /*  Point on curve      */
     FitVector   v;          /*  Vector from point to curve  */
 
     *splitPoint = (last - first + 1) / 2;
@@ -382,11 +382,11 @@ static qreal ComputeMaxError(const QList<QPointF> &points, int first, int last, 
  *  NewtonRaphsonRootFind :
  *  Use Newton-Raphson iteration to find better root.
  */
-static qreal NewtonRaphsonRootFind(QPointF *Q, QPointF P, qreal u)
+static qreal NewtonRaphsonRootFind(PkPointF *Q, PkPointF P, qreal u)
 {
     qreal       numerator, denominator;
-    QPointF         Q1[3], Q2[2];   /*  Q' and Q''          */
-    QPointF     Q_u, Q1_u, Q2_u; /*u evaluated at Q, Q', & Q''  */
+    PkPointF         Q1[3], Q2[2];   /*  Q' and Q''          */
+    PkPointF     Q_u, Q1_u, Q2_u; /*u evaluated at Q, Q', & Q''  */
     qreal       uPrime;     /*  Improved u          */
     int         i;
 
@@ -429,7 +429,7 @@ static qreal NewtonRaphsonRootFind(QPointF *Q, QPointF P, qreal u)
  *   a better parameterization.
  *
  */
-static qreal *Reparameterize(const QList<QPointF> &points, int first, int last, qreal *u, QPointF *curve)
+static qreal *Reparameterize(const PkList<PkPointF> &points, int first, int last, qreal *u, PkPointF *curve)
 {
     int     nPts = last - first + 1;
     int     i;
@@ -442,7 +442,7 @@ static qreal *Reparameterize(const QList<QPointF> &points, int first, int last, 
     return (uPrime);
 }
 
-QPointF *FitCubic(const QList<QPointF> &points, int first, int last, FitVector tHat1, FitVector tHat2, float error, int &width)
+PkPointF *FitCubic(const PkList<PkPointF> &points, int first, int last, FitVector tHat1, FitVector tHat2, float error, int &width)
 {
     qreal *u;
     qreal *uPrime;
@@ -452,7 +452,7 @@ QPointF *FitCubic(const QList<QPointF> &points, int first, int last, FitVector t
     qreal iterationError;
     int maxIterations = 4;
     FitVector tHatCenter;
-    QPointF *curve;
+    PkPointF *curve;
     int i;
 
     width = 0;
@@ -464,7 +464,7 @@ QPointF *FitCubic(const QList<QPointF> &points, int first, int last, FitVector t
     if (nPts == 2) {
         qreal dist = distance(points.at(last), points.at(first)) / 3.0;
 
-        curve = new QPointF[4];
+        curve = new PkPointF[4];
 
         curve[0] = points.at(first);
         curve[3] = points.at(last);
@@ -519,13 +519,13 @@ QPointF *FitCubic(const QList<QPointF> &points, int first, int last, FitVector t
     tHatCenter = ComputeCenterTangent(points, splitPoint);
 
     int w1, w2;
-    QPointF *cu1 = 0, *cu2 = 0;
+    PkPointF *cu1 = 0, *cu2 = 0;
     cu1 = FitCubic(points, first, splitPoint, tHat1, tHatCenter, error, w1);
 
     tHatCenter.negate();
     cu2 = FitCubic(points, splitPoint, last, tHatCenter, tHat2, error, w2);
 
-    QPointF *newcurve = new QPointF[w1+w2];
+    PkPointF *newcurve = new PkPointF[w1+w2];
     for (int i = 0; i < w1; ++i) {
         newcurve[i] = cu1[i];
     }
@@ -540,7 +540,7 @@ QPointF *FitCubic(const QList<QPointF> &points, int first, int last, FitVector t
 }
 
 
-KoPathShape * bezierFit(const QList<QPointF> &points, float error)
+KoPathShape * bezierFit(const PkList<PkPointF> &points, float error)
 {
     FitVector tHat1, tHat2;
 
@@ -548,7 +548,7 @@ KoPathShape * bezierFit(const QList<QPointF> &points, float error)
     tHat2 = ComputeRightTangent(points, points.count() - 1);
 
     int width = 0;
-    QPointF *curve;
+    PkPointF *curve;
     curve = FitCubic(points, 0, points.count() - 1, tHat1, tHat2, error, width);
 
     KoPathShape * path = new KoPathShape();

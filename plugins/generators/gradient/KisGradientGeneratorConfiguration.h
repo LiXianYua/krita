@@ -383,9 +383,9 @@ private:
         } else if (sourceUnits == SpatialUnitsPercentOfHeight) {
             return x * static_cast<qreal>(height) / 100.0;
         } else if (sourceUnits == SpatialUnitsPercentOfLongestSide) {
-            return x * static_cast<qreal>(qMax(width, height)) / 100.0;
+            return x * static_cast<qreal>(pkMax(width, height)) / 100.0;
         } else if (sourceUnits == SpatialUnitsPercentOfShortestSide) {
-            return x * static_cast<qreal>(qMin(width, height)) / 100.0;
+            return x * static_cast<qreal>(pkMin(width, height)) / 100.0;
         }
         return x;
     }

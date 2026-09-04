@@ -44,10 +44,10 @@ public:
     ~KoSelection() override;
 
     void paint(QPainter &painter) const override;
-    void setSize(const QSizeF &size) override;
-    QSizeF size() const override;
-    QRectF outlineRect() const override;
-    QRectF boundingRect() const override;
+    void setSize(const PkSizeF &size) override;
+    PkSizeF size() const override;
+    PkRectF outlineRect() const override;
+    PkRectF boundingRect() const override;
 
     /**
      * Adds a shape to the selection.
@@ -86,25 +86,25 @@ public:
      * Return the list of selected shapes
      * @return the list of selected shapes
      */
-    const QList<KoShape*> selectedShapes() const;
+    const PkList<KoShape*> selectedShapes() const;
 
     /**
      * Same as selectedShapes() but only for shapes in visible state. Used by
      * the algorithms that draw shapes on the image
      */
-    const QList<KoShape*> selectedVisibleShapes() const;
+    const PkList<KoShape*> selectedVisibleShapes() const;
 
     /**
      * Same as selectedShapes() but only for editable shapes. Used by
      * the algorithms that modify the image
      */
-    const QList<KoShape*> selectedEditableShapes() const;
+    const PkList<KoShape*> selectedEditableShapes() const;
 
     /**
      * Same as selectedEditableShapes() but also includes shapes delegates.
      * Used for
      */
-    const QList<KoShape*> selectedEditableShapesAndDelegates() const;
+    const PkList<KoShape*> selectedEditableShapesAndDelegates() const;
 
     /**
      * Return the first selected shape, or 0 if there is nothing selected.
@@ -117,7 +117,7 @@ public:
     /// return the selection count, i.e. the number of all selected shapes
     int count() const;
 
-    bool hitTest(const QPointF &position) const override;
+    bool hitTest(const PkPointF &position) const override;
 
     /**
      * Sets the currently active layer.

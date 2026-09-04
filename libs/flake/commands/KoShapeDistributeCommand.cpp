@@ -38,7 +38,7 @@ KoShapeDistributeCommand::KoShapeDistributeCommand(const PkList<KoShape*> &shape
     qreal extent = 0.0;
     // sort by position and calculate sum of objects width/height
     for (KoShape *shape : shapes) {
-        bRect = toPkRectF(shape->absoluteOutlineRect());
+        bRect = shape->absoluteOutlineRect();
         switch (d->distribute) {
         case HorizontalCenterDistribution:
             sortedPos[bRect.center().x()] = shape;
@@ -81,10 +81,10 @@ KoShapeDistributeCommand::KoShapeDistributeCommand(const PkList<KoShape*> &shape
     PkMapIterator<qreal, KoShape*> it(sortedPos);
     while (it.hasNext()) {
         it.next();
-        position = toPkPointF(it.value()->absolutePosition());
+        position = it.value()->absolutePosition();
         previousPositions  << position;
 
-        bRect = toPkRectF(it.value()->absoluteOutlineRect());
+        bRect = it.value()->absoluteOutlineRect();
         switch (d->distribute)        {
         case HorizontalCenterDistribution:
             delta = PkPointF(boundingRect.x() + first->absoluteOutlineRect().width() / 2 + pos - bRect.width() / 2, bRect.y()) - bRect.topLeft();

@@ -99,8 +99,8 @@ struct KisWrappedRect : public PkVector<PkRect> {
         else {
             int x = xToWrappedX(rc.x(), wrapRect, wrapAxis);
             int y = yToWrappedY(rc.y(), wrapRect, wrapAxis);
-            int w = wrapAxis != WRAPAROUND_VERTICAL ? qMin(rc.width(), wrapRect.width()) : rc.width();
-            int h = wrapAxis != WRAPAROUND_HORIZONTAL ? qMin(rc.height(), wrapRect.height()) : rc.height();
+            int w = wrapAxis != WRAPAROUND_VERTICAL ? pkMin(rc.width(), wrapRect.width()) : rc.width();
+            int h = wrapAxis != WRAPAROUND_HORIZONTAL ? pkMin(rc.height(), wrapRect.height()) : rc.height();
 
             // we ensure that the top/left of the rect belongs to the
             // visible rectangle
@@ -139,14 +139,14 @@ struct KisWrappedRect : public PkVector<PkRect> {
         PkVector<PkRect> result;
 
         const int firstCol =
-            wrapAxis != WRAPAROUND_VERTICAL ? qFloor(qreal(limitRect.x() - wrapRect.x()) / wrapRect.width()) : 0;
+            wrapAxis != WRAPAROUND_VERTICAL ? pkFloor(qreal(limitRect.x() - wrapRect.x()) / wrapRect.width()) : 0;
         const int firstRow =
-            wrapAxis != WRAPAROUND_HORIZONTAL ? qFloor(qreal(limitRect.y() - wrapRect.y()) / wrapRect.height()) : 0;
+            wrapAxis != WRAPAROUND_HORIZONTAL ? pkFloor(qreal(limitRect.y() - wrapRect.y()) / wrapRect.height()) : 0;
 
         const int lastCol =
-            wrapAxis != WRAPAROUND_VERTICAL ? qFloor(qreal(limitRect.right() - wrapRect.x()) / wrapRect.width()) : 0;
+            wrapAxis != WRAPAROUND_VERTICAL ? pkFloor(qreal(limitRect.right() - wrapRect.x()) / wrapRect.width()) : 0;
         const int lastRow =
-            wrapAxis != WRAPAROUND_HORIZONTAL ? qFloor(qreal(limitRect.bottom() - wrapRect.y()) / wrapRect.height()) : 0;
+            wrapAxis != WRAPAROUND_HORIZONTAL ? pkFloor(qreal(limitRect.bottom() - wrapRect.y()) / wrapRect.height()) : 0;
 
         KisWrappedRect wrappedRect(rc, wrapRect, wrapAxis);
 
@@ -187,8 +187,8 @@ public:
         } else {
             int x = xToWrappedX(rc.x(), wrapRect, wrapAxis);
             int y = yToWrappedY(rc.y(), wrapRect, wrapAxis);
-            int w = wrapAxis != WRAPAROUND_VERTICAL ? qMin(rc.width(), wrapRect.width()) : rc.width();
-            int h = wrapAxis != WRAPAROUND_HORIZONTAL ? qMin(rc.height(), wrapRect.height()) : rc.height();
+            int w = wrapAxis != WRAPAROUND_VERTICAL ? pkMin(rc.width(), wrapRect.width()) : rc.width();
+            int h = wrapAxis != WRAPAROUND_HORIZONTAL ? pkMin(rc.height(), wrapRect.height()) : rc.height();
 
             // we ensure that the top/left of the rect belongs to the
             // visible rectangle

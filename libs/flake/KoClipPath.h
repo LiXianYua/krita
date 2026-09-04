@@ -9,7 +9,7 @@
 
 #include "kritaflake_export.h"
 
-#include <QList>
+#include <PkList.h>
 #include <QSharedDataPointer>
 #include <qnamespace.h>
 #include <KoFlakeCoordinateSystem.h>
@@ -17,9 +17,9 @@
 class KoShape;
 class KoPathShape;
 class QPainter;
-class QTransform;
-class QPainterPath;
-class QSizeF;
+class PkTransform;
+class PkPainterPath;
+class PkSizeF;
 
 /// Clip path used to clip shapes
 class KRITAFLAKE_EXPORT KoClipPath
@@ -32,7 +32,7 @@ public:
      * @param coordinates shows if ObjectBoundingBox or UserSpaceOnUse coordinate
      *                    system is used.
      */
-    KoClipPath(QList<KoShape*> clipShapes, KoFlake::CoordinateSystem coordinates);
+    KoClipPath(PkList<KoShape*> clipShapes, KoFlake::CoordinateSystem coordinates);
     ~KoClipPath();
 
     // Work around MSVC inability to generate copy ops with QSharedDataPointer.
@@ -44,21 +44,21 @@ public:
     KoFlake::CoordinateSystem coordinates() const;
 
     /// Sets the clip rule to be used for the clip path
-    void setClipRule(Qt::FillRule clipRule);
+    void setClipRule(Pk::FillRule clipRule);
 
     /// Returns the current clip rule
-    Qt::FillRule clipRule() const;
+    Pk::FillRule clipRule() const;
 
     /// Returns the current clip path with coordinates in percent of the clipped shape size
-    QPainterPath path() const;
+    PkPainterPath path() const;
 
     /// Returns the current clip path scaled to match the specified shape size
-    QPainterPath pathForSize(const QSizeF &size) const;
+    PkPainterPath pathForSize(const PkSizeF &size) const;
 
     /// Returns the clip path shapes
-    QList<KoPathShape*> clipPathShapes() const;
+    PkList<KoPathShape*> clipPathShapes() const;
 
-    QList<KoShape*> clipShapes() const;
+    PkList<KoShape*> clipShapes() const;
 
     /**
      * Returns the transformation from the clip data path shapes to the
@@ -67,7 +67,7 @@ public:
      * from clip data path shapes to shape coordinates of the clipped shape 
      * at the time of creating this clip path is being returned.
      */
-    QTransform clipDataTransformation(KoShape *clippedShape) const;
+    PkTransform clipDataTransformation(KoShape *clippedShape) const;
 
     /// Applies the clipping to the given painter
     static void applyClipping(KoShape *clippedShape, QPainter &painter);

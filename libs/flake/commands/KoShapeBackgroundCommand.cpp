@@ -14,9 +14,9 @@
 #include "KoShapeBackground.h"
 #include "kis_command_ids.h"
 
-// PkSharedPointer ↔ QSharedPointer 过渡助手现居 PkFlakeBridge.h（保活 deleter 模式，
+// PkSharedPointer ↔ PkSharedPointer 过渡助手现居 PkFlakeBridge.h（保活 deleter 模式，
 // 同款实现，本文件 include 该桥接头）：命令类在 KoShape::background()（真 Qt 返回
-// QSharedPointer）与命令参数（PkSharedPointer）之间跨界时调用。flake 剥完（共享指针
+// PkSharedPointer）与命令参数（PkSharedPointer）之间跨界时调用。flake 剥完（共享指针
 // 归 Pk）后桥接连同本文件调用点一起删。
 
 class Q_DECL_HIDDEN KoShapeBackgroundCommand::Private
@@ -51,7 +51,7 @@ KoShapeBackgroundCommand::KoShapeBackgroundCommand(const PkList<KoShape*> &shape
 {
     d->shapes = shapes;
     for (KoShape *shape : d->shapes) {
-        d->addOldFill(toPkSharedPointer(shape->background()));
+        d->addOldFill(shape->background());
         d->addNewFill(fill);
     }
 
@@ -63,7 +63,7 @@ KoShapeBackgroundCommand::KoShapeBackgroundCommand(KoShape * shape, PkSharedPoin
         , d(new Private())
 {
     d->shapes.append(shape);
-    d->addOldFill(toPkSharedPointer(shape->background()));
+    d->addOldFill(shape->background());
     d->addNewFill(fill);
 
     setText(kundo2_text("Set background"));
@@ -89,7 +89,7 @@ void KoShapeBackgroundCommand::redo()
     KUndo2Command::redo();
     PkList<PkSharedPointer<KoShapeBackground> >::iterator brushIt = d->newFills.begin();
     for (KoShape *shape : d->shapes) {
-        shape->setBackground(toQSharedPointer(*brushIt));
+        shape->setBackground(*brushIt);
         shape->update();
         ++brushIt;
     }

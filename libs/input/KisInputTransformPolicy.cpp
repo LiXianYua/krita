@@ -66,7 +66,7 @@ PinchZoomResult updatePinchZoom(PinchZoomState &state,
     }
 
     const float distance = PkLineF(firstPoint, secondPoint).length();
-    const float delta = qFuzzyCompare(1.0f, 1.0f + state.lastDistance)
+    const float delta = pkQtFuzzyCompare(1.0f, 1.0f + state.lastDistance)
         ? 1.0f
         : distance / state.lastDistance;
 
@@ -142,7 +142,7 @@ CombinedGestureResult updateCombinedGesture(CombinedRotationState &state,
                                                        currentCanvasRotationDegrees);
 
     const float distance = PkLineF(firstPoint, secondPoint).length();
-    const float scaleDelta = qFuzzyCompare(1.0f, 1.0f + state.lastDistance)
+    const float scaleDelta = pkQtFuzzyCompare(1.0f, 1.0f + state.lastDistance)
         ? 1.0f
         : distance / state.lastDistance;
     state.lastDistance = distance;

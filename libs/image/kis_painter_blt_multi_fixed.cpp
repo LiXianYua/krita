@@ -32,14 +32,14 @@ void KisPainter::Private::applyDevice(const PkRect &applyRect,
         qint32 dstX = rc.x();
 
         qint32 numContiguousDstRows = dstIt->numContiguousRows(dstY);
-        qint32 rows = qMin(rowsRemaining, numContiguousDstRows);
+        qint32 rows = pkMin(rowsRemaining, numContiguousDstRows);
 
         qint32 columnsRemaining = rc.width();
 
         while (columnsRemaining > 0) {
 
             qint32 numContiguousDstColumns = dstIt->numContiguousColumns(dstX);
-            qint32 columns = qMin(numContiguousDstColumns, columnsRemaining);
+            qint32 columns = pkMin(numContiguousDstColumns, columnsRemaining);
 
             qint32 dstRowStride = dstIt->rowStride(dstX, dstY);
             dstIt->moveTo(dstX, dstY);
@@ -93,7 +93,7 @@ void KisPainter::Private::applyDeviceWithSelection(const PkRect &applyRect,
 
         qint32 numContiguousDstRows = dstIt->numContiguousRows(dstY);
         qint32 numContiguousMaskRows = maskIt->numContiguousRows(dstY);
-        qint32 rows = qMin(rowsRemaining, qMin(numContiguousDstRows, numContiguousMaskRows));
+        qint32 rows = pkMin(rowsRemaining, pkMin(numContiguousDstRows, numContiguousMaskRows));
 
         qint32 columnsRemaining = rc.width();
 
@@ -101,7 +101,7 @@ void KisPainter::Private::applyDeviceWithSelection(const PkRect &applyRect,
 
             qint32 numContiguousDstColumns = dstIt->numContiguousColumns(dstX);
             qint32 numContiguousMaskColumns = maskIt->numContiguousColumns(dstX);
-            qint32 columns = qMin(columnsRemaining, qMin(numContiguousDstColumns, numContiguousMaskColumns));
+            qint32 columns = pkMin(columnsRemaining, pkMin(numContiguousDstColumns, numContiguousMaskColumns));
 
             qint32 dstRowStride = dstIt->rowStride(dstX, dstY);
             qint32 maskRowStride = maskIt->rowStride(dstX, dstY);

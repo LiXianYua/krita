@@ -48,18 +48,18 @@ void clamp<quint16>(float* r, float* g, float* b)
 template<>
 void clamp<half>(float* r, float* g, float* b)
 {
-    *r = qMax(0.0f, *r);
-    *g = qMax(0.0f, *g);
-    *b = qMax(0.0f, *b);
+    *r = pkMax(0.0f, *r);
+    *g = pkMax(0.0f, *g);
+    *b = pkMax(0.0f, *b);
 }
 #endif
 
 template<>
 void clamp<float>(float* r, float* g, float* b)
 {
-    *r = qMax(0.0f, *r);
-    *g = qMax(0.0f, *g);
-    *b = qMax(0.0f, *b);
+    *r = pkMax(0.0f, *r);
+    *g = pkMax(0.0f, *g);
+    *b = pkMax(0.0f, *b);
 }
 
 #include "kis_global.h"
@@ -94,7 +94,7 @@ struct HSVPolicy
     }
 
     inline float fixupChroma(float c, float v) {
-        return qMin(v, c);
+        return pkMin(v, c);
     }
 
     inline void writeRGB(float *r, float *g, float *b,
@@ -122,9 +122,9 @@ struct HSLPolicy
 
     inline float fixupChroma(float c, float v) {
         if (v >= 0.5f) {
-            c = qMin(c, 2.0f - 2.0f * v);
+            c = pkMin(c, 2.0f - 2.0f * v);
         } else {
-            c = qMin(c, 2.0f * v);
+            c = pkMin(c, 2.0f * v);
         }
 
         return c;
@@ -158,9 +158,9 @@ struct HCIPolicy
         static const float oneThird = 1.0f / 3.0f;
 
         if (v >= oneThird) {
-            c = qMin(c, 1.5f * (1.0f - v));
+            c = pkMin(c, 1.5f * (1.0f - v));
         } else {
-            c = qMin(c, 3.0f * v);
+            c = pkMin(c, 3.0f * v);
         }
 
         return c;
@@ -239,8 +239,8 @@ void HSVTransform(float *r, float *g, float *b, float dh, float ds, float dv, Va
 
     float h;
 
-    float M = qMax(*r, qMax(*g, *b));
-    float m = qMin(*r, qMin(*g, *b));
+    float M = pkMax(*r, pkMax(*g, *b));
+    float m = pkMin(*r, pkMin(*g, *b));
 
     float chroma = M - m;
 
@@ -274,7 +274,7 @@ void HSVTransform(float *r, float *g, float *b, float dh, float ds, float dv, Va
                 /// ds = 0.5 -> chroma *= 2.0;
                 /// ds = 1.0 -> chroma *= 4.0;
 
-                chroma = qMin(1.0f, chroma * (1.0f + ds + 2.0f * pow2(ds)));
+                chroma = pkMin(1.0f, chroma * (1.0f + ds + 2.0f * pow2(ds)));
             } else {
                 chroma *= ds + 1.0f;
             }
@@ -293,7 +293,7 @@ void HSVTransform(float *r, float *g, float *b, float dh, float ds, float dv, Va
             chroma += movement * chromaCoeff;
         }
 
-        v = qBound(0.0f, v, 1.0f);
+        v = pkBound(0.0f, v, 1.0f);
         chroma = valuePolicy.fixupChroma(chroma, v);
     }
 
@@ -513,10 +513,10 @@ public:
             while (nPixels > 0) {
                 if (m_type = 4) {
                     a *= (m_adj_h + 1.0);
-                    a = qBound(0.0, a, 1.0);
+                    a = pkBound(0.0, a, 1.0);
 
                     b *= (m_adj_s + 1.0);
-                    b = qBound(0.0, b, 1.0);
+                    b = pkBound(0.0, b, 1.0);
 
                     if (m_adj_v < 0)
                         lightness *= (m_adj_v + 1.0);
@@ -529,9 +529,9 @@ public:
                     if (H > 360) h -= 360;
                     if (H < 0) h += 360;
                     C += m_adj_s;
-                    C = qBound(0.0,C,1.0);
+                    C = pkBound(0.0,C,1.0);
                     L += m_adj_v;
-                    L = qBound(0.0,L,1.0);
+                    L = pkBound(0.0,L,1.0);
                     LCHToLAB(L, C, H/360.0, &lightness, &a, &b);
                 }
                 clamp< _channel_type_ >(&lightness, &a, &b);

@@ -81,22 +81,22 @@ void KoShapeGroupCommand::redo()
 
     if (d->shouldNormalize &&  dynamic_cast<KoShapeGroup*>(d->container)) {
         PkRectF bound = d->containerBoundingRect();
-        PkPointF oldGroupPosition = toPkPointF(d->container->absolutePosition(KoFlake::TopLeft));
-        d->container->setAbsolutePosition(toQPointF(bound.topLeft()), KoFlake::TopLeft);
-        d->container->setSize(toQSizeF(bound.size()));
+        PkPointF oldGroupPosition = d->container->absolutePosition(KoFlake::TopLeft);
+        d->container->setAbsolutePosition(bound.topLeft(), KoFlake::TopLeft);
+        d->container->setSize(bound.size());
 
         if (d->container->shapeCount() > 0) {
             // the group has changed position and so have the group child shapes
             // -> we need compensate the group position change
             PkPointF positionOffset = oldGroupPosition - bound.topLeft();
             for (KoShape * child : d->container->shapes())
-                child->setAbsolutePosition(child->absolutePosition() + toQPointF(positionOffset));
+                child->setAbsolutePosition(child->absolutePosition() + positionOffset);
         }
     }
 
-    PkTransform groupTransform = toPkTransform(d->container->absoluteTransformation().inverted());
+    PkTransform groupTransform = d->container->absoluteTransformation().inverted();
 
-    PkList<KoShape*> containerShapes(toPkList(d->container->shapes()));
+    PkList<KoShape*> containerShapes(d->container->shapes());
     std::stable_sort(containerShapes.begin(), containerShapes.end(), KoShape::compareShapeZIndex);
 
     PkList<KoShapeReorderCommand::IndexedShape> indexedShapes;
@@ -131,7 +131,7 @@ void KoShapeGroupCommand::redo()
     for (uint i = 0; i < shapeCount; ++i) {
         KoShape * shape = d->shapes[i];
 
-        shape->applyAbsoluteTransformation(toQTransform(groupTransform));
+        shape->applyAbsoluteTransformation(groupTransform);
         d->container->addShape(shape);
     }
 
@@ -142,14 +142,14 @@ void KoShapeGroupCommand::undo()
 {
     KUndo2Command::undo();
 
-    PkTransform ungroupTransform = toPkTransform(d->container->absoluteTransformation());
+    PkTransform ungroupTransform = d->container->absoluteTransformation();
     for (int i = 0; i < d->shapes.count(); i++) {
         KoShape * shape = d->shapes[i];
         d->container->removeShape(shape);
         if (d->oldParents.at(i)) {
             d->oldParents.at(i)->addShape(shape);
         }
-        shape->applyAbsoluteTransformation(toQTransform(ungroupTransform));
+        shape->applyAbsoluteTransformation(ungroupTransform);
     }
 
     if (d->shapesReorderCommand) {
@@ -164,10 +164,10 @@ void KoShapeGroupCommand::undo()
             PkRectF bound;
             for (KoShape * shape : d->container->shapes()) {
                 if (! boundingRectInitialized) {
-                    bound = toPkRectF(shape->boundingRect());
+                    bound = shape->boundingRect();
                     boundingRectInitialized = true;
                 } else
-                    bound = bound.united(toPkRectF(shape->boundingRect()));
+                    bound = bound.united(shape->boundingRect());
             }
             // the group has changed position and so have the group child shapes
             // -> we need compensate the group position change
@@ -175,8 +175,8 @@ void KoShapeGroupCommand::undo()
             for (KoShape * child : d->container->shapes())
                 child->setAbsolutePosition(child->absolutePosition() + toQPointF(positionOffset));
 
-            d->container->setAbsolutePosition(toQPointF(bound.topLeft()), KoFlake::TopLeft);
-            d->container->setSize(toQSizeF(bound.size()));
+            d->container->setAbsolutePosition(bound.topLeft(), KoFlake::TopLeft);
+            d->container->setSize(bound.size());
         }
     }
 }
@@ -185,11 +185,11 @@ PkRectF KoShapeGroupCommandPrivate::containerBoundingRect()
 {
     PkRectF bound;
     if (container->shapeCount() > 0) {
-        bound = toPkRectF(container->absoluteTransformation().mapRect(container->outlineRect()));
+        bound = container->absoluteTransformation().mapRect(container->outlineRect());
     }
 
     for (KoShape *shape : shapes) {
-        bound |= toPkRectF(shape->absoluteTransformation().mapRect(shape->outlineRect()));
+        bound |= shape->absoluteTransformation().mapRect(shape->outlineRect());
     }
 
     return bound;

@@ -9,16 +9,16 @@
 
 #include "kritaflake_export.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class QPainter;
-class QRectF;
+class PkRectF;
 
 
 class KRITAFLAKE_EXPORT KoClipMaskPainter
 {
 public:
-    KoClipMaskPainter(QPainter *painter, const QRectF &globalClipRect);
+    KoClipMaskPainter(QPainter *painter, const PkRectF &globalClipRect);
     ~KoClipMaskPainter();
 
     QPainter* shapePainter();
@@ -29,7 +29,7 @@ public:
 private:
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KOCLIPMASKPAINTER_H

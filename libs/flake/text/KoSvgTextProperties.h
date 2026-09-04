@@ -11,9 +11,9 @@
 #include "KoFlakeTypes.h"
 #include "KoSvgText.h"
 
-#include <QScopedPointer>
-#include <QVariant>
-#include <QList>
+#include <PkScopedPointer.h>
+#include <PkVariant.h>
+#include <PkList.h>
 
 #include <boost/operators.hpp>
 
@@ -37,7 +37,7 @@ class KoShapeBackground;
  * To achieve the goal, KoSvgTextProperties wraps all the SVG attributes into a
  * map of QVariants. When the user need to find a set of unique properties
  * of the shape, it iterates through the map and compares values with standard
- * QVariant-based comparison operator. If the property value in a child and a
+ * PkVariant-based comparison operator. If the property value in a child and a
  * parent is not the same, then it is not inherited.
  */
 class KRITAFLAKE_EXPORT KoSvgTextProperties : public boost::equality_comparable<KoSvgTextProperties>
@@ -60,7 +60,7 @@ public:
         LetterSpacingId, ///< KoSvgText::AutoLengthPercentage
         WordSpacingId, ///< KoSvgText::AutoLengthPercentage
 
-        FontFamiliesId, ///< QStringList
+        FontFamiliesId, ///< PkStringList
         FontStyleId, ///< KoSvgText::CssSlantData
         FontStretchId, ///< Int
         FontWeightId, ///< Int
@@ -74,18 +74,18 @@ public:
         FontVariantNumericId,
         FontVariantEastAsianId,
 
-        FontFeatureSettingsId, ///< QStringList
+        FontFeatureSettingsId, ///< PkStringList
         FontOpticalSizingId, ///< Bool
-        FontVariationSettingsId, ///< QStringList
+        FontVariationSettingsId, ///< PkStringList
 
         TextDecorationLineId, ///< Flags, KoSvgText::TextDecorations
         TextDecorationStyleId, ///< KoSvgText::TextDecorationStyle
-        TextDecorationColorId, ///< QColor
+        TextDecorationColorId, ///< PkColor
         TextDecorationPositionId, ///< KoSvgText::TextDecorationUnderlinePosition
         FillId, ///< KoSvgText::BackgroundProperty
         StrokeId, ///< KoSvgText::StrokeProperty
         Opacity, ///< Double, SVG shape opacity.
-        PaintOrder, ///< QVector<KoShape::PaintOrder>
+        PaintOrder, ///< PkVector<KoShape::PaintOrder>
         Visibility, ///< Bool, CSS visibility
 
         TextLanguage, ///< a language string.
@@ -133,7 +133,7 @@ public:
     /**
      * Set the property \p id to \p value
      */
-    void setProperty(PropertyId id, const QVariant &value);
+    void setProperty(PropertyId id, const PkVariant &value);
 
     /**
      * Check if property \p id is present in this properties set
@@ -144,7 +144,7 @@ public:
      * Return the value of property \p id. If the property doesn't exist in
      * the shape, return \p defaultValue instead.
      */
-    QVariant property(PropertyId id, const QVariant &defaultValue = QVariant()) const;
+    PkVariant property(PropertyId id, const PkVariant &defaultValue = PkVariant()) const;
 
     /**
      * Remove property \p id from the set
@@ -155,12 +155,12 @@ public:
      * Return the value of property \p id. If the property doesn't exist in the
      * shape, return the default value define in SVG 1.1.
      */
-    QVariant propertyOrDefault(PropertyId id) const;
+    PkVariant propertyOrDefault(PropertyId id) const;
 
     /**
      * Return a list of properties contained in this set
      */
-    QList<PropertyId> properties() const;
+    PkList<PropertyId> properties() const;
 
     /**
      * Return true if the set contains no properties
@@ -237,20 +237,20 @@ public:
      *
      * @see supportedXmlAttributes for a list of supported attributes
      */
-    void parseSvgTextAttribute(const SvgLoadingContext &context, const QString &command, const QString &value);
+    void parseSvgTextAttribute(const SvgLoadingContext &context, const PkString &command, const PkString &value);
 
     /**
      * Convert all the properties of the set into a map of XML attribute/value
      * pairs.
      */
-    QMap<QString, QString> convertToSvgTextAttributes() const;
+    PkMap<PkString, PkString> convertToSvgTextAttributes() const;
 
     /**
      * @brief convertParagraphProperties
      * some properties only apply to the root shape, so we write those separately.
      * @return
      */
-    QMap<QString, QString> convertParagraphProperties() const;
+    PkMap<PkString, PkString> convertParagraphProperties() const;
 
     QFont generateFont() const;
 
@@ -282,7 +282,7 @@ public:
      * @return a list of strings for font-features and their ranges that can be
      * understood by harfbuzz.
      */
-    QStringList fontFeaturesForText(int start, int length) const;
+    PkStringList fontFeaturesForText(int start, int length) const;
 
     /**
      * @brief cssFontInfo
@@ -291,7 +291,7 @@ public:
      */
     KoCSSFontInfo cssFontInfo() const;
 
-    QSharedPointer<KoShapeBackground> background() const;
+    PkSharedPointer<KoShapeBackground> background() const;
     KoShapeStrokeModelSP stroke() const;
 
     KoSvgText::CssLengthPercentage fontSize() const;
@@ -300,7 +300,7 @@ public:
     /**
      * Return a list of supported XML attribute names (defined in SVG)
      */
-    static QStringList supportedXmlAttributes();
+    static PkStringList supportedXmlAttributes();
 
     /**
      * Return a static object that defines default values for all the supported
@@ -323,7 +323,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KOSVGTEXTPROPERTIES_H

@@ -22,8 +22,8 @@
 // 0，因为 SharedBase::SharedBase(int) 被折叠成了 test_shared.cpp 的版本）。
 //
 // 改类型名唯一化即可解决，**不能改放进匿名命名空间**：usableAsHashKey() 要
-// 靠 pk/container 的 qHash(k)+ADL 机制找到 PkSharedPointer.h 里的
-// `qHash(const T*, seed)` 重载，那条链路要求 T 的关联命名空间包含全局命名空间
+// 靠 pk/container 的 pkHash(k)+ADL 机制找到 PkSharedPointer.h 里的
+// `pkHash(const T*, seed)` 重载，那条链路要求 T 的关联命名空间包含全局命名空间
 // ——匿名命名空间是它自己的命名空间，不会把全局命名空间带进 ADL 的关联集合，
 // 放进去会让 usableAsHashKey() 编不过（已实测复现并改回）。
 static int g_sharedLive = 0;
@@ -265,7 +265,7 @@ void PkSharedPointerCase::assignNullptrClears()
     PK_COMPARE(g_sharedLive, 0);
 }
 
-// Step 9：接 pk/container 的哈希——PkHash<K,V> 靠非限定名字 qHash(k) + ADL 找
+// Step 9：接 pk/container 的哈希——PkHash<K,V> 靠非限定名字 pkHash(k) + ADL 找
 // PkSharedPointer.h 里给的那个重载。探针 P13 证明拷贝的哈希相等，这里用指针
 // 哈希（data() 相同即哈希相同）间接满足同一条不变量。
 void PkSharedPointerCase::usableAsHashKey()

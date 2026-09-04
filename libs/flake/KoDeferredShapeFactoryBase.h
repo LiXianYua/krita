@@ -15,7 +15,7 @@ class KoShape;
 class KoDocumentResourceManager;
 class KoProperties;
 
-class QString;
+class PkString;
 
 /**
  * A factory for KoShape objects. This factory differs from the public KoShapeFactorBase
@@ -31,7 +31,7 @@ public:
 
     ~KoDeferredShapeFactoryBase() override;
 
-    virtual QString deferredPluginName() = 0;
+    virtual PkString deferredPluginName() = 0;
 
     /**
      * This method should be implemented by factories to create a shape that the user

@@ -96,7 +96,7 @@ qreal KisBoxFilterStrategy::support(qreal weightsPositionScale)
 
 qint32 KisBoxFilterStrategy::intSupport(qreal weightsPositionScale)
 {
-    return qCeil(intSupportVal*weightsPositionScale);
+    return pkCeil(intSupportVal*weightsPositionScale);
 }
 
 qreal KisBilinearFilterStrategy::valueAt(qreal t, qreal weightsPositionScale) const

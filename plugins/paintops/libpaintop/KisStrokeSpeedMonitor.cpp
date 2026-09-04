@@ -98,13 +98,13 @@ void KisStrokeSpeedMonitor::resetAccumulatedValues()
 
 void KisStrokeSpeedMonitor::notifyStrokeFinished(qreal cursorSpeed, qreal renderingSpeed, qreal fps, KisPaintOpPresetSP preset)
 {
-    if (qFuzzyCompare(cursorSpeed, 0.0) || qFuzzyCompare(renderingSpeed, 0.0)) return;
+    if (pkQtFuzzyCompare(cursorSpeed, 0.0) || pkQtFuzzyCompare(renderingSpeed, 0.0)) return;
 
     PkMutexLocker locker(&m_d->mutex);
 
     const bool isSamePreset =
         m_d->lastPresetName == preset->name() &&
-        qFuzzyCompare(m_d->lastPresetSize, preset->settings()->paintOpSize());
+        pkQtFuzzyCompare(m_d->lastPresetSize, preset->settings()->paintOpSize());
 
     //ENTER_FUNCTION() << ppVar(isSamePreset);
 

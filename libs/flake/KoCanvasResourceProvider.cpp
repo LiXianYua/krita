@@ -10,7 +10,7 @@
 #include <PkFlakeBridge.h>
 #include "KoCanvasResourceProvider.h"
 
-#include <QVariant>
+#include <PkVariant.h>
 #include <FlakeDebug.h>
 
 #include "KoShape.h"
@@ -53,7 +53,7 @@ KoCanvasResourceProvider::KoCanvasResourceProvider(QObject *parent)
     , d(new Private(this))
 {
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
-    setForegroundColor(KoColor(Qt::black, cs));
+    setForegroundColor(KoColor(Pk::black, cs));
     setBackgroundColor(KoColor(Qt::white, cs));
 
     connect(&d->manager, &KoResourceManager::resourceChanged,
@@ -67,33 +67,33 @@ KoCanvasResourceProvider::~KoCanvasResourceProvider()
     delete d;
 }
 
-void KoCanvasResourceProvider::setResource(int key, const QVariant &value)
+void KoCanvasResourceProvider::setResource(int key, const PkVariant &value)
 {
     d->manager.setResource(key, value);
 }
 
-QVariant KoCanvasResourceProvider::resource(int key) const
+PkVariant KoCanvasResourceProvider::resource(int key) const
 {
     return d->manager.resource(key);
 }
 
 void KoCanvasResourceProvider::setResource(int key, const KoColor &color)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(color);
     setResource(key, v);
 }
 
 void KoCanvasResourceProvider::setResource(int key, KoShape *shape)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(shape);
     setResource(key, v);
 }
 
 void KoCanvasResourceProvider::setResource(int key, const KoUnit &unit)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(unit);
     setResource(key, v);
 }
@@ -138,7 +138,7 @@ void KoCanvasResourceProvider::setHandleRadius(int handleSize)
     // do not allow arbitrary small handles
     if (handleSize < 5)
         handleSize = 5;
-    setResource(KoCanvasResource::HandleRadius, QVariant(handleSize));
+    setResource(KoCanvasResource::HandleRadius, PkVariant(handleSize));
 }
 
 int KoCanvasResourceProvider::handleRadius() const
@@ -152,7 +152,7 @@ void KoCanvasResourceProvider::setDecorationThickness(int decorationThickness)
 {
     if (decorationThickness < 1)
         decorationThickness = 1;
-    setResource(KoCanvasResource::DecorationThickness, QVariant(decorationThickness));
+    setResource(KoCanvasResource::DecorationThickness, PkVariant(decorationThickness));
 }
 
 int KoCanvasResourceProvider::decorationThickness() const
@@ -164,7 +164,7 @@ int KoCanvasResourceProvider::decorationThickness() const
 
 void KoCanvasResourceProvider::setUsingOtherColor(bool usingOtherColor)
 {
-    setResource(KoCanvasResource::UsingOtherColor, QVariant(usingOtherColor));
+    setResource(KoCanvasResource::UsingOtherColor, PkVariant(usingOtherColor));
 }
 
 bool KoCanvasResourceProvider::isUsingOtherColor() const
@@ -184,12 +184,12 @@ int KoCanvasResourceProvider::intResource(int key) const
     return d->manager.intResource(key);
 }
 
-QString KoCanvasResourceProvider::stringResource(int key) const
+PkString KoCanvasResourceProvider::stringResource(int key) const
 {
     return d->manager.stringResource(key);
 }
 
-QSizeF KoCanvasResourceProvider::sizeResource(int key) const
+PkSizeF KoCanvasResourceProvider::sizeResource(int key) const
 {
     return d->manager.sizeResource(key);
 }

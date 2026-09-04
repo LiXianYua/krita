@@ -20,9 +20,9 @@
 
 #include <KoProperties.h>
 
-#include <QMutexLocker>
-#include <QMutex>
-#include <QPointer>
+#include <PkMutex.h>
+#include <PkMutex.h>
+#include <PkPointer.h>
 
 
 #include <FlakeDebug.h>
@@ -30,7 +30,7 @@
 class Q_DECL_HIDDEN KoShapeFactoryBase::Private
 {
 public:
-    Private(const QString &_id, const QString &_name, const QString &_deferredPluginName)
+    Private(const PkString &_id, const PkString &_name, const PkString &_deferredPluginName)
         : deferredFactory(0),
           deferredPluginName(_deferredPluginName),
           id(_id),
@@ -47,22 +47,22 @@ public:
     }
 
     KoDeferredShapeFactoryBase *deferredFactory;
-    QMutex pluginLoadingMutex;
-    QString deferredPluginName;
-    QList<KoShapeTemplate> templates;
-    const QString id;
-    const QString name;
-    QString family;
-    QString tooltip;
-    QString iconName;
+    PkMutex pluginLoadingMutex;
+    PkString deferredPluginName;
+    PkList<KoShapeTemplate> templates;
+    const PkString id;
+    const PkString name;
+    PkString family;
+    PkString tooltip;
+    PkString iconName;
     int loadingPriority;
-    QList<QPair<QString, QStringList> > xmlElements; // xml name space -> xml element names
+    PkList<std::pair<PkString, PkStringList> > xmlElements; // xml name space -> xml element names
     bool hidden;
-    QList<QPointer<KoDocumentResourceManager> > resourceManagers;
+    PkList<PkPointer<KoDocumentResourceManager> > resourceManagers;
 };
 
 
-KoShapeFactoryBase::KoShapeFactoryBase(const QString &id, const QString &name, const QString &deferredPluginName)
+KoShapeFactoryBase::KoShapeFactoryBase(const PkString &id, const PkString &name, const PkString &deferredPluginName)
     : d(new Private(id, name, deferredPluginName))
 {
 }
@@ -72,22 +72,22 @@ KoShapeFactoryBase::~KoShapeFactoryBase()
     delete d;
 }
 
-QString KoShapeFactoryBase::toolTip() const
+PkString KoShapeFactoryBase::toolTip() const
 {
     return d->tooltip;
 }
 
-QString KoShapeFactoryBase::iconName() const
+PkString KoShapeFactoryBase::iconName() const
 {
     return d->iconName;
 }
 
-QString KoShapeFactoryBase::name() const
+PkString KoShapeFactoryBase::name() const
 {
     return d->name;
 }
 
-QString KoShapeFactoryBase::family() const
+PkString KoShapeFactoryBase::family() const
 {
     return d->family;
 }
@@ -97,7 +97,7 @@ int KoShapeFactoryBase::loadingPriority() const
     return d->loadingPriority;
 }
 
-QList<QPair<QString, QStringList> > KoShapeFactoryBase::odfElements() const
+PkList<std::pair<PkString, PkStringList> > KoShapeFactoryBase::odfElements() const
 {
     return d->xmlElements;
 }
@@ -109,7 +109,7 @@ void KoShapeFactoryBase::addTemplate(const KoShapeTemplate &params)
     d->templates.append(tmplate);
 }
 
-void KoShapeFactoryBase::setToolTip(const QString & tooltip)
+void KoShapeFactoryBase::setToolTip(const PkString & tooltip)
 {
     d->tooltip = tooltip;
 }
@@ -119,17 +119,17 @@ void KoShapeFactoryBase::setIconName(const char *iconName)
     d->iconName = QLatin1String(iconName);
 }
 
-void KoShapeFactoryBase::setFamily(const QString & family)
+void KoShapeFactoryBase::setFamily(const PkString & family)
 {
     d->family = family;
 }
 
-QString KoShapeFactoryBase::id() const
+PkString KoShapeFactoryBase::id() const
 {
     return d->id;
 }
 
-QList<KoShapeTemplate> KoShapeFactoryBase::templates() const
+PkList<KoShapeTemplate> KoShapeFactoryBase::templates() const
 {
     return d->templates;
 }
@@ -139,13 +139,13 @@ void KoShapeFactoryBase::setLoadingPriority(int priority)
     d->loadingPriority = priority;
 }
 
-void KoShapeFactoryBase::setXmlElementNames(const QString & nameSpace, const QStringList & names)
+void KoShapeFactoryBase::setXmlElementNames(const PkString & nameSpace, const PkStringList & names)
 {
     d->xmlElements.clear();
-    d->xmlElements.append(QPair<QString, QStringList>(nameSpace, names));
+    d->xmlElements.append(std::pair<PkString, PkStringList>(nameSpace, names));
 }
 
-void KoShapeFactoryBase::setXmlElements(const QList<QPair<QString, QStringList> > &elementNamesList)
+void KoShapeFactoryBase::setXmlElements(const PkList<std::pair<PkString, PkStringList> > &elementNamesList)
 {
     d->xmlElements = elementNamesList;
 }
@@ -200,8 +200,8 @@ void KoShapeFactoryBase::getDeferredPlugin()
 
 void KoShapeFactoryBase::pruneDocumentResourceManager(QObject *)
 {
-    QList<QPointer<KoDocumentResourceManager> > rms;
-    Q_FOREACH(QPointer<KoDocumentResourceManager> rm, d->resourceManagers) {
+    PkList<PkPointer<KoDocumentResourceManager> > rms;
+    Q_FOREACH(PkPointer<KoDocumentResourceManager> rm, d->resourceManagers) {
         if (rm) {
             rms << rm;
         }

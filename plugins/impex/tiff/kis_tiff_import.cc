@@ -1295,7 +1295,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         TIFFGetFieldDefaulted(image, TIFFTAG_ROWSPERSTRIP, &rowsPerStrip);
         dbgFile << rowsPerStrip << "" << height;
         rowsPerStrip =
-            qMin(rowsPerStrip,
+            pkMin(rowsPerStrip,
                  height); // when TIFFNumberOfStrips(image) == 1 it might happen
                           // that rowsPerStrip is incorrectly set
         if (!tiffValidChunkGeometry(basicInfo.width,

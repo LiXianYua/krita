@@ -210,7 +210,7 @@ public:
 
     ALWAYS_INLINE quint8 difference(const quint8 *colorPtr) const
     {
-        return qAbs(*colorPtr - m_referenceValue);
+        return pkAbs(*colorPtr - m_referenceValue);
     }
 
 private:
@@ -435,9 +435,9 @@ void KisScanlineFill::extendedPass(KisFillInterval *currentInterval, int srcRow,
             *backwardIntervalBorder = x;
             pixelAccessPolicy.fillPixel(pixelPtr, opacity, x, srcRow);
             if (extendRight) {
-                m_d->fillExtent.setRight(qMax(m_d->fillExtent.right(), x));
+                m_d->fillExtent.setRight(pkMax(m_d->fillExtent.right(), x));
             } else {
-                m_d->fillExtent.setLeft(qMin(m_d->fillExtent.left(), x));
+                m_d->fillExtent.setLeft(pkMin(m_d->fillExtent.left(), x));
             }
         } else {
             break;

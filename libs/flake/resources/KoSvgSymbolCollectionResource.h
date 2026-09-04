@@ -8,10 +8,10 @@
 #define KOSVGSYMBOLCOLLECTIONRESOURCE
 
 #include <QObject>
-#include <QColor>
-#include <QVector>
-#include <QScopedPointer>
-#include <QImage>
+#include <PkColor.h>
+#include <PkVector.h>
+#include <PkScopedPointer.h>
+#include <PkImage.h>
 #include <QPainter>
 
 #include <KoResource.h>
@@ -27,7 +27,7 @@
 
 struct KRITAFLAKE_EXPORT KoSvgSymbol {
     KoSvgSymbol() {}
-    KoSvgSymbol(const QString &_title)
+    KoSvgSymbol(const PkString &_title)
         : title(_title) {}
 
     KoSvgSymbol(const KoSvgSymbol &rhs)
@@ -42,10 +42,10 @@ struct KRITAFLAKE_EXPORT KoSvgSymbol {
         delete shape;
     }
 
-    QString id;
-    QString title;
+    PkString id;
+    PkString title;
     KoShape *shape {0};
-    QImage icon(int size);
+    PkImage icon(int size);
 
     bool operator==(const KoSvgSymbol& rhs) const {
         return title == rhs.title;
@@ -81,22 +81,22 @@ public:
         return std::pair<PkString, PkString>(ResourceType::Symbols, PkString());
     }
 
-    QString title() const;
-    QString description() const;
-    QString creator() const;
-    QString rights() const;
-    QString language() const;
-    QStringList subjects() const;
-    QString license() const;
-    QStringList permits() const;
+    PkString title() const;
+    PkString description() const;
+    PkString creator() const;
+    PkString rights() const;
+    PkString language() const;
+    PkStringList subjects() const;
+    PkString license() const;
+    PkStringList permits() const;
 
-    QVector<KoSvgSymbol *> symbols() const;
+    PkVector<KoSvgSymbol *> symbols() const;
 
 
 private:
 
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 
 };
 #endif // KOSVGSYMBOLCOLLECTIONRESOURCE

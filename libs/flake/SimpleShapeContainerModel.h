@@ -69,8 +69,8 @@ public:
     int count() const override {
         return m_members.count();
     }
-    QList<KoShape*> shapes() const override {
-        return QList<KoShape*>(m_members);
+    PkList<KoShape*> shapes() const override {
+        return PkList<KoShape*>(m_members);
     }
     void containerChanged(KoShapeContainer *, KoShape::ChangeType) override { }
 
@@ -85,7 +85,7 @@ public:
         return m_inheritsTransform[index];
     }
 
-    void proposeMove(KoShape *shape, QPointF &move) override
+    void proposeMove(KoShape *shape, PkPointF &move) override
     {
         KoShapeContainer *parent = shape->parent();
         bool allowedToMove = true;
@@ -145,9 +145,9 @@ private:
     }
 
 private: // members
-    QList <KoShape *> m_members;
-    QList <bool> m_inheritsTransform;
-    QList <bool> m_clipped;
+    PkList <KoShape *> m_members;
+    PkList <bool> m_inheritsTransform;
+    PkList <bool> m_clipped;
     KoShapeManager *m_associatedRootShapeManager = 0;
 };
 

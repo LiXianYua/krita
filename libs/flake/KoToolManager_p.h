@@ -6,10 +6,10 @@
 #ifndef KO_TOOL_MANAGER_P
 #define KO_TOOL_MANAGER_P
 
-#include <QList>
+#include <PkList.h>
 #include <QObject>
-#include <QString>
-#include <QHash>
+#include <PkString.h>
+#include <PkHash.h>
 
 #include <QKeySequence>
 #include <QAction>
@@ -38,7 +38,7 @@ public:
 
     void connectActiveTool();
     void disconnectActiveTool();
-    void switchTool(const QString &id);
+    void switchTool(const PkString &id);
     void postSwitchTool();
     void switchCanvasData(CanvasData *cd);
 
@@ -49,10 +49,10 @@ public:
     void movedFocus(QWidget *from, QWidget *to);
     void updateCursor(const QCursor &cursor);
     void switchBackRequested();
-    void selectionChanged(const QList<KoShape*> &shapes);
+    void selectionChanged(const PkList<KoShape*> &shapes);
     void currentLayerChanged(const KoShapeLayer *layer);
     void updateToolForProxy();
-    void switchToolTemporaryRequested(const QString &id);
+    void switchToolTemporaryRequested(const PkString &id);
     CanvasData *createCanvasData(KoCanvasController *controller, const KoInputDevice &device);
     KoToolBase* createTool(KoCanvasController *controller, KoToolAction *toolAction);
 
@@ -73,10 +73,10 @@ public:
 
     KoToolManager *q;
 
-    QList<KoToolAction*> toolActionList; // list of all available tools via their actions.
+    PkList<KoToolAction*> toolActionList; // list of all available tools via their actions.
 
-    QHash<KoCanvasController*, QList<CanvasData*> > canvasses;
-    QHash<KoCanvasBase*, KoToolProxy*> proxies;
+    PkHash<KoCanvasController*, PkList<CanvasData*> > canvasses;
+    PkHash<KoCanvasBase*, KoToolProxy*> proxies;
 
     CanvasData *canvasData; // data about the active canvas.
 
@@ -97,7 +97,7 @@ public Q_SLOTS:
     void selectionChanged();
 
 Q_SIGNALS:
-    void selectionChanged(const QList<KoShape*> &shape);
+    void selectionChanged(const PkList<KoShape*> &shape);
 
 private:
     KoShapeManager *m_shapeManager;

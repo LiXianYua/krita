@@ -70,6 +70,26 @@ public:
     void remove(int i) { this->pkRemoveAt(i); }
     void remove(int i, int n) { this->pkRemoveRange(i, n); }
 
+    // takeLast()：弹出并返回末元素（对齐 QVector::takeLast）。空容器返回 T()。
+    T takeLast()
+    {
+        PkInner& v = this->m_d.PkMut();
+        if (v.empty()) return T();
+        T r = std::move(v.back());
+        v.pop_back();
+        return r;
+    }
+
+    // takeFirst()：弹出并返回首元素（对齐 QVector::takeFirst）。空容器返回 T()。
+    T takeFirst()
+    {
+        PkInner& v = this->m_d.PkMut();
+        if (v.empty()) return T();
+        T r = std::move(v.front());
+        v.erase(v.begin());
+        return r;
+    }
+
     void resize(int size)
     {
         assert(size >= 0);

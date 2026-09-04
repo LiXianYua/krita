@@ -182,7 +182,7 @@ public:
             m_filterWeights[i].centerIndex = centerIndex;
             m_filterWeights[i].span = span;
             m_filterWeights[i].weight = new qint16[span];
-            m_maxSpan = qMax(m_maxSpan, span);
+            m_maxSpan = pkMax(m_maxSpan, span);
 
             // in dst coordinate system:
             KisFixedPoint scaledIter = centerSrc + beginSrc.toInt() * m_weightsPositionScale;
@@ -209,7 +209,7 @@ public:
                 sum = 0;
 
                 for (int j = 0; j < span; j++) {
-                    int t = qRound(m_filterWeights[i].weight[j] * fixFactor);
+                    int t = pkRound(m_filterWeights[i].weight[j] * fixFactor);
 
                     m_filterWeights[i].weight[j] = t;
                     sum += t;

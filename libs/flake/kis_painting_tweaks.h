@@ -9,16 +9,18 @@
 
 #include "kritaflake_export.h"
 
-#include <QPen>
+#include <PkPen.h>
 #include <QBrush>
 
 #include <QVector3D>
 #include <QVector2D>
+// [migrate] missing include for Pk/Qt type
+#include <PkRect.h>
 
 class QPainter;
 class QRegion;
-class QRect;
-class QPen;
+class PkRect;
+class PkPen;
 
 namespace KisPaintingTweaks {
 
@@ -34,9 +36,9 @@ namespace KisPaintingTweaks {
     /**
      * \see safeClipRegion()
      */
-    KRITAFLAKE_EXPORT QRect safeClipBoundingRect(const QPainter &painter);
+    KRITAFLAKE_EXPORT PkRect safeClipBoundingRect(const QPainter &painter);
 
-    KRITAFLAKE_EXPORT void initAntsPen(QPen *antsPen, QPen *outlinePen,
+    KRITAFLAKE_EXPORT void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
                                         int antLength = 4, int antSpace = 4);
 
 
@@ -58,18 +60,18 @@ namespace KisPaintingTweaks {
         /**
          * Overrides pen and brush of \p painter with the provided values. \p painter cannot be null.
          */
-        PenBrushSaver(QPainter *painter, const QPen &pen, const QBrush &brush);
+        PenBrushSaver(QPainter *painter, const PkPen &pen, const QBrush &brush);
 
         /**
          * Overrides pen and brush of \p painter with the provided values. \p painter cannot be null.
          */
-        PenBrushSaver(QPainter *painter, const QPair<QPen, QBrush> &pair);
+        PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &pair);
 
         /**
          * A special constructor of PenBrushSaver that allows \p painter to be null. Passing null
          * pointer will basically mean that the whole saver existence will be a noop.
          */
-        PenBrushSaver(QPainter *painter, const QPair<QPen, QBrush> &pair, allow_noop_t);
+        PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &pair, allow_noop_t);
 
         /**
          * Restores the state of the painter that has been saved during the construction of the saver
@@ -79,16 +81,16 @@ namespace KisPaintingTweaks {
     private:
         PenBrushSaver(const PenBrushSaver &rhs) = delete;
         QPainter *m_painter;
-        QPen m_pen;
+        PkPen m_pen;
         QBrush m_brush;
     };
 
-    QColor KRITAFLAKE_EXPORT blendColors(const QColor &c1, const QColor &c2, qreal r1);
+    PkColor KRITAFLAKE_EXPORT blendColors(const PkColor &c1, const PkColor &c2, qreal r1);
 
 
     /**
      * @brief luminosityCoarse
-     * This calculates the luminosity of the given QColor.
+     * This calculates the luminosity of the given PkColor.
      * It uses a very coarse (10 step) lut to linearize the sRGB trc, and then
      * uses rec709 values to calculate the luminosity. Because of the effect of
      * linearization, this is still more precise than one that just calculates
@@ -97,7 +99,7 @@ namespace KisPaintingTweaks {
      * @param sRGBtrc whether to linearize the sRGB trc.
      * @return a delinearized luminosity value, quantized to steps of 0.1.
      */
-    qreal KRITAFLAKE_EXPORT luminosityCoarse(const QColor &c, bool sRGBtrc = true);
+    qreal KRITAFLAKE_EXPORT luminosityCoarse(const PkColor &c, bool sRGBtrc = true);
 
     /**
      * \return an approximate difference between \p c1 and \p c2
@@ -106,14 +108,14 @@ namespace KisPaintingTweaks {
      * The colors are compared using the formula:
      *     difference = sqrt(2 * diff_R^2 + 4 * diff_G^2 + 3 * diff_B^2)
      */
-    qreal KRITAFLAKE_EXPORT colorDifference(const QColor &c1, const QColor &c2);
+    qreal KRITAFLAKE_EXPORT colorDifference(const PkColor &c1, const PkColor &c2);
 
     /**
      * Make the color \p color differ from \p baseColor for at least \p threshold value
      */
-    void KRITAFLAKE_EXPORT dragColor(QColor *color, const QColor &baseColor, qreal threshold);
+    void KRITAFLAKE_EXPORT dragColor(PkColor *color, const PkColor &baseColor, qreal threshold);
 
-    inline void rectToVertices(QVector3D* vertices, const QRectF &rc)
+    inline void rectToVertices(QVector3D* vertices, const PkRectF &rc)
     {
         vertices[0] = QVector3D(rc.left(),  rc.bottom(), 0.f);
         vertices[1] = QVector3D(rc.left(),  rc.top(),    0.f);
@@ -123,7 +125,7 @@ namespace KisPaintingTweaks {
         vertices[5] = QVector3D(rc.right(), rc.bottom(),    0.f);
     }
 
-    inline void rectToTexCoords(QVector2D* texCoords, const QRectF &rc)
+    inline void rectToTexCoords(QVector2D* texCoords, const PkRectF &rc)
     {
         texCoords[0] = QVector2D(rc.left(), rc.bottom());
         texCoords[1] = QVector2D(rc.left(), rc.top());

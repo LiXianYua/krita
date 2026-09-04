@@ -27,7 +27,7 @@ void KisChunkAllocatorTest::testOperations()
 
     allocator.debugChunks();
     allocator.sanityCheck();
-    QVERIFY(qFuzzyCompare(allocator.debugFragmentation(), 1./6));
+    QVERIFY(pkQtFuzzyCompare(allocator.debugFragmentation(), 1./6));
 }
 
 

@@ -25,7 +25,7 @@ qreal KisDynamicSensorTime::value(const KisPaintInformation &pi) const
     const qreal currentTime =
         m_periodic ?
         std::fmod(pi.currentTime(), m_length) :
-        qMin(pi.currentTime(), qreal(m_length));
+        pkMin(pi.currentTime(), qreal(m_length));
 
     return currentTime / qreal(m_length);
 }

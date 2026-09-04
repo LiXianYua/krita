@@ -480,8 +480,8 @@ public:
             } else {
                 const vertices_size_type xDiff = dst_vertex.x - src_vertex.x;
                 const vertices_size_type yDiff = dst_vertex.y - src_vertex.y;
-                const vertices_size_type xAbsDiff = qAbs(xDiff);
-                const vertices_size_type yAbsDiff = qAbs(yDiff);
+                const vertices_size_type xAbsDiff = pkAbs(xDiff);
+                const vertices_size_type yAbsDiff = pkAbs(yDiff);
                 const bool edgeReversed = xDiff < 0 || yDiff < 0;
 
                 if (isReversed != edgeReversed ||

@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------------
 
 #include "../global/PkGlobal.h"     // qreal / quint16 / qAbs / qRound / qMin ...
-#include "../namespace/PkNamespace.h"   // Qt::GlobalColor（R-27 Task 2 交付）
+#include "../namespace/PkNamespace.h"   // Pk::GlobalColor（R-27 Task 2 交付）
 #include "../string/PkString.h"     // name() 返回类型
 
 class PkColor
@@ -63,7 +63,7 @@ public:
     // ── 构造 ───────────────────────────────────────────────
     PkColor() noexcept;                                  // 无效，alpha=65535（rgba() 的 alpha 仍 255）
     PkColor(int r, int g, int b, int a = 255) noexcept;  // 越界 → 无效（分量全 0，含 alpha）
-    PkColor(Qt::GlobalColor color) noexcept;             // GlobalColor 20 项表，含 transparent
+    PkColor(Pk::GlobalColor color) noexcept;             // GlobalColor 20 项表，含 transparent
     PkColor(const char *name);                           // setNamedColor 语义（SVG 命名色 / #hex）
     PkColor(const PkString &name);                       // 同上，PkString 形态（Krita QString→PkString）
     PkColor(const PkColor &other) noexcept = default;
@@ -71,7 +71,7 @@ public:
 
     // ── 赋值 ───────────────────────────────────────────────
     PkColor &operator=(const PkColor &other) noexcept = default;
-    PkColor &operator=(Qt::GlobalColor color) noexcept;
+    PkColor &operator=(Pk::GlobalColor color) noexcept;
 
     // ── 静态工厂 ───────────────────────────────────────────
     static PkColor fromRgb(int r, int g, int b, int a = 255);

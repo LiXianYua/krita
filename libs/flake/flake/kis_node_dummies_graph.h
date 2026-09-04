@@ -8,8 +8,8 @@
 #define __KIS_NODE_DUMMIES_GRAPH_H
 
 #include <QtMath>
-#include <QList>
-#include <QMap>
+#include <PkList.h>
+#include <PkMap.h>
 #include <QObject>
 
 #include "kritashapemodel_export.h"
@@ -71,7 +71,7 @@ private:
     KisNodeShape* nodeShape() const;
 
     friend class KisNodeDummiesGraph;
-    QList<KisNodeDummy*> m_children;
+    PkList<KisNodeDummy*> m_children;
 
     KisNodeShape *m_nodeShape;
     KisNodeSP m_node;
@@ -132,7 +132,7 @@ private:
     void unmapDummyRecursively(KisNodeDummy *dummy);
 
 private:
-    typedef QMap<KisNodeSP, KisNodeDummy*> NodeMap;
+    typedef PkMap<KisNodeSP, KisNodeDummy*> NodeMap;
 
 private:
     KisNodeDummy *m_rootDummy;

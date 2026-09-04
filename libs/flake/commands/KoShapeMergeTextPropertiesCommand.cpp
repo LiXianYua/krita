@@ -13,15 +13,15 @@
 #include <KoShapeBulkActionLock.h>
 
 struct KoShapeMergeTextPropertiesCommand::Private {
-    Private(const QList<KoShape*> &list) : shapes(list) { }
-    QList<KoShape *> shapes;
-    QMap<KoShape*, KoSvgTextShapeMementoSP> mementos;
+    Private(const PkList<KoShape*> &list) : shapes(list) { }
+    PkList<KoShape *> shapes;
+    PkMap<KoShape*, KoSvgTextShapeMementoSP> mementos;
     KoSvgTextProperties newProperties;
-    QSet<KoSvgTextProperties::PropertyId> removeProperties;
+    PkSet<KoSvgTextProperties::PropertyId> removeProperties;
 
 };
 
-KoShapeMergeTextPropertiesCommand::KoShapeMergeTextPropertiesCommand(const QList<KoShape *> &shapes, const KoSvgTextProperties &props, const QSet<KoSvgTextProperties::PropertyId> removeProperties, KUndo2Command *parent)
+KoShapeMergeTextPropertiesCommand::KoShapeMergeTextPropertiesCommand(const PkList<KoShape *> &shapes, const KoSvgTextProperties &props, const PkSet<KoSvgTextProperties::PropertyId> removeProperties, KUndo2Command *parent)
     : KUndo2Command(parent),
     d(new Private(shapes))
 {

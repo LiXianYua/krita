@@ -160,17 +160,17 @@ void ShapeResizeStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardMod
     PkSizeF minViewSize(1.0, 1.0);
     PkSizeF minDocSize = tool()->canvas()->viewConverter()->viewToDocument(minViewSize);
 
-    if (qAbs(newWidth) < minDocSize.width()) {
+    if (pkAbs(newWidth) < minDocSize.width()) {
         newWidth = KisAlgebra2D::signPZ(newWidth) * minDocSize.width();
     }
 
-    if (qAbs(newHeight) < minDocSize.height()) {
+    if (pkAbs(newHeight) < minDocSize.height()) {
         newHeight = KisAlgebra2D::signPZ(newHeight) * minDocSize.height();
     }
 
-    qreal zoomX = qAbs(startWidth) >= minDocSize.width()
+    qreal zoomX = pkAbs(startWidth) >= minDocSize.width()
         ? DefaultToolStrategyMath::resizeScale(startWidth, newWidth) : 1.0;
-    qreal zoomY = qAbs(startHeight) >= minDocSize.height()
+    qreal zoomY = pkAbs(startHeight) >= minDocSize.height()
         ? DefaultToolStrategyMath::resizeScale(startHeight, newHeight) : 1.0;
 
     if (keepAspect) {
@@ -183,9 +183,9 @@ void ShapeResizeStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardMod
             }
         } else {
             if (m_left || m_right) {
-               zoomY = qAbs(zoomX);
+               zoomY = pkAbs(zoomX);
             } else {
-               zoomX = qAbs(zoomY);
+               zoomX = pkAbs(zoomY);
             }
         }
     }

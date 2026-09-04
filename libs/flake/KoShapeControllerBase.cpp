@@ -8,8 +8,8 @@
 
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
-#include <QTransform>
-#include <QPointer>
+#include <PkTransform.h>
+#include <PkPointer.h>
 
 #include "KoShapeControllerBase.h"
 #include "KoDocumentResourceManager.h"
@@ -44,7 +44,7 @@ public:
         delete resourceManager;
     }
 
-    QPointer<KoDocumentResourceManager> resourceManager;
+    PkPointer<KoDocumentResourceManager> resourceManager;
 };
 
 KoShapeControllerBase::KoShapeControllerBase()
@@ -57,7 +57,7 @@ KoShapeControllerBase::~KoShapeControllerBase()
     delete d;
 }
 
-KoShapeContainer* KoShapeControllerBase::createParentForShapes(const QList<KoShape*> shapes, bool forceNewLayer, KUndo2Command *parentCommand)
+KoShapeContainer* KoShapeControllerBase::createParentForShapes(const PkList<KoShape*> shapes, bool forceNewLayer, KUndo2Command *parentCommand)
 {
     Q_UNUSED(parentCommand);
     Q_UNUSED(forceNewLayer);
@@ -71,10 +71,10 @@ KoDocumentResourceManager *KoShapeControllerBase::resourceManager() const
     return d->resourceManager;
 }
 
-QRectF KoShapeControllerBase::documentRect() const
+PkRectF KoShapeControllerBase::documentRect() const
 {
     const qreal pxToPt = 72.0 / pixelsPerInch();
 
-    QTransform t = QTransform::fromScale(pxToPt, pxToPt);
+    PkTransform t = PkTransform::fromScale(pxToPt, pxToPt);
     return t.mapRect(documentRectInPixels());
 }

@@ -373,7 +373,7 @@ void KisImageAnimationInterfaceTest::testAutoKeyframeWithOnionSkins()
 //        KIS_DUMP_DEVICE_2(dev, QRect(0,0,1000,200), "pd", "dd");
 //        KIS_DUMP_DEVICE_2(layer->projection(), QRect(0,0,1000,200), "proj", "dd");
 
-        const QRect farthestOnionSkin(rectForTime(qMax(1, time - 2)));
+        const QRect farthestOnionSkin(rectForTime(pkMax(1, time - 2)));
 
         QCOMPARE(layer->paintDevice()->exactBounds(), fillRect);
         QCOMPARE(layer->projection()->exactBounds(), fillRect | farthestOnionSkin);
@@ -421,7 +421,7 @@ void KisImageAnimationInterfaceTest::testAutoKeyframeWithOnionSkins()
         QCOMPARE(image->animationInterface()->currentTime(), time);
         QCOMPARE(image->animationInterface()->currentUITime(), time);
         QCOMPARE(layer->paintDevice()->exactBounds(), rectForTime(time - 1));
-        QCOMPARE(layer->projection()->exactBounds(), rectForTime(qMax(1, time - 3)) | rectForTime(time - 1));
+        QCOMPARE(layer->projection()->exactBounds(), rectForTime(pkMax(1, time - 3)) | rectForTime(time - 1));
 
         qInfo() << "Cycle: undo switching to time" << time;
         undoStore->undo();
@@ -431,7 +431,7 @@ void KisImageAnimationInterfaceTest::testAutoKeyframeWithOnionSkins()
         QCOMPARE(image->animationInterface()->currentTime(), time - 1);
         QCOMPARE(image->animationInterface()->currentUITime(), time - 1);
         QCOMPARE(layer->paintDevice()->exactBounds(), rectForTime(time - 1));
-        QCOMPARE(layer->projection()->exactBounds(), rectForTime(qMax(1, time - 3)) | rectForTime(time - 1));
+        QCOMPARE(layer->projection()->exactBounds(), rectForTime(pkMax(1, time - 3)) | rectForTime(time - 1));
     }
 }
 

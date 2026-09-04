@@ -101,10 +101,10 @@ PkRect PkRect::operator|(const PkRect &r) const noexcept
         b2 = r.y2;
 
     PkRect tmp;
-    tmp.x1 = qMin(l1, l2);
-    tmp.x2 = qMax(r1, r2);
-    tmp.y1 = qMin(t1, t2);
-    tmp.y2 = qMax(b1, b2);
+    tmp.x1 = pkMin(l1, l2);
+    tmp.x2 = pkMax(r1, r2);
+    tmp.y1 = pkMin(t1, t2);
+    tmp.y2 = pkMax(b1, b2);
     return tmp;
 }
 
@@ -152,10 +152,10 @@ PkRect PkRect::operator&(const PkRect &r) const noexcept
         return PkRect();
 
     PkRect tmp;
-    tmp.x1 = qMax(l1, l2);
-    tmp.x2 = qMin(r1, r2);
-    tmp.y1 = qMax(t1, t2);
-    tmp.y2 = qMin(b1, b2);
+    tmp.x1 = pkMax(l1, l2);
+    tmp.x2 = pkMin(r1, r2);
+    tmp.y1 = pkMax(t1, t2);
+    tmp.y2 = pkMin(b1, b2);
     return tmp;
 }
 
@@ -362,11 +362,11 @@ PkRectF PkRectF::operator|(const PkRectF &r) const noexcept
         right += w;
 
     if (r.w < 0) {
-        left = qMin(left, r.xp + r.w);
-        right = qMax(right, r.xp);
+        left = pkMin(left, r.xp + r.w);
+        right = pkMax(right, r.xp);
     } else {
-        left = qMin(left, r.xp);
-        right = qMax(right, r.xp + r.w);
+        left = pkMin(left, r.xp);
+        right = pkMax(right, r.xp + r.w);
     }
 
     qreal top = yp;
@@ -377,11 +377,11 @@ PkRectF PkRectF::operator|(const PkRectF &r) const noexcept
         bottom += h;
 
     if (r.h < 0) {
-        top = qMin(top, r.yp + r.h);
-        bottom = qMax(bottom, r.yp);
+        top = pkMin(top, r.yp + r.h);
+        bottom = pkMax(bottom, r.yp);
     } else {
-        top = qMin(top, r.yp);
-        bottom = qMax(bottom, r.yp + r.h);
+        top = pkMin(top, r.yp);
+        bottom = pkMax(bottom, r.yp + r.h);
     }
 
     return PkRectF(left, top, right - left, bottom - top);
@@ -434,10 +434,10 @@ PkRectF PkRectF::operator&(const PkRectF &r) const noexcept
         return PkRectF();
 
     PkRectF tmp;
-    tmp.xp = qMax(l1, l2);
-    tmp.yp = qMax(t1, t2);
-    tmp.w = qMin(r1, r2) - tmp.xp;
-    tmp.h = qMin(b1, b2) - tmp.yp;
+    tmp.xp = pkMax(l1, l2);
+    tmp.yp = pkMax(t1, t2);
+    tmp.w = pkMin(r1, r2) - tmp.xp;
+    tmp.h = pkMin(b1, b2) - tmp.yp;
     return tmp;
 }
 
@@ -659,9 +659,9 @@ static_assert(PkRectF(PkRect(0, 0, 10, 10)).right() == 10.,
 static_assert(PkRectF(0, 0, 10, 10).center().x() == 5.,
               "center 是 xp + w/2，不截断");
 static_assert(PkRectF(-1.5, -1.5, 1, 1).toRect().left() == -1,
-              "toRect 用 qRound：qRound(-1.5) == -1");
+              "toRect 用 qRound：pkRound(-1.5) == -1");
 static_assert(PkRectF(-1.5, -1.5, 1, 1).toRect().right() == -1,
-              "toRect 的右下角是 qRound(xp+w) - 1");
+              "toRect 的右下角是 pkRound(xp+w) - 1");
 
 // relaxed constexpr：⚠ 这两条正是 PkRectF 与 PkRect 语义相反的地方。
 static_assert([] { PkRectF t(1, 2, 3, 4); t.setLeft(0); return t.width(); }() == 4.,

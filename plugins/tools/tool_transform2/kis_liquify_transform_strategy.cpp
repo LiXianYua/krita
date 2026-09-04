@@ -235,7 +235,7 @@ void KisLiquifyTransformStrategy::continueAlternateAction(KoPointerEvent *event,
 
         KisLiquifyProperties *props = m_d->currentArgs.liquifyProperties();
         const qreal linearizedOffset = diff.x() / KisTransformUtils::scaleFromAffineMatrix(m_d->converter->imageToWidgetTransform());
-        const qreal newSize = qBound(props->minSize(), props->size() + linearizedOffset, props->maxSize());
+        const qreal newSize = pkBound(props->minSize(), props->size() + linearizedOffset, props->maxSize());
         if (action == KisTool::ChangeSizeSnap) {
             props->setSize(floor(newSize));
         } else {

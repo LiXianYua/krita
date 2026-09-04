@@ -209,7 +209,7 @@ void KisAlgebra2DTest::testDivisionWithFloor()
         for (int b = -1000; b < 1000; b++) {
             if (b == 0) continue;
 
-            int refValue = qFloor(qreal(a) / b);
+            int refValue = pkFloor(qreal(a) / b);
             int value = KisAlgebra2D::divideFloor(a, b);
 
             if (refValue != value) {
@@ -386,9 +386,9 @@ void KisAlgebra2DTest::testLineIntersections()
                 intersectLines(QLineF(QPointF(4,5),QPointF(-1,5)),
                                QLineF(QPointF(-1,0),QPointF(-1,3)));
         QVERIFY(p);
-        qCritical() << "What I've got is" << *p << qAbs(p.value().x() + 1) << qAbs(p.value().y() - 5);
-        QVERIFY(qAbs(p.value().x() + 1) < epsilon);
-        QVERIFY(qAbs(p.value().y() - 5) < epsilon);
+        qCritical() << "What I've got is" << *p << pkAbs(p.value().x() + 1) << pkAbs(p.value().y() - 5);
+        QVERIFY(pkAbs(p.value().x() + 1) < epsilon);
+        QVERIFY(pkAbs(p.value().y() - 5) < epsilon);
     }
 }
 
@@ -400,7 +400,7 @@ void testLineRectIntersection(QRect rect, QLineF line, QLineF expected, bool ext
     float epsilon = 1e-4; // good enough for most usecases // I don't use qFuzzyCompare because it has too small epsilon
 
     auto fuzzyCompare = [epsilon] (float a, float b) -> bool {
-            return (qAbs(a - b) < epsilon); };
+            return (pkAbs(a - b) < epsilon); };
     auto fuzzyComparePoint = [&] (QPointF a, QPointF b) -> bool {
             return fuzzyCompare(a.x(), b.x()) && fuzzyCompare(a.y(), b.y()); };
     auto fuzzyCompareLine = [&] (QLineF a, QLineF b) -> bool {
@@ -685,15 +685,15 @@ void KisAlgebra2DTest::testLineRectIntersectionsRandom()
                     if (points[1].y() < testRect.y() || points[0].y() > testRect.y() + testRect.height()) {
                         expectedResult = false;
                     } else {
-                        expectedLine.setP1(QPointF(points[1].x(), qMax(testLine.p1().y(), (double)testRect.y())));
-                        expectedLine.setP2(QPointF(points[1].x(), qMin(testLine.p2().y(), (double)testRect.y() + testRect.height())));
+                        expectedLine.setP1(QPointF(points[1].x(), pkMax(testLine.p1().y(), (double)testRect.y())));
+                        expectedLine.setP2(QPointF(points[1].x(), pkMin(testLine.p2().y(), (double)testRect.y() + testRect.height())));
                     }
                 } else {
                     if (points[0].y() < testRect.y() || points[1].y() > testRect.y() + testRect.height()) {
                         expectedResult = false;
                     } else {
-                        expectedLine.setP2(QPointF(points[1].x(), qMax(testLine.p2().y(), (double)testRect.y())));
-                        expectedLine.setP1(QPointF(points[1].x(), qMin(testLine.p1().y(), (double)testRect.y() + testRect.height())));
+                        expectedLine.setP2(QPointF(points[1].x(), pkMax(testLine.p2().y(), (double)testRect.y())));
+                        expectedLine.setP1(QPointF(points[1].x(), pkMin(testLine.p1().y(), (double)testRect.y() + testRect.height())));
                     }
                 }
             } else /* horizontal */ {
@@ -701,15 +701,15 @@ void KisAlgebra2DTest::testLineRectIntersectionsRandom()
                     if (points[1].x() < testRect.x() || points[0].x() > testRect.x() + testRect.width()) {
                         expectedResult = false;
                     } else {
-                        expectedLine.setP1(QPointF(qMax(testLine.p1().x(), (double)testRect.x()), points[1].y()));
-                        expectedLine.setP2(QPointF(qMin(testLine.p2().x(), (double)testRect.x() + testRect.width()), points[1].y()));
+                        expectedLine.setP1(QPointF(pkMax(testLine.p1().x(), (double)testRect.x()), points[1].y()));
+                        expectedLine.setP2(QPointF(pkMin(testLine.p2().x(), (double)testRect.x() + testRect.width()), points[1].y()));
                     }
                 } else {
                     if (points[0].x() < testRect.x() || points[1].x() > testRect.x() + testRect.width()) {
                         expectedResult = false;
                     } else {
-                        expectedLine.setP2(QPointF(qMax(testLine.p2().x(), (double)testRect.x()), points[1].y()));
-                        expectedLine.setP1(QPointF(qMin(testLine.p1().x(), (double)testRect.x() + testRect.width()), points[1].y()));
+                        expectedLine.setP2(QPointF(pkMax(testLine.p2().x(), (double)testRect.x()), points[1].y()));
+                        expectedLine.setP1(QPointF(pkMin(testLine.p1().x(), (double)testRect.x() + testRect.width()), points[1].y()));
                     }
                 }
             }
@@ -747,7 +747,7 @@ void testLinePolygonIntersectionImpl(QPolygonF poly, QLineF line, QLineF expecte
     float epsilon = 1e-4; // good enough for most usecases // I don't use qFuzzyCompare because it has too small epsilon
 
     auto fuzzyCompare = [epsilon] (float a, float b) -> bool {
-            return (qAbs(a - b) < epsilon); };
+            return (pkAbs(a - b) < epsilon); };
     auto fuzzyComparePoint = [&] (QPointF a, QPointF b) -> bool {
             return fuzzyCompare(a.x(), b.x()) && fuzzyCompare(a.y(), b.y()); };
     auto fuzzyCompareLine = [&] (QLineF a, QLineF b) -> bool {
@@ -1008,7 +1008,7 @@ bool fuzzyComparePolygons(const QPolygonF &one, const QPolygonF &other, qreal ep
         if (KisAlgebra2D::fuzzyPointCompare(a, b)) {
             return true;
         }
-        return qAbs(a.x() - b.x()) < eps && qAbs(a.y() - b.y()) < eps;
+        return pkAbs(a.x() - b.x()) < eps && pkAbs(a.y() - b.y()) < eps;
     };
 
     bool firstWay = true;

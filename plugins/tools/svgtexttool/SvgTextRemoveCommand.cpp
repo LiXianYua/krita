@@ -46,7 +46,7 @@ void SvgTextRemoveCommand::redo()
 
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());
 
-    int pos = qMax(0, m_shape->posForIndex(idx, false, false));
+    int pos = pkMax(0, m_shape->posForIndex(idx, false, false));
     m_shape->notifyCursorPosChanged(pos, pos);
 }
 

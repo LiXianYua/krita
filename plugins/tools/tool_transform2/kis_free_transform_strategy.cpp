@@ -270,7 +270,7 @@ TransformCursorDescriptor KisFreeTransformStrategy::Private::getScaleCursor(cons
     qreal angle = atan2(direction.y(), direction.x());
     angle = normalizeAngle(angle);
 
-    int octant = qRound(angle * 4. / M_PI) % 8;
+    int octant = pkRound(angle * 4. / M_PI) % 8;
     return scaleCursors[octant];
 }
 
@@ -462,7 +462,7 @@ void KisFreeTransformStrategy::continuePrimaryAction(const PkPointF &mousePos,
             PkTransform t = m.S * m.projectedP;
             PkPointF originalDiff = t.inverted().map(diff);
 
-            if (qAbs(originalDiff.x()) >= qAbs(originalDiff.y())) {
+            if (pkAbs(originalDiff.x()) >= pkAbs(originalDiff.y())) {
                 originalDiff.setY(0);
             } else {
                 originalDiff.setX(0);
@@ -563,7 +563,7 @@ void KisFreeTransformStrategy::continuePrimaryAction(const PkPointF &mousePos,
         double thetaX = - diff.y() * M_PI / m_d->transaction.originalHalfHeight() / 2 / fabs(m_d->currentArgs.scaleY());
         m_d->currentArgs.setAX(normalizeAngle(m_d->clickArgs.aX() + thetaX));
 
-        qreal sign = qAbs(m_d->currentArgs.aX() - M_PI) < M_PI / 2 ? -1.0 : 1.0;
+        qreal sign = pkAbs(m_d->currentArgs.aX() - M_PI) < M_PI / 2 ? -1.0 : 1.0;
         double thetaY = sign * diff.x() * M_PI / m_d->transaction.originalHalfWidth() / 2 / fabs(m_d->currentArgs.scaleX());
         m_d->currentArgs.setAY(normalizeAngle(m_d->clickArgs.aY() + thetaY));
 
@@ -604,7 +604,7 @@ void KisFreeTransformStrategy::continuePrimaryAction(const PkPointF &mousePos,
 
         // override scale static point if it is locked
         if ((m_d->clickArgs.transformAroundRotationCenter() ^ altModifierActive) &&
-            !qFuzzyCompare(anchorPoint.y(), movingPoint.y())) {
+            !pkQtFuzzyCompare(anchorPoint.y(), movingPoint.y())) {
 
             staticPoint = anchorPoint;
             staticPointInView = m_d->clickTransform.map(staticPoint);
@@ -657,7 +657,7 @@ void KisFreeTransformStrategy::continuePrimaryAction(const PkPointF &mousePos,
 
         // override scale static point if it is locked
         if ((m_d->currentArgs.transformAroundRotationCenter() ^ altModifierActive) &&
-            !qFuzzyCompare(anchorPoint.x(), movingPoint.x())) {
+            !pkQtFuzzyCompare(anchorPoint.x(), movingPoint.x())) {
 
             staticPoint = anchorPoint;
             staticPointInView = m_d->clickTransform.map(staticPoint);
@@ -706,8 +706,8 @@ void KisFreeTransformStrategy::continuePrimaryAction(const PkPointF &mousePos,
 
         // override scale static point if it is locked
         if ((m_d->currentArgs.transformAroundRotationCenter() ^ altModifierActive) &&
-            !(qFuzzyCompare(anchorPoint.x(), movingPoint.x()) ||
-              qFuzzyCompare(anchorPoint.y(), movingPoint.y()))) {
+            !(pkQtFuzzyCompare(anchorPoint.x(), movingPoint.x()) ||
+              pkQtFuzzyCompare(anchorPoint.y(), movingPoint.y()))) {
 
             staticPoint = anchorPoint;
         }
@@ -724,8 +724,8 @@ void KisFreeTransformStrategy::continuePrimaryAction(const PkPointF &mousePos,
         }
 
         const bool isAffine =
-            qFuzzyIsNull(m_d->currentArgs.aX()) &&
-            qFuzzyIsNull(m_d->currentArgs.aY());
+            pkQtFuzzyIsNull(m_d->currentArgs.aX()) &&
+            pkQtFuzzyIsNull(m_d->currentArgs.aY());
 
         GSL::ScaleResult2D result =
                 !isAffine ?
@@ -762,7 +762,7 @@ void KisFreeTransformStrategy::continuePrimaryAction(const PkPointF &mousePos,
         PkPointF newRotationCenterOffset = pt - m_d->currentArgs.originalCenter();
 
         if (shiftModifierActive) {
-            if (qAbs(newRotationCenterOffset.x()) > qAbs(newRotationCenterOffset.y())) {
+            if (pkAbs(newRotationCenterOffset.x()) > pkAbs(newRotationCenterOffset.y())) {
                 newRotationCenterOffset.ry() = 0;
             } else {
                 newRotationCenterOffset.rx() = 0;

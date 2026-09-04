@@ -11,8 +11,8 @@
 
 #include <KoShape.h>
 
-#include <QList>
-#include <QPointF>
+#include <PkList.h>
+#include <PkPoint.h>
 
 class KoShapeContainer;
 
@@ -113,7 +113,7 @@ public:
      * Return the list of all shapes of this model
      * @return the list of all shapes
      */
-    virtual QList<KoShape*> shapes() const = 0;
+    virtual PkList<KoShape*> shapes() const = 0;
 
     /**
      * This method is called as a notification that one of the properties of the
@@ -134,7 +134,7 @@ public:
      * @param shape the shape of this container that the user is trying to move.
      * @param move the distance that the user proposes to move shape from the current position.
      */
-    virtual void proposeMove(KoShape *shape, QPointF &move);
+    virtual void proposeMove(KoShape *shape, PkPointF &move);
 
     /**
      * This method is called when one of the shape shapes has been modified.

@@ -35,6 +35,8 @@ public:
 
 #include <SimpleShapeContainerModel.h>
 #include <PkFlakeBridge.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 class KRITAFLAKE_EXPORT MockContainer : public KoShapeContainer
 {
@@ -87,8 +89,8 @@ class KoToolProxy;
 class KRITAFLAKE_EXPORT MockShapeController : public KoShapeControllerBase
 {
 public:
-    QRectF documentRectInPixels() const override {
-        return QRectF(0,0,100,100);
+    PkRectF documentRectInPixels() const override {
+        return PkRectF(0,0,100,100);
     }
 
     qreal pixelsPerInch() const override {
@@ -114,7 +116,7 @@ public:
     void setVert(qreal pVert){
         m_vert = pVert;
     }
-    void gridSize(QPointF *offset, QSizeF *spacing) const override {
+    void gridSize(PkPointF *offset, PkSizeF *spacing) const override {
         Q_UNUSED(offset);
 
         spacing->setWidth(m_horz);
@@ -130,7 +132,7 @@ public:
     KoSelectedShapesProxy *selectedShapesProxy() const override {
         return m_selectedShapesProxy.data();
     }
-    void updateCanvas(const QRectF&) override  {}
+    void updateCanvas(const PkRectF&) override  {}
     KoToolProxy * toolProxy() const override {
         return 0;
     }
@@ -151,8 +153,8 @@ public:
     }
     void setCursor(const QCursor &) override {}
     private:
-        QScopedPointer<KoShapeManager> m_shapeManager;
-        QScopedPointer<KoSelectedShapesProxy> m_selectedShapesProxy;
+        PkScopedPointer<KoShapeManager> m_shapeManager;
+        PkScopedPointer<KoSelectedShapesProxy> m_selectedShapesProxy;
         qreal m_horz;
         qreal m_vert;
 };
@@ -184,7 +186,7 @@ public:
         return m_children.count();
     }
     /// reimplemented
-    QList<KoShape*> shapes() const override {
+    PkList<KoShape*> shapes() const override {
         return m_children;
     }
     /// reimplemented
@@ -192,7 +194,7 @@ public:
         m_containerChangedCalled++;
     }
     /// reimplemented
-    void proposeMove(KoShape *, QPointF &) override {
+    void proposeMove(KoShape *, PkPointF &) override {
         m_proposeMoveCalled++;
     }
     /// reimplemented
@@ -222,7 +224,7 @@ public:
     }
 
 private:
-    QList<KoShape*> m_children;
+    PkList<KoShape*> m_children;
     int m_containerChangedCalled, m_childChangedCalled, m_proposeMoveCalled;
 };
 

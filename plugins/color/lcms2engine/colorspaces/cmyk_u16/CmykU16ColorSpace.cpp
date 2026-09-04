@@ -84,9 +84,9 @@ PkVector <double> CmykU16ColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma
     PkVector <double> channelValues(5);
     channelValues.fill(1.0);
     HSIToRGB(*hue, *sat, *luma, &channelValues[0],&channelValues[1],&channelValues[2]);
-    channelValues[0] = qBound(0.0,1.0-channelValues[0],1.0);
-    channelValues[1] = qBound(0.0,1.0-channelValues[1],1.0);
-    channelValues[2] = qBound(0.0,1.0-channelValues[2],1.0);
+    channelValues[0] = pkBound(0.0,1.0-channelValues[0],1.0);
+    channelValues[1] = pkBound(0.0,1.0-channelValues[1],1.0);
+    channelValues[2] = pkBound(0.0,1.0-channelValues[2],1.0);
     CMYToCMYK(&channelValues[0],&channelValues[1],&channelValues[2],&channelValues[3]);
     return channelValues;
 }
@@ -109,9 +109,9 @@ PkVector <double> CmykU16ColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
     PkVector <double> channelValues(5);
     channelValues.fill(1.0);
     YUVToRGB(*y, *u, *v, &channelValues[0],&channelValues[1],&channelValues[2], 0.33, 0.33, 0.33);
-    channelValues[0] = qBound(0.0,1.0-channelValues[0],1.0);
-    channelValues[1] = qBound(0.0,1.0-channelValues[1],1.0);
-    channelValues[2] = qBound(0.0,1.0-channelValues[2],1.0);
+    channelValues[0] = pkBound(0.0,1.0-channelValues[0],1.0);
+    channelValues[1] = pkBound(0.0,1.0-channelValues[1],1.0);
+    channelValues[2] = pkBound(0.0,1.0-channelValues[2],1.0);
     CMYToCMYK(&channelValues[0],&channelValues[1],&channelValues[2],&channelValues[3]);
     return channelValues;
 }

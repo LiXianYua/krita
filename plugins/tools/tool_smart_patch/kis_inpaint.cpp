@@ -492,7 +492,7 @@ template <typename T> float distance_impl(const MaskedImage& my, int x, int y, c
     }
 
     // in HDR color spaces the value of the channel may become bigger than the unitValue
-    return qMin((float)(nchannels * MAX_DIST), dsq / (pow2((float)KoColorSpaceMathsTraits<T>::unitValue) / MAX_DIST ));
+    return pkMin((float)(nchannels * MAX_DIST), dsq / (pow2((float)KoColorSpaceMathsTraits<T>::unitValue) / MAX_DIST ));
 }
 
 
@@ -732,7 +732,7 @@ public:
 
                 //SSD distance between pixels
                 float ssd = input->distance(*input, xks, yks, *output, xkt, ykt);
-                distance += qRound(ssd);
+                distance += pkRound(ssd);
 
             }
         }
@@ -740,7 +740,7 @@ public:
         if (wsum == 0) {
             return 0; // sanity check, to avoid undefined behaviour in code below
         }
-        return qFloor(MAX_DIST * (qreal(distance) / wsum));
+        return pkFloor(MAX_DIST * (qreal(distance) / wsum));
     }
 
     static MaskedImageSP ExpectationMaximization(KisSharedPtr<NearestNeighborField> TargetToSource, int level, int radius, PkList<MaskedImageSP>& pyramid);

@@ -10,7 +10,7 @@
 
 #include <KoGenericRegistry.h>
 #include <KoShapeFactoryBase.h>
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include "kritaflake_export.h"
 
@@ -49,7 +49,7 @@ public:
      * @param elementName the tag name of the element
      * @return the list of shape factories supporting the specified xml element
      */
-    QList<KoShapeFactoryBase*> factoriesForElement(const QString &nameSpace, const QString &elementName);
+    PkList<KoShapeFactoryBase*> factoriesForElement(const PkString &nameSpace, const PkString &elementName);
 
 private:
     KoShapeRegistry(const KoShapeRegistry&);

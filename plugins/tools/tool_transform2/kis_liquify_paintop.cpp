@@ -76,7 +76,7 @@ PkPainterPath KisLiquifyPaintop::brushOutline(const KisLiquifyProperties &props,
 
         PkPainterPath p = KisAlgebra2D::smallArrow();
 
-        const qreal offset = qMax(0.8 * diameter, 15.0);
+        const qreal offset = pkMax(0.8 * diameter, 15.0);
 
         PkTransform R;
         R.rotateRadians(normalAngle);

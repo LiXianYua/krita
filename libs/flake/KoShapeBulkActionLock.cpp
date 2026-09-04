@@ -13,7 +13,7 @@
 
 #include <KoShapeBulkActionInterface.h>
 
-KoShapeBulkActionLockAdapter::KoShapeBulkActionLockAdapter(const QList<KoShape*> &shapes)
+KoShapeBulkActionLockAdapter::KoShapeBulkActionLockAdapter(const PkList<KoShape*> &shapes)
 {
     Q_FOREACH(KoShape *shape, shapes) {
         // explicitly called shaped will be "updated" in both
@@ -37,7 +37,7 @@ void KoShapeBulkActionLockAdapter::tryAddBulkInterfaceShape(KoShape *shape)
     }
 };
 
-void KoShapeBulkActionLockAdapter::addBulkInterfaceDependees(const QList<KoShape*> dependees)
+void KoShapeBulkActionLockAdapter::addBulkInterfaceDependees(const PkList<KoShape*> dependees)
 {
     Q_FOREACH(KoShape *shape, dependees) {
         tryAddBulkInterfaceShape(shape);
@@ -62,7 +62,7 @@ void KoShapeBulkActionLockAdapter::lock()
 void KoShapeBulkActionLockAdapter::unlock()
 {
     Q_FOREACH(KoShapeBulkActionInterface *iface, m_bulkInterfaceShapes) {
-        const QRectF update = iface->endBulkAction();
+        const PkRectF update = iface->endBulkAction();
 
         KoShape *shape = dynamic_cast<KoShape*>(iface);
         KIS_SAFE_ASSERT_RECOVER(shape) { continue; }

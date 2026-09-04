@@ -168,7 +168,7 @@ KisPaintOpSettingsSP KisPaintOpSettings::createMaskingSettings() const
          */
         const qreal maxMaskingBrushSize = KisImageConfig(true).maxMaskingBrushSize();
         const qreal masterSizeCoeff = getDouble(KisPaintOpUtils::MaskingBrushMasterSizeCoeffTag, 1.0);
-        maskingSettings->setPaintOpSize(qMin(maxMaskingBrushSize, masterSizeCoeff * paintOpSize()));
+        maskingSettings->setPaintOpSize(pkMin(maxMaskingBrushSize, masterSizeCoeff * paintOpSize()));
     }
 
     if (d->resourceCacheInterface) {
@@ -344,7 +344,7 @@ void KisPaintOpSettings::setPaintOpScatter(qreal value)
     if (!proxy->hasProperty("PressureScatter")) return;
 
     proxy->setProperty("ScatterValue", value);
-    proxy->setProperty("PressureScatter", !qFuzzyIsNull(value));
+    proxy->setProperty("PressureScatter", !pkQtFuzzyIsNull(value));
 }
 
 void KisPaintOpSettings::setPaintOpCompositeOp(const PkString &value)
@@ -561,7 +561,7 @@ PkPainterPath KisPaintOpSettings::makeTiltIndicator(KisPaintInformation const& i
                                                    PkPointF const& start, qreal maxLength, qreal angle)
 {
     if (maxLength == 0.0) maxLength = 50.0;
-    maxLength = qMax(maxLength, 50.0);
+    maxLength = pkMax(maxLength, 50.0);
     qreal const length = maxLength * (1 - info.tiltElevation(info, 60.0, 60.0, true));
     qreal const baseAngle = 360.0 - fmod(KisPaintInformation::tiltDirection(info, true) * 360.0 + 270.0, 360.0);
 

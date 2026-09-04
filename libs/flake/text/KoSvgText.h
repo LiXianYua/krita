@@ -8,19 +8,19 @@
 #define KOSVGTEXT_H
 
 #include <QFont>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <QTextCharFormat>
-#include <QVariant>
+#include <PkVariant.h>
 #include <QLocale>
 #include <array>
 #include <boost/operators.hpp>
 #include <boost/optional.hpp>
 
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 #include <KoShapeBackground.h>
 #include <KoShapeStrokeModel.h>
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include <kritaflake_export.h>
 
@@ -28,6 +28,10 @@ class SvgLoadingContext;
 class QDebug;
 
 #include <KoShape.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkDataStream.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkHash.h>
 class KoSvgTextChunkShape;
 
 namespace KoSvgText
@@ -333,8 +337,8 @@ struct FontMetrics : public boost::equality_comparable<FontMetrics> {
 
     qint32 xHeight = 0; ///< height of X, defaults to 0.5 fontsize.
     qint32 capHeight = 0; ///< Height of capital letters, defaults to ascender.
-    QPair<qint32, qint32> subScriptOffset = QPair<qint32, qint32>(0, 0); ///< subscript baseline height, defaults to 1/5th em below alphabetic.
-    QPair<qint32, qint32> superScriptOffset = QPair<qint32, qint32>(0, 0); ///< superscript baseline height, defaults to 2/3rd above alphabetic.
+    std::pair<qint32, qint32> subScriptOffset = std::pair<qint32, qint32>(0, 0); ///< subscript baseline height, defaults to 1/5th em below alphabetic.
+    std::pair<qint32, qint32> superScriptOffset = std::pair<qint32, qint32>(0, 0); ///< superscript baseline height, defaults to 2/3rd above alphabetic.
 
     qint32 ascender = 0; ///< distance from origin to top.
     qint32 descender = 0; ///< distance for origin to bottom.
@@ -374,7 +378,7 @@ struct FontMetrics : public boost::equality_comparable<FontMetrics> {
 
     int valueForBaselineValue(Baseline baseline) const;
 
-    void setBaselineValueByTag(const QString &tag, int32_t value);
+    void setBaselineValueByTag(const PkString &tag, int32_t value);
 
     void setMetricsValueByTag(const QLatin1String &tag, int32_t value);
 
@@ -431,7 +435,7 @@ struct CssLengthPercentage : public boost::equality_comparable<CssLengthPercenta
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::CssLengthPercentage &value);
 
 // Not all properties support percentage, so this ensures % is saved as em as a fallback.
-QString writeLengthPercentage(const CssLengthPercentage &length, bool percentageAsEm = false);
+PkString writeLengthPercentage(const CssLengthPercentage &length, bool percentageAsEm = false);
 
 /**
  * AutoValue represents the "auto-or-real" values used in SVG
@@ -490,25 +494,25 @@ QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::AutoValue &valu
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::AutoLengthPercentage &value);
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::CssFontStyleData &value);
 
-inline QVariant fromAutoValue(const KoSvgText::AutoValue &value) {
-    return QVariant::fromValue(value);
+inline PkVariant fromAutoValue(const KoSvgText::AutoValue &value) {
+    return PkVariant::fromValue(value);
 }
 
-AutoValue parseAutoValueX(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword = "auto");
-AutoValue parseAutoValueY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword = "auto");
-AutoValue parseAutoValueXY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword = "auto");
-AutoValue parseAutoValueAngular(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword = "auto");
+AutoValue parseAutoValueX(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword = "auto");
+AutoValue parseAutoValueY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword = "auto");
+AutoValue parseAutoValueXY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword = "auto");
+AutoValue parseAutoValueAngular(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword = "auto");
 
-AutoLengthPercentage parseAutoLengthPercentageXY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword = "auto", QRectF bbox = QRectF(), bool percentageIsViewPort = true);
+AutoLengthPercentage parseAutoLengthPercentageXY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword = "auto", PkRectF bbox = PkRectF(), bool percentageIsViewPort = true);
 
-WritingMode parseWritingMode(const QString &value);
-Direction parseDirection(const QString &value);
-UnicodeBidi parseUnicodeBidi(const QString &value);
-TextOrientation parseTextOrientation(const QString &value);
+WritingMode parseWritingMode(const PkString &value);
+Direction parseDirection(const PkString &value);
+UnicodeBidi parseUnicodeBidi(const PkString &value);
+TextOrientation parseTextOrientation(const PkString &value);
 TextOrientation parseTextOrientationFromGlyphOrientation(AutoValue value);
-TextAnchor parseTextAnchor(const QString &value);
+TextAnchor parseTextAnchor(const PkString &value);
 
-TextRendering parseTextRendering(const QString &value);
+TextRendering parseTextRendering(const PkString &value);
 
 /**
  * @brief whiteSpaceValueToLongHands
@@ -521,24 +525,24 @@ TextRendering parseTextRendering(const QString &value);
  * variants yet, and thus will be interpreted as "Normal" while this boolean
  * returns false.
  */
-bool whiteSpaceValueToLongHands(const QString &value, TextSpaceCollapse &collapseMethod, TextWrap &wrapMethod, TextSpaceTrims &trimMethod);
+bool whiteSpaceValueToLongHands(const PkString &value, TextSpaceCollapse &collapseMethod, TextWrap &wrapMethod, TextSpaceTrims &trimMethod);
 /**
  * @brief xmlSpaceToLongHands
  * This takes xml:space values and converts them to CSS-Text-4 properties.
  * @see whiteSpaceValueToLongHands
  */
-bool xmlSpaceToLongHands(const QString &value, TextSpaceCollapse &collapseMethod);
+bool xmlSpaceToLongHands(const PkString &value, TextSpaceCollapse &collapseMethod);
 
-WordBreak parseWordBreak(const QString &value);
-LineBreak parseLineBreak(const QString &value);
-TextAlign parseTextAlign(const QString &value);
+WordBreak parseWordBreak(const PkString &value);
+LineBreak parseLineBreak(const PkString &value);
+TextAlign parseTextAlign(const PkString &value);
 
-CssFontStyleData parseFontStyle(const QString &value);
+CssFontStyleData parseFontStyle(const PkString &value);
 
-Baseline parseBaseline(const QString &value);
-BaselineShiftMode parseBaselineShiftMode(const QString &value);
+Baseline parseBaseline(const PkString &value);
+BaselineShiftMode parseBaselineShiftMode(const PkString &value);
 
-LengthAdjust parseLengthAdjust(const QString &value);
+LengthAdjust parseLengthAdjust(const PkString &value);
 
 static const std::array<const char *, 9> fontStretchNames = {"ultra-condensed",
                                                              "extra-condensed",
@@ -557,48 +561,48 @@ static const std::array<const char *, 7> fontSizeNames =
  * they also allow values, except in the "font"-shorthand. The css3 bool will
  * restrict parsing to this value for this reason.
  */
-int parseCSSFontStretch(const QString &value, int currentStretch);
+int parseCSSFontStretch(const PkString &value, int currentStretch);
 
-int parseCSSFontWeight(const QString &value, int currentWeight);
+int parseCSSFontWeight(const PkString &value, int currentWeight);
 
-TextPathMethod parseTextPathMethod(const QString &value);
-TextPathSpacing parseTextPathSpacing(const QString &value);
-TextPathSide parseTextPathSide(const QString &value);
+TextPathMethod parseTextPathMethod(const PkString &value);
+TextPathSpacing parseTextPathSpacing(const PkString &value);
+TextPathSide parseTextPathSide(const PkString &value);
 
-QString writeAutoValue(const AutoValue &value, const QString &autoKeyword = "auto");
+PkString writeAutoValue(const AutoValue &value, const PkString &autoKeyword = "auto");
 
 // Not all properties support percentages, so in that case, save percentage as em.
-QString writeAutoLengthPercentage(const AutoLengthPercentage &value, const QString &autoKeyword = "auto", bool percentageToEm = false);
+PkString writeAutoLengthPercentage(const AutoLengthPercentage &value, const PkString &autoKeyword = "auto", bool percentageToEm = false);
 
-QString writeWritingMode(WritingMode value, bool svg1_1 = false);
-QString writeDirection(Direction value);
-QString writeUnicodeBidi(UnicodeBidi value);
-QString writeTextOrientation(TextOrientation orientation);
-QString writeTextAnchor(TextAnchor value);
-QString writeDominantBaseline(Baseline value);
-QString writeAlignmentBaseline(Baseline value);
-QString writeBaselineShiftMode(BaselineShiftMode value, CssLengthPercentage shift);
-QString writeLengthAdjust(LengthAdjust value);
+PkString writeWritingMode(WritingMode value, bool svg1_1 = false);
+PkString writeDirection(Direction value);
+PkString writeUnicodeBidi(UnicodeBidi value);
+PkString writeTextOrientation(TextOrientation orientation);
+PkString writeTextAnchor(TextAnchor value);
+PkString writeDominantBaseline(Baseline value);
+PkString writeAlignmentBaseline(Baseline value);
+PkString writeBaselineShiftMode(BaselineShiftMode value, CssLengthPercentage shift);
+PkString writeLengthAdjust(LengthAdjust value);
 
-QString writeTextPathMethod(TextPathMethod value);
-QString writeTextPathSpacing(TextPathSpacing value);
-QString writeTextPathSide(TextPathSide value);
+PkString writeTextPathMethod(TextPathMethod value);
+PkString writeTextPathSpacing(TextPathSpacing value);
+PkString writeTextPathSide(TextPathSide value);
 
-QString writeWordBreak(WordBreak value);
-QString writeLineBreak(LineBreak value);
-QString writeTextAlign(TextAlign value);
+PkString writeWordBreak(WordBreak value);
+PkString writeLineBreak(LineBreak value);
+PkString writeTextAlign(TextAlign value);
 
-QString writeFontStyle(CssFontStyleData value);
+PkString writeFontStyle(CssFontStyleData value);
 
-QString writeTextRendering(TextRendering value);
+PkString writeTextRendering(TextRendering value);
 
 /**
  * @brief writeWhiteSpaceValue
  * determine the CSS-3-Whitespace shorthand value.
  * @see whiteSpaceValueToLongHands
  */
-QString writeWhiteSpaceValue(TextSpaceCollapse collapseMethod, TextWrap wrapMethod, KoSvgText::TextSpaceTrims trimMethod);
-QString writeXmlSpace(TextSpaceCollapse collapseMethod);
+PkString writeWhiteSpaceValue(TextSpaceCollapse collapseMethod, TextWrap wrapMethod, KoSvgText::TextSpaceTrims trimMethod);
+PkString writeXmlSpace(TextSpaceCollapse collapseMethod);
 
 struct CharTransformation : public boost::equality_comparable<CharTransformation>
 {
@@ -613,8 +617,8 @@ struct CharTransformation : public boost::equality_comparable<CharTransformation
     bool startsNewChunk() const;
     bool hasRelativeOffset() const;
 
-    QPointF absolutePos() const;
-    QPointF relativeOffset() const;
+    PkPointF absolutePos() const;
+    PkPointF relativeOffset() const;
 
     bool operator==(const CharTransformation & other) const;
 };
@@ -645,8 +649,8 @@ struct TextTransformInfo : public boost::equality_comparable<TextTransformInfo> 
     }
 };
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::TextTransformInfo &t);
-TextTransformInfo parseTextTransform(const QString &value);
-QString writeTextTransform(TextTransformInfo textTransform);
+TextTransformInfo parseTextTransform(const PkString &value);
+PkString writeTextTransform(TextTransformInfo textTransform);
 
 /// "This property specifies the indentation applied to lines of inline content
 /// in a block.
@@ -664,8 +668,8 @@ struct TextIndentInfo : public boost::equality_comparable<TextIndentInfo> {
     }
 };
 
-TextIndentInfo parseTextIndent(const QString &value, const SvgLoadingContext &context);
-QString writeTextIndent(TextIndentInfo textIndent);
+TextIndentInfo parseTextIndent(const PkString &value, const SvgLoadingContext &context);
+PkString writeTextIndent(TextIndentInfo textIndent);
 
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::TextIndentInfo &value);
 
@@ -684,8 +688,8 @@ struct TabSizeInfo : public boost::equality_comparable<TabSizeInfo> {
         return (val) && (isNumber == rhs.isNumber);
     }
 };
-TabSizeInfo parseTabSize(const QString &value, const SvgLoadingContext &context);
-QString writeTabSize(TabSizeInfo tabSize);
+TabSizeInfo parseTabSize(const PkString &value, const SvgLoadingContext &context);
+PkString writeTabSize(TabSizeInfo tabSize);
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::TabSizeInfo &value);
 
 
@@ -703,8 +707,8 @@ struct LineHeightInfo : public boost::equality_comparable<LineHeightInfo> {
     }
 };
 
-LineHeightInfo parseLineHeight(const QString &value, const SvgLoadingContext &context);
-QString writeLineHeight(LineHeightInfo lineHeight);
+LineHeightInfo parseLineHeight(const PkString &value, const SvgLoadingContext &context);
+PkString writeLineHeight(LineHeightInfo lineHeight);
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::LineHeightInfo &value);
 
 /**
@@ -713,7 +717,7 @@ QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::LineHeightInfo 
 struct BackgroundProperty : public boost::equality_comparable<BackgroundProperty>
 {
     BackgroundProperty() {}
-    BackgroundProperty(QSharedPointer<KoShapeBackground> p) : property(p) {}
+    BackgroundProperty(PkSharedPointer<KoShapeBackground> p) : property(p) {}
 
     bool operator==(const BackgroundProperty &rhs) const {
         return (!property && !rhs.property) ||
@@ -721,7 +725,7 @@ struct BackgroundProperty : public boost::equality_comparable<BackgroundProperty
                  property->compareTo(rhs.property.data()));
     }
 
-    QSharedPointer<KoShapeBackground> property;
+    PkSharedPointer<KoShapeBackground> property;
 };
 
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::BackgroundProperty &prop);
@@ -732,7 +736,7 @@ QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::BackgroundPrope
 struct StrokeProperty : public boost::equality_comparable<StrokeProperty>
 {
     StrokeProperty() {}
-    StrokeProperty(QSharedPointer<KoShapeStrokeModel> p) : property(p) {}
+    StrokeProperty(PkSharedPointer<KoShapeStrokeModel> p) : property(p) {}
 
     bool operator==(const StrokeProperty &rhs) const {
         return (!property && !rhs.property) ||
@@ -740,7 +744,7 @@ struct StrokeProperty : public boost::equality_comparable<StrokeProperty>
                  property->compareFillTo(rhs.property.data()) && property->compareStyleTo(rhs.property.data()));
     }
 
-    QSharedPointer<KoShapeStrokeModel> property;
+    PkSharedPointer<KoShapeStrokeModel> property;
 };
 
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::StrokeProperty &prop);
@@ -748,7 +752,7 @@ QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::StrokeProperty 
 struct FontFamilyAxis : public boost::equality_comparable<FontFamilyAxis> {
 
     FontFamilyAxis() {}
-    FontFamilyAxis (QString _tag, qreal _value)
+    FontFamilyAxis (PkString _tag, qreal _value)
         : tag(_tag), value(_value) {}
 
     static FontFamilyAxis weightAxis(qreal val) {
@@ -773,8 +777,8 @@ struct FontFamilyAxis : public boost::equality_comparable<FontFamilyAxis> {
         return axis;
     }
 
-    QString tag;
-    QHash<QLocale, QString> localizedLabels;
+    PkString tag;
+    PkHash<QLocale, PkString> localizedLabels;
     qreal min = -1;
     qreal max = -1;
     qreal value = 0;
@@ -782,12 +786,12 @@ struct FontFamilyAxis : public boost::equality_comparable<FontFamilyAxis> {
     bool variableAxis = false;
     bool axisHidden = false; /// Some variable fonts have axes that are not really supposed to be shown to the user.
 
-    QString debugInfo() const {
-        QString label;
+    PkString debugInfo() const {
+        PkString label;
         if (!localizedLabels.isEmpty()) {
             label = localizedLabels.value(QLocale(QLocale::English), localizedLabels.values().first());
         }
-        return QString("Axis: %1 (%2), min: %3, default:%4, max: %5").arg(tag).arg(label).arg(min).arg(value).arg(max);
+        return PkString("Axis: %1 (%2), min: %3, default:%4, max: %5").arg(tag).arg(label).arg(min).arg(value).arg(max);
     }
 
     bool operator==(const FontFamilyAxis & other) const {
@@ -800,8 +804,8 @@ struct FontFamilyAxis : public boost::equality_comparable<FontFamilyAxis> {
 };
 
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::FontFamilyAxis &axis);
-QDataStream KRITAFLAKE_EXPORT &operator<<(QDataStream &out, const KoSvgText::FontFamilyAxis &axis);
-QDataStream KRITAFLAKE_EXPORT &operator>>(QDataStream &in, KoSvgText::FontFamilyAxis &axis);
+PkDataStream KRITAFLAKE_EXPORT &operator<<(PkDataStream &out, const KoSvgText::FontFamilyAxis &axis);
+PkDataStream KRITAFLAKE_EXPORT &operator>>(PkDataStream &in, KoSvgText::FontFamilyAxis &axis);
 
 enum FontFormatType {
     UnknownFontType,
@@ -812,23 +816,23 @@ enum FontFormatType {
 Q_ENUM_NS(FontFormatType)
 
 struct FontFamilyStyleInfo : public boost::equality_comparable<FontFamilyStyleInfo> {
-    QHash<QLocale, QString> localizedLabels;
-    QHash<QString, float> instanceCoords;
+    PkHash<QLocale, PkString> localizedLabels;
+    PkHash<PkString, float> instanceCoords;
 
     bool isItalic = false;
     bool isOblique = false;
 
-    QString debugInfo() const {
-        QString label;
+    PkString debugInfo() const {
+        PkString label;
         if (!localizedLabels.isEmpty()) {
             label = localizedLabels.value(QLocale(QLocale::English), localizedLabels.values().first());
         }
-        QStringList coords;
+        PkStringList coords;
         for (int i = 0; i < instanceCoords.size(); i++) {
-            QString key = instanceCoords.keys().at(i);
-            coords.append(key+"="+QString("%1").arg(instanceCoords.value(key)));
+            PkString key = instanceCoords.keys().at(i);
+            coords.append(key+"="+PkString("%1").arg(instanceCoords.value(key)));
         }
-        return QString("Instance: %1, coords: [ %2 ]").arg(label).arg(coords.join(" "));
+        return PkString("Instance: %1, coords: [ %2 ]").arg(label).arg(coords.join(" "));
     }
 
     bool operator==(const FontFamilyStyleInfo & other) const {
@@ -857,27 +861,27 @@ struct FontFeatureLigatures : public boost::equality_comparable<FontFeatureLigat
                 && other.contextualAlternates == contextualAlternates);
     }
 
-    QStringList fontFeatures(const int start, const int end) {
-        QStringList list;
-        const QString length = QString("[%1:%2]").arg(start).arg(end);
+    PkStringList fontFeatures(const int start, const int end) {
+        PkStringList list;
+        const PkString length = PkString("[%1:%2]").arg(start).arg(end);
         if (!commonLigatures) {
-            list << QString("clig%1=0").arg(length);
-            list << QString("liga%1=0").arg(length);
+            list << PkString("clig%1=0").arg(length);
+            list << PkString("liga%1=0").arg(length);
         }
         if (discretionaryLigatures) {
-            list << QString("dlig%1=0").arg(length);
+            list << PkString("dlig%1=0").arg(length);
         }
         if (historicalLigatures) {
-            list << QString("hlig%1=0").arg(length);
+            list << PkString("hlig%1=0").arg(length);
         }
         if (!contextualAlternates) {
-            list << QString("calt%1=0").arg(length);
+            list << PkString("calt%1=0").arg(length);
         }
         return list;
     }
 };
-FontFeatureLigatures parseFontFeatureLigatures(const QString &value, FontFeatureLigatures features);
-QString writeFontFeatureLigatures(const FontFeatureLigatures &feature);
+FontFeatureLigatures parseFontFeatureLigatures(const PkString &value, FontFeatureLigatures features);
+PkString writeFontFeatureLigatures(const FontFeatureLigatures &feature);
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::FontFeatureLigatures &feature);
 /**
  * @brief The FontFeatureLigatures class
@@ -888,9 +892,9 @@ enum FontFeaturePosition {
     PositionSuper,
     PositionSub
 };
-FontFeaturePosition parseFontFeaturePosition(const QString &value, FontFeaturePosition feature);
-QString writeFontFeaturePosition(const FontFeaturePosition &value);
-QStringList fontFeaturesPosition(const FontFeaturePosition &feature, const int start, const int end);
+FontFeaturePosition parseFontFeaturePosition(const PkString &value, FontFeaturePosition feature);
+PkString writeFontFeaturePosition(const FontFeaturePosition &value);
+PkStringList fontFeaturesPosition(const FontFeaturePosition &feature, const int start, const int end);
 
 Q_ENUM_NS(FontFeaturePosition)
 /// Represents font-feature-caps
@@ -903,9 +907,9 @@ enum FontFeatureCaps {
     CapsUnicase,
     CapsTitling
 };
-FontFeatureCaps parseFontFeatureCaps(const QString &value, FontFeatureCaps feature);
-QString writeFontFeatureCaps(const FontFeatureCaps &value);
-QStringList fontFeaturesCaps(const FontFeatureCaps &feature, const int start, const int end);
+FontFeatureCaps parseFontFeatureCaps(const PkString &value, FontFeatureCaps feature);
+PkString writeFontFeatureCaps(const FontFeatureCaps &value);
+PkStringList fontFeaturesCaps(const FontFeatureCaps &feature, const int start, const int end);
 
 Q_ENUM_NS(FontFeatureCaps)
 
@@ -948,51 +952,51 @@ struct FontFeatureNumeric : public boost::equality_comparable<FontFeatureNumeric
                 && other.slashedZero == slashedZero);
     }
 
-    QStringList fontFeatures(const int start, const int end) {
-        QStringList list;
-        const QString length = QString("[%1:%2]").arg(start).arg(end);
+    PkStringList fontFeatures(const int start, const int end) {
+        PkStringList list;
+        const PkString length = PkString("[%1:%2]").arg(start).arg(end);
         switch (style) {
         case NumericFigureStyleLining:
-            list << QString("lnum%1=1").arg(length);
+            list << PkString("lnum%1=1").arg(length);
             break;
         case NumericFigureStyleOld:
-            list << QString("onum%1=1").arg(length);
+            list << PkString("onum%1=1").arg(length);
             break;
         default:
             break;
         }
         switch (spacing) {
         case NumericFigureSpacingProportional:
-            list << QString("pnum%1=1").arg(length);
+            list << PkString("pnum%1=1").arg(length);
             break;
         case NumericFigureSpacingTabular:
-            list << QString("tnum%1=1").arg(length);
+            list << PkString("tnum%1=1").arg(length);
             break;
         default:
             break;
         }
         switch (fractions) {
         case NumericFractionsDiagonal:
-            list << QString("frac%1=1").arg(length);
+            list << PkString("frac%1=1").arg(length);
             break;
         case NumericFractionsStacked:
-            list << QString("afrc%1=1").arg(length);
+            list << PkString("afrc%1=1").arg(length);
             break;
         default:
             break;
         }
         if (ordinals) {
-            list << QString("ordn%1=1").arg(length);
+            list << PkString("ordn%1=1").arg(length);
         }
         if (slashedZero) {
-            list << QString("zero%1=1").arg(length);
+            list << PkString("zero%1=1").arg(length);
         }
         return list;
     }
 };
 
-FontFeatureNumeric parseFontFeatureNumeric(const QString &value, FontFeatureNumeric features);
-QString writeFontFeatureNumeric(const FontFeatureNumeric &feature);
+FontFeatureNumeric parseFontFeatureNumeric(const PkString &value, FontFeatureNumeric features);
+PkString writeFontFeatureNumeric(const FontFeatureNumeric &feature);
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::FontFeatureNumeric &feature);
 enum EastAsianVariant {
     EastAsianVariantNormal,
@@ -1020,49 +1024,49 @@ struct FontFeatureEastAsian : public boost::equality_comparable<FontFeatureEastA
                 && other.ruby == ruby);
     }
 
-    QStringList fontFeatures(const int start, const int end) {
-        QStringList list;
-        const QString length = QString("[%1:%2]").arg(start).arg(end);
+    PkStringList fontFeatures(const int start, const int end) {
+        PkStringList list;
+        const PkString length = PkString("[%1:%2]").arg(start).arg(end);
         switch (variant) {
         case EastAsianJis78:
-            list << QString("jp78%1=1").arg(length);
+            list << PkString("jp78%1=1").arg(length);
             break;
         case EastAsianJis83:
-            list << QString("jp83%1=1").arg(length);
+            list << PkString("jp83%1=1").arg(length);
             break;
         case EastAsianJis90:
-            list << QString("jp90%1=1").arg(length);
+            list << PkString("jp90%1=1").arg(length);
             break;
         case EastAsianJis04:
-            list << QString("jp04%1=1").arg(length);
+            list << PkString("jp04%1=1").arg(length);
             break;
         case EastAsianSimplified:
-            list << QString("smpl%1=1").arg(length);
+            list << PkString("smpl%1=1").arg(length);
             break;
         case EastAsianTraditional:
-            list << QString("trad%1=1").arg(length);
+            list << PkString("trad%1=1").arg(length);
             break;
         default:
             break;
         }
         switch (width) {
         case EastAsianFullWidth:
-            list << QString("fwid%1=1").arg(length);
+            list << PkString("fwid%1=1").arg(length);
             break;
         case EastAsianProportionalWidth:
-            list << QString("pwid%1=1").arg(length);
+            list << PkString("pwid%1=1").arg(length);
             break;
         default:
             break;
         }
         if (ruby) {
-            list << QString("ruby%1=1").arg(length);
+            list << PkString("ruby%1=1").arg(length);
         }
         return list;
     }
 };
-FontFeatureEastAsian parseFontFeatureEastAsian(const QString &value, FontFeatureEastAsian features);
-QString writeFontFeatureEastAsian(const FontFeatureEastAsian &feature);
+FontFeatureEastAsian parseFontFeatureEastAsian(const PkString &value, FontFeatureEastAsian features);
+PkString writeFontFeatureEastAsian(const FontFeatureEastAsian &feature);
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::FontFeatureEastAsian &feature);
 
 struct TextUnderlinePosition : public boost::equality_comparable<TextUnderlinePosition> {
@@ -1097,29 +1101,29 @@ struct ResolutionHandler {
 
     qreal freeTypePixelToPointFactor(const bool x = true) const;
 
-    QTransform freeTypeToPixelTransform() const;
-    QTransform freeTypeToPointTransform() const;
+    PkTransform freeTypeToPixelTransform() const;
+    PkTransform freeTypeToPointTransform() const;
 
     qreal pointToPixelFactor(const bool x = true) const;
-    QTransform pointToPixel() const;
+    PkTransform pointToPixel() const;
 
     qreal pixelToPointFactor(const bool x = true) const;
-    QTransform pixelToPoint() const;
+    PkTransform pixelToPoint() const;
 
     /// Adjusts the point to rounded pixel values, based on whether roundToPixelHorizontal or roundToPixelVertical are true.
-    QPointF adjust(const QPointF point) const;
+    PkPointF adjust(const PkPointF point) const;
 
-    /// Adjusts the point to floored pixel values. @see adjust(QPointF);
-    QPointF adjustFloor(const QPointF point) const;
-    /// Adjusts the point to ceiled pixel values. @see adjust(QPointF);
-    QPointF adjustCeil(const QPointF point) const;
+    /// Adjusts the point to floored pixel values. @see adjust(PkPointF);
+    PkPointF adjustFloor(const PkPointF point) const;
+    /// Adjusts the point to ceiled pixel values. @see adjust(PkPointF);
+    PkPointF adjustCeil(const PkPointF point) const;
 
     /// For text decoration, we need to ensure that the whole thing, including width and height is aligned to the pixel.
     /// So this adds the offset (half the total width) and uses that to round to.
-    QPointF adjustWithOffset(const QPointF point, const QPointF offset) const;
+    PkPointF adjustWithOffset(const PkPointF point, const PkPointF offset) const;
 
     /// Adjusts the rect to rounded pixel values, based on whether roundToPixelHorizontal or roundToPixelVertical are true.
-    QRectF adjust(const QRectF rect) const;
+    PkRectF adjust(const PkRectF rect) const;
 };
 
 QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::TextUnderlinePosition &position);

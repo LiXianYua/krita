@@ -60,8 +60,8 @@ PkRect KisConvolutionFilter::neededRect(const PkRect &rect, const KisFilterConfi
 
     KisLodTransformScalar t(lod);
 
-    const int windowsize = qMax(m_matrix->width(), m_matrix->height());
-    const int margin  = qCeil(t.scale(0.5 * windowsize)) + 1;
+    const int windowsize = pkMax(m_matrix->width(), m_matrix->height());
+    const int margin  = pkCeil(t.scale(0.5 * windowsize)) + 1;
     return kisGrowRect(rect, margin);
 }
 

@@ -41,7 +41,7 @@ PkPointF VanishingPointAssistant::project(const PkPointF& pt, const PkPointF& st
         if (getLocalRect().contains(pt)) {
             m_hasBeenInsideLocalRect = true;
         } else if (!m_hasBeenInsideLocalRect) { // isn't inside and wasn't inside before
-            return PkPointF(qQNaN(), qQNaN());
+            return PkPointF(pkQNaN(), pkQNaN());
         }
     }
 

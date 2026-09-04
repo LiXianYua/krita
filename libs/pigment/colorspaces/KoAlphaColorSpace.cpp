@@ -107,7 +107,7 @@ void KoAlphaColorSpaceImpl<_CSTrait>::toQColor(const quint8 * src, PkColor *c) c
 template <class _CSTrait>
 quint8 KoAlphaColorSpaceImpl<_CSTrait>::difference(const quint8 *src1, const quint8 *src2) const
 {
-    return qAbs(_MathsToU8::scaleToA(_CSTrait::nativeArray(src2)[0] - _CSTrait::nativeArray(src1)[0]));
+    return pkAbs(_MathsToU8::scaleToA(_CSTrait::nativeArray(src2)[0] - _CSTrait::nativeArray(src1)[0]));
 }
 
 template <class _CSTrait>

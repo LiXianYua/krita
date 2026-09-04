@@ -455,7 +455,7 @@ KisSuspendProjectionUpdatesStrokeStrategy::KisSuspendProjectionUpdatesStrokeStra
 
 KisSuspendProjectionUpdatesStrokeStrategy::~KisSuspendProjectionUpdatesStrokeStrategy()
 {
-    qDeleteAll(m_d->executedCommands);
+    pkDeleteAll(m_d->executedCommands);
 }
 
 void KisSuspendProjectionUpdatesStrokeStrategy::initStrokeCallback()

@@ -17,9 +17,9 @@ public:
     explicit Private();
     explicit Private(const Private &rhs);
 
-    QRectF handleRect(const QPointF &p, qreal radius) const;
+    PkRectF handleRect(const PkPointF &p, qreal radius) const;
 
-    void map(const QTransform &matrix);
+    void map(const PkTransform &matrix);
 
     /**
      * @brief Returns subpath at given index
@@ -36,11 +36,11 @@ public:
     void debugPath() const;
 #endif
 
-    Qt::FillRule fillRule;
+    Pk::FillRule fillRule;
 
     KoSubpathList subpaths;
 
-    QMap<KoFlake::MarkerPosition, QExplicitlySharedDataPointer<KoMarker>> markersNew;
+    PkMap<KoFlake::MarkerPosition, QExplicitlySharedDataPointer<KoMarker>> markersNew;
     bool autoFillMarkers;
 };
 

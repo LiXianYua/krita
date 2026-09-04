@@ -285,3 +285,127 @@ PkString PkString::toUpper() const
     result._data() = std::move(output);
     return result;
 }
+
+// ── 用量表 · 扩（flake 实测补入）────────────────────────
+// 方法名与 QString 一致；仅按 UTF-16 码元下标操作，不做 Unicode 规范化 /
+// locale 感知比较（对齐本文件既有 contains/startsWith 的选型）。
+
+int PkString::indexOf(const PkString& sub, int from) const
+{
+    const std::vector<char16_t>& hay = _cbuf();
+    const std::vector<char16_t>& needle = sub._cbuf();
+    const int h = static_cast<int>(hay.size());
+    const int n = static_cast<int>(needle.size());
+    if (n == 0) {
+        return 0;
+    }
+    if (n > h) {
+        return -1;
+    }
+    int start = from;
+    if (start < 0) {
+        start += h;
+    }
+    if (start < 0) {
+        start = 0;
+    }
+    const int last = h - n;
+    for (int i = start; i <= last; ++i) {
+        if (std::equal(needle.begin(), needle.end(), hay.begin() + i)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool PkString::endsWith(const PkString& suffix) const
+{
+    const int n = suffix.size();
+    if (n == 0) {
+        return true;
+    }
+    const int sz = size();
+    if (n > sz) {
+        return false;
+    }
+    return right(n) == suffix;
+}
+
+int PkString::count() const
+{
+    return size();
+}
+
+int PkString::count(const PkString& sub) const
+{
+    const int n = sub.size();
+    if (n == 0) {
+        return 0;   // 对齐 Qt：空子串计 0 次
+    }
+    const int h = size();
+    if (n > h) {
+        return 0;
+    }
+    int c = 0;
+    const int last = h - n;
+    for (int i = 0; i <= last; ++i) {
+        if (mid(i, n) == sub) {
+            ++c;
+        }
+    }
+    return c;
+}
+
+int PkString::length() const
+{
+    return size();
+}
+
+bool PkString::isNull() const
+{
+    // PkString 无 null 态（默认构造即空哨兵，非空指针），故等价 isEmpty()。
+    // 与真实 Qt QString::isNull() 语义有偏差（Qt 区分 null 与 empty），但 Krita
+    // 调用点几乎都按「是否未设置/为空」理解 isNull()，isEmpty() 更贴意图。
+    return isEmpty();
+}
+
+int PkString::compare(const PkString& other) const
+{
+    const std::vector<char16_t>& a = _cbuf();
+    const std::vector<char16_t>& b = other._cbuf();
+    const std::size_t n = std::min(a.size(), b.size());
+    for (std::size_t i = 0; i < n; ++i) {
+        if (a[i] != b[i]) {
+            return a[i] < b[i] ? -1 : 1;
+        }
+    }
+    if (a.size() != b.size()) {
+        return a.size() < b.size() ? -1 : 1;
+    }
+    return 0;
+}
+
+PkString PkString::simplified() const
+{
+    const std::vector<char16_t>& b = _cbuf();
+    std::vector<char16_t> out;
+    bool inSpace = false;
+    bool started = false;
+    for (char16_t c : b) {
+        if (pkIsSpace(c)) {
+            if (started) {
+                inSpace = true;
+            }
+        } else {
+            if (inSpace) {
+                out.push_back(u' ');
+                inSpace = false;
+            }
+            out.push_back(c);
+            started = true;
+        }
+    }
+    PkString r;
+    r._data() = std::move(out);
+    return r;
+}

@@ -86,10 +86,10 @@ int main()
                            {QStringLiteral("b"), QVariant(QStringLiteral("two"))},
                            {QStringLiteral("c"), QVariant(false)}};
     const ushort isolatedUnits[]{0x0041, 0xd800, 0x0042, 0xdc00};
-    const QDateTime localDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789), Qt::LocalTime);
-    const QDateTime utcDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789), Qt::UTC);
+    const QDateTime localDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789), Pk::LocalTime);
+    const QDateTime utcDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789), Pk::UTC);
     const QDateTime offsetDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789),
-                                   Qt::OffsetFromUTC, 19800);
+                                   Pk::OffsetFromUTC, 19800);
     const QDateTime zoneDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789),
                                  QTimeZone("Asia/Kolkata"));
     const std::vector<WireCase> cases{

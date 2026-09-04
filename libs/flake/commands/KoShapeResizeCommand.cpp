@@ -48,8 +48,8 @@ KoShapeResizeCommand::KoShapeResizeCommand(const PkList<KoShape*> &shapes,
     m_d->postScalingCoveringTransform = postScalingCoveringTransform;
 
     for (KoShape *shape : m_d->shapes) {
-        m_d->oldSizes << toPkSizeF(shape->size());
-        m_d->oldTransforms << toPkTransform(shape->transformation());
+        m_d->oldSizes << shape->size();
+        m_d->oldTransforms << shape->transformation();
     }
 }
 
@@ -59,7 +59,7 @@ KoShapeResizeCommand::~KoShapeResizeCommand()
 
 void KoShapeResizeCommand::redoImpl()
 {
-    KoShapeBulkActionLock lock(toQList(m_d->shapes));
+    KoShapeBulkActionLock lock(m_d->shapes);
 
     redoNoUpdate();
 
@@ -68,7 +68,7 @@ void KoShapeResizeCommand::redoImpl()
 
 void KoShapeResizeCommand::undoImpl()
 {
-    KoShapeBulkActionLock lock(toQList(m_d->shapes));
+    KoShapeBulkActionLock lock(m_d->shapes);
 
     undoNoUpdate();
 
@@ -80,7 +80,7 @@ void KoShapeResizeCommand::redoNoUpdate()
     for (KoShape *shape : m_d->shapes) {
         KoFlake::resizeShapeCommon(shape,
                              m_d->scaleX, m_d->scaleY,
-                             toQPointF(m_d->absoluteStillPoint),
+                             m_d->absoluteStillPoint,
                              m_d->useGlobalMode,
                              m_d->usePostScaling,
                              toQTransform(m_d->postScalingCoveringTransform));
@@ -92,8 +92,8 @@ void KoShapeResizeCommand::undoNoUpdate()
     for (int i = 0; i < m_d->shapes.size(); i++) {
         KoShape *shape = m_d->shapes[i];
 
-        shape->setSize(toQSizeF(m_d->oldSizes[i]));
-        shape->setTransformation(toQTransform(m_d->oldTransforms[i]));
+        shape->setSize(m_d->oldSizes[i]);
+        shape->setTransformation(m_d->oldTransforms[i]);
     }
 }
 
@@ -132,7 +132,7 @@ bool KoShapeResizeCommand::mergeWith(const KUndo2Command *command)
 
 void KoShapeResizeCommand::replaceResizeAction(qreal scaleX, qreal scaleY, const PkPointF &absoluteStillPoint)
 {
-    KoShapeBulkActionLock lock(toQList(m_d->shapes));
+    KoShapeBulkActionLock lock(m_d->shapes);
 
     undoNoUpdate();
 

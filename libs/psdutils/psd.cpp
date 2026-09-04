@@ -248,8 +248,8 @@ PkPoint psd_layer_effects_shadow_base::calculateOffset(const psd_layer_effects_c
 
     qint32 angle = this->m_angle;
 
-    qint32 distanceX = -qRound(this->m_distance * cos(kisDegreesToRadians(qreal(angle))));
-    qint32 distanceY = qRound(this->m_distance * sin(kisDegreesToRadians(qreal(angle))));
+    qint32 distanceX = -pkRound(this->m_distance * cos(kisDegreesToRadians(qreal(angle))));
+    qint32 distanceY = pkRound(this->m_distance * sin(kisDegreesToRadians(qreal(angle))));
 
     return PkPoint(distanceX, distanceY);
 }

@@ -7,7 +7,7 @@
 #ifndef KISSNAPPOINTSTRATEGY_H
 #define KISSNAPPOINTSTRATEGY_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "KoSnapStrategy.h"
 #include "kritaflake_export.h"
@@ -25,14 +25,14 @@ public:
     KisSnapPointStrategy(KoSnapGuide::Strategy type = KoSnapGuide::CustomSnapping);
     ~KisSnapPointStrategy() override;
 
-    bool snap(const QPointF &mousePosition, KoSnapProxy * proxy, qreal maxSnapDistance) override;
-    QPainterPath decoration(const KoViewConverter &converter) const override;
+    bool snap(const PkPointF &mousePosition, KoSnapProxy * proxy, qreal maxSnapDistance) override;
+    PkPainterPath decoration(const KoViewConverter &converter) const override;
 
-     void addPoint(const QPointF &pt);
+     void addPoint(const PkPointF &pt);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISSNAPPOINTSTRATEGY_H

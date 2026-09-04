@@ -31,7 +31,7 @@ inline double toDouble(const quint8* data, int channelpos)
 template<typename T>
 void fromDouble(quint8* data, int channelpos, double v)
 {
-    *((T*)(data + channelpos)) = (T)qRound(v);
+    *((T*)(data + channelpos)) = (T)pkRound(v);
 }
 
 template<typename T>
@@ -43,7 +43,7 @@ void fromDoubleF(quint8* data, int channelpos, double v)
 template<typename T>
 void fromDoubleCheckNull(quint8* data, int channelpos, double v, bool *isNull)
 {
-    T value = qRound(v);
+    T value = pkRound(v);
     *((T*)(data + channelpos)) = value;
     *isNull = value == T(0);
 }

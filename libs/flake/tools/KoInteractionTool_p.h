@@ -25,9 +25,9 @@ public:
         delete currentStrategy;
     }
 
-    QPointF lastPoint;
+    PkPointF lastPoint;
     KoInteractionStrategy *currentStrategy;
-    QList<QSharedPointer<KoInteractionStrategyFactory>> interactionFactories;
+    PkList<PkSharedPointer<KoInteractionStrategyFactory>> interactionFactories;
 };
 
 #endif

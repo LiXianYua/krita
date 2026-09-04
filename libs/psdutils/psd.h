@@ -1108,8 +1108,8 @@ public:
 
     void setGradientOffset(const PkPointF &pt)
     {
-        m_gradientXOffset = qRound(pt.x());
-        m_gradientYOffset = qRound(pt.y());
+        m_gradientXOffset = pkRound(pt.x());
+        m_gradientYOffset = pkRound(pt.y());
     }
 
     PkPointF gradientOffset() const

@@ -116,7 +116,7 @@ qreal KisSpeedSmoother::getNextSpeedImpl(const PkPointF &pt, qreal time)
     const qreal dist = kisDistance(pt, m_d->lastPoint);
     // Getting the exact same position is bogus, it is probably just a previous
     // point reported again. On Android, this happens all the time. Skip them.
-    if (qFuzzyIsNull(dist)) {
+    if (pkQtFuzzyIsNull(dist)) {
         return m_d->lastSpeed;
     }
 

@@ -88,7 +88,7 @@ void KisMarkerPainter::fillHalfBrushDiff(const PkPointF &p1, const PkPointF &p2,
 
         // qreal fadePos =
         //     value1 < 0 || value2 < 0 ?
-        //     qMax(-value1, -value2) : value3;
+        //     pkMax(-value1, -value2) : value3;
         qreal fadePos = value3;
 
         const quint8 srcAlpha = fadePos > 0 ? quint8((1.0 - fadePos) * 255.0) : 255;

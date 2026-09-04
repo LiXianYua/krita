@@ -175,7 +175,7 @@ void testIdleChecksImpl(int compressorInterval,
 void KisSignalCompressorTest::testIdleChecks()
 {
     for (int i = 0; i < 40; i += 3) {
-        testIdleChecksImpl(50, 5, 5, qMax(1, i));
+        testIdleChecksImpl(50, 5, 5, pkMax(1, i));
     }
 }
 

@@ -22,7 +22,7 @@ class KoSvgTextShapeMemento;
 class KoSvgTextNodeIndex;
 struct KoSvgTextCharacterInfo;
 class KoPathShape;
-typedef QSharedPointer<KoSvgTextShapeMemento> KoSvgTextShapeMementoSP;
+typedef PkSharedPointer<KoSvgTextShapeMemento> KoSvgTextShapeMementoSP;
 
 #define KoSvgTextShape_SHAPEID "KoSvgTextShapeID"
 #define KoSvgTextShape_TEXTCONTOURGROUP "krita:textContourGroup"
@@ -36,19 +36,19 @@ public:
     KoSvgTextShape(const KoSvgTextShape &rhs);
     ~KoSvgTextShape() override;
 
-    static const QString &defaultPlaceholderText();
+    static const PkString &defaultPlaceholderText();
 
     KoShape* cloneShape() const override;
 
     void paint(QPainter &painter) const override;
     void paintStroke(QPainter &painter) const override;
 
-    QPainterPath outline() const override;
-    QRectF outlineRect() const override;
-    QRectF boundingRect() const override;
+    PkPainterPath outline() const override;
+    PkRectF outlineRect() const override;
+    PkRectF boundingRect() const override;
 
-    QSizeF size() const override;
-    void setSize(const QSizeF &size) override;
+    PkSizeF size() const override;
+    void setSize(const PkSizeF &size) override;
 
     enum class DebugElement {
         CharBbox = 1 << 0,
@@ -97,7 +97,7 @@ public:
      * @brief setShapesInside
      * @param shapesInside the list of shapes to make up the content area.
      */
-    void setShapesInside(QList<KoShape*> shapesInside);
+    void setShapesInside(PkList<KoShape*> shapesInside);
 
     /**
      * @brief addShapesContours
@@ -107,7 +107,7 @@ public:
      * If a shape is already in one list, adding them will cause them to be
      * moved to the other list.
      */
-    void addShapeContours(QList<KoShape*> shapes, const bool inside = true);
+    void addShapeContours(PkList<KoShape*> shapes, const bool inside = true);
     /**
      * @brief shapeInContours
      * @param shape
@@ -122,7 +122,7 @@ public:
      * @param update -- whether to call an update.
      * @param cleanup -- whether to cleanup the textdata.
      */
-    void removeShapesFromContours(QList<KoShape*> shapes, bool callUpdate = true, bool cleanup = true);
+    void removeShapesFromContours(PkList<KoShape*> shapes, bool callUpdate = true, bool cleanup = true);
 
     /**
      * @brief moveShapeInsideToIndex
@@ -154,7 +154,7 @@ public:
      * @param posEnd --  End of the range, as cursor pos.
      * @return list of KoShapes that are text paths.
      */
-    QList<KoShape*> textPathsAtRange(const int startPos = -1, const int endPos = -1);
+    PkList<KoShape*> textPathsAtRange(const int startPos = -1, const int endPos = -1);
 
     /**
      * @brief addTextPathAtEnd
@@ -167,13 +167,13 @@ public:
      * @brief shapesInside
      * @return the list of shapes that make up the content area.
      */
-    QList<KoShape*> shapesInside() const;
+    PkList<KoShape*> shapesInside() const;
 
     /**
      * @brief setShapesSubtract
      * @param shapesSubtract the list of shapes that subtract from the wrapping area.
      */
-    void setShapesSubtract(QList<KoShape*> shapesSubtract);
+    void setShapesSubtract(PkList<KoShape*> shapesSubtract);
 
     /**
      * @brief textWrappingAreas
@@ -185,13 +185,13 @@ public:
      * @seealso outline()
      * @return a list of computed text wrapping areas.
      */
-    QList<QPainterPath> textWrappingAreas() const;
+    PkList<PkPainterPath> textWrappingAreas() const;
 
     /**
      * @brief shapesSubtract
      * @return list of subtract shapes.
      */
-    QList<KoShape*> shapesSubtract() const;
+    PkList<KoShape*> shapesSubtract() const;
 
     /**
      * @brief internalShapeManager
@@ -199,7 +199,7 @@ public:
      */
     KoShapeManager *internalShapeManager() const;
 
-    QMap<QString, QString> shapeTypeSpecificStyles(SvgSavingContext &context) const;
+    PkMap<PkString, PkString> shapeTypeSpecificStyles(SvgSavingContext &context) const;
 
     void setResolution(qreal xRes, qreal yRes) override;
 
@@ -300,12 +300,12 @@ public:
 
     /**
      * @brief cursorForPos
-     * returns the QPainterPath associated with this cursorPosition.
+     * returns the PkPainterPath associated with this cursorPosition.
      * @param pos the cursor Position
      * @param bidiFlagSize -- size of the bidirectional indicator.
      * @return a path to draw a cursor with.
      */
-    QPainterPath cursorForPos(int pos, QLineF &caret, QColor &color, double bidiFlagSize = 1.0);
+    PkPainterPath cursorForPos(int pos, PkLineF &caret, PkColor &color, double bidiFlagSize = 1.0);
 
     /**
      * @brief selectionBoxes
@@ -313,11 +313,11 @@ public:
      * Range will be normalized internally.
      * @param pos -- the main cursor pos.
      * @param anchor -- the anchor from which the selection is calculated.
-     * @return a winding-fill style QPainterPath will all boxes added as subpaths.
+     * @return a winding-fill style PkPainterPath will all boxes added as subpaths.
      */
-    QPainterPath selectionBoxes(int pos, int anchor);
+    PkPainterPath selectionBoxes(int pos, int anchor);
 
-    QPainterPath underlines(int pos, int anchor,
+    PkPainterPath underlines(int pos, int anchor,
                             KoSvgText::TextDecorations decor,
                             KoSvgText::TextDecorationStyle style,
                             qreal minimum, bool thick);
@@ -331,7 +331,7 @@ public:
      * @param overlaps -- optional bool that is set if the point overlaps any glyph box.
      * @return the closest cursor position.
      */
-    int posForPoint(QPointF point, int start = -1, int end = -1, bool *overlaps = nullptr);
+    int posForPoint(PkPointF point, int start = -1, int end = -1, bool *overlaps = nullptr);
 
     /**
      * @brief posForPointLineSensitive
@@ -347,7 +347,7 @@ public:
      * @param point the point in shape coordinates.
      * @return the closest pos, taking into account any line starts or ends.
      */
-    int posForPointLineSensitive(QPointF point);
+    int posForPointLineSensitive(PkPointF point);
     /**
      * @brief posForIndex
      * Get the cursor position for a given index in a string.
@@ -371,7 +371,7 @@ public:
      * The eventual result of this can include transforms or repositioning due to text shapes.
      * @return the initial text position in shape coordinates.
      */
-    QPointF initialTextPosition() const;
+    PkPointF initialTextPosition() const;
 
     /*--------------- Edit text ---------------*/
     /**
@@ -381,7 +381,7 @@ public:
      * @param text the text to insert.
      * @return whether it was successful in inserting text.
      */
-    bool insertText(int pos, QString text);
+    bool insertText(int pos, PkString text);
 
     /**
      * @brief removeText
@@ -410,7 +410,7 @@ public:
      * @param endPos -- range end.
      * @return list of properties.
      */
-    QList<KoSvgTextProperties> propertiesForRange(const int startPos, const int endPos, bool inherited = false) const;
+    PkList<KoSvgTextProperties> propertiesForRange(const int startPos, const int endPos, bool inherited = false) const;
 
     /**
      * @brief setPropertiesAtPos
@@ -438,7 +438,7 @@ public:
     void mergePropertiesIntoRange(const int startPos,
                                   const int endPos,
                                   const KoSvgTextProperties properties,
-                                  const QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>());
+                                  const PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>());
 
 
     /**
@@ -474,7 +474,7 @@ public:
      * @param deltaPosition -- whether to calculate and set the delta positions.
      * @return whether successful.
      */
-    bool setCharacterTransformsOnRange(const int startPos, const int endPos, const QVector<QPointF> positions, const QVector<qreal> rotateDegrees, const bool deltaPosition = true);
+    bool setCharacterTransformsOnRange(const int startPos, const int endPos, const PkVector<PkPointF> positions, const PkVector<qreal> rotateDegrees, const bool deltaPosition = true);
 
     /**
      * @brief getPositionsAndRotationsForRange
@@ -483,7 +483,7 @@ public:
      * @param includeLastAdvance -- include a transform at the end that represents the last transform+advance.
      * @return list of qpairs, with the first value being the final position, and the second the final rotation.
      */
-    QList<KoSvgTextCharacterInfo> getPositionsAndRotationsForRange(const int startPos, const int endPos) const;
+    PkList<KoSvgTextCharacterInfo> getPositionsAndRotationsForRange(const int startPos, const int endPos) const;
 
     /**
      * Remove local transforms from the given range.
@@ -512,10 +512,10 @@ public:
      * @brief findRangeForNodeIndex
      * Find the start and end cursor position for a given nodeIndex.
      * @param node the tree index to find the range for.
-     * @return A QPair<int,int> describing cursor position range encompassed by the tree index and it's children.
+     * @return A std::pair<int,int> describing cursor position range encompassed by the tree index and it's children.
      * Will return {-1, -1} when the tree index is invalid.
      */
-    QPair<int, int> findRangeForNodeIndex(const KoSvgTextNodeIndex &node) const;
+    std::pair<int, int> findRangeForNodeIndex(const KoSvgTextNodeIndex &node) const;
 
     /**
      * @brief topLevelNodeForPos
@@ -541,11 +541,11 @@ public:
     /*--------------- Properties ---------------*/
 
     KoSvgTextProperties textProperties() const;
-    QSharedPointer<KoShapeBackground> background() const override;
-    void setBackground(QSharedPointer<KoShapeBackground> background) override;
+    PkSharedPointer<KoShapeBackground> background() const override;
+    void setBackground(PkSharedPointer<KoShapeBackground> background) override;
     KoShapeStrokeModelSP stroke() const override;
     void setStroke(KoShapeStrokeModelSP stroke) override;
-    QVector<PaintOrder> paintOrder() const override;
+    PkVector<PaintOrder> paintOrder() const override;
     void setPaintOrder(PaintOrder first, PaintOrder second) override;
 
 
@@ -555,7 +555,7 @@ public:
      * without the bidi controls or any transforms.
      * @return a string of plain text.
      */
-    QString plainText();
+    PkString plainText();
 
     /**
      * @brief writingMode
@@ -671,10 +671,10 @@ public:
      * @param props -- the properties to use. ShapePadding and ShapeMargin id will be taken from this.
      * @return list of QPainterPaths.
      */
-    static QList<QPainterPath> generateTextAreas(const QList<KoShape*> shapesInside, const QList<KoShape*> shapesSubtract, const KoSvgTextProperties &props);
+    static PkList<PkPainterPath> generateTextAreas(const PkList<KoShape*> shapesInside, const PkList<KoShape*> shapesSubtract, const KoSvgTextProperties &props);
 
     void startBulkAction() override;
-    QRectF endBulkAction() override;
+    PkRectF endBulkAction() override;
 
 protected:
 
@@ -701,14 +701,14 @@ private:
     /**
      * @brief defaultCursorShape
      * This returns a default cursor shape for when there's no text inside the text shape.
-     * @return a QPainterPath for a cursor.
+     * @return a PkPainterPath for a cursor.
      */
-    QPainterPath defaultCursorShape();
+    PkPainterPath defaultCursorShape();
 
     void setMementoImpl(const KoSvgTextShapeMementoSP memento);
 
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(KoSvgTextShape::DebugElements)
@@ -762,7 +762,7 @@ private:
 private:
     friend class KoSvgTextShape;
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 
 };
 
@@ -776,8 +776,8 @@ private:
  * Currently used for character transform adjustments.
  */
 struct KoSvgTextCharacterInfo {
-    QPointF finalPos;
-    QPointF advance;
+    PkPointF finalPos;
+    PkPointF advance;
     qreal rotateDeg; // Rotation in radians.
     int visualIndex = -1;
     int logicalIndex = -1;
@@ -813,7 +813,7 @@ public:
 
     KoShape *createShape(const KoProperties *params, KoDocumentResourceManager *documentResources = 0) const override;
     /// Reimplemented
-    bool supports(const QDomElement &e, KoShapeLoadingContext &context) const override;
+    bool supports(const PkXmlElement &e, KoShapeLoadingContext &context) const override;
 };
 
 

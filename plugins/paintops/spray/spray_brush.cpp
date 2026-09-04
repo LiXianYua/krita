@@ -312,8 +312,8 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
             m_painter->setPaintColor(m_inkColor);
         }
 
-        qreal jitteredWidth = qMax(1.0 * additionalScale, effectiveSize.width() * particleScale * additionalScale);
-        qreal jitteredHeight = qMax(1.0 * additionalScale, effectiveSize.height() * particleScale * additionalScale);
+        qreal jitteredWidth = pkMax(1.0 * additionalScale, effectiveSize.width() * particleScale * additionalScale);
+        qreal jitteredHeight = pkMax(1.0 * additionalScale, effectiveSize.height() * particleScale * additionalScale);
 
         if (m_shapeProperties->enabled){
         switch (m_shapeProperties->shape){
@@ -331,7 +331,7 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
             // rectangle
             case 1:
             {
-                paintRectangle(m_painter, nx + x, ny + y, qRound(jitteredWidth) , qRound(jitteredHeight), rotationZ);
+                paintRectangle(m_painter, nx + x, ny + y, pkRound(jitteredWidth) , pkRound(jitteredHeight), rotationZ);
                 break;
             }
             // wu-particle
@@ -341,8 +341,8 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
             }
             // pixel
             case 3: {
-                ix = qRound(nx + x);
-                iy = qRound(ny + y);
+                ix = pkRound(nx + x);
+                iy = pkRound(ny + y);
                 accessor->moveTo(ix, iy);
                 memcpy(accessor->rawData(), m_inkColor.data(), m_dabPixelSize);
                 break;
@@ -372,8 +372,8 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
                         }
                     }
 
-                    ix = qRound(nx + x - rc.width() * 0.5);
-                    iy = qRound(ny + y - rc.height() * 0.5);
+                    ix = pkRound(nx + x - rc.width() * 0.5);
+                    iy = pkRound(ny + y - rc.height() * 0.5);
                     m_painter->bitBlt(PkPoint(ix, iy), m_imageDevice, rc);
                     m_imageDevice->clear();
                     break;

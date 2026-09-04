@@ -6,7 +6,7 @@
 #include "KoWritingSystemUtils.h"
 #include <QRegularExpression>
 
-static QMap<QFontDatabase::WritingSystem, QString> WRITINGSYSTEM_SCRIPT_MAP {
+static PkMap<QFontDatabase::WritingSystem, PkString> WRITINGSYSTEM_SCRIPT_MAP {
     {{QFontDatabase::Any},{"Zyyy"}},
     {{QFontDatabase::Latin},{"Latn"}},
     {{QFontDatabase::Greek},{"Grek"}},
@@ -43,7 +43,7 @@ static QMap<QFontDatabase::WritingSystem, QString> WRITINGSYSTEM_SCRIPT_MAP {
     {{QFontDatabase::Vietnamese},{"Latn"}},
 };
 
-static QMap<QLocale::Script, QString> QLOCALE_SCRIPT_MAP {
+static PkMap<QLocale::Script, PkString> QLOCALE_SCRIPT_MAP {
     {{QLocale::LatinScript},{"Latn"}},
     {{QLocale::GreekScript},{"Grek"}},
     {{QLocale::CyrillicScript},{"Cyrl"}},
@@ -186,198 +186,202 @@ static QMap<QLocale::Script, QString> QLOCALE_SCRIPT_MAP {
     {{QLocale::JamoScript},{"Jamo"}},
 };
 
-static QMap<QChar::Script, QString> QCHAR_SCRIPT_MAP {
-    {{QChar::Script_Latin},{"Latn"}},
-    {{QChar::Script_Greek},{"Grek"}},
-    {{QChar::Script_Cyrillic},{"Cyrl"}},
-    {{QChar::Script_Armenian},{"Armn"}},
-    {{QChar::Script_Hebrew},{"Hebr"}},
-    {{QChar::Script_Arabic},{"Arab"}},
-    {{QChar::Script_Syriac},{"Syrc"}},
-    {{QChar::Script_Thaana},{"Thaa"}},
-    {{QChar::Script_Devanagari},{"Deva"}},
-    {{QChar::Script_Bengali},{"Beng"}},
-    {{QChar::Script_Gurmukhi},{"Guru"}},
-    {{QChar::Script_Gujarati},{"Gujr"}},
-    {{QChar::Script_Oriya},{"Orya"}},
-    {{QChar::Script_Tamil},{"Taml"}},
-    {{QChar::Script_Telugu},{"Telu"}},
-    {{QChar::Script_Kannada},{"Knda"}},
-    {{QChar::Script_Malayalam},{"Mylm"}},
-    {{QChar::Script_Sinhala},{"Sinh"}},
-    {{QChar::Script_Thai},{"Thai"}},
-    {{QChar::Script_Lao},{"Laoo"}},
-    {{QChar::Script_Tibetan},{"Tibt"}},
-    {{QChar::Script_Myanmar},{"Mymr"}},
-    {{QChar::Script_Georgian},{"Geor"}},
-    {{QChar::Script_Khmer},{"Khmr"}},
-    {{QChar::Script_Ogham},{"Ogam"}},
-    {{QChar::Script_Runic},{"Runr"}},
-    {{QChar::Script_Nko},{"Nkoo"}},
+static PkMap<char16_t::Script, PkString> QCHAR_SCRIPT_MAP {
+    {{char16_t::Script_Latin},{"Latn"}},
+    {{char16_t::Script_Greek},{"Grek"}},
+    {{char16_t::Script_Cyrillic},{"Cyrl"}},
+    {{char16_t::Script_Armenian},{"Armn"}},
+    {{char16_t::Script_Hebrew},{"Hebr"}},
+    {{char16_t::Script_Arabic},{"Arab"}},
+    {{char16_t::Script_Syriac},{"Syrc"}},
+    {{char16_t::Script_Thaana},{"Thaa"}},
+    {{char16_t::Script_Devanagari},{"Deva"}},
+    {{char16_t::Script_Bengali},{"Beng"}},
+    {{char16_t::Script_Gurmukhi},{"Guru"}},
+    {{char16_t::Script_Gujarati},{"Gujr"}},
+    {{char16_t::Script_Oriya},{"Orya"}},
+    {{char16_t::Script_Tamil},{"Taml"}},
+    {{char16_t::Script_Telugu},{"Telu"}},
+    {{char16_t::Script_Kannada},{"Knda"}},
+    {{char16_t::Script_Malayalam},{"Mylm"}},
+    {{char16_t::Script_Sinhala},{"Sinh"}},
+    {{char16_t::Script_Thai},{"Thai"}},
+    {{char16_t::Script_Lao},{"Laoo"}},
+    {{char16_t::Script_Tibetan},{"Tibt"}},
+    {{char16_t::Script_Myanmar},{"Mymr"}},
+    {{char16_t::Script_Georgian},{"Geor"}},
+    {{char16_t::Script_Khmer},{"Khmr"}},
+    {{char16_t::Script_Ogham},{"Ogam"}},
+    {{char16_t::Script_Runic},{"Runr"}},
+    {{char16_t::Script_Nko},{"Nkoo"}},
 
-    {{QChar::Script_Deseret},{"Dsrt"}},
-    {{QChar::Script_Mongolian},{"Mong"}},
-    {{QChar::Script_Tifinagh},{"Tfng"}},
-    {{QChar::Script_Cherokee},{"Cher"}},
-    {{QChar::Script_Ethiopic},{"Ethi"}},
-    {{QChar::Script_Yi},{"Yiii"}},
-    {{QChar::Script_Vai},{"Vaii"}},
-    {{QChar::Script_Avestan},{"Avst"}},
-    {{QChar::Script_Balinese},{"Bali"}},
-    {{QChar::Script_Bamum},{"Bamu"}},
-    {{QChar::Script_Bopomofo},{"Bopo"}},
-    {{QChar::Script_Brahmi},{"Brah"}},
-    {{QChar::Script_Buginese},{"Bugi"}},
-    {{QChar::Script_Buhid},{"Buhd"}},
-    {{QChar::Script_CanadianAboriginal},{"Cans"}},
-    {{QChar::Script_Carian},{"Cari"}},
-    {{QChar::Script_Chakma},{"Cakm"}},
-    {{QChar::Script_Cham},{"Cham"}},
-    {{QChar::Script_Coptic},{"Copt"}},
-    {{QChar::Script_Cypriot},{"Cprt"}},
-    {{QChar::Script_EgyptianHieroglyphs},{"Egyp"}},
-    {{QChar::Script_Lisu},{"Lisu"}},
-    {{QChar::Script_Glagolitic},{"Glag"}},
-    {{QChar::Script_Gothic},{"Goth"}},
-    {{QChar::Script_Han},{"Hani"}},
-    {{QChar::Script_Hangul},{"Hang"}},
-    {{QChar::Script_Hanunoo},{"Hano"}},
-    {{QChar::Script_ImperialAramaic},{"Armi"}},
-    {{QChar::Script_InscriptionalPahlavi},{"Phli"}},
-    {{QChar::Script_InscriptionalParthian},{"Prti"}},
-    {{QChar::Script_Javanese},{"Java"}},
-    {{QChar::Script_Kaithi},{"Kthi"}},
-    {{QChar::Script_Katakana},{"Kana"}},
-    {{QChar::Script_KayahLi},{"Kali"}},
-    {{QChar::Script_Kharoshthi},{"Khar"}},
-    {{QChar::Script_TaiTham}, {"Lana"}},
-    {{QChar::Script_Lepcha},{"Lepc"}},
-    {{QChar::Script_Limbu},{"Limb"}},
-    {{QChar::Script_LinearB},{"Linb"}},
-    {{QChar::Script_Lycian},{"Lyci"}},
-    {{QChar::Script_Lydian},{"Lydi"}},
-    {{QChar::Script_Mandaic},{"Mand"}},
-    {{QChar::Script_MeeteiMayek},{"Mtei"}},
-    {{QChar::Script_MeroiticHieroglyphs},{"Mero"}},
-    {{QChar::Script_MeroiticCursive},{"Merc"}},
-    {{QChar::Script_NewTaiLue},{"Talu"}},
-    {{QChar::Script_OlChiki},{"Olck"}},
-    {{QChar::Script_OldItalic},{"Ital"}},
-    {{QChar::Script_OldPersian},{"Xpeo"}},
-    {{QChar::Script_OldSouthArabian},{"Sarb"}},
-    {{QChar::Script_OldTurkic},{"Orkh"}},
-    {{QChar::Script_Osmanya},{"Osma"}},
-    {{QChar::Script_PhagsPa},{"Phag"}},
-    {{QChar::Script_Phoenician},{"Phnx"}},
-    {{QChar::Script_Miao},{"Plrd"}},
-    {{QChar::Script_Rejang},{"Rjng"}},
-    {{QChar::Script_Samaritan},{"Samr"}},
-    {{QChar::Script_Saurashtra},{"Saur"}},
-    {{QChar::Script_Sharada},{"Shrd"}},
-    {{QChar::Script_Shavian},{"Shaw"}},
-    {{QChar::Script_SoraSompeng},{"Sora"}},
-    {{QChar::Script_Cuneiform},{"Xsux"}},
-    {{QChar::Script_Sundanese},{"Sund"}},
-    {{QChar::Script_SylotiNagri},{"Sylo"}},
-    {{QChar::Script_Tagalog},{"Tglg"}},
-    {{QChar::Script_Tagbanwa},{"Tagb"}},
-    {{QChar::Script_TaiLe},{"Tale"}},
-    {{QChar::Script_TaiViet},{"Tavt"}},
-    {{QChar::Script_Takri},{"Takr"}},
-    {{QChar::Script_Ugaritic},{"Ugar"}},
-    {{QChar::Script_Braille},{"Brai"}},
-    {{QChar::Script_Hiragana},{"Hira"}},
-    {{QChar::Script_CaucasianAlbanian},{"Aghb"}},
-    {{QChar::Script_BassaVah},{"Bass"}},
-    {{QChar::Script_Duployan},{"Dupl"}},
-    {{QChar::Script_Elbasan},{"Elba"}},
-    {{QChar::Script_Grantha},{"Gran"}},
-    {{QChar::Script_PahawhHmong},{"Hmng"}},
-    {{QChar::Script_Khojki},{"Khoi"}},
-    {{QChar::Script_LinearA},{"Lina"}},
-    {{QChar::Script_Mahajani},{"Mahj"}},
-    {{QChar::Script_Manichaean},{"Mani"}},
-    {{QChar::Script_MendeKikakui},{"Mend"}},
-    {{QChar::Script_Modi},{"Modi"}},
-    {{QChar::Script_Mro},{"Mroo"}},
-    {{QChar::Script_OldNorthArabian},{"Narb"}},
-    {{QChar::Script_Nabataean},{"Nbat"}},
-    {{QChar::Script_Palmyrene},{"Palm"}},
-    {{QChar::Script_PauCinHau},{"Pauc"}},
-    {{QChar::Script_PsalterPahlavi},{"Phlp"}},
-    {{QChar::Script_Khudawadi},{"Sind"}},
-    {{QChar::Script_Tirhuta},{"Tirh"}},
-    {{QChar::Script_WarangCiti},{"Wara"}},
-    {{QChar::Script_Ahom},{"Ahom"}},
-    {{QChar::Script_AnatolianHieroglyphs},{"Hluw"}},
-    {{QChar::Script_Hatran},{"Hatr"}},
-    {{QChar::Script_Multani},{"Mult"}},
-    {{QChar::Script_OldHungarian},{"Hung"}},
-    {{QChar::Script_SignWriting},{"Sgnw"}},
-    {{QChar::Script_Adlam},{"Adlm"}},
-    {{QChar::Script_Bhaiksuki},{"Bhks"}},
-    {{QChar::Script_Batak},{"Batk"}},
-    {{QChar::Script_Marchen},{"Marc"}},
-    {{QChar::Script_Newa},{"Newa"}},
-    {{QChar::Script_Osage},{"Osge"}},
-    {{QChar::Script_Tangut},{"Tang"}},
+    {{char16_t::Script_Deseret},{"Dsrt"}},
+    {{char16_t::Script_Mongolian},{"Mong"}},
+    {{char16_t::Script_Tifinagh},{"Tfng"}},
+    {{char16_t::Script_Cherokee},{"Cher"}},
+    {{char16_t::Script_Ethiopic},{"Ethi"}},
+    {{char16_t::Script_Yi},{"Yiii"}},
+    {{char16_t::Script_Vai},{"Vaii"}},
+    {{char16_t::Script_Avestan},{"Avst"}},
+    {{char16_t::Script_Balinese},{"Bali"}},
+    {{char16_t::Script_Bamum},{"Bamu"}},
+    {{char16_t::Script_Bopomofo},{"Bopo"}},
+    {{char16_t::Script_Brahmi},{"Brah"}},
+    {{char16_t::Script_Buginese},{"Bugi"}},
+    {{char16_t::Script_Buhid},{"Buhd"}},
+    {{char16_t::Script_CanadianAboriginal},{"Cans"}},
+    {{char16_t::Script_Carian},{"Cari"}},
+    {{char16_t::Script_Chakma},{"Cakm"}},
+    {{char16_t::Script_Cham},{"Cham"}},
+    {{char16_t::Script_Coptic},{"Copt"}},
+    {{char16_t::Script_Cypriot},{"Cprt"}},
+    {{char16_t::Script_EgyptianHieroglyphs},{"Egyp"}},
+    {{char16_t::Script_Lisu},{"Lisu"}},
+    {{char16_t::Script_Glagolitic},{"Glag"}},
+    {{char16_t::Script_Gothic},{"Goth"}},
+    {{char16_t::Script_Han},{"Hani"}},
+    {{char16_t::Script_Hangul},{"Hang"}},
+    {{char16_t::Script_Hanunoo},{"Hano"}},
+    {{char16_t::Script_ImperialAramaic},{"Armi"}},
+    {{char16_t::Script_InscriptionalPahlavi},{"Phli"}},
+    {{char16_t::Script_InscriptionalParthian},{"Prti"}},
+    {{char16_t::Script_Javanese},{"Java"}},
+    {{char16_t::Script_Kaithi},{"Kthi"}},
+    {{char16_t::Script_Katakana},{"Kana"}},
+    {{char16_t::Script_KayahLi},{"Kali"}},
+    {{char16_t::Script_Kharoshthi},{"Khar"}},
+    {{char16_t::Script_TaiTham}, {"Lana"}},
+    {{char16_t::Script_Lepcha},{"Lepc"}},
+    {{char16_t::Script_Limbu},{"Limb"}},
+    {{char16_t::Script_LinearB},{"Linb"}},
+    {{char16_t::Script_Lycian},{"Lyci"}},
+    {{char16_t::Script_Lydian},{"Lydi"}},
+    {{char16_t::Script_Mandaic},{"Mand"}},
+    {{char16_t::Script_MeeteiMayek},{"Mtei"}},
+    {{char16_t::Script_MeroiticHieroglyphs},{"Mero"}},
+    {{char16_t::Script_MeroiticCursive},{"Merc"}},
+    {{char16_t::Script_NewTaiLue},{"Talu"}},
+    {{char16_t::Script_OlChiki},{"Olck"}},
+    {{char16_t::Script_OldItalic},{"Ital"}},
+    {{char16_t::Script_OldPersian},{"Xpeo"}},
+    {{char16_t::Script_OldSouthArabian},{"Sarb"}},
+    {{char16_t::Script_OldTurkic},{"Orkh"}},
+    {{char16_t::Script_Osmanya},{"Osma"}},
+    {{char16_t::Script_PhagsPa},{"Phag"}},
+    {{char16_t::Script_Phoenician},{"Phnx"}},
+    {{char16_t::Script_Miao},{"Plrd"}},
+    {{char16_t::Script_Rejang},{"Rjng"}},
+    {{char16_t::Script_Samaritan},{"Samr"}},
+    {{char16_t::Script_Saurashtra},{"Saur"}},
+    {{char16_t::Script_Sharada},{"Shrd"}},
+    {{char16_t::Script_Shavian},{"Shaw"}},
+    {{char16_t::Script_SoraSompeng},{"Sora"}},
+    {{char16_t::Script_Cuneiform},{"Xsux"}},
+    {{char16_t::Script_Sundanese},{"Sund"}},
+    {{char16_t::Script_SylotiNagri},{"Sylo"}},
+    {{char16_t::Script_Tagalog},{"Tglg"}},
+    {{char16_t::Script_Tagbanwa},{"Tagb"}},
+    {{char16_t::Script_TaiLe},{"Tale"}},
+    {{char16_t::Script_TaiViet},{"Tavt"}},
+    {{char16_t::Script_Takri},{"Takr"}},
+    {{char16_t::Script_Ugaritic},{"Ugar"}},
+    {{char16_t::Script_Braille},{"Brai"}},
+    {{char16_t::Script_Hiragana},{"Hira"}},
+    {{char16_t::Script_CaucasianAlbanian},{"Aghb"}},
+    {{char16_t::Script_BassaVah},{"Bass"}},
+    {{char16_t::Script_Duployan},{"Dupl"}},
+    {{char16_t::Script_Elbasan},{"Elba"}},
+    {{char16_t::Script_Grantha},{"Gran"}},
+    {{char16_t::Script_PahawhHmong},{"Hmng"}},
+    {{char16_t::Script_Khojki},{"Khoi"}},
+    {{char16_t::Script_LinearA},{"Lina"}},
+    {{char16_t::Script_Mahajani},{"Mahj"}},
+    {{char16_t::Script_Manichaean},{"Mani"}},
+    {{char16_t::Script_MendeKikakui},{"Mend"}},
+    {{char16_t::Script_Modi},{"Modi"}},
+    {{char16_t::Script_Mro},{"Mroo"}},
+    {{char16_t::Script_OldNorthArabian},{"Narb"}},
+    {{char16_t::Script_Nabataean},{"Nbat"}},
+    {{char16_t::Script_Palmyrene},{"Palm"}},
+    {{char16_t::Script_PauCinHau},{"Pauc"}},
+    {{char16_t::Script_PsalterPahlavi},{"Phlp"}},
+    {{char16_t::Script_Khudawadi},{"Sind"}},
+    {{char16_t::Script_Tirhuta},{"Tirh"}},
+    {{char16_t::Script_WarangCiti},{"Wara"}},
+    {{char16_t::Script_Ahom},{"Ahom"}},
+    {{char16_t::Script_AnatolianHieroglyphs},{"Hluw"}},
+    {{char16_t::Script_Hatran},{"Hatr"}},
+    {{char16_t::Script_Multani},{"Mult"}},
+    {{char16_t::Script_OldHungarian},{"Hung"}},
+    {{char16_t::Script_SignWriting},{"Sgnw"}},
+    {{char16_t::Script_Adlam},{"Adlm"}},
+    {{char16_t::Script_Bhaiksuki},{"Bhks"}},
+    {{char16_t::Script_Batak},{"Batk"}},
+    {{char16_t::Script_Marchen},{"Marc"}},
+    {{char16_t::Script_Newa},{"Newa"}},
+    {{char16_t::Script_Osage},{"Osge"}},
+    {{char16_t::Script_Tangut},{"Tang"}},
 
-    {{QChar::Script_MasaramGondi},{"Gonm"}},
-    {{QChar::Script_Nushu},{"Nshu"}},
-    {{QChar::Script_Soyombo},{"Soyo"}},
-    {{QChar::Script_ZanabazarSquare},{"Zanb"}},
+    {{char16_t::Script_MasaramGondi},{"Gonm"}},
+    {{char16_t::Script_Nushu},{"Nshu"}},
+    {{char16_t::Script_Soyombo},{"Soyo"}},
+    {{char16_t::Script_ZanabazarSquare},{"Zanb"}},
 
-    {{QChar::Script_Dogra},{"Dogr"}},
-    {{QChar::Script_GunjalaGondi},{"Gong"}},
-    {{QChar::Script_HanifiRohingya},{"Rogh"}},
-    {{QChar::Script_Makasar},{"Maka"}},
-    {{QChar::Script_Medefaidrin},{"Medf"}},
-    {{QChar::Script_OldSogdian},{"Sogo"}},
-    {{QChar::Script_Sogdian},{"Sogd"}},
-    {{QChar::Script_Elymaic},{"Elym"}},
-    {{QChar::Script_Nandinagari},{"Nand"}},
-    {{QChar::Script_NyiakengPuachueHmong},{"Hmnp"}},
-    {{QChar::Script_Wancho},{"Wcho"}},
+    {{char16_t::Script_Dogra},{"Dogr"}},
+    {{char16_t::Script_GunjalaGondi},{"Gong"}},
+    {{char16_t::Script_HanifiRohingya},{"Rogh"}},
+    {{char16_t::Script_Makasar},{"Maka"}},
+    {{char16_t::Script_Medefaidrin},{"Medf"}},
+    {{char16_t::Script_OldSogdian},{"Sogo"}},
+    {{char16_t::Script_Sogdian},{"Sogd"}},
+    {{char16_t::Script_Elymaic},{"Elym"}},
+    {{char16_t::Script_Nandinagari},{"Nand"}},
+    {{char16_t::Script_NyiakengPuachueHmong},{"Hmnp"}},
+    {{char16_t::Script_Wancho},{"Wcho"}},
 
-    {{QChar::Script_Chorasmian},{"Chrs"}},
-    {{QChar::Script_DivesAkuru},{"Diak"}},
-    {{QChar::Script_KhitanSmallScript},{"Kits"}},
-    {{QChar::Script_Yezidi},{"Yezi"}},
+    {{char16_t::Script_Chorasmian},{"Chrs"}},
+    {{char16_t::Script_DivesAkuru},{"Diak"}},
+    {{char16_t::Script_KhitanSmallScript},{"Kits"}},
+    {{char16_t::Script_Yezidi},{"Yezi"}},
 };
 
-QString KoWritingSystemUtils::scriptTagForWritingSystem(QFontDatabase::WritingSystem system) {
+PkString KoWritingSystemUtils::scriptTagForWritingSystem(QFontDatabase::WritingSystem system) {
     return WRITINGSYSTEM_SCRIPT_MAP.value(system);
 }
 
-QFontDatabase::WritingSystem KoWritingSystemUtils::writingSystemForScriptTag(const QString &tag)
+QFontDatabase::WritingSystem KoWritingSystemUtils::writingSystemForScriptTag(const PkString &tag)
 {
     return WRITINGSYSTEM_SCRIPT_MAP.key(tag, QFontDatabase::Any);
 }
 
-QString KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::Script script)
+PkString KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::Script script)
 {
     return QLOCALE_SCRIPT_MAP.value(script);
 }
 
-QLocale::Script KoWritingSystemUtils::scriptForScriptTag(const QString &tag)
+QLocale::Script KoWritingSystemUtils::scriptForScriptTag(const PkString &tag)
 {
     return QLOCALE_SCRIPT_MAP.key(tag, QLocale::AnyScript);
 }
 
-QString KoWritingSystemUtils::scriptTagForQCharScript(QChar::Script script)
+PkString KoWritingSystemUtils::scriptTagForQCharScript(char16_t::Script script)
 {
     return QCHAR_SCRIPT_MAP.value(script);
 }
 
-QChar::Script KoWritingSystemUtils::qCharScriptForScriptTag(const QString &tag)
+char16_t::Script KoWritingSystemUtils::qCharScriptForScriptTag(const PkString &tag)
 {
-    return QCHAR_SCRIPT_MAP.key(tag, QChar::Script_Unknown);
+    return QCHAR_SCRIPT_MAP.key(tag, char16_t::Script_Unknown);
 }
 
 #include <QDebug>
-QMap<QString, QString> KoWritingSystemUtils::samples()
+// [migrate] missing include for Pk/Qt type
+#include <PkMap.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
+PkMap<PkString, PkString> KoWritingSystemUtils::samples()
 {
-    QMap <QString, QString> samples;
+    PkMap <PkString, PkString> samples;
     // Also add simplified latin sample. By doing this first, it'll fall back nicely.
     samples.insert("AaBbGg", "s_Latn");
 
@@ -402,7 +406,7 @@ QMap<QString, QString> KoWritingSystemUtils::samples()
     return samples;
 }
 
-QString KoWritingSystemUtils::sampleTagForQLocale(const QLocale &locale)
+PkString KoWritingSystemUtils::sampleTagForQLocale(const QLocale &locale)
 {
     const QLocale vietnamese(QLocale::Vietnamese, QLocale::LatinScript, QLocale::AnyCountry);
 
@@ -414,7 +418,7 @@ QString KoWritingSystemUtils::sampleTagForQLocale(const QLocale &locale)
 }
 
 // There's a number of tags that are kept around for compatibility.
-const QMap<QString, QString> grandFathered = {
+const PkMap<PkString, PkString> grandFathered = {
     {"art-lojban", "jbo"},
     {"cel-gaulish", "xcg"}, // could also be xga or xtg
     {"en-GB-oed", "en-GB-oxendict"},
@@ -441,11 +445,11 @@ const QMap<QString, QString> grandFathered = {
     {"zh-xiang", "hsn"},
 };
 
-KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const QString &locale)
+KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const PkString &locale)
 {
     Bcp47Locale bcp;
 
-    QStringList tags = grandFathered.value(locale, locale).split("-");
+    PkStringList tags = grandFathered.value(locale, locale).split("-");
 
     if (tags.isEmpty()) return bcp;
 
@@ -464,7 +468,7 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const Q
         // 4 alpha is reserved for future use and 5-8 is also legit, but practically doesn't exist...
         bcp.languageTags.append(tags.takeFirst().toLower());
     } else if (tags.first() == "i" && tags.size() > 0) {
-        QString total = tags.takeFirst();
+        PkString total = tags.takeFirst();
         total += "-"+tags.takeFirst();
         bcp.languageTags.append(total.toLower());
     }
@@ -503,7 +507,7 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const Q
     if (tags.isEmpty()) return bcp;
     // extension and private use subtags. Each starts with a single letter to indicate the extension type.
 
-    QStringList currentExtension;
+    PkStringList currentExtension;
     while (!tags.isEmpty()) {
         if (!currentExtension.isEmpty() && tags.first().size() == 1) {
             if (currentExtension.first() == "x") {
@@ -532,7 +536,7 @@ QLocale KoWritingSystemUtils::localeFromBcp47Locale(const Bcp47Locale &locale)
     return QLocale(locale.toPosixLocaleFormat());
 }
 
-QLocale KoWritingSystemUtils::localeFromBcp47Locale(const QString &locale)
+QLocale KoWritingSystemUtils::localeFromBcp47Locale(const PkString &locale)
 {
     return localeFromBcp47Locale(parseBcp47Locale(locale));
 }
@@ -542,13 +546,13 @@ bool KoWritingSystemUtils::Bcp47Locale::isValid() const
     return !languageTags.isEmpty() && !languageTags.first().isEmpty();
 }
 
-QString KoWritingSystemUtils::Bcp47Locale::toPosixLocaleFormat() const
+PkString KoWritingSystemUtils::Bcp47Locale::toPosixLocaleFormat() const
 {
     // A Posix locale format is "language[_script][_territory][.codeset][@modifier]".
 
-    if (!isValid()) return QString();
+    if (!isValid()) return PkString();
 
-    QString posix;
+    PkString posix;
 
     posix = languageTags.first();
 
@@ -568,9 +572,9 @@ QString KoWritingSystemUtils::Bcp47Locale::toPosixLocaleFormat() const
     return posix;
 }
 
-QString KoWritingSystemUtils::Bcp47Locale::toString() const
+PkString KoWritingSystemUtils::Bcp47Locale::toString() const
 {
-    QStringList total;
+    PkStringList total;
 
     total.append(languageTags);
     if (!scriptTag.isEmpty()) {

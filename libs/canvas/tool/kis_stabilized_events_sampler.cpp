@@ -67,7 +67,7 @@ void KisStabilizedEventsSampler::addFinishingEvent(int numSamples)
 
 const KisPaintInformation& KisStabilizedEventsSampler::iterator::dereference() const
 {
-    const int k = qFloor(m_alpha * m_index);
+    const int k = pkFloor(m_alpha * m_index);
     return k < m_sampler->m_d->realEvents.size() ?
         m_sampler->m_d->realEvents[k] : m_sampler->m_d->lastPaintInformation;
 }

@@ -8,6 +8,8 @@
 
 #include <kundo2command.h>
 #include <kritaflake_export.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 class KoSvgTextShape;
 class KoShape;
@@ -28,14 +30,14 @@ public:
         SendToBack
     };
 
-    KoSvgTextReorderShapeInsideCommand(KoSvgTextShape* textShape, QList<KoShape*> shape, MoveShapeType type, KUndo2Command *parent = nullptr);
+    KoSvgTextReorderShapeInsideCommand(KoSvgTextShape* textShape, PkList<KoShape*> shape, MoveShapeType type, KUndo2Command *parent = nullptr);
     ~KoSvgTextReorderShapeInsideCommand();
 
     void redo() override;
     void undo() override;
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOSVGTEXTREORDERSHAPEINSIDECOMMAND_H

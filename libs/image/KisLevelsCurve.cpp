@@ -183,7 +183,7 @@ const PkVector<quint16>& KisLevelsCurve::uint16Transfer(int size) const
 
     for (int i = 0; i < size; ++i) {
         const qreal x = static_cast<qreal>(i) / static_cast<qreal>(size - 1);
-        m_u16Transfer[i] = static_cast<quint16>(qRound(value(x) * static_cast<qreal>(0xFFFF)));
+        m_u16Transfer[i] = static_cast<quint16>(pkRound(value(x) * static_cast<qreal>(0xFFFF)));
     }
 
     m_mustRecomputeU16Transfer = false;

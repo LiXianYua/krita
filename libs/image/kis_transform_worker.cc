@@ -199,7 +199,7 @@ void KisTransformWorker::transformPass(KisPaintDevice *src, KisPaintDevice *dst,
     calcDimensions<T>(m_boundRect, srcStart, srcLen, firstLine, numLines);
 
     KisProgressUpdateHelper progressHelper(m_progressUpdater, portion, numLines);
-    KisFilterWeightsBuffer buf(filterStrategy, qAbs(floatscale));
+    KisFilterWeightsBuffer buf(filterStrategy, pkAbs(floatscale));
     KisFilterWeightsApplicator applicator(src, dst, floatscale, shear, dx, clampToEdge);
 
     KisFilterWeightsApplicator::LinePos dstBounds;
@@ -263,9 +263,9 @@ bool KisTransformWorker::runPartial(const PkRect &processRect)
     if (m_xshear != 0 || m_yshear != 0) {
         int portion = 50;
 
-        bool scalePresent = !(qFuzzyCompare(xscale, 1.0) && qFuzzyCompare(yscale, 1.0));
-        bool xShearPresent = !qFuzzyCompare(m_xshear, 0.0);
-        bool yShearPresent = !qFuzzyCompare(m_yshear, 0.0);
+        bool scalePresent = !(pkQtFuzzyCompare(xscale, 1.0) && pkQtFuzzyCompare(yscale, 1.0));
+        bool xShearPresent = !pkQtFuzzyCompare(m_xshear, 0.0);
+        bool yShearPresent = !pkQtFuzzyCompare(m_yshear, 0.0);
 
         if (scalePresent || (xShearPresent && yShearPresent)) {
             transformPass <KisHLineIteratorSP>(m_dev.data(), m_dev.data(), xscale, yscale *  m_xshear, 0, m_filter, portion);
@@ -303,14 +303,14 @@ bool KisTransformWorker::runPartial(const PkRect &processRect)
      */
     const bool simpleTransform =
         !m_forceSubPixelTranslation &&
-        (qFuzzyCompare(rotation, 0.0)) &&
-        (qFuzzyCompare(xscale, 1.0) ||
-         qFuzzyCompare(xscale, -1.0)) &&
-        (qFuzzyCompare(yscale, 1.0) ||
-         qFuzzyCompare(yscale, -1.0));
+        (pkQtFuzzyCompare(rotation, 0.0)) &&
+        (pkQtFuzzyCompare(xscale, 1.0) ||
+         pkQtFuzzyCompare(xscale, -1.0)) &&
+        (pkQtFuzzyCompare(yscale, 1.0) ||
+         pkQtFuzzyCompare(yscale, -1.0));
 
 
-    int progressTotalSteps = qMax(1, 2 * (!simpleTransform) + (rotQuadrant != 0));
+    int progressTotalSteps = pkMax(1, 2 * (!simpleTransform) + (rotQuadrant != 0));
     int progressPortion = 100 / progressTotalSteps;
 
     /**
@@ -338,7 +338,7 @@ bool KisTransformWorker::runPartial(const PkRect &processRect)
     if (simpleTransform) {
 
         // Flipping horizontally
-        if (qFuzzyCompare(xscale, -1.0)) {
+        if (pkQtFuzzyCompare(xscale, -1.0)) {
             PkRect bounds = m_dev->exactBounds();
             double center_x = bounds.topLeft().x() + bounds.width() / 2.0;
             xtranslate -= 2 * center_x;
@@ -346,7 +346,7 @@ bool KisTransformWorker::runPartial(const PkRect &processRect)
         }
 
         // Flipping vertically
-        if (qFuzzyCompare(yscale, -1.0)) {
+        if (pkQtFuzzyCompare(yscale, -1.0)) {
             PkRect bounds = m_dev->exactBounds();
             double center_y = bounds.topLeft().y() + bounds.height() / 2.0;
             ytranslate -= 2 * center_y;
@@ -354,8 +354,8 @@ bool KisTransformWorker::runPartial(const PkRect &processRect)
         }
 
         // Simple translation
-        const int intXTranslate = qRound(xtranslate);
-        const int intYTranslate = qRound(ytranslate);
+        const int intXTranslate = pkRound(xtranslate);
+        const int intYTranslate = pkRound(ytranslate);
 
         m_boundRect.translate(intXTranslate, intYTranslate);
         m_dev->moveTo(m_dev->x() + intXTranslate, m_dev->y() + intYTranslate);
@@ -441,7 +441,7 @@ bool KisTransformWorker::runPartial(const PkRect &processRect)
 
 void mirror_impl(KisPaintDeviceSP dev, qreal axis, bool isHorizontal)
 {
-    KIS_ASSERT_RECOVER_RETURN(qFloor(axis) == axis || (axis - qFloor(axis) == 0.5));
+    KIS_ASSERT_RECOVER_RETURN(pkFloor(axis) == axis || (axis - pkFloor(axis) == 0.5));
 
     PkRect mirrorRect = dev->exactBounds();
     if (mirrorRect.width() <= 1) return;
@@ -483,25 +483,25 @@ void mirror_impl(KisPaintDeviceSP dev, qreal axis, bool isHorizontal)
      * If the axis is not aligned, that is crosses some pixel cell, we should just skip this
      * column and not process it. Actually, how can we mirror the central single-pixel column?
      */
-    const bool axisNonAligned = qFloor(axis) < axis;
+    const bool axisNonAligned = pkFloor(axis) < axis;
 
-    int leftCenterPoint = qFloor(axis);
-    int leftEnd = qMin(leftCenterPoint, rightEnd);
+    int leftCenterPoint = pkFloor(axis);
+    int leftEnd = pkMin(leftCenterPoint, rightEnd);
 
-    int rightCenterPoint = axisNonAligned ? qCeil(axis) : qFloor(axis);
-    int rightStart = qMax(rightCenterPoint, leftStart);
+    int rightCenterPoint = axisNonAligned ? pkCeil(axis) : pkFloor(axis);
+    int rightStart = pkMax(rightCenterPoint, leftStart);
 
-    int leftSize = qMax(0, leftEnd - leftStart);
-    int rightSize = qMax(0, rightEnd - rightStart);
+    int leftSize = pkMax(0, leftEnd - leftStart);
+    int rightSize = pkMax(0, rightEnd - rightStart);
 
-    int maxDistanceToAxis = qMax(leftCenterPoint - leftStart,
+    int maxDistanceToAxis = pkMax(leftCenterPoint - leftStart,
                            rightEnd - rightCenterPoint);
 
 
     // Main variables for controlling the stages of the algorithm
     bool moveLeftToRight = leftSize > rightSize;
-    int moveAmount = qAbs(leftSize - rightSize);
-    int swapAmount = qMin(leftSize, rightSize);
+    int moveAmount = pkAbs(leftSize - rightSize);
+    int swapAmount = pkMin(leftSize, rightSize);
 
     // Initial position of 'left' and 'right' block iterators
     int initialLeftCol = leftCenterPoint - maxDistanceToAxis;
@@ -542,7 +542,7 @@ void mirror_impl(KisPaintDeviceSP dev, qreal axis, bool isHorizontal)
         leftColPos = initialLeftCol;
         rightColPos = initialRightCol;
 
-        int rows = qMin(rowsRemaining, isHorizontal ? leftIt->numContiguousRows(leftY) : leftIt->numContiguousColumns(leftX));
+        int rows = pkMin(rowsRemaining, isHorizontal ? leftIt->numContiguousRows(leftY) : leftIt->numContiguousColumns(leftX));
         int rowStride = isHorizontal ? leftIt->rowStride(leftX, leftY) : pixelSize;
 
         if (moveLeftToRight) {
@@ -678,8 +678,8 @@ void KisTransformWorker::offset(KisPaintDeviceSP device, const PkPoint& offsetPo
     int destX = offsetX;
     int destY = offsetY;
 
-    width = qBound<int>(0, width - offsetX, width);
-    height = qBound<int>(0, height - offsetY, height);
+    width = pkBound<int>(0, width - offsetX, width);
+    height = pkBound<int>(0, height - offsetY, height);
 
     if ((width != 0) && (height != 0)) {
         // convert back to paint device space

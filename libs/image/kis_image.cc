@@ -727,7 +727,7 @@ PkString KisImage::nextLayerName(const PkString &_baseName) const
                     bool ok = false;
                     int value = suffix.toInt(&ok);
                     if (ok) {
-                        maxLayerIndex = qMax(maxLayerIndex, value);
+                        maxLayerIndex = pkMax(maxLayerIndex, value);
                     }
                 }
                 numLayers++;
@@ -1018,7 +1018,7 @@ void KisImage::cropNode(KisNodeSP node, const PkRect& newRect, const bool active
 
 void KisImage::scaleImage(const PkSize &size, qreal xres, qreal yres, KisFilterStrategy *filterStrategy)
 {
-    bool resolutionChanged = !qFuzzyCompare(xRes(), xres) || !qFuzzyCompare(yRes(), yres);
+    bool resolutionChanged = !pkQtFuzzyCompare(xRes(), xres) || !pkQtFuzzyCompare(yRes(), yres);
     bool sizeChanged = size != this->size();
 
     if (!resolutionChanged && !sizeChanged) return;
@@ -1622,7 +1622,7 @@ PkPointF KisImage::documentToPixel(const PkPointF &documentCoord) const
 PkPoint KisImage::documentToImagePixelFloored(const PkPointF &documentCoord) const
 {
     PkPointF pixelCoord = documentToPixel(documentCoord);
-    return PkPoint(qFloor(pixelCoord.x()), qFloor(pixelCoord.y()));
+    return PkPoint(pkFloor(pixelCoord.x()), pkFloor(pixelCoord.y()));
 }
 
 PkRectF KisImage::documentToPixel(const PkRectF &documentRect) const

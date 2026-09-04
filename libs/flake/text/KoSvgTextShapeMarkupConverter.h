@@ -9,13 +9,13 @@
 
 #include "kritaflake_export.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include <QTextDocument>
 #include <QTextCharFormat>
 
 #include <optional>
 
-class QRectF;
+class PkRectF;
 class KoSvgTextShape;
 class KoShape;
 class KoColorSpace;
@@ -41,7 +41,7 @@ public:
      *
      * @return true on success
      */
-    bool convertToSvg(QString *svgText, QString *stylesText);
+    bool convertToSvg(PkString *svgText, PkString *stylesText);
 
     /**
      * @brief upload the svg representation of text into the shape
@@ -52,14 +52,14 @@ public:
      *
      * @return true if the text was parsed successfully. Check `errors()` and `warnings()` for details.
      */
-    bool convertFromSvg(const QString &svgText, const QString &stylesText, const QRectF &boundsInPixels, qreal pixelsPerInch);
+    bool convertFromSvg(const PkString &svgText, const PkString &stylesText, const PkRectF &boundsInPixels, qreal pixelsPerInch);
 
     /**
      * @brief convertToHtml convert the text in the text shape to html
      * @param htmlText will be filled with correct html representing the text in the shape
      * @return @c true on success
      */
-    bool convertToHtml(QString *htmlText);
+    bool convertToHtml(PkString *htmlText);
 
     /**
      * @brief convertFromHtml converted Qt rich text html (and no other: https://doc.qt.io/qt-5/richtext-html-subset.html) to SVG
@@ -68,7 +68,7 @@ public:
      * @param styles
      * @return @c true if the conversion was successful
      */
-    bool convertFromHtml(const QString &htmlText, QString *svgText, QString *styles);
+    bool convertFromHtml(const PkString &htmlText, PkString *svgText, PkString *styles);
 
     /**
      * @brief convertDocumentToSvg
@@ -76,7 +76,7 @@ public:
      * @param svgText the converted svg text element
      * @return @c true if the conversion was successful
      */
-    bool convertDocumentToSvg(const QTextDocument *doc, QString *svgText);
+    bool convertDocumentToSvg(const QTextDocument *doc, PkString *svgText);
 
     /**
      * @brief convertSvgToDocument
@@ -84,17 +84,17 @@ public:
      * @param doc the QTextDocument that the conversion is written to.
      * @return @c true if the conversion was successful
      */
-    bool convertSvgToDocument(const QString &svgText, QTextDocument *doc);
+    bool convertSvgToDocument(const PkString &svgText, QTextDocument *doc);
 
 
     /**
      * A list of errors happened during loading the user's text
      */
-    QStringList errors() const;
+    PkStringList errors() const;
     /**
      * A list of warnings produced during loading the user's text
      */
-    QStringList warnings() const;
+    PkStringList warnings() const;
 
     /**
      * @brief style
@@ -105,7 +105,7 @@ public:
      * @param includeLineHeight whether the style should include `line-height`.
      * @return a string that can be written into a style element.
      */
-    QString style(QTextCharFormat format, QTextBlockFormat blockFormat, QTextCharFormat mostCommon = QTextCharFormat(), bool includeLineHeight = false);
+    PkString style(QTextCharFormat format, QTextBlockFormat blockFormat, QTextCharFormat mostCommon = QTextCharFormat(), bool includeLineHeight = false);
 
     struct ExtraStyles;
 
@@ -118,9 +118,9 @@ public:
      * @param currentCharFormat the current charformat to compare against.
      * @param currentBlockFormat the current blockformat to compare against.
      * @param[out] extraStyles other styles.
-     * @return A QVector with at 0 a QTextCharFormat and at 1 a QBlockCharFormat.
+     * @return A PkVector with at 0 a QTextCharFormat and at 1 a QBlockCharFormat.
      */
-    static QVector<QTextFormat> stylesFromString(QStringList styles, QTextCharFormat currentCharFormat, QTextBlockFormat currentBlockFormat, ExtraStyles &extraStyles);
+    static PkVector<QTextFormat> stylesFromString(PkStringList styles, QTextCharFormat currentCharFormat, QTextBlockFormat currentBlockFormat, ExtraStyles &extraStyles);
     /**
      * @brief formatDifference
      * A class to get the difference between two text-char formats.
@@ -132,7 +132,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 
 public:
     /*

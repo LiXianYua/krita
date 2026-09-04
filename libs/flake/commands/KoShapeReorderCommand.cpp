@@ -102,11 +102,11 @@ static void prepare(KoShape *s, PkMap<KoShape*, PkList<KoShape*> > &newOrder, Ko
     if (it == newOrder.end()) {
         PkList<KoShape*> children;
         if (parent != 0) {
-            children = toPkList(parent->shapes());
+            children = parent->shapes();
         }
         else {
             // get all toplevel shapes
-            children = toPkList(manager->topLevelShapes());
+            children = manager->topLevelShapes();
         }
         std::sort(children.begin(), children.end(), KoShape::compareShapeZIndex);
         // the append and prepend are needed so that the raise/lower of all shapes works as expected.

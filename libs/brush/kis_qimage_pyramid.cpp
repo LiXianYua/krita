@@ -110,7 +110,7 @@ int KisQImagePyramid::findNearestLevel(qreal scale, qreal *baseScale) const
 
 
     while ((0.5 * levelScale > scale ||
-            qAbs(0.5 * levelScale - scale) < scale_epsilon) &&
+            pkAbs(0.5 * levelScale - scale) < scale_epsilon) &&
             level < lastLevel) {
 
         levelScale *= 0.5;
@@ -145,15 +145,15 @@ inline PkRect roundRect(const PkRectF &rc)
         rect.setTop(0.0);
     }
 
-    qreal w_rounded = qRound(rect.width());
-    qreal h_rounded = qRound(rect.height());
+    qreal w_rounded = pkRound(rect.width());
+    qreal h_rounded = pkRound(rect.height());
 
     //Take care of the float precision errors
-    if (qAbs(rect.width() - w_rounded) < 0.000001) {
+    if (pkAbs(rect.width() - w_rounded) < 0.000001) {
         rect.setWidth(w_rounded);
     }
 
-    if (qAbs(rect.height() - h_rounded) < 0.000001) {
+    if (pkAbs(rect.height() - h_rounded) < 0.000001) {
         rect.setHeight(h_rounded);
     }
 
@@ -168,7 +168,7 @@ PkTransform baseBrushTransform(KisDabShape const& shape,
     PkTransform transform;
     transform.scale(shape.scaleX(), shape.scaleY());
 
-    if (!qFuzzyCompare(shape.rotation(), 0) && !qIsNaN(shape.rotation())) {
+    if (!pkQtFuzzyCompare(shape.rotation(), 0) && !pkIsNaN(shape.rotation())) {
         transform = transform * PkTransform().rotateRadians(shape.rotation());
         PkRectF rotatedBounds = transform.mapRect(baseBounds);
         transform = transform * PkTransform::fromTranslate(-rotatedBounds.x(), -rotatedBounds.y());
@@ -236,8 +236,8 @@ void KisQImagePyramid::calculateParams(KisDabShape shape,
 
         // we should not return invalid image, so adjust the image to be
         // at least 1 px in size.
-        width = qMax(1, width);
-        height = qMax(1, height);
+        width = pkMax(1, width);
+        height = pkMax(1, height);
     }
     else {
 #if 0 // Only enable when debugging; users shouldn't see this warning
@@ -365,8 +365,8 @@ PkImage KisQImagePyramid::getClosest(PkTransform transform, qreal *scale) const
 
     // Estimate scale
     PkSizeF transformedUnitSquare = transform.mapRect(PkRectF(0, 0, 1, 1)).size();
-    qreal x = qAbs(transformedUnitSquare.width());
-    qreal y = qAbs(transformedUnitSquare.height());
+    qreal x = pkAbs(transformedUnitSquare.width());
+    qreal y = pkAbs(transformedUnitSquare.height());
     qreal estimatedScale = (x > y) ? transformedUnitSquare.width() : transformedUnitSquare.height();
 
     int level = findNearestLevel(estimatedScale, scale);

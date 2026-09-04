@@ -6,28 +6,28 @@
 // Qt 不一致默认都是缺陷。
 //
 // **与真 Qt 的让位**（R-37）：真 Qt qnamespace.h 进 TU（QNAMESPACE_H 定义）时，本头
-// 整个 `namespace Qt` 枚举族让位给真 Qt（见下方守卫注释）。无 Qt 世界（薄壳/
+// 整个 `namespace Pk` 枚举族让位给真 Qt（见下方守卫注释）。无 Qt 世界（薄壳/
 // 纯 pk）由本头提供全部枚举。
 //
-// **与 pk/global 的分权**（R-18 已交付）：PkGlobal.h 已定义 `namespace Qt` 的
+// **与 pk/global 的分权**（R-18 已交付）：PkGlobal.h 已定义 `namespace Pk` 的
 // `AspectRatioMode` / `Axis` / `SizeMode` / `FillRule` / `GlobalColor` /
 // `TransformationMode` 六个枚举（qnamespace.h:1235-1239 / 1386-1390 /
 // 1185-1187 / 1352-1355 / 75-96 / 1381-1384）。
-// **本头不重定义这六个**——重定义会与 R-18 的 namespace Qt 同名枚举硬错。同一
+// **本头不重定义这六个**——重定义会与 R-18 的 namespace Pk 同名枚举硬错。同一
 // TU 同时 include pk/global + pk/namespace 时，两个 enum 集合在同一个 namespace
 // Qt 里**并集可见**（C++ 允许同名 namespace 多次打开，只要枚举名不重复）——这
 // 正好构成完整 Qt 枚举集。测试的 coexistWithGlobal 探针钉住这一点。
 //
-// **与 pk/signal 的分权**（R-36）：`Qt::ConnectionType`（及 AutoConnection/
+// **与 pk/signal 的分权**（R-36）：`Pk::ConnectionType`（及 AutoConnection/
 // DirectConnection/QueuedConnection/BlockingQueuedConnection/UniqueConnection
 // 五个值）的权威是 pk/signal 的 `PkConnectionType`（PkConnect.h）——
-// compat/QObject 在 `!QT_CORE_LIB` 下提供 `namespace Qt { using ConnectionType
+// compat/QObject 在 `!QT_CORE_LIB` 下提供 `namespace Pk { using ConnectionType
 // = PkConnectionType; constexpr ... }` 别名。本头**不定义 ConnectionType**
 // ——重定义（enum vs using）会让同 TU 同时 include pk/namespace + pk/signal
 // compat/QObject 硬错（S-08 实测阻塞主树 flake 构建）。位值对齐由 pk/signal
 // 测试钉住（Auto=0 Direct=1 Queued=2 BlockingQueued=3 Unique=0x80）。
 //
-// **工程形态**（R-18 先例）：真 `namespace Qt { ... }`，不是 `#define Qt`。
+// **工程形态**（R-18 先例）：真 `namespace Pk { ... }`，不是 `#define Qt`。
 // #define 会炸 `#include <Qt>` 伞形头（libs/flake 有 4 处）与 QTextStream::fixed。
 //
 // **Key 枚举的裁剪策略**（判据①）：真 Qt 的 Key 有 500+ 值，保留范围实测只用了
@@ -42,10 +42,10 @@
 // Qt 5.15 <QtCore/qflags.h>）。
 #pragma once
 
-#include "../global/PkGlobal.h"   // 标量 + Qt 六个枚举：AspectRatioMode/Axis/SizeMode/FillRule/GlobalColor/TransformationMode（同一 namespace Qt 的成员）
+#include "../global/PkGlobal.h"   // 标量 + Qt 六个枚举：AspectRatioMode/Axis/SizeMode/FillRule/GlobalColor/TransformationMode（同一 namespace Pk 的成员）
 #include "../flags/PkFlags.h"     // PkFlags<Enum> + PK_DECLARE_FLAGS / PK_DECLARE_OPERATORS_FOR_FLAGS
 
-// ⚠ 让位给真 Qt（R-37）：本头整个 `namespace Qt` 枚举族在真 Qt qnamespace.h 进 TU 时
+// ⚠ 让位给真 Qt（R-37）：本头整个 `namespace Pk` 枚举族在真 Qt qnamespace.h 进 TU 时
 // **全部让位**——R-36 只让了 ConnectionType（删给 pk/signal 别名），其余枚举未让位，
 // transition TU（主树 flake 经 PkColor.h 拉本头、同 TU 又有真 Qt 头）与真 Qt
 // qnamespace.h 重定义（S-08 实测 KoPathTool 590 错）。守卫口径同 R-35：
@@ -53,8 +53,7 @@
 // include 真 Qt qnamespace.h；只有 QNAMESPACE_H（真 Qt qnamespace.h 的 include guard）
 // 在场才让位，不在场（含 -DQT_CORE_LIB 无真 Qt 头）就由本头提供。mixed TU 必须
 // 「Qt 头在前」（同 R-35 已登记约定）。枚举位值与 R-27 探针对拍结果不变。
-#if !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H)
-namespace Qt {
+namespace Pk {
 
 // ── qnamespace.h:98-108 ──────────────────────────────────────────────────────
 // 探针：No=0x0 Shift=0x2000000 Ctrl=0x4000000 Alt=0x8000000 Meta=0x10000000
@@ -77,10 +76,10 @@ PK_DECLARE_OPERATORS_FOR_FLAGS(KeyboardModifiers)
 // 快捷键短名（CTRL/SHIFT/ALT 在保留范围各有用量）。KeypadModifier 刻意不进短名
 // 枚举（qnamespace.h 注释：全大写标识符易与用户宏冲突）。
 enum Modifier {
-    META          = Qt::MetaModifier,
-    SHIFT         = Qt::ShiftModifier,
-    CTRL          = Qt::ControlModifier,
-    ALT           = Qt::AltModifier,
+    META          = Pk::MetaModifier,
+    SHIFT         = Pk::ShiftModifier,
+    CTRL          = Pk::ControlModifier,
+    ALT           = Pk::AltModifier,
     MODIFIER_MASK = KeyboardModifierMask,
     UNICODE_ACCEL = 0x00000000
 };
@@ -89,7 +88,7 @@ enum Modifier {
 // 探针：No=0 Left=1 Right=2 Middle=4 Back=8 Forward=16 Task=32。
 // ⚠ 相对 brief 示例代码的一处修正：真 Qt 5.15.7 的 MaxMouseButton = ExtraButton24
 // （= 0x04000000），不是 TaskButton。libs/input/kis_stroke_shortcut.cpp:36 的
-// `std::log2((int)Qt::MaxMouseButton)` 依赖这一位的值；libs/input/
+// `std::log2((int)Pk::MaxMouseButton)` 依赖这一位的值；libs/input/
 // kis_shortcut_configuration.cpp 的 BOOST_PP_REPEAT_FROM_TO(4,25,EXTRA_BUTTON)
 // 宏实例化 ExtraButton4..ExtraButton24。故 ExtraButton4-24 全量照抄。
 enum MouseButton {
@@ -403,7 +402,7 @@ enum LayoutDirection {
 };
 
 // ── qnamespace.h:1539-1543 ───────────────────────────────────────────────────
-// 探针：Unchecked=0 Partially=1 Checked=2。Krita 用 `Qt::CheckState::Unchecked`
+// 探针：Unchecked=0 Partially=1 Checked=2。Krita 用 `Pk::CheckState::Unchecked`
 // 这种限定语法（libs/global/KisMessageBoxWrapper.cpp:27）——本枚举是不带作用域
 // 的 plain enum，C++17 允许 enum 名限定访问，照抄 Qt 形态即可。
 enum CheckState {
@@ -461,6 +460,5 @@ enum TimerType {
     VeryCoarseTimer
 };
 
-} // namespace Qt
+} // namespace Pk
 
-#endif // !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H) —— namespace Qt 整墙至此（真 Qt qnamespace.h 在场则让位）

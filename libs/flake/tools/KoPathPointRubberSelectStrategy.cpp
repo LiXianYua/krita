@@ -12,13 +12,13 @@
 #include "KoPathTool.h"
 #include "KoPathToolSelection.h"
 
-KoPathPointRubberSelectStrategy::KoPathPointRubberSelectStrategy(KoPathTool *tool, const QPointF &clicked)
+KoPathPointRubberSelectStrategy::KoPathPointRubberSelectStrategy(KoPathTool *tool, const PkPointF &clicked)
         : KoShapeRubberSelectStrategy(tool, clicked)
         , m_tool(tool)
 {
 }
 
-void KoPathPointRubberSelectStrategy::handleMouseMove(const QPointF &p, Qt::KeyboardModifiers modifiers)
+void KoPathPointRubberSelectStrategy::handleMouseMove(const PkPointF &p, Qt::KeyboardModifiers modifiers)
 {
     KoPathToolSelection * selection = dynamic_cast<KoPathToolSelection*>(m_tool->selection());
     if (selection && !(modifiers & Qt::ShiftModifier)) {
@@ -36,7 +36,7 @@ void KoPathPointRubberSelectStrategy::finishInteraction(Qt::KeyboardModifiers mo
         return;
     }
 
-    const QRectF oldDirtyRect = d->selectedRect().normalized() | m_tool->decorationsRect();
+    const PkRectF oldDirtyRect = d->selectedRect().normalized() | m_tool->decorationsRect();
     selection->selectPoints(d->selectedRect(), !(modifiers & Qt::ShiftModifier));
     m_tool->canvas()->updateCanvas(oldDirtyRect |
                                    d->selectedRect().normalized() |

@@ -220,19 +220,19 @@ void ImageCase::fillGlobalColorExactValues()
     // pk/geometry/PkGlobal.h 顶部注释里的探针实测。
     PkImage img(1, 1, PkImage::Format_ARGB32);
 
-    img.fill(Qt::white);
+    img.fill(Pk::white);
     PK_COMPARE(img.pixel(0, 0), 0xFFFFFFFFu);
 
-    img.fill(Qt::black);
+    img.fill(Pk::black);
     PK_COMPARE(img.pixel(0, 0), 0xFF000000u);
 
-    img.fill(Qt::red);
+    img.fill(Pk::red);
     PK_COMPARE(img.pixel(0, 0), 0xFFFF0000u);
 
-    img.fill(Qt::gray);
+    img.fill(Pk::gray);
     PK_COMPARE(img.pixel(0, 0), 0xFFA0A0A4u); // (160,160,164) 不是 (128,128,128)
 
-    img.fill(Qt::transparent);
+    img.fill(Pk::transparent);
     PK_COMPARE(img.pixel(0, 0), 0x00000000u);
 }
 
@@ -240,7 +240,7 @@ void ImageCase::fillUintIsRawPassthroughOnArgb32()
 {
     // 逐字照搬 brief 探针第 10 组。
     PkImage img(2, 2, PkImage::Format_ARGB32);
-    img.fill(Qt::red);
+    img.fill(Pk::red);
     PK_COMPARE(img.pixel(0, 0), 0xFFFF0000u);
 
     img.fill(static_cast<uint32_t>(0xFF112233u));
@@ -318,7 +318,7 @@ void ImageCase::allGrayBehavior()
     PK_VERIFY(argbGray.allGray());
 
     PkImage argbColor(2, 2, PkImage::Format_ARGB32);
-    argbColor.fill(Qt::red);
+    argbColor.fill(Pk::red);
     PK_VERIFY(!argbColor.allGray());
 }
 
@@ -691,7 +691,7 @@ void ImageCase::scaledFastNearestNeighborMagnifyAndShrink()
     for (int x = 0; x < 3; ++x) {
         src3.setPixel(x, 0, colors3[x]);
     }
-    PkImage magnified = src3.scaled(PkSize(7, 1), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    PkImage magnified = src3.scaled(PkSize(7, 1), Pk::IgnoreAspectRatio, Pk::FastTransformation);
     PK_COMPARE(magnified.width(), 7);
     PK_COMPARE(magnified.height(), 1);
     const int expectedMagnifyIdx[7] = {0, 0, 1, 1, 1, 2, 2};
@@ -707,7 +707,7 @@ void ImageCase::scaledFastNearestNeighborMagnifyAndShrink()
         colors7[x] = 0xFF000000u | (static_cast<uint32_t>(x + 1) << 16);
         src7.setPixel(x, 0, colors7[x]);
     }
-    PkImage shrunk = src7.scaled(PkSize(3, 1), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    PkImage shrunk = src7.scaled(PkSize(3, 1), Pk::IgnoreAspectRatio, Pk::FastTransformation);
     PK_COMPARE(shrunk.width(), 3);
     PK_COMPARE(shrunk.height(), 1);
     const int expectedShrinkIdx[3] = {1, 3, 5};
@@ -723,7 +723,7 @@ void ImageCase::scaledKeepAspectRatioClampsToOne()
     // 必须把高度 clamp 到至少 1，不能构造出一个高度为 0 的图像。
     PkImage src(5, 1, PkImage::Format_ARGB32);
     src.fill(0xFF112233u);
-    PkImage dst = src.scaled(PkSize(1, 1), Qt::KeepAspectRatio, Qt::FastTransformation);
+    PkImage dst = src.scaled(PkSize(1, 1), Pk::KeepAspectRatio, Pk::FastTransformation);
     PK_COMPARE(dst.width(), 1);
     PK_COMPARE(dst.height(), 1); // clamp 到至少 1，不是 0
     PK_VERIFY(!dst.isNull());
@@ -734,7 +734,7 @@ void ImageCase::scaledSameSizeShares()
     // 探针确认：目标尺寸与源尺寸相同时直接共享，不重新分配。
     PkImage src(3, 2, PkImage::Format_ARGB32);
     src.fill(0xFF112233u);
-    PkImage same = src.scaled(PkSize(3, 2), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    PkImage same = src.scaled(PkSize(3, 2), Pk::IgnoreAspectRatio, Pk::FastTransformation);
     PK_VERIFY(src.PkIsSharedWith(same));
 }
 
@@ -743,7 +743,7 @@ void ImageCase::transformedIdentityShares()
     // identity 变换（默认构造的 PkTransform）直接共享短路，跳过整个映射循环。
     PkImage src(3, 2, PkImage::Format_ARGB32);
     src.fill(0xFF112233u);
-    PkImage same = src.transformed(PkTransform(), Qt::FastTransformation);
+    PkImage same = src.transformed(PkTransform(), Pk::FastTransformation);
     PK_VERIFY(src.PkIsSharedWith(same));
 
     // null 图像上的 identity 变换同样直接共享自身（isNull() 仍为 true）。
@@ -764,7 +764,7 @@ void ImageCase::transformedTranslateCancelsBoundingRectOffset()
         }
     }
     PkTransform t = PkTransform::fromTranslate(1, 0);
-    PkImage dst = src.transformed(t, Qt::FastTransformation);
+    PkImage dst = src.transformed(t, Pk::FastTransformation);
     PK_COMPARE(dst.width(), src.width());
     PK_COMPARE(dst.height(), src.height());
     for (int y = 0; y < 2; ++y) {
@@ -787,13 +787,13 @@ void ImageCase::transformedRotate90ComposesToIdentity()
     PkTransform t;
     t.rotate(90);
 
-    PkImage r1 = src.transformed(t, Qt::FastTransformation);
+    PkImage r1 = src.transformed(t, Pk::FastTransformation);
     PK_COMPARE(r1.width(), src.height()); // 结论 2：mapRect 决定的包围盒，宽高互换
     PK_COMPARE(r1.height(), src.width());
 
-    PkImage r2 = r1.transformed(t, Qt::FastTransformation);
-    PkImage r3 = r2.transformed(t, Qt::FastTransformation);
-    PkImage r4 = r3.transformed(t, Qt::FastTransformation);
+    PkImage r2 = r1.transformed(t, Pk::FastTransformation);
+    PkImage r3 = r2.transformed(t, Pk::FastTransformation);
+    PkImage r4 = r3.transformed(t, Pk::FastTransformation);
 
     PK_COMPARE(r4.width(), src.width());
     PK_COMPARE(r4.height(), src.height());
@@ -818,7 +818,7 @@ void ImageCase::transformedShearOutOfBoundsIsTransparent()
     }
     PkTransform t;
     t.shear(0.5, 0.0);
-    PkImage dst = src.transformed(t, Qt::FastTransformation);
+    PkImage dst = src.transformed(t, Pk::FastTransformation);
     PK_COMPARE(dst.width(), 5);
     PK_COMPARE(dst.height(), 3);
 
@@ -835,7 +835,7 @@ void ImageCase::transformedSmoothBilinearBlendsNeighbors()
     src.setPixel(0, 0, 0xFF000000u); // 黑
     src.setPixel(1, 0, 0xFFFFFFFFu); // 白
     PkTransform t = PkTransform::fromScale(2.0, 1.0);
-    PkImage dst = src.transformed(t, Qt::SmoothTransformation);
+    PkImage dst = src.transformed(t, Pk::SmoothTransformation);
     PK_COMPARE(dst.width(), 4);
     PK_COMPARE(dst.height(), 1);
     PK_COMPARE(dst.pixel(0, 0), 0xFF000000u);
@@ -855,7 +855,7 @@ void ImageCase::transformedSmoothIndexedFallsBackToNearest()
     src.setPixel(1, 0, 1);
 
     PkTransform t = PkTransform::fromScale(2.0, 1.0);
-    PkImage dst = src.transformed(t, Qt::SmoothTransformation);
+    PkImage dst = src.transformed(t, Pk::SmoothTransformation);
     PK_COMPARE(dst.width(), 4);
     const int expectedIdx[4] = {0, 0, 1, 1}; // 同 Fast 模式的最近邻索引序列
     for (int x = 0; x < 4; ++x) {

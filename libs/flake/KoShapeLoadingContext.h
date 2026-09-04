@@ -9,9 +9,9 @@
 #ifndef KOSHAPELOADINGCONTEXT_H
 #define KOSHAPELOADINGCONTEXT_H
 
-#include <QSet>
-#include <QString>
-#include <QPair>
+#include <PkSet.h>
+#include <PkString.h>
+#include <utility>
 
 #include "kritaflake_export.h"
 
@@ -22,7 +22,7 @@ class KoLoadingShapeUpdater;
 class KoSharedLoadingData;
 class KoDocumentResourceManager;
 class KoSectionModel;
-class QVariant;
+class PkVariant;
 class QObject;
 class KoStore;
 
@@ -43,15 +43,15 @@ public:
      * AdditionalAttributeData( KoXmlNS::presentation, "placeholder", presentation:placeholder" )
      */
     struct AdditionalAttributeData {
-        AdditionalAttributeData(const QString &ns, const QString &tag, const QString &name)
+        AdditionalAttributeData(const PkString &ns, const PkString &tag, const PkString &name)
                 : ns(ns)
                 , tag(tag)
                 , name(name) {
         }
 
-        const QString ns;
-        const QString tag;
-        const QString name;
+        const PkString ns;
+        const PkString tag;
+        const PkString name;
 
         bool operator==(const AdditionalAttributeData &other) const {
             return name == other.name;
@@ -69,12 +69,12 @@ public:
     ~KoShapeLoadingContext();
 
     KoStore *store() const;
-    QString mimeTypeForPath(const QString &href, bool b = true);
+    PkString mimeTypeForPath(const PkString &href, bool b = true);
 
     /// Returns layer referenced by given name
-    KoShapeLayer *layer(const QString &layerName);
+    KoShapeLayer *layer(const PkString &layerName);
     /// Adds a new layer to be referenced by the given name later
-    void addLayer(KoShapeLayer *layer, const QString &layerName);
+    void addLayer(KoShapeLayer *layer, const PkString &layerName);
 
     /**
      * remove all layers
@@ -84,21 +84,21 @@ public:
     void clearLayers();
 
     /// register the id for a specific shape
-    void addShapeId(KoShape *shape, const QString &id);
+    void addShapeId(KoShape *shape, const PkString &id);
 
     /// return the shape formerly registered using addShapeId()
-    KoShape *shapeById(const QString &id);
+    KoShape *shapeById(const PkString &id);
 
     /// register the id for a specific shape sub item
-    void addShapeSubItemId(KoShape *shape, const QVariant &subItem, const QString &id);
+    void addShapeSubItemId(KoShape *shape, const PkVariant &subItem, const PkString &id);
     /// return the shape and subitem formerly registered using addShapeSubItemId()
-    QPair<KoShape *, QVariant> shapeSubItemById(const QString &id);
+    std::pair<KoShape *, PkVariant> shapeSubItemById(const PkString &id);
 
     /**
      * call function on the shapeUpdater when the shape with the id shapeid is inserted
      * After that destroy the updater.
      */
-    void updateShape(const QString &id, KoLoadingShapeUpdater *shapeUpdater);
+    void updateShape(const PkString &id, KoLoadingShapeUpdater *shapeUpdater);
 
     /**
      * this checks if there is an updater for this shape if yes it calls it
@@ -129,7 +129,7 @@ public:
      *
      * @see KoSharedLoadingData
      */
-    void addSharedData(const QString &id, KoSharedLoadingData *data);
+    void addSharedData(const PkString &id, KoSharedLoadingData *data);
 
     /**
      * Get the shared data.
@@ -139,7 +139,7 @@ public:
      * @param id The id used to identify the shared data.
      * @return The shared data for the id or 0 if there is no shared data for the id.
      */
-    KoSharedLoadingData *sharedData(const QString &id) const;
+    KoSharedLoadingData *sharedData(const PkString &id) const;
 
     /**
      * @brief Add an additional attribute that should be loaded during shape loading
@@ -159,7 +159,7 @@ public:
      * This is used by KoShape::loadOdfAttributes to load all additional attributes defined
      * in the returned set.
      */
-    static QSet<AdditionalAttributeData> additionalAttributeData();
+    static PkSet<AdditionalAttributeData> additionalAttributeData();
 
     KoDocumentResourceManager *documentResourceManager() const;
     /**

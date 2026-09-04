@@ -8,7 +8,7 @@
 #define KIS_QT_CONNECTIONS_STORE_H
 
 #include <QObject>
-#include <QList>
+#include <PkList.h>
 
 /**
  * Qt-native counterpart of libs/global's KisSignalAutoConnectionsStore,
@@ -59,7 +59,7 @@ public:
     }
 
 private:
-    QList<QMetaObject::Connection> m_connections;
+    PkList<QMetaObject::Connection> m_connections;
 };
 
 #endif /* KIS_QT_CONNECTIONS_STORE_H */

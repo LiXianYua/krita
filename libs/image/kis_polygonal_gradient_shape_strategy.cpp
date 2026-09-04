@@ -50,7 +50,7 @@ namespace Private {
         // FIXME: exponent = 2.0
         //        We explicitly use pow2() and sqrt() functions here
         //        for efficiency reasons.
-        KIS_ASSERT_RECOVER_NOOP(qFuzzyCompare(exponent, 2.0));
+        KIS_ASSERT_RECOVER_NOOP(pkQtFuzzyCompare(exponent, 2.0));
         const qreal minHiLevel = std::pow(0.5, 1.0 / exponent);
         qreal ptWeightNode = 0.0;
 
@@ -75,7 +75,7 @@ namespace Private {
 
             if (proj1 * proj2 >= 0) {
                 PkPointF nearestPointVec =
-                    qAbs(proj1) < qAbs(proj2) ? q1 : q2;
+                    pkAbs(proj1) < pkAbs(proj2) ? q1 : q2;
 
                 hi = KisAlgebra2D::norm(nearestPointVec);
             } else {
@@ -83,7 +83,7 @@ namespace Private {
                 hi = kisDistanceToLine(pt, line);
             }
 
-            hi = qMax(minHiLevel, hi);
+            hi = pkMax(minHiLevel, hi);
 
             // disabled for efficiency reasons
             // ptWeightNode += 1.0 / std::pow(hi, exponent);
@@ -330,7 +330,7 @@ PkPainterPath simplifyPath(const PkPainterPath &path,
             KritaUtils::maxDimensionPortion(poly.boundingRect(),
                                             sizePortion, minLinearSize);
 
-        int numSamples = qMax(qCeil(length / lengthStep), minNumSamples);
+        int numSamples = pkMax(pkCeil(length / lengthStep), minNumSamples);
 
         if (numSamples > poly.size()) {
             finalPath.addPolygon(poly);

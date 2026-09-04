@@ -1127,7 +1127,7 @@ bool checkConseqPixels<KisHLineIteratorSP>(int value, const QPoint &pt, const Ki
     int x = KisWrappedRect::xToWrappedX(pt.x(), wrappedRect.wrapRect(), WRAPAROUND_BOTH);
     int borderX = wrappedRect.originalRect().x() + wrappedRect.wrapRect().width();
     int conseq = x >= borderX ? wrappedRect.wrapRect().right() - x + 1 : borderX - x;
-    conseq = qMin(conseq, wrappedRect.originalRect().right() - pt.x() + 1);
+    conseq = pkMin(conseq, wrappedRect.originalRect().right() - pt.x() + 1);
 
     return value == conseq;
 }
@@ -2378,7 +2378,7 @@ void KisPaintDeviceTest::testCompositionAssociativity()
 
             if (memcmp(p1, p2, 4) != 0) {
                 for (int i = 0; i < 4; i++) {
-                    accum(qAbs(p1[i] - p2[i]));
+                    accum(pkAbs(p1[i] - p2[i]));
                 }
             }
 

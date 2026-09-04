@@ -68,10 +68,10 @@
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// PkCaseSensitivity —— Qt::CaseSensitivity 的替代品。
+// PkCaseSensitivity —— Pk::CaseSensitivity 的替代品。
 //
-// **枚举值刻意与 Qt 对齐**（Qt::CaseInsensitive == 0、Qt::CaseSensitive == 1），
-// 这样 compat 垫片可以直接 `#define Qt::CaseInsensitive PkCaseInsensitive`
+// **枚举值刻意与 Qt 对齐**（Pk::CaseInsensitive == 0、Pk::CaseSensitive == 1），
+// 这样 compat 垫片可以直接 `#define Pk::CaseInsensitive PkCaseInsensitive`
 // 之类地改写，而不必翻译数值。
 //
 // **它的正确归宿是 pk/string，不是这里。** 大小写敏感性是字符串的概念，
@@ -261,7 +261,7 @@ public:
     // 的 QChar 对应物（PkString::split(char16_t) 已经立了这个先例）。
     PkString join(char16_t sep) const { return join(pkCharToString(sep)); }
 
-    // Qt5 的签名带 Qt::CaseSensitivity。区分大小写时用 PkString 自己的
+    // Qt5 的签名带 Pk::CaseSensitivity。区分大小写时用 PkString 自己的
     // operator<（逐码元序，与 QString::operator< 同口径）。
     void sort(PkCaseSensitivity cs = PkCaseSensitive)
     {

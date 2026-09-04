@@ -13,7 +13,7 @@
 #include <KoColorBackground.h>
 #include <SvgWriter.h>
 #include <QPainter>
-#include <QBuffer>
+#include <PkMemoryStream.h>
 #include <QDebug>
 #include <KoShapePainter.h>
 #include <KisResourceTypes.h>
@@ -29,20 +29,20 @@
 struct KoFontFamily::Private {
 };
 
-QImage generateImage(const QString &sample, const QString &fontFamily, bool isColor) {
-    QSharedPointer<KoSvgTextShape> shape(new KoSvgTextShape);
+PkImage generateImage(const PkString &sample, const PkString &fontFamily, bool isColor) {
+    PkSharedPointer<KoSvgTextShape> shape(new KoSvgTextShape);
     shape->setResolution(300, 300);
-    shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(Qt::black)));
+    shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(Pk::black)));
     KoSvgTextProperties props = shape->textProperties();
     KoSvgText::CssLengthPercentage fontSize(12.0);
-    props.setProperty(KoSvgTextProperties::FontSizeId, QVariant::fromValue(fontSize));
+    props.setProperty(KoSvgTextProperties::FontSizeId, PkVariant::fromValue(fontSize));
     props.setProperty(KoSvgTextProperties::FontFamiliesId, {fontFamily});
     shape->setPropertiesAtPos(-1, props);
     shape->insertText(0, sample);
 
-    QImage img(256,
+    PkImage img(256,
                256,
-               isColor? QImage::Format_ARGB32: QImage::Format_Grayscale8);
+               isColor? PkImage::Format_ARGB32: PkImage::Format_Grayscale8);
     img.fill(Qt::white);
 
     KoShapePainter painter;
@@ -52,14 +52,14 @@ QImage generateImage(const QString &sample, const QString &fontFamily, bool isCo
     return img;
 }
 
-QString generateSVG(const QString &sample, const QString &fontFamily, QRectF &layoutBox, const QString &lang) {
-    QSharedPointer<KoSvgTextShape> shape(new KoSvgTextShape);
+PkString generateSVG(const PkString &sample, const PkString &fontFamily, PkRectF &layoutBox, const PkString &lang) {
+    PkSharedPointer<KoSvgTextShape> shape(new KoSvgTextShape);
     shape->setResolution(300, 300);
-    shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(Qt::black)));
+    shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(Pk::black)));
     KoSvgTextProperties props = shape->textProperties();
     props.setProperty(KoSvgTextProperties::FontFamiliesId, {fontFamily});
     KoSvgText::CssLengthPercentage fontSize(12.0);
-    props.setProperty(KoSvgTextProperties::FontSizeId, QVariant::fromValue(fontSize));
+    props.setProperty(KoSvgTextProperties::FontSizeId, PkVariant::fromValue(fontSize));
     if (!lang.isEmpty()) {
         props.setProperty(KoSvgTextProperties::TextLanguage, lang);
     }
@@ -69,30 +69,30 @@ QString generateSVG(const QString &sample, const QString &fontFamily, QRectF &la
     layoutBox = shape->selectionBoxes(0, shape->posDown(0)).boundingRect();
 
     SvgWriter writer({shape->textOutline()});
-    QBuffer buffer;
-    buffer.open(QIODevice::WriteOnly);
+    PkMemoryStream buffer;
+    buffer.open(PkStream::WriteOnly);
     writer.save(buffer, shape->boundingRect().size());
     buffer.close();
 
-    return QString::fromUtf8(buffer.data());
+    return PkString::fromUtf8(buffer.data());
 }
 
 namespace {
 
 // R-31 边界层：Qt 类型 → Pk 类型。与 KoCssTextUtils.cpp 的 qStringToPk/pkToQString 一致。
-PkString qStringToPk(const QString &s)
+PkString qStringToPk(const PkString &s)
 {
-    const QByteArray u8 = s.toUtf8();
+    const PkByteArray u8 = s.toUtf8();
     return PkString::PkFromUtf8(u8.constData(), u8.size());
 }
 
-QString pkToQString(const PkString &s)
+PkString pkToQString(const PkString &s)
 {
     const std::string u8 = s.PkToUtf8();
-    return QString::fromUtf8(u8.data(), int(u8.size()));
+    return PkString::fromUtf8(u8.data(), int(u8.size()));
 }
 
-// PkString → PkByteArray（UTF-8 字节）。旧代码 `QString::toUtf8()` → QByteArray 走
+// PkString → PkByteArray（UTF-8 字节）。旧代码 `PkString::toUtf8()` → PkByteArray 走
 // generateHash(const PkByteArray&) 的「哈希这些字节」语义；PkString 不能隐式转
 // PkByteArray，且 generateHash(const PkString&) 是「按文件路径读文件再哈希」——让
 // PkString 绑到它上面是静默语义错（会试着打开名为该字符串的文件）。
@@ -102,10 +102,10 @@ PkByteArray pkStringToByteArray(const PkString &s)
     return PkByteArray(u8.data(), int(u8.size()));
 }
 
-// 本地化标签 QHash<QLocale,QString> → PkVariantMap<bcp47Name, label>。
+// 本地化标签 PkHash<QLocale,PkString> → PkVariantMap<bcp47Name, label>。
 // lang 键统一走 R-31 locale 层 bcp47Name()，与旧 producer 的 QLocale::bcp47Name()
 // 语义一致（保留冗余子标签的最短形式，见 KoLcLocale.h）。
-PkVariantMap localeHashToPkVariantMap(const QHash<QLocale, QString> &names)
+PkVariantMap localeHashToPkVariantMap(const PkHash<QLocale, PkString> &names)
 {
     PkVariantMap map;
     for (auto it = names.constBegin(); it != names.constEnd(); ++it) {
@@ -134,10 +134,10 @@ PkVariantMap buildStyleEntryFromQt(const KoSvgText::FontFamilyStyleInfo &style)
         coords, style.isItalic, style.isOblique);
 }
 
-// QImage → PkImage。PkImage::Format 数值与 QImage::Format 顺序一致（见
+// PkImage → PkImage。PkImage::Format 数值与 PkImage::Format 顺序一致（见
 // pk/image/PkImage.h，自 Format_Invalid 起逐项对应），用 static_cast 直转；
 // 像素逐 scanLine 拷贝；索引色表也拷贝。
-PkImage qimageToPkImage(const QImage &img)
+PkImage qimageToPkImage(const PkImage &img)
 {
     PkImage out(img.width(), img.height(), static_cast<PkImage::Format>(img.format()));
     for (int y = 0; y < img.height(); ++y) {
@@ -259,17 +259,17 @@ void KoFontFamily::updateThumbnail()
     PkVariantMap sampleSVGBbox;
 
     for (auto it = samples.begin(); it != samples.end(); ++it) {
-        const QString sample = pkToQString(it->second.toString());
-        QRectF sampleBBox;
-        const QString key = pkToQString(it->first);
-        const QString lang = key.startsWith("l_")? key.mid(2): QString();
+        const PkString sample = pkToQString(it->second.toString());
+        PkRectF sampleBBox;
+        const PkString key = pkToQString(it->first);
+        const PkString lang = key.startsWith("l_")? key.mid(2): PkString();
         sampleSVG.emplace(it->first, PkVariant(qStringToPk(generateSVG(sample, pkToQString(filename()), sampleBBox, lang))));
         sampleSVGBbox.emplace(it->first, PkVariant(PkRectF(sampleBBox.x(), sampleBBox.y(), sampleBBox.width(), sampleBBox.height())));
     }
 
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_SVG, sampleSVG);
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_BBOX, sampleSVGBbox);
-    QString sample;
+    PkString sample;
     if (samples.empty()) {
         sample = QStringLiteral("AaBbGg");
     } else {
@@ -285,16 +285,16 @@ void KoFontFamily::updateThumbnail()
     setImage(qimageToPkImage(generateImage(sample, pkToQString(filename()), isColor)));
 }
 
-QString KoFontFamily::typographicFamily() const
+PkString KoFontFamily::typographicFamily() const
 {
     return pkToQString(metadata().value(KoFontFamilyMetadata::KEY_TYPOGRAPHIC_NAME).toString());
 }
 
-QString KoFontFamily::translatedFontName(QStringList locales) const
+PkString KoFontFamily::translatedFontName(PkStringList locales) const
 {
     const PkVariantMap names = metadata().value(KoFontFamilyMetadata::KEY_LOCALIZED_FONT_FAMILY).toMap();
-    QString name = pkToQString(filename());
-    for (const QString &locale : locales) {
+    PkString name = pkToQString(filename());
+    for (const PkString &locale : locales) {
         const auto it = names.find(qStringToPk(locale));
         if (it != names.end()) {
             name = pkToQString(it->second.toString());
@@ -329,9 +329,9 @@ bool KoFontFamily::colorSVG() const
     return metadata().value(KoFontFamilyMetadata::KEY_COLOR_SVG).toBool();
 }
 
-QList<KoSvgText::FontFamilyAxis> KoFontFamily::axes() const
+PkList<KoSvgText::FontFamilyAxis> KoFontFamily::axes() const
 {
-    QList<KoSvgText::FontFamilyAxis> converted;
+    PkList<KoSvgText::FontFamilyAxis> converted;
     const PkVariantList axes = metadata().value(KoFontFamilyMetadata::KEY_AXES).toList();
     for (const PkVariant &val : axes) {
         const auto entry = KoFontFamilyMetadata::parseAxisEntry(val.toMap());
@@ -357,9 +357,9 @@ QList<KoSvgText::FontFamilyAxis> KoFontFamily::axes() const
     return converted;
 }
 
-QList<KoSvgText::FontFamilyStyleInfo> KoFontFamily::styles() const
+PkList<KoSvgText::FontFamilyStyleInfo> KoFontFamily::styles() const
 {
-    QList<KoSvgText::FontFamilyStyleInfo> converted;
+    PkList<KoSvgText::FontFamilyStyleInfo> converted;
     const PkVariantList styles = metadata().value(KoFontFamilyMetadata::KEY_STYLES).toList();
     for (const PkVariant &val : styles) {
         const auto entry = KoFontFamilyMetadata::parseStyleEntry(val.toMap());

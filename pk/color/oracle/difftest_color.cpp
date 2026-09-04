@@ -1,10 +1,10 @@
 // difftest_color.cpp —— QColor ↔ PkColor 逐输入对拍（甲类核心判据）
 //
 // 两侧真分别 include：真 Qt 的 <QColor>（全局作用域）+ PkColor.h。PkColor.h 的
-// 依赖链（PkNamespace.h 会在 namespace Qt 里定义 enum GlobalColor，PkGlobal.h 会
+// 依赖链（PkNamespace.h 会在 namespace Pk 里定义 enum GlobalColor，PkGlobal.h 会
 // 在全局作用域定义 qAbs/qRound/qMin/qMax/qBound —— 与真 Qt 的同名定义硬冲突），
 // 所以 Pk 侧整条链（头 + 实现 .cpp）被包进 `namespace pkoracle`：PkNamespace 的
-// Qt::GlobalColor → pkoracle::Qt::GlobalColor，PkGlobal 的 q* → pkoracle::q*，
+// Pk::GlobalColor → pkoracle::Pk::GlobalColor，PkGlobal 的 q* → pkoracle::q*，
 // 与真 Qt 彻底隔离。std 系统头必须在包外层先 include（include guard 让包内的
 // 二次 include 空转），否则 std 会被卷进 pkoracle::std。
 //
@@ -139,10 +139,10 @@ static void cmp_color(const char *api, const QColor &q, const pkoracle::PkColor 
 
 int main()
 {
-    // ── 1. Qt::GlobalColor 全 20 项 ────────────────────────────────────────
+    // ── 1. Pk::GlobalColor 全 20 项 ────────────────────────────────────────
     for (int gc = 0; gc < 20; ++gc) {
-        QColor q((Qt::GlobalColor)gc);
-        pkoracle::PkColor p((pkoracle::Qt::GlobalColor)gc);
+        QColor q((Pk::GlobalColor)gc);
+        pkoracle::PkColor p((pkoracle::Pk::GlobalColor)gc);
         cmp_color("gc", q, p, "gc=" + s(gc));
     }
 

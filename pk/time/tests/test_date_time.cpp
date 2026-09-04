@@ -204,7 +204,7 @@ void TestDateTime::fromStringIsoDateMarkerMatchesCustomFormat()
 {
     // fromString(s, DateFormat::ISODate) 等价于
     // fromString(s, "yyyy-MM-ddThh:mm:ss")——真实调用点
-    // kis_exif_io.cpp/kis_exiv2_common.h 用的是 Qt::ISODate。
+    // kis_exif_io.cpp/kis_exiv2_common.h 用的是 Pk::ISODate。
     const PkDateTime viaMarker =
         PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);
     const PkDateTime viaCustomFormat =
@@ -224,7 +224,7 @@ void TestDateTime::toStringDefaultMatchesTextDateShape()
 
 void TestDateTime::toStringIsoDate()
 {
-    // 探针：`toString(Qt::ISODate) => [2024-01-15T12:30:45]`。
+    // 探针：`toString(Pk::ISODate) => [2024-01-15T12:30:45]`。
     const PkDateTime dt =
         PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);
     PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODate) == "2024-01-15T12:30:45");
@@ -232,7 +232,7 @@ void TestDateTime::toStringIsoDate()
 
 void TestDateTime::toStringIsoDateWithMs()
 {
-    // 探针：`toString(Qt::ISODateWithMs) => [2024-01-15T12:30:45.000]`——本任务
+    // 探针：`toString(Pk::ISODateWithMs) => [2024-01-15T12:30:45.000]`——本任务
     // 的 fromString 系列都不解析毫秒字段，毫秒分量恒为 000。
     const PkDateTime dt =
         PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);

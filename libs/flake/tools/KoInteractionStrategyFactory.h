@@ -7,26 +7,26 @@
 #ifndef KOINTERACTIONSTRATEGYFACTORY_H
 #define KOINTERACTIONSTRATEGYFACTORY_H
 
-#include <QScopedPointer>
-#include <QSharedPointer>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
 #include "kritaflake_export.h"
 
-class QString;
+class PkString;
 class QPainter;
 class KoInteractionStrategy;
 class KoPointerEvent;
 class KoViewConverter;
 
 class KoInteractionStrategyFactory;
-typedef QSharedPointer<KoInteractionStrategyFactory> KoInteractionStrategyFactorySP;
+typedef PkSharedPointer<KoInteractionStrategyFactory> KoInteractionStrategyFactorySP;
 
 class KRITAFLAKE_EXPORT KoInteractionStrategyFactory
 {
 public:
-    KoInteractionStrategyFactory(int priority, const QString &id);
+    KoInteractionStrategyFactory(int priority, const PkString &id);
     virtual ~KoInteractionStrategyFactory();
 
-    QString id() const;
+    PkString id() const;
     int priority() const;
 
     virtual KoInteractionStrategy* createStrategy(KoPointerEvent *ev) = 0;
@@ -38,7 +38,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 

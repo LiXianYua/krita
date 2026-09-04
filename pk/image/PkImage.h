@@ -7,7 +7,7 @@
 #include "../container/PkArrayData.h"
 #include "../geometry/PkSize.h"
 #include "../geometry/PkRect.h"
-#include "../geometry/PkGlobal.h"   // Qt::GlobalColor（fill(Qt::GlobalColor) 用）
+#include "../geometry/PkGlobal.h"   // Pk::GlobalColor（fill(Pk::GlobalColor) 用）
 #include "../geometry/PkTransform.h"   // Task 3：scaled()/transformed() 用
 
 class PkImage
@@ -105,11 +105,11 @@ public:
 
     // fill(uint)：value 按 pixel()/setPixel() 同一套打包/索引约定逐像素写入
     // （对 ARGB32/ARGB32_Premultiplied 是裸值透传，探针第 10 组实测）。
-    // fill(Qt::GlobalColor)：只保证 white/black/red/gray/transparent 5 个真实
+    // fill(Pk::GlobalColor)：只保证 white/black/red/gray/transparent 5 个真实
     // 调用点用到的值精确（PkGlobal.h 顶部注释里的探针实测 RGBA），其余 15 个
     // GlobalColor 值传入时不保证精确颜色（判据①，允许 no-op）。
     void fill(uint32_t value);
-    void fill(Qt::GlobalColor color);
+    void fill(Pk::GlobalColor color);
 
     // colorTable()/setColorTable()：仅 Indexed8/Mono/MonoLSB 有意义；非索引
     // 格式上 colorTable() 恒返回空表（探针第 9 组实测），setColor()/setColorTable()
@@ -134,7 +134,7 @@ public:
     // 产生新分配）。convertToFormat()：同格式共享而非拷贝（探针第 6 组）；不同
     // 格式时逐像素转换，复用 rawPixelArgb/writeRawPixelArgb。convertTo()：原地
     // 版本，语义 `*this = convertToFormat(newFormat)`；真 Qt 还有一个
-    // Qt::ImageConversionFlags 参数，但用量表没有任何真实调用点带这个参数，
+    // Pk::ImageConversionFlags 参数，但用量表没有任何真实调用点带这个参数，
     // 故只提供单参数重载（判据①，不多加）。
     PkImage copy() const;
     PkImage convertToFormat(Format newFormat) const;
@@ -156,10 +156,10 @@ public:
     // 公式；Smooth（双线性）模式是已声明偏离（岔路 B），不追求与 Qt 位对齐，只
     // 保证良定义。devicePixelRatio 在两者之后原样透传（探针结论 4）。
     PkImage scaled(const PkSize &size,
-                   Qt::AspectRatioMode aspectMode = Qt::IgnoreAspectRatio,
-                   Qt::TransformationMode mode = Qt::FastTransformation) const;
+                   Pk::AspectRatioMode aspectMode = Pk::IgnoreAspectRatio,
+                   Pk::TransformationMode mode = Pk::FastTransformation) const;
     PkImage transformed(const PkTransform &matrix,
-                         Qt::TransformationMode mode = Qt::FastTransformation) const;
+                         Pk::TransformationMode mode = Pk::FastTransformation) const;
 
     qreal devicePixelRatio() const;
     void setDevicePixelRatio(qreal scaleFactor);

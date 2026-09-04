@@ -21,7 +21,7 @@ static void compareSplines(const QList<KisCubicCurvePoint> points)
     for (qreal x = points.first().x(); x <= points.last().x(); x += stepSize) {
         const qreal legacyY = legacySpline.getValue(x);
         const qreal newY = newSpline.getValue(x);
-        const qreal difference = qAbs(newY - legacyY);
+        const qreal difference = pkAbs(newY - legacyY);
         QVERIFY(difference < epsilon);
     }
 }

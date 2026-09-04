@@ -9,8 +9,8 @@
 
 #include "kritaflake_export.h"
 
-#include <QScopedPointer>
-#include <QList>
+#include <PkScopedPointer.h>
+#include <PkList.h>
 #include <Qt>
 
 class KoSnapStrategy;
@@ -19,8 +19,8 @@ class KoPathPoint;
 class KoViewConverter;
 class KoCanvasBase;
 class QPainter;
-class QPointF;
-class QRectF;
+class PkPointF;
+class PkRectF;
 
 /**
  * This class is the place where all the snapping (i.e. snap to grid) is handled.
@@ -67,15 +67,15 @@ public:
     virtual ~KoSnapGuide();
 
     /// snaps the mouse position, returns if mouse was snapped
-    QPointF snap(const QPointF &mousePosition, Qt::KeyboardModifiers modifiers);
+    PkPointF snap(const PkPointF &mousePosition, Qt::KeyboardModifiers modifiers);
 
-    QPointF snap(const QPointF &mousePosition, const QPointF &dragOffset, Qt::KeyboardModifiers modifiers);
+    PkPointF snap(const PkPointF &mousePosition, const PkPointF &dragOffset, Qt::KeyboardModifiers modifiers);
 
     /// paints the guide
     void paint(QPainter &painter, const KoViewConverter &converter);
 
     /// returns the bounding rect of the guide
-    QRectF boundingRect();
+    PkRectF boundingRect();
 
     /// Adds an additional shape to snap to (useful when creating a path)
     void setAdditionalEditedShape(KoShape *shape);
@@ -123,23 +123,23 @@ public:
     KoCanvasBase *canvas() const;
 
     /// Sets a list of path points to ignore
-    void setIgnoredPathPoints(const QList<KoPathPoint*> &ignoredPoints);
+    void setIgnoredPathPoints(const PkList<KoPathPoint*> &ignoredPoints);
 
     /// Returns list of ignored points
-    QList<KoPathPoint*> ignoredPathPoints() const;
+    PkList<KoPathPoint*> ignoredPathPoints() const;
 
     /// Sets list of ignored shapes
-    void setIgnoredShapes(const QList<KoShape*> &ignoredShapes);
+    void setIgnoredShapes(const PkList<KoShape*> &ignoredShapes);
 
     /// Returns list of ignored shapes
-    QList<KoShape*> ignoredShapes() const;
+    PkList<KoShape*> ignoredShapes() const;
 
     /// Resets the snap guide
     void reset();
 
 private:
     class Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(KoSnapGuide::Strategies)

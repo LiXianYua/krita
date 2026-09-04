@@ -194,8 +194,8 @@ QVector<QPointF> KisCageTransformWorker::Private::calculateTransformedPoints()
     for (int i = 0; i < numValidPoints; i++) {
         transformedPoints[i] = cage.transformedPoint(i, transfCage);
 
-        if (qIsNaN(transformedPoints[i].x()) ||
-            qIsNaN(transformedPoints[i].y())) {
+        if (pkIsNaN(transformedPoints[i].x()) ||
+            pkIsNaN(transformedPoints[i].y())) {
             warnKrita << "WARNING: One grid point has been removed from consideration" << validPoints[i];
             transformedPoints[i] = validPoints[i];
         }
@@ -279,7 +279,7 @@ QRect KisCageTransformWorker::approxChangeRect(const QRect &rc)
     const int maxSamples = 200;
 
     const int totalPixels = rc.width() * rc.height();
-    const int realStep = qMax(minStep, totalPixels / maxSamples);
+    const int realStep = pkMax(minStep, totalPixels / maxSamples);
     const QPolygonF cagePolygon(m_d->origCage);
 
     for (int i = 0; i < totalPixels; i += realStep) {
@@ -306,8 +306,8 @@ QRect KisCageTransformWorker::approxChangeRect(const QRect &rc)
     for (int i = 0; i < numValidPoints; i++) {
         transformedPoints[i] = cage.transformedPoint(i, m_d->transfCage);
 
-        if (qIsNaN(transformedPoints[i].x()) ||
-            qIsNaN(transformedPoints[i].y())) {
+        if (pkIsNaN(transformedPoints[i].x()) ||
+            pkIsNaN(transformedPoints[i].y())) {
 
             transformedPoints[i] = cageSamplePoints[i];
         }

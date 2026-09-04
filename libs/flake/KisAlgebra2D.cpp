@@ -4,7 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-// 官方 kis_algebra_2d.cpp 的 DecomposedMatrix 构造（QTransform 版），
+// 官方 kis_algebra_2d.cpp 的 DecomposedMatrix 构造（PkTransform 版），
 // 见 KisAlgebra2D.h 文件头注释。与官方差异：去掉断言前的 ENTER_FUNCTION/
 // ppVar 调试转储（仅在断言即将失败时执行，功能等价），断言保留。
 
@@ -12,7 +12,7 @@
 
 #include <kis_assert.h>
 
-bool KisAlgebra2D::fuzzyMatrixCompare(const QTransform &t1, const QTransform &t2, qreal delta)
+bool KisAlgebra2D::fuzzyMatrixCompare(const PkTransform &t1, const PkTransform &t2, qreal delta)
 {
     return
             qAbs(t1.m11() - t2.m11()) < delta &&
@@ -34,11 +34,11 @@ KisAlgebra2D::DecomposedMatrix::DecomposedMatrix()
 {
 }
 
-KisAlgebra2D::DecomposedMatrix::DecomposedMatrix(const QTransform &t0)
+KisAlgebra2D::DecomposedMatrix::DecomposedMatrix(const PkTransform &t0)
 {
-    QTransform t(t0);
+    PkTransform t(t0);
 
-    QTransform projMatrix;
+    PkTransform projMatrix;
 
     if (t.m33() == 0.0 || t0.determinant() == 0.0) {
         qWarning() << "Cannot decompose matrix!" << t;
@@ -46,8 +46,8 @@ KisAlgebra2D::DecomposedMatrix::DecomposedMatrix(const QTransform &t0)
         return;
     }
 
-    if (t.type() == QTransform::TxProject) {
-        QTransform affineTransform(
+    if (t.type() == PkTransform::TxProject) {
+        PkTransform affineTransform(
             t.m11(), t.m12(), 0,
             t.m21(), t.m22(), 0,
             t.m31(), t.m32(), 1
@@ -124,11 +124,11 @@ KisAlgebra2D::DecomposedMatrix::DecomposedMatrix(const QTransform &t0)
         rows[1][1] = (-sn * m12 + cs * m22);
     }
 
-    QTransform leftOver(
+    PkTransform leftOver(
                 rows[0].x(), rows[0].y(), rows[0].z(),
             rows[1].x(), rows[1].y(), rows[1].z(),
             rows[2].x(), rows[2].y(), rows[2].z());
 
-    KIS_SAFE_ASSERT_RECOVER_NOOP(fuzzyMatrixCompare(leftOver, QTransform(), 1e-4));
-    KIS_ASSERT(fuzzyMatrixCompare(leftOver, QTransform(), 1e-4));
+    KIS_SAFE_ASSERT_RECOVER_NOOP(fuzzyMatrixCompare(leftOver, PkTransform(), 1e-4));
+    KIS_ASSERT(fuzzyMatrixCompare(leftOver, PkTransform(), 1e-4));
 }

@@ -10,13 +10,13 @@
 #include "kritaflake_export.h"
 
 #include <KoFlakeCoordinateSystem.h>
-#include <QList>
+#include <PkList.h>
 #include <QSharedDataPointer>
 
 class KoShape;
-class QRectF;
-class QTransform;
-class QPointF;
+class PkRectF;
+class PkTransform;
+class PkPointF;
 class QPainter;
 
 
@@ -38,15 +38,15 @@ public:
     KoFlake::CoordinateSystem contentCoordinates() const;
     void setContentCoordinates(KoFlake::CoordinateSystem value);
 
-    QRectF maskRect() const;
-    void setMaskRect(const QRectF &value);
+    PkRectF maskRect() const;
+    void setMaskRect(const PkRectF &value);
 
-    QList<KoShape *> shapes() const;
-    void setShapes(const QList<KoShape *> &value);
+    PkList<KoShape *> shapes() const;
+    void setShapes(const PkList<KoShape *> &value);
 
     bool isEmpty() const;
 
-    void setExtraShapeOffset(const QPointF &value);
+    void setExtraShapeOffset(const PkPointF &value);
 
     void drawMask(QPainter *painter, KoShape *shape);
 

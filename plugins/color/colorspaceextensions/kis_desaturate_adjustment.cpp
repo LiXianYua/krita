@@ -48,7 +48,7 @@ public:
             switch(m_type) {
             case 0: // lightness
             {
-                gray = (qMax(qMax(r, g), b) + qMin(qMin(r, g), b)) / 2;
+                gray = (pkMax(pkMax(r, g), b) + pkMin(pkMin(r, g), b)) / 2;
                 break;
             }
             case 1: // luminosity BT 709
@@ -71,12 +71,12 @@ public:
             }
             case 4: // min
             {
-                gray = qMin(qMin(r, g), b);
+                gray = pkMin(pkMin(r, g), b);
                 break;
             }
             case 5: // min
             {
-                gray = qMax(qMax(r, g), b);
+                gray = pkMax(pkMax(r, g), b);
                 break;
             }
 

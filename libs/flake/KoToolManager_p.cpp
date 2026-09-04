@@ -36,23 +36,23 @@ void KoToolAction::trigger()
 }
 
 
-QString KoToolAction::iconText() const
+PkString KoToolAction::iconText() const
 {
     // There is no specific iconText in KoToolFactoryBase
     return d->toolFactory->toolTip();
 }
 
-QString KoToolAction::toolTip() const
+PkString KoToolAction::toolTip() const
 {
     return d->toolFactory->toolTip();
 }
 
-QString KoToolAction::id() const
+PkString KoToolAction::id() const
 {
     return d->toolFactory->id();
 }
 
-QString KoToolAction::iconName() const
+PkString KoToolAction::iconName() const
 {
     return d->toolFactory->iconName();
 }
@@ -63,7 +63,7 @@ QKeySequence KoToolAction::shortcut() const
 }
 
 
-QString KoToolAction::section() const
+PkString KoToolAction::section() const
 {
     return d->toolFactory->section();
 }
@@ -73,7 +73,7 @@ int KoToolAction::priority() const
     return d->toolFactory->priority();
 }
 
-QString KoToolAction::visibilityCode() const
+PkString KoToolAction::visibilityCode() const
 {
     return d->toolFactory->activationShapeId();
 }

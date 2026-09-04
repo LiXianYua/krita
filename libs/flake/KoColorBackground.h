@@ -13,7 +13,7 @@
 #include <QSharedDataPointer>
 
 class KoColorBackgroundPrivate;
-class QColor;
+class PkColor;
 class QBrush;
 
 /// A simple solid color shape background
@@ -23,7 +23,7 @@ public:
     KoColorBackground();
 
     /// Creates background from given color and style
-    explicit KoColorBackground(const QColor &color, Qt::BrushStyle style = Qt::SolidPattern);
+    explicit KoColorBackground(const PkColor &color, Qt::BrushStyle style = Qt::SolidPattern);
 
     ~KoColorBackground() override;
 
@@ -34,10 +34,10 @@ public:
     bool compareTo(const KoShapeBackground *other) const override;
 
     /// Returns the background color
-    QColor color() const;
+    PkColor color() const;
 
     /// Sets the background color
-    void setColor(const QColor &color);
+    void setColor(const PkColor &color);
 
     /// Returns the background style
     Qt::BrushStyle style() const;
@@ -45,7 +45,7 @@ public:
     QBrush brush() const;
 
     // reimplemented from KoShapeBackground
-    void paint(QPainter &painter, const QPainterPath &fillPath) const override;
+    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
 
 private:
     class Private;

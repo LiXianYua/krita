@@ -34,17 +34,17 @@ void KisSharpnessOption::apply(const KisPaintInformation &info, const PkPointF &
     if (isChecked() && m_alignOutlinePixels && strengthValue() > 0.0) {
         qreal processedSharpness = computeSizeLikeValue(info);
 
-        if (qFuzzyCompare(processedSharpness, 1.0)) {
+        if (pkQtFuzzyCompare(processedSharpness, 1.0)) {
             // pen
             xFraction = 0.0;
             yFraction = 0.0;
-            x = qRound(pt.x());
-            y = qRound(pt.y());
+            x = pkRound(pt.x());
+            y = pkRound(pt.y());
         }
         else {
             // something in between
-            qint32 xi = qRound(pt.x());
-            qint32 yi = qRound(pt.y());
+            qint32 xi = pkRound(pt.x());
+            qint32 yi = pkRound(pt.y());
 
             qreal xf = processedSharpness * xi + (1.0 - processedSharpness) * pt.x();
             qreal yf = processedSharpness * yi + (1.0 - processedSharpness) * pt.y();

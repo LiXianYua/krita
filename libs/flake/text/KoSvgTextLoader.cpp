@@ -61,7 +61,7 @@ void KoSvgTextLoader::nextNode()
     d->currentNode = d->shape->d->textData.insert(KisForestDetail::siblingEnd(d->currentNode), KoSvgTextContentElement());
 }
 
-bool KoSvgTextLoader::loadSvg(const QDomElement &element, SvgLoadingContext &context, bool root)
+bool KoSvgTextLoader::loadSvg(const PkXmlElement &element, SvgLoadingContext &context, bool root)
 {
     if (KisForestDetail::isEnd(d->currentNode)) {
         nextNode();
@@ -69,7 +69,7 @@ bool KoSvgTextLoader::loadSvg(const QDomElement &element, SvgLoadingContext &con
     return d->currentNode->loadSvg(element, context, root);
 }
 
-bool KoSvgTextLoader::loadSvgText(const QDomText &text, SvgLoadingContext &context)
+bool KoSvgTextLoader::loadSvgText(const PkXmlText &text, SvgLoadingContext &context)
 {
     if (KisForestDetail::isEnd(d->currentNode)) {
         nextNode();
@@ -81,7 +81,7 @@ void KoSvgTextLoader::setStyleInfo(KoShape *s)
 {
     if (!KisForestDetail::isEnd(d->currentNode)) {
         // find closest parent stroke and fill so we can check for inheritance.
-        QSharedPointer<KoShapeBackground> parentBg;
+        PkSharedPointer<KoShapeBackground> parentBg;
         KoShapeStrokeModelSP parentStroke;
         for (auto it = KisForestDetail::hierarchyBegin(d->currentNode); it != KisForestDetail::hierarchyEnd(d->currentNode); it++) {
             if (it->properties.hasProperty(KoSvgTextProperties::FillId)) {
@@ -100,14 +100,14 @@ void KoSvgTextLoader::setStyleInfo(KoShape *s)
             if ((parentBg && !parentBg->compareTo(s->background().data()))
                     || (!parentBg && s->background())) {
                 d->currentNode->properties.setProperty(KoSvgTextProperties::FillId,
-                                                       QVariant::fromValue(KoSvgText::BackgroundProperty(s->background())));
+                                                       PkVariant::fromValue(KoSvgText::BackgroundProperty(s->background())));
             }
         }
         if (!s->inheritStroke()) {
             if ((parentStroke && (!parentStroke->compareFillTo(s->stroke().data()) || !parentStroke->compareStyleTo(s->stroke().data())))
                     || (!parentStroke && s->stroke())) {
                 d->currentNode->properties.setProperty(KoSvgTextProperties::StrokeId,
-                                                       QVariant::fromValue(KoSvgText::StrokeProperty(s->stroke())));
+                                                       PkVariant::fromValue(KoSvgText::StrokeProperty(s->stroke())));
             }
         }
         d->currentNode->properties.setProperty(KoSvgTextProperties::Opacity,
@@ -116,7 +116,7 @@ void KoSvgTextLoader::setStyleInfo(KoShape *s)
                                                s->isVisible());
         if (!s->inheritPaintOrder()) {
             d->currentNode->properties.setProperty(KoSvgTextProperties::PaintOrder,
-                                                   QVariant::fromValue(s->paintOrder()));
+                                                   PkVariant::fromValue(s->paintOrder()));
         }
     }
 }

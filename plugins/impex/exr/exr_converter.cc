@@ -230,12 +230,12 @@ static inline T alphaNoiseThreshold()
     return static_cast<T>(0.01); // 1%
 }
 
-static inline bool qFuzzyCompare(half p1, half p2)
+static inline bool pkQtFuzzyCompare(half p1, half p2)
 {
     return std::abs(p1 - p2) < float(HALF_EPSILON);
 }
 
-static inline bool qFuzzyIsNull(half h)
+static inline bool pkQtFuzzyIsNull(half h)
 {
     return std::abs(h) < float(HALF_EPSILON);
 }
@@ -254,18 +254,18 @@ struct RgbPixelWrapper
 
     inline bool checkMultipliedColorsConsistent() const {
         return !(std::abs(pixel.a) <= alphaEpsilon<T>() &&
-                 (!qFuzzyIsNull(pixel.r) ||
-                  !qFuzzyIsNull(pixel.g) ||
-                  !qFuzzyIsNull(pixel.b)));
+                 (!pkQtFuzzyIsNull(pixel.r) ||
+                  !pkQtFuzzyIsNull(pixel.g) ||
+                  !pkQtFuzzyIsNull(pixel.b)));
     }
 
     inline bool checkUnmultipliedColorsConsistent(const Rgba<T> &mult) const {
         const T alpha = std::abs(pixel.a);
 
         return alpha >= alphaNoiseThreshold<T>() ||
-                (qFuzzyCompare(T(pixel.r * alpha), mult.r) &&
-                 qFuzzyCompare(T(pixel.g * alpha), mult.g) &&
-                 qFuzzyCompare(T(pixel.b * alpha), mult.b));
+                (pkQtFuzzyCompare(T(pixel.r * alpha), mult.r) &&
+                 pkQtFuzzyCompare(T(pixel.g * alpha), mult.g) &&
+                 pkQtFuzzyCompare(T(pixel.b * alpha), mult.b));
     }
 
     inline void setUnmultiplied(const Rgba<T> &mult, T newAlpha) {
@@ -294,14 +294,14 @@ struct GrayPixelWrapper
 
     inline bool checkMultipliedColorsConsistent() const {
         return !(std::abs(pixel.alpha) <= alphaEpsilon<T>() &&
-                 !qFuzzyIsNull(pixel.gray));
+                 !pkQtFuzzyIsNull(pixel.gray));
     }
 
     inline bool checkUnmultipliedColorsConsistent(const pixel_type &mult) const {
         const T alpha = std::abs(pixel.alpha);
 
         return alpha >= alphaNoiseThreshold<T>() ||
-                qFuzzyCompare(T(pixel.gray * alpha), mult.gray);
+                pkQtFuzzyCompare(T(pixel.gray * alpha), mult.gray);
     }
 
     inline void setUnmultiplied(const pixel_type &mult, T newAlpha) {

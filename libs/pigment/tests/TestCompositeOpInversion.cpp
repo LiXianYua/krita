@@ -107,9 +107,9 @@ void TestCompositeOpInversion::test()
 
                         const int difference = dstPixel->red - dstPixel->green;
 
-                        error(qAbs(difference));
+                        error(pkAbs(difference));
 
-                        if (qAbs(difference) > 1) {
+                        if (pkAbs(difference) > 1) {
                             //qDebug() << difference << srcColor << "+" << origDstColor << "->" << dstColor;
                         }
                     }
@@ -774,7 +774,7 @@ void TestCompositeOpInversion::testU16ModesConsistent()
         const quint16 referenceColor = getColorValueU(refResultColorU);
         const quint16 resultColor = getColorValueU(resultColorU);
 
-        const int difference = qAbs(referenceColor - resultColor);
+        const int difference = pkAbs(referenceColor - resultColor);
         int maxDifference = 0;
 
         /**
@@ -900,7 +900,7 @@ void TestCompositeOpInversion::testF32vsU16ConsistencyInSDR()
                 checkInSdrRange(srcColorValueF);
 
             if (isInSdrRange &&
-                qAbs(resultColorValueF - resultColorValueU) > tolerance) {
+                pkAbs(resultColorValueF - resultColorValueU) > tolerance) {
 
                 /**
                  * HARD_MIX_PHOTOSHOP is not contiguous near the unit sum point,
@@ -1031,14 +1031,14 @@ void TestCompositeOpInversion::testF32vsU16ConsistencyInSDR()
                 // normal extension into HDR
                 bool isStraightUnitExtension =
                     Arithmetic::isUnitValueFuzzy<float>(resultColorValueU) &&
-                    qAbs(resultColorValueU - qMin(1.0f, resultColorValueF)) <= 0.001;
+                    pkAbs(resultColorValueU - pkMin(1.0f, resultColorValueF)) <= 0.001;
 
                 // clipped extension into HDR (when opacity < 1.0)
                 isStraightUnitExtension |=
                     resultColorValueU > minOpacity && resultColorValueF > 1.0;
 
                 if (Arithmetic::isZeroValueFuzzy<float>(resultColorValueU) &&
-                    qAbs(resultColorValueU - qMax(0.0f, resultColorValueF)) <= 0.001) {
+                    pkAbs(resultColorValueU - pkMax(0.0f, resultColorValueF)) <= 0.001) {
                     // noop, should be fine result
                 } else if (isStraightUnitExtension) {
                     // noop, should be fine result as well
@@ -1142,8 +1142,8 @@ void TestCompositeOpInversion::testPreservesSdrRangeImpl(bool useStrictRange)
                     }
                 }
 
-                // const float originalError = qAbs(transitionalValues.front() - resultColorValueU);
-                // const float finalError = qAbs(transitionalValues.back() - resultColorValueU);
+                // const float originalError = pkAbs(transitionalValues.front() - resultColorValueU);
+                // const float finalError = pkAbs(transitionalValues.back() - resultColorValueU);
 
                 bool skipConvergencyCheck = false;
 
@@ -1164,7 +1164,7 @@ void TestCompositeOpInversion::testPreservesSdrRangeImpl(bool useStrictRange)
                     ((resultConvergedToAPoint ||
                       // finalError < originalError ||
                       skipConvergencyCheck) &&
-                     qAbs(transitionalValues.back() - transitionalValues.front())
+                     pkAbs(transitionalValues.back() - transitionalValues.front())
                          < 64 * std::numeric_limits<float>::epsilon())) {
 
                            // noop, everything is fine
@@ -1452,7 +1452,7 @@ void TestCompositeOpInversion::testF16Modes()
 
         float tolerance = 4.0f * std::numeric_limits<half>::epsilon();
 
-        if (qAbs(resultColorValueF32 - resultColorValueF16) > tolerance) {
+        if (pkAbs(resultColorValueF32 - resultColorValueF16) > tolerance) {
 
             qDebug() << "--- resulting value in SDR range generates negative result! ---";
             qDebug() << ppVar(itF16.opacity());
@@ -1636,10 +1636,10 @@ void TestCompositeOpInversion::generateSampleSheetsLong()
         };
 
     auto makeRgba64F = [] (qreal r, qreal g, qreal b, qreal a) {
-        return makeRgba64(qRound(r * 0xffffu),
-                       qRound(g * 0xffffu),
-                       qRound(b * 0xffffu),
-                       qRound(a * 0xffffu));
+        return makeRgba64(pkRound(r * 0xffffu),
+                       pkRound(g * 0xffffu),
+                       pkRound(b * 0xffffu),
+                       pkRound(a * 0xffffu));
     };
 
     auto r2w = [&] (qreal i) { return makeRgba64F(1.0, i,   i,   1.0);};

@@ -36,7 +36,7 @@ PkPointF KisScatterOption::apply(const KisPaintInformation& info, qreal width, q
     }
 
     // just use the most significant dimension for calculations
-    qreal diameter = qMax(width, height);
+    qreal diameter = pkMax(width, height);
     qreal sensorValue = computeSizeLikeValue(info);
 
     qreal jitter = (2.0 * info.randomSource()->generateNormalized() - 1.0) * diameter * sensorValue;

@@ -67,7 +67,7 @@ Q_SIGNALS:
      * The signals for controlling the node model
      */
 
-    void sigBeginInsertDummy(KisNodeDummy *parent, int index, const QString &metaObjectType);
+    void sigBeginInsertDummy(KisNodeDummy *parent, int index, const PkString &metaObjectType);
     void sigEndInsertDummy(KisNodeDummy *dummy);
 
     void sigBeginRemoveDummy(KisNodeDummy *dummy);

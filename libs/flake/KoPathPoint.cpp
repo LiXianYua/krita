@@ -11,14 +11,14 @@
 
 #include <FlakeDebug.h>
 #include <QPainter>
-#include <QPointF>
+#include <PkPoint.h>
 #include <KisHandlePainterHelper.h>
 
 #include <math.h>
 
 #include <qnumeric.h> // for qIsNaN
-static bool qIsNaNPoint(const QPointF &p) {
-    return qIsNaN(p.x()) || qIsNaN(p.y());
+static bool qIsNaNPoint(const PkPointF &p) {
+    return pkIsNaN(p.x()) || pkIsNaN(p.y());
 }
 
 class Q_DECL_HIDDEN KoPathPoint::Private
@@ -28,9 +28,9 @@ public:
             : shape(0), properties(Normal)
             , activeControlPoint1(false), activeControlPoint2(false) {}
     KoPathShape * shape;
-    QPointF point;
-    QPointF controlPoint1;
-    QPointF controlPoint2;
+    PkPointF point;
+    PkPointF controlPoint1;
+    PkPointF controlPoint2;
     PointProperties properties;
     bool activeControlPoint1;
     bool activeControlPoint2;
@@ -59,7 +59,7 @@ KoPathPoint::KoPathPoint()
 {
 }
 
-KoPathPoint::KoPathPoint(KoPathShape * path, const QPointF &point, PointProperties properties)
+KoPathPoint::KoPathPoint(KoPathShape * path, const PkPointF &point, PointProperties properties)
         : d(new Private())
 {
     d->shape = path;
@@ -107,14 +107,14 @@ bool KoPathPoint::operator == (const KoPathPoint &rhs) const
     return true;
 }
 
-void KoPathPoint::setPoint(const QPointF &point)
+void KoPathPoint::setPoint(const PkPointF &point)
 {
     d->point = point;
     if (d->shape)
         d->shape->notifyChanged();
 }
 
-void KoPathPoint::setControlPoint1(const QPointF &point)
+void KoPathPoint::setControlPoint1(const PkPointF &point)
 {
     if (qIsNaNPoint(point)) return;
 
@@ -124,7 +124,7 @@ void KoPathPoint::setControlPoint1(const QPointF &point)
         d->shape->notifyChanged();
 }
 
-void KoPathPoint::setControlPoint2(const QPointF &point)
+void KoPathPoint::setControlPoint2(const PkPointF &point)
 {
     if (qIsNaNPoint(point)) return;
 
@@ -239,7 +239,7 @@ bool KoPathPoint::activeControlPoint2() const
     return d->activeControlPoint2;
 }
 
-void KoPathPoint::map(const QTransform &matrix)
+void KoPathPoint::map(const PkTransform &matrix)
 {
     d->point = matrix.map(d->point);
     d->controlPoint1 = matrix.map(d->controlPoint1);
@@ -292,16 +292,16 @@ void KoPathPoint::setParent(KoPathShape* parent)
     d->shape = parent;
 }
 
-QRectF KoPathPoint::boundingRect(bool active) const
+PkRectF KoPathPoint::boundingRect(bool active) const
 {
-    QRectF rect(d->point, QSize(1, 1));
+    PkRectF rect(d->point, PkSize(1, 1));
     if (!active && activeControlPoint1()) {
-        QRectF r1(d->point, QSize(1, 1));
+        PkRectF r1(d->point, PkSize(1, 1));
         r1.setBottomRight(d->controlPoint1);
         rect = rect.united(r1);
     }
     if (!active && activeControlPoint2()) {
-        QRectF r2(d->point, QSize(1, 1));
+        PkRectF r2(d->point, PkSize(1, 1));
         r2.setBottomRight(d->controlPoint2);
         rect = rect.united(r2);
     }
@@ -326,7 +326,7 @@ void KoPathPoint::reverse()
 
 bool KoPathPoint::isSmooth(KoPathPoint * prev, KoPathPoint * next) const
 {
-    QPointF t1, t2;
+    PkPointF t1, t2;
 
     if (activeControlPoint1()) {
         t1 = point() - controlPoint1();
@@ -371,17 +371,17 @@ KoPathPoint::PointProperties KoPathPoint::properties() const
     return d->properties;
 }
 
-QPointF KoPathPoint::point() const
+PkPointF KoPathPoint::point() const
 {
     return d->point;
 }
 
-QPointF KoPathPoint::controlPoint1() const
+PkPointF KoPathPoint::controlPoint1() const
 {
     return d->controlPoint1;
 }
 
-QPointF KoPathPoint::controlPoint2() const
+PkPointF KoPathPoint::controlPoint2() const
 {
     return d->controlPoint2;
 }

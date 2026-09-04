@@ -62,7 +62,7 @@ PkRect KisConstrainedRect::rect() const {
 }
 
 qreal KisConstrainedRect::ratio() const {
-    return qAbs(m_ratio);
+    return pkAbs(m_ratio);
 }
 
 void KisConstrainedRect::moveHandle(HandleType handle, const PkPoint &offset, const PkRect &oldRect)
@@ -152,7 +152,7 @@ void KisConstrainedRect::moveHandle(HandleType handle, const PkPoint &offset, co
                        offset.y() * ySizeCoeff * centeringSizeCoeff);
 
         PkSize tempSize = baseSizeCoeff * oldSize + sizeDiff;
-        bool widthPreferable = qAbs(tempSize.width()) > qAbs(tempSize.height() * m_ratio);
+        bool widthPreferable = pkAbs(tempSize.width()) > pkAbs(tempSize.height() * m_ratio);
 
         if (ratioLocked()) {
             if ((widthPreferable && xSizeCoeff != 0) || ySizeCoeff == 0) {
@@ -164,11 +164,11 @@ void KisConstrainedRect::moveHandle(HandleType handle, const PkPoint &offset, co
             }
 
             // see https://bugs.kde.org/show_bug.cgi?id=432036
-            if (!m_canGrow && qAbs(newSize.width()) > m_cropRect.width()) {
+            if (!m_canGrow && pkAbs(newSize.width()) > m_cropRect.width()) {
                 newSize.setWidth(m_cropRect.width());
                 newSize.setHeight(heightFromWidthUnsignedRatio(newSize.width(), m_ratio, newSize.height()));
             }
-            if (!m_canGrow && qAbs(newSize.height()) > m_cropRect.height()) {
+            if (!m_canGrow && pkAbs(newSize.height()) > m_cropRect.height()) {
                 newSize.setHeight(m_cropRect.height());
                 newSize.setWidth(widthFromHeightUnsignedRatio(newSize.height(), m_ratio, newSize.width()));
             }
@@ -321,8 +321,8 @@ void KisConstrainedRect::setRatio(qreal value) {
 
     if (!widthLocked() && !heightLocked()) {
         int area = oldSize.width() * oldSize.height();
-        newSize.setWidth(qRound(std::sqrt(area * m_ratio)));
-        newSize.setHeight(qRound(newSize.width() / m_ratio));
+        newSize.setWidth(pkRound(std::sqrt(area * m_ratio)));
+        newSize.setHeight(pkRound(newSize.width() / m_ratio));
     } else if (widthLocked()) {
         newSize.setHeight(newSize.width() / m_ratio);
     } else if (heightLocked()) {
@@ -374,7 +374,7 @@ void KisConstrainedRect::assignNewSize(const PkSize &newSize)
         m_rect.setSize(newSize);
     } else {
         PkSize sizeDiff = newSize - m_rect.size();
-        m_rect.translate(-qRound(sizeDiff.width() / 2.0), -qRound(sizeDiff.height() / 2.0));
+        m_rect.translate(-pkRound(sizeDiff.width() / 2.0), -pkRound(sizeDiff.height() / 2.0));
         m_rect.setSize(newSize);
     }
 
@@ -387,18 +387,18 @@ void KisConstrainedRect::assignNewSize(const PkSize &newSize)
 
 void KisConstrainedRect::storeRatioSafe(const PkSize &newSize)
 {
-    m_ratio = qAbs(qreal(newSize.width()) / newSize.height());
+    m_ratio = pkAbs(qreal(newSize.width()) / newSize.height());
 }
 
 int KisConstrainedRect::widthFromHeightUnsignedRatio(int height, qreal ratio, int oldWidth) const
 {
-    int newWidth = qRound(height * ratio);
+    int newWidth = pkRound(height * ratio);
     return KisAlgebra2D::copysign(newWidth, oldWidth);
 }
 
 int KisConstrainedRect::heightFromWidthUnsignedRatio(int width, qreal ratio, int oldHeight) const
 {
-    int newHeight = qRound(width / ratio);
+    int newHeight = pkRound(width / ratio);
     return KisAlgebra2D::copysign(newHeight, oldHeight);
 }
 

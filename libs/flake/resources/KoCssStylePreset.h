@@ -15,7 +15,7 @@
 #include <pk/port/PkStream.h>
 
 class KoCssStylePreset;
-typedef QSharedPointer<KoCssStylePreset> KoCssStylePresetSP;
+typedef PkSharedPointer<KoCssStylePreset> KoCssStylePresetSP;
 
 /**
  * @brief The KoCssStylePreset class
@@ -27,7 +27,7 @@ typedef QSharedPointer<KoCssStylePreset> KoCssStylePresetSP;
 class KRITAFLAKE_EXPORT KoCssStylePreset : public KoResource
 {
 public:
-    KoCssStylePreset(const QString &filename);
+    KoCssStylePreset(const PkString &filename);
     KoCssStylePreset(const KoCssStylePreset &rhs);
     KoCssStylePreset &operator=(const KoCssStylePreset &rhs) = delete;
     ~KoCssStylePreset();
@@ -39,38 +39,38 @@ public:
     void setProperties(const KoSvgTextProperties &properties);
 
     /// The description associated with this style.
-    QString description() const;
-    void setDescription(const QString &desc);
+    PkString description() const;
+    void setDescription(const PkString &desc);
 
     /// Set the style type, type is either "paragraph" or "character".
-    QString styleType() const;
-    void setStyleType(const QString &type);
+    PkString styleType() const;
+    void setStyleType(const PkString &type);
 
     /// The sample text that is being styled by this preset.
-    QString sampleText() const;
+    PkString sampleText() const;
 
     /// set the sample. Call updateThumbnail to update the sample.
-    void setSampleText(const QString &text);
+    void setSampleText(const PkString &text);
 
     /// The text displayed before the sample. Only relevant when in Character mode.
-    QString beforeText() const;
+    PkString beforeText() const;
 
     /// set the before text. Call updateThumbnail to update the sample.
-    void setBeforeText(const QString &text);
+    void setBeforeText(const PkString &text);
 
     /// The text displayed after the sample, only relevant when in character mode.
-    QString afterText() const;
+    PkString afterText() const;
 
     /// set the after text. Call updateThumbnail to update the sample.
-    void setAfterText(const QString &text);
+    void setAfterText(const PkString &text);
 
     /// Returns the sample svg metadata. Use updateThumbnail to update it.
-    QString sampleSvg() const;
+    PkString sampleSvg() const;
 
     /// Returns the size of the shape which the paragraph is set as.
-    QSizeF paragraphSampleSize() const;
+    PkSizeF paragraphSampleSize() const;
     /// Set the size of the shape the paragraph is set in.
-    void setParagraphSampleSize(const QSizeF size);
+    void setParagraphSampleSize(const PkSizeF size);
 
     /**
      * The resolution that this style is tied to.
@@ -100,7 +100,7 @@ public:
      * @return the primary font family for this style, will return empty if
      * the style does not require a font family.
      */
-    QString primaryFontFamily() const;
+    PkString primaryFontFamily() const;
 
     void updateAlignSample();
 
@@ -114,7 +114,7 @@ public:
     std::pair<PkString, PkString> resourceType() const override;
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOCSSSTYLEPRESET_H

@@ -9,11 +9,11 @@
 //   模式 B（无 Qt）：
 //     g++ ... -I pk/signal -I pk/concurrent
 //     static_assert 确认：compat/QObject 照常定义 QObject→PkObject、
-//     namespace Qt::DirectConnection == PkConnectionType::Direct、QOverload 用 pk 的；
+//     namespace Pk::DirectConnection == PkConnectionType::Direct、QOverload 用 pk 的；
 //     main 里构造 PkObject。
 //
 // 两个模式都要 exit 0。能编过本身就是断言的一半——重复定义 QOverload/QMetaObject/
-// namespace Qt 是硬错误，宏冲突会把函数名当场改写坏。另一半（取值与真 Qt 对齐）由
+// namespace Pk 是硬错误，宏冲突会把函数名当场改写坏。另一半（取值与真 Qt 对齐）由
 // pk/signal 与 pk/log 的单测各自钉住；这里只证明「让位之后两种模式都成立」。
 
 #if defined(QT_CORE_LIB)
@@ -37,21 +37,21 @@ static_assert(!std::is_same<QObject, PkObject>::value,
 // pk 类型必须仍可用（KisSynchronizedConnection 等消费方依赖）。
 static_assert(std::is_same<PkMetaObject::Connection, PkConnection>::value,
               "PkMetaObject::Connection == PkConnection");
-// namespace Qt 必须是真 Qt 的（真 Qt ConnectionType 是普通 enum，pk 是 enum class，
-// 必不相等——钉住让位没把 compat 的 namespace Qt 漏出来）。
-static_assert(!std::is_same<Qt::ConnectionType, PkConnectionType>::value,
-              "namespace Qt must be real Qt's under QT_CORE_LIB");
+// namespace Pk 必须是真 Qt 的（真 Qt ConnectionType 是普通 enum，pk 是 enum class，
+// 必不相等——钉住让位没把 compat 的 namespace Pk 漏出来）。
+static_assert(!std::is_same<Pk::ConnectionType, PkConnectionType>::value,
+              "namespace Pk must be real Qt's under QT_CORE_LIB");
 // QOverload 必须是真 Qt 的（对 &C::sig 重载消歧）。
 struct ProbeS { void sig(int) {} void sig(const QString&) {} };
 using ProbePtr = void (ProbeS::*)(int);
 constexpr ProbePtr probeP = QOverload<int>::of(&ProbeS::sig);
 static_assert(probeP != nullptr, "QOverload from real Qt must work");
 // R-36：PkConnectionType 位值与真 Qt 逐一对拍（qnamespace.h:1337-1343）。
-static_assert(int(PkConnectionType::Auto) == int(::Qt::AutoConnection), "Auto bit match");
-static_assert(int(PkConnectionType::Direct) == int(::Qt::DirectConnection), "Direct bit match");
-static_assert(int(PkConnectionType::Queued) == int(::Qt::QueuedConnection), "Queued bit match");
-static_assert(int(PkConnectionType::BlockingQueued) == int(::Qt::BlockingQueuedConnection), "BlockingQueued bit match");
-static_assert(int(PkConnectionType::Unique) == int(::Qt::UniqueConnection), "Unique bit match (0x80)");
+static_assert(int(PkConnectionType::Auto) == int(::Pk::AutoConnection), "Auto bit match");
+static_assert(int(PkConnectionType::Direct) == int(::Pk::DirectConnection), "Direct bit match");
+static_assert(int(PkConnectionType::Queued) == int(::Pk::QueuedConnection), "Queued bit match");
+static_assert(int(PkConnectionType::BlockingQueued) == int(::Pk::BlockingQueuedConnection), "BlockingQueued bit match");
+static_assert(int(PkConnectionType::Unique) == int(::Pk::UniqueConnection), "Unique bit match (0x80)");
 
 int main() {
     // QObject 构造与 connect 不需要 display（不用 QApplication），无头环境直接可跑。
@@ -67,16 +67,16 @@ static_assert(std::is_same<QObject, PkObject>::value,
               "QObject must alias PkObject in no-Qt mode");
 static_assert(std::is_same<PkMetaObject::Connection, PkConnection>::value,
               "PkMetaObject::Connection == PkConnection");
-static_assert(Qt::DirectConnection == PkConnectionType::Direct,
-              "namespace Qt ConnectionType works");
+static_assert(Pk::DirectConnection == PkConnectionType::Direct,
+              "namespace Pk ConnectionType works");
 // R-36：pk/namespace（除 ConnectionType 外全枚举）+ compat/QObject（ConnectionType
 // 别名）同 TU 共存——PkNamespace.h 不再定义 ConnectionType，无重定义。
-static_assert(std::is_same<Qt::ConnectionType, PkConnectionType>::value,
-              "Qt::ConnectionType is the pk/signal alias in no-Qt mode");
-static_assert(int(Qt::UniqueConnection) == 0x80,
-              "Qt::UniqueConnection bit value is 0x80 via the alias");
-// pk/namespace 的枚举仍在同一 namespace Qt 里并集可见。
-static_assert(int(Qt::KeyboardModifier::ShiftModifier) == 0x02000000,
+static_assert(std::is_same<Pk::ConnectionType, PkConnectionType>::value,
+              "Pk::ConnectionType is the pk/signal alias in no-Qt mode");
+static_assert(int(Pk::UniqueConnection) == 0x80,
+              "Pk::UniqueConnection bit value is 0x80 via the alias");
+// pk/namespace 的枚举仍在同一 namespace Pk 里并集可见。
+static_assert(int(Pk::KeyboardModifier::ShiftModifier) == 0x02000000,
               "PkNamespace.h enums coexist with compat/QObject");
 struct ProbeS { void sig(int) {} };
 using ProbePtr = void (ProbeS::*)(int);
@@ -86,7 +86,7 @@ static_assert(probeP != nullptr, "QOverload works in no-Qt mode");
 int main() {
     // 不构造 PkObject（构造在 PkObject.cpp，需链 pk 库；共存是编译期性质，
     // 上面 static_assert 已钉住 compat 定义）。运行时只校验 compat 的
-    // namespace Qt 常量确实可用。
-    return (Qt::DirectConnection == PkConnectionType::Direct) ? 0 : 1;
+    // namespace Pk 常量确实可用。
+    return (Pk::DirectConnection == PkConnectionType::Direct) ? 0 : 1;
 }
 #endif

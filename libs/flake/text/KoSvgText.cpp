@@ -22,6 +22,8 @@
 #include <SvgUtil.h>
 
 #include <KisStaticInitializer.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkDataStream.h>
 
 KIS_DECLARE_STATIC_INITIALIZER {
     qRegisterMetaType<KoSvgText::CssLengthPercentage>("KoSvgText::CssLengthPercentage");
@@ -106,35 +108,35 @@ KIS_DECLARE_STATIC_INITIALIZER {
 
 namespace KoSvgText {
 
-AutoValue parseAutoValueX(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword)
+AutoValue parseAutoValueX(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword)
 {
     return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(value));
 }
 
-AutoValue parseAutoValueY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword)
+AutoValue parseAutoValueY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword)
 {
     return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(value));
 }
 
-AutoValue parseAutoValueXY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword)
+AutoValue parseAutoValueXY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword)
 {
     return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitXY(context.currentGC(), context.resolvedProperties(), toPkString(value));
 }
 
-AutoValue parseAutoValueAngular(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword)
+AutoValue parseAutoValueAngular(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword)
 {
     return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitAngular(context.currentGC(), toPkString(value));
 }
 
-WritingMode parseWritingMode(const QString &value) {
+WritingMode parseWritingMode(const PkString &value) {
     return (value == "tb-rl" || value == "tb" || value == "vertical-rl") ? VerticalRL : (value == "vertical-lr") ? VerticalLR : HorizontalTB;
 }
 
-Direction parseDirection(const QString &value) {
+Direction parseDirection(const PkString &value) {
     return value == "rtl" ? DirectionRightToLeft : DirectionLeftToRight;
 }
 
-UnicodeBidi parseUnicodeBidi(const QString &value)
+UnicodeBidi parseUnicodeBidi(const PkString &value)
 {
     return value == "embed"           ? BidiEmbed
         : value == "bidi-override"    ? BidiOverride
@@ -144,7 +146,7 @@ UnicodeBidi parseUnicodeBidi(const QString &value)
                                       : BidiNormal;
 }
 
-TextOrientation parseTextOrientation(const QString &value)
+TextOrientation parseTextOrientation(const PkString &value)
 {
     return value == "upright" ? OrientationUpright : value == "sideways" ? OrientationSideWays : OrientationMixed;
 }
@@ -161,14 +163,14 @@ TextOrientation parseTextOrientationFromGlyphOrientation(AutoValue value)
     }
 }
 
-TextAnchor parseTextAnchor(const QString &value)
+TextAnchor parseTextAnchor(const PkString &value)
 {
     return value == "middle" ? AnchorMiddle :
            value == "end" ? AnchorEnd :
            AnchorStart;
 }
 
-Baseline parseBaseline(const QString &value)
+Baseline parseBaseline(const PkString &value)
 {
     return value == "use-script"                                                          ? BaselineUseScript
         : value == "no-change"                                                            ? BaselineNoChange
@@ -185,7 +187,7 @@ Baseline parseBaseline(const QString &value)
                                                                                           : BaselineAuto;
 }
 
-BaselineShiftMode parseBaselineShiftMode(const QString &value)
+BaselineShiftMode parseBaselineShiftMode(const PkString &value)
 {
     return value == "baseline" ? ShiftNone :
            value == "sub" ? ShiftSub :
@@ -195,17 +197,17 @@ BaselineShiftMode parseBaselineShiftMode(const QString &value)
            ShiftLengthPercentage;
 }
 
-LengthAdjust parseLengthAdjust(const QString &value)
+LengthAdjust parseLengthAdjust(const PkString &value)
 {
     return value == "spacingAndGlyphs" ? LengthAdjustSpacingAndGlyphs : LengthAdjustSpacing;
 }
 
-QString writeAutoValue(const AutoValue &value, const QString &autoKeyword)
+PkString writeAutoValue(const AutoValue &value, const PkString &autoKeyword)
 {
     return value.isAuto ? autoKeyword : toQString(KisDomUtils::toString(value.customValue));
 }
 
-QString writeWritingMode(WritingMode value, bool svg1_1)
+PkString writeWritingMode(WritingMode value, bool svg1_1)
 {
     if (svg1_1) {
         return value == VerticalRL ? "tb" : "lr";
@@ -214,12 +216,12 @@ QString writeWritingMode(WritingMode value, bool svg1_1)
     }
 }
 
-QString writeDirection(Direction value)
+PkString writeDirection(Direction value)
 {
     return value == DirectionRightToLeft ? "rtl" : "ltr";
 }
 
-QString writeUnicodeBidi(UnicodeBidi value)
+PkString writeUnicodeBidi(UnicodeBidi value)
 {
     return value == BidiEmbed          ? "embed"
         : value == BidiOverride        ? "bidi-override"
@@ -229,17 +231,17 @@ QString writeUnicodeBidi(UnicodeBidi value)
                                        : "normal";
 }
 
-QString writeTextOrientation(TextOrientation orientation)
+PkString writeTextOrientation(TextOrientation orientation)
 {
     return orientation == OrientationUpright ? "upright" : orientation == OrientationSideWays ? "sideways" : "mixed";
 }
 
-QString writeTextAnchor(TextAnchor value)
+PkString writeTextAnchor(TextAnchor value)
 {
     return value == AnchorEnd ? "end" : value == AnchorMiddle ? "middle" : "start";
 }
 
-QString writeDominantBaseline(Baseline value)
+PkString writeDominantBaseline(Baseline value)
 {
     return value == BaselineUseScript   ? "use-script"
         : value == BaselineNoChange     ? "no-change"
@@ -257,7 +259,7 @@ QString writeDominantBaseline(Baseline value)
         "auto";
 }
 
-QString writeAlignmentBaseline(Baseline value)
+PkString writeAlignmentBaseline(Baseline value)
 {
     return value == BaselineDominant    ? "baseline"
         : value == BaselineIdeographic  ? "ideographic"
@@ -273,7 +275,7 @@ QString writeAlignmentBaseline(Baseline value)
         "auto";
 }
 
-QString writeBaselineShiftMode(BaselineShiftMode value, CssLengthPercentage shift)
+PkString writeBaselineShiftMode(BaselineShiftMode value, CssLengthPercentage shift)
 {
     return value == ShiftNone ? "baseline" :
            value == ShiftSub ? "sub" :
@@ -283,14 +285,14 @@ QString writeBaselineShiftMode(BaselineShiftMode value, CssLengthPercentage shif
            writeLengthPercentage(shift);
 }
 
-QString writeLengthAdjust(LengthAdjust value)
+PkString writeLengthAdjust(LengthAdjust value)
 {
     return value == LengthAdjustSpacingAndGlyphs ? "spacingAndGlyphs" : "spacing";
 }
 
 QDebug operator<<(QDebug dbg, const KoSvgText::AutoValue &value)
 {
-    dbg.nospace() << (value.isAuto ? "auto" : QString::number(value.customValue));
+    dbg.nospace() << (value.isAuto ? "auto" : PkString::number(value.customValue));
     return dbg.space();
 }
 
@@ -345,9 +347,9 @@ bool CharTransformation::hasRelativeOffset() const
     return dxPos || dyPos;
 }
 
-QPointF CharTransformation::absolutePos() const
+PkPointF CharTransformation::absolutePos() const
 {
-    QPointF result;
+    PkPointF result;
 
     if (xPos) {
         result.rx() = *xPos;
@@ -360,9 +362,9 @@ QPointF CharTransformation::absolutePos() const
     return result;
 }
 
-QPointF CharTransformation::relativeOffset() const
+PkPointF CharTransformation::relativeOffset() const
 {
-    QPointF result;
+    PkPointF result;
 
     if (dxPos) {
         result.rx() = *dxPos;
@@ -489,37 +491,37 @@ QDebug operator<<(QDebug dbg, const StrokeProperty &prop)
     return dbg.space();
 }
 
-TextPathMethod parseTextPathMethod(const QString &value)
+TextPathMethod parseTextPathMethod(const PkString &value)
 {
     return value == "stretch" ? TextPathStretch : TextPathAlign;
 }
 
-TextPathSpacing parseTextPathSpacing(const QString &value)
+TextPathSpacing parseTextPathSpacing(const PkString &value)
 {
     return value == "auto" ? TextPathAuto : TextPathExact;
 }
 
-TextPathSide parseTextPathSide(const QString &value)
+TextPathSide parseTextPathSide(const PkString &value)
 {
     return value == "left" ? TextPathSideLeft : TextPathSideRight;
 }
 
-QString writeTextPathMethod(TextPathMethod value)
+PkString writeTextPathMethod(TextPathMethod value)
 {
     return value == TextPathAlign ? "align" : "stretch";
 }
 
-QString writeTextPathSpacing(TextPathSpacing value)
+PkString writeTextPathSpacing(TextPathSpacing value)
 {
     return value == TextPathAuto ? "auto" : "exact";
 }
 
-QString writeTextPathSide(TextPathSide value)
+PkString writeTextPathSide(TextPathSide value)
 {
     return value == TextPathSideLeft ? "left" : "right";
 }
 
-bool whiteSpaceValueToLongHands(const QString &value, TextSpaceCollapse &collapseMethod, TextWrap &wrapMethod, TextSpaceTrims &trimMethod)
+bool whiteSpaceValueToLongHands(const PkString &value, TextSpaceCollapse &collapseMethod, TextWrap &wrapMethod, TextSpaceTrims &trimMethod)
 {
     bool result = true;
     if (value == "pre") {
@@ -553,7 +555,7 @@ bool whiteSpaceValueToLongHands(const QString &value, TextSpaceCollapse &collaps
     return result;
 }
 
-bool xmlSpaceToLongHands(const QString &value, TextSpaceCollapse &collapseMethod)
+bool xmlSpaceToLongHands(const PkString &value, TextSpaceCollapse &collapseMethod)
 {
     bool result = true;
 
@@ -584,7 +586,7 @@ bool xmlSpaceToLongHands(const QString &value, TextSpaceCollapse &collapseMethod
     return result;
 }
 
-QString writeWhiteSpaceValue(TextSpaceCollapse collapseMethod, TextWrap wrapMethod, TextSpaceTrims trimMethod)
+PkString writeWhiteSpaceValue(TextSpaceCollapse collapseMethod, TextWrap wrapMethod, TextSpaceTrims trimMethod)
 {
     Q_UNUSED(trimMethod);
     if (wrapMethod != NoWrap) {
@@ -607,17 +609,17 @@ QString writeWhiteSpaceValue(TextSpaceCollapse collapseMethod, TextWrap wrapMeth
     }
 }
 
-QString writeXmlSpace(TextSpaceCollapse collapseMethod)
+PkString writeXmlSpace(TextSpaceCollapse collapseMethod)
 {
     return collapseMethod == PreserveSpaces ? "preserve" : "default";
 }
 
-WordBreak parseWordBreak(const QString &value)
+WordBreak parseWordBreak(const PkString &value)
 {
     return value == "keep-all" ? WordBreakKeepAll : value == "break-all" ? WordBreakBreakAll : WordBreakNormal;
 }
 
-LineBreak parseLineBreak(const QString &value)
+LineBreak parseLineBreak(const PkString &value)
 {
     return value == "loose"   ? LineBreakLoose
         : value == "normal"   ? LineBreakNormal
@@ -626,7 +628,7 @@ LineBreak parseLineBreak(const QString &value)
                               : LineBreakAuto;
 }
 
-TextAlign parseTextAlign(const QString &value)
+TextAlign parseTextAlign(const PkString &value)
 {
     return value == "end"         ? AlignEnd
         : value == "left"         ? AlignLeft
@@ -640,12 +642,12 @@ TextAlign parseTextAlign(const QString &value)
         AlignStart;
 }
 
-QString writeWordBreak(WordBreak value)
+PkString writeWordBreak(WordBreak value)
 {
     return value == WordBreakKeepAll ? "keep-all" : value == WordBreakBreakAll ? "break-all" : "normal";
 }
 
-QString writeLineBreak(LineBreak value)
+PkString writeLineBreak(LineBreak value)
 {
     return value == LineBreakLoose   ? "loose"
         : value == LineBreakNormal   ? "normal"
@@ -654,7 +656,7 @@ QString writeLineBreak(LineBreak value)
                                      : "auto";
 }
 
-QString writeTextAlign(TextAlign value)
+PkString writeTextAlign(TextAlign value)
 {
     return value == AlignEnd        ? "end"
         : value == AlignLeft        ? "left"
@@ -667,11 +669,11 @@ QString writeTextAlign(TextAlign value)
         "start";
 }
 
-TextTransformInfo parseTextTransform(const QString &value)
+TextTransformInfo parseTextTransform(const PkString &value)
 {
     TextTransformInfo textTransform;
-    const QStringList values = value.toLower().split(" ");
-    Q_FOREACH (const QString &param, values) {
+    const PkStringList values = value.toLower().split(" ");
+    Q_FOREACH (const PkString &param, values) {
         if (param == "capitalize") {
             textTransform.capitals = TextTransformCapitalize;
         } else if (param == "uppercase") {
@@ -693,9 +695,9 @@ TextTransformInfo parseTextTransform(const QString &value)
     return textTransform;
 }
 
-QString writeTextTransform(const TextTransformInfo textTransform)
+PkString writeTextTransform(const TextTransformInfo textTransform)
 {
-    QStringList values;
+    PkStringList values;
     if (textTransform.capitals == TextTransformNone && !textTransform.fullWidth && !textTransform.fullSizeKana) {
         values.append("none");
     } else {
@@ -716,11 +718,11 @@ QString writeTextTransform(const TextTransformInfo textTransform)
     return values.join(" ");
 }
 
-TextIndentInfo parseTextIndent(const QString &value, const SvgLoadingContext &context)
+TextIndentInfo parseTextIndent(const PkString &value, const SvgLoadingContext &context)
 {
-    const QStringList values = value.toLower().split(" ");
+    const PkStringList values = value.toLower().split(" ");
     TextIndentInfo textIndent;
-    Q_FOREACH (const QString &param, values) {
+    Q_FOREACH (const PkString &param, values) {
         if (param == "hanging") {
             textIndent.hanging = true;
         } else if (param == "each-line") {
@@ -734,9 +736,9 @@ TextIndentInfo parseTextIndent(const QString &value, const SvgLoadingContext &co
     return textIndent;
 }
 
-QString writeTextIndent(const TextIndentInfo textIndent)
+PkString writeTextIndent(const TextIndentInfo textIndent)
 {
-    QStringList values;
+    PkStringList values;
     values.append(writeLengthPercentage(textIndent.length));
     if (textIndent.hanging) {
         values.append("hanging");
@@ -747,7 +749,7 @@ QString writeTextIndent(const TextIndentInfo textIndent)
     return values.join(" ");
 }
 
-TabSizeInfo parseTabSize(const QString &value, const SvgLoadingContext &context)
+TabSizeInfo parseTabSize(const PkString &value, const SvgLoadingContext &context)
 {
     TabSizeInfo tabSizeInfo;
     qreal val = KisDomUtils::toDouble(toPkString(value), &tabSizeInfo.isNumber);
@@ -764,9 +766,9 @@ TabSizeInfo parseTabSize(const QString &value, const SvgLoadingContext &context)
     return tabSizeInfo;
 }
 
-QString writeTabSize(const TabSizeInfo tabSize)
+PkString writeTabSize(const TabSizeInfo tabSize)
 {
-    QString val = toQString(KisDomUtils::toString(tabSize.value));
+    PkString val = toQString(KisDomUtils::toString(tabSize.value));
     if (!tabSize.isNumber) {
 
         // Tabsize does not support percentage, so if we accidentally set it somewhere, convert to em.
@@ -778,7 +780,7 @@ QString writeTabSize(const TabSizeInfo tabSize)
     return val;
 }
 
-int parseCSSFontStretch(const QString &value, int currentStretch)
+int parseCSSFontStretch(const PkString &value, int currentStretch)
 {
     int newStretch = 100;
 
@@ -810,7 +812,7 @@ int parseCSSFontStretch(const QString &value, int currentStretch)
     return newStretch;
 }
 
-int parseCSSFontWeight(const QString &value, int currentWeight)
+int parseCSSFontWeight(const PkString &value, int currentWeight)
 {
     int weight = 400;
 
@@ -846,7 +848,7 @@ int parseCSSFontWeight(const QString &value, int currentWeight)
     return weight;
 }
 
-LineHeightInfo parseLineHeight(const QString &value, const SvgLoadingContext &context)
+LineHeightInfo parseLineHeight(const PkString &value, const SvgLoadingContext &context)
 {
     LineHeightInfo lineHeight;
     lineHeight.isNormal = value == "normal";
@@ -869,10 +871,10 @@ LineHeightInfo parseLineHeight(const QString &value, const SvgLoadingContext &co
     return lineHeight;
 }
 
-QString writeLineHeight(LineHeightInfo lineHeight)
+PkString writeLineHeight(LineHeightInfo lineHeight)
 {
-    if (lineHeight.isNormal) return QString("normal");
-    QString val = toQString(KisDomUtils::toString(lineHeight.value));
+    if (lineHeight.isNormal) return PkString("normal");
+    PkString val = toQString(KisDomUtils::toString(lineHeight.value));
     if (!lineHeight.isNumber) {
         val = writeLengthPercentage(lineHeight.length);
         if (lineHeight.length.unit == CssLengthPercentage::Absolute) {
@@ -924,9 +926,9 @@ QDebug operator<<(QDebug dbg, const CssLengthPercentage &value)
     return dbg.space();
 }
 
-QString writeLengthPercentage(const CssLengthPercentage &length, bool percentageAsEm)
+PkString writeLengthPercentage(const CssLengthPercentage &length, bool percentageAsEm)
 {
-    QString val;
+    PkString val;
     if (length.unit == CssLengthPercentage::Percentage && !percentageAsEm) {
         val = toQString(KisDomUtils::toString(length.value*100.0)) + "%";
     } else {
@@ -971,14 +973,14 @@ void CssLengthPercentage::convertToAbsolute(const KoSvgText::FontMetrics metrics
     unit = Absolute;
 }
 
-AutoLengthPercentage parseAutoLengthPercentageXY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword, QRectF bbox, bool percentageIsViewPort)
+AutoLengthPercentage parseAutoLengthPercentageXY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword, PkRectF bbox, bool percentageIsViewPort)
 {
     return value == autoKeyword ? AutoLengthPercentage()
                                 : percentageIsViewPort? AutoLengthPercentage(SvgUtil::parseUnitStruct(context.currentGC(), toPkString(value), true, true, toPkRectF(bbox)))
                                                       : AutoLengthPercentage(SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value)));
 }
 
-QString writeAutoLengthPercentage(const AutoLengthPercentage &value, const QString &autoKeyword, bool percentageToEm)
+PkString writeAutoLengthPercentage(const AutoLengthPercentage &value, const PkString &autoKeyword, bool percentageToEm)
 {
     return value.isAuto ? autoKeyword : writeLengthPercentage(value.length, percentageToEm);
 }
@@ -1000,10 +1002,10 @@ QDebug operator<<(QDebug dbg, const KoSvgText::FontFamilyAxis &axis)
     return dbg.space();
 }
 
-QDataStream &operator<<(QDataStream &out, const KoSvgText::FontFamilyAxis &axis) {
+PkDataStream &operator<<(PkDataStream &out, const KoSvgText::FontFamilyAxis &axis) {
 
-    QDomDocument doc;
-    QDomElement root = doc.createElement("axis");
+    PkXmlDocument doc;
+    PkXmlElement root = doc.createElement("axis");
     root.setAttribute("tagName", axis.tag);
     root.setAttribute("min", axis.min);
     root.setAttribute("max", axis.max);
@@ -1011,7 +1013,7 @@ QDataStream &operator<<(QDataStream &out, const KoSvgText::FontFamilyAxis &axis)
     root.setAttribute("hidden", axis.axisHidden? "true": "false");
     root.setAttribute("variable", axis.variableAxis? "true": "false");
     for(auto it = axis.localizedLabels.begin(); it != axis.localizedLabels.end(); it++) {
-        QDomElement name = doc.createElement("name");
+        PkXmlElement name = doc.createElement("name");
         name.setAttribute("lang", it.key().bcp47Name());
         name.setAttribute("value", it.value());
         root.appendChild(name);
@@ -1020,25 +1022,25 @@ QDataStream &operator<<(QDataStream &out, const KoSvgText::FontFamilyAxis &axis)
     out << doc.toString(0);
     return out;
 }
-QDataStream &operator>>(QDataStream &in, KoSvgText::FontFamilyAxis &axis) {
+PkDataStream &operator>>(PkDataStream &in, KoSvgText::FontFamilyAxis &axis) {
 
-    QString xml;
+    PkString xml;
     in >> xml;
 
-    QDomDocument doc;
+    PkXmlDocument doc;
     doc.setContent(xml);
-    QDomElement root = doc.childNodes().at(0).toElement();
+    PkXmlElement root = doc.childNodes().at(0).toElement();
     axis.tag = root.attribute("tagName");
     axis.min = root.attribute("min").toDouble();
     axis.max = root.attribute("max").toDouble();
     axis.defaultValue = root.attribute("default").toDouble();
     axis.axisHidden = root.attribute("hidden") == "true"? true: false;
     axis.variableAxis = root.attribute("variable") == "true"? true: false;
-    QDomNodeList names =  root.elementsByTagName("name");
+    PkXmlNodeList names =  root.elementsByTagName("name");
     for(int i = 0; i < names.size(); i++) {
-        QDomElement name = names.at(i).toElement();
-        QString lang = name.attribute("lang");
-        QString value = name.attribute("value");
+        PkXmlElement name = names.at(i).toElement();
+        PkString lang = name.attribute("lang");
+        PkString value = name.attribute("value");
         axis.localizedLabels.insert(QLocale(lang), value);
     }
 
@@ -1051,20 +1053,20 @@ QDebug operator<<(QDebug dbg, const KoSvgText::FontFamilyStyleInfo &style)
     return dbg.space();
 }
 
-QDataStream &operator<<(QDataStream &out, const KoSvgText::FontFamilyStyleInfo &style) {
+PkDataStream &operator<<(PkDataStream &out, const KoSvgText::FontFamilyStyleInfo &style) {
 
-    QDomDocument doc;
-    QDomElement root = doc.createElement("style");
+    PkXmlDocument doc;
+    PkXmlElement root = doc.createElement("style");
     root.setAttribute("italic", style.isItalic? "true": "false");
     root.setAttribute("oblique", style.isOblique? "true": "false");
     for(auto it = style.instanceCoords.begin(); it != style.instanceCoords.end(); it++) {
-        QDomElement coord = doc.createElement("coord");
+        PkXmlElement coord = doc.createElement("coord");
         coord.setAttribute("tag", it.key());
         coord.setAttribute("value", it.value());
         root.appendChild(coord);
     }
     for(auto it = style.localizedLabels.begin(); it != style.localizedLabels.end(); it++) {
-        QDomElement name = doc.createElement("name");
+        PkXmlElement name = doc.createElement("name");
         name.setAttribute("lang", it.key().bcp47Name());
         name.setAttribute("value", it.value());
         root.appendChild(name);
@@ -1073,26 +1075,26 @@ QDataStream &operator<<(QDataStream &out, const KoSvgText::FontFamilyStyleInfo &
     out << doc.toString(0);
     return out;
 }
-QDataStream &operator>>(QDataStream &in, KoSvgText::FontFamilyStyleInfo &style) {
-    QString xml;
+PkDataStream &operator>>(PkDataStream &in, KoSvgText::FontFamilyStyleInfo &style) {
+    PkString xml;
     in >> xml;
 
-    QDomDocument doc;
+    PkXmlDocument doc;
     doc.setContent(xml);
-    QDomElement root = doc.childNodes().at(0).toElement();
+    PkXmlElement root = doc.childNodes().at(0).toElement();
     style.isItalic = root.attribute("italic") == "true"? true: false;
     style.isOblique = root.attribute("oblique") == "true"? true: false;
-    QDomNodeList names =  root.elementsByTagName("name");
+    PkXmlNodeList names =  root.elementsByTagName("name");
     for(int i = 0; i < names.size(); i++) {
-        QDomElement name = names.at(i).toElement();
-        QString lang = name.attribute("lang");
-        QString value = name.attribute("value");
+        PkXmlElement name = names.at(i).toElement();
+        PkString lang = name.attribute("lang");
+        PkString value = name.attribute("value");
         style.localizedLabels.insert(QLocale(lang), value);
     }
-    QDomNodeList coords =  root.elementsByTagName("coord");
+    PkXmlNodeList coords =  root.elementsByTagName("coord");
     for(int i = 0; i < coords.size(); i++) {
-        QDomElement coord = coords.at(i).toElement();
-        QString tag = coord.attribute("tag");
+        PkXmlElement coord = coords.at(i).toElement();
+        PkString tag = coord.attribute("tag");
         double value = coord.attribute("value").toDouble();
         style.instanceCoords.insert(tag, value);
     }
@@ -1100,16 +1102,16 @@ QDataStream &operator>>(QDataStream &in, KoSvgText::FontFamilyStyleInfo &style) 
     return in;
 }
 
-CssFontStyleData parseFontStyle(const QString &value)
+CssFontStyleData parseFontStyle(const PkString &value)
 {
     CssFontStyleData slant;
-    QStringList params = value.split(" ");
+    PkStringList params = value.split(" ");
     if (!params.isEmpty()) {
-        QString style = params.first();
+        PkString style = params.first();
         slant.style = style == "italic"? QFont::StyleItalic: style == "oblique"? QFont::StyleOblique: QFont::StyleNormal;
     }
     if (params.size() > 1) {
-        QString angle = params.last();
+        PkString angle = params.last();
         if (angle.endsWith("deg")) {
             angle.chop(3);
             slant.slantValue.isAuto = false;
@@ -1119,18 +1121,18 @@ CssFontStyleData parseFontStyle(const QString &value)
     return slant;
 }
 
-QString writeFontStyle(CssFontStyleData value)
+PkString writeFontStyle(CssFontStyleData value)
 {
-    QString style =
+    PkString style =
         value.style == QFont::StyleItalic ? "italic" :
         value.style == QFont::StyleOblique ? "oblique" : "normal";
     if (value.style == QFont::StyleOblique && !value.slantValue.isAuto) {
-        style.append(QString(" ")+QString::number(value.slantValue.customValue)+QString("deg"));
+        style.append(PkString(" ")+PkString::number(value.slantValue.customValue)+PkString("deg"));
     }
     return style;
 }
 
-FontFeatureLigatures parseFontFeatureLigatures(const QString &value, FontFeatureLigatures features)
+FontFeatureLigatures parseFontFeatureLigatures(const PkString &value, FontFeatureLigatures features)
 {
     if (value == "common-ligatures") {
         features.commonLigatures = true;
@@ -1157,7 +1159,7 @@ FontFeatureLigatures parseFontFeatureLigatures(const QString &value, FontFeature
     return features;
 }
 
-QString writeFontFeatureLigatures(const FontFeatureLigatures &feature)
+PkString writeFontFeatureLigatures(const FontFeatureLigatures &feature)
 {
     if (feature.commonLigatures && !feature.discretionaryLigatures
             && !feature.historicalLigatures && feature.commonLigatures) {
@@ -1167,7 +1169,7 @@ QString writeFontFeatureLigatures(const FontFeatureLigatures &feature)
             && !feature.historicalLigatures && !feature.commonLigatures) {
         return "none";
     }
-    QStringList list;
+    PkStringList list;
     if (!feature.commonLigatures) {
         list << "no-common-ligatures";
     }
@@ -1189,7 +1191,7 @@ QDebug operator<<(QDebug dbg, const KoSvgText::FontFeatureLigatures &feature)
     return dbg.space();
 }
 
-FontFeatureNumeric parseFontFeatureNumeric(const QString &value, FontFeatureNumeric features)
+FontFeatureNumeric parseFontFeatureNumeric(const PkString &value, FontFeatureNumeric features)
 {
     if (value == "lining-nums") {
         features.style = NumericFigureStyleLining;
@@ -1213,12 +1215,12 @@ FontFeatureNumeric parseFontFeatureNumeric(const QString &value, FontFeatureNume
     return features;
 }
 
-QString writeFontFeatureNumeric(const FontFeatureNumeric &feature)
+PkString writeFontFeatureNumeric(const FontFeatureNumeric &feature)
 {
     if (feature == FontFeatureNumeric()) {
         return "normal";
     }
-    QStringList list;
+    PkStringList list;
 
     if (feature.style == NumericFigureStyleLining) {
         list << "lining-nums";
@@ -1255,7 +1257,7 @@ QDebug operator<<(QDebug dbg, const KoSvgText::FontFeatureNumeric &feature)
     return dbg.space();
 }
 
-FontFeatureEastAsian parseFontFeatureEastAsian(const QString &value, FontFeatureEastAsian features)
+FontFeatureEastAsian parseFontFeatureEastAsian(const PkString &value, FontFeatureEastAsian features)
 {
     if (value == "jis78") {
         features.variant = EastAsianJis78;
@@ -1281,12 +1283,12 @@ FontFeatureEastAsian parseFontFeatureEastAsian(const QString &value, FontFeature
     return features;
 }
 
-QString writeFontFeatureEastAsian(const FontFeatureEastAsian &feature)
+PkString writeFontFeatureEastAsian(const FontFeatureEastAsian &feature)
 {
     if (feature == FontFeatureEastAsian()) {
         return "normal";
     }
-    QStringList list;
+    PkStringList list;
 
     if (feature.variant == EastAsianJis78) {
         list << "jis78";
@@ -1321,18 +1323,18 @@ QDebug operator<<(QDebug dbg, const KoSvgText::FontFeatureEastAsian &feature)
     return dbg.space();
 }
 
-FontFeaturePosition parseFontFeaturePosition(const QString &value, FontFeaturePosition feature)
+FontFeaturePosition parseFontFeaturePosition(const PkString &value, FontFeaturePosition feature)
 {
     return value == "super"? PositionSuper : value == "sub"? PositionSub : value == "normal"? PositionNormal: feature;
 }
 
-QString writeFontFeaturePosition(const FontFeaturePosition &value)
+PkString writeFontFeaturePosition(const FontFeaturePosition &value)
 {
     return value == PositionSuper ? "super"
                                   : value == PositionSub? "sub" : "normal";
 }
 
-FontFeatureCaps parseFontFeatureCaps(const QString &value, FontFeatureCaps feature)
+FontFeatureCaps parseFontFeatureCaps(const PkString &value, FontFeatureCaps feature)
 {
     return value == "small-caps"          ? CapsSmall
         : value == "all-small-caps"        ? CapsAllSmall
@@ -1343,7 +1345,7 @@ FontFeatureCaps parseFontFeatureCaps(const QString &value, FontFeatureCaps featu
         : value == "normal"   ? CapsNormal: feature;
 }
 
-QString writeFontFeatureCaps(const FontFeatureCaps &value)
+PkString writeFontFeatureCaps(const FontFeatureCaps &value)
 {
     return value == CapsSmall          ? "small-caps"
         : value == CapsAllSmall        ? "all-small-caps"
@@ -1354,21 +1356,21 @@ QString writeFontFeatureCaps(const FontFeatureCaps &value)
                                      : "normal";
 }
 
-QStringList fontFeaturesPosition(const FontFeaturePosition &feature, const int start, const int end)
+PkStringList fontFeaturesPosition(const FontFeaturePosition &feature, const int start, const int end)
 {
-    const QString length = QString("[%1:%2]").arg(start).arg(end);
-    QString tag = feature == PositionSuper? "sups" : feature == PositionSub? "subs": QString();
+    const PkString length = PkString("[%1:%2]").arg(start).arg(end);
+    PkString tag = feature == PositionSuper? "sups" : feature == PositionSub? "subs": PkString();
     if (!tag.isEmpty()) {
         tag += length;
         tag += "=1";
     }
-    return tag.isEmpty()? QStringList(): QStringList(tag);
+    return tag.isEmpty()? PkStringList(): PkStringList(tag);
 }
 
-QStringList fontFeaturesCaps(const FontFeatureCaps &feature, const int start, const int end)
+PkStringList fontFeaturesCaps(const FontFeatureCaps &feature, const int start, const int end)
 {
-    QStringList list;
-    const QString length = QString("[%1:%2]").arg(start).arg(end);
+    PkStringList list;
+    const PkString length = PkString("[%1:%2]").arg(start).arg(end);
 
     switch (feature) {
     case CapsSmall:
@@ -1517,7 +1519,7 @@ int FontMetrics::valueForBaselineValue(Baseline baseline) const {
     return baselineVal;
 }
 
-void FontMetrics::setBaselineValueByTag(const QString &tag, int32_t value) {
+void FontMetrics::setBaselineValueByTag(const PkString &tag, int32_t value) {
     if (tag == "romn") {
         alphabeticBaseline = value;
     } else if (tag == "hang") {
@@ -1627,30 +1629,30 @@ QDebug operator<<(QDebug dbg, const FontMetrics &metrics)
     const double ftPixel = 1.0;
     dbg.nospace() << "FontMetrics(";
     dbg.nospace() << "Direction: " << (metrics.isVertical? "Top to bottom. ": "Left to right. ");
-    dbg.nospace() << "FontSize: " << QString::number(metrics.fontSize*ftPixel) << "px. ";
-    dbg.nospace() << "Number width: " << QString::number(metrics.zeroAdvance*ftPixel) << "px. ";
-    dbg.nospace() << "Space width: " << QString::number(metrics.spaceAdvance*ftPixel) << "px. ";
-    dbg.nospace() << "Ideographic width: " << QString::number(metrics.ideographicAdvance*ftPixel) << "px. ";
+    dbg.nospace() << "FontSize: " << PkString::number(metrics.fontSize*ftPixel) << "px. ";
+    dbg.nospace() << "Number width: " << PkString::number(metrics.zeroAdvance*ftPixel) << "px. ";
+    dbg.nospace() << "Space width: " << PkString::number(metrics.spaceAdvance*ftPixel) << "px. ";
+    dbg.nospace() << "Ideographic width: " << PkString::number(metrics.ideographicAdvance*ftPixel) << "px. ";
 
-    dbg.nospace() << "xHeight: " << QString::number(metrics.xHeight*ftPixel) << "px. ";
-    dbg.nospace() << "cap height: " << QString::number(metrics.capHeight*ftPixel) << "px. ";
-    dbg.nospace() << "Subscripts: " << QString::number(metrics.subScriptOffset.second*ftPixel) << "px. ";
-    dbg.nospace() << "Superscripts: " << QString::number(metrics.superScriptOffset.second*ftPixel) << "px. ";
-    dbg.nospace() << "Ascender: " << QString::number(metrics.ascender*ftPixel) << "px. ";
-    dbg.nospace() << "Descender: " << QString::number(metrics.descender*ftPixel) << "px. ";
-    dbg.nospace() << "Linegap: " << QString::number(metrics.lineGap*ftPixel) << "px. ";
+    dbg.nospace() << "xHeight: " << PkString::number(metrics.xHeight*ftPixel) << "px. ";
+    dbg.nospace() << "cap height: " << PkString::number(metrics.capHeight*ftPixel) << "px. ";
+    dbg.nospace() << "Subscripts: " << PkString::number(metrics.subScriptOffset.second*ftPixel) << "px. ";
+    dbg.nospace() << "Superscripts: " << PkString::number(metrics.superScriptOffset.second*ftPixel) << "px. ";
+    dbg.nospace() << "Ascender: " << PkString::number(metrics.ascender*ftPixel) << "px. ";
+    dbg.nospace() << "Descender: " << PkString::number(metrics.descender*ftPixel) << "px. ";
+    dbg.nospace() << "Linegap: " << PkString::number(metrics.lineGap*ftPixel) << "px. ";
 
-    dbg.nospace() << "Alphabetic: " << QString::number(metrics.alphabeticBaseline*ftPixel) << "px. ";
-    dbg.nospace() << "Middle: " << QString::number((metrics.xHeight/2)*ftPixel) << "px. ";
-    dbg.nospace() << "Mathematical: " << QString::number(metrics.mathematicalBaseline*ftPixel) << "px. ";
+    dbg.nospace() << "Alphabetic: " << PkString::number(metrics.alphabeticBaseline*ftPixel) << "px. ";
+    dbg.nospace() << "Middle: " << PkString::number((metrics.xHeight/2)*ftPixel) << "px. ";
+    dbg.nospace() << "Mathematical: " << PkString::number(metrics.mathematicalBaseline*ftPixel) << "px. ";
 
-    dbg.nospace() << "Ideo Over: " << QString::number(metrics.ideographicOverBaseline*ftPixel) << "px. ";
-    dbg.nospace() << "Central: " << QString::number(metrics.ideographicCenterBaseline*ftPixel) << "px. ";
-    dbg.nospace() << "Ideo Under: " << QString::number(metrics.ideographicUnderBaseline*ftPixel) << "px. ";
+    dbg.nospace() << "Ideo Over: " << PkString::number(metrics.ideographicOverBaseline*ftPixel) << "px. ";
+    dbg.nospace() << "Central: " << PkString::number(metrics.ideographicCenterBaseline*ftPixel) << "px. ";
+    dbg.nospace() << "Ideo Under: " << PkString::number(metrics.ideographicUnderBaseline*ftPixel) << "px. ";
 
-    dbg.nospace() << "Ideo Face Over: " << QString::number(metrics.ideographicFaceOverBaseline*ftPixel) << "px. ";
-    dbg.nospace() << "Ideo Face Under: " << QString::number(metrics.ideographicFaceUnderBaseline*ftPixel) << "px. ";
-    dbg.nospace() << "Hanging: " << QString::number(metrics.hangingBaseline*ftPixel) << "px. ";
+    dbg.nospace() << "Ideo Face Over: " << PkString::number(metrics.ideographicFaceOverBaseline*ftPixel) << "px. ";
+    dbg.nospace() << "Ideo Face Under: " << PkString::number(metrics.ideographicFaceUnderBaseline*ftPixel) << "px. ";
+    dbg.nospace() << "Hanging: " << PkString::number(metrics.hangingBaseline*ftPixel) << "px. ";
     dbg.nospace() << ")";
     return dbg.space();
 }
@@ -1661,7 +1663,7 @@ QDebug operator<<(QDebug dbg, const KoSvgText::TextUnderlinePosition &value)
     return dbg.space();
 }
 
-TextRendering parseTextRendering(const QString &value)
+TextRendering parseTextRendering(const PkString &value)
 {
     if (value == "optimizeSpeed") {
         return RenderingOptimizeSpeed;
@@ -1673,7 +1675,7 @@ TextRendering parseTextRendering(const QString &value)
     return RenderingAuto;
 }
 
-QString writeTextRendering(TextRendering value)
+PkString writeTextRendering(TextRendering value)
 {
     if (value == RenderingOptimizeSpeed) {
         return "optimizeSpeed";
@@ -1690,22 +1692,22 @@ qreal ResolutionHandler::freeTypePixelToPointFactor(const bool x) const {
     return (1.0/freeTypePixel) * pixelToPointFactor(x);
 }
 
-QTransform ResolutionHandler::freeTypeToPixelTransform() const {
-    return QTransform::fromScale(1/freeTypePixel, -1/freeTypePixel);
+PkTransform ResolutionHandler::freeTypeToPixelTransform() const {
+    return PkTransform::fromScale(1/freeTypePixel, -1/freeTypePixel);
 }
 
-QTransform ResolutionHandler::freeTypeToPointTransform() const
+PkTransform ResolutionHandler::freeTypeToPointTransform() const
 {
     return freeTypeToPixelTransform()*pixelToPoint();
 }
 
-QTransform ResolutionHandler::pixelToPoint() const {
-    return QTransform::fromScale(pointInInch / xRes, pointInInch / yRes);
+PkTransform ResolutionHandler::pixelToPoint() const {
+    return PkTransform::fromScale(pointInInch / xRes, pointInInch / yRes);
 }
 
-QPointF ResolutionHandler::adjust(const QPointF point) const {
+PkPointF ResolutionHandler::adjust(const PkPointF point) const {
     if (!roundToPixelHorizontal && !roundToPixelVertical) return point;
-    QPointF pix = pointToPixel().map(point);
+    PkPointF pix = pointToPixel().map(point);
     if (roundToPixelHorizontal) {
         pix.setX(qRound(pix.x()));
     }
@@ -1715,10 +1717,10 @@ QPointF ResolutionHandler::adjust(const QPointF point) const {
     return pixelToPoint().map(pix);
 }
 
-QPointF ResolutionHandler::adjustFloor(const QPointF point) const
+PkPointF ResolutionHandler::adjustFloor(const PkPointF point) const
 {
     if (!roundToPixelHorizontal && !roundToPixelVertical) return point;
-    QPointF pix = pointToPixel().map(point);
+    PkPointF pix = pointToPixel().map(point);
     if (roundToPixelHorizontal) {
         pix.setX(floor(pix.x()));
     }
@@ -1728,10 +1730,10 @@ QPointF ResolutionHandler::adjustFloor(const QPointF point) const
     return pixelToPoint().map(pix);
 }
 
-QPointF ResolutionHandler::adjustCeil(const QPointF point) const
+PkPointF ResolutionHandler::adjustCeil(const PkPointF point) const
 {
     if (!roundToPixelHorizontal && !roundToPixelVertical) return point;
-    QPointF pix = pointToPixel().map(point);
+    PkPointF pix = pointToPixel().map(point);
     if (roundToPixelHorizontal) {
         pix.setX(ceil(pix.x()));
     }
@@ -1741,22 +1743,22 @@ QPointF ResolutionHandler::adjustCeil(const QPointF point) const
     return pixelToPoint().map(pix);
 }
 
-QPointF ResolutionHandler::adjustWithOffset(const QPointF point, const QPointF offset) const
+PkPointF ResolutionHandler::adjustWithOffset(const PkPointF point, const PkPointF offset) const
 {
     if (!roundToPixelHorizontal && !roundToPixelVertical) return point;
     return adjust(point+offset)-offset;
 }
 
-QRectF ResolutionHandler::adjust(const QRectF rect) const {
-    return QRectF(adjust(rect.topLeft()), adjust(rect.bottomRight()));
+PkRectF ResolutionHandler::adjust(const PkRectF rect) const {
+    return PkRectF(adjust(rect.topLeft()), adjust(rect.bottomRight()));
 }
 
 qreal ResolutionHandler::pointToPixelFactor(const bool x) const {
     return x? xRes/pointInInch: yRes/pointInInch;
 }
 
-QTransform ResolutionHandler::pointToPixel() const {
-    return QTransform::fromScale(xRes/pointInInch, yRes/pointInInch);
+PkTransform ResolutionHandler::pointToPixel() const {
+    return PkTransform::fromScale(xRes/pointInInch, yRes/pointInInch);
 }
 
 qreal ResolutionHandler::pixelToPointFactor(const bool x) const {

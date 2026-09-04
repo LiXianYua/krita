@@ -48,7 +48,7 @@ struct CallbackVerifier {
     }
 
     void setOpacity(double opacity) {
-        QVERIFY(qFuzzyCompare(opacity, 75));
+        QVERIFY(pkQtFuzzyCompare(opacity, 75));
         m_numCallsHappened++;
     }
 

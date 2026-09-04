@@ -10,6 +10,7 @@
 
 #include <PkAuxTypes.h>
 #include <PkHash.h>
+#include <PkByteArrayHash.h>
 #include <PkList.h>
 #include <PkReadWriteLock.h>
 #include <PkString.h>

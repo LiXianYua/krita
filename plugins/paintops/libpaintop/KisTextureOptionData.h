@@ -49,10 +49,10 @@ struct  PAINTOP_EXPORT KisTextureOptionData : boost::equality_comparable<KisText
     inline friend bool operator==(const KisTextureOptionData &lhs, const KisTextureOptionData &rhs) {
         return lhs.isEnabled == rhs.isEnabled &&
                 lhs.textureData == rhs.textureData &&
-                qFuzzyCompare(lhs.scale, rhs.scale) &&
-                qFuzzyCompare(lhs.brightness, rhs.brightness) &&
-                qFuzzyCompare(lhs.contrast, rhs.contrast) &&
-                qFuzzyCompare(lhs.neutralPoint, rhs.neutralPoint) &&
+                pkQtFuzzyCompare(lhs.scale, rhs.scale) &&
+                pkQtFuzzyCompare(lhs.brightness, rhs.brightness) &&
+                pkQtFuzzyCompare(lhs.contrast, rhs.contrast) &&
+                pkQtFuzzyCompare(lhs.neutralPoint, rhs.neutralPoint) &&
                 lhs.offsetX == rhs.offsetX &&
                 lhs.offsetY == rhs.offsetY &&
                 lhs.maximumOffsetX == rhs.maximumOffsetX &&

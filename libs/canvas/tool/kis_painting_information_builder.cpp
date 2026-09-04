@@ -153,7 +153,7 @@ KisPaintInformation KisPaintingInformationBuilder::createPaintingInformation(KoP
                            event->tangentialPressure(),
                            perspective,
                            timeElapsed,
-                           qMin(1.0, speed / qreal(m_maxAllowedSpeedValue)));
+                           pkMin(1.0, speed / qreal(m_maxAllowedSpeedValue)));
 
     pi.setCanvasRotation(canvasRotation());
     pi.setCanvasMirroredH(canvasMirroredX());
@@ -184,7 +184,7 @@ KisPaintInformation KisPaintingInformationBuilder::hover(const QPointF &imagePoi
                                                            event->rotation(),
                                                            event->tangentialPressure(),
                                                            perspective,
-                                                           qMin(1.0, speed / qreal(m_maxAllowedSpeedValue)),
+                                                           pkMin(1.0, speed / qreal(m_maxAllowedSpeedValue)),
                                                            canvasRotation(),
                                                            canvasMirroredX(),
                                                            canvasMirroredY(),

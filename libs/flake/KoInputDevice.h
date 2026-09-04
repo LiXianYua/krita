@@ -243,7 +243,7 @@ KRITAFLAKE_EXPORT QDebug operator<<(QDebug debug, const KoInputDevice &device);
 
 inline uint qHash(const KoInputDevice &key)
 {
-    return qHash(QString(":%1:%2:%3:%4")
+    return qHash(PkString(":%1:%2:%3:%4")
                      .arg(int(key.device()))
                      .arg(int(key.pointer()))
                      .arg(int(key.uniqueTabletId()))

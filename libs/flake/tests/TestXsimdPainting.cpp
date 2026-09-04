@@ -15,33 +15,33 @@
 
 void TestXsimdPainting::testKoClipMaskPainting_data()
 {
-    QTest::addColumn<QColor>("colorSource");
-    QTest::addColumn<QColor>("colorMask");
-    QTest::addColumn<QColor>("colorFinal");
+    QTest::addColumn<PkColor>("colorSource");
+    QTest::addColumn<PkColor>("colorMask");
+    QTest::addColumn<PkColor>("colorFinal");
 
-    QTest::addRow("visibleWhite") << QColor(255, 255, 255, 255) << QColor(255, 255, 255, 255)<< QColor(255, 255, 255, 255);
-    QTest::addRow("completelyMasked") << QColor(255, 255, 255, 255) << QColor(0, 0, 0, 255) << QColor(0, 0, 0, 0);
-    QTest::addRow("greyMask") << QColor(255, 255, 255, 255) << QColor(128, 128, 128, 255) << QColor(255, 255, 255, 128);
-    QTest::addRow("semiTransparent") << QColor(255, 255, 255, 255) << QColor(255, 255, 255, 128) << QColor(255, 255, 255, 128);
-    QTest::addRow("semiCyan") << QColor(255, 255, 255, 255) << QColor(128, 255, 255, 128) << QColor(255, 255, 255, 114);
-    QTest::addRow("semiMagenta") << QColor(255, 255, 255, 255) << QColor(255, 128, 255, 128) << QColor(255, 255, 255, 82);
-    QTest::addRow("semiYellow") << QColor(255, 255, 255, 255) << QColor(255, 255, 128, 128) << QColor(255, 255, 255, 123);
-    QTest::addRow("color1") << QColor(255, 0, 0, 255) << QColor(64, 128, 255, 128) << QColor(255, 0, 0, 62);
-    QTest::addRow("color2") << QColor(0, 255, 0, 255) << QColor(255, 128, 64, 128) << QColor(0, 255, 0, 75);
-    QTest::addRow("color3") << QColor(0, 0, 255, 255) << QColor(128, 64, 255, 128) << QColor(0, 0, 255, 46);
+    QTest::addRow("visibleWhite") << PkColor(255, 255, 255, 255) << PkColor(255, 255, 255, 255)<< PkColor(255, 255, 255, 255);
+    QTest::addRow("completelyMasked") << PkColor(255, 255, 255, 255) << PkColor(0, 0, 0, 255) << PkColor(0, 0, 0, 0);
+    QTest::addRow("greyMask") << PkColor(255, 255, 255, 255) << PkColor(128, 128, 128, 255) << PkColor(255, 255, 255, 128);
+    QTest::addRow("semiTransparent") << PkColor(255, 255, 255, 255) << PkColor(255, 255, 255, 128) << PkColor(255, 255, 255, 128);
+    QTest::addRow("semiCyan") << PkColor(255, 255, 255, 255) << PkColor(128, 255, 255, 128) << PkColor(255, 255, 255, 114);
+    QTest::addRow("semiMagenta") << PkColor(255, 255, 255, 255) << PkColor(255, 128, 255, 128) << PkColor(255, 255, 255, 82);
+    QTest::addRow("semiYellow") << PkColor(255, 255, 255, 255) << PkColor(255, 255, 128, 128) << PkColor(255, 255, 255, 123);
+    QTest::addRow("color1") << PkColor(255, 0, 0, 255) << PkColor(64, 128, 255, 128) << PkColor(255, 0, 0, 62);
+    QTest::addRow("color2") << PkColor(0, 255, 0, 255) << PkColor(255, 128, 64, 128) << PkColor(0, 255, 0, 75);
+    QTest::addRow("color3") << PkColor(0, 0, 255, 255) << PkColor(128, 64, 255, 128) << PkColor(0, 0, 255, 46);
 }
 
 void TestXsimdPainting::testKoClipMaskPainting()
 {
-    QFETCH(QColor, colorSource);
-    QFETCH(QColor, colorMask);
-    QFETCH(QColor, colorFinal);
+    QFETCH(PkColor, colorSource);
+    QFETCH(PkColor, colorMask);
+    QFETCH(PkColor, colorFinal);
 
-    const QRect imgRect(0, 0, 5, 3);
+    const PkRect imgRect(0, 0, 5, 3);
 
-    QImage compareImg = QImage(imgRect.size(), QImage::Format_ARGB32);
+    PkImage compareImg = PkImage(imgRect.size(), PkImage::Format_ARGB32);
     compareImg.fill(colorFinal);
-    QImage img = QImage(imgRect.size(), QImage::Format_ARGB32);
+    PkImage img = PkImage(imgRect.size(), PkImage::Format_ARGB32);
     QPainter p(&img);
     p.save();
     p.setCompositionMode(QPainter::CompositionMode_Source);
@@ -54,9 +54,9 @@ void TestXsimdPainting::testKoClipMaskPainting()
 
     clip.renderOnGlobalPainter();
 
-    QPoint errpoint;
+    PkPoint errpoint;
     if (!TestUtil::compareQImages(errpoint, img, compareImg)) {
-        QFAIL(QString("XSimd painting test failed, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+        QFAIL(PkString("XSimd painting test failed, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
     }
 }
 

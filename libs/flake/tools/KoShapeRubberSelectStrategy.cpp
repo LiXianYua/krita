@@ -15,15 +15,17 @@
 #include "KoShapeManager.h"
 #include "KoSelection.h"
 #include "KoCanvasBase.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkColor.h>
 
-KoShapeRubberSelectStrategy::KoShapeRubberSelectStrategy(KoToolBase *tool, const QPointF &clicked, bool useSnapToGrid)
+KoShapeRubberSelectStrategy::KoShapeRubberSelectStrategy(KoToolBase *tool, const PkPointF &clicked, bool useSnapToGrid)
     : KoInteractionStrategy(*(new KoShapeRubberSelectStrategyPrivate(tool)))
 {
     Q_D(KoShapeRubberSelectStrategy);
     d->snapGuide->enableSnapStrategies(KoSnapGuide::GridSnapping);
     d->snapGuide->enableSnapping(useSnapToGrid);
 
-    d->selectRect = QRectF(d->snapGuide->snap(clicked, QFlags<Qt::KeyboardModifier>()), QSizeF(0, 0));
+    d->selectRect = PkRectF(d->snapGuide->snap(clicked, QFlags<Qt::KeyboardModifier>()), PkSizeF(0, 0));
 }
 
 void KoShapeRubberSelectStrategy::paint(QPainter &painter, const KoViewConverter &converter)
@@ -31,15 +33,15 @@ void KoShapeRubberSelectStrategy::paint(QPainter &painter, const KoViewConverter
     Q_D(KoShapeRubberSelectStrategy);
     painter.setRenderHint(QPainter::Antialiasing, false);
 
-    const QColor crossingColor(80,130,8);
-    const QColor coveringColor(8,60,167);
+    const PkColor crossingColor(80,130,8);
+    const PkColor coveringColor(8,60,167);
 
-    QColor selectColor(
+    PkColor selectColor(
         currentMode() == CrossingSelection ?
         crossingColor : coveringColor);
 
     selectColor.setAlphaF(0.8);
-    QPen select(selectColor, decorationThickness());
+    PkPen select(selectColor, decorationThickness());
     select.setCosmetic(true);
     painter.setPen(select);
 
@@ -47,25 +49,25 @@ void KoShapeRubberSelectStrategy::paint(QPainter &painter, const KoViewConverter
     const QBrush fillBrush(selectColor);
     painter.setBrush(fillBrush);
 
-    QRectF paintRect = converter.documentToView(d->selectedRect());
+    PkRectF paintRect = converter.documentToView(d->selectedRect());
     paintRect = paintRect.normalized();
 
     painter.drawRect(paintRect);
 }
 
-void KoShapeRubberSelectStrategy::handleMouseMove(const QPointF &p, Qt::KeyboardModifiers modifiers)
+void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Qt::KeyboardModifiers modifiers)
 {
     Q_D(KoShapeRubberSelectStrategy);
-    QPointF point = d->snapGuide->snap(p, modifiers);
+    PkPointF point = d->snapGuide->snap(p, modifiers);
     if (modifiers & Qt::ControlModifier) {
-        const QRectF oldDirtyRect = d->selectedRect();
+        const PkRectF oldDirtyRect = d->selectedRect();
         d->selectRect.moveTopLeft(d->selectRect.topLeft() - (d->lastPos - point));
         d->lastPos = point;
         d->tool->canvas()->updateCanvas(oldDirtyRect | d->selectedRect());
         return;
     }
     d->lastPos = point;
-    QPointF old = d->selectRect.bottomRight();
+    PkPointF old = d->selectRect.bottomRight();
     d->selectRect.setBottomRight(point);
     /*
         +---------------|--+
@@ -77,19 +79,19 @@ void KoShapeRubberSelectStrategy::handleMouseMove(const QPointF &p, Qt::Keyboard
         +------------------+
                             `- point
     */
-    QPointF x1 = old;
+    PkPointF x1 = old;
     x1.setY(d->selectRect.topLeft().y());
     qreal h1 = point.y() - x1.y();
     qreal h2 = old.y() - x1.y();
-    QRectF A(x1, QSizeF(point.x() - x1.x(), point.y() < d->selectRect.top() ? qMin(h1, h2) : qMax(h1, h2)));
+    PkRectF A(x1, PkSizeF(point.x() - x1.x(), point.y() < d->selectRect.top() ? qMin(h1, h2) : qMax(h1, h2)));
     A = A.normalized();
     d->tool->canvas()->updateCanvas(A);
 
-    QPointF x2 = old;
+    PkPointF x2 = old;
     x2.setX(d->selectRect.topLeft().x());
     qreal w1 = point.x() - x2.x();
     qreal w2 = old.x() - x2.x();
-    QRectF B(x2, QSizeF(point.x() < d->selectRect.left() ? qMin(w1, w2) : qMax(w1, w2), point.y() - x2.y()));
+    PkRectF B(x2, PkSizeF(point.x() < d->selectRect.left() ? qMin(w1, w2) : qMax(w1, w2), point.y() - x2.y()));
     B = B.normalized();
     d->tool->canvas()->updateCanvas(B);
 }
@@ -105,7 +107,7 @@ KUndo2Command *KoShapeRubberSelectStrategy::createCommand()
     return 0;
 }
 
-QRectF KoShapeRubberSelectStrategy::selectedRectangle() const {
+PkRectF KoShapeRubberSelectStrategy::selectedRectangle() const {
     Q_D(const KoShapeRubberSelectStrategy);
     return d->selectedRect();
 }

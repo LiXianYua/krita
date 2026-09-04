@@ -24,7 +24,7 @@ void KisStoreLimitsTest::testLimits()
     int hardLimitThreshold = emergencyThreshold - (emergencyThreshold / 8);
     int hardLimit = hardLimitThreshold - (hardLimitThreshold / 8);
 
-    int softLimitThreshold = qBound(0, MiB_TO_METRIC(config.tilesSoftLimit()), hardLimitThreshold);
+    int softLimitThreshold = pkBound(0, MiB_TO_METRIC(config.tilesSoftLimit()), hardLimitThreshold);
     int softLimit = softLimitThreshold - softLimitThreshold / 8;
 
     KisStoreLimits limits;

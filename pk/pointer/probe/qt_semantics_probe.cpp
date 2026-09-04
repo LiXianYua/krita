@@ -340,7 +340,7 @@ int main()
         QHash<QSharedPointer<Base>, int> h;
         h.insert(a, 42);
         LINE("qt   QHash<QSharedPointer,int> value=%d size=%d", h.value(a), h.size());
-        LINE("qt   qHash(a)==qHash(copy): %d", (int)(qHash(a) == qHash(QSharedPointer<Base>(a))));
+        LINE("qt   pkHash(a)==pkHash(copy): %d", (int)(pkHash(a) == pkHash(QSharedPointer<Base>(a))));
     }
 
     LINE("== P14 QScopedArrayPointer ==");

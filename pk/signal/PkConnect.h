@@ -6,7 +6,7 @@
 #include <utility>
 #include "PkSignalTraits.h"
 
-// Qt::ConnectionType 的替代（final whole-branch review I-2 更正：此前这段
+// Pk::ConnectionType 的替代（final whole-branch review I-2 更正：此前这段
 // 注释说 Auto/Unique 一律同步立即执行，与 activateSignal 实际行为相反，
 // 已按真实行为改写）。真实行为：
 // - Direct：永远同步立即执行。
@@ -21,7 +21,7 @@
 // Auto=0 Direct=1 Queued=2 BlockingQueued=3 Unique=0x80（Unique 是 flag 位，
 // 不是序号 4）。R-36 修正：此前 Unique 隐式 =4，与 Qt 位值不一致；pk/signal
 // 内部只做 `==` 比较（PkObject.h:181/296/302/326），改位值无行为影响，但
-// 让 `int(Qt::UniqueConnection)`（经 compat 别名）对齐真 Qt。
+// 让 `int(Pk::UniqueConnection)`（经 compat 别名）对齐真 Qt。
 enum class PkConnectionType { Auto, Direct, Queued, BlockingQueued, Unique = 0x80 };
 
 // QOverload<Args...>::of(ptr) —— 信号/槽重载消歧。Qt 里同名信号有多组参数时，

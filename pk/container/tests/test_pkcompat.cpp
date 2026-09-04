@@ -106,7 +106,7 @@ static_assert(!std::is_same<QStringList, QListString>::value,
 static_assert(std::is_base_of<QVector<int>, QStack<int>>::value, "QStack : QVector");
 static_assert(std::is_base_of<QList<int>, QQueue<int>>::value, "QQueue : QList");
 
-// 带析构计数器的类型，供 qDeleteAll 用
+// 带析构计数器的类型，供 pkDeleteAll 用
 struct PkCompatDeleteProbe
 {
     ~PkCompatDeleteProbe() { ++s_destroyed; }
@@ -220,7 +220,7 @@ void PkCompatTest::javaIteratorShimsResolve()
 void PkCompatTest::foreachAndDeleteAllArriveThroughContainerHeaders()
 {
     // 本 TU 从头到尾没有 `#include <QtGlobal>` —— Q_FOREACH / foreach /
-    // qDeleteAll 全是容器垫片经 PkContainerAlgo.h 传递进来的。真实调用点正是
+    // pkDeleteAll 全是容器垫片经 PkContainerAlgo.h 传递进来的。真实调用点正是
     // 这个样子（极少有人单独 include <QtGlobal>）。
     QVector<int> v;
     v << 1 << 2 << 3;
@@ -256,12 +256,12 @@ void PkCompatTest::foreachAndDeleteAllArriveThroughContainerHeaders()
     }
     PK_COMPARE(mapSum, 30);
 
-    // qDeleteAll
+    // pkDeleteAll
     PkCompatDeleteProbe::s_destroyed = 0;
     QList<PkCompatDeleteProbe *> owned;
     owned.append(new PkCompatDeleteProbe);
     owned.append(new PkCompatDeleteProbe);
-    qDeleteAll(owned);
+    pkDeleteAll(owned);
     PK_COMPARE(PkCompatDeleteProbe::s_destroyed, 2);
     owned.clear();
 }
@@ -311,7 +311,7 @@ void PkCompatTest::reverseIncludeOrderAlsoWorks()
 
 void PkCompatTest::hashOfStringInstantiates()
 {
-    // PkHash<PkString, X> / PkSet<PkString> 要求 qHash(const PkString &)，
+    // PkHash<PkString, X> / PkSet<PkString> 要求 pkHash(const PkString &)，
     // 那条重载是 pk/container/PkStringHash.h 补的（不是 pk/string 里的，
     // 那会越界）。**编得过并且能查得到 = ADL / 非限定查找链路没断。**
     QHash<QString, int> hash;

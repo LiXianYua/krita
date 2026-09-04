@@ -121,17 +121,17 @@ qreal getGamma(qreal blackPoint, qreal whitePoint, qreal inputIntensity, qreal o
     Q_ASSERT(blackPoint < whitePoint);
     Q_ASSERT(inputIntensity >= blackPoint && inputIntensity <= whitePoint);
     
-    if (qFuzzyIsNull(outputIntensity)) {
+    if (pkQtFuzzyIsNull(outputIntensity)) {
         return 0.01;
     }
-    if (qFuzzyCompare(outputIntensity, 1.0)) {
+    if (pkQtFuzzyCompare(outputIntensity, 1.0)) {
         return 10.0;
     }
 
     const qreal inputIntensityAfterLinearMapping =
         (inputIntensity - blackPoint) / (whitePoint - blackPoint);
 
-    return qBound(0.01, log(inputIntensityAfterLinearMapping) / log(outputIntensity), 10.0);
+    return pkBound(0.01, log(inputIntensityAfterLinearMapping) / log(outputIntensity), 10.0);
 }
 
 
@@ -157,8 +157,8 @@ PkVector<KisLevelsCurve> adjustMonochromaticContrast(ChannelHistogram lightnessH
 
     const PkPair<qreal, qreal> inputBlackAndWhitePoints =
         getInputBlackAndWhitePoints(lightnessHistogram, shadowsClipping, highlightsClipping);
-    const qreal inputBlackPoint = qMin(maximumInputBlackAndWhiteOffset, inputBlackAndWhitePoints.first);
-    const qreal inputWhitePoint = qMax(1.0 - maximumInputBlackAndWhiteOffset, inputBlackAndWhitePoints.second);
+    const qreal inputBlackPoint = pkMin(maximumInputBlackAndWhiteOffset, inputBlackAndWhitePoints.first);
+    const qreal inputWhitePoint = pkMax(1.0 - maximumInputBlackAndWhiteOffset, inputBlackAndWhitePoints.second);
     const qreal linearMappingMidPoint = (inputBlackPoint + inputWhitePoint) / 2.0;
 
     for (int i = 0; i < channelsHistograms.size(); ++i) {

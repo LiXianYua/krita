@@ -138,7 +138,7 @@ KisOptimizedBrushOutline KisGridPaintOpSettings::brushOutline(const KisPaintInfo
             divide = option.grid_division_level;
         }
 
-        divide = qRound(option.grid_scale * divide);
+        divide = pkRound(option.grid_scale * divide);
 
         //Adjust the start position of the drawn grid to the top left of the brush instead of in the center
         qreal posX = info.pos().x() - (gridWidth/2) + (cellWidth/2) - horizontalOffset;
@@ -149,7 +149,7 @@ KisOptimizedBrushOutline KisGridPaintOpSettings::brushOutline(const KisPaintInfo
         posY = posY - std::fmod(posY, cellHeight) + verticalOffset;
         const PkRectF dabRect(posX , posY , cellWidth, cellHeight);
 
-        divide = qMax(1, divide);
+        divide = pkMax(1, divide);
         const qreal yStep = cellHeight / (qreal)divide;
         const qreal xStep = cellWidth / (qreal)divide;
 

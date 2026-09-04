@@ -12,7 +12,9 @@
 
 #include "kritaflake_export.h"
 
-#include <QMap>
+#include <PkMap.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
 
 class KoShape;
 class KoXmlWriter;
@@ -22,8 +24,8 @@ class KoStore;
 class KoSharedSavingData;
 class KoShapeSavingContextPrivate;
 
-class QImage;
-class QTransform;
+class PkImage;
+class PkTransform;
 
 /**
  * The set of data for the ODF file format used during saving of a shape.
@@ -134,12 +136,12 @@ public:
     /**
      * Get the images that needs to be saved to the store
      */
-    QMap<qint64, QString> imagesToSave();
+    PkMap<qint64, PkString> imagesToSave();
 
     /**
      * Get the reference to use for the marker lookup
      */
-    QString markerRef(const KoMarker *marker);
+    PkString markerRef(const KoMarker *marker);
 
     /**
      * Add shared data
@@ -158,7 +160,7 @@ public:
      *
      * @see KoSharedSavingData
      */
-    void addSharedData(const QString &id, KoSharedSavingData *data);
+    void addSharedData(const PkString &id, KoSharedSavingData *data);
 
     /**
      * Get the shared data.
@@ -168,7 +170,7 @@ public:
      * @param id The id used to identify the shared data.
      * @return The shared data for the id or 0 if there is no shared data for the id.
      */
-    KoSharedSavingData *sharedData(const QString &id) const;
+    KoSharedSavingData *sharedData(const PkString &id) const;
 
     /**
      * Add an offset that will be applied to the shape position when saved
@@ -179,7 +181,7 @@ public:
      * @param shape The shape for which the offset should be added.
      * @param matrix The offset which should be applied on saving the position.
      */
-    void addShapeOffset(const KoShape *shape, const QTransform &matrix);
+    void addShapeOffset(const KoShape *shape, const PkTransform &matrix);
 
     /**
      * Remove an offset from the saved offset list
@@ -192,9 +194,9 @@ public:
      * Get the offset that will be applied to the shape position when saved.
      *
      * @param shape The shape for which the offset should be get.
-     * @return the saved offset or QTransform() when offset is not set.
+     * @return the saved offset or PkTransform() when offset is not set.
      */
-    QTransform shapeOffset(const KoShape *shape) const;
+    PkTransform shapeOffset(const KoShape *shape) const;
 
 private:
     KoShapeSavingContextPrivate * const d;

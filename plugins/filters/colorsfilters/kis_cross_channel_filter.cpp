@@ -55,7 +55,7 @@ KisCrossChannelFilterConfiguration::KisCrossChannelFilterConfiguration(int chann
 
     if (cs) {
         PkVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(cs);
-        defaultDriver = qMax(0, KisMultiChannelFilter::findChannel(virtualChannels, VirtualChannelInfo::LIGHTNESS));
+        defaultDriver = pkMax(0, KisMultiChannelFilter::findChannel(virtualChannels, VirtualChannelInfo::LIGHTNESS));
     }
 
     m_driverChannels.fill(defaultDriver, channelCount);
@@ -179,7 +179,7 @@ void KisCrossChannelFilterConfiguration::setProperty(const PkString& name, const
 
             if (m_colorSpace) {
                 PkVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(m_colorSpace);
-                defaultDriver = qMax(0, KisMultiChannelFilter::findChannel(virtualChannels, VirtualChannelInfo::LIGHTNESS));
+                defaultDriver = pkMax(0, KisMultiChannelFilter::findChannel(virtualChannels, VirtualChannelInfo::LIGHTNESS));
             }
 
             for (qint32 i = prevChannelCount; i < newChannelCount; ++i) {
@@ -199,7 +199,7 @@ void KisCrossChannelFilterConfiguration::setProperty(const PkString& name, const
     }
 
     if (name == "activeCurve") {
-        setActiveCurve(qBound(0, value.toInt(), m_channelCount));
+        setActiveCurve(pkBound(0, value.toInt(), m_channelCount));
     }
 
     int channelIndex;

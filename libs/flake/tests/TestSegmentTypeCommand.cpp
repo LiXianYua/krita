@@ -14,11 +14,11 @@
 void TestSegmentTypeCommand::changeToCurve()
 {
     KoPathShape path;
-    path.moveTo( QPointF(0,0) );
-    path.lineTo( QPointF(100,0) );
+    path.moveTo( PkPointF(0,0) );
+    path.lineTo( PkPointF(100,0) );
 
     KoPathPointData segment(&path, KoPathPointIndex(0,0));
-    QList<KoPathPointData> segments;
+    PkList<KoPathPointData> segments;
     segments.append(segment);
 
     // get first segment
@@ -43,11 +43,11 @@ void TestSegmentTypeCommand::changeToCurve()
 void TestSegmentTypeCommand::changeToLine()
 {
     KoPathShape path;
-    path.moveTo( QPointF(0,0) );
-    path.curveTo( QPointF(25,25), QPointF(75,25), QPointF(100,0) );
+    path.moveTo( PkPointF(0,0) );
+    path.curveTo( PkPointF(25,25), PkPointF(75,25), PkPointF(100,0) );
 
     KoPathPointData segment(&path, KoPathPointIndex(0,0));
-    QList<KoPathPointData> segments;
+    PkList<KoPathPointData> segments;
     segments.append(segment);
 
     // get first segment

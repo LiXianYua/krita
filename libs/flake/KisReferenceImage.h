@@ -17,10 +17,10 @@
 #include <kritashapemodel_export.h>
 #include <kundo2command.h>
 
-class QImage;
-class QPointF;
+class PkImage;
+class PkPointF;
 class QPainter;
-class QRectF;
+class PkRectF;
 class KoStore;
 class KisCoordinatesConverter;
 class KisCanvas2;
@@ -31,14 +31,14 @@ class KisCanvas2;
 class KRITASHAPEMODEL_EXPORT KisReferenceImage : public KoShape
 {
 public:
-    using FallbackFileLoader = std::function<QImage(const QString &)>;
+    using FallbackFileLoader = std::function<PkImage(const PkString &)>;
 
     struct KRITASHAPEMODEL_EXPORT SetSaturationCommand : public KUndo2Command {
-        QVector<KisReferenceImage*> images;
-        QVector<qreal> oldSaturations;
+        PkVector<KisReferenceImage*> images;
+        PkVector<qreal> oldSaturations;
         qreal newSaturation;
 
-        explicit SetSaturationCommand(const QList<KoShape *> &images, qreal newSaturation, KUndo2Command *parent = 0);
+        explicit SetSaturationCommand(const PkList<KoShape *> &images, qreal newSaturation, KUndo2Command *parent = 0);
         void undo() override;
         void redo() override;
     };
@@ -54,9 +54,9 @@ public:
      * If parent is provided and the image cannot be loaded, a warning message will be displayed to user.
      * @return reference image or null if one could not be loaded
      */
-    static KisReferenceImage * fromFile(const QString &filename, const KisCoordinatesConverter &converter, QWidget *parent /*= nullptr*/);
+    static KisReferenceImage * fromFile(const PkString &filename, const KisCoordinatesConverter &converter, QWidget *parent /*= nullptr*/);
     static KisReferenceImage * fromClipboard(const KisCoordinatesConverter &converter);
-    static KisReferenceImage * fromQImage(const KisCoordinatesConverter &converter, const QImage &img);
+    static KisReferenceImage * fromQImage(const KisCoordinatesConverter &converter, const PkImage &img);
 
     /**
      * Load a reference image from specified paint device.
@@ -72,22 +72,22 @@ public:
     bool embed();
     bool hasLocalFile();
 
-    void setFilename(const QString &filename);
-    QString filename() const;
-    QString internalFile() const;
+    void setFilename(const PkString &filename);
+    PkString filename() const;
+    PkString internalFile() const;
 
     void paint(QPainter &gc) const override;
 
-    QColor getPixel(QPointF position);
+    PkColor getPixel(PkPointF position);
 
-    void saveXml(QDomDocument &document, QDomElement &parentElement, int id);
+    void saveXml(PkXmlDocument &document, PkXmlElement &parentElement, int id);
     bool saveImage(KoStore *store) const;
 
-    static KisReferenceImage * fromXml(const QDomElement &elem);
+    static KisReferenceImage * fromXml(const PkXmlElement &elem);
     bool loadImage(KoStore *store);
     bool loadImage(KoStore *store, const FallbackFileLoader &fallbackLoader);
 
-    QImage getImage();
+    PkImage getImage();
 
 private:
     struct Private;

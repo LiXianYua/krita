@@ -79,7 +79,7 @@ public:
 
     virtual ~Private() = default;
 
-    mutable QRectF savedOutlineRect;
+    mutable PkRectF savedOutlineRect;
     mutable bool sizeCached = false;
 
 };
@@ -121,7 +121,7 @@ void KoShapeGroup::paintComponent(QPainter &painter) const
     Q_UNUSED(painter);
 }
 
-bool KoShapeGroup::hitTest(const QPointF &position) const
+bool KoShapeGroup::hitTest(const PkPointF &position) const
 {
     Q_UNUSED(position);
     return false;
@@ -130,7 +130,7 @@ bool KoShapeGroup::hitTest(const QPointF &position) const
 void KoShapeGroup::tryUpdateCachedSize() const
 {
     if (!d->sizeCached) {
-        QRectF bound;
+        PkRectF bound;
         Q_FOREACH (KoShape *shape, shapes()) {
             bound |= shape->transformation().mapRect(shape->outlineRect());
         }
@@ -140,32 +140,32 @@ void KoShapeGroup::tryUpdateCachedSize() const
     }
 }
 
-QSizeF KoShapeGroup::size() const
+PkSizeF KoShapeGroup::size() const
 {
     tryUpdateCachedSize();
     return KoShape::size();
 }
 
-void KoShapeGroup::setSize(const QSizeF &size)
+void KoShapeGroup::setSize(const PkSizeF &size)
 {
-    QSizeF oldSize = this->size();
+    PkSizeF oldSize = this->size();
     if (!shapeCount() || oldSize.isNull()) return;
 
-    const QTransform scale =
-        QTransform::fromScale(size.width() / oldSize.width(), size.height() / oldSize.height());
+    const PkTransform scale =
+        PkTransform::fromScale(size.width() / oldSize.width(), size.height() / oldSize.height());
 
     setTransformation(scale * transformation());
 
     KoShapeContainer::setSize(size);
 }
 
-QRectF KoShapeGroup::outlineRect() const
+PkRectF KoShapeGroup::outlineRect() const
 {
     tryUpdateCachedSize();
     return d->savedOutlineRect;
 }
 
-QRectF KoShapeGroup::boundingRect() const
+PkRectF KoShapeGroup::boundingRect() const
 {
     return KoShape::boundingRect(shapes());
 }

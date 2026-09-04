@@ -17,15 +17,15 @@
 #include <algorithm>
 #include <deque>
 
-unsigned int qHash(const KoColor &color, unsigned int seed = 0)
+unsigned int pkHash(const KoColor &color, unsigned int seed = 0)
 {
     // hash the color data bytes, while using the hash of the colorspace pointer as seed
     // TODO: take pixelSize directly from the color.m_size (private member)
-    // （原实现用 Qt 的 qHashBits + qHash(pointer)；Pk 侧无 qHashBits，哈希数值
+    // （原实现用 Qt 的 qHashBits + pkHash(pointer)；Pk 侧无 qHashBits，哈希数值
     //   不必与 Qt 逐位相同，只要签名形状一致、值稳定。）
     const quint8 *data = color.data();
     const int size = color.colorSpace()->pixelSize();
-    unsigned int h = qHash(color.colorSpace(), seed);
+    unsigned int h = pkHash(color.colorSpace(), seed);
     for (int i = 0; i < size; ++i) {
         h = pkHashMix64(h ^ static_cast<unsigned int>(data[i]), h);
     }

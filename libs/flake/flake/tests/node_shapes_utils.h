@@ -14,7 +14,7 @@
 
 inline KisNodeSP nodeFromId(int id) {
     KisNodeSP node = new TestUtil::TestNode();
-    node->setName(QString("node%1").arg(id));
+    node->setName(PkString("node%1").arg(id));
     return node;
 }
 
@@ -23,7 +23,7 @@ inline KisNodeShape* nodeShapeFromId(int id) {
 }
 
 inline bool checkDummyId(KisNodeDummy *dummy, int id) {
-    return dummy->node()->name() == QString("node%1").arg(id);
+    return dummy->node()->name() == PkString("node%1").arg(id);
 }
 
 inline KisNodeDummy* findDummyById(KisNodeDummy *root, int id)
@@ -48,19 +48,19 @@ inline KisNodeSP findNodeById(KisNodeDummy *root, int id)
     return dummy->node();
 }
 
-inline QString dummyId(KisNodeDummy *dummy, const QString removePrefix) {
-    QString nodeName = dummy->node()->name();
+inline PkString dummyId(KisNodeDummy *dummy, const PkString removePrefix) {
+    PkString nodeName = dummy->node()->name();
 
     if(!removePrefix.isEmpty()) {
-        nodeName = QString::number(nodeName.remove(removePrefix).toInt());
+        nodeName = PkString::number(nodeName.remove(removePrefix).toInt());
     }
 
     return nodeName;
 }
 
-inline QString collectGraphPattern(KisNodeDummy *root, const QString removePrefix = "node")
+inline PkString collectGraphPattern(KisNodeDummy *root, const PkString removePrefix = "node")
 {
-    QString result = dummyId(root, removePrefix) + ' ';
+    PkString result = dummyId(root, removePrefix) + ' ';
 
     KisNodeDummy *child = root->firstChild();
     while(child) {
@@ -70,13 +70,13 @@ inline QString collectGraphPattern(KisNodeDummy *root, const QString removePrefi
     return result.trimmed();
 }
 
-inline QString collectGraphPatternFull(KisNodeDummy *root) {
+inline PkString collectGraphPatternFull(KisNodeDummy *root) {
     return collectGraphPattern(root, "");
 }
 
-QString collectGraphPatternReverse(KisNodeDummy *root)
+PkString collectGraphPatternReverse(KisNodeDummy *root)
 {
-    QString result;
+    PkString result;
 
     KisNodeDummy *child = root->lastChild();
     while(child) {

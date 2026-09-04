@@ -31,7 +31,7 @@ public:
         selectionChangedCompressor->deleteLater();
     }
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     KoShapeLayer *activeLayer;
 
     KisThreadSafeSignalCompressor *selectionChangedCompressor;

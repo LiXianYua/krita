@@ -4,6 +4,20 @@
 
 PkByteArray::PkByteArray() = default;
 
+PkByteArray::PkByteArray(const char* data)
+{
+    if (!data) return;
+    const size_t len = std::char_traits<char>::length(data);
+    m_data.reserve(len);
+    for (size_t i = 0; i < len; ++i)
+        m_data.push_back(static_cast<uint8_t>(data[i]));
+}
+
+PkByteArray::PkByteArray(char ch)
+{
+    m_data.push_back(static_cast<uint8_t>(ch));
+}
+
 PkByteArray::PkByteArray(const char* data, int len)
 {
     if (len <= 0) return;

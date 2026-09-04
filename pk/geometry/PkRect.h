@@ -533,8 +533,8 @@ constexpr inline bool operator!=(const PkRect &r1, const PkRect &r2) noexcept
 //     `xp += w; w = -w;`。实测：`(0,0,-0.0,1).normalized()` **不交换**且
 //     w 仍是 -0.0；`(0,0,nan,1)` 原样返回。
 //   · **toRect() 不是"对 x/y/w/h 各做一次 qRound"**（那是个流传很广的误解）：
-//     它是 `PkRect(PkPoint(qRound(xp), qRound(yp)),
-//                  PkPoint(qRound(xp+w)-1, qRound(yp+h)-1))` ——
+//     它是 `PkRect(PkPoint(pkRound(xp), pkRound(yp)),
+//                  PkPoint(pkRound(xp+w)-1, pkRound(yp+h)-1))` ——
 //     取整发生在**四条边**上，右下角再各减 1 换成 PkRect 的坐标表示。
 //   · **toAlignedRect() 是 floor(left)/floor(top)/ceil(right)/ceil(bottom) 向外扩**，
 //     与 toRect 常常不同：实测 `(-1.5,-1.5,1,1)` toRect=(-1,-1,1,1) 而
@@ -543,7 +543,7 @@ constexpr inline bool operator!=(const PkRect &r1, const PkRect &r2) noexcept
 //     实测调用点 toAlignedRect **64 次** / toRect **18 次**，都是真调用点。
 //   · **operator== 是模糊比较**（四个分量各一次 pkQtFuzzyCompare），不是位相等：
 //     实测 `(1,1,1,1)==(1+1e-13,1,1,1)` 为真、`(inf,0,1,1)==(-inf,0,1,1)` 也为真
-//     （两侧差为 nan，`nan <= x` 恒假 …… 实为 `qAbs(inf-(-inf))*1e12 <= inf`
+//     （两侧差为 nan，`nan <= x` 恒假 …… 实为 `pkAbs(inf-(-inf))*1e12 <= inf`
 //     即 `inf <= inf` 为**真**）。**用 pkQtFuzzy* 而不是 qFuzzy***：后者在共存
 //     路径上是 #define，会在预处理期把函数体换掉（tests/rectf_macro_proof.cpp
 //     钉住这一条；理由全文在 PkGlobal.h 的 pkQtFuzzyCompare 上方）。
@@ -989,15 +989,15 @@ constexpr inline bool operator!=(const PkRectF &r1, const PkRectF &r2) noexcept
 }
 
 // qrect.h:872-875 —— ⚠ **不是"对 x/y/w/h 各做一次 qRound"**。取整发生在四条边
-// 上：左上角 qRound(xp)/qRound(yp)，右下角 qRound(xp+w)-1 / qRound(yp+h)-1
+// 上：左上角 pkRound(xp)/pkRound(yp)，右下角 pkRound(xp+w)-1 / pkRound(yp+h)-1
 // （-1 是换成 PkRect 的坐标表示）。走的是 (topLeft,bottomRight) 构造，所以
 // 构造那边不会再减一次。实测 `(0.49999999999999994,0,1,1).toRect()` 的内部坐标
 // 是 (1,0,1,0)：qRound 在左边界进位到 1，而 xp+w 在 double 里恰好舍入成 1.5、
 // qRound 给 2、减 1 得 1 —— 分开对 w 取整得不到这个结果。
 constexpr inline PkRect PkRectF::toRect() const noexcept
 {
-    return PkRect(PkPoint(qRound(xp), qRound(yp)),
-                  PkPoint(qRound(xp + w) - 1, qRound(yp + h) - 1));
+    return PkRect(PkPoint(pkRound(xp), pkRound(yp)),
+                  PkPoint(pkRound(xp + w) - 1, pkRound(yp + h) - 1));
 }
 
 #endif // PK_GEOMETRY_PKRECT_H

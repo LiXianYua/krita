@@ -33,7 +33,7 @@ struct SvgTextOnPathDecorationHelper::Private {
         if (s->isClosedSubpath(s->subpathCount()-1)) {
             percent = fmod(percent, 1.0);
         } else {
-            percent = qBound(0.0, percent, 1.0);
+            percent = pkBound(0.0, percent, 1.0);
         }
         line.setP1(outline.pointAtPercent(percent));
         line.setAngle(outline.angleAtPercent(percent) - 90);

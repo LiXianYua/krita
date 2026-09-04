@@ -25,7 +25,7 @@ public:
      * @param controller the canvas controller that wraps the canvas the tool is acting on.
      * @param clicked the location (in document points) where the interaction starts.
      */
-    KoZoomStrategy(KoZoomTool *tool, KoCanvasController *controller, const QPointF &clicked);
+    KoZoomStrategy(KoZoomTool *tool, KoCanvasController *controller, const PkPointF &clicked);
 
     void forceZoomOut();
     void forceZoomIn();

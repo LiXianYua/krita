@@ -20,8 +20,8 @@
 // 不断言顺序。
 //
 // **哈希靠 qHash 自由函数 + ADL**，机制与理由见 PkHashFunctions.h 的类头。
-// 一句话：Krita 全仓 18 处自定义 `uint qHash(const X &)` 重载在 S 线替换调用点
-// 时原样保留，PkHash 必须能找到它们，所以 hasher 转调 `qHash(k)` 而不是
+// 一句话：Krita 全仓 18 处自定义 `uint pkHash(const X &)` 重载在 S 线替换调用点
+// 时原样保留，PkHash 必须能找到它们，所以 hasher 转调 `pkHash(k)` 而不是
 // std::hash。
 //
 // K 还要求 operator==（std::equal_to<K>）——QHash 同样要求。

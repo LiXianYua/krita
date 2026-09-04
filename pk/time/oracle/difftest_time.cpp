@@ -15,7 +15,7 @@
 //
 // 多时区对拍（2026-08-18 裁决，R-16 交接）：run_oracle.sh 在多个非 UTC 时区下
 // 各跑一遍本程序（不再 `export TZ=UTC`）。QDateTime 工厂函数默认
-// timeSpec()==Qt::LocalTime、toString() 按本地墙钟渲染；PkDateTime 已对齐为
+// timeSpec()==Pk::LocalTime、toString() 按本地墙钟渲染；PkDateTime 已对齐为
 // LocalTime（C 库 localtime_r/mktime，读系统 TZ）。每跑一遍的 TZ 由
 // run_oracle.sh export，本程序在 ORACLE-QT 行打印实际读到的 TZ 以留痕。两侧在
 // 同一 TZ 下各自读系统本地时区，日历字段比较才有意义、且跨机器可复现。
@@ -127,7 +127,7 @@ std::string classifySec(std::int64_t s)
 
 void diffFromSecsSinceEpoch(std::int64_t secs)
 {
-    QDateTime qdt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), Qt::LocalTime);
+    QDateTime qdt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), Pk::LocalTime);
     PkDateTime pdt = PkDateTime::fromSecsSinceEpoch(secs);
     const std::string qs = esQDT(qdt);
     const std::string ps = esPDT(pdt);
@@ -136,7 +136,7 @@ void diffFromSecsSinceEpoch(std::int64_t secs)
 
 void diffFromMSecsSinceEpoch(std::int64_t msecs)
 {
-    QDateTime qdt = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(msecs), Qt::LocalTime);
+    QDateTime qdt = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(msecs), Pk::LocalTime);
     PkDateTime pdt = PkDateTime::fromMSecsSinceEpoch(msecs);
     const std::string qs = esQDT(qdt);
     const std::string ps = esPDT(pdt);
@@ -147,8 +147,8 @@ void diffFromMSecsSinceEpoch(std::int64_t msecs)
 
 void diffOperatorEq(std::int64_t secsA, std::int64_t secsB)
 {
-    QDateTime qa = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secsA), Qt::LocalTime);
-    QDateTime qb = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secsB), Qt::LocalTime);
+    QDateTime qa = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secsA), Pk::LocalTime);
+    QDateTime qb = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secsB), Pk::LocalTime);
     PkDateTime pa = PkDateTime::fromSecsSinceEpoch(secsA);
     PkDateTime pb = PkDateTime::fromSecsSinceEpoch(secsB);
     const bool qr = (qa == qb);
@@ -170,8 +170,8 @@ void diffOperatorEqDefault()
 
 void diffSecsTo(std::int64_t secsA, std::int64_t secsB)
 {
-    QDateTime qa = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secsA), Qt::LocalTime);
-    QDateTime qb = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secsB), Qt::LocalTime);
+    QDateTime qa = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secsA), Pk::LocalTime);
+    QDateTime qb = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secsB), Pk::LocalTime);
     PkDateTime pa = PkDateTime::fromSecsSinceEpoch(secsA);
     PkDateTime pb = PkDateTime::fromSecsSinceEpoch(secsB);
     const qint64 qr = qa.secsTo(qb);
@@ -221,7 +221,7 @@ void diffCurrentDateTime(const char *api, QDateTime (*qtCall)(), PkDateTime (*pk
 
 void diffToStringDefault(std::int64_t secs)
 {
-    QDateTime qdt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), Qt::LocalTime);
+    QDateTime qdt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), Pk::LocalTime);
     PkDateTime pdt = PkDateTime::fromSecsSinceEpoch(secs);
     const std::string qs = toStd(qdt.toString());
     const std::string ps = pdt.toString();
@@ -247,19 +247,19 @@ const char *fmtName(PkDateTime::DateFormat fmt)
     return "?";
 }
 
-Qt::DateFormat toQtFmt(PkDateTime::DateFormat fmt)
+Pk::DateFormat toQtFmt(PkDateTime::DateFormat fmt)
 {
     switch (fmt) {
-    case PkDateTime::DateFormat::ISODate: return Qt::ISODate;
-    case PkDateTime::DateFormat::RFC2822Date: return Qt::RFC2822Date;
-    case PkDateTime::DateFormat::ISODateWithMs: return Qt::ISODateWithMs;
+    case PkDateTime::DateFormat::ISODate: return Pk::ISODate;
+    case PkDateTime::DateFormat::RFC2822Date: return Pk::RFC2822Date;
+    case PkDateTime::DateFormat::ISODateWithMs: return Pk::ISODateWithMs;
     }
-    return Qt::ISODate;
+    return Pk::ISODate;
 }
 
 void diffToStringFormat(std::int64_t secs, PkDateTime::DateFormat fmt)
 {
-    QDateTime qdt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), Qt::LocalTime);
+    QDateTime qdt = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(secs), Pk::LocalTime);
     PkDateTime pdt = PkDateTime::fromSecsSinceEpoch(secs);
     const std::string qs = toStd(qdt.toString(toQtFmt(fmt)));
     const std::string ps = pdt.toString(fmt);
@@ -315,7 +315,7 @@ void diffFromStringCustom(const std::string &s, const std::string &fmt)
 
 void diffFromStringISODate(const std::string &s)
 {
-    QDateTime qdt = QDateTime::fromString(QString::fromStdString(s), Qt::ISODate);
+    QDateTime qdt = QDateTime::fromString(QString::fromStdString(s), Pk::ISODate);
     PkDateTime pdt = PkDateTime::fromString(s, PkDateTime::DateFormat::ISODate);
     const std::string qs = esQDT(qdt);
     const std::string ps = esPDT(pdt);

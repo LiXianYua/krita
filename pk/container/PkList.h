@@ -37,6 +37,7 @@ class PkList : public PkArrayContainer<T, PkList<T>>
 public:
     PkList() = default;
     PkList(std::initializer_list<T> args) : PkBase(PkInner(args)) {}
+    PkList(const std::vector<T>& v) : PkBase(v) {}
 
     // 理由与 PkVector 同：声明了移动构造就会把隐式拷贝 deleted 掉，
     // 而拷贝 O(1) 是 2286 处 Q_FOREACH 的命根子。

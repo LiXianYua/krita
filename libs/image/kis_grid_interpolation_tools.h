@@ -284,7 +284,7 @@ struct PaintDevicePolygonOp
                     srcAcc->sampledOldRawData(rawData);
 #ifdef DEBUG_PAINTING_POLYGONS
                     QColor color = m_debugColor;
-                    color.setHsl(KisAlgebra2D::wrapValue(m_debugColor.hslHue() + m_rectId, 0, 360), m_debugColor.hslSaturation(), qBound(0, m_debugColor.lightness() - 50 - pixelId, 100));
+                    color.setHsl(KisAlgebra2D::wrapValue(m_debugColor.hslHue() + m_rectId, 0, 360), m_debugColor.hslSaturation(), pkBound(0, m_debugColor.lightness() - 50 - pixelId, 100));
                     pixelId++;
                     m_dstDev->colorSpace()->fromQColor(color, rawData);
 #endif
@@ -301,7 +301,7 @@ struct PaintDevicePolygonOp
                     srcAcc->sampledOldRawData(dstIt.rawData());
 #ifdef DEBUG_PAINTING_POLYGONS
                     QColor color = m_debugColor;
-                    color.setHsl(KisAlgebra2D::wrapValue(m_debugColor.hslHue() + m_rectId, 0, 360), m_debugColor.hslSaturation(), qBound(0, m_debugColor.lightness() + 50, 100));
+                    color.setHsl(KisAlgebra2D::wrapValue(m_debugColor.hslHue() + m_rectId, 0, 360), m_debugColor.hslSaturation(), pkBound(0, m_debugColor.lightness() + 50, 100));
                     m_dstDev->colorSpace()->fromQColor(color, dstIt.rawData());
 #endif
                 }
@@ -608,8 +608,8 @@ inline QList<QRectF> cutOutSubgridFromBounds(QRect subGrid, QRect srcBounds, con
     int topLeftIndex = pointToIndex(topLeft, gridSize);
     int bottomRightIndex = pointToIndex(bottomRight, gridSize);
 
-    topLeftIndex = qMax(0, qMin(topLeftIndex, originalPoints.length() - 1));
-    bottomRightIndex = qMax(0, qMin(bottomRightIndex, originalPoints.length() - 1));
+    topLeftIndex = pkMax(0, pkMin(topLeftIndex, originalPoints.length() - 1));
+    bottomRightIndex = pkMax(0, pkMin(bottomRightIndex, originalPoints.length() - 1));
 
     QPointF topLeftReal = originalPoints[topLeftIndex];
     QPointF bottomRightReal = originalPoints[bottomRightIndex];
@@ -951,8 +951,8 @@ void iterateThroughGrid(PolygonOp &polygonOp,
     // but remember that it also only needs a top left corner of the polygon
 
     KIS_SAFE_ASSERT_RECOVER(startPoint.x() >= 0 && startPoint.y() >= 0 && endPoint.x() <= gridSize.width() - 1 && endPoint.y() <= gridSize.height() - 1) {
-        startPoint = QPoint(qMax(startPoint.x(), 0), qMax(startPoint.y(), 0));
-        endPoint = QPoint(qMin(endPoint.x(), gridSize.width() - 1), qMin(startPoint.y(), gridSize.height() - 1));
+        startPoint = QPoint(pkMax(startPoint.x(), 0), pkMax(startPoint.y(), 0));
+        endPoint = QPoint(pkMin(endPoint.x(), gridSize.width() - 1), pkMin(startPoint.y(), gridSize.height() - 1));
     }
 
     for (int row = startPoint.y(); row < endPoint.y(); row++) {

@@ -5,16 +5,16 @@ void PkPainter::restore() { if (m_stack.empty()) return; m_state=m_stack.back();
 PkPen PkPainter::pen() const { return m_state.pen; }
 void PkPainter::setPen(const PkPen &p) { m_state.pen=p; m_backend.submit(PkSetPenCommand{p}); }
 void PkPainter::setPen(const PkColor &c,qreal w) { setPen(PkPen(c,w)); }
-void PkPainter::setPen(Qt::PenStyle s) { PkPen p; p.setStyle(s); setPen(p); }
+void PkPainter::setPen(Pk::PenStyle s) { PkPen p; p.setStyle(s); setPen(p); }
 PkBrush PkPainter::brush() const { return m_state.brush; }
 void PkPainter::setBrush(const PkBrush &b) { m_state.brush=b; m_backend.submit(PkSetBrushCommand{b}); }
 void PkPainter::setBrush(const PkColor &c) { setBrush(PkBrush(c)); }
-void PkPainter::setBrush(Qt::BrushStyle s) { setBrush(PkBrush(s)); }
+void PkPainter::setBrush(Pk::BrushStyle s) { setBrush(PkBrush(s)); }
 PkTransform PkPainter::transform() const { return m_state.transform; }
 void PkPainter::setTransform(const PkTransform &t,bool combine) { m_state.transform=combine ? t*m_state.transform : t; m_backend.submit(PkSetTransformCommand{t,combine}); }
 void PkPainter::setRenderHint(unsigned h,bool e) { if(e) m_state.hints|=h; else m_state.hints&=~h; m_backend.submit(PkSetRenderHintCommand{h,e}); }
 void PkPainter::setRenderHints(unsigned h,bool e) { setRenderHint(h,e); }
-void PkPainter::setClipRect(const PkRectF &r,Qt::ClipOperation o) { m_backend.submit(PkSetClipRectCommand{r,o}); }
+void PkPainter::setClipRect(const PkRectF &r,Pk::ClipOperation o) { m_backend.submit(PkSetClipRectCommand{r,o}); }
 void PkPainter::drawLine(const PkLineF &l) { m_backend.submit(PkDrawLineCommand{l}); }
 void PkPainter::drawLine(const PkPointF &a,const PkPointF &b) { drawLine(PkLineF(a,b)); }
 void PkPainter::drawRect(const PkRectF &r) { m_backend.submit(PkDrawRectCommand{r}); }

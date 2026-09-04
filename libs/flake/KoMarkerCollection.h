@@ -10,11 +10,11 @@
 #include "kritaflake_export.h"
 
 #include <QObject>
-#include <QList>
+#include <PkList.h>
 #include <QMetaType>
 
 class KoMarker;
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 class KoShapeLoadingContext;
 
 class KRITAFLAKE_EXPORT KoMarkerCollection : public QObject
@@ -24,7 +24,7 @@ public:
     explicit KoMarkerCollection(QObject *parent = 0);
     ~KoMarkerCollection() override;
 
-    QList<KoMarker*> markers() const;
+    PkList<KoMarker*> markers() const;
 
     /**
      * Add marker to collection
@@ -39,7 +39,7 @@ public:
      */
     KoMarker * addMarker(KoMarker *marker);
 
-    void loadMarkersFromFile(const QString &svgFile);
+    void loadMarkersFromFile(const PkString &svgFile);
 
 private:
     /// load the markers that are available per default.

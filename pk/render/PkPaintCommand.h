@@ -14,7 +14,7 @@ struct PkSetPenCommand { PkPen pen; };
 struct PkSetBrushCommand { PkBrush brush; };
 struct PkSetTransformCommand { PkTransform transform; bool combine; };
 struct PkSetRenderHintCommand { unsigned hint; bool enabled; };
-struct PkSetClipRectCommand { PkRectF rect; Qt::ClipOperation operation; };
+struct PkSetClipRectCommand { PkRectF rect; Pk::ClipOperation operation; };
 struct PkDrawLineCommand { PkLineF line; };
 struct PkDrawRectCommand { PkRectF rect; };
 struct PkDrawEllipseCommand { PkRectF rect; };

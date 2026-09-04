@@ -72,7 +72,7 @@ void adjustIfOnPolygonBoundary(const PkPolygonF &poly, int polygonDirection, PkP
                     dbgKrita << ppVar(PkLineF(p0, p1));
                     dbgKrita << ppVar(salt);
 
-                    dbgKrita << ppVar(poly.containsPoint(*pt, Qt::OddEvenFill));
+                    dbgKrita << ppVar(poly.containsPoint(*pt, Pk::OddEvenFill));
 
                     dbgKrita << ppVar(kisDistanceToLine(*pt, PkLineF(p0, p1)));
                     dbgKrita << ppVar(kisDistanceToLine(adjustedPoint, PkLineF(p0, p1)));
@@ -257,7 +257,7 @@ bool intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool ex
     }
 
     // trivial case: no extends, all points inside the polygon
-    if (!extendFirst && !extendSecond && polygon.containsPoint(line.p1(), Qt::WindingFill) && polygon.containsPoint(line.p2(), Qt::WindingFill)) {
+    if (!extendFirst && !extendSecond && polygon.containsPoint(line.p1(), Pk::WindingFill) && polygon.containsPoint(line.p2(), Pk::WindingFill)) {
         return true;
     }
 
@@ -327,7 +327,7 @@ bool intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool ex
     PkPointF p2 = line.p2();
 
     qreal pA, pB, pC; // standard equation for the line: ax + by + c = 0
-    if (qAbs(lineVec.x()) < epsilon) {
+    if (pkAbs(lineVec.x()) < epsilon) {
         // x1 ~= x2, line looks like: x = -pC
         pB = 0;
         pA = 1;
@@ -346,21 +346,21 @@ bool intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool ex
         // is the clipping line parallel to the line?
         PkPointF clipVec = clippingLines[i].p2() - clippingLines[i].p1();
 
-        if (qFuzzyCompare(clipVec.x()*lineVec.y(), clipVec.y()*lineVec.x())) {
+        if (pkQtFuzzyCompare(clipVec.x()*lineVec.y(), clipVec.y()*lineVec.x())) {
 
             // vectors are parallel
             // let's check if one of the clipping points is on the line (extended) to see if it's the same line; if not, proceed normally
 
-            qreal distanceBetweenLines = qAbs(pA*clippingLines[i].p1().x() + pB*clippingLines[i].p1().y() + pC)
+            qreal distanceBetweenLines = pkAbs(pA*clippingLines[i].p1().x() + pB*clippingLines[i].p1().y() + pC)
                     /(sqrt(pA*pA + pB*pB));
 
-            if (qAbs(distanceBetweenLines) < epsilon) {
+            if (pkAbs(distanceBetweenLines) < epsilon) {
                 // they are the same line
 
                 qreal t1;
                 qreal t2;
 
-                if (qAbs(p2.x() - p1.x()) > epsilon) {
+                if (pkAbs(p2.x() - p1.x()) > epsilon) {
                     t1 = (clippingLines[i].p1().x() - p1.x())/(p2.x() - p1.x());
                     t2 = (clippingLines[i].p2().x() - p1.x())/(p2.x() - p1.x());
                 } else {
@@ -368,8 +368,8 @@ bool intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool ex
                     t2 = (clippingLines[i].p2().y() - p1.y())/(p2.y() - p1.y());
                 }
 
-                qreal tmin1 = qMin(t1, t2);
-                qreal tmax2 = qMax(t1, t2);
+                qreal tmin1 = pkMin(t1, t2);
+                qreal tmax2 = pkMax(t1, t2);
 
                 if (tmin < tmin1) {
                     tmin = tmin1;
@@ -604,7 +604,7 @@ int quadraticEquation(qreal a, qreal b, qreal c, qreal *x1, qreal *x2)
     const qreal D = pow2(b) - 4 * a * c;
     const qreal eps = 1e-14;
 
-    if (qAbs(D) <= eps) {
+    if (pkAbs(D) <= eps) {
         *x1 = -b / (2 * a);
         numSolutions = 1;
     } else if (D < 0) {
@@ -632,10 +632,10 @@ PkVector<PkPointF> intersectTwoCircles(const PkPointF &center1, qreal r1,
     const qreal centerDistance = norm(diff);
 
     if (centerDistance > r1 + r2) return points;
-    if (centerDistance < qAbs(r1 - r2)) return points;
+    if (centerDistance < pkAbs(r1 - r2)) return points;
 
-    if (centerDistance < qAbs(r1 - r2) + 0.001) {
-        dbgKrita << "Skipping intersection" << ppVar(center1) << ppVar(center2) << ppVar(r1) << ppVar(r2) << ppVar(centerDistance) << ppVar(qAbs(r1-r2));
+    if (centerDistance < pkAbs(r1 - r2) + 0.001) {
+        dbgKrita << "Skipping intersection" << ppVar(center1) << ppVar(center2) << ppVar(r1) << ppVar(r2) << ppVar(centerDistance) << ppVar(pkAbs(r1-r2));
         return points;
     }
 
@@ -648,7 +648,7 @@ PkVector<PkPointF> intersectTwoCircles(const PkPointF &center1, qreal r1,
 
     const qreal eps = 1e-6;
 
-    if (qAbs(diff.y()) < eps) {
+    if (pkAbs(diff.y()) < eps) {
         qreal x = F2 / diff.x();
         qreal y1, y2;
         int result = KisAlgebra2D::quadraticEquation(
@@ -728,25 +728,25 @@ PkTransform mapToRectInverse(const PkRectF &rect)
 
 bool fuzzyMatrixCompare(const PkTransform &t1, const PkTransform &t2, qreal delta) {
     return
-            qAbs(t1.m11() - t2.m11()) < delta &&
-            qAbs(t1.m12() - t2.m12()) < delta &&
-            qAbs(t1.m13() - t2.m13()) < delta &&
-            qAbs(t1.m21() - t2.m21()) < delta &&
-            qAbs(t1.m22() - t2.m22()) < delta &&
-            qAbs(t1.m23() - t2.m23()) < delta &&
-            qAbs(t1.m31() - t2.m31()) < delta &&
-            qAbs(t1.m32() - t2.m32()) < delta &&
-            qAbs(t1.m33() - t2.m33()) < delta;
+            pkAbs(t1.m11() - t2.m11()) < delta &&
+            pkAbs(t1.m12() - t2.m12()) < delta &&
+            pkAbs(t1.m13() - t2.m13()) < delta &&
+            pkAbs(t1.m21() - t2.m21()) < delta &&
+            pkAbs(t1.m22() - t2.m22()) < delta &&
+            pkAbs(t1.m23() - t2.m23()) < delta &&
+            pkAbs(t1.m31() - t2.m31()) < delta &&
+            pkAbs(t1.m32() - t2.m32()) < delta &&
+            pkAbs(t1.m33() - t2.m33()) < delta;
 }
 
 bool fuzzyPointCompare(const PkPointF &p1, const PkPointF &p2)
 {
-    return qFuzzyCompare(p1.x(), p2.x()) && qFuzzyCompare(p1.y(), p2.y());
+    return pkQtFuzzyCompare(p1.x(), p2.x()) && pkQtFuzzyCompare(p1.y(), p2.y());
 }
 
 bool fuzzyPointCompare(const PkPointF &p1, const PkPointF &p2, qreal delta)
 {
-    return qAbs(p1.x() - p2.x()) < delta && qAbs(p1.y() - p2.y()) < delta;
+    return pkAbs(p1.x() - p2.x()) < delta && pkAbs(p1.y() - p2.y()) < delta;
 }
 
 inline PkTransform toQTransformStraight(const Eigen::Matrix3d &m)
@@ -809,7 +809,7 @@ DecomposedMatrix::DecomposedMatrix(const PkTransform &t0)
     rows[1] = Eigen::Vector3d(t.m21(), t.m22(), t.m23());
     rows[2] = Eigen::Vector3d(t.m31(), t.m32(), t.m33());
 
-    if (!qFuzzyCompare(t.m33(), 1.0)) {
+    if (!pkQtFuzzyCompare(t.m33(), 1.0)) {
         const qreal invM33 = 1.0 / t.m33();
 
         for (auto &row : rows) {
@@ -966,7 +966,7 @@ boost::optional<PkPointF> intersectLines(const PkLineF &boundedLine, const PkLin
     B << B2.x() - B1.x(),
          B2.y() - B1.y();
 
-    if (qFuzzyIsNull(A.determinant())) {
+    if (pkQtFuzzyIsNull(A.determinant())) {
         return boost::none;
     }
 
@@ -978,7 +978,7 @@ boost::optional<PkPointF> intersectLines(const PkLineF &boundedLine, const PkLin
     double epsilon = 1e-06; // to avoid precision issues
 
     if (t2 < 0.0 || t2 > 1.0) {
-        if (qAbs(t2) > epsilon && qAbs(t2 - 1.0) > epsilon) {
+        if (pkAbs(t2) > epsilon && pkAbs(t2 - 1.0) > epsilon) {
             return boost::none;
         }
     }
@@ -1007,15 +1007,15 @@ PkVector<PkPointF> findTrianglePoint(const PkPointF &p1, const PkPointF &p2, qre
 
     if (p.isNull()) return result;
 
-    if (qAbs(p.x()) > qAbs(p.y())) {
+    if (pkAbs(p.x()) > pkAbs(p.y())) {
         const qreal A = 1.0;
         const qreal B2 = -T * p.y() / pSq;
         const qreal C = pow2(T) / pSq - pow2(a * p.x()) / pSq;
 
         const qreal D4 = pow2(B2) - A * C;
 
-        if (D4 > 0 || qFuzzyIsNull(D4)) {
-            if (qFuzzyIsNull(D4)) {
+        if (D4 > 0 || pkQtFuzzyIsNull(D4)) {
+            if (pkQtFuzzyIsNull(D4)) {
                 const qreal y = -B2 / A;
                 const qreal x = (T - y * p.y()) / p.x();
                 result << p1 + PkPointF(x, y);
@@ -1036,8 +1036,8 @@ PkVector<PkPointF> findTrianglePoint(const PkPointF &p1, const PkPointF &p2, qre
 
         const qreal D4 = pow2(B2) - A * C;
 
-        if (D4 > 0 || qFuzzyIsNull(D4)) {
-            if (qFuzzyIsNull(D4)) {
+        if (D4 > 0 || pkQtFuzzyIsNull(D4)) {
+            if (pkQtFuzzyIsNull(D4)) {
                 const qreal x = -B2 / A;
                 const qreal y = (T - x * p.x()) / p.y();
                 result << p1 + PkPointF(x, y);
@@ -1292,12 +1292,12 @@ int lineSideForPoint(const PkLineF &line, const PkPointF &point)
     if (fuzzyPointCompare(point, line.p2())) {
         return 0;
     }
-    if (qFuzzyCompare(line.length(), 0)) {
+    if (pkQtFuzzyCompare(line.length(), 0)) {
         return 0;
     }
 
     qreal whichSide = KisAlgebra2D::crossProduct(line.p2() - line.p1(), point - line.p1());
-    return qFuzzyIsNull(whichSide) ? 0 : (whichSide > 0 ? 1 : -1);
+    return pkQtFuzzyIsNull(whichSide) ? 0 : (whichSide > 0 ? 1 : -1);
 }
 
 PkPolygonF combineConvexHullParts(const PkPolygonF &leftPolygon, PkPolygonF &rightPolygon, bool triangular) {
@@ -1365,7 +1365,7 @@ PkPolygonF calculateConvexHullFromPointsOverTheLine(const PkPolygonF &points, co
     PkPolygonF triangle;
     triangle << line.p1() << line.p2() << nextPoint << line.p1();
     for (PkPointF point : points) {
-        if (triangle.containsPoint(point, Qt::WindingFill)) {
+        if (triangle.containsPoint(point, Pk::WindingFill)) {
             continue;
         }
         if (lineSideForPoint(lineForLeft, point) > 0) {
@@ -1466,7 +1466,7 @@ qreal findMinimumGoldenSection(std::function<qreal(qreal)> f, qreal xA, qreal xB
     qreal c = b - (b - a)*phi;
     qreal d = a + (b - a)*phi;
 
-    while (qAbs(b - a) > eps) {
+    while (pkAbs(b - a) > eps) {
         if (f(c) < f(d)) {
             b = d;
         } else {
@@ -1493,8 +1493,8 @@ qreal findMinimumTernarySection(std::function<qreal(qreal)> f, qreal xA, qreal x
     // only one local minimum between xA and xB
 
     int i = 0;
-    qreal l = qMin(xA, xB);
-    qreal r = qMax(xA, xB);
+    qreal l = pkMin(xA, xB);
+    qreal r = pkMax(xA, xB);
 
     qreal m1 = l + (r - l)/3;
     qreal m2 = r - (r - l)/3;
@@ -1633,7 +1633,7 @@ PkPainterPath getOnePathFromRectangleCutThrough(const PkList<PkPointF> &points, 
 
     auto onTheLine = [](PkPointF first, PkPointF second) {
         float delta = 0.1f;
-        return qAbs(first.x() - second.x()) < delta || qAbs(first.y() - second.y()) < delta;
+        return pkAbs(first.x() - second.x()) < delta || pkAbs(first.y() - second.y()) < delta;
     };
 
     bool started = false;
@@ -1739,7 +1739,7 @@ PkPointF findNearestPointOnLine(const PkPointF &point, const PkLineF &line, bool
     }
     qreal distance1 = kisDistance(line.p1(), result);
     qreal distance2 = kisDistance(line.p2(), result);
-    if (distance1 + distance2 <= line.length() || qFuzzyCompare(distance1 + distance2, line.length())) {
+    if (distance1 + distance2 <= line.length() || pkQtFuzzyCompare(distance1 + distance2, line.length())) {
         return result; // it's still on the line
     }
     if (distance1 < distance2) {
@@ -1752,7 +1752,7 @@ PkPointF movePointInTheDirection(const PkPointF &point, const PkPointF &directio
 {
     PkPointF response = point;
     PkLineF line = PkLineF(PkPointF(0, 0), direction);
-    if (qFuzzyCompare(line.length(), 0)) {
+    if (pkQtFuzzyCompare(line.length(), 0)) {
         return point;
     }
     return response + distance*direction/line.length();
@@ -1835,7 +1835,7 @@ PkPainterPath removeGutterOneEndSmart(const PkPainterPath &shape1, int index1, c
         distanceToMiddle = kisDistanceToLine(intersectionPoint, middleLine);
     }
 
-    if (intersectionType == PkLineF::NoIntersection || distanceToMiddle > qMax(leftPointDistanceFromMiddle, rightPointDistanceFromMiddle)) {
+    if (intersectionType == PkLineF::NoIntersection || distanceToMiddle > pkMax(leftPointDistanceFromMiddle, rightPointDistanceFromMiddle)) {
 
         // first arg: bounded line, second: unbounded
         boost::optional<PkPointF> leftIntersection = intersectLines(line2, leftLine);
@@ -1871,8 +1871,8 @@ VectorPath mergeShapesWithGutter(const VectorPath& shape1, const VectorPath& sha
     result.append(shape1.pointAt(0));
 
     auto appendFrom = [] (PkList<VPoint>& res, int start, int end, const VectorPath& shape) {
-        start = qBound(0, start, shape.segmentsCount() - 1);
-        end = qBound(0, end, shape.segmentsCount());
+        start = pkBound(0, start, shape.segmentsCount() - 1);
+        end = pkBound(0, end, shape.segmentsCount());
 
         for (int i = start; i < end; i++) {
             PkList<VPoint> segment = shape.segmentAt(i);
@@ -1885,8 +1885,8 @@ VectorPath mergeShapesWithGutter(const VectorPath& shape1, const VectorPath& sha
     int reversedIndex2 = reverseSecondPoly ? (shape2.segmentsCount() - index2 - 1) : index2;
 
     if (isSameShape) {
-        int minIndex = qMin(index1, index2);
-        int maxIndex = qMax(index1, index2);
+        int minIndex = pkMin(index1, index2);
+        int maxIndex = pkMax(index1, index2);
 
         // the indexes define a way to cut the shape into two shapes
         // and one of them is kind of more outer than the other
@@ -2181,7 +2181,7 @@ VectorPath VectorPath::trulySimplified(qreal epsDegrees) const
         PkLineF line1(start, end);
         PkLineF line2(start, middle);
 
-        return (qAbs(crossProduct(end - start, middle - start)/line1.length()/line2.length()) < eps);
+        return (pkAbs(crossProduct(end - start, middle - start)/line1.length()/line2.length()) < eps);
     };
 
     for (int i = 1; i < m_points.length(); i++) {
@@ -2238,7 +2238,7 @@ VectorPath VectorPath::trulySimplified(qreal epsDegrees) const
         }
 
     } else if (response[0].type == VPoint::LineTo) { // first point is then PkPointF(0, 0)
-        if (qFuzzyIsNull(previousPoint.endPoint.x()) && qFuzzyIsNull(previousPoint.endPoint.y())) {
+        if (pkQtFuzzyIsNull(previousPoint.endPoint.x()) && pkQtFuzzyIsNull(previousPoint.endPoint.y())) {
             // they are the same point, now whether they're on the line
             if (second.type == VPoint::LineTo && onTheLine(previousPoint.endPoint, PkPointF(0, 0), start.endPoint)) {
                 // note: leaving this debug for future reference
@@ -2275,7 +2275,7 @@ bool VectorPath::fuzzyComparePointsCyclic(const VectorPath &path, qreal eps) con
         return false;
     }
 
-    bool fuzzy = qFuzzyIsNull(eps);
+    bool fuzzy = pkQtFuzzyIsNull(eps);
 
     auto comparePoints = [fuzzy, eps] (PkPointF left, PkPointF right) {
         if (fuzzy) {
@@ -2384,7 +2384,7 @@ bool isInsideShape(const VectorPath &path, const PkPointF &point)
     }
 
     if (isPolygon) {
-        return path.asPainterPath().toFillPolygon(PkTransform()).containsPoint(point, Qt::WindingFill);
+        return path.asPainterPath().toFillPolygon(PkTransform()).containsPoint(point, Pk::WindingFill);
     }
 
     boundRect = kisGrowRect(boundRect, 5); // just safety margins
@@ -2446,7 +2446,7 @@ bool isInsideShape(const PkPainterPath &path, const PkPointF &point)
         }
     }
 
-    return path.toFillPolygon(PkTransform()).containsPoint(point, Qt::WindingFill);
+    return path.toFillPolygon(PkTransform()).containsPoint(point, Pk::WindingFill);
 }
 
 bool isOnLine(const PkLineF &line, const PkPointF &point, const qreal eps, bool boundedStart, bool boundedEnd, bool includeEnds)
@@ -2465,7 +2465,7 @@ bool isOnLine(const PkLineF &line, const PkPointF &point, const qreal eps, bool 
     PkPointF lineVector = line.p2() - line.p1();
     PkPointF pointVector = point - line.p1();
     qreal t = -1;
-    if (qAbs(pointVector.x()) < eps) {
+    if (pkAbs(pointVector.x()) < eps) {
         // use y
         t = pointVector.y()/lineVector.y();
     } else {

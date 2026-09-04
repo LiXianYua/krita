@@ -862,7 +862,7 @@ KoColor KisDisplayColorConverter::fromHsiF(qreal h, qreal s, qreal i)
     qreal a=1.0;
     HSIToRGB(h, s, i, &r, &g, &b);
     QColor qcolor;
-    qcolor.setRgbF(qBound(0.0,r,1.0), qBound(0.0,g,1.0), qBound(0.0,b,1.0), a);
+    qcolor.setRgbF(pkBound(0.0,r,1.0), pkBound(0.0,g,1.0), pkBound(0.0,b,1.0), a);
     return m_d->approximateFromQColor(qcolor);
 }
 
@@ -884,7 +884,7 @@ KoColor KisDisplayColorConverter::fromHsyF(qreal h, qreal s, qreal y, qreal R, q
     HSYToRGB(h, s, y, &channelValues[0], &channelValues[1], &channelValues[2], R, G, B);
     KoColorSpaceRegistry::instance()->rgb8()->profile()->delinearizeFloatValueFast(channelValues);
     QColor qcolor;
-    qcolor.setRgbF(qBound(0.0,channelValues[0],1.0), qBound(0.0,channelValues[1],1.0), qBound(0.0,channelValues[2],1.0), 1.0);
+    qcolor.setRgbF(pkBound(0.0,channelValues[0],1.0), pkBound(0.0,channelValues[1],1.0), pkBound(0.0,channelValues[2],1.0), 1.0);
     return m_d->approximateFromQColor(qcolor);
 }
 

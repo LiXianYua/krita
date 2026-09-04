@@ -456,7 +456,7 @@ bool PerspectiveEllipseAssistant::contains(const PkPointF &point) const
 
     PkPolygonF poly;
     if (!PerspectiveBasedAssistantHelper::getTetragon(handles(), isAssistantComplete(), poly)) return false;
-    return poly.containsPoint(point, Qt::OddEvenFill);
+    return poly.containsPoint(point, Pk::OddEvenFill);
 }
 
 qreal PerspectiveEllipseAssistant::distance(const PkPointF &point) const

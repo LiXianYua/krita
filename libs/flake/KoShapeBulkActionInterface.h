@@ -5,7 +5,7 @@
 #ifndef KOSHAPEBULKACTIONINTERFACE_H
 #define KOSHAPEBULKACTIONINTERFACE_H
 
-#include <QRect>
+#include <PkRect.h>
 
 /**
  * @brief Interface for bulk actions on shapes
@@ -46,7 +46,7 @@ struct KoShapeBulkActionInterface
      * coordinates that should be updated to make these changes visible
      * to the user.
      */
-    virtual QRectF endBulkAction() = 0;
+    virtual PkRectF endBulkAction() = 0;
 };
 
 #endif // KOSHAPEBULKACTIONINTERFACE_H

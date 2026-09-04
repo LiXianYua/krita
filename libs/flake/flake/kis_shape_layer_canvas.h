@@ -6,7 +6,7 @@
 #ifndef KIS_SHAPE_LAYER_CANVAS_H
 #define KIS_SHAPE_LAYER_CANVAS_H
 
-#include <QMutex>
+#include <PkMutex.h>
 #include <QRegion>
 #include <KoCanvasBase.h>
 
@@ -54,7 +54,7 @@ public:
     const KoViewConverter *viewConverter() const override;
     KoViewConverter *viewConverter() override;
 
-    void gridSize(QPointF *offset, QSizeF *spacing) const override;
+    void gridSize(PkPointF *offset, PkSizeF *spacing) const override;
     bool snapToGrid() const override;
     void addCommand(KUndo2Command *command) override;
     KoSelectedShapesProxy *selectedShapesProxy() const override;
@@ -65,8 +65,8 @@ public:
     void setCursor(const QCursor &) override {}
 
 protected:
-    QScopedPointer<KoShapeManager> m_shapeManager;
-    QScopedPointer<KoSelectedShapesProxy> m_selectedShapesProxy;
+    PkScopedPointer<KoShapeManager> m_shapeManager;
+    PkScopedPointer<KoSelectedShapesProxy> m_selectedShapesProxy;
     bool m_hasChangedWhileBeingInvisible {false};
     bool m_isDestroying {false};
 
@@ -94,8 +94,8 @@ public:
     KisPaintDeviceSP projection() const override;
 
     void setImage(KisImageWSP image) override;
-    void updateCanvas(const QRectF& rc) override;
-    void updateCanvas(const QVector<QRectF> &region);
+    void updateCanvas(const PkRectF& rc) override;
+    void updateCanvas(const PkVector<PkRectF> &region);
     void forceRepaint() override;
     bool hasPendingUpdates() const override;
 
@@ -122,10 +122,10 @@ private:
 
     bool m_forceUpdateHiddenAreasOnly = false;
     QRegion m_dirtyRegion;
-    QMutex m_dirtyRegionMutex;
+    PkMutex m_dirtyRegionMutex;
     KoShapeManager::PaintJobsOrder m_paintJobsOrder;
 
-    QRect m_cachedImageRect;
+    PkRect m_cachedImageRect;
 
     KisImageWSP m_image;
     PkConnection m_imageSizeConnection;

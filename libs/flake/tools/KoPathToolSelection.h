@@ -63,7 +63,7 @@ public:
      * @param rect the selection rectangle in document coordinates
      * @param clearSelection if set clear the current selection before the selection
      */
-    void selectPoints(const QRectF &rect, bool clearSelection);
+    void selectPoints(const PkRectF &rect, bool clearSelection);
 
     void selectAll();
 
@@ -93,27 +93,27 @@ public:
     *
     * @return set of selected points
     */
-    const QSet<KoPathPoint *> &selectedPoints() const;
+    const PkSet<KoPathPoint *> &selectedPoints() const;
 
     /**
     * @brief Get the point data of all selected points
     *
     * This is subject to change
     */
-    QList<KoPathPointData> selectedPointsData() const;
+    PkList<KoPathPointData> selectedPointsData() const;
 
     /**
     * @brief Get the point data of all selected segments
     *
     * This is subject to change
     */
-    QList<KoPathPointData> selectedSegmentsData() const;
+    PkList<KoPathPointData> selectedSegmentsData() const;
 
     /// Returns list of selected shapes
-    QList<KoPathShape*> selectedShapes() const;
+    PkList<KoPathShape*> selectedShapes() const;
 
     /// Sets list of selected shapes
-    void setSelectedShapes(const QList<KoPathShape*> shapes);
+    void setSelectedShapes(const PkList<KoPathShape*> shapes);
 
     /**
     * @brief Update the selection to contain only valid points
@@ -130,7 +130,7 @@ public:
     bool hasSelection() override;
 
 
-    void recommendPointSelectionChange(KoPathShape *shape, const QList<KoPathPointIndex> &newSelection) override;
+    void recommendPointSelectionChange(KoPathShape *shape, const PkList<KoPathPointIndex> &newSelection) override;
     void notifyPathPointsChanged(KoPathShape *shape) override;
     void notifyShapeChanged(KoShape::ChangeType type, KoShape *shape) override;
 
@@ -138,12 +138,12 @@ Q_SIGNALS:
     void selectionChanged();
 
 private:
-    typedef QMap<KoPathShape *, QSet<KoPathPoint *> > PathShapePointMap;
+    typedef PkMap<KoPathShape *, PkSet<KoPathPoint *> > PathShapePointMap;
 
-    QSet<KoPathPoint *> m_selectedPoints;
+    PkSet<KoPathPoint *> m_selectedPoints;
     PathShapePointMap m_shapePointMap;
     KoPathTool *m_tool;
-    QList<KoPathShape*> m_selectedShapes;
+    PkList<KoPathShape*> m_selectedShapes;
 };
 
 #endif // KOPATHTOOLSELECTION_H

@@ -13,7 +13,7 @@
 #include "SvgSavingContext.h"
 
 #include <kritaflake_export.h>
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 /**
  * @brief The KoSvgTextContentElement struct
@@ -49,13 +49,13 @@ public:
     KoSvgTextProperties properties;
 
     /// Local SVG char transforms.
-    QVector<KoSvgText::CharTransformation> localTransformations;
+    PkVector<KoSvgText::CharTransformation> localTransformations;
 
     /// Text path info for the text-on-path algorithm
     KoSvgText::TextOnPathInfo textPathInfo;
 
     /// The textpath's name, if any.
-    QString textPathId;
+    PkString textPathId;
 
     /// the value 'textLength' attribute of the associated dom element
     KoSvgText::AutoValue textLength;
@@ -63,10 +63,10 @@ public:
     KoSvgText::LengthAdjust lengthAdjust = KoSvgText::LengthAdjustSpacing;
 
     /// Cached text decorations to be used by the painting function.
-    QMap<KoSvgText::TextDecoration, QPainterPath> textDecorations;
+    PkMap<KoSvgText::TextDecoration, PkPainterPath> textDecorations;
 
     /// Plain text of the current node. Use insertText and removeText to manipulate it.
-    QString text;
+    PkString text;
 
     /// Set during layout, finalResultIndex determines the size of the iterator
     /// on result after going over this contentElement. Once layout has been set
@@ -74,7 +74,7 @@ public:
     int finalResultIndex = -1;
 
     /// The associated outline. Currently only a bounding box.
-    QPainterPath associatedOutline;
+    PkPainterPath associatedOutline;
 
     /**
      * @brief loadSvg
@@ -87,11 +87,11 @@ public:
      * loading we inherit and resolve those properties dynamically for the root node only.
      * @return whether successful.
      */
-    bool loadSvg(const QDomElement &element, SvgLoadingContext &context, bool rootNode = false);
+    bool loadSvg(const PkXmlElement &element, SvgLoadingContext &context, bool rootNode = false);
 
-    bool loadSvgTextNode(const QDomText &text, SvgLoadingContext &context);
+    bool loadSvgTextNode(const PkXmlText &text, SvgLoadingContext &context);
 
-    bool saveSvg(SvgSavingContext &context, bool rootText, bool saveText, QMap<QString, QString> shapeSpecificAttributes, KoShape *textPath = nullptr);
+    bool saveSvg(SvgSavingContext &context, bool rootText, bool saveText, PkMap<PkString, PkString> shapeSpecificAttributes, KoShape *textPath = nullptr);
 
     /**
      * The number of characters contained in the currentChunk.
@@ -104,14 +104,14 @@ public:
      * Get the text with transformations applied.
      * @param positions the text positions which may have changed due the uppercase transform.
      */
-    QString getTransformedString(QVector<QPair<int, int>> &positions, KoSvgTextProperties resolvedProps = KoSvgTextProperties()) const;
+    PkString getTransformedString(PkVector<std::pair<int, int>> &positions, KoSvgTextProperties resolvedProps = KoSvgTextProperties()) const;
 
     /**
      * @brief insertText
      * @param start -- start index.
      * @param insertText -- text to insert.
      */
-    void insertText(int start, QString insertText);
+    void insertText(int start, PkString insertText);
     /**
      * @brief removeText
      * removes text, @see KoSvgTextShape::removeText and CssUtils::removeText

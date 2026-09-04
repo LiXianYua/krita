@@ -8,8 +8,8 @@
 #ifndef KOPATHPOINTMOVESTRATEGY_H
 #define KOPATHPOINTMOVESTRATEGY_H
 
-#include <QPointF>
-#include <QScopedPointer>
+#include <PkPoint.h>
+#include <PkScopedPointer.h>
 #include "KoInteractionStrategy.h"
 
 #include <memory>
@@ -22,17 +22,17 @@ class KoPathTool;
 class KoPathPointMoveStrategy : public KoInteractionStrategy
 {
 public:
-    KoPathPointMoveStrategy(KoPathTool *tool, const QPointF &mousePosition, const QPointF &pointPosition);
+    KoPathPointMoveStrategy(KoPathTool *tool, const PkPointF &mousePosition, const PkPointF &pointPosition);
     ~KoPathPointMoveStrategy() override;
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
 
 private:
-    QPointF m_startMousePosition;
-    QPointF m_startPointPosition;
+    PkPointF m_startMousePosition;
+    PkPointF m_startPointPosition;
     /// the accumulated point move amount
-    QPointF m_move;
+    PkPointF m_move;
     /// pointer to the path tool
     KoPathTool *m_tool;
     std::unique_ptr<KUndo2Command> m_intermediateCommand;

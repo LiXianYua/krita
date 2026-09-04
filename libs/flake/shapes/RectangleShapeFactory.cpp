@@ -26,9 +26,9 @@ RectangleShapeFactory::RectangleShapeFactory()
     setFamily("geometric");
     setLoadingPriority(1);
 
-    QList<QPair<QString, QStringList> > elementNamesList;
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), QStringList("rect")));
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::svg), QStringList("rect")));
+    PkList<std::pair<PkString, PkStringList> > elementNamesList;
+    elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), PkStringList("rect")));
+    elementNamesList.append(qMakePair(toQString(KoXmlNS::svg), PkStringList("rect")));
     setXmlElements(elementNamesList);
 }
 
@@ -36,15 +36,15 @@ KoShape *RectangleShapeFactory::createDefaultShape(KoDocumentResourceManager *) 
 {
     RectangleShape *rect = new RectangleShape();
 
-    rect->setStroke(QSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
+    rect->setStroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
     rect->setShapeId(KoPathShapeId);
 
-    QLinearGradient *gradient = new QLinearGradient(QPointF(0, 0), QPointF(1, 1));
-    gradient->setCoordinateMode(QGradient::ObjectBoundingMode);
+    QLinearGradient *gradient = new QLinearGradient(PkPointF(0, 0), PkPointF(1, 1));
+    gradient->setCoordinateMode(PkGradient::ObjectBoundingMode);
 
     gradient->setColorAt(0.0, Qt::white);
     gradient->setColorAt(1.0, Qt::green);
-    rect->setBackground(QSharedPointer<KoGradientBackground>(new KoGradientBackground(gradient)));
+    rect->setBackground(PkSharedPointer<KoGradientBackground>(new KoGradientBackground(gradient)));
 
     return rect;
 }
@@ -56,11 +56,11 @@ KoShape *RectangleShapeFactory::createShape(const KoProperties *params, KoDocume
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(rectShape, shape);
 
     rectShape->setSize(
-        QSizeF(params->doubleProperty("width", rectShape->size().width()),
+        PkSizeF(params->doubleProperty("width", rectShape->size().width()),
                params->doubleProperty("height", rectShape->size().height())));
 
     rectShape->setAbsolutePosition(
-        QPointF(params->doubleProperty("x", rectShape->absolutePosition(KoFlake::TopLeft).x()),
+        PkPointF(params->doubleProperty("x", rectShape->absolutePosition(KoFlake::TopLeft).x()),
                 params->doubleProperty("y", rectShape->absolutePosition(KoFlake::TopLeft).y())),
         KoFlake::TopLeft);
 
@@ -71,7 +71,7 @@ KoShape *RectangleShapeFactory::createShape(const KoProperties *params, KoDocume
     return shape;
 }
 
-bool RectangleShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &/*context*/) const
+bool RectangleShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &/*context*/) const
 {
     Q_UNUSED(e);
     return (e.localName() == "rect" && e.namespaceURI() == toQString(KoXmlNS::draw));

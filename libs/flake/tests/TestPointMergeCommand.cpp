@@ -11,7 +11,7 @@
 #include "KoPathPointMergeCommand.h"
 #include "KoPathShape.h"
 #include <FlakeDebug.h>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <simpletest.h>
 #include <testflake.h>
 
@@ -19,12 +19,12 @@
 void TestPointMergeCommand::closeSingleLinePath()
 {
     KoPathShape path1;
-    path1.moveTo(QPointF(40, 0));
-    path1.lineTo(QPointF(60, 0));
-    path1.lineTo(QPointF(60, 30));
-    path1.lineTo(QPointF(0, 30));
-    path1.lineTo(QPointF(0, 0));
-    path1.lineTo(QPointF(20, 0));
+    path1.moveTo(PkPointF(40, 0));
+    path1.lineTo(PkPointF(60, 0));
+    path1.lineTo(PkPointF(60, 30));
+    path1.lineTo(PkPointF(0, 30));
+    path1.lineTo(PkPointF(0, 0));
+    path1.lineTo(PkPointF(20, 0));
 
     KoPathPointIndex index1(0,0);
     KoPathPointIndex index2(0,5);
@@ -37,45 +37,45 @@ void TestPointMergeCommand::closeSingleLinePath()
 
     QVERIFY(!path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 6);
-    QCOMPARE(p1->point(), QPointF(40,0));
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p1->point(), PkPointF(40,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
 
     KoPathPointMergeCommand cmd1(pd1,pd2);
     cmd1.redo();
 
     QVERIFY(path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 5);
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
 
     cmd1.undo();
 
     QVERIFY(!path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 6);
-    QCOMPARE(p1->point(), QPointF(40,0));
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p1->point(), PkPointF(40,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
 
     KoPathPointMergeCommand cmd2(pd2,pd1);
     cmd2.redo();
 
     QVERIFY(path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 5);
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
 
     cmd2.undo();
 
     QVERIFY(!path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 6);
-    QCOMPARE(p1->point(), QPointF(40,0));
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p1->point(), PkPointF(40,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
 }
 
 void TestPointMergeCommand::closeSingleCurvePath()
 {
     KoPathShape path1;
-    path1.moveTo(QPointF(40, 0));
-    path1.curveTo(QPointF(60, 0), QPointF(60,0), QPointF(60,60));
-    path1.lineTo(QPointF(0, 60));
-    path1.curveTo(QPointF(0, 0), QPointF(0,0), QPointF(20,0));
+    path1.moveTo(PkPointF(40, 0));
+    path1.curveTo(PkPointF(60, 0), PkPointF(60,0), PkPointF(60,60));
+    path1.lineTo(PkPointF(0, 60));
+    path1.curveTo(PkPointF(0, 0), PkPointF(0,0), PkPointF(20,0));
 
     KoPathPointIndex index1(0,0);
     KoPathPointIndex index2(0,3);
@@ -88,9 +88,9 @@ void TestPointMergeCommand::closeSingleCurvePath()
 
     QVERIFY(!path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 4);
-    QCOMPARE(p1->point(), QPointF(40,0));
+    QCOMPARE(p1->point(), PkPointF(40,0));
     QVERIFY(!p1->activeControlPoint1());
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
     QVERIFY(!p2->activeControlPoint2());
 
     KoPathPointMergeCommand cmd1(pd1,pd2);
@@ -98,7 +98,7 @@ void TestPointMergeCommand::closeSingleCurvePath()
 
     QVERIFY(path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 3);
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
     QVERIFY(p2->activeControlPoint1());
     QVERIFY(!p2->activeControlPoint2());
 
@@ -106,9 +106,9 @@ void TestPointMergeCommand::closeSingleCurvePath()
 
     QVERIFY(!path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 4);
-    QCOMPARE(p1->point(), QPointF(40,0));
+    QCOMPARE(p1->point(), PkPointF(40,0));
     QVERIFY(!p1->activeControlPoint1());
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
     QVERIFY(!p2->activeControlPoint2());
 
     KoPathPointMergeCommand cmd2(pd2,pd1);
@@ -116,7 +116,7 @@ void TestPointMergeCommand::closeSingleCurvePath()
 
     QVERIFY(path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 3);
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
     QVERIFY(p2->activeControlPoint1());
     QVERIFY(!p2->activeControlPoint2());
 
@@ -124,19 +124,19 @@ void TestPointMergeCommand::closeSingleCurvePath()
 
     QVERIFY(!path1.isClosedSubpath(0));
     QCOMPARE(path1.subpathPointCount(0), 4);
-    QCOMPARE(p1->point(), QPointF(40,0));
+    QCOMPARE(p1->point(), PkPointF(40,0));
     QVERIFY(!p1->activeControlPoint1());
-    QCOMPARE(p2->point(), QPointF(20,0));
+    QCOMPARE(p2->point(), PkPointF(20,0));
     QVERIFY(!p2->activeControlPoint2());
 }
 
 void TestPointMergeCommand::connectLineSubpaths()
 {
     KoPathShape path1;
-    path1.moveTo(QPointF(0,0));
-    path1.lineTo(QPointF(10,0));
-    path1.moveTo(QPointF(20,0));
-    path1.lineTo(QPointF(30,0));
+    path1.moveTo(PkPointF(0,0));
+    path1.lineTo(PkPointF(10,0));
+    path1.moveTo(PkPointF(20,0));
+    path1.lineTo(PkPointF(30,0));
 
     KoPathPointIndex index1(0,1);
     KoPathPointIndex index2(1,0);
@@ -145,41 +145,41 @@ void TestPointMergeCommand::connectLineSubpaths()
     KoPathPointData pd2(&path1, index2);
 
     QCOMPARE(path1.subpathCount(), 2);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(10,0));
-    QCOMPARE(path1.pointByIndex(index2)->point(), QPointF(20,0));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(10,0));
+    QCOMPARE(path1.pointByIndex(index2)->point(), PkPointF(20,0));
 
     KoPathPointMergeCommand cmd1(pd1, pd2);
     cmd1.redo();
 
     QCOMPARE(path1.subpathCount(), 1);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(15,0));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(15,0));
 
     cmd1.undo();
 
     QCOMPARE(path1.subpathCount(), 2);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(10,0));
-    QCOMPARE(path1.pointByIndex(index2)->point(), QPointF(20,0));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(10,0));
+    QCOMPARE(path1.pointByIndex(index2)->point(), PkPointF(20,0));
 
     KoPathPointMergeCommand cmd2(pd2, pd1);
     cmd2.redo();
 
     QCOMPARE(path1.subpathCount(), 1);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(15,0));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(15,0));
 
     cmd2.undo();
 
     QCOMPARE(path1.subpathCount(), 2);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(10,0));
-    QCOMPARE(path1.pointByIndex(index2)->point(), QPointF(20,0));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(10,0));
+    QCOMPARE(path1.pointByIndex(index2)->point(), PkPointF(20,0));
 }
 
 void TestPointMergeCommand::connectCurveSubpaths()
 {
     KoPathShape path1;
-    path1.moveTo(QPointF(0,0));
-    path1.curveTo(QPointF(20,0),QPointF(0,20),QPointF(20,20));
-    path1.moveTo(QPointF(50,0));
-    path1.curveTo(QPointF(30,0), QPointF(50,20), QPointF(30,20));
+    path1.moveTo(PkPointF(0,0));
+    path1.curveTo(PkPointF(20,0),PkPointF(0,20),PkPointF(20,20));
+    path1.moveTo(PkPointF(50,0));
+    path1.curveTo(PkPointF(30,0), PkPointF(50,20), PkPointF(30,20));
 
     KoPathPointIndex index1(0,1);
     KoPathPointIndex index2(1,1);
@@ -188,10 +188,10 @@ void TestPointMergeCommand::connectCurveSubpaths()
     KoPathPointData pd2(&path1, index2);
 
     QCOMPARE(path1.subpathCount(), 2);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(20,20));
-    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), QPointF(0,20));
-    QCOMPARE(path1.pointByIndex(index2)->point(), QPointF(30,20));
-    QCOMPARE(path1.pointByIndex(index2)->controlPoint1(), QPointF(50,20));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(20,20));
+    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), PkPointF(0,20));
+    QCOMPARE(path1.pointByIndex(index2)->point(), PkPointF(30,20));
+    QCOMPARE(path1.pointByIndex(index2)->controlPoint1(), PkPointF(50,20));
     QVERIFY(path1.pointByIndex(index1)->activeControlPoint1());
     QVERIFY(!path1.pointByIndex(index1)->activeControlPoint2());
 
@@ -199,19 +199,19 @@ void TestPointMergeCommand::connectCurveSubpaths()
     cmd1.redo();
 
     QCOMPARE(path1.subpathCount(), 1);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(25,20));
-    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), QPointF(5,20));
-    QCOMPARE(path1.pointByIndex(index1)->controlPoint2(), QPointF(45,20));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(25,20));
+    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), PkPointF(5,20));
+    QCOMPARE(path1.pointByIndex(index1)->controlPoint2(), PkPointF(45,20));
     QVERIFY(path1.pointByIndex(index1)->activeControlPoint1());
     QVERIFY(path1.pointByIndex(index1)->activeControlPoint2());
 
     cmd1.undo();
 
     QCOMPARE(path1.subpathCount(), 2);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(20,20));
-    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), QPointF(0,20));
-    QCOMPARE(path1.pointByIndex(index2)->point(), QPointF(30,20));
-    QCOMPARE(path1.pointByIndex(index2)->controlPoint1(), QPointF(50,20));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(20,20));
+    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), PkPointF(0,20));
+    QCOMPARE(path1.pointByIndex(index2)->point(), PkPointF(30,20));
+    QCOMPARE(path1.pointByIndex(index2)->controlPoint1(), PkPointF(50,20));
     QVERIFY(path1.pointByIndex(index1)->activeControlPoint1());
     QVERIFY(!path1.pointByIndex(index1)->activeControlPoint2());
 
@@ -219,19 +219,19 @@ void TestPointMergeCommand::connectCurveSubpaths()
     cmd2.redo();
 
     QCOMPARE(path1.subpathCount(), 1);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(25,20));
-    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), QPointF(5,20));
-    QCOMPARE(path1.pointByIndex(index1)->controlPoint2(), QPointF(45,20));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(25,20));
+    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), PkPointF(5,20));
+    QCOMPARE(path1.pointByIndex(index1)->controlPoint2(), PkPointF(45,20));
     QVERIFY(path1.pointByIndex(index1)->activeControlPoint1());
     QVERIFY(path1.pointByIndex(index1)->activeControlPoint2());
 
     cmd2.undo();
 
     QCOMPARE(path1.subpathCount(), 2);
-    QCOMPARE(path1.pointByIndex(index1)->point(), QPointF(20,20));
-    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), QPointF(0,20));
-    QCOMPARE(path1.pointByIndex(index2)->point(), QPointF(30,20));
-    QCOMPARE(path1.pointByIndex(index2)->controlPoint1(), QPointF(50,20));
+    QCOMPARE(path1.pointByIndex(index1)->point(), PkPointF(20,20));
+    QCOMPARE(path1.pointByIndex(index1)->controlPoint1(), PkPointF(0,20));
+    QCOMPARE(path1.pointByIndex(index2)->point(), PkPointF(30,20));
+    QCOMPARE(path1.pointByIndex(index2)->controlPoint1(), PkPointF(50,20));
     QVERIFY(path1.pointByIndex(index1)->activeControlPoint1());
     QVERIFY(!path1.pointByIndex(index1)->activeControlPoint2());
 }
@@ -244,16 +244,16 @@ void TestPointMergeCommand::testCombineShapes()
 {
     MockShapeController mockController;
     MockCanvas canvas(&mockController);
-    QScopedPointer<MockContainer> rootContainer(new MockContainer());
+    PkScopedPointer<MockContainer> rootContainer(new MockContainer());
     rootContainer->setAssociatedRootShapeManager(canvas.shapeManager());
 
-    QList<KoPathShape*> shapesToCombine;
+    PkList<KoPathShape*> shapesToCombine;
 
     for (int i = 0; i < 3; i++) {
-        const QPointF step(15,15);
-        const QRectF rect = QRectF(5,5,10,10).translated(step * i);
+        const PkPointF step(15,15);
+        const PkRectF rect = PkRectF(5,5,10,10).translated(step * i);
 
-        QPainterPath p;
+        PkPainterPath p;
         p.addRect(rect);
 
         KoPathShape *shape = KoPathShape::createShapeFromPainterPath(p);
@@ -271,10 +271,10 @@ void TestPointMergeCommand::testCombineShapes()
     KoPathShape *combinedShape = dynamic_cast<KoPathShape*>(rootContainer->shapes().first());
     QCOMPARE(combinedShape, cmd.combinedPath());
     QCOMPARE(combinedShape->subpathCount(), 3);
-    QCOMPARE(combinedShape->absoluteOutlineRect(), QRectF(5,5,40,40));
+    QCOMPARE(combinedShape->absoluteOutlineRect(), PkRectF(5,5,40,40));
 
-    QList<KoPathPointData> tstPoints;
-    QList<KoPathPointData> expPoints;
+    PkList<KoPathPointData> tstPoints;
+    PkList<KoPathPointData> expPoints;
 
     tstPoints << KoPathPointData(shapesToCombine[0], KoPathPointIndex(0,1));
     expPoints << KoPathPointData(combinedShape, KoPathPointIndex(0,1));
@@ -299,14 +299,14 @@ void TestPointMergeCommand::testCombineShapes()
 #include <KoSelection.h>
 #include "kis_algebra_2d.h"
 
-inline QPointF fetchPoint(KoPathShape *shape, int subpath, int pointIndex) {
+inline PkPointF fetchPoint(KoPathShape *shape, int subpath, int pointIndex) {
     return shape->absoluteTransformation().map(
         shape->pointByIndex(KoPathPointIndex(subpath, pointIndex))->point());
 }
 
-void dumpShape(KoPathShape *shape, const QString &fileName)
+void dumpShape(KoPathShape *shape, const PkString &fileName)
 {
-    QImage tmp(50,50, QImage::Format_ARGB32);
+    PkImage tmp(50,50, PkImage::Format_ARGB32);
     tmp.fill(0);
     QPainter p(&tmp);
     p.drawPath(shape->absoluteTransformation().map(shape->outline()));
@@ -316,21 +316,21 @@ void dumpShape(KoPathShape *shape, const QString &fileName)
 template <class MergeCommand = KoMultiPathPointMergeCommand>
 void testMultipathMergeShapesImpl(const int srcPointIndex1,
                                   const int srcPointIndex2,
-                                  const QList<QPointF> &expectedResultPoints,
+                                  const PkList<PkPointF> &expectedResultPoints,
                                   bool singleShape = false)
 {
     MockShapeController mockController;
     MockCanvas canvas(&mockController);
-    QScopedPointer<MockContainer> rootContainer(new MockContainer());
+    PkScopedPointer<MockContainer> rootContainer(new MockContainer());
     rootContainer->setAssociatedRootShapeManager(canvas.shapeManager());
 
-    QList<KoPathShape*> shapes;
+    PkList<KoPathShape*> shapes;
 
     for (int i = 0; i < 3; i++) {
-        const QPointF step(15,15);
-        const QRectF rect = QRectF(5,5,10,10).translated(step * i);
+        const PkPointF step(15,15);
+        const PkRectF rect = PkRectF(5,5,10,10).translated(step * i);
 
-        QPainterPath p;
+        PkPainterPath p;
         p.moveTo(rect.topLeft());
         p.lineTo(rect.bottomRight());
         p.lineTo(rect.topRight());
@@ -367,7 +367,7 @@ void testMultipathMergeShapesImpl(const int srcPointIndex1,
 
         PkRectF expectedOutlineRect;
         PkList<PkPointF> pkExpectedPoints;
-        for (const QPointF &pt : expectedResultPoints) {
+        for (const PkPointF &pt : expectedResultPoints) {
             pkExpectedPoints.append(toPkPointF(pt));
         }
         KisAlgebra2D::accumulateBounds(pkExpectedPoints, &expectedOutlineRect);
@@ -388,7 +388,7 @@ void testMultipathMergeShapesImpl(const int srcPointIndex1,
             }
         }
 
-        QList<KoShape*> shapes = canvas.shapeManager()->selection()->selectedEditableShapes();
+        PkList<KoShape*> shapes = canvas.shapeManager()->selection()->selectedEditableShapes();
         QCOMPARE(shapes.size(), 1);
         QCOMPARE(shapes.first(), combinedShape);
 
@@ -408,11 +408,11 @@ void TestPointMergeCommand::testMultipathMergeShapesBothSequential()
     // both sequential
     testMultipathMergeShapesImpl(2, 0,
                                  {
-                                     QPointF(5,5),
-                                     QPointF(15,15),
-                                     QPointF(17.5,12.5), // merged by melding the points!
-                                     QPointF(30,30),
-                                     QPointF(30,20)
+                                     PkPointF(5,5),
+                                     PkPointF(15,15),
+                                     PkPointF(17.5,12.5), // merged by melding the points!
+                                     PkPointF(30,30),
+                                     PkPointF(30,20)
                                  });
 }
 
@@ -421,11 +421,11 @@ void TestPointMergeCommand::testMultipathMergeShapesFirstReversed()
     // first reversed
     testMultipathMergeShapesImpl(0, 0,
                                  {
-                                     QPointF(15,5),
-                                     QPointF(15,15),
-                                     QPointF(12.5,12.5), // merged by melding the points!
-                                     QPointF(30,30),
-                                     QPointF(30,20)
+                                     PkPointF(15,5),
+                                     PkPointF(15,15),
+                                     PkPointF(12.5,12.5), // merged by melding the points!
+                                     PkPointF(30,30),
+                                     PkPointF(30,20)
                                  });
 }
 
@@ -434,11 +434,11 @@ void TestPointMergeCommand::testMultipathMergeShapesSecondReversed()
     // second reversed
     testMultipathMergeShapesImpl(2, 2,
                                  {
-                                     QPointF(5,5),
-                                     QPointF(15,15),
-                                     QPointF(22.5,12.5), // merged by melding the points!
-                                     QPointF(30,30),
-                                     QPointF(20,20)
+                                     PkPointF(5,5),
+                                     PkPointF(15,15),
+                                     PkPointF(22.5,12.5), // merged by melding the points!
+                                     PkPointF(30,30),
+                                     PkPointF(20,20)
                                  });
 }
 
@@ -447,11 +447,11 @@ void TestPointMergeCommand::testMultipathMergeShapesBothReversed()
     // both reversed
     testMultipathMergeShapesImpl(0, 2,
                                  {
-                                     QPointF(15,5),
-                                     QPointF(15,15),
-                                     QPointF(17.5,12.5), // merged by melding the points!
-                                     QPointF(30,30),
-                                     QPointF(20,20)
+                                     PkPointF(15,5),
+                                     PkPointF(15,15),
+                                     PkPointF(17.5,12.5), // merged by melding the points!
+                                     PkPointF(30,30),
+                                     PkPointF(20,20)
                                  });
 }
 
@@ -460,8 +460,8 @@ void TestPointMergeCommand::testMultipathMergeShapesSingleShapeEndToStart()
     // close end->start
     testMultipathMergeShapesImpl(2, 0,
                                  {
-                                     QPointF(10,5),
-                                     QPointF(15,15)
+                                     PkPointF(10,5),
+                                     PkPointF(15,15)
                                  }, true);
 }
 
@@ -470,8 +470,8 @@ void TestPointMergeCommand::testMultipathMergeShapesSingleShapeStartToEnd()
     // close start->end
     testMultipathMergeShapesImpl(0, 2,
                                  {
-                                     QPointF(10,5),
-                                     QPointF(15,15)
+                                     PkPointF(10,5),
+                                     PkPointF(15,15)
                                  }, true);
 }
 
@@ -481,12 +481,12 @@ void TestPointMergeCommand::testMultipathJoinShapesBothSequential()
     testMultipathMergeShapesImpl<KoMultiPathPointJoinCommand>
             (2, 0,
              {
-                 QPointF(5,5),
-                 QPointF(15,15),
-                 QPointF(15,5),
-                 QPointF(20,20),
-                 QPointF(30,30),
-                 QPointF(30,20)
+                 PkPointF(5,5),
+                 PkPointF(15,15),
+                 PkPointF(15,5),
+                 PkPointF(20,20),
+                 PkPointF(30,30),
+                 PkPointF(30,20)
              });
 }
 
@@ -496,12 +496,12 @@ void TestPointMergeCommand::testMultipathJoinShapesFirstReversed()
     testMultipathMergeShapesImpl<KoMultiPathPointJoinCommand>
             (0, 0,
              {
-                 QPointF(15,5),
-                 QPointF(15,15),
-                 QPointF(5,5),
-                 QPointF(20,20),
-                 QPointF(30,30),
-                 QPointF(30,20)
+                 PkPointF(15,5),
+                 PkPointF(15,15),
+                 PkPointF(5,5),
+                 PkPointF(20,20),
+                 PkPointF(30,30),
+                 PkPointF(30,20)
              });
 }
 
@@ -511,12 +511,12 @@ void TestPointMergeCommand::testMultipathJoinShapesSecondReversed()
     testMultipathMergeShapesImpl<KoMultiPathPointJoinCommand>
             (2, 2,
              {
-                 QPointF(5,5),
-                 QPointF(15,15),
-                 QPointF(15,5),
-                 QPointF(30,20),
-                 QPointF(30,30),
-                 QPointF(20,20)
+                 PkPointF(5,5),
+                 PkPointF(15,15),
+                 PkPointF(15,5),
+                 PkPointF(30,20),
+                 PkPointF(30,30),
+                 PkPointF(20,20)
              });
 }
 
@@ -526,12 +526,12 @@ void TestPointMergeCommand::testMultipathJoinShapesBothReversed()
     testMultipathMergeShapesImpl<KoMultiPathPointJoinCommand>
             (0, 2,
              {
-                 QPointF(15,5),
-                 QPointF(15,15),
-                 QPointF(5,5),
-                 QPointF(30,20),
-                 QPointF(30,30),
-                 QPointF(20,20)
+                 PkPointF(15,5),
+                 PkPointF(15,15),
+                 PkPointF(5,5),
+                 PkPointF(30,20),
+                 PkPointF(30,30),
+                 PkPointF(20,20)
              });
 }
 
@@ -541,9 +541,9 @@ void TestPointMergeCommand::testMultipathJoinShapesSingleShapeEndToStart()
     testMultipathMergeShapesImpl<KoMultiPathPointJoinCommand>
             (2, 0,
              {
-                 QPointF(5,5),
-                 QPointF(15,15),
-                 QPointF(15,5)
+                 PkPointF(5,5),
+                 PkPointF(15,15),
+                 PkPointF(15,5)
              }, true);
 }
 
@@ -553,9 +553,9 @@ void TestPointMergeCommand::testMultipathJoinShapesSingleShapeStartToEnd()
     testMultipathMergeShapesImpl<KoMultiPathPointJoinCommand>
             (0, 2,
              {
-                 QPointF(5,5),
-                 QPointF(15,15),
-                 QPointF(15,5)
+                 PkPointF(5,5),
+                 PkPointF(15,15),
+                 PkPointF(15,5)
              }, true);
 }
 

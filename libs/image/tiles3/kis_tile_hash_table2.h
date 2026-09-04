@@ -140,7 +140,7 @@ private:
     inline std::uint32_t calculateHash(std::int32_t col, std::int32_t row)
     {
 #ifdef SANITY_CHECK
-        KIS_ASSERT_RECOVER_NOOP(qAbs(row) < 0x7FFF && qAbs(col) < 0x7FFF);
+        KIS_ASSERT_RECOVER_NOOP(pkAbs(row) < 0x7FFF && pkAbs(col) < 0x7FFF);
 #endif // SANITY_CHECK
 
         return calculateHashImpl(col, row);
@@ -152,7 +152,7 @@ private:
      */
     inline std::uint32_t calculateHashSafe(std::int32_t col, std::int32_t row)
     {
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(qAbs(row) < 0x7FFF && qAbs(col) < 0x7FFF, 0);
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(pkAbs(row) < 0x7FFF && pkAbs(col) < 0x7FFF, 0);
         return calculateHashImpl(col, row);
     }
 

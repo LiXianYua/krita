@@ -185,8 +185,8 @@ PkPointF SplineAssistant::project(const PkPointF& pt, const PkPointF& strokeBegi
         // Search in the vicinity of previous t value.
         // This ensure unimodality for proper goldenSearch algorithm
         qreal delta = 1/10.0;
-        qreal lbound = qBound(0.0,1.0, m_d->prev_t - delta);
-        qreal ubound = qBound(0.0,1.0, m_d->prev_t + delta);
+        qreal lbound = pkBound(0.0,1.0, m_d->prev_t - delta);
+        qreal ubound = pkBound(0.0,1.0, m_d->prev_t + delta);
         min_t = goldenSearch(pt,handles(), lbound , ubound, 1e-6,1e+2);
 
     } else {

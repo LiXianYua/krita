@@ -26,7 +26,7 @@ void checkWeightsBuffer(KisFilterStrategy *filter, qreal scale)
     KisFixedPoint fp2;
 
     const int startIndex = 1;
-    const int endIndex = 255 * qMin(scale, qreal(1.0));
+    const int endIndex = 255 * pkMin(scale, qreal(1.0));
 
     fp1.from256Frac(startIndex);
     fp2.from256Frac(endIndex);
@@ -54,7 +54,7 @@ void checkWeightsBuffer(KisFilterStrategy *filter, qreal scale)
                 dbgKrita << "Weight" << fp2 << "|" << idx2 << ":" << v2;
 #endif /* DEBUG_ENABLED */
 
-                if (!(span & 0x1) && (qAbs(v1 - v2) <= (0.5 * span))) {
+                if (!(span & 0x1) && (pkAbs(v1 - v2) <= (0.5 * span))) {
 #ifdef DEBUG_ENABLED
                     dbgKrita << "Symmetry is wrong due to evenly-sized kernel or rounding. It's ok. Accepting.";
 #endif /* DEBUG_ENABLED */

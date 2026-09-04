@@ -385,7 +385,7 @@ public:
     {}
 
     void run() override {
-        int numCycles = qMax(10000, NUM_CYCLES / 100);
+        int numCycles = pkMax(10000, NUM_CYCLES / 100);
 
         for(int i = 0; i < numCycles; i++) {
             if (m_isWriter) {

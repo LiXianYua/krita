@@ -16,7 +16,7 @@ KisFilteredRollingMean::KisFilteredRollingMean(int windowSize, qreal effectivePo
     : m_values(windowSize),
       m_rollingSum(0.0),
       m_effectivePortion(effectivePortion),
-      m_cutOffBuffer(qCeil(0.5 * (qCeil(windowSize * (1.0 - effectivePortion)))))
+      m_cutOffBuffer(pkCeil(0.5 * (pkCeil(windowSize * (1.0 - effectivePortion)))))
 {
 }
 
@@ -34,7 +34,7 @@ qreal KisFilteredRollingMean::filteredMean() const
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!m_values.empty(), 0.0);
 
-    const int usefulElements = qMax(1, qRound(m_effectivePortion * m_values.size()));
+    const int usefulElements = pkMax(1, pkRound(m_effectivePortion * m_values.size()));
 
     qreal sum = 0.0;
     int num = 0;
@@ -42,7 +42,7 @@ qreal KisFilteredRollingMean::filteredMean() const
     const int cutOffTotal = m_values.size() - usefulElements;
 
     if (cutOffTotal > 0) {
-        const std::vector<double>::size_type cutMin = qRound(0.5 * cutOffTotal);
+        const std::vector<double>::size_type cutMin = pkRound(0.5 * cutOffTotal);
         const std::vector<double>::size_type cutMax = cutOffTotal - cutMin;
 
         KIS_SAFE_ASSERT_RECOVER(cutMin <= m_cutOffBuffer.size()) {

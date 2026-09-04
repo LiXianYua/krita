@@ -7,7 +7,7 @@
 #ifndef KOCANVASSUPERVISOR_H
 #define KOCANVASSUPERVISOR_H
 
-#include <QList>
+#include <PkList.h>
 
 #include "kritaflake_export.h"
 
@@ -22,7 +22,7 @@ class KRITAFLAKE_EXPORT KoCanvasSupervisor
 public:
     KoCanvasSupervisor();
     virtual ~KoCanvasSupervisor();
-    virtual QList<KoCanvasObserverBase*> canvasObservers() const = 0;
+    virtual PkList<KoCanvasObserverBase*> canvasObservers() const = 0;
 };
 
 #endif

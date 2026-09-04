@@ -11,15 +11,15 @@
 
 bool KisGridOpOptionData::read(const KisPropertiesConfiguration *setting)
 {
-	grid_width = qMax(1, setting->getInt(GRID_WIDTH));
-	grid_height = qMax(1, setting->getInt(GRID_HEIGHT));
+	grid_width = pkMax(1, setting->getInt(GRID_WIDTH));
+	grid_height = pkMax(1, setting->getInt(GRID_HEIGHT));
 	diameter = setting->getInt(DIAMETER);
 	// If loading an old brush without a diameter set, set to grid_width as was the old logic
 	if (!diameter) {
 		diameter = grid_width;
 	}
 	else {
-		diameter = qMax(1, diameter);
+		diameter = pkMax(1, diameter);
 	}
 	horizontal_offset = setting->getDouble(HORIZONTAL_OFFSET);
 	vertical_offset = setting->getDouble(VERTICAL_OFFSET);
@@ -34,9 +34,9 @@ bool KisGridOpOptionData::read(const KisPropertiesConfiguration *setting)
 
 void KisGridOpOptionData::write(KisPropertiesConfiguration *setting) const
 {
-	setting->setProperty(DIAMETER, qMax(1,diameter));
-	setting->setProperty(GRID_WIDTH, qMax(1, grid_width));
-	setting->setProperty(GRID_HEIGHT, qMax(1, grid_height));
+	setting->setProperty(DIAMETER, pkMax(1,diameter));
+	setting->setProperty(GRID_WIDTH, pkMax(1, grid_width));
+	setting->setProperty(GRID_HEIGHT, pkMax(1, grid_height));
 	setting->setProperty(HORIZONTAL_OFFSET, horizontal_offset);
 	setting->setProperty(VERTICAL_OFFSET, vertical_offset);
 	setting->setProperty(GRID_DIVISION_LEVEL, grid_division_level);

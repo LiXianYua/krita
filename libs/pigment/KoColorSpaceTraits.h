@@ -196,7 +196,7 @@ struct KoColorSpaceTrait {
         channels_type c;
         const float *v = values.data();
         for (uint i = 0; i < channels_nb; i++) {
-            float b = qBound(
+            float b = pkBound(
                 (float)KoColorSpaceMathsTraits<channels_type>::min,
                 (float)KoColorSpaceMathsTraits<channels_type>::unitValue * v[i],
                 (float)KoColorSpaceMathsTraits<channels_type>::max);

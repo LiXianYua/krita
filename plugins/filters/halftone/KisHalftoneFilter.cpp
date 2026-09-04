@@ -112,7 +112,7 @@ void KisHalftoneFilter::processImpl(KisPaintDeviceSP device,
 PkVector<quint8> KisHalftoneFilter::makeHardnessLut(qreal hardness)
 {
     PkVector<quint8> hardnessLut(256);
-    if (qFuzzyCompare(hardness, 1.0)) {
+    if (pkQtFuzzyCompare(hardness, 1.0)) {
         for (int i = 0; i < 256; ++i) {
             hardnessLut[i] = i < 128 ? 0 : 255;
         }
@@ -120,7 +120,7 @@ PkVector<quint8> KisHalftoneFilter::makeHardnessLut(qreal hardness)
         qreal m = 1.0 / (1.0 - hardness);
         qreal b = -m * (hardness / 2.0);
         for (int i = 0; i < 256; ++i) {
-            hardnessLut[i] = qBound(0, static_cast<int>(qRound((m * (i / 255.0) + b) * 255.0)), 255);
+            hardnessLut[i] = pkBound(0, static_cast<int>(pkRound((m * (i / 255.0) + b) * 255.0)), 255);
         }
     }
     return hardnessLut;
@@ -133,7 +133,7 @@ PkVector<quint8> KisHalftoneFilter::makeNoiseWeightLut(qreal hardness)
     for (int i = 0; i < 256; ++i) {
         qreal iNorm = i / 255.0;
         qreal weight = (2.0 - std::abs(4.0 * iNorm - 2.0)) + hardness;
-        noiseWeightLut[i] = qBound(0, static_cast<int>(qRound(weight * 255.0)), 255);
+        noiseWeightLut[i] = pkBound(0, static_cast<int>(pkRound(weight * 255.0)), 255);
     }
     return noiseWeightLut;
 }
@@ -227,7 +227,7 @@ void KisHalftoneFilter::processIntensity(KisPaintDeviceSP device,
                 int srcAlpha = srcIterator.rawData()[1];
 
                 // Combine pixels
-                int result = qBound(0, dstGray + (srcGray - 128) * noiseWeightLut[dstGray] * srcAlpha / 0xFE01, 255);
+                int result = pkBound(0, dstGray + (srcGray - 128) * noiseWeightLut[dstGray] * srcAlpha / 0xFE01, 255);
 
                 // Apply hardness
                 result = hardnessLut[result];
@@ -241,7 +241,7 @@ void KisHalftoneFilter::processIntensity(KisPaintDeviceSP device,
                 int srcAlpha = srcIterator.rawData()[1];
 
                 // Combine pixels
-                int result = qBound(0, dstGray + (srcGray - 128) * noiseWeightLut[dstGray] * srcAlpha / 0xFE01, 255);
+                int result = pkBound(0, dstGray + (srcGray - 128) * noiseWeightLut[dstGray] * srcAlpha / 0xFE01, 255);
 
                 // Apply hardness
                 result = hardnessLut[result];
@@ -339,7 +339,7 @@ void KisHalftoneFilter::processChannel(KisPaintDeviceSP device,
                 srcAlpha = device->colorSpace()->scaleToU8(c.data(), device->colorSpace()->alphaPos());
 
                 // Combine pixels
-                int result = qBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
+                int result = pkBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
 
                 // Apply hardness
                 result = hardnessLut[result];
@@ -359,7 +359,7 @@ void KisHalftoneFilter::processChannel(KisPaintDeviceSP device,
                 srcAlpha = device->colorSpace()->scaleToU8(c.data(), device->colorSpace()->alphaPos());
 
                 // Combine pixels
-                int result = qBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
+                int result = pkBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
 
                 // Apply hardness
                 result = hardnessLut[result];
@@ -378,7 +378,7 @@ void KisHalftoneFilter::processChannel(KisPaintDeviceSP device,
                 int srcAlpha = srcIterator.rawData()[1];
 
                 // Combine pixels
-                int result = qBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
+                int result = pkBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
 
                 // Apply hardness
                 result = hardnessLut[result];
@@ -395,7 +395,7 @@ void KisHalftoneFilter::processChannel(KisPaintDeviceSP device,
                 int srcAlpha = srcIterator.rawData()[1];
 
                 // Combine pixels
-                int result = qBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
+                int result = pkBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
 
                 // Apply hardness
                 result = hardnessLut[result];
@@ -531,7 +531,7 @@ void KisHalftoneFilter::processAlpha(KisPaintDeviceSP device,
             int srcAlpha = srcIterator.rawData()[1];
 
             // Combine pixels
-            int result = qBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
+            int result = pkBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
 
             // Apply hardness
             result = hardnessLut[result];
@@ -545,7 +545,7 @@ void KisHalftoneFilter::processAlpha(KisPaintDeviceSP device,
             int srcAlpha = srcIterator.rawData()[1];
 
             // Combine pixels
-            int result = qBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
+            int result = pkBound(0, dst + (src - 128) * noiseWeightLut[dst] * srcAlpha / 0xFE01, 255);
 
             // Apply hardness
             result = hardnessLut[result];
@@ -596,7 +596,7 @@ void KisHalftoneFilter::processMask(KisPaintDeviceSP device,
             int src = *srcIterator.rawData();
 
             // Combine pixels
-            int result = qBound(0, dst + (src - 128) * noiseWeightLut[dst] / 0xFF, 255);
+            int result = pkBound(0, dst + (src - 128) * noiseWeightLut[dst] / 0xFF, 255);
 
             // Apply hardness
             result = hardnessLut[result];
@@ -609,7 +609,7 @@ void KisHalftoneFilter::processMask(KisPaintDeviceSP device,
             int src = *srcIterator.rawData();
 
             // Combine pixels
-            int result = qBound(0, dst + (src - 128) * noiseWeightLut[dst] / 0xFF, 255);
+            int result = pkBound(0, dst + (src - 128) * noiseWeightLut[dst] / 0xFF, 255);
 
             // Apply hardness
             result = hardnessLut[result];

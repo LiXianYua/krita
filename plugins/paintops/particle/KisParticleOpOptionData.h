@@ -18,10 +18,10 @@ struct KisParticleOpOptionData : boost::equality_comparable<KisParticleOpOptionD
     inline friend bool operator==(const KisParticleOpOptionData &lhs, const KisParticleOpOptionData &rhs) {
         return lhs.particleCount == rhs.particleCount
             && lhs.particleIterations == rhs.particleIterations
-            && qFuzzyCompare(lhs.particleGravity, rhs.particleGravity)
-            && qFuzzyCompare(lhs.particleWeight, rhs.particleWeight)
-            && qFuzzyCompare(lhs.particleScaleX, rhs.particleScaleX)
-            && qFuzzyCompare(lhs.particleScaleY, rhs.particleScaleY);
+            && pkQtFuzzyCompare(lhs.particleGravity, rhs.particleGravity)
+            && pkQtFuzzyCompare(lhs.particleWeight, rhs.particleWeight)
+            && pkQtFuzzyCompare(lhs.particleScaleX, rhs.particleScaleX)
+            && pkQtFuzzyCompare(lhs.particleScaleY, rhs.particleScaleY);
     }
 
     int particleCount {50};

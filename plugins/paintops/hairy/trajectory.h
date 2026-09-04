@@ -10,8 +10,7 @@
 #define _TRAJECTORY_H_
 
 
-#include <PkVector.h>
-#include <PkPointF>
+#include <PkPoint.h>
 
 class Trajectory
 {

@@ -68,9 +68,9 @@ static_assert(PkHasLowerBound<PkMap<int, int>>::value,
 // ---------------------------------------------------------------------------
 // 自定义 qHash 的测试类型 —— **本任务最容易在集成时才炸的一条**。
 //
-// Krita 全仓有 18 处形如 `uint qHash(const KoID &id)` 的自定义重载，散落在
+// Krita 全仓有 18 处形如 `uint pkHash(const KoID &id)` 的自定义重载，散落在
 // Krita 自己的头文件里，S 线替换调用点时**原样保留**。PkHash/PkSet 必须能找到
-// 它们，靠的是 PkHasher 里 `qHash(k)` 这个依赖调用在**实例化点的 ADL**。
+// 它们，靠的是 PkHasher 里 `pkHash(k)` 这个依赖调用在**实例化点的 ADL**。
 //
 // 这里把类型与它的 qHash 一起放进**匿名命名空间**，正是为了证明走的是 ADL：
 // 匿名命名空间里的 qHash 在 PkHasher 的模板定义点（PkHashFunctions.h）根本
@@ -86,7 +86,7 @@ struct PkKeyed
 
 // 故意用一个**很差**但确定的哈希：只看 a，让 {1,1} 与 {1,2} 必然冲突。
 // 哈希冲突下 operator== 才是决定相等的那一环，顺带把这条链也压到。
-inline unsigned int qHash(const PkKeyed &k)
+inline unsigned int pkHash(const PkKeyed &k)
 {
     return static_cast<unsigned int>(k.a);
 }
@@ -100,7 +100,7 @@ struct PkCounted
     bool operator==(const PkCounted &o) const { return v == o.v; }
 };
 
-inline unsigned int qHash(const PkCounted &k)
+inline unsigned int pkHash(const PkCounted &k)
 {
     ++g_customHashCalls;
     return static_cast<unsigned int>(k.v);
@@ -285,7 +285,7 @@ void PkHashTest::pkStringKey()
     const PkString a("alpha");
     const PkString sameContent = PkString("alph") + PkString("a");
     PK_VERIFY(a == sameContent);
-    PK_COMPARE(qHash(a), qHash(sameContent));
+    PK_COMPARE(pkHash(a), pkHash(sameContent));
     PK_COMPARE(h.value(sameContent), 1);
 
     // 覆盖，不是多值

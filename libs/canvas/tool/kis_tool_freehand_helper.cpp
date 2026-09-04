@@ -124,7 +124,7 @@ struct KisToolFreehandHelper::Private
     {
         // Don't replace this with QPointF::toPoint, that rounds! Flooring is
         // the correct operation here.
-        return PkPoint(qFloor(pos.x()), qFloor(pos.y()));
+        return PkPoint(pkFloor(pos.x()), pkFloor(pos.y()));
     }
 
     static void setPaintInfoPixelPos(KisPaintInformation &info, const PkPoint &pixelPos)
@@ -478,14 +478,14 @@ void KisToolFreehandHelper::paintBezierSegment(KisPaintInformation pi1, KisPaint
         warnKrita << "WARNING: Basic Smoothing: Velocity is Zero! Please report a bug:" << ppVar(velocity1) << ppVar(velocity2);
     }
 
-    qreal similarity = qMin(velocity1/velocity2, velocity2/velocity1);
+    qreal similarity = pkMin(velocity1/velocity2, velocity2/velocity1);
 
     // the controls should not differ more than 50%
-    similarity = qMax(similarity, qreal(0.5));
+    similarity = pkMax(similarity, qreal(0.5));
 
     // when the controls are symmetric, their size should be smaller
     // to avoid corner-like curves
-    coeff *= 1 - qMax(qreal(0.0), similarity - qreal(0.8));
+    coeff *= 1 - pkMax(qreal(0.0), similarity - qreal(0.8));
 
     Q_ASSERT(coeff > 0);
 
@@ -661,10 +661,10 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
                 m_d->haveTangent = true;
                 m_d->previousTangent =
                     (info.pos() - m_d->previousPaintInformation.pos()) /
-                    qMax(qreal(1.0), info.currentTime() - m_d->previousPaintInformation.currentTime());
+                    pkMax(qreal(1.0), info.currentTime() - m_d->previousPaintInformation.currentTime());
             } else {
                 PkPointF newTangent = (info.pos() - m_d->olderPaintInformation.pos()) /
-                    qMax(qreal(1.0), info.currentTime() - m_d->olderPaintInformation.currentTime());
+                    pkMax(qreal(1.0), info.currentTime() - m_d->olderPaintInformation.currentTime());
 
                 if (newTangent.isNull() || m_d->previousTangent.isNull())
                 {
@@ -824,8 +824,8 @@ void KisToolFreehandHelper::stabilizerStart(KisPaintInformation firstPaintInfo)
 {
     m_d->usingStabilizer = true;
     // FIXME: Ugly hack, this is no a "distance" in any way
-    int sampleSize = qRound(m_d->effectiveSmoothnessDistance(firstPaintInfo.drawingSpeed()));
-    sampleSize = qMax(3, sampleSize);
+    int sampleSize = pkRound(m_d->effectiveSmoothnessDistance(firstPaintInfo.drawingSpeed()));
+    sampleSize = pkMax(3, sampleSize);
 
     // Fill the deque with the current value repeated until filling the sample
     m_d->stabilizerDeque.clear();
@@ -1001,7 +1001,7 @@ void KisToolFreehandHelper::finishStroke()
         m_d->haveTangent = false;
 
         PkPointF newTangent = (m_d->previousPaintInformation.pos() - m_d->olderPaintInformation.pos()) /
-            qMax(qreal(1.0), m_d->previousPaintInformation.currentTime() - m_d->olderPaintInformation.currentTime());
+            pkMax(qreal(1.0), m_d->previousPaintInformation.currentTime() - m_d->olderPaintInformation.currentTime());
 
         paintBezierSegment(m_d->olderPaintInformation,
                            m_d->previousPaintInformation,
@@ -1038,7 +1038,7 @@ void KisToolFreehandHelper::doAirbrushing()
 int KisToolFreehandHelper::computeAirbrushTimerInterval() const
 {
     qreal realInterval = m_d->resources->airbrushingInterval() * AIRBRUSH_INTERVAL_FACTOR;
-    return qMax(1, qFloor(realInterval));
+    return pkMax(1, pkFloor(realInterval));
 }
 
 qreal KisToolFreehandHelper::currentZoom() const

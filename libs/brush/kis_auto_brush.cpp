@@ -81,14 +81,14 @@ KisAutoBrush::KisAutoBrush(KisMaskGenerator* as, qreal angle, qreal randomness, 
          * skipped for efficiency reasons.
          */
 
-        setWidth(qMax(qreal(1.0), d->shape->width()));
-        setHeight(qMax(qreal(1.0), d->shape->height()));
+        setWidth(pkMax(qreal(1.0), d->shape->width()));
+        setHeight(pkMax(qreal(1.0), d->shape->height()));
 
         const int width = maskWidth(KisDabShape(), 0.0, 0.0, KisPaintInformation());
         const int height = maskHeight(KisDabShape(), 0.0, 0.0, KisPaintInformation());
 
-        setWidth(qMax(1, width));
-        setHeight(qMax(1, height));
+        setWidth(pkMax(1, width));
+        setHeight(pkMax(1, height));
     }
 
     // We don't initialize setBrushTipImage(), because
@@ -447,16 +447,16 @@ void KisAutoBrush::lodLimitations(KisPaintopLodLimitations *l) const
 {
     KisBrush::lodLimitations(l);
 
-    if (!qFuzzyCompare(density(), 1.0)) {
+    if (!pkQtFuzzyCompare(density(), 1.0)) {
         l->limitations.insert(KoID("auto-brush-density", PkString("Brush Density recommended value 100.0")));
     }
 
-    if (!qFuzzyCompare(randomness(), 0.0)) {
+    if (!pkQtFuzzyCompare(randomness(), 0.0)) {
         l->limitations.insert(KoID("auto-brush-randomness", PkString("Brush Randomness recommended value 0.0")));
     }
 }
 
 bool KisAutoBrush::supportsCaching() const
 {
-    return qFuzzyCompare(density(), 1.0) && qFuzzyCompare(randomness(), 0.0);
+    return pkQtFuzzyCompare(density(), 1.0) && pkQtFuzzyCompare(randomness(), 0.0);
 }

@@ -17,22 +17,22 @@
 class Q_DECL_HIDDEN KoToolFactoryBase::Private
 {
 public:
-    Private(const QString &i)
+    Private(const PkString &i)
         : priority(100),
           id(i)
     {
     }
     int priority;
-    QString section;
-    QString tooltip;
-    QString activationId;
-    QString iconName;
-    const QString id;
+    PkString section;
+    PkString tooltip;
+    PkString activationId;
+    PkString iconName;
+    const PkString id;
     QKeySequence shortcut;
 };
 
 
-KoToolFactoryBase::KoToolFactoryBase(const QString &id)
+KoToolFactoryBase::KoToolFactoryBase(const PkString &id)
     : d(new Private(id))
 {
 }
@@ -42,11 +42,11 @@ KoToolFactoryBase::~KoToolFactoryBase()
     delete d;
 }
 
-QList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
+PkList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
 {
-    QList<QAction *> toolActions;
+    PkList<QAction *> toolActions;
 
-    QList<QAction*> actions = createActionsImpl();
+    PkList<QAction*> actions = createActionsImpl();
     QAction *action = new QAction(this);
     action->setObjectName(id());
     if (actionCollection) {
@@ -67,7 +67,7 @@ QList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
             action = existingAction;
         }
 
-        QStringList tools;
+        PkStringList tools;
         if (action->property("tool_action").isValid()) {
             tools = action->property("tool_action").toStringList();
         }
@@ -83,20 +83,20 @@ QList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
  #if 0
     if (toolActions.size() > 0) {
 
-        QDomDocument doc;
-        QDomElement e = doc.createElement("Actions");
+        PkXmlDocument doc;
+        PkXmlElement e = doc.createElement("Actions");
         e.setAttribute("name", id);
         e.setAttribute("version", "2");
         doc.appendChild(e);
 
         Q_FOREACH (QAction *action, toolActions) {
-            QDomElement a = doc.createElement("Action");
+            PkXmlElement a = doc.createElement("Action");
             a.setAttribute("name", action->objectName());
 
             // But seriously, XML is the worst format ever designed
-            auto addElement = [&](QString title, QString content) {
-                QDomElement newNode = doc.createElement(title);
-                QDomText    newText = doc.createTextNode(content);
+            auto addElement = [&](PkString title, PkString content) {
+                PkXmlElement newNode = doc.createElement(title);
+                PkXmlText    newText = doc.createTextNode(content);
                 newNode.appendChild(newText);
                 a.appendChild(newNode);
             };
@@ -107,12 +107,12 @@ QList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
             addElement("toolTip" , action->toolTip());
             addElement("iconText" , action->iconText());
             addElement("shortcut" , action->shortcut().toString());
-            addElement("isCheckable" , QString((action->isChecked() ? "true" : "false")));
+            addElement("isCheckable" , PkString((action->isChecked() ? "true" : "false")));
             addElement("statusTip", action->statusTip());
             e.appendChild(a);
         }
-        QFile f(id()z + ".action");
-        f.open(QFile::WriteOnly);
+        PkFileStream f(id()z + ".action");
+        f.open(PkFileStream::WriteOnly);
         f.write(doc.toString().toUtf8());
         f.close();
 
@@ -130,7 +130,7 @@ QList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
     return toolActions;
 }
 
-QString KoToolFactoryBase::id() const
+PkString KoToolFactoryBase::id() const
 {
     return d->id;
 }
@@ -140,22 +140,22 @@ int KoToolFactoryBase::priority() const
     return d->priority;
 }
 
-QString KoToolFactoryBase::section() const
+PkString KoToolFactoryBase::section() const
 {
     return d->section;
 }
 
-QString KoToolFactoryBase::toolTip() const
+PkString KoToolFactoryBase::toolTip() const
 {
     return d->tooltip;
 }
 
-QString KoToolFactoryBase::iconName() const
+PkString KoToolFactoryBase::iconName() const
 {
     return d->iconName;
 }
 
-QString KoToolFactoryBase::activationShapeId() const
+PkString KoToolFactoryBase::activationShapeId() const
 {
     return d->activationId;
 }
@@ -165,17 +165,17 @@ QKeySequence KoToolFactoryBase::shortcut() const
     return d->shortcut;
 }
 
-void KoToolFactoryBase::setActivationShapeId(const QString &activationShapeId)
+void KoToolFactoryBase::setActivationShapeId(const PkString &activationShapeId)
 {
     d->activationId = activationShapeId;
 }
 
-void KoToolFactoryBase::setToolTip(const QString & tooltip)
+void KoToolFactoryBase::setToolTip(const PkString & tooltip)
 {
     d->tooltip = tooltip;
 }
 
-void KoToolFactoryBase::setSection(const QString & section)
+void KoToolFactoryBase::setSection(const PkString & section)
 {
     d->section = section;
 }
@@ -185,7 +185,7 @@ void KoToolFactoryBase::setIconName(const char *iconName)
     d->iconName = QLatin1String(iconName);
 }
 
-void KoToolFactoryBase::setIconName(const QString &iconName)
+void KoToolFactoryBase::setIconName(const PkString &iconName)
 {
     d->iconName = iconName;
 }
@@ -200,9 +200,9 @@ void KoToolFactoryBase::setShortcut(const QKeySequence &shortcut)
     d->shortcut = shortcut;
 }
 
-QList<QAction *> KoToolFactoryBase::createActionsImpl()
+PkList<QAction *> KoToolFactoryBase::createActionsImpl()
 {
-    return QList<QAction *>();
+    return PkList<QAction *>();
 }
 
 void KoToolFactoryBase::activateTool()

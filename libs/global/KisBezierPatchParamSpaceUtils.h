@@ -25,7 +25,7 @@ struct Range
     qreal end = 0.0;
 
     bool isEmpty() const {
-        return qFuzzyCompare(start, end);
+        return pkQtFuzzyCompare(start, end);
     }
 
     qreal length() const {
@@ -38,8 +38,8 @@ struct Range
 
     bool contains(qreal value) const {
         return value > start && value < end &&
-            qFuzzyCompare(value, start) &&
-            qFuzzyCompare(value, end);
+            pkQtFuzzyCompare(value, start) &&
+            pkQtFuzzyCompare(value, end);
     }
 
     /**
@@ -142,7 +142,7 @@ std::pair<Range, Range> calcTightSrcRectRangeInParamSpace1D(const Range &searchP
     Range leftSideParamRange = searchParamRange;
     Range rightSideParamRange = searchParamRange;
 
-    if (qFuzzyCompare(rect.start, searchSrcRange.start)) {
+    if (pkQtFuzzyCompare(rect.start, searchSrcRange.start)) {
         leftSideParamRange = {searchParamRange.start, searchParamRange.start};
     } else {
         // search left side
@@ -157,7 +157,7 @@ std::pair<Range, Range> calcTightSrcRectRangeInParamSpace1D(const Range &searchP
 
             std::optional<qreal> forwardDistance = currentSplitSrcRange.forwardDistanceTo(rect);
 
-            if (!forwardDistance || qFuzzyIsNull(*forwardDistance)) {
+            if (!forwardDistance || pkQtFuzzyIsNull(*forwardDistance)) {
                 leftSideParamRange.end = currentSplitParam;
                 rightSideParamRange.start = std::max(currentSplitParam, rightSideParamRange.start);
             } else if (*forwardDistance > 0) {
@@ -176,7 +176,7 @@ std::pair<Range, Range> calcTightSrcRectRangeInParamSpace1D(const Range &searchP
         }
     }
 
-    if (qFuzzyCompare(rect.end, searchSrcRange.end)) {
+    if (pkQtFuzzyCompare(rect.end, searchSrcRange.end)) {
         rightSideParamRange = {searchParamRange.end, searchParamRange.end};
     } else {
         // search right side
@@ -192,7 +192,7 @@ std::pair<Range, Range> calcTightSrcRectRangeInParamSpace1D(const Range &searchP
 
             std::optional<qreal> forwardDistance = currentSplitSrcRange.forwardDistanceTo(rect);
 
-            if (!forwardDistance || qFuzzyIsNull(*forwardDistance)) {
+            if (!forwardDistance || pkQtFuzzyIsNull(*forwardDistance)) {
                 rightSideParamRange.start = currentSplitParam;
             } else if (*forwardDistance > 0) {
                 rightSideParamRange.start = currentSplitParam;

@@ -477,8 +477,8 @@ bool KisMeshTransformStrategy::shouldDeleteNode(qreal distance, qreal param)
     const qreal grabRadius = KisTransformUtils::effectiveHandleGrabRadius(m_d->converter);
     return
         distance > 10 * grabRadius ||
-        qFuzzyCompare(param, 0.0) ||
-        qFuzzyCompare(param, 1.0);
+        pkQtFuzzyCompare(param, 0.0) ||
+        pkQtFuzzyCompare(param, 1.0);
 
 }
 
@@ -708,7 +708,7 @@ void KisMeshTransformStrategy::continuePrimaryAction(const PkPointF &pt, bool sh
         KIS_SAFE_ASSERT_RECOVER_RETURN(nearestSegment != mesh.endSegments());
 
         const qreal translationOffsetCoeff =
-            qBound(0.0,
+            pkBound(0.0,
                    linearReshapeFunc(1.0 - nearestSegmentDistanceSignificance,
                                      0.95, 0.75, 1.0, 0.0),
                    1.0);

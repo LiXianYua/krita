@@ -109,7 +109,7 @@ KisOptimizedBrushOutline KisBrushBasedPaintOpSettings::brushOutlineImpl(const Ki
         if (!brush) return path;
         qreal finalScale = brush->scale() * additionalScale;
 
-        KisOptimizedBrushOutline realOutline = brush->outline(alignForZoom > 2.0 || qFuzzyCompare(alignForZoom, 2.0));
+        KisOptimizedBrushOutline realOutline = brush->outline(alignForZoom > 2.0 || pkQtFuzzyCompare(alignForZoom, 2.0));
 
         if (mode.forceCircle) {
 

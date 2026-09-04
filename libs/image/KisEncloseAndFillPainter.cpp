@@ -62,7 +62,7 @@ namespace KisEncloseAndFillPainterDetail {
             }
             const quint8 colorDifference = colorSpace->difference(srcData, color.data());
             const quint8 opacityDifference = opacity * 100 / quint8_MAX;
-            return qMin(colorDifference, opacityDifference);
+            return pkMin(colorDifference, opacityDifference);
         }
     };
 
@@ -76,7 +76,7 @@ namespace KisEncloseAndFillPainterDetail {
         {
             const quint8 colorDifference = colorSpace->difference(srcData, color.data());
             const quint8 opacityDifference = colorSpace->opacityU8(srcData) * 100 / quint8_MAX;
-            return qMin(colorDifference, opacityDifference);
+            return pkMin(colorDifference, opacityDifference);
         }
     };
 

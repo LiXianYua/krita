@@ -30,7 +30,7 @@ void TransformToolPainter::restore()
 
 void TransformToolPainter::setOpacity(qreal opacity)
 {
-    m_opacityStack.last() = qBound(qreal(0.0), opacity, qreal(1.0));
+    m_opacityStack.last() = pkBound(qreal(0.0), opacity, qreal(1.0));
 }
 
 PkTransform TransformToolPainter::transform() const
@@ -73,7 +73,7 @@ PkImage TransformToolPainter::withOpacity(const PkImage &image, qreal opacity)
     for (int y = 0; y < result.height(); ++y) {
         for (int x = 0; x < result.width(); ++x) {
             const quint32 pixel = result.pixel(x, y);
-            const quint32 alpha = qRound(((pixel >> 24) & 0xffu) * opacity);
+            const quint32 alpha = pkRound(((pixel >> 24) & 0xffu) * opacity);
             result.setPixel(x, y, (pixel & 0x00ffffffu) | (alpha << 24));
         }
     }

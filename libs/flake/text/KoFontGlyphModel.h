@@ -7,10 +7,18 @@
 #define KOFONTGLYPHMODEL_H
 
 #include <QAbstractItemModel>
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include "KoFontLibraryResourceUtils.h"
 #include "data/KoUnicodeBlockData.h"
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkHash.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkMap.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkVariant.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkVector.h>
 
 struct KoOpenTypeFeatureInfo;
 /**
@@ -39,7 +47,7 @@ public:
         ChildCount
     };
 
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    PkVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
     QModelIndex parent(const QModelIndex &child) const override;
@@ -47,7 +55,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     bool hasChildren(const QModelIndex &parent = QModelIndex()) const override;
 
-    QModelIndex indexForString(QString grapheme);
+    QModelIndex indexForString(PkString grapheme);
 
     /**
      * @brief setFace
@@ -58,23 +66,23 @@ public:
      */
     void setFace(FT_FaceSP face, QLatin1String language = QLatin1String(), bool samplesOnly = false);
 
-    QHash<int, QByteArray> roleNames() const override;
+    PkHash<int, PkByteArray> roleNames() const override;
 
     /**
      * @brief blocks
      * @return list of Unicode blocks available in the font.
      */
-    QVector<KoUnicodeBlockData> blocks() const;
+    PkVector<KoUnicodeBlockData> blocks() const;
 
     /**
      * @brief featureInfo
      * @return list of OpenTypeFeatures available in the font.
      */
-    QMap<QString, KoOpenTypeFeatureInfo> featureInfo() const;
+    PkMap<PkString, KoOpenTypeFeatureInfo> featureInfo() const;
 
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOFONTGLYPHMODEL_H

@@ -87,8 +87,8 @@ PkRectF handleRectImpl(qreal radius, const PkTransform &t, const PkRectF &limiti
         KisTransformUtils::scaleFromPerspectiveMatrixY(t, basePoint);
 
     const qreal maxD = 0.2 * KisTransformUtils::effectiveSize(limitingRect);
-    const qreal dX = qMin(maxD, radius / handlesExtraScaleX);
-    const qreal dY = qMin(maxD, radius / handlesExtraScaleY);
+    const qreal dX = pkMin(maxD, radius / handlesExtraScaleX);
+    const qreal dY = pkMin(maxD, radius / handlesExtraScaleY);
 
     PkRectF handleRect(-0.5 * dX, -0.5 * dY, dX, dY);
 

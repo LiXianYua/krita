@@ -25,7 +25,7 @@ PkPointF pkLineSegIntersect(const PkPointF &p1, const PkPointF &p2,
     const PkPointF d1 = p2 - p1;
     const PkPointF d2 = b - a;
     const qreal denom = d1.x() * d2.y() - d1.y() * d2.x();
-    if (qAbs(denom) < 1e-12) return p1; // 平行/退化：调用场景下不会发生
+    if (pkAbs(denom) < 1e-12) return p1; // 平行/退化：调用场景下不会发生
     const PkPointF diff = a - p1;
     const qreal t = (diff.x() * d2.y() - diff.y() * d2.x()) / denom;
     return PkPointF(p1.x() + t * d1.x(), p1.y() + t * d1.y());
@@ -108,13 +108,13 @@ struct KisSafeTransform::Private
         PkPointF vanishingX(t.m11() / t.m13(), t.m12() / t.m13());
         PkPointF vanishingY(t.m21() / t.m23(), t.m22() / t.m23());
 
-        if (qAbs(t.m13()) < eps && qAbs(t.m23()) < eps) {
+        if (pkAbs(t.m13()) < eps && pkAbs(t.m23()) < eps) {
             *horizon = PkLineF();
             return false;
-        } else if (qAbs(t.m23()) < eps) {
+        } else if (pkAbs(t.m23()) < eps) {
             PkPointF diff = t.map(PkPointF(0.0, 10.0)) - t.map(PkPointF());
             vanishingY = vanishingX + diff;
-        } else if (qAbs(t.m13()) < eps) {
+        } else if (pkAbs(t.m13()) < eps) {
             PkPointF diff = t.map(PkPointF(10.0, 0.0)) - t.map(PkPointF());
             vanishingX = vanishingY + diff;
         }

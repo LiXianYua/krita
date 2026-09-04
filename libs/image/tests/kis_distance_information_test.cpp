@@ -179,7 +179,7 @@ void KisDistanceInformationTest::testInterpolationImpl(const KisPaintInformation
 {
     qreal actualInterpFactor = dist.getNextPointPosition(p1.pos(), p2.pos(), p1.currentTime(),
                                                          p2.currentTime());
-    QVERIFY(qAbs(interpFactor - actualInterpFactor) <= interpTolerance);
+    QVERIFY(pkAbs(interpFactor - actualInterpFactor) <= interpTolerance);
     QCOMPARE(dist.needsSpacingUpdate(), needSpacingUpdate);
     QCOMPARE(dist.needsTimingUpdate(), needTimingUpdate);
 }

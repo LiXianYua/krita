@@ -168,8 +168,8 @@ public:
 
         inline void unite(const LinePos &rhs) {
             if (m_size > 0) {
-                int newStart = qMin(start(), rhs.start());
-                int newEnd = qMax(end(), rhs.end());
+                int newStart = pkMin(start(), rhs.start());
+                int newEnd = pkMax(end(), rhs.end());
 
                 m_start = newStart;
                 m_size = newEnd - newStart;
@@ -286,19 +286,19 @@ public:
         delete[] colors;
         delete[] srcLineBuf;
 
-        return LinePos(dstStart, qMax(0, dstEnd - dstStart));
+        return LinePos(dstStart, pkMax(0, dstEnd - dstStart));
     }
 
 private:
 
     int findAntialiasedDstStart(int src_l, qreal support, int line) {
         qreal dst = srcToDst(src_l, line);
-        return !m_clampToEdge ? qRound(dst - support) : qRound(dst);
+        return !m_clampToEdge ? pkRound(dst - support) : pkRound(dst);
     }
 
     int findAntialiasedDstEnd(int src_l, qreal support, int line) {
         qreal dst = srcToDst(src_l, line);
-        return !m_clampToEdge ? qRound(dst + support) : qRound(dst);
+        return !m_clampToEdge ? pkRound(dst + support) : pkRound(dst);
     }
 
     int getLeftSrcNeedBorder(int dst_l, int line, KisFilterWeightsBuffer *buffer) {

@@ -309,7 +309,7 @@ Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> KisGaussianKernel::createDi
     const int kernelSize = 2 * std::ceil(radius) + 1;
     Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> matrix(kernelSize, kernelSize);
 
-    const qreal fadeStart = qMax(1.0, radius - 1.0);
+    const qreal fadeStart = pkMax(1.0, radius - 1.0);
 
     /**
      * The kernel size should always be odd, then the position of the
@@ -330,7 +330,7 @@ Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> KisGaussianKernel::createDi
             if (distance > radius + 1e-3) {
                 value = 0.0;
             } else if (distance > fadeStart) {
-                value = qMax(0.0, radius - distance);
+                value = pkMax(0.0, radius - distance);
             }
 
             matrix(x, y) = value;

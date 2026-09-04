@@ -61,7 +61,7 @@ KoCompositeOp::ParameterInfo& KoCompositeOp::ParameterInfo::operator=(const Para
 
 void KoCompositeOp::ParameterInfo::setOpacityAndAverage(float _opacity, float _averageOpacity)
 {
-    if (qFuzzyCompare(_opacity, _averageOpacity)) {
+    if (pkQtFuzzyCompare(_opacity, _averageOpacity)) {
         opacity = _opacity;
         lastOpacity = &opacity;
     } else {

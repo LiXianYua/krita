@@ -80,7 +80,7 @@ void testRoundTrip(const KoColorSpace *srcCS, const KoColorSpace *dstCS, SourceT
 
     bool roundTripIsCorrect = true;
     for (int i = 0; i < 4; i++) {
-        roundTripIsCorrect &= qAbs(refChannels[i] - result[i]) < tolerance;
+        roundTripIsCorrect &= pkAbs(refChannels[i] - result[i]) < tolerance;
     }
 
     if (!roundTripIsCorrect) {

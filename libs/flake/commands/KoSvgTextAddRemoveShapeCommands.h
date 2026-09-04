@@ -29,7 +29,7 @@ public:
     void partB() override;
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 class KRITAFLAKE_EXPORT KoSvgTextAddShapeCommand : public KoSvgTextAddRemoveShapeCommandImpl {

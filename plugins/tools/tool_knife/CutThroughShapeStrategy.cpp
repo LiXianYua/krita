@@ -57,7 +57,7 @@ PkPointF snapEndPoint(const PkPointF &startPoint, const PkPointF &mouseLocation,
 
     if (modifiers & Qt::KeyboardModifier::ShiftModifier) {
         return nicePoint;
-        if (qAbs(mouseLocation.x() - startPoint.x()) >= qAbs(mouseLocation.y() - startPoint.y())) {
+        if (pkAbs(mouseLocation.x() - startPoint.x()) >= pkAbs(mouseLocation.y() - startPoint.y())) {
             // do horizontal line
             return PkPointF(mouseLocation.x(), startPoint.y());
         } else {

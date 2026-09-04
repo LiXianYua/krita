@@ -13,12 +13,14 @@
 #include "kritaflake_export.h"
 #include <KoFlake.h>
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkPen.h>
 
 class KoShapeLoadingContext;
 class KoShapeSavingContext;
-class QString;
-class QPainterPath;
+class PkString;
+class PkPainterPath;
 class KoShape;
 class QPainter;
 class KoShapeStroke;
@@ -34,7 +36,7 @@ public:
      *
      * @return Display name of the marker
      */
-    QString name() const;
+    PkString name() const;
 
     KoMarker(const KoMarker &rhs);
     bool operator==(const KoMarker &other) const;
@@ -47,14 +49,14 @@ public:
     void setCoordinateSystem(MarkerCoordinateSystem value);
     MarkerCoordinateSystem coordinateSystem() const;
 
-    static MarkerCoordinateSystem coordinateSystemFromString(const QString &value);
-    static QString coordinateSystemToString(MarkerCoordinateSystem value);
+    static MarkerCoordinateSystem coordinateSystemFromString(const PkString &value);
+    static PkString coordinateSystemToString(MarkerCoordinateSystem value);
 
-    void setReferencePoint(const QPointF &value);
-    QPointF referencePoint() const;
+    void setReferencePoint(const PkPointF &value);
+    PkPointF referencePoint() const;
 
-    void setReferenceSize(const QSizeF &size);
-    QSizeF referenceSize() const;
+    void setReferenceSize(const PkSizeF &size);
+    PkSizeF referenceSize() const;
 
     bool hasAutoOrientation() const;
     void setAutoOrientation(bool value);
@@ -65,14 +67,14 @@ public:
     // measured in radians!
     void setExplicitOrientation(qreal value);
 
-    void setShapes(const QList<KoShape*> &shapes);
-    QList<KoShape*> shapes() const;
+    void setShapes(const PkList<KoShape*> &shapes);
+    PkList<KoShape*> shapes() const;
 
     /**
      * @brief paintAtOrigin paints the marker at the position \p pos.
      *        Scales and rotates the marker if needed.
      */
-    void paintAtPosition(QPainter *painter, const QPointF &pos, qreal strokeWidth, qreal nodeAngle);
+    void paintAtPosition(QPainter *painter, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle);
 
     /**
      * Return maximum distance that the marker can take outside the shape itself
@@ -83,22 +85,22 @@ public:
      * Bounding rect of the marker in local coordinates. It is assumed that the marker
      * is painted with the reference point placed at position (0,0)
      */
-    QRectF boundingRect(qreal strokeWidth, qreal nodeAngle) const;
+    PkRectF boundingRect(qreal strokeWidth, qreal nodeAngle) const;
 
     /**
      * Outline of the marker in local coordinates. It is assumed that the marker
      * is painted with the reference point placed at position (0,0)
      */
-    QPainterPath outline(qreal strokeWidth, qreal nodeAngle) const;
+    PkPainterPath outline(qreal strokeWidth, qreal nodeAngle) const;
 
     /**
      * Draws a preview of the marker in \p previewRect of \p painter
      */
-    void drawPreview(QPainter *painter, const QRectF &previewRect,
-                     const QPen &pen, KoFlake::MarkerPosition position);
+    void drawPreview(QPainter *painter, const PkRectF &previewRect,
+                     const PkPen &pen, KoFlake::MarkerPosition position);
 
 
-    void applyShapeStroke(const KoShape *shape, KoShapeStroke *stroke, const QPointF &pos, qreal strokeWidth, qreal nodeAngle);
+    void applyShapeStroke(const KoShape *shape, KoShapeStroke *stroke, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle);
 
 private:
     class Private;

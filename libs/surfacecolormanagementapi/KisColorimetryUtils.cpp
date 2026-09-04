@@ -29,7 +29,7 @@ PkMatrix4x4 matrixFromColumns(const PkVector3D &first, const PkVector3D &second,
 
 XYZ xy::toXYZ() const
 {
-    if (qFuzzyIsNull(y)) {
+    if (pkQtFuzzyIsNull(y)) {
         return XYZ{0, 0, 0};
     }
     return XYZ{
@@ -46,12 +46,12 @@ PkVector2D xy::asVector() const
 
 bool xy::operator==(const xy &other) const
 {
-    return qFuzzyCompare(x, other.x) && qFuzzyCompare(y, other.y);
+    return pkQtFuzzyCompare(x, other.x) && pkQtFuzzyCompare(y, other.y);
 }
 
 XYZ xyY::toXYZ() const
 {
-    if (qFuzzyIsNull(y)) {
+    if (pkQtFuzzyIsNull(y)) {
         return XYZ{0, 0, 0};
     }
     return XYZ{
@@ -63,13 +63,13 @@ XYZ xyY::toXYZ() const
 
 bool xyY::operator==(const xyY &other) const
 {
-    return qFuzzyCompare(x, other.x) && qFuzzyCompare(y, other.y) && qFuzzyCompare(Y, other.Y);
+    return pkQtFuzzyCompare(x, other.x) && pkQtFuzzyCompare(y, other.y) && pkQtFuzzyCompare(Y, other.Y);
 }
 
 xyY XYZ::toxyY() const
 {
     const double sum = X + Y + Z;
-    if (qFuzzyIsNull(sum)) {
+    if (pkQtFuzzyIsNull(sum)) {
         // this is nonsense, but at least won't crash
         return xyY{
             .x = 0,
@@ -87,7 +87,7 @@ xyY XYZ::toxyY() const
 xy XYZ::toxy() const
 {
     const double sum = X + Y + Z;
-    if (qFuzzyIsNull(sum)) {
+    if (pkQtFuzzyIsNull(sum)) {
         // this is nonsense, but at least won't crash
         return xy{
             .x = 0,
@@ -143,7 +143,7 @@ XYZ XYZ::fromVector(const PkVector3D &vector)
 
 bool XYZ::operator==(const XYZ &other) const
 {
-    return qFuzzyCompare(X, other.X) && qFuzzyCompare(Y, other.Y) && qFuzzyCompare(Z, other.Z);
+    return pkQtFuzzyCompare(X, other.X) && pkQtFuzzyCompare(Y, other.Y) && pkQtFuzzyCompare(Z, other.Z);
 }
 
 PkMatrix4x4 Colorimetry::chromaticAdaptationMatrix(XYZ sourceWhitepoint, XYZ destinationWhitepoint)

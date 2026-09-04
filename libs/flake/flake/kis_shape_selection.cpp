@@ -47,14 +47,14 @@
 #include <kis_debug.h>
 
 namespace {
-PkRect toPkRect(const QRect &rect)
+PkRect toPkRect(const PkRect &rect)
 {
     return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
 }
 
-QRect toQRect(const PkRect &rect)
+PkRect toQRect(const PkRect &rect)
 {
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
 }
 }
 
@@ -123,23 +123,23 @@ KisSelectionComponent* KisShapeSelection::clone(KisSelection* selection)
     return new KisShapeSelection(*this, selection);
 }
 
-bool KisShapeSelection::saveSelection(KoStore * store, const QRect &imageRect) const
+bool KisShapeSelection::saveSelection(KoStore * store, const PkRect &imageRect) const
 {
-    const QSizeF sizeInPx = imageRect.size();
-    const QSizeF sizeInPt(sizeInPx.width() / m_resolutionProxy->xRes(), sizeInPx.height() / m_resolutionProxy->yRes());
+    const PkSizeF sizeInPx = imageRect.size();
+    const PkSizeF sizeInPt(sizeInPx.width() / m_resolutionProxy->xRes(), sizeInPx.height() / m_resolutionProxy->yRes());
 
     return KisShapeLayer::saveShapesToStore(store, this->shapes(), sizeInPt);
 }
 
-bool KisShapeSelection::loadSelection(KoStore* store, const QRect &imageRect)
+bool KisShapeSelection::loadSelection(KoStore* store, const PkRect &imageRect)
 {
-    QSizeF fragmentSize; // unused!
+    PkSizeF fragmentSize; // unused!
 
     // FIXME: we handle xRes() only!
     KIS_SAFE_ASSERT_RECOVER_NOOP(qFuzzyCompare(m_resolutionProxy->xRes(), m_resolutionProxy->yRes()));
     const qreal resolutionPPI = 72.0 * m_resolutionProxy->xRes();
 
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
 
     if (store->open("content.svg")) {
         KoStoreDevice storeDev(store);
@@ -195,22 +195,22 @@ bool KisShapeSelection::outlineCacheValid() const
 
 void KisShapeSelection::recalculateOutlineCache()
 {
-    QTransform resolutionMatrix;
+    PkTransform resolutionMatrix;
     resolutionMatrix.scale(m_resolutionProxy->xRes(), m_resolutionProxy->yRes());
 
-    QList<KoShape*> shapesList = shapes();
+    PkList<KoShape*> shapesList = shapes();
 
-    QPainterPath outline;
+    PkPainterPath outline;
     Q_FOREACH (KoShape * shape, shapesList) {
         /**
          * WARNING: we should unite all the shapes in image coordinates,
-         * not in points. Boolean operations inside the QPainterPath
+         * not in points. Boolean operations inside the PkPainterPath
          * linearize the curves into lines and they use absolute values
          * for thresholds.
          *
          * See KritaUtils::pathShapeBooleanSpaceWorkaround() for more info
          */
-        QTransform shapeMatrix = shape->absoluteTransformation();
+        PkTransform shapeMatrix = shape->absoluteTransformation();
         outline = outline.united(resolutionMatrix.map(shapeMatrix.map(shape->outline())));
     }
 
@@ -227,7 +227,7 @@ void KisShapeSelection::renderToProjection(KisPaintDeviceSP projection)
     Q_ASSERT(projection);
 
     PkRectF boundingRect = outlineCache().boundingRect();
-    renderSelection(projection, toPkRect(QRectF(boundingRect.x(), boundingRect.y(), boundingRect.width(), boundingRect.height()).toAlignedRect()));
+    renderSelection(projection, toPkRect(PkRectF(boundingRect.x(), boundingRect.y(), boundingRect.width(), boundingRect.height()).toAlignedRect()));
 }
 
 void KisShapeSelection::renderToProjection(KisPaintDeviceSP projection, const PkRect& r)
@@ -243,7 +243,7 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRec
     const qint32 MASK_IMAGE_WIDTH = 256;
     const qint32 MASK_IMAGE_HEIGHT = 256;
 
-    QPainterPath selectionOutline = toQPainterPath(outlineCache());
+    PkPainterPath selectionOutline = toQPainterPath(outlineCache());
 
     if (projection->defaultBounds()->currentLevelOfDetail() > 0) {
         KisLodTransform t(projection);
@@ -256,17 +256,17 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRec
         KoColor transparentColor = KoColor::createTransparent(projection->colorSpace());
         projection->fill(requestedRect, transparentColor);
     }
-    const QRect r = toQRect(requestedRect) & selectionOutline.boundingRect().toAlignedRect();
+    const PkRect r = toQRect(requestedRect) & selectionOutline.boundingRect().toAlignedRect();
 
-    QImage polygonMaskImage(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, QImage::Format_ARGB32);
+    PkImage polygonMaskImage(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, PkImage::Format_ARGB32);
     QPainter maskPainter(&polygonMaskImage);
     maskPainter.setRenderHint(QPainter::Antialiasing, true);
 
-    // Break the mask up into chunks so we don't have to allocate a potentially very large QImage.
+    // Break the mask up into chunks so we don't have to allocate a potentially very large PkImage.
     for (qint32 x = r.x(); x < r.x() + r.width(); x += MASK_IMAGE_WIDTH) {
         for (qint32 y = r.y(); y < r.y() + r.height(); y += MASK_IMAGE_HEIGHT) {
 
-            maskPainter.fillRect(polygonMaskImage.rect(), Qt::black);
+            maskPainter.fillRect(polygonMaskImage.rect(), Pk::black);
             maskPainter.translate(-x, -y);
             maskPainter.fillPath(selectionOutline, Qt::white);
             maskPainter.translate(x, y);
@@ -295,21 +295,21 @@ KisShapeSelectionFactory::KisShapeSelectionFactory()
 
 void KisShapeSelection::moveX(qint32 x)
 {
-    const QPointF diff(x / m_resolutionProxy->xRes(), 0);
+    const PkPointF diff(x / m_resolutionProxy->xRes(), 0);
     Q_EMIT sigMoveShapes(diff);
 }
 
 void KisShapeSelection::moveY(qint32 y)
 {
-    const QPointF diff(0, y / m_resolutionProxy->yRes());
+    const PkPointF diff(0, y / m_resolutionProxy->yRes());
     Q_EMIT sigMoveShapes(diff);
 }
 
-void KisShapeSelection::slotMoveShapes(const QPointF &diff)
+void KisShapeSelection::slotMoveShapes(const PkPointF &diff)
 {
     Q_FOREACH (KoShape* shape, shapeManager()->shapes()) {
         if (shape != this) {
-            QPointF pos = shape->position();
+            PkPointF pos = shape->position();
             shape->setPosition(pos + diff);
         }
     }
@@ -317,10 +317,10 @@ void KisShapeSelection::slotMoveShapes(const QPointF &diff)
 
 // TODO same code as in vector layer, refactor!
 KUndo2Command* KisShapeSelection::transform(const PkTransform &transform) {
-    QList<KoShape*> shapes = m_canvas->shapeManager()->shapes();
+    PkList<KoShape*> shapes = m_canvas->shapeManager()->shapes();
     if(shapes.isEmpty()) return 0;
 
-    QTransform realTransform = m_converter->documentToView() *
+    PkTransform realTransform = m_converter->documentToView() *
             toQTransform(transform) * m_converter->viewToDocument();
 
     PkList<PkTransform> oldTransformations;
@@ -329,15 +329,15 @@ KUndo2Command* KisShapeSelection::transform(const PkTransform &transform) {
     // this code won't work if there are shapes, that inherit the transformation from the parent container.
     // the chart and tree shapes are examples for that, but they aren't used in krita and there are no other shapes like that.
     Q_FOREACH (const KoShape* shape, shapes) {
-        QTransform oldTransform = shape->transformation();
+        PkTransform oldTransform = shape->transformation();
         oldTransformations.append(toPkTransform(oldTransform));
 
         // don't transform the container
         if (dynamic_cast<const KoShapeGroup *>(shape) || !shape->parent()) {
             newTransformations.append(toPkTransform(oldTransform));
         } else {
-            QTransform globalTransform = shape->absoluteTransformation();
-            QTransform localTransform = globalTransform * realTransform * globalTransform.inverted();
+            PkTransform globalTransform = shape->absoluteTransformation();
+            PkTransform localTransform = globalTransform * realTransform * globalTransform.inverted();
             newTransformations.append(toPkTransform(localTransform*oldTransform));
         }
     }

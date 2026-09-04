@@ -9,11 +9,11 @@
 #include "HtmlSavingContext.h"
 #include <KoXmlWriter.h>
 #include <KoShape.h>
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 struct HtmlSavingContext::Private {
 
-    Private(QIODevice *_shapeDevice)
+    Private(PkStream *_shapeDevice)
         : shapeDevice(_shapeDevice)
         , shapeWriter(0)
     {
@@ -21,13 +21,13 @@ struct HtmlSavingContext::Private {
         shapeWriter.reset(new KoXmlWriter(&shapeBufferStream, 1));
     }
 
-    QIODevice *shapeDevice;
-    QBuffer shapeBuffer;
+    PkStream *shapeDevice;
+    PkMemoryStream shapeBuffer;
     PkDeviceStream shapeBufferStream;
-    QScopedPointer<KoXmlWriter> shapeWriter;
+    PkScopedPointer<KoXmlWriter> shapeWriter;
 };
 
-HtmlSavingContext::HtmlSavingContext(QIODevice &shapeDevice)
+HtmlSavingContext::HtmlSavingContext(PkStream &shapeDevice)
     : d(new Private(&shapeDevice))
 {
 }

@@ -27,9 +27,9 @@ public:
     void nextNode();
 
     /// Create a new text node.
-    bool loadSvg(const QDomElement &element, SvgLoadingContext &context, bool root = false);
+    bool loadSvg(const PkXmlElement &element, SvgLoadingContext &context, bool root = false);
     /// Loads the textt into the current node.
-    bool loadSvgText(const QDomText &text, SvgLoadingContext &context);
+    bool loadSvgText(const PkXmlText &text, SvgLoadingContext &context);
 
     /// Set the style info from the shape. This is necessary because SVGParser only understands loading the basic style into a KoShape.
     void setStyleInfo(KoShape* s);
@@ -37,7 +37,7 @@ public:
     void setTextPathOnCurrentNode(KoShape *s);
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOSVGTEXTLOADER_H

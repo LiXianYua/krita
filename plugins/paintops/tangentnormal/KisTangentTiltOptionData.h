@@ -26,8 +26,8 @@ struct KisTangentTiltOptionData : boost::equality_comparable<KisTangentTiltOptio
             && lhs.greenChannel == rhs.greenChannel
             && lhs.blueChannel == rhs.blueChannel
             && lhs.directionType == rhs.directionType
-            && qFuzzyCompare(lhs.elevationSensitivity, rhs.elevationSensitivity)
-            && qFuzzyCompare(lhs.mixValue, rhs.mixValue);
+            && pkQtFuzzyCompare(lhs.elevationSensitivity, rhs.elevationSensitivity)
+            && pkQtFuzzyCompare(lhs.mixValue, rhs.mixValue);
     }
 
     int redChannel {0};

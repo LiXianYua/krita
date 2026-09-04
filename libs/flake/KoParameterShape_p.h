@@ -11,8 +11,8 @@
 #include "kritaflake_export.h"
 #include <KoParameterShape.h>
 
-#include <QList>
-#include <QPointF>
+#include <PkList.h>
+#include <PkPoint.h>
 #include <QSharedData>
 
 class KoParameterShape;
@@ -27,7 +27,7 @@ public:
     bool parametric;
 
     /// the handles that the user can grab and change
-    QList<QPointF> handles;
+    PkList<PkPointF> handles;
 };
 
 #endif

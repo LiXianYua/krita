@@ -9,10 +9,10 @@
 
 #include "KoShape.h"
 
-#include <QPoint>
+#include <PkPoint.h>
 #include <QPaintDevice>
-#include <QTransform>
-#include <QScopedPointer>
+#include <PkTransform.h>
+#include <PkScopedPointer.h>
 #include <QSharedData>
 
 #include <KoClipMask.h>
@@ -32,24 +32,24 @@ public:
 public:
     // Members
 
-    mutable QSizeF size; // size in pt
-    QString shapeId;
-    QString name; ///< the shapes names
+    mutable PkSizeF size; // size in pt
+    PkString shapeId;
+    PkString name; ///< the shapes names
 
-    QTransform localMatrix; ///< the shapes local transformation matrix
+    PkTransform localMatrix; ///< the shapes local transformation matrix
 
-    QScopedPointer<KoShapeUserData> userData;
-    QSharedPointer<KoShapeStrokeModel> stroke; ///< points to a stroke, or 0 if there is no stroke
-    QSharedPointer<KoShapeBackground> fill; ///< Stands for the background color / fill etc.
+    PkScopedPointer<KoShapeUserData> userData;
+    PkSharedPointer<KoShapeStrokeModel> stroke; ///< points to a stroke, or 0 if there is no stroke
+    PkSharedPointer<KoShapeBackground> fill; ///< Stands for the background color / fill etc.
     bool inheritBackground = false;
     bool inheritStroke = false;
     // XXX: change this to instance instead of pointer
-    QScopedPointer<KoClipPath> clipPath; ///< the current clip path
-    QScopedPointer<KoClipMask> clipMask; ///< the current clip mask
-    QMap<QString, QString> additionalAttributes;
-    QMap<QByteArray, QString> additionalStyleAttributes;
+    PkScopedPointer<KoClipPath> clipPath; ///< the current clip path
+    PkScopedPointer<KoClipMask> clipMask; ///< the current clip mask
+    PkMap<PkString, PkString> additionalAttributes;
+    PkMap<PkByteArray, PkString> additionalStyleAttributes;
     qreal transparency; ///< the shapes transparency
-    QString hyperLink; //hyperlink for this shape
+    PkString hyperLink; //hyperlink for this shape
 
     int zIndex : 16; // keep maxZIndex in sync!
     int visible : 1;
@@ -59,7 +59,7 @@ public:
     int selectable : 1;
     int protectContent : 1;
 
-    QVector<PaintOrder> paintOrder {Fill, Stroke, Markers};
+    PkVector<PaintOrder> paintOrder {Fill, Stroke, Markers};
     bool inheritPaintOrder = true;
 };
 
@@ -72,7 +72,7 @@ private:
      */
     struct DependeesLifetimeListener : KoShape::ShapeChangeListener
     {
-        DependeesLifetimeListener(QList<KoShape*> &dependees)
+        DependeesLifetimeListener(PkList<KoShape*> &dependees)
             : m_dependees(dependees)
         {
         }
@@ -85,7 +85,7 @@ private:
         }
 
     private:
-        QList<KoShape*> &m_dependees;
+        PkList<KoShape*> &m_dependees;
     };
 
 public:
@@ -93,10 +93,10 @@ public:
     Private(const Private &rhs) = delete;
 
     KoShapeContainer *parent = nullptr;
-    QSet<KoShapeManager *> shapeManagers;
-    QSet<KoShape *> toolDelegates;
-    QList<KoShape*> dependees; ///< list of shape dependent on this shape
-    QList<KoShape::ShapeChangeListener*> listeners;
+    PkSet<KoShapeManager *> shapeManagers;
+    PkSet<KoShape *> toolDelegates;
+    PkList<KoShape*> dependees; ///< list of shape dependent on this shape
+    PkList<KoShape::ShapeChangeListener*> listeners;
     DependeesLifetimeListener dependeesLifetimeListener;
 };
 

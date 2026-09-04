@@ -25,11 +25,11 @@ enum CrosshatchingType {
 struct KisHatchingOptionsData : boost::equality_comparable<KisHatchingOptionsData>
 {
     inline friend bool operator==(const KisHatchingOptionsData &lhs, const KisHatchingOptionsData &rhs) {
-        return qFuzzyCompare(lhs.angle, rhs.angle)
-            && qFuzzyCompare(lhs.separation, rhs.separation)
-            && qFuzzyCompare(lhs.thickness, rhs.thickness)
-            && qFuzzyCompare(lhs.originX, rhs.originX)
-            && qFuzzyCompare(lhs.originY, rhs.originY)
+        return pkQtFuzzyCompare(lhs.angle, rhs.angle)
+            && pkQtFuzzyCompare(lhs.separation, rhs.separation)
+            && pkQtFuzzyCompare(lhs.thickness, rhs.thickness)
+            && pkQtFuzzyCompare(lhs.originX, rhs.originX)
+            && pkQtFuzzyCompare(lhs.originY, rhs.originY)
             && lhs.crosshatchingStyle == rhs.crosshatchingStyle
             && lhs.separationIntervals == rhs.separationIntervals;
     }

@@ -17,7 +17,7 @@
 #include <hb.h>
 
 #include <QDebug>
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
 #include <kis_debug.h>
 
@@ -44,26 +44,26 @@ void checkCStyleResultWrapper(T *ptr)
  * https://invent.kde.org/graphics/krita/-/merge_requests/1607#note_567848
  */
 template<typename T, void (*P)(T *)>
-struct KisLibraryResourcePointer : private QSharedPointer<T> {
+struct KisLibraryResourcePointer : private PkSharedPointer<T> {
 public:
     KisLibraryResourcePointer()
-        : QSharedPointer<T>(nullptr)
+        : PkSharedPointer<T>(nullptr)
     {
     }
 
     KisLibraryResourcePointer(T *ptr)
-        : QSharedPointer<T>(ptr, ptr ? P : &KisLibraryResourcePointer::noDestroy)
+        : PkSharedPointer<T>(ptr, ptr ? P : &KisLibraryResourcePointer::noDestroy)
     {
     }
 
-    using QSharedPointer<T>::operator->;
+    using PkSharedPointer<T>::operator->;
 
     void reset(T *ptr) {
-        QSharedPointer<T>::reset(ptr, ptr ? P : &KisLibraryResourcePointer::noDestroy);
+        PkSharedPointer<T>::reset(ptr, ptr ? P : &KisLibraryResourcePointer::noDestroy);
     }
 
     void reset() {
-        QSharedPointer<T>::reset();
+        PkSharedPointer<T>::reset();
     }
 
     auto data() const

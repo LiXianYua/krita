@@ -133,7 +133,7 @@ int main()
                    "分支<=19(\"2024-03-15T08:30:45\") toString(ISODate) == 2024-03-15T08:30:45");
     }
 
-    // 分支 6：else（长度 >19）→ 无格式兜底（Qt::TextDate 默认解析）。
+    // 分支 6：else（长度 >19）→ 无格式兜底（Pk::TextDate 默认解析）。
     // "Wed May 20 03:40:13 2015" 长度 24（>19），走 else 分支。探针：
     // fromString(TextDate default) isValid => true；toString(ISODate) =>
     // 2015-05-20T03:40:13。

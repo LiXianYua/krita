@@ -91,7 +91,7 @@ void testCopyCtor(KisMaskGenerator *gen1)
 
     const int halfWidth = gen1->width() / 2;
     const int halfHeight = gen1->height() / 2;
-    const int numSamples = qMax(100.0, 0.1 * gen1->width() * gen1->height());
+    const int numSamples = pkMax(100.0, 0.1 * gen1->width() * gen1->height());
 
     KisRandomSource random;
     for (int i = 0; i < numSamples; i++) {

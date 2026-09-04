@@ -98,11 +98,11 @@ struct KoCmykF16Traits : public KoCmykTraits<half> {
         case m_pos:
         case y_pos:
         case k_pos:
-            return PkString("%1").arg(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * pkBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK));
         case 4:
-            return PkString("%1").arg(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * pkBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:
@@ -122,14 +122,14 @@ struct KoCmykF16Traits : public KoCmykTraits<half> {
             case m_pos:
             case y_pos:
             case k_pos:
-                channels[i] = qBound((qreal)0,
+                channels[i] = pkBound((qreal)0,
                                      ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                      (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK);
                 break;
             // As per KoChannelInfo alpha channels are [0..1]
             case 4:
             default:
-                channels[i] = qBound((qreal)0,
+                channels[i] = pkBound((qreal)0,
                                      ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                      (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue);
                 break;
@@ -147,12 +147,12 @@ struct KoCmykF16Traits : public KoCmykTraits<half> {
             case m_pos:
             case y_pos:
             case k_pos:
-                b = qBound((float)0,
+                b = pkBound((float)0,
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK * values[i],
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK);
                 break;
             default:
-                b = qBound((float)KoCmykColorSpaceMathsTraits<channels_type>::min,
+                b = pkBound((float)KoCmykColorSpaceMathsTraits<channels_type>::min,
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValue * values[i],
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::max);
                 break;
@@ -175,11 +175,11 @@ struct KoCmykF32Traits : public KoCmykTraits<float> {
         case m_pos:
         case y_pos:
         case k_pos:
-            return PkString("%1").arg(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * pkBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK));
         case 4:
-            return PkString("%1").arg(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * pkBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:
@@ -199,14 +199,14 @@ struct KoCmykF32Traits : public KoCmykTraits<float> {
             case m_pos:
             case y_pos:
             case k_pos:
-                channels[i] = qBound((qreal)0,
+                channels[i] = pkBound((qreal)0,
                                      ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                      (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK);
                 break;
             // As per KoChannelInfo alpha channels are [0..1]
             case 4:
             default:
-                channels[i] = qBound((qreal)0,
+                channels[i] = pkBound((qreal)0,
                                      ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                      (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue);
                 break;
@@ -224,12 +224,12 @@ struct KoCmykF32Traits : public KoCmykTraits<float> {
             case m_pos:
             case y_pos:
             case k_pos:
-                b = qBound((float)0,
+                b = pkBound((float)0,
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK * values[i],
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK);
                 break;
             default:
-                b = qBound((float)KoCmykColorSpaceMathsTraits<channels_type>::min,
+                b = pkBound((float)KoCmykColorSpaceMathsTraits<channels_type>::min,
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValue * values[i],
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::max);
                 break;
@@ -250,11 +250,11 @@ struct KoCmykF64Traits : public KoCmykTraits<double> {
         case m_pos:
         case y_pos:
         case k_pos:
-            return PkString("%1").arg(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * pkBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK));
         case 4:
-            return PkString("%1").arg(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * pkBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:
@@ -274,14 +274,14 @@ struct KoCmykF64Traits : public KoCmykTraits<double> {
             case m_pos:
             case y_pos:
             case k_pos:
-                channels[i] = qBound((qreal)0,
+                channels[i] = pkBound((qreal)0,
                                      ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                      (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK);
                 break;
             // As per KoChannelInfo alpha channels are [0..1]
             case 4:
             default:
-                channels[i] = qBound((qreal)0,
+                channels[i] = pkBound((qreal)0,
                                      ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                      (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue);
                 break;
@@ -299,12 +299,12 @@ struct KoCmykF64Traits : public KoCmykTraits<double> {
             case m_pos:
             case y_pos:
             case k_pos:
-                b = qBound((float)0,
+                b = pkBound((float)0,
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK * values[i],
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK);
                 break;
             default:
-                b = qBound((float)KoCmykColorSpaceMathsTraits<channels_type>::min,
+                b = pkBound((float)KoCmykColorSpaceMathsTraits<channels_type>::min,
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::unitValue * values[i],
                            (float)KoCmykColorSpaceMathsTraits<channels_type>::max);
                 break;

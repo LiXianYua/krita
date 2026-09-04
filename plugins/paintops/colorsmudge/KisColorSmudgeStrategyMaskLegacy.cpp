@@ -46,7 +46,7 @@ PkString KisColorSmudgeStrategyMaskLegacy::finalCompositeOp(bool smearAlpha) con
 
 qreal KisColorSmudgeStrategyMaskLegacy::finalPainterOpacity(qreal opacity, qreal smudgeRateValue)
 {
-    return qBound(OPACITY_TRANSPARENT_F,
+    return pkBound(OPACITY_TRANSPARENT_F,
                   smudgeRateValue * opacity,
                   OPACITY_OPAQUE_F);
 }
@@ -56,9 +56,9 @@ qreal KisColorSmudgeStrategyMaskLegacy::colorRateOpacity(qreal opacity, qreal sm
 {
     static_cast<void>(smudgeRateValue);
 
-    const qreal maxColorRate = qMax<qreal>(1.0 - maxPossibleSmudgeRateValue, 0.2);
+    const qreal maxColorRate = pkMax<qreal>(1.0 - maxPossibleSmudgeRateValue, 0.2);
 
-    return qBound(OPACITY_TRANSPARENT_F,
+    return pkBound(OPACITY_TRANSPARENT_F,
                   KisAlgebra2D::lerp(0.0, maxColorRate, colorRateValue * opacity),
                   OPACITY_OPAQUE_F);
 }

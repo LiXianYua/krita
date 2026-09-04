@@ -33,7 +33,7 @@ void TestShapeReorderCommand::testZIndexSorting()
     shape4.setZIndex(9999);
     shape5.setZIndex(-9999);
 
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(&shape1);
     shapes.append(&shape2);
     shapes.append(&shape3);
@@ -78,7 +78,7 @@ void TestShapeReorderCommand::testParentChildSorting()
     container1->addShape(container2);
     container1->addShape(container3);
 
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(shape1);
     shapes.append(shape2);
     shapes.append(shape3);
@@ -127,13 +127,13 @@ void TestShapeReorderCommand::testBringToFront()
 {
     MockShape shape1, shape2, shape3;
 
-    shape1.setSize(QSizeF(100, 100));
+    shape1.setSize(PkSizeF(100, 100));
     shape1.setZIndex(1);
-    shape2.setSize(QSizeF(100, 100));
+    shape2.setSize(PkSizeF(100, 100));
     shape2.setZIndex(2);
-    shape3.setSize(QSizeF(100, 100));
+    shape3.setSize(PkSizeF(100, 100));
     shape3.setZIndex(3);
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(&shape1);
     shapes.append(&shape2);
     shapes.append(&shape3);
@@ -146,7 +146,7 @@ void TestShapeReorderCommand::testBringToFront()
     QCOMPARE(shapes.indexOf(&shape2), 1);
     QCOMPARE(shapes.indexOf(&shape3), 2);
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     selectedShapes.append(&shape1);
 
     KUndo2Command * cmd = KoShapeReorderCommand::createCommand(toPkList(selectedShapes), &manager, KoShapeReorderCommand::BringToFront);
@@ -164,13 +164,13 @@ void TestShapeReorderCommand::testSendToBack()
 {
     MockShape shape1, shape2, shape3;
 
-    shape1.setSize(QSizeF(100, 100));
+    shape1.setSize(PkSizeF(100, 100));
     shape1.setZIndex(1);
-    shape2.setSize(QSizeF(100, 100));
+    shape2.setSize(PkSizeF(100, 100));
     shape2.setZIndex(2);
-    shape3.setSize(QSizeF(100, 100));
+    shape3.setSize(PkSizeF(100, 100));
     shape3.setZIndex(3);
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(&shape1);
     shapes.append(&shape2);
     shapes.append(&shape3);
@@ -183,7 +183,7 @@ void TestShapeReorderCommand::testSendToBack()
     QCOMPARE(shapes.indexOf(&shape2), 1);
     QCOMPARE(shapes.indexOf(&shape3), 2);
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     selectedShapes.append(&shape3);
 
     KUndo2Command * cmd = KoShapeReorderCommand::createCommand(toPkList(selectedShapes), &manager, KoShapeReorderCommand::SendToBack);
@@ -201,13 +201,13 @@ void TestShapeReorderCommand::testMoveUp()
 {
     MockShape shape1, shape2, shape3;
 
-    shape1.setSize(QSizeF(100, 100));
+    shape1.setSize(PkSizeF(100, 100));
     shape1.setZIndex(1);
-    shape2.setSize(QSizeF(100, 100));
+    shape2.setSize(PkSizeF(100, 100));
     shape2.setZIndex(2);
-    shape3.setSize(QSizeF(100, 100));
+    shape3.setSize(PkSizeF(100, 100));
     shape3.setZIndex(3);
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(&shape1);
     shapes.append(&shape2);
     shapes.append(&shape3);
@@ -220,7 +220,7 @@ void TestShapeReorderCommand::testMoveUp()
     QCOMPARE(shapes.indexOf(&shape2), 1);
     QCOMPARE(shapes.indexOf(&shape3), 2);
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     selectedShapes.append(&shape1);
 
     KUndo2Command * cmd = KoShapeReorderCommand::createCommand(toPkList(selectedShapes), &manager, KoShapeReorderCommand::RaiseShape);
@@ -238,13 +238,13 @@ void TestShapeReorderCommand::testMoveDown()
 {
     MockShape shape1, shape2, shape3;
 
-    shape1.setSize(QSizeF(100, 100));
+    shape1.setSize(PkSizeF(100, 100));
     shape1.setZIndex(1);
-    shape2.setSize(QSizeF(100, 100));
+    shape2.setSize(PkSizeF(100, 100));
     shape2.setZIndex(2);
-    shape3.setSize(QSizeF(100, 100));
+    shape3.setSize(PkSizeF(100, 100));
     shape3.setZIndex(3);
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(&shape1);
     shapes.append(&shape2);
     shapes.append(&shape3);
@@ -257,7 +257,7 @@ void TestShapeReorderCommand::testMoveDown()
     QCOMPARE(shapes.indexOf(&shape2), 1);
     QCOMPARE(shapes.indexOf(&shape3), 2);
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     selectedShapes.append(&shape2);
 
     KUndo2Command * cmd = KoShapeReorderCommand::createCommand(toPkList(selectedShapes), &manager, KoShapeReorderCommand::LowerShape);
@@ -275,22 +275,22 @@ void TestShapeReorderCommand::testMoveUpOverlapping()
 {
     MockShape shape1, shape2, shape3, shape4, shape5;
 
-    shape1.setSize(QSizeF(100, 100));
+    shape1.setSize(PkSizeF(100, 100));
     shape1.setZIndex(1);
-    shape2.setSize(QSizeF(100, 100));
+    shape2.setSize(PkSizeF(100, 100));
     shape2.setZIndex(2);
 
-    shape3.setSize(QSizeF(300, 300));
+    shape3.setSize(PkSizeF(300, 300));
     shape3.setZIndex(3);
 
-    shape4.setSize(QSizeF(100, 100));
-    shape4.setPosition(QPointF(200,200));
+    shape4.setSize(PkSizeF(100, 100));
+    shape4.setPosition(PkPointF(200,200));
     shape4.setZIndex(4);
-    shape5.setSize(QSizeF(100, 100));
-    shape5.setPosition(QPointF(200,200));
+    shape5.setSize(PkSizeF(100, 100));
+    shape5.setPosition(PkPointF(200,200));
     shape5.setZIndex(5);
 
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(&shape1);
     shapes.append(&shape2);
     shapes.append(&shape3);
@@ -305,7 +305,7 @@ void TestShapeReorderCommand::testMoveUpOverlapping()
     QVERIFY(shape3.zIndex() < shape4.zIndex());
     QVERIFY(shape4.zIndex() < shape5.zIndex());
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     selectedShapes.append(&shape1);
 
     KUndo2Command * cmd = KoShapeReorderCommand::createCommand(toPkList(selectedShapes), &manager, KoShapeReorderCommand::RaiseShape);
@@ -324,22 +324,22 @@ void TestShapeReorderCommand::testMoveDownOverlapping()
 #if 0 // disable a current algorithm does not yet support this
     MockShape shape1, shape2, shape3, shape4, shape5;
 
-    shape1.setSize(QSizeF(100, 100));
+    shape1.setSize(PkSizeF(100, 100));
     shape1.setZIndex(1);
-    shape2.setSize(QSizeF(100, 100));
+    shape2.setSize(PkSizeF(100, 100));
     shape2.setZIndex(2);
 
-    shape3.setSize(QSizeF(300, 300));
+    shape3.setSize(PkSizeF(300, 300));
     shape3.setZIndex(3);
 
-    shape4.setSize(QSizeF(100, 100));
-    shape4.setPosition(QPointF(200,200));
+    shape4.setSize(PkSizeF(100, 100));
+    shape4.setPosition(PkPointF(200,200));
     shape4.setZIndex(4);
-    shape5.setSize(QSizeF(100, 100));
-    shape5.setPosition(QPointF(200,200));
+    shape5.setSize(PkSizeF(100, 100));
+    shape5.setPosition(PkPointF(200,200));
     shape5.setZIndex(5);
 
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(&shape1);
     shapes.append(&shape2);
     shapes.append(&shape3);
@@ -354,7 +354,7 @@ void TestShapeReorderCommand::testMoveDownOverlapping()
     QVERIFY(shape3.zIndex() < shape4.zIndex());
     QVERIFY(shape4.zIndex() < shape5.zIndex());
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     selectedShapes.append(&shape5);
 
     KUndo2Command * cmd = KoShapeReorderCommand::createCommand(toPkList(selectedShapes), &manager, KoShapeReorderCommand::LowerShape);
@@ -375,19 +375,19 @@ void TestShapeReorderCommand::testSendToBackChildren()
     MockShape *shape2 = new MockShape();
     MockShape *shape3 = new MockShape();
 
-    shape1->setSize(QSizeF(100, 100));
+    shape1->setSize(PkSizeF(100, 100));
     shape1->setZIndex(1);
-    shape2->setSize(QSizeF(100, 100));
+    shape2->setSize(PkSizeF(100, 100));
     shape2->setZIndex(2);
-    shape3->setSize(QSizeF(100, 100));
+    shape3->setSize(PkSizeF(100, 100));
     shape3->setZIndex(3);
 
-    QScopedPointer<MockContainer> container(new MockContainer());
+    PkScopedPointer<MockContainer> container(new MockContainer());
     container->addShape(shape1);
     container->addShape(shape2);
     container->addShape(shape3);
 
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(shape1);
     shapes.append(shape2);
     shapes.append(shape3);
@@ -402,7 +402,7 @@ void TestShapeReorderCommand::testSendToBackChildren()
     QCOMPARE(shapes.indexOf(shape2), 2);
     QCOMPARE(shapes.indexOf(shape3), 3);
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     selectedShapes.append(shape3);
 
     KUndo2Command * cmd = KoShapeReorderCommand::createCommand(toPkList(selectedShapes), &manager, KoShapeReorderCommand::SendToBack);
@@ -452,13 +452,13 @@ void TestShapeReorderCommand::testNoCommand()
 {
     MockShape shape1, shape2, shape3;
 
-    shape1.setSize(QSizeF(100, 100));
+    shape1.setSize(PkSizeF(100, 100));
     shape1.setZIndex(1);
-    shape2.setSize(QSizeF(100, 100));
+    shape2.setSize(PkSizeF(100, 100));
     shape2.setZIndex(2);
-    shape3.setSize(QSizeF(100, 100));
+    shape3.setSize(PkSizeF(100, 100));
     shape3.setZIndex(3);
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(&shape1);
     shapes.append(&shape2);
     shapes.append(&shape3);
@@ -471,7 +471,7 @@ void TestShapeReorderCommand::testNoCommand()
     QCOMPARE(shapes.indexOf(&shape2), 1);
     QCOMPARE(shapes.indexOf(&shape3), 2);
 
-    QList<KoShape*> selectedShapes;
+    PkList<KoShape*> selectedShapes;
     selectedShapes.append(&shape3);
 
     KUndo2Command * cmd = KoShapeReorderCommand::createCommand(toPkList(selectedShapes), &manager, KoShapeReorderCommand::BringToFront);
@@ -505,24 +505,24 @@ void TestShapeReorderCommand::testNoCommand()
 }
 #include <kis_assert.h>
 #include <kis_debug.h>
-void testMergeInShapeImpl(const QVector<int> indexesProfile,
+void testMergeInShapeImpl(const PkVector<int> indexesProfile,
                           int newShapeIndex,
-                          const QVector<qint16> expectedIndexes)
+                          const PkVector<qint16> expectedIndexes)
 {
     KIS_ASSERT(indexesProfile.size() == expectedIndexes.size());
 
-    QVector<MockShape> shapesStore(indexesProfile.size());
+    PkVector<MockShape> shapesStore(indexesProfile.size());
 
-    QList<KoShape*> managedShapes;
+    PkList<KoShape*> managedShapes;
 
     for (int i = 0; i < shapesStore.size(); i++) {
-        shapesStore[i].setSize(QSizeF(100,100));
+        shapesStore[i].setSize(PkSizeF(100,100));
         shapesStore[i].setZIndex(indexesProfile[i]);
 
         managedShapes << &shapesStore[i];
     }
 
-    QScopedPointer<KUndo2Command> cmd(
+    PkScopedPointer<KUndo2Command> cmd(
         KoShapeReorderCommand::mergeInShape(toPkList(managedShapes), &shapesStore[newShapeIndex]));
     cmd->redo();
 
@@ -534,18 +534,18 @@ void testMergeInShapeImpl(const QVector<int> indexesProfile,
 
 void TestShapeReorderCommand::testMergeInShape()
 {
-    QVector<int> indexesProfile({1,1,2,2,2,3,3,4,5,6});
+    PkVector<int> indexesProfile({1,1,2,2,2,3,3,4,5,6});
     int newShapeIndex = 3;
-    QVector<qint16> expectedIndexes({1,1,2,3,2,4,4,5,6,7});
+    PkVector<qint16> expectedIndexes({1,1,2,3,2,4,4,5,6,7});
 
     testMergeInShapeImpl(indexesProfile, newShapeIndex, expectedIndexes);
 }
 
 void TestShapeReorderCommand::testMergeInShapeDistant()
 {
-    QVector<int> indexesProfile({1,1,2,2,2,4,4,5,6,7});
+    PkVector<int> indexesProfile({1,1,2,2,2,4,4,5,6,7});
     int newShapeIndex = 3;
-    QVector<qint16> expectedIndexes({1,1,2,3,2,4,4,5,6,7});
+    PkVector<qint16> expectedIndexes({1,1,2,3,2,4,4,5,6,7});
 
     testMergeInShapeImpl(indexesProfile, newShapeIndex, expectedIndexes);
 }

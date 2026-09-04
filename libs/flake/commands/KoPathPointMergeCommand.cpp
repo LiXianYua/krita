@@ -34,33 +34,33 @@ public:
     }
 
     void savePointState(KoPathPoint *point) {
-        savedNodePoint1 = toPkPointF(point->point());
+        savedNodePoint1 = point->point();
         savedControlPoint11 = KritaUtils::fetchControlPoint(point, true);
         savedControlPoint12 = KritaUtils::fetchControlPoint(point, false);
     }
 
     void restorePointState(KoPathPoint *point) {
-        point->setPoint(toQPointF(savedNodePoint1));
+        point->setPoint(savedNodePoint1);
         KritaUtils::restoreControlPoint(point, true, savedControlPoint11);
         KritaUtils::restoreControlPoint(point, false, savedControlPoint12);
     }
 
     void mergePoints(KoPathPoint * p1, KoPathPoint * p2, KoPathPoint *dstPoint)
     {
-        PkPointF mergePosition = toPkPointF(0.5 * (p1->point() + p2->point()));
+        PkPointF mergePosition = 0.5 * (p1->point() + p2->point());
 
         boost::optional<PkPointF> mergedControlPoint1;
         boost::optional<PkPointF> mergedControlPoint2;
 
         if (p1->activeControlPoint1()) {
-            mergedControlPoint1 = mergePosition + toPkPointF(p1->controlPoint1() - p1->point());
+            mergedControlPoint1 = mergePosition + p1->controlPoint1() - p1->point();
         }
 
         if (p2->activeControlPoint2()) {
-            mergedControlPoint2 = mergePosition + toPkPointF(p2->controlPoint2() - p2->point());
+            mergedControlPoint2 = mergePosition + p2->controlPoint2() - p2->point();
         }
 
-        dstPoint->setPoint(toQPointF(mergePosition));
+        dstPoint->setPoint(mergePosition);
         KritaUtils::restoreControlPoint(dstPoint, true, mergedControlPoint1);
         KritaUtils::restoreControlPoint(dstPoint, false, mergedControlPoint2);
     }

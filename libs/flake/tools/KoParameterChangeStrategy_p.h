@@ -26,8 +26,8 @@ public:
     }
     KoParameterShape * const parameterShape; ///< the parametric shape we are working on
     const int handleId;                      ///< the id of the control point
-    const QPointF startPoint;                ///< the starting position of the control point
-    QPointF releasePoint;
+    const PkPointF startPoint;                ///< the starting position of the control point
+    PkPointF releasePoint;
     Qt::KeyboardModifiers lastModifierUsed;
 };
 

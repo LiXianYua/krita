@@ -39,10 +39,10 @@ public:
     void updateThumbnail() override;
 
     /// Returns the typographic family name, if any.
-    QString typographicFamily() const;
+    PkString typographicFamily() const;
 
     /// Return the translated name for a given locale...
-    QString translatedFontName(QStringList locales) const;
+    PkString translatedFontName(PkStringList locales) const;
 
     /// Font is variable
     bool isVariable() const;
@@ -55,8 +55,8 @@ public:
     /// Font is SVG.
     bool colorSVG() const;
 
-    QList<KoSvgText::FontFamilyAxis> axes() const;
-    QList<KoSvgText::FontFamilyStyleInfo> styles() const;
+    PkList<KoSvgText::FontFamilyAxis> axes() const;
+    PkList<KoSvgText::FontFamilyStyleInfo> styles() const;
 
     PkDateTime lastModified() const;
 

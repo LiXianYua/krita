@@ -167,8 +167,8 @@
 // ---- Q_OBJECT 空置（S 线-spec S-06 交接「阻断 B」）----
 // 未剥头（kundo2stack.h 等）里 Q_OBJECT 类派生自 PkObject（compat/QObject 的
 // `#define QObject PkObject`），**但真 Qt 的 qobjectdefs.h 已先到**（上面 umbrella），
-// 真 Q_OBJECT 宏展开出的 `QString tr()` 在 compat 宏激活后被改写成
-// `PkString tr()`，函数体却调真 QMetaObject::tr 返回真 QString —— 类型对不上。
+// 真 Q_OBJECT 宏展开出的 `PkString tr()` 在 compat 宏激活后被改写成
+// `PkString tr()`，函数体却调真 QMetaObject::tr 返回真 PkString —— 类型对不上。
 // 处置：本头**无条件**把 Q_OBJECT 空置成 friend 形式（与 pk/signal/compat/QObject
 // 的让位分支同款）——混合 TU 里 PkObject 派生类的元对象成员由 AUTOMOC 在
 // mocs_compilation.cpp.o 里用**真** Q_OBJECT（那个 TU 不含本头）生成，本头只

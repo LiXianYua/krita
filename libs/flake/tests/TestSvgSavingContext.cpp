@@ -12,7 +12,7 @@
 
 #include <SvgSavingContext.h>
 
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 class TestSvgSavingContext : public QObject
 {
@@ -25,8 +25,8 @@ private Q_SLOTS:
 
 void TestSvgSavingContext::testCreateUID1()
 {
-    QBuffer buffer;
-    buffer.open(QIODevice::Append);
+    PkMemoryStream buffer;
+    buffer.open(PkStream::Append);
     SvgSavingContext context(buffer);
 
     MockShape shape1;
@@ -43,8 +43,8 @@ void TestSvgSavingContext::testCreateUID1()
 
 void TestSvgSavingContext::testCreateUID2()
 {
-    QBuffer buffer;
-    buffer.open(QIODevice::Append);
+    PkMemoryStream buffer;
+    buffer.open(PkStream::Append);
     SvgSavingContext context(buffer);
 
     MockShape shape1;
@@ -62,8 +62,8 @@ void TestSvgSavingContext::testCreateUID2()
 
 void TestSvgSavingContext::testDuplicatedId1()
 {
-    QBuffer buffer;
-    buffer.open(QIODevice::Append);
+    PkMemoryStream buffer;
+    buffer.open(PkStream::Append);
     SvgSavingContext context(buffer);
 
     MockShape shape1;

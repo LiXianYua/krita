@@ -399,7 +399,7 @@ public:
 
 
             const qreal alphaScale = 100.0 / 255.0;
-            return qRound(alphaScale * qAbs(this->opacityU8(src1) - this->opacityU8(src2)));
+            return pkRound(alphaScale * pkAbs(this->opacityU8(src1) - this->opacityU8(src2)));
         }
         KIS_ASSERT(this->toLabA16Converter());
         this->toLabA16Converter()->transform(src1, lab1, 1);

@@ -7,6 +7,8 @@
 #include <QtGui/QtGui>
 
 #include "KoClipMaskApplicatorBase.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkRgb.h>
 
 void KoClipMaskApplicatorBase::fallbackLuminanceMask(quint8 *pixels, quint8 *maskPixels, const int nPixels) const{
     const quint32 colorChannelsMask = 0x00FFFFFF;
@@ -15,12 +17,12 @@ void KoClipMaskApplicatorBase::fallbackLuminanceMask(quint8 *pixels, quint8 *mas
     const float blueLum = 0.0721f;
     const float normCoeff = 1.0f / 255.0f;
 
-    const QRgb *mP = reinterpret_cast<const QRgb*>(maskPixels);
-    QRgb *sP = reinterpret_cast<QRgb*>(pixels);
+    const PkRgb *mP = reinterpret_cast<const PkRgb*>(maskPixels);
+    PkRgb *sP = reinterpret_cast<PkRgb*>(pixels);
 
     for (int i = 0; i < nPixels; i++) {
-        const QRgb mask = *mP;
-        const QRgb shape = *sP;
+        const PkRgb mask = *mP;
+        const PkRgb shape = *sP;
 
         const float maskValue = qAlpha(mask) * (redLum * qRed(mask) + greenLum * qGreen(mask) + blueLum * qBlue(mask)) * normCoeff;
 

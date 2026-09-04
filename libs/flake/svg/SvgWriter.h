@@ -17,49 +17,49 @@
 #define SVGWRITER_H
 
 #include "kritaflake_export.h"
-#include <QList>
-#include <QSizeF>
+#include <PkList.h>
+#include <PkSize.h>
 
 class SvgSavingContext;
 class KoShapeLayer;
 class KoShapeGroup;
 class KoShape;
 class KoPathShape;
-class QIODevice;
 class PkStream;
-class QString;
+class PkStream;
+class PkString;
 
 /// Implements exporting shapes to SVG
 class KRITAFLAKE_EXPORT SvgWriter
 {
 public:
     /// Creates svg writer to export specified layers
-    SvgWriter(const QList<KoShapeLayer*> &layers);
+    SvgWriter(const PkList<KoShapeLayer*> &layers);
 
     /// Creates svg writer to export specified shapes
-    SvgWriter(const QList<KoShape*> &toplevelShapes);
+    SvgWriter(const PkList<KoShape*> &toplevelShapes);
 
     /// Destroys the svg writer
     virtual ~SvgWriter();
 
     /// Writes svg to specified output device
-    bool save(QIODevice &outputDevice, const QSizeF &pageSize);
-#ifndef QIODevice
-    bool save(PkStream &outputDevice, const QSizeF &pageSize);
+    bool save(PkStream &outputDevice, const PkSizeF &pageSize);
+#ifndef PkStream
+    bool save(PkStream &outputDevice, const PkSizeF &pageSize);
 #endif
 
     /// Writes svg to the specified file
-    bool save(const QString &filename, const QSizeF &pageSize, bool writeInlineImages);
+    bool save(const PkString &filename, const PkSizeF &pageSize, bool writeInlineImages);
 
-    bool saveDetached(QIODevice &outputDevice);
+    bool saveDetached(PkStream &outputDevice);
 
     bool saveDetached(SvgSavingContext &savingContext);
 
-    void setDocumentTitle(QString title);
-    void setDocumentDescription(QString description);
+    void setDocumentTitle(PkString title);
+    void setDocumentDescription(PkString description);
 
 private:
-    void saveShapes(const QList<KoShape*> shapes, SvgSavingContext &savingContext);
+    void saveShapes(const PkList<KoShape*> shapes, SvgSavingContext &savingContext);
 
     void saveLayer(KoShapeLayer *layer, SvgSavingContext &context);
     void saveGroup(KoShapeGroup *group, SvgSavingContext &context);
@@ -67,10 +67,10 @@ private:
     void savePath(KoPathShape *path, SvgSavingContext &context);
     void saveGeneric(KoShape *shape, SvgSavingContext &context);
 
-    QList<KoShape*> m_toplevelShapes;
+    PkList<KoShape*> m_toplevelShapes;
     bool m_writeInlineImages;
-    QString m_documentTitle;
-    QString m_documentDescription;
+    PkString m_documentTitle;
+    PkString m_documentDescription;
 };
 
 #endif // SVGWRITER_H

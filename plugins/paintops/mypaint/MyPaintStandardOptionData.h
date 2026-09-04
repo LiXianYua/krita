@@ -35,7 +35,7 @@ struct MyPaintRadiusByRandomData : MyPaintCurveOptionData
 
     KisPaintopLodLimitations lodLimitations() const {
         KisPaintopLodLimitations l;
-        if (qAbs(strengthValue) > 0.05) {
+        if (pkAbs(strengthValue) > 0.05) {
             l.limitations.insert(KoID("Radius by Random", "Radius by Random, consider disabling Instant Preview"));
         }
         return l;
@@ -236,7 +236,7 @@ struct MyPaintOffsetByRandomData : MyPaintCurveOptionData
 
     KisPaintopLodLimitations lodLimitations() const {
         KisPaintopLodLimitations l;
-        if (qAbs(strengthValue) > 0.05) {
+        if (pkAbs(strengthValue) > 0.05) {
             l.limitations.insert(KoID("Offset by Random", "Offset by Random, consider disabling Instant Preview"));
         }
         return l;

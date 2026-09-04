@@ -11,7 +11,7 @@
 
 #include "KoInteractionStrategy.h"
 
-#include <QRectF>
+#include <PkRect.h>
 
 #include "kritaflake_export.h"
 
@@ -37,17 +37,17 @@ public:
      * @param clicked the initial point that the user depressed (in pt).
      * @param useSnapToGrid use the snap-to-grid settings while doing the rubberstamp.
      */
-    KoShapeRubberSelectStrategy(KoToolBase *tool, const QPointF &clicked, bool useSnapToGrid = false);
+    KoShapeRubberSelectStrategy(KoToolBase *tool, const PkPointF &clicked, bool useSnapToGrid = false);
 
     void paint(QPainter &painter, const KoViewConverter &converter) override;
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
 
 protected:
     /// constructor
     KoShapeRubberSelectStrategy(KoShapeRubberSelectStrategyPrivate &);
 
-    QRectF selectedRectangle() const;
+    PkRectF selectedRectangle() const;
 
     enum SelectionMode {
         CrossingSelection,

@@ -10,9 +10,9 @@
 #define KOSHAPEFACTORYBASE_H
 
 #include <QObject>
-#include <QString>
-#include <QList>
-#include <QDomDocument>
+#include <PkString.h>
+#include <PkList.h>
+#include <PkXmlDocument.h>
 
 #include "kritaflake_export.h"
 #include <KisQStringListFwd.h>
@@ -35,12 +35,12 @@ struct KRITAFLAKE_EXPORT KoShapeTemplate {
     KoShapeTemplate() {
         properties = 0;
     }
-    QString id;         ///< The id of the shape
-    QString templateId;         ///< The id of this particular template - only has to be unique with the shape
-    QString name;       ///< The name to be shown for this template
-    QString family;       ///< The family of the shape (possible values are: "funny","arrow")
-    QString toolTip;    ///< The tooltip text for the template
-    QString iconName;       ///< Icon name
+    PkString id;         ///< The id of the shape
+    PkString templateId;         ///< The id of this particular template - only has to be unique with the shape
+    PkString name;       ///< The name to be shown for this template
+    PkString family;       ///< The family of the shape (possible values are: "funny","arrow")
+    PkString toolTip;    ///< The tooltip text for the template
+    PkString iconName;       ///< Icon name
     /**
      * The properties which, when passed to the KoShapeFactoryBase::createShape() method
      * result in the shape this template represents.
@@ -80,50 +80,50 @@ public:
      * @param id a string that will be used internally for referencing the shape
      * @param name the user visible name of the shape this factory creates.
      */
-    KoShapeFactoryBase(const QString &id, const QString &name, const QString &deferredPluginName = QString());
+    KoShapeFactoryBase(const PkString &id, const PkString &name, const PkString &deferredPluginName = PkString());
     ~KoShapeFactoryBase() override;
 
     /**
      * return the id for the shape this factory creates.
      * @return the id for the shape this factory creates.
      */
-    QString id() const;
+    PkString id() const;
     /**
      * Return all the templates this factory knows about.
      * Each template shows a different way to create a shape this factory is specialized in.
      */
-    QList<KoShapeTemplate> templates() const;
+    PkList<KoShapeTemplate> templates() const;
     /**
      * return a translated tooltip Text for a selector of shapes
      * @return a translated tooltip Text
      */
-    QString toolTip() const;
+    PkString toolTip() const;
     /**
      * return the basename of the icon for a selector of shapes
      * @return the basename of the icon for a selector of shapes
      */
-    QString iconName() const;
+    PkString iconName() const;
     /**
      * return the user visible (and translated) name to be seen by the user.
      * @return the user visible (and translated) name to be seen by the user.
      */
-    QString name() const;
+    PkString name() const;
     /**
      * return the non-visible name of the family the default shape belongs to.
      * @return the family name.
      */
-    QString family() const;
+    PkString family() const;
     /// lower prio means the shape is more generic and will be checked later
     int loadingPriority() const;
 
     /**
      * The list of namespaces to the supported elements the factory supports.
      */
-    QList<QPair<QString, QStringList> > odfElements() const;
+    PkList<std::pair<PkString, PkStringList> > odfElements() const;
 
     /// returns true if this shapeFactory is able to load the ODF type
     /// started at argument element. ('draw:line' / 'draw:frame' / etc)
-    virtual bool supports(const QDomElement &element, KoShapeLoadingContext &context) const = 0;
+    virtual bool supports(const PkXmlElement &element, KoShapeLoadingContext &context) const = 0;
 
     /**
      * The hidden boolean requests if the shape should be hidden in the
@@ -195,7 +195,7 @@ protected:
      * Set the tooltip to be used for a selector of shapes
      * @param tooltip the tooltip
      */
-    void setToolTip(const QString &tooltip);
+    void setToolTip(const PkString &tooltip);
 
     /**
      * Set an icon to be used in a selector of shapes
@@ -208,7 +208,7 @@ protected:
      * @param family the family name of the default shape this factory creates.
      *   for example "funny", "arrows", "geometrics". Use "" for default
      */
-    void setFamily(const QString &family);
+    void setFamily(const PkString &family);
 
     /**
      * Set the loading priority for this icon; higher priority means
@@ -228,7 +228,7 @@ protected:
      * @param elementNames the name of the element itself, like "path"
      *
      */
-    void setXmlElementNames(const QString &nameSpace, const QStringList &elementNames);
+    void setXmlElementNames(const PkString &nameSpace, const PkStringList &elementNames);
 
     /**
      * Set the namespaces and according element tags used for quick checking whether this shapefactory
@@ -239,7 +239,7 @@ protected:
      * urn:oasis:names:tc:opendocument:xmlns:text:1.0,
      * take it from KoXmlNS.h) to a list of elementName of the element itself, like "path"
      */
-    void setXmlElements(const QList<QPair<QString, QStringList> > &elementNamesList);
+    void setXmlElements(const PkList<std::pair<PkString, PkStringList> > &elementNamesList);
 
     /**
      * The hidden boolean requests if the shape should be hidden in the

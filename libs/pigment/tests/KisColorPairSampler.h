@@ -147,7 +147,7 @@ struct KisColorPairSampler
             auto scaleChannel = [] (qreal value) -> quint16 {
                 return pkFuzzyCompare(value, 0.5) ?
                     KoColorSpaceMathsTraits<quint16>::halfValue :
-                    qRound(qBound(0.0, value, 1.0) * unitValue<quint16>());
+                    pkRound(pkBound(0.0, value, 1.0) * unitValue<quint16>());
             };
 
             /**
@@ -158,7 +158,7 @@ struct KisColorPairSampler
             const quint16 red = scaleChannel(redF);
             const quint16 green = scaleChannel(greenF);
             const quint16 blue = scaleChannel(blueF);
-            const quint16 alpha = qRound(qBound(0.0, alphaF, 1.0) * unitValue<quint16>());
+            const quint16 alpha = pkRound(pkBound(0.0, alphaF, 1.0) * unitValue<quint16>());
 
             KoColor c(colorSpace);
             quint16 *ptr = reinterpret_cast<quint16*>(c.data());

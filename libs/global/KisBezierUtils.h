@@ -133,11 +133,11 @@ inline bool isLinearSegmentByDerivatives(const PkPointF &p0, const PkPointF &d0,
     const qreal normCoeff = 1.0 / 3.0 / dist;
 
     const qreal offset1 =
-        normCoeff * qAbs(KisAlgebra2D::crossProduct(diff, d0));
+        normCoeff * pkAbs(KisAlgebra2D::crossProduct(diff, d0));
     if (offset1 > eps) return false;
 
     const qreal offset2 =
-        normCoeff * qAbs(KisAlgebra2D::crossProduct(diff, d1));
+        normCoeff * pkAbs(KisAlgebra2D::crossProduct(diff, d1));
     if (offset2 > eps) return false;
 
     return true;

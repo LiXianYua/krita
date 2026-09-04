@@ -8,7 +8,7 @@
 
 // ---------------------------------------------------------------------------
 // 所有期望值都取自**真 Qt 5.15.7** qcolor.cpp / qcolor.h 的源码对照与探针实测。
-// 相对 brief 示例的修正（Qt::green 位值、darkYellow 有效性、operator== 是否比较
+// 相对 brief 示例的修正（Pk::green 位值、darkYellow 有效性、operator== 是否比较
 // alpha）在 README「偏离登记」逐条声明，这里用真 Qt 的取值。
 // ---------------------------------------------------------------------------
 
@@ -76,7 +76,7 @@ void PkColorCase::copyAssign()
     PK_VERIFY(a == b);
     PK_COMPARE(b.rgba(), 0xffff0000u);
     PkColor d;
-    d = Qt::green;
+    d = Pk::green;
     PK_COMPARE(d.rgba(), 0xff00ff00u);
     PkColor e;
     e = PkColor(0, 0, 255);
@@ -126,28 +126,28 @@ void PkColorCase::globalColor_data()
     PkTest::addColumn<unsigned>("rgba");
     PkTest::addColumn<bool>("valid");
 
-    PkTest::newRow("color0")       << int(Qt::color0)     << 0xffffffffu << true;
-    PkTest::newRow("color1")       << int(Qt::color1)     << 0xff000000u << true;
-    PkTest::newRow("black")        << int(Qt::black)      << 0xff000000u << true;
-    PkTest::newRow("white")        << int(Qt::white)      << 0xffffffffu << true;
-    PkTest::newRow("darkGray")     << int(Qt::darkGray)   << 0xff808080u << true;
-    PkTest::newRow("gray")         << int(Qt::gray)       << 0xffa0a0a4u << true;
-    PkTest::newRow("lightGray")    << int(Qt::lightGray)  << 0xffc0c0c0u << true;
-    PkTest::newRow("red")          << int(Qt::red)        << 0xffff0000u << true;
-    // ⚠ brief 探针写 0xff008000 —— 那是 SVG 命名色 "green"，不是 Qt::green。
-    PkTest::newRow("green")        << int(Qt::green)      << 0xff00ff00u << true;
-    PkTest::newRow("blue")         << int(Qt::blue)       << 0xff0000ffu << true;
-    PkTest::newRow("cyan")         << int(Qt::cyan)       << 0xff00ffffu << true;
-    PkTest::newRow("magenta")      << int(Qt::magenta)    << 0xffff00ffu << true;
-    PkTest::newRow("yellow")       << int(Qt::yellow)     << 0xffffff00u << true;
-    PkTest::newRow("darkRed")      << int(Qt::darkRed)    << 0xff800000u << true;
-    PkTest::newRow("darkGreen")    << int(Qt::darkGreen)  << 0xff008000u << true;
-    PkTest::newRow("darkBlue")     << int(Qt::darkBlue)   << 0xff000080u << true;
-    PkTest::newRow("darkCyan")     << int(Qt::darkCyan)   << 0xff008080u << true;
-    PkTest::newRow("darkMagenta")  << int(Qt::darkMagenta)<< 0xff800080u << true;
+    PkTest::newRow("color0")       << int(Pk::color0)     << 0xffffffffu << true;
+    PkTest::newRow("color1")       << int(Pk::color1)     << 0xff000000u << true;
+    PkTest::newRow("black")        << int(Pk::black)      << 0xff000000u << true;
+    PkTest::newRow("white")        << int(Pk::white)      << 0xffffffffu << true;
+    PkTest::newRow("darkGray")     << int(Pk::darkGray)   << 0xff808080u << true;
+    PkTest::newRow("gray")         << int(Pk::gray)       << 0xffa0a0a4u << true;
+    PkTest::newRow("lightGray")    << int(Pk::lightGray)  << 0xffc0c0c0u << true;
+    PkTest::newRow("red")          << int(Pk::red)        << 0xffff0000u << true;
+    // ⚠ brief 探针写 0xff008000 —— 那是 SVG 命名色 "green"，不是 Pk::green。
+    PkTest::newRow("green")        << int(Pk::green)      << 0xff00ff00u << true;
+    PkTest::newRow("blue")         << int(Pk::blue)       << 0xff0000ffu << true;
+    PkTest::newRow("cyan")         << int(Pk::cyan)       << 0xff00ffffu << true;
+    PkTest::newRow("magenta")      << int(Pk::magenta)    << 0xffff00ffu << true;
+    PkTest::newRow("yellow")       << int(Pk::yellow)     << 0xffffff00u << true;
+    PkTest::newRow("darkRed")      << int(Pk::darkRed)    << 0xff800000u << true;
+    PkTest::newRow("darkGreen")    << int(Pk::darkGreen)  << 0xff008000u << true;
+    PkTest::newRow("darkBlue")     << int(Pk::darkBlue)   << 0xff000080u << true;
+    PkTest::newRow("darkCyan")     << int(Pk::darkCyan)   << 0xff008080u << true;
+    PkTest::newRow("darkMagenta")  << int(Pk::darkMagenta)<< 0xff800080u << true;
     // ⚠ brief 探针断言 darkYellow 无效 —— 真 Qt 它是 (128,128,0) **有效**。
-    PkTest::newRow("darkYellow")   << int(Qt::darkYellow) << 0xff808000u << true;
-    PkTest::newRow("transparent")  << int(Qt::transparent)<< 0x00000000u << true;
+    PkTest::newRow("darkYellow")   << int(Pk::darkYellow) << 0xff808000u << true;
+    PkTest::newRow("transparent")  << int(Pk::transparent)<< 0x00000000u << true;
 }
 
 void PkColorCase::globalColor()
@@ -155,7 +155,7 @@ void PkColorCase::globalColor()
     PK_FETCH(int, gc);
     PK_FETCH(unsigned, rgba);
     PK_FETCH(bool, valid);
-    PkColor c = Qt::GlobalColor(gc);
+    PkColor c = Pk::GlobalColor(gc);
     PK_COMPARE(c.isValid(), valid);
     PK_COMPARE(c.rgba(), rgba);
 }
@@ -171,7 +171,7 @@ void PkColorCase::namedColor_data()
     PkTest::newRow("Red")          << "Red"          << 0xffff0000u << true;   // 大小写不敏感
     PkTest::newRow("RED")          << "RED"          << 0xffff0000u << true;
     PkTest::newRow("red spaces")   << " red "        << 0xffff0000u << true;   // 去空白
-    // SVG "green"=(0,128,0) ≠ Qt::green=(0,255,0)（QColor 文档原话，两组颜色不同）。
+    // SVG "green"=(0,128,0) ≠ Pk::green=(0,255,0)（QColor 文档原话，两组颜色不同）。
     PkTest::newRow("green")        << "green"        << 0xff008000u << true;
     PkTest::newRow("blue")         << "blue"         << 0xff0000ffu << true;
     PkTest::newRow("white")        << "white"        << 0xffffffffu << true;
@@ -179,12 +179,12 @@ void PkColorCase::namedColor_data()
     PkTest::newRow("transparent")  << "transparent"  << 0x00000000u << true;
     PkTest::newRow("gray")         << "gray"         << 0xff808080u << true;
     PkTest::newRow("grey")         << "grey"         << 0xff808080u << true;
-    // SVG 灰 ≠ Qt::darkGray/lightGray（SVG 是 #a9a9a9 / #d3d3d3）。
+    // SVG 灰 ≠ Pk::darkGray/lightGray（SVG 是 #a9a9a9 / #d3d3d3）。
     PkTest::newRow("darkGray")     << "darkGray"     << 0xffa9a9a9u << true;
     PkTest::newRow("darkgrey")     << "darkgrey"     << 0xffa9a9a9u << true;
     PkTest::newRow("lightGray")    << "lightGray"    << 0xffd3d3d3u << true;
     PkTest::newRow("Light Gray")   << "Light Gray"   << 0xffd3d3d3u << true;   // 去空格 + 转小写
-    // SVG 表里没有 darkYellow：**无效**（与 Qt::darkYellow 有效相反）。
+    // SVG 表里没有 darkYellow：**无效**（与 Pk::darkYellow 有效相反）。
     PkTest::newRow("darkYellow")   << "darkYellow"   << 0xff000000u << false;
     PkTest::newRow("notacolor")    << "notacolor"    << 0xff000000u << false;
     PkTest::newRow("multi word")   << "ReD NoT a CoLor" << 0xff000000u << false;
@@ -504,7 +504,7 @@ void PkColorCase::name()
 {
     PK_COMPARE(PkColor(255, 0, 0).name(), PkString("#ff0000"));
     PK_COMPARE(PkColor::fromHsv(0, 255, 255).name(), PkString("#ff0000"));
-    PK_COMPARE(PkColor(Qt::transparent).name(), PkString("#000000"));     // HexRgb 忽略 alpha
+    PK_COMPARE(PkColor(Pk::transparent).name(), PkString("#000000"));     // HexRgb 忽略 alpha
     PK_COMPARE(PkColor(0, 0, 255).name(), PkString("#0000ff"));
     PK_COMPARE(PkColor(255, 255, 255).name(), PkString("#ffffff"));
 }
@@ -512,7 +512,7 @@ void PkColorCase::name()
 void PkColorCase::nameArgb()
 {
     PK_COMPARE(PkColor(255, 0, 0, 128).name(PkColor::HexArgb), PkString("#80ff0000"));
-    PK_COMPARE(PkColor(Qt::transparent).name(PkColor::HexArgb), PkString("#00000000"));
+    PK_COMPARE(PkColor(Pk::transparent).name(PkColor::HexArgb), PkString("#00000000"));
 }
 
 // ── 比较 ──────────────────────────────────────────────────
@@ -520,9 +520,9 @@ void PkColorCase::nameArgb()
 void PkColorCase::equality()
 {
     PK_VERIFY(PkColor(255, 0, 0) == PkColor(255, 0, 0));
-    PK_VERIFY(PkColor(255, 0, 0) == Qt::red);
-    PK_VERIFY(PkColor(Qt::green) == PkColor(0, 255, 0));
-    PK_VERIFY(PkColor(Qt::transparent) == PkColor(0, 0, 0, 0));
+    PK_VERIFY(PkColor(255, 0, 0) == Pk::red);
+    PK_VERIFY(PkColor(Pk::green) == PkColor(0, 255, 0));
+    PK_VERIFY(PkColor(Pk::transparent) == PkColor(0, 0, 0, 0));
     PK_VERIFY(!(PkColor(255, 0, 0) == PkColor(255, 0, 1)));
     PK_VERIFY(PkColor(255, 0, 0) != PkColor(255, 0, 1));
 }

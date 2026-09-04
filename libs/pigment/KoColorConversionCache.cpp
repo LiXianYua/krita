@@ -42,9 +42,9 @@ struct KoColorConversionCacheKey {
     KoColorConversionTransformation::ConversionFlags conversionFlags;
 };
 
-unsigned int qHash(const KoColorConversionCacheKey& key)
+unsigned int pkHash(const KoColorConversionCacheKey& key)
 {
-    return qHash(key.src) + qHash(key.dst) + qHash(key.renderingIntent) + qHash(key.conversionFlags);
+    return pkHash(key.src) + pkHash(key.dst) + pkHash(key.renderingIntent) + pkHash(key.conversionFlags);
 }
 
 struct KoColorConversionCache::CachedTransformation {

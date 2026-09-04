@@ -87,8 +87,8 @@ KisGapMap::KisGapMap(int gapSize,
                      const FillOpacityFunc& fillOpacityFunc)
     : m_gapSize(gapSize)
     , m_size(mapBounds.size())
-    , m_numTiles(qCeil(static_cast<float>(m_size.width()) / TileSize),
-                 qCeil(static_cast<float>(m_size.height()) / TileSize))
+    , m_numTiles(pkCeil(static_cast<float>(m_size.width()) / TileSize),
+                 pkCeil(static_cast<float>(m_size.height()) / TileSize))
     , m_fillOpacityFunc(fillOpacityFunc)
     , m_deviceSp(new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8()))
     , m_accessor(std::make_unique<KisTileOptimizedAccessor>(m_deviceSp))
@@ -119,8 +119,8 @@ void KisGapMap::loadOpacityTiles(const PkRect& tileRect)
             if ((*pFlags & TILE_OPACITY_LOADED) == 0) {
                 // Resize and clamp to image bounds.
                 PkRect rect(tx * TileSize, ty * TileSize, TileSize, TileSize);
-                rect.setRight(qMin(rect.right(), m_size.width() - 1));
-                rect.setBottom(qMin(rect.bottom(), m_size.height() - 1));
+                rect.setRight(pkMin(rect.right(), m_size.width() - 1));
+                rect.setBottom(pkMin(rect.bottom(), m_size.height() - 1));
 
 #if KIS_GAP_MAP_DEBUG_LOGGING_AND_ASSERTS
                 qDebug() << "loadOpacityTiles()" << rect;
@@ -208,20 +208,20 @@ void KisGapMap::loadDistanceTile(const PkPoint& tile, const PkRect& nearbyTilesR
 
     // The area of the image covered only by this tile.
     PkRect rect(tile.x() * TileSize, tile.y() * TileSize, TileSize, TileSize);
-    rect.setRight(qMin(rect.right(), m_size.width() - 1));
-    rect.setBottom(qMin(rect.bottom(), m_size.height() - 1));
+    rect.setRight(pkMin(rect.right(), m_size.width() - 1));
+    rect.setBottom(pkMin(rect.bottom(), m_size.height() - 1));
 
     // Compromise: At the tile size 64 px and the gap size 32 px, the guard band must be
     // 31 px at most, because opacity is sampled in gap size + 1 radius, which could be two tiles
     // away and that tile might not have been loaded yet. To avoid loading one row of that tile,
     // we can clamp the guard band to 31. The error introduced by it should not be noticeable.
 
-    const int guardBandVertical = qMin(guardBand, 31);
-    const int y1       = tileOpaqueTopLeft    || tileOpaqueTop    ? qMax(0, rect.top() - guardBandVertical) : rect.top();
-    const int y2       = tileOpaqueBottomLeft || tileOpaqueBottom ? qMin(rect.bottom() + guardBandVertical, m_size.height() - 1) : rect.bottom();
-    const int x1Top    = tileOpaqueTopLeft                        ? qMax(0, rect.left() - guardBand) : rect.left();
-    const int x1Middle = tileOpaqueLeft                           ? qMax(0, rect.left() - guardBand) : rect.left();
-    const int x1Bottom = tileOpaqueBottomLeft                     ? qMax(0, rect.left() - guardBand) : rect.left();
+    const int guardBandVertical = pkMin(guardBand, 31);
+    const int y1       = tileOpaqueTopLeft    || tileOpaqueTop    ? pkMax(0, rect.top() - guardBandVertical) : rect.top();
+    const int y2       = tileOpaqueBottomLeft || tileOpaqueBottom ? pkMin(rect.bottom() + guardBandVertical, m_size.height() - 1) : rect.bottom();
+    const int x1Top    = tileOpaqueTopLeft                        ? pkMax(0, rect.left() - guardBand) : rect.left();
+    const int x1Middle = tileOpaqueLeft                           ? pkMax(0, rect.left() - guardBand) : rect.left();
+    const int x1Bottom = tileOpaqueBottomLeft                     ? pkMax(0, rect.left() - guardBand) : rect.left();
     const int x2Top    = tileOpaqueTop                            ? rect.right() : rect.left() - 1;
     const int x2Middle = tileOpaque                               ? rect.right() : rect.left() - 1;
     const int x2Bottom = tileOpaqueBottom                         ? rect.right() : rect.left() - 1;
@@ -337,10 +337,10 @@ quint16 KisGapMap::lazyDistance(int x, int y)
     const int ty = y / TileSize;
 
     // Clamped tile neighborhood.
-    const PkPoint topLeft(qMax(0, tx - 1),
-                         qMax(0, ty - 1));
-    const PkPoint bottomRight(qMin(tx + 1, m_numTiles.width() - 1),
-                             qMin(ty + 1, m_numTiles.height() - 1));
+    const PkPoint topLeft(pkMax(0, tx - 1),
+                         pkMax(0, ty - 1));
+    const PkPoint bottomRight(pkMin(tx + 1, m_numTiles.width() - 1),
+                             pkMin(ty + 1, m_numTiles.height() - 1));
     const PkRect nearbyTiles = PkRect(topLeft, bottomRight);
 
     // For opacity data, we always load all the adjacent tiles (up to 9 tiles in total).

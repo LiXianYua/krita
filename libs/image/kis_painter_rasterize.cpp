@@ -102,8 +102,8 @@ void KisPainter::Private::fillPainterPathImpl(const PkPainterPath& path, const P
     for (qint32 x = fillRect.x(); x < fillRect.x() + fillRect.width(); x += maskImageWidth) {
         for (qint32 y = fillRect.y(); y < fillRect.y() + fillRect.height(); y += maskImageHeight) {
             const PkRect chunk(x, y,
-                               qMin(fillRect.x() + fillRect.width() - x, maskImageWidth),
-                               qMin(fillRect.y() + fillRect.height() - y, maskImageHeight));
+                               pkMin(fillRect.x() + fillRect.width() - x, maskImageWidth),
+                               pkMin(fillRect.y() + fillRect.height() - y, maskImageHeight));
             const KisPathRasterizer::CoverageMask mask =
                 KisPathRasterizer::rasterizeFill(path, chunk, q->antiAliasPolygonFill());
             applyCoverageMask(polygon, mask, chunk);
@@ -137,7 +137,7 @@ void KisPainter::drawPainterPath(const PkPainterPath& path, const PkPen& _pen, c
     PkRect fillRect = boundingRect.toAlignedRect();
 
     // take width of the pen into account
-    int penWidth = qRound(pen.widthF());
+    int penWidth = pkRound(pen.widthF());
     fillRect.adjust(-penWidth, -penWidth, penWidth, penWidth);
 
     // Expand the rectangle to allow for anti-aliasing.
@@ -153,8 +153,8 @@ void KisPainter::drawPainterPath(const PkPainterPath& path, const PkPen& _pen, c
     for (qint32 x = fillRect.x(); x < fillRect.x() + fillRect.width(); x += d->maskImageWidth) {
         for (qint32 y = fillRect.y(); y < fillRect.y() + fillRect.height(); y += d->maskImageHeight) {
             const PkRect chunk(x, y,
-                               qMin(fillRect.x() + fillRect.width() - x, d->maskImageWidth),
-                               qMin(fillRect.y() + fillRect.height() - y, d->maskImageHeight));
+                               pkMin(fillRect.x() + fillRect.width() - x, d->maskImageWidth),
+                               pkMin(fillRect.y() + fillRect.height() - y, d->maskImageHeight));
             const KisPathRasterizer::CoverageMask mask =
                 KisPathRasterizer::rasterizeStroke(path, pen, chunk, antiAliasPolygonFill());
             applyCoverageMask(d->polygon, mask, chunk);

@@ -10,7 +10,7 @@
 
 
 #include <kundo2command.h>
-#include <QTimer>
+#include <PkTimer.h>
 #include <QIcon>
 
 #include <KoCanvasBase.h>
@@ -176,12 +176,12 @@ void KisSelectionToolHelper::selectPixelSelection(KisProcessingApplicator& appli
 
 void KisSelectionToolHelper::addSelectionShape(KoShape* shape, SelectionAction action)
 {
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     shapes.append(shape);
     addSelectionShapes(shapes, action);
 }
 #include "krita_utils.h"
-void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, SelectionAction action)
+void KisSelectionToolHelper::addSelectionShapes(PkList< KoShape* > shapes, SelectionAction action)
 {
     if (m_image->wrapAroundModePermitted()) {
         if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(m_canvas)) {
@@ -231,7 +231,7 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
         AddSelectionShape(KoCanvasBase *canvas,
                           KisImageSP image,
                           KisNodeSP activeNode,
-                          QList<KoShape*> shapes,
+                          PkList<KoShape*> shapes,
                           SelectionAction action)
             : m_canvas(canvas)
             , m_image(image)
@@ -243,7 +243,7 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
         KoCanvasBase *m_canvas;
         KisImageSP m_image;
         KisNodeSP m_activeNode;
-        QList<KoShape*> m_shapes;
+        PkList<KoShape*> m_shapes;
         SelectionAction m_action;
 
         KUndo2Command* paint() override {
@@ -257,8 +257,8 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
                 if (shapeSelection ||
                         m_action == SELECTION_SUBTRACT) {
 
-                    QPainterPath path1;
-                    QList<KoShape*> existingShapes;
+                    PkPainterPath path1;
+                    PkList<KoShape*> existingShapes;
 
                     if (shapeSelection) {
                         existingShapes = shapeSelection->shapes();
@@ -274,19 +274,19 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
                         path1.addRect(converter->imageRectInDocumentPixels());
                     }
 
-                    QPainterPath path2;
+                    PkPainterPath path2;
                     path2.setFillRule(Qt::WindingFill);
                     Q_FOREACH(KoShape *shape, m_shapes) {
                         path2 += shape->absoluteTransformation().map(shape->outline());
                     }
 
-                    const QTransform booleanWorkaroundTransform =
+                    const PkTransform booleanWorkaroundTransform =
                         toQTransform(KritaUtils::pathShapeBooleanSpaceWorkaround(m_image));
 
                     path1 = booleanWorkaroundTransform.map(path1);
                     path2 = booleanWorkaroundTransform.map(path2);
 
-                    QPainterPath path = path2;
+                    PkPainterPath path = path2;
 
                     switch (m_action) {
                     case SELECTION_DEFAULT:
@@ -359,17 +359,17 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
     applicator.end();
 }
 
-bool KisSelectionToolHelper::canShortcutToDeselect(const QRect &rect, SelectionAction action)
+bool KisSelectionToolHelper::canShortcutToDeselect(const PkRect &rect, SelectionAction action)
 {
     return rect.isEmpty() && (action == SELECTION_INTERSECT || action == SELECTION_REPLACE);
 }
 
-bool KisSelectionToolHelper::canShortcutToNoop(const QRect &rect, SelectionAction action)
+bool KisSelectionToolHelper::canShortcutToNoop(const PkRect &rect, SelectionAction action)
 {
     return rect.isEmpty() && action == SELECTION_ADD;
 }
 
-bool KisSelectionToolHelper::tryDeselectCurrentSelection(const QRectF selectionViewRect, SelectionAction action)
+bool KisSelectionToolHelper::tryDeselectCurrentSelection(const PkRectF selectionViewRect, SelectionAction action)
 {
     bool result = false;
 
@@ -381,7 +381,7 @@ bool KisSelectionToolHelper::tryDeselectCurrentSelection(const QRectF selectionV
         // Queueing this action to ensure we avoid a race condition when unlocking the node system
         const KisImageSP image = m_image;
         const KisNodeSP activeNode = m_activeNode;
-        QTimer::singleShot(0, m_canvas, [image, activeNode]() {
+        PkTimer::singleShot(0, m_canvas, [image, activeNode]() {
             KisSelectionSP selection =
                 KisSelectionUtils::activeSelectionForNode(image, activeNode);
             if (selection) {

@@ -58,8 +58,8 @@ KisCachedGradientShapeStrategy::KisCachedGradientShapeStrategy(const PkRect &rc,
         warnKrita << "WARNING:" << ppVar(rc) << ppVar(xStep) << ppVar(yStep);
         warnKrita << "WARNING:" << ppVar(numSamplesX) << ppVar(numSamplesY);
 
-        numSamplesX = qMax(numSamplesX, 2);
-        numSamplesY = qMax(numSamplesY, 2);
+        numSamplesX = pkMax(numSamplesX, 2);
+        numSamplesY = pkMax(numSamplesY, 2);
 
         warnKrita << "WARNING: adjusting:" << ppVar(numSamplesX) << ppVar(numSamplesY);
         warnKrita << "############";

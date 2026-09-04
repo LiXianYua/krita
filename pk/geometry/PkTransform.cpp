@@ -474,7 +474,7 @@ static const qreal pk_inv_dist_to_plane = 1. / 1024.;
 // 实测 rotate(90) 之后 m11 恰为 0、m12 恰为 1（不是 6.1e-17）。
 // ⚠ 非 Z 轴走的是完全另一套：造一个 result（m_type 直接钉成 TxProject）
 // 再 `*this = result * *this` —— 注意乘法方向是 **result 在左**。
-PkTransform &PkTransform::rotate(qreal a, Qt::Axis axis)
+PkTransform &PkTransform::rotate(qreal a, Pk::Axis axis)
 {
     if (a == 0)
         return *this;
@@ -493,7 +493,7 @@ PkTransform &PkTransform::rotate(qreal a, Qt::Axis axis)
         cosa = std::cos(b);
     }
 
-    if (axis == Qt::ZAxis) {
+    if (axis == Pk::ZAxis) {
         switch (inline_type()) {
         case TxNone:
         case TxTranslate:
@@ -533,7 +533,7 @@ PkTransform &PkTransform::rotate(qreal a, Qt::Axis axis)
             m_dirty = TxRotate;
     } else {
         PkTransform result;
-        if (axis == Qt::YAxis) {
+        if (axis == Pk::YAxis) {
             result.m_11 = cosa;
             result.m_13 = -sina * pk_inv_dist_to_plane;
         } else {
@@ -550,12 +550,12 @@ PkTransform &PkTransform::rotate(qreal a, Qt::Axis axis)
 // qtransform.cpp:741-803。与 rotate 的 Z 轴分支逐字相同，**只是没有直角特判**
 // （弧度制没有"整 90 度"这个概念），所以 rotateRadians(M_PI/2) 的 m11 是
 // 6.1e-17 而不是 0。两个函数不合并正是为了这一条。
-PkTransform &PkTransform::rotateRadians(qreal a, Qt::Axis axis)
+PkTransform &PkTransform::rotateRadians(qreal a, Pk::Axis axis)
 {
     qreal sina = std::sin(a);
     qreal cosa = std::cos(a);
 
-    if (axis == Qt::ZAxis) {
+    if (axis == Pk::ZAxis) {
         switch (inline_type()) {
         case TxNone:
         case TxTranslate:
@@ -595,7 +595,7 @@ PkTransform &PkTransform::rotateRadians(qreal a, Qt::Axis axis)
             m_dirty = TxRotate;
     } else {
         PkTransform result;
-        if (axis == Qt::YAxis) {
+        if (axis == Pk::YAxis) {
             result.m_11 = cosa;
             result.m_13 = -sina * pk_inv_dist_to_plane;
         } else {
@@ -643,7 +643,7 @@ PkTransform &PkTransform::operator*=(const PkTransform &o)
     if (thisType == TxNone)
         return operator=(o);
 
-    TransformationType t = qMax(thisType, otherType);
+    TransformationType t = pkMax(thisType, otherType);
     switch (t) {
     case TxNone:
         break;
@@ -723,7 +723,7 @@ PkTransform PkTransform::operator*(const PkTransform &m) const
         return m;
 
     PkTransform t(true);
-    TransformationType type = qMax(thisType, otherType);
+    TransformationType type = pkMax(thisType, otherType);
     switch (type) {
     case TxNone:
         break;
@@ -825,7 +825,7 @@ PkPoint PkTransform::map(const PkPoint &p) const
             y *= w;
         }
     }
-    return PkPoint(qRound(x), qRound(y));
+    return PkPoint(pkRound(x), pkRound(y));
 }
 
 // qtransform.cpp:1240-1273。与上面逐字相同，只是不做 qRound。
@@ -987,8 +987,8 @@ void PkTransform::map(int x, int y, int *tx, int *ty) const
     TransformationType t = inline_type();
     qreal fx = 0, fy = 0;
     PK_MAP(x, y, fx, fy);
-    *tx = qRound(fx);
-    *ty = qRound(fy);
+    *tx = pkRound(fx);
+    *ty = pkRound(fy);
 }
 
 // ── mapRect ────────────────────────────────────────────────────────────────
@@ -997,8 +997,8 @@ void PkTransform::map(int x, int y, int *tx, int *ty) const
 // 的隐式提升，与 Qt 一致。
 static inline bool pkNeedsPerspectiveClipping(const PkRectF &rect, const PkTransform &transform)
 {
-    const qreal wx = qMin(transform.m13() * rect.left(), transform.m13() * rect.right());
-    const qreal wy = qMin(transform.m23() * rect.top(), transform.m23() * rect.bottom());
+    const qreal wx = pkMin(transform.m13() * rect.left(), transform.m13() * rect.right());
+    const qreal wy = pkMin(transform.m23() * rect.top(), transform.m23() * rect.bottom());
 
     return wx + wy + transform.m33() < PK_NEAR_CLIP;
 }
@@ -1074,22 +1074,22 @@ PkRect PkTransform::mapRectCorners(const PkRect &rect, TransformationType t) con
         qreal xmax = x;
         qreal ymax = y;
         PK_MAP(rect.right() + 1, rect.top(), x, y);
-        xmin = qMin(xmin, x);
-        ymin = qMin(ymin, y);
-        xmax = qMax(xmax, x);
-        ymax = qMax(ymax, y);
+        xmin = pkMin(xmin, x);
+        ymin = pkMin(ymin, y);
+        xmax = pkMax(xmax, x);
+        ymax = pkMax(ymax, y);
         PK_MAP(rect.right() + 1, rect.bottom() + 1, x, y);
-        xmin = qMin(xmin, x);
-        ymin = qMin(ymin, y);
-        xmax = qMax(xmax, x);
-        ymax = qMax(ymax, y);
+        xmin = pkMin(xmin, x);
+        ymin = pkMin(ymin, y);
+        xmax = pkMax(xmax, x);
+        ymax = pkMax(ymax, y);
         PK_MAP(rect.left(), rect.bottom() + 1, x, y);
-        xmin = qMin(xmin, x);
-        ymin = qMin(ymin, y);
-        xmax = qMax(xmax, x);
-        ymax = qMax(ymax, y);
-        return PkRect(qRound(xmin), qRound(ymin), qRound(xmax) - qRound(xmin),
-                      qRound(ymax) - qRound(ymin));
+        xmin = pkMin(xmin, x);
+        ymin = pkMin(ymin, y);
+        xmax = pkMax(xmax, x);
+        ymax = pkMax(ymax, y);
+        return PkRect(pkRound(xmin), pkRound(ymin), pkRound(xmax) - pkRound(xmin),
+                      pkRound(ymax) - pkRound(ymin));
 }
 
 // qtransform.cpp:1942-1991
@@ -1097,13 +1097,13 @@ PkRect PkTransform::mapRect(const PkRect &rect) const
 {
     TransformationType t = inline_type();
     if (t <= TxTranslate)
-        return rect.translated(qRound(m_dx), qRound(m_dy));
+        return rect.translated(pkRound(m_dx), pkRound(m_dy));
 
     if (t <= TxScale) {
-        int x = qRound(m_11 * rect.x() + m_dx);
-        int y = qRound(m_22 * rect.y() + m_dy);
-        int w = qRound(m_11 * rect.width());
-        int h = qRound(m_22 * rect.height());
+        int x = pkRound(m_11 * rect.x() + m_dx);
+        int y = pkRound(m_22 * rect.y() + m_dy);
+        int w = pkRound(m_11 * rect.width());
+        int h = pkRound(m_22 * rect.height());
         if (w < 0) {
             w = -w;
             x -= w;
@@ -1134,20 +1134,20 @@ PkRectF PkTransform::mapRectCorners(const PkRectF &rect, TransformationType t) c
         qreal xmax = x;
         qreal ymax = y;
         PK_MAP(rect.x() + rect.width(), rect.y(), x, y);
-        xmin = qMin(xmin, x);
-        ymin = qMin(ymin, y);
-        xmax = qMax(xmax, x);
-        ymax = qMax(ymax, y);
+        xmin = pkMin(xmin, x);
+        ymin = pkMin(ymin, y);
+        xmax = pkMax(xmax, x);
+        ymax = pkMax(ymax, y);
         PK_MAP(rect.x() + rect.width(), rect.y() + rect.height(), x, y);
-        xmin = qMin(xmin, x);
-        ymin = qMin(ymin, y);
-        xmax = qMax(xmax, x);
-        ymax = qMax(ymax, y);
+        xmin = pkMin(xmin, x);
+        ymin = pkMin(ymin, y);
+        xmax = pkMax(xmax, x);
+        ymax = pkMax(ymax, y);
         PK_MAP(rect.x(), rect.y() + rect.height(), x, y);
-        xmin = qMin(xmin, x);
-        ymin = qMin(ymin, y);
-        xmax = qMax(xmax, x);
-        ymax = qMax(ymax, y);
+        xmin = pkMin(xmin, x);
+        ymin = pkMin(ymin, y);
+        xmax = pkMax(xmax, x);
+        ymax = pkMax(ymax, y);
         return PkRectF(xmin, ymin, xmax - xmin, ymax - ymin);
 }
 
@@ -1200,7 +1200,7 @@ static_assert(PkTransform::TxRotate == 0x04, "TxRotate 必须是 4");
 static_assert(PkTransform::TxShear == 0x08, "TxShear 必须是 8");
 static_assert(PkTransform::TxProject == 0x10, "TxProject 必须是 16");
 
-// 位标志的序关系是 type() 与 qMax(thisType, otherType) 的地基。
+// 位标志的序关系是 type() 与 pkMax(thisType, otherType) 的地基。
 static_assert(PkTransform::TxNone < PkTransform::TxTranslate
               && PkTransform::TxTranslate < PkTransform::TxScale
               && PkTransform::TxScale < PkTransform::TxRotate

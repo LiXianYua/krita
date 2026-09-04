@@ -10,11 +10,11 @@
 #include <resources/KoSvgSymbolCollectionResource.h>
 
 #include <QDebug>
-#include <QVector>
-#include <QFile>
-#include <QBuffer>
-#include <QByteArray>
-#include <QImage>
+#include <PkVector.h>
+#include <PkFileStream.h>
+#include <PkMemoryStream.h>
+#include <PkByteArray.h>
+#include <PkImage.h>
 #include <QPainter>
 
 #include <klocalizedstring.h>
@@ -31,12 +31,12 @@
 
 #include <FlakeDebug.h>
 
-QImage KoSvgSymbol::icon(int size = 0)
+PkImage KoSvgSymbol::icon(int size = 0)
 {
     KoShapeGroup *group = dynamic_cast<KoShapeGroup*>(shape);
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(group, QImage());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(group, PkImage());
 
-    QRectF rc = group->boundingRect().normalized();
+    PkRectF rc = group->boundingRect().normalized();
 
     if (size == 0) {
         size = 128;
@@ -48,7 +48,7 @@ QImage KoSvgSymbol::icon(int size = 0)
     // because it's saved into the database and then used in widgets
     const qreal margin = 0.05;
 
-    QImage image(size, size, QImage::Format_ARGB32_Premultiplied);
+    PkImage image(size, size, PkImage::Format_ARGB32_Premultiplied);
     qreal symbolScale = (qreal)(size*(1.0 - 2*margin))/maxDim;
     QPainter gc(&image);
     gc.setRenderHint(QPainter::Antialiasing, true);
@@ -70,10 +70,10 @@ QImage KoSvgSymbol::icon(int size = 0)
 
 
 struct KoSvgSymbolCollectionResource::Private {
-    QVector<KoSvgSymbol*> symbols;
-    QString title;
-    QString description;
-    QByteArray data;
+    PkVector<KoSvgSymbol*> symbols;
+    PkString title;
+    PkString description;
+    PkByteArray data;
 };
 
 
@@ -125,11 +125,11 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(PkStream *dev, KisResourcesIn
 
     dev->seek(0);
 
-    QString errorMsg;
+    PkString errorMsg;
     int errorLine = 0;
     int errorColumn;
 
-    QDomDocument doc = SvgParser::createDocumentFromSvg(d->data, &errorMsg, &errorLine, &errorColumn);
+    PkXmlDocument doc = SvgParser::createDocumentFromSvg(d->data, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
 
         errKrita << "Parsing error in " << filename() << "! Aborting!" << Qt::endl
@@ -142,8 +142,8 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(PkStream *dev, KisResourcesIn
 
     KoDocumentResourceManager manager;
     SvgParser parser(&manager);
-    parser.setResolution(QRectF(0,0,100,100), 72); // initialize with default values
-    QSizeF fragmentSize;
+    parser.setResolution(PkRectF(0,0,100,100), 72); // initialize with default values
+    PkSizeF fragmentSize;
     // We're not interested in the shapes themselves
     qDeleteAll(parser.parseSvg(doc.documentElement(), &fragmentSize));
     d->symbols = parser.takeSymbols();
@@ -183,47 +183,47 @@ PkString KoSvgSymbolCollectionResource::defaultFileExtension() const
     return PkString(".svg");
 }
 
-QString KoSvgSymbolCollectionResource::title() const
+PkString KoSvgSymbolCollectionResource::title() const
 {
     return d->title;
 }
 
-QString KoSvgSymbolCollectionResource::description() const
+PkString KoSvgSymbolCollectionResource::description() const
 {
     return d->description;
 }
 
-QString KoSvgSymbolCollectionResource::creator() const
+PkString KoSvgSymbolCollectionResource::creator() const
 {
     return "";
 }
 
-QString KoSvgSymbolCollectionResource::rights() const
+PkString KoSvgSymbolCollectionResource::rights() const
 {
     return "";
 }
 
-QString KoSvgSymbolCollectionResource::language() const
+PkString KoSvgSymbolCollectionResource::language() const
 {
     return "";
 }
 
-QStringList KoSvgSymbolCollectionResource::subjects() const
+PkStringList KoSvgSymbolCollectionResource::subjects() const
 {
-    return QStringList();
+    return PkStringList();
 }
 
-QString KoSvgSymbolCollectionResource::license() const
+PkString KoSvgSymbolCollectionResource::license() const
 {
     return "";
 }
 
-QStringList KoSvgSymbolCollectionResource::permits() const
+PkStringList KoSvgSymbolCollectionResource::permits() const
 {
-    return QStringList();
+    return PkStringList();
 }
 
-QVector<KoSvgSymbol *> KoSvgSymbolCollectionResource::symbols() const
+PkVector<KoSvgSymbol *> KoSvgSymbolCollectionResource::symbols() const
 {
     return d->symbols;
 }

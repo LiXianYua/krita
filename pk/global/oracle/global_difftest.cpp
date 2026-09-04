@@ -69,7 +69,7 @@
 
 // pk/test 的 compat/QtGlobal 会把 qFuzzyCompare/qFuzzyIsNull 定义成**宏**
 //（→ pkFuzzyCompare/pkFuzzyIsNull）。若 compat/ 混进 -I，`<QtGlobal>` 会解析到
-// 那份垫片，本文件里所有 `::qFuzzyCompare(...)` 会被预处理器当场改写，P 侧的
+// 那份垫片，本文件里所有 `::pkQtFuzzyCompare(...)` 会被预处理器当场改写，P 侧的
 // `pkoracle::qFuzzyCompare` 也因 PkGlobal.h 的让位机制消失 → 编译失败。下面这
 // 道 #error 只是把失败点提前、说得更明白；run_oracle.sh 的 -I 检查才是第一道。
 #if defined(qFuzzyCompare) || defined(qFuzzyIsNull)
@@ -109,7 +109,7 @@ template <typename T, size_t N> static size_t countOf(const T (&)[N]) { return N
 
 // ═══ 比较原语 ══════════════════════════════════════════════════════════
 // **位精确**比较 double：`==` 会把 +0/-0 判等、把 NaN 判不等，两者都不是我们要的。
-// 标量函数的 signbit 是会真传播的（qAbs(-0.0)、qMin 的 ±0 相等分支、qRound 的
+// 标量函数的 signbit 是会真传播的（pkAbs(-0.0)、qMin 的 ±0 相等分支、qRound 的
 // 0.5 进位），用 `==` 比等于把这一整类差异永久豁免。
 static bool same_double(double a, double b)
 {
@@ -307,8 +307,8 @@ static void cmp_qabs_d()
 {
     for (size_t i = 0; i < countOf(kD); ++i) {
         double v = kD[i];
-        double q = ::qAbs(v), p = pkoracle::qAbs(v);
-        rec("qAbs(double)", same_double(q, p), tagAbsD(v),
+        double q = ::pkAbs(v), p = pkoracle::pkAbs(v);
+        rec("pkAbs(double)", same_double(q, p), tagAbsD(v),
             "in=" + dstr(v), "qt=" + dstr(q), "pk=" + dstr(p));
     }
 }
@@ -316,8 +316,8 @@ static void cmp_qabs_f()
 {
     for (size_t i = 0; i < countOf(kF); ++i) {
         float v = kF[i];
-        float q = ::qAbs(v), p = pkoracle::qAbs(v);
-        rec("qAbs(float)", same_float(q, p), tagAbsF(v),
+        float q = ::pkAbs(v), p = pkoracle::pkAbs(v);
+        rec("pkAbs(float)", same_float(q, p), tagAbsF(v),
             "in=" + fstr(v), "qt=" + fstr(q), "pk=" + fstr(p));
     }
 }
@@ -325,8 +325,8 @@ static void cmp_qabs_i()
 {
     for (size_t i = 0; i < countOf(kI); ++i) {
         int v = kI[i];
-        int q = ::qAbs(v), p = pkoracle::qAbs(v);
-        rec("qAbs(int)", q == p, (v == INT_MIN) ? "abs_intmin" : "abs_ordinary",
+        int q = ::pkAbs(v), p = pkoracle::pkAbs(v);
+        rec("pkAbs(int)", q == p, (v == INT_MIN) ? "abs_intmin" : "abs_ordinary",
             "in=" + istr(v), "qt=" + istr(q), "pk=" + istr(p));
     }
 }
@@ -334,8 +334,8 @@ static void cmp_qabs_i64()
 {
     for (size_t i = 0; i < countOf(kI64); ++i) {
         qint64 v = kI64[i];
-        qint64 q = ::qAbs(v), p = pkoracle::qAbs(v);
-        rec("qAbs(qint64)", q == p,
+        qint64 q = ::pkAbs(v), p = pkoracle::pkAbs(v);
+        rec("pkAbs(qint64)", q == p,
             (v == (qint64)0x8000000000000000LL) ? "abs_intmin" : "abs_ordinary",
             "in=" + istr(v), "qt=" + istr(q), "pk=" + istr(p));
     }
@@ -346,12 +346,12 @@ static void cmp_minmax_d()
     for (size_t i = 0; i < countOf(kD); ++i)
         for (size_t j = 0; j < countOf(kD); ++j) {
             double a = kD[i], b = kD[j];
-            double qmn = ::qMin(a, b), pmn = pkoracle::qMin(a, b);
-            double qmx = ::qMax(a, b), pmx = pkoracle::qMax(a, b);
+            double qmn = ::pkMin(a, b), pmn = pkoracle::pkMin(a, b);
+            double qmx = ::pkMax(a, b), pmx = pkoracle::pkMax(a, b);
             std::string in = "in=(" + dstr(a) + "," + dstr(b) + ")";
             std::string tag = tagMinMaxD(a, b);
-            rec("qMin(double)", same_double(qmn, pmn), tag, in, "qt=" + dstr(qmn), "pk=" + dstr(pmn));
-            rec("qMax(double)", same_double(qmx, pmx), tag, in, "qt=" + dstr(qmx), "pk=" + dstr(pmx));
+            rec("pkMin(double)", same_double(qmn, pmn), tag, in, "qt=" + dstr(qmn), "pk=" + dstr(pmn));
+            rec("pkMax(double)", same_double(qmx, pmx), tag, in, "qt=" + dstr(qmx), "pk=" + dstr(pmx));
         }
 }
 static void cmp_minmax_i()
@@ -359,12 +359,12 @@ static void cmp_minmax_i()
     for (size_t i = 0; i < countOf(kI); ++i)
         for (size_t j = 0; j < countOf(kI); ++j) {
             int a = kI[i], b = kI[j];
-            int qmn = ::qMin(a, b), pmn = pkoracle::qMin(a, b);
-            int qmx = ::qMax(a, b), pmx = pkoracle::qMax(a, b);
+            int qmn = ::pkMin(a, b), pmn = pkoracle::pkMin(a, b);
+            int qmx = ::pkMax(a, b), pmx = pkoracle::pkMax(a, b);
             std::string in = "in=(" + istr(a) + "," + istr(b) + ")";
             std::string tag = "min_ordinary";   // int 没有 NaN/±0 形态
-            rec("qMin(int)", qmn == pmn, tag, in, "qt=" + istr(qmn), "pk=" + istr(pmn));
-            rec("qMax(int)", qmx == pmx, tag, in, "qt=" + istr(qmx), "pk=" + istr(pmx));
+            rec("pkMin(int)", qmn == pmn, tag, in, "qt=" + istr(qmn), "pk=" + istr(pmn));
+            rec("pkMax(int)", qmx == pmx, tag, in, "qt=" + istr(qmx), "pk=" + istr(pmx));
         }
 }
 
@@ -376,8 +376,8 @@ static void cmp_bound_d()
         for (size_t j = 0; j < countOf(kD); ++j)
             for (size_t m = 0; m < countOf(kMaxB); ++m) {
                 double mn = kD[i], val = kD[j], mx = kMaxB[m];
-                double q = ::qBound(mn, val, mx), p = pkoracle::qBound(mn, val, mx);
-                rec("qBound(double)", same_double(q, p), tagBoundD(mn, val, mx),
+                double q = ::pkBound(mn, val, mx), p = pkoracle::pkBound(mn, val, mx);
+                rec("pkBound(double)", same_double(q, p), tagBoundD(mn, val, mx),
                     "in=(" + dstr(mn) + "," + dstr(val) + "," + dstr(mx) + ")",
                     "qt=" + dstr(q), "pk=" + dstr(p));
             }
@@ -388,8 +388,8 @@ static void cmp_bound_d()
         for (size_t j = 0; j < countOf(kCore10); ++j)
             for (size_t m = 0; m < countOf(kCore10); ++m) {
                 double mn = kCore10[i], val = kCore10[j], mx = kCore10[m];
-                double q = ::qBound(mn, val, mx), p = pkoracle::qBound(mn, val, mx);
-                rec("qBound(double)", same_double(q, p), tagBoundD(mn, val, mx),
+                double q = ::pkBound(mn, val, mx), p = pkoracle::pkBound(mn, val, mx);
+                rec("pkBound(double)", same_double(q, p), tagBoundD(mn, val, mx),
                     "in=(" + dstr(mn) + "," + dstr(val) + "," + dstr(mx) + ")",
                     "qt=" + dstr(q), "pk=" + dstr(p));
             }
@@ -401,8 +401,8 @@ static void cmp_bound_i()
         for (size_t j = 0; j < countOf(kI); ++j)
             for (size_t m = 0; m < countOf(kMaxB); ++m) {
                 int mn = kI[i], val = kI[j], mx = kMaxB[m];
-                int q = ::qBound(mn, val, mx), p = pkoracle::qBound(mn, val, mx);
-                rec("qBound(int)", q == p, "bound_ordinary",
+                int q = ::pkBound(mn, val, mx), p = pkoracle::pkBound(mn, val, mx);
+                rec("pkBound(int)", q == p, "bound_ordinary",
                     "in=(" + istr(mn) + "," + istr(val) + "," + istr(mx) + ")",
                     "qt=" + istr(q), "pk=" + istr(p));
             }
@@ -412,8 +412,8 @@ static void cmp_qround_d()
 {
     for (size_t i = 0; i < countOf(kD); ++i) {
         double v = kD[i];
-        int q = ::qRound(v), p = pkoracle::qRound(v);
-        rec("qRound(double)", q == p, tagRoundD(v),
+        int q = ::pkRound(v), p = pkoracle::pkRound(v);
+        rec("pkRound(double)", q == p, tagRoundD(v),
             "in=" + dstr(v), "qt=" + istr(q), "pk=" + istr(p));
     }
 }
@@ -421,8 +421,8 @@ static void cmp_qround_f()
 {
     for (size_t i = 0; i < countOf(kF); ++i) {
         float v = kF[i];
-        int q = ::qRound(v), p = pkoracle::qRound(v);
-        rec("qRound(float)", q == p, tagRoundD((double)v),
+        int q = ::pkRound(v), p = pkoracle::pkRound(v);
+        rec("pkRound(float)", q == p, tagRoundD((double)v),
             "in=" + fstr(v), "qt=" + istr(q), "pk=" + istr(p));
     }
 }
@@ -432,8 +432,8 @@ static void cmp_fuzzy_d()
     for (size_t i = 0; i < countOf(kD); ++i)
         for (size_t j = 0; j < countOf(kD); ++j) {
             double a = kD[i], b = kD[j];
-            bool q = ::qFuzzyCompare(a, b), p = pkoracle::qFuzzyCompare(a, b);
-            rec("qFuzzyCompare(double)", q == p, tagFuzzyD(a, b),
+            bool q = ::pkQtFuzzyCompare(a, b), p = pkoracle::pkQtFuzzyCompare(a, b);
+            rec("pkQtFuzzyCompare(double)", q == p, tagFuzzyD(a, b),
                 "in=(" + dstr(a) + "," + dstr(b) + ")", "qt=" + bstr(q), "pk=" + bstr(p));
         }
 }
@@ -442,8 +442,8 @@ static void cmp_fuzzy_f()
     for (size_t i = 0; i < countOf(kF); ++i)
         for (size_t j = 0; j < countOf(kF); ++j) {
             float a = kF[i], b = kF[j];
-            bool q = ::qFuzzyCompare(a, b), p = pkoracle::qFuzzyCompare(a, b);
-            rec("qFuzzyCompare(float)", q == p, tagFuzzyD((double)a, (double)b),
+            bool q = ::pkQtFuzzyCompare(a, b), p = pkoracle::pkQtFuzzyCompare(a, b);
+            rec("pkQtFuzzyCompare(float)", q == p, tagFuzzyD((double)a, (double)b),
                 "in=(" + fstr(a) + "," + fstr(b) + ")", "qt=" + bstr(q), "pk=" + bstr(p));
         }
 }
@@ -452,8 +452,8 @@ static void cmp_fnull_d()
 {
     for (size_t i = 0; i < countOf(kD); ++i) {
         double v = kD[i];
-        bool q = ::qFuzzyIsNull(v), p = pkoracle::qFuzzyIsNull(v);
-        rec("qFuzzyIsNull(double)", q == p, tagFnullD(v),
+        bool q = ::pkQtFuzzyIsNull(v), p = pkoracle::pkQtFuzzyIsNull(v);
+        rec("pkQtFuzzyIsNull(double)", q == p, tagFnullD(v),
             "in=" + dstr(v), "qt=" + bstr(q), "pk=" + bstr(p));
     }
 }
@@ -461,21 +461,21 @@ static void cmp_fnull_f()
 {
     for (size_t i = 0; i < countOf(kF); ++i) {
         float v = kF[i];
-        bool q = ::qFuzzyIsNull(v), p = pkoracle::qFuzzyIsNull(v);
-        rec("qFuzzyIsNull(float)", q == p, tagFnullD((double)v),
+        bool q = ::pkQtFuzzyIsNull(v), p = pkoracle::pkQtFuzzyIsNull(v);
+        rec("pkQtFuzzyIsNull(float)", q == p, tagFnullD((double)v),
             "in=" + fstr(v), "qt=" + bstr(q), "pk=" + bstr(p));
     }
 }
 
 // ⚠ ±inf/NaN 的 int(v) 是 float→int 越界 UB，**不能跨侧比较**。Q 侧（真 Qt 的
 // int(::floor(v))/int(::ceil(v))）在 -O2 下被优化器按自己的 UB 推理折叠出任意值：
-// 实测同一次构建里 qFloor(+inf) 折成 INT_MIN、qCeil(+inf) 折成 INT_MAX，且这个
-// 取值随 TU 里无关代码的排布翻转（PkGlobal.h 的 qCeil 一改，Q 侧 qCeil(+inf) 就
+// 实测同一次构建里 pkFloor(+inf) 折成 INT_MIN、pkCeil(+inf) 折成 INT_MAX，且这个
+// 取值随 TU 里无关代码的排布翻转（PkGlobal.h 的 qCeil 一改，Q 侧 pkCeil(+inf) 就
 // 从 INT_MIN 变 INT_MAX）。跨侧比这两个数，比的是编译器噪声，不是行为差异。
 // 所以非有限输入**不跨侧比较**，而是把 P 侧钉在**运行期 cvttsd2si 的实测值
 // INT_MIN**（真 Qt 5.15.7 探针 + 修复轮简报 Important 1：qFloor/qCeil 对非有限值
-// 原样截断，x86 → INT_MIN）。P 侧一旦漂回旧的回绕值（qFloor(-inf)=INT_MAX、
-// qCeil(+inf)=INT_MIN+1）就出未声明 tag，FAIL。有限输入无 UB，照常跨侧比较。
+// 原样截断，x86 → INT_MIN）。P 侧一旦漂回旧的回绕值（pkFloor(-inf)=INT_MAX、
+// pkCeil(+inf)=INT_MIN+1）就出未声明 tag，FAIL。有限输入无 UB，照常跨侧比较。
 // ⚠ 喂入必须走运行期 noinline getter：编译期常量（static const 里的 INFINITY）会
 // 让 P 侧自己把 int(±inf) 折叠成 INT_MAX，钉 INT_MIN 就假红（run_oracle.sh 注释
 // 里「输入必须来自运行期数组」的同一告诫）。noinline 返回值对调用点编译期不可见。
@@ -492,11 +492,11 @@ static void cmp_floorceil()
                                        0.49999999999999994 };
     for (size_t i = 0; i < countOf(kVFinite); ++i) {
         double v = kVFinite[i];
-        int qf = ::qFloor(v), pf = pkoracle::qFloor(v);
-        int qc = ::qCeil(v), pc = pkoracle::qCeil(v);
-        rec("qFloor(qreal)", qf == pf, tagFloorD(v),
+        int qf = ::pkFloor(v), pf = pkoracle::pkFloor(v);
+        int qc = ::pkCeil(v), pc = pkoracle::pkCeil(v);
+        rec("pkFloor(qreal)", qf == pf, tagFloorD(v),
             "in=" + dstr(v), "qt=" + istr(qf), "pk=" + istr(pf));
-        rec("qCeil(qreal)", qc == pc, tagFloorD(v),
+        rec("pkCeil(qreal)", qc == pc, tagFloorD(v),
             "in=" + dstr(v), "qt=" + istr(qc), "pk=" + istr(pc));
     }
 
@@ -505,11 +505,11 @@ static void cmp_floorceil()
     double kVNonFinite[3] = { oracle_nan(), oracle_inf(), -oracle_inf() };
     for (size_t i = 0; i < 3; ++i) {
         double v = kVNonFinite[i];
-        int pf = pkoracle::qFloor(v);
-        int pc = pkoracle::qCeil(v);
-        rec("qFloor(qreal)", pf == kTrunc, tagFloorD(v),
+        int pf = pkoracle::pkFloor(v);
+        int pc = pkoracle::pkCeil(v);
+        rec("pkFloor(qreal)", pf == kTrunc, tagFloorD(v),
             "in=" + dstr(v), "qt=" + istr(kTrunc), "pk=" + istr(pf));
-        rec("qCeil(qreal)", pc == kTrunc, tagFloorD(v),
+        rec("pkCeil(qreal)", pc == kTrunc, tagFloorD(v),
             "in=" + dstr(v), "qt=" + istr(kTrunc), "pk=" + istr(pc));
     }
 }
@@ -518,8 +518,8 @@ static void cmp_p2()
 {
     for (size_t i = 0; i < countOf(kU32); ++i) {
         quint32 v = kU32[i];
-        quint32 q = ::qNextPowerOfTwo(v), p = pkoracle::qNextPowerOfTwo(v);
-        rec("qNextPowerOfTwo(quint32)", q == p, tagP2(v),
+        quint32 q = ::pkNextPowerOfTwo(v), p = pkoracle::pkNextPowerOfTwo(v);
+        rec("pkNextPowerOfTwo(quint32)", q == p, tagP2(v),
             "in=" + ustr(v), "qt=" + ustr(q), "pk=" + ustr(p));
     }
 }
@@ -528,14 +528,14 @@ static void cmp_isnan()
 {
     for (size_t i = 0; i < countOf(kD); ++i) {
         double v = kD[i];
-        bool q = ::qIsNaN(v), p = pkoracle::qIsNaN(v);
-        rec("qIsNaN(double)", q == p, tagIsNaN(v),
+        bool q = ::pkIsNaN(v), p = pkoracle::pkIsNaN(v);
+        rec("pkIsNaN(double)", q == p, tagIsNaN(v),
             "in=" + dstr(v), "qt=" + bstr(q), "pk=" + bstr(p));
     }
     for (size_t i = 0; i < countOf(kF); ++i) {
         float v = kF[i];
-        bool q = ::qIsNaN(v), p = pkoracle::qIsNaN(v);
-        rec("qIsNaN(float)", q == p, tagIsNaN((double)v),
+        bool q = ::pkIsNaN(v), p = pkoracle::pkIsNaN(v);
+        rec("pkIsNaN(float)", q == p, tagIsNaN((double)v),
             "in=" + fstr(v), "qt=" + bstr(q), "pk=" + bstr(p));
     }
 }
@@ -543,17 +543,17 @@ static void cmp_isnan()
 // 零参函数：没有输入，tag 由「被测试的谓词」构造（brief：== +Inf / >0 / <0）。
 static void cmp_inf_qnan()
 {
-    bool qp = (::qInf() == INFINITY), pp = (pkoracle::qInf() == INFINITY);
-    rec("qInf()", qp == pp, "inf_pos", "pred:==+Inf", bstr(qp), bstr(pp));
-    bool qg = (::qInf() > 0.0), pg = (pkoracle::qInf() > 0.0);
-    rec("qInf()", qg == pg, "inf_sign", "pred:>0", bstr(qg), bstr(pg));
-    bool ql = (::qInf() < 0.0), pl = (pkoracle::qInf() < 0.0);
-    rec("qInf()", ql == pl, "inf_sign", "pred:<0", bstr(ql), bstr(pl));
+    bool qp = (::pkInf() == INFINITY), pp = (pkoracle::pkInf() == INFINITY);
+    rec("pkInf()", qp == pp, "inf_pos", "pred:==+Inf", bstr(qp), bstr(pp));
+    bool qg = (::pkInf() > 0.0), pg = (pkoracle::pkInf() > 0.0);
+    rec("pkInf()", qg == pg, "inf_sign", "pred:>0", bstr(qg), bstr(pg));
+    bool ql = (::pkInf() < 0.0), pl = (pkoracle::pkInf() < 0.0);
+    rec("pkInf()", ql == pl, "inf_sign", "pred:<0", bstr(ql), bstr(pl));
 
-    bool qsn = (::qQNaN() != ::qQNaN()), psn = (pkoracle::qQNaN() != pkoracle::qQNaN());
-    rec("qQNaN()", qsn == psn, "qnan_self_neq", "pred:!=self", bstr(qsn), bstr(psn));
-    bool qz = (::qQNaN() != 0.0), pz = (pkoracle::qQNaN() != 0.0);
-    rec("qQNaN()", qz == pz, "qnan_nonzero", "pred:!=0", bstr(qz), bstr(pz));
+    bool qsn = (::pkQNaN() != ::pkQNaN()), psn = (pkoracle::pkQNaN() != pkoracle::pkQNaN());
+    rec("pkQNaN()", qsn == psn, "qnan_self_neq", "pred:!=self", bstr(qsn), bstr(psn));
+    bool qz = (::pkQNaN() != 0.0), pz = (pkoracle::pkQNaN() != 0.0);
+    rec("pkQNaN()", qz == pz, "qnan_nonzero", "pred:!=0", bstr(qz), bstr(pz));
 }
 
 // ═══ canary：每 API 至少一条故意不相等的比对 ═════════════════════════════
@@ -561,31 +561,31 @@ static void cmp_inf_qnan()
 // 少一条 → run_oracle.sh FAIL（比较管道被写死/被优化掉/tag 构造断了）。
 static void cmp_canaries()
 {
-    rec("canary", same_double(::qAbs(-3.0) + 1.0, pkoracle::qAbs(-3.0)),
-        "qabs_pipeline", "canary:qAbs", dstr(::qAbs(-3.0) + 1.0), dstr(pkoracle::qAbs(-3.0)));
-    rec("canary", same_double(::qMin(1.0, 2.0) + 1.0, pkoracle::qMin(1.0, 2.0)),
-        "minmax_pipeline", "canary:qMin", dstr(::qMin(1.0, 2.0) + 1.0), dstr(pkoracle::qMin(1.0, 2.0)));
-    rec("canary", same_double(::qBound(0.0, 5.0, 10.0) + 1.0, pkoracle::qBound(0.0, 5.0, 10.0)),
-        "bound_pipeline", "canary:qBound", dstr(::qBound(0.0, 5.0, 10.0) + 1.0), dstr(pkoracle::qBound(0.0, 5.0, 10.0)));
-    rec("canary", ::qRound(2.5) + 1 == pkoracle::qRound(2.5),
-        "round_pipeline", "canary:qRound", istr(::qRound(2.5) + 1), istr(pkoracle::qRound(2.5)));
-    rec("canary", ::qFuzzyCompare(1.0, 1.0) != pkoracle::qFuzzyCompare(1.0, 1.0),
+    rec("canary", same_double(::pkAbs(-3.0) + 1.0, pkoracle::pkAbs(-3.0)),
+        "qabs_pipeline", "canary:qAbs", dstr(::pkAbs(-3.0) + 1.0), dstr(pkoracle::pkAbs(-3.0)));
+    rec("canary", same_double(::pkMin(1.0, 2.0) + 1.0, pkoracle::pkMin(1.0, 2.0)),
+        "minmax_pipeline", "canary:qMin", dstr(::pkMin(1.0, 2.0) + 1.0), dstr(pkoracle::pkMin(1.0, 2.0)));
+    rec("canary", same_double(::pkBound(0.0, 5.0, 10.0) + 1.0, pkoracle::pkBound(0.0, 5.0, 10.0)),
+        "bound_pipeline", "canary:qBound", dstr(::pkBound(0.0, 5.0, 10.0) + 1.0), dstr(pkoracle::pkBound(0.0, 5.0, 10.0)));
+    rec("canary", ::pkRound(2.5) + 1 == pkoracle::pkRound(2.5),
+        "round_pipeline", "canary:qRound", istr(::pkRound(2.5) + 1), istr(pkoracle::pkRound(2.5)));
+    rec("canary", ::pkQtFuzzyCompare(1.0, 1.0) != pkoracle::pkQtFuzzyCompare(1.0, 1.0),
         "fuzzycompare_pipeline", "canary:qFuzzyCompare",
-        bstr(::qFuzzyCompare(1.0, 1.0)), bstr(pkoracle::qFuzzyCompare(1.0, 1.0)));
-    rec("canary", ::qFuzzyIsNull(0.0) != pkoracle::qFuzzyIsNull(0.0),
+        bstr(::pkQtFuzzyCompare(1.0, 1.0)), bstr(pkoracle::pkQtFuzzyCompare(1.0, 1.0)));
+    rec("canary", ::pkQtFuzzyIsNull(0.0) != pkoracle::pkQtFuzzyIsNull(0.0),
         "fuzzyisnull_pipeline", "canary:qFuzzyIsNull",
-        bstr(::qFuzzyIsNull(0.0)), bstr(pkoracle::qFuzzyIsNull(0.0)));
-    rec("canary", ::qFloor(2.7) + 1 == pkoracle::qFloor(2.7),
-        "floorceil_pipeline", "canary:qFloor", istr(::qFloor(2.7) + 1), istr(pkoracle::qFloor(2.7)));
-    rec("canary", ::qNextPowerOfTwo(3) + 5 == pkoracle::qNextPowerOfTwo(3),
+        bstr(::pkQtFuzzyIsNull(0.0)), bstr(pkoracle::pkQtFuzzyIsNull(0.0)));
+    rec("canary", ::pkFloor(2.7) + 1 == pkoracle::pkFloor(2.7),
+        "floorceil_pipeline", "canary:qFloor", istr(::pkFloor(2.7) + 1), istr(pkoracle::pkFloor(2.7)));
+    rec("canary", ::pkNextPowerOfTwo(3) + 5 == pkoracle::pkNextPowerOfTwo(3),
         "p2_pipeline", "canary:qNextPowerOfTwo",
-        ustr(::qNextPowerOfTwo(3) + 5), ustr(pkoracle::qNextPowerOfTwo(3)));
-    rec("canary", ::qIsNaN(1.0) != pkoracle::qIsNaN(1.0),
-        "isnan_pipeline", "canary:qIsNaN", bstr(::qIsNaN(1.0)), bstr(pkoracle::qIsNaN(1.0)));
-    rec("canary", same_double(::qInf(), pkoracle::qInf()) && same_double(::qInf(), 0.0),
-        "inf_pipeline", "canary:qInf", dstr(::qInf()), dstr(pkoracle::qInf()));
-    rec("canary", same_double(::qQNaN(), pkoracle::qQNaN()) && same_double(::qQNaN(), 0.0),
-        "qnan_pipeline", "canary:qQNaN", dstr(::qQNaN()), dstr(pkoracle::qQNaN()));
+        ustr(::pkNextPowerOfTwo(3) + 5), ustr(pkoracle::pkNextPowerOfTwo(3)));
+    rec("canary", ::pkIsNaN(1.0) != pkoracle::pkIsNaN(1.0),
+        "isnan_pipeline", "canary:qIsNaN", bstr(::pkIsNaN(1.0)), bstr(pkoracle::pkIsNaN(1.0)));
+    rec("canary", same_double(::pkInf(), pkoracle::pkInf()) && same_double(::pkInf(), 0.0),
+        "inf_pipeline", "canary:qInf", dstr(::pkInf()), dstr(pkoracle::pkInf()));
+    rec("canary", same_double(::pkQNaN(), pkoracle::pkQNaN()) && same_double(::pkQNaN(), 0.0),
+        "qnan_pipeline", "canary:qQNaN", dstr(::pkQNaN()), dstr(pkoracle::pkQNaN()));
 }
 
 int main()

@@ -16,18 +16,20 @@
 
 #include <QTemporaryFile>
 
-#include <QImage>
-#include <QTransform>
-#include <QBuffer>
-#include <QHash>
-#include <QFile>
+#include <PkImage.h>
+#include <PkTransform.h>
+#include <PkMemoryStream.h>
+#include <PkHash.h>
+#include <PkFileStream.h>
 #include <QFileInfo>
 #include <KisMimeDatabase.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 class Q_DECL_HIDDEN SvgSavingContext::Private
 {
 public:
-    Private(QIODevice *_mainDevice, QIODevice *_styleDevice)
+    Private(PkStream *_mainDevice, PkStream *_styleDevice)
         : mainDevice(_mainDevice)
         , styleDevice(_styleDevice)
         , styleWriter(0)
@@ -48,29 +50,29 @@ public:
     {
     }
 
-    QIODevice *mainDevice;
-    QIODevice *styleDevice;
-    QBuffer styleBuffer;
-    QBuffer shapeBuffer;
+    PkStream *mainDevice;
+    PkStream *styleDevice;
+    PkMemoryStream styleBuffer;
+    PkMemoryStream shapeBuffer;
     PkDeviceStream styleBufferStream;
     PkDeviceStream shapeBufferStream;
-    QScopedPointer<KoXmlWriter> styleWriter;
-    QScopedPointer<KoXmlWriter> shapeWriter;
+    PkScopedPointer<KoXmlWriter> styleWriter;
+    PkScopedPointer<KoXmlWriter> shapeWriter;
 
-    QHash<QString, int> uniqueNames;
-    QHash<const KoShape*, QString> shapeIds;
-    QTransform userSpaceMatrix;
+    PkHash<PkString, int> uniqueNames;
+    PkHash<const KoShape*, PkString> shapeIds;
+    PkTransform userSpaceMatrix;
     bool saveInlineImages;
     bool strippedTextMode = false;
 };
 
-SvgSavingContext::SvgSavingContext(QIODevice &outputDevice, bool saveInlineImages)
+SvgSavingContext::SvgSavingContext(PkStream &outputDevice, bool saveInlineImages)
     : d(new Private(&outputDevice, 0))
 {
     d->saveInlineImages = saveInlineImages;
 }
 
-SvgSavingContext::SvgSavingContext(QIODevice &shapesDevice, QIODevice &styleDevice, bool saveInlineImages)
+SvgSavingContext::SvgSavingContext(PkStream &shapesDevice, PkStream &styleDevice, bool saveInlineImages)
     : d(new Private(&shapesDevice, &styleDevice))
 {
     d->saveInlineImages = saveInlineImages;
@@ -102,13 +104,13 @@ KoXmlWriter &SvgSavingContext::shapeWriter()
     return *d->shapeWriter;
 }
 
-QString SvgSavingContext::createUID(const QString &base)
+PkString SvgSavingContext::createUID(const PkString &base)
 {
-    QString idBase = base.isEmpty() ? "defitem" : base;
+    PkString idBase = base.isEmpty() ? "defitem" : base;
     int counter = d->uniqueNames.value(idBase);
-    QString res;
+    PkString res;
     do {
-        res = idBase + QString::number(counter);
+        res = idBase + PkString::number(counter);
         counter++;
     } while (d->uniqueNames.contains(res));
 
@@ -117,9 +119,9 @@ QString SvgSavingContext::createUID(const QString &base)
     return res;
 }
 
-QString SvgSavingContext::getID(const KoShape *obj)
+PkString SvgSavingContext::getID(const KoShape *obj)
 {
-    QString id;
+    PkString id;
     // do we have already an id for this object ?
     if (d->shapeIds.contains(obj)) {
         // use existing id
@@ -152,7 +154,7 @@ QString SvgSavingContext::getID(const KoShape *obj)
     return id;
 }
 
-QTransform SvgSavingContext::userSpaceTransform() const
+PkTransform SvgSavingContext::userSpaceTransform() const
 {
     return d->userSpaceMatrix;
 }
@@ -162,55 +164,55 @@ bool SvgSavingContext::isSavingInlineImages() const
     return d->saveInlineImages;
 }
 
-QString SvgSavingContext::createFileName(const QString &extension)
+PkString SvgSavingContext::createFileName(const PkString &extension)
 {
-    QFile *file = qobject_cast<QFile*>(d->mainDevice);
+    PkFileStream *file = qobject_cast<PkFileStream*>(d->mainDevice);
     if (!file)
-        return QString();
+        return PkString();
 
     QFileInfo fi(file->fileName());
-    QString path = fi.absolutePath();
-    QString dstBaseFilename = fi.completeBaseName();
+    PkString path = fi.absolutePath();
+    PkString dstBaseFilename = fi.completeBaseName();
 
     // create a filename for the image file at the destination directory
-    QString fname = dstBaseFilename + '_' + createUID("file");
+    PkString fname = dstBaseFilename + '_' + createUID("file");
 
     // check if file exists already
     int i = 0;
-    QString counter;
+    PkString counter;
     // change filename as long as the filename already exists
-    while (QFile(path + fname + counter + extension).exists()) {
-        counter = QString("_%1").arg(++i);
+    while (PkFileStream(path + fname + counter + extension).exists()) {
+        counter = PkString("_%1").arg(++i);
     }
 
     return fname + counter + extension;
 }
 
-QString SvgSavingContext::saveImage(const QImage &image)
+PkString SvgSavingContext::saveImage(const PkImage &image)
 {
     if (isSavingInlineImages()) {
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
         if (image.save(&buffer, "PNG")) {
-            const QString header("data:image/x-png;base64,");
+            const PkString header("data:image/x-png;base64,");
             return header + buffer.data().toBase64();
         }
     } else {
         // write to a temp file first
         QTemporaryFile imgFile;
         if (image.save(&imgFile, "PNG")) {
-            QString dstFilename = createFileName(".png");
-            if (QFile::copy(imgFile.fileName(), dstFilename)) {
+            PkString dstFilename = createFileName(".png");
+            if (PkFileStream::copy(imgFile.fileName(), dstFilename)) {
                 return dstFilename;
             }
             else {
-                QFile f(imgFile.fileName());
+                PkFileStream f(imgFile.fileName());
                 f.remove();
             }
         }
     }
 
-    return QString();
+    return PkString();
 }
 
 void SvgSavingContext::setStrippedTextMode(bool value)

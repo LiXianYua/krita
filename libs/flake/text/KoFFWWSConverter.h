@@ -6,7 +6,7 @@
 #ifndef KOFFWWSCONVERTER_H
 #define KOFFWWSCONVERTER_H
 
-#include <QHash>
+#include <PkHash.h>
 #include <KoFontLibraryResourceUtils.h>
 #include "KoCSSFontInfo.h"
 #include "PkFontProvider.h"
@@ -17,24 +17,26 @@
 #include <PkDateTime.h>
 
 #include <optional>
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 /// This struct represents a CSS-compatible font family, containing all
 /// sorts of info useful for the GUI.
 struct KoFontFamilyWWSRepresentation {
-    QString fontFamilyName;
-    QString typographicFamilyName;
+    PkString fontFamilyName;
+    PkString typographicFamilyName;
 
-    QHash<QLocale, QString> localizedFontFamilyNames;
-    QHash<QLocale, QString> localizedTypographicFamily;
-    QHash<QLocale, QString> localizedTypographicStyles;
+    PkHash<QLocale, PkString> localizedFontFamilyNames;
+    PkHash<QLocale, PkString> localizedTypographicFamily;
+    PkHash<QLocale, PkString> localizedTypographicStyles;
 
     PkDateTime lastModified; ///< Value of the most recently modified font family. Used for updates.
 
-    QHash<QString, QString> sampleStrings; /// sample string used to generate the preview;
-    QList<QLocale> supportedLanguages;
+    PkHash<PkString, PkString> sampleStrings; /// sample string used to generate the preview;
+    PkList<QLocale> supportedLanguages;
 
-    QHash<QString, KoSvgText::FontFamilyAxis> axes;
-    QList<KoSvgText::FontFamilyStyleInfo> styles;
+    PkHash<PkString, KoSvgText::FontFamilyAxis> axes;
+    PkList<KoSvgText::FontFamilyStyleInfo> styles;
 
     KoSvgText::FontFormatType type = KoSvgText::UnknownFontType;
     bool isVariable = false;
@@ -62,7 +64,7 @@ public:
     ~KoFFWWSConverter();
 
     struct FontFileEntry {
-        QString fileName;
+        PkString fileName;
         int fontIndex;
     };
 
@@ -75,24 +77,24 @@ public:
     /// Add a font from a filename and index.
     /// This will use freetype and harfbuzz to figure out the family name(s), styles
     /// and other font features.
-    bool addFontFromFile(const QString &filename, const int index, FT_LibrarySP freeTypeLibrary);
+    bool addFontFromFile(const PkString &filename, const int index, FT_LibrarySP freeTypeLibrary);
 
-    void addSupportedLanguagesByFile(const QString &filename, const int index, const QList<QLocale> &supportedLanguages, const PkFontProvider *provider, const PkFontProvider::FontHandle &handle);
+    void addSupportedLanguagesByFile(const PkString &filename, const int index, const PkList<QLocale> &supportedLanguages, const PkFontProvider *provider, const PkFontProvider::FontHandle &handle);
 
     /// Sort any straggling fonts into WWSFamilies.
     void sortIntoWWSFamilies();
 
     /// This adds a CSS generic family. Call this before sortIntoWWSFamilies.
-    void addGenericFamily(const QString &name);
+    void addGenericFamily(const PkString &name);
 
     /// Collects all WWSFamilies (that is, CSS compatible groupings of font files) and return them.
-    QList<KoFontFamilyWWSRepresentation> collectFamilies() const;
+    PkList<KoFontFamilyWWSRepresentation> collectFamilies() const;
 
     /// Gets a single WWSFamily representation for a given CSS Family Name, used by KoFontStorage.
-    std::optional<KoFontFamilyWWSRepresentation> representationByFamilyName(const QString &familyName) const;
+    std::optional<KoFontFamilyWWSRepresentation> representationByFamilyName(const PkString &familyName) const;
 
     /// Used to find the closest corresponding resource when the family name doesn't match.
-    std::optional<QString> wwsNameByFamilyName(const QString familyName) const;
+    std::optional<PkString> wwsNameByFamilyName(const PkString familyName) const;
 
     /**
      * @brief candidatesForCssValues
@@ -100,7 +102,7 @@ public:
      * We want to give these preferential treatment to whatever fontconfig matches for us.
      * @return list of QPairs representing the filenames and file indices for the candidates.
      */
-    QVector<FontFileEntry> candidatesForCssValues(const KoCSSFontInfo info,
+    PkVector<FontFileEntry> candidatesForCssValues(const KoCSSFontInfo info,
                                        quint32 xRes = 72,
                                        quint32 yRes = 72) const;
 
@@ -109,7 +111,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOFFWWSCONVERTER_H

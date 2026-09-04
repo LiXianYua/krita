@@ -94,7 +94,7 @@ void KoShapeStrokeCommand::redo()
 {
     KUndo2Command::redo();
 
-    KoShapeBulkActionLock lock(toQList(d->shapes));
+    KoShapeBulkActionLock lock(d->shapes);
 
     PkList<KoShapeStrokeModelSP>::iterator strokeIt = d->newStrokes.begin();
     for (KoShape *shape : d->shapes) {
@@ -109,7 +109,7 @@ void KoShapeStrokeCommand::undo()
 {
     KUndo2Command::undo();
 
-    KoShapeBulkActionLock lock(toQList(d->shapes));
+    KoShapeBulkActionLock lock(d->shapes);
 
     PkList<KoShapeStrokeModelSP>::iterator strokeIt = d->oldStrokes.begin();
     for (KoShape *shape : d->shapes) {

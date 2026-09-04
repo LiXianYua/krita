@@ -24,7 +24,7 @@
 
 bool nearEqualValue(int a, int b)
 {
-    return qAbs(a - b) <= 1;
+    return pkAbs(a - b) <= 1;
 }
 
 void TestKoColor::testForModel(PkString model)

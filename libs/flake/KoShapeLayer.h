@@ -31,8 +31,8 @@ public:
      * Empty implementation, as the layer itself is not visible
      */
     void paintComponent(QPainter &painter) const override;
-    bool hitTest(const QPointF &position) const override;
-    QRectF boundingRect() const override;
+    bool hitTest(const PkPointF &position) const override;
+    PkRectF boundingRect() const override;
 };
 
 #endif // __KOSHAPELAYER_H__

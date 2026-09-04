@@ -23,12 +23,12 @@
 #include <KisForest.h>
 
 #include <QFont>
-#include <QImage>
-#include <QLineF>
-#include <QPainterPath>
-#include <QPointF>
-#include <QRectF>
-#include <QVector>
+#include <PkImage.h>
+#include <PkLine.h>
+#include <PkPainterPath.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkVector.h>
 #include <QtMath>
 
 #include <variant>
@@ -55,12 +55,12 @@ enum class LineEdgeBehaviour {
 };
 
 struct CursorInfo {
-    QLineF caret; ///< Caret for this characterResult
-    QVector<int> graphemeIndices; ///< The text-string indices of graphemes starting here, starting grapheme is not present.
-    QVector<QPointF> offsets; ///< The advance offsets for each grapheme index.
+    PkLineF caret; ///< Caret for this characterResult
+    PkVector<int> graphemeIndices; ///< The text-string indices of graphemes starting here, starting grapheme is not present.
+    PkVector<PkPointF> offsets; ///< The advance offsets for each grapheme index.
     bool rtl = false; ///< Whether the current glyph is right-to-left, as opposed to the markup.
     bool isWordBoundary = false;
-    QColor color; ///< Which color the current position has.
+    PkColor color; ///< Which color the current position has.
 };
 
 struct CursorPos {
@@ -73,18 +73,18 @@ struct CursorPos {
 namespace Glyph {
 
 struct Outline {
-    QPainterPath path;
+    PkPainterPath path;
 };
 
 struct Bitmap {
-    QVector<QImage> images;
-    QVector<QRectF> drawRects;
+    PkVector<PkImage> images;
+    PkVector<PkRectF> drawRects;
 };
 
 struct ColorLayers {
-    QVector<QPainterPath> paths;
-    QVector<QBrush> colors;
-    QVector<bool> replaceWithForeGroundColor;
+    PkVector<PkPainterPath> paths;
+    PkVector<QBrush> colors;
+    PkVector<bool> replaceWithForeGroundColor;
 };
 
 using Variant = std::variant<std::monostate, Outline, Bitmap, ColorLayers>;
@@ -92,7 +92,7 @@ using Variant = std::variant<std::monostate, Outline, Bitmap, ColorLayers>;
 } // namespace Glyph
 
 struct CharacterResult {
-    QPointF finalPosition; ///< the final position, taking into account both CSS and SVG positioning considerations.
+    PkPointF finalPosition; ///< the final position, taking into account both CSS and SVG positioning considerations.
     qreal rotate = 0.0;
     bool hidden = false; // whether the character will be drawn.
     // The original svg specs' notion of addressable character relies on utf16,
@@ -107,17 +107,17 @@ struct CharacterResult {
 
     Glyph::Variant glyph;
 
-    QRectF inkBoundingBox; ///< The bounds of the drawn glyph. Different from the bounds the charresult takes up in the layout, @see layoutBox();
+    PkRectF inkBoundingBox; ///< The bounds of the drawn glyph. Different from the bounds the charresult takes up in the layout, @see layoutBox();
     bool isHorizontal = true; ///< Whether the current glyph lays out horizontal or vertical. Currently same as paragraph, but in future may change.
     int visualIndex = -1;
     int plaintTextIndex = -1;
-    QPointF cssPosition = QPointF(); ///< the position in accordance with the CSS specs, as opossed to the SVG spec.
-    QPointF textLengthOffset = QPointF(); ///< offset caused by textLength
-    QPointF textPathAndAnchoringOffset = QPointF(); ///< Offset caused by textPath and anchoring.
-    QPointF dominantBaselineOffset = QPointF(); // Shift caused by aligning glyphs to dominant baseline.
-    QPointF baselineOffset = QPointF(); ///< The computed baseline offset, will be applied
+    PkPointF cssPosition = PkPointF(); ///< the position in accordance with the CSS specs, as opossed to the SVG spec.
+    PkPointF textLengthOffset = PkPointF(); ///< offset caused by textLength
+    PkPointF textPathAndAnchoringOffset = PkPointF(); ///< Offset caused by textPath and anchoring.
+    PkPointF dominantBaselineOffset = PkPointF(); // Shift caused by aligning glyphs to dominant baseline.
+    PkPointF baselineOffset = PkPointF(); ///< The computed baseline offset, will be applied
                                         ///< when calculating the line-offset during line breaking.
-    QPointF advance;
+    PkPointF advance;
     BreakType breakType = BreakType::NoBreak;
     LineEdgeBehaviour lineEnd = LineEdgeBehaviour::NoChange;
     LineEdgeBehaviour lineStart = LineEdgeBehaviour::NoChange;
@@ -136,13 +136,13 @@ struct CharacterResult {
 
     std::optional<qreal> tabSize; ///< If present, this is a tab and it should align to multiples of this tabSize value.
 
-    void calculateAndApplyTabsize(QPointF currentPos, bool isHorizontal, const KoSvgText::ResolutionHandler &resHandler) {
+    void calculateAndApplyTabsize(PkPointF currentPos, bool isHorizontal, const KoSvgText::ResolutionHandler &resHandler) {
         if (!tabSize) return;
-        if (*tabSize == qInf() || qIsNaN(*tabSize)) return;
+        if (*tabSize == pkInf() || pkIsNaN(*tabSize)) return;
 
         if (*tabSize > 0) {
             qreal remainder = *tabSize - (isHorizontal? fmod(currentPos.x(), *tabSize): fmod(currentPos.y(), *tabSize));
-            advance = resHandler.adjust(isHorizontal? QPointF(remainder, advance.y()): QPointF(advance.x(), remainder));
+            advance = resHandler.adjust(isHorizontal? PkPointF(remainder, advance.y()): PkPointF(advance.x(), remainder));
         }
     }
 
@@ -150,16 +150,16 @@ struct CharacterResult {
      * @brief layoutBox
      * @return a dynamically calculated layoutBox, this is different from the Ink bounding box.
      */
-    QRectF layoutBox() const {
-        return isHorizontal? QRectF(0, advance.y()+scaledAscent, advance.x(), scaledDescent-scaledAscent)
-                         : QRectF(advance.x()+scaledDescent, 0, scaledAscent-scaledDescent, advance.y());
+    PkRectF layoutBox() const {
+        return isHorizontal? PkRectF(0, advance.y()+scaledAscent, advance.x(), scaledDescent-scaledAscent)
+                         : PkRectF(advance.x()+scaledDescent, 0, scaledAscent-scaledDescent, advance.y());
     }
     /**
      * @brief lineHeightBox
      * @return The box representing the line height of this char.
      */
-    QRectF lineHeightBox () const {
-        QRectF lBox = layoutBox();
+    PkRectF lineHeightBox () const {
+        PkRectF lBox = layoutBox();
         return isHorizontal? lBox.adjusted(0, -scaledHalfLeading, 0, scaledHalfLeading)
                          : lBox.adjusted(-scaledHalfLeading, 0, scaledHalfLeading, 0);
     }
@@ -169,8 +169,8 @@ struct CharacterResult {
      * For dominant baseline, we want to move the glyph origin.
      * This encompassed the glyph, the ascent and descent, and the metrics.
      */
-    void translateOrigin(QPointF newOrigin) {
-        if (newOrigin == QPointF()) return;
+    void translateOrigin(PkPointF newOrigin) {
+        if (newOrigin == PkPointF()) return;
         if (Glyph::Outline *outlineGlyph = std::get_if<Glyph::Outline>(&glyph)) {
             outlineGlyph->path.translate(-newOrigin);
         } else if (Glyph::Bitmap *bitmapGlyph = std::get_if<Glyph::Bitmap>(&glyph)) {
@@ -201,14 +201,14 @@ struct CharacterResult {
      * @param yScale -- the factor by which the height should be scaled.
      */
     void scaleCharacterResult(qreal xScale, qreal yScale) {
-        QTransform scale = QTransform::fromScale(xScale, yScale);
+        PkTransform scale = PkTransform::fromScale(xScale, yScale);
         if (scale.isIdentity()) return;
         const bool scaleToZero = !(xScale > 0 && yScale > 0);
 
         if (Glyph::Outline *outlineGlyph = std::get_if<Glyph::Outline>(&glyph)) {
             if (!outlineGlyph->path.isEmpty()) {
                 if (scaleToZero) {
-                    outlineGlyph->path = QPainterPath();
+                    outlineGlyph->path = PkPainterPath();
                 } else {
                     outlineGlyph->path = scale.map(outlineGlyph->path);
                 }
@@ -225,7 +225,7 @@ struct CharacterResult {
         } else if  (Glyph::ColorLayers *colorGlyph = std::get_if<Glyph::ColorLayers>(&glyph)) {
             for (int i = 0; i< colorGlyph->paths.size(); i++) {
                 if (scaleToZero) {
-                    colorGlyph->paths[i] = QPainterPath();
+                    colorGlyph->paths[i] = PkPainterPath();
                 } else {
                     colorGlyph->paths[i] = scale.map(colorGlyph->paths[i]);
                 }
@@ -244,7 +244,7 @@ struct CharacterResult {
             scaledHalfLeading *= yScale;
             metrics.scaleBaselines(yScale);
             if (tabSize) {
-                tabSize = scale.map(QPointF(*tabSize, *tabSize)).x();
+                tabSize = scale.map(PkPointF(*tabSize, *tabSize)).x();
             }
         } else {
             scaledDescent *= xScale;
@@ -252,12 +252,12 @@ struct CharacterResult {
             scaledHalfLeading *= xScale;
             metrics.scaleBaselines(xScale);
             if (tabSize) {
-                tabSize = scale.map(QPointF(*tabSize, *tabSize)).y();
+                tabSize = scale.map(PkPointF(*tabSize, *tabSize)).y();
             }
         }
     }
 
-    QPointF totalBaselineOffset() const {
+    PkPointF totalBaselineOffset() const {
         return baselineOffset+dominantBaselineOffset;
     }
 
@@ -269,19 +269,19 @@ struct CharacterResult {
     KoSvgText::TextAnchor anchor = KoSvgText::AnchorStart;
     KoSvgText::Direction direction = KoSvgText::DirectionLeftToRight;
 
-    QTransform finalTransform() const {
-        QTransform tf =
-            QTransform::fromTranslate(finalPosition.x(), finalPosition.y());
+    PkTransform finalTransform() const {
+        PkTransform tf =
+            PkTransform::fromTranslate(finalPosition.x(), finalPosition.y());
         tf.rotateRadians(rotate);
         return tf;
     }
 };
 
 struct LineChunk {
-    QLineF length; ///< Used to measure how long the current line is allowed to be.
-    QVector<int> chunkIndices; ///< charResult indices that belong to this chunk.
-    QRectF boundingBox;
-    QPointF conditionalHangEnd = QPointF();
+    PkLineF length; ///< Used to measure how long the current line is allowed to be.
+    PkVector<int> chunkIndices; ///< charResult indices that belong to this chunk.
+    PkRectF boundingBox;
+    PkPointF conditionalHangEnd = PkPointF();
 };
 
 /**
@@ -306,43 +306,43 @@ struct LineBox {
     LineBox() {
     }
 
-    LineBox(QPointF start, QPointF end, const KoSvgText::ResolutionHandler &resHandler) {
+    LineBox(PkPointF start, PkPointF end, const KoSvgText::ResolutionHandler &resHandler) {
         LineChunk chunk;
-        chunk.length =  QLineF(resHandler.adjustCeil(start), resHandler.adjustFloor(end));
+        chunk.length =  PkLineF(resHandler.adjustCeil(start), resHandler.adjustFloor(end));
         chunks.append(chunk);
         currentChunk = 0;
     }
 
-    LineBox(QVector<QLineF> lineWidths, bool ltr, QPointF indent, const KoSvgText::ResolutionHandler &resHandler) {
+    LineBox(PkVector<PkLineF> lineWidths, bool ltr, PkPointF indent, const KoSvgText::ResolutionHandler &resHandler) {
         textIndent = indent;
         if (ltr) {
-            Q_FOREACH(QLineF line, lineWidths) {
+            Q_FOREACH(PkLineF line, lineWidths) {
                 LineChunk chunk;
-                chunk.length = QLineF(resHandler.adjustCeil(line.p1()), resHandler.adjustFloor(line.p2()));
+                chunk.length = PkLineF(resHandler.adjustCeil(line.p1()), resHandler.adjustFloor(line.p2()));
                 chunks.append(chunk);
                 currentChunk = 0;
             }
         } else {
-            Q_FOREACH(QLineF line, lineWidths) {
+            Q_FOREACH(PkLineF line, lineWidths) {
                 LineChunk chunk;
-                chunk.length = QLineF(resHandler.adjustFloor(line.p2()), resHandler.adjustCeil(line.p1()));
+                chunk.length = PkLineF(resHandler.adjustFloor(line.p2()), resHandler.adjustCeil(line.p1()));
                 chunks.insert(0, chunk);
                 currentChunk = 0;
             }
         }
     }
 
-    QVector<LineChunk> chunks;
+    PkVector<LineChunk> chunks;
     int currentChunk = -1;
 
     qreal expectedLineTop = 0; ///< Because fonts can affect lineheight mid-line, and this affects wrapping, this estimates the line-height.
     qreal actualLineTop = 0;
     qreal actualLineBottom = 0;
 
-    QPointF baselineTop = QPointF(); ///< Used to identify the top of the line for baseline-alignment.
-    QPointF baselineBottom = QPointF(); ///< Used to identify the bottom of the line for baseline-alignment.
+    PkPointF baselineTop = PkPointF(); ///< Used to identify the top of the line for baseline-alignment.
+    PkPointF baselineBottom = PkPointF(); ///< Used to identify the bottom of the line for baseline-alignment.
 
-    QPointF textIndent = QPointF();
+    PkPointF textIndent = PkPointF();
     bool firstLine = false;
     bool lastLine = false;
     bool lineFinalized = false;
@@ -361,18 +361,18 @@ struct LineBox {
         }
     }
 
-    void clearAndAdjust(bool isHorizontal, QPointF current, QPointF indent) {
+    void clearAndAdjust(bool isHorizontal, PkPointF current, PkPointF indent) {
         actualLineBottom = 0;
         actualLineTop = 0;
         LineChunk chunk;
         textIndent = indent;
-        QLineF length = chunks.at(currentChunk).length;
+        PkLineF length = chunks.at(currentChunk).length;
         if (isHorizontal) {
-            length.setP1(QPointF(length.p1().x(), current.y()));
-            length.setP2(QPointF(length.p2().x(), current.y()));
+            length.setP1(PkPointF(length.p1().x(), current.y()));
+            length.setP2(PkPointF(length.p2().x(), current.y()));
         } else {
-            length.setP1(QPointF(current.x(), length.p1().y()));
-            length.setP2(QPointF(current.x(), length.p2().y()));
+            length.setP1(PkPointF(current.x(), length.p1().y()));
+            length.setP2(PkPointF(current.x(), length.p2().y()));
         }
         chunks.clear();
         currentChunk = 0;
@@ -381,7 +381,7 @@ struct LineBox {
         firstLine = false;
     }
 
-    void setCurrentChunkForPos(QPointF pos, bool isHorizontal) {
+    void setCurrentChunkForPos(PkPointF pos, bool isHorizontal) {
         for (int i=0; i<chunks.size(); i++) {
             LineChunk chunk = chunks.at(i);
             if (isHorizontal) {
@@ -424,15 +424,15 @@ struct SubChunk {
 
     }
 
-    QString text;
-    QString originalText;
+    PkString text;
+    PkString originalText;
     KisForest<KoSvgTextContentElement>::child_iterator associatedLeaf;
-    QVector<QPair<int, int>> newToOldPositions; ///< For transformed strings, we need to know which
+    PkVector<std::pair<int, int>> newToOldPositions; ///< For transformed strings, we need to know which
     bool textInPath = false;
     bool firstTextInPath = false; ///< We need to mark the first text in path as an anchored chunk.
                                   ///< original index matches which new index;
     KoSvgTextProperties inheritedProps;
-    QSharedPointer<KoShapeBackground> bg;
+    PkSharedPointer<KoShapeBackground> bg;
 };
 
 class KRITAFLAKE_EXPORT KoSvgTextShape::Private
@@ -486,7 +486,7 @@ public:
         currentTextWrappingAreas = rhs.currentTextWrappingAreas;
     }
 
-    void handleShapes(const QList<KoShape*> &sourceShapeList, const QList<KoShape*> referenceList2, const QList<KoShape*> referenceShapeList, QList<KoShape*> &destinationShapeList) {
+    void handleShapes(const PkList<KoShape*> &sourceShapeList, const PkList<KoShape*> referenceList2, const PkList<KoShape*> referenceShapeList, PkList<KoShape*> &destinationShapeList) {
         for (int i = 0; i<sourceShapeList.size(); i++) {
             if (referenceShapeList.contains(referenceList2.at(i))) {
                 destinationShapeList.append(sourceShapeList.at(i));
@@ -512,10 +512,10 @@ public:
     int xRes = 72;
     int yRes = 72;
 
-    QScopedPointer<KoShapePainter> internalShapesPainter;
-    QScopedPointer<KoShapeGroup> shapeGroup;
+    PkScopedPointer<KoShapePainter> internalShapesPainter;
+    PkScopedPointer<KoShapeGroup> shapeGroup;
 
-    QList<KoShape*> internalShapes() const {
+    PkList<KoShape*> internalShapes() const {
         return internalShapesPainter->internalShapeManager()->shapes();
     }
 
@@ -542,9 +542,9 @@ public:
     }
 
     struct BulkActionState {
-        BulkActionState(QRectF originalBoundingRectArg) : originalBoundingRect(originalBoundingRectArg) {}
+        BulkActionState(PkRectF originalBoundingRectArg) : originalBoundingRect(originalBoundingRectArg) {}
 
-        QRectF originalBoundingRect;
+        PkRectF originalBoundingRect;
         bool contourHasChanged = false;
         bool layoutHasChanged = false;
         bool layoutSetFromMemento = false;
@@ -556,11 +556,11 @@ public:
 
     std::optional<BulkActionState> bulkActionState;
 
-    QList<KoShape*> shapesInside;
-    QList<KoShape*> shapesSubtract;
-    QList<KoShape*> textPaths;
+    PkList<KoShape*> shapesInside;
+    PkList<KoShape*> shapesSubtract;
+    PkList<KoShape*> textPaths;
 
-    QList<QPainterPath> currentTextWrappingAreas;
+    PkList<PkPainterPath> currentTextWrappingAreas;
 
     /**
      * @brief updateShapeContours
@@ -568,9 +568,9 @@ public:
      * calls computing them, and then calls relayout();
      */
     void updateTextWrappingAreas();
-    static QList<QPainterPath> generateShapes(const QList<KoShape*> shapesInside, const QList<KoShape*> shapesSubtract, const KoSvgTextProperties &properties);
+    static PkList<PkPainterPath> generateShapes(const PkList<KoShape*> shapesInside, const PkList<KoShape*> shapesSubtract, const KoSvgTextProperties &properties);
 
-    static KoShape *textPathByName(QString name, QList<KoShape*> textPaths) {
+    static KoShape *textPathByName(PkString name, PkList<KoShape*> textPaths) {
         auto it = std::find_if(textPaths.begin(), textPaths.end(), [&name](const KoShape *s) -> bool {return s->name() == name;});
         return it != textPaths.end()? *it: nullptr;
     }
@@ -585,15 +585,15 @@ public:
 
     bool disableFontMatching = false; ///< Turn off font matching, which should speed up relayout slightly.
 
-    QVector<CharacterResult> result;
-    QVector<LineBox> lineBoxes;
+    PkVector<CharacterResult> result;
+    PkVector<LineBox> lineBoxes;
 
-    QVector<CursorPos> cursorPos;
-    QMap<int, int> logicalToVisualCursorPos;
+    PkVector<CursorPos> cursorPos;
+    PkMap<int, int> logicalToVisualCursorPos;
 
-    QString plainText;
+    PkString plainText;
     bool isBidi = false;
-    QPointF initialTextPosition = QPointF();
+    PkPointF initialTextPosition = PkPointF();
 
     void relayout();
 
@@ -604,13 +604,13 @@ public:
                    const KoSvgText::TextRendering rendering,
                    raqm_glyph_t &currentGlyph,
                    CharacterResult &charResult,
-                   QPointF &totalAdvanceFTFontCoordinates);
+                   PkPointF &totalAdvanceFTFontCoordinates);
 
-    static QVector<QPointF> getLigatureCarets(const KoSvgText::ResolutionHandler &resHandler,
+    static PkVector<PkPointF> getLigatureCarets(const KoSvgText::ResolutionHandler &resHandler,
                                   const bool isHorizontal,
                                   raqm_glyph_t &currentGlyph);
 
-    static std::pair<QTransform, qreal> loadGlyphOnly(const QTransform &ftTF,
+    static std::pair<PkTransform, qreal> loadGlyphOnly(const PkTransform &ftTF,
                                                FT_Int32 faceLoadFlags,
                                                bool isHorizontal,
                                                raqm_glyph_t &currentGlyph,
@@ -618,36 +618,36 @@ public:
 
     void clearAssociatedOutlines();
     static void resolveTransforms(KisForest<KoSvgTextContentElement>::child_iterator currentTextElement,
-                           QString text, QVector<CharacterResult> &result, int &currentIndex,
-                           bool isHorizontal, bool wrapped, bool textInPath, QVector<KoSvgText::CharTransformation> &resolved,
-                           QVector<bool> collapsedChars, const KoSvgTextProperties resolvedProps, bool withControls = true);
+                           PkString text, PkVector<CharacterResult> &result, int &currentIndex,
+                           bool isHorizontal, bool wrapped, bool textInPath, PkVector<KoSvgText::CharTransformation> &resolved,
+                           PkVector<bool> collapsedChars, const KoSvgTextProperties resolvedProps, bool withControls = true);
 
-    void applyTextLength(KisForest<KoSvgTextContentElement>::child_iterator currentTextElement, QVector<CharacterResult> &result, int &currentIndex, int &resolvedDescendentNodes, bool isHorizontal,
+    void applyTextLength(KisForest<KoSvgTextContentElement>::child_iterator currentTextElement, PkVector<CharacterResult> &result, int &currentIndex, int &resolvedDescendentNodes, bool isHorizontal,
                          const KoSvgTextProperties resolvedProps, const KoSvgText::ResolutionHandler &resHandler);
-    static void applyAnchoring(QVector<CharacterResult> &result, bool isHorizontal, const KoSvgText::ResolutionHandler resHandler);
-    static qreal anchoredChunkShift(const QVector<CharacterResult> &result, const bool isHorizontal, const int start, int &end);
+    static void applyAnchoring(PkVector<CharacterResult> &result, bool isHorizontal, const KoSvgText::ResolutionHandler resHandler);
+    static qreal anchoredChunkShift(const PkVector<CharacterResult> &result, const bool isHorizontal, const int start, int &end);
     static qreal
     characterResultOnPath(CharacterResult &cr, qreal length, qreal offset, bool isHorizontal, bool isClosed);
-    static QPainterPath stretchGlyphOnPath(const QPainterPath &glyph,
-                                           const QPainterPath &path,
+    static PkPainterPath stretchGlyphOnPath(const PkPainterPath &glyph,
+                                           const PkPainterPath &path,
                                            bool isHorizontal,
                                            qreal offset,
                                            bool isClosed);
-    static void applyTextPath(KisForest<KoSvgTextContentElement>::child_iterator parent, QVector<CharacterResult> &result, bool isHorizontal, QPointF &startPos, const KoSvgTextProperties resolvedProps, QList<KoShape*> textPaths);
+    static void applyTextPath(KisForest<KoSvgTextContentElement>::child_iterator parent, PkVector<CharacterResult> &result, bool isHorizontal, PkPointF &startPos, const KoSvgTextProperties resolvedProps, PkList<KoShape*> textPaths);
     static void computeFontMetrics(KisForest<KoSvgTextContentElement>::child_iterator parent, const KoSvgTextProperties &parentProps,
                             const KoSvgText::FontMetrics &parentBaselineTable, const KoSvgText::Baseline parentBaseline,
-                            QVector<CharacterResult> &result,
+                            PkVector<CharacterResult> &result,
                             int &currentIndex,
                             const KoSvgText::ResolutionHandler resHandler,
                             const bool isHorizontal,
                             const bool disableFontMatching);
     static void handleLineBoxAlignment(KisForest<KoSvgTextContentElement>::child_iterator parent,
-                            QVector<CharacterResult> &result, const QVector<LineBox> lineBoxes,
+                            PkVector<CharacterResult> &result, const PkVector<LineBox> lineBoxes,
                             int &currentIndex,
                             const bool isHorizontal, const KoSvgTextProperties resolvedProps);
     void computeTextDecorations(KisForest<KoSvgTextContentElement>::child_iterator currentTextElement,
-                                const QVector<CharacterResult>& result,
-                                const QMap<int, int>& logicalToVisual,
+                                const PkVector<CharacterResult>& result,
+                                const PkMap<int, int>& logicalToVisual,
                                 const KoSvgText::ResolutionHandler resHandler,
                                 KoPathShape *textPath,
                                 qreal textPathoffset,
@@ -656,10 +656,10 @@ public:
                                 bool isHorizontal,
                                 bool ltr,
                                 bool wrapping,
-                                const KoSvgTextProperties resolvedProps, QList<KoShape*> textPaths);
-    QMap<KoSvgText::TextDecoration, QPainterPath> generateDecorationPaths(const int &start, const int &end,
+                                const KoSvgTextProperties resolvedProps, PkList<KoShape*> textPaths);
+    PkMap<KoSvgText::TextDecoration, PkPainterPath> generateDecorationPaths(const int &start, const int &end,
                                                                           const KoSvgText::ResolutionHandler resHandler,
-                                                                          const QVector<CharacterResult> &result,
+                                                                          const PkVector<CharacterResult> &result,
                                                                           const bool isHorizontal,
                                                                           const KoSvgText::TextDecorations &decor,
                                                                           const KoSvgText::TextDecorationStyle style = KoSvgText::TextDecorationStyle::Solid,
@@ -670,11 +670,11 @@ public:
                                                                           const KoSvgText::TextDecorationUnderlinePosition underlinePosH = KoSvgText::TextDecorationUnderlinePosition::UnderlineAuto,
                                                                           const KoSvgText::TextDecorationUnderlinePosition underlinePosV = KoSvgText::TextDecorationUnderlinePosition::UnderlineAuto);
     static void finalizeDecoration (
-            QPainterPath decorationPath,
-            const QPointF offset,
+            PkPainterPath decorationPath,
+            const PkPointF offset,
             const QPainterPathStroker &stroker,
             const KoSvgText::TextDecoration type,
-            QMap<KoSvgText::TextDecoration, QPainterPath> &decorationPaths,
+            PkMap<KoSvgText::TextDecoration, PkPainterPath> &decorationPaths,
             const KoPathShape *currentTextPath,
             const bool isHorizontal,
             const qreal currentTextPathOffset,
@@ -682,20 +682,20 @@ public:
             );
 
     void paintTextDecoration(QPainter &painter,
-                             const QPainterPath &outlineRect,
+                             const PkPainterPath &outlineRect,
                              const KoShape *rootShape,
                              const KoSvgText::TextDecoration type,
                              const KoSvgText::TextRendering rendering);
     void paintPaths(QPainter &painter,
-                    const QPainterPath &outlineRect,
+                    const PkPainterPath &outlineRect,
                     const KoShape *rootShape,
-                    const QVector<CharacterResult> &result,
+                    const PkVector<CharacterResult> &result,
                     const KoSvgText::TextRendering rendering,
-                    QPainterPath &chunk,
+                    PkPainterPath &chunk,
                     int &currentIndex);
-    KoShape* collectPaths(const KoSvgTextShape *rootShape, QVector<CharacterResult> &result, int &currentIndex);
+    KoShape* collectPaths(const KoSvgTextShape *rootShape, PkVector<CharacterResult> &result, int &currentIndex);
     void paintDebug(QPainter &painter,
-                    const QVector<CharacterResult> &result,
+                    const PkVector<CharacterResult> &result,
                     int &currentIndex);
 
     /// Get the number of characters for the whole subtree of this node.
@@ -716,7 +716,7 @@ public:
     /**
      * Return a linearized representation of a subtree of text "subchunks".
      */
-    static QVector<SubChunk> collectSubChunks(KisForest<KoSvgTextContentElement>::child_iterator it, KoSvgTextProperties parent, bool textInPath, bool &firstTextInPath);
+    static PkVector<SubChunk> collectSubChunks(KisForest<KoSvgTextContentElement>::child_iterator it, KoSvgTextProperties parent, bool textInPath, bool &firstTextInPath);
 
     /**
      * @brief findTextContentElementForIndex
@@ -833,14 +833,14 @@ public:
                 if (textPathAfterSplit) {
                     duplicate.textPathId = parentIt->textPathId;
                     duplicate.textPathInfo = parentIt->textPathInfo;
-                    parentIt->textPathId = QString();
+                    parentIt->textPathId = PkString();
                     parentIt->textPathInfo = KoSvgText::TextOnPathInfo();
                 }
                 auto insert = siblingCurrent(parentIt);
                 insert ++;
                 auto it = tree.insert(insert, duplicate);
 
-                QVector<KisForest<KoSvgTextContentElement>::child_iterator> movableChildren;
+                PkVector<KisForest<KoSvgTextContentElement>::child_iterator> movableChildren;
                 for (auto child = lastNode; child != childEnd(siblingCurrent(parentIt)); child++) {
                     movableChildren.append(child);
                 }
@@ -888,10 +888,10 @@ public:
      * @param alsoCollapseLowSurrogate -- whether to mark utf16 surrogates as collapsed too.
      * @return list of collapsed characters
      */
-    static QVector<bool> collapsedWhiteSpacesForText(KisForest<KoSvgTextContentElement> &tree, QString &allText, const bool alsoCollapseLowSurrogate = false, bool includeBidiControls = false) {
-        QMap<int, KoSvgText::TextSpaceCollapse> collapseModes;
+    static PkVector<bool> collapsedWhiteSpacesForText(KisForest<KoSvgTextContentElement> &tree, PkString &allText, const bool alsoCollapseLowSurrogate = false, bool includeBidiControls = false) {
+        PkMap<int, KoSvgText::TextSpaceCollapse> collapseModes;
 
-        QList<KoSvgTextProperties> parentProps = {KoSvgTextProperties::defaultProperties()};
+        PkList<KoSvgTextProperties> parentProps = {KoSvgTextProperties::defaultProperties()};
         for (auto it = tree.compositionBegin(); it != tree.compositionEnd(); it++) {
             if (it.state() == KisForestDetail::Enter) {
                 KoSvgTextProperties ownProperties = it->properties;
@@ -900,12 +900,12 @@ public:
 
                 const int children = childCount(siblingCurrent(it));
                 if (children == 0) {
-                    QString text = it->text;
+                    PkString text = it->text;
                     if (includeBidiControls) {
                         KoSvgText::UnicodeBidi bidi = KoSvgText::UnicodeBidi(parentProps.last().propertyOrDefault(KoSvgTextProperties::UnicodeBidiId).toInt());
                         KoSvgText::Direction direction = KoSvgText::Direction(parentProps.last().propertyOrDefault(KoSvgTextProperties::DirectionId).toInt());
-                        QVector<QPair<int, int>> positions;
-                        QString text = KoCssTextUtils::getBidiOpening(direction, bidi);
+                        PkVector<std::pair<int, int>> positions;
+                        PkString text = KoCssTextUtils::getBidiOpening(direction, bidi);
                         text += it->getTransformedString(positions, parentProps.last());
                         text += KoCssTextUtils::getBidiClosing(bidi);
                     }
@@ -917,7 +917,7 @@ public:
                 parentProps.pop_back();
             }
         }
-        QVector<bool> collapsed = KoCssTextUtils::collapseSpaces(&allText, collapseModes);
+        PkVector<bool> collapsed = KoCssTextUtils::collapseSpaces(&allText, collapseModes);
 
         if (alsoCollapseLowSurrogate) {
             for (int i = 0; i < allText.size(); i++) {
@@ -941,8 +941,8 @@ public:
      * @param length -- end to remove from.
      */
     static void removeTransforms(KisForest<KoSvgTextContentElement> &tree, const int start, const int length) {
-        QString all;
-        QVector<bool> collapsedCharacters = collapsedWhiteSpacesForText(tree, all, true);
+        PkString all;
+        PkVector<bool> collapsedCharacters = collapsedWhiteSpacesForText(tree, all, true);
 
         auto root = tree.childBegin();
         removeTransformsImpl(root, 0, start, length, collapsedCharacters);
@@ -953,7 +953,7 @@ public:
      * recursive function that handles removing local transforms in a certain range.
      * Used by removeTransform.
      */
-    static int removeTransformsImpl(KisForest<KoSvgTextContentElement>::child_iterator currentTextElement, const int globalIndex, const int start, const int length, const QVector<bool> collapsedCharacters) {
+    static int removeTransformsImpl(KisForest<KoSvgTextContentElement>::child_iterator currentTextElement, const int globalIndex, const int start, const int length, const PkVector<bool> collapsedCharacters) {
         int currentLength = 0;
         auto it = childBegin(currentTextElement);
         if (it != childEnd(currentTextElement)) {
@@ -999,8 +999,8 @@ public:
      * transform because it is at the start of a text element.
      */
     static void insertTransforms(KisForest<KoSvgTextContentElement> &tree, const int start, const int length, const bool allowSkipFirst) {
-        QString all;
-        QVector<bool> collapsedCharacters = collapsedWhiteSpacesForText(tree, all, true);
+        PkString all;
+        PkVector<bool> collapsedCharacters = collapsedWhiteSpacesForText(tree, all, true);
 
         auto root = tree.childBegin();
         insertTransformsImpl(root, 0, start, length, collapsedCharacters, allowSkipFirst);
@@ -1010,7 +1010,7 @@ public:
      * Recursive function that handles inserting empty transforms into a given range.
      * Used by insertTransforms.
      */
-    static int insertTransformsImpl(KisForest<KoSvgTextContentElement>::child_iterator currentTextElement, const int globalIndex, const int start, const int length, const QVector<bool> collapsedCharacters, const bool allowSkipFirst) {
+    static int insertTransformsImpl(KisForest<KoSvgTextContentElement>::child_iterator currentTextElement, const int globalIndex, const int start, const int length, const PkVector<bool> collapsedCharacters, const bool allowSkipFirst) {
         int currentLength = 0;
         auto it = childBegin(currentTextElement);
         if (it != childEnd(currentTextElement)) {
@@ -1062,8 +1062,8 @@ public:
      * @param convertToPreWrapped -- switch all whitespace rules to pre-wrapped.
      */
     void applyWhiteSpace(KisForest<KoSvgTextContentElement> &tree, const bool convertToPreWrapped = false) {
-        QString allText;
-        QVector<bool> collapsed = collapsedWhiteSpacesForText(tree, allText, false);
+        PkString allText;
+        PkVector<bool> collapsed = collapsedWhiteSpacesForText(tree, allText, false);
 
         auto end = std::make_reverse_iterator(tree.childBegin());
         auto begin = std::make_reverse_iterator(tree.childEnd());
@@ -1072,12 +1072,12 @@ public:
             applyWhiteSpaceImpl(begin, collapsed, allText, convertToPreWrapped);
         }
         if (convertToPreWrapped) {
-            tree.childBegin()->properties.setProperty(KoSvgTextProperties::TextCollapseId, QVariant::fromValue(KoSvgText::Preserve));
-            tree.childBegin()->properties.setProperty(KoSvgTextProperties::TextWrapId, QVariant::fromValue(KoSvgText::Wrap));
+            tree.childBegin()->properties.setProperty(KoSvgTextProperties::TextCollapseId, PkVariant::fromValue(KoSvgText::Preserve));
+            tree.childBegin()->properties.setProperty(KoSvgTextProperties::TextWrapId, PkVariant::fromValue(KoSvgText::Wrap));
         }
     }
 
-    void applyWhiteSpaceImpl(std::reverse_iterator<KisForest<KoSvgTextContentElement>::child_iterator> current, QVector<bool> &collapsed, QString &allText, const bool convertToPreWrapped) {
+    void applyWhiteSpaceImpl(std::reverse_iterator<KisForest<KoSvgTextContentElement>::child_iterator> current, PkVector<bool> &collapsed, PkString &allText, const bool convertToPreWrapped) {
         auto base = current.base();
         // It seems that .base() refers to the next entry instead of the pointer,
         // which is coherent with the template implementation of "operator*" here:
@@ -1093,7 +1093,7 @@ public:
 
         if (!current->text.isEmpty()) {
             const int total = current->text.size();
-            QString currentText = allText.right(total);
+            PkString currentText = allText.right(total);
 
             for (int i = 0; i < total; i++) {
                 const int j = total - (i+1);
@@ -1112,10 +1112,10 @@ public:
         }
     }
 
-    static QVector<KoSvgText::CharTransformation> resolvedTransformsForTree(KisForest<KoSvgTextContentElement> &tree, bool shapesInside = false, bool includeBidiControls = false) {
-        QString all;
-        QVector<bool> collapsed = collapsedWhiteSpacesForText(tree, all, false, includeBidiControls);
-        QVector<CharacterResult> result(all.size());
+    static PkVector<KoSvgText::CharTransformation> resolvedTransformsForTree(KisForest<KoSvgTextContentElement> &tree, bool shapesInside = false, bool includeBidiControls = false) {
+        PkString all;
+        PkVector<bool> collapsed = collapsedWhiteSpacesForText(tree, all, false, includeBidiControls);
+        PkVector<CharacterResult> result(all.size());
         int globalIndex = 0;
         KoSvgTextProperties props = tree.childBegin()->properties;
         props.inheritFrom(KoSvgTextProperties::defaultProperties(), true);
@@ -1124,7 +1124,7 @@ public:
         bool isHorizontal = mode == KoSvgText::HorizontalTB;
         bool isWrapped = (props.hasProperty(KoSvgTextProperties::InlineSizeId)
                           || shapesInside);
-        QVector<KoSvgText::CharTransformation> resolvedTransforms(all.size());
+        PkVector<KoSvgText::CharTransformation> resolvedTransforms(all.size());
         resolveTransforms(tree.childBegin(), all, result, globalIndex,
                           isHorizontal, isWrapped, false, resolvedTransforms,
                           collapsed, KoSvgTextProperties::defaultProperties(),
@@ -1140,7 +1140,7 @@ public:
      * @param shapesInside -- whether we're wrapping in shape.
      */
     static void insertNewLinesAtAnchors(KisForest<KoSvgTextContentElement> &tree, bool shapesInside = false) {
-        QVector<KoSvgText::CharTransformation> resolvedTransforms = resolvedTransformsForTree(tree, shapesInside);
+        PkVector<KoSvgText::CharTransformation> resolvedTransforms = resolvedTransformsForTree(tree, shapesInside);
 
         auto end = std::make_reverse_iterator(tree.childBegin());
         auto begin = std::make_reverse_iterator(tree.childEnd());
@@ -1152,7 +1152,7 @@ public:
     }
 
     static void insertNewLinesAtAnchorsImpl(std::reverse_iterator<KisForest<KoSvgTextContentElement>::child_iterator> current,
-                                            QVector<KoSvgText::CharTransformation> &resolvedTransforms,
+                                            PkVector<KoSvgText::CharTransformation> &resolvedTransforms,
                                             bool &inTextPath) {
 
         inTextPath = (!current->textPathId.isEmpty());
@@ -1188,7 +1188,7 @@ public:
                     inTextPath = false;
                 }
                 // When there's no new chunk, we're not at the start of the text and there isn't already a line feed, insert a line feed.
-                if (startsNewChunk && !resolvedTransforms.isEmpty() && current->text.at(j) != QChar::LineFeed) {
+                if (startsNewChunk && !resolvedTransforms.isEmpty() && current->text.at(j) != char16_t::LineFeed) {
                     current->text.insert(j, "\n");
                 }
             }
@@ -1196,7 +1196,7 @@ public:
         current->localTransformations.clear();
     }
 
-    void setTransformsFromLayout(KisForest<KoSvgTextContentElement> &tree, const QVector<CharacterResult> layout) {
+    void setTransformsFromLayout(KisForest<KoSvgTextContentElement> &tree, const PkVector<CharacterResult> layout) {
         for (int i = 0; i< layout.size(); i++) {
             //split all anchored chunks, so we can set transforms on them.
             if (layout.at(i).anchored_chunk) {
@@ -1215,7 +1215,7 @@ public:
     }
 
     void setTransformsFromLayoutImpl(KisForest<KoSvgTextContentElement>::child_iterator current,
-                                     const KoSvgTextProperties parentProps, const QVector<CharacterResult> layout,
+                                     const KoSvgTextProperties parentProps, const PkVector<CharacterResult> layout,
                                      int &globalIndex, bool isHorizontal) {
         KoSvgTextProperties props = current->properties;
         props.inheritFrom(parentProps);
@@ -1227,7 +1227,7 @@ public:
         if (current->text.isEmpty()) {
             current->localTransformations.clear();
         } else {
-            QVector<KoSvgText::CharTransformation> transforms;
+            PkVector<KoSvgText::CharTransformation> transforms;
             const int length = current->numChars(true, props);
 
             for (int i = globalIndex; i< globalIndex+length; i++) {
@@ -1242,12 +1242,12 @@ public:
                 if (result.anchored_chunk) {
                     int endIndex = 0;
                     qreal shift = anchoredChunkShift(layout, isHorizontal, i, endIndex);
-                    QPointF offset = isHorizontal? QPointF(shift, 0): QPointF(0, shift);
+                    PkPointF offset = isHorizontal? PkPointF(shift, 0): PkPointF(0, shift);
                     transform.xPos = result.finalPosition.x() - offset.x();
                     transform.yPos = result.finalPosition.y() - offset.y();
                 } else if (i > 0) {
                     CharacterResult resultPrev = layout.value(i-1);
-                    QPointF offset = (result.finalPosition - result.cssPosition) - (resultPrev.finalPosition - resultPrev.cssPosition);
+                    PkPointF offset = (result.finalPosition - result.cssPosition) - (resultPrev.finalPosition - resultPrev.cssPosition);
 
                     transform.dxPos = offset.x();
                     transform.dyPos = offset.y();
@@ -1280,7 +1280,7 @@ public:
                 // check if siblings are similar.
                 auto siblingPrev = current;
                 KoSvgText::UnicodeBidi bidi = KoSvgText::UnicodeBidi(current->properties.property(KoSvgTextProperties::UnicodeBidiId,
-                                                                                             QVariant(KoSvgText::BidiNormal)).toInt());
+                                                                                             PkVariant(KoSvgText::BidiNormal)).toInt());
                 siblingPrev--;
                 while (!isEnd(siblingPrev) && siblingPrev->text.isEmpty()) {
                     // By checking whether the text is empty, we can skip previous
@@ -1297,7 +1297,7 @@ public:
                         && childCount(siblingPrev) == 0) {
                     // TODO: handle localtransforms better; annoyingly, this requires whitespace handling
                     siblingPrev->text += current->text;
-                    current->text = QString();
+                    current->text = PkString();
                     return true;
                 }
             }
@@ -1319,7 +1319,7 @@ public:
                 tree.erase(child);
             }
         } else {
-            QVector<KisForest<KoSvgTextContentElement>::child_iterator> deleteList;
+            PkVector<KisForest<KoSvgTextContentElement>::child_iterator> deleteList;
             for (auto child = childBegin(current); child != childEnd(current); child++) {
                 if (cleanUpImpl(tree, child)) {
                     deleteList.append(child);
@@ -1352,9 +1352,9 @@ public:
         }
     }
 
-    static KisForest<KoSvgTextContentElement>::child_iterator iteratorForTreeIndex(const QVector<int> treeIndex, KisForest<KoSvgTextContentElement>::child_iterator parent) {
+    static KisForest<KoSvgTextContentElement>::child_iterator iteratorForTreeIndex(const PkVector<int> treeIndex, KisForest<KoSvgTextContentElement>::child_iterator parent) {
         if (treeIndex.isEmpty()) return parent;
-        QVector<int> idx = treeIndex;
+        PkVector<int> idx = treeIndex;
         int count = idx.takeFirst();
         for (auto child = KisForestDetail::childBegin(parent); child != KisForestDetail::childEnd(parent); child++) {
             if (count == 0) {
@@ -1390,19 +1390,19 @@ public:
      * @brief removeTextPathId
      * Remove the text path id with the given name from the toplevel elements.
      */
-    static void removeTextPathId(KisForest<KoSvgTextContentElement>::child_iterator parent, const QString &name) {
+    static void removeTextPathId(KisForest<KoSvgTextContentElement>::child_iterator parent, const PkString &name) {
         for (auto it = childBegin(parent); it != childEnd(parent); it++) {
             if (it->textPathId == name) {
-                it->textPathId = QString();
+                it->textPathId = PkString();
                 break;
             }
         }
     }
 
-    static void makeTextPathNameUnique(QList<KoShape*> textPaths, KoShape *textPath) {
+    static void makeTextPathNameUnique(PkList<KoShape*> textPaths, KoShape *textPath) {
         bool textPathNameUnique = false;
         int textPathNumber = textPaths.size();
-        QString newTextPathName = textPath->name();
+        PkString newTextPathName = textPath->name();
         while(!textPathNameUnique) {
             textPathNameUnique = true;
             Q_FOREACH(KoShape *shape, textPaths) {
@@ -1417,7 +1417,7 @@ public:
             } else {
                 textPathNameUnique = false;
             }
-            newTextPathName = QString("textPath"+QString::number(textPathNumber));
+            newTextPathName = PkString("textPath"+PkString::number(textPathNumber));
         }
     }
 
@@ -1430,9 +1430,9 @@ public:
      * @param includeStrokeInset -- whether to include stroke insets.
      * @return a bounding rect.
      */
-    static QRectF boundingBoxFromTree(KisForest<KoSvgTextContentElement> tree, const KoSvgTextShape *rootShape, bool includeStrokeInset) {
-        QRectF result;
-        QList<KoShapeStrokeModelSP> parentStrokes;
+    static PkRectF boundingBoxFromTree(KisForest<KoSvgTextContentElement> tree, const KoSvgTextShape *rootShape, bool includeStrokeInset) {
+        PkRectF result;
+        PkList<KoShapeStrokeModelSP> parentStrokes;
         for (auto it = tree.compositionBegin(); it != tree.compositionEnd(); it++) {
             if (it.state() == KisForestDetail::Enter) {
                 if (it->properties.hasProperty(KoSvgTextProperties::StrokeId)) {
@@ -1440,8 +1440,8 @@ public:
                 }
             } else {
                 KoShapeStrokeModelSP stroke = parentStrokes.size() > 0? parentStrokes.last(): nullptr;
-                QRectF bb = it->associatedOutline.boundingRect();
-                QMap<KoSvgText::TextDecoration, QPainterPath> decorations = it->textDecorations;
+                PkRectF bb = it->associatedOutline.boundingRect();
+                PkMap<KoSvgText::TextDecoration, PkPainterPath> decorations = it->textDecorations;
                 for (int i = 0; i < decorations.values().size(); ++i) {
                     bb |= decorations.values().at(i).boundingRect();
                 }

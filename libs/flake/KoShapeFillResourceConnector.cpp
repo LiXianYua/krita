@@ -21,7 +21,7 @@
 #include <KoCanvasBase.h>
 
 // S-08 过渡期：libs/pigment 的 KoColor 已剥离掉 Q_DECLARE_METATYPE，而本 TU 用
-// QVariant::value<KoColor>()（资源系统以 QVariant 存 KoColor），在此补声明。
+// PkVariant::value<KoColor>()（资源系统以 PkVariant 存 KoColor），在此补声明。
 Q_DECLARE_METATYPE(KoColor)
 
 
@@ -66,7 +66,7 @@ void KoShapeFillResourceConnector::disconnect()
     connectToCanvas(0);
 }
 
-void KoShapeFillResourceConnector::slotCanvasResourceChanged(int key, const QVariant &value)
+void KoShapeFillResourceConnector::slotCanvasResourceChanged(int key, const PkVariant &value)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_d->canvas);
 
@@ -80,7 +80,7 @@ void KoShapeFillResourceConnector::slotCanvasResourceChanged(int key, const QVar
 
 void KoShapeFillResourceConnector::Private::applyShapeColoring(KoFlake::FillVariant fillVariant, const KoColor &color)
 {
-    QList<KoShape *> selectedEditableShapes = canvas->selectedShapesProxy()->selection()->selectedEditableShapes();
+    PkList<KoShape *> selectedEditableShapes = canvas->selectedShapesProxy()->selection()->selectedEditableShapes();
 
     if (selectedEditableShapes.isEmpty()) {
         return;

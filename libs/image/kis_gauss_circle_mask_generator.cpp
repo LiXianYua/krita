@@ -91,7 +91,7 @@ quint8 KisGaussCircleMaskGenerator::valueAt(qreal x, qreal y) const
 {
     if (isEmpty()) return 255;
     qreal xr = x;
-    qreal yr = qAbs(y);
+    qreal yr = pkAbs(y);
     fixRotation(xr, yr);
 
     qreal dist = sqrt(norme(xr, yr * d->ycoef));

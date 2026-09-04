@@ -8,7 +8,7 @@
 #include <PkFlakeBridge.h>
 #include "KoMarkerCollection.h"
 
-#include <QFile>
+#include <PkFileStream.h>
 
 #include <klocalizedstring.h>
 #include "KoMarker.h"
@@ -32,7 +32,7 @@ public:
     {
     }
 
-    QList<QExplicitlySharedDataPointer<KoMarker> > markers;
+    PkList<QExplicitlySharedDataPointer<KoMarker> > markers;
 };
 
 KoMarkerCollection::KoMarkerCollection(QObject *parent)
@@ -50,18 +50,18 @@ KoMarkerCollection::~KoMarkerCollection()
     delete d;
 }
 
-void KoMarkerCollection::loadMarkersFromFile(const QString &svgFile)
+void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
 {
-    QFile file(svgFile);
+    PkFileStream file(svgFile);
     if (!file.exists()) return;
 
-    if (!file.open(QIODevice::ReadOnly)) return;
+    if (!file.open(PkStream::ReadOnly)) return;
 
-    QString errorMsg;
+    PkString errorMsg;
     int errorLine = 0;
     int errorColumn;
 
-    QDomDocument doc = SvgParser::createDocumentFromSvg(&file, &errorMsg, &errorLine, &errorColumn);
+    PkXmlDocument doc = SvgParser::createDocumentFromSvg(&file, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
         errKrita << "Parsing error in " << svgFile << "! Aborting!" << Qt::endl
         << " In line: " << errorLine << ", column: " << errorColumn << Qt::endl
@@ -73,19 +73,19 @@ void KoMarkerCollection::loadMarkersFromFile(const QString &svgFile)
 
     KoDocumentResourceManager manager;
     SvgParser parser(&manager);
-    parser.setResolution(QRectF(0,0,100,100), 72); // initialize with default values
+    parser.setResolution(PkRectF(0,0,100,100), 72); // initialize with default values
     parser.setXmlBaseDir(QFileInfo(svgFile).absolutePath());
 
     parser.setFileFetcher(
-        [](const QString &fileName) {
-            QFile file(fileName);
-            if (!file.open(QIODevice::ReadOnly)) return QByteArray();
+        [](const PkString &fileName) {
+            PkFileStream file(fileName);
+            if (!file.open(PkStream::ReadOnly)) return PkByteArray();
 
             return file.readAll();
         });
 
-    QSizeF fragmentSize;
-    QList<KoShape*> shapes = parser.parseSvg(doc.documentElement(), &fragmentSize);
+    PkSizeF fragmentSize;
+    PkList<KoShape*> shapes = parser.parseSvg(doc.documentElement(), &fragmentSize);
     qDeleteAll(shapes);
 
     Q_FOREACH (const QExplicitlySharedDataPointer<KoMarker> &marker, parser.knownMarkers()) {
@@ -95,13 +95,13 @@ void KoMarkerCollection::loadMarkersFromFile(const QString &svgFile)
 
 void KoMarkerCollection::loadDefaultMarkers()
 {
-    QString filePath = toQString(KoResourcePaths::findAsset("markers", "markers.svg"));
+    PkString filePath = toQString(KoResourcePaths::findAsset("markers", "markers.svg"));
     loadMarkersFromFile(filePath);
 }
 
-QList<KoMarker*> KoMarkerCollection::markers() const
+PkList<KoMarker*> KoMarkerCollection::markers() const
 {
-    QList<KoMarker*> markerList;
+    PkList<KoMarker*> markerList;
     foreach (const QExplicitlySharedDataPointer<KoMarker>& m, d->markers){
         markerList.append(m.data());
     }

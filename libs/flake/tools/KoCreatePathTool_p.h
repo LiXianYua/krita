@@ -9,7 +9,7 @@
 #ifndef KOCREATEPATHTOOL_P_H
 #define KOCREATEPATHTOOL_P_H
 
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 #include "KoCreatePathTool.h"
 #include "KoPathPoint.h"
@@ -89,7 +89,7 @@ struct PathConnectionPoint {
     KoPathPoint * point;
 };
 
-inline qreal squareDistance(const QPointF &p1, const QPointF &p2)
+inline qreal squareDistance(const PkPointF &p1, const PkPointF &p2)
 {
     qreal dx = p1.x() - p2.x();
     qreal dy = p1.y() - p2.y();
@@ -103,7 +103,7 @@ public:
         : KoSnapStrategy(KoSnapGuide::CustomSnapping), m_angleStep(angleStep), m_active(active) {
     }
 
-    void setStartPoint(const QPointF &startPoint) {
+    void setStartPoint(const PkPointF &startPoint) {
         m_startPoint = startPoint;
     }
 
@@ -111,13 +111,13 @@ public:
         m_angleStep = qAbs(angleStep);
     }
 
-    bool snap(const QPointF &mousePosition, KoSnapProxy * proxy, qreal maxSnapDistance) override {
+    bool snap(const PkPointF &mousePosition, KoSnapProxy * proxy, qreal maxSnapDistance) override {
         Q_UNUSED(proxy);
 
         if (!m_active)
             return false;
 
-        QLineF line(m_startPoint, mousePosition);
+        PkLineF line(m_startPoint, mousePosition);
         qreal currentAngle = line.angle();
         int prevStep = qAbs(currentAngle / m_angleStep);
         int nextStep = prevStep + 1;
@@ -139,10 +139,10 @@ public:
         return true;
     }
 
-    QPainterPath decoration(const KoViewConverter &converter) const override {
+    PkPainterPath decoration(const KoViewConverter &converter) const override {
         Q_UNUSED(converter);
 
-        QPainterPath decoration;
+        PkPainterPath decoration;
         decoration.moveTo(m_startPoint);
         decoration.lineTo(snappedPosition());
         return decoration;
@@ -157,7 +157,7 @@ public:
     }
 
 private:
-    QPointF m_startPoint;
+    PkPointF m_startPoint;
     qreal m_angleStep;
     bool m_active;
 };
@@ -200,7 +200,7 @@ public:
     bool prevPointWasDragged = false;
     bool autoSmoothCurves = false;
 
-    QPointF dragStartPoint;
+    PkPointF dragStartPoint;
 
     AngleSnapStrategy *angleSnapStrategy;
     int angleSnappingDelta;
@@ -213,34 +213,34 @@ public:
         if (!isFirstPoint && !pointIsDragged)
             return;
 
-        QRectF rect = activePoint->boundingRect(false);
+        PkRectF rect = activePoint->boundingRect(false);
 
         // make sure that we have the second control point inside our
         // update rect, as KoPathPoint::boundingRect will not include
         // the second control point of the last path point if the path
         // is not closed
-        const QPointF &point = activePoint->point();
-        const QPointF &controlPoint = activePoint->controlPoint2();
-        rect = rect.united(QRectF(point, controlPoint).normalized());
+        const PkPointF &point = activePoint->point();
+        const PkPointF &controlPoint = activePoint->controlPoint2();
+        rect = rect.united(PkRectF(point, controlPoint).normalized());
 
         // when painting the first point we want the
         // first control point to be painted as well
         if (isFirstPoint) {
-            const QPointF &controlPoint = activePoint->controlPoint1();
-            rect = rect.united(QRectF(point, controlPoint).normalized());
+            const PkPointF &controlPoint = activePoint->controlPoint1();
+            rect = rect.united(PkRectF(point, controlPoint).normalized());
         }
 
-        QPointF border = q->canvas()->viewConverter()
-                         ->viewToDocument(QPointF(handleRadius, handleRadius));
+        PkPointF border = q->canvas()->viewConverter()
+                         ->viewToDocument(PkPointF(handleRadius, handleRadius));
 
         rect.adjust(-border.x(), -border.y(), border.x(), border.y());
         q->canvas()->updateCanvas(rect);
     }
 
     /// returns the nearest existing path point
-    KoPathPoint* endPointAtPosition(const QPointF &position) const {
-        QRectF roi = q->handleGrabRect(position);
-        QList<KoShape *> shapes = q->canvas()->shapeManager()->shapesAt(roi);
+    KoPathPoint* endPointAtPosition(const PkPointF &position) const {
+        PkRectF roi = q->handleGrabRect(position);
+        PkList<KoShape *> shapes = q->canvas()->shapeManager()->shapesAt(roi);
 
         KoPathPoint * nearestPoint = 0;
         qreal minDistance = HUGE_VAL;

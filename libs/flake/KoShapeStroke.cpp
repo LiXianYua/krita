@@ -15,7 +15,7 @@
 #include <math.h>
 
 // Qt
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <QPainter>
 
 // Calligra
@@ -39,25 +39,25 @@ public:
     Private(KoShapeStroke *_q) : q(_q) {}
     KoShapeStroke *q;
 
-    void paintBorder(const KoShape *shape, QPainter &painter, const QPen &pen) const;
-    void paintMarkers(const KoShape *shape, QPainter &painter, const QPen &pen) const;
-    QColor color;
-    QPen pen;
+    void paintBorder(const KoShape *shape, QPainter &painter, const PkPen &pen) const;
+    void paintMarkers(const KoShape *shape, QPainter &painter, const PkPen &pen) const;
+    PkColor color;
+    PkPen pen;
     QBrush brush;
 };
 
 namespace {
-QPair<qreal, qreal> anglesForSegment(KoPathSegment segment) {
+std::pair<qreal, qreal> anglesForSegment(KoPathSegment segment) {
     const qreal eps = 1e-6;
 
     if (segment.degree() < 3) {
         segment = segment.toCubic();
     }
 
-    QList<QPointF> points = segment.controlPoints();
+    PkList<PkPointF> points = segment.controlPoints();
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(points.size() == 4, qMakePair(0.0, 0.0));
-    QPointF vec1 = points[1] - points[0];
-    QPointF vec2 = points[3] - points[2];
+    PkPointF vec1 = points[1] - points[0];
+    PkPointF vec2 = points[3] - points[2];
 
     if (vec1.manhattanLength() < eps) {
         points[1] = segment.pointAt(eps);
@@ -75,12 +75,12 @@ QPair<qreal, qreal> anglesForSegment(KoPathSegment segment) {
 }
 }
 
-void KoShapeStroke::Private::paintBorder(const KoShape *shape, QPainter &painter, const QPen &pen) const
+void KoShapeStroke::Private::paintBorder(const KoShape *shape, QPainter &painter, const PkPen &pen) const
 {
     if (!pen.isCosmetic() && pen.style() != Qt::NoPen) {
         const KoPathShape *pathShape = dynamic_cast<const KoPathShape *>(shape);
         if (pathShape) {
-            QPainterPath path = pathShape->pathStroke(pen);
+            PkPainterPath path = pathShape->pathStroke(pen);
 
             painter.fillPath(path, pen.brush());
 
@@ -90,7 +90,7 @@ void KoShapeStroke::Private::paintBorder(const KoShape *shape, QPainter &painter
         painter.strokePath(shape->outline(), pen);
     }
 }
-void KoShapeStroke::Private::paintMarkers(const KoShape *shape, QPainter &painter, const QPen &pen) const
+void KoShapeStroke::Private::paintMarkers(const KoShape *shape, QPainter &painter, const PkPen &pen) const
 {
     if (!pen.isCosmetic() && pen.style() != Qt::NoPen) {
         const KoPathShape *pathShape = dynamic_cast<const KoPathShape *>(shape);
@@ -127,7 +127,7 @@ void KoShapeStroke::Private::paintMarkers(const KoShape *shape, QPainter &painte
 
                 for (int j = 0; j < numSegments; j++) {
                     KoPathSegment segment = pathShape->segmentByIndex(KoPathPointIndex(i, j));
-                    QPair<qreal, qreal> angles = anglesForSegment(segment);
+                    std::pair<qreal, qreal> angles = anglesForSegment(segment);
 
                     const qreal angle1 = angles.first;
                     const qreal angle2 = angles.second;
@@ -166,7 +166,7 @@ void KoShapeStroke::Private::paintMarkers(const KoShape *shape, QPainter &painte
 KoShapeStroke::KoShapeStroke()
         : d(new Private(this))
 {
-    d->color = QColor(Qt::black);
+    d->color = PkColor(Pk::black);
     // we are not rendering stroke with zero width anymore
     // so lets use a default width of 1.0
     d->pen.setWidthF(1.0);
@@ -180,7 +180,7 @@ KoShapeStroke::KoShapeStroke(const KoShapeStroke &other)
     d->brush = other.d->brush;
 }
 
-KoShapeStroke::KoShapeStroke(qreal lineWidth, const QColor &color)
+KoShapeStroke::KoShapeStroke(qreal lineWidth, const PkColor &color)
         : d(new Private(this))
 {
     d->pen.setWidthF(qMax(qreal(0.0), lineWidth));
@@ -237,7 +237,7 @@ qreal KoShapeStroke::strokeMaxMarkersInset(const KoShape *shape) const
     if (pathShape && pathShape->hasMarkers()) {
         const qreal lineWidth = d->pen.widthF();
 
-        QVector<const KoMarker*> markers;
+        PkVector<const KoMarker*> markers;
         markers << pathShape->marker(KoFlake::StartMarker);
         markers << pathShape->marker(KoFlake::MidMarker);
         markers << pathShape->marker(KoFlake::EndMarker);
@@ -257,9 +257,9 @@ bool KoShapeStroke::hasTransparency() const
     return d->color.alpha() > 0;
 }
 
-QPen KoShapeStroke::resultLinePen() const
+PkPen KoShapeStroke::resultLinePen() const
 {
-    QPen pen = d->pen;
+    PkPen pen = d->pen;
 
     if (d->brush.gradient()) {
         pen.setBrush(d->brush);
@@ -302,8 +302,8 @@ bool KoShapeStroke::compareStyleTo(const KoShapeStrokeModel *other)
     const KoShapeStroke *stroke = dynamic_cast<const KoShapeStroke*>(other);
     if (!stroke) return false;
 
-    QPen pen1 = d->pen;
-    QPen pen2 = stroke->d->pen;
+    PkPen pen1 = d->pen;
+    PkPen pen2 = stroke->d->pen;
 
     // just a random color top avoid comparison of that property
     pen1.setColor(Qt::magenta);
@@ -358,17 +358,17 @@ qreal KoShapeStroke::miterLimit() const
     return d->pen.miterLimit();
 }
 
-QColor KoShapeStroke::color() const
+PkColor KoShapeStroke::color() const
 {
     return d->color;
 }
 
-void KoShapeStroke::setColor(const QColor &color)
+void KoShapeStroke::setColor(const PkColor &color)
 {
     d->color = color;
 }
 
-void KoShapeStroke::setLineStyle(Qt::PenStyle style, const QVector<qreal> &dashes)
+void KoShapeStroke::setLineStyle(Qt::PenStyle style, const PkVector<qreal> &dashes)
 {
     if (style < Qt::CustomDashLine) {
         d->pen.setStyle(style);
@@ -382,7 +382,7 @@ Qt::PenStyle KoShapeStroke::lineStyle() const
     return d->pen.style();
 }
 
-QVector<qreal> KoShapeStroke::lineDashes() const
+PkVector<qreal> KoShapeStroke::lineDashes() const
 {
     return d->pen.dashPattern();
 }

@@ -185,10 +185,10 @@ void KisIteratorBenchmark::randomAccessor(const KoColorSpace * colorSpace)
     for (int i = 0; i < 3; i++) {
         KisRandomAccessorSP ac = dev.createRandomAccessorNG();
         for (int y = 0; y < TEST_HEIGHT; ) {
-            int numContiguousRows = qMin(ac->numContiguousRows(y), TEST_HEIGHT - y);
+            int numContiguousRows = pkMin(ac->numContiguousRows(y), TEST_HEIGHT - y);
 
             for (int x = 0; x < TEST_WIDTH; ) {
-                int numContiguousColumns = qMin(ac->numContiguousColumns(x), TEST_WIDTH - x);
+                int numContiguousColumns = pkMin(ac->numContiguousColumns(x), TEST_WIDTH - x);
 
                 ac->moveTo(x, y);
                 int rowStride = ac->rowStride(x, y);

@@ -22,9 +22,9 @@ namespace {
 class TestShapeController : public KoShapeControllerBase
 {
 public:
-    QRectF documentRectInPixels() const override
+    PkRectF documentRectInPixels() const override
     {
-        return QRectF(0, 0, 64, 64);
+        return PkRectF(0, 0, 64, 64);
     }
 
     qreal pixelsPerInch() const override
@@ -56,9 +56,9 @@ void KisShapeModelTest::ownsShapeLayerStateWithoutUi()
     QVERIFY(layer.antialiased());
 
     auto *path = new KoPathShape();
-    path->moveTo(QPointF(4, 4));
-    path->lineTo(QPointF(20, 4));
-    path->lineTo(QPointF(20, 20));
+    path->moveTo(PkPointF(4, 4));
+    path->lineTo(PkPointF(20, 4));
+    path->lineTo(PkPointF(20, 20));
     path->close();
     layer.addShape(path);
 
@@ -97,28 +97,28 @@ void KisShapeModelTest::loadsFileThroughInjectedHeadlessLoader()
     KisPaintDeviceSP expectedDevice = new KisPaintDevice(colorSpace);
 
     int loadCount = 0;
-    QString loadedPath;
+    PkString loadedPath;
     KisSafeDocumentLoader loader(
         file.fileName(),
-        [&](const QString &path) {
+        [&](const PkString &path) {
             ++loadCount;
             loadedPath = path;
             return KisSafeDocumentLoader::LoadResult {
                 expectedDevice,
                 2.0,
                 3.0,
-                QSize(17, 19),
+                PkSize(17, 19),
             };
         });
 
     KisPaintDeviceSP loadedDevice;
     qreal loadedXRes = 0.0;
     qreal loadedYRes = 0.0;
-    QSize loadedSize;
+    PkSize loadedSize;
     connect(&loader,
             &KisSafeDocumentLoader::loadingFinished,
             this,
-            [&](KisPaintDeviceSP device, qreal xRes, qreal yRes, const QSize &size) {
+            [&](KisPaintDeviceSP device, qreal xRes, qreal yRes, const PkSize &size) {
                 loadedDevice = device;
                 loadedXRes = xRes;
                 loadedYRes = yRes;
@@ -133,7 +133,7 @@ void KisShapeModelTest::loadsFileThroughInjectedHeadlessLoader()
     QCOMPARE(loadedDevice, expectedDevice);
     QCOMPARE(loadedXRes, 2.0);
     QCOMPARE(loadedYRes, 3.0);
-    QCOMPARE(loadedSize, QSize(17, 19));
+    QCOMPARE(loadedSize, PkSize(17, 19));
 }
 
 QTEST_MAIN(KisShapeModelTest)

@@ -203,7 +203,7 @@ PkConnection PkObject::connect(
     PkObject* r = const_cast<PkObject*>(static_cast<const PkObject*>(receiver));
 
     // Unique：同 (信号 key, receiver, 槽 key) 三元组的活连接已存在 → 去重，返回无效句柄，
-    // 不建立新连接（Qt::UniqueConnection 语义：same-quadruple 第二次 connect 返回空）。
+    // 不建立新连接（Pk::UniqueConnection 语义：same-quadruple 第二次 connect 返回空）。
     if (type == PkConnectionType::Unique) {
         for (const auto& e : s->m_outgoing) {
             if (e.state && e.state->alive && e.key == key &&

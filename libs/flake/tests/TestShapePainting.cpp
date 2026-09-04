@@ -19,7 +19,7 @@ void TestShapePainting::testPaintShape()
 {
     MockShape *shape1 = new MockShape();
     MockShape *shape2 = new MockShape();
-    QScopedPointer<MockContainer> container(new MockContainer());
+    PkScopedPointer<MockContainer> container(new MockContainer());
 
     container->addShape(shape1);
     container->addShape(shape2);
@@ -35,7 +35,7 @@ void TestShapePainting::testPaintShape()
     manager.addShape(container.data());
     QCOMPARE(manager.shapes().count(), 3);
 
-    QImage image(100, 100,  QImage::Format_Mono);
+    PkImage image(100, 100,  PkImage::Format_Mono);
     QPainter painter(&image);
     manager.paint(painter);
 
@@ -75,7 +75,7 @@ void TestShapePainting::testPaintShape()
 
 void TestShapePainting::testPaintHiddenShape()
 {
-    QScopedPointer<MockContainer> top(new MockContainer());
+    PkScopedPointer<MockContainer> top(new MockContainer());
 
     MockShape *shape = new MockShape();
     MockContainer *fourth = new MockContainer();
@@ -95,7 +95,7 @@ void TestShapePainting::testPaintHiddenShape()
     manager.addShape(top.data());
     QCOMPARE(manager.shapes().count(), 5);
 
-    QImage image(100, 100,  QImage::Format_Mono);
+    PkImage image(100, 100,  PkImage::Format_Mono);
     QPainter painter(&image);
     manager.paint(painter);
 
@@ -118,18 +118,18 @@ void TestShapePainting::testPaintOrder()
 
     class OrderedMockShape : public MockShape {
     public:
-        OrderedMockShape(QList<const MockShape*> *list) : order(list) {}
+        OrderedMockShape(PkList<const MockShape*> *list) : order(list) {}
         void paint(QPainter &painter) const override {
             order->append(this);
             MockShape::paint(painter);
         }
-        mutable QList<const MockShape*> *order;
+        mutable PkList<const MockShape*> *order;
     };
 
-    QList<const MockShape*> order;
+    PkList<const MockShape*> order;
 
     {
-        QScopedPointer<MockContainer> top(new MockContainer());
+        PkScopedPointer<MockContainer> top(new MockContainer());
         top->setZIndex(2);
         OrderedMockShape *shape1 = new OrderedMockShape(&order);
         shape1->setZIndex(5);
@@ -138,7 +138,7 @@ void TestShapePainting::testPaintOrder()
         top->addShape(shape1);
         top->addShape(shape2);
 
-        QScopedPointer<MockContainer> bottom(new MockContainer());
+        PkScopedPointer<MockContainer> bottom(new MockContainer());
         bottom->setZIndex(1);
         OrderedMockShape *shape3 = new OrderedMockShape(&order);
         shape3->setZIndex(-1);
@@ -153,7 +153,7 @@ void TestShapePainting::testPaintOrder()
         manager.addShape(bottom.data());
         QCOMPARE(manager.shapes().count(), 6);
 
-        QImage image(100, 100,  QImage::Format_Mono);
+        PkImage image(100, 100,  PkImage::Format_Mono);
         QPainter painter(&image);
         manager.paint(painter);
         QCOMPARE(top->paintedCount, 1);
@@ -191,7 +191,7 @@ void TestShapePainting::testPaintOrder()
     order.clear();
 
     {
-        QScopedPointer<MockContainer> root(new MockContainer());
+        PkScopedPointer<MockContainer> root(new MockContainer());
         root->setZIndex(0);
 
         MockContainer *branch1 = new MockContainer();
@@ -215,7 +215,7 @@ void TestShapePainting::testPaintOrder()
         root->addShape(branch1);
         root->addShape(branch2);
 
-        QList<KoShape*> sortedShapes;
+        PkList<KoShape*> sortedShapes;
         sortedShapes.append(root.data());
         sortedShapes.append(branch1);
         sortedShapes.append(branch2);
@@ -245,7 +245,7 @@ void TestShapePainting::testGroupUngroup()
 
     KoShapeManager *manager = canvas.shapeManager();
 
-    QScopedPointer<MockContainer> shapesFakeLayer(new MockContainer());
+    PkScopedPointer<MockContainer> shapesFakeLayer(new MockContainer());
     shapesFakeLayer->setAssociatedRootShapeManager(manager);
 
     MockShape *shape1(new MockShape());
@@ -255,9 +255,9 @@ void TestShapePainting::testGroupUngroup()
     shape1->setParent(shapesFakeLayer.data());
     shape2->setParent(shapesFakeLayer.data());
 
-    QList<KoShape*> groupedShapes = {shape1, shape2};
+    PkList<KoShape*> groupedShapes = {shape1, shape2};
 
-    QImage image(100, 100,  QImage::Format_Mono);
+    PkImage image(100, 100,  PkImage::Format_Mono);
     QPainter painter(&image);
     painter.setClipRect(image.rect());
 

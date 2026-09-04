@@ -70,7 +70,7 @@ quint8 RgbU8ColorSpace::intensity8(const quint8 *src) const
 {
     const KoBgrU8Traits::Pixel *p = reinterpret_cast<const KoBgrU8Traits::Pixel *>(src);
     // Integer version of:
-    //      static_cast<quint8>(qRound(p->red * 0.30 + p->green * 0.59 + p->blue * 0.11))
+    //      static_cast<quint8>(pkRound(p->red * 0.30 + p->green * 0.59 + p->blue * 0.11))
     // The "+ 50" is used for rounding
     return static_cast<quint8>((p->red * 30 + p->green * 59 + p->blue * 11 + 50) / 100);
 }

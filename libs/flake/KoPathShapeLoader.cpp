@@ -20,7 +20,7 @@ public:
         path->clear();
     }
 
-    void parseSvg(const QString &svgInputData, bool process = false);
+    void parseSvg(const PkString &svgInputData, bool process = false);
 
     void svgMoveTo(qreal x1, qreal y1, bool abs = true);
     void svgLineTo(qreal x1, qreal y1, bool abs = true);
@@ -38,17 +38,17 @@ public:
     void calculateArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal r1, qreal r2, bool largeArcFlag, bool sweepFlag);
 
     KoPathShape * path; ///< the path shape to work on
-    QPointF lastPoint;
+    PkPointF lastPoint;
 };
 
-void KoPathShapeLoaderPrivate::parseSvg(const QString &s, bool process)
+void KoPathShapeLoaderPrivate::parseSvg(const PkString &s, bool process)
 {
     if (!s.isEmpty()) {
-        QString d = s;
+        PkString d = s;
         d.replace(',', ' ');
         d = d.simplified();
 
-        const QByteArray buffer = d.toLatin1();
+        const PkByteArray buffer = d.toLatin1();
         const char *ptr = buffer.constData();
         const char *end = buffer.constData() + buffer.length() + 1;
 
@@ -483,7 +483,7 @@ void KoPathShapeLoaderPrivate::calculateArc(bool relative, qreal &curx, qreal &c
     const qreal cy = sin_th * cxPrime + cos_th * cyPrime + (cury + y2) * 0.5;
 
     // Step 4: Compute angle and delta
-    const QPointF v = {(x1Prime - cxPrime) / rx, (y1Prime - cyPrime) / ry};
+    const PkPointF v = {(x1Prime - cxPrime) / rx, (y1Prime - cyPrime) / ry};
     // eq. 5.5
     const qreal theta = KisAlgebra2D::angleBetweenVectors({1.0, 0.0}, toPkPointF(v));
     // eq. 5.6
@@ -512,22 +512,22 @@ void KoPathShapeLoaderPrivate::calculateArc(bool relative, qreal &curx, qreal &c
         auto ellipseArcToPoint = [sinAngle, cosAngle](qreal cx, qreal cy, qreal eta, qreal rx, qreal ry) {
             qreal x = cx + (rx * cosAngle * cos(eta)) - (ry * sinAngle * sin(eta));
             qreal y = cy + (rx * sinAngle * cos(eta)) + (ry * cosAngle * sin(eta));
-            return QPointF(x, y);
+            return PkPointF(x, y);
         };
         auto ellipseDerivativeArcToPoint = [sinAngle, cosAngle](qreal eta, qreal rx, qreal ry) {
             qreal x = -(rx * cosAngle * sin(eta)) - (ry * sinAngle * cos(eta));
             qreal y = -(rx * sinAngle * sin(eta)) + (ry * cosAngle * cos(eta));
-            return QPointF(x, y);
+            return PkPointF(x, y);
         };
 
         // bezier control points
-        const QPointF p1 = ellipseArcToPoint(cx, cy, eta1, rx, ry);
-        const QPointF p2 = ellipseArcToPoint(cx, cy, eta2, rx, ry);
+        const PkPointF p1 = ellipseArcToPoint(cx, cy, eta1, rx, ry);
+        const PkPointF p2 = ellipseArcToPoint(cx, cy, eta2, rx, ry);
 
         const qreal alpha = sin(eta2 - eta1) * (sqrt(4 + 3 * tan(etaHalf) * tan(etaHalf)) - 1) / 3;
 
-        const QPointF q1 = p1 + alpha * ellipseDerivativeArcToPoint(eta1, rx, ry);
-        const QPointF q2 = p2 - alpha * ellipseDerivativeArcToPoint(eta2, rx, ry);
+        const PkPointF q1 = p1 + alpha * ellipseDerivativeArcToPoint(eta1, rx, ry);
+        const PkPointF q2 = p2 - alpha * ellipseDerivativeArcToPoint(eta2, rx, ry);
 
         svgCurveToCubic(q1.x(), q1.y(), q2.x(), q2.y(), p2.x(), p2.y());
     }
@@ -546,18 +546,18 @@ void KoPathShapeLoaderPrivate::calculateArc(bool relative, qreal &curx, qreal &c
 void KoPathShapeLoaderPrivate::svgMoveTo(qreal x1, qreal y1, bool abs)
 {
     if (abs)
-        lastPoint = QPointF(x1, y1);
+        lastPoint = PkPointF(x1, y1);
     else
-        lastPoint += QPointF(x1, y1);
+        lastPoint += PkPointF(x1, y1);
     path->moveTo(lastPoint);
 }
 
 void KoPathShapeLoaderPrivate::svgLineTo(qreal x1, qreal y1, bool abs)
 {
     if (abs)
-        lastPoint = QPointF(x1, y1);
+        lastPoint = PkPointF(x1, y1);
     else
-        lastPoint += QPointF(x1, y1);
+        lastPoint += PkPointF(x1, y1);
 
     path->lineTo(lastPoint);
 }
@@ -584,15 +584,15 @@ void KoPathShapeLoaderPrivate::svgLineToVertical(qreal y, bool abs)
 
 void KoPathShapeLoaderPrivate::svgCurveToCubic(qreal x1, qreal y1, qreal x2, qreal y2, qreal x, qreal y, bool abs)
 {
-    QPointF p1, p2;
+    PkPointF p1, p2;
     if (abs) {
-        p1 = QPointF(x1, y1);
-        p2 = QPointF(x2, y2);
-        lastPoint = QPointF(x, y);
+        p1 = PkPointF(x1, y1);
+        p2 = PkPointF(x2, y2);
+        lastPoint = PkPointF(x, y);
     } else {
-        p1 = lastPoint + QPointF(x1, y1);
-        p2 = lastPoint + QPointF(x2, y2);
-        lastPoint += QPointF(x, y);
+        p1 = lastPoint + PkPointF(x1, y1);
+        p2 = lastPoint + PkPointF(x2, y2);
+        lastPoint += PkPointF(x, y);
     }
 
     path->curveTo(p1, p2, lastPoint);
@@ -654,7 +654,7 @@ KoPathShapeLoader::~KoPathShapeLoader()
     delete d;
 }
 
-void KoPathShapeLoader::parseSvg(const QString &s, bool process)
+void KoPathShapeLoader::parseSvg(const PkString &s, bool process)
 {
     d->parseSvg(s, process);
 }

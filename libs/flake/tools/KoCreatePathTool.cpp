@@ -39,11 +39,11 @@ KoCreatePathTool::~KoCreatePathTool()
 {
 }
 
-QRectF KoCreatePathTool::decorationsRect() const
+PkRectF KoCreatePathTool::decorationsRect() const
 {
     Q_D(const KoCreatePathTool);
 
-    QRectF dirtyRect;
+    PkRectF dirtyRect;
 
     if (pathStarted()) {
         dirtyRect |= kisGrowRect(d->shape->boundingRect(), handleDocRadius());
@@ -189,7 +189,7 @@ void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)
                 repaintDecorations();
             }
         } else {
-            QPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
+            PkPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
 
             // check whether we hit an start/end node of an existing path
             d->existingEndPoint = d->endPointAtPosition(point);
@@ -217,7 +217,7 @@ void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)
         stroke->setColor(toQColor(canvas()->resourceManager()->foregroundColor().toQColor()));
 
         pathShape->setStroke(stroke);
-        QPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
+        PkPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
 
         // check whether we hit an start/end node of an existing path
         d->existingStartPoint = d->endPointAtPosition(point);
@@ -289,14 +289,14 @@ void KoCreatePathTool::handleMouseMove(const KoPointerEvent *event, bool conside
 
     d->mouseOverFirstPoint = handleGrabRect(d->firstPoint->point()).contains(event->point);
 
-    QPointF snappedPosition = canvas()->snapGuide()->snap(event->point, event->modifiers());
+    PkPointF snappedPosition = canvas()->snapGuide()->snap(event->point, event->modifiers());
 
     if (considerDrag && (event->buttons() & Qt::LeftButton)) {
         if (d->pointIsDragged ||
             !handleGrabRect(d->dragStartPoint).contains(event->point)) {
 
             d->pointIsDragged = true;
-            QPointF offset = snappedPosition - d->activePoint->point();
+            PkPointF offset = snappedPosition - d->activePoint->point();
             d->activePoint->setControlPoint2(d->activePoint->point() + offset);
             // pressing <alt> stops controls points moving symmetrically
             if ((event->modifiers() & Qt::AltModifier) == 0) {
@@ -322,14 +322,14 @@ void KoCreatePathTool::handleMouseMove(const KoPointerEvent *event, bool conside
                     }
 
                     if (prevPrevPoint) {
-                        const QPointF control1 = prevPoint->point() + 0.3 * (prevPrevPoint->point() - prevPoint->point());
+                        const PkPointF control1 = prevPoint->point() + 0.3 * (prevPrevPoint->point() - prevPoint->point());
                         prevPoint->setControlPoint1(control1);
                     }
 
-                    const QPointF control2 = prevPoint->point() + 0.3 * (d->activePoint->point() - prevPoint->point());
+                    const PkPointF control2 = prevPoint->point() + 0.3 * (d->activePoint->point() - prevPoint->point());
                     prevPoint->setControlPoint2(control2);
 
-                    const QPointF activeControl = d->activePoint->point() + 0.3 * (prevPoint->point() - d->activePoint->point());
+                    const PkPointF activeControl = d->activePoint->point() + 0.3 * (prevPoint->point() - d->activePoint->point());
                     d->activePoint->setControlPoint1(activeControl);
 
                     KoPathPointTypeCommand::makeCubicPointSmooth(prevPoint);
@@ -354,13 +354,13 @@ void KoCreatePathTool::mouseReleaseEvent(KoPointerEvent *event)
 
     if (!d->finishAfterThisPoint) {
         d->activePoint = d->shape->lineTo(event->point);
-        canvas()->snapGuide()->setIgnoredPathPoints((QList<KoPathPoint*>() << d->activePoint));
+        canvas()->snapGuide()->setIgnoredPathPoints((PkList<KoPathPoint*>() << d->activePoint));
     }
 
     // apply symmetric point property if applicable
     if (lastActivePoint->activeControlPoint1() && lastActivePoint->activeControlPoint2()) {
-        QPointF diff1 = lastActivePoint->point() - lastActivePoint->controlPoint1();
-        QPointF diff2 = lastActivePoint->controlPoint2() - lastActivePoint->point();
+        PkPointF diff1 = lastActivePoint->point() - lastActivePoint->controlPoint1();
+        PkPointF diff2 = lastActivePoint->controlPoint2() - lastActivePoint->point();
         if (qFuzzyCompare(diff1.x(), diff2.x()) && qFuzzyCompare(diff1.y(), diff2.y()))
             lastActivePoint->setProperty(KoPathPoint::IsSymmetric);
     }
@@ -448,7 +448,7 @@ void KoCreatePathTool::removeLastPoint()
     }
 }
 
-void KoCreatePathTool::activate(const QSet<KoShape*> &shapes)
+void KoCreatePathTool::activate(const PkSet<KoShape*> &shapes)
 {
     KoToolBase::activate(shapes);
 
@@ -471,7 +471,7 @@ void KoCreatePathTool::deactivate()
     KoToolBase::deactivate();
 }
 
-void KoCreatePathTool::canvasResourceChanged(int key, const QVariant & res)
+void KoCreatePathTool::canvasResourceChanged(int key, const PkVariant & res)
 {
     Q_D(KoCreatePathTool);
 
@@ -551,11 +551,11 @@ void KoCreatePathTool::addPathShape(KoPathShape *pathShape)
     addPathShapeImpl(pathShape, false);
 }
 
-QList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
+PkList<PkPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
 {
     Q_D(KoCreatePathTool);
 
-    QList<QPointer<QWidget> > list;
+    PkList<PkPointer<QWidget> > list;
 
     QWidget *widget = new QWidget();
     widget->setObjectName("bezier-curve-tool-widget");

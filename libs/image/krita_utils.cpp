@@ -75,8 +75,8 @@ namespace KritaUtils
         for (qint32 y = rc.y(); y < rc.y() + rc.height(); y += patchSize.height()) {
             for (qint32 x = rc.x(); x < rc.x() + rc.width(); x += patchSize.width()) {
                 patches.append(PkRect(x, y,
-                                 qMin(rc.x() + rc.width() - x, patchSize.width()),
-                                 qMin(rc.y() + rc.height() - y, patchSize.height())));
+                                 pkMin(rc.x() + rc.width() - x, patchSize.width()),
+                                 pkMin(rc.y() + rc.height() - y, patchSize.height())));
             }
         }
 
@@ -142,10 +142,10 @@ namespace KritaUtils
         PkVector<PkRect> dirtyRects;
 
         for (int y = totalRect.y(); y < bottom;) {
-            int nextY = qMin((y + step) & ~(step-1), bottom);
+            int nextY = pkMin((y + step) & ~(step-1), bottom);
 
             for (int x = totalRect.x(); x < right;) {
-                int nextX = qMin((x + step) & ~(step-1), right);
+                int nextX = pkMin((x + step) & ~(step-1), right);
 
                 PkRect rect(x, y, nextX - x, nextY - y);
 
@@ -176,10 +176,10 @@ namespace KritaUtils
         const int bottom = totalRect.y() + totalRect.height();
 
         for (int y = totalRect.y(); y < bottom;) {
-            int nextY = qMin((y + step) & ~(step-1), bottom);
+            int nextY = pkMin((y + step) & ~(step-1), bottom);
 
             for (int x = totalRect.x(); x < right;) {
-                int nextX = qMin((x + step) & ~(step-1), right);
+                int nextX = pkMin((x + step) & ~(step-1), right);
 
                 PkRect rect(x, y, nextX - x, nextY - y);
 
@@ -205,8 +205,8 @@ namespace KritaUtils
 
     qreal KRITAIMAGE_EXPORT maxDimensionPortion(const PkRectF &bounds, qreal portion, qreal minValue)
     {
-        qreal maxDimension = qMax(bounds.width(), bounds.height());
-        return qMax(portion * maxDimension, minValue);
+        qreal maxDimension = pkMax(bounds.width(), bounds.height());
+        return pkMax(portion * maxDimension, minValue);
     }
 
     PkList<PkPainterPath> splitDisjointPaths(const PkPainterPath &path)
@@ -253,7 +253,7 @@ namespace KritaUtils
 
     qreal mergeOpacityF(qreal opacity, qreal parentOpacity)
     {
-        if (!qFuzzyCompare(parentOpacity, OPACITY_OPAQUE_F)) {
+        if (!pkQtFuzzyCompare(parentOpacity, OPACITY_OPAQUE_F)) {
             opacity *= parentOpacity;
         }
         return opacity;
@@ -355,8 +355,8 @@ namespace KritaUtils
 
         const qreal linearPortion = std::sqrt(samplePortion);
         const qreal ratio = qreal(rect.width()) / rect.height();
-        const int xStep = qMax(1, qRound(1.0 / linearPortion * ratio));
-        const int yStep = qMax(1, qRound(1.0 / linearPortion / ratio));
+        const int xStep = pkMax(1, pkRound(1.0 / linearPortion * ratio));
+        const int yStep = pkMax(1, pkRound(1.0 / linearPortion / ratio));
 
         int numTransparentPixels = 0;
         int numPixels = 0;

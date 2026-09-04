@@ -27,9 +27,9 @@ typedef double gdouble;
 
 #define G_PI M_PI
 #define MOD(x, y) ((x) % (y))
-#define CLAMP(x, l, h) qBound(l, x, h)
-#define MAX(x,y) qMax(x,y)
-#define MIN(x,y) qMin(x,y)
+#define CLAMP(x, l, h) pkBound(l, x, h)
+#define MAX(x,y) pkMax(x,y)
+#define MIN(x,y) pkMin(x,y)
 
 typedef struct
 {
@@ -122,7 +122,7 @@ void bumpmap_init_params (bumpmap_params_t *params, const bumpmap_vals_t &bmvals
 
   /* Calculate constant Z component of surface normal */
   /*              (depth may be 0 if non-interactive) */
-  nz           = (6 * 255) / qMax (bmvals.depth, 1);
+  nz           = (6 * 255) / pkMax(bmvals.depth, 1);
   params->nz2  = nz * nz;
   params->nzlz = nz * lz;
 

@@ -9,7 +9,7 @@
 #include <KoSvgText.h>
 #include <QDebug>
 #include <QLocale>
-#include <QString>
+#include <PkString.h>
 
 #include "kritaflake_export.h"
 /**
@@ -32,7 +32,7 @@ public:
      * qLocale's format.
      * @return the transformed string.
      */
-    static QString transformTextToUpperCase(const QString &text, const QString &langCode, QVector<QPair<int, int>> &positions);
+    static PkString transformTextToUpperCase(const PkString &text, const PkString &langCode, PkVector<std::pair<int, int>> &positions);
 
     /**
      * @brief transformTextToUpperCase
@@ -45,7 +45,7 @@ public:
      * qLocale's format.
      * @return the transformed string.
      */
-    static QString transformTextToLowerCase(const QString &text, const QString &langCode, QVector<QPair<int, int>> &positions);
+    static PkString transformTextToLowerCase(const PkString &text, const PkString &langCode, PkVector<std::pair<int, int>> &positions);
 
     /**
      * @brief transformTextToUpperCase
@@ -60,7 +60,7 @@ public:
      * qLocale's format.
      * @return the transformed string.
      */
-    static QString transformTextCapitalize(const QString &text, QString langCode, QVector<QPair<int, int>> &positions);
+    static PkString transformTextCapitalize(const PkString &text, PkString langCode, PkVector<std::pair<int, int>> &positions);
 
     /**
      * @brief transformTextFullWidth
@@ -71,7 +71,7 @@ public:
      * @param text the text to transform.
      * @return the transformed text.
      */
-    static QString transformTextFullWidth(const QString &text);
+    static PkString transformTextFullWidth(const PkString &text);
     /**
      * @brief transformTextFullSizeKana
      * This function will take 'small' Kana (Japanese phonetic script) and
@@ -81,7 +81,7 @@ public:
      * @param text the text to transform.
      * @return the transformed text.
      */
-    static QString transformTextFullSizeKana(const QString &text);
+    static PkString transformTextFullSizeKana(const PkString &text);
 
     /**
      * @brief collapseSpaces
@@ -96,7 +96,7 @@ public:
      * @return A vector of booleans the size of the input text that marks
      * whether the character should be collapsed.
      */
-    static QVector<bool> collapseSpaces(QString *text, QMap<int, KoSvgText::TextSpaceCollapse> collapseMethods);
+    static PkVector<bool> collapseSpaces(PkString *text, PkMap<int, KoSvgText::TextSpaceCollapse> collapseMethods);
 
     /**
      * @brief collapseLastSpace
@@ -109,7 +109,7 @@ public:
      * @return whether the character should collapse if it's the last space in a
      * line.
      */
-    static bool collapseLastSpace(QChar c, KoSvgText::TextSpaceCollapse collapseMethod);
+    static bool collapseLastSpace(char16_t c, KoSvgText::TextSpaceCollapse collapseMethod);
 
     /**
      * @brief hangLastSpace
@@ -122,7 +122,7 @@ public:
      * @param nextCharIsHardBreak whether the next char is a line break.
      * @return
      */
-    static bool hangLastSpace(const QChar c,
+    static bool hangLastSpace(const char16_t c,
                               KoSvgText::TextSpaceCollapse collapseMethod,
                               KoSvgText::TextWrap wrapMethod,
                               bool &force, bool nextCharIsHardBreak);
@@ -136,7 +136,7 @@ public:
      * @param hangType how to hang.
      * @return whether the character can hang.
      */
-    static bool characterCanHang(QChar c, KoSvgText::HangingPunctuations hangType);
+    static bool characterCanHang(char16_t c, KoSvgText::HangingPunctuations hangType);
 
     /**
      * @brief IsCssWordSeparator
@@ -147,7 +147,7 @@ public:
      * of the word-separators are not in the unicode basic plane.
      * @return true if it is a word-separator
      */
-    static bool IsCssWordSeparator(QString grapheme);
+    static bool IsCssWordSeparator(PkString grapheme);
 
     /**
      * @brief textToUnicodeGraphemes
@@ -160,9 +160,9 @@ public:
      *
      * @param text the text to break.
      * @param langCode the language code of the text, BCP style.
-     * @return a QStringList of the graphemes as separate strings.
+     * @return a PkStringList of the graphemes as separate strings.
      */
-    static QStringList textToUnicodeGraphemeClusters(const QString &text, const QString &langCode);
+    static PkStringList textToUnicodeGraphemeClusters(const PkString &text, const PkString &langCode);
 
     /**
      * @brief justificationOpportunities
@@ -174,7 +174,7 @@ public:
      * @param langCode language, used for the grapheme breaking.
      * @return a list of booleans for whether the current codePoint represents a justificaton opportunity.
      */
-    static QVector<QPair<bool, bool>> justificationOpportunities(QString text, QString langCode);
+    static PkVector<std::pair<bool, bool>> justificationOpportunities(PkString text, PkString langCode);
 
     /**
      * @brief getBidiOpening
@@ -184,7 +184,7 @@ public:
      * @param bidi -- the unicodee-bidi value.
      * @return string with bidi opening marks.
      */
-    static QString getBidiOpening(bool ltr, KoSvgText::UnicodeBidi bidi);
+    static PkString getBidiOpening(bool ltr, KoSvgText::UnicodeBidi bidi);
 
     /**
      * @brief getBidiClosing
@@ -192,7 +192,7 @@ public:
      * @param bidi -- the unicode-bidi value
      * @return string with bidi closing marks.
      */
-    static QString getBidiClosing(KoSvgText::UnicodeBidi bidi);
+    static PkString getBidiClosing(KoSvgText::UnicodeBidi bidi);
 
     /**
      * @brief removeText
@@ -208,7 +208,7 @@ public:
      * @param start the start index, will be modified.
      * @param length the length.
      */
-    static void removeText(QString &text, int &start, int length);
+    static void removeText(PkString &text, int &start, int length);
 
     /**
      * @brief cssSelectFontStyleValue
@@ -224,7 +224,7 @@ public:
      * @param shouldNotReturnDefault -- used for the slants, as they need to fall back on one another.
      * @return closest value on this list.
      */
-    static qreal cssSelectFontStyleValue(const QVector<qreal> &values,
+    static qreal cssSelectFontStyleValue(const PkVector<qreal> &values,
                                          const qreal targetValue,
                                          const qreal defaultValue,
                                          const qreal defaultValueUpper,

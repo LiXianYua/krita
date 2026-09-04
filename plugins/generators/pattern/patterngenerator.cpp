@@ -88,7 +88,7 @@ public:
 
         PkTransform transform;
 
-        if (align && qFuzzyIsNull(rotationX) && qFuzzyIsNull(rotationY) && pattern()) {
+        if (align && pkQtFuzzyIsNull(rotationX) && pkQtFuzzyIsNull(rotationY) && pattern()) {
             // STEP 1: compose the transformation
             transform.shear(shearX, shearY);
             transform.scale(scaleX, scaleY);
@@ -107,13 +107,13 @@ public:
             const PkPointF u2 = transform.map(PkPointF(0.0, repetitionRectSize.height()));
             // STEP 3: align the transformed vectors to the pixel grid. v1 is
             //         the aligned version of u1 and v2 is the aligned version of u2
-            PkPointF v1(qRound(u1.x()), qRound(u1.y()));
-            PkPointF v2(qRound(u2.x()), qRound(u2.y()));
+            PkPointF v1(pkRound(u1.x()), pkRound(u1.y()));
+            PkPointF v2(pkRound(u2.x()), pkRound(u2.y()));
             // If the following condition is met, that means that the pattern is
             // transformed in such a way that the repetition rect corners are
             // colinear so we move v1 or v2 to a neighbor position
-            if (qFuzzyCompare(v1.y() * v2.x(), v2.y() * v1.x()) &&
-                !qFuzzyIsNull(v1.x() * v2.x() + v1.y() * v2.y())) {
+            if (pkQtFuzzyCompare(v1.y() * v2.x(), v2.y() * v1.x()) &&
+                !pkQtFuzzyIsNull(v1.x() * v2.x() + v1.y() * v2.y())) {
                 // Choose point to move based on distance from non aligned point to
                 // aligned point
                 const qreal dist1 = kisSquareDistance(u1, v1);
@@ -156,7 +156,7 @@ public:
             PkTransform::quadToSquare(quad, transform);
             // STEP 5: get the forward transform
             transform = transform.inverted();
-            transform.translate(qRound(positionX), qRound(positionY));
+            transform.translate(pkRound(positionX), pkRound(positionY));
         } else {
             transform.shear(shearX, shearY);
             transform.scale(scaleX, scaleY);

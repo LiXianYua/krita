@@ -61,7 +61,7 @@ void KisLsOverlayFilter::applyOverlay(KisPaintDeviceSP srcDevice,
     if (applyRect.isEmpty()) return;
 
     const PkString compositeOp = config->blendMode();
-    const quint8 opacityU8 = quint8(qRound(255.0 / 100.0 * config->opacity()));
+    const quint8 opacityU8 = quint8(pkRound(255.0 / 100.0 * config->opacity()));
 
     KisPaintDeviceSP dstDevice = dst->getProjection(KisMultipleProjection::defaultProjectionId(),
                                                     compositeOp,

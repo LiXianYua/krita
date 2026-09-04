@@ -12,9 +12,9 @@
 #include <QSharedDataPointer>
 
 class KoShape;
-class QPointF;
-class QRectF;
-class QTransform;
+class PkPointF;
+class PkRectF;
+class PkTransform;
 
 
 class KoVectorPatternBackground : public KoShapeBackground
@@ -34,16 +34,16 @@ public:
     void setContentCoordinates(KoFlake::CoordinateSystem value);
     KoFlake::CoordinateSystem contentCoordinates() const;
 
-    void setReferenceRect(const QRectF &value);
-    QRectF referenceRect() const;
+    void setReferenceRect(const PkRectF &value);
+    PkRectF referenceRect() const;
 
-    void setPatternTransform(const QTransform &value);
-    QTransform patternTransform() const;
+    void setPatternTransform(const PkTransform &value);
+    PkTransform patternTransform() const;
 
-    void setShapes(const QList<KoShape*> value);
-    QList<KoShape*> shapes() const;
+    void setShapes(const PkList<KoShape*> value);
+    PkList<KoShape*> shapes() const;
 
-    void paint(QPainter &painter, const QPainterPath &fillPath) const override;
+    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
     bool hasTransparency() const override;
 private:
     class Private;

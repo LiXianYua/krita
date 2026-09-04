@@ -120,11 +120,11 @@ public:
     //   libs/image/kis_layer_utils.cpp:341   frames |= fetchLayerFramesRecursive(node);
     //   libs/image/kis_layer_utils.cpp:1418  frames |= fetchLayerFramesRecursive(node);
     // 前两处的元素类型是 QSet<KoID>，而 KoID 的 qHash 正是那 18 处自定义重载
-    // 之一（kis_paintop_lod_limitations.h:14 `inline uint qHash(const KoID &id)`）
+    // 之一（kis_paintop_lod_limitations.h:14 `inline uint pkHash(const KoID &id)`）
     // ——PkHashFunctions.h 的 ADL 链路就是为这类调用点存在的。
     //
     // **`operator&` / `&=` / `-` / `-=` / `+` / `+=` 一律不做**：核实下来 0 处
-    // 调用点（`&` 的全部命中是 Qt::MouseButtons / KeyboardModifiers 位掩码，
+    // 调用点（`&` 的全部命中是 Pk::MouseButtons / KeyboardModifiers 位掩码，
     // `-` 的全部命中是算术减法）。给了就是凭空多六项。
     PkSet &unite(const PkSet &other)
     {

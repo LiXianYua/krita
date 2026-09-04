@@ -14,7 +14,9 @@
 #include "KoAbstractCanvasResourceInterface.h"
 
 #include <QObject>
-#include <QList>
+#include <PkList.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
 
 class KoCanvasController;
 class KoShapeControllerBase;
@@ -44,16 +46,16 @@ public:
     ~KoToolAction() override;
 
 public:
-    QString id() const;             ///< The id of the tool
-    QString iconText() const;       ///< The icontext of the tool
-    QString toolTip() const;        ///< The tooltip of the tool
-    QString iconName() const;       ///< The icon name of the tool
+    PkString id() const;             ///< The id of the tool
+    PkString iconText() const;       ///< The icontext of the tool
+    PkString toolTip() const;        ///< The tooltip of the tool
+    PkString iconName() const;       ///< The icon name of the tool
     QKeySequence shortcut() const;     ///< The shortcut to activate the tool
 
-    QString section() const;        ///< The section the tool wants to be in.
+    PkString section() const;        ///< The section the tool wants to be in.
     int priority() const;           ///< Lower number (higher priority) means coming first in the section.
     int buttonGroupId() const;      ///< A unique ID for this tool as passed by changedTool(), >= 0
-    QString visibilityCode() const; ///< This tool should become visible when we Q_EMIT this string in toolCodesSelected()
+    PkString visibilityCode() const; ///< This tool should become visible when we Q_EMIT this string in toolCodesSelected()
 
     KoToolFactoryBase *toolFactory() const; ///< Factory to create new tool object instances
 
@@ -173,7 +175,7 @@ public:
      * @param id the tool identifier
      * @see addController()
      */
-    KoToolBase *toolById(KoCanvasBase *canvas, const QString &id) const;
+    KoToolBase *toolById(KoCanvasBase *canvas, const PkString &id) const;
 
     /// @return the currently active pointing device
     KoInputDevice currentInputDevice() const;
@@ -183,19 +185,19 @@ public:
      * @returns the toolId for the shapes.
      * @param shapes a list of shapes, a selection for example, that is used to look for the tool.
      */
-    QString preferredToolForSelection(const QList<KoShape*> &shapes);
+    PkString preferredToolForSelection(const PkList<KoShape*> &shapes);
 
     /**
      * Returns the list of toolActions for the current tools.
      * @returns lists of toolActions for the current tools.
      */
-    QList<KoToolAction*> toolActionList() const;
+    PkList<KoToolAction*> toolActionList() const;
 
     /// Request tool activation for the given canvas controller
     void requestToolActivation(KoCanvasController *controller);
 
     /// Returns the toolId of the currently active tool
-    QString activeToolId() const;
+    PkString activeToolId() const;
 
     void initializeCurrentToolForCanvas();
 
@@ -213,7 +215,7 @@ public Q_SLOTS:
      * Request switching tool
      * @param id the id of the tool
      */
-    void switchToolRequested(const QString &id);
+    void switchToolRequested(const PkString &id);
 
     /**
      * Request change input device
@@ -249,7 +251,7 @@ Q_SIGNALS:
      * in the selection.
      * @param types a list of string that are the shape types of the selected objects.
      */
-    void toolCodesSelected(const QList<QString> &types);
+    void toolCodesSelected(const PkList<PkString> &types);
 
     /**
      * Emitted after the current layer changed either its properties or to a new layer.
@@ -274,7 +276,7 @@ Q_SIGNALS:
      * Emitted whenever the active tool changes the status text.
      * @param statusText the new status text
      */
-    void changedStatusText(const QString &statusText);
+    void changedStatusText(const PkString &statusText);
 
     /**
      * emitted whenever a new tool is dynamically added for the given canvas
@@ -284,7 +286,7 @@ Q_SIGNALS:
     /**
      * Emit the new tool option widgets to be used with this canvas.
      */
-    void toolOptionWidgetsChanged(KoCanvasController *controller, const QList<QPointer<QWidget> > &widgets);
+    void toolOptionWidgetsChanged(KoCanvasController *controller, const PkList<PkPointer<QWidget> > &widgets);
 
     /**
      * Emitted when the tool's text mode has changed.
@@ -306,7 +308,7 @@ private:
     Q_PRIVATE_SLOT(d, void attachCanvas(KoCanvasController *controller))
     Q_PRIVATE_SLOT(d, void movedFocus(QWidget *from, QWidget *to))
     Q_PRIVATE_SLOT(d, void updateCursor(const QCursor &cursor))
-    Q_PRIVATE_SLOT(d, void selectionChanged(const QList<KoShape*> &shapes))
+    Q_PRIVATE_SLOT(d, void selectionChanged(const PkList<KoShape*> &shapes))
     Q_PRIVATE_SLOT(d, void currentLayerChanged(const KoShapeLayer *layer))
 
     Private *const d;

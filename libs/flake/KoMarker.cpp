@@ -19,9 +19,9 @@
 #include <KoColorBackground.h>
 
 
-#include <QString>
+#include <PkString.h>
 #include <QUrl>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <QPainter>
 
 #include "kis_global.h"
@@ -71,18 +71,18 @@ public:
         }
     }
 
-    QString name;
+    PkString name;
     MarkerCoordinateSystem coordinateSystem;
-    QPointF referencePoint;
-    QSizeF referenceSize;
+    PkPointF referencePoint;
+    PkSizeF referenceSize;
 
     bool hasAutoOrientation;
     qreal explicitOrientation;
 
-    QList<KoShape*> shapes;
-    QScopedPointer<KoShapePainter> shapePainter;
+    PkList<KoShape*> shapes;
+    PkScopedPointer<KoShapePainter> shapePainter;
 
-    bool compareShapesTo(const QList<KoShape*> other) const {
+    bool compareShapesTo(const PkList<KoShape*> other) const {
         if (shapes.size() != other.size()) return false;
 
         for (int i = 0; i < shapes.size(); i++) {
@@ -96,23 +96,23 @@ public:
         return true;
     }
 
-    QTransform markerTransform(qreal strokeWidth, qreal nodeAngle, const QPointF &pos = QPointF()) {
-        const QTransform translate = QTransform::fromTranslate(-referencePoint.x(), -referencePoint.y());
+    PkTransform markerTransform(qreal strokeWidth, qreal nodeAngle, const PkPointF &pos = PkPointF()) {
+        const PkTransform translate = PkTransform::fromTranslate(-referencePoint.x(), -referencePoint.y());
 
-        QTransform t = translate;
+        PkTransform t = translate;
 
         if (coordinateSystem == StrokeWidth) {
-            t *= QTransform::fromScale(strokeWidth, strokeWidth);
+            t *= PkTransform::fromScale(strokeWidth, strokeWidth);
         }
 
         const qreal angle = hasAutoOrientation ? nodeAngle : explicitOrientation;
         if (angle != 0.0) {
-            QTransform r;
+            PkTransform r;
             r.rotateRadians(angle);
             t *= r;
         }
 
-        t *= QTransform::fromTranslate(pos.x(), pos.y());
+        t *= PkTransform::fromTranslate(pos.x(), pos.y());
 
         return t;
     }
@@ -128,7 +128,7 @@ KoMarker::~KoMarker()
     delete d;
 }
 
-QString KoMarker::name() const
+PkString KoMarker::name() const
 {
     return d->name;
 }
@@ -154,7 +154,7 @@ KoMarker::MarkerCoordinateSystem KoMarker::coordinateSystem() const
     return d->coordinateSystem;
 }
 
-KoMarker::MarkerCoordinateSystem KoMarker::coordinateSystemFromString(const QString &value)
+KoMarker::MarkerCoordinateSystem KoMarker::coordinateSystemFromString(const PkString &value)
 {
     MarkerCoordinateSystem result = StrokeWidth;
 
@@ -165,7 +165,7 @@ KoMarker::MarkerCoordinateSystem KoMarker::coordinateSystemFromString(const QStr
     return result;
 }
 
-QString KoMarker::coordinateSystemToString(KoMarker::MarkerCoordinateSystem value)
+PkString KoMarker::coordinateSystemToString(KoMarker::MarkerCoordinateSystem value)
 {
     return
         value == StrokeWidth ?
@@ -173,22 +173,22 @@ QString KoMarker::coordinateSystemToString(KoMarker::MarkerCoordinateSystem valu
                 "userSpaceOnUse";
 }
 
-void KoMarker::setReferencePoint(const QPointF &value)
+void KoMarker::setReferencePoint(const PkPointF &value)
 {
     d->referencePoint = value;
 }
 
-QPointF KoMarker::referencePoint() const
+PkPointF KoMarker::referencePoint() const
 {
     return d->referencePoint;
 }
 
-void KoMarker::setReferenceSize(const QSizeF &size)
+void KoMarker::setReferenceSize(const PkSizeF &size)
 {
     d->referenceSize = size;
 }
 
-QSizeF KoMarker::referenceSize() const
+PkSizeF KoMarker::referenceSize() const
 {
     return d->referenceSize;
 }
@@ -213,7 +213,7 @@ void KoMarker::setExplicitOrientation(qreal value)
     d->explicitOrientation = value;
 }
 
-void KoMarker::setShapes(const QList<KoShape *> &shapes)
+void KoMarker::setShapes(const PkList<KoShape *> &shapes)
 {
     d->shapes = shapes;
 
@@ -222,14 +222,14 @@ void KoMarker::setShapes(const QList<KoShape *> &shapes)
     }
 }
 
-QList<KoShape *> KoMarker::shapes() const
+PkList<KoShape *> KoMarker::shapes() const
 {
     return d->shapes;
 }
 
-void KoMarker::paintAtPosition(QPainter *painter, const QPointF &pos, qreal strokeWidth, qreal nodeAngle)
+void KoMarker::paintAtPosition(QPainter *painter, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle)
 {
-    QTransform oldTransform = painter->transform();
+    PkTransform oldTransform = painter->transform();
 
     if (!d->shapePainter) {
         d->shapePainter.reset(new KoShapePainter());
@@ -244,7 +244,7 @@ void KoMarker::paintAtPosition(QPainter *painter, const QPointF &pos, qreal stro
 
 qreal KoMarker::maxInset(qreal strokeWidth) const
 {
-    QRectF shapesBounds = boundingRect(strokeWidth, 0.0); // normalized to 0,0
+    PkRectF shapesBounds = boundingRect(strokeWidth, 0.0); // normalized to 0,0
     qreal result = 0.0;
 
     result = qMax(KisAlgebra2D::norm(shapesBounds.topLeft()), result);
@@ -255,11 +255,11 @@ qreal KoMarker::maxInset(qreal strokeWidth) const
     return result;
 }
 
-QRectF KoMarker::boundingRect(qreal strokeWidth, qreal nodeAngle) const
+PkRectF KoMarker::boundingRect(qreal strokeWidth, qreal nodeAngle) const
 {
-    QRectF shapesBounds = KoShape::boundingRect(d->shapes);
+    PkRectF shapesBounds = KoShape::boundingRect(d->shapes);
 
-    const QTransform t = d->markerTransform(strokeWidth, nodeAngle);
+    const PkTransform t = d->markerTransform(strokeWidth, nodeAngle);
 
     if (!t.isIdentity()) {
         shapesBounds = t.mapRect(shapesBounds);
@@ -268,14 +268,14 @@ QRectF KoMarker::boundingRect(qreal strokeWidth, qreal nodeAngle) const
     return shapesBounds;
 }
 
-QPainterPath KoMarker::outline(qreal strokeWidth, qreal nodeAngle) const
+PkPainterPath KoMarker::outline(qreal strokeWidth, qreal nodeAngle) const
 {
-    QPainterPath outline;
+    PkPainterPath outline;
     Q_FOREACH (KoShape *shape, d->shapes) {
         outline |= shape->absoluteTransformation().map(shape->outline());
     }
 
-    const QTransform t = d->markerTransform(strokeWidth, nodeAngle);
+    const PkTransform t = d->markerTransform(strokeWidth, nodeAngle);
 
     if (!t.isIdentity()) {
         outline = t.map(outline);
@@ -284,24 +284,24 @@ QPainterPath KoMarker::outline(qreal strokeWidth, qreal nodeAngle) const
     return outline;
 }
 
-void KoMarker::drawPreview(QPainter *painter, const QRectF &previewRect, const QPen &pen, KoFlake::MarkerPosition position)
+void KoMarker::drawPreview(QPainter *painter, const PkRectF &previewRect, const PkPen &pen, KoFlake::MarkerPosition position)
 {
-    const QRectF outlineRect = outline(pen.widthF(), 0).boundingRect(); // normalized to 0,0
-    QPointF marker;
-    QPointF start;
-    QPointF end;
+    const PkRectF outlineRect = outline(pen.widthF(), 0).boundingRect(); // normalized to 0,0
+    PkPointF marker;
+    PkPointF start;
+    PkPointF end;
 
     if (position == KoFlake::StartMarker) {
-        marker = QPointF(-outlineRect.left() + previewRect.left(), previewRect.center().y());
+        marker = PkPointF(-outlineRect.left() + previewRect.left(), previewRect.center().y());
         start = marker;
-        end = QPointF(previewRect.right(), start.y());
+        end = PkPointF(previewRect.right(), start.y());
     } else if (position == KoFlake::MidMarker) {
-        start = QPointF(previewRect.left(), previewRect.center().y());
-        marker = QPointF(-outlineRect.center().x() + previewRect.center().x(), start.y());
-        end = QPointF(previewRect.right(), start.y());
+        start = PkPointF(previewRect.left(), previewRect.center().y());
+        marker = PkPointF(-outlineRect.center().x() + previewRect.center().x(), start.y());
+        end = PkPointF(previewRect.right(), start.y());
     } else if (position == KoFlake::EndMarker) {
-        start = QPointF(previewRect.left(), previewRect.center().y());
-        marker = QPointF(-outlineRect.right() + previewRect.right(), start.y());
+        start = PkPointF(previewRect.left(), previewRect.center().y());
+        marker = PkPointF(-outlineRect.right() + previewRect.right(), start.y());
         end = marker;
     }
 
@@ -315,12 +315,12 @@ void KoMarker::drawPreview(QPainter *painter, const QRectF &previewRect, const Q
     painter->restore();
 }
 
-void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *stroke, const QPointF &pos, qreal strokeWidth, qreal nodeAngle)
+void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *stroke, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle)
 {
-    const QGradient *originalGradient = stroke->lineBrush().gradient();
+    const PkGradient *originalGradient = stroke->lineBrush().gradient();
 
     if (!originalGradient) {
-        QList<KoShape*> linearizedShapes = KoShape::linearizeSubtree(d->shapes);
+        PkList<KoShape*> linearizedShapes = KoShape::linearizeSubtree(d->shapes);
         Q_FOREACH(KoShape *shape, linearizedShapes) {
             // update the stroke
             KoShapeStrokeSP shapeStroke = shape->stroke() ?
@@ -328,7 +328,7 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
                         KoShapeStrokeSP();
 
             if (shapeStroke) {
-                shapeStroke = QSharedPointer<KoShapeStroke>(new KoShapeStroke(*shapeStroke));
+                shapeStroke = PkSharedPointer<KoShapeStroke>(new KoShapeStroke(*shapeStroke));
 
                 shapeStroke->setLineBrush(QBrush());
                 shapeStroke->setColor(stroke->color());
@@ -338,38 +338,38 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
 
             // update the background
             if (shape->background()) {
-                QSharedPointer<KoColorBackground> bg(new KoColorBackground(stroke->color()));
+                PkSharedPointer<KoColorBackground> bg(new KoColorBackground(stroke->color()));
                 shape->setBackground(bg);
             }
         }
     } else {
-        QScopedPointer<QGradient> g(KoFlake::cloneGradient(originalGradient));
+        PkScopedPointer<PkGradient> g(KoFlake::cloneGradient(originalGradient));
         KIS_ASSERT_RECOVER_RETURN(g);
 
-        const QTransform markerTransformInverted =
+        const PkTransform markerTransformInverted =
                 d->markerTransform(strokeWidth, nodeAngle, pos).inverted();
 
-        QTransform gradientToUser;
+        PkTransform gradientToUser;
 
         // Unwrap the gradient to work in global mode
-        if (g->coordinateMode() == QGradient::ObjectBoundingMode) {
-            QRectF boundingRect =
+        if (g->coordinateMode() == PkGradient::ObjectBoundingMode) {
+            PkRectF boundingRect =
                 parentShape ?
                 parentShape->outline().boundingRect() :
                 this->boundingRect(strokeWidth, nodeAngle);
 
-            boundingRect = KisAlgebra2D::ensureRectNotSmaller(boundingRect, QSizeF(1.0, 1.0));
+            boundingRect = KisAlgebra2D::ensureRectNotSmaller(boundingRect, PkSizeF(1.0, 1.0));
 
-            gradientToUser = QTransform(boundingRect.width(), 0, 0, boundingRect.height(),
+            gradientToUser = PkTransform(boundingRect.width(), 0, 0, boundingRect.height(),
                                         boundingRect.x(), boundingRect.y());
 
-            g->setCoordinateMode(QGradient::LogicalMode);
+            g->setCoordinateMode(PkGradient::LogicalMode);
         }
 
-        QList<KoShape*> linearizedShapes = KoShape::linearizeSubtree(d->shapes);
+        PkList<KoShape*> linearizedShapes = KoShape::linearizeSubtree(d->shapes);
         Q_FOREACH(KoShape *shape, linearizedShapes) {
             // shape-unwinding transform
-            QTransform t = gradientToUser * markerTransformInverted * shape->absoluteTransformation().inverted();
+            PkTransform t = gradientToUser * markerTransformInverted * shape->absoluteTransformation().inverted();
 
             // update the stroke
             KoShapeStrokeSP shapeStroke = shape->stroke() ?
@@ -377,7 +377,7 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
                         KoShapeStrokeSP();
 
             if (shapeStroke) {
-                shapeStroke = QSharedPointer<KoShapeStroke>(new KoShapeStroke(*shapeStroke));
+                shapeStroke = PkSharedPointer<KoShapeStroke>(new KoShapeStroke(*shapeStroke));
 
                 QBrush brush(*g);
                 brush.setTransform(t);
@@ -389,7 +389,7 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
             // update the background
             if (shape->background()) {
 
-                QSharedPointer<KoGradientBackground> bg(new KoGradientBackground(KoFlake::cloneGradient(g.data()), t));
+                PkSharedPointer<KoGradientBackground> bg(new KoGradientBackground(KoFlake::cloneGradient(g.data()), t));
                 shape->setBackground(bg);
             }
         }

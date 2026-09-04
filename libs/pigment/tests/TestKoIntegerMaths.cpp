@@ -33,7 +33,7 @@ void TestKoIntegerMaths::UINT8Tests()
         PK_COMPARE((int)UINT8_BLEND(0, 255, i), int( 255 - i) );
     }
     for (int i = 0; i < 256; i++) {
-        PK_VERIFY( qAbs(int(UINT8_BLEND(0, i, 128)) - int(i*(255 - 128) / 255.0 + 0.5)) <= 1 );
+        PK_VERIFY( pkAbs(int(UINT8_BLEND(0, i, 128)) - int(i*(255 - 128) / 255.0 + 0.5)) <= 1 );
     }
     PK_COMPARE((int)UINT8_BLEND(255, 128, 128), 192);
     PK_COMPARE((int)UINT8_BLEND(128, 64, 255), 128);

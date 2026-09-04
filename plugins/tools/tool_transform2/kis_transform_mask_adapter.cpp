@@ -98,7 +98,7 @@ PkString KisTransformMaskAdapter::id() const
 void KisTransformMaskAdapter::toXML(PkXmlElement *e) const
 {
     // bounds rotation cannot be used on transform masks currently
-    KIS_SAFE_ASSERT_RECOVER_NOOP(qFuzzyIsNull(m_d->args->boundsRotation()));
+    KIS_SAFE_ASSERT_RECOVER_NOOP(pkQtFuzzyIsNull(m_d->args->boundsRotation()));
     m_d->args->toXML(e);
 }
 
@@ -107,7 +107,7 @@ KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromXML(const PkXmlEl
     ToolTransformArgs args(ToolTransformArgs::fromXML(e));
 
     // bounds rotation cannot be used on transform masks currently
-    KIS_SAFE_ASSERT_RECOVER_NOOP(qFuzzyIsNull(args.boundsRotation()));
+    KIS_SAFE_ASSERT_RECOVER_NOOP(pkQtFuzzyIsNull(args.boundsRotation()));
 
     return KisTransformMaskParamsInterfaceSP(
         new KisTransformMaskAdapter(args));
@@ -135,7 +135,7 @@ KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromDumbXML(const PkX
     }
 
     // bounds rotation cannot be used on transform masks currently
-    KIS_SAFE_ASSERT_RECOVER_NOOP(qFuzzyIsNull(args.boundsRotation()));
+    KIS_SAFE_ASSERT_RECOVER_NOOP(pkQtFuzzyIsNull(args.boundsRotation()));
 
     return KisTransformMaskParamsInterfaceSP(
         new KisTransformMaskAdapter(args));

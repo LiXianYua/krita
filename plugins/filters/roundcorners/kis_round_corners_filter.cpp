@@ -78,7 +78,7 @@ void KisRoundCornersFilter::processImpl(KisPaintDeviceSP device,
 
     const PkRect bounds = device->defaultBounds()->imageBorderRect();
 
-    const qint32 radius = qMin(KisAlgebra2D::minDimension(bounds) / 2, qMax(1, config->getInt("radius" , 30)));
+    const qint32 radius = pkMin(KisAlgebra2D::minDimension(bounds) / 2, pkMax(1, config->getInt("radius" , 30)));
     const qreal radiusSq = pow2(radius);
 
     struct CornerJob {

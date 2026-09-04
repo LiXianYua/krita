@@ -39,7 +39,7 @@ void testSpan(qreal scale, qreal dx, int dst_l,
 {
     KisFilterStrategy *filter = new KisBilinearFilterStrategy();
 
-    KisFilterWeightsBuffer buf(filter, qAbs(scale));
+    KisFilterWeightsBuffer buf(filter, pkAbs(scale));
     KisFilterWeightsApplicator applicator(0, 0, scale, 0.0, dx, false);
     KisFilterWeightsApplicator::BlendSpan span;
     span = applicator.calculateBlendSpan(dst_l, 0, &buf);
@@ -241,7 +241,7 @@ void testLineImpl(qreal scale, qreal dx, quint8 expR[], quint8 expA[], int x0, i
         }
     }
 
-    KisFilterWeightsBuffer buf(filter, qAbs(scale));
+    KisFilterWeightsBuffer buf(filter, pkAbs(scale));
     KisFilterWeightsApplicator applicator(dev, dev, scale, 0.0, dx, clampToEdge);
 
 
@@ -742,7 +742,7 @@ void KisFilterWeightsApplicatorTest::benchmarkProcessesLine()
     const qreal scale = 0.873;
     const qreal dx = 0.0387;
 
-    KisFilterWeightsBuffer buf(filter, qAbs(scale));
+    KisFilterWeightsBuffer buf(filter, pkAbs(scale));
     KisFilterWeightsApplicator applicator(dev, dev, scale, 0.0, dx, false);
 
     for (int i = 0; i < 32767; i++) {
@@ -790,7 +790,7 @@ void KisFilterWeightsApplicatorTest::testProcessSolidLine()
     const qreal dx = 0.3;
     const bool clampToEdge = true;
 
-    KisFilterWeightsBuffer buf(filter.data(), qAbs(scale));
+    KisFilterWeightsBuffer buf(filter.data(), pkAbs(scale));
     KisFilterWeightsApplicator applicator(dev, dev, scale, 0.0, dx, clampToEdge);
 
 

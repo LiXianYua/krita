@@ -134,7 +134,7 @@ PkPolygon PkPolygonF::toPolygon() const
 // WindingFill 看 winding_number != 0（环绕数非零即内部）；OddEvenFill 看
 // winding_number 的奇偶（这里用的是同一个 winding_number 累加值取模，不是
 // 分开维护一个"穿越次数"——qpolygon.cpp 就是这么写的，两种规则共用一次遍历）。
-bool PkPolygonF::containsPoint(const PkPointF &pt, Qt::FillRule fillRule) const
+bool PkPolygonF::containsPoint(const PkPointF &pt, Pk::FillRule fillRule) const
 {
     if (isEmpty())
         return false;
@@ -153,7 +153,7 @@ bool PkPolygonF::containsPoint(const PkPointF &pt, Qt::FillRule fillRule) const
     if (last_pt != last_start)
         pkPolygonIsectLine(last_pt, last_start, pt, &winding_number);
 
-    return (fillRule == Qt::WindingFill
+    return (fillRule == Pk::WindingFill
             ? (winding_number != 0)
             : ((winding_number % 2) != 0));
 }

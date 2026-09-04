@@ -124,7 +124,7 @@ private:
 //     isValid()==false → isNull()==true，天然成立。
 //   - `secsTo()` 符号方向：`a.secsTo(b) == b - a`（后减前），返回类型 `qint64`
 //   - `fromMSecsSinceEpoch`/`fromSecsSinceEpoch` 单参/三参默认 `timeSpec()` 是
-//     `Qt::LocalTime` 不是 UTC
+//     `Pk::LocalTime` 不是 UTC
 //
 // **LocalTime 落地方式（2026-08-18 裁决，见 `R线-spec.md`「PkDateTime 时区」）**：
 // `pk/time` 不接 Qt、不接时区数据库、也不对调用方暴露 `timeSpec()` 概念——真实调用点
@@ -203,25 +203,23 @@ private:
     std::chrono::system_clock::time_point toTimePoint() const;
 };
 
-// Qt::DateFormat 命名空间别名（主树消费方 `Qt::RFC2822Date` 等解析依赖）。
+// Pk::DateFormat 命名空间别名（主树消费方 `Pk::RFC2822Date` 等解析依赖）。
 // 照 Qt 组织：qdatetime.h 里 QDate/QTime/QDateTime 全在，QVariant 只前向声明引用。
-// 这些是 `PkDateTime::DateFormat`（enum class）的 constexpr 别名值——`toString(Qt::ISODate)`
-// 这类调用点把 `Qt::` 限定名直接映射到枚举值，一字不改。
+// 这些是 `PkDateTime::DateFormat`（enum class）的 constexpr 别名值——`toString(Pk::ISODate)`
+// 这类调用点把 `Pk::` 限定名直接映射到枚举值，一字不改。
 // 探针取值（R-27，真 Qt qnamespace.h 的 enum DateFormat 位值）：TextDate=0 ISODate=1
 // RFC2822Date=8 ISODateWithMs=9。pk 的 enum class DateFormat 无显式初始化器（实际 0/1/2），
 // 与真 Qt 只按成员身份对齐（同名成员 ↔ 同名成员），不跨边界传位值。
 //
-// ⚠ 让位给真 Qt（R-37）：真 Qt qnamespace.h 也定义 `Qt::DateFormat`（qnamespace.h:1276-1290），
+// ⚠ 让位给真 Qt（R-37）：真 Qt qnamespace.h 也定义 `Pk::DateFormat`（qnamespace.h:1276-1290），
 // transition TU 里 `constexpr PkDateTime::DateFormat ISODate` 与 `enum DateFormat { ISODate }`
 // 重定义（S-08 实测 KoFFWWSConverter.cpp +3 错）。守卫口径同 R-35：`!QT_CORE_LIB ||
 // !QNAMESPACE_H`——真 Qt qnamespace.h 进 TU（QNAMESPACE_H 定义）就让位，不在场（含
 // -DQT_CORE_LIB 无真 Qt 头）就由本头提供。mixed TU 必须「Qt 头在前」。
-#if !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H)
-namespace Qt {
+namespace Pk {
 constexpr PkDateTime::DateFormat ISODate = PkDateTime::DateFormat::ISODate;
 constexpr PkDateTime::DateFormat RFC2822Date = PkDateTime::DateFormat::RFC2822Date;
 constexpr PkDateTime::DateFormat ISODateWithMs = PkDateTime::DateFormat::ISODateWithMs;
 }
-#endif // !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H) —— 真 Qt qnamespace.h 在场则让位
 
 #endif // PK_TIME_PKDATETIME_H

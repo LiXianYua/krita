@@ -240,7 +240,7 @@ void KisFrameSerializerTest::testFrameUniquenessEstimation()
 
     result = KisFrameDataSerializer::estimateFrameUniqueness(testFrame1, testFrame2, 0.1);
     QVERIFY(!!result);
-    QVERIFY(qFuzzyCompare(*result, 0.0));
+    QVERIFY(pkQtFuzzyCompare(*result, 0.0));
 
     KisFrameDataSerializer::Frame testFrame3 = generateTestFrame(3, pool);
 

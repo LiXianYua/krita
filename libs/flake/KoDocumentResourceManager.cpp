@@ -10,7 +10,7 @@
 #include <PkFlakeBridge.h>
 #include "KoDocumentResourceManager.h"
 
-#include <QVariant>
+#include <PkVariant.h>
 #include <kundo2stack.h>
 #include <FlakeDebug.h>
 
@@ -37,33 +37,33 @@ KoDocumentResourceManager::~KoDocumentResourceManager()
     delete d;
 }
 
-void KoDocumentResourceManager::setResource(int key, const QVariant &value)
+void KoDocumentResourceManager::setResource(int key, const PkVariant &value)
 {
     d->manager.setResource(key, value);
 }
 
-QVariant KoDocumentResourceManager::resource(int key) const
+PkVariant KoDocumentResourceManager::resource(int key) const
 {
     return d->manager.resource(key);
 }
 
 void KoDocumentResourceManager::setResource(int key, const KoColor &color)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(color);
     setResource(key, v);
 }
 
 void KoDocumentResourceManager::setResource(int key, KoShape *shape)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(shape);
     setResource(key, v);
 }
 
 void KoDocumentResourceManager::setResource(int key, const KoUnit &unit)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(unit);
     setResource(key, v);
 }
@@ -84,12 +84,12 @@ int KoDocumentResourceManager::intResource(int key) const
     return d->manager.intResource(key);
 }
 
-QString KoDocumentResourceManager::stringResource(int key) const
+PkString KoDocumentResourceManager::stringResource(int key) const
 {
     return d->manager.stringResource(key);
 }
 
-QSizeF KoDocumentResourceManager::sizeResource(int key) const
+PkSizeF KoDocumentResourceManager::sizeResource(int key) const
 {
     return d->manager.sizeResource(key);
 }
@@ -116,7 +116,7 @@ void KoDocumentResourceManager::setGrabSensitivity(int grabSensitivity)
     // do not allow arbitrary small grab sensitivity
     if (grabSensitivity < 5)
         grabSensitivity = 5;
-    setResource(GrabSensitivity, QVariant(grabSensitivity));
+    setResource(GrabSensitivity, PkVariant(grabSensitivity));
 }
 
 int KoDocumentResourceManager::grabSensitivity() const
@@ -128,7 +128,7 @@ int KoDocumentResourceManager::grabSensitivity() const
 
 void KoDocumentResourceManager::setUndoStack(KUndo2Stack *undoStack)
 {
-    QVariant variant;
+    PkVariant variant;
     variant.setValue<void*>(undoStack);
     setResource(UndoStack, variant);
 }
@@ -139,8 +139,8 @@ qreal KoDocumentResourceManager::documentResolution() const
     return resource(DocumentResolution).toReal();
 }
 
-QRectF KoDocumentResourceManager::documentRectInPixels() const
+PkRectF KoDocumentResourceManager::documentRectInPixels() const
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(hasResource(DocumentRectInPixels), QRectF(0,0, 777, 666));
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(hasResource(DocumentRectInPixels), PkRectF(0,0, 777, 666));
     return resource(DocumentRectInPixels).toRectF();
 }

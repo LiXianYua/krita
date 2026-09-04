@@ -37,7 +37,7 @@ struct KisOnionSkinCompositor::Private
         const PkVector<int> &bo = backwardOpacities;
         const PkVector<int> &fo = forwardOpacities;
 
-        return offset > 0 ? fo[qAbs(offset) - 1] : bo[qAbs(offset) - 1];
+        return offset > 0 ? fo[pkAbs(offset) - 1] : bo[pkAbs(offset) - 1];
     }
 
     KisPaintDeviceSP setUpTintDevice(const PkColor &tintColor, const KoColorSpace *colorSpace)

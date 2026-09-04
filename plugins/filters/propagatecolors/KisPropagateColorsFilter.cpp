@@ -53,7 +53,7 @@ struct GenericExpansionStrategy
         , sourceDeviceColorSpace(sourceDevice->colorSpace())
         , sourceDevicePixelSize(sourceDeviceColorSpace->pixelSize())
         , rect(applyRect)
-        , expansionAmount(static_cast<quint32>(qRound(expansionAmount * 256.0)))
+        , expansionAmount(static_cast<quint32>(pkRound(expansionAmount * 256.0)))
     {}
 
     void initializePixel(quint32 *distancePixel, quint8 *devicePixel) const

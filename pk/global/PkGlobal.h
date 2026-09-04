@@ -17,7 +17,7 @@
 // QT_VERSION_STR "5.15.7"），来源行号标在各项上方。对齐口径与 R-03 相同：
 // 与 Qt 的任何行为差异默认都是缺陷 —— 所以 Qt 那些看着像 bug 的地方也照抄
 // （qRound 对负半值向 +∞ 取整、int(d+0.5) 让 0.49999999999999994 进位到 1、
-// qAbs(-0.0) 返回 -0.0 而不是 +0.0），并在 tests/test_global.cpp 里逐条钉住。
+// pkAbs(-0.0) 返回 -0.0 而不是 +0.0），并在 tests/test_global.cpp 里逐条钉住。
 //
 // 本头是 R-18 线给整个剥离项目提供的**标量唯一权威**：R-11 的 pk/test 带了
 // 一份标量子集，本头用「让位」机制与它共存，任意 include 顺序都不重定义。
@@ -27,8 +27,8 @@
 //
 // 全局作用域、无 namespace：与 R-03 同因 —— compat 垫片靠 `#define QRect PkRect`
 // 这类改写工作，而 Krita 里有 `class QRect;` 前置声明，套 namespace 就废。
-// 唯一例外是本头里的 `namespace Qt { enum … }`：那是 geometry 成员签名要用的
-// 限定名（`Qt::AspectRatioMode` / `Qt::Axis`），不套 namespace 反而对不上。
+// 唯一例外是本头里的 `namespace Pk { enum … }`：那是 geometry 成员签名要用的
+// 限定名（`Pk::AspectRatioMode` / `Pk::Axis`），不套 namespace 反而对不上。
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ typedef unsigned long ulong;
 // 让位给真 Qt（R-34，R-35 放宽守卫口径）：real Qt 的对应头已进 TU（各自 include
 // guard 宏定义）时，本头里与 Qt 同名的一切（qAbs/qRound/qMin/qMax/qBound/qIsNull/
 // qFuzzyCompare/qFuzzyIsNull/qFloor/qCeil/qNextPowerOfTwo/qIsNaN/qInf/qQNaN 与
-// namespace Qt 枚举族）全部让位——libs/global 基线测试经 kis_debug.h 拉本头，与真
+// namespace Pk 枚举族）全部让位——libs/global 基线测试经 kis_debug.h 拉本头，与真
 // Qt qglobal.h/qmath.h/qnumeric.h/qnamespace.h 重定义。
 //
 // ⚠ R-35 守卫口径（2026-08-21）：`!QT_CORE_LIB` 不够——主树编译行**全局**带
@@ -120,39 +120,35 @@ typedef unsigned long ulong;
 // **不**让位（geometry 头内部调用它们），只依赖 qAbs/qMin——真 Qt qglobal.h 在场时
 // 解析到真 Qt 的实现，不在场时由本头守卫内提供，两条路径语义等价（公式逐字同源，
 // 见「语义等价」注释）。
-#if !defined(QT_CORE_LIB) || !defined(QGLOBAL_H)
-#ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
 // qglobal.h:657-658。⚠ 条件是 `t >= 0` 而不是 `t > 0`：-0.0 >= 0 为真，所以
-// qAbs(-0.0) **原样返回 -0.0**（signbit 仍是 1，1.0/qAbs(-0.0) == -inf）。
+// pkAbs(-0.0) **原样返回 -0.0**（signbit 仍是 1，1.0/pkAbs(-0.0) == -inf）。
 // 写成 `t > 0` 会把零号规范成 +0.0 —— 那是真实的行为差异，会经 1/x、atan2、
 // copysign 扩散出去。实测真 Qt 5.15.7 确认，tests/test_global.cpp 用 signbit 钉住。
 template <typename T>
-constexpr inline T qAbs(const T &t) { return t >= 0 ? t : -t; }
-#endif
+constexpr inline T pkAbs(const T &t) { return t >= 0 ? t : -t; }
 
-// qglobal.h:660-663。**不是** std::round：负半值向 +∞ 取整（qRound(-0.5) == 0、
-// qRound(-1.5) == -1），且 int(d + 0.5) 让 0.49999999999999994 进位到 1。
+// qglobal.h:660-663。**不是** std::round：负半值向 +∞ 取整（pkRound(-0.5) == 0、
+// pkRound(-1.5) == -1），且 int(d + 0.5) 让 0.49999999999999994 进位到 1。
 // float 重载不是摆设：它按 float 精度做加法，0.49999997f 会进位而提升到 double
 // 后不会。qRound64 实测 0 调用点（R-03 口径），不做。
-constexpr inline int qRound(double d)
+constexpr inline int pkRound(double d)
 { return d >= 0.0 ? int(d + 0.5) : int(d - double(int(d-1)) + 0.5) + int(d-1); }
-constexpr inline int qRound(float d)
+constexpr inline int pkRound(float d)
 { return d >= 0.0f ? int(d + 0.5f) : int(d - float(int(d-1)) + 0.5f) + int(d-1); }
 
 // qglobal.h:670-677。返回 const T& 是 Qt 的签名，照抄——改成按值返回会给大对象
-// 加拷贝，也会让 `const T &r = qMin(a, b)` 这类调用点的语义变化。
+// 加拷贝，也会让 `const T &r = pkMin(a, b)` 这类调用点的语义变化。
 // 由此而来的陷阱：实参是临时量（字面量）时，返回的引用只在那条 full-expression
 // 内有效，跨语句用就悬垂。tests 里对 qBound 的字面量调用都先拷进具名变量。
 template <typename T>
-constexpr inline const T &qMin(const T &a, const T &b) { return (a < b) ? a : b; }
+constexpr inline const T &pkMin(const T &a, const T &b) { return (a < b) ? a : b; }
 template <typename T>
-constexpr inline const T &qMax(const T &a, const T &b) { return (a < b) ? b : a; }
+constexpr inline const T &pkMax(const T &a, const T &b) { return (a < b) ? b : a; }
 template <typename T>
-constexpr inline const T &qBound(const T &min, const T &val, const T &max)
-{ return qMax(min, qMin(max, val)); }
-#endif // !defined(QT_CORE_LIB) || !defined(QGLOBAL_H)
+constexpr inline const T &pkBound(const T &min, const T &val, const T &max)
+{ return pkMax(min, pkMin(max, val)); }
 
-// qglobal.h:900-917。相对误差，右端取 qMin(|p1|, |p2|)：任何一侧是 0 时永远
+// qglobal.h:900-917。相对误差，右端取 pkMin(|p1|, |p2|)：任何一侧是 0 时永远
 // 不成立（两个方向都是 false）。double 的相对阈值 1e-12、float 的 1e-5。
 //
 // **公式住在 pkQt* 这组名字里，而不是 qFuzzy* 里** —— 这不是风格，是必需：
@@ -162,41 +158,41 @@ constexpr inline const T &qBound(const T &min, const T &val, const T &max)
 // 公式只有这一份（pkQt*），geometry 经转发头命中的也是这份（R-18 折叠后不再
 // 有第二份公式可漂移）。内部一律走 pkQt*，宏改写不到，语义钉死在 Qt 上。
 constexpr inline bool pkQtFuzzyCompare(double p1, double p2)
-{ return (qAbs(p1 - p2) * 1000000000000. <= qMin(qAbs(p1), qAbs(p2))); }
+{ return (pkAbs(p1 - p2) * 1000000000000. <= pkMin(pkAbs(p1), pkAbs(p2))); }
 constexpr inline bool pkQtFuzzyCompare(float p1, float p2)
-{ return (qAbs(p1 - p2) * 100000.f <= qMin(qAbs(p1), qAbs(p2))); }
-constexpr inline bool pkQtFuzzyIsNull(double d) { return qAbs(d) <= 0.000000000001; }
-constexpr inline bool pkQtFuzzyIsNull(float f) { return qAbs(f) <= 0.00001f; }
+{ return (pkAbs(p1 - p2) * 100000.f <= pkMin(pkAbs(p1), pkAbs(p2))); }
+constexpr inline bool pkQtFuzzyIsNull(double d) { return pkAbs(d) <= 0.000000000001; }
+constexpr inline bool pkQtFuzzyIsNull(float f) { return pkAbs(f) <= 0.00001f; }
 
-#if !defined(QT_CORE_LIB) || !defined(QGLOBAL_H)
-// qglobal.h:930 —— `qIsNull(float)` = **精确零**比较（`f == 0.0f`），不是模糊
+// qglobal.h:930 —— `pkIsNull(float)` = **精确零**比较（`f == 0.0f`），不是模糊
 // 比较。与 `qFuzzyIsNull`（阈值 1e-5）是**两个名字、两套语义**：QVector2D/3D/4D
 // 的 isNull() 与 toVector2DAffine/toVector3DAffine 用的是 `qIsNull`（精确零），
 // normalized() 的"已是单位向量/零向量"判定用的是 `qFuzzyIsNull`（模糊）。R-21 T3
 // 的对拍实锤这个区别：`1e-6f` 在 `qIsNull` 眼里是 false、在 `qFuzzyIsNull` 眼里
-// 是 true（探针实测 `qIsNull(1e-6f)=0`、`qFuzzyIsNull(1e-6f)=1`），两侧对拍在
+// 是 true（探针实测 `pkIsNull(1e-6f)=0`、`pkQtFuzzyIsNull(1e-6f)=1`），两侧对拍在
 // isNull/toVector2DAffine 上分家——照 Qt 的精确零。本文件头「范围」注释里原来
 // 把 qIsNull 标"不做"（当时实测调用点 0），R-21 T3 解出三个向量的真实调用点后
 // 补上。不设 pkQt 前缀版：qIsNull 不被 pk/test 的宏改写（那边只 #define
 // qFuzzyIsNull/qFuzzyCompare），没有公式漂移风险。
-constexpr inline bool qIsNull(float f) { return f == 0.0f; }
-constexpr inline bool qIsNull(double d) { return d == 0.0; }
+constexpr inline bool pkIsNull(float f) { return f == 0.0f; }
+constexpr inline bool pkIsNull(double d) { return d == 0.0; }
 
 // 对外的 Qt 名字只是转发，公式不重复第二遍（两份公式必然漂移）。
-#if !defined(qFuzzyCompare) && !defined(qFuzzyIsNull)
+// 仅在 Qt 缺席时提供（QT_CORE_LIB 未定义）；Qt 在场时由真 Qt 的 qglobal.h 提供，
+// 本头不再以 Qt 名定义任何东西（Qt 名与 pk 名彻底分离，与原「让位」设计等价但
+// 不再依赖 include 顺序）。
+#if !defined(QT_CORE_LIB) && !defined(qFuzzyCompare) && !defined(qFuzzyIsNull)
 constexpr inline bool qFuzzyCompare(double p1, double p2) { return pkQtFuzzyCompare(p1, p2); }
 constexpr inline bool qFuzzyCompare(float p1, float p2) { return pkQtFuzzyCompare(p1, p2); }
 constexpr inline bool qFuzzyIsNull(double d) { return pkQtFuzzyIsNull(d); }
 constexpr inline bool qFuzzyIsNull(float f) { return pkQtFuzzyIsNull(f); }
 #endif
 
-#endif // !defined(QT_CORE_LIB) || !defined(QGLOBAL_H) —— qIsNull/qFuzzy* 段至此
-#if !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H)
 
 // ---------------------------------------------------------------------------
 // qnamespace.h:1235-1239（AspectRatioMode）、qnamespace.h:1386-1390（Axis），
-// **逐字照抄**（枚举名与顺序都不能动：调用点写的是 `Qt::KeepAspectRatio` 这类
-// 限定名，取值 0/1/2 还会经 QSize::scaled 的 `mode == Qt::IgnoreAspectRatio`
+// **逐字照抄**（枚举名与顺序都不能动：调用点写的是 `Pk::KeepAspectRatio` 这类
+// 限定名，取值 0/1/2 还会经 QSize::scaled 的 `mode == Pk::IgnoreAspectRatio`
 // 比较进入行为）。实测真 Qt 5.15.7：IgnoreAspectRatio=0 KeepAspectRatio=1
 // KeepAspectRatioByExpanding=2，XAxis=0 YAxis=1 ZAxis=2，sizeof=4。
 //
@@ -205,15 +201,15 @@ constexpr inline bool qFuzzyIsNull(float f) { return pkQtFuzzyIsNull(f); }
 // SizeMode/FillRule/GlobalColor/TransformationMode，pk/namespace 提供其余枚举，
 // 同一 TU 并集可见）。与「全局 Pk 前缀、不引 namespace」那条不冲突：那条针对的
 // 是我们自己的类型（compat 垫片靠 `#define QRect PkRect`，而 Krita 里有
-// `class QRect;` 前置声明），而这两个枚举在调用点上**本来就是 `Qt::` 限定的**，
+// `class QRect;` 前置声明），而这两个枚举在调用点上**本来就是 `Pk::` 限定的**，
 // 不套 namespace 反而对不上。
 //
 // 为什么住 pk/global 而不是 pk/geometry 或 compat/：geometry 的 PkSize.h /
-// PkTransform.h 成员签名要用它们（`scaled(const PkSize &, Qt::AspectRatioMode)`、
-// `rotate(qreal, Qt::Axis)`），而几何头**不许依赖 compat/**（对拍的 -I 里绝不能
+// PkTransform.h 成员签名要用它们（`scaled(const PkSize &, Pk::AspectRatioMode)`、
+// `rotate(qreal, Pk::Axis)`），而几何头**不许依赖 compat/**（对拍的 -I 里绝不能
 // 有 compat，否则两侧解析成同一个类型）。R-18 折叠后 geometry 经转发头命中这里，
 // 与 Qt 的形态一致（qsize.h 自己 #include <QtCore/qnamespace.h>）。
-namespace Qt {
+namespace Pk {
 enum AspectRatioMode {
     IgnoreAspectRatio,
     KeepAspectRatio,
@@ -226,22 +222,22 @@ enum Axis {
     ZAxis
 };
 
-// qnamespace.h:1185-1187 —— `Qt::SizeMode`，逐字照抄
+// qnamespace.h:1185-1187 —— `Pk::SizeMode`，逐字照抄
 enum SizeMode {
     AbsoluteSize,
     RelativeSize
 };
 
 // ---------------------------------------------------------------------------
-// qnamespace.h:1352-1355（R-21 T2）—— `Qt::FillRule`，逐字照抄
+// qnamespace.h:1352-1355（R-21 T2）—— `Pk::FillRule`，逐字照抄
 // （OddEvenFill=0 WindingFill=1，普通枚举无显式取值、按声明顺序编号）。
 //
 // **取值经真 Qt 5.15.7 探针实测确认**（不是凭 Qt 文档记忆硬编）：
 //   g++ -I$QT/include/QtCore probe.cpp -lQt5Core，打印
-//   `(int)Qt::OddEvenFill` / `(int)Qt::WindingFill` / `sizeof(Qt::FillRule)`
+//   `(int)Pk::OddEvenFill` / `(int)Pk::WindingFill` / `sizeof(Pk::FillRule)`
 //   → `OddEvenFill=0 WindingFill=1 sizeof=4`，与头文件声明顺序一致。
 //
-// 真实调用点 ≥15 处，全部经 `PkPolygonF::containsPoint(PkPointF, Qt::FillRule)`
+// 真实调用点 ≥15 处，全部经 `PkPolygonF::containsPoint(PkPointF, Pk::FillRule)`
 // 落到这里（`kis_algebra_2d.cpp:74,260,1393,2446,2508`、
 // `kis_cage_transform_worker.cpp:121,290`、
 // `kis_grid_interpolation_tools.h:270,300,448`、
@@ -249,12 +245,12 @@ enum SizeMode {
 // `PerspectiveEllipseAssistant.cc:601`、`kis_free_transform_strategy.cpp:212`、
 // `kis_perspective_transform_strategy.cpp:167`、`SvgTextTool.cpp:807,810,821`、
 // `CutThroughShapeStrategy.cpp:142` 等）——判据①「一项不少」直接要求。
-// `setFillRule`/`Qt::FillRule` 在 `QPainterPath`（`KoPathShape` 等）上的用量
+// `setFillRule`/`Pk::FillRule` 在 `QPainterPath`（`KoPathShape` 等）上的用量
 // **不算在 R-21 内**——那是 R-22（`QPainterPath`）的事，这里只做
 // `PkPolygonF::containsPoint` 这一个消费者。
 //
 // 放 PkGlobal.h 而不是 pk/geometry/PkPolygon.h：与 AspectRatioMode/Axis 同一条
-// 理由（`namespace Qt` 只在这一处出现，几何头**不许依赖 compat/**）。
+// 理由（`namespace Pk` 只在这一处出现，几何头**不许依赖 compat/**）。
 // ---------------------------------------------------------------------------
 enum FillRule {
     OddEvenFill,
@@ -262,8 +258,8 @@ enum FillRule {
 };
 
 // ---------------------------------------------------------------------------
-// qnamespace.h:75-96 —— `Qt::GlobalColor`，**逐字照抄**（R-15 交接：`PkImage`
-// 的 `fill(Qt::GlobalColor)` 需要这个类型，签名要用，理由与 AspectRatioMode/
+// qnamespace.h:75-96 —— `Pk::GlobalColor`，**逐字照抄**（R-15 交接：`PkImage`
+// 的 `fill(Pk::GlobalColor)` 需要这个类型，签名要用，理由与 AspectRatioMode/
 // Axis 完全同构——几何头/`pk/image` 头都不许依赖 `compat/`，对拍要求两侧真的
 // 分别 include 各自的头，混进 compat 会让对拍恒等）。
 //
@@ -311,7 +307,7 @@ enum GlobalColor {
 };
 
 // ---------------------------------------------------------------------------
-// qnamespace.h:1381-1384 —— `Qt::TransformationMode`，**逐字照抄**（R-15
+// qnamespace.h:1381-1384 —— `Pk::TransformationMode`，**逐字照抄**（R-15
 // 交接：`PkImage::scaled()`/`transformed()` 的形参类型，序数 FastTransformation=0
 // SmoothTransformation=1，真 Qt 5.15.7 实测确认）。两个值都有真实调用点
 // （R-15 plan 用量表：`.scaled()` 5 文件 7 处、`.transformed()` 4-5 文件，
@@ -322,14 +318,12 @@ enum TransformationMode {
     SmoothTransformation
 };
 }
-#endif // !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H) —— namespace Qt 段至此（真 Qt qnamespace.h 在场则让位）
 
-#if !defined(QT_CORE_LIB) || !defined(QMATH_H)
 // qmath.h:68-76。语义是 int(floor(v))（向 -∞）与 int(ceil(v))（向 +∞）。
 // ⚠ 逐字照抄 `int(floor(v))` 写不了 constexpr（std::floor 在 C++17 非 constexpr），
 // 这里用等价公式 `int(v) - (v < int(v))` / `int(v) + (v > int(v))`（int(v) 是向
-// 零截断，负半值差 1）。实测真 Qt 5.15.7：qFloor(-0.5)==-1、qFloor(-2.7)==-3、
-// qCeil(2.3)==3、qCeil(-0.5)==0，tests/test_global.cpp 全部钉住。不实现
+// 零截断，负半值差 1）。实测真 Qt 5.15.7：pkFloor(-0.5)==-1、pkFloor(-2.7)==-3、
+// pkCeil(2.3)==3、pkCeil(-0.5)==0，tests/test_global.cpp 全部钉住。不实现
 // `-int(-v)` 这种捷径——它对 2.3 给 2 而真 Qt 给 3，是行为差异。
 //
 // ⚠ 修复轮（R-18 task-2 review Important 1）：±inf/NaN 的 int(v) 越界是 UB，
@@ -338,33 +332,31 @@ enum TransformationMode {
 // 上走 `pkTruncated+1` 成 INT_MIN+1，与 Qt 分家。这里对非有限值**原样返回 int(v)**
 // （= INT_MIN）；有限输入永不进 guard，行为逐位不变。guard 用 v!=v / ±max 比较
 // 而不是 std::isfinite —— C++17 下 std::isfinite 非 constexpr，比较式是。
-constexpr inline int qFloor(qreal v)
+constexpr inline int pkFloor(qreal v)
 {
     const int pkTruncated = int(v);
     if (v != v || v > std::numeric_limits<double>::max() || v < -std::numeric_limits<double>::max())
         return pkTruncated;   // 非有限值：原样截断（x86 → INT_MIN），同 Qt int(floor(±inf))
     return (v < pkTruncated) ? pkTruncated - 1 : pkTruncated;
 }
-constexpr inline int qCeil(qreal v)
+constexpr inline int pkCeil(qreal v)
 {
     const int pkTruncated = int(v);
     if (v != v || v > std::numeric_limits<double>::max() || v < -std::numeric_limits<double>::max())
         return pkTruncated;   // 非有限值：原样截断（x86 → INT_MIN），同 Qt int(ceil(±inf))
     return (v > pkTruncated) ? pkTruncated + 1 : pkTruncated;
 }
-#endif // !defined(QT_CORE_LIB) || !defined(QMATH_H)
 // ⚠ 让位守卫（R-34 终审）：qmath.h 不被 qglobal.h 拉（只有 <QtMath>/QtCore umbrella
 // 拉它）。real-Qt 在场但没 include <QtMath> 的 TU 里，真 Qt 的 qFloor/qCeil 不可见，
 // pk 版仍应可用——所以守卫是 `!QT_CORE_LIB || !QMATH_H`（QMATH_H 是真 Qt qmath.h 的
 // include guard；mixed TU 按「Qt 头在前」顺序，Qt 先定义则 pk 让位、Qt 未定义则 pk
 // 提供）。反序（pk 先、Qt 后）会让 Qt qmath.h 无条件重定义，同 README 登记的约定。
 
-#if !defined(QT_CORE_LIB) || !defined(QALGORITHMS_H)
 // qmath.h:247-258 的「非内置 clz」分支（逐字照抄）。语义：返回**严格大于** v 的
 // 最小 2 的幂，v==0 → 1；v ≥ 2^31（含 0x80000000）时 OR 级联把低 31 位全填成 1、
 // ++v 回绕到 0（实测真 Qt 5.15.7 确认，内置 clz 路径同样给 0）。所以 v=1024 → 2048
 // 而不是 1024——名字叫 NextPowerOfTwo，不含等值。
-constexpr inline quint32 qNextPowerOfTwo(quint32 v)
+constexpr inline quint32 pkNextPowerOfTwo(quint32 v)
 {
     v |= v >> 1;
     v |= v >> 2;
@@ -374,7 +366,6 @@ constexpr inline quint32 qNextPowerOfTwo(quint32 v)
     ++v;
     return v;
 }
-#endif // !defined(QT_CORE_LIB) || !defined(QALGORITHMS_H)
 // qNextPowerOfTwo 在真 Qt qalgorithms.h（同样不被 qglobal.h 拉），守卫同 qFloor 一条。
 
 // qnumeric.h:48-59。真 Qt 里这些是 Q_CORE_EXPORT 的非 inline 函数（实现在
@@ -382,17 +373,15 @@ constexpr inline quint32 qNextPowerOfTwo(quint32 v)
 // 曾照此形态把定义放 PkGlobal.cpp；R-18 折叠后那份 .cpp 已无用（本头按 R-18
 // 交付面做 constexpr inline）。std::isnan 在 libstdc++ 的 <cmath> 里按 constexpr
 // 处理，下面编译与测试都过了。
-// float 重载不是摆设：qIsNaN(float) 按 float 精度判，实参提升到 double 后取值
+// float 重载不是摆设：pkIsNaN(float) 按 float 精度判，实参提升到 double 后取值
 // 一致但语义不同，Krita 里 float 版有调用点。
-#if !defined(QT_CORE_LIB) || !defined(QNUMERIC_H)  // 真 Qt qnumeric.h（qglobal.h:1303 拉它）在场则让位
-constexpr inline bool qIsNaN(double d) { return std::isnan(d); }
-constexpr inline bool qIsNaN(float f) { return std::isnan(f); }
-constexpr inline double qInf() { return std::numeric_limits<double>::infinity(); }
+constexpr inline bool pkIsNaN(double d) { return std::isnan(d); }
+constexpr inline bool pkIsNaN(float f) { return std::isnan(f); }
+constexpr inline double pkInf() { return std::numeric_limits<double>::infinity(); }
 
 // qnumeric.h:58。quiet NaN，std::numeric_limits<double>::quiet_NaN()。无冲突，无条件。
-constexpr inline double qQNaN() { return std::numeric_limits<double>::quiet_NaN(); }
+constexpr inline double pkQNaN() { return std::numeric_limits<double>::quiet_NaN(); }
 
-#endif // !defined(QT_CORE_LIB) || !defined(QNUMERIC_H)
 
 // PkGlobal.cpp 实现：fprintf(stderr, "ASSERT: %s in file %s, line %d\n") + abort()。
 void pk_qt_assert(const char *what, const char *file, int line);

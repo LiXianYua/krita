@@ -8,7 +8,7 @@
 #ifndef KOPATHCONTROLPOINTMOVESTRATEGY_H
 #define KOPATHCONTROLPOINTMOVESTRATEGY_H
 
-#include <QPointF>
+#include <PkPoint.h>
 #include "KoInteractionStrategy.h"
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"
@@ -25,17 +25,17 @@ class KoPathControlPointMoveStrategy : public KoInteractionStrategy
 {
 public:
     KoPathControlPointMoveStrategy(KoPathTool *tool, const KoPathPointData &point,
-                                   KoPathPoint::PointType type, const QPointF &pos);
+                                   KoPathPoint::PointType type, const PkPointF &pos);
     ~KoPathControlPointMoveStrategy() override;
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
     KUndo2Command* createCommand() override;
 
 private:
     /// the last mouse position
-    QPointF m_lastPosition;
+    PkPointF m_lastPosition;
     /// the accumulated point move amount
-    QPointF m_move;
+    PkPointF m_move;
 
     KoPathTool *m_tool;
     KoPathPointData m_pointData;

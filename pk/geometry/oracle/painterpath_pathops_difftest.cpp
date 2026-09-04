@@ -86,7 +86,7 @@ const char *shapeName(ShapeKind kind)
     return "unknown";
 }
 
-QPainterPath makeQt(ShapeKind kind, Qt::FillRule rule)
+QPainterPath makeQt(ShapeKind kind, Pk::FillRule rule)
 {
     QPainterPath path;
     if (kind == ShapeKind::Empty)
@@ -141,7 +141,7 @@ QPainterPath makeQt(ShapeKind kind, Qt::FillRule rule)
     return path;
 }
 
-pkoracle::PkPainterPath makePk(ShapeKind kind, pkoracle::Qt::FillRule rule)
+pkoracle::PkPainterPath makePk(ShapeKind kind, pkoracle::Pk::FillRule rule)
 {
     using namespace pkoracle;
     PkPainterPath path;
@@ -460,10 +460,10 @@ const char *opName(BinaryOp op)
 
 void compareBinary(BinaryOp op, ShapeKind a, ShapeKind b, int fillA, int fillB)
 {
-    const QPainterPath qa = makeQt(a, fillA ? Qt::WindingFill : Qt::OddEvenFill);
-    const QPainterPath qb = makeQt(b, fillB ? Qt::WindingFill : Qt::OddEvenFill);
-    const auto pa = makePk(a, fillA ? pkoracle::Qt::WindingFill : pkoracle::Qt::OddEvenFill);
-    const auto pb = makePk(b, fillB ? pkoracle::Qt::WindingFill : pkoracle::Qt::OddEvenFill);
+    const QPainterPath qa = makeQt(a, fillA ? Pk::WindingFill : Pk::OddEvenFill);
+    const QPainterPath qb = makeQt(b, fillB ? Pk::WindingFill : Pk::OddEvenFill);
+    const auto pa = makePk(a, fillA ? pkoracle::Pk::WindingFill : pkoracle::Pk::OddEvenFill);
+    const auto pb = makePk(b, fillB ? pkoracle::Pk::WindingFill : pkoracle::Pk::OddEvenFill);
 
     QPainterPath qr;
     pkoracle::PkPainterPath pr;
@@ -560,24 +560,24 @@ void compareAdversarialCubics()
 void compareEqualityEdgeCases()
 {
     QPainterPath qtEmpty;
-    qtEmpty.setFillRule(Qt::WindingFill);
+    qtEmpty.setFillRule(Pk::WindingFill);
     QPainterPath qtOrigin;
-    qtOrigin.setFillRule(Qt::WindingFill);
+    qtOrigin.setFillRule(Pk::WindingFill);
     qtOrigin.moveTo(0, 0);
 
     pkoracle::PkPainterPath pkEmpty;
-    pkEmpty.setFillRule(pkoracle::Qt::WindingFill);
+    pkEmpty.setFillRule(pkoracle::Pk::WindingFill);
     pkoracle::PkPainterPath pkOrigin;
-    pkOrigin.setFillRule(pkoracle::Qt::WindingFill);
+    pkOrigin.setFillRule(pkoracle::Pk::WindingFill);
     pkOrigin.moveTo(0, 0);
     rec((qtEmpty == qtOrigin) == (pkEmpty == pkOrigin),
         "equality-edge:empty-vs-origin:fill=winding");
 
     QPainterPath qtOddOrigin;
-    qtOddOrigin.setFillRule(Qt::OddEvenFill);
+    qtOddOrigin.setFillRule(Pk::OddEvenFill);
     qtOddOrigin.moveTo(0, 0);
     pkoracle::PkPainterPath pkOddOrigin;
-    pkOddOrigin.setFillRule(pkoracle::Qt::OddEvenFill);
+    pkOddOrigin.setFillRule(pkoracle::Pk::OddEvenFill);
     pkOddOrigin.moveTo(0, 0);
     rec((qtEmpty == qtOddOrigin) == (pkEmpty == pkOddOrigin),
         "equality-edge:empty-vs-origin:fill-mismatch");
@@ -642,14 +642,14 @@ int main()
 
     for (int fillA = 0; fillA < 2; ++fillA) {
         for (ShapeKind a : kinds) {
-            const QPainterPath qa = makeQt(a, fillA ? Qt::WindingFill : Qt::OddEvenFill);
-            const auto pa = makePk(a, fillA ? pkoracle::Qt::WindingFill : pkoracle::Qt::OddEvenFill);
+            const QPainterPath qa = makeQt(a, fillA ? Pk::WindingFill : Pk::OddEvenFill);
+            const auto pa = makePk(a, fillA ? pkoracle::Pk::WindingFill : pkoracle::Pk::OddEvenFill);
             compareResult(qa.simplified(), pa.simplified(),
                           baseTag("simplified", a, a, fillA, fillA));
             for (int fillB = 0; fillB < 2; ++fillB) {
                 for (ShapeKind b : kinds) {
-                    const QPainterPath qb = makeQt(b, fillB ? Qt::WindingFill : Qt::OddEvenFill);
-                    const auto pb = makePk(b, fillB ? pkoracle::Qt::WindingFill : pkoracle::Qt::OddEvenFill);
+                    const QPainterPath qb = makeQt(b, fillB ? Pk::WindingFill : Pk::OddEvenFill);
+                    const auto pb = makePk(b, fillB ? pkoracle::Pk::WindingFill : pkoracle::Pk::OddEvenFill);
                     const std::string relation = baseTag("relation", a, b, fillA, fillB);
                     rec((qa == qb) == (pa == pb), relation + ":field=path-equality");
                     rec(qa.contains(qb) == pa.contains(pb), relation + ":field=contains-path");

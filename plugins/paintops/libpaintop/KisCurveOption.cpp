@@ -68,7 +68,7 @@ qreal KisCurveOption::ValueComponents::rotationLikeValue(qreal normalizedBaseAng
     const qreal realAdditivePart = hasAdditive ? additive : 0;
 
     qreal value = KisAlgebra2D::wrapValue(2 * offset + constant * (scalingPartCoeff * realScalingPart + realAdditivePart), -1.0, 1.0);
-    if (qIsNaN(value)) {
+    if (pkIsNaN(value)) {
         qWarning() << "rotationLikeValue returns NaN!" << normalizedBaseAngle << absoluteAxesFlipped;
         value = 0;
     }
@@ -82,7 +82,7 @@ qreal KisCurveOption::ValueComponents::sizeLikeValue() const {
     const qreal realScalingPart = hasScaling ? scaling : 1.0;
     const qreal realAdditivePart = hasAdditive ? KisDynamicSensor::additiveToScaling(additive) : 1.0;
 
-    return qBound(minSizeLikeValue,
+    return pkBound(minSizeLikeValue,
                   constant * offset * realScalingPart * realAdditivePart,
                   maxSizeLikeValue);
 }

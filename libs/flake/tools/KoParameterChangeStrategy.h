@@ -9,7 +9,7 @@
 
 #include "kritaflake_export.h"
 #include "KoInteractionStrategy.h"
-#include <QPointF>
+#include <PkPoint.h>
 
 class KoParameterShape;
 class KoParameterChangeStrategyPrivate;
@@ -27,7 +27,7 @@ public:
     KoParameterChangeStrategy(KoToolBase *tool, KoParameterShape *parameterShape, int handleId);
     ~KoParameterChangeStrategy() override;
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
     KUndo2Command* createCommand() override;
 

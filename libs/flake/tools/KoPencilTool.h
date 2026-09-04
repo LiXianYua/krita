@@ -32,7 +32,7 @@ public:
     void mouseReleaseEvent(KoPointerEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
 
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
     /**
@@ -44,7 +44,7 @@ public:
     const KoShapeStroke &strokeTemplate() const;
 
 protected:
-    QList<QPointer<QWidget> > createOptionWidgets() override;
+    PkList<PkPointer<QWidget> > createOptionWidgets() override;
 
     /**
      * Add path shape to document.
@@ -57,7 +57,7 @@ protected:
     KoPathShape * path();
     void setFittingError(qreal fittingError);
     qreal getFittingError();
-    void setStrokeColor(QColor color);
+    void setStrokeColor(PkColor color);
 
 private Q_SLOTS:
     void selectMode(int mode);
@@ -69,12 +69,12 @@ protected Q_SLOTS:
 
 private:
 
-    qreal lineAngle(const QPointF &p1, const QPointF &p2);
-    void addPoint(const QPointF & point);
+    qreal lineAngle(const PkPointF &p1, const PkPointF &p2);
+    void addPoint(const PkPointF & point);
     void finish(bool closePath);
 
     /// returns the nearest existing path point
-    KoPathPoint* endPointAtPosition(const QPointF &position);
+    KoPathPoint* endPointAtPosition(const PkPointF &position);
 
     /// Connects given path with the ones we hit when starting/finishing
     bool connectPaths(KoPathShape *pathShape, KoPathPoint *pointAtStart, KoPathPoint *pointAtEnd);
@@ -87,10 +87,10 @@ private:
     qreal m_combineAngle {15.0};
     qreal m_fittingError {5.0};
     bool m_close {false};
-    QColor m_strokeColor {Qt::black};
+    PkColor m_strokeColor {Pk::black};
     KoShapeStroke m_strokeTemplate;
 
-    QList<QPointF> m_points; // the raw points
+    PkList<PkPointF> m_points; // the raw points
 
     KoPathShape * m_shape {0};
     KoPathPoint *m_existingStartPoint {0}; ///< an existing path point we started a new path at

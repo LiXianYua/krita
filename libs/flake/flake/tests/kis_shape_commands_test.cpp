@@ -33,9 +33,9 @@ void KisShapeCommandsTest::testGrouping()
 {
     TestUtil::ReferenceImageChecker chk("grouping", "shape_commands_test");
 
-    QRect refRect(0,0,64,64);
+    PkRect refRect(0,0,64,64);
 
-    QScopedPointer<KisDocument> doc(new TestKisDocument);
+    PkScopedPointer<KisDocument> doc(new TestKisDocument);
     TestUtil::MaskParent p(refRect);
 
     const qreal resolution = 72.0 / 72.0;
@@ -49,10 +49,10 @@ void KisShapeCommandsTest::testGrouping()
     {
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
-        path->moveTo(QPointF(5, 5));
-        path->lineTo(QPointF(5, 55));
-        path->lineTo(QPointF(55, 55));
-        path->lineTo(QPointF(55,  5));
+        path->moveTo(PkPointF(5, 5));
+        path->lineTo(PkPointF(5, 55));
+        path->lineTo(PkPointF(55, 55));
+        path->lineTo(PkPointF(55,  5));
         path->close();
         path->normalize();
         path->setBackground(toQShared(new KoColorBackground(Qt::red)));
@@ -65,10 +65,10 @@ void KisShapeCommandsTest::testGrouping()
     {
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
-        path->moveTo(QPointF(30, 30));
-        path->lineTo(QPointF(30, 60));
-        path->lineTo(QPointF(60, 60));
-        path->lineTo(QPointF(60, 30));
+        path->moveTo(PkPointF(30, 30));
+        path->lineTo(PkPointF(30, 60));
+        path->lineTo(PkPointF(60, 60));
+        path->lineTo(PkPointF(60, 30));
         path->close();
         path->normalize();
         path->setBackground(toQShared(new KoColorBackground(Qt::green)));
@@ -86,13 +86,13 @@ void KisShapeCommandsTest::testGrouping()
 
     chk.checkImage(p.image, "00_initial_layer_update");
 
-    QList<KoShape*> shapes = shapeLayer->shapes();
+    PkList<KoShape*> shapes = shapeLayer->shapes();
 
     KoShapeGroup *group = new KoShapeGroup();
     group->setName("group_shape");
     shapeLayer->addShape(group);
 
-    QScopedPointer<KoShapeGroupCommand> cmd(
+    PkScopedPointer<KoShapeGroupCommand> cmd(
         new KoShapeGroupCommand(group, shapes, true));
 
     cmd->redo();
@@ -119,9 +119,9 @@ void KisShapeCommandsTest::testResizeShape(bool normalizeGroup)
 {
     TestUtil::ReferenceImageChecker chk("resize_shape", "shape_commands_test");
 
-    QRect refRect(0,0,64,64);
+    PkRect refRect(0,0,64,64);
 
-    QScopedPointer<KisDocument> doc(new TestKisDocument);
+    PkScopedPointer<KisDocument> doc(new TestKisDocument);
     TestUtil::MaskParent p(refRect);
 
     const qreal resolution = 72.0 / 72.0;
@@ -134,10 +134,10 @@ void KisShapeCommandsTest::testResizeShape(bool normalizeGroup)
     {
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
-        path->moveTo(QPointF(5, 5));
-        path->lineTo(QPointF(5, 55));
-        path->lineTo(QPointF(55, 55));
-        path->lineTo(QPointF(55,  5));
+        path->moveTo(PkPointF(5, 5));
+        path->lineTo(PkPointF(5, 55));
+        path->lineTo(PkPointF(55, 55));
+        path->lineTo(PkPointF(55,  5));
         path->close();
         path->normalize();
         path->setBackground(toQShared(new KoColorBackground(Qt::red)));
@@ -150,10 +150,10 @@ void KisShapeCommandsTest::testResizeShape(bool normalizeGroup)
     {
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
-        path->moveTo(QPointF(30, 30));
-        path->lineTo(QPointF(30, 60));
-        path->lineTo(QPointF(60, 60));
-        path->lineTo(QPointF(60, 30));
+        path->moveTo(PkPointF(30, 30));
+        path->lineTo(PkPointF(30, 60));
+        path->lineTo(PkPointF(60, 60));
+        path->lineTo(PkPointF(60, 30));
         path->close();
         path->normalize();
         path->setBackground(toQShared(new KoColorBackground(Qt::green)));
@@ -171,13 +171,13 @@ void KisShapeCommandsTest::testResizeShape(bool normalizeGroup)
 
     chk.checkImage(p.image, "00_initial_layer_update");
 
-    QList<KoShape*> shapes = shapeLayer->shapes();
+    PkList<KoShape*> shapes = shapeLayer->shapes();
 
     KoShapeGroup *group = new KoShapeGroup();
     group->setName("group_shape");
     shapeLayer->addShape(group);
 
-    QScopedPointer<KoShapeGroupCommand> cmd(
+    PkScopedPointer<KoShapeGroupCommand> cmd(
         new KoShapeGroupCommand(group, shapes, normalizeGroup));
 
     cmd->redo();
@@ -194,12 +194,12 @@ void KisShapeCommandsTest::testResizeShape(bool normalizeGroup)
     qDebug() << ppVar(group->outlineRect());
     qDebug() << ppVar(group->transformation());
 
-    QCOMPARE(group->absolutePosition(KoFlake::TopLeft), QPointF(5,5));
-    QCOMPARE(group->absolutePosition(KoFlake::BottomRight), QPointF(60,60));
+    QCOMPARE(group->absolutePosition(KoFlake::TopLeft), PkPointF(5,5));
+    QCOMPARE(group->absolutePosition(KoFlake::BottomRight), PkPointF(60,60));
 
 
-    const QPointF stillPoint = group->absolutePosition(KoFlake::BottomRight);
-    KoFlake::resizeShapeCommon(group, 1.2, 1.4, stillPoint, false, true, QTransform());
+    const PkPointF stillPoint = group->absolutePosition(KoFlake::BottomRight);
+    KoFlake::resizeShapeCommon(group, 1.2, 1.4, stillPoint, false, true, PkTransform());
 
     qDebug() << "After:";
     qDebug() << ppVar(group->absolutePosition(KoFlake::TopLeft));
@@ -207,8 +207,8 @@ void KisShapeCommandsTest::testResizeShape(bool normalizeGroup)
     qDebug() << ppVar(group->outlineRect());
     qDebug() << ppVar(group->transformation());
 
-    QCOMPARE(group->absolutePosition(KoFlake::TopLeft), QPointF(-6,-17));
-    QCOMPARE(group->absolutePosition(KoFlake::BottomRight), QPointF(60,60));
+    QCOMPARE(group->absolutePosition(KoFlake::TopLeft), PkPointF(-6,-17));
+    QCOMPARE(group->absolutePosition(KoFlake::BottomRight), PkPointF(60,60));
 }
 
 void KisShapeCommandsTest::testResizeShape()
@@ -229,24 +229,24 @@ struct ShapeWrapper
 
         path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
-        path->moveTo(QPointF(10, 10));
-        path->lineTo(QPointF(110, 10));
+        path->moveTo(PkPointF(10, 10));
+        path->lineTo(PkPointF(110, 10));
         path->setStroke(toQShared(new KoShapeStroke()));
         path->setName("shape1");
         path->setZIndex(1);
         group->addShape(path);
 
-        QCOMPARE(path->outlineRect(), QRectF(10,10,100,0));
+        QCOMPARE(path->outlineRect(), PkRectF(10,10,100,0));
     }
 
     void rotate90cw() {
-        QTransform t;
+        PkTransform t;
         t.rotate(90);
         path->setTransformation(t);
-        QCOMPARE(path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        QCOMPARE(path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
-    QScopedPointer<KoShapeGroup> group;
+    PkScopedPointer<KoShapeGroup> group;
     KoPathShape *path = 0;
 
 };
@@ -257,66 +257,66 @@ void KisShapeCommandsTest::testResizeNullShape()
     {
         ShapeWrapper w;
         qDebug() << "Normal resize mode, X, 200%, top-left";
-        KoFlake::resizeShape(w.path, 2.0, 1.0, QPointF(10,10), false);
-        QCOMPARE(w.path->outlineRect(), QRectF(20, 10, 200, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 200, 0));
+        KoFlake::resizeShape(w.path, 2.0, 1.0, PkPointF(10,10), false);
+        QCOMPARE(w.path->outlineRect(), PkRectF(20, 10, 200, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 200, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Normal resize mode, X, 200%, top-right";
-        KoFlake::resizeShape(w.path, 2.0, 1.0, QPointF(110,10), false);
-        QCOMPARE(w.path->outlineRect(), QRectF(20, 10, 200, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-90, 10, 200, 0));
+        KoFlake::resizeShape(w.path, 2.0, 1.0, PkPointF(110,10), false);
+        QCOMPARE(w.path->outlineRect(), PkRectF(20, 10, 200, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-90, 10, 200, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Normal resize mode, X, 200%, outside-x";
-        KoFlake::resizeShape(w.path, 2.0, 1.0, QPointF(120,10), false);
-        QCOMPARE(w.path->outlineRect(), QRectF(20, 10, 200, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-100, 10, 200, 0));
+        KoFlake::resizeShape(w.path, 2.0, 1.0, PkPointF(120,10), false);
+        QCOMPARE(w.path->outlineRect(), PkRectF(20, 10, 200, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-100, 10, 200, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Normal resize mode, X, 200%, outside-y";
-        KoFlake::resizeShape(w.path, 2.0, 1.0, QPointF(110,20), false);
-        QCOMPARE(w.path->outlineRect(), QRectF(20, 10, 200, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-90, 10, 200, 0));
+        KoFlake::resizeShape(w.path, 2.0, 1.0, PkPointF(110,20), false);
+        QCOMPARE(w.path->outlineRect(), PkRectF(20, 10, 200, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-90, 10, 200, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Normal resize mode, Y, 200%, top-left";
-        KoFlake::resizeShape(w.path, 1.0, 2.0, QPointF(10,10), false);
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 100, 0));
+        KoFlake::resizeShape(w.path, 1.0, 2.0, PkPointF(10,10), false);
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 100, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Normal resize mode, Y, 200%, top-right";
-        KoFlake::resizeShape(w.path, 1.0, 2.0, QPointF(110,10), false);
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 100, 0));
+        KoFlake::resizeShape(w.path, 1.0, 2.0, PkPointF(110,10), false);
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 100, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Normal resize mode, Y, 200%, outside-x";
-        KoFlake::resizeShape(w.path, 1.0, 2.0, QPointF(120,10), false);
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 100, 0));
+        KoFlake::resizeShape(w.path, 1.0, 2.0, PkPointF(120,10), false);
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 100, 0));
     }
 
     {
         // TODO: perhaps wrong? (though this combination is not used atm)
         ShapeWrapper w;
         qDebug() << "Normal resize mode, Y, 200%, outside-y";
-        KoFlake::resizeShape(w.path, 1.0, 2.0, QPointF(110,20), false);
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 100, 0));
+        KoFlake::resizeShape(w.path, 1.0, 2.0, PkPointF(110,20), false);
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 100, 0));
     }
 }
 
@@ -326,74 +326,74 @@ void KisShapeCommandsTest::testResizeNullShapeGlobal()
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global resize mode (not scale), X, 200%, top-left";
-        KoFlake::resizeShape(w.path, 2.0, 1.0, QPointF(-10,10), true);
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::resizeShape(w.path, 2.0, 1.0, PkPointF(-10,10), true);
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global resize mode (not scale), X, 200%, top-right";
-        KoFlake::resizeShape(w.path, 2.0, 1.0, QPointF(-10,110), true);
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::resizeShape(w.path, 2.0, 1.0, PkPointF(-10,110), true);
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global resize mode (not scale), X, 200%, outside-x";
-        KoFlake::resizeShape(w.path, 2.0, 1.0, QPointF(-10,120), true);
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::resizeShape(w.path, 2.0, 1.0, PkPointF(-10,120), true);
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global resize mode (not scale), X, 200%, outside-y";
-        KoFlake::resizeShape(w.path, 2.0, 1.0, QPointF(-20,110), true);
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
+        KoFlake::resizeShape(w.path, 2.0, 1.0, PkPointF(-20,110), true);
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
 
         // TODO: perhaps wrong? (though this combination is not used atm)
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global resize mode (not scale), Y, 200%, top-left";
-        KoFlake::resizeShape(w.path, 1.0, 2.0, QPointF(-10,10), true);
-        QCOMPARE(w.path->outlineRect(), QRectF(20, 10, 200, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 200));
+        KoFlake::resizeShape(w.path, 1.0, 2.0, PkPointF(-10,10), true);
+        QCOMPARE(w.path->outlineRect(), PkRectF(20, 10, 200, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global resize mode (not scale), Y, 200%, top-right";
-        KoFlake::resizeShape(w.path, 1.0, 2.0, QPointF(-10,110), true);
-        QCOMPARE(w.path->outlineRect(), QRectF(20, 10, 200, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -90, 0, 200));
+        KoFlake::resizeShape(w.path, 1.0, 2.0, PkPointF(-10,110), true);
+        QCOMPARE(w.path->outlineRect(), PkRectF(20, 10, 200, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -90, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global resize mode (not scale), Y, 200%, outside-x";
-        KoFlake::resizeShape(w.path, 1.0, 2.0, QPointF(-10,120), true);
-        QCOMPARE(w.path->outlineRect(), QRectF(20, 10, 200, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -100, 0, 200));
+        KoFlake::resizeShape(w.path, 1.0, 2.0, PkPointF(-10,120), true);
+        QCOMPARE(w.path->outlineRect(), PkRectF(20, 10, 200, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -100, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global resize mode (not scale), Y, 200%, outside-y";
-        KoFlake::resizeShape(w.path, 1.0, 2.0, QPointF(-20,110), true);
-        QCOMPARE(w.path->outlineRect(), QRectF(20, 10, 200, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -90, 0, 200));
+        KoFlake::resizeShape(w.path, 1.0, 2.0, PkPointF(-20,110), true);
+        QCOMPARE(w.path->outlineRect(), PkRectF(20, 10, 200, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -90, 0, 200));
     }
 }
 void KisShapeCommandsTest::testScaleNullShape()
@@ -401,65 +401,65 @@ void KisShapeCommandsTest::testScaleNullShape()
     {
         ShapeWrapper w;
         qDebug() << "Post-scaling mode, X, 200%, top-left";
-        KoFlake::scaleShape(w.path, 2.0, 1.0, QPointF(10,10), QTransform());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 200, 0));
+        KoFlake::scaleShape(w.path, 2.0, 1.0, PkPointF(10,10), PkTransform());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 200, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Post-scaling mode, X, 200%, top-right";
-        KoFlake::scaleShape(w.path, 2.0, 1.0, QPointF(110,10), QTransform());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-90, 10, 200, 0));
+        KoFlake::scaleShape(w.path, 2.0, 1.0, PkPointF(110,10), PkTransform());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-90, 10, 200, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Post-scaling mode, X, 200%, outside-x";
-        KoFlake::scaleShape(w.path, 2.0, 1.0, QPointF(120,10), QTransform());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-100, 10, 200, 0));
+        KoFlake::scaleShape(w.path, 2.0, 1.0, PkPointF(120,10), PkTransform());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-100, 10, 200, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Post-scaling mode, X, 200%, outside-y";
-        KoFlake::scaleShape(w.path, 2.0, 1.0, QPointF(110,20), QTransform());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-90, 10, 200, 0));
+        KoFlake::scaleShape(w.path, 2.0, 1.0, PkPointF(110,20), PkTransform());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-90, 10, 200, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Post-scaling mode, Y, 200%, top-left";
-        KoFlake::scaleShape(w.path, 1.0, 2.0, QPointF(10,10), QTransform());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 100, 0));
+        KoFlake::scaleShape(w.path, 1.0, 2.0, PkPointF(10,10), PkTransform());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 100, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Post-scaling mode, Y, 200%, top-right";
-        KoFlake::scaleShape(w.path, 1.0, 2.0, QPointF(110,10), QTransform());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 100, 0));
+        KoFlake::scaleShape(w.path, 1.0, 2.0, PkPointF(110,10), PkTransform());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 100, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Post-scaling mode, Y, 200%, outside-x";
-        KoFlake::scaleShape(w.path, 1.0, 2.0, QPointF(120,10), QTransform());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 10, 100, 0));
+        KoFlake::scaleShape(w.path, 1.0, 2.0, PkPointF(120,10), PkTransform());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 10, 100, 0));
     }
 
     {
         ShapeWrapper w;
         qDebug() << "Post-scaling mode, Y, 200%, outside-y";
-        KoFlake::scaleShape(w.path, 1.0, 2.0, QPointF(110,20), QTransform());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(10, 0, 100, 0));
+        KoFlake::scaleShape(w.path, 1.0, 2.0, PkPointF(110,20), PkTransform());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(10, 0, 100, 0));
     }
 }
 void KisShapeCommandsTest::testScaleNullShapeCovered()
@@ -468,72 +468,72 @@ void KisShapeCommandsTest::testScaleNullShapeCovered()
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Post scale covered mode, X, 200%, top-left";
-        KoFlake::scaleShape(w.path, 2.0, 1.0, QPointF(-10,10), w.path->transformation());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 200));
+        KoFlake::scaleShape(w.path, 2.0, 1.0, PkPointF(-10,10), w.path->transformation());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Post scale covered mode, X, 200%, top-right";
-        KoFlake::scaleShape(w.path, 2.0, 1.0, QPointF(-10,110), w.path->transformation());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -90, 0, 200));
+        KoFlake::scaleShape(w.path, 2.0, 1.0, PkPointF(-10,110), w.path->transformation());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -90, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Post scale covered mode, X, 200%, outside-x";
-        KoFlake::scaleShape(w.path, 2.0, 1.0, QPointF(-10,120), w.path->transformation());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -100, 0, 200));
+        KoFlake::scaleShape(w.path, 2.0, 1.0, PkPointF(-10,120), w.path->transformation());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -100, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Post scale covered mode, X, 200%, outside-y";
-        KoFlake::scaleShape(w.path, 2.0, 1.0, QPointF(-20,110), w.path->transformation());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -90, 0, 200));
+        KoFlake::scaleShape(w.path, 2.0, 1.0, PkPointF(-20,110), w.path->transformation());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -90, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Post scale covered mode, Y, 200%, top-left";
-        KoFlake::scaleShape(w.path, 1.0, 2.0, QPointF(-10,10), w.path->transformation());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::scaleShape(w.path, 1.0, 2.0, PkPointF(-10,10), w.path->transformation());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Post scale covered mode, Y, 200%, top-right";
-        KoFlake::scaleShape(w.path, 1.0, 2.0, QPointF(-10,110), w.path->transformation());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::scaleShape(w.path, 1.0, 2.0, PkPointF(-10,110), w.path->transformation());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Post scale covered mode, Y, 200%, outside-x";
-        KoFlake::scaleShape(w.path, 1.0, 2.0, QPointF(-10,120), w.path->transformation());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::scaleShape(w.path, 1.0, 2.0, PkPointF(-10,120), w.path->transformation());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Post scale covered mode, Y, 200%, outside-y";
-        KoFlake::scaleShape(w.path, 1.0, 2.0, QPointF(-20,110), w.path->transformation());
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(0, 10, 0, 100));
+        KoFlake::scaleShape(w.path, 1.0, 2.0, PkPointF(-20,110), w.path->transformation());
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(0, 10, 0, 100));
     }
 }
 void KisShapeCommandsTest::testScaleNullShapeGlobal()
@@ -542,72 +542,72 @@ void KisShapeCommandsTest::testScaleNullShapeGlobal()
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global post-scale mode, X, 200%, top-left";
-        KoFlake::scaleShapeGlobal(w.path, 2.0, 1.0, QPointF(-10,10));
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::scaleShapeGlobal(w.path, 2.0, 1.0, PkPointF(-10,10));
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global post-scale mode, X, 200%, top-right";
-        KoFlake::scaleShapeGlobal(w.path, 2.0, 1.0, QPointF(-10,110));
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::scaleShapeGlobal(w.path, 2.0, 1.0, PkPointF(-10,110));
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global post-scale mode, X, 200%, outside-x";
-        KoFlake::scaleShapeGlobal(w.path, 2.0, 1.0, QPointF(-10,120));
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 100));
+        KoFlake::scaleShapeGlobal(w.path, 2.0, 1.0, PkPointF(-10,120));
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global post-scale mode, X, 200%, outside-y";
-        KoFlake::scaleShapeGlobal(w.path, 2.0, 1.0, QPointF(-20,110));
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(0, 10, 0, 100));
+        KoFlake::scaleShapeGlobal(w.path, 2.0, 1.0, PkPointF(-20,110));
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(0, 10, 0, 100));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global post-scale mode, Y, 200%, top-left";
-        KoFlake::scaleShapeGlobal(w.path, 1.0, 2.0, QPointF(-10,10));
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, 10, 0, 200));
+        KoFlake::scaleShapeGlobal(w.path, 1.0, 2.0, PkPointF(-10,10));
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, 10, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global post-scale mode, Y, 200%, top-right";
-        KoFlake::scaleShapeGlobal(w.path, 1.0, 2.0, QPointF(-10,110));
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -90, 0, 200));
+        KoFlake::scaleShapeGlobal(w.path, 1.0, 2.0, PkPointF(-10,110));
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -90, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global post-scale mode, Y, 200%, outside-x";
-        KoFlake::scaleShapeGlobal(w.path, 1.0, 2.0, QPointF(-10,120));
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -100, 0, 200));
+        KoFlake::scaleShapeGlobal(w.path, 1.0, 2.0, PkPointF(-10,120));
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -100, 0, 200));
     }
 
     {
         ShapeWrapper w;
         w.rotate90cw();
         qDebug() << "Global post-scale mode, Y, 200%, outside-y";
-        KoFlake::scaleShapeGlobal(w.path, 1.0, 2.0, QPointF(-20,110));
-        QCOMPARE(w.path->outlineRect(), QRectF(10, 10, 100, 0));
-        QCOMPARE(w.path->absoluteOutlineRect(), QRectF(-10, -90, 0, 200));
+        KoFlake::scaleShapeGlobal(w.path, 1.0, 2.0, PkPointF(-20,110));
+        QCOMPARE(w.path->outlineRect(), PkRectF(10, 10, 100, 0));
+        QCOMPARE(w.path->absoluteOutlineRect(), PkRectF(-10, -90, 0, 200));
     }
 }
 

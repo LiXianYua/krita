@@ -156,16 +156,16 @@ void KoInteractionTool::addInteractionFactory(KoInteractionStrategyFactory *fact
         KIS_SAFE_ASSERT_RECOVER_RETURN(f->id() != factory->id());
     }
 
-    d->interactionFactories.append(QSharedPointer<KoInteractionStrategyFactory>(factory));
+    d->interactionFactories.append(PkSharedPointer<KoInteractionStrategyFactory>(factory));
     std::sort(d->interactionFactories.begin(),
           d->interactionFactories.end(),
           KoInteractionStrategyFactory::compareLess);
 }
 
-void KoInteractionTool::removeInteractionFactory(const QString &id)
+void KoInteractionTool::removeInteractionFactory(const PkString &id)
 {
     Q_D(KoInteractionTool);
-    QList<KoInteractionStrategyFactorySP>::iterator it =
+    PkList<KoInteractionStrategyFactorySP>::iterator it =
             d->interactionFactories.begin();
 
     while (it != d->interactionFactories.end()) {
@@ -177,7 +177,7 @@ void KoInteractionTool::removeInteractionFactory(const QString &id)
     }
 }
 
-bool KoInteractionTool::hasInteractionFactory(const QString &id)
+bool KoInteractionTool::hasInteractionFactory(const PkString &id)
 {
     Q_D(KoInteractionTool);
 

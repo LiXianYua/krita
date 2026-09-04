@@ -19,9 +19,9 @@
 
 using namespace KisMetaData;
 
-uint qHash(const Entry& e)
+uint pkHash(const Entry& e)
 {
-    return qHash(e.qualifiedName());
+    return pkHash(e.qualifiedName());
 }
 
 struct Store::Private {

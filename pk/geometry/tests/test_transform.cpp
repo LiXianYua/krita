@@ -87,7 +87,7 @@ void PkTransformCase::transformEnumIsBitFlagsNotZeroToFive()
 {
     // 实测真 Qt 5.15.7：TxNone=0 TxTranslate=1 TxScale=2 TxRotate=4
     // TxShear=8 TxProject=16。照 `enum { TxNone, TxTranslate, ... }` 的顺序写
-    // 会得到 0,1,2,3,4,5 —— 下面四条会红，而且 qMax(thisType, otherType)
+    // 会得到 0,1,2,3,4,5 —— 下面四条会红，而且 pkMax(thisType, otherType)
     // 与 `t <= TxTranslate` 这类比较会跟着全错。
     PK_COMPARE((int)PkTransform::TxNone, 0);
     PK_COMPARE((int)PkTransform::TxTranslate, 1);
@@ -471,7 +471,7 @@ void PkTransformCase::transformRotateAboutYAndXAxisGoesProjective()
     //   rotate(45,YAxis): m11=cos45=0.70710678118654757,
     //                     m13=-sin45/1024=-0.00069053396600248776
     PkTransform y;
-    y.rotate(45, Qt::YAxis);
+    y.rotate(45, Pk::YAxis);
     PK_VERIFY(sameD(y.m11(), 0.70710678118654757));
     PK_VERIFY(sameD(y.m13(), -0.00069053396600248776));
     PK_VERIFY(sameD(y.m22(), 1.0));
@@ -479,16 +479,16 @@ void PkTransformCase::transformRotateAboutYAndXAxisGoesProjective()
     PK_COMPARE((int)y.type(), (int)PkTransform::TxProject);
 
     PkTransform x;
-    x.rotate(45, Qt::XAxis);
+    x.rotate(45, Pk::XAxis);
     PK_VERIFY(sameD(x.m22(), 0.70710678118654757));
     PK_VERIFY(sameD(x.m23(), -0.00069053396600248776));
     PK_VERIFY(sameD(x.m11(), 1.0));
     PK_COMPARE((int)x.type(), (int)PkTransform::TxProject);
 
-    // 默认实参就是 Qt::ZAxis（少写一个参数与显式写 ZAxis 必须同结果）。
+    // 默认实参就是 Pk::ZAxis（少写一个参数与显式写 ZAxis 必须同结果）。
     PkTransform a, b;
     a.rotate(30);
-    b.rotate(30, Qt::ZAxis);
+    b.rotate(30, Pk::ZAxis);
     PK_VERIFY(mAre(a, b.m11(), b.m12(), b.m13(), b.m21(), b.m22(), b.m23(),
                    b.m31(), b.m32(), b.m33()));
 }
@@ -676,7 +676,7 @@ void PkTransformCase::transformInvertedScalePathUsesFuzzyNullPerAxis()
     const PkTransform z = PkTransform::fromScale(0, 1).inverted(&ok);
     PK_VERIFY(!ok);
     PK_VERIFY(mAre(z, 1, 0, 0, 0, 1, 0, 0, 0, 1));
-    // 1e-300 不是精确 0，但 qFuzzyIsNull(1e-300) 为真 → 同样失败（探针 §D2）。
+    // 1e-300 不是精确 0，但 pkQtFuzzyIsNull(1e-300) 为真 → 同样失败（探针 §D2）。
     bool ok2 = true;
     (void)PkTransform::fromScale(1e-300, 1).inverted(&ok2);
     PK_VERIFY(!ok2);
@@ -715,7 +715,7 @@ void PkTransformCase::transformInvertedProjectivePathUsesAdjointOverDet()
     PK_VERIFY(mAre(pi, 1, 0, -0.5, 0, 1, -0.25, 0, 0, 1));
     PK_COMPARE((int)pi.type(), (int)PkTransform::TxProject);
 
-    // 投影档上判据是 qFuzzyIsNull(三阶行列式)：t(1,1,1,1,1,1,1,1,1) 的 det 是 0
+    // 投影档上判据是 pkQtFuzzyIsNull(三阶行列式)：t(1,1,1,1,1,1,1,1,1) 的 det 是 0
     const PkTransform pz(1, 1, 1, 1, 1, 1, 1, 1, 1);
     PK_COMPARE(pz.determinant(), 0.0);
     PK_COMPARE((int)pz.type(), (int)PkTransform::TxProject);
@@ -901,7 +901,7 @@ void PkTransformCase::transformFreePointOperatorsForwardToMap()
 void PkTransformCase::transformMapRectTranslateFastPathRoundsTheOffset()
 {
     // 实测：fromTranslate(3.4,4.6).mapRect(QRect(0,0,10,10)) == QRect(3,5,10,10)
-    // —— 整数版把偏移**各自 qRound** 之后平移（qRound(3.4)=3、qRound(4.6)=5）。
+    // —— 整数版把偏移**各自 qRound** 之后平移（pkRound(3.4)=3、pkRound(4.6)=5）。
     // 浮点版不取整。
     const PkTransform t = PkTransform::fromTranslate(3.4, 4.6);
     PK_VERIFY(coordsAre(t.mapRect(PkRect(0, 0, 10, 10)), 3, 5, 10, 10));
@@ -1027,10 +1027,10 @@ void PkTransformCase::transformFuzzyCompareIsTheFuzzyOne()
     // 实测（probe3）：qFuzzyCompare 在 5e-12 上为真、在 9e-12 与 1e-11 上为假
     //（门槛是 |diff| * 1e12 <= min(|p1|,|p2|) = 9）。
     const PkTransform a(1, 2, 3, 4, 5, 6, 7, 8, 9);
-    PK_VERIFY(qFuzzyCompare(a, PkTransform(1, 2, 3, 4, 5, 6, 7, 8, 9 + 5e-12)));
-    PK_VERIFY(!qFuzzyCompare(a, PkTransform(1, 2, 3, 4, 5, 6, 7, 8, 9 + 9e-12)));
-    PK_VERIFY(!qFuzzyCompare(a, PkTransform(1, 2, 3, 4, 5, 6, 7, 8, 9 + 1e-11)));
-    PK_VERIFY(qFuzzyCompare(a, a));
+    PK_VERIFY(pkQtFuzzyCompare(a, PkTransform(1, 2, 3, 4, 5, 6, 7, 8, 9 + 5e-12)));
+    PK_VERIFY(!pkQtFuzzyCompare(a, PkTransform(1, 2, 3, 4, 5, 6, 7, 8, 9 + 9e-12)));
+    PK_VERIFY(!pkQtFuzzyCompare(a, PkTransform(1, 2, 3, 4, 5, 6, 7, 8, 9 + 1e-11)));
+    PK_VERIFY(pkQtFuzzyCompare(a, a));
 }
 
 // ═══ transposed ═══════════════════════════════════════════════════════════

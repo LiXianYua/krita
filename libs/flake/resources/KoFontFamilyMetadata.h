@@ -16,7 +16,7 @@
 // 旧 KoSvgText::FontFamilyAxis/FontFamilyStyleInfo UserType wire。
 //
 // 纯 Pk、零 Qt：本文件可进薄壳编译（判据③④）。Qt 边界层（KoFontFamily.cpp）负责
-// QLocale/QString → Pk 的转换，本层只关心「条目长什么样、怎么编解码、怎么从旧
+// QLocale/PkString → Pk 的转换，本层只关心「条目长什么样、怎么编解码、怎么从旧
 // UserType blob 迁移」。
 //
 // 表示形状（版本化，见 FORMAT_VERSION；全部 PkVariant 内置类型，无 UserType，
@@ -92,7 +92,7 @@ struct PkStyleEntry {
     bool isOblique = false;
 };
 
-// ── built-in 编码（生产者用；Qt 边界层已把 QLocale/QString 换成 Pk）──
+// ── built-in 编码（生产者用；Qt 边界层已把 QLocale/PkString 换成 Pk）──
 PkVariantMap buildAxisEntry(const PkString &tag,
                             const PkVariantMap &localizedLabels,
                             double min, double max, double value, double defaultValue,
@@ -108,10 +108,10 @@ std::optional<PkAxisEntry> parseAxisEntry(const PkVariantMap &entry);
 std::optional<PkStyleEntry> parseStyleEntry(const PkVariantMap &entry);
 
 // ── 旧 UserType 迁移 ──
-// 旧 wire：AXES = QVariantHash(28)、STYLES = QVariantList(9)，条目值都是
+// 旧 wire：AXES = PkVariantHash(28)、STYLES = PkVariantList(9)，条目值都是
 // qRegisterMetaTypeStreamOperators 注册的 FontFamilyAxis/FontFamilyStyleInfo
-// UserType（Qt5: typeId>=1024；Qt4: typeId==127），payload = QDataStream 序列化
-// 的 QDomDocument.toString(0) XML 字符串（KoSvgText.cpp:1001-1090 的 operator<<）。
+// UserType（Qt5: typeId>=1024；Qt4: typeId==127），payload = PkDataStream 序列化
+// 的 PkXmlDocument.toString(0) XML 字符串（KoSvgText.cpp:1001-1090 的 operator<<）。
 // 返回 false = blob 不可解码（容器类型不符 / 字段读越界 / XML 解析失败）——
 // 调用方（DB 层迁移器）保留原始 payload 字节，不写回。
 bool decodeLegacyAxesBlob(const PkByteArray &blob, PkVariantList &outAxes);

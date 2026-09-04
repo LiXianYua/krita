@@ -9,7 +9,7 @@
 #include <simpletest.h>
 #include <QFileInfo>
 #include <QPainter>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <KoMarker.h>
 #include <KoMarkerCollection.h>
 #include <KoPathShape.h>
@@ -26,7 +26,7 @@ void initMarkerCollection(KoMarkerCollection *collection)
 {
     QCOMPARE(collection->markers().size(), 1);
 
-    const QString fileName = TestUtil::fetchDataFileLazy("test_markers.svg");
+    const PkString fileName = TestUtil::fetchDataFileLazy("test_markers.svg");
     QVERIFY(QFileInfo(fileName).exists());
 
     collection->loadMarkersFromFile(fileName);
@@ -41,11 +41,11 @@ void TestKoMarkerCollection::testLoadMarkersFromFile()
 
 void TestKoMarkerCollection::testDeduplication()
 {
-    QPainterPath path1;
-    path1.addRect(QRect(5,5,15,15));
+    PkPainterPath path1;
+    path1.addRect(PkRect(5,5,15,15));
 
     KoPathShape *shape1(KoPathShape::createShapeFromPainterPath(path1));
-    shape1->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(Qt::blue)));
+    shape1->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(Qt::blue)));
 
     KoMarker *marker(new KoMarker());
     marker->setAutoOrientation(true);
@@ -66,13 +66,13 @@ void TestKoMarkerCollection::testDeduplication()
     QCOMPARE(collection.markers().size(), 2);
 }
 
-void testOneMarkerPosition(KoMarker *marker, KoFlake::MarkerPosition position, const QString &testName)
+void testOneMarkerPosition(KoMarker *marker, KoFlake::MarkerPosition position, const PkString &testName)
 {
-    QImage image(30,30, QImage::Format_ARGB32);
+    PkImage image(30,30, PkImage::Format_ARGB32);
     image.fill(0);
     QPainter painter(&image);
 
-    QPen pen(Qt::black, 2);
+    PkPen pen(Pk::black, 2);
     marker->drawPreview(&painter, image.rect(), pen, position);
 
     QVERIFY(TestUtil::checkQImage(image, "marker_collection", "preview", testName));
@@ -83,14 +83,14 @@ void TestKoMarkerCollection::testMarkerBounds()
     KoMarkerCollection collection;
     initMarkerCollection(&collection);
 
-    QList<KoMarker*> allMarkers = collection.markers();
+    PkList<KoMarker*> allMarkers = collection.markers();
     KoMarker *marker = allMarkers[3];
 
-    QCOMPARE(marker->boundingRect(1, 0).toAlignedRect(), QRect(-7,-3,9,6));
-    QCOMPARE(marker->boundingRect(1, M_PI).toAlignedRect(), QRect(-2,-3,9,6));
+    QCOMPARE(marker->boundingRect(1, 0).toAlignedRect(), PkRect(-7,-3,9,6));
+    QCOMPARE(marker->boundingRect(1, M_PI).toAlignedRect(), PkRect(-2,-3,9,6));
 
-    QCOMPARE(marker->outline(1, 0).boundingRect().toAlignedRect(), QRect(-6,-2,7,4));
-    QCOMPARE(marker->outline(1, M_PI).boundingRect().toAlignedRect(), QRect(-1,-2,7,4));
+    QCOMPARE(marker->outline(1, 0).boundingRect().toAlignedRect(), PkRect(-6,-2,7,4));
+    QCOMPARE(marker->outline(1, M_PI).boundingRect().toAlignedRect(), PkRect(-1,-2,7,4));
 
     testOneMarkerPosition(marker, KoFlake::StartMarker, "start_marker");
     testOneMarkerPosition(marker, KoFlake::MidMarker, "mid_marker");

@@ -18,8 +18,8 @@
 
 #include "kritaflake_export.h"
 #include "KoFlakeTypes.h"
-#include <QGradientStops>
-#include <QSharedPointer>
+#include <PkGradient.h>
+#include <PkSharedPointer.h>
 #include <KoShape.h>
 
 class SvgSavingContext;
@@ -27,8 +27,8 @@ class KoShape;
 class KoPatternBackground;
 class KoVectorPatternBackground;
 class KoShapeBackground;
-class QTransform;
-class QGradient;
+class PkTransform;
+class PkGradient;
 class SvgMeshGradient;
 
 /// Helper class to save svg styles
@@ -39,15 +39,15 @@ public:
     static void saveSvgStyle(KoShape *shape, SvgSavingContext &context);
 
     /// Saves only stroke, fill and transparency of the shape
-    static void saveSvgBasicStyle(const bool isVisible, const qreal transparency, const QVector<KoShape::PaintOrder> paintOrder, bool inheritPaintorder, SvgSavingContext &context, bool textShape = false);
+    static void saveSvgBasicStyle(const bool isVisible, const qreal transparency, const PkVector<KoShape::PaintOrder> paintOrder, bool inheritPaintorder, SvgSavingContext &context, bool textShape = false);
 
     /// Saves fill style of specified shape
-    static void saveSvgFill(QSharedPointer<KoShapeBackground> background, const bool fillRuleEvenOdd, const QRectF outlineRect, const QSizeF size, const QTransform absoluteTransform, SvgSavingContext &context);
+    static void saveSvgFill(PkSharedPointer<KoShapeBackground> background, const bool fillRuleEvenOdd, const PkRectF outlineRect, const PkSizeF size, const PkTransform absoluteTransform, SvgSavingContext &context);
     /// Saves stroke style of specified shape
     static void saveSvgStroke(KoShapeStrokeModelSP, SvgSavingContext &context);
 
     // embed the given shape, returns an id to refer to.
-    static QString embedShape(const KoShape *shape, SvgSavingContext &context);
+    static PkString embedShape(const KoShape *shape, SvgSavingContext &context);
 
     // Save title and desc elements.
     static void saveMetadata(const KoShape *shape, SvgSavingContext &context);
@@ -60,13 +60,13 @@ protected:
     /// Saves markers of the path shape if present
     static void saveSvgMarkers(KoShape *shape, SvgSavingContext &context);
     /// Saves gradient color stops
-    static void saveSvgColorStops(const QGradientStops &colorStops, SvgSavingContext &context);
+    static void saveSvgColorStops(const PkGradientStops &colorStops, SvgSavingContext &context);
     /// Saves gradient
-    static QString saveSvgGradient(const QGradient *gradient, const QTransform &gradientTransform, SvgSavingContext &context);
-    static QString saveSvgMeshGradient(SvgMeshGradient* gradient, const QTransform &transform, SvgSavingContext &context);
+    static PkString saveSvgGradient(const PkGradient *gradient, const PkTransform &gradientTransform, SvgSavingContext &context);
+    static PkString saveSvgMeshGradient(SvgMeshGradient* gradient, const PkTransform &transform, SvgSavingContext &context);
     /// Saves pattern
-    static QString saveSvgPattern(QSharedPointer<KoPatternBackground> pattern, const QSizeF shapeSize, const QTransform absoluteTransform, SvgSavingContext &context);
-    static QString saveSvgVectorPattern(QSharedPointer<KoVectorPatternBackground> pattern, const QRectF outlineRect, SvgSavingContext &context);
+    static PkString saveSvgPattern(PkSharedPointer<KoPatternBackground> pattern, const PkSizeF shapeSize, const PkTransform absoluteTransform, SvgSavingContext &context);
+    static PkString saveSvgVectorPattern(PkSharedPointer<KoVectorPatternBackground> pattern, const PkRectF outlineRect, SvgSavingContext &context);
 };
 
 #endif // SVGSTYLEWRITER_H

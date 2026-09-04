@@ -401,7 +401,7 @@ qreal KoUnit::parseAngle(const PkString& _value, qreal defaultVal)
 
 qreal KoUnit::approxTransformScale(const PkTransform &t)
 {
-    return std::sqrt(qAbs(t.determinant()));
+    return std::sqrt(pkAbs(t.determinant()));
 }
 
 void KoUnit::adjustByPixelTransform(const PkTransform &t)

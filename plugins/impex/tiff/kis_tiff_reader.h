@@ -335,7 +335,7 @@ private:
                         return true;
                     } else {
                         for (size_t i = 0; i < this->nbColorsSamples(); i++) {
-                            if (!qFuzzyCompare(T(d[i] * alpha), d[i])) {
+                            if (!pkQtFuzzyCompare(T(d[i] * alpha), d[i])) {
                                 return false;
                             }
                         }

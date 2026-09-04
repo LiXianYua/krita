@@ -44,7 +44,7 @@ void KisTransformStrategyBase::deactivatePrimaryAction()
 
 void KisTransformStrategyBase::setDecorationThickness(int thickness)
 {
-    m_d->decorationThickness = qMax(1, thickness);
+    m_d->decorationThickness = pkMax(1, thickness);
 }
 
 int KisTransformStrategyBase::decorationThickness() const

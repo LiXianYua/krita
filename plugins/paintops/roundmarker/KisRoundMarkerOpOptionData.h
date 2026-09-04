@@ -15,10 +15,10 @@ class KisPropertiesConfiguration;
 struct KisRoundMarkerOpOptionData : boost::equality_comparable<KisRoundMarkerOpOptionData>
 {
     inline friend bool operator==(const KisRoundMarkerOpOptionData &lhs, const KisRoundMarkerOpOptionData &rhs) {
-        return qFuzzyCompare(lhs.diameter, rhs.diameter)
-            && qFuzzyCompare(lhs.spacing, rhs.spacing)
+        return pkQtFuzzyCompare(lhs.diameter, rhs.diameter)
+            && pkQtFuzzyCompare(lhs.spacing, rhs.spacing)
             && lhs.useAutoSpacing == rhs.useAutoSpacing
-            && qFuzzyCompare(lhs.autoSpacingCoeff, rhs.autoSpacingCoeff);
+            && pkQtFuzzyCompare(lhs.autoSpacingCoeff, rhs.autoSpacingCoeff);
     }
     
     qreal diameter {30.0};

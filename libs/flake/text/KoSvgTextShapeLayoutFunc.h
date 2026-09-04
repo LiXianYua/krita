@@ -15,16 +15,16 @@ namespace KoSvgTextShapeLayoutFunc
 
 void calculateLineHeight(CharacterResult cr, double &ascent, double &descent, bool isHorizontal, bool compare = false);
 
-void addWordToLine(QVector<CharacterResult> &result,
-                   QPointF &currentPos,
-                   QVector<int> &wordIndices,
+void addWordToLine(PkVector<CharacterResult> &result,
+                   PkPointF &currentPos,
+                   PkVector<int> &wordIndices,
                    LineBox &currentLine,
                    bool isHorizontal);
 
-void finalizeLine(QVector<CharacterResult> &result,
-                  QPointF &currentPos,
+void finalizeLine(PkVector<CharacterResult> &result,
+                  PkPointF &currentPos,
                   LineBox &currentLine,
-                  QPointF &lineOffset,
+                  PkPointF &lineOffset,
                   const KoSvgText::TextAnchor anchor,
                   const KoSvgText::WritingMode writingMode,
                   const bool ltr,
@@ -32,18 +32,18 @@ void finalizeLine(QVector<CharacterResult> &result,
                   const bool textInShape,
                   const KoSvgText::ResolutionHandler &resHandler);
 
-QVector<LineBox> breakLines(const KoSvgTextProperties &properties,
-                            const QMap<int, int> &logicalToVisual,
-                            QVector<CharacterResult> &result,
-                            QPointF startPos, const KoSvgText::ResolutionHandler &resHandler);
+PkVector<LineBox> breakLines(const KoSvgTextProperties &properties,
+                            const PkMap<int, int> &logicalToVisual,
+                            PkVector<CharacterResult> &result,
+                            PkPointF startPos, const KoSvgText::ResolutionHandler &resHandler);
 
-QList<QPainterPath>
-getShapes(QList<KoShape *> shapesInside, QList<KoShape *> shapesSubtract, const KoSvgTextProperties &properties);
+PkList<PkPainterPath>
+getShapes(PkList<KoShape *> shapesInside, PkList<KoShape *> shapesSubtract, const KoSvgTextProperties &properties);
 
-QVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
-                                  const QMap<int, int> &logicalToVisual,
-                                  QVector<CharacterResult> &result,
-                                  QList<QPainterPath> shapes, QPointF &startPos, const KoSvgText::ResolutionHandler &resHandler);
+PkVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
+                                  const PkMap<int, int> &logicalToVisual,
+                                  PkVector<CharacterResult> &result,
+                                  PkList<PkPainterPath> shapes, PkPointF &startPos, const KoSvgText::ResolutionHandler &resHandler);
 
 } // namespace KoSvgTextShapeLayoutFunc
 

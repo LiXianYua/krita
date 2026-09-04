@@ -54,9 +54,9 @@ void KisColorSamplingUtilsTest::blendsWithThePreviousColor()
                                                &previous, 1, 50, false));
 
     const QColor result = sampled.toQColor();
-    QVERIFY(qAbs(result.red() - 127) <= 1);
+    QVERIFY(pkAbs(result.red() - 127) <= 1);
     QCOMPARE(result.green(), 0);
-    QVERIFY(qAbs(result.blue() - 128) <= 1);
+    QVERIFY(pkAbs(result.blue() - 128) <= 1);
 }
 
 SIMPLE_TEST_MAIN(KisColorSamplingUtilsTest)

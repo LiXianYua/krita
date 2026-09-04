@@ -8,7 +8,7 @@
 #include "KoShapeSavingContext.h"
 #include <KoXmlNS.h>
 
-#include <QColor>
+#include <PkColor.h>
 #include <QPainter>
 
 class KoColorBackground::Private : public QSharedData
@@ -16,11 +16,11 @@ class KoColorBackground::Private : public QSharedData
 public:
     Private()
         : QSharedData()
-        , color(Qt::black)
+        , color(Pk::black)
         , style(Qt::SolidPattern)
         {}
 
-    QColor color;
+    PkColor color;
     Qt::BrushStyle style;
 };
 
@@ -30,7 +30,7 @@ KoColorBackground::KoColorBackground()
 {
 }
 
-KoColorBackground::KoColorBackground(const QColor &color, Qt::BrushStyle style)
+KoColorBackground::KoColorBackground(const PkColor &color, Qt::BrushStyle style)
     : KoShapeBackground()
     , d(new Private)
 {
@@ -63,12 +63,12 @@ bool KoColorBackground::compareTo(const KoShapeBackground *other) const
     return bg && bg->color() == d->color;
 }
 
-QColor KoColorBackground::color() const
+PkColor KoColorBackground::color() const
 {
     return d->color;
 }
 
-void KoColorBackground::setColor(const QColor &color)
+void KoColorBackground::setColor(const PkColor &color)
 {
     d->color = color;
 }
@@ -83,7 +83,7 @@ QBrush KoColorBackground::brush() const
     return QBrush(d->color, d->style);
 }
 
-void KoColorBackground::paint(QPainter &painter, const QPainterPath &fillPath) const
+void KoColorBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
 {
     painter.setBrush(brush());
     painter.drawPath(fillPath);

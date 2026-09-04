@@ -337,8 +337,8 @@ QRectF KisToolRectangleBase::createRect(const QPointF &start, const QPointF &end
     const QTransform tInv = t.inverted();
 
     const QPointF end1 = t.map(end);
-    const QPointF newStart(qRound(start.x()), qRound(start.y()));
-    const QPointF newEnd(qRound(end1.x()), qRound(end1.y()));
+    const QPointF newStart(pkRound(start.x()), pkRound(start.y()));
+    const QPointF newEnd(pkRound(end1.x()), pkRound(end1.y()));
     const QPointF newCenter = (newStart + newEnd) / 2.0;
    
     QRectF result(newStart, newEnd);

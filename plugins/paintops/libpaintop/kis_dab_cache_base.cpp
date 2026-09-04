@@ -54,14 +54,14 @@ struct KisDabCacheBase::SavedDabParameters {
         const PrecisionValues &prec = precisionLevels[precisionLevel];
 
         return color == rhs.color &&
-               qAbs(angle - rhs.angle) <= prec.angle &&
-               qAbs(width - rhs.width) <= (int)(prec.sizeFrac * width) &&
-               qAbs(height - rhs.height) <= (int)(prec.sizeFrac * height) &&
-               qAbs(subPixelX - rhs.subPixelX) <= prec.subPixel &&
-               qAbs(subPixelY - rhs.subPixelY) <= prec.subPixel &&
-               qAbs(softnessFactor - rhs.softnessFactor) <= prec.softnessFactor &&
-               qAbs(lightnessStrength - rhs.lightnessStrength) <= prec.lightnessStrength &&
-               qAbs(ratio - rhs.ratio) <= prec.ratio &&
+               pkAbs(angle - rhs.angle) <= prec.angle &&
+               pkAbs(width - rhs.width) <= (int)(prec.sizeFrac * width) &&
+               pkAbs(height - rhs.height) <= (int)(prec.sizeFrac * height) &&
+               pkAbs(subPixelX - rhs.subPixelX) <= prec.subPixel &&
+               pkAbs(subPixelY - rhs.subPixelY) <= prec.subPixel &&
+               pkAbs(softnessFactor - rhs.softnessFactor) <= prec.softnessFactor &&
+               pkAbs(lightnessStrength - rhs.lightnessStrength) <= prec.lightnessStrength &&
+               pkAbs(ratio - rhs.ratio) <= prec.ratio &&
                index == rhs.index &&
                mirrorProperties.horizontalMirror == rhs.mirrorProperties.horizontalMirror &&
                mirrorProperties.verticalMirror == rhs.mirrorProperties.verticalMirror;
@@ -200,11 +200,11 @@ KisDabCacheBase::calculateDabRect(KisBrushSP brush,
         subPixelY = 0;
     }
 
-    if (qIsNaN(subPixelX)) {
+    if (pkIsNaN(subPixelX)) {
         subPixelX = 0;
     }
 
-    if (qIsNaN(subPixelY)) {
+    if (pkIsNaN(subPixelY)) {
         subPixelY = 0;
     }
 
@@ -214,13 +214,13 @@ KisDabCacheBase::calculateDabRect(KisBrushSP brush,
     if (mirrorProperties.horizontalMirror) {
         subPixelX = Private::positiveFraction(-(cursorPoint.x() + hotSpot.x()));
         width = brush->maskWidth(shape, subPixelX, subPixelY, info);
-        x = qRound(cursorPoint.x() + subPixelX + hotSpot.x()) - width;
+        x = pkRound(cursorPoint.x() + subPixelX + hotSpot.x()) - width;
     }
 
     if (mirrorProperties.verticalMirror) {
         subPixelY = Private::positiveFraction(-(cursorPoint.y() + hotSpot.y()));
         height = brush->maskHeight(shape, subPixelX, subPixelY, info);
-        y = qRound(cursorPoint.y() + subPixelY + hotSpot.y()) - height;
+        y = pkRound(cursorPoint.y() + subPixelY + hotSpot.y()) - height;
     }
 
     return DabPosition(PkRect(x, y, width, height),
@@ -273,7 +273,7 @@ void KisDabCacheBase::fetchDabGenerationInfo(bool hasDabInCache,
 
     int precisionLevel = 4;
     if (m_d->precisionOption) {
-        const int effectiveDabSize = qMin(newParams.width, newParams.height);
+        const int effectiveDabSize = pkMin(newParams.width, newParams.height);
         precisionLevel = m_d->precisionOption->effectivePrecisionLevel(effectiveDabSize) - 1;
     }
     *shouldUseCache = hasDabInCache && supportsCaching && di->solidColorFill &&

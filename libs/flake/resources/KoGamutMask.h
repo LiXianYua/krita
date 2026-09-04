@@ -8,8 +8,8 @@
 #define KOGAMUTMASK_H
 
 #include <QPainter>
-#include <QString>
-#include <QVector>
+#include <PkString.h>
+#include <PkVector.h>
 #include <cmath>
 
 #include <FlakeDebug.h>
@@ -21,7 +21,7 @@
 #include <pk/port/PkStream.h>
 
 //class KoViewConverter;
-class QTransform;
+class PkTransform;
 
 class KoGamutMaskShape
 {
@@ -30,8 +30,8 @@ public:
     KoGamutMaskShape();
     ~KoGamutMaskShape();
 
-    bool coordIsClear(const QPointF& coord) const;
-    QPainterPath outline();
+    bool coordIsClear(const PkPointF& coord) const;
+    PkPainterPath outline();
     void paint(QPainter &painter);
     void paintStroke(QPainter &painter);
     KoShape* koShape();
@@ -49,10 +49,10 @@ class KRITAFLAKE_EXPORT KoGamutMask : public QObject, public KoResource
     Q_OBJECT
 
 public:
-    KoGamutMask(const QString &filename);
+    KoGamutMask(const PkString &filename);
     // 过渡期适配：stripped KisResourceLoader<T>::create() 用 PkString 构造资源（KisResourceLoader.h），
-    // real-Qt-first 的 KoGamutMask.cpp 只收 QString。加 PkString 版（内部 KoResource 直接收 PkString），
-    // 语义与 QString 版等价（QString 版也是 toPkString 后存 PkString）。flake 剥完（Q* 归零）后随 KisResourceLoader 一起删。
+    // real-Qt-first 的 KoGamutMask.cpp 只收 PkString。加 PkString 版（内部 KoResource 直接收 PkString），
+    // 语义与 PkString 版等价（PkString 版也是 toPkString 后存 PkString）。flake 剥完（Q* 归零）后随 KisResourceLoader 一起删。
     KoGamutMask(const PkString &filename);
     KoGamutMask();
     KoGamutMask(KoGamutMask *rhs);
@@ -61,7 +61,7 @@ public:
     KoResourceSP clone() const override;
     ~KoGamutMask() override;
 
-    bool coordIsClear(const QPointF& coord, bool preview);
+    bool coordIsClear(const PkPointF& coord, bool preview);
     bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
     bool saveToDevice(PkStream* dev) const override;
 
@@ -73,36 +73,36 @@ public:
     void paint(QPainter &painter, bool preview);
     void paintStroke(QPainter &painter, bool preview);
 
-    QTransform maskToViewTransform(qreal viewSize);
-    QTransform viewToMaskTransform(qreal viewSize);
+    PkTransform maskToViewTransform(qreal viewSize);
+    PkTransform viewToMaskTransform(qreal viewSize);
 
-    QString title() const;
-    void setTitle(QString title);
+    PkString title() const;
+    void setTitle(PkString title);
 
-    QString description() const;
-    void setDescription(QString description);
+    PkString description() const;
+    void setDescription(PkString description);
 
     PkString defaultFileExtension() const override;
 
     int rotation();
     void setRotation(int rotation);
 
-    QSizeF maskSize();
+    PkSizeF maskSize();
 
-    void setMaskShapes(QList<KoShape*> shapes);   
-    void setPreviewMaskShapes(QList<KoShape*> shapes);
+    void setMaskShapes(PkList<KoShape*> shapes);   
+    void setPreviewMaskShapes(PkList<KoShape*> shapes);
 
-    QList<KoShape*> koShapes() const;
+    PkList<KoShape*> koShapes() const;
 
     void clearPreview();
 
 private:
-    void setMaskShapesToVector(QList<KoShape*> shapes, QVector<KoGamutMaskShape*>& targetVector);
+    void setMaskShapesToVector(PkList<KoShape*> shapes, PkVector<KoGamutMaskShape*>& targetVector);
 
     struct Private;
     Private* const d;
 };
 
-typedef QSharedPointer<KoGamutMask> KoGamutMaskSP;
+typedef PkSharedPointer<KoGamutMask> KoGamutMaskSP;
 
 #endif // KOGAMUTMASK_H

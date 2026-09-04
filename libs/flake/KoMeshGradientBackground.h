@@ -12,19 +12,19 @@
 class KRITAFLAKE_EXPORT KoMeshGradientBackground : public KoShapeBackground
 {
 public:
-    KoMeshGradientBackground(const SvgMeshGradient *gradient, const QTransform &matrix = QTransform());
+    KoMeshGradientBackground(const SvgMeshGradient *gradient, const PkTransform &matrix = PkTransform());
     ~KoMeshGradientBackground();
 
     // Work around MSVC inability to generate copy ops with QSharedDataPointer.
     KoMeshGradientBackground(const KoMeshGradientBackground &);
     KoMeshGradientBackground& operator=(const KoMeshGradientBackground &);
 
-    void paint(QPainter &painter, const QPainterPath &fillPath) const override;
+    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
 
     bool compareTo(const KoShapeBackground *other) const override;
 
     SvgMeshGradient* gradient();
-    QTransform transform();
+    PkTransform transform();
 
 private:
     class Private;

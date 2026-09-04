@@ -36,12 +36,12 @@ void KoSubpathRemoveCommand::redo()
     m_pathShape->update();
     m_subpath = m_pathShape->removeSubpath(m_subpathIndex);
     if (m_subpath) {
-        PkPointF offset = toPkPointF(m_pathShape->normalize());
+        PkPointF offset = m_pathShape->normalize();
 
         PkTransform matrix;
         matrix.translate(-offset.x(), -offset.y());
         for (KoPathPoint *point : *m_subpath) {
-            point->map(toQTransform(matrix));
+            point->map(matrix);
         }
         m_pathShape->update();
     }

@@ -114,8 +114,8 @@ QPointF KisCoordinatesConverter::centeringCorrection() const
 
     QPointF range = maxOffset - minOffset;
 
-    range.rx() = qMin(range.x(), (qreal)0.0);
-    range.ry() = qMin(range.y(), (qreal)0.0);
+    range.rx() = pkMin(range.x(), (qreal)0.0);
+    range.ry() = pkMin(range.y(), (qreal)0.0);
 
     range /= 2;
 
@@ -131,10 +131,10 @@ void KisCoordinatesConverter::recalculateOffsetBoundsAndCrop()
     const QRect refRect = imageToWidget(m_d->extraReferencesBounds).toAlignedRect();
 
     QRect documentRect = imageRectInWidgetPixels().toAlignedRect();
-    QPointF dPointMax(qMax(documentRect.width(), refRect.right() + 1 - documentRect.x()),
-                      qMax(documentRect.height(),  refRect.bottom() + 1 - documentRect.y()));
-    QPointF dPointMin(qMin(0, refRect.left() - documentRect.x()),
-                      qMin(0,  refRect.top() - documentRect.y()));
+    QPointF dPointMax(pkMax(documentRect.width(), refRect.right() + 1 - documentRect.x()),
+                      pkMax(documentRect.height(),  refRect.bottom() + 1 - documentRect.y()));
+    QPointF dPointMin(pkMin(0, refRect.left() - documentRect.x()),
+                      pkMin(0,  refRect.top() - documentRect.y()));
     QPointF wPoint(m_d->canvasWidgetSize.width(), m_d->canvasWidgetSize.height());
 
     QPointF minOffset = dPointMin - cfg.vastScrolling() * wPoint;
@@ -312,7 +312,7 @@ void KisCoordinatesConverter::setImageResolution(qreal xRes, qreal yRes)
     // we consiter the center of the image to be the still point
     // on the canvas
 
-    if (qFuzzyCompare(xRes, m_d->imageXRes) && qFuzzyCompare(yRes, m_d->imageYRes)) return;
+    if (pkQtFuzzyCompare(xRes, m_d->imageXRes) && pkQtFuzzyCompare(yRes, m_d->imageYRes)) return;
 
     const QPointF oldImageCenter = imageCenterInWidgetPixel();
 
@@ -416,7 +416,7 @@ void KisCoordinatesConverter::setCanvasWidgetSizeKeepZoom(const QSizeF &size)
 
 QSizeF KisCoordinatesConverter::snapWidgetSizeToDevicePixel(const QSizeF &size) const
 {
-    if (qFuzzyCompare(m_d->devicePixelRatio, 1.0)) return size;
+    if (pkQtFuzzyCompare(m_d->devicePixelRatio, 1.0)) return size;
 
     // This is how QOpenGLCanvas sets the FBO and the viewport size. If
     // devicePixelRatioF() is non-integral, the result is truncated.
@@ -435,7 +435,7 @@ QSize KisCoordinatesConverter::viewportDevicePixelSize() const
 {
     // TODO: add an assert and a unittest to verify that there is no
     //       actual rounding happens, only intolerances!
-    return qFuzzyCompare(m_d->devicePixelRatio, 1.0) ?
+    return pkQtFuzzyCompare(m_d->devicePixelRatio, 1.0) ?
         m_d->canvasWidgetSize.toSize() :
         (m_d->canvasWidgetSize * m_d->devicePixelRatio).toSize();
 }
@@ -445,14 +445,14 @@ void KisCoordinatesConverter::setZoom(KoZoomMode::Mode mode, qreal zoom, qreal r
     const int cfgMargin = zoomMarginSize();
 
     auto updateDisplayResolution = [&]() {
-        if (!qFuzzyCompare(resolutionX, this->resolutionX()) || !qFuzzyCompare(resolutionY, this->resolutionY())) {
+        if (!pkQtFuzzyCompare(resolutionX, this->resolutionX()) || !pkQtFuzzyCompare(resolutionY, this->resolutionY())) {
             setResolution(resolutionX, resolutionY);
             recalculateZoomLevelLimits();
         }
     };
 
     if(mode == KoZoomMode::ZOOM_CONSTANT) {
-        if(qFuzzyIsNull(zoom)) return;
+        if(pkQtFuzzyIsNull(zoom)) return;
 
         /// only constant mode is a subject for clamping,
         /// fit-modes are allowed to zoom as much as needed
@@ -550,7 +550,7 @@ qreal KisCoordinatesConverter::effectiveZoom() const
     this->imageScale(&scaleX, &scaleY);
 
     if (scaleX != scaleY) {
-        qWarning() << "WARNING: Zoom is not isotropic!"  << ppVar(scaleX) << ppVar(scaleY) << ppVar(qFuzzyCompare(scaleX, scaleY));
+        qWarning() << "WARNING: Zoom is not isotropic!"  << ppVar(scaleX) << ppVar(scaleY) << ppVar(pkQtFuzzyCompare(scaleX, scaleY));
     }
 
     // zoom by average of x and y
@@ -563,7 +563,7 @@ qreal KisCoordinatesConverter::effectivePhysicalZoom() const
     this->imagePhysicalScale(&scaleX, &scaleY);
 
     if (scaleX != scaleY) {
-        qWarning() << "WARNING: Zoom is not isotropic!"  << ppVar(scaleX) << ppVar(scaleY) << ppVar(qFuzzyCompare(scaleX, scaleY));
+        qWarning() << "WARNING: Zoom is not isotropic!"  << ppVar(scaleX) << ppVar(scaleY) << ppVar(pkQtFuzzyCompare(scaleX, scaleY));
     }
 
     // zoom by average of x and y
@@ -960,7 +960,7 @@ void KisCoordinatesConverter::recalculateZoomLevelLimits()
         minDimension = m_d->imageBounds.height() * resolutionY() / m_d->imageYRes;
     }
 
-    m_d->minZoom = qMin(100.0 / minDimension, 0.1);
+    m_d->minZoom = pkMin(100.0 / minDimension, 0.1);
     m_d->maxZoom = 90.0;
     m_d->standardZoomLevels.clear(); // TODO: reset only on real change!
 }

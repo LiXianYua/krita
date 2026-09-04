@@ -283,9 +283,9 @@ static inline bool operator==(const KoResource &resource1, const KoResource &res
     return (resource1.md5Sum() == resource2.md5Sum());
 }
 
-static inline unsigned int qHash(const KoResource &resource)
+static inline unsigned int pkHash(const KoResource &resource)
 {
-    return qHash(resource.md5Sum());
+    return pkHash(resource.md5Sum());
 }
 
 inline PkDebug operator<<(PkDebug dbg, const KoResourceSP res)

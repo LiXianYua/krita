@@ -124,7 +124,7 @@ PkColor PkGradient::colorAt(qreal pos) const
         return m_stops.at(0).color;
     }
 
-    pos = qBound<qreal>(0.0, pos, 1.0);
+    pos = pkBound<qreal>(0.0, pos, 1.0);
 
     if (pos <= m_stops.at(0).offset) {
         return m_stops.at(0).color;
@@ -141,10 +141,10 @@ PkColor PkGradient::colorAt(qreal pos) const
             const qreal t = (o1 == o0) ? 0.0 : (pos - o0) / (o1 - o0);
             const PkColor &c0 = m_stops.at(i).color;
             const PkColor &c1 = m_stops.at(i + 1).color;
-            return PkColor(qRound(c0.red() + (c1.red() - c0.red()) * t),
-                           qRound(c0.green() + (c1.green() - c0.green()) * t),
-                           qRound(c0.blue() + (c1.blue() - c0.blue()) * t),
-                           qRound(c0.alpha() + (c1.alpha() - c0.alpha()) * t));
+            return PkColor(pkRound(c0.red() + (c1.red() - c0.red()) * t),
+                           pkRound(c0.green() + (c1.green() - c0.green()) * t),
+                           pkRound(c0.blue() + (c1.blue() - c0.blue()) * t),
+                           pkRound(c0.alpha() + (c1.alpha() - c0.alpha()) * t));
         }
     }
     return m_stops.at(last).color;

@@ -23,7 +23,7 @@
 KisCurveRectangleMaskGenerator::KisCurveRectangleMaskGenerator(qreal diameter, qreal ratio, qreal fh, qreal fv, int spikes, const KisCubicCurve &curve, bool antialiasEdges)
     : KisMaskGenerator(diameter, ratio, fh, fv, spikes, antialiasEdges, RECTANGLE, SoftId), d(new Private(antialiasEdges))
 {
-    d->curveResolution = qRound( qMax(width(),height()) * OVERSAMPLING);
+    d->curveResolution = pkRound( pkMax(width(),height()) * OVERSAMPLING);
     d->curveData = curve.floatTransfer( d->curveResolution + 1);
     d->curvePoints = curve.curvePoints();
     setCurveString(curve.toString());
@@ -65,11 +65,11 @@ KisCurveRectangleMaskGenerator::~KisCurveRectangleMaskGenerator()
 
 quint8 KisCurveRectangleMaskGenerator::Private::value(qreal xr, qreal yr) const
 {
-    xr = qAbs(xr) * xcoeff;
-    yr = qAbs(yr) * ycoeff;
+    xr = pkAbs(xr) * xcoeff;
+    yr = pkAbs(yr) * ycoeff;
 
-    int sIndex = qRound(xr * (curveResolution));
-    int tIndex = qRound(yr * (curveResolution));
+    int sIndex = pkRound(xr * (curveResolution));
+    int tIndex = pkRound(yr * (curveResolution));
 
     int sIndexInverted = curveResolution - sIndex;
     int tIndexInverted = curveResolution - tIndex;
@@ -84,7 +84,7 @@ quint8 KisCurveRectangleMaskGenerator::valueAt(qreal x, qreal y) const
 {
     if (isEmpty()) return 255;
     qreal xr = x;
-    qreal yr = qAbs(y);
+    qreal yr = pkAbs(y);
     fixRotation(xr, yr);
 
     quint8 value;

@@ -23,9 +23,9 @@
 class PkPen {
 public:
     PkPen() = default;
-    explicit PkPen(Qt::PenStyle style)
+    explicit PkPen(Pk::PenStyle style)
         : m_style(style) {}
-    explicit PkPen(Qt::GlobalColor color, qreal widthF = 1.0)
+    explicit PkPen(Pk::GlobalColor color, qreal widthF = 1.0)
         : m_brush(color), m_widthF(widthF) {}
     PkPen(const PkColor &color, qreal widthF = 1.0)
         : m_brush(color), m_widthF(widthF) {}
@@ -34,7 +34,7 @@ public:
     PkPen(const PkPen &) = default;
     PkPen &operator=(const PkPen &) = default;
 
-    void setColor(Qt::GlobalColor color) { m_brush.setColor(color); }
+    void setColor(Pk::GlobalColor color) { m_brush.setColor(color); }
     void setColor(const PkColor &color) { m_brush.setColor(color); }
     PkBrush brush() const { return m_brush; }
     void setBrush(const PkBrush &brush) { m_brush = brush; }
@@ -45,16 +45,16 @@ public:
         if (width < 0.0 || width >= (1 << 15)) {
             return;
         }
-        if (qAbs(m_widthF - width) < 0.00000001) {
+        if (pkAbs(m_widthF - width) < 0.00000001) {
             return;
         }
         m_widthF = width;
     }
     qreal widthF() const { return m_widthF; }
-    int width() const { return qRound(m_widthF); }
+    int width() const { return pkRound(m_widthF); }
     void setWidth(int width) { setWidthF(width); }
 
-    void setStyle(Qt::PenStyle style)
+    void setStyle(Pk::PenStyle style)
     {
         if (m_style == style) {
             return;
@@ -63,25 +63,25 @@ public:
         m_dashPattern.clear();
         m_dashOffset = 0.0;
     }
-    Qt::PenStyle style() const { return m_style; }
+    Pk::PenStyle style() const { return m_style; }
 
-    void setCapStyle(Qt::PenCapStyle style) { m_capStyle = style; }
-    Qt::PenCapStyle capStyle() const { return m_capStyle; }
+    void setCapStyle(Pk::PenCapStyle style) { m_capStyle = style; }
+    Pk::PenCapStyle capStyle() const { return m_capStyle; }
 
-    void setJoinStyle(Qt::PenJoinStyle style) { m_joinStyle = style; }
-    Qt::PenJoinStyle joinStyle() const { return m_joinStyle; }
+    void setJoinStyle(Pk::PenJoinStyle style) { m_joinStyle = style; }
+    Pk::PenJoinStyle joinStyle() const { return m_joinStyle; }
 
     void setMiterLimit(qreal limit) { m_miterLimit = limit; }
     qreal miterLimit() const { return m_miterLimit; }
 
     void setDashOffset(qreal offset)
     {
-        if (qFuzzyCompare(offset, m_dashOffset)) {
+        if (pkQtFuzzyCompare(offset, m_dashOffset)) {
             return;
         }
-        if (m_style != Qt::CustomDashLine) {
+        if (m_style != Pk::CustomDashLine) {
             m_dashPattern = dashPattern();
-            m_style = Qt::CustomDashLine;
+            m_style = Pk::CustomDashLine;
         }
         m_dashOffset = offset;
     }
@@ -93,7 +93,7 @@ public:
             return;
         }
         m_dashPattern = pattern;
-        m_style = Qt::CustomDashLine;
+        m_style = Pk::CustomDashLine;
         if ((m_dashPattern.size() % 2) == 1) {
             m_dashPattern.push_back(1.0);
         }
@@ -116,7 +116,7 @@ public:
 
     std::vector<qreal> dashPattern() const
     {
-        if (m_style == Qt::SolidLine || m_style == Qt::NoPen) {
+        if (m_style == Pk::SolidLine || m_style == Pk::NoPen) {
             return {};
         }
         if (!m_dashPattern.empty()) {
@@ -124,13 +124,13 @@ public:
         }
 
         switch (m_style) {
-        case Qt::DashLine:
+        case Pk::DashLine:
             return {4.0, 2.0};
-        case Qt::DotLine:
+        case Pk::DotLine:
             return {1.0, 2.0};
-        case Qt::DashDotLine:
+        case Pk::DashDotLine:
             return {4.0, 2.0, 1.0, 2.0};
-        case Qt::DashDotDotLine:
+        case Pk::DashDotDotLine:
             return {4.0, 2.0, 1.0, 2.0, 1.0, 2.0};
         default:
             return {};
@@ -141,11 +141,11 @@ public:
     void setCosmetic(bool cosmetic) { m_cosmetic = cosmetic; }
 
 private:
-    PkBrush m_brush{Qt::black};
+    PkBrush m_brush{Pk::black};
     qreal m_widthF = 1.0;
-    Qt::PenStyle m_style = Qt::SolidLine;
-    Qt::PenCapStyle m_capStyle = Qt::SquareCap;
-    Qt::PenJoinStyle m_joinStyle = Qt::BevelJoin;
+    Pk::PenStyle m_style = Pk::SolidLine;
+    Pk::PenCapStyle m_capStyle = Pk::SquareCap;
+    Pk::PenJoinStyle m_joinStyle = Pk::BevelJoin;
     qreal m_miterLimit = 2.0;
     qreal m_dashOffset = 0.0;
     std::vector<qreal> m_dashPattern;

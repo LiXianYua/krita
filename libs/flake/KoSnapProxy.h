@@ -11,11 +11,11 @@ class KoSnapGuide;
 class KoShape;
 class KoPathSegment;
 class KoCanvasBase;
-#include <QList>
+#include <PkList.h>
 #include "kritaflake_export.h"
 
-class QPointF;
-class QRectF;
+class PkPointF;
+class PkRectF;
 /**
  * This class provides access to different shape related snap targets to snap strategies.
  */
@@ -25,19 +25,19 @@ public:
     KoSnapProxy(KoSnapGuide *snapGuide);
 
     /// returns list of points in given rectangle in document coordinates
-    QList<QPointF> pointsInRect(const QRectF &rect, bool omitEditedShape);
+    PkList<PkPointF> pointsInRect(const PkRectF &rect, bool omitEditedShape);
 
     /// returns list of shape in given rectangle in document coordinates
-    QList<KoShape*> shapesInRect(const QRectF &rect, bool omitEditedShape = false);
+    PkList<KoShape*> shapesInRect(const PkRectF &rect, bool omitEditedShape = false);
 
     /// returns list of points from given shape
-    QList<QPointF> pointsFromShape(KoShape *shape);
+    PkList<PkPointF> pointsFromShape(KoShape *shape);
 
     /// returns list of points in given rectangle in document coordinates
-    QList<KoPathSegment> segmentsInRect(const QRectF &rect, bool omitEditedShape);
+    PkList<KoPathSegment> segmentsInRect(const PkRectF &rect, bool omitEditedShape);
 
     /// returns list of all shapes
-    QList<KoShape*> shapes(bool omitEditedShape = false);
+    PkList<KoShape*> shapes(bool omitEditedShape = false);
 
     /// returns canvas we are working on
     KoCanvasBase *canvas();

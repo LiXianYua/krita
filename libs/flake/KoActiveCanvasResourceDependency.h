@@ -6,9 +6,11 @@
 #ifndef KOACTIVECANVASRESOURCEDEPENDENCY_H
 #define KOACTIVECANVASRESOURCEDEPENDENCY_H
 
-#include <QScopedPointer>
-#include <QSharedPointer>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkVariant.h>
 
 
 /**
@@ -41,13 +43,13 @@ public:
      * @return true if \p source does really depend on \p target and the
      * manager should Q_EMIT notification about \p target's change
      */
-    virtual bool shouldUpdateSource(QVariant &source, const QVariant &target) = 0;
+    virtual bool shouldUpdateSource(PkVariant &source, const PkVariant &target) = 0;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-typedef QSharedPointer<KoActiveCanvasResourceDependency> KoActiveCanvasResourceDependencySP;
+typedef PkSharedPointer<KoActiveCanvasResourceDependency> KoActiveCanvasResourceDependencySP;
 
 #endif // KOACTIVECANVASRESOURCEDEPENDENCY_H

@@ -3,11 +3,13 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QString>
-#include <QStringList>
-#include <QVector>
-#include <QScopedPointer>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkVector.h>
+#include <PkScopedPointer.h>
 #include <kritaflake_export.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkByteArray.h>
 
 /*
  * KoOpenTypeFeatureInfo provides basic info about
@@ -35,10 +37,10 @@ struct KoOpenTypeFeatureInfo
         GPOS9, ///< Extension positioning.
     };
     KoOpenTypeFeatureInfo() {}
-    KoOpenTypeFeatureInfo(const QByteArray &tag,
-                          const QString &name,
-                          const QString &description,
-                          const QVector<OpenTypeTable> &tables,
+    KoOpenTypeFeatureInfo(const PkByteArray &tag,
+                          const PkString &name,
+                          const PkString &description,
+                          const PkVector<OpenTypeTable> &tables,
                           const bool glyphPalette = false,
                           const int maxValue = 1)
     : tag(tag)
@@ -50,17 +52,17 @@ struct KoOpenTypeFeatureInfo
     {
     }
     
-    QByteArray tag; ///< 4 char tag.
+    PkByteArray tag; ///< 4 char tag.
     
-    QString name; ///< User-friendly name.
+    PkString name; ///< User-friendly name.
     
-    QString description; ///< Description of the feature.
+    PkString description; ///< Description of the feature.
 
-    QString sample; ///< Sample of the feature, if any. Only used by CVXX features and retrieved from the font.
+    PkString sample; ///< Sample of the feature, if any. Only used by CVXX features and retrieved from the font.
 
-    QStringList namedParameters;/// Named parameters. Only used by CVXX features and retrieved from the font.
+    PkStringList namedParameters;/// Named parameters. Only used by CVXX features and retrieved from the font.
     
-    QVector<OpenTypeTable> tables; ///< Which table type(s) are recommended for this feature in the official registry.
+    PkVector<OpenTypeTable> tables; ///< Which table type(s) are recommended for this feature in the official registry.
 
     bool glyphPalette{false}; ///< Whether the feature should be visible in the glyph palette.
 
@@ -87,16 +89,16 @@ public:
      * in this case a generic KoOpenTypeFeatureInfo will be returned.
      * @return KoOpenTypeFeatureInfo for a given tag.
      */
-    KoOpenTypeFeatureInfo infoByTag(const QByteArray &tag) const;
+    KoOpenTypeFeatureInfo infoByTag(const PkByteArray &tag) const;
 
     /**
      * @brief tags
      * @return all the tags we have prepared KoOpenTypeFeatureInfo for.
      */
-    QList<QString> tags() const;
+    PkList<PkString> tags() const;
 
 private:
     struct Private;
     
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };

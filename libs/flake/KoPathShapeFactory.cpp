@@ -20,12 +20,12 @@
 
 #include "kis_pointer_utils.h"
 
-KoPathShapeFactory::KoPathShapeFactory(const QStringList&)
+KoPathShapeFactory::KoPathShapeFactory(const PkStringList&)
         : KoShapeFactoryBase(KoPathShapeId, i18n("Simple path shape"))
 {
     setToolTip(i18n("A simple path shape"));
     setIconName("pathshape");
-    QStringList elementNames;
+    PkStringList elementNames;
     elementNames << "path" << "line" << "polyline" << "polygon";
     setXmlElementNames(toQString(KoXmlNS::draw), elementNames);
     setLoadingPriority(0);
@@ -34,15 +34,15 @@ KoPathShapeFactory::KoPathShapeFactory(const QStringList&)
 KoShape *KoPathShapeFactory::createDefaultShape(KoDocumentResourceManager *) const
 {
     KoPathShape* path = new KoPathShape();
-    path->moveTo(QPointF(0, 50));
-    path->curveTo(QPointF(0, 120), QPointF(50, 120), QPointF(50, 50));
-    path->curveTo(QPointF(50, -20), QPointF(100, -20), QPointF(100, 50));
+    path->moveTo(PkPointF(0, 50));
+    path->curveTo(PkPointF(0, 120), PkPointF(50, 120), PkPointF(50, 50));
+    path->curveTo(PkPointF(50, -20), PkPointF(100, -20), PkPointF(100, 50));
     path->normalize();
-    path->setStroke(QSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
+    path->setStroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
     return path;
 }
 
-bool KoPathShapeFactory::supports(const QDomElement & e, KoShapeLoadingContext &context) const
+bool KoPathShapeFactory::supports(const PkXmlElement & e, KoShapeLoadingContext &context) const
 {
     Q_UNUSED(context);
     if (e.namespaceURI() == toQString(KoXmlNS::draw)) {
@@ -64,6 +64,6 @@ void KoPathShapeFactory::newDocumentResourceManager(KoDocumentResourceManager *m
     // we also need a MarkerCollection so add if it is not there yet
     if (!manager->hasResource(KoDocumentResourceManager::MarkerCollection)) {
         KoMarkerCollection *markerCollection = new KoMarkerCollection(manager);
-        manager->setResource(KoDocumentResourceManager::MarkerCollection, QVariant::fromValue(markerCollection));
+        manager->setResource(KoDocumentResourceManager::MarkerCollection, PkVariant::fromValue(markerCollection));
     }
 }

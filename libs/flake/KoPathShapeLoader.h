@@ -11,7 +11,7 @@
 
 class KoPathShape;
 class KoPathShapeLoaderPrivate;
-class QString;
+class PkString;
 
 /**
  * Parser for svg path data, passed by argument in the parseSvg() method
@@ -28,7 +28,7 @@ public:
      * svg path data commands and parameters. In the second mode, it will convert all
      * relative coordinates to absolute ones, and convert all curves to cubic beziers.
      */
-    void parseSvg(const QString &svgInputData, bool process = false);
+    void parseSvg(const PkString &svgInputData, bool process = false);
 
 private:
     KoPathShapeLoaderPrivate* const d;

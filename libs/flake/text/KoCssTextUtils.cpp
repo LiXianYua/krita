@@ -6,18 +6,18 @@
 #include "KoCssTextUtils.h"
 #include "KoLcLocale.h"
 #include "graphemebreak.h"
-#include <QChar>
+#include <uchar>
 #include <kis_assert.h>
 
-QVector<QPair<int, int>> positionDifference(QStringList a, QStringList b) {
-    QVector<QPair<int, int>> positions;
+PkVector<std::pair<int, int>> positionDifference(PkStringList a, PkStringList b) {
+    PkVector<std::pair<int, int>> positions;
     if (a.isEmpty() && b.isEmpty()) return positions;
 
     int countA = 0;
     int countB = 0;
     for (int i=0; i< a.size(); i++) {
-        QString textA = a.at(i);
-        QString textB = b.at(i);
+        PkString textA = a.at(i);
+        PkString textB = b.at(i);
         if (textA.size() > textB.size()) {
             for (int j=0; j < textA.size(); j++) {
                 int k = j < textB.size()? countB+j: -1;
@@ -36,45 +36,45 @@ QVector<QPair<int, int>> positionDifference(QStringList a, QStringList b) {
     return positions;
 }
 
-// ── R-31 过渡边界：QString ↔ PkString ─────────────────────────
+// ── R-31 过渡边界：PkString ↔ PkString ─────────────────────────
 // KoCssTextUtils 是过渡文件（其余部分仍用 Qt 类型，不进薄壳），但 R-31 的
 // locale 感知 casing 统一走 KoLcLocale。这两处转换是边界胶水，待本文件整体剥
 // Pk 时删除——casing 语义的真相源是 KoLcLocale（oracle 对拍见
 // .superpowers/sdd/S-08/locale/oracle/）。
 namespace {
-PkString qStringToPk(const QString &s)
+PkString qStringToPk(const PkString &s)
 {
-    const QByteArray u8 = s.toUtf8();
+    const PkByteArray u8 = s.toUtf8();
     return PkString::PkFromUtf8(u8.constData(), u8.size());
 }
 
-QString pkToQString(const PkString &s)
+PkString pkToQString(const PkString &s)
 {
     const std::string u8 = s.PkToUtf8();
-    return QString::fromUtf8(u8.data(), int(u8.size()));
+    return PkString::fromUtf8(u8.data(), int(u8.size()));
 }
 } // namespace
 
-QString KoCssTextUtils::transformTextToUpperCase(const QString &text, const QString &langCode, QVector<QPair<int, int> > &positions)
+PkString KoCssTextUtils::transformTextToUpperCase(const PkString &text, const PkString &langCode, PkVector<std::pair<int, int> > &positions)
 {
     if (text.isEmpty()) return text;
     // R-31：QLocale casing → KoLcLocale。原代码把 langCode 的 "-" 换成 "_" 喂
     // QLocale，capitalize 却直接用连字符——KoLcLocale 内部统一归一化，无需在这里
     // 对齐（见 locale/KoLcLocale-design.md）。
-    const QString transformedText = pkToQString(KoLc::toUpper(qStringToPk(text), qStringToPk(langCode)));
+    const PkString transformedText = pkToQString(KoLc::toUpper(qStringToPk(text), qStringToPk(langCode)));
     positions = positionDifference(textToUnicodeGraphemeClusters(text, langCode), textToUnicodeGraphemeClusters(transformedText, langCode));
     return transformedText;
 }
 
-QString KoCssTextUtils::transformTextToLowerCase(const QString &text, const QString &langCode, QVector<QPair<int, int> > &positions)
+PkString KoCssTextUtils::transformTextToLowerCase(const PkString &text, const PkString &langCode, PkVector<std::pair<int, int> > &positions)
 {
     if (text.isEmpty()) return text;
-    const QString transformedText = pkToQString(KoLc::toLower(qStringToPk(text), qStringToPk(langCode)));
+    const PkString transformedText = pkToQString(KoLc::toLower(qStringToPk(text), qStringToPk(langCode)));
     positions = positionDifference(textToUnicodeGraphemeClusters(text, langCode), textToUnicodeGraphemeClusters(transformedText, langCode));
     return transformedText;
 }
 
-QString KoCssTextUtils::transformTextCapitalize(const QString &text, const QString langCode, QVector<QPair<int, int>> &positions)
+PkString KoCssTextUtils::transformTextCapitalize(const PkString &text, const PkString langCode, PkVector<std::pair<int, int>> &positions)
 {
     if (text.isEmpty()) return text;
     // R-31：QLocale::Dutch 判定 → KoLcLocale::isDutch（原代码在循环外构造
@@ -82,11 +82,11 @@ QString KoCssTextUtils::transformTextCapitalize(const QString &text, const QStri
     const PkString pkLang = qStringToPk(langCode);
     const bool dutch = KoLc::isDutch(pkLang);
 
-    QStringList graphemes = textToUnicodeGraphemeClusters(text, langCode);
-    QStringList oldGraphemes = graphemes;
+    PkStringList graphemes = textToUnicodeGraphemeClusters(text, langCode);
+    PkStringList oldGraphemes = graphemes;
     bool capitalizeGrapheme = true;
     for (int i = 0; i < graphemes.size(); i++) {
-        QString grapheme = graphemes.at(i);
+        PkString grapheme = graphemes.at(i);
         if (grapheme.isEmpty() || IsCssWordSeparator(grapheme)) {
             capitalizeGrapheme = true;
 
@@ -109,15 +109,15 @@ QString KoCssTextUtils::transformTextCapitalize(const QString &text, const QStri
     return graphemes.join("");
 }
 
-static QChar findProportionalToFullWidth(const QChar &value, const QChar &defaultValue)
+static char16_t findProportionalToFullWidth(const char16_t &value, const char16_t &defaultValue)
 {
-    static QMap<QChar, QChar> map = []() {
-        QMap<QChar, QChar> map;
+    static PkMap<char16_t, char16_t> map = []() {
+        PkMap<char16_t, char16_t> map;
         // https://stackoverflow.com/questions/8326846/
         for (int i = 0x0021; i < 0x007F; i++) {
-            map.insert(QChar(i), QChar(i + 0xFF00 - 0x0020));
+            map.insert(char16_t(i), char16_t(i + 0xFF00 - 0x0020));
         }
-        map.insert(QChar(0x0020), QChar(0x3000)); // Ideographic space.
+        map.insert(char16_t(0x0020), char16_t(0x3000)); // Ideographic space.
 
         return map;
     }();
@@ -125,12 +125,12 @@ static QChar findProportionalToFullWidth(const QChar &value, const QChar &defaul
     return map.value(value, defaultValue);
 }
 
-QString KoCssTextUtils::transformTextFullWidth(const QString &text)
+PkString KoCssTextUtils::transformTextFullWidth(const PkString &text)
 {
     if (text.isEmpty()) return text;
-    QString transformedText;
-    Q_FOREACH (const QChar &c, text) {
-        if (c.decompositionTag() == QChar::Narrow) {
+    PkString transformedText;
+    Q_FOREACH (const char16_t &c, text) {
+        if (c.decompositionTag() == char16_t::Narrow) {
             transformedText.append(c.decomposition());
         } else {
             transformedText.append(findProportionalToFullWidth(c, c));
@@ -140,92 +140,92 @@ QString KoCssTextUtils::transformTextFullWidth(const QString &text)
     return transformedText;
 }
 
-static QChar findSmallKanaToBigKana(const QChar &value, const QChar &defaultValue)
+static char16_t findSmallKanaToBigKana(const char16_t &value, const char16_t &defaultValue)
 {
-    static QMap<QChar, QChar> map = {
+    static PkMap<char16_t, char16_t> map = {
         // NOTE: these are not fully sequential!
         // clang-format off
-        {QChar{0x3041}, QChar{0x3042}},
-        {QChar{0x3043}, QChar{0x3044}},
-        {QChar{0x3045}, QChar{0x3046}},
-        {QChar{0x3047}, QChar{0x3048}},
-        {QChar{0x3049}, QChar{0x304A}},
-        {QChar{0x3095}, QChar{0x304B}},
-        {QChar{0x3096}, QChar{0x3051}},
-        {QChar{0x1B132}, QChar{0x3053}},
-        {QChar{0x3063}, QChar{0x3064}},
-        {QChar{0x3083}, QChar{0x3084}},
-        {QChar{0x3085}, QChar{0x3086}},
-        {QChar{0x3087}, QChar{0x3088}},
-        {QChar{0x308E}, QChar{0x308F}},
-        {QChar{0x1B150}, QChar{0x3090}},
-        {QChar{0x1B151}, QChar{0x3091}},
-        {QChar{0x1B152}, QChar{0x3092}},
+        {char16_t{0x3041}, char16_t{0x3042}},
+        {char16_t{0x3043}, char16_t{0x3044}},
+        {char16_t{0x3045}, char16_t{0x3046}},
+        {char16_t{0x3047}, char16_t{0x3048}},
+        {char16_t{0x3049}, char16_t{0x304A}},
+        {char16_t{0x3095}, char16_t{0x304B}},
+        {char16_t{0x3096}, char16_t{0x3051}},
+        {char16_t{0x1B132}, char16_t{0x3053}},
+        {char16_t{0x3063}, char16_t{0x3064}},
+        {char16_t{0x3083}, char16_t{0x3084}},
+        {char16_t{0x3085}, char16_t{0x3086}},
+        {char16_t{0x3087}, char16_t{0x3088}},
+        {char16_t{0x308E}, char16_t{0x308F}},
+        {char16_t{0x1B150}, char16_t{0x3090}},
+        {char16_t{0x1B151}, char16_t{0x3091}},
+        {char16_t{0x1B152}, char16_t{0x3092}},
 
-        {QChar{0x30A1}, QChar{0x30A2}},
-        {QChar{0x30A3}, QChar{0x30A4}},
-        {QChar{0x30A5}, QChar{0x30A6}},
-        {QChar{0x30A7}, QChar{0x30A8}},
-        {QChar{0x30A9}, QChar{0x30AA}},
-        {QChar{0x30F5}, QChar{0x30AB}},
-        {QChar{0x31F0}, QChar{0x30AF}},
-        {QChar{0x30F6}, QChar{0x30B1}},
-        {QChar{0x1B155}, QChar{0x30B3}},
-        {QChar{0x31F1}, QChar{0x30B7}},
-        {QChar{0x31F2}, QChar{0x30B9}},
-        {QChar{0x30C3}, QChar{0x30C4}},
-        {QChar{0x31F3}, QChar{0x30C8}},
-        {QChar{0x31F4}, QChar{0x30CC}},
-        {QChar{0x31F5}, QChar{0x30CF}},
-        {QChar{0x31F6}, QChar{0x30D2}},
-        {QChar{0x31F7}, QChar{0x30D5}},
-        {QChar{0x31F8}, QChar{0x30D8}},
-        {QChar{0x31F9}, QChar{0x30DB}},
-        {QChar{0x31FA}, QChar{0x30E0}},
-        {QChar{0x30E3}, QChar{0x30E4}},
-        {QChar{0x30E5}, QChar{0x30E6}},
-        {QChar{0x30E7}, QChar{0x30E8}},
-        {QChar{0x31FB}, QChar{0x30E9}},
-        {QChar{0x31FC}, QChar{0x30EA}},
-        {QChar{0x31FD}, QChar{0x30EB}},
-        {QChar{0x31FE}, QChar{0x30EC}},
-        {QChar{0x31FF}, QChar{0x30ED}},
-        {QChar{0x30EE}, QChar{0x30EF}},
-        {QChar{0x1B164}, QChar{0x30F0}},
-        {QChar{0x1B165}, QChar{0x30F1}},
-        {QChar{0x1B166}, QChar{0x30F2}},
-        {QChar{0x1B167}, QChar{0x30F3}},
+        {char16_t{0x30A1}, char16_t{0x30A2}},
+        {char16_t{0x30A3}, char16_t{0x30A4}},
+        {char16_t{0x30A5}, char16_t{0x30A6}},
+        {char16_t{0x30A7}, char16_t{0x30A8}},
+        {char16_t{0x30A9}, char16_t{0x30AA}},
+        {char16_t{0x30F5}, char16_t{0x30AB}},
+        {char16_t{0x31F0}, char16_t{0x30AF}},
+        {char16_t{0x30F6}, char16_t{0x30B1}},
+        {char16_t{0x1B155}, char16_t{0x30B3}},
+        {char16_t{0x31F1}, char16_t{0x30B7}},
+        {char16_t{0x31F2}, char16_t{0x30B9}},
+        {char16_t{0x30C3}, char16_t{0x30C4}},
+        {char16_t{0x31F3}, char16_t{0x30C8}},
+        {char16_t{0x31F4}, char16_t{0x30CC}},
+        {char16_t{0x31F5}, char16_t{0x30CF}},
+        {char16_t{0x31F6}, char16_t{0x30D2}},
+        {char16_t{0x31F7}, char16_t{0x30D5}},
+        {char16_t{0x31F8}, char16_t{0x30D8}},
+        {char16_t{0x31F9}, char16_t{0x30DB}},
+        {char16_t{0x31FA}, char16_t{0x30E0}},
+        {char16_t{0x30E3}, char16_t{0x30E4}},
+        {char16_t{0x30E5}, char16_t{0x30E6}},
+        {char16_t{0x30E7}, char16_t{0x30E8}},
+        {char16_t{0x31FB}, char16_t{0x30E9}},
+        {char16_t{0x31FC}, char16_t{0x30EA}},
+        {char16_t{0x31FD}, char16_t{0x30EB}},
+        {char16_t{0x31FE}, char16_t{0x30EC}},
+        {char16_t{0x31FF}, char16_t{0x30ED}},
+        {char16_t{0x30EE}, char16_t{0x30EF}},
+        {char16_t{0x1B164}, char16_t{0x30F0}},
+        {char16_t{0x1B165}, char16_t{0x30F1}},
+        {char16_t{0x1B166}, char16_t{0x30F2}},
+        {char16_t{0x1B167}, char16_t{0x30F3}},
 
-        {QChar{0xFF67}, QChar{0xFF71}},
-        {QChar{0xFF68}, QChar{0xFF72}},
-        {QChar{0xFF69}, QChar{0xFF73}},
-        {QChar{0xFF6A}, QChar{0xFF74}},
-        {QChar{0xFF6B}, QChar{0xFF75}},
-        {QChar{0xFF6F}, QChar{0xFF82}},
-        {QChar{0xFF6C}, QChar{0xFF94}},
-        {QChar{0xFF6D}, QChar{0xFF95}},
-        {QChar{0xFF6E}, QChar{0xFF96}},
+        {char16_t{0xFF67}, char16_t{0xFF71}},
+        {char16_t{0xFF68}, char16_t{0xFF72}},
+        {char16_t{0xFF69}, char16_t{0xFF73}},
+        {char16_t{0xFF6A}, char16_t{0xFF74}},
+        {char16_t{0xFF6B}, char16_t{0xFF75}},
+        {char16_t{0xFF6F}, char16_t{0xFF82}},
+        {char16_t{0xFF6C}, char16_t{0xFF94}},
+        {char16_t{0xFF6D}, char16_t{0xFF95}},
+        {char16_t{0xFF6E}, char16_t{0xFF96}},
         // clang-format on
     };
 
     return map.value(value, defaultValue);
 }
 
-QString KoCssTextUtils::transformTextFullSizeKana(const QString &text)
+PkString KoCssTextUtils::transformTextFullSizeKana(const PkString &text)
 {
-    QString transformedText;
-    Q_FOREACH (const QChar &c, text) {
+    PkString transformedText;
+    Q_FOREACH (const char16_t &c, text) {
         transformedText.append(findSmallKanaToBigKana(c, c));
     }
 
     return transformedText;
 }
 
-QVector<bool> KoCssTextUtils::collapseSpaces(QString *text, QMap<int, KoSvgText::TextSpaceCollapse> collapseMethods)
+PkVector<bool> KoCssTextUtils::collapseSpaces(PkString *text, PkMap<int, KoSvgText::TextSpaceCollapse> collapseMethods)
 {
 
-    QString modifiedText = *text;
-    QVector<bool> collapseList(modifiedText.size());
+    PkString modifiedText = *text;
+    PkVector<bool> collapseList(modifiedText.size());
     collapseList.fill(false);
     int spaceSequenceCount = 0;
     KoSvgText::TextSpaceCollapse collapseMethod = collapseMethods.first();
@@ -237,19 +237,19 @@ QVector<bool> KoCssTextUtils::collapseSpaces(QString *text, QMap<int, KoSvgText:
             if (collapseMethods.value(i) != collapseMethod) spaceSequenceCount = 0;
             collapseMethod = collapseMethods.value(i);
         }
-        const QChar c = modifiedText.at(i);
-        if (c == QChar::LineFeed || c == QChar::Tabulation) {
+        const char16_t c = modifiedText.at(i);
+        if (c == char16_t::LineFeed || c == char16_t::Tabulation) {
             if (collapseMethod == KoSvgText::Collapse ||
                     collapseMethod == KoSvgText::PreserveSpaces) {
-                modifiedText[i] = QChar::Space;
+                modifiedText[i] = char16_t::Space;
                 spaceSequenceCount += 1;
                 collapseList[i] = spaceSequenceCount > 1 || firstOrLast? true: false;
                 continue;
             }
         }
         if (c.isSpace()) {
-            bool isSegmentBreak = c == QChar::LineFeed;
-            bool isTab = c == QChar::Tabulation;
+            bool isSegmentBreak = c == char16_t::LineFeed;
+            bool isTab = c == char16_t::Tabulation;
             spaceSequenceCount += 1;
             if (spaceSequenceCount > 1 || firstOrLast) {
                 switch (collapseMethod) {
@@ -265,7 +265,7 @@ QVector<bool> KoCssTextUtils::collapseSpaces(QString *text, QMap<int, KoSvgText:
                 case KoSvgText::PreserveBreaks:
                     collapse = !isSegmentBreak;
                     if (isTab) {
-                        modifiedText[i] = QChar::Space;
+                        modifiedText[i] = char16_t::Space;
                     }
                     break;
                 }
@@ -294,10 +294,10 @@ QVector<bool> KoCssTextUtils::collapseSpaces(QString *text, QMap<int, KoSvgText:
     return collapseList;
 }
 
-bool KoCssTextUtils::collapseLastSpace(const QChar c, KoSvgText::TextSpaceCollapse collapseMethod)
+bool KoCssTextUtils::collapseLastSpace(const char16_t c, KoSvgText::TextSpaceCollapse collapseMethod)
 {
     bool collapse = false;
-    if (c == QChar::LineFeed) {
+    if (c == char16_t::LineFeed) {
         collapse = true;
     } else if (c.isSpace()) {
         switch (collapseMethod) {
@@ -320,7 +320,7 @@ bool KoCssTextUtils::collapseLastSpace(const QChar c, KoSvgText::TextSpaceCollap
     return collapse;
 }
 
-bool KoCssTextUtils::hangLastSpace(const QChar c,
+bool KoCssTextUtils::hangLastSpace(const char16_t c,
                                    KoSvgText::TextSpaceCollapse collapseMethod,
                                    KoSvgText::TextWrap wrapMethod,
                                    bool &force,
@@ -351,12 +351,12 @@ bool KoCssTextUtils::hangLastSpace(const QChar c,
     return false;
 }
 
-bool KoCssTextUtils::characterCanHang(const QChar c, KoSvgText::HangingPunctuations hangType)
+bool KoCssTextUtils::characterCanHang(const char16_t c, KoSvgText::HangingPunctuations hangType)
 {
     if (hangType.testFlag(KoSvgText::HangFirst)) {
-        if (c.category() == QChar::Punctuation_InitialQuote || // Pi
-            c.category() == QChar::Punctuation_Open || // Ps
-            c.category() == QChar::Punctuation_FinalQuote || // Pf
+        if (c.category() == char16_t::Punctuation_InitialQuote || // Pi
+            c.category() == char16_t::Punctuation_Open || // Ps
+            c.category() == char16_t::Punctuation_FinalQuote || // Pf
             c == "\u0027" || // Apostrophe
             c == "\uFF07" || // Fullwidth Apostrophe
             c == "\u0022" || // Quotation Mark
@@ -365,9 +365,9 @@ bool KoCssTextUtils::characterCanHang(const QChar c, KoSvgText::HangingPunctuati
         }
     }
     if (hangType.testFlag(KoSvgText::HangLast)) {
-        if (c.category() == QChar::Punctuation_InitialQuote || // Pi
-            c.category() == QChar::Punctuation_FinalQuote || // Pf
-            c.category() == QChar::Punctuation_Close || // Pe
+        if (c.category() == char16_t::Punctuation_InitialQuote || // Pi
+            c.category() == char16_t::Punctuation_FinalQuote || // Pf
+            c.category() == char16_t::Punctuation_Close || // Pe
             c == "\u0027" || // Apostrophe
             c == "\uFF07" || // Fullwidth Apostrophe
             c == "\u0022" || // Quotation Mark
@@ -396,7 +396,7 @@ bool KoCssTextUtils::characterCanHang(const QChar c, KoSvgText::HangingPunctuati
     return false;
 }
 
-bool KoCssTextUtils::IsCssWordSeparator(const QString grapheme)
+bool KoCssTextUtils::IsCssWordSeparator(const PkString grapheme)
 {
     return (grapheme == "\u0020" || // Space
         grapheme == "\u00A0" || // No Break Space
@@ -406,11 +406,11 @@ bool KoCssTextUtils::IsCssWordSeparator(const QString grapheme)
         grapheme == "\u1039F");
 }
 
-QStringList KoCssTextUtils::textToUnicodeGraphemeClusters(const QString &text, const QString &langCode)
+PkStringList KoCssTextUtils::textToUnicodeGraphemeClusters(const PkString &text, const PkString &langCode)
 {
-    QVector<char> graphemeBreaks(text.size());
+    PkVector<char> graphemeBreaks(text.size());
     set_graphemebreaks_utf16(text.utf16(), static_cast<size_t>(text.size()), langCode.toUtf8().data(), graphemeBreaks.data());
-    QStringList graphemes;
+    PkStringList graphemes;
     int graphemeLength = 0;
     int lastGrapheme = 0;
     for (int i = 0; i < text.size(); i++) {
@@ -426,60 +426,60 @@ QStringList KoCssTextUtils::textToUnicodeGraphemeClusters(const QString &text, c
     return graphemes;
 }
 
-static QVector<QChar::Script> blockScript {
-    QChar::Script_Bopomofo,
-    QChar::Script_Han,
-    QChar::Script_Hangul,
-    QChar::Script_Hiragana,
-    QChar::Script_Katakana,
-    QChar::Script_Yi
+static PkVector<char16_t::Script> blockScript {
+    char16_t::Script_Bopomofo,
+    char16_t::Script_Han,
+    char16_t::Script_Hangul,
+    char16_t::Script_Hiragana,
+    char16_t::Script_Katakana,
+    char16_t::Script_Yi
 };
 
-static QVector<QChar::Script> clusterScript {
-    QChar::Script_Khmer,
-    QChar::Script_Lao,
-    QChar::Script_Myanmar,
-    QChar::Script_NewTaiLue,
-    QChar::Script_TaiLe,
-    QChar::Script_TaiTham,
-    QChar::Script_TaiViet,
-    QChar::Script_Thai
+static PkVector<char16_t::Script> clusterScript {
+    char16_t::Script_Khmer,
+    char16_t::Script_Lao,
+    char16_t::Script_Myanmar,
+    char16_t::Script_NewTaiLue,
+    char16_t::Script_TaiLe,
+    char16_t::Script_TaiTham,
+    char16_t::Script_TaiViet,
+    char16_t::Script_Thai
 };
 
-QVector<QPair<bool, bool> > KoCssTextUtils::justificationOpportunities(QString text, QString langCode)
+PkVector<std::pair<bool, bool> > KoCssTextUtils::justificationOpportunities(PkString text, PkString langCode)
 {
-    QVector<QPair<bool, bool>> opportunities(text.size());
-    opportunities.fill(QPair<bool, bool>(false, false));
-    QStringList graphemes = textToUnicodeGraphemeClusters(text, langCode);
+    PkVector<std::pair<bool, bool>> opportunities(text.size());
+    opportunities.fill(std::pair<bool, bool>(false, false));
+    PkStringList graphemes = textToUnicodeGraphemeClusters(text, langCode);
     for (int i = 0; i < graphemes.size(); i++) {
-        QString grapheme = graphemes.at(i);
+        PkString grapheme = graphemes.at(i);
         if (IsCssWordSeparator(grapheme) || blockScript.contains(grapheme.at(0).script())
                 || clusterScript.contains(grapheme.at(0).script())) {
-            opportunities[i] = QPair<bool, bool>(true, true);
+            opportunities[i] = std::pair<bool, bool>(true, true);
         }
     }
     return opportunities;
 }
 
-const QString BIDI_CONTROL_LRE = "\u202a";
-const QString BIDI_CONTROL_RLE = "\u202b";
-const QString BIDI_CONTROL_PDF = "\u202c";
-const QString BIDI_CONTROL_LRO = "\u202d";
-const QString BIDI_CONTROL_RLO = "\u202e";
-const QString BIDI_CONTROL_LRI = "\u2066";
-const QString BIDI_CONTROL_RLI = "\u2067";
-const QString BIDI_CONTROL_FSI = "\u2068";
-const QString BIDI_CONTROL_PDI = "\u2069";
-const QString UNICODE_BIDI_ISOLATE_OVERRIDE_LR_START = "\u2068\u202d";
-const QString UNICODE_BIDI_ISOLATE_OVERRIDE_RL_START = "\u2068\u202e";
-const QString UNICODE_BIDI_ISOLATE_OVERRIDE_END = "\u202c\u2069";
-const QChar ZERO_WIDTH_JOINER = QChar{0x200d};
+const PkString BIDI_CONTROL_LRE = "\u202a";
+const PkString BIDI_CONTROL_RLE = "\u202b";
+const PkString BIDI_CONTROL_PDF = "\u202c";
+const PkString BIDI_CONTROL_LRO = "\u202d";
+const PkString BIDI_CONTROL_RLO = "\u202e";
+const PkString BIDI_CONTROL_LRI = "\u2066";
+const PkString BIDI_CONTROL_RLI = "\u2067";
+const PkString BIDI_CONTROL_FSI = "\u2068";
+const PkString BIDI_CONTROL_PDI = "\u2069";
+const PkString UNICODE_BIDI_ISOLATE_OVERRIDE_LR_START = "\u2068\u202d";
+const PkString UNICODE_BIDI_ISOLATE_OVERRIDE_RL_START = "\u2068\u202e";
+const PkString UNICODE_BIDI_ISOLATE_OVERRIDE_END = "\u202c\u2069";
+const char16_t ZERO_WIDTH_JOINER = char16_t{0x200d};
 
-QString KoCssTextUtils::getBidiOpening(bool ltr, KoSvgText::UnicodeBidi bidi)
+PkString KoCssTextUtils::getBidiOpening(bool ltr, KoSvgText::UnicodeBidi bidi)
 {
     using namespace KoSvgText;
 
-    QString result;
+    PkString result;
 
     if (ltr) {
         if (bidi == BidiEmbed) {
@@ -510,11 +510,11 @@ QString KoCssTextUtils::getBidiOpening(bool ltr, KoSvgText::UnicodeBidi bidi)
     return result;
 }
 
-QString KoCssTextUtils::getBidiClosing(KoSvgText::UnicodeBidi bidi)
+PkString KoCssTextUtils::getBidiClosing(KoSvgText::UnicodeBidi bidi)
 {
     using namespace KoSvgText;
 
-    QString result;
+    PkString result;
 
     if (bidi == BidiEmbed || bidi == BidiOverride) {
         result = BIDI_CONTROL_PDF;
@@ -554,7 +554,7 @@ bool regionalIndicator(uint val) {
     return false;
 }
 
-void KoCssTextUtils::removeText(QString &text, int &start, int length)
+void KoCssTextUtils::removeText(PkString &text, int &start, int length)
 {
     int end = start+length;
     int j = 0;
@@ -566,7 +566,7 @@ void KoCssTextUtils::removeText(QString &text, int &start, int length)
     bool startFound = false;
     bool addToEnd = true;
     Q_FOREACH(const uint i, text.toUcs4()) {
-        v = QChar::requiresSurrogates(i)? 2: 1;
+        v = char16_t::requiresSurrogates(i)? 2: 1;
         int index = (j+v) -1;
         bool ZWJ = text.at(index) == ZERO_WIDTH_JOINER;
         if (isVariationSelector(i)) {
@@ -614,14 +614,14 @@ void KoCssTextUtils::removeText(QString &text, int &start, int length)
     text.remove(start, end-start);
 }
 
-qreal KoCssTextUtils::cssSelectFontStyleValue(const QVector<qreal> &values, const qreal targetValue, const qreal defaultValue, const qreal defaultValueUpper, const bool shouldNotReturnDefault)
+qreal KoCssTextUtils::cssSelectFontStyleValue(const PkVector<qreal> &values, const qreal targetValue, const qreal defaultValue, const qreal defaultValueUpper, const bool shouldNotReturnDefault)
 {
     if(values.isEmpty()) {
         return targetValue;
     }
     // follow the CSS Fonts selection mechanism.
     // See https://drafts.csswg.org/css-fonts-4/#font-style-matching
-    QVector<qreal> sortedValues = values;
+    PkVector<qreal> sortedValues = values;
     std::sort(sortedValues.begin(), sortedValues.end());
     qreal selectedValue = defaultValue;
     auto upper = std::lower_bound(sortedValues.begin(), sortedValues.end(), targetValue);

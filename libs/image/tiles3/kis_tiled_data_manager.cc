@@ -352,7 +352,7 @@ void KisTiledDataManager::clear(PkRect clearRect, const std::uint8_t *clearPixel
 
     // Generate one row
     std::uint8_t *clearPixelData = 0;
-    std::uint32_t maxRunLength = qMin(clearRect.width(), KisTileData::WIDTH);
+    std::uint32_t maxRunLength = pkMin(clearRect.width(), KisTileData::WIDTH);
     clearPixelData = duplicatePixel(maxRunLength, clearPixel);
 
     KisTileData *td = 0;

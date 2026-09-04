@@ -32,7 +32,7 @@ struct KisNodeProgressProxy::Private {
             percentage = 0;
         } else {
             percentage = (100 * (value - minimum)) / (maximum - minimum);
-            percentage = qBound(0, percentage, 100);
+            percentage = pkBound(0, percentage, 100);
         }
         return old_percentage != percentage;
     }

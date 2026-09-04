@@ -39,7 +39,7 @@ void KisTiledDataManager::writeBytesBody(const std::uint8_t *data,
         std::int32_t numContiguousImageRows = numContiguousRows(imageY, imageX,
                                                           imageX + width - 1);
 
-        std::int32_t rowsToWork = qMin(numContiguousImageRows, rowsRemaining);
+        std::int32_t rowsToWork = pkMin(numContiguousImageRows, rowsRemaining);
 
         while (columnsRemaining > 0) {
 
@@ -47,7 +47,7 @@ void KisTiledDataManager::writeBytesBody(const std::uint8_t *data,
                     numContiguousColumns(imageX, imageY,
                                          imageY + rowsToWork - 1);
 
-            std::int32_t columnsToWork = qMin(numContiguousImageColumns,
+            std::int32_t columnsToWork = pkMin(numContiguousImageColumns,
                                         columnsRemaining);
 
             KisTileDataWrapper tw(this, imageX, imageY, KisTileDataWrapper::WRITE);
@@ -106,14 +106,14 @@ void KisTiledDataManager::readBytesBody(std::uint8_t *data,
         std::int32_t numContiguousImageRows = numContiguousRows(imageY, imageX,
                                                           imageX + width - 1);
 
-        std::int32_t rowsToWork = qMin(numContiguousImageRows, rowsRemaining);
+        std::int32_t rowsToWork = pkMin(numContiguousImageRows, rowsRemaining);
 
         while (columnsRemaining > 0) {
 
             std::int32_t numContiguousImageColumns = numContiguousColumns(imageX, imageY,
                                                                     imageY + rowsToWork - 1);
 
-            std::int32_t columnsToWork = qMin(numContiguousImageColumns,
+            std::int32_t columnsToWork = pkMin(numContiguousImageColumns,
                                         columnsRemaining);
 
             // XXX: Ugly const cast because of the old pixelPtr design copied from tiles1.
@@ -178,14 +178,14 @@ void KisTiledDataManager::writePlanarBytesBody(PkVector </*const*/ std::uint8_t*
         std::int32_t numContiguousImageRows = numContiguousRows(imageY, imageX,
                                                           imageX + width - 1);
 
-        std::int32_t rowsToWork = qMin(numContiguousImageRows, rowsRemaining);
+        std::int32_t rowsToWork = pkMin(numContiguousImageRows, rowsRemaining);
 
         while (columnsRemaining > 0) {
 
             std::int32_t numContiguousImageColumns =
                     numContiguousColumns(imageX, imageY,
                                          imageY + rowsToWork - 1);
-            std::int32_t columnsToWork = qMin(numContiguousImageColumns,
+            std::int32_t columnsToWork = pkMin(numContiguousImageColumns,
                                         columnsRemaining);
 
             const std::int32_t dataIdx = dataX + dataY * width;
@@ -259,14 +259,14 @@ PkVector<std::uint8_t*> KisTiledDataManager::readPlanarBytesBody(PkVector<std::i
         std::int32_t numContiguousImageRows = numContiguousRows(imageY, imageX,
                                                           imageX + width - 1);
 
-        std::int32_t rowsToWork = qMin(numContiguousImageRows, rowsRemaining);
+        std::int32_t rowsToWork = pkMin(numContiguousImageRows, rowsRemaining);
 
         while (columnsRemaining > 0) {
 
             std::int32_t numContiguousImageColumns =
                     numContiguousColumns(imageX, imageY,
                                          imageY + rowsToWork - 1);
-            std::int32_t columnsToWork = qMin(numContiguousImageColumns,
+            std::int32_t columnsToWork = pkMin(numContiguousImageColumns,
                                         columnsRemaining);
 
             const std::int32_t dataIdx = dataX + dataY * width;

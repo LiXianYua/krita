@@ -366,12 +366,12 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                         int columns = 1;
 
                         for (int y = bounds.y(); y <= bounds.bottom(); y += rows) {
-                            rows = qMin(srcIt->numContiguousRows(y),
-                                        qMin(dstIt->numContiguousRows(y), bounds.bottom() - y + 1));
+                            rows = pkMin(srcIt->numContiguousRows(y),
+                                        pkMin(dstIt->numContiguousRows(y), bounds.bottom() - y + 1));
 
                             for (int x = bounds.x(); x <= bounds.right(); x += columns) {
-                                columns = qMin(srcIt->numContiguousColumns(x),
-                                               qMin(dstIt->numContiguousColumns(x), bounds.right() - x + 1));
+                                columns = pkMin(srcIt->numContiguousColumns(x),
+                                               pkMin(dstIt->numContiguousColumns(x), bounds.right() - x + 1));
 
                                 srcIt->moveTo(x, y);
                                 dstIt->moveTo(x, y);
@@ -497,12 +497,12 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, PkStream 
                     int columns = 1;
 
                     for (int y = bounds.y(); y <= bounds.bottom(); y += rows) {
-                        rows = qMin(srcIt->numContiguousRows(y),
-                                    qMin(dstIt->numContiguousRows(y), bounds.bottom() - y + 1));
+                        rows = pkMin(srcIt->numContiguousRows(y),
+                                    pkMin(dstIt->numContiguousRows(y), bounds.bottom() - y + 1));
 
                         for (int x = bounds.x(); x <= bounds.right(); x += columns) {
-                            columns = qMin(srcIt->numContiguousColumns(x),
-                                           qMin(dstIt->numContiguousColumns(x), bounds.right() - x + 1));
+                            columns = pkMin(srcIt->numContiguousColumns(x),
+                                           pkMin(dstIt->numContiguousColumns(x), bounds.right() - x + 1));
 
                             srcIt->moveTo(x, y);
                             dstIt->moveTo(x, y);

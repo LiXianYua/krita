@@ -9,10 +9,10 @@
 #define KO_RESOURCEMANAGER_P_H
 
 #include <QObject>
-#include <QSizeF>
-#include <QHash>
+#include <PkSize.h>
+#include <PkHash.h>
 #include <QMetaType>
-#include <QVariant>
+#include <PkVariant.h>
 
 #include "kritaflake_export.h"
 #include <KoColor.h>
@@ -23,7 +23,7 @@
 #include "KoAbstractCanvasResourceInterface.h"
 
 // S-08 过渡期：libs/pigment 的 KoColor 与 libs/global 的 KoUnit 已剥离掉原 Q_DECLARE_METATYPE，
-// 而本头是 real-Qt-first（QObject/QVariant 存资源），QVariant::setValue(KoColor) 需要 metatype。
+// 而本头是 real-Qt-first（QObject/PkVariant 存资源），PkVariant::setValue(KoColor) 需要 metatype。
 // 在 flake 侧补声明（真实 Qt 宏，KoColor/KoUnit 均已完整定义）。flake 剥完 Qt 后随本头删除。
 Q_DECLARE_METATYPE(KoColor)
 Q_DECLARE_METATYPE(KoUnit)
@@ -49,7 +49,7 @@ public:
      * @param value the new value for the key.
      * @see KoCanvasResource::CanvasResourceId KoDocumentResourceManager::DocumentResource
      */
-    void setResource(int key, const QVariant &value);
+    void setResource(int key, const PkVariant &value);
 
     /**
      * Set a resource of type KoColor.
@@ -81,7 +81,7 @@ public:
      * @param key the key
      * @see KoCanvasResource::CanvasResourceId KoDocumentResourceManager::DocumentResource
      */
-    QVariant resource(int key) const;
+    PkVariant resource(int key) const;
 
     /**
      * Return the resource determined by param key as a boolean.
@@ -112,18 +112,18 @@ public:
     KoShape *koShapeResource(int key) const;
 
     /**
-     * Return the resource determined by param key as a QString .
+     * Return the resource determined by param key as a PkString .
      * @param key the identifying key for the resource
      * @see KoCanvasResource::CanvasResourceId KoDocumentResourceManager::DocumentResource
      */
-    QString stringResource(int key) const;
+    PkString stringResource(int key) const;
 
     /**
-     * Return the resource determined by param key as a QSizeF.
+     * Return the resource determined by param key as a PkSizeF.
      * @param key the identifying key for the resource
      * @see KoCanvasResource::CanvasResourceId KoDocumentResourceManager::DocumentResource
      */
-    QSizeF sizeResource(int key) const;
+    PkSizeF sizeResource(int key) const;
 
     /**
      * Return the resource determined by param key as a KoUnit.
@@ -238,36 +238,36 @@ public:
     void setAbstractResource(KoAbstractCanvasResourceInterfaceSP resource);
 
 Q_SIGNALS:
-    void resourceChanged(int key, const QVariant &value);
-    void resourceChangeAttempted(int key, const QVariant &value);
+    void resourceChanged(int key, const PkVariant &value);
+    void resourceChangeAttempted(int key, const PkVariant &value);
 
 private:
-    void notifyResourceChanged(int key, const QVariant &value);
-    void notifyDerivedResourcesChanged(int key, const QVariant &value);
+    void notifyResourceChanged(int key, const PkVariant &value);
+    void notifyDerivedResourcesChanged(int key, const PkVariant &value);
 
-    void notifyResourceChangeAttempted(int key, const QVariant &value);
-    void notifyDerivedResourcesChangeAttempted(int key, const QVariant &value);
+    void notifyResourceChangeAttempted(int key, const PkVariant &value);
+    void notifyDerivedResourcesChangeAttempted(int key, const PkVariant &value);
 
-    void notifyDependenciesAboutTargetChange(int targetKey, const QVariant &value);
+    void notifyDependenciesAboutTargetChange(int targetKey, const PkVariant &value);
 
 private Q_SLOTS:
     void slotResourceInternalsChanged(int key);
-    void slotAbstractResourceChangedExternal(int key, const QVariant &value);
+    void slotAbstractResourceChangedExternal(int key, const PkVariant &value);
 
 private:
     KoResourceManager(const KoResourceManager&);
     KoResourceManager& operator=(const KoResourceManager&);
 
-    QHash<int, QVariant> m_resources;
+    PkHash<int, PkVariant> m_resources;
 
-    QHash<int, KoDerivedResourceConverterSP> m_derivedResources;
+    PkHash<int, KoDerivedResourceConverterSP> m_derivedResources;
     QMultiHash<int, KoDerivedResourceConverterSP> m_derivedFromSource;
 
     QMultiHash<int, KoActiveCanvasResourceDependencySP> m_dependencyFromSource;
     QMultiHash<int, KoActiveCanvasResourceDependencySP> m_dependencyFromTarget;
 
-    QHash<int, KoResourceUpdateMediatorSP> m_updateMediators;
-    QHash<int, KoAbstractCanvasResourceInterfaceSP> m_abstractResources;
+    PkHash<int, KoResourceUpdateMediatorSP> m_updateMediators;
+    PkHash<int, KoAbstractCanvasResourceInterfaceSP> m_abstractResources;
 };
 
 #endif

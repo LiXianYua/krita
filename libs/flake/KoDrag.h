@@ -9,11 +9,11 @@
 
 #include "kritaflake_export.h"
 
-#include <QList>
+#include <PkList.h>
 
 class QMimeData;
-class QString;
-class QByteArray;
+class PkString;
+class PkByteArray;
 class KoDragPrivate;
 class KoShape;
 
@@ -35,12 +35,12 @@ public:
     /**
      * Load SVG data into the current mime data
      */
-    bool setSvg(const QList<KoShape*> shapes);
+    bool setSvg(const PkList<KoShape*> shapes);
 
     /**
      * Add additional mimeTypes
      */
-    void setData(const QString &mimeType, const QByteArray &data);
+    void setData(const PkString &mimeType, const PkByteArray &data);
 
     /**
      * Add the mimeData to the clipboard

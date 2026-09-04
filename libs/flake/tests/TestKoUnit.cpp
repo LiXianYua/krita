@@ -75,7 +75,7 @@ void TestKoUnit::testVariant()
 {
     KoUnit unit(KoUnit::Pixel, 0.5);
 
-    QVariant variant;
+    PkVariant variant;
     variant.setValue(unit);
     QCOMPARE(variant.value<KoUnit>(), unit);
 }
@@ -83,22 +83,22 @@ void TestKoUnit::testVariant()
 void TestKoUnit::testFromSymbol_data()
 {
     QTest::addColumn<KoUnit::Type>("type");
-    QTest::addColumn<QString>("symbol");
+    QTest::addColumn<PkString>("symbol");
     QTest::addColumn<bool>("isOkay");
 
-    QTest::newRow("point") << KoUnit::Point << QString::fromLatin1("pt") << true;
-    QTest::newRow("pica") << KoUnit::Pica << QString::fromLatin1("pi") << true;
-    QTest::newRow("pixel") << KoUnit::Pixel << QString::fromLatin1("px") << true;
-    QTest::newRow("inch") << KoUnit::Inch << QString::fromLatin1("in") << true;
-    QTest::newRow("inch2") << KoUnit::Inch << QString::fromLatin1("inch") << true;
-    QTest::newRow("decimeter") << KoUnit::Decimeter << QString::fromLatin1("dm") << true;
-    QTest::newRow("badSymbol") << KoUnit::Point << QString::fromLatin1("badSymbol") << false;
+    QTest::newRow("point") << KoUnit::Point << PkString::fromLatin1("pt") << true;
+    QTest::newRow("pica") << KoUnit::Pica << PkString::fromLatin1("pi") << true;
+    QTest::newRow("pixel") << KoUnit::Pixel << PkString::fromLatin1("px") << true;
+    QTest::newRow("inch") << KoUnit::Inch << PkString::fromLatin1("in") << true;
+    QTest::newRow("inch2") << KoUnit::Inch << PkString::fromLatin1("inch") << true;
+    QTest::newRow("decimeter") << KoUnit::Decimeter << PkString::fromLatin1("dm") << true;
+    QTest::newRow("badSymbol") << KoUnit::Point << PkString::fromLatin1("badSymbol") << false;
 }
 
 void TestKoUnit::testFromSymbol()
 {
     QFETCH(KoUnit::Type, type);
-    QFETCH(QString, symbol);
+    QFETCH(PkString, symbol);
     QFETCH(bool, isOkay);
 
     bool ok;
@@ -115,8 +115,8 @@ void TestKoUnit::testListForUi_data()
     QTest::addColumn<KoUnit::ListOptions>("listOptions");
     QTest::addColumn<int>("index");
 
-    const QVector<KoUnit::ListOptions> optionsList =
-        QVector<KoUnit::ListOptions>() << KoUnit::HidePixel << KoUnit::ListAll;
+    const PkVector<KoUnit::ListOptions> optionsList =
+        PkVector<KoUnit::ListOptions>() << KoUnit::HidePixel << KoUnit::ListAll;
     static const char* const optionsName[2] = {"HidePixel", "ListDefault"};
     static const char* const indexName[3] = {"-start", "-middle", "-end"};
 
@@ -129,7 +129,7 @@ void TestKoUnit::testListForUi_data()
                 (i == 1) ? unitCount/2 :
                 /*i == 2*/ unitCount-1;
 
-            const QString rowName = QLatin1String(optionsName[o]) + QLatin1String(indexName[i]);
+            const PkString rowName = QLatin1String(optionsName[o]) + QLatin1String(indexName[i]);
 
             QTest::newRow(rowName.toLatin1().constData()) << options << index;
         }

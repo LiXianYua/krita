@@ -1473,7 +1473,7 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize_data()
         << 1.0 // zoom
         << QSizeF(frac(700, 2, 3), frac(502, 2, 3))
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-        // Qt5 rounds negative numbers to the positive direction, causing qRound(-151.5) = -151
+        // Qt5 rounds negative numbers to the positive direction, causing pkRound(-151.5) = -151
         << QPointF(-frac(100, 2, 3), -frac(102, 2, 3)) // offset is rounded to device pixels!
         << QPoint(-100, -102)
 #else
@@ -1557,8 +1557,8 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize()
         const QPointF imageTopLeftInWidgetPixels = converter.imageToWidget(QPointF(0, 0));
         const QPointF imageTopLeftInDevicePixels = imageTopLeftInWidgetPixels * devicePixelRatio;
 
-        QCOMPARE(imageTopLeftInDevicePixels.x() - qRound(imageTopLeftInDevicePixels.x()), 0.0);
-        QCOMPARE(imageTopLeftInDevicePixels.y() - qRound(imageTopLeftInDevicePixels.y()), 0.0);
+        QCOMPARE(imageTopLeftInDevicePixels.x() - pkRound(imageTopLeftInDevicePixels.x()), 0.0);
+        QCOMPARE(imageTopLeftInDevicePixels.y() - pkRound(imageTopLeftInDevicePixels.y()), 0.0);
 
         // TODO: also make sure that the bottom-right corner of the image is also aligned to
         //       pixel grid
@@ -1714,7 +1714,7 @@ void KisCoordinatesConverterTest::testZoomLimits()
     QCOMPARE(converter.maxZoom(), expectedOriginalMaxZoom);
 
     auto fuzzyCompareZoom = [] (qreal lhs, qreal rhs) {
-        return qRound(lhs * 10000) == qRound(rhs * 10000);
+        return pkRound(lhs * 10000) == pkRound(rhs * 10000);
     };
 
     auto compareZoomLevels = [&] (const QVector<qreal> &real, const QVector<qreal> &expected) {
@@ -2059,13 +2059,13 @@ void KisCoordinatesConverterTest::testHiDPIOffsetSnapping()
     converter.setCanvasWidgetSizeKeepZoom(QSize(700, 500));
 
     auto roundTo5thDigit = [] (qreal x) {
-        return qRound(x * 100000.0) / 100000.0;
+        return pkRound(x * 100000.0) / 100000.0;
     };
 
     {
         const QPointF imageTopLeftInDevicePixelsHW = converter.imageRectInWidgetPixels().topLeft() * converter.devicePixelRatio();
-        QCOMPARE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.x()), qRound(imageTopLeftInDevicePixelsHW.x()));
-        QCOMPARE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.y()), qRound(imageTopLeftInDevicePixelsHW.y()));
+        QCOMPARE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.x()), pkRound(imageTopLeftInDevicePixelsHW.x()));
+        QCOMPARE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.y()), pkRound(imageTopLeftInDevicePixelsHW.y()));
     }
 
 
@@ -2106,15 +2106,15 @@ void KisCoordinatesConverterTest::testHiDPIOffsetSnapping()
     {
         const QPointF imageTopLeftInDevicePixelsHW = converter.imageRectInWidgetPixels().topLeft() * converter.devicePixelRatio();
         if (expectsPixelAlignment) {
-            QCOMPARE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.x()), qRound(imageTopLeftInDevicePixelsHW.x()));
-            QCOMPARE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.y()), qRound(imageTopLeftInDevicePixelsHW.y()));
+            QCOMPARE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.x()), pkRound(imageTopLeftInDevicePixelsHW.x()));
+            QCOMPARE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.y()), pkRound(imageTopLeftInDevicePixelsHW.y()));
         } else {
 #if QT_VERSION > QT_VERSION_CHECK(6, 0, 0)
-            QCOMPARE_NE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.x()), qRound(imageTopLeftInDevicePixelsHW.x()));
-            QCOMPARE_NE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.y()), qRound(imageTopLeftInDevicePixelsHW.y()));
+            QCOMPARE_NE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.x()), pkRound(imageTopLeftInDevicePixelsHW.x()));
+            QCOMPARE_NE(roundTo5thDigit(imageTopLeftInDevicePixelsHW.y()), pkRound(imageTopLeftInDevicePixelsHW.y()));
 #else
-            QVERIFY(roundTo5thDigit(imageTopLeftInDevicePixelsHW.x()) != qRound(imageTopLeftInDevicePixelsHW.x()));
-            QVERIFY(roundTo5thDigit(imageTopLeftInDevicePixelsHW.y()) != qRound(imageTopLeftInDevicePixelsHW.y()));
+            QVERIFY(roundTo5thDigit(imageTopLeftInDevicePixelsHW.x()) != pkRound(imageTopLeftInDevicePixelsHW.x()));
+            QVERIFY(roundTo5thDigit(imageTopLeftInDevicePixelsHW.y()) != pkRound(imageTopLeftInDevicePixelsHW.y()));
 #endif
         }
     }
@@ -2203,7 +2203,7 @@ void KisCoordinatesConverterTest::testPreferredCenterTransformations()
         QCOMPARE_NE(converter.zoom(), oldZoom);
         QCOMPARE_NE(converter.documentOffsetF(), oldOffset);
 #else
-        QVERIFY(!qFuzzyCompare(converter.zoom(), oldZoom));
+        QVERIFY(!pkQtFuzzyCompare(converter.zoom(), oldZoom));
         QVERIFY(converter.documentOffsetF() != oldOffset);
 #endif
 

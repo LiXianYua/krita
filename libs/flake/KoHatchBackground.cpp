@@ -15,10 +15,10 @@
 
 #include <FlakeDebug.h>
 
-#include <QColor>
-#include <QString>
+#include <PkColor.h>
+#include <PkString.h>
 #include <QPainter>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 class KoHatchBackground::Private : public QSharedData
 {
@@ -30,11 +30,11 @@ public:
         , style(KoHatchBackground::Single)
     {}
 
-    QColor lineColor;
+    PkColor lineColor;
     int angle;
     qreal distance;
     KoHatchBackground::HatchStyle style;
-    QString name;
+    PkString name;
 };
 
 KoHatchBackground::KoHatchBackground()
@@ -47,21 +47,21 @@ KoHatchBackground::~KoHatchBackground()
 {
 }
 
-void KoHatchBackground::paint(QPainter &painter, const QPainterPath &fillPath) const
+void KoHatchBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
 {
     if (color().isValid()) {
         // paint background color if set by using the color background
         KoColorBackground::paint(painter, fillPath);
     }
 
-    const QRectF targetRect = fillPath.boundingRect();
+    const PkRectF targetRect = fillPath.boundingRect();
     painter.save();
     painter.setClipPath(fillPath);
-    QPen pen(d->lineColor);
+    PkPen pen(d->lineColor);
     // we set the pen width to 0.5 pt for the hatch. This is not defined in the spec.
     pen.setWidthF(0.5);
     painter.setPen(pen);
-    QVector<QLineF> lines;
+    PkVector<PkLineF> lines;
 
     // The different styles are handled by painting the lines multiple times with a different
     // angel offset as basically it just means we paint the lines also at a different angle.
@@ -97,14 +97,14 @@ void KoHatchBackground::paint(QPainter &painter, const QPainterPath &fillPath) c
             // create line objects.
             lines.reserve(lines.size() + int((targetRect.width() + xEndOffset - xStart) / xOffset) + 1);
             for (qreal x = xStart; x < targetRect.width() + xEndOffset; x += xOffset) {
-                lines.append(QLineF(x, 0, x + xDiff, targetRect.height()));
+                lines.append(PkLineF(x, 0, x + xDiff, targetRect.height()));
             }
         }
         else {
             // horizontal lines
             lines.reserve(lines.size() + int(targetRect.height()/d->distance) + 1);
             for (qreal y = 0; y < targetRect.height(); y += d->distance) {
-                lines.append(QLineF(0, y, targetRect.width(), y));
+                lines.append(PkLineF(0, y, targetRect.width(), y));
             }
         }
     }

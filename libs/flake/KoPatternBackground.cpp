@@ -13,7 +13,7 @@
 
 #include <QBrush>
 #include <QPainter>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <QSharedData>
 
 class KoPatternBackground::Private : public QSharedData
@@ -30,8 +30,8 @@ public:
     {
     }
 
-    QSizeF targetSize() const {
-        QSizeF size = pattern.size();
+    PkSizeF targetSize() const {
+        PkSizeF size = pattern.size();
         if (targetImageSizePercent.width() > 0.0)
             size.setWidth(0.01 * targetImageSizePercent.width() * size.width());
         else if (targetImageSize.width() > 0.0)
@@ -44,8 +44,8 @@ public:
         return size;
     }
 
-    QPointF offsetFromRect(const QRectF &fillRect, const QSizeF &imageSize) const {
-        QPointF offset;
+    PkPointF offsetFromRect(const PkRectF &fillRect, const PkSizeF &imageSize) const {
+        PkPointF offset;
         switch (refPoint) {
         case KoPatternBackground::TopLeft:
             offset = fillRect.topLeft();
@@ -86,21 +86,21 @@ public:
             break;
         }
         if (refPointOffsetPercent.x() > 0.0)
-            offset += QPointF(0.01 * refPointOffsetPercent.x() * imageSize.width(), 0);
+            offset += PkPointF(0.01 * refPointOffsetPercent.x() * imageSize.width(), 0);
         if (refPointOffsetPercent.y() > 0.0)
-            offset += QPointF(0, 0.01 * refPointOffsetPercent.y() * imageSize.height());
+            offset += PkPointF(0, 0.01 * refPointOffsetPercent.y() * imageSize.height());
 
         return offset;
     }
 
-    QTransform matrix;
+    PkTransform matrix;
     KoPatternBackground::PatternRepeat repeat;
     KoPatternBackground::ReferencePoint refPoint;
-    QSizeF targetImageSize;
-    QSizeF targetImageSizePercent;
-    QPointF refPointOffsetPercent;
-    QPointF tileRepeatOffsetPercent;
-    QImage pattern;
+    PkSizeF targetImageSize;
+    PkSizeF targetImageSizePercent;
+    PkPointF refPointOffsetPercent;
+    PkPointF tileRepeatOffsetPercent;
+    PkImage pattern;
 };
 
 
@@ -134,22 +134,22 @@ bool KoPatternBackground::compareTo(const KoShapeBackground *other) const
     return false;
 }
 
-void KoPatternBackground::setTransform(const QTransform &matrix)
+void KoPatternBackground::setTransform(const PkTransform &matrix)
 {
     d->matrix = matrix;
 }
 
-QTransform KoPatternBackground::transform() const
+PkTransform KoPatternBackground::transform() const
 {
     return d->matrix;
 }
 
-void KoPatternBackground::setPattern(const QImage &pattern)
+void KoPatternBackground::setPattern(const PkImage &pattern)
 {
     d->pattern = pattern;
 }
 
-QImage KoPatternBackground::pattern() const
+PkImage KoPatternBackground::pattern() const
 {
     return d->pattern;
 }
@@ -174,46 +174,46 @@ void KoPatternBackground::setReferencePoint(ReferencePoint referencePoint)
     d->refPoint = referencePoint;
 }
 
-QPointF KoPatternBackground::referencePointOffset() const
+PkPointF KoPatternBackground::referencePointOffset() const
 {
     return d->refPointOffsetPercent;
 }
 
-void KoPatternBackground::setReferencePointOffset(const QPointF &offset)
+void KoPatternBackground::setReferencePointOffset(const PkPointF &offset)
 {
     qreal ox = qMax(qreal(0.0), qMin(qreal(100.0), offset.x()));
     qreal oy = qMax(qreal(0.0), qMin(qreal(100.0), offset.y()));
 
-    d->refPointOffsetPercent = QPointF(ox, oy);
+    d->refPointOffsetPercent = PkPointF(ox, oy);
 }
 
-QPointF KoPatternBackground::tileRepeatOffset() const
+PkPointF KoPatternBackground::tileRepeatOffset() const
 {
     return d->tileRepeatOffsetPercent;
 }
 
-void KoPatternBackground::setTileRepeatOffset(const QPointF &offset)
+void KoPatternBackground::setTileRepeatOffset(const PkPointF &offset)
 {
     d->tileRepeatOffsetPercent = offset;
 }
 
-QSizeF KoPatternBackground::patternDisplaySize() const
+PkSizeF KoPatternBackground::patternDisplaySize() const
 {
     return d->targetSize();
 }
 
-void KoPatternBackground::setPatternDisplaySize(const QSizeF &size)
+void KoPatternBackground::setPatternDisplaySize(const PkSizeF &size)
 {
-    d->targetImageSizePercent = QSizeF();
+    d->targetImageSizePercent = PkSizeF();
     d->targetImageSize = size;
 }
 
-QSizeF KoPatternBackground::patternOriginalSize() const
+PkSizeF KoPatternBackground::patternOriginalSize() const
 {
     return d->pattern.size();
 }
 
-void KoPatternBackground::paint(QPainter &painter, const QPainterPath &fillPath) const
+void KoPatternBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
 {
     if (d->pattern.isNull()) {
         return;
@@ -222,29 +222,29 @@ void KoPatternBackground::paint(QPainter &painter, const QPainterPath &fillPath)
     painter.save();
     if (d->repeat == Tiled) {
         // calculate scaling of pixmap
-        QSizeF targetSize = d->targetSize();
-        QSizeF imageSize = d->pattern.size();
+        PkSizeF targetSize = d->targetSize();
+        PkSizeF imageSize = d->pattern.size();
         qreal scaleX = targetSize.width() / imageSize.width();
         qreal scaleY = targetSize.height() / imageSize.height();
 
-        QRectF targetRect = fillPath.boundingRect();
+        PkRectF targetRect = fillPath.boundingRect();
         // undo scaling on target rectangle
         targetRect.setWidth(targetRect.width() / scaleX);
         targetRect.setHeight(targetRect.height() / scaleY);
 
         // determine pattern offset
-        QPointF offset = d->offsetFromRect(targetRect, imageSize);
+        PkPointF offset = d->offsetFromRect(targetRect, imageSize);
 
         // create matrix for pixmap scaling
-        QTransform matrix;
+        PkTransform matrix;
         matrix.scale(scaleX, scaleY);
 
         painter.setClipPath(fillPath);
         painter.setWorldTransform(matrix, true);
         painter.drawTiledPixmap(targetRect, QPixmap::fromImage(d->pattern), -offset);
     } else if (d->repeat == Original) {
-        QRectF sourceRect(QPointF(0, 0), d->pattern.size());
-        QRectF targetRect(QPoint(0, 0), d->targetSize());
+        PkRectF sourceRect(PkPointF(0, 0), d->pattern.size());
+        PkRectF targetRect(PkPoint(0, 0), d->targetSize());
         targetRect.moveCenter(fillPath.boundingRect().center());
         painter.setClipPath(fillPath);
         painter.drawPixmap(targetRect, QPixmap::fromImage(d->pattern).scaled(sourceRect.size().toSize()), sourceRect);
@@ -252,7 +252,7 @@ void KoPatternBackground::paint(QPainter &painter, const QPainterPath &fillPath)
         painter.setClipPath(fillPath);
         // undo conversion of the scaling so that we can use a nicely scaled image of the correct size
         qWarning() << "WARNING: stretched KoPatternBackground painting code is abandoned. The result might be not correct";
-        const QRectF targetRect = fillPath.boundingRect();
+        const PkRectF targetRect = fillPath.boundingRect();
         painter.drawPixmap(targetRect.topLeft(), QPixmap::fromImage(d->pattern).scaled(targetRect.size().toSize()));
     }
 
@@ -260,13 +260,13 @@ void KoPatternBackground::paint(QPainter &painter, const QPainterPath &fillPath)
 }
 
 
-QRectF KoPatternBackground::patternRectFromFillSize(const QSizeF &size)
+PkRectF KoPatternBackground::patternRectFromFillSize(const PkSizeF &size)
 {
-    QRectF rect;
+    PkRectF rect;
 
     switch (d->repeat) {
     case Tiled:
-        rect.setTopLeft(d->offsetFromRect(QRectF(QPointF(), size), d->targetSize()));
+        rect.setTopLeft(d->offsetFromRect(PkRectF(PkPointF(), size), d->targetSize()));
         rect.setSize(d->targetSize());
         break;
     case Original:
@@ -275,7 +275,7 @@ QRectF KoPatternBackground::patternRectFromFillSize(const QSizeF &size)
         rect.setSize(d->targetSize());
         break;
     case Stretched:
-        rect.setTopLeft(QPointF(0.0, 0.0));
+        rect.setTopLeft(PkPointF(0.0, 0.0));
         rect.setSize(size);
         break;
     }

@@ -35,7 +35,7 @@ void PkPainterPathCase::defaultCtor()
     PkPainterPath path;
     PK_VERIFY(path.isEmpty());
     PK_COMPARE(path.elementCount(), 0);
-    PK_COMPARE(path.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(path.fillRule(), Pk::OddEvenFill);
     PK_COMPARE(path.boundingRect(), PkRectF(0, 0, 0, 0));
 }
 
@@ -54,12 +54,12 @@ void PkPainterPathCase::copyAndAssignment()
 {
     PkPainterPath path(PkPointF(1, 2));
     path.lineTo(PkPointF(3, 4));
-    path.setFillRule(Qt::WindingFill);
+    path.setFillRule(Pk::WindingFill);
 
     // 拷贝构造
     PkPainterPath copy(path);
     PK_VERIFY(copy == path);
-    PK_COMPARE(copy.fillRule(), Qt::WindingFill);
+    PK_COMPARE(copy.fillRule(), Pk::WindingFill);
 
     // 拷贝赋值
     PkPainterPath assigned;
@@ -268,7 +268,7 @@ void PkPainterPathCase::closeSubpathStateInteractions()
     assignedSource.closeSubpath();
     PkPainterPath assigned;
     assigned = assignedSource;
-    assigned.setFillRule(Qt::WindingFill);
+    assigned.setFillRule(Pk::WindingFill);
     assigned.lineTo(5, 5);
     PK_COMPARE(assigned.elementCount(), 4);
     PK_VERIFY(assigned.elementAt(3).isLineTo());
@@ -360,12 +360,12 @@ void PkPainterPathCase::clearAndReserve()
 {
     PkPainterPath path(PkPointF(10, 10));
     path.lineTo(PkPointF(20, 20));
-    path.setFillRule(Qt::WindingFill);
+    path.setFillRule(Pk::WindingFill);
 
     path.clear();
     PK_VERIFY(path.isEmpty());
     PK_COMPARE(path.elementCount(), 0);
-    PK_COMPARE(path.fillRule(), Qt::WindingFill); // fillRule 在 clear 后保留
+    PK_COMPARE(path.fillRule(), Pk::WindingFill); // fillRule 在 clear 后保留
     PK_COMPARE(path.currentPosition(), PkPointF(0, 0));
 
     // reserve 不改变大小
@@ -518,13 +518,13 @@ void PkPainterPathCase::setElementPositionAt()
 void PkPainterPathCase::fillRule()
 {
     PkPainterPath path;
-    PK_COMPARE(path.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(path.fillRule(), Pk::OddEvenFill);
 
-    path.setFillRule(Qt::WindingFill);
-    PK_COMPARE(path.fillRule(), Qt::WindingFill);
+    path.setFillRule(Pk::WindingFill);
+    PK_COMPARE(path.fillRule(), Pk::WindingFill);
 
-    path.setFillRule(Qt::OddEvenFill);
-    PK_COMPARE(path.fillRule(), Qt::OddEvenFill);
+    path.setFillRule(Pk::OddEvenFill);
+    PK_COMPARE(path.fillRule(), Pk::OddEvenFill);
 }
 
 // ============================================================================
@@ -583,14 +583,14 @@ void PkPainterPathCase::addPath()
 {
     PkPainterPath path1;
     path1.addRect(PkRectF(0, 0, 50, 50));
-    path1.setFillRule(Qt::WindingFill);
+    path1.setFillRule(Pk::WindingFill);
 
     PkPainterPath path2;
     path2.addRect(PkRectF(100, 100, 30, 30));
 
     path1.addPath(path2);
     PK_COMPARE(path1.elementCount(), 10); // 两个矩形各 5 个元素
-    PK_COMPARE(path1.fillRule(), Qt::WindingFill); // 继承 path1 的 fillRule
+    PK_COMPARE(path1.fillRule(), Pk::WindingFill); // 继承 path1 的 fillRule
 }
 
 // ============================================================================
@@ -650,7 +650,7 @@ void PkPainterPathCase::equality()
     // 不同 fillRule
     PkPainterPath d;
     d.addRect(PkRectF(0, 0, 10, 10));
-    d.setFillRule(Qt::WindingFill);
+    d.setFillRule(Pk::WindingFill);
     PK_VERIFY(a != d);
 
     // 空路径相等
@@ -753,7 +753,7 @@ PkPainterPath r39Rectangle(qreal x, qreal y, qreal width, qreal height)
     return path;
 }
 
-PkPainterPath r39Donut(Qt::FillRule rule)
+PkPainterPath r39Donut(Pk::FillRule rule)
 {
     PkPainterPath path;
     path.setFillRule(rule);
@@ -762,7 +762,7 @@ PkPainterPath r39Donut(Qt::FillRule rule)
     return path;
 }
 
-PkPainterPath r39BowTie(Qt::FillRule rule)
+PkPainterPath r39BowTie(Pk::FillRule rule)
 {
     PkPainterPath path;
     path.setFillRule(rule);
@@ -792,7 +792,7 @@ void PkPainterPathCase::booleanEmptyIdentities()
     PkPainterPath moveOnly;
     moveOnly.moveTo(17, -23);
     PkPainterPath shape = r39Rectangle(0, 0, 8, 10);
-    shape.setFillRule(Qt::WindingFill);
+    shape.setFillRule(Pk::WindingFill);
 
     PK_VERIFY(empty.intersected(shape).isEmpty());
     PK_VERIFY(shape.intersected(empty).isEmpty());
@@ -869,18 +869,18 @@ void PkPainterPathCase::equalityEmptyFillRuleAndNaN()
     // Qt treats an origin-only MoveTo as equal to an empty path only when
     // both operands carry the same fill rule.
     PkPainterPath emptyWinding;
-    emptyWinding.setFillRule(Qt::WindingFill);
+    emptyWinding.setFillRule(Pk::WindingFill);
     PkPainterPath originWinding(PkPointF(0, 0));
-    originWinding.setFillRule(Qt::WindingFill);
+    originWinding.setFillRule(Pk::WindingFill);
     PK_VERIFY(emptyWinding == originWinding);
     PK_VERIFY(originWinding == emptyWinding);
 
     PkPainterPath originOddEven(PkPointF(0, 0));
-    originOddEven.setFillRule(Qt::OddEvenFill);
+    originOddEven.setFillRule(Pk::OddEvenFill);
     PK_VERIFY(!(emptyWinding == originOddEven));
     PK_VERIFY(!(originOddEven == emptyWinding));
 
-    // The Qt coordinate predicate is qAbs(delta) <= epsilon.  In
+    // The Qt coordinate predicate is pkAbs(delta) <= epsilon.  In
     // particular, finite-vs-NaN must be rejected (NaN > epsilon is false).
     PkPainterPath finite;
     finite.moveTo(1, 2);
@@ -897,19 +897,19 @@ void PkPainterPathCase::booleanRectanglesAndOperators()
     const PkPainterPath right = r39Rectangle(4, 0, 8, 10);
 
     const PkPainterPath united = left.united(right);
-    PK_COMPARE(united.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(united.fillRule(), Pk::OddEvenFill);
     PK_COMPARE(united.elementCount(), 5);
     PK_COMPARE(united.boundingRect(), PkRectF(0, 0, 12, 10));
     verifyR39Membership(united, "111101");
 
     const PkPainterPath intersected = left.intersected(right);
-    PK_COMPARE(intersected.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(intersected.fillRule(), Pk::OddEvenFill);
     PK_COMPARE(intersected.elementCount(), 5);
     PK_COMPARE(intersected.boundingRect(), PkRectF(4, 0, 4, 10));
     verifyR39Membership(intersected, "011001");
 
     const PkPainterPath subtracted = left.subtracted(right);
-    PK_COMPARE(subtracted.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(subtracted.fillRule(), Pk::OddEvenFill);
     PK_COMPARE(subtracted.elementCount(), 5);
     PK_COMPARE(subtracted.boundingRect(), PkRectF(0, 0, 4, 10));
     verifyR39Membership(subtracted, "100000");
@@ -935,12 +935,12 @@ void PkPainterPathCase::booleanRectanglesAndOperators()
 
 void PkPainterPathCase::booleanFillRulesAndCompounds()
 {
-    const PkPainterPath oddDonut = r39Donut(Qt::OddEvenFill);
+    const PkPainterPath oddDonut = r39Donut(Pk::OddEvenFill);
     PK_COMPARE(oddDonut.elementCount(), 10);
     PK_COMPARE(oddDonut.boundingRect(), PkRectF(0, 0, 10, 10));
     verifyR39Membership(oddDonut, "100101");
 
-    const PkPainterPath windingDonut = r39Donut(Qt::WindingFill);
+    const PkPainterPath windingDonut = r39Donut(Pk::WindingFill);
     PK_COMPARE(windingDonut.elementCount(), 10);
     PK_COMPARE(windingDonut.boundingRect(), PkRectF(0, 0, 10, 10));
     verifyR39Membership(windingDonut, "111101");
@@ -949,7 +949,7 @@ void PkPainterPathCase::booleanFillRulesAndCompounds()
     compound.addRect(PkRectF(0, 0, 3, 3));
     compound.addRect(PkRectF(7, 7, 3, 3));
     const PkPainterPath result = compound.intersected(r39Rectangle(1, 1, 8, 8));
-    PK_COMPARE(result.fillRule(), Qt::OddEvenFill);
+    PK_COMPARE(result.fillRule(), Pk::OddEvenFill);
     PK_COMPARE(result.elementCount(), 9);
     PK_COMPARE(result.boundingRect(), PkRectF(1, 1, 8, 8));
     verifyR39Membership(result, "100000");
@@ -957,14 +957,14 @@ void PkPainterPathCase::booleanFillRulesAndCompounds()
 
 void PkPainterPathCase::simplifiedSelfIntersections()
 {
-    const PkPainterPath odd = r39BowTie(Qt::OddEvenFill).simplified();
-    PK_COMPARE(odd.fillRule(), Qt::OddEvenFill);
+    const PkPainterPath odd = r39BowTie(Pk::OddEvenFill).simplified();
+    PK_COMPARE(odd.fillRule(), Pk::OddEvenFill);
     PK_COMPARE(odd.elementCount(), 8);
     PK_COMPARE(odd.boundingRect(), PkRectF(0, 0, 10, 10));
     verifyR39Membership(odd, "110001");
 
-    const PkPainterPath winding = r39BowTie(Qt::WindingFill).simplified();
-    PK_COMPARE(winding.fillRule(), Qt::OddEvenFill);
+    const PkPainterPath winding = r39BowTie(Pk::WindingFill).simplified();
+    PK_COMPARE(winding.fillRule(), Pk::OddEvenFill);
     PK_COMPARE(winding.elementCount(), 8);
     PK_COMPARE(winding.boundingRect(), PkRectF(0, 0, 10, 10));
     verifyR39Membership(winding, "110001");

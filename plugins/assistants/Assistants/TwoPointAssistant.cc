@@ -56,7 +56,7 @@ PkPointF TwoPointAssistant::project(const PkPointF& point, const PkPointF& strok
         PkRectF rect = getLocalRect();
         bool insideLocalRect = rect.contains(point);
         if (!insideLocalRect && (!isLastUsedPointCorrectNow || !m_hasBeenInsideLocalRect)) {
-            return PkPointF(qQNaN(), qQNaN());
+            return PkPointF(pkQNaN(), pkQNaN());
         } else if (insideLocalRect) {
             m_hasBeenInsideLocalRect = true;
         }

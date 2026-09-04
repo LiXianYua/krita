@@ -18,11 +18,11 @@ namespace {
             PkList<KisCubicCurvePoint> points = KisCubicCurve(std::get<0>(curveData)).curvePoints();
             const PkRectF bounds = std::get<1>(curveData);
 
-            normalized.yLimit = qMax(qAbs(bounds.top()), qAbs(bounds.bottom()));
+            normalized.yLimit = pkMax(pkAbs(bounds.top()), pkAbs(bounds.bottom()));
             normalized.xMax = bounds.right();
             normalized.xMin = bounds.left();
 
-            if (qFuzzyIsNull(normalized.yLimit)) {
+            if (pkQtFuzzyIsNull(normalized.yLimit)) {
                 points = {{0.0, 0.5, false}, {1.0, 0.5, false}};
             } else {
                 for (auto it = points.begin(); it != points.end(); ++it) {

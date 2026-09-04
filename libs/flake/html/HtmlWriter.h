@@ -7,36 +7,38 @@
 #ifndef HTMLWRITER_H
 #define HTMLWRITER_H
 
-#include <QList>
-#include <QSizeF>
+#include <PkList.h>
+#include <PkSize.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkStringList.h>
 
 class KoShapeLayer;
 class KoShapeGroup;
 class KoShape;
 class KoPathShape;
-class QIODevice;
-class QString;
+class PkStream;
+class PkString;
 class HtmlSavingContext;
 
 // Implements writing shapes to HTML
 class HtmlWriter
 {
 public:
-    HtmlWriter(const QList<KoShape*> &toplevelShapes);
+    HtmlWriter(const PkList<KoShape*> &toplevelShapes);
     virtual ~HtmlWriter();
 
-    bool save(QIODevice &outputDevice);
+    bool save(PkStream &outputDevice);
 
-    QStringList errors() const;
-    QStringList warnings() const;
+    PkStringList errors() const;
+    PkStringList warnings() const;
 
 private:
 
-    void saveShapes(const QList<KoShape*> shapes, HtmlSavingContext &savingContext);
+    void saveShapes(const PkList<KoShape*> shapes, HtmlSavingContext &savingContext);
 
-    QList<KoShape*> m_toplevelShapes;
-    QStringList m_errors;
-    QStringList m_warnings;
+    PkList<KoShape*> m_toplevelShapes;
+    PkStringList m_errors;
+    PkStringList m_warnings;
 };
 
 #endif // HTMLWRITER_H

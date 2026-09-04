@@ -13,7 +13,7 @@
 #include <KoFlakeTypes.h>
 #include <KoToolBase.h>
 
-#include <QList>
+#include <PkList.h>
 
 class KoPathShape;
 class KoShapeStroke;
@@ -36,7 +36,7 @@ public:
     explicit KoCreatePathTool(KoCanvasBase * canvas);
     ~KoCreatePathTool() override;
 
-    QRectF decorationsRect() const override;
+    PkRectF decorationsRect() const override;
 
     /// reimplemented
     void paint(QPainter &painter, const KoViewConverter &converter) override;
@@ -61,11 +61,11 @@ public:
 
 public Q_SLOTS:
     /// reimplemented
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     /// reimplemented
     void deactivate() override;
     /// reimplemented
-    void canvasResourceChanged(int key, const QVariant & res) override;
+    void canvasResourceChanged(int key, const PkVariant & res) override;
 
 Q_SIGNALS:
     void sigUpdateAutoSmoothCurvesGUI(bool value);
@@ -100,7 +100,7 @@ protected:
     bool addPathShapeImpl(KoPathShape* pathShape, bool tryMergeOnly);
 
     /// reimplemented
-    QList<QPointer<QWidget> > createOptionWidgets() override;
+    PkList<PkPointer<QWidget> > createOptionWidgets() override;
 
 private:
     Q_DECLARE_PRIVATE(KoCreatePathTool)

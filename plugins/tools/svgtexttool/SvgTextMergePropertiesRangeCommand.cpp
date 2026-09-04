@@ -26,14 +26,14 @@ SvgTextMergePropertiesRangeCommand::SvgTextMergePropertiesRangeCommand(KoSvgText
     setText(kundo2_i18n("Change Text Properties"));
 
     // Some properties may change cursor pos count, so we need the indices.
-    m_startIndex = m_shape->indexForPos(qMin(pos, anchor));
-    m_endIndex = m_shape->indexForPos(qMax(pos, anchor));
+    m_startIndex = m_shape->indexForPos(pkMin(pos, anchor));
+    m_endIndex = m_shape->indexForPos(pkMax(pos, anchor));
 }
 
 void SvgTextMergePropertiesRangeCommand::redo()
 {
     KoShapeBulkActionLock lock(m_shape);
-    m_shape->mergePropertiesIntoRange(qMin(m_pos, m_anchor), qMax(m_pos, m_anchor), m_props, m_removeProperties);
+    m_shape->mergePropertiesIntoRange(pkMin(m_pos, m_anchor), pkMax(m_pos, m_anchor), m_props, m_removeProperties);
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());
 
     m_shape->notifyMarkupChanged();

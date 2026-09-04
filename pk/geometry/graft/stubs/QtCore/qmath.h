@@ -20,13 +20,13 @@
 #include <QtGlobal>
 #include <cmath>
 
-inline int qCeil(qreal v)
+inline int pkCeil(qreal v)
 {
     using std::ceil;
     return int(ceil(v));
 }
 
-inline int qFloor(qreal v)
+inline int pkFloor(qreal v)
 {
     using std::floor;
     return int(floor(v));

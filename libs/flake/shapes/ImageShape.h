@@ -25,16 +25,16 @@ public:
 
     void paint(QPainter &painter) const override;
 
-    void setSize(const QSizeF &size) override;
+    void setSize(const PkSizeF &size) override;
 
     bool saveSvg(SvgSavingContext &context) override;
     bool loadSvg(const PkXmlElement &element, SvgLoadingContext &context) override;
 
-    void setImage(const QImage &img);
-    QImage image() const;
+    void setImage(const PkImage &img);
+    PkImage image() const;
 
-    void setViewBoxTransform(const QTransform &tf);
-    QTransform viewBoxTransform() const;
+    void setViewBoxTransform(const PkTransform &tf);
+    PkTransform viewBoxTransform() const;
 
 private:
     ImageShape(const ImageShape &rhs);

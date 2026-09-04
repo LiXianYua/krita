@@ -46,21 +46,21 @@ void KoSelection::paint(QPainter &painter) const
     Q_UNUSED(painter);
 }
 
-void KoSelection::setSize(const QSizeF &size)
+void KoSelection::setSize(const PkSizeF &size)
 {
     Q_UNUSED(size);
     qWarning() << "WARNING: KoSelection::setSize() should never be used!";
 }
 
-QSizeF KoSelection::size() const
+PkSizeF KoSelection::size() const
 {
     return outlineRect().size();
 }
 
-QRectF KoSelection::outlineRect() const
+PkRectF KoSelection::outlineRect() const
 {
-    const QTransform invertedTransform = transformation().inverted();
-    QRectF boundingRect;
+    const PkTransform invertedTransform = transformation().inverted();
+    PkRectF boundingRect;
 
     Q_FOREACH (KoShape *shape, selectedVisibleShapes()) {
         // it is cheaper to invert-transform each outline, than
@@ -68,13 +68,13 @@ QRectF KoSelection::outlineRect() const
         boundingRect |=
             invertedTransform.map(
                 shape->absoluteTransformation().map(
-                        QPolygonF(shape->outlineRect()))).boundingRect();
+                        PkPolygonF(shape->outlineRect()))).boundingRect();
     }
 
     return boundingRect;
 }
 
-QRectF KoSelection::boundingRect() const
+PkRectF KoSelection::boundingRect() const
 {
     return KoShape::boundingRect(selectedVisibleShapes());
 }
@@ -108,7 +108,7 @@ void KoSelection::select(KoShape *shape)
     if (d->selectedShapes.size() == 1) {
         setTransformation(shape->absoluteTransformation());
     } else {
-        setTransformation(QTransform());
+        setTransformation(PkTransform());
     }
 
     d->selectionChangedCompressor->start();
@@ -140,7 +140,7 @@ void KoSelection::deselectAll()
     }
 
     // reset the transformation matrix of the selection
-    setTransformation(QTransform());
+    setTransformation(PkTransform());
 
     d->selectedShapes.clear();
     d->selectionChangedCompressor->start();
@@ -151,7 +151,7 @@ int KoSelection::count() const
     return d->selectedShapes.size();
 }
 
-bool KoSelection::hitTest(const QPointF &position) const
+bool KoSelection::hitTest(const PkPointF &position) const
 {
 
     Q_FOREACH (KoShape *shape, d->selectedShapes) {
@@ -162,14 +162,14 @@ bool KoSelection::hitTest(const QPointF &position) const
     return false;
 }
 
-const QList<KoShape*> KoSelection::selectedShapes() const
+const PkList<KoShape*> KoSelection::selectedShapes() const
 {
     return d->selectedShapes;
 }
 
-const QList<KoShape *> KoSelection::selectedVisibleShapes() const
+const PkList<KoShape *> KoSelection::selectedVisibleShapes() const
 {
-    QList<KoShape*> shapes = selectedShapes();
+    PkList<KoShape*> shapes = selectedShapes();
 
     KritaUtils::filterContainer (shapes, [](KoShape *shape) {
         return shape->isVisible();
@@ -178,9 +178,9 @@ const QList<KoShape *> KoSelection::selectedVisibleShapes() const
     return shapes;
 }
 
-const QList<KoShape *> KoSelection::selectedEditableShapes() const
+const PkList<KoShape *> KoSelection::selectedEditableShapes() const
 {
-    QList<KoShape*> shapes = selectedShapes();
+    PkList<KoShape*> shapes = selectedShapes();
 
     KritaUtils::filterContainer (shapes, [](KoShape *shape) {
         return shape->isShapeEditable();
@@ -189,11 +189,11 @@ const QList<KoShape *> KoSelection::selectedEditableShapes() const
     return shapes;
 }
 
-const QList<KoShape *> KoSelection::selectedEditableShapesAndDelegates() const
+const PkList<KoShape *> KoSelection::selectedEditableShapesAndDelegates() const
 {
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     Q_FOREACH (KoShape *shape, selectedShapes()) {
-        QSet<KoShape *> delegates = shape->toolDelegates();
+        PkSet<KoShape *> delegates = shape->toolDelegates();
         if (delegates.isEmpty()) {
             shapes.append(shape);
         } else {

@@ -49,9 +49,9 @@ namespace detail {
 // Qt's events do not have copy-ctors yet, so we should emulate them
 // See https://bugreports.qt.io/browse/QTBUG-72488
 
-template <class Event> void copyEventHack(const Event *src, QScopedPointer<QEvent> &dst);
+template <class Event> void copyEventHack(const Event *src, PkScopedPointer<QEvent> &dst);
 
-template<> void copyEventHack(const QMouseEvent *src, QScopedPointer<QEvent> &dst) {
+template<> void copyEventHack(const QMouseEvent *src, PkScopedPointer<QEvent> &dst) {
     QMouseEvent *tmp = new QMouseEvent(src->type(),
                                        src->localPos(), src->windowPos(), src->screenPos(),
                                        src->button(), src->buttons(), src->modifiers(),
@@ -60,7 +60,7 @@ template<> void copyEventHack(const QMouseEvent *src, QScopedPointer<QEvent> &ds
     dst.reset(tmp);
 }
 
-template<> void copyEventHack(const QTabletEvent *src, QScopedPointer<QEvent> &dst) {
+template<> void copyEventHack(const QTabletEvent *src, PkScopedPointer<QEvent> &dst) {
     QTabletEvent *tmp = new QTabletEvent(src->type(),
                                          src->posF(), src->globalPosF(),
                                          src->deviceType(), src->pointerType(),
@@ -76,7 +76,7 @@ template<> void copyEventHack(const QTabletEvent *src, QScopedPointer<QEvent> &d
     dst.reset(tmp);
 }
 
-template<> void copyEventHack(const QTouchEvent *src, QScopedPointer<QEvent> &dst) {
+template<> void copyEventHack(const QTouchEvent *src, PkScopedPointer<QEvent> &dst) {
     QTouchEvent *tmp = new QTouchEvent(src->type(),
                                        src->device(),
                                        src->modifiers(),
@@ -104,13 +104,13 @@ public:
 
 bool KoPointerEvent::Private::s_tabletInputReceived;
 
-KoPointerEvent::KoPointerEvent(QMouseEvent *ev, const QPointF &pnt)
+KoPointerEvent::KoPointerEvent(QMouseEvent *ev, const PkPointF &pnt)
     : point(pnt),
       d(new Private(ev))
 {
 }
 
-KoPointerEvent::KoPointerEvent(QTabletEvent *ev, const QPointF &pnt)
+KoPointerEvent::KoPointerEvent(QTabletEvent *ev, const PkPointF &pnt)
     : point(pnt),
       d(new Private(ev))
 {
@@ -120,13 +120,13 @@ KoPointerEvent::KoPointerEvent(QTabletEvent *ev, const QPointF &pnt)
     }
 }
 
-KoPointerEvent::KoPointerEvent(QTouchEvent* ev, const QPointF &pnt)
+KoPointerEvent::KoPointerEvent(QTouchEvent* ev, const PkPointF &pnt)
     : point(pnt),
       d(new Private(ev))
 {
 }
 
-KoPointerEvent::KoPointerEvent(KoPointerEvent *event, const QPointF &point)
+KoPointerEvent::KoPointerEvent(KoPointerEvent *event, const PkPointF &point)
     : point(point)
     , d(new Private(*(event->d)))
 {
@@ -153,9 +153,9 @@ KoPointerEvent::~KoPointerEvent()
 }
 
 template <typename Event>
-KoPointerEventWrapper::KoPointerEventWrapper(Event *_event, const QPointF &point)
+KoPointerEventWrapper::KoPointerEventWrapper(Event *_event, const PkPointF &point)
     : event(_event, point),
-      baseQtEvent(QSharedPointer<QEvent>(static_cast<QEvent*>(_event)))
+      baseQtEvent(PkSharedPointer<QEvent>(static_cast<QEvent*>(_event)))
 {
 }
 
@@ -163,11 +163,11 @@ KoPointerEventWrapper::KoPointerEventWrapper(Event *_event, const QPointF &point
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
 struct DeepCopyVisitor
 {
-    QPointF point;
+    PkPointF point;
 
     template <typename T>
     KoPointerEventWrapper operator() (const T *event) {
-        QScopedPointer<QEvent> baseEvent;
+        PkScopedPointer<QEvent> baseEvent;
         detail::copyEventHack(event, baseEvent);
         return {static_cast<T*>(baseEvent.take()), point};
     }
@@ -181,7 +181,7 @@ KoPointerEventWrapper KoPointerEvent::deepCopyEvent() const
 #else
     struct Visitor {
 
-        QPointF point;
+        PkPointF point;
 
         KoPointerEventWrapper operator() (const QMouseEvent *event) {
             return KoPointerEventWrapper(event->clone(), point);
@@ -233,28 +233,28 @@ Qt::MouseButtons KoPointerEvent::buttons() const
     return visit(Visitor(), d->eventPtr);
 }
 
-QPoint KoPointerEvent::globalPos() const
+PkPoint KoPointerEvent::globalPos() const
 {
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     struct Visitor {
-        QPoint operator() (const QMouseEvent *event) {
+        PkPoint operator() (const QMouseEvent *event) {
             return event->globalPos();
         }
-        QPoint operator() (const QTabletEvent *event) {
+        PkPoint operator() (const QTabletEvent *event) {
             return event->globalPos();
         }
-        QPoint operator() (const QTouchEvent *event) {
+        PkPoint operator() (const QTouchEvent *event) {
             return event->touchPoints().constFirst().screenPos().toPoint();
         }
 #else
     struct Visitor {
-        QPoint operator() (const QMouseEvent *event) {
+        PkPoint operator() (const QMouseEvent *event) {
             return event->globalPosition().toPoint();
         }
-        QPoint operator() (const QTabletEvent *event) {
+        PkPoint operator() (const QTabletEvent *event) {
             return event->globalPosition().toPoint();
         }
-        QPoint operator() (const QTouchEvent *event) {
+        PkPoint operator() (const QTouchEvent *event) {
             return event->points().constFirst().globalPosition().toPoint();
         }
 #endif
@@ -264,29 +264,29 @@ QPoint KoPointerEvent::globalPos() const
     return visit(Visitor(), d->eventPtr);
 }
 
-QPoint KoPointerEvent::pos() const
+PkPoint KoPointerEvent::pos() const
 {
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     struct Visitor {
-        QPoint operator() (const QMouseEvent *event) {
+        PkPoint operator() (const QMouseEvent *event) {
             return event->pos();
         }
-        QPoint operator() (const QTabletEvent *event) {
+        PkPoint operator() (const QTabletEvent *event) {
             return event->pos();
         }
-        QPoint operator() (const QTouchEvent *event) {
+        PkPoint operator() (const QTouchEvent *event) {
             return event->touchPoints().at(0).pos().toPoint();
         }
     };
 #else
     struct Visitor {
-        QPoint operator() (const QMouseEvent *event) {
+        PkPoint operator() (const QMouseEvent *event) {
             return event->position().toPoint();
         }
-        QPoint operator() (const QTabletEvent *event) {
+        PkPoint operator() (const QTabletEvent *event) {
             return event->position().toPoint();
         }
-        QPoint operator() (const QTouchEvent *event) {
+        PkPoint operator() (const QTouchEvent *event) {
             return event->points().at(0).position().toPoint();
         }
     };
@@ -485,23 +485,23 @@ bool KoPointerEvent::spontaneous() const
 }
 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-void KoPointerEvent::copyQtPointerEvent(const QMouseEvent *event, QScopedPointer<QEvent> &dst)
+void KoPointerEvent::copyQtPointerEvent(const QMouseEvent *event, PkScopedPointer<QEvent> &dst)
 {
     detail::copyEventHack(event, dst);
 }
 
-void KoPointerEvent::copyQtPointerEvent(const QTabletEvent *event, QScopedPointer<QEvent> &dst)
+void KoPointerEvent::copyQtPointerEvent(const QTabletEvent *event, PkScopedPointer<QEvent> &dst)
 {
     detail::copyEventHack(event, dst);
 }
 
-void KoPointerEvent::copyQtPointerEvent(const QTouchEvent *event, QScopedPointer<QEvent> &dst)
+void KoPointerEvent::copyQtPointerEvent(const QTouchEvent *event, PkScopedPointer<QEvent> &dst)
 {
     detail::copyEventHack(event, dst);
 }
 #endif
 
-std::optional<QPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEvent *event)
+std::optional<PkPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEvent *event)
 {
     if (event == nullptr) {
         return std::nullopt;
@@ -510,9 +510,9 @@ std::optional<QPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEven
     if (event->type() == QEvent::TouchBegin || event->type() == QEvent::TouchUpdate || event->type() == QEvent::TouchEnd) {
         const QTouchEvent *touchEvent = static_cast<const QTouchEvent *>(event);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        const QList<QEventPoint> &touchPoints = touchEvent->points();
+        const PkList<QEventPoint> &touchPoints = touchEvent->points();
 #else
-        const QList<QTouchEvent::TouchPoint> &touchPoints = touchEvent->touchPoints();
+        const PkList<QTouchEvent::TouchPoint> &touchPoints = touchEvent->touchPoints();
 #endif
         if (touchPoints.isEmpty()) {
             // Getting zero touch points can happen on Android when pressing
@@ -548,3 +548,5 @@ std::optional<QPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEven
 }
 
 #include <KoPointerEvent.moc>
+// [migrate] missing include for Pk/Qt type
+#include <PkList.h>

@@ -20,7 +20,7 @@
 #include <KisBezierUtils.h>
 #include <kis_command_utils.h>
 
-KoPathSegmentChangeStrategy::KoPathSegmentChangeStrategy(KoPathTool *tool, const QPointF &pos, const KoPathPointData &segment, qreal segmentParam)
+KoPathSegmentChangeStrategy::KoPathSegmentChangeStrategy(KoPathTool *tool, const PkPointF &pos, const KoPathPointData &segment, qreal segmentParam)
 : KoInteractionStrategy(tool)
 , m_originalPosition(pos)
 , m_lastPosition(pos)
@@ -50,10 +50,10 @@ KoPathSegmentChangeStrategy::~KoPathSegmentChangeStrategy()
 {
 }
 
-void KoPathSegmentChangeStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void KoPathSegmentChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
-    QPointF snappedPosition = m_tool->canvas()->snapGuide()->snap(mouseLocation, modifiers);
-    QPointF localPos = m_path->documentToShape(snappedPosition);
+    PkPointF snappedPosition = m_tool->canvas()->snapGuide()->snap(mouseLocation, modifiers);
+    PkPointF localPos = m_path->documentToShape(snappedPosition);
 
     if (m_segment.degree() == 1) {
         // line segment is converted to a curve
@@ -61,7 +61,7 @@ void KoPathSegmentChangeStrategy::handleMouseMove(const QPointF &mouseLocation, 
         cmd.redo();
     }
 
-    QPointF move1, move2;
+    PkPointF move1, move2;
 
     if (m_segment.degree() == 2) {
         // interpolate quadratic segment between segment start, mouse position and segment end
@@ -74,8 +74,8 @@ void KoPathSegmentChangeStrategy::handleMouseMove(const QPointF &mouseLocation, 
         }
     }
     else if (m_segment.degree() == 3) {
-        QPointF lastLocalPos = m_path->documentToShape(m_lastPosition);
-        QPointF delta = localPos - lastLocalPos;
+        PkPointF lastLocalPos = m_path->documentToShape(m_lastPosition);
+        PkPointF delta = localPos - lastLocalPos;
 
         std::pair<PkPointF, PkPointF> offsetSegmentResult =
             KisBezierUtils::offsetSegment(m_segmentParam, toPkPointF(delta));

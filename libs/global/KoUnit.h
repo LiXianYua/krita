@@ -122,7 +122,7 @@ public:
     bool operator==(const KoUnit &other) const {
         return m_type == other.m_type &&
             (m_type != Pixel ||
-             qFuzzyCompare(m_pixelConversion, other.m_pixelConversion));
+             pkQtFuzzyCompare(m_pixelConversion, other.m_pixelConversion));
     }
 
     KoUnit::Type type() const {

@@ -224,7 +224,7 @@ bool KisGuidesConfig::hasGuides() const
 void KisGuidesConfig::loadStaticData()
 {
     const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
-    d->guidesLineType = LineTypeInternal(qBound(0, cfg.readEntry("guidesLineStyle", 0), 2));
+    d->guidesLineType = LineTypeInternal(pkBound(0, cfg.readEntry("guidesLineStyle", 0), 2));
     d->guidesColor = cfg.readEntry("guidesColor", QColor(99, 99, 99));
 }
 
@@ -293,7 +293,7 @@ bool KisGuidesConfig::loadFromXml(const QDomElement &parent)
     result &= ok;
 
     // following variables may not be present in older files; do not update result variable
-    int guidesLineType = qBound(0, cfg.readEntry("guidesLineStyle", 0), 2);
+    int guidesLineType = pkBound(0, cfg.readEntry("guidesLineStyle", 0), 2);
     KisDomUtils::loadValue(pkParent, "lineTypeGuides", &guidesLineType);
     d->guidesLineType = LineTypeInternal(guidesLineType);
 
@@ -327,7 +327,7 @@ void KisGuidesConfig::transform(const QTransform &transform)
     const qreal wrappedRotation = KisAlgebra2D::wrapValue(m.angle, 90.0);
     if (wrappedRotation <= eps || wrappedRotation >= 90.0 - eps) {
         t *= m.rotateTransform();
-        numWraps = qRound(normalizeAngleDegrees(m.angle) / 90.0);
+        numWraps = pkRound(normalizeAngleDegrees(m.angle) / 90.0);
     }
 
     t *= m.translateTransform();

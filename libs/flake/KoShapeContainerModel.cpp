@@ -20,7 +20,7 @@ KoShapeContainerModel::~KoShapeContainerModel()
 
 void KoShapeContainerModel::deleteOwnedShapes()
 {
-    QList<KoShape*> ownedShapes = this->shapes();
+    PkList<KoShape*> ownedShapes = this->shapes();
 
     Q_FOREACH (KoShape *shape, ownedShapes) {
         shape->setParent(0);
@@ -30,7 +30,7 @@ void KoShapeContainerModel::deleteOwnedShapes()
     KIS_SAFE_ASSERT_RECOVER_NOOP(!this->count());
 }
 
-void KoShapeContainerModel::proposeMove(KoShape *child, QPointF &move)
+void KoShapeContainerModel::proposeMove(KoShape *child, PkPointF &move)
 {
     Q_UNUSED(child);
     Q_UNUSED(move);

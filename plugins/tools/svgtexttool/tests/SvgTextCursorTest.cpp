@@ -330,8 +330,8 @@ void SvgTextCursorTest::test_text_remove_dedicated()
     cursor.setPos(pos, pos);
     cursor.moveCursor(mode2);
     int posB = textShape->indexForPos(cursor.getPos());
-    int posStart = qMin(posA, posB);
-    int posEnd = qMax(posA, posB);
+    int posStart = pkMin(posA, posB);
+    int posEnd = pkMax(posA, posB);
 
     QCOMPARE(posEnd - posStart, length);
 

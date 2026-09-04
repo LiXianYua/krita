@@ -22,7 +22,7 @@ KoMultipleColorConversionTransformation::KoMultipleColorConversionTransformation
     : KoColorConversionTransformation(srcCs, dstCs, renderingIntent, conversionFlags)
     , d(new Private)
 {
-    d->maxPixelSize = qMax(srcCs->pixelSize(), dstCs->pixelSize());
+    d->maxPixelSize = pkMax(srcCs->pixelSize(), dstCs->pixelSize());
 }
 KoMultipleColorConversionTransformation::~KoMultipleColorConversionTransformation()
 {
@@ -34,8 +34,8 @@ KoMultipleColorConversionTransformation::~KoMultipleColorConversionTransformatio
 void KoMultipleColorConversionTransformation::appendTransfo(KoColorConversionTransformation* transfo)
 {
     d->transfos.append(transfo);
-    d->maxPixelSize = qMax(d->maxPixelSize, transfo->srcColorSpace()->pixelSize());
-    d->maxPixelSize = qMax(d->maxPixelSize, transfo->dstColorSpace()->pixelSize());
+    d->maxPixelSize = pkMax(d->maxPixelSize, transfo->srcColorSpace()->pixelSize());
+    d->maxPixelSize = pkMax(d->maxPixelSize, transfo->dstColorSpace()->pixelSize());
 }
 void KoMultipleColorConversionTransformation::transform(const quint8 *src, quint8 *dst, qint32 nPixels) const
 {

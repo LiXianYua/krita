@@ -1,10 +1,10 @@
 // instantiate_color.cpp —— 复刻真实调用点形状的 driver（QColor → PkColor 垫片）。
 //
 // 与 pk/flags/graft/instantiate.cpp 同理：源文件按真 Krita 调用点的写法写
-// （`#include <QColor>`、QColor 裸类型、Qt::GlobalColor、成员调用），在垫片下编译
+// （`#include <QColor>`、QColor 裸类型、Pk::GlobalColor、成员调用），在垫片下编译
 // 链接并核对取值。编译行给 `-I pk/color/compat`，`#include <QColor>` 解析到
 // compat/QColor（→ PkColor）；PkColor.h 在全局作用域展开（无真 Qt 冲突），
-// PkNamespace 的 `namespace Qt` 即全局 Qt，`Qt::red` 等照常可写。
+// PkNamespace 的 `namespace Pk` 即全局 Qt，`Pk::red` 等照常可写。
 #include <QColor>
 #include <cstdio>
 #include <cstring>
@@ -16,7 +16,7 @@ static int g_fail = 0;
 int main()
 {
     // 构造形态：GlobalColor / int / 命名色 / hex
-    QColor red(Qt::red);
+    QColor red(Pk::red);
     QColor r2(255, 0, 0);
     QColor named("steelblue");
     QColor fromhex("#80ff0000");

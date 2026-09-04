@@ -8,18 +8,18 @@
  */
 
 #include <PkFlakeBridge.h>
-#include <compat/QIODevice>
+#include <compat/PkStream>
 #include "kis_shape_layer.h"
 #include <PkConnection.h>
 
 #include <QPainter>
-#include <QPainterPath>
-#include <QRect>
-#include <QDomElement>
-#include <QDomDocument>
-#include <QString>
-#include <QList>
-#include <QMap>
+#include <PkPainterPath.h>
+#include <PkRect.h>
+#include <PkXmlElement.h>
+#include <PkXmlDocument.h>
+#include <PkString.h>
+#include <PkList.h>
+#include <PkMap.h>
 #include <kis_debug.h>
 #include <kundo2command.h>
 #include <commands_new/kis_node_move_command2.h>
@@ -65,7 +65,7 @@
 #include "kis_do_something_command.h"
 #include <KisSafeBlockingQueueConnectionProxy.h>
 #include <kis_signal_auto_connection.h>
-#include <QThread>
+#include <PkThread.h>
 
 #include "kis_layer_properties_icons.h"
 
@@ -88,7 +88,7 @@ public:
          */
         KIS_SAFE_ASSERT_RECOVER_NOOP(inheritsTransform(child));
         if (inheritsTransform(child)) {
-            QTransform parentTransform = q->absoluteTransformation();
+            PkTransform parentTransform = q->absoluteTransformation();
             child->applyAbsoluteTransformation(parentTransform.inverted());
         }
         child->setResolution(m_xRes, m_yRes);
@@ -97,7 +97,7 @@ public:
     void remove(KoShape *child) override {
         KIS_SAFE_ASSERT_RECOVER_NOOP(inheritsTransform(child));
         if (inheritsTransform(child)) {
-            QTransform parentTransform = q->absoluteTransformation();
+            PkTransform parentTransform = q->absoluteTransformation();
             child->applyAbsoluteTransformation(parentTransform);
         }
 
@@ -144,7 +144,7 @@ public:
 
 KisShapeLayer::KisShapeLayer(KoShapeControllerBase* controller,
                              KisImageWSP image,
-                             const QString &name,
+                             const PkString &name,
                              quint8 opacity)
     : KisShapeLayer(controller, image, name, opacity,
                     [&] () { return new KisShapeLayerCanvas(image->colorSpace(), new KisDefaultBounds(image), this);})
@@ -180,7 +180,7 @@ KisShapeLayer::KisShapeLayer(const KisShapeLayer& _rhs, KoShapeControllerBase* c
      * The transformations of the added shapes are automatically merged into the transformation
      * of the layer, so we should apply this extra transform separately
      */
-    const QTransform thisInvertedTransform = this->absoluteTransformation().inverted();
+    const PkTransform thisInvertedTransform = this->absoluteTransformation().inverted();
 
     m_d->canvas->shapeManager()->setUpdatesBlocked(true);
 
@@ -194,7 +194,7 @@ KisShapeLayer::KisShapeLayer(const KisShapeLayer& _rhs, KoShapeControllerBase* c
     m_d->canvas->shapeManager()->setUpdatesBlocked(false);
 }
 
-KisShapeLayer::KisShapeLayer(const KisShapeLayer& baseTemplate, const QList<KoShape*> &newShapes)
+KisShapeLayer::KisShapeLayer(const KisShapeLayer& baseTemplate, const PkList<KoShape*> &newShapes)
         : KisExternalLayer(baseTemplate)
         , KoShapeLayer(new ShapeLayerContainerModel(this)) //no _merge here otherwise both layer have the same KoShapeContainerModel
         , m_d(new Private())
@@ -213,9 +213,9 @@ KisShapeLayer::KisShapeLayer(const KisShapeLayer& baseTemplate, const QList<KoSh
      * we do not copy the transformation from any of the source layers. But we should
      * handle this anyway, to not be caught by this in the future.
      */
-    const QTransform thisInvertedTransform = this->absoluteTransformation().inverted();
+    const PkTransform thisInvertedTransform = this->absoluteTransformation().inverted();
 
-    QList<KoShape *> clonedShapes;
+    PkList<KoShape *> clonedShapes;
 
     // copy all the new shapes; we expect them to be sorted and homogenized
 
@@ -236,7 +236,7 @@ KisShapeLayer::KisShapeLayer(const KisShapeLayer& baseTemplate, const QList<KoSh
 
 KisShapeLayer::KisShapeLayer(KoShapeControllerBase* controller,
                              KisImageWSP image,
-                             const QString &name,
+                             const PkString &name,
                              quint8 opacity,
                              std::function<KisShapeLayerCanvasBase *()> canvasFactory)
         : KisExternalLayer(image, toPkString(name), opacity)
@@ -275,7 +275,7 @@ void KisShapeLayer::initShapeLayerImpl(KoShapeControllerBase* controller,
     m_d->paintDevice = canvas->projection();
 
     m_d->canvas = canvas;
-    m_d->canvas->moveToThread(QThread::currentThread());
+    m_d->canvas->moveToThread(PkThread::currentThread());
     m_d->controller = controller;
 
     QObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
@@ -310,9 +310,9 @@ void KisShapeLayer::currentLayerChanged(const KoShapeLayer *layer)
         this, PkMemberFnKey::from(&KisShapeLayer::currentLayerChanged), layer);
 }
 
-void KisShapeLayer::sigMoveShapes(const QPointF &diff)
+void KisShapeLayer::sigMoveShapes(const PkPointF &diff)
 {
-    PkObject::activateSignal<const QPointF &>(
+    PkObject::activateSignal<const PkPointF &>(
         this, PkMemberFnKey::from(&KisShapeLayer::sigMoveShapes), diff);
 }
 
@@ -363,7 +363,7 @@ KisLayerSP KisShapeLayer::tryCreateInternallyMergedLayerFromMutipleLayers(PkList
 {
     // NOTE: layers.first() may possibly point to `this`!
 
-    QList<KisShapeLayer*> shapeLayers;
+    PkList<KisShapeLayer*> shapeLayers;
     Q_FOREACH(KisLayerSP layer, layers) {
         KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(layer.data());
         if (!shapeLayer) return nullptr;
@@ -371,10 +371,10 @@ KisLayerSP KisShapeLayer::tryCreateInternallyMergedLayerFromMutipleLayers(PkList
         shapeLayers << shapeLayer;
     }
 
-    QList<KoShape*> allShapes;
+    PkList<KoShape*> allShapes;
     PkList<KoShapeReorderCommand::IndexedShape> allIndexedShapes;
     Q_FOREACH(KisShapeLayer *layer, shapeLayers) {
-        QList<KoShape*> shapes = layer->shapes();
+        PkList<KoShape*> shapes = layer->shapes();
         std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 
         Q_FOREACH(KoShape *shape, shapes) {
@@ -445,7 +445,7 @@ KisPaintDeviceSP KisShapeLayer::paintDevice() const
 
 PkRect KisShapeLayer::theoreticalBoundingRect() const
 {
-    const QRect rect = kisGrowRect(m_d->canvas->viewConverter()->documentToView(this->boundingRect()).toAlignedRect(), 1);
+    const PkRect rect = kisGrowRect(m_d->canvas->viewConverter()->documentToView(this->boundingRect()).toAlignedRect(), 1);
     return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
 }
 
@@ -462,7 +462,7 @@ qint32 KisShapeLayer::y() const
 void KisShapeLayer::setX(qint32 x)
 {
     qint32 delta = x - this->x();
-    QPointF diff = QPointF(m_d->canvas->viewConverter()->viewToDocumentX(delta), 0);
+    PkPointF diff = PkPointF(m_d->canvas->viewConverter()->viewToDocumentX(delta), 0);
     Q_EMIT sigMoveShapes(diff);
 
     // Save new value to satisfy LSP
@@ -472,14 +472,14 @@ void KisShapeLayer::setX(qint32 x)
 void KisShapeLayer::setY(qint32 y)
 {
     qint32 delta = y - this->y();
-    QPointF diff = QPointF(0, m_d->canvas->viewConverter()->viewToDocumentY(delta));
+    PkPointF diff = PkPointF(0, m_d->canvas->viewConverter()->viewToDocumentY(delta));
     Q_EMIT sigMoveShapes(diff);
 
     // Save new value to satisfy LSP
     m_d->y = y;
 }
 namespace {
-void filterTransformableShapes(QList<KoShape*> &shapes)
+void filterTransformableShapes(PkList<KoShape*> &shapes)
 {
     auto it = shapes.begin();
     while (it != shapes.end()) {
@@ -494,9 +494,9 @@ void filterTransformableShapes(QList<KoShape*> &shapes)
 }
 }
 
-QList<KoShape *> KisShapeLayer::shapesToBeTransformed()
+PkList<KoShape *> KisShapeLayer::shapesToBeTransformed()
 {
-    QList<KoShape*> shapes = shapeManager()->shapes();
+    PkList<KoShape*> shapes = shapeManager()->shapes();
 
     // We expect that **all** the shapes inherit the transform from its parent
 
@@ -515,16 +515,16 @@ QList<KoShape *> KisShapeLayer::shapesToBeTransformed()
     return shapes;
 }
 
-void KisShapeLayer::slotMoveShapes(const QPointF &diff)
+void KisShapeLayer::slotMoveShapes(const PkPointF &diff)
 {
-    QList<KoShape*> shapes = shapesToBeTransformed();
+    PkList<KoShape*> shapes = shapesToBeTransformed();
     if (shapes.isEmpty()) return;
 
     KoShapeMoveCommand cmd(toPkList(shapes), toPkPointF(diff));
     cmd.redo();
 }
 
-void KisShapeLayer::slotTransformShapes(const QTransform &newTransform)
+void KisShapeLayer::slotTransformShapes(const PkTransform &newTransform)
 {
     KoShapeTransformCommand cmd(PkList<KoShape*>{this},
                                 PkList<PkTransform>{toPkTransform(transformation())},
@@ -605,14 +605,14 @@ KoSelectedShapesProxy *KisShapeLayer::selectedShapesProxy()
     return m_d->canvas->selectedShapesProxy();
 }
 
-bool KisShapeLayer::saveShapesToStore(KoStore *store, QList<KoShape *> shapes, const QSizeF &sizeInPt)
+bool KisShapeLayer::saveShapesToStore(KoStore *store, PkList<KoShape *> shapes, const PkSizeF &sizeInPt)
 {
     if (!store->open("content.svg")) {
         return false;
     }
 
     KoStoreDevice storeDev(store);
-    storeDev.open(QIODevice::WriteOnly);
+    storeDev.open(PkStream::WriteOnly);
 
     std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 
@@ -626,15 +626,15 @@ bool KisShapeLayer::saveShapesToStore(KoStore *store, QList<KoShape *> shapes, c
     return true;
 }
 
-QList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const QString &baseXmlDir, const QRectF &rectInPixels, qreal resolutionPPI, KoDocumentResourceManager *resourceManager, bool loadingFromKra, QSizeF *fragmentSize, QStringList *warnings, QStringList *errors)
+PkList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const PkString &baseXmlDir, const PkRectF &rectInPixels, qreal resolutionPPI, KoDocumentResourceManager *resourceManager, bool loadingFromKra, PkSizeF *fragmentSize, PkStringList *warnings, PkStringList *errors)
 {
 
-    QString errorMsg;
+    PkString errorMsg;
     int errorLine = 0;
     int errorColumn;
 
-    const QByteArray data = toQByteArray(device->readAll());
-    QDomDocument doc = SvgParser::createDocumentFromSvg(data, &errorMsg, &errorLine, &errorColumn);
+    const PkByteArray data = toQByteArray(device->readAll());
+    PkXmlDocument doc = SvgParser::createDocumentFromSvg(data, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
         errKrita << "Parsing error in contents.svg! Aborting!" << '\n'
         << " In line: " << errorLine << ", column: " << errorColumn << '\n'
@@ -644,7 +644,7 @@ QList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const QStr
             *errors << QStringLiteral("Parsing error in the main document at line %1, column %2\nError message: %3")
                          .arg(errorLine).arg(errorColumn).arg(errorMsg);
         }
-        return QList<KoShape*>();
+        return PkList<KoShape*>();
     }
 
     SvgParser parser(resourceManager);
@@ -663,7 +663,7 @@ QList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const QStr
         parser.setDefaultKraTextVersion(1);
     }
 
-    QList<KoShape *> result = parser.parseSvg(doc.documentElement(), fragmentSize);
+    PkList<KoShape *> result = parser.parseSvg(doc.documentElement(), fragmentSize);
 
     if (warnings) {
         *warnings = parser.warnings();
@@ -678,22 +678,22 @@ bool KisShapeLayer::saveLayer(KoStore * store) const
     // FIXME: we handle xRes() only!
 
     const PkSize size = image()->bounds().size();
-    const QSizeF sizeInPx(size.width(), size.height());
-    const QSizeF sizeInPt(sizeInPx.width() / image()->xRes(), sizeInPx.height() / image()->yRes());
+    const PkSizeF sizeInPx(size.width(), size.height());
+    const PkSizeF sizeInPt(sizeInPx.width() / image()->xRes(), sizeInPx.height() / image()->yRes());
 
     return saveShapesToStore(store, this->shapes(), sizeInPt);
 }
 
-bool KisShapeLayer::loadSvg(PkStream *device, const QString &baseXmlDir, QStringList *warnings)
+bool KisShapeLayer::loadSvg(PkStream *device, const PkString &baseXmlDir, PkStringList *warnings)
 {
-    QSizeF fragmentSize; // unused!
+    PkSizeF fragmentSize; // unused!
     KisImageSP image = this->image();
 
     // FIXME: we handle xRes() only!
     KIS_SAFE_ASSERT_RECOVER_NOOP(qFuzzyCompare(image->xRes(), image->yRes()));
     const qreal resolutionPPI = 72.0 * image->xRes();
 
-    QList<KoShape*> shapes =
+    PkList<KoShape*> shapes =
         createShapesFromSvg(device, baseXmlDir,
                             toQRectF(image->bounds()), resolutionPPI,
                             m_d->controller->resourceManager(),
@@ -708,7 +708,7 @@ bool KisShapeLayer::loadSvg(PkStream *device, const QString &baseXmlDir, QString
     return true;
 }
 
-bool KisShapeLayer::loadLayer(KoStore* store, QStringList *warnings)
+bool KisShapeLayer::loadLayer(KoStore* store, PkStringList *warnings)
 {
     if (!store) {
         warnKrita << "No store backend";
@@ -717,7 +717,7 @@ bool KisShapeLayer::loadLayer(KoStore* store, QStringList *warnings)
 
     if (store->open("content.svg")) {
         KoStoreDevice storeDev(store);
-        storeDev.open(QIODevice::ReadOnly);
+        storeDev.open(PkStream::ReadOnly);
 
         loadSvg(&storeDev, "", warnings);
 
@@ -737,8 +737,8 @@ void KisShapeLayer::resetCache(const KoColorSpace *colorSpace)
 
 KUndo2Command* KisShapeLayer::crop(const PkRect & rect)
 {
-    QPoint oldPos(x(), y());
-    QPoint newPos = oldPos - QPoint(rect.left(), rect.top());
+    PkPoint oldPos(x(), y());
+    PkPoint newPos = oldPos - PkPoint(rect.left(), rect.top());
 
     return new KisNodeMoveCommand2(this, PkPoint(oldPos.x(), oldPos.y()), PkPoint(newPos.x(), newPos.y()));
 }
@@ -746,7 +746,7 @@ KUndo2Command* KisShapeLayer::crop(const PkRect & rect)
 class TransformShapeLayerDeferred : public KUndo2Command
 {
 public:
-    TransformShapeLayerDeferred(KisShapeLayer *shapeLayer, const QTransform &globalDocTransform)
+    TransformShapeLayerDeferred(KisShapeLayer *shapeLayer, const PkTransform &globalDocTransform)
         : m_shapeLayer(shapeLayer),
           m_globalDocTransform(globalDocTransform),
           m_blockingConnection(std::bind(&KisShapeLayer::slotTransformShapes, shapeLayer, std::placeholders::_1))
@@ -755,7 +755,7 @@ public:
 
     void undo() override
     {
-        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != QCoreApplication::instance()->thread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(PkThread::currentThread() != QCoreApplication::instance()->thread());
         m_blockingConnection.start(m_savedTransform);
     }
 
@@ -763,24 +763,24 @@ public:
     {
         m_savedTransform = m_shapeLayer->transformation();
 
-        const QTransform globalTransform = m_shapeLayer->absoluteTransformation();
-        const QTransform localTransform = globalTransform * m_globalDocTransform * globalTransform.inverted();
+        const PkTransform globalTransform = m_shapeLayer->absoluteTransformation();
+        const PkTransform localTransform = globalTransform * m_globalDocTransform * globalTransform.inverted();
 
-        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != QCoreApplication::instance()->thread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(PkThread::currentThread() != QCoreApplication::instance()->thread());
         m_blockingConnection.start(localTransform * m_savedTransform);
     }
 
 private:
     KisShapeLayer *m_shapeLayer;
-    QTransform m_globalDocTransform;
-    QTransform m_savedTransform;
-    KisSafeBlockingQueueConnectionProxy<QTransform> m_blockingConnection;
+    PkTransform m_globalDocTransform;
+    PkTransform m_savedTransform;
+    KisSafeBlockingQueueConnectionProxy<PkTransform> m_blockingConnection;
 };
 
 
 KUndo2Command* KisShapeLayer::transform(const PkTransform &transform)
 {
-    QList<KoShape*> shapes = shapesToBeTransformed();
+    PkList<KoShape*> shapes = shapesToBeTransformed();
     if (shapes.isEmpty()) return 0;
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(shapes.size() == 1 && shapes.first() == this, 0);
 
@@ -790,8 +790,8 @@ KUndo2Command* KisShapeLayer::transform(const PkTransform &transform)
      */
     const KisImageViewConverter *converter = dynamic_cast<const KisImageViewConverter*>(this->converter());
     KIS_ASSERT(converter);
-    const QTransform qTransform = toQTransform(transform);
-    QTransform docSpaceTransform = converter->documentToView() *
+    const PkTransform qTransform = toQTransform(transform);
+    PkTransform docSpaceTransform = converter->documentToView() *
         qTransform * converter->viewToDocument();
 
     return new TransformShapeLayerDeferred(this, docSpaceTransform);

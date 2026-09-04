@@ -7,6 +7,8 @@
 #define KOFONTCHANGETRACKER_H
 
 #include <QObject>
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 /**
  * @brief The KoFontChangeTracker class
@@ -17,7 +19,7 @@ class KoFontChangeTracker : public QObject
 {
     Q_OBJECT
 public:
-    explicit KoFontChangeTracker(QStringList paths, QObject *parent = nullptr);
+    explicit KoFontChangeTracker(PkStringList paths, QObject *parent = nullptr);
     ~KoFontChangeTracker();
 
     /// This should be called after fontregistry initialization is done to start the signal compressor.
@@ -28,7 +30,7 @@ private Q_SLOTS:
     void directoriesChanged();
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOFONTCHANGETRACKER_H

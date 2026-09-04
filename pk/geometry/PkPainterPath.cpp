@@ -118,10 +118,10 @@ PkPointF PkArcBezier::pointAt(qreal t) const
 
 PkRectF PkArcBezier::bounds() const
 {
-    const qreal minX = qMin(qMin(x1, x2), qMin(x3, x4));
-    const qreal maxX = qMax(qMax(x1, x2), qMax(x3, x4));
-    const qreal minY = qMin(qMin(y1, y2), qMin(y3, y4));
-    const qreal maxY = qMax(qMax(y1, y2), qMax(y3, y4));
+    const qreal minX = pkMin(pkMin(x1, x2), pkMin(x3, x4));
+    const qreal maxX = pkMax(pkMax(x1, x2), pkMax(x3, x4));
+    const qreal minY = pkMin(pkMin(y1, y2), pkMin(y3, y4));
+    const qreal maxY = pkMax(pkMax(y1, y2), pkMax(y3, y4));
     return PkRectF(minX, minY, maxX - minX, maxY - minY);
 }
 
@@ -172,7 +172,7 @@ qreal PkArcBezier::tForY(qreal t0, qreal t1, qreal y) const
             t1 = t;
         delta = lastT - t;
         lastT = t;
-    } while (qAbs(delta) > qreal(1e-7));
+    } while (pkAbs(delta) > qreal(1e-7));
     return t0;
 }
 
@@ -464,10 +464,10 @@ static void pkAddBezierToPolygon(const PkArcBezier &bezier, PkPolygonF *polygon,
     beziers[0] = bezier; levels[0] = 9; int top = 0;
     while (top >= 0) {
         PkArcBezier *b = &beziers[top];
-        qreal y4y1 = b->y4 - b->y1, x4x1 = b->x4 - b->x1, l = qAbs(x4x1) + qAbs(y4y1);
+        qreal y4y1 = b->y4 - b->y1, x4x1 = b->x4 - b->x1, l = pkAbs(x4x1) + pkAbs(y4y1);
         qreal d;
-        if (l > 1.) d = qAbs((x4x1)*(b->y1 - b->y2) - (y4y1)*(b->x1 - b->x2)) + qAbs((x4x1)*(b->y1 - b->y3) - (y4y1)*(b->x1 - b->x3));
-        else { d = qAbs(b->x1-b->x2)+qAbs(b->y1-b->y2)+qAbs(b->x1-b->x3)+qAbs(b->y1-b->y3); l = 1.; }
+        if (l > 1.) d = pkAbs((x4x1)*(b->y1 - b->y2) - (y4y1)*(b->x1 - b->x2)) + pkAbs((x4x1)*(b->y1 - b->y3) - (y4y1)*(b->x1 - b->x3));
+        else { d = pkAbs(b->x1-b->x2)+pkAbs(b->y1-b->y2)+pkAbs(b->x1-b->x3)+pkAbs(b->y1-b->y3); l = 1.; }
         if (d < threshold * l || levels[top] == 0) { polygon->append(PkPointF(b->x4, b->y4)); --top; }
         else {
             auto halves = pkSplitBezier(*b);
@@ -496,8 +496,8 @@ static qreal pkBezierLength(const PkArcBezier &b, qreal error = 0.01)
 // PkPainterPath 成员实现
 // ============================================================================
 
-PkPainterPath::PkPainterPath() noexcept : m_fillRule(Qt::OddEvenFill) {}
-PkPainterPath::PkPainterPath(const PkPointF &startPoint) : m_fillRule(Qt::OddEvenFill) { moveTo(startPoint); }
+PkPainterPath::PkPainterPath() noexcept : m_fillRule(Pk::OddEvenFill) {}
+PkPainterPath::PkPainterPath(const PkPointF &startPoint) : m_fillRule(Pk::OddEvenFill) { moveTo(startPoint); }
 
 void PkPainterPath::swap(PkPainterPath &other) noexcept
 {
@@ -663,9 +663,9 @@ void PkPainterPath::addEllipse(const PkRectF &r)
 { if (r.isNull()) return; PkPointF pts[12]; int pc; PkPointF s=pkCurvesForArc(r,0,-360,pts,&pc); moveTo(s); cubicTo(pts[0],pts[1],pts[2]); cubicTo(pts[3],pts[4],pts[5]); cubicTo(pts[6],pts[7],pts[8]); cubicTo(pts[9],pts[10],pts[11]); m_requireMoveTo = true; }
 void PkPainterPath::arcTo(const PkRectF &rect, qreal sa, qreal sl)
 { if (rect.isNull()) return; int pc; PkPointF pts[15]; PkPointF cs=pkCurvesForArc(rect,sa,sl,pts,&pc); lineTo(cs); for (int i=0;i<pc;i+=3) cubicTo(pts[i],pts[i+1],pts[i+2]); }
-void PkPainterPath::addRoundedRect(const PkRectF &rect, qreal xr, qreal yr, Qt::SizeMode mode)
+void PkPainterPath::addRoundedRect(const PkRectF &rect, qreal xr, qreal yr, Pk::SizeMode mode)
 { PkRectF r=rect.normalized(); if (r.isNull()) return;
-  if (mode==Qt::AbsoluteSize) { qreal w=r.width()/2,h=r.height()/2; xr=w?100*qMin(xr,w)/w:0; yr=h?100*qMin(yr,h)/h:0; }
+  if (mode==Pk::AbsoluteSize) { qreal w=r.width()/2,h=r.height()/2; xr=w?100*pkMin(xr,w)/w:0; yr=h?100*pkMin(yr,h)/h:0; }
   else { if (xr>100) xr=100; if (yr>100) yr=100; }
   if (xr<=0||yr<=0) { addRect(r); return; }
   qreal x=r.x(),y=r.y(),w=r.width(),h=r.height(),rxx2=w*xr/100,ryy2=h*yr/100;
@@ -718,13 +718,13 @@ bool PkPainterPath::contains(const PkPointF &pt) const
         }
     }
     if (lp!=ls) pkPainterPathIsectLine(lp,ls,pt,&wn);
-    return (m_fillRule==Qt::WindingFill)?(wn!=0):((wn%2)!=0);
+    return (m_fillRule==Pk::WindingFill)?(wn!=0):((wn%2)!=0);
 }
 
 bool PkPainterPath::contains(const PkRectF &rect) const
 {
     if (isEmpty()||!controlPointRect().contains(rect)) return false;
-    if (pkCheckCrossing(this,rect)) { if (m_fillRule==Qt::OddEvenFill) return false; if (!contains(rect.topLeft())||!contains(rect.topRight())||!contains(rect.bottomRight())||!contains(rect.bottomLeft())) return false; }
+    if (pkCheckCrossing(this,rect)) { if (m_fillRule==Pk::OddEvenFill) return false; if (!contains(rect.topLeft())||!contains(rect.topRight())||!contains(rect.bottomRight())||!contains(rect.bottomLeft())) return false; }
     return contains(rect.center());
 }
 
@@ -733,7 +733,7 @@ bool PkPainterPath::intersects(const PkRectF &rect) const
     if (elementCount()==1&&rect.contains(elementAt(0))) return true;
     if (isEmpty()) return false;
     PkRectF cp=controlPointRect(),rn=rect.normalized();
-    if (qMax(rn.left(),cp.left())>qMin(rn.right(),cp.right())||qMax(rn.top(),cp.top())>qMin(rn.bottom(),cp.bottom())) return false;
+    if (pkMax(rn.left(),cp.left())>pkMin(rn.right(),cp.right())||pkMax(rn.top(),cp.top())>pkMin(rn.bottom(),cp.bottom())) return false;
     if (pkCheckCrossing(this,rect)) return true;
     if (contains(rect.center())) return true;
     for (int i=0;i<m_elements.size();++i) { const auto &e=m_elements.at(i); if (e.type==MoveToElement&&rect.contains(PkPointF(e.x,e.y))) return true; }
@@ -827,8 +827,8 @@ bool PkPainterPath::operator==(const PkPainterPath &other) const
         const Element &lhs = m_elements.at(i);
         const Element &rhs = other.m_elements.at(i);
         if (lhs.type != rhs.type
-            || !(qAbs(lhs.x - rhs.x) <= epsilonX)
-            || !(qAbs(lhs.y - rhs.y) <= epsilonY)) {
+            || !(pkAbs(lhs.x - rhs.x) <= epsilonX)
+            || !(pkAbs(lhs.y - rhs.y) <= epsilonY)) {
             return false;
         }
     }
@@ -930,8 +930,8 @@ PkPointF PkPainterPath::pointAtPercent(qreal t) const
         const auto &e=m_elements.at(i);
         switch (e.type) {
         case MoveToElement: break;
-        case LineToElement: { PkPointF a(m_elements.at(i-1)),b(e); qreal dx=b.x()-a.x(),dy=b.y()-a.y(),ll=std::sqrt(dx*dx+dy*dy); if (cl+ll>=target||i==m_elements.size()-1) { qreal f=ll>0?(target-cl)/ll:0; f=qBound(qreal(0),f,qreal(1)); return PkPointF(a.x()+f*dx,a.y()+f*dy); } cl+=ll; break; }
-        case CurveToElement: { PkArcBezier b=PkArcBezier::fromPoints(m_elements.at(i-1),e,m_elements.at(i+1),m_elements.at(i+2)); qreal bl=pkBezierLength(b); if (cl+bl>=target||i+2>=m_elements.size()-1) { qreal f=bl>0?(target-cl)/bl:0; f=qBound(qreal(0),f,qreal(1)); qreal mt=1-f; return PkPointF(b.x1*mt*mt*mt+3*b.x2*mt*mt*f+3*b.x3*mt*f*f+b.x4*f*f*f,b.y1*mt*mt*mt+3*b.y2*mt*mt*f+3*b.y3*mt*f*f+b.y4*f*f*f); } cl+=bl; i+=2; break; }
+        case LineToElement: { PkPointF a(m_elements.at(i-1)),b(e); qreal dx=b.x()-a.x(),dy=b.y()-a.y(),ll=std::sqrt(dx*dx+dy*dy); if (cl+ll>=target||i==m_elements.size()-1) { qreal f=ll>0?(target-cl)/ll:0; f=pkBound(qreal(0),f,qreal(1)); return PkPointF(a.x()+f*dx,a.y()+f*dy); } cl+=ll; break; }
+        case CurveToElement: { PkArcBezier b=PkArcBezier::fromPoints(m_elements.at(i-1),e,m_elements.at(i+1),m_elements.at(i+2)); qreal bl=pkBezierLength(b); if (cl+bl>=target||i+2>=m_elements.size()-1) { qreal f=bl>0?(target-cl)/bl:0; f=pkBound(qreal(0),f,qreal(1)); qreal mt=1-f; return PkPointF(b.x1*mt*mt*mt+3*b.x2*mt*mt*f+3*b.x3*mt*f*f+b.x4*f*f*f,b.y1*mt*mt*mt+3*b.y2*mt*mt*f+3*b.y3*mt*f*f+b.y4*f*f*f); } cl+=bl; i+=2; break; }
         default: break;
         }
     }
@@ -946,7 +946,7 @@ qreal PkPainterPath::angleAtPercent(qreal t) const
         switch (e.type) {
         case MoveToElement: break;
         case LineToElement: { PkPointF a(m_elements.at(i-1)),b(e); qreal dx=b.x()-a.x(),dy=b.y()-a.y(),ll=std::sqrt(dx*dx+dy*dy); cl+=ll; if (cl>=target||i==m_elements.size()-1) { qreal a2=std::atan2(dy,dx)*180.0/M_PI; return a2<0?a2+360:a2; } break; }
-        case CurveToElement: { PkArcBezier b=PkArcBezier::fromPoints(m_elements.at(i-1),e,m_elements.at(i+1),m_elements.at(i+2)); qreal bl=pkBezierLength(b); cl+=bl; if (cl>=target||i+2>=m_elements.size()-1) { qreal f=bl>0?(target-(cl-bl))/bl:0; f=qBound(qreal(0),f,qreal(1)); qreal mt=1-f; qreal dx=3*mt*mt*(b.x2-b.x1)+6*mt*f*(b.x3-b.x2)+3*f*f*(b.x4-b.x3),dy=3*mt*mt*(b.y2-b.y1)+6*mt*f*(b.y3-b.y2)+3*f*f*(b.y4-b.y3); qreal a2=std::atan2(dy,dx)*180.0/M_PI; return a2<0?a2+360:a2; } i+=2; break; }
+        case CurveToElement: { PkArcBezier b=PkArcBezier::fromPoints(m_elements.at(i-1),e,m_elements.at(i+1),m_elements.at(i+2)); qreal bl=pkBezierLength(b); cl+=bl; if (cl>=target||i+2>=m_elements.size()-1) { qreal f=bl>0?(target-(cl-bl))/bl:0; f=pkBound(qreal(0),f,qreal(1)); qreal mt=1-f; qreal dx=3*mt*mt*(b.x2-b.x1)+6*mt*f*(b.x3-b.x2)+3*f*f*(b.x4-b.x3),dy=3*mt*mt*(b.y2-b.y1)+6*mt*f*(b.y3-b.y2)+3*f*f*(b.y4-b.y3); qreal a2=std::atan2(dy,dx)*180.0/M_PI; return a2<0?a2+360:a2; } i+=2; break; }
         default: break;
         }
     }

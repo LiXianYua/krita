@@ -15,8 +15,12 @@
 
 #include <cmath>
 #include "kis_assert.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkVector.h>
 
-QString KoZoomMode::toString(Mode mode)
+PkString KoZoomMode::toString(Mode mode)
 {
     switch (mode) {
     case KoZoomMode::ZOOM_CONSTANT:
@@ -31,7 +35,7 @@ QString KoZoomMode::toString(Mode mode)
     return "";
 }
 
-QVector<qreal> KoZoomMode::generateStandardZoomLevels(qreal minZoom, qreal maxZoom)
+PkVector<qreal> KoZoomMode::generateStandardZoomLevels(qreal minZoom, qreal maxZoom)
 {
     KConfigGroup config = KSharedConfig::openConfig()->group("");
     int steps = config.readEntry("zoomSteps", 2);
@@ -39,10 +43,10 @@ QVector<qreal> KoZoomMode::generateStandardZoomLevels(qreal minZoom, qreal maxZo
 
     int first =  ceil(log(minZoom) * k);
     int size  = floor(log(maxZoom) * k) - first + 1;
-    QVector<qreal> zoomLevels(size);
+    PkVector<qreal> zoomLevels(size);
 
     // enforce zoom levels relating to thirds (33.33%, 66.67%, ...)
-    QVector<qreal> snap(steps);
+    PkVector<qreal> snap(steps);
     if (steps > 1) {
         qreal third = log(4./ 3.) * k;
         int i = round(third);
@@ -60,7 +64,7 @@ QVector<qreal> KoZoomMode::generateStandardZoomLevels(qreal minZoom, qreal maxZo
     return zoomLevels;
 }
 
-qreal KoZoomMode::findNextZoom(qreal currentZoom, const QVector<qreal> &zoomLevels)
+qreal KoZoomMode::findNextZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels)
 {
     const qreal eps = 1e-5;
     int i = 0;
@@ -71,7 +75,7 @@ qreal KoZoomMode::findNextZoom(qreal currentZoom, const QVector<qreal> &zoomLeve
     return qMax(currentZoom, zoomLevels[i]);
 }
 
-qreal KoZoomMode::findPrevZoom(qreal currentZoom, const QVector<qreal> &zoomLevels)
+qreal KoZoomMode::findPrevZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels)
 {
     const qreal eps = 1e-5;
     int i = zoomLevels.size() - 1;

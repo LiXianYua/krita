@@ -21,15 +21,15 @@ public:
     }
 
     static int scaleToLod(qreal scale, int maxLod) {
-        return qMin(maxLod, qMax(0, qFloor(std::log2(1.0 / scale))));
+        return pkMin(maxLod, pkMax(0, pkFloor(std::log2(1.0 / scale))));
     }
 
     static qreal lodToScale(int levelOfDetail) {
-        return levelOfDetail > 0 ? 1.0 / (1 << qMax(0, levelOfDetail)) : 1.0;
+        return levelOfDetail > 0 ? 1.0 / (1 << pkMax(0, levelOfDetail)) : 1.0;
     }
 
     static qreal lodToInvScale(int levelOfDetail) {
-        return 1 << qMax(0, levelOfDetail);
+        return 1 << pkMax(0, levelOfDetail);
     }
 
     template <class PaintDeviceTypeSP>

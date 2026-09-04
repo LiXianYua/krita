@@ -16,9 +16,9 @@
 
 KisRectsGrid::KisRectsGrid(int gridSize)
     : m_gridSize(gridSize)
-    , m_logGridSize(qFloor(std::log2(gridSize)))
+    , m_logGridSize(pkFloor(std::log2(gridSize)))
 {
-    if (!qFuzzyCompare(std::log2(gridSize), qreal(m_logGridSize))) {
+    if (!pkQtFuzzyCompare(std::log2(gridSize), qreal(m_logGridSize))) {
         KisUsageLogger::log(PkString("Invalid grid configuration. Grid size: %1, log grid size: %2. Resetting to 64 and 6").arg(gridSize, m_logGridSize));
         m_gridSize = 64;
         m_logGridSize = 6;

@@ -29,20 +29,20 @@ public:
     ~KoSnapData();
 
     /// Returns list of points to snap to
-    QList<QPointF> snapPoints() const;
+    PkList<PkPointF> snapPoints() const;
 
     /// Sets list of points to snap to
-    void setSnapPoints(const QList<QPointF> &snapPoints);
+    void setSnapPoints(const PkList<PkPointF> &snapPoints);
 
     /// Returns list of segments to snap to
-    QList<KoPathSegment> snapSegments() const;
+    PkList<KoPathSegment> snapSegments() const;
 
     /// Sets list of segments to snap to
-    void setSnapSegments(const QList<KoPathSegment> &snapSegments);
+    void setSnapSegments(const PkList<KoPathSegment> &snapSegments);
 
 private:
-    QList<QPointF> m_points;
-    QList<KoPathSegment> m_segments;
+    PkList<PkPointF> m_points;
+    PkList<KoPathSegment> m_segments;
 };
 
 #endif //KOSNAPDATA_H

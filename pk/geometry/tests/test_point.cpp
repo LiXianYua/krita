@@ -119,7 +119,7 @@ void PkPointCase::pointManhattanLength()
 
     // ⚠ **Qt 不防溢出**，这里钉的是实测取值而不是"数学上对的值"。
     // 真 Qt 5.15.7 实测：INT_MAX,INT_MAX → -2；INT_MIN,INT_MIN → 0；
-    // INT_MIN,0 → INT_MIN（qAbs(INT_MIN) 回绕成 INT_MIN）。
+    // INT_MIN,0 → INT_MIN（pkAbs(INT_MIN) 回绕成 INT_MIN）。
     // 顺手"修正"成 64 位求和是行为差异，必须被这三条拦下。
     PK_COMPARE(PkPoint(INT_MAX, INT_MAX).manhattanLength(), -2);
     PK_COMPARE(PkPoint(INT_MIN, INT_MIN).manhattanLength(), 0);
@@ -330,7 +330,7 @@ void PkPointCase::pointfAccessorsAndReferences()
 
 void PkPointCase::pointfIsNull()
 {
-    // ⚠ QPointF::isNull() 用的是 qIsNull，而 qglobal.h:925 的 qIsNull(d) 就是
+    // ⚠ QPointF::isNull() 用的是 qIsNull，而 qglobal.h:925 的 pkIsNull(d) 就是
     // `d == 0.0` —— 于是 **-0.0 也算 null**，而次正规数 5e-324 不算，NaN 不算。
     // 写成 qFuzzyIsNull（绝对阈值 1e-12）会让 5e-324 那条变红。实测真 Qt：
     PK_VERIFY(PkPointF().isNull());
@@ -347,7 +347,7 @@ void PkPointCase::pointfManhattanLength()
     PK_VERIFY(sameBits(PkPointF(-3.0, 4.0).manhattanLength(), 7.0));
     PK_VERIFY(sameBits(PkPointF(1.5, -2.25).manhattanLength(), 3.75));
 
-    // ⚠ qAbs(-0.0) 返回 -0.0（条件是 t >= 0），于是 -0.0 + -0.0 = **-0.0**。
+    // ⚠ pkAbs(-0.0) 返回 -0.0（条件是 t >= 0），于是 -0.0 + -0.0 = **-0.0**。
     // 实测真 Qt：QPointF(-0.0,-0.0).manhattanLength() 的位模式是 0x8000000000000000。
     // 用 PK_COMPARE 比 0.0 是查不出来的（-0.0 == 0.0 为真），只能查符号位。
     const double mz = PkPointF(-0.0, -0.0).manhattanLength();
@@ -411,7 +411,7 @@ void PkPointCase::pointfSignedZeroIsBitExact()
     // 一元 - 与一元 + 在零号上的取值，实测真 Qt 的位模式：
     //   (-QPointF(0.0,0.0)).x  → 0x8000000000000000（-0.0）
     //   (+QPointF(-0.0,0.0)).x → 0x8000000000000000（原样返回，不规范化）
-    // 把一元 + 写成"返回 qAbs(p)"或"规范化零号"这两条立刻变红。
+    // 把一元 + 写成"返回 pkAbs(p)"或"规范化零号"这两条立刻变红。
     PK_VERIFY(std::signbit((-PkPointF(0.0, 0.0)).x()));
     PK_VERIFY(std::signbit((+PkPointF(-0.0, 0.0)).x()));
     PK_VERIFY(!std::signbit((+PkPointF(0.0, 0.0)).x()));

@@ -8,8 +8,8 @@
 #include "KoCanvasController.h"
 #include "KoToolManager.h"
 
-#include <QSize>
-#include <QPoint>
+#include <PkSize.h>
+#include <PkPoint.h>
 
 class Q_DECL_HIDDEN KoCanvasController::Private
 {
@@ -21,8 +21,8 @@ public:
     {
     }
 
-    QSizeF documentSize;
-    QPoint documentOffset;
+    PkSizeF documentSize;
+    PkPoint documentOffset;
     qreal preferredCenterFractionX;
     qreal preferredCenterFractionY;
     QObject *actionCollection;

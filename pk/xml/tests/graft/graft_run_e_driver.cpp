@@ -54,7 +54,7 @@
 //   QXmlStreamReader *xml = new QXmlStreamReader(data);
 //   if (xml->readNextStartElement()) {
 //       auto paletteId = xml->name();
-//       if (paletteId.compare(QString("SCRIBUSCOLORS"), Qt::CaseInsensitive) == 0) {
+//       if (paletteId.compare(QString("SCRIBUSCOLORS"), Pk::CaseInsensitive) == 0) {
 //           res = loadScribusXmlPalette(colorSet, xml);
 //       }
 //       else {
@@ -68,8 +68,8 @@
 //   }
 //
 // 下面两个 *Shape() 函数是这两段代码的形状对齐版本——去掉了
-// `paletteId.compare(..., Qt::CaseInsensitive)`（本 worktree 没有
-// `Qt::CaseInsensitive` 的 compat 映射，不是本任务要验证的对象，换成
+// `paletteId.compare(..., Pk::CaseInsensitive)`（本 worktree 没有
+// `Pk::CaseInsensitive` 的 compat 映射，不是本任务要验证的对象，换成
 // PkString 的 `==`）与 `loadScribusXmlPalette()`/`colorSet->filename()`
 // （生产胶水，不是本任务要验证的对象），其余 `QDomElement`/
 // `.firstChildElement(`/`.isNull()`/`.lineNumber()`/`.columnNumber()`

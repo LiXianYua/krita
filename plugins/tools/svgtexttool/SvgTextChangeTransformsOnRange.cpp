@@ -118,9 +118,9 @@ QTransform SvgTextChangeTransformsOnRange::getTransformForOffset(KoSvgTextShape 
     if (type == OffsetAll) {
         return QTransform::fromTranslate(delta.x(), delta.y());
     } else {
-        const int lineEnd = qMin(shape->lineEnd(qMin(startPos, endPos)), qMax(startPos, endPos));
+        const int lineEnd = pkMin(shape->lineEnd(pkMin(startPos, endPos)), pkMax(startPos, endPos));
         QList<KoSvgTextCharacterInfo> infos =
-                shape->getPositionsAndRotationsForRange(qMin(startPos, endPos), lineEnd);
+                shape->getPositionsAndRotationsForRange(pkMin(startPos, endPos), lineEnd);
         if (infos.size() < 1) return deltaTf;
         const bool rtl = infos.first().rtl;
         KoSvgTextCharacterInfo first = infos.first();

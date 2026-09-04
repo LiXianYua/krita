@@ -77,7 +77,7 @@ void KisStroke::addMutatedJobs(const PkVector<KisStrokeJobData *> list)
 {
     // factory methods can return null, if no action is needed
     if (!m_dabStrategy) {
-        qDeleteAll(list);
+        pkDeleteAll(list);
         return;
     }
 

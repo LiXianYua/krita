@@ -11,11 +11,11 @@ public:
 
     explicit PkPainter(PkPainterBackend &backend);
     void save(); void restore();
-    PkPen pen() const; void setPen(const PkPen &); void setPen(const PkColor &, qreal width=1.0); void setPen(Qt::PenStyle);
-    PkBrush brush() const; void setBrush(const PkBrush &); void setBrush(const PkColor &); void setBrush(Qt::BrushStyle);
+    PkPen pen() const; void setPen(const PkPen &); void setPen(const PkColor &, qreal width=1.0); void setPen(Pk::PenStyle);
+    PkBrush brush() const; void setBrush(const PkBrush &); void setBrush(const PkColor &); void setBrush(Pk::BrushStyle);
     PkTransform transform() const; void setTransform(const PkTransform &, bool combine=false);
     void setRenderHint(unsigned, bool enabled=true); void setRenderHints(unsigned, bool enabled=true);
-    void setClipRect(const PkRectF &, Qt::ClipOperation=Qt::ReplaceClip);
+    void setClipRect(const PkRectF &, Pk::ClipOperation=Pk::ReplaceClip);
     void drawLine(const PkLineF &); void drawLine(const PkPointF &, const PkPointF &);
     void drawRect(const PkRectF &);
     void drawEllipse(const PkRectF &); void drawEllipse(const PkPointF &, qreal, qreal);

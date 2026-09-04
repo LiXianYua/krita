@@ -149,12 +149,12 @@ void KisPerspectiveTransformStrategy::Private::recalculateTransformedHandles()
 
     v = PkVector4D(1, 0, 0, 0);
     v = realMatrix * v;
-    transformedHandles.xVanishingExists = !qFuzzyCompare(v.w(), 0);
+    transformedHandles.xVanishingExists = !pkQtFuzzyCompare(v.w(), 0);
     transformedHandles.xVanishing = v.toVector2DAffine().toPointF();
 
     v = PkVector4D(0, 1, 0, 0);
     v = realMatrix * v;
-    transformedHandles.yVanishingExists = !qFuzzyCompare(v.w(), 0);
+    transformedHandles.yVanishingExists = !pkQtFuzzyCompare(v.w(), 0);
     transformedHandles.yVanishing = v.toVector2DAffine().toPointF();
 }
 
@@ -689,8 +689,8 @@ void KisPerspectiveTransformStrategy::Private::recalculateTransformations()
 
     imageTooBig = false;
 
-    if (qAbs(currentArgs.scaleX()) > maxScale ||
-        qAbs(currentArgs.scaleY()) > maxScale) {
+    if (pkAbs(currentArgs.scaleX()) > maxScale ||
+        pkAbs(currentArgs.scaleY()) > maxScale) {
 
         imageTooBig = true;
 

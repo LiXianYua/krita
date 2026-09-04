@@ -47,11 +47,11 @@ struct DerivedResource : public KoDerivedResourceConverter
 {
     DerivedResource(int key, int sourceKey) : KoDerivedResourceConverter(key, sourceKey) {}
 
-    QVariant fromSource(const QVariant &value) override {
+    PkVariant fromSource(const PkVariant &value) override {
         return value.toInt() + 10;
     }
 
-    QVariant toSource(const QVariant &value, const QVariant &sourceValue) override {
+    PkVariant toSource(const PkVariant &value, const PkVariant &sourceValue) override {
         Q_UNUSED(sourceValue);
         return value.toInt() - 10;
     }
@@ -110,7 +110,7 @@ void TestResourceManager::testDerivedChanged()
     m.setResource(derivedKey, 16);
 
     QCOMPARE(spy.count(), 3);
-    QList<QVariant> args;
+    PkList<PkVariant> args;
 
     args = spy[0];
     QCOMPARE(args[0].toInt(), derivedKey);
@@ -143,29 +143,29 @@ void TestResourceManager::testDerivedChanged()
 }
 
 struct ComplexResource {
-    QHash<int, QVariant> m_resources;
+    PkHash<int, PkVariant> m_resources;
 };
 
-typedef QSharedPointer<ComplexResource> ComplexResourceSP;
+typedef PkSharedPointer<ComplexResource> ComplexResourceSP;
 Q_DECLARE_METATYPE(ComplexResourceSP);
 
 struct ComplexConverter : public KoDerivedResourceConverter
 {
     ComplexConverter(int key, int sourceKey) : KoDerivedResourceConverter(key, sourceKey) {}
 
-    QVariant fromSource(const QVariant &value) override {
+    PkVariant fromSource(const PkVariant &value) override {
         KIS_ASSERT(value.canConvert<ComplexResourceSP>());
         ComplexResourceSP res = value.value<ComplexResourceSP>();
 
         return res->m_resources[key()];
     }
 
-    QVariant toSource(const QVariant &value, const QVariant &sourceValue) override {
+    PkVariant toSource(const PkVariant &value, const PkVariant &sourceValue) override {
         KIS_ASSERT(sourceValue.canConvert<ComplexResourceSP>());
         ComplexResourceSP res = sourceValue.value<ComplexResourceSP>();
 
         res->m_resources[key()] = value;
-        return QVariant::fromValue(res);
+        return PkVariant::fromValue(res);
     }
 };
 
@@ -173,7 +173,7 @@ struct ComplexMediator : public KoResourceUpdateMediator
 {
     ComplexMediator(int key) : KoResourceUpdateMediator(key) {}
 
-    void connectResource(QVariant sourceResource) override {
+    void connectResource(PkVariant sourceResource) override {
         m_res = sourceResource;
     }
 
@@ -181,9 +181,9 @@ struct ComplexMediator : public KoResourceUpdateMediator
         Q_EMIT sigResourceChanged(key());
     }
 
-    QVariant m_res;
+    PkVariant m_res;
 };
-typedef QSharedPointer<ComplexMediator> ComplexMediatorSP;
+typedef PkSharedPointer<ComplexMediator> ComplexMediatorSP;
 
 void TestResourceManager::testComplexResource()
 {
@@ -212,7 +212,7 @@ void TestResourceManager::testComplexResource()
     // ####################################################
     // Initial assignment
     // ####################################################
-    m.setResource(key, QVariant::fromValue(r1));
+    m.setResource(key, PkVariant::fromValue(r1));
 
     QCOMPARE(mediator->m_res.value<ComplexResourceSP>(), r1);
     QCOMPARE(m.resource(key).value<ComplexResourceSP>(), r1);
@@ -230,7 +230,7 @@ void TestResourceManager::testComplexResource()
     // ####################################################
     // Change the whole resource
     // ####################################################
-    m.setResource(key, QVariant::fromValue(r2));
+    m.setResource(key, PkVariant::fromValue(r2));
 
     QCOMPARE(mediator->m_res.value<ComplexResourceSP>(), r2);
     QCOMPARE(m.resource(key).value<ComplexResourceSP>(), r2);
@@ -276,7 +276,7 @@ void TestResourceManager::testComplexResource()
     // ####################################################
     // Switch back the whole source resource
     // ####################################################
-    m.setResource(key, QVariant::fromValue(r1));
+    m.setResource(key, PkVariant::fromValue(r1));
 
     QCOMPARE(mediator->m_res.value<ComplexResourceSP>(), r1);
     QCOMPARE(m.resource(key).value<ComplexResourceSP>(), r1);
@@ -309,7 +309,7 @@ void TestResourceManager::testComplexResource()
     // is kept unchanged
     // ####################################################
     r2->m_resources[complex1] = 10;
-    m.setResource(key, QVariant::fromValue(r2));
+    m.setResource(key, PkVariant::fromValue(r2));
 
     QCOMPARE(mediator->m_res.value<ComplexResourceSP>(), r2);
     QCOMPARE(m.resource(key).value<ComplexResourceSP>(), r2);
@@ -326,7 +326,7 @@ void TestResourceManager::testComplexResource()
     // No derived values are changed!
     // ####################################################
     *r1 = *r2;
-    m.setResource(key, QVariant::fromValue(r1));
+    m.setResource(key, PkVariant::fromValue(r1));
 
     QCOMPARE(mediator->m_res.value<ComplexResourceSP>(), r1);
     QCOMPARE(m.resource(key).value<ComplexResourceSP>(), r1);
@@ -340,7 +340,7 @@ void TestResourceManager::testComplexResource()
     // ####################################################
     // Try to set the same pointer. No signals emitted!
     // ####################################################
-    m.setResource(key, QVariant::fromValue(r1));
+    m.setResource(key, PkVariant::fromValue(r1));
 
     QCOMPARE(mediator->m_res.value<ComplexResourceSP>(), r1);
     QCOMPARE(m.resource(key).value<ComplexResourceSP>(), r1);
@@ -378,12 +378,12 @@ struct NeverChangingResource : public KoDerivedResourceConverter
 {
     NeverChangingResource(int key, int sourceKey) : KoDerivedResourceConverter(key, sourceKey) {}
 
-    QVariant fromSource(const QVariant &value) override {
+    PkVariant fromSource(const PkVariant &value) override {
         Q_UNUSED(value);
         return 10;
     }
 
-    QVariant toSource(const QVariant &value, const QVariant &sourceValue) override {
+    PkVariant toSource(const PkVariant &value, const PkVariant &sourceValue) override {
         Q_UNUSED(value);
         return sourceValue;
     }
@@ -417,17 +417,17 @@ void TestResourceManager::testNeverChangingConverters()
 
 struct CanvasResource : KoAbstractCanvasResourceInterface
 {
-    CanvasResource(int key, const QVariant &defaultValue)
+    CanvasResource(int key, const PkVariant &defaultValue)
         : KoAbstractCanvasResourceInterface(key, "debug")
         , m_value(defaultValue)
     {
     }
 
-    QVariant value() const override {
+    PkVariant value() const override {
         return m_value;
     }
 
-    void setValue(const QVariant value) override {
+    void setValue(const PkVariant value) override {
         m_value = value;
     }
 
@@ -436,7 +436,7 @@ struct CanvasResource : KoAbstractCanvasResourceInterface
     }
 
 private:
-    QVariant m_value;
+    PkVariant m_value;
 };
 
 void TestResourceManager::testAbstractResource()
@@ -446,8 +446,8 @@ void TestResourceManager::testAbstractResource()
     KoResourceManager m;
     QSignalSpy spy(&m, &KoResourceManager::resourceChanged);
 
-    QSharedPointer<CanvasResource> resourceValue1(new CanvasResource(key1, 10));
-    QSharedPointer<CanvasResource> resourceValue2(new CanvasResource(key1, 20));
+    PkSharedPointer<CanvasResource> resourceValue1(new CanvasResource(key1, 10));
+    PkSharedPointer<CanvasResource> resourceValue2(new CanvasResource(key1, 20));
 
     QVERIFY(!m.hasResource(key1));
     QVERIFY(spy.isEmpty());
@@ -519,8 +519,8 @@ void TestResourceManager::testDerivedAbstractChange()
     const int derivedKey = 2;
 
     KoCanvasResourceProvider m;
-    QSharedPointer<CanvasResource> abstractResource(new CanvasResource(derivedKey, 10));
-    QSharedPointer<DerivedResource> derivedResource(new DerivedResource(derivedKey, key));
+    PkSharedPointer<CanvasResource> abstractResource(new CanvasResource(derivedKey, 10));
+    PkSharedPointer<DerivedResource> derivedResource(new DerivedResource(derivedKey, key));
 
     m.setResource(key, 1);
     m.addDerivedResourceConverter(derivedResource);

@@ -159,83 +159,83 @@ void PkSizeCase::sizeScaledThreeModes()
 {
     // 实测真 Qt：QSize(10,20).scaled(30,30,·) = Ignore 30x30 / Keep 15x30 / Expand 30x60
     const PkSize s(10, 20);
-    PK_VERIFY(s.scaled(30, 30, Qt::IgnoreAspectRatio) == PkSize(30, 30));
-    PK_VERIFY(s.scaled(30, 30, Qt::KeepAspectRatio) == PkSize(15, 30));
-    PK_VERIFY(s.scaled(30, 30, Qt::KeepAspectRatioByExpanding) == PkSize(30, 60));
+    PK_VERIFY(s.scaled(30, 30, Pk::IgnoreAspectRatio) == PkSize(30, 30));
+    PK_VERIFY(s.scaled(30, 30, Pk::KeepAspectRatio) == PkSize(15, 30));
+    PK_VERIFY(s.scaled(30, 30, Pk::KeepAspectRatioByExpanding) == PkSize(30, 60));
     // QSize 重载与 (w,h) 重载必须一致
-    PK_VERIFY(s.scaled(PkSize(30, 30), Qt::KeepAspectRatio) == s.scaled(30, 30, Qt::KeepAspectRatio));
+    PK_VERIFY(s.scaled(PkSize(30, 30), Pk::KeepAspectRatio) == s.scaled(30, 30, Pk::KeepAspectRatio));
 
     // 整数除法**截断**（不是四舍五入）：(3,7)→10x10 Keep 得 (4,10)，
     // 因为 rw = 10*3/7 = 4（30/7=4.28…截断）；Expand 得 (10,23)（10*7/3=23.33…）。
     const PkSize t(3, 7);
-    PK_VERIFY(t.scaled(10, 10, Qt::KeepAspectRatio) == PkSize(4, 10));
-    PK_VERIFY(t.scaled(10, 10, Qt::KeepAspectRatioByExpanding) == PkSize(10, 23));
+    PK_VERIFY(t.scaled(10, 10, Pk::KeepAspectRatio) == PkSize(4, 10));
+    PK_VERIFY(t.scaled(10, 10, Pk::KeepAspectRatioByExpanding) == PkSize(10, 23));
     // 截断到 0 的形态：(1,3)→3x1 Keep 得 (0,1)
-    PK_VERIFY(PkSize(1, 3).scaled(3, 1, Qt::KeepAspectRatio) == PkSize(0, 1));
+    PK_VERIFY(PkSize(1, 3).scaled(3, 1, Pk::KeepAspectRatio) == PkSize(0, 1));
 
     // 负分量照样参与（Qt 不做任何合法性检查）：实测
     // (-10,20)→30x30 Keep=(-15,30) Expand=(30,-60)；(10,20)→(-30,30) Keep=(-30,-60)
-    PK_VERIFY(PkSize(-10, 20).scaled(30, 30, Qt::KeepAspectRatio) == PkSize(-15, 30));
-    PK_VERIFY(PkSize(-10, 20).scaled(30, 30, Qt::KeepAspectRatioByExpanding) == PkSize(30, -60));
-    PK_VERIFY(PkSize(10, 20).scaled(-30, 30, Qt::KeepAspectRatio) == PkSize(-30, -60));
-    PK_VERIFY(PkSize(10, 20).scaled(-30, 30, Qt::KeepAspectRatioByExpanding) == PkSize(15, 30));
+    PK_VERIFY(PkSize(-10, 20).scaled(30, 30, Pk::KeepAspectRatio) == PkSize(-15, 30));
+    PK_VERIFY(PkSize(-10, 20).scaled(30, 30, Pk::KeepAspectRatioByExpanding) == PkSize(30, -60));
+    PK_VERIFY(PkSize(10, 20).scaled(-30, 30, Pk::KeepAspectRatio) == PkSize(-30, -60));
+    PK_VERIFY(PkSize(10, 20).scaled(-30, 30, Pk::KeepAspectRatioByExpanding) == PkSize(15, 30));
 }
 
 void PkSizeCase::sizeScaledDegenerateSource()
 {
     // ⚠ **反直觉但实测如此**：源的任一分量为 0 时（含 Keep/Expand），
     // 直接返回目标尺寸，不做任何比例运算。
-    PK_VERIFY(PkSize(0, 0).scaled(30, 30, Qt::KeepAspectRatio) == PkSize(30, 30));
-    PK_VERIFY(PkSize(0, 20).scaled(30, 30, Qt::KeepAspectRatio) == PkSize(30, 30));
-    PK_VERIFY(PkSize(10, 0).scaled(30, 30, Qt::KeepAspectRatioByExpanding) == PkSize(30, 30));
+    PK_VERIFY(PkSize(0, 0).scaled(30, 30, Pk::KeepAspectRatio) == PkSize(30, 30));
+    PK_VERIFY(PkSize(0, 20).scaled(30, 30, Pk::KeepAspectRatio) == PkSize(30, 30));
+    PK_VERIFY(PkSize(10, 0).scaled(30, 30, Pk::KeepAspectRatioByExpanding) == PkSize(30, 30));
     // 目标为空则原样返回目标（同一条分支的另一侧）
-    PK_VERIFY(PkSize(10, 20).scaled(0, 0, Qt::KeepAspectRatio) == PkSize(0, 0));
+    PK_VERIFY(PkSize(10, 20).scaled(0, 0, Pk::KeepAspectRatio) == PkSize(0, 0));
     // IgnoreAspectRatio 永远原样返回目标
-    PK_VERIFY(PkSize(10, 20).scaled(0, 0, Qt::IgnoreAspectRatio) == PkSize(0, 0));
-    PK_VERIFY(PkSize(-1, -1).scaled(-1, -1, Qt::KeepAspectRatio) == PkSize(-1, -1));
+    PK_VERIFY(PkSize(10, 20).scaled(0, 0, Pk::IgnoreAspectRatio) == PkSize(0, 0));
+    PK_VERIFY(PkSize(-1, -1).scaled(-1, -1, Pk::KeepAspectRatio) == PkSize(-1, -1));
 }
 
 void PkSizeCase::sizeScaledUsesInt64Intermediate()
 {
     // 中间量是 qint64（`qint64(s.ht) * qint64(wd) / qint64(ht)`），不是 int：
     // 写成 int 会在这几条上先溢出再比较，选错分支。实测真 Qt：
-    PK_VERIFY(PkSize(INT_MAX, 1).scaled(INT_MAX, INT_MAX, Qt::KeepAspectRatio)
+    PK_VERIFY(PkSize(INT_MAX, 1).scaled(INT_MAX, INT_MAX, Pk::KeepAspectRatio)
               == PkSize(INT_MAX, 1));
-    PK_VERIFY(PkSize(INT_MAX, 1).scaled(INT_MAX, INT_MAX, Qt::KeepAspectRatioByExpanding)
+    PK_VERIFY(PkSize(INT_MAX, 1).scaled(INT_MAX, INT_MAX, Pk::KeepAspectRatioByExpanding)
               == PkSize(1, INT_MAX));
-    PK_VERIFY(PkSize(1, INT_MAX).scaled(INT_MAX, 1, Qt::KeepAspectRatio) == PkSize(0, 1));
-    PK_VERIFY(PkSize(INT_MAX, INT_MAX).scaled(INT_MAX, INT_MAX, Qt::KeepAspectRatio)
+    PK_VERIFY(PkSize(1, INT_MAX).scaled(INT_MAX, 1, Pk::KeepAspectRatio) == PkSize(0, 1));
+    PK_VERIFY(PkSize(INT_MAX, INT_MAX).scaled(INT_MAX, INT_MAX, Pk::KeepAspectRatio)
               == PkSize(INT_MAX, INT_MAX));
-    PK_VERIFY(PkSize(INT_MIN, 1).scaled(5, 5, Qt::KeepAspectRatio) == PkSize(INT_MIN, 5));
-    PK_VERIFY(PkSize(INT_MIN, 1).scaled(5, 5, Qt::KeepAspectRatioByExpanding) == PkSize(5, 0));
-    PK_VERIFY(PkSize(1, INT_MIN).scaled(5, 5, Qt::KeepAspectRatioByExpanding) == PkSize(5, INT_MIN));
+    PK_VERIFY(PkSize(INT_MIN, 1).scaled(5, 5, Pk::KeepAspectRatio) == PkSize(INT_MIN, 5));
+    PK_VERIFY(PkSize(INT_MIN, 1).scaled(5, 5, Pk::KeepAspectRatioByExpanding) == PkSize(5, 0));
+    PK_VERIFY(PkSize(1, INT_MIN).scaled(5, 5, Pk::KeepAspectRatioByExpanding) == PkSize(5, INT_MIN));
     // qint64 → int 的窄化回绕：实测 (INT_MAX,2).scaled(2,INT_MAX,Expand) == (INT_MIN,INT_MAX)
-    PK_VERIFY(PkSize(INT_MAX, 2).scaled(2, INT_MAX, Qt::KeepAspectRatioByExpanding)
+    PK_VERIFY(PkSize(INT_MAX, 2).scaled(2, INT_MAX, Pk::KeepAspectRatioByExpanding)
               == PkSize(INT_MIN, INT_MAX));
-    PK_VERIFY(PkSize(INT_MAX, 2).scaled(2, INT_MAX, Qt::KeepAspectRatio) == PkSize(2, 0));
+    PK_VERIFY(PkSize(INT_MAX, 2).scaled(2, INT_MAX, Pk::KeepAspectRatio) == PkSize(2, 0));
 }
 
 void PkSizeCase::sizeScaleInPlace()
 {
     // scale() 就是 `*this = scaled(...)`，两个重载都在
     PkSize a(10, 20);
-    a.scale(30, 30, Qt::KeepAspectRatio);
+    a.scale(30, 30, Pk::KeepAspectRatio);
     PK_VERIFY(a == PkSize(15, 30));
 
     PkSize b(0, 0);
-    b.scale(PkSize(30, 30), Qt::KeepAspectRatio);
+    b.scale(PkSize(30, 30), Pk::KeepAspectRatio);
     PK_VERIFY(b == PkSize(30, 30));
 
     // 真实调用点形态：libs/image/kis_paint_device.cc:1731
-    // `thumbnailSize.scale(imageRect.size(), Qt::KeepAspectRatio);`
+    // `thumbnailSize.scale(imageRect.size(), Pk::KeepAspectRatio);`
     // ⚠ **接收者是被缩放的那个，实参是目标框** —— 反过来是另一回事。
     // 实测真 Qt：QSize(128,128).scale(QSize(1000,500),Keep) → (500,500)，
     // Expand → (1000,1000)。
     PkSize thumb(128, 128);
-    thumb.scale(PkSize(1000, 500), Qt::KeepAspectRatio);
+    thumb.scale(PkSize(1000, 500), Pk::KeepAspectRatio);
     PK_VERIFY(thumb == PkSize(500, 500));
     PkSize thumb2(128, 128);
-    thumb2.scale(PkSize(1000, 500), Qt::KeepAspectRatioByExpanding);
+    thumb2.scale(PkSize(1000, 500), Pk::KeepAspectRatioByExpanding);
     PK_VERIFY(thumb2 == PkSize(1000, 1000));
 }
 
@@ -266,13 +266,13 @@ void PkSizeCase::sizeScalingRoundsLikeQt()
 void PkSizeCase::sizeDivision()
 {
     PK_VERIFY(PkSize(10, 20) / 2.0 == PkSize(5, 10));
-    PK_VERIFY(PkSize(-1, -1) / 2.0 == PkSize(0, 0));   // qRound(-0.5)==0
-    { PkSize s(10, 20); s /= 4.0; PK_VERIFY(s == PkSize(3, 5)); }  // qRound(2.5)=3 qRound(5)=5
+    PK_VERIFY(PkSize(-1, -1) / 2.0 == PkSize(0, 0));   // pkRound(-0.5)==0
+    { PkSize s(10, 20); s /= 4.0; PK_VERIFY(s == PkSize(3, 5)); }  // pkRound(2.5)=3 pkRound(5)=5
 
-    // Qt 在这里有 Q_ASSERT(!qFuzzyIsNull(c))，**Krita 的发布构建里整条编译掉**
+    // Qt 在这里有 Q_ASSERT(!pkQtFuzzyIsNull(c))，**Krita 的发布构建里整条编译掉**
     //（Qt5 的 cmake 模块给非 Debug 构建加 -DQT_NO_DEBUG，见 krita/CMakeLists.txt:968
     // 那条 option 的说明）。pk/geometry 没有断言设施（归 R-08），所以不实现它；
-    // 对齐的是发布构建的形态：除以 0 得 qRound(±inf)，实测真 Qt(-DQT_NO_DEBUG)
+    // 对齐的是发布构建的形态：除以 0 得 pkRound(±inf)，实测真 Qt(-DQT_NO_DEBUG)
     // 与本实现都是 INT_MIN。noFold 把越界转换压到运行期（理由见 test_point.cpp）。
     const PkSize z = PkSize(10, 20) / noFold(0.0);
     PK_COMPARE(z.width(), INT_MIN);
@@ -350,7 +350,7 @@ void PkSizeCase::sizefAccessorsAndReferences()
 void PkSizeCase::sizefThreePredicates()
 {
     // ⚠ 与 PkSize **不是同一套公式**：
-    //   isNull  = qIsNull(wd) && qIsNull(ht)（就是 ==0.0，所以 -0.0 也算 null）
+    //   isNull  = pkIsNull(wd) && pkIsNull(ht)（就是 ==0.0，所以 -0.0 也算 null）
     //   isEmpty = wd <= 0. || ht <= 0.        ← 整数版是 `< 1`
     //   isValid = wd >= 0. && ht >= 0.
     // 把整数版的 `< 1` 抄过来，(0.5,0.5) 会被判成空 —— 实测真 Qt 是**非空**。
@@ -387,13 +387,13 @@ void PkSizeCase::sizefThreePredicates()
 void PkSizeCase::sizefExpandedTo()
 {
     PK_VERIFY(PkSizeF(3.5, 7.5).expandedTo(PkSizeF(5.0, 2.0)) == PkSizeF(5.0, 7.5));
-    // ⚠ qMax(a,b) 写作 `(a < b) ? b : a`，NaN 参与时**不可交换**（实测真 Qt）：
-    //   qMax(nan, 2) → nan（nan<2 为假，返回 a=nan）
-    //   qMax(2, nan) → 2  （2<nan 为假，返回 a=2）
+    // ⚠ pkMax(a,b) 写作 `(a < b) ? b : a`，NaN 参与时**不可交换**（实测真 Qt）：
+    //   pkMax(nan, 2) → nan（nan<2 为假，返回 a=nan）
+    //   pkMax(2, nan) → 2  （2<nan 为假，返回 a=2）
     // 用 std::fmax 之类"NaN 安全"的写法会在这两条上红。
     PK_VERIFY(sameSizeF(PkSizeF(kNaN, 1.0).expandedTo(PkSizeF(2.0, 2.0)), kNaN, 2.0));
     PK_VERIFY(sameSizeF(PkSizeF(2.0, 2.0).expandedTo(PkSizeF(kNaN, 1.0)), 2.0, 2.0));
-    // 零号同理：qMax(-0.0, 0.0) → -0.0（-0.0 < 0.0 为假）。位模式实测一致。
+    // 零号同理：pkMax(-0.0, 0.0) → -0.0（-0.0 < 0.0 为假）。位模式实测一致。
     PK_VERIFY(sameSizeF(PkSizeF(-0.0, 1.0).expandedTo(PkSizeF(0.0, 1.0)), -0.0, 1.0));
     PK_VERIFY(sameSizeF(PkSizeF(0.0, 1.0).expandedTo(PkSizeF(-0.0, 1.0)), 0.0, 1.0));
 }
@@ -401,35 +401,35 @@ void PkSizeCase::sizefExpandedTo()
 void PkSizeCase::sizefScaledThreeModes()
 {
     const PkSizeF s(10.0, 20.0);
-    PK_VERIFY(s.scaled(30.0, 30.0, Qt::IgnoreAspectRatio) == PkSizeF(30.0, 30.0));
-    PK_VERIFY(s.scaled(30.0, 30.0, Qt::KeepAspectRatio) == PkSizeF(15.0, 30.0));
-    PK_VERIFY(s.scaled(30.0, 30.0, Qt::KeepAspectRatioByExpanding) == PkSizeF(30.0, 60.0));
-    PK_VERIFY(s.scaled(PkSizeF(30.0, 30.0), Qt::KeepAspectRatio)
-              == s.scaled(30.0, 30.0, Qt::KeepAspectRatio));
+    PK_VERIFY(s.scaled(30.0, 30.0, Pk::IgnoreAspectRatio) == PkSizeF(30.0, 30.0));
+    PK_VERIFY(s.scaled(30.0, 30.0, Pk::KeepAspectRatio) == PkSizeF(15.0, 30.0));
+    PK_VERIFY(s.scaled(30.0, 30.0, Pk::KeepAspectRatioByExpanding) == PkSizeF(30.0, 60.0));
+    PK_VERIFY(s.scaled(PkSizeF(30.0, 30.0), Pk::KeepAspectRatio)
+              == s.scaled(30.0, 30.0, Pk::KeepAspectRatio));
 
     // ⚠ 与整数版的关键区别：**这里是浮点除法，不截断**。
     // 实测 QSizeF(3,7).scaled(10,10,Keep) = (4.28571…,10)，整数版是 (4,10)。
     const PkSizeF t(3.0, 7.0);
-    PK_VERIFY(sameBits(t.scaled(10.0, 10.0, Qt::KeepAspectRatio).width(), 10.0 * 3.0 / 7.0));
-    PK_VERIFY(sameBits(t.scaled(10.0, 10.0, Qt::KeepAspectRatioByExpanding).height(),
+    PK_VERIFY(sameBits(t.scaled(10.0, 10.0, Pk::KeepAspectRatio).width(), 10.0 * 3.0 / 7.0));
+    PK_VERIFY(sameBits(t.scaled(10.0, 10.0, Pk::KeepAspectRatioByExpanding).height(),
                        10.0 * 7.0 / 3.0));
-    PK_VERIFY(sameBits(PkSizeF(1.0, 3.0).scaled(3.0, 1.0, Qt::KeepAspectRatio).width(),
+    PK_VERIFY(sameBits(PkSizeF(1.0, 3.0).scaled(3.0, 1.0, Pk::KeepAspectRatio).width(),
                        1.0 * 1.0 / 3.0));
-    PK_VERIFY(PkSizeF(-10.0, 20.0).scaled(30.0, 30.0, Qt::KeepAspectRatio) == PkSizeF(-15.0, 30.0));
+    PK_VERIFY(PkSizeF(-10.0, 20.0).scaled(30.0, 30.0, Pk::KeepAspectRatio) == PkSizeF(-15.0, 30.0));
 }
 
 void PkSizeCase::sizefScaledDegenerateSource()
 {
-    // 分支条件是 qIsNull(wd) || qIsNull(ht)，即 ==0.0 —— **-0.0 也走这条**。
-    PK_VERIFY(PkSizeF(0.0, 0.0).scaled(30.0, 30.0, Qt::KeepAspectRatio) == PkSizeF(30.0, 30.0));
-    PK_VERIFY(PkSizeF(-0.0, 5.0).scaled(30.0, 30.0, Qt::KeepAspectRatio) == PkSizeF(30.0, 30.0));
-    PK_VERIFY(PkSizeF(5.0, -0.0).scaled(30.0, 30.0, Qt::KeepAspectRatioByExpanding)
+    // 分支条件是 pkIsNull(wd) || pkIsNull(ht)，即 ==0.0 —— **-0.0 也走这条**。
+    PK_VERIFY(PkSizeF(0.0, 0.0).scaled(30.0, 30.0, Pk::KeepAspectRatio) == PkSizeF(30.0, 30.0));
+    PK_VERIFY(PkSizeF(-0.0, 5.0).scaled(30.0, 30.0, Pk::KeepAspectRatio) == PkSizeF(30.0, 30.0));
+    PK_VERIFY(PkSizeF(5.0, -0.0).scaled(30.0, 30.0, Pk::KeepAspectRatioByExpanding)
               == PkSizeF(30.0, 30.0));
-    PK_VERIFY(PkSizeF(-0.0, -0.0).scaled(PkSizeF(7.0, 9.0), Qt::KeepAspectRatio)
+    PK_VERIFY(PkSizeF(-0.0, -0.0).scaled(PkSizeF(7.0, 9.0), Pk::KeepAspectRatio)
               == PkSizeF(7.0, 9.0));
     // ⚠ 次正规**不**走这条分支（qIsNull 是 ==0.0，不是 fuzzy）：
     // 实测 QSizeF(5e-324,1).scaled(5,5,Keep) = (2.47033e-323, 5)，不是 (5,5)。
-    PK_VERIFY(sameBits(PkSizeF(5e-324, 1.0).scaled(5.0, 5.0, Qt::KeepAspectRatio).width(),
+    PK_VERIFY(sameBits(PkSizeF(5e-324, 1.0).scaled(5.0, 5.0, Pk::KeepAspectRatio).width(),
                        5.0 * 5e-324 / 1.0));
 }
 
@@ -441,26 +441,26 @@ void PkSizeCase::sizefScaledSpecialValues()
     //   (inf,2).scaled(5,5,Keep)   = (5, 0)      ← rw=5*inf/2=inf，inf<=5 假 → 走 else
     //   (inf,2).scaled(5,5,Expand) = (inf, 5)
     //   (2,inf).scaled(5,5,Keep)   = (0, 5)
-    PK_VERIFY(sameSizeF(PkSizeF(kNaN, 2.0).scaled(5.0, 5.0, Qt::KeepAspectRatio), 5.0, kNaN));
-    PK_VERIFY(sameSizeF(PkSizeF(2.0, kNaN).scaled(5.0, 5.0, Qt::KeepAspectRatio), 5.0, kNaN));
-    PK_VERIFY(sameSizeF(PkSizeF(2.0, 2.0).scaled(kNaN, 5.0, Qt::KeepAspectRatio), kNaN, kNaN));
-    PK_VERIFY(sameSizeF(PkSizeF(2.0, 2.0).scaled(kNaN, 5.0, Qt::IgnoreAspectRatio), kNaN, 5.0));
-    PK_VERIFY(sameSizeF(PkSizeF(kInf, 2.0).scaled(5.0, 5.0, Qt::KeepAspectRatio), 5.0, 0.0));
-    PK_VERIFY(sameSizeF(PkSizeF(kInf, 2.0).scaled(5.0, 5.0, Qt::KeepAspectRatioByExpanding),
+    PK_VERIFY(sameSizeF(PkSizeF(kNaN, 2.0).scaled(5.0, 5.0, Pk::KeepAspectRatio), 5.0, kNaN));
+    PK_VERIFY(sameSizeF(PkSizeF(2.0, kNaN).scaled(5.0, 5.0, Pk::KeepAspectRatio), 5.0, kNaN));
+    PK_VERIFY(sameSizeF(PkSizeF(2.0, 2.0).scaled(kNaN, 5.0, Pk::KeepAspectRatio), kNaN, kNaN));
+    PK_VERIFY(sameSizeF(PkSizeF(2.0, 2.0).scaled(kNaN, 5.0, Pk::IgnoreAspectRatio), kNaN, 5.0));
+    PK_VERIFY(sameSizeF(PkSizeF(kInf, 2.0).scaled(5.0, 5.0, Pk::KeepAspectRatio), 5.0, 0.0));
+    PK_VERIFY(sameSizeF(PkSizeF(kInf, 2.0).scaled(5.0, 5.0, Pk::KeepAspectRatioByExpanding),
                         kInf, 5.0));
-    PK_VERIFY(sameSizeF(PkSizeF(2.0, kInf).scaled(5.0, 5.0, Qt::KeepAspectRatio), 0.0, 5.0));
-    PK_VERIFY(sameSizeF(PkSizeF(1e308, 1e-308).scaled(5.0, 5.0, Qt::KeepAspectRatioByExpanding),
+    PK_VERIFY(sameSizeF(PkSizeF(2.0, kInf).scaled(5.0, 5.0, Pk::KeepAspectRatio), 0.0, 5.0));
+    PK_VERIFY(sameSizeF(PkSizeF(1e308, 1e-308).scaled(5.0, 5.0, Pk::KeepAspectRatioByExpanding),
                         kInf, 5.0));
 }
 
 void PkSizeCase::sizefScaleInPlace()
 {
     PkSizeF a(10.0, 20.0);
-    a.scale(30.0, 30.0, Qt::KeepAspectRatio);
+    a.scale(30.0, 30.0, Pk::KeepAspectRatio);
     PK_VERIFY(a == PkSizeF(15.0, 30.0));
 
     PkSizeF b(0.0, 0.0);
-    b.scale(PkSizeF(30.0, 30.0), Qt::KeepAspectRatio);
+    b.scale(PkSizeF(30.0, 30.0), Pk::KeepAspectRatio);
     PK_VERIFY(b == PkSizeF(30.0, 30.0));
 }
 
@@ -542,11 +542,11 @@ void PkSizeCase::aspectRatioModeEnumValues()
     // ⚠ 照 `enum { A, B, C }` 的顺序写才对得上；实测真 Qt 5.15.7 是 0/1/2、
     // sizeof==4、底层类型无符号。Transform 那边的 TransformationType 是**位标志**
     //（TxRotate=4、TxShear=8），两者不是同一个套路，别互相照抄。
-    PK_COMPARE(static_cast<int>(Qt::IgnoreAspectRatio), 0);
-    PK_COMPARE(static_cast<int>(Qt::KeepAspectRatio), 1);
-    PK_COMPARE(static_cast<int>(Qt::KeepAspectRatioByExpanding), 2);
-    PK_COMPARE(sizeof(Qt::AspectRatioMode), sizeof(int));
-    PK_VERIFY(!std::is_signed<std::underlying_type<Qt::AspectRatioMode>::type>::value);
+    PK_COMPARE(static_cast<int>(Pk::IgnoreAspectRatio), 0);
+    PK_COMPARE(static_cast<int>(Pk::KeepAspectRatio), 1);
+    PK_COMPARE(static_cast<int>(Pk::KeepAspectRatioByExpanding), 2);
+    PK_COMPARE(sizeof(Pk::AspectRatioMode), sizeof(int));
+    PK_VERIFY(!std::is_signed<std::underlying_type<Pk::AspectRatioMode>::type>::value);
 }
 
 void PkSizeCase::noexceptSurfaceMatchesQt()
@@ -561,8 +561,8 @@ void PkSizeCase::noexceptSurfaceMatchesQt()
     PK_VERIFY(noexcept(s.isEmpty()) && noexcept(s.isValid()) && noexcept(s.isNull()));
     PK_VERIFY(noexcept(s.width()) && noexcept(s.rwidth()));
     PK_VERIFY(noexcept(s.expandedTo(s)));
-    PK_VERIFY(noexcept(s.scaled(s, Qt::KeepAspectRatio)));
-    PK_VERIFY(noexcept(s.scale(1, 1, Qt::KeepAspectRatio)));
+    PK_VERIFY(noexcept(s.scaled(s, Pk::KeepAspectRatio)));
+    PK_VERIFY(noexcept(s.scale(1, 1, Pk::KeepAspectRatio)));
     PK_VERIFY(noexcept(s == s) && noexcept(s + s) && noexcept(s * 2.0));
     PK_VERIFY(!noexcept(s / 2.0));      // Qt 这一个没标 noexcept
     PK_VERIFY(!noexcept(s /= 2.0));

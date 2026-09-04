@@ -12,31 +12,31 @@
 #include "KoFlake.h"
 #include "KoShape.h"
 
-#include <QGradient>
+#include <PkGradient.h>
 #include <math.h>
 #include "kis_global.h"
 
-QGradient *KoFlake::cloneGradient(const QGradient *gradient)
+PkGradient *KoFlake::cloneGradient(const PkGradient *gradient)
 {
     if (! gradient)
         return 0;
 
-    QGradient *clone = 0;
+    PkGradient *clone = 0;
 
     switch (gradient->type()) {
-    case QGradient::LinearGradient:
+    case PkGradient::LinearGradient:
     {
         const QLinearGradient *lg = static_cast<const QLinearGradient*>(gradient);
         clone = new QLinearGradient(lg->start(), lg->finalStop());
         break;
     }
-    case QGradient::RadialGradient:
+    case PkGradient::RadialGradient:
     {
         const QRadialGradient *rg = static_cast<const QRadialGradient*>(gradient);
         clone = new QRadialGradient(rg->center(), rg->radius(), rg->focalPoint());
         break;
     }
-    case QGradient::ConicalGradient:
+    case PkGradient::ConicalGradient:
     {
         const QConicalGradient *cg = static_cast<const QConicalGradient*>(gradient);
         clone = new QConicalGradient(cg->center(), cg->angle());
@@ -53,34 +53,34 @@ QGradient *KoFlake::cloneGradient(const QGradient *gradient)
     return clone;
 }
 
-QGradient *KoFlake::mergeGradient(const QGradient *coordsSource, const QGradient *fillSource)
+PkGradient *KoFlake::mergeGradient(const PkGradient *coordsSource, const PkGradient *fillSource)
 {
-    QPointF start;
-    QPointF end;
-    QPointF focalPoint;
+    PkPointF start;
+    PkPointF end;
+    PkPointF focalPoint;
 
     switch (coordsSource->type()) {
-    case QGradient::LinearGradient: {
+    case PkGradient::LinearGradient: {
         const QLinearGradient *lg = static_cast<const QLinearGradient*>(coordsSource);
         start = lg->start();
         focalPoint = start;
         end = lg->finalStop();
         break;
     }
-    case QGradient::RadialGradient: {
+    case PkGradient::RadialGradient: {
         const QRadialGradient *rg = static_cast<const QRadialGradient*>(coordsSource);
         start = rg->center();
-        end = start + QPointF(rg->radius(), 0);
+        end = start + PkPointF(rg->radius(), 0);
         focalPoint = rg->focalPoint();
         break;
     }
-    case QGradient::ConicalGradient: {
+    case PkGradient::ConicalGradient: {
         const QConicalGradient *cg = static_cast<const QConicalGradient*>(coordsSource);
 
         start = cg->center();
         focalPoint = start;
 
-        QLineF l (start, start + QPointF(1.0, 0));
+        PkLineF l (start, start + PkPointF(1.0, 0));
         l.setAngle(cg->angle());
         end = l.p2();
         break;
@@ -89,17 +89,17 @@ QGradient *KoFlake::mergeGradient(const QGradient *coordsSource, const QGradient
         return 0;
     }
 
-    QGradient *clone = 0;
+    PkGradient *clone = 0;
 
     switch (fillSource->type()) {
-    case QGradient::LinearGradient:
+    case PkGradient::LinearGradient:
         clone = new QLinearGradient(start, end);
         break;
-    case QGradient::RadialGradient:
+    case PkGradient::RadialGradient:
         clone = new QRadialGradient(start, kisDistance(toPkPointF(start), toPkPointF(end)), focalPoint);
         break;
-    case QGradient::ConicalGradient: {
-        QLineF l(start, end);
+    case PkGradient::ConicalGradient: {
+        PkLineF l(start, end);
         clone = new QConicalGradient(l.p1(), l.angle());
         break;
     }
@@ -114,18 +114,18 @@ QGradient *KoFlake::mergeGradient(const QGradient *coordsSource, const QGradient
     return clone;
 }
 
-QPointF KoFlake::toRelative(const QPointF &absolute, const QSizeF &size)
+PkPointF KoFlake::toRelative(const PkPointF &absolute, const PkSizeF &size)
 {
-    return QPointF(size.width() == 0 ? 0: absolute.x() / size.width(),
+    return PkPointF(size.width() == 0 ? 0: absolute.x() / size.width(),
                    size.height() == 0 ? 0: absolute.y() / size.height());
 }
 
-QPointF KoFlake::toAbsolute(const QPointF &relative, const QSizeF &size)
+PkPointF KoFlake::toAbsolute(const PkPointF &relative, const PkSizeF &size)
 {
-    return QPointF(relative.x() * size.width(), relative.y() * size.height());
+    return PkPointF(relative.x() * size.width(), relative.y() * size.height());
 }
 
-#include <QTransform>
+#include <PkTransform.h>
 #include "kis_debug.h"
 #include "kis_algebra_2d.h"
 
@@ -141,7 +141,7 @@ qreal getScaleByPointsPair(qreal x1, qreal x2, qreal expX1, qreal expX2)
     return qAbs(diff) > eps ? expDiff / diff : 1.0;
 }
 
-void findMinMaxPoints(const QPolygonF &poly, int *minPoint, int *maxPoint, std::function<qreal(const QPointF&)> dimension)
+void findMinMaxPoints(const PkPolygonF &poly, int *minPoint, int *maxPoint, std::function<qreal(const PkPointF&)> dimension)
 {
     KIS_ASSERT_RECOVER_RETURN(minPoint);
     KIS_ASSERT_RECOVER_RETURN(maxPoint);
@@ -176,12 +176,12 @@ Qt::Orientation KoFlake::significantScaleOrientation(qreal scaleX, qreal scaleY)
 }
 
 void KoFlake::scaleShape(KoShape *shape, qreal scaleX, qreal scaleY,
-                          const QPointF &absoluteStillPoint,
-                          const QTransform &postScalingCoveringTransform)
+                          const PkPointF &absoluteStillPoint,
+                          const PkTransform &postScalingCoveringTransform)
 {
-    const QTransform scale = QTransform::fromScale(scaleX, scaleY);
-    QPointF localStillPoint = postScalingCoveringTransform.inverted().map(absoluteStillPoint);
-    const QTransform localStillPointOffset = QTransform::fromTranslate(-localStillPoint.x(), -localStillPoint.y());
+    const PkTransform scale = PkTransform::fromScale(scaleX, scaleY);
+    PkPointF localStillPoint = postScalingCoveringTransform.inverted().map(absoluteStillPoint);
+    const PkTransform localStillPointOffset = PkTransform::fromTranslate(-localStillPoint.x(), -localStillPoint.y());
 
     shape->setTransformation( shape->transformation() *
                 postScalingCoveringTransform.inverted() *
@@ -192,12 +192,12 @@ void KoFlake::scaleShape(KoShape *shape, qreal scaleX, qreal scaleY,
 }
 
 void KoFlake::scaleShapeGlobal(KoShape *shape, qreal scaleX, qreal scaleY,
-                               const QPointF &absoluteStillPoint)
+                               const PkPointF &absoluteStillPoint)
 {
-    const QTransform scale = QTransform::fromScale(scaleX, scaleY);
-    const QTransform absoluteStillPointOffset = QTransform::fromTranslate(-absoluteStillPoint.x(), -absoluteStillPoint.y());
+    const PkTransform scale = PkTransform::fromScale(scaleX, scaleY);
+    const PkTransform absoluteStillPointOffset = PkTransform::fromTranslate(-absoluteStillPoint.x(), -absoluteStillPoint.y());
 
-    const QTransform uniformGlobalTransform =
+    const PkTransform uniformGlobalTransform =
             shape->absoluteTransformation() *
             absoluteStillPointOffset *
             scale *
@@ -209,19 +209,19 @@ void KoFlake::scaleShapeGlobal(KoShape *shape, qreal scaleX, qreal scaleY,
 }
 
 void KoFlake::resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
-                          const QPointF &absoluteStillPoint,
+                          const PkPointF &absoluteStillPoint,
                           bool useGlobalMode)
 {
     using namespace KisAlgebra2D;
 
     if (useGlobalMode) {
-        const QTransform scale = QTransform::fromScale(scaleX, scaleY);
-        const QTransform uniformGlobalTransform =
+        const PkTransform scale = PkTransform::fromScale(scaleX, scaleY);
+        const PkTransform uniformGlobalTransform =
                 shape->absoluteTransformation() *
                 scale *
                 shape->absoluteTransformation().inverted();
 
-        const QRectF rect = shape->outlineRect();
+        const PkRectF rect = shape->outlineRect();
 
         /**
          * The basic idea of such global scaling:
@@ -247,23 +247,23 @@ void KoFlake::resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
         // choose the most significant scale direction
         Qt::Orientation significantOrientation = significantScaleOrientation(scaleX, scaleY);
 
-        std::function<qreal(const QPointF&)> dimension;
+        std::function<qreal(const PkPointF&)> dimension;
 
         if (significantOrientation == Qt::Horizontal) {
-            dimension = [] (const QPointF &pt) {
+            dimension = [] (const PkPointF &pt) {
                 return pt.x();
             };
 
         } else {
-            dimension = [] (const QPointF &pt) {
+            dimension = [] (const PkPointF &pt) {
                 return pt.y();
             };
         }
 
         // find min and max points (in absolute coordinates),
         // by default use top-left and bottom-right
-        QPolygonF localPoints(rect);
-        QPolygonF globalPoints = shape->absoluteTransformation().map(localPoints);
+        PkPolygonF localPoints(rect);
+        PkPolygonF globalPoints = shape->absoluteTransformation().map(localPoints);
 
         int minPointIndex = 0;
         int maxPointIndex = 2;
@@ -271,11 +271,11 @@ void KoFlake::resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
         findMinMaxPoints(globalPoints, &minPointIndex, &maxPointIndex, dimension);
 
         // calculate the scale using the extremum points
-        const QPointF minPoint = localPoints[minPointIndex];
-        const QPointF maxPoint = localPoints[maxPointIndex];
+        const PkPointF minPoint = localPoints[minPointIndex];
+        const PkPointF maxPoint = localPoints[maxPointIndex];
 
-        const QPointF minPointExpected = uniformGlobalTransform.map(minPoint);
-        const QPointF maxPointExpected = uniformGlobalTransform.map(maxPoint);
+        const PkPointF minPointExpected = uniformGlobalTransform.map(minPoint);
+        const PkPointF maxPointExpected = uniformGlobalTransform.map(maxPoint);
 
         scaleX = getScaleByPointsPair(minPoint.x(), maxPoint.x(),
                                       minPointExpected.x(), maxPointExpected.x());
@@ -283,10 +283,10 @@ void KoFlake::resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
                                       minPointExpected.y(), maxPointExpected.y());
     }
 
-    const QSizeF oldSize(shape->size());
-    const QSizeF newSize(oldSize.width() * qAbs(scaleX), oldSize.height() * qAbs(scaleY));
+    const PkSizeF oldSize(shape->size());
+    const PkSizeF newSize(oldSize.width() * qAbs(scaleX), oldSize.height() * qAbs(scaleY));
 
-    const QTransform mirrorTransform = QTransform::fromScale(signPZ(scaleX), signPZ(scaleY));
+    const PkTransform mirrorTransform = PkTransform::fromScale(signPZ(scaleX), signPZ(scaleY));
 
     /**
      * NOTE: when resizing a shape we expect top-left corner in parent's
@@ -295,12 +295,12 @@ void KoFlake::resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
 
     shape->setSize(newSize);
 
-    QPointF localStillPoint = shape->absoluteTransformation().inverted().map(absoluteStillPoint);
-    const QTransform localStillPointOffset = QTransform::fromTranslate(-localStillPoint.x(), -localStillPoint.y());
-    const QSizeF realNewSize = shape->size();
+    PkPointF localStillPoint = shape->absoluteTransformation().inverted().map(absoluteStillPoint);
+    const PkTransform localStillPointOffset = PkTransform::fromTranslate(-localStillPoint.x(), -localStillPoint.y());
+    const PkSizeF realNewSize = shape->size();
 
-    const QTransform realResizeTransform =
-        QTransform::fromScale(oldSize.width() > 0 ? realNewSize.width() / oldSize.width() : 1.0,
+    const PkTransform realResizeTransform =
+        PkTransform::fromScale(oldSize.width() > 0 ? realNewSize.width() / oldSize.width() : 1.0,
                               oldSize.height() > 0 ? realNewSize.height() / oldSize.height() : 1.0);
 
     shape->setTransformation(realResizeTransform.inverted() *
@@ -313,9 +313,9 @@ void KoFlake::resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
 }
 
 void KoFlake::resizeShapeCommon(KoShape *shape, qreal scaleX, qreal scaleY,
-                          const QPointF &absoluteStillPoint,
+                          const PkPointF &absoluteStillPoint,
                           bool useGlobalMode,
-                          bool usePostScaling, const QTransform &postScalingCoveringTransform)
+                          bool usePostScaling, const PkTransform &postScalingCoveringTransform)
 {
     if (usePostScaling) {
         if (!useGlobalMode) {
@@ -328,22 +328,22 @@ void KoFlake::resizeShapeCommon(KoShape *shape, qreal scaleX, qreal scaleY,
     }
 }
 
-QPointF KoFlake::anchorToPoint(AnchorPosition anchor, const QRectF rect, bool *valid)
+PkPointF KoFlake::anchorToPoint(AnchorPosition anchor, const PkRectF rect, bool *valid)
 {
-    static QVector<QPointF> anchorTable;
+    static PkVector<PkPointF> anchorTable;
 
     if (anchorTable.isEmpty()) {
-        anchorTable << QPointF(0.0,0.0);
-        anchorTable << QPointF(0.5,0.0);
-        anchorTable << QPointF(1.0,0.0);
+        anchorTable << PkPointF(0.0,0.0);
+        anchorTable << PkPointF(0.5,0.0);
+        anchorTable << PkPointF(1.0,0.0);
 
-        anchorTable << QPointF(0.0,0.5);
-        anchorTable << QPointF(0.5,0.5);
-        anchorTable << QPointF(1.0,0.5);
+        anchorTable << PkPointF(0.0,0.5);
+        anchorTable << PkPointF(0.5,0.5);
+        anchorTable << PkPointF(1.0,0.5);
 
-        anchorTable << QPointF(0.0,1.0);
-        anchorTable << QPointF(0.5,1.0);
-        anchorTable << QPointF(1.0,1.0);
+        anchorTable << PkPointF(0.0,1.0);
+        anchorTable << PkPointF(0.5,1.0);
+        anchorTable << PkPointF(1.0,1.0);
     }
 
     if (valid)

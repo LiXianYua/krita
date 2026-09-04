@@ -12,14 +12,14 @@
 
 
 class KoShape;
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 class KoShapeLoadingContext;
 class KoShapeSavingContext;
 class KoShapeAnchorPrivate;
 
 class QTextDocument;
-class QPointF;
-class QString;
+class PkPointF;
+class PkString;
 
 /**
  * This class is the object that explains how a shape is anchored to something.
@@ -204,7 +204,7 @@ public:
     VerticalRel verticalRel() const;
 
     /// return the wrap influence on position
-    QString wrapInfluenceOnPosition() const;
+    PkString wrapInfluenceOnPosition() const;
 
     /// return if flow-with-text (odf attribute)
     bool flowWithText() const;
@@ -213,10 +213,10 @@ public:
     int pageNumber() const;
 
     /// return the offset of the shape from the anchor.
-    const QPointF &offset() const;
+    const PkPointF &offset() const;
 
     /// set the new offset of the shape. Causes a new layout soon.
-    void setOffset(const QPointF &offset);
+    void setOffset(const PkPointF &offset);
 
     /// Get extra data structure that is what is actually inside a text document
     TextLocation *textLocation() const;

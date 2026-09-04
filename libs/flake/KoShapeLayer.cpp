@@ -6,7 +6,7 @@
 
 #include "KoShapeLayer.h"
 
-#include <QRectF>
+#include <PkRect.h>
 
 #include "SimpleShapeContainerModel.h"
 #include "KoShapeSavingContext.h"
@@ -26,13 +26,13 @@ KoShapeLayer::KoShapeLayer(KoShapeContainerModel *model)
     setSelectable(false);
 }
 
-bool KoShapeLayer::hitTest(const QPointF &position) const
+bool KoShapeLayer::hitTest(const PkPointF &position) const
 {
     Q_UNUSED(position);
     return false;
 }
 
-QRectF KoShapeLayer::boundingRect() const
+PkRectF KoShapeLayer::boundingRect() const
 {
     return KoShape::boundingRect(shapes());
 }

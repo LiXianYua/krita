@@ -39,7 +39,7 @@ applyValue(const quint8 *data, uint8_t *ptrG, int strideG, int x, int y)
     if (luma == 8) {
         ptrG[y * strideG + x] = KoGrayU8Traits::gray(data);
     } else {
-        uint16_t v = qBound<uint16_t>(
+        uint16_t v = pkBound<uint16_t>(
             0,
             static_cast<uint16_t>(float(KoGrayU16Traits::gray(data))
                                   * multiplier16bit * max12bit),
@@ -58,7 +58,7 @@ applyAlpha(const quint8 *data, uint8_t *ptrA, const int strideA, int x, int y)
         if (luma == 8) {
             ptrA[y * strideA + x] = KoGrayU8Traits::opacityU8(data);
         } else {
-            uint16_t vA = qBound<uint16_t>(
+            uint16_t vA = pkBound<uint16_t>(
                 0,
                 static_cast<uint16_t>(KoGrayU16Traits::opacityF(data)
                                       * max12bit),
@@ -201,7 +201,7 @@ inline void writeLayerImpl(const int width,
             }
 
             for (int ch = 0; ch < channels; ch++) {
-                uint16_t v = qBound<uint16_t>(
+                uint16_t v = pkBound<uint16_t>(
                     0,
                     static_cast<uint16_t>(float(pixelValues[ch])
                                           * multiplier16bit * max12bit),
@@ -303,7 +303,7 @@ inline void writeFloatLayerImpl(const int width,
             for (int ch = 0; ch < channels; ch++) {
                 uint16_t v = 0;
                 if (ch == CSTrait::alpha_pos) {
-                    v = qBound<uint16_t>(
+                    v = pkBound<uint16_t>(
                         0,
                         static_cast<uint16_t>(
                             applyCurveAsNeeded<ConversionPolicy::KeepTheSame>(
@@ -311,7 +311,7 @@ inline void writeFloatLayerImpl(const int width,
                             * max12bit),
                         max12bit);
                 } else {
-                    v = qBound<uint16_t>(
+                    v = pkBound<uint16_t>(
                         0,
                         static_cast<uint16_t>(
                             applyCurveAsNeeded<conversionPolicy>(dst[ch])

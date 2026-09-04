@@ -17,8 +17,8 @@
 // （/tmp/qcolor515.cpp）与本任务 probe 的实测输出。对齐口径：与 Qt 的任何行为
 // 差异默认都是缺陷，Qt 那些看着像 bug 的地方也照抄（HSL(0,255,128) → (255,1,1)、
 // operator== 比较 alpha、setHsvF 越界静默 return、fromHsv(360) 返回无效等）。
-// 相对 brief 示例的修正（brief 的探针把 Qt::green 写成 (0,128,0)、把
-// Qt::darkYellow 写成无效、断言 operator== 忽略 alpha —— 均与真 Qt 不符）在
+// 相对 brief 示例的修正（brief 的探针把 Pk::green 写成 (0,128,0)、把
+// Pk::darkYellow 写成无效、断言 operator== 忽略 alpha —— 均与真 Qt 不符）在
 // README「偏离登记」逐条声明，这里全部用真 Qt 的取值。
 //
 // 数据驱动族试验（brief Step 4b）：globalColor / namedColor / hexColor /

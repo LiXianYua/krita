@@ -40,10 +40,10 @@
 #include <KoUnit.h>
 
 #include <QPainter>
-#include <QVariant>
-#include <QPainterPath>
-#include <QList>
-#include <QMap>
+#include <PkVariant.h>
+#include <PkPainterPath.h>
+#include <PkList.h>
+#include <PkMap.h>
 #include <FlakeDebug.h>
 
 #include "kis_assert.h"
@@ -209,8 +209,8 @@ void KoShape::paintMarkers(QPainter &painter) const
 
 void KoShape::scale(qreal sx, qreal sy)
 {
-    QPointF pos = position();
-    QTransform scaleMatrix;
+    PkPointF pos = position();
+    PkTransform scaleMatrix;
     scaleMatrix.translate(pos.x(), pos.y());
     scaleMatrix.scale(sx, sy);
     scaleMatrix.translate(-pos.x(), -pos.y());
@@ -222,8 +222,8 @@ void KoShape::scale(qreal sx, qreal sy)
 
 void KoShape::rotate(qreal angle)
 {
-    QPointF center = s->localMatrix.map(QPointF(0.5 * size().width(), 0.5 * size().height()));
-    QTransform rotateMatrix;
+    PkPointF center = s->localMatrix.map(PkPointF(0.5 * size().width(), 0.5 * size().height()));
+    PkTransform rotateMatrix;
     rotateMatrix.translate(center.x(), center.y());
     rotateMatrix.rotate(angle);
     rotateMatrix.translate(-center.x(), -center.y());
@@ -235,8 +235,8 @@ void KoShape::rotate(qreal angle)
 
 void KoShape::shear(qreal sx, qreal sy)
 {
-    QPointF pos = position();
-    QTransform shearMatrix;
+    PkPointF pos = position();
+    PkTransform shearMatrix;
     shearMatrix.translate(pos.x(), pos.y());
     shearMatrix.shear(sx, sy);
     shearMatrix.translate(-pos.x(), -pos.y());
@@ -246,9 +246,9 @@ void KoShape::shear(qreal sx, qreal sy)
     shapeChangedPriv(ShearChanged);
 }
 
-void KoShape::setSize(const QSizeF &newSize)
+void KoShape::setSize(const PkSizeF &newSize)
 {
-    QSizeF oldSize(size());
+    PkSizeF oldSize(size());
 
     // always set size, as d->size and size() may vary
     setSizeImpl(newSize);
@@ -260,17 +260,17 @@ void KoShape::setSize(const QSizeF &newSize)
     shapeChangedPriv(SizeChanged);
 }
 
-void KoShape::setSizeImpl(const QSizeF &size) const
+void KoShape::setSizeImpl(const PkSizeF &size) const
 {
     s->size = size;
 }
 
-void KoShape::setPosition(const QPointF &newPosition)
+void KoShape::setPosition(const PkPointF &newPosition)
 {
-    QPointF currentPos = position();
+    PkPointF currentPos = position();
     if (newPosition == currentPos)
         return;
-    QTransform translateMatrix;
+    PkTransform translateMatrix;
     translateMatrix.translate(newPosition.x() - currentPos.x(), newPosition.y() - currentPos.y());
     s->localMatrix = s->localMatrix * translateMatrix;
 
@@ -278,13 +278,13 @@ void KoShape::setPosition(const QPointF &newPosition)
     shapeChangedPriv(PositionChanged);
 }
 
-bool KoShape::hitTest(const QPointF &position) const
+bool KoShape::hitTest(const PkPointF &position) const
 {
     if (d->parent && d->parent->isClipped(this) && !d->parent->hitTest(position))
         return false;
 
-    QPointF point = absoluteTransformation().inverted().map(position);
-    QRectF bb = outlineRect();
+    PkPointF point = absoluteTransformation().inverted().map(position);
+    PkRectF bb = outlineRect();
 
     if (s->stroke) {
         KoInsets insets;
@@ -297,10 +297,10 @@ bool KoShape::hitTest(const QPointF &position) const
     return false;
 }
 
-QRectF KoShape::boundingRect() const
+PkRectF KoShape::boundingRect() const
 {
-    QTransform transform = absoluteTransformation();
-    QRectF bb = outlineRect();
+    PkTransform transform = absoluteTransformation();
+    PkRectF bb = outlineRect();
     if (s->stroke) {
         KoInsets insets;
         s->stroke->strokeInsets(this, insets);
@@ -310,34 +310,34 @@ QRectF KoShape::boundingRect() const
     return bb;
 }
 
-QRectF KoShape::boundingRect(const QList<KoShape *> &shapes)
+PkRectF KoShape::boundingRect(const PkList<KoShape *> &shapes)
 {
-    return std::accumulate(shapes.begin(), shapes.end(), QRectF(),
+    return std::accumulate(shapes.begin(), shapes.end(), PkRectF(),
                            kismpl::mem_bit_or(&KoShape::boundingRect));
 }
 
-QRectF KoShape::absoluteOutlineRect() const
+PkRectF KoShape::absoluteOutlineRect() const
 {
     return absoluteTransformation().map(outline()).boundingRect();
 }
 
-QRectF KoShape::absoluteOutlineRect(const QList<KoShape *> &shapes)
+PkRectF KoShape::absoluteOutlineRect(const PkList<KoShape *> &shapes)
 {
-    return std::accumulate(shapes.begin(), shapes.end(), QRectF(),
+    return std::accumulate(shapes.begin(), shapes.end(), PkRectF(),
                            kismpl::mem_bit_or(&KoShape::absoluteOutlineRect));
 }
 
-QTransform KoShape::absoluteTransformation() const
+PkTransform KoShape::absoluteTransformation() const
 {
-    QTransform matrix;
+    PkTransform matrix;
     // apply parents matrix to inherit any transformations done there.
     KoShapeContainer * container = d->parent;
     if (container) {
         if (container->inheritsTransform(this)) {
             matrix = container->absoluteTransformation();
         } else {
-            QSizeF containerSize = container->size();
-            QPointF containerPos = container->absolutePosition() - QPointF(0.5 * containerSize.width(), 0.5 * containerSize.height());
+            PkSizeF containerSize = container->size();
+            PkPointF containerPos = container->absolutePosition() - PkPointF(0.5 * containerSize.width(), 0.5 * containerSize.height());
             matrix.translate(containerPos.x(), containerPos.y());
         }
     }
@@ -345,19 +345,19 @@ QTransform KoShape::absoluteTransformation() const
     return s->localMatrix * matrix;
 }
 
-void KoShape::applyAbsoluteTransformation(const QTransform &matrix)
+void KoShape::applyAbsoluteTransformation(const PkTransform &matrix)
 {
-    QTransform globalMatrix = absoluteTransformation();
+    PkTransform globalMatrix = absoluteTransformation();
     // the transformation is relative to the global coordinate system
     // but we want to change the local matrix, so convert the matrix
     // to be relative to the local coordinate system
-    QTransform transformMatrix = globalMatrix * matrix * globalMatrix.inverted();
+    PkTransform transformMatrix = globalMatrix * matrix * globalMatrix.inverted();
     applyTransformation(transformMatrix);
 }
 
-void KoShape::applyTransformation(const QTransform &matrix)
+void KoShape::applyTransformation(const PkTransform &matrix)
 {
-    const QTransform newLocalMatrix = matrix * s->localMatrix;
+    const PkTransform newLocalMatrix = matrix * s->localMatrix;
 
     if (s->localMatrix != newLocalMatrix) {
         s->localMatrix = newLocalMatrix;
@@ -366,7 +366,7 @@ void KoShape::applyTransformation(const QTransform &matrix)
     }
 }
 
-void KoShape::setTransformation(const QTransform &matrix)
+void KoShape::setTransformation(const PkTransform &matrix)
 {
     if (s->localMatrix != matrix) {
         s->localMatrix = matrix;
@@ -375,7 +375,7 @@ void KoShape::setTransformation(const QTransform &matrix)
     }
 }
 
-QTransform KoShape::transformation() const
+PkTransform KoShape::transformation() const
 {
     return s->localMatrix;
 }
@@ -480,7 +480,7 @@ void KoShape::setParent(KoShapeContainer *parent)
     shapeChangedPriv(ParentChanged);
 }
 
-bool KoShape::inheritsTransformFromAny(const QList<KoShape *> ancestorsInQuestion) const
+bool KoShape::inheritsTransformFromAny(const PkList<KoShape *> ancestorsInQuestion) const
 {
     bool result = false;
 
@@ -530,14 +530,14 @@ void KoShape::update() const
 {
 
     if (!d->shapeManagers.empty()) {
-        const QRectF rect(boundingRect());
+        const PkRectF rect(boundingRect());
         Q_FOREACH (KoShapeManager * manager, d->shapeManagers) {
             manager->update(rect, this, true);
         }
     }
 }
 
-void KoShape::updateAbsolute(const QRectF &rect) const
+void KoShape::updateAbsolute(const PkRectF &rect) const
 {
     if (rect.isEmpty() && !rect.isNull()) {
         return;
@@ -551,28 +551,28 @@ void KoShape::updateAbsolute(const QRectF &rect) const
     }
 }
 
-QPainterPath KoShape::outline() const
+PkPainterPath KoShape::outline() const
 {
-    QPainterPath path;
+    PkPainterPath path;
     path.addRect(outlineRect());
     return path;
 }
 
-QRectF KoShape::outlineRect() const
+PkRectF KoShape::outlineRect() const
 {
-    const QSizeF s = size();
-    return QRectF(QPointF(0, 0), QSizeF(qMax(s.width(),  qreal(0.0001)),
+    const PkSizeF s = size();
+    return PkRectF(PkPointF(0, 0), PkSizeF(qMax(s.width(),  qreal(0.0001)),
                                         qMax(s.height(), qreal(0.0001))));
 }
 
-QPointF KoShape::absolutePosition(KoFlake::AnchorPosition anchor) const
+PkPointF KoShape::absolutePosition(KoFlake::AnchorPosition anchor) const
 {
-    const QRectF rc = outlineRect();
+    const PkRectF rc = outlineRect();
 
-    QPointF point = rc.topLeft();
+    PkPointF point = rc.topLeft();
 
     bool valid = false;
-    QPointF anchoredPoint = KoFlake::anchorToPoint(anchor, rc, &valid);
+    PkPointF anchoredPoint = KoFlake::anchorToPoint(anchor, rc, &valid);
     if (valid) {
         point = anchoredPoint;
     }
@@ -580,11 +580,11 @@ QPointF KoShape::absolutePosition(KoFlake::AnchorPosition anchor) const
     return absoluteTransformation().map(point);
 }
 
-void KoShape::setAbsolutePosition(const QPointF &newPosition, KoFlake::AnchorPosition anchor)
+void KoShape::setAbsolutePosition(const PkPointF &newPosition, KoFlake::AnchorPosition anchor)
 {
-    QPointF currentAbsPosition = absolutePosition(anchor);
-    QPointF translate = newPosition - currentAbsPosition;
-    QTransform translateMatrix;
+    PkPointF currentAbsPosition = absolutePosition(anchor);
+    PkPointF translate = newPosition - currentAbsPosition;
+    PkTransform translateMatrix;
     translateMatrix.translate(translate.x(), translate.y());
     applyAbsoluteTransformation(translateMatrix);
     notifyChanged();
@@ -629,7 +629,7 @@ KoShapeUserData *KoShape::userData() const
 
 bool KoShape::hasTransparency() const
 {
-    QSharedPointer<KoShapeBackground> bg = background();
+    PkSharedPointer<KoShapeBackground> bg = background();
 
     return !bg || bg->hasTransparency() || s->transparency > 0.0;
 }
@@ -664,7 +664,7 @@ KoInsets KoShape::strokeInsets() const
 void KoShape::setPaintOrder(KoShape::PaintOrder first, KoShape::PaintOrder second)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(first != second);
-    QVector<PaintOrder> order = defaultPaintOrder();
+    PkVector<PaintOrder> order = defaultPaintOrder();
 
     if (first != Fill) {
         if (order.at(1) == first) {
@@ -685,9 +685,9 @@ void KoShape::setPaintOrder(KoShape::PaintOrder first, KoShape::PaintOrder secon
     s->paintOrder = order;
 }
 
-QVector<KoShape::PaintOrder> KoShape::paintOrder() const
+PkVector<KoShape::PaintOrder> KoShape::paintOrder() const
 {
-    QVector<PaintOrder> order = defaultPaintOrder();
+    PkVector<PaintOrder> order = defaultPaintOrder();
     if (!s->inheritPaintOrder) {
         order = s->paintOrder;
     } else if (parent()) {
@@ -696,9 +696,9 @@ QVector<KoShape::PaintOrder> KoShape::paintOrder() const
     return order;
 }
 
-QVector<KoShape::PaintOrder> KoShape::defaultPaintOrder()
+PkVector<KoShape::PaintOrder> KoShape::defaultPaintOrder()
 {
-    static QVector<PaintOrder> order = {Fill, Stroke, Markers};
+    static PkVector<PaintOrder> order = {Fill, Stroke, Markers};
     return order;
 }
 
@@ -732,18 +732,18 @@ qreal KoShape::rotation() const
     return angle;
 }
 
-QSizeF KoShape::size() const
+PkSizeF KoShape::size() const
 {
     return s->size;
 }
 
-QPointF KoShape::position() const
+PkPointF KoShape::position() const
 {
-    QPointF center = outlineRect().center();
+    PkPointF center = outlineRect().center();
     return s->localMatrix.map(center) - center;
 }
 
-void KoShape::setBackground(QSharedPointer<KoShapeBackground> fill)
+void KoShape::setBackground(PkSharedPointer<KoShapeBackground> fill)
 {
     s->inheritBackground = false;
     s->fill = fill;
@@ -751,10 +751,10 @@ void KoShape::setBackground(QSharedPointer<KoShapeBackground> fill)
     notifyChanged();
 }
 
-QSharedPointer<KoShapeBackground> KoShape::background() const
+PkSharedPointer<KoShapeBackground> KoShape::background() const
 {
 
-    QSharedPointer<KoShapeBackground> bg;
+    PkSharedPointer<KoShapeBackground> bg;
 
     if (!s->inheritBackground) {
         bg = s->fill;
@@ -872,12 +872,12 @@ bool KoShape::keepAspectRatio() const
     return s->keepAspect;
 }
 
-QString KoShape::shapeId() const
+PkString KoShape::shapeId() const
 {
     return s->shapeId;
 }
 
-void KoShape::setShapeId(const QString &id)
+void KoShape::setShapeId(const PkString &id)
 {
     s->shapeId = id;
 }
@@ -942,17 +942,17 @@ KoClipMask* KoShape::clipMask() const
     return s->clipMask.data();
 }
 
-QTransform KoShape::transform() const
+PkTransform KoShape::transform() const
 {
     return s->localMatrix;
 }
 
-QString KoShape::name() const
+PkString KoShape::name() const
 {
     return s->name;
 }
 
-void KoShape::setName(const QString &name)
+void KoShape::setName(const PkString &name)
 {
     s->name = name;
 }
@@ -976,7 +976,7 @@ bool KoShape::isShapeEditable(bool recursive) const
 
 KisHandlePainterHelper KoShape::createHandlePainterHelperView(QPainter *painter, KoShape *shape, const KoViewConverter &converter, qreal handleRadius, int decorationThickness)
 {
-    const QTransform originalPainterTransform = painter->transform();
+    const PkTransform originalPainterTransform = painter->transform();
 
     painter->setTransform(shape->absoluteTransformation() *
                           converter.documentToView() *
@@ -988,7 +988,7 @@ KisHandlePainterHelper KoShape::createHandlePainterHelperView(QPainter *painter,
 
 KisHandlePainterHelper KoShape::createHandlePainterHelperDocument(QPainter *painter, KoShape *shape, qreal handleRadius, int decorationThickness)
 {
-    const QTransform originalPainterTransform = painter->transform();
+    const PkTransform originalPainterTransform = painter->transform();
 
     painter->setTransform(shape->absoluteTransformation() *
                           painter->transform());
@@ -998,22 +998,22 @@ KisHandlePainterHelper KoShape::createHandlePainterHelperDocument(QPainter *pain
 }
 
 
-QPointF KoShape::shapeToDocument(const QPointF &point) const
+PkPointF KoShape::shapeToDocument(const PkPointF &point) const
 {
     return absoluteTransformation().map(point);
 }
 
-QRectF KoShape::shapeToDocument(const QRectF &rect) const
+PkRectF KoShape::shapeToDocument(const PkRectF &rect) const
 {
     return absoluteTransformation().mapRect(rect);
 }
 
-QPointF KoShape::documentToShape(const QPointF &point) const
+PkPointF KoShape::documentToShape(const PkPointF &point) const
 {
     return absoluteTransformation().inverted().map(point);
 }
 
-QRectF KoShape::documentToShape(const QRectF &rect) const
+PkRectF KoShape::documentToShape(const PkRectF &rect) const
 {
     return absoluteTransformation().inverted().mapRect(rect);
 }
@@ -1046,7 +1046,7 @@ bool KoShape::hasDependee(KoShape *shape) const
     return d->dependees.contains(shape);
 }
 
-QList<KoShape*> KoShape::dependees() const
+PkList<KoShape*> KoShape::dependees() const
 {
     return d->dependees;
 }
@@ -1069,27 +1069,27 @@ KoSnapData KoShape::snapData() const
     return KoSnapData();
 }
 
-void KoShape::setAdditionalAttribute(const QString &name, const QString &value)
+void KoShape::setAdditionalAttribute(const PkString &name, const PkString &value)
 {
     s->additionalAttributes.insert(name, value);
 }
 
-void KoShape::removeAdditionalAttribute(const QString &name)
+void KoShape::removeAdditionalAttribute(const PkString &name)
 {
     s->additionalAttributes.remove(name);
 }
 
-bool KoShape::hasAdditionalAttribute(const QString &name) const
+bool KoShape::hasAdditionalAttribute(const PkString &name) const
 {
     return s->additionalAttributes.contains(name);
 }
 
-QString KoShape::additionalAttribute(const QString &name) const
+PkString KoShape::additionalAttribute(const PkString &name) const
 {
     return s->additionalAttributes.value(name);
 }
 
-void KoShape::setAdditionalStyleAttribute(const char *name, const QString &value)
+void KoShape::setAdditionalStyleAttribute(const char *name, const PkString &value)
 {
     s->additionalStyleAttributes.insert(name, value);
 }
@@ -1099,22 +1099,22 @@ void KoShape::removeAdditionalStyleAttribute(const char *name)
     s->additionalStyleAttributes.remove(name);
 }
 
-QSet<KoShape*> KoShape::toolDelegates() const
+PkSet<KoShape*> KoShape::toolDelegates() const
 {
     return d->toolDelegates;
 }
 
-void KoShape::setToolDelegates(const QSet<KoShape*> &delegates)
+void KoShape::setToolDelegates(const PkSet<KoShape*> &delegates)
 {
     d->toolDelegates = delegates;
 }
 
-QString KoShape::hyperLink () const
+PkString KoShape::hyperLink () const
 {
     return s->hyperLink;
 }
 
-void KoShape::setHyperLink(const QString &hyperLink)
+void KoShape::setHyperLink(const PkString &hyperLink)
 {
     s->hyperLink = hyperLink;
 }
@@ -1165,14 +1165,14 @@ void KoShape::removeShapeChangeListener(KoShape::ShapeChangeListener *listener)
     listener->unregisterShape(this);
 }
 
-QList<KoShape::ShapeChangeListener *> KoShape::listeners() const
+PkList<KoShape::ShapeChangeListener *> KoShape::listeners() const
 {
     return d->listeners;
 }
 
-QList<KoShape *> KoShape::linearizeSubtree(const QList<KoShape *> &shapes)
+PkList<KoShape *> KoShape::linearizeSubtree(const PkList<KoShape *> &shapes)
 {
-    QList<KoShape *> result;
+    PkList<KoShape *> result;
 
     Q_FOREACH (KoShape *shape, shapes) {
         result << shape;
@@ -1186,12 +1186,12 @@ QList<KoShape *> KoShape::linearizeSubtree(const QList<KoShape *> &shapes)
     return result;
 }
 
-QList<KoShape *> KoShape::linearizeSubtreeSorted(const QList<KoShape *> &shapes)
+PkList<KoShape *> KoShape::linearizeSubtreeSorted(const PkList<KoShape *> &shapes)
 {
-    QList<KoShape*> sortedShapes = shapes;
+    PkList<KoShape*> sortedShapes = shapes;
     std::sort(sortedShapes.begin(), sortedShapes.end(), KoShape::compareShapeZIndex);
 
-    QList<KoShape *> result;
+    PkList<KoShape *> result;
 
     Q_FOREACH (KoShape *shape, sortedShapes) {
         result << shape;

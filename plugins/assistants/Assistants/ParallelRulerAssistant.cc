@@ -40,7 +40,7 @@ PkPointF ParallelRulerAssistant::project(const PkPointF& pt, const PkPointF& str
         if (getLocalRect().contains(pt)) {
             m_hasBeenInsideLocalRect = true;
         } else if (isLocal() && !m_hasBeenInsideLocalRect) {
-            return PkPointF(qQNaN(), qQNaN());
+            return PkPointF(pkQNaN(), pkQNaN());
         }
     }
 

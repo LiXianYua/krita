@@ -105,7 +105,7 @@ T signZZ(T x) {
  */
 template <typename T>
     inline T copysign(T x, T y) {
-    T strippedX = qAbs(x);
+    T strippedX = pkAbs(x);
     return y >= T(0) ? strippedX : -strippedX;
 }
 
@@ -121,8 +121,8 @@ divideFloor(T a, T b)
     } else if (a_neg == b_neg) {
         return a / b;
     } else {
-        const T a_abs = qAbs(a);
-        const T b_abs = qAbs(b);
+        const T a_abs = pkAbs(a);
+        const T b_abs = pkAbs(b);
 
         return - 1 - (a_abs - T(1)) / b_abs;
     }
@@ -161,7 +161,7 @@ R lazyRound(qreal value);
 template<>
 inline int lazyRound<int>(qreal value)
 {
-    return qRound(value);
+    return pkRound(value);
 }
 
 template<>
@@ -197,8 +197,8 @@ int polygonDirection(const PkVector<T> &polygon) {
 
 template <typename T>
 bool isInRange(T x, T a, T b) {
-    T length = qAbs(a - b);
-    return qAbs(x - a) <= length && qAbs(x - b) <= length;
+    T length = pkAbs(a - b);
+    return pkAbs(x - a) <= length && pkAbs(x - b) <= length;
 }
 
 void KRITAGLOBAL_EXPORT adjustIfOnPolygonBoundary(const PkPolygonF &poly, int polygonDirection, PkPointF *pt);
@@ -322,7 +322,7 @@ template <class Point>
 inline typename PointTypeTraits<Point>::rect_type
 createRectFromCorners(Point corner1, Point corner2)
 {
-    return typename PointTypeTraits<Point>::rect_type(qMin(corner1.x(), corner2.x()), qMin(corner1.y(), corner2.y()), qAbs(corner1.x() - corner2.x()), qAbs(corner1.y() - corner2.y()));
+    return typename PointTypeTraits<Point>::rect_type(pkMin(corner1.x(), corner2.x()), pkMin(corner1.y(), corner2.y()), pkAbs(corner1.x() - corner2.x()), pkAbs(corner1.y() - corner2.y()));
 }
 
 inline PkRectF createRectFromCorners(PkLineF line)
@@ -334,12 +334,12 @@ inline PkRectF createRectFromCorners(PkLineF line)
 
 template <class Size>
 auto maxDimension(Size size) -> decltype(size.width()) {
-    return qMax(size.width(), size.height());
+    return pkMax(size.width(), size.height());
 }
 
 template <class Size>
 auto minDimension(Size size) -> decltype(size.width()) {
-    return qMin(size.width(), size.height());
+    return pkMin(size.width(), size.height());
 }
 
 PkPainterPath KRITAGLOBAL_EXPORT smallArrow();
@@ -371,8 +371,8 @@ Rect ensureRectNotSmaller(Rect rc, const decltype(Rect().size()) &size)
     if (rc.width() < size.width() ||
         rc.height() < size.height()) {
 
-        ValueType width = qMax(rc.width(), size.width());
-        ValueType  height = qMax(rc.height(), size.height());
+        ValueType width = pkMax(rc.width(), size.width());
+        ValueType  height = pkMax(rc.height(), size.height());
 
         rc = Rect(rc.topLeft(), Size(width, height));
     }
@@ -385,16 +385,16 @@ Size ensureSizeNotSmaller(const Size &size, const Size &bounds)
 {
     Size result = size;
 
-    const auto widthBound = qAbs(bounds.width());
+    const auto widthBound = pkAbs(bounds.width());
     auto width = result.width();
-    if (qAbs(width) < widthBound) {
+    if (pkAbs(width) < widthBound) {
         width = copysign(widthBound, width);
         result.setWidth(width);
     }
 
-    const auto heightBound = qAbs(bounds.height());
+    const auto heightBound = pkAbs(bounds.height());
     auto height = result.height();
-    if (qAbs(height) < heightBound) {
+    if (pkAbs(height) < heightBound) {
         height = copysign(heightBound, height);
         result.setHeight(height);
     }
@@ -472,7 +472,7 @@ PkPolygonF KRITAGLOBAL_EXPORT calculateConvexHull(const PkPolygonF &polygon);
 
 template <class Point>
 inline Point abs(const Point &pt) {
-    return Point(qAbs(pt.x()), qAbs(pt.y()));
+    return Point(pkAbs(pt.x()), pkAbs(pt.y()));
 }
 
 template<typename T, typename std::enable_if<std::is_integral<T>::value, T>::type* = nullptr>
@@ -914,7 +914,7 @@ bool isPolygonTrulyConvex(const PkVector<T> &polygon, bool ensureNoLoops = true)
         }
     }
 
-    if (ensureNoLoops && !qFuzzyCompare(qAbs(angleSum), 2*M_PI)) {
+    if (ensureNoLoops && !pkQtFuzzyCompare(pkAbs(angleSum), 2*M_PI)) {
         return false;
     }
 

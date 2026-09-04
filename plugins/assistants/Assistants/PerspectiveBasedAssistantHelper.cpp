@@ -103,11 +103,11 @@ qreal PerspectiveBasedAssistantHelper::inverseMaxLocalScale(const PkTransform &t
             b = fabs((transform.m33()) * (transform.m13() + transform.m33() + transform.m23())),
             d00 = transform.m33() * transform.m33(),
             d11 = (transform.m33() + transform.m23() + transform.m13())*(transform.m33() + transform.m23() + transform.m13()),
-            s0011 = qMin(d00, d11) / a,
+            s0011 = pkMin(d00, d11) / a,
             d10 = (transform.m33() + transform.m13()) * (transform.m33() + transform.m13()),
             d01 = (transform.m33() + transform.m23()) * (transform.m33() + transform.m23()),
-            s1001 = qMin(d10, d01) / b;
-    return qMin(s0011, s1001);
+            s1001 = pkMin(d10, d01) / b;
+    return pkMin(s0011, s1001);
 }
 
 qreal PerspectiveBasedAssistantHelper::distanceInGrid(const PkList<KisPaintingAssistantHandleSP>& handles, bool isAssistantComplete, const PkPointF &point)

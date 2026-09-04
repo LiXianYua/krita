@@ -93,8 +93,8 @@ void KisNormalizeTransformation::transform(const quint8* src, quint8* dst, qint3
     /*    } else {
     while (nPixels--) {
         m_colorSpace->normalisedChannelsValue(src, channelValues);
-        qreal max = qMax(channelValues[2], qMax(channelValues[1], channelValues[0]));
-        qreal min = qMin(channelValues[2], qMin(channelValues[1], channelValues[0]));
+        qreal max = pkMax(channelValues[2], pkMax(channelValues[1], channelValues[0]));
+        qreal min = pkMin(channelValues[2], pkMin(channelValues[1], channelValues[0]));
         qreal range = max-min;
         normal_vector.setX( ((channelValues[2]-min)/range) *2.0-1.0);
         normal_vector.setY( ((channelValues[1]-min)/range) *2.0-1.0);

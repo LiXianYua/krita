@@ -36,7 +36,7 @@ public:
     KoCanvasBase *canvas;
     KoShapeControllerBase *shapeController;
 
-    KUndo2Command* addShapesDirect(const QList<KoShape*> shapes, KoShapeContainer *parentShape, KUndo2Command *parent)
+    KUndo2Command* addShapesDirect(const PkList<KoShape*> shapes, KoShapeContainer *parentShape, KUndo2Command *parent)
     {
         KUndo2Command *resultCommand = 0;
 
@@ -90,7 +90,7 @@ KUndo2Command* KoShapeController::addShapeDirect(KoShape *shape, KoShapeContaine
     return d->addShapesDirect({shape}, parentShape, parent);
 }
 
-KUndo2Command *KoShapeController::addShapesDirect(const QList<KoShape *> shapes, KoShapeContainer *parentShape, KUndo2Command *parent)
+KUndo2Command *KoShapeController::addShapesDirect(const PkList<KoShape *> shapes, KoShapeContainer *parentShape, KUndo2Command *parent)
 {
     return d->addShapesDirect(shapes, parentShape, parent);
 }
@@ -100,7 +100,7 @@ KUndo2Command* KoShapeController::removeShape(KoShape *shape, KUndo2Command *par
     return removeShapes({shape}, parent);
 }
 
-KUndo2Command* KoShapeController::removeShapes(const QList<KoShape*> &shapes, KUndo2Command *parent)
+KUndo2Command* KoShapeController::removeShapes(const PkList<KoShape*> &shapes, KUndo2Command *parent)
 {
     KUndo2Command *cmd = new KoShapeDeleteCommand(d->shapeController, toPkList(shapes), parent);
     return cmd;
@@ -111,9 +111,9 @@ void KoShapeController::setShapeControllerBase(KoShapeControllerBase *shapeContr
     d->shapeController = shapeController;
 }
 
-QRectF KoShapeController::documentRectInPixels() const
+PkRectF KoShapeController::documentRectInPixels() const
 {
-    return d->shapeController ? d->shapeController->documentRectInPixels() : QRectF(0,0,1920,1080);
+    return d->shapeController ? d->shapeController->documentRectInPixels() : PkRectF(0,0,1920,1080);
 }
 
 qreal KoShapeController::pixelsPerInch() const
@@ -121,7 +121,7 @@ qreal KoShapeController::pixelsPerInch() const
     return d->shapeController ? d->shapeController->pixelsPerInch() : 72.0;
 }
 
-QRectF KoShapeController::documentRect() const
+PkRectF KoShapeController::documentRect() const
 {
     return d->shapeController ? d->shapeController->documentRect() : documentRectInPixels();
 }

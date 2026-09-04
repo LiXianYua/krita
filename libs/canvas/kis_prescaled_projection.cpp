@@ -75,8 +75,8 @@ struct RelevantCanvasState
     }
 
     bool operator==(const RelevantCanvasState& other) const {
-        return qFuzzyCompare(zoom, other.zoom) &&
-               qFuzzyCompare(rotation, other.rotation) &&
+        return pkQtFuzzyCompare(zoom, other.zoom) &&
+               pkQtFuzzyCompare(rotation, other.rotation) &&
                viewportOffsetF == other.viewportOffsetF;
     }
 
@@ -359,8 +359,8 @@ void KisPrescaledProjection::setDisplayFilter(QSharedPointer<KisDisplayFilter> d
 void KisPrescaledProjection::updateViewportSize()
 {
     QRect imageRect = m_d->coordinatesConverter->imageRectInWidgetPixels().toAlignedRect();
-    QSizeF minimalSize(qMin(imageRect.width(), m_d->canvasSize.width()),
-                       qMin(imageRect.height(), m_d->canvasSize.height()));
+    QSizeF minimalSize(pkMin(imageRect.width(), m_d->canvasSize.width()),
+                       pkMin(imageRect.height(), m_d->canvasSize.height()));
     QRectF minimalRect(QPointF(0,0), minimalSize);
 
     m_d->viewportSize = m_d->coordinatesConverter->widgetToViewport(minimalRect).toAlignedRect().size();
@@ -414,7 +414,7 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
      * later we request a bit more pixels for the patch to make the
      * scaling safe (like needRect).
      */
-    const int borderSize = BORDER_SIZE(qMax(info->scaleX, info->scaleY));
+    const int borderSize = BORDER_SIZE(pkMax(info->scaleX, info->scaleY));
     info->imageRect.adjust(-borderSize, -borderSize, borderSize, borderSize);
 
     info->imageRect = info->imageRect & toQRect(m_d->image->bounds());

@@ -41,6 +41,21 @@ public:
     PkGradient();                                    // Type=NoGradient
     explicit PkGradient(PkGradientEnums::Type type);
 
+    // 迁移别名：QGradient 的 Spread/Type/CoordinateMode 是嵌套成员，migrate 把
+    // `QGradient::Spread` 改名成 `PkGradient::Spread`，但枚举实际在
+    // PkGradientEnums 命名空间。这里补 using 别名，让 `PkGradient::Spread` 等
+    // 写法合法（对齐 Qt 的 `QGradient::Spread` 成员访问形态）。
+    using Type = PkGradientEnums::Type;
+    using Spread = PkGradientEnums::Spread;
+    using CoordinateMode = PkGradientEnums::CoordinateMode;
+
+    // 枚举值别名：对齐 Qt `QGradient::RadialGradient` 等直接成员访问。PkGradientEnums
+    // 的 plain enum 枚举值只泄漏到命名空间、不在 PkGradient 类作用域，这里补值别名。
+    static constexpr PkGradientEnums::Type NoGradient = PkGradientEnums::NoGradient;
+    static constexpr PkGradientEnums::Type LinearGradient = PkGradientEnums::LinearGradient;
+    static constexpr PkGradientEnums::Type RadialGradient = PkGradientEnums::RadialGradient;
+    static constexpr PkGradientEnums::Type ConicalGradient = PkGradientEnums::ConicalGradient;
+
     // 便捷静态构造（对齐 LinearGradient(start, finalStop) /
     // RadialGradient(center, radius, focalPoint) / ConicalGradient(center, angle)）。
     static PkGradient linear(const PkPointF &start, const PkPointF &finalStop);

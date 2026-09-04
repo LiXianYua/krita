@@ -41,7 +41,7 @@ bool pkProofBrokenFuzzyIsNullS(float) { return false; }
 // PkGlobal.h 检测到 qFuzzyCompare 已是宏时会整段让位，连 qAbs 也不再定义
 //（那是给 pk/test 的垫片留的位置）。这里补上与 pk/test 那份逐字相同的 qAbs，
 // 复现真实共存路径的形状。
-template <typename T> constexpr T qAbs(const T &t) { return t >= T(0) ? t : -t; }
+template <typename T> constexpr T pkAbs(const T &t) { return t >= T(0) ? t : -t; }
 
 #include "../PkSize.h"
 
@@ -53,8 +53,8 @@ PkSizeMacroProof pkSizeMacroProbe()
     PkSizeMacroProof p{};
     // 宏真的生效了吗——如果 PkGlobal.h 的让位分支没走到，这一条就是 false，
     // 整个探针会被判成空转（那正是「测了个寂寞」的形态）。
-    p.sabotagedFuzzyWasVisible = (qFuzzyCompare(1.0, 1.0) == false)
-                              && (qFuzzyIsNull(0.0) == false);
+    p.sabotagedFuzzyWasVisible = (pkQtFuzzyCompare(1.0, 1.0) == false)
+                              && (pkQtFuzzyIsNull(0.0) == false);
     p.nearIsEqual        =  (PkSizeF(1.0, 1.0) == PkSizeF(1.0 + 1e-13, 1.0));
     p.farIsNotEqual      = !(PkSizeF(1.0, 1.0) == PkSizeF(1.0 + 1e-11, 1.0));
     p.zeroSideIsNotEqual = !(PkSizeF(0.0, 0.0) == PkSizeF(1e-300, 0.0));

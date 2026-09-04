@@ -25,7 +25,7 @@ namespace
 {
 qreal boundedCornerRadius(qreal radius)
 {
-    // Match qBound(0, radius, 100), including its NaN result of zero.
+    // Match pkBound(0, radius, 100), including its NaN result of zero.
     return std::max(qreal(0.0), std::min(radius, qreal(100.0)));
 }
 }

@@ -10,7 +10,7 @@
 #include <PkFlakeBridge.h>
 #include "KoResourceManager_p.h"
 
-#include <QVariant>
+#include <PkVariant.h>
 #include <FlakeDebug.h>
 
 #include "KoShape.h"
@@ -24,12 +24,12 @@ void KoResourceManager::slotResourceInternalsChanged(int key)
     notifyDependenciesAboutTargetChange(key, m_resources[key]);
 }
 
-void KoResourceManager::slotAbstractResourceChangedExternal(int key, const QVariant &value)
+void KoResourceManager::slotAbstractResourceChangedExternal(int key, const PkVariant &value)
 {
     notifyResourceChanged(key, value);
 }
 
-void KoResourceManager::setResource(int key, const QVariant &value)
+void KoResourceManager::setResource(int key, const PkVariant &value)
 {
     notifyResourceChangeAttempted(key, value);
 
@@ -40,7 +40,7 @@ void KoResourceManager::setResource(int key, const QVariant &value)
             m_abstractResources.value(key, KoAbstractCanvasResourceInterfaceSP());
 
     if (abstractResource) {
-        const QVariant oldValue = abstractResource->value();
+        const PkVariant oldValue = abstractResource->value();
         abstractResource->setValue(value);
 
         if (m_updateMediators.contains(key)) {
@@ -52,10 +52,10 @@ void KoResourceManager::setResource(int key, const QVariant &value)
         }
     } else if (converter) {
         const int sourceKey = converter->sourceKey();
-        const QVariant oldSourceValue = m_resources.value(sourceKey, QVariant());
+        const PkVariant oldSourceValue = m_resources.value(sourceKey, PkVariant());
 
         bool valueChanged = false;
-        const QVariant newSourceValue = converter->writeToSource(value, oldSourceValue, &valueChanged);
+        const PkVariant newSourceValue = converter->writeToSource(value, oldSourceValue, &valueChanged);
 
         if (valueChanged) {
             notifyResourceChanged(key, value);
@@ -66,7 +66,7 @@ void KoResourceManager::setResource(int key, const QVariant &value)
             notifyResourceChanged(sourceKey, newSourceValue);
         }
     } else if (m_resources.contains(key)) {
-        const QVariant oldValue = m_resources.value(key, QVariant());
+        const PkVariant oldValue = m_resources.value(key, PkVariant());
         m_resources[key] = value;
 
         if (m_updateMediators.contains(key)) {
@@ -85,14 +85,14 @@ void KoResourceManager::setResource(int key, const QVariant &value)
     }
 }
 
-void KoResourceManager::notifyResourceChanged(int key, const QVariant &value)
+void KoResourceManager::notifyResourceChanged(int key, const PkVariant &value)
 {
     Q_EMIT resourceChanged(key, value);
     notifyDerivedResourcesChanged(key, value);
     notifyDependenciesAboutTargetChange(key, value);
 }
 
-void KoResourceManager::notifyDerivedResourcesChanged(int key, const QVariant &value)
+void KoResourceManager::notifyDerivedResourcesChanged(int key, const PkVariant &value)
 {
     QMultiHash<int, KoDerivedResourceConverterSP>::const_iterator it = m_derivedFromSource.constFind(key);
     QMultiHash<int, KoDerivedResourceConverterSP>::const_iterator end = m_derivedFromSource.constEnd();
@@ -108,13 +108,13 @@ void KoResourceManager::notifyDerivedResourcesChanged(int key, const QVariant &v
     }
 }
 
-void KoResourceManager::notifyResourceChangeAttempted(int key, const QVariant &value)
+void KoResourceManager::notifyResourceChangeAttempted(int key, const PkVariant &value)
 {
     Q_EMIT resourceChangeAttempted(key, value);
     notifyDerivedResourcesChangeAttempted(key, value);
 }
 
-void KoResourceManager::notifyDerivedResourcesChangeAttempted(int key, const QVariant &value)
+void KoResourceManager::notifyDerivedResourcesChangeAttempted(int key, const PkVariant &value)
 {
     QMultiHash<int, KoDerivedResourceConverterSP>::const_iterator it = m_derivedFromSource.constFind(key);
     QMultiHash<int, KoDerivedResourceConverterSP>::const_iterator end = m_derivedFromSource.constEnd();
@@ -126,14 +126,14 @@ void KoResourceManager::notifyDerivedResourcesChangeAttempted(int key, const QVa
     }
 }
 
-void KoResourceManager::notifyDependenciesAboutTargetChange(int targetKey, const QVariant &targetValue)
+void KoResourceManager::notifyDependenciesAboutTargetChange(int targetKey, const PkVariant &targetValue)
 {
     auto it = m_dependencyFromTarget.find(targetKey);
     while (it != m_dependencyFromTarget.end() && it.key() == targetKey) {
         const int sourceKey = it.value()->sourceKey();
 
         if (hasResource(sourceKey)) {
-            QVariant sourceValue = resource(sourceKey);
+            PkVariant sourceValue = resource(sourceKey);
 
             notifyResourceChangeAttempted(sourceKey, sourceValue);
             if (it.value()->shouldUpdateSource(sourceValue, targetValue)) {
@@ -145,7 +145,7 @@ void KoResourceManager::notifyDependenciesAboutTargetChange(int targetKey, const
     }
 }
 
-QVariant KoResourceManager::resource(int key) const
+PkVariant KoResourceManager::resource(int key) const
 {
     KoAbstractCanvasResourceInterfaceSP abstractResource =
             m_abstractResources.value(key, KoAbstractCanvasResourceInterfaceSP());
@@ -157,28 +157,28 @@ QVariant KoResourceManager::resource(int key) const
         m_derivedResources.value(key, KoDerivedResourceConverterSP());
 
     const int realKey = converter ? converter->sourceKey() : key;
-    QVariant value = m_resources.value(realKey, QVariant());
+    PkVariant value = m_resources.value(realKey, PkVariant());
 
     return converter ? converter->readFromSource(value) : value;
 }
 
 void KoResourceManager::setResource(int key, const KoColor &color)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(color);
     setResource(key, v);
 }
 
 void KoResourceManager::setResource(int key, KoShape *shape)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(shape);
     setResource(key, v);
 }
 
 void KoResourceManager::setResource(int key, const KoUnit &unit)
 {
-    QVariant v;
+    PkVariant v;
     v.setValue(unit);
     setResource(key, v);
 }
@@ -220,22 +220,22 @@ int KoResourceManager::intResource(int key) const
     return m_resources[key].toInt();
 }
 
-QString KoResourceManager::stringResource(int key) const
+PkString KoResourceManager::stringResource(int key) const
 {
     if (! m_resources.contains(key)) {
-        QString empty;
+        PkString empty;
         return empty;
     }
-    return qvariant_cast<QString>(resource(key));
+    return qvariant_cast<PkString>(resource(key));
 }
 
-QSizeF KoResourceManager::sizeResource(int key) const
+PkSizeF KoResourceManager::sizeResource(int key) const
 {
     if (! m_resources.contains(key)) {
-        QSizeF empty;
+        PkSizeF empty;
         return empty;
     }
-    return qvariant_cast<QSizeF>(resource(key));
+    return qvariant_cast<PkSizeF>(resource(key));
 }
 
 bool KoResourceManager::hasResource(int key) const
@@ -259,7 +259,7 @@ void KoResourceManager::clearResource(int key)
 
     if (m_resources.contains(key)) {
         m_resources.remove(key);
-        notifyResourceChanged(key, QVariant());
+        notifyResourceChanged(key, PkVariant());
     }
 }
 
@@ -379,7 +379,7 @@ void KoResourceManager::setAbstractResource(KoAbstractCanvasResourceInterfaceSP 
     if (hasDerivedResourceConverter(resourceInterface->key()))
         qWarning() << "A derived resource converter with the same resource ID exists!";
 
-    const QVariant oldValue = this->resource(resourceInterface->key());
+    const PkVariant oldValue = this->resource(resourceInterface->key());
 
     KoAbstractCanvasResourceInterfaceSP oldResourceInterface =
         m_abstractResources.value(resourceInterface->key());

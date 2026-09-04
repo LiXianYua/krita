@@ -7,8 +7,8 @@
 #define KOFONTREGISTRY_H
 
 #include <QObject>
-#include <QScopedPointer>
-#include <QVector>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
 
 #include <KoFontLibraryResourceUtils.h>
 #include <KoFFWWSConverter.h>
@@ -46,13 +46,13 @@ public:
      * will be filled with the lengths of consecutive characters
      * a face can be set on.
      */
-    std::vector<FT_FaceSP> facesForCSSValues(QVector<int> &lengths,
+    std::vector<FT_FaceSP> facesForCSSValues(PkVector<int> &lengths,
                                              KoCSSFontInfo info = KoCSSFontInfo(),
-                                             const QString &text = "",
+                                             const PkString &text = "",
                                              quint32 xRes = 72,
                                              quint32 yRes = 72,
                                              bool disableFontMatching = false,
-                                             const QString &language = QString());
+                                             const PkString &language = PkString());
 
     /**
      * @brief configureFaces
@@ -69,13 +69,13 @@ public:
                         qreal fontSizeAdjust,
                         quint32 xRes,
                         quint32 yRes,
-                        const QMap<QString, qreal> &axisSettings);
+                        const PkMap<PkString, qreal> &axisSettings);
 
     /**
      * @brief collectRepresentations
      * @return a list of Width/Weight/Slant font family representations.
      */
-    QList<KoFontFamilyWWSRepresentation> collectRepresentations() const;
+    PkList<KoFontFamilyWWSRepresentation> collectRepresentations() const;
 
     /**
      * @brief representationByFamilyName
@@ -84,10 +84,10 @@ public:
      * @param found - bool to check for success.
      * @return the font family.
      */
-    std::optional<KoFontFamilyWWSRepresentation> representationByFamilyName(const QString &familyName) const;
+    std::optional<KoFontFamilyWWSRepresentation> representationByFamilyName(const PkString &familyName) const;
 
     // Get the closest font family resource name for a given font family name, used by the selectors.
-    std::optional<QString> wwsNameByFamilyName(const QString familyName) const;
+    std::optional<PkString> wwsNameByFamilyName(const PkString familyName) const;
 
     /**
      * @brief slantMode
@@ -100,20 +100,20 @@ public:
     KoSvgText::FontMetrics fontMetricsForCSSValues(KoCSSFontInfo info = KoCSSFontInfo(),
                                                    const bool isHorizontal = true,
                                                    const KoSvgText::TextRendering rendering = KoSvgText::RenderingAuto,
-                                                   const QString &text = "",
+                                                   const PkString &text = "",
                                                    quint32 xRes = 72,
                                                    quint32 yRes = 72,
                                                    bool disableFontMatching = false,
-                                                   const QString &language = QString());
+                                                   const PkString &language = PkString());
 
-    static KoSvgText::FontMetrics generateFontMetrics(FT_FaceSP face, bool isHorizontal = true, QString script = QString(), const KoSvgText::TextRendering rendering = KoSvgText::RenderingAuto);
+    static KoSvgText::FontMetrics generateFontMetrics(FT_FaceSP face, bool isHorizontal = true, PkString script = PkString(), const KoSvgText::TextRendering rendering = KoSvgText::RenderingAuto);
 
     static int32_t loadFlagsForFace(FT_Face face, bool isHorizontal = true, int32_t loadFlags = 0, const KoSvgText::TextRendering rendering = KoSvgText::RenderingAuto);
 
     // For PSD we only get the postscript name, and we'll need a bit
     // more information to get a proper css representation.
-    KoCSSFontInfo getCssDataForPostScriptName (const QString postScriptName,
-                                      QString *foundPostScriptName);
+    KoCSSFontInfo getCssDataForPostScriptName (const PkString postScriptName,
+                                      PkString *foundPostScriptName);
 private Q_SLOTS:
     /**
      * Update the config and reset the FontChangeListener.
@@ -132,7 +132,7 @@ private:
      * @param path the path of the font file.
      * @return Whether adding the font file was successful.
      */
-    bool addFontFilePathToRegistry(const QString &path);
+    bool addFontFilePathToRegistry(const PkString &path);
 
     /**
      * @brief addFontFileDirectoryToRegistry
@@ -140,9 +140,9 @@ private:
      * @param path the path of the directory.
      * @return whether it was successful.
      */
-    bool addFontFileDirectoryToRegistry(const QString &path);
+    bool addFontFileDirectoryToRegistry(const PkString &path);
 
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 
     Q_DISABLE_COPY(KoFontRegistry);
 };

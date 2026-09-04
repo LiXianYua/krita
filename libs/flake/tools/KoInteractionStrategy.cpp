@@ -51,7 +51,7 @@ void KoInteractionStrategy::handleMouseMove(const PkPointF &, Qt::KeyboardModifi
 {
 }
 
-void KoInteractionStrategy::handleMouseMove(const QPointF &, Qt::KeyboardModifiers)
+void KoInteractionStrategy::handleMouseMove(const PkPointF &, Qt::KeyboardModifiers)
 {
 }
 

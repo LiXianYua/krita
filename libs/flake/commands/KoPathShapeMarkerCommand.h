@@ -10,11 +10,11 @@
 
 #include "kritaflake_export.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "KoFlake.h"
 #include <kundo2command.h>
-#include <QList>
+#include <PkList.h>
 
 class KoPathShape;
 class KoMarker;
@@ -30,7 +30,7 @@ public:
      * @param position the position - start or end - of the marker on the shape
      * @param parent the parent command used for macro commands
      */
-    KoPathShapeMarkerCommand(const QList<KoPathShape*> &shapes, KoMarker *marker, KoFlake::MarkerPosition position, KUndo2Command *parent = 0);
+    KoPathShapeMarkerCommand(const PkList<KoPathShape*> &shapes, KoMarker *marker, KoFlake::MarkerPosition position, KUndo2Command *parent = 0);
 
     ~KoPathShapeMarkerCommand() override;
 
@@ -42,7 +42,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KoPathShapeMarkerCommand_H

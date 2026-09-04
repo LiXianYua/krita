@@ -75,7 +75,7 @@ void KisPaintOp::setFanCornersInfo(bool fanCornersEnabled, qreal fanCornersStep)
 
 void KisPaintOp::splitCoordinate(qreal coordinate, qint32 *whole, qreal *fraction)
 {
-    const qint32 i = qFloor(coordinate);
+    const qint32 i = pkFloor(coordinate);
     const qreal f = coordinate - i;
 
     *whole = i;
@@ -101,7 +101,7 @@ static void paintBezierCurve(KisPaintOp *paintOp,
     qreal d2 = line.absDistance(control2);
 
     if ((d1 < BEZIER_FLATNESS_THRESHOLD && d2 < BEZIER_FLATNESS_THRESHOLD)
-            || qIsNaN(d1) || qIsNaN(d2)) {
+            || pkIsNaN(d1) || pkIsNaN(d2)) {
         paintOp->paintLine(pi1, pi2, currentDistance);
     } else {
         // Midpoint subdivision. See Foley & Van Dam Computer Graphics P.508

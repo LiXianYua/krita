@@ -13,8 +13,8 @@
 #include <KoPathPoint.h>
 #include "KoInteractionStrategy.h"
 
-#include <QList>
-#include <QRectF>
+#include <PkList.h>
+#include <PkRect.h>
 
 class KoPathTool;
 class KoParameterShape;
@@ -31,10 +31,10 @@ public:
     explicit KoPathToolHandle(KoPathTool *tool);
     virtual ~KoPathToolHandle();
     virtual void paint(QPainter &painter, const KoViewConverter &converter, qreal handleRadius, int decorationThickness) = 0;
-    virtual QRectF boundingRect() const = 0;
+    virtual PkRectF boundingRect() const = 0;
     virtual KoInteractionStrategy * handleMousePress(KoPointerEvent *event) = 0;
     // test if handle is still valid
-    virtual bool check(const QList<KoPathShape*> &selectedShapes) = 0;
+    virtual bool check(const PkList<KoPathShape*> &selectedShapes) = 0;
 
     virtual void trySelectHandle() {};
 
@@ -47,16 +47,16 @@ class PointHandle : public KoPathToolHandle
 public:
     PointHandle(KoPathTool *tool, KoPathPoint *activePoint, KoPathPoint::PointType activePointType);
     void paint(QPainter &painter, const KoViewConverter &converter, qreal handleRadius, int decorationThickness) override;
-    QRectF boundingRect() const override;
+    PkRectF boundingRect() const override;
     KoInteractionStrategy *handleMousePress(KoPointerEvent *event) override;
-    bool check(const QList<KoPathShape*> &selectedShapes) override;
+    bool check(const PkList<KoPathShape*> &selectedShapes) override;
     KoPathPoint *activePoint() const;
     KoPathPoint::PointType activePointType() const;
     void trySelectHandle() override;
 private:
     KoPathPoint *m_activePoint;
     KoPathPoint::PointType m_activePointType;
-    mutable QRectF m_oldRepaintedRect;
+    mutable PkRectF m_oldRepaintedRect;
 };
 
 class ParameterHandle : public KoPathToolHandle
@@ -64,9 +64,9 @@ class ParameterHandle : public KoPathToolHandle
 public:
     ParameterHandle(KoPathTool *tool, KoParameterShape *parameterShape, int handleId);
     void paint(QPainter &painter, const KoViewConverter &converter, qreal handleRadius, int decorationThickness) override;
-    QRectF boundingRect() const override;
+    PkRectF boundingRect() const override;
     KoInteractionStrategy *handleMousePress(KoPointerEvent *event) override;
-    bool check(const QList<KoPathShape*> &selectedShapes) override;
+    bool check(const PkList<KoPathShape*> &selectedShapes) override;
 protected:
     KoParameterShape *m_parameterShape;
     int m_handleId;

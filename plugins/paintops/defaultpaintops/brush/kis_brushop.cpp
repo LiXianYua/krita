@@ -224,7 +224,7 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(PkVector<KisRunnableStroke
             // make visual hiccups
             const int dabsLimit =
                 totalRenderingTimePerDab > 0 ?
-                    qMax(10, int(m_maxUpdatePeriod  / totalRenderingTimePerDab * m_idealNumRects)) :
+                    pkMax(10, int(m_maxUpdatePeriod  / totalRenderingTimePerDab * m_idealNumRects)) :
                     -1;
 
             state->dabsQueue = m_dabExecutor->takeReadyDabs(painter()->hasMirroring(), dabsLimit, &someDabsAreStillInQueue);
@@ -348,7 +348,7 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(PkVector<KisRunnableStroke
 
                     m_currentUpdatePeriod =
                         someDabsAreStillInQueue ? m_minUpdatePeriod :
-                        qBound(m_minUpdatePeriod, int(1.5 * approxDabRenderingTime), m_maxUpdatePeriod);
+                        pkBound(m_minUpdatePeriod, int(1.5 * approxDabRenderingTime), m_maxUpdatePeriod);
 
 
                     { // debug chunk

@@ -231,23 +231,23 @@ void PkPolygonCase::polygonFToPolygonRounds()
     PK_COMPARE(ip.at(1).y(), 0);
 }
 
-// ═══ containsPoint：Qt::FillRule ═══════════════════════════════════════════
+// ═══ containsPoint：Pk::FillRule ═══════════════════════════════════════════
 
 void PkPolygonCase::polygonFContainsPointSquareInsideOutsideVertex()
 {
     // 真 Qt 5.15.7 实测：10x10 正方形，内部点/外部点/顶点各自的取值。
     PkPolygonF sq;
     sq << PkPointF(0, 0) << PkPointF(10, 0) << PkPointF(10, 10) << PkPointF(0, 10);
-    PK_VERIFY(sq.containsPoint(PkPointF(5, 5), Qt::OddEvenFill));
-    PK_VERIFY(!sq.containsPoint(PkPointF(15, 5), Qt::OddEvenFill));
-    PK_VERIFY(sq.containsPoint(PkPointF(0, 0), Qt::OddEvenFill));
+    PK_VERIFY(sq.containsPoint(PkPointF(5, 5), Pk::OddEvenFill));
+    PK_VERIFY(!sq.containsPoint(PkPointF(15, 5), Pk::OddEvenFill));
+    PK_VERIFY(sq.containsPoint(PkPointF(0, 0), Pk::OddEvenFill));
 }
 
 void PkPolygonCase::polygonFContainsPointEmptyIsFalse()
 {
     const PkPolygonF empty;
-    PK_VERIFY(!empty.containsPoint(PkPointF(0, 0), Qt::OddEvenFill));
-    PK_VERIFY(!empty.containsPoint(PkPointF(0, 0), Qt::WindingFill));
+    PK_VERIFY(!empty.containsPoint(PkPointF(0, 0), Pk::OddEvenFill));
+    PK_VERIFY(!empty.containsPoint(PkPointF(0, 0), Pk::WindingFill));
 }
 
 void PkPolygonCase::polygonFContainsPointStarDistinguishesFillRule()
@@ -255,13 +255,13 @@ void PkPolygonCase::polygonFContainsPointStarDistinguishesFillRule()
     // 经典自相交五角星（五个顶点按"隔一个连一个"的顺序排列，边在中心区域
     // 两两交叉）。真 Qt 5.15.7 实测：中心点 (0,0) 在 OddEvenFill 下是
     // **false**（射线穿越偶数次）、在 WindingFill 下是 **true**（环绕数
-    // 非零）——这正是 Qt::FillRule 存在的理由：两种规则在自相交多边形上
+    // 非零）——这正是 Pk::FillRule 存在的理由：两种规则在自相交多边形上
     // 给出不同答案，凸多边形上永远看不出区别。
     PkPolygonF star;
     star << PkPointF(0, -10) << PkPointF(2.35, 3.24) << PkPointF(-9.51, -3.09)
          << PkPointF(9.51, -3.09) << PkPointF(-2.35, 3.24);
-    PK_VERIFY(!star.containsPoint(PkPointF(0, 0), Qt::OddEvenFill));
-    PK_VERIFY(star.containsPoint(PkPointF(0, 0), Qt::WindingFill));
+    PK_VERIFY(!star.containsPoint(PkPointF(0, 0), Pk::OddEvenFill));
+    PK_VERIFY(star.containsPoint(PkPointF(0, 0), Pk::WindingFill));
 }
 
 // ═══ PkTransform::map(PkPolygonF) ═══════════════════════════════════════

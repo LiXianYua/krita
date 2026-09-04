@@ -3,7 +3,7 @@
 #include <type_traits>
 
 // ---------------------------------------------------------------------------
-// 容器族的两件"自由设施"：PK_FOREACH（Q_FOREACH/foreach 的等价物）与 qDeleteAll。
+// 容器族的两件"自由设施"：PK_FOREACH（Q_FOREACH/foreach 的等价物）与 pkDeleteAll。
 //
 // 它们不属于任何一个容器类，但每个容器的调用点都可能用到 —— Qt 里两者都来自
 // <QtGlobal>，而调用点极少单独 `#include <QtGlobal>`（靠容器头传递进来）。
@@ -91,12 +91,12 @@ public:
 #endif
 
 // ---------------------------------------------------------------------------
-// 2. qDeleteAll —— 对容器里的**指针元素**逐个 delete
+// 2. pkDeleteAll —— 对容器里的**指针元素**逐个 delete
 //
 // 本仓库实测：全仓 139 处 / 保留范围 94 处，其中
 //   · 单实参（整个容器）  93 处
 //   · 双实参（begin, end）  1 处 —— plugins/paintops/hairy/hairy_brush.cpp
-//                              `qDeleteAll(m_bristles.begin(), m_bristles.end())`
+//                              `pkDeleteAll(m_bristles.begin(), m_bristles.end())`
 // 两个重载各有真实调用点，都要给。
 //
 // **不清空容器**：Qt 的语义就是这样（调用点通常紧跟一个 clear()），元素被 delete
@@ -108,16 +108,15 @@ public:
 // ---------------------------------------------------------------------------
 
 // R 线让位守卫（R-35/R-37/R-38 同型，S-08 主树 flake 链接验证压出）：主树保留
-// 过渡真 Qt，真 Qt qalgorithms.h 定义了**同名同签名**的 qDeleteAll 双重载
+// 过渡真 Qt，真 Qt qalgorithms.h 定义了**同名同签名**的 pkDeleteAll 双重载
 // （template<FwdIt> 与 template<Container>，参数列表逐形同），两组 inline 自由
 // 函数模板在同一翻译单元里是硬重定义。真 Qt 的 qalgorithms.h 在场时本文件让位，
 // 由真 Qt 版本覆盖（其模板实现同样只 delete 元素，行为一致）。薄壳（QT_CORE_LIB
 // 未定义）与主树纯 Pk TU（QT_CORE_LIB 定义但 qalgorithms.h 不在场）由第二析取
 // 让位条件继续由本文件提供。
-#if !defined(QT_CORE_LIB) || !defined(QALGORITHMS_H)
 
 template <typename PkForwardIt>
-void qDeleteAll(PkForwardIt begin, PkForwardIt end)
+void pkDeleteAll(PkForwardIt begin, PkForwardIt end)
 {
     while (begin != end) {
         delete *begin;
@@ -127,11 +126,10 @@ void qDeleteAll(PkForwardIt begin, PkForwardIt end)
 
 // 收 const 引用 → begin()/end() 解析到 const 重载 → 不 detach。
 // 关联容器上 `*it` 给的是 **value**（PkAssocIterator 的形状），所以
-// qDeleteAll(map) 删的是 value 那一侧的指针 —— 与 Qt 一致。
+// pkDeleteAll(map) 删的是 value 那一侧的指针 —— 与 Qt 一致。
 template <typename PkContainer>
-void qDeleteAll(const PkContainer &c)
+void pkDeleteAll(const PkContainer &c)
 {
-    qDeleteAll(c.begin(), c.end());
+    pkDeleteAll(c.begin(), c.end());
 }
 
-#endif  // !defined(QT_CORE_LIB) || !defined(QALGORITHMS_H)

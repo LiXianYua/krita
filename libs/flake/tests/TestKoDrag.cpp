@@ -19,21 +19,21 @@
 
 void TestKoDrag::test()
 {
-    const QString fileName = TestUtil::fetchDataFileLazy("test_svg_file.svg");
+    const PkString fileName = TestUtil::fetchDataFileLazy("test_svg_file.svg");
     QVERIFY(!fileName.isEmpty());
 
-    QFile testShapes(fileName);
-    KIS_ASSERT(testShapes.open(QIODevice::ReadOnly));
+    PkFileStream testShapes(fileName);
+    KIS_ASSERT(testShapes.open(PkStream::ReadOnly));
 
-    QDomDocument doc = SvgParser::createDocumentFromSvg(&testShapes);
+    PkXmlDocument doc = SvgParser::createDocumentFromSvg(&testShapes);
 
     KoDocumentResourceManager resourceManager;
     SvgParser parser(&resourceManager);
-    parser.setResolution(QRectF(0, 0, 30, 30) /* px */, 72 /* ppi */);
+    parser.setResolution(PkRectF(0, 0, 30, 30) /* px */, 72 /* ppi */);
 
-    QSizeF fragmentSize;
-    QList<KoShape*> shapes = parser.parseSvg(doc.documentElement(), &fragmentSize);
-    QCOMPARE(fragmentSize, QSizeF(30,30));
+    PkSizeF fragmentSize;
+    PkList<KoShape*> shapes = parser.parseSvg(doc.documentElement(), &fragmentSize);
+    QCOMPARE(fragmentSize, PkSizeF(30,30));
 
     {
         QCOMPARE(shapes.size(), 1);
@@ -42,7 +42,7 @@ void TestKoDrag::test()
         QVERIFY(layer);
         QCOMPARE(layer->shapeCount(), 2);
 
-        QCOMPARE(KoShape::absoluteOutlineRect(shapes).toAlignedRect(), QRect(6,6,19,18));
+        QCOMPARE(KoShape::absoluteOutlineRect(shapes).toAlignedRect(), PkRect(6,6,19,18));
     }
 
     KoDrag drag;
@@ -52,7 +52,7 @@ void TestKoDrag::test()
     KoSvgPaste paste;
     QVERIFY(paste.hasShapes());
 
-    QList<KoShape*> newShapes = paste.fetchShapes(QRectF(0,0,15,15) /* px */, 144 /* ppi */, &fragmentSize);
+    PkList<KoShape*> newShapes = paste.fetchShapes(PkRectF(0,0,15,15) /* px */, 144 /* ppi */, &fragmentSize);
 
     {
         QCOMPARE(newShapes.size(), 1);
@@ -61,8 +61,8 @@ void TestKoDrag::test()
         QVERIFY(layer);
         QCOMPARE(layer->shapeCount(), 2);
 
-        QCOMPARE(fragmentSize.toSize(), QSize(57, 55));
-        QCOMPARE(KoShape::absoluteOutlineRect(newShapes).toAlignedRect(), QRect(6,6,19,18));
+        QCOMPARE(fragmentSize.toSize(), PkSize(57, 55));
+        QCOMPARE(KoShape::absoluteOutlineRect(newShapes).toAlignedRect(), PkRect(6,6,19,18));
     }
 
 

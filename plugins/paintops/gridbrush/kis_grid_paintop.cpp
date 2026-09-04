@@ -92,7 +92,7 @@ KisSpacingInformation KisGridPaintOp::paintAt(const KisPaintInformation& info)
         divide = m_properties.grid_division_level;
     }
 
-    divide = qRound(m_properties.grid_scale * divide);
+    divide = pkRound(m_properties.grid_scale * divide);
 
     //Adjust the start position of the drawn grid to the top left of the brush instead of in the center
     qreal posX = info.pos().x() - (gridWidth/2) + (cellWidth/2) - horizontalOffset;
@@ -104,7 +104,7 @@ KisSpacingInformation KisGridPaintOp::paintAt(const KisPaintInformation& info)
     const PkRectF dabRect(posX , posY , cellWidth, cellHeight);
     const PkRect dabRectAligned = dabRect.toAlignedRect();
 
-    divide = qMax(1, divide);
+    divide = pkMax(1, divide);
     const qreal yStep = cellHeight / (qreal)divide;
     const qreal xStep = cellWidth / (qreal)divide;
 

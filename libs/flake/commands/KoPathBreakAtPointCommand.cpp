@@ -148,7 +148,7 @@ void KoPathBreakAtPointCommand::undo()
     }
 
     for (auto it = pointsMap.constBegin(); it != pointsMap.constEnd(); ++it) {
-        it.key()->recommendPointSelectionChange(toQList(it.value()));
+        it.key()->recommendPointSelectionChange(it.value());
     }
 
     m_deletePoints = true;

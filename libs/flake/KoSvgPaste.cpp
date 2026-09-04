@@ -15,7 +15,7 @@
 #include <SvgParser.h>
 #include <KoDocumentResourceManager.h>
 #include <FlakeDebug.h>
-#include <QRectF>
+#include <PkRect.h>
 #include <KoMarker.h>
 
 class KoSvgPaste::Private
@@ -44,7 +44,7 @@ bool KoSvgPaste::hasShapes()
 {
     bool hasSvg = false;
     if (d->mimeData) {
-        Q_FOREACH(const QString &format, d->mimeData->formats()) {
+        Q_FOREACH(const PkString &format, d->mimeData->formats()) {
             if (format.toLower().contains("svg")) {
                 hasSvg = true;
                 break;
@@ -55,15 +55,15 @@ bool KoSvgPaste::hasShapes()
     return hasSvg;
 }
 
-QList<KoShape*> KoSvgPaste::fetchShapes(const QRectF viewportInPx, qreal resolutionPPI, QSizeF *fragmentSize)
+PkList<KoShape*> KoSvgPaste::fetchShapes(const PkRectF viewportInPx, qreal resolutionPPI, PkSizeF *fragmentSize)
 {
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
 
     if (!d->mimeData) return shapes;
 
-    QByteArray data;
+    PkByteArray data;
 
-    Q_FOREACH(const QString &format, d->mimeData->formats()) {
+    Q_FOREACH(const PkString &format, d->mimeData->formats()) {
         if (format.toLower().contains("svg")) {
             data = d->mimeData->data(format);
             break;
@@ -78,9 +78,9 @@ QList<KoShape*> KoSvgPaste::fetchShapes(const QRectF viewportInPx, qreal resolut
 
 }
 
-QList<KoShape*> KoSvgPaste::fetchShapesFromData(const QByteArray &data, const QRectF viewportInPx, qreal resolutionPPI, QSizeF *fragmentSize)
+PkList<KoShape*> KoSvgPaste::fetchShapesFromData(const PkByteArray &data, const PkRectF viewportInPx, qreal resolutionPPI, PkSizeF *fragmentSize)
 {
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
 
     if (data.isEmpty()) {
         return shapes;
@@ -88,11 +88,11 @@ QList<KoShape*> KoSvgPaste::fetchShapesFromData(const QByteArray &data, const QR
 
 
 
-    QString errorMsg;
+    PkString errorMsg;
     int errorLine = 0;
     int errorColumn = 0;
 
-    QDomDocument doc = SvgParser::createDocumentFromSvg(data, &errorMsg, &errorLine, &errorColumn);
+    PkXmlDocument doc = SvgParser::createDocumentFromSvg(data, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
         qWarning() << "Failed to process an SVG file at"
                    << errorLine << ":" << errorColumn << "->" << errorMsg;

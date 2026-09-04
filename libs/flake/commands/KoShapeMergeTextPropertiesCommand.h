@@ -21,7 +21,7 @@ class KoSvgTextProperties;
 class KRITAFLAKE_EXPORT KoShapeMergeTextPropertiesCommand : public KUndo2Command
 {
 public:
-    KoShapeMergeTextPropertiesCommand(const QList<KoShape*> &shapes, const KoSvgTextProperties &props, const QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>(), KUndo2Command *parent = nullptr);
+    KoShapeMergeTextPropertiesCommand(const PkList<KoShape*> &shapes, const KoSvgTextProperties &props, const PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>(), KUndo2Command *parent = nullptr);
     ~KoShapeMergeTextPropertiesCommand() = default;
 
     void redo() override;
@@ -31,7 +31,7 @@ public:
     bool mergeWith(const KUndo2Command *command) override;
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOMERGETEXTPROPERTIESINTOSHAPESCOMMAND_H

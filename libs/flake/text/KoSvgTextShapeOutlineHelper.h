@@ -10,8 +10,8 @@
 #include <KoViewConverter.h>
 
 #include <QPainter>
-#include <QPointF>
-#include <QScopedPointer>
+#include <PkPoint.h>
+#include <PkScopedPointer.h>
 
 #include <kritaflake_export.h>
 
@@ -33,7 +33,7 @@ public:
      * @brief decorationRect
      * @return the current rect necessary.
      */
-    QRectF decorationRect();
+    PkRectF decorationRect();
 
     /**
      * @brief setDrawBoundingRect
@@ -62,7 +62,7 @@ public:
     void setHandleRadius(int radius);
     void setDecorationThickness(int thickness);
 
-    KoSvgTextShape *contourModeButtonHovered(const QPointF &point);
+    KoSvgTextShape *contourModeButtonHovered(const PkPointF &point);
 
     /**
      * @brief updateTextContourMode
@@ -81,7 +81,7 @@ private:
                         const QPalette &pal, KoSvgTextShape *text,
                         bool contourModeActive = false);
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOSVGTEXTSHAPEOUTLINEHELPER_H

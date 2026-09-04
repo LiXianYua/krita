@@ -97,7 +97,7 @@ void PkVectorNdCase::componentSetters()
 void PkVectorNdCase::isNullUsesExactZero()
 {
     // isNull 是**精确零**（qIsNull == 0.0f），不是 qFuzzyIsNull 的 1e-5 阈值。
-    // 探针实测：qIsNull(1e-6f)=false、qFuzzyIsNull(1e-6f)=true，两者语义不同。
+    // 探针实测：pkIsNull(1e-6f)=false、pkQtFuzzyIsNull(1e-6f)=true，两者语义不同。
     PK_VERIFY(PkVector2D().isNull());
     PK_VERIFY(PkVector2D(-0.0f, 0.0f).isNull());     // ±0 都是精确零
     PK_VERIFY(!PkVector2D(1e-6f, 0.0f).isNull());    // 1e-6 不是精确零

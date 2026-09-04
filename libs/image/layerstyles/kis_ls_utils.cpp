@@ -43,7 +43,7 @@ namespace KisLsUtils
             changeRect = filter.changeRect(applyRect, selection->defaultBounds());
             filter.process(selection, applyRect);
         } else if (growSize < 0) {
-            KisShrinkSelectionFilter filter(qAbs(growSize), qAbs(growSize), false);
+            KisShrinkSelectionFilter filter(pkAbs(growSize), pkAbs(growSize), false);
             changeRect = filter.changeRect(applyRect, selection->defaultBounds());
             filter.process(selection, applyRect);
         }
@@ -266,7 +266,7 @@ namespace KisLsUtils
             quint8 dstAlpha = *dstIt->rawData();
             quint8 srcAlpha = *srcIt.rawDataConst();
 
-            int value = qMin(255, dstAlpha + srcAlpha);
+            int value = pkMin(255, dstAlpha + srcAlpha);
 
             *dstIt->rawData() = value;
         }
@@ -286,7 +286,7 @@ namespace KisLsUtils
         quint8 rangeTable[256];
         for(int i = 0; i < 256; i ++) {
             quint8 value = i * 100 / range;
-            rangeTable[i] = qMin(value, quint8(255));
+            rangeTable[i] = pkMin(value, quint8(255));
         }
 
         KisSequentialIterator dstIt(selection, applyRect);
@@ -550,7 +550,7 @@ namespace KisLsUtils
 
         const PkRect effectRect(dstRect);
         const PkString compositeOp = config->blendMode();
-        const quint8 opacityU8 = quint8(qRound(255.0 / 100.0 * config->opacity()));
+        const quint8 opacityU8 = quint8(pkRound(255.0 / 100.0 * config->opacity()));
         KisPaintDeviceSP dstDevice = dst->getProjection(projectionId, compositeOp, opacityU8, PkBitArray(), srcDevice);
 
         if (config->fillType() == psd_fill_solid_color) {

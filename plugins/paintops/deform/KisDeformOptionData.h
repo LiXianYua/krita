@@ -27,7 +27,7 @@ enum DeformModes {
 struct KisDeformOptionData : boost::equality_comparable<KisDeformOptionData>
 {
     inline friend bool operator==(const KisDeformOptionData &lhs, const KisDeformOptionData &rhs) {
-        return qFuzzyCompare(lhs.deformAmount, rhs.deformAmount)
+        return pkQtFuzzyCompare(lhs.deformAmount, rhs.deformAmount)
             && lhs.deformUseBilinear == rhs.deformUseBilinear
             && lhs.deformUseCounter == rhs.deformUseCounter
             && lhs.deformUseOldData == rhs.deformUseOldData

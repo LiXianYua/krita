@@ -57,13 +57,13 @@ KoPencilTool::KoPencilTool(KoCanvasBase *canvas)
         return;
     }
 
-    const QVariant size = canvas->resourceManager()->resource(KoCanvasResource::Size);
+    const PkVariant size = canvas->resourceManager()->resource(KoCanvasResource::Size);
     if (size.isValid()) {
         m_strokeTemplate.setLineWidth(canvas->unit().fromUserValue(size.toReal()));
     }
 
     connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const QVariant &value) {
+            this, [this](int key, const PkVariant &value) {
         if (key == KoCanvasResource::Size) {
             m_strokeTemplate.setLineWidth(this->canvas()->unit().fromUserValue(value.toReal()));
             slotUpdatePencilCursor();
@@ -116,7 +116,7 @@ void KoPencilTool::mousePressEvent(KoPointerEvent *event)
         m_shape->setStroke(createStroke());
         m_points.clear();
 
-        QPointF point = event->point;
+        PkPointF point = event->point;
         m_existingStartPoint = endPointAtPosition(point);
         if (m_existingStartPoint)
             point = m_existingStartPoint->parent()->shapeToDocument(m_existingStartPoint->point());
@@ -133,12 +133,12 @@ void KoPencilTool::mouseMoveEvent(KoPointerEvent *event)
     KoPathPoint * endPoint = endPointAtPosition(event->point);
     if (m_hoveredPoint != endPoint) {
         if (m_hoveredPoint) {
-            QPointF nodePos = m_hoveredPoint->parent()->shapeToDocument(m_hoveredPoint->point());
+            PkPointF nodePos = m_hoveredPoint->parent()->shapeToDocument(m_hoveredPoint->point());
             canvas()->updateCanvas(handlePaintRect(nodePos));
         }
         m_hoveredPoint = endPoint;
         if (m_hoveredPoint) {
-            QPointF nodePos = m_hoveredPoint->parent()->shapeToDocument(m_hoveredPoint->point());
+            PkPointF nodePos = m_hoveredPoint->parent()->shapeToDocument(m_hoveredPoint->point());
             canvas()->updateCanvas(handlePaintRect(nodePos));
         }
     }
@@ -149,7 +149,7 @@ void KoPencilTool::mouseReleaseEvent(KoPointerEvent *event)
     if (! m_shape)
         return;
 
-    QPointF point = event->point;
+    PkPointF point = event->point;
     m_existingEndPoint = endPointAtPosition(point);
     if (m_existingEndPoint)
         point = m_existingEndPoint->parent()->shapeToDocument(m_existingEndPoint->point());
@@ -179,7 +179,7 @@ void KoPencilTool::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void KoPencilTool::activate(const QSet<KoShape*> &shapes)
+void KoPencilTool::activate(const PkSet<KoShape*> &shapes)
 {
     KoToolBase::activate(shapes);
 
@@ -208,7 +208,7 @@ void KoPencilTool::slotUpdatePencilCursor()
     useCursor((stroke && stroke->isVisible()) ? Qt::ArrowCursor : Qt::ForbiddenCursor);
 }
 
-void KoPencilTool::addPoint(const QPointF & point)
+void KoPencilTool::addPoint(const PkPointF & point)
 {
     if (! m_shape)
         return;
@@ -226,7 +226,7 @@ void KoPencilTool::addPoint(const QPointF & point)
     canvas()->updateCanvas(m_shape->boundingRect());
 }
 
-qreal KoPencilTool::lineAngle(const QPointF &p1, const QPointF &p2)
+qreal KoPencilTool::lineAngle(const PkPointF &p1, const PkPointF &p2)
 {
     qreal angle = atan2(p2.y() - p1.y(), p2.x() - p1.x());
     if (angle < 0.0)
@@ -241,8 +241,8 @@ void KoPencilTool::finish(bool closePath)
         return;
 
     KoPathShape * path = 0;
-    QList<QPointF> complete;
-    QList<QPointF> *points = &m_points;
+    PkList<PkPointF> complete;
+    PkList<PkPointF> *points = &m_points;
 
     if (m_mode == ModeStraight || m_optimizeRaw || m_optimizeCurve) {
         float combineAngle;
@@ -296,7 +296,7 @@ void KoPencilTool::finish(bool closePath)
     addPathShape(path, closePath);
 }
 
-QList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
+PkList<PkPointer<QWidget> > KoPencilTool::createOptionWidgets()
 {
     m_mode = static_cast<PencilMode>(m_configGroup.readEntry<int>("pencilMode", m_mode));
     m_optimizeRaw = m_configGroup.readEntry<bool>("optimizeRaw", m_optimizeRaw);
@@ -304,7 +304,7 @@ QList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
     m_combineAngle = m_configGroup.readEntry<qreal>("combineAngle", m_combineAngle);
     m_fittingError = m_configGroup.readEntry<qreal>("fittingError", m_fittingError);
 
-    QList<QPointer<QWidget> > widgets;
+    PkList<PkPointer<QWidget> > widgets;
     QWidget *optionWidget = new QWidget();
     QVBoxLayout * layout = new QVBoxLayout(optionWidget);
 
@@ -465,10 +465,10 @@ KoPathShape * KoPencilTool::path()
     return m_shape;
 }
 
-KoPathPoint* KoPencilTool::endPointAtPosition(const QPointF &position)
+KoPathPoint* KoPencilTool::endPointAtPosition(const PkPointF &position)
 {
-    QRectF roi = handleGrabRect(position);
-    QList<KoShape *> shapes = canvas()->shapeManager()->shapesAt(roi);
+    PkRectF roi = handleGrabRect(position);
+    PkList<KoShape *> shapes = canvas()->shapeManager()->shapesAt(roi);
 
     KoPathPoint * nearestPoint = 0;
     qreal minDistance = HUGE_VAL;
@@ -592,7 +592,7 @@ qreal KoPencilTool::getFittingError()
     return this->m_fittingError;
 }
 
-void KoPencilTool::setStrokeColor(QColor color)
+void KoPencilTool::setStrokeColor(PkColor color)
 {
   m_strokeColor = color;
 }

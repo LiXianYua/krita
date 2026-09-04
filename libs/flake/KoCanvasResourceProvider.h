@@ -18,14 +18,18 @@
 #include "KoAbstractCanvasResourceInterface.h"
 
 #include <KoCanvasResourcesInterface.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
+// [migrate] PkHash<QLocale> 实例化点需要 pkHash(const QLocale&)（定义在 PkFlakeBridge Qt 分支）
+#include <PkFlakeBridge.h>
 
 class KoShape;
 class KoShapeStroke;
 class KoColor;
 class KoUnit;
 
-class QVariant;
-class QSizeF;
+class PkVariant;
+class PkSizeF;
 
 /**
  * The KoCanvasResourceProvider contains a set of per-canvas
@@ -34,17 +38,17 @@ class QSizeF;
  * notified when a Resource changes (is set).
  *
  * The manager can contain all sorts of variable types and there are accessors
- * for the most common ones.  All variables are always stored inside a QVariant
+ * for the most common ones.  All variables are always stored inside a PkVariant
  * instance internally and you can always just use the resource() method to get
  * that directly.
  * The way to store arbitrary data objects that are stored as pointers you can use
  * the following code snippets;
  * @code
- *  QVariant variant;
+ *  PkVariant variant;
  *  variant.setValue<void*>(textShapeData->document());
  *  resourceManager->setResource(KoText::CurrentTextDocument, variant);
  *  // and get it out again.
- *  QVariant var = resourceManager->resource(KoText::CurrentTextDocument);
+ *  PkVariant var = resourceManager->resource(KoText::CurrentTextDocument);
  *  document = static_cast<QTextDocument*>(var.value<void*>());
  * @endcode
  */
@@ -72,7 +76,7 @@ public Q_SLOTS:
      * @param value the new value for the key.
      * @see KoCanvasResource::CanvasResourceId
      */
-    void setResource(int key, const QVariant &value);
+    void setResource(int key, const PkVariant &value);
 
     /**
      * Set a resource of type KoColor.
@@ -113,7 +117,7 @@ public:
      * @param key the key
      * @see KoCanvasResource::CanvasResourceId
      */
-    QVariant resource(int key) const;
+    PkVariant resource(int key) const;
 
     /**
      * Set the foregroundColor resource.
@@ -165,18 +169,18 @@ public:
     KoShape *koShapeResource(int key) const;
 
     /**
-     * Return the resource determined by param key as a QString .
+     * Return the resource determined by param key as a PkString .
      * @param key the identifying key for the resource
      * @see KoCanvasResource::CanvasResourceId
      */
-    QString stringResource(int key) const;
+    PkString stringResource(int key) const;
 
     /**
-     * Return the resource determined by param key as a QSizeF.
+     * Return the resource determined by param key as a PkSizeF.
      * @param key the identifying key for the resource
      * @see KoCanvasResource::CanvasResourceId
      */
-    QSizeF sizeResource(int key) const;
+    PkSizeF sizeResource(int key) const;
 
     /**
      * Return the resource determined by param key as a KoUnit.
@@ -304,7 +308,7 @@ Q_SIGNALS:
      * @param value the variants new value.
      * @see KoCanvasResource::CanvasResourceId
      */
-    void canvasResourceChanged(int key, const QVariant &value);
+    void canvasResourceChanged(int key, const PkVariant &value);
 
     /**
      * This signal is emitted every time a resource is attempted to be
@@ -315,7 +319,7 @@ Q_SIGNALS:
      * @param value the variants new value.
      * @see KoCanvasResource::CanvasResourceId
      */
-    void canvasResourceChangeAttempted(int key, const QVariant &value);
+    void canvasResourceChangeAttempted(int key, const PkVariant &value);
 
 private:
     KoCanvasResourceProvider(const KoCanvasResourceProvider&);

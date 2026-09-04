@@ -10,7 +10,7 @@
 
 
 struct KoSvgTextReorderShapeInsideCommand::Private {
-    Private(KoSvgTextShape *_text, QList<KoShape *> _shapes, KoSvgTextReorderShapeInsideCommand::MoveShapeType _type)
+    Private(KoSvgTextShape *_text, PkList<KoShape *> _shapes, KoSvgTextReorderShapeInsideCommand::MoveShapeType _type)
         : textShape(_text)
         , memento(textShape->getMemento())
         , shapes(_shapes)
@@ -27,12 +27,12 @@ struct KoSvgTextReorderShapeInsideCommand::Private {
 
     KoSvgTextShape *textShape;
     KoSvgTextShapeMementoSP memento;
-    QList<KoShape *>  shapes;
-    QList<int> oldIndices;
+    PkList<KoShape *>  shapes;
+    PkList<int> oldIndices;
     KoSvgTextReorderShapeInsideCommand::MoveShapeType type;
 };
 
-KoSvgTextReorderShapeInsideCommand::KoSvgTextReorderShapeInsideCommand(KoSvgTextShape *textShape, QList<KoShape *> shapes, MoveShapeType type, KUndo2Command *parent)
+KoSvgTextReorderShapeInsideCommand::KoSvgTextReorderShapeInsideCommand(KoSvgTextShape *textShape, PkList<KoShape *> shapes, MoveShapeType type, KUndo2Command *parent)
     : KUndo2Command(parent)
     , d(new Private(textShape, shapes, type))
 {

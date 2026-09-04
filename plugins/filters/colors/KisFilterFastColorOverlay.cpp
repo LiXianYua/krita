@@ -48,12 +48,12 @@ void KisFilterFastColorOverlay::processImpl(KisPaintDeviceSP device, const PkRec
         qint32 columnsRemaining = rect.width();
         qint32 numContiguousDstRows = dstIt->numContiguousRows(dstY_);
 
-        qint32 rows = qMin(numContiguousDstRows, rowsRemaining);
+        qint32 rows = pkMin(numContiguousDstRows, rowsRemaining);
 
         while (columnsRemaining > 0) {
 
             qint32 numContiguousDstColumns = dstIt->numContiguousColumns(dstX_);
-            qint32 columns = qMin(numContiguousDstColumns, columnsRemaining);
+            qint32 columns = pkMin(numContiguousDstColumns, columnsRemaining);
 
             qint32 dstRowStride = dstIt->rowStride(dstX_, dstY_);
             dstIt->moveTo(dstX_, dstY_);

@@ -9,7 +9,7 @@
 #include "kis_shape_layer_canvas.h"
 
 #include <QPainter>
-#include <QMutexLocker>
+#include <PkMutex.h>
 
 #include <KoShapeManager.h>
 #include <KoSelectedShapesProxySimple.h>
@@ -36,12 +36,12 @@
 #include "kis_do_something_command.h"
 
 namespace {
-QRect toQRect(const PkRect &rect)
+PkRect toQRect(const PkRect &rect)
 {
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
+    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
 }
 
-PkRect toPkRect(const QRect &rect)
+PkRect toPkRect(const PkRect &rect)
 {
     return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
 }
@@ -92,7 +92,7 @@ KoViewConverter *KisShapeLayerCanvasBase::viewConverter()
     return &m_viewConverter;
 }
 
-void KisShapeLayerCanvasBase::gridSize(QPointF *offset, QSizeF *spacing) const
+void KisShapeLayerCanvasBase::gridSize(PkPointF *offset, PkSizeF *spacing) const
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(false); // This should never be called as this canvas should have no tools.
     Q_UNUSED(offset);
@@ -215,7 +215,7 @@ void KisShapeLayerCanvas::setImage(KisImageWSP image)
     m_projection->setDefaultBounds(new KisDefaultBounds(image));
     if (image && m_hasUpdateOnSetImage) {
         m_hasUpdateOnSetImage = false;
-        const QRectF documentRect = viewConverter()->viewToDocument(m_cachedImageRect);
+        const PkRectF documentRect = viewConverter()->viewToDocument(m_cachedImageRect);
         updateCanvas(documentRect);
     }
 }
@@ -245,7 +245,7 @@ public:
     }
 
     PkString debugName() const override {
-        QString result;
+        PkString result;
         QDebug dbg(&result);
         dbg << "KisRepaintShapeLayerLayerJob" << m_layer;
         return toPkString(result);
@@ -261,7 +261,7 @@ private:
 };
 
 
-void KisShapeLayerCanvas::updateCanvas(const QVector<QRectF> &region)
+void KisShapeLayerCanvas::updateCanvas(const PkVector<PkRectF> &region)
 {
     if (!m_image){
         m_hasUpdateOnSetImage = true;
@@ -272,10 +272,10 @@ void KisShapeLayerCanvas::updateCanvas(const QVector<QRectF> &region)
     }
 
     {
-        QMutexLocker locker(&m_dirtyRegionMutex);
-        Q_FOREACH (const QRectF &rc, region) {
+        PkMutexLocker locker(&m_dirtyRegionMutex);
+        Q_FOREACH (const PkRectF &rc, region) {
             // grow for antialiasing
-            const QRect imageRect = kisGrowRect(viewConverter()->documentToView(rc).toAlignedRect(), 2);
+            const PkRect imageRect = kisGrowRect(viewConverter()->documentToView(rc).toAlignedRect(), 2);
             m_dirtyRegion += imageRect;
         }
     }
@@ -285,9 +285,9 @@ void KisShapeLayerCanvas::updateCanvas(const QVector<QRectF> &region)
 }
 
 
-void KisShapeLayerCanvas::updateCanvas(const QRectF& rc)
+void KisShapeLayerCanvas::updateCanvas(const PkRectF& rc)
 {
-    updateCanvas(QVector<QRectF>({rc}));
+    updateCanvas(PkVector<PkRectF>({rc}));
 }
 
 void KisShapeLayerCanvas::slotStartAsyncRepaint()
@@ -307,13 +307,13 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
         return;
     }
 
-    QRect repaintRect;
-    QRect uncroppedRepaintRect;
+    PkRect repaintRect;
+    PkRect uncroppedRepaintRect;
     bool forceUpdateHiddenAreasOnly = false;
     const qint32 MASK_IMAGE_WIDTH = 256;
     const qint32 MASK_IMAGE_HEIGHT = 256;
     {
-        QMutexLocker locker(&m_dirtyRegionMutex);
+        PkMutexLocker locker(&m_dirtyRegionMutex);
 
         repaintRect = m_dirtyRegion.boundingRect();
         forceUpdateHiddenAreasOnly = m_forceUpdateHiddenAreasOnly;
@@ -340,7 +340,7 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
         uncroppedRepaintRect = repaintRect;
         repaintRect = repaintRect.intersected(toQRect(image->bounds()));
     } else {
-        const QRectF shapesBounds = KoShape::boundingRect(m_shapeManager->shapes());
+        const PkRectF shapesBounds = KoShape::boundingRect(m_shapeManager->shapes());
         repaintRect |= kisGrowRect(viewConverter()->documentToView(shapesBounds).toAlignedRect(), 2);
         uncroppedRepaintRect = repaintRect;
     }
@@ -379,8 +379,8 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
 
     KoShapeManager::PaintJobsOrder jobsOrder;
     Q_FOREACH (const PkRect &pkViewUpdateRect, updateRects) {
-        const QRect viewUpdateRect = toQRect(pkViewUpdateRect);
-        jobsOrder.jobs << KoShapeManager::PaintJob(viewConverter()->viewToDocument().mapRect(QRectF(viewUpdateRect)),
+        const PkRect viewUpdateRect = toQRect(pkViewUpdateRect);
+        jobsOrder.jobs << KoShapeManager::PaintJob(viewConverter()->viewToDocument().mapRect(PkRectF(viewUpdateRect)),
                                               viewUpdateRect);
     }
     jobsOrder.uncroppedViewUpdateRect = uncroppedRepaintRect;
@@ -388,7 +388,7 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
     m_shapeManager->preparePaintJobs(jobsOrder, m_parentLayer);
 
     {
-        QMutexLocker locker(&m_dirtyRegionMutex);
+        PkMutexLocker locker(&m_dirtyRegionMutex);
 
         // check if it is still empty! It should be true, because GUI thread is
         // the only actor that can add stuff to it.
@@ -403,12 +403,12 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
 void KisShapeLayerCanvas::slotImageSizeChanged()
 {
     QRegion dirtyCacheRegion;
-    const QRect imageRect = toQRect(m_image->bounds());
+    const PkRect imageRect = toQRect(m_image->bounds());
     dirtyCacheRegion += imageRect;
     dirtyCacheRegion += m_cachedImageRect;
     dirtyCacheRegion -= imageRect & m_cachedImageRect;
 
-    QVector<QRectF> dirtyRects;
+    PkVector<PkRectF> dirtyRects;
     auto rc = dirtyCacheRegion.begin();
     while (rc != dirtyCacheRegion.end()) {
         dirtyRects.append(viewConverter()->viewToDocument(*rc));
@@ -425,7 +425,7 @@ void KisShapeLayerCanvas::repaint()
     KoShapeManager::PaintJobsOrder paintJobsOrder;
 
     {
-        QMutexLocker locker(&m_dirtyRegionMutex);
+        PkMutexLocker locker(&m_dirtyRegionMutex);
         std::swap(paintJobsOrder, m_paintJobsOrder);
     }
 
@@ -438,7 +438,7 @@ void KisShapeLayerCanvas::repaint()
     const qint32 MASK_IMAGE_WIDTH = 256;
     const qint32 MASK_IMAGE_HEIGHT = 256;
 
-    QImage image(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, QImage::Format_ARGB32);
+    PkImage image(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, PkImage::Format_ARGB32);
     QPainter tempPainter(&image);
 
     if(m_parentLayer->antialiased()) {
@@ -448,7 +448,7 @@ void KisShapeLayerCanvas::repaint()
 
     quint8 * dstData = new quint8[MASK_IMAGE_WIDTH * MASK_IMAGE_HEIGHT * m_projection->pixelSize()];
 
-    QRect repaintRect = paintJobsOrder.uncroppedViewUpdateRect;
+    PkRect repaintRect = paintJobsOrder.uncroppedViewUpdateRect;
     m_projection->clear(toPkRect(repaintRect));
 
     Q_FOREACH (const KoShapeManager::PaintJob &job, paintJobsOrder.jobs) {
@@ -464,10 +464,10 @@ void KisShapeLayerCanvas::repaint()
 
         image.fill(0);
 
-        tempPainter.setTransform(QTransform());
-        tempPainter.setClipRect(QRect(0,0,job.viewUpdateRect.width(), job.viewUpdateRect.height()));
+        tempPainter.setTransform(PkTransform());
+        tempPainter.setClipRect(PkRect(0,0,job.viewUpdateRect.width(), job.viewUpdateRect.height()));
         tempPainter.setTransform(viewConverter()->documentToView() *
-                                 QTransform::fromTranslate(-job.viewUpdateRect.x(), -job.viewUpdateRect.y()));
+                                 PkTransform::fromTranslate(-job.viewUpdateRect.x(), -job.viewUpdateRect.y()));
 
         m_shapeManager->paintJob(tempPainter, job);
 
@@ -544,7 +544,7 @@ void KisShapeLayerCanvas::forceRepaintWithHiddenAreas()
     KIS_SAFE_ASSERT_RECOVER_RETURN(!m_isDestroying);
 
     {
-        QMutexLocker locker(&m_dirtyRegionMutex);
+        PkMutexLocker locker(&m_dirtyRegionMutex);
         m_forceUpdateHiddenAreasOnly = true;
     }
 
@@ -557,7 +557,7 @@ void KisShapeLayerCanvas::resetCache(const KoColorSpace *colorSpace)
     Q_UNUSED(colorSpace);
     m_projection->clear();
 
-    QList<KoShape*> shapes = m_shapeManager->shapes();
+    PkList<KoShape*> shapes = m_shapeManager->shapes();
     Q_FOREACH (const KoShape* shape, shapes) {
         shape->update();
     }

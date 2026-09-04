@@ -70,7 +70,7 @@ void PkPainterCase::commandOrderAndPayloads()
     PK_CHECK_ONE_COMMAND(backend, painter.setBrush(brush));
     PK_CHECK_ONE_COMMAND(backend, painter.setTransform(transform));
     PK_CHECK_ONE_COMMAND(backend, painter.setRenderHint(0x20u, false));
-    PK_CHECK_ONE_COMMAND(backend, painter.setClipRect(clip, Qt::IntersectClip));
+    PK_CHECK_ONE_COMMAND(backend, painter.setClipRect(clip, Pk::IntersectClip));
     PK_CHECK_ONE_COMMAND(backend, painter.drawLine(line));
     PK_CHECK_ONE_COMMAND(backend, painter.drawRect(rect));
     PK_CHECK_ONE_COMMAND(backend, painter.drawEllipse(ellipse));
@@ -87,7 +87,7 @@ void PkPainterCase::commandOrderAndPayloads()
     PK_COMPARE(penCommand.pen.widthF(), 2.5);
     const auto &brushCommand = std::get<PkSetBrushCommand>(backend.commands[2]);
     compareColor(brushCommand.brush.color(), 40, 50, 60, 200);
-    PK_COMPARE(brushCommand.brush.style(), Qt::SolidPattern);
+    PK_COMPARE(brushCommand.brush.style(), Pk::SolidPattern);
     const auto &transformCommand = std::get<PkSetTransformCommand>(backend.commands[3]);
     PK_VERIFY(transformCommand.transform == transform);
     PK_VERIFY(!transformCommand.combine);
@@ -96,7 +96,7 @@ void PkPainterCase::commandOrderAndPayloads()
     PK_VERIFY(!hintCommand.enabled);
     const auto &clipCommand = std::get<PkSetClipRectCommand>(backend.commands[5]);
     PK_COMPARE(clipCommand.rect, clip);
-    PK_COMPARE(clipCommand.operation, Qt::IntersectClip);
+    PK_COMPARE(clipCommand.operation, Pk::IntersectClip);
     PK_COMPARE(std::get<PkDrawLineCommand>(backend.commands[6]).line, line);
     PK_COMPARE(std::get<PkDrawRectCommand>(backend.commands[7]).rect, rect);
     PK_COMPARE(std::get<PkDrawEllipseCommand>(backend.commands[8]).rect, ellipse);
@@ -137,36 +137,36 @@ void PkPainterCase::styleOverloadsConstructFreshValues()
     RecordingBackend backend;
     PkPainter painter(backend);
     PkPen oldPen(PkBrush(PkColor(90, 80, 70)), 8.5);
-    oldPen.setStyle(Qt::DashLine);
-    oldPen.setCapStyle(Qt::RoundCap);
+    oldPen.setStyle(Pk::DashLine);
+    oldPen.setCapStyle(Pk::RoundCap);
     oldPen.setDashPattern({2.0, 4.0});
     oldPen.setCosmetic(true);
     painter.setPen(oldPen);
     const std::size_t penBefore = backend.commands.size();
-    painter.setPen(Qt::DotLine);
+    painter.setPen(Pk::DotLine);
 
     PK_COMPARE(backend.commands.size(), penBefore + 1);
     const PkPen resetPen = painter.pen();
     compareColor(resetPen.color(), 0, 0, 0);
     PK_COMPARE(resetPen.widthF(), 1.0);
-    PK_COMPARE(resetPen.style(), Qt::DotLine);
-    PK_COMPARE(resetPen.capStyle(), Qt::SquareCap);
+    PK_COMPARE(resetPen.style(), Pk::DotLine);
+    PK_COMPARE(resetPen.capStyle(), Pk::SquareCap);
     PK_VERIFY(resetPen.dashPattern() == std::vector<qreal>({1.0, 2.0}));
     PK_VERIFY(!resetPen.isCosmetic());
     const auto &penCommand = std::get<PkSetPenCommand>(backend.commands.back());
-    PK_COMPARE(penCommand.pen.style(), Qt::DotLine);
+    PK_COMPARE(penCommand.pen.style(), Pk::DotLine);
     PK_COMPARE(penCommand.pen.widthF(), 1.0);
 
     painter.setBrush(PkBrush(PkColor(12, 34, 56)));
     const std::size_t brushBefore = backend.commands.size();
-    painter.setBrush(Qt::Dense3Pattern);
+    painter.setBrush(Pk::Dense3Pattern);
 
     PK_COMPARE(backend.commands.size(), brushBefore + 1);
     compareColor(painter.brush().color(), 0, 0, 0);
-    PK_COMPARE(painter.brush().style(), Qt::Dense3Pattern);
+    PK_COMPARE(painter.brush().style(), Pk::Dense3Pattern);
     const auto &brushCommand = std::get<PkSetBrushCommand>(backend.commands.back());
     compareColor(brushCommand.brush.color(), 0, 0, 0);
-    PK_COMPARE(brushCommand.brush.style(), Qt::Dense3Pattern);
+    PK_COMPARE(brushCommand.brush.style(), Pk::Dense3Pattern);
 }
 
 void PkPainterCase::exactMeasuredConsumerSpellings()
@@ -176,11 +176,11 @@ void PkPainterCase::exactMeasuredConsumerSpellings()
     static_assert(int(PkPainter::Antialiasing) == 0x01,
                   "Qt 5.15 direct render-hint value must be preserved");
 
-    const PkPen solidPen(Qt::SolidLine);
+    const PkPen solidPen(Pk::SolidLine);
     compareColor(solidPen.color(), 0, 0, 0);
     PK_COMPARE(solidPen.widthF(), 1.0);
-    PK_COMPARE(solidPen.style(), Qt::SolidLine);
-    PK_COMPARE(solidPen.capStyle(), Qt::SquareCap);
+    PK_COMPARE(solidPen.style(), Pk::SolidLine);
+    PK_COMPARE(solidPen.capStyle(), Pk::SquareCap);
     PK_VERIFY(solidPen.dashPattern().empty());
     PK_VERIFY(!solidPen.isCosmetic());
 
@@ -202,11 +202,11 @@ void PkPainterCase::penRetainsBrushAndRoundsWidth()
 {
     const PkBrush denseBrush(PkColor(21, 43, 65));
     PkBrush styledBrush = denseBrush;
-    styledBrush.setStyle(Qt::Dense5Pattern);
+    styledBrush.setStyle(Pk::Dense5Pattern);
     PkPen pen(styledBrush, 1.6);
 
     compareColor(pen.color(), 21, 43, 65);
-    PK_COMPARE(pen.brush().style(), Qt::Dense5Pattern);
+    PK_COMPARE(pen.brush().style(), Pk::Dense5Pattern);
     PK_COMPARE(pen.width(), 2);
 
     pen.setWidthF(-1.6);
@@ -214,7 +214,7 @@ void PkPainterCase::penRetainsBrushAndRoundsWidth()
     PK_COMPARE(pen.width(), 2);
     pen.setColor(PkColor(11, 22, 33));
     compareColor(pen.brush().color(), 11, 22, 33);
-    PK_COMPARE(pen.brush().style(), Qt::Dense5Pattern);
+    PK_COMPARE(pen.brush().style(), Pk::Dense5Pattern);
 }
 
 void PkPainterCase::saveRestoreAndEmptyRestore()
@@ -228,8 +228,8 @@ void PkPainterCase::saveRestoreAndEmptyRestore()
     painter.setTransform(original);
     painter.setRenderHint(0x40u, true);
     painter.save();
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(Qt::NoBrush);
+    painter.setPen(Pk::NoPen);
+    painter.setBrush(Pk::NoBrush);
     painter.setTransform(PkTransform());
     painter.setRenderHint(0x40u, false);
     const std::size_t beforeRestore = backend.commands.size();

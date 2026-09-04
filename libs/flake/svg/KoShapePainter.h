@@ -8,14 +8,14 @@
 #ifndef KOSHAPEPAINTER_H
 #define KOSHAPEPAINTER_H
 
-#include <QList>
-#include <QRectF>
-#include <QScopedPointer>
+#include <PkList.h>
+#include <PkRect.h>
+#include <PkScopedPointer.h>
 #include "kritaflake_export.h"
 
 class KoShape;
 class QPainter;
-class QImage;
+class PkImage;
 class KoShapeManager;
 
 /**
@@ -34,7 +34,7 @@ public:
      * Sets the shapes to be painted.
      * @param shapes the shapes to paint
      */
-    void setShapes(const QList<KoShape*> &shapes);
+    void setShapes(const PkList<KoShape*> &shapes);
 
     /**
      * Paints the shapes on the given painter and using the zoom handler.
@@ -51,17 +51,17 @@ public:
      * @param painterRect the destination rectangle on the painter
      * @param documentRect the document region to paint
      */
-    void paint(QPainter &painter, const QRect &painterRect, const QRectF &documentRect);
+    void paint(QPainter &painter, const PkRect &painterRect, const PkRectF &documentRect);
 
     /**
      * Paints shapes to the given image, so that all shapes fit onto it.
      * @param image the image to paint into
      * @return false if image is empty, else true
      */
-    void paint(QImage &image);
+    void paint(PkImage &image);
 
     /// Returns the bounding rect of the shapes to paint
-    QRectF contentRect() const;
+    PkRectF contentRect() const;
 
     /**
      * @brief internalShapeManager
@@ -70,11 +70,11 @@ public:
      */
     KoShapeManager *internalShapeManager() const;
 
-    void setUpdateFunction(std::function<void(const QRectF&)> function);
+    void setUpdateFunction(std::function<void(const PkRectF&)> function);
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOSHAPEPAINTER_H

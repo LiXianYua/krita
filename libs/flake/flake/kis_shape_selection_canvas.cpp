@@ -25,7 +25,7 @@ KisShapeSelectionCanvas::~KisShapeSelectionCanvas()
 {
 }
 
-void KisShapeSelectionCanvas::gridSize(QPointF *offset, QSizeF *spacing) const
+void KisShapeSelectionCanvas::gridSize(PkPointF *offset, PkSizeF *spacing) const
 {
     Q_ASSERT(false); // This should never be called as this canvas should have no tools.
     Q_UNUSED(offset);
@@ -53,7 +53,7 @@ KoSelectedShapesProxy *KisShapeSelectionCanvas::selectedShapesProxy() const
     return m_selectedShapesProxy.data();
 }
 
-void KisShapeSelectionCanvas::updateCanvas(const QRectF& rc)
+void KisShapeSelectionCanvas::updateCanvas(const PkRectF& rc)
 {
     Q_UNUSED(rc);
     m_shapeManager->explicitlyIssueShapeChangedSignals();

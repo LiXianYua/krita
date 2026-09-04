@@ -11,6 +11,12 @@
 #include "kritaflake_export.h"
 
 #include <QObject>
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkVariant.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkVector.h>
 
 class QAction;
 class QAction;
@@ -30,7 +36,7 @@ class QDropEvent;
 class QTouchEvent;
 class QFocusEvent;
 class QPainter;
-class QPointF;
+class PkPointF;
 class QMenu;
 class KisPopupWidgetInterface;
 
@@ -63,22 +69,22 @@ public:
     void repaintDecorations();
 
     /// Forwarded to the current KoToolBase
-    void tabletEvent(QTabletEvent *event, const QPointF &point);
+    void tabletEvent(QTabletEvent *event, const PkPointF &point);
 
     /// Forwarded to the current KoToolBase
-    void mousePressEvent(QMouseEvent *event, const QPointF &point);
+    void mousePressEvent(QMouseEvent *event, const PkPointF &point);
     void mousePressEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
-    void mouseDoubleClickEvent(QMouseEvent *event, const QPointF &point);
+    void mouseDoubleClickEvent(QMouseEvent *event, const PkPointF &point);
     void mouseDoubleClickEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
-    void mouseMoveEvent(QMouseEvent *event, const QPointF &point);
+    void mouseMoveEvent(QMouseEvent *event, const PkPointF &point);
     void mouseMoveEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
-    void mouseReleaseEvent(QMouseEvent *event, const QPointF &point);
+    void mouseReleaseEvent(QMouseEvent *event, const PkPointF &point);
     void mouseReleaseEvent(KoPointerEvent *event);
 
     /// Forwarded to the current KoToolBase
@@ -91,7 +97,7 @@ public:
     void explicitUserStrokeEndRequest();
 
     /// Forwarded to the current KoToolBase
-    QVariant inputMethodQuery(Qt::InputMethodQuery query) const;
+    PkVariant inputMethodQuery(Qt::InputMethodQuery query) const;
 
     /// Forwarded to the current KoToolBase
     void inputMethodEvent(QInputMethodEvent *event);
@@ -134,22 +140,22 @@ public:
     void deselect();
 
     /// Forwarded to the current KoToolBase
-    void dragMoveEvent(QDragMoveEvent *event, const QPointF &point);
+    void dragMoveEvent(QDragMoveEvent *event, const PkPointF &point);
 
     /// Forwarded to the current KoToolBase
     void dragLeaveEvent(QDragLeaveEvent *event);
 
     /// Forwarded to the current KoToolBase
-    void dropEvent(QDropEvent *event, const QPointF &point);
+    void dropEvent(QDropEvent *event, const PkPointF &point);
 
     /// Set the new active tool.
     virtual void setActiveTool(KoToolBase *tool);
 
-    void touchEvent(QTouchEvent* event, const QPointF& point);
+    void touchEvent(QTouchEvent* event, const PkPointF& point);
 
     KoPointerEvent* lastDeliveredPointerEvent() const;
 
-    QVector<QKeySequence> toolPriorityShortcuts() const;
+    PkVector<QKeySequence> toolPriorityShortcuts() const;
 
     /// \internal
     KoToolProxyPrivate *priv();
@@ -179,11 +185,11 @@ Q_SIGNALS:
      * @param toolId the id of the tool.
      * @see KoToolBase::toolId()
      */
-    void toolChanged(const QString &toolId);
+    void toolChanged(const PkString &toolId);
 
 protected:
-    virtual QPointF widgetToDocument(const QPointF &widgetPoint) const = 0;
-    virtual QPointF documentToWidget(const QPointF &documentPoint) const = 0;
+    virtual PkPointF widgetToDocument(const PkPointF &widgetPoint) const = 0;
+    virtual PkPointF documentToWidget(const PkPointF &documentPoint) const = 0;
     KoCanvasBase* canvas() const;
     int multiClickCount() const;
 

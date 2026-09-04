@@ -26,13 +26,13 @@ public:
      * @brief getSelectedProperties
      * @return all KoSvgTextProperties for the given selection.
      */
-    virtual QList<KoSvgTextProperties> getSelectedProperties() = 0;
+    virtual PkList<KoSvgTextProperties> getSelectedProperties() = 0;
 
     /**
      * @brief getSelectedProperties
      * @return all KoSvgTextProperties for the given character selection.
      */
-    virtual QList<KoSvgTextProperties> getCharacterProperties()  = 0;
+    virtual PkList<KoSvgTextProperties> getCharacterProperties()  = 0;
 
     /**
      * @brief getInheritedProperties
@@ -50,7 +50,7 @@ public:
      * @param properties -- the properties to set.
      * @param removeProperties -- properties to remove.
      */
-    virtual void setPropertiesOnSelected(KoSvgTextProperties properties, QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>()) = 0;
+    virtual void setPropertiesOnSelected(KoSvgTextProperties properties, PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>()) = 0;
 
     /**
      * @brief setCharacterPropertiesOnSelected
@@ -60,7 +60,7 @@ public:
      * @param properties -- the properties to set.
      * @param removeProperties -- properties to remove.
      */
-    virtual void setCharacterPropertiesOnSelected(KoSvgTextProperties properties, QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>()) = 0;
+    virtual void setCharacterPropertiesOnSelected(KoSvgTextProperties properties, PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>()) = 0;
 
     /// Whether the tool is currently selecting a set of characters instead of whole paragraphs.
     virtual bool spanSelection() = 0;

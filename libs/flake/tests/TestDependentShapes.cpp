@@ -14,7 +14,7 @@
 #include <KoShapeBulkActionLock.h>
 
 struct BulkActionState {
-    QRectF originalBoundingRect;
+    PkRectF originalBoundingRect;
     bool linkedShapesChangedWhileLocked = false;
 };
 
@@ -26,10 +26,10 @@ struct MockBulkShape : MockShape, KoShapeBulkActionInterface
         KIS_SAFE_ASSERT_RECOVER_RETURN(!m_bulkActionState);
         m_bulkActionState = {boundingRect(), false};
     }
-    QRectF endBulkAction() override {
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_bulkActionState, QRectF());
+    PkRectF endBulkAction() override {
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_bulkActionState, PkRectF());
 
-        QRectF updateRect;
+        PkRectF updateRect;
 
         if (m_bulkActionState->linkedShapesChangedWhileLocked) {
             forceUpdateLinkedShapes();
@@ -101,13 +101,13 @@ struct MockBulkShape : MockShape, KoShapeBulkActionInterface
         forceUpdateLinkedShapes();
     }
 
-    QRectF outlineRect() const override {
+    PkRectF outlineRect() const override {
         /**
          * outlineRect() is recalculated on the fly as required
          * by KoShapeBulkActionInterface
          */
 
-        QRectF dependentOutlineRect;
+        PkRectF dependentOutlineRect;
         Q_FOREACH(KoShape *shape, m_linkedShapes) {
             dependentOutlineRect |= shape->absoluteOutlineRect();
         }
@@ -116,7 +116,7 @@ struct MockBulkShape : MockShape, KoShapeBulkActionInterface
 
     // dependentOutlineRect() is the value that is "slow" to
     // calculate, so we postpone that untill the end of the action
-    QRectF dependentOutlineRect() const {
+    PkRectF dependentOutlineRect() const {
         return m_dependentOutlineRect;
     }
 
@@ -130,8 +130,8 @@ struct MockBulkShape : MockShape, KoShapeBulkActionInterface
 private:
     ChangesList m_receivedChangesWhileLocked;
     ChangesList m_receivedChangesWhileUnlocked;
-    QRectF m_dependentOutlineRect;
-    QVector<KoShape*> m_linkedShapes;
+    PkRectF m_dependentOutlineRect;
+    PkVector<KoShape*> m_linkedShapes;
 
     std::optional<BulkActionState> m_bulkActionState;
 };
@@ -174,7 +174,7 @@ void TestDependentShapes::testBulkActionInterface_data()
 bool verifyShapePickable(KoShape *shape, KoShapeManager *shapeManager)
 {
     auto pickOnePoint = [=] (KoFlake::AnchorPosition pos) {
-        const QPointF pt = shape->absolutePosition(pos);
+        const PkPointF pt = shape->absolutePosition(pos);
         KoShape *pickedShape = shapeManager->shapeAt(pt);
         if (pickedShape != shape) {
             qCritical() << "Failed to pick a shape using shape manager"
@@ -205,17 +205,17 @@ void TestDependentShapes::testBulkActionInterface()
     MockShape *shape1(new MockShape());
     shape1->setSize({10, 10});
     shape1->setAbsolutePosition({5, 5}, KoFlake::TopLeft);
-    QCOMPARE(shape1->absoluteOutlineRect(), QRectF(5, 5, 10, 10));
+    QCOMPARE(shape1->absoluteOutlineRect(), PkRectF(5, 5, 10, 10));
 
     MockShape *shape2(new MockShape());
     shape2->setSize({10, 10});
     shape2->setAbsolutePosition({90, 90}, KoFlake::TopLeft);
-    QCOMPARE(shape2->absoluteOutlineRect(), QRectF(90, 90, 10, 10));
+    QCOMPARE(shape2->absoluteOutlineRect(), PkRectF(90, 90, 10, 10));
 
     MockBulkShape *bulkInterfaceShape(new MockBulkShape());
-    QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF());
+    QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF());
     bulkInterfaceShape->registerLinkedShapes({shape1, shape2});
-    QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF(5, 5, 95, 95));
+    QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF(5, 5, 95, 95));
 
     shapeManager->addShape(bulkInterfaceShape);
     QVERIFY(verifyShapePickable(bulkInterfaceShape, shapeManager));
@@ -226,33 +226,33 @@ void TestDependentShapes::testBulkActionInterface()
     if (!useBulkAction) {
         // try update child shapes without locking
         // move shape1 by 10,10
-        shape1->applyTransformation(QTransform::fromTranslate(10, 10));
-        QCOMPARE(shape1->absoluteOutlineRect(), QRectF(15, 15, 10, 10));
+        shape1->applyTransformation(PkTransform::fromTranslate(10, 10));
+        QCOMPARE(shape1->absoluteOutlineRect(), PkRectF(15, 15, 10, 10));
         QCOMPARE(bulkInterfaceShape->receivedChangesWhileUnlocked(),
                  MockBulkShape::ChangesList({
                    std::make_pair(KoShape::GenericMatrixChange, shape1)
                  }));
         QCOMPARE(bulkInterfaceShape->receivedChangesWhileLocked(), {});
-        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF(15, 15, 85, 85));
+        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF(15, 15, 85, 85));
         QVERIFY(verifyShapePickable(bulkInterfaceShape, shapeManager));
 
         // move shape2 by 10,10
-        shape2->applyTransformation(QTransform::fromTranslate(10, 10));
-        QCOMPARE(shape2->absoluteOutlineRect(), QRectF(100, 100, 10, 10));
+        shape2->applyTransformation(PkTransform::fromTranslate(10, 10));
+        QCOMPARE(shape2->absoluteOutlineRect(), PkRectF(100, 100, 10, 10));
         QCOMPARE(bulkInterfaceShape->receivedChangesWhileUnlocked(),
                  MockBulkShape::ChangesList({
                     std::make_pair(KoShape::GenericMatrixChange, shape1),
                     std::make_pair(KoShape::GenericMatrixChange, shape2)
                  }));
         QCOMPARE(bulkInterfaceShape->receivedChangesWhileLocked(), {});
-        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF(15, 15, 95, 95));
+        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF(15, 15, 95, 95));
         QVERIFY(verifyShapePickable(bulkInterfaceShape, shapeManager));
     } else {
         bulkInterfaceShape->startBulkAction();
 
         // move shape1 by 10,10
-        shape1->applyTransformation(QTransform::fromTranslate(10, 10));
-        QCOMPARE(shape1->absoluteOutlineRect(), QRectF(15, 15, 10, 10));
+        shape1->applyTransformation(PkTransform::fromTranslate(10, 10));
+        QCOMPARE(shape1->absoluteOutlineRect(), PkRectF(15, 15, 10, 10));
         QCOMPARE(bulkInterfaceShape->receivedChangesWhileUnlocked(), {});
         QCOMPARE(bulkInterfaceShape->receivedChangesWhileLocked(),
                  MockBulkShape::ChangesList({
@@ -260,13 +260,13 @@ void TestDependentShapes::testBulkActionInterface()
                  }));
 
         // unchanged!!!
-        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF(5, 5, 95, 95));
+        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF(5, 5, 95, 95));
         // pickable, because boundingRect() is guaranteed to be correct
         QVERIFY(verifyShapePickable(bulkInterfaceShape, shapeManager));
 
         // move shape2 by 10,10
-        shape2->applyTransformation(QTransform::fromTranslate(10, 10));
-        QCOMPARE(shape2->absoluteOutlineRect(), QRectF(100, 100, 10, 10));
+        shape2->applyTransformation(PkTransform::fromTranslate(10, 10));
+        QCOMPARE(shape2->absoluteOutlineRect(), PkRectF(100, 100, 10, 10));
 
         QCOMPARE(bulkInterfaceShape->receivedChangesWhileUnlocked(), {});
         QCOMPARE(bulkInterfaceShape->receivedChangesWhileLocked(),
@@ -276,17 +276,17 @@ void TestDependentShapes::testBulkActionInterface()
                  }));
 
         // unchanged!!!
-        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF(5, 5, 95, 95));
+        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF(5, 5, 95, 95));
         // pickable, because boundingRect() is guaranteed to be correct
         QVERIFY(verifyShapePickable(bulkInterfaceShape, shapeManager));
 
-        const QRectF resultingUpdate = bulkInterfaceShape->endBulkAction();
+        const PkRectF resultingUpdate = bulkInterfaceShape->endBulkAction();
 
         // now finally updated!
-        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF(15, 15, 95, 95));
+        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF(15, 15, 95, 95));
 
         // the update should include old and new bounding rects!
-        QCOMPARE(resultingUpdate, QRectF(5, 5, 95, 95) | QRectF(15, 15, 95, 95));
+        QCOMPARE(resultingUpdate, PkRectF(5, 5, 95, 95) | PkRectF(15, 15, 95, 95));
     }
 
     shapeManager->setShapes({});
@@ -301,7 +301,7 @@ bool compareUpdatesLists(const KoShapeBulkActionLock::UpdatesList &lhs,
     auto updateListToHash =
     [] (const KoShapeBulkActionLock::UpdatesList &list) {
 
-        std::unordered_map<KoShape*, QRectF> result;
+        std::unordered_map<KoShape*, PkRectF> result;
 
         for (auto it = list.begin(); it != list.end(); ++it) {
             result.insert(*it);
@@ -336,27 +336,27 @@ bool compareUpdatesLists(const KoShapeBulkActionLock::UpdatesList &lhs,
 
 void TestDependentShapes::testBulkActionLock_data()
 {
-    QTest::addColumn<QPointF>("moveOffset");
+    QTest::addColumn<PkPointF>("moveOffset");
     QTest::addColumn<bool>("useBulkInterfaceShape");
     QTest::addColumn<bool>("useSecondBulkInterfaceShape");
 
-    QTest::addRow("no-change") << QPointF() << false << false;
-    QTest::addRow("move") << QPointF(10, 10) << false << false;
-    QTest::addRow("move-and-check-bulk") << QPointF(10, 10) << true << false;
-    QTest::addRow("move-and-check-chained-bulk") << QPointF(10, 10) << true << false;
+    QTest::addRow("no-change") << PkPointF() << false << false;
+    QTest::addRow("move") << PkPointF(10, 10) << false << false;
+    QTest::addRow("move-and-check-bulk") << PkPointF(10, 10) << true << false;
+    QTest::addRow("move-and-check-chained-bulk") << PkPointF(10, 10) << true << false;
 }
 
 void TestDependentShapes::testBulkActionLock()
 {
-    QFETCH(QPointF, moveOffset);
+    QFETCH(PkPointF, moveOffset);
     QFETCH(bool, useBulkInterfaceShape);
     QFETCH(bool, useSecondBulkInterfaceShape);
 
-    const QRectF originalRectShape1 = QRectF(5, 5, 10, 10);
-    const QRectF originalRectShape2 = QRectF(90, 90, 10, 10);
+    const PkRectF originalRectShape1 = PkRectF(5, 5, 10, 10);
+    const PkRectF originalRectShape2 = PkRectF(90, 90, 10, 10);
 
-    const QRectF expectedUpdateRectShape1 = originalRectShape1 | originalRectShape1.translated(moveOffset);
-    const QRectF expectedUpdateRectShape2 = originalRectShape2 | originalRectShape2.translated(moveOffset);
+    const PkRectF expectedUpdateRectShape1 = originalRectShape1 | originalRectShape1.translated(moveOffset);
+    const PkRectF expectedUpdateRectShape2 = originalRectShape2 | originalRectShape2.translated(moveOffset);
 
     MockShape *shape1(new MockShape());
     shape1->setSize(originalRectShape1.size());
@@ -373,25 +373,25 @@ void TestDependentShapes::testBulkActionLock()
 
     if (useBulkInterfaceShape) {
         bulkInterfaceShape = new MockBulkShape();
-        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF());
+        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF());
         bulkInterfaceShape->registerLinkedShapes({shape1, shape2});
-        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), QRectF(5, 5, 95, 95));
+        QCOMPARE(bulkInterfaceShape->dependentOutlineRect(), PkRectF(5, 5, 95, 95));
     }
 
     if (useSecondBulkInterfaceShape) {
         secondBulkInterfaceShape = new MockBulkShape();
-        QCOMPARE(secondBulkInterfaceShape->dependentOutlineRect(), QRectF());
+        QCOMPARE(secondBulkInterfaceShape->dependentOutlineRect(), PkRectF());
         secondBulkInterfaceShape->registerLinkedShapes({bulkInterfaceShape});
-        QCOMPARE(secondBulkInterfaceShape->dependentOutlineRect(), QRectF(5, 5, 95, 95));
+        QCOMPARE(secondBulkInterfaceShape->dependentOutlineRect(), PkRectF(5, 5, 95, 95));
     }
 
-    QList<KoShape*> shapes = {shape1, shape2};
+    PkList<KoShape*> shapes = {shape1, shape2};
 
     KoShapeBulkActionLock lock(shapes);
 
     if (!moveOffset.isNull()) {
-        shape1->applyTransformation(QTransform::fromTranslate(moveOffset.x(), moveOffset.y()));
-        shape2->applyTransformation(QTransform::fromTranslate(moveOffset.x(), moveOffset.y()));
+        shape1->applyTransformation(PkTransform::fromTranslate(moveOffset.x(), moveOffset.y()));
+        shape2->applyTransformation(PkTransform::fromTranslate(moveOffset.x(), moveOffset.y()));
 
         if (bulkInterfaceShape) {
             QCOMPARE(bulkInterfaceShape->receivedChangesWhileLocked(),

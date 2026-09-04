@@ -40,22 +40,22 @@ public:
     {
         m_radius = 1.0;
 
-        const qreal xf = qMax(0.0, ((1.0 / xcoeff) - 1.0) * xcoeff);
-        const qreal yf = qMax(0.0, ((1.0 / ycoeff) - 1.0) * ycoeff);
+        const qreal xf = pkMax(0.0, ((1.0 / xcoeff) - 1.0) * xcoeff);
+        const qreal yf = pkMax(0.0, ((1.0 / ycoeff) - 1.0) * ycoeff);
 
         m_antialiasingFadeStart = pow2(0.5 * (xf + yf));
 
         m_fadeStartValue = m_baseFade.value(m_antialiasingFadeStart);
-        m_antialiasingFadeCoeff = qMax(0.0, 255.0 - m_fadeStartValue) / (m_radius - m_antialiasingFadeStart);
+        m_antialiasingFadeCoeff = pkMax(0.0, 255.0 - m_fadeStartValue) / (m_radius - m_antialiasingFadeStart);
     }
 
     void setRadius(qreal radius)
     {
         m_radius = radius;
-        m_antialiasingFadeStart = qMax(0.0, m_radius - 1.0);
+        m_antialiasingFadeStart = pkMax(0.0, m_radius - 1.0);
 
         m_fadeStartValue = m_baseFade.value(m_antialiasingFadeStart);
-        m_antialiasingFadeCoeff = qMax(0.0, 255.0 - m_fadeStartValue) / (m_radius - m_antialiasingFadeStart);
+        m_antialiasingFadeCoeff = pkMax(0.0, 255.0 - m_fadeStartValue) / (m_radius - m_antialiasingFadeStart);
     }
 
     inline bool needFade(qreal dist, quint8 *value)
@@ -159,8 +159,8 @@ public:
 
     inline bool needFade(qreal x, qreal y, quint8 *value)
     {
-        x = qAbs(x);
-        y = qAbs(y);
+        x = pkAbs(x);
+        y = pkAbs(y);
 
         if (x > m_xLimit) {
             *value = 255;

@@ -56,10 +56,10 @@ void ParticleBrush::paintParticle(KisRandomAccessorSP accWrite, const KoColorSpa
     qreal fx = pos.x() - ipx;
     qreal fy = pos.y() - ipy;
 
-    quint8 btl = qRound((1.0 - fx) * (1.0 - fy) * opacity * weight);
-    quint8 btr = qRound((fx)  * (1.0 - fy) * opacity * weight);
-    quint8 bbl = qRound((1.0 - fx) * (fy)  * opacity * weight);
-    quint8 bbr = qRound((fx)  * (fy)  * opacity * weight);
+    quint8 btl = pkRound((1.0 - fx) * (1.0 - fy) * opacity * weight);
+    quint8 btr = pkRound((fx)  * (1.0 - fy) * opacity * weight);
+    quint8 bbl = pkRound((1.0 - fx) * (fy)  * opacity * weight);
+    quint8 bbr = pkRound((fx)  * (fy)  * opacity * weight);
 
     accWrite->moveTo(ipx  , ipy);
     myColor.setOpacity(quint8(kisBoundFast<quint16>(OPACITY_TRANSPARENT_U8, btl + cs->opacityU8(accWrite->rawData()), OPACITY_OPAQUE_U8)));

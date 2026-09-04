@@ -44,7 +44,7 @@ constexpr inline const T &kisBoundFast(const T &min, const T &val, const T &max)
      * Rules of thumb:
      *
      * 1) If you are writing time-critical code (e.g. blendmodes), use kisBoundFast()
-     * 2) Otherwise use qBound() or std::clamp (the latter may optionally have an assert as well)
+     * 2) Otherwise use pkBound() or std::clamp (the latter may optionally have an assert as well)
      */
     return std::max(min, std::min(max, val));
 }

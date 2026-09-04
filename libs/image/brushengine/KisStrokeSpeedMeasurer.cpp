@@ -74,7 +74,7 @@ void KisStrokeSpeedMeasurer::addSamples(const PkVector<PkPointF> &points, int ti
 {
     const int lastSampleTime = !m_d->samples.isEmpty() ? m_d->samples.last().time : 0;
 
-    const int timeSmoothBase = qMin(lastSampleTime, time);
+    const int timeSmoothBase = pkMin(lastSampleTime, time);
     const qreal timeSmoothStep = qreal(time - timeSmoothBase) / points.size();
 
     for (int i = 0; i < points.size(); i++) {

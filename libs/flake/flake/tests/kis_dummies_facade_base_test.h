@@ -42,14 +42,14 @@ private Q_SLOTS:
 
 private:
 
-    void verifyActivatedNodes(const QString &nodes);
-    void verifyMovedDummies(const QString &nodes);
+    void verifyActivatedNodes(const PkString &nodes);
+    void verifyMovedDummies(const PkString &nodes);
 
 private:
     KisDummiesFacadeBase *m_dummiesFacade;
 
-    QString m_activatedNodes;
-    QString m_movedDummies;
+    PkString m_activatedNodes;
+    PkString m_movedDummies;
 };
 
 #endif /* __KIS_DUMMIES_FACADE_BASE_TEST_H */

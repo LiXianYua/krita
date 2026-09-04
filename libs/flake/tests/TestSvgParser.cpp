@@ -8,7 +8,7 @@
 #include "TestSvgParser.h"
 
 
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <simpletest.h>
 #include <PkFlakeBridge.h>
 #include <svg/SvgUtil.h>
@@ -23,14 +23,14 @@
 
 #ifdef USE_ROUND_TRIP
 #include "SvgWriter.h"
-#include <QBuffer>
-#include <QDomDocument>
+#include <PkMemoryStream.h>
+#include <PkXmlDocument.h>
 #endif
 
 
 void TestSvgParser::testUnitPx()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -40,22 +40,22 @@ void TestSvgParser::testUnitPx()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absoluteTransformation(), QTransform());
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(0,0));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(10,20));
+    QCOMPARE(shape->boundingRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform());
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(0,0));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(10,20));
 }
 
 void TestSvgParser::testUnitPxResolution()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -65,23 +65,23 @@ void TestSvgParser::testUnitPxResolution()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), QRectF(0,0,5,10));
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(0,0));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(5,10));
+    QCOMPARE(shape->boundingRect(), PkRectF(0,0,5,10));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(0,0));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(5,10));
 }
 
 
 void TestSvgParser::testUnitPt()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10pt\" height=\"20pt\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -91,22 +91,22 @@ void TestSvgParser::testUnitPt()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 666 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 666 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), kisGrowRect(QRectF(0,0,10,20), 0));
-    QCOMPARE(shape->absoluteTransformation(), QTransform());
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(0,0));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(10,20));
+    QCOMPARE(shape->boundingRect(), kisGrowRect(PkRectF(0,0,10,20), 0));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform());
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(0,0));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(10,20));
 }
 
 void TestSvgParser::testUnitIn()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10in\" height=\"20in\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -116,22 +116,22 @@ void TestSvgParser::testUnitIn()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 666 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 666 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), QRectF(0,0,720,1440));
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromScale(72, 72));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(0,0));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(720,1440));
+    QCOMPARE(shape->boundingRect(), PkRectF(0,0,720,1440));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromScale(72, 72));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(0,0));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(720,1440));
 }
 
 void TestSvgParser::testUnitPercentInitial()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"12.5%\" height=\"25%\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -141,22 +141,22 @@ void TestSvgParser::testUnitPercentInitial()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 80, 80) /* px */, 144 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 80, 80) /* px */, 144 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), QRectF(0,0,5,10));
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(0,0));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(5,10));
+    QCOMPARE(shape->boundingRect(), PkRectF(0,0,5,10));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(0,0));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(5,10));
 }
 
 void TestSvgParser::testScalingViewport()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"60 70 20 40\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -166,23 +166,23 @@ void TestSvgParser::testScalingViewport()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 4) * QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(2,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(8,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(2,18));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(8,18));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 4) * PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(2,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(8,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(2,18));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(8,18));
 }
 
 void TestSvgParser::testScalingViewportNoScale()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10.1px\" height=\"20.2px\" viewBox=\"60 70 10.1 20.2\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -192,26 +192,26 @@ void TestSvgParser::testScalingViewportNoScale()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 4));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 4));
     // Verify that the scale factors are exactly 1.0
     QVERIFY(shape->absoluteTransformation().m11() == 1.0);
     QVERIFY(shape->absoluteTransformation().m22() == 1.0);
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(4,4));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(16,4));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(4,36));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(16,36));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(4,4));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(16,4));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(4,36));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(16,36));
 }
 
 void TestSvgParser::testScalingViewportKeepMeet1()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"30px\" viewBox=\"60 70 20 40\""
             "    preserveAspectRatio=\" xMinYMin meet\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -222,23 +222,23 @@ void TestSvgParser::testScalingViewportKeepMeet1()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 4) * QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(2,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(8,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(2,18));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(8,18));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 4) * PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(2,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(8,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(2,18));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(8,18));
 }
 
 void TestSvgParser::testScalingViewportKeepMeet2()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"15px\" height=\"20px\" viewBox=\"60 70 20 40\""
             "    preserveAspectRatio=\" xMinYMin meet\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -249,23 +249,23 @@ void TestSvgParser::testScalingViewportKeepMeet2()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 4) * QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(2,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(8,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(2,18));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(8,18));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 4) * PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(2,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(8,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(2,18));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(8,18));
 }
 
 void TestSvgParser::testScalingViewportKeepMeetAlign()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"30px\" viewBox=\"60 70 20 40\""
             "    preserveAspectRatio=\" xMaxYMax meet\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -276,23 +276,23 @@ void TestSvgParser::testScalingViewportKeepMeetAlign()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 24) * QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(2,12));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(8,12));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(2,28));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(8,28));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 24) * PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(2,12));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(8,12));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(2,28));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(8,28));
 }
 
 void TestSvgParser::testScalingViewportKeepSlice1()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"5px\" height=\"20px\" viewBox=\"60 70 20 40\""
             "    preserveAspectRatio=\" xMinYMin slice\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -303,23 +303,23 @@ void TestSvgParser::testScalingViewportKeepSlice1()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 4) * QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(2,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(8,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(2,18));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(8,18));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 4) * PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(2,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(8,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(2,18));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(8,18));
 }
 
 void TestSvgParser::testScalingViewportKeepSlice2()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"15px\" viewBox=\"60 70 20 40\""
             "    preserveAspectRatio=\" xMinYMin slice\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -330,23 +330,23 @@ void TestSvgParser::testScalingViewportKeepSlice2()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 4) * QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(2,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(8,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(2,18));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(8,18));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 4) * PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(2,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(8,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(2,18));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(8,18));
 }
 
 void TestSvgParser::testScalingViewportResolution()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"60 70 20 40\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -356,23 +356,23 @@ void TestSvgParser::testScalingViewportResolution()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 4) * QTransform::fromScale(0.25, 0.25));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(1,1));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(4,1));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(1,9));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(4,9));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 4) * PkTransform::fromScale(0.25, 0.25));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(1,1));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(4,1));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(1,9));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(4,9));
 }
 
 void TestSvgParser::testScalingViewportPercentInternal()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"60 70 20 40\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -382,18 +382,18 @@ void TestSvgParser::testScalingViewportPercentInternal()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(4, 4) * QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(2,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(8,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(2,18));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(8,18));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(4, 4) * PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(2,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(8,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(2,18));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(8,18));
 }
 
 
@@ -453,7 +453,7 @@ void TestSvgParser::testParsePreserveAspectRatio()
 void TestSvgParser::testParseTransform()
 {
     {
-        QString str("translate(-111.0, 33) translate(-111.0, 33) matrix (1 1 0 0 1, 3), translate(1)"
+        PkString str("translate(-111.0, 33) translate(-111.0, 33) matrix (1 1 0 0 1, 3), translate(1)"
                     "scale(0.5) rotate(10) rotate(10, 3 3) skewX(1) skewY(2)");
 
         SvgTransformParser p(toPkString(str));
@@ -462,7 +462,7 @@ void TestSvgParser::testParseTransform()
 
     {
         // forget about one brace
-        QString str("translate(-111.0, 33) translate(-111.0, 33 matrix (1 1 0 0 1, 3), translate(1)"
+        PkString str("translate(-111.0, 33) translate(-111.0, 33 matrix (1 1 0 0 1, 3), translate(1)"
                     "scale(0.5) rotate(10) rotate(10, 3 3) skewX(1) skewY(2)");
 
         SvgTransformParser p(toPkString(str));
@@ -472,39 +472,39 @@ void TestSvgParser::testParseTransform()
     {
         SvgTransformParser p("translate(100, 50)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(toQTransform(p.transform()), QTransform::fromTranslate(100, 50));
+        QCOMPARE(toQTransform(p.transform()), PkTransform::fromTranslate(100, 50));
     }
 
     {
         SvgTransformParser p("translate(100 50)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(toQTransform(p.transform()), QTransform::fromTranslate(100, 50));
+        QCOMPARE(toQTransform(p.transform()), PkTransform::fromTranslate(100, 50));
     }
 
     {
         SvgTransformParser p("translate(100)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(toQTransform(p.transform()), QTransform::fromTranslate(100, 0));
+        QCOMPARE(toQTransform(p.transform()), PkTransform::fromTranslate(100, 0));
     }
 
     {
         SvgTransformParser p("scale(100, 50)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(toQTransform(p.transform()), QTransform::fromScale(100, 50));
+        QCOMPARE(toQTransform(p.transform()), PkTransform::fromScale(100, 50));
     }
 
     {
         SvgTransformParser p("scale(100)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(toQTransform(p.transform()), QTransform::fromScale(100, 100));
+        QCOMPARE(toQTransform(p.transform()), PkTransform::fromScale(100, 100));
     }
 
     {
         SvgTransformParser p("rotate(90 70 74.0)");
         QCOMPARE(p.isValid(), true);
-        QTransform t;
+        PkTransform t;
         t.rotate(90);
-        t = QTransform::fromTranslate(-70, -74) * t * QTransform::fromTranslate(70, 74);
+        t = PkTransform::fromTranslate(-70, -74) * t * PkTransform::fromTranslate(70, 74);
         qDebug() << ppVar(p.transform());
         QCOMPARE(toQTransform(p.transform()), t);
     }
@@ -517,7 +517,7 @@ void TestSvgParser::testScalingViewportTransform()
      * element, while 'viewBox' affects only the descendants!
      */
 
-    const QString data =
+    const PkString data =
             "<svg width=\"5px\" height=\"10px\" viewBox=\"60 70 20 40\""
             "    transform=\"scale(2)\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -529,23 +529,23 @@ void TestSvgParser::testScalingViewportTransform()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->absoluteTransformation(), QTransform::fromTranslate(10, 4) * QTransform::fromScale(0.5, 0.5));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,12,32));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(5,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), QPointF(11,2));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), QPointF(5,18));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(11,18));
+    QCOMPARE(shape->absoluteTransformation(), PkTransform::fromTranslate(10, 4) * PkTransform::fromScale(0.5, 0.5));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,12,32));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(5,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopRight), PkPointF(11,2));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomLeft), PkPointF(5,18));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(11,18));
 }
 
 void TestSvgParser::testTransformNesting()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -556,21 +556,21 @@ void TestSvgParser::testTransformNesting()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), QRectF(10,10,20,20));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(10,10));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(30,30));
+    QCOMPARE(shape->boundingRect(), PkRectF(10,10,20,20));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(10,10));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(30,30));
 }
 
 void TestSvgParser::testTransformNestingGroups()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -583,21 +583,21 @@ void TestSvgParser::testTransformNestingGroups()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), QRectF(10,10, 20, 20));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(10,10));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(30,30));
+    QCOMPARE(shape->boundingRect(), PkRectF(10,10, 20, 20));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(10,10));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(30,30));
 }
 
 void TestSvgParser::testTransformRotation1()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -608,21 +608,21 @@ void TestSvgParser::testTransformRotation1()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), QRectF(-20,0,20,10));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(0,0));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(-20,10));
+    QCOMPARE(shape->boundingRect(), PkRectF(-20,0,20,10));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(0,0));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(-20,10));
 }
 
 void TestSvgParser::testTransformRotation2()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -633,23 +633,23 @@ void TestSvgParser::testTransformRotation2()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 72 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
     QVERIFY(shape);
 
-    QCOMPARE(shape->boundingRect(), QRectF(5,5,20,10));
-    QCOMPARE(shape->outlineRect(), QRectF(0,0,10,20));
-    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(5,15));
-    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), QPointF(25,5));
+    QCOMPARE(shape->boundingRect(), PkRectF(5,5,20,10));
+    QCOMPARE(shape->outlineRect(), PkRectF(0,0,10,20));
+    QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(5,15));
+    QCOMPARE(shape->absolutePosition(KoFlake::BottomRight), PkPointF(25,5));
 }
 
 
 
 void TestSvgParser::testRenderStrokeNone()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -664,7 +664,7 @@ void TestSvgParser::testRenderStrokeNone()
 
 void TestSvgParser::testRenderStrokeColorName()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -679,7 +679,7 @@ void TestSvgParser::testRenderStrokeColorName()
 
 void TestSvgParser::testRenderStrokeColorHex3()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -694,7 +694,7 @@ void TestSvgParser::testRenderStrokeColorHex3()
 
 void TestSvgParser::testRenderStrokeColorHex6()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -709,7 +709,7 @@ void TestSvgParser::testRenderStrokeColorHex6()
 
 void TestSvgParser::testRenderStrokeColorRgbValues()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -724,7 +724,7 @@ void TestSvgParser::testRenderStrokeColorRgbValues()
 
 void TestSvgParser::testRenderStrokeColorRgbPercent()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -739,7 +739,7 @@ void TestSvgParser::testRenderStrokeColorRgbPercent()
 
 void TestSvgParser::testRenderStrokeColorCurrent()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -756,7 +756,7 @@ void TestSvgParser::testRenderStrokeColorCurrent()
 
 void TestSvgParser::testRenderStrokeColorNonexistentIri()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -771,7 +771,7 @@ void TestSvgParser::testRenderStrokeColorNonexistentIri()
 
 void TestSvgParser::testRenderStrokeWidth()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -786,7 +786,7 @@ void TestSvgParser::testRenderStrokeWidth()
 
 void TestSvgParser::testRenderStrokeZeroWidth()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -801,7 +801,7 @@ void TestSvgParser::testRenderStrokeZeroWidth()
 
 void TestSvgParser::testRenderStrokeOpacity()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -817,7 +817,7 @@ void TestSvgParser::testRenderStrokeOpacity()
 
 void TestSvgParser::testRenderStrokeJointRound()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -832,7 +832,7 @@ void TestSvgParser::testRenderStrokeJointRound()
 
 void TestSvgParser::testRenderStrokeLinecap()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -851,7 +851,7 @@ void TestSvgParser::testRenderStrokeMiterLimit()
     qWarning() << "WARNING: Miter limit test is skipped!!!";
     return;
 
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -866,7 +866,7 @@ void TestSvgParser::testRenderStrokeMiterLimit()
 
 void TestSvgParser::testRenderStrokeDashArrayEven()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -881,7 +881,7 @@ void TestSvgParser::testRenderStrokeDashArrayEven()
 
 void TestSvgParser::testRenderStrokeDashArrayEvenOffset()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -899,7 +899,7 @@ void TestSvgParser::testRenderStrokeDashArrayOdd()
 {
     // SVG 1.1: if the dasharray is odd, repeat it
 
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -917,7 +917,7 @@ void TestSvgParser::testRenderStrokeDashArrayRelative()
     // SVG 1.1: relative to view box
     // (40 x 50) * sqrt(2) => dash length = 5 px
 
-    const QString data =
+    const PkString data =
             "<svg width=\"42.4264px\" height=\"56.56854px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -932,7 +932,7 @@ void TestSvgParser::testRenderStrokeDashArrayRelative()
 
 void TestSvgParser::testRenderFillDefault()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -946,7 +946,7 @@ void TestSvgParser::testRenderFillDefault()
 
 void TestSvgParser::testRenderFillRuleNonZero()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -961,7 +961,7 @@ void TestSvgParser::testRenderFillRuleNonZero()
 
 void TestSvgParser::testRenderFillRuleEvenOdd()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -976,7 +976,7 @@ void TestSvgParser::testRenderFillRuleEvenOdd()
 
 void TestSvgParser::testRenderFillOpacity()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -992,7 +992,7 @@ void TestSvgParser::testRenderFillOpacity()
 
 void TestSvgParser::testRenderDisplayAttribute()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1002,7 +1002,7 @@ void TestSvgParser::testRenderDisplayAttribute()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
@@ -1014,7 +1014,7 @@ void TestSvgParser::testRenderDisplayAttribute()
 void TestSvgParser::testRenderVisibilityAttribute()
 {
     {
-        const QString data =
+        const PkString data =
                 "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
                 "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1024,7 +1024,7 @@ void TestSvgParser::testRenderVisibilityAttribute()
                 "</svg>";
 
         SvgTester t (data);
-        t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
+        t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
         t.run();
 
         KoShape *shape = t.findShape("testRect");
@@ -1034,7 +1034,7 @@ void TestSvgParser::testRenderVisibilityAttribute()
     }
 
     {
-        const QString data =
+        const PkString data =
                 "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
                 "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1044,7 +1044,7 @@ void TestSvgParser::testRenderVisibilityAttribute()
                 "</svg>";
 
         SvgTester t (data);
-        t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
+        t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
         t.run();
 
         KoShape *shape = t.findShape("testRect");
@@ -1054,7 +1054,7 @@ void TestSvgParser::testRenderVisibilityAttribute()
     }
 
     {
-        const QString data =
+        const PkString data =
                 "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
                 "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1064,7 +1064,7 @@ void TestSvgParser::testRenderVisibilityAttribute()
                 "</svg>";
 
         SvgTester t (data);
-        t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
+        t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
         t.run();
 
         KoShape *shape = t.findShape("testRect");
@@ -1076,7 +1076,7 @@ void TestSvgParser::testRenderVisibilityAttribute()
 
 void TestSvgParser::testRenderVisibilityInheritance()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1088,7 +1088,7 @@ void TestSvgParser::testRenderVisibilityInheritance()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
@@ -1100,7 +1100,7 @@ void TestSvgParser::testRenderVisibilityInheritance()
 
 void TestSvgParser::testRenderDisplayInheritance()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"10px\" height=\"20px\" viewBox=\"0 0 10 20\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1112,7 +1112,7 @@ void TestSvgParser::testRenderDisplayInheritance()
             "</svg>";
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 600, 400) /* px */, 144 /* ppi */);
     t.run();
 
     KoShape *shape = t.findShape("testRect");
@@ -1125,7 +1125,7 @@ void TestSvgParser::testRenderDisplayInheritance()
 
 void TestSvgParser::testRenderStrokeWithInlineStyle()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1151,7 +1151,7 @@ void TestSvgParser::testIccColor()
     {
         ScopedProfileRemover()
             : m_profile(KoColorSpaceRegistry::instance()->profileByUniqueId(
-                toPkByteArray(QByteArray::fromHex(PROFILE_UNIQUE_ID_HEX))))
+                toPkByteArray(PkByteArray::fromHex(PROFILE_UNIQUE_ID_HEX))))
         {
             if (m_profile) {
                 qWarning() << "Profile already loaded, removing profile before test";
@@ -1173,7 +1173,7 @@ void TestSvgParser::testIccColor()
 
     // This test works because the icc-color won't be loaded unless there's a profile for it,
     // and the fill will be red if the icc-color is not loaded (it should be cyan).
-    const QString data =
+    const PkString data =
         "<svg width=\"30px\" height=\"30px\""
         "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">"
 
@@ -1195,14 +1195,14 @@ void TestSvgParser::testIccColor()
     int numFetches = 0;
 
     t.parser().setFileFetcher(
-        [&numFetches](const QString &name) {
+        [&numFetches](const PkString &name) {
             numFetches++;
-            QString fileName = TestUtil::fetchDataFileLazy(name);
+            PkString fileName = TestUtil::fetchDataFileLazy(name);
             if (fileName.isEmpty()) {
                 fileName = TestUtil::fetchDataFileLazy("icc/" + name);
             }
-            QFile file(fileName);
-            KIS_ASSERT(file.open(QIODevice::ReadOnly));
+            PkFileStream file(fileName);
+            KIS_ASSERT(file.open(PkStream::ReadOnly));
             return file.readAll();
         });
 
@@ -1210,8 +1210,8 @@ void TestSvgParser::testIccColor()
 
     KoShape *shape = t.findShape("testRect");
     if (shape) {
-        QSharedPointer<KoColorBackground>  bg = qSharedPointerDynamicCast<KoColorBackground>(shape->background());
-        QVERIFY2(bg->color() == QColor("#00FFFF"), "icc-color is not being loaded during parsing");
+        PkSharedPointer<KoColorBackground>  bg = qSharedPointerDynamicCast<KoColorBackground>(shape->background());
+        QVERIFY2(bg->color() == PkColor("#00FFFF"), "icc-color is not being loaded during parsing");
     }
     QCOMPARE(numFetches, 1);
 #undef PROFILE_UNIQUE_ID_HEX
@@ -1219,7 +1219,7 @@ void TestSvgParser::testIccColor()
 
 void TestSvgParser::testRenderFillLinearGradientRelativePercent()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1241,7 +1241,7 @@ void TestSvgParser::testRenderFillLinearGradientRelativePercent()
 
 void TestSvgParser::testRenderFillLinearGradientRelativePortion()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1261,7 +1261,7 @@ void TestSvgParser::testRenderFillLinearGradientRelativePortion()
 
 void TestSvgParser::testRenderFillLinearGradientUserCoord()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\" viewBox=\"60 70 60 90\""
             "        preserveAspectRatio=\"none meet\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -1283,7 +1283,7 @@ void TestSvgParser::testRenderFillLinearGradientUserCoord()
 
 void TestSvgParser::testRenderFillLinearGradientStopPortion()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1303,7 +1303,7 @@ void TestSvgParser::testRenderFillLinearGradientStopPortion()
 
 void TestSvgParser::testRenderFillLinearGradientTransform()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1325,7 +1325,7 @@ void TestSvgParser::testRenderFillLinearGradientTransform()
 
 void TestSvgParser::testRenderFillLinearGradientTransformUserCoord()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\" viewBox=\"60 70 60 90\""
             "        preserveAspectRatio=\"none meet\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -1352,7 +1352,7 @@ void TestSvgParser::testRenderFillLinearGradientRotatedShape()
     // DK: I'm not sure I fully understand if it is a correct transformation,
     //     but inkscape opens the file in the same way...
 
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1378,7 +1378,7 @@ void TestSvgParser::testRenderFillLinearGradientRotatedShapeUserCoord()
     // DK: I'm not sure I fully understand if it is a correct transformation,
     //     but inkscape opens the file in the same way...
 
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\" viewBox=\"60 70 60 90\""
             "        preserveAspectRatio=\"none meet\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -1402,7 +1402,7 @@ void TestSvgParser::testRenderFillLinearGradientRotatedShapeUserCoord()
 
 void TestSvgParser::testRenderFillLinearGradientTransparent()
 {
-    const QString data =
+    const PkString data =
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"30px\" height=\"30px\" "
             "    version=\"1.1\">"
             ""
@@ -1426,7 +1426,7 @@ void TestSvgParser::testRenderFillLinearGradientTransparent()
 
 void TestSvgParser::testRenderFillRadialGradient()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1446,7 +1446,7 @@ void TestSvgParser::testRenderFillRadialGradient()
 
 void TestSvgParser::testRenderFillRadialGradientUserCoord()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1468,7 +1468,7 @@ void TestSvgParser::testRenderFillRadialGradientUserCoord()
 
 void TestSvgParser::testRenderFillRadialGradientTransparent()
 {
-    const QString data =
+    const PkString data =
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"30px\" height=\"30px\""
             "     version=\"1.1\" >"
             ""
@@ -1494,7 +1494,7 @@ void TestSvgParser::testRenderFillRadialGradientTransparent()
 
 void TestSvgParser::testRenderFillLinearGradientUserCoordPercent()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\" viewBox=\"60 70 60 90\""
             "        preserveAspectRatio=\"none meet\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
@@ -1516,7 +1516,7 @@ void TestSvgParser::testRenderFillLinearGradientUserCoordPercent()
 
 void TestSvgParser::testRenderStrokeLinearGradient()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -1536,27 +1536,27 @@ void TestSvgParser::testRenderStrokeLinearGradient()
     t.test_standard_30px_72ppi("stroke_gradient_dashed");
 }
 
-QTransform rotateTransform(qreal degree, const QPointF &center) {
-    QTransform rotate;
+PkTransform rotateTransform(qreal degree, const PkPointF &center) {
+    PkTransform rotate;
     rotate.rotate(degree);
     return
-        QTransform::fromTranslate(-center.x(), -center.y()) *
+        PkTransform::fromTranslate(-center.x(), -center.y()) *
         rotate *
-        QTransform::fromTranslate(center.x(), center.y());
+        PkTransform::fromTranslate(center.x(), center.y());
 }
 
-QTransform viewTransform(const QRectF &src, const QRectF &dst) {
-    return QTransform::fromTranslate(-src.x(), -src.y()) *
-            QTransform::fromScale(dst.width() / src.width(),
+PkTransform viewTransform(const PkRectF &src, const PkRectF &dst) {
+    return PkTransform::fromTranslate(-src.x(), -src.y()) *
+            PkTransform::fromScale(dst.width() / src.width(),
                                   dst.height() / src.height()) *
-            QTransform::fromTranslate(dst.x(), dst.y());
+            PkTransform::fromTranslate(dst.x(), dst.y());
 
 }
 
 
 void TestSvgParser::testRenderMeshGradient_bilinear_1by1_UserCoord()
 {
-    QString data =
+    PkString data =
         "<svg"
         "   width=\"50px\""
         "   height=\"50px\""
@@ -1605,12 +1605,12 @@ void TestSvgParser::testRenderMeshGradient_bilinear_1by1_UserCoord()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_bilinear_1by1_in_user", QSize(50, 50), 72);
+    t.test_standard("meshgradient_bilinear_1by1_in_user", PkSize(50, 50), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_bicubic_1by1_UserCoord()
 {
-    QString data =
+    PkString data =
         "<svg id=\"svg8\""
         "   version=\"1.1\""
         "   height=\"100px\""
@@ -1659,12 +1659,12 @@ void TestSvgParser::testRenderMeshGradient_bicubic_1by1_UserCoord()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_bicubic_1by1_in_user", QSize(100, 100), 72);
+    t.test_standard("meshgradient_bicubic_1by1_in_user", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_bilinear_2by2_UserCoord()
 {
-    QString data =
+    PkString data =
         "<svg"
         "   version=\"1.1\""
         "   width=\"100px\""
@@ -1754,12 +1754,12 @@ void TestSvgParser::testRenderMeshGradient_bilinear_2by2_UserCoord()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_bilinear_2by2_in_user", QSize(100, 100), 72);
+    t.test_standard("meshgradient_bilinear_2by2_in_user", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_bicubic_2by2_UserCoord()
 {
-    QString data =
+    PkString data =
         "<svg width=\"100px\""
         "    height=\"100px\">"
         "<defs>"
@@ -1815,7 +1815,7 @@ void TestSvgParser::testRenderMeshGradient_bicubic_2by2_UserCoord()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_bicubic_2by2", QSize(100, 100), 72);
+    t.test_standard("meshgradient_bicubic_2by2", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_bilinear_1by1_Obb()
@@ -1824,7 +1824,7 @@ void TestSvgParser::testRenderMeshGradient_bilinear_1by1_Obb()
     qWarning() << "WARNING: skipped, the edge couldn't be reliably verified";
     return;
     // inkscape is _very_ weird with meshgradients in OBB coordinate system
-    QString data =
+    PkString data =
         "<svg width=\"100px\" height=\"100px\""
         "   version=\"1.1\" id=\"svg8\" >"
         "  <defs>"
@@ -1864,13 +1864,13 @@ void TestSvgParser::testRenderMeshGradient_bilinear_1by1_Obb()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_bilinear_1by1_in_obb", QSize(100, 100), 72);
+    t.test_standard("meshgradient_bilinear_1by1_in_obb", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_bicubic_2by2_Obb()
 {
     // inkscape is _very_ weird with meshgradients in OBB coordinate system
-    QString data =
+    PkString data =
         "<svg"
         "   version=\"1.1\""
         "   width=\"100px\""
@@ -1962,12 +1962,12 @@ void TestSvgParser::testRenderMeshGradient_bicubic_2by2_Obb()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_bicubic_2by2", QSize(100, 100), 72);
+    t.test_standard("meshgradient_bicubic_2by2", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_MeshTransform_UserCoord()
 {
-    QString data =
+    PkString data =
         "<svg"
         "   id=\"svg8\""
         "   version=\"1.1\""
@@ -2016,13 +2016,13 @@ void TestSvgParser::testRenderMeshGradient_MeshTransform_UserCoord()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_meshtransform_in_user", QSize(100, 100), 72);
+    t.test_standard("meshgradient_meshtransform_in_user", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_ShapeTransform_UserCoord()
 {
-    // QString data = fetchSvgFile("svg_render", "meshgradient_shapetransform_in_user");
-    QString data =
+    // PkString data = fetchSvgFile("svg_render", "meshgradient_shapetransform_in_user");
+    PkString data =
         "<svg"
         "   width=\"100px\""
         "   height=\"100px\""
@@ -2072,13 +2072,13 @@ void TestSvgParser::testRenderMeshGradient_ShapeTransform_UserCoord()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_shapetransform_in_user", QSize(100, 100), 72);
+    t.test_standard("meshgradient_shapetransform_in_user", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_MeshTransform_Obb()
 {
     // inkscape is _very_ weird with meshgradients in OBB coordinate system
-    QString data =
+    PkString data =
         "<svg"
         "   version=\"1.1\""
         "   height=\"100px\""
@@ -2141,13 +2141,13 @@ void TestSvgParser::testRenderMeshGradient_MeshTransform_Obb()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_meshtransform_in_obb", QSize(100, 100), 72);
+    t.test_standard("meshgradient_meshtransform_in_obb", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_ShapeTransform_Obb()
 {
     // inkscape is _very_ weird with meshgradients in OBB coordinate system
-    QString data =
+    PkString data =
         "<svg"
         "   width=\"100px\""
         "   height=\"100px\""
@@ -2196,14 +2196,14 @@ void TestSvgParser::testRenderMeshGradient_ShapeTransform_Obb()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(3);
-    t.test_standard("meshgradient_shapetransform_in_obb", QSize(100, 100), 72);
+    t.test_standard("meshgradient_shapetransform_in_obb", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_transparent()
 {
     // here I use Krita's output, due to my lack of knowledge about Inkscape's RGBA
     // output format. But the results, have been verified - SZ
-    QString data =
+    PkString data =
         "<svg"
         "   width=\"100px\""
         "   height=\"100px\""
@@ -2253,15 +2253,15 @@ void TestSvgParser::testRenderMeshGradient_transparent()
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
     t.setCheckQImagePremultiplied(true);
-    t.test_standard("meshgradient_transparent", QSize(100, 100), 72);
+    t.test_standard("meshgradient_transparent", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testRenderMeshGradient_reversed()
 {
     // Not sure if this is part of specs, but this brings up an underlying problem:
-    // bounds in QPainterPath are inclusive on right and bottom side, so an extra 1px
+    // bounds in PkPainterPath are inclusive on right and bottom side, so an extra 1px
     // border is drawn.
-    QString data =
+    PkString data =
         "<svg"
         "   id=\"svg856\""
         "   height=\"100px\""
@@ -2323,18 +2323,18 @@ void TestSvgParser::testRenderMeshGradient_reversed()
 
     SvgRenderTester t(data);
     t.setFuzzyThreshold(5);
-    t.test_standard("meshgradient_reversed", QSize(100, 100), 72);
+    t.test_standard("meshgradient_reversed", PkSize(100, 100), 72);
 }
 
-QPainterPath bakeShape(const QPainterPath &path,
-                       const QTransform &bakeTransform,
-                       bool contentIsObb = false, const QRectF &shapeBoundingRect = QRectF(),
-                       bool contentIsViewBox = false, const QRectF &viewBoxRect= QRectF(), const QRectF &refRect = QRectF())
+PkPainterPath bakeShape(const PkPainterPath &path,
+                       const PkTransform &bakeTransform,
+                       bool contentIsObb = false, const PkRectF &shapeBoundingRect = PkRectF(),
+                       bool contentIsViewBox = false, const PkRectF &viewBoxRect= PkRectF(), const PkRectF &refRect = PkRectF())
 {
-    const QTransform relativeToShape(shapeBoundingRect.width(), 0, 0, shapeBoundingRect.height(),
+    const PkTransform relativeToShape(shapeBoundingRect.width(), 0, 0, shapeBoundingRect.height(),
                                      shapeBoundingRect.x(), shapeBoundingRect.y());
 
-    QTransform newTransform = bakeTransform;
+    PkTransform newTransform = bakeTransform;
 
     if (contentIsObb) {
         newTransform = relativeToShape * newTransform;
@@ -2350,18 +2350,18 @@ QPainterPath bakeShape(const QPainterPath &path,
 #include <KoBakedShapeRenderer.h>
 
 void renderBakedPath(QPainter &painter,
-                     const QPainterPath &bakedFillPath, const QTransform &bakedTransform,
-                     const QRect &shapeOutline, const QTransform &shapeTransform,
-                     const QRectF &referenceRect,
-                     bool contentIsObb, const QRectF &bakedShapeBoundingRect,
+                     const PkPainterPath &bakedFillPath, const PkTransform &bakedTransform,
+                     const PkRect &shapeOutline, const PkTransform &shapeTransform,
+                     const PkRectF &referenceRect,
+                     bool contentIsObb, const PkRectF &bakedShapeBoundingRect,
                      bool referenceIsObb,
-                     const QTransform &patternTransform,
-                     QImage *stampResult)
+                     const PkTransform &patternTransform,
+                     PkImage *stampResult)
 {
-    painter.setTransform(QTransform());
+    painter.setTransform(PkTransform());
     painter.setPen(Qt::NoPen);
 
-    QPainterPath shapeOutlinePath;
+    PkPainterPath shapeOutlinePath;
     shapeOutlinePath.addRect(shapeOutline);
 
     KoBakedShapeRenderer renderer(
@@ -2386,19 +2386,19 @@ void renderBakedPath(QPainter &painter,
 
 void TestSvgParser::testManualRenderPattern_ContentUser_RefObb()
 {
-    const QRectF referenceRect(0, 0, 1.0, 0.5);
+    const PkRectF referenceRect(0, 0, 1.0, 0.5);
 
-    QPainterPath fillPath;
-    fillPath.addRect(QRect(2, 2, 6, 6));
-    fillPath.addRect(QRect(8, 4, 3, 2));
+    PkPainterPath fillPath;
+    fillPath.addRect(PkRect(2, 2, 6, 6));
+    fillPath.addRect(PkRect(8, 4, 3, 2));
 
-    QTransform bakedTransform = QTransform::fromTranslate(10, 10) * QTransform::fromScale(2, 2);
-    QPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform);
+    PkTransform bakedTransform = PkTransform::fromTranslate(10, 10) * PkTransform::fromScale(2, 2);
+    PkPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform);
 
-    QRect shape1OutlineRect(0,0,10,20);
+    PkRect shape1OutlineRect(0,0,10,20);
 
-    QImage stampResult;
-    QImage fillResult(QSize(60,60), QImage::Format_ARGB32);
+    PkImage stampResult;
+    PkImage fillResult(PkSize(60,60), PkImage::Format_ARGB32);
     QPainter gc(&fillResult);
 
     fillResult.fill(0);
@@ -2406,25 +2406,25 @@ void TestSvgParser::testManualRenderPattern_ContentUser_RefObb()
                     bakedFillPath, bakedTransform,
                     shape1OutlineRect, bakedTransform,
                     referenceRect,
-                    false, QRectF(),
+                    false, PkRectF(),
                     true,
-                    QTransform(),
+                    PkTransform(),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_user_r_obb_patch1"));
     QVERIFY(TestUtil::checkQImage(fillResult, "svg_render", "render", "pattern_c_user_r_obb_fill1"));
 
-    QRect shape2OutlineRect(5,5,20,10);
-    QTransform shape2Transform = QTransform::fromScale(2, 2) * QTransform::fromTranslate(5, 5);
+    PkRect shape2OutlineRect(5,5,20,10);
+    PkTransform shape2Transform = PkTransform::fromScale(2, 2) * PkTransform::fromTranslate(5, 5);
 
     fillResult.fill(0);
     renderBakedPath(gc,
                     bakedFillPath, bakedTransform,
                     shape2OutlineRect, shape2Transform,
                     referenceRect,
-                    false, QRectF(),
+                    false, PkRectF(),
                     true,
-                    QTransform(),
+                    PkTransform(),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_user_r_obb_patch2"));
@@ -2433,21 +2433,21 @@ void TestSvgParser::testManualRenderPattern_ContentUser_RefObb()
 
 void TestSvgParser::testManualRenderPattern_ContentObb_RefObb()
 {
-    const QRectF referenceRect(0.3, 0.3, 0.4, 0.4);
+    const PkRectF referenceRect(0.3, 0.3, 0.4, 0.4);
 
-    QPainterPath fillPath;
-    fillPath.addRect(QRectF(0.4, 0.4, 0.2, 0.2));
-    fillPath.addRect(QRectF(0.6, 0.5, 0.1, 0.1));
-    fillPath.addRect(QRectF(0.3, 0.4, 0.1, 0.1));
+    PkPainterPath fillPath;
+    fillPath.addRect(PkRectF(0.4, 0.4, 0.2, 0.2));
+    fillPath.addRect(PkRectF(0.6, 0.5, 0.1, 0.1));
+    fillPath.addRect(PkRectF(0.3, 0.4, 0.1, 0.1));
 
 
-    const QRect bakedShapeRect(2,2,10,10);
-    QTransform bakedTransform = QTransform::fromTranslate(10, 10) * QTransform::fromScale(2, 2);
+    const PkRect bakedShapeRect(2,2,10,10);
+    PkTransform bakedTransform = PkTransform::fromTranslate(10, 10) * PkTransform::fromScale(2, 2);
 
-    QPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform, true, bakedShapeRect);
+    PkPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform, true, bakedShapeRect);
 
-    QImage stampResult;
-    QImage fillResult(QSize(60,60), QImage::Format_ARGB32);
+    PkImage stampResult;
+    PkImage fillResult(PkSize(60,60), PkImage::Format_ARGB32);
     QPainter gc(&fillResult);
 
     // Round trip to the same shape
@@ -2459,7 +2459,7 @@ void TestSvgParser::testManualRenderPattern_ContentObb_RefObb()
                     referenceRect,
                     true, bakedShapeRect,
                     true,
-                    QTransform(),
+                    PkTransform(),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_obb_r_obb_patch1"));
@@ -2467,8 +2467,8 @@ void TestSvgParser::testManualRenderPattern_ContentObb_RefObb()
 
     // Move to a different shape
 
-    QRect shape2OutlineRect(5,5,20,10);
-    QTransform shape2Transform = QTransform::fromScale(2, 2) * QTransform::fromTranslate(5, 5);
+    PkRect shape2OutlineRect(5,5,20,10);
+    PkTransform shape2Transform = PkTransform::fromScale(2, 2) * PkTransform::fromTranslate(5, 5);
 
     fillResult.fill(0);
     renderBakedPath(gc,
@@ -2477,7 +2477,7 @@ void TestSvgParser::testManualRenderPattern_ContentObb_RefObb()
                     referenceRect,
                     true, bakedShapeRect,
                     true,
-                    QTransform(),
+                    PkTransform(),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_obb_r_obb_patch2"));
@@ -2486,20 +2486,20 @@ void TestSvgParser::testManualRenderPattern_ContentObb_RefObb()
 
 void TestSvgParser::testManualRenderPattern_ContentUser_RefUser()
 {
-    const QRectF referenceRect(5, 2, 8, 8);
+    const PkRectF referenceRect(5, 2, 8, 8);
 
-    QPainterPath fillPath;
-    fillPath.addRect(QRect(2, 2, 6, 6));
-    fillPath.addRect(QRect(8, 4, 3, 2));
+    PkPainterPath fillPath;
+    fillPath.addRect(PkRect(2, 2, 6, 6));
+    fillPath.addRect(PkRect(8, 4, 3, 2));
 
 
-    QTransform bakedTransform = QTransform::fromTranslate(10, 10) * QTransform::fromScale(2, 2);
-    QPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform);
+    PkTransform bakedTransform = PkTransform::fromTranslate(10, 10) * PkTransform::fromScale(2, 2);
+    PkPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform);
 
-    QRect shape1OutlineRect(0,0,10,20);
+    PkRect shape1OutlineRect(0,0,10,20);
 
-    QImage stampResult;
-    QImage fillResult(QSize(60,60), QImage::Format_ARGB32);
+    PkImage stampResult;
+    PkImage fillResult(PkSize(60,60), PkImage::Format_ARGB32);
     QPainter gc(&fillResult);
 
     fillResult.fill(0);
@@ -2507,25 +2507,25 @@ void TestSvgParser::testManualRenderPattern_ContentUser_RefUser()
                     bakedFillPath, bakedTransform,
                     shape1OutlineRect, bakedTransform,
                     referenceRect,
-                    false, QRectF(),
+                    false, PkRectF(),
                     false,
-                    QTransform(),
+                    PkTransform(),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_user_r_user_patch1"));
     QVERIFY(TestUtil::checkQImage(fillResult, "svg_render", "render", "pattern_c_user_r_user_fill1"));
 
-    QRect shape2OutlineRect(5,5,20,10);
-    QTransform shape2Transform = QTransform::fromScale(2, 2) * QTransform::fromTranslate(5, 5);
+    PkRect shape2OutlineRect(5,5,20,10);
+    PkTransform shape2Transform = PkTransform::fromScale(2, 2) * PkTransform::fromTranslate(5, 5);
 
     fillResult.fill(0);
     renderBakedPath(gc,
                     bakedFillPath, bakedTransform,
                     shape2OutlineRect, shape2Transform,
                     referenceRect,
-                    false, QRectF(),
+                    false, PkRectF(),
                     false,
-                    QTransform(),
+                    PkTransform(),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_user_r_user_patch2"));
@@ -2534,24 +2534,24 @@ void TestSvgParser::testManualRenderPattern_ContentUser_RefUser()
 
 void TestSvgParser::testManualRenderPattern_ContentObb_RefObb_Transform_Rotate()
 {
-    const QRectF referenceRect(0.0, 0.0, 0.4, 0.2);
+    const PkRectF referenceRect(0.0, 0.0, 0.4, 0.2);
 
-    QPainterPath fillPath;
-    fillPath.addRect(QRectF(0.0, 0.0, 0.5, 0.1));
-    fillPath.addRect(QRectF(0.0, 0.1, 0.1, 0.1));
+    PkPainterPath fillPath;
+    fillPath.addRect(PkRectF(0.0, 0.0, 0.5, 0.1));
+    fillPath.addRect(PkRectF(0.0, 0.1, 0.1, 0.1));
 
-    const QRect bakedShapeRect(2,1,10,10);
-    QTransform bakedTransform = QTransform::fromScale(2, 2) * QTransform::fromTranslate(10,10);
+    const PkRect bakedShapeRect(2,1,10,10);
+    PkTransform bakedTransform = PkTransform::fromScale(2, 2) * PkTransform::fromTranslate(10,10);
 
-    QPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform, true, bakedShapeRect);
+    PkPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform, true, bakedShapeRect);
 
-    QImage stampResult;
-    QImage fillResult(QSize(60,60), QImage::Format_ARGB32);
+    PkImage stampResult;
+    PkImage fillResult(PkSize(60,60), PkImage::Format_ARGB32);
     QPainter gc(&fillResult);
 
-    QTransform patternTransform;
+    PkTransform patternTransform;
     patternTransform.rotate(90);
-    patternTransform = patternTransform * QTransform::fromTranslate(0.5, 0.0);
+    patternTransform = patternTransform * PkTransform::fromTranslate(0.5, 0.0);
 
     // Round trip to the same shape
 
@@ -2568,8 +2568,8 @@ void TestSvgParser::testManualRenderPattern_ContentObb_RefObb_Transform_Rotate()
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_obb_r_obb_rotate_patch1"));
     QVERIFY(TestUtil::checkQImage(fillResult, "svg_render", "render", "pattern_c_obb_r_obb_rotate_fill1"));
 
-    QRect shape2OutlineRect(5,5,20,10);
-    QTransform shape2Transform = QTransform::fromScale(2, 2) * QTransform::fromTranslate(5, 5);
+    PkRect shape2OutlineRect(5,5,20,10);
+    PkTransform shape2Transform = PkTransform::fromScale(2, 2) * PkTransform::fromTranslate(5, 5);
 
     fillResult.fill(0);
     renderBakedPath(gc,
@@ -2588,23 +2588,23 @@ void TestSvgParser::testManualRenderPattern_ContentObb_RefObb_Transform_Rotate()
 
 void TestSvgParser::testManualRenderPattern_ContentView_RefObb()
 {
-    const QRectF referenceRect(0, 0, 0.5, 1.0/3.0);
-    const QRectF viewRect(10,10,60,90);
+    const PkRectF referenceRect(0, 0, 0.5, 1.0/3.0);
+    const PkRectF viewRect(10,10,60,90);
 
-    QPainterPath fillPath;
-    fillPath.addRect(QRect(30, 10, 20, 60));
-    fillPath.addRect(QRect(50, 40, 20, 30));
+    PkPainterPath fillPath;
+    fillPath.addRect(PkRect(30, 10, 20, 60));
+    fillPath.addRect(PkRect(50, 40, 20, 30));
 
 
-    QRect shape1OutlineRect(10,20,40,120);
+    PkRect shape1OutlineRect(10,20,40,120);
 
-    QTransform bakedTransform = QTransform::fromScale(2, 0.5) * QTransform::fromTranslate(40,30);
-    QPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform,
+    PkTransform bakedTransform = PkTransform::fromScale(2, 0.5) * PkTransform::fromTranslate(40,30);
+    PkPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform,
                                            true, shape1OutlineRect,
                                            true, viewRect, referenceRect);
 
-    QImage stampResult;
-    QImage fillResult(QSize(220,160), QImage::Format_ARGB32);
+    PkImage stampResult;
+    PkImage fillResult(PkSize(220,160), PkImage::Format_ARGB32);
     QPainter gc(&fillResult);
 
     fillResult.fill(0);
@@ -2614,14 +2614,14 @@ void TestSvgParser::testManualRenderPattern_ContentView_RefObb()
                     referenceRect,
                     true, shape1OutlineRect,
                     true,
-                    QTransform(),
+                    PkTransform(),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_view_r_obb_patch1"));
     QVERIFY(TestUtil::checkQImage(fillResult, "svg_render", "render", "pattern_c_view_r_obb_fill1"));
 
-    QRect shape2OutlineRect(20,10,60,90);
-    QTransform shape2Transform = QTransform::fromScale(2, 1) * QTransform::fromTranslate(50, 50);
+    PkRect shape2OutlineRect(20,10,60,90);
+    PkTransform shape2Transform = PkTransform::fromScale(2, 1) * PkTransform::fromTranslate(50, 50);
 
     fillResult.fill(0);
     renderBakedPath(gc,
@@ -2630,7 +2630,7 @@ void TestSvgParser::testManualRenderPattern_ContentView_RefObb()
                     referenceRect,
                     true, shape1OutlineRect,
                     true,
-                    rotateTransform(90, QPointF(0, 1.0 / 3.0)),
+                    rotateTransform(90, PkPointF(0, 1.0 / 3.0)),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_view_r_obb_patch2"));
@@ -2639,23 +2639,23 @@ void TestSvgParser::testManualRenderPattern_ContentView_RefObb()
 
 void TestSvgParser::testManualRenderPattern_ContentView_RefUser()
 {
-    const QRectF referenceRect(60, 0, 30, 20);
-    const QRectF viewRect(10,10,60,90);
+    const PkRectF referenceRect(60, 0, 30, 20);
+    const PkRectF viewRect(10,10,60,90);
 
-    QPainterPath fillPath;
-    fillPath.addRect(QRect(30, 10, 20, 60));
-    fillPath.addRect(QRect(50, 40, 20, 30));
+    PkPainterPath fillPath;
+    fillPath.addRect(PkRect(30, 10, 20, 60));
+    fillPath.addRect(PkRect(50, 40, 20, 30));
 
 
-    QRect shape1OutlineRect(10,20,40,120);
+    PkRect shape1OutlineRect(10,20,40,120);
 
-    QTransform bakedTransform = QTransform::fromScale(2, 0.5) * QTransform::fromTranslate(40,30);
-    QPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform,
+    PkTransform bakedTransform = PkTransform::fromScale(2, 0.5) * PkTransform::fromTranslate(40,30);
+    PkPainterPath bakedFillPath = bakeShape(fillPath, bakedTransform,
                                            false, shape1OutlineRect,
                                            true, viewRect, referenceRect);
 
-    QImage stampResult;
-    QImage fillResult(QSize(220,160), QImage::Format_ARGB32);
+    PkImage stampResult;
+    PkImage fillResult(PkSize(220,160), PkImage::Format_ARGB32);
     QPainter gc(&fillResult);
 
     fillResult.fill(0);
@@ -2665,16 +2665,16 @@ void TestSvgParser::testManualRenderPattern_ContentView_RefUser()
                     referenceRect,
                     false, shape1OutlineRect,
                     false,
-                    QTransform(),
+                    PkTransform(),
                     &stampResult);
 
     QVERIFY(TestUtil::checkQImage(stampResult, "svg_render", "render", "pattern_c_view_r_user_patch1"));
     QVERIFY(TestUtil::checkQImage(fillResult, "svg_render", "render", "pattern_c_view_r_user_fill1"));
 
-    QRect shape2OutlineRect(20,10,60,90);
-    QTransform shape2Transform = QTransform::fromScale(2, 1) * QTransform::fromTranslate(50, 50);
+    PkRect shape2OutlineRect(20,10,60,90);
+    PkTransform shape2Transform = PkTransform::fromScale(2, 1) * PkTransform::fromTranslate(50, 50);
 
-    QTransform patternTransform2 = rotateTransform(90, QPointF()) * QTransform::fromTranslate(40, 10);
+    PkTransform patternTransform2 = rotateTransform(90, PkPointF()) * PkTransform::fromTranslate(40, 10);
 
     fillResult.fill(0);
     renderBakedPath(gc,
@@ -2692,7 +2692,7 @@ void TestSvgParser::testManualRenderPattern_ContentView_RefUser()
 
 void TestSvgParser::testRenderPattern_r_User_c_User()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -2722,12 +2722,12 @@ void TestSvgParser::testRenderPattern_r_User_c_User()
 
     SvgRenderTester t (data);
 
-    t.test_standard_30px_72ppi("fill_pattern_base", false, QSize(160, 160));
+    t.test_standard_30px_72ppi("fill_pattern_base", false, PkSize(160, 160));
 }
 
 void TestSvgParser::testRenderPattern_InfiniteRecursionWhenInherited()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -2757,12 +2757,12 @@ void TestSvgParser::testRenderPattern_InfiniteRecursionWhenInherited()
 
     SvgRenderTester t (data);
 
-    t.test_standard_30px_72ppi("fill_pattern_base_black", false, QSize(160, 160));
+    t.test_standard_30px_72ppi("fill_pattern_base_black", false, PkSize(160, 160));
 }
 
 void TestSvgParser::testRenderPattern_r_User_c_View()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -2794,12 +2794,12 @@ void TestSvgParser::testRenderPattern_r_User_c_View()
 
     SvgRenderTester t (data);
 
-    t.test_standard_30px_72ppi("fill_pattern_base", false, QSize(160, 160));
+    t.test_standard_30px_72ppi("fill_pattern_base", false, PkSize(160, 160));
 }
 
 void TestSvgParser::testRenderPattern_r_User_c_Obb()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -2829,12 +2829,12 @@ void TestSvgParser::testRenderPattern_r_User_c_Obb()
 
     SvgRenderTester t (data);
 
-    t.test_standard_30px_72ppi("fill_pattern_base", false, QSize(160, 160));
+    t.test_standard_30px_72ppi("fill_pattern_base", false, PkSize(160, 160));
 }
 
 void TestSvgParser::testRenderPattern_r_User_c_View_Rotated()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -2865,7 +2865,7 @@ void TestSvgParser::testRenderPattern_r_User_c_View_Rotated()
 
     SvgRenderTester t (data);
 
-    t.test_standard_30px_72ppi("fill_pattern_rotated", false, QSize(220, 160));
+    t.test_standard_30px_72ppi("fill_pattern_rotated", false, PkSize(220, 160));
 }
 
 void TestSvgParser::testRenderPattern_r_Obb_c_View_Rotated()
@@ -2879,7 +2879,7 @@ void TestSvgParser::testRenderPattern_r_Obb_c_View_Rotated()
      * So...
      */
 
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -2910,7 +2910,7 @@ void TestSvgParser::testRenderPattern_r_Obb_c_View_Rotated()
 
     SvgRenderTester t (data);
 
-    t.test_standard_30px_72ppi("fill_pattern_rotated_odd", false, QSize(220, 160));
+    t.test_standard_30px_72ppi("fill_pattern_rotated_odd", false, PkSize(220, 160));
 }
 
 #include <KoPathShape.h>
@@ -2920,26 +2920,26 @@ void TestSvgParser::testRenderPattern_r_Obb_c_View_Rotated()
 
 void TestSvgParser::testKoClipPathRendering()
 {
-    QPainterPath path1;
-    path1.addRect(QRect(5,5,15,15));
+    PkPainterPath path1;
+    path1.addRect(PkRect(5,5,15,15));
 
-    QPainterPath path2;
-    path2.addRect(QRect(10,10,15,15));
+    PkPainterPath path2;
+    path2.addRect(PkRect(10,10,15,15));
 
-    QPainterPath clipPath1;
-    clipPath1.addRect(QRect(10, 0, 10, 30));
+    PkPainterPath clipPath1;
+    clipPath1.addRect(PkRect(10, 0, 10, 30));
 
-    QPainterPath clipPath2;
+    PkPainterPath clipPath2;
     clipPath2.moveTo(0,7);
     clipPath2.lineTo(30,7);
     clipPath2.lineTo(15,30);
     clipPath2.lineTo(0,7);
 
     std::unique_ptr<KoPathShape> shape1(KoPathShape::createShapeFromPainterPath(path1));
-    shape1->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(Qt::blue)));
+    shape1->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(Qt::blue)));
 
     std::unique_ptr<KoPathShape> shape2(KoPathShape::createShapeFromPainterPath(path2));
-    shape2->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(Qt::red)));
+    shape2->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(Qt::red)));
 
     std::unique_ptr<KoPathShape> clipShape1(KoPathShape::createShapeFromPainterPath(clipPath1));
     KoClipPath *koClipPath1 = new KoClipPath({clipShape1.release()}, KoFlake::UserSpaceOnUse);
@@ -2948,7 +2948,7 @@ void TestSvgParser::testKoClipPathRendering()
 
     std::unique_ptr<KoShapeGroup> group(new KoShapeGroup());
     {
-        QList<KoShape*> shapes({shape1.release(), shape2.release()});
+        PkList<KoShape*> shapes({shape1.release(), shape2.release()});
 
         KoShapeGroupCommand cmd(group.get(), toPkList(shapes), false);
         cmd.redo();
@@ -2959,31 +2959,31 @@ void TestSvgParser::testKoClipPathRendering()
     koClipPath2->setClipRule(Qt::WindingFill);
     group->setClipPath(koClipPath2);
 
-    SvgRenderTester::testRender(group.release(), "load", "clip_render_test", QSize(30,30), 72.0);
+    SvgRenderTester::testRender(group.release(), "load", "clip_render_test", PkSize(30,30), 72.0);
 }
 
 void TestSvgParser::testKoClipPathRelativeRendering()
 {
-    QPainterPath path1;
-    path1.addRect(QRect(5,5,15,15));
+    PkPainterPath path1;
+    path1.addRect(PkRect(5,5,15,15));
 
-    QPainterPath path2;
-    path2.addRect(QRect(10,10,15,15));
+    PkPainterPath path2;
+    path2.addRect(PkRect(10,10,15,15));
 
-    QPainterPath clipPath1;
-    clipPath1.addRect(QRect(10, 0, 10, 30));
+    PkPainterPath clipPath1;
+    clipPath1.addRect(PkRect(10, 0, 10, 30));
 
-    QPainterPath clipPath2;
+    PkPainterPath clipPath2;
     clipPath2.moveTo(0,0);
     clipPath2.lineTo(1,0);
     clipPath2.lineTo(0.5,1);
     clipPath2.lineTo(0,0);
 
     std::unique_ptr<KoPathShape> shape1(KoPathShape::createShapeFromPainterPath(path1));
-    shape1->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(Qt::blue)));
+    shape1->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(Qt::blue)));
 
     std::unique_ptr<KoPathShape> shape2(KoPathShape::createShapeFromPainterPath(path2));
-    shape2->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(Qt::red)));
+    shape2->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(Qt::red)));
 
     std::unique_ptr<KoPathShape> clipShape1(KoPathShape::createShapeFromPainterPath(clipPath1));
     KoClipPath *koClipPath1 = new KoClipPath({clipShape1.release()}, KoFlake::UserSpaceOnUse);
@@ -2992,7 +2992,7 @@ void TestSvgParser::testKoClipPathRelativeRendering()
 
     std::unique_ptr<KoShapeGroup> group(new KoShapeGroup());
     {
-        QList<KoShape*> shapes({shape1.release(), shape2.release()});
+        PkList<KoShape*> shapes({shape1.release(), shape2.release()});
 
         KoShapeGroupCommand cmd(group.get(), toPkList(shapes), false);
         cmd.redo();
@@ -3003,12 +3003,12 @@ void TestSvgParser::testKoClipPathRelativeRendering()
     koClipPath2->setClipRule(Qt::WindingFill);
     group->setClipPath(koClipPath2);
 
-    SvgRenderTester::testRender(group.release(), "load", "relative_clip_render_test", QSize(30,30), 72.0);
+    SvgRenderTester::testRender(group.release(), "load", "relative_clip_render_test", PkSize(30,30), 72.0);
 }
 
 void TestSvgParser::testRenderClipPath_User()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3041,7 +3041,7 @@ void TestSvgParser::testRenderClipPath_User()
 
 void TestSvgParser::testRenderClipPath_Obb()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3074,7 +3074,7 @@ void TestSvgParser::testRenderClipPath_Obb()
 
 void TestSvgParser::testRenderClipPath_Obb_Transform()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3109,7 +3109,7 @@ void TestSvgParser::testRenderClipPath_Obb_Transform()
 
 void TestSvgParser::testRenderClipMask_Obb()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3151,7 +3151,7 @@ void TestSvgParser::testRenderClipMask_Obb()
 
 void TestSvgParser::testRenderClipMaskOnGroup_Obb()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3191,17 +3191,17 @@ void TestSvgParser::testRenderClipMaskOnGroup_Obb()
     t.test_standard_30px_72ppi("clip_mask_on_group_obb", false);
 }
 
-QByteArray fileFetcherFunc(const QString &name)
+PkByteArray fileFetcherFunc(const PkString &name)
 {
-    const QString fileName = TestUtil::fetchDataFileLazy(name);
-    QFile file(fileName);
-    KIS_ASSERT(file.open(QIODevice::ReadOnly));
+    const PkString fileName = TestUtil::fetchDataFileLazy(name);
+    PkFileStream file(fileName);
+    KIS_ASSERT(file.open(PkStream::ReadOnly));
     return file.readAll();
 }
 
 void TestSvgParser::testRenderClipMask_User_Clip_Obb()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3243,7 +3243,7 @@ void TestSvgParser::testRenderClipMask_User_Clip_Obb()
 
 void TestSvgParser::testRenderClipMask_User_Clip_User()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3285,7 +3285,7 @@ void TestSvgParser::testRenderClipMask_User_Clip_User()
 
 void TestSvgParser::testRenderImage_AspectDefault()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">"
 
@@ -3316,7 +3316,7 @@ void TestSvgParser::testRenderImage_AspectDefault()
 
 void TestSvgParser::testRenderImage_AspectNone()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">"
 
@@ -3349,7 +3349,7 @@ void TestSvgParser::testRenderImage_AspectNone()
 
 void TestSvgParser::testRenderImage_AspectMeet()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">"
 
@@ -3381,7 +3381,7 @@ void TestSvgParser::testRenderImage_AspectMeet()
 
 void TestSvgParser::testRectShapeRoundUniformX()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3398,7 +3398,7 @@ void TestSvgParser::testRectShapeRoundUniformX()
 
 void TestSvgParser::testRectShapeRoundUniformY()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3415,7 +3415,7 @@ void TestSvgParser::testRectShapeRoundUniformY()
 
 void TestSvgParser::testRectShapeRoundXY()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3432,7 +3432,7 @@ void TestSvgParser::testRectShapeRoundXY()
 
 void TestSvgParser::testRectShapeRoundXYOverflow()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3449,7 +3449,7 @@ void TestSvgParser::testRectShapeRoundXYOverflow()
 
 void TestSvgParser::testCircleShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3465,7 +3465,7 @@ void TestSvgParser::testCircleShape()
 
 void TestSvgParser::testEllipseShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3481,7 +3481,7 @@ void TestSvgParser::testEllipseShape()
 
 void TestSvgParser::testLineShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3497,7 +3497,7 @@ void TestSvgParser::testLineShape()
 
 void TestSvgParser::testPolylineShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3514,7 +3514,7 @@ void TestSvgParser::testPolylineShape()
 
 void TestSvgParser::testPolygonShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3531,7 +3531,7 @@ void TestSvgParser::testPolygonShape()
 
 void TestSvgParser::testPathShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3548,12 +3548,12 @@ void TestSvgParser::testPathShape()
 
 void TestSvgParser::testPathData()
 {
-    const QString fileName = TestUtil::fetchDataFileLazy("paths-data-03-f.svg");
+    const PkString fileName = TestUtil::fetchDataFileLazy("paths-data-03-f.svg");
     QVERIFY(!fileName.isEmpty());
 
-    QFile file(fileName);
-    KIS_ASSERT(file.open(QIODevice::ReadOnly));
-    QByteArray pathData = file.readAll();
+    PkFileStream file(fileName);
+    KIS_ASSERT(file.open(PkStream::ReadOnly));
+    PkByteArray pathData = file.readAll();
 
     SvgRenderTester t(pathData);
     t.test_standard("paths_data", {480, 360}, 72);
@@ -3561,7 +3561,7 @@ void TestSvgParser::testPathData()
 
 void TestSvgParser::testPathShapeEllipticalArc()
 {
-    const QString data =
+    const PkString data =
         "<svg width=\"100px\" height=\"100px\""
         "   xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
         ""
@@ -3578,12 +3578,12 @@ void TestSvgParser::testPathShapeEllipticalArc()
         "</svg>";
 
     SvgRenderTester t (data);
-    t.test_standard("elliptical_arc", QSize(100, 100), 72);
+    t.test_standard("elliptical_arc", PkSize(100, 100), 72);
 }
 
 void TestSvgParser::testDefsHidden()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3606,7 +3606,7 @@ void TestSvgParser::testDefsHidden()
 
 void TestSvgParser::testDefsUseInheritance()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">"
 
@@ -3645,7 +3645,7 @@ void TestSvgParser::testDefsUseInheritance()
 
 void TestSvgParser::testUseWithoutDefs()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">"
 
@@ -3685,7 +3685,7 @@ void TestSvgParser::testUseWithoutDefs()
 
 void TestSvgParser::testMarkersAutoOrientation()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3713,7 +3713,7 @@ void TestSvgParser::testMarkersAutoOrientation()
 
 void TestSvgParser::testMarkersAutoOrientationScaled()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3741,7 +3741,7 @@ void TestSvgParser::testMarkersAutoOrientationScaled()
 
 void TestSvgParser::testMarkersAutoOrientationScaledUserCoordinates()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3770,7 +3770,7 @@ void TestSvgParser::testMarkersAutoOrientationScaledUserCoordinates()
 
 void TestSvgParser::testMarkersCustomOrientation()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3798,7 +3798,7 @@ void TestSvgParser::testMarkersCustomOrientation()
 
 void TestSvgParser::testMarkersDifferent()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3848,7 +3848,7 @@ void TestSvgParser::testMarkersDifferent()
 
 void TestSvgParser::testMarkersFillAsShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3885,7 +3885,7 @@ void TestSvgParser::testMarkersFillAsShape()
 
 void TestSvgParser::testRenderPaintOrderProperty_data()
 {
-    QTest::addColumn<QString>("paintOrderChunk");
+    QTest::addColumn<PkString>("paintOrderChunk");
 
     QTest::newRow("fill-stroke-markers") << "";
     QTest::newRow("stroke-fill-markers") << " paint-order=\"stroke\"";
@@ -3897,7 +3897,7 @@ void TestSvgParser::testRenderPaintOrderProperty_data()
 
 void TestSvgParser::testRenderPaintOrderProperty()
 {
-    const QString dataBefore = "<svg width=\"30px\" height=\"30px\""
+    const PkString dataBefore = "<svg width=\"30px\" height=\"30px\""
                                "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
                                "<marker id=\"SimpleRectMarker\""
@@ -3912,15 +3912,15 @@ void TestSvgParser::testRenderPaintOrderProperty()
                                "</marker>"
 
                                "<path id=\"testRect\"";
-    const QString dataAfter = "    style=\"fill:#ffffff;stroke:#000000;stroke-width:2px;marker-start:url(#SimpleRectMarker);marker-end:url(#SimpleRectMarker);marker-mid:url(#SimpleRectMarker)\""
+    const PkString dataAfter = "    style=\"fill:#ffffff;stroke:#000000;stroke-width:2px;marker-start:url(#SimpleRectMarker);marker-end:url(#SimpleRectMarker);marker-mid:url(#SimpleRectMarker)\""
                               "    d=\"M5,15 C5,5 25,5 25,15 L15,25\"/>"
 
                               "</svg>";
 
-    const QString name = QTest::currentDataTag();
-    QFETCH(QString, paintOrderChunk);
+    const PkString name = QTest::currentDataTag();
+    QFETCH(PkString, paintOrderChunk);
 
-    const QString data = dataBefore + paintOrderChunk + dataAfter;
+    const PkString data = dataBefore + paintOrderChunk + dataAfter;
 
     SvgRenderTester t (data);
     t.test_standard_30px_72ppi(name, false);
@@ -3928,7 +3928,7 @@ void TestSvgParser::testRenderPaintOrderProperty()
 
 void TestSvgParser::testMarkersOnClosedPath()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -3981,23 +3981,23 @@ void TestSvgParser::testGradientRecoveringTransform()
 {
     // used for experimenting purposes only!
 
-    QImage image(100,100,QImage::Format_ARGB32);
+    PkImage image(100,100,PkImage::Format_ARGB32);
     image.fill(0);
     QPainter painter(&image);
 
-    painter.setPen(QPen(Qt::black, 0));
+    painter.setPen(PkPen(Pk::black, 0));
 
 
     QLinearGradient gradient(0, 0.5, 1, 0.5);
-    gradient.setCoordinateMode(QGradient::ObjectBoundingMode);
+    gradient.setCoordinateMode(PkGradient::ObjectBoundingMode);
 
     //QLinearGradient gradient(0, 50, 100, 50);
-    //gradient.setCoordinateMode(QGradient::LogicalMode);
+    //gradient.setCoordinateMode(PkGradient::LogicalMode);
 
     gradient.setColorAt(0.0, Qt::red);
     gradient.setColorAt(1.0, Qt::blue);
 
-    QTransform gradientTransform;
+    PkTransform gradientTransform;
     gradientTransform.shear(0.2, 0);
 
     {
@@ -4006,29 +4006,29 @@ void TestSvgParser::testGradientRecoveringTransform()
         painter.setBrush(brush);
     }
 
-    QRect mainShape(3,3,94,94);
+    PkRect mainShape(3,3,94,94);
     painter.drawRect(mainShape);
 
-    QTransform gradientToUser(mainShape.width(), 0, 0, mainShape.height(),
+    PkTransform gradientToUser(mainShape.width(), 0, 0, mainShape.height(),
                               mainShape.x(), mainShape.y());
 
-    QRect smallShape(0,0,20,20);
-    QTransform smallShapeTransform;
+    PkRect smallShape(0,0,20,20);
+    PkTransform smallShapeTransform;
 
     {
         smallShapeTransform =
-            QTransform::fromTranslate(-smallShape.center().x(), -smallShape.center().y());
+            PkTransform::fromTranslate(-smallShape.center().x(), -smallShape.center().y());
 
-        QTransform r; r.rotate(90);
+        PkTransform r; r.rotate(90);
         smallShapeTransform *= r;
 
         smallShapeTransform *=
-            QTransform::fromTranslate(mainShape.center().x(), mainShape.center().y());
+            PkTransform::fromTranslate(mainShape.center().x(), mainShape.center().y());
     }
 
 
     {
-        gradient.setCoordinateMode(QGradient::LogicalMode);
+        gradient.setCoordinateMode(PkGradient::LogicalMode);
         QBrush brush(gradient);
         brush.setTransform(gradientTransform * gradientToUser * smallShapeTransform.inverted());
         painter.setBrush(brush);
@@ -4043,7 +4043,7 @@ void TestSvgParser::testGradientRecoveringTransform()
 
 void TestSvgParser::testMarkersAngularUnits()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"
 
@@ -4098,7 +4098,7 @@ void TestSvgParser::testMarkersAngularUnits()
 
 void TestSvgParser::testSodipodiArcShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\""
             "    xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\""
@@ -4130,7 +4130,7 @@ void TestSvgParser::testSodipodiArcShape()
 
 void TestSvgParser::testSodipodiArcShapeOpen()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\""
             "    xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\""
@@ -4163,7 +4163,7 @@ void TestSvgParser::testSodipodiArcShapeOpen()
 
 void TestSvgParser::testKritaChordShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\""
             "    xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\""
@@ -4197,7 +4197,7 @@ void TestSvgParser::testKritaChordShape()
 
 void TestSvgParser::testSodipodiChordShape()
 {
-    const QString data =
+    const PkString data =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\""
             "    xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\""
@@ -4234,9 +4234,9 @@ void TestSvgParser::testSodipodiChordShape()
 
 void TestSvgParser::testDescAndTitleParsing()
 {
-    const QString title = "Test Rectangle";
-    const QString description = "A description for the test rect";
-    const QString dataBefore =
+    const PkString title = "Test Rectangle";
+    const PkString description = "A description for the test rect";
+    const PkString dataBefore =
             "<svg width=\"30px\" height=\"30px\""
             "    xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\""
             "    xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\""
@@ -4245,12 +4245,12 @@ void TestSvgParser::testDescAndTitleParsing()
             "    fill=\"red\" stroke=\"black\""
             "    id=\"testRect\""
             "    d=\"M5,15 C5,5 25,5 25,15 L15,25\">";
-    const QString dataAfter = "</path></svg>";
+    const PkString dataAfter = "</path></svg>";
 
-    const QString data = dataBefore + "<title>"+title+"</title>" + "<desc>"+description+"</desc>" + dataAfter;
+    const PkString data = dataBefore + "<title>"+title+"</title>" + "<desc>"+description+"</desc>" + dataAfter;
 
     SvgTester t (data);
-    t.parser().setResolution(QRectF(0, 0, 380, 380) /* px */, 72 /* ppi */);
+    t.parser().setResolution(PkRectF(0, 0, 380, 380) /* px */, 72 /* ppi */);
     t.run();
     KoShape *shape = t.findShape("testRect");
 

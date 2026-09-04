@@ -613,7 +613,7 @@ inline void psdwriteFixedPoint(PkStream &io, double val)
 
     qint32 man = qint32(val);
     quint32 frac= quint32(fabs(val - man) * max24);
-    data = (qAbs(man) << 24) | frac;
+    data = (pkAbs(man) << 24) | frac;
     if (val < 0) {
         data *= -1;
     };

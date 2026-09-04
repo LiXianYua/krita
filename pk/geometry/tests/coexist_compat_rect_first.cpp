@@ -9,7 +9,7 @@
 //   ① compat/ 的每个类型垫片都要在包各自的 Pk 头**之前**先包 compat/QtGlobal。
 //      少了那行，下面的 `#include <QRect>` 会经 ../PkRect.h 直达 PkGlobal.h，
 //      由 PkGlobal.h 自己定义 qAbs；随后的 pk/test 那份垫片再定义一次 ——
-//      "redefinition of 'template<class T> constexpr T qAbs(const T&)'"。
+//      "redefinition of 'template<class T> constexpr T pkAbs(const T&)'"。
 //
 //   ② compat/QRect 要包 compat/QPoint 与 compat/QSize，复刻真 Qt qrect.h:44-45
 //      的 qsize.h / qpoint.h。少了那两行，只 include 了 <QRect> 的调用点写

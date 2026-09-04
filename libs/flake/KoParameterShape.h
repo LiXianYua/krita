@@ -47,7 +47,7 @@ public:
      * @param point the point to move the handle to in document coordinates
      * @param modifiers the keyboard modifiers used during moving the handle
      */
-    void moveHandle(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void moveHandle(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
 
     /**
      * @brief Get the id of the handle within the given rect
@@ -55,14 +55,14 @@ public:
      * @param rect the rect in shape coordinates
      * @return id of the found handle or -1 if none was found
      */
-    int handleIdAt(const QRectF &rect) const;
+    int handleIdAt(const PkRectF &rect) const;
 
     /**
      * @brief Get the handle position
      *
      * @param handleId the id of the handle for which to get the position in shape coordinates
      */
-    QPointF handlePosition(int handleId) const;
+    PkPointF handlePosition(int handleId) const;
 
     /**
      * @brief Paint the handles
@@ -81,7 +81,7 @@ public:
     void paintHandle(KisHandlePainterHelper &handlesHelper, int handleId);
 
     /// reimplemented from KoShape
-    void setSize(const QSizeF &size) override;
+    void setSize(const PkSizeF &size) override;
 
     /**
      * @brief Check if object is a parametric shape
@@ -103,7 +103,7 @@ public:
      */
     void setParametricShape(bool parametric);
 
-    QPointF normalize() override;
+    PkPointF normalize() override;
 
     /// return the number of handles set on the shape
     int handleCount() const;
@@ -113,13 +113,13 @@ protected:
      * Get the handle positions for manipulating the parameters.
      * @see setHandles, handleCount()
      */
-    QList<QPointF> handles() const;
+    PkList<PkPointF> handles() const;
 
     /**
      * Set the new handle positions which are used by the user to manipulate the parameters.
      * @see handles(), handleCount()
      */
-    void setHandles(const QList<QPointF> &handles);
+    void setHandles(const PkList<PkPointF> &handles);
 
     /// constructor
     KoParameterShape(const KoParameterShape &rhs);
@@ -133,14 +133,14 @@ protected:
      * @param point to move the handle to in shape coordinates
      * @param modifiers used during move to point
      */
-    virtual void moveHandleAction(int handleId, const QPointF & point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) = 0;
+    virtual void moveHandleAction(int handleId, const PkPointF & point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) = 0;
 
     /**
      * @brief Update the path of the parameter shape
      *
      * @param size of the shape
      */
-    virtual void updatePath(const QSizeF &size) = 0;
+    virtual void updatePath(const PkSizeF &size) = 0;
 
 private:
     class Private;

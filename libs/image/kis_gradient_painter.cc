@@ -208,7 +208,7 @@ double SquareGradientStrategy::valueAt(double x, double y) const
         distance2 = -m_normalisedVectorY * -py + m_normalisedVectorX * px;
         distance2 = fabs(distance2);
         
-        t = qMax(distance1, distance2) / m_vectorLength;
+        t = pkMax(distance1, distance2) / m_vectorLength;
     } else {
         t = 0;
     }
@@ -1040,7 +1040,7 @@ KisGradientShapeStrategy* createPolygonShapeStrategy(const PkPainterPath &path, 
                             boundingRect.height() >= 3);
 
     const qreal step =
-        qMin(qreal(8.0), KritaUtils::maxDimensionPortion(boundingRect, 0.01, 2));
+        pkMin(qreal(8.0), KritaUtils::maxDimensionPortion(boundingRect, 0.01, 2));
 
     return new KisCachedGradientShapeStrategy(boundingRect, step, step, strategy);
 }
@@ -1292,7 +1292,7 @@ bool KisGradientPainter::paintGradient(const PkPointF& gradientVectorStart,
         PkRect processRect = r.processRect;
         PkSharedPointer<KisGradientShapeStrategy> shapeStrategy = r.precalculatedShapeStrategy;
 
-        KoCachedGradient cachedGradient(gradient(), qMax(processRect.width(), processRect.height()), mixCs);
+        KoCachedGradient cachedGradient(gradient(), pkMax(processRect.width(), processRect.height()), mixCs);
 
         KisSequentialIteratorProgress it(tmp, processRect, progressUpdater());
 
@@ -1316,10 +1316,10 @@ bool KisGradientPainter::paintGradient(const PkPointF& gradientVectorStart,
         int columns = 1;
 
         for (int y = processRect.y(); y <= processRect.bottom(); y += rows) {
-            rows = qMin(srcIt->numContiguousRows(y), qMin(dstIt->numContiguousRows(y), processRect.bottom() - y + 1));
+            rows = pkMin(srcIt->numContiguousRows(y), pkMin(dstIt->numContiguousRows(y), processRect.bottom() - y + 1));
 
             for (int x = processRect.x(); x <= processRect.right(); x += columns) {
-                columns = qMin(srcIt->numContiguousColumns(x), qMin(dstIt->numContiguousColumns(x), processRect.right() - x + 1));
+                columns = pkMin(srcIt->numContiguousColumns(x), pkMin(dstIt->numContiguousColumns(x), processRect.right() - x + 1));
 
                 srcIt->moveTo(x, y);
                 dstIt->moveTo(x, y);

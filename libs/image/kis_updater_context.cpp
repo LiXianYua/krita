@@ -34,7 +34,7 @@ KisUpdaterContext::~KisUpdaterContext()
         clear();
     }
 
-    qDeleteAll(m_jobs);
+    pkDeleteAll(m_jobs);
 }
 
 void KisUpdaterContext::getJobsSnapshot(qint32 &numMergeJobs,

@@ -12,6 +12,8 @@ class PkByteArray
 {
 public:
     PkByteArray();
+    PkByteArray(const char* data);                     // null 结尾 C 串（对齐 QByteArray）；nullptr 当空
+    PkByteArray(char ch);                            // 单字节
     PkByteArray(const char* data, int len);          // len<=0 按空处理（Qt 对 (char*,0) 合法）
     explicit PkByteArray(const std::vector<uint8_t>& data);
 

@@ -9,9 +9,9 @@
 #ifndef KOSHAPEMANAGER_H
 #define KOSHAPEMANAGER_H
 
-#include <QList>
+#include <PkList.h>
 #include <QObject>
-#include <QRect>
+#include <PkRect.h>
 
 #include "KoFlake.h"
 #include "kritaflake_export.h"
@@ -26,8 +26,8 @@ class KoCanvasBase;
 class KoPointerEvent;
 
 class QPainter;
-class QPointF;
-class QRectF;
+class PkPointF;
+class PkRectF;
 
 /**
  * The shape manager hold a list of all shape which are in scope.
@@ -58,7 +58,7 @@ public:
      * @param shapes the shapes to start out with, see also setShapes()
      * @param canvas the canvas this shape manager is working on.
      */
-    KoShapeManager(KoCanvasBase *canvas, const QList<KoShape *> &shapes);
+    KoShapeManager(KoCanvasBase *canvas, const PkList<KoShape *> &shapes);
     ~KoShapeManager() override;
 
 
@@ -68,15 +68,15 @@ public:
      * @param shapes the new shapes to manage.
      * @param repaint if true it will trigger a repaint of the shapes
      */
-    void setShapes(const QList<KoShape *> &shapes, Repaint repaint = PaintShapeOnAdd);
+    void setShapes(const PkList<KoShape *> &shapes, Repaint repaint = PaintShapeOnAdd);
 
     /// returns the list of maintained shapes
-    QList<KoShape*> shapes() const;
+    PkList<KoShape*> shapes() const;
 
     /**
      * Get a list of all shapes that don't have a parent.
      */
-    QList<KoShape*> topLevelShapes() const;
+    PkList<KoShape*> topLevelShapes() const;
 
 public Q_SLOTS:
     /**
@@ -103,7 +103,7 @@ public:
         using SharedSafeStorage = std::shared_ptr<ShapesStorage>;
 
         PaintJob() = default;
-        PaintJob(QRectF _docUpdateRect, QRect _viewUpdateRect)
+        PaintJob(PkRectF _docUpdateRect, PkRect _viewUpdateRect)
             : docUpdateRect(_docUpdateRect),
               viewUpdateRect(_viewUpdateRect)
         {
@@ -113,21 +113,21 @@ public:
             return shapes.isEmpty();
         }
 
-        QRectF docUpdateRect;
-        QRect viewUpdateRect;
+        PkRectF docUpdateRect;
+        PkRect viewUpdateRect;
 
-        QList<KoShape*> shapes;
+        PkList<KoShape*> shapes;
         SharedSafeStorage allClonedShapes;
     };
 
     struct PaintJobsOrder
     {
-        QRect uncroppedViewUpdateRect;
-        QList<PaintJob> jobs;
+        PkRect uncroppedViewUpdateRect;
+        PkList<PaintJob> jobs;
 
         inline void clear() {
             jobs.clear();
-            uncroppedViewUpdateRect = QRect();
+            uncroppedViewUpdateRect = PkRect();
         }
 
         inline bool isEmpty() const {
@@ -188,7 +188,7 @@ public:
      * @param selection controls which shape is returned when more than one shape is at the specific point
      * @param omitHiddenShapes if true, only visible shapes are considered
      */
-    KoShape *shapeAt(const QPointF &position, KoFlake::ShapeSelection selection = KoFlake::ShapeOnTop, bool omitHiddenShapes = true);
+    KoShape *shapeAt(const PkPointF &position, KoFlake::ShapeSelection selection = KoFlake::ShapeOnTop, bool omitHiddenShapes = true);
 
     /**
      * Returns the shapes which intersects the specific rect in the document.
@@ -196,7 +196,7 @@ public:
      * @param omitHiddenShapes if @c true, only visible shapes are considered
      * @param containedMode if @c true use contained mode
      */
-    QList<KoShape *> shapesAt(const QRectF &rect, bool omitHiddenShapes = true, bool containedMode = false);
+    PkList<KoShape *> shapesAt(const PkRectF &rect, bool omitHiddenShapes = true, bool containedMode = false);
 
     /**
      * Request a repaint to be queued.
@@ -210,7 +210,7 @@ public:
      * @param selectionHandles if true; find out if the shape is selected and repaint its
      *   selection handles at the same time.
      */
-    void update(const QRectF &rect, const KoShape *shape = 0, bool selectionHandles = false);
+    void update(const PkRectF &rect, const KoShape *shape = 0, bool selectionHandles = false);
 
     /**
      * Block all updates initiated with update() call. The incoming updates will

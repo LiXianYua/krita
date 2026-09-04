@@ -120,7 +120,7 @@ void KisHLineIterator2::nextRow()
 
 std::int32_t KisHLineIterator2::nConseqPixels() const
 {
-    return qMin(m_rightmostInTile, m_right) - m_x + 1;
+    return pkMin(m_rightmostInTile, m_right) - m_x + 1;
 }
 
 

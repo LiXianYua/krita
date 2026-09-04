@@ -11,7 +11,7 @@
 
 #include <QRegion>
 #include <QPainter>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <QDebug>
 
 #include "KoMeshPatchesRenderer.h"
@@ -37,12 +37,12 @@ public:
         delete renderer;
     }
 
-    QScopedPointer<SvgMeshGradient> gradient;
-    QTransform matrix;
+    PkScopedPointer<SvgMeshGradient> gradient;
+    PkTransform matrix;
     KoMeshPatchesRenderer *renderer;
 };
 
-KoMeshGradientBackground::KoMeshGradientBackground(const SvgMeshGradient *gradient, const QTransform &matrix)
+KoMeshGradientBackground::KoMeshGradientBackground(const SvgMeshGradient *gradient, const PkTransform &matrix)
     : KoShapeBackground()
     , d(new Private)
 {
@@ -66,14 +66,14 @@ KoMeshGradientBackground &KoMeshGradientBackground::operator=(const KoMeshGradie
 }
 
 void KoMeshGradientBackground::paint(QPainter &painter,
-                                     const QPainterPath &fillPath) const
+                                     const PkPainterPath &fillPath) const
 {
     if (!d->gradient || !d->gradient->isValid())   return;
     painter.save();
 
-    QScopedPointer<SvgMeshGradient> gradient(new SvgMeshGradient(*d->gradient));
+    PkScopedPointer<SvgMeshGradient> gradient(new SvgMeshGradient(*d->gradient));
 
-    QRectF meshBoundingRect = toQRectF(gradient->boundingRect());
+    PkRectF meshBoundingRect = toQRectF(gradient->boundingRect());
 
     if (gradient->gradientUnits() == KoFlake::ObjectBoundingBox) {
         // KisAlgebra2D::mapToRect 剥离后收 PkRectF 返 PkTransform；gradient->setTransform
@@ -116,7 +116,7 @@ SvgMeshGradient* KoMeshGradientBackground::gradient()
     return d->gradient.data();
 }
 
-QTransform KoMeshGradientBackground::transform()
+PkTransform KoMeshGradientBackground::transform()
 {
     return d->matrix;
 }

@@ -15,7 +15,7 @@
 #include "KoShapeContainer.h"
 #include "KoShapeManager.h"
 #include <KoRTree.h>
-#include <QMutex>
+#include <PkMutex.h>
 #include "kis_thread_safe_signal_compressor.h"
 
 class KoCanvasBase;
@@ -50,20 +50,20 @@ public:
     /**
      * Recursively detach the shapes from this shape manager
      */
-    void unlinkFromShapesRecursively(const QList<KoShape *> &shapes);
+    void unlinkFromShapesRecursively(const PkList<KoShape *> &shapes);
 
-    QList<KoShape *> shapes;
+    PkList<KoShape *> shapes;
     KoSelection *selection;
     KoCanvasBase *canvas;
     KoRTree<KoShape *> tree;
-    QSet<KoShape *> aggregate4update;
+    PkSet<KoShape *> aggregate4update;
     KoShapeManager *q;
     KoShapeManager::ShapeInterface shapeInterface;
-    QMutex shapesMutex;
-    QMutex treeMutex;
+    PkMutex shapesMutex;
+    PkMutex treeMutex;
 
-    QRectF compressedUpdate;
-    QSet<const KoShape*> compressedUpdatedShapes;
+    PkRectF compressedUpdate;
+    PkSet<const KoShape*> compressedUpdatedShapes;
 
     bool updatesBlocked = false;
 };

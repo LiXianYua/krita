@@ -49,9 +49,9 @@ inline static void fillGrayBrushWithColorPreserveLightnessRGB(quint8 *pixels, co
         for (; nPixels > 0; --nPixels, pixels += pixelSize, ++brush) {
             float brushMaskL = pkRed(*brush) / 255.0f;
             brushMaskL = (brushMaskL - 0.5) * strength + 0.5;
-            const float finalAlpha = qMin(pkAlpha(*brush) / 255.0f, srcColorA);
+            const float finalAlpha = pkMin(pkAlpha(*brush) / 255.0f, srcColorA);
             float finalLightness = lightnessA * pow2(brushMaskL) + lightnessB * brushMaskL;
-            finalLightness = qBound(0.0f, finalLightness, 1.0f);
+            finalLightness = pkBound(0.0f, finalLightness, 1.0f);
 
             float pixelR = srcColorR;
             float pixelG = srcColorG;
@@ -108,7 +108,7 @@ inline static void modulateLightnessByGrayBrushRGB(quint8 *pixels, const PkRgb *
             const float lightnessA = 1 - lightnessB;
 
             float finalLightness = lightnessA * pow2(brushMaskL) + lightnessB * brushMaskL;
-            finalLightness = qBound(0.0f, finalLightness, 1.0f);
+            finalLightness = pkBound(0.0f, finalLightness, 1.0f);
 
             float pixelR = srcColorR;
             float pixelG = srcColorG;

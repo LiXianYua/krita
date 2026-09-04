@@ -238,8 +238,8 @@ void KisTransformWorkerTest::testScaleUp()
 
     QRect rc = dev->exactBounds();
 
-    QCOMPARE(rc.width(), qCeil(image.width() * 2.4));
-    QCOMPARE(rc.height(), qCeil(image.height() * 2.4));
+    QCOMPARE(rc.width(), pkCeil(image.width() * 2.4));
+    QCOMPARE(rc.height(), pkCeil(image.height() * 2.4));
 
     QImage result = dev->convertToQImage(0, rc.x(), rc.y(), rc.width(), rc.height());
     QPoint errpoint;
@@ -379,8 +379,8 @@ void KisTransformWorkerTest::testScaleDown()
 
     QRect rc = dev->exactBounds();
 
-    QCOMPARE(rc.width(), qRound(image.width() * 0.123));
-    QCOMPARE(rc.height(), qRound(image.height() * 0.123));
+    QCOMPARE(rc.width(), pkRound(image.width() * 0.123));
+    QCOMPARE(rc.height(), pkRound(image.height() * 0.123));
 
 //    KisTransaction t2("test", dev);
 //    KisRandomAccessorSP ac = dev->createRandomAccessorNG(rc.x(), rc.y());
@@ -458,7 +458,7 @@ void KisTransformWorkerTest::testYScaleDown()
     QRect rc = dev->exactBounds();
 
     QCOMPARE(rc.width(), image.width());
-    QCOMPARE(rc.height(), qRound(image.height() * 0.123));
+    QCOMPARE(rc.height(), pkRound(image.height() * 0.123));
 
     QImage result = dev->convertToQImage(0, rc.x(), rc.y(), rc.width(), rc.height());
     QPoint errpoint;
@@ -568,10 +568,10 @@ void KisTransformWorkerTest::testYShear()
 bool fuzzyCompareRects(const QRectF rc1, const QRectF rc2, qreal accuracy)
 {
     bool result =
-        qAbs(rc1.x() - rc2.x()) < accuracy &&
-        qAbs(rc1.y() - rc2.y()) < accuracy &&
-        qAbs(rc1.width() - rc2.width()) < 2 * accuracy &&
-        qAbs(rc1.height() - rc2.height()) < 2 * accuracy;
+        pkAbs(rc1.x() - rc2.x()) < accuracy &&
+        pkAbs(rc1.y() - rc2.y()) < accuracy &&
+        pkAbs(rc1.width() - rc2.width()) < 2 * accuracy &&
+        pkAbs(rc1.height() - rc2.height()) < 2 * accuracy;
 
     if(!result) {
         dbgKrita << "Failed to fuzzy compare rects";
@@ -758,8 +758,8 @@ void KisTransformWorkerTest::testScaleUp5times()
     result.save("test_scale_2000_2000_" + QString::number(SCALE) + "_result.bmp");
 #endif
 
-    QCOMPARE(rc.width(), qCeil(image.width() * SCALE));
-    QCOMPARE(rc.height(), qCeil(image.height() * SCALE));
+    QCOMPARE(rc.width(), pkCeil(image.width() * SCALE));
+    QCOMPARE(rc.height(), pkCeil(image.height() * SCALE));
 }
 
 void KisTransformWorkerTest::rotate90Left()

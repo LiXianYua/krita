@@ -395,7 +395,7 @@ int KisImageConfig::onionSkinOpacity(int offset, bool requestDefault) const
     if (value < 0 || requestDefault) {
         const int num = numberOfOnionSkins();
         if (num > 0) {
-            const qreal dx = qreal(qAbs(offset)) / num;
+            const qreal dx = qreal(pkAbs(offset)) / num;
             value = 0.7 * exp(-pow2(dx) / 0.5) * 255;
         }
     }
@@ -410,7 +410,7 @@ void KisImageConfig::setOnionSkinOpacity(int offset, int value)
 
 bool KisImageConfig::onionSkinState(int offset) const
 {
-    bool enableByDefault = (qAbs(offset) <= 2);
+    bool enableByDefault = (pkAbs(offset) <= 2);
     return m_config.readEntry(dynamicKey(PkString("onionSkinState_"), numberString(offset)), enableByDefault);
 }
 
@@ -518,7 +518,7 @@ int KisImageConfig::totalRAM()
 
     // For 32 bit windows, the total memory available is at max the 2GB per process memory limit.
 #   if defined ENV32BIT
-    totalMemory = qMin(totalMemory, 2000);
+    totalMemory = pkMin(totalMemory, 2000);
 #   endif
 #elif defined __APPLE__
     int mib[2] = { CTL_HW, HW_MEMSIZE };
@@ -635,7 +635,7 @@ void KisImageConfig::setMaxNumberOfThreads(int value)
 
 int KisImageConfig::frameRenderingClones(bool defaultValue) const
 {
-    const int defaultClonesCount = qMax(1, maxNumberOfThreads(defaultValue) / 2);
+    const int defaultClonesCount = pkMax(1, maxNumberOfThreads(defaultValue) / 2);
     return defaultValue ? defaultClonesCount : m_config.readEntry("frameRenderingClones", defaultClonesCount);
 }
 
@@ -769,7 +769,7 @@ void KisImageConfig::setMaxBrushSize(int value)
 
 int KisImageConfig::maxMaskingBrushSize() const
 {
-    return qMin(15000, 3 * maxBrushSize());
+    return pkMin(15000, 3 * maxBrushSize());
 }
 
 CursorStyle KisImageConfig::newCursorStyle(bool defaultValue) const

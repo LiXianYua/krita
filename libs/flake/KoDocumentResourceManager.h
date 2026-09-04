@@ -11,6 +11,8 @@
 #include <QObject>
 
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
 
 class KoShape;
 class KUndo2Stack;
@@ -18,8 +20,8 @@ class KoShapeController;
 class KoColor;
 class KoUnit;
 
-class QVariant;
-class QSizeF;
+class PkVariant;
+class PkSizeF;
 
 /**
  * The KoResourceManager contains a set of per-canvas <i>or</i> per-document
@@ -31,17 +33,17 @@ class QSizeF;
  * See KoShapeController::resourceManager
  *
  * The manager can contain all sorts of variable types and there are accessors
- * for the most common ones.  All variables are always stored inside a QVariant
+ * for the most common ones.  All variables are always stored inside a PkVariant
  * instance internally and you can always just use the resource() method to get
  * that directly.
  * The way to store arbitrary data objects that are stored as pointers you can use
  * the following code snippets;
  * @code
- *  QVariant variant;
+ *  PkVariant variant;
  *  variant.setValue<void*>(textShapeData->document());
  *  resourceManager->setResource(KoText::CurrentTextDocument, variant);
  *  // and get it out again.
- *  QVariant var = resourceManager->resource(KoText::CurrentTextDocument);
+ *  PkVariant var = resourceManager->resource(KoText::CurrentTextDocument);
  *  document = static_cast<QTextDocument*>(var.value<void*>());
  * @endcode
  */
@@ -88,7 +90,7 @@ enum DocumentResource {
      * @param value the new value for the key.
      * @see  KoDocumentResourceManager::DocumentResource
      */
-    void setResource(int key, const QVariant &value);
+    void setResource(int key, const PkVariant &value);
 
     /**
      * Set a resource of type KoColor.
@@ -120,7 +122,7 @@ enum DocumentResource {
      * @param key the key
      * @see  KoDocumentResourceManager::DocumentResource
      */
-    QVariant resource(int key) const;
+    PkVariant resource(int key) const;
 
     /**
      * Return the resource determined by param key as a boolean.
@@ -151,18 +153,18 @@ enum DocumentResource {
     KoShape *koShapeResource(int key) const;
 
     /**
-     * Return the resource determined by param key as a QString .
+     * Return the resource determined by param key as a PkString .
      * @param key the identifying key for the resource
      * @see  KoDocumentResourceManager::DocumentResource
      */
-    QString stringResource(int key) const;
+    PkString stringResource(int key) const;
 
     /**
-     * Return the resource determined by param key as a QSizeF.
+     * Return the resource determined by param key as a PkSizeF.
      * @param key the identifying key for the resource
      * @see  KoDocumentResourceManager::DocumentResource
      */
-    QSizeF sizeResource(int key) const;
+    PkSizeF sizeResource(int key) const;
 
     /**
      * Return the resource determined by param key as a KoUnit.
@@ -201,7 +203,7 @@ enum DocumentResource {
     void setUndoStack(KUndo2Stack *undoStack);
 
     qreal documentResolution() const;
-    QRectF documentRectInPixels() const;
+    PkRectF documentRectInPixels() const;
 
 Q_SIGNALS:
     /**
@@ -211,7 +213,7 @@ Q_SIGNALS:
      * @param value the variants new value.
      * @see KoDocumentResourceManager::DocumentResource
      */
-    void resourceChanged(int key, const QVariant &value);
+    void resourceChanged(int key, const PkVariant &value);
 
 private:
     KoDocumentResourceManager(const KoDocumentResourceManager&);

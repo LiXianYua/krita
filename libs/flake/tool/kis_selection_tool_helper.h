@@ -6,9 +6,9 @@
 #ifndef KIS_SELECTION_TOOL_HELPER_H
 #define KIS_SELECTION_TOOL_HELPER_H
 
-#include <QList>
-#include <QRect>
-#include <QRectF>
+#include <PkList.h>
+#include <PkRect.h>
+#include <PkRect.h>
 #include <PkObject.h>
 
 #include <kritashapemodel_export.h>
@@ -37,12 +37,12 @@ public:
     void selectPixelSelection(KisPixelSelectionSP selection, SelectionAction action);
 
     void addSelectionShape(KoShape* shape, SelectionAction action = SELECTION_DEFAULT);
-    void addSelectionShapes(QList<KoShape*> shapes, SelectionAction action = SELECTION_DEFAULT);
+    void addSelectionShapes(PkList<KoShape*> shapes, SelectionAction action = SELECTION_DEFAULT);
 
-    bool canShortcutToDeselect(const QRect &rect, SelectionAction action);
-    bool canShortcutToNoop(const QRect &rect, SelectionAction action);
+    bool canShortcutToDeselect(const PkRect &rect, SelectionAction action);
+    bool canShortcutToNoop(const PkRect &rect, SelectionAction action);
 
-    bool tryDeselectCurrentSelection(const QRectF selectionViewRect, SelectionAction action);
+    bool tryDeselectCurrentSelection(const PkRectF selectionViewRect, SelectionAction action);
 
     SelectionMode tryOverrideSelectionMode(KisSelectionSP activeSelection, SelectionMode currentMode, SelectionAction currentAction) const;
 

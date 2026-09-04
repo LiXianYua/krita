@@ -41,7 +41,7 @@ private Q_SLOTS:
     // ── toPolygon ──
     void polygonFToPolygonRounds();
 
-    // ── containsPoint：Qt::FillRule ──
+    // ── containsPoint：Pk::FillRule ──
     void polygonFContainsPointSquareInsideOutsideVertex();
     void polygonFContainsPointEmptyIsFalse();
     void polygonFContainsPointStarDistinguishesFillRule();

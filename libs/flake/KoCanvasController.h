@@ -14,15 +14,15 @@
 #include "kritaflake_export.h"
 #include <QObject>
 
-#include <QSize>
-#include <QPoint>
-#include <QPointF>
-#include <QPointer>
+#include <PkSize.h>
+#include <PkPoint.h>
+#include <PkPoint.h>
+#include <PkPointer.h>
 
 #include <KoZoomState.h>
 
-class QRect;
-class QRectF;
+class PkRect;
+class PkRectF;
 
 
 class KoShape;
@@ -61,7 +61,7 @@ class KRITAFLAKE_EXPORT KoCanvasController
 public:
 
     // proxy QObject: use this to connect to slots and signals.
-    QPointer<KoCanvasControllerProxyObject> proxyObject;
+    PkPointer<KoCanvasControllerProxyObject> proxyObject;
 
     /**
      * Constructor.
@@ -96,7 +96,7 @@ public:
      * @param rect the rectangle to make visible
      * @param smooth if true the viewport translation will make be just enough to ensure visibility, no more.
      */
-    virtual void ensureVisibleDoc(const QRectF &docRect, bool smooth) = 0;
+    virtual void ensureVisibleDoc(const PkRectF &docRect, bool smooth) = 0;
 
     /**
      * @brief zooms in keeping @p stillPoint not moved.
@@ -118,7 +118,7 @@ public:
      *
      * @param rect the rect in **widget** coordinates that should fit the view afterwards
      */
-    virtual void zoomTo(const QRect &rect) = 0;
+    virtual void zoomTo(const PkRect &rect) = 0;
 
     virtual void setZoom(KoZoomMode::Mode mode, qreal zoom) = 0;
 
@@ -126,16 +126,16 @@ public:
      * Sets the preferred center point in view coordinates (pixels).
      * @param viewPoint the new preferred center
      */
-    virtual void setPreferredCenter(const QPointF &viewPoint) = 0;
+    virtual void setPreferredCenter(const PkPointF &viewPoint) = 0;
 
     /// Returns the currently set preferred center point in view coordinates (pixels)
-    virtual QPointF preferredCenter() const = 0;
+    virtual PkPointF preferredCenter() const = 0;
 
     /**
      * Move the canvas over the x and y distance of the parameter distance
      * @param distance the distance in view coordinates (pixels).  A positive distance means moving the canvas up/left.
      */
-    virtual void pan(const QPoint &distance) = 0;
+    virtual void pan(const PkPoint &distance) = 0;
 
     /**
      * Move the canvas up. This behaves the same as \sa pan() with a positive y coordinate.
@@ -160,13 +160,13 @@ public:
     /**
      * Get the position of the scrollbar
      */
-    virtual QPoint scrollBarValue() const = 0;
+    virtual PkPoint scrollBarValue() const = 0;
 
     /**
      * Set the position of the scrollbar
      * @param value the new values of the scroll bars
      */
-    virtual void setScrollBarValue(const QPoint &value) = 0;
+    virtual void setScrollBarValue(const PkPoint &value) = 0;
 
     /**
      * Update the range of scroll bars
@@ -189,12 +189,12 @@ public:
      * @return the current position of the cursor fetched from QCursor::pos() and
      *         converted into document coordinates
      */
-    virtual QPointF currentCursorPosition() const = 0;
+    virtual PkPointF currentCursorPosition() const = 0;
 
     virtual KoZoomState zoomState() const = 0;
 
 protected:
-    void setDocumentOffset(const QPoint &offset);
+    void setDocumentOffset(const PkPoint &offset);
 
 
 private:
@@ -223,18 +223,18 @@ public:
     void emitCanvasRemoved(KoCanvasController *canvasController) { Q_EMIT canvasRemoved(canvasController); }
     void emitCanvasSet(KoCanvasController *canvasController) { Q_EMIT canvasSet(canvasController); }
     void emitCanvasOffsetChanged() { Q_EMIT canvasOffsetChanged(); }
-    void emitCanvasMousePositionChanged(const QPoint &position) { Q_EMIT canvasMousePositionChanged(position); }
-    void emitDocumentMousePositionChanged(const QPointF &position) { Q_EMIT documentMousePositionChanged(position); }
-    void emitSizeChanged(const QSize &size) { Q_EMIT sizeChanged(size); }
-    void emitMoveDocumentOffset(const QPointF &oldOffset, const QPointF &newOffset) { Q_EMIT moveDocumentOffset(oldOffset, newOffset); }
+    void emitCanvasMousePositionChanged(const PkPoint &position) { Q_EMIT canvasMousePositionChanged(position); }
+    void emitDocumentMousePositionChanged(const PkPointF &position) { Q_EMIT documentMousePositionChanged(position); }
+    void emitSizeChanged(const PkSize &size) { Q_EMIT sizeChanged(size); }
+    void emitMoveDocumentOffset(const PkPointF &oldOffset, const PkPointF &newOffset) { Q_EMIT moveDocumentOffset(oldOffset, newOffset); }
     void emitEffectiveZoomChanged(qreal zoom) { Q_EMIT effectiveZoomChanged(zoom); }
     void emitZoomStateChanged(const KoZoomState &zoomState) { Q_EMIT zoomStateChanged(zoomState); }
-    void emitDocumentRectInWidgetPixelsChanged(const QRectF &documentRectInWidgetPixels) { Q_EMIT documentRectInWidgetPixelsChanged(documentRectInWidgetPixels); }
+    void emitDocumentRectInWidgetPixelsChanged(const PkRectF &documentRectInWidgetPixels) { Q_EMIT documentRectInWidgetPixelsChanged(documentRectInWidgetPixels); }
     void emitDocumentRotationChanged(qreal angle) { Q_EMIT documentRotationChanged(angle); }
     void emitDocumentMirrorStatusChanged(bool mirrorX, bool mirrorY) { Q_EMIT documentMirrorStatusChanged(mirrorX, mirrorY); }
     void emitCanvasStateChanged() { Q_EMIT canvasStateChanged(); }
 
-    // Convenience method to retrieve the canvas controller for who needs to use QPointer
+    // Convenience method to retrieve the canvas controller for who needs to use PkPointer
     KoCanvasController *canvasController() const { return m_canvasController; }
 
 Q_SIGNALS:
@@ -259,7 +259,7 @@ Q_SIGNALS:
      * Emitted when the cursor is moved over the canvas widget.
      * @param position the position in view coordinates (pixels).
      */
-    void canvasMousePositionChanged(const QPoint &position);
+    void canvasMousePositionChanged(const PkPoint &position);
 
     /**
      * Emitted when the cursor is moved over the canvas widget.
@@ -268,13 +268,13 @@ Q_SIGNALS:
      * Use \ref canvasMousePositionChanged to get the position
      * in view coordinates.
      */
-    void documentMousePositionChanged(const QPointF &position);
+    void documentMousePositionChanged(const PkPointF &position);
 
     /**
      * Emitted when the entire controller size changes
      * @param size the size in widget pixels.
      */
-    void sizeChanged(const QSize &size);
+    void sizeChanged(const PkSize &size);
 
     /**
      * Emitted whenever the document is scrolled.
@@ -282,13 +282,13 @@ Q_SIGNALS:
      * @param point the new top-left point from which the document should
      * be drawn.
      */
-    void moveDocumentOffset(const QPointF &oldOffset, const QPointF &newOffset);
+    void moveDocumentOffset(const PkPointF &oldOffset, const PkPointF &newOffset);
 
     void effectiveZoomChanged(qreal zoom);
 
     void zoomStateChanged(const KoZoomState &zoomState);
 
-    void documentRectInWidgetPixelsChanged(const QRectF &documentRectInWidgetPixels);
+    void documentRectInWidgetPixelsChanged(const PkRectF &documentRectInWidgetPixels);
 
     void documentRotationChanged(qreal angle);
     void documentMirrorStatusChanged(bool mirrorX, bool mirrorY);

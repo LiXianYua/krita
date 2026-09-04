@@ -12,10 +12,10 @@
 #include <QtGlobal>
 
 class KoViewTransformStillPoint;
-class QPointF;
-class QRectF;
-class QSizeF;
-class QTransform;
+class PkPointF;
+class PkRectF;
+class PkSizeF;
+class PkTransform;
 
 /**
  * The interface for view conversions.
@@ -38,39 +38,39 @@ public:
      * Convert a coordinate in pt to pixels.
      * @param documentPoint the point in the document coordinate system of a KoShape.
      */
-    virtual QPointF documentToView(const QPointF &documentPoint) const;
+    virtual PkPointF documentToView(const PkPointF &documentPoint) const;
 
     /**
      * Convert a coordinate in pixels to pt.
      * @param viewPoint the point in the coordinate system of the widget, or window.
      */
-    virtual QPointF viewToDocument(const QPointF &viewPoint) const;
+    virtual PkPointF viewToDocument(const PkPointF &viewPoint) const;
 
     /**
      * Convert a rectangle in pt to pixels.
      * @param documentRect the rect in the document coordinate system of a KoShape.
      */
-    virtual QRectF documentToView(const QRectF &documentRect) const;
+    virtual PkRectF documentToView(const PkRectF &documentRect) const;
 
     /**
      * Convert a rectangle in pixels to pt.
      * @param viewRect the rect in the coordinate system of the widget, or window.
      */
-    virtual QRectF viewToDocument(const QRectF &viewRect) const;
+    virtual PkRectF viewToDocument(const PkRectF &viewRect) const;
 
     /**
      * Convert a size in pt to pixels.
      * @param documentSize the size in pt.
      * @return the size in pixels.
      */
-    virtual QSizeF documentToView(const QSizeF& documentSize) const;
+    virtual PkSizeF documentToView(const PkSizeF& documentSize) const;
 
     /**
      * Convert a size in pixels to pt.
      * @param viewSize the size in pixels.
      * @return the size in pt.
      */
-    virtual QSizeF viewToDocument(const QSizeF& viewSize) const;
+    virtual PkSizeF viewToDocument(const PkSizeF& viewSize) const;
 
     /**
      * Convert a single x coordinate in pt to pixels.
@@ -126,7 +126,7 @@ public:
      *
      * Reimplemented in KisCoordinatesConverter.
      */
-    virtual KoViewTransformStillPoint makeWidgetStillPoint(const QPointF &viewPoint) const;
+    virtual KoViewTransformStillPoint makeWidgetStillPoint(const PkPointF &viewPoint) const;
 
     /**
      * \brief Creates a still point that links the \p docPoint of the image
@@ -138,13 +138,13 @@ public:
      *
      * Reimplemented in KisCoordinatesConverter.
      */
-    virtual KoViewTransformStillPoint makeDocStillPoint(const QPointF &docPoint) const;
+    virtual KoViewTransformStillPoint makeDocStillPoint(const PkPointF &docPoint) const;
 
-    QTransform documentToView() const;
-    QTransform viewToDocument() const;
+    PkTransform documentToView() const;
+    PkTransform viewToDocument() const;
 
-    virtual QTransform viewToWidget() const;
-    virtual QTransform widgetToView() const;
+    virtual PkTransform viewToWidget() const;
+    virtual PkTransform widgetToView() const;
 
 private:
     qreal m_zoomLevel; // 1.0 is 100%

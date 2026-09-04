@@ -67,8 +67,8 @@ struct SatinRectsData
 
         srcRect = dstRect;
 
-        int xGrow = qAbs(offset.x());
-        int yGrow = qAbs(offset.y());
+        int xGrow = pkAbs(offset.x());
+        int yGrow = pkAbs(offset.y());
         satinNeedRect = srcRect.adjusted(-xGrow, -yGrow, xGrow, yGrow);
 
         blurNeedRect = blur_size ?
@@ -110,9 +110,9 @@ void blendAndOffsetSatinSelection(KisPixelSelectionSP dstSelection,
         quint8 *src2PixelPtr = srcIt2.rawData();
 
         if (!invert) {
-            *dstPixelPtr = qAbs(*src1PixelPtr - *src2PixelPtr);
+            *dstPixelPtr = pkAbs(*src1PixelPtr - *src2PixelPtr);
         } else {
-            *dstPixelPtr = (255 - qAbs(*src1PixelPtr - *src2PixelPtr));
+            *dstPixelPtr = (255 - pkAbs(*src1PixelPtr - *src2PixelPtr));
         }
     }
 }

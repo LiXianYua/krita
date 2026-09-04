@@ -16,8 +16,8 @@
 
 // Calligra
 #include <KoXmlNS.h>
-#include <QImage>
-#include <QTransform>
+#include <PkImage.h>
+#include <PkTransform.h>
 #include <KoShapeLoadingContext.h>
 #include <KoProperties.h>
 
@@ -29,9 +29,9 @@ ImageShapeFactory::ImageShapeFactory()
 {
     setToolTip(i18n("A shape that shows an image (PNG/JPG/TIFF)"));
 
-    QList<QPair<QString, QStringList> > elementNamesList;
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), QStringList("image")));
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::svg), QStringList("image")));
+    PkList<std::pair<PkString, PkStringList> > elementNamesList;
+    elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), PkStringList("image")));
+    elementNamesList.append(qMakePair(toQString(KoXmlNS::svg), PkStringList("image")));
     setXmlElements(elementNamesList);
     setLoadingPriority(1);
 }
@@ -51,18 +51,18 @@ KoShape *ImageShapeFactory::createShape(const KoProperties *params, KoDocumentRe
     shape->setShapeId(ImageShapeId);
 
     PkVariant var = params->value("image");
-    if (var.canConvert<QImage>()) {
-        shape->setImage(var.value<QImage>());
+    if (var.canConvert<PkImage>()) {
+        shape->setImage(var.value<PkImage>());
     }
 
     var = params->value("viewboxTransform");
-    if (var.canConvert<QTransform>()) {
-        shape->setViewBoxTransform(var.value<QTransform>());
+    if (var.canConvert<PkTransform>()) {
+        shape->setViewBoxTransform(var.value<PkTransform>());
     }
     return shape;
 }
 
-bool ImageShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &context) const
+bool ImageShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &context) const
 {
     Q_UNUSED(context);
     return e.localName() == "image" &&

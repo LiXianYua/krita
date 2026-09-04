@@ -5,8 +5,8 @@
 
 #include <QBrush>
 #include <QPainter>
-#include <QPen>
-#include <QPolygonF>
+#include <PkPen.h>
+#include <PkPolygon.h>
 
 #include "PkFlakeBridge.h"
 #include "PkQPainterAdapter.h"
@@ -30,11 +30,11 @@ QBrush toQBrush(const PkBrush &brush)
     return result;
 }
 
-QPen toQPen(const PkPen &pen)
+PkPen toQPen(const PkPen &pen)
 {
-    QPen result(toQBrush(pen.brush()), pen.widthF(), pen.style(), pen.capStyle());
+    PkPen result(toQBrush(pen.brush()), pen.widthF(), pen.style(), pen.capStyle());
     if (!pen.dashPattern().empty()) {
-        QVector<qreal> pattern;
+        PkVector<qreal> pattern;
         pattern.reserve(static_cast<int>(pen.dashPattern().size()));
         for (qreal length : pen.dashPattern()) {
             pattern.append(length);
@@ -45,9 +45,9 @@ QPen toQPen(const PkPen &pen)
     return result;
 }
 
-QPolygonF toQPolygonF(const PkPolygonF &polygon)
+PkPolygonF toQPolygonF(const PkPolygonF &polygon)
 {
-    QPolygonF result;
+    PkPolygonF result;
     result.reserve(polygon.size());
     for (const PkPointF &point : polygon) {
         result.append(toQPointF(point));
@@ -87,7 +87,7 @@ void PkQPainterAdapter::submit(const PkPaintCommand &command)
             m_painter.setClipRect(toQRectF(value.rect), value.operation);
         },
         [this](const PkDrawLineCommand &value) {
-            m_painter.drawLine(QLineF(toQPointF(value.line.p1()), toQPointF(value.line.p2())));
+            m_painter.drawLine(PkLineF(toQPointF(value.line.p1()), toQPointF(value.line.p2())));
         },
         [this](const PkDrawRectCommand &value) {
             m_painter.drawRect(toQRectF(value.rect));

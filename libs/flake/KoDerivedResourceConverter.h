@@ -7,11 +7,11 @@
 #ifndef __KO_DERIVED_RESOURCE_CONVERTER_H
 #define __KO_DERIVED_RESOURCE_CONVERTER_H
 
-#include <QScopedPointer>
-#include <QSharedPointer>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
 #include "kritaflake_export.h"
 
-class QVariant;
+class PkVariant;
 
 /**
  * \class KoDerivedResourceConverter
@@ -60,31 +60,31 @@ public:
     int key() const;
     int sourceKey() const;
 
-    QVariant readFromSource(const QVariant &value);
-    QVariant writeToSource(const QVariant &value,
-                           const QVariant &sourceValue,
+    PkVariant readFromSource(const PkVariant &value);
+    PkVariant writeToSource(const PkVariant &value,
+                           const PkVariant &sourceValue,
                            bool *changed);
 
-    virtual bool notifySourceChanged(const QVariant &sourceValue);
+    virtual bool notifySourceChanged(const PkVariant &sourceValue);
 
 protected:
     /**
      * Converts the \p value of the source resource into the space of
      * the "derived" resource. E.g. preset -> opacity.
      */
-    virtual QVariant fromSource(const QVariant &value) = 0;
+    virtual PkVariant fromSource(const PkVariant &value) = 0;
 
     /**
      * Converts the value of the "derived" resource into the space of the
      * original ("source") resource. E.g. opacity -> preset.
      */
-    virtual QVariant toSource(const QVariant &value, const QVariant &sourceValue) = 0;
+    virtual PkVariant toSource(const PkVariant &value, const PkVariant &sourceValue) = 0;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-typedef QSharedPointer<KoDerivedResourceConverter> KoDerivedResourceConverterSP;
+typedef PkSharedPointer<KoDerivedResourceConverter> KoDerivedResourceConverterSP;
 
 #endif /* __KO_DERIVED_RESOURCE_CONVERTER_H */

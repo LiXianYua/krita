@@ -12,7 +12,7 @@
 #include "kritaflake_export.h"
 
 #include <QObject>
-#include <QList>
+#include <PkList.h>
 #include <QMetaType>
 
 class KoCanvasBase;
@@ -84,7 +84,7 @@ public:
      *
      * @return command which will insert the shapes into the document. The command is not yet executed.
      */
-    KUndo2Command* addShapesDirect(const QList<KoShape*> shape, KoShapeContainer *parentShape, KUndo2Command *parent = 0);
+    KUndo2Command* addShapesDirect(const PkList<KoShape*> shape, KoShapeContainer *parentShape, KUndo2Command *parent = 0);
 
     /**
      * @brief Remove a shape from the document.
@@ -106,7 +106,7 @@ public:
      * @return command which will remove the shape from the document.
      *         The command is not yet executed.
      */
-    KUndo2Command* removeShapes(const QList<KoShape*> &shapes, KUndo2Command *parent = 0);
+    KUndo2Command* removeShapes(const PkList<KoShape*> &shapes, KUndo2Command *parent = 0);
 
     /**
      * @brief Set the KoShapeControllerBase used to add/remove shapes.
@@ -123,7 +123,7 @@ public:
      * The size of the document measured in rasterized pixels. This information is needed for loading
      * SVG documents that use 'px' as the default unit.
      */
-    QRectF documentRectInPixels() const;
+    PkRectF documentRectInPixels() const;
 
     /**
      * Resolution of the rasterized representation of the document. Used to load SVG documents correctly.
@@ -133,7 +133,7 @@ public:
     /**
      * Document rect measured in 'pt'
      */
-    QRectF documentRect() const;
+    PkRectF documentRect() const;
 
     /**
      * Return a pointer to the resource manager associated with the

@@ -53,7 +53,7 @@ public:
 
     quint8* malloc() {
         m_numAllocations++;
-        m_maxAllocations = qMax(m_maxAllocations, m_numAllocations);
+        m_maxAllocations = pkMax(m_maxAllocations, m_numAllocations);
 
         return (quint8*)m_pool.malloc();
     }
@@ -134,7 +134,7 @@ public:
 
     ~KisTextureTileInfoPool() {
         delete m_worker;
-        qDeleteAll(m_pools);
+        pkDeleteAll(m_pools);
     }
 
     /**

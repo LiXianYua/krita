@@ -11,7 +11,7 @@
 //   模式 B（无 Qt）：只 include PkDateTime.h，别名照常提供，位值对拍。
 //
 // 能编过本身就是断言的一半——redeclared as different kind of entity 是硬错误
-// （修复前模式 A 实测报 Qt::ISODate redeclared）。
+// （修复前模式 A 实测报 Pk::ISODate redeclared）。
 // include 闸门用 QT_GUI_LIB（sh 模式 A 的唯一标识）而非 QNAMESPACE_H：QNAMESPACE_H 是
 // include 真 Qt qnamespace.h **之后**才定义，拿它当闸门会循环依赖（Critical 1 修复）。
 #if defined(QT_CORE_LIB) && defined(QT_GUI_LIB)
@@ -20,26 +20,26 @@
 #include "PkDateTime.h"
 
 #if defined(QT_CORE_LIB) && defined(QNAMESPACE_H)
-// 模式 A：真 Qt 模式下 PkDateTime.h 必须让位：Qt::ISODate 保持真 Qt 的 enum DateFormat 值。
-static_assert(int(Qt::ISODate) == 1, "real Qt ISODate value");
-static_assert(int(Qt::RFC2822Date) == 8, "real Qt RFC2822Date value");
-static_assert(int(Qt::ISODateWithMs) == 9, "real Qt ISODateWithMs value");
+// 模式 A：真 Qt 模式下 PkDateTime.h 必须让位：Pk::ISODate 保持真 Qt 的 enum DateFormat 值。
+static_assert(int(Pk::ISODate) == 1, "real Qt ISODate value");
+static_assert(int(Pk::RFC2822Date) == 8, "real Qt RFC2822Date value");
+static_assert(int(Pk::ISODateWithMs) == 9, "real Qt ISODateWithMs value");
 #elif defined(QT_CORE_LIB) && !defined(QNAMESPACE_H)
 // 模式 C：QT_CORE_LIB 定义但真 Qt qnamespace.h 未进 TU——守卫第二析取 !QNAMESPACE_H
 // 命中，pk 提供别名。位值对拍（与模式 B 断言一致：同一套 pk 别名）。
-static_assert(PkDateTime::DateFormat(Qt::ISODate) == PkDateTime::DateFormat::ISODate,
+static_assert(PkDateTime::DateFormat(Pk::ISODate) == PkDateTime::DateFormat::ISODate,
               "pk ISODate alias");
-static_assert(PkDateTime::DateFormat(Qt::RFC2822Date) == PkDateTime::DateFormat::RFC2822Date,
+static_assert(PkDateTime::DateFormat(Pk::RFC2822Date) == PkDateTime::DateFormat::RFC2822Date,
               "pk RFC2822Date alias");
-static_assert(PkDateTime::DateFormat(Qt::ISODateWithMs) == PkDateTime::DateFormat::ISODateWithMs,
+static_assert(PkDateTime::DateFormat(Pk::ISODateWithMs) == PkDateTime::DateFormat::ISODateWithMs,
               "pk ISODateWithMs alias");
 #else
 // 模式 B：无 Qt——pk 别名照常提供，位值对拍。
-static_assert(PkDateTime::DateFormat(Qt::ISODate) == PkDateTime::DateFormat::ISODate,
+static_assert(PkDateTime::DateFormat(Pk::ISODate) == PkDateTime::DateFormat::ISODate,
               "pk ISODate alias");
-static_assert(PkDateTime::DateFormat(Qt::RFC2822Date) == PkDateTime::DateFormat::RFC2822Date,
+static_assert(PkDateTime::DateFormat(Pk::RFC2822Date) == PkDateTime::DateFormat::RFC2822Date,
               "pk RFC2822Date alias");
-static_assert(PkDateTime::DateFormat(Qt::ISODateWithMs) == PkDateTime::DateFormat::ISODateWithMs,
+static_assert(PkDateTime::DateFormat(Pk::ISODateWithMs) == PkDateTime::DateFormat::ISODateWithMs,
               "pk ISODateWithMs alias");
 #endif
 
@@ -47,9 +47,9 @@ int main()
 {
 #if !defined(QNAMESPACE_H)
     // 模式 B / 模式 C：QNAMESPACE_H 不在场，pk 提供别名，验证位值。
-    if (PkDateTime::DateFormat(Qt::ISODate) != PkDateTime::DateFormat::ISODate) return 1;
-    if (PkDateTime::DateFormat(Qt::RFC2822Date) != PkDateTime::DateFormat::RFC2822Date) return 2;
-    if (PkDateTime::DateFormat(Qt::ISODateWithMs) != PkDateTime::DateFormat::ISODateWithMs) return 3;
+    if (PkDateTime::DateFormat(Pk::ISODate) != PkDateTime::DateFormat::ISODate) return 1;
+    if (PkDateTime::DateFormat(Pk::RFC2822Date) != PkDateTime::DateFormat::RFC2822Date) return 2;
+    if (PkDateTime::DateFormat(Pk::ISODateWithMs) != PkDateTime::DateFormat::ISODateWithMs) return 3;
 #endif
     return 0;
 }

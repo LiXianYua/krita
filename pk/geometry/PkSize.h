@@ -33,7 +33,7 @@
 //   · boundedTo / grownBy / shrunkBy / toCGSize / fromCGSize —— 三形态实测 0 次
 //   · transpose / transposed —— 三形态命中的 5+5 处**接收者全不是 QSize 族**
 //     （`transposed` 全是 QTransform、`transpose` 全是 Eigen 矩阵）
-//   · Q_ASSERT(!qFuzzyIsNull(c))（两个除法里）—— 断言设施归 R-08，
+//   · Q_ASSERT(!pkQtFuzzyIsNull(c))（两个除法里）—— 断言设施归 R-08，
 //     且 Krita 发布构建把它整条编译掉（见 README 偏离清单）
 //   · qHash / QDataStream 的 <<>> / QDebug 的 <<（归 R-02 / R-12 / R-08）
 // ---------------------------------------------------------------------------
@@ -54,10 +54,10 @@ public:
     constexpr inline void setWidth(int w) noexcept;
     constexpr inline void setHeight(int h) noexcept;
 
-    inline void scale(int w, int h, Qt::AspectRatioMode mode) noexcept;
-    inline void scale(const PkSize &s, Qt::AspectRatioMode mode) noexcept;
-    PkSize scaled(int w, int h, Qt::AspectRatioMode mode) const noexcept;
-    PkSize scaled(const PkSize &s, Qt::AspectRatioMode mode) const noexcept;
+    inline void scale(int w, int h, Pk::AspectRatioMode mode) noexcept;
+    inline void scale(const PkSize &s, Pk::AspectRatioMode mode) noexcept;
+    PkSize scaled(int w, int h, Pk::AspectRatioMode mode) const noexcept;
+    PkSize scaled(const PkSize &s, Pk::AspectRatioMode mode) const noexcept;
 
     constexpr inline PkSize expandedTo(const PkSize &) const noexcept;
 
@@ -117,13 +117,13 @@ constexpr inline void PkSize::setHeight(int h) noexcept
 { ht = h; }
 
 // qsize.h:151-158 —— scale 就是 `*this = scaled(...)`，两个重载都只是转发。
-inline void PkSize::scale(int w, int h, Qt::AspectRatioMode mode) noexcept
+inline void PkSize::scale(int w, int h, Pk::AspectRatioMode mode) noexcept
 { scale(PkSize(w, h), mode); }
 
-inline void PkSize::scale(const PkSize &s, Qt::AspectRatioMode mode) noexcept
+inline void PkSize::scale(const PkSize &s, Pk::AspectRatioMode mode) noexcept
 { *this = scaled(s, mode); }
 
-inline PkSize PkSize::scaled(int w, int h, Qt::AspectRatioMode mode) const noexcept
+inline PkSize PkSize::scaled(int w, int h, Pk::AspectRatioMode mode) const noexcept
 { return scaled(PkSize(w, h), mode); }
 
 constexpr inline int &PkSize::rwidth() noexcept
@@ -141,7 +141,7 @@ constexpr inline PkSize &PkSize::operator-=(const PkSize &s) noexcept
 // qsize.h:172-173 —— 乘 qreal 走 qRound（负半值向 +∞）。**只有 qreal 一个重载**，
 // 不像 QPoint 有 float/double/int 三个 —— float 实参会提升到 double 走同一条路。
 constexpr inline PkSize &PkSize::operator*=(qreal c) noexcept
-{ wd = qRound(wd*c); ht = qRound(ht*c); return *this; }
+{ wd = pkRound(wd*c); ht = pkRound(ht*c); return *this; }
 
 constexpr inline bool operator==(const PkSize &s1, const PkSize &s2) noexcept
 { return s1.wd == s2.wd && s1.ht == s2.ht; }
@@ -156,32 +156,32 @@ constexpr inline const PkSize operator-(const PkSize &s1, const PkSize &s2) noex
 { return PkSize(s1.wd-s2.wd, s1.ht-s2.ht); }
 
 constexpr inline const PkSize operator*(const PkSize &s, qreal c) noexcept
-{ return PkSize(qRound(s.wd*c), qRound(s.ht*c)); }
+{ return PkSize(pkRound(s.wd*c), pkRound(s.ht*c)); }
 
 constexpr inline const PkSize operator*(qreal c, const PkSize &s) noexcept
-{ return PkSize(qRound(s.wd*c), qRound(s.ht*c)); }
+{ return PkSize(pkRound(s.wd*c), pkRound(s.ht*c)); }
 
-// qsize.h:193-204 —— Qt 在这两处有 `Q_ASSERT(!qFuzzyIsNull(c))`。**不实现**：
+// qsize.h:193-204 —— Qt 在这两处有 `Q_ASSERT(!pkQtFuzzyIsNull(c))`。**不实现**：
 // 断言设施归 R-08，且 Krita 的发布构建里它整条编译掉（Qt5 的 cmake 模块给非
 // Debug 构建加 -DQT_NO_DEBUG，见 krita/CMakeLists.txt:968 那条 option 的说明）。
-// 对齐的是发布构建的形态：除以 0 得 qRound(±inf)，实测两侧都是 INT_MIN。
+// 对齐的是发布构建的形态：除以 0 得 pkRound(±inf)，实测两侧都是 INT_MIN。
 // 登记在 README 偏离清单。
 inline PkSize &PkSize::operator/=(qreal c)
 {
-    wd = qRound(wd/c); ht = qRound(ht/c);
+    wd = pkRound(wd/c); ht = pkRound(ht/c);
     return *this;
 }
 
 inline const PkSize operator/(const PkSize &s, qreal c)
 {
-    return PkSize(qRound(s.wd/c), qRound(s.ht/c));
+    return PkSize(pkRound(s.wd/c), pkRound(s.ht/c));
 }
 
 // qsize.h:206-209 —— qMax 逐分量。⚠ qMax 写作 `(a<b)?b:a`，**NaN 上不可交换**，
 // 浮点版那边靠这条钉住（这里是整数版，写 qMin 会立刻红）。
 constexpr inline PkSize PkSize::expandedTo(const PkSize & otherSize) const noexcept
 {
-    return PkSize(qMax(wd,otherSize.wd), qMax(ht,otherSize.ht));
+    return PkSize(pkMax(wd,otherSize.wd), pkMax(ht,otherSize.ht));
 }
 
 
@@ -206,10 +206,10 @@ public:
     constexpr inline void setWidth(qreal w) noexcept;
     constexpr inline void setHeight(qreal h) noexcept;
 
-    inline void scale(qreal w, qreal h, Qt::AspectRatioMode mode) noexcept;
-    inline void scale(const PkSizeF &s, Qt::AspectRatioMode mode) noexcept;
-    PkSizeF scaled(qreal w, qreal h, Qt::AspectRatioMode mode) const noexcept;
-    PkSizeF scaled(const PkSizeF &s, Qt::AspectRatioMode mode) const noexcept;
+    inline void scale(qreal w, qreal h, Pk::AspectRatioMode mode) noexcept;
+    inline void scale(const PkSizeF &s, Pk::AspectRatioMode mode) noexcept;
+    PkSizeF scaled(qreal w, qreal h, Pk::AspectRatioMode mode) const noexcept;
+    PkSizeF scaled(const PkSizeF &s, Pk::AspectRatioMode mode) const noexcept;
 
     constexpr inline PkSizeF expandedTo(const PkSizeF &) const noexcept;
 
@@ -244,8 +244,8 @@ constexpr inline PkSizeF::PkSizeF(const PkSize &sz) noexcept : wd(sz.width()), h
 
 constexpr inline PkSizeF::PkSizeF(qreal w, qreal h) noexcept : wd(w), ht(h) {}
 
-// qsize.h:302-303 用的是 qIsNull(wd) && qIsNull(ht)，而 qglobal.h:925-928 的
-// qIsNull(double d) 就是 `d == 0.0` —— 于是 **-0.0 也算 null**（实测真 Qt），
+// qsize.h:302-303 用的是 pkIsNull(wd) && pkIsNull(ht)，而 qglobal.h:925-928 的
+// pkIsNull(double d) 就是 `d == 0.0` —— 于是 **-0.0 也算 null**（实测真 Qt），
 // 而 5e-324 不算。这里直接写出那个比较，不把 qIsNull 这个名字提进 compat：
 // 它在 Krita 保留范围内实测 0 调用点，导出去就违反判据①「一项不多」。
 // 理由与 PkPointF::isNull 完全相同（README 偏离清单第 7 条）。
@@ -273,13 +273,13 @@ constexpr inline void PkSizeF::setWidth(qreal w) noexcept
 constexpr inline void PkSizeF::setHeight(qreal h) noexcept
 { ht = h; }
 
-inline void PkSizeF::scale(qreal w, qreal h, Qt::AspectRatioMode mode) noexcept
+inline void PkSizeF::scale(qreal w, qreal h, Pk::AspectRatioMode mode) noexcept
 { scale(PkSizeF(w, h), mode); }
 
-inline void PkSizeF::scale(const PkSizeF &s, Qt::AspectRatioMode mode) noexcept
+inline void PkSizeF::scale(const PkSizeF &s, Pk::AspectRatioMode mode) noexcept
 { *this = scaled(s, mode); }
 
-inline PkSizeF PkSizeF::scaled(qreal w, qreal h, Qt::AspectRatioMode mode) const noexcept
+inline PkSizeF PkSizeF::scaled(qreal w, qreal h, Pk::AspectRatioMode mode) const noexcept
 { return scaled(PkSizeF(w, h), mode); }
 
 constexpr inline qreal &PkSizeF::rwidth() noexcept
@@ -302,7 +302,7 @@ constexpr inline PkSizeF &PkSizeF::operator*=(qreal c) noexcept
 // 与 QPointF::operator==（任一侧为 0 就改走 fuzzyIsNull）不是同一个写法：
 //   QPointF(0,0)==QPointF(1e-300,0) → true
 //   QSizeF (0,0)==QSizeF (1e-300,0) → **false**（实测真 Qt 5.15.7）
-// 两侧恰好都是 0 时仍相等（0*1e12 <= qMin(0,0) 成立）。
+// 两侧恰好都是 0 时仍相等（0*1e12 <= pkMin(0,0) 成立）。
 // 走 pkQtFuzzyCompare 而不是 qFuzzyCompare：后者在「pk/test 的垫片先进 TU」这条
 // 真实共存路径上是 **#define**，函数体会在预处理期被改写到别人的实现上去
 //（理由见 PkGlobal.h 那段注释，探针在 tests/size_macro_proof.cpp）。公式逐字相同。
@@ -339,14 +339,14 @@ inline const PkSizeF operator/(const PkSizeF &s, qreal c)
 
 constexpr inline PkSizeF PkSizeF::expandedTo(const PkSizeF & otherSize) const noexcept
 {
-    return PkSizeF(qMax(wd,otherSize.wd), qMax(ht,otherSize.ht));
+    return PkSizeF(pkMax(wd,otherSize.wd), pkMax(ht,otherSize.ht));
 }
 
 // qsize.h:391-394 —— qRound，**不是截断**。qRound 对负半值向 +∞ 取整，
 // 所以 PkSizeF(-0.5,-0.5).toSize() == (0,0)（实测真 Qt 5.15.7）。
 constexpr inline PkSize PkSizeF::toSize() const noexcept
 {
-    return PkSize(qRound(wd), qRound(ht));
+    return PkSize(pkRound(wd), pkRound(ht));
 }
 
 #endif // PK_GEOMETRY_PKSIZE_H

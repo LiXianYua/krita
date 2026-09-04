@@ -57,9 +57,9 @@ public:
 
     ~Private()
     {
-        qDeleteAll(singleActionShortcuts);
-        qDeleteAll(strokeShortcuts);
-        qDeleteAll(touchShortcuts);
+        pkDeleteAll(singleActionShortcuts);
+        pkDeleteAll(strokeShortcuts);
+        pkDeleteAll(touchShortcuts);
     }
 
     QList<KisSingleActionShortcut*> singleActionShortcuts;
@@ -785,10 +785,10 @@ void KisShortcutMatcher::suppressAllKeyboardActions(bool value)
 void KisShortcutMatcher::clearShortcuts()
 {
     reset("Clearing shortcuts");
-    qDeleteAll(m_d->singleActionShortcuts);
+    pkDeleteAll(m_d->singleActionShortcuts);
     m_d->singleActionShortcuts.clear();
-    qDeleteAll(m_d->strokeShortcuts);
-    qDeleteAll(m_d->touchShortcuts);
+    pkDeleteAll(m_d->strokeShortcuts);
+    pkDeleteAll(m_d->touchShortcuts);
     m_d->strokeShortcuts.clear();
     m_d->candidateShortcuts.clear();
     m_d->touchShortcuts.clear();

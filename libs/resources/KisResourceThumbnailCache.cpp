@@ -18,8 +18,8 @@
 
 struct ImageScalingParameters {
     PkSize size;
-    Qt::AspectRatioMode aspectRatioMode;
-    Qt::TransformationMode transformationMode;
+    Pk::AspectRatioMode aspectRatioMode;
+    Pk::TransformationMode transformationMode;
 
     bool operator<(const ImageScalingParameters &other) const
     {
@@ -248,8 +248,8 @@ PkImage KisResourceThumbnailCache::getImage(const PkString &storageLocation,
                                             const PkString &filename,
                                             const PkImage &source,
                                             const PkSize size,
-                                           Qt::AspectRatioMode aspectMode,
-                                           Qt::TransformationMode transformMode)
+                                           Pk::AspectRatioMode aspectMode,
+                                           Pk::TransformationMode transformMode)
 {
     const ImageScalingParameters param = {size, aspectMode, transformMode};
 

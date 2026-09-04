@@ -429,11 +429,11 @@ int PkVariant::toInt() const
         case ULongLong: return static_cast<int>(m_ull);
         case Double: {
             if (std::isnan(m_double) || std::isinf(m_double)) return 0;
-            return qRound(m_double);
+            return pkRound(m_double);
         }
         case Float: {
             if (std::isnan(m_float) || std::isinf(m_float)) return 0;
-            return qRound(static_cast<double>(m_float));
+            return pkRound(static_cast<double>(m_float));
         }
         case String: {
             const PkString& s = *std::any_cast<const PkString>(&m_any);
@@ -456,11 +456,11 @@ unsigned int PkVariant::toUInt() const
         case ULongLong: return static_cast<unsigned int>(m_ull);
         case Double: {
             if (std::isnan(m_double) || std::isinf(m_double)) return 0;
-            return static_cast<unsigned int>(qRound(m_double));
+            return static_cast<unsigned int>(pkRound(m_double));
         }
         case Float: {
             if (std::isnan(m_float) || std::isinf(m_float)) return 0;
-            return static_cast<unsigned int>(qRound(static_cast<double>(m_float)));
+            return static_cast<unsigned int>(pkRound(static_cast<double>(m_float)));
         }
         case String: {
             const PkString& s = *std::any_cast<const PkString>(&m_any);
@@ -483,11 +483,11 @@ long long PkVariant::toLongLong() const
         case ULongLong: return static_cast<long long>(m_ull);
         case Double: {
             if (std::isnan(m_double) || std::isinf(m_double)) return 0;
-            return static_cast<long long>(qRound(m_double));
+            return static_cast<long long>(pkRound(m_double));
         }
         case Float: {
             if (std::isnan(m_float) || std::isinf(m_float)) return 0;
-            return static_cast<long long>(qRound(static_cast<double>(m_float)));
+            return static_cast<long long>(pkRound(static_cast<double>(m_float)));
         }
         case String: {
             const PkString& s = *std::any_cast<const PkString>(&m_any);
@@ -510,11 +510,11 @@ unsigned long long PkVariant::toULongLong() const
         case ULongLong: return m_ull;
         case Double: {
             if (std::isnan(m_double) || std::isinf(m_double)) return 0;
-            return static_cast<unsigned long long>(qRound(m_double));
+            return static_cast<unsigned long long>(pkRound(m_double));
         }
         case Float: {
             if (std::isnan(m_float) || std::isinf(m_float)) return 0;
-            return static_cast<unsigned long long>(qRound(static_cast<double>(m_float)));
+            return static_cast<unsigned long long>(pkRound(static_cast<double>(m_float)));
         }
         case String: {
             const PkString& s = *std::any_cast<const PkString>(&m_any);

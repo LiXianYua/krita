@@ -20,7 +20,7 @@
 //      函数名、参数类型/个数/顺序与真品一致。几何部分用 PkGraft* 替代
 //      QPointF/QSizeF（依赖墙②），但 .x()/.y()/.width()/.height() 的返回类型
 //      qreal 不变，qMin/qMax/qAbs 的实参形态因此与真品逐字一致。
-//   2. **校验值来源分两类**：qRound(-1.5)==-1、qFuzzyCompare(1.0,
+//   2. **校验值来源分两类**：pkRound(-1.5)==-1、pkQtFuzzyCompare(1.0,
 //      1.000000000001)==false 等来自 Task 2 探针（探针口径见
 //      pk/global/oracle/global_difftest.cpp 的输入宇宙 kD[]）；
 //      qMin/qMax/qAbs 取普通输入形态（4.0/7.0 不在 kD[] 里），语义已由 oracle
@@ -55,7 +55,7 @@ static int g_failed = 0;
 //   constexpr auto scale_int_to_real = [] (qreal multiplier) {
 //       return lager::lenses::getset(
 //           [multiplier] (int value) { return value * multiplier; },
-//           [multiplier] (int, qreal value) { return qRound(value / multiplier); }
+//           [multiplier] (int, qreal value) { return pkRound(value / multiplier); }
 //           );
 //   };
 //
@@ -66,7 +66,7 @@ constexpr auto pkGraftScaleIntToRealGet = [] (qreal multiplier) {
     return [multiplier] (int value) { return value * multiplier; };
 };
 constexpr auto pkGraftScaleIntToRealSet = [] (qreal multiplier) {
-    return [multiplier] (int, qreal value) { return qRound(value / multiplier); };
+    return [multiplier] (int, qreal value) { return pkRound(value / multiplier); };
 };
 
 // ---------------------------------------------------------------------------
@@ -74,27 +74,27 @@ constexpr auto pkGraftScaleIntToRealSet = [] (qreal multiplier) {
 //
 // 真品（KisZug.h:53）：
 //   template <>
-//   inline constexpr auto map_equal<qreal> =  [] (qreal value) { return zug::map([value](auto&& x) { return qFuzzyCompare(x, value); }); };
+//   inline constexpr auto map_equal<qreal> =  [] (qreal value) { return zug::map([value](auto&& x) { return pkQtFuzzyCompare(x, value); }); };
 //
 // zug::map 是依赖墙①（zug vendored 库），这里复刻它内层的谓词 lambda，
 // 函数名/参数形态与真品逐字一致。
 // ---------------------------------------------------------------------------
 constexpr auto pkGraftMapEqualQreal = [] (qreal value) {
-    return [value] (auto&& x) { return qFuzzyCompare(x, value); };
+    return [value] (auto&& x) { return pkQtFuzzyCompare(x, value); };
 };
 
 // ---------------------------------------------------------------------------
 // KisZug.h:64 —— map_round（复刻变换 lambda 的形状）。
 //
 // 真品（KisZug.h:64）：
-//   constexpr auto map_round = zug::map([](qreal x) -> int { return qRound(x); });
+//   constexpr auto map_round = zug::map([](qreal x) -> int { return pkRound(x); });
 // ---------------------------------------------------------------------------
-constexpr auto pkGraftMapRound = [] (qreal x) -> int { return qRound(x); };
+constexpr auto pkGraftMapRound = [] (qreal x) -> int { return pkRound(x); };
 
 // ---------------------------------------------------------------------------
 // 几何调用形状的替代类型 —— 依赖墙②（QPointF/QLineF/QSizeF/QRectF 归 R-21/R-22）。
 //
-// 复刻目标只关心调用形状：qMin(corner1.x(), corner2.x()) 里的 corner1.x() 返回
+// 复刻目标只关心调用形状：pkMin(corner1.x(), corner2.x()) 里的 corner1.x() 返回
 // qreal（QPointF::x() 就是 qreal），maxDimension 的 size.width() 返回 qreal
 // （QSizeF::width() 就是 qreal）。所以替代类型的这些成员都返回 qreal，qMin/
 // qMax/qAbs 的实参类型因此与真品一致。
@@ -142,7 +142,7 @@ template <> struct PkGraftPointTypeTraits<PkGraftPointF>
 //   inline typename PointTypeTraits<Point>::rect_type
 //   createRectFromCorners(Point corner1, Point corner2)
 //   {
-//       return typename PointTypeTraits<Point>::rect_type(qMin(corner1.x(), corner2.x()), qMin(corner1.y(), corner2.y()), qAbs(corner1.x() - corner2.x()), qAbs(corner1.y() - corner2.y()));
+//       return typename PointTypeTraits<Point>::rect_type(pkMin(corner1.x(), corner2.x()), pkMin(corner1.y(), corner2.y()), pkAbs(corner1.x() - corner2.x()), pkAbs(corner1.y() - corner2.y()));
 //   }
 // ---------------------------------------------------------------------------
 template <class Point>
@@ -150,10 +150,10 @@ inline typename PkGraftPointTypeTraits<Point>::rect_type
 createRectFromCorners(Point corner1, Point corner2)
 {
     return typename PkGraftPointTypeTraits<Point>::rect_type(
-        qMin(corner1.x(), corner2.x()),
-        qMin(corner1.y(), corner2.y()),
-        qAbs(corner1.x() - corner2.x()),
-        qAbs(corner1.y() - corner2.y()));
+        pkMin(corner1.x(), corner2.x()),
+        pkMin(corner1.y(), corner2.y()),
+        pkAbs(corner1.x() - corner2.x()),
+        pkAbs(corner1.y() - corner2.y()));
 }
 
 // ---------------------------------------------------------------------------
@@ -162,57 +162,57 @@ createRectFromCorners(Point corner1, Point corner2)
 // 真品（kis_algebra_2d.h:337-345）：
 //   template <class Size>
 //   auto maxDimension(Size size) -> decltype(size.width()) {
-//       return qMax(size.width(), size.height());
+//       return pkMax(size.width(), size.height());
 //   }
 //   template <class Size>
 //   auto minDimension(Size size) -> decltype(size.width()) {
-//       return qMin(size.width(), size.height());
+//       return pkMin(size.width(), size.height());
 //   }
 // ---------------------------------------------------------------------------
 template <class Size>
 auto maxDimension(Size size) -> decltype(size.width()) {
-    return qMax(size.width(), size.height());
+    return pkMax(size.width(), size.height());
 }
 
 template <class Size>
 auto minDimension(Size size) -> decltype(size.width()) {
-    return qMin(size.width(), size.height());
+    return pkMin(size.width(), size.height());
 }
 
 int main()
 {
     // ── KisLager.h:56-57 scale_int_to_real 的 get/set 调用形状 ───────────
-    //    探针：qRound(-1.5) == -1（Task 2 探针值，kD[] 里有 -1.5）。
+    //    探针：pkRound(-1.5) == -1（Task 2 探针值，kD[] 里有 -1.5）。
     {
         const auto get = pkGraftScaleIntToRealGet(2.0);
         const auto set = pkGraftScaleIntToRealSet(2.0);
         PK_GRAFT_CHECK(get(3) == 6.0,
             "KisLager.h:56 scale_int_to_real getter: (3 * 2.0) == 6.0");
         PK_GRAFT_CHECK(set(0, -3.0) == -1,
-            "KisLager.h:57 scale_int_to_real setter: qRound(-3.0/2.0) == qRound(-1.5) == -1");
+            "KisLager.h:57 scale_int_to_real setter: pkRound(-3.0/2.0) == pkRound(-1.5) == -1");
         PK_GRAFT_CHECK(set(0, 3.0) == 2,
-            "KisLager.h:57 scale_int_to_real setter: qRound(3.0/2.0) == qRound(1.5) == 2");
+            "KisLager.h:57 scale_int_to_real setter: pkRound(3.0/2.0) == pkRound(1.5) == 2");
     }
 
     // ── KisZug.h:53 map_equal<qreal> 的谓词调用形状 ──────────────────────
-    //    探针：qFuzzyCompare(1.0, 1.000000000001) == false（Task 2 探针值，
+    //    探针：pkQtFuzzyCompare(1.0, 1.000000000001) == false（Task 2 探针值，
     //    kD[] 里 1.000000000001 与 1.0 的相对差 1.0000889e-12 > 1e-12，超阈为假）。
     {
         const auto mapEq1 = pkGraftMapEqualQreal(1.0);
         PK_GRAFT_CHECK(mapEq1(1.0) == true,
-            "KisZug.h:53 map_equal<qreal>: qFuzzyCompare(1.0, 1.0) == true");
+            "KisZug.h:53 map_equal<qreal>: pkQtFuzzyCompare(1.0, 1.0) == true");
         PK_GRAFT_CHECK(mapEq1(1.000000000001) == false,
-            "KisZug.h:53 map_equal<qreal>: qFuzzyCompare(1.0, 1.000000000001) == false");
+            "KisZug.h:53 map_equal<qreal>: pkQtFuzzyCompare(1.0, 1.000000000001) == false");
         PK_GRAFT_CHECK(mapEq1(1.0000005) == false,
-            "KisZug.h:53 map_equal<qreal>: qFuzzyCompare(1.0, 1.0000005) == false");
+            "KisZug.h:53 map_equal<qreal>: pkQtFuzzyCompare(1.0, 1.0000005) == false");
     }
 
     // ── KisZug.h:64 map_round 的变换调用形状 ──────────────────────────────
     {
         PK_GRAFT_CHECK(pkGraftMapRound(-1.5) == -1,
-            "KisZug.h:64 map_round: qRound(-1.5) == -1");
+            "KisZug.h:64 map_round: pkRound(-1.5) == -1");
         PK_GRAFT_CHECK(pkGraftMapRound(1.5) == 2,
-            "KisZug.h:64 map_round: qRound(1.5) == 2");
+            "KisZug.h:64 map_round: pkRound(1.5) == 2");
     }
 
     // ── kis_algebra_2d.h:325 createRectFromCorners 的调用形状 ────────────
@@ -223,22 +223,22 @@ int main()
         PkGraftPointF corner2{-2.0, 1.0};
         PkGraftRectF rect = createRectFromCorners(corner1, corner2);
         PK_GRAFT_CHECK(rect.x() == -2.0,
-            "kis_algebra_2d.h:325 createRectFromCorners: qMin(3.0, -2.0) == -2.0");
+            "kis_algebra_2d.h:325 createRectFromCorners: pkMin(3.0, -2.0) == -2.0");
         PK_GRAFT_CHECK(rect.y() == 1.0,
-            "kis_algebra_2d.h:325 createRectFromCorners: qMin(4.0, 1.0) == 1.0");
+            "kis_algebra_2d.h:325 createRectFromCorners: pkMin(4.0, 1.0) == 1.0");
         PK_GRAFT_CHECK(rect.width() == 5.0,
-            "kis_algebra_2d.h:325 createRectFromCorners: qAbs(3.0 - (-2.0)) == 5.0");
+            "kis_algebra_2d.h:325 createRectFromCorners: pkAbs(3.0 - (-2.0)) == 5.0");
         PK_GRAFT_CHECK(rect.height() == 3.0,
-            "kis_algebra_2d.h:325 createRectFromCorners: qAbs(4.0 - 1.0) == 3.0");
+            "kis_algebra_2d.h:325 createRectFromCorners: pkAbs(4.0 - 1.0) == 3.0");
     }
 
     // ── kis_algebra_2d.h:339/344 maxDimension / minDimension 的调用形状 ──
     {
         PkGraftSizeF size{3.0, 7.0};
         PK_GRAFT_CHECK(maxDimension(size) == 7.0,
-            "kis_algebra_2d.h:339 maxDimension: qMax(3.0, 7.0) == 7.0");
+            "kis_algebra_2d.h:339 maxDimension: pkMax(3.0, 7.0) == 7.0");
         PK_GRAFT_CHECK(minDimension(size) == 3.0,
-            "kis_algebra_2d.h:344 minDimension: qMin(3.0, 7.0) == 3.0");
+            "kis_algebra_2d.h:344 minDimension: pkMin(3.0, 7.0) == 3.0");
     }
 
     std::printf("Totals: %d passed, %d failed, 0 skipped\n",

@@ -22,7 +22,7 @@ quint8 KisAnimatedOpacityProperty::get() {
 
     if (m_channel) {
         qreal chanValue = m_channel->currentValue();
-        if (!qIsNaN(chanValue)){
+        if (!pkIsNaN(chanValue)){
             return (chanValue * 255 / 100);
         }
     }

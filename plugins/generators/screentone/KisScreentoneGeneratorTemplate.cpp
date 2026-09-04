@@ -138,18 +138,18 @@ void KisScreentoneGeneratorTemplate::makeTemplate(const KisScreentoneGeneratorCo
         // Ensure that the frequency y component is equal to the x component
         // if constrainFrequency is true
         const qreal frequencyY = constrainFrequency ? frequencyX : config->frequencyY();
-        sizeX = qMax(1.0, resolution / frequencyX);
-        sizeY = qMax(1.0, resolution / frequencyY);
+        sizeX = pkMax(1.0, resolution / frequencyX);
+        sizeY = pkMax(1.0, resolution / frequencyY);
     }
-    const qreal positionX = config->alignToPixelGrid() ? qRound(config->positionX()) : config->positionX();
-    const qreal positionY = config->alignToPixelGrid() ? qRound(config->positionY()) : config->positionY();
+    const qreal positionX = config->alignToPixelGrid() ? pkRound(config->positionX()) : config->positionX();
+    const qreal positionY = config->alignToPixelGrid() ? pkRound(config->positionY()) : config->positionY();
     m_screenPosition = PkPointF(positionX, positionY);
     const qreal shearX = config->shearX();
     const qreal shearY = config->shearY();
     const qreal rotation = config->rotation();
     // Construct image<->screen transforms
     m_imageToScreenTransform.shear(shearX, shearY);
-    m_imageToScreenTransform.scale(qFuzzyIsNull(sizeX) ? 0.0 : 1.0 / sizeX, qFuzzyIsNull(sizeY) ? 0.0 : 1.0 / sizeY);
+    m_imageToScreenTransform.scale(pkQtFuzzyIsNull(sizeX) ? 0.0 : 1.0 / sizeX, pkQtFuzzyIsNull(sizeY) ? 0.0 : 1.0 / sizeY);
     m_imageToScreenTransform.rotate(rotation);
     m_imageToScreenTransform.translate(positionX, positionY);
     PkTransform screenToImage;
@@ -164,13 +164,13 @@ void KisScreentoneGeneratorTemplate::makeTemplate(const KisScreentoneGeneratorCo
     // the alignment
     const PkPointF u1 = screenToImage.map(PkPointF(static_cast<qreal>(alignX), 0.0));
     const PkPointF u2 = screenToImage.map(PkPointF(0.0, static_cast<qreal>(alignY)));
-    PkPointF v1(qRound(u1.x()), qRound(u1.y()));
-    PkPointF v2(qRound(u2.x()), qRound(u2.y()));
+    PkPointF v1(pkRound(u1.x()), pkRound(u1.y()));
+    PkPointF v2(pkRound(u2.x()), pkRound(u2.y()));
     // If the following condition is met, that means that the screen is
     // transformed in such a way that the cell corners are colinear so we move
     // v1 or v2 to a neighbor position and give the cell some area
-    if (qFuzzyCompare(v1.y() * v2.x(), v2.y() * v1.x()) &&
-        !qFuzzyIsNull(v1.x() * v2.x() + v1.y() * v2.y())) {
+    if (pkQtFuzzyCompare(v1.y() * v2.x(), v2.y() * v1.x()) &&
+        !pkQtFuzzyIsNull(v1.x() * v2.x() + v1.y() * v2.y())) {
         // Choose point to move based on distance from non aligned point to
         // aligned point
         const qreal dist1 = kisSquareDistance(u1, v1);
@@ -250,12 +250,12 @@ void KisScreentoneGeneratorTemplate::makeTemplate(const KisScreentoneGeneratorCo
 
     // Compute template dimensions
     const PkPoint topLeft(
-        static_cast<int>(qMin(0.0, qMin(v1.x(), qMin(v2.x(), v1.x() + v2.x())))),
-        static_cast<int>(qMin(0.0, qMin(v1.y(), qMin(v2.y(), v1.y() + v2.y()))))
+        static_cast<int>(pkMin(0.0, pkMin(v1.x(), pkMin(v2.x(), v1.x() + v2.x())))),
+        static_cast<int>(pkMin(0.0, pkMin(v1.y(), pkMin(v2.y(), v1.y() + v2.y()))))
     );
     const PkPoint bottomRight(
-        static_cast<int>(qMax(0.0, qMax(v1.x(), qMax(v2.x(), v1.x() + v2.x())))),
-        static_cast<int>(qMax(0.0, qMax(v1.y(), qMax(v2.y(), v1.y() + v2.y()))))
+        static_cast<int>(pkMax(0.0, pkMax(v1.x(), pkMax(v2.x(), v1.x() + v2.x())))),
+        static_cast<int>(pkMax(0.0, pkMax(v1.y(), pkMax(v2.y(), v1.y() + v2.y()))))
     );
     // Add an 1 pixel border around the template, useful for bilinear interpolation
     m_templateSize = PkSize(bottomRight.x() - topLeft.x() + 2, bottomRight.y() - topLeft.y() + 2);
@@ -411,10 +411,10 @@ void KisScreentoneGeneratorTemplate::makeTemplate(const KisScreentoneGeneratorCo
     for (int i = 0; i < auxiliaryMicrocells.size(); ++i) {
         std::sort(auxiliaryMicrocells[i].auxiliaryPoints.begin(), auxiliaryMicrocells[i].auxiliaryPoints.end(),
             [](const AuxiliaryPoint &a, const AuxiliaryPoint &b) {
-                if (qFuzzyCompare(a.valueAtCorner, b.valueAtCorner)) {
-                    if (qFuzzyCompare(a.valueAtCenter, b.valueAtCenter)) {
-                        if (qFuzzyCompare(a.distanceToCenter, b.distanceToCenter)) {
-                            if (qFuzzyCompare(a.distanceToCorner, b.distanceToCorner)) {
+                if (pkQtFuzzyCompare(a.valueAtCorner, b.valueAtCorner)) {
+                    if (pkQtFuzzyCompare(a.valueAtCenter, b.valueAtCenter)) {
+                        if (pkQtFuzzyCompare(a.distanceToCenter, b.distanceToCenter)) {
+                            if (pkQtFuzzyCompare(a.distanceToCorner, b.distanceToCorner)) {
                                 return a.microcellPixelIndex < b.microcellPixelIndex;
                             }
                             return a.distanceToCorner < b.distanceToCorner;

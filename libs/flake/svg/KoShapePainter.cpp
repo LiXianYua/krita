@@ -19,7 +19,7 @@
 #include <KoUnit.h>
 
 #include <QPainter>
-#include <QImage>
+#include <PkImage.h>
 
 class SimpleCanvas : public KoCanvasBase
 {
@@ -35,10 +35,10 @@ public:
     {
     }
 
-    void gridSize(QPointF *offset, QSizeF *spacing) const override
+    void gridSize(PkPointF *offset, PkSizeF *spacing) const override
     {
-        *offset = QPointF();
-        *spacing = QSizeF();
+        *offset = PkPointF();
+        *spacing = PkSizeF();
     };
 
     bool snapToGrid() const override
@@ -60,7 +60,7 @@ public:
         return m_selectedShapesProxy.data();
     }
 
-    void updateCanvas(const QRectF&rect) override
+    void updateCanvas(const PkRectF&rect) override
     {
         m_updateFunc(rect);
     }
@@ -97,14 +97,14 @@ public:
 
     void setCursor(const QCursor &) override {}
 
-    void setUpdateFunction(std::function<void(const QRectF&)> function) {
+    void setUpdateFunction(std::function<void(const PkRectF&)> function) {
         m_updateFunc = function;
     }
 
 private:
-    QScopedPointer<KoShapeManager> m_shapeManager;
-    QScopedPointer<KoSelectedShapesProxySimple> m_selectedShapesProxy;
-    std::function<void(const QRectF&)> m_updateFunc;
+    PkScopedPointer<KoShapeManager> m_shapeManager;
+    PkScopedPointer<KoSelectedShapesProxySimple> m_selectedShapesProxy;
+    std::function<void(const PkRectF&)> m_updateFunc;
 };
 
 class Q_DECL_HIDDEN KoShapePainter::Private
@@ -128,7 +128,7 @@ KoShapePainter::~KoShapePainter()
 {
 }
 
-void KoShapePainter::setShapes(const QList<KoShape*> &shapes)
+void KoShapePainter::setShapes(const PkList<KoShape*> &shapes)
 {
     d->canvas->shapeManager()->setShapes(shapes, KoShapeManager::AddWithoutRepaint);
 }
@@ -142,14 +142,14 @@ void KoShapePainter::paint(QPainter &painter)
     d->canvas->shapeManager()->paint(painter);
 }
 
-void KoShapePainter::paint(QPainter &painter, const QRect &painterRect, const QRectF &documentRect)
+void KoShapePainter::paint(QPainter &painter, const PkRect &painterRect, const PkRectF &documentRect)
 {
     if (documentRect.width() == 0.0f || documentRect.height() == 0.0f)
         return;
 
     KoViewConverter converter;
     // calculate the painter destination rectangle size in document coordinates
-    QRectF paintBox = converter.viewToDocument(QRectF(QPointF(), painterRect.size()));
+    PkRectF paintBox = converter.viewToDocument(PkRectF(PkPointF(), painterRect.size()));
 
     // compute the zoom factor based on the bounding rects in document coordinates
     // so that the content fits into the image
@@ -163,15 +163,15 @@ void KoShapePainter::paint(QPainter &painter, const QRect &painterRect, const QR
     painter.save();
 
     // initialize painter
-    painter.setPen(QPen(Qt::NoPen));
+    painter.setPen(PkPen(Qt::NoPen));
     painter.setBrush(Qt::NoBrush);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setClipRect(painterRect.adjusted(-1,-1,1,1));
 
     // convert document rectangle to view coordinates
-    QRectF zoomedBound = converter.documentToView(documentRect);
+    PkRectF zoomedBound = converter.documentToView(documentRect);
     // calculate offset between painter rectangle and converted document rectangle
-    QPointF offset = QRectF(painterRect).center() - zoomedBound.center();
+    PkPointF offset = PkRectF(painterRect).center() - zoomedBound.center();
     // center content in painter rectangle
     painter.translate(offset.x(), offset.y());
     painter.setTransform(converter.documentToView(), true);
@@ -182,7 +182,7 @@ void KoShapePainter::paint(QPainter &painter, const QRect &painterRect, const QR
     painter.restore();
 }
 
-void KoShapePainter::paint(QImage &image)
+void KoShapePainter::paint(PkImage &image)
 {
     if (image.isNull())
         return;
@@ -192,16 +192,16 @@ void KoShapePainter::paint(QImage &image)
     paint(painter, image.rect(), contentRect());
 }
 
-QRectF KoShapePainter::contentRect() const
+PkRectF KoShapePainter::contentRect() const
 {
-    QRectF bound;
+    PkRectF bound;
     foreach (KoShape *shape, d->canvas->shapeManager()->shapes()) {
         if (!shape->isVisible())
             continue;
         if (dynamic_cast<KoShapeGroup*>(shape))
             continue;
 
-        QRectF shapeRect = shape->boundingRect();
+        PkRectF shapeRect = shape->boundingRect();
 
         if (bound.isEmpty())
             bound = shapeRect;
@@ -216,7 +216,7 @@ KoShapeManager *KoShapePainter::internalShapeManager() const
     return d->canvas->shapeManager();
 }
 
-void KoShapePainter::setUpdateFunction(std::function<void (const QRectF &)> function)
+void KoShapePainter::setUpdateFunction(std::function<void (const PkRectF &)> function)
 {
     d->canvas->setUpdateFunction(function);
 }

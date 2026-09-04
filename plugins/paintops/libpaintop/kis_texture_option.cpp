@@ -242,7 +242,7 @@ void KisTextureOption::applyGradient(KisFixedPaintDeviceSP dab, const PkPoint& o
     //for gradient textures...
     KoMixColorsOp* colorMix = dab->colorSpace()->mixColorsOp();
     qint16 colorWeights[2];
-    colorWeights[0] = qRound(pressure * 255);
+    colorWeights[0] = pkRound(pressure * 255);
     colorWeights[1] = 255 - colorWeights[0];
     quint8* colors[2];
     m_cachedGradient.setColorSpace(dab->colorSpace()); //Change colorspace here so we don't have to convert each pixel drawn
@@ -256,7 +256,7 @@ void KisTextureOption::applyGradient(KisFixedPaintDeviceSP dab, const PkPoint& o
             KoColor paintcolor;
             paintcolor.setColor(m_cachedGradient.cachedAt(gradientvalue), dab->colorSpace());
             qreal paintOpacity = paintcolor.opacityF() * (qreal(pkAlpha(*maskQRgb)) / 255.0);
-            paintcolor.setOpacity(qMin(paintOpacity, dab->colorSpace()->opacityF(dabData)));
+            paintcolor.setOpacity(pkMin(paintOpacity, dab->colorSpace()->opacityF(dabData)));
             colors[0] = paintcolor.data();
             KoColor dabColor(dabData, dab->colorSpace());
             colors[1] = dabColor.data();

@@ -7,8 +7,8 @@
 #ifndef __KO_RESOURCE_UPDATE_MEDIATOR_H
 #define __KO_RESOURCE_UPDATE_MEDIATOR_H
 
-#include <QScopedPointer>
-#include <QSharedPointer>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
 #include <QObject>
 
 #include "kritaflake_export.h"
@@ -32,16 +32,16 @@ public:
     ~KoResourceUpdateMediator() override;
 
     int key() const;
-    virtual void connectResource(QVariant sourceResource) = 0;
+    virtual void connectResource(PkVariant sourceResource) = 0;
 
 Q_SIGNALS:
     void sigResourceChanged(int key);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-typedef QSharedPointer<KoResourceUpdateMediator> KoResourceUpdateMediatorSP;
+typedef PkSharedPointer<KoResourceUpdateMediator> KoResourceUpdateMediatorSP;
 
 #endif /* __KO_RESOURCE_UPDATE_MEDIATOR_H */

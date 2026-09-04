@@ -21,7 +21,7 @@
 //     话按屏幕视觉看其实是顺时针——方向 (0,1)（视觉上的"下"）给 270°，
 //     方向 (0,-1)（视觉上的"上"）给 90°。
 //   · **isNull() 与 operator== 不是同一条公式**：isNull 是逐分量
-//     qFuzzyCompare(x1,x2)&&qFuzzyCompare(y1,y2)；operator== 是两次
+//     pkQtFuzzyCompare(x1,x2)&&pkQtFuzzyCompare(y1,y2)；operator== 是两次
 //     PkPointF::operator==（那条自带"任一侧为 0 就改走 fuzzyIsNull"的零分支）。
 //   · **pointAt(t) 不夹持 t**：t<0/t>1 都是合法外插。
 //   · **intersects() 的类型/交点用同一套 na/nb 参数化**，符号试错过——
@@ -154,7 +154,7 @@ void PkLineCase::lineFDxDy()
 void PkLineCase::lineFIsNullIsFuzzy()
 {
     // isNull() 是逐分量 qFuzzyCompare，**不是**逐位相等，**也不是"足够接近
-    // 0 就算相等"**：qFuzzyCompare 的右端取 qMin(|a|,|b|)，任一侧恰好是 0
+    // 0 就算相等"**：qFuzzyCompare 的右端取 pkMin(|a|,|b|)，任一侧恰好是 0
     // 时这一项恒为 0，于是比较**恒假**（唯一例外是两侧都恰好是 0）。真 Qt
     // 5.15.7 实测：`QLineF(0,0,1e-13,0).isNull()` 与
     // `QLineF(0,0,1e-11,0).isNull()` **都是 false**——起点在 0 时压根挤不进

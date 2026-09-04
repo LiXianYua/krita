@@ -95,8 +95,8 @@ qreal KisImageResolutionProxy::yRes() const
 
 bool KisImageResolutionProxy::compareResolution(const KisImageResolutionProxy &rhs) const
 {
-    return qFuzzyCompare(xRes(), rhs.xRes()) &&
-        qFuzzyCompare(yRes(), rhs.yRes());
+    return pkQtFuzzyCompare(xRes(), rhs.xRes()) &&
+        pkQtFuzzyCompare(yRes(), rhs.yRes());
 
 }
 

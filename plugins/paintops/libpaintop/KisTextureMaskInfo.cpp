@@ -58,10 +58,10 @@ bool operator==(const KisTextureMaskInfo &lhs, const KisTextureMaskInfo &rhs) {
              (lhs.m_pattern &&
               rhs.m_pattern &&
               lhs.m_pattern->md5Sum() == rhs.m_pattern->md5Sum())) &&
-            qFuzzyCompare(lhs.m_scale, rhs.m_scale) &&
-            qFuzzyCompare(lhs.m_brightness, rhs.m_brightness) &&
-            qFuzzyCompare(lhs.m_contrast, rhs.m_contrast) &&
-            qFuzzyCompare(lhs.m_neutralPoint, rhs.m_neutralPoint) &&
+            pkQtFuzzyCompare(lhs.m_scale, rhs.m_scale) &&
+            pkQtFuzzyCompare(lhs.m_brightness, rhs.m_brightness) &&
+            pkQtFuzzyCompare(lhs.m_contrast, rhs.m_contrast) &&
+            pkQtFuzzyCompare(lhs.m_neutralPoint, rhs.m_neutralPoint) &&
             lhs.m_invert == rhs.m_invert &&
             lhs.m_cutoffLeft == rhs.m_cutoffLeft &&
             lhs.m_cutoffRight == rhs.m_cutoffRight &&
@@ -160,7 +160,7 @@ void KisTextureMaskInfo::recalculateMask()
 
     qreal scale = m_scale * KisLodTransform::lodToScale(m_levelOfDetail);
 
-    if (!qFuzzyCompare(scale, 0.0) && !qFuzzyCompare(scale, 1.0)) {
+    if (!pkQtFuzzyCompare(scale, 0.0) && !pkQtFuzzyCompare(scale, 1.0)) {
         PkTransform tf;
         tf.scale(scale, scale);
         PkRect rc = KisAlgebra2D::ensureRectNotSmaller(tf.mapRect(mask.rect()), PkSize(2,2));
@@ -199,7 +199,7 @@ void KisTextureMaskInfo::recalculateMask()
                 maskValue = 1 - maskValue;
             }
 
-            maskValue = qBound(0.0f, maskValue, 1.0f);
+            maskValue = pkBound(0.0f, maskValue, 1.0f);
 
             float neutralAdjustedValue;
 
@@ -225,8 +225,8 @@ void KisTextureMaskInfo::recalculateMask()
             }
 
             if (useAlpha) {
-                int finalValue = qRound(neutralAdjustedValue * 255.0);
-                pixel[row * width + col] = PkColor(finalValue, finalValue, finalValue, qRound(alpha * 255.0)).rgba();
+                int finalValue = pkRound(neutralAdjustedValue * 255.0);
+                pixel[row * width + col] = PkColor(finalValue, finalValue, finalValue, pkRound(alpha * 255.0)).rgba();
             } else {
                 cs->setOpacity(iter->rawData(), neutralAdjustedValue, 1);
                 iter->nextPixel();

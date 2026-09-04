@@ -30,9 +30,9 @@
 #include <QApplication>
 
 #include <QPainter>
-#include <QPainterPath>
-#include <QThread>
-#include <QMutexLocker>
+#include <PkPainterPath.h>
+#include <PkThread.h>
+#include <PkMutex.h>
 #include <FlakeDebug.h>
 
 #include "kis_painting_tweaks.h"
@@ -87,7 +87,7 @@ void populateRenderSubtree(KoShape *parentShape,
     KoShapeContainer *parentContainer = dynamic_cast<KoShapeContainer*>(parentShape);
     if (!parentContainer) return;
 
-    QList<KoShape*> children = parentContainer->shapes();
+    PkList<KoShape*> children = parentContainer->shapes();
     std::sort(children.begin(), children.end(), KoShape::compareShapeZIndex);
 
     for (auto it = children.constBegin(); it != children.constEnd(); ++it) {
@@ -117,10 +117,10 @@ void populateRenderSubtree(KoShape *parentShape,
  * leaf shapes themselves, and all parent shapes that have some effects affecting
  * these shapes.
  */
-void buildRenderTree(QList<KoShape*> leafShapes,
+void buildRenderTree(PkList<KoShape*> leafShapes,
                      KisForest<KoShape*> &tree)
 {
-    QList<KoShape*> sortedShapes = leafShapes;
+    PkList<KoShape*> sortedShapes = leafShapes;
     std::sort(sortedShapes.begin(), sortedShapes.end(), KoShape::compareShapeZIndex);
 
     std::unordered_set<KoShape*> includedShapes;
@@ -130,7 +130,7 @@ void buildRenderTree(QList<KoShape*> leafShapes,
         if (shouldSkipShape) continue;
 
         bool shapeIsPartOfIncludedSubtree = false;
-        QVector<KoShape*> hierarchy = {shape};
+        PkVector<KoShape*> hierarchy = {shape};
 
         while ((shape = shape->parent())) {
             if (!shapeIsVisible(shape)) {
@@ -195,7 +195,7 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
             painter.setOpacity(1.0-transparency);
         }
 
-        QScopedPointer<KoClipMaskPainter> clipMaskPainter;
+        PkScopedPointer<KoClipMaskPainter> clipMaskPainter;
         QPainter *shapePainter = &painter;
 
         KoClipMask *clipMask = shape->clipMask();
@@ -204,7 +204,7 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
              * We should clip on both, the shape and the global clipping rect.
              * Otherwise filling huge shapes will go into almost infinite loop.
              */
-            const QRectF bounds = painter.transform().mapRect(shape->outlineRect() & painter.clipBoundingRect());
+            const PkRectF bounds = painter.transform().mapRect(shape->outlineRect() & painter.clipBoundingRect());
 
             clipMaskPainter.reset(new KoClipMaskPainter(&painter, bounds));
             shapePainter = clipMaskPainter->shapePainter();
@@ -215,7 +215,7 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
          * not always here, so we need a period of sanity checks to ensure all the shapes are
          * ported correctly.
          */
-        const QTransform sanityCheckTransformSaved = shapePainter->transform();
+        const PkTransform sanityCheckTransformSaved = shapePainter->transform();
 
         renderShapes(childBegin(it), childEnd(it), *shapePainter);
 
@@ -252,7 +252,7 @@ void KoShapeManager::Private::updateTree()
     bool anyModified = false;
 
     {
-        QMutexLocker l(&this->treeMutex);
+        PkMutexLocker l(&this->treeMutex);
 
         Q_FOREACH (KoShape *shape, aggregate4update) {
             selectionModified = selectionModified || selection->isSelected(shape);
@@ -263,7 +263,7 @@ void KoShapeManager::Private::updateTree()
             if (!shapeUsedInRenderingTree(shape)) continue;
 
             tree.remove(shape);
-            QRectF br(shape->boundingRect());
+            PkRectF br(shape->boundingRect());
             tree.insert(br, shape);
         }
 
@@ -281,14 +281,14 @@ void KoShapeManager::Private::updateTree()
 void KoShapeManager::Private::forwardCompressedUpdate()
 {
     bool shouldUpdateDecorations = false;
-    QRectF scheduledUpdate;
+    PkRectF scheduledUpdate;
 
     {
-        QMutexLocker l(&shapesMutex);
+        PkMutexLocker l(&shapesMutex);
 
         if (!compressedUpdate.isEmpty()) {
             scheduledUpdate = compressedUpdate;
-            compressedUpdate = QRect();
+            compressedUpdate = PkRect();
         }
 
         Q_FOREACH (const KoShape *shape, compressedUpdatedShapes) {
@@ -307,7 +307,7 @@ void KoShapeManager::Private::forwardCompressedUpdate()
 
 }
 
-KoShapeManager::KoShapeManager(KoCanvasBase *canvas, const QList<KoShape *> &shapes)
+KoShapeManager::KoShapeManager(KoCanvasBase *canvas, const PkList<KoShape *> &shapes)
     : d(new Private(this, canvas))
 {
     Q_ASSERT(d->canvas); // not optional.
@@ -333,7 +333,7 @@ KoShapeManager::KoShapeManager(KoCanvasBase *canvas)
     connect(this, &KoShapeManager::forwardUpdate, this, [this]() { d->forwardCompressedUpdate(); });
 }
 
-void KoShapeManager::Private::unlinkFromShapesRecursively(const QList<KoShape*> &shapes)
+void KoShapeManager::Private::unlinkFromShapesRecursively(const PkList<KoShape*> &shapes)
 {
     Q_FOREACH (KoShape *shape, shapes) {
         shape->removeShapeManager(q);
@@ -353,16 +353,16 @@ KoShapeManager::~KoShapeManager()
     delete d;
 }
 
-void KoShapeManager::setShapes(const QList<KoShape *> &shapes, Repaint repaint)
+void KoShapeManager::setShapes(const PkList<KoShape *> &shapes, Repaint repaint)
 {
     {
-        QMutexLocker l1(&d->shapesMutex);
-        QMutexLocker l2(&d->treeMutex);
+        PkMutexLocker l1(&d->shapesMutex);
+        PkMutexLocker l2(&d->treeMutex);
 
         //clear selection
         d->selection->deselectAll();
         d->unlinkFromShapesRecursively(d->shapes);
-        d->compressedUpdate = QRect();
+        d->compressedUpdate = PkRect();
         d->compressedUpdatedShapes.clear();
         d->aggregate4update.clear();
         d->tree.clear();
@@ -377,7 +377,7 @@ void KoShapeManager::setShapes(const QList<KoShape *> &shapes, Repaint repaint)
 void KoShapeManager::addShape(KoShape *shape, Repaint repaint)
 {
     {
-        QMutexLocker l1(&d->shapesMutex);
+        PkMutexLocker l1(&d->shapesMutex);
 
         if (d->shapes.contains(shape))
             return;
@@ -385,9 +385,9 @@ void KoShapeManager::addShape(KoShape *shape, Repaint repaint)
         d->shapes.append(shape);
 
         if (shapeUsedInRenderingTree(shape)) {
-            QMutexLocker l2(&d->treeMutex);
+            PkMutexLocker l2(&d->treeMutex);
 
-            QRectF br(shape->boundingRect());
+            PkRectF br(shape->boundingRect());
             d->tree.insert(br, shape);
         }
     }
@@ -408,10 +408,10 @@ void KoShapeManager::addShape(KoShape *shape, Repaint repaint)
 
 void KoShapeManager::remove(KoShape *shape)
 {
-    QRectF dirtyRect;
+    PkRectF dirtyRect;
     {
-        QMutexLocker l1(&d->shapesMutex);
-        QMutexLocker l2(&d->treeMutex);
+        PkMutexLocker l1(&d->shapesMutex);
+        PkMutexLocker l2(&d->treeMutex);
 
         dirtyRect = shape->boundingRect();
 
@@ -446,8 +446,8 @@ KoShapeManager::ShapeInterface::ShapeInterface(KoShapeManager *_q)
 
 void KoShapeManager::ShapeInterface::notifyShapeDestructed(KoShape *shape)
 {
-    QMutexLocker l1(&q->d->shapesMutex);
-    QMutexLocker l2(&q->d->treeMutex);
+    PkMutexLocker l1(&q->d->shapesMutex);
+    PkMutexLocker l2(&q->d->treeMutex);
 
     q->d->selection->deselect(shape);
     q->d->aggregate4update.remove(shape);
@@ -473,9 +473,9 @@ void KoShapeManager::preparePaintJobs(PaintJobsOrder &jobsOrder,
 {
     d->updateTree();
 
-    QMutexLocker l1(&d->shapesMutex);
+    PkMutexLocker l1(&d->shapesMutex);
 
-    QSet<KoShape*> rootShapesSet;
+    PkSet<KoShape*> rootShapesSet;
     Q_FOREACH (KoShape *shape, d->shapes) {
         while (shape->parent() && shape->parent() != excludeRoot) {
             shape = shape->parent();
@@ -485,8 +485,8 @@ void KoShapeManager::preparePaintJobs(PaintJobsOrder &jobsOrder,
             rootShapesSet.insert(shape);
         }
     }
-    const QList<KoShape*> rootShapes(rootShapesSet.begin(), rootShapesSet.end());
-    QList<KoShape*> newRootShapes;
+    const PkList<KoShape*> rootShapes(rootShapesSet.begin(), rootShapesSet.end());
+    PkList<KoShape*> newRootShapes;
 
     Q_FOREACH (KoShape *srcShape, rootShapes) {
         KIS_SAFE_ASSERT_RECOVER(srcShape->parent() == excludeRoot
@@ -512,19 +512,19 @@ void KoShapeManager::preparePaintJobs(PaintJobsOrder &jobsOrder,
         shapesStorage->emplace_back(std::unique_ptr<KoShape>(shape));
     }
 
-    const QList<KoShape*> originalShapes = KoShape::linearizeSubtreeSorted(rootShapes);
-    const QList<KoShape*> clonedShapes = KoShape::linearizeSubtreeSorted(newRootShapes);
+    const PkList<KoShape*> originalShapes = KoShape::linearizeSubtreeSorted(rootShapes);
+    const PkList<KoShape*> clonedShapes = KoShape::linearizeSubtreeSorted(newRootShapes);
     KIS_SAFE_ASSERT_RECOVER_RETURN(clonedShapes.size() == originalShapes.size());
 
-    QHash<KoShape*, KoShape*> clonedFromOriginal;
+    PkHash<KoShape*, KoShape*> clonedFromOriginal;
     for (int i = 0; i < originalShapes.size(); i++) {
         clonedFromOriginal[originalShapes[i]] = clonedShapes[i];
     }
 
 
     for (auto it = std::begin(jobsOrder.jobs); it != std::end(jobsOrder.jobs); ++it) {
-        QMutexLocker l(&d->treeMutex);
-        QList<KoShape*> unsortedOriginalShapes = d->tree.intersects(it->docUpdateRect);
+        PkMutexLocker l(&d->treeMutex);
+        PkList<KoShape*> unsortedOriginalShapes = d->tree.intersects(it->docUpdateRect);
 
         it->allClonedShapes = shapesStorage;
 
@@ -550,16 +550,16 @@ void KoShapeManager::paint(QPainter &painter)
 {
     d->updateTree();
 
-    QMutexLocker l1(&d->shapesMutex);
+    PkMutexLocker l1(&d->shapesMutex);
 
     painter.setPen(Qt::NoPen);  // painters by default have a black stroke, lets turn that off.
     painter.setBrush(Qt::NoBrush);
 
-    QList<KoShape*> unsortedShapes;
+    PkList<KoShape*> unsortedShapes;
     if (painter.hasClipping()) {
-        QMutexLocker l(&d->treeMutex);
+        PkMutexLocker l(&d->treeMutex);
 
-        QRectF rect = KisPaintingTweaks::safeClipBoundingRect(painter);
+        PkRectF rect = KisPaintingTweaks::safeClipBoundingRect(painter);
         unsortedShapes = d->tree.intersects(rect);
     } else {
         unsortedShapes = d->shapes;
@@ -582,16 +582,16 @@ void KoShapeManager::renderSingleShape(KoShape *shape, QPainter &painter)
     renderShapes(childBegin(renderTree), childEnd(renderTree), painter);
 }
 
-KoShape *KoShapeManager::shapeAt(const QPointF &position, KoFlake::ShapeSelection selection, bool omitHiddenShapes)
+KoShape *KoShapeManager::shapeAt(const PkPointF &position, KoFlake::ShapeSelection selection, bool omitHiddenShapes)
 {
     d->updateTree();
 
-    QMutexLocker l(&d->shapesMutex);
+    PkMutexLocker l(&d->shapesMutex);
 
-    QList<KoShape*> sortedShapes;
+    PkList<KoShape*> sortedShapes;
 
     {
-        QMutexLocker l(&d->treeMutex);
+        PkMutexLocker l(&d->treeMutex);
         sortedShapes = d->tree.contains(position);
     }
 
@@ -641,13 +641,13 @@ KoShape *KoShapeManager::shapeAt(const QPointF &position, KoFlake::ShapeSelectio
     return 0; // missed everything
 }
 
-QList<KoShape *> KoShapeManager::shapesAt(const QRectF &rect, bool omitHiddenShapes, bool containedMode)
+PkList<KoShape *> KoShapeManager::shapesAt(const PkRectF &rect, bool omitHiddenShapes, bool containedMode)
 {
     d->updateTree();
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
 
     {
-        QMutexLocker l(&d->treeMutex);
+        PkMutexLocker l(&d->treeMutex);
         shapes = containedMode ? d->tree.contained(rect) : d->tree.intersects(rect);
     }
 
@@ -658,14 +658,14 @@ QList<KoShape *> KoShapeManager::shapesAt(const QRectF &rect, bool omitHiddenSha
         if (omitHiddenShapes && !shape->isVisible()) {
             shapes.removeAt(count);
         } else {
-            const QPainterPath outline = shape->absoluteTransformation().map(shape->outline());
+            const PkPainterPath outline = shape->absoluteTransformation().map(shape->outline());
 
             if (!containedMode && !outline.intersects(rect) && !outline.contains(rect)) {
                 shapes.removeAt(count);
 
             } else if (containedMode) {
 
-                QPainterPath containingPath;
+                PkPainterPath containingPath;
                 containingPath.addRect(rect);
 
                 if (!containingPath.contains(outline)) {
@@ -678,12 +678,12 @@ QList<KoShape *> KoShapeManager::shapesAt(const QRectF &rect, bool omitHiddenSha
     return shapes;
 }
 
-void KoShapeManager::update(const QRectF &rect, const KoShape *shape, bool selectionHandles)
+void KoShapeManager::update(const PkRectF &rect, const KoShape *shape, bool selectionHandles)
 {
     if (d->updatesBlocked) return;
 
     {
-        QMutexLocker l(&d->shapesMutex);
+        PkMutexLocker l(&d->shapesMutex);
 
         d->compressedUpdate |= rect;
 
@@ -707,7 +707,7 @@ bool KoShapeManager::updatesBlocked() const
 void KoShapeManager::notifyShapeChanged(KoShape *shape)
 {
     {
-        QMutexLocker l(&d->treeMutex);
+        PkMutexLocker l(&d->treeMutex);
 
         Q_ASSERT(shape);
         if (d->aggregate4update.contains(shape)) {
@@ -724,18 +724,18 @@ void KoShapeManager::notifyShapeChanged(KoShape *shape)
     }
 }
 
-QList<KoShape*> KoShapeManager::shapes() const
+PkList<KoShape*> KoShapeManager::shapes() const
 {
-    QMutexLocker l(&d->shapesMutex);
+    PkMutexLocker l(&d->shapesMutex);
 
     return d->shapes;
 }
 
-QList<KoShape*> KoShapeManager::topLevelShapes() const
+PkList<KoShape*> KoShapeManager::topLevelShapes() const
 {
-    QMutexLocker l(&d->shapesMutex);
+    PkMutexLocker l(&d->shapesMutex);
 
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     // get all toplevel shapes
     Q_FOREACH (KoShape *shape, d->shapes) {
         if (!shape->parent() || dynamic_cast<KoShapeLayer*>(shape->parent())) {

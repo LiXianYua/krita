@@ -7,11 +7,11 @@
 #ifndef KOMESHPATCHESRENDERER_H
 #define KOMESHPATCHESRENDERER_H
 
-#include <QImage>
+#include <PkImage.h>
 #include <QPainter>
-#include <QPainterPath>
-#include <QVector>
-#include <QRectF>
+#include <PkPainterPath.h>
+#include <PkVector.h>
+#include <PkRect.h>
 
 #include <PkFlakeBridge.h>
 #include <KoColorSpaceRegistry.h>
@@ -25,23 +25,23 @@ public:
     KoMeshPatchesRenderer()
     {}
 
-    void configure(QRectF gradientRect, const QTransform& painterTransform) {
+    void configure(PkRectF gradientRect, const PkTransform& painterTransform) {
 
         // NOTE: This is a necessary step to prevent loss of quality, because painterTransform is scaled.
 
         // we wish to scale the patch, but not translate, because patch should stay inside
         // the boundingRect
-        QTransform painterTransformShifted = painterTransform *
-            QTransform::fromTranslate(painterTransform.dx(), painterTransform.dy()).inverted();
+        PkTransform painterTransformShifted = painterTransform *
+            PkTransform::fromTranslate(painterTransform.dx(), painterTransform.dy()).inverted();
 
         // we are applying transformation on a Unit rect, so we can extract scaling info only
-        QRectF unitRectScaled = painterTransformShifted.mapRect(QRectF(gradientRect.topLeft(), QSize(1, 1)));
-        QTransform scaledTransform = QTransform::fromScale(unitRectScaled.width(), unitRectScaled.height());
+        PkRectF unitRectScaled = painterTransformShifted.mapRect(PkRectF(gradientRect.topLeft(), PkSize(1, 1)));
+        PkTransform scaledTransform = PkTransform::fromScale(unitRectScaled.width(), unitRectScaled.height());
 
         // boundingRect of the scaled version
-        QRectF scaledGradientRect = scaledTransform.mapRect(gradientRect);
+        PkRectF scaledGradientRect = scaledTransform.mapRect(gradientRect);
 
-        m_patch = QImage(scaledGradientRect.size().toSize(), QImage::Format_ARGB32);
+        m_patch = PkImage(scaledGradientRect.size().toSize(), PkImage::Format_ARGB32);
         m_patch.fill(Qt::transparent);
 
         m_patchPainter.begin(&m_patch);
@@ -60,10 +60,10 @@ public:
                    const int row = -1,
                    const int col = -1) {
 
-        QColor color0 = toQColor(patch->getStop(SvgMeshPatch::Top).color);
-        QColor color1 = toQColor(patch->getStop(SvgMeshPatch::Right).color);
-        QColor color2 = toQColor(patch->getStop(SvgMeshPatch::Bottom).color);
-        QColor color3 = toQColor(patch->getStop(SvgMeshPatch::Left).color);
+        PkColor color0 = toQColor(patch->getStop(SvgMeshPatch::Top).color);
+        PkColor color1 = toQColor(patch->getStop(SvgMeshPatch::Right).color);
+        PkColor color2 = toQColor(patch->getStop(SvgMeshPatch::Bottom).color);
+        PkColor color3 = toQColor(patch->getStop(SvgMeshPatch::Left).color);
 
         const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
 
@@ -78,7 +78,7 @@ public:
         bool colorVariationExists = checkColorVariance(c);
 
         if (colorVariationExists && (verticalDiv || horizontalDiv)) {
-            QVector<QColor> colors;
+            PkVector<PkColor> colors;
             if (type == SvgMeshGradient::BICUBIC) {
 
                 // it is a parent patch, so calculate coefficients aka alpha
@@ -91,9 +91,9 @@ public:
                 colors = getColorsBilinear(patch);
             }
 
-            // SvgMeshPatch::subdivide* 收 PkVector<PkColor>，此处把 QVector<QColor> 转过去。
+            // SvgMeshPatch::subdivide* 收 PkVector<PkColor>，此处把 PkVector<PkColor> 转过去。
             PkVector<PkColor> colorsPk;
-            for (const QColor &c : colors) colorsPk.append(toPkColor(c));
+            for (const PkColor &c : colors) colorsPk.append(toPkColor(c));
 
             if (verticalDiv && horizontalDiv) {
                 PkVector<SvgMeshPatch*> patches;
@@ -125,8 +125,8 @@ public:
             }
 
         } else {
-            const QPainterPath outline = toQPainterPath(patch->getPath());
-            const QRectF patchRect = outline.boundingRect();
+            const PkPainterPath outline = toQPainterPath(patch->getPath());
+            const PkRectF patchRect = outline.boundingRect();
 
             quint8 mixed[4];
             cs->mixColorsOp()->mixColors(c[0], 4, mixed);
@@ -134,9 +134,9 @@ public:
             // KoColorSpace::toQColor 剥离后收 PkColor*，先转 Pk 再经桥接回真 Qt 颜色。
             PkColor averagePk;
             cs->toQColor(mixed, &averagePk);
-            QColor average = toQColor(averagePk);
+            PkColor average = toQColor(averagePk);
 
-            QPen pen(average);
+            PkPen pen(average);
             pen.setWidth(0);
             m_patchPainter.setPen(pen);
 
@@ -172,9 +172,9 @@ public:
         return false;
     }
 
-    QVector<qreal> difference(const QVector<qreal>& v1, const QVector<qreal>& v2)
+    PkVector<qreal> difference(const PkVector<qreal>& v1, const PkVector<qreal>& v2)
     {
-        QVector<qreal> v3(4, 0);
+        PkVector<qreal> v3(4, 0);
         for (int i = 0; i < 4; ++i) {
             v3[i] = v1[i] - v2[i];
         }
@@ -182,21 +182,21 @@ public:
     }
 
 
-    QVector<qreal> multiply(const QVector<qreal>& v1, qreal n)
+    PkVector<qreal> multiply(const PkVector<qreal>& v1, qreal n)
     {
-        QVector<qreal> v3(4, 0);
+        PkVector<qreal> v3(4, 0);
         for (int i = 0; i < 4; ++i) {
             v3[i] = v1[i] * n;
         }
         return v3;
     }
 
-    QVector<qreal> split(QColor c)
+    PkVector<qreal> split(PkColor c)
     {
         return {c.redF(), c.greenF(), c.blueF(), c.alphaF()};
     }
 
-    qreal getValue(const QVector<qreal>& alpha, const QPointF p)
+    qreal getValue(const PkVector<qreal>& alpha, const PkPointF p)
     {
         KIS_ASSERT(alpha.size() == 16);
         qreal x = p.x(), y = p.y();
@@ -230,7 +230,7 @@ public:
         return result;
     }
 
-    QColor getColorUsingAlpha(const QVector<QVector<qreal>>& alpha, QPointF p)
+    PkColor getColorUsingAlpha(const PkVector<PkVector<qreal>>& alpha, PkPointF p)
     {
         qreal r = getValue(alpha[0], p);
         qreal g = getValue(alpha[1], p);
@@ -248,14 +248,14 @@ public:
         b = b < 0.0 ? 0.0 : b;
         a = a < 0.0 ? 0.0 : a;
 
-        QColor result;
+        PkColor result;
         result.setRgbF(r, g, b);
         result.setAlphaF(a);
         return result;
     }
 
     /// Naming convention adopted from: https://en.wikipedia.org/wiki/Bicubic_interpolation#Computation
-    QVector<qreal> getAlpha(const QVector<qreal>& X)
+    PkVector<qreal> getAlpha(const PkVector<qreal>& X)
     {
         const static qreal A[16][16] = {
             { 1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0},
@@ -276,7 +276,7 @@ public:
             { 4,-4,-4, 4,  2, 2,-2,-2,  2,-2, 2,-2,  1, 1, 1, 1}};
 
 
-        QVector<qreal> alpha(16, 0);
+        PkVector<qreal> alpha(16, 0);
         for (int i = 0; i < 16; ++i) {
             alpha[i] = 0;
             for (int j = 0; j < 16; ++j) {
@@ -287,9 +287,9 @@ public:
         return alpha;
     }
 
-    QVector<qreal> secant(const SvgMeshStop& stop1, const SvgMeshStop& stop2)
+    PkVector<qreal> secant(const SvgMeshStop& stop1, const SvgMeshStop& stop2)
     {
-        qreal distance = QLineF(toQPointF(stop1.point), toQPointF(stop2.point)).length();
+        qreal distance = PkLineF(toQPointF(stop1.point), toQPointF(stop2.point)).length();
 
         if (distance == 0.0) {  // NaN
             return {0.0, 0.0, 0.0, 0.0};
@@ -298,7 +298,7 @@ public:
         qreal c1[4] = {stop1.color.redF(), stop1.color.greenF(), stop1.color.blueF(), stop1.color.alphaF()};
         qreal c2[4] = {stop2.color.redF(), stop2.color.greenF(), stop2.color.blueF(), stop2.color.alphaF()};
 
-        QVector<qreal> result(4, 0.0);
+        PkVector<qreal> result(4, 0.0);
 
         for (int i = 0; i < 4; ++i) {
             result[i] = (c2[i] - c1[i]) / distance;
@@ -307,14 +307,14 @@ public:
         return result;
     }
 
-    QVector<qreal> derivative(const SvgMeshStop& stop0,
+    PkVector<qreal> derivative(const SvgMeshStop& stop0,
                               const SvgMeshStop& stop1,
                               const SvgMeshStop& stop2)
     {
-        QVector<qreal> delta0 = secant(stop0, stop1);
-        QVector<qreal> delta1 = secant(stop1, stop2);
+        PkVector<qreal> delta0 = secant(stop0, stop1);
+        PkVector<qreal> delta1 = secant(stop1, stop2);
 
-        QVector<qreal> result(4);
+        PkVector<qreal> result(4);
 
         for (int i = 0; i < 4; ++i) {
             qreal slope = (delta0[i] + delta1[i]) / 2;
@@ -334,7 +334,7 @@ public:
     }
 
     /// Derivative in the X direction, but the patch should not be on an edge
-    QVector<QVector<qreal>> derivativeX(const SvgMeshPatch* patch0,
+    PkVector<PkVector<qreal>> derivativeX(const SvgMeshPatch* patch0,
                                         const SvgMeshPatch* patch1,
                                         const SvgMeshPatch* patch2)
     {
@@ -349,16 +349,16 @@ public:
         SvgMeshStop f13 = patch2->getStop(SvgMeshPatch::Right);
         SvgMeshStop f23 = patch2->getStop(SvgMeshPatch::Bottom);
 
-        QVector<qreal> d11 = derivative(f10, f11, f12);
-        QVector<qreal> d12 = derivative(f11, f12, f13);
-        QVector<qreal> d21 = derivative(f20, f21, f22);
-        QVector<qreal> d22 = derivative(f21, f22, f23);
+        PkVector<qreal> d11 = derivative(f10, f11, f12);
+        PkVector<qreal> d12 = derivative(f11, f12, f13);
+        PkVector<qreal> d21 = derivative(f20, f21, f22);
+        PkVector<qreal> d22 = derivative(f21, f22, f23);
 
         return {d11, d12, d21, d22};
     }
 
     /// Derivative in the Y direction, but the patch should not be on an edge
-    QVector<QVector<qreal>> derivativeY(const SvgMeshPatch* patch0,
+    PkVector<PkVector<qreal>> derivativeY(const SvgMeshPatch* patch0,
                                         const SvgMeshPatch* patch1,
                                         const SvgMeshPatch* patch2)
     {
@@ -373,16 +373,16 @@ public:
         SvgMeshStop f31 = patch2->getStop(SvgMeshPatch::Left);
         SvgMeshStop f32 = patch2->getStop(SvgMeshPatch::Bottom);
 
-        QVector<qreal> d11 = derivative(f01, f11, f21);
-        QVector<qreal> d12 = derivative(f02, f12, f22);
-        QVector<qreal> d21 = derivative(f11, f21, f31);
-        QVector<qreal> d22 = derivative(f12, f22, f32);
+        PkVector<qreal> d11 = derivative(f01, f11, f21);
+        PkVector<qreal> d12 = derivative(f02, f12, f22);
+        PkVector<qreal> d21 = derivative(f11, f21, f31);
+        PkVector<qreal> d22 = derivative(f12, f22, f32);
 
         return {d11, d12, d21, d22};
     }
 
     /// Derivative in the X direction. The edge has to be in left-most column.
-    QVector<QVector<qreal>> derivativeEdgeBeginX(const SvgMeshPatch* patch0,
+    PkVector<PkVector<qreal>> derivativeEdgeBeginX(const SvgMeshPatch* patch0,
                                                  const SvgMeshPatch* patch1)
     {
         SvgMeshStop f00 = patch0->getStop(SvgMeshPatch::Top);
@@ -393,16 +393,16 @@ public:
         SvgMeshStop f02 = patch1->getStop(SvgMeshPatch::Right);
         SvgMeshStop f12 = patch1->getStop(SvgMeshPatch::Bottom);
 
-        QVector<qreal> d01 = derivative(f00, f01, f02);
-        QVector<qreal> d11 = derivative(f10, f11, f12);
-        QVector<qreal> d00 = difference(multiply(secant(f00, f01), 2), d01);
-        QVector<qreal> d10 = difference(multiply(secant(f10, f11), 2), d11);
+        PkVector<qreal> d01 = derivative(f00, f01, f02);
+        PkVector<qreal> d11 = derivative(f10, f11, f12);
+        PkVector<qreal> d00 = difference(multiply(secant(f00, f01), 2), d01);
+        PkVector<qreal> d10 = difference(multiply(secant(f10, f11), 2), d11);
 
         return {d00, d01, d10, d11};
     }
 
     /// Derivative in the Y direction. The edge has to be in top row
-    QVector<QVector<qreal>> derivativeEdgeBeginY(const SvgMeshPatch* patch0,
+    PkVector<PkVector<qreal>> derivativeEdgeBeginY(const SvgMeshPatch* patch0,
                                                  const SvgMeshPatch* patch1)
     {
         SvgMeshStop f00 = patch0->getStop(SvgMeshPatch::Top);
@@ -413,16 +413,16 @@ public:
         SvgMeshStop f20 = patch1->getStop(SvgMeshPatch::Left);
         SvgMeshStop f21 = patch1->getStop(SvgMeshPatch::Bottom);
 
-        QVector<qreal> d10 = derivative(f00, f10, f20);
-        QVector<qreal> d11 = derivative(f01, f11, f21);
-        QVector<qreal> d00 = difference(multiply(secant(f00, f10), 2), d10);
-        QVector<qreal> d01 = difference(multiply(secant(f01, f11), 2), d11);
+        PkVector<qreal> d10 = derivative(f00, f10, f20);
+        PkVector<qreal> d11 = derivative(f01, f11, f21);
+        PkVector<qreal> d00 = difference(multiply(secant(f00, f10), 2), d10);
+        PkVector<qreal> d01 = difference(multiply(secant(f01, f11), 2), d11);
 
         return {d00, d01, d10, d11};
     }
 
     // Derivative in the X direction. The edge has to be in right-most column.
-    QVector<QVector<qreal>> derivativeEdgeEndX(const SvgMeshPatch* patch1,
+    PkVector<PkVector<qreal>> derivativeEdgeEndX(const SvgMeshPatch* patch1,
                                                const SvgMeshPatch* patch0)
     {
         SvgMeshStop f02 = patch1->getStop(SvgMeshPatch::Top);
@@ -433,16 +433,16 @@ public:
         SvgMeshStop f01 = patch0->getStop(SvgMeshPatch::Top);
         SvgMeshStop f11 = patch0->getStop(SvgMeshPatch::Left);
 
-        QVector<qreal> d02 = derivative(f01, f02, f03);
-        QVector<qreal> d12 = derivative(f11, f12, f13);
-        QVector<qreal> d03 = difference(multiply(secant(f02, f03), 2), d02);
-        QVector<qreal> d13 = difference(multiply(secant(f12, f13), 2), d12);
+        PkVector<qreal> d02 = derivative(f01, f02, f03);
+        PkVector<qreal> d12 = derivative(f11, f12, f13);
+        PkVector<qreal> d03 = difference(multiply(secant(f02, f03), 2), d02);
+        PkVector<qreal> d13 = difference(multiply(secant(f12, f13), 2), d12);
 
         return {d02, d03, d12, d13};
     }
 
     // Derivative in the Y direction. The edge has to be the bottom row
-    QVector<QVector<qreal>> derivativeEdgeEndY(const SvgMeshPatch* patch1,
+    PkVector<PkVector<qreal>> derivativeEdgeEndY(const SvgMeshPatch* patch1,
                                                 const SvgMeshPatch* patch0)
     {
         SvgMeshStop f22 = patch1->getStop(SvgMeshPatch::Top);
@@ -453,10 +453,10 @@ public:
         SvgMeshStop f12 = patch0->getStop(SvgMeshPatch::Top);
         SvgMeshStop f13 = patch0->getStop(SvgMeshPatch::Right);
 
-        QVector<qreal> d22 = derivative(f12, f22, f32);
-        QVector<qreal> d23 = derivative(f13, f23, f33);
-        QVector<qreal> d32 = difference(multiply(secant(f22, f32), 2), d22);
-        QVector<qreal> d33 = difference(multiply(secant(f23, f33), 2), d23);
+        PkVector<qreal> d22 = derivative(f12, f22, f32);
+        PkVector<qreal> d23 = derivative(f13, f23, f33);
+        PkVector<qreal> d32 = difference(multiply(secant(f22, f32), 2), d22);
+        PkVector<qreal> d33 = difference(multiply(secant(f23, f33), 2), d23);
 
         return {d22, d23, d32, d33};
     }
@@ -491,8 +491,8 @@ public:
         SvgMeshStop f21 = patch->getStop(SvgMeshPatch::Left);
         SvgMeshStop f22 = patch->getStop(SvgMeshPatch::Bottom);
 
-        QVector<QVector<qreal>> dx(4, QVector<qreal>(4, 0));
-        QVector<QVector<qreal>> dy(4, QVector<qreal>(4, 0));
+        PkVector<PkVector<qreal>> dx(4, PkVector<qreal>(4, 0));
+        PkVector<PkVector<qreal>> dy(4, PkVector<qreal>(4, 0));
 
         // dx
         if (!mesharray || mesharray->numColumns() < 2) {
@@ -534,17 +534,17 @@ public:
                              mesharray->getPatch(row + 1, col));
         }
 
-        QVector<QVector<qreal>> c = {split(toQColor(f11.color)), split(toQColor(f12.color)), split(toQColor(f21.color)), split(toQColor(f22.color))};
-        QVector<QVector<qreal>> alpha(4, QVector<qreal>(16, 0));
+        PkVector<PkVector<qreal>> c = {split(toQColor(f11.color)), split(toQColor(f12.color)), split(toQColor(f21.color)), split(toQColor(f22.color))};
+        PkVector<PkVector<qreal>> alpha(4, PkVector<qreal>(16, 0));
 
-        qreal width01 = QLineF(toQPointF(f11.point), toQPointF(f12.point)).length();
-        qreal width23 = QLineF(toQPointF(f21.point), toQPointF(f22.point)).length();
+        qreal width01 = PkLineF(toQPointF(f11.point), toQPointF(f12.point)).length();
+        qreal width23 = PkLineF(toQPointF(f21.point), toQPointF(f22.point)).length();
 
-        qreal height01 = QLineF(toQPointF(f11.point), toQPointF(f21.point)).length();
-        qreal height23 = QLineF(toQPointF(f12.point), toQPointF(f22.point)).length();
+        qreal height01 = PkLineF(toQPointF(f11.point), toQPointF(f21.point)).length();
+        qreal height23 = PkLineF(toQPointF(f12.point), toQPointF(f22.point)).length();
 
         for (int i = 0; i < 4; ++i) {
-            QVector<qreal> X {
+            PkVector<qreal> X {
                 c[0][i],
                 c[1][i],
                 c[2][i],
@@ -572,15 +572,15 @@ public:
         m_alpha = alpha;
     }
 
-    QVector<QColor> getColorsBicubic(const SvgMeshPatch* patch)
+    PkVector<PkColor> getColorsBicubic(const SvgMeshPatch* patch)
     {
-        QPointF midTop    = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Top));
-        QPointF midRight  = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Right));
-        QPointF midBottom = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Bottom));
-        QPointF midLeft   = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Left));
-        QPointF center    = (midTop + midBottom) / 2;
+        PkPointF midTop    = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Top));
+        PkPointF midRight  = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Right));
+        PkPointF midBottom = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Bottom));
+        PkPointF midLeft   = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Left));
+        PkPointF center    = (midTop + midBottom) / 2;
 
-        QVector<QColor> result(5);
+        PkVector<PkColor> result(5);
         result[0] = getColorUsingAlpha(m_alpha, midTop);
         result[1] = getColorUsingAlpha(m_alpha, midRight);
         result[2] = getColorUsingAlpha(m_alpha, midBottom);
@@ -590,26 +590,26 @@ public:
         return result;
     }
 
-    QColor midPointColor(QColor first, QColor second)
+    PkColor midPointColor(PkColor first, PkColor second)
     {
         qreal a = (first.alphaF() + second.alphaF()) / 2;
         qreal r = (first.redF()   + second.redF()) / 2;
         qreal g = (first.greenF() + second.greenF()) / 2;
         qreal b = (first.blueF()  + second.blueF()) / 2;
 
-        QColor c;
+        PkColor c;
         c.setRgbF(r, g, b, a);
         return c;
     }
 
-    QVector<QColor> getColorsBilinear(const SvgMeshPatch* patch)
+    PkVector<PkColor> getColorsBilinear(const SvgMeshPatch* patch)
     {
-        QVector<QColor> result(5);
+        PkVector<PkColor> result(5);
 
-        QColor c1 = toQColor(patch->getStop(SvgMeshPatch::Top).color);
-        QColor c2 = toQColor(patch->getStop(SvgMeshPatch::Right).color);
-        QColor c3 = toQColor(patch->getStop(SvgMeshPatch::Bottom).color);
-        QColor c4 = toQColor(patch->getStop(SvgMeshPatch::Left).color);
+        PkColor c1 = toQColor(patch->getStop(SvgMeshPatch::Top).color);
+        PkColor c2 = toQColor(patch->getStop(SvgMeshPatch::Right).color);
+        PkColor c3 = toQColor(patch->getStop(SvgMeshPatch::Bottom).color);
+        PkColor c4 = toQColor(patch->getStop(SvgMeshPatch::Left).color);
 
         result[0] = midPointColor(c1, c2);
         result[1] = midPointColor(c2, c3);
@@ -620,15 +620,15 @@ public:
         return result;
     }
 
-    QImage* patchImage() {
+    PkImage* patchImage() {
         return &m_patch;
     }
 
 private:
-    QImage m_patch;
+    PkImage m_patch;
     QPainter m_patchPainter;
     // TODO: make them local
-    QVector<QVector<qreal>> m_alpha;
+    PkVector<PkVector<qreal>> m_alpha;
 };
 
 #endif // KOMESHPATCHESRENDERER_H

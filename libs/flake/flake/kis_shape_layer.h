@@ -17,10 +17,10 @@
 #include <KisCroppedOriginalLayerInterface.h>
 #include <PkStream.h>
 
-class QRect;
+class PkRect;
 class QIcon;
-class QRect;
-class QString;
+class PkRect;
+class PkString;
 class KoShapeManager;
 class KoStore;
 class KoViewConverter;
@@ -29,7 +29,7 @@ class KoDocumentResourceManager;
 class KisShapeLayerCanvasBase;
 class KoSelectedShapesProxy;
 
-const QString KIS_SHAPE_LAYER_ID = "KisShapeLayer";
+const PkString KIS_SHAPE_LAYER_ID = "KisShapeLayer";
 /**
    A KisShapeLayer contains any number of non-krita flakes, such as
    path shapes, text shapes and anything else people come up with.
@@ -49,7 +49,7 @@ class KRITASHAPEMODEL_EXPORT KisShapeLayer
 {
 public:
 
-    KisShapeLayer(KoShapeControllerBase* shapeController, KisImageWSP image, const QString &name, quint8 opacity);
+    KisShapeLayer(KoShapeControllerBase* shapeController, KisImageWSP image, const PkString &name, quint8 opacity);
     KisShapeLayer(const KisShapeLayer& _rhs);
     KisShapeLayer(const KisShapeLayer& _rhs, KoShapeControllerBase* controller);
     KisShapeLayer(const KisShapeLayer& _rhs, KoShapeControllerBase* controller, std::function<KisShapeLayerCanvasBase*()> canvasFactory);
@@ -63,7 +63,7 @@ public:
      * \p newShapes are the shapes used in the new shape layer, they should be z-order sorted
      * homogenized externally before calling this constructor
      */
-    KisShapeLayer(const KisShapeLayer& baseTemplate, const QList<KoShape*> &newShapes);
+    KisShapeLayer(const KisShapeLayer& baseTemplate, const PkList<KoShape*> &newShapes);
 
     ~KisShapeLayer() override;
 
@@ -71,7 +71,7 @@ public:
     void setSectionModelProperties(const KisBaseNode::PropertyList &properties) override;
 
 protected:
-    KisShapeLayer(KoShapeControllerBase* shapeController, KisImageWSP image, const QString &name, quint8 opacity, std::function<KisShapeLayerCanvasBase *()> canvasFactory);
+    KisShapeLayer(KoShapeControllerBase* shapeController, KisImageWSP image, const PkString &name, quint8 opacity, std::function<KisShapeLayerCanvasBase *()> canvasFactory);
 private:
     void initShapeLayerImpl(KoShapeControllerBase* controller, KisShapeLayerCanvasBase *overrideCanvas);
 public:
@@ -115,20 +115,20 @@ public:
 
     KoShapeManager *shapeManager() const;
 
-    static bool saveShapesToStore(KoStore *store, QList<KoShape*> shapes, const QSizeF &sizeInPt);
+    static bool saveShapesToStore(KoStore *store, PkList<KoShape*> shapes, const PkSizeF &sizeInPt);
 
-    static QList<KoShape *> createShapesFromSvg(PkStream *device,
-                                                const QString &baseXmlDir,
-                                                const QRectF &rectInPixels,
+    static PkList<KoShape *> createShapesFromSvg(PkStream *device,
+                                                const PkString &baseXmlDir,
+                                                const PkRectF &rectInPixels,
                                                 qreal resolutionPPI,
                                                 KoDocumentResourceManager *resourceManager,
                                                 bool loadingFromKra,
-                                                QSizeF *fragmentSize,
-                                                QStringList *warnings = 0,
-                                                QStringList *errors = 0);
+                                                PkSizeF *fragmentSize,
+                                                PkStringList *warnings = 0,
+                                                PkStringList *errors = 0);
 
     bool saveLayer(KoStore * store) const;
-    bool loadLayer(KoStore* store, QStringList *warnings = 0);
+    bool loadLayer(KoStore* store, PkStringList *warnings = 0);
 
     KUndo2Command* crop(const PkRect & rect) override;
     KUndo2Command* transform(const PkTransform &transform) override;
@@ -178,7 +178,7 @@ public:
 protected:
     using KoShape::isVisible;
 
-    bool loadSvg(PkStream *device, const QString &baseXmlDir, QStringList *warnings = 0);
+    bool loadSvg(PkStream *device, const PkString &baseXmlDir, PkStringList *warnings = 0);
 
 
     friend class ShapeLayerContainerModel;
@@ -207,15 +207,15 @@ Q_SIGNALS:
      * threads. Image thread emits the signal, UI
      * thread performs the action
      */
-    void sigMoveShapes(const QPointF &diff);
+    void sigMoveShapes(const PkPointF &diff);
 
 private Q_SLOTS:
-    void slotMoveShapes(const QPointF &diff);
-    void slotTransformShapes(const QTransform &transform);
+    void slotMoveShapes(const PkPointF &diff);
+    void slotTransformShapes(const PkTransform &transform);
     void slotImageResolutionChanged();
 
 private:
-    QList<KoShape*> shapesToBeTransformed();
+    PkList<KoShape*> shapesToBeTransformed();
 
 private:
     struct Private;

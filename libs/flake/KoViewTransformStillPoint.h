@@ -8,7 +8,7 @@
 #define KOVIEWTRANSFORMSTILLPOINT_H
 
 #include <kritaflake_export.h>
-#include <QPointF>
+#include <PkPoint.h>
 #include <utility>
 
 class KisCoordinatesConverter;
@@ -30,20 +30,20 @@ class KisCoordinatesConverter;
  * image point and the widget point. Otherwise slight and unpleasant
  * drifts will happen when the user zooms or rotates the image.
  */
-class KRITAFLAKE_EXPORT KoViewTransformStillPoint : public std::pair<QPointF, QPointF>
+class KRITAFLAKE_EXPORT KoViewTransformStillPoint : public std::pair<PkPointF, PkPointF>
 {
 public:
     KoViewTransformStillPoint() = default;
-    KoViewTransformStillPoint(const QPointF &docPoint, const QPointF &viewPoint);
-    KoViewTransformStillPoint(const std::pair<QPointF, QPointF> &rhs);
+    KoViewTransformStillPoint(const PkPointF &docPoint, const PkPointF &viewPoint);
+    KoViewTransformStillPoint(const std::pair<PkPointF, PkPointF> &rhs);
 
     KoViewTransformStillPoint(const KoViewTransformStillPoint &rhs) = default;
     KoViewTransformStillPoint(KoViewTransformStillPoint &&rhs) = default;
     KoViewTransformStillPoint& operator=(const KoViewTransformStillPoint &rhs) = default;
     KoViewTransformStillPoint& operator=(KoViewTransformStillPoint &&rhs) = default;
 
-    QPointF docPoint() const;
-    QPointF viewPoint() const;
+    PkPointF docPoint() const;
+    PkPointF viewPoint() const;
 };
 
 KRITAFLAKE_EXPORT QDebug operator<<(QDebug dbg, const KoViewTransformStillPoint &point);

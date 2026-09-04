@@ -279,11 +279,11 @@ int InplaceTransformStrokeStrategy::calculatePreferredLevelOfDetail(const PkRect
     const int maxSize = 2000;
     const int maxDimension = KisAlgebra2D::maxDimension(srcRect);
 
-    const qreal zoom = qMax(1.0, qreal(maxDimension) / maxSize);
+    const qreal zoom = pkMax(1.0, qreal(maxDimension) / maxSize);
 
-    const int calculatedLod = qCeil(std::log2(zoom));
+    const int calculatedLod = pkCeil(std::log2(zoom));
 
-    return qMax(calculatedLod, lodPreferences.desiredLevelOfDetail());
+    return pkMax(calculatedLod, lodPreferences.desiredLevelOfDetail());
 
 }
 

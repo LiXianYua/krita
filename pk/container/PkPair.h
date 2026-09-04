@@ -21,7 +21,7 @@
 //
 // ---- 为什么函数叫 qMakePair 而不是 pkMakePair ----
 //
-// 与 PkStringHash.h 的 `qHash(const PkString &)` 同一条理由：**它是自由函数，
+// 与 PkStringHash.h 的 `pkHash(const PkString &)` 同一条理由：**它是自由函数，
 // 不是类名**。「全局 Pk 前缀」这条约定管的是类名（compat 垫片靠
 // `#define QPair PkPair` 之类的宏改写类型名）。自由函数走的是普通名字查找 /
 // ADL，调用点写 `qMakePair(a, b)` 就该直接命中，不必再多一层宏。
@@ -41,12 +41,12 @@ using PkPair = std::pair<A, B>;
 // 在 Qt5 是不同类，但混合 TU 里调用点走真 Qt 语义、自洽）。薄壳（QT_CORE_LIB
 // 未定义）与主树纯 Pk TU（QT_CORE_LIB 定义但 qpair.h 不在场）由第二析取让位
 // 条件继续由本文件提供。
-#if !defined(QT_CORE_LIB) || !defined(QPAIR_H)
 
+#if !defined(QT_CORE_LIB)
 template <typename A, typename B>
 PkPair<A, B> qMakePair(const A &a, const B &b)
 {
     return PkPair<A, B>(a, b);
 }
+#endif
 
-#endif  // !defined(QT_CORE_LIB) || !defined(QPAIR_H)

@@ -20,8 +20,8 @@
 #include <KoSharedSavingData.h>
 
 #include <FlakeDebug.h>
-#include <QUuid>
-#include <QImage>
+#include <PkNodeId.h>
+#include <PkImage.h>
 #include <KisMimeDatabase.h>
 
 class KoShapeSavingContextPrivate {
@@ -32,18 +32,18 @@ public:
     KoXmlWriter *xmlWriter;
     KoShapeSavingContext::ShapeSavingOptions savingOptions;
 
-    QList<const KoShapeLayer*> layers;
-    QMap<QString, KoSharedSavingData*> sharedData;
+    PkList<const KoShapeLayer*> layers;
+    PkMap<PkString, KoSharedSavingData*> sharedData;
 
-    QMap<qint64, QString> imageNames;
+    PkMap<qint64, PkString> imageNames;
     int imageId;
-    QMap<QString, QImage> images;
+    PkMap<PkString, PkImage> images;
 
-    QHash<const KoShape *, QTransform> shapeOffsets;
-    QMap<const KoMarker *, QString> markerRefs;
+    PkHash<const KoShape *, PkTransform> shapeOffsets;
+    PkMap<const KoMarker *, PkString> markerRefs;
 
-    QMap<QString, int> referenceCounters;
-    QMap<QString, QList<const void*> > prefixedReferences;
+    PkMap<PkString, int> referenceCounters;
+    PkMap<PkString, PkList<const void*> > prefixedReferences;
 
 };
 
@@ -134,19 +134,19 @@ void KoShapeSavingContext::clearLayers()
     d->layers.clear();
 }
 
-QMap<qint64, QString> KoShapeSavingContext::imagesToSave()
+PkMap<qint64, PkString> KoShapeSavingContext::imagesToSave()
 {
     return d->imageNames;
 }
 
-QString KoShapeSavingContext::markerRef(const KoMarker */*marker*/)
+PkString KoShapeSavingContext::markerRef(const KoMarker */*marker*/)
 {
-    return QString();
+    return PkString();
 }
 
-void KoShapeSavingContext::addSharedData(const QString &id, KoSharedSavingData * data)
+void KoShapeSavingContext::addSharedData(const PkString &id, KoSharedSavingData * data)
 {
-    QMap<QString, KoSharedSavingData*>::iterator it(d->sharedData.find(id));
+    PkMap<PkString, KoSharedSavingData*>::iterator it(d->sharedData.find(id));
     // data will not be overwritten
     if (it == d->sharedData.end()) {
         d->sharedData.insert(id, data);
@@ -156,17 +156,17 @@ void KoShapeSavingContext::addSharedData(const QString &id, KoSharedSavingData *
     }
 }
 
-KoSharedSavingData * KoShapeSavingContext::sharedData(const QString &id) const
+KoSharedSavingData * KoShapeSavingContext::sharedData(const PkString &id) const
 {
     KoSharedSavingData * data = 0;
-    QMap<QString, KoSharedSavingData*>::const_iterator it(d->sharedData.constFind(id));
+    PkMap<PkString, KoSharedSavingData*>::const_iterator it(d->sharedData.constFind(id));
     if (it != d->sharedData.constEnd()) {
         data = it.value();
     }
     return data;
 }
 
-void KoShapeSavingContext::addShapeOffset(const KoShape *shape, const QTransform &m)
+void KoShapeSavingContext::addShapeOffset(const KoShape *shape, const PkTransform &m)
 {
     d->shapeOffsets.insert(shape, m);
 }
@@ -176,7 +176,7 @@ void KoShapeSavingContext::removeShapeOffset(const KoShape *shape)
     d->shapeOffsets.remove(shape);
 }
 
-QTransform KoShapeSavingContext::shapeOffset(const KoShape *shape) const
+PkTransform KoShapeSavingContext::shapeOffset(const KoShape *shape) const
 {
-    return d->shapeOffsets.value(shape, QTransform());
+    return d->shapeOffsets.value(shape, PkTransform());
 }

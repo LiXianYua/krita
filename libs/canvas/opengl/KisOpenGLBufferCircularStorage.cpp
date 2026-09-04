@@ -120,7 +120,7 @@ void KisOpenGLBufferCircularStorage::addBuffersImpl(size_t buffersToAdd, int buf
 {
     m_d->bufferSize = bufferSize;
 
-    const size_t newSize = qMax(m_d->buffers.size() + buffersToAdd, nextPowerOfTwo(m_d->buffers.size()));
+    const size_t newSize = pkMax(m_d->buffers.size() + buffersToAdd, nextPowerOfTwo(m_d->buffers.size()));
 
     if (m_d->buffers.capacity() < newSize)
         m_d->buffers.reserve(newSize);

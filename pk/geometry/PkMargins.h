@@ -180,14 +180,14 @@ constexpr inline PkMargins operator*(int factor, const PkMargins &margins) noexc
 // 与 int 版 operator* 直接乘不同，别抄混。
 constexpr inline PkMargins operator*(const PkMargins &margins, qreal factor) noexcept
 {
-    return PkMargins(qRound(margins.left() * factor), qRound(margins.top() * factor),
-                    qRound(margins.right() * factor), qRound(margins.bottom() * factor));
+    return PkMargins(pkRound(margins.left() * factor), pkRound(margins.top() * factor),
+                    pkRound(margins.right() * factor), pkRound(margins.bottom() * factor));
 }
 
 constexpr inline PkMargins operator*(qreal factor, const PkMargins &margins) noexcept
 {
-    return PkMargins(qRound(margins.left() * factor), qRound(margins.top() * factor),
-                    qRound(margins.right() * factor), qRound(margins.bottom() * factor));
+    return PkMargins(pkRound(margins.left() * factor), pkRound(margins.top() * factor),
+                    pkRound(margins.right() * factor), pkRound(margins.bottom() * factor));
 }
 
 constexpr inline PkMargins operator/(const PkMargins &margins, int divisor)
@@ -198,8 +198,8 @@ constexpr inline PkMargins operator/(const PkMargins &margins, int divisor)
 
 constexpr inline PkMargins operator/(const PkMargins &margins, qreal divisor)
 {
-    return PkMargins(qRound(margins.left() / divisor), qRound(margins.top() / divisor),
-                    qRound(margins.right() / divisor), qRound(margins.bottom() / divisor));
+    return PkMargins(pkRound(margins.left() / divisor), pkRound(margins.top() / divisor),
+                    pkRound(margins.right() / divisor), pkRound(margins.bottom() / divisor));
 }
 
 constexpr inline PkMargins &PkMargins::operator+=(const PkMargins &margins) noexcept
@@ -462,7 +462,7 @@ constexpr inline PkMarginsF operator-(const PkMarginsF &margins) noexcept
 
 constexpr inline PkMargins PkMarginsF::toMargins() const noexcept
 {
-    return PkMargins(qRound(m_left), qRound(m_top), qRound(m_right), qRound(m_bottom));
+    return PkMargins(pkRound(m_left), pkRound(m_top), pkRound(m_right), pkRound(m_bottom));
 }
 
 #endif // PK_GEOMETRY_PKMARGINS_H

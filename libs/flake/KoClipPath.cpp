@@ -10,8 +10,8 @@
 #include "KoPathShape.h"
 #include "KoShapeGroup.h"
 
-#include <QTransform>
-#include <QPainterPath>
+#include <PkTransform.h>
+#include <PkPainterPath.h>
 #include <QPainter>
 #include <QVarLengthArray>
 #include <QSharedData>
@@ -19,18 +19,18 @@
 #include <kis_algebra_2d.h>
 
 
-QTransform scaleToPercent(const QSizeF &size)
+PkTransform scaleToPercent(const PkSizeF &size)
 {
     const qreal w = qMax(static_cast<qreal>(1e-5), size.width());
     const qreal h = qMax(static_cast<qreal>(1e-5), size.height());
-    return QTransform().scale(1.0/w, 1.0/h);
+    return PkTransform().scale(1.0/w, 1.0/h);
 }
 
-QTransform scaleFromPercent(const QSizeF &size)
+PkTransform scaleFromPercent(const PkSizeF &size)
 {
     const qreal w = qMax(static_cast<qreal>(1e-5), size.width());
     const qreal h = qMax(static_cast<qreal>(1e-5), size.height());
-    return QTransform().scale(w/1.0, h/1.0);
+    return PkTransform().scale(w/1.0, h/1.0);
 }
 
 class Q_DECL_HIDDEN KoClipPath::Private : public QSharedData
@@ -62,13 +62,13 @@ public:
         shapes.clear();
     }
 
-    void collectShapePath(QPainterPath *result, const KoShape *shape) {
+    void collectShapePath(PkPainterPath *result, const KoShape *shape) {
         if (const KoPathShape *pathShape = dynamic_cast<const KoPathShape*>(shape)) {
             // different shapes add up to the final path using Windind Fill rule (acc. to SVG 1.1)
-            QTransform t = pathShape->absoluteTransformation();
+            PkTransform t = pathShape->absoluteTransformation();
             result->addPath(t.map(pathShape->outline()));
         } else if (const KoShapeGroup *groupShape = dynamic_cast<const KoShapeGroup*>(shape)) {
-            QList<KoShape*> shapes = groupShape->shapes();
+            PkList<KoShape*> shapes = groupShape->shapes();
             std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 
             Q_FOREACH (const KoShape *child, shapes) {
@@ -80,11 +80,11 @@ public:
 
     void compileClipPath()
     {
-        QList<KoShape*> clipShapes = this->shapes;
+        PkList<KoShape*> clipShapes = this->shapes;
         if (clipShapes.isEmpty())
             return;
 
-        clipPath = QPainterPath();
+        clipPath = PkPainterPath();
         clipPath.setFillRule(Qt::WindingFill);
 
         std::sort(clipShapes.begin(), clipShapes.end(), KoShape::compareShapeZIndex);
@@ -96,15 +96,15 @@ public:
         }
     }
 
-    QList<KoShape*> shapes;
-    QPainterPath clipPath; ///< the compiled clip path in shape coordinates of the clipped shape
-    Qt::FillRule clipRule = Qt::WindingFill;
+    PkList<KoShape*> shapes;
+    PkPainterPath clipPath; ///< the compiled clip path in shape coordinates of the clipped shape
+    Pk::FillRule clipRule = Qt::WindingFill;
     KoFlake::CoordinateSystem coordinates = KoFlake::ObjectBoundingBox;
-    QTransform initialTransformToShape; ///< initial transformation to shape coordinates of the clipped shape
-    QSizeF initialShapeSize; ///< initial size of clipped shape
+    PkTransform initialTransformToShape; ///< initial transformation to shape coordinates of the clipped shape
+    PkSizeF initialShapeSize; ///< initial size of clipped shape
 };
 
-KoClipPath::KoClipPath(QList<KoShape*> clipShapes, KoFlake::CoordinateSystem coordinates)
+KoClipPath::KoClipPath(PkList<KoShape*> clipShapes, KoFlake::CoordinateSystem coordinates)
    : d(new Private())
 {
     d->shapes = clipShapes;
@@ -132,12 +132,12 @@ KoClipPath *KoClipPath::clone() const
     return new KoClipPath(*this);
 }
 
-void KoClipPath::setClipRule(Qt::FillRule clipRule)
+void KoClipPath::setClipRule(Pk::FillRule clipRule)
 {
     d->clipRule = clipRule;
 }
 
-Qt::FillRule KoClipPath::clipRule() const
+Pk::FillRule KoClipPath::clipRule() const
 {
     return d->clipRule;
 }
@@ -150,10 +150,10 @@ KoFlake::CoordinateSystem KoClipPath::coordinates() const
 void KoClipPath::applyClipping(KoShape *shape, QPainter &painter)
 {
     if (shape->clipPath()) {
-        QPainterPath path = shape->clipPath()->path();
+        PkPainterPath path = shape->clipPath()->path();
 
         if (shape->clipPath()->coordinates() == KoFlake::ObjectBoundingBox) {
-            const QRectF shapeLocalBoundingRect = shape->outline().boundingRect();
+            const PkRectF shapeLocalBoundingRect = shape->outline().boundingRect();
             path = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shapeLocalBoundingRect))).map(path);
         }
 
@@ -163,21 +163,21 @@ void KoClipPath::applyClipping(KoShape *shape, QPainter &painter)
     }
 }
 
-QPainterPath KoClipPath::path() const
+PkPainterPath KoClipPath::path() const
 {
     return d->clipPath;
 }
 
-QPainterPath KoClipPath::pathForSize(const QSizeF &size) const
+PkPainterPath KoClipPath::pathForSize(const PkSizeF &size) const
 {
     return scaleFromPercent(size).map(d->clipPath);
 }
 
-QList<KoPathShape*> KoClipPath::clipPathShapes() const
+PkList<KoPathShape*> KoClipPath::clipPathShapes() const
 {
     // TODO: deprecate this method!
 
-    QList<KoPathShape*> shapes;
+    PkList<KoPathShape*> shapes;
 
     Q_FOREACH (KoShape *shape, d->shapes) {
         KoPathShape *pathShape = dynamic_cast<KoPathShape*>(shape);
@@ -189,24 +189,24 @@ QList<KoPathShape*> KoClipPath::clipPathShapes() const
     return shapes;
 }
 
-QList<KoShape *> KoClipPath::clipShapes() const
+PkList<KoShape *> KoClipPath::clipShapes() const
 {
     return d->shapes;
 }
 
-QTransform KoClipPath::clipDataTransformation(KoShape *clippedShape) const
+PkTransform KoClipPath::clipDataTransformation(KoShape *clippedShape) const
 {
     if (!clippedShape)
         return d->initialTransformToShape;
 
     // the current transformation of the clipped shape
-    QTransform currentShapeTransform = clippedShape->absoluteTransformation();
+    PkTransform currentShapeTransform = clippedShape->absoluteTransformation();
 
     // calculate the transformation which represents any resizing of the clipped shape
-    const QSizeF currentShapeSize = clippedShape->outline().boundingRect().size();
+    const PkSizeF currentShapeSize = clippedShape->outline().boundingRect().size();
     const qreal sx = currentShapeSize.width() / d->initialShapeSize.width();
     const qreal sy = currentShapeSize.height() / d->initialShapeSize.height();
-    QTransform scaleTransform = QTransform().scale(sx, sy);
+    PkTransform scaleTransform = PkTransform().scale(sx, sy);
 
     // 1. transform to initial clipped shape coordinates
     // 2. apply resizing transformation

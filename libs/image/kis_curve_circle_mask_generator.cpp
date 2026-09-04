@@ -25,7 +25,7 @@ KisCurveCircleMaskGenerator::KisCurveCircleMaskGenerator(qreal diameter, qreal r
     : KisMaskGenerator(diameter, ratio, fh, fv, spikes, antialiasEdges, CIRCLE, SoftId), d(new Private(antialiasEdges))
 {
     // here we set resolution for the maximum size of the brush!
-    d->curveResolution = qRound(qMax(width(), height()) * OVERSAMPLING);
+    d->curveResolution = pkRound(pkMax(width(), height()) * OVERSAMPLING);
     d->curveData = curve.floatTransfer(d->curveResolution + 2);
     d->curvePoints = curve.curvePoints();
     setCurveString(curve.toString());
@@ -93,7 +93,7 @@ quint8 KisCurveCircleMaskGenerator::valueAt(qreal x, qreal y) const
 {
     if (isEmpty()) return 255;
     qreal xr = x;
-    qreal yr = qAbs(y);
+    qreal yr = pkAbs(y);
     fixRotation(xr, yr);
 
     qreal dist = norme(xr * d->xcoef, yr * d->ycoef);
@@ -134,11 +134,11 @@ void KisCurveCircleMaskGenerator::transformCurveForSoftness(qreal softness,const
         newList[1].setPosition((newList.at(0).position() + newList.at(2).position()) * 0.5);
         newList[1].setAsCorner(false);
         // transform it
-        newList[1].setY(qBound<qreal>(0.0,newList.at(1).y() * softness,1.0));
+        newList[1].setY(pkBound<qreal>(0.0,newList.at(1).y() * softness,1.0));
     }else{
         // transform all points except first and last
         for (int i = 1; i < size-1; i++){
-            newList[i].setY(qBound<qreal>(0.0,newList.at(i).y() * softness,1.0));
+            newList[i].setY(pkBound<qreal>(0.0,newList.at(i).y() * softness,1.0));
         }
     }
 

@@ -18,7 +18,7 @@
 #include <pk/port/PkStream.h>
 
 class KisSeExprScript;
-typedef QSharedPointer<KisSeExprScript> KisSeExprScriptSP;
+typedef PkSharedPointer<KisSeExprScript> KisSeExprScriptSP;
 
 /**
  * KoResource container for SeExpr scripts.
@@ -32,7 +32,7 @@ public:
      *
      * @param filename the file name to save and load from.
      */
-    KisSeExprScript(const QString &filename);
+    KisSeExprScript(const PkString &filename);
 
     /**
      * Creates a new SeExpr script resource with the given @p image thumbnail,
@@ -43,7 +43,7 @@ public:
      * @param name the name of the script
      * @param folderName the folder name
      */
-    KisSeExprScript(const QImage &image, const QString &script, const QString &name, const QString &folderName);
+    KisSeExprScript(const PkImage &image, const PkString &script, const PkString &name, const PkString &folderName);
 
     /**
      * Clones the given SeExpr script into a new instance.
@@ -76,14 +76,14 @@ public:
      * @brief script the actual script
      * @return a valid SeExpr script. It is guaranteed to be in UTF-8.
      */
-    QString script() const;
+    PkString script() const;
 
     PkString name() const override;
 
     /**
      * @brief set SeExpr expression script
      */
-    void setScript(const QString &script);
+    void setScript(const PkString &script);
 
     KoResourceSP clone() const override;
 

@@ -13,10 +13,10 @@
 // mismatch=0（零已登记偏离，全部枚举照抄真 Qt），但契约写法保持与 global 一致。
 //
 // ── 为什么替代品要塞进 namespace pkoracle ─────────────────────────────
-// PkNamespace.h 里的 `namespace Qt` 与真 Qt 的 `::Qt` 同名——两个头直接进同一个
-// 全局作用域会在 namespace Qt 里重复定义枚举（硬错误）。解法与 global 相同：
+// PkNamespace.h 里的 `namespace Pk` 与真 Qt 的 `::Qt` 同名——两个头直接进同一个
+// 全局作用域会在 namespace Pk 里重复定义枚举（硬错误）。解法与 global 相同：
 // `namespace pkoracle { #include "PkNamespace.h" }`，让它的 Qt 落在
-// pkoracle::Qt。PkNamespace.h 又会带进 PkGlobal.h（标量 + Qt::AspectRatioMode/
+// pkoracle::Qt。PkNamespace.h 又会带进 PkGlobal.h（标量 + Pk::AspectRatioMode/
 // Axis）与 PkFlags.h（纯模板）——PkGlobal.h 只 #include <cmath>/<limits>、
 // PkFlags.h 只 #include <initializer_list>/<type_traits>，这四个必须由本文件
 // **在 namespace 之外先 include**（include guard 让 namespace 里的二次 include
@@ -53,9 +53,9 @@ static long g_total = 0, g_mismatch = 0;
 #define PKN_CHECK(enumName, enumerator)                                            \
     do {                                                                           \
         /* long long 两侧同类型，消掉 -Wenum-compare；也能装下 unsigned 枚举 */      \
-        static_assert(static_cast<long long>(::Qt::enumerator)                      \
-                          == static_cast<long long>(pkoracle::Qt::enumerator),     \
-                      "Qt::" #enumerator " 位值与真 Qt 不一致");                    \
+        static_assert(static_cast<long long>(::Pk::enumerator)                      \
+                          == static_cast<long long>(pkoracle::Pk::enumerator),     \
+                      "Pk::" #enumerator " 位值与真 Qt 不一致");                    \
         ++g_total;                                                                 \
     } while (0)
 
@@ -341,7 +341,7 @@ int main()
     PKN_CHECK(GlobalColor, darkYellow);
     PKN_CHECK(GlobalColor, transparent);
 
-    // ── 来自 PkGlobal.h 的成员（R-18 交付，同一 namespace Qt 的并集）────
+    // ── 来自 PkGlobal.h 的成员（R-18 交付，同一 namespace Pk 的并集）────
     PKN_CHECK(AspectRatioMode, IgnoreAspectRatio);
     PKN_CHECK(AspectRatioMode, KeepAspectRatio);
     PKN_CHECK(AspectRatioMode, KeepAspectRatioByExpanding);

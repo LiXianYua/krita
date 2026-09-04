@@ -31,7 +31,7 @@ void KisColorSmudgeStrategyBase::DabColoringStrategyMask::blendInFusedBackground
     KIS_SAFE_ASSERT_RECOVER_RETURN(*paintColor.colorSpace() == *colorRateOp->colorSpace());
     colorRateOp->composite(dullingFillColor.data(), 1, paintColor.data(), 1, 0, 0, 1, 1, colorRateOpacity);
 
-    if (smearOp->id() == COMPOSITE_COPY && qFuzzyCompare(smudgeRateOpacity, OPACITY_OPAQUE_F)) {
+    if (smearOp->id() == COMPOSITE_COPY && pkQtFuzzyCompare(smudgeRateOpacity, OPACITY_OPAQUE_F)) {
         dst->fill(dst->bounds(), dullingFillColor);
     } else {
         src->readBytes(dst->data(), dstRect);
@@ -213,7 +213,7 @@ KisColorSmudgeStrategyBase::blendBrush(const PkVector<KisPainter *> dstPainters,
         ((m_smearOp->id() == COMPOSITE_OVER &&
           m_colorRateOp->id() == COMPOSITE_OVER) ||
          (m_smearOp->id() == COMPOSITE_COPY &&
-          qFuzzyCompare(dullingRateOpacity, OPACITY_OPAQUE_F)))) {
+          pkQtFuzzyCompare(dullingRateOpacity, OPACITY_OPAQUE_F)))) {
 
         coloringStrategy.blendInFusedBackgroundAndColorRateWithDulling(m_blendDevice,
                                                                        srcSampleDevice,
@@ -265,7 +265,7 @@ void KisColorSmudgeStrategyBase::blendInBackgroundWithSmearing(KisFixedPaintDevi
                                                                const PkRect &srcRect, const PkRect &dstRect,
                                                                const qreal smudgeRateOpacity)
 {
-    if (m_smearOp->id() == COMPOSITE_COPY && qFuzzyCompare(smudgeRateOpacity, OPACITY_OPAQUE_F)) {
+    if (m_smearOp->id() == COMPOSITE_COPY && pkQtFuzzyCompare(smudgeRateOpacity, OPACITY_OPAQUE_F)) {
         src->readBytes(dst->data(), srcRect);
     } else {
         src->readBytes(dst->data(), dstRect);
@@ -289,7 +289,7 @@ void KisColorSmudgeStrategyBase::blendInBackgroundWithDulling(KisFixedPaintDevic
 {
     static_cast<void>(preparedDullingColor);
 
-    if (m_smearOp->id() == COMPOSITE_COPY && qFuzzyCompare(smudgeRateOpacity, OPACITY_OPAQUE_F)) {
+    if (m_smearOp->id() == COMPOSITE_COPY && pkQtFuzzyCompare(smudgeRateOpacity, OPACITY_OPAQUE_F)) {
         dst->fill(dst->bounds(), m_preparedDullingColor);
     } else {
         src->readBytes(dst->data(), dstRect);

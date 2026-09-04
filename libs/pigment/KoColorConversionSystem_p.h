@@ -242,7 +242,7 @@ struct KoColorConversionSystem::Path {
 
         vertexes.append(v);
 
-        referenceDepth = qMin(referenceDepth, v->dstNode->referenceDepth);
+        referenceDepth = pkMin(referenceDepth, v->dstNode->referenceDepth);
         cost += v->dstNode->crossingCost;
     }
 
@@ -318,9 +318,9 @@ inline PkDebug operator<<(PkDebug dbg, const KoColorConversionSystem::Path &path
 typedef PkHash<KoColorConversionSystem::Node*, KoColorConversionSystem::Path > Node2PathHash;
 
 
-unsigned int qHash(const KoColorConversionSystem::NodeKey &key)
+unsigned int pkHash(const KoColorConversionSystem::NodeKey &key)
 {
-    return qHash(key.modelId) + qHash(key.depthId);
+    return pkHash(key.modelId) + pkHash(key.depthId);
 }
 
 struct KoColorConversionSystem::Private {

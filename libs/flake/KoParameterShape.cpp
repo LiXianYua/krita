@@ -42,7 +42,7 @@ KoParameterShape::~KoParameterShape()
 {
 }
 
-void KoParameterShape::moveHandle(int handleId, const QPointF & point, Qt::KeyboardModifiers modifiers)
+void KoParameterShape::moveHandle(int handleId, const PkPointF & point, Qt::KeyboardModifiers modifiers)
 {
 
     if (handleId >= d->handles.size()) {
@@ -59,7 +59,7 @@ void KoParameterShape::moveHandle(int handleId, const QPointF & point, Qt::Keybo
 }
 
 
-int KoParameterShape::handleIdAt(const QRectF & rect) const
+int KoParameterShape::handleIdAt(const PkRectF & rect) const
 {
 
     int handle = -1;
@@ -73,7 +73,7 @@ int KoParameterShape::handleIdAt(const QRectF & rect) const
     return handle;
 }
 
-QPointF KoParameterShape::handlePosition(int handleId) const
+PkPointF KoParameterShape::handlePosition(int handleId) const
 {
 
     return d->handles.value(handleId);
@@ -83,7 +83,7 @@ void KoParameterShape::paintHandles(KisHandlePainterHelper &handlesHelper)
 {
 
 
-    QList<QPointF>::const_iterator it(d->handles.constBegin());
+    PkList<PkPointF>::const_iterator it(d->handles.constBegin());
     for (; it != d->handles.constEnd(); ++it) {
         handlesHelper.drawGradientHandle(*it);
     }
@@ -95,10 +95,10 @@ void KoParameterShape::paintHandle(KisHandlePainterHelper &handlesHelper, int ha
     handlesHelper.drawGradientHandle(d->handles[handleId]);
 }
 
-void KoParameterShape::setSize(const QSizeF &newSize)
+void KoParameterShape::setSize(const PkSizeF &newSize)
 {
 
-    QTransform matrix(resizeMatrix(newSize));
+    PkTransform matrix(resizeMatrix(newSize));
 
     for (int i = 0; i < d->handles.size(); ++i) {
         d->handles[i] = matrix.map(d->handles[i]);
@@ -107,11 +107,11 @@ void KoParameterShape::setSize(const QSizeF &newSize)
     KoPathShape::setSize(newSize);
 }
 
-QPointF KoParameterShape::normalize()
+PkPointF KoParameterShape::normalize()
 {
 
-    QPointF offset(KoPathShape::normalize());
-    QTransform matrix;
+    PkPointF offset(KoPathShape::normalize());
+    PkTransform matrix;
     matrix.translate(-offset.x(), -offset.y());
 
     for (int i = 0; i < d->handles.size(); ++i) {
@@ -134,13 +134,13 @@ void KoParameterShape::setParametricShape(bool parametric)
     update();
 }
 
-QList<QPointF> KoParameterShape::handles() const
+PkList<PkPointF> KoParameterShape::handles() const
 {
 
     return d->handles;
 }
 
-void KoParameterShape::setHandles(const QList<QPointF> &handles)
+void KoParameterShape::setHandles(const PkList<PkPointF> &handles)
 {
 
     d->handles = handles;

@@ -359,8 +359,8 @@ void KisFileLayer::slotLoadingFinished(KisPaintDeviceSP projection,
     KisImageWSP image = this->image();
     if (image) {
         if (m_scalingMethod == ToImagePPI &&
-                (!qFuzzyCompare(image->xRes(), xRes) ||
-                 !qFuzzyCompare(image->yRes(), yRes))) {
+                (!pkQtFuzzyCompare(image->xRes(), xRes) ||
+                 !pkQtFuzzyCompare(image->yRes(), yRes))) {
 
             qreal xscale = image->xRes() / xRes;
             qreal yscale = image->yRes() / yRes;
@@ -440,8 +440,8 @@ void KisFileLayer::slotImageResolutionChanged()
     if (!image) return;
 
     if (m_scalingMethod == ToImagePPI &&
-            qFuzzyCompare(image->xRes(), m_generatedForXRes) &&
-            qFuzzyCompare(image->yRes(), m_generatedForYRes)) {
+            pkQtFuzzyCompare(image->xRes(), m_generatedForXRes) &&
+            pkQtFuzzyCompare(image->yRes(), m_generatedForYRes)) {
 
                 m_loader.reloadImage();
     }
@@ -485,8 +485,8 @@ void KisFileLayer::setImage(KisImageWSP image)
         }
 
         if (m_scalingMethod == ToImagePPI && image &&
-                qFuzzyCompare(image->xRes(), m_generatedForXRes) &&
-                qFuzzyCompare(image->yRes(), m_generatedForYRes)) {
+                pkQtFuzzyCompare(image->xRes(), m_generatedForXRes) &&
+                pkQtFuzzyCompare(image->yRes(), m_generatedForYRes)) {
 
             canSkipReloading = true;
         }

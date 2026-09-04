@@ -260,16 +260,16 @@ void writeRawPixelArgb(PkImageData &d, PkImage::Format format, int x, int y, uin
     }
 }
 
-// Qt::GlobalColor -> ARGB32。只保证 5 个真实调用点用到的值精确（+黑顺手做），
+// Pk::GlobalColor -> ARGB32。只保证 5 个真实调用点用到的值精确（+黑顺手做），
 // 其余 15 个值判据①范围外，兜底返回 0（透明黑），不保证精确颜色。
-uint32_t globalColorToArgb(Qt::GlobalColor color)
+uint32_t globalColorToArgb(Pk::GlobalColor color)
 {
     switch (color) {
-    case Qt::white:       return packArgb(255, 255, 255, 255);
-    case Qt::black:       return packArgb(255, 0, 0, 0);
-    case Qt::red:         return packArgb(255, 255, 0, 0);
-    case Qt::gray:        return packArgb(255, 160, 160, 164);
-    case Qt::transparent: return packArgb(0, 0, 0, 0);
+    case Pk::white:       return packArgb(255, 255, 255, 255);
+    case Pk::black:       return packArgb(255, 0, 0, 0);
+    case Pk::red:         return packArgb(255, 255, 0, 0);
+    case Pk::gray:        return packArgb(255, 160, 160, 164);
+    case Pk::transparent: return packArgb(0, 0, 0, 0);
     default:
         return 0u;
     }
@@ -513,7 +513,7 @@ void PkImage::fill(uint32_t value)
     }
 }
 
-void PkImage::fill(Qt::GlobalColor color)
+void PkImage::fill(Pk::GlobalColor color)
 {
     fill(globalColorToArgb(color));
 }
@@ -743,12 +743,12 @@ void PkImage::setDevicePixelRatio(qreal scaleFactor)
 
 // 结论 1：scaled() 是 transformed(PkTransform::fromScale(sx, sy), mode) 的一层
 // 包装，不是独立算法（探针实测逐像素相等）。
-PkImage PkImage::scaled(const PkSize &targetSize, Qt::AspectRatioMode aspectMode, Qt::TransformationMode mode) const
+PkImage PkImage::scaled(const PkSize &targetSize, Pk::AspectRatioMode aspectMode, Pk::TransformationMode mode) const
 {
     if (isNull()) {
         // 源尺寸为 0 时避免下面 newSize.width()/width() 的比例除法产生
         // inf/nan——探针没有覆盖这个退化输入，是防御性处理：inf 传进
-        // PkTransform 会在 mapRect 内部的 qRound(inf) 上触发未定义行为
+        // PkTransform 会在 mapRect 内部的 pkRound(inf) 上触发未定义行为
         // （浮点转 int 越界是 UB，与 -fwrapv 只挡整数溢出是两类问题）。
         return PkImage();
     }
@@ -763,7 +763,7 @@ PkImage PkImage::scaled(const PkSize &targetSize, Qt::AspectRatioMode aspectMode
     return transformed(t, mode);
 }
 
-PkImage PkImage::transformed(const PkTransform &matrix, Qt::TransformationMode mode) const
+PkImage PkImage::transformed(const PkTransform &matrix, Pk::TransformationMode mode) const
 {
     // 结论 3 旁注：identity 变换直接共享短路，跳过整个映射循环（探针确认
     // same-ptr=1）。放在最前面：null 图像上的 identity 变换也应该直接共享
@@ -812,7 +812,7 @@ PkImage PkImage::transformed(const PkTransform &matrix, Qt::TransformationMode m
 
     // Smooth 模式对索引格式退化成最近邻：混合调色板索引没有良定义的颜色语义
     // （岔路 B 范围内的自定义决策，不追求跟 Qt 位对齐）。
-    const bool useNearest = (mode == Qt::FastTransformation) || isIndexedFmt;
+    const bool useNearest = (mode == Pk::FastTransformation) || isIndexedFmt;
 
     for (int dstY = 0; dstY < dstHeight; ++dstY) {
         for (int dstX = 0; dstX < dstWidth; ++dstX) {

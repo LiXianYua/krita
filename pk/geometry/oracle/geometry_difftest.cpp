@@ -223,15 +223,15 @@ static_assert(!std::is_same<QSizeF, PkSizeF>::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
 static_assert(sizeof(QSizeF) == sizeof(PkSizeF), "两侧布局不一致");
 // ⚠ 枚举也必须是两个不同的类型（替代品那份落在 pkoracle::Qt 里）。若哪天
-// 替代品改成 `using Qt::AspectRatioMode = ::Qt::AspectRatioMode` 之类的转发，
+// 替代品改成 `using Pk::AspectRatioMode = ::Pk::AspectRatioMode` 之类的转发，
 // 下面这条会立刻炸 —— 那种写法等于把对拍的 mode 一侧接到真 Qt 上，白比。
-static_assert(!std::is_same<Qt::AspectRatioMode,
-                            pkoracle::Qt::AspectRatioMode>::value,
+static_assert(!std::is_same<Pk::AspectRatioMode,
+                            pkoracle::Pk::AspectRatioMode>::value,
               "AspectRatioMode 两侧解析成了同一个类型");
-static_assert((int)Qt::IgnoreAspectRatio == (int)pkoracle::Qt::IgnoreAspectRatio
-              && (int)Qt::KeepAspectRatio == (int)pkoracle::Qt::KeepAspectRatio
-              && (int)Qt::KeepAspectRatioByExpanding
-                     == (int)pkoracle::Qt::KeepAspectRatioByExpanding,
+static_assert((int)Pk::IgnoreAspectRatio == (int)pkoracle::Pk::IgnoreAspectRatio
+              && (int)Pk::KeepAspectRatio == (int)pkoracle::Pk::KeepAspectRatio
+              && (int)Pk::KeepAspectRatioByExpanding
+                     == (int)pkoracle::Pk::KeepAspectRatioByExpanding,
               "AspectRatioMode 的枚举取值两侧不一致");
 static_assert(!std::is_same<QRect, PkRect>::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
@@ -268,12 +268,12 @@ static_assert((int)QTransform::TxNone      == (int)PkTransform::TxNone
               && (int)QTransform::TxShear     == (int)PkTransform::TxShear
               && (int)QTransform::TxProject   == (int)PkTransform::TxProject,
               "TransformationType 的枚举取值两侧不一致");
-static_assert(!std::is_same<Qt::Axis, pkoracle::Qt::Axis>::value,
-              "Qt::Axis 两侧解析成了同一个类型");
-static_assert((int)Qt::XAxis == (int)pkoracle::Qt::XAxis
-              && (int)Qt::YAxis == (int)pkoracle::Qt::YAxis
-              && (int)Qt::ZAxis == (int)pkoracle::Qt::ZAxis,
-              "Qt::Axis 的枚举取值两侧不一致");
+static_assert(!std::is_same<Pk::Axis, pkoracle::Pk::Axis>::value,
+              "Pk::Axis 两侧解析成了同一个类型");
+static_assert((int)Pk::XAxis == (int)pkoracle::Pk::XAxis
+              && (int)Pk::YAxis == (int)pkoracle::Pk::YAxis
+              && (int)Pk::ZAxis == (int)pkoracle::Pk::ZAxis,
+              "Pk::Axis 的枚举取值两侧不一致");
 
 // ── R-21 T1：Line / Margins 两族的两侧类型自证 ─────────────────────────────
 static_assert(!std::is_same<QLine, PkLine>::value,
@@ -494,7 +494,7 @@ static bool subOverflows(int a, int b)
 { long long s = (long long)a - b; return s < INT_MIN || s > INT_MAX; }
 static bool mulOverflows(int a, int b)
 { long long s = (long long)a * b; return s < INT_MIN || s > INT_MAX; }
-// |x| 本身就溢出（qAbs(INT_MIN) 回绕），或者两个绝对值相加溢出
+// |x| 本身就溢出（pkAbs(INT_MIN) 回绕），或者两个绝对值相加溢出
 static bool manhattanOverflows(int x, int y)
 {
     if (x == INT_MIN || y == INT_MIN) return true;
@@ -572,7 +572,7 @@ static void cmp_point_unary(int x, int y)
     rec("y", q.y() == p.y(), sh, in, istr(q.y()), istr(p.y()));
     rec("isNull", q.isNull() == p.isNull(), sh, in, bstr(q.isNull()), bstr(p.isNull()));
 
-    // manhattanLength 唯一会分家的形态是溢出（qAbs(INT_MIN) 回绕、两绝对值相加溢出）
+    // manhattanLength 唯一会分家的形态是溢出（pkAbs(INT_MIN) 回绕、两绝对值相加溢出）
     rec("manhattanLength", q.manhattanLength() == p.manhattanLength(),
         manhattanOverflows(x, y) ? "int-overflow" : "in-range",
         in, istr(q.manhattanLength()), istr(p.manhattanLength()));
@@ -821,11 +821,11 @@ static void cmp_promotion(int x, int y, double cx, double cy)
 //      必须参与 tag（规则一），否则一种 mode 上的偏离会把另外两种一起罩住。
 //   ③ 整数版 scaled 内部有 **qint64 中间量**再窄回 int，浮点版没有。
 //      "窄化会不会回绕"是整数版独有的根因，单独一档。
-static const Qt::AspectRatioMode kQtModes[3] = {
-    Qt::IgnoreAspectRatio, Qt::KeepAspectRatio, Qt::KeepAspectRatioByExpanding };
-static const pkoracle::Qt::AspectRatioMode kPkModes[3] = {
-    pkoracle::Qt::IgnoreAspectRatio, pkoracle::Qt::KeepAspectRatio,
-    pkoracle::Qt::KeepAspectRatioByExpanding };
+static const Pk::AspectRatioMode kQtModes[3] = {
+    Pk::IgnoreAspectRatio, Pk::KeepAspectRatio, Pk::KeepAspectRatioByExpanding };
+static const pkoracle::Pk::AspectRatioMode kPkModes[3] = {
+    pkoracle::Pk::IgnoreAspectRatio, pkoracle::Pk::KeepAspectRatio,
+    pkoracle::Pk::KeepAspectRatioByExpanding };
 static const char *kModeName[3] = { "ignore", "keep", "expand" };
 
 // Size 版的通用形态分流。与 shapeOfI/shapeOfD 分开：Point 那两个把 0 与负数
@@ -1076,7 +1076,7 @@ static void cmp_sizef_binary(double aw, double ah, double bw, double bh)
 
     // ⚠ QSizeF::operator== 是**两个分量各一次 qFuzzyCompare，没有零分支**
     //（与 QPointF 不同，那边任一侧为 0 时改走 fuzzyIsNull）。qFuzzyCompare 的
-    // 右端取 qMin(|a|,|b|)，所以"恰好一侧是 0"与"两侧都是 0"是两个截然不同的
+    // 右端取 pkMin(|a|,|b|)，所以"恰好一侧是 0"与"两侧都是 0"是两个截然不同的
     // 结局（前者恒 false、后者恒 true），必须分成两个 tag。
     const bool zeroW = (aw == 0.0 || bw == 0.0), bothZeroW = (aw == 0.0 && bw == 0.0);
     const bool zeroH = (ah == 0.0 || bh == 0.0), bothZeroH = (ah == 0.0 && bh == 0.0);
@@ -2027,7 +2027,7 @@ static std::string tfin(const double m[9])
 // 的一侧**去构造 tag，被测对象坏掉时 tag 会跟着一起坏（差异被贴到别的桶里，
 // 或者干脆两侧 tag 不同而没人发现）。下面几条都是拿原始 double 重算的。
 
-// qglobal.h 的 qFuzzyIsNull(double)：|d| <= 1e-12。type() 的四道门槛都用它。
+// qglobal.h 的 pkQtFuzzyIsNull(double)：|d| <= 1e-12。type() 的四道门槛都用它。
 static bool tfFuzzyIsNull(double d) { return std::fabs(d) <= 0.000000000001; }
 
 // Qt 的 qMin 是 `(a < b) ? a : b`，**不是** std::fmin —— NaN 上两者取值不同，
@@ -2407,21 +2407,21 @@ static void cmp_tf_rotate(const double m[9], double ang)
     // 单独一个 label 挂在同一条声明上。
     {
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
-        q.rotate(ang, Qt::YAxis); p.rotate(ang, pkoracle::Qt::YAxis);
+        q.rotate(ang, Pk::YAxis); p.rotate(ang, pkoracle::Pk::YAxis);
         rec("T::rotate(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
             sh + "/y", in, qstr(q) + "|" + istr((int)q.type()),
             qstr(p) + "|" + istr((int)p.type()));
     }
     {
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
-        q.rotate(ang, Qt::XAxis); p.rotate(ang, pkoracle::Qt::XAxis);
+        q.rotate(ang, Pk::XAxis); p.rotate(ang, pkoracle::Pk::XAxis);
         rec("T::rotate(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
             sh + "/x", in, qstr(q) + "|" + istr((int)q.type()),
             qstr(p) + "|" + istr((int)p.type()));
     }
     {
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
-        q.rotateRadians(ang, Qt::YAxis); p.rotateRadians(ang, pkoracle::Qt::YAxis);
+        q.rotateRadians(ang, Pk::YAxis); p.rotateRadians(ang, pkoracle::Pk::YAxis);
         rec("T::rotateRadians(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
             sh + "/y", in, qstr(q) + "|" + istr((int)q.type()),
             qstr(p) + "|" + istr((int)p.type()));
@@ -2624,11 +2624,11 @@ static void cmp_tf_binary(const double a[9], const double b[9])
         bstr(mkQT(a) == mkQT(b)), bstr(mkPT(a) == mkPT(b)));
     rec("T::operator!=", (mkQT(a) != mkQT(b)) == (mkPT(a) != mkPT(b)), sh, in,
         bstr(mkQT(a) != mkQT(b)), bstr(mkPT(a) != mkPT(b)));
-    // 自由函数 qFuzzyCompare(T,T)：不在类体里，规则三的闸门看不见它，
+    // 自由函数 pkQtFuzzyCompare(T,T)：不在类体里，规则三的闸门看不见它，
     // 但它是 operator== 的模糊对照物，坏了会静默 —— 给一条自己的 rec。
     rec("T::freeFuzzyCompare",
-        qFuzzyCompare(mkQT(a), mkQT(b)) == qFuzzyCompare(mkPT(a), mkPT(b)), sh, in,
-        bstr(qFuzzyCompare(mkQT(a), mkQT(b))), bstr(qFuzzyCompare(mkPT(a), mkPT(b))));
+        pkQtFuzzyCompare(mkQT(a), mkQT(b)) == pkQtFuzzyCompare(mkPT(a), mkPT(b)), sh, in,
+        bstr(pkQtFuzzyCompare(mkQT(a), mkQT(b))), bstr(pkQtFuzzyCompare(mkPT(a), mkPT(b))));
 }
 
 // 两个静态工厂：**它们不走构造那条重算路径**，直接钉档位，所以连 type() 一起比。
@@ -3414,12 +3414,12 @@ static void cmp_polygonf_containspoint(const double (*pts)[2], int n, double qx,
     const std::string in = "n=" + istr(n) + " pt=(" + dstr(qx) + "," + dstr(qy) + ")";
     const std::string sh = n == 0 ? "empty" : shapeOfD({qx, qy});
 
-    const bool qo = q.containsPoint(QPointF(qx, qy), Qt::OddEvenFill);
-    const bool po = p.containsPoint(PkPointF(qx, qy), pkoracle::Qt::OddEvenFill);
+    const bool qo = q.containsPoint(QPointF(qx, qy), Pk::OddEvenFill);
+    const bool po = p.containsPoint(PkPointF(qx, qy), pkoracle::Pk::OddEvenFill);
     rec("PGF::containsPointOddEven", qo == po, sh, in, bstr(qo), bstr(po));
 
-    const bool qw = q.containsPoint(QPointF(qx, qy), Qt::WindingFill);
-    const bool pw = p.containsPoint(PkPointF(qx, qy), pkoracle::Qt::WindingFill);
+    const bool qw = q.containsPoint(QPointF(qx, qy), Pk::WindingFill);
+    const bool pw = p.containsPoint(PkPointF(qx, qy), pkoracle::Pk::WindingFill);
     rec("PGF::containsPointWinding", qw == pw, sh, in, bstr(qw), bstr(pw));
 }
 
@@ -3678,8 +3678,8 @@ static void cmp_vec2d(float x, float y, float ax, float ay, float f)
     rec("V2::operator-unary", same_v2(-q, -p), sh, in, qstr(-q), qstr(-p));
     rec("V2::operator/(f)", same_v2(q / f, p / f), sh, in, qstr(q / f), qstr(p / f));
     rec("V2::operator/(v)", same_v2(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
-    rec("V2::qFuzzyCompare", qFuzzyCompare(q, qa) == qFuzzyCompare(p, pa), sh, in,
-        bstr(qFuzzyCompare(q, qa)), bstr(qFuzzyCompare(p, pa)));
+    rec("V2::qFuzzyCompare", pkQtFuzzyCompare(q, qa) == pkQtFuzzyCompare(p, pa), sh, in,
+        bstr(pkQtFuzzyCompare(q, qa)), bstr(pkQtFuzzyCompare(p, pa)));
     rec("V2::toVector3D", same_v3(q.toVector3D(), p.toVector3D()), sh, in,
         qstr(q.toVector3D()), qstr(p.toVector3D()));
     rec("V2::toVector4D", same_v4(q.toVector4D(), p.toVector4D()), sh, in,
@@ -3791,8 +3791,8 @@ static void cmp_vec3d(float x, float y, float z, float ax, float ay, float az, f
     rec("V3::operator-unary", same_v3(-q, -p), sh, in, qstr(-q), qstr(-p));
     rec("V3::operator/(f)", same_v3(q / f, p / f), sh, in, qstr(q / f), qstr(p / f));
     rec("V3::operator/(v)", same_v3(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
-    rec("V3::qFuzzyCompare", qFuzzyCompare(q, qa) == qFuzzyCompare(p, pa), sh, in,
-        bstr(qFuzzyCompare(q, qa)), bstr(qFuzzyCompare(p, pa)));
+    rec("V3::qFuzzyCompare", pkQtFuzzyCompare(q, qa) == pkQtFuzzyCompare(p, pa), sh, in,
+        bstr(pkQtFuzzyCompare(q, qa)), bstr(pkQtFuzzyCompare(p, pa)));
     rec("V3::toVector2D", same_v2(q.toVector2D(), p.toVector2D()), sh, in,
         qstr(q.toVector2D()), qstr(p.toVector2D()));
     rec("V3::toVector4D", same_v4(q.toVector4D(), p.toVector4D()), sh, in,
@@ -3883,8 +3883,8 @@ static void cmp_vec4d(float x, float y, float z, float w, float ax, float ay, fl
     rec("V4::operator-unary", same_v4(-q, -p), sh, in, qstr(-q), qstr(-p));
     rec("V4::operator/(f)", same_v4(q / w, p / w), sh, in, qstr(q / w), qstr(p / w));
     rec("V4::operator/(v)", same_v4(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
-    rec("V4::qFuzzyCompare", qFuzzyCompare(q, qa) == qFuzzyCompare(p, pa), sh, in,
-        bstr(qFuzzyCompare(q, qa)), bstr(qFuzzyCompare(p, pa)));
+    rec("V4::qFuzzyCompare", pkQtFuzzyCompare(q, qa) == pkQtFuzzyCompare(p, pa), sh, in,
+        bstr(pkQtFuzzyCompare(q, qa)), bstr(pkQtFuzzyCompare(p, pa)));
     rec("V4::toVector2D", same_v2(q.toVector2D(), p.toVector2D()), sh, in,
         qstr(q.toVector2D()), qstr(p.toVector2D()));
     rec("V4::toVector2DAffine", same_v2(q.toVector2DAffine(), p.toVector2DAffine()), sh, in,

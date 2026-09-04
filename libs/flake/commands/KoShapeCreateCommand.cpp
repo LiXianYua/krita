@@ -77,7 +77,7 @@ void KoShapeCreateCommand::redo()
                                          dynamic_cast<KoShapeLayer*>(shape));
 
             if (shapeParent) {
-                d->undoStore.addCommand(KoShapeReorderCommand::mergeInShape(toPkList(shapeParent->shapes()), shape));
+                d->undoStore.addCommand(KoShapeReorderCommand::mergeInShape(shapeParent->shapes(), shape));
             }
         }
         d->firstRedo = false;

@@ -56,7 +56,6 @@ public:
      * @param modifiers OR-ed set of keys pressed.
      */
     virtual void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers);
-    virtual void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers);
 
     /**
      * For interactions that are undo-able this method should be implemented to return such

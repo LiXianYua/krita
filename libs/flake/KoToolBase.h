@@ -8,10 +8,10 @@
 #define KOTOOLBASE_H
 
 #include <QObject>
-#include <QPointer>
-#include <QSet>
-#include <QList>
-#include <QHash>
+#include <PkPointer.h>
+#include <PkSet.h>
+#include <PkList.h>
+#include <PkHash.h>
 
 #include <KisQStringListFwd.h>
 #include "kritaflake_export.h"
@@ -33,9 +33,9 @@ class QKeyEvent;
 class QWidget;
 class QCursor;
 class QPainter;
-class QString;
-class QRectF;
-class QPointF;
+class PkString;
+class PkRectF;
+class PkPointF;
 class QInputMethodEvent;
 class QDragMoveEvent;
 class QDragLeaveEvent;
@@ -77,7 +77,7 @@ public:
      */
     KoToolFactoryBase* factory() const;
 
-    virtual QRectF decorationsRect() const;
+    virtual PkRectF decorationsRect() const;
 
     /**
      * Return if dragging (moving with the mouse down) to the edge of a canvas should scroll the
@@ -102,12 +102,12 @@ public:
      *
      * @see m_optionWidgets
      */
-    QList<QPointer<QWidget> > optionWidgets();
+    PkList<PkPointer<QWidget> > optionWidgets();
 
     /**
      * Retrieve an action by name.
      */
-    QAction *action(const QString &name) const;
+    QAction *action(const PkString &name) const;
 
     /**
      * Called when (one of) the mouse or stylus buttons is pressed.
@@ -178,7 +178,7 @@ public:
      * @param query specifies which property is queried.
      * @param converter the view converter for the current canvas.
      */
-    virtual QVariant inputMethodQuery(Qt::InputMethodQuery query) const;
+    virtual PkVariant inputMethodQuery(Qt::InputMethodQuery query) const;
 
     /**
      * Text entry of complex text, like CJK, can be made more interactive if a tool
@@ -242,7 +242,7 @@ public:
      * @return the toolId.
      * @see KoToolFactoryBase::id()
      */
-    Q_INVOKABLE QString toolId() const;
+    Q_INVOKABLE PkString toolId() const;
 
     /// return the last emitted cursor
     QCursor cursor() const;
@@ -309,7 +309,7 @@ public:
      * dropping text in a text tool.
      * The tool should Accept the event if it is meaningful; Default implementation does not.
      */
-    virtual void dragMoveEvent(QDragMoveEvent *event, const QPointF &point);
+    virtual void dragMoveEvent(QDragMoveEvent *event, const PkPointF &point);
 
     /**
      * Handle the dragLeaveEvent
@@ -325,7 +325,7 @@ public:
      * dropping text in a text tool.
      * The tool should Accept the event if it is meaningful; Default implementation does not.
      */
-    virtual void dropEvent(QDropEvent *event, const QPointF &point);
+    virtual void dropEvent(QDropEvent *event, const PkPointF &point);
 
     /**
      * @return a menu with context-aware actions for the current selection. If
@@ -405,7 +405,7 @@ public Q_SLOTS:
      *      tool.
      * @see deactivate()
      */
-    virtual void activate(const QSet<KoShape*> &shapes);
+    virtual void activate(const PkSet<KoShape*> &shapes);
 
     /**
      * This method is called whenever this tool is no longer the
@@ -419,20 +419,20 @@ public Q_SLOTS:
      * provider associated with the canvas this tool belongs to
      * changes. An example is currently selected foreground color.
      */
-    virtual void canvasResourceChanged(int key, const QVariant &res);
+    virtual void canvasResourceChanged(int key, const PkVariant &res);
 
     /**
      * This method is called whenever a property in the resource
      * provider associated with the document this tool belongs to
      * changes. An example is the handle radius
      */
-    virtual void documentResourceChanged(int key, const QVariant &res);
+    virtual void documentResourceChanged(int key, const PkVariant &res);
 
     /**
      * This method just relays the given text via the tools statusTextChanged signal.
      * @param statusText the new status text
      */
-    void setStatusText(const QString &statusText);
+    void setStatusText(const PkString &statusText);
 
     /**
      * request a repaint of the decorations to be made. This triggers
@@ -453,7 +453,7 @@ Q_SIGNALS:
      * @param id the identification of the desired tool
      * @see toolId(), KoToolFactoryBase::id()
      */
-    void activateTool(const QString &id);
+    void activateTool(const PkString &id);
 
     /**
      * Emitted by useCursor() when the cursor to display on the canvas is changed.
@@ -471,7 +471,7 @@ Q_SIGNALS:
      * Emitted when the tool wants to display a different status text
      * @param statusText the new status text
      */
-    void statusTextChanged(const QString &statusText);
+    void statusTextChanged(const PkString &statusText);
 
     /**
      * Emitted when the tool's text mode has changed.
@@ -493,7 +493,7 @@ protected:
      * Sets the option widget to 0 by default.
      */
     virtual QWidget *createOptionWidget();
-    virtual QList<QPointer<QWidget> > createOptionWidgets();
+    virtual PkList<PkPointer<QWidget> > createOptionWidgets();
 
     /// Convenience function to get the current handle radius
     int handleRadius() const;
@@ -514,7 +514,7 @@ protected:
     *
     * @return the handle rectangle in document coordinates
     */
-    QRectF handleGrabRect(const QPointF &position) const;
+    PkRectF handleGrabRect(const PkPointF &position) const;
 
     /**
     * Returns a handle paint rect at the given position.
@@ -524,7 +524,7 @@ protected:
     *
     * @return the handle rectangle in document coordinates
     */
-    QRectF handlePaintRect(const QPointF &position) const;
+    PkRectF handlePaintRect(const PkPointF &position) const;
 
     /**
       * You should set the text mode to true in subclasses, if this tool is in text input mode, eg if the users
@@ -546,8 +546,8 @@ protected:
 
     void setAbstractResource(KoAbstractCanvasResourceInterfaceSP abstractResource);
 
-    QHash<int, KoAbstractCanvasResourceInterfaceSP> toolAbstractResources();
-    QHash<int, KoDerivedResourceConverterSP> toolConverters();
+    PkHash<int, KoAbstractCanvasResourceInterfaceSP> toolAbstractResources();
+    PkHash<int, KoDerivedResourceConverterSP> toolConverters();
 
     /**
      * Returns true if activate() has been called (more times than deactivate :) )

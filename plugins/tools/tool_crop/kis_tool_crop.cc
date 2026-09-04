@@ -870,8 +870,8 @@ void KisToolCrop::drawDecorationLine(PkPainter *p, DecorationLine *decorLine, co
 {
     PkPointF start = rect.topLeft();
     PkPointF end = rect.topLeft();
-    qreal small = qMin(rect.width(), rect.height());
-    qreal large = qMax(rect.width(), rect.height());
+    qreal small = pkMin(rect.width(), rect.height());
+    qreal large = pkMax(rect.width(), rect.height());
 
     switch (decorLine->startXRelation) {
     case DecorationLine::Width:

@@ -7,14 +7,14 @@
 #ifndef HTMLSAVINGCONTEXT_H
 #define HTMLSAVINGCONTEXT_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KoXmlWriter;
 class KoShape;
-class QIODevice;
-class QString;
-class QTransform;
-class QImage;
+class PkStream;
+class PkString;
+class PkTransform;
+class PkImage;
 
 /**
  * @brief The HtmlSavingContext class provides context for saving a flake-based document
@@ -23,7 +23,7 @@ class QImage;
 class HtmlSavingContext
 {
 public:
-    HtmlSavingContext(QIODevice &shapeDevice);
+    HtmlSavingContext(PkStream &shapeDevice);
     virtual ~HtmlSavingContext();
     /// Provides access to the shape writer
     KoXmlWriter &shapeWriter();
@@ -31,7 +31,7 @@ private:
     Q_DISABLE_COPY(HtmlSavingContext)
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
 #endif // HTMLSAVINGCONTEXT_H

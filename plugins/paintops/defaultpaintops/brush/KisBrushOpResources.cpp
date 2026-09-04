@@ -66,7 +66,7 @@ KisBrushOpResources::KisBrushOpResources(const KisPaintOpSettingsSP settings, Ki
 
 KisBrushOpResources::~KisBrushOpResources()
 {
-    qDeleteAll(m_d->hsvOptions);
+    pkDeleteAll(m_d->hsvOptions);
     delete m_d->hsvTransformation;
 }
 

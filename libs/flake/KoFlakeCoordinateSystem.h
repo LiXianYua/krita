@@ -7,7 +7,7 @@
 #ifndef KOFLAKECOORDINATE_SYSTEM_H
 #define KOFLAKECOORDINATE_SYSTEM_H
 
-#include <QString>
+#include <PkString.h>
 
 namespace KoFlake {
 
@@ -16,7 +16,7 @@ enum CoordinateSystem {
     ObjectBoundingBox
 };
 
-inline CoordinateSystem coordinatesFromString(const QString &value, CoordinateSystem defaultValue)
+inline CoordinateSystem coordinatesFromString(const PkString &value, CoordinateSystem defaultValue)
 {
     CoordinateSystem result = defaultValue;
 
@@ -29,7 +29,7 @@ inline CoordinateSystem coordinatesFromString(const QString &value, CoordinateSy
     return result;
 }
 
-inline QString coordinateToString(CoordinateSystem value)
+inline PkString coordinateToString(CoordinateSystem value)
 {
     return
         value == ObjectBoundingBox?

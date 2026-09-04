@@ -3,7 +3,7 @@
 #include <type_traits>
 
 // ---------------------------------------------------------------------------
-// 两个 scaled(const Pk*&, Qt::AspectRatioMode) 是**非 inline** 的 —— 与 Qt 的
+// 两个 scaled(const Pk*&, Pk::AspectRatioMode) 是**非 inline** 的 —— 与 Qt 的
 // 形态一致（qsize.h 只声明，定义在 qsize.cpp 里，编进 libQt5Core）。
 // 逐字抄自 qtbase v5.15.7-lts-lgpl 的 src/corelib/tools/qsize.cpp:225-244 与
 // :666-685；装的 Qt 只有 .so 没有源，所以每条分支都另用探针核对过取值
@@ -23,17 +23,17 @@
 //   ③ 除法是**整数截断**，不是四舍五入（(3,7)→10x10 Keep 得 (4,10)）。
 // 返回时 qint64 → int 的窄化按二补数回绕（-fwrapv 只管有符号溢出，
 // 窄化是实现定义行为；两侧同一条指令，实测取值一致，README 覆盖度缺口有登记）。
-PkSize PkSize::scaled(const PkSize &s, Qt::AspectRatioMode mode) const noexcept
+PkSize PkSize::scaled(const PkSize &s, Pk::AspectRatioMode mode) const noexcept
 {
-    if (mode == Qt::IgnoreAspectRatio || wd == 0 || ht == 0) {
+    if (mode == Pk::IgnoreAspectRatio || wd == 0 || ht == 0) {
         return s;
     } else {
         bool useHeight;
         long long rw = (long long)(s.ht) * (long long)(wd) / (long long)(ht);
 
-        if (mode == Qt::KeepAspectRatio) {
+        if (mode == Pk::KeepAspectRatio) {
             useHeight = (rw <= s.wd);
-        } else { // mode == Qt::KeepAspectRatioByExpanding
+        } else { // mode == Pk::KeepAspectRatioByExpanding
             useHeight = (rw >= s.wd);
         }
 
@@ -47,22 +47,22 @@ PkSize PkSize::scaled(const PkSize &s, Qt::AspectRatioMode mode) const noexcept
 }
 
 // qsize.cpp:666-685。与整数版的三处不同：
-//   ① 短路条件是 qIsNull(wd) || qIsNull(ht)，即 `== 0.0` —— **-0.0 也算**，
+//   ① 短路条件是 pkIsNull(wd) || pkIsNull(ht)，即 `== 0.0` —— **-0.0 也算**，
 //      而次正规数（5e-324）**不算**（实测：它会正常参与比例运算）。
 //   ② 除法是浮点除法，不截断。
 //   ③ 不做任何 NaN/inf 特判：`rw <= s.wd` 在 NaN 上恒假，于是自动走 else 分支
 //      （实测 QSizeF(nan,2).scaled(5,5,Keep) == (5,nan)）。
-PkSizeF PkSizeF::scaled(const PkSizeF &s, Qt::AspectRatioMode mode) const noexcept
+PkSizeF PkSizeF::scaled(const PkSizeF &s, Pk::AspectRatioMode mode) const noexcept
 {
-    if (mode == Qt::IgnoreAspectRatio || wd == 0.0 || ht == 0.0) {
+    if (mode == Pk::IgnoreAspectRatio || wd == 0.0 || ht == 0.0) {
         return s;
     } else {
         bool useHeight;
         qreal rw = s.ht * wd / ht;
 
-        if (mode == Qt::KeepAspectRatio) {
+        if (mode == Pk::KeepAspectRatio) {
             useHeight = (rw <= s.wd);
-        } else { // mode == Qt::KeepAspectRatioByExpanding
+        } else { // mode == Pk::KeepAspectRatioByExpanding
             useHeight = (rw >= s.wd);
         }
 
@@ -85,9 +85,9 @@ static_assert(std::is_same<decltype(PkSize().width()), int>::value, "PkSize::wid
 static_assert(std::is_same<decltype(PkSizeF().width()), qreal>::value, "PkSizeF::width() 返回 qreal");
 
 // ── 枚举（qnamespace.h:1235-1239，实测 0/1/2）───────────────────────────
-static_assert((int)Qt::IgnoreAspectRatio == 0, "实测真 Qt：IgnoreAspectRatio==0");
-static_assert((int)Qt::KeepAspectRatio == 1, "实测真 Qt：KeepAspectRatio==1");
-static_assert((int)Qt::KeepAspectRatioByExpanding == 2, "实测真 Qt：ByExpanding==2");
+static_assert((int)Pk::IgnoreAspectRatio == 0, "实测真 Qt：IgnoreAspectRatio==0");
+static_assert((int)Pk::KeepAspectRatio == 1, "实测真 Qt：KeepAspectRatio==1");
+static_assert((int)Pk::KeepAspectRatioByExpanding == 2, "实测真 Qt：ByExpanding==2");
 
 // ── constexpr 能力（编译期求值 + 取值正确）────────────────────────────
 // ⚠ 默认构造是 (-1,-1)：这一条同时钉住"不是 (0,0)"。
@@ -109,8 +109,8 @@ static_assert([] { PkSize s; s.setWidth(5); s.rheight() = -2; return s; }() == P
               "setWidth/rheight() 必须是放宽 constexpr，且 rheight() 返回可写引用");
 
 // qRound 的取整方向（负半值向 +∞）与 expandedTo 的 qMax
-static_assert(PkSize(-1, -1) * 0.5 == PkSize(0, 0), "qRound(-0.5)==0");
-static_assert(PkSize(-3, -3) * 0.5 == PkSize(-1, -1), "qRound(-1.5)==-1");
+static_assert(PkSize(-1, -1) * 0.5 == PkSize(0, 0), "pkRound(-0.5)==0");
+static_assert(PkSize(-3, -3) * 0.5 == PkSize(-1, -1), "pkRound(-1.5)==-1");
 static_assert(0.5 * PkSize(5, 5) == PkSize(3, 3), "左乘同语义");
 static_assert(PkSize(3, 7).expandedTo(PkSize(5, 2)) == PkSize(5, 7), "expandedTo 是 qMax 不是 qMin");
 static_assert(PkSize(-3, -7).expandedTo(PkSize(-5, -2)) == PkSize(-3, -2), "负分量上的 qMax");
@@ -132,7 +132,7 @@ static_assert(PkSizeF(0.0, 0.0) == PkSizeF(0.0, 0.0), "两侧恰好都是 0 时�
 // ── noexcept 面（qsize.h 逐个成员标了，qpoint.h 没有，所以只有这里查）──
 static_assert(noexcept(PkSize()), "QSize() 是 noexcept");
 static_assert(noexcept(PkSize(1, 1).isEmpty()), "isEmpty 是 noexcept");
-static_assert(noexcept(PkSize(1, 1).scaled(PkSize(1, 1), Qt::KeepAspectRatio)), "scaled 是 noexcept");
+static_assert(noexcept(PkSize(1, 1).scaled(PkSize(1, 1), Pk::KeepAspectRatio)), "scaled 是 noexcept");
 static_assert(noexcept(PkSize(1, 1) * 2.0), "operator* 是 noexcept");
 static_assert(!noexcept(PkSize(1, 1) / 2.0), "⚠ operator/ Qt 里没标 noexcept（带 Q_ASSERT）");
 static_assert(!noexcept(PkSizeF(1., 1.) / 2.0), "浮点版的除法同样没标");

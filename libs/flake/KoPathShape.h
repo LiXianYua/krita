@@ -13,9 +13,13 @@
 #include "kritaflake_export.h"
 
 #include <QMetaType>
-#include <QTransform>
+#include <PkTransform.h>
 
 #include "KoShape.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkPen.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 #define KoPathShapeId "KoPathShape"
 
@@ -25,11 +29,11 @@ class KoPathShapePrivate;
 class KoMarker;
 class KisHandlePainterHelper;
 
-typedef QPair<int, int> KoPathPointIndex;
+typedef std::pair<int, int> KoPathPointIndex;
 
 /// a KoSubpath contains a path from a moveTo until a close or a new moveTo
-typedef QList<KoPathPoint *> KoSubpath;
-typedef QList<KoSubpath *> KoSubpathList;
+typedef PkList<KoPathPoint *> KoSubpath;
+typedef PkList<KoSubpath *> KoSubpathList;
 /// The position of a path point within a path shape
 /**
  * @brief This is the base for all graphical objects.
@@ -79,15 +83,15 @@ public:
     virtual void paintPoints(KisHandlePainterHelper &handlesHelper);
 
     /// reimplemented
-    QRectF outlineRect() const override;
+    PkRectF outlineRect() const override;
     /// reimplemented
-    QPainterPath outline() const override;
+    PkPainterPath outline() const override;
     /// reimplemented
-    QRectF boundingRect() const override;
+    PkRectF boundingRect() const override;
     /// reimplemented
-    QSizeF size() const override;
+    PkSizeF size() const override;
 
-    QPainterPath pathStroke(const QPen &pen) const;
+    PkPainterPath pathStroke(const PkPen &pen) const;
     /**
      * Resize the shape
      *
@@ -99,10 +103,10 @@ public:
      *
      * @see resizeMatrix()
      */
-    void setSize(const QSizeF &size) override;
+    void setSize(const PkSizeF &size) override;
 
     /// reimplemented
-    bool hitTest(const QPointF &position) const override;
+    bool hitTest(const PkPointF &position) const override;
 
     /// Removes all subpaths and their points from the path
     void clear();
@@ -113,7 +117,7 @@ public:
      *
      * @return the newly created point
      */
-    KoPathPoint *moveTo(const QPointF &p);
+    KoPathPoint *moveTo(const PkPointF &p);
 
     /**
      * @brief Adds a new line segment
@@ -122,7 +126,7 @@ public:
      *
      * @return the newly created point
      */
-    KoPathPoint *lineTo(const QPointF &p);
+    KoPathPoint *lineTo(const PkPointF &p);
 
     /**
      * @brief Adds a new cubic Bezier curve segment.
@@ -136,7 +140,7 @@ public:
      *
      * @return The newly created point
      */
-    KoPathPoint *curveTo(const QPointF &c1, const QPointF &c2, const QPointF &p);
+    KoPathPoint *curveTo(const PkPointF &c1, const PkPointF &c2, const PkPointF &p);
 
     /**
      * @brief Adds a new quadratic Bezier curve segment.
@@ -149,7 +153,7 @@ public:
      *
      * @return The newly created point
      */
-    KoPathPoint *curveTo(const QPointF &c, const QPointF &p);
+    KoPathPoint *curveTo(const PkPointF &c, const PkPointF &p);
 
     /**
      * @brief Add an arc.
@@ -192,7 +196,7 @@ public:
      * positions of path points.
      * @return the offset by which the points are moved in shape coordinates.
      */
-    virtual QPointF normalize();
+    virtual PkPointF normalize();
 
     /**
      * @brief Returns the path points within the given rectangle.
@@ -200,14 +204,14 @@ public:
      * @param useControlPoints whether to add control points to result or not
      * @return list of points within the rectangle
      */
-    QList<KoPathPoint*> pointsAt(const QRectF &rect, const bool useControlPoints = false) const;
+    PkList<KoPathPoint*> pointsAt(const PkRectF &rect, const bool useControlPoints = false) const;
 
     /**
      * @brief Returns the list of path segments within the given rectangle.
      * @param rect the rectangle the requested segments are in
      * @return list of segments within the rectangle
      */
-    QList<KoPathSegment> segmentsAt(const QRectF &rect) const;
+    PkList<KoPathSegment> segmentsAt(const PkRectF &rect) const;
 
     /**
      * @brief Returns the path point index of a given path point
@@ -398,7 +402,7 @@ public:
      * @param separatedPaths the list which contains the separated path shapes
      * @return true if separating the path was successful, false otherwise
      */
-    bool separate(QList<KoPathShape*> &separatedPaths);
+    bool separate(PkList<KoPathShape*> &separatedPaths);
 
     /**
      * Returns the specific path shape id.
@@ -413,10 +417,10 @@ public:
      *
      * @return the specific shape id
      */
-    virtual QString pathShapeId() const;
+    virtual PkString pathShapeId() const;
 
     /// Returns a odf/svg string representation of the path data with the given matrix applied.
-    QString toString(const QTransform &matrix = QTransform()) const;
+    PkString toString(const PkTransform &matrix = PkTransform()) const;
 
     /**
      * @brief Saves the node types
@@ -439,21 +443,21 @@ public:
      *
      * @return The node types as string
      */
-    QString nodeTypes() const;
+    PkString nodeTypes() const;
 
     /**
      * @brief Loads node types
      */
-    void loadNodeTypes(const QString &nodeTypes);
+    void loadNodeTypes(const PkString &nodeTypes);
 
     /// Returns the fill rule for the path object
-    Qt::FillRule fillRule() const;
+    Pk::FillRule fillRule() const;
 
     /// Sets the fill rule to be used for painting the background
-    void setFillRule(Qt::FillRule fillRule);
+    void setFillRule(Pk::FillRule fillRule);
 
-    /// Creates path shape from given QPainterPath
-    static KoPathShape *createShapeFromPainterPath(const QPainterPath &path);
+    /// Creates path shape from given PkPainterPath
+    static KoPathShape *createShapeFromPainterPath(const PkPainterPath &path);
 
     void setMarker(KoMarker *marker, KoFlake::MarkerPosition pos);
     KoMarker* marker(KoFlake::MarkerPosition pos) const;
@@ -462,16 +466,16 @@ public:
     bool autoFillMarkers() const;
     void setAutoFillMarkers(bool value);
 
-    KoPathSegment segmentAtPoint(const QPointF &point, const QRectF &grabRoi) const;
+    KoPathSegment segmentAtPoint(const PkPointF &point, const PkRectF &grabRoi) const;
 
 public:
     struct KRITAFLAKE_EXPORT PointSelectionChangeListener : public ShapeChangeListener {
         void notifyShapeChanged(ChangeType type, KoShape *shape) override;
-        virtual void recommendPointSelectionChange(KoPathShape *shape, const QList<KoPathPointIndex> &newSelection) = 0;
+        virtual void recommendPointSelectionChange(KoPathShape *shape, const PkList<KoPathPointIndex> &newSelection) = 0;
         virtual void notifyPathPointsChanged(KoPathShape *shape) = 0;
     };
 
-    void recommendPointSelectionChange(const QList<KoPathPointIndex> &newSelection);
+    void recommendPointSelectionChange(const PkList<KoPathPointIndex> &newSelection);
 
 protected:
     void notifyPointsChanged();
@@ -494,11 +498,11 @@ protected:
      * @param sweepAngle the length of the angle
      * TODO add param to have angle of the ellipse
      * @param offset to the first point in the arc
-     * @param curvePoints an array which take the curve points, pass a 'QPointF curvePoints[12]';
+     * @param curvePoints an array which take the curve points, pass a 'PkPointF curvePoints[12]';
      *
      * @return number of points created by the curve
      */
-    int arcToCurve(qreal rx, qreal ry, qreal startAngle, qreal sweepAngle, const QPointF &offset, QPointF *curvePoints) const;
+    int arcToCurve(qreal rx, qreal ry, qreal startAngle, qreal sweepAngle, const PkPointF &offset, PkPointF *curvePoints) const;
 
     /**
      * Get the resize matrix
@@ -506,7 +510,7 @@ protected:
      * This makes sure that also if the newSize isNull that there will be a
      * very small size of 0.000001 pixels
      */
-    QTransform resizeMatrix( const QSizeF &newSize ) const;
+    PkTransform resizeMatrix( const PkSizeF &newSize ) const;
 
 private:
     /// close-merges specified subpath
@@ -519,11 +523,11 @@ protected:
     const KoSubpathList &subpaths() const;
     /// XXX: refactor this using setter?
     KoSubpathList &subpaths();
-    void map(const QTransform &matrix);
+    void map(const PkTransform &matrix);
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 Q_DECLARE_METATYPE(KoPathShape*)

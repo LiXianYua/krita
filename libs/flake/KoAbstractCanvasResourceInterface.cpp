@@ -5,8 +5,10 @@
  */
 
 #include "KoAbstractCanvasResourceInterface.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
 
-KoAbstractCanvasResourceInterface::KoAbstractCanvasResourceInterface(int key, const QString debugTag)
+KoAbstractCanvasResourceInterface::KoAbstractCanvasResourceInterface(int key, const PkString debugTag)
     : m_key(key)
     , m_debugTag(debugTag)
 {

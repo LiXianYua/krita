@@ -174,11 +174,11 @@ void KisLevelsFilterConfiguration::setLightessLevelsCurveFromLegacyValues()
 void KisLevelsFilterConfiguration::setLegacyValuesFromLightnessLevelsCurve()
 {
     KisLevelsCurve lightnessLevelsCurve_ = lightnessLevelsCurve();
-    KisColorTransformationConfiguration::setProperty("blackvalue", static_cast<int>(qRound(lightnessLevelsCurve_.inputBlackPoint() * 255.0)));
-    KisColorTransformationConfiguration::setProperty("whitevalue", static_cast<int>(qRound(lightnessLevelsCurve_.inputWhitePoint() * 255.0)));
+    KisColorTransformationConfiguration::setProperty("blackvalue", static_cast<int>(pkRound(lightnessLevelsCurve_.inputBlackPoint() * 255.0)));
+    KisColorTransformationConfiguration::setProperty("whitevalue", static_cast<int>(pkRound(lightnessLevelsCurve_.inputWhitePoint() * 255.0)));
     KisColorTransformationConfiguration::setProperty("gammavalue", lightnessLevelsCurve_.inputGamma());
-    KisColorTransformationConfiguration::setProperty("outblackvalue", static_cast<int>(qRound(lightnessLevelsCurve_.outputBlackPoint() * 255.0)));
-    KisColorTransformationConfiguration::setProperty("outwhitevalue", static_cast<int>(qRound(lightnessLevelsCurve_.outputWhitePoint() * 255.0)));
+    KisColorTransformationConfiguration::setProperty("outblackvalue", static_cast<int>(pkRound(lightnessLevelsCurve_.outputBlackPoint() * 255.0)));
+    KisColorTransformationConfiguration::setProperty("outwhitevalue", static_cast<int>(pkRound(lightnessLevelsCurve_.outputWhitePoint() * 255.0)));
 }
 
 /**
@@ -359,11 +359,11 @@ void KisLevelsFilterConfiguration::toXML(PkXmlDocument& doc, PkXmlElement& root)
         addParamNode(doc, root, name, value);
     }
     const KisLevelsCurve lightnessCurve_ = lightnessLevelsCurve();
-    addParamNode(doc, root, "blackvalue", KisDomUtils::toString(static_cast<int>(qRound(lightnessCurve_.inputBlackPoint() * 255.0))), true);
-    addParamNode(doc, root, "whitevalue", KisDomUtils::toString(static_cast<int>(qRound(lightnessCurve_.inputWhitePoint() * 255.0))), true);
+    addParamNode(doc, root, "blackvalue", KisDomUtils::toString(static_cast<int>(pkRound(lightnessCurve_.inputBlackPoint() * 255.0))), true);
+    addParamNode(doc, root, "whitevalue", KisDomUtils::toString(static_cast<int>(pkRound(lightnessCurve_.inputWhitePoint() * 255.0))), true);
     addParamNode(doc, root, "gammavalue", KisDomUtils::toString(lightnessCurve_.inputGamma()), true);
-    addParamNode(doc, root, "outblackvalue", KisDomUtils::toString(static_cast<int>(qRound(lightnessCurve_.outputBlackPoint() * 255.0))), true);
-    addParamNode(doc, root, "outwhitevalue", KisDomUtils::toString(static_cast<int>(qRound(lightnessCurve_.outputWhitePoint() * 255.0))), true);
+    addParamNode(doc, root, "outblackvalue", KisDomUtils::toString(static_cast<int>(pkRound(lightnessCurve_.outputBlackPoint() * 255.0))), true);
+    addParamNode(doc, root, "outwhitevalue", KisDomUtils::toString(static_cast<int>(pkRound(lightnessCurve_.outputWhitePoint() * 255.0))), true);
 }
 
 void KisLevelsFilterConfiguration::setDefaults()

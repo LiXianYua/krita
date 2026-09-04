@@ -41,11 +41,11 @@ constexpr int pkAlpha(quint32 c) { return int((c >> 24) & 0xff); }
 
 // QCOLOR_INT_RANGE_CHECK（qcolor.cpp:606）：截断，不置无效。
 void intRangeCheck(int &v)
-{ if (v < 0 || v > 255) v = qMax(0, qMin(v, 255)); }
+{ if (v < 0 || v > 255) v = pkMax(0, pkMin(v, 255)); }
 
 // QCOLOR_REAL_RANGE_CHECK（qcolor.cpp:614）：截断到 [0,1]，不置无效。
 void realRangeCheck(qreal &v)
-{ if (v < qreal(0.0) || v > qreal(1.0)) v = qMax(qreal(0.0), qMin(v, qreal(1.0))); }
+{ if (v < qreal(0.0) || v > qreal(1.0)) v = pkMax(qreal(0.0), pkMin(v, qreal(1.0))); }
 
 // QtMiscUtils::fromHex（qcolor.cpp 用的单字符 hex 解码，-1 表示非法）。
 constexpr int fromHex(char c)
@@ -114,8 +114,8 @@ bool getHexRgb(const char *name, size_t len, quint16 *a, quint16 *r, quint16 *g,
 
 // rgbTbl（qcolor.cpp:156-307）——SVG 1.0 命名色 + transparent，**逐字照抄**
 // 顺序与取值都不能动：get_named_rgb_no_space 用 std::lower_bound 二分，顺序错
-// 了二分结果就错；"green"=(0,128,0) 与 Qt::green=(0,255,0) 不同是有意的
-// （QColor 文档原话：SVG 名与 Qt::GlobalColor 枚举不是同一组颜色）。
+// 了二分结果就错；"green"=(0,128,0) 与 Pk::green=(0,255,0) 不同是有意的
+// （QColor 文档原话：SVG 名与 Pk::GlobalColor 枚举不是同一组颜色）。
 struct RGBData { const char name[21]; quint32 value; };
 constexpr quint32 kRgbMacro(int r, int g, int b) { return pkRgb(r, g, b); }
 
@@ -402,7 +402,7 @@ PkColor::PkColor(int r, int g, int b, int a) noexcept
 // qcolor.cpp:680 GlobalColor 构造：20 项表 + setRgb(int,int,int,int)。
 // 注意 green=(0,255,0)、darkYellow=(128,128,0) **有效**——这与 SVG 命名色
 // "green"=(0,128,0)、"darkYellow" 无效是两回事（brief 探针把它们混写，已登记偏离）。
-PkColor::PkColor(Qt::GlobalColor color) noexcept
+PkColor::PkColor(Pk::GlobalColor color) noexcept
 {
     static const quint32 globalColors[] = {
         pkRgb(255, 255, 255), // color0
@@ -433,7 +433,7 @@ PkColor::PkColor(Qt::GlobalColor color) noexcept
 PkColor::PkColor(const char *name) { setNamedColor(name); }
 PkColor::PkColor(const PkString &name) { setNamedColor(name); }
 
-PkColor &PkColor::operator=(Qt::GlobalColor color) noexcept
+PkColor &PkColor::operator=(Pk::GlobalColor color) noexcept
 { return *this = PkColor(color); }
 
 // ---------------------------------------------------------------------------
@@ -479,10 +479,10 @@ PkColor PkColor::fromRgbF(qreal r, qreal g, qreal b, qreal a)
     }
     PkColor color;
     color.cspec = Rgb;
-    color.ct.argb.alpha = quint16(qRound(a * kUShortMax));
-    color.ct.argb.red   = quint16(qRound(r * kUShortMax));
-    color.ct.argb.green = quint16(qRound(g * kUShortMax));
-    color.ct.argb.blue  = quint16(qRound(b * kUShortMax));
+    color.ct.argb.alpha = quint16(pkRound(a * kUShortMax));
+    color.ct.argb.red   = quint16(pkRound(r * kUShortMax));
+    color.ct.argb.green = quint16(pkRound(g * kUShortMax));
+    color.ct.argb.blue  = quint16(pkRound(b * kUShortMax));
     color.ct.argb.pad   = 0;
     return color;
 }
@@ -517,10 +517,10 @@ PkColor PkColor::fromHsvF(qreal h, qreal s, qreal v, qreal a)
     }
     PkColor color;
     color.cspec = Hsv;
-    color.ct.ahsv.alpha      = quint16(qRound(a * kUShortMax));
-    color.ct.ahsv.hue        = h == qreal(-1.0) ? kUShortMax : quint16(qRound(h * 36000));
-    color.ct.ahsv.saturation = quint16(qRound(s * kUShortMax));
-    color.ct.ahsv.value      = quint16(qRound(v * kUShortMax));
+    color.ct.ahsv.alpha      = quint16(pkRound(a * kUShortMax));
+    color.ct.ahsv.hue        = h == qreal(-1.0) ? kUShortMax : quint16(pkRound(h * 36000));
+    color.ct.ahsv.saturation = quint16(pkRound(s * kUShortMax));
+    color.ct.ahsv.value      = quint16(pkRound(v * kUShortMax));
     color.ct.ahsv.pad        = 0;
     return color;
 }
@@ -555,11 +555,11 @@ PkColor PkColor::fromHslF(qreal h, qreal s, qreal l, qreal a)
     }
     PkColor color;
     color.cspec = Hsl;
-    color.ct.ahsl.alpha      = quint16(qRound(a * kUShortMax));
-    color.ct.ahsl.hue        = h == qreal(-1.0) ? kUShortMax : quint16(qRound(h * 36000));
+    color.ct.ahsl.alpha      = quint16(pkRound(a * kUShortMax));
+    color.ct.ahsl.hue        = h == qreal(-1.0) ? kUShortMax : quint16(pkRound(h * 36000));
     if (color.ct.ahsl.hue == 36000) color.ct.ahsl.hue = 0;
-    color.ct.ahsl.saturation = quint16(qRound(s * kUShortMax));
-    color.ct.ahsl.lightness  = quint16(qRound(l * kUShortMax));
+    color.ct.ahsl.saturation = quint16(pkRound(s * kUShortMax));
+    color.ct.ahsl.lightness  = quint16(pkRound(l * kUShortMax));
     color.ct.ahsl.pad        = 0;
     return color;
 }
@@ -616,7 +616,7 @@ int PkColor::blue() const noexcept
 }
 int PkColor::alpha() const noexcept
 {
-    if (cspec == ExtendedRgb) return qRound((qreal)ct.argbExt.alphaF * 255);
+    if (cspec == ExtendedRgb) return pkRound((qreal)ct.argbExt.alphaF * 255);
     return qt_div_257(ct.argb.alpha);
 }
 
@@ -709,7 +709,7 @@ void PkColor::setAlphaF(qreal alpha)
 {
     realRangeCheck(alpha);
     if (cspec == ExtendedRgb) { ct.argbExt.alphaF = (float)alpha; return; }
-    ct.argb.alpha = quint16(qRound(alpha * kUShortMax));
+    ct.argb.alpha = quint16(pkRound(alpha * kUShortMax));
 }
 
 // qcolor.cpp:1365 setRgb(int,int,int,int)：越界 → 置无效。
@@ -760,10 +760,10 @@ void PkColor::setRgbF(qreal r, qreal g, qreal b, qreal a)
         return;
     }
     cspec = Rgb;
-    ct.argb.red   = quint16(qRound(r * kUShortMax));
-    ct.argb.green = quint16(qRound(g * kUShortMax));
-    ct.argb.blue  = quint16(qRound(b * kUShortMax));
-    ct.argb.alpha = quint16(qRound(a * kUShortMax));
+    ct.argb.red   = quint16(pkRound(r * kUShortMax));
+    ct.argb.green = quint16(pkRound(g * kUShortMax));
+    ct.argb.blue  = quint16(pkRound(b * kUShortMax));
+    ct.argb.alpha = quint16(pkRound(a * kUShortMax));
     ct.argb.pad   = 0;
 }
 
@@ -789,10 +789,10 @@ void PkColor::setHsvF(qreal h, qreal s, qreal v, qreal a)
         return;
     }
     cspec = Hsv;
-    ct.ahsv.alpha      = quint16(qRound(a * kUShortMax));
-    ct.ahsv.hue        = h == qreal(-1.0) ? kUShortMax : quint16(qRound(h * 36000));
-    ct.ahsv.saturation = quint16(qRound(s * kUShortMax));
-    ct.ahsv.value      = quint16(qRound(v * kUShortMax));
+    ct.ahsv.alpha      = quint16(pkRound(a * kUShortMax));
+    ct.ahsv.hue        = h == qreal(-1.0) ? kUShortMax : quint16(pkRound(h * 36000));
+    ct.ahsv.saturation = quint16(pkRound(s * kUShortMax));
+    ct.ahsv.value      = quint16(pkRound(v * kUShortMax));
     ct.ahsv.pad        = 0;
 }
 
@@ -818,10 +818,10 @@ void PkColor::setHslF(qreal h, qreal s, qreal l, qreal a)
         return;
     }
     cspec = Hsl;
-    ct.ahsl.alpha      = quint16(qRound(a * kUShortMax));
-    ct.ahsl.hue        = h == qreal(-1.0) ? kUShortMax : quint16(qRound(h * 36000));
-    ct.ahsl.saturation = quint16(qRound(s * kUShortMax));
-    ct.ahsl.lightness  = quint16(qRound(l * kUShortMax));
+    ct.ahsl.alpha      = quint16(pkRound(a * kUShortMax));
+    ct.ahsl.hue        = h == qreal(-1.0) ? kUShortMax : quint16(pkRound(h * 36000));
+    ct.ahsl.saturation = quint16(pkRound(s * kUShortMax));
+    ct.ahsl.lightness  = quint16(pkRound(l * kUShortMax));
     ct.ahsl.pad        = 0;
 }
 
@@ -857,38 +857,38 @@ PkColor PkColor::toRgb() const noexcept
             const qreal q = v * (qreal(1.0) - (s * f));
             switch (i) {
             case 1:
-                color.ct.argb.red   = quint16(qRound(q * kUShortMax));
-                color.ct.argb.green = quint16(qRound(v * kUShortMax));
-                color.ct.argb.blue  = quint16(qRound(p * kUShortMax));
+                color.ct.argb.red   = quint16(pkRound(q * kUShortMax));
+                color.ct.argb.green = quint16(pkRound(v * kUShortMax));
+                color.ct.argb.blue  = quint16(pkRound(p * kUShortMax));
                 break;
             case 3:
-                color.ct.argb.red   = quint16(qRound(p * kUShortMax));
-                color.ct.argb.green = quint16(qRound(q * kUShortMax));
-                color.ct.argb.blue  = quint16(qRound(v * kUShortMax));
+                color.ct.argb.red   = quint16(pkRound(p * kUShortMax));
+                color.ct.argb.green = quint16(pkRound(q * kUShortMax));
+                color.ct.argb.blue  = quint16(pkRound(v * kUShortMax));
                 break;
             case 5:
-                color.ct.argb.red   = quint16(qRound(v * kUShortMax));
-                color.ct.argb.green = quint16(qRound(p * kUShortMax));
-                color.ct.argb.blue  = quint16(qRound(q * kUShortMax));
+                color.ct.argb.red   = quint16(pkRound(v * kUShortMax));
+                color.ct.argb.green = quint16(pkRound(p * kUShortMax));
+                color.ct.argb.blue  = quint16(pkRound(q * kUShortMax));
                 break;
             }
         } else {
             const qreal t = v * (qreal(1.0) - (s * (qreal(1.0) - f)));
             switch (i) {
             case 0:
-                color.ct.argb.red   = quint16(qRound(v * kUShortMax));
-                color.ct.argb.green = quint16(qRound(t * kUShortMax));
-                color.ct.argb.blue  = quint16(qRound(p * kUShortMax));
+                color.ct.argb.red   = quint16(pkRound(v * kUShortMax));
+                color.ct.argb.green = quint16(pkRound(t * kUShortMax));
+                color.ct.argb.blue  = quint16(pkRound(p * kUShortMax));
                 break;
             case 2:
-                color.ct.argb.red   = quint16(qRound(p * kUShortMax));
-                color.ct.argb.green = quint16(qRound(v * kUShortMax));
-                color.ct.argb.blue  = quint16(qRound(t * kUShortMax));
+                color.ct.argb.red   = quint16(pkRound(p * kUShortMax));
+                color.ct.argb.green = quint16(pkRound(v * kUShortMax));
+                color.ct.argb.blue  = quint16(pkRound(t * kUShortMax));
                 break;
             case 4:
-                color.ct.argb.red   = quint16(qRound(t * kUShortMax));
-                color.ct.argb.green = quint16(qRound(p * kUShortMax));
-                color.ct.argb.blue  = quint16(qRound(v * kUShortMax));
+                color.ct.argb.red   = quint16(pkRound(t * kUShortMax));
+                color.ct.argb.green = quint16(pkRound(p * kUShortMax));
+                color.ct.argb.blue  = quint16(pkRound(v * kUShortMax));
                 break;
             }
         }
@@ -923,13 +923,13 @@ PkColor PkColor::toRgb() const noexcept
 
                 const qreal sixtemp3 = temp3[i] * qreal(6.0);
                 if (sixtemp3 < qreal(1.0))
-                    color.ct.array[i + 1] = quint16(qRound((temp1 + (temp2 - temp1) * sixtemp3) * kUShortMax));
+                    color.ct.array[i + 1] = quint16(pkRound((temp1 + (temp2 - temp1) * sixtemp3) * kUShortMax));
                 else if ((temp3[i] * qreal(2.0)) < qreal(1.0))
-                    color.ct.array[i + 1] = quint16(qRound(temp2 * kUShortMax));
+                    color.ct.array[i + 1] = quint16(pkRound(temp2 * kUShortMax));
                 else if ((temp3[i] * qreal(3.0)) < qreal(2.0))
-                    color.ct.array[i + 1] = quint16(qRound((temp1 + (temp2 - temp1) * (qreal(2.0) / qreal(3.0) - temp3[i]) * qreal(6.0)) * kUShortMax));
+                    color.ct.array[i + 1] = quint16(pkRound((temp1 + (temp2 - temp1) * (qreal(2.0) / qreal(3.0) - temp3[i]) * qreal(6.0)) * kUShortMax));
                 else
-                    color.ct.array[i + 1] = quint16(qRound(temp1 * kUShortMax));
+                    color.ct.array[i + 1] = quint16(pkRound(temp1 * kUShortMax));
             }
             color.ct.argb.red   = color.ct.argb.red   == 1 ? 0 : color.ct.argb.red;
             color.ct.argb.green = color.ct.argb.green == 1 ? 0 : color.ct.argb.green;
@@ -944,16 +944,16 @@ PkColor PkColor::toRgb() const noexcept
         const qreal m = ct.acmyk.magenta / qreal(kUShortMax);
         const qreal y = ct.acmyk.yellow / qreal(kUShortMax);
         const qreal k = ct.acmyk.black / qreal(kUShortMax);
-        color.ct.argb.red   = quint16(qRound((qreal(1.0) - (c * (qreal(1.0) - k) + k)) * kUShortMax));
-        color.ct.argb.green = quint16(qRound((qreal(1.0) - (m * (qreal(1.0) - k) + k)) * kUShortMax));
-        color.ct.argb.blue  = quint16(qRound((qreal(1.0) - (y * (qreal(1.0) - k) + k)) * kUShortMax));
+        color.ct.argb.red   = quint16(pkRound((qreal(1.0) - (c * (qreal(1.0) - k) + k)) * kUShortMax));
+        color.ct.argb.green = quint16(pkRound((qreal(1.0) - (m * (qreal(1.0) - k) + k)) * kUShortMax));
+        color.ct.argb.blue  = quint16(pkRound((qreal(1.0) - (y * (qreal(1.0) - k) + k)) * kUShortMax));
         break;
     }
     case ExtendedRgb:
-        color.ct.argb.alpha = quint16(qRound(kUShortMax * qreal(ct.argbExt.alphaF)));
-        color.ct.argb.red   = quint16(qRound(kUShortMax * qBound(qreal(0.0), qreal(ct.argbExt.redF),   qreal(1.0))));
-        color.ct.argb.green = quint16(qRound(kUShortMax * qBound(qreal(0.0), qreal(ct.argbExt.greenF), qreal(1.0))));
-        color.ct.argb.blue  = quint16(qRound(kUShortMax * qBound(qreal(0.0), qreal(ct.argbExt.blueF),  qreal(1.0))));
+        color.ct.argb.alpha = quint16(pkRound(kUShortMax * qreal(ct.argbExt.alphaF)));
+        color.ct.argb.red   = quint16(pkRound(kUShortMax * pkBound(qreal(0.0), qreal(ct.argbExt.redF),   qreal(1.0))));
+        color.ct.argb.green = quint16(pkRound(kUShortMax * pkBound(qreal(0.0), qreal(ct.argbExt.greenF), qreal(1.0))));
+        color.ct.argb.blue  = quint16(pkRound(kUShortMax * pkBound(qreal(0.0), qreal(ct.argbExt.blueF),  qreal(1.0))));
         break;
     default:
         break;
@@ -976,16 +976,16 @@ PkColor PkColor::toHsv() const noexcept
     const qreal r = ct.argb.red   / qreal(kUShortMax);
     const qreal g = ct.argb.green / qreal(kUShortMax);
     const qreal b = ct.argb.blue  / qreal(kUShortMax);
-    const qreal max = qMax(r, qMax(g, b));
-    const qreal min = qMin(r, qMin(g, b));
+    const qreal max = pkMax(r, pkMax(g, b));
+    const qreal min = pkMin(r, pkMin(g, b));
     const qreal delta = max - min;
-    color.ct.ahsv.value = quint16(qRound(max * kUShortMax));
+    color.ct.ahsv.value = quint16(pkRound(max * kUShortMax));
     if (pkQtFuzzyIsNull(delta)) {
         color.ct.ahsv.hue = kUShortMax;
         color.ct.ahsv.saturation = 0;
     } else {
         qreal hue = 0;
-        color.ct.ahsv.saturation = quint16(qRound((delta / max) * kUShortMax));
+        color.ct.ahsv.saturation = quint16(pkRound((delta / max) * kUShortMax));
         if (pkQtFuzzyCompare(r, max)) {
             hue = ((g - b) / delta);
         } else if (pkQtFuzzyCompare(g, max)) {
@@ -998,7 +998,7 @@ PkColor PkColor::toHsv() const noexcept
         hue *= qreal(60.0);
         if (hue < qreal(0.0))
             hue += qreal(360.0);
-        color.ct.ahsv.hue = quint16(qRound(hue * 100));
+        color.ct.ahsv.hue = quint16(pkRound(hue * 100));
     }
 
     return color;
@@ -1018,21 +1018,21 @@ PkColor PkColor::toHsl() const noexcept
     const qreal r = ct.argb.red   / qreal(kUShortMax);
     const qreal g = ct.argb.green / qreal(kUShortMax);
     const qreal b = ct.argb.blue  / qreal(kUShortMax);
-    const qreal max = qMax(r, qMax(g, b));
-    const qreal min = qMin(r, qMin(g, b));
+    const qreal max = pkMax(r, pkMax(g, b));
+    const qreal min = pkMin(r, pkMin(g, b));
     const qreal delta = max - min;
     const qreal delta2 = max + min;
     const qreal lightness = qreal(0.5) * delta2;
-    color.ct.ahsl.lightness = quint16(qRound(lightness * kUShortMax));
+    color.ct.ahsl.lightness = quint16(pkRound(lightness * kUShortMax));
     if (pkQtFuzzyIsNull(delta)) {
         color.ct.ahsl.hue = kUShortMax;
         color.ct.ahsl.saturation = 0;
     } else {
         qreal hue = 0;
         if (lightness < qreal(0.5))
-            color.ct.ahsl.saturation = quint16(qRound((delta / delta2) * kUShortMax));
+            color.ct.ahsl.saturation = quint16(pkRound((delta / delta2) * kUShortMax));
         else
-            color.ct.ahsl.saturation = quint16(qRound((delta / (qreal(2.0) - delta2)) * kUShortMax));
+            color.ct.ahsl.saturation = quint16(pkRound((delta / (qreal(2.0) - delta2)) * kUShortMax));
         if (pkQtFuzzyCompare(r, max)) {
             hue = ((g - b) / delta);
         } else if (pkQtFuzzyCompare(g, max)) {
@@ -1045,7 +1045,7 @@ PkColor PkColor::toHsl() const noexcept
         hue *= qreal(60.0);
         if (hue < qreal(0.0))
             hue += qreal(360.0);
-        color.ct.ahsl.hue = quint16(qRound(hue * 100));
+        color.ct.ahsl.hue = quint16(pkRound(hue * 100));
     }
 
     return color;
@@ -1177,12 +1177,12 @@ bool PkColor::operator==(const PkColor &color) const noexcept
     if (cspec == Hsl && cspec == color.cspec) {
         return (ct.argb.alpha == color.ct.argb.alpha
                 && ct.ahsl.hue % 36000 == color.ct.ahsl.hue % 36000
-                && (qAbs(ct.ahsl.saturation - color.ct.ahsl.saturation) < 50
+                && (pkAbs(ct.ahsl.saturation - color.ct.ahsl.saturation) < 50
                     || ct.ahsl.lightness == 0
                     || color.ct.ahsl.lightness == 0
                     || ct.ahsl.lightness == kUShortMax
                     || color.ct.ahsl.lightness == kUShortMax)
-                && (qAbs(ct.ahsl.lightness - color.ct.ahsl.lightness)) < 50);
+                && (pkAbs(ct.ahsl.lightness - color.ct.ahsl.lightness)) < 50);
     } else if ((cspec == ExtendedRgb || color.cspec == ExtendedRgb) &&
                (cspec == color.cspec || cspec == Rgb || color.cspec == Rgb)) {
         return pkQtFuzzyCompare(alphaF(), color.alphaF())

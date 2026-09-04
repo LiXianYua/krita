@@ -21,7 +21,7 @@ namespace {
 struct PkStringHasher
 {
     std::size_t operator()(const PkString &s) const noexcept {
-        return static_cast<std::size_t>(qHash(s));
+        return static_cast<std::size_t>(pkHash(s));
     }
 };
 

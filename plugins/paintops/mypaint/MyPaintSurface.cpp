@@ -337,10 +337,10 @@ void KisMyPaintSurface::getColorImpl(MyPaintSurface *self, float x, float y, flo
             float yy = (it.y() + 0.5f - y);
             float xx = (it.x() + 0.5f - x);
 
-            rr = qMax((yy * yy + xx * xx) * one_over_radius2, 0.0f);
+            rr = pkMax((yy * yy + xx * xx) * one_over_radius2, 0.0f);
         }
 
-        weights[num_colors] = qRound((1.0f - rr) * 255);
+        weights[num_colors] = pkRound((1.0f - rr) * 255);
         sum_weight += weights[num_colors];
         num_colors += 1;
     }

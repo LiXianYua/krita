@@ -389,8 +389,8 @@ bool KisBrush::isPiercedApprox() const
 
     if (w < 3 && h < 3) { return false; }
 
-    qreal xPortion = qMin(0.1, 5.0 / w);
-    qreal yPortion = qMin(0.1, 5.0 / h);
+    qreal xPortion = pkMin(0.1, 5.0 / w);
+    qreal yPortion = pkMin(0.1, 5.0 / h);
 
     int x0 = std::floor((0.5 - xPortion) * w);
     int x1 = std::ceil((0.5 + xPortion) * w);

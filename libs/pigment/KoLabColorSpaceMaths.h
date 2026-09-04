@@ -209,7 +209,7 @@ public:
 //    }
 
 //    inline static dst_compositetype clamp(dst_compositetype val) {
-//        return qBound<dst_compositetype>(KoColorSpaceMathsTraits<_Tdst>::min, val, KoColorSpaceMathsTraits<_Tdst>::max);
+//        return pkBound<dst_compositetype>(KoColorSpaceMathsTraits<_Tdst>::min, val, KoColorSpaceMathsTraits<_Tdst>::max);
 //    }
 
 //    /**
@@ -217,7 +217,7 @@ public:
 //     * for scale-only transformations
 //     */
 //    inline static _Tdst clampAfterScale(dst_compositetype val) {
-//        return qMin<dst_compositetype>(val, KoColorSpaceMathsTraits<_Tdst>::max);
+//        return pkMin<dst_compositetype>(val, KoColorSpaceMathsTraits<_Tdst>::max);
 //    }
 //};
 

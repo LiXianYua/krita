@@ -6,7 +6,7 @@
 #ifndef KIS_SHAPE_SELECTION_H
 #define KIS_SHAPE_SELECTION_H
 
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <PkPainterPath.h>
 #include <PkRect.h>
 #include <PkTransform.h>
@@ -44,9 +44,9 @@ public:
 
     KisSelectionComponent* clone(KisSelection* selection) override;
 
-    bool saveSelection(KoStore * store, const QRect &imageRect) const;
+    bool saveSelection(KoStore * store, const PkRect &imageRect) const;
 
-    bool loadSelection(KoStore * store, const QRect &imageRect);
+    bool loadSelection(KoStore * store, const PkRect &imageRect);
     /**
      * Renders the shapes to a selection. This method should only be called
      * by KisSelection to update it's projection.
@@ -73,10 +73,10 @@ public:
     void setResolutionProxy(KisImageResolutionProxySP resolutionProxy ) override;
 
 Q_SIGNALS:
-    void sigMoveShapes(const QPointF &diff);
+    void sigMoveShapes(const PkPointF &diff);
 
 private Q_SLOTS:
-    void slotMoveShapes(const QPointF &diff);
+    void slotMoveShapes(const PkPointF &diff);
 
 protected:
 
@@ -114,7 +114,7 @@ public:
         return 0;
     }
 
-    bool supports(const QDomElement & e, KoShapeLoadingContext &context) const override {
+    bool supports(const PkXmlElement & e, KoShapeLoadingContext &context) const override {
         Q_UNUSED(e);
         Q_UNUSED(context);
         return false;

@@ -9,9 +9,11 @@
 
 #include "KoShape.h"
 
-#include <QList>
+#include <PkList.h>
 
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 class QPainter;
 class KoShapeContainerModel;
@@ -174,7 +176,7 @@ public:
      * Return the list of all child shapes.
      * @return the list of all child shapes
      */
-    QList<KoShape*> shapes() const;
+    PkList<KoShape*> shapes() const;
 
     /**
      * return the model for this container
@@ -242,7 +244,7 @@ protected:
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif

@@ -273,10 +273,10 @@ PkVector2D PkVector4D::toVector2D() const
 }
 
 // qIsNull（精确零），不是 qFuzzyIsNull——见 PkGlobal.h 里 qIsNull 的注释。
-// 探针实测：w=1e-6f 时真 Qt 走除法分支（qIsNull(1e-6)=false），不是零向量。
+// 探针实测：w=1e-6f 时真 Qt 走除法分支（pkIsNull(1e-6)=false），不是零向量。
 PkVector2D PkVector4D::toVector2DAffine() const
 {
-    if (qIsNull(v[3]))
+    if (pkIsNull(v[3]))
         return PkVector2D();
     return PkVector2D(v[0] / v[3], v[1] / v[3]);
 }
@@ -288,7 +288,7 @@ PkVector3D PkVector4D::toVector3D() const
 
 PkVector3D PkVector4D::toVector3DAffine() const
 {
-    if (qIsNull(v[3]))
+    if (pkIsNull(v[3]))
         return PkVector3D();
     return PkVector3D(v[0] / v[3], v[1] / v[3], v[2] / v[3]);
 }

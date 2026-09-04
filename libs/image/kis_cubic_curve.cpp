@@ -130,9 +130,9 @@ qreal KisCubicCurve::Data::value(qreal x)
     /* Automatically extend non-existing parts of the curve
      * (e.g. before the first point) and cut off big y-values
      */
-    x = qBound(points.first().x(), x, points.last().x());
+    x = pkBound(points.first().x(), x, points.last().x());
     qreal y = spline.getValue(x);
-    return qBound(qreal(0.0), y, qreal(1.0));
+    return pkBound(qreal(0.0), y, qreal(1.0));
 }
 
 template<typename _T_, typename _T2_>
@@ -146,7 +146,7 @@ void KisCubicCurve::Data::updateTransfer(PkVector<_T_>* transfer, bool& valid, _
         for (int i = 0; i < size; ++i) {
             /* Direct uncached version */
             _T2_ val = value(i * end ) * max;
-            val = qBound(min, val, max);
+            val = pkBound(min, val, max);
             (*transfer)[i] = val;
         }
         valid = true;
@@ -382,7 +382,7 @@ bool KisCubicCurve::isIdentity() const
     }
 
     for (int i = 1; i < points.size() - 1; i++) {
-        if (!qFuzzyCompare(points[i].x(), points[i].y())) {
+        if (!pkQtFuzzyCompare(points[i].x(), points[i].y())) {
             return false;
         }
     }
@@ -395,7 +395,7 @@ bool KisCubicCurve::isConstant(qreal c) const
     const PkList<KisCubicCurvePoint> &points = d->data->points;
 
     for (const KisCubicCurvePoint &pt : points) {
-        if (!qFuzzyCompare(c, pt.y())) {
+        if (!pkQtFuzzyCompare(c, pt.y())) {
             return false;
         }
     }
@@ -412,7 +412,7 @@ qreal KisCubicCurve::interpolateLinear(qreal normalizedValue, const PkVector<qre
 {
     const qreal maxValue = transfer.size() - 1;
 
-    const qreal bilinearX = qBound(0.0, maxValue * normalizedValue, maxValue);
+    const qreal bilinearX = pkBound(0.0, maxValue * normalizedValue, maxValue);
     const qreal xFloored = std::floor(bilinearX);
     const qreal xCeiled = std::ceil(bilinearX);
 

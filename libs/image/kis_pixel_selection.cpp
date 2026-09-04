@@ -194,7 +194,7 @@ void KisPixelSelection::addSelection(KisPixelSelectionSP selection)
         src->nextRow();
     }
 
-    const quint8 defPixel = qMax(*defaultPixel().data(), *selection->defaultPixel().data());
+    const quint8 defPixel = pkMax(*defaultPixel().data(), *selection->defaultPixel().data());
     setDefaultPixel(KoColor(&defPixel, colorSpace()));
 
     m_d->outlineCacheValid &= selection->outlineCacheValid();
@@ -248,13 +248,13 @@ void KisPixelSelection::intersectSelection(KisPixelSelectionSP selection)
     KisHLineConstIteratorSP src = selection->createHLineConstIteratorNG(r.x(), r.y(), r.width());
     for (int i = 0; i < r.height(); ++i) {
         do {
-            *dst->rawData() = qMin(*dst->rawData(), *src->oldRawData());
+            *dst->rawData() = pkMin(*dst->rawData(), *src->oldRawData());
         }  while (src->nextPixel() && dst->nextPixel());
         dst->nextRow();
         src->nextRow();
     }
 
-    const quint8 defPixel = qMin(*defaultPixel().data(), *selection->defaultPixel().data());
+    const quint8 defPixel = pkMin(*defaultPixel().data(), *selection->defaultPixel().data());
     setDefaultPixel(KoColor(&defPixel, colorSpace()));
 
     crop(r);
@@ -540,8 +540,8 @@ void KisPixelSelection::recalculateThumbnailImage(const PkColor &maskColor)
             factor = qreal(maxPreviewSize) / rc.height();
         }
 
-        int newWidth = qRound(rc.width() * factor);
-        int newHeight = qRound(rc.height() * factor);
+        int newWidth = pkRound(rc.width() * factor);
+        int newHeight = pkRound(rc.height() * factor);
 
         m_d->thumbnailImageTransform =
             PkTransform::fromScale(qreal(rc.width()) / newWidth,

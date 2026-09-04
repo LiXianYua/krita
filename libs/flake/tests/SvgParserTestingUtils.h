@@ -23,7 +23,7 @@
 
 struct SvgTester
 {
-    SvgTester (const QString &data)
+    SvgTester (const PkString &data)
         : doc(SvgParser::createDocumentFromSvg(data)),
           m_parser(new SvgParser(&resourceManager))
     {
@@ -46,12 +46,12 @@ struct SvgTester
         shapes = parser().parseSvg(root, &fragmentSize);
     }
 
-    KoShape* findShape(const QString &name, KoShape *parent = 0) {
+    KoShape* findShape(const PkString &name, KoShape *parent = 0) {
         if (parent && parent->name() == name) {
             return parent;
         }
 
-        QList<KoShape*> children;
+        PkList<KoShape*> children;
 
         if (!parent) {
             children = shapes;
@@ -72,7 +72,7 @@ struct SvgTester
         return 0;
     }
 
-    KoShapeGroup* findGroup(const QString &name) {
+    KoShapeGroup* findGroup(const PkString &name) {
         KoShapeGroup *group = 0;
         KoShape *shape = findShape(name);
         if (shape) {
@@ -86,27 +86,27 @@ struct SvgTester
     }
 
     KoDocumentResourceManager resourceManager;
-    QDomDocument doc;
-    QDomElement root;
-    QSizeF fragmentSize;
-    QList<KoShape*> shapes;
-    QString savedData;
+    PkXmlDocument doc;
+    PkXmlElement root;
+    PkSizeF fragmentSize;
+    PkList<KoShape*> shapes;
+    PkString savedData;
 
 protected:
-    QScopedPointer<SvgParser> m_parser;
+    PkScopedPointer<SvgParser> m_parser;
 };
 
 #include <qimage_test_util.h>
 
 #ifdef USE_ROUND_TRIP
 #include "SvgWriter.h"
-#include <QBuffer>
-#include <QDomDocument>
+#include <PkMemoryStream.h>
+#include <PkXmlDocument.h>
 #endif
 
 struct SvgRenderTester : public SvgTester
 {
-    SvgRenderTester(const QString &data)
+    SvgRenderTester(const PkString &data)
         : SvgTester(data),
           m_fuzzyThreshold(0)
     {
@@ -120,8 +120,8 @@ struct SvgRenderTester : public SvgTester
         m_checkQImagePremultiplied = value;
     }
 
-    static void testRender(KoShape *shape, const QString &prefix, const QString &testName, const QSize canvasSize, qreal dpi, int fuzzyThreshold = 0, bool checkQImagePremultiplied = false) {
-        QImage canvas(canvasSize, QImage::Format_ARGB32);
+    static void testRender(KoShape *shape, const PkString &prefix, const PkString &testName, const PkSize canvasSize, qreal dpi, int fuzzyThreshold = 0, bool checkQImagePremultiplied = false) {
+        PkImage canvas(canvasSize, PkImage::Format_ARGB32);
         // 72 dpi => ~2834 dpm
         qreal inchesInMeter = 39.37007874;
         qreal dpm = dpi*inchesInMeter;
@@ -143,27 +143,27 @@ struct SvgRenderTester : public SvgTester
                                           checkQImagePremultiplied));
     }
 
-    void test_standard_30px_72ppi(const QString &testName, bool verifyGeometry = true, const QSize &canvasSize = QSize(30,30)) {
+    void test_standard_30px_72ppi(const PkString &testName, bool verifyGeometry = true, const PkSize &canvasSize = PkSize(30,30)) {
         test_standard_impl(testName, verifyGeometry, canvasSize, 72.0);
     }
 
-    void test_standard(const QString &testName, const QSize &canvasSize, qreal pixelsPerInch) {
+    void test_standard(const PkString &testName, const PkSize &canvasSize, qreal pixelsPerInch) {
         test_standard_impl(testName, false, canvasSize, pixelsPerInch);
     }
 
-    void test_standard_impl(const QString &testName, bool verifyGeometry, const QSize &canvasSize, qreal pixelsPerInch) {
+    void test_standard_impl(const PkString &testName, bool verifyGeometry, const PkSize &canvasSize, qreal pixelsPerInch) {
 
-        QSize sizeInPx = canvasSize;
-        QSizeF sizeInPt = QSizeF(canvasSize) * 72.0 / pixelsPerInch;
+        PkSize sizeInPx = canvasSize;
+        PkSizeF sizeInPt = PkSizeF(canvasSize) * 72.0 / pixelsPerInch;
         Q_UNUSED(sizeInPt); // used in some definitions only!
 
 
-        parser().setResolution(QRectF(QPointF(), sizeInPx) /* px */, pixelsPerInch /* ppi */);
+        parser().setResolution(PkRectF(PkPointF(), sizeInPx) /* px */, pixelsPerInch /* ppi */);
         run();
 
 #ifdef USE_CLONED_SHAPES
         {
-            QList<KoShape*> newShapes;
+            PkList<KoShape*> newShapes;
             Q_FOREACH (KoShape *shape, shapes) {
                 KoShape *clonedShape = shape->cloneShape();
                 KIS_ASSERT(clonedShape);
@@ -179,15 +179,15 @@ struct SvgRenderTester : public SvgTester
 
 #ifdef USE_ROUND_TRIP
 
-        QBuffer writeBuf;
-        writeBuf.open(QIODevice::WriteOnly);
+        PkMemoryStream writeBuf;
+        writeBuf.open(PkStream::WriteOnly);
 
         {
             SvgWriter writer(shapes);
             writer.save(writeBuf, sizeInPt);
         }
 
-        QDomDocument prettyDoc;
+        PkXmlDocument prettyDoc;
         prettyDoc.setContent(savedData);
 
 
@@ -202,7 +202,7 @@ struct SvgRenderTester : public SvgTester
         // reset the parser to avoid name conflicts
 
         m_parser.reset(new SvgParser(&resourceManager));
-        parser().setResolution(QRectF(QPointF(), sizeInPx) /* px */, pixelsPerInch /* ppi */);
+        parser().setResolution(PkRectF(PkPointF(), sizeInPx) /* px */, pixelsPerInch /* ppi */);
 
         run();
 #endif /* USE_ROUND_TRIP */
@@ -211,10 +211,10 @@ struct SvgRenderTester : public SvgTester
         KIS_ASSERT(shape);
 
         if (verifyGeometry) {
-            QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), QPointF(5,5));
+            QCOMPARE(shape->absolutePosition(KoFlake::TopLeft), PkPointF(5,5));
 
-            const QPointF bottomRight= shape->absolutePosition(KoFlake::BottomRight);
-            const QPointF expectedBottomRight(15,25);
+            const PkPointF bottomRight= shape->absolutePosition(KoFlake::BottomRight);
+            const PkPointF expectedBottomRight(15,25);
 
             if (KisAlgebra2D::norm(bottomRight - expectedBottomRight) > 0.0001 ) {
                 QCOMPARE(bottomRight, expectedBottomRight);

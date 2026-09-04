@@ -30,8 +30,8 @@ void KisRandomSubAccessor::sampledOldRawData(quint8* dst)
 {
     const quint8* pixels[4];
     qint16 weights[4];
-    int x = qFloor(m_currentPoint.x());
-    int y = qFloor(m_currentPoint.y());
+    int x = pkFloor(m_currentPoint.x());
+    int y = pkFloor(m_currentPoint.y());
 
     double hsub = m_currentPoint.x() - x;
     if (hsub < 0.0) {
@@ -44,19 +44,19 @@ void KisRandomSubAccessor::sampledOldRawData(quint8* dst)
     
     int sumOfWeights = 0;
 
-    weights[0] = qRound((1.0 - hsub) * (1.0 - vsub) * 255);
+    weights[0] = pkRound((1.0 - hsub) * (1.0 - vsub) * 255);
     sumOfWeights += weights[0];
     m_randomAccessor->moveTo(x, y);
     pixels[0] = m_randomAccessor->oldRawData();
-    weights[1] = qRound((1.0 - vsub) * hsub * 255);
+    weights[1] = pkRound((1.0 - vsub) * hsub * 255);
     sumOfWeights += weights[1];
     m_randomAccessor->moveTo(x + 1, y);
     pixels[1] = m_randomAccessor->oldRawData();
-    weights[2] = qRound(vsub * (1.0 - hsub) * 255);
+    weights[2] = pkRound(vsub * (1.0 - hsub) * 255);
     sumOfWeights += weights[2];
     m_randomAccessor->moveTo(x, y + 1);
     pixels[2] = m_randomAccessor->oldRawData();
-    weights[3] = qRound(hsub * vsub * 255);
+    weights[3] = pkRound(hsub * vsub * 255);
     sumOfWeights += weights[3];
     m_randomAccessor->moveTo(x + 1, y + 1);
     pixels[3] = m_randomAccessor->oldRawData();
@@ -69,8 +69,8 @@ void KisRandomSubAccessor::sampledRawData(quint8* dst)
 {
     const quint8* pixels[4];
     qint16 weights[4];
-    int x = qFloor(m_currentPoint.x());
-    int y = qFloor(m_currentPoint.y());
+    int x = pkFloor(m_currentPoint.x());
+    int y = pkFloor(m_currentPoint.y());
 
     double hsub = m_currentPoint.x() - x;
     if (hsub < 0.0) {
@@ -83,19 +83,19 @@ void KisRandomSubAccessor::sampledRawData(quint8* dst)
     
     int sumOfWeights = 0;
 
-    weights[0] = qRound((1.0 - hsub) * (1.0 - vsub) * 255);
+    weights[0] = pkRound((1.0 - hsub) * (1.0 - vsub) * 255);
     sumOfWeights += weights[0];
     m_randomAccessor->moveTo(x, y);
     pixels[0] = m_randomAccessor->rawDataConst();
-    weights[1] = qRound((1.0 - vsub) * hsub * 255);
+    weights[1] = pkRound((1.0 - vsub) * hsub * 255);
     sumOfWeights += weights[1];
     m_randomAccessor->moveTo(x + 1, y);
     pixels[1] = m_randomAccessor->rawDataConst();
-    weights[2] = qRound(vsub * (1.0 - hsub) * 255);
+    weights[2] = pkRound(vsub * (1.0 - hsub) * 255);
     sumOfWeights += weights[2];
     m_randomAccessor->moveTo(x, y + 1);
     pixels[2] = m_randomAccessor->rawDataConst();
-    weights[3] = qRound(hsub * vsub * 255);
+    weights[3] = pkRound(hsub * vsub * 255);
     sumOfWeights += weights[3];
     m_randomAccessor->moveTo(x + 1, y + 1);
     pixels[3] = m_randomAccessor->rawDataConst();

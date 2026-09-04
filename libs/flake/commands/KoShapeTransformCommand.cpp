@@ -47,12 +47,12 @@ void KoShapeTransformCommand::redo()
 {
     KUndo2Command::redo();
 
-    KoShapeBulkActionLock lock(toQList(d->shapes));
+    KoShapeBulkActionLock lock(d->shapes);
 
     const int shapeCount = d->shapes.count();
     for (int i = 0; i < shapeCount; ++i) {
         KoShape * shape = d->shapes[i];
-        shape->setTransformation(toQTransform(d->newState[i]));
+        shape->setTransformation(d->newState[i]);
     }
 
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());
@@ -62,12 +62,12 @@ void KoShapeTransformCommand::undo()
 {
     KUndo2Command::undo();
 
-    KoShapeBulkActionLock lock(toQList(d->shapes));
+    KoShapeBulkActionLock lock(d->shapes);
 
     const int shapeCount = d->shapes.count();
     for (int i = 0; i < shapeCount; ++i) {
         KoShape * shape = d->shapes[i];
-        shape->setTransformation(toQTransform(d->oldState[i]));
+        shape->setTransformation(d->oldState[i]);
     }
 
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());

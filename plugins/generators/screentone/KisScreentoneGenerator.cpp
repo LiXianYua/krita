@@ -247,7 +247,7 @@ void KisScreentoneGenerator::generate(KisProcessingInformation dst,
                                       const Sampler &sampler) const
 {
     const qreal contrast = config->contrast() / 50.0 - 1.0;
-    const bool useThresholdFunction = qFuzzyCompare(contrast, 1.0);
+    const bool useThresholdFunction = pkQtFuzzyCompare(contrast, 1.0);
 
     if (useThresholdFunction) {
         const qreal brightness = config->brightness() / 100.0;
@@ -255,7 +255,7 @@ void KisScreentoneGenerator::generate(KisProcessingInformation dst,
         generate(dst, size, config, progressUpdater, sampler, thresholdFunction);
     } else {
         const qreal brightness = config->brightness() / 50.0 - 1.0;
-        const bool bypassBrightnessContrast = qFuzzyIsNull(brightness) && qFuzzyIsNull(contrast);
+        const bool bypassBrightnessContrast = pkQtFuzzyIsNull(brightness) && pkQtFuzzyIsNull(contrast);
         if (bypassBrightnessContrast) {
             KisScreentoneBrightnessContrastFunctions::Identity brightnessContrastFunction;
             generate(dst, size, config, progressUpdater, sampler, brightnessContrastFunction);
@@ -332,14 +332,14 @@ void KisScreentoneGenerator::generate(KisProcessingInformation dst,
     if (!config->invert()) {
         while (it.nextPixel()) {
             qreal v = std::round(sampler(it.x(), it.y()) * 10000.0) / 10000.0;
-            v = qBound(0.0, postprocessingFunction(v), 1.0);
-            *it.rawData() = 255 - static_cast<quint8>(qRound(v * 255.0));
+            v = pkBound(0.0, postprocessingFunction(v), 1.0);
+            *it.rawData() = 255 - static_cast<quint8>(pkRound(v * 255.0));
         }
     } else {
         while (it.nextPixel()) {
             qreal v = std::round(sampler(it.x(), it.y()) * 10000.0) / 10000.0;
-            v = qBound(0.0, postprocessingFunction(v), 1.0);
-            *it.rawData() = static_cast<quint8>(qRound(v * 255.0));
+            v = pkBound(0.0, postprocessingFunction(v), 1.0);
+            *it.rawData() = static_cast<quint8>(pkRound(v * 255.0));
         }
     }
     checkUpdaterInterruptedAndSetPercent(progressUpdater, 25);

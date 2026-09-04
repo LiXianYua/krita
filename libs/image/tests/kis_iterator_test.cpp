@@ -365,11 +365,11 @@ public:
                 qint32 x = m_rect.x();
 
                 qint32 numContiguousRows = iter->numContiguousRows(y);
-                qint32 rows = qMin(numContiguousRows, rowsRemaining);
+                qint32 rows = pkMin(numContiguousRows, rowsRemaining);
 
                 while (columnsRemaining > 0) {
                     qint32 numContiguousColumns = iter->numContiguousColumns(x);
-                    qint32 columns = qMin(numContiguousColumns, columnsRemaining);
+                    qint32 columns = pkMin(numContiguousColumns, columnsRemaining);
 
                     qint32 rowStride = iter->rowStride(x, y);
                     iter->moveTo(x, y);

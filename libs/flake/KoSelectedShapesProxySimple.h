@@ -7,7 +7,7 @@
 #ifndef KOSELECTEDSHAPESPROXYSIMPLE_H
 #define KOSELECTEDSHAPESPROXYSIMPLE_H
 
-#include <QPointer>
+#include <PkPointer.h>
 #include <KoSelectedShapesProxy.h>
 
 class KoShapeManager;
@@ -21,7 +21,7 @@ public:
     KoSelection *selection() override;
 
 private:
-    QPointer<KoShapeManager> m_shapeManager;
+    PkPointer<KoShapeManager> m_shapeManager;
 };
 
 #endif // KOSELECTEDSHAPESPROXYSIMPLE_H

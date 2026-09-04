@@ -367,7 +367,7 @@ QRect KisImagePyramid::downsampleByFactor2(const QRect& srcRect,
         do {
             int srcItConseq = srcIt0->nConseqPixels();
             int dstItConseq = dstIt->nConseqPixels();
-            conseqPixels = qMin(srcItConseq, dstItConseq * 2);
+            conseqPixels = pkMin(srcItConseq, dstItConseq * 2);
 
             Q_ASSERT(!isOdd(conseqPixels));
 
@@ -437,7 +437,7 @@ int KisImagePyramid::findFirstGoodPlaneIndex(qreal scale,
 
     // FOR DEBUGGING
     //nearest = 0;
-    //nearest = qMin(1, nearest);
+    //nearest = pkMin(1, nearest);
 
     dbgRender << "First good plane:" << nearest << "(sc:" << scale << ")";
     return nearest;
@@ -476,7 +476,7 @@ void KisImagePyramid::alignSourceRect(QRect& rect, qreal scale)
 
 KisImagePatch KisImagePyramid::getNearestPatch(KisPPUpdateInfoSP info)
 {
-    qint32 index = findFirstGoodPlaneIndex(qMax(info->scaleX, info->scaleY),
+    qint32 index = findFirstGoodPlaneIndex(pkMax(info->scaleX, info->scaleY),
                                            info->imageRect.size());
     qreal planeScale = SCALE_FROM_INDEX(index);
     qint32 alignment = 1 << index;

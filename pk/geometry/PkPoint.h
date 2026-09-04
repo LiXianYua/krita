@@ -116,9 +116,9 @@ constexpr inline void PkPoint::setY(int ypos)
 { yp = ypos; }
 
 // qpoint.h:141-142。**不防溢出**：QPoint(INT_MIN,0).manhattanLength() 实测得
-// INT_MIN（qAbs(INT_MIN) 回绕），QPoint(INT_MAX,INT_MAX) 得 -2。照抄。
+// INT_MIN（pkAbs(INT_MIN) 回绕），QPoint(INT_MAX,INT_MAX) 得 -2。照抄。
 constexpr inline int PkPoint::manhattanLength() const
-{ return qAbs(x())+qAbs(y()); }
+{ return pkAbs(x())+pkAbs(y()); }
 
 constexpr inline int &PkPoint::rx()
 { return xp; }
@@ -133,10 +133,10 @@ constexpr inline PkPoint &PkPoint::operator-=(const PkPoint &p)
 { xp-=p.xp; yp-=p.yp; return *this; }
 
 constexpr inline PkPoint &PkPoint::operator*=(float factor)
-{ xp = qRound(xp*factor); yp = qRound(yp*factor); return *this; }
+{ xp = pkRound(xp*factor); yp = pkRound(yp*factor); return *this; }
 
 constexpr inline PkPoint &PkPoint::operator*=(double factor)
-{ xp = qRound(xp*factor); yp = qRound(yp*factor); return *this; }
+{ xp = pkRound(xp*factor); yp = pkRound(yp*factor); return *this; }
 
 constexpr inline PkPoint &PkPoint::operator*=(int factor)
 { xp = xp*factor; yp = yp*factor; return *this; }
@@ -154,19 +154,19 @@ constexpr inline const PkPoint operator-(const PkPoint &p1, const PkPoint &p2)
 { return PkPoint(p1.xp-p2.xp, p1.yp-p2.yp); }
 
 constexpr inline const PkPoint operator*(const PkPoint &p, float factor)
-{ return PkPoint(qRound(p.xp*factor), qRound(p.yp*factor)); }
+{ return PkPoint(pkRound(p.xp*factor), pkRound(p.yp*factor)); }
 
 constexpr inline const PkPoint operator*(const PkPoint &p, double factor)
-{ return PkPoint(qRound(p.xp*factor), qRound(p.yp*factor)); }
+{ return PkPoint(pkRound(p.xp*factor), pkRound(p.yp*factor)); }
 
 constexpr inline const PkPoint operator*(const PkPoint &p, int factor)
 { return PkPoint(p.xp*factor, p.yp*factor); }
 
 constexpr inline const PkPoint operator*(float factor, const PkPoint &p)
-{ return PkPoint(qRound(p.xp*factor), qRound(p.yp*factor)); }
+{ return PkPoint(pkRound(p.xp*factor), pkRound(p.yp*factor)); }
 
 constexpr inline const PkPoint operator*(double factor, const PkPoint &p)
-{ return PkPoint(qRound(p.xp*factor), qRound(p.yp*factor)); }
+{ return PkPoint(pkRound(p.xp*factor), pkRound(p.yp*factor)); }
 
 constexpr inline const PkPoint operator*(int factor, const PkPoint &p)
 { return PkPoint(p.xp*factor, p.yp*factor); }
@@ -180,14 +180,14 @@ constexpr inline const PkPoint operator-(const PkPoint &p)
 
 constexpr inline PkPoint &PkPoint::operator/=(qreal c)
 {
-    xp = qRound(xp/c);
-    yp = qRound(yp/c);
+    xp = pkRound(xp/c);
+    yp = pkRound(yp/c);
     return *this;
 }
 
 constexpr inline const PkPoint operator/(const PkPoint &p, qreal c)
 {
-    return PkPoint(qRound(p.xp/c), qRound(p.yp/c));
+    return PkPoint(pkRound(p.xp/c), pkRound(p.yp/c));
 }
 
 
@@ -252,11 +252,11 @@ constexpr inline PkPointF::PkPointF(const PkPoint &p) : xp(p.x()), yp(p.y()) { }
 
 constexpr inline qreal PkPointF::manhattanLength() const
 {
-    return qAbs(x())+qAbs(y());
+    return pkAbs(x())+pkAbs(y());
 }
 
-// qpoint.h:300-303 用的是 qIsNull(xp) && qIsNull(yp)，而 qglobal.h:925-928 的
-// qIsNull(double d) 就是 `d == 0.0` —— 于是 **-0.0 也算 null**（实测真 Qt：
+// qpoint.h:300-303 用的是 pkIsNull(xp) && pkIsNull(yp)，而 qglobal.h:925-928 的
+// pkIsNull(double d) 就是 `d == 0.0` —— 于是 **-0.0 也算 null**（实测真 Qt：
 // QPointF(-0.0,-0.0).isNull() == true），而 5e-324 不算。
 // 这里直接写出那个比较，不把 qIsNull 这个名字提进 compat：它在 Krita 保留范围
 // 内实测 0 调用点，导出去就违反判据①「一项不多」。
@@ -377,7 +377,7 @@ constexpr inline const PkPointF operator/(const PkPointF &p, qreal divisor)
 // 所以 PkPointF(-0.5,-0.5).toPoint() == (0,0)（实测真 Qt 5.15.7）。
 constexpr inline PkPoint PkPointF::toPoint() const
 {
-    return PkPoint(qRound(xp), qRound(yp));
+    return PkPoint(pkRound(xp), pkRound(yp));
 }
 
 #endif // PK_GEOMETRY_PKPOINT_H

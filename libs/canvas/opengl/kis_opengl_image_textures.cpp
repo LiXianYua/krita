@@ -518,8 +518,8 @@ void KisOpenGLImageTextures::getTextureSize(KisGLTexturesInfo *texturesInfo)
         maxTextureSize = GL_MAX_TEXTURE_SIZE;
     }
 
-    texturesInfo->width = qMin(preferredTextureSize, maxTextureSize);
-    texturesInfo->height = qMin(preferredTextureSize, maxTextureSize);
+    texturesInfo->width = pkMin(preferredTextureSize, maxTextureSize);
+    texturesInfo->height = pkMin(preferredTextureSize, maxTextureSize);
 
     texturesInfo->border = cfg.textureOverlapBorder();
 

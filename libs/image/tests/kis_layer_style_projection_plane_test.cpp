@@ -570,7 +570,7 @@ void KisLayerStyleProjectionPlaneTest::testBlending()
                 }
 
                 for (int i = 0; i <= 10; i++) {
-                    const quint8 alpha = i == 0 ? 71 : qRound(255 * qreal(i) / 10);
+                    const quint8 alpha = i == 0 ? 71 : pkRound(255 * qreal(i) / 10);
 
                     {
                         PkColor c(layerColor);

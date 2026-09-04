@@ -42,9 +42,9 @@ static_assert([] { PkPoint p; p.setX(5); p.ry() = -2; return p; }() == PkPoint(5
 
 // ⚠ 取整方向：qRound 对负半值向 +∞，不是"远离零"。实测真 Qt 5.15.7：
 // QPoint(-1,-1)*0.5 == (0,0)、QPoint(-3,-3)*0.5 == (-1,-1)、QPoint(-5,-5)*0.5 == (-2,-2)。
-static_assert(PkPoint(-1, -1) * 0.5 == PkPoint(0, 0), "qRound(-0.5)==0");
-static_assert(PkPoint(-3, -3) * 0.5 == PkPoint(-1, -1), "qRound(-1.5)==-1");
-static_assert(0.5 * PkPoint(-5, -5) == PkPoint(-2, -2), "qRound(-2.5)==-2，且左乘同语义");
+static_assert(PkPoint(-1, -1) * 0.5 == PkPoint(0, 0), "pkRound(-0.5)==0");
+static_assert(PkPoint(-3, -3) * 0.5 == PkPoint(-1, -1), "pkRound(-1.5)==-1");
+static_assert(0.5 * PkPoint(-5, -5) == PkPoint(-2, -2), "pkRound(-2.5)==-2，且左乘同语义");
 static_assert(PkPoint(-3, -3) / 2.0 == PkPoint(-1, -1), "除法同样走 qRound");
 
 // PkPointF 的 constexpr 面。isNull() 照 Qt **不是** constexpr，故不在此列。

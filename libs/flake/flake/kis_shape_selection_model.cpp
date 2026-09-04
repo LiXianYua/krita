@@ -32,7 +32,7 @@ KisShapeSelectionModel::~KisShapeSelectionModel()
     m_parentSelection = 0;
 }
 
-void KisShapeSelectionModel::requestUpdate(const QRect &updateRect)
+void KisShapeSelectionModel::requestUpdate(const PkRect &updateRect)
 {
     m_shapeSelection->recalculateOutlineCache();
 
@@ -49,7 +49,7 @@ void KisShapeSelectionModel::setResolutionProxy(KisImageResolutionProxySP newRes
     m_resolutionProxy = newResolutionProxy;
 
     if (resolutionChanged) {
-        requestUpdate(QRect());
+        requestUpdate(PkRect());
     }
 }
 
@@ -66,12 +66,12 @@ void KisShapeSelectionModel::add(KoShape *child)
         return;
 
     child->setStroke(KoShapeStrokeModelSP());
-    child->setBackground( QSharedPointer<KoShapeBackground>(0));
+    child->setBackground( PkSharedPointer<KoShapeBackground>(0));
     m_shapeMap.insert(child, child->boundingRect());
     m_shapeSelection->shapeManager()->addShape(child);
 
-    QRect updateRect = child->boundingRect().toAlignedRect();
-    QTransform matrix;
+    PkRect updateRect = child->boundingRect().toAlignedRect();
+    PkTransform matrix;
     matrix.scale(m_resolutionProxy->xRes(), m_resolutionProxy->yRes());
     updateRect = matrix.mapRect(updateRect);
 
@@ -79,7 +79,7 @@ void KisShapeSelectionModel::add(KoShape *child)
         // The shape is the first one, so the shape selection just got created
         // Pixel selection provides no longer the datamanager of the selection
         // so update the whole selection
-        requestUpdate(QRect());
+        requestUpdate(PkRect());
     } else {
         requestUpdate(updateRect);
     }
@@ -89,13 +89,13 @@ void KisShapeSelectionModel::remove(KoShape *child)
 {
     if (!m_shapeMap.contains(child)) return;
 
-    QRect updateRect = child->boundingRect().toAlignedRect();
+    PkRect updateRect = child->boundingRect().toAlignedRect();
     m_shapeMap.remove(child);
 
     if (m_shapeSelection) {
         m_shapeSelection->shapeManager()->remove(child);
     }
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(m_resolutionProxy->xRes(), m_resolutionProxy->yRes());
     updateRect = matrix.mapRect(updateRect);
     if (m_shapeSelection) { // No m_shapeSelection indicates the selection is being deleted
@@ -142,9 +142,9 @@ int KisShapeSelectionModel::count() const
     return m_shapeMap.count();
 }
 
-QList<KoShape*> KisShapeSelectionModel::shapes() const
+PkList<KoShape*> KisShapeSelectionModel::shapes() const
 {
-    return QList<KoShape*>(m_shapeMap.keys());
+    return PkList<KoShape*>(m_shapeMap.keys());
 }
 void KisShapeSelectionModel::containerChanged(KoShapeContainer *, KoShape::ChangeType)
 {
@@ -157,11 +157,11 @@ void KisShapeSelectionModel::childChanged(KoShape * child, KoShape::ChangeType t
     // TODO: check if still needed
     if (type == KoShape::ParentChanged) return;
 
-    QRectF changedRect = m_shapeMap[child];
+    PkRectF changedRect = m_shapeMap[child];
     changedRect = changedRect.united(child->boundingRect());
     m_shapeMap[child] = child->boundingRect();
 
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(m_resolutionProxy->xRes(), m_resolutionProxy->yRes());
     changedRect = matrix.mapRect(changedRect);
 

@@ -61,8 +61,8 @@ public:
     }
 
     inline void include(int time) {
-        m_start = qMin(time, m_start);
-        m_end = qMax(time, m_end);
+        m_start = pkMin(time, m_start);
+        m_end = pkMax(time, m_end);
     }
 
     inline bool overlaps(const KisTimeSpan& other) const {
@@ -78,10 +78,10 @@ public:
             return (contains(other.start()) || contains(other.end()));
         }
 
-        const int selfMin = qMin(start(), end());
-        const int selfMax = qMax(start(), end());
-        const int otherMin = qMin(other.start(), other.end());
-        const int otherMax = qMax(other.start(), other.end());
+        const int selfMin = pkMin(start(), end());
+        const int selfMax = pkMax(start(), end());
+        const int otherMin = pkMin(other.start(), other.end());
+        const int otherMax = pkMax(other.start(), other.end());
         return (selfMax >= otherMin) && (selfMin <= otherMax );
     }
 

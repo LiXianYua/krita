@@ -42,14 +42,14 @@ void Noise::update(quint64 seed, int shift, int cutoff, bool chR, bool chG, bool
             b = (c >> (shift > 40 ? (shift > 48 ? shift - 16 : shift - 8) : shift + 16)) & 0xFF;
             k = (c >> (shift > 32 ? (shift > 40 ? shift - 20 : shift - 8) : shift + 24)) & 0xFF;
             h[r][g]++;
-            m = qMax(m, h[r][g]);
+            m = pkMax(m, h[r][g]);
             if (!chR) r = 0;
             if (!chG) g = 0;
             if (!chB) b = 0;
             _image.setPixel(x, y, k < cutoff ? qRgb(r, g, b) : qRgb(0, 0, 0));
 
-            _min = qMin(_min, c);
-            _max = qMax(_max, c);
+            _min = pkMin(_min, c);
+            _max = pkMax(_max, c);
             _sum += (c >> 24);
         }
     }

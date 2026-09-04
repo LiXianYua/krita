@@ -7,7 +7,7 @@
 #define KOACTIVECANVASRESOURCEDEPENDENCYKORESOURCE_H
 
 #include <KoActiveCanvasResourceDependency.h>
-#include <QVariant>
+#include <PkVariant.h>
 
 /**
  * A canvas resource dependency for KoResource-based canvas resources. It relies
@@ -16,7 +16,7 @@
 template <typename ResourceType>
 class KoActiveCanvasResourceDependencyKoResource : public KoActiveCanvasResourceDependency
 {
-    using ResourceTypeSP = QSharedPointer<ResourceType>;
+    using ResourceTypeSP = PkSharedPointer<ResourceType>;
 
 public:
     KoActiveCanvasResourceDependencyKoResource(int sourceKey, int targetKey)
@@ -24,7 +24,7 @@ public:
     {
     }
 
-    bool shouldUpdateSource(QVariant &source, const QVariant &target) override
+    bool shouldUpdateSource(PkVariant &source, const PkVariant &target) override
     {
         Q_UNUSED(target);
 

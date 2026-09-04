@@ -7,7 +7,7 @@
 */
 
 #include <QMultiMap>
-#include <QVariant>
+#include <PkVariant.h>
 
 #include "KoShapeLoadingContext.h"
 #include "KoShape.h"
@@ -24,7 +24,7 @@ uint qHash(const KoShapeLoadingContext::AdditionalAttributeData & attributeData)
     return qHash(attributeData.name);
 }
 
-static QSet<KoShapeLoadingContext::AdditionalAttributeData> s_additionalAttributes;
+static PkSet<KoShapeLoadingContext::AdditionalAttributeData> s_additionalAttributes;
 
 class Q_DECL_HIDDEN KoShapeLoadingContext::Private
 {
@@ -45,12 +45,12 @@ public:
 
     KoStore *store;
 
-    QMap<QString, KoShapeLayer*> layers;
-    QMap<QString, KoShape*> drawIds;
-    QMap<QString, QPair<KoShape *, QVariant> > subIds;
-    QMap<QString, KoSharedLoadingData *> sharedData; //FIXME: use QScopedPointer here to auto delete in destructor
+    PkMap<PkString, KoShapeLayer*> layers;
+    PkMap<PkString, KoShape*> drawIds;
+    PkMap<PkString, std::pair<KoShape *, PkVariant> > subIds;
+    PkMap<PkString, KoSharedLoadingData *> sharedData; //FIXME: use PkScopedPointer here to auto delete in destructor
     int zIndex;
-    QMultiMap<QString, KoLoadingShapeUpdater*> updaterById;
+    QMultiMap<PkString, KoLoadingShapeUpdater*> updaterById;
     QMultiMap<KoShape *, KoLoadingShapeUpdater*> updaterByShape;
     KoDocumentResourceManager *documentResources;
     KoSectionModel *sectionModel; };
@@ -70,19 +70,19 @@ KoStore *KoShapeLoadingContext::store() const
     return d->store;
 }
 
-QString KoShapeLoadingContext::mimeTypeForPath(const QString &href, bool b)
+PkString KoShapeLoadingContext::mimeTypeForPath(const PkString &href, bool b)
 {
     Q_UNUSED(href);
     Q_UNUSED(b);
     return "image/svg+xml";
 }
 
-KoShapeLayer * KoShapeLoadingContext::layer(const QString & layerName)
+KoShapeLayer * KoShapeLoadingContext::layer(const PkString & layerName)
 {
     return d->layers.value(layerName, 0);
 }
 
-void KoShapeLoadingContext::addLayer(KoShapeLayer * layer, const QString & layerName)
+void KoShapeLoadingContext::addLayer(KoShapeLayer * layer, const PkString & layerName)
 {
     d->layers[ layerName ] = layer;
 }
@@ -92,7 +92,7 @@ void KoShapeLoadingContext::clearLayers()
     d->layers.clear();
 }
 
-void KoShapeLoadingContext::addShapeId(KoShape * shape, const QString & id)
+void KoShapeLoadingContext::addShapeId(KoShape * shape, const PkString & id)
 {
     d->drawIds.insert(id, shape);
     auto it(d->updaterById.find(id));
@@ -102,24 +102,24 @@ void KoShapeLoadingContext::addShapeId(KoShape * shape, const QString & id)
     }
 }
 
-KoShape * KoShapeLoadingContext::shapeById(const QString &id)
+KoShape * KoShapeLoadingContext::shapeById(const PkString &id)
 {
     return d->drawIds.value(id, 0);
 }
 
-void KoShapeLoadingContext::addShapeSubItemId(KoShape *shape, const QVariant &subItem, const QString &id)
+void KoShapeLoadingContext::addShapeSubItemId(KoShape *shape, const PkVariant &subItem, const PkString &id)
 {
-    d->subIds.insert(id, QPair<KoShape *, QVariant>(shape, subItem));
+    d->subIds.insert(id, std::pair<KoShape *, PkVariant>(shape, subItem));
 }
 
-QPair<KoShape *, QVariant> KoShapeLoadingContext::shapeSubItemById(const QString &id)
+std::pair<KoShape *, PkVariant> KoShapeLoadingContext::shapeSubItemById(const PkString &id)
 {
     return d->subIds.value(id);
 }
 
 
 // TODO make sure to remove the shape from the loading context when loading for it failed and it was deleted. This can also happen when the parent is deleted
-void KoShapeLoadingContext::updateShape(const QString & id, KoLoadingShapeUpdater * shapeUpdater)
+void KoShapeLoadingContext::updateShape(const PkString & id, KoLoadingShapeUpdater * shapeUpdater)
 {
     d->updaterById.insert(id, shapeUpdater);
 }
@@ -145,7 +145,7 @@ void KoShapeLoadingContext::setZIndex(int index)
     d->zIndex = index;
 }
 
-void KoShapeLoadingContext::addSharedData(const QString & id, KoSharedLoadingData * data)
+void KoShapeLoadingContext::addSharedData(const PkString & id, KoSharedLoadingData * data)
 {
     auto it(d->sharedData.find(id));
     // data will not be overwritten
@@ -157,10 +157,10 @@ void KoShapeLoadingContext::addSharedData(const QString & id, KoSharedLoadingDat
     }
 }
 
-KoSharedLoadingData * KoShapeLoadingContext::sharedData(const QString & id) const
+KoSharedLoadingData * KoShapeLoadingContext::sharedData(const PkString & id) const
 {
     KoSharedLoadingData * data = 0;
-    QMap<QString, KoSharedLoadingData*>::const_iterator it(d->sharedData.find(id));
+    PkMap<PkString, KoSharedLoadingData*>::const_iterator it(d->sharedData.find(id));
     if (it != d->sharedData.constEnd()) {
         data = it.value();
     }
@@ -172,7 +172,7 @@ void KoShapeLoadingContext::addAdditionalAttributeData(const AdditionalAttribute
     s_additionalAttributes.insert(attributeData);
 }
 
-QSet<KoShapeLoadingContext::AdditionalAttributeData> KoShapeLoadingContext::additionalAttributeData()
+PkSet<KoShapeLoadingContext::AdditionalAttributeData> KoShapeLoadingContext::additionalAttributeData()
 {
     return s_additionalAttributes;
 }

@@ -168,7 +168,7 @@ void KisToolMeasure::endPrimaryAction(KoPointerEvent *event)
 double KisToolMeasure::angle()
 {
     double dot = PkVector2D::dotProduct(PkVector2D(m_endPos-m_startPos).normalized(), m_baseLineVec);
-    return acos(qAbs(dot)) / (2*M_PI)*360;
+    return acos(pkAbs(dot)) / (2*M_PI)*360;
 }
 
 double KisToolMeasure::distance()

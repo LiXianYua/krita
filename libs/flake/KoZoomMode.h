@@ -10,6 +10,10 @@
 
 #include <QFlags>
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkString.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkVector.h>
 
 class QDebug;
 
@@ -29,24 +33,24 @@ public:
 
     Q_DECLARE_FLAGS(Modes, Mode)
 
-    /// \return the to QString converted and translated Mode \c mode
-    static QString toString(Mode mode);
+    /// \return the to PkString converted and translated Mode \c mode
+    static PkString toString(Mode mode);
 
     /**
      * Generates standard zoom levels for the allowed range of \p minZoom
      * and \p maxZoom
      */
-    static QVector<qreal> generateStandardZoomLevels(qreal minZoom, qreal maxZoom);
+    static PkVector<qreal> generateStandardZoomLevels(qreal minZoom, qreal maxZoom);
 
     /**
      * Find the next zoom level to switch during the zoom-in operation
      */
-    static qreal findNextZoom(qreal currentZoom, const QVector<qreal> &zoomLevels);
+    static qreal findNextZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels);
 
     /**
      * Find the previous zoom level to switch during the zoom-out operation
      */
-    static qreal findPrevZoom(qreal currentZoom, const QVector<qreal> &zoomLevels);
+    static qreal findPrevZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels);
 
 private:
     static const char * const modes[];

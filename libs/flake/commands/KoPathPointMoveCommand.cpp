@@ -106,19 +106,19 @@ void KoPathPointMoveCommandPrivate::applyOffset(qreal factor)
     PkList<KoShape*> shapes;
     std::copy(paths.begin(), paths.end(), std::back_inserter(shapes));
 
-    KoShapeBulkActionLock lock(toQList(shapes));
+    KoShapeBulkActionLock lock(shapes);
 
     PkMap<KoPathPointData, PkPointF>::iterator it(points.begin());
     for (; it != points.end(); ++it) {
         KoPathShape *path = it.key().pathShape;
         // transform offset from document to shape coordinate system
-        QPointF shapeOffset = path->documentToShape(toQPointF(factor*it.value())) - path->documentToShape(toQPointF(PkPointF()));
+        PkPointF shapeOffset = path->documentToShape(factor*it.value()) - path->documentToShape(PkPointF());
         PkTransform matrix;
         matrix.translate(shapeOffset.x(), shapeOffset.y());
 
         KoPathPoint *p = path->pointByIndex(it.key().pointIndex);
         if (p)
-            p->map(toQTransform(matrix));
+            p->map(matrix);
     }
 
     for (KoPathShape *path : paths) {

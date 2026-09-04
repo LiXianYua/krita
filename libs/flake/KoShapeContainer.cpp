@@ -12,7 +12,7 @@
 #include "KoShapeSavingContext.h"
 
 #include <QPainter>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 
 #include "kis_painting_tweaks.h"
 #include "kis_assert.h"
@@ -133,10 +133,10 @@ void KoShapeContainer::update() const
     }
 }
 
-QList<KoShape*> KoShapeContainer::shapes() const
+PkList<KoShape*> KoShapeContainer::shapes() const
 {
     if (d->model == 0)
-        return QList<KoShape*>();
+        return PkList<KoShape*>();
 
     return d->model->shapes();
 }

@@ -49,23 +49,23 @@ void KoToolProxyPrivate::timeout() // Auto scroll the canvas
 {
     Q_ASSERT(controller);
 
-    const QPoint originalWidgetPoint = parent->documentToWidget(widgetScrollPointDoc).toPoint();
+    const PkPoint originalWidgetPoint = parent->documentToWidget(widgetScrollPointDoc).toPoint();
 
-    const QPointF margin(10.0, 10.0);
+    const PkPointF margin(10.0, 10.0);
 
-    const QPointF mouseAreaTopLeftWidget = parent->documentToWidget(widgetScrollPointDoc) - margin;
-    const QPointF mouseAreaBottomRightWidget = mouseAreaTopLeftWidget + 2 * margin;
+    const PkPointF mouseAreaTopLeftWidget = parent->documentToWidget(widgetScrollPointDoc) - margin;
+    const PkPointF mouseAreaBottomRightWidget = mouseAreaTopLeftWidget + 2 * margin;
 
-    const QPointF mouseAreaTopLeftDoc = parent->widgetToDocument(mouseAreaTopLeftWidget);
-    const QPointF mouseAreaBottomRightDoc = parent->widgetToDocument(mouseAreaBottomRightWidget);
-    QRectF mouseAreaDoc(mouseAreaTopLeftDoc, mouseAreaBottomRightDoc);
+    const PkPointF mouseAreaTopLeftDoc = parent->widgetToDocument(mouseAreaTopLeftWidget);
+    const PkPointF mouseAreaBottomRightDoc = parent->widgetToDocument(mouseAreaBottomRightWidget);
+    PkRectF mouseAreaDoc(mouseAreaTopLeftDoc, mouseAreaBottomRightDoc);
 
 
-    const QPointF oldPreferredCenter = controller->preferredCenter();
+    const PkPointF oldPreferredCenter = controller->preferredCenter();
 
     controller->ensureVisibleDoc(mouseAreaDoc, true);
 
-    const QPointF newPreferredCenter = controller->preferredCenter();
+    const PkPointF newPreferredCenter = controller->preferredCenter();
 
     // if scrolling has happened, then just return!
     if (oldPreferredCenter == newPreferredCenter) {
@@ -121,7 +121,7 @@ KoToolProxy::KoToolProxy(KoCanvasBase *canvas, QObject *parent)
 {
     KoToolManager::instance()->priv()->registerToolProxy(this, canvas);
 
-    connect(&d->scrollTimer, &QTimer::timeout, this, [this]() { d->timeout(); });
+    connect(&d->scrollTimer, &PkTimer::timeout, this, [this]() { d->timeout(); });
 }
 
 KoToolProxy::~KoToolProxy()
@@ -151,7 +151,7 @@ int KoToolProxy::multiClickCount() const
 
 void KoToolProxy::countMultiClick(KoPointerEvent *ev, int eventType)
 {
-    QPointF globalPoint = ev->globalPos();
+    PkPointF globalPoint = ev->globalPos();
 
     if (d->multiClickSource != eventType) {
         d->multiClickCount = 0;
@@ -195,7 +195,7 @@ void KoToolProxy::countMultiClick(KoPointerEvent *ev, int eventType)
 
 }
 
-void KoToolProxy::tabletEvent(QTabletEvent *event, const QPointF &point)
+void KoToolProxy::tabletEvent(QTabletEvent *event, const PkPointF &point)
 {
     // We get these events exclusively from KisToolProxy - accept them
     event->accept();
@@ -255,14 +255,14 @@ void KoToolProxy::mousePressEvent(KoPointerEvent *ev)
     d->isToolPressed = true;
 }
 
-void KoToolProxy::mousePressEvent(QMouseEvent *event, const QPointF &point)
+void KoToolProxy::mousePressEvent(QMouseEvent *event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mousePressEvent(&ev);
     d->lastPointerEvent = ev.deepCopyEvent();
 }
 
-void KoToolProxy::mouseDoubleClickEvent(QMouseEvent *event, const QPointF &point)
+void KoToolProxy::mouseDoubleClickEvent(QMouseEvent *event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseDoubleClickEvent(&ev);
@@ -275,7 +275,7 @@ void KoToolProxy::mouseDoubleClickEvent(KoPointerEvent *event)
     mousePressEvent(event);
 }
 
-void KoToolProxy::mouseMoveEvent(QMouseEvent *event, const QPointF &point)
+void KoToolProxy::mouseMoveEvent(QMouseEvent *event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseMoveEvent(&ev);
@@ -300,7 +300,7 @@ void KoToolProxy::mouseMoveEvent(KoPointerEvent *event)
     d->checkAutoScroll(*event);
 }
 
-void KoToolProxy::mouseReleaseEvent(QMouseEvent *event, const QPointF &point)
+void KoToolProxy::mouseReleaseEvent(QMouseEvent *event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseReleaseEvent(&ev);
@@ -348,11 +348,11 @@ void KoToolProxy::explicitUserStrokeEndRequest()
     }
 }
 
-QVariant KoToolProxy::inputMethodQuery(Qt::InputMethodQuery query) const
+PkVariant KoToolProxy::inputMethodQuery(Qt::InputMethodQuery query) const
 {
     if (d->activeTool)
         return d->activeTool->inputMethodQuery(query);
-    return QVariant();
+    return PkVariant();
 }
 
 void KoToolProxy::inputMethodEvent(QInputMethodEvent *event)
@@ -395,13 +395,13 @@ void KoToolProxy::setActiveTool(KoToolBase *tool)
         if (collection) {
             Q_FOREACH(QAction *action, collection->findChildren<QAction *>()) {
 
-                const QVariant prop = action->property("tool_action");
+                const PkVariant prop = action->property("tool_action");
 
                 if (prop.isValid()) {
-                    const QStringList tools = prop.toStringList();
+                    const PkStringList tools = prop.toStringList();
 
                     if (tools.contains(d->activeTool->toolId())) {
-                        const QList<QKeySequence> shortcuts = action->shortcuts();
+                        const PkList<QKeySequence> shortcuts = action->shortcuts();
                         std::copy(shortcuts.begin(), shortcuts.end(),
                                   std::back_inserter(d->toolPriorityShortcuts));
                     }
@@ -416,7 +416,7 @@ void KoToolProxy::setActiveTool(KoToolBase *tool)
     }
 }
 
-void KoToolProxy::touchEvent(QTouchEvent* event, const QPointF& point)
+void KoToolProxy::touchEvent(QTouchEvent* event, const PkPointF& point)
 {
     // only one "touchpoint" events should be here
     KoPointerEvent ev(event, point);
@@ -446,7 +446,7 @@ KoPointerEvent *KoToolProxy::lastDeliveredPointerEvent() const
     return d->lastPointerEvent ? &(d->lastPointerEvent->event) : 0;
 }
 
-QVector<QKeySequence> KoToolProxy::toolPriorityShortcuts() const
+PkVector<QKeySequence> KoToolProxy::toolPriorityShortcuts() const
 {
     return d->toolPriorityShortcuts;
 }
@@ -501,7 +501,7 @@ void KoToolProxy::deselect()
         d->activeTool->deselect();
 }
 
-void KoToolProxy::dragMoveEvent(QDragMoveEvent *event, const QPointF &point)
+void KoToolProxy::dragMoveEvent(QDragMoveEvent *event, const PkPointF &point)
 {
     if (d->activeTool)
         d->activeTool->dragMoveEvent(event, point);
@@ -513,7 +513,7 @@ void KoToolProxy::dragLeaveEvent(QDragLeaveEvent *event)
         d->activeTool->dragLeaveEvent(event);
 }
 
-void KoToolProxy::dropEvent(QDropEvent *event, const QPointF &point)
+void KoToolProxy::dropEvent(QDropEvent *event, const PkPointF &point)
 {
     if (d->activeTool)
         d->activeTool->dropEvent(event, point);

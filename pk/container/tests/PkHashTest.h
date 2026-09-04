@@ -31,7 +31,7 @@ private Q_SLOTS:
     // 内建类型的 qHash 重载（Qt 本来就提供，调用点指望它们存在）
     void builtinQHash();
     // **本任务最容易在集成时才炸的一条**：Krita 全仓 18 处自定义
-    // `uint qHash(const X &)` 重载靠非限定查找 + ADL 命中
+    // `uint pkHash(const X &)` 重载靠非限定查找 + ADL 命中
     void customQHashViaAdl();
     // PkHash<PkString, V> 是高频用法，重载写在 pk/container/PkStringHash.h
     void pkStringKey();

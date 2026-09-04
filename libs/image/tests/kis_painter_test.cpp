@@ -73,7 +73,7 @@ PkRect strokeBounds(const PkPainterPath &path, const PkPen &pen,
                     const PkRect &requestedRect)
 {
     PkRect bounds = path.boundingRect().toAlignedRect();
-    const int penWidth = qRound(pen.widthF());
+    const int penWidth = pkRound(pen.widthF());
     bounds.adjust(-penWidth, -penWidth, penWidth, penWidth);
     bounds.adjust(-1, -1, 1, 1);
     if (!requestedRect.isNull()) {

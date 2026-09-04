@@ -78,8 +78,8 @@ protected:
     virtual KoInteractionStrategy *createStrategy(KoPointerEvent *event) = 0;
 
     void addInteractionFactory(KoInteractionStrategyFactory *factory);
-    void removeInteractionFactory(const QString &id);
-    bool hasInteractionFactory(const QString &id);
+    void removeInteractionFactory(const PkString &id);
+    bool hasInteractionFactory(const PkString &id);
 
     bool tryUseCustomCursor();
 

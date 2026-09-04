@@ -15,9 +15,9 @@
 
 #include <FlakeDebug.h>
 
-#include <QTransform>
+#include <PkTransform.h>
 
-KoZoomStrategy::KoZoomStrategy(KoZoomTool *tool, KoCanvasController *controller, const QPointF &clicked)
+KoZoomStrategy::KoZoomStrategy(KoZoomTool *tool, KoCanvasController *controller, const PkPointF &clicked)
         : KoShapeRubberSelectStrategy(tool, clicked, false),
         m_controller(controller),
         m_forceZoomOut(false)
@@ -28,11 +28,11 @@ void KoZoomStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 {
     Q_D(KoShapeRubberSelectStrategy);
 
-    const QTransform documentToWidget =
+    const PkTransform documentToWidget =
             m_controller->canvas()->viewConverter()->documentToView() *
             m_controller->canvas()->viewConverter()->viewToWidget();
 
-    const QRect pixelRect = documentToWidget.mapRect(d->selectedRect()).toRect();
+    const PkRect pixelRect = documentToWidget.mapRect(d->selectedRect()).toRect();
 
     bool m_zoomOut = m_forceZoomOut;
     if (modifiers & Qt::ControlModifier) {
@@ -40,7 +40,7 @@ void KoZoomStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     }
 
     auto makeStillPoint = [&] () -> KoViewTransformStillPoint {
-        const QPointF center = pixelRect.center();
+        const PkPointF center = pixelRect.center();
         return m_controller->canvas()->viewConverter()->makeWidgetStillPoint(center);
     };
 

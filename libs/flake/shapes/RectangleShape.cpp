@@ -23,11 +23,11 @@ RectangleShape::RectangleShape()
     , m_cornerRadiusX(0)
     , m_cornerRadiusY(0)
 {
-    QList<QPointF> handles;
-    handles.push_back(QPointF(100, 0));
-    handles.push_back(QPointF(100, 0));
+    PkList<PkPointF> handles;
+    handles.push_back(PkPointF(100, 0));
+    handles.push_back(PkPointF(100, 0));
     setHandles(handles);
-    QSizeF size(100, 100);
+    PkSizeF size(100, 100);
     updatePath(size);
 }
 
@@ -47,10 +47,10 @@ KoShape *RectangleShape::cloneShape() const
     return new RectangleShape(*this);
 }
 
-void RectangleShape::moveHandleAction(int handleId, const QPointF &point, Qt::KeyboardModifiers modifiers)
+void RectangleShape::moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers);
-    QPointF p(point);
+    PkPointF p(point);
 
     qreal width2 = size().width() / 2.0;
     qreal height2 = size().height() / 2.0;
@@ -93,13 +93,13 @@ void RectangleShape::moveHandleAction(int handleId, const QPointF &point, Qt::Ke
 
 void RectangleShape::updateHandles()
 {
-    QList<QPointF> handles;
-    handles.append(QPointF(size().width() - m_cornerRadiusX / 100.0 * 0.5 * size().width(), 0.0));
-    handles.append(QPointF(size().width(), m_cornerRadiusY / 100.0 * 0.5 * size().height()));
+    PkList<PkPointF> handles;
+    handles.append(PkPointF(size().width() - m_cornerRadiusX / 100.0 * 0.5 * size().width(), 0.0));
+    handles.append(PkPointF(size().width(), m_cornerRadiusY / 100.0 * 0.5 * size().height()));
     setHandles(handles);
 }
 
-void RectangleShape::updatePath(const QSizeF &size)
+void RectangleShape::updatePath(const PkSizeF &size)
 {
     qreal rx = 0;
     qreal ry = 0;
@@ -111,7 +111,7 @@ void RectangleShape::updatePath(const QSizeF &size)
     qreal x2 = size.width() - rx;
     qreal y2 = size.height() - ry;
 
-    QPointF curvePoints[12];
+    PkPointF curvePoints[12];
 
     int requiredCurvePointCount = 4;
     if (rx && m_cornerRadiusX < 100) {
@@ -130,13 +130,13 @@ void RectangleShape::updatePath(const QSizeF &size)
     // first path starts and closes path
     points[cp]->setProperty(KoPathPoint::StartSubpath);
     points[cp]->setProperty(KoPathPoint::CloseSubpath);
-    points[cp]->setPoint(QPointF(rx, 0));
+    points[cp]->setPoint(PkPointF(rx, 0));
     points[cp]->removeControlPoint1();
     points[cp]->removeControlPoint2();
 
     if (m_cornerRadiusX < 100 || m_cornerRadiusY == 0) {
         // end point of the top edge
-        points[++cp]->setPoint(QPointF(x2, 0));
+        points[++cp]->setPoint(PkPointF(x2, 0));
         points[cp]->removeControlPoint1();
         points[cp]->removeControlPoint2();
     }
@@ -152,7 +152,7 @@ void RectangleShape::updatePath(const QSizeF &size)
 
     if (m_cornerRadiusY < 100 || m_cornerRadiusX == 0) {
         // the right edge
-        points[++cp]->setPoint(QPointF(size.width(), y2));
+        points[++cp]->setPoint(PkPointF(size.width(), y2));
         points[cp]->removeControlPoint1();
         points[cp]->removeControlPoint2();
     }
@@ -168,7 +168,7 @@ void RectangleShape::updatePath(const QSizeF &size)
 
     if (m_cornerRadiusX < 100 || m_cornerRadiusY == 0) {
         // the bottom edge
-        points[++cp]->setPoint(QPointF(rx, size.height()));
+        points[++cp]->setPoint(PkPointF(rx, size.height()));
         points[cp]->removeControlPoint1();
         points[cp]->removeControlPoint2();
     }
@@ -184,7 +184,7 @@ void RectangleShape::updatePath(const QSizeF &size)
 
     if ((m_cornerRadiusY < 100 || m_cornerRadiusX == 0) && ry) {
         // the right edge
-        points[++cp]->setPoint(QPointF(0, ry));
+        points[++cp]->setPoint(PkPointF(0, ry));
         points[cp]->removeControlPoint1();
         points[cp]->removeControlPoint2();
     }
@@ -224,7 +224,7 @@ void RectangleShape::createPoints(int requiredPointCount)
         }
     } else if (requiredPointCount > currentPointCount) {
         for (int i = 0; i < requiredPointCount - currentPointCount; ++i) {
-            subpaths()[0]->append(new KoPathPoint(this, QPointF()));
+            subpaths()[0]->append(new KoPathPoint(this, PkPointF()));
         }
     }
 
@@ -257,7 +257,7 @@ void RectangleShape::setCornerRadiusY(qreal radius)
     updateHandles();
 }
 
-QString RectangleShape::pathShapeId() const
+PkString RectangleShape::pathShapeId() const
 {
     return RectangleShapeId;
 }
@@ -274,7 +274,7 @@ bool RectangleShape::saveSvg(SvgSavingContext &context)
     SvgStyleWriter::saveSvgStyle(this, context);
     SvgStyleWriter::saveMetadata(this, context);
 
-    const QSizeF size = this->size();
+    const PkSizeF size = this->size();
     context.shapeWriter().addAttribute("width", size.width());
     context.shapeWriter().addAttribute("height", size.height());
 
@@ -310,8 +310,8 @@ bool RectangleShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &con
         rx = ry;
     }
 
-    setSize(QSizeF(w, h));
-    setPosition(QPointF(x, y));
+    setSize(PkSizeF(w, h));
+    setPosition(PkPointF(x, y));
     if (rx >= 0.0) {
         setCornerRadiusX(qMin(qreal(100.0), qreal(rx / (0.5 * w) * 100.0)));
     }

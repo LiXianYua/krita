@@ -329,7 +329,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_LINEAR_DODGE
         if (isZeroValueFuzzy<channels_type>(dst)) {
             return zeroValue<channels_type>();
         }
-        return qMin(composite_type(src) + dst, composite_type(unitValue<channels_type>()));
+        return pkMin(composite_type(src) + dst, composite_type(unitValue<channels_type>()));
     }
 };
 
@@ -347,10 +347,10 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_LINEAR_DODGE
             return zeroValue<channels_type>();
         }
         if constexpr (use_soft_texturing) {
-            return qMin(composite_type(mul(src, StrengthCompositeFunctionBase<channels_type>::strength) + dst),
+            return pkMin(composite_type(mul(src, StrengthCompositeFunctionBase<channels_type>::strength) + dst),
                         composite_type(unitValue<channels_type>()));
         } else {
-            return qMin(composite_type(src) + mul(dst, StrengthCompositeFunctionBase<channels_type>::strength),
+            return pkMin(composite_type(src) + mul(dst, StrengthCompositeFunctionBase<channels_type>::strength),
                         composite_type(unitValue<channels_type>()));
         }
     }
@@ -370,7 +370,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_LINEAR_BURN,
     {
         using namespace Arithmetic;
         using composite_type = typename KoColorSpaceMathsTraits<channels_type>::compositetype;
-        return qMax(composite_type(KoColorSpaceMathsTraits<channels_type>::zeroValue),
+        return pkMax(composite_type(KoColorSpaceMathsTraits<channels_type>::zeroValue),
                     composite_type(src) + dst - unitValue<channels_type>());
     }
 };
@@ -385,7 +385,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_LINEAR_BURN,
     {
         using namespace Arithmetic;
         using composite_type = typename KoColorSpaceMathsTraits<channels_type>::compositetype;
-        return qMax(composite_type(zeroValue<channels_type>()),
+        return pkMax(composite_type(zeroValue<channels_type>()),
                     composite_type(src) + mul(dst, StrengthCompositeFunctionBase<channels_type>::strength)
                         - unitValue<channels_type>());
     }
@@ -406,7 +406,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_LINEAR_BURN,
     {
         using namespace Arithmetic;
         using composite_type = typename KoColorSpaceMathsTraits<channels_type>::compositetype;
-        return qMax(composite_type(zeroValue<channels_type>()),
+        return pkMax(composite_type(zeroValue<channels_type>()),
                     composite_type(unionShapeOpacity(src, invertedStrength) + dst - unitValue<channels_type>()));
     }
 };
@@ -509,7 +509,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_SUBTRACT, fa
     {
         using composite_type = typename KoColorSpaceMathsTraits<channels_type>::compositetype;
         using namespace Arithmetic;
-        return qMax(composite_type(KoColorSpaceMathsTraits<channels_type>::zeroValue),
+        return pkMax(composite_type(KoColorSpaceMathsTraits<channels_type>::zeroValue),
                     composite_type(dst) - src);
     }
 };
@@ -529,7 +529,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_SUBTRACT, tr
     {
         using composite_type = typename KoColorSpaceMathsTraits<channels_type>::compositetype;
         using namespace Arithmetic;
-        return qMax(composite_type(zeroValue<channels_type>()),
+        return pkMax(composite_type(zeroValue<channels_type>()),
                     composite_type(dst) - (composite_type(src) + invertedStrength));
     }
 };
@@ -544,7 +544,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_SUBTRACT, tr
     {
         using composite_type = typename KoColorSpaceMathsTraits<channels_type>::compositetype;
         using namespace Arithmetic;
-        return qMax(composite_type(KoColorSpaceMathsTraits<channels_type>::zeroValue),
+        return pkMax(composite_type(KoColorSpaceMathsTraits<channels_type>::zeroValue),
                     composite_type(dst) - mul(src, StrengthCompositeFunctionBase<channels_type>::strength));
     }
 };
@@ -599,14 +599,14 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_LINEAR_HEIGH
             const composite_type multiply = modifiedDst * inv(srcTimesStrength) / unitValue<channels_type>();
             const composite_type height = modifiedDst - srcTimesStrength;
             return kisBoundFast(composite_type(zeroValue<channels_type>()),
-                                qMax(multiply, height),
+                                pkMax(multiply, height),
                                 composite_type(unitValue<channels_type>()));
         } else {
             const composite_type modifiedDst = div(dst, invertedStrength) - invertedStrength;
             const composite_type multiply = modifiedDst * inv(src) / unitValue<channels_type>();
             const composite_type height = modifiedDst - src;
             return kisBoundFast(composite_type(zeroValue<channels_type>()),
-                                qMax(multiply, height),
+                                pkMax(multiply, height),
                                 composite_type(unitValue<channels_type>()));
         }
     }
@@ -675,7 +675,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_LINEAR_HEIGH
         const composite_type multiply = inv(src) * modifiedDst / unitValue<channels_type>();
         const composite_type height = modifiedDst - src;
         return kisBoundFast(composite_type(zeroValue<channels_type>()),
-                            qMax(multiply, height),
+                            pkMax(multiply, height),
                             composite_type(unitValue<channels_type>()));
     }
 };
@@ -701,7 +701,7 @@ struct CompositeFunction<channels_type, KIS_MASKING_BRUSH_COMPOSITE_LINEAR_HEIGH
         const composite_type multiply = modifiedDst * inv(srcTimesStrength) / unitValue<channels_type>();
         const composite_type height = modifiedDst - srcTimesStrength;
         return kisBoundFast(composite_type(zeroValue<channels_type>()),
-                            qMax(multiply, height),
+                            pkMax(multiply, height),
                             composite_type(unitValue<channels_type>()));
     }
 };

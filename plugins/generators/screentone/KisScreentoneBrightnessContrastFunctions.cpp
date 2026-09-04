@@ -13,7 +13,7 @@ namespace KisScreentoneBrightnessContrastFunctions {
 BrightnessContrast::BrightnessContrast(qreal brightness, qreal contrast)
 {
     if (contrast > 0.0) {
-        if (qFuzzyCompare(contrast, 1.0)) {
+        if (pkQtFuzzyCompare(contrast, 1.0)) {
             m_m = 10000.0;
         } else {
             m_m = 1.0 / (1.0 - contrast);
@@ -33,7 +33,7 @@ qreal BrightnessContrast::operator()(qreal x) const
 
 Threshold::Threshold(qreal threshold)
     : m_threshold(threshold)
-    , m_thresholdIsOne(qFuzzyCompare(threshold, 1.0))
+    , m_thresholdIsOne(pkQtFuzzyCompare(threshold, 1.0))
 {}
 
 qreal Threshold::operator()(qreal x) const

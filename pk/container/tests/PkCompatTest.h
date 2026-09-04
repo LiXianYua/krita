@@ -19,7 +19,7 @@ private Q_SLOTS:
     void containerShimsResolve();
     // Java 风格迭代器的名字跟着它在 Qt 里的归属走（<QMap> 给 QMapIterator，等等）
     void javaIteratorShimsResolve();
-    // Q_FOREACH / foreach / qDeleteAll 靠容器头传递进来（调用点不单独 include <QtGlobal>）
+    // Q_FOREACH / foreach / pkDeleteAll 靠容器头传递进来（调用点不单独 include <QtGlobal>）
     void foreachAndDeleteAllArriveThroughContainerHeaders();
     // 与 pk/string 垫片同时生效：QMap<QString,X> / QList<QString> / QHash<QString,X>
     void crossDirectoryWithStringShim();

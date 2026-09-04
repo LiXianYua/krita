@@ -86,7 +86,7 @@ quint8 KisGaussRectangleMaskGenerator::valueAt(qreal x, qreal y) const
 {
     if (isEmpty()) return 255;
     qreal xr = x;
-    qreal yr = qAbs(y);
+    qreal yr = pkAbs(y);
     fixRotation(xr, yr);
 
     quint8 value;

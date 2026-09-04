@@ -8,12 +8,12 @@
 #define KOSVGPASTE_H
 
 #include "kritaflake_export.h"
-#include <QList>
+#include <PkList.h>
 
 class KoShape;
-class QRectF;
-class QSizeF;
-class QByteArray;
+class PkRectF;
+class PkSizeF;
+class PkByteArray;
 
 class KRITAFLAKE_EXPORT KoSvgPaste
 {
@@ -23,8 +23,8 @@ public:
 
 
     bool hasShapes();
-    QList<KoShape*> fetchShapes(QRectF viewportInPx, qreal resolutionPPI, QSizeF *fragmentSize = nullptr);
-    static QList<KoShape*> fetchShapesFromData(const QByteArray &data, QRectF viewportInPx, qreal resolutionPPI, QSizeF *fragmentSize = nullptr);
+    PkList<KoShape*> fetchShapes(PkRectF viewportInPx, qreal resolutionPPI, PkSizeF *fragmentSize = nullptr);
+    static PkList<KoShape*> fetchShapesFromData(const PkByteArray &data, PkRectF viewportInPx, qreal resolutionPPI, PkSizeF *fragmentSize = nullptr);
 
 private:
     class Private;

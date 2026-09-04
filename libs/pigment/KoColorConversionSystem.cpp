@@ -440,7 +440,7 @@ KoColorConversionSystem::Path KoColorConversionSystem::findBestPath(const KoColo
 
     dbgPigmentCCS << "Find best path between " << srcNode->id() << " and  " << dstNode->id();
 
-    PathQualityChecker pQC(qMin(srcNode->referenceDepth, dstNode->referenceDepth));
+    PathQualityChecker pQC(pkMin(srcNode->referenceDepth, dstNode->referenceDepth));
     Node2PathHash node2path; // current best path to reach a given node
     PkList<Path> possiblePaths; // list of all paths
     // Generate the initial list of paths

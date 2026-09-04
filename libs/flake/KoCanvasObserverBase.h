@@ -11,7 +11,7 @@ class KoCanvasBase;
 class KoCanvasObserverBasePrivate;
 
 #include "kritaflake_export.h"
-#include <QString>
+#include <PkString.h>
 
 /**
  * An abstract canvas observer interface class.
@@ -25,7 +25,7 @@ public:
     KoCanvasObserverBase();
     virtual ~KoCanvasObserverBase();
 
-    virtual QString observerName() { return ""; }
+    virtual PkString observerName() { return ""; }
 
     /**
      * set observed canvas

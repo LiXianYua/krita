@@ -116,11 +116,11 @@ float pkToFloat(const PkString &s, bool *ok = nullptr)
     return static_cast<float>(d);
 }
 
-// PkVector<qreal> → QVector<qreal>：KoShapeStroke::setLineStyle 的 dashes 参数
-// 是 Qt 型（QVector<qreal>），本文件内部用 PkVector<qreal> 攒 dash 数组。
-static inline QVector<qreal> toQVectorReals(const PkVector<qreal> &v)
+// PkVector<qreal> → PkVector<qreal>：KoShapeStroke::setLineStyle 的 dashes 参数
+// 是 Qt 型（PkVector<qreal>），本文件内部用 PkVector<qreal> 攒 dash 数组。
+static inline PkVector<qreal> toQVectorReals(const PkVector<qreal> &v)
 {
-    QVector<qreal> out;
+    PkVector<qreal> out;
     out.reserve(v.size());
     for (qreal x : v) {
         out.append(x);
@@ -128,12 +128,12 @@ static inline QVector<qreal> toQVectorReals(const PkVector<qreal> &v)
     return out;
 }
 
-// QStringList → PkStringList：KoSvgTextProperties::supportedXmlAttributes() 返回
-// Qt 型 QStringList，本文件存进 Pk 型 textAttributes。
-static inline PkStringList toPkStringList(const QStringList &list)
+// PkStringList → PkStringList：KoSvgTextProperties::supportedXmlAttributes() 返回
+// Qt 型 PkStringList，本文件存进 Pk 型 textAttributes。
+static inline PkStringList toPkStringList(const PkStringList &list)
 {
     PkStringList out;
-    for (const QString &s : list) {
+    for (const PkString &s : list) {
         out.append(toPkString(s));
     }
     return out;

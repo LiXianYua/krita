@@ -17,13 +17,15 @@
 #include "kritaflake_export.h"
 
 #include <QMetaType>
-#include <QColor>
+#include <PkColor.h>
+// [migrate] missing include for Pk/Qt type
+#include <PkVector.h>
 
 
 class KoShape;
 class QPainter;
 class QBrush;
-class QPen;
+class PkPen;
 struct KoInsets;
 
 /**
@@ -43,7 +45,7 @@ public:
      * @param lineWidth the width, in pt
      * @param color the color we draw the outline in.
      */
-    explicit KoShapeStroke(qreal lineWidth, const QColor &color = Qt::black);
+    explicit KoShapeStroke(qreal lineWidth, const PkColor &color = Pk::black);
     ~KoShapeStroke() override;
 
     /// Assignment operator
@@ -66,20 +68,20 @@ public:
     /// Returns the miter limit
     qreal miterLimit() const;
     /// Sets the line style
-    void setLineStyle(Qt::PenStyle style, const QVector<qreal> &dashes);
+    void setLineStyle(Qt::PenStyle style, const PkVector<qreal> &dashes);
     /// Returns the line style
     Qt::PenStyle lineStyle() const;
     /// Returns the line dashes
-    QVector<qreal> lineDashes() const;
+    PkVector<qreal> lineDashes() const;
     /// Sets the dash offset
     void setDashOffset(qreal dashOffset);
     /// Returns the dash offset
     qreal dashOffset() const;
 
     /// Returns the color
-    QColor color() const;
+    PkColor color() const;
     /// Sets the color
-    void setColor(const QColor &color);
+    void setColor(const PkColor &color);
 
     /// Sets the strokes brush used to fill strokes of this border
     void setLineBrush(const QBrush & brush);
@@ -93,7 +95,7 @@ public:
     void paint(const KoShape *shape, QPainter &painter) const override;
     void paintMarkers(const KoShape *shape, QPainter &painter) const override;
 
-    QPen resultLinePen() const;
+    PkPen resultLinePen() const;
 
     bool compareFillTo(const KoShapeStrokeModel *other) override;
     bool compareStyleTo(const KoShapeStrokeModel *other) override;

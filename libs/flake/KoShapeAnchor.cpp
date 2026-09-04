@@ -15,7 +15,7 @@
 #include <KoShapeSavingContext.h>
 #include <KoShapeLoadingContext.h>
 
-#include <QPointF>
+#include <PkPoint.h>
 #include <FlakeDebug.h>
 
 class Q_DECL_HIDDEN KoShapeAnchor::Private
@@ -47,12 +47,12 @@ public:
     }
 
     KoShape * const shape;
-    QPointF offset;
+    PkPointF offset;
     KoShapeAnchor::VerticalPos verticalPos;
     KoShapeAnchor::VerticalRel verticalRel;
     KoShapeAnchor::HorizontalPos horizontalPos;
     KoShapeAnchor::HorizontalRel horizontalRel;
-    QString wrapInfluenceOnPosition;
+    PkString wrapInfluenceOnPosition;
     bool flowWithText;
     KoShapeAnchor::AnchorType anchorType;
     KoShapeAnchor::PlacementStrategy *placementStrategy;
@@ -123,7 +123,7 @@ KoShapeAnchor::VerticalRel KoShapeAnchor::verticalRel() const
     return d->verticalRel;
 }
 
-QString KoShapeAnchor::wrapInfluenceOnPosition() const
+PkString KoShapeAnchor::wrapInfluenceOnPosition() const
 {
     return d->wrapInfluenceOnPosition;
 }
@@ -138,12 +138,12 @@ int KoShapeAnchor::pageNumber() const
     return d->pageNumber;
 }
 
-const QPointF &KoShapeAnchor::offset() const
+const PkPointF &KoShapeAnchor::offset() const
 {
     return d->offset;
 }
 
-void KoShapeAnchor::setOffset(const QPointF &offset)
+void KoShapeAnchor::setOffset(const PkPointF &offset)
 {
     d->offset = offset;
 }

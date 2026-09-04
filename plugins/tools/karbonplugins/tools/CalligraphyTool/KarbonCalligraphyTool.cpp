@@ -282,9 +282,9 @@ qreal KarbonCalligraphyTool::calculateAngle(const PkPointF &oldSpeed, const PkPo
     // calculate the average of the speed (sum of the normalized values)
     qreal oldLength = PkLineF(PkPointF(0, 0), oldSpeed).length();
     qreal newLength = PkLineF(PkPointF(0, 0), newSpeed).length();
-    PkPointF oldSpeedNorm = !qFuzzyCompare(oldLength + 1, 1) ?
+    PkPointF oldSpeedNorm = !pkQtFuzzyCompare(oldLength + 1, 1) ?
                 oldSpeed / oldLength : PkPointF(0, 0);
-    PkPointF newSpeedNorm = !qFuzzyCompare(newLength + 1, 1) ?
+    PkPointF newSpeedNorm = !pkQtFuzzyCompare(newLength + 1, 1) ?
                 newSpeed / newLength : PkPointF(0, 0);
     PkPointF speed = oldSpeedNorm + newSpeedNorm;
 

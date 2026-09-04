@@ -6,15 +6,15 @@
 
 #include "KoInteractionStrategyFactory.h"
 
-#include <QString>
+#include <PkString.h>
 
 struct KoInteractionStrategyFactory::Private
 {
     int priority = 0;
-    QString id;
+    PkString id;
 };
 
-KoInteractionStrategyFactory::KoInteractionStrategyFactory(int priority, const QString &id)
+KoInteractionStrategyFactory::KoInteractionStrategyFactory(int priority, const PkString &id)
     : m_d(new Private)
 {
     m_d->priority = priority;
@@ -25,7 +25,7 @@ KoInteractionStrategyFactory::~KoInteractionStrategyFactory()
 {
 }
 
-QString KoInteractionStrategyFactory::id() const
+PkString KoInteractionStrategyFactory::id() const
 {
     return m_d->id;
 }

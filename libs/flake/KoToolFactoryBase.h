@@ -10,8 +10,8 @@
 
 #include "kritaflake_export.h"
 
-#include <QString>
-#include <QList>
+#include <PkString.h>
+#include <PkList.h>
 #include <QObject>
 
 class KoCanvasBase;
@@ -23,13 +23,13 @@ class QAction;
  * Each tool has a "section" which it uses to be grouped in the toolbox.
  */
 namespace ToolBoxSection {
-    static const QString Main {"main"};                   ///< Tools that only work on vector shapes
-    static const QString Shape {"0 Krita/Shape"};         ///< Freehand and shapes like ellipses and lines
-    static const QString Transform {"2 Krita/Transform"}; ///< Tools that transform the layer
-    static const QString Fill {"3 Krita/Fill"};           ///< Tools that fill parts of the canvas
-    static const QString View {"4 Krita/View"};           ///< Assistance tools: guides, reference, etc.
-    static const QString Select {"5 Krita/Select"};       ///< Tools that select pixels
-    static const QString Navigation {"navigation"};       ///< Tools that affect the canvas: pan, zoom, etc.
+    static const PkString Main {"main"};                   ///< Tools that only work on vector shapes
+    static const PkString Shape {"0 Krita/Shape"};         ///< Freehand and shapes like ellipses and lines
+    static const PkString Transform {"2 Krita/Transform"}; ///< Tools that transform the layer
+    static const PkString Fill {"3 Krita/Fill"};           ///< Tools that fill parts of the canvas
+    static const PkString View {"4 Krita/View"};           ///< Assistance tools: guides, reference, etc.
+    static const PkString Select {"5 Krita/Select"};       ///< Tools that select pixels
+    static const PkString Navigation {"navigation"};       ///< Tools that affect the canvas: pan, zoom, etc.
 }
 
 /**
@@ -42,7 +42,7 @@ namespace ToolBoxSection {
  * An example usage would be:<pre>
  * class MyToolFactory : public KoToolFactoryBase {
  * public:
- *   MyToolFactory(const QStringList&)
+ *   MyToolFactory(const PkStringList&)
  *       : KoToolFactoryBase("MyTool") {
  *       setToolTip(i18n("Create object"));
  *       setSection("main");
@@ -65,7 +65,7 @@ public:
      * Create the new factory
      * @param id a string that will be used internally for referencing the tool
      */
-    explicit KoToolFactoryBase(const QString &id);
+    explicit KoToolFactoryBase(const PkString &id);
     virtual ~KoToolFactoryBase();
 
     /**
@@ -78,7 +78,7 @@ public:
      * objectName (setObjectName(name)) — actions are looked up afterwards via
      * findChild<QAction *>(name)/findChildren<QAction *>() on that objectName.
      */
-    QList<QAction *> createActions(QObject *actionCollection);
+    PkList<QAction *> createActions(QObject *actionCollection);
 
     /**
      * Instantiate a new tool
@@ -92,7 +92,7 @@ public:
      * return the id for the tool this factory creates.
      * @return the id for the tool this factory creates.
      */
-    QString id() const;
+    PkString id() const;
     /**
      * Returns The priority of this tool in its section in the toolbox
      * @return The priority of this tool.
@@ -102,17 +102,17 @@ public:
      * returns the section used to group tools in the toolbox
      * @return the section
      */
-    QString section() const;
+    PkString section() const;
     /**
      * return a translated tooltip Text
      * @return a translated tooltip Text
      */
-    QString toolTip() const;
+    PkString toolTip() const;
     /**
      * return the basename of the icon for this tool
      * @return the basename of the icon for this tool
      */
-    QString iconName() const;
+    PkString iconName() const;
 
     /**
      * Return the id of the shape we can process.
@@ -121,7 +121,7 @@ public:
      * @see setActivationShapeId()
      * @return the id of a shape, or an empty string for all shapes.
      */
-    QString activationShapeId() const;
+    PkString activationShapeId() const;
 
     /**
      * Return the default keyboard shortcut for activation of this tool (if
@@ -144,20 +144,20 @@ protected:
      * Set the tooltip to be used for this tool
      * @param tooltip the tooltip
      */
-    void setToolTip(const QString &tooltip);
+    void setToolTip(const PkString &tooltip);
 
     /**
      * Set the section used to group tools in the toolbox
      * @param section the section
      */
-    void setSection(const QString &section);
+    void setSection(const PkString &section);
 
     /**
      * Set an icon to be used in the toolBox.
      * @param iconName the basename (without extension) of the icon
      */
     void setIconName(const char *iconName);
-    void setIconName(const QString &iconName);
+    void setIconName(const PkString &iconName);
 
     /**
      * Set the priority of this tool, as it is shown in the toolBox; lower number means
@@ -174,7 +174,7 @@ protected:
      * @param activationShapeId the Id of the shape
      * @see activationShapeId()
      */
-    void setActivationShapeId(const QString &activationShapeId);
+    void setActivationShapeId(const PkString &activationShapeId);
 
     /**
      * @brief createActionsImpl should be reimplemented if the tool needs any actions.
@@ -182,7 +182,7 @@ protected:
      *
      * @return the list of actions this tool wishes to be available.
      */
-    virtual QList<QAction *> createActionsImpl();
+    virtual PkList<QAction *> createActionsImpl();
 
 private Q_SLOTS:
 

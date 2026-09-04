@@ -50,10 +50,10 @@ struct QImageGradientOp
                     if (!m_dstImageRect.contains(srcPointI)) continue;
 
                     // TODO: move vertical calculation into the upper loop
-                    const QColor c1 = lerp(m_colors[0], m_colors[1], qBound(0.0, dstPoint.x(), 1.0));
-                    const QColor c2 = lerp(m_colors[2], m_colors[3], qBound(0.0, dstPoint.x(), 1.0));
+                    const QColor c1 = lerp(m_colors[0], m_colors[1], pkBound(0.0, dstPoint.x(), 1.0));
+                    const QColor c2 = lerp(m_colors[2], m_colors[3], pkBound(0.0, dstPoint.x(), 1.0));
 
-                    m_dstImage.setPixelColor(srcPointI, lerp(c1, c2, qBound(0.0, dstPoint.y(), 1.0)));
+                    m_dstImage.setPixelColor(srcPointI, lerp(c1, c2, pkBound(0.0, dstPoint.y(), 1.0)));
                 }
             }
         }

@@ -108,7 +108,7 @@ void KisColorSmudgeStrategyLightness::updateMask(KisDabCache *dabCache, const Ki
             m_origDab = new KisFixedPaintDevice(*m_origDab);
         }
 
-        const int denormedPaintThickness = qRound(paintThickness * 255.0);
+        const int denormedPaintThickness = pkRound(paintThickness * 255.0);
         KoBgrU8Traits::Pixel *pixelPtr = reinterpret_cast<KoBgrU8Traits::Pixel *>(m_origDab->data());
         for (int i = 0; i < numPixels; i++) {
             int gray = pixelPtr->red - 127;
@@ -119,7 +119,7 @@ void KisColorSmudgeStrategyLightness::updateMask(KisDabCache *dabCache, const Ki
                 gray = -KoColorSpaceMaths<quint8>::multiply(-gray, denormedPaintThickness);
             }
 
-            gray = qBound(0, gray + 127, 255);
+            gray = pkBound(0, gray + 127, 255);
 
             pixelPtr->red = gray;
             pixelPtr->green = gray;

@@ -112,7 +112,7 @@ PkStream::pk_int64 PkStream::bytesAvailable() const
     if (isSequential()) {
         return static_cast<pk_int64>(m_ungetBuffer.size());
     }
-    // 非顺序设备：真 Qt 的公式就是 qMax(size()-pos(), 0)，unget 缓冲不再单独
+    // 非顺序设备：真 Qt 的公式就是 pkMax(size()-pos(), 0)，unget 缓冲不再单独
     // 加一次——ungetChar() 已经把 m_pos 往回退了，remaining 里已经把 unget
     // 出来的字节算进去了。再加 m_ungetBuffer.size() 是重复计入（评审②，四格
     // 对照表：真 Qt 6/8/10/11，旧实现因为重复计入多算成 7/11/13/12）。

@@ -5,10 +5,10 @@
  */
 
 #include <QPainter>
-#include <QTransform>
-#include <QColor>
-#include <QImage>
-#include <QDomElement>
+#include <PkTransform.h>
+#include <PkColor.h>
+#include <PkImage.h>
+#include <PkXmlElement.h>
 #include <klocalizedstring.h>
 #include <PkFlakeBridge.h>
 #include <kis_node_visitor.h>
@@ -44,7 +44,7 @@ public:
                           &m_compressor, [this]() { slotAsyncRepaint(); });
     }
 
-    void updateCanvas(const QRectF &rect) override
+    void updateCanvas(const PkRectF &rect) override
     {
         if (!m_layer->image() || m_isDestroying) {
             return;
@@ -77,9 +77,9 @@ public:
     }
 private Q_SLOTS:
     void slotAsyncRepaint() {
-        QRectF r = viewConverter()->documentToView(m_dirtyRect);
+        PkRectF r = viewConverter()->documentToView(m_dirtyRect);
         m_layer->signalUpdate(r);
-        m_dirtyRect = QRectF();
+        m_dirtyRect = PkRectF();
         m_hasUpdateInCompressor = false;
     }
 
@@ -87,7 +87,7 @@ private:
     KisReferenceImagesLayer *m_layer;
     KisPaintDeviceSP m_fallbackProjection;
     KisThreadSafeSignalCompressor m_compressor;
-    QRectF m_dirtyRect;
+    PkRectF m_dirtyRect;
     volatile bool m_hasUpdateInCompressor = false;
 };
 
@@ -104,9 +104,9 @@ KisReferenceImagesLayer::KisReferenceImagesLayer(const KisReferenceImagesLayer &
                             return new ReferenceImagesCanvas(*referenceImagesCanvas, this); })
 {}
 
-QVector<KisReferenceImage*> KisReferenceImagesLayer::referenceImages() const
+PkVector<KisReferenceImage*> KisReferenceImagesLayer::referenceImages() const
 {
-    QVector<KisReferenceImage*> references;
+    PkVector<KisReferenceImage*> references;
 
     Q_FOREACH(auto shape, shapes()) {
         KisReferenceImage *referenceImage = dynamic_cast<KisReferenceImage*>(shape);
@@ -158,36 +158,36 @@ KUndo2Command *KisReferenceImagesLayer::convertTo(const KoColorSpace *dstColorSp
     return 0;
 }
 
-void KisReferenceImagesLayer::signalUpdate(const QRectF &rect)
+void KisReferenceImagesLayer::signalUpdate(const PkRectF &rect)
 {
     Q_EMIT sigUpdateCanvas(rect);
 }
 
-void KisReferenceImagesLayer::sigUpdateCanvas(const QRectF &rect)
+void KisReferenceImagesLayer::sigUpdateCanvas(const PkRectF &rect)
 {
-    PkObject::activateSignal<const QRectF &>(
+    PkObject::activateSignal<const PkRectF &>(
         this, PkMemberFnKey::from(&KisReferenceImagesLayer::sigUpdateCanvas), rect);
 }
 
-QRectF KisReferenceImagesLayer::boundingImageRect() const
+PkRectF KisReferenceImagesLayer::boundingImageRect() const
 {
     return converter()->documentToView(boundingRect());
 }
 
-QColor KisReferenceImagesLayer::getPixel(QPointF position) const
+PkColor KisReferenceImagesLayer::getPixel(PkPointF position) const
 {
-    const QPointF docPoint = converter()->viewToDocument(position);
+    const PkPointF docPoint = converter()->viewToDocument(position);
 
     KoShape *shape = shapeManager()->shapeAt(docPoint);
 
     if (shape) {
         auto *reference = dynamic_cast<KisReferenceImage*>(shape);
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(reference, QColor());
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(reference, PkColor());
 
         return reference->getPixel(docPoint);
     }
 
-    return QColor();
+    return PkColor();
 }
 
 #include "KisReferenceImagesLayer.moc"

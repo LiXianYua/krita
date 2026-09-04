@@ -11,8 +11,8 @@
 #ifndef KOPOINTEREVENT_H
 #define KOPOINTEREVENT_H
 
-#include <QSharedPointer>
-#include <QPointF>
+#include <PkSharedPointer.h>
+#include <PkPoint.h>
 #include <optional>
 
 class QEvent;
@@ -22,6 +22,8 @@ class QWheelEvent;
 class QTouchEvent;
 
 #include "kritaflake_export.h"
+// [migrate] missing include for Pk/Qt type
+#include <PkScopedPointer.h>
 
 struct KoPointerEventWrapper;
 
@@ -41,7 +43,7 @@ public:
      * @param event the mouse event that is the base of this event.
      * @param point the zoomed point in the normal coordinate system.
      */
-    KoPointerEvent(QMouseEvent *event, const QPointF &point);
+    KoPointerEvent(QMouseEvent *event, const PkPointF &point);
 
     /**
      * Constructor.
@@ -49,11 +51,11 @@ public:
      * @param event the tablet event that is the base of this event.
      * @param point the zoomed point in the normal coordinate system.
      */
-    KoPointerEvent(QTabletEvent *event, const QPointF &point);
+    KoPointerEvent(QTabletEvent *event, const PkPointF &point);
 
-    KoPointerEvent(QTouchEvent* ev, const QPointF& pnt);
+    KoPointerEvent(QTouchEvent* ev, const PkPointF& pnt);
 
-    KoPointerEvent(KoPointerEvent *event, const QPointF& point);
+    KoPointerEvent(KoPointerEvent *event, const PkPointF& point);
 
     ~KoPointerEvent();
 
@@ -117,10 +119,10 @@ public:
     Qt::MouseButtons buttons() const;
 
     /// Return the position screen coordinates
-    QPoint globalPos() const;
+    PkPoint globalPos() const;
 
     /// return the position in widget coordinates
-    QPoint pos() const;
+    PkPoint pos() const;
 
     /**
      * return the pressure (or a default value). The range is 0.0 - 1.0
@@ -183,7 +185,7 @@ public:
 
 
     /// The point in document coordinates.
-    QPointF point;
+    PkPointF point;
 
     /**
      * Returns if the event comes from a tablet
@@ -202,12 +204,12 @@ public:
 
 public:
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    static void copyQtPointerEvent(const QMouseEvent *event, QScopedPointer<QEvent> &dst);
-    static void copyQtPointerEvent(const QTabletEvent *event, QScopedPointer<QEvent> &dst);
-    static void copyQtPointerEvent(const QTouchEvent *event, QScopedPointer<QEvent> &dst);
+    static void copyQtPointerEvent(const QMouseEvent *event, PkScopedPointer<QEvent> &dst);
+    static void copyQtPointerEvent(const QTabletEvent *event, PkScopedPointer<QEvent> &dst);
+    static void copyQtPointerEvent(const QTouchEvent *event, PkScopedPointer<QEvent> &dst);
 #endif
 
-    static std::optional<QPointF> fetchGlobalPositionFromPointerEvent(QEvent *event);
+    static std::optional<PkPointF> fetchGlobalPositionFromPointerEvent(QEvent *event);
 
 protected:
     friend class KoToolProxy;
@@ -216,16 +218,16 @@ protected:
 private:
 
     class Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
 struct KRITAFLAKE_EXPORT KoPointerEventWrapper
 {
     template <typename Event>
-    KoPointerEventWrapper(Event *_event, const QPointF &point);
+    KoPointerEventWrapper(Event *_event, const PkPointF &point);
 
     KoPointerEvent event;
-    QSharedPointer<QEvent> baseQtEvent;
+    PkSharedPointer<QEvent> baseQtEvent;
 };
 
 #endif

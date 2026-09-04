@@ -62,7 +62,7 @@ void KisRectangleMaskGenerator::setScale(qreal scaleX, qreal scaleY)
 void KisRectangleMaskGenerator::setSoftness(qreal softness)
 {
     KisMaskGenerator::setSoftness(softness);
-    qreal safeSoftnessCoeff = qreal(1.0) / qMax(qreal(0.01), softness);
+    qreal safeSoftnessCoeff = qreal(1.0) / pkMax(qreal(0.01), softness);
 
     d->transformedFadeX = d->xfadecoeff * safeSoftnessCoeff;
     d->transformedFadeY = d->yfadecoeff * safeSoftnessCoeff;
@@ -88,12 +88,12 @@ void KisRectangleMaskGenerator::setMaskScalarApplicator()
 quint8 KisRectangleMaskGenerator::valueAt(qreal x, qreal y) const
 {
     if (isEmpty()) return 255;
-    qreal xr = qAbs(x /*- m_xcenter*/);
-    qreal yr = qAbs(y /*- m_ycenter*/);
+    qreal xr = pkAbs(x /*- m_xcenter*/);
+    qreal yr = pkAbs(y /*- m_ycenter*/);
     fixRotation(xr, yr);
 
-    xr = qAbs(xr);
-    yr = qAbs(yr);
+    xr = pkAbs(xr);
+    yr = pkAbs(yr);
 
     qreal nxr = xr * d->xcoeff;
     qreal nyr = yr * d->ycoeff;

@@ -60,7 +60,7 @@ struct KisDabRenderingQueue::Private
         // paint devices anymore
         jobs.clear();
 
-        qDeleteAll(cachedResources);
+        pkDeleteAll(cachedResources);
         cachedResources.clear();
     }
 
@@ -250,7 +250,7 @@ PkList<KisDabRenderingJobSP> KisDabRenderingQueue::notifyJobFinished(int seqNo, 
 void KisDabRenderingQueue::Private::cleanPaintedDabs()
 {
     const int nextToBePainted = lastPaintedJob + 1;
-    const int lastSourceJob = calculateLastDabJobIndex(qMin(nextToBePainted, jobs.size() - 1));
+    const int lastSourceJob = calculateLastDabJobIndex(pkMin(nextToBePainted, jobs.size() - 1));
 
     if (lastPaintedJob >= 0) {
         int numRemovedJobs = 0;
@@ -381,7 +381,7 @@ qreal KisDabRenderingQueue::averageExecutionTime() const
 int KisDabRenderingQueue::averageDabSize() const
 {
     PkMutexLocker l(&m_d->mutex);
-    return qRound(m_d->avgDabSize.rollingMean());
+    return pkRound(m_d->avgDabSize.rollingMean());
 }
 
 bool KisDabRenderingQueue::Private::dabsHaveSeparateOriginal()

@@ -10,10 +10,10 @@
 #include "KoZoomState.h"
 
 bool KisCanvasState::operator==(const KisCanvasState &other) const {
-    return qFuzzyCompare(zoom, other.zoom) &&
-           qFuzzyCompare(effectiveZoom, other.effectiveZoom) &&
+    return pkQtFuzzyCompare(zoom, other.zoom) &&
+           pkQtFuzzyCompare(effectiveZoom, other.effectiveZoom) &&
            zoomMode == other.zoomMode &&
-           qFuzzyCompare(rotation, other.rotation) &&
+           pkQtFuzzyCompare(rotation, other.rotation) &&
            mirrorHorizontally == other.mirrorHorizontally &&
            mirrorVertically == other.mirrorVertically &&
            documentOffset == other.documentOffset &&
@@ -22,8 +22,8 @@ bool KisCanvasState::operator==(const KisCanvasState &other) const {
            minimumOffset == other.minimumOffset &&
            maximumOffset == other.maximumOffset &&
            canvasSize == other.canvasSize &&
-           qFuzzyCompare(minimumZoom, other.minimumZoom) &&
-           qFuzzyCompare(maximumZoom, other.maximumZoom) &&
+           pkQtFuzzyCompare(minimumZoom, other.minimumZoom) &&
+           pkQtFuzzyCompare(maximumZoom, other.maximumZoom) &&
            imageRectInWidgetPixels == other.imageRectInWidgetPixels;
 }
 

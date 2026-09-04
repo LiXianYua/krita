@@ -221,7 +221,7 @@ bool KoStopGradient::stopsAt(KoGradientStop& leftStop, KoGradientStop& rightStop
     if (!m_stops.count())
         return false;
 
-    KIS_SAFE_ASSERT_RECOVER(!qIsNaN(t)) { // if it's nan, it would crash in the last 'else'
+    KIS_SAFE_ASSERT_RECOVER(!pkIsNaN(t)) { // if it's nan, it would crash in the last 'else'
         leftStop = m_stops.first();
         rightStop = KoGradientStop(-std::numeric_limits<double>::infinity(), leftStop.color, leftStop.type);
         return true;

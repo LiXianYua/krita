@@ -81,7 +81,7 @@ public:
 
     ~PSDLayerRecord()
     {
-        qDeleteAll(channelInfoRecords);
+        pkDeleteAll(channelInfoRecords);
     }
 
     PkRect channelRect(ChannelInfo *channel) const;

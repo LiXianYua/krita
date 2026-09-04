@@ -6,8 +6,8 @@
 #include "HtmlWriter.h"
 
 #include <QDebug>
-#include <QIODevice>
-#include <QTextStream>
+#include <PkStream.h>
+#include <PkTextStream.h>
 
 #include <klocalizedstring.h>
 
@@ -20,7 +20,7 @@
 
 #include <KisPortingUtils.h>
 
-HtmlWriter::HtmlWriter(const QList<KoShape*> &toplevelShapes)
+HtmlWriter::HtmlWriter(const PkList<KoShape*> &toplevelShapes)
     : m_toplevelShapes(toplevelShapes)
 {
 }
@@ -29,13 +29,13 @@ HtmlWriter::~HtmlWriter()
 {
 }
 
-bool HtmlWriter::save(QIODevice &outputDevice)
+bool HtmlWriter::save(PkStream &outputDevice)
 {
     if (m_toplevelShapes.isEmpty()) {
         return false;
     }
 
-    QTextStream htmlStream(&outputDevice);
+    PkTextStream htmlStream(&outputDevice);
     KisPortingUtils::setUtf8OnStream(htmlStream);
 
     // header
@@ -54,17 +54,17 @@ bool HtmlWriter::save(QIODevice &outputDevice)
     return true;
 }
 
-QStringList HtmlWriter::errors() const
+PkStringList HtmlWriter::errors() const
 {
     return m_errors;
 }
 
-QStringList HtmlWriter::warnings() const
+PkStringList HtmlWriter::warnings() const
 {
     return m_warnings;
 }
 
-void HtmlWriter::saveShapes(const QList<KoShape *> shapes, HtmlSavingContext &savingContext)
+void HtmlWriter::saveShapes(const PkList<KoShape *> shapes, HtmlSavingContext &savingContext)
 {
     Q_FOREACH (KoShape *shape, shapes) {
         KoShapeLayer *layer = dynamic_cast<KoShapeLayer*>(shape);

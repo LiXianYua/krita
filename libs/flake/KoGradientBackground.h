@@ -10,10 +10,10 @@
 #include "KoShapeBackground.h"
 #include "kritaflake_export.h"
 
-#include <QTransform>
+#include <PkTransform.h>
 #include <QSharedDataPointer>
 
-class QGradient;
+class PkGradient;
 
 /// A gradient shape background
 class KRITAFLAKE_EXPORT KoGradientBackground : public KoShapeBackground
@@ -23,13 +23,13 @@ public:
      * Creates new gradient background from given gradient.
      * The background takes ownership of the given gradient.
      */
-    explicit KoGradientBackground(QGradient *gradient, const QTransform &matrix = QTransform());
+    explicit KoGradientBackground(PkGradient *gradient, const PkTransform &matrix = PkTransform());
 
     /**
      * Create new gradient background from the given gradient.
      * A clone of the given gradient is used.
      */
-    explicit KoGradientBackground(const QGradient &gradient, const QTransform &matrix = QTransform());
+    explicit KoGradientBackground(const PkGradient &gradient, const PkTransform &matrix = PkTransform());
 
     /// Destroys the background
     ~KoGradientBackground() override;
@@ -41,22 +41,22 @@ public:
     bool compareTo(const KoShapeBackground *other) const override;
 
     /// Sets the transform matrix
-    void setTransform(const QTransform &matrix);
+    void setTransform(const PkTransform &matrix);
 
     /// Returns the transform matrix
-    QTransform transform() const;
+    PkTransform transform() const;
 
     /**
      * Sets a new gradient.
      * A clone of the given gradient is used.
      */
-    void setGradient(const QGradient &gradient);
+    void setGradient(const PkGradient &gradient);
 
     /// Returns the gradient
-    const QGradient *gradient() const;
+    const PkGradient *gradient() const;
 
     /// reimplemented from KoShapeBackground
-    void paint(QPainter &painter, const QPainterPath &fillPath) const override;
+    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
 private:
     class Private;
     QSharedDataPointer<Private> d;

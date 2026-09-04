@@ -8,7 +8,7 @@
 #define KIS_SHAPE_SELECTION_MODEL_H
 
 #include <QObject>
-#include <QRect>
+#include <PkRect.h>
 #include "KoShapeContainerModel.h"
 #include "kis_types.h"
 #include "kis_signal_compressor.h"
@@ -38,7 +38,7 @@ public:
     bool inheritsTransform(const KoShape *shape) const override;
 
     int count() const override;
-    QList<KoShape*> shapes() const override;
+    PkList<KoShape*> shapes() const override;
 
     void containerChanged(KoShapeContainer *, KoShape::ChangeType) override;
     void childChanged(KoShape * child, KoShape::ChangeType type) override;
@@ -48,10 +48,10 @@ public:
     KisImageResolutionProxySP resolutionProxy() const;
 
 private Q_SLOTS:
-    void requestUpdate(const QRect &updateRect);
+    void requestUpdate(const PkRect &updateRect);
 
 private:
-    QMap<KoShape*, QRectF> m_shapeMap;
+    PkMap<KoShape*, PkRectF> m_shapeMap;
     KisImageResolutionProxySP m_resolutionProxy;
     KisSelectionWSP m_parentSelection;
     KisShapeSelection* m_shapeSelection;

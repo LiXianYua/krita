@@ -28,7 +28,7 @@ qreal estimateImageAverage(const PkImage &image) {
         const PkRgb *pixel = reinterpret_cast<const PkRgb*>(image.scanLine(y));
 
         for (int i = 0; i < image.width(); ++i) {
-            lightnessSum += qRound(kisBrushGray(*pixel) * pkAlpha(*pixel) / 255.0);
+            lightnessSum += pkRound(kisBrushGray(*pixel) * pkAlpha(*pixel) / 255.0);
             alphaSum += pkAlpha(*pixel);
             pixel++;
         }
@@ -74,9 +74,9 @@ PkImage KisColorfulBrush::brushTipImage() const
                 estimateImageAverage(image) :
                 m_adjustmentMidPoint;
 
-        if (qAbs(adjustmentMidPoint - 127.0) > 0.1 ||
-            !qFuzzyIsNull(m_brightnessAdjustment) ||
-            !qFuzzyIsNull(m_contrastAdjustment)) {
+        if (pkAbs(adjustmentMidPoint - 127.0) > 0.1 ||
+            !pkQtFuzzyIsNull(m_brightnessAdjustment) ||
+            !pkQtFuzzyIsNull(m_contrastAdjustment)) {
 
             const int half = KoColorSpaceMathsTraits<quint8>::halfValue;
             const int unit = KoColorSpaceMathsTraits<quint8>::unitValue;
@@ -92,7 +92,7 @@ PkImage KisColorfulBrush::brushTipImage() const
             qreal loB = 0.0;
             qreal hiB = 255.0;
 
-            if (!qFuzzyCompare(m_contrastAdjustment, 1.0)) {
+            if (!pkQtFuzzyCompare(m_contrastAdjustment, 1.0)) {
                 if (m_contrastAdjustment > 0.0) {
                     loA = midY / (1.0 - m_contrastAdjustment) / midX;
                     hiA = (unit - midY) / (1.0 - m_contrastAdjustment) / (unit - midX);
@@ -113,9 +113,9 @@ PkImage KisColorfulBrush::brushTipImage() const
                     int v = kisBrushGray(c);
 
                     if (v >= midX) {
-                        v = qMin(unit, qRound(hiA * v + hiB));
+                        v = pkMin(unit, pkRound(hiA * v + hiB));
                     } else {
-                        v = qMax(0, qRound(loA * v + loB));
+                        v = pkMax(0, pkRound(loA * v + loB));
                     }
 
                     pixel[x] = pkRgba(v, v, v, pkAlpha(c));

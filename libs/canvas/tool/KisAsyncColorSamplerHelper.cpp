@@ -155,7 +155,7 @@ struct KisAsyncColorSamplerHelper::Private
         QRectF rect(x, y, width, SIZE);
 
         qreal canvasRotationAngle = samplingCanvas->samplingCanvasRotation();
-        if (!qFuzzyIsNull(canvasRotationAngle)) {
+        if (!pkQtFuzzyIsNull(canvasRotationAngle)) {
             QTransform tf;
             tf.rotate(mirrored ? canvasRotationAngle : -canvasRotationAngle);
             rect = tf.mapRect(rect);
@@ -395,7 +395,7 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
 {
     qreal dpr = gc.device()->devicePixelRatioF();
     QSizeF cacheSizeF = viewRectF.size() * dpr;
-    QSize cacheSize(qCeil(cacheSizeF.width()), qCeil(cacheSizeF.height()));
+    QSize cacheSize(pkCeil(cacheSizeF.width()), pkCeil(cacheSizeF.height()));
     bool needsNewCache = m_d->cache.isNull() || m_d->cache.size() != cacheSize;
     if (needsNewCache) {
         m_d->cache = QPixmap(cacheSize);
@@ -405,7 +405,7 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
     qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
     bool canvasMirror =
         m_d->samplingCanvas->samplingCanvasMirroredHorizontally();
-    if (needsNewCache || !qFuzzyCompare(canvasRotationAngle, m_d->cacheRotation) || canvasMirror != m_d->cacheMirror) {
+    if (needsNewCache || !pkQtFuzzyCompare(canvasRotationAngle, m_d->cacheRotation) || canvasMirror != m_d->cacheMirror) {
         m_d->cacheRotation = canvasRotationAngle;
         m_d->cacheMirror = canvasMirror;
 
@@ -454,7 +454,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
 
     qreal dpr = gc.device()->devicePixelRatioF();
     QSizeF cacheSizeF = viewRectF.size() * dpr;
-    QSize cacheSize(qCeil(cacheSizeF.width()), qCeil(cacheSizeF.height()));
+    QSize cacheSize(pkCeil(cacheSizeF.width()), pkCeil(cacheSizeF.height()));
     bool needsNewCache = m_d->cache.isNull() || m_d->cache.size() != cacheSize;
     if (needsNewCache) {
         m_d->cache = QPixmap(cacheSize);
@@ -467,7 +467,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
     }
 
     bool needsDualColor = currentColor != baseColor;
-    if (needsNewCache || (needsDualColor && !qFuzzyCompare(m_d->cacheRotation, canvasRotationAngle))) {
+    if (needsNewCache || (needsDualColor && !pkQtFuzzyCompare(m_d->cacheRotation, canvasRotationAngle))) {
         m_d->cacheRotation = canvasRotationAngle;
 
         QPainter cachePainter(&m_d->cache);

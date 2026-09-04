@@ -329,7 +329,7 @@ void KisGradientPainterTest::testCachedStrategy()
     qreal varError = variance(accum);
     QVERIFY(varError < maxRelError);
 
-    qreal maxError = qMax(qAbs((min)(accum)), qAbs((max)(accum)));
+    qreal maxError = pkMax(pkAbs((min)(accum)), pkAbs((max)(accum)));
     QVERIFY(maxError < 2 * maxRelError);
 }
 

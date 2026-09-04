@@ -119,10 +119,10 @@ std::optional<PkStyleEntry> parseStyleEntry(const PkVariantMap &entry)
 
 namespace {
 
-// Qt QVariant wire（PkDataStream 探针实测，见 probe_legacy_wire.cpp）：
+// Qt PkVariant wire（PkDataStream 探针实测，见 probe_legacy_wire.cpp）：
 //   容器帧：[qint32 typeId][quint8 nullFlag][quint32 count] + 条目
 //   UserType 值：[qint32 typeId>=1024 (Qt5) 或 ==127 (Qt4)][quint8 nullFlag]
-//                [QByteArray typeName][payload = QDataStream<<QString(xml)]
+//                [PkByteArray typeName][payload = PkDataStream<<PkString(xml)]
 struct ValueHeader {
     std::int32_t typeId = 0;
     std::uint8_t nullFlag = 0;
@@ -144,11 +144,11 @@ bool readHeader(PkDataStream &ds, ValueHeader &h)
 bool readUserTypePayload(PkDataStream &ds, PkString &xmlOut)
 {
     PkByteArray typeName;
-    ds >> typeName; // QByteArray wire：len + bytes；内容不关心
+    ds >> typeName; // PkByteArray wire：len + bytes；内容不关心
     if (ds.status() != PkDataStream::Ok) {
         return false;
     }
-    ds >> xmlOut; // 旧 producer 的 payload 就是 QDataStream<<QString(xml)
+    ds >> xmlOut; // 旧 producer 的 payload 就是 PkDataStream<<PkString(xml)
     return ds.status() == PkDataStream::Ok;
 }
 
@@ -240,13 +240,13 @@ bool parseLegacyStyleXml(const PkString &xml, PkVariantMap &outEntry)
 
 bool decodeLegacyAxesBlob(const PkByteArray &blob, PkVariantList &outAxes)
 {
-    PkDataStream ds(blob); // 默认 BigEndian + Qt_5_15，与旧 QDataStream 一致
+    PkDataStream ds(blob); // 默认 BigEndian + Qt_5_15，与旧 PkDataStream 一致
     ValueHeader top;
     if (!readHeader(ds, top)) {
         return false;
     }
     if (top.nullFlag || top.typeId != static_cast<std::int32_t>(PkVariant::Hash)) {
-        return false; // 旧 AXES 是 QVariantHash(28)
+        return false; // 旧 AXES 是 PkVariantHash(28)
     }
 
     std::uint32_t count = 0;
@@ -258,7 +258,7 @@ bool decodeLegacyAxesBlob(const PkByteArray &blob, PkVariantList &outAxes)
     outAxes.clear();
     for (std::uint32_t i = 0; i < count; ++i) {
         PkString key;
-        ds >> key; // QVariantHash 的 key 是 QString
+        ds >> key; // PkVariantHash 的 key 是 PkString
         if (ds.status() != PkDataStream::Ok) {
             return false;
         }
@@ -290,7 +290,7 @@ bool decodeLegacyStylesBlob(const PkByteArray &blob, PkVariantList &outStyles)
         return false;
     }
     if (top.nullFlag || top.typeId != static_cast<std::int32_t>(PkVariant::List)) {
-        return false; // 旧 STYLES 是 QVariantList(9)
+        return false; // 旧 STYLES 是 PkVariantList(9)
     }
 
     std::uint32_t count = 0;
