@@ -78,13 +78,13 @@ void KoPathSegmentChangeStrategy::handleMouseMove(const PkPointF &mouseLocation,
         PkPointF delta = localPos - lastLocalPos;
 
         std::pair<PkPointF, PkPointF> offsetSegmentResult =
-            KisBezierUtils::offsetSegment(m_segmentParam, toPkPointF(delta));
-        move2 = toQPointF(offsetSegmentResult.first);
-        move1 = toQPointF(offsetSegmentResult.second);
+            KisBezierUtils::offsetSegment(m_segmentParam, delta);
+        move2 = offsetSegmentResult.first;
+        move1 = offsetSegmentResult.second;
     }
 
     if(m_segment.first()->activeControlPoint2()) {
-        KoPathControlPointMoveCommand cmd(m_pointData1, toPkPointF(move2), KoPathPoint::ControlPoint2);
+        KoPathControlPointMoveCommand cmd(m_pointData1, move2, KoPathPoint::ControlPoint2);
         cmd.redo();
     }
     if(m_segment.second()->activeControlPoint1()) {

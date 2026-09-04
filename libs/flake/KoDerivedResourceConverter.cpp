@@ -6,7 +6,7 @@
 
 #include "KoDerivedResourceConverter.h"
 
-#include "PkVariant"
+#include "PkVariant.h"
 #include "kis_assert.h"
 
 struct KoDerivedResourceConverter::Private

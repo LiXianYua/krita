@@ -21,36 +21,8 @@ PkGradient *KoFlake::cloneGradient(const PkGradient *gradient)
     if (! gradient)
         return 0;
 
-    PkGradient *clone = 0;
-
-    switch (gradient->type()) {
-    case PkGradient::LinearGradient:
-    {
-        const QLinearGradient *lg = static_cast<const QLinearGradient*>(gradient);
-        clone = new QLinearGradient(lg->start(), lg->finalStop());
-        break;
-    }
-    case PkGradient::RadialGradient:
-    {
-        const QRadialGradient *rg = static_cast<const QRadialGradient*>(gradient);
-        clone = new QRadialGradient(rg->center(), rg->radius(), rg->focalPoint());
-        break;
-    }
-    case PkGradient::ConicalGradient:
-    {
-        const QConicalGradient *cg = static_cast<const QConicalGradient*>(gradient);
-        clone = new QConicalGradient(cg->center(), cg->angle());
-        break;
-    }
-    default:
-        return 0;
-    }
-
-    clone->setCoordinateMode(gradient->coordinateMode());
-    clone->setSpread(gradient->spread());
-    clone->setStops(gradient->stops());
-
-    return clone;
+    // PkGradient 是值类型（S-03-a，非多态）：整支拷贝即可。
+    return new PkGradient(*gradient);
 }
 
 PkGradient *KoFlake::mergeGradient(const PkGradient *coordsSource, const PkGradient *fillSource)
@@ -61,27 +33,23 @@ PkGradient *KoFlake::mergeGradient(const PkGradient *coordsSource, const PkGradi
 
     switch (coordsSource->type()) {
     case PkGradient::LinearGradient: {
-        const QLinearGradient *lg = static_cast<const QLinearGradient*>(coordsSource);
-        start = lg->start();
+        start = coordsSource->start();
         focalPoint = start;
-        end = lg->finalStop();
+        end = coordsSource->finalStop();
         break;
     }
     case PkGradient::RadialGradient: {
-        const QRadialGradient *rg = static_cast<const QRadialGradient*>(coordsSource);
-        start = rg->center();
-        end = start + PkPointF(rg->radius(), 0);
-        focalPoint = rg->focalPoint();
+        start = coordsSource->center();
+        end = start + PkPointF(coordsSource->radius(), 0);
+        focalPoint = coordsSource->focalPoint();
         break;
     }
     case PkGradient::ConicalGradient: {
-        const QConicalGradient *cg = static_cast<const QConicalGradient*>(coordsSource);
-
-        start = cg->center();
+        start = coordsSource->center();
         focalPoint = start;
 
         PkLineF l (start, start + PkPointF(1.0, 0));
-        l.setAngle(cg->angle());
+        l.setAngle(coordsSource->angle());
         end = l.p2();
         break;
     }
@@ -93,14 +61,14 @@ PkGradient *KoFlake::mergeGradient(const PkGradient *coordsSource, const PkGradi
 
     switch (fillSource->type()) {
     case PkGradient::LinearGradient:
-        clone = new QLinearGradient(start, end);
+        clone = new PkGradient(PkGradient::linear(start, end));
         break;
     case PkGradient::RadialGradient:
-        clone = new QRadialGradient(start, kisDistance(toPkPointF(start), toPkPointF(end)), focalPoint);
+        clone = new PkGradient(PkGradient::radial(start, kisDistance(start, end), focalPoint));
         break;
     case PkGradient::ConicalGradient: {
         PkLineF l(start, end);
-        clone = new QConicalGradient(l.p1(), l.angle());
+        clone = new PkGradient(PkGradient::conical(l.p1(), l.angle()));
         break;
     }
     default:

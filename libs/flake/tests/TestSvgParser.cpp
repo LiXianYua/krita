@@ -1210,7 +1210,7 @@ void TestSvgParser::testIccColor()
 
     KoShape *shape = t.findShape("testRect");
     if (shape) {
-        PkSharedPointer<KoColorBackground>  bg = qSharedPointerDynamicCast<KoColorBackground>(shape->background());
+        PkSharedPointer<KoColorBackground>  bg = pkSharedPointerDynamicCast<KoColorBackground>(shape->background());
         QVERIFY2(bg->color() == PkColor("#00FFFF"), "icc-color is not being loaded during parsing");
     }
     QCOMPARE(numFetches, 1);

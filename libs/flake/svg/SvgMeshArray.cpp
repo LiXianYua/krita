@@ -56,7 +56,7 @@ void SvgMeshArray::createDefaultMesh(const int nrows,
 
     PkRectF start(0, 0, patchWidth, patchHeight);
 
-    PkColor colors[2] = {Qt::white, color};
+    PkColor colors[2] = {PkColor(Pk::white), color};
 
     for (int irow = 0; irow < nrows; ++irow) {
         newRow();

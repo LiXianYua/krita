@@ -11,7 +11,10 @@
 #include <FlakeDebug.h>
 #include <KoStore.h>
 #include <KoStoreDevice.h>
+#include <PkFileStream.h>
 #include <PkMemoryStream.h>
+#include <PkScopedPointer.h>
+#include <QBuffer>
 #include <QDir>
 #include <QFileInfo>
 #include <QTextDecoder>
@@ -21,17 +24,17 @@
 
 struct KisSeExprScript::Private {
     PkString script;
-    PkByteArray data;
+    PK_QBYTEARRAY_ data;
 };
 
 KisSeExprScript::KisSeExprScript(const PkString &filename)
-    : KoResource(toPkString(filename))
+    : KoResource(filename)
     , d(new Private)
 {
-    PkString n = toQString(name()).replace("_", " ");
-    setName(toPkString(n));
-    if (n.endsWith(toQString(defaultFileExtension()))) {
-        const QFileInfo f(n);
+    PkString n = toPkString(toQString(name()).replace("_", " "));
+    setName(n);
+    if (n.endsWith(defaultFileExtension())) {
+        const QFileInfo f(toQString(n));
         setName(toPkString(f.completeBaseName()));
     }
 }
@@ -41,14 +44,14 @@ KisSeExprScript::KisSeExprScript(const PkImage &image, const PkString &script, c
     , d(new Private)
 {
     setScript(script);
-    setImage(toPkImage(image));
-    setName(toPkString(name));
+    setImage(image);
+    setName(name);
 
-    QFileInfo fileInfo(folderName + QDir::separator() + name + toQString(defaultFileExtension()));
+    QFileInfo fileInfo(toQString(folderName) + QDir::separator() + toQString(name) + toQString(defaultFileExtension()));
 
     int i = 1;
     while (fileInfo.exists()) {
-        fileInfo.setFile(folderName + QDir::separator() + name + PkString::number(i) + toQString(defaultFileExtension()));
+        fileInfo.setFile(toQString(folderName) + QDir::separator() + toQString(name) + toQString(PkString::number(i)) + toQString(defaultFileExtension()));
         i++;
     }
 
@@ -93,7 +96,7 @@ bool KisSeExprScript::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP reso
     }
 
     if (d->data.isNull()) {
-        PkFileStream file(toQString(filename()));
+        PkFileStream file(filename());
         if (file.size() == 0) {
             warnFlake << "Cannot load SeExpr script" << name() << "there is no data available";
             return false;
@@ -103,16 +106,17 @@ bool KisSeExprScript::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP reso
             warnFlake << "Cannot load SeExpr script" << name() << ":" << file.errorString();
             return false;
         }
-        d->data = file.readAll();
+        d->data = toQByteArray(file.readAll());
         file.close();
     }
 
-    PkMemoryStream buf(&d->data);
-    buf.open(PkMemoryStream::ReadOnly);
-    PkDeviceStream bufStream;
-    bufStream.attach(&buf);
+    PkMemoryStream buf;
+    buf.open(PkStream::WriteOnly);
+    buf.write(d->data.constData(), static_cast<PkStream::pk_int64>(d->data.size()));
+    buf.close();
+    buf.open(PkStream::ReadOnly);
 
-    PkScopedPointer<KoStore> store(KoStore::createStore(&bufStream, KoStore::Read, toPkByteArray("application/x-krita-seexpr-script"), KoStore::Zip));
+    PkScopedPointer<KoStore> store(KoStore::createStore(&buf, KoStore::Read, toPkByteArray("application/x-krita-seexpr-script"), KoStore::Zip));
     if (!store || store->bad())
         return false;
 
@@ -121,17 +125,14 @@ bool KisSeExprScript::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP reso
         return false;
     }
 
-    d->script = PkString(toQByteArray(store->read(store->size())));
+    const PkByteArray scriptData = store->read(store->size());
+    d->script = PkString::fromUtf8(scriptData.constData());
     store->close();
 
     if (store->open("preview.png")) {
-        KoStoreDevice previewDev(store.data());
-        previewDev.open(PkStream::ReadOnly);
-        PkStreamIoDevice previewIo;
-        previewIo.attach(&previewDev);
-
-        PkImage preview = PkImage();
-        preview.load(&previewIo, "PNG");
+        const PkByteArray pngData = store->read(store->size());
+        QImage preview;
+        preview.loadFromData(toQByteArray(pngData), "PNG");
         setImage(toPkImage(preview));
 
         (void)store->close();
@@ -169,12 +170,15 @@ bool KisSeExprScript::saveToDevice(PkStream *dev) const
         return false;
     }
 
+    QByteArray pngBytes;
+    QBuffer pngBuf(&pngBytes);
+    pngBuf.open(QIODevice::WriteOnly);
+    toQImage(image()).save(&pngBuf, "PNG");
+    pngBuf.close();
+
     KoStoreDevice previewDev(store);
     previewDev.open(PkStream::WriteOnly);
-    PkStreamIoDevice previewIo;
-    previewIo.attach(&previewDev);
-
-    toQImage(image()).save(&previewIo, "PNG");
+    previewDev.write(pngBytes.constData(), static_cast<PkStream::pk_int64>(pngBytes.size()));
     if (!store->close()) {
         return false;
     }

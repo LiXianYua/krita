@@ -8,6 +8,7 @@
 #include "kis_painting_tweaks.h"
 // [migrate] missing include for Pk/Qt type
 #include <PkScopedPointer.h>
+#include <PkFlakeBridge.h>
 
 namespace {
 void initDashedStyle(const PkColor &baseColor, const PkColor &handleFill, KisHandleStyle *style) {
@@ -17,8 +18,8 @@ void initDashedStyle(const PkColor &baseColor, const PkColor &handleFill, KisHan
 
     ants.setColor(baseColor);
 
-    style->lineIterations << KisHandleStyle::IterationStyle(outline, Qt::NoBrush);
-    style->lineIterations << KisHandleStyle::IterationStyle(ants, Qt::NoBrush);
+    style->lineIterations << KisHandleStyle::IterationStyle(outline, Pk::NoBrush);
+    style->lineIterations << KisHandleStyle::IterationStyle(ants, Pk::NoBrush);
 
     PkPen handlePen(baseColor);
     handlePen.setWidth(2);
@@ -57,7 +58,7 @@ KisHandleStyle &KisHandleStyle::primarySelection()
 
     if (!style) {
         style.reset(new KisHandleStyle());
-        initDashedStyle(primaryColor, Qt::white, style.data());
+        initDashedStyle(primaryColor, PkColor(Pk::white), style.data());
     }
 
     return *style;
@@ -69,7 +70,7 @@ KisHandleStyle &KisHandleStyle::secondarySelection()
 
     if (!style) {
         style.reset(new KisHandleStyle());
-        initDashedStyle(secondaryColor, Qt::white, style.data());
+        initDashedStyle(secondaryColor, PkColor(Pk::white), style.data());
     }
 
     return *style;
@@ -116,8 +117,8 @@ KisHandleStyle &KisHandleStyle::highlightedPrimaryHandlesWithSolidOutline()
         style->handleIterations << KisHandleStyle::IterationStyle(h, highlightColor);
         PkPen l = PkPen(highlightOutlineColor, 1);
         l.setCosmetic(true);
-        l.setJoinStyle(Qt::RoundJoin);
-        style->lineIterations << KisHandleStyle::IterationStyle(l, Qt::NoBrush);
+        l.setJoinStyle(Pk::RoundJoin);
+        style->lineIterations << KisHandleStyle::IterationStyle(l, Pk::NoBrush);
     }
 
     return *style;

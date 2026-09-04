@@ -117,7 +117,7 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
                 }
             } else if (p == KoShape::Stroke) {
                 if (stroke) {
-                    KoShapeStrokeSP strokeSP = qSharedPointerDynamicCast<KoShapeStroke>(stroke);
+                    KoShapeStrokeSP strokeSP = pkSharedPointerDynamicCast<KoShapeStroke>(stroke);
 
                     if (strokeSP) {
                         if (strokeSP->lineBrush().gradient()) {
@@ -265,7 +265,7 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                         } else if (p == KoShape::Stroke) {
                             KoShapeStrokeSP maskStroke;
                             if (stroke) {
-                                KoShapeStrokeSP strokeSP = qSharedPointerDynamicCast<KoShapeStroke>(stroke);
+                                KoShapeStrokeSP strokeSP = pkSharedPointerDynamicCast<KoShapeStroke>(stroke);
 
                                 if (strokeSP) {
                                     if (strokeSP->lineBrush().gradient()) {
@@ -340,7 +340,7 @@ PkSharedPointer<KoShapeBackground> transformBackgroundToBounds(PkSharedPointer<K
 }
 
 KoShapeStrokeModelSP transformStrokeBgToNewBounds(KoShapeStrokeModelSP stroke, const PkRectF &oldBounds, const PkRectF &newBounds, bool calcInsets = true) {
-    KoShapeStrokeSP s = qSharedPointerDynamicCast<KoShapeStroke>(stroke);
+    KoShapeStrokeSP s = pkSharedPointerDynamicCast<KoShapeStroke>(stroke);
     if (s) {
         QBrush b = s->lineBrush();
         if (b.gradient()) {

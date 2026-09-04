@@ -194,8 +194,8 @@ protected:
     int multiClickCount() const;
 
 private:
-    Q_PRIVATE_SLOT(d, void timeout())
-    Q_PRIVATE_SLOT(d, void selectionChanged(bool))
+    Q_PRIVATE_SLOT(d_func(), void timeout())
+    Q_PRIVATE_SLOT(d_func(), void selectionChanged(bool))
 
     void countMultiClick(KoPointerEvent *ev, int eventType);
 

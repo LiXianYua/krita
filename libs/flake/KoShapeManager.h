@@ -275,8 +275,8 @@ private:
 
     class Private;
     Private * const d;
-    Q_PRIVATE_SLOT(d, void updateTree())
-    Q_PRIVATE_SLOT(d, void forwardCompressedUpdate())
+    Q_PRIVATE_SLOT(d_func(), void updateTree())
+    Q_PRIVATE_SLOT(d_func(), void forwardCompressedUpdate())
 };
 
 #endif

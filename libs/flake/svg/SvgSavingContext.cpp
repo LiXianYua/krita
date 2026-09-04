@@ -36,11 +36,11 @@ public:
         , shapeWriter(0)
         , saveInlineImages(true)
     {
-        styleBufferStream.attach(&styleBuffer);
-        styleWriter.reset(new KoXmlWriter(&styleBufferStream, 1));
+        styleBuffer.open(PkStream::WriteOnly);
+        styleWriter.reset(new KoXmlWriter(&styleBuffer, 1));
         styleWriter->startElement("defs");
-        shapeBufferStream.attach(&shapeBuffer);
-        shapeWriter.reset(new KoXmlWriter(&shapeBufferStream, 1));
+        shapeBuffer.open(PkStream::WriteOnly);
+        shapeWriter.reset(new KoXmlWriter(&shapeBuffer, 1));
 
         const qreal scaleToUserSpace = SvgUtil::toUserSpace(1.0);
         userSpaceMatrix.scale(scaleToUserSpace, scaleToUserSpace);
@@ -54,8 +54,6 @@ public:
     PkStream *styleDevice;
     PkMemoryStream styleBuffer;
     PkMemoryStream shapeBuffer;
-    PkDeviceStream styleBufferStream;
-    PkDeviceStream shapeBufferStream;
     PkScopedPointer<KoXmlWriter> styleWriter;
     PkScopedPointer<KoXmlWriter> shapeWriter;
 
@@ -83,13 +81,13 @@ SvgSavingContext::~SvgSavingContext()
     d->styleWriter->endElement();
 
     if (d->styleDevice) {
-        d->styleDevice->write(d->styleBuffer.data());
+        d->styleDevice->write(d->styleBuffer.data(), d->styleBuffer.size());
     } else {
-        d->mainDevice->write(d->styleBuffer.data());
-        d->mainDevice->write("\n");
+        d->mainDevice->write(d->styleBuffer.data(), d->styleBuffer.size());
+        d->mainDevice->write("\n", 1);
     }
 
-    d->mainDevice->write(d->shapeBuffer.data());
+    d->mainDevice->write(d->shapeBuffer.data(), d->shapeBuffer.size());
 
     delete d;
 }
@@ -166,22 +164,22 @@ bool SvgSavingContext::isSavingInlineImages() const
 
 PkString SvgSavingContext::createFileName(const PkString &extension)
 {
-    PkFileStream *file = qobject_cast<PkFileStream*>(d->mainDevice);
+    PkFileStream *file = dynamic_cast<PkFileStream*>(d->mainDevice);
     if (!file)
         return PkString();
 
-    QFileInfo fi(file->fileName());
-    PkString path = fi.absolutePath();
-    PkString dstBaseFilename = fi.completeBaseName();
+    QFileInfo fi(toQString(file->fileName()));
+    PkString path = toPkString(fi.absolutePath());
+    PkString dstBaseFilename = toPkString(fi.completeBaseName());
 
     // create a filename for the image file at the destination directory
-    PkString fname = dstBaseFilename + '_' + createUID("file");
+    PkString fname = dstBaseFilename + PkString("_") + createUID("file");
 
     // check if file exists already
     int i = 0;
     PkString counter;
     // change filename as long as the filename already exists
-    while (PkFileStream(path + fname + counter + extension).exists()) {
+    while (QFileInfo(toQString(path + fname + counter + extension)).exists()) {
         counter = PkString("_%1").arg(++i);
     }
 
@@ -191,23 +189,22 @@ PkString SvgSavingContext::createFileName(const PkString &extension)
 PkString SvgSavingContext::saveImage(const PkImage &image)
 {
     if (isSavingInlineImages()) {
-        PkMemoryStream buffer;
-        buffer.open(PkStream::WriteOnly);
-        if (image.save(&buffer, "PNG")) {
+        QBuffer buffer;
+        buffer.open(QIODevice::WriteOnly);
+        if (toQImage(image).save(&buffer, "PNG")) {
             const PkString header("data:image/x-png;base64,");
-            return header + buffer.data().toBase64();
+            return header + PkString(buffer.data().toBase64().constData());
         }
     } else {
         // write to a temp file first
         QTemporaryFile imgFile;
-        if (image.save(&imgFile, "PNG")) {
+        if (toQImage(image).save(&imgFile, "PNG")) {
             PkString dstFilename = createFileName(".png");
-            if (PkFileStream::copy(imgFile.fileName(), dstFilename)) {
+            if (QFile::copy(toQString(imgFile.fileName()), toQString(dstFilename))) {
                 return dstFilename;
             }
             else {
-                PkFileStream f(imgFile.fileName());
-                f.remove();
+                QFile::remove(toQString(imgFile.fileName()));
             }
         }
     }

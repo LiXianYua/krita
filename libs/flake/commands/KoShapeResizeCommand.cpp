@@ -83,7 +83,7 @@ void KoShapeResizeCommand::redoNoUpdate()
                              m_d->absoluteStillPoint,
                              m_d->useGlobalMode,
                              m_d->usePostScaling,
-                             toQTransform(m_d->postScalingCoveringTransform));
+                             m_d->postScalingCoveringTransform);
     }
 }
 

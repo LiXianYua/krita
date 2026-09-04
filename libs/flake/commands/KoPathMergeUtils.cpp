@@ -17,11 +17,11 @@ boost::optional<PkPointF> KritaUtils::fetchControlPoint(KoPathPoint *pt, bool ta
 
     if (takeFirst) {
         if (pt->activeControlPoint1()) {
-            result = toPkPointF(pt->controlPoint1());
+            result = pt->controlPoint1();
         }
     } else {
         if (pt->activeControlPoint2()) {
-            result = toPkPointF(pt->controlPoint2());
+            result = pt->controlPoint2();
         }
     }
 
@@ -47,13 +47,13 @@ void KritaUtils::restoreControlPoint(KoPathPoint *pt, bool restoreFirst, boost::
 {
     if (restoreFirst) {
         if (savedPoint) {
-            pt->setControlPoint1(toQPointF(*savedPoint));
+            pt->setControlPoint1(*savedPoint);
         } else {
             pt->removeControlPoint1();
         }
     } else {
         if (savedPoint) {
-            pt->setControlPoint2(toQPointF(*savedPoint));
+            pt->setControlPoint2(*savedPoint);
         } else {
             pt->removeControlPoint2();
         }

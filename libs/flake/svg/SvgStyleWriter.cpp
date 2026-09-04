@@ -105,28 +105,28 @@ void SvgStyleWriter::saveSvgFill(PkSharedPointer<KoShapeBackground> background, 
     }
 
     QBrush fill(Qt::NoBrush);
-    PkSharedPointer<KoColorBackground>  cbg = qSharedPointerDynamicCast<KoColorBackground>(background);
+    PkSharedPointer<KoColorBackground>  cbg = pkSharedPointerDynamicCast<KoColorBackground>(background);
     if (cbg) {
         context.shapeWriter().addAttribute("fill", toPkString(cbg->color().name()));
         if (cbg->color().alphaF() < 1.0)
             context.shapeWriter().addAttribute("fill-opacity", cbg->color().alphaF());
     }
-    PkSharedPointer<KoGradientBackground>  gbg = qSharedPointerDynamicCast<KoGradientBackground>(background);
+    PkSharedPointer<KoGradientBackground>  gbg = pkSharedPointerDynamicCast<KoGradientBackground>(background);
     if (gbg) {
         PkString gradientId = saveSvgGradient(gbg->gradient(), gbg->transform(), context);
         context.shapeWriter().addAttribute("fill", toPkString(PkString("url(#" + gradientId + ")")));
     }
-    PkSharedPointer<KoMeshGradientBackground> mgbg = qSharedPointerDynamicCast<KoMeshGradientBackground>(background);
+    PkSharedPointer<KoMeshGradientBackground> mgbg = pkSharedPointerDynamicCast<KoMeshGradientBackground>(background);
     if (mgbg) {
         PkString gradientId = saveSvgMeshGradient(mgbg->gradient(), mgbg->transform(), context);
         context.shapeWriter().addAttribute("fill", toPkString(PkString("url(#" + gradientId + ")")));
     }
-    PkSharedPointer<KoPatternBackground>  pbg = qSharedPointerDynamicCast<KoPatternBackground>(background);
+    PkSharedPointer<KoPatternBackground>  pbg = pkSharedPointerDynamicCast<KoPatternBackground>(background);
     if (pbg) {
         const PkString patternId = saveSvgPattern(pbg, size, absoluteTransform, context);
         context.shapeWriter().addAttribute("fill", toPkString(PkString("url(#" + patternId + ")")));
     }
-    PkSharedPointer<KoVectorPatternBackground>  vpbg = qSharedPointerDynamicCast<KoVectorPatternBackground>(background);
+    PkSharedPointer<KoVectorPatternBackground>  vpbg = pkSharedPointerDynamicCast<KoVectorPatternBackground>(background);
     if (vpbg) {
         const PkString patternId = saveSvgVectorPattern(vpbg, outlineRect, context);
         context.shapeWriter().addAttribute("fill", toPkString(PkString("url(#" + patternId + ")")));
@@ -139,7 +139,7 @@ void SvgStyleWriter::saveSvgFill(PkSharedPointer<KoShapeBackground> background, 
 
 void SvgStyleWriter::saveSvgStroke(KoShapeStrokeModelSP stroke, SvgSavingContext &context)
 {
-    const PkSharedPointer<KoShapeStroke> lineBorder = qSharedPointerDynamicCast<KoShapeStroke>(stroke);
+    const PkSharedPointer<KoShapeStroke> lineBorder = pkSharedPointerDynamicCast<KoShapeStroke>(stroke);
 
     if (! lineBorder)
         return;

@@ -304,12 +304,12 @@ private:
     KoToolManager(const KoToolManager&);
     KoToolManager operator=(const KoToolManager&);
 
-    Q_PRIVATE_SLOT(d, void detachCanvas(KoCanvasController *controller))
-    Q_PRIVATE_SLOT(d, void attachCanvas(KoCanvasController *controller))
-    Q_PRIVATE_SLOT(d, void movedFocus(QWidget *from, QWidget *to))
-    Q_PRIVATE_SLOT(d, void updateCursor(const QCursor &cursor))
-    Q_PRIVATE_SLOT(d, void selectionChanged(const PkList<KoShape*> &shapes))
-    Q_PRIVATE_SLOT(d, void currentLayerChanged(const KoShapeLayer *layer))
+    Q_PRIVATE_SLOT(d_func(), void detachCanvas(KoCanvasController *controller))
+    Q_PRIVATE_SLOT(d_func(), void attachCanvas(KoCanvasController *controller))
+    Q_PRIVATE_SLOT(d_func(), void movedFocus(QWidget *from, QWidget *to))
+    Q_PRIVATE_SLOT(d_func(), void updateCursor(const QCursor &cursor))
+    Q_PRIVATE_SLOT(d_func(), void selectionChanged(const PkList<KoShape*> &shapes))
+    Q_PRIVATE_SLOT(d_func(), void currentLayerChanged(const KoShapeLayer *layer))
 
     Private *const d;
 };

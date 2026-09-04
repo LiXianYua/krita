@@ -9,11 +9,12 @@
 #include "KoZoomTool.h"
 
 #include <klocalizedstring.h>
+#include <PkFlakeBridge.h>
 
 KoZoomToolFactory::KoZoomToolFactory()
         : KoToolFactoryBase("ZoomTool")
 {
-    setToolTip(i18n("Zoom"));
+    setToolTip(toPkString(i18n("Zoom")));
     setSection(ToolBoxSection::Navigation);
     setPriority(0);
     setIconName("tool_zoom");

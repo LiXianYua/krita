@@ -27,7 +27,7 @@ template <typename ModifyFunction>
 
         Q_FOREACH(KoShape *shape, shapes) {
             KoShapeStrokeSP shapeStroke = shape->stroke() ?
-                qSharedPointerDynamicCast<KoShapeStroke>(shape->stroke()) :
+                pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke()) :
                 KoShapeStrokeSP();
 
             KoShapeStrokeSP newStroke =

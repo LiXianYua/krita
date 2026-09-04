@@ -11,6 +11,7 @@
 #include <QObject>
 #include <PkSize.h>
 #include <PkHash.h>
+#include <QMultiHash>
 #include <QMetaType>
 #include <PkVariant.h>
 

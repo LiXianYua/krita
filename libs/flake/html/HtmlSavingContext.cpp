@@ -17,13 +17,12 @@ struct HtmlSavingContext::Private {
         : shapeDevice(_shapeDevice)
         , shapeWriter(0)
     {
-        shapeBufferStream.attach(&shapeBuffer);
-        shapeWriter.reset(new KoXmlWriter(&shapeBufferStream, 1));
+        shapeBuffer.open(PkStream::WriteOnly);
+        shapeWriter.reset(new KoXmlWriter(&shapeBuffer, 1));
     }
 
     PkStream *shapeDevice;
     PkMemoryStream shapeBuffer;
-    PkDeviceStream shapeBufferStream;
     PkScopedPointer<KoXmlWriter> shapeWriter;
 };
 
@@ -34,7 +33,7 @@ HtmlSavingContext::HtmlSavingContext(PkStream &shapeDevice)
 
 HtmlSavingContext::~HtmlSavingContext()
 {
-    d->shapeDevice->write(d->shapeBuffer.data());
+    d->shapeDevice->write(d->shapeBuffer.data(), d->shapeBuffer.size());
 }
 
 KoXmlWriter &HtmlSavingContext::shapeWriter()

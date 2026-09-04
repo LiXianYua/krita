@@ -42,7 +42,7 @@ void KoPathControlPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocati
     m_move += move;
 
     KisCommandUtils::redoAndMergeIntoAccumulatingCommand(
-        new KoPathControlPointMoveCommand(m_pointData, toPkPointF(move), m_pointType),
+        new KoPathControlPointMoveCommand(m_pointData, move, m_pointType),
         m_intermediateCommand);
 }
 

@@ -47,7 +47,7 @@ void KoPathPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt:
         return;
 
     KisCommandUtils::redoAndMergeIntoAccumulatingCommand(
-        new KoPathPointMoveCommand(toPkList(selection->selectedPointsData()), toPkPointF(move - m_move)),
+        new KoPathPointMoveCommand(selection->selectedPointsData(), move - m_move),
         m_intermediateCommand);
 
     m_move = move;

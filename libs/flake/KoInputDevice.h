@@ -12,6 +12,7 @@
 
 #include <QTabletEvent>
 #include <QDebug>
+#include <PkFlakeBridge.h>
 #include <QFlags>
 #include <boost/operators.hpp>
 
@@ -243,11 +244,11 @@ KRITAFLAKE_EXPORT QDebug operator<<(QDebug debug, const KoInputDevice &device);
 
 inline uint qHash(const KoInputDevice &key)
 {
-    return qHash(PkString(":%1:%2:%3:%4")
+    return qHash(toQString(PkString(":%1:%2:%3:%4")
                      .arg(int(key.device()))
                      .arg(int(key.pointer()))
                      .arg(int(key.uniqueTabletId()))
-                     .arg(int(key.isMouse())));
+                     .arg(int(key.isMouse()))));
 }
 
 #endif

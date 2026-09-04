@@ -8,6 +8,7 @@
 #include <QDebug>
 #include <PkStream.h>
 #include <PkTextStream.h>
+#include <PkFlakeBridge.h>
 
 #include <klocalizedstring.h>
 
@@ -36,14 +37,14 @@ bool HtmlWriter::save(PkStream &outputDevice)
     }
 
     PkTextStream htmlStream(&outputDevice);
-    KisPortingUtils::setUtf8OnStream(htmlStream);
+    htmlStream.setCodec("UTF-8");
 
     // header
-    htmlStream << QLatin1String("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" "
+    htmlStream << "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" "
                                 "\"http://www.w3.org/TR/REC-html40/strict.dtd\">"
                                 "<html><head><meta name=\"Krita Svg Text\" />"
                                 "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>"
-                                "</head>");
+                                "</head>";
     htmlStream.flush();
     {
         HtmlSavingContext savingContext(outputDevice);
@@ -69,21 +70,21 @@ void HtmlWriter::saveShapes(const PkList<KoShape *> shapes, HtmlSavingContext &s
     Q_FOREACH (KoShape *shape, shapes) {
         KoShapeLayer *layer = dynamic_cast<KoShapeLayer*>(shape);
         if (layer) {
-            m_errors << i18n("Saving KoShapeLayer to html is not implemented yet!");
+            m_errors << toPkString(i18n("Saving KoShapeLayer to html is not implemented yet!"));
         } else {
             KoShapeGroup *group = dynamic_cast<KoShapeGroup*>(shape);
             if (group) {
-                m_errors << i18n("KoShapeGroup to html is not implemented yet!");
+                m_errors << toPkString(i18n("KoShapeGroup to html is not implemented yet!"));
             }
             else {
                 KoSvgTextShape *svgTextShape = dynamic_cast<KoSvgTextShape*>(shape);
                 if (svgTextShape) {
                     if (!svgTextShape->saveHtml(savingContext)) {
-                        m_errors << i18n("saving to html failed");
+                        m_errors << toPkString(i18n("saving to html failed"));
                     }
                 }
                 else {
-                    m_errors << i18n("Cannot save %1 to html", shape->name());
+                    m_errors << toPkString(i18n("Cannot save %1 to html", toQString(shape->name())));
                 }
             }
         }

@@ -8,6 +8,7 @@
 #include "kis_assert.h"
 #include <optional>
 #include "kis_debug.h"
+#include <PkTransform.h>
 
 #include <KoShapeBulkActionLock.h>
 #include <KoSvgTextShape.h>

@@ -75,7 +75,7 @@ KoShapeBackgroundCommand::KoShapeBackgroundCommand(const PkList<KoShape*> &shape
 {
     d->shapes = shapes;
     for (KoShape *shape : d->shapes) {
-        d->addOldFill(toPkSharedPointer(shape->background()));
+        d->addOldFill(shape->background());
     }
     for (PkSharedPointer<KoShapeBackground>  fill : fills) {
         d->addNewFill(fill);
@@ -100,7 +100,7 @@ void KoShapeBackgroundCommand::undo()
     KUndo2Command::undo();
     PkList<PkSharedPointer<KoShapeBackground> >::iterator brushIt = d->oldFills.begin();
     for (KoShape *shape : d->shapes) {
-        shape->setBackground(toQSharedPointer(*brushIt));
+        shape->setBackground(*brushIt);
         shape->update();
         ++brushIt;
     }

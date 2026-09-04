@@ -36,10 +36,10 @@ struct ShapeBackgroundFetchPolicy
     }
     static Type type(KoShape *shape) {
         PkSharedPointer<KoShapeBackground> background = shape->background();
-        PkSharedPointer<KoColorBackground> colorBackground = qSharedPointerDynamicCast<KoColorBackground>(background);
-        PkSharedPointer<KoGradientBackground> gradientBackground = qSharedPointerDynamicCast<KoGradientBackground>(background);
-        PkSharedPointer<KoPatternBackground> patternBackground = qSharedPointerDynamicCast<KoPatternBackground>(background);
-        PkSharedPointer<KoMeshGradientBackground> meshgradientBackground = qSharedPointerDynamicCast<KoMeshGradientBackground>(background);
+        PkSharedPointer<KoColorBackground> colorBackground = pkSharedPointerDynamicCast<KoColorBackground>(background);
+        PkSharedPointer<KoGradientBackground> gradientBackground = pkSharedPointerDynamicCast<KoGradientBackground>(background);
+        PkSharedPointer<KoPatternBackground> patternBackground = pkSharedPointerDynamicCast<KoPatternBackground>(background);
+        PkSharedPointer<KoMeshGradientBackground> meshgradientBackground = pkSharedPointerDynamicCast<KoMeshGradientBackground>(background);
 
 
         if(gradientBackground) {
@@ -62,27 +62,27 @@ struct ShapeBackgroundFetchPolicy
     }
 
     static PkColor color(KoShape *shape) {
-        PkSharedPointer<KoColorBackground> colorBackground = qSharedPointerDynamicCast<KoColorBackground>(shape->background());
+        PkSharedPointer<KoColorBackground> colorBackground = pkSharedPointerDynamicCast<KoColorBackground>(shape->background());
         return colorBackground ? colorBackground->color() : PkColor();
     }
 
     static const PkGradient* gradient(KoShape *shape) {
-        PkSharedPointer<KoGradientBackground> gradientBackground = qSharedPointerDynamicCast<KoGradientBackground>(shape->background());
+        PkSharedPointer<KoGradientBackground> gradientBackground = pkSharedPointerDynamicCast<KoGradientBackground>(shape->background());
         return gradientBackground ? gradientBackground->gradient() : 0;
     }
 
     static PkTransform gradientTransform(KoShape *shape) {
-        PkSharedPointer<KoGradientBackground> gradientBackground = qSharedPointerDynamicCast<KoGradientBackground>(shape->background());
+        PkSharedPointer<KoGradientBackground> gradientBackground = pkSharedPointerDynamicCast<KoGradientBackground>(shape->background());
         return gradientBackground ? gradientBackground->transform() : PkTransform();
     }
 
     static const SvgMeshGradient* meshgradient(KoShape *shape) {
-        PkSharedPointer<KoMeshGradientBackground> meshgradientBackground = qSharedPointerDynamicCast<KoMeshGradientBackground>(shape->background());
+        PkSharedPointer<KoMeshGradientBackground> meshgradientBackground = pkSharedPointerDynamicCast<KoMeshGradientBackground>(shape->background());
         return meshgradientBackground ? meshgradientBackground->gradient() : nullptr;
     }
 
     static PkTransform meshgradientTransform(KoShape *shape) {
-        PkSharedPointer<KoMeshGradientBackground> meshgradientBackground = qSharedPointerDynamicCast<KoMeshGradientBackground>(shape->background());
+        PkSharedPointer<KoMeshGradientBackground> meshgradientBackground = pkSharedPointerDynamicCast<KoMeshGradientBackground>(shape->background());
         return meshgradientBackground ? meshgradientBackground->transform() : PkTransform();
     }
 
@@ -100,7 +100,7 @@ struct ShapeStrokeFillFetchPolicy
         return shape->stroke();
     }
     static Type type(KoShape *shape) {
-        KoShapeStrokeSP stroke = qSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
+        KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
         if (!stroke) return Type::None;
 
         // Pattern type not implemented yet, so that logic will have to be added here later
@@ -118,17 +118,17 @@ struct ShapeStrokeFillFetchPolicy
     }
 
     static PkColor color(KoShape *shape) {
-        KoShapeStrokeSP stroke = qSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
+        KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
         return stroke ? stroke->color() : PkColor();
     }
 
     static const PkGradient* gradient(KoShape *shape) {
-        KoShapeStrokeSP stroke = qSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
+        KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
         return stroke ? stroke->lineBrush().gradient() : 0;
     }
 
     static PkTransform gradientTransform(KoShape *shape) {
-        KoShapeStrokeSP stroke = qSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
+        KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
         return stroke ? stroke->lineBrush().transform() : PkTransform();
     }
 
@@ -182,7 +182,7 @@ PkSharedPointer<KoShapeBackground> KoShapeFillWrapper::Private::applyFillGradien
     }
 
     KoGradientBackground *newGradient = 0;
-    PkSharedPointer<KoGradientBackground> oldGradient = qSharedPointerDynamicCast<KoGradientBackground>(shape->background());
+    PkSharedPointer<KoGradientBackground> oldGradient = pkSharedPointerDynamicCast<KoGradientBackground>(shape->background());
     if (oldGradient) {
         // just copy the gradient and set the new stops
         PkGradient *g = KoFlake::mergeGradient(oldGradient->gradient(), stopGradient);
@@ -377,7 +377,7 @@ bool KoShapeFillWrapper::hasZeroLineWidth() const
         if (m_d->fillVariant == KoFlake::Fill)  return false;
 
         // this check is useful to determine if
-        KoShapeStrokeSP stroke = qSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
+        KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
         if (!stroke) return false;
 
         if ( stroke->lineWidth() == 0.0) {

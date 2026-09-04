@@ -12,6 +12,8 @@
 #include <QTextCharFormat>
 #include <PkVariant.h>
 #include <QLocale>
+#include <PkStringHash.h>
+#include <PkQLocaleHash.h>
 #include <array>
 #include <boost/operators.hpp>
 #include <boost/optional.hpp>

@@ -44,9 +44,6 @@ public:
 
     /// Writes svg to specified output device
     bool save(PkStream &outputDevice, const PkSizeF &pageSize);
-#ifndef PkStream
-    bool save(PkStream &outputDevice, const PkSizeF &pageSize);
-#endif
 
     /// Writes svg to the specified file
     bool save(const PkString &filename, const PkSizeF &pageSize, bool writeInlineImages);

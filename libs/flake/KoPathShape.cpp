@@ -259,7 +259,7 @@ PkRectF KoPathShape::boundingRect() const
      */
     qreal outlineSweepWidth = 0;
 
-    const PkSharedPointer<KoShapeStroke> lineBorder = qSharedPointerDynamicCast<KoShapeStroke>(stroke());
+    const PkSharedPointer<KoShapeStroke> lineBorder = pkSharedPointerDynamicCast<KoShapeStroke>(stroke());
     if (lineBorder) {
         outlineSweepWidth = lineBorder->lineWidth();
     }

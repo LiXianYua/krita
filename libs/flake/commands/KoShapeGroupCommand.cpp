@@ -158,7 +158,7 @@ void KoShapeGroupCommand::undo()
     }
 
     if (d->shouldNormalize && dynamic_cast<KoShapeGroup*>(d->container)) {
-        PkPointF oldGroupPosition = toPkPointF(d->container->absolutePosition(KoFlake::TopLeft));
+        PkPointF oldGroupPosition = d->container->absolutePosition(KoFlake::TopLeft);
         if (d->container->shapeCount() > 0) {
             bool boundingRectInitialized = false;
             PkRectF bound;
@@ -173,7 +173,7 @@ void KoShapeGroupCommand::undo()
             // -> we need compensate the group position change
             PkPointF positionOffset = oldGroupPosition - bound.topLeft();
             for (KoShape * child : d->container->shapes())
-                child->setAbsolutePosition(child->absolutePosition() + toQPointF(positionOffset));
+                child->setAbsolutePosition(child->absolutePosition() + positionOffset);
 
             d->container->setAbsolutePosition(bound.topLeft(), KoFlake::TopLeft);
             d->container->setSize(bound.size());

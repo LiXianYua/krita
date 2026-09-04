@@ -6,6 +6,7 @@
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoFFWWSConverter.h"
+#include <PkQLocaleHash.h>
 
 #include <KisForest.h>
 #include <KisStaticInitializer.h>

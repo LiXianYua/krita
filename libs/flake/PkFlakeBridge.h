@@ -38,6 +38,11 @@
 #define PK_QPOINT_    PK_CAT_(Q, Point)
 #define PK_QLINEF_    PK_CAT_(Q, LineF)
 #define PK_QSHAREDPOINTER_ PK_CAT_(Q, SharedPointer)
+#define PK_QPEN_ PK_CAT_(Q, Pen)
+#define PK_QPENSTYLE_ PK_CAT_(Q, PenStyle)
+#define PK_QPENCAPSTYLE_ PK_CAT_(Q, PenCapStyle)
+#define PK_QPENJOINSTYLE_ PK_CAT_(Q, PenJoinStyle)
+#define PK_QPOLYGONF_ PK_CAT_(Q, PolygonF)
 
 #if defined(QT_CORE_LIB)
 // QFlags 兼容垫片（pk/flags/compat/QFlags）会被剥离头（KoUnit.h 等）拉进 real-Qt-first
@@ -66,6 +71,7 @@
 #include <pk/geometry/PkTransform.h>
 #include <pk/geometry/PkPainterPath.h>
 #include <pk/geometry/PkPolygon.h>
+#include <pk/geometry/PkPen.h>
 #include <pk/geometry/PkLine.h>
 #include <pk/geometry/PkSize.h>
 #include <pk/color/PkColor.h>
@@ -152,6 +158,49 @@ inline PkSizeF toPkSizeF(const PK_QSIZEF_ &s)
 inline PK_QSIZEF_ toQSizeF(const PkSizeF &s)
 {
     return PK_QSIZEF_(s.width(), s.height());
+}
+
+
+// PkPen ↔ QPen（值照抄 Qt，static_cast 往返；S-09-g HandlePainter 收口）
+inline PK_QPOLYGONF_ toQPolygonF(const PkPolygonF &p)
+{
+    PK_QPOLYGONF_ out;
+    for (const PkPointF &pt : p) out << toQPointF(pt);
+    return out;
+}
+
+inline PK_QPEN_ toQPen(const PkPen &pen)
+{
+    PK_QPEN_ q(toQColor(pen.color()), pen.widthF());
+    q.setStyle(static_cast<PK_CAT_(Q, t)::PenStyle>(pen.style()));
+    q.setCapStyle(static_cast<PK_CAT_(Q, t)::PenCapStyle>(pen.capStyle()));
+    q.setJoinStyle(static_cast<PK_CAT_(Q, t)::PenJoinStyle>(pen.joinStyle()));
+    q.setMiterLimit(pen.miterLimit());
+    q.setDashOffset(pen.dashOffset());
+    q.setCosmetic(pen.isCosmetic());
+    if (pen.style() == Pk::CustomDashLine) {
+        PK_QVECTOR_<qreal> pattern;
+        for (qreal v : pen.dashPattern()) pattern << v;
+        q.setDashPattern(pattern);
+    }
+    return q;
+}
+
+inline PkPen toPkPen(const PK_QPEN_ &qpen)
+{
+    PkPen pen(toPkColor(qpen.color()), qpen.widthF());
+    pen.setStyle(static_cast<Pk::PenStyle>(qpen.style()));
+    pen.setCapStyle(static_cast<Pk::PenCapStyle>(qpen.capStyle()));
+    pen.setJoinStyle(static_cast<Pk::PenJoinStyle>(qpen.joinStyle()));
+    pen.setMiterLimit(qpen.miterLimit());
+    pen.setDashOffset(qpen.dashOffset());
+    pen.setCosmetic(qpen.isCosmetic());
+    if (qpen.style() == PK_CAT_(Q, t)::CustomDashLine) {
+        std::vector<qreal> pattern;
+        for (qreal v : qpen.dashPattern()) pattern.push_back(v);
+        pen.setDashPattern(pattern);
+    }
+    return pen;
 }
 
 // PkPainterPath → 真 Qt 路径：按元素逐段重建。PkPainterPath 的 Element 与真 Qt 同构
@@ -262,12 +311,8 @@ inline PkList<T> toPkList(const PK_QLIST_<T> &l)
 template <typename T>
 inline PkList<T> toPkList(const PkList<T> &l) { return l; }
 
-// QLocale 作为 PkHash key 时需要的哈希（Qt 提供 qHash(QLocale)）。覆盖 PkHashFunctions.h
-// 通用 pkHash(Enum) 的转发点；放在全局命名空间，QLocale 关联命名空间（全局）的 ADL 可见。
-inline unsigned int pkHash(const PK_CAT_(Q, Locale) &key, unsigned int seed = 0) noexcept
-{
-    return qHash(key, seed);
-}
+// pkHash(QLocale) 已抽到 PkQLocaleHash.h（本头与其消费 TU 共引，避免双重定义）。
+#include <PkQLocaleHash.h>
 
 template <typename T>
 inline PK_QLIST_<T> toQList(const PkList<T> &l)
@@ -426,6 +471,7 @@ inline PK_QSHAREDPOINTER_<T> toQSharedPointer(const PkSharedPointer<T> &p)
     PkSharedPointer<T> keep = p;
     return PK_QSHAREDPOINTER_<T>(p.data(), [keep](T *) { (void)keep; });
 }
+
 // PkDeviceStream —— 过渡期适配器：把真 真 Qt 设备* 包成 PkStream*，供剥离侧收 PkStream*
 // 的 API（KoXmlWriter 等）消费真 Qt 设备。只服务过渡构建（build-ci）；flake 剥完、
 // 调用点改用 Pk 设备后与调用点一起删除。
@@ -596,4 +642,7 @@ inline PkSharedPointer<T> toPkSharedPointer(const PkSharedPointer<T> &p) { retur
 
 template <typename T>
 inline PkSharedPointer<T> toQSharedPointer(const PkSharedPointer<T> &p) { return p; }
+inline PkPen toQPen(const PkPen &p) { return p; }
+inline PkPen toPkPen(const PkPen &p) { return p; }
+inline PkPolygonF toQPolygonF(const PkPolygonF &p) { return p; }
 #endif

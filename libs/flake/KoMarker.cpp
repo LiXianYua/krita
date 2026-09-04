@@ -324,7 +324,7 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
         Q_FOREACH(KoShape *shape, linearizedShapes) {
             // update the stroke
             KoShapeStrokeSP shapeStroke = shape->stroke() ?
-                        qSharedPointerDynamicCast<KoShapeStroke>(shape->stroke()) :
+                        pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke()) :
                         KoShapeStrokeSP();
 
             if (shapeStroke) {
@@ -373,7 +373,7 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
 
             // update the stroke
             KoShapeStrokeSP shapeStroke = shape->stroke() ?
-                        qSharedPointerDynamicCast<KoShapeStroke>(shape->stroke()) :
+                        pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke()) :
                         KoShapeStrokeSP();
 
             if (shapeStroke) {

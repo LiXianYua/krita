@@ -25,6 +25,8 @@
 #include <KoStore.h>
 #include <KoStoreDevice.h>
 #include <KoDocumentResourceManager.h>
+#include <QBuffer>
+#include <QImage>
 #include <SvgParser.h>
 #include <SvgWriter.h>
 #include <KoShape.h>
@@ -63,7 +65,7 @@ bool KoGamutMaskShape::coordIsClear(const PkPointF& coord) const
 void KoGamutMaskShape::paint(QPainter &painter)
 {
     painter.save();
-    painter.setTransform(m_maskShape->absoluteTransformation(), true);
+    painter.setTransform(toQTransform(m_maskShape->absoluteTransformation()), true);
     m_maskShape->paint(painter);
     painter.restore();
 }
@@ -71,7 +73,7 @@ void KoGamutMaskShape::paint(QPainter &painter)
 void KoGamutMaskShape::paintStroke(QPainter &painter)
 {
     painter.save();
-    painter.setTransform(m_maskShape->absoluteTransformation(), true);
+    painter.setTransform(toQTransform(m_maskShape->absoluteTransformation()), true);
     m_maskShape->paintStroke(painter);
     painter.restore();
 }
@@ -79,7 +81,7 @@ void KoGamutMaskShape::paintStroke(QPainter &painter)
 struct KoGamutMask::Private {
     PkString name;
     PkString title;
-    PkByteArray data;
+    PK_QBYTEARRAY_ data;
     PkVector<KoGamutMaskShape*> maskShapes;
     PkVector<KoGamutMaskShape*> previewShapes;
     PkSizeF maskSize;
@@ -88,14 +90,6 @@ struct KoGamutMask::Private {
 
 KoGamutMask::KoGamutMask(const PkString &filename)
     : KoResource(filename)
-    , d(new Private)
-{
-    d->maskSize = PkSizeF(144.0,144.0);
-    setRotation(0);
-}
-
-KoGamutMask::KoGamutMask(const PkString& filename)
-    : KoResource(toPkString(filename))
     , d(new Private)
 {
     d->maskSize = PkSizeF(144.0,144.0);
@@ -240,7 +234,7 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
     }
 
     if (d->data.isNull()) {
-        PkFileStream file(toQString(filename()));
+        PkFileStream file(filename());
         if (file.size() == 0) {
             warnFlake << "Cannot load gamut mask" << name() << "there is no data available";
             return false;
@@ -250,22 +244,23 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
             warnFlake << "Cannot load gamut mask" << name() << ":" << file.errorString();
             return false;
         }
-        d->data = file.readAll();
+        d->data = toQByteArray(file.readAll());
         file.close();
     }
 
-    PkMemoryStream buf(&d->data);
-    buf.open(PkMemoryStream::ReadOnly);
-    PkDeviceStream bufStream;
-    bufStream.attach(&buf);
+    PkMemoryStream buf;
+    buf.open(PkStream::WriteOnly);
+    buf.write(d->data.constData(), static_cast<PkStream::pk_int64>(d->data.size()));
+    buf.close();
+    buf.open(PkStream::ReadOnly);
 
-    PkScopedPointer<KoStore> store(KoStore::createStore(&bufStream, KoStore::Read, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
+    PkScopedPointer<KoStore> store(KoStore::createStore(&buf, KoStore::Read, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
     if (!store || store->bad()) return false;
 
     bool storeOpened = store->open("gamutmask.svg");
     if (!storeOpened) { return false; }
 
-    PkByteArray ba = toQByteArray(store->read(store->size()));
+    const PkByteArray ba = store->read(store->size());
     store->close();
 
     if (ba.size() == 0) { // empty gamutmask.svg is possible when the first temporary resource is saved
@@ -301,7 +296,7 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
         d->maskSize = fragmentSize;
 
         d->title = parser.documentTitle();
-        setName(toPkString(d->title));
+        setName(d->title);
         setDescription(parser.documentDescription());
 
         setMaskShapes(shapes);
@@ -311,13 +306,9 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
 
 
     if (store->open("preview.png")) {
-        KoStoreDevice previewDev(store.data());
-        previewDev.open(PkStream::ReadOnly);
-        PkStreamIoDevice previewIo;
-        previewIo.attach(&previewDev);
-
-        PkImage preview = PkImage();
-        preview.load(&previewIo, "PNG");
+        const PkByteArray pngData = store->read(store->size());
+        QImage preview;
+        preview.loadFromData(toQByteArray(pngData), "PNG");
         setImage(toPkImage(preview));
 
         (void)store->close();
@@ -360,14 +351,12 @@ bool KoGamutMask::saveToDevice(PkStream *dev) const
 
     KoStoreDevice storeDev(store);
     storeDev.open(PkStream::WriteOnly);
-    PkStreamIoDevice storeIo;
-    storeIo.attach(&storeDev);
 
     SvgWriter writer(shapes);
     writer.setDocumentTitle(d->title);
     writer.setDocumentDescription(description());
 
-    writer.save(storeIo, d->maskSize);
+    writer.save(storeDev, d->maskSize);
 
     if (!store->close()) { return false; }
 
@@ -376,12 +365,15 @@ bool KoGamutMask::saveToDevice(PkStream *dev) const
         return false;
     }
 
+    QByteArray pngBytes;
+    QBuffer pngBuf(&pngBytes);
+    pngBuf.open(QIODevice::WriteOnly);
+    toQImage(image()).save(&pngBuf, "PNG");
+    pngBuf.close();
+
     KoStoreDevice previewDev(store);
     previewDev.open(PkStream::WriteOnly);
-    PkStreamIoDevice previewIo;
-    previewIo.attach(&previewDev);
-
-    toQImage(image()).save(&previewIo, "PNG");
+    previewDev.write(pngBytes.constData(), static_cast<PkStream::pk_int64>(pngBytes.size()));
     if (!store->close()) { return false; }
 
     return store->finalize();
@@ -395,18 +387,18 @@ PkString KoGamutMask::title() const
 void KoGamutMask::setTitle(PkString title)
 {
     d->title = title;
-    setName(toPkString(title));
+    setName(title);
 }
 
 PkString KoGamutMask::description() const
 {
     PkMap<PkString, PkVariant> m = metadata();
-    return toQString(m.value(PkString("description")).toString());
+    return m.value(PkString("description")).toString();
 }
 
 void KoGamutMask::setDescription(PkString description)
 {
-    addMetaData(PkString("description"), PkVariant(toPkString(description)));
+    addMetaData(PkString("description"), PkVariant(description));
 }
 
 PkString KoGamutMask::defaultFileExtension() const

@@ -37,7 +37,7 @@ public:
     void workaroundClearInheritedFillProperties();
 
     StyleType     fillType  {Solid};  ///< the current fill type
-    Pk::FillRule  fillRule  {Qt::WindingFill};  ///< the current fill rule
+    Pk::FillRule  fillRule  {Pk::WindingFill};  ///< the current fill rule
     PkColor        fillColor {PkColor(Pk::black)}; ///< the current fill color. Default is black fill as per svg spec
     PkString       fillId;    ///< the current fill id (used for gradient/pattern fills)
 
@@ -48,7 +48,7 @@ public:
     PkString filterId;       ///< the current filter id
     PkString clipPathId;     ///< the current clip path id
     PkString clipMaskId;     ///< the current clip mask id
-    Pk::FillRule clipRule {Qt::WindingFill};  ///< the current clip rule
+    Pk::FillRule clipRule {Pk::WindingFill};  ///< the current clip rule
     qreal opacity {1.0};    ///< the shapes opacity
 
     PkTransform matrix;      ///< the current transformation matrix
