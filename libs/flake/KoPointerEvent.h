@@ -9,6 +9,9 @@
 */
 
 #ifndef KOPOINTEREVENT_H
+
+#include <QtCore/QtCore>
+#include <QtGui/QtGui>
 #define KOPOINTEREVENT_H
 
 #include <PkSharedPointer.h>

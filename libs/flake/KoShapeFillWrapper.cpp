@@ -124,12 +124,12 @@ struct ShapeStrokeFillFetchPolicy
 
     static const PkGradient* gradient(KoShape *shape) {
         KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
-        return stroke ? stroke->lineBrush().gradient() : 0;
+        return stroke ? toPkGradientPtr(stroke->lineBrush().gradient()) : 0;
     }
 
     static PkTransform gradientTransform(KoShape *shape) {
         KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
-        return stroke ? stroke->lineBrush().transform() : PkTransform();
+        return stroke ? toPkTransform(stroke->lineBrush().transform()) : PkTransform();
     }
 
     static bool compareTo(PointerType p1, PointerType p2) {
@@ -191,8 +191,8 @@ PkSharedPointer<KoShapeBackground> KoShapeFillWrapper::Private::applyFillGradien
     }
     else {
         // No gradient yet, so create a new one.
-        PkScopedPointer<QLinearGradient> fakeShapeGradient(new QLinearGradient(PkPointF(0, 0), PkPointF(1, 1)));
-        fakeShapeGradient->setCoordinateMode(PkGradient::ObjectBoundingMode);
+        PkScopedPointer<PkGradient> fakeShapeGradient(new PkGradient(PkGradient::linear(PkPointF(0, 0), PkPointF(1, 1))));
+        fakeShapeGradient->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
 
         PkGradient *g = KoFlake::mergeGradient(fakeShapeGradient.data(), stopGradient);
         newGradient = new KoGradientBackground(g);
@@ -205,21 +205,21 @@ void KoShapeFillWrapper::Private::applyFillGradientStops(KoShapeStrokeSP shapeSt
     PkGradientStops stops = stopGradient->stops();
     if (!stops.count()) return;
 
-    QLinearGradient fakeShapeGradient(PkPointF(0, 0), PkPointF(1, 1));
-    fakeShapeGradient.setCoordinateMode(PkGradient::ObjectBoundingMode);
+    PkGradient fakeShapeGradient(PkGradient::linear(PkPointF(0, 0), PkPointF(1, 1)));
+    fakeShapeGradient.setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
     PkTransform gradientTransform;
     const PkGradient *shapeGradient = 0;
 
     {
         QBrush brush = shapeStroke->lineBrush();
-        gradientTransform = brush.transform();
-        shapeGradient = brush.gradient() ? brush.gradient() : &fakeShapeGradient;
+        gradientTransform = toPkTransform(brush.transform());
+        shapeGradient = brush.gradient() ? toPkGradientPtr(brush.gradient()) : &fakeShapeGradient;
     }
 
     {
         PkScopedPointer<PkGradient> g(KoFlake::mergeGradient(shapeGradient, stopGradient));
-        QBrush newBrush = *g;
-        newBrush.setTransform(gradientTransform);
+        QBrush newBrush(toQGradient(*g));
+        newBrush.setTransform(toQTransform(gradientTransform));
         shapeStroke->setLineBrush(newBrush);
     }
 }
@@ -361,7 +361,7 @@ KUndo2Command *KoShapeFillWrapper::setLineWidth(const float &lineWidth)
     KUndo2Command *command = 0;
 
     command = KoFlake::modifyShapesStrokes(m_d->shapes, [lineWidth](KoShapeStrokeSP stroke) {
-            stroke->setColor(Qt::transparent);
+            stroke->setColor(PkColor(Pk::transparent));
             stroke->setLineWidth(lineWidth);
 
      });
@@ -408,11 +408,11 @@ KUndo2Command *KoShapeFillWrapper::setGradient(const PkGradient *gradient, const
     } else {
         command = KoFlake::modifyShapesStrokes(m_d->shapes,
             [gradient, transform] (KoShapeStrokeSP stroke) {
-                QBrush newBrush = *gradient;
-                newBrush.setTransform(transform);
+                QBrush newBrush(toQGradient(*gradient));
+                newBrush.setTransform(toQTransform(transform));
 
                 stroke->setLineBrush(newBrush);
-                stroke->setColor(Qt::transparent);
+                stroke->setColor(PkColor(Pk::transparent));
             });
     }
 

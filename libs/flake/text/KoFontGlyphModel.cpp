@@ -394,7 +394,7 @@ QVariant KoFontGlyphModel::data(const QModelIndex &index, int role) const
     if (role == Qt::DisplayRole) {
         //qDebug() << Q_FUNC_INFO<< index << index.parent().isValid() << index.parent();
         if (!index.parent().isValid()) {
-            return QVariant(d->codePoints.value(index.row()).utfString);
+            return QVariant(toQString(d->codePoints.value(index.row()).utfString));
         } else {
             const Private::CodePointInfo &codePoint = d->codePoints.value(index.parent().row());
             const Private::GlyphInfo &glyph = codePoint.glyphs.value(index.row());
@@ -402,7 +402,7 @@ QVariant KoFontGlyphModel::data(const QModelIndex &index, int role) const
             if (glyph.type == UnicodeVariationSelector) {
                 return QVariant(toQString(PkString(codePoint.utfString + glyph.baseString)));
             } else {
-                return QVariant(codePoint.utfString);
+                return QVariant(toQString(codePoint.utfString));
             }
         }
     } else if (role == Qt::ToolTipRole) {

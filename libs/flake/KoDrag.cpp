@@ -60,7 +60,7 @@ bool KoDrag::setSvg(const PkList<KoShape *> originalShapes)
     std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 
     PkMemoryStream buffer;
-    QLatin1String mimeType("image/svg+xml");
+    const PkString mimeType("image/svg+xml");
 
     buffer.open(PkStream::WriteOnly);
 

@@ -134,7 +134,7 @@ PkString KoCssTextUtils::transformTextFullWidth(const PkString &text)
         if (c.decompositionTag() == PkChar::Narrow) {
             transformedText.append(c.decomposition());
         } else {
-            transformedText.append(PkString(findProportionalToFullWidth(c, c).unicode()));
+            transformedText.append(PkString(static_cast<char16_t>(findProportionalToFullWidth(c, c).unicode())));
         }
     }
 
@@ -216,7 +216,7 @@ PkString KoCssTextUtils::transformTextFullSizeKana(const PkString &text)
 {
     PkString transformedText;
     Q_FOREACH (const PkChar &c, text) {
-        transformedText.append(PkString(findSmallKanaToBigKana(c, c).unicode()));
+        transformedText.append(PkString(static_cast<char16_t>(findSmallKanaToBigKana(c, c).unicode())));
     }
 
     return transformedText;

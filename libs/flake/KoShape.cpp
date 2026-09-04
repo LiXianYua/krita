@@ -529,7 +529,7 @@ qint16 KoShape::zIndex() const
 void KoShape::update() const
 {
 
-    if (!d->shapeManagers.empty()) {
+    if (!d->shapeManagers.isEmpty()) {
         const PkRectF rect(boundingRect());
         Q_FOREACH (KoShapeManager * manager, d->shapeManagers) {
             manager->update(rect, this, true);
@@ -544,7 +544,7 @@ void KoShape::updateAbsolute(const PkRectF &rect) const
     }
 
 
-    if (!d->shapeManagers.empty() && isVisible()) {
+    if (!d->shapeManagers.isEmpty() && isVisible()) {
         Q_FOREACH (KoShapeManager *manager, d->shapeManagers) {
             manager->update(rect);
         }
@@ -976,9 +976,9 @@ bool KoShape::isShapeEditable(bool recursive) const
 
 KisHandlePainterHelper KoShape::createHandlePainterHelperView(QPainter *painter, KoShape *shape, const KoViewConverter &converter, qreal handleRadius, int decorationThickness)
 {
-    const PkTransform originalPainterTransform = painter->transform();
+    const PkTransform originalPainterTransform = toPkTransform(painter->transform());
 
-    painter->setTransform(shape->absoluteTransformation() *
+    painter->setTransform(toQTransform(shape->absoluteTransformation()) *
                           converter.documentToView() *
                           painter->transform());
 
@@ -988,9 +988,9 @@ KisHandlePainterHelper KoShape::createHandlePainterHelperView(QPainter *painter,
 
 KisHandlePainterHelper KoShape::createHandlePainterHelperDocument(QPainter *painter, KoShape *shape, qreal handleRadius, int decorationThickness)
 {
-    const PkTransform originalPainterTransform = painter->transform();
+    const PkTransform originalPainterTransform = toPkTransform(painter->transform());
 
-    painter->setTransform(shape->absoluteTransformation() *
+    painter->setTransform(toQTransform(shape->absoluteTransformation()) *
                           painter->transform());
 
     // move c-tor
