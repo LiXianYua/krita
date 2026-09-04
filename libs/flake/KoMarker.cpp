@@ -6,6 +6,7 @@
 
 #include <QtCore/QtCore>
 #include <PkGradient.h>
+#include <KoGradientBridge.h>
 #include <PkFlakeBridge.h>
 #include "KoMarker.h"
 
@@ -118,41 +119,6 @@ public:
         return t;
     }
 };
-
-namespace {
-PkGradient* toPkGradientPtr(const QGradient *g)
-{
-    if (!g) return nullptr;
-    PkGradient *out = new PkGradient();
-    out->setType(static_cast<PkGradientEnums::Type>(g->type()));
-    out->setSpread(static_cast<PkGradientEnums::Spread>(g->spread()));
-    out->setCoordinateMode(static_cast<PkGradientEnums::CoordinateMode>(g->coordinateMode()));
-    PkGradientStops stops;
-    const auto qs = g->stops();
-    for (const auto &stop : qs) {
-        stops.append(PkGradientStop(stop.first, toPkColor(stop.second)));
-    }
-    out->setStops(stops);
-    switch (g->type()) {
-    case QGradient::LinearGradient:
-        out->setStart(PkPointF(g->start().x(), g->start().y()));
-        out->setFinalStop(PkPointF(g->finalStop().x(), g->finalStop().y()));
-        break;
-    case QGradient::RadialGradient:
-        out->setCenter(PkPointF(g->center().x(), g->center().y()));
-        out->setRadius(g->radius());
-        out->setFocalPoint(PkPointF(g->focalPoint().x(), g->focalPoint().y()));
-        break;
-    case QGradient::ConicalGradient:
-        out->setCenter(PkPointF(g->center().x(), g->center().y()));
-        out->setAngle(g->angle());
-        break;
-    default:
-        break;
-    }
-    return out;
-}
-}
 
 KoMarker::KoMarker()
 : d(new Private())

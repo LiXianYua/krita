@@ -138,6 +138,16 @@ public:
     }
 
     bool isCosmetic() const { return m_cosmetic; }
+
+    // 值相等（S-09-g KoShapeStroke::compareHandles 实测；字段全集比对）。
+    bool operator==(const PkPen &o) const
+    {
+        return m_brush == o.m_brush && m_widthF == o.m_widthF && m_style == o.m_style
+            && m_capStyle == o.m_capStyle && m_joinStyle == o.m_joinStyle
+            && m_miterLimit == o.m_miterLimit && m_dashOffset == o.m_dashOffset
+            && m_dashPattern == o.m_dashPattern && m_cosmetic == o.m_cosmetic;
+    }
+    bool operator!=(const PkPen &o) const { return !(*this == o); }
     void setCosmetic(bool cosmetic) { m_cosmetic = cosmetic; }
 
 private:

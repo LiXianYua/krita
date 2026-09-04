@@ -221,17 +221,17 @@ void KoSnapGuide::paint(QPainter &painter, const KoViewConverter &converter)
 
     painter.setBrush(Qt::NoBrush);
 
-    PkPen whitePen(Qt::white, thickness);
+    QPen whitePen(Qt::white, thickness);
     whitePen.setCosmetic(true);
     whitePen.setStyle(Qt::SolidLine);
     painter.setPen(whitePen);
-    painter.drawPath(decoration);
+    painter.drawPath(toQPainterPath(decoration));
 
-    PkPen redPen(Qt::red, thickness);
+    QPen redPen(Qt::red, thickness);
     redPen.setCosmetic(true);
     redPen.setStyle(Qt::DotLine);
     painter.setPen(redPen);
-    painter.drawPath(decoration);
+    painter.drawPath(toQPainterPath(decoration));
 }
 
 KoCanvasBase *KoSnapGuide::canvas() const

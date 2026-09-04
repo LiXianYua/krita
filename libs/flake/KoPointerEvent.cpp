@@ -9,6 +9,7 @@
 */
 
 #include "KoPointerEvent.h"
+#include <PkFlakeBridge.h>
 #include <QTabletEvent>
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -523,7 +524,7 @@ std::optional<PkPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEve
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
             return touchPoints.constFirst().globalPosition();
 #else
-            return touchPoints.constFirst().screenPos();
+            return toPkPointF(touchPoints.constFirst().screenPos());
 #endif
         }
     } else if (event->type() == QEvent::TabletPress || event->type() == QEvent::TabletRelease) {

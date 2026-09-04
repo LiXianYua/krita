@@ -36,6 +36,12 @@ inline unsigned int pkHash(const PkString &key, unsigned int seed = 0) noexcept
     return h;
 }
 
+// pair<PkString, PkString> 键（KoCssTextUtils/SvgParser 属性缓存，S-09-g 实测）
+inline unsigned int pkHash(const std::pair<PkString, PkString> &p, unsigned int seed = 0) noexcept
+{
+    return pkHash(p.first, pkHash(p.second, seed));
+}
+
 // ---------------------------------------------------------------------------
 // **不提供 qHash 别名。** 项目目标是移除全部 Qt，pk 只在 Qt 缺席时充当兼容层；
 // 一旦 pk 自己又开始以 Qt 名导出符号，顺序无关（以及"Qt 名与 pk 名彻底分离"）

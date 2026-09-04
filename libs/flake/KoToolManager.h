@@ -286,7 +286,7 @@ Q_SIGNALS:
     /**
      * Emit the new tool option widgets to be used with this canvas.
      */
-    void toolOptionWidgetsChanged(KoCanvasController *controller, const PkList<PkPointer<QWidget> > &widgets);
+    void toolOptionWidgetsChanged(KoCanvasController *controller, const QList<QPointer<QWidget> > &widgets);
 
     /**
      * Emitted when the tool's text mode has changed.

@@ -135,7 +135,7 @@ public:
             // KoColorSpace::toQColor 剥离后收 PkColor*，先转 Pk 再经桥接回真 Qt 颜色。
             PkColor averagePk;
             cs->toQColor(mixed, &averagePk);
-            PkColor average = toPkColor(averagePk);
+            PkColor average = averagePk;
 
             PkPen pen(average);
             pen.setWidth(0);

@@ -7,6 +7,7 @@
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoShapeFillWrapper.h"
+#include <KoGradientBridge.h>
 
 #include <KoShape.h>
 #include <PkList.h>

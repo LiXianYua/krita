@@ -1243,7 +1243,7 @@ KoPathShape * KoPathShape::createShapeFromPainterPath(const PkPainterPath &path)
     for (int i = 0; i < elementCount; i++) {
         PkPainterPath::Element element = path.elementAt(i);
         bool nextIsMove = (i == elementCount - 1) || (path.elementAt(i + 1).isMoveTo());
-        bool merge = nextIsMove && KisAlgebra2D::fuzzyPointCompare(lastTeleportedToPoint, PkPointF(element.x, element.y)));
+        bool merge = nextIsMove && KisAlgebra2D::fuzzyPointCompare(lastTeleportedToPoint, PkPointF(element.x, element.y));
 
         switch (element.type) {
         case PkPainterPath::MoveToElement:

@@ -183,9 +183,9 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
         KisQPainterStateSaver saver(&painter);
 
         if (!isEnd(parent(it))) {
-            painter.setTransform(shape->transformation() * painter.transform());
+            painter.setTransform(toQTransform(shape->transformation()) * painter.transform());
         } else {
-            painter.setTransform(shape->absoluteTransformation() * painter.transform());
+            painter.setTransform(toQTransform(shape->absoluteTransformation()) * painter.transform());
         }
 
         KoClipPath::applyClipping(shape, painter);
@@ -204,7 +204,7 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
              * We should clip on both, the shape and the global clipping rect.
              * Otherwise filling huge shapes will go into almost infinite loop.
              */
-            const PkRectF bounds = painter.transform().mapRect(shape->outlineRect() & painter.clipBoundingRect());
+            const PkRectF bounds = toPkRectF(painter.transform().mapRect(toQRectF(shape->outlineRect())) & painter.clipBoundingRect());
 
             clipMaskPainter.reset(new KoClipMaskPainter(&painter, bounds));
             shapePainter = clipMaskPainter->shapePainter();
@@ -215,7 +215,7 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
          * not always here, so we need a period of sanity checks to ensure all the shapes are
          * ported correctly.
          */
-        const PkTransform sanityCheckTransformSaved = shapePainter->transform();
+        const PkTransform sanityCheckTransformSaved = toPkTransform(shapePainter->transform());
 
         renderShapes(childBegin(it), childEnd(it), *shapePainter);
 
@@ -229,8 +229,8 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
             }
         }
 
-        KIS_SAFE_ASSERT_RECOVER(shapePainter->transform() == sanityCheckTransformSaved) {
-            shapePainter->setTransform(sanityCheckTransformSaved);
+        KIS_SAFE_ASSERT_RECOVER(shapePainter->transform() == toQTransform(sanityCheckTransformSaved)) {
+            shapePainter->setTransform(toQTransform(sanityCheckTransformSaved));
         }
 
         if (clipMask) {
@@ -485,7 +485,8 @@ void KoShapeManager::preparePaintJobs(PaintJobsOrder &jobsOrder,
             rootShapesSet.insert(shape);
         }
     }
-    const PkList<KoShape*> rootShapes(rootShapesSet.begin(), rootShapesSet.end());
+    PkList<KoShape*> rootShapes;
+        for (KoShape *rs : rootShapesSet) rootShapes.append(rs);
     PkList<KoShape*> newRootShapes;
 
     Q_FOREACH (KoShape *srcShape, rootShapes) {

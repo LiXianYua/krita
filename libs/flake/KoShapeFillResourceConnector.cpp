@@ -88,7 +88,7 @@ void KoShapeFillResourceConnector::Private::applyShapeColoring(KoFlake::FillVari
 
     KoShapeFillWrapper wrapper(selectedEditableShapes, fillVariant);
     // KoColor::toQColor() 在剥离后返回 PkColor，经桥接转回真 Qt 颜色再喂给 setColor。
-    KUndo2Command *command = wrapper.setColor(toQColor(color));
+    KUndo2Command *command = wrapper.setColor(toPkColor(color.toQColor()));
 
     if (command) {
         canvas->addCommand(command);

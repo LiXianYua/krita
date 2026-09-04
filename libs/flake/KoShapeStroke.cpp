@@ -10,6 +10,7 @@
 
 // Own
 #include "KoShapeStroke.h"
+#include <PkFlakeBridge.h>
 
 // Posix
 #include <math.h>
@@ -55,7 +56,7 @@ std::pair<qreal, qreal> anglesForSegment(KoPathSegment segment) {
     }
 
     PkList<PkPointF> points = segment.controlPoints();
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(points.size() == 4, qMakePair(0.0, 0.0));
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(points.size() == 4, std::make_pair(0.0, 0.0));
     PkPointF vec1 = points[1] - points[0];
     PkPointF vec2 = points[3] - points[2];
 
@@ -71,7 +72,7 @@ std::pair<qreal, qreal> anglesForSegment(KoPathSegment segment) {
 
     const qreal angle1 = std::atan2(vec1.y(), vec1.x());
     const qreal angle2 = std::atan2(vec2.y(), vec2.x());
-    return qMakePair(angle1, angle2);
+    return std::make_pair(angle1, angle2);
 }
 }
 
@@ -82,12 +83,12 @@ void KoShapeStroke::Private::paintBorder(const KoShape *shape, QPainter &painter
         if (pathShape) {
             PkPainterPath path = pathShape->pathStroke(pen);
 
-            painter.fillPath(path, pen.brush());
+            painter.fillPath(toQPainterPath(path), pen.brush());
 
             return;
         }
 
-        painter.strokePath(shape->outline(), pen);
+        painter.strokePath(toQPainterPath(shape->outline()), pen);
     }
 }
 void KoShapeStroke::Private::paintMarkers(const KoShape *shape, QPainter &painter, const PkPen &pen) const
@@ -184,7 +185,7 @@ KoShapeStroke::KoShapeStroke(qreal lineWidth, const PkColor &color)
         : d(new Private(this))
 {
     d->pen.setWidthF(qMax(qreal(0.0), lineWidth));
-    d->pen.setJoinStyle(Qt::MiterJoin);
+    d->pen.setJoinStyle(Pk::MiterJoin);
     d->color = color;
 }
 
@@ -262,9 +263,9 @@ PkPen KoShapeStroke::resultLinePen() const
     PkPen pen = d->pen;
 
     if (d->brush.gradient()) {
-        pen.setBrush(d->brush);
+        pen.setBrush(toQBrush(d->brush));
     } else {
-        pen.setColor(d->color.isValid() ? d->color : Qt::transparent);
+        pen.setColor(toQColor(d->color.isValid() ? d->color : PkColor(Pk::transparent)));
     }
 
     return pen;
@@ -306,8 +307,8 @@ bool KoShapeStroke::compareStyleTo(const KoShapeStrokeModel *other)
     PkPen pen2 = stroke->d->pen;
 
     // just a random color top avoid comparison of that property
-    pen1.setColor(Qt::magenta);
-    pen2.setColor(Qt::magenta);
+    pen1.setColor(toQColor(PkColor(Pk::magenta)));
+    pen2.setColor(toQColor(PkColor(Pk::magenta)));
 
     return pen1 == pen2;
 }
@@ -320,22 +321,22 @@ bool KoShapeStroke::isVisible() const
 
 void KoShapeStroke::setCapStyle(Qt::PenCapStyle style)
 {
-    d->pen.setCapStyle(style);
+    d->pen.setCapStyle(static_cast<Pk::PenCapStyle>(style));
 }
 
 Qt::PenCapStyle KoShapeStroke::capStyle() const
 {
-    return d->pen.capStyle();
+    return static_cast<Qt::PenCapStyle>(d->pen.capStyle());
 }
 
 void KoShapeStroke::setJoinStyle(Qt::PenJoinStyle style)
 {
-    d->pen.setJoinStyle(style);
+    d->pen.setJoinStyle(static_cast<Pk::PenJoinStyle>(style));
 }
 
 Qt::PenJoinStyle KoShapeStroke::joinStyle() const
 {
-    return d->pen.joinStyle();
+    return static_cast<Qt::PenJoinStyle>(d->pen.joinStyle());
 }
 
 void KoShapeStroke::setLineWidth(qreal lineWidth)
@@ -371,7 +372,7 @@ void KoShapeStroke::setColor(const PkColor &color)
 void KoShapeStroke::setLineStyle(Qt::PenStyle style, const PkVector<qreal> &dashes)
 {
     if (style < Qt::CustomDashLine) {
-        d->pen.setStyle(style);
+        d->pen.setStyle(static_cast<Pk::PenStyle>(style));
     } else {
         d->pen.setDashPattern(dashes);
     }
@@ -379,12 +380,16 @@ void KoShapeStroke::setLineStyle(Qt::PenStyle style, const PkVector<qreal> &dash
 
 Qt::PenStyle KoShapeStroke::lineStyle() const
 {
-    return d->pen.style();
+    return static_cast<Qt::PenStyle>(d->pen.style());
 }
 
 PkVector<qreal> KoShapeStroke::lineDashes() const
 {
-    return d->pen.dashPattern();
+    {
+        PkVector<qreal> out;
+        for (qreal v : d->pen.dashPattern()) out.append(v);
+        return out;
+    }
 }
 
 void KoShapeStroke::setDashOffset(qreal dashOffset)

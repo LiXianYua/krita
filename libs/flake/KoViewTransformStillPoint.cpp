@@ -5,6 +5,7 @@
  */
 
 #include <QDebug>
+#include <PkFlakeBridge.h>
 #include "KoViewTransformStillPoint.h"
 
 KoViewTransformStillPoint::KoViewTransformStillPoint(const PkPointF &docPoint, const PkPointF &viewPoint)

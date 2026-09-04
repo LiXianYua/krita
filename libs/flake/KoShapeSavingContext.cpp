@@ -8,6 +8,7 @@
 */
 
 #include <QtCore/QtCore>
+#include <PkHash.h>
 #include <PkFlakeBridge.h>
 #include "KoShapeSavingContext.h"
 
@@ -20,7 +21,7 @@
 #include <KoSharedSavingData.h>
 
 #include <FlakeDebug.h>
-#include <PkNodeId.h>
+#include <pk/uuid/PkNodeId.h>
 #include <PkImage.h>
 #include <KisMimeDatabase.h>
 

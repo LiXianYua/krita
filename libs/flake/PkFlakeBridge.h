@@ -130,6 +130,7 @@ inline PkColor toPkColor(const PK_QCOLOR_ &c)
     return PkColor(c.red(), c.green(), c.blue(), c.alpha());
 }
 
+inline PkColor toPkColor(const PkColor &c) { return c; } // 恒等（真 Qt 分支补齐，KoColor::toQColor 已返 PkColor）
 inline PK_QCOLOR_ toQColor(const PkColor &c)
 {
     return PK_QCOLOR_(c.red(), c.green(), c.blue(), c.alpha());
@@ -167,6 +168,16 @@ inline PK_CAT_(Q, Size) toQSize(const PkSize &s)
     return PK_CAT_(Q, Size)(s.width(), s.height());
 }
 
+inline PK_CAT_(Q, Size) toQSize(const PkSizeF &s)
+{
+    return PK_CAT_(Q, Size)(qRound(s.width()), qRound(s.height()));
+}
+
+inline PK_CAT_(Q, Rect) toQRect(const PkRectF &r)
+{
+    return toQRectF(r).toRect();
+}
+
 inline PK_CAT_(Q, Rect) toQRect(const PkRect &r)
 {
     return PK_CAT_(Q, Rect)(r.x(), r.y(), r.width(), r.height());
@@ -201,6 +212,14 @@ inline PkPoint toPkPoint(const PkPoint &p) { return p; }
 inline PkString toPkString(const PkString &s) { return s; }
 inline PK_QSTRING_ toQString(const PK_QSTRING_ &s) { return s; }
 inline PkVariant toQVariant(const PkVariant &v) { return v; }
+
+// PkBrush → QBrush（KoShapeStroke 过渡）
+inline PK_CAT_(Q, Brush) toQBrush(const PkBrush &b)
+{
+    PK_CAT_(Q, Brush) r(toQColor(b.color()));
+    r.setStyle(static_cast<PK_CAT_(Q, t)::BrushStyle>(b.style()));
+    return r;
+}
 
 inline PK_QLINEF_ toQLineF(const PkLineF &l)
 {

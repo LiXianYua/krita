@@ -7,6 +7,7 @@
 */
 
 #include <QMultiMap>
+#include <PkFlakeBridge.h>
 #include <PkVariant.h>
 
 #include "KoShapeLoadingContext.h"

@@ -584,7 +584,7 @@ void KoToolManager::Private::postSwitchTool()
         canvasData->activeTool->activate(shapesToOperateOn);
     }
 
-    PkList<PkPointer<QWidget> > optionWidgetList = canvasData->activeTool->optionWidgets();
+    QList<QPointer<QWidget> > optionWidgetList = canvasData->activeTool->optionWidgets();
     if (optionWidgetList.empty()) { // no option widget.
         QWidget *toolWidget;
         PkString title = canvasData->activeTool->factory()->toolTip();
@@ -665,7 +665,7 @@ void KoToolManager::Private::detachCanvas(KoCanvasController *controller)
             switchCanvasData(canvasses.value(newCanvas).first());
         } else {
             disconnectActiveTool();
-            Q_EMIT q->toolOptionWidgetsChanged(controller, PkList<PkPointer<QWidget> >());
+            Q_EMIT q->toolOptionWidgetsChanged(controller, QList<QPointer<QWidget> >());
             // as a last resort just set a blank one
             canvasData = 0;
         }

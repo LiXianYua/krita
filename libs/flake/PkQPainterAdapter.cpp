@@ -23,13 +23,6 @@ struct Overloaded : Visitors...
 template<class... Visitors>
 Overloaded(Visitors...) -> Overloaded<Visitors...>;
 
-QBrush toQBrush(const PkBrush &brush)
-{
-    QBrush result(toQColor(brush.color()));
-    result.setStyle(static_cast<Qt::BrushStyle>(brush.style()));
-    return result;
-}
-
 }
 
 PkQPainterAdapter::PkQPainterAdapter(QPainter &painter)

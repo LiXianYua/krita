@@ -10,6 +10,7 @@
 #define KOSHAPELOADINGCONTEXT_H
 
 #include <PkSet.h>
+#include <PkStringHash.h>
 #include <PkString.h>
 #include <utility>
 
@@ -56,6 +57,12 @@ public:
         bool operator==(const AdditionalAttributeData &other) const {
             return name == other.name;
         }
+    // PkHasher 扩展点（pk/container/PkHashFunctions.h 的 ADL 机制）：整结构体哈希
+    inline friend unsigned int pkHash(const AdditionalAttributeData &d, unsigned int seed = 0) noexcept
+    {
+        return pkHash(d.ns, pkHash(d.tag, pkHash(d.name, seed)));
+    }
+
     };
 
     /**

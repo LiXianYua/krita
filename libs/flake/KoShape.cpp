@@ -979,7 +979,7 @@ KisHandlePainterHelper KoShape::createHandlePainterHelperView(QPainter *painter,
     const PkTransform originalPainterTransform = toPkTransform(painter->transform());
 
     painter->setTransform(toQTransform(shape->absoluteTransformation()) *
-                          converter.documentToView() *
+                          toQTransform(converter.documentToView()) *
                           painter->transform());
 
     // move c-tor

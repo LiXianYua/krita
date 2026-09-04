@@ -13,6 +13,7 @@
 
 #include <QBrush>
 #include <PkGradient.h>
+#include <KoGradientBridge.h>
 #include <PkFlakeBridge.h>
 #include <QPainter>
 #include <QSharedData>
@@ -29,35 +30,6 @@ public:
     PkGradient *gradient;
     PkTransform matrix;
 };
-
-namespace {
-QGradient toQGradient(const PkGradient &g)
-{
-    QGradient out;
-    switch (g.type()) {
-    case PkGradient::LinearGradient:
-        out = QLinearGradient(toQPointF(g.start()), toQPointF(g.finalStop()));
-        break;
-    case PkGradient::RadialGradient:
-        out = QRadialGradient(toQPointF(g.center()), g.radius(), toQPointF(g.focalPoint()));
-        break;
-    case PkGradient::ConicalGradient:
-        out = QConicalGradient(toQPointF(g.center()), g.angle());
-        break;
-    default:
-        break;
-    }
-    out.setCoordinateMode(static_cast<QGradient::CoordinateMode>(g.coordinateMode()));
-    out.setSpread(static_cast<QGradient::Spread>(g.spread()));
-    QGradientStops stops;
-    const PkGradientStops src = g.stops();
-    for (const PkGradientStop &stop : src) {
-        stops << qMakePair(stop.offset, toQColor(stop.color));
-    }
-    out.setStops(stops);
-    return out;
-}
-}
 
 KoGradientBackground::KoGradientBackground(PkGradient * gradient, const PkTransform &matrix)
     : KoShapeBackground()

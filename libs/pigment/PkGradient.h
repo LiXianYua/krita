@@ -26,6 +26,9 @@ enum CoordinateMode { LogicalMode, ObjectBoundingMode };
 
 // 渐变 stop：offset + 颜色。消费方按 offset/color 取用。
 struct PkGradientStop {
+    PkGradientStop() = default;
+    PkGradientStop(qreal o, const PkColor &c) : offset(o), color(c) {}
+
     qreal offset;
     PkColor color;
 
