@@ -223,7 +223,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
     int lineCount = 0;
     PkString bodyEm = "1em";
     PkString em;
-    PkString p("p");
+    const QString p = QStringLiteral("p");
     //previous style string is for keeping formatting proper on linebreaks and appendstyle is for specific tags
     PkString previousStyleString;
     PkString appendStyle;
@@ -363,19 +363,11 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
                     filteredStyles.append(" text-anchor:start;");
                 }
 
-                    svgWriter.writeAttribute("style", toQString(filteredStyles));
-
                 if (!filteredStyles.isEmpty()) {
                     svgWriter.writeAttribute("style", toQString(filteredStyles));
                     previousStyleString = filteredStyles;
                 }
 
-
-            }
-                svgWriter.writeAttribute("dy", toQString(em));
-                debugFlake << "\t\tAdvancing to the next line";
-                svgWriter.writeAttribute("x", "0");
-                svgWriter.writeAttribute("dy", toQString(em));
             }
             break;
         }
@@ -546,7 +538,7 @@ qreal fixToQtDpi(qreal value)
 
 qreal calcLineWidth(const QTextBlock &block)
 {
-    const PkString blockText = block.text();
+    const PkString blockText = toPkString(block.text());
 
     QTextLayout lineLayout;
     lineLayout.setText(toQString(blockText));
@@ -719,7 +711,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
 
         const QTextBlockFormat blockFormatDiff = formatDifference(block.blockFormat(), mostCommonBlockFormat).toBlockFormat();
         QTextCharFormat blockCharFormatDiff = QTextCharFormat();
-        const PkVector<QTextLayout::FormatRange> formats = block.textFormats();
+        const QList<QTextLayout::FormatRange> formats = block.textFormats();
         if (formats.size()==1) {
             blockCharFormatDiff = formatDifference(formats.at(0).format, mostCommonCharFormat).toCharFormat();
             if (wrappingMode == WrappingMode::WhiteSpacePreWrap) {
@@ -741,7 +733,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
 
         svgWriter.writeStartElement("tspan");
 
-        const PkString text = block.text();
+        const PkString text = toPkString(block.text());
 
         bool isRightToLeft;
         switch (block.textDirection()) {
@@ -846,10 +838,10 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
                 if (!subStyle.isEmpty()) {
                     svgWriter.writeStartElement("tspan");
                     svgWriter.writeAttribute("style", toQString(subStyle));
-                    svgWriter.writeCharacters(texts.at(c));
+                    svgWriter.writeCharacters(toQString(texts.at(c)));
                     svgWriter.writeEndElement();
                 } else {
-                    svgWriter.writeCharacters(texts.at(c));
+                    svgWriter.writeCharacters(toQString(texts.at(c)));
                 }
             }
 
@@ -1691,7 +1683,7 @@ QTextFormat KoSvgTextShapeMarkupConverter::formatDifference(QTextFormat test, QT
     //copied from QTextDocument.cpp
     QTextFormat diff = test;
     //props should proly compare itself to the main text format...
-    const PkMap<int, PkVariant> props = reference.properties();
+    const QMap<int, QVariant> props = reference.properties();
     for (PkMap<int, PkVariant>::ConstIterator it = props.begin(), end = props.end();
          it != end; ++it)
         if (it.value() == test.property(it.key())) {
@@ -1710,7 +1702,7 @@ QTextFormat KoSvgTextShapeMarkupConverter::formatDifference(QTextFormat test, QT
 KoSvgTextShapeMarkupConverter::WrappingMode
 KoSvgTextShapeMarkupConverter::getWrappingMode(const QTextFrameFormat &frameFormat)
 {
-    const PkVariant wrappingMode = frameFormat.property(WrappingModeProperty);
+    const QVariant wrappingMode = frameFormat.property(WrappingModeProperty);
     if (wrappingMode.userType() != QMetaType::Int) {
         return WrappingMode::QtLegacy;
     }
@@ -1724,7 +1716,7 @@ void KoSvgTextShapeMarkupConverter::setWrappingMode(QTextFrameFormat *frameForma
 
 std::optional<double> KoSvgTextShapeMarkupConverter::getInlineSize(const QTextFrameFormat &frameFormat)
 {
-    const PkVariant inlineSize = frameFormat.property(InlineSizeProperty);
+    const QVariant inlineSize = frameFormat.property(InlineSizeProperty);
     if (inlineSize.userType() != QMetaType::Double) {
         return {};
     }

@@ -128,13 +128,6 @@ bool SvgWriter::save(PkStream &outputDevice, const PkSizeF &pageSize)
     return true;
 }
 
-bool SvgWriter::save(PkStream &outputDevice, const PkSizeF &pageSize)
-{
-    PkStreamIoDevice device;
-    device.attach(&outputDevice);
-    return save(device, pageSize);
-}
-
 bool SvgWriter::saveDetached(PkStream &outputDevice)
 {
     if (m_toplevelShapes.isEmpty())
@@ -258,7 +251,8 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
     painter.setShapes(PkList<KoShape*>()<< shape);
 
     // generate svg from shape
-    QBuffer svgBuffer;
+    QByteArray svgData;
+    QBuffer svgBuffer(&svgData);
     svgBuffer.open(QIODevice::ReadOnly | QIODevice::WriteOnly);
     QSvgGenerator svgGenerator;
     svgGenerator.setOutputDevice(&svgBuffer);
@@ -278,7 +272,7 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
 
     QPainter svgPainter;
     svgPainter.begin(&svgGenerator);
-    painter.paint(svgPainter, toQRectF(SvgUtil::toUserSpace(toPkRectF(bbox))).toRect(), bbox);
+    painter.paint(svgPainter, toPkRect(toQRectF(SvgUtil::toUserSpace(toPkRectF(bbox))).toRect()), bbox);
     svgPainter.end();
 
     // remove anything before the start of the svg element from the buffer
@@ -288,7 +282,7 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
     }
 
     // check if painting to svg produced any output
-    if (svgBuffer.buffer().isEmpty()) {
+    if (svgData.isEmpty()) {
         // prepare a transparent image, make it twice as big as the original size
         PkImage image(2*bbox.size().toSize(), PkImage::Format_ARGB32);
         image.fill(0);

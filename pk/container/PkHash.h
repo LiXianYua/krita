@@ -58,4 +58,21 @@ public:
     PkHash &operator=(const PkHash &) = default;
     PkHash(PkHash &&) = default;
     PkHash &operator=(PkHash &&) = default;
+
+    // 两参 insert（对齐 QHash::insert(k,v)；KisSignalMapper 5 处，S-09-g）。
+    void insert(const K &key, const V &value)
+    {
+        this->m_d.PkMut().insert_or_assign(key, value);
+    }
+
+    // 合并另一张表（同键覆盖；KoFFWWSConverter 的 sampleStrings/pixelSizes/
+    // localizedLabels 聚合，S-09-g）。
+    void insert(const PkHash &other)
+    {
+        PkInner &m = this->m_d.PkMut();
+        const PkInner &mo = other.m_d.PkConst();
+        for (const auto &entry : mo) {
+            m.insert_or_assign(entry.first, entry.second);
+        }
+    }
 };

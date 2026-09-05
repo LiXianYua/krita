@@ -8,6 +8,7 @@
 #ifndef KOSHAPEPAINTER_H
 #define KOSHAPEPAINTER_H
 
+#include <QRect>
 #include <PkList.h>
 #include <functional>
 #include <PkRect.h>
@@ -52,7 +53,7 @@ public:
      * @param painterRect the destination rectangle on the painter
      * @param documentRect the document region to paint
      */
-    void paint(QPainter &painter, const PkRect &painterRect, const PkRectF &documentRect);
+    void paint(QPainter &painter, const QRect &painterRect, const PkRectF &documentRect);
 
     /**
      * Paints shapes to the given image, so that all shapes fit onto it.

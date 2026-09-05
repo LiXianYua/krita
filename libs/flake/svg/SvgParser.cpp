@@ -14,6 +14,7 @@
 #include <PkTextStream.h>
 #include <PkFileStream.h>
 #include <PkFlakeBridge.h>
+#include <KoGradientBridge.h>
 #include "SvgParser.h"
 
 #include <cmath>
@@ -1082,8 +1083,8 @@ PkGradient* prepareGradientForShape(const SvgGradientHelper *gradient,
 
             const PkTransform userToRelative = relativeToUser.inverted();
 
-            const QLinearGradient *o = static_cast<const QLinearGradient*>(gradient->gradient());
-            QLinearGradient *g = new QLinearGradient();
+            const PkGradient *o = gradient->gradient();
+            PkGradient *g = new PkGradient(PkGradient::LinearGradient);
             g->setStart(userToRelative.map(o->start()));
             g->setFinalStop(userToRelative.map(o->finalStop()));
             g->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
@@ -1108,7 +1109,7 @@ PkGradient* prepareGradientForShape(const SvgGradientHelper *gradient,
              * by applying an additional pre-transform
              */
 
-            QRadialGradient *rgradient = static_cast<QRadialGradient*>(resultGradient);
+            PkGradient *rgradient = resultGradient;
 
             const qreal maxDimension = KisAlgebra2D::maxDimension(outlineRect);
             const PkRectF uniformSize(outlineRect.topLeft(), PkSizeF(maxDimension, maxDimension));
@@ -1122,14 +1123,14 @@ PkGradient* prepareGradientForShape(const SvgGradientHelper *gradient,
             const PkPointF centerLocal = transform->map(rgradient->center());
             const PkPointF focalLocal = transform->map(rgradient->focalPoint());
 
-            const PkPointF centerOBB = toQPointF(KisAlgebra2D::absoluteToRelative(toPkPointF(centerLocal), toPkRectF(uniformSize)));
-            const PkPointF focalOBB = toQPointF(KisAlgebra2D::absoluteToRelative(toPkPointF(focalLocal), toPkRectF(uniformSize)));
+            const PkPointF centerOBB = KisAlgebra2D::absoluteToRelative(centerLocal, uniformSize);
+            const PkPointF focalOBB = KisAlgebra2D::absoluteToRelative(focalLocal, uniformSize);
 
             rgradient->setCenter(centerOBB);
             rgradient->setFocalPoint(focalOBB);
 
-            const qreal centerRadiusOBB = KisAlgebra2D::absoluteToRelative(rgradient->centerRadius(), toPkRectF(uniformSize));
-            const qreal focalRadiusOBB = KisAlgebra2D::absoluteToRelative(rgradient->focalRadius(), toPkRectF(uniformSize));
+            const qreal centerRadiusOBB = KisAlgebra2D::absoluteToRelative(rgradient->centerRadius(), uniformSize);
+            const qreal focalRadiusOBB = KisAlgebra2D::absoluteToRelative(rgradient->focalRadius(), uniformSize);
 
             rgradient->setCenterRadius(centerRadiusOBB);
             rgradient->setFocalRadius(focalRadiusOBB);
@@ -1284,7 +1285,7 @@ void SvgParser::applyStrokeStyle(KoShape *shape)
             PkTransform transform;
             PkGradient *result = prepareGradientForShape(gradient, shape, gc, &transform);
             if (result) {
-                QBrush brush(toQGradient(*result->gradient()));
+                QBrush brush(toQGradient(*result));
                 delete result;
                 brush.setTransform(toQTransform(transform));
 
@@ -1411,7 +1412,7 @@ void SvgParser::applyMaskClipping(KoShape *shape, const PkPointF &shapeToOrigina
         return;
 
 
-    PkSharedPointer<KoClipMask> originalClipMask = m_clipMasks.value(toQString(gc->clipMaskId));
+    PkSharedPointer<KoClipMask> originalClipMask = m_clipMasks.value(gc->clipMaskId);
     if (!originalClipMask || originalClipMask->isEmpty()) return;
 
     KoClipMask *clipMask = originalClipMask->clone();
@@ -1449,7 +1450,7 @@ KoShape* SvgParser::resolveUse(const PkXmlElement &e, const PkString& key)
     // TODO: parse 'width' and 'height' as well
     gc->matrix.translate(parseUnitX(e.attribute("x", "0")), parseUnitY(e.attribute("y", "0")));
 
-    const PkXmlElement referencedElement = m_context.definition(toPkString(key)));
+    const PkXmlElement referencedElement = m_context.definition(toPkString(key));
     result = parseGroup(e, referencedElement, false);
 
     m_context.popGraphicsContext();
@@ -1592,7 +1593,7 @@ PkStringList SvgParser::warnings() const
     PkStringList warnings;
 
     Q_FOREACH (const KoID &id, m_warnings) {
-        warnings << toQString(id.name());
+        warnings << id.name();
     }
 
     return warnings;
@@ -1797,12 +1798,12 @@ KoShape *SvgParser::parseTextElement(const PkXmlElement &e, KoSvgTextShape *merg
 
     if (rootTextShape) {
         if (!m_context.currentGC()->shapeInsideValue.isEmpty()) {
-            PkList<KoShape*> shapesInside = createListOfShapesFromCSS(e, toQString(m_context.currentGC()->shapeInsideValue), m_context, hideShapesFromDefs);
+            PkList<KoShape*> shapesInside = createListOfShapesFromCSS(e, m_context.currentGC()->shapeInsideValue, m_context, hideShapesFromDefs);
             rootTextShape->setShapesInside(shapesInside);
         }
 
         if (!m_context.currentGC()->shapeSubtractValue.isEmpty()) {
-            PkList<KoShape*> shapesSubtract = createListOfShapesFromCSS(e, toQString(m_context.currentGC()->shapeSubtractValue), m_context, hideShapesFromDefs);
+            PkList<KoShape*> shapesSubtract = createListOfShapesFromCSS(e, m_context.currentGC()->shapeSubtractValue, m_context, hideShapesFromDefs);
             rootTextShape->setShapesSubtract(shapesSubtract);
         }
     }

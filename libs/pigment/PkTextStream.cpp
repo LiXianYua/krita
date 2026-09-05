@@ -3,6 +3,7 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <iomanip>
 #include "PkTextStream.h"
 
 #include <cstdlib>
@@ -193,6 +194,14 @@ PkTextStream &PkTextStream::operator<<(const PkString &s)
 {
     const std::string utf8 = s.PkToUtf8();
     appendToWriteBuf(utf8.data(), utf8.size());
+    return *this;
+}
+
+PkTextStream &PkTextStream::operator<<(qreal v)
+{
+    std::ostringstream os;
+    os << std::setprecision(m_realPrec) << v;
+    appendToWriteBuf(os.str().data(), os.str().size());
     return *this;
 }
 

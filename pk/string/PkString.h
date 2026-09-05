@@ -6,6 +6,7 @@
 #include "../container/PkArrayData.h"
 #include "../container/PkByteArray.h"
 #include "../container/PkList.h"
+#include "../namespace/PkNamespace.h"
 
 // PkString —— 零 Qt 依赖的 COW UTF-16 字符串。
 //
@@ -41,11 +42,31 @@ public:
     bool startsWith(const PkString& prefix) const;
     PkString trimmed() const;
     PkList<PkString> split(char16_t sep) const;
+    // 两参重载：SkipEmptyParts 滤空段（KoSvgTextProperties 等 8 处调用点，S-09-g）
+    PkList<PkString> split(char16_t sep, Pk::SplitBehavior behavior) const
+    {
+        PkList<PkString> out;
+        for (const PkString &part : split(sep)) {
+            if (behavior == Pk::SkipEmptyParts && part.isEmpty()) continue;
+            out.append(part);
+        }
+        return out;
+    }
     // split(const char*)：对齐 QString::split(const char*) 的常见单 ASCII 字符分隔用法
     // （如 split("/")、split(",")），将 c 串首字符转 char16_t 后复用 split(char16_t)。
     PkList<PkString> split(const char* sep) const
     {
         return split(static_cast<char16_t>(PkString(sep)[0]));
+    
+    }
+    PkList<PkString> split(const char* sep, Pk::SplitBehavior behavior) const
+    {
+        PkList<PkString> out;
+        for (const PkString &part : split(sep)) {
+            if (behavior == Pk::SkipEmptyParts && part.isEmpty()) continue;
+            out.append(part);
+        }
+        return out;
     }
     PkString toLower() const;
     PkString toUpper() const;
@@ -59,6 +80,12 @@ public:
     PkString arg(int v, int fieldWidth) const;   // 新增：Task 3 实现
     PkString arg(double v) const;
     int toInt(bool* ok = nullptr) const;
+    // 两参形态（base 仅支持 10；FFWWS/KoSvgText 调用点，S-09-g）
+    int toInt(bool *ok, int base) const
+    {
+        Q_UNUSED(base);
+        return toInt(ok);
+    }
     double toDouble(bool* ok = nullptr) const;
 
     // ── 用量表 · 扩（flake 实测补入）────────────────────────
@@ -125,6 +152,10 @@ public:
             out.push_back(static_cast<char16_t>(static_cast<unsigned char>(s[i])));
         }
         return fromUtf16(out.data(), int(out.size()));
+    }
+    static PkString fromLatin1(const PkByteArray &ba)
+    {
+        return fromLatin1(ba.data(), int(ba.size()));
     }
     static PkString fromUtf8(const char* s, int len)               // 定长重载（S-09-g KoFontGlyphModel）
     {

@@ -44,66 +44,9 @@ KIS_DECLARE_STATIC_INITIALIZER {
     qRegisterMetaType<KoSvgText::FontMetrics>("KoSvgText::FontMetrics");
     qRegisterMetaType<KoSvgText::TextUnderlinePosition>("KoSvgText::TextUnderlinePosition");
 
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    qRegisterMetaTypeStreamOperators<KoSvgText::FontFamilyAxis>("KoSvgText::FontFamilyAxis");
-    qRegisterMetaTypeStreamOperators<KoSvgText::FontFamilyStyleInfo>("KoSvgText::FontFamilyStyleInfo");
-
-    QMetaType::registerEqualsComparator<KoSvgText::CssLengthPercentage>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::CssLengthPercentage>();
-
-    QMetaType::registerEqualsComparator<KoSvgText::AutoValue>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::AutoValue>();
-
-
-    QMetaType::registerEqualsComparator<KoSvgText::AutoLengthPercentage>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::AutoLengthPercentage>();
-
-    QMetaType::registerEqualsComparator<KoSvgText::CssFontStyleData>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::CssFontStyleData>();
-    
-    QMetaType::registerEqualsComparator<KoSvgText::BackgroundProperty>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::BackgroundProperty>();
-
-
-    QMetaType::registerEqualsComparator<KoSvgText::StrokeProperty>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::StrokeProperty>();
-
-
-    QMetaType::registerEqualsComparator<KoSvgText::TextTransformInfo>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::TextTransformInfo>();
-
-
-    QMetaType::registerEqualsComparator<KoSvgText::TextIndentInfo>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::TextIndentInfo>();
-
-
-    QMetaType::registerEqualsComparator<KoSvgText::TabSizeInfo>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::TabSizeInfo>();
-
-    QMetaType::registerEqualsComparator<KoSvgText::LineHeightInfo>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::LineHeightInfo>();
-    
-    QMetaType::registerEqualsComparator<KoSvgText::FontFamilyAxis>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::FontFamilyAxis>();
-    
-    QMetaType::registerEqualsComparator<KoSvgText::FontFamilyStyleInfo>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::FontFamilyStyleInfo>();
-
-    QMetaType::registerEqualsComparator<KoSvgText::FontFeatureLigatures>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::FontFeatureLigatures>();
-
-    QMetaType::registerEqualsComparator<KoSvgText::FontFeatureNumeric>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::FontFeatureNumeric>();
-
-    QMetaType::registerEqualsComparator<KoSvgText::FontFeatureEastAsian>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::FontFeatureEastAsian>();
-
-    QMetaType::registerEqualsComparator<KoSvgText::FontMetrics>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::FontMetrics>();
-
-    QMetaType::registerEqualsComparator<KoSvgText::TextUnderlinePosition>();
-    QMetaType::registerDebugStreamOperator<KoSvgText::TextUnderlinePosition>();
-#endif
+// Qt5 的 registerEqualsComparator/DebugStreamOperator 依赖 QMetaType 流化与
+    // QString 成员语义，过渡期裁剪（S-09-g）。Qt6 分支不用这些 API。
+    // （原 #endif 随裁剪块一并移除，S-09-g）
 }
 
 namespace KoSvgText {
@@ -204,7 +147,7 @@ LengthAdjust parseLengthAdjust(const PkString &value)
 
 PkString writeAutoValue(const AutoValue &value, const PkString &autoKeyword)
 {
-    return value.isAuto ? autoKeyword : toQString(KisDomUtils::toString(value.customValue));
+    return value.isAuto ? autoKeyword : KisDomUtils::toString(value.customValue);
 }
 
 PkString writeWritingMode(WritingMode value, bool svg1_1)
@@ -462,7 +405,7 @@ QDebug operator<<(QDebug dbg, const BackgroundProperty &prop)
     dbg.nospace() << prop.property.data();
 
     if (KoColorBackground *fill = dynamic_cast<KoColorBackground*>(prop.property.data())) {
-        dbg.nospace() << toQColor("), color, " << fill->color();
+        dbg.nospace() << "), color: " << toQColor(fill->color());
     }
 
     if (KoGradientBackground *fill = dynamic_cast<KoGradientBackground*>(prop.property.data())) {
@@ -484,7 +427,7 @@ QDebug operator<<(QDebug dbg, const StrokeProperty &prop)
     dbg.nospace() << prop.property.data();
 
     if (KoShapeStroke *stroke = dynamic_cast<KoShapeStroke*>(prop.property.data())) {
-        dbg.nospace() << toQPen("), " << stroke->resultLinePen();
+        dbg.nospace() << "), pen: " << toQPen(stroke->resultLinePen());
     }
 
     dbg.nospace() << ")";
@@ -768,7 +711,7 @@ TabSizeInfo parseTabSize(const PkString &value, const SvgLoadingContext &context
 
 PkString writeTabSize(const TabSizeInfo tabSize)
 {
-    PkString val = toQString(KisDomUtils::toString(tabSize.value));
+    PkString val = KisDomUtils::toString(tabSize.value);
     if (!tabSize.isNumber) {
 
         // Tabsize does not support percentage, so if we accidentally set it somewhere, convert to em.
@@ -874,7 +817,7 @@ LineHeightInfo parseLineHeight(const PkString &value, const SvgLoadingContext &c
 PkString writeLineHeight(LineHeightInfo lineHeight)
 {
     if (lineHeight.isNormal) return PkString("normal");
-    PkString val = toQString(KisDomUtils::toString(lineHeight.value));
+    PkString val = KisDomUtils::toString(lineHeight.value);
     if (!lineHeight.isNumber) {
         val = writeLengthPercentage(lineHeight.length);
         if (lineHeight.length.unit == CssLengthPercentage::Absolute) {
@@ -930,9 +873,9 @@ PkString writeLengthPercentage(const CssLengthPercentage &length, bool percentag
 {
     PkString val;
     if (length.unit == CssLengthPercentage::Percentage && !percentageAsEm) {
-        val = toQString(KisDomUtils::toString(length.value*100.0)) + "%";
+        val = KisDomUtils::toString(length.value*100.0) + "%";
     } else {
-        val = toQString(KisDomUtils::toString(length.value));
+        val = KisDomUtils::toString(length.value);
         if (length.unit == CssLengthPercentage::Em || length.unit == CssLengthPercentage::Percentage) {
             val += "em";
         } else if (length.unit == CssLengthPercentage::Ex) {
@@ -1007,14 +950,14 @@ PkDataStream &operator<<(PkDataStream &out, const KoSvgText::FontFamilyAxis &axi
     PkXmlDocument doc;
     PkXmlElement root = doc.createElement("axis");
     root.setAttribute("tagName", axis.tag);
-    root.setAttribute("min", axis.min);
-    root.setAttribute("max", axis.max);
-    root.setAttribute("default", axis.defaultValue);
+    root.setAttribute("min", PkString::number(axis.min));
+    root.setAttribute("max", PkString::number(axis.max));
+    root.setAttribute("default", PkString::number(axis.defaultValue));
     root.setAttribute("hidden", axis.axisHidden? "true": "false");
     root.setAttribute("variable", axis.variableAxis? "true": "false");
     for(auto it = axis.localizedLabels.begin(); it != axis.localizedLabels.end(); it++) {
         PkXmlElement name = doc.createElement("name");
-        name.setAttribute("lang", it.key().bcp47Name());
+        name.setAttribute("lang", toPkString(it.key().bcp47Name()));
         name.setAttribute("value", it.value());
         root.appendChild(name);
     }
@@ -1041,7 +984,7 @@ PkDataStream &operator>>(PkDataStream &in, KoSvgText::FontFamilyAxis &axis) {
         PkXmlElement name = names.at(i).toElement();
         PkString lang = name.attribute("lang");
         PkString value = name.attribute("value");
-        axis.localizedLabels.insert(QLocale(lang), value);
+        axis.localizedLabels.insert(QLocale(toQString(lang)), value);
     }
 
     return in;
@@ -1062,12 +1005,12 @@ PkDataStream &operator<<(PkDataStream &out, const KoSvgText::FontFamilyStyleInfo
     for(auto it = style.instanceCoords.begin(); it != style.instanceCoords.end(); it++) {
         PkXmlElement coord = doc.createElement("coord");
         coord.setAttribute("tag", it.key());
-        coord.setAttribute("value", it.value());
+        coord.setAttribute("value", PkString::number(it.value()));
         root.appendChild(coord);
     }
     for(auto it = style.localizedLabels.begin(); it != style.localizedLabels.end(); it++) {
         PkXmlElement name = doc.createElement("name");
-        name.setAttribute("lang", it.key().bcp47Name());
+        name.setAttribute("lang", toPkString(it.key().bcp47Name()));
         name.setAttribute("value", it.value());
         root.appendChild(name);
     }
@@ -1089,7 +1032,7 @@ PkDataStream &operator>>(PkDataStream &in, KoSvgText::FontFamilyStyleInfo &style
         PkXmlElement name = names.at(i).toElement();
         PkString lang = name.attribute("lang");
         PkString value = name.attribute("value");
-        style.localizedLabels.insert(QLocale(lang), value);
+        style.localizedLabels.insert(QLocale(toQString(lang)), value);
     }
     PkXmlNodeList coords =  root.elementsByTagName("coord");
     for(int i = 0; i < coords.size(); i++) {
@@ -1364,7 +1307,7 @@ PkStringList fontFeaturesPosition(const FontFeaturePosition &feature, const int 
         tag += length;
         tag += "=1";
     }
-    return tag.isEmpty()? PkStringList(): PkStringList(tag);
+    return tag.isEmpty()? PkStringList(): PkStringList{tag};
 }
 
 PkStringList fontFeaturesCaps(const FontFeatureCaps &feature, const int start, const int end)

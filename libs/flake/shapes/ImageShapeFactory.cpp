@@ -30,8 +30,8 @@ ImageShapeFactory::ImageShapeFactory()
     setToolTip(toPkString(i18n("A shape that shows an image (PNG/JPG/TIFF)")));
 
     PkList<std::pair<PkString, PkStringList> > elementNamesList;
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), PkStringList{PkString("image")}));
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::svg), PkStringList{PkString("image")}));
+    elementNamesList.append(std::make_pair(PkString(KoXmlNS::draw), PkStringList{PkString("image")}));
+    elementNamesList.append(std::make_pair(PkString(KoXmlNS::svg), PkStringList{PkString("image")}));
     setXmlElements(elementNamesList);
     setLoadingPriority(1);
 }
@@ -66,5 +66,5 @@ bool ImageShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &c
 {
     Q_UNUSED(context);
     return e.localName() == "image" &&
-            (e.namespaceURI() == toQString(KoXmlNS::draw) || e.namespaceURI() == toQString(KoXmlNS::svg));
+            (toQString(e.namespaceURI()) == toQString(KoXmlNS::draw) || toQString(e.namespaceURI()) == toQString(KoXmlNS::svg));
 }

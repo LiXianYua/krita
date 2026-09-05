@@ -67,7 +67,7 @@ void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
         << " In line: " << errorLine << ", column: " << errorColumn << Qt::endl
         << " Error message: " << errorMsg << Qt::endl;
         errKrita << i18n("Parsing error in the main document at line %1, column %2\nError message: %3"
-                         , errorLine , errorColumn , errorMsg);
+                         , errorLine , errorColumn , toQString(errorMsg));
         return;
     }
 

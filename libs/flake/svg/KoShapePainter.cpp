@@ -142,7 +142,7 @@ void KoShapePainter::paint(QPainter &painter)
     d->canvas->shapeManager()->paint(painter);
 }
 
-void KoShapePainter::paint(QPainter &painter, const PkRect &painterRect, const PkRectF &documentRect)
+void KoShapePainter::paint(QPainter &painter, const QRect &painterRect, const PkRectF &documentRect)
 {
     if (documentRect.width() == 0.0f || documentRect.height() == 0.0f)
         return;
@@ -166,12 +166,13 @@ void KoShapePainter::paint(QPainter &painter, const PkRect &painterRect, const P
     painter.setPen(QPen(Qt::NoPen));
     painter.setBrush(Qt::NoBrush);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setClipRect(toQRect(painterRect.adjusted(-1,-1,1,1)));
+    painter.setClipRect(painterRect.adjusted(-1,-1,1,1));
 
     // convert document rectangle to view coordinates
     PkRectF zoomedBound = converter.documentToView(documentRect);
     // calculate offset between painter rectangle and converted document rectangle
-    PkPointF offset = PkRectF(painterRect).center() - zoomedBound.center();
+    const QPointF painterCenter = QRectF(painterRect).center();
+    PkPointF offset = toPkPointF(painterCenter) - zoomedBound.center();
     // center content in painter rectangle
     painter.translate(offset.x(), offset.y());
     painter.setTransform(toQTransform(converter.documentToView()), true);

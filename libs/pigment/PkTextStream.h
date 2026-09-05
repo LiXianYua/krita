@@ -49,6 +49,8 @@ public:
     PkTextStream &operator<<(const PkString &s);
     PkTextStream &operator<<(const char *s);
     PkTextStream &operator<<(int v);
+    PkTextStream &operator<<(qreal v);                 // 路径坐标写侧（setRealNumberPrecision 控制）
+    void setRealNumberPrecision(int precision) { m_realPrec = precision; }
     PkTextStream &operator<<(char c);
 
     void flush();                              // 把内部写缓冲写给 device
@@ -58,7 +60,8 @@ public:
     void setAutoDetectUnicode(bool enabled);
 
 private:
-    PkString *m_pkStr = nullptr;   // PkString 后端（写直通）
+    PkString *m_pkStr = nullptr;
+    int m_realPrec = 6;                                // 对齐 QTextStream 默认 realNumberPrecision   // PkString 后端（写直通）
     PkStream *m_device;
     PkByteArray m_readBuf;
     std::size_t m_pos;

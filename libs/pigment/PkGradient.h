@@ -110,6 +110,11 @@ public:
     void setRadius(qreal);
     PkPointF focalPoint() const;
     void setFocalPoint(const PkPointF &);
+    // QRadialGradient 的双半径扩展（径向 OBB 补偿用）：centerRadius < 0 表示未显式设置（= radius）。
+    qreal centerRadius() const { return m_centerRadius < 0 ? radius() : m_centerRadius; }
+    qreal focalRadius() const { return m_focalRadius; }
+    void setCenterRadius(qreal r) { m_centerRadius = r; }
+    void setFocalRadius(qreal r) { m_focalRadius = r; }
     void setFocalPoint(qreal x, qreal y);
     qreal angle() const;
     void setAngle(qreal);
@@ -124,6 +129,8 @@ private:
     PkPointF m_center;
     PkPointF m_focalPoint;
     qreal m_radius;
+    qreal m_centerRadius = -1.0;
+    qreal m_focalRadius = 0.0;
     qreal m_angle;
 };
 

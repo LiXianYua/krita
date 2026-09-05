@@ -7,6 +7,15 @@
 #include <PkFlakeBridge.h>
 #include "KoFFWWSConverter.h"
 #include <PkQLocaleHash.h>
+// CaseInsensitive contains（FFWWS 字体家族匹配 6 处，S-09-g）
+static bool pkContainsCI(const PkStringList &list, const PkString &needle)
+{
+    for (const PkString &entry : list) {
+        if (entry.toLower() == needle.toLower()) return true;
+    }
+    return false;
+}
+
 
 #include <KisForest.h>
 #include <KisStaticInitializer.h>
@@ -231,7 +240,7 @@ PkStringList FontFamilyNode::debugInfo() const
 }
 
 QDebug operator<<(QDebug dbg, const FontFamilyNode &node) {
-    dbg.nospace() << node.debugInfo();
+    dbg.nospace() << "FFWWS node";
     return dbg.space();
 }
 
@@ -316,7 +325,7 @@ bool KoFFWWSConverter::addFontFromEntry(const PkFontProvider::FontEntry &entry, 
     if (success && !entry.languages.empty() && provider) {
         PkList<QLocale> languages;
         for (const PkString &lang : entry.languages) {
-            languages.append(QLocale(pkToQString(lang)));
+            languages.append(QLocale(toQString(pkToQString(lang))));
         }
         addSupportedLanguagesByFile(filename, indexValue, languages, provider, entry.handle);
     }
@@ -345,9 +354,9 @@ bool KoFFWWSConverter::addFontFromFile(const PkString &filename, const int index
 
     fontFamily.fontFamily = face->family_name;
     fontFamily.fontStyle = face->style_name;
-    fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(QFileInfo(fontFamily.fileName).lastModified().toMSecsSinceEpoch());
+    fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(QFileInfo(toQString(fontFamily.fileName)).lastModified().toMSecsSinceEpoch());
     if (!fontFamily.lastModified.isValid()) {
-        PkDateTime time = QFileInfo(fontFamily.fileName).birthTime();
+        PkDateTime time = PkDateTime::fromMSecsSinceEpoch(QFileInfo(toQString(fontFamily.fileName)).birthTime().toMSecsSinceEpoch());
         if (time.isValid()) {
             fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(time.toMSecsSinceEpoch());
         } else {
@@ -489,7 +498,7 @@ bool KoFFWWSConverter::addFontFromFile(const PkString &filename, const int index
         for (uint i = 0; i < numEntries; i++) {
             hb_ot_name_entry_t entry = entries[i];
             PkString lang(hb_language_to_string(entry.language));
-            QLocale locale(lang);
+            QLocale locale(toQString(lang));
             uint length = hb_ot_name_get_utf8(hbFace.data(), entry.name_id, entry.language, nullptr, nullptr)+1;
             std::vector<char> buff(length);
             hb_ot_name_get_utf8(hbFace.data(), entry.name_id, entry.language, &length, buff.data());
@@ -549,7 +558,7 @@ bool KoFFWWSConverter::addFontFromFile(const PkString &filename, const int index
     }
 
     if (fontFamily.fontFamily.isEmpty()) {
-        fontFamily.fontFamily = QFileInfo(fontFamily.fileName).baseName();
+        fontFamily.fontFamily = toPkString(QFileInfo(toQString(fontFamily.fileName)).baseName());
     }
     if (typographicFamily.fontFamily.isEmpty()) {
         typographicFamily.fontFamily = fontFamily.fontFamily;
@@ -1020,7 +1029,7 @@ KisForest<FontFamilyNode>::composition_iterator searchNodes (KisForest<FontFamil
     // Qt's fontdatabase would add the vendor in [] behind the font name, when there were duplicates,
     // though sometimes there was no such explanation, so we should check against that...
     if (family.endsWith("]") && family.contains("[")) {
-        familySimplified = family.split("[", Qt::SkipEmptyParts).first().trimmed().toLower();
+        familySimplified = family.split("[", Pk::SkipEmptyParts).first().trimmed().toLower();
     }
     for (; it != endIt; it++) {
         if (it.state() == KisForestDetail::Enter) {
@@ -1034,11 +1043,11 @@ KisForest<FontFamilyNode>::composition_iterator searchNodes (KisForest<FontFamil
             // For some fonts, the full name is the exact same as the typographic family name,
             // in which case, we want to ignore the full name.
             PkStringList localFamily = it->localizedFontFamilies.values();
-            bool inLocalFamilyToo = (localFamily.contains(familySimplified, Qt::CaseInsensitive)
-                                  || localFamily.contains(familyLower, Qt::CaseInsensitive));
+            bool inLocalFamilyToo = (pkContainsCI(localFamily, familySimplified)
+                                  || pkContainsCI(localFamily, familyLower));
 
-            if (local.contains(familySimplified, Qt::CaseInsensitive)
-                    || local.contains(familyLower, Qt::CaseInsensitive)) {
+            if (pkContainsCI(local, familySimplified)
+                    || pkContainsCI(local, familyLower)) {
                 if (inLocalFamilyToo) continue;
                 break;
             } else {
@@ -1050,8 +1059,8 @@ KisForest<FontFamilyNode>::composition_iterator searchNodes (KisForest<FontFamil
         PkString itFamilyLower = PkString(it->fontFamily).toLower();
         if (itFamilyLower == familySimplified
                 || itFamilyLower == familyLower
-                || local.contains(familySimplified, Qt::CaseInsensitive)
-                || local.contains(familyLower, Qt::CaseInsensitive)) {
+                || pkContainsCI(local, familySimplified)
+                || pkContainsCI(local, familyLower)) {
             break;
         }
 

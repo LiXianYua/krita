@@ -40,7 +40,7 @@ static unsigned int firstCharUcs4(const PkString qsv)
     if (Q_UNLIKELY(qsv.isEmpty())) {
         return 0;
     }
-    const PkChar high = qsv.first();
+    const PkChar high = qsv.at(0);
     if (Q_LIKELY(!high.isSurrogate())) {
         return high.unicode();
     }
@@ -105,10 +105,10 @@ private:
             FT_Library lib = nullptr;
             FT_Error error = FT_Init_FreeType(&lib);
             if (error) {
-                errorFlake << "Error with initializing FreeType library:" << error << "Current thread:" << PkThread::currentThreadId()
+                errorFlake << "Error with initializing FreeType library:" << error
                            << "GUI thread:" << qApp->thread();
             } else {
-                m_data.setLocalData(new ThreadData(FT_LibrarySP::create(lib)));
+                m_data.setLocalData(new ThreadData(FT_LibrarySP(lib)));
             }
         }
     }
@@ -138,7 +138,7 @@ public:
             } else {
                 // Otherwise use default, which is defined in src/fcinit.c , windows and macos
                 // default locations *are* defined in fontconfig's meson build system.
-                appdir = QDir(pkToQString(KoResourcePaths::getApplicationRoot()) + "/etc/fonts");
+                appdir = QDir(toQString(pkToQString(KoResourcePaths::getApplicationRoot())) + "/etc/fonts");
                 if (QFileInfo(appdir.absoluteFilePath("fonts.conf")).exists()) {
                     configSearchPath = toPkString(QDir::toNativeSeparators(appdir.absolutePath()));
                 }
@@ -291,7 +291,7 @@ KoFontRegistry *KoFontRegistry::instance()
 PkString modificationsString(KoCSSFontInfo info, quint32 xRes, quint32 yRes) {
     PkString modifications;
     if (info.size > -1) {
-        modifications += PkString::number(int(info.size)) + ":" + PkString::number(xRes) + "x" + PkString::number(yRes);
+        modifications += PkString::number(int(info.size)) + ":" + PkString::number(int(xRes)) + "x" + PkString::number(int(yRes));
     }
     if (info.fontSizeAdjust != 1.0) {
         modifications += PkString::number(info.fontSizeAdjust);

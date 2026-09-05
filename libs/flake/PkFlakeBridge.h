@@ -102,6 +102,11 @@ inline PK_QSTRING_ toQString(const PkString &s)
 }
 
 // 真 Qt 矩形 ↔ PkRectF（PkRectF 有 (x,y,w,h) 构造，这里按分量互转；跨界的几何参数同理）。
+inline PkRect toPkRect(const QRect &r)
+{
+    return PkRect(r.x(), r.y(), r.width(), r.height());
+}
+
 inline PkRectF toPkRectF(const PK_QRECTF_ &r)
 {
     return PkRectF(r.x(), r.y(), r.width(), r.height());
@@ -534,6 +539,11 @@ inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkString &s)
 // 真 Qt 调试流 << PkByteArray：剥离头（kis_debug.h 的 ppVar/warnKrita 等）把 PkByteArray
 // 流进真 Qt 调试流时命中（实测 SvgLoadingContext.cpp）。与 PkString 版同理，ADL 收全局
 // 命名空间的 PkByteArray。
+inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkPainterPath &p)
+{
+    return dbg << toQPainterPath(p);
+}
+
 inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkByteArray &b)
 {
     dbg << toQByteArray(b);

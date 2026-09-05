@@ -96,11 +96,11 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
 
         if (!shapeGlobalClipRect.isValid()) continue;
 
-        const PkRectF clipRect = painter.clipBoundingRect();
+        const PkRectF clipRect = toPkRectF(painter.clipBoundingRect());
         if (!clipRect.contains(decorPath.boundingRect()) &&
                  !clipRect.intersects(decorPath.boundingRect())) continue;
         const PkColor textDecorationColor = it->properties.propertyOrDefault(KoSvgTextProperties::TextDecorationColorId).value<PkColor>();
-        const bool colorValid = textDecorationColor.isValid() && it->properties.hasProperty(KoSvgTextProperties::TextDecorationColorId) && textDecorationColor != Qt::transparent;
+        const bool colorValid = textDecorationColor.isValid() && it->properties.hasProperty(KoSvgTextProperties::TextDecorationColorId) && textDecorationColor != PkColor(Pk::transparent);
 
         Q_FOREACH(const KoShape::PaintOrder p, paintOrder) {
             if (p == KoShape::Fill) {
@@ -109,7 +109,7 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
                     KoClipMaskPainter fillPainter(&painter, shapeGlobalClipRect);
                     setRenderHints(*fillPainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
                     background->paint(*fillPainter.shapePainter(), rootOutline);
-                    fillPainter.maskPainter()->fillPath(toQPainterPath(rootOutline), Pk::black);
+                    fillPainter.maskPainter()->fillPath(toQPainterPath(rootOutline), QBrush(toQColor(PkColor(Pk::black))));
                     fillPainter.maskPainter()->fillPath(toQPainterPath(decorPath), Qt::white);
                     fillPainter.renderOnGlobalPainter();
                 } else if (colorValid) {
@@ -124,11 +124,11 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
                             KoClipMaskPainter strokePainter(&painter, shapeGlobalClipRect);
                             PkPainterPath strokeOutline;
                             strokeOutline.addRect(rootOutline.boundingRect().adjusted(-insets.left, -insets.top, insets.right, insets.bottom));
-                            strokePainter.shapePainter()->fillRect(strokeOutline.boundingRect(), strokeSP->lineBrush());
-                            strokePainter.maskPainter()->fillRect(strokeOutline.boundingRect(), Pk::black);
+                            strokePainter.shapePainter()->fillRect(toQRectF(strokeOutline.boundingRect()), strokeSP->lineBrush());
+                            strokePainter.maskPainter()->fillRect(toQRectF(strokeOutline.boundingRect()), QBrush(toQColor(PkColor(Pk::black))));
 
                             KoShapeStrokeSP maskStroke = KoShapeStrokeSP(new KoShapeStroke(*strokeSP.data()));
-                            maskStroke->setColor(Qt::white);
+                            maskStroke->setColor(PkColor(Pk::white));
                             maskStroke->setLineBrush(Qt::white);
 
 
@@ -185,11 +185,11 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                     KoClipMaskPainter fillPainter(&painter, shapeGlobalClipRect);
                     if (background) {
                         background->paint(*fillPainter.shapePainter(), rootOutline);
-                        fillPainter.maskPainter()->fillPath(toQPainterPath(rootOutline), Pk::black);
+                        fillPainter.maskPainter()->fillPath(toQPainterPath(rootOutline), QBrush(toQColor(PkColor(Pk::black))));
                         setRenderHints(*fillPainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
                     }
                     PkPainterPath textDecorationsRest;
-                    textDecorationsRest.setFillRule(Qt::WindingFill);
+                    textDecorationsRest.setFillRule(Pk::WindingFill);
 
                     for (int i = currentIndex; i < j; i++) {
                         if (result.at(i).addressable && !result.at(i).hidden) {
@@ -200,7 +200,7 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                      * otherwise we can just skip it. Adding insets to ensure the outline will not be skipped.
                      */
                             const PkRectF boundingRect = tf.mapRect(result.at(i).inkBoundingBox).adjusted(-insets.left, -insets.top, insets.right, insets.bottom);
-                            const PkRectF clipRect = painter.clipBoundingRect();
+                            const PkRectF clipRect = toPkRectF(painter.clipBoundingRect());
                             if (boundingRect.isEmpty() ||
                                     (!clipRect.contains(boundingRect) &&
                                      !clipRect.intersects(boundingRect))) continue;
@@ -225,7 +225,7 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                                     if (b && replace) {
                                         color = b->brush();
                                     }
-                                    painter.fillPath(tf.map(colorGlyph->paths.at(c)), color);
+                                    painter.fillPath(tf.map(toQPainterPath(colorGlyph->paths.at(c))), color);
                                 }
                             } else if (const auto *outlineGlyph = std::get_if<Glyph::Outline>(&result.at(i).glyph)) {
                                 chunk.addPath(tf.map(outlineGlyph->path));
@@ -238,14 +238,14 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                                         fillPainter.maskPainter()->translate(result.at(i).finalPosition.x(), result.at(i).finalPosition.y());
                                         fillPainter.maskPainter()->rotate(qRadiansToDegrees(result.at(i).rotate));
                                         fillPainter.maskPainter()->setCompositionMode(QPainter::CompositionMode_Plus);
-                                        fillPainter.maskPainter()->drawImage(rect, img);
+                                        fillPainter.maskPainter()->drawImage(toQRectF(rect), toQImage(img));
                                         fillPainter.maskPainter()->restore();
                                     } else {
                                         painter.save();
                                         painter.translate(result.at(i).finalPosition.x(), result.at(i).finalPosition.y());
                                         painter.rotate(qRadiansToDegrees(result.at(i).rotate));
                                         painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-                                        painter.drawImage(rect, img);
+                                        painter.drawImage(toQRectF(rect), toQImage(img));
                                         painter.restore();
                                     }
                                 }
@@ -255,11 +255,11 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                     Q_FOREACH(const KoShape::PaintOrder p, paintOrder) {
                         if (p == KoShape::Fill) {
                             if (background) {
-                                chunk.setFillRule(Qt::WindingFill);
+                                chunk.setFillRule(Pk::WindingFill);
                                 fillPainter.maskPainter()->fillPath(toQPainterPath(chunk), Qt::white);
                             }
                             if (!textDecorationsRest.isEmpty()) {
-                                fillPainter.maskPainter()->fillPath(textDecorationsRest.simplified(), Qt::white);
+                                fillPainter.maskPainter()->fillPath(toQPainterPath(textDecorationsRest.simplified()), QBrush(toQColor(PkColor(Pk::white))));
                             }
                             fillPainter.renderOnGlobalPainter();
                         } else if (p == KoShape::Stroke) {
@@ -272,10 +272,10 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                                         KoClipMaskPainter strokePainter(&painter, shapeGlobalClipRect);
                                         PkPainterPath strokeOutline;
                                         strokeOutline.addRect(rootOutline.boundingRect().adjusted(-insets.left, -insets.top, insets.right, insets.bottom));
-                                        strokePainter.shapePainter()->fillRect(strokeOutline.boundingRect(), strokeSP->lineBrush());
-                                        strokePainter.maskPainter()->fillRect(strokeOutline.boundingRect(), Pk::black);
+                                        strokePainter.shapePainter()->fillRect(toQRectF(strokeOutline.boundingRect()), strokeSP->lineBrush());
+                                        strokePainter.maskPainter()->fillRect(toQRectF(strokeOutline.boundingRect()), QBrush(toQColor(PkColor(Pk::black))));
                                         maskStroke = KoShapeStrokeSP(new KoShapeStroke(*strokeSP.data()));
-                                        maskStroke->setColor(Qt::white);
+                                        maskStroke->setColor(PkColor(Pk::white));
                                         maskStroke->setLineBrush(Qt::white);
                                         setRenderHints(*strokePainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
                                         {
@@ -632,39 +632,39 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                     painter.setPen(toQPen(pen));
                     if (const auto *bitmapGlyph = std::get_if<Glyph::Bitmap>(&result.at(i).glyph)) {
                         Q_FOREACH(const PkRectF drawRect, bitmapGlyph->drawRects) {
-                            painter.drawPolygon(tf.map(drawRect));
+                            painter.drawPolygon(toQPolygonF(tf.map(drawRect)));
                         }
                     } else if (const auto *colorGlyph = std::get_if<Glyph::ColorLayers>(&result.at(i).glyph)) {
                         PkRectF boundingRect;
                         Q_FOREACH (const PkPainterPath &p, colorGlyph->paths) {
                             boundingRect |= p.boundingRect();
                         }
-                        painter.drawPolygon(tf.map(boundingRect));
+                        painter.drawPolygon(toQPolygonF(tf.map(boundingRect)));
                     } else if (const auto *outlineGlyph = std::get_if<Glyph::Outline>(&result.at(i).glyph)) {
-                        painter.drawPolygon(tf.map(outlineGlyph->path.boundingRect()));
+                        painter.drawPolygon(toQPolygonF(tf.map(outlineGlyph->path.boundingRect())));
                     }
-                    PkColor penColor = result.at(i).anchored_chunk ? result.at(i).isHanging ? Qt::red : Qt::magenta
+                    PkColor penColor = result.at(i).anchored_chunk ? result.at(i).isHanging ? PkColor(Pk::red) : Qt::magenta
                         : result.at(i).lineEnd == LineEdgeBehaviour::NoChange ? Qt::cyan
                                                                               : Qt::yellow;
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
                     painter.setPen(toQPen(pen));
-                    painter.drawPolygon(tf.map(result.at(i).layoutBox()));
+                    painter.drawPolygon(toQPolygonF(tf.map(result.at(i).layoutBox())));
 
                     penColor.setAlpha(96);
                     pen.setColor(penColor);
                     pen.setWidth(1);
-                    pen.setStyle(Qt::DotLine);
+                    pen.setStyle(Pk::DotLine);
                     painter.setPen(toQPen(pen));
-                    painter.drawPolygon(tf.map(result.at(i).lineHeightBox()));
+                    painter.drawPolygon(toQPolygonF(tf.map(result.at(i).lineHeightBox())));
 
-                    pen.setStyle(Qt::SolidLine);
+                    pen.setStyle(Pk::SolidLine);
                     pen.setWidth(2);
 
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
                     painter.setPen(toQPen(pen));
-                    painter.drawLine(tf.map(result.at(i).cursorInfo.caret));
+                    painter.drawLine(toQLineF(tf.map(result.at(i).cursorInfo.caret)));
 
 
                     const PkPointF center = tf.mapRect(result.at(i).layoutBox()).center();
@@ -694,30 +694,30 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                     const BreakType breakType = result.at(i).breakType;
                     if (breakType == BreakType::SoftBreak || breakType == BreakType::HardBreak) {
                         if (breakType == BreakType::SoftBreak) {
-                            penColor = Qt::blue;
+                            penColor = PkColor(Pk::blue);
                         } else if (breakType == BreakType::HardBreak) {
-                            penColor = Qt::red;
+                            penColor = PkColor(Pk::red);
                         }
                         penColor.setAlpha(128);
                         pen.setColor(penColor);
                         painter.setPen(toQPen(pen));
-                        painter.drawPoint(center);
+                        painter.drawPoint(toQPointF(center));
                     }
                     //ligature carets
-                    penColor = Qt::darkGreen;
+                    penColor = PkColor(Pk::darkGreen);
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
                     painter.setPen(toQPen(pen));
                     PkVector<PkPointF> offset = result.at(i).cursorInfo.offsets;
                     for (int k=0; k<offset.size(); k++) {
-                        painter.drawPoint(tf.map(offset.at(k)));
+                        painter.drawPoint(toQPointF(tf.map(offset.at(k))));
                     }
                     // Finalpos
-                    penColor = Qt::red;
+                    penColor = PkColor(Pk::red);
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
                     painter.setPen(toQPen(pen));
-                    painter.drawPoint(result.at(i).finalPosition);
+                    painter.drawPoint(toQPointF(result.at(i).finalPosition));
 #endif
                 }
             }

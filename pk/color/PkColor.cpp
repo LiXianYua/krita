@@ -1173,6 +1173,13 @@ void PkColor::setNamedColor(const PkString &name)
     setNamedColor(utf8.c_str());
 }
 
+bool PkColor::isValidColor(const PkString &name)
+{
+    PkColor probe;
+    probe.setNamedColor(name);
+    return probe.isValid();
+}
+
 // ---------------------------------------------------------------------------
 // operator==（qcolor.cpp:2954：**比较 alpha**，且 Hsl 分支有容差、ExtendedRgb
 // 分支走浮点模糊比较）

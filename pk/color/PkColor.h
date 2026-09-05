@@ -129,6 +129,8 @@ public:
     void setHslF(qreal h, qreal s, qreal l, qreal a = 1.0);
     void setNamedColor(const char *name);            // SVG 命名色 / #RGB / #RRGGBB / #AARRGGBB ...
     void setNamedColor(const PkString &name);
+    // 解析成功与否（KoSvgTextProperties 的颜色 token 校验，S-09-g）。
+    static bool isValidColor(const PkString &name);
 
     // ── 规范转换（真 Qt 公开 API；lighter/darker 与各 getter 内部也用）──
     PkColor toRgb() const noexcept;              // → Rgb spec（Hsv/Hsl/Cmyk/ExtendedRgb 转回）
