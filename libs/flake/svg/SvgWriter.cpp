@@ -197,7 +197,7 @@ void SvgWriter::saveGroup(KoShapeGroup * group, SvgSavingContext &context)
     context.shapeWriter().startElement("g");
     context.shapeWriter().addAttribute("id", toPkString(context.getID(group)));
 
-    SvgUtil::writeTransformAttributeLazy("transform", toQTransform(group->transformation()), context.shapeWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", group->transformation(), context.shapeWriter());
 
 
     SvgStyleWriter::saveMetadata(group, context);
@@ -238,7 +238,7 @@ void SvgWriter::savePath(KoPathShape *path, SvgSavingContext &context)
     context.shapeWriter().startElement("path");
     context.shapeWriter().addAttribute("id", toPkString(context.getID(path)));
 
-    SvgUtil::writeTransformAttributeLazy("transform", toQTransform(path->transformation()), context.shapeWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", path->transformation(), context.shapeWriter());
     SvgStyleWriter::saveSvgStyle(path, context);
 
     context.shapeWriter().addAttribute("d", toPkString(path->toString(context.userSpaceTransform())));

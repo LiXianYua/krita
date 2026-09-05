@@ -28,6 +28,12 @@ PkTextStream::PkTextStream(PkStream *device)
     m_readBuf = PkByteArray(buf);
 }
 
+PkTextStream::PkTextStream(PkString *str)
+    : m_device(nullptr)
+    , m_pkStr(str)
+{
+}
+
 PkTextStream::~PkTextStream()
 {
     flush();
@@ -35,6 +41,11 @@ PkTextStream::~PkTextStream()
 
 void PkTextStream::appendToWriteBuf(const char *data, std::size_t len)
 {
+    if (m_pkStr) {
+        // PkString 后端：UTF-8 字节直接追加（PkString 内部按码元收）。
+        *m_pkStr += PkString::PkFromUtf8(data, static_cast<int>(len));
+        return;
+    }
     const int old = m_writeBuf.size();
     m_writeBuf.resize(old + static_cast<int>(len));
     std::memcpy(m_writeBuf.data() + old, data, len);

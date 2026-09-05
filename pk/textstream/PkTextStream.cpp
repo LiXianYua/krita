@@ -1,10 +1,30 @@
 #include "PkTextStream.h"
+#include "PkString.h"
 #include "PkStream.h"   // pk/port：PkStream::read/write/readLine/atEnd
 #include <cstring>
 #include <sstream>
 
+PkTextStream::PkTextStream(PkString *str) : m_pkstr(str) {}
+
+PkTextStream &PkTextStream::operator<<(const PkString &s)
+{
+    if (m_pkstr) {
+        *m_pkstr += s;
+    } else if (m_str) {
+        *m_str += s.PkToUtf8();
+    } else if (m_dev) {
+        const std::string u8 = s.PkToUtf8();
+        m_dev->write(u8.data(), static_cast<PkStream::pk_int64>(u8.size()));
+    } else if (m_file) {
+        fputs(s.PkToUtf8().c_str(), m_file);
+    }
+    return *this;
+}
+
 PkTextStream &PkTextStream::operator<<(const char *s) {
-    if (m_dev) {
+    if (m_pkstr) {
+        *m_pkstr += PkString(s);
+    } else if (m_dev) {
         m_dev->write(s, static_cast<PkStream::pk_int64>(std::strlen(s)));
     } else if (m_str) {
         *m_str += s;

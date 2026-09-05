@@ -352,3 +352,14 @@ int PkXmlNode::columnNumber() const
     }
     return pkXmlOffsetToColumn(_doc->source, off);
 }
+
+// 对齐 QDomNode::operator==：同一底层 pugi 节点才相等（含双 null 情形）。
+bool PkXmlNode::operator==(const PkXmlNode &other) const
+{
+    const bool nullA = isNull();
+    const bool nullB = other.isNull();
+    if (nullA || nullB) {
+        return nullA && nullB;
+    }
+    return pkRawNode(*this) == pkRawNode(other);
+}

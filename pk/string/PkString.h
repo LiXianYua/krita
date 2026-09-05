@@ -112,6 +112,20 @@ public:
     std::string PkToUtf8() const;
     static PkString PkFromUtf8(const char* s, int len);
     static PkString fromUtf8(const char* s);                       // 对齐 QString::fromUtf8
+    // 对齐 QString::fromLatin1：Latin-1 字节 → BMP 码点 1:1（KoFontRegistry 的
+    // hb_tag 4 字节标签等，S-09-g 实测）。
+    static PkString fromLatin1(const char* s, int len = -1)
+    {
+        std::vector<char16_t> out;
+        if (!s) return PkString();
+        int n = len;
+        if (n < 0) { n = 0; while (s[n]) ++n; }
+        out.reserve(static_cast<std::size_t>(n));
+        for (int i = 0; i < n; ++i) {
+            out.push_back(static_cast<char16_t>(static_cast<unsigned char>(s[i])));
+        }
+        return fromUtf16(out.data(), int(out.size()));
+    }
     static PkString fromUtf8(const char* s, int len)               // 定长重载（S-09-g KoFontGlyphModel）
     {
         return PkFromUtf8(s, len);

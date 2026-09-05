@@ -124,6 +124,10 @@ public:
     PkXmlNode parentNode() const;
     bool hasChildNodes() const;
 
+    // 对齐 QDomNode::operator==：同一底层节点才相等（pugi 句柄可直接比）。
+    bool operator==(const PkXmlNode &other) const;
+    bool operator!=(const PkXmlNode &other) const { return !(*this == other); }
+
     PkXmlNode appendChild(const PkXmlNode &newChild);
     PkXmlNode insertBefore(const PkXmlNode &newChild, const PkXmlNode &refChild);
     bool removeChild(const PkXmlNode &oldChild);

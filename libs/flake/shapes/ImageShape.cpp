@@ -81,7 +81,7 @@ bool ImageShape::saveSvg(SvgSavingContext &context)
 
     context.shapeWriter().startElement("image");
     context.shapeWriter().addAttribute("id", uid.toUtf8().constData());
-    SvgUtil::writeTransformAttributeLazy("transform", toQTransform(transformation()), context.shapeWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", transformation(), context.shapeWriter());
     context.shapeWriter().addAttribute("width", PkString("%1px").arg(KisDomUtils::toString(size().width())).toUtf8().constData());
     context.shapeWriter().addAttribute("height", PkString("%1px").arg(KisDomUtils::toString(size().height())).toUtf8().constData());
 

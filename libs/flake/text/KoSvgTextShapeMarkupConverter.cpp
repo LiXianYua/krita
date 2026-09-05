@@ -203,10 +203,13 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
 
     debugFlake << ">>>>>>>>>>>" << htmlText;
 
-    PkMemoryStream svgBuffer;
-    svgBuffer.open(PkStream::WriteOnly);
+    const QString htmlQString = toQString(htmlText);
 
-    QXmlStreamReader htmlReader(htmlText);
+    QByteArray svgData;
+    QBuffer svgBuffer(&svgData);
+    svgBuffer.open(QIODevice::WriteOnly);
+
+    QXmlStreamReader htmlReader(htmlQString);
     QXmlStreamWriter svgWriter(&svgBuffer);
 
     svgWriter.setAutoFormatting(false);
@@ -321,7 +324,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
             if (attributes.hasAttribute("style") || !appendStyle.isEmpty()) {
                 PkString filteredStyles;
                 PkStringList svgStyles = PkString("font-family font-size font-weight font-variant word-spacing text-decoration font-style font-size-adjust font-stretch direction letter-spacing").split(" ");
-                PkStringList styles = attributes.value("style").toString().split(";");
+                PkStringList styles = toPkStringList(attributes.value("style").toString().split(";"));
                 for(int i=0; i<styles.size(); i++) {
                     PkStringList style = PkString(styles.at(i)).split(":");
                     debugFlake<<style.at(0);
@@ -379,7 +382,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
         case QXmlStreamReader::EndElement:
         {
             if (htmlReader.name() == "br") break;
-            if (elementName == "p" || spanLikes.contains(elementName) || elementName == "body") {
+            if (elementName == "p" || spanLikes.contains(toPkString(elementName.toString())) || elementName == "body") {
                 debugFlake << "\tEndElement" <<  htmlReader.name() << "(" << elementName << ")";
                 svgWriter.writeEndElement();
             }
@@ -413,7 +416,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
         return false;
     }
 
-    *svgText = PkString::fromUtf8(svgBuffer.data());
+    *svgText = PkString::fromUtf8(svgData.constData(), int(svgData.size()));
     return true;
 }
 
@@ -444,13 +447,13 @@ QTextFormat findMostCommonFormat(const PkList<QTextFormat> &allFormats)
 {
     QTextCharFormat mostCommonFormat;
 
-    PkSet<int> propertyIds;
+    QSet<int> propertyIds;
 
     /**
      * Get all existing property ids
      */
     Q_FOREACH (const QTextFormat &format, allFormats) {
-        const PkMap<int, PkVariant> formatProperties = format.properties();
+        const QMap<int, QVariant> formatProperties = format.properties();
         Q_FOREACH (int id, formatProperties.keys()) {
             propertyIds.insert(id);
         }
@@ -474,22 +477,22 @@ QTextFormat findMostCommonFormat(const PkList<QTextFormat> &allFormats)
     }
 
     if (!propertyIds.isEmpty()) {
-        PkMap<int, PkList<std::pair<PkVariant, int>>> propertyFrequency;
+        QMap<int, QList<QPair<QVariant, int>>> propertyFrequency;
 
         /**
          * Calculate the frequency of values used in *all* the formats
          */
         Q_FOREACH (const QTextFormat &format, allFormats) {
-            const PkMap<int, PkVariant> formatProperties = format.properties();
+            const QMap<int, QVariant> formatProperties = format.properties();
 
             Q_FOREACH (int id, propertyIds) {
                 KIS_SAFE_ASSERT_RECOVER_BREAK(formatProperties.contains(id));
-                PkList<std::pair<PkVariant, int>> &valueFrequencies = propertyFrequency[id];
-                const PkVariant formatPropValue = formatProperties.value(id);
+                QList<QPair<QVariant, int>> &valueFrequencies = propertyFrequency[id];
+                const QVariant formatPropValue = formatProperties.value(id);
 
                 // Find the value in frequency table
                 auto it = std::find_if(valueFrequencies.begin(), valueFrequencies.end(),
-                [formatPropValue](const std::pair<PkVariant, int> &element) { return element.first == formatPropValue; });
+                [formatPropValue](const QPair<QVariant, int> &element) { return element.first == formatPropValue; });
 
                 if (it != valueFrequencies.end()) {
                     // Increase frequency by 1, if already met
@@ -506,10 +509,10 @@ QTextFormat findMostCommonFormat(const PkList<QTextFormat> &allFormats)
          */
         for (auto it = propertyFrequency.constBegin(); it != propertyFrequency.constEnd(); ++it) {
             const int id = it.key();
-            const PkList<std::pair<PkVariant, int>>& allValues = it.value();
+            const QList<QPair<QVariant, int>>& allValues = it.value();
 
             int maxCount = 0;
-            PkVariant maxValue;
+            QVariant maxValue;
 
             for (const auto& [propValue, valFrequency] : allValues) {
                 if (valFrequency > maxCount) {

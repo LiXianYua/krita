@@ -33,6 +33,7 @@ class PkTextStream
 {
 public:
     explicit PkTextStream(PkStream *device);   // 读已有字节；构造时把剩余内容读进内部缓冲
+    explicit PkTextStream(PkString *str);      // PkString 后端：写侧直接追加到 *str，读侧恒空（S-09-g SvgParser 调试流）
     ~PkTextStream();                           // 析构时 flush 写缓冲
 
     PkString readAll();
@@ -57,6 +58,7 @@ public:
     void setAutoDetectUnicode(bool enabled);
 
 private:
+    PkString *m_pkStr = nullptr;   // PkString 后端（写直通）
     PkStream *m_device;
     PkByteArray m_readBuf;
     std::size_t m_pos;

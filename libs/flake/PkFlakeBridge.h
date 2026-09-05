@@ -132,6 +132,7 @@ inline PkColor toPkColor(const PK_QCOLOR_ &c)
 
 inline PkColor toPkColor(const PkColor &c) { return c; } // 恒等
 inline PkByteArray toPkByteArray(const PkByteArray &c) { return c; } // 恒等（真 Qt 分支补齐，KoColor::toQColor 已返 PkColor）
+inline PkTransform toPkTransform(const PkTransform &c) { return c; } // 恒等
 inline PK_QCOLOR_ toQColor(const PkColor &c)
 {
     return PK_QCOLOR_(c.red(), c.green(), c.blue(), c.alpha());

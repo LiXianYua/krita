@@ -79,7 +79,7 @@
 static inline PkStringList toStringList(const PkStringList &list)
 {
     PkStringList out;
-    for (const PkString &s : list) out.append(toQString(s));
+    for (const PkString &s : list) out.append(s);
     return out;
 }
 
@@ -87,7 +87,7 @@ static inline PkGradientStops toPkGradientStops(const PkGradientStops &stops)
 {
     PkGradientStops out;
     for (const PkGradientStop &s : stops) {
-        out.append(PkGradientStop{s.first, toPkColor(s.second)});
+        out.append(PkGradientStop{s.offset, s.color});
     }
     return out;
 }
@@ -96,37 +96,15 @@ static inline PkGradientStops toQGradientStops(const PkGradientStops &stops)
 {
     PkGradientStops out;
     for (const PkGradientStop &s : stops) {
-        out.append(PkGradientStop(s.offset, toQColor(s.color)));
+        out.append(PkGradientStop(s.offset, s.color));
     }
     return out;
 }
 
 static inline PkGradient toPkGradient(const PkGradient &g)
 {
-    PkGradient out;
-    switch (g.type()) {
-    case PkGradient::LinearGradient: {
-        const QLinearGradient &lg = static_cast<const QLinearGradient&>(g);
-        out = PkGradient::linear(toPkPointF(lg.start()), toPkPointF(lg.finalStop()));
-        break;
-    }
-    case PkGradient::RadialGradient: {
-        const QRadialGradient &rg = static_cast<const QRadialGradient&>(g);
-        out = PkGradient::radial(toPkPointF(rg.center()), rg.radius(), toPkPointF(rg.focalPoint()));
-        break;
-    }
-    case PkGradient::ConicalGradient: {
-        const QConicalGradient &cg = static_cast<const QConicalGradient&>(g);
-        out = PkGradient::conical(toPkPointF(cg.center()), cg.angle());
-        break;
-    }
-    default:
-        break;
-    }
-    out.setSpread(static_cast<PkGradientEnums::Spread>(g.spread()));
-    out.setCoordinateMode(static_cast<PkGradientEnums::CoordinateMode>(g.coordinateMode()));
-    out.setStops(toPkGradientStops(g.stops()));
-    return out;
+    // SvgGradientHelper::gradient() 已交付 PkGradient*（S 线迁移后），恒等即可。
+    return g;
 }
 
 struct SvgParser::DeferredUseStore {
@@ -210,11 +188,8 @@ SvgParser::~SvgParser()
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
 PkXmlDocument createDocumentFromXmlInputSource(QXmlInputSource *source, PkString *errorMsg, int *errorLine, int *errorColumn) {
     PkXmlDocument doc;
-    QXmlSimpleReader simpleReader;
-    simpleReader.setFeature("http://qt-project.org/xml/features/report-whitespace-only-CharData", true);
-    simpleReader.setFeature("http://xml.org/sax/features/namespaces", false);
-    simpleReader.setFeature("http://xml.org/sax/features/namespace-prefixes", true);
-    if (!doc.setContent(source, &simpleReader, errorMsg, errorLine, errorColumn)) {
+    // 过渡期：QXmlSimpleReader SAX 解析改走 PkXmlDocument 的 pugixml 后端
+    if (!doc.setContent(toPkString(source->data()), errorMsg, errorLine, errorColumn)) {
         return {};
     }
     return doc;
@@ -223,20 +198,23 @@ PkXmlDocument createDocumentFromXmlInputSource(QXmlInputSource *source, PkString
 
 PkXmlDocument SvgParser::createDocumentFromSvg(PkStream *device, PkString *errorMsg, int *errorLine, int *errorColumn)
 {
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    QXmlInputSource source(device);
-    return createDocumentFromXmlInputSource(&source, errorMsg, errorLine, errorColumn);
-#else
-    return createDocumentFromSvg(QXmlStreamReader(device), errorMsg, errorLine, errorColumn);
-#endif
+    // 过渡期：直接读全设备内容，走 PkXmlDocument 的 pugixml 后端（Qt5/Qt6 同路）
+    QIODevice *io = dynamic_cast<QIODevice *>(device);
+    if (io) {
+        return createDocumentFromSvg(PkString::fromUtf8(io->readAll().constData(), int(io->readAll().size())), errorMsg, errorLine, errorColumn);
+    }
+    return {};
 }
 
 PkXmlDocument SvgParser::createDocumentFromSvg(const PkByteArray &data, PkString *errorMsg, int *errorLine, int *errorColumn)
 {
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    QXmlInputSource source;
-    source.setData(data);
-    return createDocumentFromXmlInputSource(&source, errorMsg, errorLine, errorColumn);
+    PkXmlDocument doc;
+    // 过渡期：走 PkXmlDocument 的 pugixml 后端（对齐原 QXmlSimpleReader 行为）
+    if (!doc.setContent(data, errorMsg, errorLine, errorColumn)) {
+        return {};
+    }
+    return doc;
 #else
     return createDocumentFromSvg(QXmlStreamReader(data), errorMsg, errorLine, errorColumn);
 #endif
@@ -245,9 +223,12 @@ PkXmlDocument SvgParser::createDocumentFromSvg(const PkByteArray &data, PkString
 PkXmlDocument SvgParser::createDocumentFromSvg(const PkString &data, PkString *errorMsg, int *errorLine, int *errorColumn)
 {
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    QXmlInputSource source;
-    source.setData(data);
-    return createDocumentFromXmlInputSource(&source, errorMsg, errorLine, errorColumn);
+    PkXmlDocument doc;
+    // 过渡期：走 PkXmlDocument 的 pugixml 后端（对齐原 QXmlSimpleReader 行为）
+    if (!doc.setContent(data, errorMsg, errorLine, errorColumn)) {
+        return {};
+    }
+    return doc;
 #else
     return createDocumentFromSvg(QXmlStreamReader(data), errorMsg, errorLine, errorColumn);
 #endif
@@ -255,6 +236,11 @@ PkXmlDocument SvgParser::createDocumentFromSvg(const PkString &data, PkString *e
 
 PkXmlDocument SvgParser::createDocumentFromSvg(QXmlStreamReader reader, PkString *errorMsg, int *errorLine, int *errorColumn)
 {
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    // Qt5 构建不可达：本重载的调用点都在上方各 #else（Qt6）分支里。
+    Q_UNUSED(reader); Q_UNUSED(errorMsg); Q_UNUSED(errorLine); Q_UNUSED(errorColumn);
+    return {};
+#else
     PkXmlDocument doc;
 
 
@@ -275,6 +261,7 @@ PkXmlDocument SvgParser::createDocumentFromSvg(QXmlStreamReader reader, PkString
     }
 #endif
     return doc;
+#endif
 }
 
 void SvgParser::setXmlBaseDir(const PkString &baseDir)
@@ -351,7 +338,7 @@ SvgGradientHelper* SvgParser::findGradient(const PkString &id)
 
     // check if gradient was stored for later parsing
     if (!result && m_context.hasDefinition(toPkString(id))) {
-        const PkXmlElement e = toQDomElement(m_context.definition(toPkString(id)));
+        const PkXmlElement e = m_context.definition(toPkString(id));
         if (e.tagName().contains("Gradient")) {
             result = parseGradient(e);
         } else if (e.tagName() == "meshgradient") {
@@ -368,7 +355,7 @@ PkSharedPointer<KoVectorPatternBackground> SvgParser::findPattern(const PkString
 
     // check if gradient was stored for later parsing
     if (m_context.hasDefinition(toPkString(id))) {
-        const PkXmlElement e = toQDomElement(m_context.definition(toPkString(id)));
+        const PkXmlElement e = m_context.definition(toPkString(id));
         if (e.tagName() == "pattern") {
             result = parsePattern(e, shape);
         }
@@ -452,11 +439,11 @@ SvgGradientHelper* SvgParser::parseGradient(const PkXmlElement &e)
         gradHelper.setGradientUnits(KoFlake::UserSpaceOnUse);
     }
 
-    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
+    m_context.pushGraphicsContext(e);
     uploadStyleToContext(e);
 
     if (e.tagName() == "linearGradient") {
-        QLinearGradient *g = new QLinearGradient();
+        PkGradient *g = new PkGradient(PkGradient::LinearGradient);
         if (gradHelper.gradientUnits() == KoFlake::ObjectBoundingBox) {
             g->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
             g->setStart(PkPointF(SvgUtil::fromPercentage(toPkString(e.attribute("x1", "0%"))),
@@ -472,7 +459,7 @@ SvgGradientHelper* SvgParser::parseGradient(const PkXmlElement &e)
         gradHelper.setGradient(g);
 
     } else if (e.tagName() == "radialGradient") {
-        QRadialGradient *g = new QRadialGradient();
+        PkGradient *g = new PkGradient(PkGradient::RadialGradient);
         if (gradHelper.gradientUnits() == KoFlake::ObjectBoundingBox) {
             g->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
             g->setCenter(PkPointF(SvgUtil::fromPercentage(toPkString(e.attribute("cx", "50%"))),
@@ -507,15 +494,15 @@ SvgGradientHelper* SvgParser::parseGradient(const PkXmlElement &e)
 
     // Parse the color stops.
     {
-        PkGradient pkGradient = toPkGradient(*gradHelper.gradient());
-        m_context.styleParser().parseColorStops(&pkGradient, toPkXmlElement(toQDomElement(e)), gc, toPkGradientStops(defaultStops));
-        gradHelper.gradient()->setStops(toQGradientStops(pkGradient.stops()));
+        PkGradient &pkGradient = *gradHelper.gradient();
+        m_context.styleParser().parseColorStops(&pkGradient, e, gc, defaultStops);
+        gradHelper.gradient()->setStops(pkGradient.stops());
     }
 
     if (e.hasAttribute("gradientTransform")) {
         SvgTransformParser p(toPkString(e.attribute("gradientTransform")));
         if (p.isValid()) {
-            gradHelper.setTransform(toQTransform(p.transform()));
+            gradHelper.setTransform(p.transform());
         }
     }
 
@@ -558,7 +545,7 @@ SvgGradientHelper* SvgParser::parseMeshGradient(const PkXmlElement &e)
     if (e.hasAttribute("transform")) {
         SvgTransformParser p(toPkString(e.attribute("transform")));
         if (p.isValid()) {
-            gradHelper.setTransform(toQTransform(p.transform()));
+            gradHelper.setTransform(p.transform());
         }
     }
 
@@ -635,7 +622,7 @@ PkList<std::pair<PkString, PkColor>> SvgParser::parseMeshPatch(const PkXmlNode& 
 
     forEachElement(stop, e) {
         qreal X = 0;    // dummy value, don't care, just to ensure the function won't blow up (also to avoid a Coverity issue)
-        PkColor color = toQColor(m_context.styleParser().parseColorStop(toPkXmlElement(stop), gc, X).second);
+        PkColor color = m_context.styleParser().parseColorStop(stop, gc, X).second;
 
         PkString pathStr = stop.attribute("path");
 
@@ -698,7 +685,7 @@ PkSharedPointer<KoVectorPatternBackground> SvgParser::parsePattern(const PkXmlEl
     if (e.hasAttribute("patternTransform")) {
         SvgTransformParser p(toPkString(e.attribute("patternTransform")));
         if (p.isValid()) {
-            pattHelper->setPatternTransform(toQTransform(p.transform()));
+            pattHelper->setPatternTransform(p.transform());
         }
     }
 
@@ -731,11 +718,11 @@ PkSharedPointer<KoVectorPatternBackground> SvgParser::parsePattern(const PkXmlEl
      */
 
    const PkTransform dstShapeTransform = shape->absoluteTransformation();
-   const PkTransform shapeOffsetTransform = dstShapeTransform * toQTransform(gc->matrix).inverted();
+   const PkTransform shapeOffsetTransform = dstShapeTransform * gc->matrix.inverted();
    KIS_SAFE_ASSERT_RECOVER_NOOP(shapeOffsetTransform.type() <= PkTransform::TxTranslate);
    const PkPointF extraShapeOffset(shapeOffsetTransform.dx(), shapeOffsetTransform.dy());
 
-   m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
+   m_context.pushGraphicsContext(e);
    gc = m_context.currentGC();
    gc->workaroundClearInheritedFillProperties(); // HACK!
 
@@ -919,7 +906,7 @@ bool SvgParser::parseClipPath(const PkXmlElement &e)
                 KoFlake::coordinatesFromString(e.attribute("clipPathUnits"), KoFlake::UserSpaceOnUse));
 
     // ensure that the clip path is loaded in local coordinates system
-    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
+    m_context.pushGraphicsContext(e);
     m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->workaroundClearInheritedFillProperties(); // HACK!
 
@@ -965,7 +952,7 @@ bool SvgParser::parseClipMask(const PkXmlElement &e)
 
 
     // ensure that the clip mask is loaded in local coordinates system
-    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
+    m_context.pushGraphicsContext(e);
     m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->workaroundClearInheritedFillProperties(); // HACK!
 
@@ -1091,7 +1078,7 @@ PkGradient* prepareGradientForShape(const SvgGradientHelper *gradient,
                                              boundingRect.x(), boundingRect.y());
 
             const PkTransform relativeToUser =
-                    relativeToShape * shape->transformation() * toQTransform(gc->matrix).inverted();
+                    relativeToShape * shape->transformation() * gc->matrix.inverted();
 
             const PkTransform userToRelative = relativeToUser.inverted();
 
@@ -1110,7 +1097,7 @@ PkGradient* prepareGradientForShape(const SvgGradientHelper *gradient,
             // For radial and conical gradients such conversion is not possible
 
             resultGradient = KoFlake::cloneGradient(gradient->gradient());
-            *transform = gradient->transform() * toQTransform(gc->matrix) * shape->transformation().inverted();
+            *transform = gradient->transform() * gc->matrix * shape->transformation().inverted();
 
             const PkRectF outlineRect = shape->outlineRect();
             if (outlineRect.isEmpty()) return resultGradient;
@@ -1179,14 +1166,14 @@ SvgMeshGradient* prepareMeshGradientForShape(SvgGradientHelper *gradient,
 
         // NOTE: we apply translation right away, because caching hasn't been implemented for rendering, yet.
         // So, transform is called multiple times on the mesh and that's not nice
-        resultGradient->setTransform(toPkTransform(gradient->transform() toQTransform(* relativeToShape)));
+        resultGradient->setTransform(gradient->transform() * relativeToShape);
     } else {
         // NOTE: Krita's shapes use their own coordinate system. Where origin is at the top left
         // of the SHAPE. All the mesh patches will be rendered in the global 'user' coordinate system
         // where the origin is at the top left of the LAYER/DOCUMENT.
 
         // Get the user coordinates of the shape
-        const PkTransform shapeglobal = shape->absoluteTransformation() * toQTransform(gc->matrix).inverted();
+        const PkTransform shapeglobal = shape->absoluteTransformation() * gc->matrix.inverted();
 
         // Get the translation offset to shift the origin from "Shape" to "User"
         const PkTransform translationOffset = PkTransform::fromTranslate(-shapeglobal.dx(), -shapeglobal.dy());
@@ -1195,7 +1182,7 @@ SvgMeshGradient* prepareMeshGradientForShape(SvgGradientHelper *gradient,
 
         // NOTE: we apply translation right away, because caching hasn't been implemented for rendering, yet.
         // So, transform is called multiple times on the mesh and that's not nice
-        resultGradient->setTransform(toPkTransform(gradient->transform() toQTransform(* translationOffset)));
+        resultGradient->setTransform(gradient->transform() * translationOffset);
     }
 
     return resultGradient;
@@ -1210,10 +1197,10 @@ void SvgParser::applyFillStyle(KoShape *shape)
     if (gc->fillType == SvgGraphicsContext::None) {
         shape->setBackground(PkSharedPointer<KoShapeBackground>(0));
     } else if (gc->fillType == SvgGraphicsContext::Solid) {
-        shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(toQColor(gc->fillColor))));
+        shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(gc->fillColor)));
     } else if (gc->fillType == SvgGraphicsContext::Complex) {
         // try to find referenced gradient
-        SvgGradientHelper *gradient = findGradient(toQString(gc->fillId));
+        SvgGradientHelper *gradient = findGradient(gc->fillId);
         if (gradient) {
             PkTransform transform;
 
@@ -1235,13 +1222,13 @@ void SvgParser::applyFillStyle(KoShape *shape)
             }
         } else {
             PkSharedPointer<KoVectorPatternBackground> pattern =
-                findPattern(toQString(gc->fillId), shape);
+                findPattern(gc->fillId, shape);
 
             if (pattern) {
                 shape->setBackground(pattern);
             } else {
                 // no referenced fill found, use fallback color
-                shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(toQColor(gc->fillColor))));
+                shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(gc->fillColor)));
             }
         }
     } else if (gc->fillType == SvgGraphicsContext::Inherit) {
@@ -1283,7 +1270,7 @@ void SvgParser::applyStrokeStyle(KoShape *shape)
     if (gc->strokeType == SvgGraphicsContext::None) {
         KoShapeStrokeSP stroke(new KoShapeStroke());
         stroke->setLineWidth(0.0);
-        const PkColor color = Qt::transparent;
+        const PkColor color = PkColor(Pk::transparent);
         stroke->setColor(color);
         shape->setStroke(stroke);
     } else if (gc->strokeType == SvgGraphicsContext::Solid) {
@@ -1292,12 +1279,12 @@ void SvgParser::applyStrokeStyle(KoShape *shape)
         shape->setStroke(stroke);
     } else if (gc->strokeType == SvgGraphicsContext::Complex) {
         // try to find referenced gradient
-        SvgGradientHelper *gradient = findGradient(toQString(gc->strokeId));
+        SvgGradientHelper *gradient = findGradient(gc->strokeId);
         if (gradient) {
             PkTransform transform;
             PkGradient *result = prepareGradientForShape(gradient, shape, gc, &transform);
             if (result) {
-                QBrush brush = *result;
+                QBrush brush(toQGradient(*result->gradient()));
                 delete result;
                 brush.setTransform(toQTransform(transform));
 
@@ -1323,16 +1310,16 @@ void SvgParser::applyMarkers(KoPathShape *shape)
     if (!gc)
         return;
 
-    if (!gc->markerStartId.isEmpty() && m_markers.contains(toQString(gc->markerStartId))) {
-        shape->setMarker(m_markers[toQString(gc->markerStartId)].data(), KoFlake::StartMarker);
+    if (!gc->markerStartId.isEmpty() && m_markers.contains(gc->markerStartId)) {
+        shape->setMarker(m_markers[gc->markerStartId].data(), KoFlake::StartMarker);
     }
 
-    if (!gc->markerMidId.isEmpty() && m_markers.contains(toQString(gc->markerMidId))) {
-        shape->setMarker(m_markers[toQString(gc->markerMidId)].data(), KoFlake::MidMarker);
+    if (!gc->markerMidId.isEmpty() && m_markers.contains(gc->markerMidId)) {
+        shape->setMarker(m_markers[gc->markerMidId].data(), KoFlake::MidMarker);
     }
 
-    if (!gc->markerEndId.isEmpty() && m_markers.contains(toQString(gc->markerEndId))) {
-        shape->setMarker(m_markers[toQString(gc->markerEndId)].data(), KoFlake::EndMarker);
+    if (!gc->markerEndId.isEmpty() && m_markers.contains(gc->markerEndId)) {
+        shape->setMarker(m_markers[gc->markerEndId].data(), KoFlake::EndMarker);
     }
 
     shape->setAutoFillMarkers(gc->autoFillMarkers);
@@ -1347,7 +1334,7 @@ void SvgParser::applyPaintOrder(KoShape *shape)
     if (!gc->paintOrder.isEmpty() && gc->paintOrder != "inherit") {
         PkStringList paintOrder;
         for (const PkString &po : gc->paintOrder.split(u' ')) {
-            paintOrder.append(toQString(po));
+            paintOrder.append(po);
         }
         PkVector<KoShape::PaintOrder> order;
         Q_FOREACH(const PkString p, paintOrder) {
@@ -1385,7 +1372,7 @@ void SvgParser::applyClipping(KoShape *shape, const PkPointF &shapeToOriginalUse
     if (gc->clipPathId.isEmpty())
         return;
 
-    SvgClipPathHelper *clipPath = findClipPath(toQString(gc->clipPathId));
+    SvgClipPathHelper *clipPath = findClipPath(gc->clipPathId);
     if (!clipPath || clipPath->isEmpty())
         return;
 
@@ -1457,12 +1444,12 @@ KoShape* SvgParser::resolveUse(const PkXmlElement &e, const PkString& key)
 {
     KoShape *result = 0;
 
-    SvgGraphicsContext *gc = m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
+    SvgGraphicsContext *gc = m_context.pushGraphicsContext(e);
 
     // TODO: parse 'width' and 'height' as well
     gc->matrix.translate(parseUnitX(e.attribute("x", "0")), parseUnitY(e.attribute("y", "0")));
 
-    const PkXmlElement referencedElement = toQDomElement(m_context.definition(toPkString(key)));
+    const PkXmlElement referencedElement = m_context.definition(toPkString(key)));
     result = parseGroup(e, referencedElement, false);
 
     m_context.popGraphicsContext();
@@ -1487,7 +1474,7 @@ PkList<KoShape*> SvgParser::parseSvg(const PkXmlElement &e, PkSizeF *fragmentSiz
     const bool isRootSvg = m_context.isRootContext();
 
     // parse 'transform' field if preset
-    SvgGraphicsContext *gc = m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
+    SvgGraphicsContext *gc = m_context.pushGraphicsContext(e);
 
     applyStyle(0, e, PkPointF());
 
@@ -1506,7 +1493,7 @@ PkList<KoShape*> SvgParser::parseSvg(const PkXmlElement &e, PkSizeF *fragmentSiz
         PkTransform pkViewTransform_unused = toPkTransform(toQTransform(viewTransform_unused));
         if (SvgUtil::parseViewBox(toPkXmlElement(toQDomElement(e)), toPkRectF(fakeBoundingRect),
                                   &pkViewRect, &pkViewTransform_unused)) {
-            viewRect = toQRectF(pkViewRect);
+            viewRect = pkViewRect;
 
             PkSizeF estimatedSize = viewRect.size();
 
@@ -1587,7 +1574,7 @@ void SvgParser::applyViewBoxTransform(const PkXmlElement &element)
 {
     SvgGraphicsContext *gc = m_context.currentGC();
 
-    PkRectF viewRect = toQRectF(gc->currentBoundingBox);
+    PkRectF viewRect = toPkRectF(gc->currentBoundingBox);
     PkTransform viewTransform;
     PkRectF pkViewRect = toPkRectF(viewRect);
     PkTransform pkViewTransform = toPkTransform(toQTransform(viewTransform));
@@ -1630,7 +1617,7 @@ void SvgParser::setFileFetcher(SvgParser::FileFetcherFunc func)
 {
     m_context.setFileFetcher(
         [func](const PkString &url) {
-            return toPkByteArray(func(toQString(url)));
+            return func(url);
         });
 }
 
@@ -1654,8 +1641,8 @@ KoShape* SvgParser::parseGroup(const PkXmlElement &b, const PkXmlElement &overri
     group->setZIndex(m_context.nextZIndex());
 
     // groups should also have their own coordinate system!
-    group->applyAbsoluteTransformation(toQTransform(m_context.currentGC()->matrix));
-    const PkPointF extraOffset = extraShapeOffset(group, toQTransform(m_context.currentGC()->matrix));
+    group->applyAbsoluteTransformation(m_context.currentGC()->matrix);
+    const PkPointF extraOffset = extraShapeOffset(group, m_context.currentGC()->matrix);
 
     uploadStyleToContext(b);
 
@@ -1766,7 +1753,7 @@ void SvgParser::parseTextChildren(const PkXmlElement &e, KoSvgTextLoader &textLo
                 applyCurrentBasicStyle(styleDummy);
                 textLoader.setStyleInfo(styleDummy);
             } else {
-                m_context.pushGraphicsContext(toPkXmlElement(b));
+                m_context.pushGraphicsContext(b);
                 uploadStyleToContext(b);
                 textLoader.loadSvg(b, m_context);
                 if (b.hasChildNodes()) {
@@ -1805,7 +1792,7 @@ KoShape *SvgParser::parseTextElement(const PkXmlElement &e, KoSvgTextShape *merg
         m_isInsideTextSubtree = true;
     }
 
-    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
+    m_context.pushGraphicsContext(e);
     uploadStyleToContext(e);
 
     if (rootTextShape) {
@@ -1856,14 +1843,14 @@ KoShape *SvgParser::parseTextElement(const PkXmlElement &e, KoSvgTextShape *merg
     // 2) the transformation should be applied *before* the shape is added to the group!
     if (!mergeIntoShape) {
         // groups should also have their own coordinate system!
-        rootTextShape->applyAbsoluteTransformation(toQTransform(m_context.currentGC()->matrix));
-        const PkPointF extraOffset = extraShapeOffset(rootTextShape, toQTransform(m_context.currentGC()->matrix));
+        rootTextShape->applyAbsoluteTransformation(m_context.currentGC()->matrix);
+        const PkPointF extraOffset = extraShapeOffset(rootTextShape, m_context.currentGC()->matrix);
 
         // handle id
         applyId(e.attribute("id"), rootTextShape);
         applyCurrentStyle(rootTextShape, extraOffset); // apply style to this group after size is set
     } else {
-        m_context.currentGC()->matrix = toPkTransform(mergeIntoShape->absoluteTransformation());
+        m_context.currentGC()->matrix = mergeIntoShape->absoluteTransformation();
         applyCurrentBasicStyle(rootTextShape);
     }
 
@@ -1992,8 +1979,7 @@ PkList<KoShape*> SvgParser::parseSingleElement(const PkXmlElement &b, DeferredUs
                 {
                     PkString string;
                     PkTextStream stream(&string);
-                    KisPortingUtils::setUtf8OnStream(stream);
-                    stream << b;
+                    stream << b.tagName();
                     debugFlake << "    " << string;
                 }
                 delete shape;
@@ -2098,8 +2084,8 @@ KoShape * SvgParser::createObjectDirect(const PkXmlElement &b)
 
     KoShape *obj = createShapeFromElement(b, m_context);
     if (obj) {
-        obj->applyAbsoluteTransformation(toQTransform(m_context.currentGC()->matrix));
-        const PkPointF extraOffset = extraShapeOffset(obj, toQTransform(m_context.currentGC()->matrix));
+        obj->applyAbsoluteTransformation(m_context.currentGC()->matrix);
+        const PkPointF extraOffset = extraShapeOffset(obj, m_context.currentGC()->matrix);
 
         applyCurrentStyle(obj, extraOffset);
 
@@ -2112,7 +2098,7 @@ KoShape * SvgParser::createObjectDirect(const PkXmlElement &b)
     m_context.popGraphicsContext();
 
     if (obj) {
-        m_shapeParentTransform.insert(obj, toQTransform(m_context.currentGC()->matrix));
+        m_shapeParentTransform.insert(obj, m_context.currentGC()->matrix);
     }
     return obj;
 }
@@ -2123,8 +2109,8 @@ KoShape * SvgParser::createObject(const PkXmlElement &b, const SvgStyles &style)
 
     KoShape *obj = createShapeFromElement(b, m_context);
     if (obj) {
-        obj->applyAbsoluteTransformation(toQTransform(m_context.currentGC()->matrix));
-        const PkPointF extraOffset = extraShapeOffset(obj, toQTransform(m_context.currentGC()->matrix));
+        obj->applyAbsoluteTransformation(m_context.currentGC()->matrix);
+        const PkPointF extraOffset = extraShapeOffset(obj, m_context.currentGC()->matrix);
 
         SvgStyles objStyle = style.isEmpty() ? m_context.styleParser().collectStyles(toPkXmlElement(toQDomElement(b))) : style;
         m_context.styleParser().parseFont(objStyle);
@@ -2139,7 +2125,7 @@ KoShape * SvgParser::createObject(const PkXmlElement &b, const SvgStyles &style)
     m_context.popGraphicsContext();
 
     if (obj) {
-        m_shapeParentTransform.insert(obj, toQTransform(m_context.currentGC()->matrix));
+        m_shapeParentTransform.insert(obj, m_context.currentGC()->matrix);
     }
 
     return obj;
@@ -2150,8 +2136,8 @@ KoShape * SvgParser::createShapeFromElement(const PkXmlElement &element, SvgLoad
     KoShape *object = 0;
 
 
-    const PkString tagName = toQString(SvgUtil::mapExtendedShapeTag(toPkString(element.tagName()), toPkXmlElement(toQDomElement(element))));
-    PkList<KoShapeFactoryBase*> factories = KoShapeRegistry::instance()->factoriesForElement(toQString(KoXmlNS::svg), tagName);
+    const PkString tagName = SvgUtil::mapExtendedShapeTag(element.tagName(), element);
+    PkList<KoShapeFactoryBase*> factories = KoShapeRegistry::instance()->factoriesForElement(KoXmlNS::svg, tagName);
 
     foreach (KoShapeFactoryBase *f, factories) {
         KoShape *shape = f->createDefaultShape(m_documentResourceManager);
@@ -2228,21 +2214,21 @@ KoShape *SvgParser::createShapeFromCSS(const PkXmlElement e, const PkString valu
     } else if (value.startsWith("circle(")) {
         el = e.ownerDocument().createElement("circle");
         PkStringList params = val.split(" ");
-        el.setAttribute("r", SvgUtil::parseUnitXY(context.currentGC(), context.resolvedProperties(), toPkString(params.first())));
+        el.setAttribute("r", PkString::number(SvgUtil::parseUnitXY(context.currentGC(), context.resolvedProperties(), toPkString(params.first()))));
         if (params.contains("at")) {
             // 1 == "at"
-            el.setAttribute("cx", SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(params.at(2))));
-            el.setAttribute("cy", SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(params.at(3))));
+            el.setAttribute("cx", PkString::number(SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(params.at(2)))));
+            el.setAttribute("cy", PkString::number(SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(params.at(3)))));
         }
     } else if (value.startsWith("ellipse(")) {
         el = e.ownerDocument().createElement("ellipse");
         PkStringList params = val.split(" ");
-        el.setAttribute("rx", SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(params.at(0))));
-        el.setAttribute("ry", SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(params.at(1))));
+        el.setAttribute("rx", PkString::number(SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(params.at(0)))));
+        el.setAttribute("ry", PkString::number(SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(params.at(1)))));
         if (params.contains("at")) {
             // 2 == "at"
-            el.setAttribute("cx", SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(params.at(3))));
-            el.setAttribute("cy", SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(params.at(4))));
+            el.setAttribute("cx", PkString::number(SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(params.at(3)))));
+            el.setAttribute("cy", PkString::number(SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(params.at(4)))));
         }
     } else if (value.startsWith("polygon(")) {
         el = e.ownerDocument().createElement("polygon");

@@ -15,6 +15,7 @@
 #include <cstdio>
 
 class PkStream;   // pk/port，构造子用到；具体定义在 .cpp 里 include
+class PkString;   // pk/string，PkString* 后端构造子用到
 
 class PkTextStream {
 public:
@@ -24,12 +25,14 @@ public:
                       UppercaseBase = 0x8, UppercaseDigits = 0x10 };
 
     explicit PkTextStream(std::string *str) : m_str(str) {}
+    explicit PkTextStream(PkString *str);              // PkString 后端（SvgWriter/SvgParser 调试流，S-09-g）
     explicit PkTextStream(FILE *f) : m_file(f) {}
     explicit PkTextStream(PkStream *dev) : m_dev(dev) {}
     ~PkTextStream() {}
 
     // —— 写 ——
     PkTextStream &operator<<(const char *s);
+    PkTextStream &operator<<(const PkString &s);
     PkTextStream &operator<<(const std::string &s);
     PkTextStream &operator<<(char c);
     PkTextStream &operator<<(int v);
@@ -63,6 +66,7 @@ public:
 private:
     std::string formatReal(double v);
     std::string *m_str = nullptr;
+    PkString *m_pkstr = nullptr;
     FILE *m_file = nullptr;
     PkStream *m_dev = nullptr;
     int m_prec = 6;

@@ -1743,7 +1743,7 @@ bool KoSvgTextShape::saveSvg(SvgSavingContext &context)
         context.shapeWriter().addAttribute("id", toPkString(context.createUID("group")));
         context.shapeWriter().addAttribute(KoSvgTextShape_TEXTCONTOURGROUP, "true");
 
-        SvgUtil::writeTransformAttributeLazy("transform", toQTransform(transformation()), context.shapeWriter());
+        SvgUtil::writeTransformAttributeLazy("transform", transformation(), context.shapeWriter());
         SvgWriter writer(visibleShapes);
         writer.saveDetached(context);
     }
@@ -1766,7 +1766,7 @@ bool KoSvgTextShape::saveSvg(SvgSavingContext &context)
                     context.shapeWriter().addAttribute("krita:textVersion", 3);
 
                     if (visibleShapes.isEmpty()) {
-                        SvgUtil::writeTransformAttributeLazy("transform", toQTransform(transformation()), context.shapeWriter());
+                        SvgUtil::writeTransformAttributeLazy("transform", transformation(), context.shapeWriter());
                     }
                     SvgStyleWriter::saveSvgStyle(this, context);
                 } else {

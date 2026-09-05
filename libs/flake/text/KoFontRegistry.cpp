@@ -97,7 +97,7 @@ private:
         }
     };
 
-    PkThreadStorage<PkSharedPointer<ThreadData>> m_data;
+    PkThreadStorage<ThreadData> m_data;
 
     void initialize()
     {
@@ -105,10 +105,10 @@ private:
             FT_Library lib = nullptr;
             FT_Error error = FT_Init_FreeType(&lib);
             if (error) {
-                errorFlake << "Error with initializing FreeType library:" << error << "Current thread:" << PkThread::currentThread()
+                errorFlake << "Error with initializing FreeType library:" << error << "Current thread:" << PkThread::currentThreadId()
                            << "GUI thread:" << qApp->thread();
             } else {
-                m_data.setLocalData(PkSharedPointer<ThreadData>::create(lib));
+                m_data.setLocalData(new ThreadData(FT_LibrarySP::create(lib)));
             }
         }
     }
@@ -133,13 +133,13 @@ public:
         PkString configSearchPath;
         if (qgetenv("FONTCONFIG_PATH").isEmpty()) {
             QDir appdir("/etc/fonts");
-            if (PkFileStream::exists(appdir.absoluteFilePath("fonts.conf"))) {
+            if (QFileInfo(appdir.absoluteFilePath("fonts.conf")).exists()) {
                 configSearchPath = toPkString(QDir::toNativeSeparators(appdir.absolutePath()));
             } else {
                 // Otherwise use default, which is defined in src/fcinit.c , windows and macos
                 // default locations *are* defined in fontconfig's meson build system.
                 appdir = QDir(pkToQString(KoResourcePaths::getApplicationRoot()) + "/etc/fonts");
-                if (PkFileStream::exists(appdir.absoluteFilePath("fonts.conf"))) {
+                if (QFileInfo(appdir.absoluteFilePath("fonts.conf")).exists()) {
                     configSearchPath = toPkString(QDir::toNativeSeparators(appdir.absolutePath()));
                 }
             }
@@ -291,7 +291,7 @@ KoFontRegistry *KoFontRegistry::instance()
 PkString modificationsString(KoCSSFontInfo info, quint32 xRes, quint32 yRes) {
     PkString modifications;
     if (info.size > -1) {
-        modifications += PkString::number(info.size) + ":" + PkString::number(xRes) + "x" + PkString::number(yRes);
+        modifications += PkString::number(int(info.size)) + ":" + PkString::number(xRes) + "x" + PkString::number(yRes);
     }
     if (info.fontSizeAdjust != 1.0) {
         modifications += PkString::number(info.fontSizeAdjust);
@@ -538,7 +538,7 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
     KIS_ASSERT_X(lengths.size() == fonts.size(),
                  "KoFontRegistry",
                  PkString("Fonts and lengths don't have the same size. Fonts: %1. Length: %2")
-                 .arg(fonts.size(), lengths.size()).toLatin1());
+                 .arg(fonts.size(), lengths.size()).toLatin1().constData());
 
     for (int i = 0; i < lengths.size(); i++) {
         KoFFWWSConverter::FontFileEntry font = fonts.at(i);
@@ -806,7 +806,7 @@ KoSvgText::FontMetrics KoFontRegistry::fontMetricsForCSSValues(KoCSSFontInfo inf
             language);
 
         if (faces.empty()) return KoSvgText::FontMetrics(info.size, isHorizontal);
-        metrics = KoFontRegistry::generateFontMetrics(faces.front(), isHorizontal, KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale(language).script()), rendering);
+        metrics = KoFontRegistry::generateFontMetrics(faces.front(), isHorizontal, KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale(toQString(language)).script()), rendering);
         d->fontMetrics().insert(suggestedHash, metrics);
     }
     return metrics;
@@ -816,8 +816,8 @@ KoSvgText::FontMetrics KoFontRegistry::generateFontMetrics(FT_FaceSP face, bool 
 {
     KoSvgText::FontMetrics metrics;
     hb_direction_t dir = isHorizontal? HB_DIRECTION_LTR: HB_DIRECTION_TTB;
-    QLatin1String scriptLatin1(script.toLatin1());
-    hb_script_t scriptTag = hb_script_from_string(scriptLatin1.data(), scriptLatin1.size());
+    const std::string scriptUtf8 = script.PkToUtf8();
+    hb_script_t scriptTag = hb_script_from_string(scriptUtf8.data(), int(scriptUtf8.size()));
     hb_tag_t otScriptTag = HB_OT_TAG_DEFAULT_SCRIPT;
     hb_tag_t otLangTag = HB_OT_TAG_DEFAULT_LANGUAGE;
     uint maxCount = 1;
