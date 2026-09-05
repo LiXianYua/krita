@@ -283,7 +283,7 @@ void SvgParser::setXmlBaseDir(const PkString &baseDir)
         [this](const PkString &name) {
             PkStringList possibleNames;
             possibleNames << name;
-            possibleNames << QDir::cleanPath(QDir(toQString(m_context.xmlBaseDir())).absoluteFilePath(toQString(name)));
+            possibleNames << toPkString(QDir::cleanPath(QDir(toQString(m_context.xmlBaseDir())).absoluteFilePath(toQString(name))));
             for (PkString fileName : possibleNames) {
                 PkFileStream file(fileName);
                 if (file.open(PkStream::ReadOnly)) {
@@ -450,7 +450,7 @@ SvgGradientHelper* SvgParser::parseGradient(const PkXmlElement &e)
         gradHelper.setGradientUnits(KoFlake::UserSpaceOnUse);
     }
 
-    m_context.pushGraphicsContext(toPkXmlElement(e));
+    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
     uploadStyleToContext(e);
 
     if (e.tagName() == "linearGradient") {
@@ -506,7 +506,7 @@ SvgGradientHelper* SvgParser::parseGradient(const PkXmlElement &e)
     // Parse the color stops.
     {
         PkGradient pkGradient = toPkGradient(*gradHelper.gradient());
-        m_context.styleParser().parseColorStops(&pkGradient, toPkXmlElement(e), gc, toPkGradientStops(defaultStops));
+        m_context.styleParser().parseColorStops(&pkGradient, toPkXmlElement(toQDomElement(e)), gc, toPkGradientStops(defaultStops));
         gradHelper.gradient()->setStops(toQGradientStops(pkGradient.stops()));
     }
 
@@ -733,7 +733,7 @@ PkSharedPointer<KoVectorPatternBackground> SvgParser::parsePattern(const PkXmlEl
    KIS_SAFE_ASSERT_RECOVER_NOOP(shapeOffsetTransform.type() <= PkTransform::TxTranslate);
    const PkPointF extraShapeOffset(shapeOffsetTransform.dx(), shapeOffsetTransform.dy());
 
-   m_context.pushGraphicsContext(toPkXmlElement(e));
+   m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
    gc = m_context.currentGC();
    gc->workaroundClearInheritedFillProperties(); // HACK!
 
@@ -826,7 +826,7 @@ bool SvgParser::parseMarker(const PkXmlElement &e)
     }
 
     // ensure that the clip path is loaded in local coordinates system
-    m_context.pushGraphicsContext(toPkXmlElement(e), false);
+    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)), false);
     m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->currentBoundingBox = toPkRectF(PkRectF(PkPointF(0, 0), marker->referenceSize()));
 
@@ -852,7 +852,7 @@ bool SvgParser::parseSymbol(const PkXmlElement &e)
     std::unique_ptr<KoSvgSymbol> svgSymbol(new KoSvgSymbol());
 
     // ensure that the clip path is loaded in local coordinates system
-    m_context.pushGraphicsContext(toPkXmlElement(e), false);
+    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)), false);
     m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->currentBoundingBox = toPkRectF(PkRectF(0.0, 0.0, 1.0, 1.0));
 
@@ -917,7 +917,7 @@ bool SvgParser::parseClipPath(const PkXmlElement &e)
                 KoFlake::coordinatesFromString(e.attribute("clipPathUnits"), KoFlake::UserSpaceOnUse));
 
     // ensure that the clip path is loaded in local coordinates system
-    m_context.pushGraphicsContext(toPkXmlElement(e));
+    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
     m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->workaroundClearInheritedFillProperties(); // HACK!
 
@@ -963,7 +963,7 @@ bool SvgParser::parseClipMask(const PkXmlElement &e)
 
 
     // ensure that the clip mask is loaded in local coordinates system
-    m_context.pushGraphicsContext(toPkXmlElement(e));
+    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
     m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->workaroundClearInheritedFillProperties(); // HACK!
 
@@ -980,7 +980,7 @@ bool SvgParser::parseClipMask(const PkXmlElement &e)
 
 void SvgParser::uploadStyleToContext(const PkXmlElement &e)
 {
-    SvgStyles styles = m_context.styleParser().collectStyles(toPkXmlElement(e));
+    SvgStyles styles = m_context.styleParser().collectStyles(toPkXmlElement(toQDomElement(e)));
     m_context.styleParser().parseFont(styles);
     m_context.styleParser().parseStyle(styles, m_inheritStrokeFillByDefault);
 }
@@ -1033,7 +1033,7 @@ void SvgParser::applyCurrentBasicStyle(KoShape *shape)
 
 void SvgParser::applyStyle(KoShape *obj, const PkXmlElement &e, const PkPointF &shapeToOriginalUserCoordinates)
 {
-    applyStyle(obj, m_context.styleParser().collectStyles(toPkXmlElement(e)), shapeToOriginalUserCoordinates);
+    applyStyle(obj, m_context.styleParser().collectStyles(toPkXmlElement(toQDomElement(e))), shapeToOriginalUserCoordinates);
 }
 
 void SvgParser::applyStyle(KoShape *obj, const SvgStyles &styles, const PkPointF &shapeToOriginalUserCoordinates)
@@ -1455,7 +1455,7 @@ KoShape* SvgParser::resolveUse(const PkXmlElement &e, const PkString& key)
 {
     KoShape *result = 0;
 
-    SvgGraphicsContext *gc = m_context.pushGraphicsContext(toPkXmlElement(e));
+    SvgGraphicsContext *gc = m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
 
     // TODO: parse 'width' and 'height' as well
     gc->matrix.translate(parseUnitX(e.attribute("x", "0")), parseUnitY(e.attribute("y", "0")));
@@ -1485,7 +1485,7 @@ PkList<KoShape*> SvgParser::parseSvg(const PkXmlElement &e, PkSizeF *fragmentSiz
     const bool isRootSvg = m_context.isRootContext();
 
     // parse 'transform' field if preset
-    SvgGraphicsContext *gc = m_context.pushGraphicsContext(toPkXmlElement(e));
+    SvgGraphicsContext *gc = m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
 
     applyStyle(0, e, PkPointF());
 
@@ -1502,7 +1502,7 @@ PkList<KoShape*> SvgParser::parseSvg(const PkXmlElement &e, PkSizeF *fragmentSiz
 
         PkRectF pkViewRect = toPkRectF(viewRect);
         PkTransform pkViewTransform_unused = toPkTransform(toQTransform(viewTransform_unused));
-        if (SvgUtil::parseViewBox(toPkXmlElement(e), toPkRectF(fakeBoundingRect),
+        if (SvgUtil::parseViewBox(toPkXmlElement(toQDomElement(e)), toPkRectF(fakeBoundingRect),
                                   &pkViewRect, &pkViewTransform_unused)) {
             viewRect = toQRectF(pkViewRect);
 
@@ -1590,7 +1590,7 @@ void SvgParser::applyViewBoxTransform(const PkXmlElement &element)
     PkRectF pkViewRect = toPkRectF(viewRect);
     PkTransform pkViewTransform = toPkTransform(toQTransform(viewTransform));
 
-    if (SvgUtil::parseViewBox(toPkXmlElement(element), gc->currentBoundingBox,
+    if (SvgUtil::parseViewBox(toPkXmlElement(toQDomElement(element)), gc->currentBoundingBox,
                               &pkViewRect, &pkViewTransform)) {
 
         gc->matrix = pkViewTransform * gc->matrix;
@@ -1645,7 +1645,7 @@ inline PkPointF extraShapeOffset(const KoShape *shape, const PkTransform coordin
 KoShape* SvgParser::parseGroup(const PkXmlElement &b, const PkXmlElement &overrideChildrenFrom, bool createContext)
 {
     if (createContext) {
-        m_context.pushGraphicsContext(toPkXmlElement(b));
+        m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(b)));
     }
 
     KoShapeGroup *group = new KoShapeGroup();
@@ -1803,7 +1803,7 @@ KoShape *SvgParser::parseTextElement(const PkXmlElement &e, KoSvgTextShape *merg
         m_isInsideTextSubtree = true;
     }
 
-    m_context.pushGraphicsContext(toPkXmlElement(e));
+    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(e)));
     uploadStyleToContext(e);
 
     if (rootTextShape) {
@@ -1935,7 +1935,7 @@ PkList<KoShape*> SvgParser::parseSingleElement(const PkXmlElement &b, DeferredUs
     PkList<KoShape*> shapes;
 
     // save definition for later instantiation with 'use'
-    m_context.addDefinition(toPkXmlElement(b));
+    m_context.addDefinition(toPkXmlElement(toQDomElement(b)));
     if (deferredUseStore) {
         deferredUseStore->checkPendingUse(b, shapes);
     }
@@ -1948,7 +1948,7 @@ PkList<KoShape*> SvgParser::parseSingleElement(const PkXmlElement &b, DeferredUs
     } else if (b.tagName() == "symbol") {
         parseSymbol(b);
     } else if (b.tagName() == "switch") {
-        m_context.pushGraphicsContext(toPkXmlElement(b));
+        m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(b)));
         shapes += parseContainer(b);
         m_context.popGraphicsContext();
     } else if (b.tagName() == "defs") {
@@ -1974,7 +1974,7 @@ PkList<KoShape*> SvgParser::parseSingleElement(const PkXmlElement &b, DeferredUs
     } else if (b.tagName() == "marker") {
         parseMarker(b);
     } else if (b.tagName() == "style") {
-        m_context.addStyleSheet(toPkXmlElement(b));
+        m_context.addStyleSheet(toPkXmlElement(toQDomElement(b)));
     } else if (b.tagName() == "text" || b.tagName() == "tspan" || b.tagName() == "textPath") {
         shapes += parseTextElement(b);
     } else if (b.tagName() == "rect" || b.tagName() == "ellipse" || b.tagName() == "circle" || b.tagName() == "line" || b.tagName() == "polyline"
@@ -2003,7 +2003,7 @@ PkList<KoShape*> SvgParser::parseSingleElement(const PkXmlElement &b, DeferredUs
             shapes += s;
         }
     } else if (b.tagName() == "color-profile") {
-        m_context.parseProfile(toPkXmlElement(b));
+        m_context.parseProfile(toPkXmlElement(toQDomElement(b)));
     } else {
         // this is an unknown element, so try to load it anyway
         // there might be a shape that handles that element
@@ -2091,7 +2091,7 @@ KoShape * SvgParser::createPath(const PkXmlElement &element)
 
 KoShape * SvgParser::createObjectDirect(const PkXmlElement &b)
 {
-    m_context.pushGraphicsContext(toPkXmlElement(b));
+    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(b)));
     uploadStyleToContext(b);
 
     KoShape *obj = createShapeFromElement(b, m_context);
@@ -2117,14 +2117,14 @@ KoShape * SvgParser::createObjectDirect(const PkXmlElement &b)
 
 KoShape * SvgParser::createObject(const PkXmlElement &b, const SvgStyles &style)
 {
-    m_context.pushGraphicsContext(toPkXmlElement(b));
+    m_context.pushGraphicsContext(toPkXmlElement(toQDomElement(b)));
 
     KoShape *obj = createShapeFromElement(b, m_context);
     if (obj) {
         obj->applyAbsoluteTransformation(toQTransform(m_context.currentGC()->matrix));
         const PkPointF extraOffset = extraShapeOffset(obj, toQTransform(m_context.currentGC()->matrix));
 
-        SvgStyles objStyle = style.isEmpty() ? m_context.styleParser().collectStyles(toPkXmlElement(b)) : style;
+        SvgStyles objStyle = style.isEmpty() ? m_context.styleParser().collectStyles(toPkXmlElement(toQDomElement(b))) : style;
         m_context.styleParser().parseFont(objStyle);
         applyStyle(obj, objStyle, extraOffset);
 
@@ -2148,7 +2148,7 @@ KoShape * SvgParser::createShapeFromElement(const PkXmlElement &element, SvgLoad
     KoShape *object = 0;
 
 
-    const PkString tagName = toQString(SvgUtil::mapExtendedShapeTag(toPkString(element.tagName()), toPkXmlElement(element)));
+    const PkString tagName = toQString(SvgUtil::mapExtendedShapeTag(toPkString(element.tagName()), toPkXmlElement(toQDomElement(element))));
     PkList<KoShapeFactoryBase*> factories = KoShapeRegistry::instance()->factoriesForElement(toQString(KoXmlNS::svg), tagName);
 
     foreach (KoShapeFactoryBase *f, factories) {
@@ -2172,7 +2172,7 @@ KoShape * SvgParser::createShapeFromElement(const PkXmlElement &element, SvgLoad
         // reset fill
         shape->setBackground(PkSharedPointer<KoShapeBackground>(0));
 
-        if (!svgShape->loadSvg(toPkXmlElement(element), context)) {
+        if (!svgShape->loadSvg(toPkXmlElement(toQDomElement(element)), context)) {
             delete shape;
             continue;
         }
