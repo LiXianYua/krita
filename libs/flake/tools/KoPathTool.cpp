@@ -487,7 +487,7 @@ void KoPathTool::paint(QPainter &painter, const KoViewConverter &converter)
 
     if (m_currentStrategy) {
         painter.save();
-        painter.setTransform(converter.documentToView(), true);
+        painter.setTransform(toQTransform(converter.documentToView()), true);
         d->canvas->snapGuide()->paint(painter, converter);
         painter.restore();
     }
@@ -853,7 +853,11 @@ void KoPathTool::activate(const PkSet<KoShape*> &shapes)
     m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged, this, &KoPathTool::repaintDecorations);
     m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionContentChanged, this, &KoPathTool::repaintDecorations);
     m_shapeFillResourceConnector.connectToCanvas(d->canvas);
-    initializeWithShapes(PkList<KoShape*>(shapes.begin(), shapes.end()));
+    {
+                            PkList<KoShape*> shapeList;
+                            for (KoShape *shape : shapes) { shapeList.append(shape); }
+                            initializeWithShapes(shapeList);
+                        }
     connect(m_actionCurvePoint, &QAction::triggered, this, &KoPathTool::pointToCurve, Qt::UniqueConnection);
     connect(m_actionLinePoint, &QAction::triggered, this, &KoPathTool::pointToLine, Qt::UniqueConnection);
     connect(m_actionLineSegment, &QAction::triggered, this, &KoPathTool::segmentToLine, Qt::UniqueConnection);
@@ -1068,7 +1072,11 @@ void KoPathTool::pointSelectionChanged()
 {
     Q_D(KoToolBase);
     updateActions();
-    d->canvas->snapGuide()->setIgnoredPathPoints(PkList<KoPathPoint*>(m_pointSelection.selectedPoints().begin(), m_pointSelection.selectedPoints().end()));
+    {
+                            PkList<KoPathPoint*> pathPoints;
+                            for (KoPathPoint *pt : m_pointSelection.selectedPoints()) { pathPoints.append(pt); }
+                            d->canvas->snapGuide()->setIgnoredPathPoints(pathPoints);
+                        }
     Q_EMIT selectionChanged(m_pointSelection.hasSelection());
 }
 

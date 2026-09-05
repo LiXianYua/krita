@@ -110,6 +110,13 @@ public:
     // ——与 QMap/QHash::remove 返回 int 不同，别抄错。
     bool remove(const T &value) { return m_d.PkMut().erase(value) > 0; }
 
+    // Qt5 QSet::erase(const_iterator) 语义：删一个并返回下一个迭代器
+    // （KoPathToolSelection 的边迭代边删，S-09-g）。
+    iterator erase(iterator it)
+    {
+        return m_d.PkMut().erase(it);
+    }
+
     void clear() { m_d.PkMut().clear(); }
 
     // 并（就地）：把 other 的元素全并进来。

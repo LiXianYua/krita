@@ -744,7 +744,8 @@ int parseCSSFontStretch(const PkString &value, int currentStretch)
         newStretch = value.toInt(&ok, 10);
 
         if (!ok) {
-            auto it = std::find(fontStretchNames.begin(), fontStretchNames.end(), value);
+            auto it = std::find_if(fontStretchNames.begin(), fontStretchNames.end(),
+                                   [&value](const PkString &n) { return n == value; });
             if (it != fontStretchNames.end()) {
                 const auto index = std::distance(fontStretchNames.begin(), it);
                 KIS_ASSERT(index >= 0);

@@ -5,6 +5,7 @@
  */
 
 #include "KoPathToolFactory.h"
+#include <PkFlakeBridge.h>
 #include "KoPathTool.h"
 #include "KoPathShape.h"
 #include <klocalizedstring.h>

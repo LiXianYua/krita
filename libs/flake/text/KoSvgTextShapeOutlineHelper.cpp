@@ -85,10 +85,10 @@ PkList<PkLineF> getTextAreaOrderArrows(PkList<PkPainterPath> areas) {
         PkLineF arrow(previous.boundingRect().center(), next.boundingRect().center());
         if (!overlap) {
 
-            Q_FOREACH (PkPolygonF p, previous.toSubpathPolygons()) {
+            for (const QPolygonF &p : toQPainterPath(previous).toSubpathPolygons()) {
                 if (p.size() == 1) continue;
                 for (int j = 1; j < p.size(); j++) {
-                    PkLineF l2(p.at(j-1), p.at(j));
+                    PkLineF l2(toPkPointF(p.at(j-1)), toPkPointF(p.at(j)));
                     PkPointF intersect;
                     if (l2.intersects(arrow, &intersect) == PkLineF::BoundedIntersection) {
                         arrow.setP1(intersect);
@@ -96,10 +96,10 @@ PkList<PkLineF> getTextAreaOrderArrows(PkList<PkPainterPath> areas) {
                     }
                 }
             }
-            Q_FOREACH (PkPolygonF p, next.toSubpathPolygons()) {
+            for (const QPolygonF &p : toQPainterPath(next).toSubpathPolygons()) {
                 if (p.size() == 1) continue;
                 for (int j = 1; j < p.size(); j++) {
-                    PkLineF l2(p.at(j-1), p.at(j));
+                    PkLineF l2(toPkPointF(p.at(j-1)), toPkPointF(p.at(j)));
                     PkPointF intersect;
                     if (l2.intersects(arrow, &intersect) == PkLineF::BoundedIntersection) {
                         arrow.setP2(intersect);
@@ -161,13 +161,13 @@ void KoSvgTextShapeOutlineHelper::paintTextShape(QPainter *painter, const KoView
     QPixmap pm = icon.pixmap(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE);
     painter->setBrush(contourModeActive? pal.highlight(): pal.button());
     PkPen pen;
-    pen.setColor(contourModeActive? pal.highlightedText().color(): pal.buttonText().color());
+    pen.setColor(toPkColor(contourModeActive? pal.highlightedText().color(): pal.buttonText().color()));
     pen.setCosmetic(true);
     pen.setWidthF(d->decorationThickness);
     painter->setPen(toQPen(pen));
     const PkRectF buttonRect = d->getButtonRect(converter.documentToView().mapRect(text->boundingRect()));
-    painter->drawRoundedRect(buttonRect, BUTTON_CORNER_ROUND, BUTTON_CORNER_ROUND);
-    painter->drawPixmap(buttonRect.topLeft()+PkPointF(BUTTON_PADDING, BUTTON_PADDING), pm);
+    painter->drawRoundedRect(toQRectF(buttonRect), BUTTON_CORNER_ROUND, BUTTON_CORNER_ROUND);
+    painter->drawPixmap(toQPointF(buttonRect.topLeft()+PkPointF(BUTTON_PADDING, BUTTON_PADDING)), pm);
     painter->restore();
 }
 

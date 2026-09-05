@@ -46,13 +46,13 @@ void KoShapeRubberSelectStrategy::paint(QPainter &painter, const KoViewConverter
     painter.setPen(toQPen(select));
 
     selectColor.setAlphaF(0.4);
-    const QBrush fillBrush(selectColor);
+    const QBrush fillBrush(toQColor(selectColor));
     painter.setBrush(fillBrush);
 
     PkRectF paintRect = converter.documentToView(d->selectedRect());
     paintRect = paintRect.normalized();
 
-    painter.drawRect(paintRect);
+    painter.drawRect(toQRectF(paintRect));
 }
 
 void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Qt::KeyboardModifiers modifiers)

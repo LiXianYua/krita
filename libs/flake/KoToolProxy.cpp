@@ -575,4 +575,3 @@ KoToolProxyPrivate *KoToolProxy::priv()
 }
 
 //have to include this because of Q_PRIVATE_SLOT
-#include "moc_KoToolProxy.cpp"

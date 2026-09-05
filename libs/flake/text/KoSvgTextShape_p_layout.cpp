@@ -11,7 +11,15 @@
 #include "KoSvgTextShape_p.h"
 #include "KoSvgTextShapeLayoutFunc.h"
 
+#include <cstdint>
+
 #include "KoCssTextUtils.h"
+// PkString::utf16() 是 char16_t*；sheenbreaker/raqm 要 uint16_t*（同宽，S-09-g）。
+static inline const uint16_t *pkUtf16Cast(const PkString &s)
+{
+    return reinterpret_cast<const uint16_t*>(s.utf16());
+}
+
 #include "KoFontLibraryResourceUtils.h"
 #include "KoFontRegistry.h"
 #include "KoSvgTextProperties.h"
@@ -214,9 +222,9 @@ void KoSvgTextShape::Private::relayout()
                 unibreakLang += "-strict";
             }
         }
-        set_linebreaks_utf16(text.utf16(), static_cast<size_t>(text.size()), unibreakLang.toUtf8().data(), lineBreaks.data());
-        set_wordbreaks_utf16(text.utf16(), static_cast<size_t>(text.size()), unibreakLang.toUtf8().data(), wordBreaks.data());
-        set_graphemebreaks_utf16(text.utf16(), static_cast<size_t>(text.size()), unibreakLang.toUtf8().data(), graphemeBreaks.data());
+        set_linebreaks_utf16(pkUtf16Cast(text), static_cast<size_t>(text.size()), unibreakLang.toUtf8().data(), lineBreaks.data());
+        set_wordbreaks_utf16(pkUtf16Cast(text), static_cast<size_t>(text.size()), unibreakLang.toUtf8().data(), wordBreaks.data());
+        set_graphemebreaks_utf16(pkUtf16Cast(text), static_cast<size_t>(text.size()), unibreakLang.toUtf8().data(), graphemeBreaks.data());
         justify = KoCssTextUtils::justificationOpportunities(text, lang);
     }
 
@@ -265,7 +273,7 @@ void KoSvgTextShape::Private::relayout()
     // pass everything to a css-compatible text-layout algorithm.
     raqm_t_sp layout(raqm_create());
 
-    if (raqm_set_text_utf16(layout.data(), text.utf16(), static_cast<size_t>(text.size()))) {
+    if (raqm_set_text_utf16(layout.data(), pkUtf16Cast(text), static_cast<size_t>(text.size()))) {
         if (writingMode == KoSvgText::VerticalRL || writingMode == KoSvgText::VerticalLR) {
             raqm_set_par_direction(layout.data(), raqm_direction_t::RAQM_DIRECTION_TTB);
         } else if (direction == KoSvgText::DirectionRightToLeft) {
@@ -303,7 +311,7 @@ void KoSvgTextShape::Private::relayout()
                 int localLineBreakStart = qMax(0, start -1);
                 int localLineBreakEnd = qMin(text.size(), start+chunk.text.size());
                 PkVector<char> localLineBreaks(localLineBreakEnd - localLineBreakStart);
-                set_linebreaks_utf16(text.mid(localLineBreakStart, localLineBreaks.size()).utf16(),
+                set_linebreaks_utf16(pkUtf16Cast(text.mid(localLineBreakStart, localLineBreaks.size())),
                                      static_cast<size_t>(localLineBreaks.size()),
                                      unibreakLang.toUtf8().data(),
                                      localLineBreaks.data());
@@ -432,13 +440,13 @@ void KoSvgTextShape::Private::relayout()
             const qreal fontSize = properties.cssFontInfo().size;
             if (properties.hasProperty(KoSvgTextProperties::TextLanguage)) {
                 raqm_set_language(layout.data(),
-                                  properties.property(KoSvgTextProperties::TextLanguage).toString().toUtf8(),
+                                  properties.property(KoSvgTextProperties::TextLanguage).toString().toUtf8().data(),
                                   static_cast<size_t>(start),
                                   static_cast<size_t>(length));
             }
             Q_FOREACH (const PkString &feature, fontFeatures) {
                 debugFlake << "adding feature" << feature;
-                raqm_add_font_feature(layout.data(), feature.toUtf8(), feature.toUtf8().size());
+                raqm_add_font_feature(layout.data(), feature.toUtf8().data(), int(feature.toUtf8().size()));
             }
 
             if (!letterSpacing.isAuto) {
@@ -616,7 +624,7 @@ void KoSvgTextShape::Private::relayout()
             firstCluster = i;
         } else {
             int fC = qMax(0, firstCluster);
-            if (text[fC].isSpace() == text[i].isSpace()) {
+            if (PkChar(text[fC]).isSpace() == PkChar(text[i]).isSpace()) {
                 if (result[fC].breakType != BreakType::HardBreak) {
                     result[fC].breakType = result.at(i).breakType;
                 }
@@ -917,7 +925,7 @@ void KoSvgTextShape::Private::resolveTransforms(KisForest<KoSvgTextContentElemen
                 result[k].addressable = false;
                 continue;
             }
-            if (k > 0 && text.at(k).isLowSurrogate() && text.at(k-1).isHighSurrogate()) {
+            if (k > 0 && PkChar(text.at(k)).isLowSurrogate() && PkChar(text.at(k-1)).isHighSurrogate()) {
                 // transforms apply per-undicode codepoint, not per utf16.
                 result[k].addressable = false;
                 continue;
@@ -1434,7 +1442,7 @@ std::pair<PkPainterPath, PkPointF> generateDecorationPath (
             pathWidth = PkPointF(strokeWidth, 0);
         }
     }
-    return qMakePair(p, pathWidth);
+    return std::make_pair(p, pathWidth);
 }
 
 void KoSvgTextShape::Private::finalizeDecoration (
@@ -1456,11 +1464,11 @@ void KoSvgTextShape::Private::finalizeDecoration (
         }
 
         decorationPath = stretchGlyphOnPath(decorationPath.translated(offset), path, isHorizontal, currentTextPathOffset, currentTextPath->isClosedSubpath(0));
-        decorationPaths[type].addPath(stroker.createStroke(toQPainterPath(decorationPath)));
+        decorationPaths[type].addPath(toPkPainterPath(stroker.createStroke(toQPainterPath(decorationPath))));
     } else {
-        decorationPaths[type].addPath(stroker.createStroke(decorationPath.translated(offset)));
+        decorationPaths[type].addPath(toPkPainterPath(stroker.createStroke(toQPainterPath(decorationPath.translated(offset)))));
     }
-    decorationPaths[type].setFillRule(Qt::WindingFill);
+    decorationPaths[type].setFillRule(Pk::WindingFill);
 }
 
 PkMap<KoSvgText::TextDecoration, PkPainterPath>
@@ -1491,12 +1499,12 @@ KoSvgTextShape::Private::generateDecorationPaths(const int &start, const int &en
     stroker.setCapStyle(Qt::FlatCap);
     if (style == Dotted) {
         PkPen pen;
-        pen.setStyle(Qt::DotLine);
-        stroker.setDashPattern(pen.dashPattern());
+        pen.setStyle(Pk::DotLine);
+        stroker.setDashPattern(toQDashPattern(pen.dashPattern()));
     } else if (style == Dashed) {
         PkPen pen;
-        pen.setStyle(Qt::DashLine);
-        stroker.setDashPattern(pen.dashPattern());
+        pen.setStyle(Pk::DashLine);
+        stroker.setDashPattern(toQDashPattern(pen.dashPattern()));
     }
 
     struct DecorationBox {

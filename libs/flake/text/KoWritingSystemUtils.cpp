@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KoWritingSystemUtils.h"
+#include <PkFlakeBridge.h>
 #include <PkChar.h>
 #include <PkChar.h>
 #include <PkChar.h>
@@ -159,6 +160,12 @@
 #include <PkChar.h>
 #include <PkChar.h>
 #include <QRegularExpression>
+// 过渡期：BCP-47 tag 的 regex 校验（PkString 不做 regex，S-09-g）。
+static bool pkContainsRe(const PkString &s, const QRegularExpression &re)
+{
+    return toQString(s).contains(re);
+}
+
 
 static PkMap<QFontDatabase::WritingSystem, PkString> WRITINGSYSTEM_SCRIPT_MAP {
     {{QFontDatabase::Any},{"Zyyy"}},
@@ -549,10 +556,10 @@ PkMap<PkString, PkString> KoWritingSystemUtils::samples()
         if (w == QFontDatabase::WritingSystem::Any) continue;
 
         if (w == QFontDatabase::WritingSystem::Vietnamese) {
-            samples.insert(QFontDatabase::writingSystemSample(QFontDatabase::Vietnamese),
+            samples.insert(toPkString(QFontDatabase::writingSystemSample(QFontDatabase::Vietnamese)),
                            "l_vi");
         } else {
-            samples.insert(QFontDatabase::writingSystemSample(w),
+            samples.insert(toPkString(QFontDatabase::writingSystemSample(w)),
                            "s_"+WRITINGSYSTEM_SCRIPT_MAP.value(w, "Zyyy"));
         }
     }
@@ -615,7 +622,7 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
         bcp.languageTags.append(tags.takeFirst().toLower());
 
         // extensions only happen when first tag is 2 or 3 long.
-        while (!tags.isEmpty() && tags.first().size() == 3 && tags.first().contains(alphas)) {
+        while (!tags.isEmpty() && tags.first().size() == 3 && pkContainsRe(tags.first(), alphas)) {
             bcp.languageTags.append(tags.takeFirst().toLower());
         }
     } else if (tags.first().size() >= 4 || tags.first().size() <= 8) {
@@ -631,17 +638,17 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
 
     // Script -- This is an 4 letter alpha only.
 
-    if (tags.first().contains(alphas) && tags.first().size() == 4) {
+    if (pkContainsRe(tags.first(), alphas) && tags.first().size() == 4) {
         bcp.scriptTag = tags.takeFirst().toLower();
-        bcp.scriptTag = bcp.scriptTag.at(0).toUpper()+bcp.scriptTag.mid(1);
+        bcp.scriptTag = bcp.scriptTag.mid(0, 1).toUpper()+bcp.scriptTag.mid(1);
     }
 
     if (tags.isEmpty()) return bcp;
 
     // Region -- 2 letter alpha only.
 
-    if ((tags.first().contains(alphas) && tags.first().size() == 2)
-            || (tags.first().contains(digits) && tags.first().size() == 3)) {
+    if ((pkContainsRe(tags.first(), alphas) && tags.first().size() == 2)
+            || (pkContainsRe(tags.first(), digits) && tags.first().size() == 3)) {
         bcp.regionTag = tags.takeFirst().toUpper();
     }
 
@@ -653,7 +660,7 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
 
     while (!tags.isEmpty()
            && ( (tags.first().size() >= 5 && tags.first().size() <= 8)
-               || (tags.first().contains(variantAlphaNumeric) && tags.first().size() == 4) )
+               || (pkContainsRe(tags.first(), variantAlphaNumeric) && tags.first().size() == 4) )
            ) {
         bcp.variantTags.append(tags.takeFirst().toLower());
     }
@@ -687,7 +694,7 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
 
 QLocale KoWritingSystemUtils::localeFromBcp47Locale(const Bcp47Locale &locale)
 {
-    return QLocale(locale.toPosixLocaleFormat());
+    return QLocale(toQString(locale.toPosixLocaleFormat()));
 }
 
 QLocale KoWritingSystemUtils::localeFromBcp47Locale(const PkString &locale)

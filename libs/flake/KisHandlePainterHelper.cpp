@@ -5,6 +5,7 @@
  */
 
 #include "KisHandlePainterHelper.h"
+#include <kis_global.h>
 
 #include <QPainter>
 #include <PkFlakeBridge.h>

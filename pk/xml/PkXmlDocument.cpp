@@ -395,3 +395,11 @@ PkXmlDocumentType PkXmlDocument::doctype() const
     }
     return PkXmlDocumentType();
 }
+
+// PkByteArray（原始字节，UTF-8 假定）→ PkString 委托（S-09-g SvgParser 链接补齐）。
+bool PkXmlDocument::setContent(const PkByteArray &data, PkString *errorMsg, int *errorLine,
+                               int *errorColumn)
+{
+    return setContent(PkString::fromUtf8(data.data(), int(data.size())),
+                      errorMsg, errorLine, errorColumn);
+}

@@ -256,3 +256,49 @@ PkString PkChar::decomposition(uint ucs4) noexcept
     if (U_FAILURE(ec) || len <= 0) return PkString();
     return PkString::fromUtf16(reinterpret_cast<const char16_t*>(buf), len);
 }
+
+// ---- 内联分支的 _helper 出口（声明于 PkChar.h，实现在此；S-09-g 链接补齐）----
+// isSpace 的 >127 段：对齐 QChar::isSpace_helper 的 Unicode White_Space 集合
+// （0xa0/0x85 已被内联分支处理，这里只剩剩余项）。
+bool PkChar::isSpace_helper(uint ucs4) noexcept
+{
+    return ucs4 == 0x1680
+        || (ucs4 >= 0x2000 && ucs4 <= 0x200a)
+        || ucs4 == 0x2028 || ucs4 == 0x2029 || ucs4 == 0x202f
+        || ucs4 == 0x205f || ucs4 == 0x3000;
+}
+
+// 字母/数字类：走 category()（ICU 表驱动），不复制第二份 Unicode 数据。
+bool PkChar::isLetter_helper(uint ucs4) noexcept
+{
+    switch (category(ucs4)) {
+    case PkChar::Letter_Uppercase:
+    case PkChar::Letter_Lowercase:
+    case PkChar::Letter_Titlecase:
+    case PkChar::Letter_Modifier:
+    case PkChar::Letter_Other:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool PkChar::isNumber_helper(uint ucs4) noexcept
+{
+    switch (category(ucs4)) {
+    case PkChar::Number_DecimalDigit:
+    case PkChar::Number_Letter:
+    case PkChar::Number_Other:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool PkChar::isLetterOrNumber_helper(uint ucs4) noexcept
+{
+    return isLetter_helper(ucs4) || isNumber_helper(ucs4);
+}
+
+bool operator==(PkChar c1, PkChar c2) noexcept { return c1.ucs == c2.ucs; }
+bool operator<(PkChar c1, PkChar c2) noexcept { return c1.ucs < c2.ucs; }

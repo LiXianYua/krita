@@ -602,7 +602,7 @@ void KoToolManager::Private::postSwitchTool()
             layout->addItem(new QSpacerItem(1, 1, QSizePolicy::Minimum, QSizePolicy::Expanding));
             canvasData->dummyToolWidget = toolWidget;
         }
-        canvasData->dummyToolLabel->setText(i18n("Active tool: %1", title));
+        canvasData->dummyToolLabel->setText(i18n("Active tool: %1", toQString(title)));
         optionWidgetList.append(toolWidget);
     }
 
@@ -901,4 +901,3 @@ void KoToolManager::Private::registerToolProxy(KoToolProxy *proxy, KoCanvasBase 
 }
 
 //have to include this because of Q_PRIVATE_SLOT
-#include "moc_KoToolManager.cpp"

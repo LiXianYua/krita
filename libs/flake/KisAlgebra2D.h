@@ -31,16 +31,7 @@
 
 #include <Eigen/Dense>
 
-// 官方 kis_global.h 的全局工具 kisDistance 是 PkPointF 版，此处补 PkPointF 版
-// 供绘图闭包使用（见文件头注释）。不定义全局 pow2 —— libs/global/kis_global.h
-// 已提供同名同签名模板，重定义会与它撞（实测 KoPencilTool/KisHandlePainterHelper
-// 两个 TU 压出）；距离计算直接平方内联。
-inline qreal kisDistance(const PkPointF &pt1, const PkPointF &pt2)
-{
-    const qreal dx = pt1.x() - pt2.x();
-    const qreal dy = pt1.y() - pt2.y();
-    return std::sqrt(dx * dx + dy * dy);
-}
+// kisDistance(PkPointF,PkPointF) 已由 libs/global/kis_global.h 提供（S-09-g 去重）。
 
 namespace KisAlgebra2D {
 

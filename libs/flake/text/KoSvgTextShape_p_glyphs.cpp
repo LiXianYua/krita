@@ -225,7 +225,7 @@ public:
         bool isForeGroundColor = false;
 
         if (m_layerColorIndex == 0xFFFF) {
-            layerColor = Pk::black;
+            layerColor = QBrush(toQColor(PkColor(Pk::black)));
             isForeGroundColor = true;
         } else {
             const FT_Color color = m_palette[m_layerColorIndex];
@@ -457,9 +457,9 @@ std::pair<PkTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const PkTra
 
             if (!bitmapTf.isIdentity()) {
                 const PkSize srcSize = image.size();
-                bitmapGlyph->images.replace(bitmapGlyph->images.size()-1, std::move(image).transformed(
+                bitmapGlyph->images.last() = std::move(image).transformed(
                     bitmapTf,
-                    rendering == KoSvgText::RenderingOptimizeSpeed ? Qt::FastTransformation : Qt::SmoothTransformation));
+                    rendering == KoSvgText::RenderingOptimizeSpeed ? Pk::FastTransformation : Pk::SmoothTransformation);
 
                 // This does the same as `PkImage::trueMatrix` to get the image
                 // offset after transforming.
@@ -542,7 +542,7 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
             // For whatever reason we don't have a glyph for this char. Draw a
             // tofu block for it.
             const auto height = ftTF.map(PkPointF(currentGlyph.ftface->size->metrics.height, 0)).x() * 0.6;
-            PkPainterPath glyph = toQPainterPath(KisTofuGlyph::create(firstCodepoint, height));
+            PkPainterPath glyph = KisTofuGlyph::create(firstCodepoint, height);
             if (isHorizontal) {
                 glyph.translate(0, -height);
                 const qreal newAdvance =
@@ -649,7 +649,7 @@ static PkPainterPath convertFromFreeTypeOutline(FT_GlyphSlotRec *glyphSlot)
     // convert the outline to a painter path
     // This is taken from qfontengine_ft.cpp.
     PkPainterPath glyph;
-    glyph.setFillRule(Qt::WindingFill);
+    glyph.setFillRule(Pk::WindingFill);
     int i = 0;
     for (int j = 0; j < glyphSlot->outline.n_contours; ++j) {
         int last_point = glyphSlot->outline.contours[j];

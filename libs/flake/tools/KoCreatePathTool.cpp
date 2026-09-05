@@ -115,7 +115,7 @@ void KoCreatePathTool::paint(QPainter &painter, const KoViewConverter &converter
     }
 
     painter.save();
-    painter.setTransform(converter.documentToView(), true);
+    painter.setTransform(toQTransform(converter.documentToView()), true);
     canvas()->snapGuide()->paint(painter, converter);
     painter.restore();
 }
@@ -123,8 +123,8 @@ void KoCreatePathTool::paint(QPainter &painter, const KoViewConverter &converter
 void KoCreatePathTool::paintPath(KoPathShape& pathShape, QPainter &painter, const KoViewConverter &converter)
 {
     Q_D(KoCreatePathTool);
-    painter.setTransform(pathShape.absoluteTransformation() *
-                         converter.documentToView() *
+    painter.setTransform(toQTransform(pathShape.absoluteTransformation() *
+                         converter.documentToView()) *
                          painter.transform());
     painter.save();
 
@@ -214,7 +214,7 @@ void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)
         const qreal size = canvas()->resourceManager()->resource(KoCanvasResource::Size).toReal();
 
         stroke->setLineWidth(canvas()->unit().fromUserValue(size));
-        stroke->setColor(toQColor(canvas()->resourceManager()->foregroundColor().toQColor()));
+        stroke->setColor(toPkColor(canvas()->resourceManager()->foregroundColor().toQColor()));
 
         pathShape->setStroke(stroke);
         PkPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());

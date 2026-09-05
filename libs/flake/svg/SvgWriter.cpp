@@ -272,7 +272,7 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
 
     QPainter svgPainter;
     svgPainter.begin(&svgGenerator);
-    painter.paint(svgPainter, toPkRect(toQRectF(SvgUtil::toUserSpace(toPkRectF(bbox))).toRect()), bbox);
+    painter.paint(svgPainter, toQRectF(SvgUtil::toUserSpace(toPkRectF(bbox))).toRect(), bbox);
     svgPainter.end();
 
     // remove anything before the start of the svg element from the buffer

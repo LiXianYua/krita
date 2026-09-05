@@ -272,6 +272,14 @@ inline PK_QPEN_ toQPen(const PkPen &pen)
     return q;
 }
 
+inline QVector<qreal> toQDashPattern(const std::vector<qreal> &v)
+{
+    QVector<qreal> out;
+    out.reserve(int(v.size()));
+    for (qreal x : v) out.append(x);
+    return out;
+}
+
 inline PkPen toPkPen(const PK_QPEN_ &qpen)
 {
     PkPen pen(toPkColor(qpen.color()), qpen.widthF());

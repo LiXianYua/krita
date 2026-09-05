@@ -80,8 +80,8 @@ void KoPencilTool::paint(QPainter &painter, const KoViewConverter &converter)
     if (m_shape) {
         painter.save();
 
-        painter.setTransform(m_shape->absoluteTransformation() *
-                             converter.documentToView() *
+        painter.setTransform(toQTransform(m_shape->absoluteTransformation() *
+                             converter.documentToView()) *
                              painter.transform());
 
         painter.save();
@@ -187,7 +187,7 @@ void KoPencilTool::activate(const PkSet<KoShape*> &shapes)
     m_close = false;
     slotUpdatePencilCursor();
 
-    m_configGroup =  KSharedConfig::openConfig()->group(toolId());
+    m_configGroup =  KSharedConfig::openConfig()->group(toQString(toolId()));
 }
 
 void KoPencilTool::deactivate()

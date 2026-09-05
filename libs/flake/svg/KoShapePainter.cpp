@@ -149,7 +149,7 @@ void KoShapePainter::paint(QPainter &painter, const QRect &painterRect, const Pk
 
     KoViewConverter converter;
     // calculate the painter destination rectangle size in document coordinates
-    PkRectF paintBox = converter.viewToDocument(PkRectF(PkPointF(), painterRect.size()));
+    PkRectF paintBox = converter.viewToDocument(PkRectF(PkPointF(), PkSizeF(painterRect.width(), painterRect.height())));
 
     // compute the zoom factor based on the bounding rects in document coordinates
     // so that the content fits into the image

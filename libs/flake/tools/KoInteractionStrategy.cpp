@@ -51,10 +51,6 @@ void KoInteractionStrategy::handleMouseMove(const PkPointF &, Qt::KeyboardModifi
 {
 }
 
-void KoInteractionStrategy::handleMouseMove(const PkPointF &, Qt::KeyboardModifiers)
-{
-}
-
 KoToolBase *KoInteractionStrategy::tool() const
 {
     Q_D(const KoInteractionStrategy);

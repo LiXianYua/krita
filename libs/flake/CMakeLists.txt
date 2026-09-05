@@ -291,6 +291,7 @@ if (KSeExpr_FOUND)
 endif()
 
 set(kritaflake_OBJECT_DEPS
+    pktextstream
     kritapigment
     kritacommand
     KF${KF_MAJOR}::WidgetsAddons
@@ -502,6 +503,7 @@ set_target_properties(libraqm PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_link_libraries(kritaflake
     PUBLIC
+        pktextstream
         kritapigment
         kritacommand
         KF${KF_MAJOR}::WidgetsAddons

@@ -8,6 +8,7 @@
 #include "../container/PkList.h"
 #include "../namespace/PkNamespace.h"
 
+
 // PkString —— 零 Qt 依赖的 COW UTF-16 字符串。
 //
 // 公开 API 的范围来自 docs/Qt替代品选型.md §2 的 QString 实测用量表，另含

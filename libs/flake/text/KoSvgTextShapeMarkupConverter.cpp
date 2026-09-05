@@ -160,7 +160,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromSvg(const PkString &svgText, cons
             textNodeFound = true;
             break;
         } else {
-            d->errors << toPkString(i18n("Unknown node of type \'%1\' found!", el.tagName()));
+            d->errors << toPkString(i18n("Unknown node of type \'%1\' found!", toQString(el.tagName())));
             return false;
         }
     }
@@ -579,8 +579,9 @@ static bool guessIsRightToLeft(PkString text) {
 
 bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *doc, PkString *svgText)
 {
-    PkMemoryStream svgBuffer;
-    svgBuffer.open(PkStream::WriteOnly);
+    QByteArray svgData;
+    QBuffer svgBuffer(&svgData);
+    svgBuffer.open(QIODevice::WriteOnly);
 
     QXmlStreamWriter svgWriter(&svgBuffer);
 
@@ -711,7 +712,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
 
         const QTextBlockFormat blockFormatDiff = formatDifference(block.blockFormat(), mostCommonBlockFormat).toBlockFormat();
         QTextCharFormat blockCharFormatDiff = QTextCharFormat();
-        const QList<QTextLayout::FormatRange> formats = block.textFormats();
+        const QVector<QTextLayout::FormatRange> formats = block.textFormats();
         if (formats.size()==1) {
             blockCharFormatDiff = formatDifference(formats.at(0).format, mostCommonCharFormat).toCharFormat();
             if (wrappingMode == WrappingMode::WhiteSpacePreWrap) {
@@ -851,7 +852,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
         }
 
         // Add line-breaks for `pre` modes, but not for the final line.
-        if (wrappingMode != WrappingMode::QtLegacy && &info != &lineInfoList.constLast()) {
+        if (wrappingMode != WrappingMode::QtLegacy && &info != &lineInfoList.last()) {
             svgWriter.writeCharacters(QLatin1String("\n"));
         }
         svgWriter.writeEndElement();
@@ -862,7 +863,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
         d->errors << toPkString(i18n("Unknown error writing SVG text element"));
         return false;
     }
-    *svgText = PkString::fromUtf8(svgBuffer.data()).trimmed();
+    *svgText = PkString::fromUtf8(svgData.constData(), int(svgData.size())).trimmed();
     return true;
 }
 
@@ -878,9 +879,9 @@ void parseTextAttributes(const QXmlStreamAttributes &elementAttributes,
     for (int a = 0; a < elementAttributes.size(); a++) {
         if (elementAttributes.at(a).name() != "style") {
             presentationAttributes
-                    .append(elementAttributes.at(a).name().toString())
+                    .append(toPkString(elementAttributes.at(a).name().toString()))
                     .append(":")
-                    .append(elementAttributes.at(a).value().toString())
+                    .append(toPkString(elementAttributes.at(a).value().toString()))
                     .append(";");
         }
     }
@@ -911,7 +912,7 @@ void parseTextAttributes(const QXmlStreamAttributes &elementAttributes,
 
 bool KoSvgTextShapeMarkupConverter::convertSvgToDocument(const PkString &svgText, QTextDocument *doc)
 {
-    QXmlStreamReader svgReader(svgText.trimmed());
+    QXmlStreamReader svgReader(toQString(svgText.trimmed()));
     doc->clear();
     QTextCursor cursor(doc);
 
@@ -988,7 +989,7 @@ bool KoSvgTextShapeMarkupConverter::convertSvgToDocument(const PkString &svgText
                     boost::make_optional(false, qreal());
 
                 if (elementAttributes.hasAttribute("x")) {
-                    PkString xString = elementAttributes.value("x").toString();
+                    PkString xString = toPkString(elementAttributes.value("x").toString());
                     if (xString.contains("pt")) {
                         xString = xString.remove("pt").trimmed();
                     }
@@ -1011,12 +1012,12 @@ bool KoSvgTextShapeMarkupConverter::convertSvgToDocument(const PkString &svgText
                 if ((isSameXOffset() || thisBlockAlignment != prevBlockAlignment) && svgReader.name() != "text"
                     && elementAttributes.hasAttribute("dy")) {
 
-                    PkString dyString = elementAttributes.value("dy").toString();
+                    PkString dyString = toPkString(elementAttributes.value("dy").toString());
                     if (dyString.contains("pt")) {
                         dyString = dyString.remove("pt").trimmed();
                     }
 
-                    KIS_SAFE_ASSERT_RECOVER_NOOP(formatStack.isEmpty() == (svgReader.name() == "text"));
+                    KIS_SAFE_ASSERT_RECOVER_NOOP(formatStack.empty() == (svgReader.name() == "text"));
 
                     absoluteLineOffset = fixToQtDpi(KisDomUtils::toDouble(toPkString(dyString)));
                     newBlock = absoluteLineOffset > 0;
@@ -1033,7 +1034,7 @@ bool KoSvgTextShapeMarkupConverter::convertSvgToDocument(const PkString &svgText
             doc->setTextWidth(-1);
 
             if (newBlock && absoluteLineOffset > 0) {
-                KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!formatStack.isEmpty(), false);
+                KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!formatStack.empty(), false);
                 KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(cursor.block().layout()->lineCount() > 0, false);
 
                 QTextLine line = cursor.block().layout()->lineAt(0);
@@ -1064,7 +1065,7 @@ bool KoSvgTextShapeMarkupConverter::convertSvgToDocument(const PkString &svgText
         {
             if (svgReader.name() != "text") {
                 formatStack.pop();
-                KIS_SAFE_ASSERT_RECOVER(!formatStack.isEmpty()) { break; }
+                KIS_SAFE_ASSERT_RECOVER(!formatStack.empty()) { break; }
 
                 cursor.setCharFormat(formatStack.top().charFormat);
                 // For legacy wrapping mode, don't reset block format here
@@ -1186,7 +1187,7 @@ PkString KoSvgTextShapeMarkupConverter::style(QTextCharFormat format,
         int propertyId = format.properties().keys().at(i);
 
         if (propertyId == QTextCharFormat::FontFamily) {
-            const PkString fontFamily = format.properties()[propertyId].toString();
+            const PkString fontFamily = toPkString(format.properties()[propertyId].toString());
             c.append("font-family").append(":").append(fontFamily);
         }
         if (propertyId == QTextCharFormat::FontPointSize ||
@@ -1195,7 +1196,7 @@ PkString KoSvgTextShapeMarkupConverter::style(QTextCharFormat format,
             // in Krita we unify point size and pixel size of the font
 
             c.append("font-size").append(":")
-                    .append(format.properties()[propertyId].toString());
+                    .append(toPkString(format.properties()[propertyId].toString()));
         }
         if (propertyId == QTextCharFormat::FontWeight) {
             // Convert from QFont::Weight range to SVG range,
@@ -1312,7 +1313,7 @@ PkString KoSvgTextShapeMarkupConverter::style(QTextCharFormat format,
         if (propertyId == QTextCharFormat::TextOutline) {
             if (format.textOutline().color() != mostCommon.textOutline().color()) {
                 c.append("stroke").append(":")
-                        .append(format.textOutline().color().name());
+                        .append(toPkString(format.textOutline().color().name()));
                 style.append(c);
                 c.clear();
             }
@@ -1344,7 +1345,7 @@ PkString KoSvgTextShapeMarkupConverter::style(QTextCharFormat format,
             }
 
             c.append("fill").append(":")
-                    .append(format.foreground().color().name(colorFormat));
+                    .append(toPkString(format.foreground().color().name(static_cast<QColor::NameFormat>(colorFormat))));
         }
 
         if (!c.isEmpty()) {
@@ -1426,7 +1427,11 @@ PkVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(PkStringLi
             PkString value = style.at(1).trimmed();
 
             if (property == "font-family") {
-                charFormat.setFontFamilies(PkStringList(value));
+                {
+                        QStringList families;
+                        for (const PkString &f : PkStringList{value}) families << toQString(f);
+                        charFormat.setFontFamilies(families);
+                    }
             }
 
             if (property == "font-size") {
@@ -1564,14 +1569,14 @@ PkVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(PkStringLi
             }
 
             if (property == "stroke") {
-                PkPen pen = charFormat.textOutline();
+                PkPen pen = toPkPen(charFormat.textOutline());
                 PkColor color(value);
                 pen.setColor(color);
                 charFormat.setTextOutline(toQPen(pen));
             }
 
             if (property == "stroke-width") {
-                PkPen pen = charFormat.textOutline();
+                PkPen pen = toPkPen(charFormat.textOutline());
                 pen.setWidth(value.toInt());
                 charFormat.setTextOutline(toQPen(pen));
             }
@@ -1599,7 +1604,7 @@ PkVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(PkStringLi
             }
 
             if (property == "fill-opacity") {
-                PkColor color = charFormat.foreground().color();
+                PkColor color = toPkColor(charFormat.foreground().color());
                 bool ok = true;
                 qreal alpha = qBound(0.0, SvgUtil::fromPercentage(toPkString(value), &ok), 1.0);
 
@@ -1645,7 +1650,7 @@ PkVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(PkStringLi
                     }
                 } else if(const double unitless = value.toDouble(&ok); ok) {
                     lineHeightPercent = unitless * 100.0;
-                } else if (value == QLatin1String("normal")) {
+                } else if (value == "normal") {
                     lineHeightPercent = -1.0;
                     blockFormat.setLineHeight(1, QTextBlockFormat::SingleHeight);
                 }
@@ -1662,9 +1667,9 @@ PkVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(PkStringLi
             }
 
             if (property == "white-space") {
-                if (value == QLatin1String("pre")) {
+                if (value == "pre") {
                     extraStyles.wrappingMode = WrappingMode::WhiteSpacePre;
-                } else if (value == QLatin1String("pre-wrap")) {
+                } else if (value == "pre-wrap") {
                     extraStyles.wrappingMode = WrappingMode::WhiteSpacePreWrap;
                 } else {
                     extraStyles.wrappingMode = WrappingMode::QtLegacy;
@@ -1684,7 +1689,7 @@ QTextFormat KoSvgTextShapeMarkupConverter::formatDifference(QTextFormat test, QT
     QTextFormat diff = test;
     //props should proly compare itself to the main text format...
     const QMap<int, QVariant> props = reference.properties();
-    for (PkMap<int, PkVariant>::ConstIterator it = props.begin(), end = props.end();
+    for (QMap<int, QVariant>::const_iterator it = props.begin(), end = props.end();
          it != end; ++it)
         if (it.value() == test.property(it.key())) {
             // Some props must not be removed as default state gets in the way.

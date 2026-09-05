@@ -11,6 +11,7 @@
 // fputs，read 走 PkStream::read/readLine / 缓冲 / fgetc。当前不做 locale/codec
 // 全量对齐（setCodec 为占位）。
 
+#include "../global/PkGlobal.h"
 #include <string>
 #include <cstdio>
 
