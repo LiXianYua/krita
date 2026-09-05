@@ -6,6 +6,8 @@
 
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
+#include <KoGradientBridge.h>
+#include <PkGradient.h>
 
 #include "RectangleShapeFactory.h"
 #include "RectangleShape.h"
@@ -20,15 +22,15 @@
 #include <klocalizedstring.h>
 
 RectangleShapeFactory::RectangleShapeFactory()
-    : KoShapeFactoryBase(RectangleShapeId, i18n("Rectangle"))
+    : KoShapeFactoryBase(RectangleShapeId, toPkString(i18n("Rectangle")))
 {
     setToolTip(toPkString(i18n("A rectangle")));
     setFamily("geometric");
     setLoadingPriority(1);
 
     PkList<std::pair<PkString, PkStringList> > elementNamesList;
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), PkStringList("rect")));
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::svg), PkStringList("rect")));
+    elementNamesList.append(std::make_pair(PkString(KoXmlNS::draw), PkStringList{PkString("rect")}));
+    elementNamesList.append(std::make_pair(PkString(KoXmlNS::svg), PkStringList{PkString("rect")}));
     setXmlElements(elementNamesList);
 }
 
@@ -39,11 +41,11 @@ KoShape *RectangleShapeFactory::createDefaultShape(KoDocumentResourceManager *) 
     rect->setStroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
     rect->setShapeId(KoPathShapeId);
 
-    QLinearGradient *gradient = new QLinearGradient(PkPointF(0, 0), PkPointF(1, 1));
-    gradient->setCoordinateMode(PkGradient::ObjectBoundingMode);
+    PkGradient *gradient = new PkGradient(PkGradient::linear(PkPointF(0, 0), PkPointF(1, 1)));
+    gradient->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
 
-    gradient->setColorAt(0.0, Qt::white);
-    gradient->setColorAt(1.0, Qt::green);
+    gradient->setColorAt(0.0, PkColor(Pk::white));
+    gradient->setColorAt(1.0, PkColor(Pk::green));
     rect->setBackground(PkSharedPointer<KoGradientBackground>(new KoGradientBackground(gradient)));
 
     return rect;
@@ -74,5 +76,5 @@ KoShape *RectangleShapeFactory::createShape(const KoProperties *params, KoDocume
 bool RectangleShapeFactory::supports(const PkXmlElement &e, KoShapeLoadingContext &/*context*/) const
 {
     Q_UNUSED(e);
-    return (e.localName() == "rect" && e.namespaceURI() == toQString(KoXmlNS::draw));
+    return (toQString(e.localName()) == "rect" && toQString(e.namespaceURI()) == toQString(KoXmlNS::draw));
 }

@@ -269,7 +269,7 @@ bool RectangleShape::saveSvg(SvgSavingContext &context)
 
     context.shapeWriter().startElement("rect");
     context.shapeWriter().addAttribute("id", context.getID(this).toUtf8().constData());
-    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(transformation()), context.shapeWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", toQTransform(transformation()), context.shapeWriter());
 
     SvgStyleWriter::saveSvgStyle(this, context);
     SvgStyleWriter::saveMetadata(this, context);

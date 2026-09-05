@@ -48,7 +48,7 @@ PkImage KoSvgSymbol::icon(int size = 0)
     // because it's saved into the database and then used in widgets
     const qreal margin = 0.05;
 
-    PkImage image(size, size, PkImage::Format_ARGB32_Premultiplied);
+    QImage image(size, size, QImage::Format_ARGB32_Premultiplied);
     qreal symbolScale = (qreal)(size*(1.0 - 2*margin))/maxDim;
     QPainter gc(&image);
     gc.setRenderHint(QPainter::Antialiasing, true);
@@ -64,7 +64,7 @@ PkImage KoSvgSymbol::icon(int size = 0)
     gc.translate((maxDim - rc.width())/2.0, (maxDim - rc.height())/2.0);
     KoShapeManager::renderSingleShape(group, gc);
     gc.end();
-    return image;
+    return toPkImage(image);
 }
 
 
@@ -156,7 +156,7 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(PkStream *dev, KisResourcesIn
 
     d->title = parser.documentTitle();
     if (d->title.isEmpty()) {
-        d->title = toQString(filename());
+        d->title = filename();
     }
     setName(toPkString(d->title));
     d->description = parser.documentDescription();
@@ -166,7 +166,7 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(PkStream *dev, KisResourcesIn
         return false;
     }
     setValid(true);
-    setImage(toPkImage(d->symbols[0]->icon(256)));
+    setImage(d->symbols[0]->icon(256));
     return true;
 }
 

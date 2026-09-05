@@ -8,6 +8,7 @@
 #define KOTOOLPROXYPRIVATE_P
 
 #include <PkTimer.h>
+#include <QTimer>
 #include <PkElapsedTimer.h>
 #include <PkPoint.h>
 #include <QEvent>
@@ -39,7 +40,7 @@ public:
 
     KoToolBase *activeTool {0};
     bool hasSelection {false};
-    PkTimer scrollTimer;
+    QTimer scrollTimer;
     PkPointF widgetScrollPointDoc;
     KoCanvasController *controller {0};
     KoToolProxy *parent {0};

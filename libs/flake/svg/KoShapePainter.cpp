@@ -163,7 +163,7 @@ void KoShapePainter::paint(QPainter &painter, const PkRect &painterRect, const P
     painter.save();
 
     // initialize painter
-    painter.setPen(PkPen(Qt::NoPen));
+    painter.setPen(QPen(Qt::NoPen));
     painter.setBrush(Qt::NoBrush);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setClipRect(toQRect(painterRect.adjusted(-1,-1,1,1)));
@@ -174,7 +174,7 @@ void KoShapePainter::paint(QPainter &painter, const PkRect &painterRect, const P
     PkPointF offset = PkRectF(painterRect).center() - zoomedBound.center();
     // center content in painter rectangle
     painter.translate(offset.x(), offset.y());
-    painter.setTransform(converter.documentToView(), true);
+    painter.setTransform(toQTransform(converter.documentToView()), true);
 
     // finally paint the shapes
     paint(painter);
@@ -187,9 +187,13 @@ void KoShapePainter::paint(PkImage &image)
     if (image.isNull())
         return;
 
-    QPainter painter(&image);
+    // 过渡期：QImage 画布上绘制，再拷回 PkImage
+    QImage qimg = toQImage(image);
+    QPainter painter(&qimg);
 
-    paint(painter, image.rect(), contentRect());
+    paint(painter, qimg.rect(), contentRect());
+    painter.end();
+    image = toPkImage(qimg);
 }
 
 PkRectF KoShapePainter::contentRect() const

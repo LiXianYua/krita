@@ -66,8 +66,8 @@ void ImageShape::paint(QPainter &painter) const
 
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     painter.setClipRect(toQRectF(PkRectF(PkPointF(), size())), Qt::IntersectClip);
-    painter.setTransform(m_d->viewBoxTransform, true);
-    painter.drawImage(PkPoint(), m_d->image);
+    painter.setTransform(toQTransform(m_d->viewBoxTransform), true);
+    painter.drawImage(QPoint(), toQImage(m_d->image));
 }
 
 void ImageShape::setSize(const PkSizeF &size)
@@ -81,20 +81,22 @@ bool ImageShape::saveSvg(SvgSavingContext &context)
 
     context.shapeWriter().startElement("image");
     context.shapeWriter().addAttribute("id", uid.toUtf8().constData());
-    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(transformation()), context.shapeWriter());
-    context.shapeWriter().addAttribute("width", PkString("%1px").arg(toQString(KisDomUtils::toString(size().width()))).toUtf8().constData());
-    context.shapeWriter().addAttribute("height", PkString("%1px").arg(toQString(KisDomUtils::toString(size().height()))).toUtf8().constData());
+    SvgUtil::writeTransformAttributeLazy("transform", toQTransform(transformation()), context.shapeWriter());
+    context.shapeWriter().addAttribute("width", PkString("%1px").arg(KisDomUtils::toString(size().width())).toUtf8().constData());
+    context.shapeWriter().addAttribute("height", PkString("%1px").arg(KisDomUtils::toString(size().height())).toUtf8().constData());
 
-    PkString aspectString = m_d->ratioParser ? toQString(m_d->ratioParser->toString()) : PkString();
+    PkString aspectString = m_d->ratioParser ? m_d->ratioParser->toString() : PkString();
     if (!aspectString.isEmpty()) {
         context.shapeWriter().addAttribute("preserveAspectRatio", aspectString.toUtf8().constData());
     }
 
-    PkMemoryStream buffer;
-    buffer.open(PkStream::WriteOnly);
-    if (m_d->image.save(&buffer, "PNG")) {
-        const PkString mimeType = toQString(KisMimeDatabase::mimeTypeForSuffix("*.png"));
-        context.shapeWriter().addAttribute("xlink:href", ("data:" + mimeType + ";base64," + buffer.data().toBase64()).toUtf8().constData());
+    // 过渡期：PNG 编码/base64 走 Qt（QImage::save）
+    QByteArray png;
+    QBuffer buffer(&png);
+    buffer.open(QIODevice::WriteOnly);
+    if (toQImage(m_d->image).save(&buffer, "PNG")) {
+        const PkString mimeType = toPkString(KisMimeDatabase::mimeTypeForSuffix("*.png"));
+        context.shapeWriter().addAttribute("xlink:href", ("data:" + mimeType + ";base64," + PkString(png.toBase64().constData())).toUtf8().constData());
     }
     SvgStyleWriter::saveMetadata(this, context);
 
@@ -127,14 +129,20 @@ bool ImageShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &context
         QRegularExpressionMatch match = re.match(toQString(fileName));
 
         data = toPkByteArray(match.captured(2).toLatin1());
-        data = PkByteArray::fromBase64(data);
+        // base64 解码走 Qt（过渡期）
+        data = toPkByteArray(QByteArray::fromBase64(toQByteArray(data)));
     } else {
-        data = toQByteArray(context.fetchExternalFile(fileName));
+        data = toPkByteArray(context.fetchExternalFile(fileName));
     }
 
     if (!data.isEmpty()) {
-        PkMemoryStream buffer(&data);
-        m_d->image.load(&buffer, "");
+        // 过渡期：PNG 解码走 Qt（QImage::load）
+        QByteArray raw = toQByteArray(data);
+        QBuffer buffer(&raw);
+        buffer.open(QIODevice::ReadOnly);
+        QImage loaded;
+        loaded.load(&buffer, "");
+        m_d->image = toPkImage(loaded);
     }
 
     const PkString aspectString = element.attribute("preserveAspectRatio", "xMidYMid meet");
@@ -145,12 +153,12 @@ bool ImageShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &context
         m_d->viewBoxTransform =
              PkTransform::fromScale(w / m_d->image.width(), h / m_d->image.height());
 
-        PkTransform viewTransform = toPkTransform(m_d->viewBoxTransform);
+        PkTransform viewTransform = m_d->viewBoxTransform;
         SvgUtil::parseAspectRatio(*m_d->ratioParser,
                                   toPkRectF(PkRectF(PkPointF(), size())),
                                   toPkRectF(PkRectF(PkPoint(), m_d->image.size())),
                                   &viewTransform);
-        m_d->viewBoxTransform = toQTransform(viewTransform);
+        m_d->viewBoxTransform = viewTransform;
     }
 
     if (m_d->ratioParser->defer) {

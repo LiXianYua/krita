@@ -9,6 +9,7 @@
 #define KOSHAPEPAINTER_H
 
 #include <PkList.h>
+#include <functional>
 #include <PkRect.h>
 #include <PkScopedPointer.h>
 #include "kritaflake_export.h"

@@ -20,7 +20,19 @@ public:
 
     // 对齐 QByteArray：data() 有可变/const 两个重载，constData() 恒 const。
     char*        data();                              // 可变
-    const char*  data() const;                        // 空时返回非空 NUL 指针
+    const char*  data() const;
+    // 字典序比较（std::map<PkByteArray,…>/std::set<PkByteArray> 的键序要求，
+    // S-09-g 实测；语义对齐 QByteArray::operator<（逐字节，长度不足者为小）。
+    bool operator<(const PkByteArray &other) const
+    {
+        const int n = size() < other.size() ? size() : other.size();
+        for (int i = 0; i < n; ++i) {
+            if (data()[i] != other.data()[i]) {
+                return static_cast<unsigned char>(data()[i]) < static_cast<unsigned char>(other.data()[i]);
+            }
+        }
+        return size() < other.size();
+    }                        // 空时返回非空 NUL 指针
     const char*  constData() const;                   // 空时返回非空 NUL 指针（探针）
     int          size() const;
     bool         isEmpty() const;
@@ -41,16 +53,4 @@ public:
 
 private:
     std::vector<uint8_t> m_data;
-    // 字典序比较（std::map<PkByteArray,…>/std::set<PkByteArray> 的键序要求，
-    // S-09-g 实测；语义对齐 QByteArray::operator<（逐字节，长度不足者为小）。
-    bool operator<(const PkByteArray &other) const
-    {
-        const int n = size() < other.size() ? size() : other.size();
-        for (int i = 0; i < n; ++i) {
-            if (data()[i] != other.data()[i]) {
-                return static_cast<unsigned char>(data()[i]) < static_cast<unsigned char>(other.data()[i]);
-            }
-        }
-        return size() < other.size();
-    }
 };

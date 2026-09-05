@@ -48,7 +48,7 @@ PkList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
 
     PkList<QAction*> actions = createActionsImpl();
     QAction *action = new QAction(this);
-    action->setObjectName(id());
+    action->setObjectName(toQString(id()));
     if (actionCollection) {
         action->setParent(actionCollection);
     }
@@ -69,10 +69,10 @@ PkList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
 
         PkStringList tools;
         if (action->property("tool_action").isValid()) {
-            tools = action->property("tool_action").toStringList();
+            tools = toPkStringList(action->property("tool_action").toStringList());
         }
         tools << id();
-        action->setProperty("tool_action", tools);
+        action->setProperty("tool_action", toQStringList(tools));
         if (!existingAction && actionCollection) {
             action->setParent(actionCollection);
         }
@@ -207,6 +207,6 @@ PkList<QAction *> KoToolFactoryBase::createActionsImpl()
 
 void KoToolFactoryBase::activateTool()
 {
-    KoToolManager::instance()->switchToolRequested(sender()->objectName());
+    KoToolManager::instance()->switchToolRequested(toPkString(sender()->objectName()));
 }
 

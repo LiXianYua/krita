@@ -92,7 +92,7 @@ public:
         Q_FOREACH(QAction *action, windowActionCollection->findChildren<QAction *>()) {
 
             if (action->property("tool_action").isValid()) {
-                PkStringList tools = action->property("tool_action").toStringList();
+                PkStringList tools = toPkStringList(action->property("tool_action").toStringList());
 
                 if (KoToolRegistry::instance()->keys().contains(toPkString(action->objectName()))) {
                     //qDebug() << "This action needs to be enabled!";
@@ -119,7 +119,7 @@ public:
                 // After loading a custom shortcut profile, shortcuts can be defined as an empty string, which is not an empty shortcut
                 if (keySequence.toString() != "") {
                     if (shortcutMap.contains(keySequence)) {
-                        shortcutMap[keySequence].append(action->objectName());
+                        shortcutMap[keySequence].append(toPkString(action->objectName()));
                     }
                     else {
                         shortcutMap[keySequence] = PkStringList() << toPkString(action->objectName());
@@ -290,7 +290,7 @@ PkString KoToolManager::preferredToolForSelection(const PkList<KoShape*> &shapes
 {
     PkSet<PkString> shapeTypes;
     Q_FOREACH (KoShape *shape, shapes) {
-        shapeTypes << toQString(shape->shapeId());
+        shapeTypes.insert(shape->shapeId());
     }
     //KritaUtils::makeContainerUnique(types);
 
@@ -413,7 +413,7 @@ KoToolBase *KoToolManager::Private::createTool(KoCanvasController *controller, K
     KoToolBase *tool = toolAction->toolFactory()->createTool(controller->canvas());
     if (tool) {
         tool->setFactory(toolAction->toolFactory());
-        tool->setObjectName(toolAction->id());
+        tool->setObjectName(toQString(toolAction->id()));
     }
 
     KoZoomTool *zoomTool = dynamic_cast<KoZoomTool*>(tool);
@@ -555,8 +555,8 @@ void KoToolManager::Private::postSwitchTool()
         Q_ASSERT(selection);
         PkList<KoShape *> shapesDelegatesList = selection->selectedEditableShapesAndDelegates();
         if (!shapesDelegatesList.isEmpty()) {
-            shapesToOperateOn = PkSet<KoShape*>(shapesDelegatesList.begin(),
-                                               shapesDelegatesList.end());
+            shapesToOperateOn = PkSet<KoShape*>();
+            for (KoShape *s : shapesDelegatesList) shapesToOperateOn.insert(s);
         }
     }
 
@@ -584,8 +584,11 @@ void KoToolManager::Private::postSwitchTool()
         canvasData->activeTool->activate(shapesToOperateOn);
     }
 
-    QList<QPointer<QWidget> > optionWidgetList = canvasData->activeTool->optionWidgets();
-    if (optionWidgetList.empty()) { // no option widget.
+    QList<QPointer<QWidget> > optionWidgetList;
+    for (const PkPointer<QWidget> &w : canvasData->activeTool->optionWidgets()) {
+        optionWidgetList.append(QPointer<QWidget>(w.data()));
+    }
+    if (optionWidgetList.isEmpty()) { // no option widget.
         QWidget *toolWidget;
         PkString title = canvasData->activeTool->factory()->toolTip();
         toolWidget = canvasData->dummyToolWidget;
@@ -789,7 +792,7 @@ void KoToolManager::Private::selectionChanged(const PkList<KoShape*> &shapes)
     Q_FOREACH (KoShape *shape, shapes) {
         PkSet<KoShape*> delegates = shape->toolDelegates();
         if (delegates.isEmpty()) { // no delegates, just the orig shape
-            delegates << shape;
+            delegates.insert(shape);
         }
 
         foreach (KoShape *shape2, delegates) {

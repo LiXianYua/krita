@@ -83,7 +83,7 @@ void KoShapeStroke::Private::paintBorder(const KoShape *shape, QPainter &painter
         if (pathShape) {
             PkPainterPath path = pathShape->pathStroke(pen);
 
-            painter.fillPath(toQPainterPath(path), pen.brush());
+            painter.fillPath(toQPainterPath(path), toQBrush(pen.brush()));
 
             return;
         }
@@ -263,9 +263,9 @@ PkPen KoShapeStroke::resultLinePen() const
     PkPen pen = d->pen;
 
     if (d->brush.gradient()) {
-        pen.setBrush(toQBrush(d->brush));
+        pen.setBrush(toPkBrush(d->brush));
     } else {
-        pen.setColor(toQColor(d->color.isValid() ? d->color : PkColor(Pk::transparent)));
+        pen.setColor(d->color.isValid() ? d->color : PkColor(Pk::transparent));
     }
 
     return pen;
@@ -307,8 +307,8 @@ bool KoShapeStroke::compareStyleTo(const KoShapeStrokeModel *other)
     PkPen pen2 = stroke->d->pen;
 
     // just a random color top avoid comparison of that property
-    pen1.setColor(toQColor(PkColor(Pk::magenta)));
-    pen2.setColor(toQColor(PkColor(Pk::magenta)));
+    pen1.setColor(PkColor(Pk::magenta));
+    pen2.setColor(PkColor(Pk::magenta));
 
     return pen1 == pen2;
 }

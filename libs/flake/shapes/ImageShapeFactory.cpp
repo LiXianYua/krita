@@ -25,13 +25,13 @@
 #include <klocalizedstring.h>
 
 ImageShapeFactory::ImageShapeFactory()
-    : KoShapeFactoryBase(ImageShapeId, i18n("Image shape"))
+    : KoShapeFactoryBase(ImageShapeId, toPkString(i18n("Image shape")))
 {
     setToolTip(toPkString(i18n("A shape that shows an image (PNG/JPG/TIFF)")));
 
     PkList<std::pair<PkString, PkStringList> > elementNamesList;
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), PkStringList("image")));
-    elementNamesList.append(qMakePair(toQString(KoXmlNS::svg), PkStringList("image")));
+    elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), PkStringList{PkString("image")}));
+    elementNamesList.append(qMakePair(toQString(KoXmlNS::svg), PkStringList{PkString("image")}));
     setXmlElements(elementNamesList);
     setLoadingPriority(1);
 }

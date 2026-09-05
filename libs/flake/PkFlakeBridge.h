@@ -130,7 +130,8 @@ inline PkColor toPkColor(const PK_QCOLOR_ &c)
     return PkColor(c.red(), c.green(), c.blue(), c.alpha());
 }
 
-inline PkColor toPkColor(const PkColor &c) { return c; } // 恒等（真 Qt 分支补齐，KoColor::toQColor 已返 PkColor）
+inline PkColor toPkColor(const PkColor &c) { return c; } // 恒等
+inline PkByteArray toPkByteArray(const PkByteArray &c) { return c; } // 恒等（真 Qt 分支补齐，KoColor::toQColor 已返 PkColor）
 inline PK_QCOLOR_ toQColor(const PkColor &c)
 {
     return PK_QCOLOR_(c.red(), c.green(), c.blue(), c.alpha());
@@ -214,6 +215,12 @@ inline PK_QSTRING_ toQString(const PK_QSTRING_ &s) { return s; }
 inline PkVariant toQVariant(const PkVariant &v) { return v; }
 
 // PkBrush → QBrush（KoShapeStroke 过渡）
+inline PkBrush toPkBrush(const PK_CAT_(Q, Brush) &b)
+{
+    // 过渡期：渐变笔刷降级为纯色（QBrush::gradient() 的 Pk 侧承接属后续任务）
+    return PkBrush(toPkColor(b.color()));
+}
+
 inline PK_CAT_(Q, Brush) toQBrush(const PkBrush &b)
 {
     PK_CAT_(Q, Brush) r(toQColor(b.color()));

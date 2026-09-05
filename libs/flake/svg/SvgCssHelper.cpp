@@ -713,7 +713,7 @@ void SvgCssHelper::parseStylesheet(const PkXmlElement &e)
 
     PkStringList defs = pkSplitSkipEmpty(data, u'}');
     for (int i = 0; i < defs.count(); ++i) {
-        std::vector<PkString> def = defs[i].split(u'{');
+        PkList<PkString> def = defs[i].split(u'{');
         if (def.size() != 2)
             continue;
         PkString pattern = pkSimplified(def[0]);

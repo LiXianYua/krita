@@ -74,7 +74,7 @@ void KoToolProxyPrivate::timeout() // Auto scroll the canvas
 
     widgetScrollPointDoc = parent->widgetToDocument(originalWidgetPoint);
 
-    QMouseEvent event(QEvent::MouseMove, originalWidgetPoint, Qt::LeftButton, Qt::LeftButton, QFlags<Qt::KeyboardModifier>());
+    QMouseEvent event(QEvent::MouseMove, toQPoint(originalWidgetPoint), Qt::LeftButton, Qt::LeftButton, QFlags<Qt::KeyboardModifier>());
     KoPointerEvent ev(&event, widgetScrollPointDoc);
     activeTool->mouseMoveEvent(&ev);
 }
@@ -121,7 +121,7 @@ KoToolProxy::KoToolProxy(KoCanvasBase *canvas, QObject *parent)
 {
     KoToolManager::instance()->priv()->registerToolProxy(this, canvas);
 
-    connect(&d->scrollTimer, &PkTimer::timeout, this, [this]() { d->timeout(); });
+    connect(&d->scrollTimer, &QTimer::timeout, this, [this]() { d->timeout(); });
 }
 
 KoToolProxy::~KoToolProxy()
@@ -395,15 +395,14 @@ void KoToolProxy::setActiveTool(KoToolBase *tool)
         if (collection) {
             Q_FOREACH(QAction *action, collection->findChildren<QAction *>()) {
 
-                const PkVariant prop = action->property("tool_action");
+                const QVariant prop = action->property("tool_action");
 
                 if (prop.isValid()) {
-                    const PkStringList tools = prop.toStringList();
+                    const PkStringList tools = toPkStringList(prop.toStringList());
 
                     if (tools.contains(d->activeTool->toolId())) {
-                        const PkList<QKeySequence> shortcuts = action->shortcuts();
-                        std::copy(shortcuts.begin(), shortcuts.end(),
-                                  std::back_inserter(d->toolPriorityShortcuts));
+                        const QList<QKeySequence> shortcuts = action->shortcuts();
+                        for (const QKeySequence &sc : shortcuts) d->toolPriorityShortcuts.append(sc);
                     }
                 }
             }

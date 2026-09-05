@@ -140,7 +140,8 @@ PkVariant KoToolBase::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImCursorRectangle:
         return PkRect(d->canvas->canvasWidget()->width() / 2, 0, 1, d->canvas->canvasWidget()->height());
     case Qt::ImFont:
-        return d->canvas->canvasWidget()->font();
+        // 过渡期：QFont 无法进 PkVariant（输入法字体提示，绘画内核非关键路径）。
+        return PkVariant();
     default:
         return PkVariant();
     }
@@ -217,7 +218,7 @@ PkList<PkPointer<QWidget> >  KoToolBase::createOptionWidgets()
     PkList<PkPointer<QWidget> > ow;
     if (QWidget *widget = createOptionWidget()) {
         if (widget->objectName().isEmpty()) {
-            widget->setObjectName(toolId());
+            widget->setObjectName(toQString(toolId()));
         }
         ow.append(widget);
     }
@@ -239,7 +240,7 @@ KoToolFactoryBase* KoToolBase::factory() const
 PkString KoToolBase::toolId() const
 {
     Q_D(const KoToolBase);
-    return d->factory ? d->factory->id() : 0;
+    return d->factory ? d->factory->id() : PkString();
 }
 
 QCursor KoToolBase::cursor() const

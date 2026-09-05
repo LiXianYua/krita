@@ -44,7 +44,8 @@ bool KoSvgPaste::hasShapes()
 {
     bool hasSvg = false;
     if (d->mimeData) {
-        Q_FOREACH(const PkString &format, d->mimeData->formats()) {
+        const PkStringList mimeFormats = toPkStringList(d->mimeData->formats());
+    Q_FOREACH(const PkString &format, mimeFormats) {
             if (format.toLower().contains("svg")) {
                 hasSvg = true;
                 break;
@@ -63,7 +64,8 @@ PkList<KoShape*> KoSvgPaste::fetchShapes(const PkRectF viewportInPx, qreal resol
 
     PkByteArray data;
 
-    Q_FOREACH(const PkString &format, d->mimeData->formats()) {
+    const PkStringList mimeFormats = toPkStringList(d->mimeData->formats());
+    Q_FOREACH(const PkString &format, mimeFormats) {
         if (format.toLower().contains("svg")) {
             data = toPkByteArray(d->mimeData->data(toQString(format)));
             break;
