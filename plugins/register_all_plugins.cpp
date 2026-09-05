@@ -54,7 +54,6 @@ void registerAssistantFactories();
 void registerColorSpaceExtensions();
 void registerDefaultToolPlugin();
 void registerDefaultTools();
-void registerImageShape();
 void registerKarbonTools();
 void registerLcmsEngine();
 void registerPathShapes();
@@ -119,7 +118,6 @@ void registerAllPlugins()
     registerColorSpaceExtensions();
     registerDefaultToolPlugin();
     registerDefaultTools();
-    registerImageShape();
     registerKarbonTools();
     registerLcmsEngine();
     registerPathShapes();

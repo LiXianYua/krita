@@ -8,9 +8,6 @@ set(pathshapes_SOURCES
     star/StarShape.cpp
     star/StarShapeFactory.cpp
     star/StarShapeConfigCommand.cpp
-    rectangle/RectangleShape.cpp
-    rectangle/RectangleShapeFactory.cpp
-    rectangle/RectangleShapeConfigCommand.cpp
     PathShapesPlugin.cpp
 )
 
@@ -18,6 +15,7 @@ kis_add_library(krita_shape_paths STATIC ${pathshapes_SOURCES})
 set_target_properties(krita_shape_paths PROPERTIES AUTOMOC OFF)
 
 target_include_directories(krita_shape_paths PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake/shapes
     ${CMAKE_SOURCE_DIR}/pk/string
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/variant

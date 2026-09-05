@@ -9,7 +9,6 @@
 
 #include "PathShapesPlugin.h"
 #include "star/StarShapeFactory.h"
-#include "rectangle/RectangleShapeFactory.h"
 #include "ellipse/EllipseShapeFactory.h"
 #include "spiral/SpiralShapeFactory.h"
 
@@ -20,7 +19,6 @@ void registerPathShapes()
     static std::once_flag once;
     std::call_once(once, [] {
         KoShapeRegistry::instance()->add(new StarShapeFactory());
-        KoShapeRegistry::instance()->add(new RectangleShapeFactory());
         KoShapeRegistry::instance()->add(new SpiralShapeFactory());
         KoShapeRegistry::instance()->add(new EllipseShapeFactory());
     });
