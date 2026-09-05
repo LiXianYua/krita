@@ -10,6 +10,7 @@
 #ifndef KIS_PAINTER_H_
 #define KIS_PAINTER_H_
 
+#include <PkGlobal.h>
 #include <math.h>
 
 #include <PkVector.h>
@@ -658,13 +659,13 @@ public:
      * Mirror \p rc in the requested \p direction around the center point defined
      * in the painter.
      */
-    void mirrorRect(Qt::Orientation direction, PkRect *rc) const;
+    void mirrorRect(Pk::Orientation direction, PkRect *rc) const;
 
     /**
      * Mirror \p dab in the requested direction around the center point defined
      * in the painter. The dab's offset is adjusted automatically.
      */
-    void mirrorDab(Qt::Orientation direction, KisRenderedDab *dab, bool skipMirrorPixels = false) const;
+    void mirrorDab(Pk::Orientation direction, KisRenderedDab *dab, bool skipMirrorPixels = false) const;
 
     /**
      * Calculate the list of the mirrored rects that will be painted on the

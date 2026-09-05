@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_clone_layer_test.h"
 
 #include <simpletest.h>
@@ -53,7 +54,7 @@ KisImageSP createImage()
 
     QRect fillRect(10,10,100,100);
     KisPaintDeviceSP device1 = new KisPaintDevice(colorSpace);
-    device1->fill(fillRect, KoColor( Qt::white, colorSpace));
+    device1->fill(fillRect, KoColor( Pk::white, colorSpace));
 
     KisLayerSP paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8, device1);
     KisLayerSP groupLayer1 = new KisGroupLayer(image, "group1", OPACITY_OPAQUE_U8);
@@ -117,7 +118,7 @@ void KisCloneLayerTest::testOriginalUpdatesOutOfBounds()
     QCOMPARE(root->projection()->exactBounds(), nullRect);
 
     QRect fillRect(-10,-10,10,10);
-    paintLayer1(image)->paintDevice()->fill(fillRect, KoColor(Qt::white, image->colorSpace()));
+    paintLayer1(image)->paintDevice()->fill(fillRect, KoColor(Pk::white, image->colorSpace()));
     paintLayer1(image)->setDirty(fillRect);
     image->waitForDone();
 
@@ -438,10 +439,10 @@ void KisCloneLayerTest::testUpdatesWhileHidden()
     KisNodeSP group1 = findNode("group1");
     KisNodeSP group2 = findNode("group2");
 
-    paint2->paintDevice()->fill(QRect(0, 5, 10, 10), KoColor( Qt::red, image->colorSpace()));
-    paint2->paintDevice()->fill(QRect(100, 5, 10, 10), KoColor( Qt::red, image->colorSpace()));
-    paint3->paintDevice()->fill(QRect(5, 0, 10, 10), KoColor( Qt::green, image->colorSpace()));
-    paint3->paintDevice()->fill(QRect(5, 100, 10, 10), KoColor( Qt::green, image->colorSpace()));
+    paint2->paintDevice()->fill(QRect(0, 5, 10, 10), KoColor( Pk::red, image->colorSpace()));
+    paint2->paintDevice()->fill(QRect(100, 5, 10, 10), KoColor( Pk::red, image->colorSpace()));
+    paint3->paintDevice()->fill(QRect(5, 0, 10, 10), KoColor( Pk::green, image->colorSpace()));
+    paint3->paintDevice()->fill(QRect(5, 100, 10, 10), KoColor( Pk::green, image->colorSpace()));
 
     image->initialRefreshGraph();
 
@@ -498,7 +499,7 @@ void KisCloneLayerTest::testUpdatesWhileHidden()
 
     const QRect p1ChangeArea = changeP1InVisibleArea ?
         QRect(100, 30, 7, 7) : QRect(-10, 30, 7, 7);
-    paint1->paintDevice()->fill(p1ChangeArea, KoColor( Qt::blue, image->colorSpace()));
+    paint1->paintDevice()->fill(p1ChangeArea, KoColor( Pk::blue, image->colorSpace()));
 
     paint1->setDirty(p1ChangeArea);
     image->waitForDone();
@@ -580,7 +581,7 @@ void KisCloneLayerTest::testWithSourceUnderTransformMask()
     KisImageSP image = new KisImage(0, 128, 128, colorSpace, "clones test");
 
     KisPaintDeviceSP device1 = new KisPaintDevice(colorSpace);
-    device1->fill(QRect(10,10,100,100), KoColor( Qt::white, colorSpace));
+    device1->fill(QRect(10,10,100,100), KoColor( Pk::white, colorSpace));
     KisLayerSP paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8, device1);
     image->addNode(paintLayer1, image->root());
 
@@ -594,7 +595,7 @@ void KisCloneLayerTest::testWithSourceUnderTransformMask()
     transf1->setTestingInterface(listener);
 
     KisPaintDeviceSP device2 = new KisPaintDevice(colorSpace);
-    device2->fill(QRect(20, 20, 10, 10), KoColor( Qt::red, colorSpace));
+    device2->fill(QRect(20, 20, 10, 10), KoColor( Pk::red, colorSpace));
     KisLayerSP paintLayer2 = new KisPaintLayer(image, "paint2", OPACITY_OPAQUE_U8, device2);
     image->addNode(paintLayer2, image->root());
 
@@ -679,7 +680,7 @@ void KisCloneLayerTest::testWithSourceUnderTwoTransformMasks()
     KisImageSP image = new KisImage(0, 128, 128, colorSpace, "clones test");
 
     KisPaintDeviceSP device1 = new KisPaintDevice(colorSpace);
-    device1->fill(QRect(10,10,100,100), KoColor( Qt::white, colorSpace));
+    device1->fill(QRect(10,10,100,100), KoColor( Pk::white, colorSpace));
     KisLayerSP paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8, device1);
     image->addNode(paintLayer1, image->root());
 
@@ -707,7 +708,7 @@ void KisCloneLayerTest::testWithSourceUnderTwoTransformMasks()
     transf2->setTestingInterface(listener2);
 
     KisPaintDeviceSP device2 = new KisPaintDevice(colorSpace);
-    device2->fill(QRect(20, 20, 10, 10), KoColor( Qt::red, colorSpace));
+    device2->fill(QRect(20, 20, 10, 10), KoColor( Pk::red, colorSpace));
     KisLayerSP paintLayer2 = new KisPaintLayer(image, "paint2", OPACITY_OPAQUE_U8, device2);
     image->addNode(paintLayer2, image->root());
 
@@ -814,7 +815,7 @@ void KisCloneLayerTest::testCloneOfGroupWithClones()
     image->addNode(groupLayer1, image->root());
 
     KisPaintDeviceSP device1 = new KisPaintDevice(colorSpace);
-    device1->fill(QRect(10,10,100,100), KoColor( Qt::white, colorSpace));
+    device1->fill(QRect(10,10,100,100), KoColor( Pk::white, colorSpace));
     KisLayerSP paintLayer1 = new KisPaintLayer(image, "paint_1", OPACITY_OPAQUE_U8, device1);
     image->addNode(paintLayer1, groupLayer1);
 

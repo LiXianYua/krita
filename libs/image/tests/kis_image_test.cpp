@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_image_test.h"
 #include <QApplication>
 #include <PkConnection.h>
@@ -319,7 +320,7 @@ void KisImageTest::testCloneImage()
     image->setProofingConfiguration(proofing);
     QVERIFY(image->proofingConfiguration());
 
-    const KoColor defaultColor(Qt::green, image->colorSpace());
+    const KoColor defaultColor(Pk::green, image->colorSpace());
     image->setDefaultProjectionColor(defaultColor);
     QCOMPARE(image->defaultProjectionColor(), defaultColor);
 
@@ -498,19 +499,19 @@ struct FlattenTestImage
         QRect rect7(50, 350, 50, 50);
         QRect rect8(50, 400, 50, 50);
 
-        layer1->paintDevice()->fill(rect1, KoColor(Qt::red, p.image->colorSpace()));
+        layer1->paintDevice()->fill(rect1, KoColor(Pk::red, p.image->colorSpace()));
 
-        layer2->paintDevice()->fill(rect2, KoColor(Qt::green, p.image->colorSpace()));
+        layer2->paintDevice()->fill(rect2, KoColor(Pk::green, p.image->colorSpace()));
         tmask->testingInitSelection(tmaskRect, layer2);
 
-        layer3->paintDevice()->fill(rect3, KoColor(Qt::blue, p.image->colorSpace()));
-        layer4->paintDevice()->fill(rect4, KoColor(Qt::yellow, p.image->colorSpace()));
-        layer5->paintDevice()->fill(rect5, KoColor(Qt::green, p.image->colorSpace()));
+        layer3->paintDevice()->fill(rect3, KoColor(Pk::blue, p.image->colorSpace()));
+        layer4->paintDevice()->fill(rect4, KoColor(Pk::yellow, p.image->colorSpace()));
+        layer5->paintDevice()->fill(rect5, KoColor(Pk::green, p.image->colorSpace()));
 
-        layer6->paintDevice()->fill(rect6, KoColor(Qt::cyan, p.image->colorSpace()));
+        layer6->paintDevice()->fill(rect6, KoColor(Pk::cyan, p.image->colorSpace()));
 
-        layer7->paintDevice()->fill(rect7, KoColor(Qt::red, p.image->colorSpace()));
-        layer8->paintDevice()->fill(rect8, KoColor(Qt::green, p.image->colorSpace()));
+        layer7->paintDevice()->fill(rect7, KoColor(Pk::red, p.image->colorSpace()));
+        layer8->paintDevice()->fill(rect8, KoColor(Pk::green, p.image->colorSpace()));
 
         KisPSDLayerStyleSP style(new KisPSDLayerStyle());
         style->dropShadow()->setEffectEnabled(true);
@@ -981,9 +982,9 @@ void testMergeCrossColorSpaceImpl(bool useProjectionColorSpace, bool swapSpaces)
     QRect rect2(150, 150, 150, 150);
     QRect rect3(250, 250, 200, 200);
 
-    layer1->paintDevice()->fill(rect1, KoColor(Qt::red, layer1->colorSpace()));
-    layer2->paintDevice()->fill(rect2, KoColor(Qt::green, layer2->colorSpace()));
-    layer3->paintDevice()->fill(rect3, KoColor(Qt::blue, layer3->colorSpace()));
+    layer1->paintDevice()->fill(rect1, KoColor(Pk::red, layer1->colorSpace()));
+    layer2->paintDevice()->fill(rect2, KoColor(Pk::green, layer2->colorSpace()));
+    layer3->paintDevice()->fill(rect3, KoColor(Pk::blue, layer3->colorSpace()));
 
     p.image->addNode(layer2);
     p.image->addNode(layer3);
@@ -1028,7 +1029,7 @@ void KisImageTest::testMergeSelectionMasks()
     QRect rect3(50, 50, 100, 100);
 
     KisPaintLayerSP layer1 = p.layer;
-    layer1->paintDevice()->fill(rect1, KoColor(Qt::red, layer1->colorSpace()));
+    layer1->paintDevice()->fill(rect1, KoColor(Pk::red, layer1->colorSpace()));
 
     p.image->initialRefreshGraph();
 
@@ -1146,12 +1147,12 @@ struct FlattenPassThroughTestImage
         QRect rect6(250, 250, 100, 100);
 
         group1->setPassThroughMode(true);
-        layer2->paintDevice()->fill(rect2, KoColor(Qt::red, p.image->colorSpace()));
-        layer3->paintDevice()->fill(rect3, KoColor(Qt::green, p.image->colorSpace()));
+        layer2->paintDevice()->fill(rect2, KoColor(Pk::red, p.image->colorSpace()));
+        layer3->paintDevice()->fill(rect3, KoColor(Pk::green, p.image->colorSpace()));
 
         group4->setPassThroughMode(true);
-        layer5->paintDevice()->fill(rect5, KoColor(Qt::blue, p.image->colorSpace()));
-        layer6->paintDevice()->fill(rect6, KoColor(Qt::yellow, p.image->colorSpace()));
+        layer5->paintDevice()->fill(rect5, KoColor(Pk::blue, p.image->colorSpace()));
+        layer6->paintDevice()->fill(rect6, KoColor(Pk::yellow, p.image->colorSpace()));
 
 
         p.image->addNode(group1);
@@ -1274,7 +1275,7 @@ void KisImageTest::testPaintOverlayMask()
     QRect selectionRect(200, 200, 100, 50);
 
     KisPaintLayerSP layer1 = p.layer;
-    layer1->paintDevice()->fill(fillRect, KoColor(Qt::yellow, layer1->colorSpace()));
+    layer1->paintDevice()->fill(fillRect, KoColor(Pk::yellow, layer1->colorSpace()));
 
     KisSelectionMaskSP mask = new KisSelectionMask(p.image);
     KisSelectionSP selection = new KisSelection(new KisMaskDefaultBounds(layer1), toQShared(new KisImageResolutionProxy(p.image)));

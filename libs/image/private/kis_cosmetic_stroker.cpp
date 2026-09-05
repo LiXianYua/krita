@@ -37,6 +37,7 @@
 **
 ****************************************************************************/
 
+#include <PkNamespace.h>
 #include "kis_cosmetic_stroker_p.h"
 
 #include <PkPainterPath.h>
@@ -134,7 +135,7 @@ public:
         const qreal widthF = pen.widthF();
         opacity = widthF == 0.0 ? 256 : std::clamp(int(256.0 * widthF), 0, 256);
         color = uint8_t((255u * unsigned(opacity)) >> 8);
-        drawCaps = pen.capStyle() != Qt::FlatCap;
+        drawCaps = pen.capStyle() != Pk::FlatCap; // Pk::FlatCap 位值同，QPen 用真 Qt 枚举
         xmin = -1.0;
         ymin = -1.0;
         xmax = qreal(clip.width() - 1) + 2.0;

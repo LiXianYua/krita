@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_selection_test.h"
 #include <simpletest.h>
 
@@ -299,7 +300,7 @@ void KisSelectionTest::testSelectionExactBounds()
 
     KisPaintDeviceSP device = new KisPaintDevice(cs);
     device->setDefaultBounds(new KisDefaultBounds(image));
-    device->fill(referenceDeviceRect, KoColor(Qt::white, cs));
+    device->fill(referenceDeviceRect, KoColor(Pk::white, cs));
 
     QCOMPARE(device->exactBounds(), referenceDeviceRect);
 

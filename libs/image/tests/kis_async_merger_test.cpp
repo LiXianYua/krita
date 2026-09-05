@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_async_merger_test.h"
 
 #include "kis_merge_walker.h"
@@ -181,7 +182,7 @@ void KisAsyncMergerTest::testFullRefreshWithClones()
     KisImageSP image = new KisImage(0, 128, 128, colorSpace, "clones test");
 
     KisPaintDeviceSP device1 = new KisPaintDevice(colorSpace);
-    device1->fill(image->bounds(), KoColor( Qt::white, colorSpace));
+    device1->fill(image->bounds(), KoColor( Pk::white, colorSpace));
 
     KisFilterSP filter = KisFilterRegistry::instance()->value("invert");
     Q_ASSERT(filter);
@@ -226,7 +227,7 @@ void KisAsyncMergerTest::testFullRefreshWithClones()
     QByteArray bytes(numPixels * pixelSize, 13);
     cloneLayer1->projection()->readBytes((quint8*)bytes.data(), filledRect);
 
-    KoColor desiredPixel(Qt::black, colorSpace);
+    KoColor desiredPixel(Pk::black, colorSpace);
     quint8 *srcPtr = (quint8*)bytes.data();
     quint8 *dstPtr = desiredPixel.data();
     for(int i = 0; i < numPixels; i++) {
@@ -253,11 +254,11 @@ void KisAsyncMergerTest::testSubgraphingWithoutUpdatingParent()
     KisImageSP image = new KisImage(0, 128, 128, colorSpace, "clones test");
 
     KisPaintDeviceSP device1 = new KisPaintDevice(colorSpace);
-    device1->fill(image->bounds(), KoColor(Qt::white, colorSpace));
+    device1->fill(image->bounds(), KoColor(Pk::white, colorSpace));
     KisLayerSP paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8, device1);
 
     KisPaintDeviceSP device2 = new KisPaintDevice(colorSpace);
-    device2->fill(image->bounds(), KoColor(Qt::black, colorSpace));
+    device2->fill(image->bounds(), KoColor(Pk::black, colorSpace));
     KisLayerSP paintLayer2 = new KisPaintLayer(image, "paint2", 128, device2);
 
     image->addNode(paintLayer1, image->rootLayer());
@@ -319,19 +320,19 @@ void testFullRefreshForDependentNodes(const DependentNodeType dependentNode,
     KisPaintDeviceSP device1 = new KisPaintDevice(colorSpace);
 
     if (dependentNode == GROUP_LAYER && !useLayerStyle) {
-        device1->fill(imageRect, KoColor(Qt::black, colorSpace));
+        device1->fill(imageRect, KoColor(Pk::black, colorSpace));
     }
 
     KisLayerSP paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8, device1);
 
     KisPaintDeviceSP device2 = new KisPaintDevice(colorSpace);
-    device2->fill(fillRect, KoColor(Qt::white, colorSpace));
+    device2->fill(fillRect, KoColor(Pk::white, colorSpace));
     KisLayerSP paintLayer2 = new KisPaintLayer(image, "paint2", OPACITY_OPAQUE_U8, device2);
 
-    device2->fill(QRect(63, 0, 1, 64), KoColor(Qt::green, colorSpace));
+    device2->fill(QRect(63, 0, 1, 64), KoColor(Pk::green, colorSpace));
 
     KisPaintDeviceSP device3 = new KisPaintDevice(colorSpace);
-    device3->fill(smallRect, KoColor(Qt::red, colorSpace));
+    device3->fill(smallRect, KoColor(Pk::red, colorSpace));
     KisLayerSP paintLayer3 = new KisPaintLayer(image, "paint3", OPACITY_OPAQUE_U8, device3);
 
     KisLayerSP groupLayer = new KisGroupLayer(image, "group", OPACITY_OPAQUE_U8);
@@ -468,7 +469,7 @@ void KisAsyncMergerTest::testFilterMaskOnFilterLayer()
     KisImageSP image = new KisImage(0, 128, 128, colorSpace, "masks test");
 
     KisPaintDeviceSP device1 = new KisPaintDevice(colorSpace);
-    device1->fill(image->bounds(), KoColor(Qt::yellow, colorSpace));
+    device1->fill(image->bounds(), KoColor(Pk::yellow, colorSpace));
     KisLayerSP paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8, device1);
     image->addNode(paintLayer1, image->rootLayer());
 

@@ -37,6 +37,7 @@
 **
 ****************************************************************************/
 
+#include <PkNamespace.h>
 #include "kis_path_rasterizer_p.h"
 
 #include "kis_path_scan_converter_p.h"
@@ -109,15 +110,15 @@ bool hasValidStrokeState(const PkPen &pen)
         || !std::isfinite(pen.dashOffset())) {
         return false;
     }
-    if (pen.style() < Qt::NoPen || pen.style() > Qt::CustomDashLine) {
+    if (pen.style() < Pk::NoPen || pen.style() > Pk::CustomDashLine) {
         return false;
     }
-    if (pen.capStyle() != Qt::FlatCap && pen.capStyle() != Qt::SquareCap
-        && pen.capStyle() != Qt::RoundCap) {
+    if (pen.capStyle() != Pk::FlatCap && pen.capStyle() != Pk::SquareCap
+        && pen.capStyle() != Pk::RoundCap) {
         return false;
     }
-    if (pen.joinStyle() != Qt::MiterJoin && pen.joinStyle() != Qt::BevelJoin
-        && pen.joinStyle() != Qt::RoundJoin && pen.joinStyle() != Qt::SvgMiterJoin) {
+    if (pen.joinStyle() != Pk::MiterJoin && pen.joinStyle() != Pk::BevelJoin
+        && pen.joinStyle() != Pk::RoundJoin && pen.joinStyle() != Pk::SvgMiterJoin) {
         return false;
     }
     const auto pattern = pen.dashPattern();
@@ -187,7 +188,7 @@ CoverageMask rasterizeStroke(const PkPainterPath &path,
                              bool antialiased)
 {
     try {
-        if (clip.isEmpty() || path.isEmpty() || pen.style() == Qt::NoPen
+        if (clip.isEmpty() || path.isEmpty() || pen.style() == Pk::NoPen
             || !hasOnlyFiniteElements(path) || !hasValidStrokeState(pen)) {
             return {};
         }

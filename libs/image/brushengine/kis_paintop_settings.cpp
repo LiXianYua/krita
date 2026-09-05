@@ -121,7 +121,7 @@ KisPaintOpSettings::UpdateListenerWSP KisPaintOpSettings::updateListener() const
     return d->updateListener;
 }
 
-bool KisPaintOpSettings::mousePressEvent(const KisPaintInformation &paintInformation, Qt::KeyboardModifiers modifiers, KisNodeWSP currentNode)
+bool KisPaintOpSettings::mousePressEvent(const KisPaintInformation &paintInformation, Pk::KeyboardModifiers modifiers, KisNodeWSP currentNode)
 {
     Q_UNUSED(modifiers);
     Q_UNUSED(currentNode);

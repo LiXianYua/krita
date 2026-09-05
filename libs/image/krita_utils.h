@@ -20,6 +20,7 @@ class PkTransform;
 struct KisRenderedDab;
 class KisRegion;
 
+#include <PkGlobal.h>
 #include <PkVector.h>
 #include <PkList.h>
 #include <PkNamespace.h>
@@ -76,13 +77,13 @@ namespace KritaUtils
 
     qreal KRITAIMAGE_EXPORT estimatePortionOfTransparentPixels(KisPaintDeviceSP dev, const PkRect &rect, qreal samplePortion);
 
-    void KRITAIMAGE_EXPORT mirrorDab(Qt::Orientation dir, const PkPoint &center, KisRenderedDab *dab, bool skipMirrorPixels = false);
-    void KRITAIMAGE_EXPORT mirrorDab(Qt::Orientation dir, const PkPointF &center, KisRenderedDab *dab, bool skipMirrorPixels = false);
+    void KRITAIMAGE_EXPORT mirrorDab(Pk::Orientation dir, const PkPoint &center, KisRenderedDab *dab, bool skipMirrorPixels = false);
+    void KRITAIMAGE_EXPORT mirrorDab(Pk::Orientation dir, const PkPointF &center, KisRenderedDab *dab, bool skipMirrorPixels = false);
 
-    void KRITAIMAGE_EXPORT mirrorRect(Qt::Orientation dir, const PkPoint &center, PkRect *rc);
-    void KRITAIMAGE_EXPORT mirrorRect(Qt::Orientation dir, const PkPointF &center, PkRect *rc);
-    void KRITAIMAGE_EXPORT mirrorPoint(Qt::Orientation dir, const PkPoint &center, PkPointF *pt);
-    void KRITAIMAGE_EXPORT mirrorPoint(Qt::Orientation dir, const PkPointF &center, PkPointF *pt);
+    void KRITAIMAGE_EXPORT mirrorRect(Pk::Orientation dir, const PkPoint &center, PkRect *rc);
+    void KRITAIMAGE_EXPORT mirrorRect(Pk::Orientation dir, const PkPointF &center, PkRect *rc);
+    void KRITAIMAGE_EXPORT mirrorPoint(Pk::Orientation dir, const PkPoint &center, PkPointF *pt);
+    void KRITAIMAGE_EXPORT mirrorPoint(Pk::Orientation dir, const PkPointF &center, PkPointF *pt);
 
 
     /**

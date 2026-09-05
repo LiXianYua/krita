@@ -6,6 +6,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_selection_based_layer.h"
 
 #include "kis_debug.h"
@@ -82,7 +83,7 @@ KisSelectionBasedLayer::~KisSelectionBasedLayer()
 void KisSelectionBasedLayer::initSelection()
 {
     m_d->selection = new KisSelection(new KisDefaultBounds(image()), toQShared(new KisImageResolutionProxy(image())));
-    m_d->selection->pixelSelection()->setDefaultPixel(KoColor(Qt::white, m_d->selection->pixelSelection()->colorSpace()));
+    m_d->selection->pixelSelection()->setDefaultPixel(KoColor(Pk::white, m_d->selection->pixelSelection()->colorSpace()));
     m_d->selection->pixelSelection()->setSupportsWraparoundMode(true);
     m_d->selection->setParentNode(this);
     m_d->selection->updateProjection();
@@ -366,7 +367,7 @@ PkRect KisSelectionBasedLayer::exactBounds() const
     return resultRect;
 }
 
-PkImage KisSelectionBasedLayer::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisSelectionBasedLayer::createThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     KisSelectionSP originalSelection = internalSelection();
     KisPaintDeviceSP originalDevice = original();

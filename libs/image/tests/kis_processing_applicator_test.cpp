@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_processing_applicator_test.h"
 
 #include <PkConnection.h>
@@ -43,8 +44,8 @@ KisImageSP createImage(KisUndoStore *undoStore,
     paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8);
     paintLayer2 = new KisPaintLayer(image, "paint2", OPACITY_OPAQUE_U8);
 
-    paintLayer1->paintDevice()->fill(fillRect1, KoColor(Qt::white, cs));
-    paintLayer2->paintDevice()->fill(fillRect2, KoColor(Qt::red, cs));
+    paintLayer1->paintDevice()->fill(fillRect1, KoColor(Pk::white, cs));
+    paintLayer2->paintDevice()->fill(fillRect2, KoColor(Pk::red, cs));
 
     image->addNode(paintLayer1, image->rootLayer());
     image->addNode(paintLayer2, image->rootLayer());

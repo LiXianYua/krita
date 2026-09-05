@@ -59,10 +59,13 @@ public:
     PkHash(PkHash &&) = default;
     PkHash &operator=(PkHash &&) = default;
 
-    // 两参 insert（对齐 QHash::insert(k,v)；KisSignalMapper 5 处，S-09-g）。
-    void insert(const K &key, const V &value)
+    // 两参 insert（对齐 QHash::insert(k,v)——返回指向该元素的迭代器；
+    // KisSignalMapper / kis_fill_interval_map 用返回值，S-09-g）。
+    iterator insert(const K &key, const V &value)
     {
-        this->m_d.PkMut().insert_or_assign(key, value);
+        PkInner &m = this->m_d.PkMut();
+        auto res = m.insert_or_assign(key, value);
+        return iterator(res.first);
     }
 
     // 合并另一张表（同键覆盖；KoFFWWSConverter 的 sampleStrings/pixelSizes/

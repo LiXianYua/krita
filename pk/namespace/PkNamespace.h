@@ -233,6 +233,26 @@ enum ImageConversionFlag {
 PK_DECLARE_FLAGS(ImageConversionFlags, ImageConversionFlag)
 PK_DECLARE_OPERATORS_FOR_FLAGS(ImageConversionFlags)
 
+// ── 手势/触点（libs/input kis_native_gesture_shortcut / kis_shortcut_matcher）──
+// 值位照抄 qnamespace.h（Type 枚举的 Gesture/TouchPoint 值段，S-09-g registry 收口）。
+enum NativeGestureType {
+    BeginNativeGesture,
+    EndNativeGesture,
+    PanNativeGesture,
+    ZoomNativeGesture,
+    RotateNativeGesture,
+    SmartZoomNativeGesture
+};
+
+enum TouchPointState {
+    TouchPointPressed    = 0x0002,
+    TouchPointMoved      = 0x0004,
+    TouchPointStationary = 0x0008,
+    TouchPointReleased   = 0x0010
+};
+PK_DECLARE_FLAGS(TouchPointStates, TouchPointState)
+PK_DECLARE_OPERATORS_FOR_FLAGS(TouchPointStates)
+
 // ── qnamespace.h:604-1127 的裁剪子集（Key）─────────────────────────────────
 // 真 Qt 全量 500+ 值；本头只实现保留范围用量 > 0 的（判据①），其余登记。
 // 特殊键 = 0x01000000 基址 + 键码；可打印键 = ASCII/Unicode 码点（Key_Space=0x20，

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_paint_layer_test.h"
 #include <simpletest.h>
 #include <QImage>
@@ -141,7 +142,7 @@ void KisPaintLayerTest::testLayerStyles()
     KisPaintLayerSP layer = new KisPaintLayer(image, "test", OPACITY_OPAQUE_U8);
     image->addNode(layer);
 
-    layer->paintDevice()->fill(rFillRect, KoColor(Qt::red, cs));
+    layer->paintDevice()->fill(rFillRect, KoColor(Pk::red, cs));
 
     layer->setDirty();
     image->waitForDone();

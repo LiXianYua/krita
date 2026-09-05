@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "krita_utils.h"
 
 #include <cmath>
@@ -381,18 +382,18 @@ namespace KritaUtils
         return qreal(numTransparentPixels) / numPixels;
     }
 
-    void mirrorDab(Qt::Orientation dir, const PkPoint &center, KisRenderedDab *dab, bool skipMirrorPixels)
+    void mirrorDab(Pk::Orientation dir, const PkPoint &center, KisRenderedDab *dab, bool skipMirrorPixels)
     {
         const PkRect rc = dab->realBounds();
 
-        if (dir == Qt::Horizontal) {
+        if (dir == Pk::Horizontal) {
             const int mirrorX = -((rc.x() + rc.width()) - center.x()) + center.x();
 
             if (!skipMirrorPixels) {
                 dab->device->mirror(true, false);
             }
             dab->offset.rx() = mirrorX;
-        } else /* if (dir == Qt::Vertical) */ {
+        } else /* if (dir == Pk::Vertical) */ {
             const int mirrorY = -((rc.y() + rc.height()) - center.y()) + center.y();
 
             if (!skipMirrorPixels) {
@@ -402,18 +403,18 @@ namespace KritaUtils
         }
     }
 
-    void mirrorDab(Qt::Orientation dir, const PkPointF &center, KisRenderedDab *dab, bool skipMirrorPixels)
+    void mirrorDab(Pk::Orientation dir, const PkPointF &center, KisRenderedDab *dab, bool skipMirrorPixels)
     {
         const PkRect rc = dab->realBounds();
 
-        if (dir == Qt::Horizontal) {
+        if (dir == Pk::Horizontal) {
             const int mirrorX = -((rc.x() + rc.width()) - center.x()) + center.x();
 
             if (!skipMirrorPixels) {
                 dab->device->mirror(true, false);
             }
             dab->offset.rx() = mirrorX;
-        } else /* if (dir == Qt::Vertical) */ {
+        } else /* if (dir == Pk::Vertical) */ {
             const int mirrorY = -((rc.y() + rc.height()) - center.y()) + center.y();
 
             if (!skipMirrorPixels) {
@@ -423,42 +424,42 @@ namespace KritaUtils
         }
     }
 
-    void mirrorRect(Qt::Orientation dir, const PkPoint &center, PkRect *rc)
+    void mirrorRect(Pk::Orientation dir, const PkPoint &center, PkRect *rc)
     {
-        if (dir == Qt::Horizontal) {
+        if (dir == Pk::Horizontal) {
             const int mirrorX = -((rc->x() + rc->width()) - center.x()) + center.x();
             rc->moveLeft(mirrorX);
-        } else /* if (dir == Qt::Vertical) */ {
+        } else /* if (dir == Pk::Vertical) */ {
             const int mirrorY = -((rc->y() + rc->height()) - center.y()) + center.y();
             rc->moveTop(mirrorY);
         }
     }
 
-    void mirrorRect(Qt::Orientation dir, const PkPointF &center, PkRect *rc)
+    void mirrorRect(Pk::Orientation dir, const PkPointF &center, PkRect *rc)
     {
-        if (dir == Qt::Horizontal) {
+        if (dir == Pk::Horizontal) {
             const int mirrorX = -((rc->x() + rc->width()) - center.x()) + center.x();
             rc->moveLeft(mirrorX);
-        } else /* if (dir == Qt::Vertical) */ {
+        } else /* if (dir == Pk::Vertical) */ {
             const int mirrorY = -((rc->y() + rc->height()) - center.y()) + center.y();
             rc->moveTop(mirrorY);
         }
     }
 
-    void mirrorPoint(Qt::Orientation dir, const PkPoint &center, PkPointF *pt)
+    void mirrorPoint(Pk::Orientation dir, const PkPoint &center, PkPointF *pt)
     {
-        if (dir == Qt::Horizontal) {
+        if (dir == Pk::Horizontal) {
             pt->rx() = -(pt->x() - qreal(center.x())) + center.x();
-        } else /* if (dir == Qt::Vertical) */ {
+        } else /* if (dir == Pk::Vertical) */ {
             pt->ry() = -(pt->y() - qreal(center.y())) + center.y();
         }
     }
 
-    void mirrorPoint(Qt::Orientation dir, const PkPointF &center, PkPointF *pt)
+    void mirrorPoint(Pk::Orientation dir, const PkPointF &center, PkPointF *pt)
     {
-        if (dir == Qt::Horizontal) {
+        if (dir == Pk::Horizontal) {
             pt->rx() = -(pt->x() - qreal(center.x())) + center.x();
-        } else /* if (dir == Qt::Vertical) */ {
+        } else /* if (dir == Pk::Vertical) */ {
             pt->ry() = -(pt->y() - qreal(center.y())) + center.y();
         }
     }
@@ -470,11 +471,11 @@ namespace KritaUtils
 
     PkPainterPath tryCloseTornSubpathsAfterIntersection(PkPainterPath path)
     {
-        path.setFillRule(Qt::WindingFill);
+        path.setFillRule(Pk::WindingFill);
         PkVector<PkPolygonF> polys = path.toSubpathPolygons(PkTransform());
 
         path = PkPainterPath();
-        path.setFillRule(Qt::WindingFill);
+        path.setFillRule(Pk::WindingFill);
         for (PkPolygonF poly : polys) {
             ENTER_FUNCTION() << ppVar(poly.isClosed());
             if (!poly.isClosed()) {
@@ -526,8 +527,8 @@ namespace KritaUtils
                     return value < 255 ? 0 : value;
                 });
         } else if (mode == ThresholdMaxOut) {
-            // PkColor(Qt::GlobalColor) 隐式转 const PkColor&，进 KoColor(PkColor, cs)。
-            device->fill(rect, KoColor(Qt::white, device->colorSpace()));
+            // PkColor(Pk::GlobalColor) 隐式转 const PkColor&，进 KoColor(PkColor, cs)。
+            device->fill(rect, KoColor(Pk::white, device->colorSpace()));
         }
     }
 

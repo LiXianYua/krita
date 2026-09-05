@@ -11,6 +11,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_painter.h"
 #include <stdlib.h>
 #include <string.h>
@@ -2666,7 +2667,7 @@ bool KisPainter::hasDirtyRegion() const
     return !d->dirtyRects.isEmpty();
 }
 
-void KisPainter::mirrorRect(Qt::Orientation direction, PkRect *rc) const
+void KisPainter::mirrorRect(Pk::Orientation direction, PkRect *rc) const
 {
     KisLodTransform t(d->device);
     PkPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
@@ -2674,7 +2675,7 @@ void KisPainter::mirrorRect(Qt::Orientation direction, PkRect *rc) const
     KritaUtils::mirrorRect(direction, effectiveAxesCenter, rc);
 }
 
-void KisPainter::mirrorDab(Qt::Orientation direction, KisRenderedDab *dab, bool skipMirrorPixels) const
+void KisPainter::mirrorDab(Pk::Orientation direction, KisRenderedDab *dab, bool skipMirrorPixels) const
 {
     KisLodTransform t(d->device);
     PkPointF effectiveAxesCenter = t.map(d->axesCenter);
@@ -2684,15 +2685,15 @@ void KisPainter::mirrorDab(Qt::Orientation direction, KisRenderedDab *dab, bool 
 
 namespace {
 
-inline void mirrorOneObject(Qt::Orientation dir, const PkPointF &center, PkRect *rc) {
+inline void mirrorOneObject(Pk::Orientation dir, const PkPointF &center, PkRect *rc) {
     KritaUtils::mirrorRect(dir, center, rc);
 }
 
-inline void mirrorOneObject(Qt::Orientation dir, const PkPointF &center, PkPointF *pt) {
+inline void mirrorOneObject(Pk::Orientation dir, const PkPointF &center, PkPointF *pt) {
     KritaUtils::mirrorPoint(dir, center, pt);
 }
 
-inline void mirrorOneObject(Qt::Orientation dir, const PkPointF &center, PkPair<PkPointF, PkPointF> *pair) {
+inline void mirrorOneObject(Pk::Orientation dir, const PkPointF &center, PkPair<PkPointF, PkPointF> *pair) {
     KritaUtils::mirrorPoint(dir, center, &pair->first);
     KritaUtils::mirrorPoint(dir, center, &pair->second);
 }
@@ -2709,17 +2710,17 @@ template<class T> PkVector<T> KisPainter::Private::calculateMirroredObjects(cons
     result << baseObject;
 
     if (this->mirrorHorizontally && this->mirrorVertically){
-        mirrorOneObject(Qt::Horizontal, effectiveAxesCenter, &baseObject);
+        mirrorOneObject(Pk::Horizontal, effectiveAxesCenter, &baseObject);
         result << baseObject;
-        mirrorOneObject(Qt::Vertical, effectiveAxesCenter, &baseObject);
+        mirrorOneObject(Pk::Vertical, effectiveAxesCenter, &baseObject);
         result << baseObject;
-        mirrorOneObject(Qt::Horizontal, effectiveAxesCenter, &baseObject);
+        mirrorOneObject(Pk::Horizontal, effectiveAxesCenter, &baseObject);
         result << baseObject;
     } else if (this->mirrorHorizontally) {
-        mirrorOneObject(Qt::Horizontal, effectiveAxesCenter, &baseObject);
+        mirrorOneObject(Pk::Horizontal, effectiveAxesCenter, &baseObject);
         result << baseObject;
     } else if (this->mirrorVertically) {
-        mirrorOneObject(Qt::Vertical, effectiveAxesCenter, &baseObject);
+        mirrorOneObject(Pk::Vertical, effectiveAxesCenter, &baseObject);
         result << baseObject;
     }
 

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_iterator_test.h"
 #include <QApplication>
 #include <QRandomGenerator>
@@ -41,7 +42,7 @@ inline quint8* allocatePixels(const KoColorSpace *colorSpace, int numPixels)
 {
     quint8 *bytes = new quint8[colorSpace->pixelSize() * 64 * 64 * 10];
 
-    KoColor color(Qt::red, colorSpace);
+    KoColor color(Pk::red, colorSpace);
     const int pixelSize = colorSpace->pixelSize();
     for(int i = 0; i < numPixels; i++) {
         memcpy(bytes + i * pixelSize, color.data(), pixelSize);
@@ -277,7 +278,7 @@ void KisIteratorTest::randomAccessor(const KoColorSpace * colorSpace)
 
 void KisIteratorTest::repeatHLineIter(const KoColorSpace* cs)
 {
-    KoColor color(Qt::green, cs);
+    KoColor color(Pk::green, cs);
     
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->fill(5, 5, 10, 10, color.data());
@@ -293,7 +294,7 @@ void KisIteratorTest::repeatHLineIter(const KoColorSpace* cs)
 
 void KisIteratorTest::repeatVLineIter(const KoColorSpace* cs)
 {
-    KoColor color(Qt::green, cs);
+    KoColor color(Pk::green, cs);
     
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->fill(5, 5, 10, 10, color.data());
@@ -443,7 +444,7 @@ void KisIteratorTest::stressTest()
     QRect imageRect(0,0,2000,2000);
 
     KisPaintDeviceSP device = new KisPaintDevice(colorSpace);
-    device->fill(imageRect, KoColor(Qt::red, colorSpace));
+    device->fill(imageRect, KoColor(Pk::red, colorSpace));
 
 
     QThreadPool threadPool;

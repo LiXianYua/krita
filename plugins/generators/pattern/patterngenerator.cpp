@@ -25,6 +25,7 @@
 #include <kis_global.h>
 #include <kis_selection.h>
 #include <kis_types.h>
+#include <PkGlobal.h>
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 #include <KisResourcesInterface.h>
@@ -160,9 +161,9 @@ public:
         } else {
             transform.shear(shearX, shearY);
             transform.scale(scaleX, scaleY);
-            transform.rotate(rotationX, Qt::XAxis);
-            transform.rotate(rotationY, Qt::YAxis);
-            transform.rotate(rotationZ, Qt::ZAxis);
+            transform.rotate(rotationX, Pk::XAxis);
+            transform.rotate(rotationY, Pk::YAxis);
+            transform.rotate(rotationZ, Pk::ZAxis);
             transform.translate(positionX, positionY);
         }
         

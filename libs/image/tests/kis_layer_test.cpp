@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_layer_test.h"
 #include <simpletest.h>
 
@@ -283,7 +284,7 @@ void KisLayerTest::testMoveLayerWithMaskThreaded()
     KisLayerSP paintLayer = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8);
     image->addNode(paintLayer, image->rootLayer());
 
-    paintLayer->paintDevice()->fill(image->bounds(), KoColor(Qt::black, colorSpace));
+    paintLayer->paintDevice()->fill(image->bounds(), KoColor(Pk::black, colorSpace));
 
     KisTransparencyMaskSP transpMask = new KisTransparencyMask(image, "tmask");
     transpMask->initSelection(paintLayer);

@@ -4,6 +4,7 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <PkGlobal.h>
 #include "kis_fixed_paint_device.h"
 
 #include <KoColorSpaceRegistry.h>
@@ -226,7 +227,7 @@ PkImage KisFixedPaintDevice::convertToQImage(const KoColorProfile *  dstProfile,
 
 void KisFixedPaintDevice::clear(const PkRect & rc)
 {
-    KoColor c(Qt::black, m_colorSpace);
+    KoColor c(Pk::black, m_colorSpace);
     quint8* black = new quint8[pixelSize()];
     memcpy(black, c.data(), m_colorSpace->pixelSize());
     m_colorSpace->setOpacity(black, OPACITY_TRANSPARENT_U8, 1);

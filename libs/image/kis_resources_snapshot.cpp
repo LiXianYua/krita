@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_resources_snapshot.h"
 
 #include <KoColor.h>
@@ -232,8 +233,8 @@ void KisResourcesSnapshot::setupMaskingBrushPainter(KisPainter *painter)
     KIS_SAFE_ASSERT_RECOVER_RETURN(painter->device());
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_d->currentPaintOpPreset->hasMaskingPreset());
 
-    painter->setPaintColor(KoColor(Qt::white, painter->device()->colorSpace()));
-    painter->setBackgroundColor(KoColor(Qt::black, painter->device()->colorSpace()));
+    painter->setPaintColor(KoColor(Pk::white, painter->device()->colorSpace()));
+    painter->setBackgroundColor(KoColor(Pk::black, painter->device()->colorSpace()));
 
     painter->setOpacityToUnit();
     painter->setChannelFlags(PkBitArray());

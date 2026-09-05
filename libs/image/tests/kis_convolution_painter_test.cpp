@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_convolution_painter_test.h"
 
 #include <simpletest.h>
@@ -400,11 +401,11 @@ void KisConvolutionPainterTest::testGaussianSmall(bool useFftw)
 {
     KisPaintDeviceSP dev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
 
-    KoColor c(Qt::yellow, dev->colorSpace());
+    KoColor c(Pk::yellow, dev->colorSpace());
 
     for (int i = 0; i < 50; i++) {
         quint8 baseOpacity = 75;
-        KoColor c(Qt::magenta, dev->colorSpace());
+        KoColor c(Pk::magenta, dev->colorSpace());
 
         for (int j = 0; j <= 6; j++) {
             c.setOpacity(static_cast<quint8>(baseOpacity + 30 * j));
@@ -458,8 +459,8 @@ void KisConvolutionPainterTest::testDilate()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     const QRect imageRect(0,0,256,256);
-    dev->fill(QRect(50,50,100,20), KoColor(Qt::white, cs));
-    dev->fill(QRect(150,50,20,100), KoColor(Qt::white, cs));
+    dev->fill(QRect(50,50,100,20), KoColor(Pk::white, cs));
+    dev->fill(QRect(150,50,20,100), KoColor(Pk::white, cs));
 
     KisDefaultBoundsBaseSP bounds = new TestUtil::TestingTimedDefaultBounds(dev->exactBounds());
     dev->setDefaultBounds(bounds);
@@ -477,8 +478,8 @@ void KisConvolutionPainterTest::testErode()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     const QRect imageRect(0,0,256,256);
-    dev->fill(QRect(50,50,100,20), KoColor(Qt::white, cs));
-    dev->fill(QRect(150,50,20,100), KoColor(Qt::white, cs));
+    dev->fill(QRect(50,50,100,20), KoColor(Pk::white, cs));
+    dev->fill(QRect(150,50,20,100), KoColor(Pk::white, cs));
 
     KisDefaultBoundsBaseSP bounds = new TestUtil::TestingTimedDefaultBounds(dev->exactBounds());
     dev->setDefaultBounds(bounds);
@@ -553,11 +554,11 @@ void KisConvolutionPainterTest::testNormalMap(bool useFftw)
 {
     KisPaintDeviceSP dev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
 
-    KoColor c(Qt::yellow, dev->colorSpace());
+    KoColor c(Pk::yellow, dev->colorSpace());
 
     for (int i = 0; i < 50; i++) {
         quint8 baseOpacity = 75;
-        KoColor c(Qt::magenta, dev->colorSpace());
+        KoColor c(Pk::magenta, dev->colorSpace());
 
         for (int j = 0; j <= 6; j++) {
             c.setOpacity(static_cast<quint8>(baseOpacity + 30 * j));

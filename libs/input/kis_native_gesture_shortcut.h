@@ -14,7 +14,7 @@ class QNativeGestureEvent;
 class KRITAINPUT_EXPORT KisNativeGestureShortcut : public KisAbstractShortcut
 {
 public:
-	KisNativeGestureShortcut(KisAbstractInputAction* action, int index, Qt::NativeGestureType type);
+	KisNativeGestureShortcut(KisAbstractInputAction* action, int index, Pk::NativeGestureType type);
 	~KisNativeGestureShortcut() override;
 
 	int priority() const override;

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_pixel_selection_test.h"
 #include <simpletest.h>
 
@@ -240,9 +241,9 @@ void KisPixelSelectionTest::testCrossColorSpacePainting()
     KisFixedPaintDeviceSP dev2 = new KisFixedPaintDevice(cs);
     KisFixedPaintDeviceSP dev3 = new KisFixedPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
 
-    dev1->fill(r1, KoColor(Qt::white, cs));
-    dev2->fill(r2.x(), r2.y(), r2.width(), r2.height() ,KoColor(Qt::white, cs).data());
-    dev3->fill(r3.x(), r3.y(), r3.width(), r3.height() ,KoColor(Qt::white, cs).data());
+    dev1->fill(r1, KoColor(Pk::white, cs));
+    dev2->fill(r2.x(), r2.y(), r2.width(), r2.height() ,KoColor(Pk::white, cs).data());
+    dev3->fill(r3.x(), r3.y(), r3.width(), r3.height() ,KoColor(Pk::white, cs).data());
 
     KisPainter painter(psel1);
 
@@ -267,7 +268,7 @@ void KisPixelSelectionTest::testCrossColorSpacePainting()
     psel1->clear();
     psel1->select(r0);
 
-    painter.fill(r3.x(), r3.y(), r3.width(), r3.height(), KoColor(Qt::white, cs));
+    painter.fill(r3.x(), r3.y(), r3.width(), r3.height(), KoColor(Pk::white, cs));
     QCOMPARE(psel1->selectedExactRect(), r0 | r3);
 }
 

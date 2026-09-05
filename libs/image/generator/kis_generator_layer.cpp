@@ -13,12 +13,13 @@
 // KisGeneratorLayer 的 vtable，引用两个仍未剥的缩略图虚函数
 // KisSelectionBasedLayer::createThumbnail 与 KisLayer::createThumbnailForFrame
 // （声明见 kis_selection_based_layer.h:153 / kis_layer.h:251/255），签名带
-// Qt::AspectRatioMode（Qt 类型未剥），链接层 `nm -u | grep -i qt` 出现 Qt 符号，
+// Pk::AspectRatioMode（Qt 类型未剥），链接层 `nm -u | grep -i qt` 出现 Qt 符号，
 // 违反 S 线 L3 判据。
-// 关闭条件：Task 8 剥到这两个缩略图虚函数（Qt::AspectRatioMode → Pk 枚举、
+// 关闭条件：Task 8 剥到这两个缩略图虚函数（Pk::AspectRatioMode → Pk 枚举、
 // 返回类型 Q* 图像 → Pk 图像类型）后解除。
 //
 
+#include <PkGlobal.h>
 #include <PkMutex.h>
 #include <PkRegion.h>
 

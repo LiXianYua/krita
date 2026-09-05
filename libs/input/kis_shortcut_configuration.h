@@ -170,7 +170,7 @@ public:
      *
      * \note Not applicable when type is GestureType.
      */
-    PkList<Qt::Key> keys() const;
+    PkList<Pk::Key> keys() const;
     /**
      * Set the list of keys that will trigger this shortcut.
      *
@@ -178,14 +178,14 @@ public:
      *
      * \note Not applicable when type is GestureType.
      */
-    void setKeys(const PkList<Qt::Key> &newKeys);
+    void setKeys(const PkList<Pk::Key> &newKeys);
 
     /**
      * \return The mouse buttons that will trigger this shortcut.
      *
      * \note Only applicable when type is MouseButtonType.
      */
-    Qt::MouseButtons buttons() const;
+    Pk::MouseButtons buttons() const;
     /**
      * Set the mouse buttons that will trigger this shortcut.
      *
@@ -193,7 +193,7 @@ public:
      *
      * \note Only applicable when type is MouseButtonType.
      */
-    void setButtons(Qt::MouseButtons newButtons);
+    void setButtons(Pk::MouseButtons newButtons);
 
     /**
      * \return The mouse wheel movement that will trigger this shortcut.
@@ -242,7 +242,7 @@ public:
      *
      * This will convert the given set of buttons into a
      * string that can be shown to a user. For example, the
-     * combination Qt::LeftButton + Qt::RightButton will produce
+     * combination Pk::LeftButton + Pk::RightButton will produce
      * the string "Left + Right Button".
      *
      * \param buttons The buttons to convert.
@@ -252,13 +252,13 @@ public:
      *
      * \note An empty set will produce the string "None".
      */
-    static PkString buttonsToText(Qt::MouseButtons buttons);
+    static PkString buttonsToText(Pk::MouseButtons buttons);
     /**
      * Convert a list of keys to a user-readable string.
      *
      * This will convert the given list of keys into a string
      * that can be shown to a user. For example, the list
-     * [Qt::Key_Shift, Qt::Key_Space] will produce the string
+     * [Pk::Key_Shift, Pk::Key_Space] will produce the string
      * "Shift + Space".
      *
      * \param keys The keys to convert.
@@ -268,7 +268,7 @@ public:
      *
      * \note An empty list will produce the string "None".
      */
-    static PkString keysToText(const PkList<Qt::Key> &keys);
+    static PkString keysToText(const PkList<Pk::Key> &keys);
     /**
      * Convert the given mouse wheel movement to a string.
      *
@@ -290,7 +290,7 @@ public:
      *
      * This will convert the given mouse buttons-based shortcut into a
      * string that can be shown to a user. For example, the combination
-     * of Qt::Key_Control and Qt::LeftButton + Qt::RightButton will
+     * of Pk::Key_Control and Pk::LeftButton + Pk::RightButton will
      * produce the string "Ctrl + Left + Right Button".
      *
      * \param keys The keys to convert.
@@ -301,14 +301,14 @@ public:
      *
      * \note An empty set of buttons will appear as the string "None".
      */
-    static PkString buttonsInputToText(const PkList<Qt::Key> &keys, Qt::MouseButtons buttons);
+    static PkString buttonsInputToText(const PkList<Pk::Key> &keys, Pk::MouseButtons buttons);
     /**
      * Convert a shortcut build of a set of keys and a set of mouse
      * wheel buttons into a user-readable string.
      *
      * This will convert the given mouse wheel-based shortcut into a
      * string that can be shown to a user. For example, the combination
-     * of Qt::Key_Control and WheelUp will produce the string
+     * of Pk::Key_Control and WheelUp will produce the string
      * "Ctrl + Mouse Wheel Up".
      *
      * \param keys The keys to convert.
@@ -320,7 +320,7 @@ public:
      * \note An empty set of wheel buttons will appear as
      * the string "None".
      */
-    static PkString wheelInputToText(const PkList<Qt::Key> &keys, MouseWheelMovement wheel);
+    static PkString wheelInputToText(const PkList<Pk::Key> &keys, MouseWheelMovement wheel);
 
     static PkString gestureToText(GestureAction action);
 

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_onion_skin_compositor_test.h"
 
 #include <simpletest.h>
@@ -22,8 +23,8 @@ void KisOnionSkinCompositorTest::testComposite()
 
     KisImageConfig config(false);
     config.setOnionSkinTintFactor(64);
-    config.setOnionSkinTintColorBackward(Qt::blue);
-    config.setOnionSkinTintColorForward(Qt::red);
+    config.setOnionSkinTintColorBackward(Pk::blue);
+    config.setOnionSkinTintColorForward(Pk::red);
     config.setNumberOfOnionSkins(1);
     config.setOnionSkinOpacity(-1, 128);
     config.setOnionSkinOpacity(1, 128);
@@ -41,17 +42,17 @@ void KisOnionSkinCompositorTest::testComposite()
     keyframes->addKeyframe(10);
     keyframes->addKeyframe(20);
 
-    paintDevice->fill(QRect(0,0,256,512), KoColor(Qt::red, paintDevice->colorSpace()));
+    paintDevice->fill(QRect(0,0,256,512), KoColor(Pk::red, paintDevice->colorSpace()));
 
     i->switchCurrentTimeAsync(10);
     p.image->waitForDone();
 
-    paintDevice->fill(QRect(0,0,512,256), KoColor(Qt::green, paintDevice->colorSpace()));
+    paintDevice->fill(QRect(0,0,512,256), KoColor(Pk::green, paintDevice->colorSpace()));
 
     i->switchCurrentTimeAsync(20);
     p.image->waitForDone();
 
-    paintDevice->fill(QRect(0,256,512,256), KoColor(Qt::blue, paintDevice->colorSpace()));
+    paintDevice->fill(QRect(0,256,512,256), KoColor(Pk::blue, paintDevice->colorSpace()));
 
     KisPaintDeviceSP compositeDevice = new KisPaintDevice(p.image->colorSpace());
 
@@ -99,17 +100,17 @@ void KisOnionSkinCompositorTest::testSettings()
     keyframes->addKeyframe(2);
     keyframes->addKeyframe(3);
 
-    paintDevice->fill(QRect(0,0,512,512), KoColor(Qt::red, paintDevice->colorSpace()));
+    paintDevice->fill(QRect(0,0,512,512), KoColor(Pk::red, paintDevice->colorSpace()));
 
     i->switchCurrentTimeAsync(2);
     p.image->waitForDone();
 
-    paintDevice->fill(QRect(0,0,512,512), KoColor(Qt::green, paintDevice->colorSpace()));
+    paintDevice->fill(QRect(0,0,512,512), KoColor(Pk::green, paintDevice->colorSpace()));
 
     i->switchCurrentTimeAsync(3);
     p.image->waitForDone();
 
-    paintDevice->fill(QRect(0,0,512,512), KoColor(Qt::blue, paintDevice->colorSpace()));
+    paintDevice->fill(QRect(0,0,512,512), KoColor(Pk::blue, paintDevice->colorSpace()));
 
     i->switchCurrentTimeAsync(1);
     p.image->waitForDone();
@@ -138,8 +139,8 @@ void KisOnionSkinCompositorTest::testSettings()
 
     config.setNumberOfOnionSkins(1);
     config.setOnionSkinTintFactor(64);
-    config.setOnionSkinTintColorBackward(Qt::blue);
-    config.setOnionSkinTintColorForward(Qt::red);
+    config.setOnionSkinTintColorBackward(Pk::blue);
+    config.setOnionSkinTintColorForward(Pk::red);
     compositor->configChanged();
 
     compositor->composite(paintDevice, compositeDevice, QRect(0,0,512,512));

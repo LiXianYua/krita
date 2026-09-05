@@ -7,6 +7,7 @@
 #ifndef KIS_FILL_PAINTER_H_
 #define KIS_FILL_PAINTER_H_
 
+#include <PkGlobal.h>
 #include <PkRect.h>
 
 #include <KoColor.h>
@@ -130,7 +131,7 @@ public:
     inline void eraseRect(qint32 x1, qint32 y1, qint32 w, qint32 h)
     {
         const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
-        KoColor c(Qt::black, cs);
+        KoColor c(Pk::black, cs);
         fillRect(x1, y1, w, h, c, OPACITY_TRANSPARENT_U8);
     }
 
@@ -140,7 +141,7 @@ public:
     inline void eraseRect(const PkRect &rc)
     {
         const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
-        KoColor c(Qt::black, cs);
+        KoColor c(Pk::black, cs);
         fillRect(rc.x(),
                  rc.y(),
                  rc.width(),

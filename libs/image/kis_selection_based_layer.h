@@ -8,6 +8,7 @@
 #ifndef KIS_SELECTION_BASED_LAYER_H_
 #define KIS_SELECTION_BASED_LAYER_H_
 
+#include <PkGlobal.h>
 #include <PkObject.h>
 #include "kis_types.h"
 #include "kis_layer.h"
@@ -148,7 +149,7 @@ public:
      * @param h height of the thumbnail to create
      * @return the thumbnail image created.
      */
-    PkImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
+    PkImage createThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
 
     int thumbnailSeqNo() const override;
 

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_fixed_paint_device_test.h"
 #include <simpletest.h>
 
@@ -118,7 +119,7 @@ void KisFixedPaintDeviceTest::testBltFixedOpacity()
     fdev->convertFromQImage(image, 0);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->fill(0, 0, 640, 441, KoColor(Qt::white, cs).data());
+    dev->fill(0, 0, 640, 441, KoColor(Pk::white, cs).data());
     KisPainter gc(dev);
     gc.bltFixed(QPoint(0, 0), fdev, image.rect());
 
@@ -154,7 +155,7 @@ void KisFixedPaintDeviceTest::testFill()
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     quint8* red = new quint8[cs->pixelSize()];
-    memcpy(red, KoColor(Qt::red, cs).data(), cs->pixelSize());
+    memcpy(red, KoColor(Pk::red, cs).data(), cs->pixelSize());
     cs->setOpacity(red, quint8(128), 1);
 
     KisFixedPaintDeviceSP dev = new KisFixedPaintDevice(cs);
@@ -217,7 +218,7 @@ void KisFixedPaintDeviceTest::testBltPerformance()
     fdev->convertFromQImage(image, 0);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->fill(0, 0, 640, 441, KoColor(Qt::white, cs).data());
+    dev->fill(0, 0, 640, 441, KoColor(Pk::white, cs).data());
 
 
     QElapsedTimer t;
@@ -238,7 +239,7 @@ void KisFixedPaintDeviceTest::testBltPerformance()
 
 inline void setPixel(KisFixedPaintDeviceSP dev, int x, int y, quint8 alpha)
 {
-    KoColor c(Qt::black, dev->colorSpace());
+    KoColor c(Pk::black, dev->colorSpace());
     c.setOpacity(alpha);
 
     dev->fill(x, y, 1, 1, c.data());
@@ -246,7 +247,7 @@ inline void setPixel(KisFixedPaintDeviceSP dev, int x, int y, quint8 alpha)
 
 inline quint8 pixel(KisFixedPaintDeviceSP dev, int x, int y)
 {
-    KoColor c(Qt::black, dev->colorSpace());
+    KoColor c(Pk::black, dev->colorSpace());
 
 
     dev->readBytes(c.data(), x, y, 1, 1);
@@ -282,7 +283,7 @@ void KisFixedPaintDeviceTest::testMirroring()
     dev->setRect(rc);
     dev->initialize();
 
-    KoColor c(Qt::black, cs);
+    KoColor c(Pk::black, cs);
 
     QRandomGenerator rng{};
     int value = 0;

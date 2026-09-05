@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_mask.h"
 
 
@@ -201,7 +202,7 @@ void KisMask::Private::initSelectionImpl(KisSelectionSP copyFrom, KisLayerSP par
     } else {
         selection = new KisSelection(new KisMaskDefaultBounds(parentLayer),
                                      toQShared(new KisImageResolutionProxy(image)));
-        selection->pixelSelection()->setDefaultPixel(KoColor(Qt::white, selection->pixelSelection()->colorSpace()));
+        selection->pixelSelection()->setDefaultPixel(KoColor(Pk::white, selection->pixelSelection()->colorSpace()));
 
         if (deferredSelectionOffset) {
             selection->setX(deferredSelectionOffset->x());
@@ -468,7 +469,7 @@ PkRect KisMask::nonDependentExtent() const
     return PkRect();
 }
 
-PkImage KisMask::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisMask::createThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     KisPaintDeviceSP originalDevice =
         selection() ? selection()->projection() : 0;

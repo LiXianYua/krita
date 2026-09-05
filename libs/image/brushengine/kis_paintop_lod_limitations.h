@@ -12,8 +12,8 @@
 #include <PkStringHash.h>
 #include <boost/operators.hpp>
 
-inline uint qHash(const KoID &id) {
-    return qHash(id.id());
+inline uint pkHash(const KoID &id) {
+    return pkHash(id.id());
 }
 
 class KisPaintopLodLimitations

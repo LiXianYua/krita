@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_layer_style_projection_plane_test.h"
 
 #include <simpletest.h>
@@ -33,9 +34,9 @@
 static PkSharedPointer<KoStopGradient> makeTestGradient()
 {
     PkGradient gradient = PkGradient::linear(PkPointF(0.0, 0.0), PkPointF(1.0, 1.0));
-    gradient.setColorAt(0.0, PkColor(Qt::white));
-    gradient.setColorAt(0.5, PkColor(Qt::green));
-    gradient.setColorAt(1.0, PkColor(Qt::black));
+    gradient.setColorAt(0.0, PkColor(Pk::white));
+    gradient.setColorAt(0.5, PkColor(Pk::green));
+    gradient.setColorAt(1.0, PkColor(Pk::black));
     gradient.setSpread(PkGradientEnums::ReflectSpread);
     return KoStopGradient::fromQGradient(&gradient);
 }
@@ -61,10 +62,10 @@ void KisLayerStyleProjectionPlaneTest::test(KisPSDLayerStyleSP style, const QStr
 
     KIS_DUMP_DEVICE_2(layer->projection(), imageRect, "00L_initial", testName);
 
-    //layer->paintDevice()->fill(rFillRect, KoColor(Qt::red, cs));
+    //layer->paintDevice()->fill(rFillRect, KoColor(Pk::red, cs));
     {
         KisPainter gc(layer->paintDevice());
-        gc.setPaintColor(KoColor(Qt::red, cs));
+        gc.setPaintColor(KoColor(Pk::red, cs));
         gc.setFillStyle(KisPainter::FillStyleForegroundColor);
         gc.paintEllipse(rFillRect);
     }

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "KisOverlayPaintDeviceWrapperTest.h"
 
 #include "KisOverlayPaintDeviceWrapper.h"
@@ -28,10 +29,10 @@ void KisOverlayPaintDeviceWrapperTest::test()
 
     KisOverlayPaintDeviceWrapper wrapper(dev, 2, KisOverlayPaintDeviceWrapper::PreciseMode);
 
-    KoColor colorR(Qt::red, dev->colorSpace());
-    KoColor colorG(Qt::green, dev->colorSpace());
-    KoColor colorB(Qt::blue, dev->colorSpace());
-    KoColor colorB_rgb16(Qt::blue, wrapper.overlayColorSpace());
+    KoColor colorR(Pk::red, dev->colorSpace());
+    KoColor colorG(Pk::green, dev->colorSpace());
+    KoColor colorB(Pk::blue, dev->colorSpace());
+    KoColor colorB_rgb16(Pk::blue, wrapper.overlayColorSpace());
 
     dev->fill(QRect(0,0,100,100), colorR);
     dev->fill(QRect(100,0,100,100), colorG);
@@ -78,9 +79,9 @@ void KisOverlayPaintDeviceWrapperTest::benchmark()
 
     KisOverlayPaintDeviceWrapper wrapper(dev, 1, KisOverlayPaintDeviceWrapper::PreciseMode);
 
-    KoColor colorR(Qt::red, dev->colorSpace());
-    KoColor colorG(Qt::green, dev->colorSpace());
-    KoColor colorB(Qt::blue, dev->colorSpace());
+    KoColor colorR(Pk::red, dev->colorSpace());
+    KoColor colorG(Pk::green, dev->colorSpace());
+    KoColor colorB(Pk::blue, dev->colorSpace());
 
     dev->fill(QRect(0,0,10000,10000), colorR);
     dev->fill(QRect(0,0,100,100), colorG);

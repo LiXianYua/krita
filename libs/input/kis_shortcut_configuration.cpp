@@ -72,10 +72,10 @@ PkString pkRemoveChar(const PkString &s, char16_t sep)
     return out;
 }
 
-// Qt::Key → 显示文本。可打印 ASCII 直接映射为单字符（Key_Space = 0x20 → " "），
+// Pk::Key → 显示文本。可打印 ASCII 直接映射为单字符（Key_Space = 0x20 → " "），
 // 其余回退占位。原 Qt 的 key→text 完整符号表在剥 Qt 后不可用——这是
 // 零调用方死代码，显示行为变化登记显式接受（S-08-a brief Task 4 Step 3）。
-PkString pkKeyToText(Qt::Key key)
+PkString pkKeyToText(Pk::Key key)
 {
     const char16_t c = static_cast<char16_t>(static_cast<int>(key));
     if (c >= 0x20 && c <= 0x7E) {
@@ -102,8 +102,8 @@ public:
     ShortcutType type;
     uint mode;
 
-    PkList<Qt::Key> keys;
-    Qt::MouseButtons buttons;
+    PkList<Pk::Key> keys;
+    Pk::MouseButtons buttons;
     MouseWheelMovement wheel;
     GestureAction gesture;
 };
@@ -167,7 +167,7 @@ PkString KisShortcutConfiguration::serialize()
 #endif
     serialized.append(PkString(";["));
 
-    for (PkList<Qt::Key>::iterator itr = d->keys.begin(); itr != d->keys.end(); ++itr) {
+    for (PkList<Pk::Key>::iterator itr = d->keys.begin(); itr != d->keys.end(); ++itr) {
         serialized.append(pkIntToHex(*itr));
 
         if (itr + 1 != d->keys.end()) {
@@ -239,12 +239,12 @@ bool KisShortcutConfiguration::unserialize(const PkString &serialized)
     const PkList<PkString> keylist = serializedKeys.split(',');
     for (const PkString &key : keylist) {
         if (!key.isEmpty()) {
-            d->keys.append(static_cast<Qt::Key>(pkHexToUInt(key)));
+            d->keys.append(static_cast<Pk::Key>(pkHexToUInt(key)));
         }
     }
 
     //Fourth entry is the button mask
-    d->buttons = static_cast<Qt::MouseButtons>(pkHexToUInt(parts.at(3)));
+    d->buttons = static_cast<Pk::MouseButtons>(pkHexToUInt(parts.at(3)));
     d->wheel = static_cast<MouseWheelMovement>(pkHexToUInt(parts.at(4)));
     d->gesture = static_cast<GestureAction>(pkHexToUInt(parts.at(5)));
 
@@ -287,24 +287,24 @@ void KisShortcutConfiguration::setMode(uint newMode)
     }
 }
 
-PkList< Qt::Key > KisShortcutConfiguration::keys() const
+PkList< Pk::Key > KisShortcutConfiguration::keys() const
 {
     return d->keys;
 }
 
-void KisShortcutConfiguration::setKeys(const PkList< Qt::Key > &newKeys)
+void KisShortcutConfiguration::setKeys(const PkList< Pk::Key > &newKeys)
 {
     if (d->keys != newKeys) {
         d->keys = newKeys;
     }
 }
 
-Qt::MouseButtons KisShortcutConfiguration::buttons() const
+Pk::MouseButtons KisShortcutConfiguration::buttons() const
 {
     return d->buttons;
 }
 
-void KisShortcutConfiguration::setButtons(Qt::MouseButtons newButtons)
+void KisShortcutConfiguration::setButtons(Pk::MouseButtons newButtons)
 {
     if (d->buttons != newButtons) {
         d->buttons = newButtons;
@@ -338,7 +338,7 @@ void KisShortcutConfiguration::setGesture(KisShortcutConfiguration::GestureActio
 bool KisShortcutConfiguration::isNoOp() const
 {
     return d->type == UnknownType || (d->type == KeyCombinationType && d->keys.isEmpty())
-        || (d->type == MouseButtonType && d->buttons.testFlag(Qt::NoButton))
+        || (d->type == MouseButtonType && d->buttons.testFlag(Pk::NoButton))
         || (d->type == MouseWheelType && d->wheel == NoMovement)
         || ((d->type == GestureType || d->type == MacOSGestureType)
             && (d->gesture == NoGesture || d->gesture == MaxGesture));
@@ -361,19 +361,19 @@ PkString KisShortcutConfiguration::getInputText() const
     }
 }
 
-PkString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
+PkString KisShortcutConfiguration::buttonsToText(Pk::MouseButtons buttons)
 {
     PkString text;
     PkString sep(" + ");
 
     int buttonCount = 0;
 
-    if (buttons & Qt::LeftButton) {
+    if (buttons & Pk::LeftButton) {
         text.append(PkString("Left"));
         buttonCount++;
     }
 
-    if (buttons & Qt::RightButton) {
+    if (buttons & Pk::RightButton) {
         if (buttonCount++ > 0) {
             text.append(sep);
         }
@@ -381,7 +381,7 @@ PkString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
         text.append(PkString("Right"));
     }
 
-    if (buttons & Qt::MiddleButton) {
+    if (buttons & Pk::MiddleButton) {
         if (buttonCount++ > 0) {
             text.append(sep);
         }
@@ -389,7 +389,7 @@ PkString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
         text.append(PkString("Middle"));
     }
 
-    if (buttons & Qt::BackButton) {
+    if (buttons & Pk::BackButton) {
         if (buttonCount++ > 0) {
             text.append(sep);
         }
@@ -397,7 +397,7 @@ PkString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
         text.append(PkString("Back"));
     }
 
-    if (buttons & Qt::ForwardButton) {
+    if (buttons & Pk::ForwardButton) {
         if (buttonCount++ > 0) {
             text.append(sep);
         }
@@ -405,7 +405,7 @@ PkString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
         text.append(PkString("Forward"));
     }
 
-    if (buttons & Qt::TaskButton) {
+    if (buttons & Pk::TaskButton) {
         if (buttonCount++ > 0) {
             text.append(sep);
         }
@@ -417,7 +417,7 @@ PkString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
 // BOOST_PP_REPEAT_FROM_TO(4, 25, EXTRA_BUTTON, _) 换手动循环：PkNamespace 的位值
 // ExtraButton4 = 0x40 = 1<<6、ExtraButton24 = 0x04000000 = 1<<26，故取 1 << (n + 2)。
     for (int n = 4; n < 25; ++n) {
-        if (buttons & (Qt::MouseButton)(1 << (n + 2))) {
+        if (buttons & (Pk::MouseButton)(1 << (n + 2))) {
             if (buttonCount++ > 0) {
                 text.append(sep);
             }
@@ -435,11 +435,11 @@ PkString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
     return text;
 }
 
-PkString KisShortcutConfiguration::keysToText(const PkList<Qt::Key> &keys)
+PkString KisShortcutConfiguration::keysToText(const PkList<Pk::Key> &keys)
 {
     PkString output;
 
-    for (Qt::Key key : keys) {
+    for (Pk::Key key : keys) {
 #if defined(Q_OS_MAC)
         // This works for modifier keys on macOS but not other platforms.
         // They are shown with symbols, so no translation or separators needed.
@@ -450,19 +450,19 @@ PkString KisShortcutConfiguration::keysToText(const PkList<Qt::Key> &keys)
         }
 
         switch (key) { //Because Qt's key→text mapping fails for Ctrl, Alt, Shift and Meta
-        case Qt::Key_Control:
+        case Pk::Key_Control:
             output.append(PkString("Ctrl"));
             break;
 
-        case Qt::Key_Meta:
+        case Pk::Key_Meta:
             output.append(PkString("Meta"));
             break;
 
-        case Qt::Key_Alt:
+        case Pk::Key_Alt:
             output.append(PkString("Alt"));
             break;
 
-        case Qt::Key_Shift:
+        case Pk::Key_Shift:
             output.append(PkString("Shift"));
             break;
 
@@ -509,7 +509,7 @@ PkString KisShortcutConfiguration::wheelToText(KisShortcutConfiguration::MouseWh
     }
 }
 
-PkString KisShortcutConfiguration::buttonsInputToText(const PkList<Qt::Key> &keys, Qt::MouseButtons buttons)
+PkString KisShortcutConfiguration::buttonsInputToText(const PkList<Pk::Key> &keys, Pk::MouseButtons buttons)
 {
     PkString buttonsText = KisShortcutConfiguration::buttonsToText(buttons);
 
@@ -521,7 +521,7 @@ PkString KisShortcutConfiguration::buttonsInputToText(const PkList<Qt::Key> &key
     }
 }
 
-PkString KisShortcutConfiguration::wheelInputToText(const PkList<Qt::Key> &keys, KisShortcutConfiguration::MouseWheelMovement wheel)
+PkString KisShortcutConfiguration::wheelInputToText(const PkList<Pk::Key> &keys, KisShortcutConfiguration::MouseWheelMovement wheel)
 {
     PkString wheelText = KisShortcutConfiguration::wheelToText(wheel);
 

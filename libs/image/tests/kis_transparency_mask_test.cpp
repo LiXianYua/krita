@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_transparency_mask_test.h"
 
 #include <simpletest.h>
@@ -22,9 +23,9 @@ KisPaintDeviceSP createDevice()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     KisFillPainter gc(dev);
-    KoColor c(Qt::red, dev->colorSpace());
+    KoColor c(Pk::red, dev->colorSpace());
     gc.fillRect(0, 0, 100, 100, c);
-    c = KoColor(Qt::blue, dev->colorSpace());
+    c = KoColor(Pk::blue, dev->colorSpace());
     gc.fillRect(100, 0, 100, 100, c);
     gc.end();
 

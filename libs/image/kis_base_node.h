@@ -6,6 +6,7 @@
 #ifndef _KIS_BASE_NODE_H
 #define _KIS_BASE_NODE_H
 
+#include <PkGlobal.h>
 #include <PkObject.h>
 #include <PkMap.h>
 #include <PkNodeId.h>
@@ -305,14 +306,14 @@ public:
      * type cannot generate a thumbnail. If the requested size is too
      * big, return a null PkImage.
      */
-    virtual PkImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio, KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise);
+    virtual PkImage createThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode = Pk::IgnoreAspectRatio, KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise);
 
     /**
      * Create a thumbnail in the currently preferred bounds mode
      *
      * @see preferredThumbnailBoundsMode()
      */
-    PkImage createPreferredThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio);
+    PkImage createPreferredThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode = Pk::IgnoreAspectRatio);
 
     /**
      * @return the currently preferred bounds mode for the thumbnails
@@ -347,8 +348,8 @@ public:
      * current node type cannot generate a thumbnail. If the requested
      * size is too big, return a null PkImage.
      */
-    virtual PkImage createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio, KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise);
-    PkImage createPreferredThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio);
+    virtual PkImage createThumbnailForFrame(qint32 w, qint32 h, int time, Pk::AspectRatioMode aspectRatioMode = Pk::IgnoreAspectRatio, KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise);
+    PkImage createPreferredThumbnailForFrame(qint32 w, qint32 h, int time, Pk::AspectRatioMode aspectRatioMode = Pk::IgnoreAspectRatio);
 
     /**
      * Ask this node to re-read the pertinent settings from the krita

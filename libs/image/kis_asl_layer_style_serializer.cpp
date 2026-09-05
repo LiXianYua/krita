@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkNamespace.h>
 #include "kis_asl_layer_style_serializer.h"
 #include "kis_image.h"
 
@@ -958,7 +959,7 @@ void KisAslLayerStyleSerializer::assignPatternObject(const PkString &patternUuid
                   << patternUuid << " (name: " << patternName << ")";
 
         PkImage dumbImage(32, 32, PkImage::Format_ARGB32);
-        dumbImage.fill(Qt::red);
+        dumbImage.fill(Pk::red);
         KoPatternSP dumbPattern(new KoPattern(dumbImage, "invalid", ""));
         registerPatternObject(dumbPattern, patternUuid + PkString("_invalid"));
         pattern = dumbPattern;

@@ -5,6 +5,7 @@
  */
 
 #include "kis_qimage_pyramid.h"
+#include <PkNamespace.h>
 
 #include <algorithm>
 #include <cstring>
@@ -69,9 +70,9 @@ KisQImagePyramid::KisQImagePyramid(const PkImage &baseImage, bool useSmoothingFo
             }
 
             if (useSmoothingForEnlarging) {
-                appendPyramidLevel(baseImage.scaled(scaledSize,  Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+                appendPyramidLevel(baseImage.scaled(scaledSize,  Pk::IgnoreAspectRatio, Pk::SmoothTransformation));
             } else {
-                appendPyramidLevel(baseImage.scaled(scaledSize,  Qt::IgnoreAspectRatio, Qt::FastTransformation));
+                appendPyramidLevel(baseImage.scaled(scaledSize,  Pk::IgnoreAspectRatio, Pk::FastTransformation));
             }
         }
 
@@ -90,7 +91,7 @@ KisQImagePyramid::KisQImagePyramid(const PkImage &baseImage, bool useSmoothingFo
         if (scaledSize.width() == 0 ||
                 scaledSize.height() == 0) break;
 
-        appendPyramidLevel(baseImage.scaled(scaledSize,  Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+        appendPyramidLevel(baseImage.scaled(scaledSize,  Pk::IgnoreAspectRatio, Pk::SmoothTransformation));
 
         scale *= 0.5;
     }
@@ -350,7 +351,7 @@ PkImage KisQImagePyramid::createImage(KisDabShape const& shape,
                                    -QPAINTER_WORKAROUND_BORDER) * transform;
     const PkRect transformedBounds = effectiveTransform.mapRect(srcImage.rect());
     const PkImage transformedImage =
-        srcImage.transformed(effectiveTransform, Qt::SmoothTransformation);
+        srcImage.transformed(effectiveTransform, Pk::SmoothTransformation);
 
     return copyArgb32Rect(transformedImage,
                          -transformedBounds.x(),

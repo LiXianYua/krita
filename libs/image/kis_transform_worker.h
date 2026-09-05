@@ -9,6 +9,7 @@
 #ifndef KIS_TRANSFORM_WORKER_H_
 #define KIS_TRANSFORM_WORKER_H_
 
+#include <PkGlobal.h>
 #include <PkNamespace.h>
 #include <PkRect.h>
 
@@ -39,7 +40,7 @@ public:
      * Mirror the specified device along the X or Y axis at the
      * coordinate \p axis.
      */
-    static void mirror(KisPaintDeviceSP dev, qreal axis, Qt::Orientation orientation);
+    static void mirror(KisPaintDeviceSP dev, qreal axis, Pk::Orientation orientation);
 
     /**
      * Convenience methods for mirror(dev, axis, orientation)

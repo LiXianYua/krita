@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_marker_painter_test.h"
 
 #include <simpletest.h>
@@ -38,7 +39,7 @@ void KisMarkerPainterTest::testFillHalfBrushDiff()
     QPointF p3(10,5);
     QPointF p2(12,10);
     QPointF p1(15,10);
-    KoColor color(Qt::blue, cs);
+    KoColor color(Pk::blue, cs);
 
     KisMarkerPainter painter(dev, color);
     painter.fillHalfBrushDiff(p1, p2, p3,
@@ -64,7 +65,7 @@ void KisMarkerPainterTest::testFillFullCircle()
 
     QPoint center(10,10);
     qreal radius = 5;
-    KoColor color(Qt::blue, cs);
+    KoColor color(Pk::blue, cs);
 
     KisMarkerPainter painter(dev, color);
     painter.fillFullCircle(center, radius);
@@ -80,7 +81,7 @@ void KisMarkerPainterTest::testFillCirclesDiffSingle()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     QRect fullRect(0,0,60,60);
-    KoColor color(Qt::blue, cs);
+    KoColor color(Pk::blue, cs);
 
 
     KisMarkerPainter painter(dev, color);
@@ -98,7 +99,7 @@ void KisMarkerPainterTest::testFillCirclesDiff()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     QRect fullRect(0,0,100,100);
-    KoColor color(Qt::blue, cs);
+    KoColor color(Pk::blue, cs);
 
     const int x0 = 20;
     const int x1 = 80;

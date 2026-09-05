@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_liquify_transform_worker_test.h"
 
 #include <simpletest.h>
@@ -192,7 +193,7 @@ void KisLiquifyTransformWorkerTest::testIdentityTransform()
     QRect rc(0,0,13,23);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->fill(rc, KoColor(Qt::blue, cs));
+    dev->fill(rc, KoColor(Pk::blue, cs));
 
     KisPaintDeviceSP srcDev = new KisPaintDevice(*dev);
 

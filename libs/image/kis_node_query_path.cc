@@ -181,7 +181,7 @@ KisNodeQueryPath KisNodeQueryPath::fromString(const PkString& _path)
         return path;
     }
     path.d->relative = !(_path.at(0) == '/');
-    std::vector<PkString> indexes = _path.split('/');
+    PkStringList indexes = _path.split(u'/');
     if (!path.d->relative) {
         indexes.erase(indexes.begin()); // In case of an absolute path "/1/2", the list is "", "1", "2" which is not good
     }

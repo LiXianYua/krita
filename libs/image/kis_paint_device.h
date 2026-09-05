@@ -19,6 +19,7 @@
 #include <KoColorConversionTransformation.h>
 
 #include "kis_types.h"
+#include <PkGlobal.h>
 #include "kis_shared.h"
 #include "kis_default_bounds_base.h"
 
@@ -579,7 +580,7 @@ public:
      * thumbnail to fit the extents of the paint device.
      */
     PkImage createThumbnail(qint32 maxw, qint32 maxh,
-                           Qt::AspectRatioMode aspectRatioMode,
+                           Pk::AspectRatioMode aspectRatioMode,
                            KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise,
                            qreal oversample = 1,
                            KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),

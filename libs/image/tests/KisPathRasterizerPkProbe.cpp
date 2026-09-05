@@ -1,3 +1,4 @@
+#include <PkGlobal.h>
 #include "path_rasterizer_cases.h"
 
 #include "../private/kis_path_rasterizer_p.h"
@@ -45,7 +46,7 @@ namespace {
 PkPainterPath makePath(const RasterCase &c)
 {
     PkPainterPath path;
-    path.setFillRule(c.fillRule == 1 ? Qt::WindingFill : Qt::OddEvenFill);
+    path.setFillRule(c.fillRule == 1 ? Pk::WindingFill : Pk::OddEvenFill);
     for (std::size_t i = 0; i < c.commandCount; ++i) {
         const auto &cmd = c.commands[i];
         switch (cmd.verb) {
@@ -178,7 +179,7 @@ int verifyAllocationBoundaries()
 
     PkPen dashedPen;
     dashedPen.setWidthF(3.5);
-    dashedPen.setStyle(Qt::DashLine);
+    dashedPen.setStyle(Pk::DashLine);
     armAllocationFailure();
     try {
         const auto mask = KisPathRasterizer::rasterizeStroke(
@@ -211,9 +212,9 @@ int verifyAllocationBoundaries()
 int verifyPenCarrierTransitions()
 {
     const PkPen defaults;
-    if (defaults.widthF() != 1.0 || defaults.style() != Qt::SolidLine
-        || defaults.capStyle() != Qt::SquareCap
-        || defaults.joinStyle() != Qt::BevelJoin
+    if (defaults.widthF() != 1.0 || defaults.style() != Pk::SolidLine
+        || defaults.capStyle() != Pk::SquareCap
+        || defaults.joinStyle() != Pk::BevelJoin
         || defaults.miterLimit() != 2.0 || defaults.dashOffset() != 0.0
         || !defaults.dashPattern().empty()) {
         return 20;
@@ -225,26 +226,26 @@ int verifyPenCarrierTransitions()
     PkPen resetByStyle;
     resetByStyle.setDashPattern(custom);
     resetByStyle.setDashOffset(0.75);
-    resetByStyle.setStyle(Qt::DashLine);
-    if (resetByStyle.style() != Qt::DashLine
+    resetByStyle.setStyle(Pk::DashLine);
+    if (resetByStyle.style() != Pk::DashLine
         || resetByStyle.dashOffset() != 0.0
         || !samePattern(resetByStyle.dashPattern(), {4.0, 2.0})) {
         return 21;
     }
 
     PkPen promoted;
-    promoted.setStyle(Qt::DashDotLine);
+    promoted.setStyle(Pk::DashDotLine);
     promoted.setDashOffset(1.25);
-    if (promoted.style() != Qt::CustomDashLine
+    if (promoted.style() != Pk::CustomDashLine
         || promoted.dashOffset() != 1.25
         || !samePattern(promoted.dashPattern(), {4.0, 2.0, 1.0, 2.0})) {
         return 22;
     }
 
     PkPen emptyNoOp;
-    emptyNoOp.setStyle(Qt::DotLine);
+    emptyNoOp.setStyle(Pk::DotLine);
     emptyNoOp.setDashPattern({});
-    if (emptyNoOp.style() != Qt::DotLine
+    if (emptyNoOp.style() != Pk::DotLine
         || !samePattern(emptyNoOp.dashPattern(), {1.0, 2.0})) {
         return 23;
     }
@@ -255,7 +256,7 @@ int verifyPenCarrierTransitions()
     odd.append(1.5);
     PkPen completedOddPattern;
     completedOddPattern.setDashPattern(odd);
-    if (completedOddPattern.style() != Qt::CustomDashLine
+    if (completedOddPattern.style() != Pk::CustomDashLine
         || !samePattern(completedOddPattern.dashPattern(), {5.0, 2.0, 1.5, 1.0})) {
         return 24;
     }
@@ -272,11 +273,11 @@ int emitCase(const RasterCase &c)
     if (c.mode == RasterMode::Fill) {
         mask = KisPathRasterizer::rasterizeFill(makePath(c), clip, c.antialiased);
     } else {
-        PkPen pen(Qt::white);
+        PkPen pen(Pk::white);
         pen.setWidthF(c.penWidth);
-        pen.setStyle(static_cast<Qt::PenStyle>(c.penStyle));
-        pen.setCapStyle(static_cast<Qt::PenCapStyle>(c.capStyle));
-        pen.setJoinStyle(static_cast<Qt::PenJoinStyle>(c.joinStyle));
+        pen.setStyle(static_cast<Pk::PenStyle>(c.penStyle));
+        pen.setCapStyle(static_cast<Pk::PenCapStyle>(c.capStyle));
+        pen.setJoinStyle(static_cast<Pk::PenJoinStyle>(c.joinStyle));
         pen.setMiterLimit(c.miterLimit);
         if (c.dashCount) {
             PkVector<qreal> pattern;
@@ -337,7 +338,7 @@ int verifyNonFiniteInputsAreRejected()
     finiteLine.lineTo(8.0, 8.0);
 
     PkPen noPen;
-    noPen.setStyle(Qt::NoPen);
+    noPen.setStyle(Pk::NoPen);
     if (!isCanonicalEmpty(KisPathRasterizer::rasterizeStroke(
             finiteLine, noPen, clip, true))) {
         return 13;
@@ -354,7 +355,7 @@ int verifyNonFiniteInputsAreRejected()
         return 15;
     }
 
-    PkPen invalidWidth(Qt::black, nan);
+    PkPen invalidWidth(Pk::black, nan);
     if (!isCanonicalEmpty(KisPathRasterizer::rasterizeStroke(
             finiteLine, invalidWidth, clip, true))) {
         return 16;
@@ -378,21 +379,21 @@ int verifyNonFiniteInputsAreRejected()
     }
 
     PkPen invalidStyle;
-    invalidStyle.setStyle(static_cast<Qt::PenStyle>(99));
+    invalidStyle.setStyle(static_cast<Pk::PenStyle>(99));
     if (!isCanonicalEmpty(KisPathRasterizer::rasterizeStroke(
             finiteLine, invalidStyle, clip, true))) {
         return 25;
     }
 
     PkPen invalidCap;
-    invalidCap.setCapStyle(static_cast<Qt::PenCapStyle>(99));
+    invalidCap.setCapStyle(static_cast<Pk::PenCapStyle>(99));
     if (!isCanonicalEmpty(KisPathRasterizer::rasterizeStroke(
             finiteLine, invalidCap, clip, true))) {
         return 26;
     }
 
     PkPen invalidJoin;
-    invalidJoin.setJoinStyle(static_cast<Qt::PenJoinStyle>(99));
+    invalidJoin.setJoinStyle(static_cast<Pk::PenJoinStyle>(99));
     if (!isCanonicalEmpty(KisPathRasterizer::rasterizeStroke(
             finiteLine, invalidJoin, clip, true))) {
         return 27;
@@ -405,7 +406,7 @@ int verifyNonFiniteInputsAreRejected()
         return 28;
     }
 
-    PkPen negativeWidth(Qt::black, -1.0);
+    PkPen negativeWidth(Pk::black, -1.0);
     if (!isCanonicalEmpty(KisPathRasterizer::rasterizeStroke(
             finiteLine, negativeWidth, clip, true))) {
         return 29;

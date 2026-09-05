@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_selection_mask.h"
 
 #include "kis_image.h"
@@ -33,7 +34,7 @@ public:
     Private(KisSelectionMask *_q)
         : q(_q)
         , updatesCompressor(0)
-        , maskColor(Qt::green, KoColorSpaceRegistry::instance()->rgb8())
+        , maskColor(Pk::green, KoColorSpaceRegistry::instance()->rgb8())
     {}
     KisSelectionMask *q;
     KisCachedPaintDevice paintDeviceCache;
@@ -145,7 +146,7 @@ void KisSelectionMask::setSelection(KisSelectionSP selection)
 
         const KoColorSpace * cs = KoColorSpaceRegistry::instance()->alpha8();
         KisFillPainter gc(KisPaintDeviceSP(this->selection()->pixelSelection().data()));
-        gc.fillRect(image()->bounds(), KoColor(Qt::white, cs), MAX_SELECTED);
+        gc.fillRect(image()->bounds(), KoColor(Pk::white, cs), MAX_SELECTED);
         gc.end();
     }
     setDirty();

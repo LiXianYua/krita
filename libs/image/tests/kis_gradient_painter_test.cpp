@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_gradient_painter_test.h"
 
 #include <QPainter>
@@ -96,12 +97,12 @@ void testShapedGradientPainterImpl(const PkPolygonF &selectionPolygon,
 
     KisPainter selPainter(pixelSelection);
     selPainter.setFillStyle(KisPainter::FillStyleForegroundColor);
-    selPainter.setPaintColor(KoColor(Qt::white, pixelSelection->colorSpace()));
+    selPainter.setPaintColor(KoColor(Pk::white, pixelSelection->colorSpace()));
     selPainter.paintPolygon(selectionPolygon);
 
     if (!selectionErasePolygon.isEmpty()) {
         selPainter.setCompositeOpId(COMPOSITE_ERASE);
-        selPainter.setPaintColor(KoColor(Qt::white, pixelSelection->colorSpace()));
+        selPainter.setPaintColor(KoColor(Pk::white, pixelSelection->colorSpace()));
         selPainter.paintPolygon(selectionErasePolygon);
     }
 
@@ -112,8 +113,8 @@ void testShapedGradientPainterImpl(const PkPolygonF &selectionPolygon,
     (void)pixelSelection->convertToQImage(0, imageRect);
 
     PkGradient testGradient = PkGradient::linear(PkPointF(0.0, 0.0), PkPointF(1.0, 1.0));
-    testGradient.setColorAt(0.0, PkColor(Qt::white)); testGradient.setColorAt(0.5, PkColor(Qt::green));
-    testGradient.setColorAt(1.0, PkColor(Qt::black)); testGradient.setSpread(PkGradientEnums::ReflectSpread);
+    testGradient.setColorAt(0.0, PkColor(Pk::white)); testGradient.setColorAt(0.5, PkColor(Pk::green));
+    testGradient.setColorAt(1.0, PkColor(Pk::black)); testGradient.setSpread(PkGradientEnums::ReflectSpread);
     PkSharedPointer<KoStopGradient> gradient(KoStopGradient::fromQGradient(&testGradient));
 
     KisGradientPainter gc(dev, selection);
@@ -248,14 +249,14 @@ void KisGradientPainterTest::testSplitDisjointPaths()
     QPainter gc(&dstImage);
 
     QVector<QBrush> brushes;
-    brushes << Qt::red;
-    brushes << Qt::green;
-    brushes << Qt::blue;
-    brushes << Qt::cyan;
-    brushes << Qt::magenta;
-    brushes << Qt::yellow;
-    brushes << Qt::black;
-    brushes << Qt::white;
+    brushes << Pk::red;
+    brushes << Pk::green;
+    brushes << Pk::blue;
+    brushes << Pk::cyan;
+    brushes << Pk::magenta;
+    brushes << Pk::yellow;
+    brushes << Pk::black;
+    brushes << Pk::white;
 
     int index = 0;
     for (const PkPainterPath &p : result) {
@@ -304,7 +305,7 @@ void KisGradientPainterTest::testCachedStrategy()
 
     for (int y = rc.y(); y <= rc.bottom(); y++) {
         for (int x = rc.x(); x <= rc.right(); x++) {
-            if (!selectionPolygon.containsPoint(PkPointF(x, y), Qt::OddEvenFill)) continue;
+            if (!selectionPolygon.containsPoint(PkPointF(x, y), Pk::OddEvenFill)) continue;
 
             qreal ref = strategy->valueAt(x, y);
             qreal value = cached.valueAt(x, y);

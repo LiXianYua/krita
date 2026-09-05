@@ -9,6 +9,8 @@
 #ifndef KISSCREENTONEBRIGHTNESCONTRASTFUNCTIONS_H
 #define KISSCREENTONEBRIGHTNESCONTRASTFUNCTIONS_H
 
+#include <PkGlobal.h>
+
 
 namespace KisScreentoneBrightnessContrastFunctions {
 

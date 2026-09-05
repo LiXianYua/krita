@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_image_animation_interface_test.h"
 
 #include <simpletest.h>
@@ -54,10 +55,10 @@ void KisImageAnimationInterfaceTest::testFrameRegeneration()
 
     // check frame 0
     {
-        dev1->fill(rc1, KoColor(Qt::red, dev1->colorSpace()));
+        dev1->fill(rc1, KoColor(Pk::red, dev1->colorSpace()));
         QCOMPARE(dev1->exactBounds(), rc1);
 
-        dev2->fill(rc2, KoColor(Qt::green, dev1->colorSpace()));
+        dev2->fill(rc2, KoColor(Pk::green, dev1->colorSpace()));
         QCOMPARE(dev2->exactBounds(), rc2);
 
         p.image->refreshGraphAsync();
@@ -82,10 +83,10 @@ void KisImageAnimationInterfaceTest::testFrameRegeneration()
         QVERIFY(dev1->exactBounds().isEmpty());
         QVERIFY(dev2->exactBounds().isEmpty());
 
-        dev1->fill(rc3, KoColor(Qt::red, dev2->colorSpace()));
+        dev1->fill(rc3, KoColor(Pk::red, dev2->colorSpace()));
         QCOMPARE(dev1->exactBounds(), rc3);
 
-        dev2->fill(rc4, KoColor(Qt::green, dev2->colorSpace()));
+        dev2->fill(rc4, KoColor(Pk::green, dev2->colorSpace()));
         QCOMPARE(dev2->exactBounds(), rc4);
 
         p.image->refreshGraphAsync();
@@ -211,8 +212,8 @@ void KisImageAnimationInterfaceTest::testAnimationCompositionBug()
     layer1->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true);
     layer2->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true);
 
-    layer1->paintDevice()->fill(rect, KoColor(Qt::red, layer1->paintDevice()->colorSpace()));
-    layer2->paintDevice()->fill(QRect(128,128,128,128), KoColor(Qt::black, layer2->paintDevice()->colorSpace()));
+    layer1->paintDevice()->fill(rect, KoColor(Pk::red, layer1->paintDevice()->colorSpace()));
+    layer2->paintDevice()->fill(QRect(128,128,128,128), KoColor(Pk::black, layer2->paintDevice()->colorSpace()));
 
     KisKeyframeChannel *rasterChannel = layer2->getKeyframeChannel(KisKeyframeChannel::Raster.id());
     rasterChannel->addKeyframe(10, &parentCommand);
@@ -232,8 +233,8 @@ void KisImageAnimationInterfaceTest::testAnimationCompositionBug()
     QTest::qWait(200);
 
     KisPaintDeviceSP tmpDevice = new KisPaintDevice(p.image->colorSpace());
-    tmpDevice->fill(rect, KoColor(Qt::red, tmpDevice->colorSpace()));
-    tmpDevice->fill(QRect(128,128,128,128), KoColor(Qt::black, tmpDevice->colorSpace()));
+    tmpDevice->fill(rect, KoColor(Pk::red, tmpDevice->colorSpace()));
+    tmpDevice->fill(QRect(128,128,128,128), KoColor(Pk::black, tmpDevice->colorSpace()));
     QImage expected = tmpDevice->createThumbnail(512, 512);
 
     QVERIFY(m_compositedFrame == expected);
@@ -365,7 +366,7 @@ void KisImageAnimationInterfaceTest::testAutoKeyframeWithOnionSkins()
 
         const QRect fillRect = rectForTime(time);
 
-        dev->fill(fillRect, KoColor(Qt::black, cs));
+        dev->fill(fillRect, KoColor(Pk::black, cs));
 
         layer->setDirty(fillRect);
         image->waitForDone();

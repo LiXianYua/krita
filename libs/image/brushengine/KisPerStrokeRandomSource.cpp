@@ -66,7 +66,7 @@ qint64 KisPerStrokeRandomSource::Private::fetchInt(const PkString &key)
         return it.value();
     }
 
-    boost::taus88 oneTimeGenerator(seed + qHash(key));
+    boost::taus88 oneTimeGenerator(seed + pkHash(key));
     const qint64 newValue = oneTimeGenerator();
 
     valuesCache.insert(key, newValue);

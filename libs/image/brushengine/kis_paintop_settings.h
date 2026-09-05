@@ -99,7 +99,7 @@ public:
      * and if the tool is supposed to use the event, return false.
      * See kis_tool_freehand:tryPickByPaintOp()
      */
-    virtual bool mousePressEvent(const KisPaintInformation &paintInformation, Qt::KeyboardModifiers modifiers, KisNodeWSP currentNode);
+    virtual bool mousePressEvent(const KisPaintInformation &paintInformation, Pk::KeyboardModifiers modifiers, KisNodeWSP currentNode);
     /**
      * This function is called by a tool when the mouse is released. It's useful if
      * the paintop needs mouse interaction for instance in the case of the clone op.

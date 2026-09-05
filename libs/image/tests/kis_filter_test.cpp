@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_filter_test.h"
 
 #include <simpletest.h>
@@ -140,7 +141,7 @@ void KisFilterTest::testOldDataApiAfterCopy()
 
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     quint8 *whitePixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::white, whitePixel);
+    cs->fromQColor(Pk::white, whitePixel);
     cs->setOpacity(whitePixel, OPACITY_OPAQUE_U8, 1);
 
     KisPaintDeviceSP tmp = new KisPaintDevice(cs);
@@ -199,7 +200,7 @@ void KisFilterTest::testBlurFilterApplicationRect()
 
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     quint8 *whitePixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::white, whitePixel);
+    cs->fromQColor(Pk::white, whitePixel);
     cs->setOpacity(whitePixel, OPACITY_OPAQUE_U8, 1);
 
     KisPaintDeviceSP src1 = new KisPaintDevice(cs);

@@ -33,11 +33,11 @@ public:
 
     int priority() const override;
 
-    void setKey(const QSet<Qt::Key> &modifiers, Qt::Key key);
-    void setWheel(const QSet<Qt::Key> &modifiers, WheelAction wheelAction);
+    void setKey(const QSet<Pk::Key> &modifiers, Pk::Key key);
+    void setWheel(const QSet<Pk::Key> &modifiers, WheelAction wheelAction);
 
-    bool match(const QSet<Qt::Key> &modifiers, Qt::Key key);
-    bool match(const QSet<Qt::Key> &modifiers, WheelAction wheelAction);
+    bool match(const QSet<Pk::Key> &modifiers, Pk::Key key);
+    bool match(const QSet<Pk::Key> &modifiers, WheelAction wheelAction);
 
     /**
      * Check is the shortcut or the key sequence is a prefix of one another

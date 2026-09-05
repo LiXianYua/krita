@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_crop_processing_visitor_test.h"
 
 #include <simpletest.h>
@@ -32,7 +33,7 @@ void KisCropProcessingVisitorTest::testUndo()
     QRect cropRect(25,25,100,100);
 
     KisFillPainter painter(device);
-    painter.fillRect(fillRect, KoColor(Qt::white, cs));
+    painter.fillRect(fillRect, KoColor(Pk::white, cs));
     QImage image1 = device->convertToQImage(0, 0, 0, 300, 300);
 
     undoAdapter.beginMacro(kundo2_noi18n("test"));
@@ -87,7 +88,7 @@ void KisCropProcessingVisitorTest::testWrappedInCommand()
     QRect cropRect(25,25,100,100);
 
     KisFillPainter painter(device);
-    painter.fillRect(fillRect, KoColor(Qt::white, cs));
+    painter.fillRect(fillRect, KoColor(Pk::white, cs));
     QImage image1 = device->convertToQImage(0, 0, 0, 300, 300);
 
 

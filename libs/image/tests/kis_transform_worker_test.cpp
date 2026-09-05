@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_transform_worker_test.h"
 
 #include <simpletest.h>
@@ -39,7 +40,7 @@ void KisTransformWorkerTest::testCreation()
                           0, 0, updater, filter);
 }
 
-void testMirror(const QRect &imageRect, const QRect &mirrorRect, Qt::Orientation orientation)
+void testMirror(const QRect &imageRect, const QRect &mirrorRect, Pk::Orientation orientation)
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
@@ -62,7 +63,7 @@ void testMirror(const QRect &imageRect, const QRect &mirrorRect, Qt::Orientation
 
     QImage srcImage = dev->convertToQImage(0, mirrorRect.x(), mirrorRect.y(), mirrorRect.width(), mirrorRect.height());
 #if QT_VERSION < QT_VERSION_CHECK(6, 9, 0)
-    QImage mirroredImage = srcImage.mirrored(orientation == Qt::Horizontal, orientation == Qt::Vertical);
+    QImage mirroredImage = srcImage.mirrored(orientation == Pk::Horizontal, orientation == Pk::Vertical);
 #else
     QImage mirroredImage = srcImage.flipped(orientation);
 #endif
@@ -94,32 +95,32 @@ void testMirror(const QRect &imageRect, const QRect &mirrorRect, Qt::Orientation
 
 void KisTransformWorkerTest::testMirrorX_Even()
 {
-    testMirror(QRect(10,10,30,30), QRect(1,1,70,70), Qt::Horizontal);
+    testMirror(QRect(10,10,30,30), QRect(1,1,70,70), Pk::Horizontal);
 }
 
 void KisTransformWorkerTest::testMirrorX_Odd()
 {
-    testMirror(QRect(10,10,30,30), QRect(1,1,71,71), Qt::Horizontal);
+    testMirror(QRect(10,10,30,30), QRect(1,1,71,71), Pk::Horizontal);
 }
 
 void KisTransformWorkerTest::testMirrorY_Even()
 {
-    testMirror(QRect(10,10,30,30), QRect(1,1,70,70), Qt::Vertical);
+    testMirror(QRect(10,10,30,30), QRect(1,1,70,70), Pk::Vertical);
 }
 
 void KisTransformWorkerTest::testMirrorY_Odd()
 {
-    testMirror(QRect(10,10,30,30), QRect(1,1,71,71), Qt::Vertical);
+    testMirror(QRect(10,10,30,30), QRect(1,1,71,71), Pk::Vertical);
 }
 
 void KisTransformWorkerTest::benchmarkMirrorX()
 {
-    testMirror(QRect(10,10,4000,4000), QRect(1,1,7000,7000), Qt::Horizontal);
+    testMirror(QRect(10,10,4000,4000), QRect(1,1,7000,7000), Pk::Horizontal);
 }
 
 void KisTransformWorkerTest::benchmarkMirrorY()
 {
-    testMirror(QRect(10,10,4000,4000), QRect(1,1,7000,7000), Qt::Vertical);
+    testMirror(QRect(10,10,4000,4000), QRect(1,1,7000,7000), Pk::Vertical);
 }
 
 void KisTransformWorkerTest::testOffset()
@@ -176,7 +177,7 @@ void KisTransformWorkerTest::testMirrorTransactionX()
 #if QT_VERSION < QT_VERSION_CHECK(6, 9, 0)
     image = image.mirrored(true, false);
 #else
-    image = image.flipped(Qt::Orientation::Horizontal);
+    image = image.flipped(Pk::Orientation::Horizontal);
 #endif
 
     QPoint errpoint;
@@ -204,7 +205,7 @@ void KisTransformWorkerTest::testMirrorTransactionY()
 #if QT_VERSION < QT_VERSION_CHECK(6, 9, 0)
     image = image.mirrored(false, true);
 #else
-    image = image.flipped(Qt::Orientation::Vertical);
+    image = image.flipped(Pk::Orientation::Vertical);
 #endif
 
     QPoint errpoint;
@@ -595,7 +596,7 @@ void KisTransformWorkerTest::testMatrices()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     QRect fillRect(0,0,300,200);
-    KoColor fillColor(Qt::white, cs);
+    KoColor fillColor(Pk::white, cs);
     dev->fill(fillRect, fillColor);
 
     qreal scaleX = 1.5, scaleY = 1.5;
@@ -691,7 +692,7 @@ void KisTransformWorkerTest::testRotationSpecialCases()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     QRect fillRect(0,0,600,300);
-    KoColor fillColor(Qt::white, cs);
+    KoColor fillColor(Pk::white, cs);
     dev->fill(fillRect, fillColor);
 
     qreal scaleX = 0.5, scaleY = 0.5;
@@ -718,14 +719,14 @@ void KisTransformWorkerTest::testScaleUp5times()
     KoUpdaterPtr updater = pu.startSubtask();
 
     QImage image(QSize(2000,2000), QImage::Format_ARGB32_Premultiplied);
-    image.fill(QColor(Qt::green).rgba());
+    image.fill(QColor(Pk::green).rgba());
 
     int checkSize = 20;
     QImage tile(checkSize * 2, checkSize * 2, QImage::Format_ARGB32_Premultiplied);
     QPainter pt(&tile);
-    pt.fillRect(tile.rect(), Qt::green);
-    pt.fillRect(0, 0, checkSize, checkSize, Qt::white);
-    pt.fillRect(checkSize, checkSize, checkSize, checkSize, Qt::white);
+    pt.fillRect(tile.rect(), Pk::green);
+    pt.fillRect(0, 0, checkSize, checkSize, Pk::white);
+    pt.fillRect(checkSize, checkSize, checkSize, checkSize, Pk::white);
     pt.end();
 
     pt.begin(&image);
@@ -998,7 +999,7 @@ void KisTransformWorkerTest::testXScaleUpPixelAlignment()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
-    dev->fill(QRect(10,10,35,35), KoColor(Qt::blue, cs));
+    dev->fill(QRect(10,10,35,35), KoColor(Pk::blue, cs));
 
     //qDebug() << "0" << ppVar(dev->exactBounds());
 

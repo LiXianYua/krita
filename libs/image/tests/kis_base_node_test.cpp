@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_base_node_test.h"
 #include "KoColor.h"
 #include "kis_base_node.h"
@@ -137,7 +138,7 @@ void KisBaseNodeTest::testOpacityKeyframing()
 
     // Paint starting color..
     const KoColorSpace *colorSpace = context.layer->paintDevice()->colorSpace();
-    const KoColor originalColor = KoColor(Qt::red, colorSpace);
+    const KoColor originalColor = KoColor(Pk::red, colorSpace);
     context.layer->paintDevice()->fill(context.imageRect, originalColor);
 
     // Regenerate projection..

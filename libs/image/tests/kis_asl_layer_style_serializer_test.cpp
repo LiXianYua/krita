@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_asl_layer_style_serializer_test.h"
 
 #include <simpletest.h>
@@ -48,7 +49,7 @@ void KisAslLayerStyleSerializerTest::testReading()
 
     CMP(dropShadow, effectEnabled, true);
     CMP(dropShadow, blendMode, COMPOSITE_MULT);
-    CMP(dropShadow, color, KoColor(Qt::black, cs));
+    CMP(dropShadow, color, KoColor(Pk::black, cs));
     CMP(dropShadow, opacity, 15);
     CMP(dropShadow, angle, -120);
     CMP(dropShadow, useGlobalLight, false);
@@ -61,7 +62,7 @@ void KisAslLayerStyleSerializerTest::testReading()
 
     CMP(innerShadow, effectEnabled, true);
     CMP(innerShadow, blendMode, COMPOSITE_DARKEN);
-    CMP(innerShadow, color, KoColor(Qt::black, cs));
+    CMP(innerShadow, color, KoColor(Pk::black, cs));
     CMP(innerShadow, opacity, 28);
     CMP(innerShadow, angle, 120);
     CMP(innerShadow, useGlobalLight, true);
@@ -105,7 +106,7 @@ void KisAslLayerStyleSerializerTest::testReading()
 
     CMP(satin, effectEnabled, true);
     CMP(satin, blendMode, COMPOSITE_MULT);
-    CMP(satin, color, KoColor(Qt::black, cs));
+    CMP(satin, color, KoColor(Pk::black, cs));
     CMP(satin, opacity, 68);
     CMP(satin, angle, 19);
     CMP(satin, distance, 11);
@@ -116,7 +117,7 @@ void KisAslLayerStyleSerializerTest::testReading()
 
     CMP(colorOverlay, effectEnabled, true);
     CMP(colorOverlay, blendMode, COMPOSITE_OVER);
-    CMP(colorOverlay, color, KoColor(Qt::red, cs));
+    CMP(colorOverlay, color, KoColor(Pk::red, cs));
     CMP(colorOverlay, opacity, 63);
 
     CMP(gradientOverlay, effectEnabled, true);
@@ -148,7 +149,7 @@ void KisAslLayerStyleSerializerTest::testReading()
 
     CMP(bevelAndEmboss, shadowBlendMode, COMPOSITE_MULT);
     CMP(bevelAndEmboss, shadowOpacity, 75);
-    CMP(bevelAndEmboss, shadowColor, KoColor(Qt::black, cs));
+    CMP(bevelAndEmboss, shadowColor, KoColor(Pk::black, cs));
 
     CMP(bevelAndEmboss, technique, psd_technique_softer);
     CMP(bevelAndEmboss, style, psd_bevel_inner_bevel);
@@ -252,7 +253,7 @@ void KisAslLayerStyleSerializerTest::testWritingGlobalPatterns()
     KisPSDLayerStyleSP style(new KisPSDLayerStyle());
 
     QImage dumbImage(32, 32, QImage::Format_ARGB32);
-    dumbImage.fill(Qt::red);
+    dumbImage.fill(Pk::red);
     KoPatternSP pattern(new KoPattern(dumbImage, "test_pattern", ""));
 
     QSharedPointer<KisLocalStrokeResources> resourcesInterface(new KisLocalStrokeResources());
@@ -340,10 +341,10 @@ void KisAslLayerStyleSerializerTest::testWritingGradients()
     {
         const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
         QList<KoGradientStop> stops;
-        stops << KoGradientStop(0.0, KoColor(Qt::black, cs), COLORSTOP);
-        stops << KoGradientStop(0.3, KoColor(Qt::red, cs), COLORSTOP);
-        stops << KoGradientStop(0.6, KoColor(Qt::green, cs), COLORSTOP);
-        stops << KoGradientStop(1.0, KoColor(Qt::white, cs), COLORSTOP);
+        stops << KoGradientStop(0.0, KoColor(Pk::black, cs), COLORSTOP);
+        stops << KoGradientStop(0.3, KoColor(Pk::red, cs), COLORSTOP);
+        stops << KoGradientStop(0.6, KoColor(Pk::green, cs), COLORSTOP);
+        stops << KoGradientStop(1.0, KoColor(Pk::white, cs), COLORSTOP);
         stopGradient->setStops(stops);
     }
     KisPSDLayerStyleSP style(new KisPSDLayerStyle());

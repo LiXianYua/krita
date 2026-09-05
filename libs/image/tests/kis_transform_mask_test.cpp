@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_transform_mask_test.h"
 
 #include <simpletest.h>
@@ -81,14 +82,14 @@ void KisTransformMaskTest::testSafeTransform()
 /*
     QImage image(2500, 2500, QImage::Format_ARGB32);
     QPainter gc(&image);
-    gc.setPen(Qt::cyan);
+    gc.setPen(Pk::cyan);
 
     gc.setOpacity(0.7);
 
-    gc.setBrush(Qt::red);
+    gc.setBrush(Pk::red);
     gc.drawPolygon(t2.srcClipPolygon());
 
-    gc.setBrush(Qt::green);
+    gc.setBrush(Pk::green);
     gc.drawPolygon(t2.dstClipPolygon());
 
     dbgKrita << ppVar(testRect);
@@ -97,17 +98,17 @@ void KisTransformMaskTest::testSafeTransform()
     dbgKrita << ppVar(bwdPoly);
     dbgKrita << ppVar(bwdRect);
 
-    gc.setBrush(Qt::yellow);
+    gc.setBrush(Pk::yellow);
     gc.drawPolygon(testRect);
 
-    gc.setBrush(Qt::red);
+    gc.setBrush(Pk::red);
     gc.drawPolygon(fwdRect);
-    gc.setBrush(Qt::blue);
+    gc.setBrush(Pk::blue);
     gc.drawPolygon(fwdPoly);
 
-    gc.setBrush(Qt::magenta);
+    gc.setBrush(Pk::magenta);
     gc.drawPolygon(bwdRect);
-    gc.setBrush(Qt::cyan);
+    gc.setBrush(Pk::cyan);
     gc.drawPolygon(bwdPoly);
 
     gc.end();
@@ -308,21 +309,21 @@ bool doPartialTests(const QString &prefix, KisImageSP image, KisLayerSP paintLay
     // partial updates outside
 
     fillRect = QRect(-100, 0.5 * refRect.height(), 50, 100);
-    paintLayer->paintDevice()->fill(fillRect, KoColor(Qt::red, image->colorSpace()));
+    paintLayer->paintDevice()->fill(fillRect, KoColor(Pk::red, image->colorSpace()));
     paintLayer->setDirty(fillRect);
     image->waitForDone();
     testName = QString("tm_%1_layer_dirty_outside_%2_%3").arg(testIndex++).arg(fillRect.x()).arg(fillRect.y());
     result &= chk.checkImage(image, testName);
 
     fillRect = QRect(0.5 * refRect.width(), -100, 100, 50);
-    paintLayer->paintDevice()->fill(fillRect, KoColor(Qt::red, image->colorSpace()));
+    paintLayer->paintDevice()->fill(fillRect, KoColor(Pk::red, image->colorSpace()));
     paintLayer->setDirty(fillRect);
     image->waitForDone();
     testName = QString("tm_%1_layer_dirty_outside_%2_%3").arg(testIndex++).arg(fillRect.x()).arg(fillRect.y());
     result &= chk.checkImage(image, testName);
 
     fillRect = QRect(refRect.width() + 50, 0.2 * refRect.height(), 50, 100);
-    paintLayer->paintDevice()->fill(fillRect, KoColor(Qt::red, image->colorSpace()));
+    paintLayer->paintDevice()->fill(fillRect, KoColor(Pk::red, image->colorSpace()));
     paintLayer->setDirty(fillRect);
     image->waitForDone();
     testName = QString("tm_%1_layer_dirty_outside_%2_%3").arg(testIndex++).arg(fillRect.x()).arg(fillRect.y());
@@ -331,7 +332,7 @@ bool doPartialTests(const QString &prefix, KisImageSP image, KisLayerSP paintLay
     // partial update inside
 
     fillRect = QRect(0.5 * refRect.width() - 50, 0.5 * refRect.height() - 50, 100, 100);
-    paintLayer->paintDevice()->fill(fillRect, KoColor(Qt::red, image->colorSpace()));
+    paintLayer->paintDevice()->fill(fillRect, KoColor(Pk::red, image->colorSpace()));
     paintLayer->setDirty(fillRect);
     image->waitForDone();
     testName = QString("tm_%1_layer_dirty_inside_%2_%3").arg(testIndex++).arg(fillRect.x()).arg(fillRect.y());
@@ -435,7 +436,7 @@ void KisTransformMaskTest::testMaskOnCloneLayerWithOffset()
     QRect fillRect(400,400,100,100);
     TestUtil::MaskParent p(refRect);
 
-    p.layer->paintDevice()->fill(fillRect, KoColor(Qt::red, p.layer->colorSpace()));
+    p.layer->paintDevice()->fill(fillRect, KoColor(Pk::red, p.layer->colorSpace()));
 
     KisPaintLayerSP player = new KisPaintLayer(p.image, "bg", OPACITY_OPAQUE_U8, p.image->colorSpace());
     p.image->addNode(player, p.image->root(), KisNodeSP());
@@ -494,7 +495,7 @@ void KisTransformMaskTest::testMultipleMasks()
     QRect fillRect(400,400,100,100);
     TestUtil::MaskParent p(refRect);
 
-    p.layer->paintDevice()->fill(fillRect, KoColor(Qt::red, p.layer->colorSpace()));
+    p.layer->paintDevice()->fill(fillRect, KoColor(Pk::red, p.layer->colorSpace()));
 
     KisPaintLayerSP player = new KisPaintLayer(p.image, "bg", OPACITY_OPAQUE_U8, p.image->colorSpace());
     p.image->addNode(player, p.image->root(), KisNodeSP());
@@ -782,7 +783,7 @@ void KisTransformMaskTest::testMaskWithOffset()
     QRect fillRect(400,400,100,100);
     TestUtil::MaskParent p(refRect);
 
-    p.layer->paintDevice()->fill(fillRect, KoColor(Qt::red, p.layer->colorSpace()));
+    p.layer->paintDevice()->fill(fillRect, KoColor(Pk::red, p.layer->colorSpace()));
 
     KisPaintLayerSP player = new KisPaintLayer(p.image, "bg", OPACITY_OPAQUE_U8, p.image->colorSpace());
     p.image->addNode(player, p.image->root(), KisNodeSP());
@@ -836,7 +837,7 @@ void KisTransformMaskTest::testTransformHiddenPartsOfTheGroup()
 
     TestUtil::MaskParent p(imageRect);
 
-    //p.layer->paintDevice()->fill(fillRect, KoColor(Qt::green, p.layer->colorSpace()));
+    //p.layer->paintDevice()->fill(fillRect, KoColor(Pk::green, p.layer->colorSpace()));
 
     p.image->initialRefreshGraph();
 
@@ -844,8 +845,8 @@ void KisTransformMaskTest::testTransformHiddenPartsOfTheGroup()
     p.image->addNode(glayer, p.image->root());
 
     KisPaintLayerSP player1 = new KisPaintLayer(p.image, "pl1", OPACITY_OPAQUE_U8, p.image->colorSpace());
-    player1->paintDevice()->fill(fillRect, KoColor(Qt::red, p.layer->colorSpace()));
-    player1->paintDevice()->fill(outsideFillRect, KoColor(Qt::blue, p.layer->colorSpace()));
+    player1->paintDevice()->fill(fillRect, KoColor(Pk::red, p.layer->colorSpace()));
+    player1->paintDevice()->fill(outsideFillRect, KoColor(Pk::blue, p.layer->colorSpace()));
     p.image->addNode(player1, glayer);
 
     player1->setDirty();

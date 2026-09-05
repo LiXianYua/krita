@@ -7,6 +7,7 @@
 #ifndef KIS_IMAGE_H_
 #define KIS_IMAGE_H_
 
+#include <PkGlobal.h>
 #include <PkObject.h>
 #include <PkSignalCompat.h>
 #include <PkString.h>
@@ -866,7 +867,7 @@ signals:
      * WARNING: you must not request any graph-related information
      * about the node being run in a not-scheduler thread. If you need
      * information about the parent/siblings of the node connect
-     * with Qt::DirectConnection, get needed information and then
+     * with Pk::DirectConnection, get needed information and then
      * emit another auto-connection signal to pass this information
      * to your thread. See details of the implementation
      * in KisDummiesfacadeBase.

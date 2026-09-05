@@ -7,6 +7,7 @@
 #ifndef __KIS_MIRROR_PROCESSING_VISITOR_H
 #define __KIS_MIRROR_PROCESSING_VISITOR_H
 
+#include <PkGlobal.h>
 #include "kis_simple_processing_visitor.h"
 #include "PkRect.h"
 #include "PkNamespace.h"
@@ -18,8 +19,8 @@
 class KRITAIMAGE_EXPORT KisMirrorProcessingVisitor : public KisSimpleProcessingVisitor
 {
 public:
-    KisMirrorProcessingVisitor(const PkRect &bounds, Qt::Orientation orientation);
-    KisMirrorProcessingVisitor(KisSelectionSP selection, Qt::Orientation orientation);
+    KisMirrorProcessingVisitor(const PkRect &bounds, Pk::Orientation orientation);
+    KisMirrorProcessingVisitor(KisSelectionSP selection, Pk::Orientation orientation);
 
 private:
     void visitNodeWithPaintDevice(KisNode *node, KisUndoAdapter *undoAdapter) override;
@@ -35,7 +36,7 @@ private:
     void transformPaintDevice(KisPaintDeviceSP device, KisUndoAdapter *undoAdapter);
 
     PkRect m_bounds;
-    Qt::Orientation m_orientation;
+    Pk::Orientation m_orientation;
     qreal m_axis = 0.0;
 
     KisSelectionBasedProcessingHelper m_selectionHelper;

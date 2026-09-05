@@ -20,6 +20,7 @@
 
 #include "kis_tile.h"
 #include "kis_tiled_data_manager.h"
+#include <PkStringList.h>
 #include "kis_tile_data_wrapper.h"
 #include "kis_tiled_data_manager_p.h"
 #include "kis_memento_manager.h"
@@ -161,7 +162,7 @@ bool KisTiledDataManager::read(PkStream *stream)
     std::int32_t tilesVersion = LEGACY_VERSION;
 
     if (!line.isEmpty() && line[0] == u'V') {
-        std::vector<PkString> lineItems = line.split(u' ');
+        PkStringList lineItems = line.split(u' ');
 
         PkString keyword = lineItems.front();
         PK_TILES_ASSERT(keyword == "VERSION");
@@ -212,7 +213,7 @@ bool KisTiledDataManager::writeTilesHeader(KisPaintDeviceWriter &store, std::uin
         PkStream::pk_int64 lineLen = stream->readLine(lineBuf, maxLine + 1); \
         PkString line = lineLen < 0 ? PkString() : PkString::PkFromUtf8(lineBuf, (int)lineLen); \
         line = line.trimmed();                                  \
-        std::vector<PkString> lineItems = line.split(u' ');     \
+        PkStringList lineItems = line.split(u' ');     \
         keyword = lineItems.front();                            \
         value = lineItems.size() > 1 ? lineItems[1].toInt() : 0; \
     } while(0)                                                  \

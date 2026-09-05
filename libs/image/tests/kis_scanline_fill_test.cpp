@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_scanline_fill_test.h"
 
 #include <testutil.h>
@@ -29,11 +30,11 @@ void KisScanlineFillTest::testFillGeneral(const QVector<KisFillInterval> &initia
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
-    dev->setPixel(1, 0, Qt::white);
-    dev->setPixel(2, 0, Qt::white);
-    dev->setPixel(5, 0, Qt::white);
-    dev->setPixel(8, 0, Qt::white);
-    dev->setPixel(17, 0, Qt::white);
+    dev->setPixel(1, 0, Pk::white);
+    dev->setPixel(2, 0, Pk::white);
+    dev->setPixel(5, 0, Pk::white);
+    dev->setPixel(8, 0, Pk::white);
+    dev->setPixel(17, 0, Pk::white);
 
     QRect boundingRect(-10, -10, 30, 30);
 
@@ -244,8 +245,8 @@ void KisScanlineFillTest::testClearNonZeroComponent()
 
     KisPaintDeviceSP dev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
 
-    dev->fill(rc1, KoColor(Qt::red, dev->colorSpace()));
-    dev->fill(rc2, KoColor(Qt::green, dev->colorSpace()));
+    dev->fill(rc1, KoColor(Pk::red, dev->colorSpace()));
+    dev->fill(rc2, KoColor(Pk::green, dev->colorSpace()));
 
     QCOMPARE(dev->exactBounds(), rc1 | rc2);
 
@@ -264,13 +265,13 @@ void KisScanlineFillTest::testExternalFill()
     KisPaintDeviceSP dev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
     KisPaintDeviceSP other = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
 
-    dev->fill(rc1, KoColor(Qt::red, dev->colorSpace()));
-    dev->fill(rc2, KoColor(Qt::green, dev->colorSpace()));
+    dev->fill(rc1, KoColor(Pk::red, dev->colorSpace()));
+    dev->fill(rc2, KoColor(Pk::green, dev->colorSpace()));
 
     QCOMPARE(dev->exactBounds(), rc1 | rc2);
 
     KisScanlineFill fill(dev, QPoint(10,10), boundingRect);
-    fill.fill(KoColor(Qt::blue, dev->colorSpace()), other);
+    fill.fill(KoColor(Pk::blue, dev->colorSpace()), other);
 
     QCOMPARE(dev->exactBounds(), rc1 | rc2);
     QCOMPARE(other->exactBounds(), rc1);
@@ -278,10 +279,10 @@ void KisScanlineFillTest::testExternalFill()
     QColor c;
 
     dev->pixel(10, 10, &c);
-    QCOMPARE(c, QColor(Qt::red));
+    QCOMPARE(c, QColor(Pk::red));
 
     other->pixel(10, 10, &c);
-    QCOMPARE(c, QColor(Qt::blue));
+    QCOMPARE(c, QColor(Pk::blue));
 }
 
 void KisScanlineFillTest::testGapClosingFillGeneral(QPoint seed, int gapSize)

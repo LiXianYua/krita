@@ -15,6 +15,7 @@
 // ===========================================================================
 
 
+#include <PkGlobal.h>
 #include <QtCore/QDebug>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QHash>

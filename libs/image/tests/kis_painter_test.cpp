@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_painter_test.h"
 
 #define KRITA_TESTSDK_PK_NATIVE
@@ -42,7 +43,7 @@
 
 namespace {
 
-PkPainterPath nestedRectPath(Qt::FillRule fillRule)
+PkPainterPath nestedRectPath(Pk::FillRule fillRule)
 {
     PkPainterPath path;
     path.setFillRule(fillRule);
@@ -175,7 +176,7 @@ KisPaintDeviceSP renderFill(const PkPainterPath &path,
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP device = new KisPaintDevice(cs);
     KisPainter painter(device);
-    painter.setPaintColor(KoColor(Qt::red, cs));
+    painter.setPaintColor(KoColor(Pk::red, cs));
     painter.setFillStyle(KisPainter::FillStyleForegroundColor);
     painter.setStrokeStyle(KisPainter::StrokeStyleNone);
     painter.setAntiAliasPolygonFill(true);
@@ -214,7 +215,7 @@ void KisPainterTest::testSimpleBlt(const KoColorSpace * cs)
 
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
     KisPaintDeviceSP src = new KisPaintDevice(cs);
-    KoColor c(Qt::red, cs);
+    KoColor c(Pk::red, cs);
     c.setOpacity(quint8(128));
     src->fill(20, 20, 20, 20, c.data());
 
@@ -271,7 +272,7 @@ void KisPainterTest::testPaintDeviceBltSelection(const KoColorSpace * cs)
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
 
     KisPaintDeviceSP src = new KisPaintDevice(cs);
-    KoColor c(Qt::red, cs);
+    KoColor c(Pk::red, cs);
     c.setOpacity(quint8(128));
     src->fill(0, 0, 20, 20, c.data());
 
@@ -315,7 +316,7 @@ void KisPainterTest::testPaintDeviceBltSelectionIrregular(const KoColorSpace * c
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
     KisPaintDeviceSP src = new KisPaintDevice(cs);
     KisFillPainter gc(src);
-    gc.fillRect(0, 0, 20, 20, KoColor(Qt::red, cs));
+    gc.fillRect(0, 0, 20, 20, KoColor(Pk::red, cs));
     gc.end();
 
     PK_COMPARE(src->exactBounds(), PkRect(0, 0, 20, 20));
@@ -362,7 +363,7 @@ void KisPainterTest::testPaintDeviceBltSelectionInverted(const KoColorSpace * cs
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
     KisPaintDeviceSP src = new KisPaintDevice(cs);
     KisFillPainter gc(src);
-    gc.fillRect(0, 0, 30, 30, KoColor(Qt::red, cs));
+    gc.fillRect(0, 0, 30, 30, KoColor(Pk::red, cs));
     gc.end();
     PK_COMPARE(src->exactBounds(), PkRect(0, 0, 30, 30));
 
@@ -470,7 +471,7 @@ void KisPainterTest::testSelectionBitBltFixedSelection()
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
 
     KisPaintDeviceSP src = new KisPaintDevice(cs);
-    KoColor c(Qt::red, cs);
+    KoColor c(Pk::red, cs);
     c.setOpacity(quint8(128));
     src->fill(0, 0, 20, 20, c.data());
 
@@ -479,7 +480,7 @@ void KisPainterTest::testSelectionBitBltFixedSelection()
     KisFixedPaintDeviceSP fixedSelection = new KisFixedPaintDevice(cs);
     fixedSelection->setRect(PkRect(0, 0, 20, 20));
     fixedSelection->initialize();
-    KoColor fill(Qt::white, cs);
+    KoColor fill(Pk::white, cs);
     fixedSelection->fill(5, 5, 10, 10, fill.data());
     fixedSelection->convertTo(KoColorSpaceRegistry::instance()->alpha8());
 
@@ -521,11 +522,11 @@ void KisPainterTest::testSelectionBitBltEraseCompositeOp()
 {
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
-    KoColor c(Qt::red, cs);
+    KoColor c(Pk::red, cs);
     dst->fill(0, 0, 150, 150, c.data());
 
     KisPaintDeviceSP src = new KisPaintDevice(cs);
-    KoColor c2(Qt::black, cs);
+    KoColor c2(Pk::black, cs);
     src->fill(50, 50, 50, 50, c2.data());
 
     KisSelectionSP sel = new KisSelection();
@@ -1020,9 +1021,9 @@ void testMassiveBltFixedImpl(int numRects, bool varyOpacity = false, bool useSel
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
 
     PkList<PkColor> colors;
-    colors << PkColor(Qt::red);
-    colors << PkColor(Qt::green);
-    colors << PkColor(Qt::blue);
+    colors << PkColor(Pk::red);
+    colors << PkColor(Pk::green);
+    colors << PkColor(Pk::blue);
 
     PkRect devicesRect;
     PkList<KisRenderedDab> devices;
@@ -1033,7 +1034,7 @@ void testMassiveBltFixedImpl(int numRects, bool varyOpacity = false, bool useSel
         dev->setRect(rc);
         dev->initialize();
         dev->fill(rc, KoColor(colors[i % 3], cs));
-        dev->fill(kisGrowRect(rc, -5), KoColor(Qt::white, cs));
+        dev->fill(kisGrowRect(rc, -5), KoColor(Pk::white, cs));
 
         KisRenderedDab dab;
         dab.device = dev;
@@ -1134,7 +1135,7 @@ void KisPainterTest::testMassiveBltFixedCornerCases()
     KisFixedPaintDeviceSP dev = new KisFixedPaintDevice(cs);
     dev->setRect(rc);
     dev->initialize();
-    dev->fill(rc, KoColor(Qt::white, cs));
+    dev->fill(rc, KoColor(Pk::white, cs));
 
     devices.append(KisRenderedDab(dev));
 
@@ -1152,7 +1153,7 @@ void KisPainterTest::testFillPainterPathRules()
 {
     const PkRect checkRect(0, 0, 38, 35);
 
-    for (Qt::FillRule rule : {Qt::OddEvenFill, Qt::WindingFill}) {
+    for (Pk::FillRule rule : {Pk::OddEvenFill, Pk::WindingFill}) {
         const PkPainterPath path = nestedRectPath(rule);
         const KisPaintDeviceSP device = renderFill(path);
         std::vector<quint8> expected(std::size_t(checkRect.width()) *
@@ -1228,16 +1229,16 @@ void KisPainterTest::testDrawPainterPathStroke()
     path.moveTo(6.25, 23.5);
     path.cubicTo(13.0, 1.75, 29.5, 38.0, 41.25, 9.5);
 
-    PkPen pen(Qt::white);
+    PkPen pen(Pk::white);
     pen.setWidthF(4.0);
-    pen.setCapStyle(Qt::RoundCap);
-    pen.setJoinStyle(Qt::MiterJoin);
+    pen.setCapStyle(Pk::RoundCap);
+    pen.setJoinStyle(Pk::MiterJoin);
     pen.setMiterLimit(6.0);
 
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP device = new KisPaintDevice(cs);
     KisPainter painter(device);
-    painter.setPaintColor(KoColor(Qt::blue, cs));
+    painter.setPaintColor(KoColor(Pk::blue, cs));
     painter.setAntiAliasPolygonFill(true);
     painter.setMaskImageSize(7, 5);
     painter.drawPainterPath(path, pen);
@@ -1270,8 +1271,8 @@ void testOptimizedCopyingImpl(const PkRect &srcRect,
     KisPaintDeviceSP src = new KisPaintDevice(cs);
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
 
-    const KoColor color1(Qt::red, cs);
-    const KoColor color2(Qt::blue, cs);
+    const KoColor color1(Pk::red, cs);
+    const KoColor color2(Pk::blue, cs);
 
     src->fill(srcRect, color1);
     dst->fill(dstRect, color2);

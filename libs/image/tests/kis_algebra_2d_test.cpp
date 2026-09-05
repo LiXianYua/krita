@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_algebra_2d_test.h"
 
 #include <QtMath>
@@ -245,13 +246,13 @@ void KisAlgebra2DTest::testDrawEllipse()
     const qreal b = 50;
 
     gc.setTransform(transform);
-    gc.setPen(Qt::black);
+    gc.setPen(Pk::black);
     gc.drawEllipse(QPointF(0,0), a, b);
 
-    gc.setPen(Qt::blue);
+    gc.setPen(Pk::blue);
     gc.drawEllipse(QPointF(a, 0), 3, 3);
 
-    gc.setPen(Qt::red);
+    gc.setPen(Pk::red);
     gc.drawEllipse(QPointF(0, b), 3, 3);
 
     QPointF newAxes;
@@ -262,13 +263,13 @@ void KisAlgebra2DTest::testDrawEllipse()
     gc.setOpacity(50);
     gc.resetTransform();
     gc.setTransform(newTransform);
-    gc.setPen(QPen(Qt::blue, 2));
+    gc.setPen(QPen(Pk::blue, 2));
     gc.drawEllipse(QPointF(0,0), newAxes.x(), newAxes.y());
 
-    gc.setPen(QPen(Qt::green, 2));
+    gc.setPen(QPen(Pk::green, 2));
     gc.drawEllipse(QPointF(newAxes.x(), 0), 5, 5);
 
-    gc.setPen(Qt::yellow);
+    gc.setPen(Pk::yellow);
     gc.drawEllipse(QPointF(0, newAxes.y()), 5, 5);
 
     image.save("ellipse_result.png");
@@ -1336,18 +1337,18 @@ void testRemoveGutterOneCase(const QString testName, const QPainterPath& shape1,
 #ifdef KNIFE_DEBUG
                 QRectF boundRect = actualVector.asPainterPath().boundingRect() | expectedVector.asPainterPath().boundingRect();
                 QImage img = QImage((int)(boundRect.right())+ 50, (int)(boundRect.bottom()) + 50, QImage::Format::Format_ARGB32);
-                img.fill(Qt::white);
+                img.fill(Pk::white);
                 QPainter painter = QPainter(&img);
-                painter.setPen(Qt::red);
+                painter.setPen(Pk::red);
                 //painter.drawPath(actualVector.asPainterPath());
-                QColor green = Qt::green;
+                QColor green = Pk::green;
                 green.setAlphaF(0.5);
                 painter.setPen(green);
                 //painter.drawPath(expectedVector.asPainterPath());
 
-                QColor blue = Qt::blue;
+                QColor blue = Pk::blue;
                 blue.setAlphaF(0.3);
-                QColor magenta = Qt::magenta;
+                QColor magenta = Pk::magenta;
                 magenta.setAlphaF(0.3);
                 painter.setPen(blue);
                 painter.drawPath(shape1);
@@ -1537,8 +1538,8 @@ void KisAlgebra2DTest::testMergingPainterPaths()
     qCritical() << ppVar((first | second).simplified());
     qCritical() << ppVar((first | second.toReversed()).simplified());
 
-    first.setFillRule(Qt::OddEvenFill);
-    second.setFillRule(Qt::OddEvenFill);
+    first.setFillRule(Pk::OddEvenFill);
+    second.setFillRule(Pk::OddEvenFill);
 
 
     qCritical() << ppVar(first | second);
@@ -1582,7 +1583,7 @@ void KisAlgebra2DTest::testMergingPainterPaths()
 
 
 
-    qCritical() << Qt::fixed << qSetRealNumberPrecision(10) << ppVar(shape1 | shape2 | gutter);
+    qCritical() << Pk::fixed << qSetRealNumberPrecision(10) << ppVar(shape1 | shape2 | gutter);
 
     // TODO: check if we could skip QVector entirely
     QPainterPath toUnite1 = fromPolygon(QPolygonF(QVector<QPointF>({QPointF(3077.96,2307), QPointF(2427.5,2307), QPointF(2148.5,1650.95), QPointF(3073.03,1625.89), QPointF(3077.96,2307)})));

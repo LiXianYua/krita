@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../geometry/PkRect.h"
+#include <tuple>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -191,3 +193,31 @@ struct PkHasher
         return static_cast<std::size_t>(pkHash(k));
     }
 };
+
+// ---- 组合类型的 hash 重载（S-09-g registry 收口补齐）----
+// PkRect：x/y/w/h 逐字段组合。
+inline unsigned int pkHash(const PkRect &r)
+{
+    unsigned int h = pkHash(r.x());
+    h = h * 31 + static_cast<unsigned int>(pkHash(r.y()));
+    h = h * 31 + static_cast<unsigned int>(pkHash(r.width()));
+    h = h * 31 + static_cast<unsigned int>(pkHash(r.height()));
+    return h;
+}
+
+// PkSize：width/height 组合。
+inline unsigned int pkHash(const PkSize &sz)
+{
+    return pkHash(sz.width()) * 31 + static_cast<unsigned int>(pkHash(sz.height()));
+}
+
+// std::tuple：变长逐元素组合（KisImage 缩略图缓存键等）。
+template <typename... Ts>
+unsigned int pkHash(const std::tuple<Ts...> &t)
+{
+    unsigned int h = 0;
+    std::apply([&h](const auto &...elems) {
+        ((h = h * 31 + static_cast<unsigned int>(pkHash(elems))), ...);
+    }, t);
+    return h;
+}

@@ -13,6 +13,7 @@
 #include <PkImage.h>
 
 #include "kis_types.h"
+#include <PkGlobal.h>
 #include "kis_global.h"
 #include "kis_node.h"
 #include "kis_indirect_painting_support.h"
@@ -175,7 +176,7 @@ public:
 
     PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
     PkRect changeRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
-    PkImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
+    PkImage createThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
     int thumbnailSeqNo() const override;
 
     void testingInitSelection(const PkRect &rect, KisLayerSP parentLayer);

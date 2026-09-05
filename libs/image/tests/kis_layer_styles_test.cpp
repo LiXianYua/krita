@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_layer_styles_test.h"
 
 #include <simpletest.h>
@@ -85,7 +86,7 @@ void testDropShadowImpl(const TestConfig &config,
     QRect dstRect(0, 0, 200, 200);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->fill(srcRect, KoColor(Qt::red, cs));
+    dev->fill(srcRect, KoColor(Pk::red, cs));
 
     KisMultipleProjection projection;
 

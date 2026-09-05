@@ -11,7 +11,9 @@
 // produced by the private Qt-5.15-derived, oracle-checked rasterizer in
 // private/kis_path_rasterizer.cpp; no painter/image shell is involved.
 
+#include <PkNamespace.h>
 #include "kis_painter.h"
+#include <PkFlakeBridge.h>
 #include "kis_painter_p.h"
 #include "kis_algebra_2d.h"   // KisAlgebra2D::directionBetweenPoints（paintPolygon/paintPolyline 用）
 #include <brushengine/kis_paint_information.h>
@@ -122,7 +124,7 @@ void KisPainter::drawPainterPath(const PkPainterPath& path, const PkPen& pen)
 void KisPainter::drawPainterPath(const PkPainterPath& path, const PkPen& _pen, const PkRect &requestedRect)
 {
     PkPen pen(_pen);
-    pen.setColor(Qt::white);
+    pen.setColor(PkColor(Pk::white));
 
     if (!d->fillPainter) {
         d->polygon = d->device->createCompositionSourceDevice();

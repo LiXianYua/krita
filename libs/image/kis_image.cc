@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_image.h"
 
 #include <KoConfig.h> // WORDS_BIGENDIAN
@@ -1781,7 +1782,7 @@ PkImage KisImage::convertToQImage(const PkSize& scaledImageSize, const KoColorPr
         // convertToQImage uses KisFixedPoint values, which means that the scale cannot be smaller than 1/2^8
         // BUG:432182
         // FIXME: would be best to extend KisFixedPoint instead
-        return convertToQImage(size(), profile).scaled(scaledImageSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        return convertToQImage(size(), profile).scaled(scaledImageSize, Pk::KeepAspectRatio, Pk::SmoothTransformation);
     }
 
     KoDummyUpdaterHolder updaterHolder;

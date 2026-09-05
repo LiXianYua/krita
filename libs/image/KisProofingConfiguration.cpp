@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "KisProofingConfiguration.h"
 
 KisProofingConfiguration::KisProofingConfiguration()
@@ -11,7 +12,7 @@ KisProofingConfiguration::KisProofingConfiguration()
       displayIntent(KoColorConversionTransformation::IntentAbsoluteColorimetric),
       useBlackPointCompensationFirstTransform(true),
       displayFlags(KoColorConversionTransformation::HighQuality),
-      warningColor(KoColor(Qt::green, KoColorSpaceRegistry::instance()->rgb8())),
+      warningColor(KoColor(Pk::green, KoColorSpaceRegistry::instance()->rgb8())),
       proofingProfile("Chemical proof"),
       proofingModel("CMYKA"),
       proofingDepth("U8"),

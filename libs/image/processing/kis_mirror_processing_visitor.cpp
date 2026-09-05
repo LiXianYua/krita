@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_mirror_processing_visitor.h"
 
 #include "kis_paint_device.h"
@@ -20,17 +21,17 @@
 #include <functional>
 
 
-KisMirrorProcessingVisitor::KisMirrorProcessingVisitor(const PkRect &bounds, Qt::Orientation orientation)
+KisMirrorProcessingVisitor::KisMirrorProcessingVisitor(const PkRect &bounds, Pk::Orientation orientation)
     : m_bounds(bounds),
       m_orientation(orientation),
       m_selectionHelper(0, std::bind(&KisMirrorProcessingVisitor::mirrorDevice, this, std::placeholders::_1))
 {
-    m_axis = m_orientation == Qt::Horizontal ?
+    m_axis = m_orientation == Pk::Horizontal ?
         m_bounds.x() + 0.5 * m_bounds.width() :
         m_bounds.y() + 0.5 * m_bounds.height();
 }
 
-KisMirrorProcessingVisitor::KisMirrorProcessingVisitor(KisSelectionSP selection, Qt::Orientation orientation)
+KisMirrorProcessingVisitor::KisMirrorProcessingVisitor(KisSelectionSP selection, Pk::Orientation orientation)
     : KisMirrorProcessingVisitor(selection->selectedExactRect(), orientation)
 {
     m_selectionHelper.setSelection(selection);
@@ -58,7 +59,7 @@ void KisMirrorProcessingVisitor::visitNodeWithPaintDevice(KisNode *node, KisUndo
 
 void KisMirrorProcessingVisitor::visitExternalLayer(KisExternalLayer *layer, KisUndoAdapter *undoAdapter)
 {
-    if (m_orientation == Qt::Horizontal) {
+    if (m_orientation == Pk::Horizontal) {
         KisTransformProcessingVisitor visitor(-1.0, 1.0,
                                               0.0, 0.0,
                                               0.0,

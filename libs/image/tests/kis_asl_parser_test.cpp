@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_asl_parser_test.h"
 
 #include <simpletest.h>
@@ -148,7 +149,7 @@ void KisAslParserTest::testASLXMLWriter()
     w.writeBoolean("enab", true);
     w.writeEnum("Md  ", "BlnM", "Mltp");
     KoColor c;
-    c.fromQColor(Qt::green);
+    c.fromQColor(Pk::green);
     w.writeColor("Clr ", c);
 
 
@@ -188,13 +189,13 @@ void KisAslParserTest::testWritingGradients()
     KoSegmentGradient segmentGradient;
     segmentGradient.createSegment(INTERP_LINEAR, COLOR_INTERP_RGB,
                                   0.0, 0.3, 0.15,
-                                  Qt::black, Qt::red);
+                                  Pk::black, Pk::red);
     segmentGradient.createSegment(INTERP_LINEAR, COLOR_INTERP_RGB,
                                   0.3, 0.6, 0.45,
-                                  Qt::red, Qt::green);
+                                  Pk::red, Pk::green);
     segmentGradient.createSegment(INTERP_LINEAR, COLOR_INTERP_RGB,
                                   0.6, 1.0, 0.8,
-                                  Qt::green, Qt::white);
+                                  Pk::green, Pk::white);
 
     w1.writeSegmentGradient("tstG", segmentGradient);
     //dbgKrita << "===";
@@ -205,10 +206,10 @@ void KisAslParserTest::testWritingGradients()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
 
     QList<KoGradientStop> stops;
-    stops << KoGradientStop(0.0, KoColor(Qt::black, cs), COLORSTOP);
-    stops << KoGradientStop(0.3, KoColor(Qt::red, cs), COLORSTOP);
-    stops << KoGradientStop(0.6, KoColor(Qt::green, cs), COLORSTOP);
-    stops << KoGradientStop(1.0, KoColor(Qt::white, cs), COLORSTOP);
+    stops << KoGradientStop(0.0, KoColor(Pk::black, cs), COLORSTOP);
+    stops << KoGradientStop(0.3, KoColor(Pk::red, cs), COLORSTOP);
+    stops << KoGradientStop(0.6, KoColor(Pk::green, cs), COLORSTOP);
+    stops << KoGradientStop(1.0, KoColor(Pk::white, cs), COLORSTOP);
 
     KoStopGradient stopGradient;
     stopGradient.setStops(stops);

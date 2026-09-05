@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "KisWatershedWorkerTest.h"
 
 #include <simpletest.h>
@@ -63,8 +64,8 @@ void KisWatershedWorkerTest::testWorker()
     KIS_DUMP_DEVICE_2(aLabelDev, filterRect, "alabel", "dd");
 
     KisWatershedWorker worker(filteredMainDev, resultColoring, filterRect);
-    worker.addKeyStroke(aLabelDev, KoColor(Qt::red, mainDev->colorSpace()));
-    worker.addKeyStroke(bLabelDev, KoColor(Qt::blue, mainDev->colorSpace()));
+    worker.addKeyStroke(aLabelDev, KoColor(Pk::red, mainDev->colorSpace()));
+    worker.addKeyStroke(bLabelDev, KoColor(Pk::blue, mainDev->colorSpace()));
     worker.run(0.7);
 
 }
@@ -90,8 +91,8 @@ void KisWatershedWorkerTest::testWorkerSmall()
     KIS_DUMP_DEVICE_2(bLabelDev, filterRect, "blabel", "dd");
 
     KisWatershedWorker worker(filteredMainDev, resultColoring, filterRect);
-    worker.addKeyStroke(aLabelDev, KoColor(Qt::red, mainDev->colorSpace()));
-    worker.addKeyStroke(bLabelDev, KoColor(Qt::blue, mainDev->colorSpace()));
+    worker.addKeyStroke(aLabelDev, KoColor(Pk::red, mainDev->colorSpace()));
+    worker.addKeyStroke(bLabelDev, KoColor(Pk::blue, mainDev->colorSpace()));
     worker.run();
 
     QCOMPARE(worker.testingGroupPositiveEdge(1, 0), 35);
@@ -132,8 +133,8 @@ void KisWatershedWorkerTest::testWorkerSmallWithAllies()
     KIS_DUMP_DEVICE_2(bLabelDev, filterRect, "blabel", "dd");
 
     KisWatershedWorker worker(filteredMainDev, resultColoring, filterRect);
-    worker.addKeyStroke(aLabelDev, KoColor(Qt::red, mainDev->colorSpace()));
-    worker.addKeyStroke(bLabelDev, KoColor(Qt::blue, mainDev->colorSpace()));
+    worker.addKeyStroke(aLabelDev, KoColor(Pk::red, mainDev->colorSpace()));
+    worker.addKeyStroke(bLabelDev, KoColor(Pk::blue, mainDev->colorSpace()));
     worker.run();
 
     QCOMPARE(worker.testingGroupPositiveEdge(1, 0), 29);

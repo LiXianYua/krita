@@ -99,10 +99,13 @@ PK_CAT_(Q, StringList) pkToNativeFamilies(const PkStringList &families)
     }
     return result;
 }
-#else
-PkStringList pkFromNativeFamilies(const PkStringList &families) { return families; }
-PkStringList pkToNativeFamilies(const PkStringList &families) { return families; }
+
+// PkStringList 直通（QT 分支专用别名；非 Qt 下 PK_CAT_ 版即直通，S-09-g）。
+PkStringList pkFamiliesDirect(const PkStringList &families) { return families; }
+
+
 #endif
+
 
 } // namespace
 struct PsdTextDataConverter::Private {
@@ -128,7 +131,7 @@ PsdTextDataConverter::~PsdTextDataConverter()
 
 
 PkColor PsdTextDataConverter::colorFromPSDStyleSheet(PkVariantHash color, const KoColorSpace *imageCs) {
-    PkColor c(Qt::black);
+    PkColor c(Pk::black);
     if (color.count("/Color") > 0) {
         color = color["/Color"].toHash();
     }
@@ -218,7 +221,7 @@ PkString PsdTextDataConverter::stylesForPSDStyleSheet(PkString &lang, PkVariantH
             KoCSSFontInfo fontInfo = fontNames.value(pssVal.toInt());
             weight = fontInfo.weight;
             italic = italic? true: !fontSlantIsNormal(fontInfo);
-            styles.append(PkString("font-family:")+pkFromNativeFamilies(fontInfo.families).join(","));
+            styles.append(toPkString("font-family:" + pkFamiliesDirect(fontInfo.families).join(",")));
             if (fontInfo.width != 100) {
                 styles.append(PkString("font-width:")+pkNum(fontInfo.width));
             }
@@ -937,14 +940,12 @@ bool PsdTextDataConverter::convertPSDTextEngineDataToSVG(const PkVariantHash tyS
                                             : pkHashValue(pkHashValue(fonts.at(i).toHash(), "/Resource").toHash(), "/Identifier").toHash();
             PkString postScriptName = pkHashValue(font, "/Name").toString();
             PkString foundPostScriptName;
-            PK_QSTRING_ qFound;
-            KoCSSFontInfo fontInfo = KoFontRegistry::instance()->getCssDataForPostScriptName(toQString(postScriptName),
-                                                                    &qFound);
-            foundPostScriptName = toPkString(qFound);
+            KoCSSFontInfo fontInfo = KoFontRegistry::instance()->getCssDataForPostScriptName(postScriptName,
+                                                                    &foundPostScriptName);
 
             if (postScriptName != foundPostScriptName) {
-                fontInfo.families = pkToNativeFamilies(PkStringList({"sans-serif"}));
-                d->errors << PkString("Font %1 not found, substituting %2").arg(postScriptName).arg(pkFromNativeFamilies(fontInfo.families).join(","));
+                fontInfo.families = PkStringList({"sans-serif"});
+                d->errors << PkString("Font %1 not found, substituting %2").arg(postScriptName).arg(toPkString(pkFamiliesDirect(fontInfo.families).join(",")));
             }
             fontNames.insert(i, fontInfo);
         }
@@ -1028,13 +1029,13 @@ bool PsdTextDataConverter::convertPSDTextEngineDataToSVG(const PkVariantHash tyS
                             if (endPoint == startPoint && i > 0) {
                                 textCurve->closeMerge();
                             }
-                            textCurve->moveTo(toQPointF(frameMatrix.map(p1)));
+                            textCurve->moveTo(frameMatrix.map(p1));
                             startPoint = frameMatrix.map(p1);
                         }
                         if (p1==p2 && p3==p4) {
-                            textCurve->lineTo(toQPointF(frameMatrix.map(p4)));
+                            textCurve->lineTo(frameMatrix.map(p4));
                         } else {
-                            textCurve->curveTo(toQPointF(frameMatrix.map(p2)), toQPointF(frameMatrix.map(p3)), toQPointF(frameMatrix.map(p4)));
+                            textCurve->curveTo(frameMatrix.map(p2), frameMatrix.map(p3), frameMatrix.map(p4));
                         }
                         endPoint = frameMatrix.map(p4);
                     }
@@ -1249,25 +1250,12 @@ void PsdTextDataConverter::gatherFonts(const PkMap<PkString, PkString> cssStyles
         int fontWidth = cssStyles.value("font-stretch", "100").toInt();
 
         KoCSSFontInfo fontInfo;
-        fontInfo.families = pkToNativeFamilies(families);
+        fontInfo.families = families;
         fontInfo.size = fontSize;
         fontInfo.weight = fontWeight;
         fontInfo.width = fontWidth;
-#ifdef QT_CORE_LIB
-        PK_QVECTOR_<int> lengthsNative;
-        for (int i = 0; i < lengths.size(); i++) {
-            lengthsNative.append(lengths.at(i));
-        }
-        const std::vector<FT_FaceSP> faces = KoFontRegistry::instance()->facesForCSSValues(lengthsNative, fontInfo,
-                                                      toQString(text), 72, 72);
-        lengths.clear();
-        for (int i = 0; i < lengthsNative.size(); i++) {
-            lengths.append(lengthsNative.at(i));
-        }
-#else
         const std::vector<FT_FaceSP> faces = KoFontRegistry::instance()->facesForCSSValues(lengths, fontInfo,
                                                       text, 72, 72);
-#endif
 
         for (uint i = 0; i < faces.size(); i++) {
             const FT_FaceSP &face = faces.at(static_cast<size_t>(i));

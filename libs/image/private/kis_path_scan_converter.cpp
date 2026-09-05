@@ -156,6 +156,7 @@
 #if defined(VXWORKS)
 #  include <vxWorksCommon.h>    /* needed for setjmp.h */
 #endif
+#include <PkNamespace.h>
 #include <string.h>             /* for qt_ft_memcpy() */
 #include <setjmp.h>
 #include <limits.h>
@@ -2291,7 +2292,7 @@ OutlineStorage makeOutline(const PkPainterPath &path,
     result.outline.points = result.points.data();
     result.outline.tags = result.tags.data();
     result.outline.contours = result.contours.data();
-    result.outline.flags = path.fillRule() == Qt::WindingFill
+    result.outline.flags = path.fillRule() == Pk::WindingFill
         ? QT_FT_OUTLINE_NONE : QT_FT_OUTLINE_EVEN_ODD_FILL;
     return result;
 }

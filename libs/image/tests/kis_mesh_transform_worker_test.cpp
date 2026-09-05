@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_mesh_transform_worker_test.h"
 
 #include <simpletest.h>
@@ -165,10 +166,10 @@ void KisMeshTransformWorkerTest::testGradient()
     patch.points[10] = initialRect.bottomRight() + QPointF(-300, 30);
     patch.points[11] = initialRect.bottomRight() + QPointF(-20, -300);
 
-    patch.colors[0] = Qt::white;
-    patch.colors[1] = Qt::red;
-    patch.colors[2] = Qt::green;
-    patch.colors[3] = Qt::yellow;
+    patch.colors[0] = Pk::white;
+    patch.colors[1] = Pk::red;
+    patch.colors[2] = Pk::green;
+    patch.colors[3] = Pk::yellow;
 
     const QRect dstBoundsI = patch.dstBoundingRect().toAlignedRect();
     QImage dstImage(dstBoundsI.size(), QImage::Format_ARGB32);

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include <simpletest.h>
 
 #include <KoColor.h>
@@ -25,16 +26,16 @@ void KisColorSamplingUtilsTest::samplesAndRestoresWraparoundMode()
 {
     const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP device(new KisPaintDevice(colorSpace));
-    device->fill(QRect(0, 0, 5, 5), KoColor(Qt::red, colorSpace));
+    device->fill(QRect(0, 0, 5, 5), KoColor(Pk::red, colorSpace));
     device->setSupportsWraparoundMode(false);
 
     KoColor sampled(colorSpace);
     QVERIFY(KisColorSamplingUtils::sampleColor(sampled, device, QPoint(2, 2),
                                                nullptr, 3, 100, false));
-    QCOMPARE(sampled, KoColor(Qt::red, colorSpace));
+    QCOMPARE(sampled, KoColor(Pk::red, colorSpace));
     QVERIFY(!device->supportsWraproundMode());
 
-    const KoColor unchanged(Qt::green, colorSpace);
+    const KoColor unchanged(Pk::green, colorSpace);
     sampled = unchanged;
     QVERIFY(!KisColorSamplingUtils::sampleColor(sampled, device, QPoint(20, 20),
                                                 nullptr, 1, 100, true));
@@ -46,9 +47,9 @@ void KisColorSamplingUtilsTest::blendsWithThePreviousColor()
 {
     const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP device(new KisPaintDevice(colorSpace));
-    device->fill(QRect(0, 0, 3, 3), KoColor(Qt::red, colorSpace));
+    device->fill(QRect(0, 0, 3, 3), KoColor(Pk::red, colorSpace));
 
-    const KoColor previous(Qt::blue, colorSpace);
+    const KoColor previous(Pk::blue, colorSpace);
     KoColor sampled(colorSpace);
     QVERIFY(KisColorSamplingUtils::sampleColor(sampled, device, QPoint(1, 1),
                                                &previous, 1, 50, false));

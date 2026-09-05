@@ -7,6 +7,7 @@
  */
 
 #include "kis_auto_brush.h"
+#include <QtGui/QImage>
 
 #include <kis_debug.h>
 #include <math.h>
@@ -140,7 +141,7 @@ KisFixedPaintDeviceSP KisAutoBrush::outlineSourceImage() const
 
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
     dev = new KisFixedPaintDevice(cs);
-    mask(dev, KoColor(Qt::black, cs), inverseTransform, KisPaintInformation());
+    mask(dev, KoColor(Pk::black, cs), inverseTransform, KisPaintInformation());
 
     return dev;
 }
@@ -383,7 +384,7 @@ PkImage KisAutoBrush::createBrushPreview(int maxSize)
     PkSize size(width, height);
 
     if (maxSize > 0 && KisAlgebra2D::maxDimension(size) > maxSize) {
-        size.scale(128, 128, Qt::KeepAspectRatio);
+        size.scale(128, 128, Pk::KeepAspectRatio); // 真 Qt QSize
 
         qreal scale = 1.0;
 
@@ -404,7 +405,7 @@ PkImage KisAutoBrush::createBrushPreview(int maxSize)
     fdev->setRect(PkRect(0, 0, width, height));
     fdev->initialize();
 
-    mask(fdev, KoColor(Qt::black, fdev->colorSpace()), shape, info);
+    mask(fdev, KoColor(Pk::black, fdev->colorSpace()), shape, info);
     return fdev->convertToQImage(0);
 }
 

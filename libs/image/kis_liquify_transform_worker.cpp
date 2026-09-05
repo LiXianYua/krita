@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_liquify_transform_worker.h"
 
 #include <KoColorSpace.h>
@@ -427,7 +428,7 @@ void KisLiquifyTransformWorker::run(KisPaintDeviceSP srcDevice, KisPaintDeviceSP
     polygonOp.setCanMergeRects(canMergeRects);
 
 #ifdef DEBUG_PAINTING_POLYGONS
-    polygonOp.setDebugColor(Qt::red);
+    polygonOp.setDebugColor(Pk::red);
 #endif
 
     iterateThroughGrid<AlwaysCompletePolygonPolicy>(polygonOp, indexesOp,
@@ -437,7 +438,7 @@ void KisLiquifyTransformWorker::run(KisPaintDeviceSP srcDevice, KisPaintDeviceSP
                                                     correctSubGrid);
     QList<QRectF> areasToCopy = cutOutSubgridFromBounds(correctSubGrid, m_d->srcBounds, m_d->gridSize, m_d->originalPoints);
 #ifdef DEBUG_PAINTING_POLYGONS
-    QList<QColor> colors = {Qt::blue, Qt::green, Qt::yellow, Qt::black};
+    QList<QColor> colors = {Pk::blue, Pk::green, Pk::yellow, Pk::black};
 #endif
     for (int i = 0; i < areasToCopy.length(); i++) {
 #ifdef DEBUG_PAINTING_POLYGONS

@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_iterators_ng_test.h"
 #include <QApplication>
 
@@ -38,7 +39,7 @@ void KisIteratorNGTest::allCsApplicator(void (KisIteratorNGTest::* funcPtr)(cons
 inline quint8* allocatePixels(const KoColorSpace *colorSpace, int numPixels)
 {
     quint8 * bytes = new quint8[colorSpace->pixelSize() * 64 * 64 * 10];
-    KoColor color(Qt::red, colorSpace);
+    KoColor color(Pk::red, colorSpace);
     const int pixelSize = colorSpace->pixelSize();
     for(int i = 0; i < numPixels; i++) {
         memcpy(bytes + i * pixelSize, color.data(), pixelSize);

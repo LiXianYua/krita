@@ -7,6 +7,7 @@
 #ifndef __KIS_IMAGE_ANIMATION_INTERFACE_H
 #define __KIS_IMAGE_ANIMATION_INTERFACE_H
 
+#include <PkGlobal.h>
 #include <PkFlags.h>
 #include <PkObject.h>
 #include <PkRect.h>
@@ -81,7 +82,7 @@ public:
      *
      * 2) sigFrameReady() will be emitted in the end of the operation.
      *    IMPORTANT: to get the result you must connect to this signal
-     *    with Qt::DirectConnection and fetch the result from
+     *    with Pk::DirectConnection and fetch the result from
      *    frameProjection().  After the signal handler is exited, the
      *    data will no longer be available.
      *

@@ -6,6 +6,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_paint_device.h"
 
 #include <PkRect.h>
@@ -1720,7 +1721,7 @@ KisPaintDeviceSP KisPaintDevice::createThumbnailDevice(qint32 w, qint32 h, PkRec
     PkRect imageRect = rect.isValid() ? rect : extent();
 
     if ((thumbnailSize.width() > imageRect.width()) || (thumbnailSize.height() > imageRect.height())) {
-        thumbnailSize.scale(imageRect.size(), Qt::KeepAspectRatio);
+        thumbnailSize.scale(imageRect.size(), Pk::KeepAspectRatio);
     }
 
     thumbnailSize = fixThumbnailSize(thumbnailSize);
@@ -1756,7 +1757,7 @@ KisPaintDeviceSP KisPaintDevice::createThumbnailDeviceOversampled(qint32 w, qint
     qint32 hstart = thumbnailOversampledSize.height();
 
     if ((thumbnailOversampledSize.width() > imageRect.width()) || (thumbnailOversampledSize.height() > imageRect.height())) {
-        thumbnailOversampledSize.scale(imageRect.size(), Qt::KeepAspectRatio);
+        thumbnailOversampledSize.scale(imageRect.size(), Pk::KeepAspectRatio);
     }
 
     thumbnailOversampledSize = fixThumbnailSize(thumbnailOversampledSize);
@@ -1805,7 +1806,7 @@ PkImage KisPaintDevice::createThumbnail(qint32 w, qint32 h, KisThumbnailBoundsMo
 }
 
 PkImage KisPaintDevice::createThumbnail(qint32 maxw, qint32 maxh,
-                                       Qt::AspectRatioMode aspectRatioMode,
+                                       Pk::AspectRatioMode aspectRatioMode,
                                        KisThumbnailBoundsMode boundsMode,
                                        qreal oversample, KoColorConversionTransformation::Intent renderingIntent,
                                        KoColorConversionTransformation::ConversionFlags conversionFlags)
@@ -2269,7 +2270,7 @@ void KisPaintDeviceFramesInterface::setFrameDefaultPixel(const KoColor &defPixel
 KoColor KisPaintDeviceFramesInterface::frameDefaultPixel(int frameId) const
 {
     KIS_ASSERT_RECOVER(frameId >= 0) {
-        return KoColor(Qt::red, q->m_d->colorSpace());
+        return KoColor(Pk::red, q->m_d->colorSpace());
     }
     return q->m_d->frameDefaultPixel(frameId);
 }

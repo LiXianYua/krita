@@ -13,8 +13,8 @@
 class Q_DECL_HIDDEN KisSingleActionShortcut::Private
 {
 public:
-    QSet<Qt::Key> modifiers;
-    Qt::Key key;
+    QSet<Pk::Key> modifiers;
+    Pk::Key key;
     bool useWheel;
     WheelAction wheelAction;
 };
@@ -36,27 +36,27 @@ int KisSingleActionShortcut::priority() const
     return m_d->modifiers.size() * 2 + 1 + action()->priority();
 }
 
-void KisSingleActionShortcut::setKey(const QSet<Qt::Key> &modifiers, Qt::Key key)
+void KisSingleActionShortcut::setKey(const QSet<Pk::Key> &modifiers, Pk::Key key)
 {
     m_d->modifiers = modifiers;
     m_d->key = key;
     m_d->useWheel = false;
 }
 
-void KisSingleActionShortcut::setWheel(const QSet<Qt::Key> &modifiers, WheelAction wheelAction)
+void KisSingleActionShortcut::setWheel(const QSet<Pk::Key> &modifiers, WheelAction wheelAction)
 {
     m_d->modifiers = modifiers;
     m_d->wheelAction = wheelAction;
     m_d->useWheel = true;
 }
 
-bool KisSingleActionShortcut::match(const QSet<Qt::Key> &modifiers, Qt::Key key)
+bool KisSingleActionShortcut::match(const QSet<Pk::Key> &modifiers, Pk::Key key)
 {
     return !m_d->useWheel && key == m_d->key &&
         compareKeys(modifiers, m_d->modifiers);
 }
 
-bool KisSingleActionShortcut::match(const QSet<Qt::Key> &modifiers, WheelAction wheelAction)
+bool KisSingleActionShortcut::match(const QSet<Pk::Key> &modifiers, WheelAction wheelAction)
 {
     return m_d->useWheel && wheelAction == m_d->wheelAction &&
         compareKeys(modifiers, m_d->modifiers);
@@ -69,18 +69,18 @@ bool KisSingleActionShortcut::conflictsWith(const QKeySequence &seq)
     int seqMainKey = seq[0];
     QVector<int> sequenceKeys;
 
-    if (seqMainKey & Qt::MetaModifier) {
-        sequenceKeys.append(Qt::Key_Meta);
-        seqMainKey &= ~Qt::MetaModifier;
-    } else if (seqMainKey & Qt::ControlModifier) {
-        sequenceKeys.append(Qt::Key_Control);
-        seqMainKey &= ~Qt::ControlModifier;
-    } else if (seqMainKey & Qt::ShiftModifier) {
-        sequenceKeys.append(Qt::Key_Shift);
-        seqMainKey &= ~Qt::ShiftModifier;
-    } else if (seqMainKey & Qt::AltModifier) {
-        sequenceKeys.append(Qt::Key_Alt);
-        seqMainKey &= ~Qt::AltModifier;
+    if (seqMainKey & Pk::MetaModifier) {
+        sequenceKeys.append(Pk::Key_Meta);
+        seqMainKey &= ~Pk::MetaModifier;
+    } else if (seqMainKey & Pk::ControlModifier) {
+        sequenceKeys.append(Pk::Key_Control);
+        seqMainKey &= ~Pk::ControlModifier;
+    } else if (seqMainKey & Pk::ShiftModifier) {
+        sequenceKeys.append(Pk::Key_Shift);
+        seqMainKey &= ~Pk::ShiftModifier;
+    } else if (seqMainKey & Pk::AltModifier) {
+        sequenceKeys.append(Pk::Key_Alt);
+        seqMainKey &= ~Pk::AltModifier;
     }
 
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(seqMainKey != 0, false);

@@ -1,3 +1,4 @@
+#include <PkGlobal.h>
 #include "kis_convex_hull.h"
 
 #include "kis_paint_device.h"
@@ -119,7 +120,7 @@ private:
 struct CheckDeselected {
     CheckDeselected(const KoColorSpace *colorSpace)
         : m_colorSpace(colorSpace),
-          m_deselectedColor(Qt::black, colorSpace),
+          m_deselectedColor(Pk::black, colorSpace),
           m_pixelSize(colorSpace->pixelSize())
     {
         KIS_SAFE_ASSERT_RECOVER_NOOP(colorSpace->colorModelId() == AlphaColorModelID ||
@@ -230,7 +231,7 @@ PkVector<PkPoint> retrieveAllBoundaryPointsSelectionLike(const KisPaintDevice *d
     PkVector<PkPoint> points;
 
     if (defaultOpacity != OPACITY_TRANSPARENT_U8 &&
-        defaultPixel != KoColor(Qt::black, defaultPixel.colorSpace())) {
+        defaultPixel != KoColor(Pk::black, defaultPixel.colorSpace())) {
 
         PkRect skip = device->defaultBounds()->bounds();
         CheckNonDefault compareOp(device->pixelSize(), defaultPixel.data());

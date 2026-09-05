@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_group_layer_test.h"
 #include <simpletest.h>
 
@@ -46,13 +47,13 @@ void KisGroupLayerTest::testRemoveAndUndo()
     QRect rect2(30, 30, 30, 30);
 
     KisPaintLayerSP paintLayer0 = new KisPaintLayer(image, "paint0", OPACITY_OPAQUE_U8);
-    paintLayer0->paintDevice()->fill(imageRect, KoColor(Qt::white, cs));
+    paintLayer0->paintDevice()->fill(imageRect, KoColor(Pk::white, cs));
 
     KisPaintLayerSP paintLayer1 = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8);
-    paintLayer1->paintDevice()->fill(rect1, KoColor(Qt::red, cs));
+    paintLayer1->paintDevice()->fill(rect1, KoColor(Pk::red, cs));
 
     KisPaintLayerSP paintLayer2 = new KisPaintLayer(image, "paint2", OPACITY_OPAQUE_U8);
-    paintLayer2->paintDevice()->fill(rect2, KoColor(Qt::blue, cs));
+    paintLayer2->paintDevice()->fill(rect2, KoColor(Pk::blue, cs));
 
 
     KisGroupLayerSP groupLayer1 = new KisGroupLayer(image, "group1", OPACITY_OPAQUE_U8);

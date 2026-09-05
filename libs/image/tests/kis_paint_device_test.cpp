@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_paint_device_test.h"
 #include "kis_image_config.h"
 #include <simpletest.h>
@@ -131,7 +132,7 @@ void KisPaintDeviceTest::testGeometry()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     quint8* pixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::white, pixel);
+    cs->fromQColor(Pk::white, pixel);
     dev->fill(0, 0, 512, 512, pixel);
 
     QCOMPARE(dev->exactBounds(), QRect(0, 0, 512, 512));
@@ -154,7 +155,7 @@ void KisPaintDeviceTest::testGeometry()
 
     dev->fill(0, 0, 512, 512, pixel);
     dev->pixel(80, 80, &c);
-    QVERIFY(c == Qt::white);
+    QVERIFY(c == Pk::white);
     QVERIFY(c.alpha() == OPACITY_OPAQUE_U8);
 
     dev->clear();
@@ -180,7 +181,7 @@ void KisPaintDeviceTest::testClear()
     QVERIFY(!dev->exactBounds().isValid());
 
     QRect fillRect1(50, 100, 150, 100);
-    dev->fill(fillRect1, KoColor(Qt::red, cs));
+    dev->fill(fillRect1, KoColor(Pk::red, cs));
 
     QCOMPARE(dev->extent(), QRect(0, 64, 256, 192));
     QCOMPARE(dev->exactBounds(), fillRect1);
@@ -201,7 +202,7 @@ void KisPaintDeviceTest::testCrop()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     quint8* pixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::white, pixel);
+    cs->fromQColor(Pk::white, pixel);
     dev->fill(-14, 8, 433, 512, pixel);
 
     QVERIFY(dev->exactBounds() == QRect(-14, 8, 433, 512));
@@ -406,10 +407,10 @@ void KisPaintDeviceTest::testCaching()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     quint8* whitePixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::white, whitePixel);
+    cs->fromQColor(Pk::white, whitePixel);
 
     quint8* blackPixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::black, blackPixel);
+    cs->fromQColor(Pk::black, blackPixel);
 
     dev->fill(0, 0, 512, 512, whitePixel);
     QImage thumb1 = dev->createThumbnail(50, 50);
@@ -445,7 +446,7 @@ void KisPaintDeviceTest::testRegion()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     quint8* whitePixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::white, whitePixel);
+    cs->fromQColor(Pk::white, whitePixel);
 
     dev->fill(0, 0, 10, 10, whitePixel);
     dev->fill(70, 70, 10, 10, whitePixel);
@@ -467,7 +468,7 @@ void KisPaintDeviceTest::testPixel()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
-    QColor c = Qt::red;
+    QColor c = Pk::red;
     quint8 opacity = 125;
 
     c.setAlpha(opacity);
@@ -560,7 +561,7 @@ void KisPaintDeviceTest::testBltPerformance()
     fdev->convertFromQImage(image, 0);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->fill(0, 0, 640, 441, KoColor(Qt::white, cs).data());
+    dev->fill(0, 0, 640, 441, KoColor(Pk::white, cs).data());
 
     QElapsedTimer t;
     t.start();
@@ -651,7 +652,7 @@ void KisPaintDeviceTest::testOpacity()
     fdev->convertFromQImage(image, 0);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->fill(0, 0, 640, 441, KoColor(Qt::white, cs).data());
+    dev->fill(0, 0, 640, 441, KoColor(Pk::white, cs).data());
     KisPainter gc(dev);
     gc.bitBlt(QPoint(0, 0), fdev, image.rect());
 
@@ -673,7 +674,7 @@ void KisPaintDeviceTest::testExactBoundsWeirdNullAlphaCase()
 
     QVERIFY(dev->exactBounds().isEmpty());
 
-    dev->fill(QRect(10,10,10,10), KoColor(Qt::white, cs));
+    dev->fill(QRect(10,10,10,10), KoColor(Pk::white, cs));
 
     QCOMPARE(dev->exactBounds(), QRect(10,10,10,10));
 
@@ -695,7 +696,7 @@ void KisPaintDeviceTest::benchmarkExactBoundsNullDefaultPixel()
 
     QRect fillRect(60,60, 1930, 1930);
 
-    dev->fill(fillRect, KoColor(Qt::white, cs));
+    dev->fill(fillRect, KoColor(Pk::white, cs));
 
     QRect measuredRect;
 
@@ -718,7 +719,7 @@ void KisPaintDeviceTest::testAmortizedExactBounds()
     QRect fillRect(60,60, 833, 833);
     QRect extent(0,0,896,896);
 
-    dev->fill(fillRect, KoColor(Qt::white, cs));
+    dev->fill(fillRect, KoColor(Pk::white, cs));
 
     QEXPECT_FAIL("", "Expecting the extent, we somehow get the fillrect", Continue);
     QCOMPARE(dev->exactBounds(), extent);
@@ -746,7 +747,7 @@ void KisPaintDeviceTest::testNonDefaultPixelArea()
     QVERIFY(dev->exactBounds().isEmpty());
     QVERIFY(dev->nonDefaultPixelArea().isEmpty());
 
-    KoColor defPixel(Qt::red, cs);
+    KoColor defPixel(Pk::red, cs);
     dev->setDefaultPixel(defPixel);
 
     QCOMPARE(dev->exactBounds(), KisDefaultBounds::infiniteRect);
@@ -754,7 +755,7 @@ void KisPaintDeviceTest::testNonDefaultPixelArea()
 
     QRect fillRect(10,11,18,14);
 
-    dev->fill(fillRect, KoColor(Qt::white, cs));
+    dev->fill(fillRect, KoColor(Pk::white, cs));
 
     QCOMPARE(dev->exactBounds(), KisDefaultBounds::infiniteRect);
     QCOMPARE(dev->nonDefaultPixelArea(), fillRect);
@@ -783,31 +784,31 @@ void KisPaintDeviceTest::testExactBoundsNonTransparent()
 
     QRect imageRect(0,0,1000,1000);
 
-    KoColor defPixel(Qt::red, cs);
+    KoColor defPixel(Pk::red, cs);
     dev->setDefaultPixel(defPixel);
 
     QCOMPARE(dev->exactBounds(), imageRect);
     QVERIFY(dev->nonDefaultPixelArea().isEmpty());
 
-    KoColor fillPixel(Qt::white, cs);
+    KoColor fillPixel(Pk::white, cs);
 
-    dev->fill(imageRect, KoColor(Qt::white, cs));
+    dev->fill(imageRect, KoColor(Pk::white, cs));
     QCOMPARE(dev->exactBounds(), imageRect);
     QCOMPARE(dev->nonDefaultPixelArea(), imageRect);
 
-    dev->fill(QRect(1000,0, 1, 1000), KoColor(Qt::white, cs));
+    dev->fill(QRect(1000,0, 1, 1000), KoColor(Pk::white, cs));
     QCOMPARE(dev->exactBounds(), QRect(0,0,1001,1000));
     QCOMPARE(dev->nonDefaultPixelArea(), QRect(0,0,1001,1000));
 
-    dev->fill(QRect(0,1000, 1000, 1), KoColor(Qt::white, cs));
+    dev->fill(QRect(0,1000, 1000, 1), KoColor(Pk::white, cs));
     QCOMPARE(dev->exactBounds(), QRect(0,0,1001,1001));
     QCOMPARE(dev->nonDefaultPixelArea(), QRect(0,0,1001,1001));
 
-    dev->fill(QRect(0,-1, 1000, 1), KoColor(Qt::white, cs));
+    dev->fill(QRect(0,-1, 1000, 1), KoColor(Pk::white, cs));
     QCOMPARE(dev->exactBounds(), QRect(0,-1,1001,1002));
     QCOMPARE(dev->nonDefaultPixelArea(), QRect(0,-1,1001,1002));
 
-    dev->fill(QRect(-1,0, 1, 1000), KoColor(Qt::white, cs));
+    dev->fill(QRect(-1,0, 1, 1000), KoColor(Pk::white, cs));
     QCOMPARE(dev->exactBounds(), QRect(-1,-1,1002,1002));
     QCOMPARE(dev->nonDefaultPixelArea(), QRect(-1,-1,1002,1002));
 }
@@ -875,8 +876,8 @@ void KisPaintDeviceTest::testReadBytesWrapAround()
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = createWrapAroundPaintDevice(cs);
 
-    KoColor c1(Qt::red, cs);
-    KoColor c2(Qt::green, cs);
+    KoColor c1(Pk::red, cs);
+    KoColor c2(Pk::green, cs);
 
     dev->setPixel(3, 3, c1);
     dev->setPixel(18, 18, c2);
@@ -1022,8 +1023,8 @@ void KisPaintDeviceTest::testWrappedRandomAccessor()
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = createWrapAroundPaintDevice(cs);
 
-    KoColor c1(Qt::red, cs);
-    KoColor c2(Qt::green, cs);
+    KoColor c1(Pk::red, cs);
+    KoColor c2(Pk::green, cs);
 
     dev->setPixel(3, 3, c1);
     dev->setPixel(18, 18, c2);
@@ -1282,8 +1283,8 @@ void KisPaintDeviceTest::testMoveWrapAround()
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintDeviceSP dev = createWrapAroundPaintDevice(cs);
 
-    KoColor c1(Qt::red, cs);
-    KoColor c2(Qt::green, cs);
+    KoColor c1(Pk::red, cs);
+    KoColor c2(Pk::green, cs);
 
     dev->setPixel(3, 3, c1);
     dev->setPixel(18, 18, c2);
@@ -1417,7 +1418,7 @@ private:
 void fillGradientDevice(KisPaintDeviceSP dev, const QRect &rect, bool flat = false)
 {
     if (flat) {
-        dev->fill(rect, KoColor(Qt::red, dev->colorSpace()));
+        dev->fill(rect, KoColor(Pk::red, dev->colorSpace()));
     } else {
         // fill device with a gradient
         KisSequentialIterator it(dev, rect);
@@ -2156,7 +2157,7 @@ void fillRect(KisPaintDeviceSP dev, int time, const QRect &rc, TestUtil::Testing
     const int oldTime = bounds->currentTime();
     bounds->testingSetTime(time);
 
-    KoColor color(Qt::red, dev->colorSpace());
+    KoColor color(Pk::red, dev->colorSpace());
     dev->fill(rc, color);
 
     bounds->testingSetTime(oldTime);
@@ -2355,9 +2356,9 @@ void KisPaintDeviceTest::testCompositionAssociativity()
             //KoColor c4(QColor(rnd0(_rnd0), rnd1(_rnd1), rnd2(_rnd2), rnd3(_rnd3)), cs);
             //KoColor c5(QColor(rnd0(_rnd0), rnd1(_rnd1), rnd2(_rnd2), rnd3(_rnd3)), cs);
 
-            KoColor r1(QColor(Qt::transparent), cs);
-            KoColor r2(QColor(Qt::transparent), cs);
-            KoColor r3(QColor(Qt::transparent), cs);
+            KoColor r1(QColor(Pk::transparent), cs);
+            KoColor r2(QColor(Pk::transparent), cs);
+            KoColor r3(QColor(Pk::transparent), cs);
 
             op->composite(r1.data(), 0, c1.data(), 0, 0,0, 1,1, OPACITY_OPAQUE_F);
             op->composite(r1.data(), 0, c2.data(), 0, 0,0, 1,1, OPACITY_OPAQUE_F);
@@ -2406,7 +2407,7 @@ struct FillWorker : public QRunnable
         if (m_clear) {
             m_dev->clear(m_fillRect);
         } else {
-            const KoColor fillColor(Qt::red, m_dev->colorSpace());
+            const KoColor fillColor(Pk::red, m_dev->colorSpace());
             const int pixelSize = m_dev->colorSpace()->pixelSize();
 
             KisSequentialIterator it(m_dev, m_fillRect);

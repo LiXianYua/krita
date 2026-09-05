@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_transaction_test.h"
 #include <simpletest.h>
 #include <KoColorSpace.h>
@@ -27,18 +28,18 @@ void KisTransactionTest::testUndo()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     quint8* pixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::white, pixel);
+    cs->fromQColor(Pk::white, pixel);
     dev->fill(0, 0, 512, 512, pixel);
 
-    cs->fromQColor(Qt::black, pixel);
+    cs->fromQColor(Pk::black, pixel);
     dev->fill(512, 0, 512, 512, pixel);
 
     QColor c1, c2;
     dev->pixel(5, 5, &c1);
     dev->pixel(517, 5, &c2);
 
-    QVERIFY(c1 == Qt::white);
-    QVERIFY(c2 == Qt::black);
+    QVERIFY(c1 == Pk::white);
+    QVERIFY(c2 == Pk::black);
 
     KisTransaction transaction(kundo2_noi18n("mirror"), dev, 0);
     KisTransformWorker::mirrorX(dev);
@@ -47,16 +48,16 @@ void KisTransactionTest::testUndo()
     dev->pixel(5, 5, &c1);
     dev->pixel(517, 5, &c2);
 
-    QVERIFY(c1 == Qt::black);
-    QVERIFY(c2 == Qt::white);
+    QVERIFY(c1 == Pk::black);
+    QVERIFY(c2 == Pk::white);
 
     undoAdapter.undo();
 
     dev->pixel(5, 5, &c1);
     dev->pixel(517, 5, &c2);
 
-    QVERIFY(c1 == Qt::white);
-    QVERIFY(c2 == Qt::black);
+    QVERIFY(c1 == Pk::white);
+    QVERIFY(c2 == Pk::black);
 
 }
 
@@ -68,18 +69,18 @@ void KisTransactionTest::testRedo()
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
 
     quint8* pixel = new quint8[cs->pixelSize()];
-    cs->fromQColor(Qt::white, pixel);
+    cs->fromQColor(Pk::white, pixel);
     dev->fill(0, 0, 512, 512, pixel);
 
-    cs->fromQColor(Qt::black, pixel);
+    cs->fromQColor(Pk::black, pixel);
     dev->fill(512, 0, 512, 512, pixel);
 
     QColor c1, c2;
     dev->pixel(5, 5, &c1);
     dev->pixel(517, 5, &c2);
 
-    QVERIFY(c1 == Qt::white);
-    QVERIFY(c2 == Qt::black);
+    QVERIFY(c1 == Pk::white);
+    QVERIFY(c2 == Pk::black);
 
     KisTransaction transaction(kundo2_noi18n("mirror"), dev, 0);
     KisTransformWorker::mirrorX(dev);
@@ -88,8 +89,8 @@ void KisTransactionTest::testRedo()
     dev->pixel(5, 5, &c1);
     dev->pixel(517, 5, &c2);
 
-    QVERIFY(c1 == Qt::black);
-    QVERIFY(c2 == Qt::white);
+    QVERIFY(c1 == Pk::black);
+    QVERIFY(c2 == Pk::white);
 
 
     undoAdapter.undo();
@@ -97,16 +98,16 @@ void KisTransactionTest::testRedo()
     dev->pixel(5, 5, &c1);
     dev->pixel(517, 5, &c2);
 
-    QVERIFY(c1 == Qt::white);
-    QVERIFY(c2 == Qt::black);
+    QVERIFY(c1 == Pk::white);
+    QVERIFY(c2 == Pk::black);
 
     undoAdapter.redo();
 
     dev->pixel(5, 5, &c1);
     dev->pixel(517, 5, &c2);
 
-    QVERIFY(c1 == Qt::black);
-    QVERIFY(c2 == Qt::white);
+    QVERIFY(c1 == Pk::black);
+    QVERIFY(c2 == Pk::white);
 }
 
 void KisTransactionTest::testDeviceMove()
@@ -183,7 +184,7 @@ void KisTransactionTest::testUndoWithUnswitchedFrames()
     QCOMPARE(i->frames().size(), 1);
 
 
-    dev->fill(QRect(10,10,20,20), KoColor(Qt::white, cs));
+    dev->fill(QRect(10,10,20,20), KoColor(Pk::white, cs));
 
     KIS_DUMP_DEVICE_2(dev, imageRect, "00_f0_w20", "dd");
     QCOMPARE(dev->exactBounds(), QRect(10,10,20,20));
@@ -205,7 +206,7 @@ void KisTransactionTest::testUndoWithUnswitchedFrames()
         KisTransaction transaction(kundo2_noi18n("first_stroke"), dev, 0);
 
         dev->clear();
-        dev->fill(QRect(40,40,21,21), KoColor(Qt::red, cs));
+        dev->fill(QRect(40,40,21,21), KoColor(Pk::red, cs));
 
         transaction.commit(&undoAdapter);
 
@@ -222,7 +223,7 @@ void KisTransactionTest::testUndoWithUnswitchedFrames()
     {
         KisTransaction transaction(kundo2_noi18n("second_stroke"), dev, 0);
 
-        dev->fill(QRect(60,60,22,22), KoColor(Qt::green, cs));
+        dev->fill(QRect(60,60,22,22), KoColor(Pk::green, cs));
 
         transaction.commit(&undoAdapter);
 
@@ -559,7 +560,7 @@ void KisTransactionTest::testInterstrokeDataWithUnswitchedFrames()
     QCOMPARE(i->frames().size(), 1);
 
 
-    dev->fill(QRect(10,10,20,20), KoColor(Qt::white, cs));
+    dev->fill(QRect(10,10,20,20), KoColor(Pk::white, cs));
 
     KIS_DUMP_DEVICE_2(dev, imageRect, "00_f0_w20", "dd");
     QCOMPARE(dev->exactBounds(), QRect(10,10,20,20));

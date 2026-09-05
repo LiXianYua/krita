@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_lazy_brush_test.h"
 
 #include <simpletest.h>
@@ -199,10 +200,10 @@ int doSomethingElse()
 
     QImage image(QSize(9,9), QImage::Format_ARGB32);
     QPainter gc(&image);
-    gc.fillRect(image.rect(), Qt::white);
-    gc.fillRect(QRect(0,4,2,1), Qt::blue);
-    //gc.fillRect(QRect(0,5,2,1), Qt::blue);
-    gc.fillRect(QRect(6,4,3,1), Qt::blue);
+    gc.fillRect(image.rect(), Pk::white);
+    gc.fillRect(QRect(0,4,2,1), Pk::blue);
+    //gc.fillRect(QRect(0,5,2,1), Pk::blue);
+    gc.fillRect(QRect(6,4,3,1), Pk::blue);
     gc.end();
 
     image.save("graph_img.png");
@@ -279,10 +280,10 @@ int doSomethingElse()
         int label = groups[vertex_idx];
 
         QColor color =
-            label == 0 ? Qt::blue :
-            label == 4 ? Qt::green :
-            label == 1 ? Qt::gray :
-            Qt::red;
+            label == 0 ? Pk::blue :
+            label == 4 ? Pk::green :
+            label == 1 ? Pk::gray :
+            Pk::red;
 
         QRect rc(cell * x, cell * y, cell, cell);
         resultPainter.fillRect(rc, color);
@@ -293,7 +294,7 @@ int doSomethingElse()
         const int cap = residual_capacity[edgeIndex];
 
 
-        QColor color(Qt::black);
+        QColor color(Pk::black);
         if (cap != 0) {
             const int fullCap = get(capacityMap, e);
             const int gray = qreal(cap) / fullCap * 50.0;
@@ -841,15 +842,15 @@ void KisLazyBrushTest::testCutOnGraph()
     QImage mainImage(mainRect.size(), QImage::Format_ARGB32);
     {
         QPainter gc(&mainImage);
-        gc.fillRect(mainRect, Qt::white);
-        gc.fillRect(o1Rect, Qt::blue);
-        gc.fillRect(o2Rect, Qt::blue);
+        gc.fillRect(mainRect, Pk::white);
+        gc.fillRect(o1Rect, Pk::blue);
+        gc.fillRect(o2Rect, Pk::blue);
     }
 
     QImage aLabelImage(aLabelRect.size(), QImage::Format_ARGB32);
     {
         QPainter gc(&aLabelImage);
-        gc.fillRect(QRect(QPoint(), aLabelRect.size()), Qt::red);
+        gc.fillRect(QRect(QPoint(), aLabelRect.size()), Pk::red);
         aLabelImage.setOffset(aLabelRect.topLeft());
 
         qDebug() << ppVar(aLabelImage.offset());
@@ -857,7 +858,7 @@ void KisLazyBrushTest::testCutOnGraph()
     QImage bLabelImage(bLabelRect.size(), QImage::Format_ARGB32);
     {
         QPainter gc(&bLabelImage);
-        gc.fillRect(QRect(QPoint(), bLabelRect.size()), Qt::red);
+        gc.fillRect(QRect(QPoint(), bLabelRect.size()), Pk::red);
         bLabelImage.setOffset(bLabelRect.topLeft());
     }
 
@@ -900,10 +901,10 @@ void KisLazyBrushTest::testCutOnGraph()
         int label = groups[vertex_idx];
 
         QColor color =
-            label == 0 ? Qt::blue :
-            label == 4 ? Qt::green :
-            label == 1 ? Qt::gray :
-            Qt::red;
+            label == 0 ? Pk::blue :
+            label == 4 ? Pk::green :
+            label == 1 ? Pk::gray :
+            Pk::red;
 
         QRect rc(cell * v.x, cell * v.y, cell, cell);
         resultPainter.fillRect(rc, color);
@@ -914,7 +915,7 @@ void KisLazyBrushTest::testCutOnGraph()
         const int cap = residual_capacity[edgeIndex];
 
 
-        QColor color(Qt::black);
+        QColor color(Pk::black);
         if (cap != 0) {
             const int fullCap = get(capacityMap, e);
             const int gray = qreal(cap) / fullCap * 50.0;
@@ -938,11 +939,11 @@ void KisLazyBrushTest::testCutOnGraph()
 
     resultPainter.save();
     resultPainter.setTransform(QTransform::fromScale(cell, cell));
-    resultPainter.setBrush(Qt::transparent);
-    resultPainter.setPen(QPen(Qt::yellow, 0));
+    resultPainter.setBrush(Pk::transparent);
+    resultPainter.setPen(QPen(Pk::yellow, 0));
     resultPainter.drawRect(o1Rect);
     resultPainter.drawRect(o2Rect);
-    resultPainter.setPen(QPen(Qt::red, 0));
+    resultPainter.setPen(QPen(Pk::red, 0));
     resultPainter.drawRect(aLabelRect);
     resultPainter.drawRect(bLabelRect);
     resultPainter.restore();
@@ -960,10 +961,10 @@ void writeColors(KisLazyFillGraph &graph, const std::vector<int> &groups, KisPai
 {
     KisSequentialIterator dstIt(dst, graph.rect());
 
-    KoColor blue(Qt::blue, dst->colorSpace());
-    KoColor green(Qt::red, dst->colorSpace());
-    KoColor red(Qt::red, dst->colorSpace());
-    KoColor gray(Qt::gray, dst->colorSpace());
+    KoColor blue(Pk::blue, dst->colorSpace());
+    KoColor green(Pk::red, dst->colorSpace());
+    KoColor red(Pk::red, dst->colorSpace());
+    KoColor gray(Pk::gray, dst->colorSpace());
     const int pixelSize = dst->colorSpace()->pixelSize();
 
     while (dstIt.nextPixel()) {
@@ -1002,10 +1003,10 @@ void writeStat(KisLazyFillGraph &graph,
         int label = groups[vertex_idx];
 
         QColor color =
-            label == 0 ? Qt::blue :
-            label == 4 ? Qt::green :
-            label == 1 ? Qt::gray :
-            Qt::red;
+            label == 0 ? Pk::blue :
+            label == 4 ? Pk::green :
+            label == 1 ? Pk::gray :
+            Pk::red;
 
         QRect rc(cell * v.x, cell * v.y, cell, cell);
         resultPainter.fillRect(rc, color);
@@ -1017,7 +1018,7 @@ void writeStat(KisLazyFillGraph &graph,
         const int fullCap = get(capacityMap, e);
 
 
-        QColor color(Qt::red);
+        QColor color(Pk::red);
         if (cap > 0 || fullCap == 0) continue;
 /*
         if (fullCap != 0) {
@@ -1053,7 +1054,7 @@ void writeStat(KisLazyFillGraph &graph,
         const int cap = residual_capacity[edgeIndex];
 
 
-        QColor color(Qt::black);
+        QColor color(Pk::black);
         if (cap != 0) {
             const int fullCap = get(capacityMap, e);
             const int gray = qreal(cap) / fullCap * 50.0;
@@ -1085,11 +1086,11 @@ void writeStat(KisLazyFillGraph &graph,
 
     resultPainter.save();
     resultPainter.setTransform(QTransform::fromScale(cell, cell));
-    resultPainter.setBrush(Qt::transparent);
-    //resultPainter.setPen(QPen(Qt::yellow, 0));
+    resultPainter.setBrush(Pk::transparent);
+    //resultPainter.setPen(QPen(Pk::yellow, 0));
     //resultPainter.drawRect(o1Rect);
     //resultPainter.drawRect(o2Rect);
-    //resultPainter.setPen(QPen(Qt::red, 0));
+    //resultPainter.setPen(QPen(Pk::red, 0));
     //resultPainter.drawRect(aLabelRect);
     //resultPainter.drawRect(bLabelRect);
     resultPainter.restore();
@@ -1134,11 +1135,11 @@ void KisLazyBrushTest::testCutOnGraphDevice()
 
     KIS_DUMP_DEVICE_2(filteredMainDev, filterRect, "2filtered", "dd");
 
-    KoColor color(Qt::red, mainDev->colorSpace());
+    KoColor color(Pk::red, mainDev->colorSpace());
     KisPaintDeviceSP resultColoring = new KisPaintDevice(mainDev->colorSpace());
     KisPaintDeviceSP maskDevice = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
 
-    maskDevice->fill(QRect(0,0,640,40), KoColor(Qt::gray, maskDevice->colorSpace()));
+    maskDevice->fill(QRect(0,0,640,40), KoColor(Pk::gray, maskDevice->colorSpace()));
 
     KisLazyFillTools::cutOneWay(color,
                                 filteredMainDev,
@@ -1233,11 +1234,11 @@ void KisLazyBrushTest::testCutOnGraphDeviceMulti()
 
     KisMultiwayCut cut(filteredMainDev, resultColoring, filterRect);
 
-    cut.addKeyStroke(aLabelDev, KoColor(Qt::red, mainDev->colorSpace()));
-    cut.addKeyStroke(bLabelDev, KoColor(Qt::green, mainDev->colorSpace()));
-    cut.addKeyStroke(cLabelDev, KoColor(Qt::blue, mainDev->colorSpace()));
-    cut.addKeyStroke(dLabelDev, KoColor(Qt::yellow, mainDev->colorSpace()));
-    cut.addKeyStroke(eLabelDev, KoColor(Qt::magenta, mainDev->colorSpace()));
+    cut.addKeyStroke(aLabelDev, KoColor(Pk::red, mainDev->colorSpace()));
+    cut.addKeyStroke(bLabelDev, KoColor(Pk::green, mainDev->colorSpace()));
+    cut.addKeyStroke(cLabelDev, KoColor(Pk::blue, mainDev->colorSpace()));
+    cut.addKeyStroke(dLabelDev, KoColor(Pk::yellow, mainDev->colorSpace()));
+    cut.addKeyStroke(eLabelDev, KoColor(Pk::magenta, mainDev->colorSpace()));
 
     cut.run();
 
@@ -1258,8 +1259,8 @@ void KisLazyBrushTest::testLoG()
     // KisPaintDeviceSP mainDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
     // const QRect rect(0,0,10,10);
     // const QRect fillRect(0,0,5,10);
-    // KoColor bg(Qt::white, mainDev->colorSpace());
-    // KoColor fg(Qt::black, mainDev->colorSpace());
+    // KoColor bg(Pk::white, mainDev->colorSpace());
+    // KoColor fg(Pk::black, mainDev->colorSpace());
     // mainDev->fill(rect, bg);
     // mainDev->fill(fillRect, fg);
 
@@ -1291,8 +1292,8 @@ void KisLazyBrushTest::testSplitIntoConnectedComponents()
 
     KisPaintDeviceSP dev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
 
-    dev->fill(rc1, KoColor(Qt::red, dev->colorSpace()));
-    dev->fill(rc2, KoColor(Qt::green, dev->colorSpace()));
+    dev->fill(rc1, KoColor(Pk::red, dev->colorSpace()));
+    dev->fill(rc2, KoColor(Pk::green, dev->colorSpace()));
 
     QCOMPARE(dev->exactBounds(), rc1 | rc2);
 
@@ -1317,19 +1318,19 @@ void KisLazyBrushTest::testEstimateTransparentPixels()
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);
     QCOMPARE(value, 1.0);
 
-    dev->fill(QRect(0,0,25,50), KoColor(Qt::red, dev->colorSpace()));
+    dev->fill(QRect(0,0,25,50), KoColor(Pk::red, dev->colorSpace()));
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);
     QVERIFY(pkAbs(value - 0.75) < 0.05);
 
-    dev->fill(QRect(25,0,25,50), KoColor(Qt::green, dev->colorSpace()));
+    dev->fill(QRect(25,0,25,50), KoColor(Pk::green, dev->colorSpace()));
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);
     QVERIFY(pkAbs(value - 0.5) < 0.05);
 
-    dev->fill(QRect(25,50,25,50), KoColor(Qt::blue, dev->colorSpace()));
+    dev->fill(QRect(25,50,25,50), KoColor(Pk::blue, dev->colorSpace()));
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);
     QVERIFY(pkAbs(value - 0.25) < 0.05);
 
-    dev->fill(QRect(0,50,25,50), KoColor(Qt::blue, dev->colorSpace()));
+    dev->fill(QRect(0,50,25,50), KoColor(Pk::blue, dev->colorSpace()));
     value = KritaUtils::estimatePortionOfTransparentPixels(dev, totalRect, 0.1);
     QCOMPARE(value, 0.0);
 }
@@ -1338,7 +1339,7 @@ void KisLazyBrushTest::multiwayCutBenchmark()
 {
     BOOST_CONCEPT_ASSERT(( ReadablePropertyMapConcept<KisLazyFillCapacityMap, KisLazyFillGraph::edge_descriptor> ));
 
-    const KoColor fillColor(Qt::black, KoColorSpaceRegistry::instance()->rgb8());
+    const KoColor fillColor(Pk::black, KoColorSpaceRegistry::instance()->rgb8());
     KisPaintDeviceSP mainDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
 
     QRect mainRect(0,0,512,512);
@@ -1352,7 +1353,7 @@ void KisLazyBrushTest::multiwayCutBenchmark()
 
     KisFillPainter gc(mainDev);
     gc.setPaintColor(fillColor);
-    gc.drawPainterPath(path, QPen(Qt::white, 10));
+    gc.drawPainterPath(path, QPen(Pk::white, 10));
     gc.fillRect(QRect(250, 100, 15, 120), fillColor);
     gc.fillRect(QRect(250, 280, 15, 120), fillColor);
     gc.fillRect(QRect(100, 250, 120, 15), fillColor);
@@ -1361,19 +1362,19 @@ void KisLazyBrushTest::multiwayCutBenchmark()
     //KIS_DUMP_DEVICE_2(mainDev, mainRect, "1main", "dd");
 
     KisPaintDeviceSP aLabelDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
-    aLabelDev->fill(QRect(110, 110, 30,30), KoColor(Qt::black, KoColorSpaceRegistry::instance()->alpha8()));
+    aLabelDev->fill(QRect(110, 110, 30,30), KoColor(Pk::black, KoColorSpaceRegistry::instance()->alpha8()));
 
     KisPaintDeviceSP bLabelDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
-    bLabelDev->fill(QRect(370, 110, 20,20), KoColor(Qt::black, KoColorSpaceRegistry::instance()->alpha8()));
+    bLabelDev->fill(QRect(370, 110, 20,20), KoColor(Pk::black, KoColorSpaceRegistry::instance()->alpha8()));
 
     KisPaintDeviceSP cLabelDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
-    cLabelDev->fill(QRect(370, 370, 20,20), KoColor(Qt::black, KoColorSpaceRegistry::instance()->alpha8()));
+    cLabelDev->fill(QRect(370, 370, 20,20), KoColor(Pk::black, KoColorSpaceRegistry::instance()->alpha8()));
 
     KisPaintDeviceSP dLabelDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
-    dLabelDev->fill(QRect(110, 370, 20,20), KoColor(Qt::black, KoColorSpaceRegistry::instance()->alpha8()));
+    dLabelDev->fill(QRect(110, 370, 20,20), KoColor(Pk::black, KoColorSpaceRegistry::instance()->alpha8()));
 
     KisPaintDeviceSP eLabelDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
-    eLabelDev->fill(QRect(0, 0, 200,20), KoColor(Qt::black, KoColorSpaceRegistry::instance()->alpha8()));
+    eLabelDev->fill(QRect(0, 0, 200,20), KoColor(Pk::black, KoColorSpaceRegistry::instance()->alpha8()));
 
     KisPaintDeviceSP filteredMainDev = KisPainter::convertToAlphaAsAlpha(mainDev);
     KisLazyFillTools::normalizeAndInvertAlpha8Device(filteredMainDev, mainRect);
@@ -1382,11 +1383,11 @@ void KisLazyBrushTest::multiwayCutBenchmark()
 
     KisMultiwayCut cut(filteredMainDev, resultColoring, mainRect);
 
-    cut.addKeyStroke(aLabelDev, KoColor(Qt::red, mainDev->colorSpace()));
-    cut.addKeyStroke(bLabelDev, KoColor(Qt::green, mainDev->colorSpace()));
-    cut.addKeyStroke(cLabelDev, KoColor(Qt::blue, mainDev->colorSpace()));
-    cut.addKeyStroke(dLabelDev, KoColor(Qt::yellow, mainDev->colorSpace()));
-    cut.addKeyStroke(eLabelDev, KoColor(Qt::transparent, mainDev->colorSpace()));
+    cut.addKeyStroke(aLabelDev, KoColor(Pk::red, mainDev->colorSpace()));
+    cut.addKeyStroke(bLabelDev, KoColor(Pk::green, mainDev->colorSpace()));
+    cut.addKeyStroke(cLabelDev, KoColor(Pk::blue, mainDev->colorSpace()));
+    cut.addKeyStroke(dLabelDev, KoColor(Pk::yellow, mainDev->colorSpace()));
+    cut.addKeyStroke(eLabelDev, KoColor(Pk::transparent, mainDev->colorSpace()));
 
 
     QBENCHMARK_ONCE {

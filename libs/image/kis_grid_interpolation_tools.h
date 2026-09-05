@@ -9,6 +9,7 @@
 #ifndef __KIS_GRID_INTERPOLATION_TOOLS_H
 #define __KIS_GRID_INTERPOLATION_TOOLS_H
 
+#include <PkGlobal.h>
 #include <limits>
 #include <algorithm>
 
@@ -267,7 +268,7 @@ struct PaintDevicePolygonOp
 
                 QPointF srcPoint(dstIt.x(), y);
 
-                if (clipDstPolygon.containsPoint(srcPoint, Qt::OddEvenFill)) {
+                if (clipDstPolygon.containsPoint(srcPoint, Pk::OddEvenFill)) {
 
                     interp.setX(srcPoint.x());
                     QPointF dstPoint = interp.getValue();
@@ -297,7 +298,7 @@ struct PaintDevicePolygonOp
             while (dstIt.nextPixel()) {
                 QPointF srcPoint(dstIt.x(), dstIt.y());
 
-                if (clipDstPolygon.containsPoint(srcPoint, Qt::OddEvenFill)) {
+                if (clipDstPolygon.containsPoint(srcPoint, Pk::OddEvenFill)) {
                     srcAcc->sampledOldRawData(dstIt.rawData());
 #ifdef DEBUG_PAINTING_POLYGONS
                     QColor color = m_debugColor;
@@ -339,7 +340,7 @@ struct PaintDevicePolygonOp
     const qreal m_epsilon {0.001};
 
 #ifdef DEBUG_PAINTING_POLYGONS
-    QColor m_debugColor {Qt::red};
+    QColor m_debugColor {Pk::red};
     int m_rectId {0};
     inline void setDebugColor(QColor color) {
         m_debugColor = color;
@@ -445,7 +446,7 @@ struct QImagePolygonOp
             for (int x = boundRect.left(); x <= boundRect.right(); x++) {
 
                 QPointF srcPoint(x, y);
-                if (clipDstPolygon.containsPoint(srcPoint, Qt::OddEvenFill)) {
+                if (clipDstPolygon.containsPoint(srcPoint, Pk::OddEvenFill)) {
 
                     interp.setX(srcPoint.x());
                     QPointF dstPoint = interp.getValue();
@@ -469,13 +470,13 @@ struct QImagePolygonOp
 
 #ifdef DEBUG_PAINTING_POLYGONS
         QPainter gc(&m_dstImage);
-        gc.setPen(Qt::red);
+        gc.setPen(Pk::red);
         gc.setOpacity(0.5);
 
-        gc.setBrush(Qt::green);
+        gc.setBrush(Pk::green);
         gc.drawPolygon(clipDstPolygon.translated(-m_dstImageOffset));
 
-        gc.setBrush(Qt::blue);
+        gc.setBrush(Pk::blue);
         //gc.drawPolygon(dstPolygon.translated(-m_dstImageOffset));
 
 #endif /* DEBUG_PAINTING_POLYGONS */

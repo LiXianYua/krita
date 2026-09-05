@@ -6,6 +6,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_layer.h"
 
 
@@ -931,7 +932,7 @@ PkRect KisLayer::needRectForOriginal(const PkRect &rect) const
     return needRect;
 }
 
-PkImage KisLayer::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisLayer::createThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     if (w == 0 || h == 0) {
         return PkImage();
@@ -950,7 +951,7 @@ int KisLayer::thumbnailSeqNo() const
     return originalDevice ? originalDevice->sequenceNumber() : -1;
 }
 
-PkImage KisLayer::createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisLayer::createThumbnailForFrame(qint32 w, qint32 h, int time, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     if (w == 0 || h == 0) {
         return PkImage();

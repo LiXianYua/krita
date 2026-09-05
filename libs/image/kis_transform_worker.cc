@@ -635,9 +635,9 @@ void KisTransformWorker::mirrorY(KisPaintDeviceSP dev)
     mirrorY(dev, bounds.y() + 0.5 * bounds.height());
 }
 
-void KisTransformWorker::mirror(KisPaintDeviceSP dev, qreal axis, Qt::Orientation orientation)
+void KisTransformWorker::mirror(KisPaintDeviceSP dev, qreal axis, Pk::Orientation orientation)
 {
-    mirror_impl(dev, axis, orientation == Qt::Horizontal);
+    mirror_impl(dev, axis, orientation == Pk::Horizontal);
 }
 
 void KisTransformWorker::offset(KisPaintDeviceSP device, const PkPoint& offsetPosition, const PkRect& wrapRect)

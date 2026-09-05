@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_pixel_selection.h"
 
 #include <PkMutex.h>
@@ -117,7 +118,7 @@ void KisPixelSelection::select(const PkRect & rc, quint8 selectedness)
 
     KisFillPainter painter(KisPaintDeviceSP(this));
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
-    painter.fillRect(r, KoColor(Qt::white, cs), selectedness);
+    painter.fillRect(r, KoColor(Pk::white, cs), selectedness);
 
     if (m_d->outlineCacheValid) {
         PkPainterPath path;
@@ -294,7 +295,7 @@ void KisPixelSelection::clear(const PkRect & r)
     if (*defaultPixel().data() != MIN_SELECTED) {
         KisFillPainter painter(KisPaintDeviceSP(this));
         const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
-        painter.fillRect(r, KoColor(Qt::white, cs), MIN_SELECTED);
+        painter.fillRect(r, KoColor(Pk::white, cs), MIN_SELECTED);
     } else {
         KisPaintDevice::clear(r);
     }

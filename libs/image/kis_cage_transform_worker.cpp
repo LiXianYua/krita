@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_cage_transform_worker.h"
 
 #include "kis_grid_interpolation_tools.h"
@@ -118,7 +119,7 @@ struct PointsFetcherOp
 
         QPointF pt(col, row);
 
-        if (m_cagePolygon.containsPoint(pt, Qt::OddEvenFill)) {
+        if (m_cagePolygon.containsPoint(pt, Pk::OddEvenFill)) {
             KisAlgebra2D::adjustIfOnPolygonBoundary(m_cagePolygon, m_polygonDirection, &pt);
 
             m_points << pt;
@@ -287,7 +288,7 @@ QRect KisCageTransformWorker::approxChangeRect(const QRect &rc)
         const int y = rc.y() + i / rc.width();
 
         const QPointF pt(x, y);
-        if (cagePolygon.containsPoint(pt, Qt::OddEvenFill)) {
+        if (cagePolygon.containsPoint(pt, Pk::OddEvenFill)) {
             cageSamplePoints << pt;
         }
     }
@@ -341,7 +342,7 @@ void KisCageTransformWorker::run(KisPaintDeviceSP srcDevice, KisPaintDeviceSP ds
         KisSelectionSP selection = new KisSelection();
 
         KisPainter painter(selection->pixelSelection());
-        painter.setPaintColor(KoColor(Qt::black, selection->pixelSelection()->colorSpace()));
+        painter.setPaintColor(KoColor(Pk::black, selection->pixelSelection()->colorSpace()));
         painter.setAntiAliasPolygonFill(true);
         painter.setFillStyle(KisPainter::FillStyleForegroundColor);
         painter.setStrokeStyle(KisPainter::StrokeStyleNone);
@@ -406,8 +407,8 @@ QImage KisCageTransformWorker::runOnQImage(QPointF *newOffset)
         // we shouldn't create too many painters
         QPainter gc(&dstImage);
         gc.drawImage(-dstQImageOffset + m_d->srcImageOffset, m_d->srcImage);
-        gc.setBrush(Qt::black);
-        gc.setPen(Qt::black);
+        gc.setBrush(Pk::black);
+        gc.setPen(Pk::black);
         gc.setCompositionMode(QPainter::CompositionMode_Clear);
         gc.drawPolygon(QPolygonF(m_d->origCage).translated(-dstQImageOffset));
         gc.end();

@@ -966,7 +966,7 @@ void KisWatershedWorker::Private::calcNumGroupMaps()
         const qint32 group = *reinterpret_cast<const qint32*>(groupIt.rawDataConst());
         const quint8 level = *reinterpret_cast<const quint8*>(levelIt.rawDataConst());
 
-        groups.insert(qMakePair(group, level));
+        groups.insert(std::make_pair(group, level));
     }
 
     for (auto it = groups.begin(); it != groups.end(); ++it) {

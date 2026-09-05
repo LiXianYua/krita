@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "KisBezierGradientMesh.h"
 
 #include "kis_grid_interpolation_tools.h"
@@ -35,7 +36,7 @@ struct QImageGradientOp
             for (int x = boundRect.left(); x <= boundRect.right(); x++) {
 
                 QPointF srcPoint(x, y);
-                if (clipDstPolygon.containsPoint(srcPoint, Qt::OddEvenFill)) {
+                if (clipDstPolygon.containsPoint(srcPoint, Pk::OddEvenFill)) {
 
                     interp.setX(srcPoint.x());
                     QPointF dstPoint = interp.getValue();

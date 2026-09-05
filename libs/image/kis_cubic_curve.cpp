@@ -7,6 +7,7 @@
  */
 
 #include "kis_cubic_curve.h"
+#include <PkStringList.h>
 
 #include <PkPoint.h>
 #include <PkList.h>
@@ -189,9 +190,9 @@ KisCubicCurve::KisCubicCurve(const KisCubicCurve& curve)
 {
 }
 
-static std::vector<PkString> splitSkipEmpty(const PkString &s, char16_t sep)
+static PkStringList splitSkipEmpty(const PkString &s, char16_t sep)
 {
-    PkList<PkString> out = s.split(sep);
+    PkStringList out = s.split(sep);
     out.erase(std::remove_if(out.begin(), out.end(),
                              [](const PkString &e) { return e.isEmpty(); }),
               out.end());
@@ -224,11 +225,11 @@ KisCubicCurve::KisCubicCurve(const PkString &curveString)
         return;
     }
 
-    const std::vector<PkString> data = splitSkipEmpty(curveString, ';');
+    const PkStringList data = splitSkipEmpty(curveString, ';');
 
     PkList<KisCubicCurvePoint> points;
     for (const PkString &entry : data) {
-        const std::vector<PkString> entryData = splitSkipEmpty(entry, ',');
+        const PkStringList entryData = splitSkipEmpty(entry, ',');
         KIS_SAFE_ASSERT_RECOVER(entryData.size() > 1) {
             *this = KisCubicCurve();
             return;

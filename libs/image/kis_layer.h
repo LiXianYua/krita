@@ -17,6 +17,7 @@
 #include "kis_base_node.h"
 
 #include "kis_types.h"
+#include <PkGlobal.h>
 #include "kis_node.h"
 #include "kis_psd_layer_style.h"
 
@@ -245,11 +246,11 @@ public:
      */
     PkRect exactBounds() const override;
 
-    PkImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
+    PkImage createThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
 
     int thumbnailSeqNo() const override;
 
-    PkImage createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
+    PkImage createThumbnailForFrame(qint32 w, qint32 h, int time, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
 
     /**
      * Return a tight rectangle, where the contents of the layer

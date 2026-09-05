@@ -1,3 +1,4 @@
+#include <PkGlobal.h>
 #include "KisSafeDocumentLoaderTest.h"
 
 #include <QSignalSpy>
@@ -76,7 +77,7 @@ void writeToFile(QFile &file, QColor /*color*/)
     file.reset();
     file.resize(0);
     QImage img(10,10,QImage::Format_ARGB32);
-    img.fill(Qt::black);
+    img.fill(Pk::black);
     img.save(&file, "PNG");
     file.flush();
 }
@@ -88,7 +89,7 @@ void KisSafeDocumentLoaderTest::test()
     QTemporaryFile file("safe_loader_test_XXXXXX.png");
 
     KIS_ASSERT(file.open());
-    writeToFile(file, Qt::black);
+    writeToFile(file, Pk::black);
 
     KisSafeDocumentLoader loader(file.fileName(), loadImage);
 
@@ -100,7 +101,7 @@ void KisSafeDocumentLoaderTest::test()
     QCOMPARE(spy.size(), 1);
     QCOMPARE(spyFailed.size(), 0);
 
-    writeToFile(file, Qt::white);
+    writeToFile(file, Pk::white);
 
     spy.wait(1500);
     QCOMPARE(spy.size(), 2);
@@ -125,7 +126,7 @@ void KisSafeDocumentLoaderTest::testFileLost()
     QTemporaryFile file("safe_loader_test_XXXXXX.png");
 
     KIS_ASSERT(file.open());
-    writeToFile(file, Qt::black);
+    writeToFile(file, Pk::black);
 
     KisSafeDocumentLoader loader(file.fileName(), loadImage);
 
@@ -150,7 +151,7 @@ void KisSafeDocumentLoaderTest::testFileLost()
     spyExistsState.clear();
 
     KIS_ASSERT(file.open());
-    writeToFile(file, Qt::white);
+    writeToFile(file, Pk::white);
 
     spyExistsState.wait(3500);
     QCOMPARE(spy.size(), 0);
@@ -166,7 +167,7 @@ void KisSafeDocumentLoaderTest::testFileLost()
     spy.clear();
 
 
-    writeToFile(file, Qt::yellow);
+    writeToFile(file, Pk::yellow);
     spy.wait(1500);
     QCOMPARE(spy.size(), 1);
     QCOMPARE(spyFailed.size(), 0);

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_colorize_mask_test.h"
 
 #include <simpletest.h>
@@ -39,9 +40,9 @@ struct ColorizeMaskTester
 
         fillRect = kisGrowRect(refRect, -20);
         internalFillRect = kisGrowRect(fillRect, -10);
-        src->fill(fillRect, KoColor(Qt::black, src->colorSpace()));
-        src->fill(internalFillRect, KoColor(Qt::transparent, src->colorSpace()));
-        src->fill(QRect(100, 10, 10, 130), KoColor(Qt::black, src->colorSpace()));
+        src->fill(fillRect, KoColor(Pk::black, src->colorSpace()));
+        src->fill(internalFillRect, KoColor(Pk::transparent, src->colorSpace()));
+        src->fill(QRect(100, 10, 10, 130), KoColor(Pk::black, src->colorSpace()));
 
         // KIS_DUMP_DEVICE_2(src, refRect, "src", "dd");
 
@@ -52,22 +53,22 @@ struct ColorizeMaskTester
 
         {
             KisPaintDeviceSP key1 = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
-            key1->fill(QRect(50,50,10,20), KoColor(Qt::black, key1->colorSpace()));
-            mask->testingAddKeyStroke(key1, KoColor(Qt::green, src->colorSpace()));
+            key1->fill(QRect(50,50,10,20), KoColor(Pk::black, key1->colorSpace()));
+            mask->testingAddKeyStroke(key1, KoColor(Pk::green, src->colorSpace()));
             // KIS_DUMP_DEVICE_2(key1, refRect, "key1", "dd");
         }
 
         {
             KisPaintDeviceSP key2 = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
-            key2->fill(QRect(150,50,10,20), KoColor(Qt::black, key2->colorSpace()));
-            mask->testingAddKeyStroke(key2, KoColor(Qt::red, src->colorSpace()));
+            key2->fill(QRect(150,50,10,20), KoColor(Pk::black, key2->colorSpace()));
+            mask->testingAddKeyStroke(key2, KoColor(Pk::red, src->colorSpace()));
             // KIS_DUMP_DEVICE_2(key2, refRect, "key2", "dd");
         }
 
         {
             KisPaintDeviceSP key3 = new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8());
-            key3->fill(QRect(0,0,10,10), KoColor(Qt::black, key3->colorSpace()));
-            mask->testingAddKeyStroke(key3, KoColor(Qt::blue, src->colorSpace()), true);
+            key3->fill(QRect(0,0,10,10), KoColor(Pk::black, key3->colorSpace()));
+            mask->testingAddKeyStroke(key3, KoColor(Pk::blue, src->colorSpace()), true);
             // KIS_DUMP_DEVICE_2(key3, refRect, "key3", "dd");
         }
 

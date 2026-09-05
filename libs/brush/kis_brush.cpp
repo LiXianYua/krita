@@ -10,6 +10,7 @@
  */
 
 #include "kis_brush.h"
+#include <QtGui/QImage>
 
 #include <PkXmlElement.h>
 #include <PkFileStream.h>
@@ -466,7 +467,7 @@ void KisBrush::setBrushTipImage(const PkImage& image)
 
     if (!image.isNull()) {
         if (image.width() > 128 || image.height() > 128) {
-            KoResource::setImage(image.scaled(PkSize(128, 128), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            KoResource::setImage(image.scaled(PkSize(128, 128), Pk::KeepAspectRatio, Pk::SmoothTransformation));
         }
         else {
             KoResource::setImage(image);
@@ -688,13 +689,13 @@ void KisBrush::generateMaskAndApplyMaskOrCreateDab(KisFixedPaintDeviceSP dst,
             KIS_SAFE_ASSERT_RECOVER_RETURN(d->cachedGradient);
             d->cachedGradient->setColorSpace(cs); //convert gradient to colorspace so we don't have to convert each pixel
         } else {
-            fallbackColor.reset(new KoColor(Qt::red, cs));
+            fallbackColor.reset(new KoColor(Pk::red, cs));
             color = fallbackColor->data();
             applyGradient = false;
         }
     }
 
-    KoColor gradientcolor(Qt::blue, cs);
+    KoColor gradientcolor(Pk::blue, cs);
     for (int y = 0; y < maskHeight; y++) {
         const quint8* maskPointer = outputImage.constScanLine(y);
         if (color) {

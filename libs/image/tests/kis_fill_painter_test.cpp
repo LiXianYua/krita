@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_fill_painter_test.h"
 
 #include <testutil.h>
@@ -38,7 +39,7 @@ void KisFillPainterTest::benchmarkFillPainter(const QPoint &startPoint, bool use
         gc.setFillThreshold(THRESHOLD);
         gc.setWidth(imageRect.width());
         gc.setHeight(imageRect.height());
-        gc.setPaintColor(KoColor(Qt::red, dev->colorSpace()));
+        gc.setPaintColor(KoColor(Pk::red, dev->colorSpace()));
         gc.setUseCompositing(useCompositing);
         gc.fillColor(startPoint.x(), startPoint.y(), dev);
     }
@@ -91,7 +92,7 @@ void KisFillPainterTest::benchmarkFillingScanlineColor()
     QBENCHMARK_ONCE {
         KisScanlineFill gc(dev, PkPoint(), imageRect);
         gc.setThreshold(THRESHOLD);
-        gc.fill(KoColor(Qt::red, dev->colorSpace()));
+        gc.fill(KoColor(Pk::red, dev->colorSpace()));
     }
 
     PkImage resultImage =
@@ -156,10 +157,10 @@ void KisFillPainterTest::testPatternFill()
     KisPaintDeviceSP dst = new KisPaintDevice(cs);
 
     KisPaintDeviceSP pattern = new KisPaintDevice(cs);
-    pattern->fill(PkRect(0,0,32,32), KoColor(Qt::red, cs));
-    pattern->fill(PkRect(32,32,32,32), KoColor(Qt::red, cs));
-    pattern->fill(PkRect(32,0,32,32), KoColor(Qt::yellow, cs));
-    pattern->fill(PkRect(0,32,32,32), KoColor(Qt::white, cs));
+    pattern->fill(PkRect(0,0,32,32), KoColor(Pk::red, cs));
+    pattern->fill(PkRect(32,32,32,32), KoColor(Pk::red, cs));
+    pattern->fill(PkRect(32,0,32,32), KoColor(Pk::yellow, cs));
+    pattern->fill(PkRect(0,32,32,32), KoColor(Pk::white, cs));
 
     const PkRect fillRect(-128,-128,384,384);
     KisFillPainter painter(dst);
@@ -168,7 +169,7 @@ void KisFillPainterTest::testPatternFill()
     { // fill aligned
         const PkRect patternRect = pattern->exactBounds();
         painter.fillRect(fillRect.x(), fillRect.y(), fillRect.width(), fillRect.height(), pattern, patternRect);
-        dst->fill(PkRect(0,0,10,10), KoColor(Qt::black, cs));
+        dst->fill(PkRect(0,0,10,10), KoColor(Pk::black, cs));
 
         PkImage resultImage =
                 dst->convertToQImage(0,
@@ -190,7 +191,7 @@ void KisFillPainterTest::testPatternFill()
         const PkRect patternRect = pattern->exactBounds();
 
         painter.fillRect(fillRect.x(), fillRect.y(), fillRect.width(), fillRect.height(), pattern, patternRect);
-        dst->fill(PkRect(0,0,10,10), KoColor(Qt::black, cs));
+        dst->fill(PkRect(0,0,10,10), KoColor(Pk::black, cs));
 
         PkImage resultImage =
                 dst->convertToQImage(0,

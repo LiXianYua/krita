@@ -19,7 +19,7 @@ KisPipeBrushParasite::KisPipeBrushParasite(const PkString& source)
     const PkList<PkString> parasites = source.split(u' ');
 
     for (int i = 0; i < static_cast<int>(parasites.size()); i++) {
-        const std::vector<PkString> split = parasites.at(i).split(u':');
+        PkStringList split = parasites.at(i).split(u':');
 
         if (static_cast<int>(split.size()) != 2) {
             warnImage << "Wrong count for this parasite key/value:" << parasites.at(i);

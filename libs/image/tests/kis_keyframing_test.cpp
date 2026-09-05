@@ -6,6 +6,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_keyframing_test.h"
 #include <simpletest.h>
 #include <QRandomGenerator>
@@ -32,9 +33,9 @@ void KisKeyframingTest::initTestCase()
     green = new quint8[cs->pixelSize()];
     blue = new quint8[cs->pixelSize()];
 
-    cs->fromQColor(Qt::red, red);
-    cs->fromQColor(Qt::green, green);
-    cs->fromQColor(Qt::blue, blue);
+    cs->fromQColor(Pk::red, red);
+    cs->fromQColor(Pk::green, green);
+    cs->fromQColor(Pk::blue, blue);
 }
 
 void KisKeyframingTest::cleanupTestCase()
@@ -1076,7 +1077,7 @@ void KisKeyframingTest::testAutoKeyframing()
     keyframe10->setColorLabel(colorLabelIndex);
     QCOMPARE(keyframe10->colorLabel(), colorLabelIndex);
 
-    dev->fill(rectForTime(10), KoColor(Qt::black, cs));
+    dev->fill(rectForTime(10), KoColor(Pk::black, cs));
 
     QCOMPARE(dev->exactBounds(), rectForTime(10));
 

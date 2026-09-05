@@ -37,6 +37,7 @@
 **
 ****************************************************************************/
 
+#include <PkNamespace.h>
 #include "kis_path_stroker_p.h"
 
 #include <PkLine.h>
@@ -767,16 +768,16 @@ public:
         m_curveThreshold = std::clamp(1.0 / width, qreal(0.00025), qreal(0.25));
     }
     Fixed strokeWidth() const { return m_strokeWidth; }
-    void setCapStyle(Qt::PenCapStyle style)
+    void setCapStyle(Pk::PenCapStyle style)
     {
-        m_capStyle = style == Qt::FlatCap ? JoinMode::Flat
-            : style == Qt::SquareCap ? JoinMode::Square : JoinMode::RoundCap;
+        m_capStyle = style == Pk::FlatCap ? JoinMode::Flat
+            : style == Pk::SquareCap ? JoinMode::Square : JoinMode::RoundCap;
     }
-    void setJoinStyle(Qt::PenJoinStyle style)
+    void setJoinStyle(Pk::PenJoinStyle style)
     {
-        m_joinStyle = style == Qt::BevelJoin ? JoinMode::Flat
-            : style == Qt::MiterJoin ? JoinMode::Miter
-            : style == Qt::SvgMiterJoin ? JoinMode::SvgMiter : JoinMode::Round;
+        m_joinStyle = style == Pk::BevelJoin ? JoinMode::Flat
+            : style == Pk::MiterJoin ? JoinMode::Miter
+            : style == Pk::SvgMiterJoin ? JoinMode::SvgMiter : JoinMode::Round;
     }
     void setMiterLimit(Fixed limit) { m_miterLimit = limit; }
     Fixed miterLimit() const { return m_miterLimit; }
@@ -1259,7 +1260,7 @@ PkPainterPath createStrokeOutline(const PkPainterPath &path,
                                 qreal(clip.width()), qreal(clip.height())});
         dashStroker.strokePath(path, &outline);
     }
-    outline.setFillRule(Qt::WindingFill);
+    outline.setFillRule(Pk::WindingFill);
     return outline;
 }
 

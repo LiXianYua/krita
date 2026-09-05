@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_base_node.h"
 
 #include <kis_image.h>
@@ -193,7 +194,7 @@ bool KisBaseNode::check(const KoProperties & properties) const
 }
 
 
-PkImage KisBaseNode::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisBaseNode::createThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     Q_UNUSED(aspectRatioMode);
     Q_UNUSED(boundsMode);
@@ -208,7 +209,7 @@ PkImage KisBaseNode::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode asp
 
 }
 
-PkImage KisBaseNode::createPreferredThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode)
+PkImage KisBaseNode::createPreferredThumbnail(qint32 w, qint32 h, Pk::AspectRatioMode aspectRatioMode)
 {
     return createThumbnail(w, h, aspectRatioMode, m_d->thumbnailBoundsMode);
 }
@@ -228,13 +229,13 @@ int KisBaseNode::thumbnailSeqNo() const
     return -1;
 }
 
-PkImage KisBaseNode::createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisBaseNode::createThumbnailForFrame(qint32 w, qint32 h, int time, Pk::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     Q_UNUSED(time);
     return createThumbnail(w, h, aspectRatioMode, boundsMode);
 }
 
-PkImage KisBaseNode::createPreferredThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode)
+PkImage KisBaseNode::createPreferredThumbnailForFrame(qint32 w, qint32 h, int time, Pk::AspectRatioMode aspectRatioMode)
 {
     return createThumbnailForFrame(w, h, time, aspectRatioMode, m_d->thumbnailBoundsMode);
 }

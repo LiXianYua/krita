@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_properties_configuration_test.h"
 
 
@@ -112,21 +113,21 @@ void KisPropertiesConfigurationTest::testCopy()
 void KisPropertiesConfigurationTest::testGetColor()
 {
     KisPropertiesConfiguration pc;
-    KoColor kc = KoColor(QColor(Qt::red), KoColorSpaceRegistry::instance()->rgb8());
+    KoColor kc = KoColor(QColor(Pk::red), KoColorSpaceRegistry::instance()->rgb8());
     QVariant c = QVariant::fromValue<KoColor>(kc);
     pc.setProperty("colorAsKoColor", c);
-    pc.setProperty("colorAsQColor", QColor(Qt::red));
+    pc.setProperty("colorAsQColor", QColor(Pk::red));
     pc.setProperty("colorAsString", "#FF0000");
     pc.setProperty("colorAsXML", "<!DOCTYPE color><color><RGB space=\"sRGB-elle-V2-g10.icc\" g=\"0\" b=\"0\" r=\"1\"/></color>");
 
     kc = pc.getColor("colorAsKoColor");
-    QVERIFY(kc.toQColor() == QColor(Qt::red));
+    QVERIFY(kc.toQColor() == QColor(Pk::red));
     kc = pc.getColor("colorAsQColor");
-    QVERIFY(kc.toQColor() == QColor(Qt::red));
+    QVERIFY(kc.toQColor() == QColor(Pk::red));
     kc = pc.getColor("colorAsString");
-    QVERIFY(kc.toQColor() == QColor(Qt::red));
+    QVERIFY(kc.toQColor() == QColor(Pk::red));
     kc = pc.getColor("colorAsXML");
-    QVERIFY(kc.toQColor() == QColor(Qt::red));
+    QVERIFY(kc.toQColor() == QColor(Pk::red));
 }
 
 void roundTripStringList(const QStringList &refList)

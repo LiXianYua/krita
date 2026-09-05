@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_projection_test.h"
 #include <simpletest.h>
 
@@ -27,7 +28,7 @@ void KisProjectionTest::testDirty()
     image->addNode(layer);
     image->addNode(layer2);
     KisFillPainter gc(layer2->paintDevice());
-    KoColor c(Qt::red, layer2->colorSpace());
+    KoColor c(Pk::red, layer2->colorSpace());
     gc.fillRect(0, 0, 1000, 1000, c);
     gc.end();
     layer2->setDirty(gc.takeDirtyRegion());
@@ -41,7 +42,7 @@ void KisProjectionTest::testDirty()
         QColor c;
         image->colorSpace()->toQColor(it.oldRawData(), &c);
         qDebug() << c;
-        QVERIFY(c == Qt::red);
+        QVERIFY(c == Pk::red);
     }
 }
 

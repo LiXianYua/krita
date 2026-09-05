@@ -15,8 +15,8 @@
 class Q_DECL_HIDDEN KisStrokeShortcut::Private
 {
 public:
-    QSet<Qt::Key> modifiers;
-    QSet<Qt::MouseButton> buttons;
+    QSet<Pk::Key> modifiers;
+    QSet<Pk::MouseButton> buttons;
 };
 
 
@@ -33,17 +33,17 @@ KisStrokeShortcut::~KisStrokeShortcut()
 
 int KisStrokeShortcut::priority() const
 {
-    const int maxScore = std::log2((int) Qt::MaxMouseButton);
+    const int maxScore = std::log2((int) Pk::MaxMouseButton);
     int buttonScore = 0;
-    Q_FOREACH (Qt::MouseButton button, m_d->buttons) {
+    Q_FOREACH (Pk::MouseButton button, m_d->buttons) {
         buttonScore += maxScore - std::log2((int) button);
     }
 
     return m_d->modifiers.size() * 0xFFFF + buttonScore * 0xFF + action()->priority();
 }
 
-void KisStrokeShortcut::setButtons(const QSet<Qt::Key> &modifiers,
-                                   const QSet<Qt::MouseButton> &buttons)
+void KisStrokeShortcut::setButtons(const QSet<Pk::Key> &modifiers,
+                                   const QSet<Pk::MouseButton> &buttons)
 {
     if (buttons.empty()) return;
 
@@ -51,8 +51,8 @@ void KisStrokeShortcut::setButtons(const QSet<Qt::Key> &modifiers,
     m_d->buttons = buttons;
 }
 
-bool KisStrokeShortcut::matchReady(const QSet<Qt::Key> &modifiers,
-                                   const QSet<Qt::MouseButton> &buttons)
+bool KisStrokeShortcut::matchReady(const QSet<Pk::Key> &modifiers,
+                                   const QSet<Pk::MouseButton> &buttons)
 {
     bool modifiersOk =
         (m_d->modifiers.isEmpty() && action()->canIgnoreModifiers()) ||
@@ -62,19 +62,22 @@ bool KisStrokeShortcut::matchReady(const QSet<Qt::Key> &modifiers,
         return false;
     }
 
-    Q_FOREACH (Qt::MouseButton button, buttons) {
+    Q_FOREACH (Pk::MouseButton button, buttons) {
         if (!m_d->buttons.contains(button)) return false;
     }
     return true;
 }
 
-bool KisStrokeShortcut::matchBegin(Qt::MouseButton button)
+bool KisStrokeShortcut::matchBegin(Pk::MouseButton button)
 {
     return m_d->buttons.contains(button);
 }
 
 QMouseEvent KisStrokeShortcut::fakeEndEvent(const QPointF &localPos) const
 {
-    Qt::MouseButton button = !m_d->buttons.isEmpty() ? *m_d->buttons.begin() : Qt::NoButton;
-    return QMouseEvent(QEvent::MouseButtonRelease, localPos, button, Qt::NoButton, Qt::NoModifier);
+    Pk::MouseButton button = !m_d->buttons.isEmpty() ? *m_d->buttons.begin() : Pk::NoButton;
+    return QMouseEvent(QEvent::MouseButtonRelease, localPos,
+                       static_cast<Qt::MouseButton>(button),
+                       static_cast<Qt::MouseButton>(Pk::NoButton),
+                       static_cast<Qt::KeyboardModifiers>(Pk::NoModifier));
 }
