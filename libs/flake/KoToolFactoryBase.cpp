@@ -182,7 +182,7 @@ void KoToolFactoryBase::setSection(const PkString & section)
 
 void KoToolFactoryBase::setIconName(const char *iconName)
 {
-    d->iconName = QLatin1String(iconName);
+    d->iconName = toPkString(QLatin1String(iconName));
 }
 
 void KoToolFactoryBase::setIconName(const PkString &iconName)

@@ -202,7 +202,7 @@ QAction *KoToolBase::action(const PkString &name) const
     Q_D(const KoToolBase);
     if (d->canvas && d->canvas->canvasController() && d->canvas->canvasController()) {
         QObject *collection = d->canvas->canvasController()->actionCollection();
-        return collection ? collection->findChild<QAction *>(name) : 0;
+        return collection ? collection->findChild<QAction *>(toQString(name)) : 0;
     }
     return 0;
 }

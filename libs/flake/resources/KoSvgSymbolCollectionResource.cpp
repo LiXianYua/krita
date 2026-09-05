@@ -120,7 +120,7 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(PkStream *dev, KisResourcesIn
         dev->open(PkStream::ReadOnly);
     }
 
-    d->data = pkReadAllAsQByteArray(dev);
+    d->data = toPkByteArray(pkReadAllAsQByteArray(dev));
     setMD5Sum(KoMD5Generator::generateHash(toPkByteArray(d->data)));
 
     dev->seek(0);

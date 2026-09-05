@@ -283,7 +283,7 @@ void SvgParser::setXmlBaseDir(const PkString &baseDir)
         [this](const PkString &name) {
             PkStringList possibleNames;
             possibleNames << name;
-            possibleNames << QDir::cleanPath(QDir(toQString(m_context.xmlBaseDir())).absoluteFilePath(name));
+            possibleNames << QDir::cleanPath(QDir(toQString(m_context.xmlBaseDir())).absoluteFilePath(toQString(name)));
             for (PkString fileName : possibleNames) {
                 PkFileStream file(fileName);
                 if (file.open(PkStream::ReadOnly)) {
@@ -304,7 +304,7 @@ void SvgParser::setResolution(const PkRectF boundsInPixels, qreal pixelsPerInch)
     const qreal scale = 72.0 / pixelsPerInch;
     const PkTransform t = PkTransform::fromScale(scale, scale);
     m_context.currentGC()->currentBoundingBox = toPkRectF(boundsInPixels);
-    m_context.currentGC()->matrix = toPkTransform(t);
+    m_context.currentGC()->matrix = toPkTransform(toQTransform(t));
 }
 
 void SvgParser::setDefaultKraTextVersion(int version)
@@ -456,7 +456,7 @@ SvgGradientHelper* SvgParser::parseGradient(const PkXmlElement &e)
     if (e.tagName() == "linearGradient") {
         QLinearGradient *g = new QLinearGradient();
         if (gradHelper.gradientUnits() == KoFlake::ObjectBoundingBox) {
-            g->setCoordinateMode(PkGradient::ObjectBoundingMode);
+            g->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
             g->setStart(PkPointF(SvgUtil::fromPercentage(toPkString(e.attribute("x1", "0%"))),
                                 SvgUtil::fromPercentage(toPkString(e.attribute("y1", "0%")))));
             g->setFinalStop(PkPointF(SvgUtil::fromPercentage(toPkString(e.attribute("x2", "100%"))),
@@ -472,7 +472,7 @@ SvgGradientHelper* SvgParser::parseGradient(const PkXmlElement &e)
     } else if (e.tagName() == "radialGradient") {
         QRadialGradient *g = new QRadialGradient();
         if (gradHelper.gradientUnits() == KoFlake::ObjectBoundingBox) {
-            g->setCoordinateMode(PkGradient::ObjectBoundingMode);
+            g->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
             g->setCenter(PkPointF(SvgUtil::fromPercentage(toPkString(e.attribute("cx", "50%"))),
                                  SvgUtil::fromPercentage(toPkString(e.attribute("cy", "50%")))));
             g->setRadius(SvgUtil::fromPercentage(toPkString(e.attribute("r", "50%"))));
@@ -491,13 +491,13 @@ SvgGradientHelper* SvgParser::parseGradient(const PkXmlElement &e)
     }
 
     // handle spread method
-    PkGradient::Spread spreadMethod = PkGradient::PadSpread;
+    PkGradient::Spread spreadMethod = PkGradientEnums::PadSpread;
     PkString spreadMethodStr = e.attribute("spreadMethod");
     if (!spreadMethodStr.isEmpty()) {
         if (spreadMethodStr == "reflect") {
-            spreadMethod = PkGradient::ReflectSpread;
+            spreadMethod = PkGradientEnums::ReflectSpread;
         } else if (spreadMethodStr == "repeat") {
-            spreadMethod = PkGradient::RepeatSpread;
+            spreadMethod = PkGradientEnums::RepeatSpread;
         }
     }
 
@@ -738,7 +738,7 @@ PkSharedPointer<KoVectorPatternBackground> SvgParser::parsePattern(const PkXmlEl
    gc->workaroundClearInheritedFillProperties(); // HACK!
 
    // start building shape tree from scratch
-   gc->matrix = toPkTransform(PkTransform());
+   gc->matrix = toPkTransform(toQTransform(PkTransform()));
 
    const PkRectF boundingRect = shape->outline().boundingRect()/*.translated(extraShapeOffset)*/;
    const PkTransform relativeToShape(boundingRect.width(), 0, 0, boundingRect.height(),
@@ -762,7 +762,7 @@ PkSharedPointer<KoVectorPatternBackground> SvgParser::parsePattern(const PkXmlEl
         pattHelper->setContentCoordinates(pattHelper->referenceCoordinates());
 
     } else if (pattHelper->contentCoordinates() == KoFlake::ObjectBoundingBox) {
-        gc->matrix = toPkTransform(relativeToShape) * gc->matrix;
+        gc->matrix = toPkTransform(toQTransform(relativeToShape)) * gc->matrix;
     }
 
     // We do *not* apply patternTransform here! Here we only bake the untransformed
@@ -827,7 +827,7 @@ bool SvgParser::parseMarker(const PkXmlElement &e)
 
     // ensure that the clip path is loaded in local coordinates system
     m_context.pushGraphicsContext(toPkXmlElement(e), false);
-    m_context.currentGC()->matrix = toPkTransform(PkTransform());
+    m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->currentBoundingBox = toPkRectF(PkRectF(PkPointF(0, 0), marker->referenceSize()));
 
     KoShape *markerShape = parseGroup(e);
@@ -853,7 +853,7 @@ bool SvgParser::parseSymbol(const PkXmlElement &e)
 
     // ensure that the clip path is loaded in local coordinates system
     m_context.pushGraphicsContext(toPkXmlElement(e), false);
-    m_context.currentGC()->matrix = toPkTransform(PkTransform());
+    m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->currentBoundingBox = toPkRectF(PkRectF(0.0, 0.0, 1.0, 1.0));
 
     PkString title = e.firstChildElement("title").toElement().text();
@@ -918,7 +918,7 @@ bool SvgParser::parseClipPath(const PkXmlElement &e)
 
     // ensure that the clip path is loaded in local coordinates system
     m_context.pushGraphicsContext(toPkXmlElement(e));
-    m_context.currentGC()->matrix = toPkTransform(PkTransform());
+    m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->workaroundClearInheritedFillProperties(); // HACK!
 
     KoShape *clipShape = parseGroup(e);
@@ -964,7 +964,7 @@ bool SvgParser::parseClipMask(const PkXmlElement &e)
 
     // ensure that the clip mask is loaded in local coordinates system
     m_context.pushGraphicsContext(toPkXmlElement(e));
-    m_context.currentGC()->matrix = toPkTransform(PkTransform());
+    m_context.currentGC()->matrix = toPkTransform(toQTransform(PkTransform()));
     m_context.currentGC()->workaroundClearInheritedFillProperties(); // HACK!
 
     KoShape *clipShape = parseGroup(e);
@@ -1097,7 +1097,7 @@ PkGradient* prepareGradientForShape(const SvgGradientHelper *gradient,
             QLinearGradient *g = new QLinearGradient();
             g->setStart(userToRelative.map(o->start()));
             g->setFinalStop(userToRelative.map(o->finalStop()));
-            g->setCoordinateMode(PkGradient::ObjectBoundingMode);
+            g->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
             g->setStops(o->stops());
             g->setSpread(o->spread());
 
@@ -1145,7 +1145,7 @@ PkGradient* prepareGradientForShape(const SvgGradientHelper *gradient,
             rgradient->setCenterRadius(centerRadiusOBB);
             rgradient->setFocalRadius(focalRadiusOBB);
 
-            rgradient->setCoordinateMode(PkGradient::ObjectBoundingMode);
+            rgradient->setCoordinateMode(PkGradientEnums::ObjectBoundingMode);
 
             // Warning: should it really be pre-multiplication?
             *transform = uniformizeTransform * gradient->transform();
@@ -1177,7 +1177,7 @@ SvgMeshGradient* prepareMeshGradientForShape(SvgGradientHelper *gradient,
 
         // NOTE: we apply translation right away, because caching hasn't been implemented for rendering, yet.
         // So, transform is called multiple times on the mesh and that's not nice
-        resultGradient->setTransform(toPkTransform(gradient->transform() * relativeToShape));
+        resultGradient->setTransform(toPkTransform(gradient->transform() toQTransform(* relativeToShape)));
     } else {
         // NOTE: Krita's shapes use their own coordinate system. Where origin is at the top left
         // of the SHAPE. All the mesh patches will be rendered in the global 'user' coordinate system
@@ -1193,7 +1193,7 @@ SvgMeshGradient* prepareMeshGradientForShape(SvgGradientHelper *gradient,
 
         // NOTE: we apply translation right away, because caching hasn't been implemented for rendering, yet.
         // So, transform is called multiple times on the mesh and that's not nice
-        resultGradient->setTransform(toPkTransform(gradient->transform() * translationOffset));
+        resultGradient->setTransform(toPkTransform(gradient->transform() toQTransform(* translationOffset)));
     }
 
     return resultGradient;
@@ -1297,7 +1297,7 @@ void SvgParser::applyStrokeStyle(KoShape *shape)
             if (result) {
                 QBrush brush = *result;
                 delete result;
-                brush.setTransform(transform);
+                brush.setTransform(toQTransform(transform));
 
                 KoShapeStrokeSP stroke(new KoShapeStroke(*gc->stroke));
                 stroke->setLineBrush(brush);
@@ -1501,7 +1501,7 @@ PkList<KoShape*> SvgParser::parseSvg(const PkXmlElement &e, PkSizeF *fragmentSiz
         PkRectF fakeBoundingRect(0.0, 0.0, 1.0, 1.0);
 
         PkRectF pkViewRect = toPkRectF(viewRect);
-        PkTransform pkViewTransform_unused = toPkTransform(viewTransform_unused);
+        PkTransform pkViewTransform_unused = toPkTransform(toQTransform(viewTransform_unused));
         if (SvgUtil::parseViewBox(toPkXmlElement(e), toPkRectF(fakeBoundingRect),
                                   &pkViewRect, &pkViewTransform_unused)) {
             viewRect = toQRectF(pkViewRect);
@@ -1588,7 +1588,7 @@ void SvgParser::applyViewBoxTransform(const PkXmlElement &element)
     PkRectF viewRect = toQRectF(gc->currentBoundingBox);
     PkTransform viewTransform;
     PkRectF pkViewRect = toPkRectF(viewRect);
-    PkTransform pkViewTransform = toPkTransform(viewTransform);
+    PkTransform pkViewTransform = toPkTransform(toQTransform(viewTransform));
 
     if (SvgUtil::parseViewBox(toPkXmlElement(element), gc->currentBoundingBox,
                               &pkViewRect, &pkViewTransform)) {

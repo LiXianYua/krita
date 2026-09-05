@@ -22,7 +22,7 @@
 RectangleShapeFactory::RectangleShapeFactory()
     : KoShapeFactoryBase(RectangleShapeId, i18n("Rectangle"))
 {
-    setToolTip(i18n("A rectangle"));
+    setToolTip(toPkString(i18n("A rectangle")));
     setFamily("geometric");
     setLoadingPriority(1);
 

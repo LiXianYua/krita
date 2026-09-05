@@ -126,7 +126,7 @@ bool ImageShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &context
         QRegularExpression re("data:(.+?);base64,(.+)");
         QRegularExpressionMatch match = re.match(toQString(fileName));
 
-        data = match.captured(2).toLatin1();
+        data = toPkByteArray(match.captured(2).toLatin1());
         data = PkByteArray::fromBase64(data);
     } else {
         data = toQByteArray(context.fetchExternalFile(fileName));

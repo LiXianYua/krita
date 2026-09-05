@@ -361,7 +361,7 @@ inline PkString convertGradientMode(PkGradient::CoordinateMode mode) {
     KIS_ASSERT_RECOVER_NOOP(mode != PkGradient::StretchToDeviceMode);
 
     return
-        mode == PkGradient::ObjectBoundingMode ?
+        mode == PkGradientEnums::ObjectBoundingMode ?
         "objectBoundingBox" :
         "userSpaceOnUse";
 
@@ -384,7 +384,7 @@ PkString SvgStyleWriter::saveSvgGradient(const PkGradient *gradient, const PkTra
         const QLinearGradient * g = static_cast<const QLinearGradient*>(gradient);
         context.styleWriter().startElement("linearGradient");
         context.styleWriter().addAttribute("id", toPkString(uid));
-        SvgUtil::writeTransformAttributeLazy("gradientTransform", toPkTransform(gradientTransform), context.styleWriter());
+        SvgUtil::writeTransformAttributeLazy("gradientTransform", toPkTransform(toQTransform(gradientTransform)), context.styleWriter());
         context.styleWriter().addAttribute("gradientUnits", toPkString(convertGradientMode(g->coordinateMode())));
         context.styleWriter().addAttribute("x1", g->start().x());
         context.styleWriter().addAttribute("y1", g->start().y());
@@ -398,7 +398,7 @@ PkString SvgStyleWriter::saveSvgGradient(const PkGradient *gradient, const PkTra
         const QRadialGradient * g = static_cast<const QRadialGradient*>(gradient);
         context.styleWriter().startElement("radialGradient");
         context.styleWriter().addAttribute("id", toPkString(uid));
-        SvgUtil::writeTransformAttributeLazy("gradientTransform", toPkTransform(gradientTransform), context.styleWriter());
+        SvgUtil::writeTransformAttributeLazy("gradientTransform", toPkTransform(toQTransform(gradientTransform)), context.styleWriter());
         context.styleWriter().addAttribute("gradientUnits", toPkString(convertGradientMode(g->coordinateMode())));
         context.styleWriter().addAttribute("cx", g->center().x());
         context.styleWriter().addAttribute("cy", g->center().y());
@@ -455,7 +455,7 @@ PkString SvgStyleWriter::saveSvgMeshGradient(SvgMeshGradient *gradient,
         context.styleWriter().addAttribute("gradientUnits", "userSpaceOnUse");
     }
 
-    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(transform), context.styleWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(toQTransform(transform)), context.styleWriter());
 
     SvgMeshArray *mesharray = gradient->getMeshArray().data();
     PkPointF start = toQPointF(mesharray->getPatch(0, 0)->getStop(SvgMeshPatch::Top).point);

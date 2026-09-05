@@ -65,7 +65,7 @@ PkList<KoShape*> KoSvgPaste::fetchShapes(const PkRectF viewportInPx, qreal resol
 
     Q_FOREACH(const PkString &format, d->mimeData->formats()) {
         if (format.toLower().contains("svg")) {
-            data = d->mimeData->data(format);
+            data = d->mimeData->data(toQString(format));
             break;
         }
     }

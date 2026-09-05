@@ -611,7 +611,7 @@ void KoPathTool::mouseMoveEvent(KoPointerEvent *event)
             int handleId = parameterShape->handleIdAt(roi);
             if (handleId != -1) {
                 useCursor(m_moveCursor);
-                Q_EMIT statusTextChanged(i18n("Drag to move handle."));
+                Q_EMIT statusTextChanged(toPkString(i18n("Drag to move handle.")));
 
                 m_activeHandle.reset(new ParameterHandle(this, parameterShape, handleId));
                 repaintDecorations();
@@ -665,9 +665,9 @@ void KoPathTool::mouseMoveEvent(KoPointerEvent *event)
 
                 useCursor(m_moveCursor);
                 if (bestPointType == KoPathPoint::Node)
-                    Q_EMIT statusTextChanged(i18n("Drag to move point. Shift click to change point type."));
+                    Q_EMIT statusTextChanged(toPkString(i18n("Drag to move point. Shift click to change point type.")));
                 else
-                    Q_EMIT statusTextChanged(i18n("Drag to move control point."));
+                    Q_EMIT statusTextChanged(toPkString(i18n("Drag to move control point.")));
 
                 PointHandle *prev = dynamic_cast<PointHandle*>(m_activeHandle.data());
                 if (prev && prev->activePoint() == bestPoint && prev->activePointType() == bestPointType)
@@ -690,7 +690,7 @@ void KoPathTool::mouseMoveEvent(KoPointerEvent *event)
     PathSegment *hoveredSegment = segmentAtPoint(event->point);
     if(hoveredSegment) {
         useCursor(Qt::PointingHandCursor);
-        Q_EMIT statusTextChanged(i18n("Drag to change curve directly. Double click to insert new path point."));
+        Q_EMIT statusTextChanged(toPkString(i18n("Drag to change curve directly. Double click to insert new path point.")));
         m_activeSegment.reset(hoveredSegment);
         repaintDecorations();
     } else {
@@ -700,9 +700,9 @@ void KoPathTool::mouseMoveEvent(KoPointerEvent *event)
         else {
             if (!m_actionBreakSelection->shortcut().isEmpty()) {
                 if (selectedPointCount == 1)
-                    Q_EMIT statusTextChanged(i18nc("%1 is a shortcut to be pressed", "Press %1 to break path at selected point.", m_actionBreakSelection->shortcut().toString()));
+                    Q_EMIT statusTextChanged(toPkString(i18nc("%1 is a shortcut to be pressed", "Press %1 to break path at selected point.", m_actionBreakSelection->shortcut().toString())));
                 else
-                    Q_EMIT statusTextChanged(i18nc("%1 is a shortcut to be pressed", "Press %1 to break path at selected segments.", m_actionBreakSelection->shortcut().toString()));
+                    Q_EMIT statusTextChanged(toPkString(i18nc("%1 is a shortcut to be pressed", "Press %1 to break path at selected segments.", m_actionBreakSelection->shortcut().toString())));
             } else {
                 Q_EMIT statusTextChanged(PkString());
             }

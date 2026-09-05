@@ -148,7 +148,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromSvg(const PkString &svgText, cons
         }
         else if (el.tagName() == "text") {
             if (textNodeFound) {
-                d->errors << i18n("More than one 'text' node found!");
+                d->errors << toPkString(i18n("More than one 'text' node found!"));
                 return false;
             }
 
@@ -157,13 +157,13 @@ bool KoSvgTextShapeMarkupConverter::convertFromSvg(const PkString &svgText, cons
             textNodeFound = true;
             break;
         } else {
-            d->errors << i18n("Unknown node of type \'%1\' found!", el.tagName());
+            d->errors << toPkString(i18n("Unknown node of type \'%1\' found!", el.tagName()));
             return false;
         }
     }
 
     if (!textNodeFound) {
-        d->errors << i18n("No \'text\' node found!");
+        d->errors << toPkString(i18n("No \'text\' node found!"));
         return false;
     }
 
@@ -312,7 +312,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
 
             PkString textAlign;
             if (attributes.hasAttribute("align")) {
-                textAlign = attributes.value("align").toString();
+                textAlign = toPkString(attributes.value("align").toString());
             }
 
             if (attributes.hasAttribute("style") || !appendStyle.isEmpty()) {
@@ -385,7 +385,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
         case QXmlStreamReader::Characters:
         {
             if (elementName == "style") {
-                *styles = htmlReader.text().toString();
+                *styles = toPkString(htmlReader.text().toString());
             }
             else {
                 //TODO: Think up what to do with mix of pretty-print and <BR> (what libreoffice uses).
@@ -402,11 +402,11 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
     }
 
     if (htmlReader.hasError()) {
-        d->errors << htmlReader.errorString();
+        d->errors << toPkString(htmlReader.errorString());
         return false;
     }
     if (svgWriter.hasError()) {
-        d->errors << i18n("Unknown error writing SVG text element");
+        d->errors << toPkString(i18n("Unknown error writing SVG text element"));
         return false;
     }
 
@@ -543,7 +543,7 @@ qreal calcLineWidth(const QTextBlock &block)
     const PkString blockText = block.text();
 
     QTextLayout lineLayout;
-    lineLayout.setText(blockText);
+    lineLayout.setText(toQString(blockText));
     lineLayout.setFont(block.charFormat().font());
     lineLayout.setFormats(block.textFormats());
     lineLayout.setTextOption(block.layout()->textOption());
@@ -848,7 +848,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
             }
 
         } else {
-            svgWriter.writeCharacters(text);
+            svgWriter.writeCharacters(toQString(text));
             //check format against
         }
 
@@ -861,7 +861,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
     svgWriter.writeEndElement();//text root element.
 
     if (svgWriter.hasError()) {
-        d->errors << i18n("Unknown error writing SVG text element");
+        d->errors << toPkString(i18n("Unknown error writing SVG text element"));
         return false;
     }
     *svgText = PkString::fromUtf8(svgBuffer.data()).trimmed();
@@ -892,7 +892,7 @@ void parseTextAttributes(const QXmlStreamAttributes &elementAttributes,
     }
 
     if (elementAttributes.hasAttribute("style")) {
-        styleString = elementAttributes.value("style").toString();
+        styleString = toPkString(elementAttributes.value("style").toString());
         if (styleString.endsWith(";")) {
             styleString.chop(1);
         }
@@ -1115,7 +1115,7 @@ bool KoSvgTextShapeMarkupConverter::convertSvgToDocument(const PkString &svgText
     }
 
     if (svgReader.hasError()) {
-        d->errors << svgReader.errorString();
+        d->errors << toPkString(svgReader.errorString());
         return false;
     }
     doc->setModified(false);
@@ -1328,10 +1328,10 @@ PkString KoSvgTextShapeMarkupConverter::style(QTextCharFormat format,
         if (propertyId == QTextCharFormat::TextVerticalAlignment) {
             PkString val = "baseline";
             if (format.verticalAlignment() == QTextCharFormat::AlignSubScript) {
-                val = QLatin1String("sub");
+                val = toPkString(QLatin1String("sub"));
             }
             else if (format.verticalAlignment() == QTextCharFormat::AlignSuperScript) {
-                val = QLatin1String("super");
+                val = toPkString(QLatin1String("super"));
             }
             c.append("baseline-shift").append(":").append(val);
         }
@@ -1569,13 +1569,13 @@ PkVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(PkStringLi
                 PkPen pen = charFormat.textOutline();
                 PkColor color(value);
                 pen.setColor(color);
-                charFormat.setTextOutline(pen);
+                charFormat.setTextOutline(toQPen(pen));
             }
 
             if (property == "stroke-width") {
                 PkPen pen = charFormat.textOutline();
                 pen.setWidth(value.toInt());
-                charFormat.setTextOutline(pen);
+                charFormat.setTextOutline(toQPen(pen));
             }
 
             if (property == "fill") {
@@ -1597,7 +1597,7 @@ PkVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(PkStringLi
                     }
                 }
 
-                charFormat.setForeground(color);
+                charFormat.setForeground(toQColor(color));
             }
 
             if (property == "fill-opacity") {
@@ -1611,7 +1611,7 @@ PkVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(PkStringLi
                     alpha = color.alphaF();
                 }
                 color.setAlphaF(alpha);
-                charFormat.setForeground(color);
+                charFormat.setForeground(toQColor(color));
             }
 
             if (property == "text-anchor") {

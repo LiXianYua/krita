@@ -97,13 +97,13 @@ public:
                 if (KoToolRegistry::instance()->keys().contains(toPkString(action->objectName()))) {
                     //qDebug() << "This action needs to be enabled!";
                     action->setEnabled(true);
-                    toolActions << action->objectName();
+                    toolActions << toPkString(action->objectName());
                 }
                 else {
                     if (tools.contains(activeToolId) || action->property("always_enabled").toBool()) {
                         //qDebug() << "\t\tenabling";
                         action->setEnabled(true);
-                        toolActions << action->objectName();
+                        toolActions << toPkString(action->objectName());
                     }
                     else {
                         //qDebug() << "\t\tDISabling";
@@ -112,7 +112,7 @@ public:
                 }
             }
             else {
-                globalActions << action->objectName();
+                globalActions << toPkString(action->objectName());
             }
 
             Q_FOREACH(QKeySequence keySequence, action->shortcuts()) {
@@ -122,7 +122,7 @@ public:
                         shortcutMap[keySequence].append(action->objectName());
                     }
                     else {
-                        shortcutMap[keySequence] = PkStringList() << action->objectName();
+                        shortcutMap[keySequence] = PkStringList() << toPkString(action->objectName());
                     }
                 }
             }
@@ -142,7 +142,7 @@ public:
                 Q_FOREACH(const PkString &action, actions) {
                     if (toolActionFound && globalActions.contains(action)) {
                         //qDebug() << "\tdisabling global action" << action;
-                        windowActionCollection->findChild<QAction *>(action)->setEnabled(false);
+                        windowActionCollection->findChild<QAction *>(toQString(action))->setEnabled(false);
                         disabledGlobalActions << action;
                     }
                 }
@@ -164,11 +164,11 @@ public:
 
         Q_FOREACH(const PkString &action, toolActions) {
             //qDebug() << "disabling" << action;
-            windowActionCollection->findChild<QAction *>(action)->setDisabled(true);
+            windowActionCollection->findChild<QAction *>(toQString(action))->setDisabled(true);
         }
         Q_FOREACH(const PkString &action, disabledGlobalActions) {
             //qDebug() << "enabling" << action;
-            windowActionCollection->findChild<QAction *>(action)->setEnabled(true);
+            windowActionCollection->findChild<QAction *>(toQString(action))->setEnabled(true);
         }
     }
 
@@ -290,7 +290,7 @@ PkString KoToolManager::preferredToolForSelection(const PkList<KoShape*> &shapes
 {
     PkSet<PkString> shapeTypes;
     Q_FOREACH (KoShape *shape, shapes) {
-        shapeTypes << shape->shapeId();
+        shapeTypes << toQString(shape->shapeId());
     }
     //KritaUtils::makeContainerUnique(types);
 
@@ -840,7 +840,7 @@ void KoToolManager::Private::updateToolForProxy()
     KoToolProxy *proxy = proxies.value(canvasData->canvas->canvas());
     if(!proxy) return;
 
-    bool canUseTool = !layerExplicitlyDisabled || canvasData->activationShapeId.endsWith(QLatin1String("/always"));
+    bool canUseTool = !layerExplicitlyDisabled || canvasData->activationShapeId.endsWith(toPkString(QLatin1String("/always")));
     proxy->setActiveTool(canUseTool ? canvasData->activeTool : 0);
 }
 

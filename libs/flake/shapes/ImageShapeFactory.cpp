@@ -27,7 +27,7 @@
 ImageShapeFactory::ImageShapeFactory()
     : KoShapeFactoryBase(ImageShapeId, i18n("Image shape"))
 {
-    setToolTip(i18n("A shape that shows an image (PNG/JPG/TIFF)"));
+    setToolTip(toPkString(i18n("A shape that shows an image (PNG/JPG/TIFF)")));
 
     PkList<std::pair<PkString, PkStringList> > elementNamesList;
     elementNamesList.append(qMakePair(toQString(KoXmlNS::draw), PkStringList("image")));

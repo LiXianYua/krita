@@ -1456,7 +1456,7 @@ void KoSvgTextShape::Private::finalizeDecoration (
         }
 
         decorationPath = stretchGlyphOnPath(decorationPath.translated(offset), path, isHorizontal, currentTextPathOffset, currentTextPath->isClosedSubpath(0));
-        decorationPaths[type].addPath(stroker.createStroke(decorationPath));
+        decorationPaths[type].addPath(stroker.createStroke(toQPainterPath(decorationPath)));
     } else {
         decorationPaths[type].addPath(stroker.createStroke(decorationPath.translated(offset)));
     }

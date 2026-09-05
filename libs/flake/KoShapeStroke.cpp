@@ -88,7 +88,7 @@ void KoShapeStroke::Private::paintBorder(const KoShape *shape, QPainter &painter
             return;
         }
 
-        painter.strokePath(toQPainterPath(shape->outline()), pen);
+        painter.strokePath(toQPainterPath(shape->outline()), toQPen(pen));
     }
 }
 void KoShapeStroke::Private::paintMarkers(const KoShape *shape, QPainter &painter, const PkPen &pen) const

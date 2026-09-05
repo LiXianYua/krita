@@ -134,13 +134,13 @@ public:
         if (qgetenv("FONTCONFIG_PATH").isEmpty()) {
             QDir appdir("/etc/fonts");
             if (PkFileStream::exists(appdir.absoluteFilePath("fonts.conf"))) {
-                configSearchPath = QDir::toNativeSeparators(appdir.absolutePath());
+                configSearchPath = toPkString(QDir::toNativeSeparators(appdir.absolutePath()));
             } else {
                 // Otherwise use default, which is defined in src/fcinit.c , windows and macos
                 // default locations *are* defined in fontconfig's meson build system.
                 appdir = QDir(pkToQString(KoResourcePaths::getApplicationRoot()) + "/etc/fonts");
                 if (PkFileStream::exists(appdir.absoluteFilePath("fonts.conf"))) {
-                    configSearchPath = QDir::toNativeSeparators(appdir.absolutePath());
+                    configSearchPath = toPkString(QDir::toNativeSeparators(appdir.absolutePath()));
                 }
             }
         }

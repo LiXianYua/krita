@@ -229,7 +229,7 @@ public:
             isForeGroundColor = true;
         } else {
             const FT_Color color = m_palette[m_layerColorIndex];
-            layerColor = PkColor(color.red, color.green, color.blue, color.alpha);
+            layerColor = toQColor(PkColor(color.red, color.green, color.blue, color.alpha));
         }
         if (const FT_Error err = FT_Load_Glyph(m_face, m_layerGlyphIndex, faceLoadFlags)) {
             warnFlake << "Failed to load glyph, freetype error" << err;

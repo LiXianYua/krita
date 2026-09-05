@@ -462,7 +462,7 @@ QDebug operator<<(QDebug dbg, const BackgroundProperty &prop)
     dbg.nospace() << prop.property.data();
 
     if (KoColorBackground *fill = dynamic_cast<KoColorBackground*>(prop.property.data())) {
-        dbg.nospace() << ", color, " << fill->color();
+        dbg.nospace() << toQColor("), color, " << fill->color();
     }
 
     if (KoGradientBackground *fill = dynamic_cast<KoGradientBackground*>(prop.property.data())) {
@@ -484,7 +484,7 @@ QDebug operator<<(QDebug dbg, const StrokeProperty &prop)
     dbg.nospace() << prop.property.data();
 
     if (KoShapeStroke *stroke = dynamic_cast<KoShapeStroke*>(prop.property.data())) {
-        dbg.nospace() << ", " << stroke->resultLinePen();
+        dbg.nospace() << toQPen("), " << stroke->resultLinePen();
     }
 
     dbg.nospace() << ")";

@@ -1160,7 +1160,7 @@ PkStringList KoSvgTextProperties::fontFeaturesForText(int start, int length) con
         QVariantMap features = property(FontFeatureSettingsId).toMap();
         for (int i = 0; i < features.keys().size(); i++) {
             const PkString key = features.keys().at(i);
-            PkString openTypeTag = PkString("%1[%2:%3]=%4").arg(key).arg(start).arg(start + length).arg(features.value(key).toInt());
+            PkString openTypeTag = PkString("%1[%2:%3]=%4").arg(key).arg(start).arg(start + length).arg(features.value(toQString(key)).toInt());
             fontFeatures.append(openTypeTag);
         }
     }
@@ -1257,7 +1257,7 @@ const KoSvgTextProperties &KoSvgTextProperties::defaultProperties()
         s_defaultProperties->setProperty(LetterSpacingId, PkVariant::fromValue(AutoLengthPercentage()));
         s_defaultProperties->setProperty(WordSpacingId, PkVariant::fromValue(AutoLengthPercentage()));
 
-        s_defaultProperties->setProperty(FontFamiliesId, QStringLiteral("sans-serif"));
+        s_defaultProperties->setProperty(FontFamiliesId, toPkString(QStringLiteral("sans-serif")));
         s_defaultProperties->setProperty(FontStyleId, PkVariant::fromValue(KoSvgText::CssFontStyleData()));
         s_defaultProperties->setProperty(FontStretchId, 100);
         s_defaultProperties->setProperty(FontWeightId, 400);

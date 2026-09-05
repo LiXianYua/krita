@@ -109,11 +109,11 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
                     KoClipMaskPainter fillPainter(&painter, shapeGlobalClipRect);
                     setRenderHints(*fillPainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
                     background->paint(*fillPainter.shapePainter(), rootOutline);
-                    fillPainter.maskPainter()->fillPath(rootOutline, Pk::black);
-                    fillPainter.maskPainter()->fillPath(decorPath, Qt::white);
+                    fillPainter.maskPainter()->fillPath(toQPainterPath(rootOutline), Pk::black);
+                    fillPainter.maskPainter()->fillPath(toQPainterPath(decorPath), Qt::white);
                     fillPainter.renderOnGlobalPainter();
                 } else if (colorValid) {
-                    painter.fillPath(decorPath, textDecorationColor);
+                    painter.fillPath(toQPainterPath(decorPath), textDecorationColor);
                 }
             } else if (p == KoShape::Stroke) {
                 if (stroke) {
@@ -185,7 +185,7 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                     KoClipMaskPainter fillPainter(&painter, shapeGlobalClipRect);
                     if (background) {
                         background->paint(*fillPainter.shapePainter(), rootOutline);
-                        fillPainter.maskPainter()->fillPath(rootOutline, Pk::black);
+                        fillPainter.maskPainter()->fillPath(toQPainterPath(rootOutline), Pk::black);
                         setRenderHints(*fillPainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
                     }
                     PkPainterPath textDecorationsRest;
@@ -256,7 +256,7 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                         if (p == KoShape::Fill) {
                             if (background) {
                                 chunk.setFillRule(Qt::WindingFill);
-                                fillPainter.maskPainter()->fillPath(chunk, Qt::white);
+                                fillPainter.maskPainter()->fillPath(toQPainterPath(chunk), Qt::white);
                             }
                             if (!textDecorationsRest.isEmpty()) {
                                 fillPainter.maskPainter()->fillPath(textDecorationsRest.simplified(), Qt::white);

@@ -167,7 +167,7 @@ KoSvgTextShape::~KoSvgTextShape()
 
 const PkString &KoSvgTextShape::defaultPlaceholderText()
 {
-    static const PkString s_placeholderText = i18nc("Default text for the text shape", "Placeholder Text");
+    static const PkString s_placeholderText = toPkString(i18nc("Default text for the text shape", "Placeholder Text"));
     return s_placeholderText;
 }
 
@@ -800,13 +800,13 @@ PkPainterPath KoSvgTextShape::underlines(int pos, int anchor, KoSvgText::TextDec
 
     PkPainterPath final;
     if (decor.testFlag(KoSvgText::DecorationUnderline)){
-        final.addPath(stroker.createStroke(underPath));
+        final.addPath(stroker.createStroke(toQPainterPath(underPath)));
     }
     if (decor.testFlag(KoSvgText::DecorationOverline)){
-        final.addPath(stroker.createStroke(overPath));
+        final.addPath(stroker.createStroke(toQPainterPath(overPath)));
     }
     if (decor.testFlag(KoSvgText::DecorationLineThrough)){
-        final.addPath(stroker.createStroke(middlePath));
+        final.addPath(stroker.createStroke(toQPainterPath(middlePath)));
     }
 
     return final;
@@ -2615,15 +2615,15 @@ void KoSvgTextShape::relayout() const
 KoSvgTextShapeFactory::KoSvgTextShapeFactory()
     : KoShapeFactoryBase(KoSvgTextShape_SHAPEID, i18nc("Text label in SVG Text Tool", "Text"))
 {
-    setToolTip(i18n("SVG Text Shape"));
+    setToolTip(toPkString(i18n("SVG Text Shape")));
     setIconName("x-shape-text");
     setLoadingPriority(5);
     setXmlElementNames(toQString(KoXmlNS::svg), PkStringList("text"));
 
     KoShapeTemplate t;
-    t.name = i18n("SVG Text");
-    t.iconName = QLatin1String("x-shape-text");
-    t.toolTip = i18n("SVG Text Shape");
+    t.name = toPkString(i18n("SVG Text"));
+    t.iconName = toPkString(QLatin1String("x-shape-text"));
+    t.toolTip = toPkString(i18n("SVG Text Shape"));
     addTemplate(t);
 }
 
@@ -2634,7 +2634,7 @@ KoShape *KoSvgTextShapeFactory::createDefaultShape(KoDocumentResourceManager *do
 
     KoSvgTextShape *shape = new KoSvgTextShape();
     shape->setShapeId(KoSvgTextShape_SHAPEID);
-    shape->insertText(0, i18nc("Default text for the text shape", "Placeholder Text"));
+    shape->insertText(0, toPkString(i18nc("Default text for the text shape", "Placeholder Text")));
 
     return shape;
 }
