@@ -8,7 +8,7 @@
 
 #include "kis_tool_multihand_helper.h"
 
-#include <QTransform>
+#include <PkTransform>
 
 #include "kis_painter.h"
 #include <strokes/KisFreehandStrokeInfo.h>
@@ -16,7 +16,7 @@
 
 struct KisToolMultihandHelper::Private
 {
-    QVector<QTransform> transformations;
+    QVector<PkTransform> transformations;
 };
 
 KisToolMultihandHelper::KisToolMultihandHelper(KisPaintingInformationBuilder *infoBuilder,
@@ -32,7 +32,7 @@ KisToolMultihandHelper::~KisToolMultihandHelper()
     delete d;
 }
 
-void KisToolMultihandHelper::setupTransformations(const QVector<QTransform> &transformations)
+void KisToolMultihandHelper::setupTransformations(const QVector<PkTransform> &transformations)
 {
     d->transformations = transformations;
 }
@@ -102,8 +102,8 @@ void KisToolMultihandHelper::paintLine(const KisPaintInformation &pi1,
 }
 
 void KisToolMultihandHelper::paintBezierCurve(const KisPaintInformation &pi1,
-                                              const QPointF &control1,
-                                              const QPointF &control2,
+                                              const PkPointF &control1,
+                                              const PkPointF &control2,
                                               const KisPaintInformation &pi2)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
@@ -117,8 +117,8 @@ void KisToolMultihandHelper::paintBezierCurve(const KisPaintInformation &pi1,
         adjustPointInformationRotation(__pi1, transform);
         adjustPointInformationRotation(__pi2, transform);
 
-        QPointF __control1 = toQPointF(transform.map(toPkPointF(control1)));
-        QPointF __control2 = toQPointF(transform.map(toPkPointF(control2)));
+        PkPointF __control1 = toQPointF(transform.map(toPkPointF(control1)));
+        PkPointF __control2 = toQPointF(transform.map(toPkPointF(control2)));
 
         paintBezierCurve(i, __pi1, __control1, __control2, __pi2);
     }

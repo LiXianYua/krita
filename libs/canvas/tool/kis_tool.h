@@ -31,7 +31,7 @@ class KoCanvasBase;
 class KisFilterConfiguration;
 class QPainter;
 class QPainterPath;
-class QPolygonF;
+class PkPolygonF;
 class KisOptimizedBrushOutline;
 
 //activation id for Krita tools, Krita tools are always active and handle locked and invisible layers by themselves
@@ -206,37 +206,37 @@ protected:
 
     /// Convert from native (postscript points) to image pixel
     /// coordinates.
-    QPointF convertToPixelCoord(KoPointerEvent *e);
-    QPointF convertToPixelCoord(const QPointF& pt);
+    PkPointF convertToPixelCoord(KoPointerEvent *e);
+    PkPointF convertToPixelCoord(const PkPointF& pt);
 
-    QPointF convertToPixelCoordAndAlignOnWidget(const QPointF& pt);
+    PkPointF convertToPixelCoordAndAlignOnWidget(const PkPointF& pt);
 
-    QPointF convertToPixelCoordAndSnap(KoPointerEvent *e, const QPointF &offset = QPointF(), bool useModifiers = true);
-    QPointF convertToPixelCoordAndSnap(const QPointF& pt, const QPointF &offset = QPointF());
+    PkPointF convertToPixelCoordAndSnap(KoPointerEvent *e, const PkPointF &offset = PkPointF(), bool useModifiers = true);
+    PkPointF convertToPixelCoordAndSnap(const PkPointF& pt, const PkPointF &offset = PkPointF());
 
 protected:
-    QPointF widgetCenterInWidgetPixels();
-    QPointF convertDocumentToWidget(const QPointF& pt);
+    PkPointF widgetCenterInWidgetPixels();
+    PkPointF convertDocumentToWidget(const PkPointF& pt);
 
     /// Convert from native (postscript points) to integer image pixel
     /// coordinates. This rounds down (not truncate) the pixel coordinates and
-    /// should be used in preference to QPointF::toPoint(), which rounds,
+    /// should be used in preference to PkPointF::toPoint(), which rounds,
     /// to ensure the cursor acts on the pixel it is visually over.
     QPoint convertToImagePixelCoordFloored(KoPointerEvent *e);
 
-    QRectF convertToPt(const QRectF &rect);
+    PkRectF convertToPt(const PkRectF &rect);
     qreal convertToPt(qreal value);
 
-    QPointF viewToPixel(const QPointF &viewCoord) const;
+    PkPointF viewToPixel(const PkPointF &viewCoord) const;
     /// Convert an integer pixel coordinate into a view coordinate.
     /// The view coordinate is at the centre of the pixel.
-    QPointF pixelToView(const QPoint &pixelCoord) const;
+    PkPointF pixelToView(const QPoint &pixelCoord) const;
 
     /// Convert a floating point pixel coordinate into a view coordinate.
-    QPointF pixelToView(const QPointF &pixelCoord) const;
+    PkPointF pixelToView(const PkPointF &pixelCoord) const;
 
     /// Convert a pixel rectangle into a view rectangle.
-    QRectF pixelToView(const QRectF &pixelRect) const;
+    PkRectF pixelToView(const PkRectF &pixelRect) const;
 
     /// Convert a pixel path into a view path
     QPainterPath pixelToView(const QPainterPath &pixelPath) const;
@@ -244,13 +244,13 @@ protected:
     KisOptimizedBrushOutline pixelToView(const KisOptimizedBrushOutline &path) const;
 
     /// Convert a pixel polygon into a view path
-    QPolygonF pixelToView(const QPolygonF &pixelPolygon) const;
+    PkPolygonF pixelToView(const PkPolygonF &pixelPolygon) const;
 
     /// Update the canvas for the given rectangle in image pixel coordinates.
-    void updateCanvasPixelRect(const QRectF &pixelRect);
+    void updateCanvasPixelRect(const PkRectF &pixelRect);
 
     /// Update the canvas for the given rectangle in view coordinates.
-    void updateCanvasViewRect(const QRectF &viewRect);
+    void updateCanvasViewRect(const PkRectF &viewRect);
 
     QWidget* createOptionWidget() override;
 

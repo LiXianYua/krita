@@ -15,7 +15,7 @@ class KRITACANVAS_EXPORT KisToolRectangleBase : public KisToolShape
 Q_OBJECT
 
 Q_SIGNALS:
-    void rectangleChanged(const QRectF &newRect);
+    void rectangleChanged(const PkRectF &newRect);
     void sigRequestReloadConfig();
 
 public Q_SLOTS:
@@ -47,11 +47,11 @@ public:
     void showSize();
 
 protected:
-    virtual void finishRect(const QRectF &rect, qreal roundCornersX, qreal roundCornersY) = 0;
+    virtual void finishRect(const PkRectF &rect, qreal roundCornersX, qreal roundCornersY) = 0;
 
-    QPointF m_dragCenter;
-    QPointF m_dragStart;
-    QPointF m_dragEnd;
+    PkPointF m_dragCenter;
+    PkPointF m_dragStart;
+    PkPointF m_dragEnd;
     ToolType m_type;
 
     bool m_isRatioForced;
@@ -70,13 +70,13 @@ protected:
 
     bool isFixedSize();
     qreal getRotationAngle();
-    QPainterPath drawX(const QPointF &pt);
-    void applyConstraints(QSizeF& area, bool overrideRatio);
-    void getRotatedPath(QPainterPath &path, const QPointF &center, const qreal &angle);
+    QPainterPath drawX(const PkPointF &pt);
+    void applyConstraints(PkSizeF& area, bool overrideRatio);
+    void getRotatedPath(QPainterPath &path, const PkPointF &center, const qreal &angle);
 
     void updateArea();
-    virtual void paintRectangle(QPainter &gc, const QRectF &imageRect);
-    virtual QRectF createRect(const QPointF &start, const QPointF &end);
+    virtual void paintRectangle(QPainter &gc, const PkRectF &imageRect);
+    virtual PkRectF createRect(const PkPointF &start, const PkPointF &end);
     virtual bool showRoundCornersGUI() const;
 
     void endStroke();

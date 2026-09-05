@@ -5,7 +5,7 @@
  */
 
 #include <QObject>
-#include <QPointF>
+#include <PkPointF>
 #include <QVariant>
 #include <QVector>
 
@@ -95,27 +95,27 @@ KisPaintInformation KisPaintingInformationBuilder::continueStroke(KoPointerEvent
     return createPaintingInformation(event, timeElapsed);
 }
 
-QPointF KisPaintingInformationBuilder::adjustDocumentPoint(const QPointF &point, const QPointF &/*startPoint*/)
+PkPointF KisPaintingInformationBuilder::adjustDocumentPoint(const PkPointF &point, const PkPointF &/*startPoint*/)
 {
     return point;
 }
 
-QPointF KisPaintingInformationBuilder::documentToImage(const QPointF &point)
+PkPointF KisPaintingInformationBuilder::documentToImage(const PkPointF &point)
 {
     return point;
 }
 
-QPointF KisPaintingInformationBuilder::imageToDocument(const QPointF &point)
+PkPointF KisPaintingInformationBuilder::imageToDocument(const PkPointF &point)
 {
     return point;
 }
 
-QPointF KisPaintingInformationBuilder::imageToView(const QPointF &point)
+PkPointF KisPaintingInformationBuilder::imageToView(const PkPointF &point)
 {
     return point;
 }
 
-qreal KisPaintingInformationBuilder::calculatePerspective(const QPointF &documentPoint)
+qreal KisPaintingInformationBuilder::calculatePerspective(const PkPointF &documentPoint)
 {
     Q_UNUSED(documentPoint);
     return 1.0;
@@ -140,10 +140,10 @@ KisPaintInformation KisPaintingInformationBuilder::createPaintingInformation(KoP
                                                                              int timeElapsed)
 {
 
-    QPointF adjusted = adjustDocumentPoint(event->point, m_startPoint);
-    QPointF imagePoint = documentToImage(adjusted);
+    PkPointF adjusted = adjustDocumentPoint(event->point, m_startPoint);
+    PkPointF imagePoint = documentToImage(adjusted);
     qreal perspective = calculatePerspective(adjusted);
-    const QPointF viewPoint = imageToView(imagePoint);
+    const PkPointF viewPoint = imageToView(imagePoint);
     const qreal speed = m_speedSmoother->getNextSpeed(PkPointF(viewPoint.x(), viewPoint.y()), event->time());
 
     KisPaintInformation pi(PkPointF(imagePoint.x(), imagePoint.y()),
@@ -163,7 +163,7 @@ KisPaintInformation KisPaintingInformationBuilder::createPaintingInformation(KoP
     return pi;
 }
 
-KisPaintInformation KisPaintingInformationBuilder::hover(const QPointF &imagePoint,
+KisPaintInformation KisPaintingInformationBuilder::hover(const PkPointF &imagePoint,
                                                          const KoPointerEvent *event,
                                                          bool isStrokeStarted)
 {
@@ -171,7 +171,7 @@ KisPaintInformation KisPaintingInformationBuilder::hover(const QPointF &imagePoi
 
     qreal speed;
     if (!isStrokeStarted && event) {
-        const QPointF viewPoint = imageToView(imagePoint);
+        const PkPointF viewPoint = imageToView(imagePoint);
         speed = m_speedSmoother->getNextSpeed(PkPointF(viewPoint.x(), viewPoint.y()), event->time());
     } else {
         speed = m_speedSmoother->lastSpeed();
@@ -225,17 +225,17 @@ KisConverterPaintingInformationBuilder::KisConverterPaintingInformationBuilder(c
 {
 }
 
-QPointF KisConverterPaintingInformationBuilder::documentToImage(const QPointF &point)
+PkPointF KisConverterPaintingInformationBuilder::documentToImage(const PkPointF &point)
 {
     return m_converter->documentToImage(point);
 }
 
-QPointF KisConverterPaintingInformationBuilder::imageToDocument(const QPointF &point)
+PkPointF KisConverterPaintingInformationBuilder::imageToDocument(const PkPointF &point)
 {
     return m_converter->imageToDocument(point);
 }
 
-QPointF KisConverterPaintingInformationBuilder::imageToView(const QPointF &point)
+PkPointF KisConverterPaintingInformationBuilder::imageToView(const PkPointF &point)
 {
     return m_converter->imageToWidget(point);
 }
@@ -267,29 +267,29 @@ KisToolFreehandPaintingInformationBuilder::KisToolFreehandPaintingInformationBui
 {
 }
 
-QPointF KisToolFreehandPaintingInformationBuilder::documentToImage(const QPointF &point)
+PkPointF KisToolFreehandPaintingInformationBuilder::documentToImage(const PkPointF &point)
 {
     return m_tool->convertToPixelCoord(point);
 }
 
-QPointF KisToolFreehandPaintingInformationBuilder::imageToDocument(const QPointF &point)
+PkPointF KisToolFreehandPaintingInformationBuilder::imageToDocument(const PkPointF &point)
 {
     KisCanvasToolServices *canvas = dynamic_cast<KisCanvasToolServices*>(m_tool->canvas());
     KIS_ASSERT_RECOVER_RETURN_VALUE(canvas, point);
     return canvas->toolImageToDocument(point);
 }
 
-QPointF KisToolFreehandPaintingInformationBuilder::imageToView(const QPointF &point)
+PkPointF KisToolFreehandPaintingInformationBuilder::imageToView(const PkPointF &point)
 {
     return m_tool->pixelToView(point);
 }
 
-QPointF KisToolFreehandPaintingInformationBuilder::adjustDocumentPoint(const QPointF &point, const QPointF &startPoint)
+PkPointF KisToolFreehandPaintingInformationBuilder::adjustDocumentPoint(const PkPointF &point, const PkPointF &startPoint)
 {
     return m_tool->adjustPosition(point, startPoint);
 }
 
-qreal KisToolFreehandPaintingInformationBuilder::calculatePerspective(const QPointF &documentPoint)
+qreal KisToolFreehandPaintingInformationBuilder::calculatePerspective(const PkPointF &documentPoint)
 {
     return m_tool->calculatePerspective(documentPoint);
 }

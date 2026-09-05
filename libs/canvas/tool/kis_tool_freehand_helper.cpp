@@ -122,7 +122,7 @@ struct KisToolFreehandHelper::Private
 
     static PkPoint toPixelPos(const PkPointF &pos)
     {
-        // Don't replace this with QPointF::toPoint, that rounds! Flooring is
+        // Don't replace this with PkPointF::toPoint, that rounds! Flooring is
         // the correct operation here.
         return PkPoint(pkFloor(pos.x()), pkFloor(pos.y()));
     }
@@ -181,7 +181,7 @@ KisSmoothingOptionsSP KisToolFreehandHelper::smoothingOptions() const
     return m_d->smoothingOptions;
 }
 
-KisOptimizedBrushOutline KisToolFreehandHelper::paintOpOutline(const QPointF &savedCursorPos,
+KisOptimizedBrushOutline KisToolFreehandHelper::paintOpOutline(const PkPointF &savedCursorPos,
                                                                const KoPointerEvent *event,
                                                                const KisPaintOpSettingsSP globalSettings,
                                                                KisPaintOpSettings::OutlineMode mode) const
@@ -252,13 +252,13 @@ KisOptimizedBrushOutline KisToolFreehandHelper::paintOpOutline(const QPointF &sa
     return outline;
 }
 
-void KisToolFreehandHelper::cursorMoved(const QPointF &cursorPos)
+void KisToolFreehandHelper::cursorMoved(const PkPointF &cursorPos)
 {
     m_d->lastCursorPos.pushThroughHistory(toPkPointF(cursorPos), currentZoom());
 }
 
 void KisToolFreehandHelper::initPaint(KoPointerEvent *event,
-                                      const QPointF &pixelCoords,
+                                      const PkPointF &pixelCoords,
                                       KisImageWSP image, KisNodeSP currentNode,
                                       KisStrokesFacade *strokesFacade,
                                       KisNodeSP overrideNode,
@@ -269,7 +269,7 @@ void KisToolFreehandHelper::initPaint(KoPointerEvent *event,
 }
 
 void KisToolFreehandHelper::initPaintWithMyPaintSlowTrackingPolicy(KoPointerEvent *event,
-                                      const QPointF &pixelCoords,
+                                      const PkPointF &pixelCoords,
                                       KisImageWSP image, KisNodeSP currentNode,
                                       KisStrokesFacade *strokesFacade,
                                       KisNodeSP overrideNode,
@@ -417,7 +417,7 @@ KoCanvasResourceProvider *KisToolFreehandHelper::resourceManager() const
 }
 
 void KisToolFreehandHelper::paintBezierSegment(KisPaintInformation pi1, KisPaintInformation pi2,
-                                               QPointF tangent1, QPointF tangent2)
+                                               PkPointF tangent1, PkPointF tangent2)
 {
     if (tangent1.isNull() || tangent2.isNull()) return;
 
@@ -1072,8 +1072,8 @@ void KisToolFreehandHelper::paintLine(int strokeInfoId,
 
 void KisToolFreehandHelper::paintBezierCurve(int strokeInfoId,
                                              const KisPaintInformation &pi1,
-                                             const QPointF &control1,
-                                             const QPointF &control2,
+                                             const PkPointF &control1,
+                                             const PkPointF &control2,
                                              const KisPaintInformation &pi2)
 {
 
@@ -1126,8 +1126,8 @@ void KisToolFreehandHelper::paintLine(const KisPaintInformation &pi1,
 }
 
 void KisToolFreehandHelper::paintBezierCurve(const KisPaintInformation &pi1,
-                                             const QPointF &control1,
-                                             const QPointF &control2,
+                                             const PkPointF &control1,
+                                             const PkPointF &control2,
                                              const KisPaintInformation &pi2)
 {
     paintBezierCurve(0, pi1, control1, control2, pi2);

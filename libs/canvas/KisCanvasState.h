@@ -11,7 +11,7 @@
 #include <boost/operators.hpp>
 #include <QPoint>
 #include <QSize>
-#include <QRectF>
+#include <PkRectF>
 #include <KoZoomMode.h>
 
 class KoZoomState;
@@ -27,14 +27,14 @@ public:
     bool mirrorHorizontally;
     bool mirrorVertically;
     QPoint documentOffset;
-    QPointF documentOffsetF;
-    QPointF viewportOffsetF;
+    PkPointF documentOffsetF;
+    PkPointF viewportOffsetF;
     QPoint minimumOffset;
     QPoint maximumOffset;
-    QSizeF canvasSize;
+    PkSizeF canvasSize;
     qreal minimumZoom;
     qreal maximumZoom;
-    QRectF imageRectInWidgetPixels;
+    PkRectF imageRectInWidgetPixels;
 
     bool operator==(const KisCanvasState &other) const;
 

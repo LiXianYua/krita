@@ -73,9 +73,9 @@ void zoomhandler_test::testViewToDocument()
     zoomHandler.setZoom( 1.0 );
     zoomHandler.setDpi( 100, 100 );
 
-    QCOMPARE( zoomHandler.viewToDocument( QPointF( 0, 0 ) ), QPointF( 0, 0 ) );
+    QCOMPARE( zoomHandler.viewToDocument( PkPointF( 0, 0 ) ), PkPointF( 0, 0 ) );
     // 100 view pixels are 72 postscript points at 100% zoom, 100ppi.
-    QCOMPARE( zoomHandler.viewToDocument( QRectF( 0, 0, 100, 100 ) ), QRectF( 0, 0, 72, 72 ) );
+    QCOMPARE( zoomHandler.viewToDocument( PkRectF( 0, 0, 100, 100 ) ), PkRectF( 0, 0, 72, 72 ) );
     QCOMPARE( zoomHandler.viewToDocumentX( 0 ), 0. );
     QCOMPARE( zoomHandler.viewToDocumentY( 0 ), 0. );
 
@@ -87,8 +87,8 @@ void zoomhandler_test::testDocumentToView()
     zoomHandler.setZoom( 1.0 );
     zoomHandler.setDpi( 100, 100 );
 
-    QCOMPARE( zoomHandler.documentToView(  QPointF( 0,0 ) ), QPointF( 0, 0 ) );
-    QCOMPARE( zoomHandler.documentToView(  QRectF( 0, 0, 72, 72 ) ), QRectF( 0, 0, 100, 100) );
+    QCOMPARE( zoomHandler.documentToView(  PkPointF( 0,0 ) ), PkPointF( 0, 0 ) );
+    QCOMPARE( zoomHandler.documentToView(  PkRectF( 0, 0, 72, 72 ) ), PkRectF( 0, 0, 100, 100) );
     QCOMPARE( zoomHandler.documentToViewX( 72 ), 100. );
     QCOMPARE( zoomHandler.documentToViewY( 72 ), 100. );
 

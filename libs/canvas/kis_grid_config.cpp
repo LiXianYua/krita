@@ -26,7 +26,7 @@ Q_GLOBAL_STATIC(KisGridConfig, staticDefaultObject)
 
 namespace {
 
-PkTransform toPkTransform(const QTransform &transform)
+PkTransform toPkTransform(const PkTransform &transform)
 {
     return PkTransform(transform.m11(), transform.m12(), transform.m13(),
                        transform.m21(), transform.m22(), transform.m23(),
@@ -172,9 +172,9 @@ const KisGridConfig& KisGridConfig::defaultGrid()
     return *staticDefaultObject;
 }
 
-void KisGridConfig::transform(const QTransform &transform)
+void KisGridConfig::transform(const PkTransform &transform)
 {
-    if (transform.type() >= QTransform::TxShear) return;
+    if (transform.type() >= PkTransform::TxShear) return;
 
     const PkTransform pkTransform = toPkTransform(transform);
     KisAlgebra2D::DecomposedMatrix m(pkTransform);

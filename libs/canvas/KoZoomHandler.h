@@ -130,39 +130,39 @@ public:
      * Convert a coordinate in pt to pixels.
      * @param documentPoint the point in the document coordinate system of a KoShape.
      */
-    QPointF documentToView(const QPointF &documentPoint) const override;
+    PkPointF documentToView(const PkPointF &documentPoint) const override;
 
     /**
      * Convert a coordinate in pixels to pt.
      * @param viewPoint the point in the coordinate system of the widget, or window.
      */
-    QPointF viewToDocument(const QPointF &viewPoint) const override;
+    PkPointF viewToDocument(const PkPointF &viewPoint) const override;
 
     /**
      * Convert a rectangle in pt to pixels.
      * @param documentRect the rect in the document coordinate system of a KoShape.
      */
-    QRectF documentToView(const QRectF &documentRect) const override;
+    PkRectF documentToView(const PkRectF &documentRect) const override;
 
     /**
      * Convert a rectangle in pixels to pt.
      * @param viewRect the rect in the coordinate system of the widget, or window.
      */
-    QRectF viewToDocument(const QRectF &viewRect) const override;
+    PkRectF viewToDocument(const PkRectF &viewRect) const override;
 
     /**
      * Convert a size in pt to pixels.
      * @param documentSize the size in pt.
      * @return the size in pixels.
      */
-    QSizeF documentToView(const QSizeF &documentSize) const override;
+    PkSizeF documentToView(const PkSizeF &documentSize) const override;
 
     /**
      * Convert a size in pixels to pt.
      * @param viewSize the size in pixels.
      * @return the size in pt.
      */
-    QSizeF viewToDocument(const QSizeF &viewSize) const override;
+    PkSizeF viewToDocument(const PkSizeF &viewSize) const override;
 
     /**
      * Convert a single x coordinate in pt to pixels.

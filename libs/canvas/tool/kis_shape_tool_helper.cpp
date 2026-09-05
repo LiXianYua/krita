@@ -14,7 +14,7 @@
 #include <KoProperties.h>
 
 
-KoShape* KisShapeToolHelper::createRectangleShape(const QRectF& rect, qreal roundCornersX, qreal roundCornersY)
+KoShape* KisShapeToolHelper::createRectangleShape(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY)
 {
     KoShape* shape;
 
@@ -44,7 +44,7 @@ KoShape* KisShapeToolHelper::createRectangleShape(const QRectF& rect, qreal roun
     return shape;
 }
 
-KoShape* KisShapeToolHelper::createEllipseShape(const QRectF& rect)
+KoShape* KisShapeToolHelper::createEllipseShape(const PkRectF& rect)
 {
     KoShape* shape;
     KoShapeFactoryBase *rectFactory = KoShapeRegistry::instance()->value("EllipseShape");
@@ -57,7 +57,7 @@ KoShape* KisShapeToolHelper::createEllipseShape(const QRectF& rect)
         KoPathShape* path = new KoPathShape();
         path->setShapeId(KoPathShapeId);
 
-        QPointF rightMiddle = QPointF(rect.left() + rect.width(), rect.top() + rect.height() / 2);
+        PkPointF rightMiddle = PkPointF(rect.left() + rect.width(), rect.top() + rect.height() / 2);
         path->moveTo(rightMiddle);
         path->arcTo(rect.width() / 2, rect.height() / 2, 0, 360.0);
         path->close();

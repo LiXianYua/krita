@@ -68,7 +68,7 @@ struct RelevantCanvasState
 {
     qreal zoom = 1.0;
     qreal rotation = 0.0;
-    QPointF viewportOffsetF;
+    PkPointF viewportOffsetF;
 
     std::tuple<qreal,qreal> transformations() const {
         return {zoom, rotation};
@@ -202,14 +202,14 @@ void KisPrescaledProjection::notifyCanvasStateChanged(const KisCanvasState &stat
         updateViewportSize();
         preScale();
     } else {
-        const QPointF moveOffset = m_d->currentRelevantCanvasState->viewportOffsetF - relevantState.viewportOffsetF;
+        const PkPointF moveOffset = m_d->currentRelevantCanvasState->viewportOffsetF - relevantState.viewportOffsetF;
         viewportMoved(-moveOffset);
     }
 
     m_d->currentRelevantCanvasState = relevantState;
 }
 
-void KisPrescaledProjection::viewportMoved(const QPointF &offset)
+void KisPrescaledProjection::viewportMoved(const PkPointF &offset)
 {
     // FIXME: \|/
     if (m_d->prescaledQImage.isNull()) return;
@@ -359,9 +359,9 @@ void KisPrescaledProjection::setDisplayFilter(QSharedPointer<KisDisplayFilter> d
 void KisPrescaledProjection::updateViewportSize()
 {
     QRect imageRect = m_d->coordinatesConverter->imageRectInWidgetPixels().toAlignedRect();
-    QSizeF minimalSize(pkMin(imageRect.width(), m_d->canvasSize.width()),
+    PkSizeF minimalSize(pkMin(imageRect.width(), m_d->canvasSize.width()),
                        pkMin(imageRect.height(), m_d->canvasSize.height()));
-    QRectF minimalRect(QPointF(0,0), minimalSize);
+    PkRectF minimalRect(PkPointF(0,0), minimalSize);
 
     m_d->viewportSize = m_d->coordinatesConverter->widgetToViewport(minimalRect).toAlignedRect().size();
 
@@ -405,7 +405,7 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
 
     // second, align this rect to the KisImage's pixels and pixels
     // of projection backend.
-    info->imageRect = m_d->coordinatesConverter->viewportToImage(QRectF(croppedViewRect)).toAlignedRect();
+    info->imageRect = m_d->coordinatesConverter->viewportToImage(PkRectF(croppedViewRect)).toAlignedRect();
 
     /**
      * To avoid artifacts while scaling we use mechanism like

@@ -15,7 +15,7 @@
 #include <QPalette>
 #include <QPixmap>
 #include <QTimer>
-#include <QTransform>
+#include <PkTransform>
 
 #include <klocalizedstring.h>
 
@@ -87,7 +87,7 @@ struct KisAsyncColorSamplerHelper::Private
     bool haveSample {false};
 
     KisStrokeId strokeId;
-    typedef KisSignalCompressorWithParam<QPointF> SamplingCompressor;
+    typedef KisSignalCompressorWithParam<PkPointF> SamplingCompressor;
     QScopedPointer<SamplingCompressor> samplingCompressor;
 
     QTimer activationDelayTimer;
@@ -97,7 +97,7 @@ struct KisAsyncColorSamplerHelper::Private
     qreal circlePreviewThickness {0.12};
     bool circlePreviewOutlineEnabled {true};
     bool circlePreviewExtraCircles {true};
-    QRectF previewDocRect;
+    PkRectF previewDocRect;
 
     QColor currentColor;
     QColor baseColor;
@@ -114,7 +114,7 @@ struct KisAsyncColorSamplerHelper::Private
         return *canvas->viewConverter();
     }
 
-    QRectF colorPreviewRectForRectangle() const
+    PkRectF colorPreviewRectForRectangle() const
     {
         // Offsetting to the sides is both vertical and horizontal, when
         // offsetting above it's only vertical, so it needs a bit more space.
@@ -152,11 +152,11 @@ struct KisAsyncColorSamplerHelper::Private
             break;
         }
 
-        QRectF rect(x, y, width, SIZE);
+        PkRectF rect(x, y, width, SIZE);
 
         qreal canvasRotationAngle = samplingCanvas->samplingCanvasRotation();
         if (!pkQtFuzzyIsNull(canvasRotationAngle)) {
-            QTransform tf;
+            PkTransform tf;
             tf.rotate(mirrored ? canvasRotationAngle : -canvasRotationAngle);
             rect = tf.mapRect(rect);
         }
@@ -164,17 +164,17 @@ struct KisAsyncColorSamplerHelper::Private
         return rect;
     }
 
-    QRectF colorPreviewRectForCircle()
+    PkRectF colorPreviewRectForCircle()
     {
-        return QRectF(-circlePreviewDiameter / 2.0, -circlePreviewDiameter / 2.0, circlePreviewDiameter, circlePreviewDiameter);
+        return PkRectF(-circlePreviewDiameter / 2.0, -circlePreviewDiameter / 2.0, circlePreviewDiameter, circlePreviewDiameter);
     }
 
-    QRectF colorPreviewDocRect(const QPointF &outlineDocPoint)
+    PkRectF colorPreviewDocRect(const PkPointF &outlineDocPoint)
     {
-        QRectF colorPreviewViewRect;
+        PkRectF colorPreviewViewRect;
         switch (style) {
         case ColorSamplerPreviewStyle::None:
-            return QRectF();
+            return PkRectF();
         case ColorSamplerPreviewStyle::RectangleLeft:
         case ColorSamplerPreviewStyle::RectangleRight:
         case ColorSamplerPreviewStyle::RectangleAbove:
@@ -193,7 +193,7 @@ struct KisAsyncColorSamplerHelper::Private
             break;
         }
 
-        const QRectF colorPreviewDocumentRect = converter().viewToDocument(colorPreviewViewRect);
+        const PkRectF colorPreviewDocumentRect = converter().viewToDocument(colorPreviewViewRect);
         return colorPreviewDocumentRect.translated(outlineDocPoint);
     }
 };
@@ -206,7 +206,7 @@ KisAsyncColorSamplerHelper::KisAsyncColorSamplerHelper(
     KIS_ASSERT(m_d->samplingCanvas);
 
     using namespace std::placeholders; // For _1 placeholder
-    std::function<void(QPointF)> callback =
+    std::function<void(PkPointF)> callback =
         std::bind(&KisAsyncColorSamplerHelper::slotAddSamplingJob, this, _1);
     m_d->samplingCompressor.reset(
         new Private::SamplingCompressor(100, callback, KisSignalCompressor::FIRST_ACTIVE));
@@ -310,7 +310,7 @@ void KisAsyncColorSamplerHelper::deactivate()
     m_d->showPreview = false;
     m_d->haveSample = false;
 
-    m_d->previewDocRect = QRectF();
+    m_d->previewDocRect = PkRectF();
     m_d->currentColor = QColor();
     m_d->baseColor = QColor();
     m_d->cache = QPixmap();
@@ -321,7 +321,7 @@ void KisAsyncColorSamplerHelper::deactivate()
     Q_EMIT sigRequestUpdateOutline();
 }
 
-void KisAsyncColorSamplerHelper::startAction(const QPointF &docPoint, int radius, int blend)
+void KisAsyncColorSamplerHelper::startAction(const PkPointF &docPoint, int radius, int blend)
 {
     KisColorSamplerStrokeStrategy *strategy = new KisColorSamplerStrokeStrategy(radius, blend);
     connect(strategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
@@ -335,7 +335,7 @@ void KisAsyncColorSamplerHelper::startAction(const QPointF &docPoint, int radius
     m_d->samplingCompressor->start(docPoint);
 }
 
-void KisAsyncColorSamplerHelper::continueAction(const QPointF &docPoint)
+void KisAsyncColorSamplerHelper::continueAction(const PkPointF &docPoint)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_d->strokeId);
     m_d->samplingCompressor->start(docPoint);
@@ -352,9 +352,9 @@ void KisAsyncColorSamplerHelper::endAction()
     m_d->strokeId = nullptr;
 }
 
-QRectF KisAsyncColorSamplerHelper::colorPreviewDocRect(const QPointF &docPoint)
+PkRectF KisAsyncColorSamplerHelper::colorPreviewDocRect(const PkPointF &docPoint)
 {
-    if (!m_d->showPreview) return QRectF();
+    if (!m_d->showPreview) return PkRectF();
 
     m_d->style = readColorSamplerPreviewStyle();
     m_d->previewDocRect = m_d->colorPreviewDocRect(docPoint);
@@ -367,7 +367,7 @@ void KisAsyncColorSamplerHelper::paint(QPainter &gc, const KoViewConverter &conv
         return;
     }
 
-    QRectF viewRectF = converter.documentToView(m_d->previewDocRect);
+    PkRectF viewRectF = converter.documentToView(m_d->previewDocRect);
     QColor currentColor = colorWithAlpha(m_d->currentColor, OPACITY_OPAQUE_U8);
     QColor baseColor = m_d->haveSample ? colorWithAlpha(m_d->baseColor, OPACITY_OPAQUE_U8) : currentColor;
 
@@ -389,12 +389,12 @@ void KisAsyncColorSamplerHelper::paint(QPainter &gc, const KoViewConverter &conv
 }
 
 void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
-                                                const QRectF &viewRectF,
+                                                const PkRectF &viewRectF,
                                                 const QColor &currentColor,
                                                 const QColor &baseColor)
 {
     qreal dpr = gc.device()->devicePixelRatioF();
-    QSizeF cacheSizeF = viewRectF.size() * dpr;
+    PkSizeF cacheSizeF = viewRectF.size() * dpr;
     QSize cacheSize(pkCeil(cacheSizeF.width()), pkCeil(cacheSizeF.height()));
     bool needsNewCache = m_d->cache.isNull() || m_d->cache.size() != cacheSize;
     if (needsNewCache) {
@@ -413,19 +413,19 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
         cachePainter.setRenderHint(QPainter::Antialiasing);
 
         qreal size = Private::PREVIEW_RECT_SIZE * dpr;
-        QRectF rect(0.0, 0.0, m_d->haveSample ? size * 2.0 : size, size);
+        PkRectF rect(0.0, 0.0, m_d->haveSample ? size * 2.0 : size, size);
         rect.moveTopLeft(-rect.center());
 
-        QTransform tf;
-        QPointF offset = QRectF(m_d->cache.rect()).center();
+        PkTransform tf;
+        PkPointF offset = PkRectF(m_d->cache.rect()).center();
         tf.translate(offset.x(), offset.y());
         tf.rotate(canvasMirror ? canvasRotationAngle : -canvasRotationAngle);
         cachePainter.setTransform(tf);
 
         if (m_d->haveSample) {
             qreal centerX = rect.center().x();
-            QRectF currentRect(rect.topLeft(), QPointF(centerX + 1.0, rect.bottom()));
-            QRectF baseRect(QPointF(centerX, rect.top()), rect.bottomRight());
+            PkRectF currentRect(rect.topLeft(), PkPointF(centerX + 1.0, rect.bottom()));
+            PkRectF baseRect(PkPointF(centerX, rect.top()), rect.bottomRight());
             if (m_d->samplingCanvas->samplingCanvasMirroredHorizontally()) {
                 std::swap(currentRect, baseRect);
             }
@@ -440,7 +440,7 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
 }
 
 void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
-                                             const QRectF &viewRectF,
+                                             const PkRectF &viewRectF,
                                              const QColor &currentColor,
                                              const QColor &baseColor)
 {
@@ -453,7 +453,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
     gc.save();
 
     qreal dpr = gc.device()->devicePixelRatioF();
-    QSizeF cacheSizeF = viewRectF.size() * dpr;
+    PkSizeF cacheSizeF = viewRectF.size() * dpr;
     QSize cacheSize(pkCeil(cacheSizeF.width()), pkCeil(cacheSizeF.height()));
     bool needsNewCache = m_d->cache.isNull() || m_d->cache.size() != cacheSize;
     if (needsNewCache) {
@@ -482,12 +482,12 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
             cachePainter.setPen(Qt::NoPen);
         }
 
-        QRectF cacheRect = m_d->cache.rect();
-        QRectF outerRect = cacheRect.marginsRemoved(QMarginsF(penWidth, penWidth, penWidth, penWidth));
+        PkRectF cacheRect = m_d->cache.rect();
+        PkRectF outerRect = cacheRect.marginsRemoved(QMarginsF(penWidth, penWidth, penWidth, penWidth));
 
-        QTransform tf;
+        PkTransform tf;
 
-        QPointF cacheCenter = cacheRect.center();
+        PkPointF cacheCenter = cacheRect.center();
         tf.translate(cacheCenter.x(), cacheCenter.y());
         tf.rotate(-canvasRotationAngle);
         tf.translate(-cacheCenter.x(), -cacheCenter.y());
@@ -500,7 +500,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
 
 
             QPainterPath clipPath;
-            clipPath.addPolygon(tf.map(QPolygonF(QRectF(0, 0, cacheRect.width(), cacheRect.height() / 2.0 + 1.0))));
+            clipPath.addPolygon(tf.map(PkPolygonF(PkRectF(0, 0, cacheRect.width(), cacheRect.height() / 2.0 + 1.0))));
             cachePainter.setClipPath(clipPath);
 
             bool flipped =
@@ -511,7 +511,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
             cachePainter.setBrush(baseColor);
             clipPath.clear();
             clipPath.addPolygon(
-                tf.map(QRectF(0, cacheRect.height() / 2.0, cacheRect.width(), cacheRect.height() / 2.0)));
+                tf.map(PkRectF(0, cacheRect.height() / 2.0, cacheRect.width(), cacheRect.height() / 2.0)));
             cachePainter.setClipPath(clipPath);
 
             cachePainter.setBrush(flipped ? currentColor : baseColor);
@@ -525,7 +525,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
 
         qreal innerX = cacheRect.width() * (1.0 - m_d->circlePreviewThickness);
         qreal innerY = cacheRect.height() * (1.0 - m_d->circlePreviewThickness);
-        QRectF innerRect = cacheRect.marginsRemoved(QMarginsF(innerX, innerY, innerX, innerY));
+        PkRectF innerRect = cacheRect.marginsRemoved(QMarginsF(innerX, innerY, innerX, innerY));
         QPainterPath innerEllipse;
         innerEllipse.addEllipse(innerRect);
 
@@ -535,8 +535,8 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
 
         if (m_d->circlePreviewThickness < 0.5 && m_d->circlePreviewExtraCircles) {
             qreal extraMargin = 0.1*m_d->circlePreviewThickness*innerRect.width(); // looks better
-            QPointF leftCenter = QPointF(innerRect.left() - extraMargin, innerRect.top() + innerRect.height()/2.0);
-            QPointF rightCenter = QPointF(innerRect.right() + extraMargin, innerRect.top() + innerRect.height()/2.0);
+            PkPointF leftCenter = PkPointF(innerRect.left() - extraMargin, innerRect.top() + innerRect.height()/2.0);
+            PkPointF rightCenter = PkPointF(innerRect.right() + extraMargin, innerRect.top() + innerRect.height()/2.0);
 
             innerPath.setFillRule(Qt::OddEvenFill);
             innerPath.addEllipse(leftCenter, m_d->circlePreviewThickness*cacheRect.width(), m_d->circlePreviewThickness*cacheRect.width());
@@ -561,7 +561,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
     gc.restore();
 }
 
-void KisAsyncColorSamplerHelper::slotAddSamplingJob(const QPointF &docPoint)
+void KisAsyncColorSamplerHelper::slotAddSamplingJob(const PkPointF &docPoint)
 {
     /**
      * The actual sampling is delayed by a compressor, so we can get this

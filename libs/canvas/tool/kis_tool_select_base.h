@@ -223,7 +223,7 @@ public:
         endPrimaryAction(event);
     }
 
-    KisNodeSP locateSelectionMaskUnderCursor(const QPointF &pos, Qt::KeyboardModifiers modifiers) {
+    KisNodeSP locateSelectionMaskUnderCursor(const PkPointF &pos, Qt::KeyboardModifiers modifiers) {
         if (modifiers != Qt::NoModifier) return 0;
 
         KisSelectionSP selection = KisSelectionUtils::activeSelectionForNode(
@@ -354,7 +354,7 @@ public:
             return;
         }
 
-        const QPointF pos = this->convertToPixelCoord(event->point);
+        const PkPointF pos = this->convertToPixelCoord(event->point);
         KisNodeSP selectionMask = locateSelectionMaskUnderCursor(pos, event->modifiers());
         if (selectionMask) {
             if (this->beginMoveSelectionInteraction()) {
@@ -373,7 +373,7 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override
     {
         if (isMovingSelection()) {
-            const QPointF pos = this->convertToPixelCoord(event->point);
+            const PkPointF pos = this->convertToPixelCoord(event->point);
             const QPoint offset((pos - m_dragStartPos).toPoint());
 
             this->image()->addJob(m_moveStrokeId, new MoveStrokeStrategy::Data(offset));
@@ -500,8 +500,8 @@ private:
 
     Qt::KeyboardModifiers m_currentModifiers;
 
-    QPointF m_dragStartPos;
-    QPointF m_currentPos;
+    PkPointF m_dragStartPos;
+    PkPointF m_currentPos;
     KisStrokeId m_moveStrokeId;
     bool m_didMove = false;
 

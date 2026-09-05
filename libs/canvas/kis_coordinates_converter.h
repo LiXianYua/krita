@@ -10,7 +10,7 @@
 
 #include <optional>
 
-#include <QTransform>
+#include <PkTransform>
 #include <KoZoomHandler.h>
 
 #include "kritacanvas_export.h"
@@ -30,18 +30,18 @@ namespace _Private
     template<class T> struct Traits
     {
         typedef T Result;
-        static T map(const QTransform& transform, const T& obj)  { return transform.map(obj); }
+        static T map(const PkTransform& transform, const T& obj)  { return transform.map(obj); }
     };
 
-    template<> struct Traits<QRectF>
+    template<> struct Traits<PkRectF>
     {
-        typedef QRectF Result;
-        static QRectF map(const QTransform& transform, const QRectF& rc)  { return transform.mapRect(rc); }
+        typedef PkRectF Result;
+        static PkRectF map(const PkTransform& transform, const PkRectF& rc)  { return transform.mapRect(rc); }
     };
 
-    template<> struct Traits<QRect>:    public Traits<QRectF>    { };
-    template<> struct Traits<QPoint>:   public Traits<QPointF>   { };
-    template<> struct Traits<QPolygon>: public Traits<QPolygonF> { };
+    template<> struct Traits<QRect>:    public Traits<PkRectF>    { };
+    template<> struct Traits<QPoint>:   public Traits<PkPointF>   { };
+    template<> struct Traits<QPolygon>: public Traits<PkPolygonF> { };
     template<> struct Traits<QLine>:    public Traits<QLineF>    { };
 }
 
@@ -51,20 +51,20 @@ public:
     KisCoordinatesConverter();
     ~KisCoordinatesConverter() override;
 
-    QSizeF getCanvasWidgetSize() const;
+    PkSizeF getCanvasWidgetSize() const;
     QSize viewportDevicePixelSize() const;
 
-    void setCanvasWidgetSize(QSizeF size);
+    void setCanvasWidgetSize(PkSizeF size);
     void setDevicePixelRatio(qreal value);
     void setImage(KisImageWSP image);
     void setExtraReferencesBounds(const QRect &imageRect);
-    void setImageBounds(const QRect &rect, const QPointF oldImageStillPoint, const QPointF newImageStillPoint);
+    void setImageBounds(const QRect &rect, const PkPointF oldImageStillPoint, const PkPointF newImageStillPoint);
     void setImageResolution(qreal xRes, qreal yRes);
-    void setDocumentOffset(const QPointF &offset);
+    void setDocumentOffset(const PkPointF &offset);
 
     qreal devicePixelRatio() const;
     QPoint documentOffset() const;
-    QPointF documentOffsetF() const;
+    PkPointF documentOffsetF() const;
     qreal rotationAngle() const;
 
 
@@ -86,7 +86,7 @@ public:
      * Keeping this value unchanged allows us to avoid drifts of the offset when zooming
      * and rotating the canvas.
      */
-    QPointF preferredTransformationCenter() const;
+    PkPointF preferredTransformationCenter() const;
 
     // Use the begin/end interface to rotate the canvas in one transformation.
     // This method is more accurate and doesn't amplify numerical errors from very small angles.
@@ -121,7 +121,7 @@ public:
 
     void setZoom(qreal zoom) override;
 
-    void zoomTo(const QRectF &widgetRect);
+    void zoomTo(const PkRectF &widgetRect);
 
     /**
      * \brief changes the zoom mode of the canvas
@@ -145,7 +145,7 @@ public:
      */
     void setZoom(KoZoomMode::Mode mode, qreal zoom, qreal resolutionX, qreal resolutionY, const std::optional<KoViewTransformStillPoint> &stillPoint);
 
-    void setCanvasWidgetSizeKeepZoom(const QSizeF &size);
+    void setCanvasWidgetSizeKeepZoom(const PkSizeF &size);
 
     /**
      * A composition of to scale methods: zoom level + image resolution
@@ -188,43 +188,43 @@ public:
     template<class T> typename _Private::Traits<T>::Result
     widgetToImage(const T& obj) const { return _Private::Traits<T>::map(imageToWidgetTransform().inverted(), obj); }
 
-    QTransform imageToWidgetTransform() const;
-    QTransform imageToDocumentTransform() const;
-    QTransform documentToFlakeTransform() const;
-    QTransform imageToViewportTransform() const;
-    QTransform viewportToWidgetTransform() const;
-    QTransform flakeToWidgetTransform() const;
-    QTransform documentToWidgetTransform() const;
+    PkTransform imageToWidgetTransform() const;
+    PkTransform imageToDocumentTransform() const;
+    PkTransform documentToFlakeTransform() const;
+    PkTransform imageToViewportTransform() const;
+    PkTransform viewportToWidgetTransform() const;
+    PkTransform flakeToWidgetTransform() const;
+    PkTransform documentToWidgetTransform() const;
 
-    void getQPainterCheckersInfo(QTransform *transform,
-                                 QPointF *brushOrigin,
-                                 QPolygonF *polygon,
+    void getQPainterCheckersInfo(PkTransform *transform,
+                                 PkPointF *brushOrigin,
+                                 PkPolygonF *polygon,
                                  const bool scrollCheckers) const;
 
-    void getOpenGLCheckersInfo(const QRectF &viewportRect,
-                               QTransform *textureTransform,
-                               QTransform *modelTransform,
-                               QRectF *textureRect,
-                               QRectF *modelRect,
+    void getOpenGLCheckersInfo(const PkRectF &viewportRect,
+                               PkTransform *textureTransform,
+                               PkTransform *modelTransform,
+                               PkRectF *textureRect,
+                               PkRectF *modelRect,
                                const bool scrollCheckers) const;
 
-    QPointF imageCenterInWidgetPixel() const;
-    QRectF imageRectInWidgetPixels() const;
-    QRectF imageRectInViewportPixels() const;
-    QSizeF imageSizeInFlakePixels() const;
-    QRectF widgetRectInFlakePixels() const;
-    QRectF widgetRectInImagePixels() const;
+    PkPointF imageCenterInWidgetPixel() const;
+    PkRectF imageRectInWidgetPixels() const;
+    PkRectF imageRectInViewportPixels() const;
+    PkSizeF imageSizeInFlakePixels() const;
+    PkRectF widgetRectInFlakePixels() const;
+    PkRectF widgetRectInImagePixels() const;
     QRect imageRectInImagePixels() const;
-    QRectF imageRectInDocumentPixels() const;
+    PkRectF imageRectInDocumentPixels() const;
 
-    QPointF flakeCenterPoint() const;
-    QPointF widgetCenterPoint() const;
+    PkPointF flakeCenterPoint() const;
+    PkPointF widgetCenterPoint() const;
 
     void imageScale(qreal *scaleX, qreal *scaleY) const;
     void imagePhysicalScale(qreal *scaleX, qreal *scaleY) const;
 
-    QPointF snapToDevicePixel(const QPointF &point) const;
-    QSizeF snapWidgetSizeToDevicePixel(const QSizeF &size) const;
+    PkPointF snapToDevicePixel(const PkPointF &point) const;
+    PkSizeF snapWidgetSizeToDevicePixel(const PkSizeF &size) const;
 
     QPoint minimumOffset() const;
     QPoint maximumOffset() const;
@@ -237,19 +237,19 @@ public:
     static qreal findNextZoom(qreal currentZoom, const QVector<qreal> &zoomLevels);
     static qreal findPrevZoom(qreal currentZoom, const QVector<qreal> &zoomLevels);
 
-    KoViewTransformStillPoint makeWidgetStillPoint(const QPointF &viewPoint) const override;
-    KoViewTransformStillPoint makeDocStillPoint(const QPointF &docPoint) const override;
+    KoViewTransformStillPoint makeWidgetStillPoint(const PkPointF &viewPoint) const override;
+    KoViewTransformStillPoint makeDocStillPoint(const PkPointF &docPoint) const override;
 
 public:
     // overrides from KoViewConverter
-    QTransform viewToWidget() const override;
-    QTransform widgetToView() const override;
+    PkTransform viewToWidget() const override;
+    PkTransform widgetToView() const override;
 
 private:
     friend class KisZoomAndPanTest;
     friend class KisCoordinatesConverterTest;
 
-    QPointF centeringCorrection() const;
+    PkPointF centeringCorrection() const;
     void correctOffsetToTransformationAndSnap();
     void correctTransformationToOffset();
     void resetPreferredTransformationCenter();

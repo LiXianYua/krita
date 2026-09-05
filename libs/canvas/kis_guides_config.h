@@ -14,7 +14,7 @@
 #include <QList>
 #include <boost/operators.hpp>
 #include <KoUnit.h>
-#include <QTransform>
+#include <PkTransform>
 
 class QDomElement;
 class QDomDocument;
@@ -103,7 +103,7 @@ public:
     /// Transform the guides using the given \p transform. Please note that \p transform
     /// should be in 'document' coordinate system.
     /// Used with image-wide transformations.
-    void transform(const QTransform &transform);
+    void transform(const PkTransform &transform);
 
 private:
     class Private;

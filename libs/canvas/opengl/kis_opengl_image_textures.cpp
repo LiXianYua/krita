@@ -200,8 +200,8 @@ void KisOpenGLImageTextures::recreateImageTextureTiles()
         m_initialized = true;
         dbgUI  << "OpenGL: creating texture tiles of size" << m_texturesInfo.height << "x" << m_texturesInfo.width;
 
-        QVector<QRectF> tileImageRect;
-        QVector<QRectF> tileTextureRect;
+        QVector<PkRectF> tileImageRect;
+        QVector<PkRectF> tileTextureRect;
 
         m_textureTiles.reserve((lastRow+1)*m_numCols);
 
@@ -234,7 +234,7 @@ void KisOpenGLImageTextures::recreateImageTextureTiles()
 
             QVector3D* mappedPtr = reinterpret_cast<QVector3D*>(bufferGuard.data());
 
-            Q_FOREACH (const QRectF &rc, tileImageRect) {
+            Q_FOREACH (const PkRectF &rc, tileImageRect) {
                 KisPaintingTweaks::rectToVertices(mappedPtr, rc);
                 mappedPtr += 6;
             }
@@ -247,7 +247,7 @@ void KisOpenGLImageTextures::recreateImageTextureTiles()
 
             QVector2D* mappedPtr = reinterpret_cast<QVector2D*>(bufferGuard.data());
 
-            Q_FOREACH (const QRectF &rc, tileTextureRect) {
+            Q_FOREACH (const PkRectF &rc, tileTextureRect) {
                 KisPaintingTweaks::rectToTexCoords(mappedPtr, rc);
                 mappedPtr += 6;
             }

@@ -45,7 +45,7 @@ public:
 
     bool isRunning() const;
 
-    void cursorMoved(const QPointF &cursorPos);
+    void cursorMoved(const PkPointF &cursorPos);
 
     /**
      * @param event The event
@@ -58,14 +58,14 @@ public:
      * @param bounds The bounds
      */
     void initPaint(KoPointerEvent *event,
-                   const QPointF &pixelCoords,
+                   const PkPointF &pixelCoords,
                    KisImageWSP image,
                    KisNodeSP currentNode,
                    KisStrokesFacade *strokesFacade,
                    KisNodeSP overrideNode = 0,
                    KisDefaultBoundsBaseSP bounds = 0);
     void initPaintWithMyPaintSlowTrackingPolicy(KoPointerEvent *event,
-                                                const QPointF &pixelCoords,
+                                                const PkPointF &pixelCoords,
                                                 KisImageWSP image,
                                                 KisNodeSP currentNode,
                                                 KisStrokesFacade *strokesFacade,
@@ -75,7 +75,7 @@ public:
     void paintEvent(KoPointerEvent *event );
     void endPaint();
 
-    KisOptimizedBrushOutline paintOpOutline(const QPointF &savedCursorPos,
+    KisOptimizedBrushOutline paintOpOutline(const PkPointF &savedCursorPos,
                                             const KoPointerEvent *event,
                                             const KisPaintOpSettingsSP globalSettings,
                                             KisPaintOpSettings::OutlineMode mode) const;
@@ -128,8 +128,8 @@ protected:
 
     void paintBezierCurve(int strokeInfoId,
                           const KisPaintInformation &pi1,
-                          const QPointF &control1,
-                          const QPointF &control2,
+                          const PkPointF &control1,
+                          const PkPointF &control2,
                           const KisPaintInformation &pi2);
 
     // hi-level methods for painting primitives
@@ -140,14 +140,14 @@ protected:
                            const KisPaintInformation &pi2);
 
     virtual void paintBezierCurve(const KisPaintInformation &pi1,
-                                  const QPointF &control1,
-                                  const QPointF &control2,
+                                  const PkPointF &control1,
+                                  const PkPointF &control2,
                                   const KisPaintInformation &pi2);
 
 private:
     void paint(KisPaintInformation &info );
     void paintBezierSegment(KisPaintInformation pi1, KisPaintInformation pi2,
-                                                   QPointF tangent1, QPointF tangent2 
+                                                   PkPointF tangent1, PkPointF tangent2 
                                                  );
 
     void stabilizerStart(KisPaintInformation firstPaintInfo);

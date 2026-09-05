@@ -66,7 +66,7 @@ protected:
     void continueAlternateAction(KoPointerEvent *event, AlternateAction action) override;
     void endAlternateAction(KoPointerEvent *event, AlternateAction action) override;
 
-    virtual void requestUpdateOutline(const QPointF &outlineDocPoint, const KoPointerEvent *event);
+    virtual void requestUpdateOutline(const PkPointF &outlineDocPoint, const KoPointerEvent *event);
 
     /** If the paint tool support outline like brushes, set to true.
     *   If not (e.g. gradient tool), set to false. Default is false.
@@ -75,7 +75,7 @@ protected:
         m_supportOutline = supportOutline;
     }
 
-    virtual KisOptimizedBrushOutline getOutlinePath(const QPointF &documentPos,
+    virtual KisOptimizedBrushOutline getOutlinePath(const PkPointF &documentPos,
                                                     const KoPointerEvent *event,
                                                     KisPaintOpSettings::OutlineMode outlineMode);
 
@@ -128,10 +128,10 @@ private Q_SLOTS:
 
 protected:
     bool m_paintOutline {false};
-    QPointF m_outlineDocPoint;
+    PkPointF m_outlineDocPoint;
     KisOptimizedBrushOutline m_currentOutline;
-    QRectF m_oldOutlineRect;
-    QRectF m_oldColorPreviewUpdateRect;
+    PkRectF m_oldOutlineRect;
+    PkRectF m_oldColorPreviewUpdateRect;
 
 private:
     KisOptimizedBrushOutline tryFixBrushOutline(const KisOptimizedBrushOutline &originalOutline);

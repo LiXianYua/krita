@@ -6,9 +6,9 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QPointF>
-#include <QRectF>
-#include <QSizeF>
+#include <PkPointF>
+#include <PkRectF>
+#include <PkSizeF>
 
 #include "KoZoomHandler.h"
 #include <KoUnit.h> // for POINT_TO_INCH
@@ -90,45 +90,45 @@ int KoZoomHandler::zoomMarginSize() const
     return m_zoomMarginSize;
 }
 
-QPointF KoZoomHandler::documentToView( const QPointF &documentPoint )  const
+PkPointF KoZoomHandler::documentToView( const PkPointF &documentPoint )  const
 {
-    return QPointF( zoomItX( documentPoint.x() ),
+    return PkPointF( zoomItX( documentPoint.x() ),
                     zoomItY( documentPoint.y() ));
 }
 
-QPointF KoZoomHandler::viewToDocument( const QPointF &viewPoint )  const
+PkPointF KoZoomHandler::viewToDocument( const PkPointF &viewPoint )  const
 {
-    return QPointF( unzoomItX( viewPoint.x() ),
+    return PkPointF( unzoomItX( viewPoint.x() ),
                     unzoomItY( viewPoint.y() ) );
 }
 
-QRectF KoZoomHandler::documentToView( const QRectF &documentRect )  const
+PkRectF KoZoomHandler::documentToView( const PkRectF &documentRect )  const
 {
-    QRectF r (zoomItX( documentRect.x() ),
+    PkRectF r (zoomItX( documentRect.x() ),
               zoomItY( documentRect.y() ),
               zoomItX( documentRect.width() ),
               zoomItY( documentRect.height() ) );
     return r;
 }
 
-QRectF KoZoomHandler::viewToDocument( const QRectF &viewRect )  const
+PkRectF KoZoomHandler::viewToDocument( const PkRectF &viewRect )  const
 {
-    QRectF r (  unzoomItX( viewRect.x() ),
+    PkRectF r (  unzoomItX( viewRect.x() ),
                 unzoomItY( viewRect.y()),
                 unzoomItX( viewRect.width() ),
                 unzoomItY( viewRect.height() ) );
     return r;
 }
 
-QSizeF KoZoomHandler::documentToView( const QSizeF &documentSize ) const
+PkSizeF KoZoomHandler::documentToView( const PkSizeF &documentSize ) const
 {
-    return QSizeF( zoomItX( documentSize.width() ),
+    return PkSizeF( zoomItX( documentSize.width() ),
                    zoomItY( documentSize.height() ) );
 }
 
-QSizeF KoZoomHandler::viewToDocument( const QSizeF &viewSize ) const
+PkSizeF KoZoomHandler::viewToDocument( const PkSizeF &viewSize ) const
 {
-    return QSizeF( unzoomItX( viewSize.width() ),
+    return PkSizeF( unzoomItX( viewSize.width() ),
                    unzoomItY( viewSize.height() ) );
 }
 

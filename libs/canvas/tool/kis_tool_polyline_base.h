@@ -38,13 +38,13 @@ public:
     KisPopupWidgetInterface* popupWidget() override;
 
 protected:
-    virtual void finishPolyline(const QVector<QPointF>& points) = 0;
+    virtual void finishPolyline(const QVector<PkPointF>& points) = 0;
 
 private:
     void endStroke();
     void cancelStroke();
     void updateArea();
-    QRectF dragBoundingRect();
+    PkRectF dragBoundingRect();
 
 private Q_SLOTS:
     void undoSelection();
@@ -52,8 +52,8 @@ private Q_SLOTS:
 
 private:
 
-    QPointF m_dragStart;
-    QPointF m_dragEnd;
+    PkPointF m_dragStart;
+    PkPointF m_dragEnd;
     bool m_dragging;
     vQPointF m_points;
     ToolType m_type;

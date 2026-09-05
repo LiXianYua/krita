@@ -52,15 +52,15 @@ public Q_SLOTS:
     void undoLastPoint();
 
 protected:
-    virtual void finishOutline(const QVector<QPointF>& points) = 0;
+    virtual void finishOutline(const QVector<PkPointF>& points) = 0;
 
 private:
     static constexpr int FEEDBACK_LINE_WIDTH{2};
 
     QPainterPath m_paintPath;
-    QVector<QPointF> m_points;
+    QVector<PkPointF> m_points;
     bool m_continuedMode;
-    QPointF m_lastCursorPos;
+    PkPointF m_lastCursorPos;
     ToolType m_type;
     int m_numberOfContinuedModePoints;
     bool m_hasUserInteractionRunning;
@@ -71,7 +71,7 @@ private:
     void updateCanvas();
     void endStroke();
     void cancelStroke();
-    QRectF dragBoundingRect();
+    PkRectF dragBoundingRect();
     void installBlockActionGuard();
     void uninstallBlockActionGuard();
 

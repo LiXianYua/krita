@@ -119,7 +119,7 @@ private:
      * Called whenever the view widget needs to show a different part of
      * the document
      */
-    void viewportMoved(const QPointF &offset);
+    void viewportMoved(const PkPointF &offset);
 
     /**
      * This creates an empty update information and fills it with the only

@@ -20,7 +20,7 @@ public:
                            const KUndo2MagicString &transactionText);
     ~KisToolMultihandHelper() override;
 
-    void setupTransformations(const QVector<QTransform> &transformations);
+    void setupTransformations(const QVector<PkTransform> &transformations);
 
 protected:
     void createPainters(QVector<KisFreehandStrokeInfo*> &strokeInfos,
@@ -32,8 +32,8 @@ protected:
                    const KisPaintInformation &pi2) override;
 
     void paintBezierCurve(const KisPaintInformation &pi1,
-                          const QPointF &control1,
-                          const QPointF &control2,
+                          const PkPointF &control1,
+                          const PkPointF &control2,
                           const KisPaintInformation &pi2) override;
 
     using KisToolFreehandHelper::paintAt;

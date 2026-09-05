@@ -11,7 +11,7 @@
 #include <QList>
 #include <QPen>
 #include <QString>
-#include <QTransform>
+#include <PkTransform>
 #include <QVector>
 
 #include <PkFlakeBridge.h>
@@ -314,9 +314,9 @@ bool KisGuidesConfig::isDefault() const
     return *this == defaultObject;
 }
 
-void KisGuidesConfig::transform(const QTransform &transform)
+void KisGuidesConfig::transform(const PkTransform &transform)
 {
-    if (transform.type() >= QTransform::TxShear) return;
+    if (transform.type() >= PkTransform::TxShear) return;
 
     KisAlgebra2D::DecomposedMatrix m(toPkTransform(transform));
 

@@ -102,7 +102,7 @@ public:
     /**
      * Rect of canvas widget corresponding to @ref imageRect
      */
-    QRectF viewportRect;
+    PkRectF viewportRect;
 
     qreal scaleX;
     qreal scaleY;

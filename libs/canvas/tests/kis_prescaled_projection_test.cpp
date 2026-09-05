@@ -435,13 +435,13 @@ void KisPrescaledProjectionTest::testQtScaling()
 
     // Scale down transformation
     qreal scale = 3.49/7.0;
-    gc.setTransform(QTransform::fromScale(scale,scale));
+    gc.setTransform(PkTransform::fromScale(scale,scale));
 
     // Draw a rect scale*(7x7)
-    gc.fillRect(QRectF(0,0,7,7), Qt::red);
+    gc.fillRect(PkRectF(0,0,7,7), Qt::red);
 
     // Draw an image scale*(7x7)
-    gc.drawImage(QPointF(), image, QRectF(0,0,7,7));
+    gc.drawImage(PkPointF(), image, PkRectF(0,0,7,7));
 
     gc.end();
 

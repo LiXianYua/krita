@@ -34,11 +34,11 @@ public:
     void activate(bool sampleCurrentLayer, bool pickFgColor);
     void deactivate();
 
-    void startAction(const QPointF &docPoint, int radius, int blend);
-    void continueAction(const QPointF &docPoint);
+    void startAction(const PkPointF &docPoint, int radius, int blend);
+    void continueAction(const PkPointF &docPoint);
     void endAction();
 
-    QRectF colorPreviewDocRect(const QPointF &docPoint);
+    PkRectF colorPreviewDocRect(const PkPointF &docPoint);
     void paint(QPainter &gc, const KoViewConverter &converter);
 
     void updateCursor(bool sampleCurrentLayer, bool pickFgColor);
@@ -73,13 +73,13 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void activateDelayedPreview();
-    void slotAddSamplingJob(const QPointF &docPoint);
+    void slotAddSamplingJob(const PkPointF &docPoint);
     void slotColorSamplingFinished(const KoColor &rawColor);
 
 private:
     void activatePreview();
-    void paintRectangle(QPainter &gc, const QRectF &viewRectF, const QColor &currentColor, const QColor &baseColor);
-    void paintCircle(QPainter &gc, const QRectF &viewRectF, const QColor &currentColor, const QColor &baseColor);
+    void paintRectangle(QPainter &gc, const PkRectF &viewRectF, const QColor &currentColor, const QColor &baseColor);
+    void paintCircle(QPainter &gc, const PkRectF &viewRectF, const QColor &currentColor, const QColor &baseColor);
 
     struct Private;
     QScopedPointer<Private> m_d;

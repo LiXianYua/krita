@@ -18,7 +18,7 @@ KisToolEllipseBase::KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase
 {
 }
 
-void KisToolEllipseBase::paintRectangle(QPainter &gc, const QRectF &imageRect)
+void KisToolEllipseBase::paintRectangle(QPainter &gc, const PkRectF &imageRect)
 {
     KIS_ASSERT_RECOVER_RETURN(canvas());
 

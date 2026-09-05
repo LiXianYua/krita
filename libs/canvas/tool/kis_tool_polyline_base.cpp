@@ -164,7 +164,7 @@ void KisToolPolylineBase::mouseMoveEvent(KoPointerEvent *event)
 {
     if (m_dragging && !m_points.empty()) {
         // erase old lines on canvas
-        QRectF updateRect = dragBoundingRect();
+        PkRectF updateRect = dragBoundingRect();
         // get current mouse position
         m_dragEnd = convertToPixelCoordAndSnap(event);
         // draw new lines on canvas
@@ -172,12 +172,12 @@ void KisToolPolylineBase::mouseMoveEvent(KoPointerEvent *event)
         updateCanvasViewRect(updateRect);
 
 
-        QPointF basePoint = pixelToView(toQPointF(m_points.first()));
+        PkPointF basePoint = pixelToView(toQPointF(m_points.first()));
         m_closeSnappingActivated =
             m_points.size() > 1 &&
             (basePoint - pixelToView(m_dragEnd)).manhattanLength() < SNAPPING_THRESHOLD;
 
-        updateCanvasViewRect(QRectF(basePoint, 2 * QSize(SNAPPING_HANDLE_RADIUS + PREVIEW_LINE_WIDTH, SNAPPING_HANDLE_RADIUS + PREVIEW_LINE_WIDTH)).translated(-SNAPPING_HANDLE_RADIUS + PREVIEW_LINE_WIDTH,-SNAPPING_HANDLE_RADIUS + PREVIEW_LINE_WIDTH));
+        updateCanvasViewRect(PkRectF(basePoint, 2 * QSize(SNAPPING_HANDLE_RADIUS + PREVIEW_LINE_WIDTH, SNAPPING_HANDLE_RADIUS + PREVIEW_LINE_WIDTH)).translated(-SNAPPING_HANDLE_RADIUS + PREVIEW_LINE_WIDTH,-SNAPPING_HANDLE_RADIUS + PREVIEW_LINE_WIDTH));
         KisToolPaint::requestUpdateOutline(event->point, event);
     } else {
         KisToolPaint::mouseMoveEvent(event);
@@ -188,12 +188,12 @@ void KisToolPolylineBase::undoSelection()
 {
     if (m_dragging) {
         // Initialize with the dragging segment's rect
-        QRectF updateRect = dragBoundingRect();
+        PkRectF updateRect = dragBoundingRect();
 
         if (m_points.size() > 1) {
             // Add the rect for the last segment
-            const QRectF lastSegmentRect =
-                pixelToView(QRectF(toQPointF(m_points.last()),
+            const PkRectF lastSegmentRect =
+                pixelToView(PkRectF(toQPointF(m_points.last()),
                                    toQPointF(m_points.at(m_points.size() - 2))).normalized())
                 .adjusted(-PREVIEW_LINE_WIDTH, -PREVIEW_LINE_WIDTH, PREVIEW_LINE_WIDTH, PREVIEW_LINE_WIDTH);
             updateRect = updateRect.united(lastSegmentRect);
@@ -224,9 +224,9 @@ void KisToolPolylineBase::paint(QPainter& gc, const KoViewConverter &converter)
     if (!canvas() || !currentImage())
         return;
 
-    QPointF start, end;
-    QPointF startPos;
-    QPointF endPos;
+    PkPointF start, end;
+    PkPointF startPos;
+    PkPointF endPos;
 
     QPainterPath path;
     if (m_dragging && !m_points.empty()) {
@@ -252,7 +252,7 @@ void KisToolPolylineBase::paint(QPainter& gc, const KoViewConverter &converter)
     }
 
     if (m_closeSnappingActivated) {
-        QPointF basePoint = pixelToView(toQPointF(m_points.first()));
+        PkPointF basePoint = pixelToView(toQPointF(m_points.first()));
         path.addEllipse(basePoint, SNAPPING_HANDLE_RADIUS, SNAPPING_HANDLE_RADIUS);
     }
 
@@ -263,7 +263,7 @@ void KisToolPolylineBase::paint(QPainter& gc, const KoViewConverter &converter)
 void KisToolPolylineBase::updateArea()
 {
     const PkRect bounds = image()->bounds();
-    updateCanvasPixelRect(QRectF(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
+    updateCanvasPixelRect(PkRectF(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
 }
 
 void KisToolPolylineBase::endStroke()
@@ -272,7 +272,7 @@ void KisToolPolylineBase::endStroke()
 
     m_dragging = false;
     if(m_points.count() > 1) {
-        QVector<QPointF> points;
+        QVector<PkPointF> points;
         points.reserve(m_points.size());
         for (const PkPointF &point : m_points) {
             points.append(toQPointF(point));
@@ -296,9 +296,9 @@ void KisToolPolylineBase::cancelStroke()
     endShape();
 }
 
-QRectF KisToolPolylineBase::dragBoundingRect()
+PkRectF KisToolPolylineBase::dragBoundingRect()
 {
-    QRectF rect = pixelToView(QRectF(m_dragStart, m_dragEnd).normalized());
+    PkRectF rect = pixelToView(PkRectF(m_dragStart, m_dragEnd).normalized());
     rect.adjust(-PREVIEW_LINE_WIDTH, -PREVIEW_LINE_WIDTH, PREVIEW_LINE_WIDTH, PREVIEW_LINE_WIDTH);
     return rect;
 }

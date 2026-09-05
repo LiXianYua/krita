@@ -326,7 +326,7 @@ public:
     /// Transform the grids using the given \p transform. Please note that \p transform
     /// should be in 'image' coordinate system.
     /// Used with image-wide transformations.
-    void transform(const QTransform &transform);
+    void transform(const PkTransform &transform);
 
 private:
     void updatePenStyle(QPen *pen, QColor color, LineTypeInternal type);

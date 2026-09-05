@@ -8,7 +8,7 @@
 
 #include <kritacanvas_export.h>
 
-#include <QRectF>
+#include <PkRectF>
 
 class KoShape;
 
@@ -18,9 +18,9 @@ class KoShape;
 class KRITACANVAS_EXPORT KisShapeToolHelper
 {
 public:
-    static KoShape* createRectangleShape(const QRectF& rect, qreal roundCornersX, qreal roundCornersY);
+    static KoShape* createRectangleShape(const PkRectF& rect, qreal roundCornersX, qreal roundCornersY);
 
-    static KoShape* createEllipseShape(const QRectF& rect);
+    static KoShape* createEllipseShape(const PkRectF& rect);
 
 
 };

@@ -7,7 +7,7 @@
 #define KIS_TEXTURE_TILE_H_
 
 #include <QRect>
-#include <QRectF>
+#include <PkRectF>
 // no forward-declaration, used to get GL* primitive types defined
 #include <QOpenGLFunctions>
 
@@ -63,11 +63,11 @@ public:
         return m_textureRectInImagePixels;
     }
 
-    inline QRectF tileRectInTexturePixels() {
+    inline PkRectF tileRectInTexturePixels() {
         return m_tileRectInTexturePixels;
     }
 
-    QRectF imageRectInTexturePixels(const QRect &imageRect) const;
+    PkRectF imageRectInTexturePixels(const QRect &imageRect) const;
 
     /**
      * Binds the tile's texture to the current GL_TEXTURE_2D binding point,
@@ -87,7 +87,7 @@ private:
     GLuint m_textureId;
 
     QRect m_tileRectInImagePixels;
-    QRectF m_tileRectInTexturePixels;
+    PkRectF m_tileRectInTexturePixels;
     QRect m_textureRectInImagePixels;
     KisOpenGL::FilterMode m_filter;
     const KisGLTexturesInfo *m_texturesInfo;

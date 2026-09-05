@@ -68,7 +68,7 @@ protected:
 
 
 
-    KisOptimizedBrushOutline getOutlinePath(const QPointF &documentPos,
+    KisOptimizedBrushOutline getOutlinePath(const PkPointF &documentPos,
                                             const KoPointerEvent *event,
                                             KisPaintOpSettings::OutlineMode outlineMode) override;
 
@@ -94,13 +94,13 @@ private:
      * Adjusts a coordinates according to a KisPaintingAssistant,
      * if available.
      */
-    QPointF adjustPosition(const QPointF& point, const QPointF& strokeBegin);
+    PkPointF adjustPosition(const PkPointF& point, const PkPointF& strokeBegin);
 
     /**
      * Calculates a coefficient for KisPaintInformation
      * according to perspective grid values
      */
-    qreal calculatePerspective(const QPointF &documentPoint);
+    qreal calculatePerspective(const PkPointF &documentPoint);
 
 private Q_SLOTS:
     void updateMaskSyntheticEventsFromTouch();
@@ -118,8 +118,8 @@ private:
     KisPaintingInformationBuilder *m_infoBuilder {nullptr};
     KisToolFreehandHelper *m_helper {nullptr};
 
-    QPointF m_initialGestureDocPoint;
-    QPointF m_lastDocumentPoint;
+    PkPointF m_initialGestureDocPoint;
+    PkPointF m_lastDocumentPoint;
     qreal m_lastPaintOpSize {0.0};
     QPoint m_initialGestureGlobalPoint;
 

@@ -55,7 +55,7 @@ void KisTextureTile::restoreTextureParameters()
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
-inline QRectF relativeRect(const QRect &br /* baseRect */,
+inline PkRectF relativeRect(const QRect &br /* baseRect */,
                            const QRect &cr /* childRect */,
                            const KisGLTexturesInfo *texturesInfo)
 {
@@ -64,7 +64,7 @@ inline QRectF relativeRect(const QRect &br /* baseRect */,
     const qreal w = qreal(cr.width()) / texturesInfo->width;
     const qreal h = qreal(cr.height()) / texturesInfo->height;
 
-    return QRectF(x, y, w, h);
+    return PkRectF(x, y, w, h);
 }
 
 #include "kis_debug.h"
@@ -381,7 +381,7 @@ void KisTextureTile::update(const KisTextureTileUpdateInfo &updateInfo, bool blo
     }
 }
 
-QRectF KisTextureTile::imageRectInTexturePixels(const QRect &imageRect) const
+PkRectF KisTextureTile::imageRectInTexturePixels(const QRect &imageRect) const
 {
     return relativeRect(m_textureRectInImagePixels,
                         imageRect,

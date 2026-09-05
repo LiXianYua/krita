@@ -132,12 +132,12 @@ void KisToolOutlineBase::undoLastPoint()
 {
     if(!m_points.isEmpty() && m_continuedMode && mode() != PAINT_MODE && m_numberOfContinuedModePoints > 0) {
         // Initialize with the dragging segment's rect
-        QRectF updateRect = dragBoundingRect();
+        PkRectF updateRect = dragBoundingRect();
 
         if (m_points.size() > 1) {
             // Add the rect for the last segment
-            const QRectF lastSegmentRect =
-                pixelToView(QRectF(m_points.last(), m_points.at(m_points.size() - 2)).normalized())
+            const PkRectF lastSegmentRect =
+                pixelToView(PkRectF(m_points.last(), m_points.at(m_points.size() - 2)).normalized())
                 .adjusted(-FEEDBACK_LINE_WIDTH, -FEEDBACK_LINE_WIDTH, FEEDBACK_LINE_WIDTH, FEEDBACK_LINE_WIDTH);
             updateRect = updateRect.united(lastSegmentRect);
 
@@ -190,7 +190,7 @@ void KisToolOutlineBase::continuePrimaryAction(KoPointerEvent *event)
 {
     CHECK_MODE_SANITY_OR_RETURN(KisTool::PAINT_MODE);
 
-    QPointF point = convertToPixelCoord(event);
+    PkPointF point = convertToPixelCoord(event);
     m_points.append(point);
     updateFeedback();
 }
@@ -235,16 +235,16 @@ void KisToolOutlineBase::updateFeedback()
     if (m_points.count() > 1) {
         qint32 lastPointIndex = m_points.count() - 1;
 
-        QRectF updateRect = QRectF(m_points[lastPointIndex - 1], m_points[lastPointIndex]).normalized();
+        PkRectF updateRect = PkRectF(m_points[lastPointIndex - 1], m_points[lastPointIndex]).normalized();
         updateRect = kisGrowRect(updateRect, FEEDBACK_LINE_WIDTH);
 
         updateCanvasPixelRect(updateRect);
     }
 }
 
-QRectF KisToolOutlineBase::dragBoundingRect()
+PkRectF KisToolOutlineBase::dragBoundingRect()
 {
-    QRectF updateRect = pixelToView(QRectF(m_points.last(), m_lastCursorPos).normalized());
+    PkRectF updateRect = pixelToView(PkRectF(m_points.last(), m_lastCursorPos).normalized());
     updateRect = kisGrowRect(updateRect, FEEDBACK_LINE_WIDTH);
     return updateRect;
 }

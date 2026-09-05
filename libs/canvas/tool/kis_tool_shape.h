@@ -42,7 +42,7 @@ protected:
 
     KisToolShapeUtils::FillStyle fillStyle();
     KisToolShapeUtils::StrokeStyle strokeStyle();
-    QTransform fillTransform();
+    PkTransform fillTransform();
 
     qreal currentStrokeWidth() const;
 

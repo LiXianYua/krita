@@ -8,7 +8,7 @@
 #define __KIS_PAINTING_INFORMATION_BUILDER_H
 
 #include <QObject>
-#include <QPointF>
+#include <PkPointF>
 #include <QScopedPointer>
 #include <QVariant>
 
@@ -37,7 +37,7 @@ public:
     KisPaintInformation continueStroke(KoPointerEvent *event,
                                        int timeElapsed);
 
-    KisPaintInformation hover(const QPointF &imagePoint,
+    KisPaintInformation hover(const PkPointF &imagePoint,
                               const KoPointerEvent *event,
                               bool isStrokeStarted);
 
@@ -49,11 +49,11 @@ protected Q_SLOTS:
     void updateSettings();
 
 protected:
-    virtual QPointF adjustDocumentPoint(const QPointF &point, const QPointF &startPoint);
-    virtual QPointF documentToImage(const QPointF &point);
-    virtual QPointF imageToDocument(const QPointF &point);
-    virtual QPointF imageToView(const QPointF &point);
-    virtual qreal calculatePerspective(const QPointF &documentPoint);
+    virtual PkPointF adjustDocumentPoint(const PkPointF &point, const PkPointF &startPoint);
+    virtual PkPointF documentToImage(const PkPointF &point);
+    virtual PkPointF imageToDocument(const PkPointF &point);
+    virtual PkPointF imageToView(const PkPointF &point);
+    virtual qreal calculatePerspective(const PkPointF &documentPoint);
 
     virtual qreal canvasRotation() const;
     virtual bool canvasMirroredX() const;
@@ -72,7 +72,7 @@ private:
 
 private:
     PkVector<qreal> m_pressureSamples;
-    QPointF m_startPoint;
+    PkPointF m_startPoint;
     QScopedPointer<KisSpeedSmoother> m_speedSmoother;
     bool m_pressureDisabled;
     int m_maxAllowedSpeedValue = 30;
@@ -87,9 +87,9 @@ public:
     KisConverterPaintingInformationBuilder(const KisCoordinatesConverter *converter);
 
 protected:
-    QPointF documentToImage(const QPointF &point) override;
-    QPointF imageToDocument(const QPointF &point) override;
-    QPointF imageToView(const QPointF &point) override;
+    PkPointF documentToImage(const PkPointF &point) override;
+    PkPointF imageToDocument(const PkPointF &point) override;
+    PkPointF imageToView(const PkPointF &point) override;
 
     qreal canvasRotation() const override;
     bool canvasMirroredX() const override;
@@ -107,11 +107,11 @@ public:
     KisToolFreehandPaintingInformationBuilder(KisToolFreehand *tool);
 
 protected:
-    QPointF documentToImage(const QPointF &point) override;
-    QPointF imageToDocument(const QPointF &point) override;
-    QPointF imageToView(const QPointF &point) override;
-    QPointF adjustDocumentPoint(const QPointF &point, const QPointF &startPoint) override;
-    qreal calculatePerspective(const QPointF &documentPoint) override;
+    PkPointF documentToImage(const PkPointF &point) override;
+    PkPointF imageToDocument(const PkPointF &point) override;
+    PkPointF imageToView(const PkPointF &point) override;
+    PkPointF adjustDocumentPoint(const PkPointF &point, const PkPointF &startPoint) override;
+    qreal calculatePerspective(const PkPointF &documentPoint) override;
 
     qreal canvasRotation() const override;
     bool canvasMirroredX() const override;

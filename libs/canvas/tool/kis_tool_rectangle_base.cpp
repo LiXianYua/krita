@@ -153,19 +153,19 @@ void KisToolRectangleBase::beginPrimaryAction(KoPointerEvent *event)
 
     m_currentModifiers = Qt::NoModifier;
 
-    QPointF pos = convertToPixelCoordAndSnap(event, QPointF(), false);
+    PkPointF pos = convertToPixelCoordAndSnap(event, PkPointF(), false);
     m_dragStart = m_dragCenter = pos;
     m_angle = m_angleBuffer = 0;
     m_rotateActive = false;
 
-    QSizeF area = QSizeF(0,0);
+    PkSizeF area = PkSizeF(0,0);
 
     applyConstraints(area, false);
 
     m_dragEnd.setX(m_dragStart.x() + area.width());
     m_dragEnd.setY(m_dragStart.y() + area.height());
 
-    m_dragCenter = QPointF((m_dragStart.x() + m_dragEnd.x()) / 2,
+    m_dragCenter = PkPointF((m_dragStart.x() + m_dragEnd.x()) / 2,
                            (m_dragStart.y() + m_dragEnd.y()) / 2);
     showSize();
     event->accept();
@@ -178,7 +178,7 @@ bool KisToolRectangleBase::isFixedSize() {
   return false;
 }
 
-void KisToolRectangleBase::applyConstraints(QSizeF &area, bool overrideRatio) {
+void KisToolRectangleBase::applyConstraints(PkSizeF &area, bool overrideRatio) {
   if (m_isWidthForced) {
     area.setWidth(m_forcedWidth);
   }
@@ -210,10 +210,10 @@ void KisToolRectangleBase::continuePrimaryAction(KoPointerEvent *event)
     bool rotateMode = expandFromCenter && translateMode;
     bool fixedSize = isFixedSize() && !constraintToggle;
 
-    QPointF pos = convertToPixelCoordAndSnap(event, QPointF(), false);
+    PkPointF pos = convertToPixelCoordAndSnap(event, PkPointF(), false);
 
     if (rotateMode) {
-        QPointF angleVector;
+        PkPointF angleVector;
         if (!m_rotateActive) {
             m_rotateActive = true;
             angleVector = (fixedSize)? m_dragEnd: pos;
@@ -232,24 +232,24 @@ void KisToolRectangleBase::continuePrimaryAction(KoPointerEvent *event)
     if (fixedSize && !rotateMode) {
       m_dragStart = pos;
     } else if (translateMode && !rotateMode) {
-      QPointF trans = pos - m_dragEnd;
+      PkPointF trans = pos - m_dragEnd;
       m_dragStart += trans;
       m_dragEnd += trans;
 
     }
 
-    QPointF diag = pos - m_dragStart;
-    QTransform t1, t2;
+    PkPointF diag = pos - m_dragStart;
+    PkTransform t1, t2;
     t1.rotateRadians(-getRotationAngle());
-    QPointF baseDiag = t1.map(diag);
-    QSizeF area = QSizeF(fabs(baseDiag.x()), fabs(baseDiag.y()));
+    PkPointF baseDiag = t1.map(diag);
+    PkSizeF area = PkSizeF(fabs(baseDiag.x()), fabs(baseDiag.y()));
 
     bool overrideRatio = constraintToggle && !(m_isHeightForced || m_isWidthForced || m_isRatioForced);
     if (!constraintToggle || overrideRatio) {
       applyConstraints(area, overrideRatio);
     }
 
-    baseDiag = QPointF(
+    baseDiag = PkPointF(
       (baseDiag.x() < 0) ? -area.width() : area.width(),
       (baseDiag.y() < 0) ? -area.height() : area.height()
     );
@@ -276,7 +276,7 @@ void KisToolRectangleBase::continuePrimaryAction(KoPointerEvent *event)
                                                 , QString::number(m_dragStart.y(), 'f', 1)));
     }
     updateArea();
-    m_dragCenter = QPointF((m_dragStart.x() + m_dragEnd.x()) / 2,
+    m_dragCenter = PkPointF((m_dragStart.x() + m_dragEnd.x()) / 2,
                            (m_dragStart.y() + m_dragEnd.y()) / 2);
 
     KisToolPaint::requestUpdateOutline(event->point, event);
@@ -328,20 +328,20 @@ void KisToolRectangleBase::cancelStroke()
     endShape();
 }
 
-QRectF KisToolRectangleBase::createRect(const QPointF &start, const QPointF &end)
+PkRectF KisToolRectangleBase::createRect(const PkPointF &start, const PkPointF &end)
 {
-    QTransform t;
+    PkTransform t;
     t.translate(start.x(), start.y());
     t.rotateRadians(-getRotationAngle());
     t.translate(-start.x(), -start.y());
-    const QTransform tInv = t.inverted();
+    const PkTransform tInv = t.inverted();
 
-    const QPointF end1 = t.map(end);
-    const QPointF newStart(pkRound(start.x()), pkRound(start.y()));
-    const QPointF newEnd(pkRound(end1.x()), pkRound(end1.y()));
-    const QPointF newCenter = (newStart + newEnd) / 2.0;
+    const PkPointF end1 = t.map(end);
+    const PkPointF newStart(pkRound(start.x()), pkRound(start.y()));
+    const PkPointF newEnd(pkRound(end1.x()), pkRound(end1.y()));
+    const PkPointF newCenter = (newStart + newEnd) / 2.0;
    
-    QRectF result(newStart, newEnd);
+    PkRectF result(newStart, newEnd);
     result.moveCenter(tInv.map(newCenter));
 
     return result.normalized();
@@ -352,7 +352,7 @@ bool KisToolRectangleBase::showRoundCornersGUI() const
     return true;
 }
 
-void KisToolRectangleBase::paintRectangle(QPainter &gc, const QRectF &imageRect)
+void KisToolRectangleBase::paintRectangle(QPainter &gc, const PkRectF &imageRect)
 {
     KIS_ASSERT_RECOVER_RETURN(canvas());
 
@@ -379,7 +379,7 @@ void KisToolRectangleBase::paintRectangle(QPainter &gc, const QRectF &imageRect)
 }
 
 void KisToolRectangleBase::updateArea() {
-    const QRectF bound = createRect(m_dragStart, m_dragEnd);
+    const PkRectF bound = createRect(m_dragStart, m_dragEnd);
 
     canvas()->updateCanvas(convertToPt(bound).adjusted(-100, -100, +200, +200));
 
@@ -390,15 +390,15 @@ qreal KisToolRectangleBase::getRotationAngle() {
     return m_angle + m_angleBuffer;
 }
 
-QPainterPath KisToolRectangleBase::drawX(const QPointF &pt) {
+QPainterPath KisToolRectangleBase::drawX(const PkPointF &pt) {
     QPainterPath path;
-    path.moveTo(QPointF(pt.x() - 5.0, pt.y() - 5.0)); path.lineTo(QPointF(pt.x() + 5.0, pt.y() + 5.0));
-    path.moveTo(QPointF(pt.x() - 5.0, pt.y() + 5.0)); path.lineTo(QPointF(pt.x() + 5.0, pt.y() - 5.0));
+    path.moveTo(PkPointF(pt.x() - 5.0, pt.y() - 5.0)); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() + 5.0));
+    path.moveTo(PkPointF(pt.x() - 5.0, pt.y() + 5.0)); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() - 5.0));
     return path;
 }
 
-void KisToolRectangleBase::getRotatedPath(QPainterPath &path, const QPointF &center, const qreal &angle) {
-    QTransform t;
+void KisToolRectangleBase::getRotatedPath(QPainterPath &path, const PkPointF &center, const qreal &angle) {
+    PkTransform t;
     t.translate(center.x(), center.y());
     t.rotateRadians(angle);
     t.translate(-center.x(), -center.y());

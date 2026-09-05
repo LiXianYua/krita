@@ -169,7 +169,7 @@ bool invokeSamplingJob(KisAsyncColorSamplerHelper &helper)
     return QMetaObject::invokeMethod(&helper,
                                      "slotAddSamplingJob",
                                      Qt::DirectConnection,
-                                     Q_ARG(QPointF, QPointF(2, 3)));
+                                     Q_ARG(PkPointF, PkPointF(2, 3)));
 }
 }
 
@@ -193,7 +193,7 @@ void KisAsyncColorSamplerHelperTest::referenceColorShortCircuitsDeviceSampling()
             });
 
     helper.activate(false, true);
-    helper.startAction(QPointF(2, 3), 1, 100);
+    helper.startAction(PkPointF(2, 3), 1, 100);
     sampledColors.clear();
     canvas.referenceSampleCount = 0;
     QVERIFY(invokeSamplingJob(helper));
@@ -235,7 +235,7 @@ void KisAsyncColorSamplerHelperTest::missingReferenceFallsBackToProjection()
             });
 
     helper.activate(false, true);
-    helper.startAction(QPointF(2, 3), 1, 100);
+    helper.startAction(PkPointF(2, 3), 1, 100);
     sampledColors.clear();
     canvas.referenceSampleCount = 0;
     QVERIFY(invokeSamplingJob(helper));
@@ -276,7 +276,7 @@ void KisAsyncColorSamplerHelperTest::delayedJobReadsTheCurrentNodeAgain()
             });
 
     helper.activate(true, true);
-    helper.startAction(QPointF(2, 3), 1, 100);
+    helper.startAction(PkPointF(2, 3), 1, 100);
     sampledColors.clear();
     setCurrentNode(canvas, secondLayer);
     QVERIFY(invokeSamplingJob(helper));
@@ -309,10 +309,10 @@ void KisAsyncColorSamplerHelperTest::previewUsesSamplingCanvasGeometry()
     QVERIFY(QMetaObject::invokeMethod(&helper,
                                       "activateDelayedPreview",
                                       Qt::DirectConnection));
-    const QRectF previewRect = helper.colorPreviewDocRect(QPointF(10, 20));
+    const PkRectF previewRect = helper.colorPreviewDocRect(PkPointF(10, 20));
     helper.deactivate();
 
-    QCOMPARE(previewRect, QRectF(-70, 52, 48, 48));
+    QCOMPARE(previewRect, PkRectF(-70, 52, 48, 48));
     QVERIFY(canvas.previewConversionCount > 0);
     QVERIFY(canvas.rotationQueryCount > 0);
     QVERIFY(canvas.horizontalMirrorQueryCount > 0);
