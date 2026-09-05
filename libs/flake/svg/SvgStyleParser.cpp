@@ -573,7 +573,7 @@ SvgStyles SvgStyleParser::parseOneCssStyle(const PkString &style, const PkString
     if (!substyles.count()) return parsedStyles;
 
     for (const PkString &substylePart : substyles) {
-        std::vector<PkString> substyle = substylePart.split(u':');
+        PkList<PkString> substyle = substylePart.split(u':');
         if (substyle.size() != 2)
             continue;
         PkString command = substyle[0].trimmed();
@@ -619,7 +619,7 @@ SvgStyles SvgStyleParser::collectStyles(const PkXmlElement &e)
         if (!substyles.count())
             continue;
         for (const PkString &substylePart : substyles) {
-            std::vector<PkString> substyle = substylePart.split(u':');
+            PkList<PkString> substyle = substylePart.split(u':');
             if (substyle.size() != 2)
                 continue;
             PkString command = substyle[0].trimmed();

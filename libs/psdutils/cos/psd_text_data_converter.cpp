@@ -58,7 +58,7 @@ PkVariant pkHashValue(const PkVariantHash &hash, const PkString &key)
 
 PkStringList pkSplit(const PkString &s, char16_t sep)
 {
-    const std::vector<PkString> parts = s.split(sep);
+    const PkList<PkString> parts = s.split(sep);
     PkStringList result;
     for (size_t i = 0; i < parts.size(); i++) {
         result.append(parts[i]);

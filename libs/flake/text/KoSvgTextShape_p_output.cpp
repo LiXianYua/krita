@@ -113,7 +113,7 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
                     fillPainter.maskPainter()->fillPath(toQPainterPath(decorPath), Qt::white);
                     fillPainter.renderOnGlobalPainter();
                 } else if (colorValid) {
-                    painter.fillPath(toQPainterPath(decorPath), textDecorationColor);
+                    painter.fillPath(toQPainterPath(decorPath), toQColor(textDecorationColor));
                 }
             } else if (p == KoShape::Stroke) {
                 if (stroke) {
@@ -629,7 +629,7 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                     PkPen pen(PkColor(0, 0, 0, 50));
                     pen.setCosmetic(true);
                     pen.setWidth(2);
-                    painter.setPen(pen);
+                    painter.setPen(toQPen(pen));
                     if (const auto *bitmapGlyph = std::get_if<Glyph::Bitmap>(&result.at(i).glyph)) {
                         Q_FOREACH(const PkRectF drawRect, bitmapGlyph->drawRects) {
                             painter.drawPolygon(tf.map(drawRect));
@@ -648,14 +648,14 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                                                                               : Qt::yellow;
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
-                    painter.setPen(pen);
+                    painter.setPen(toQPen(pen));
                     painter.drawPolygon(tf.map(result.at(i).layoutBox()));
 
                     penColor.setAlpha(96);
                     pen.setColor(penColor);
                     pen.setWidth(1);
                     pen.setStyle(Qt::DotLine);
-                    painter.setPen(pen);
+                    painter.setPen(toQPen(pen));
                     painter.drawPolygon(tf.map(result.at(i).lineHeightBox()));
 
                     pen.setStyle(Qt::SolidLine);
@@ -663,7 +663,7 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
 
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
-                    painter.setPen(pen);
+                    painter.setPen(toQPen(pen));
                     painter.drawLine(tf.map(result.at(i).cursorInfo.caret));
 
 
@@ -700,14 +700,14 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                         }
                         penColor.setAlpha(128);
                         pen.setColor(penColor);
-                        painter.setPen(pen);
+                        painter.setPen(toQPen(pen));
                         painter.drawPoint(center);
                     }
                     //ligature carets
                     penColor = Qt::darkGreen;
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
-                    painter.setPen(pen);
+                    painter.setPen(toQPen(pen));
                     PkVector<PkPointF> offset = result.at(i).cursorInfo.offsets;
                     for (int k=0; k<offset.size(); k++) {
                         painter.drawPoint(tf.map(offset.at(k)));
@@ -716,7 +716,7 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                     penColor = Qt::red;
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
-                    painter.setPen(pen);
+                    painter.setPen(toQPen(pen));
                     painter.drawPoint(result.at(i).finalPosition);
 #endif
                 }

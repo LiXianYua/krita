@@ -7,6 +7,8 @@
 #define KOWRITINGSYSTEMUTILS_H
 
 #include <QFontDatabase>
+#include <PkChar.h>
+#include <PkChar.h>
 #include <QLocale>
 #include <kritaflake_export.h>
 // [migrate] missing include for Pk/Qt type

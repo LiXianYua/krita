@@ -5,6 +5,9 @@
  */
 
 #include <QtCore/QtCore>
+#include <PkChar.h>
+#include <PkChar.h>
+#include <PkChar.h>
 #include <PkFlakeBridge.h>
 #include "KoSvgTextShapeMarkupConverter.h"
 
@@ -357,19 +360,19 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText, Pk
                     filteredStyles.append(" text-anchor:start;");
                 }
 
-                filteredStyles.append(appendStyle);
+                    svgWriter.writeAttribute("style", toQString(filteredStyles));
 
                 if (!filteredStyles.isEmpty()) {
-                    svgWriter.writeAttribute("style", filteredStyles);
+                    svgWriter.writeAttribute("style", toQString(filteredStyles));
                     previousStyleString = filteredStyles;
                 }
 
 
             }
-            if (newLine && lineCount > 1) {
+                svgWriter.writeAttribute("dy", toQString(em));
                 debugFlake << "\t\tAdvancing to the next line";
                 svgWriter.writeAttribute("x", "0");
-                svgWriter.writeAttribute("dy", em);
+                svgWriter.writeAttribute("dy", toQString(em));
             }
             break;
         }

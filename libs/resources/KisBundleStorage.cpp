@@ -122,7 +122,7 @@ KisResourceStorage::ResourceItem KisBundleStorage::resourceItem(const PkString &
 {
     KisResourceStorage::ResourceItem item;
     item.url = url;
-    const std::vector<PkString> parts = url.split(u'/');
+    const PkList<PkString> parts = url.split(u'/');
     KIS_ASSERT(parts.size() == 2);
     item.folder = parts[0];
     item.resourceType = parts[0];
@@ -288,7 +288,7 @@ bool KisBundleStorage::saveAsNewVersion(const PkString &resourceType, KoResource
 
 bool KisBundleStorage::exportResource(const PkString &url, PkStream *device)
 {
-    const std::vector<PkString> parts = url.split(u'/');
+    const PkList<PkString> parts = url.split(u'/');
     KIS_ASSERT(parts.size() == 2);
 
     const PkString resourceType = parts[0];

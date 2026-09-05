@@ -64,7 +64,7 @@ unsigned int pkHexToUInt(const PkString &s)
 // （split+join 实现，保留其余顺序）。
 PkString pkRemoveChar(const PkString &s, char16_t sep)
 {
-    const std::vector<PkString> parts = s.split(sep);
+    const PkList<PkString> parts = s.split(sep);
     PkString out;
     for (const PkString &p : parts) {
         out.append(p);
@@ -199,7 +199,7 @@ bool KisShortcutConfiguration::unserialize(const PkString &serialized)
     remainder = pkRemoveChar(pkRemoveChar(remainder, '{'), '}');
 
     //Split the remainder by ;
-    const std::vector<PkString> parts = remainder.split(';');
+    const PkList<PkString> parts = remainder.split(';');
 
     if (parts.size() < 6)
         return false; //Invalid input, abort
@@ -236,7 +236,7 @@ bool KisShortcutConfiguration::unserialize(const PkString &serialized)
     //Remove brackets
     serializedKeys = pkRemoveChar(pkRemoveChar(serializedKeys, '['), ']');
     //Split by , and add each entry as a key
-    const std::vector<PkString> keylist = serializedKeys.split(',');
+    const PkList<PkString> keylist = serializedKeys.split(',');
     for (const PkString &key : keylist) {
         if (!key.isEmpty()) {
             d->keys.append(static_cast<Qt::Key>(pkHexToUInt(key)));

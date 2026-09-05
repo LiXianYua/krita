@@ -248,7 +248,7 @@ PkString PkString::trimmed() const
 
 // 保留空段，与 QString::split 的默认（KeepEmptyParts）行为一致：
 // 空串 split 出一个空段，n 个分隔符切出 n+1 段。
-std::vector<PkString> PkString::split(char16_t sep) const
+PkList<PkString> PkString::split(char16_t sep) const
 {
     std::vector<PkString> out;
     const std::vector<char16_t>& b = _cbuf();

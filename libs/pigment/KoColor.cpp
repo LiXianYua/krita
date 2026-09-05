@@ -649,7 +649,7 @@ KoColor KoColor::fromSVG11(const PkString value, PkHash<PkString, const KoColorP
                 parsed.fromQColor(defColor);
             } else if (def.toLower().startsWith("rgb")) {
                 PkString parse = def.trimmed();
-                std::vector<PkString> colors = parse.split(u',');
+                PkList<PkString> colors = parse.split(u',');
                 PkString r = colors[0].right(colors[0].size() - 4).trimmed();
                 PkString g = colors[1].trimmed();
                 PkString b = colors[2].left(colors[2].size() - 1).trimmed();
@@ -671,7 +671,7 @@ KoColor KoColor::fromSVG11(const PkString value, PkHash<PkString, const KoColorP
                 parsed.fromQColor(PkColor(r.toInt(), g.toInt(), b.toInt()));
 
             } else if (def.toLower().startsWith("icc-color")) {
-                std::vector<PkString> values = def.split(u',');
+                PkList<PkString> values = def.split(u',');
                 PkString iccprofilename = values.front().split(u'(').back();
                 values.erase(values.begin());
 

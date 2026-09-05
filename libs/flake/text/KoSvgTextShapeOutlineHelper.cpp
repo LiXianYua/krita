@@ -164,7 +164,7 @@ void KoSvgTextShapeOutlineHelper::paintTextShape(QPainter *painter, const KoView
     pen.setColor(contourModeActive? pal.highlightedText().color(): pal.buttonText().color());
     pen.setCosmetic(true);
     pen.setWidthF(d->decorationThickness);
-    painter->setPen(pen);
+    painter->setPen(toQPen(pen));
     const PkRectF buttonRect = d->getButtonRect(converter.documentToView().mapRect(text->boundingRect()));
     painter->drawRoundedRect(buttonRect, BUTTON_CORNER_ROUND, BUTTON_CORNER_ROUND);
     painter->drawPixmap(buttonRect.topLeft()+PkPointF(BUTTON_PADDING, BUTTON_PADDING), pm);

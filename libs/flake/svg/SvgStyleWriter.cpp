@@ -21,6 +21,7 @@
 */
 
 #include <QtCore/QtCore>
+#include <PkTextStream.h>
 #include <PkFlakeBridge.h>
 #include "SvgStyleWriter.h"
 #include "SvgSavingContext.h"

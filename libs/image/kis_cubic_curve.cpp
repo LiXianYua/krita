@@ -191,7 +191,7 @@ KisCubicCurve::KisCubicCurve(const KisCubicCurve& curve)
 
 static std::vector<PkString> splitSkipEmpty(const PkString &s, char16_t sep)
 {
-    std::vector<PkString> out = s.split(sep);
+    PkList<PkString> out = s.split(sep);
     out.erase(std::remove_if(out.begin(), out.end(),
                              [](const PkString &e) { return e.isEmpty(); }),
               out.end());

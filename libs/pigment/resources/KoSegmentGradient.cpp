@@ -139,7 +139,7 @@ bool KoSegmentGradient::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP re
     for (int i = 0; i < numSegments; i++) {
 
         PkString segmentText = fileContent.readLine();
-        const std::vector<PkString> values = segmentText.split(u' ');
+        const PkList<PkString> values = segmentText.split(u' ');
 
         qreal leftOffset = values[0].toDouble();
         qreal middleOffset = values[1].toDouble();

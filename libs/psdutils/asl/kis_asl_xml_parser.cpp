@@ -597,7 +597,7 @@ bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkSt
          */
         // 原实现按路径取文件名，语义：取路径最后一个 '/' 之后的部分。
         // PkString 无 lastIndexOf，用 split 取末段等价。
-        const std::vector<PkString> pathParts = gradientName.split(u'/');
+        const PkList<PkString> pathParts = gradientName.split(u'/');
         const PkString baseName = pathParts.empty() ? PkString() : pathParts.back();
         const PkString fileName = baseName + ".ggr";
         PkSharedPointer<KoSegmentGradient> gradient(new KoSegmentGradient(fileName));

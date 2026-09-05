@@ -2289,19 +2289,19 @@ void KoSvgTextShape::paintDebug(QPainter &painter, const DebugElements elements)
                 pen.setWidth(2);
                 painter.setBrush(QBrush(Qt::transparent));
                 pen.setColor(PkColor(0, 128, 255, 128));
-                painter.setPen(pen);
+                painter.setPen(toQPen(pen));
                 painter.drawLine(chunk.length);
                 pen.setColor(PkColor(255, 128, 0, 128));
-                painter.setPen(pen);
+                painter.setPen(toQPen(pen));
                 painter.drawRect(chunk.boundingBox);
 
                 pen.setColor(PkColor(255, 0, 0, 128));
                 pen.setStyle(Qt::DashDotDotLine);
-                painter.setPen(pen);
+                painter.setPen(toQPen(pen));
                 painter.drawLine(chunk.length.translated(lineBox.baselineTop));
                 pen.setColor(PkColor(0, 128, 0, 128));
                 pen.setStyle(Qt::DashDotLine);
-                painter.setPen(pen);
+                painter.setPen(toQPen(pen));
                 painter.drawLine(chunk.length.translated(lineBox.baselineBottom));
             }
         }

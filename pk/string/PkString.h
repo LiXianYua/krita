@@ -5,6 +5,7 @@
 
 #include "../container/PkArrayData.h"
 #include "../container/PkByteArray.h"
+#include "../container/PkList.h"
 
 // PkString —— 零 Qt 依赖的 COW UTF-16 字符串。
 //
@@ -39,10 +40,10 @@ public:
     PkString mid(int pos, int n = -1) const;
     bool startsWith(const PkString& prefix) const;
     PkString trimmed() const;
-    std::vector<PkString> split(char16_t sep) const;
+    PkList<PkString> split(char16_t sep) const;
     // split(const char*)：对齐 QString::split(const char*) 的常见单 ASCII 字符分隔用法
     // （如 split("/")、split(",")），将 c 串首字符转 char16_t 后复用 split(char16_t)。
-    std::vector<PkString> split(const char* sep) const
+    PkList<PkString> split(const char* sep) const
     {
         return split(static_cast<char16_t>(PkString(sep)[0]));
     }

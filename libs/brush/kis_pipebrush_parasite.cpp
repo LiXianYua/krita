@@ -16,7 +16,7 @@ KisPipeBrushParasite::KisPipeBrushParasite(const PkString& source)
     // 原 Qt: source.split(QLatin1Char(' '), Qt::SkipEmptyParts)。PkString::split(char16_t)
     // 不跳空段，但 parasite 串是单空格分隔、无连续分隔符，行为等价；畸形输入的真空段
     // 会被下方 else 链忽略，优雅降级（不为 skip-empty 语义额外加过滤）。
-    const std::vector<PkString> parasites = source.split(u' ');
+    const PkList<PkString> parasites = source.split(u' ');
 
     for (int i = 0; i < static_cast<int>(parasites.size()); i++) {
         const std::vector<PkString> split = parasites.at(i).split(u':');

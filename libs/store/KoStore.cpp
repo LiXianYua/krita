@@ -294,7 +294,7 @@ bool KoStore::enterDirectory(const PkString &directory)
         return true;
     }
 
-    const std::vector<PkString> parts = directory.split(u'/');
+    const PkList<PkString> parts = directory.split(u'/');
     for (std::size_t i = 0; i < parts.size(); ++i) {
         // A trailing slash in the input means "enter that directory": the empty
         // final segment is skipped. This matches the original Krita indexOf loop.

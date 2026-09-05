@@ -11,6 +11,8 @@
  */
 
 #include <QtCore/QtCore>
+#include <PkTextStream.h>
+#include <PkFileStream.h>
 #include <PkFlakeBridge.h>
 #include "SvgParser.h"
 

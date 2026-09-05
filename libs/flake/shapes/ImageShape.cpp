@@ -65,7 +65,7 @@ void ImageShape::paint(QPainter &painter) const
     KisQPainterStateSaver saver(&painter);
 
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
-    painter.setClipRect(PkRectF(PkPointF(), size()), Qt::IntersectClip);
+    painter.setClipRect(toQRectF(PkRectF(PkPointF(), size())), Qt::IntersectClip);
     painter.setTransform(m_d->viewBoxTransform, true);
     painter.drawImage(PkPoint(), m_d->image);
 }

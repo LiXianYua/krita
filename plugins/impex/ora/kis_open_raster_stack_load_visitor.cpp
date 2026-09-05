@@ -225,7 +225,7 @@ void KisOpenRasterStackLoadVisitor::loadGroupLayer(const PkXmlElement& elem, Kis
             } else if (node.nodeName() == "filter") {
 
                 PkString filterType = subelem.attribute("type");
-                const std::vector<PkString> filterTypeSplit = filterType.split(u':');
+                const PkList<PkString> filterTypeSplit = filterType.split(u':');
                 KisFilterSP f = 0;
                 if (filterTypeSplit[0] == "applications" && filterTypeSplit[1] == "krita") {
                     f = KisFilterRegistry::instance()->value(filterTypeSplit[2]);

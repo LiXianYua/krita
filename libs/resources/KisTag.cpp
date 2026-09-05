@@ -53,7 +53,7 @@ int pkIndexOfAscii(const PkString &s, char c)
 // （对齐默认 KeepEmptyParts），这里手工过滤掉空段。
 PkStringList pkSplitSkipEmpty(const PkString &s, char16_t sep)
 {
-    const std::vector<PkString> parts = s.split(sep);
+    const PkList<PkString> parts = s.split(sep);
     PkStringList result;
     for (const PkString &p : parts) {
         if (!p.isEmpty()) {

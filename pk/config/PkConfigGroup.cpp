@@ -125,7 +125,7 @@ PkStringList PkConfigGroup::readEntry(const PkString &key, const PkStringList &d
     if (raw.isEmpty()) {
         return PkStringList();
     }
-    std::vector<PkString> parts = raw.split(kListSeparator);
+    PkList<PkString> parts = raw.split(kListSeparator);
     PkStringList result;
     for (const PkString &part : parts) {
         result.append(part);
@@ -140,7 +140,7 @@ PkColor PkConfigGroup::readEntry(const PkString &key, const PkColor &defaultValu
         return defaultValue;
     }
     PkString raw = store.get(m_groupName, key, PkString());
-    std::vector<PkString> parts = raw.split(u',');
+    PkList<PkString> parts = raw.split(u',');
     if (parts.size() != 4) {
         return defaultValue;
     }
@@ -166,7 +166,7 @@ PkPoint PkConfigGroup::readEntry(const PkString &key, const PkPoint &defaultValu
         return defaultValue;
     }
     PkString raw = store.get(m_groupName, key, PkString());
-    std::vector<PkString> parts = raw.split(u',');
+    PkList<PkString> parts = raw.split(u',');
     if (parts.size() != 2) {
         return defaultValue;
     }

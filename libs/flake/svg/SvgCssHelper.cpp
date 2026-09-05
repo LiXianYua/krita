@@ -82,7 +82,7 @@ PkString pkSimplified(const PkString &s)
 PkStringList pkSplitSkipEmpty(const PkString &s, char16_t sep)
 {
     PkStringList result;
-    const std::vector<PkString> parts = s.split(sep);
+    const PkList<PkString> parts = s.split(sep);
     for (const PkString &p : parts) {
         if (!p.isEmpty())
             result.append(p);

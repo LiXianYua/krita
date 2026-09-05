@@ -166,7 +166,7 @@ void KoShapePainter::paint(QPainter &painter, const PkRect &painterRect, const P
     painter.setPen(PkPen(Qt::NoPen));
     painter.setBrush(Qt::NoBrush);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setClipRect(painterRect.adjusted(-1,-1,1,1));
+    painter.setClipRect(toQRect(painterRect.adjusted(-1,-1,1,1)));
 
     // convert document rectangle to view coordinates
     PkRectF zoomedBound = converter.documentToView(documentRect);

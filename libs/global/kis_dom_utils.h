@@ -182,7 +182,7 @@ namespace KisDomUtils {
 
     inline PkColor qStringToQColor(PkString colorString)
     {
-        const std::vector<PkString> colorComponents = colorString.split(',');
+        const PkList<PkString> colorComponents = colorString.split(',');
         return PkColor(colorComponents[0].toInt(), colorComponents[1].toInt(), colorComponents[2].toInt(), colorComponents[3].toInt());
     }
 
