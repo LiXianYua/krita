@@ -35,8 +35,7 @@ public:
     PkTextStream &operator<<(int v);
     PkTextStream &operator<<(long v);
     PkTextStream &operator<<(unsigned v);
-    PkTextStream &operator<<(double v);
-    PkTextStream &operator<<(float v);
+    PkTextStream &operator<<(qreal v);   // 对齐 QTextStream 的 qreal 单载荷（消 double/float 二义）
 
     // —— 读 ——
     PkTextStream &operator>>(std::string &s);

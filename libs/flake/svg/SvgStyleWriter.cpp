@@ -634,7 +634,7 @@ PkString SvgStyleWriter::saveSvgVectorPattern(PkSharedPointer<KoVectorPatternBac
     context.styleWriter().addAttribute("width", rect.width());
     context.styleWriter().addAttribute("height", rect.height());
 
-    SvgUtil::writeTransformAttributeLazy("patternTransform", toPkTransform(pattern->patternTransform()), context.styleWriter());
+    SvgUtil::writeTransformAttributeLazy("patternTransform", toQTransform(pattern->patternTransform()), context.styleWriter());
 
     if (pattern->contentCoordinates() == KoFlake::ObjectBoundingBox) {
         // TODO: move this normalization into the KoVectorPatternBackground itself

@@ -19,8 +19,7 @@ PkTextStream &PkTextStream::operator<<(char c) { char b[2] = {c, 0}; return *thi
 PkTextStream &PkTextStream::operator<<(int v) { return *this << std::to_string(v); }
 PkTextStream &PkTextStream::operator<<(long v) { return *this << std::to_string(v); }
 PkTextStream &PkTextStream::operator<<(unsigned v) { return *this << std::to_string(v); }
-PkTextStream &PkTextStream::operator<<(double v) { return *this << formatReal(v); }
-PkTextStream &PkTextStream::operator<<(float v) { return *this << formatReal(double(v)); }
+PkTextStream &PkTextStream::operator<<(qreal v) { return *this << formatReal(v); }
 
 PkTextStream &PkTextStream::operator>>(std::string &s) { s = readLine(); return *this; }
 PkTextStream &PkTextStream::operator>>(int &v) { std::string t = readLine(); v = std::stoi(t); return *this; }

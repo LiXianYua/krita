@@ -701,7 +701,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
             }
         }
         if (!commonTextStyle.isEmpty()) {
-            svgWriter.writeAttribute("style", commonTextStyle);
+            svgWriter.writeAttribute("style", toQString(commonTextStyle));
         }
     }
 
@@ -767,7 +767,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
                                                    {},
                                                    /*includeLineHeight=*/wrappingMode != WrappingMode::QtLegacy);
             if (!blockStyleString.isEmpty()) {
-                svgWriter.writeAttribute("style", blockStyleString);
+                svgWriter.writeAttribute("style", toQString(blockStyleString));
             }
         }
 
@@ -842,7 +842,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
                 const PkString subStyle = style(diff, QTextBlockFormat(), mostCommonCharFormat);
                 if (!subStyle.isEmpty()) {
                     svgWriter.writeStartElement("tspan");
-                    svgWriter.writeAttribute("style", subStyle);
+                    svgWriter.writeAttribute("style", toQString(subStyle));
                     svgWriter.writeCharacters(texts.at(c));
                     svgWriter.writeEndElement();
                 } else {

@@ -88,33 +88,33 @@ bool SvgWriter::save(PkStream &outputDevice, const PkSizeF &pageSize)
     }
 
     PkTextStream svgStream(&outputDevice);
-    KisPortingUtils::setUtf8OnStream(svgStream);
+    svgStream.setCodec("UTF-8");
 
     // standard header:
-    svgStream << "<?xml version=\"1.0\" standalone=\"no\"?>" << Qt::endl;
+    svgStream << "<?xml version=\"1.0\" standalone=\"no\"?>" << "\n";
     svgStream << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\" ";
-    svgStream << "\"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">" << Qt::endl;
+    svgStream << "\"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">" << "\n";
 
     // add some PR.  one line is more than enough.
-    svgStream << "<!-- Created using Krita: https://krita.org -->" << Qt::endl;
+    svgStream << "<!-- Created using Krita: https://krita.org -->" << "\n";
 
     svgStream << "<svg xmlns=\"http://www.w3.org/2000/svg\" \n";
     svgStream << "    xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n";
-    svgStream << PkString("    xmlns:krita=\"%1\"\n").arg(toQString(KoXmlNS::krita));
+    svgStream << PkString("    xmlns:krita=\"%1\"\n").arg(PkString(KoXmlNS::krita));
     svgStream << "    xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\"\n";
     svgStream << "    width=\"" << pageSize.width() << "pt\"\n";
     svgStream << "    height=\"" << pageSize.height() << "pt\"\n";
     svgStream << "    viewBox=\"0 0 "
               << pageSize.width() << " " << pageSize.height()
               << "\"";
-    svgStream << ">" << Qt::endl;
+    svgStream << ">" << "\n";
 
     if (!m_documentTitle.isNull() && !m_documentTitle.isEmpty()) {
-        svgStream << "<title>" << m_documentTitle << "</title>" << Qt::endl;
+        svgStream << "<title>" << m_documentTitle << "</title>" << "\n";
     }
 
     if (!m_documentDescription.isNull() && !m_documentDescription.isEmpty()) {
-        svgStream << "<desc>" << m_documentDescription << "</desc>" << Qt::endl;
+        svgStream << "<desc>" << m_documentDescription << "</desc>" << "\n";
     }
 
     {
@@ -123,7 +123,7 @@ bool SvgWriter::save(PkStream &outputDevice, const PkSizeF &pageSize)
     }
 
     // end tag:
-    svgStream << Qt::endl << "</svg>" << Qt::endl;
+    svgStream << "\n" << "</svg>" << "\n";
 
     return true;
 }
@@ -197,7 +197,7 @@ void SvgWriter::saveGroup(KoShapeGroup * group, SvgSavingContext &context)
     context.shapeWriter().startElement("g");
     context.shapeWriter().addAttribute("id", toPkString(context.getID(group)));
 
-    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(group->transformation()), context.shapeWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", toQTransform(group->transformation()), context.shapeWriter());
 
 
     SvgStyleWriter::saveMetadata(group, context);
@@ -238,7 +238,7 @@ void SvgWriter::savePath(KoPathShape *path, SvgSavingContext &context)
     context.shapeWriter().startElement("path");
     context.shapeWriter().addAttribute("id", toPkString(context.getID(path)));
 
-    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(path->transformation()), context.shapeWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", toQTransform(path->transformation()), context.shapeWriter());
     SvgStyleWriter::saveSvgStyle(path, context);
 
     context.shapeWriter().addAttribute("d", toPkString(path->toString(context.userSpaceTransform())));
@@ -258,7 +258,8 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
     painter.setShapes(PkList<KoShape*>()<< shape);
 
     // generate svg from shape
-    PkMemoryStream svgBuffer;
+    QBuffer svgBuffer;
+    svgBuffer.open(QIODevice::ReadOnly | QIODevice::WriteOnly);
     QSvgGenerator svgGenerator;
     svgGenerator.setOutputDevice(&svgBuffer);
 
@@ -281,9 +282,9 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
     svgPainter.end();
 
     // remove anything before the start of the svg element from the buffer
-    int startOfContent = svgBuffer.buffer().indexOf("<svg");
-    if(startOfContent>0) {
-        svgBuffer.buffer().remove(0, startOfContent);
+    int startOfContent = svgData.indexOf("<svg");
+    if (startOfContent > 0) {
+        svgData.remove(0, startOfContent);
     }
 
     // check if painting to svg produced any output
@@ -303,8 +304,10 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
         context.shapeWriter().endElement(); // image
 
     } else {
+        QBuffer cleanedBuffer(&svgData);
+        cleanedBuffer.open(QIODevice::ReadOnly);
         PkDeviceStream stream;
-        stream.attach(&svgBuffer);
+        stream.attach(&cleanedBuffer);
         context.shapeWriter().addCompleteElement(&stream);
     }
 

@@ -43,7 +43,7 @@ void KoShapeRubberSelectStrategy::paint(QPainter &painter, const KoViewConverter
     selectColor.setAlphaF(0.8);
     PkPen select(selectColor, decorationThickness());
     select.setCosmetic(true);
-    painter.setPen(select);
+    painter.setPen(toQPen(select));
 
     selectColor.setAlphaF(0.4);
     const QBrush fillBrush(selectColor);
