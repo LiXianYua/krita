@@ -96,7 +96,7 @@ KisSpacingInformation KisHatchingPaintOp::paintAt(const KisPaintInformation& inf
 
     /*----Fetch the Dab----*/
     static const KoColorSpace *cs = KoColorSpaceRegistry::instance()->alpha8();
-    static KoColor color(Qt::black, cs);
+    static KoColor color(Pk::black, cs);
 
     PkRect dstRect;
     KisFixedPaintDeviceSP maskDab =

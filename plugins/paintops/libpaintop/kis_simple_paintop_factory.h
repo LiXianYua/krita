@@ -152,7 +152,7 @@ public:
 
     KisPaintOp *createOp(const KisPaintOpSettingsSP settings, KisPainter *painter, KisNodeSP node, KisImageSP image) override {
         KisPaintOp * op = new Op(settings, painter, node, image);
-        Q_CHECK_PTR(op);
+        Q_ASSERT(op);
         return op;
     }
 

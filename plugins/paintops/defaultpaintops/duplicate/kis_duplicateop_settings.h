@@ -36,7 +36,7 @@ public:
      * and returns true otherwise (i.e. if brush is starting a new stroke).
      * See kis_tool_freehand:trySampleByPaintOp()
      */
-    bool mousePressEvent(const KisPaintInformation& pos, Qt::KeyboardModifiers modifiers, KisNodeWSP currentNode) override;
+    bool mousePressEvent(const KisPaintInformation& pos, Pk::KeyboardModifiers modifiers, KisNodeWSP currentNode) override;
     /**
      * This function is called by a tool when the mouse is released.
      * If the tool is supposed to ignore the event, the paint op should return true

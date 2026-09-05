@@ -33,7 +33,7 @@ public:
 
     PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
-    bool mousePressEvent(const KisPaintInformation& pos, Qt::KeyboardModifiers modifiers, KisNodeWSP currentNode) override;
+    bool mousePressEvent(const KisPaintInformation& pos, Pk::KeyboardModifiers modifiers, KisNodeWSP currentNode) override;
     bool mouseReleaseEvent() override;
 
 private:

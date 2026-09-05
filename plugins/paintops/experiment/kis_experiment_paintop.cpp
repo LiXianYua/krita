@@ -89,7 +89,7 @@ KisExperimentPaintOp::~KisExperimentPaintOp()
 void KisExperimentPaintOp::paintRegion(const KisRegion &changedRegion)
 {
     if (m_windingFill) {
-        m_path.setFillRule(Qt::WindingFill);
+        m_path.setFillRule(Pk::WindingFill);
     }
 
     if (m_useMirroring) {

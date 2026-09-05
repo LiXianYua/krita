@@ -63,7 +63,7 @@ bool KisGridPaintOpSettings::paintIncremental()
     return data.paintingMode == enumPaintingMode::BUILDUP;
 }
 
-bool KisGridPaintOpSettings::mousePressEvent(const KisPaintInformation& info, Qt::KeyboardModifiers modifiers, KisNodeWSP currentNode)
+bool KisGridPaintOpSettings::mousePressEvent(const KisPaintInformation& info, Pk::KeyboardModifiers modifiers, KisNodeWSP currentNode)
 {
     static_cast<void>(currentNode);
 
@@ -74,7 +74,7 @@ bool KisGridPaintOpSettings::mousePressEvent(const KisPaintInformation& info, Qt
     qreal newVerticalOffset = std::fmod(info.pos().y() + option.grid_height/2.0, (float)option.grid_height);
 
     // If pressing ctrl+alt change the offset according to mouse position
-    if (modifiers == (Qt::ControlModifier | Qt::AltModifier) || m_modifyOffsetWithShortcut) {
+    if (modifiers == (Pk::ControlModifier | Pk::AltModifier) || m_modifyOffsetWithShortcut) {
         m_modifyOffsetWithShortcut = true;
         newHorizontalOffset = (newHorizontalOffset / (float)option.grid_width);
         newVerticalOffset = (newVerticalOffset / (float)option.grid_height);

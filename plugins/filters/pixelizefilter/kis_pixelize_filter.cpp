@@ -9,6 +9,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_pixelize_filter.h"
 
 
@@ -66,7 +67,7 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
     const int bufferSize = pixelSize * pixelWidth * pixelHeight;
     PkScopedArrayPointer<quint8> buffer(new quint8[bufferSize]);
 
-    KoColor pixelColor(Qt::black, device->colorSpace());
+    KoColor pixelColor(Pk::black, device->colorSpace());
     KoMixColorsOp *mixOp = device->colorSpace()->mixColorsOp();
 
     using namespace KisAlgebra2D;

@@ -7,6 +7,7 @@
 #ifndef KIS_TOOL_FREEHAND_H_
 #define KIS_TOOL_FREEHAND_H_
 
+#include <PkSet.h>
 #include <brushengine/kis_paint_information.h>
 #include <brushengine/kis_paintop_settings.h>
 #include <kis_distance_information.h>
@@ -40,7 +41,7 @@ public:
     
 
 public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
 protected:

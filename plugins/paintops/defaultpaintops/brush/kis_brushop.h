@@ -52,7 +52,7 @@ protected:
     struct UpdateSharedState;
     typedef PkSharedPointer<UpdateSharedState> UpdateSharedStateSP;
 
-    void addMirroringJobs(Qt::Orientation direction,
+    void addMirroringJobs(Pk::Orientation direction,
                           PkVector<PkRect> &rects,
                           UpdateSharedStateSP state,
                           PkVector<KisRunnableStrokeJobData*> &jobs);

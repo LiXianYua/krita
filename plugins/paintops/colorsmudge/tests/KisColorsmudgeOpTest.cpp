@@ -41,7 +41,7 @@ public:
 
         QVERIFY(paint1->extent().isEmpty());
 
-        paint1->paintDevice()->fill(QRect(80, 5, 50, 190), KoColor(Qt::red, image->colorSpace()));
+        paint1->paintDevice()->fill(QRect(80, 5, 50, 190), KoColor(Pk::red, image->colorSpace()));
 
         KisNodeSP targetNode = paint1;
 
@@ -52,7 +52,7 @@ public:
 
             KisPaintLayerSP paintBg = new KisPaintLayer(image, "paintBg", OPACITY_OPAQUE_U8);
             image->addNode(paintBg, paint1->parent(), 0);
-            paintBg->paintDevice()->fill(QRect(0, 100, 200, 100), KoColor(Qt::white, image->colorSpace()));
+            paintBg->paintDevice()->fill(QRect(0, 100, 200, 100), KoColor(Pk::white, image->colorSpace()));
 
             image->initialRefreshGraph();
         }
@@ -62,7 +62,7 @@ public:
         PkScopedPointer<KoCanvasResourceProvider> manager(
             utils::createResourceManager(image, 0, presetFileName));
 
-        manager->setResource(KoCanvasResource::ForegroundColor, KoColor(Qt::green, image->colorSpace()));
+        manager->setResource(KoCanvasResource::ForegroundColor, KoColor(Pk::green, image->colorSpace()));
 
         KisPaintOpPresetSP preset =
             manager->resource(KoCanvasResource::CurrentPaintOpPreset).value<KisPaintOpPresetSP>();

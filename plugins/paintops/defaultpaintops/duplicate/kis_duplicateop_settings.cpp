@@ -52,12 +52,12 @@ PkPointF KisDuplicateOpSettings::position() const
     return m_position;
 }
 
-bool KisDuplicateOpSettings::mousePressEvent(const KisPaintInformation &info, Qt::KeyboardModifiers modifiers, KisNodeWSP currentNode)
+bool KisDuplicateOpSettings::mousePressEvent(const KisPaintInformation &info, Pk::KeyboardModifiers modifiers, KisNodeWSP currentNode)
 {
     bool ignoreEvent = true;
 
-    if (modifiers & Qt::ControlModifier) {
-        if (!m_sourceNode || !(modifiers & Qt::AltModifier)) {
+    if (modifiers & Pk::ControlModifier) {
+        if (!m_sourceNode || !(modifiers & Pk::AltModifier)) {
             m_sourceNode = currentNode;
         }
         m_position = info.pos();

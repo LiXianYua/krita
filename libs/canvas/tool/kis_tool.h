@@ -7,6 +7,7 @@
 #ifndef KIS_TOOL_H_
 #define KIS_TOOL_H_
 
+#include <PkSet.h>
 #include <QCursor>
 
 #include <KoColor.h>
@@ -187,9 +188,9 @@ public:
     virtual void newActivationWithExternalSource(KisPaintDeviceSP externalSource);
 
 public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
-    void canvasResourceChanged(int key, const QVariant & res) override;
+    void canvasResourceChanged(int key, const PkVariant &res) override;
     // Implement this slot in case there are any widgets or properties which need
     // to be updated after certain operations, to reflect the inner state correctly.
     // At the moment this is used for smoothing options in the freehand brush, but

@@ -10,6 +10,7 @@
 #ifndef KISTOOLOUTLINEBASE_H
 #define KISTOOLOUTLINEBASE_H
 
+#include <PkSet.h>
 #include <kis_tool_shape.h>
 
 class KisInputActionGroupsMaskGuard;
@@ -43,7 +44,7 @@ public:
     bool hasUserInteractionRunning() const;
 
 public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void requestStrokeEnd() override;
     void requestStrokeCancellation() override;

@@ -8,6 +8,7 @@
 #define KIS_TOOL_SHAPE_H_
 
 
+#include <PkSet.h>
 #include <kritacanvas_export.h>
 #include <kconfiggroup.h>
 
@@ -34,7 +35,7 @@ public:
     int flags() const override;
 
 public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
 
 protected:
     QWidget* createOptionWidget() override;

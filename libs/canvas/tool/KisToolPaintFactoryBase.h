@@ -6,6 +6,7 @@
 #ifndef KISTOOLPAINTFACTORYBASE_H
 #define KISTOOLPAINTFACTORYBASE_H
 
+#include <PkList.h>
 #include <KoToolFactoryBase.h>
 
 #include "kritacanvas_export.h"
@@ -16,7 +17,7 @@ public:
     explicit KisToolPaintFactoryBase(const QString &id);
     ~KisToolPaintFactoryBase() override;
 protected:
-    QList<QAction *> createActionsImpl() override;
+    PkList<QAction *> createActionsImpl() override;
 
 };
 

@@ -92,7 +92,7 @@ void KisCurvePaintOp::paintLine(KisPaintDeviceSP dab, const KisPaintInformation 
     const qreal additionalScale = KisLodTransform::lodToScale(painter()->device());
     const qreal lineWidth = additionalScale * m_lineWidthOption.apply(pi2) * m_curveOpOption.curve_line_width;
 
-    PkPen pen(Qt::white, lineWidth);
+    PkPen pen(Pk::white, lineWidth);
     PkPainterPath path;
 
     if (m_curveOpOption.curve_paint_connection_line) {

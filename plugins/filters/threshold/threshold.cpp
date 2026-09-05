@@ -6,6 +6,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "threshold.h"
 #include <stdlib.h>
 #include <vector>
@@ -67,8 +68,8 @@ void KisFilterThreshold::processImpl(KisPaintDeviceSP device,
 
     const int threshold = config->getInt("threshold");
 
-    KoColor white(Qt::white, device->colorSpace());
-    KoColor black(Qt::black, device->colorSpace());
+    KoColor white(Pk::white, device->colorSpace());
+    KoColor black(Pk::black, device->colorSpace());
 
     KisSequentialIteratorProgress it(device, applyRect, progressUpdater);
     const int pixelSize = device->colorSpace()->pixelSize();

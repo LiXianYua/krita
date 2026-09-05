@@ -7,6 +7,7 @@
 #ifndef KIS_TOOL_PAINT_H_
 #define KIS_TOOL_PAINT_H_
 
+#include <PkSet.h>
 #include "kis_tool.h"
 #include <KisStandardBrushSizes.h>
 
@@ -51,7 +52,7 @@ protected:
 
     void setMode(ToolMode mode) override;
 
-    void canvasResourceChanged(int key, const QVariant &v) override;
+    void canvasResourceChanged(int key, const PkVariant &v) override;
 
     void paint(QPainter &gc, const KoViewConverter &converter) override;
 
@@ -105,7 +106,7 @@ protected:
     }
 
 public Q_SLOTS:
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
 private Q_SLOTS:

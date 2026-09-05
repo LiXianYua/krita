@@ -156,7 +156,7 @@ void FreehandStrokeTest::testMixDullCompositing()
 {
     FreehandStrokeTester tester("Mix_dull.kpp");
     tester.setFlipLineDirection(true);
-    tester.setPaintColor(Qt::red);
+    tester.setPaintColor(Pk::red);
     tester.test();
 }
 

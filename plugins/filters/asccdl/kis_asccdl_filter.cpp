@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkGlobal.h>
 #include "kis_asccdl_filter.h"
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_registry.h>
@@ -35,8 +36,8 @@ KisFilterASCCDL::KisFilterASCCDL(): KisColorTransformationFilter(id(), FiltersCa
 KoColorTransformation *KisFilterASCCDL::createTransformation(const KoColorSpace *cs,
                                                              const KisFilterConfigurationSP config) const
 {
-    KoColor black(Qt::black, cs);
-    KoColor white(Qt::white, cs);
+    KoColor black(Pk::black, cs);
+    KoColor white(Pk::white, cs);
     return new KisASCCDLTransformation(cs,
                                        config->getColor("slope", black),
                                        config->getColor("offset", white),
@@ -45,7 +46,7 @@ KoColorTransformation *KisFilterASCCDL::createTransformation(const KoColorSpace 
 
 bool KisFilterASCCDL::needsTransparentPixels(const KisFilterConfigurationSP config, const KoColorSpace *cs) const
 {
-    KoColor black(Qt::black, cs);
+    KoColor black(Pk::black, cs);
     KoColor offset = config->getColor("offset", black);
     offset.convertTo(cs);
     if (cs->difference(black.data(), offset.data())>0) {
@@ -59,9 +60,9 @@ KisFilterConfigurationSP KisFilterASCCDL::defaultConfiguration(KisResourcesInter
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
     PkVariant colorVariant("KoColor");
     KoColor black;
-    black.fromQColor(PkColor(Qt::black));
+    black.fromQColor(PkColor(Pk::black));
     KoColor white;
-    white.fromQColor(PkColor(Qt::white));
+    white.fromQColor(PkColor(Pk::white));
     colorVariant.setValue(white);
     config->setProperty( "slope", colorVariant);
     config->setProperty( "power", colorVariant);

@@ -163,7 +163,7 @@ struct KisBrushOp::UpdateSharedState
     PkVector<PkRect> allDirtyRects;
 };
 
-void KisBrushOp::addMirroringJobs(Qt::Orientation direction,
+void KisBrushOp::addMirroringJobs(Pk::Orientation direction,
                                   PkVector<PkRect> &rects,
                                   UpdateSharedStateSP state,
                                   PkVector<KisRunnableStrokeJobData*> &jobs)
@@ -309,15 +309,15 @@ std::pair<int, bool> KisBrushOp::doAsynchronousUpdate(PkVector<KisRunnableStroke
          * branches, which is done intentionally!
          */
         if (state->painter->hasHorizontalMirroring()) {
-            addMirroringJobs(Qt::Horizontal, rects, state, jobs);
+            addMirroringJobs(Pk::Horizontal, rects, state, jobs);
         }
 
         if (state->painter->hasVerticalMirroring()) {
-            addMirroringJobs(Qt::Vertical, rects, state, jobs);
+            addMirroringJobs(Pk::Vertical, rects, state, jobs);
         }
 
         if (state->painter->hasHorizontalMirroring() && state->painter->hasVerticalMirroring()) {
-            addMirroringJobs(Qt::Horizontal, rects, state, jobs);
+            addMirroringJobs(Pk::Horizontal, rects, state, jobs);
         }
 
         KritaUtils::addJobSequential(jobs,

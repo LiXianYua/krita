@@ -6,6 +6,7 @@
 #ifndef KISSELECTIONTOOLFACTORYBASE_H
 #define KISSELECTIONTOOLFACTORYBASE_H
 
+#include <PkList.h>
 #include "KisToolPaintFactoryBase.h"
 
 #include "kritacanvas_export.h"
@@ -16,7 +17,7 @@ public:
     explicit KisSelectionToolFactoryBase(const QString &id);
     ~KisSelectionToolFactoryBase() override;
 protected:
-    QList<QAction *> createActionsImpl() override;
+    PkList<QAction *> createActionsImpl() override;
 };
 
 class KRITACANVAS_EXPORT KisToolPolyLineFactoryBase : public KisToolPaintFactoryBase
@@ -25,7 +26,7 @@ public:
     explicit KisToolPolyLineFactoryBase(const QString &id);
     ~KisToolPolyLineFactoryBase() override;
 protected:
-    QList<QAction *> createActionsImpl() override;
+    PkList<QAction *> createActionsImpl() override;
 };
 
 

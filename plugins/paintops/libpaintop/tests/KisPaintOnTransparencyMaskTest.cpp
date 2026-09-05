@@ -94,7 +94,7 @@ protected:
     using utils::StrokeTester::initImage;
     void initImage(KisImageWSP image, KisNodeSP activeNode) override {
 
-        activeNode->paintDevice()->fill(QRect(0,0,1024,1024), KoColor(Qt::red, image->colorSpace()));
+        activeNode->paintDevice()->fill(QRect(0,0,1024,1024), KoColor(Pk::red, image->colorSpace()));
         m_mask = new KisTransparencyMask(image, "tmask");
         m_mask->setSelection(new KisSelection());
         m_mask->paintDevice()->clear();
@@ -106,7 +106,7 @@ protected:
     void modifyResourceManager(KoCanvasResourceProvider *manager,
                                KisImageWSP image) override {
 
-        KoColor color(Qt::red, image->colorSpace());
+        KoColor color(Pk::red, image->colorSpace());
         color.setOpacity(0.5);
 
         QVariant i;

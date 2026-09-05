@@ -113,7 +113,7 @@ private:
                       const PkString &indirectPaintingCompositeOp);
     void deletePainters();
     inline int timedID(const PkString &id){
-        return int(qHash(id));
+        return int(pkHash(id));
     }
 
 private:

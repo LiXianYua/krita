@@ -88,7 +88,7 @@ KisSpacingInformation KisRoundMarkerOp::paintAt(const KisPaintInformation& info)
         }
     } else {
         const PkVector<std::pair<PkPointF, PkPointF>> pairs =
-            painter()->calculateAllMirroredPoints(qMakePair(m_lastPaintPos, pos));
+            painter()->calculateAllMirroredPoints(std::make_pair(m_lastPaintPos, pos));
 
         PK_FOREACH(const auto &pair, pairs) {
             // Subtracting .5 from both dimensions, because the final dab tends to exaggerate towards the lower right.

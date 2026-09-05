@@ -7,6 +7,7 @@
 #ifndef KIS_TOOL_POLYLINE_BASE_H
 #define KIS_TOOL_POLYLINE_BASE_H
 
+#include <PkSet.h>
 #include <kis_tool_shape.h>
 
 class KRITACANVAS_EXPORT KisToolPolylineBase : public KisToolShape
@@ -30,7 +31,7 @@ public:
 
     void paint(QPainter& gc, const KoViewConverter &converter) override;
 
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void requestStrokeEnd() override;
     void requestStrokeCancellation() override;

@@ -10,6 +10,7 @@
 #ifndef KIS_GRADIENT_MAP_FILTER_CONFIGURATION_H
 #define KIS_GRADIENT_MAP_FILTER_CONFIGURATION_H
 
+#include <PkGlobal.h>
 #include <kis_filter_configuration.h>
 #include <KisGradientConversion.h>
 #include <KisResourcesInterface.h>
@@ -60,8 +61,8 @@ public:
             KoStopGradientSP stopGradient(new KoStopGradient);
             stopGradient->setStops(
                 PkList<KoGradientStop>()
-                << KoGradientStop(0.0, KoColor(Qt::black, KoColorSpaceRegistry::instance()->rgb8(0)), FOREGROUNDSTOP)
-                << KoGradientStop(1.0, KoColor(Qt::white, KoColorSpaceRegistry::instance()->rgb8(0)), BACKGROUNDSTOP)
+                << KoGradientStop(0.0, KoColor(Pk::black, KoColorSpaceRegistry::instance()->rgb8(0)), FOREGROUNDSTOP)
+                << KoGradientStop(1.0, KoColor(Pk::white, KoColorSpaceRegistry::instance()->rgb8(0)), BACKGROUNDSTOP)
             );
             gradient = stopGradient.staticCast<KoAbstractGradient>();
         }

@@ -164,7 +164,7 @@ void KisTextureMaskInfo::recalculateMask()
         PkTransform tf;
         tf.scale(scale, scale);
         PkRect rc = KisAlgebra2D::ensureRectNotSmaller(tf.mapRect(mask.rect()), PkSize(2,2));
-        mask = mask.scaled(rc.size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        mask = mask.scaled(rc.size(), Pk::KeepAspectRatio, Pk::SmoothTransformation);
     } else {
         // detach the mask from the file loaded from the storage
         mask = PkImage(mask);

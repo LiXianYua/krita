@@ -9,6 +9,7 @@
 #ifndef KIS_HALFTONE_FILTER_CONFIGURATION_H
 #define KIS_HALFTONE_FILTER_CONFIGURATION_H
 
+#include <PkGlobal.h>
 #include <PkHash.h>
 #include <PkString.h>
 #include <PkStringList.h>
@@ -66,13 +67,13 @@ public:
 
     inline static const KoColor& defaultForegroundColor()
     {
-        static const KoColor c(Qt::black, KoColorSpaceRegistry::instance()->rgb8());
+        static const KoColor c(Pk::black, KoColorSpaceRegistry::instance()->rgb8());
         return c;
     }
 
     inline static const KoColor& defaultBackgroundColor()
     {
-        static const KoColor c(Qt::white, KoColorSpaceRegistry::instance()->rgb8());
+        static const KoColor c(Pk::white, KoColorSpaceRegistry::instance()->rgb8());
         return c;
     }
 

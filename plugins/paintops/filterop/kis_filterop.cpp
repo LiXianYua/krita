@@ -94,7 +94,7 @@ KisSpacingInformation KisFilterOp::paintAt(const KisPaintInformation& info)
     KisDabShape shape(scale, 1.0, rotation);
 
     static const KoColorSpace *cs = KoColorSpaceRegistry::instance()->alpha8();
-    static KoColor color(Qt::black, cs);
+    static KoColor color(Pk::black, cs);
 
     PkRect dstRect;
     KisFixedPaintDeviceSP dab = m_dabCache->fetchDab(cs, color, info.pos(),

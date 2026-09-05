@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: ICS
  */
 
+#include <PkGlobal.h>
 #include "palettegeneratorconfig.h"
 #include <PkDataStream.h>
 #include <PkMessageLogger.h>
@@ -12,10 +13,10 @@ PaletteGeneratorConfig::PaletteGeneratorConfig()
 {
     for(int j = 0; j < 4; ++j)
     {
-        colors[0][j] = PkColor(Qt::white);
-        colors[1][j] = PkColor(Qt::yellow);
-        colors[2][j] = PkColor(Qt::gray);
-        colors[3][j] = PkColor(Qt::black);
+        colors[0][j] = PkColor(Pk::white);
+        colors[1][j] = PkColor(Pk::yellow);
+        colors[2][j] = PkColor(Pk::gray);
+        colors[3][j] = PkColor(Pk::black);
     }
 
     for(int i = 0; i < 4; ++i)
