@@ -49,7 +49,7 @@ KisToolShape::~KisToolShape()
 void KisToolShape::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
-    m_configGroup =  KSharedConfig::openConfig()->group(toolId());
+    m_configGroup =  KSharedConfig::openConfig()->group(toQString(toolId()));
 }
 
 
@@ -135,10 +135,10 @@ void KisToolShape::addShape(KoShape* shape)
                                    canvas()->resourceManager()->canvasResourcesInterface());
     switch(fillStyle()) {
         case FillStyleForegroundColor:
-            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(toQColor(resources.currentFgColor().toQColor()))));
+            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(resources.currentFgColor())));
             break;
         case FillStyleBackgroundColor:
-            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(toQColor(resources.currentBgColor().toQColor()))));
+            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(resources.currentBgColor())));
             break;
         case FillStylePattern:
             shape->setBackground(QSharedPointer<KoShapeBackground>(0));

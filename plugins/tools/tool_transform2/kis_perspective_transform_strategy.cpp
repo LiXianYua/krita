@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include "kis_perspective_transform_strategy.h"
 
 #include <PkPoint.h>
@@ -353,14 +354,7 @@ Eigen::Matrix3f getTransitionMatrix(const PkVector<PkPointF> &sp)
     A.col(2) *= coeffs(2);
 
     return A;
-}
 
-PkTransform toQTransform(const Eigen::Matrix3f &m)
-{
-    return PkTransform(m(0,0), m(1,0), m(2,0),
-                      m(0,1), m(1,1), m(2,1),
-                      m(0,2), m(1,2), m(2,2));
-}
 
 Eigen::Matrix3f fromQTransform(const PkTransform &t)
 {
@@ -467,11 +461,7 @@ PkTransform KisPerspectiveTransformStrategy::Private::transformFromArgs()
 
 PkVector4D fromQPointF(const PkPointF &pt) {
     return PkVector4D(pt.x(), pt.y(), 0, 1.0);
-}
 
-PkPointF toQPointF(const PkVector4D &v) {
-    return v.toVector2DAffine().toPointF();
-}
 
 void KisPerspectiveTransformStrategy::continuePrimaryAction(const PkPointF &mousePos, bool shiftModifierActive, bool altModifierActive)
 {

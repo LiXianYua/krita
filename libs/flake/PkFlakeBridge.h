@@ -728,23 +728,13 @@ private:
 #include <pk/color/PkColor.h>
 #include <pk/pointer/PkSharedPointer.h>
 
-inline PkString toPkString(const PkString &s) { return s; }
-inline PK_QSTRING_ toQString(const PkString &s) { return s; }
 
-inline PkRectF toPkRectF(const PkRectF &r) { return r; }
-inline PkRectF toQRectF(const PkRectF &r) { return r; }
 
-inline PkPointF toPkPointF(const PkPointF &p) { return p; }
-inline PkPointF toQPointF(const PkPointF &p) { return p; }
 
-inline PkColor toPkColor(const PkColor &c) { return c; }
-inline PkColor toQColor(const PkColor &c) { return c; }
+
 
 inline PkTransform toPkTransform(const PkTransform &t) { return t; }
-inline PkTransform toQTransform(const PkTransform &t) { return t; }
 
-inline PkSizeF toPkSizeF(const PkSizeF &s) { return s; }
-inline PkSizeF toQSizeF(const PkSizeF &s) { return s; }
 
 inline PkPainterPath toPkPainterPath(const PkPainterPath &p) { return p; }
 inline PkPainterPath toQPainterPath(const PkPainterPath &p) { return p; }
@@ -752,16 +742,12 @@ inline PkPainterPath toQPainterPath(const PkPainterPath &p) { return p; }
 inline PkPolygon toPkPolygon(const PkPolygon &p) { return p; }
 inline PkPolygon toQPolygon(const PkPolygon &p) { return p; }
 
-inline PkLineF toPkLineF(const PkLineF &l) { return l; }
 
 inline PkXmlElement toPkXmlElement(const PkXmlElement &el) { return el; }
-inline PkXmlElement toQDomElement(const PkXmlElement &el) { return el; }
 
 template <typename T>
-inline PkList<T> toPkList(const PkList<T> &l) { return l; }
 
 template <typename T>
-inline PkList<T> toQList(const PkList<T> &l) { return l; }
 
 // 共享指针互转的 Qt-free 恒等版：真 Qt 分支的 toPkSharedPointer/toQSharedPointer 在
 // 保活 deleter（Pk↔Q 各持控制块）；Qt-free 下 PkSharedPointer 已宏映射到 PkSharedPointer，
@@ -770,8 +756,6 @@ template <typename T>
 inline PkSharedPointer<T> toPkSharedPointer(const PkSharedPointer<T> &p) { return p; }
 
 template <typename T>
-inline PkSharedPointer<T> toQSharedPointer(const PkSharedPointer<T> &p) { return p; }
 inline PkPen toQPen(const PkPen &p) { return p; }
 inline PkPen toPkPen(const PkPen &p) { return p; }
-inline PkPolygonF toQPolygonF(const PkPolygonF &p) { return p; }
 #endif

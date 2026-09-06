@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include "KisHeifTest.h"
 #include <KisDocumentRegistry.h>
 

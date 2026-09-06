@@ -6,6 +6,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include "kis_color_to_alpha.h"
 
 #include <KoColorSpaceMaths.h>

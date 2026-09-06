@@ -5,6 +5,7 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <PkFlakeBridge.h>
 #include <QIcon>
 #include "SvgTextTool.h"
 #include "KoSvgTextProperties.h"

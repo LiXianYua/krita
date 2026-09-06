@@ -7,6 +7,7 @@
 #ifndef __KIS_DISPLAY_COLOR_CONVERTER_H
 #define __KIS_DISPLAY_COLOR_CONVERTER_H
 
+#include <PkFlakeBridge.h>
 #include <QScopedPointer>
 
 #include <KoColorDisplayRendererInterface.h>

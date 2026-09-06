@@ -128,7 +128,7 @@ void KisCoordinatesConverter::recalculateOffsetBoundsAndCrop()
 
     KisCanvasConfig cfg(true);
 
-    const QRect refRect = toQRect(imageToWidget(m_d->extraReferencesBounds));
+    const QRect refRect = imageToWidget(m_d->extraReferencesBounds);
 
     QRect documentRect = toQRect(imageRectInWidgetPixels().toAlignedRect());
     PkPointF dPointMax(pkMax(documentRect.width(), refRect.right() + 1 - documentRect.x()),
@@ -210,7 +210,7 @@ void KisCoordinatesConverter::recalculateTransformations()
     recalculateOffsetBoundsAndCrop();
 
     PkRectF irect = imageRectInWidgetPixels();
-    PkRectF wrect = PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
+    PkRectF wrect = PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
     PkRectF rrect = irect & wrect;
 
     PkTransform reversedTransform = flakeToWidgetTransform().inverted();
@@ -855,12 +855,12 @@ PkSizeF KisCoordinatesConverter::imageSizeInFlakePixels() const
 
 PkRectF KisCoordinatesConverter::widgetRectInFlakePixels() const
 {
-    return widgetToFlake(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
+    return widgetToFlake(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
 }
 
 PkRectF KisCoordinatesConverter::widgetRectInImagePixels() const
 {
-    return widgetToImage(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
+    return widgetToImage(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
 }
 
 PkPointF KisCoordinatesConverter::flakeCenterPoint() const
@@ -965,12 +965,12 @@ void KisCoordinatesConverter::recalculateZoomLevelLimits()
     m_d->standardZoomLevels.clear(); // TODO: reset only on real change!
 }
 
-qreal KisCoordinatesConverter::findNextZoom(qreal currentZoom, const QVector<qreal> &zoomLevels)
+qreal KisCoordinatesConverter::findNextZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels)
 {
     return KoZoomMode::findNextZoom(currentZoom, zoomLevels);
 }
 
-qreal KisCoordinatesConverter::findPrevZoom(qreal currentZoom, const QVector<qreal> &zoomLevels)
+qreal KisCoordinatesConverter::findPrevZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels)
 {
     return KoZoomMode::findPrevZoom(currentZoom, zoomLevels);
 }

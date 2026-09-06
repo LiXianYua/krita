@@ -4,6 +4,7 @@
 *  SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+#include <PkFlakeBridge.h>
 #include "phong_pixel_processor.h"
 #include <cmath>
 #include <iostream>

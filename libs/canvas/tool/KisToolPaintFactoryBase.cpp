@@ -3,6 +3,7 @@
  *
  *  SPDX-License-Identifier: LGPL-2.0-or-later
  */
+#include <pk/container/PkList.h>
 #include "KisToolPaintFactoryBase.h"
 
 #include <QAction>
@@ -18,9 +19,9 @@ KisToolPaintFactoryBase::~KisToolPaintFactoryBase()
 {
 }
 
-QList<QAction *> KisToolPaintFactoryBase::createActionsImpl()
+PkList<QAction *> KisToolPaintFactoryBase::createActionsImpl()
 {
-    QList<QAction *> actions;
+    PkList<QAction *> actions;
 
     QAction *increaseBrushSize = new QAction(i18n("Increase Brush Size"), this);
     increaseBrushSize->setObjectName("increase_brush_size");

@@ -5,6 +5,7 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <PkFlakeBridge.h>
 #include "kis_prescaled_projection.h"
 
 #include <math.h>
@@ -41,12 +42,7 @@
 
 #include <KisCanvasState.h>
 
-namespace {
 
-PkRect toPkRect(const QRect &rect)
-{
-    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
 
 PkSize toPkSize(const QSize &size)
 {
@@ -215,9 +211,9 @@ void KisPrescaledProjection::viewportMoved(const PkPointF &offset)
     if (m_d->prescaledQImage.isNull()) return;
     if (offset.isNull()) return;
 
-    QPoint alignedOffset = offset.toPoint();
+    QPoint alignedOffset = toQPoint(offset.toPoint());
 
-    if(offset != alignedOffset) {
+    if(offset != toPkPoint(alignedOffset)) {
         /**
          * We can't optimize anything when offset is float :(
          * Just prescale entire image.
@@ -250,14 +246,14 @@ void KisPrescaledProjection::viewportMoved(const PkPointF &offset)
     while (rc != updateRegion.end()) {
         QRect rect = *rc;
         QRect imageRect =
-            m_d->coordinatesConverter->viewportToImage(rect).toAlignedRect();
+            toQRect(m_d->coordinatesConverter->viewportToImage(rect).toAlignedRect());
         const PkVector<PkRect> patches = KritaUtils::splitRectIntoPatches(
             toPkRect(imageRect), toPkSize(m_d->updatePatchSize));
 
         Q_FOREACH (const PkRect &pkRect, patches) {
             const QRect rc = toQRect(pkRect);
             QRect viewportPatch =
-                m_d->coordinatesConverter->imageToViewport(rc).toAlignedRect();
+                toQRect(m_d->coordinatesConverter->imageToViewport(rc).toAlignedRect());
 
             KisPPUpdateInfoSP info = getInitialUpdateInformation(QRect());
             fillInUpdateInformation(viewportPatch, info);
@@ -305,7 +301,7 @@ void KisPrescaledProjection::recalculateCache(KisUpdateInfoSP info)
 
     QRect rawViewRect =
         m_d->coordinatesConverter->
-        imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect();
+        toQRect(imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect());
 
     fillInUpdateInformation(rawViewRect, ppInfo);
 
@@ -323,14 +319,14 @@ void KisPrescaledProjection::preScale()
 
     QRect viewportRect(QPoint(0, 0), m_d->viewportSize);
     QRect imageRect =
-        m_d->coordinatesConverter->viewportToImage(viewportRect).toAlignedRect();
+        toQRect(m_d->coordinatesConverter->viewportToImage(viewportRect).toAlignedRect());
 
     const PkVector<PkRect> patches = KritaUtils::splitRectIntoPatches(
         toPkRect(imageRect), toPkSize(m_d->updatePatchSize));
 
     Q_FOREACH (const PkRect &pkRect, patches) {
         const QRect rc = toQRect(pkRect);
-        QRect viewportPatch = m_d->coordinatesConverter->imageToViewport(rc).toAlignedRect();
+        QRect viewportPatch = toQRect(m_d->coordinatesConverter->imageToViewport(rc).toAlignedRect());
         KisPPUpdateInfoSP info = getInitialUpdateInformation(QRect());
         fillInUpdateInformation(viewportPatch, info);
         QPainter gc(&m_d->prescaledQImage);

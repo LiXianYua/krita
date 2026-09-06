@@ -3,6 +3,7 @@
  *
  *  SPDX-License-Identifier: LGPL-2.0-or-later
  */
+#include <pk/container/PkList.h>
 #include "KisSelectionToolFactoryBase.h"
 
 #include <QAction>
@@ -16,9 +17,9 @@ KisSelectionToolFactoryBase::~KisSelectionToolFactoryBase()
 {
 }
 
-QList<QAction *> KisSelectionToolFactoryBase::createActionsImpl()
+PkList<QAction *> KisSelectionToolFactoryBase::createActionsImpl()
 {
-    QList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
+    PkList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
 
     QAction *actionAdd = new QAction(this);
     actionAdd->setObjectName("selection_tool_mode_add");
@@ -49,9 +50,9 @@ KisToolPolyLineFactoryBase::~KisToolPolyLineFactoryBase()
 
 }
 
-QList<QAction *> KisToolPolyLineFactoryBase::createActionsImpl()
+PkList<QAction *> KisToolPolyLineFactoryBase::createActionsImpl()
 {
-    QList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
+    PkList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
 
     QAction *actionUndo = new QAction(this);
     actionUndo->setObjectName("undo_polygon_selection");

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include <klocalizedstring.h>
 #include <QDebug>
 #include "kra_converter.h"

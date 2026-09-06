@@ -436,7 +436,7 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
         }
     }
 
-    gc.drawPixmap(viewRectF.toRect(), m_d->cache);
+    gc.drawPixmap(toQRectF(viewRectF).toRect(), m_d->cache);
 }
 
 void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
@@ -482,7 +482,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
             cachePainter.setPen(Qt::NoPen);
         }
 
-        PkRectF cacheRect = m_d->cache.rect();
+        QRectF cacheRect = m_d->cache.rect();
         PkRectF outerRect = cacheRect.marginsRemoved(QMarginsF(penWidth, penWidth, penWidth, penWidth));
 
         PkTransform tf;
@@ -556,7 +556,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
             cachePainter.drawPath(tf.map(innerPath));
         }
     }
-    gc.drawPixmap(viewRectF.toRect(), m_d->cache);
+    gc.drawPixmap(toQRectF(viewRectF).toRect(), m_d->cache);
 
     gc.restore();
 }

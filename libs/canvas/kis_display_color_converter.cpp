@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include <QColor>
 #include <QGlobalStatic>
 #include <QImage>
@@ -48,31 +49,7 @@
 Q_DECLARE_METATYPE(KisNodeWSP)
 Q_DECLARE_METATYPE(KoColor)
 
-namespace {
 
-PkString toPkString(const QString &value)
-{
-    return PkString(value.toUtf8().constData());
-}
-
-PkColor toPkColor(const QColor &color)
-{
-    return PkColor(color.red(), color.green(), color.blue(), color.alpha());
-}
-
-QColor toQColor(const PkColor &color)
-{
-    return QColor(color.red(), color.green(), color.blue(), color.alpha());
-}
-
-PkImage toPkImage(const QImage &image)
-{
-    PkImage result(image.width(), image.height(),
-                   static_cast<PkImage::Format>(image.format()));
-    for (int y = 0; y < image.height(); ++y) {
-        std::memcpy(result.scanLine(y), image.constScanLine(y),
-                    static_cast<std::size_t>(image.bytesPerLine()));
-    }
     if (image.colorCount() > 0) {
         std::vector<std::uint32_t> colorTable;
         colorTable.reserve(static_cast<std::size_t>(image.colorCount()));
@@ -82,16 +59,7 @@ PkImage toPkImage(const QImage &image)
         result.setColorTable(colorTable);
     }
     return result;
-}
 
-QImage toQImage(const PkImage &image)
-{
-    QImage result(image.width(), image.height(),
-                  static_cast<QImage::Format>(image.format()));
-    for (int y = 0; y < image.height(); ++y) {
-        std::memcpy(result.scanLine(y), image.constScanLine(y),
-                    static_cast<std::size_t>(image.bytesPerLine()));
-    }
     if (image.colorCount() > 0) {
         QVector<QRgb> colorTable;
         colorTable.reserve(image.colorCount());
@@ -487,8 +455,8 @@ void KisDisplayColorConverter::Private::selectPaintingColorSpace()
         }
 
         paintingColorSpace = KoColorSpaceRegistry::instance()->colorSpace(
-            cfg.readEntry("customColorSpaceModel", "RGBA")),
-            cfg.readEntry("customColorSpaceDepthID", "U8")),
+            toPkString(cfg.readEntry("customColorSpaceModel", "RGBA")),
+            toPkString(cfg.readEntry("customColorSpaceDepthID", "U8")),
             toPkString(profile));
     }
 
@@ -747,7 +715,7 @@ void KisDisplayColorConverter::applyDisplayFilteringF32(KisFixedPaintDeviceSP de
 KoColor KisDisplayColorConverter::Private::approximateFromQColor(const QColor &qcolor)
 {
     if (!useOcio()) {
-        return KoColor(qcolor, paintingColorSpace);
+        return KoColor(toPkColor(qcolor), paintingColorSpace);
     } else {
         KoColor color(toPkColor(qcolor), intermediateColorSpace());
         displayFilter->approximateInverseTransformation(color.data(), 1);

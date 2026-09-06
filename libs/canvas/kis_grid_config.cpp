@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include "kis_grid_config.h"
 
 #include <QDomElement>
@@ -24,19 +25,6 @@ KIS_DECLARE_STATIC_INITIALIZER {
 
 Q_GLOBAL_STATIC(KisGridConfig, staticDefaultObject)
 
-namespace {
-
-PkTransform toPkTransform(const PkTransform &transform)
-{
-    return PkTransform(transform.m11(), transform.m12(), transform.m13(),
-                       transform.m21(), transform.m22(), transform.m23(),
-                       transform.m31(), transform.m32(), transform.m33());
-}
-
-PkPoint toPkPoint(const QPoint &point)
-{
-    return PkPoint(point.x(), point.y());
-}
 
 QPoint toQPoint(const PkPoint &point)
 {

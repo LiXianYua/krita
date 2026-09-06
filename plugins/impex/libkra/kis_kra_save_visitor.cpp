@@ -6,6 +6,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include <klocalizedstring.h>
 #include "kis_kra_save_visitor.h"
 #include "kis_kra_tags.h"

@@ -9,8 +9,13 @@
 #define KIS_COORDINATES_CONVERTER_H
 
 #include <optional>
+#include <type_traits>
 
+// R-38 约定：真 Qt 头在前，PkFlakeBridge 才走真 Qt 分支（toQTransform 等可见）。
+#include <QtCore/QtCore>
+#include <QtGui/QtGui>
 #include <pk/geometry/PkTransform.h>
+#include <PkFlakeBridge.h>
 #include <KoZoomHandler.h>
 
 #include "kritacanvas_export.h"
@@ -30,7 +35,29 @@ namespace _Private
     template<class T> struct Traits
     {
         typedef T Result;
-        static T map(const PkTransform& transform, const T& obj)  { return transform.map(obj); }
+        // 按类型精确分发：Pk 类型走 PkTransform 原生；Qt 类型走 toQTransform 后的
+        // 精确重载（不能笼统 map(obj)：QRect 会隐式转 QRegion/QPolygon 造成歧义）。
+        // 需 PkRectF/PkRect 特化保留在下方（mapRect 语义不同：整数版四角取整）。
+        static T map(const PkTransform& transform, const T& obj)
+        {
+            if constexpr (std::is_same_v<T, PkRectF> || std::is_same_v<T, PkRect>) {
+                return transform.mapRect(obj);
+            } else if constexpr (std::is_same_v<T, PkPoint> || std::is_same_v<T, PkPointF> ||
+                                 std::is_same_v<T, PkLineF> || std::is_same_v<T, PkPolygonF> ||
+                                 std::is_same_v<T, PkPainterPath>) {
+                return transform.map(obj);
+            } else if constexpr (std::is_same_v<T, QRect> || std::is_same_v<T, QRectF>) {
+                return toQTransform(transform).mapRect(obj);
+            } else if constexpr (std::is_same_v<T, QPoint> || std::is_same_v<T, QPointF> ||
+                                 std::is_same_v<T, QPolygon> || std::is_same_v<T, QPolygonF> ||
+                                 std::is_same_v<T, QLineF> || std::is_same_v<T, QRegion>) {
+                return toQTransform(transform).map(obj);
+            } else if constexpr (std::is_same_v<T, QLine>) {
+                return toQTransform(transform).map(QLineF(obj)).toLine();
+            } else {
+                static_assert(sizeof(T) == 0, "Traits<T>::map: unsupported type");
+            }
+        }
     };
 
     template<> struct Traits<PkRectF>
@@ -39,10 +66,7 @@ namespace _Private
         static PkRectF map(const PkTransform& transform, const PkRectF& rc)  { return transform.mapRect(rc); }
     };
 
-    template<> struct Traits<QRect>:    public Traits<PkRectF>    { };
-    template<> struct Traits<QPoint>:   public Traits<PkPointF>   { };
-    template<> struct Traits<QPolygon>: public Traits<PkPolygonF> { };
-    template<> struct Traits<QLine>:    public Traits<QLineF>    { };
+
 }
 
 class KRITACANVAS_EXPORT KisCoordinatesConverter: public KoZoomHandler
@@ -234,8 +258,8 @@ public:
     qreal clampZoom(qreal zoom) const;
     QVector<qreal> standardZoomLevels() const;
 
-    static qreal findNextZoom(qreal currentZoom, const QVector<qreal> &zoomLevels);
-    static qreal findPrevZoom(qreal currentZoom, const QVector<qreal> &zoomLevels);
+    static qreal findNextZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels);
+    static qreal findPrevZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels);
 
     KoViewTransformStillPoint makeWidgetStillPoint(const PkPointF &viewPoint) const override;
     KoViewTransformStillPoint makeDocStillPoint(const PkPointF &docPoint) const override;

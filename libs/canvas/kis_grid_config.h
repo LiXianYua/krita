@@ -12,6 +12,7 @@
 #include <QPoint>
 #include <QColor>
 #include <QPen>
+#include <pk/geometry/PkTransform.h>
 
 #include <boost/operators.hpp>
 #include "kritacanvas_export.h"
