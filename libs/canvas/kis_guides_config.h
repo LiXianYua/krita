@@ -14,7 +14,7 @@
 #include <QList>
 #include <boost/operators.hpp>
 #include <KoUnit.h>
-#include <PkTransform>
+#include <pk/geometry/PkTransform.h>
 
 class QDomElement;
 class QDomDocument;

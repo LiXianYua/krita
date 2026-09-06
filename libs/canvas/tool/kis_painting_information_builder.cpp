@@ -5,7 +5,7 @@
  */
 
 #include <QObject>
-#include <PkPointF>
+#include <pk/geometry/PkPoint.h>
 #include <QVariant>
 #include <QVector>
 

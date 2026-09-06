@@ -11,7 +11,7 @@
 #include <boost/operators.hpp>
 #include <QPoint>
 #include <QSize>
-#include <PkRectF>
+#include <pk/geometry/PkRect.h>
 #include <KoZoomMode.h>
 
 class KoZoomState;

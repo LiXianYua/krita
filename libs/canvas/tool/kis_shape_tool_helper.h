@@ -8,7 +8,7 @@
 
 #include <kritacanvas_export.h>
 
-#include <PkRectF>
+#include <pk/geometry/PkRect.h>
 
 class KoShape;
 

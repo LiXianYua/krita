@@ -6,6 +6,7 @@
 
 #include "KisCanvasState.h"
 #include <QDebug>
+#include <PkFlakeBridge.h>
 #include "kis_coordinates_converter.h"
 #include "KoZoomState.h"
 

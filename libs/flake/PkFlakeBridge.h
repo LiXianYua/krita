@@ -78,6 +78,7 @@
 #include <pk/port/PkStream.h>
 #include <pk/container/PkList.h>
 #include <pk/container/PkStringHash.h>
+#include <pk/font/PkFont.h>
 #include <pk/xml/PkXmlElement.h>
 #include <pk/xml/PkXmlDocument.h>
 #include <pk/pointer/PkSharedPointer.h>
@@ -138,6 +139,14 @@ inline PkColor toPkColor(const PK_QCOLOR_ &c)
 inline PkColor toPkColor(const PkColor &c) { return c; } // 恒等
 inline PkByteArray toPkByteArray(const PkByteArray &c) { return c; } // 恒等（真 Qt 分支补齐，KoColor::toQColor 已返 PkColor）
 inline PkTransform toPkTransform(const PkTransform &c) { return c; } // 恒等
+inline QFont toQFont(const PkFont &f)
+{
+    QFont qf(QString::fromStdString(f.family()), f.pointSize());
+    qf.setWeight(f.weight());
+    qf.setItalic(f.italic());
+    return qf;
+}
+
 inline PK_QCOLOR_ toQColor(const PkColor &c)
 {
     return PK_QCOLOR_(c.red(), c.green(), c.blue(), c.alpha());

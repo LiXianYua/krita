@@ -6,9 +6,9 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <PkPointF>
-#include <PkRectF>
-#include <PkSizeF>
+#include <pk/geometry/PkPoint.h>
+#include <pk/geometry/PkRect.h>
+#include <pk/geometry/PkSize.h>
 
 #include "KoZoomHandler.h"
 #include <KoUnit.h> // for POINT_TO_INCH

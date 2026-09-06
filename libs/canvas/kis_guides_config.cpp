@@ -11,7 +11,7 @@
 #include <QList>
 #include <QPen>
 #include <QString>
-#include <PkTransform>
+#include <pk/geometry/PkTransform.h>
 #include <QVector>
 
 #include <PkFlakeBridge.h>

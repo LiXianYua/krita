@@ -8,7 +8,7 @@
 #define __KIS_PAINTING_INFORMATION_BUILDER_H
 
 #include <QObject>
-#include <PkPointF>
+#include <pk/geometry/PkPoint.h>
 #include <QScopedPointer>
 #include <QVariant>
 

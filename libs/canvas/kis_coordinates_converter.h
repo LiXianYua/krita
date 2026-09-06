@@ -10,7 +10,7 @@
 
 #include <optional>
 
-#include <PkTransform>
+#include <pk/geometry/PkTransform.h>
 #include <KoZoomHandler.h>
 
 #include "kritacanvas_export.h"

@@ -46,7 +46,7 @@ KisToolShape::~KisToolShape()
 {
 }
 
-void KisToolShape::activate(const QSet<KoShape*> &shapes)
+void KisToolShape::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
     m_configGroup =  KSharedConfig::openConfig()->group(toolId());
@@ -84,9 +84,9 @@ KisToolShapeUtils::StrokeStyle KisToolShape::strokeStyle()
     return strokeStyle;
 }
 
-QTransform KisToolShape::fillTransform()
+PkTransform KisToolShape::fillTransform()
 {
-    QTransform transform;
+    PkTransform transform;
 
     transform.rotate(m_configGroup.readEntry("patternTransformRotation", 0));
     const qreal scale = m_configGroup.readEntry("patternTransformScale", 100) * 0.01;
@@ -189,7 +189,7 @@ void KisToolShape::addPathShape(KoPathShape* pathShape, const KUndo2MagicString&
 
     // Compute the outline
     KisImageSP image = this->image();
-    QTransform matrix;
+    PkTransform matrix;
     matrix.scale(image->xRes(), image->yRes());
     matrix.translate(pathShape->position().x(), pathShape->position().y());
     QPainterPath mappedOutline = matrix.map(pathShape->outline());

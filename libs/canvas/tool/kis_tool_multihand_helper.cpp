@@ -8,7 +8,7 @@
 
 #include "kis_tool_multihand_helper.h"
 
-#include <PkTransform>
+#include <pk/geometry/PkTransform.h>
 
 #include "kis_painter.h"
 #include <strokes/KisFreehandStrokeInfo.h>

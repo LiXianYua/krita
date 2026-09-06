@@ -16,10 +16,10 @@
 #include <QLayout>
 #include <QPainterPath>
 #include <QPoint>
-#include <QPointF>
+#include <PkPointF>
 #include <QPushButton>
 #include <QRect>
-#include <QRectF>
+#include <PkRectF>
 #include <QString>
 #include <QVariant>
 #include <QVBoxLayout>
@@ -67,12 +67,12 @@ QString r44ToQString(const PkString &value)
     return QString::fromUtf8(value.PkToUtf8().c_str());
 }
 
-QRectF r44ToQRectF(const PkRectF &rect)
+PkRectF r44ToQRectF(const PkRectF &rect)
 {
-    return QRectF(rect.x(), rect.y(), rect.width(), rect.height());
+    return PkRectF(rect.x(), rect.y(), rect.width(), rect.height());
 }
 
-PkPointF r44ToPkPointF(const QPointF &point)
+PkPointF r44ToPkPointF(const PkPointF &point)
 {
     return PkPointF(point.x(), point.y());
 }
@@ -194,7 +194,7 @@ void KisToolPaint::tryRestoreOpacitySnapshot()
 }
 
 
-void KisToolPaint::activate(const QSet<KoShape*> &shapes)
+void KisToolPaint::activate(const PkSet<KoShape*> &shapes)
 {
     if (currentPaintOpPreset()) {
         const QString formattedBrushName = currentPaintOpPreset() ? r44ToQString(currentPaintOpPreset()->name()).replace("_", " ") : QString();
@@ -274,10 +274,10 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
     const int maxThresholdSum = widgetSize.width() + widgetSize.height();
 
     KisOptimizedBrushOutline outline = originalOutline;
-    QRectF boundingRect = r44ToQRectF(outline.boundingRect());
+    PkRectF boundingRect = r44ToQRectF(outline.boundingRect());
     const qreal sum = boundingRect.width() + boundingRect.height();
 
-    QPointF center = boundingRect.center();
+    PkPointF center = boundingRect.center();
 
     if (sum > maxThresholdSum) {
         const int hairOffset = 7;
@@ -609,14 +609,14 @@ void KisToolPaint::rotateBrushTipCounterClockwisePrecise()
     requestUpdateOutline(m_outlineDocPoint, 0);
 }
 
-void KisToolPaint::requestUpdateOutline(const QPointF &outlineDocPoint, const KoPointerEvent *event)
+void KisToolPaint::requestUpdateOutline(const PkPointF &outlineDocPoint, const KoPointerEvent *event)
 {
-    QRectF outlinePixelRect;
-    QRectF outlineDocRect;
+    PkRectF outlinePixelRect;
+    PkRectF outlineDocRect;
 
-    QRectF colorPreviewDocUpdateRect;
+    PkRectF colorPreviewDocUpdateRect;
 
-    QPointF outlineMoveVector;
+    PkPointF outlineMoveVector;
 
     if (m_supportOutline) {
         KisImageConfig cfg(true);
@@ -734,7 +734,7 @@ void KisToolPaint::requestUpdateOutline(const QPointF &outlineDocPoint, const Ko
 
         const qreal moveDistance = KisAlgebra2D::norm(outlineMoveVector);
 
-        QRectF offsetRect;
+        PkRectF offsetRect;
 
         if (moveDistance < maxUpdateAheadOutlinePortion * KisAlgebra2D::maxDimension(outlineDocRect)) {
             offsetRect = outlineDocRect.translated((1.0 + offsetFuzzyExtension) * outlineMoveVector);
@@ -755,14 +755,14 @@ bool KisToolPaint::isEraser() const {
     return canvas()->resourceManager()->resource(KoCanvasResource::CurrentEffectiveCompositeOp).toString() == r44ToQString(COMPOSITE_ERASE);
 }
 
-KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const QPointF &documentPos,
+KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const PkPointF &documentPos,
                                                       const KoPointerEvent *event,
                                                       KisPaintOpSettings::OutlineMode outlineMode)
 {
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_ASSERT(services);
 
-    const QPointF pixelPos = convertToPixelCoord(documentPos);
+    const PkPointF pixelPos = convertToPixelCoord(documentPos);
     const PkPointF pkPixelPos = r44ToPkPointF(pixelPos);
     // When touch drawing, a "hover" event means the finger was just pressed
     // down. The last cursor position is invalid with regards to distance and

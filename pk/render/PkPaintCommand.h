@@ -8,6 +8,8 @@
 #include "PkLine.h"
 #include "PkRect.h"
 #include "PkImage.h"
+#include "PkFont.h"
+#include "PkString.h"
 struct PkSaveCommand {};
 struct PkRestoreCommand {};
 struct PkSetPenCommand { PkPen pen; };
@@ -22,5 +24,23 @@ struct PkDrawArcCommand { PkRectF rect; int startAngle16; int spanAngle16; };
 struct PkDrawPathCommand { PkPainterPath path; };
 struct PkDrawPolygonCommand { PkPolygonF polygon; };
 struct PkDrawImageCommand { PkRectF target; PkImage image; };
-using PkPaintCommand = std::variant<PkSaveCommand,PkRestoreCommand,PkSetPenCommand,PkSetBrushCommand,PkSetTransformCommand,PkSetRenderHintCommand,PkSetClipRectCommand,PkDrawLineCommand,PkDrawRectCommand,PkDrawEllipseCommand,PkDrawArcCommand,PkDrawPathCommand,PkDrawPolygonCommand,PkDrawImageCommand>;
+
+// ── S-09-g 扩锁：QPainter→PkPainter 实际调用面新增的命令 ──────────────────────
+// 每条对应一个实测调用点类别（计数见 libs/canvas+plugins 扫描）：
+//   setCompositionMode 9 / fillRect 9 / setOpacity 9 / setClipPath 12 /
+//   fillPath 8 / drawPoint 4 / strokePath 3 / drawPixmap 4 / drawTiledPixmap 1 /
+//   drawText 2 / setFont 1
+struct PkSetCompositionModeCommand { Pk::CompositionMode mode; };
+struct PkSetOpacityCommand { qreal opacity; };
+struct PkSetClipPathCommand { PkPainterPath path; Pk::ClipOperation operation; };
+struct PkFillRectCommand { PkRectF rect; PkBrush brush; };
+struct PkFillPathCommand { PkPainterPath path; PkBrush brush; };
+struct PkDrawPointCommand { PkPointF point; };
+struct PkStrokePathCommand { PkPainterPath path; PkPen pen; };
+struct PkDrawPixmapCommand { PkRectF target; PkImage image; PkRectF source; };
+struct PkDrawTiledPixmapCommand { PkRectF rect; PkImage image; PkPointF offset; };
+struct PkSetFontCommand { PkFont font; };
+struct PkDrawTextCommand { PkRectF rect; PkString text; };
+
+using PkPaintCommand = std::variant<PkSaveCommand,PkRestoreCommand,PkSetPenCommand,PkSetBrushCommand,PkSetTransformCommand,PkSetRenderHintCommand,PkSetClipRectCommand,PkDrawLineCommand,PkDrawRectCommand,PkDrawEllipseCommand,PkDrawArcCommand,PkDrawPathCommand,PkDrawPolygonCommand,PkDrawImageCommand,PkSetCompositionModeCommand,PkSetOpacityCommand,PkSetClipPathCommand,PkFillRectCommand,PkFillPathCommand,PkDrawPointCommand,PkStrokePathCommand,PkDrawPixmapCommand,PkDrawTiledPixmapCommand,PkSetFontCommand,PkDrawTextCommand>;
 class PkPainterBackend { public: virtual ~PkPainterBackend() = default; virtual void submit(const PkPaintCommand&) = 0; };

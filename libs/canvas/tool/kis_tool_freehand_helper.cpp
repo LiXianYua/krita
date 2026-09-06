@@ -504,8 +504,8 @@ void KisToolFreehandHelper::paintBezierSegment(KisPaintInformation pi1, KisPaint
     }
 
     paintBezierCurve(pi1,
-                     toQPointF(control1),
-                     toQPointF(control2),
+                     control1,
+                     control2,
                      pi2);
 }
 
@@ -671,7 +671,7 @@ void KisToolFreehandHelper::paint(KisPaintInformation &info)
                     paintLine(m_d->previousPaintInformation, info);
                 } else {
                     paintBezierSegment(m_d->olderPaintInformation, m_d->previousPaintInformation,
-                                    toQPointF(m_d->previousTangent), toQPointF(newTangent));
+                                    m_d->previousTangent, newTangent);
                 }
 
                 m_d->previousTangent = newTangent;
@@ -1005,7 +1005,7 @@ void KisToolFreehandHelper::finishStroke()
 
         paintBezierSegment(m_d->olderPaintInformation,
                            m_d->previousPaintInformation,
-                           toQPointF(m_d->previousTangent),
+                           m_d->previousTangent,
                            toQPointF(newTangent));
     }
     

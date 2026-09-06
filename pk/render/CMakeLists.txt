@@ -7,7 +7,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../geometry ${CMAKE_CURRENT_BINARY_
 add_library(pkrender STATIC PkPainter.cpp ../image/PkImage.cpp ../color/PkColor.cpp
     ../global/PkGlobal.cpp ../string/PkStringCodec.cpp ../string/PkString_core.cpp
     ../string/PkString_query.cpp ../string/PkString_format.cpp)
-target_include_directories(pkrender PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../image ../container ../color ../namespace ../global)
+target_include_directories(pkrender PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../image ../container ../color ../namespace ../global ../font)
 target_link_libraries(pkrender PUBLIC pkgeometry)
 pk_test_generate(PKRENDER_GENERATED_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/painter_case.h")

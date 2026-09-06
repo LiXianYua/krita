@@ -10,7 +10,7 @@
  */
 
 #include <QPainter>
-#include <QPointF>
+#include <PkPointF>
 #include <QRect>
 #include <QThreadPool>
 
@@ -164,7 +164,7 @@ int KisToolFreehand::flags() const
            |KisTool::FLAG_USES_CUSTOM_SIZE;
 }
 
-void KisToolFreehand::activate(const QSet<KoShape*> &shapes)
+void KisToolFreehand::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
 }
@@ -279,12 +279,12 @@ bool KisToolFreehand::trySampleByPaintOp(KoPointerEvent *event, AlternateAction 
      * FIXME: we need some better way to implement modifiers
      * for a paintop level. This method is used in DuplicateOp only!
      */
-    QPointF pos = adjustPosition(event->point, event->point);
+    PkPointF pos = adjustPosition(event->point, event->point);
     qreal perspective = calculatePerspective(pos);
     if (!currentPaintOpPreset()) {
         return false;
     }
-    const QPointF pixelPoint = convertToPixelCoord(event->point);
+    const PkPointF pixelPoint = convertToPixelCoord(event->point);
     KisPaintInformation info(PkPointF(pixelPoint.x(), pixelPoint.y()),
                              m_infoBuilder->pressureToCurve(event->pressure()),
                              event->xTilt(), event->yTilt(),
@@ -356,10 +356,10 @@ void KisToolFreehand::continueAlternateAction(KoPointerEvent *event, AlternateAc
         return;
     }
 
-    QPointF lastWidgetPosition = convertDocumentToWidget(m_lastDocumentPoint);
-    QPointF actualWidgetPosition = convertDocumentToWidget(event->point);
+    PkPointF lastWidgetPosition = convertDocumentToWidget(m_lastDocumentPoint);
+    PkPointF actualWidgetPosition = convertDocumentToWidget(event->point);
 
-    QPointF offset = actualWidgetPosition - lastWidgetPosition;
+    PkPointF offset = actualWidgetPosition - lastWidgetPosition;
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(services);
@@ -445,7 +445,7 @@ void KisToolFreehand::slotDoResizeBrush(qreal newSize)
 
 }
 
-QPointF KisToolFreehand::adjustPosition(const QPointF& point, const QPointF& strokeBegin)
+PkPointF KisToolFreehand::adjustPosition(const PkPointF& point, const PkPointF& strokeBegin)
 {
     if (m_assistant) {
         return dynamic_cast<KisCanvasToolServices *>(canvas())->toolAdjustAssistantPosition(
@@ -454,7 +454,7 @@ QPointF KisToolFreehand::adjustPosition(const QPointF& point, const QPointF& str
     return point;
 }
 
-qreal KisToolFreehand::calculatePerspective(const QPointF &documentPoint)
+qreal KisToolFreehand::calculatePerspective(const PkPointF &documentPoint)
 {
     return dynamic_cast<KisCanvasToolServices *>(canvas())->toolAssistantPerspective(documentPoint);
 }
@@ -469,7 +469,7 @@ void KisToolFreehand::explicitUpdateOutline()
     requestUpdateOutline(m_outlineDocPoint, 0);
 }
 
-KisOptimizedBrushOutline KisToolFreehand::getOutlinePath(const QPointF &documentPos,
+KisOptimizedBrushOutline KisToolFreehand::getOutlinePath(const PkPointF &documentPos,
                                              const KoPointerEvent *event,
                                              KisPaintOpSettings::OutlineMode outlineMode)
 {

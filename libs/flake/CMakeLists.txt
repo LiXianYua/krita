@@ -43,11 +43,15 @@ if(NOT TARGET pkrender)
     )
     target_include_directories(pkrender PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/render>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/font>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>
     )
     target_link_libraries(pkrender PUBLIC
         pkgeometry
         pkimage
         pkcolor
+        pkfont
     )
     set_target_properties(pkrender PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -443,6 +447,10 @@ list(REMOVE_ITEM kritaflake_resources_SRCS ${kritaflake_painting_SRCS})
 list(REMOVE_ITEM kritaflake_core_SRCS ${kritaflake_painting_SRCS})
 
 kritaflake_add_object_library(kritaflake_painting_objects ${kritaflake_painting_SRCS})
+target_include_directories(kritaflake_painting_objects PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/font
+    ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/namespace)
 # KisAlgebra2D（DecomposedMatrix）用 Eigen 做矩阵分解——Eigen 原为 libs/global 的
 # PRIVATE 依赖（kis_algebra_2d.cpp 随闭包搬入 flake），这里随搬移补上。
 target_link_libraries(kritaflake_painting_objects PRIVATE Eigen3::Eigen)

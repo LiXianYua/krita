@@ -7,7 +7,7 @@
 #define KIS_TEXTURE_TILE_H_
 
 #include <QRect>
-#include <PkRectF>
+#include <pk/geometry/PkRect.h>
 // no forward-declaration, used to get GL* primitive types defined
 #include <QOpenGLFunctions>
 

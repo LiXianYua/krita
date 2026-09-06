@@ -15,7 +15,7 @@
 #include <QPalette>
 #include <QPixmap>
 #include <QTimer>
-#include <PkTransform>
+#include <pk/geometry/PkTransform.h>
 
 #include <klocalizedstring.h>
 
@@ -417,10 +417,10 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
         rect.moveTopLeft(-rect.center());
 
         PkTransform tf;
-        PkPointF offset = PkRectF(m_d->cache.rect()).center();
+        PkPointF offset = toPkRectF(m_d->cache.rect()).center();
         tf.translate(offset.x(), offset.y());
         tf.rotate(canvasMirror ? canvasRotationAngle : -canvasRotationAngle);
-        cachePainter.setTransform(tf);
+        cachePainter.setTransform(toQTransform(tf));
 
         if (m_d->haveSample) {
             qreal centerX = rect.center().x();
@@ -429,10 +429,10 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
             if (m_d->samplingCanvas->samplingCanvasMirroredHorizontally()) {
                 std::swap(currentRect, baseRect);
             }
-            cachePainter.fillRect(currentRect, currentColor);
-            cachePainter.fillRect(baseRect, baseColor);
+            cachePainter.fillRect(toQRectF(currentRect), currentColor);
+            cachePainter.fillRect(toQRectF(baseRect), baseColor);
         } else {
-            cachePainter.fillRect(rect, currentColor);
+            cachePainter.fillRect(toQRectF(rect), currentColor);
         }
     }
 

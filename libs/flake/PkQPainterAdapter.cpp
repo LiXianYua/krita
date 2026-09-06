@@ -74,6 +74,45 @@ void PkQPainterAdapter::submit(const PkPaintCommand &command)
         },
         [this](const PkDrawImageCommand &value) {
             m_painter.drawImage(toQRectF(value.target), toQImage(value.image));
+        },
+        [this](const PkSetCompositionModeCommand &value) {
+            m_painter.setCompositionMode(static_cast<QPainter::CompositionMode>(value.mode));
+        },
+        [this](const PkSetOpacityCommand &value) {
+            m_painter.setOpacity(value.opacity);
+        },
+        [this](const PkSetClipPathCommand &value) {
+            m_painter.setClipPath(toQPainterPath(value.path), static_cast<Qt::ClipOperation>(value.operation));
+        },
+        [this](const PkFillRectCommand &value) {
+            m_painter.fillRect(toQRectF(value.rect), toQBrush(value.brush));
+        },
+        [this](const PkFillPathCommand &value) {
+            m_painter.fillPath(toQPainterPath(value.path), toQBrush(value.brush));
+        },
+        [this](const PkDrawPointCommand &value) {
+            m_painter.drawPoint(toQPointF(value.point));
+        },
+        [this](const PkStrokePathCommand &value) {
+            m_painter.strokePath(toQPainterPath(value.path), toQPen(value.pen));
+        },
+        [this](const PkDrawPixmapCommand &value) {
+            const QPixmap pm = QPixmap::fromImage(toQImage(value.image));
+            const QRectF srcF = value.source.isEmpty()
+                                    ? QRectF(0, 0, value.image.width(), value.image.height())
+                                    : toQRectF(value.source);
+            m_painter.drawPixmap(toQRectF(value.target).toRect(), pm, srcF.toRect());
+        },
+        [this](const PkDrawTiledPixmapCommand &value) {
+            m_painter.drawTiledPixmap(toQRectF(value.rect).toRect(),
+                                      QPixmap::fromImage(toQImage(value.image)),
+                                      toQPointF(value.offset).toPoint());
+        },
+        [this](const PkSetFontCommand &value) {
+            m_painter.setFont(toQFont(value.font));
+        },
+        [this](const PkDrawTextCommand &value) {
+            m_painter.drawText(toQRectF(value.rect), Qt::AlignLeft | Qt::AlignVCenter, toQString(value.text));
         }
     }, command);
 }

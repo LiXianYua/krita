@@ -9,7 +9,7 @@
 
 #include <algorithm>
 
-#include <PkTransform>
+#include <pk/geometry/PkTransform.h>
 
 #include <KoZoomHandler.h>
 #include <KoColorSpaceRegistry.h>

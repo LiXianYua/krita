@@ -413,6 +413,27 @@ enum ClipOperation {
     IntersectClip
 };
 
+// ── qpainter.h:CompositionMode（S-09-g 扩锁：QPainter→PkPainter 需要）──────────
+// 取值与 Qt 对齐（CompositionMode_SourceOver=0 … CompositionMode_Source=3 …）。
+// 只列实测有调用点的项（Source 3 处 / Clear 2 处 / SourceOver 1 处）及其间的
+// 连续前段；其余 30 余项 0 调用点，按「一项不多」不提供，需要时再补。
+enum CompositionMode {
+    CompositionMode_SourceOver = 0,
+    CompositionMode_DestinationOver = 1,
+    CompositionMode_Clear = 2,
+    CompositionMode_Source = 3,
+    CompositionMode_Destination = 4,
+    CompositionMode_SourceIn = 5,
+    CompositionMode_DestinationIn = 6,
+    CompositionMode_SourceOut = 7,
+    CompositionMode_DestinationOut = 8,
+    CompositionMode_SourceAtop = 9,
+    CompositionMode_DestinationAtop = 10,
+    CompositionMode_Xor = 11,
+    CompositionMode_Plus = 12,
+    CompositionMode_Multiply = 13
+};
+
 // ── qnamespace.h:1507-1511 ───────────────────────────────────────────────────
 // 探针：LTR=0 RTL=1 Auto=2
 enum LayoutDirection {
