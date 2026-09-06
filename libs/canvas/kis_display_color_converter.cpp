@@ -487,8 +487,8 @@ void KisDisplayColorConverter::Private::selectPaintingColorSpace()
         }
 
         paintingColorSpace = KoColorSpaceRegistry::instance()->colorSpace(
-            toPkString(cfg.readEntry("customColorSpaceModel", "RGBA")),
-            toPkString(cfg.readEntry("customColorSpaceDepthID", "U8")),
+            cfg.readEntry("customColorSpaceModel", "RGBA")),
+            cfg.readEntry("customColorSpaceDepthID", "U8")),
             toPkString(profile));
     }
 
@@ -747,7 +747,7 @@ void KisDisplayColorConverter::applyDisplayFilteringF32(KisFixedPaintDeviceSP de
 KoColor KisDisplayColorConverter::Private::approximateFromQColor(const QColor &qcolor)
 {
     if (!useOcio()) {
-        return KoColor(toPkColor(qcolor), paintingColorSpace);
+        return KoColor(qcolor, paintingColorSpace);
     } else {
         KoColor color(toPkColor(qcolor), intermediateColorSpace());
         displayFilter->approximateInverseTransformation(color.data(), 1);

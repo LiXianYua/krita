@@ -74,7 +74,7 @@ void KisToolOutlineBase::mouseMoveEvent(KoPointerEvent *event)
     KisToolShape::mouseMoveEvent(event);
 }
 
-void KisToolOutlineBase::activate(const QSet<KoShape *> &shapes)
+void KisToolOutlineBase::activate(const PkSet<KoShape *> &shapes)
 {
     KisToolShape::activate(shapes);
     connect(action("undo_polygon_selection"), SIGNAL(triggered()), SLOT(undoLastPoint()), Qt::UniqueConnection);
@@ -217,12 +217,12 @@ void KisToolOutlineBase::paint(QPainter& gc, const KoViewConverter &converter)
 {
     if ((mode() == KisTool::PAINT_MODE || m_continuedMode) && !m_points.isEmpty()) {
         QPainterPath outline;
-        outline.moveTo(pixelToView(m_points.first()));
+        outline.moveTo(toQPointF(pixelToView(m_points.first())));
         for (qint32 i = 1; i < m_points.size(); ++i) {
-            outline.lineTo(pixelToView(m_points[i]));
+            outline.lineTo(toQPointF(pixelToView(m_points[i])));
         }
         if (m_continuedMode && mode() != KisTool::PAINT_MODE) {
-            outline.lineTo(pixelToView(m_lastCursorPos));
+            outline.lineTo(toQPointF(pixelToView(m_lastCursorPos)));
         }
         paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(outline)));
     }
