@@ -135,16 +135,16 @@ void KisToolShape::addShape(KoShape* shape)
                                    canvas()->resourceManager()->canvasResourcesInterface());
     switch(fillStyle()) {
         case FillStyleForegroundColor:
-            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(resources.currentFgColor())));
+            shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(toPkColor(resources.currentFgColor().toQColor()))));
             break;
         case FillStyleBackgroundColor:
-            shape->setBackground(QSharedPointer<KoColorBackground>(new KoColorBackground(resources.currentBgColor())));
+            shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(toPkColor(resources.currentBgColor().toQColor()))));
             break;
         case FillStylePattern:
-            shape->setBackground(QSharedPointer<KoShapeBackground>(0));
+            shape->setBackground(PkSharedPointer<KoShapeBackground>(0));
             break;
         case FillStyleNone:
-            shape->setBackground(QSharedPointer<KoShapeBackground>(0));
+            shape->setBackground(PkSharedPointer<KoShapeBackground>(0));
             break;
     }
 
@@ -159,7 +159,7 @@ void KisToolShape::addShape(KoShape* shape)
         const QColor color = strokeStyle() == KisToolShapeUtils::StrokeStyleForeground ?
                     toQColor(resources.currentFgColor().toQColor()) :
                     toQColor(resources.currentBgColor().toQColor());
-        stroke->setColor(color);
+        stroke->setColor(toPkColor(color));
         shape->setStroke(stroke);
         break;
     }
@@ -168,7 +168,7 @@ void KisToolShape::addShape(KoShape* shape)
     KUndo2Command *parentCommand = new KUndo2Command();
 
     KoSelection *selection = canvas()->selectedShapesProxy()->selection();
-    const QList<KoShape*> oldSelectedShapes = selection->selectedShapes();
+    const PkList<KoShape*> oldSelectedShapes = selection->selectedShapes();
 
     // reset selection on the newly added shape :)
     // TODO: think about moving this into controller->addShape?
@@ -192,7 +192,7 @@ void KisToolShape::addPathShape(KoPathShape* pathShape, const KUndo2MagicString&
     PkTransform matrix;
     matrix.scale(image->xRes(), image->yRes());
     matrix.translate(pathShape->position().x(), pathShape->position().y());
-    QPainterPath mappedOutline = matrix.map(pathShape->outline());
+    QPainterPath mappedOutline = toQPainterPath(matrix.map(pathShape->outline());
 
     if (node->hasEditablePaintDevice()) {
         KisFigurePaintingToolHelper helper(name,

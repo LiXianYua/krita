@@ -356,7 +356,7 @@ void KisToolRectangleBase::paintRectangle(QPainter &gc, const PkRectF &imageRect
 {
     KIS_ASSERT_RECOVER_RETURN(canvas());
 
-    const QRect viewRect = pixelToView(imageRect).toAlignedRect();
+    const QRect viewRect = toQRect(pixelToView(imageRect).toAlignedRect());
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(services);
@@ -372,7 +372,7 @@ void KisToolRectangleBase::paintRectangle(QPainter &gc, const PkRectF &imageRect
         path.addRect(viewRect);
     }
 
-    getRotatedPath(path, viewRect.center(), getRotationAngle());
+    getRotatedPath(path, toPkPointF(viewRect.center()), getRotationAngle());
     path.addPath(drawX(pixelToView(m_dragStart)));
     path.addPath(drawX(pixelToView(m_dragCenter)));
     paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(path)));
@@ -392,8 +392,8 @@ qreal KisToolRectangleBase::getRotationAngle() {
 
 QPainterPath KisToolRectangleBase::drawX(const PkPointF &pt) {
     QPainterPath path;
-    path.moveTo(PkPointF(pt.x() - 5.0, pt.y() - 5.0)); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() + 5.0));
-    path.moveTo(PkPointF(pt.x() - 5.0, pt.y() + 5.0)); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() - 5.0));
+    path.moveTo(toQPointF(PkPointF(pt.x() - 5.0, pt.y() - 5.0))); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() + 5.0));
+    path.moveTo(toQPointF(PkPointF(pt.x() - 5.0, pt.y() + 5.0))); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() - 5.0));
     return path;
 }
 

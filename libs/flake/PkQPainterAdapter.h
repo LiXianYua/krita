@@ -9,6 +9,7 @@
 #include <QtGui/QtGui>
 
 #include "kritaflake_export.h"
+#include <pk/render/PkPainter.h>
 #include <PkPaintCommand.h>
 
 class KRITAFLAKE_EXPORT PkQPainterAdapter final : public PkPainterBackend

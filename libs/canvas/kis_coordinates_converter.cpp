@@ -210,7 +210,7 @@ void KisCoordinatesConverter::recalculateTransformations()
     recalculateOffsetBoundsAndCrop();
 
     PkRectF irect = imageRectInWidgetPixels();
-    PkRectF wrect = PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
+    PkRectF wrect = PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
     PkRectF rrect = irect & wrect;
 
     PkTransform reversedTransform = flakeToWidgetTransform().inverted();
@@ -817,7 +817,7 @@ void KisCoordinatesConverter::getOpenGLCheckersInfo(const PkRectF &viewportRect,
 
 PkPointF KisCoordinatesConverter::imageCenterInWidgetPixel() const
 {
-    PkPolygonF poly = imageToWidget(QPolygon(m_d->imageBounds));
+    PkPolygonF poly = toPkPolygonF(imageToWidget(QPolygon(m_d->imageBounds));
     return (poly[0] + poly[1] + poly[2] + poly[3]) / 4.0;
 }
 
@@ -826,12 +826,12 @@ PkPointF KisCoordinatesConverter::imageCenterInWidgetPixel() const
 
 PkRectF KisCoordinatesConverter::imageRectInWidgetPixels() const
 {
-    return imageToWidget(m_d->imageBounds);
+    return toPkRect(imageToWidget(m_d->imageBounds));
 }
 
 PkRectF KisCoordinatesConverter::imageRectInViewportPixels() const
 {
-    return imageToViewport(m_d->imageBounds);
+    return toPkRect(imageToViewport(m_d->imageBounds));
 }
 
 QRect KisCoordinatesConverter::imageRectInImagePixels() const
@@ -841,7 +841,7 @@ QRect KisCoordinatesConverter::imageRectInImagePixels() const
 
 PkRectF KisCoordinatesConverter::imageRectInDocumentPixels() const
 {
-    return imageToDocument(m_d->imageBounds);
+    return toPkRect(imageToDocument(m_d->imageBounds));
 }
 
 PkSizeF KisCoordinatesConverter::imageSizeInFlakePixels() const
@@ -855,12 +855,12 @@ PkSizeF KisCoordinatesConverter::imageSizeInFlakePixels() const
 
 PkRectF KisCoordinatesConverter::widgetRectInFlakePixels() const
 {
-    return widgetToFlake(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
+    return widgetToFlake(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
 }
 
 PkRectF KisCoordinatesConverter::widgetRectInImagePixels() const
 {
-    return widgetToImage(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
+    return widgetToImage(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
 }
 
 PkPointF KisCoordinatesConverter::flakeCenterPoint() const

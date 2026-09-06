@@ -167,6 +167,11 @@ inline PK_QTRANSFORM_ toQTransform(const PkTransform &t)
 }
 
 // PkSizeF <-> PkSizeF（命令类存 shape->size() 到 PkList<PkSizeF> 等边界用）。
+inline PkSize toPkSize(const QSize &s)
+{
+    return PkSize(s.width(), s.height());
+}
+
 inline PkSizeF toPkSizeF(const PK_QSIZEF_ &s)
 {
     return PkSizeF(s.width(), s.height());

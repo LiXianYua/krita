@@ -79,8 +79,8 @@ void ShapeRotateStrategy::rotateBy(qreal angle)
 void ShapeRotateStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     // paint the rotation center
-    painter.setPen(PkPen(Qt::red));
-    painter.setBrush(PkBrush(Qt::red));
+    painter.setPen(PkPen(PkColor(Pk::red)));
+    painter.setBrush(PkBrush(PkColor(Pk::red)));
     painter.setRenderHint(PkPainter::Antialiasing, true);
     PkRectF circle(0, 0, handleRadius(), handleRadius());
     circle.moveCenter(converter.documentToView(m_rotationCenter));

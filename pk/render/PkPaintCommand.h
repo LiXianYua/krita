@@ -8,8 +8,8 @@
 #include "PkLine.h"
 #include "PkRect.h"
 #include "PkImage.h"
-#include "PkFont.h"
-#include "PkString.h"
+#include "../font/PkFont.h"
+#include "../string/PkString.h"
 struct PkSaveCommand {};
 struct PkRestoreCommand {};
 struct PkSetPenCommand { PkPen pen; };

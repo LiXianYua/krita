@@ -34,7 +34,7 @@ bool KisUpdateInfo::canBeCompressed() const
 }
 
 QRect KisPPUpdateInfo::dirtyViewportRect() {
-    return viewportRect.toAlignedRect();
+    return toQRect(viewportRect.toAlignedRect());
 }
 
 QRect KisPPUpdateInfo::dirtyImageRect() const {

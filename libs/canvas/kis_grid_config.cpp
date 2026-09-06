@@ -26,10 +26,6 @@ KIS_DECLARE_STATIC_INITIALIZER {
 Q_GLOBAL_STATIC(KisGridConfig, staticDefaultObject)
 
 
-QPoint toQPoint(const PkPoint &point)
-{
-    return QPoint(point.x(), point.y());
-}
 
 template <typename T>
 QString scalarToString(T value)

@@ -44,15 +44,7 @@
 
 
 
-PkSize toPkSize(const QSize &size)
-{
-    return PkSize(size.width(), size.height());
-}
 
-QRect toQRect(const PkRect &rect)
-{
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
 
 /**
  * RelevantCanvasState represents a part of the canvas state
@@ -246,14 +238,14 @@ void KisPrescaledProjection::viewportMoved(const PkPointF &offset)
     while (rc != updateRegion.end()) {
         QRect rect = *rc;
         QRect imageRect =
-            toQRect(m_d->coordinatesConverter->viewportToImage(rect).toAlignedRect());
+            m_d->coordinatesConverter->viewportToImage(rect);
         const PkVector<PkRect> patches = KritaUtils::splitRectIntoPatches(
             toPkRect(imageRect), toPkSize(m_d->updatePatchSize));
 
         Q_FOREACH (const PkRect &pkRect, patches) {
             const QRect rc = toQRect(pkRect);
             QRect viewportPatch =
-                toQRect(m_d->coordinatesConverter->imageToViewport(rc).toAlignedRect());
+                m_d->coordinatesConverter->imageToViewport(rc);
 
             KisPPUpdateInfoSP info = getInitialUpdateInformation(QRect());
             fillInUpdateInformation(viewportPatch, info);
@@ -300,8 +292,7 @@ void KisPrescaledProjection::recalculateCache(KisUpdateInfoSP info)
     if(!ppInfo) return;
 
     QRect rawViewRect =
-        m_d->coordinatesConverter->
-        toQRect(imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect());
+        m_d->coordinatesConverter->viewportToImage(m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect());
 
     fillInUpdateInformation(rawViewRect, ppInfo);
 
@@ -319,14 +310,14 @@ void KisPrescaledProjection::preScale()
 
     QRect viewportRect(QPoint(0, 0), m_d->viewportSize);
     QRect imageRect =
-        toQRect(m_d->coordinatesConverter->viewportToImage(viewportRect).toAlignedRect());
+        m_d->coordinatesConverter->viewportToImage(viewportRect);
 
     const PkVector<PkRect> patches = KritaUtils::splitRectIntoPatches(
         toPkRect(imageRect), toPkSize(m_d->updatePatchSize));
 
     Q_FOREACH (const PkRect &pkRect, patches) {
         const QRect rc = toQRect(pkRect);
-        QRect viewportPatch = toQRect(m_d->coordinatesConverter->imageToViewport(rc).toAlignedRect());
+        QRect viewportPatch = m_d->coordinatesConverter->imageToViewport(rc);
         KisPPUpdateInfoSP info = getInitialUpdateInformation(QRect());
         fillInUpdateInformation(viewportPatch, info);
         QPainter gc(&m_d->prescaledQImage);

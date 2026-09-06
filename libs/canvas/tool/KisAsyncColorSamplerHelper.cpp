@@ -483,11 +483,11 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
         }
 
         QRectF cacheRect = m_d->cache.rect();
-        PkRectF outerRect = cacheRect.marginsRemoved(QMarginsF(penWidth, penWidth, penWidth, penWidth));
+        QRectF outerRect = cacheRect.marginsRemoved(QMarginsF(penWidth, penWidth, penWidth, penWidth));
 
         PkTransform tf;
 
-        PkPointF cacheCenter = cacheRect.center();
+        QPointF cacheCenter = cacheRect.center();
         tf.translate(cacheCenter.x(), cacheCenter.y());
         tf.rotate(-canvasRotationAngle);
         tf.translate(-cacheCenter.x(), -cacheCenter.y());
@@ -500,7 +500,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
 
 
             QPainterPath clipPath;
-            clipPath.addPolygon(tf.map(PkPolygonF(PkRectF(0, 0, cacheRect.width(), cacheRect.height() / 2.0 + 1.0))));
+            clipPath.addPolygon(toQPolygonF(tf.map(PkPolygonF(PkRectF(0, 0, cacheRect.width(), cacheRect.height() / 2.0 + 1.0)))));
             cachePainter.setClipPath(clipPath);
 
             bool flipped =
@@ -525,7 +525,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
 
         qreal innerX = cacheRect.width() * (1.0 - m_d->circlePreviewThickness);
         qreal innerY = cacheRect.height() * (1.0 - m_d->circlePreviewThickness);
-        PkRectF innerRect = cacheRect.marginsRemoved(QMarginsF(innerX, innerY, innerX, innerY));
+        QRectF innerRect = cacheRect.marginsRemoved(QMarginsF(innerX, innerY, innerX, innerY));
         QPainterPath innerEllipse;
         innerEllipse.addEllipse(innerRect);
 
