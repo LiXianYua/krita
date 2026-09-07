@@ -144,7 +144,7 @@ int KisToolPaint::flags() const
     return KisTool::FLAG_USES_CUSTOM_COMPOSITEOP;
 }
 
-void KisToolPaint::canvasResourceChanged(int key, const QVariant& v)
+void KisToolPaint::canvasResourceChanged(int key, const PkVariant &v)
 {
     KisTool::canvasResourceChanged(key, v);
 
@@ -159,7 +159,7 @@ void KisToolPaint::canvasResourceChanged(int key, const QVariant& v)
     }
     case KoCanvasResource::CurrentPaintOpPresetName: {
         if (isActive()) {
-            const QString formattedBrushName = v.toString().replace("_", " ");
+            const QString formattedBrushName = toQString(v.toString()).replace("_", " ");
             Q_EMIT statusTextChanged(toPkString(formattedBrushName));
         }
         break;
@@ -271,7 +271,7 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_ASSERT(services);
-    const QSize widgetSize = services->toolCanvasWidgetSize();
+    const QSize widgetSize = toQSize(services->toolCanvasWidgetSize());
     const int maxThresholdSum = widgetSize.width() + widgetSize.height();
 
     KisOptimizedBrushOutline outline = originalOutline;
@@ -697,11 +697,11 @@ void KisToolPaint::requestUpdateOutline(const PkPointF &outlineDocPoint, const K
     services->toolUpdateAssistantDecoration();
 
     if (!m_oldColorPreviewUpdateRect.isEmpty()) {
-        services->toolUpdateOutlineDoc(toQRectF(m_oldColorPreviewUpdateRect);
+        services->toolUpdateOutlineDoc(m_oldColorPreviewUpdateRect);
     }
 
     if (!m_oldOutlineRect.isEmpty()) {
-        services->toolUpdateOutlineDoc(toQRectF(m_oldOutlineRect));
+        services->toolUpdateOutlineDoc(m_oldOutlineRect);
     }
 
     if (!outlineDocRect.isEmpty()) {
@@ -753,7 +753,7 @@ void KisToolPaint::requestUpdateOutline(const PkPointF &outlineDocPoint, const K
 }
 
 bool KisToolPaint::isEraser() const {
-    return canvas()->resourceManager()->resource(KoCanvasResource::CurrentEffectiveCompositeOp).toString() == r44ToQString(COMPOSITE_ERASE);
+    return toQString(canvas()->resourceManager()->resource(KoCanvasResource::CurrentEffectiveCompositeOp).toString()) == r44ToQString(COMPOSITE_ERASE);
 }
 
 KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const PkPointF &documentPos,

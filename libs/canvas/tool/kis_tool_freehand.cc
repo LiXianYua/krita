@@ -295,7 +295,7 @@ bool KisToolFreehand::trySampleByPaintOp(KoPointerEvent *event, AlternateAction 
     info.setPerStrokeRandomSource(new KisPerStrokeRandomSource());
 
     bool paintOpIgnoredEvent = currentPaintOpPreset()->settings()->mousePressEvent(info,
-                                                                                   event->modifiers(),
+                                                                                   static_cast<Pk::KeyboardModifiers>(event->modifiers()),
                                                                                    currentNode());
     // DuplicateOP during the sampling of new source point (origin)
     // is the only paintop that returns "false" here
@@ -338,7 +338,7 @@ void KisToolFreehand::beginAlternateAction(KoPointerEvent *event, AlternateActio
 
     setMode(GESTURE_MODE);
     m_initialGestureDocPoint = event->point;
-    m_initialGestureGlobalPoint = event->globalPos();
+    m_initialGestureGlobalPoint = toQPoint(event->globalPos());
 
     m_lastDocumentPoint = event->point;
     m_lastPaintOpSize = currentPaintOpPreset()->settings()->paintOpSize();
@@ -408,7 +408,7 @@ void KisToolFreehand::endAlternateAction(KoPointerEvent *event, AlternateAction 
         return;
     }
 
-    dynamic_cast<KisCanvasToolServices *>(canvas())->toolSetCursorPosition(m_initialGestureGlobalPoint);
+    dynamic_cast<KisCanvasToolServices *>(canvas())->toolSetCursorPosition(toPkPoint(m_initialGestureGlobalPoint));
     requestUpdateOutline(m_initialGestureDocPoint, 0);
 
     setMode(HOVER_MODE);

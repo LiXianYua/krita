@@ -88,15 +88,7 @@ struct Q_DECL_HIDDEN KisTool::Private {
 
 namespace {
 
-PkPoint toPkPoint(const QPoint &point)
-{
-    return PkPoint(point.x(), point.y());
-}
 
-QPoint toQPoint(const PkPoint &point)
-{
-    return QPoint(point.x(), point.y());
-}
 
 PkTransform toPkTransform(const PkTransform &transform)
 {
@@ -307,7 +299,7 @@ PkPointF KisTool::convertToPixelCoord(KoPointerEvent *e)
     if (!image())
         return e->point;
 
-    return toPkPointF(image()->documentToPixel(toQPointF(e->point)));
+    return image()->documentToPixel(e->point);
 }
 
 PkPointF KisTool::convertToPixelCoord(const PkPointF& pt)
@@ -315,7 +307,7 @@ PkPointF KisTool::convertToPixelCoord(const PkPointF& pt)
     if (!image())
         return pt;
 
-    return toPkPointF(image()->documentToPixel(toQPointF(pt)));
+    return image()->documentToPixel(pt);
 }
 
 PkPointF KisTool::convertToPixelCoordAndAlignOnWidget(const PkPointF &pt)
@@ -333,7 +325,7 @@ PkPointF KisTool::convertToPixelCoordAndSnap(KoPointerEvent *e, const PkPointF &
     KoSnapGuide *snapGuide = canvas()->snapGuide();
     PkPointF pos = snapGuide->snap(e->point, offset, useModifiers ? e->modifiers() : Qt::NoModifier);
 
-    return toPkPointF(image()->documentToPixel(toQPointF(pos)));
+    return image()->documentToPixel(pos);
 }
 
 PkPointF KisTool::convertToPixelCoordAndSnap(const PkPointF& pt, const PkPointF &offset)
@@ -344,15 +336,15 @@ PkPointF KisTool::convertToPixelCoordAndSnap(const PkPointF& pt, const PkPointF 
     KoSnapGuide *snapGuide = canvas()->snapGuide();
     PkPointF pos = snapGuide->snap(pt, offset, Qt::NoModifier);
 
-    return toPkPointF(image()->documentToPixel(toQPointF(pos)));
+    return image()->documentToPixel(pos);
 }
 
-QPoint KisTool::convertToImagePixelCoordFloored(KoPointerEvent *e)
+PkPoint KisTool::convertToImagePixelCoordFloored(KoPointerEvent *e)
 {
     if (!image())
         return e->point.toPoint();
 
-    return toQPoint(image()->documentToImagePixelFloored(toPkPointF(e->point)));
+    return image()->documentToImagePixelFloored(e->point);
 }
 
 PkPointF KisTool::viewToPixel(const PkPointF &viewCoord) const
@@ -385,7 +377,7 @@ PkPointF KisTool::pixelToView(const QPoint &pixelCoord) const
 {
     if (!image())
         return pixelCoord;
-    PkPointF documentCoord = toQPointF(image()->pixelToDocument(toPkPoint(pixelCoord)));
+    PkPointF documentCoord = image()->pixelToDocument(pixelCoord);
     return canvas()->viewConverter()->documentToView(documentCoord);
 }
 
@@ -393,7 +385,7 @@ PkPointF KisTool::pixelToView(const PkPointF &pixelCoord) const
 {
     if (!image())
         return pixelCoord;
-    PkPointF documentCoord = toQPointF(image()->pixelToDocument(toPkPointF(pixelCoord)));
+    PkPointF documentCoord = image()->pixelToDocument(pixelCoord);
     return canvas()->viewConverter()->documentToView(documentCoord);
 }
 
@@ -413,7 +405,7 @@ QPainterPath KisTool::pixelToView(const QPainterPath &pixelPolygon) const
     qreal zoomX, zoomY;
     canvas()->viewConverter()->zoom(&zoomX, &zoomY);
     matrix.scale(zoomX/image()->xRes(), zoomY/ image()->yRes());
-    return matrix.map(pixelPolygon);
+    return toQPainterPath(matrix.map(toPkPainterPath(pixelPolygon)));
 }
 
 KisOptimizedBrushOutline KisTool::pixelToView(const KisOptimizedBrushOutline &path) const
@@ -470,7 +462,7 @@ KoAbstractGradientSP KisTool::currentGradient()
 
 KisPaintOpPresetSP KisTool::currentPaintOpPreset()
 {
-    QVariant v = canvas()->resourceManager()->resource(KoCanvasResource::CurrentPaintOpPreset);
+    PkVariant v = canvas()->resourceManager()->resource(KoCanvasResource::CurrentPaintOpPreset);
     if (v.isNull()) {
         return 0;
     }

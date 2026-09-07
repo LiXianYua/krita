@@ -247,7 +247,7 @@ public:
 public :
     void textSelectionChanged()
     {
-        PkObject::activateSignal(this, PkMemberFnKey::from(&DefaultToolTextPropertiesInterface::textSelectionChanged));
+        PkObject::activateSignal<>(this, PkMemberFnKey::from(&DefaultToolTextPropertiesInterface::textSelectionChanged));
     }
     void slotSelectionChanged();
 private:

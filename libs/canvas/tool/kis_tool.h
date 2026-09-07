@@ -208,6 +208,7 @@ protected:
     /// coordinates.
     PkPointF convertToPixelCoord(KoPointerEvent *e);
     PkPointF convertToPixelCoord(const PkPointF& pt);
+    PkPointF convertToPixelCoord(const QPoint& pt);
 
     PkPointF convertToPixelCoordAndAlignOnWidget(const PkPointF& pt);
 
@@ -222,7 +223,7 @@ protected:
     /// coordinates. This rounds down (not truncate) the pixel coordinates and
     /// should be used in preference to PkPointF::toPoint(), which rounds,
     /// to ensure the cursor acts on the pixel it is visually over.
-    QPoint convertToImagePixelCoordFloored(KoPointerEvent *e);
+    PkPoint convertToImagePixelCoordFloored(KoPointerEvent *e);
 
     PkRectF convertToPt(const PkRectF &rect);
     qreal convertToPt(qreal value);

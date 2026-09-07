@@ -41,7 +41,7 @@ KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectang
 }
 
 
-PkList<QPointer<QWidget>> KisToolRectangleBase::createOptionWidgets()
+PkList<PkPointer<QWidget>> KisToolRectangleBase::createOptionWidgets()
 {
     return KisToolShape::createOptionWidgets();
 }
@@ -271,9 +271,9 @@ void KisToolRectangleBase::continuePrimaryAction(KoPointerEvent *event)
     else {
         KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
         KIS_ASSERT(services);
-        services->toolShowFloatingMessage(i18n("X: %1 px\nY: %2 px"
+        toPkString(services->toolShowFloatingMessage(i18n("X: %1 px\nY: %2 px"
                                                 , QString::number(m_dragStart.x(), 'f', 1)
-                                                , QString::number(m_dragStart.y(), 'f', 1)));
+                                                , QString::number(m_dragStart.y(), 'f', 1))));
     }
     updateArea();
     m_dragCenter = PkPointF((m_dragStart.x() + m_dragEnd.x()) / 2,
@@ -392,8 +392,8 @@ qreal KisToolRectangleBase::getRotationAngle() {
 
 QPainterPath KisToolRectangleBase::drawX(const PkPointF &pt) {
     QPainterPath path;
-    path.moveTo(toQPointF(PkPointF(pt.x() - 5.0, pt.y() - 5.0))); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() + 5.0));
-    path.moveTo(toQPointF(PkPointF(pt.x() - 5.0, pt.y() + 5.0))); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() - 5.0));
+    path.moveTo(toQPointF(PkPointF(pt.x() - 5.0, pt.y() - 5.0))); path.lineTo(toQPointF(PkPointF(pt.x() + 5.0, pt.y() + 5.0)));
+    path.moveTo(toQPointF(PkPointF(pt.x() - 5.0, pt.y() + 5.0))); path.lineTo(toQPointF(PkPointF(pt.x() + 5.0, pt.y() - 5.0)));
     return path;
 }
 
