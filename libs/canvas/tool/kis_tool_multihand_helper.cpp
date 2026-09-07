@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
-
 #include "kis_tool_multihand_helper.h"
 
 #include <pk/geometry/PkTransform.h>
@@ -16,7 +14,7 @@
 
 struct KisToolMultihandHelper::Private
 {
-    QVector<PkTransform> transformations;
+    PkVector<PkTransform> transformations;
 };
 
 KisToolMultihandHelper::KisToolMultihandHelper(KisPaintingInformationBuilder *infoBuilder,
@@ -32,7 +30,7 @@ KisToolMultihandHelper::~KisToolMultihandHelper()
     delete d;
 }
 
-void KisToolMultihandHelper::setupTransformations(const QVector<PkTransform> &transformations)
+void KisToolMultihandHelper::setupTransformations(const PkVector<PkTransform> &transformations)
 {
     d->transformations = transformations;
 }
@@ -41,7 +39,7 @@ void KisToolMultihandHelper::createPainters(QVector<KisFreehandStrokeInfo*> &str
                                             const KisDistanceInformation &startDist)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
-        const PkTransform transform = toPkTransform(d->transformations[i]);
+        const PkTransform transform = d->transformations[i];
         KisDistanceInitInfo __startDistInfo(transform.map(startDist.lastPosition()),
                                             startDist.lastDrawingAngle(),
                                             startDist.getSpacingInterval(),
@@ -75,7 +73,7 @@ void adjustPointInformationRotation(KisPaintInformation &pi, const PkTransform &
 void KisToolMultihandHelper::paintAt(const KisPaintInformation &pi)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
-        const PkTransform transform = toPkTransform(d->transformations[i]);
+        const PkTransform transform = d->transformations[i];
         KisPaintInformation __pi = pi;
         __pi.setPos(transform.map(__pi.pos()));
         adjustPointInformationRotation(__pi, transform);
@@ -87,7 +85,7 @@ void KisToolMultihandHelper::paintLine(const KisPaintInformation &pi1,
                                        const KisPaintInformation &pi2)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
-        const PkTransform transform = toPkTransform(d->transformations[i]);
+        const PkTransform transform = d->transformations[i];
 
         KisPaintInformation __pi1 = pi1;
         KisPaintInformation __pi2 = pi2;
@@ -107,7 +105,7 @@ void KisToolMultihandHelper::paintBezierCurve(const KisPaintInformation &pi1,
                                               const KisPaintInformation &pi2)
 {
     for (int i = 0; i < d->transformations.size(); i++) {
-        const PkTransform transform = toPkTransform(d->transformations[i]);
+        const PkTransform transform = d->transformations[i];
 
         KisPaintInformation __pi1 = pi1;
         KisPaintInformation __pi2 = pi2;
@@ -117,8 +115,8 @@ void KisToolMultihandHelper::paintBezierCurve(const KisPaintInformation &pi1,
         adjustPointInformationRotation(__pi1, transform);
         adjustPointInformationRotation(__pi2, transform);
 
-        PkPointF __control1 = transform.map(toPkPointF(control1));
-        PkPointF __control2 = transform.map(toPkPointF(control2));
+        PkPointF __control1 = transform.map(control1);
+        PkPointF __control2 = transform.map(control2);
 
         paintBezierCurve(i, __pi1, __control1, __control2, __pi2);
     }

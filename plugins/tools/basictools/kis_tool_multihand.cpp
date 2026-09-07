@@ -44,8 +44,7 @@ KisToolMultihand::KisToolMultihand(KoCanvasBase *canvas)
     resetHelper(m_helper);
     if (image()) {
         m_axesPoint = PkPointF(0.5 * image()->width(), 0.5 * image()->height());
-        // S-02 共存模式：sender/receiver 均在 Qt 栈（KisImage 信号未接 Pk），直连 Qt。
-        m_imageSizeConnection = QObject::connect(
+        m_imageSizeConnection = PkObject::connect(
             image().data(), &KisImage::sigSizeChanged, this,
             [this](const PkPointF &, const PkPointF &) { resetAxes(); });
     }
@@ -228,7 +227,7 @@ void KisToolMultihand::paint(PkPainter& gc, const KoViewConverter &converter)
         else if (m_transformMode == COPYTRANSLATEINTERVALS) {
             const int ellipsePreviewSize = 10;
 
-            for (const PkPointF &dPos : intervalLocations()) {
+            for (const PkPoint &dPos : intervalLocations()) {
                 path.addEllipse(dPos, ellipsePreviewSize, ellipsePreviewSize);
             }
         }
@@ -260,9 +259,9 @@ void KisToolMultihand::paint(PkPainter& gc, const KoViewConverter &converter)
     // origin point preview line/s
     gc.save();
     PkPen outlinePen(PkColor(100,100,100,150));
-    outlinePen.setStyle(Qt::PenStyle::SolidLine);
+    outlinePen.setStyle(Pk::SolidLine);
     gc.setPen(outlinePen);
-    paintToolOutline(&gc, pixelToView(path));
+    paintToolOutline(&gc, pixelToView(KisOptimizedBrushOutline(path)));
     gc.restore();
 
 
@@ -275,13 +274,22 @@ void KisToolMultihand::paint(PkPainter& gc, const KoViewConverter &converter)
         dotPath.addEllipse(m_axesPoint.x()- dotRadius*0.25, m_axesPoint.y()- dotRadius*0.25, dotRadius, dotRadius); // last 2 parameters are dot's size
 
         PkBrush fillBrush(PkColor(255, 255, 255, 255));
-        fillBrush.setStyle(Qt::SolidPattern);
+        fillBrush.setStyle(Pk::SolidPattern);
         PkPen noPen(PkColor(0, 0, 0, 0));
-        noPen.setStyle(Qt::NoPen);
+        noPen.setStyle(Pk::NoPen);
+        auto pathInView = [this](const PkPainterPath &source) {
+            PkPainterPath result;
+            const KisOptimizedBrushOutline mapped =
+                pixelToView(KisOptimizedBrushOutline(source));
+            for (const PkPolygonF &polygon : mapped) {
+                result.addPolygon(polygon);
+            }
+            return result;
+        };
         gc.save();
         gc.setPen(noPen);
         gc.setBrush(fillBrush);
-        gc.drawPath(pixelToView(dotPath));
+        gc.drawPath(pathInView(dotPath));
         gc.restore();
 
 
@@ -292,7 +300,7 @@ void KisToolMultihand::paint(PkPainter& gc, const KoViewConverter &converter)
         gc.save();
         gc.setPen(noPen);
         gc.setBrush(fillBrush);
-        gc.drawPath(pixelToView(dotPath));
+        gc.drawPath(pathInView(dotPath));
         gc.restore();
     }
 

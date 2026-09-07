@@ -7,6 +7,8 @@
 #ifndef __KIS_TOOL_MULTIHAND_HELPER_H
 #define __KIS_TOOL_MULTIHAND_HELPER_H
 
+#include <PkVector.h>
+
 #include "kis_tool_freehand_helper.h"
 
 
@@ -20,7 +22,7 @@ public:
                            const KUndo2MagicString &transactionText);
     ~KisToolMultihandHelper() override;
 
-    void setupTransformations(const QVector<PkTransform> &transformations);
+    void setupTransformations(const PkVector<PkTransform> &transformations);
 
 protected:
     void createPainters(QVector<KisFreehandStrokeInfo*> &strokeInfos,
