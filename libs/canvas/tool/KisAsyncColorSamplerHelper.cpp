@@ -384,6 +384,9 @@ void KisAsyncColorSamplerHelper::paintRectangle(PkPainter &gc,
                                                 const PkColor &currentColor,
                                                 const PkColor &baseColor)
 {
+    gc.save();
+    gc.setRenderHint(PkPainter::Antialiasing, true);
+
     PkTransform contentTransform;
     const PkPointF center = viewRectF.center();
     contentTransform.translate(center.x(), center.y());
@@ -397,6 +400,7 @@ void KisAsyncColorSamplerHelper::paintRectangle(PkPainter &gc,
         PkPainterPath currentPath;
         currentPath.addRect(viewRectF);
         gc.fillPath(contentTransform.map(currentPath), PkBrush(currentColor));
+        gc.restore();
         return;
     }
 
@@ -412,6 +416,7 @@ void KisAsyncColorSamplerHelper::paintRectangle(PkPainter &gc,
     basePath.addRect(baseRect);
     gc.fillPath(contentTransform.map(currentPath), PkBrush(currentColor));
     gc.fillPath(contentTransform.map(basePath), PkBrush(baseColor));
+    gc.restore();
 }
 
 void KisAsyncColorSamplerHelper::paintCircle(PkPainter &gc,
@@ -426,6 +431,7 @@ void KisAsyncColorSamplerHelper::paintCircle(PkPainter &gc,
 
 
     gc.save();
+    gc.setRenderHint(PkPainter::Antialiasing, true);
 
     const qreal penWidth = m_d->circlePreviewDiameter > 100 ? 2.0 : 1.0;
     const PkColor outlineColor = toPkColor(

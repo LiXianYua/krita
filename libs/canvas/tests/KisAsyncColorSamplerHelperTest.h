@@ -18,7 +18,8 @@ private Q_SLOTS:
     void delayedJobReadsTheCurrentNodeAgain();
     void previewUsesSamplingCanvasGeometry();
     void ellipsePreviewRoundsBeforeRotation();
-    void circlePreviewDoesNotClearDestination();
+    void rectanglePreviewPreservesCommandsAndState();
+    void circlePreviewPreservesRingCommandsAndState();
     void cursorUsesSamplingCanvasPolicy();
 };
 

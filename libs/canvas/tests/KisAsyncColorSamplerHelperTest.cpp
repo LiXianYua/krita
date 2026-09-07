@@ -247,10 +247,11 @@ private:
     void finishRect(const PkRectF &, qreal, qreal) override {}
 };
 
-class IntegerConfigEntryGuard
+template <typename T>
+class ConfigEntryGuard
 {
 public:
-    IntegerConfigEntryGuard(KConfigGroup group, QString key, int fallback)
+    ConfigEntryGuard(KConfigGroup group, QString key, T fallback)
         : m_group(std::move(group))
         , m_key(std::move(key))
         , m_hadEntry(m_group.hasKey(m_key))
@@ -258,7 +259,7 @@ public:
     {
     }
 
-    ~IntegerConfigEntryGuard()
+    ~ConfigEntryGuard()
     {
         if (m_hadEntry) {
             m_group.writeEntry(m_key, m_oldValue);
@@ -271,7 +272,7 @@ private:
     KConfigGroup m_group;
     QString m_key;
     bool m_hadEntry;
-    int m_oldValue;
+    T m_oldValue;
 };
 
 KisImageSP createImageWithLayer(const PkColor &color, KisPaintLayerSP *layer)
@@ -432,7 +433,7 @@ void KisAsyncColorSamplerHelperTest::previewUsesSamplingCanvasGeometry()
 {
     KConfigGroup cfg = KSharedConfig::openConfig()->group("");
     const QString key = QStringLiteral("colorSamplerPreviewStyle");
-    const IntegerConfigEntryGuard styleGuard(cfg, key, 1);
+    const ConfigEntryGuard<int> styleGuard(cfg, key, 1);
     cfg.writeEntry(key, 2); // RectangleLeft
 
     KisPaintLayerSP layer;
@@ -459,18 +460,20 @@ void KisAsyncColorSamplerHelperTest::previewUsesSamplingCanvasGeometry()
 
 }
 
-void KisAsyncColorSamplerHelperTest::circlePreviewDoesNotClearDestination()
+void KisAsyncColorSamplerHelperTest::rectanglePreviewPreservesCommandsAndState()
 {
     KConfigGroup cfg = KSharedConfig::openConfig()->group("");
-    const QString key = QStringLiteral("colorSamplerPreviewStyle");
-    const IntegerConfigEntryGuard styleGuard(cfg, key, 1);
-    cfg.writeEntry(key, 1); // Circle
+    const QString styleKey = QStringLiteral("colorSamplerPreviewStyle");
+    const ConfigEntryGuard<int> styleGuard(cfg, styleKey, 1);
+    cfg.writeEntry(styleKey, 2); // RectangleLeft
 
     KisPaintLayerSP layer;
     KisImageSP image = createImageWithLayer(Pk::black, &layer);
     TestSamplingCanvas canvas(image);
+    canvas.rotation = 30.0;
+    canvas.horizontalMirror = true;
     canvas.resourceManager()->setResource(KoCanvasResource::ForegroundColor,
-                                          KoColor(Pk::black, image->colorSpace()));
+                                          KoColor(Pk::green, image->colorSpace()));
 
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
@@ -482,7 +485,85 @@ void KisAsyncColorSamplerHelperTest::circlePreviewDoesNotClearDestination()
                                       "slotColorSamplingFinished",
                                       Qt::DirectConnection,
                                       Q_ARG(KoColor, KoColor(Pk::red, image->colorSpace()))));
-    helper.colorPreviewDocRect(PkPointF(10, 20));
+    const PkRectF viewRect = helper.colorPreviewDocRect(PkPointF(10.25, 20.75));
+
+    RecordingBackend backend;
+    PkPainter painter(backend);
+    helper.paint(painter, *canvas.viewConverter());
+    helper.deactivate();
+
+    QCOMPARE(backend.commands.size(), std::size_t(5));
+    QVERIFY(std::holds_alternative<PkSaveCommand>(backend.commands.front()));
+    const auto *hint = std::get_if<PkSetRenderHintCommand>(&backend.commands[1]);
+    QVERIFY(hint);
+    QCOMPARE(hint->hint, unsigned(PkPainter::Antialiasing));
+    QVERIFY(hint->enabled);
+    const auto *currentFill = std::get_if<PkFillPathCommand>(&backend.commands[2]);
+    const auto *baseFill = std::get_if<PkFillPathCommand>(&backend.commands[3]);
+    QVERIFY(currentFill);
+    QVERIFY(baseFill);
+    QCOMPARE(currentFill->brush.color(), PkColor(Pk::red));
+    QCOMPARE(baseFill->brush.color(), PkColor(Pk::green));
+    QVERIFY(std::holds_alternative<PkRestoreCommand>(backend.commands.back()));
+    QVERIFY(!painter.testRenderHint(PkPainter::Antialiasing));
+
+    const qreal centerX = viewRect.center().x();
+    PkRectF currentRect(viewRect.topLeft(),
+                        PkPointF(centerX, viewRect.bottom()));
+    PkRectF baseRect(PkPointF(centerX, viewRect.top()),
+                     viewRect.bottomRight());
+    std::swap(currentRect, baseRect);
+    PkTransform contentTransform;
+    contentTransform.translate(viewRect.center().x(), viewRect.center().y());
+    contentTransform.rotate(canvas.rotation);
+    contentTransform.translate(-viewRect.center().x(), -viewRect.center().y());
+    PkPainterPath expectedCurrentPath;
+    expectedCurrentPath.addRect(currentRect);
+    PkPainterPath expectedBasePath;
+    expectedBasePath.addRect(baseRect);
+    QCOMPARE(currentFill->path, contentTransform.map(expectedCurrentPath));
+    QCOMPARE(baseFill->path, contentTransform.map(expectedBasePath));
+}
+
+void KisAsyncColorSamplerHelperTest::circlePreviewPreservesRingCommandsAndState()
+{
+    KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+    const QString styleKey = QStringLiteral("colorSamplerPreviewStyle");
+    const QString diameterKey = QStringLiteral("colorSamplerPreviewCircleDiameter");
+    const QString thicknessKey = QStringLiteral("colorSamplerPreviewCircleThickness");
+    const QString outlineKey = QStringLiteral("colorSamplerPreviewCircleOutlineEnabled");
+    const QString extraKey = QStringLiteral("colorSamplerPreviewCircleExtraCirclesEnabled");
+    const ConfigEntryGuard<int> styleGuard(cfg, styleKey, 1);
+    const ConfigEntryGuard<int> diameterGuard(cfg, diameterKey, 180);
+    const ConfigEntryGuard<qreal> thicknessGuard(cfg, thicknessKey, 12.0);
+    const ConfigEntryGuard<bool> outlineGuard(cfg, outlineKey, true);
+    const ConfigEntryGuard<bool> extraGuard(cfg, extraKey, true);
+    cfg.writeEntry(styleKey, 1); // Circle
+    cfg.writeEntry(diameterKey, 180);
+    cfg.writeEntry(thicknessKey, qreal(25));
+    cfg.writeEntry(outlineKey, true);
+    cfg.writeEntry(extraKey, false);
+
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    TestSamplingCanvas canvas(image);
+    canvas.rotation = 30.0;
+    canvas.horizontalMirror = true;
+    canvas.verticalMirror = true;
+    canvas.resourceManager()->setResource(KoCanvasResource::ForegroundColor,
+                                          KoColor(Pk::green, image->colorSpace()));
+
+    KisAsyncColorSamplerHelper helper(&canvas, &canvas);
+    helper.setUpdateGlobalColor(false);
+    helper.activate(false, true);
+    QVERIFY(QMetaObject::invokeMethod(&helper,
+                                      "activateDelayedPreview",
+                                      Qt::DirectConnection));
+    QVERIFY(QMetaObject::invokeMethod(&helper,
+                                      "slotColorSamplingFinished",
+                                      Qt::DirectConnection,
+                                      Q_ARG(KoColor, KoColor(Pk::red, image->colorSpace()))));
+    const PkRectF viewRect = helper.colorPreviewDocRect(PkPointF(10.25, 20.75));
 
     RecordingBackend backend;
     PkPainter painter(backend);
@@ -495,14 +576,58 @@ void KisAsyncColorSamplerHelperTest::circlePreviewDoesNotClearDestination()
             const auto *composition = std::get_if<PkSetCompositionModeCommand>(&command);
             return composition && composition->mode == Pk::CompositionMode_Clear;
         });
-    const bool paintedRing = std::any_of(
-        backend.commands.cbegin(), backend.commands.cend(),
-        [](const PkPaintCommand &command) {
-            return std::holds_alternative<PkFillPathCommand>(command);
-        });
-
     QVERIFY(!clearedDestination);
-    QVERIFY(paintedRing);
+    QCOMPARE(backend.commands.size(), std::size_t(10));
+    QVERIFY(std::holds_alternative<PkSaveCommand>(backend.commands.front()));
+    const auto *hint = std::get_if<PkSetRenderHintCommand>(&backend.commands[1]);
+    QVERIFY(hint);
+    QCOMPARE(hint->hint, unsigned(PkPainter::Antialiasing));
+    QVERIFY(hint->enabled);
+    QVERIFY(std::holds_alternative<PkRestoreCommand>(backend.commands.back()));
+    QVERIFY(!painter.testRenderHint(PkPainter::Antialiasing));
+
+    const auto *topClip = std::get_if<PkSetClipPathCommand>(&backend.commands[2]);
+    const auto *topFill = std::get_if<PkFillPathCommand>(&backend.commands[3]);
+    const auto *bottomClip = std::get_if<PkSetClipPathCommand>(&backend.commands[4]);
+    const auto *bottomFill = std::get_if<PkFillPathCommand>(&backend.commands[5]);
+    const auto *clearClip = std::get_if<PkSetClipPathCommand>(&backend.commands[6]);
+    const auto *outerStroke = std::get_if<PkStrokePathCommand>(&backend.commands[7]);
+    const auto *innerStroke = std::get_if<PkStrokePathCommand>(&backend.commands[8]);
+    QVERIFY(topClip);
+    QVERIFY(topFill);
+    QVERIFY(bottomClip);
+    QVERIFY(bottomFill);
+    QVERIFY(clearClip);
+    QVERIFY(outerStroke);
+    QVERIFY(innerStroke);
+    QCOMPARE(topFill->brush.color(), PkColor(Pk::green));
+    QCOMPARE(bottomFill->brush.color(), PkColor(Pk::red));
+    QCOMPARE(topFill->path, bottomFill->path);
+    QVERIFY(!topFill->path.contains(viewRect.center()));
+    QVERIFY(topFill->path.contains(PkPointF(viewRect.center().x(),
+                                            viewRect.top() + 10.0)));
+    QCOMPARE(clearClip->operation, Pk::NoClip);
+    QVERIFY(clearClip->path.isEmpty());
+    QVERIFY(outerStroke->path != innerStroke->path);
+    QCOMPARE(outerStroke->pen.widthF(), 2.0);
+    QCOMPARE(innerStroke->pen.widthF(), 2.0);
+
+    PkTransform contentTransform;
+    contentTransform.translate(viewRect.center().x(), viewRect.center().y());
+    contentTransform.rotate(canvas.rotation);
+    contentTransform.translate(-viewRect.center().x(), -viewRect.center().y());
+    PkPainterPath expectedTopClip;
+    expectedTopClip.addRect(PkRectF(viewRect.left(),
+                                    viewRect.top(),
+                                    viewRect.width(),
+                                    viewRect.height() / 2.0 + 1.0));
+    PkPainterPath expectedBottomClip;
+    expectedBottomClip.addRect(PkRectF(viewRect.left(),
+                                       viewRect.center().y(),
+                                       viewRect.width(),
+                                       viewRect.height() / 2.0));
+    QCOMPARE(topClip->path, contentTransform.map(expectedTopClip));
+    QCOMPARE(bottomClip->path, contentTransform.map(expectedBottomClip));
 }
 
 void KisAsyncColorSamplerHelperTest::ellipsePreviewRoundsBeforeRotation()
