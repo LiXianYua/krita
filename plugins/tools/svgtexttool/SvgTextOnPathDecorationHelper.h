@@ -6,12 +6,16 @@
 #ifndef SVGTEXTONPATHDECORATIONHELPER_H
 #define SVGTEXTONPATHDECORATIONHELPER_H
 
-#include <QPointF>
-#include <QPainter>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkTransform.h>
+
+#include <memory>
 
 
 class KoSvgTextShape;
 class KoViewConverter;
+class PkPainter;
 /**
  * @brief The SvgTextOnPathDecorationHelper class
  */
@@ -45,26 +49,26 @@ public:
      * @brief hitTest
      * @return whether the current position is over a handle.
      */
-    bool hitTest(QPointF mouseInPts, const QTransform viewToDocument);
+    bool hitTest(PkPointF mouseInPts, const PkTransform &viewToDocument);
 
     /**
      * @brief paint
      * Paint the handles for the text path.
      */
-    void paint(QPainter *painter, const KoViewConverter &converter);
+    void paint(PkPainter *painter, const KoViewConverter &converter);
 
     /**
      * @brief decorationRect
      * @param documentToView -- document to view transform.
      * @return the decoration rect.
      */
-    QRectF decorationRect(const QTransform documentToView) const;
+    PkRectF decorationRect(const PkTransform &documentToView) const;
 
     void setStrategyActive(bool isActive);
 
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    std::unique_ptr<Private> d;
 };
 
 #endif // SVGTEXTONPATHDECORATIONHELPER_H

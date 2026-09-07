@@ -8,7 +8,6 @@
 #include <KoSvgTextShape.h>
 #include <KisHandlePainterHelper.h>
 #include <KoViewConverter.h>
-#include <QDebug>
 #include <KoPathShape.h>
 struct SvgTextOnPathDecorationHelper::Private {
     KoSvgTextShape *shape = nullptr;
@@ -20,10 +19,10 @@ struct SvgTextOnPathDecorationHelper::Private {
     bool isHovered = false;
     bool isActive = false;
 
-    QLineF getLineAnchorTextNode(KoSvgTextNodeIndex &index, qreal lineLength) {
+    PkLineF getLineAnchorTextNode(KoSvgTextNodeIndex &index, qreal lineLength) {
         KoPathShape *s = dynamic_cast<KoPathShape*>(index.textPath());
-        QPainterPath outline = s->transformation().map(s->outline());
-        QLineF line;
+        PkPainterPath outline = s->transformation().map(s->outline());
+        PkLineF line;
         if (index.textPathInfo()->side == KoSvgText::TextPathSideRight) {
             outline = outline.toReversed();
         }
@@ -72,28 +71,28 @@ void SvgTextOnPathDecorationHelper::setDecorationThickness(qreal thickness)
     d->decorationThickness = thickness;
 }
 
-bool SvgTextOnPathDecorationHelper::hitTest(QPointF mouseInPts, const QTransform viewToDocument)
+bool SvgTextOnPathDecorationHelper::hitTest(PkPointF mouseInPts, const PkTransform &viewToDocument)
 {
     if (!d->shape) return false;
     KoSvgTextNodeIndex index = d->shape->topLevelNodeForPos(d->pos);
     if (!(index.textPath() && index.textPathInfo())) return false;
-    QPointF handleInPts = viewToDocument.map(QPointF(d->handleRadius, d->handleRadius));
+    PkPointF handleInPts = viewToDocument.map(PkPointF(d->handleRadius, d->handleRadius));
 
-    QLineF line = d->getLineAnchorTextNode(index, handleInPts.x()*2);
+    PkLineF line = d->getLineAnchorTextNode(index, handleInPts.x()*2);
     line = d->shape->absoluteTransformation().map(line);
-    bool hit = (QLineF(line.p2(), mouseInPts).length() <= handleInPts.x()*2);
+    bool hit = (PkLineF(line.p2(), mouseInPts).length() <= handleInPts.x()*2);
     d->isHovered = hit;
     return hit;
 }
 
-void SvgTextOnPathDecorationHelper::paint(QPainter *p, const KoViewConverter &converter)
+void SvgTextOnPathDecorationHelper::paint(PkPainter *p, const KoViewConverter &converter)
 {
     if (!d->shape) return;
     KoSvgTextNodeIndex index = d->shape->topLevelNodeForPos(d->pos);
     if (!(index.textPath() && index.textPathInfo())) return;
 
-    QPointF handleInPts = converter.viewToDocument().map(QPointF(d->handleRadius, d->handleRadius));
-    QLineF line = d->getLineAnchorTextNode(index, handleInPts.x()*3);
+    PkPointF handleInPts = converter.viewToDocument().map(PkPointF(d->handleRadius, d->handleRadius));
+    PkLineF line = d->getLineAnchorTextNode(index, handleInPts.x()*3);
     p->save();
     KisHandlePainterHelper helper =
             KoShape::createHandlePainterHelperView(p, d->shape, converter, d->handleRadius, d->decorationThickness);
@@ -112,22 +111,22 @@ void SvgTextOnPathDecorationHelper::paint(QPainter *p, const KoViewConverter &co
     p->restore();
 }
 
-QRectF SvgTextOnPathDecorationHelper::decorationRect(const QTransform documentToView) const
+PkRectF SvgTextOnPathDecorationHelper::decorationRect(const PkTransform &documentToView) const
 {
-    QRectF r;
+    PkRectF r;
     if (!d->shape) return r;
     KoSvgTextNodeIndex index = d->shape->topLevelNodeForPos(d->pos);
     if (!(index.textPath() && index.textPathInfo())) return r;
-    QPointF handleInPts = documentToView.inverted().map(QPointF(d->handleRadius, d->handleRadius));
+    PkPointF handleInPts = documentToView.inverted().map(PkPointF(d->handleRadius, d->handleRadius));
 
-    QLineF line = d->getLineAnchorTextNode(index, handleInPts.x()*3);
+    PkLineF line = d->getLineAnchorTextNode(index, handleInPts.x()*3);
 
-    line = QTransform(d->shape->absoluteTransformation()*documentToView).map(line);
-    r |= QRectF(line.p1()-QPointF(d->decorationThickness, d->decorationThickness)
-                , line.p2()+QPointF(d->decorationThickness, d->decorationThickness));
+    line = (d->shape->absoluteTransformation()*documentToView).map(line);
+    r |= PkRectF(line.p1()-PkPointF(d->decorationThickness, d->decorationThickness)
+                , line.p2()+PkPointF(d->decorationThickness, d->decorationThickness));
 
-    QPointF handle(d->handleRadius, d->handleRadius);
-    r |= QRectF(line.p2() - handle, line.p2() + handle);
+    PkPointF handle(d->handleRadius, d->handleRadius);
+    r |= PkRectF(line.p2() - handle, line.p2() + handle);
 
     //qDebug() << "decor rect" << r << line.p2();
     return r;
