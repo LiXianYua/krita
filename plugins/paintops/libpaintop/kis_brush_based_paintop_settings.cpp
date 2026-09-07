@@ -237,7 +237,7 @@ PkList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformPropert
                     s->setPaintOpAngle(prop->value().toReal());
                 });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -260,7 +260,7 @@ PkList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformPropert
                     s->setAutoSpacing(prop->value().toBool(), s->autoSpacingCoeff());
                 });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -300,7 +300,7 @@ PkList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformPropert
                     }
                 });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

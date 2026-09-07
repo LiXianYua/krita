@@ -8,6 +8,7 @@
 #ifndef __KIS_TOOL_MULTIHAND_H
 #define __KIS_TOOL_MULTIHAND_H
 
+#include <PkFlakeBridge.h>
 #include "kis_tool_brush.h"
 #include <PkConnection.h>
 #include <PkPainter.h>
@@ -79,9 +80,9 @@ public:
 
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setShortcut(PkString("Q"));
+        setShortcut(QKeySequence("Q"));
         setPriority(11);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolMultiBrushFactory() override {}

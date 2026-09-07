@@ -64,16 +64,24 @@ public:
 
     // ---- 连接（同步直连）----
     // 成员函数指针 → 成员函数指针
-    template <typename Func1, typename Func2>
+    template <typename Func1, typename Func2,
+              typename Obj1 = typename PkSignalTraits<Func1>::Object,
+              typename Obj2 = typename PkSignalTraits<Func2>::Object,
+              typename = typename std::enable_if<std::is_base_of<PkObject, Obj1>::value &&
+                                                 std::is_base_of<PkObject, Obj2>::value &&
+                                                 std::is_member_function_pointer<Func2>::value>::type>
     static PkConnection connect(
-        const typename PkSignalTraits<Func1>::Object* sender, Func1 signal,
-        const typename PkSignalTraits<Func2>::Object* receiver, Func2 slot,
+        const Obj1* sender, Func1 signal,
+        const Obj2* receiver, Func2 slot,
         PkConnectionType type = PkConnectionType::Auto);
 
     // 成员函数指针 → lambda（receiver 仅用于生命周期绑定）
-    template <typename Func1, typename Lambda>
+    template <typename Func1, typename Lambda,
+              typename Obj1 = typename PkSignalTraits<Func1>::Object,
+              typename = typename std::enable_if<std::is_base_of<PkObject, Obj1>::value &&
+                                                 !std::is_member_function_pointer<Lambda>::value>::type>
     static PkConnection connect(
-        const typename PkSignalTraits<Func1>::Object* sender, Func1 signal,
+        const Obj1* sender, Func1 signal,
         const PkObject* receiver, Lambda&& lambda,
         PkConnectionType type = PkConnectionType::Auto);
 
@@ -185,14 +193,13 @@ using PkShellObject = PkObject;
 
 // ---- 模板定义（成员模板只能放头文件）----
 
-template <typename Func1, typename Func2>
+template <typename Func1, typename Func2,
+          typename Obj1, typename Obj2, typename>
 PkConnection PkObject::connect(
-    const typename PkSignalTraits<Func1>::Object* sender, Func1 signal,
-    const typename PkSignalTraits<Func2>::Object* receiver, Func2 slot,
+    const Obj1* sender, Func1 signal,
+    const Obj2* receiver, Func2 slot,
     PkConnectionType type)
 {
-    using Obj1 = typename PkSignalTraits<Func1>::Object;
-    using Obj2 = typename PkSignalTraits<Func2>::Object;
     static_assert(std::is_base_of<PkObject, Obj1>::value, "sender must derive PkObject");
     static_assert(std::is_base_of<PkObject, Obj2>::value, "receiver must derive PkObject");
 
@@ -226,13 +233,12 @@ PkConnection PkObject::connect(
     return PkConnection(std::move(state));
 }
 
-template <typename Func1, typename Lambda>
+template <typename Func1, typename Lambda, typename Obj1, typename>
 PkConnection PkObject::connect(
-    const typename PkSignalTraits<Func1>::Object* sender, Func1 signal,
+    const Obj1* sender, Func1 signal,
     const PkObject* receiver, Lambda&& lambda,
     PkConnectionType type)
 {
-    using Obj1 = typename PkSignalTraits<Func1>::Object;
     static_assert(std::is_base_of<PkObject, Obj1>::value, "sender must derive PkObject");
 
     // lambda 槽无稳定身份：Unique 不去重，照常建立连接（hasSlotKey=false）。

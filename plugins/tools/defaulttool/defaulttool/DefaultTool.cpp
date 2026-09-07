@@ -51,7 +51,7 @@
 #include <KoSnapGuide.h>
 #include "kis_image.h"
 #include "kis_node.h"
-#include "kis_shape_controller.h"
+#include "flake/kis_shape_controller.h"
 #include "KisCanvasFeedback.h"
 #include <kis_signal_compressor.h>
 #include <KoInteractionStrategyFactory.h>

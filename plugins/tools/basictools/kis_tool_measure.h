@@ -8,6 +8,7 @@
 #ifndef KIS_TOOL_MEASURE_H_
 #define KIS_TOOL_MEASURE_H_
 
+#include <PkFlakeBridge.h>
 #include "kis_tool.h"
 #include "kis_global.h"
 #include "kis_types.h"
@@ -62,7 +63,7 @@ public:
         setSection(ToolBoxSection::View);
         setToolTip(PkString("Measure Tool"));
         setPriority(1);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolMeasureFactory() override {}

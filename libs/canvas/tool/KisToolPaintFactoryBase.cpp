@@ -11,7 +11,7 @@
 
 #include <klocalizedstring.h>
 
-KisToolPaintFactoryBase::KisToolPaintFactoryBase(const QString &id)
+KisToolPaintFactoryBase::KisToolPaintFactoryBase(const PkString &id)
     : KoToolFactoryBase(toPkString(id))
 {
 }

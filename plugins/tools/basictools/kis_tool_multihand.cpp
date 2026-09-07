@@ -44,7 +44,8 @@ KisToolMultihand::KisToolMultihand(KoCanvasBase *canvas)
     resetHelper(m_helper);
     if (image()) {
         m_axesPoint = PkPointF(0.5 * image()->width(), 0.5 * image()->height());
-        m_imageSizeConnection = PkObject::connect(
+        // S-02 共存模式：sender/receiver 均在 Qt 栈（KisImage 信号未接 Pk），直连 Qt。
+        m_imageSizeConnection = QObject::connect(
             image().data(), &KisImage::sigSizeChanged, this,
             [this](const PkPointF &, const PkPointF &) { resetAxes(); });
     }

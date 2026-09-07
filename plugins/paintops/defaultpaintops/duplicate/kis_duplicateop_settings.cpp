@@ -207,7 +207,7 @@ PkList<KisUniformPaintOpPropertySP> KisDuplicateOpSettings::uniformProperties(Ki
                 optionData.write(prop->settings().data());
             });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
@@ -231,7 +231,7 @@ PkList<KisUniformPaintOpPropertySP> KisDuplicateOpSettings::uniformProperties(Ki
                 optionData.write(prop->settings().data());
             });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);

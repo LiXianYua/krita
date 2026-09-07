@@ -9,6 +9,7 @@
 #ifndef KIS_TOOL_FILL_H_
 #define KIS_TOOL_FILL_H_
 
+#include <PkFlakeBridge.h>
 #include <PkPoint.h>
 #include <PkList.h>
 #include <PkVector.h>
@@ -154,8 +155,8 @@ public:
         setToolTip(PkString("Fill Tool"));
         setSection(ToolBoxSection::Fill);
         setPriority(0);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setShortcut(PkString("F"));
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
+        setShortcut(QKeySequence("F"));
         setPriority(14);
     }
 

@@ -16,17 +16,17 @@
 KisSurrogateUndoStore::KisSurrogateUndoStore()
     : m_undoStack(new KUndo2Stack)
 {
-    // Use direct connection to avoid queueing the signal forwarding (BUG:447985)
-    connect(m_undoStack, &KUndo2QStack::indexChanged,
-            this, &KisSurrogateUndoStore::historyStateChanged,
-            PkConnectionType::Direct);
+    // KUndo2QStack 已派生 PkObject（S-08），indexChanged 是 Pk 信号 → Pk 通道。
+    // 直连语义保留（BUG:447985）；lambda 包转发避免基类成员指针的推导冲突
+    // （historyStateChanged 声明于 KisUndoStore，非 receiver 类型本身）。
+    PkObject::connect(m_undoStack, &KUndo2QStack::indexChanged,
+            this, [this](int) { historyStateChanged(); }, PkConnectionType::Direct);
 }
 
 KisSurrogateUndoStore::~KisSurrogateUndoStore()
 {
     // disconnect the signal to avoid the it being emitted on destruction
-    disconnect(m_undoStack, &KUndo2QStack::indexChanged,
-               this, &KisSurrogateUndoStore::historyStateChanged);
+    PkObject::disconnect(m_undoStack, nullptr, this, nullptr);
     delete m_undoStack;
 }
 

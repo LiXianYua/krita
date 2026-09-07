@@ -110,10 +110,12 @@ private:
     template <class Policy>
     typename Policy::Result convertToDisplayImpl(const KoColor &srcColor, bool alreadyInDestinationF32 = false) const;
 
-private:
-    Q_PRIVATE_SLOT(m_d, void slotCanvasResourceChanged(int key, const QVariant &v));
-    Q_PRIVATE_SLOT(m_d, void selectPaintingColorSpace());
-    Q_PRIVATE_SLOT(m_d, void slotUpdateCurrentNodeColorSpace());
+private Q_SLOTS:
+    // S-09-g：Q_PRIVATE_SLOT 需要 moc 单元看到完整 Private（已 rehome 到 cpp），改为
+    // 普通 slot 声明 + cpp 内转发，moc 只需声明即可生成合法转发体。
+    void slotCanvasResourceChanged(int key, const QVariant &v);
+    void selectPaintingColorSpace();
+    void slotUpdateCurrentNodeColorSpace();
 
 private:
     struct Private;

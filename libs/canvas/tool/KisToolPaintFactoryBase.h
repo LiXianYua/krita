@@ -14,7 +14,7 @@
 class KRITACANVAS_EXPORT KisToolPaintFactoryBase : public KoToolFactoryBase
 {
 public:
-    explicit KisToolPaintFactoryBase(const QString &id);
+    explicit KisToolPaintFactoryBase(const PkString &id);
     ~KisToolPaintFactoryBase() override;
 protected:
     PkList<QAction *> createActionsImpl() override;

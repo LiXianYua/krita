@@ -24,6 +24,7 @@ kis_add_library(krita_flaketools STATIC ${defaulttools_SRCS})
 
 set_target_properties(krita_flaketools PROPERTIES AUTOMOC OFF)
 target_include_directories(krita_flaketools PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake
     ${CMAKE_SOURCE_DIR}/libs/canvas
     ${CMAKE_SOURCE_DIR}/libs/impex
     ${CMAKE_SOURCE_DIR}/libs/ui
@@ -48,6 +49,7 @@ target_include_directories(krita_flaketools PRIVATE
 target_link_libraries(krita_flaketools
     kritaflake
     kritacanvas
+    kritaimpex
     kritapigment
     kritastore
     pkcolor

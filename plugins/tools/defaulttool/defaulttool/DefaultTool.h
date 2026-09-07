@@ -80,7 +80,7 @@ public:
     ///reimplemented
     KoToolSelection *selection() override;
 
-    DefaultToolMenu *defaultToolPopupMenu();
+    virtual DefaultToolMenu *defaultToolPopupMenu();
     bool dispatchAction(DefaultToolActionId action, bool checked = false);
     DefaultToolActionState actionState(DefaultToolActionId action) const;
     DefaultToolMenuState menuState() const;
@@ -247,7 +247,7 @@ public:
 public :
     void textSelectionChanged()
     {
-        PkObject::activateSignal<>(this, PkMemberFnKey::from(&DefaultToolTextPropertiesInterface::textSelectionChanged));
+        Q_EMIT KoSvgTextPropertiesInterface::textSelectionChanged();
     }
     void slotSelectionChanged();
 private:

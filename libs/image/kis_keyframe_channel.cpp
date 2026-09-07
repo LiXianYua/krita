@@ -317,20 +317,20 @@ PkString KisKeyframeChannel::name() const
 void KisKeyframeChannel::setNode(KisNodeWSP node)
 {
     if (m_d->parentNode.isValid()) { // Disconnect old..
-        PkObject::disconnect(this, &KisKeyframeChannel::sigAddedKeyframe, m_d->parentNode, &KisNode::handleKeyframeChannelFrameAdded);
-        PkObject::disconnect(this, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved, m_d->parentNode, &KisNode::handleKeyframeChannelFrameAboutToBeRemoved);
-        PkObject::disconnect(this, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, m_d->parentNode, &KisNode::handleKeyframeChannelFrameHasBeenRemoved);
-        PkObject::disconnect(this, &KisKeyframeChannel::sigKeyframeChanged, m_d->parentNode, &KisNode::handleKeyframeChannelFrameChange);
+        PkObject::disconnect(this, &KisKeyframeChannel::sigAddedKeyframe, m_d->parentNode.data(), &KisNode::handleKeyframeChannelFrameAdded);
+        PkObject::disconnect(this, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved, m_d->parentNode.data(), &KisNode::handleKeyframeChannelFrameAboutToBeRemoved);
+        PkObject::disconnect(this, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, m_d->parentNode.data(), &KisNode::handleKeyframeChannelFrameHasBeenRemoved);
+        PkObject::disconnect(this, &KisKeyframeChannel::sigKeyframeChanged, m_d->parentNode.data(), &KisNode::handleKeyframeChannelFrameChange);
     }
 
     m_d->parentNode = node;
     m_d->bounds = KisDefaultBoundsNodeWrapperSP( new KisDefaultBoundsNodeWrapper( node ));
 
     if (m_d->parentNode) { // Connect new..
-        PkObject::connect(this, &KisKeyframeChannel::sigAddedKeyframe, m_d->parentNode, &KisNode::handleKeyframeChannelFrameAdded, PkConnectionType::Direct);
-        PkObject::connect(this, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved, m_d->parentNode, &KisNode::handleKeyframeChannelFrameAboutToBeRemoved, PkConnectionType::Direct);
-        PkObject::connect(this, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, m_d->parentNode, &KisNode::handleKeyframeChannelFrameHasBeenRemoved, PkConnectionType::Direct);
-        PkObject::connect(this, &KisKeyframeChannel::sigKeyframeChanged, m_d->parentNode, &KisNode::handleKeyframeChannelFrameChange, PkConnectionType::Direct);
+        PkObject::connect(this, &KisKeyframeChannel::sigAddedKeyframe, m_d->parentNode.data(), &KisNode::handleKeyframeChannelFrameAdded, PkConnectionType::Direct);
+        PkObject::connect(this, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved, m_d->parentNode.data(), &KisNode::handleKeyframeChannelFrameAboutToBeRemoved, PkConnectionType::Direct);
+        PkObject::connect(this, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, m_d->parentNode.data(), &KisNode::handleKeyframeChannelFrameHasBeenRemoved, PkConnectionType::Direct);
+        PkObject::connect(this, &KisKeyframeChannel::sigKeyframeChanged, m_d->parentNode.data(), &KisNode::handleKeyframeChannelFrameChange, PkConnectionType::Direct);
     }
 }
 

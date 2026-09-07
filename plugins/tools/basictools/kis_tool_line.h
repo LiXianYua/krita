@@ -11,6 +11,7 @@
 #ifndef KIS_TOOL_LINE_H_
 #define KIS_TOOL_LINE_H_
 
+#include <PkFlakeBridge.h>
 #include "kis_tool_shape.h"
 
 #include <PkScopedPointer.h>
@@ -93,7 +94,7 @@ public:
         setToolTip(PkString("Line Tool"));
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(1);
     }
 

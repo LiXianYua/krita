@@ -849,4 +849,19 @@ void KisDisplayColorConverter::getHsyF(const KoColor &srcColor, qreal *h, qreal 
     *y = pow(*y, 1/gamma);
 }
 
-#include "moc_kis_display_color_converter.cpp"
+
+// S-09-g：slot 转发（Q_PRIVATE_SLOT → 普通 slot），Private 此处完整可见。
+void KisDisplayColorConverter::slotCanvasResourceChanged(int key, const QVariant &v)
+{
+    m_d->slotCanvasResourceChanged(key, v);
+}
+
+void KisDisplayColorConverter::selectPaintingColorSpace()
+{
+    m_d->selectPaintingColorSpace();
+}
+
+void KisDisplayColorConverter::slotUpdateCurrentNodeColorSpace()
+{
+    m_d->slotUpdateCurrentNodeColorSpace();
+}

@@ -11,6 +11,7 @@
 #ifndef __KIS_TOOL_ELLIPSE_H__
 #define __KIS_TOOL_ELLIPSE_H__
 
+#include <PkFlakeBridge.h>
 #include "kis_tool_shape.h"
 #include "kis_types.h"
 #include "KisToolPaintFactoryBase.h"
@@ -43,7 +44,7 @@ public:
             : KisToolPaintFactoryBase("KritaShape/KisToolEllipse") {
         setToolTip(PkString("Ellipse Tool"));
         setSection(ToolBoxSection::Shape);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(3);
     }
 

@@ -9,6 +9,7 @@
 #ifndef KIS_TOOL_MOVE_H_
 #define KIS_TOOL_MOVE_H_
 
+#include <PkFlakeBridge.h>
 #include <KisToolPaintFactoryBase.h>
 #include <kis_types.h>
 #include <kis_tool.h>
@@ -171,9 +172,9 @@ public:
             : KisToolPaintFactoryBase("KritaTransform/KisToolMove") {
         setToolTip(PkString("Move Tool"));
         setSection(ToolBoxSection::Transform);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(3);
-        setShortcut(PkString("T"));
+        setShortcut(QKeySequence("T"));
     }
 
     ~KisToolMoveFactory() override {}

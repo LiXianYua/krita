@@ -12,6 +12,7 @@
 #ifndef __KIS_TOOL_RECTANGLE_H__
 #define __KIS_TOOL_RECTANGLE_H__
 
+#include <PkFlakeBridge.h>
 #include "kis_tool_shape.h"
 #include "kis_types.h"
 #include "KisToolPaintFactoryBase.h"
@@ -47,7 +48,7 @@ public:
         setToolTip(PkString("Rectangle Tool"));
 
         setSection(ToolBoxSection::Shape);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         // No retained default shortcut.
         setPriority(2);
     }

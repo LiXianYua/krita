@@ -13,6 +13,7 @@
 #ifndef KIS_TOOL_GRADIENT_H_
 #define KIS_TOOL_GRADIENT_H_
 
+#include <PkFlakeBridge.h>
 #include <PkPainter.h>
 #include <PkString.h>
 
@@ -78,9 +79,9 @@ public:
             : KisToolPaintFactoryBase("KritaFill/KisToolGradient") {
         setToolTip(PkString("Gradient Tool"));
         setSection(ToolBoxSection::Fill);
-        setShortcut(PkString("G"));
+        setShortcut(QKeySequence("G"));
         setPriority(1);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolGradientFactory() override {}

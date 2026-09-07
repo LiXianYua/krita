@@ -43,7 +43,7 @@ PkList<KisUniformPaintOpPropertySP> KisBrushOpSettings::uniformProperties(KisPai
                     "lightness_strength",
                     settings, 0);
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);

@@ -7,6 +7,7 @@
 #ifndef KIS_TOOL_PENCIL_H_
 #define KIS_TOOL_PENCIL_H_
 
+#include <PkFlakeBridge.h>
 #include <KoPencilTool.h>
 #include <KoToolFactoryBase.h>
 
@@ -70,7 +71,7 @@ public:
         : KisToolPaintFactoryBase("KisToolPencil") {
         setToolTip(PkString("Freehand Path Tool"));
         setSection(ToolBoxSection::Shape);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(9);
     }
 

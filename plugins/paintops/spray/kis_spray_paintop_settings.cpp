@@ -128,7 +128,7 @@ PkList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(K
                     option.write(prop->settings().data());
                 });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -162,7 +162,7 @@ PkList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(K
                     return !option.useDensity;
                 });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -197,7 +197,7 @@ PkList<KisUniformPaintOpPropertySP> KisSprayPaintOpSettings::uniformProperties(K
                     option.read(prop->settings().data());
                     return option.useDensity;
                 });
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }

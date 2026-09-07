@@ -60,7 +60,7 @@ PkList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(
                     data.write(prop->settings().data());
                 });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
@@ -73,7 +73,7 @@ PkList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(
                     "smudge_length",
                     settings, 0);
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
@@ -85,7 +85,7 @@ PkList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(
                     "smudge_radius",
                     settings, 0);
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
@@ -98,7 +98,7 @@ PkList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(
                         "smudge_color_rate",
                         settings, 0);
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
@@ -123,7 +123,7 @@ PkList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(
                     data.write(prop->settings().data());
                 });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
@@ -136,7 +136,7 @@ PkList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(
                     "smudge_paint_thickness_rate",
                     settings, 0);
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
@@ -167,7 +167,7 @@ PkList<KisUniformPaintOpPropertySP> KisColorSmudgeOpSettings::uniformProperties(
                     data.write(prop->settings().data());
                 });
 
-            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+            PkObject::connect(updateProxy.data(), &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
                               prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);

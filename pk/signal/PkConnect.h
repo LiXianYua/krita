@@ -46,6 +46,15 @@ template <typename... Args>
 struct PkSlotImpl : PkSlotBase {
     std::function<void(Args...)> fn;
     explicit PkSlotImpl(std::function<void(Args...)> f) : fn(std::move(f)) {}
+    // S-09-g：lambda 版 connect 直接转发原始可调用对象（不经 std::function
+    // 显式包装），这里用可调用约束的通用 ctor 接住——is_invocable 保证签名
+    // 兼容（signal 参数多于 lambda 形参的截断语义由 std::function 完成）。
+    template <typename F,
+              typename = typename std::enable_if<
+                  !std::is_same<typename std::decay<F>::type, PkSlotImpl>::value &&
+                  !std::is_same<typename std::decay<F>::type, std::function<void(Args...)>>::value &&
+                  std::is_invocable<F&, Args...>::value>::type>
+    explicit PkSlotImpl(F&& f) : fn(std::forward<F>(f)) {}
 };
 
 // ---- slot 装箱 helper（样板展开，非占位）----
@@ -77,24 +86,30 @@ struct PkMakeSlotFnFromTupleHelper;
 
 template <typename... SignalArgs>
 struct PkMakeSlotFnFromTupleHelper<std::tuple<SignalArgs...>> {
-    template <typename Ret, typename Obj, typename... SlotArgs>
+        // S-09-g 修复：receiver 类型 R 独立推导——slot 的 Obj 可以是 receiver 的
+    // 基类（如槽声明在基类 KisUndoStore、receiver 是派生 KisSurrogateUndoStore），
+    // 双参数同绑一个 Obj 会推导冲突（mismatched types）。
+    template <typename Ret, typename Obj, typename R, typename... SlotArgs>
     static std::function<void(SignalArgs...)> make(Ret (Obj::*slot)(SlotArgs...),
-                                                   const Obj* receiver)
+                                                   const R* receiver)
     {
         static_assert(sizeof...(SlotArgs) <= sizeof...(SignalArgs),
                       "slot accepts more parameters than signal provides");
-        return [receiver, slot](SignalArgs... args) {
-            PkCallSlotPrefix(slot, const_cast<Obj*>(receiver),
+        static_assert(std::is_base_of<Obj, R>::value,
+                      "receiver must derive the slot's class");
+        const Obj* obj = static_cast<const Obj*>(receiver);
+        return [obj, slot](SignalArgs... args) {
+            PkCallSlotPrefix(slot, const_cast<Obj*>(obj),
                              std::make_index_sequence<sizeof...(SlotArgs)>{},
                              std::forward<SignalArgs>(args)...);
         };
     }
 };
 
-template <typename Tuple, typename Ret, typename Obj, typename... SlotArgs>
-auto PkMakeSlotFnFromTuple(Ret (Obj::*slot)(SlotArgs...), const Obj* receiver)
+template <typename Tuple, typename Ret, typename Obj, typename R, typename... SlotArgs>
+auto PkMakeSlotFnFromTuple(Ret (Obj::*slot)(SlotArgs...), const R* receiver)
 {
-    return PkMakeSlotFnFromTupleHelper<Tuple>::make(slot, receiver);
+    return PkMakeSlotFnFromTupleHelper<Tuple>::template make<Ret, Obj, R, SlotArgs...>(slot, receiver);
 }
 
 // PkSlotImplFromTuple<Tuple> = PkSlotImpl<展开后 Args...>：

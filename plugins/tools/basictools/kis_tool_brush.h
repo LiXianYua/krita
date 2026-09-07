@@ -7,6 +7,7 @@
 #ifndef KIS_TOOL_BRUSH_H_
 #define KIS_TOOL_BRUSH_H_
 
+#include <PkFlakeBridge.h>
 #include "kis_tool_freehand.h"
 
 #include <PkConnection.h>
@@ -93,9 +94,9 @@ public:
 
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setShortcut(PkString("B"));
+        setShortcut(QKeySequence("B"));
         setPriority(0);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     KisToolBrushFactory(const PkString &id)

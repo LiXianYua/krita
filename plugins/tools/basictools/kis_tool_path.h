@@ -7,6 +7,7 @@
 #ifndef KIS_TOOL_PATH_H_
 #define KIS_TOOL_PATH_H_
 
+#include <PkFlakeBridge.h>
 #include <KoCreatePathTool.h>
 #include <KoToolFactoryBase.h>
 #include <PkPainter.h>
@@ -78,7 +79,7 @@ public:
             : KisToolPaintFactoryBase("KisToolPath") {
         setToolTip(PkString("Bezier Curve Tool: Shift-mouseclick ends the curve."));
         setSection(ToolBoxSection::Shape);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(7);
     }
 
