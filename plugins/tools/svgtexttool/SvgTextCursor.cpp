@@ -274,10 +274,18 @@ SvgTextCursor::SvgTextCursor(KoCanvasBase *canvas) :
                 SIGNAL(documentMirrorStatusChanged(bool, bool)),
                 this,
                 SLOT(updateInputMethodItemTransform()));
-        d->resourceManagerAcyclicConnector.connectBackwardResourcePair(
-                    d->canvas->resourceManager(), SIGNAL(canvasResourceChanged(int,PkVariant)),
-                    this, SLOT(canvasResourceChanged(int,PkVariant)));
-        d->resourceManagerAcyclicConnector.connectForwardVoid(d->interface, SIGNAL(textCharacterSelectionChanged()), this, SLOT(updateCanvasResources()));
+        QObject::connect(d->canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+                         this, [this](int key, const PkVariant &value) {
+            if (d->resourceManagerAcyclicConnector.isLocked()) return;
+            KisAcyclicSignalConnector::Blocker blocker(d->resourceManagerAcyclicConnector);
+            canvasResourceChanged(key, value);
+        });
+        QObject::connect(d->interface, &KoSvgTextPropertiesInterface::textCharacterSelectionChanged,
+                         this, [this]() {
+            if (d->resourceManagerAcyclicConnector.isLocked()) return;
+            KisAcyclicSignalConnector::Blocker blocker(d->resourceManagerAcyclicConnector);
+            updateCanvasResources();
+        });
     }
 
 }

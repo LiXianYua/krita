@@ -7,7 +7,7 @@
 #ifndef __KIS_ACYCLIC_SIGNAL_CONNECTOR_H
 #define __KIS_ACYCLIC_SIGNAL_CONNECTOR_H
 
-#include <compat/QObject>
+#include <PkObject.h>
 #include "kritaglobal_export.h"
 #include <mutex>
 
@@ -51,7 +51,6 @@ class KisAcyclicSignalConnector;
 
 class KRITAGLOBAL_EXPORT KisAcyclicSignalConnector : public PkObject
 {
-    Q_OBJECT
 public:
     typedef std::unique_lock<KisAcyclicSignalConnector> Blocker;
 
@@ -59,102 +58,6 @@ public:
 
     KisAcyclicSignalConnector(PkObject *parent = 0);
     ~KisAcyclicSignalConnector();
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectForwardDouble(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::forwardSlotDouble,
-                     &KisAcyclicSignalConnector::forwardSignalDouble);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectBackwardDouble(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::backwardSlotDouble,
-                     &KisAcyclicSignalConnector::backwardSignalDouble);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectForwardInt(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::forwardSlotInt,
-                     &KisAcyclicSignalConnector::forwardSignalInt);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectBackwardInt(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::backwardSlotInt,
-                     &KisAcyclicSignalConnector::backwardSignalInt);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectForwardBool(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::forwardSlotBool,
-                     &KisAcyclicSignalConnector::forwardSignalBool);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectBackwardBool(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::backwardSlotBool,
-                     &KisAcyclicSignalConnector::backwardSignalBool);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectForwardVoid(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::forwardSlotVoid,
-                     &KisAcyclicSignalConnector::forwardSignalVoid);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectBackwardVoid(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::backwardSlotVoid,
-                     &KisAcyclicSignalConnector::backwardSignalVoid);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectForwardVariant(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::forwardSlotVariant,
-                     &KisAcyclicSignalConnector::forwardSignalVariant);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectBackwardVariant(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::backwardSlotVariant,
-                     &KisAcyclicSignalConnector::backwardSignalVariant);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectForwardResourcePair(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::forwardSlotResourcePair,
-                     &KisAcyclicSignalConnector::forwardSignalResourcePair);
-    }
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method>
-    void connectBackwardResourcePair(Sender *sender, Signal signal, Receiver *receiver, Method method)
-    {
-        connectTyped(sender, signal, receiver, method,
-                     &KisAcyclicSignalConnector::backwardSlotResourcePair,
-                     &KisAcyclicSignalConnector::backwardSignalResourcePair);
-    }
 
     /**
      * Lock the connector and all its coordinated child connectors
@@ -186,16 +89,6 @@ public:
     KisAcyclicSignalConnector *createCoordinatedConnector();
 
 private:
-
-    template <typename Sender, typename Signal, typename Receiver, typename Method,
-              typename RelaySlot, typename RelaySignal>
-    void connectTyped(Sender *sender, Signal signal, Receiver *receiver, Method method,
-                      RelaySlot relaySlot, RelaySignal relaySignal)
-    {
-        PkObject::connect(sender, signal, this, relaySlot, PkConnectionType::Unique);
-        PkObject::connect(this, relaySignal, receiver, method, PkConnectionType::Unique);
-    }
-
     /**
      * Lock this connector only.
      */
@@ -205,44 +98,6 @@ private:
      * Unlock this connector only.
      */
     void coordinatedUnlock();
-
-private Q_SLOTS:
-    void forwardSlotDouble(double value);
-    void backwardSlotDouble(double value);
-
-    void forwardSlotInt(int value);
-    void backwardSlotInt(int value);
-
-    void forwardSlotBool(bool value);
-    void backwardSlotBool(bool value);
-
-    void forwardSlotVoid();
-    void backwardSlotVoid();
-
-    void forwardSlotVariant(const PkVariant &value);
-    void backwardSlotVariant(const PkVariant &value);
-
-    void forwardSlotResourcePair(int key, const PkVariant &resource);
-    void backwardSlotResourcePair(int key, const PkVariant &resource);
-
-Q_SIGNALS:
-    void forwardSignalDouble(double value);
-    void backwardSignalDouble(double value);
-
-    void forwardSignalInt(int value);
-    void backwardSignalInt(int value);
-
-    void forwardSignalBool(bool value);
-    void backwardSignalBool(bool value);
-
-    void forwardSignalVoid();
-    void backwardSignalVoid();
-
-    void forwardSignalVariant(const PkVariant &value);
-    void backwardSignalVariant(const PkVariant &value);
-
-    void forwardSignalResourcePair(int key, const PkVariant &value);
-    void backwardSignalResourcePair(int key, const PkVariant &value);
 
 private:
     int m_signalsBlocked;
