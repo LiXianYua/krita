@@ -8,6 +8,7 @@
 #define SVG_INLINE_SIZE_CHANGE_COMMAND_H
 
 #include <kundo2command.h>
+#include <PkPoint.h>
 
 class KoSvgTextShape;
 
@@ -20,8 +21,8 @@ public:
                                double oldInlineSize,
                                int anchor,
                                int oldAnchor,
-                               QPointF newPos,
-                               QPointF oldPos,
+                               PkPointF newPos,
+                               PkPointF oldPos,
                                KUndo2Command *parent = nullptr);
     ~SvgInlineSizeChangeCommand() override = default;
 
@@ -32,7 +33,7 @@ public:
     bool mergeWith(const KUndo2Command *other) override;
 
 private:
-    void applyInlineSize(double inlineSize, int anchor, QPointF pos, bool undo = false);
+    void applyInlineSize(double inlineSize, int anchor, PkPointF pos, bool undo = false);
 
 private:
     KoSvgTextShape *m_shape;
@@ -40,8 +41,8 @@ private:
     double m_oldInlineSize;
     int m_anchor;
     int m_oldAnchor;
-    QPointF m_originalPos;
-    QPointF m_movePos;
+    PkPointF m_originalPos;
+    PkPointF m_movePos;
 };
 
 #endif /* SVG_INLINE_SIZE_CHANGE_COMMAND_H */

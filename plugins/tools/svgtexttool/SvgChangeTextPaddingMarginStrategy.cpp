@@ -5,7 +5,6 @@
  */
 #include "SvgChangeTextPaddingMarginStrategy.h"
 
-#include "SvgTextTool.h"
 #include <KoPathShape.h>
 #include <KoPathSegment.h>
 
@@ -16,7 +15,7 @@
 
 #include <kis_global.h>
 
-SvgChangeTextPaddingMarginStrategy::SvgChangeTextPaddingMarginStrategy(SvgTextTool *tool, KoSvgTextShape *shape, const QPointF &clicked)
+SvgChangeTextPaddingMarginStrategy::SvgChangeTextPaddingMarginStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked)
     : KoInteractionStrategy(tool)
     , m_shape(shape)
     , m_lastMousePos(clicked)
@@ -27,8 +26,8 @@ SvgChangeTextPaddingMarginStrategy::SvgChangeTextPaddingMarginStrategy(SvgTextTo
     const qreal shapePadding = props.propertyOrDefault(KoSvgTextProperties::ShapePaddingId).value<KoSvgText::CssLengthPercentage>().value;
     const qreal shapeMargin = props.propertyOrDefault(KoSvgTextProperties::ShapeMarginId).value<KoSvgText::CssLengthPercentage>().value;
 
-    const QPointF padding(shapePadding+2, shapePadding+2);
-    const QPointF margin(shapeMargin+2, shapeMargin+2);
+    const PkPointF padding(shapePadding+2, shapePadding+2);
+    const PkPointF margin(shapeMargin+2, shapeMargin+2);
 
     qreal minDistance = std::numeric_limits<qreal>::max();
     KoPathShape *candidate = nullptr;
@@ -36,12 +35,12 @@ SvgChangeTextPaddingMarginStrategy::SvgChangeTextPaddingMarginStrategy(SvgTextTo
     Q_FOREACH(KoShape *shape, m_shape->shapesSubtract()) {
         KoPathShape *path = dynamic_cast<KoPathShape*>(shape);
         if (!path) continue;
-        const QPointF mp = shape->documentToShape(clicked);
-        const QRectF marginRect(mp - margin, mp + margin);
+        const PkPointF mp = shape->documentToShape(clicked);
+        const PkRectF marginRect(mp - margin, mp + margin);
 
         Q_FOREACH(KoPathSegment segment, path->segmentsAt(marginRect)) {
             const qreal nearestT = segment.nearestPoint(mp);
-            const QPointF nearestP = segment.pointAt(nearestT);
+            const PkPointF nearestP = segment.pointAt(nearestT);
             const qreal distance = kisDistance(mp, nearestP) - shapeMargin;
             if (distance < minDistance) {
                 candidate = path;
@@ -53,13 +52,12 @@ SvgChangeTextPaddingMarginStrategy::SvgChangeTextPaddingMarginStrategy(SvgTextTo
     Q_FOREACH(KoShape *shape, m_shape->shapesInside()) {
         KoPathShape *path = dynamic_cast<KoPathShape*>(shape);
         if (!path) continue;
-        const QPointF mp = shape->documentToShape(clicked);
-        const QRectF paddingRect(mp - padding, mp + padding);
+        const PkPointF mp = shape->documentToShape(clicked);
+        const PkRectF paddingRect(mp - padding, mp + padding);
 
-        qDebug() << "segments" << path->segmentsAt(paddingRect).size() << paddingRect;
         Q_FOREACH(KoPathSegment segment, path->segmentsAt(paddingRect)) {
             const qreal nearestT = segment.nearestPoint(mp);
-            const QPointF nearestP = segment.pointAt(nearestT);
+            const PkPointF nearestP = segment.pointAt(nearestT);
             const qreal distance = kisDistance(mp, nearestP) - shapePadding;
             if (distance < minDistance) {
                 candidate = path;
@@ -78,16 +76,16 @@ SvgChangeTextPaddingMarginStrategy::~SvgChangeTextPaddingMarginStrategy()
 
 }
 
-std::optional<QPointF> SvgChangeTextPaddingMarginStrategy::hitTest(KoSvgTextShape *shape, const QPointF &mousePos, const qreal grabSensitivityInPts)
+std::optional<PkPointF> SvgChangeTextPaddingMarginStrategy::hitTest(KoSvgTextShape *shape, const PkPointF &mousePos, const qreal grabSensitivityInPts)
 {
     if (!shape) return std::nullopt;
-    const QList<QPainterPath> textAreas = shape->textWrappingAreas();
+    const PkList<PkPainterPath> textAreas = shape->textWrappingAreas();
     if (textAreas.isEmpty()) return std::nullopt;
 
-    const QPointF grab(grabSensitivityInPts, grabSensitivityInPts);
-    const QRectF grabRect(mousePos-grab, mousePos+grab);
+    const PkPointF grab(grabSensitivityInPts, grabSensitivityInPts);
+    const PkRectF grabRect(mousePos-grab, mousePos+grab);
 
-    Q_FOREACH(const QPainterPath area, shape->textWrappingAreas()) {
+    Q_FOREACH(const PkPainterPath area, shape->textWrappingAreas()) {
         KoPathShape *s = KoPathShape::createShapeFromPainterPath(area);
         if (!s) continue;
         s->setTransformation(shape->absoluteTransformation());
@@ -101,19 +99,19 @@ std::optional<QPointF> SvgChangeTextPaddingMarginStrategy::hitTest(KoSvgTextShap
     return std::nullopt;
 }
 
-QLineF getLine(QPointF mousePos, KoPathShape *referenceShape, bool isPadding) {
-    if (!referenceShape) return QLineF();
+PkLineF getLine(PkPointF mousePos, KoPathShape *referenceShape, bool isPadding) {
+    if (!referenceShape) return PkLineF();
     const bool hit = referenceShape->hitTest(mousePos);
-    if ((!hit && isPadding) || (hit && !isPadding)) return QLineF();
+    if ((!hit && isPadding) || (hit && !isPadding)) return PkLineF();
 
-    QPointF pos = referenceShape->documentToShape(mousePos);
-    QLineF l(pos, pos);
+    PkPointF pos = referenceShape->documentToShape(mousePos);
+    PkLineF l(pos, pos);
 
     qreal minDistance = std::numeric_limits<qreal>::max();
 
     Q_FOREACH(KoPathSegment segment, referenceShape->segmentsAt(referenceShape->outlineRect().adjusted(-2, -2, 2, 2))) {
         const qreal nearestT = segment.nearestPoint(pos);
-        const QPointF nearestP = segment.pointAt(nearestT);
+        const PkPointF nearestP = segment.pointAt(nearestT);
         const qreal distance = kisDistance(pos, nearestP);
         if (distance < minDistance) {
             l.setP1(nearestP);
@@ -126,15 +124,15 @@ QLineF getLine(QPointF mousePos, KoPathShape *referenceShape, bool isPadding) {
     return l;
 }
 
-KoSvgTextProperties getProperties(bool isPadding, QLineF line, KoSvgTextProperties previous = KoSvgTextProperties()) {
+KoSvgTextProperties getProperties(bool isPadding, PkLineF line, KoSvgTextProperties previous = KoSvgTextProperties()) {
     KoSvgTextProperties::PropertyId propId = isPadding? KoSvgTextProperties::ShapePaddingId: KoSvgTextProperties::ShapeMarginId;
     KoSvgText::CssLengthPercentage length;
     length.value = line.length();
-    previous.setProperty(propId, QVariant::fromValue(length));
+    previous.setProperty(propId, PkVariant::fromValue(length));
     return previous;
 }
 
-void SvgChangeTextPaddingMarginStrategy::paint(QPainter &painter, const KoViewConverter &converter)
+void SvgChangeTextPaddingMarginStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     if (!(m_referenceShape && m_shape)) return;
     painter.save();
@@ -142,20 +140,20 @@ void SvgChangeTextPaddingMarginStrategy::paint(QPainter &painter, const KoViewCo
             KoShape::createHandlePainterHelperView(&painter, m_shape, converter, handleRadius(), decorationThickness());
     handlePainter.setHandleStyle(KisHandleStyle::selectedPrimaryHandles());
 
-    const QLineF line = getLine(m_lastMousePos, m_referenceShape, m_isPadding);
-    const QTransform lineTf = m_referenceShape->absoluteTransformation() * m_shape->absoluteTransformation().inverted();
+    const PkLineF line = getLine(m_lastMousePos, m_referenceShape, m_isPadding);
+    const PkTransform lineTf = m_referenceShape->absoluteTransformation() * m_shape->absoluteTransformation().inverted();
     handlePainter.drawConnectionLine(lineTf.map(line));
 
     KoSvgTextProperties props = getProperties(m_isPadding, line, m_shape->textProperties());
-    QList<QPainterPath> areas = m_shape->generateTextAreas(m_shape->shapesInside(), m_shape->shapesSubtract(), props);
-    Q_FOREACH(QPainterPath area, areas) {
+    PkList<PkPainterPath> areas = m_shape->generateTextAreas(m_shape->shapesInside(), m_shape->shapesSubtract(), props);
+    Q_FOREACH(PkPainterPath area, areas) {
         handlePainter.drawPath(area);
     }
 
     painter.restore();
 }
 
-void SvgChangeTextPaddingMarginStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgChangeTextPaddingMarginStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers);
     m_lastMousePos = mouseLocation;
@@ -164,7 +162,7 @@ void SvgChangeTextPaddingMarginStrategy::handleMouseMove(const QPointF &mouseLoc
 KUndo2Command *SvgChangeTextPaddingMarginStrategy::createCommand()
 {
     if (!(m_referenceShape && m_shape)) return nullptr;
-    const QLineF l = getLine(m_lastMousePos, m_referenceShape, m_isPadding);
+    const PkLineF l = getLine(m_lastMousePos, m_referenceShape, m_isPadding);
     KoSvgTextProperties props = getProperties(m_isPadding, l);
     return new SvgTextMergePropertiesRangeCommand(m_shape, props, -1, -1);
 }

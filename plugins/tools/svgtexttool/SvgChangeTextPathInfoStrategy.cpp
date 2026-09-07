@@ -8,13 +8,13 @@
 #include "KoSvgTextPathInfoChangeCommand.h"
 #include <KoPathSegment.h>
 #include <KoPathShape.h>
+#include <KoCanvasBase.h>
 #include <KoToolBase.h>
-#include "SvgTextTool.h"
+#include <KoViewConverter.h>
 #include <qmath.h>
 #include <QDebug>
-#include <QVector2D>
 
-SvgChangeTextPathInfoStrategy::SvgChangeTextPathInfoStrategy(SvgTextTool *tool, KoSvgTextShape *shape, const QPointF &clicked, int textCursorPos)
+SvgChangeTextPathInfoStrategy::SvgChangeTextPathInfoStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked, int textCursorPos)
     :KoInteractionStrategy(tool)
     , m_shape(shape)
     , m_currentMousePos(clicked)
@@ -25,7 +25,7 @@ SvgChangeTextPathInfoStrategy::SvgChangeTextPathInfoStrategy(SvgTextTool *tool, 
 
 }
 
-void SvgChangeTextPathInfoStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgChangeTextPathInfoStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers)
 
@@ -40,7 +40,6 @@ void SvgChangeTextPathInfoStrategy::handleMouseMove(const QPointF &mouseLocation
 
 KUndo2Command *SvgChangeTextPathInfoStrategy::createCommand()
 {
-    SvgTextTool *const tool = qobject_cast<SvgTextTool *>(this->tool());
     KoSvgTextNodeIndex index = m_shape->topLevelNodeForPos(m_textCursorPos);
     KoShape *shape = index.textPath();
     if (!shape) {
@@ -50,8 +49,8 @@ KUndo2Command *SvgChangeTextPathInfoStrategy::createCommand()
     KoPathShape *path = dynamic_cast<KoPathShape*>(shape);
     KoSvgText::TextOnPathInfo info;
 
-    const qreal grab = tool->grabSensitivityInPt()*4;
-    QRectF roi = QRect(0, 0, grab, grab);
+    const qreal grab = tool()->canvas()->viewConverter()->viewToDocumentX(grabSensitivity()) * 4;
+    PkRectF roi(0, 0, grab, grab);
     roi.moveCenter(m_currentMousePos);
     KoPathSegment segment = path->segmentAtPoint(m_currentMousePos, roi);
 
@@ -59,20 +58,20 @@ KUndo2Command *SvgChangeTextPathInfoStrategy::createCommand()
         return nullptr;
     }
 
-    QList<KoPathSegment> segments = path->segmentsAt(path->outlineRect().adjusted(-grab, -grab, grab, grab));
+    PkList<KoPathSegment> segments = path->segmentsAt(path->outlineRect().adjusted(-grab, -grab, grab, grab));
 
     double length = 0;
     Q_FOREACH(KoPathSegment s, segments) {
         if (s == segment) {
-            const QPointF mouseInShape = path->documentToShape(m_currentMousePos);
+            const PkPointF mouseInShape = path->documentToShape(m_currentMousePos);
             const qreal t = segment.nearestPoint(mouseInShape);
             info.startOffset = length + (t * segment.length());
 
-            const QLineF l = QLineF(segment.pointAt(t), mouseInShape).unitVector();
-            const QVector2D p1(l.p2()-l.p1());
-            const QVector2D tangent = QVector2D(segment.angleVectorAtParam(t));
-            const QVector2D normal(-tangent.y(), tangent.x());
-            float dot = QVector2D::dotProduct(p1, normal);
+            const PkLineF l = PkLineF(segment.pointAt(t), mouseInShape).unitVector();
+            const PkPointF p1 = l.p2() - l.p1();
+            const PkPointF tangent = segment.angleVectorAtParam(t);
+            const PkPointF normal(-tangent.y(), tangent.x());
+            const qreal dot = PkPointF::dotProduct(p1, normal);
             if (dot <= 0) {
                 info.side = KoSvgText::TextPathSideRight;
             } else {

@@ -11,6 +11,12 @@
 #include "KoSvgTextProperties.h"
 #include "KoSvgTextShape.h"
 
+#include <PkColor.h>
+#include <PkLine.h>
+#include <PkPolygon.h>
+#include <PkRect.h>
+#include <PkTransform.h>
+
 #include <optional>
 
 namespace SvgInlineSizeHelper
@@ -53,9 +59,9 @@ struct Q_DECL_HIDDEN InlineSizeInfo {
     double dashesLength;
     VisualAnchor anchor;
     /// Transformation from inline-size editor (writing-mode transformation) to shape
-    QTransform editorTransform;
+    PkTransform editorTransform;
     /// Transformation from shape local to document
-    QTransform shapeTransform;
+    PkTransform shapeTransform;
 
     [[nodiscard]] static inline std::optional<InlineSizeInfo> fromShape(KoSvgTextShape *const shape, qreal dashesLength = 36.0)
     {
@@ -119,11 +125,11 @@ struct Q_DECL_HIDDEN InlineSizeInfo {
         // We piggyback on the shape transformation that we already need to
         // deal with to also handle the different orientations of writing-mode.
         // We default to the "default caret size"  when the textShape (and thus outline) is empty.
-        QLineF caret;
-        QColor c;
+        PkLineF caret;
+        PkColor c;
         shape->cursorForPos(0, caret, c);
-        const QRectF outline = shape->outlineRect().isEmpty()? QRectF(caret.p2(), caret.p1()): shape->outlineRect();
-        QTransform editorTransform;
+        const PkRectF outline = shape->outlineRect().isEmpty()? PkRectF(caret.p2(), caret.p1()): shape->outlineRect();
+        PkTransform editorTransform;
         switch (writingMode) {
         case KoSvgText::WritingMode::HorizontalTB:
         default:
@@ -143,7 +149,7 @@ struct Q_DECL_HIDDEN InlineSizeInfo {
             break;
         }
 
-        QLineF scale = editorTransform.map(QLineF(0, 0, 0, 1.0));
+        PkLineF scale = editorTransform.map(PkLineF(0, 0, 0, 1.0));
         scale = shape->absoluteTransformation().inverted().map(scale);
         scale = editorTransform.inverted().map(scale);
 
@@ -161,25 +167,25 @@ struct Q_DECL_HIDDEN InlineSizeInfo {
     }
 
 private:
-    [[nodiscard]] inline QLineF leftLineRaw() const
+    [[nodiscard]] inline PkLineF leftLineRaw() const
     {
         return {left, top, left, bottom};
     }
 
-    [[nodiscard]] inline QLineF rightLineRaw() const
+    [[nodiscard]] inline PkLineF rightLineRaw() const
     {
         return {right, top, right, bottom};
     }
 
-    [[nodiscard]] inline QRectF boundingRectRaw() const
+    [[nodiscard]] inline PkRectF boundingRectRaw() const
     {
-        return {QPointF(left, top), QPointF(right, bottom + dashesLength)};
+        return {PkPointF(left, top), PkPointF(right, bottom + dashesLength)};
     }
 
-    [[nodiscard]] inline QLineF generateDashLine(const QLineF line, const qreal dashLength = 4.0) const
+    [[nodiscard]] inline PkLineF generateDashLine(const PkLineF line, const qreal dashLength = 4.0) const
     {
-        QPointF start = line.p2();
-        QLineF dash = line;
+        PkPointF start = line.p2();
+        PkLineF dash = line;
         dash.setLength(line.length() + dashLength);
         dash.setP1(start);
         return dash;
@@ -190,20 +196,20 @@ public:
      * @brief Gets a shape-local line representing the first line baseline. This
      * always goes from left to right by the inline-base direction, then mapped
      * by the editor transformation.
-     * @return QLineF
+     * @return PkLineF
      */
-    [[nodiscard]] inline QLineF baselineLineLocal() const
+    [[nodiscard]] inline PkLineF baselineLineLocal() const
     {
-        return editorTransform.map(QLineF{left, baseline, right, baseline});
+        return editorTransform.map(PkLineF{left, baseline, right, baseline});
     }
 
     /**
      * @brief Gets a line representing the first line baseline. This always
      * goes from left to right by the inline-base direction, then mapped by the
      * editor and the shape transformation.
-     * @return QLineF
+     * @return PkLineF
      */
-    [[nodiscard]] inline QLineF baselineLine() const
+    [[nodiscard]] inline PkLineF baselineLine() const
     {
         return shapeTransform.map(baselineLineLocal());
     }
@@ -220,7 +226,7 @@ public:
         }
     }
 
-    [[nodiscard]] inline QLineF endLineLocal() const
+    [[nodiscard]] inline PkLineF endLineLocal() const
     {
         switch (endLineSide()) {
         case Side::LeftOrTop:
@@ -231,7 +237,7 @@ public:
         }
     }
 
-    [[nodiscard]] inline QLineF endLineDashes() const
+    [[nodiscard]] inline PkLineF endLineDashes() const
     {
         switch (endLineSide()) {
         case Side::LeftOrTop:
@@ -242,7 +248,7 @@ public:
         }
     }
 
-    [[nodiscard]] inline QLineF endLine() const
+    [[nodiscard]] inline PkLineF endLine() const
     {
         return shapeTransform.map(endLineLocal());
     }
@@ -259,7 +265,7 @@ public:
         }
     }
 
-    [[nodiscard]] inline QLineF startLineLocal() const
+    [[nodiscard]] inline PkLineF startLineLocal() const
     {
         switch (endLineSide()) {
         case Side::LeftOrTop:
@@ -270,7 +276,7 @@ public:
         }
     }
 
-    [[nodiscard]] inline QLineF startLineDashes() const
+    [[nodiscard]] inline PkLineF startLineDashes() const
     {
         switch (endLineSide()) {
         case Side::LeftOrTop:
@@ -281,14 +287,14 @@ public:
         }
     }
 
-    [[nodiscard]] inline QLineF startLine() const
+    [[nodiscard]] inline PkLineF startLine() const
     {
         return shapeTransform.map(startLineLocal());
     }
 
-    [[nodiscard]] inline QPolygonF endLineGrabRect(double grabThreshold) const
+    [[nodiscard]] inline PkPolygonF endLineGrabRect(double grabThreshold) const
     {
-        QLineF endLine;
+        PkLineF endLine;
         switch (endLineSide()) {
         case Side::LeftOrTop:
             endLine = leftLineRaw();
@@ -298,17 +304,17 @@ public:
             endLine = rightLineRaw();
             break;
         }
-        const QRectF rect{endLine.x1() - grabThreshold,
+        const PkRectF rect{endLine.x1() - grabThreshold,
                           top - grabThreshold,
                           grabThreshold * 2,
                           bottom - top + grabThreshold * 2};
-        const QPolygonF poly(rect);
+        const PkPolygonF poly(rect);
         return shapeTransform.map(editorTransform.map(poly));
     }
 
-    [[nodiscard]] inline QPolygonF startLineGrabRect(double grabThreshold) const
+    [[nodiscard]] inline PkPolygonF startLineGrabRect(double grabThreshold) const
     {
-        QLineF startLine;
+        PkLineF startLine;
         switch (endLineSide()) {
         case Side::LeftOrTop:
             startLine = rightLineRaw();
@@ -318,15 +324,15 @@ public:
             startLine = leftLineRaw();
             break;
         }
-        const QRectF rect{startLine.x1() - grabThreshold,
+        const PkRectF rect{startLine.x1() - grabThreshold,
                           top - grabThreshold,
                           grabThreshold * 2,
                           bottom - top + grabThreshold * 2};
-        const QPolygonF poly(rect);
+        const PkPolygonF poly(rect);
         return shapeTransform.map(editorTransform.map(poly));
     }
 
-    [[nodiscard]] inline QRectF boundingRect() const
+    [[nodiscard]] inline PkRectF boundingRect() const
     {
         return shapeTransform.mapRect(editorTransform.mapRect(boundingRectRaw()));
     }

@@ -9,7 +9,7 @@
 
 #include <KoInteractionStrategy.h>
 
-#include <QPointF>
+#include <PkPoint.h>
 
 class KoSvgTextShape;
 
@@ -23,10 +23,10 @@ enum class Side;
 class SvgInlineSizeChangeStrategy : public KoInteractionStrategy
 {
 public:
-    SvgInlineSizeChangeStrategy(KoToolBase *tool, KoSvgTextShape *shape, const QPointF &clicked, bool start);
+    SvgInlineSizeChangeStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked, bool start);
     ~SvgInlineSizeChangeStrategy() override = default;
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
@@ -35,13 +35,13 @@ private:
     KoSvgTextShape *m_shape;
     double m_initialInlineSize;
     double m_finalInlineSize;
-    QPointF m_dragStart;
+    PkPointF m_dragStart;
     int m_originalAnchor;
     int m_finalAnchor;
-    QPointF m_initialPosition;
-    QPointF m_finalPos;
-    QPointF m_anchorOffset;
-    QPointF m_snapDelta;
+    PkPointF m_initialPosition;
+    PkPointF m_finalPos;
+    PkPointF m_anchorOffset;
+    PkPointF m_snapDelta;
     SvgInlineSizeHelper::VisualAnchor m_anchor;
     SvgInlineSizeHelper::Side m_handleSide;
     bool m_startHandle;

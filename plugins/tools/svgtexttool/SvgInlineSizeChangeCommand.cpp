@@ -21,7 +21,7 @@
 #include "kis_command_ids.h"
 
 SvgInlineSizeChangeCommand::SvgInlineSizeChangeCommand(KoSvgTextShape *shape, double inlineSize, KUndo2Command *parent)
-    : SvgInlineSizeChangeCommand(shape, inlineSize, SvgInlineSizeHelper::getInlineSizePt(shape), 0, 0, QPointF(), QPointF(), parent)
+    : SvgInlineSizeChangeCommand(shape, inlineSize, SvgInlineSizeHelper::getInlineSizePt(shape), 0, 0, PkPointF(), PkPointF(), parent)
 {
 }
 
@@ -30,8 +30,8 @@ SvgInlineSizeChangeCommand::SvgInlineSizeChangeCommand(KoSvgTextShape *shape,
                                                        double oldInlineSize,
                                                        int anchor,
                                                        int oldAnchor,
-                                                       QPointF movePos,
-                                                       QPointF oldPos,
+                                                       PkPointF movePos,
+                                                       PkPointF oldPos,
                                                        KUndo2Command *parent)
     : KUndo2Command(parent)
     , m_shape(shape)
@@ -45,7 +45,7 @@ SvgInlineSizeChangeCommand::SvgInlineSizeChangeCommand(KoSvgTextShape *shape,
     setText(kundo2_i18n("Adjust text auto wrap"));
 }
 
-void SvgInlineSizeChangeCommand::applyInlineSize(double inlineSize, int anchor, QPointF pos, bool undo)
+void SvgInlineSizeChangeCommand::applyInlineSize(double inlineSize, int anchor, PkPointF pos, bool undo)
 {
     KoShapeBulkActionLock lock(m_shape);
 
@@ -54,7 +54,7 @@ void SvgInlineSizeChangeCommand::applyInlineSize(double inlineSize, int anchor, 
     inlineSizeProp.customValue = inlineSize;
     inlineSizeProp.isAuto = false;
     properties.setProperty(KoSvgTextProperties::InlineSizeId, KoSvgText::fromAutoValue(inlineSizeProp));
-    properties.setProperty(KoSvgTextProperties::TextAnchorId, QVariant(anchor));
+    properties.setProperty(KoSvgTextProperties::TextAnchorId, PkVariant(anchor));
 
     if (undo) {
         m_shape->setPropertiesAtPos(-1, properties);

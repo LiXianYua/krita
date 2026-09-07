@@ -34,6 +34,8 @@
 #include <QStyle>
 #include <QActionGroup>
 
+#include <cmath>
+
 #include <klocalizedstring.h>
 
 #include <KSharedConfig>
@@ -731,7 +733,7 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
     repaintDecorations();
 }
 
-static inline Qt::CursorShape angleToCursor(const QVector2D unit)
+static inline Qt::CursorShape angleToCursor(const PkPointF &unit)
 {
     constexpr float SIN_PI_8 = 0.382683432;
     if (unit.y() < SIN_PI_8 && unit.y() > -SIN_PI_8) {
@@ -745,13 +747,15 @@ static inline Qt::CursorShape angleToCursor(const QVector2D unit)
     }
 }
 
-static inline Qt::CursorShape lineToCursor(const QLineF line, const KoCanvasBase *const canvas)
+static inline Qt::CursorShape lineToCursor(const PkLineF &line, const KoCanvasBase *const canvas)
 {
     const auto *converter = dynamic_cast<const KisCoordinatesConverter *>(
         canvas->viewConverter());
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, Qt::ArrowCursor);
-    QLineF wdgLine = converter->flakeToWidget(line);
-    return angleToCursor(QVector2D(wdgLine.p2() - wdgLine.p1()).normalized());
+    const PkLineF wdgLine = converter->flakeToWidget(line);
+    const PkPointF vector = wdgLine.p2() - wdgLine.p1();
+    const qreal length = std::hypot(vector.x(), vector.y());
+    return angleToCursor(length > 0.0 ? vector / length : PkPointF());
 }
 
 void SvgTextTool::mouseMoveEvent(KoPointerEvent *event)
@@ -803,12 +807,12 @@ void SvgTextTool::mouseMoveEvent(KoPointerEvent *event)
 
             if (m_highlightItem == HighlightItem::None) {
                 if (std::optional<InlineSizeInfo> info = InlineSizeInfo::fromShape(selectedShape)) {
-                    const QPolygonF zone = info->endLineGrabRect(sensitivity);
-                    const QPolygonF startZone = info->startLineGrabRect(sensitivity);
-                    if (zone.containsPoint(event->point, Qt::OddEvenFill)) {
+                    const PkPolygonF zone = info->endLineGrabRect(sensitivity);
+                    const PkPolygonF startZone = info->startLineGrabRect(sensitivity);
+                    if (zone.containsPoint(event->point, Pk::OddEvenFill)) {
                         m_highlightItem = HighlightItem::InlineSizeEndHandle;
                         cursor = lineToCursor(info->baselineLine(), canvas());
-                    } else if (startZone.containsPoint(event->point, Qt::OddEvenFill)){
+                    } else if (startZone.containsPoint(event->point, Pk::OddEvenFill)){
                         m_highlightItem = HighlightItem::InlineSizeStartHandle;
                         cursor = lineToCursor(info->baselineLine(), canvas());
                     }
@@ -838,8 +842,8 @@ void SvgTextTool::mouseMoveEvent(KoPointerEvent *event)
         bool textAreasHovered = false;
         if (m_textOnPathHelper.hitTest(event->point, canvas()->viewConverter()->viewToDocument()) ) {
             cursor = Qt::ArrowCursor;
-        } else if(std::optional<QPointF> offsetVector = SvgChangeTextPaddingMarginStrategy::hitTest(selectedShape, event->point, grabSensitivityInPt())) {
-            cursor = lineToCursor(QLineF(QPointF(0, 0), offsetVector.value()).normalVector(), canvas());
+        } else if(std::optional<PkPointF> offsetVector = SvgChangeTextPaddingMarginStrategy::hitTest(selectedShape, event->point, grabSensitivityInPt())) {
+            cursor = lineToCursor(PkLineF(PkPointF(), offsetVector.value()).normalVector(), canvas());
             textAreasHovered = true;
         } else if (selectedShape && selectedShape == hoveredShape && m_highlightItem == HighlightItem::None) {
             if (selectedShape->writingMode() == KoSvgText::HorizontalTB) {

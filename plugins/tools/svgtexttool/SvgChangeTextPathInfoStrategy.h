@@ -12,21 +12,19 @@
 #include <KoSvgText.h>
 
 
-class SvgTextTool;
-
 class SvgChangeTextPathInfoStrategy : public KoInteractionStrategy
 {
 public:
-    SvgChangeTextPathInfoStrategy(SvgTextTool *tool, KoSvgTextShape *shape, const QPointF &clicked, int textCursorPos);
+    SvgChangeTextPathInfoStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked, int textCursorPos);
     ~SvgChangeTextPathInfoStrategy() override = default;
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
 private:
     KoSvgTextShape *m_shape;
-    QPointF m_currentMousePos;
+    PkPointF m_currentMousePos;
     int m_textCursorPos;
     KoSvgText::TextOnPathInfo m_oldInfo;
 };

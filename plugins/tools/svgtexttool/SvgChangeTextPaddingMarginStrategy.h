@@ -11,13 +11,12 @@
 #include <KoSvgTextShape.h>
 #include <optional>
 
-class SvgTextTool;
 class KoPathShape;
 
 class SvgChangeTextPaddingMarginStrategy : public KoInteractionStrategy
 {
 public:
-    SvgChangeTextPaddingMarginStrategy(SvgTextTool *tool, KoSvgTextShape *shape, const QPointF &clicked);
+    SvgChangeTextPaddingMarginStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked);
     ~SvgChangeTextPaddingMarginStrategy();
 
 
@@ -30,17 +29,17 @@ public:
      * @param grabSensitivityInPts -- grabSensitivity in Points
      * @return -- std::optional containing the angle vector.
      */
-    static std::optional<QPointF> hitTest(KoSvgTextShape *shape, const QPointF &mousePos, const qreal grabSensitivityInPts);
+    static std::optional<PkPointF> hitTest(KoSvgTextShape *shape, const PkPointF &mousePos, const qreal grabSensitivityInPts);
 private:
     KoSvgTextShape *m_shape;
     KoPathShape *m_referenceShape;
     bool m_isPadding;
-    QPointF m_lastMousePos;
+    PkPointF m_lastMousePos;
 
     // KoInteractionStrategy interface
 public:
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
 };
