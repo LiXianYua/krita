@@ -45,8 +45,8 @@ public:
     {
         setToolTip(PkString("Rectangular Selection Tool"));
         setSection(ToolBoxSection::Select);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setShortcut(PkString("Ctrl+R"));
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
+        setShortcut(QKeySequence("Ctrl+R"));
         setPriority(0);
     }
 

@@ -9,6 +9,12 @@
 #define KISTOOLSELECTBASE_H
 
 #include <QKeyEvent>
+#include <QAction>
+
+#include <PkList.h>
+#include <PkPainterPath.h>
+#include <PkSet.h>
+#include <PkString.h>
 
 #include <KoCanvasBase.h>
 #include "KoPointerEvent.h"
@@ -20,7 +26,7 @@
 #include "kis_selection_modifier_mapper.h"
 #include "strokes/move_stroke_strategy.h"
 #include "kis_image.h"
-#include "kis_signal_auto_connection.h"
+#include "KisQtConnectionsStore.h"
 #include "kis_assert.h"
 #include "canvas/kis_coordinates_converter.h"
 #include <KisCanvasToolServices.h>
@@ -61,7 +67,7 @@ class KisToolSelectBase : public BaseClass
 
 public:
 
-    KisToolSelectBase(KoCanvasBase* canvas, const QString toolName)
+    KisToolSelectBase(KoCanvasBase *canvas, const PkString &toolName)
         : BaseClass(canvas)
         , m_widgetHelper(toolName)
         , m_selectionActionAlternate(SELECTION_DEFAULT)
@@ -70,7 +76,7 @@ public:
         initializeSelectionState();
     }
 
-    KisToolSelectBase(KoCanvasBase* canvas, const QCursor cursor, const QString toolName)
+    KisToolSelectBase(KoCanvasBase *canvas, const QCursor cursor, const PkString &toolName)
         : BaseClass(canvas, cursor)
         , m_widgetHelper(toolName)
         , m_selectionActionAlternate(SELECTION_DEFAULT)
@@ -79,7 +85,11 @@ public:
         initializeSelectionState();
     }
 
-    KisToolSelectBase(KoCanvasBase* canvas, QCursor cursor, QString toolName, KoToolBase *delegateTool)
+    template<typename DelegateTool>
+    KisToolSelectBase(KoCanvasBase *canvas,
+                      QCursor cursor,
+                      const PkString &toolName,
+                      DelegateTool *delegateTool)
         : BaseClass(canvas, cursor, delegateTool)
         , m_widgetHelper(toolName)
         , m_selectionActionAlternate(SELECTION_DEFAULT)
@@ -95,7 +105,7 @@ public:
         SampleColorLabeledLayers,
     };
 
-    void activate(const QSet<KoShape *> &shapes) override
+    void activate(const PkSet<KoShape *> &shapes) override
     {
         BaseClass::activate(shapes);
 
@@ -103,20 +113,20 @@ public:
         m_widgetHelper.slotToolActivatedChanged(true);
 
         m_modeConnections.addUniqueConnection(
-            this->action("selection_tool_mode_replace"), SIGNAL(triggered()),
-            &m_widgetHelper, SLOT(slotReplaceModeRequested()));
+            this->action("selection_tool_mode_replace"), &QAction::triggered,
+            &m_widgetHelper, &KisSelectionToolConfigWidgetHelper::slotReplaceModeRequested);
 
         m_modeConnections.addUniqueConnection(
-            this->action("selection_tool_mode_add"), SIGNAL(triggered()),
-            &m_widgetHelper, SLOT(slotAddModeRequested()));
+            this->action("selection_tool_mode_add"), &QAction::triggered,
+            &m_widgetHelper, &KisSelectionToolConfigWidgetHelper::slotAddModeRequested);
 
         m_modeConnections.addUniqueConnection(
-            this->action("selection_tool_mode_subtract"), SIGNAL(triggered()),
-            &m_widgetHelper, SLOT(slotSubtractModeRequested()));
+            this->action("selection_tool_mode_subtract"), &QAction::triggered,
+            &m_widgetHelper, &KisSelectionToolConfigWidgetHelper::slotSubtractModeRequested);
 
         m_modeConnections.addUniqueConnection(
-            this->action("selection_tool_mode_intersect"), SIGNAL(triggered()),
-            &m_widgetHelper, SLOT(slotIntersectModeRequested()));
+            this->action("selection_tool_mode_intersect"), &QAction::triggered,
+            &m_widgetHelper, &KisSelectionToolConfigWidgetHelper::slotIntersectModeRequested);
 
     }
 
@@ -160,7 +170,7 @@ public:
         return m_widgetHelper.featherSelection();
     }
 
-    QList<int> colorLabelsSelected() const
+    PkList<int> colorLabelsSelected() const
     {
         return m_widgetHelper.selectedColorLabels();
     }
@@ -236,10 +246,10 @@ public:
             KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, 0);
             const qreal handleRadius =
                 qreal(this->handleRadius()) / converter->effectiveZoom();
-            QPainterPath samplePath;
+            PkPainterPath samplePath;
             samplePath.addEllipse(pos, handleRadius, handleRadius);
 
-            const QPainterPath selectionPath = selection->outlineCache();
+            const PkPainterPath selectionPath = selection->outlineCache();
 
             if (selectionPath.intersects(samplePath) && !selectionPath.contains(samplePath)) {
                 KisNodeSP parent = selection->parentNode();
@@ -374,7 +384,7 @@ public:
     {
         if (isMovingSelection()) {
             const PkPointF pos = this->convertToPixelCoord(event->point);
-            const QPoint offset((pos - m_dragStartPos).toPoint());
+            const PkPoint offset((pos - m_dragStartPos).toPoint());
 
             this->image()->addJob(m_moveStrokeId, new MoveStrokeStrategy::Data(offset));
             return;
@@ -387,7 +397,7 @@ public:
     {
         if (isMovingSelection()) {
             this->image()->endStroke(m_moveStrokeId);
-            m_moveStrokeId.clear();
+            m_moveStrokeId = nullptr;
             this->endMoveSelectionInteraction();
             return;
         }
@@ -471,10 +481,10 @@ protected:
 
     void initializeSelectionState()
     {
-        this->connect(&m_widgetHelper,
-                      SIGNAL(selectionActionChanged(SelectionAction)),
-                      this,
-                      SLOT(resetCursorStyle()));
+        QObject::connect(&m_widgetHelper,
+                         &KisSelectionToolConfigWidgetHelper::selectionActionChanged,
+                         this,
+                         [this]() { this->resetCursorStyle(); });
     }
 
     KisSelectionToolConfigWidgetHelper m_widgetHelper;
@@ -505,7 +515,7 @@ private:
     KisStrokeId m_moveStrokeId;
     bool m_didMove = false;
 
-    KisSignalAutoConnectionsStore m_modeConnections;
+    KisQtConnectionsStore m_modeConnections;
 };
 
 struct FakeBaseTool : KisTool
@@ -515,7 +525,7 @@ struct FakeBaseTool : KisTool
     {
     }
 
-    FakeBaseTool(KoCanvasBase* canvas, const QString &toolName)
+    FakeBaseTool(KoCanvasBase *canvas, const PkString &toolName)
         : KisTool(canvas, QCursor())
     {
         Q_UNUSED(toolName);

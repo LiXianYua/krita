@@ -7,8 +7,8 @@
 #ifndef __KIS_SELECTION_OPTIONS_H__
 #define __KIS_SELECTION_OPTIONS_H__
 
-#include <QList>
 #include <QObject>
+#include <PkList.h>
 
 #include <kritacanvas_export.h>
 #include <KisSelectionTags.h>
@@ -37,7 +37,7 @@ public:
     bool stopGrowingAtDarkestPixel() const;
     int featherSelection() const;
     ReferenceLayers referenceLayers() const;
-    QList<int> selectedColorLabels() const;
+    PkList<int> selectedColorLabels() const;
 
     void setMode(SelectionMode value);
     void setAction(SelectionAction value);
@@ -46,7 +46,7 @@ public:
     void setStopGrowingAtDarkestPixel(bool value);
     void setFeatherSelection(int value);
     void setReferenceLayers(ReferenceLayers value);
-    void setSelectedColorLabels(const QList<int> &value);
+    void setSelectedColorLabels(const PkList<int> &value);
 
 Q_SIGNALS:
     void modeChanged(SelectionMode mode);
@@ -66,7 +66,7 @@ private:
     bool m_stopGrowingAtDarkestPixel {false};
     int m_featherSelection {0};
     ReferenceLayers m_referenceLayers {CurrentLayer};
-    QList<int> m_selectedColorLabels;
+    PkList<int> m_selectedColorLabels;
 };
 
 #endif

@@ -48,7 +48,7 @@ void KisToolSelectRectangular::finishRect(const PkRectF& rect, qreal roundCorner
 
     PkRect rc(rect.normalized().toRect());
 
-    if (helper.tryDeselectCurrentSelection(pixelToView(rc), selectionAction())) {
+    if (helper.tryDeselectCurrentSelection(pixelToView(PkRectF(rc)), selectionAction())) {
         return;
     }
 
@@ -81,9 +81,9 @@ void KisToolSelectRectangular::finishRect(const PkRectF& rect, qreal roundCorner
 
         PkPainterPath path;
         if (roundCornersX > 0 || roundCornersY > 0) {
-            path.addRoundedRect(rc, roundCornersX, roundCornersY);
+            path.addRoundedRect(PkRectF(rc), roundCornersX, roundCornersY);
         } else {
-            path.addRect(rc);
+            path.addRect(PkRectF(rc));
         }
         getRotatedPath(path, rc.center(), getRotationAngle());
 
@@ -91,7 +91,7 @@ void KisToolSelectRectangular::finishRect(const PkRectF& rect, qreal roundCorner
             [tmpSel, antiAlias, grow, feather, path]() mutable
             -> KUndo2Command * {
                 KisPainter painter(tmpSel);
-                painter.setPaintColor(KoColor(Qt::black, tmpSel->colorSpace()));
+                painter.setPaintColor(KoColor(Pk::black, tmpSel->colorSpace()));
                 // Since the feathering already smooths the selection, the
                 // antiAlias is not applied if we must feather
                 painter.setAntiAliasPolygonFill(antiAlias && feather == 0);
@@ -134,7 +134,7 @@ void KisToolSelectRectangular::finishRect(const PkRectF& rect, qreal roundCorner
         applicator.end();
 
     } else {
-        PkRectF documentRect = convertToPt(rc);
+        PkRectF documentRect = convertToPt(PkRectF(rc));
         const qreal docRoundCornersX = convertToPt(roundCornersX);
         const qreal docRoundCornersY = convertToPt(roundCornersY);
 

@@ -16,6 +16,7 @@
 #include <PkPainterPath.h>
 #include <PkScopedPointer.h>
 #include <PkString.h>
+#include <KConfigGroup>
 
 class PkPainterPath;
 
@@ -99,7 +100,7 @@ public:
         setToolTip(PkString("Magnetic Selection Tool"));
         setSection(ToolBoxSection::Select);
         setPriority(8);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolSelectMagneticFactory() override { }

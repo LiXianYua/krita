@@ -81,7 +81,7 @@ void KisToolSelectElliptical::finishRect(const PkRectF &rect, qreal roundCorners
             [tmpSel, antiAlias, grow, feather, path]() mutable
             -> KUndo2Command * {
                 KisPainter painter(tmpSel);
-                painter.setPaintColor(KoColor(Qt::black, tmpSel->colorSpace()));
+                painter.setPaintColor(KoColor(Pk::black, tmpSel->colorSpace()));
                 // Since the feathering already smooths the selection, the
                 // antiAlias is not applied if we must feather
                 painter.setAntiAliasPolygonFill(antiAlias && feather == 0);

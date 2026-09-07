@@ -683,7 +683,7 @@ QWidget* KisTool::createOptionWidget()
 #define FAR_VAL 1000.0
 #define PROGRAM_VERTEX_ATTRIBUTE 0
 
-void KisTool::paintToolOutline(QPainter* painter, const KisOptimizedBrushOutline &path)
+void KisTool::paintToolOutline(PkPainter *painter, const KisOptimizedBrushOutline &path)
 {
     if (KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas())) {
         services->drawToolOutline(painter, path, decorationThickness());

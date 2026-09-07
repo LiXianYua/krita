@@ -75,7 +75,7 @@ void KisToolSelectOutline::finishOutline(const PkVector<PkPointF>& points)
         return;
     }
 
-    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
+    KisCursorOverrideLock cursorLock;
 
     const SelectionMode mode =
         helper.tryOverrideSelectionMode(
@@ -105,7 +105,7 @@ void KisToolSelectOutline::finishOutline(const PkVector<PkPointF>& points)
             [tmpSel, antiAlias, grow, feather, path]() mutable
             -> KUndo2Command * {
                 KisPainter painter(tmpSel);
-                painter.setPaintColor(KoColor(Qt::black, tmpSel->colorSpace()));
+                painter.setPaintColor(KoColor(Pk::black, tmpSel->colorSpace()));
                 // Since the feathering already smooths the selection, the
                 // antiAlias is not applied if we must feather
                 painter.setAntiAliasPolygonFill(antiAlias && feather == 0);

@@ -12,7 +12,9 @@
 #include <KoCanvasBase.h>
 
 #include <QLayout>
-#include <QPointer>
+#include <PkPointer.h>
+#include <PkScopedPointer.h>
+#include <PkSet.h>
 
 #include <KisCanvasToolServices.h>
 #include "kis_delegated_tool_policies.h"
@@ -39,7 +41,7 @@ public:
         return m_localTool.data();
     }
 
-    void activate(const QSet<KoShape*> &shapes) override
+    void activate(const PkSet<KoShape*> &shapes) override
     {
         BaseClass::activate(shapes);
         m_localTool->activate(shapes);
@@ -109,17 +111,17 @@ public:
         }
     }
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override
+    void paint(PkPainter &painter, const KoViewConverter &converter) override
     {
         Q_ASSERT(m_localTool);
         m_localTool->paint(painter, converter);
     }
 
-    QList<QPointer<QWidget> > createOptionWidgets() override
+    PkList<PkPointer<QWidget>> createOptionWidgets() override
     {
-        QList<QPointer<QWidget>> baseWidgetList =
+        PkList<PkPointer<QWidget>> baseWidgetList =
             BaseClass::createOptionWidgets();
-        QList<QPointer<QWidget>> localWidgetList =
+        PkList<PkPointer<QWidget>> localWidgetList =
             m_localTool->createOptionWidgets();
 
         baseWidgetList.append(localWidgetList);
@@ -127,7 +129,7 @@ public:
     }
 
 protected:
-    QScopedPointer<DelegateTool> m_localTool;
+    PkScopedPointer<DelegateTool> m_localTool;
 };
 
 #endif /* __KIS_DELEGATED_TOOL_H */

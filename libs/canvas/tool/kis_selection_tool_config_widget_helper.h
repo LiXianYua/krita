@@ -8,7 +8,8 @@
 #define __KIS_SELECTION_TOOL_CONFIG_WIDGET_HELPER_H
 
 #include <QObject>
-#include <QList>
+#include <PkList.h>
+#include <PkString.h>
 
 #include "kis_image.h"
 #include "kis_selection.h"
@@ -21,7 +22,7 @@ class KRITACANVAS_EXPORT KisSelectionToolConfigWidgetHelper : public QObject
 {
     Q_OBJECT
 public:
-    KisSelectionToolConfigWidgetHelper(const QString &windowTitle);
+    KisSelectionToolConfigWidgetHelper(const PkString &windowTitle);
 
     SelectionMode selectionMode() const;
     SelectionAction selectionAction() const;
@@ -30,11 +31,11 @@ public:
     bool stopGrowingAtDarkestPixel() const;
     int featherSelection() const;
     KisSelectionOptions::ReferenceLayers referenceLayers() const;
-    QList<int> selectedColorLabels() const;
+    PkList<int> selectedColorLabels() const;
 
     int action() const { return selectionAction(); }
 
-    void setConfigGroupForExactTool(QString toolId);
+    void setConfigGroupForExactTool(const PkString &toolId);
 
 Q_SIGNALS:
     void selectionActionChanged(SelectionAction newAction);
@@ -60,8 +61,8 @@ public Q_SLOTS:
 
 private:
     KisSelectionOptions m_options;
-    QString m_windowTitle;
-    QString m_configGroupForTool {""};
+    PkString m_windowTitle;
+    PkString m_configGroupForTool;
 
     void reloadExactToolConfig();
 };

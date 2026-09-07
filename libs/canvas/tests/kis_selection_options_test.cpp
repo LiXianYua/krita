@@ -97,17 +97,17 @@ void KisSelectionOptionsTest::testSelectedColorLabelsAreObservableState()
     QSignalSpy changedSpy(&options,
                           &KisSelectionOptions::selectedColorLabelsChanged);
 
-    QCOMPARE(options.selectedColorLabels(), QList<int>());
+    QCOMPARE(options.selectedColorLabels(), PkList<int>());
 
     options.setSelectedColorLabels({2, 5, 8});
-    QCOMPARE(options.selectedColorLabels(), QList<int>({2, 5, 8}));
+    QCOMPARE(options.selectedColorLabels(), PkList<int>({2, 5, 8}));
     QCOMPARE(changedSpy.count(), 1);
 
     options.setSelectedColorLabels({2, 5, 8});
     QCOMPARE(changedSpy.count(), 1);
 
     options.setSelectedColorLabels({8, 2});
-    QCOMPARE(options.selectedColorLabels(), QList<int>({8, 2}));
+    QCOMPARE(options.selectedColorLabels(), PkList<int>({8, 2}));
     QCOMPARE(changedSpy.count(), 2);
 }
 

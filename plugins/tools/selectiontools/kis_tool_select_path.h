@@ -79,7 +79,7 @@ public:
         : KisSelectionToolFactoryBase("KisToolSelectPath") {
         setToolTip(PkString("Bezier Curve Selection Tool"));
         setSection(ToolBoxSection::Select);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(6);
     }
 

@@ -43,8 +43,8 @@ public:
     {
         setToolTip(PkString("Elliptical Selection Tool"));
         setSection(ToolBoxSection::Select);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setShortcut(PkString("J"));
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
+        setShortcut(QKeySequence("J"));
         setPriority(1);
     }
 

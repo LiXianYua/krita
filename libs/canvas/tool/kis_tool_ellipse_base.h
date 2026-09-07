@@ -14,7 +14,7 @@ class KRITACANVAS_EXPORT KisToolEllipseBase : public KisToolRectangleBase
 public:
     KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, const QCursor & cursor);
 
-    void paintRectangle(QPainter &gc, const PkRectF &imageRect) override;
+    void paintRectangle(PkPainter &gc, const PkRectF &imageRect) override;
 
 protected:
     bool showRoundCornersGUI() const override;

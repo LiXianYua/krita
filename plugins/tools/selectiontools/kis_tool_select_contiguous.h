@@ -86,7 +86,7 @@ public:
         setToolTip(PkString("Contiguous Selection Tool"));
         setSection(ToolBoxSection::Select);
         setPriority(4);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolSelectContiguousFactory() override {}

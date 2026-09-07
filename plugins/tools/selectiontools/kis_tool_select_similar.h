@@ -54,7 +54,7 @@ public:
     {
         setToolTip(PkString("Similar Color Selection Tool"));
         setSection(ToolBoxSection::Select);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(5);
     }
     ~KisToolSelectSimilarFactory() override {}

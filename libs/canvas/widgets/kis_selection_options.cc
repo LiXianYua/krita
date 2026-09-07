@@ -46,7 +46,7 @@ KisSelectionOptions::ReferenceLayers KisSelectionOptions::referenceLayers() cons
     return m_referenceLayers;
 }
 
-QList<int> KisSelectionOptions::selectedColorLabels() const
+PkList<int> KisSelectionOptions::selectedColorLabels() const
 {
     return m_selectedColorLabels;
 }
@@ -100,7 +100,7 @@ void KisSelectionOptions::setReferenceLayers(ReferenceLayers value)
     Q_EMIT referenceLayersChanged(value);
 }
 
-void KisSelectionOptions::setSelectedColorLabels(const QList<int> &value)
+void KisSelectionOptions::setSelectedColorLabels(const PkList<int> &value)
 {
     if (m_selectedColorLabels == value) return;
     m_selectedColorLabels = value;

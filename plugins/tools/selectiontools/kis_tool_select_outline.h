@@ -47,7 +47,7 @@ public:
         setToolTip(PkString("Freehand Selection Tool"));
         setSection(ToolBoxSection::Select);
         setPriority(3);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolSelectOutlineFactory() override {}

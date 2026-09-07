@@ -18,18 +18,18 @@ KisToolEllipseBase::KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase
 {
 }
 
-void KisToolEllipseBase::paintRectangle(QPainter &gc, const PkRectF &imageRect)
+void KisToolEllipseBase::paintRectangle(PkPainter &gc, const PkRectF &imageRect)
 {
     KIS_ASSERT_RECOVER_RETURN(canvas());
 
-    QRect viewRect = toQRect(pixelToView(imageRect).toRect());
+    const PkRectF viewRect = pixelToView(imageRect);
 
-    QPainterPath path;
+    PkPainterPath path;
     path.addEllipse(viewRect);
-    getRotatedPath(path, toPkPointF(viewRect.center()), getRotationAngle());
+    getRotatedPath(path, viewRect.center(), getRotationAngle());
     path.addPath(drawX(pixelToView(m_dragStart)));
     path.addPath(drawX(pixelToView(m_dragCenter)));
-    paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(path)));
+    paintToolOutline(&gc, KisOptimizedBrushOutline(path));
 }
 
 bool KisToolEllipseBase::showRoundCornersGUI() const

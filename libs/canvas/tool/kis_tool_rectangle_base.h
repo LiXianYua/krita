@@ -40,7 +40,7 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
 
-    void paint(QPainter& gc, const KoViewConverter &converter) override;
+    void paint(PkPainter &gc, const KoViewConverter &converter) override;
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
@@ -71,12 +71,12 @@ protected:
 
     bool isFixedSize();
     qreal getRotationAngle();
-    QPainterPath drawX(const PkPointF &pt);
+    PkPainterPath drawX(const PkPointF &pt);
     void applyConstraints(PkSizeF& area, bool overrideRatio);
-    void getRotatedPath(QPainterPath &path, const PkPointF &center, const qreal &angle);
+    void getRotatedPath(PkPainterPath &path, const PkPointF &center, const qreal &angle);
 
     void updateArea();
-    virtual void paintRectangle(QPainter &gc, const PkRectF &imageRect);
+    virtual void paintRectangle(PkPainter &gc, const PkRectF &imageRect);
     virtual PkRectF createRect(const PkPointF &start, const PkPointF &end);
     virtual bool showRoundCornersGUI() const;
 

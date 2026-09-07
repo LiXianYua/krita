@@ -11,6 +11,7 @@
  */
 
 #include "kis_tool_select_contiguous.h"
+#include <PkFlakeBridge.h>
 #include <PkPainter.h>
 
 #include <kis_debug.h>
@@ -58,14 +59,14 @@ KisToolSelectContiguous::~KisToolSelectContiguous()
 void KisToolSelectContiguous::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolSelect::activate(shapes);
-    m_configGroup =  KSharedConfig::openConfig()->group(toolId());
+    m_configGroup =  KSharedConfig::openConfig()->group(toQString(toolId()));
 
     // Was read in createOptionWidget() (now deleted) when the options panel
     // was created; that ran on every tool activation, so these are the
     // effective defaults with no panel too -- same keys, same fallbacks
     // (including the legacy "fuzziness" -> "threshold" migration).
-    const PkString contiguousSelectionModeStr =
-        m_configGroup.readEntry<PkString>("contiguousSelectionMode", "");
+    const PkString contiguousSelectionModeStr = toPkString(
+        m_configGroup.readEntry<QString>("contiguousSelectionMode", QString()));
     m_contiguousSelectionMode =
         contiguousSelectionModeStr == "boundaryFill"
         ? BoundaryFill
@@ -108,7 +109,7 @@ void KisToolSelectContiguous::beginPrimaryAction(KoPointerEvent *event)
 
     beginSelectInteraction();
 
-    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
+    KisCursorOverrideLock cursorLock;
 
     // -------------------------------
 
@@ -283,7 +284,8 @@ void KisToolSelectContiguous::slotSetContiguousSelectionBoundaryColor(
         return;
     }
     m_contiguousSelectionBoundaryColor = color;
-    m_configGroup.writeEntry("contiguousSelectionBoundaryColor", color.toXML());
+    m_configGroup.writeEntry("contiguousSelectionBoundaryColor",
+                             toQString(color.toXML()));
 }
 
 void KisToolSelectContiguous::slotSetThreshold(int threshold)
@@ -313,8 +315,8 @@ void KisToolSelectContiguous::slotSetUseSelectionAsBoundary(bool useSelectionAsB
 
 KoColor KisToolSelectContiguous::loadContiguousSelectionBoundaryColorFromConfig()
 {
-    const PkString xmlColor =
-        m_configGroup.readEntry("contiguousSelectionBoundaryColor", PkString());
+    const PkString xmlColor = toPkString(
+        m_configGroup.readEntry("contiguousSelectionBoundaryColor", QString()));
     PkXmlDocument doc;
     if (doc.setContent(xmlColor)) {
         PkXmlElement e = doc.documentElement().firstChild().toElement();

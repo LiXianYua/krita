@@ -7,13 +7,14 @@
 #include "kis_selection_tool_config_widget_helper.h"
 
 #include "kis_selection_options.h"
+#include <PkFlakeBridge.h>
 #include <kis_signals_blocker.h>
 
 #include <KConfigGroup>
 #include <KSharedConfig>
 
 KisSelectionToolConfigWidgetHelper::KisSelectionToolConfigWidgetHelper(
-    const QString &windowTitle)
+    const PkString &windowTitle)
     : m_windowTitle(windowTitle)
 {
     QObject::connect(&m_options, &KisSelectionOptions::modeChanged,
@@ -82,13 +83,13 @@ KisSelectionToolConfigWidgetHelper::referenceLayers() const
     return m_options.referenceLayers();
 }
 
-QList<int> KisSelectionToolConfigWidgetHelper::selectedColorLabels() const
+PkList<int> KisSelectionToolConfigWidgetHelper::selectedColorLabels() const
 {
     return m_options.selectedColorLabels();
 }
 
 void KisSelectionToolConfigWidgetHelper::setConfigGroupForExactTool(
-    QString toolId)
+    const PkString &toolId)
 {
     m_configGroupForTool = toolId;
     reloadExactToolConfig();
@@ -111,32 +112,32 @@ void KisSelectionToolConfigWidgetHelper::slotWidgetActionChanged(
 
 void KisSelectionToolConfigWidgetHelper::slotWidgetAntiAliasChanged(bool value)
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group(m_configGroupForTool);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group(toQString(m_configGroupForTool));
     cfg.writeEntry("antiAliasSelection", value);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotWidgetGrowChanged(int value)
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group(m_configGroupForTool);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group(toQString(m_configGroupForTool));
     cfg.writeEntry("growSelection", value);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotWidgetStopGrowingAtDarkestPixelChanged(bool value)
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group(m_configGroupForTool);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group(toQString(m_configGroupForTool));
     cfg.writeEntry("stopGrowingAtDarkestPixel", value);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotWidgetFeatherChanged(int value)
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group(m_configGroupForTool);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group(toQString(m_configGroupForTool));
     cfg.writeEntry("featherSelection", value);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotReferenceLayersChanged(
     KisSelectionOptions::ReferenceLayers referenceLayers)
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group(m_configGroupForTool);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group(toQString(m_configGroupForTool));
     cfg.writeEntry(
         "sampleLayersMode",
         referenceLayers == KisSelectionOptions::AllLayers
@@ -148,17 +149,17 @@ void KisSelectionToolConfigWidgetHelper::slotReferenceLayersChanged(
 
 void KisSelectionToolConfigWidgetHelper::slotSelectedColorLabelsChanged()
 {
-    const QList<int> colorLabels = m_options.selectedColorLabels();
+    const PkList<int> colorLabels = m_options.selectedColorLabels();
     if (colorLabels.isEmpty()) {
         return;
     }
-    QString colorLabelsStr = QString::number(colorLabels.first());
+    PkString colorLabelsStr = PkString::number(colorLabels.first());
     for (int i = 1; i < colorLabels.size(); ++i) {
-        colorLabelsStr += "," + QString::number(colorLabels[i]);
+        colorLabelsStr += PkString(",") + PkString::number(colorLabels[i]);
     }
 
-    KConfigGroup cfg = KSharedConfig::openConfig()->group(m_configGroupForTool);
-    cfg.writeEntry("colorLabels", colorLabelsStr);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group(toQString(m_configGroupForTool));
+    cfg.writeEntry("colorLabels", toQString(colorLabelsStr));
 }
 
 void KisSelectionToolConfigWidgetHelper::slotReplaceModeRequested()
@@ -215,7 +216,7 @@ void KisSelectionToolConfigWidgetHelper::reloadExactToolConfig()
     }
 
     KConfigGroup cfgToolSpecific =
-        KSharedConfig::openConfig()->group(m_configGroupForTool);
+        KSharedConfig::openConfig()->group(toQString(m_configGroupForTool));
     const bool antiAliasSelection =
         cfgToolSpecific.readEntry("antiAliasSelection", true);
     const int growSelection = cfgToolSpecific.readEntry("growSelection", 0);
@@ -223,12 +224,12 @@ void KisSelectionToolConfigWidgetHelper::reloadExactToolConfig()
         cfgToolSpecific.readEntry("stopGrowingAtDarkestPixel", false);
     const int featherSelection =
         cfgToolSpecific.readEntry("featherSelection", 0);
-    const QString referenceLayersStr =
-        cfgToolSpecific.readEntry("sampleLayersMode", "sampleCurrentLayer");
+    const PkString referenceLayersStr = toPkString(
+        cfgToolSpecific.readEntry("sampleLayersMode", QStringLiteral("sampleCurrentLayer")));
 
-    const QStringList colorLabelsStr =
-        cfgToolSpecific.readEntry<QString>("colorLabels", "")
-            .split(',', Qt::SkipEmptyParts);
+    const PkList<PkString> colorLabelsStr = toPkString(
+        cfgToolSpecific.readEntry<QString>("colorLabels", QString()))
+            .split(',', Pk::SkipEmptyParts);
 
     const KisSelectionOptions::ReferenceLayers referenceLayers =
         referenceLayersStr == "sampleAllLayers"
@@ -236,8 +237,8 @@ void KisSelectionToolConfigWidgetHelper::reloadExactToolConfig()
         : (referenceLayersStr == "sampleColorLabeledLayers"
                ? KisSelectionOptions::ColorLabeledLayers
                : KisSelectionOptions::CurrentLayer);
-    QList<int> colorLabels;
-    for (const QString &colorLabelStr : colorLabelsStr) {
+    PkList<int> colorLabels;
+    for (const PkString &colorLabelStr : colorLabelsStr) {
         bool ok;
         const int colorLabel = colorLabelStr.toInt(&ok);
         if (ok) {

@@ -28,6 +28,11 @@ class KisAdaptedLock
       public std::unique_lock<Adapter>
 {
 public:
+    KisAdaptedLock()
+        : Adapter()
+        , std::unique_lock<Adapter>(static_cast<Adapter&>(*this))
+    {}
+
     template<typename Object>
     KisAdaptedLock(Object object)
         : Adapter(object)

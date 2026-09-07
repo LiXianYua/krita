@@ -5,7 +5,6 @@
  */
 
 #include <QKeyEvent>
-#include <QPainterPath>
 #include <QtCore/qmath.h>
 
 #include <klocalizedstring.h>
@@ -76,7 +75,7 @@ void KisToolRectangleBase::showSize()
                                             , createRect(m_dragStart, m_dragEnd).height())));
 
 }
-void KisToolRectangleBase::paint(QPainter& gc, const KoViewConverter &converter)
+void KisToolRectangleBase::paint(PkPainter &gc, const KoViewConverter &converter)
 {
     if(mode() == KisTool::PAINT_MODE) {
         paintRectangle(gc, createRect(m_dragStart, m_dragEnd));
@@ -352,11 +351,11 @@ bool KisToolRectangleBase::showRoundCornersGUI() const
     return true;
 }
 
-void KisToolRectangleBase::paintRectangle(QPainter &gc, const PkRectF &imageRect)
+void KisToolRectangleBase::paintRectangle(PkPainter &gc, const PkRectF &imageRect)
 {
     KIS_ASSERT_RECOVER_RETURN(canvas());
 
-    const QRect viewRect = toQRect(pixelToView(imageRect).toAlignedRect());
+    const PkRect viewRect = pixelToView(imageRect).toAlignedRect();
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(services);
@@ -364,18 +363,18 @@ void KisToolRectangleBase::paintRectangle(QPainter &gc, const PkRectF &imageRect
     const qreal roundCornersX = services->toolCoordinateEffectiveZoom() * m_roundCornersX;
     const qreal roundCornersY = services->toolCoordinateEffectiveZoom() * m_roundCornersY;
 
-    QPainterPath path;
+    PkPainterPath path;
     if (m_roundCornersX > 0 || m_roundCornersY > 0) {
-        path.addRoundedRect(viewRect,
+        path.addRoundedRect(PkRectF(viewRect),
                             roundCornersX, roundCornersY);
     } else {
-        path.addRect(viewRect);
+        path.addRect(PkRectF(viewRect));
     }
 
-    getRotatedPath(path, toPkPointF(viewRect.center()), getRotationAngle());
+    getRotatedPath(path, PkPointF(viewRect.center()), getRotationAngle());
     path.addPath(drawX(pixelToView(m_dragStart)));
     path.addPath(drawX(pixelToView(m_dragCenter)));
-    paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(path)));
+    paintToolOutline(&gc, KisOptimizedBrushOutline(path));
 }
 
 void KisToolRectangleBase::updateArea() {
@@ -390,18 +389,18 @@ qreal KisToolRectangleBase::getRotationAngle() {
     return m_angle + m_angleBuffer;
 }
 
-QPainterPath KisToolRectangleBase::drawX(const PkPointF &pt) {
-    QPainterPath path;
-    path.moveTo(toQPointF(PkPointF(pt.x() - 5.0, pt.y() - 5.0))); path.lineTo(toQPointF(PkPointF(pt.x() + 5.0, pt.y() + 5.0)));
-    path.moveTo(toQPointF(PkPointF(pt.x() - 5.0, pt.y() + 5.0))); path.lineTo(toQPointF(PkPointF(pt.x() + 5.0, pt.y() - 5.0)));
+PkPainterPath KisToolRectangleBase::drawX(const PkPointF &pt) {
+    PkPainterPath path;
+    path.moveTo(PkPointF(pt.x() - 5.0, pt.y() - 5.0)); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() + 5.0));
+    path.moveTo(PkPointF(pt.x() - 5.0, pt.y() + 5.0)); path.lineTo(PkPointF(pt.x() + 5.0, pt.y() - 5.0));
     return path;
 }
 
-void KisToolRectangleBase::getRotatedPath(QPainterPath &path, const PkPointF &center, const qreal &angle) {
+void KisToolRectangleBase::getRotatedPath(PkPainterPath &path, const PkPointF &center, const qreal &angle) {
     PkTransform t;
     t.translate(center.x(), center.y());
     t.rotateRadians(angle);
     t.translate(-center.x(), -center.y());
 
-    path = toQPainterPath(t.map(toPkPainterPath(path)));
+    path = t.map(path);
 }

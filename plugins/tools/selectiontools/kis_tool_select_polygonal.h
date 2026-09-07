@@ -86,7 +86,7 @@ public:
         setToolTip(PkString("Polygonal Selection Tool"));
         setSection(ToolBoxSection::Select);
         setPriority(2);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolSelectPolygonalFactory() override {}

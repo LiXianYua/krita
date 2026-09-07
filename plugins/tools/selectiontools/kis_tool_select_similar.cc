@@ -9,6 +9,7 @@
 
 #include "kis_tool_select_similar.h"
 
+#include <PkFlakeBridge.h>
 #include <ksharedconfig.h>
 
 #include <KoColorSpace.h>
@@ -40,7 +41,7 @@ KisToolSelectSimilar::KisToolSelectSimilar(KoCanvasBase *canvas)
 void KisToolSelectSimilar::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolSelect::activate(shapes);
-    m_configGroup =  KSharedConfig::openConfig()->group(toolId());
+    m_configGroup =  KSharedConfig::openConfig()->group(toQString(toolId()));
 
     // Was read in createOptionWidget() (now deleted) when the options panel
     // was created; that ran on every tool activation, so these are the
@@ -80,7 +81,7 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
 
     beginSelectInteraction();
 
-    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
+    KisCursorOverrideLock cursorLock;
 
     // Create the stroke
     KisStrokeStrategyUndoCommandBased *strategy =

@@ -19,7 +19,7 @@
 #include <kritacanvas_export.h>
 #include <input/KisInputActionGroup.h>
 
-class QPainter;
+class PkPainter;
 class KisOptimizedBrushOutline;
 class KisPopupWidgetInterface;
 
@@ -52,7 +52,7 @@ public:
     virtual PkPointF toolDocumentToWidget(const PkPointF &point) const = 0;
     virtual PkPointF toolDocumentToAlignedImagePixel(const PkPointF &point) const = 0;
     virtual QTransform toolImageToViewTransform() const = 0;
-    virtual void drawToolOutline(QPainter *painter,
+    virtual void drawToolOutline(PkPainter *painter,
                                  const KisOptimizedBrushOutline &path,
                                  int thickness) = 0;
     virtual bool toolBlockUntilOperationsFinished(KisImageWSP image) = 0;

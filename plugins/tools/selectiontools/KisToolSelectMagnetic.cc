@@ -6,6 +6,7 @@
 
 #include "KisToolSelectMagnetic.h"
 
+#include <PkFlakeBridge.h>
 #include <PkPainterPath.h>
 #include <PkPainter.h>
 
@@ -239,7 +240,7 @@ void KisToolSelectMagnetic::beginPrimaryAction(KoPointerEvent *event)
     m_anchorPoints.push_back(m_lastAnchor);
     m_lastCursorPos = temp;
     reEvaluatePoints();
-    updateCanvasPixelRect(image()->bounds());
+    updateCanvasPixelRect(PkRectF(image()->bounds()));
 } // KisToolSelectMagnetic::beginPrimaryAction
 
 void KisToolSelectMagnetic::checkIfAnchorIsSelected(PkPointF temp)
@@ -493,7 +494,7 @@ void KisToolSelectMagnetic::finishSelectionAction()
     if (m_points.count() > 2 &&
         !helper.tryDeselectCurrentSelection(boundingViewRect, selectionAction()))
     {
-        KisCursorOverrideLock cursorLock(Qt::WaitCursor);
+        KisCursorOverrideLock cursorLock;
 
         const SelectionMode mode =
             helper.tryOverrideSelectionMode(
@@ -524,7 +525,7 @@ void KisToolSelectMagnetic::finishSelectionAction()
                 -> KUndo2Command * {
                     KisPainter painter(tmpSel);
                     painter.setPaintColor(
-                        KoColor(Qt::black, tmpSel->colorSpace()));
+                        KoColor(Pk::black, tmpSel->colorSpace()));
                     // Since the feathering already smooths the selection, the
                     // antiAlias is not applied if we must feather
                     painter.setAntiAliasPolygonFill(antiAlias && feather == 0);
@@ -612,7 +613,7 @@ void KisToolSelectMagnetic::updatePaintPath()
         updateContinuedMode();
     }
 
-    updateCanvasPixelRect(image()->bounds());
+    updateCanvasPixelRect(PkRectF(image()->bounds()));
 }
 
 void KisToolSelectMagnetic::paint(PkPainter& gc, const KoViewConverter &converter)
@@ -674,7 +675,7 @@ void KisToolSelectMagnetic::updateContinuedMode()
 void KisToolSelectMagnetic::activate(const PkSet<KoShape *> &shapes)
 {
     m_worker.reset(new KisMagneticWorker(image()->projection()));
-    m_configGroup = KSharedConfig::openConfig()->group(toolId());
+    m_configGroup = KSharedConfig::openConfig()->group(toQString(toolId()));
 
     // Was read in createOptionWidget() (now deleted) when the options panel
     // was created; that ran on every tool activation, so these are the
