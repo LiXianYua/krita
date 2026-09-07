@@ -229,6 +229,11 @@ PkImageRasterBackend::PkImageRasterBackend(PkImage &destination)
 {
 }
 
+qreal PkImageRasterBackend::devicePixelRatio() const
+{
+    return m_destination.devicePixelRatio();
+}
+
 void PkImageRasterBackend::submit(const PkPaintCommand &command)
 {
     if (const auto *opacity = std::get_if<PkSetOpacityCommand>(&command)) {

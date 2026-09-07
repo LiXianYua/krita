@@ -46,6 +46,7 @@ private Q_SLOTS:
     void appliesKarbonTransformToRectangle();
     void blitsSmartPatchImage();
     void preservesPointBaselineAndRectangleAlignment();
+    void reportsPaintDevicePixelRatio();
 };
 
 void PkQPainterAdapterTest::restoresSavedPenAndBrushState()
@@ -197,6 +198,17 @@ void PkQPainterAdapterTest::preservesPointBaselineAndRectangleAlignment()
     }
 
     QCOMPARE(actual, expected);
+}
+
+void PkQPainterAdapterTest::reportsPaintDevicePixelRatio()
+{
+    QImage image(4, 4, QImage::Format_ARGB32_Premultiplied);
+    image.setDevicePixelRatio(2.0);
+    QPainter qtPainter(&image);
+    PkQPainterAdapter backend(qtPainter);
+    PkPainter painter(backend);
+
+    QCOMPARE(painter.devicePixelRatio(), 2.0);
 }
 
 QTEST_MAIN(PkQPainterAdapterTest)

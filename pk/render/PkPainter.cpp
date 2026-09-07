@@ -2,6 +2,8 @@
 
 PkPainter::PkPainter(PkPainterBackend &b) : m_backend(b) {}
 
+qreal PkPainter::devicePixelRatio() const { return m_backend.devicePixelRatio(); }
+
 void PkPainter::save() { m_stack.push_back(m_state); m_backend.submit(PkSaveCommand{}); }
 void PkPainter::restore() { if (m_stack.empty()) return; m_state=m_stack.back(); m_stack.pop_back(); m_backend.submit(PkRestoreCommand{}); }
 

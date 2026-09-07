@@ -25,7 +25,18 @@ private Q_SLOTS:
     void matchesQtShortSpansAndTails();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
+    void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::reportsDestinationDevicePixelRatio()
+{
+    PkImage destination(4, 4, PkImage::Format_ARGB32);
+    destination.setDevicePixelRatio(1.75);
+    PkImageRasterBackend backend(destination);
+    PkPainter painter(backend);
+
+    QCOMPARE(painter.devicePixelRatio(), 1.75);
+}
 
 void PkImageRasterBackendTest::blendsImageWithOpacity()
 {

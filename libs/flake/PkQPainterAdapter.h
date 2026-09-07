@@ -17,6 +17,7 @@ class KRITAFLAKE_EXPORT PkQPainterAdapter final : public PkPainterBackend
 public:
     explicit PkQPainterAdapter(QPainter &painter);
     void submit(const PkPaintCommand &command) override;
+    qreal devicePixelRatio() const override;
 
 private:
     QPainter &m_painter;

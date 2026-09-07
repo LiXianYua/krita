@@ -146,13 +146,36 @@ public:
 class RecordingBackend final : public PkPainterBackend
 {
 public:
+    explicit RecordingBackend(qreal devicePixelRatio = 1.0)
+        : m_devicePixelRatio(devicePixelRatio)
+    {
+    }
+
     void submit(const PkPaintCommand &command) override
     {
         commands.push_back(command);
     }
 
+    qreal devicePixelRatio() const override { return m_devicePixelRatio; }
+
     std::vector<PkPaintCommand> commands;
+
+private:
+    qreal m_devicePixelRatio;
 };
+
+void verifyPathVertices(
+    const PkPainterPath &path,
+    std::initializer_list<PkPointF> expectedVertices)
+{
+    QCOMPARE(path.elementCount(), int(expectedVertices.size()));
+    int index = 0;
+    for (const PkPointF &expected : expectedVertices) {
+        const auto actual = path.elementAt(index++);
+        QVERIFY(std::abs(actual.x - expected.x()) < 1e-9);
+        QVERIFY(std::abs(actual.y - expected.y()) < 1e-9);
+    }
+}
 
 class EllipsePreviewCanvas final : public TestSamplingCanvas,
                                    public KisCanvasToolServices
@@ -487,7 +510,7 @@ void KisAsyncColorSamplerHelperTest::rectanglePreviewPreservesCommandsAndState()
                                       Q_ARG(KoColor, KoColor(Pk::red, image->colorSpace()))));
     const PkRectF viewRect = helper.colorPreviewDocRect(PkPointF(10.25, 20.75));
 
-    RecordingBackend backend;
+    RecordingBackend backend(2.0);
     PkPainter painter(backend);
     helper.paint(painter, *canvas.viewConverter());
     helper.deactivate();
@@ -507,22 +530,24 @@ void KisAsyncColorSamplerHelperTest::rectanglePreviewPreservesCommandsAndState()
     QVERIFY(std::holds_alternative<PkRestoreCommand>(backend.commands.back()));
     QVERIFY(!painter.testRenderHint(PkPainter::Antialiasing));
 
-    const qreal centerX = viewRect.center().x();
-    PkRectF currentRect(viewRect.topLeft(),
-                        PkPointF(centerX, viewRect.bottom()));
-    PkRectF baseRect(PkPointF(centerX, viewRect.top()),
-                     viewRect.bottomRight());
-    std::swap(currentRect, baseRect);
-    PkTransform contentTransform;
-    contentTransform.translate(viewRect.center().x(), viewRect.center().y());
-    contentTransform.rotate(canvas.rotation);
-    contentTransform.translate(-viewRect.center().x(), -viewRect.center().y());
-    PkPainterPath expectedCurrentPath;
-    expectedCurrentPath.addRect(currentRect);
-    PkPainterPath expectedBasePath;
-    expectedBasePath.addRect(baseRect);
-    QCOMPARE(currentFill->path, contentTransform.map(expectedCurrentPath));
-    QCOMPARE(baseFill->path, contentTransform.map(expectedBasePath));
+    QCOMPARE(viewRect.toRect(), PkRect(-2, 64, 107, 90));
+    // Literal vertices from the old DPR=2 raster cache: its mirrored current
+    // half spans physical x=[0,96], while the base half spans x=[-96,1].
+    // The shared [0,1] interval is the original one-device-pixel overlap.
+    verifyPathVertices(
+        currentFill->path,
+        {PkPointF(63.444186046511632, 88.215390309173472),
+         PkPointF(104.820060221738387, 112.215390309173472),
+         PkPointF(80.931688128715138, 153.784609690826528),
+         PkPointF(39.555813953488375, 129.784609690826528),
+         PkPointF(63.444186046511632, 88.215390309173472)});
+    verifyPathVertices(
+        baseFill->path,
+        {PkPointF(22.068311871284866, 64.215390309173472),
+         PkPointF(63.875184735836896, 88.465390309173472),
+         PkPointF(39.986812642813653, 130.034609690826528),
+         PkPointF(-1.820060221738391, 105.784609690826528),
+         PkPointF(22.068311871284866, 64.215390309173472)});
 }
 
 void KisAsyncColorSamplerHelperTest::circlePreviewPreservesRingCommandsAndState()

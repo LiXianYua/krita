@@ -15,6 +15,7 @@ public:
     explicit PkImageRasterBackend(PkImage &destination);
 
     void submit(const PkPaintCommand &command) override;
+    qreal devicePixelRatio() const override;
 
 private:
     void drawImage(const PkDrawImageCommand &command);

@@ -44,4 +44,9 @@ struct PkDrawTextAtPointCommand { PkPointF position; PkString text; };
 struct PkDrawTextInRectCommand { PkRectF rect; PkString text; };
 
 using PkPaintCommand = std::variant<PkSaveCommand,PkRestoreCommand,PkSetPenCommand,PkSetBrushCommand,PkSetTransformCommand,PkSetRenderHintCommand,PkSetClipRectCommand,PkDrawLineCommand,PkDrawRectCommand,PkDrawEllipseCommand,PkDrawArcCommand,PkDrawPathCommand,PkDrawPolygonCommand,PkDrawImageCommand,PkSetCompositionModeCommand,PkSetOpacityCommand,PkSetClipPathCommand,PkFillRectCommand,PkFillPathCommand,PkDrawPointCommand,PkStrokePathCommand,PkDrawPixmapCommand,PkDrawTiledPixmapCommand,PkSetFontCommand,PkDrawTextAtPointCommand,PkDrawTextInRectCommand>;
-class PkPainterBackend { public: virtual ~PkPainterBackend() = default; virtual void submit(const PkPaintCommand&) = 0; };
+class PkPainterBackend {
+public:
+    virtual ~PkPainterBackend() = default;
+    virtual void submit(const PkPaintCommand&) = 0;
+    virtual qreal devicePixelRatio() const { return 1.0; }
+};

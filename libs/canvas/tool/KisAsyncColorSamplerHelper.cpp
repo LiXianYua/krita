@@ -387,35 +387,62 @@ void KisAsyncColorSamplerHelper::paintRectangle(PkPainter &gc,
     gc.save();
     gc.setRenderHint(PkPainter::Antialiasing, true);
 
-    PkTransform contentTransform;
-    const PkPointF center = viewRectF.center();
-    contentTransform.translate(center.x(), center.y());
-    const qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
-    contentTransform.rotate(m_d->samplingCanvas->samplingCanvasMirroredHorizontally()
-                                ? canvasRotationAngle
-                                : -canvasRotationAngle);
-    contentTransform.translate(-center.x(), -center.y());
-
-    if (!m_d->haveSample) {
-        PkPainterPath currentPath;
-        currentPath.addRect(viewRectF);
-        gc.fillPath(contentTransform.map(currentPath), PkBrush(currentColor));
+    const qreal dpr = gc.devicePixelRatio();
+    const PkRect destinationRect = viewRectF.toRect();
+    const PkSize cacheSize(pkCeil(viewRectF.width() * dpr),
+                           pkCeil(viewRectF.height() * dpr));
+    if (dpr <= 0.0 || destinationRect.isEmpty() || cacheSize.isEmpty()) {
         gc.restore();
         return;
     }
 
-    const qreal centerX = viewRectF.center().x();
-    PkRectF currentRect(viewRectF.topLeft(), PkPointF(centerX, viewRectF.bottom()));
-    PkRectF baseRect(PkPointF(centerX, viewRectF.top()), viewRectF.bottomRight());
-    if (m_d->samplingCanvas->samplingCanvasMirroredHorizontally()) {
+    const qreal size = Private::PREVIEW_RECT_SIZE * dpr;
+    PkRectF localRect(0.0,
+                      0.0,
+                      m_d->haveSample ? size * 2.0 : size,
+                      size);
+    localRect.moveTopLeft(-localRect.center());
+
+    PkTransform cacheTransform;
+    cacheTransform.translate(cacheSize.width() / 2.0,
+                             cacheSize.height() / 2.0);
+    const qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
+    const bool mirrored =
+        m_d->samplingCanvas->samplingCanvasMirroredHorizontally();
+    cacheTransform.rotate(mirrored ? canvasRotationAngle
+                                   : -canvasRotationAngle);
+
+    PkTransform destinationTransform;
+    destinationTransform.translate(destinationRect.x(), destinationRect.y());
+    destinationTransform.scale(
+        qreal(destinationRect.width()) / cacheSize.width(),
+        qreal(destinationRect.height()) / cacheSize.height());
+    const auto mapToDestination = [&](const PkPainterPath &path) {
+        return destinationTransform.map(cacheTransform.map(path));
+    };
+
+    if (!m_d->haveSample) {
+        PkPainterPath currentPath;
+        currentPath.addRect(localRect);
+        gc.fillPath(mapToDestination(currentPath), PkBrush(currentColor));
+        gc.restore();
+        return;
+    }
+
+    const qreal centerX = localRect.center().x();
+    PkRectF currentRect(localRect.topLeft(),
+                        PkPointF(centerX + 1.0, localRect.bottom()));
+    PkRectF baseRect(PkPointF(centerX, localRect.top()),
+                     localRect.bottomRight());
+    if (mirrored) {
         std::swap(currentRect, baseRect);
     }
     PkPainterPath currentPath;
     currentPath.addRect(currentRect);
     PkPainterPath basePath;
     basePath.addRect(baseRect);
-    gc.fillPath(contentTransform.map(currentPath), PkBrush(currentColor));
-    gc.fillPath(contentTransform.map(basePath), PkBrush(baseColor));
+    gc.fillPath(mapToDestination(currentPath), PkBrush(currentColor));
+    gc.fillPath(mapToDestination(basePath), PkBrush(baseColor));
     gc.restore();
 }
 

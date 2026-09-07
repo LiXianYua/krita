@@ -30,6 +30,12 @@ PkQPainterAdapter::PkQPainterAdapter(QPainter &painter)
 {
 }
 
+qreal PkQPainterAdapter::devicePixelRatio() const
+{
+    const QPaintDevice *device = m_painter.device();
+    return device ? device->devicePixelRatioF() : 1.0;
+}
+
 void PkQPainterAdapter::submit(const PkPaintCommand &command)
 {
     std::visit(Overloaded{

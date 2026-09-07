@@ -22,6 +22,8 @@ public:
 
     explicit PkPainter(PkPainterBackend &backend);
 
+    qreal devicePixelRatio() const;
+
     // ---- 状态栈 ----
     void save(); void restore();
 
