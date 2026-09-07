@@ -16,8 +16,6 @@
 
 #include <KoSvgTextShapeOutlineHelper.h>
 
-#include <kis_signal_auto_connection.h>
-#include <KisSignalMapper.h>
 
 #include "SvgTextCursor.h"
 #include "SvgTextToolOptionsData.h"
@@ -99,7 +97,7 @@ private:
 
     KoSvgText::WritingMode writingMode() const;
 
-    void addMappedAction(KisSignalMapper* mapper, const QString &actionName, const int value, QActionGroup *group = nullptr);
+    void addMappedAction(QActionGroup *group, const PkString &actionName, int value);
 
     /**
      * @brief nodeEditable
@@ -196,14 +194,13 @@ private:
     HighlightItem m_highlightItem {HighlightItem::None};
     bool m_strategyAddingCommand {false};
 
-    QScopedPointer<KisSignalMapper> m_textTypeSignalsMapper;
-    QScopedPointer<KisSignalMapper> m_typeSettingMovementMapper;
+    QActionGroup *m_textTypeActionGroup {nullptr};
+    QActionGroup *m_typeSettingMovementActionGroup {nullptr};
 
 
     SvgTextCursor m_textCursor;
     SvgTextOnPathDecorationHelper m_textOnPathHelper;
     QScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
-    KisSignalAutoConnectionsStore m_canvasConnections;
 
     PkPainterPath m_hoveredShapeHighlightRect;
 

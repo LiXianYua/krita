@@ -19,7 +19,7 @@ public:
     KoToolBase *createTool(KoCanvasBase *canvas) override;
     // KoToolFactoryBase interface
 protected:
-    QList<QAction *> createActionsImpl() override;
+    PkList<QAction *> createActionsImpl() override;
 };
 
 #endif

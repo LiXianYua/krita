@@ -7,6 +7,7 @@
 #define SVGTEXTSHORTCUTS_H
 
 #include <QAction>
+#include <PkStringList.h>
 
 class QString;
 class KoSvgTextProperties;
@@ -24,8 +25,8 @@ class KoSvgTextProperties;
 class SvgTextShortCuts
 {
 public:
-    static QStringList possibleActions();
-    static bool configureAction(QAction *action, const QString &name);
+    static PkStringList possibleActions();
+    static bool configureAction(QAction *action, const PkString &name);
 
     static bool actionEnabled(QAction *action, const PkList<KoSvgTextProperties> currentProperties);
 

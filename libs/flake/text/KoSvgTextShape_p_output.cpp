@@ -604,7 +604,7 @@ KoSvgTextShape::Private::collectPaths(const KoSvgTextShape *rootShape, PkVector<
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void KoSvgTextShape::Private::paintDebug(QPainter &painter,
+void KoSvgTextShape::Private::paintDebug(PkPainter &painter,
                                          const PkVector<CharacterResult> &result,
                                          int &currentIndex)
 {
@@ -614,12 +614,9 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
         if (currentIndex > result.size()) continue;
         if (j < 0 || j > result.size()) continue;
 
-        const PkRect shapeGlobalClipRect = toPkRect(painter.transform().mapRect(toQRectF(it->associatedOutline.boundingRect())).toAlignedRect());
+        const PkRect shapeGlobalClipRect = painter.transform().mapRect(it->associatedOutline.boundingRect()).toAlignedRect();
 
         painter.save();
-
-        QFont font(QFont(), painter.device());
-        font.setPointSizeF(16.0);
 
         if (shapeGlobalClipRect.isValid() && childCount(siblingCurrent(it)) == 0) {
             for (int i = currentIndex; i < j; i++) {
@@ -627,46 +624,46 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                     const PkTransform tf = result.at(i).finalTransform();
 
 #if 1 // Debug: draw character bounding boxes
-                    painter.setBrush(Qt::transparent);
+                    painter.setBrush(PkBrush(Pk::NoBrush));
                     PkPen pen(PkColor(0, 0, 0, 50));
                     pen.setCosmetic(true);
                     pen.setWidth(2);
-                    painter.setPen(toQPen(pen));
+                    painter.setPen(pen);
                     if (const auto *bitmapGlyph = std::get_if<Glyph::Bitmap>(&result.at(i).glyph)) {
                         Q_FOREACH(const PkRectF drawRect, bitmapGlyph->drawRects) {
-                            painter.drawPolygon(toQPolygonF(tf.map(drawRect)));
+                            painter.drawPolygon(tf.map(drawRect));
                         }
                     } else if (const auto *colorGlyph = std::get_if<Glyph::ColorLayers>(&result.at(i).glyph)) {
                         PkRectF boundingRect;
                         Q_FOREACH (const PkPainterPath &p, colorGlyph->paths) {
                             boundingRect |= p.boundingRect();
                         }
-                        painter.drawPolygon(toQPolygonF(tf.map(boundingRect)));
+                        painter.drawPolygon(tf.map(boundingRect));
                     } else if (const auto *outlineGlyph = std::get_if<Glyph::Outline>(&result.at(i).glyph)) {
-                        painter.drawPolygon(toQPolygonF(tf.map(outlineGlyph->path.boundingRect())));
+                        painter.drawPolygon(tf.map(outlineGlyph->path.boundingRect()));
                     }
                     PkColor penColor = result.at(i).anchored_chunk ? result.at(i).isHanging ? PkColor(Pk::red) : PkColor(Pk::magenta)
                         : result.at(i).lineEnd == LineEdgeBehaviour::NoChange ? PkColor(Pk::cyan)
                                                                               : PkColor(Pk::yellow);
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
-                    painter.setPen(toQPen(pen));
-                    painter.drawPolygon(toQPolygonF(tf.map(result.at(i).layoutBox())));
+                    painter.setPen(pen);
+                    painter.drawPolygon(tf.map(result.at(i).layoutBox()));
 
                     penColor.setAlpha(96);
                     pen.setColor(penColor);
                     pen.setWidth(1);
                     pen.setStyle(Pk::DotLine);
-                    painter.setPen(toQPen(pen));
-                    painter.drawPolygon(toQPolygonF(tf.map(result.at(i).lineHeightBox())));
+                    painter.setPen(pen);
+                    painter.drawPolygon(tf.map(result.at(i).lineHeightBox()));
 
                     pen.setStyle(Pk::SolidLine);
                     pen.setWidth(2);
 
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
-                    painter.setPen(toQPen(pen));
-                    painter.drawLine(toQLineF(tf.map(result.at(i).cursorInfo.caret)));
+                    painter.setPen(pen);
+                    painter.drawLine(tf.map(result.at(i).cursorInfo.caret));
 
 
                     const PkPointF center = tf.mapRect(result.at(i).layoutBox()).center();
@@ -685,12 +682,12 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                         }
                     }
                     text += PkString("\n(%1)").arg(result.at(i).plaintTextIndex);
-                    painter.setWorldMatrixEnabled(false);
-                    painter.setPen(Qt::red);
-                    painter.drawText(toQRectF(PkRectF(toPkPointF(painter.transform().map(toQPointF(center))), PkSizeF(0, 64)).adjusted(-128, 0, 128, 0)),
-                                     Qt::AlignHCenter | Qt::AlignTop,
-                                     toQString(text));
-                    painter.setWorldMatrixEnabled(true);
+                    const PkPointF viewCenter = painter.transform().map(center);
+                    painter.save();
+                    painter.setTransform(PkTransform());
+                    painter.setPen(PkPen(Pk::red));
+                    painter.drawText(viewCenter, text);
+                    painter.restore();
 
                     pen.setWidth(6);
                     const BreakType breakType = result.at(i).breakType;
@@ -702,24 +699,24 @@ void KoSvgTextShape::Private::paintDebug(QPainter &painter,
                         }
                         penColor.setAlpha(128);
                         pen.setColor(penColor);
-                        painter.setPen(toQPen(pen));
-                        painter.drawPoint(toQPointF(center));
+                        painter.setPen(pen);
+                        painter.drawPoint(center);
                     }
                     //ligature carets
                     penColor = PkColor(Pk::darkGreen);
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
-                    painter.setPen(toQPen(pen));
+                    painter.setPen(pen);
                     PkVector<PkPointF> offset = result.at(i).cursorInfo.offsets;
                     for (int k=0; k<offset.size(); k++) {
-                        painter.drawPoint(toQPointF(tf.map(offset.at(k))));
+                        painter.drawPoint(tf.map(offset.at(k)));
                     }
                     // Finalpos
                     penColor = PkColor(Pk::red);
                     penColor.setAlpha(192);
                     pen.setColor(penColor);
-                    painter.setPen(toQPen(pen));
-                    painter.drawPoint(toQPointF(result.at(i).finalPosition));
+                    painter.setPen(pen);
+                    painter.drawPoint(result.at(i).finalPosition);
 #endif
                 }
             }

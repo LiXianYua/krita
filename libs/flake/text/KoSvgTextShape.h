@@ -55,7 +55,7 @@ public:
         LineBox = 1 << 1,
     };
     Q_DECLARE_FLAGS(DebugElements, DebugElement);
-    void paintDebug(QPainter &painter, DebugElements elements) const;
+    void paintDebug(PkPainter &painter, DebugElements elements) const;
 
     /**
      * Create a new text layout for the current content of the text shape

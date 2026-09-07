@@ -245,7 +245,7 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
 
     SvgTextCursorPropertyInterface *interface{nullptr};
 
-    QList<QAction*> actions;
+    PkList<QAction*> actions;
 
     KisAcyclicSignalConnector resourceManagerAcyclicConnector;
 };
@@ -466,43 +466,43 @@ QCursor SvgTextCursor::cursorTypeForTypeSetting() const
     return Qt::ArrowCursor;
 }
 
-QString SvgTextCursor::handleName(TypeSettingModeHandle handle) const
+PkString SvgTextCursor::handleName(TypeSettingModeHandle handle) const
 {
     bool baseline = d->typeSettingDecor.testBaselines(d->lastKnownModifiers);
     if (handle == Ascender) {
         if (baseline) {
-            return i18nc("Type setting mode line name", "Text Top");
+            return toPkString(i18nc("Type setting mode line name", "Text Top"));
         } else {
-            return i18nc("Type setting mode line name", "Font Size");
+            return toPkString(i18nc("Type setting mode line name", "Font Size"));
         }
     } else if (handle == Descender) {
         if (baseline) {
-            return i18nc("Type setting mode line name", "Text Bottom");
+            return toPkString(i18nc("Type setting mode line name", "Text Bottom"));
         } else {
-            return i18nc("Type setting mode line name", "Font Size");
+            return toPkString(i18nc("Type setting mode line name", "Font Size"));
         }
     } else if (handle == BaselineAlphabetic) {
-        return i18nc("Type setting mode line name", "Alphabetic");
+        return toPkString(i18nc("Type setting mode line name", "Alphabetic"));
     } else if (handle == BaselineIdeographic) {
-        return i18nc("Type setting mode line name", "Ideographic");
+        return toPkString(i18nc("Type setting mode line name", "Ideographic"));
     } else if (handle == BaselineHanging) {
-        return i18nc("Type setting mode line name", "Hanging");
+        return toPkString(i18nc("Type setting mode line name", "Hanging"));
     } else if (handle == BaselineMiddle) {
-        return i18nc("Type setting mode line name", "Middle");
+        return toPkString(i18nc("Type setting mode line name", "Middle"));
     } else if (handle == BaselineMathematical) {
-        return i18nc("Type setting mode line name", "Mathematical");
+        return toPkString(i18nc("Type setting mode line name", "Mathematical"));
     } else if (handle == BaselineCentral) {
-        return i18nc("Type setting mode line name", "Central");
+        return toPkString(i18nc("Type setting mode line name", "Central"));
     } else if (handle == LineHeightTop || handle == LineHeightBottom) {
-        return i18nc("Type setting mode line name", "Line Height");
+        return toPkString(i18nc("Type setting mode line name", "Line Height"));
     } else if (handle == BaselineShift) {
         if (baseline) {
-            return i18nc("Type setting mode line name", "Current Baseline");
+            return toPkString(i18nc("Type setting mode line name", "Current Baseline"));
         } else {
-            return i18nc("Type setting mode line name", "Baseline Shift");
+            return toPkString(i18nc("Type setting mode line name", "Baseline Shift"));
         }
     } else {
-        return QString();
+        return PkString();
     }
 }
 
@@ -833,51 +833,51 @@ void SvgTextCursor::deselectText()
     setPos(d->pos, d->pos);
 }
 
-static QColor bgColorForCaret(QColor c, int opacity = 64) {
+static PkColor bgColorForCaret(const PkColor &c, int opacity = 64) {
 
-    return KisPaintingTweaks::luminosityCoarse(toPkColor(c)) > 0.8? QColor(0, 0, 0, opacity) : QColor(255, 255, 255, opacity);
+    return KisPaintingTweaks::luminosityCoarse(c) > 0.8 ? PkColor(0, 0, 0, opacity) : PkColor(255, 255, 255, opacity);
 }
 
-void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int decorationThickness, qreal handleRadius)
+void SvgTextCursor::paintDecorations(PkPainter &gc, PkColor selectionColor, int decorationThickness, qreal handleRadius)
 {
     if (d->shape) {
         gc.save();
-        gc.setTransform(toQTransform(d->shape->absoluteTransformation()), true);
+        gc.setTransform(d->shape->absoluteTransformation(), true);
 
         if (d->pos != d->anchor && !d->typeSettingMode) {
             gc.save();
             gc.setOpacity(0.5);
-            QBrush brush(selectionColor);
-            gc.fillPath(toQPainterPath(d->selection), brush);
+            PkBrush brush(selectionColor);
+            gc.fillPath(d->selection, brush);
             gc.restore();
         }
 
         if ( (d->drawCursorInAdditionToSelection || d->pos == d->anchor)
                 && d->cursorVisible) {
-            QPen pen;
+            PkPen pen;
             pen.setCosmetic(true);
-            QColor c = d->cursorColor.isValid()? toQColor(d->cursorColor): Qt::black;
+            PkColor c = d->cursorColor.isValid() ? d->cursorColor : PkColor(Pk::black);
             pen.setColor(bgColorForCaret(c));
             pen.setWidth((d->cursorWidth + 2) * decorationThickness);
             gc.setPen(pen);
-            gc.drawPath(toQPainterPath(d->cursorShape));
+            gc.drawPath(d->cursorShape);
             pen.setColor(c);
             pen.setWidth(d->cursorWidth * decorationThickness);
             gc.setPen(pen);
-            gc.drawPath(toQPainterPath(d->cursorShape));
+            gc.drawPath(d->cursorShape);
 
         }
 
         if (d->preEditCommand) {
             gc.save();
-            QBrush brush(selectionColor);
+            PkBrush brush(selectionColor);
             gc.setOpacity(0.5);
-            gc.fillPath(toQPainterPath(d->IMEDecoration), brush);
+            gc.fillPath(d->IMEDecoration, brush);
             gc.restore();
         }
         if (d->typeSettingMode && d->drawTypeSettingHandle) {
             d->handleRadius = handleRadius;
-            QTransform painterTf = gc.transform();
+            PkTransform painterTf = gc.transform();
             KisHandlePainterHelper helper(&gc, handleRadius, decorationThickness);
             const KisHandleStyle highlight = KisHandleStyle::partiallyHighlightedPrimaryHandles();
             const KisHandleStyle regular = KisHandleStyle::secondarySelection();
@@ -895,20 +895,21 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
                     helper.drawPath(p);
                 } else {
                     gc.save();
-                    QPen pen(selectionColor, decorationThickness, handle == BaselineShift? Qt::SolidLine: Qt::DashLine);
+                    PkPen pen(selectionColor, decorationThickness);
+                    pen.setStyle(handle == BaselineShift ? Pk::SolidLine : Pk::DashLine);
                     pen.setCosmetic(true);
                     gc.setPen(pen);
                     gc.setOpacity(0.5);
-                    gc.drawPath(painterTf.map(toQPainterPath(parent)));
-                    gc.drawPath(painterTf.map(toQPainterPath(p)));
+                    gc.drawPath(painterTf.map(parent));
+                    gc.drawPath(painterTf.map(p));
                     gc.restore();
                 }
                 gc.save();
-                QPen pen(selectionColor, decorationThickness, Qt::SolidLine);
+                PkPen pen(selectionColor, decorationThickness);
                 pen.setCosmetic(true);
                 gc.setPen(pen);
                 gc.setOpacity(0.5);
-                gc.drawPath(painterTf.map(toQPainterPath(d->typeSettingDecor.edges)));
+                gc.drawPath(painterTf.map(d->typeSettingDecor.edges));
                 gc.restore();
             }
 
@@ -918,20 +919,15 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
                 helper.setHandleStyle(d->hoveredTypeSettingHandle == StartPos? highlight: regular);
                 helper.drawHandleRect(d->typeSettingDecor.handles.first);
             }
-            QString name = handleName(d->hoveredTypeSettingHandle);
+            PkString name = handleName(d->hoveredTypeSettingHandle);
             if (!name.isEmpty()) {
-                QPainterPath textP;
-                // When we're drawing on opengl, there's no anti-aliasing, so we should have full hinting for readabiltiy.
-                QFont font = gc.font();
-                font.setHintingPreference(QFont::PreferFullHinting);
-                textP.addText(painterTf.map(toQPointF(d->typeSettingDecor.closestBaselinePoint)).toPoint(), font, name);
                 gc.save();
-                QPen pen(bgColorForCaret(selectionColor, 255));
+                PkPen pen(bgColorForCaret(selectionColor, 255));
                 pen.setCosmetic(true);
                 pen.setWidth(decorationThickness);
                 gc.setPen(pen);
-                gc.drawPath(textP);
-                gc.fillPath(textP, QBrush(selectionColor));
+                gc.setBrush(PkBrush(selectionColor));
+                gc.drawText(painterTf.map(d->typeSettingDecor.closestBaselinePoint), name);
                 gc.restore();
             }
 
@@ -940,7 +936,7 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
     }
 }
 
-QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
+PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
 {
     dbgTools << "receiving inputmethod query" << query;
 
@@ -953,11 +949,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImCursorRectangle:
         // The platform integration will always define the cursor as the 'left side' handle.
         if (d->shape) {
-            QPointF caret1(toQPointF(d->cursorCaret.p1()));
-            QPointF caret2(toQPointF(d->cursorCaret.p2()));
-
-
-            QRectF rect = QRectF(caret1, caret2).normalized();
+            PkRectF rect = PkRectF(d->cursorCaret.p1(), d->cursorCaret.p2()).normalized();
             if (!rect.isValid()) {
                 if (rect.height() < 1) {
                     rect.adjust(0, -1, 0, 0);
@@ -967,15 +959,13 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
                 }
 
             }
-            return rect.toAlignedRect();
+            return PkVariant::fromValue(rect.toAlignedRect());
         }
         break;
     case Qt::ImAnchorRectangle:
         // The platform integration will always define the anchor as the 'right side' handle.
         if (d->shape) {
-            QPointF caret1(toQPointF(d->anchorCaret.p1()));
-            QPointF caret2(toQPointF(d->anchorCaret.p2()));
-            QRectF rect = QRectF(caret1, caret2).normalized();
+            PkRectF rect = PkRectF(d->anchorCaret.p1(), d->anchorCaret.p2()).normalized();
             if (rect.isEmpty()) {
                 if (rect.height() < 1) {
                     rect.adjust(0, -1, 0, 0);
@@ -984,7 +974,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
                     rect = rect.adjusted(-1, 0, 0, 0).normalized();
                 }
             }
-            return rect.toAlignedRect();
+            return PkVariant::fromValue(rect.toAlignedRect());
         }
         break;
     //case Qt::ImFont: // not sure what this is used for, but we cannot sent out without access to properties.
@@ -996,7 +986,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
         break;
     case Qt::ImSurroundingText:
         if (d->shape) {
-            QString surroundingText = toQString(d->shape->plainText());
+            PkString surroundingText = d->shape->plainText();
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
             return surroundingText;
@@ -1004,7 +994,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
         break;
     case Qt::ImCurrentSelection:
         if (d->shape) {
-            QString surroundingText = toQString(d->shape->plainText());
+            PkString surroundingText = d->shape->plainText();
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
             int start = d->shape->indexForPos(pkMin(d->anchor, d->pos));
@@ -1015,7 +1005,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImTextBeforeCursor:
         if (d->shape) {
             int start = d->shape->indexForPos(d->pos);
-            QString surroundingText = toQString(d->shape->plainText());
+            PkString surroundingText = d->shape->plainText();
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
             return surroundingText.left(start);
@@ -1024,14 +1014,14 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImTextAfterCursor:
         if (d->shape) {
             int start = d->shape->indexForPos(d->pos);
-            QString surroundingText = toQString(d->shape->plainText());
+            PkString surroundingText = d->shape->plainText();
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
             return surroundingText.right(start);
         }
         break;
     case Qt::ImMaximumTextLength:
-        return QVariant(); // infinite text length!
+        return PkVariant(); // infinite text length!
         break;
     case Qt::ImAnchorPosition:
         if (d->shape) {
@@ -1041,7 +1031,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImHints:
         // It would be great to use Qt::ImhNoTextHandles or Qt::ImhNoEditMenu,
         // but neither are implemented for anything but web platform integration
-        return Qt::ImhMultiLine;
+        return static_cast<int>(Qt::ImhMultiLine);
         break;
     // case Qt::ImPreferredLanguage: // requires access to properties.
 #if defined(Q_OS_ANDROID) && KRITA_QT_HAS_ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_NOTHING
@@ -1054,18 +1044,18 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
         // if you do that while the keyboard is up, you end up with the whole
         // window panned up for no reason until you dismiss and re-show it, so
         // better to just do nothing in the first place and let the user pan.
-        return Qt::ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_NOTHING;
+        return static_cast<int>(Qt::ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_NOTHING);
 #endif
     case Qt::ImEnterKeyType:
         if (d->shape) {
-            return Qt::EnterKeyDefault; // because input method hint is always multiline, this will show a return key.
+            return static_cast<int>(Qt::EnterKeyDefault); // because input method hint is always multiline, this will show a return key.
         }
         break;
     // case Qt::ImInputItemClipRectangle // whether the input item is clipped?
     default:
-        return QVariant();
+        return PkVariant();
     }
-    return QVariant();
+    return PkVariant();
 }
 
 void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
@@ -1673,7 +1663,7 @@ void SvgTextCursor::focusOut()
     stopBlinkCursor();
 }
 
-bool SvgTextCursor::registerPropertyAction(QAction *action, const QString &name)
+bool SvgTextCursor::registerPropertyAction(QAction *action, const PkString &name)
 {
     if (SvgTextShortCuts::configureAction(action, name)) {
         d->actions.append(action);
@@ -2167,7 +2157,7 @@ void SvgTextCursor::updateCanvasResources()
             // Blocking signals so that we don't get a toggle action while evaluating the checked-ness.
             action->blockSignals(true);
             const PkList<KoSvgTextProperties> r = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor), true);
-            if (action->isCheckable() && SvgTextShortCuts::possibleActions().contains(action->objectName())) {
+            if (action->isCheckable() && SvgTextShortCuts::possibleActions().contains(toPkString(action->objectName()))) {
                 const bool checked = SvgTextShortCuts::actionEnabled(action, r);
                 if (action->isChecked() != checked) {
                     action->setChecked(checked);

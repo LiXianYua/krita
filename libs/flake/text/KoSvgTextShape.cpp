@@ -2262,7 +2262,7 @@ void KoSvgTextShape::setSize(const PkSizeF &size)
     }
 }
 
-void KoSvgTextShape::paintDebug(QPainter &painter, const DebugElements elements) const
+void KoSvgTextShape::paintDebug(PkPainter &painter, const DebugElements elements) const
 {
     if (elements & DebugElement::CharBbox) {
         int currentIndex = 0;
@@ -2276,12 +2276,12 @@ void KoSvgTextShape::paintDebug(QPainter &painter, const DebugElements elements)
         Q_FOREACH (KoShape *shapeInside, d->shapesInside) {
             PkPainterPath p = shapeInside->outline();
             p = shapeInside->transformation().map(p);
-            painter.strokePath(toQPainterPath(p), toQPen(PkPen(PkColor(Pk::green))));
+            painter.strokePath(p, PkPen(PkColor(Pk::green)));
         }
         Q_FOREACH (KoShape *shapeInside, d->shapesSubtract) {
             PkPainterPath p = shapeInside->outline();
             p = shapeInside->transformation().map(p);
-            painter.strokePath(toQPainterPath(p), toQPen(PkPen(PkColor(Pk::red))));
+            painter.strokePath(p, PkPen(PkColor(Pk::red)));
         }
     }
 
@@ -2291,22 +2291,22 @@ void KoSvgTextShape::paintDebug(QPainter &painter, const DebugElements elements)
                 PkPen pen;
                 pen.setCosmetic(true);
                 pen.setWidth(2);
-                painter.setBrush(QBrush(Qt::transparent));
+                painter.setBrush(PkBrush(Pk::NoBrush));
                 pen.setColor(PkColor(0, 128, 255, 128));
-                painter.setPen(toQPen(pen));
-                painter.drawLine(toQLineF(chunk.length));
+                painter.setPen(pen);
+                painter.drawLine(chunk.length);
                 pen.setColor(PkColor(255, 128, 0, 128));
-                painter.setPen(toQPen(pen));
-                painter.drawRect(toQRectF(chunk.boundingBox));
+                painter.setPen(pen);
+                painter.drawRect(chunk.boundingBox);
 
                 pen.setColor(PkColor(255, 0, 0, 128));
                 pen.setStyle(Pk::DashDotDotLine);
-                painter.setPen(toQPen(pen));
-                painter.drawLine(toQLineF(chunk.length.translated(lineBox.baselineTop)));
+                painter.setPen(pen);
+                painter.drawLine(chunk.length.translated(lineBox.baselineTop));
                 pen.setColor(PkColor(0, 128, 0, 128));
                 pen.setStyle(Pk::DashDotLine);
-                painter.setPen(toQPen(pen));
-                painter.drawLine(toQLineF(chunk.length.translated(lineBox.baselineBottom)));
+                painter.setPen(pen);
+                painter.drawLine(chunk.length.translated(lineBox.baselineBottom));
             }
         }
     }
@@ -2683,4 +2683,3 @@ void KoSvgTextShape::TextCursorChangeListener::notifyShapeChanged(KoShape::Chang
     Q_UNUSED(type);
     Q_UNUSED(shape);
 }
-

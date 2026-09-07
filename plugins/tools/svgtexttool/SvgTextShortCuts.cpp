@@ -76,7 +76,7 @@ KIS_DECLARE_STATIC_INITIALIZER {
 #endif
 }
 
-const QMap<QString, SvgTextShortcutInfo> textShortCuts = {
+const PkMap<PkString, SvgTextShortcutInfo> textShortCuts = {
     {
         "svg_weight_bold",
         SvgTextShortcutInfo::propertyToggle(KoSvgTextProperties::FontWeightId,
@@ -171,12 +171,12 @@ const QMap<QString, SvgTextShortcutInfo> textShortCuts = {
     }
 };
 
-QStringList SvgTextShortCuts::possibleActions()
+PkStringList SvgTextShortCuts::possibleActions()
 {
     return textShortCuts.keys();
 }
 
-bool SvgTextShortCuts::configureAction(QAction *action, const QString &name)
+bool SvgTextShortCuts::configureAction(QAction *action, const PkString &name)
 {
     if (!textShortCuts.contains(name)) return false;
     if (!action) return false;

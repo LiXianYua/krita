@@ -11,7 +11,6 @@
 #include <KoSvgTextProperties.h>
 #include <KoSvgTextPropertiesInterface.h>
 #include <KoToolSelection.h>
-#include <QPainter>
 #include <KoShape.h>
 #include <PkList.h>
 #include <PkPoint.h>
@@ -168,7 +167,7 @@ public:
      * @brief handleName
      * @return translated name of a given handle.
      */
-    QString handleName(TypeSettingModeHandle handle) const;
+    PkString handleName(TypeSettingModeHandle handle) const;
 
     /**
      * @brief setDominantBaselineFromHandle
@@ -270,10 +269,10 @@ public:
     void deselectText();
 
     /// Paint all decorations and blinkingcursors.
-    void paintDecorations(QPainter &gc, QColor selectionColor, int decorationThickness = 1, qreal handleRadius = 5.0);
+    void paintDecorations(PkPainter &gc, PkColor selectionColor, int decorationThickness = 1, qreal handleRadius = 5.0);
 
     /// Process an input method query and return the requested result.
-    QVariant inputMethodQuery(Qt::InputMethodQuery query) const;
+    PkVariant inputMethodQuery(Qt::InputMethodQuery query) const;
     /// Process an input method event. This is used by IME like virtual keyboards.
     void inputMethodEvent(QInputMethodEvent *event);
 
@@ -305,7 +304,7 @@ public:
     void focusOut();
 
     /// Register an action.
-    bool registerPropertyAction(QAction *action, const QString &name);
+    bool registerPropertyAction(QAction *action, const PkString &name);
 
     /// The text properties interface. This is how the text properties docker
     /// communicates with the text tool.

@@ -694,7 +694,7 @@ public:
                     PkPainterPath &chunk,
                     int &currentIndex);
     KoShape* collectPaths(const KoSvgTextShape *rootShape, PkVector<CharacterResult> &result, int &currentIndex);
-    void paintDebug(QPainter &painter,
+    void paintDebug(PkPainter &painter,
                     const PkVector<CharacterResult> &result,
                     int &currentIndex);
 
