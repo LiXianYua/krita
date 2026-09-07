@@ -8,6 +8,7 @@
 #include <QPainter>
 
 #include <array>
+#include <random>
 #include <stdexcept>
 #include <vector>
 
@@ -21,6 +22,7 @@ class PkImageRasterBackendTest : public QObject
 private Q_SLOTS:
     void blendsImageWithOpacity();
     void matchesQtArgb32SourceOverMatrix();
+    void matchesQtShortSpansAndTails();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
 };
@@ -144,6 +146,104 @@ void PkImageRasterBackendTest::matchesQtArgb32SourceOverMatrix()
             .arg(firstMismatch >= 0 ? pkDestination.pixel(firstMismatch, 0) : 0,
                  8, 16, QLatin1Char('0')) + mismatchDetails;
         QVERIFY2(mismatches == 0, qPrintable(diagnostic));
+    }
+}
+
+void PkImageRasterBackendTest::matchesQtShortSpansAndTails()
+{
+    constexpr std::array<qreal, 10> opacities {
+        0.0, 1.0 / 256.0, 0.1, 0.25, 127.0 / 256.0,
+        0.5, 0.75, 0.9, 255.0 / 256.0, 1.0
+    };
+
+    // Exact minimum reproduction from the production-closure review. The
+    // transparent neighbor is significant because Qt fetches ARGB32 pixels
+    // in groups before composing and storing the short span.
+    {
+        QImage qtSource(2, 1, QImage::Format_ARGB32);
+        QImage qtDestination(2, 1, QImage::Format_ARGB32);
+        PkImage pkSource(2, 1, PkImage::Format_ARGB32);
+        PkImage pkDestination(2, 1, PkImage::Format_ARGB32);
+        constexpr std::array<uint32_t, 2> sources {0x00ebcc83u, 0x3caf8806u};
+        constexpr std::array<uint32_t, 2> destinations {0x00cbcbcbu, 0x3c818181u};
+        for (int x = 0; x < 2; ++x) {
+            qtSource.setPixel(x, 0, sources[static_cast<std::size_t>(x)]);
+            qtDestination.setPixel(x, 0, destinations[static_cast<std::size_t>(x)]);
+            pkSource.setPixel(x, 0, sources[static_cast<std::size_t>(x)]);
+            pkDestination.setPixel(x, 0, destinations[static_cast<std::size_t>(x)]);
+        }
+
+        QPainter qtPainter(&qtDestination);
+        qtPainter.setOpacity(0.9);
+        qtPainter.drawImage(QPoint(), qtSource);
+        qtPainter.end();
+
+        PkImageRasterBackend backend(pkDestination);
+        PkPainter painter(backend);
+        painter.setOpacity(0.9);
+        painter.drawImage(PkRectF(0, 0, 2, 1), pkSource);
+
+        QCOMPARE(qtDestination.pixel(1, 0), 0x65998540u);
+        QCOMPARE(pkDestination.pixel(1, 0), qtDestination.pixel(1, 0));
+    }
+
+    constexpr int seedCount = 200;
+    for (int width = 1; width <= 65; ++width) {
+        QImage qtSource(width, seedCount, QImage::Format_ARGB32);
+        QImage originalQtDestination(width, seedCount, QImage::Format_ARGB32);
+        PkImage pkSource(width, seedCount, PkImage::Format_ARGB32);
+        PkImage originalPkDestination(width, seedCount, PkImage::Format_ARGB32);
+
+        for (int seed = 0; seed < seedCount; ++seed) {
+            std::mt19937 random(static_cast<std::mt19937::result_type>(seed));
+            for (int x = 0; x < width; ++x) {
+                const uint32_t source = random();
+                const unsigned destinationAlpha = random() >> 24;
+                const unsigned gray = random() & 0xffu;
+                const uint32_t destination = (destinationAlpha << 24) |
+                    (gray << 16) | (gray << 8) | gray;
+                qtSource.setPixel(x, seed, source);
+                originalQtDestination.setPixel(x, seed, destination);
+                pkSource.setPixel(x, seed, source);
+                originalPkDestination.setPixel(x, seed, destination);
+            }
+        }
+
+        for (qreal opacity : opacities) {
+            QImage qtDestination = originalQtDestination;
+            PkImage pkDestination = originalPkDestination;
+
+            QPainter qtPainter(&qtDestination);
+            qtPainter.setOpacity(opacity);
+            qtPainter.drawImage(QPoint(), qtSource);
+            qtPainter.end();
+
+            PkImageRasterBackend backend(pkDestination);
+            PkPainter painter(backend);
+            painter.setOpacity(opacity);
+            painter.drawImage(PkRectF(0, 0, width, seedCount), pkSource);
+
+            for (int seed = 0; seed < seedCount; ++seed) {
+                for (int x = 0; x < width; ++x) {
+                    const uint32_t qtPixel = qtDestination.pixel(x, seed);
+                    const uint32_t pkPixel = pkDestination.pixel(x, seed);
+                    const QString diagnostic = QStringLiteral(
+                        "width=%1 tail=%2 seed=%3 x=%4 opacity=%5 "
+                        "src=%6 dst=%7 Qt=%8 Pk=%9")
+                        .arg(width)
+                        .arg(width % 8)
+                        .arg(seed)
+                        .arg(x)
+                        .arg(opacity, 0, 'g', 17)
+                        .arg(qtSource.pixel(x, seed), 8, 16, QLatin1Char('0'))
+                        .arg(originalQtDestination.pixel(x, seed), 8, 16,
+                             QLatin1Char('0'))
+                        .arg(qtPixel, 8, 16, QLatin1Char('0'))
+                        .arg(pkPixel, 8, 16, QLatin1Char('0'));
+                    QVERIFY2(pkPixel == qtPixel, qPrintable(diagnostic));
+                }
+            }
+        }
     }
 }
 

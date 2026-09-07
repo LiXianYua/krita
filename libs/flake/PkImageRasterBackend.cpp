@@ -158,9 +158,44 @@ unsigned unpremultiplyTo8(unsigned component, unsigned a)
 #endif
 }
 
+unsigned unpremultiplyTo8ScalarStore(unsigned component, unsigned a)
+{
+    if (a == 0) {
+        return 0;
+    }
+    if (a == 65535u) {
+        return to8Bit(component);
+    }
+
+    // The 1..3 pixel SSE4 store epilogue first unpremultiplies back to a
+    // 16-bit component with a reciprocal scaled by 65535, then narrows that
+    // component to eight bits. This has observably different rounding from
+    // the four-pixel path's direct reciprocal scaled by 255.
+#if defined(__SSE2__)
+    const __m128 alphaVector = _mm_set_ss(static_cast<float>(a));
+    __m128 inverseAlpha = _mm_rcp_ss(alphaVector);
+    inverseAlpha = _mm_sub_ss(
+        _mm_add_ss(inverseAlpha, inverseAlpha),
+        _mm_mul_ss(inverseAlpha, _mm_mul_ss(inverseAlpha, alphaVector)));
+    inverseAlpha = _mm_mul_ss(inverseAlpha, _mm_set_ss(65535.0f));
+    const __m128 value = _mm_mul_ss(
+        _mm_set_ss(static_cast<float>(component)), inverseAlpha);
+    const int rounded = _mm_cvtss_si32(value);
+    return to8Bit(std::min(65535u,
+                           static_cast<unsigned>(std::max(0, rounded))));
+#else
+    const float value = static_cast<float>(component) * 65535.0f /
+        static_cast<float>(a);
+    const int rounded = static_cast<int>(std::nearbyint(value));
+    return to8Bit(std::min(65535u,
+                           static_cast<unsigned>(std::max(0, rounded))));
+#endif
+}
+
 uint32_t sourceOver(const Rgba64Pixel &destinationPremultiplied,
                     const Rgba64Pixel &sourcePremultiplied,
-                    unsigned opacity)
+                    unsigned opacity,
+                    bool scalarStore)
 {
     const Rgba64Pixel scaledSource = multiply64(sourcePremultiplied, opacity * 257u);
     const Rgba64Pixel scaledDestination =
@@ -172,10 +207,12 @@ uint32_t sourceOver(const Rgba64Pixel &destinationPremultiplied,
         scaledSource.b + scaledDestination.b
     };
 
+    const auto storeComponent = scalarStore ?
+        unpremultiplyTo8ScalarStore : unpremultiplyTo8;
     return argb(to8Bit(result.a),
-                unpremultiplyTo8(result.r, result.a),
-                unpremultiplyTo8(result.g, result.a),
-                unpremultiplyTo8(result.b, result.a));
+                storeComponent(result.r, result.a),
+                storeComponent(result.g, result.a),
+                storeComponent(result.b, result.a));
 }
 
 bool isIntegralCoordinate(qreal value)
@@ -254,13 +291,15 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
             premultiplySpan(command.image, sourceY, sourceBegin, count);
         const auto destinationPixels =
             premultiplySpan(m_destination, y, destinationX, count);
+        const int scalarStoreBegin = count - count % 4;
         for (int i = 0; i < count; ++i) {
             m_destination.setPixel(
                 destinationX + i,
                 y,
                 sourceOver(destinationPixels[static_cast<std::size_t>(i)],
                            sourcePixels[static_cast<std::size_t>(i)],
-                           opacity));
+                           opacity,
+                           i >= scalarStoreBegin));
         }
     }
 }
