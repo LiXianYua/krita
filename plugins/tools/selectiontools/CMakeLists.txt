@@ -13,6 +13,12 @@ set(kritaselectiontools_SOURCES
     KisToolSelectMagnetic.cc
 )
 
+# This bridge is intentionally Pk-only. The surrounding legacy target still
+# inherits QT_CORE_LIB through unrelated GUI sources, which would otherwise
+# disable the compat/QObject declarations used by KisConfigNotifier.
+set_source_files_properties(kis_selection_modifier_mapper_notifier.cpp PROPERTIES
+    COMPILE_OPTIONS "-UQT_CORE_LIB")
+
 qt_add_resources(kritaselectiontools_SOURCES selectiontools.qrc)
 
 kis_add_library(kritaselectiontools STATIC ${kritaselectiontools_SOURCES})
