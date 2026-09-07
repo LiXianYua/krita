@@ -485,7 +485,7 @@ void flattenShapes(const KisShapeLayer *parentShapeLayer, const ShapeList &shape
         } else {
             KisShapeLayerSP newLayer(new KisShapeLayer(nullptr,
                                                        parentShapeLayer->image(),
-                                                       toQString(name),
+                                                       name,
                                                        (1.0-shape->transparency(false))*255));
             KoShape *newShape = shape->cloneShape();
             newShape->setTransparency(0.0);
@@ -759,10 +759,9 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                         if (text) {
                             PsdTextDataConverter convert;
                             KoSvgTextShapeMarkupConverter svgConverter(text);
-                            PK_QSTRING_ qtSvgText;
-                            PK_QSTRING_ qtStyles;
-                            svgConverter.convertToSvg(&qtSvgText, &qtStyles);
-                            const PkString svgtext = toPkString(qtSvgText);
+                            PkString svgText;
+                            PkString styles;
+                            svgConverter.convertToSvg(&svgText, &styles);
                             // unsure about the boundingBox, needs more research.
                             textData.boundingBox = toPkRectF(text->boundingRect().normalized());
                             if (text->shapesInside().isEmpty()) {
@@ -779,7 +778,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                             }
                             textData.bounds = toPkRectF(text->outlineRect().normalized());
 
-                            bool res = convert.convertToPSDTextEngineData(svgtext,
+                            bool res = convert.convertToPSDTextEngineData(svgText,
                                                                          textData.bounds,
                                                                          toPkList(text->shapesInside()),
                                                                          globalInfoSection.txt2Data,
@@ -856,7 +855,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                                     } else {
                                         fill.cs = node->colorSpace();
                                     }
-                                    fill.setColor(KoColor(Qt::transparent, fill.cs));
+                                    fill.setColor(KoColor(Pk::transparent, fill.cs));
                                     fillConfig = fill.getASLXML();
                                     fillType = psd_fill_solid_color;
                                 }

@@ -978,15 +978,15 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
         for (int i = 0; i < subPath.nodes.size(); i++) {
             psd_path_node node = subPath.nodes.at(i);
             if (i == 0) {
-                shape->moveTo(toQPointF(tf.map(node.node)));
+                shape->moveTo(tf.map(node.node));
             } else {
                 psd_path_node previousNode = subPath.nodes.at(i-1);
                 if (previousNode.node == previousNode.control2 && node.node == node.control1) {
-                    shape->lineTo(toQPointF(tf.map(node.node)));
+                    shape->lineTo(tf.map(node.node));
                 } else {
-                    shape->curveTo(toQPointF(tf.map(previousNode.control2)),
-                                   toQPointF(tf.map(node.control1)),
-                                   toQPointF(tf.map(node.node)));
+                    shape->curveTo(tf.map(previousNode.control2),
+                                   tf.map(node.control1),
+                                   tf.map(node.node));
                 }
             }
             if (node.isSmooth) {
@@ -999,18 +999,18 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
             psd_path_node lastNode = subPath.nodes.last();
             psd_path_node firstNode = subPath.nodes.first();
             if (lastNode.node == lastNode.control2 && firstNode.node == firstNode.control1) {
-                shape->lineTo(toQPointF(tf.map(firstNode.node)));
+                shape->lineTo(tf.map(firstNode.node));
             } else {
-                shape->curveTo(toQPointF(tf.map(lastNode.control2)),
-                               toQPointF(tf.map(firstNode.control1)),
-                               toQPointF(tf.map(firstNode.node)));
+                shape->curveTo(tf.map(lastNode.control2),
+                               tf.map(firstNode.control1),
+                               tf.map(firstNode.node));
             }
             shape->closeMerge();
         }
 
     }
     if (shape->pointCount() > 0) {
-        shape->loadNodeTypes(toQString(nodeTypes));
+        shape->loadNodeTypes(nodeTypes);
     }
 
     return shape;

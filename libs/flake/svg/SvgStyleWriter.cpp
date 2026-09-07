@@ -163,23 +163,23 @@ void SvgStyleWriter::saveSvgStroke(KoShapeStrokeModelSP stroke, SvgSavingContext
 
     context.shapeWriter().addAttribute("stroke-width", SvgUtil::toUserSpace(lineBorder->lineWidth()));
 
-    if (lineBorder->capStyle() == Qt::FlatCap)
+    if (lineBorder->capStyle() == Pk::FlatCap)
         context.shapeWriter().addAttribute("stroke-linecap", "butt");
-    else if (lineBorder->capStyle() == Qt::RoundCap)
+    else if (lineBorder->capStyle() == Pk::RoundCap)
         context.shapeWriter().addAttribute("stroke-linecap", "round");
-    else if (lineBorder->capStyle() == Qt::SquareCap)
+    else if (lineBorder->capStyle() == Pk::SquareCap)
         context.shapeWriter().addAttribute("stroke-linecap", "square");
 
-    if (lineBorder->joinStyle() == Qt::MiterJoin) {
+    if (lineBorder->joinStyle() == Pk::MiterJoin) {
         context.shapeWriter().addAttribute("stroke-linejoin", "miter");
         context.shapeWriter().addAttribute("stroke-miterlimit", lineBorder->miterLimit());
-    } else if (lineBorder->joinStyle() == Qt::RoundJoin)
+    } else if (lineBorder->joinStyle() == Pk::RoundJoin)
         context.shapeWriter().addAttribute("stroke-linejoin", "round");
-    else if (lineBorder->joinStyle() == Qt::BevelJoin)
+    else if (lineBorder->joinStyle() == Pk::BevelJoin)
         context.shapeWriter().addAttribute("stroke-linejoin", "bevel");
 
     // dash
-    if (lineBorder->lineStyle() > Qt::SolidLine) {
+    if (lineBorder->lineStyle() > Pk::SolidLine) {
         qreal dashFactor = lineBorder->lineWidth();
 
         if (lineBorder->dashOffset() != 0)

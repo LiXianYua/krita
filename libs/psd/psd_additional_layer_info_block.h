@@ -349,7 +349,7 @@ struct KRITAPSD_EXPORT psd_layer_solid_color {
     }
 
     PkSharedPointer<KoShapeBackground> getBackground() {
-        return PkSharedPointer<KoColorBackground>(new KoColorBackground(toQColor(getBrush())));
+        return PkSharedPointer<KoColorBackground>(new KoColorBackground(getBrush()));
     }
 };
 
@@ -743,8 +743,8 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
 
     PkSharedPointer<KoShapeBackground> getBackground() {
         std::unique_ptr<PkGradient> gradient(getGradient());
-        QGradient *pointer = gradient ? psd_detail::toQGradient(*gradient) : nullptr;
-        PkSharedPointer<KoGradientBackground> bg = PkSharedPointer<KoGradientBackground>(new KoGradientBackground(pointer));
+        PkSharedPointer<KoGradientBackground> bg =
+            PkSharedPointer<KoGradientBackground>(new KoGradientBackground(gradient.release()));
         return bg;
     }
 
@@ -890,17 +890,16 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
 
         loadPattern(embeddedProxy);
         if (pattern) {
-            bg->setPattern(toQImage(pattern->pattern()));
+            bg->setPattern(pattern->pattern());
         } else {
             KoResourceLoadResult res = KisGlobalResourcesInterface::instance()->source(ResourceType::Patterns).fallbackResource();
-            bg->setPattern(toQImage(res.resource<KoPattern>()->pattern()));
+            bg->setPattern(res.resource<KoPattern>()->pattern());
         }
-        const QSizeF originalSize = bg->patternOriginalSize();
-        PkSizeF size = toPkSizeF(originalSize);
+        PkSizeF size = bg->patternOriginalSize();
         PkPointF refPoint(offset.x()/size.width(), offset.y()/size.height());
         size = PkSizeF(size.width() * (0.01*scale), size.height() * (0.01*scale));
-        bg->setPatternDisplaySize(toQSizeF(size));
-        bg->setReferencePointOffset(toQPointF(refPoint));
+        bg->setPatternDisplaySize(size);
+        bg->setReferencePointOffset(refPoint);
         return bg;
     }
 };
@@ -1099,8 +1098,8 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
     double penWidth {1.0};
     double penDashOffset {0.0};
     double penMiterLimit {2.0};
-    Qt::PenCapStyle penCapStyle {Qt::SquareCap};
-    Qt::PenJoinStyle penJoinStyle {Qt::BevelJoin};
+    Pk::PenCapStyle penCapStyle {Pk::SquareCap};
+    Pk::PenJoinStyle penJoinStyle {Pk::BevelJoin};
     PkColor penColor;
     PkGradient penGradient; // valid only when gradient == true
     bool gradient{false};
@@ -1142,20 +1141,20 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
     }
     void setLineCapType(const PkString val) {
         if (val == "strokeStyleButtCap") {
-            penCapStyle = Qt::FlatCap;
+            penCapStyle = Pk::FlatCap;
         } else if (val == "strokeStyleSquareCap") {
-            penCapStyle = Qt::SquareCap;
+            penCapStyle = Pk::SquareCap;
         } else if (val == "strokeStyleRoundCap") {
-            penCapStyle = Qt::RoundCap;
+            penCapStyle = Pk::RoundCap;
         }
     }
     void setLineJoinType(const PkString val) {
         if (val == "strokeStyleMiterJoin") {
-            penJoinStyle = Qt::MiterJoin;
+            penJoinStyle = Pk::MiterJoin;
         } else if (val == "strokeStyleBevelJoin") {
-            penJoinStyle = Qt::BevelJoin;
+            penJoinStyle = Pk::BevelJoin;
         } else if (val == "strokeStyleRoundJoin") {
-            penJoinStyle = Qt::RoundJoin;
+            penJoinStyle = Pk::RoundJoin;
         }
     }
 
@@ -1190,7 +1189,7 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         const QGradient *lineGradient = lineBrush.gradient();
         gradient = lineGradient != nullptr;
         opacity = stroke->color().alphaF();
-        dashPattern = psd_detail::toPkVector(stroke->lineDashes());
+        dashPattern = stroke->lineDashes();
         penColor = toPkColor(pen.color());
         if (lineGradient) {
             penGradient = psd_detail::toPkGradient(*lineGradient);
@@ -1232,15 +1231,15 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         w.writeDouble("strokeStyleMiterLimit", penMiterLimit);
 
         PkString linecap = "strokeStyleButtCap";
-        if (penCapStyle == Qt::SquareCap) {
+        if (penCapStyle == Pk::SquareCap) {
             linecap = "strokeStyleSquareCap";
-        } else if (penCapStyle == Qt::RoundCap) {
+        } else if (penCapStyle == Pk::RoundCap) {
             linecap = "strokeStyleRoundCap";
         }
         PkString linejoin = "strokeStyleMiterJoin";
-        if (penJoinStyle == Qt::BevelJoin) {
+        if (penJoinStyle == Pk::BevelJoin) {
             linejoin = "strokeStyleBevelJoin";
-        } else if (penJoinStyle == Qt::RoundJoin) {
+        } else if (penJoinStyle == Pk::RoundJoin) {
             linejoin = "strokeStyleRoundJoin";
         }
         w.writeEnum("strokeStyleLineCapType", "strokeStyleLineCapType", linecap);
@@ -1300,14 +1299,14 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         stroke->setDashOffset(penDashOffset);
         stroke->setMiterLimit(penMiterLimit);
         if (dashPattern.isEmpty()) {
-            stroke->setLineStyle(Qt::SolidLine, QVector<double>());
+            stroke->setLineStyle(Pk::SolidLine, PkVector<double>());
         } else {
             if (dashPattern.size() % 2 > 0) {
                 PkVector<double> pattern = dashPattern;
                 pattern.append(dashPattern);
-                stroke->setLineStyle(Qt::CustomDashLine, psd_detail::toQVector(pattern));
+                stroke->setLineStyle(Pk::CustomDashLine, pattern);
             } else {
-                stroke->setLineStyle(Qt::CustomDashLine, psd_detail::toQVector(dashPattern));
+                stroke->setLineStyle(Pk::CustomDashLine, dashPattern);
             }
         }
     }

@@ -1255,10 +1255,10 @@ void applyDashes(const KoShapeStrokeSP srcStroke, KoShapeStrokeSP dstStroke)
             dashes[i] /= lineWidth;
         }
 
-        dstStroke->setLineStyle(Qt::CustomDashLine, dashes);
+        dstStroke->setLineStyle(Pk::CustomDashLine, dashes);
         dstStroke->setDashOffset(dashOffset / lineWidth);
     } else {
-        dstStroke->setLineStyle(Qt::SolidLine, PkVector<qreal>());
+        dstStroke->setLineStyle(Pk::SolidLine, PkVector<qreal>());
     }
 }
 

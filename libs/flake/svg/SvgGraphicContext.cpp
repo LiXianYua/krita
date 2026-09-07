@@ -17,10 +17,10 @@ SvgGraphicsContext::SvgGraphicsContext()
 : stroke(PkSharedPointer<KoShapeStroke>(new KoShapeStroke()))
 , textProperties(KoSvgTextProperties())
 {
-    stroke->setLineStyle(Qt::NoPen, PkVector<qreal>());   // default is no stroke
+    stroke->setLineStyle(Pk::NoPen, PkVector<qreal>());   // default is no stroke
     stroke->setLineWidth(1.0);
-    stroke->setCapStyle(Qt::FlatCap);
-    stroke->setJoinStyle(Qt::MiterJoin);
+    stroke->setCapStyle(Pk::FlatCap);
+    stroke->setJoinStyle(Pk::MiterJoin);
 }
 
 SvgGraphicsContext::SvgGraphicsContext(const SvgGraphicsContext &gc)
@@ -45,10 +45,10 @@ void SvgGraphicsContext::workaroundClearInheritedFillProperties()
     strokeType = None;
 
     stroke = PkSharedPointer<KoShapeStroke>(new KoShapeStroke());
-    stroke->setLineStyle(Qt::NoPen, PkVector<qreal>());   // default is no stroke
+    stroke->setLineStyle(Pk::NoPen, PkVector<qreal>());   // default is no stroke
     stroke->setLineWidth(1.0);
-    stroke->setCapStyle(Qt::FlatCap);
-    stroke->setJoinStyle(Qt::MiterJoin);
+    stroke->setCapStyle(Pk::FlatCap);
+    stroke->setJoinStyle(Pk::MiterJoin);
 
     fillType = Solid;
     fillRule = Pk::WindingFill;

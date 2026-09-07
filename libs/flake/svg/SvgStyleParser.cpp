@@ -316,18 +316,18 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, co
         gc->stroke->setLineWidth(SvgUtil::parseUnitXY(gc, d->context.resolvedProperties(), params));
     } else if (command == "stroke-linejoin") {
         if (params == "miter")
-            gc->stroke->setJoinStyle(Qt::MiterJoin);
+            gc->stroke->setJoinStyle(Pk::MiterJoin);
         else if (params == "round")
-            gc->stroke->setJoinStyle(Qt::RoundJoin);
+            gc->stroke->setJoinStyle(Pk::RoundJoin);
         else if (params == "bevel")
-            gc->stroke->setJoinStyle(Qt::BevelJoin);
+            gc->stroke->setJoinStyle(Pk::BevelJoin);
     } else if (command == "stroke-linecap") {
         if (params == "butt")
-            gc->stroke->setCapStyle(Qt::FlatCap);
+            gc->stroke->setCapStyle(Pk::FlatCap);
         else if (params == "round")
-            gc->stroke->setCapStyle(Qt::RoundCap);
+            gc->stroke->setCapStyle(Pk::RoundCap);
         else if (params == "square")
-            gc->stroke->setCapStyle(Qt::SquareCap);
+            gc->stroke->setCapStyle(Pk::SquareCap);
     } else if (command == "stroke-miterlimit") {
         gc->stroke->setMiterLimit(pkToFloat(params));
     } else if (command == "stroke-dasharray") {
@@ -344,7 +344,7 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, co
                 array << array;
             }
         }
-        gc->stroke->setLineStyle(Qt::CustomDashLine, toQVectorReals(array));
+        gc->stroke->setLineStyle(Pk::CustomDashLine, array);
     } else if (command == "stroke-dashoffset") {
         gc->stroke->setDashOffset(pkToFloat(params));
     }

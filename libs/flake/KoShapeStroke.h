@@ -52,13 +52,13 @@ public:
     KoShapeStroke& operator = (const KoShapeStroke &rhs);
 
     /// Sets the lines cap style
-    void setCapStyle(Qt::PenCapStyle style);
+    void setCapStyle(Pk::PenCapStyle style);
     /// Returns the lines cap style
-    Qt::PenCapStyle capStyle() const;
+    Pk::PenCapStyle capStyle() const;
     /// Sets the lines join style
-    void setJoinStyle(Qt::PenJoinStyle style);
+    void setJoinStyle(Pk::PenJoinStyle style);
     /// Returns the lines join style
-    Qt::PenJoinStyle joinStyle() const;
+    Pk::PenJoinStyle joinStyle() const;
     /// Sets the line width
     void setLineWidth(qreal lineWidth);
     /// Returns the line width
@@ -68,9 +68,9 @@ public:
     /// Returns the miter limit
     qreal miterLimit() const;
     /// Sets the line style
-    void setLineStyle(Qt::PenStyle style, const PkVector<qreal> &dashes);
+    void setLineStyle(Pk::PenStyle style, const PkVector<qreal> &dashes);
     /// Returns the line style
-    Qt::PenStyle lineStyle() const;
+    Pk::PenStyle lineStyle() const;
     /// Returns the line dashes
     PkVector<qreal> lineDashes() const;
     /// Sets the dash offset

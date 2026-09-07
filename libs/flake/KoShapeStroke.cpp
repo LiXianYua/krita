@@ -215,11 +215,11 @@ void KoShapeStroke::strokeInsets(const KoShape *shape, KoInsets &insets) const
 
     // if we have square cap, we need a little more space
     // -> sqrt((0.5*penWidth)^2 + (0.5*penWidth)^2)
-    if (capStyle() == Qt::SquareCap) {
+    if (capStyle() == Pk::SquareCap) {
         extent *= M_SQRT2;
     }
 
-    if (joinStyle() == Qt::MiterJoin) {
+    if (joinStyle() == Pk::MiterJoin) {
         // miter limit in Qt is normalized by the line width (and not half-width)
         extent = qMax(extent, d->pen.widthF() * miterLimit());
     }
@@ -319,24 +319,24 @@ bool KoShapeStroke::isVisible() const
         (d->brush.gradient() || d->color.alpha() > 0);
 }
 
-void KoShapeStroke::setCapStyle(Qt::PenCapStyle style)
+void KoShapeStroke::setCapStyle(Pk::PenCapStyle style)
 {
-    d->pen.setCapStyle(static_cast<Pk::PenCapStyle>(style));
+    d->pen.setCapStyle(style);
 }
 
-Qt::PenCapStyle KoShapeStroke::capStyle() const
+Pk::PenCapStyle KoShapeStroke::capStyle() const
 {
-    return static_cast<Qt::PenCapStyle>(d->pen.capStyle());
+    return d->pen.capStyle();
 }
 
-void KoShapeStroke::setJoinStyle(Qt::PenJoinStyle style)
+void KoShapeStroke::setJoinStyle(Pk::PenJoinStyle style)
 {
-    d->pen.setJoinStyle(static_cast<Pk::PenJoinStyle>(style));
+    d->pen.setJoinStyle(style);
 }
 
-Qt::PenJoinStyle KoShapeStroke::joinStyle() const
+Pk::PenJoinStyle KoShapeStroke::joinStyle() const
 {
-    return static_cast<Qt::PenJoinStyle>(d->pen.joinStyle());
+    return d->pen.joinStyle();
 }
 
 void KoShapeStroke::setLineWidth(qreal lineWidth)
@@ -369,18 +369,18 @@ void KoShapeStroke::setColor(const PkColor &color)
     d->color = color;
 }
 
-void KoShapeStroke::setLineStyle(Qt::PenStyle style, const PkVector<qreal> &dashes)
+void KoShapeStroke::setLineStyle(Pk::PenStyle style, const PkVector<qreal> &dashes)
 {
-    if (style < Qt::CustomDashLine) {
-        d->pen.setStyle(static_cast<Pk::PenStyle>(style));
+    if (style < Pk::CustomDashLine) {
+        d->pen.setStyle(style);
     } else {
         d->pen.setDashPattern(dashes);
     }
 }
 
-Qt::PenStyle KoShapeStroke::lineStyle() const
+Pk::PenStyle KoShapeStroke::lineStyle() const
 {
-    return static_cast<Qt::PenStyle>(d->pen.style());
+    return d->pen.style();
 }
 
 PkVector<qreal> KoShapeStroke::lineDashes() const
