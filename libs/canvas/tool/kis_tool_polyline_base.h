@@ -29,7 +29,7 @@ public:
 
     void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
 
-    void paint(QPainter& gc, const KoViewConverter &converter) override;
+    void paint(PkPainter &gc, const KoViewConverter &converter) override;
 
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
@@ -38,7 +38,7 @@ public:
     KisPopupWidgetInterface* popupWidget() override;
 
 protected:
-    virtual void finishPolyline(const QVector<PkPointF>& points) = 0;
+    virtual void finishPolyline(const PkVector<PkPointF> &points) = 0;
 
 private:
     void endStroke();

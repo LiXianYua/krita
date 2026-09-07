@@ -28,7 +28,7 @@ public:
     bool supportsPaintingAssistants() const override;
 
 protected:
-    void finishPolyline(const QVector<PkPointF>& points) override;
+    void finishPolyline(const PkVector<PkPointF> &points) override;
 
 private:
     void finishPolylinePk(const PkVector<PkPointF>& points);

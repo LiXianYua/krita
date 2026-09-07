@@ -301,7 +301,7 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
     return outline;
 }
 
-void KisToolPaint::paint(QPainter &gc, const KoViewConverter &converter)
+void KisToolPaint::paint(PkPainter &gc, const KoViewConverter &converter)
 {
     Q_UNUSED(converter);
 
@@ -522,7 +522,7 @@ void KisToolPaint::addOptionWidgetOption(QWidget *control, QWidget *label)
 
 void KisToolPaint::slotPopupQuickHelp()
 {
-    QWhatsThis::showText(QCursor::pos(), quickHelp());
+    QWhatsThis::showText(QCursor::pos(), toQString(quickHelp()));
 }
 
 void KisToolPaint::activatePrimaryAction()

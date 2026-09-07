@@ -54,7 +54,7 @@ protected:
 
     void canvasResourceChanged(int key, const PkVariant &v) override;
 
-    void paint(QPainter &gc, const KoViewConverter &converter) override;
+    void paint(PkPainter &gc, const KoViewConverter &converter) override;
 
     void activatePrimaryAction() override;
     void deactivatePrimaryAction() override;
@@ -101,8 +101,8 @@ protected:
     /**
      * Quick help is a short help text about the way the tool functions.
      */
-    virtual QString quickHelp() const {
-        return QString();
+    virtual PkString quickHelp() const {
+        return PkString();
     }
 
 public Q_SLOTS:

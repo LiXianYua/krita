@@ -217,7 +217,7 @@ void KisToolPolylineBase::undoSelectionOrCancel()
     }
 }
 
-void KisToolPolylineBase::paint(QPainter& gc, const KoViewConverter &converter)
+void KisToolPolylineBase::paint(PkPainter &gc, const KoViewConverter &converter)
 {
     Q_UNUSED(converter);
 
@@ -228,12 +228,12 @@ void KisToolPolylineBase::paint(QPainter& gc, const KoViewConverter &converter)
     PkPointF startPos;
     PkPointF endPos;
 
-    QPainterPath path;
+    PkPainterPath path;
     if (m_dragging && !m_points.empty()) {
         startPos = pixelToView(m_dragStart);
         endPos = pixelToView(m_dragEnd);
-        path.moveTo(toQPointF(startPos));
-        path.lineTo(toQPointF(endPos));
+        path.moveTo(startPos);
+        path.lineTo(endPos);
     }
 
     for (vQPointF::iterator it = m_points.begin(); it != m_points.end(); ++it) {
@@ -245,18 +245,18 @@ void KisToolPolylineBase::paint(QPainter& gc, const KoViewConverter &converter)
 
             startPos = pixelToView(start);
             endPos = pixelToView(end);
-            path.moveTo(toQPointF(startPos));
-            path.lineTo(toQPointF(endPos));
+            path.moveTo(startPos);
+            path.lineTo(endPos);
             start = end;
         }
     }
 
     if (m_closeSnappingActivated) {
         PkPointF basePoint = pixelToView(m_points.first());
-        path.addEllipse(toQPointF(basePoint), SNAPPING_HANDLE_RADIUS, SNAPPING_HANDLE_RADIUS);
+        path.addEllipse(basePoint, SNAPPING_HANDLE_RADIUS, SNAPPING_HANDLE_RADIUS);
     }
 
-    paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(path)));
+    paintToolOutline(&gc, KisOptimizedBrushOutline(path));
     KisToolPaint::paint(gc,converter);
 }
 
@@ -272,7 +272,7 @@ void KisToolPolylineBase::endStroke()
 
     m_dragging = false;
     if(m_points.count() > 1) {
-        QVector<PkPointF> points;
+        PkVector<PkPointF> points;
         points.reserve(m_points.size());
         for (const PkPointF &point : m_points) {
             points.append(point);
