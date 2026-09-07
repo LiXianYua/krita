@@ -10,8 +10,6 @@
 #include <QtCore/qalgorithms.h>
 #include <QtCore/qmath.h>
 #include <QtCore/qnumeric.h>
-#include <QTransform>
-
 #include "KisDecorationsWrapperLayer.h"
 
 #include <PkList.h>
@@ -25,13 +23,6 @@
 #include "kis_guides_config.h"
 #include "kis_painting_assistant.h"
 #include "kis_default_bounds.h"
-
-static QTransform toQTransform(const PkTransform &transform)
-{
-    return QTransform(transform.m11(), transform.m12(), 0,
-                      transform.m21(), transform.m22(), 0,
-                      transform.m31(), transform.m32(), 1);
-}
 
 struct KisDecorationsWrapperLayer::Private
 {
@@ -149,19 +140,15 @@ KUndo2Command *KisDecorationsWrapperLayer::transform(const PkTransform &transfor
                 PkTransform::fromScale(1 / m_document->image()->xRes(),
                                        1 / m_document->image()->yRes());
 
-            // 跨锁交接登记（S-08/S-09）：壳桩头 grid/guides/painting_assistant 的
-            // transform 以 PkTransform 传入，但真实头（libs/canvas kis_grid_config.h /
-            // kis_guides_config.h、plugins/assistants kis_painting_assistant.h）仍为
-            // Qt 变换引用参数 —— S-08 剥 canvas 时需对齐。
             KisGridConfig gridConfig = m_document->gridConfig();
             if (gridConfig.showGrid()) {
-                gridConfig.transform(toQTransform(transform));
+                gridConfig.transform(transform);
                 m_document->setGridConfig(gridConfig);
             }
 
             KisGuidesConfig guidesConfig = m_document->guidesConfig();
             if (guidesConfig.hasGuides()) {
-                guidesConfig.transform(toQTransform(imageToDocument.inverted() * transform * imageToDocument));
+                guidesConfig.transform(imageToDocument.inverted() * transform * imageToDocument);
                 m_document->setGuidesConfig(guidesConfig);
             }
 

@@ -44,7 +44,7 @@ struct KRITAIMPEX_EXPORT KisPNGOptions
         , storeMetaData(false)
         , storeAuthor(false)
         , saveAsHDR(false)
-        , transparencyFillColor(Qt::white)
+        , transparencyFillColor(Pk::white)
         , downsample(false)
     {
     }

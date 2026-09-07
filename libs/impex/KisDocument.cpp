@@ -694,7 +694,7 @@ KisDocument::KisDocument(bool addStorage)
 {
     PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged, this, &KisDocument::slotConfigChanged);
     PkObject::connect(d->undoStack, &KUndo2Stack::cleanChanged, this, &KisDocument::slotUndoStackCleanChanged);
-    QObject::setObjectName(newObjectName());
+    PkObject::setObjectName(newObjectName());
 
     if (addStorage) {
         d->linkedResourcesStorageID = pkCreateUuidString();
@@ -1338,7 +1338,7 @@ void KisDocument::copyFromDocumentImpl(const KisDocument &rhs, CopyPolicy policy
         d->koShapeController = new KoShapeController(0, d->shapeController);
     }
 
-    QObject::setObjectName(rhs.objectName());
+    PkObject::setObjectName(rhs.objectName());
 
     slotConfigChanged();
 
@@ -1922,7 +1922,7 @@ PkImage KisDocument::generatePreview(const PkSize& size)
         PkRect bounds = image->bounds();
         PkSize originalSize = bounds.size();
         // PkSize may round down one dimension to zero on extreme aspect rations, so ensure 1px minimum
-        PkSize newSize = originalSize.scaled(size, Qt::KeepAspectRatio).expandedTo({1, 1});
+        PkSize newSize = originalSize.scaled(size, Pk::KeepAspectRatio).expandedTo({1, 1});
 
         bool pixelArt = false;
         // determine if the image is pixel art or not
@@ -1939,7 +1939,7 @@ PkImage KisDocument::generatePreview(const PkSize& size)
             // do not scale while converting (because it uses Bicubic)
             PkImage original = image->convertToQImage(originalSize, 0);
             // scale using FastTransformation, which is probably Nearest neighbour, suitable for pixel art
-            px = original.scaled(newSize, Qt::KeepAspectRatio, Qt::FastTransformation);
+            px = original.scaled(newSize, Pk::KeepAspectRatio, Pk::FastTransformation);
         } else {
             px = image->convertToQImage(newSize, 0);
         }
@@ -2487,7 +2487,7 @@ PkList<KoResourceLoadResult> KisDocument::linkedDocumentResources()
             const PkString name = resource ? resource->name() : PkString();
             const PkString fileName = pkFileName(iter->url());
             const KoResourceSignature signature(resourceType,
-                                                KoMD5Generator::generateHash(buf.data()),
+                                                KoMD5Generator::generateHash(PkByteArray(buf.data(), static_cast<int>(buf.size()))),
                                                 fileName, name);
 
             if (exportSuccessful) {
@@ -2612,7 +2612,7 @@ void KisDocument::setMirrorAxisConfig(const KisMirrorAxisConfig &config)
     d->mirrorAxisConfig = config;
     if (d->image) {
         d->image->setMirrorAxesCenter(KisAlgebra2D::absoluteToRelative(d->mirrorAxisConfig.axisPosition(),
-                                                                       d->image->bounds()));
+                                                                       PkRectF(d->image->bounds())));
     }
     setModified(true);
 
@@ -2742,8 +2742,8 @@ bool KisDocument::newImage(const PkString& name,
 
     KIS_SAFE_ASSERT_RECOVER_NOOP(image);
 
-    PkObject::connect(image, &KisImage::sigImageModified, this, &KisDocument::setImageModified, PkConnectionType::Unique);
-    PkObject::connect(image, &KisImage::sigImageModifiedWithoutUndo, this, &KisDocument::setImageModifiedWithoutUndo, PkConnectionType::Unique);
+    PkObject::connect(image.data(), &KisImage::sigImageModified, this, &KisDocument::setImageModified, PkConnectionType::Unique);
+    PkObject::connect(image.data(), &KisImage::sigImageModifiedWithoutUndo, this, &KisDocument::setImageModifiedWithoutUndo, PkConnectionType::Unique);
     image->setResolution(imageResolution, imageResolution);
 
     image->assignImageProfile(cs->profile());
@@ -2950,11 +2950,11 @@ void KisDocument::setCurrentImage(KisImageSP image, bool forceInitialUpdate, Kis
     d->setImageAndInitIdleWatcher(image);
     d->image->setUndoStore(new KisDocumentUndoStore(this));
     d->shapeController->setImage(image, preActivatedNode);
-    d->image->setMirrorAxesCenter(KisAlgebra2D::absoluteToRelative(d->mirrorAxisConfig.axisPosition(), image->bounds()));
+    d->image->setMirrorAxesCenter(KisAlgebra2D::absoluteToRelative(d->mirrorAxisConfig.axisPosition(), PkRectF(image->bounds())));
     setModified(false);
-    PkObject::connect(d->image, &KisImage::sigImageModified, this, &KisDocument::setImageModified, PkConnectionType::Unique);
-    PkObject::connect(d->image, &KisImage::sigImageModifiedWithoutUndo, this, &KisDocument::setImageModifiedWithoutUndo, PkConnectionType::Unique);
-    PkObject::connect(d->image, &KisImage::sigLayersChangedAsync, this, &KisDocument::slotImageRootChanged);
+    PkObject::connect(d->image.data(), &KisImage::sigImageModified, this, &KisDocument::setImageModified, PkConnectionType::Unique);
+    PkObject::connect(d->image.data(), &KisImage::sigImageModifiedWithoutUndo, this, &KisDocument::setImageModifiedWithoutUndo, PkConnectionType::Unique);
+    PkObject::connect(d->image.data(), &KisImage::sigLayersChangedAsync, this, &KisDocument::slotImageRootChanged);
 
     if (forceInitialUpdate) {
         d->image->initialRefreshGraph();
@@ -3016,13 +3016,13 @@ PkList<KoColor> KisDocument::colorHistory()
 
 PkRectF KisDocument::documentBounds() const
 {
-    PkRectF bounds = d->image->bounds();
+    PkRectF bounds(d->image->bounds());
 
     KisReferenceImagesLayerSP referenceImagesLayer = this->referenceImagesLayer();
 
     if (referenceImagesLayer) {
-        const QRectF rect = referenceImagesLayer->boundingImageRect();
-        bounds |= PkRectF(rect.x(), rect.y(), rect.width(), rect.height());
+        const PkRectF rect = referenceImagesLayer->boundingImageRect();
+        bounds |= rect;
     }
 
     return bounds;
