@@ -11,6 +11,7 @@
 
 #include <PkPoint.h>
 #include <PkVector.h>
+#include <QVector>
 
 #include "kis_tool_shape.h"
 #include "flake/kis_node_shape.h"
@@ -27,7 +28,10 @@ public:
     bool supportsPaintingAssistants() const override;
 
 protected:
-    void finishPolyline(const PkVector<PkPointF>& points) override;
+    void finishPolyline(const QVector<PkPointF>& points) override;
+
+private:
+    void finishPolylinePk(const PkVector<PkPointF>& points);
 protected:
     void resetCursorStyle() override;
 };
@@ -43,7 +47,7 @@ public:
             : KisToolPolyLineFactoryBase("KisToolPolygon") {
         setToolTip(PkString("Polygon Tool: Shift-mouseclick ends the polygon."));
         setSection(ToolBoxSection::Shape);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(4);
     }
 

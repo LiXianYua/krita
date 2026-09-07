@@ -46,7 +46,17 @@ void KisToolPolygon::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-void KisToolPolygon::finishPolyline(const PkVector<PkPointF>& points)
+void KisToolPolygon::finishPolyline(const QVector<PkPointF>& points)
+{
+    PkVector<PkPointF> pkPoints;
+    pkPoints.reserve(points.size());
+    for (const PkPointF &point : points) {
+        pkPoints.append(point);
+    }
+    finishPolylinePk(pkPoints);
+}
+
+void KisToolPolygon::finishPolylinePk(const PkVector<PkPointF>& points)
 {
     const KisToolShape::ShapeAddInfo info =
         shouldAddShape(currentNode());
