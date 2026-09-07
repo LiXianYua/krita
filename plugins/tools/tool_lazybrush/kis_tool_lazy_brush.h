@@ -87,7 +87,7 @@ public:
         // Temporarily
         setSection(ToolBoxSection::Fill);
         setPriority(3);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolLazyBrushFactory() override {}

@@ -21,9 +21,6 @@
 #include "kis_layer_properties_icons.h"
 
 #include "lazybrush/kis_colorize_mask.h"
-#include "kis_signal_auto_connection.h"
-
-
 struct KisToolLazyBrush::Private
 {
     bool activateMaskMode = false;
@@ -32,7 +29,7 @@ struct KisToolLazyBrush::Private
     bool activatedActionLock{false};
 
     KisNodeWSP manuallyActivatedNode;
-    KisSignalAutoConnectionsStore toolConnections;
+    QMetaObject::Connection canvasResourceConnection;
 };
 
 
@@ -65,7 +62,8 @@ void KisToolLazyBrush::tryDisableKeyStrokesOnMask()
 
 void KisToolLazyBrush::activate(const PkSet<KoShape*> &shapes)
 {
-    m_d->toolConnections.addUniqueConnection(
+    QObject::disconnect(m_d->canvasResourceConnection);
+    m_d->canvasResourceConnection = QObject::connect(
         canvas()->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
         this, &KisToolLazyBrush::slotCanvasResourceChanged);
 
@@ -82,7 +80,8 @@ void KisToolLazyBrush::deactivate()
 {
     KisToolFreehand::deactivate();
     tryDisableKeyStrokesOnMask();
-    m_d->toolConnections.clear();
+    QObject::disconnect(m_d->canvasResourceConnection);
+    m_d->canvasResourceConnection = {};
 }
 
 void KisToolLazyBrush::slotCurrentNodeChanged(KisNodeSP node)
@@ -185,7 +184,7 @@ void KisToolLazyBrush::tryCreateColorizeMask()
     if (!node->isEditable(false)) {
         if (KisCanvasFeedback *feedback =
                 dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            feedback->showFloatingMessage(PkString("Layer is locked"), {});
+            feedback->showFloatingMessage(toQString(PkString("Layer is locked")), {});
         }
         return;
     }
