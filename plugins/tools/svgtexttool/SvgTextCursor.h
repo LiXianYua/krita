@@ -149,7 +149,7 @@ public:
     void setPosToPoint(PkPointF point, bool moveAnchor = true);
 
     /// Get typeSettingMode handle for text;
-    TypeSettingModeHandle typeSettingHandleAtPos(const QRectF regionOfInterest);
+    TypeSettingModeHandle typeSettingHandleAtPos(const PkRectF regionOfInterest);
 
     /// Set a given typesetting handle as hovered, so it will be drawn as such.
     void setTypeSettingHandleHovered(TypeSettingModeHandle hovered = TypeSettingModeHandle::NoHandle);
@@ -184,7 +184,7 @@ public:
      * Used by the type setting mode to find the relevant metrics to scale.
      * @return cursor pos closest.
      */
-    int posForTypeSettingHandleAndRect(const TypeSettingModeHandle handle, const QRectF regionOfInterest);
+    int posForTypeSettingHandleAndRect(const TypeSettingModeHandle handle, const PkRectF regionOfInterest);
 
     /// Move the cursor, and, if you don't want a selection, move the anchor.
     void moveCursor(MoveMode mode, bool moveAnchor = true);
@@ -314,7 +314,7 @@ public:
 Q_SIGNALS:
 
     /// Sents an update to the parent tool to update it's decorations.
-    void updateCursorDecoration(QRectF updateRect);
+    void updateCursorDecoration(PkRectF updateRect);
     /// Sents an update selection was changed.
     void selectionChanged();
 

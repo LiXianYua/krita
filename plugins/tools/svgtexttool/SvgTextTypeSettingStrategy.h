@@ -8,13 +8,12 @@
 #define SVGTEXTTYPESETTINGSTRATEGY_H
 
 #include <KoInteractionStrategy.h>
-#include <QPointF>
 #include <KoSvgTextShape.h>
+#include <pk/geometry/PkPoint.h>
+#include <pk/geometry/PkRect.h>
 
 class SvgTextCursor;
 class KoSvgTextShape;
-class QRectF;
-class QPointF;
 
 /**
  * @brief The SvgTextTypeSettingStrategy class
@@ -23,21 +22,21 @@ class QPointF;
 class SvgTextTypeSettingStrategy: public KoInteractionStrategy
 {
 public:
-    SvgTextTypeSettingStrategy(KoToolBase *tool, KoSvgTextShape *textShape, SvgTextCursor *textCursor, const QRectF &regionOfInterest, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    SvgTextTypeSettingStrategy(KoToolBase *tool, KoSvgTextShape *textShape, SvgTextCursor *textCursor, const PkRectF &regionOfInterest, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
 
     // KoInteractionStrategy interface
 public:
     // void paint(QPainter &painter, const KoViewConverter &converter) override;
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
 
 private:
     KoSvgTextShape *m_shape;
-    QPointF m_dragStart;
-    QPointF m_dragCurrent;
-    QPointF m_currentDelta;
+    PkPointF m_dragStart;
+    PkPointF m_dragCurrent;
+    PkPointF m_currentDelta;
 
     int m_cursorPos;
     int m_cursorAnchor;

@@ -112,20 +112,20 @@ struct IMEDecorationInfo {
 };
 
 struct TypeSettingDecorInfo {
-    QPair<QPointF, QPointF> handles;
+    PkPair<PkPointF, PkPointF> handles;
     bool handlesEnabled;
 
-    QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath> baselines;
-    QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath> paths;
+    PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath> baselines;
+    PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath> paths;
 
-    QPainterPath edges;
-    QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath> parentPaths;
-    QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath> parentBaselines;
+    PkPainterPath edges;
+    PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath> parentPaths;
+    PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath> parentBaselines;
 
-    QPointF closestBaselinePoint;
+    PkPointF closestBaselinePoint;
 
-    QRectF boundingRect(qreal handleRadius) {
-        QRectF total;
+    PkRectF boundingRect(qreal handleRadius) {
+        PkRectF total;
         for (int i = 0; i< paths.values().size(); i++) {
             total |= paths.values().at(i).boundingRect();
         }
@@ -139,7 +139,7 @@ struct TypeSettingDecorInfo {
             total |= parentBaselines.values().at(i).boundingRect();
         }
         total |= edges.boundingRect();
-        QRectF rect(0, 0, handleRadius, handleRadius);
+        PkRectF rect(0, 0, handleRadius, handleRadius);
         rect.moveCenter(handles.first);
         total |= rect;
         rect.moveCenter(handles.second);
@@ -231,7 +231,7 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
     SvgTextCursor::TypeSettingModeHandle hoveredTypeSettingHandle = SvgTextCursor::NoHandle;
     bool drawTypeSettingHandle = true;
     qreal handleRadius = 7;
-    QRectF oldTypeSettingRect;
+    PkRectF oldTypeSettingRect;
     TypeSettingDecorInfo typeSettingDecor;
 
     SvgTextInsertCommand *preEditCommand {nullptr}; ///< PreEdit string as an command provided by the input method.
@@ -390,13 +390,13 @@ void SvgTextCursor::setPosToPoint(PkPointF point, bool moveAnchor)
     }
 }
 
-SvgTextCursor::TypeSettingModeHandle SvgTextCursor::typeSettingHandleAtPos(const QRectF regionOfInterest)
+SvgTextCursor::TypeSettingModeHandle SvgTextCursor::typeSettingHandleAtPos(const PkRectF regionOfInterest)
 {
     SvgTextCursor::TypeSettingModeHandle handle = SvgTextCursor::NoHandle;
 
     if (!(d->typeSettingMode && d->shape && d->canvas)) return handle;
 
-    const QRectF roiInShape = d->shape->absoluteTransformation().inverted().mapRect(regionOfInterest);
+    const PkRectF roiInShape = d->shape->absoluteTransformation().inverted().mapRect(regionOfInterest);
 
     if (d->typeSettingDecor.handlesEnabled) {
         if (roiInShape.contains(d->typeSettingDecor.handles.first)) {
@@ -409,17 +409,17 @@ SvgTextCursor::TypeSettingModeHandle SvgTextCursor::typeSettingHandleAtPos(const
     if (!d->typeSettingDecor.boundingRect(d->handleRadius).intersects(roiInShape)) return handle;
 
     qreal closest = std::numeric_limits<qreal>::max();
-    QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath> paths
+    PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath> paths
             = d->typeSettingDecor.testBaselines(d->lastKnownModifiers)? d->typeSettingDecor.baselines: d->typeSettingDecor.paths;
-    Q_FOREACH (const SvgTextCursor::TypeSettingModeHandle baseline, paths.keys()) {
-        const QPainterPath path = paths.value(baseline);
+    for (const SvgTextCursor::TypeSettingModeHandle baseline : paths.keys()) {
+        const PkPainterPath path = paths.value(baseline);
         if (!path.intersects(roiInShape)) continue;
 
-        const QList<QPolygonF> polys = path.toSubpathPolygons();
-        Q_FOREACH(const QPolygonF poly, polys) {
+        const PkVector<PkPolygonF> polys = path.toSubpathPolygons(PkTransform());
+        for (const PkPolygonF &poly : polys) {
             if (poly.size() < 2) continue;
             for (int i = 1; i < poly.size(); i++) {
-                QLineF l(poly.at(i-1), poly.at(i));
+                PkLineF l(poly.at(i-1), poly.at(i));
                 qreal distance = kisDistanceToLine(roiInShape.center(), l);
                 if (distance < closest) {
                     handle = baseline;
@@ -536,8 +536,8 @@ bool SvgTextCursor::setDominantBaselineFromHandle(const TypeSettingModeHandle ha
     return true;
 }
 
-QMap<SvgTextCursor::TypeSettingModeHandle, int> typeSettingBaselinesFromMetrics(const KoSvgText::FontMetrics metrics, const qreal lineGap, const bool isHorizontal) {
-    return QMap<SvgTextCursor::TypeSettingModeHandle, int> {
+PkMap<SvgTextCursor::TypeSettingModeHandle, int> typeSettingBaselinesFromMetrics(const KoSvgText::FontMetrics metrics, const qreal lineGap, const bool isHorizontal) {
+    return PkMap<SvgTextCursor::TypeSettingModeHandle, int> {
         {SvgTextCursor::Ascender, metrics.ascender},
         {SvgTextCursor::Descender, metrics.descender},
         {SvgTextCursor::BaselineAlphabetic, metrics.alphabeticBaseline},
@@ -552,15 +552,15 @@ QMap<SvgTextCursor::TypeSettingModeHandle, int> typeSettingBaselinesFromMetrics(
     };
 }
 
-int SvgTextCursor::posForTypeSettingHandleAndRect(const TypeSettingModeHandle handle, const QRectF regionOfInterest)
+int SvgTextCursor::posForTypeSettingHandleAndRect(const TypeSettingModeHandle handle, const PkRectF regionOfInterest)
 {
     if (!d->shape) return 0;
 
-    QList<KoSvgTextCharacterInfo> infos =
+    PkList<KoSvgTextCharacterInfo> infos =
             d->shape->getPositionsAndRotationsForRange(d->pos, d->anchor);
     if (infos.size() < 1) return 0;
 
-    const QRectF roi = d->shape->documentToShape(regionOfInterest);
+    const PkRectF roi = d->shape->documentToShape(regionOfInterest);
 
     for (auto it = infos.begin(); it != infos.end(); it++) {
         const int currentPos = (d->pos == d->anchor)? -1 :d->shape->posForIndex(it->logicalIndex);
@@ -573,15 +573,15 @@ int SvgTextCursor::posForTypeSettingHandleAndRect(const TypeSettingModeHandle ha
         const qreal scaleMetrics = props.fontSize().value/qreal(metrics.fontSize);
         const int lineGap = lineHeight.isNormal? metrics.lineGap: (lineHeight.length.value/scaleMetrics)-(metrics.ascender-metrics.descender);
 
-        QTransform t = QTransform::fromTranslate(it->finalPos.x(), it->finalPos.y());
+        PkTransform t = PkTransform::fromTranslate(it->finalPos.x(), it->finalPos.y());
         t.rotate(it->rotateDeg);
 
-        const QMap<SvgTextCursor::TypeSettingModeHandle, int> types
+        const PkMap<SvgTextCursor::TypeSettingModeHandle, int> types
                 = typeSettingBaselinesFromMetrics(metrics, lineGap, isHorizontal);
 
         const int metric = types.value(handle);
-        QPointF offset = isHorizontal? QPointF(0, -(metric*scaleMetrics)): QPointF(metric*scaleMetrics, 0);
-        QLineF line = t.map(QLineF(offset, offset+it->advance));
+        PkPointF offset = isHorizontal? PkPointF(0, -(metric*scaleMetrics)): PkPointF(metric*scaleMetrics, 0);
+        PkLineF line = t.map(PkLineF(offset, offset+it->advance));
         if (KisAlgebra2D::intersectLineRect(line, roi.toAlignedRect(), false)) return d->shape->posForIndex(it->logicalIndex);
     }
 
@@ -881,13 +881,13 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
             const KisHandleStyle highlight = KisHandleStyle::partiallyHighlightedPrimaryHandles();
             const KisHandleStyle regular = KisHandleStyle::secondarySelection();
 
-            QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath> paths
+            PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath> paths
                     = d->typeSettingDecor.testBaselines(d->lastKnownModifiers)? d->typeSettingDecor.baselines: d->typeSettingDecor.paths;
-            QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath> parentPaths
+            PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath> parentPaths
                     = d->typeSettingDecor.testBaselines(d->lastKnownModifiers)? d->typeSettingDecor.parentBaselines: d->typeSettingDecor.parentPaths;
-            Q_FOREACH(SvgTextCursor::TypeSettingModeHandle handle, paths.keys()) {
-                const QPainterPath p = paths.value(handle);
-                const QPainterPath parent = parentPaths.value(handle);
+            for (SvgTextCursor::TypeSettingModeHandle handle : paths.keys()) {
+                const PkPainterPath p = paths.value(handle);
+                const PkPainterPath parent = parentPaths.value(handle);
                 if (d->hoveredTypeSettingHandle == handle) {
                     helper.setHandleStyle(highlight);
                     helper.drawPath(parent);
@@ -898,8 +898,8 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
                     pen.setCosmetic(true);
                     gc.setPen(pen);
                     gc.setOpacity(0.5);
-                    gc.drawPath(painterTf.map(parent));
-                    gc.drawPath(painterTf.map(p));
+                    gc.drawPath(painterTf.map(toQPainterPath(parent)));
+                    gc.drawPath(painterTf.map(toQPainterPath(p)));
                     gc.restore();
                 }
                 gc.save();
@@ -907,7 +907,7 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
                 pen.setCosmetic(true);
                 gc.setPen(pen);
                 gc.setOpacity(0.5);
-                gc.drawPath(painterTf.map(d->typeSettingDecor.edges));
+                gc.drawPath(painterTf.map(toQPainterPath(d->typeSettingDecor.edges)));
                 gc.restore();
             }
 
@@ -923,7 +923,7 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
                 // When we're drawing on opengl, there's no anti-aliasing, so we should have full hinting for readabiltiy.
                 QFont font = gc.font();
                 font.setHintingPreference(QFont::PreferFullHinting);
-                textP.addText(painterTf.map(d->typeSettingDecor.closestBaselinePoint).toPoint(), font, name);
+                textP.addText(painterTf.map(toQPointF(d->typeSettingDecor.closestBaselinePoint)).toPoint(), font, name);
                 gc.save();
                 QPen pen(bgColorForCaret(selectionColor, 255));
                 pen.setCosmetic(true);
@@ -1794,15 +1794,15 @@ int calcLineHeight(const KoSvgText::LineHeightInfo &lineHeight, const KoSvgText:
 
 void processBaseline(const SvgTextCursor::TypeSettingModeHandle handle,
                      const int metric, const bool isHorizontal,
-                     QTransform t,
-                     const qreal scaleMetrics, const QPointF &advance,
-                     QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath> &decor){
-    QPointF offset = isHorizontal? QPointF(0, -(metric*scaleMetrics)): QPointF(metric*scaleMetrics, 0);
+                     PkTransform t,
+                     const qreal scaleMetrics, const PkPointF &advance,
+                     PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath> &decor){
+    PkPointF offset = isHorizontal? PkPointF(0, -(metric*scaleMetrics)): PkPointF(metric*scaleMetrics, 0);
 
-    QPainterPath p = decor.value(handle);
+    PkPainterPath p = decor.value(handle);
 
-    const QPointF startPos = t.map(offset);
-    const QPointF endPos = t.map(offset+advance);
+    const PkPointF startPos = t.map(offset);
+    const PkPointF endPos = t.map(offset+advance);
     if (p.currentPosition() != startPos) {
         p.moveTo(startPos);
     }
@@ -1811,14 +1811,15 @@ void processBaseline(const SvgTextCursor::TypeSettingModeHandle handle,
     decor.insert(handle, p);
 }
 
-void processEdges(QTransform t, QMap<SvgTextCursor::TypeSettingModeHandle, int> values,
+void processEdges(PkTransform t, PkMap<SvgTextCursor::TypeSettingModeHandle, int> values,
                   const bool isHorizontal,
                   const qreal scaleMetrics,
-                  const QPointF advance,
-                  QPainterPath &path) {
-    QPointF p1(values.first(), 0);
-    QPointF p2(values.last(), 0);
-    Q_FOREACH(const int val, values) {
+                  const PkPointF advance,
+                  PkPainterPath &path) {
+    const PkList<int> metricValues = values.values();
+    PkPointF p1(metricValues.first(), 0);
+    PkPointF p2(metricValues.last(), 0);
+    for (const int val : values) {
         if (val < p1.x()) {
             p1.setX(val);
         }
@@ -1827,8 +1828,8 @@ void processEdges(QTransform t, QMap<SvgTextCursor::TypeSettingModeHandle, int> 
         }
     }
     if (isHorizontal) {
-        p1 = QPointF(p1.y(), -p1.x());
-        p2 = QPointF(p2.y(), -p2.x());
+        p1 = PkPointF(p1.y(), -p1.x());
+        p2 = PkPointF(p2.y(), -p2.x());
     }
     p1 *= scaleMetrics;
     p2 *= scaleMetrics;
@@ -1836,18 +1837,18 @@ void processEdges(QTransform t, QMap<SvgTextCursor::TypeSettingModeHandle, int> 
     path.lineTo(t.map(p2+advance));
 }
 
-QTransform posAndRotateTransform(const QPointF pos, const qreal rotateDeg) {
-    QTransform t = QTransform::fromTranslate(pos.x(), pos.y());
+PkTransform posAndRotateTransform(const PkPointF pos, const qreal rotateDeg) {
+    PkTransform t = PkTransform::fromTranslate(pos.x(), pos.y());
     t.rotate(rotateDeg);
     return t;
 }
 
 void SvgTextCursor::updateTypeSettingDecoration()
 {
-    QRectF updateRect;
+    PkRectF updateRect;
     if (d->shape && d->typeSettingMode) {
 
-        QList<KoSvgTextCharacterInfo> infos =
+        PkList<KoSvgTextCharacterInfo> infos =
                 d->shape->getPositionsAndRotationsForRange(d->pos, d->anchor);
         if (infos.size() < 1) return;
 
@@ -1871,7 +1872,7 @@ void SvgTextCursor::updateTypeSettingDecoration()
             }
         }
 
-        QTransform t = QTransform::fromTranslate(last.finalPos.x(), last.finalPos.y());
+        PkTransform t = PkTransform::fromTranslate(last.finalPos.x(), last.finalPos.y());
         t.rotate(last.rotateDeg);
         last.finalPos = t.map(last.advance);
 
@@ -1879,12 +1880,12 @@ void SvgTextCursor::updateTypeSettingDecoration()
         d->typeSettingDecor.handles.second = rtl? first.finalPos: last.finalPos;
 
         //Start collecting the metrics decoration...
-        d->typeSettingDecor.paths = QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath>();
-        d->typeSettingDecor.baselines = QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath>();
-        d->typeSettingDecor.edges = QPainterPath();
-        d->typeSettingDecor.parentPaths = QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath>();
-        d->typeSettingDecor.parentBaselines = QMap<SvgTextCursor::TypeSettingModeHandle, QPainterPath>();
-        QList<KoSvgTextCharacterInfo> metricInfos = infos;
+        d->typeSettingDecor.paths = PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath>();
+        d->typeSettingDecor.baselines = PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath>();
+        d->typeSettingDecor.edges = PkPainterPath();
+        d->typeSettingDecor.parentPaths = PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath>();
+        d->typeSettingDecor.parentBaselines = PkMap<SvgTextCursor::TypeSettingModeHandle, PkPainterPath>();
+        PkList<KoSvgTextCharacterInfo> metricInfos = infos;
         if (d->pos == d->anchor) {
             metricInfos = d->shape->getPositionsAndRotationsForRange(0, d->shape->posForIndex(d->shape->plainText().size()));
         }
@@ -1901,23 +1902,23 @@ void SvgTextCursor::updateTypeSettingDecoration()
             const qreal scaleMetrics = props.fontSize().value/qreal(metrics.fontSize);
             const int lineGap = calcLineHeight(lineHeight, metrics, scaleMetrics);
 
-            const QMap<SvgTextCursor::TypeSettingModeHandle, int> types
+            const PkMap<SvgTextCursor::TypeSettingModeHandle, int> types
                     = typeSettingBaselinesFromMetrics(metrics, lineGap, isHorizontal);
 
-            QList<KoSvgTextCharacterInfo> parentInfos;
-            QList<int> positions;
+            PkList<KoSvgTextCharacterInfo> parentInfos;
+            PkList<int> positions;
             positions << 0;
             positions << pkMax(0, minPos-1);
             positions << maxPos;
             positions << endPos;
 
-            Q_FOREACH(const int pos, positions) {
-                QList<KoSvgTextCharacterInfo> info =
+            for (const int pos : positions) {
+                PkList<KoSvgTextCharacterInfo> info =
                         d->shape->getPositionsAndRotationsForRange(pos, pos);
                 parentInfos.append(info.first());
             }
 
-            QPointF drawOffset = isHorizontal? QPointF(d->handleRadius*2, 0): QPointF(0, d->handleRadius*2);
+            PkPointF drawOffset = isHorizontal? PkPointF(d->handleRadius*2, 0): PkPointF(0, d->handleRadius*2);
             if (d->canvas) {
                 drawOffset = d->canvas->viewConverter()->viewToDocument().map(drawOffset);
             }
@@ -1932,12 +1933,12 @@ void SvgTextCursor::updateTypeSettingDecoration()
                     continue;
                 }
 
-                const QPointF finalPos = toggleOffset? it->finalPos + (it->advance - drawOffset): it->finalPos;
-                const QPointF advance = drawOffset;
+                const PkPointF finalPos = toggleOffset? it->finalPos + (it->advance - drawOffset): it->finalPos;
+                const PkPointF advance = drawOffset;
 
-                const QTransform t = posAndRotateTransform(finalPos, it->rotateDeg);
+                const PkTransform t = posAndRotateTransform(finalPos, it->rotateDeg);
 
-                Q_FOREACH(SvgTextCursor::TypeSettingModeHandle handle, types.keys()) {
+                for (SvgTextCursor::TypeSettingModeHandle handle : types.keys()) {
                     const int metric = types.value(handle);
                     processBaseline(handle, metric, isHorizontal, t, scaleMetrics, advance, d->typeSettingDecor.parentBaselines);
                 }
@@ -1947,8 +1948,8 @@ void SvgTextCursor::updateTypeSettingDecoration()
                         toggleOffset = !toggleOffset;
                         continue;
                     }
-                    const QPointF advance = toggleOffset? it->advance: QPointF();
-                    const QTransform t = posAndRotateTransform(it->finalPos, it->rotateDeg);
+                    const PkPointF advance = toggleOffset? it->advance: PkPointF();
+                    const PkTransform t = posAndRotateTransform(it->finalPos, it->rotateDeg);
                     processEdges(t, types, isHorizontal, scaleMetrics, advance, d->typeSettingDecor.edges);
                 }
 
@@ -1970,27 +1971,27 @@ void SvgTextCursor::updateTypeSettingDecoration()
             const qreal scaleMetrics = props.fontSize().value/qreal(metrics.fontSize);
             const int lineGap = calcLineHeight(lineHeight, metrics, scaleMetrics);
 
-            const QTransform t = posAndRotateTransform(it->finalPos, it->rotateDeg);
+            const PkTransform t = posAndRotateTransform(it->finalPos, it->rotateDeg);
 
-            const QMap<SvgTextCursor::TypeSettingModeHandle, int> types
+            const PkMap<SvgTextCursor::TypeSettingModeHandle, int> types
                     = typeSettingBaselinesFromMetrics(metrics, lineGap, isHorizontal);
 
-            Q_FOREACH(SvgTextCursor::TypeSettingModeHandle handle, types.keys()) {
+            for (SvgTextCursor::TypeSettingModeHandle handle : types.keys()) {
                 const int metric = types.value(handle);
                 processBaseline(handle, metric, isHorizontal, t, scaleMetrics, it->advance, d->typeSettingDecor.baselines);
             }
             if ((currentPos == minPos || currentPos+1 == maxPos) && minPos != maxPos) {
-                const QPointF advance = toggleOffset? it->advance: QPointF();
+                const PkPointF advance = toggleOffset? it->advance: PkPointF();
                 toggleOffset = !toggleOffset;
                 processEdges(t, types, isHorizontal, scaleMetrics, advance, d->typeSettingDecor.edges);
             }
         }
 
         /// Split up baselines into paths and baselines.
-        const QList<SvgTextCursor::TypeSettingModeHandle> nonBaselines = {
+        const PkList<SvgTextCursor::TypeSettingModeHandle> nonBaselines = {
             LineHeightTop, Ascender, BaselineShift, Descender, LineHeightBottom
         };
-        Q_FOREACH(SvgTextCursor::TypeSettingModeHandle handle, nonBaselines) {
+        for (SvgTextCursor::TypeSettingModeHandle handle : nonBaselines) {
             d->typeSettingDecor.paths.insert(handle, d->typeSettingDecor.baselines.value(handle));
             d->typeSettingDecor.parentPaths.insert(handle,  d->typeSettingDecor.parentBaselines.value(handle));
         }

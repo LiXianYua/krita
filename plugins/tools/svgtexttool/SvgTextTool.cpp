@@ -103,7 +103,7 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
                                  , qApp->cursorFlashTime()
                                  , cursorFlashLimit
                                  , enableCursorWithSelection);
-    QObject::connect(&m_textCursor, SIGNAL(updateCursorDecoration(QRectF)), this, SLOT(slotUpdateCursorDecoration(QRectF)));
+    QObject::connect(&m_textCursor, SIGNAL(updateCursorDecoration(PkRectF)), this, SLOT(slotUpdateCursorDecoration(PkRectF)));
 
     Q_FOREACH(const QString name, SvgTextShortCuts::possibleActions()) {
         QAction *a = action(name);
@@ -394,7 +394,7 @@ void SvgTextTool::requestStrokeCancellation()
      */
 }
 
-void SvgTextTool::slotUpdateCursorDecoration(QRectF updateRect)
+void SvgTextTool::slotUpdateCursorDecoration(PkRectF updateRect)
 {
     if (canvas()) {
         canvas()->updateCanvas(updateRect);
