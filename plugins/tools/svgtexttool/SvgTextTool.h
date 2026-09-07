@@ -42,9 +42,9 @@ public:
     explicit SvgTextTool(KoCanvasBase *canvas);
     ~SvgTextTool() override;
     /// reimplemented from KoToolBase
-    QRectF decorationsRect() const override;
+    PkRectF decorationsRect() const override;
     /// reimplemented from KoToolBase
-    void paint(QPainter &gc, const KoViewConverter &converter) override;
+    void paint(PkPainter &gc, const KoViewConverter &converter) override;
     /// reimplemented from KoToolBase
     void mousePressEvent(KoPointerEvent *event) override;
     /// reimplemented from superclass
@@ -63,13 +63,13 @@ public:
     void focusOutEvent(QFocusEvent *event) override;
 
     /// reimplemented from KoToolBase
-    void activate(const QSet<KoShape *> &shapes) override;
+    void activate(const PkSet<KoShape *> &shapes) override;
     /// reimplemented from KoToolBase
     void deactivate() override;
 
     KisPopupWidgetInterface* popupWidget() override;
 
-    QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+    PkVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
     void inputMethodEvent(QInputMethodEvent *event) override;
 
     /// reimplemented from superclass
@@ -117,7 +117,7 @@ private Q_SLOTS:
      * This generates a defs section with the appropriate
      * css and css strings assigned.
      */
-    QString generateDefs(const KoSvgTextProperties &properties = KoSvgTextProperties());
+    PkString generateDefs(const KoSvgTextProperties &properties = KoSvgTextProperties());
 
     /**
      * @brief propertiesForNewText
@@ -136,7 +136,7 @@ private Q_SLOTS:
      * update the canvas decorations in a particular update rect for the text cursor.
      * @param updateRect the rect to update in.
      */
-    void slotUpdateCursorDecoration(QRectF updateRect);
+    void slotUpdateCursorDecoration(PkRectF updateRect);
 
     /**
      * @brief slotConvertType
@@ -190,7 +190,7 @@ private:
 
     SvgTextToolOptionsData m_optionsData;
     bool m_optionsDataLoaded {false};
-    QPointF m_lastMousePos;
+    PkPointF m_lastMousePos;
     DragMode m_dragging {DragMode::None};
     std::unique_ptr<KoInteractionStrategy> m_interactionStrategy;
     HighlightItem m_highlightItem {HighlightItem::None};
@@ -205,7 +205,7 @@ private:
     QScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
     KisSignalAutoConnectionsStore m_canvasConnections;
 
-    QPainterPath m_hoveredShapeHighlightRect;
+    PkPainterPath m_hoveredShapeHighlightRect;
 
     QCursor m_base_cursor;
     QCursor m_text_inline_horizontal;

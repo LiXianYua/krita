@@ -9,8 +9,8 @@
 
 #include <KoInteractionStrategy.h>
 
-#include <QPointF>
-#include <QSizeF>
+#include <PkPoint.h>
+#include <PkSize.h>
 
 class SvgTextTool;
 
@@ -20,11 +20,11 @@ class KoShape;
 class SvgCreateTextStrategy : public KoInteractionStrategy
 {
 public:
-    SvgCreateTextStrategy(SvgTextTool *tool, const QPointF &clicked, KoShape *shape = nullptr);
+    SvgCreateTextStrategy(SvgTextTool *tool, const PkPointF &clicked, KoShape *shape = nullptr);
     ~SvgCreateTextStrategy() override = default;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
@@ -33,9 +33,9 @@ public:
     bool hasWrappingShape();
 
 private:
-    QPointF m_dragStart;
-    QPointF m_dragEnd;
-    QSizeF m_minSizeInline;
+    PkPointF m_dragStart;
+    PkPointF m_dragEnd;
+    PkSizeF m_minSizeInline;
     KoShape *m_flowShape;
     Qt::KeyboardModifiers m_modifiers;
 };
