@@ -10,7 +10,7 @@
 #include "KoShapeRubberSelectStrategy_p.h"
 #include "KoViewConverter.h"
 
-#include <QPainter>
+#include <pk/render/PkPainter.h>
 
 #include "KoShapeManager.h"
 #include "KoSelection.h"
@@ -28,10 +28,10 @@ KoShapeRubberSelectStrategy::KoShapeRubberSelectStrategy(KoToolBase *tool, const
     d->selectRect = PkRectF(d->snapGuide->snap(clicked, QFlags<Qt::KeyboardModifier>()), PkSizeF(0, 0));
 }
 
-void KoShapeRubberSelectStrategy::paint(QPainter &painter, const KoViewConverter &converter)
+void KoShapeRubberSelectStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     Q_D(KoShapeRubberSelectStrategy);
-    painter.setRenderHint(QPainter::Antialiasing, false);
+    painter.setRenderHint(PkPainter::Antialiasing, false);
 
     const PkColor crossingColor(80,130,8);
     const PkColor coveringColor(8,60,167);
@@ -43,16 +43,15 @@ void KoShapeRubberSelectStrategy::paint(QPainter &painter, const KoViewConverter
     selectColor.setAlphaF(0.8);
     PkPen select(selectColor, decorationThickness());
     select.setCosmetic(true);
-    painter.setPen(toQPen(select));
+    painter.setPen(select);
 
     selectColor.setAlphaF(0.4);
-    const QBrush fillBrush(toQColor(selectColor));
-    painter.setBrush(fillBrush);
+    painter.setBrush(PkBrush(selectColor));
 
     PkRectF paintRect = converter.documentToView(d->selectedRect());
     paintRect = paintRect.normalized();
 
-    painter.drawRect(toQRectF(paintRect));
+    painter.drawRect(paintRect);
 }
 
 void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Qt::KeyboardModifiers modifiers)

@@ -19,7 +19,6 @@
 #include <KisReferenceImage.h>
 #include <KisReferenceImagesLayer.h>
 #include <kis_image.h>
-#include <KisCursorOverrideLock.h>
 
 #include "KisReferenceImageCollection.h"
 
@@ -83,9 +82,9 @@ void ToolReferenceImages::setReferenceImageLayer(KisSharedPtr<KisReferenceImages
     m_layer = layer;
     PkObject::connect(layer.data(), &KisReferenceImagesLayer::selectionChanged,
                       this, &ToolReferenceImages::slotSelectionChanged);
-    PkObject::connect(layer->shapeManager(), &KoShapeManager::selectionChanged,
+    QObject::connect(layer->shapeManager(), &KoShapeManager::selectionChanged,
                       this, &ToolReferenceImages::repaintDecorations);
-    PkObject::connect(layer->shapeManager(), &KoShapeManager::selectionContentChanged,
+    QObject::connect(layer->shapeManager(), &KoShapeManager::selectionContentChanged,
                       this, &ToolReferenceImages::repaintDecorations);
 }
 
@@ -202,8 +201,6 @@ void ToolReferenceImages::loadReferenceImages()
 
 void ToolReferenceImages::saveReferenceImages()
 {
-    KisCursorOverrideLock cursorLock(Qt::BusyCursor);
-
     auto layer = m_layer.toStrongRef();
     if (!layer || layer->shapeCount() == 0) return;
 

@@ -15,6 +15,7 @@
 #include <QApplication>
 #include <QPalette>
 #include <QIcon>
+#include <pk/render/PkPainter.h>
 
 const int BUTTON_ICON_SIZE = 16;
 const int BUTTON_PADDING = 4;
@@ -182,6 +183,78 @@ void KoSvgTextShapeOutlineHelper::paint(QPainter *painter, const KoViewConverter
             text = dynamic_cast<KoSvgTextShape*>(shape);
             if (d->drawButton(text)) {
                 paintTextShape(painter, converter, pal, text, false);
+            }
+        }
+    }
+}
+
+void KoSvgTextShapeOutlineHelper::paintTextShape(PkPainter *painter, const KoViewConverter &converter,
+                                                  KoSvgTextShape *text,
+                                                  bool contourModeActive)
+{
+    painter->save();
+    KisHandlePainterHelper helper =
+            KoShape::createHandlePainterHelperView(painter, text, converter,
+                                                   d->handleRadius, d->decorationThickness);
+    helper.setHandleStyle(KisHandleStyle::secondarySelection());
+    if (contourModeActive) {
+        if (d->drawOutline) {
+            for (KoShape *shape : text->internalShapeManager()->shapes()) {
+                helper.drawPath(shape->transformation().map(shape->outline()));
+            }
+            PkList<PkPainterPath> areas;
+            for (const KoShape *shape : text->shapesInside()) {
+                areas.append(shape->transformation().map(shape->outline()));
+            }
+            for (const PkLineF &arrow : getTextAreaOrderArrows(areas)) {
+                helper.drawGradientArrow(arrow.p1(), arrow.p2(), 1.5 * d->handleRadius);
+            }
+        }
+        if (d->drawBoundingRect) {
+            PkPainterPath rect;
+            rect.addRect(text->outlineRect());
+            helper.drawPath(rect);
+        }
+    }
+    if (d->drawTextWrappingArea) {
+        if (d->textWrappingAreasHovered) {
+            helper.setHandleStyle(KisHandleStyle::partiallyHighlightedPrimaryHandles());
+        }
+        const PkList<PkPainterPath> areas = text->textWrappingAreas();
+        for (const PkLineF &arrow : getTextAreaOrderArrows(areas)) {
+            helper.drawGradientArrow(arrow.p1(), arrow.p2(), 1.5 * d->handleRadius);
+        }
+        for (const PkPainterPath &path : areas) {
+            helper.drawPath(path);
+        }
+    }
+    painter->restore();
+
+    painter->save();
+    const PkColor fillColor = contourModeActive ? PkColor(61, 174, 233) : PkColor(239, 240, 241);
+    const PkColor outlineColor = contourModeActive ? PkColor(Pk::white) : PkColor(Pk::black);
+    painter->setBrush(PkBrush(fillColor));
+    PkPen pen(outlineColor);
+    pen.setCosmetic(true);
+    pen.setWidthF(d->decorationThickness);
+    painter->setPen(pen);
+    const PkRectF buttonRect = d->getButtonRect(converter.documentToView().mapRect(text->boundingRect()));
+    PkPainterPath buttonPath;
+    buttonPath.addRoundedRect(buttonRect, BUTTON_CORNER_ROUND, BUTTON_CORNER_ROUND);
+    painter->drawPath(buttonPath);
+    painter->restore();
+}
+
+void KoSvgTextShapeOutlineHelper::paint(PkPainter *painter, const KoViewConverter &converter)
+{
+    KoSvgTextShape *text = d->getTextModeShape();
+    if (text) {
+        paintTextShape(painter, converter, text, true);
+    } else {
+        for (KoShape *shape : d->canvas->shapeManager()->selection()->selectedEditableShapes()) {
+            text = dynamic_cast<KoSvgTextShape *>(shape);
+            if (d->drawButton(text)) {
+                paintTextShape(painter, converter, text, false);
             }
         }
     }

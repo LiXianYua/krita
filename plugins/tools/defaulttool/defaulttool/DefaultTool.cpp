@@ -431,13 +431,13 @@ DefaultTool::DefaultTool(KoCanvasBase *canvas, bool connectToSelectedShapesProxy
     }
 
     if (connectToSelectedShapesProxy) {
-        PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+        QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
                           this, &DefaultTool::updateActions);
-        PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+        QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
                           this, &DefaultTool::repaintDecorations);
-        PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+        QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
                           m_textPropertyInterface, &DefaultToolTextPropertiesInterface::slotSelectionChanged);
-        PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionContentChanged,
+        QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionContentChanged,
                           this, &DefaultTool::repaintDecorations);
     }
 
@@ -1198,7 +1198,7 @@ void DefaultTool::mousePressEvent(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-                PkString("This tool only works on vector layers. You probably want the move tool."),
+                toQString(PkString("This tool only works on vector layers. You probably want the move tool.")),
                 {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         return;
     }
@@ -1322,7 +1322,6 @@ bool DefaultTool::moveSelection(int direction, Qt::KeyboardModifiers modifiers)
 
 void DefaultTool::keyPressEvent(DefaultToolKeyEvent *event)
 {
-    KoInteractionTool::keyPressEvent(event);
     if (currentStrategy() == 0) {
         switch (event->key()) {
         case Qt::Key_Left:
@@ -1691,7 +1690,7 @@ void DefaultTool::selectionTransform(int transformAction)
 
     PkTransform applyTransform;
     bool shouldReset = false;
-    KUndo2MagicString actionName = kundo2_noi18n("BUG: No transform action");
+    KUndo2MagicString actionName = kundo2_text_raw("BUG: No transform action");
 
 
     switch (TransformActionType(transformAction)) {
@@ -1769,7 +1768,7 @@ void DefaultTool::selectionBooleanOp(int booleanOp)
 
     PkVector<PkPainterPath> srcOutlines;
     PkPainterPath dstOutline;
-    KUndo2MagicString actionName = kundo2_noi18n("BUG: boolean action name");
+    KUndo2MagicString actionName = kundo2_text_raw("BUG: boolean action name");
 
     // TODO: implement a reference shape selection dialog!
     const int referenceShapeIndex = 0;

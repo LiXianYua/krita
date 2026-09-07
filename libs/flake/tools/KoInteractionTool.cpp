@@ -7,6 +7,8 @@
 
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
+#include <PkQPainterAdapter.h>
+#include <pk/render/PkPainter.h>
 #include <QKeyEvent>
 
 #include "KoInteractionTool.h"
@@ -29,6 +31,13 @@ KoInteractionTool::~KoInteractionTool()
 }
 
 void KoInteractionTool::paint(QPainter &painter, const KoViewConverter &converter)
+{
+    PkQPainterAdapter backend(painter);
+    PkPainter pkPainter(backend);
+    paint(pkPainter, converter);
+}
+
+void KoInteractionTool::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     Q_D(KoInteractionTool);
 

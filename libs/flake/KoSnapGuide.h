@@ -19,6 +19,7 @@ class KoPathPoint;
 class KoViewConverter;
 class KoCanvasBase;
 class QPainter;
+class PkPainter;
 class PkPointF;
 class PkRectF;
 
@@ -73,6 +74,7 @@ public:
 
     /// paints the guide
     void paint(QPainter &painter, const KoViewConverter &converter);
+    void paint(PkPainter &painter, const KoViewConverter &converter);
 
     /// returns the bounding rect of the guide
     PkRectF boundingRect();

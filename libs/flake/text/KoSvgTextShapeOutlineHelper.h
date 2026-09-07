@@ -16,6 +16,7 @@
 #include <kritaflake_export.h>
 
 class KoSvgTextShape;
+class PkPainter;
 /**
  * @brief The KoSvgTextShapeOutlineHelper class
  * helper class that draws the text outlines and
@@ -28,6 +29,7 @@ public:
     ~KoSvgTextShapeOutlineHelper();
 
     void paint(QPainter *painter, const KoViewConverter &converter);
+    void paint(PkPainter *painter, const KoViewConverter &converter);
 
     /**
      * @brief decorationRect
@@ -80,6 +82,8 @@ private:
     void paintTextShape(QPainter *painter, const KoViewConverter &converter,
                         const QPalette &pal, KoSvgTextShape *text,
                         bool contourModeActive = false);
+    void paintTextShape(PkPainter *painter, const KoViewConverter &converter,
+                        KoSvgTextShape *text, bool contourModeActive = false);
     struct Private;
     PkScopedPointer<Private> d;
 };

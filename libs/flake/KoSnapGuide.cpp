@@ -17,6 +17,8 @@
 #include <KoCanvasResourceProvider.h>
 
 #include <QPainter>
+#include <PkQPainterAdapter.h>
+#include <pk/render/PkPainter.h>
 #include <PkPainterPath.h>
 
 #include <math.h>
@@ -212,6 +214,13 @@ PkRectF KoSnapGuide::boundingRect()
 
 void KoSnapGuide::paint(QPainter &painter, const KoViewConverter &converter)
 {
+    PkQPainterAdapter backend(painter);
+    PkPainter pkPainter(backend);
+    paint(pkPainter, converter);
+}
+
+void KoSnapGuide::paint(PkPainter &painter, const KoViewConverter &converter)
+{
     if (! d->currentStrategy || ! d->active)
         return;
 
@@ -219,19 +228,19 @@ void KoSnapGuide::paint(QPainter &painter, const KoViewConverter &converter)
 
     int thickness = d->canvas->resourceManager()? d->canvas->resourceManager()->decorationThickness(): 1;
 
-    painter.setBrush(Qt::NoBrush);
+    painter.setBrush(Pk::NoBrush);
 
-    QPen whitePen(Qt::white, thickness);
+    PkPen whitePen(Pk::white, thickness);
     whitePen.setCosmetic(true);
-    whitePen.setStyle(Qt::SolidLine);
+    whitePen.setStyle(Pk::SolidLine);
     painter.setPen(whitePen);
-    painter.drawPath(toQPainterPath(decoration));
+    painter.drawPath(decoration);
 
-    QPen redPen(Qt::red, thickness);
+    PkPen redPen(Pk::red, thickness);
     redPen.setCosmetic(true);
-    redPen.setStyle(Qt::DotLine);
+    redPen.setStyle(Pk::DotLine);
     painter.setPen(redPen);
-    painter.drawPath(toQPainterPath(decoration));
+    painter.drawPath(decoration);
 }
 
 KoCanvasBase *KoSnapGuide::canvas() const
@@ -273,4 +282,3 @@ void KoSnapGuide::reset()
         }
     }
 }
-
