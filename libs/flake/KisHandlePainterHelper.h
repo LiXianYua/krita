@@ -10,7 +10,8 @@
 #include "kritaflake_export.h"
 #include "KisAlgebra2D.h"
 
-#include <QPainter>
+#include <pk/render/PkPainter.h>
+#include <memory>
 #include <KisHandleStyle.h>
 class QPainter;
 class KoShape;
@@ -39,18 +40,25 @@ public:
      * Creates the helper, initializes all the internal transformations and
      * *resets* the transformation of the painter.
      */
-    KisHandlePainterHelper(QPainter *_painter, qreal handleRadius = 0.0, int decorationThickness = 1);
+    KisHandlePainterHelper(PkPainter *_painter, qreal handleRadius = 0.0, int decorationThickness = 1);
 
     /**
      * Creates the helper, initializes all the internal transformations and
      * *resets* the transformation of the painter. This override also adjusts the
      * transformation of the painter into the coordinate system of the shape
      */
+    KisHandlePainterHelper(PkPainter *_painter, const PkTransform &originalPainterTransform, qreal handleRadius, int decorationThickness = 1);
+
+    /**
+     * S-09-g 双模：QPainter 直绘栈经 PkQPainterAdapter 桥转 Pk 命令。
+     */
+    KisHandlePainterHelper(QPainter *_painter, qreal handleRadius = 0.0, int decorationThickness = 1);
     KisHandlePainterHelper(QPainter *_painter, const PkTransform &originalPainterTransform, qreal handleRadius, int decorationThickness = 1);
 
     /**
      * Move c-tor. Used to create and return the helper from functions by-value.
      */
+
     KisHandlePainterHelper(KisHandlePainterHelper &&rhs);
     KisHandlePainterHelper(KisHandlePainterHelper &rhs) = delete;
 
@@ -143,7 +151,7 @@ public:
     /**
      * Draw an a given pixmap on the UI
      */
-    void drawPixmap(const QPixmap &pixmap, PkPointF position, int size, PkRectF sourceRect);
+    void drawPixmap(const PkImage &pixmap, PkPointF position, int size, PkRectF sourceRect);
 
 private:
 
@@ -156,7 +164,9 @@ private:
     void init();
 
 private:
-    QPainter *m_painter;
+    PkPainter *m_painter;
+    std::unique_ptr<class PkQPainterAdapter> m_adapter;
+    std::unique_ptr<PkPainter> m_ownedPkPainter;
     PkTransform m_originalPainterTransform;
     PkTransform m_painterTransform;
     qreal m_handleRadius;

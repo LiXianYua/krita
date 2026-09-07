@@ -18,15 +18,15 @@ void initDashedStyle(const PkColor &baseColor, const PkColor &handleFill, KisHan
 
     ants.setColor(baseColor);
 
-    style->lineIterations << KisHandleStyle::IterationStyle(outline, toQBrush(Pk::NoBrush));
-    style->lineIterations << KisHandleStyle::IterationStyle(ants, toQBrush(Pk::NoBrush));
+    style->lineIterations << KisHandleStyle::IterationStyle(outline, toPkBrush(Pk::NoBrush));
+    style->lineIterations << KisHandleStyle::IterationStyle(ants, toPkBrush(Pk::NoBrush));
 
     PkPen handlePen(baseColor);
     handlePen.setWidth(2);
     handlePen.setCosmetic(true);
     handlePen.setJoinStyle(Pk::RoundJoin);
 
-    style->handleIterations << KisHandleStyle::IterationStyle(handlePen, toQBrush(handleFill));
+    style->handleIterations << KisHandleStyle::IterationStyle(handlePen, toPkBrush(handleFill));
 }
 
 static const PkColor primaryColor(0, 0, 90, 180);
@@ -114,11 +114,11 @@ KisHandleStyle &KisHandleStyle::highlightedPrimaryHandlesWithSolidOutline()
         style.reset(new KisHandleStyle());
         PkPen h = PkPen(highlightOutlineColor, 2);
         h.setCosmetic(true);
-        style->handleIterations << KisHandleStyle::IterationStyle(h, toQBrush(highlightColor));
+        style->handleIterations << KisHandleStyle::IterationStyle(h, toPkBrush(highlightColor));
         PkPen l = PkPen(highlightOutlineColor, 1);
         l.setCosmetic(true);
         l.setJoinStyle(Pk::RoundJoin);
-        style->lineIterations << KisHandleStyle::IterationStyle(l, toQBrush(Pk::NoBrush));
+        style->lineIterations << KisHandleStyle::IterationStyle(l, toPkBrush(Pk::NoBrush));
     }
 
     return *style;

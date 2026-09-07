@@ -283,7 +283,7 @@ void ToolReferenceImages::deleteSelection()
     }
 }
 
-DefaultToolMenu* ToolReferenceImages::popupActionsMenu()
+DefaultToolMenu* ToolReferenceImages::defaultToolPopupMenu()
 {
     if (m_contextMenu) {
         m_contextMenu->clear();
@@ -364,9 +364,9 @@ KisDocument *ToolReferenceImages::document() const
     return m_services->referenceImageDocument();
 }
 
-PkList<DefaultToolAction *> ToolReferenceImagesFactory::createActionsImpl()
+PkList<DefaultToolAction *> ToolReferenceImagesFactory::createDefaultToolActions()
 {
-    PkList<DefaultToolAction *> defaultActions = DefaultToolFactory::createActionsImpl();
+    PkList<DefaultToolAction *> defaultActions = DefaultToolFactory::createDefaultToolActions();
     PkList<DefaultToolAction *> actions;
 
     for (DefaultToolAction *action : defaultActions) {

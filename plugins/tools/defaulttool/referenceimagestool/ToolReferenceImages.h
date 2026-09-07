@@ -41,7 +41,7 @@ public:
 
     void deleteSelection() override;
 
-    DefaultToolMenu* popupActionsMenu() override;
+    DefaultToolMenu* defaultToolPopupMenu() override;
 
 protected:
     bool isValidForCurrentLayer() const override;
@@ -103,7 +103,7 @@ public:
         return new ToolReferenceImages(canvas);
     }
 
-    PkList<DefaultToolAction *> createActionsImpl();
+    PkList<DefaultToolAction *> createDefaultToolActions();
 
 };
 

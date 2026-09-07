@@ -271,7 +271,7 @@ void KisToolRectangleBase::continuePrimaryAction(KoPointerEvent *event)
     else {
         KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
         KIS_ASSERT(services);
-        toPkString(services->toolShowFloatingMessage(i18n("X: %1 px\nY: %2 px"
+        services->toolShowFloatingMessage(toPkString(i18n("X: %1 px\nY: %2 px"
                                                 , QString::number(m_dragStart.x(), 'f', 1)
                                                 , QString::number(m_dragStart.y(), 'f', 1))));
     }

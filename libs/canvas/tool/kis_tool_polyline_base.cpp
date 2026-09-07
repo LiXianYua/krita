@@ -193,8 +193,8 @@ void KisToolPolylineBase::undoSelection()
         if (m_points.size() > 1) {
             // Add the rect for the last segment
             const PkRectF lastSegmentRect =
-                pixelToView(PkRectF(toQPointF(m_points.last()),
-                                   toQPointF(m_points.at(m_points.size() - 2))).normalized())
+                pixelToView(PkRectF(m_points.last(),
+                                   m_points.at(m_points.size() - 2)).normalized())
                 .adjusted(-PREVIEW_LINE_WIDTH, -PREVIEW_LINE_WIDTH, PREVIEW_LINE_WIDTH, PREVIEW_LINE_WIDTH);
             updateRect = updateRect.united(lastSegmentRect);
 

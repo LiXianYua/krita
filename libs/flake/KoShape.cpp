@@ -976,10 +976,20 @@ bool KoShape::isShapeEditable(bool recursive) const
 
 KisHandlePainterHelper KoShape::createHandlePainterHelperView(QPainter *painter, KoShape *shape, const KoViewConverter &converter, qreal handleRadius, int decorationThickness)
 {
+    // S-09-g：Qt 直绘栈经 PkQPainterAdapter 桥转 Pk 命令，与 PkPainter 版共用逻辑。
     const PkTransform originalPainterTransform = toPkTransform(painter->transform());
-
     painter->setTransform(toQTransform(shape->absoluteTransformation()) *
                           toQTransform(converter.documentToView()) *
+                          painter->transform());
+    return KisHandlePainterHelper(painter, originalPainterTransform, handleRadius, decorationThickness);
+}
+
+KisHandlePainterHelper KoShape::createHandlePainterHelperView(PkPainter *painter, KoShape *shape, const KoViewConverter &converter, qreal handleRadius, int decorationThickness)
+{
+    const PkTransform originalPainterTransform = toPkTransform(painter->transform());
+
+    painter->setTransform(shape->absoluteTransformation() *
+                          converter.documentToView() *
                           painter->transform());
 
     // move c-tor

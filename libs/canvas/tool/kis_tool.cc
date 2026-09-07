@@ -90,13 +90,6 @@ namespace {
 
 
 
-PkTransform toPkTransform(const PkTransform &transform)
-{
-    return PkTransform(transform.m11(), transform.m12(), transform.m13(),
-                       transform.m21(), transform.m22(), transform.m23(),
-                       transform.m31(), transform.m32(), transform.m33());
-}
-
 QString nodeEditableMessage(KisNodeSP node, bool blockedNoIndirectPainting)
 {
     QString message;
@@ -352,8 +345,8 @@ PkPointF KisTool::viewToPixel(const PkPointF &viewCoord) const
     if (!image())
         return viewCoord;
 
-    return toQPointF(image()->documentToPixel(
-        toPkPointF(canvas()->viewConverter()->viewToDocument(viewCoord))));
+    return image()->documentToPixel(
+        canvas()->viewConverter()->viewToDocument(viewCoord));
 }
 
 PkRectF KisTool::convertToPt(const PkRectF &rect)
@@ -376,15 +369,15 @@ qreal KisTool::convertToPt(qreal value)
 PkPointF KisTool::pixelToView(const QPoint &pixelCoord) const
 {
     if (!image())
-        return pixelCoord;
-    PkPointF documentCoord = image()->pixelToDocument(pixelCoord);
+        return toPkPointF(pixelCoord);
+    PkPointF documentCoord = image()->pixelToDocument(toPkPoint(pixelCoord));
     return canvas()->viewConverter()->documentToView(documentCoord);
 }
 
 PkPointF KisTool::pixelToView(const PkPointF &pixelCoord) const
 {
     if (!image())
-        return pixelCoord;
+        return toPkPointF(pixelCoord);
     PkPointF documentCoord = image()->pixelToDocument(pixelCoord);
     return canvas()->viewConverter()->documentToView(documentCoord);
 }

@@ -291,7 +291,7 @@ void KisPrescaledProjection::recalculateCache(KisUpdateInfoSP info)
     if(!ppInfo) return;
 
     QRect rawViewRect =
-        m_d->coordinatesConverter->viewportToImage(m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect());
+        m_d->coordinatesConverter->viewportToImage(m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar));
 
     fillInUpdateInformation(rawViewRect, ppInfo);
 
@@ -452,7 +452,7 @@ void KisPrescaledProjection::drawUsingBackend(QPainter &gc, KisPPUpdateInfoSP in
         KisImagePatch patch = m_d->projectionBackend->getNearestPatch(info);
         // prescale the patch because otherwise we'd scale using QPainter, which gives
         // a crap result compared to QImage's smoothscale
-        patch.preScale(toQRectF(info->viewportRect));
-        patch.drawMe(gc, toQRectF(info->viewportRect), info->renderHints);
+        patch.preScale(info->viewportRect);
+        patch.drawMe(gc, info->viewportRect, info->renderHints);
     }
 }

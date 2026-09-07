@@ -4,10 +4,10 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
 #include <QObject>
 #include <pk/geometry/PkPoint.h>
 #include <QVariant>
+#include <PkFlakeBridge.h>
 #include <QVector>
 
 #include "kis_painting_information_builder.h"
@@ -277,7 +277,7 @@ PkPointF KisToolFreehandPaintingInformationBuilder::imageToDocument(const PkPoin
 {
     KisCanvasToolServices *canvas = dynamic_cast<KisCanvasToolServices*>(m_tool->canvas());
     KIS_ASSERT_RECOVER_RETURN_VALUE(canvas, point);
-    return toQPointF(canvas->toolImageToDocument(point));
+    return canvas->toolImageToDocument(point);
 }
 
 PkPointF KisToolFreehandPaintingInformationBuilder::imageToView(const PkPointF &point)

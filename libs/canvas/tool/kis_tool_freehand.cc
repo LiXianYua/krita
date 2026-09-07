@@ -295,7 +295,7 @@ bool KisToolFreehand::trySampleByPaintOp(KoPointerEvent *event, AlternateAction 
     info.setPerStrokeRandomSource(new KisPerStrokeRandomSource());
 
     bool paintOpIgnoredEvent = currentPaintOpPreset()->settings()->mousePressEvent(info,
-                                                                                   static_cast<Pk::KeyboardModifiers>(event->modifiers()),
+                                                                                   Pk::KeyboardModifiers(static_cast<int>(event->modifiers())),
                                                                                    currentNode());
     // DuplicateOP during the sampling of new source point (origin)
     // is the only paintop that returns "false" here
@@ -363,7 +363,7 @@ void KisToolFreehand::continueAlternateAction(KoPointerEvent *event, AlternateAc
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(services);
-    const QRect screenRect = services->toolAvailableVirtualScreenGeometry();
+    const QRect screenRect = toQRect(services->toolAvailableVirtualScreenGeometry());
     const qreal scaleX = services->toolImageScaleX();
 
     const qreal maxBrushSize = KisImageConfig(true).maxBrushSize();

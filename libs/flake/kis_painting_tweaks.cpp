@@ -98,11 +98,51 @@ PenBrushSaver::PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &
     }
 }
 
+PenBrushSaver::PenBrushSaver(PkPainter *painter)
+    : m_pkPainter(painter),
+      m_pen(painter ? painter->pen() : PkPen()),
+      m_pkBrush(painter ? painter->brush() : PkBrush())
+{
+}
+
+PenBrushSaver::PenBrushSaver(PkPainter *painter, const PkPen &pen, const PkBrush &brush)
+    : PenBrushSaver(painter)
+{
+    if (m_pkPainter) {
+        m_pkPainter->setPen(pen);
+        m_pkPainter->setBrush(brush);
+    }
+}
+
+PenBrushSaver::PenBrushSaver(PkPainter *painter, const std::pair<PkPen, PkBrush> &pair)
+    : PenBrushSaver(painter)
+{
+    if (m_pkPainter) {
+        m_pkPainter->setPen(pair.first);
+        m_pkPainter->setBrush(pair.second);
+    }
+}
+
+PenBrushSaver::PenBrushSaver(PkPainter *painter, const std::pair<PkPen, PkBrush> &pair, allow_noop_t)
+    : m_pkPainter(painter)
+{
+    if (m_pkPainter) {
+        m_pen = m_pkPainter->pen();
+        m_pkBrush = m_pkPainter->brush();
+        m_pkPainter->setPen(pair.first);
+        m_pkPainter->setBrush(pair.second);
+    }
+}
+
 PenBrushSaver::~PenBrushSaver()
 {
     if (m_painter) {
         m_painter->setPen(toQPen(m_pen));
         m_painter->setBrush(m_brush);
+    }
+    if (m_pkPainter) {
+        m_pkPainter->setPen(m_pen);
+        m_pkPainter->setBrush(m_pkBrush);
     }
 }
 

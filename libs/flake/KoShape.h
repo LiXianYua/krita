@@ -11,6 +11,8 @@
 #define KOSHAPE_H
 
 #include "KoFlake.h"
+
+#include <pk/render/PkPainter.h>
 #include "KoFlakeTypes.h"
 
 #include <PkSharedPointer.h>
@@ -761,6 +763,7 @@ public:
      * on restoring original painter's transformations is done by the helper.
      */
     static KisHandlePainterHelper createHandlePainterHelperView(QPainter *painter, KoShape *shape, const KoViewConverter &converter, qreal handleRadius = 0.0, int decorationThickness = 1);
+    static KisHandlePainterHelper createHandlePainterHelperView(PkPainter *painter, KoShape *shape, const KoViewConverter &converter, qreal handleRadius = 0.0, int decorationThickness = 1);
     static KisHandlePainterHelper createHandlePainterHelperDocument(QPainter *painter, KoShape *shape, qreal handleRadius, int decorationThickness);
 
     /**

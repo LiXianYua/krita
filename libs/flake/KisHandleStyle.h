@@ -7,6 +7,7 @@
 #ifndef KISHANDLESTYLE_H
 #define KISHANDLESTYLE_H
 
+#include <PkFlakeBridge.h>
 #include <PkVector.h>
 #include <PkPen.h>
 #include <QBrush>
@@ -76,14 +77,14 @@ public:
 
     struct IterationStyle {
         IterationStyle() : isValid(false) {}
-        IterationStyle(const PkPen &pen, const QBrush &brush)
+        IterationStyle(const PkPen &pen, const PkBrush &brush)
             : isValid(true),
               stylePair(pen, brush)
         {
         }
 
         bool isValid;
-        std::pair<PkPen, QBrush> stylePair;
+        std::pair<PkPen, PkBrush> stylePair;
     };
 
     PkVector<IterationStyle> handleIterations;

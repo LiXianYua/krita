@@ -10,6 +10,7 @@
 #include "kritaflake_export.h"
 
 #include <PkPen.h>
+#include <pk/render/PkPainter.h>
 #include <QBrush>
 
 #include <QVector3D>
@@ -73,6 +74,12 @@ namespace KisPaintingTweaks {
          */
         PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &pair, allow_noop_t);
 
+        // S-09-g 扩锁：Pk 命令式 painter 的 save/restore 重载（与 QPainter 版语义一致）。
+        PenBrushSaver(PkPainter *painter);
+        PenBrushSaver(PkPainter *painter, const PkPen &pen, const PkBrush &brush);
+        PenBrushSaver(PkPainter *painter, const std::pair<PkPen, PkBrush> &pair);
+        PenBrushSaver(PkPainter *painter, const std::pair<PkPen, PkBrush> &pair, allow_noop_t);
+
         /**
          * Restores the state of the painter that has been saved during the construction of the saver
          */
@@ -80,7 +87,9 @@ namespace KisPaintingTweaks {
 
     private:
         PenBrushSaver(const PenBrushSaver &rhs) = delete;
-        QPainter *m_painter;
+        QPainter *m_painter = nullptr;
+        PkPainter *m_pkPainter = nullptr;
+        PkBrush m_pkBrush;
         PkPen m_pen;
         QBrush m_brush;
     };

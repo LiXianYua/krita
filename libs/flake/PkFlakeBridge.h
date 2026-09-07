@@ -235,6 +235,14 @@ inline PK_QSTRING_ toQString(const PK_QSTRING_ &s) { return s; }
 inline PkVariant toQVariant(const PkVariant &v) { return v; }
 
 // PkBrush → QBrush（KoShapeStroke 过渡）
+inline PkBrush toPkBrush(const PkColor &c) { return PkBrush(c); }
+
+inline PkBrush toPkBrush(Pk::BrushStyle st) { PkBrush b; b.setStyle(st); return b; }
+
+inline PkBrush toPkBrush(const PkBrush &b) { return b; }
+
+inline PkBrush toPkBrush(Pk::GlobalColor c) { return PkBrush(c); }
+
 inline PkBrush toPkBrush(const PK_CAT_(Q, Brush) &b)
 {
     // 过渡期：渐变笔刷降级为纯色（QBrush::gradient() 的 Pk 侧承接属后续任务）
