@@ -7,6 +7,7 @@
 #include "KisAsyncColorSamplerHelperTest.h"
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -24,16 +25,19 @@
 
 #include "KisAsyncColorSamplerHelper.h"
 #include "KisCanvasFeedback.h"
+#include "KisCanvasToolServices.h"
 #include "KisColorSamplingCanvas.h"
+#include "KisOptimizedBrushOutline.h"
 #include "kis_image.h"
 #include "kis_paint_layer.h"
+#include "tool/kis_tool_ellipse_base.h"
 
 Q_DECLARE_METATYPE(KoColor)
 
 namespace {
-class TestSamplingCanvas final : public KoCanvasBase,
-                                 public KisColorSamplingCanvas,
-                                 public KisCanvasFeedback
+class TestSamplingCanvas : public KoCanvasBase,
+                           public KisColorSamplingCanvas,
+                           public KisCanvasFeedback
 {
 public:
     explicit TestSamplingCanvas(KisImageSP image)
@@ -148,6 +152,99 @@ public:
     }
 
     std::vector<PkPaintCommand> commands;
+};
+
+class EllipsePreviewCanvas final : public TestSamplingCanvas,
+                                   public KisCanvasToolServices
+{
+public:
+    EllipsePreviewCanvas()
+        : TestSamplingCanvas({})
+    {
+    }
+
+    KisImageWSP toolImage() const override { return {}; }
+    PkPointF toolWidgetCenterInWidgetPixels() const override { return {}; }
+    PkPointF toolDocumentToWidget(const PkPointF &point) const override { return point; }
+    PkPointF toolDocumentToAlignedImagePixel(const PkPointF &point) const override { return point; }
+    QTransform toolImageToViewTransform() const override { return {}; }
+    void drawToolOutline(PkPainter *painter,
+                         const KisOptimizedBrushOutline &path,
+                         int) override
+    {
+        for (const PkPolygonF &polygon : path) {
+            painter->drawPolygon(polygon);
+        }
+    }
+    bool toolBlockUntilOperationsFinished(KisImageWSP) override { return true; }
+    void toolBlockUntilOperationsFinishedForced(KisImageWSP) override {}
+    bool toolSelectionEditable() const override { return true; }
+    KisCanvasToolSignals *toolSignals() override { return nullptr; }
+    KisPaintOpPresetSP toolCurrentPaintOpPreset() const override { return {}; }
+    void toolNotifyPaintingFinished() override {}
+    void toolSetControlsEnabled(bool) override {}
+    KisPopupWidgetInterface *toolPopupWidget() const override { return nullptr; }
+    PkSize toolCanvasWidgetSize() const override { return {}; }
+    PkRect toolAvailableVirtualScreenGeometry() const override { return {}; }
+    qreal toolImageScaleX() const override { return 1.0; }
+    PkPointF toolImageToDocument(const PkPointF &point) const override { return point; }
+    qreal toolCanvasRotation() const override { return 0.0; }
+    bool toolCanvasMirroredHorizontally() const override { return false; }
+    bool toolCanvasMirroredVertically() const override { return false; }
+    qreal toolEffectiveZoom() const override { return 1.0; }
+    qreal toolCoordinateEffectiveZoom() const override { return 1.0; }
+    qreal toolEffectivePhysicalZoom() const override { return 1.0; }
+    QCursor toolCursor(CursorStyle) const override { return {}; }
+    QCursor toolMoveCursor() const override { return {}; }
+    QCursor toolMoveSelectionCursor() const override { return {}; }
+    QCursor toolSamplerCursor() const override { return {}; }
+    QCursor toolOpenHandCursor() const override { return {}; }
+    QCursor toolClosedHandCursor() const override { return {}; }
+    QCursor toolLoadCursor(const PkString &, int, int) const override { return {}; }
+    void toolSetCursorPosition(const PkPoint &) override {}
+    void toolShowBrushSize(qreal) override {}
+    void toolShowLockedLayerMessage(bool) override {}
+    void toolShowFloatingMessage(const PkString &, bool) override {}
+    PkString toolNodeEditableMessage(KisNodeSP, bool) const override { return {}; }
+    QPainterPath toolShapeHoverInfoCrossLayer(const PkPointF &,
+                                              PkString &,
+                                              bool *,
+                                              bool) const override { return {}; }
+    bool toolSelectShapeCrossLayer(const PkPointF &,
+                                   const PkString &,
+                                   bool) override { return false; }
+    void toolUpdateCanvas() override {}
+    void toolSetPriorityEventFilter(QObject *, bool) override {}
+    KisInputActionGroupsMaskInterface::SharedInterface
+        toolInputActionGroupsMaskInterface() override { return {}; }
+    void toolUpdateAssistantDecoration() override {}
+    void toolUpdateOutlineDoc(const PkRectF &) override {}
+    PkPointF toolAdjustAssistantPosition(const PkPointF &point,
+                                         const PkPointF &,
+                                         qreal,
+                                         bool,
+                                         bool) override { return point; }
+    qreal toolAssistantPerspective(const PkPointF &) const override { return 1.0; }
+    void toolEndAssistantStroke() override {}
+};
+
+class EllipsePreviewTool final : public KisToolEllipseBase
+{
+public:
+    explicit EllipsePreviewTool(KoCanvasBase *canvas)
+        : KisToolEllipseBase(canvas, SELECT, QCursor())
+    {
+    }
+
+    void paintPreview(PkPainter &painter, const PkRectF &rect)
+    {
+        paintRectangle(painter, rect);
+    }
+
+    void setPreviewAngle(qreal angle) { m_angle = angle; }
+
+private:
+    void finishRect(const PkRectF &, qreal, qreal) override {}
 };
 
 class IntegerConfigEntryGuard
@@ -406,6 +503,33 @@ void KisAsyncColorSamplerHelperTest::circlePreviewDoesNotClearDestination()
 
     QVERIFY(!clearedDestination);
     QVERIFY(paintedRing);
+}
+
+void KisAsyncColorSamplerHelperTest::ellipsePreviewRoundsBeforeRotation()
+{
+    EllipsePreviewCanvas canvas;
+    EllipsePreviewTool tool(&canvas);
+    tool.setPreviewAngle(M_PI_2);
+
+    RecordingBackend backend;
+    PkPainter painter(backend);
+    tool.paintPreview(painter, PkRectF(10.6, 20.6, 30.2, 40.2));
+
+    const auto *ellipseCommand = std::get_if<PkDrawPolygonCommand>(
+        &backend.commands.at(0));
+    QVERIFY(ellipseCommand);
+
+    const PkRect integerRect(11, 21, 30, 40);
+    PkPainterPath expectedPath;
+    expectedPath.addEllipse(PkRectF(integerRect));
+    PkTransform rotation;
+    rotation.translate(integerRect.center().x(), integerRect.center().y());
+    rotation.rotateRadians(M_PI_2);
+    rotation.translate(-integerRect.center().x(), -integerRect.center().y());
+    const PkPolygonF expectedEllipse =
+        rotation.map(expectedPath).toSubpathPolygons(PkTransform()).first();
+
+    QCOMPARE(ellipseCommand->polygon, expectedEllipse);
 }
 
 void KisAsyncColorSamplerHelperTest::cursorUsesSamplingCanvasPolicy()

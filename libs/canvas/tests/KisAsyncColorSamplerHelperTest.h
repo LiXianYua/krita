@@ -17,6 +17,7 @@ private Q_SLOTS:
     void missingReferenceFallsBackToProjection();
     void delayedJobReadsTheCurrentNodeAgain();
     void previewUsesSamplingCanvasGeometry();
+    void ellipsePreviewRoundsBeforeRotation();
     void circlePreviewDoesNotClearDestination();
     void cursorUsesSamplingCanvasPolicy();
 };
