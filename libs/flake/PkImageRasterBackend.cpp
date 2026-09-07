@@ -9,6 +9,12 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <vector>
+
+#if defined(__SSE2__)
+#include <emmintrin.h>
+#include <xmmintrin.h>
+#endif
 
 namespace
 {
@@ -38,59 +44,138 @@ constexpr uint32_t argb(unsigned a, unsigned r, unsigned g, unsigned b)
     return (a << 24) | (r << 16) | (g << 8) | b;
 }
 
-unsigned byteMultiply(unsigned value, unsigned factor)
+unsigned divideBy65535(uint32_t value)
 {
-    const unsigned product = value * factor;
-    return (product + (product >> 8) + 0x80u) >> 8;
+    return (value + (value >> 16) + 0x8000u) >> 16;
 }
 
-uint32_t premultiply(uint32_t pixel)
+unsigned premultiply16(unsigned component, unsigned a)
 {
-    const unsigned a = alpha(pixel);
-    return argb(a,
-                byteMultiply(red(pixel), a),
-                byteMultiply(green(pixel), a),
-                byteMultiply(blue(pixel), a));
+    unsigned result = (component * a) >> 16;
+    return result + (result >> 15);
 }
 
-unsigned unpremultiplyForArgb32(unsigned component, unsigned a)
+struct Rgba64Pixel
+{
+    unsigned a;
+    unsigned r;
+    unsigned g;
+    unsigned b;
+};
+
+Rgba64Pixel premultiply64(uint32_t pixel, bool forcePremultiply = false)
+{
+    Rgba64Pixel result {
+        alpha(pixel) * 257u,
+        red(pixel) * 257u,
+        green(pixel) * 257u,
+        blue(pixel) * 257u
+    };
+    if (forcePremultiply || result.a != 65535u) {
+        // Qt's SSE4 ARGB32 -> RGBA64PM conversion uses unsigned multiply-high,
+        // then maps 0xfffe back to 0xffff.
+        result.r = premultiply16(result.r, result.a);
+        result.g = premultiply16(result.g, result.a);
+        result.b = premultiply16(result.b, result.a);
+    }
+    return result;
+}
+
+std::vector<Rgba64Pixel> premultiplySpan(const PkImage &image,
+                                         int y,
+                                         int x,
+                                         int count)
+{
+    std::vector<Rgba64Pixel> result(static_cast<std::size_t>(count));
+    // Qt's AVX2 ARGB32 fetch converts eight pixels together. If any valid
+    // pixel in a group is not opaque, every pixel in that group follows the
+    // multiply-high path, including opaque neighbors.
+    for (int groupBegin = 0; groupBegin < count; groupBegin += 8) {
+        const int groupEnd = std::min(count, groupBegin + 8);
+        bool allTransparent = true;
+        bool allOpaque = true;
+        for (int i = groupBegin; i < groupEnd; ++i) {
+            const unsigned pixelAlpha = alpha(image.pixel(x + i, y));
+            allTransparent = allTransparent && pixelAlpha == 0;
+            allOpaque = allOpaque && pixelAlpha == 255;
+        }
+
+        if (allTransparent) {
+            continue;
+        }
+        for (int i = groupBegin; i < groupEnd; ++i) {
+            result[static_cast<std::size_t>(i)] =
+                premultiply64(image.pixel(x + i, y), !allOpaque);
+        }
+    }
+    return result;
+}
+
+Rgba64Pixel multiply64(const Rgba64Pixel &pixel, unsigned factor)
+{
+    return {
+        divideBy65535(pixel.a * factor),
+        divideBy65535(pixel.r * factor),
+        divideBy65535(pixel.g * factor),
+        divideBy65535(pixel.b * factor)
+    };
+}
+
+unsigned to8Bit(unsigned component)
+{
+    component += 128u;
+    component -= component >> 8;
+    return component >> 8;
+}
+
+unsigned unpremultiplyTo8(unsigned component, unsigned a)
 {
     if (a == 0) {
         return 0;
     }
-    if (a == 255) {
-        return component;
+    if (a == 65535u) {
+        return to8Bit(component);
     }
 
-    // QPainter's ARGB32 raster store uses an 8-bit reciprocal. This differs
-    // by one from qUnpremultiply() for some translucent pixels, so retain the
-    // measured store rounding rather than routing through a generic formula.
-    return std::min(255u, (component * 256u + a / 2u) / a);
+    // Qt's SSE4 RGBA64PM -> ARGB32 store converts directly to eight bits with
+    // round-to-nearest-even. Avoiding an intermediate 16-bit rounding is
+    // observable at low alpha and channel-boundary values.
+#if defined(__SSE2__)
+    const __m128 alphaVector = _mm_set1_ps(static_cast<float>(a));
+    __m128 inverseAlpha = _mm_rcp_ps(alphaVector);
+    inverseAlpha = _mm_sub_ps(
+        _mm_add_ps(inverseAlpha, inverseAlpha),
+        _mm_mul_ps(inverseAlpha, _mm_mul_ps(inverseAlpha, alphaVector)));
+    inverseAlpha = _mm_mul_ps(inverseAlpha, _mm_set1_ps(255.0f));
+    const __m128 value = _mm_mul_ps(
+        _mm_set1_ps(static_cast<float>(component)), inverseAlpha);
+    const int rounded = _mm_cvtsi128_si32(_mm_cvtps_epi32(value));
+    return std::min(255u, static_cast<unsigned>(std::max(0, rounded)));
+#else
+    const float value = static_cast<float>(component) * 255.0f /
+        static_cast<float>(a);
+    return std::min(255u, static_cast<unsigned>(std::nearbyint(value)));
+#endif
 }
 
-uint32_t sourceOver(uint32_t destination, uint32_t source, unsigned opacity)
+uint32_t sourceOver(const Rgba64Pixel &destinationPremultiplied,
+                    const Rgba64Pixel &sourcePremultiplied,
+                    unsigned opacity)
 {
-    const uint32_t sourcePremultiplied = premultiply(source);
-    const uint32_t destinationPremultiplied = premultiply(destination);
+    const Rgba64Pixel scaledSource = multiply64(sourcePremultiplied, opacity * 257u);
+    const Rgba64Pixel scaledDestination =
+        multiply64(destinationPremultiplied, 65535u - scaledSource.a);
+    const Rgba64Pixel result {
+        scaledSource.a + scaledDestination.a,
+        scaledSource.r + scaledDestination.r,
+        scaledSource.g + scaledDestination.g,
+        scaledSource.b + scaledDestination.b
+    };
 
-    const unsigned sourceAlpha = byteMultiply(alpha(sourcePremultiplied), opacity);
-    const unsigned inverseSourceAlpha = 255u - sourceAlpha;
-    const unsigned resultAlpha = sourceAlpha +
-        byteMultiply(alpha(destinationPremultiplied), inverseSourceAlpha);
-    const unsigned resultRed =
-        byteMultiply(red(sourcePremultiplied), opacity) +
-        byteMultiply(red(destinationPremultiplied), inverseSourceAlpha);
-    const unsigned resultGreen =
-        byteMultiply(green(sourcePremultiplied), opacity) +
-        byteMultiply(green(destinationPremultiplied), inverseSourceAlpha);
-    const unsigned resultBlue =
-        byteMultiply(blue(sourcePremultiplied), opacity) +
-        byteMultiply(blue(destinationPremultiplied), inverseSourceAlpha);
-
-    return argb(resultAlpha,
-                unpremultiplyForArgb32(resultRed, resultAlpha),
-                unpremultiplyForArgb32(resultGreen, resultAlpha),
-                unpremultiplyForArgb32(resultBlue, resultAlpha));
+    return argb(to8Bit(result.a),
+                unpremultiplyTo8(result.r, result.a),
+                unpremultiplyTo8(result.g, result.a),
+                unpremultiplyTo8(result.b, result.a));
 }
 
 bool isIntegralCoordinate(qreal value)
@@ -140,26 +225,41 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
 
     const int targetX = static_cast<int>(command.target.x());
     const int targetY = static_cast<int>(command.target.y());
-    const unsigned opacity = static_cast<unsigned>(m_opacity * 255.0);
+    // QRasterPaintEngine first truncates opacity to an 8.8 fixed-point value,
+    // then combines it with a fully covered span to obtain its 0..255 alpha.
+    const unsigned fixedOpacity = static_cast<unsigned>(m_opacity * 256.0);
+    const unsigned opacity = (fixedOpacity * 255u) >> 8;
 
     for (int sourceY = 0; sourceY < command.image.height(); ++sourceY) {
         const long long destinationY = static_cast<long long>(targetY) + sourceY;
         if (destinationY < 0 || destinationY >= m_destination.height()) {
             continue;
         }
-        for (int sourceX = 0; sourceX < command.image.width(); ++sourceX) {
-            const long long destinationX = static_cast<long long>(targetX) + sourceX;
-            if (destinationX < 0 || destinationX >= m_destination.width()) {
-                continue;
-            }
 
-            const int x = static_cast<int>(destinationX);
-            const int y = static_cast<int>(destinationY);
+        const long long clippedSourceBegin = std::max(
+            0LL, -static_cast<long long>(targetX));
+        const long long clippedSourceEnd = std::min(
+            static_cast<long long>(command.image.width()),
+            static_cast<long long>(m_destination.width()) - targetX);
+        if (clippedSourceBegin >= clippedSourceEnd) {
+            continue;
+        }
+
+        const int sourceBegin = static_cast<int>(clippedSourceBegin);
+        const int sourceEnd = static_cast<int>(clippedSourceEnd);
+        const int destinationX = targetX + sourceBegin;
+        const int y = static_cast<int>(destinationY);
+        const int count = sourceEnd - sourceBegin;
+        const auto sourcePixels =
+            premultiplySpan(command.image, sourceY, sourceBegin, count);
+        const auto destinationPixels =
+            premultiplySpan(m_destination, y, destinationX, count);
+        for (int i = 0; i < count; ++i) {
             m_destination.setPixel(
-                x,
+                destinationX + i,
                 y,
-                sourceOver(m_destination.pixel(x, y),
-                           command.image.pixel(sourceX, sourceY),
+                sourceOver(destinationPixels[static_cast<std::size_t>(i)],
+                           sourcePixels[static_cast<std::size_t>(i)],
                            opacity));
         }
     }
