@@ -72,7 +72,11 @@ void KisToolEllipse::finishRect(const PkRectF& rect, qreal roundCornersX, qreal 
                                            fillTransform());
         PkPainterPath path;
         path.addEllipse(rect);
-        getRotatedPath(path, rect.center(), getRotationAngle());
+        PkTransform rotation;
+        rotation.translate(rect.center().x(), rect.center().y());
+        rotation.rotateRadians(getRotationAngle());
+        rotation.translate(-rect.center().x(), -rect.center().y());
+        path = rotation.map(path);
         helper.paintPainterPath(path);
     } else {
         KisResourcesSnapshot resources(image(),

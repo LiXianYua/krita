@@ -75,7 +75,7 @@ KisToolPanFactory::KisToolPanFactory()
 {
     setToolTip(PkString("Pan Tool"));
     setSection(ToolBoxSection::Navigation);
-    setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+    setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     setPriority(2);
 }
 

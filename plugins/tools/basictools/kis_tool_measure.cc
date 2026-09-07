@@ -60,7 +60,7 @@ void KisToolMeasure::paint(PkPainter& gc, const KoViewConverter &converter)
 {
     PkPen old = gc.pen();
     PkPen pen(PkColor(0, 0, 0));
-    pen.setStyle(Qt::SolidLine);
+    pen.setStyle(Pk::SolidLine);
     gc.setPen(pen);
 
     PkPainterPath elbowPath;
@@ -101,7 +101,7 @@ void KisToolMeasure::paint(PkPainter& gc, const KoViewConverter &converter)
     converter.zoom(&sx, &sy);
     PkTransform transf;
     transf.scale(sx / currentImage()->xRes(), sy / currentImage()->yRes());
-    paintToolOutline(&gc, transf.map(elbowPath));
+    gc.drawPath(transf.map(elbowPath));
 
     gc.setPen(old);
 }
@@ -113,7 +113,7 @@ void KisToolMeasure::showDistanceAngleOnCanvas()
         .arg(KritaUtils::prettyFormatReal(distance() / currentImage()->xRes()))
         .arg(KoUnit(KoUnit::Pixel).symbol())
         .arg(KisBasicToolsString::numberFixed(angle(), 1));
-    feedback->showFloatingMessage(message, {}, 2000, KisCanvasFeedback::Priority::High);
+    feedback->showFloatingMessage(toQString(message), {}, 2000, KisCanvasFeedback::Priority::High);
 }
 void KisToolMeasure::beginPrimaryAction(KoPointerEvent *event)
 {

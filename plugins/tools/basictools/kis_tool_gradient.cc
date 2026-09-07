@@ -85,7 +85,7 @@ void KisToolGradient::paint(PkPainter &painter, const KoViewConverter &converter
     if (mode() == KisTool::PAINT_MODE && m_startPos != m_endPos) {
         paintLine(painter);
     }
-    KisToolPaint::paint(painter, converter);
+    (void)converter;
 }
 
 void KisToolGradient::beginPrimaryAction(KoPointerEvent *event)
@@ -207,7 +207,7 @@ void KisToolGradient::paintLine(PkPainter& gc)
         PkPainterPath path;
         path.moveTo(viewStartPos);
         path.lineTo(viewStartEnd);
-        paintToolOutline(&gc, path);
+        gc.drawPath(path);
     }
 }
 
