@@ -28,7 +28,7 @@ public:
     void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
 
 protected:
-    void finishOutline(const QVector<PkPointF> &points) override;
+    void finishOutline(const PkVector<PkPointF> &points) override;
 
 private:
     void finishOutlinePk(const PkVector<PkPointF> &points);

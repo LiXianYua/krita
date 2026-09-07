@@ -24,7 +24,7 @@ class KisToolPathLocalTool : public KoCreatePathTool {
 public:
     KisToolPathLocalTool(KoCanvasBase * canvas, KisPathEnclosingProducer* parentTool);
 
-    void paintPath(KoPathShape &pathShape, QPainter &painter, const KoViewConverter &converter) override;
+    void paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter) override;
     void addPathShape(KoPathShape* pathShape) override;
     void beginShape() override;
     void endShape() override;
@@ -83,7 +83,7 @@ public:
 
     void mouseReleaseEvent(KoPointerEvent *event) override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override
+    void paint(PkPainter &painter, const KoViewConverter &converter) override
     {
         m_localTool->paint(painter, converter);
     }

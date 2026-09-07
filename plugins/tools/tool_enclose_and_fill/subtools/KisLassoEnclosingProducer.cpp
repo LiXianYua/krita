@@ -47,7 +47,7 @@ void KisLassoEnclosingProducer::enclosingMaskProduced(KisPixelSelectionSP enclos
         enclosingMask);
 }
 
-void KisLassoEnclosingProducer::finishOutline(const QVector<PkPointF> &points)
+void KisLassoEnclosingProducer::finishOutline(const PkVector<PkPointF> &points)
 {
     PkVector<PkPointF> pkPoints;
     pkPoints.reserve(points.size());

@@ -141,7 +141,7 @@ void KisToolOutlineBase::undoLastPoint()
                 .adjusted(-FEEDBACK_LINE_WIDTH, -FEEDBACK_LINE_WIDTH, FEEDBACK_LINE_WIDTH, FEEDBACK_LINE_WIDTH);
             updateRect = updateRect.united(lastSegmentRect);
 
-            m_points.pop_back();
+            m_points.remove(m_points.size() - 1);
             --m_numberOfContinuedModePoints;
         }
 
@@ -213,18 +213,18 @@ void KisToolOutlineBase::endPrimaryAction(KoPointerEvent *event)
     }
 }
 
-void KisToolOutlineBase::paint(QPainter& gc, const KoViewConverter &converter)
+void KisToolOutlineBase::paint(PkPainter &gc, const KoViewConverter &converter)
 {
     if ((mode() == KisTool::PAINT_MODE || m_continuedMode) && !m_points.isEmpty()) {
-        QPainterPath outline;
-        outline.moveTo(toQPointF(pixelToView(m_points.first())));
+        PkPainterPath outline;
+        outline.moveTo(pixelToView(m_points.first()));
         for (qint32 i = 1; i < m_points.size(); ++i) {
-            outline.lineTo(toQPointF(pixelToView(m_points[i])));
+            outline.lineTo(pixelToView(m_points[i]));
         }
         if (m_continuedMode && mode() != KisTool::PAINT_MODE) {
-            outline.lineTo(toQPointF(pixelToView(m_lastCursorPos)));
+            outline.lineTo(pixelToView(m_lastCursorPos));
         }
-        paintToolOutline(&gc, KisOptimizedBrushOutline(toPkPainterPath(outline)));
+        paintToolOutline(&gc, KisOptimizedBrushOutline(outline));
     }
 
     KisToolShape::paint(gc, converter);

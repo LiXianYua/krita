@@ -73,7 +73,7 @@ PkRectF KoCreatePathTool::decorationsRect() const
     return dirtyRect;
 }
 
-void KoCreatePathTool::paint(QPainter &painter, const KoViewConverter &converter)
+void KoCreatePathTool::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     Q_D(KoCreatePathTool);
 
@@ -115,27 +115,29 @@ void KoCreatePathTool::paint(QPainter &painter, const KoViewConverter &converter
     }
 
     painter.save();
-    painter.setTransform(toQTransform(converter.documentToView()), true);
+    painter.setTransform(converter.documentToView(), true);
     canvas()->snapGuide()->paint(painter, converter);
     painter.restore();
 }
 
-void KoCreatePathTool::paintPath(KoPathShape& pathShape, QPainter &painter, const KoViewConverter &converter)
+void KoCreatePathTool::paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter)
 {
     Q_D(KoCreatePathTool);
-    painter.setTransform(toQTransform(pathShape.absoluteTransformation() *
-                         converter.documentToView()) *
+    painter.setTransform(pathShape.absoluteTransformation() *
+                         converter.documentToView() *
                          painter.transform());
     painter.save();
 
-    pathShape.paint(painter);
-    painter.restore();
-
     if (pathShape.stroke()) {
-        painter.save();
-        pathShape.stroke()->paint(d->shape, painter);
-        painter.restore();
+        if (const auto *stroke = dynamic_cast<const KoShapeStroke *>(pathShape.stroke().data())) {
+            const PkPen pen = stroke->resultLinePen();
+            if (!pen.isCosmetic() && pen.style() != Pk::NoPen) {
+                painter.fillPath(pathShape.pathStroke(pen), pen.brush());
+            }
+        }
     }
+
+    painter.restore();
 }
 
 void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)

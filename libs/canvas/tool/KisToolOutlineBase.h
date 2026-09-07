@@ -11,6 +11,8 @@
 #define KISTOOLOUTLINEBASE_H
 
 #include <PkSet.h>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
 #include <kis_tool_shape.h>
 
 class KisInputActionGroupsMaskGuard;
@@ -33,7 +35,7 @@ public:
     void beginPrimaryAction(KoPointerEvent *event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
-    void paint(QPainter& gc, const KoViewConverter &converter) override;
+    void paint(PkPainter &gc, const KoViewConverter &converter) override;
 
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
@@ -52,19 +54,18 @@ public Q_SLOTS:
     void undoLastPoint();
 
 protected:
-    virtual void finishOutline(const QVector<PkPointF>& points) = 0;
+    virtual void finishOutline(const PkVector<PkPointF> &points) = 0;
 
 private:
     static constexpr int FEEDBACK_LINE_WIDTH{2};
 
-    QPainterPath m_paintPath;
-    QVector<PkPointF> m_points;
+    PkVector<PkPointF> m_points;
     bool m_continuedMode;
     PkPointF m_lastCursorPos;
     ToolType m_type;
     int m_numberOfContinuedModePoints;
     bool m_hasUserInteractionRunning;
-    QScopedPointer<KisInputActionGroupsMaskGuard> m_blockModifyingActionsGuard;
+    PkScopedPointer<KisInputActionGroupsMaskGuard> m_blockModifyingActionsGuard;
 
     void updateFeedback();
     void updateContinuedMode();

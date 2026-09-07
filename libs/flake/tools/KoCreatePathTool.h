@@ -39,7 +39,7 @@ public:
     PkRectF decorationsRect() const override;
 
     /// reimplemented
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
     /// reimplemented
     void mousePressEvent(KoPointerEvent *event) override;
@@ -89,7 +89,7 @@ protected:
     /**
       * This method is called to paint the path. Decorations are drawn by KoCreatePathTool afterwards.
       */
-    virtual void paintPath(KoPathShape& pathShape, QPainter &painter, const KoViewConverter &converter);
+    virtual void paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter);
 
     void handleMouseMove(const KoPointerEvent *event, bool considerDrag);
     void endPath();
