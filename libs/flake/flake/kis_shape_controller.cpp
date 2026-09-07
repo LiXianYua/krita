@@ -191,7 +191,7 @@ KoShapeContainer *KisShapeController::createParentForShapes(const PkList<KoShape
 
         if (!shapeLayer || forceNewLayer) {
             shapeLayer = new KisShapeLayer(this, image(),
-                                           i18n("Vector Layer %1", m_d->nameServer->number()),
+                                           toPkString(i18n("Vector Layer %1", m_d->nameServer->number())),
                                            OPACITY_OPAQUE_U8);
 
             resultCommand->addCommand(

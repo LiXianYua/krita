@@ -46,19 +46,6 @@
 
 #include <kis_debug.h>
 
-namespace {
-PkRect toPkRect(const PkRect &rect)
-{
-    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-
-PkRect toQRect(const PkRect &rect)
-{
-    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-}
-
-
 KisShapeSelection::KisShapeSelection(KoShapeControllerBase *shapeControllerBase, KisSelectionWSP selection)
     : KoShapeLayer(new KisShapeSelectionModel(selection->resolutionProxy(), selection, this)),
       m_model(static_cast<KisShapeSelectionModel*>(this->model())),
@@ -146,7 +133,7 @@ bool KisShapeSelection::loadSelection(KoStore* store, const PkRect &imageRect)
         storeDev.open(PkStream::ReadOnly);
 
         shapes = KisShapeLayer::createShapesFromSvg(&storeDev,
-                                                    "", imageRect,
+                                                    "", PkRectF(imageRect),
                                                     resolutionPPI, m_canvas->shapeController()->resourceManager(),
                                                     true,
                                                     &fragmentSize);
@@ -214,7 +201,7 @@ void KisShapeSelection::recalculateOutlineCache()
         outline = outline.united(resolutionMatrix.map(shapeMatrix.map(shape->outline())));
     }
 
-    m_outline = toPkPainterPath(outline);
+    m_outline = outline;
 }
 
 void KisShapeSelection::paintComponent(QPainter& painter) const
@@ -227,7 +214,7 @@ void KisShapeSelection::renderToProjection(KisPaintDeviceSP projection)
     Q_ASSERT(projection);
 
     PkRectF boundingRect = outlineCache().boundingRect();
-    renderSelection(projection, toPkRect(PkRectF(boundingRect.x(), boundingRect.y(), boundingRect.width(), boundingRect.height()).toAlignedRect()));
+    renderSelection(projection, boundingRect.toAlignedRect());
 }
 
 void KisShapeSelection::renderToProjection(KisPaintDeviceSP projection, const PkRect& r)
@@ -243,7 +230,7 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRec
     const qint32 MASK_IMAGE_WIDTH = 256;
     const qint32 MASK_IMAGE_HEIGHT = 256;
 
-    PkPainterPath selectionOutline = toQPainterPath(outlineCache());
+    QPainterPath selectionOutline = toQPainterPath(outlineCache());
 
     if (projection->defaultBounds()->currentLevelOfDetail() > 0) {
         KisLodTransform t(projection);
@@ -256,9 +243,9 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRec
         KoColor transparentColor = KoColor::createTransparent(projection->colorSpace());
         projection->fill(requestedRect, transparentColor);
     }
-    const PkRect r = toQRect(requestedRect) & selectionOutline.boundingRect().toAlignedRect();
+    const QRect r = toQRect(requestedRect) & selectionOutline.boundingRect().toAlignedRect();
 
-    PkImage polygonMaskImage(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, PkImage::Format_ARGB32);
+    QImage polygonMaskImage(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, QImage::Format_ARGB32);
     QPainter maskPainter(&polygonMaskImage);
     maskPainter.setRenderHint(QPainter::Antialiasing, true);
 
@@ -266,7 +253,7 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRec
     for (qint32 x = r.x(); x < r.x() + r.width(); x += MASK_IMAGE_WIDTH) {
         for (qint32 y = r.y(); y < r.y() + r.height(); y += MASK_IMAGE_HEIGHT) {
 
-            maskPainter.fillRect(polygonMaskImage.rect(), Pk::black);
+            maskPainter.fillRect(polygonMaskImage.rect(), Qt::black);
             maskPainter.translate(-x, -y);
             maskPainter.fillPath(selectionOutline, Qt::white);
             maskPainter.translate(x, y);
@@ -321,7 +308,7 @@ KUndo2Command* KisShapeSelection::transform(const PkTransform &transform) {
     if(shapes.isEmpty()) return 0;
 
     PkTransform realTransform = m_converter->documentToView() *
-            toQTransform(transform) * m_converter->viewToDocument();
+            transform * m_converter->viewToDocument();
 
     PkList<PkTransform> oldTransformations;
     PkList<PkTransform> newTransformations;

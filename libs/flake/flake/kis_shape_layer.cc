@@ -8,7 +8,7 @@
  */
 
 #include <PkFlakeBridge.h>
-#include <compat/PkStream>
+#include <PkStream.h>
 #include "kis_shape_layer.h"
 #include <PkConnection.h>
 
@@ -275,7 +275,7 @@ void KisShapeLayer::initShapeLayerImpl(KoShapeControllerBase* controller,
     m_d->paintDevice = canvas->projection();
 
     m_d->canvas = canvas;
-    m_d->canvas->moveToThread(PkThread::currentThread());
+    m_d->canvas->moveToThread(QThread::currentThread());
     m_d->controller = controller;
 
     QObject::connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
@@ -633,7 +633,7 @@ PkList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const PkS
     int errorLine = 0;
     int errorColumn;
 
-    const PkByteArray data = toQByteArray(device->readAll());
+    const PkByteArray data = device->readAll();
     PkXmlDocument doc = SvgParser::createDocumentFromSvg(data, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
         errKrita << "Parsing error in contents.svg! Aborting!" << '\n'
@@ -641,8 +641,9 @@ PkList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const PkS
         << " Error message: " << errorMsg << '\n';
 
         if (errors) {
-            *errors << QStringLiteral("Parsing error in the main document at line %1, column %2\nError message: %3")
-                         .arg(errorLine).arg(errorColumn).arg(errorMsg);
+            *errors << toPkString(
+                QStringLiteral("Parsing error in the main document at line %1, column %2\nError message: %3")
+                    .arg(errorLine).arg(errorColumn).arg(toQString(errorMsg)));
         }
         return PkList<KoShape*>();
     }
@@ -695,7 +696,7 @@ bool KisShapeLayer::loadSvg(PkStream *device, const PkString &baseXmlDir, PkStri
 
     PkList<KoShape*> shapes =
         createShapesFromSvg(device, baseXmlDir,
-                            toQRectF(image->bounds()), resolutionPPI,
+                            PkRectF(image->bounds()), resolutionPPI,
                             m_d->controller->resourceManager(),
                             true,
                             &fragmentSize,
@@ -755,7 +756,7 @@ public:
 
     void undo() override
     {
-        KIS_SAFE_ASSERT_RECOVER_NOOP(PkThread::currentThread() != QCoreApplication::instance()->thread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != QCoreApplication::instance()->thread());
         m_blockingConnection.start(m_savedTransform);
     }
 
@@ -766,7 +767,7 @@ public:
         const PkTransform globalTransform = m_shapeLayer->absoluteTransformation();
         const PkTransform localTransform = globalTransform * m_globalDocTransform * globalTransform.inverted();
 
-        KIS_SAFE_ASSERT_RECOVER_NOOP(PkThread::currentThread() != QCoreApplication::instance()->thread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != QCoreApplication::instance()->thread());
         m_blockingConnection.start(localTransform * m_savedTransform);
     }
 
@@ -790,9 +791,8 @@ KUndo2Command* KisShapeLayer::transform(const PkTransform &transform)
      */
     const KisImageViewConverter *converter = dynamic_cast<const KisImageViewConverter*>(this->converter());
     KIS_ASSERT(converter);
-    const PkTransform qTransform = toQTransform(transform);
     PkTransform docSpaceTransform = converter->documentToView() *
-        qTransform * converter->viewToDocument();
+        transform * converter->viewToDocument();
 
     return new TransformShapeLayerDeferred(this, docSpaceTransform);
 }

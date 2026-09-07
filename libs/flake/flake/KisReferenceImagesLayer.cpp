@@ -92,7 +92,7 @@ private:
 };
 
 KisReferenceImagesLayer::KisReferenceImagesLayer(KoShapeControllerBase* shapeController, KisImageWSP image)
-    : KisShapeLayer(shapeController, image, i18n("Reference images"), OPACITY_OPAQUE_U8,
+    : KisShapeLayer(shapeController, image, toPkString(i18n("Reference images")), OPACITY_OPAQUE_U8,
                     [&] () { return new ReferenceImagesCanvas(image->colorSpace(), new KisDefaultBounds(image), this); })
 {}
 
@@ -118,7 +118,7 @@ PkVector<KisReferenceImage*> KisReferenceImagesLayer::referenceImages() const
 }
 
 void KisReferenceImagesLayer::paintReferences(QPainter &painter) {
-    painter.setTransform(converter()->documentToView(), true);
+    painter.setTransform(toQTransform(converter()->documentToView()), true);
     shapeManager()->paint(painter);
 }
 

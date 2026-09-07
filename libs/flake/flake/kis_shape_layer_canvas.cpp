@@ -35,19 +35,6 @@
 #include "kis_default_bounds.h"
 #include "kis_do_something_command.h"
 
-namespace {
-PkRect toQRect(const PkRect &rect)
-{
-    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-
-PkRect toPkRect(const PkRect &rect)
-{
-    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-}
-
-
 KisShapeLayerCanvasBase::KisShapeLayerCanvasBase(KisShapeLayer *parent)
     : KoCanvasBase(0)
     , m_shapeManager(new KoShapeManager(this))
@@ -209,13 +196,13 @@ void KisShapeLayerCanvas::setImage(KisImageWSP image)
             m_image.data(), &KisImage::sigSizeChanged, m_image.data(),
             [this](const PkPointF &, const PkPointF &) { slotImageSizeChanged(); },
             PkConnectionType::Unique);
-        m_cachedImageRect = toQRect(m_image->bounds());
+        m_cachedImageRect = m_image->bounds();
         m_projection->convertTo(image->colorSpace());
     }
     m_projection->setDefaultBounds(new KisDefaultBounds(image));
     if (image && m_hasUpdateOnSetImage) {
         m_hasUpdateOnSetImage = false;
-        const PkRectF documentRect = viewConverter()->viewToDocument(m_cachedImageRect);
+        const PkRectF documentRect = viewConverter()->viewToDocument(PkRectF(m_cachedImageRect));
         updateCanvas(documentRect);
     }
 }
@@ -245,7 +232,7 @@ public:
     }
 
     PkString debugName() const override {
-        PkString result;
+        QString result;
         QDebug dbg(&result);
         dbg << "KisRepaintShapeLayerLayerJob" << m_layer;
         return toPkString(result);
@@ -276,7 +263,7 @@ void KisShapeLayerCanvas::updateCanvas(const PkVector<PkRectF> &region)
         Q_FOREACH (const PkRectF &rc, region) {
             // grow for antialiasing
             const PkRect imageRect = kisGrowRect(viewConverter()->documentToView(rc).toAlignedRect(), 2);
-            m_dirtyRegion += imageRect;
+            m_dirtyRegion += toQRect(imageRect);
         }
     }
 
@@ -315,7 +302,7 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
     {
         PkMutexLocker locker(&m_dirtyRegionMutex);
 
-        repaintRect = m_dirtyRegion.boundingRect();
+        repaintRect = toPkRect(m_dirtyRegion.boundingRect());
         forceUpdateHiddenAreasOnly = m_forceUpdateHiddenAreasOnly;
 
         /// Since we are going to override the previous jobs, we should fetch
@@ -338,7 +325,7 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
         // Crop the update rect by the image bounds. We keep the cache consistent
         // by tracking the size of the image in slotImageSizeChanged()
         uncroppedRepaintRect = repaintRect;
-        repaintRect = repaintRect.intersected(toQRect(image->bounds()));
+        repaintRect = repaintRect.intersected(image->bounds());
     } else {
         const PkRectF shapesBounds = KoShape::boundingRect(m_shapeManager->shapes());
         repaintRect |= kisGrowRect(viewConverter()->documentToView(shapesBounds).toAlignedRect(), 2);
@@ -374,12 +361,11 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
      */
 
     const PkVector<PkRect> updateRects =
-        KritaUtils::splitRectIntoPatchesTight(toPkRect(repaintRect),
+        KritaUtils::splitRectIntoPatchesTight(repaintRect,
                                               PkSize(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT));
 
     KoShapeManager::PaintJobsOrder jobsOrder;
-    Q_FOREACH (const PkRect &pkViewUpdateRect, updateRects) {
-        const PkRect viewUpdateRect = toQRect(pkViewUpdateRect);
+    Q_FOREACH (const PkRect &viewUpdateRect, updateRects) {
         jobsOrder.jobs << KoShapeManager::PaintJob(viewConverter()->viewToDocument().mapRect(PkRectF(viewUpdateRect)),
                                               viewUpdateRect);
     }
@@ -403,15 +389,15 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
 void KisShapeLayerCanvas::slotImageSizeChanged()
 {
     QRegion dirtyCacheRegion;
-    const PkRect imageRect = toQRect(m_image->bounds());
-    dirtyCacheRegion += imageRect;
-    dirtyCacheRegion += m_cachedImageRect;
-    dirtyCacheRegion -= imageRect & m_cachedImageRect;
+    const PkRect imageRect = m_image->bounds();
+    dirtyCacheRegion += toQRect(imageRect);
+    dirtyCacheRegion += toQRect(m_cachedImageRect);
+    dirtyCacheRegion -= toQRect(imageRect & m_cachedImageRect);
 
     PkVector<PkRectF> dirtyRects;
     auto rc = dirtyCacheRegion.begin();
     while (rc != dirtyCacheRegion.end()) {
-        dirtyRects.append(viewConverter()->viewToDocument(*rc));
+        dirtyRects.append(viewConverter()->viewToDocument(PkRectF(toPkRect(*rc))));
         rc++;
     }
     updateCanvas(dirtyRects);
@@ -438,7 +424,7 @@ void KisShapeLayerCanvas::repaint()
     const qint32 MASK_IMAGE_WIDTH = 256;
     const qint32 MASK_IMAGE_HEIGHT = 256;
 
-    PkImage image(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, PkImage::Format_ARGB32);
+    QImage image(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, QImage::Format_ARGB32);
     QPainter tempPainter(&image);
 
     if(m_parentLayer->antialiased()) {
@@ -449,11 +435,11 @@ void KisShapeLayerCanvas::repaint()
     quint8 * dstData = new quint8[MASK_IMAGE_WIDTH * MASK_IMAGE_HEIGHT * m_projection->pixelSize()];
 
     PkRect repaintRect = paintJobsOrder.uncroppedViewUpdateRect;
-    m_projection->clear(toPkRect(repaintRect));
+    m_projection->clear(repaintRect);
 
     Q_FOREACH (const KoShapeManager::PaintJob &job, paintJobsOrder.jobs) {
         if (job.isEmpty()) {
-            m_projection->clear(toPkRect(job.viewUpdateRect));
+            m_projection->clear(job.viewUpdateRect);
             continue;
         }
 
@@ -464,14 +450,15 @@ void KisShapeLayerCanvas::repaint()
 
         image.fill(0);
 
-        tempPainter.setTransform(PkTransform());
-        tempPainter.setClipRect(PkRect(0,0,job.viewUpdateRect.width(), job.viewUpdateRect.height()));
-        tempPainter.setTransform(viewConverter()->documentToView() *
-                                 PkTransform::fromTranslate(-job.viewUpdateRect.x(), -job.viewUpdateRect.y()));
+        tempPainter.setTransform(QTransform());
+        tempPainter.setClipRect(QRect(0, 0, job.viewUpdateRect.width(), job.viewUpdateRect.height()));
+        tempPainter.setTransform(toQTransform(viewConverter()->documentToView() *
+                                 PkTransform::fromTranslate(-job.viewUpdateRect.x(), -job.viewUpdateRect.y())));
 
         m_shapeManager->paintJob(tempPainter, job);
 
-        if (image.size() != job.viewUpdateRect.size()) {
+        if (image.width() != job.viewUpdateRect.width() ||
+            image.height() != job.viewUpdateRect.height()) {
             const quint8 *imagePtr = image.constBits();
             const int imageRowStride = 4 * image.width();
 
@@ -510,7 +497,7 @@ void KisShapeLayerCanvas::repaint()
 
     delete[] dstData;
     m_projection->purgeDefaultPixels();
-    m_parentLayer->setDirty(toPkRect(repaintRect));
+    m_parentLayer->setDirty(repaintRect);
 
     m_hasChangedWhileBeingInvisible |= !m_parentLayer->visible(true);
 }

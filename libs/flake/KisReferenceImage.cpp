@@ -68,23 +68,23 @@ struct KisReferenceImage::Private : public QSharedData
         }
 
         if (image.isNull() && fallbackLoader) {
-            image = toPkImage(fallbackLoader(externalFilename));
+            image = fallbackLoader(externalFilename);
         }
 
         // See https://bugs.kde.org/show_bug.cgi?id=416515 -- a jpeg image
         // loaded into a qimage cannot be saved to png unless we explicitly
         // convert the colorspace of the PkImage
         if (!image.isNull()) {
-            PkImage loaded = toQImage(image);
+            QImage loaded = toQImage(image);
             loaded.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
-            image = loaded;
+            image = toPkImage(loaded);
         }
 
         return (!image.isNull());
     }
 
     bool loadFromQImage(const PkImage &img) {
-        image = toPkImage(img);
+        image = img;
         return !image.isNull();
     }
 
@@ -93,10 +93,10 @@ struct KisReferenceImage::Private : public QSharedData
             cachedImage = KritaUtils::convertQImageToGrayA(image);
 
             if (saturation > 0.0) {
-                PkImage cachedQt = toQImage(cachedImage);
+                QImage cachedQt = toQImage(cachedImage);
                 QPainter gc2(&cachedQt);
                 gc2.setOpacity(saturation);
-                gc2.drawImage(PkPoint(), toQImage(image));
+                gc2.drawImage(QPoint(), toQImage(image));
                 cachedImage = toPkImage(cachedQt);
             }
         } else {
@@ -214,7 +214,7 @@ void KisReferenceImage::paint(QPainter &gc) const
     // all three transformations: scale and rotation done by the user, scale from highDPI display, and zoom + rotation of the view
     // order: zoom/rotation of the view; scale to high res; scale and rotation done by the user
     PkImage prescaled = d->mipmap.getClosestWithoutWorkaroundBorder(
-        toPkTransform(transform * devicePixelRatioFTransform * gc.transform()), &scale);
+        transform * devicePixelRatioFTransform * toPkTransform(gc.transform()), &scale);
     transform.scale(1.0 / scale, 1.0 / scale);
 
     if (scale > 1.0) {
@@ -224,9 +224,9 @@ void KisReferenceImage::paint(QPainter &gc) const
     } else {
         gc.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     }
-    gc.setClipRect(PkRectF(PkPointF(), shapeSize), Qt::IntersectClip);
-    gc.setTransform(transform, true);
-    gc.drawImage(PkPoint(), toQImage(prescaled));
+    gc.setClipRect(toQRectF(PkRectF(PkPointF(), shapeSize)), Qt::IntersectClip);
+    gc.setTransform(toQTransform(transform), true);
+    gc.drawImage(QPoint(), toQImage(prescaled));
 
     gc.restore();
 }
@@ -276,7 +276,7 @@ void KisReferenceImage::setFilename(const PkString &filename)
 
 PkColor KisReferenceImage::getPixel(PkPointF position)
 {
-    if (transparency() == 1.0) return Qt::transparent;
+    if (transparency() == 1.0) return Pk::transparent;
 
     const PkSizeF shapeSize = size();
     const PkTransform scale = PkTransform::fromScale(d->image.width() / shapeSize.width(), d->image.height() / shapeSize.height());
@@ -306,13 +306,13 @@ void KisReferenceImage::saveXml(PkXmlDocument &document, PkXmlElement &parentEle
     element.setAttribute("src", src);
 
     const PkSizeF &shapeSize = size();
-    element.setAttribute("width", toQString(KisDomUtils::toString(shapeSize.width())));
-    element.setAttribute("height", toQString(KisDomUtils::toString(shapeSize.height())));
+    element.setAttribute("width", KisDomUtils::toString(shapeSize.width()));
+    element.setAttribute("height", KisDomUtils::toString(shapeSize.height()));
     element.setAttribute("keepAspectRatio", keepAspectRatio() ? "true" : "false");
-    element.setAttribute("transform", toQString(SvgUtil::transformToString(toPkTransform(transform()))));
+    element.setAttribute("transform", SvgUtil::transformToString(transform()));
 
-    element.setAttribute("opacity", toQString(KisDomUtils::toString(1.0 - transparency())));
-    element.setAttribute("saturation", toQString(KisDomUtils::toString(d->saturation)));
+    element.setAttribute("opacity", KisDomUtils::toString(1.0 - transparency()));
+    element.setAttribute("saturation", KisDomUtils::toString(d->saturation));
 
     parentElement.appendChild(element);
 }
@@ -324,10 +324,10 @@ KisReferenceImage * KisReferenceImage::fromXml(const PkXmlElement &elem)
     const PkString src = toPkString(elem.attribute("src"));
 
     if (src.startsWith("file://")) {
-        reference->d->externalFilename = toQString(src.mid(7));
+        reference->d->externalFilename = src.mid(7);
         reference->d->embed = false;
     } else {
-        reference->d->internalFilename = toQString(src);
+        reference->d->internalFilename = src;
         reference->d->embed = true;
     }
 
@@ -337,7 +337,7 @@ KisReferenceImage * KisReferenceImage::fromXml(const PkXmlElement &elem)
     reference->setKeepAspectRatio(toPkString(elem.attribute("keepAspectRatio", "true")).toLower() == "true");
 
     auto transform = SvgTransformParser(toPkString(elem.attribute("transform"))).transform();
-    reference->setTransformation(toQTransform(transform));
+    reference->setTransformation(transform);
 
     qreal opacity = KisDomUtils::toDouble(toPkString(elem.attribute("opacity", "1")));
     reference->setTransparency(1.0 - opacity);
@@ -352,7 +352,7 @@ bool KisReferenceImage::saveImage(KoStore *store) const
 {
     if (!d->embed) return true;
 
-    if (!store->open(toPkString(d->internalFilename))) {
+    if (!store->open(d->internalFilename)) {
         return false;
     }
 
@@ -360,9 +360,9 @@ bool KisReferenceImage::saveImage(KoStore *store) const
 
     KoStoreDevice storeDev(store);
     if (storeDev.open(PkStream::WriteOnly)) {
-        PkMemoryStream buffer;
-        if (buffer.open(PkStream::WriteOnly) && toQImage(d->image).save(&buffer, "PNG")) {
-            const PkByteArray bytes = buffer.data();
+        QBuffer buffer;
+        if (buffer.open(QIODevice::WriteOnly) && toQImage(d->image).save(&buffer, "PNG")) {
+            const PkByteArray bytes = toPkByteArray(buffer.data());
             saved = storeDev.write(bytes.constData(), bytes.size()) == bytes.size();
         }
     }
@@ -381,7 +381,7 @@ bool KisReferenceImage::loadImage(KoStore *store, const FallbackFileLoader &fall
         return d->loadFromFile(fallbackLoader);
     }
 
-    if (!store->open(toPkString(d->internalFilename))) {
+    if (!store->open(d->internalFilename)) {
         return false;
     }
 
@@ -391,18 +391,18 @@ bool KisReferenceImage::loadImage(KoStore *store, const FallbackFileLoader &fall
     }
 
     const PkByteArray bytes = storeDev.readAll();
-    PkImage loaded;
+    QImage loaded;
     if (!loaded.loadFromData(toQByteArray(bytes), "PNG")) {
         return false;
     }
-    d->image = loaded;
+    d->image = toPkImage(loaded);
 
     return store->close();
 }
 
 PkImage KisReferenceImage::getImage()
 {
-    return toQImage(d->image);
+    return d->image;
 }
 
 KoShape *KisReferenceImage::cloneShape() const

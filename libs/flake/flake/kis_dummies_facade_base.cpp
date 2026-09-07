@@ -247,7 +247,7 @@ void KisDummiesFacadeBase::slotContinueAddNode(KisNodeSP node, KisNodeSP parent,
     // Add one because this node does not exist yet
     int index = parentDummy && aboveThisDummy ?
         parentDummy->indexOf(aboveThisDummy) + 1 : 0;
-    Q_EMIT sigBeginInsertDummy(parentDummy, index, toQString(node->name()));
+    Q_EMIT sigBeginInsertDummy(parentDummy, index, node->name());
 
     addNodeImpl(node, parent, aboveThis);
 
