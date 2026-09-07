@@ -134,6 +134,11 @@ void KoToolProxy::paint(QPainter &painter, const KoViewConverter &converter)
     if (d->activeTool) d->activeTool->paint(painter, converter);
 }
 
+void KoToolProxy::paint(PkPainter &painter, const KoViewConverter &converter)
+{
+    if (d->activeTool) d->activeTool->paint(painter, converter);
+}
+
 void KoToolProxy::repaintDecorations()
 {
     if (d->activeTool) d->activeTool->repaintDecorations();

@@ -36,6 +36,7 @@ class QDropEvent;
 class QTouchEvent;
 class QFocusEvent;
 class QPainter;
+class PkPainter;
 class PkPointF;
 class QMenu;
 class KisPopupWidgetInterface;
@@ -64,6 +65,9 @@ public:
 
     /// Forwarded to the current KoToolBase
     void paint(QPainter &painter, const KoViewConverter &converter);
+
+    /// Forwarded to the current KoToolBase without crossing back through Qt rendering.
+    void paint(PkPainter &painter, const KoViewConverter &converter);
 
     /// Forwarded to the current KoToolBase
     void repaintDecorations();

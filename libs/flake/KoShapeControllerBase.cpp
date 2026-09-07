@@ -9,7 +9,6 @@
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include <PkTransform.h>
-#include <PkPointer.h>
 
 #include "KoShapeControllerBase.h"
 #include "KoDocumentResourceManager.h"
@@ -44,7 +43,7 @@ public:
         delete resourceManager;
     }
 
-    PkPointer<KoDocumentResourceManager> resourceManager;
+    KoDocumentResourceManager *resourceManager;
 };
 
 KoShapeControllerBase::KoShapeControllerBase()

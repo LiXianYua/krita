@@ -6,7 +6,6 @@
 */
 
 #include <PkRect.h>
-#include <PkPointer.h>
 #include <QDebug>
 
 #include "KoCanvasBase.h"
@@ -39,8 +38,8 @@ public:
         }
         delete snapGuide;
     }
-    PkPointer<KoShapeController> shapeController;
-    PkPointer<KoCanvasResourceProvider> resourceManager;
+    KoShapeController *shapeController;
+    KoCanvasResourceProvider *resourceManager;
     bool isResourceManagerShared;
     KoCanvasController *controller;
     KoSnapGuide *snapGuide;

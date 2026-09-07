@@ -60,6 +60,15 @@ target_include_directories(PkQPainterAdapterTest PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/render
     )
 
+kis_add_test(
+    KoToolProxyPkPainterTest.cpp
+    TEST_NAME KoToolProxyPkPainterTest
+    LINK_LIBRARIES kritaflake kritatestsdk
+    )
+target_include_directories(KoToolProxyPkPainterTest PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/render
+    )
+
 ############## broken tests ###############
 
 kis_add_test(TestPointMergeCommand.cpp
