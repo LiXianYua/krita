@@ -260,7 +260,7 @@ void KisShapeLayerCanvas::updateCanvas(const PkVector<PkRectF> &region)
         Q_FOREACH (const PkRectF &rc, region) {
             // grow for antialiasing
             const PkRect imageRect = kisGrowRect(viewConverter()->documentToView(rc).toAlignedRect(), 2);
-            m_dirtyRegion += toQRect(imageRect);
+            m_dirtyRegion += imageRect;
         }
     }
 
@@ -299,7 +299,7 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
     {
         PkMutexLocker locker(&m_dirtyRegionMutex);
 
-        repaintRect = toPkRect(m_dirtyRegion.boundingRect());
+        repaintRect = m_dirtyRegion.boundingRect();
         forceUpdateHiddenAreasOnly = m_forceUpdateHiddenAreasOnly;
 
         /// Since we are going to override the previous jobs, we should fetch
@@ -310,7 +310,7 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
         }
         m_paintJobsOrder.clear();
 
-        m_dirtyRegion = QRegion();
+        m_dirtyRegion = PkRegion();
         m_forceUpdateHiddenAreasOnly = false;
     }
 
@@ -385,16 +385,16 @@ void KisShapeLayerCanvas::slotStartAsyncRepaint()
 
 void KisShapeLayerCanvas::slotImageSizeChanged()
 {
-    QRegion dirtyCacheRegion;
+    PkRegion dirtyCacheRegion;
     const PkRect imageRect = m_image->bounds();
-    dirtyCacheRegion += toQRect(imageRect);
-    dirtyCacheRegion += toQRect(m_cachedImageRect);
-    dirtyCacheRegion -= toQRect(imageRect & m_cachedImageRect);
+    dirtyCacheRegion += imageRect;
+    dirtyCacheRegion += m_cachedImageRect;
+    dirtyCacheRegion -= imageRect & m_cachedImageRect;
 
     PkVector<PkRectF> dirtyRects;
     auto rc = dirtyCacheRegion.begin();
     while (rc != dirtyCacheRegion.end()) {
-        dirtyRects.append(viewConverter()->viewToDocument(PkRectF(toPkRect(*rc))));
+        dirtyRects.append(viewConverter()->viewToDocument(PkRectF(*rc)));
         rc++;
     }
     updateCanvas(dirtyRects);

@@ -7,7 +7,7 @@
 #define KIS_SHAPE_LAYER_CANVAS_H
 
 #include <PkMutex.h>
-#include <QRegion>
+#include <PkRegion.h>
 #include <KoCanvasBase.h>
 
 #include <kis_types.h>
@@ -121,7 +121,7 @@ private:
     KisSafeBlockingQueueConnectionProxy<void> m_safeForcedConnection;
 
     bool m_forceUpdateHiddenAreasOnly = false;
-    QRegion m_dirtyRegion;
+    PkRegion m_dirtyRegion;
     PkMutex m_dirtyRegionMutex;
     KoShapeManager::PaintJobsOrder m_paintJobsOrder;
 
