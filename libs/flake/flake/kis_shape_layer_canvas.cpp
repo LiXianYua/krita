@@ -232,10 +232,7 @@ public:
     }
 
     PkString debugName() const override {
-        QString result;
-        QDebug dbg(&result);
-        dbg << "KisRepaintShapeLayerLayerJob" << m_layer;
-        return toPkString(result);
+        return PkString("KisRepaintShapeLayerLayerJob");
     }
 
 private:
