@@ -6,6 +6,8 @@
 
 #include "KarbonSimplifyPath.h"
 
+#include <PkContainerAlgo.h>
+
 #include <KoCurveFit.h>
 #include <KoPathShape.h>
 #include <KoPathPoint.h>

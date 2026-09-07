@@ -53,8 +53,8 @@ KarbonCalligraphyTool::KarbonCalligraphyTool(KoCanvasBase *canvas)
     , m_isDrawing(false)
     , m_speed(0, 0)
 {
-    PkObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
-                      this, &KarbonCalligraphyTool::updateSelectedPath);
+    QObject::connect(canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged,
+                     this, &KarbonCalligraphyTool::updateSelectedPath);
 
     updateSelectedPath();
 }
@@ -68,7 +68,7 @@ void KarbonCalligraphyTool::paint(PkPainter &painter, const KoViewConverter &con
     if (m_selectedPath) {
         painter.save();
         painter.setRenderHints(PkPainter::Antialiasing, false);
-        painter.setPen(Qt::red);   // TODO make configurable
+        painter.setPen(PkColor(Pk::red));   // TODO make configurable
         PkRectF rect = m_selectedPath->boundingRect();
         PkPointF p1 = converter.documentToView(rect.topLeft());
         PkPointF p2 = converter.documentToView(rect.bottomRight());
@@ -86,7 +86,10 @@ void KarbonCalligraphyTool::paint(PkPainter &painter, const KoViewConverter &con
                          converter.documentToView() *
                          painter.transform());
 
-    m_shape->paint(painter);
+    const auto *background = dynamic_cast<const KoColorBackground *>(m_shape->background().data());
+    if (background) {
+        painter.fillPath(m_shape->outline(), PkBrush(background->color()));
+    }
 
     painter.restore();
 }
