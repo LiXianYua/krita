@@ -17,4 +17,6 @@ private Q_SLOTS:
     void saveRestoreAndEmptyRestore();
     void copiedPathAndImagePayloadsOutliveSources();
     void measuredOverloadsSubmitOneCommand();
+    void textOverloadsPreservePlacementKind();
+    void clipStateTracksRectPathAndStackOperations();
 };

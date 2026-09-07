@@ -111,7 +111,10 @@ void PkQPainterAdapter::submit(const PkPaintCommand &command)
         [this](const PkSetFontCommand &value) {
             m_painter.setFont(toQFont(value.font));
         },
-        [this](const PkDrawTextCommand &value) {
+        [this](const PkDrawTextAtPointCommand &value) {
+            m_painter.drawText(toQPointF(value.position), toQString(value.text));
+        },
+        [this](const PkDrawTextInRectCommand &value) {
             m_painter.drawText(toQRectF(value.rect), Qt::AlignLeft | Qt::AlignVCenter, toQString(value.text));
         }
     }, command);

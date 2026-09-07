@@ -5,7 +5,7 @@
 
 #include "PkQPainterAdapter.h"
 
-#include <QtGui/PkImage>
+#include <QtGui/QImage>
 #include <QtGui/QPainter>
 #include <QtTest/QtTest>
 
@@ -15,12 +15,12 @@
 namespace
 {
 
-PkColor pixelColor(const PkImage &image, int x, int y)
+PkColor pixelColor(const QImage &image, int x, int y)
 {
-    return image.pixelColor(x, y);
+    return toPkColor(image.pixelColor(x, y));
 }
 
-int coloredPixels(const PkImage &image, const PkRect &area)
+int coloredPixels(const QImage &image, const PkRect &area)
 {
     int count = 0;
     for (int y = area.top(); y <= area.bottom(); ++y) {
@@ -45,11 +45,12 @@ private Q_SLOTS:
     void drawsKnifePrimitives();
     void appliesKarbonTransformToRectangle();
     void blitsSmartPatchImage();
+    void preservesPointBaselineAndRectangleAlignment();
 };
 
 void PkQPainterAdapterTest::restoresSavedPenAndBrushState()
 {
-    PkImage image(48, 24, PkImage::Format_ARGB32_Premultiplied);
+    QImage image(48, 24, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
@@ -77,15 +78,15 @@ void PkQPainterAdapterTest::restoresSavedPenAndBrushState()
 
 void PkQPainterAdapterTest::clipsTranslucentCropPath()
 {
-    PkImage image(32, 32, PkImage::Format_ARGB32_Premultiplied);
+    QImage image(32, 32, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
     PkPainter painter(backend);
 
-    painter.setPen(Qt::NoPen);
+    painter.setPen(Pk::NoPen);
     painter.setBrush(PkBrush(PkColor(240, 20, 40, 128)));
-    painter.setClipRect(PkRectF(6, 7, 18, 16), Qt::IntersectClip);
+    painter.setClipRect(PkRectF(6, 7, 18, 16), Pk::IntersectClip);
     PkPainterPath cropShade;
     cropShade.addRect(PkRectF(0, 0, 32, 32));
     painter.drawPath(cropShade);
@@ -102,16 +103,16 @@ void PkQPainterAdapterTest::clipsTranslucentCropPath()
 
 void PkQPainterAdapterTest::drawsKnifePrimitives()
 {
-    PkImage image(72, 48, PkImage::Format_ARGB32_Premultiplied);
+    QImage image(72, 48, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
     PkPainter painter(backend);
 
     PkPen pen(PkColor(255, 255, 255), 2.0);
-    pen.setCapStyle(Qt::FlatCap);
+    pen.setCapStyle(Pk::FlatCap);
     painter.setPen(pen);
-    painter.setBrush(Qt::NoBrush);
+    painter.setBrush(Pk::NoBrush);
     painter.setRenderHint(static_cast<unsigned>(QPainter::Antialiasing), false);
     painter.drawLine(PkPointF(3, 6), PkPointF(22, 6));
     painter.drawArc(PkRectF(27, 2, 16, 16), 0, 180 * 16);
@@ -132,13 +133,13 @@ void PkQPainterAdapterTest::drawsKnifePrimitives()
 
 void PkQPainterAdapterTest::appliesKarbonTransformToRectangle()
 {
-    PkImage image(44, 32, PkImage::Format_ARGB32_Premultiplied);
+    QImage image(44, 32, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
     PkPainter painter(backend);
 
-    painter.setPen(Qt::NoPen);
+    painter.setPen(Pk::NoPen);
     painter.setBrush(PkBrush(PkColor(20, 210, 80)));
     PkTransform transform;
     transform.translate(21, 11);
@@ -152,7 +153,7 @@ void PkQPainterAdapterTest::appliesKarbonTransformToRectangle()
 
 void PkQPainterAdapterTest::blitsSmartPatchImage()
 {
-    PkImage image(30, 24, PkImage::Format_ARGB32_Premultiplied);
+    QImage image(30, 24, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter qtPainter(&image);
     PkQPainterAdapter backend(qtPainter);
@@ -167,6 +168,37 @@ void PkQPainterAdapterTest::blitsSmartPatchImage()
     QCOMPARE(pixelColor(image, 3, 3), PkColor(0, 0, 0, 0));
 }
 
-QTEST_GUILESS_MAIN(PkQPainterAdapterTest)
+void PkQPainterAdapterTest::preservesPointBaselineAndRectangleAlignment()
+{
+    QImage expected(140, 50, QImage::Format_ARGB32_Premultiplied);
+    QImage actual(140, 50, QImage::Format_ARGB32_Premultiplied);
+    expected.fill(Qt::transparent);
+    actual.fill(Qt::transparent);
+
+    const PkFont font("DejaVu Sans", 12);
+    {
+        QPainter painter(&expected);
+        painter.setPen(Qt::white);
+        painter.setFont(toQFont(font));
+        painter.drawText(QPointF(8.0, 30.0), QStringLiteral("baseline"));
+        painter.drawText(QRectF(70.0, 5.0, 65.0, 35.0),
+                         Qt::AlignLeft | Qt::AlignVCenter,
+                         QStringLiteral("aligned"));
+    }
+
+    {
+        QPainter qtPainter(&actual);
+        PkQPainterAdapter backend(qtPainter);
+        PkPainter painter(backend);
+        painter.setPen(Pk::white);
+        painter.setFont(font);
+        painter.drawText(PkPointF(8.0, 30.0), PkString("baseline"));
+        painter.drawText(PkRectF(70.0, 5.0, 65.0, 35.0), PkString("aligned"));
+    }
+
+    QCOMPARE(actual, expected);
+}
+
+QTEST_MAIN(PkQPainterAdapterTest)
 
 #include "PkQPainterAdapterTest.moc"

@@ -307,4 +307,51 @@ void PkPainterCase::measuredOverloadsSubmitOneCommand()
                PkRectF(16, 25, 8, 10));
 }
 
+void PkPainterCase::textOverloadsPreservePlacementKind()
+{
+    RecordingBackend backend;
+    PkPainter painter(backend);
+
+    painter.drawText(PkPointF(12.0, 34.0), PkString("baseline"));
+    painter.drawText(PkRectF(1.0, 2.0, 30.0, 40.0), PkString("aligned"));
+
+    PK_COMPARE(backend.commands.size(), std::size_t(2));
+    PK_VERIFY(std::holds_alternative<PkDrawTextAtPointCommand>(backend.commands[0]));
+    const auto &point = std::get<PkDrawTextAtPointCommand>(backend.commands[0]);
+    PK_COMPARE(point.position, PkPointF(12.0, 34.0));
+    PK_COMPARE(point.text, PkString("baseline"));
+    PK_VERIFY(std::holds_alternative<PkDrawTextInRectCommand>(backend.commands[1]));
+    const auto &rect = std::get<PkDrawTextInRectCommand>(backend.commands[1]);
+    PK_COMPARE(rect.rect, PkRectF(1.0, 2.0, 30.0, 40.0));
+    PK_COMPARE(rect.text, PkString("aligned"));
+}
+
+void PkPainterCase::clipStateTracksRectPathAndStackOperations()
+{
+    RecordingBackend backend;
+    PkPainter painter(backend);
+
+    painter.setClipRect(PkRectF(0.0, 0.0, 20.0, 20.0), Pk::ReplaceClip);
+    PK_VERIFY(painter.hasClipping());
+    PK_COMPARE(painter.clipBoundingRect(), PkRectF(0.0, 0.0, 20.0, 20.0));
+
+    painter.setClipRect(PkRectF(10.0, 5.0, 20.0, 20.0), Pk::IntersectClip);
+    PK_COMPARE(painter.clipBoundingRect(), PkRectF(10.0, 5.0, 10.0, 15.0));
+
+    painter.save();
+    painter.setClipRect(PkRectF(1.0, 1.0, 2.0, 2.0), Pk::ReplaceClip);
+    PK_COMPARE(painter.clipBoundingRect(), PkRectF(1.0, 1.0, 2.0, 2.0));
+    painter.restore();
+    PK_COMPARE(painter.clipBoundingRect(), PkRectF(10.0, 5.0, 10.0, 15.0));
+
+    PkPainterPath path;
+    path.addRect(PkRectF(12.0, 0.0, 10.0, 10.0));
+    painter.setClipPath(path, Pk::IntersectClip);
+    PK_COMPARE(painter.clipBoundingRect(), PkRectF(12.0, 5.0, 8.0, 5.0));
+
+    painter.setClipRect(PkRectF(), Pk::NoClip);
+    PK_VERIFY(!painter.hasClipping());
+    PK_COMPARE(painter.clipBoundingRect(), PkRectF());
+}
+
 PK_TEST_APPLESS_MAIN(PkPainterCase)

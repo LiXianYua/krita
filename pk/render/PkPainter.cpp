@@ -59,13 +59,29 @@ void PkPainter::setOpacity(qreal opacity) {
 qreal PkPainter::opacity() const { return m_state.opacity; }
 
 void PkPainter::setClipRect(const PkRectF &r,Pk::ClipOperation o) {
-    m_state.hasClip = (o != Pk::NoClip);
-    if (o == Pk::NoClip) m_state.clipPath = PkPainterPath();
+    PkPainterPath path;
+    path.addRect(r);
+    if (o == Pk::NoClip) {
+        m_state.clipPath = PkPainterPath();
+        m_state.hasClip = false;
+    } else if (o == Pk::ReplaceClip || !m_state.hasClip) {
+        m_state.clipPath = path;
+        m_state.hasClip = true;
+    } else {
+        m_state.clipPath &= path;
+    }
     m_backend.submit(PkSetClipRectCommand{r,o});
 }
 void PkPainter::setClipPath(const PkPainterPath &p,Pk::ClipOperation o) {
-    m_state.clipPath = p;
-    m_state.hasClip = (o != Pk::NoClip);
+    if (o == Pk::NoClip) {
+        m_state.clipPath = PkPainterPath();
+        m_state.hasClip = false;
+    } else if (o == Pk::ReplaceClip || !m_state.hasClip) {
+        m_state.clipPath = p;
+        m_state.hasClip = true;
+    } else {
+        m_state.clipPath &= p;
+    }
     m_backend.submit(PkSetClipPathCommand{p,o});
 }
 bool PkPainter::hasClipping() const { return m_state.hasClip; }
@@ -104,8 +120,8 @@ void PkPainter::drawTiledPixmap(const PkRectF &r,const PkImage &img,const PkPoin
 }
 
 void PkPainter::drawText(const PkPointF &pos,const PkString &text) {
-    m_backend.submit(PkDrawTextCommand{PkRectF(pos, PkSizeF()), text});
+    m_backend.submit(PkDrawTextAtPointCommand{pos, text});
 }
 void PkPainter::drawText(const PkRectF &rect,const PkString &text) {
-    m_backend.submit(PkDrawTextCommand{rect, text});
+    m_backend.submit(PkDrawTextInRectCommand{rect, text});
 }

@@ -40,7 +40,8 @@ struct PkStrokePathCommand { PkPainterPath path; PkPen pen; };
 struct PkDrawPixmapCommand { PkRectF target; PkImage image; PkRectF source; };
 struct PkDrawTiledPixmapCommand { PkRectF rect; PkImage image; PkPointF offset; };
 struct PkSetFontCommand { PkFont font; };
-struct PkDrawTextCommand { PkRectF rect; PkString text; };
+struct PkDrawTextAtPointCommand { PkPointF position; PkString text; };
+struct PkDrawTextInRectCommand { PkRectF rect; PkString text; };
 
-using PkPaintCommand = std::variant<PkSaveCommand,PkRestoreCommand,PkSetPenCommand,PkSetBrushCommand,PkSetTransformCommand,PkSetRenderHintCommand,PkSetClipRectCommand,PkDrawLineCommand,PkDrawRectCommand,PkDrawEllipseCommand,PkDrawArcCommand,PkDrawPathCommand,PkDrawPolygonCommand,PkDrawImageCommand,PkSetCompositionModeCommand,PkSetOpacityCommand,PkSetClipPathCommand,PkFillRectCommand,PkFillPathCommand,PkDrawPointCommand,PkStrokePathCommand,PkDrawPixmapCommand,PkDrawTiledPixmapCommand,PkSetFontCommand,PkDrawTextCommand>;
+using PkPaintCommand = std::variant<PkSaveCommand,PkRestoreCommand,PkSetPenCommand,PkSetBrushCommand,PkSetTransformCommand,PkSetRenderHintCommand,PkSetClipRectCommand,PkDrawLineCommand,PkDrawRectCommand,PkDrawEllipseCommand,PkDrawArcCommand,PkDrawPathCommand,PkDrawPolygonCommand,PkDrawImageCommand,PkSetCompositionModeCommand,PkSetOpacityCommand,PkSetClipPathCommand,PkFillRectCommand,PkFillPathCommand,PkDrawPointCommand,PkStrokePathCommand,PkDrawPixmapCommand,PkDrawTiledPixmapCommand,PkSetFontCommand,PkDrawTextAtPointCommand,PkDrawTextInRectCommand>;
 class PkPainterBackend { public: virtual ~PkPainterBackend() = default; virtual void submit(const PkPaintCommand&) = 0; };
