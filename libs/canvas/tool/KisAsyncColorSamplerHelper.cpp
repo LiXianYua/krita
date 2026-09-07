@@ -213,7 +213,7 @@ KisAsyncColorSamplerHelper::KisAsyncColorSamplerHelper(
 
     m_d->activationDelayTimer.setInterval(100);
     m_d->activationDelayTimer.setSingleShot(true);
-    connect(&m_d->activationDelayTimer, SIGNAL(timeout()), this, SLOT(activateDelayedPreview()));
+    QObject::connect(&m_d->activationDelayTimer, SIGNAL(timeout()), this, SLOT(activateDelayedPreview()));
 }
 
 KisAsyncColorSamplerHelper::~KisAsyncColorSamplerHelper()
@@ -324,9 +324,9 @@ void KisAsyncColorSamplerHelper::deactivate()
 void KisAsyncColorSamplerHelper::startAction(const PkPointF &docPoint, int radius, int blend)
 {
     KisColorSamplerStrokeStrategy *strategy = new KisColorSamplerStrokeStrategy(radius, blend);
-    connect(strategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
+    QObject::connect(strategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
             this, &KisAsyncColorSamplerHelper::slotColorSamplingFinished);
-    connect(strategy, &KisColorSamplerStrokeStrategy::sigFinalColorSelected,
+    QObject::connect(strategy, &KisColorSamplerStrokeStrategy::sigFinalColorSelected,
             this, &KisAsyncColorSamplerHelper::sigFinalColorSelected);
 
     activatePreview();

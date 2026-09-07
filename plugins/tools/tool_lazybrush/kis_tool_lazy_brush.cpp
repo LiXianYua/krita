@@ -42,7 +42,7 @@ KisToolLazyBrush::KisToolLazyBrush(KoCanvasBase * canvas)
                       kundo2_text("Colorize Mask Key Stroke")),
       m_d(new Private)
 {
-    setObjectName("tool_lazybrush");
+    QObject::setObjectName("tool_lazybrush");
 }
 
 KisToolLazyBrush::~KisToolLazyBrush()

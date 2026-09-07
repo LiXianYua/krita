@@ -151,10 +151,10 @@ KisToolFreehandHelper::KisToolFreehandHelper(KisPaintingInformationBuilder *info
     m_d->fakeStrokeRandomSource = new KisPerStrokeRandomSource();
 
     m_d->strokeTimeoutTimer.setSingleShot(true);
-    connect(&m_d->strokeTimeoutTimer, SIGNAL(timeout()), SLOT(finishStroke()));
-    connect(&m_d->airbrushingTimer, SIGNAL(timeout()), SLOT(doAirbrushing()));
-    connect(&m_d->stabilizerPollTimer, SIGNAL(timeout()), SLOT(stabilizerPollAndPaint()));
-    connect(m_d->smoothingOptions.data(), SIGNAL(sigSmoothingTypeChanged()), SLOT(slotSmoothingTypeChanged()));
+    QObject::connect(&m_d->strokeTimeoutTimer, SIGNAL(timeout()), SLOT(finishStroke()));
+    QObject::connect(&m_d->airbrushingTimer, SIGNAL(timeout()), SLOT(doAirbrushing()));
+    QObject::connect(&m_d->stabilizerPollTimer, SIGNAL(timeout()), SLOT(stabilizerPollAndPaint()));
+    QObject::connect(m_d->smoothingOptions.data(), SIGNAL(sigSmoothingTypeChanged()), SLOT(slotSmoothingTypeChanged()));
 
     m_d->stabilizerDelayedPaintHelper.setPaintLineCallback(
                 [this](const KisPaintInformation &pi1, const KisPaintInformation &pi2) {

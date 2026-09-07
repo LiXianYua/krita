@@ -54,7 +54,7 @@ KisToolLine::KisToolLine(KoCanvasBase * canvas)
       m_strokeUpdateCompressor(200, KisSignalCompressor::POSTPONE),
       m_longStrokeUpdateCompressor(750, KisSignalCompressor::FIRST_INACTIVE)
 {
-    setObjectName("tool_line");
+    QObject::setObjectName("tool_line");
 
     setSupportOutline(true);
 
@@ -67,7 +67,7 @@ KisToolLine::KisToolLine(KoCanvasBase * canvas)
         PkObject::connect(&m_longStrokeUpdateCompressor, &KisSignalCompressor::timeout,
                           &m_longStrokeUpdateCompressor, [this]() { updateStroke(); });
 
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

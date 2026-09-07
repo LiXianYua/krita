@@ -70,15 +70,15 @@ KisToolFreehand::KisToolFreehand(KoCanvasBase * canvas, const QCursor & cursor,
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
     KIS_ASSERT(services);
-    connect(services->toolSignals(), &KisCanvasToolSignals::brushOutlineChanged,
+    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::brushOutlineChanged,
             this, &KisToolFreehand::explicitUpdateOutline);
-    connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
+    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
             this, &KisToolFreehand::explicitUpdateOutline);
-    connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
+    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
             this, &KisToolFreehand::resetCursorStyle);
-    connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
+    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
             this, &KisToolFreehand::explicitUpdateOutline);
-    connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
+    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
             this, &KisToolFreehand::resetCursorStyle);
 }
 

@@ -62,7 +62,7 @@ KisStrokeStrategy* KisColorSamplerStrokeStrategy::createLodClone(int levelOfDeta
     m_d->shouldSkipWork = true;
 
     KisColorSamplerStrokeStrategy *lodStrategy = new KisColorSamplerStrokeStrategy(m_d->radius, m_d->blend, levelOfDetail);
-    connect(lodStrategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
+    QObject::connect(lodStrategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
             this, &KisColorSamplerStrokeStrategy::sigColorUpdated,
             Qt::DirectConnection);
     return lodStrategy;

@@ -13,11 +13,11 @@
 KisLassoEnclosingProducer::KisLassoEnclosingProducer(KoCanvasBase * canvas)
     : KisDynamicDelegateTool<KisToolOutlineBase>(canvas, KisToolOutlineBase::PAINT, Qt::ArrowCursor)
 {
-    setObjectName("enclosing_tool_lasso");
+    QObject::setObjectName("enclosing_tool_lasso");
     setSupportOutline(true);
     setOutlineEnabled(false);
 
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

@@ -16,31 +16,31 @@ KisSelectionToolConfigWidgetHelper::KisSelectionToolConfigWidgetHelper(
     const QString &windowTitle)
     : m_windowTitle(windowTitle)
 {
-    connect(&m_options, &KisSelectionOptions::modeChanged,
+    QObject::connect(&m_options, &KisSelectionOptions::modeChanged,
             this, &KisSelectionToolConfigWidgetHelper::slotWidgetModeChanged);
-    connect(&m_options,
+    QObject::connect(&m_options,
             &KisSelectionOptions::actionChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotWidgetActionChanged);
-    connect(&m_options, &KisSelectionOptions::antiAliasSelectionChanged,
+    QObject::connect(&m_options, &KisSelectionOptions::antiAliasSelectionChanged,
             this, &KisSelectionToolConfigWidgetHelper::slotWidgetAntiAliasChanged);
-    connect(&m_options,
+    QObject::connect(&m_options,
             &KisSelectionOptions::growSelectionChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotWidgetGrowChanged);
-    connect(&m_options,
+    QObject::connect(&m_options,
             &KisSelectionOptions::stopGrowingAtDarkestPixelChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotWidgetStopGrowingAtDarkestPixelChanged);
-    connect(&m_options,
+    QObject::connect(&m_options,
             &KisSelectionOptions::featherSelectionChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotWidgetFeatherChanged);
-    connect(&m_options,
+    QObject::connect(&m_options,
             &KisSelectionOptions::referenceLayersChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotReferenceLayersChanged);
-    connect(&m_options, &KisSelectionOptions::selectedColorLabelsChanged,
+    QObject::connect(&m_options, &KisSelectionOptions::selectedColorLabelsChanged,
             this, &KisSelectionToolConfigWidgetHelper::slotSelectedColorLabelsChanged);
 
     slotToolActivatedChanged(true);

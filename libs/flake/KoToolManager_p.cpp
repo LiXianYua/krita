@@ -88,7 +88,7 @@ Connector::Connector(KoShapeManager *parent)
         : QObject(parent),
         m_shapeManager(parent)
 {
-    connect(m_shapeManager, &KoShapeManager::selectionChanged, this,
+    QObject::connect(m_shapeManager, &KoShapeManager::selectionChanged, this,
             static_cast<void (Connector::*)()>(&Connector::selectionChanged));
 }
 

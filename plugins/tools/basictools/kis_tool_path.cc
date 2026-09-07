@@ -18,7 +18,7 @@ KisToolPath::KisToolPath(KoCanvasBase * canvas)
                         new __KisToolPathLocalTool(canvas, this))
 {
     setIsOpacityPresetMode(true);
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

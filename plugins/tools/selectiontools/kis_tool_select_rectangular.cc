@@ -29,7 +29,7 @@ __KisToolSelectRectangularLocal::__KisToolSelectRectangularLocal(KoCanvasBase * 
     : KisToolRectangleBase(canvas, KisToolRectangleBase::SELECT,
                            dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_rectangular_selection_cursor.png", 6, 6))
 {
-    setObjectName("tool_select_rectangular");
+    QObject::setObjectName("tool_select_rectangular");
 }
 
 

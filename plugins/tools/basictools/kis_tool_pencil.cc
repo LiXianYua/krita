@@ -20,7 +20,7 @@ KisToolPencil::KisToolPencil(KoCanvasBase * canvas)
                           new __KisToolPencilLocalTool(canvas, this))
 {
     setIsOpacityPresetMode(true);
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

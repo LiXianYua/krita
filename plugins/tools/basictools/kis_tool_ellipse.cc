@@ -24,11 +24,11 @@
 KisToolEllipse::KisToolEllipse(KoCanvasBase * canvas)
         : KisToolEllipseBase(canvas, KisToolEllipseBase::PAINT, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_ellipse_cursor.png", 6, 6))
 {
-    setObjectName("tool_ellipse");
+    QObject::setObjectName("tool_ellipse");
     setSupportOutline(true);
     setIsOpacityPresetMode(true);
 
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

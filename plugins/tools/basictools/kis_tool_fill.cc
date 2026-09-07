@@ -54,12 +54,12 @@ KisToolFill::KisToolFill(KoCanvasBase * canvas)
     , m_dirtyRect(nullptr)
     , m_fillStrokeId(nullptr)
 {
-    setObjectName("tool_fill");
+    QObject::setObjectName("tool_fill");
     m_fillUpdateConnection =
         PkObject::connect(&m_compressorFillUpdate, &KisSignalCompressor::timeout,
                           &m_compressorFillUpdate, [this]() { slotUpdateFill(); });
 
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

@@ -62,7 +62,7 @@ KoPencilTool::KoPencilTool(KoCanvasBase *canvas)
         m_strokeTemplate.setLineWidth(canvas->unit().fromUserValue(size.toReal()));
     }
 
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &value) {
         if (key == KoCanvasResource::Size) {
             m_strokeTemplate.setLineWidth(this->canvas()->unit().fromUserValue(value.toReal()));
@@ -361,12 +361,12 @@ PkList<PkPointer<QWidget> > KoPencilTool::createOptionWidgets()
     layout->addWidget(stackedWidget);
     layout->addStretch(1);
 
-    connect(modeBox, QOverload<int>::of(&QComboBox::activated), stackedWidget, &QStackedWidget::setCurrentIndex);
-    connect(modeBox, QOverload<int>::of(&QComboBox::activated), this, &KoPencilTool::selectMode);
-    connect(optimizeRaw, &QCheckBox::stateChanged, this, &KoPencilTool::setOptimize);
-    connect(optimizeCurve, &QCheckBox::stateChanged, this, &KoPencilTool::setOptimize);
-    connect(fittingError, &QDoubleSpinBox::valueChanged, this, &KoPencilTool::setDelta);
-    connect(combineAngle, &QDoubleSpinBox::valueChanged, this, &KoPencilTool::setDelta);
+    QObject::connect(modeBox, QOverload<int>::of(&QComboBox::activated), stackedWidget, &QStackedWidget::setCurrentIndex);
+    QObject::connect(modeBox, QOverload<int>::of(&QComboBox::activated), this, &KoPencilTool::selectMode);
+    QObject::connect(optimizeRaw, &QCheckBox::stateChanged, this, &KoPencilTool::setOptimize);
+    QObject::connect(optimizeCurve, &QCheckBox::stateChanged, this, &KoPencilTool::setOptimize);
+    QObject::connect(fittingError, &QDoubleSpinBox::valueChanged, this, &KoPencilTool::setDelta);
+    QObject::connect(combineAngle, &QDoubleSpinBox::valueChanged, this, &KoPencilTool::setDelta);
 
     modeBox->setCurrentIndex(m_mode);
     stackedWidget->setCurrentIndex(m_mode);

@@ -41,7 +41,7 @@
 KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
         : KisToolPaint(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_gradient_cursor.png", 6, 6))
 {
-    setObjectName("tool_gradient");
+    QObject::setObjectName("tool_gradient");
 
     m_startPos = PkPointF(0, 0);
     m_endPos = PkPointF(0, 0);
@@ -52,7 +52,7 @@ KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
     m_repeat = KisGradientPainter::GradientRepeatNone;
     m_antiAliasThreshold = 0.0;
 
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

@@ -13,9 +13,9 @@
 KisBrushEnclosingProducer::KisBrushEnclosingProducer(KoCanvasBase * canvas)
     : KisDynamicDelegateTool<KisToolBasicBrushBase>(canvas, KisToolBasicBrushBase::PAINT)
 {
-    setObjectName("enclosing_tool_brush");
+    QObject::setObjectName("enclosing_tool_brush");
 
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

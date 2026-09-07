@@ -82,14 +82,14 @@ void KisAspectRatioLocker::connectSpinBoxes(SpinBoxType *spinOne, SpinBoxType *s
     m_d->aspectButton = aspectButton;
 
     if (QVariant::fromValue(spinOne->value()).type() == QMetaType::Double) {
-        connect(spinOne, SIGNAL(valueChanged(qreal)), SLOT(slotSpinOneChanged()));
-        connect(spinTwo, SIGNAL(valueChanged(qreal)), SLOT(slotSpinTwoChanged()));
+        QObject::connect(spinOne, SIGNAL(valueChanged(qreal)), SLOT(slotSpinOneChanged()));
+        QObject::connect(spinTwo, SIGNAL(valueChanged(qreal)), SLOT(slotSpinTwoChanged()));
     } else {
-        connect(spinOne, SIGNAL(valueChanged(int)), SLOT(slotSpinOneChanged()));
-        connect(spinTwo, SIGNAL(valueChanged(int)), SLOT(slotSpinTwoChanged()));
+        QObject::connect(spinOne, SIGNAL(valueChanged(int)), SLOT(slotSpinOneChanged()));
+        QObject::connect(spinTwo, SIGNAL(valueChanged(int)), SLOT(slotSpinTwoChanged()));
     }
 
-    connect(m_d->aspectButton, SIGNAL(toggled(bool)), SLOT(slotAspectButtonChanged()));
+    QObject::connect(m_d->aspectButton, SIGNAL(toggled(bool)), SLOT(slotAspectButtonChanged()));
     slotAspectButtonChanged();
 }
 

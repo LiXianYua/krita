@@ -584,9 +584,9 @@ KisStrokeStrategy* MoveStrokeStrategy::createLodClone(int levelOfDetail)
     }
 
     MoveStrokeStrategy *clone = new MoveStrokeStrategy(*this, levelOfDetail);
-    connect(clone, SIGNAL(sigHandlesRectCalculated(QRect)), this, SIGNAL(sigHandlesRectCalculated(QRect)));
-    connect(clone, SIGNAL(sigStrokeStartedEmpty()), this, SIGNAL(sigStrokeStartedEmpty()));
-    connect(clone, SIGNAL(sigLayersPicked(const KisNodeList&)), this, SIGNAL(sigLayersPicked(const KisNodeList&)));
+    QObject::connect(clone, SIGNAL(sigHandlesRectCalculated(QRect)), this, SIGNAL(sigHandlesRectCalculated(QRect)));
+    QObject::connect(clone, SIGNAL(sigStrokeStartedEmpty()), this, SIGNAL(sigStrokeStartedEmpty()));
+    QObject::connect(clone, SIGNAL(sigLayersPicked(const KisNodeList&)), this, SIGNAL(sigLayersPicked(const KisNodeList&)));
     this->setUpdatesEnabled(false);
     m_sharedNodes.reset(new std::pair<KisNodeList, PkSet<KisNodeSP>>());
     clone->m_sharedNodes = m_sharedNodes;

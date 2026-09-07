@@ -129,7 +129,7 @@ public:
     {
         m_worker = new KisTextureTileInfoPoolWorker(this);
         m_worker->moveToThread(QApplication::instance()->thread());
-        connect(this, SIGNAL(purge(int, int)), m_worker, SLOT(slotPurge(int, int)));
+        QObject::connect(this, SIGNAL(purge(int, int)), m_worker, SLOT(slotPurge(int, int)));
     }
 
     ~KisTextureTileInfoPool() {

@@ -186,7 +186,7 @@ KisTool::KisTool(KoCanvasBase * canvas, const QCursor & cursor)
                      [configConnection](QObject *) mutable {
                          PkObject::disconnect(configConnection);
                      });
-    connect(this, SIGNAL(isActiveChanged(bool)), SLOT(resetCursorStyle()));
+    QObject::connect(this, SIGNAL(isActiveChanged(bool)), SLOT(resetCursorStyle()));
 }
 
 KisTool::~KisTool()

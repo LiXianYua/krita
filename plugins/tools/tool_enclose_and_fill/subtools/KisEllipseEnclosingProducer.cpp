@@ -13,11 +13,11 @@
 KisEllipseEnclosingProducer::KisEllipseEnclosingProducer(KoCanvasBase * canvas)
     : KisDynamicDelegateTool<KisToolEllipseBase>(canvas, KisToolEllipseBase::PAINT, Qt::ArrowCursor)
 {
-    setObjectName("enclosing_tool_rectangle");
+    QObject::setObjectName("enclosing_tool_rectangle");
     setSupportOutline(true);
     setOutlineEnabled(false);
 
-    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
             this, [this](int key, const PkVariant &) {
                 if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
                     resetCursorStyle();

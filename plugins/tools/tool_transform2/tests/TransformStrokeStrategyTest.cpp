@@ -222,7 +222,7 @@ protected:
         m_currentArgs = ToolTransformArgs();
         m_transaction = TransformTransactionProperties(QRectF(), &m_currentArgs, KisNodeList(), {});
 
-        connect(strategy, SIGNAL(sigTransactionGenerated(TransformTransactionProperties, ToolTransformArgs, void*)), SLOT(slotTransactionGenerated(TransformTransactionProperties, ToolTransformArgs, void*)));
+        QObject::connect(strategy, SIGNAL(sigTransactionGenerated(TransformTransactionProperties, ToolTransformArgs, void*)), SLOT(slotTransactionGenerated(TransformTransactionProperties, ToolTransformArgs, void*)));
 
         m_strokeStrategyCookie = strategy;
         return strategy;

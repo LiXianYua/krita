@@ -292,7 +292,7 @@ void KoResourceManager::addResourceUpdateMediator(KoResourceUpdateMediatorSP med
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(!m_updateMediators.contains(mediator->key()));
     m_updateMediators.insert(mediator->key(), mediator);
-    connect(mediator.data(), &KoResourceUpdateMediator::sigResourceChanged, this, &KoResourceManager::slotResourceInternalsChanged);
+    QObject::connect(mediator.data(), &KoResourceUpdateMediator::sigResourceChanged, this, &KoResourceManager::slotResourceInternalsChanged);
 }
 
 bool KoResourceManager::hasResourceUpdateMediator(int key)
@@ -367,7 +367,7 @@ void KoResourceManager::removeAbstractResource(int key)
     Q_ASSERT(hasAbstractResource(key));
 
     KoAbstractCanvasResourceInterfaceSP resourceInterface = m_abstractResources.value(key);
-    disconnect(resourceInterface.data(), &KoAbstractCanvasResourceInterface::sigResourceChangedExternal,
+    QObject::disconnect(resourceInterface.data(), &KoAbstractCanvasResourceInterface::sigResourceChangedExternal,
                this, &KoResourceManager::slotAbstractResourceChangedExternal);
     m_abstractResources.remove(key);
 }
@@ -384,13 +384,13 @@ void KoResourceManager::setAbstractResource(KoAbstractCanvasResourceInterfaceSP 
     KoAbstractCanvasResourceInterfaceSP oldResourceInterface =
         m_abstractResources.value(resourceInterface->key());
     if (oldResourceInterface) {
-        disconnect(oldResourceInterface.data(), &KoAbstractCanvasResourceInterface::sigResourceChangedExternal,
+        QObject::disconnect(oldResourceInterface.data(), &KoAbstractCanvasResourceInterface::sigResourceChangedExternal,
                    this, &KoResourceManager::slotAbstractResourceChangedExternal);
     }
 
     m_abstractResources[resourceInterface->key()] = resourceInterface;
 
-    connect(resourceInterface.data(), &KoAbstractCanvasResourceInterface::sigResourceChangedExternal,
+    QObject::connect(resourceInterface.data(), &KoAbstractCanvasResourceInterface::sigResourceChangedExternal,
             this, &KoResourceManager::slotAbstractResourceChangedExternal);
 
     if (oldValue != resourceInterface->value()) {

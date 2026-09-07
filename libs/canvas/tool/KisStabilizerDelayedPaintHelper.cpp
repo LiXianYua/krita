@@ -16,7 +16,7 @@ KisStabilizerDelayedPaintHelper::TimedPaintInfo::TimedPaintInfo(int elapsedTime,
 
 KisStabilizerDelayedPaintHelper::KisStabilizerDelayedPaintHelper()
 {
-    connect(&m_paintTimer, SIGNAL(timeout()), SLOT(stabilizerDelayedPaintTimer()));
+    QObject::connect(&m_paintTimer, SIGNAL(timeout()), SLOT(stabilizerDelayedPaintTimer()));
 }
 
 void KisStabilizerDelayedPaintHelper::start(const KisPaintInformation &firstPaintInfo) {

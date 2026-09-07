@@ -125,13 +125,13 @@ KisToolPaint::KisToolPaint(KoCanvasBase *canvas, const QCursor &cursor)
 {
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
     KIS_ASSERT(services);
-    connect(this, &KisToolPaint::sigPaintingFinished, this, [services]() {
+    QObject::connect(this, &KisToolPaint::sigPaintingFinished, this, [services]() {
         services->toolNotifyPaintingFinished();
     });
 
-    connect(&m_colorSamplerHelper, SIGNAL(sigRequestCursor(QCursor)), this, SLOT(slotColorPickerRequestedCursor(QCursor)));
-    connect(&m_colorSamplerHelper, SIGNAL(sigRequestCursorReset()), this, SLOT(slotColorPickerRequestedCursorReset()));
-    connect(&m_colorSamplerHelper, SIGNAL(sigRequestUpdateOutline()), this, SLOT(slotColorPickerRequestedOutlineUpdate()));
+    QObject::connect(&m_colorSamplerHelper, SIGNAL(sigRequestCursor(QCursor)), this, SLOT(slotColorPickerRequestedCursor(QCursor)));
+    QObject::connect(&m_colorSamplerHelper, SIGNAL(sigRequestCursorReset()), this, SLOT(slotColorPickerRequestedCursorReset()));
+    QObject::connect(&m_colorSamplerHelper, SIGNAL(sigRequestUpdateOutline()), this, SLOT(slotColorPickerRequestedOutlineUpdate()));
 }
 
 
@@ -204,17 +204,17 @@ void KisToolPaint::activate(const PkSet<KoShape*> &shapes)
 
     KisTool::activate(shapes);
     if (flags() & KisTool::FLAG_USES_CUSTOM_SIZE) {
-        connect(action("increase_brush_size"), SIGNAL(triggered()), SLOT(increaseBrushSize()), Qt::UniqueConnection);
-        connect(action("decrease_brush_size"), SIGNAL(triggered()), SLOT(decreaseBrushSize()), Qt::UniqueConnection);
-        connect(action("increase_brush_size"), SIGNAL(triggered()), this, SLOT(showBrushSize()));
-        connect(action("decrease_brush_size"), SIGNAL(triggered()), this, SLOT(showBrushSize()));
+        QObject::connect(action("increase_brush_size"), SIGNAL(triggered()), SLOT(increaseBrushSize()), Qt::UniqueConnection);
+        QObject::connect(action("decrease_brush_size"), SIGNAL(triggered()), SLOT(decreaseBrushSize()), Qt::UniqueConnection);
+        QObject::connect(action("increase_brush_size"), SIGNAL(triggered()), this, SLOT(showBrushSize()));
+        QObject::connect(action("decrease_brush_size"), SIGNAL(triggered()), this, SLOT(showBrushSize()));
 
     }
 
-    connect(action("rotate_brush_tip_clockwise"), SIGNAL(triggered()), SLOT(rotateBrushTipClockwise()), Qt::UniqueConnection);
-    connect(action("rotate_brush_tip_clockwise_precise"), SIGNAL(triggered()), SLOT(rotateBrushTipClockwisePrecise()), Qt::UniqueConnection);
-    connect(action("rotate_brush_tip_counter_clockwise"), SIGNAL(triggered()), SLOT(rotateBrushTipCounterClockwise()), Qt::UniqueConnection);
-    connect(action("rotate_brush_tip_counter_clockwise_precise"), SIGNAL(triggered()), SLOT(rotateBrushTipCounterClockwisePrecise()), Qt::UniqueConnection);
+    QObject::connect(action("rotate_brush_tip_clockwise"), SIGNAL(triggered()), SLOT(rotateBrushTipClockwise()), Qt::UniqueConnection);
+    QObject::connect(action("rotate_brush_tip_clockwise_precise"), SIGNAL(triggered()), SLOT(rotateBrushTipClockwisePrecise()), Qt::UniqueConnection);
+    QObject::connect(action("rotate_brush_tip_counter_clockwise"), SIGNAL(triggered()), SLOT(rotateBrushTipCounterClockwise()), Qt::UniqueConnection);
+    QObject::connect(action("rotate_brush_tip_counter_clockwise_precise"), SIGNAL(triggered()), SLOT(rotateBrushTipCounterClockwisePrecise()), Qt::UniqueConnection);
 
     tryRestoreOpacitySnapshot();
 }
@@ -222,14 +222,14 @@ void KisToolPaint::activate(const PkSet<KoShape*> &shapes)
 void KisToolPaint::deactivate()
 {
     if (flags() & KisTool::FLAG_USES_CUSTOM_SIZE) {
-        disconnect(action("increase_brush_size"), 0, this, 0);
-        disconnect(action("decrease_brush_size"), 0, this, 0);
+        QObject::disconnect(action("increase_brush_size"), 0, this, 0);
+        QObject::disconnect(action("decrease_brush_size"), 0, this, 0);
     }
 
-    disconnect(action("rotate_brush_tip_clockwise"), 0, this, 0);
-    disconnect(action("rotate_brush_tip_clockwise_precise"), 0, this, 0);
-    disconnect(action("rotate_brush_tip_counter_clockwise"), 0, this, 0);
-    disconnect(action("rotate_brush_tip_counter_clockwise_precise"), 0, this, 0);
+    QObject::disconnect(action("rotate_brush_tip_clockwise"), 0, this, 0);
+    QObject::disconnect(action("rotate_brush_tip_clockwise_precise"), 0, this, 0);
+    QObject::disconnect(action("rotate_brush_tip_counter_clockwise"), 0, this, 0);
+    QObject::disconnect(action("rotate_brush_tip_counter_clockwise_precise"), 0, this, 0);
 
     tryRestoreOpacitySnapshot();
     Q_EMIT statusTextChanged(PkString());
@@ -446,7 +446,7 @@ QWidget *KisToolPaint::createOptionWidget()
 
     if (!quickHelp().isEmpty()) {
         QPushButton *push = new QPushButton(QIcon(), QString(), optionWidget);
-        connect(push, SIGNAL(clicked()), this, SLOT(slotPopupQuickHelp()));
+        QObject::connect(push, SIGNAL(clicked()), this, SLOT(slotPopupQuickHelp()));
         QHBoxLayout *hLayout = new QHBoxLayout();
         hLayout->addWidget(push);
         hLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed));

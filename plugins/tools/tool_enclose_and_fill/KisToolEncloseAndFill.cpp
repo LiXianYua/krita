@@ -53,7 +53,7 @@
 KisToolEncloseAndFill::KisToolEncloseAndFill(KoCanvasBase * canvas)
     : KisDynamicDelegatedTool<KisToolShape>(canvas)
 {
-    setObjectName("tool_enclose_and_fill");
+    QObject::setObjectName("tool_enclose_and_fill");
 }
 
 KisToolEncloseAndFill::~KisToolEncloseAndFill()
@@ -77,7 +77,7 @@ void KisToolEncloseAndFill::activate(const PkSet<KoShape*> &shapes)
 
     KoCanvasResourceProvider *resourceProvider = canvas()->resourceManager();
     if (resourceProvider) {
-        connect(resourceProvider,
+        QObject::connect(resourceProvider,
                 &KoCanvasResourceProvider::canvasResourceChanged,
                 this,
                 &KisToolEncloseAndFill::slot_canvasResourceChanged,
@@ -92,7 +92,7 @@ void KisToolEncloseAndFill::deactivate()
     m_referenceNodeList = nullptr;
     KoCanvasResourceProvider *resourceProvider = canvas()->resourceManager();
     if (resourceProvider) {
-        disconnect(resourceProvider,
+        QObject::disconnect(resourceProvider,
                    &KoCanvasResourceProvider::canvasResourceChanged,
                    this,
                    &KisToolEncloseAndFill::slot_canvasResourceChanged);
@@ -111,7 +111,7 @@ void KisToolEncloseAndFill::setupEnclosingSubtool()
         using Producer = std::remove_pointer_t<decltype(newDelegateTool)>;
         setDelegateTool(reinterpret_cast<KisDynamicDelegateTool<KisToolShape>*>(newDelegateTool));
         setCursor(newDelegateTool->cursor());
-        connect(newDelegateTool,
+        QObject::connect(newDelegateTool,
                 &Producer::enclosingMaskProduced,
                 this,
                 &KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced);
@@ -742,13 +742,13 @@ void KisToolEncloseAndFill::slot_sliderFeather_valueChanged(int value)
 void KisToolEncloseAndFill::slot_currentNodeChanged(const KisNodeSP node)
 {
     if (m_previousNode && m_previousNode->paintDevice()) {
-        disconnect(m_previousNode->paintDevice().data(),
+        QObject::disconnect(m_previousNode->paintDevice().data(),
                    &KisPaintDevice::colorSpaceChanged,
                    this,
                    &KisToolEncloseAndFill::slot_colorSpaceChanged);
     }
     if (node && node->paintDevice()) {
-        connect(node->paintDevice().data(),
+        QObject::connect(node->paintDevice().data(),
                 &KisPaintDevice::colorSpaceChanged,
                 this,
                 &KisToolEncloseAndFill::slot_colorSpaceChanged);

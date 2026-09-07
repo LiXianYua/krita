@@ -68,7 +68,7 @@ KisToolKnife::KisToolKnife(KoCanvasBase * canvas)
     : KoInteractionTool(canvas),
       m_d(new Private)
 {
-    setObjectName("tool_knife");
+    QObject::setObjectName("tool_knife");
     useCursor(QCursor(Qt::ArrowCursor));
     repaintDecorations();
 }

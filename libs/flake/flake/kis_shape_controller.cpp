@@ -106,11 +106,11 @@ void KisShapeController::addNodeImpl(KisNodeSP node, KisNodeSP parent, KisNodeSP
     if (shapeLayer) {
         // Forward QObject-backed manager/proxy notifications through the
         // stable controller; the node itself is PkObject-backed.
-        connect(shapeLayer->shapeManager(), &KoShapeManager::selectionChanged,
+        QObject::connect(shapeLayer->shapeManager(), &KoShapeManager::selectionChanged,
                 this, &KisShapeController::selectionChanged);
-        connect(shapeLayer->shapeManager(), &KoShapeManager::selectionContentChanged,
+        QObject::connect(shapeLayer->shapeManager(), &KoShapeManager::selectionContentChanged,
                 this, &KisShapeController::selectionContentChanged);
-        connect(shapeLayer->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
+        QObject::connect(shapeLayer->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
                 this, &KisShapeController::currentLayerChanged);
     }
 }

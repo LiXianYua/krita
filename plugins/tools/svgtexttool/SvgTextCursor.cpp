@@ -256,20 +256,20 @@ SvgTextCursor::SvgTextCursor(KoCanvasBase *canvas) :
     d->interface = new SvgTextCursorPropertyInterface(this);
     if (d->canvas->canvasController()) {
         // Mockcanvas in the tests has no canvas controller.
-        connect(d->canvas->canvasController()->proxyObject, SIGNAL(sizeChanged(QSize)), this, SLOT(updateInputMethodItemTransform()));
-        connect(d->canvas->canvasController()->proxyObject,
+        QObject::connect(d->canvas->canvasController()->proxyObject, SIGNAL(sizeChanged(QSize)), this, SLOT(updateInputMethodItemTransform()));
+        QObject::connect(d->canvas->canvasController()->proxyObject,
                 SIGNAL(moveDocumentOffset(QPointF, QPointF)),
                 this,
                 SLOT(updateInputMethodItemTransform()));
-        connect(d->canvas->canvasController()->proxyObject,
+        QObject::connect(d->canvas->canvasController()->proxyObject,
                 SIGNAL(effectiveZoomChanged(qreal)),
                 this,
                 SLOT(updateInputMethodItemTransform()));
-        connect(d->canvas->canvasController()->proxyObject,
+        QObject::connect(d->canvas->canvasController()->proxyObject,
                 SIGNAL(documentRotationChanged(qreal)),
                 this,
                 SLOT(updateInputMethodItemTransform()));
-        connect(d->canvas->canvasController()->proxyObject,
+        QObject::connect(d->canvas->canvasController()->proxyObject,
                 SIGNAL(documentMirrorStatusChanged(bool, bool)),
                 this,
                 SLOT(updateInputMethodItemTransform()));
@@ -324,8 +324,8 @@ void SvgTextCursor::setCaretSetting(int cursorWidth, int cursorFlash, int cursor
     d->cursorFlashLimit.setInterval(cursorFlashLimit);
     d->cursorWidth = cursorWidth;
     d->drawCursorInAdditionToSelection = drawCursorInAdditionToSelection;
-    connect(&d->cursorFlash, SIGNAL(timeout()), this, SLOT(blinkCursor()));
-    connect(&d->cursorFlashLimit, SIGNAL(timeout()), this, SLOT(stopBlinkCursor()));
+    QObject::connect(&d->cursorFlash, SIGNAL(timeout()), this, SLOT(blinkCursor()));
+    QObject::connect(&d->cursorFlashLimit, SIGNAL(timeout()), this, SLOT(stopBlinkCursor()));
 }
 
 void SvgTextCursor::setVisualMode(bool visualMode)
@@ -1676,23 +1676,23 @@ bool SvgTextCursor::registerPropertyAction(QAction *action, const QString &name)
 {
     if (SvgTextShortCuts::configureAction(action, name)) {
         d->actions.append(action);
-        connect(action, SIGNAL(triggered(bool)), this, SLOT(propertyAction()));
+        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(propertyAction()));
         return true;
     } else if (name == "svg_paste_rich_text") {
         d->actions.append(action);
-        connect(action, SIGNAL(triggered(bool)), this, SLOT(pasteRichText()));
+        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(pasteRichText()));
         return true;
     } else if (name == "svg_paste_plain_text") {
         d->actions.append(action);
-        connect(action, SIGNAL(triggered(bool)), this, SLOT(pastePlainText()));
+        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(pastePlainText()));
         return true;
     } else if (name == "svg_remove_transforms_from_range") {
         d->actions.append(action);
-        connect(action, SIGNAL(triggered(bool)), this, SLOT(removeTransformsFromRange()));
+        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(removeTransformsFromRange()));
         return true;
     } else if (name == "svg_clear_formatting") {
         d->actions.append(action);
-        connect(action, SIGNAL(triggered(bool)), this, SLOT(clearFormattingAction()));
+        QObject::connect(action, SIGNAL(triggered(bool)), this, SLOT(clearFormattingAction()));
         return true;
     } else if (action) {
         d->actions.append(action);

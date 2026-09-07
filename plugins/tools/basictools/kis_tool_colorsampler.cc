@@ -20,7 +20,7 @@ KisToolColorSampler::KisToolColorSampler(KoCanvasBase *canvas)
       m_config(new KisColorSamplerConfig),
       m_helper(canvas, dynamic_cast<KisColorSamplingCanvas *>(canvas))
 {
-    setObjectName("tool_colorsampler");
+    QObject::setObjectName("tool_colorsampler");
     PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestCursor,
                       this, [this](const auto &cursor) { useCursor(cursor); });
     PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestCursorReset,

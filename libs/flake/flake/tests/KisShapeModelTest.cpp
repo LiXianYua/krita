@@ -115,7 +115,7 @@ void KisShapeModelTest::loadsFileThroughInjectedHeadlessLoader()
     qreal loadedXRes = 0.0;
     qreal loadedYRes = 0.0;
     PkSize loadedSize;
-    connect(&loader,
+    QObject::connect(&loader,
             &KisSafeDocumentLoader::loadingFinished,
             this,
             [&](KisPaintDeviceSP device, qreal xRes, qreal yRes, const PkSize &size) {

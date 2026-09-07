@@ -53,7 +53,7 @@ KisToolMove::KisToolMove(KoCanvasBase *canvas)
     : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolMoveCursor())
     , m_updateCursorCompressor(100, KisSignalCompressor::FIRST_ACTIVE)
 {
-    setObjectName("tool_move");
+    QObject::setObjectName("tool_move");
 
     m_updateCursorConnection =
         PkObject::connect(&m_updateCursorCompressor, &KisSignalCompressor::timeout,

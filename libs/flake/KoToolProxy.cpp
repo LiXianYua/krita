@@ -121,7 +121,7 @@ KoToolProxy::KoToolProxy(KoCanvasBase *canvas, QObject *parent)
 {
     KoToolManager::instance()->priv()->registerToolProxy(this, canvas);
 
-    connect(&d->scrollTimer, &QTimer::timeout, this, [this]() { d->timeout(); });
+    QObject::connect(&d->scrollTimer, &QTimer::timeout, this, [this]() { d->timeout(); });
 }
 
 KoToolProxy::~KoToolProxy()
@@ -383,7 +383,7 @@ KisPopupWidgetInterface* KoToolProxy::popupWidget()
 void KoToolProxy::setActiveTool(KoToolBase *tool)
 {
     if (d->activeTool) {
-        disconnect(d->activeTool, &KoToolBase::selectionChanged, this, static_cast<void**>(nullptr));
+        QObject::disconnect(d->activeTool, &KoToolBase::selectionChanged, this, static_cast<void**>(nullptr));
         d->toolPriorityShortcuts.clear();
     }
 
@@ -408,7 +408,7 @@ void KoToolProxy::setActiveTool(KoToolBase *tool)
             }
         }
 
-        connect(d->activeTool, &KoToolBase::selectionChanged, this,
+        QObject::connect(d->activeTool, &KoToolBase::selectionChanged, this,
                 [this](bool hasSelection) { d->selectionChanged(hasSelection); });
         d->selectionChanged(hasSelection());
         Q_EMIT toolChanged(tool->toolId());

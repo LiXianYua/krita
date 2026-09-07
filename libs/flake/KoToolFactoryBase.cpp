@@ -52,7 +52,7 @@ PkList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
     if (actionCollection) {
         action->setParent(actionCollection);
     }
-    connect(action, &QAction::triggered, this, &KoToolFactoryBase::activateTool);
+    QObject::connect(action, &QAction::triggered, this, &KoToolFactoryBase::activateTool);
     //qDebug() << action << action->shortcut();
 
 

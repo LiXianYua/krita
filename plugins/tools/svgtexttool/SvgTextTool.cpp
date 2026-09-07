@@ -101,7 +101,7 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
                                  , qApp->cursorFlashTime()
                                  , cursorFlashLimit
                                  , enableCursorWithSelection);
-    connect(&m_textCursor, SIGNAL(updateCursorDecoration(QRectF)), this, SLOT(slotUpdateCursorDecoration(QRectF)));
+    QObject::connect(&m_textCursor, SIGNAL(updateCursorDecoration(QRectF)), this, SLOT(slotUpdateCursorDecoration(QRectF)));
 
     Q_FOREACH(const QString name, SvgTextShortCuts::possibleActions()) {
         QAction *a = action(name);
@@ -141,7 +141,7 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
     m_textOutlineHelper->setDrawBoundingRect(false);
     m_textOutlineHelper->setDrawTextWrappingArea(true);
 
-    connect(&m_textCursor, SIGNAL(selectionChanged()), this, SLOT(updateTextPathHelper()));
+    QObject::connect(&m_textCursor, SIGNAL(selectionChanged()), this, SLOT(updateTextPathHelper()));
 
     m_base_cursor = QCursor(QPixmap(":/tool_text_basic.xpm"), 7, 7);
     m_text_inline_horizontal = QCursor(QPixmap(":/tool_text_inline_horizontal.xpm"), 7, 7);
@@ -179,8 +179,8 @@ void SvgTextTool::activate(const QSet<KoShape *> &shapes)
 
     canvas()->setCurrentShapeManagerOwnerShape(nullptr);
 
-    connect(m_textTypeSignalsMapper.data(), SIGNAL(mapped(int)), this, SLOT(slotConvertType(int)));
-    connect(m_typeSettingMovementMapper.data(), SIGNAL(mapped(int)), this, SLOT(slotMoveTextSelection(int)));
+    QObject::connect(m_textTypeSignalsMapper.data(), SIGNAL(mapped(int)), this, SLOT(slotConvertType(int)));
+    QObject::connect(m_typeSettingMovementMapper.data(), SIGNAL(mapped(int)), this, SLOT(slotMoveTextSelection(int)));
 
     useCursor(m_base_cursor);
     slotShapeSelectionChanged();
@@ -194,8 +194,8 @@ void SvgTextTool::deactivate()
     m_canvasConnections.clear();
     m_textCursor.setShape(nullptr);
     // Exiting text editing mode is handled by requestStrokeEnd
-    disconnect(m_textTypeSignalsMapper.data(), 0, this, 0);
-    disconnect(m_typeSettingMovementMapper.data(), 0, this, 0);
+    QObject::disconnect(m_textTypeSignalsMapper.data(), 0, this, 0);
+    QObject::disconnect(m_typeSettingMovementMapper.data(), 0, this, 0);
 
     m_hoveredShapeHighlightRect = QPainterPath();
 
@@ -992,7 +992,7 @@ void SvgTextTool::addMappedAction(KisSignalMapper *mapper, const QString &action
 {
     QAction *a = action(actionName);
     if (a) {
-        connect(a, SIGNAL(triggered()), mapper, SLOT(map()));
+        QObject::connect(a, SIGNAL(triggered()), mapper, SLOT(map()));
         mapper->setMapping(a, value);
         m_textCursor.registerPropertyAction(a, actionName);
         if (group && !a->actionGroup()) {

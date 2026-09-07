@@ -33,21 +33,21 @@ KisToolPolylineBase::KisToolPolylineBase(KoCanvasBase * canvas,  KisToolPolyline
 {
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas);
     KIS_SAFE_ASSERT_RECOVER_RETURN(services);
-    connect(services->toolSignals(), SIGNAL(effectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
+    QObject::connect(services->toolSignals(), SIGNAL(effectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
 }
 
 
 void KisToolPolylineBase::activate(const PkSet<KoShape *> &shapes)
 {
     KisToolShape::activate(shapes);
-    connect(action("undo_polygon_selection"), SIGNAL(triggered()), SLOT(undoSelectionOrCancel()), Qt::UniqueConnection);
+    QObject::connect(action("undo_polygon_selection"), SIGNAL(triggered()), SLOT(undoSelectionOrCancel()), Qt::UniqueConnection);
 
     dynamic_cast<KisCanvasToolServices*>(canvas())->toolSetPriorityEventFilter(this, true);
 }
 
 void KisToolPolylineBase::deactivate()
 {
-    disconnect(action("undo_polygon_selection"), 0, this, 0);
+    QObject::disconnect(action("undo_polygon_selection"), 0, this, 0);
     cancelStroke();
 
     dynamic_cast<KisCanvasToolServices*>(canvas())->toolSetPriorityEventFilter(this, false);

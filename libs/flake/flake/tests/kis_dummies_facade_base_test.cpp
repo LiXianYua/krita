@@ -19,11 +19,11 @@ void KisDummiesFacadeBaseTest::init()
 
     m_activatedNodes.clear();
     m_movedDummies.clear();
-    connect(m_dummiesFacade, &KisDummiesFacadeBase::sigActivateNode,
+    QObject::connect(m_dummiesFacade, &KisDummiesFacadeBase::sigActivateNode,
             this, &KisDummiesFacadeBaseTest::slotNodeActivated);
-    connect(m_dummiesFacade, &KisDummiesFacadeBase::sigEndInsertDummy,
+    QObject::connect(m_dummiesFacade, &KisDummiesFacadeBase::sigEndInsertDummy,
             this, &KisDummiesFacadeBaseTest::slotEndInsertDummy);
-    connect(m_dummiesFacade, &KisDummiesFacadeBase::sigBeginRemoveDummy,
+    QObject::connect(m_dummiesFacade, &KisDummiesFacadeBase::sigBeginRemoveDummy,
             this, &KisDummiesFacadeBaseTest::slotBeginRemoveDummy);
 }
 

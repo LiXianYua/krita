@@ -27,7 +27,7 @@ KisToolBasicBrushBase::KisToolBasicBrushBase(KoCanvasBase * canvas, ToolType typ
     , m_previewColor(0, 255, 0, 128)
 {
     setSupportOutline(true);
-    connect(KisConfigNotifier::instance(),
+    QObject::connect(KisConfigNotifier::instance(),
             &KisConfigNotifier::configChanged,
             this,
             &KisToolBasicBrushBase::updateSettings);

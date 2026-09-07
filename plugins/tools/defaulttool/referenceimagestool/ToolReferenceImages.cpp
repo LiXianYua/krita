@@ -27,7 +27,7 @@ ToolReferenceImages::ToolReferenceImages(KoCanvasBase * canvas)
     : DefaultTool(canvas, false)
     , m_services(dynamic_cast<KisReferenceImagePlatformServices *>(canvas))
 {
-    setObjectName("ToolReferenceImages");
+    QObject::setObjectName("ToolReferenceImages");
 }
 
 ToolReferenceImages::~ToolReferenceImages()

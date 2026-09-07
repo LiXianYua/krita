@@ -115,7 +115,7 @@ void KisShapeSelection::init(KisImageResolutionProxySP resolutionProxy, KoShapeC
     m_canvas->setObjectName("KisShapeSelectionCanvas");
     m_canvas->moveToThread(QCoreApplication::instance()->thread());
 
-    connect(this, &KisShapeSelection::sigMoveShapes, this, &KisShapeSelection::slotMoveShapes);
+    QObject::connect(this, &KisShapeSelection::sigMoveShapes, this, &KisShapeSelection::slotMoveShapes);
 }
 
 KisSelectionComponent* KisShapeSelection::clone(KisSelection* selection)

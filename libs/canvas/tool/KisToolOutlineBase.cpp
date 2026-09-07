@@ -77,7 +77,7 @@ void KisToolOutlineBase::mouseMoveEvent(KoPointerEvent *event)
 void KisToolOutlineBase::activate(const PkSet<KoShape *> &shapes)
 {
     KisToolShape::activate(shapes);
-    connect(action("undo_polygon_selection"), SIGNAL(triggered()), SLOT(undoLastPoint()), Qt::UniqueConnection);
+    QObject::connect(action("undo_polygon_selection"), SIGNAL(triggered()), SLOT(undoLastPoint()), Qt::UniqueConnection);
 
     dynamic_cast<KisCanvasToolServices*>(canvas())->toolSetPriorityEventFilter(this, true);
 }

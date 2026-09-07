@@ -268,7 +268,7 @@ KisDisplayColorConverter::KisDisplayColorConverter(KoCanvasResourceProvider *res
     : QObject(parent),
       m_d(new Private(this, resourceManager))
 {
-    connect(m_d->resourceManager, SIGNAL(canvasResourceChanged(int,QVariant)),
+    QObject::connect(m_d->resourceManager, SIGNAL(canvasResourceChanged(int,QVariant)),
             SLOT(slotCanvasResourceChanged(int,QVariant)));
     KisConfigNotifier *notifier = KisConfigNotifier::instance();
     PkConnection configConnection = PkObject::connect(

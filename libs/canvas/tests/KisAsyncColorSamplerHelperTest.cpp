@@ -186,7 +186,7 @@ void KisAsyncColorSamplerHelperTest::referenceColorShortCircuitsDeviceSampling()
     QList<KoColor> sampledColors;
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
-    connect(&helper,
+    QObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRawColorSelected,
             this,
             [&sampledColors](const KoColor &color) {
@@ -228,7 +228,7 @@ void KisAsyncColorSamplerHelperTest::missingReferenceFallsBackToProjection()
     QList<KoColor> sampledColors;
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
-    connect(&helper,
+    QObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRawColorSelected,
             this,
             [&sampledColors](const KoColor &color) {
@@ -269,7 +269,7 @@ void KisAsyncColorSamplerHelperTest::delayedJobReadsTheCurrentNodeAgain()
     QList<KoColor> sampledColors;
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
-    connect(&helper,
+    QObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRawColorSelected,
             this,
             [&sampledColors](const KoColor &color) {
@@ -329,7 +329,7 @@ void KisAsyncColorSamplerHelperTest::cursorUsesSamplingCanvasPolicy()
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
 
     QCursor requestedCursor;
-    connect(&helper,
+    QObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRequestCursor,
             this,
             [&requestedCursor](const QCursor &cursor) {

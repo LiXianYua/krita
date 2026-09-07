@@ -28,7 +28,7 @@ KoDocumentResourceManager::KoDocumentResourceManager(QObject *parent)
         : QObject(parent),
         d(new Private())
 {
-    connect(&d->manager, &KoResourceManager::resourceChanged,
+    QObject::connect(&d->manager, &KoResourceManager::resourceChanged,
             this, &KoDocumentResourceManager::resourceChanged);
 }
 

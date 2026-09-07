@@ -56,9 +56,9 @@ KoCanvasResourceProvider::KoCanvasResourceProvider(QObject *parent)
     setForegroundColor(KoColor(Pk::black, cs));
     setBackgroundColor(KoColor(PkColor(Pk::white), cs));
 
-    connect(&d->manager, &KoResourceManager::resourceChanged,
+    QObject::connect(&d->manager, &KoResourceManager::resourceChanged,
             this, &KoCanvasResourceProvider::canvasResourceChanged);
-    connect(&d->manager, &KoResourceManager::resourceChangeAttempted,
+    QObject::connect(&d->manager, &KoResourceManager::resourceChangeAttempted,
             this, &KoCanvasResourceProvider::canvasResourceChangeAttempted);
 }
 

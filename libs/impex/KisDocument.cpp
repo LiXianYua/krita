@@ -694,7 +694,7 @@ KisDocument::KisDocument(bool addStorage)
 {
     PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged, this, &KisDocument::slotConfigChanged);
     PkObject::connect(d->undoStack, &KUndo2Stack::cleanChanged, this, &KisDocument::slotUndoStackCleanChanged);
-    setObjectName(newObjectName());
+    QObject::setObjectName(newObjectName());
 
     if (addStorage) {
         d->linkedResourcesStorageID = pkCreateUuidString();
@@ -1338,7 +1338,7 @@ void KisDocument::copyFromDocumentImpl(const KisDocument &rhs, CopyPolicy policy
         d->koShapeController = new KoShapeController(0, d->shapeController);
     }
 
-    setObjectName(rhs.objectName());
+    QObject::setObjectName(rhs.objectName());
 
     slotConfigChanged();
 

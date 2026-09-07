@@ -191,7 +191,7 @@ KoToolManager::KoToolManager()
     : QObject(),
       d(new Private(this))
 {
-    connect(static_cast<QApplication *>(QApplication::instance()), &QApplication::focusChanged, this,
+    QObject::connect(static_cast<QApplication *>(QApplication::instance()), &QApplication::focusChanged, this,
             [this](QWidget *from, QWidget *to) { d->movedFocus(from, to); });
 }
 
@@ -229,18 +229,18 @@ void KoToolManager::addController(KoCanvasController *controller)
         return;
     d->setup();
     d->attachCanvas(controller);
-    connect(controller->proxyObject, &QObject::destroyed, this, &KoToolManager::attemptCanvasControllerRemoval);
-    connect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasRemoved, this,
+    QObject::connect(controller->proxyObject, &QObject::destroyed, this, &KoToolManager::attemptCanvasControllerRemoval);
+    QObject::connect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasRemoved, this,
             [this](KoCanvasController *canvasController) { d->detachCanvas(canvasController); });
-    connect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasSet, this,
+    QObject::connect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasSet, this,
             [this](KoCanvasController *canvasController) { d->attachCanvas(canvasController); });
 }
 
 void KoToolManager::removeCanvasController(KoCanvasController *controller)
 {
     Q_ASSERT(controller);
-    disconnect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasRemoved, this, static_cast<void**>(nullptr));
-    disconnect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasSet, this, static_cast<void**>(nullptr));
+    QObject::disconnect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasRemoved, this, static_cast<void**>(nullptr));
+    QObject::disconnect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasSet, this, static_cast<void**>(nullptr));
     d->detachCanvas(controller);
 }
 
@@ -413,7 +413,7 @@ KoToolBase *KoToolManager::Private::createTool(KoCanvasController *controller, K
     KoToolBase *tool = toolAction->toolFactory()->createTool(controller->canvas());
     if (tool) {
         tool->setFactory(toolAction->toolFactory());
-        tool->setObjectName(toQString(toolAction->id()));
+        tool->QObject::setObjectName(toQString(toolAction->id()));
     }
 
     KoZoomTool *zoomTool = dynamic_cast<KoZoomTool*>(tool);
@@ -439,13 +439,13 @@ void KoToolManager::Private::setup()
 void KoToolManager::Private::connectActiveTool()
 {
     if (canvasData->activeTool) {
-        connect(canvasData->activeTool, &KoToolBase::cursorChanged, q,
+        QObject::connect(canvasData->activeTool, &KoToolBase::cursorChanged, q,
                 [this](const QCursor &cursor) { this->updateCursor(cursor); });
-        connect(canvasData->activeTool, &KoToolBase::activateTool, q,
+        QObject::connect(canvasData->activeTool, &KoToolBase::activateTool, q,
                 &KoToolManager::switchToolRequested);
-        connect(canvasData->activeTool, &KoToolBase::statusTextChanged, q,
+        QObject::connect(canvasData->activeTool, &KoToolBase::statusTextChanged, q,
                 &KoToolManager::changedStatusText);
-        connect(canvasData->activeTool, &KoToolBase::textModeChanged, q,
+        QObject::connect(canvasData->activeTool, &KoToolBase::textModeChanged, q,
                 &KoToolManager::textModeChanged);
 
         {
@@ -492,10 +492,10 @@ void KoToolManager::Private::disconnectActiveTool()
         // data needed for the repaint
         Q_EMIT q->aboutToChangeTool(canvasData->canvas);
         canvasData->activeTool->deactivate();
-        disconnect(canvasData->activeTool, &KoToolBase::cursorChanged, q, static_cast<void**>(nullptr));
-        disconnect(canvasData->activeTool, &KoToolBase::activateTool, q, static_cast<void**>(nullptr));
-        disconnect(canvasData->activeTool, &KoToolBase::statusTextChanged, q, &KoToolManager::changedStatusText);
-        disconnect(canvasData->activeTool, &KoToolBase::textModeChanged, q, &KoToolManager::textModeChanged);
+        QObject::disconnect(canvasData->activeTool, &KoToolBase::cursorChanged, q, static_cast<void**>(nullptr));
+        QObject::disconnect(canvasData->activeTool, &KoToolBase::activateTool, q, static_cast<void**>(nullptr));
+        QObject::disconnect(canvasData->activeTool, &KoToolBase::statusTextChanged, q, &KoToolManager::changedStatusText);
+        QObject::disconnect(canvasData->activeTool, &KoToolBase::textModeChanged, q, &KoToolManager::textModeChanged);
     }
 
     // Q_EMIT a empty status text to clear status text from last active tool
@@ -728,9 +728,9 @@ void KoToolManager::Private::attachCanvas(KoCanvasController *controller)
     }
 
     Connector *connector = new Connector(controller->canvas()->shapeManager());
-    connect(connector, static_cast<void (Connector::*)(const PkList<KoShape*> &)>(&Connector::selectionChanged), q,
+    QObject::connect(connector, static_cast<void (Connector::*)(const PkList<KoShape*> &)>(&Connector::selectionChanged), q,
             [this](const PkList<KoShape*> &shapes) { this->selectionChanged(shapes); });
-    connect(controller->canvas()->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged, q,
+    QObject::connect(controller->canvas()->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged, q,
             [this](const KoShapeLayer *layer) { this->currentLayerChanged(layer); });
 
     Q_EMIT q->changedCanvas(canvasData ? canvasData->canvas->canvas() : 0);

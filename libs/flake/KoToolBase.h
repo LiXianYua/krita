@@ -7,6 +7,7 @@
 #ifndef KOTOOLBASE_H
 #define KOTOOLBASE_H
 
+#include <pk/signal/PkObject.h>
 #include <QObject>
 #include <PkPointer.h>
 #include <pk/render/PkPainter.h>
@@ -54,7 +55,7 @@ class QMenu;
  * There exists an instance of every tool for every pointer device.
  * These instances are managed by the toolmanager..
  */
-class KRITAFLAKE_EXPORT KoToolBase : public QObject
+class KRITAFLAKE_EXPORT KoToolBase : public QObject, public PkObject
 {
     Q_OBJECT
 public:

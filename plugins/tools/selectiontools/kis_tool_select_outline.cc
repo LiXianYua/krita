@@ -43,7 +43,7 @@ __KisToolSelectOutlineLocal::__KisToolSelectOutlineLocal(KoCanvasBase * canvas)
     : KisToolOutlineBase(canvas, KisToolOutlineBase::SELECT,
                          dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_outline_selection_cursor.png", 5, 5))
 {
-    setObjectName("tool_select_outline");
+    QObject::setObjectName("tool_select_outline");
 }
 
 

@@ -110,7 +110,7 @@ KoPathTool::KoPathTool(KoCanvasBase *canvas)
     m_selectCursor = QCursor(QIcon(":/cursor-needle.svg").pixmap(32), 0, 0);
     m_moveCursor = QCursor(QIcon(":/cursor-needle-move.svg").pixmap(32), 0, 0);
 
-    connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::repaintDecorations);
+    QObject::connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::repaintDecorations);
 }
 
 KoPathTool::~KoPathTool()
@@ -858,22 +858,22 @@ void KoPathTool::activate(const PkSet<KoShape*> &shapes)
                             for (KoShape *shape : shapes) { shapeList.append(shape); }
                             initializeWithShapes(shapeList);
                         }
-    connect(m_actionCurvePoint, &QAction::triggered, this, &KoPathTool::pointToCurve, Qt::UniqueConnection);
-    connect(m_actionLinePoint, &QAction::triggered, this, &KoPathTool::pointToLine, Qt::UniqueConnection);
-    connect(m_actionLineSegment, &QAction::triggered, this, &KoPathTool::segmentToLine, Qt::UniqueConnection);
-    connect(m_actionCurveSegment, &QAction::triggered, this, &KoPathTool::segmentToCurve, Qt::UniqueConnection);
-    connect(m_actionAddPoint, &QAction::triggered, this, &KoPathTool::insertPoints, Qt::UniqueConnection);
-    connect(m_actionRemovePoint, &QAction::triggered, this, &KoPathTool::removePoints, Qt::UniqueConnection);
-    connect(m_actionBreakPoint, &QAction::triggered, this, &KoPathTool::breakAtPoint, Qt::UniqueConnection);
-    connect(m_actionBreakSegment, &QAction::triggered, this, &KoPathTool::breakAtSegment, Qt::UniqueConnection);
-    connect(m_actionBreakSelection, &QAction::triggered, this, &KoPathTool::breakAtSelection, Qt::UniqueConnection);
-    connect(m_actionJoinSegment, &QAction::triggered, this, &KoPathTool::joinPoints, Qt::UniqueConnection);
-    connect(m_actionMergePoints, &QAction::triggered, this, &KoPathTool::mergePoints, Qt::UniqueConnection);
-    connect(m_actionConvertToPath, &QAction::triggered, this, &KoPathTool::convertToPath, Qt::UniqueConnection);
-    connect(m_actionPathPointCorner, &QAction::triggered, this, &KoPathTool::pointTypeChangedCorner, Qt::UniqueConnection);
-    connect(m_actionPathPointSmooth, &QAction::triggered, this, &KoPathTool::pointTypeChangedSmooth, Qt::UniqueConnection);
-    connect(m_actionPathPointSymmetric, &QAction::triggered, this, &KoPathTool::pointTypeChangedSymmetric, Qt::UniqueConnection);
-    connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::pointSelectionChanged, Qt::UniqueConnection);
+    QObject::connect(m_actionCurvePoint, &QAction::triggered, this, &KoPathTool::pointToCurve, Qt::UniqueConnection);
+    QObject::connect(m_actionLinePoint, &QAction::triggered, this, &KoPathTool::pointToLine, Qt::UniqueConnection);
+    QObject::connect(m_actionLineSegment, &QAction::triggered, this, &KoPathTool::segmentToLine, Qt::UniqueConnection);
+    QObject::connect(m_actionCurveSegment, &QAction::triggered, this, &KoPathTool::segmentToCurve, Qt::UniqueConnection);
+    QObject::connect(m_actionAddPoint, &QAction::triggered, this, &KoPathTool::insertPoints, Qt::UniqueConnection);
+    QObject::connect(m_actionRemovePoint, &QAction::triggered, this, &KoPathTool::removePoints, Qt::UniqueConnection);
+    QObject::connect(m_actionBreakPoint, &QAction::triggered, this, &KoPathTool::breakAtPoint, Qt::UniqueConnection);
+    QObject::connect(m_actionBreakSegment, &QAction::triggered, this, &KoPathTool::breakAtSegment, Qt::UniqueConnection);
+    QObject::connect(m_actionBreakSelection, &QAction::triggered, this, &KoPathTool::breakAtSelection, Qt::UniqueConnection);
+    QObject::connect(m_actionJoinSegment, &QAction::triggered, this, &KoPathTool::joinPoints, Qt::UniqueConnection);
+    QObject::connect(m_actionMergePoints, &QAction::triggered, this, &KoPathTool::mergePoints, Qt::UniqueConnection);
+    QObject::connect(m_actionConvertToPath, &QAction::triggered, this, &KoPathTool::convertToPath, Qt::UniqueConnection);
+    QObject::connect(m_actionPathPointCorner, &QAction::triggered, this, &KoPathTool::pointTypeChangedCorner, Qt::UniqueConnection);
+    QObject::connect(m_actionPathPointSmooth, &QAction::triggered, this, &KoPathTool::pointTypeChangedSmooth, Qt::UniqueConnection);
+    QObject::connect(m_actionPathPointSymmetric, &QAction::triggered, this, &KoPathTool::pointTypeChangedSymmetric, Qt::UniqueConnection);
+    QObject::connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::pointSelectionChanged, Qt::UniqueConnection);
 
 }
 
@@ -1041,22 +1041,22 @@ void KoPathTool::deactivate()
     m_currentStrategy.reset();
     d->canvas->snapGuide()->reset();
 
-    disconnect(m_actionCurvePoint, 0, this, 0);
-    disconnect(m_actionLinePoint, 0, this, 0);
-    disconnect(m_actionLineSegment, 0, this, 0);
-    disconnect(m_actionCurveSegment, 0, this, 0);
-    disconnect(m_actionAddPoint, 0, this, 0);
-    disconnect(m_actionRemovePoint, 0, this, 0);
-    disconnect(m_actionBreakPoint, 0, this, 0);
-    disconnect(m_actionBreakSegment, 0, this, 0);
-    disconnect(m_actionBreakSelection, 0, this, 0);
-    disconnect(m_actionJoinSegment, 0, this, 0);
-    disconnect(m_actionMergePoints, 0, this, 0);
-    disconnect(m_actionConvertToPath, 0, this, 0);
-    disconnect(m_actionPathPointCorner, 0, this, 0);
-    disconnect(m_actionPathPointSmooth, 0, this, 0);
-    disconnect(m_actionPathPointSymmetric, 0, this, 0);
-    disconnect(&m_pointSelection, 0, this, 0);
+    QObject::disconnect(m_actionCurvePoint, 0, this, 0);
+    QObject::disconnect(m_actionLinePoint, 0, this, 0);
+    QObject::disconnect(m_actionLineSegment, 0, this, 0);
+    QObject::disconnect(m_actionCurveSegment, 0, this, 0);
+    QObject::disconnect(m_actionAddPoint, 0, this, 0);
+    QObject::disconnect(m_actionRemovePoint, 0, this, 0);
+    QObject::disconnect(m_actionBreakPoint, 0, this, 0);
+    QObject::disconnect(m_actionBreakSegment, 0, this, 0);
+    QObject::disconnect(m_actionBreakSelection, 0, this, 0);
+    QObject::disconnect(m_actionJoinSegment, 0, this, 0);
+    QObject::disconnect(m_actionMergePoints, 0, this, 0);
+    QObject::disconnect(m_actionConvertToPath, 0, this, 0);
+    QObject::disconnect(m_actionPathPointCorner, 0, this, 0);
+    QObject::disconnect(m_actionPathPointSmooth, 0, this, 0);
+    QObject::disconnect(m_actionPathPointSymmetric, 0, this, 0);
+    QObject::disconnect(&m_pointSelection, 0, this, 0);
 
     KoToolBase::deactivate();
 }

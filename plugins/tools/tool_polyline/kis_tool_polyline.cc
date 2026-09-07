@@ -24,7 +24,7 @@ KisToolPolyline::KisToolPolyline(KoCanvasBase * canvas)
         : KisToolPolylineBase(canvas, KisToolPolylineBase::PAINT,
                               dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_polyline_cursor.png", 6, 6))
 {
-    setObjectName("tool_polyline");
+    QObject::setObjectName("tool_polyline");
     setSupportOutline(true);
     setIsOpacityPresetMode(true);
 }
