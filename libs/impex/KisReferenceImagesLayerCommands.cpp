@@ -114,12 +114,8 @@ private:
 };
 
 KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document,
-                                                           QList<KoShape *> referenceImages)
+                                                           PkList<KoShape *> referenceImages)
 {
-    PkList<KoShape *> pkReferenceImages;
-    for (KoShape *shape : referenceImages) {
-        pkReferenceImages.append(shape);
-    }
     KisSharedPtr<KisReferenceImagesLayer> layer = document->referenceImagesLayer();
     if (!layer) {
         layer = new KisReferenceImagesLayer(document->shapeController(), document->image());
@@ -133,10 +129,10 @@ KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document
                                     KisCommandUtils::FlipFlopCommand::State::INITIALIZING,
                                     parentCommand);
     AddReferenceImagesCommand *command =
-        new AddReferenceImagesCommand(document, layer, pkReferenceImages, parentCommand);
+        new AddReferenceImagesCommand(document, layer, referenceImages, parentCommand);
     parentCommand->setText(command->text());
     new KoKeepShapesSelectedCommand(PkList<KoShape *>(),
-                                    pkReferenceImages,
+                                    referenceImages,
                                     layer->selectedShapesProxy(),
                                     KisCommandUtils::FlipFlopCommand::State::FINALIZING,
                                     parentCommand);
@@ -145,11 +141,7 @@ KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document
 }
 
 KUndo2Command *KisReferenceImagesLayer::removeReferenceImages(KisDocument *document,
-                                                              QList<KoShape *> referenceImages)
+                                                              PkList<KoShape *> referenceImages)
 {
-    PkList<KoShape *> pkReferenceImages;
-    for (KoShape *shape : referenceImages) {
-        pkReferenceImages.append(shape);
-    }
-    return new RemoveReferenceImagesCommand(document, this, pkReferenceImages);
+    return new RemoveReferenceImagesCommand(document, this, referenceImages);
 }
