@@ -641,9 +641,8 @@ PkList<KoShape *> KisShapeLayer::createShapesFromSvg(PkStream *device, const PkS
         << " Error message: " << errorMsg << '\n';
 
         if (errors) {
-            *errors << toPkString(
-                QStringLiteral("Parsing error in the main document at line %1, column %2\nError message: %3")
-                    .arg(errorLine).arg(errorColumn).arg(toQString(errorMsg)));
+            *errors << PkString("Parsing error in the main document at line %1, column %2\nError message: %3")
+                .arg(errorLine).arg(errorColumn).arg(errorMsg);
         }
         return PkList<KoShape*>();
     }

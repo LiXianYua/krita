@@ -53,31 +53,32 @@ struct KisReferenceImage::Private : public QSharedData
         {
             QImageReader reader(toQString(externalFilename));
             reader.setDecideFormatFromContent(true);
-            PkImage loaded = toPkImage(reader.read());
-            image = loaded;
+            auto normalizeAndBridge = [](QImage loaded) {
+                if (!loaded.isNull() && loaded.colorSpace().isValid()) {
+                    loaded.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
+                }
+                return toPkImage(loaded);
+            };
+
+            image = normalizeAndBridge(reader.read());
 
             if (image.isNull()) {
                 reader.setAutoDetectImageFormat(true);
-                image = toPkImage(reader.read());
+                image = normalizeAndBridge(reader.read());
             }
 
         }
 
         if (image.isNull()) {
-            image = toPkImage(QImage(toQString(externalFilename)));
+            QImage loaded(toQString(externalFilename));
+            if (!loaded.isNull() && loaded.colorSpace().isValid()) {
+                loaded.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
+            }
+            image = toPkImage(loaded);
         }
 
         if (image.isNull() && fallbackLoader) {
             image = fallbackLoader(externalFilename);
-        }
-
-        // See https://bugs.kde.org/show_bug.cgi?id=416515 -- a jpeg image
-        // loaded into a qimage cannot be saved to png unless we explicitly
-        // convert the colorspace of the PkImage
-        if (!image.isNull()) {
-            QImage loaded = toQImage(image);
-            loaded.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
-            image = toPkImage(loaded);
         }
 
         return (!image.isNull());
