@@ -7,11 +7,11 @@
 #include "KisToolChangesTracker.h"
 
 #include "kis_global.h"
-#include <QSharedPointer>
+#include <PkList.h>
 
 struct KisToolChangesTracker::Private {
-    QList<KisToolChangesTrackerDataSP> undoStack;
-    QList<KisToolChangesTrackerDataSP> redoStack;
+    PkList<KisToolChangesTrackerDataSP> undoStack;
+    PkList<KisToolChangesTrackerDataSP> redoStack;
 };
 
 
@@ -37,7 +37,7 @@ void KisToolChangesTracker::requestUndo()
     m_d->redoStack.append(m_d->undoStack.last());
     m_d->undoStack.removeLast();
     if (!m_d->undoStack.isEmpty()) {
-        Q_EMIT sigConfigChanged(m_d->undoStack.last());
+        sigConfigChanged(m_d->undoStack.last());
     }
 }
 
@@ -48,13 +48,21 @@ void KisToolChangesTracker::requestRedo()
     m_d->undoStack.append(m_d->redoStack.last());
     m_d->redoStack.removeLast();
     if (!m_d->undoStack.isEmpty()) {
-        Q_EMIT sigConfigChanged(m_d->undoStack.last());
+        sigConfigChanged(m_d->undoStack.last());
     }
 }
 
 KisToolChangesTrackerDataSP KisToolChangesTracker::lastState() const
 {
-    return !m_d->undoStack.isEmpty() ? m_d->undoStack.last() : static_cast<QSharedPointer<KisToolChangesTrackerData>>(0);
+    return !m_d->undoStack.isEmpty() ? m_d->undoStack.last() : KisToolChangesTrackerDataSP();
+}
+
+void KisToolChangesTracker::sigConfigChanged(KisToolChangesTrackerDataSP state)
+{
+    PkObject::activateSignal<KisToolChangesTrackerDataSP>(
+        this,
+        PkMemberFnKey::from(&KisToolChangesTracker::sigConfigChanged),
+        state);
 }
 
 void KisToolChangesTracker::reset()

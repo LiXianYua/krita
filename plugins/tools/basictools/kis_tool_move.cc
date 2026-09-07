@@ -14,6 +14,7 @@
 #include <PkPoint.h>
 
 #include <KSharedConfig>
+#include <KConfigGroup>
 #include <KoCanvasBase.h>
 #include <KoPointerEvent.h>
 
@@ -217,7 +218,7 @@ bool KisToolMove::startStrokeImpl(MoveToolMode mode, const PkPoint *pos)
     }
 
     {
-        KConfigGroup group = KSharedConfig::openConfig()->group(toolId());
+        KConfigGroup group = KSharedConfig::openConfig()->group(toQString(toolId()));
         const bool forceLodMode = group.readEntry("forceLodMode", false);
         strategy->setForceLodModeIfPossible(forceLodMode);
     }
@@ -361,7 +362,7 @@ void KisToolMove::activate(const PkSet<KoShape*> &shapes)
 {
     KisTool::activate(shapes);
 
-    m_canvasConnections.addUniqueConnection(
+    QObject::connect(
         canvas()->resourceManager(),
         &KoCanvasResourceProvider::canvasResourceChanged,
         this,
@@ -385,15 +386,20 @@ void KisToolMove::paint(PkPainter& gc, const KoViewConverter &converter)
 
     if (m_strokeId && !m_handlesRect.isEmpty() && !m_currentlyUsingSelection) {
         PkPainterPath handles;
-        handles.addRect(m_handlesRect.translated(currentOffset()));
+        handles.addRect(PkRectF(m_handlesRect.translated(currentOffset())));
 
-        PkPainterPath path = pixelToView(handles);
+        const KisOptimizedBrushOutline path =
+            pixelToView(KisOptimizedBrushOutline(handles));
         paintToolOutline(&gc, path);
     }
 }
 
 void KisToolMove::deactivate()
 {
+    QObject::disconnect(canvas()->resourceManager(),
+                        &KoCanvasResourceProvider::canvasResourceChanged,
+                        this,
+                        &KisToolMove::slotCanvasResourceChanged);
     m_canvasConnections.clear();
 
     endStroke();
@@ -572,7 +578,7 @@ void KisToolMove::endStroke()
 
     KisImageSP image = currentImage();
     image->endStroke(m_strokeId);
-    m_strokeId.clear();
+    m_strokeId = nullptr;
     m_changesTracker.reset();
     m_currentlyProcessingNodes.clear();
     m_currentlyUsingSelection = false;
@@ -644,7 +650,7 @@ void KisToolMove::cancelStroke()
 
     KisImageSP image = currentImage();
     image->cancelStroke(m_strokeId);
-    m_strokeId.clear();
+    m_strokeId = nullptr;
     m_changesTracker.reset();
     m_currentlyProcessingNodes.clear();
     m_currentlyUsingSelection = false;

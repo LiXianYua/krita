@@ -7,9 +7,8 @@
 #ifndef KISTOOLCHANGESTRACKERDATA_H
 #define KISTOOLCHANGESTRACKERDATA_H
 
-#include <QObject>
 #include <kritacanvas_export.h>
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
 class KRITACANVAS_EXPORT KisToolChangesTrackerData
 {
@@ -18,8 +17,6 @@ public:
     virtual KisToolChangesTrackerData* clone() const;
 };
 
-typedef QSharedPointer<KisToolChangesTrackerData> KisToolChangesTrackerDataSP;
-
-Q_DECLARE_METATYPE(KisToolChangesTrackerDataSP)
+typedef PkSharedPointer<KisToolChangesTrackerData> KisToolChangesTrackerDataSP;
 
 #endif // KISTOOLCHANGESTRACKERDATA_H

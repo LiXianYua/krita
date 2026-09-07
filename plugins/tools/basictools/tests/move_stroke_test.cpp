@@ -7,6 +7,7 @@
 #include "move_stroke_test.h"
 
 #include <simpletest.h>
+#include <PkFlakeBridge.h>
 
 #include "stroke_testing_utils.h"
 #include "kis_image.h"
@@ -29,7 +30,7 @@ protected:
         Q_UNUSED(image);
 
         QImage src(QString(FILES_DATA_DIR) + '/' + "carrot.png");
-        activeNode->original()->convertFromQImage(src, 0);
+        activeNode->original()->convertFromQImage(toPkImage(src), 0);
     }
 
     KisStrokeStrategy* createStroke(KisResourcesSnapshotSP resources,
@@ -46,17 +47,17 @@ protected:
         Q_UNUSED(resources);
 
         image->
-            addJob(strokeId(), new MoveStrokeStrategy::Data(QPoint(100,100)));
+            addJob(strokeId(), new MoveStrokeStrategy::Data(PkPoint(100,100)));
 
         image->
-            addJob(strokeId(), new MoveStrokeStrategy::Data(QPoint(50, 50)));
+            addJob(strokeId(), new MoveStrokeStrategy::Data(PkPoint(50, 50)));
 
         for (int i = 0; i < 25; i++) {
             image->
-                addJob(strokeId(), new MoveStrokeStrategy::Data(QPoint(50+i,50)));
+                addJob(strokeId(), new MoveStrokeStrategy::Data(PkPoint(50+i,50)));
             QTest::qSleep(1);
             image->
-                addJob(strokeId(), new MoveStrokeStrategy::Data(QPoint(50+i,50+i)));
+                addJob(strokeId(), new MoveStrokeStrategy::Data(PkPoint(50+i,50+i)));
 
             QTest::qSleep(1);
         }

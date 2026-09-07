@@ -7,8 +7,7 @@
 #ifndef KISNODESELECTIONRECIPE_H
 #define KISNODESELECTIONRECIPE_H
 
-#include <QHash>
-#include <QPoint>
+#include <PkPoint.h>
 
 #include "kis_types.h"
 #include <kritacanvas_export.h>
@@ -24,7 +23,7 @@ public:
     };
 
     KisNodeSelectionRecipe(KisNodeList _selectedNodes);
-    KisNodeSelectionRecipe(KisNodeList _selectedNodes, SelectionMode _mode, QPoint _pickPoint);
+    KisNodeSelectionRecipe(KisNodeList _selectedNodes, SelectionMode _mode, PkPoint _pickPoint);
     KisNodeSelectionRecipe(const KisNodeSelectionRecipe &rhs) = default;
     KisNodeSelectionRecipe(const KisNodeSelectionRecipe &rhs, int levelOfDetail);
 
@@ -32,7 +31,7 @@ public:
 
     KisNodeList selectedNodes;
     SelectionMode mode;
-    QPoint pickPoint;
+    PkPoint pickPoint;
 };
 
 #endif // KISNODESELECTIONRECIPE_H

@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QPoint>
-
 #include "KisNodeSelectionRecipe.h"
 
 #include "kis_layer_utils.h"
@@ -18,7 +16,7 @@
 
 namespace {
 
-KisNodeSP findNode(KisNodeSP node, const QPoint &point, bool wholeGroup, bool editableOnly = true)
+KisNodeSP findNode(KisNodeSP node, const PkPoint &point, bool wholeGroup, bool editableOnly = true)
 {
     KisNodeSP foundNode = 0;
     while (node) {
@@ -58,7 +56,7 @@ KisNodeSelectionRecipe::KisNodeSelectionRecipe(KisNodeList _selectedNodes)
 {
 }
 
-KisNodeSelectionRecipe::KisNodeSelectionRecipe(KisNodeList _selectedNodes, KisNodeSelectionRecipe::SelectionMode _mode, QPoint _pickPoint)
+KisNodeSelectionRecipe::KisNodeSelectionRecipe(KisNodeList _selectedNodes, KisNodeSelectionRecipe::SelectionMode _mode, PkPoint _pickPoint)
     : selectedNodes(_selectedNodes),
       mode(_mode),
       pickPoint(_pickPoint)
@@ -69,8 +67,7 @@ KisNodeSelectionRecipe::KisNodeSelectionRecipe(const KisNodeSelectionRecipe &rhs
     : KisNodeSelectionRecipe(rhs)
 {
     KisLodTransform t(levelOfDetail);
-    const PkPoint mappedPoint = t.map(PkPoint(rhs.pickPoint.x(), rhs.pickPoint.y()));
-    pickPoint = QPoint(mappedPoint.x(), mappedPoint.y());
+    pickPoint = t.map(rhs.pickPoint);
 }
 
 KisNodeList KisNodeSelectionRecipe::selectNodesToProcess() const

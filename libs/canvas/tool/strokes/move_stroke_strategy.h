@@ -7,18 +7,12 @@
 #ifndef __MOVE_STROKE_STRATEGY_H
 #define __MOVE_STROKE_STRATEGY_H
 
-#include <QHash>
-#include <QObject>
-#include <QElapsedTimer>
-#include <QPoint>
-#include <QRect>
-#include <QScopedPointer>
-#include <QSet>
-#include <QSharedPointer>
-
+#include <PkElapsedTimer.h>
 #include <PkHash.h>
+#include <PkObject.h>
 #include <PkPoint.h>
 #include <PkRect.h>
+#include <PkScopedPointer.h>
 #include <PkSet.h>
 #include <PkSharedPointer.h>
 
@@ -37,16 +31,15 @@ class KisUpdatesFacade;
 class KisPostExecutionUndoAdapter;
 
 
-class KRITACANVAS_EXPORT MoveStrokeStrategy : public QObject, public KisStrokeStrategyUndoCommandBased
+class KRITACANVAS_EXPORT MoveStrokeStrategy : public PkObject, public KisStrokeStrategyUndoCommandBased
 {
-    Q_OBJECT
 public:
     class KRITACANVAS_EXPORT Data : public KisStrokeJobData {
     public:
-        Data(QPoint _offset);
+        Data(PkPoint _offset);
         KisStrokeJobData* createLodClone(int levelOfDetail) override;
 
-        QPoint offset;
+        PkPoint offset;
 
     private:
         Data(const Data &rhs, int levelOfDetail);
@@ -54,11 +47,11 @@ public:
 
     class KRITACANVAS_EXPORT PickLayerData : public KisStrokeJobData {
     public:
-        PickLayerData(QPoint _pos);
+        PickLayerData(PkPoint _pos);
 
         KisStrokeJobData* createLodClone(int levelOfDetail) override;
 
-        QPoint pos;
+        PkPoint pos;
 
     private:
         PickLayerData(const PickLayerData &rhs, int levelOfDetail);
@@ -91,8 +84,7 @@ public:
 
     KisStrokeStrategy* createLodClone(int levelOfDetail) override;
 
-Q_SIGNALS:
-    void sigHandlesRectCalculated(const QRect &handlesRect);
+    void sigHandlesRectCalculated(const PkRect &handlesRect);
     void sigStrokeStartedEmpty();
     void sigLayersPicked(const KisNodeList &nodes);
 
@@ -106,7 +98,7 @@ private:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 
     KisNodeSelectionRecipe m_requestedNodeSelection;
     KisNodeList m_nodes;
@@ -117,7 +109,7 @@ private:
     PkHash<KisNodeSP, PkRect> m_dirtyRects;
     bool m_updatesEnabled {true};
 
-    QElapsedTimer m_updateTimer;
+    PkElapsedTimer m_updateTimer;
     bool m_hasPostponedJob {false};
     const int m_updateInterval {30};
 

@@ -8,13 +8,12 @@
 #define KISTOOLCHANGESTRACKER_H
 
 #include <kritacanvas_export.h>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
 #include "KisToolChangesTrackerData.h"
 
-class KRITACANVAS_EXPORT KisToolChangesTracker :public QObject
+class KRITACANVAS_EXPORT KisToolChangesTracker : public PkObject
 {
-    Q_OBJECT
-
 public:
     KisToolChangesTracker();
     ~KisToolChangesTracker();
@@ -30,12 +29,11 @@ public:
     bool canUndo() const;
     bool canRedo() const;
 
-Q_SIGNALS:
     void sigConfigChanged(KisToolChangesTrackerDataSP state);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISTOOLCHANGESTRACKER_H

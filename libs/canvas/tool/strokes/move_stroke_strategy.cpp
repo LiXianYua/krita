@@ -32,25 +32,6 @@
 
 #include <PkVector.h>
 
-namespace {
-
-PkPoint toPkPoint(const QPoint &point)
-{
-    return PkPoint(point.x(), point.y());
-}
-
-QPoint toQPoint(const PkPoint &point)
-{
-    return QPoint(point.x(), point.y());
-}
-
-QRect toQRect(const PkRect &rect)
-{
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-
-}
-
 /* MoveNodeStrategyBase and descendants
  *
  * A set of strategies that define how to actually move
@@ -253,7 +234,7 @@ MoveStrokeStrategy::~MoveStrokeStrategy()
 }
 
 MoveStrokeStrategy::MoveStrokeStrategy(const MoveStrokeStrategy &rhs, int lod)
-    : QObject(),
+    : PkObject(),
       KisStrokeStrategyUndoCommandBased(rhs),
       m_d(new Private()),
       m_requestedNodeSelection(rhs.m_requestedNodeSelection, lod),
@@ -316,7 +297,7 @@ void MoveStrokeStrategy::initStrokeCallback()
     }
 
     if (m_nodes.isEmpty()) {
-        Q_EMIT sigStrokeStartedEmpty();
+        sigStrokeStartedEmpty();
         return;
     }
 
@@ -394,7 +375,7 @@ void MoveStrokeStrategy::initStrokeCallback()
             KisLodTransform t(m_nodes.first()->image()->currentLevelOfDetail());
             handlesRect = t.mapInverted(handlesRect);
 
-            Q_EMIT this->sigHandlesRectCalculated(toQRect(handlesRect));
+            this->sigHandlesRectCalculated(handlesRect);
         }
 
         m_updateTimer.start();
@@ -484,7 +465,7 @@ void MoveStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
     if (PickLayerData *pickData = dynamic_cast<PickLayerData*>(data)) {
         KisNodeSelectionRecipe clone = m_requestedNodeSelection;
         clone.pickPoint = pickData->pos;
-        Q_EMIT sigLayersPicked(clone.selectNodesToProcess());
+        sigLayersPicked(clone.selectNodesToProcess());
         return;
     }
 
@@ -495,7 +476,7 @@ void MoveStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
          * NOTE: we do not care about threading here, because
          * all our jobs are declared sequential
          */
-        m_finalOffset = toPkPoint(d->offset);
+        m_finalOffset = d->offset;
         m_hasPostponedJob = true;
         tryPostUpdateJob(false);
 
@@ -584,16 +565,19 @@ KisStrokeStrategy* MoveStrokeStrategy::createLodClone(int levelOfDetail)
     }
 
     MoveStrokeStrategy *clone = new MoveStrokeStrategy(*this, levelOfDetail);
-    QObject::connect(clone, SIGNAL(sigHandlesRectCalculated(QRect)), this, SIGNAL(sigHandlesRectCalculated(QRect)));
-    QObject::connect(clone, SIGNAL(sigStrokeStartedEmpty()), this, SIGNAL(sigStrokeStartedEmpty()));
-    QObject::connect(clone, SIGNAL(sigLayersPicked(const KisNodeList&)), this, SIGNAL(sigLayersPicked(const KisNodeList&)));
+    PkObject::connect(clone, &MoveStrokeStrategy::sigHandlesRectCalculated,
+                      this, &MoveStrokeStrategy::sigHandlesRectCalculated);
+    PkObject::connect(clone, &MoveStrokeStrategy::sigStrokeStartedEmpty,
+                      this, &MoveStrokeStrategy::sigStrokeStartedEmpty);
+    PkObject::connect(clone, &MoveStrokeStrategy::sigLayersPicked,
+                      this, &MoveStrokeStrategy::sigLayersPicked);
     this->setUpdatesEnabled(false);
     m_sharedNodes.reset(new std::pair<KisNodeList, PkSet<KisNodeSP>>());
     clone->m_sharedNodes = m_sharedNodes;
     return clone;
 }
 
-MoveStrokeStrategy::Data::Data(QPoint _offset)
+MoveStrokeStrategy::Data::Data(PkPoint _offset)
     : KisStrokeJobData(SEQUENTIAL, NORMAL),
       offset(_offset)
 {
@@ -608,10 +592,10 @@ MoveStrokeStrategy::Data::Data(const MoveStrokeStrategy::Data &rhs, int levelOfD
     : KisStrokeJobData(rhs)
 {
     KisLodTransform t(levelOfDetail);
-    offset = toQPoint(t.map(toPkPoint(rhs.offset)));
+    offset = t.map(rhs.offset);
 }
 
-MoveStrokeStrategy::PickLayerData::PickLayerData(QPoint _pos)
+MoveStrokeStrategy::PickLayerData::PickLayerData(PkPoint _pos)
     : KisStrokeJobData(SEQUENTIAL, NORMAL),
       pos(_pos)
 {
@@ -625,7 +609,30 @@ MoveStrokeStrategy::PickLayerData::PickLayerData(const MoveStrokeStrategy::PickL
     : KisStrokeJobData(rhs)
 {
     KisLodTransform t(levelOfDetail);
-    pos = toQPoint(t.map(toPkPoint(rhs.pos)));
+    pos = t.map(rhs.pos);
+}
+
+void MoveStrokeStrategy::sigHandlesRectCalculated(const PkRect &handlesRect)
+{
+    PkObject::activateSignal<const PkRect &>(
+        this,
+        PkMemberFnKey::from(&MoveStrokeStrategy::sigHandlesRectCalculated),
+        handlesRect);
+}
+
+void MoveStrokeStrategy::sigStrokeStartedEmpty()
+{
+    PkObject::activateSignal<>(
+        this,
+        PkMemberFnKey::from(&MoveStrokeStrategy::sigStrokeStartedEmpty));
+}
+
+void MoveStrokeStrategy::sigLayersPicked(const KisNodeList &nodes)
+{
+    PkObject::activateSignal<const KisNodeList &>(
+        this,
+        PkMemberFnKey::from(&MoveStrokeStrategy::sigLayersPicked),
+        nodes);
 }
 
 MoveStrokeStrategy::BarrierUpdateData::BarrierUpdateData(bool _forceUpdate)
