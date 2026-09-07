@@ -85,7 +85,7 @@ void KisToolRectangleBase::paint(QPainter& gc, const KoViewConverter &converter)
     KisToolPaint::paint(gc, converter);
 }
 
-void KisToolRectangleBase::activate(const QSet<KoShape *> &shapes)
+void KisToolRectangleBase::activate(const PkSet<KoShape *> &shapes)
 {
     KisToolShape::activate(shapes);
 
@@ -403,5 +403,5 @@ void KisToolRectangleBase::getRotatedPath(QPainterPath &path, const PkPointF &ce
     t.rotateRadians(angle);
     t.translate(-center.x(), -center.y());
 
-    path = t.map(path);
+    path = toQPainterPath(t.map(toPkPainterPath(path)));
 }

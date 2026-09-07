@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include <algorithm>
 
 #include <QAction>
@@ -80,7 +81,7 @@ PkPointF r44ToPkPointF(const PkPointF &point)
 PkPainterPath r44ToPkPainterPath(const QPainterPath &path)
 {
     PkPainterPath result;
-    result.setFillRule(path.fillRule());
+    result.setFillRule(static_cast<Pk::FillRule>(path.fillRule()));
 
     const int elementCount = path.elementCount();
     for (int i = 0; i < elementCount; ++i) {
@@ -159,7 +160,7 @@ void KisToolPaint::canvasResourceChanged(int key, const QVariant& v)
     case KoCanvasResource::CurrentPaintOpPresetName: {
         if (isActive()) {
             const QString formattedBrushName = v.toString().replace("_", " ");
-            Q_EMIT statusTextChanged(formattedBrushName);
+            Q_EMIT statusTextChanged(toPkString(formattedBrushName));
         }
         break;
     }
@@ -198,7 +199,7 @@ void KisToolPaint::activate(const PkSet<KoShape*> &shapes)
 {
     if (currentPaintOpPreset()) {
         const QString formattedBrushName = currentPaintOpPreset() ? r44ToQString(currentPaintOpPreset()->name()).replace("_", " ") : QString();
-        Q_EMIT statusTextChanged(formattedBrushName);
+        Q_EMIT statusTextChanged(toPkString(formattedBrushName));
     }
 
     KisTool::activate(shapes);
@@ -231,7 +232,7 @@ void KisToolPaint::deactivate()
     disconnect(action("rotate_brush_tip_counter_clockwise_precise"), 0, this, 0);
 
     tryRestoreOpacitySnapshot();
-    Q_EMIT statusTextChanged(QString());
+    Q_EMIT statusTextChanged(PkString());
 
     KisTool::deactivate();
 }
@@ -423,7 +424,7 @@ void KisToolPaint::mouseReleaseEvent(KoPointerEvent *event)
 QWidget *KisToolPaint::createOptionWidget()
 {
     QWidget *optionWidget = new QWidget();
-    optionWidget->setObjectName(toolId());
+    optionWidget->setObjectName(toQString(toolId()));
 
     QVBoxLayout *verticalLayout = new QVBoxLayout(optionWidget);
     verticalLayout->setObjectName("KisToolPaint::OptionWidget::VerticalLayout");
@@ -696,11 +697,11 @@ void KisToolPaint::requestUpdateOutline(const PkPointF &outlineDocPoint, const K
     services->toolUpdateAssistantDecoration();
 
     if (!m_oldColorPreviewUpdateRect.isEmpty()) {
-        services->toolUpdateOutlineDoc(m_oldColorPreviewUpdateRect);
+        services->toolUpdateOutlineDoc(toQRectF(m_oldColorPreviewUpdateRect);
     }
 
     if (!m_oldOutlineRect.isEmpty()) {
-        services->toolUpdateOutlineDoc(m_oldOutlineRect);
+        services->toolUpdateOutlineDoc(toQRectF(m_oldOutlineRect));
     }
 
     if (!outlineDocRect.isEmpty()) {

@@ -320,4 +320,12 @@ inline KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *si
     return KUndo2MagicString(PkString(plur).arg(a1).arg(a2).arg(a3).arg(a4));
 }
 
+
+// kundo2_i18n 家族（官方 Krita 宏的函数化；S-09-g defaulttool 策略层需要）。
+// 官方宏 kundo2_i18n(text, args...) = KUndo2MagicString(kundo2i18n_impl(text, args...))，
+// Pk 化后用 kundo2_text_raw 家族直连，语义一致（不做 i18n 查表，原文直返）。
+inline KUndo2MagicString kundo2_i18n(const char *text) { return kundo2_text_raw(text); }
+template<typename A1> KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1) { return kundo2_text_raw(text, a1); }
+template<typename A1, typename A2> KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1, const A2 &a2) { return kundo2_text_raw(text, a1, a2); }
+template<typename A1, typename A2, typename A3> KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3) { return kundo2_text_raw(text, a1, a2, a3); }
 #endif /* KUNDO2MAGICSTRING_H */

@@ -117,8 +117,8 @@ void KisToolMultihandHelper::paintBezierCurve(const KisPaintInformation &pi1,
         adjustPointInformationRotation(__pi1, transform);
         adjustPointInformationRotation(__pi2, transform);
 
-        PkPointF __control1 = toQPointF(transform.map(toPkPointF(control1)));
-        PkPointF __control2 = toQPointF(transform.map(toPkPointF(control2)));
+        PkPointF __control1 = transform.map(toPkPointF(control1));
+        PkPointF __control2 = transform.map(toPkPointF(control2));
 
         paintBezierCurve(i, __pi1, __control1, __control2, __pi2);
     }

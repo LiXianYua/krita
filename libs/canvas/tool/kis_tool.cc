@@ -93,19 +93,9 @@ PkPoint toPkPoint(const QPoint &point)
     return PkPoint(point.x(), point.y());
 }
 
-PkPointF toPkPointF(const PkPointF &point)
-{
-    return PkPointF(point.x(), point.y());
-}
-
 QPoint toQPoint(const PkPoint &point)
 {
     return QPoint(point.x(), point.y());
-}
-
-PkPointF toQPointF(const PkPointF &point)
-{
-    return PkPointF(point.x(), point.y());
 }
 
 PkTransform toPkTransform(const PkTransform &transform)
@@ -317,7 +307,7 @@ PkPointF KisTool::convertToPixelCoord(KoPointerEvent *e)
     if (!image())
         return e->point;
 
-    return toQPointF(image()->documentToPixel(toPkPointF(e->point)));
+    return toPkPointF(image()->documentToPixel(toQPointF(e->point)));
 }
 
 PkPointF KisTool::convertToPixelCoord(const PkPointF& pt)
@@ -325,7 +315,7 @@ PkPointF KisTool::convertToPixelCoord(const PkPointF& pt)
     if (!image())
         return pt;
 
-    return toQPointF(image()->documentToPixel(toPkPointF(pt)));
+    return toPkPointF(image()->documentToPixel(toQPointF(pt)));
 }
 
 PkPointF KisTool::convertToPixelCoordAndAlignOnWidget(const PkPointF &pt)
@@ -343,7 +333,7 @@ PkPointF KisTool::convertToPixelCoordAndSnap(KoPointerEvent *e, const PkPointF &
     KoSnapGuide *snapGuide = canvas()->snapGuide();
     PkPointF pos = snapGuide->snap(e->point, offset, useModifiers ? e->modifiers() : Qt::NoModifier);
 
-    return toQPointF(image()->documentToPixel(toPkPointF(pos)));
+    return toPkPointF(image()->documentToPixel(toQPointF(pos)));
 }
 
 PkPointF KisTool::convertToPixelCoordAndSnap(const PkPointF& pt, const PkPointF &offset)
@@ -354,7 +344,7 @@ PkPointF KisTool::convertToPixelCoordAndSnap(const PkPointF& pt, const PkPointF 
     KoSnapGuide *snapGuide = canvas()->snapGuide();
     PkPointF pos = snapGuide->snap(pt, offset, Qt::NoModifier);
 
-    return toQPointF(image()->documentToPixel(toPkPointF(pos)));
+    return toPkPointF(image()->documentToPixel(toQPointF(pos)));
 }
 
 QPoint KisTool::convertToImagePixelCoordFloored(KoPointerEvent *e)
