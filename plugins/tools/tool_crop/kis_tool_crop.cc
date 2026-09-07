@@ -15,9 +15,9 @@
 #include <PkPainter.h>
 #include <PkPen.h>
 #include <PkRect.h>
+#include <PkSharedConfig.h>
 
 #include <kis_debug.h>
-#include <ksharedconfig.h>
 
 #include <KoCanvasBase.h>
 #include <kis_global.h>
@@ -124,7 +124,7 @@ void KisToolCrop::activate(const PkSet<KoShape*> &shapes)
 {
 
     KisTool::activate(shapes);
-    configGroup =  KSharedConfig::openConfig()->group(toolId()); // save settings to kritarc
+    configGroup = PkSharedConfig::openConfig()->group(toolId()); // save settings to kritarc
 
     KisResourcesSnapshotSP resources =
         new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager()->canvasResourcesInterface());
@@ -354,7 +354,7 @@ void KisToolCrop::endPrimaryAction(KoPointerEvent *event)
     CHECK_MODE_SANITY_OR_RETURN(KisTool::PAINT_MODE);
     setMode(KisTool::HOVER_MODE);
 
-    PkRectF viewCropRect = pixelToView(m_finalRect.rect());
+    PkRectF viewCropRect = pixelToView(PkRectF(m_finalRect.rect()));
     const bool haveValidRect =
         viewCropRect.width() > m_handleSize &&
         viewCropRect.height() > m_handleSize;
@@ -410,7 +410,7 @@ void KisToolCrop::beginPrimaryDoubleClickAction(KoPointerEvent *event)
 
 PkRectF KisToolCrop::borderLineRect()
 {
-    PkRectF borderRect = pixelToView(m_finalRect.rect());
+    PkRectF borderRect = pixelToView(PkRectF(m_finalRect.rect()));
 
     // Draw the border line right next to the crop rectangle perimeter.
     borderRect.adjust(-HALF_BORDER_LINE_WIDTH, -HALF_BORDER_LINE_WIDTH, HALF_BORDER_LINE_WIDTH, HALF_BORDER_LINE_WIDTH);
@@ -425,27 +425,27 @@ void KisToolCrop::paintOutlineWithHandles(PkPainter& gc)
     if (canvas() && (mode() == KisTool::PAINT_MODE || m_haveCropSelection)) {
         gc.save();
 
-        PkRectF wholeImageRect = pixelToView(image()->bounds());
+        PkRectF wholeImageRect = pixelToView(PkRectF(image()->bounds()));
         PkRectF borderRect = borderLineRect();
 
         PkPainterPath path;
 
         path.addRect(wholeImageRect);
         path.addRect(borderRect);
-        gc.setPen(Qt::NoPen);
+        gc.setPen(Pk::NoPen);
         gc.setBrush(PkColor(0, 0, 0, OUTSIDE_CROP_ALPHA));
         gc.drawPath(path);
 
         // Handles
-        PkPen pen(Qt::SolidLine);
+        PkPen pen(Pk::SolidLine);
         pen.setWidth(HANDLE_BORDER_LINE_WIDTH * decorationThickness());
-        pen.setColor(Qt::black);
+        pen.setColor(PkColor(Pk::black));
         pen.setCosmetic(true);
         gc.setPen(pen);
         gc.setBrush(PkColor(200, 200, 200, OUTSIDE_CROP_ALPHA));
         gc.drawPath(handlesPath());
 
-        gc.setClipRect(borderRect, Qt::IntersectClip);
+        gc.setClipRect(borderRect, Pk::IntersectClip);
 
         if (m_decoration > 0) {
             for (int i = decorsIndex[m_decoration-1]; i<decorsIndex[m_decoration]; i++) {
@@ -540,7 +540,7 @@ void KisToolCrop::setDecoration(int i)
 
 void KisToolCrop::doCanvasUpdate(const PkRect &updateRect)
 {
-    updateCanvasViewRect(updateRect | m_lastCanvasUpdateRect);
+    updateCanvasViewRect(PkRectF(updateRect | m_lastCanvasUpdateRect));
     m_lastCanvasUpdateRect = updateRect;
 }
 
@@ -724,12 +724,12 @@ void KisToolCrop::showSizeOnCanvas()
     KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
     if(m_mouseOnHandleType == 9) {
-        feedback->showFloatingMessage(PkString("X: %1\nY: %2").arg(cropX()).arg(cropY()),
+        feedback->showFloatingMessage(toQString(PkString("X: %1\nY: %2").arg(cropX()).arg(cropY())),
                                       {}, 1000, KisCanvasFeedback::Priority::High,
                                       Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }
     else {
-        feedback->showFloatingMessage(PkString("Width: %1\nHeight: %2").arg(cropWidth()).arg(cropHeight()),
+        feedback->showFloatingMessage(toQString(PkString("Width: %1\nHeight: %2").arg(cropWidth()).arg(cropHeight())),
                                       {}, 1000, KisCanvasFeedback::Priority::High,
                                       Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }
@@ -826,31 +826,31 @@ qint32 KisToolCrop::mouseOnHandle(PkPointF currentViewPoint)
 
 void KisToolCrop::setMoveResizeCursor(qint32 handle)
 {
-    Qt::CursorShape cursorType = Qt::ArrowCursor;
+    QCursor cursorType(Qt::ArrowCursor);
 
     switch (handle) {
     case(UpperLeft):
     case(LowerRight):
-        cursorType = Qt::SizeFDiagCursor;
+        cursorType = QCursor(Qt::SizeFDiagCursor);
         break;
     case(LowerLeft):
     case(UpperRight):
-        cursorType = Qt::SizeBDiagCursor;
+        cursorType = QCursor(Qt::SizeBDiagCursor);
         break;
     case(Upper):
     case(Lower):
-        cursorType = Qt::SizeVerCursor;
+        cursorType = QCursor(Qt::SizeVerCursor);
         break;
     case(Left):
     case(Right):
-        cursorType = Qt::SizeHorCursor;
+        cursorType = QCursor(Qt::SizeHorCursor);
         break;
     case(Inside):
-        cursorType = Qt::SizeAllCursor;
+        cursorType = QCursor(Qt::SizeAllCursor);
         break;
     default:
         if (m_haveCropSelection) {
-            cursorType = Qt::ArrowCursor;
+            cursorType = QCursor(Qt::ArrowCursor);
         } else {
             cursorType = cursor();
         }

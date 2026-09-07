@@ -13,13 +13,12 @@
 #include <PkList.h>
 #include <PkPainter.h>
 #include <PkPainterPath.h>
+#include <PkConfigGroup.h>
 #include <PkSet.h>
 #include <PkString.h>
 #include <PkVariant.h>
 
-
-#include <kconfig.h>
-#include <kconfiggroup.h>
+#include <QKeySequence>
 
 #include <KoToolFactoryBase.h>
 #include "kis_tool.h"
@@ -178,7 +177,7 @@ private:
     bool m_resettingStroke {false};
     PkRect m_lastCanvasUpdateRect;
 
-    KConfigGroup configGroup;
+    PkConfigGroup configGroup;
 
     enum handleType {
         None = 0,
@@ -207,9 +206,9 @@ public:
             : KoToolFactoryBase("KisToolCrop") {
         setToolTip(PkString("Crop Tool"));
         setSection(ToolBoxSection::Transform);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(11);
-        setShortcut(PkString("C"));
+        setShortcut(QKeySequence(QStringLiteral("C")));
     }
 
     ~KisToolCropFactory() override {}
