@@ -25,7 +25,7 @@ public:
     explicit KoPencilTool(KoCanvasBase *canvas);
     ~KoPencilTool() override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
     void mousePressEvent(KoPointerEvent *event) override ;
     void mouseMoveEvent(KoPointerEvent *event) override;

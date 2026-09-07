@@ -75,23 +75,22 @@ KoPencilTool::~KoPencilTool()
 {
 }
 
-void KoPencilTool::paint(QPainter &painter, const KoViewConverter &converter)
+void KoPencilTool::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     if (m_shape) {
         painter.save();
 
-        painter.setTransform(toQTransform(m_shape->absoluteTransformation() *
-                             converter.documentToView()) *
+        painter.setTransform(m_shape->absoluteTransformation() *
+                             converter.documentToView() *
                              painter.transform());
 
-        painter.save();
-        m_shape->paint(painter);
-        painter.restore();
-
         if (m_shape->stroke()) {
-            painter.save();
-            m_shape->stroke()->paint(m_shape, painter);
-            painter.restore();
+            if (const auto *stroke = dynamic_cast<const KoShapeStroke *>(m_shape->stroke().data())) {
+                const PkPen pen = stroke->resultLinePen();
+                if (!pen.isCosmetic() && pen.style() != Pk::NoPen) {
+                    painter.fillPath(m_shape->pathStroke(pen), pen.brush());
+                }
+            }
         }
 
         painter.restore();
