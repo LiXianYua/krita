@@ -9,7 +9,9 @@
 #include <kis_debug.h>
 #include <klocalizedstring.h>
 
-#include <ksharedconfig.h>
+#include <PkSharedConfig.h>
+#include <QRect>
+#include <QSharedPointer>
 
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
@@ -50,6 +52,47 @@
 #include "subtools/KisLassoEnclosingProducer.h"
 #include "subtools/KisBrushEnclosingProducer.h"
 
+namespace {
+
+class KisUpdateCommandFromQtRect : public KisUpdateCommand
+{
+public:
+    KisUpdateCommandFromQtRect(KisNodeSP node,
+                               PkSharedPointer<PkRect> dirtyRect,
+                               QSharedPointer<QRect> qtDirtyRect,
+                               KisUpdatesFacade *updatesFacade)
+        : KisUpdateCommand(node, dirtyRect, updatesFacade)
+        , m_dirtyRect(std::move(dirtyRect))
+        , m_qtDirtyRect(std::move(qtDirtyRect))
+    {
+    }
+
+    void undo() override
+    {
+        syncDirtyRect();
+        KisUpdateCommand::undo();
+    }
+
+    void redo() override
+    {
+        syncDirtyRect();
+        KisUpdateCommand::redo();
+    }
+
+private:
+    void syncDirtyRect()
+    {
+        if (m_dirtyRect && m_qtDirtyRect) {
+            *m_dirtyRect = toPkRect(*m_qtDirtyRect);
+        }
+    }
+
+    PkSharedPointer<PkRect> m_dirtyRect;
+    QSharedPointer<QRect> m_qtDirtyRect;
+};
+
+}
+
 KisToolEncloseAndFill::KisToolEncloseAndFill(KoCanvasBase * canvas)
     : KisDynamicDelegatedTool<KisToolShape>(canvas)
 {
@@ -68,7 +111,7 @@ void KisToolEncloseAndFill::resetCursorStyle()
 void KisToolEncloseAndFill::activate(const PkSet<KoShape*> &shapes)
 {
     KisDynamicDelegatedTool::activate(shapes);
-    m_configGroup = KSharedConfig::openConfig()->group(toolId());
+    m_configGroup = PkSharedConfig::openConfig()->group(toolId());
 
     // Was only called from createOptionWidget() (now deleted), which ran on
     // every tool activation, so this keeps the same effective defaults
@@ -81,7 +124,7 @@ void KisToolEncloseAndFill::activate(const PkSet<KoShape*> &shapes)
                 &KoCanvasResourceProvider::canvasResourceChanged,
                 this,
                 &KisToolEncloseAndFill::slot_canvasResourceChanged,
-                PkConnectionType::Unique);
+                Qt::UniqueConnection);
         slot_currentNodeChanged(currentNode());
     }
 }
@@ -111,7 +154,7 @@ void KisToolEncloseAndFill::setupEnclosingSubtool()
         using Producer = std::remove_pointer_t<decltype(newDelegateTool)>;
         setDelegateTool(reinterpret_cast<KisDynamicDelegateTool<KisToolShape>*>(newDelegateTool));
         setCursor(newDelegateTool->cursor());
-        QObject::connect(newDelegateTool,
+        PkObject::connect(newDelegateTool,
                 &Producer::enclosingMaskProduced,
                 this,
                 &KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced);
@@ -167,7 +210,7 @@ void KisToolEncloseAndFill::beginPrimaryAction(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-            PkString("You cannot use this tool with the selected layer type"),
+            toQString(PkString("You cannot use this tool with the selected layer type")),
             {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         event->ignore();
         return;
@@ -261,6 +304,7 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_fillStrokeId);
 
     m_dirtyRect.reset(new PkRect);
+    QSharedPointer<QRect> qtDirtyRect(new QRect);
 
     KisResourcesSnapshotSP resources(
         new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager()->canvasResourcesInterface()));
@@ -336,8 +380,8 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
                                                m_fillType == FillWithBackgroundColor,
                                                m_useCustomBlendingOptions,
                                                m_customOpacity / 100.0,
-                                               m_customCompositeOp,
-                                               m_dirtyRect));
+                                               toQString(m_customCompositeOp),
+                                               qtDirtyRect));
 
     image()->addJob(
         m_fillStrokeId,
@@ -352,7 +396,7 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
     image()->addJob(
         m_fillStrokeId,
         new KisStrokeStrategyUndoCommandBased::Data(
-            KUndo2CommandSP(new KisUpdateCommand(currentNode(), m_dirtyRect, image().data())),
+            KUndo2CommandSP(new KisUpdateCommandFromQtRect(currentNode(), m_dirtyRect, qtDirtyRect, image().data())),
             false,
             KisStrokeJobData::SEQUENTIAL,
             KisStrokeJobData::EXCLUSIVE
@@ -742,13 +786,13 @@ void KisToolEncloseAndFill::slot_sliderFeather_valueChanged(int value)
 void KisToolEncloseAndFill::slot_currentNodeChanged(const KisNodeSP node)
 {
     if (m_previousNode && m_previousNode->paintDevice()) {
-        QObject::disconnect(m_previousNode->paintDevice().data(),
+        PkObject::disconnect(m_previousNode->paintDevice().data(),
                    &KisPaintDevice::colorSpaceChanged,
                    this,
                    &KisToolEncloseAndFill::slot_colorSpaceChanged);
     }
     if (node && node->paintDevice()) {
-        QObject::connect(node->paintDevice().data(),
+        PkObject::connect(node->paintDevice().data(),
                 &KisPaintDevice::colorSpaceChanged,
                 this,
                 &KisToolEncloseAndFill::slot_colorSpaceChanged);

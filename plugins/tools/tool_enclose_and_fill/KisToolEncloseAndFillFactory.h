@@ -23,7 +23,7 @@ public:
     {
         setToolTip(PkString("Enclose and Fill Tool"));
         setSection(ToolBoxSection::Fill);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setIconName(PkString("krita_tool_enclose_and_fill"));
         setPriority(15);
     }

@@ -13,19 +13,56 @@
 
 #include "KisPathEnclosingProducer.h"
 
+void DelegatedPathTool::mousePressEvent(KoPointerEvent *event)
+{
+    if (mode() == KisTool::HOVER_MODE &&
+        event->button() == Qt::LeftButton &&
+        ((event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier)) ||
+         event->modifiers() == Qt::NoModifier)) {
+        setMode(KisTool::PAINT_MODE);
+        m_localTool->mousePressEvent(event);
+    } else {
+        KisToolShape::mousePressEvent(event);
+    }
+}
+
+void DelegatedPathTool::mouseDoubleClickEvent(KoPointerEvent *event)
+{
+    if (mode() == KisTool::HOVER_MODE &&
+        event->button() == Qt::LeftButton &&
+        ((event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier)) ||
+         event->modifiers() == Qt::NoModifier)) {
+        m_localTool->mouseDoubleClickEvent(event);
+    } else {
+        KisToolShape::mouseDoubleClickEvent(event);
+    }
+}
+
+void DelegatedPathTool::mouseReleaseEvent(KoPointerEvent *event)
+{
+    if (mode() == KisTool::PAINT_MODE && event->button() == Qt::LeftButton) {
+        setMode(KisTool::HOVER_MODE);
+        m_localTool->mouseReleaseEvent(event);
+    } else {
+        KisToolShape::mouseReleaseEvent(event);
+    }
+}
+
 KisToolPathLocalTool::KisToolPathLocalTool(KoCanvasBase * canvas, KisPathEnclosingProducer* parentTool)
     : KoCreatePathTool(canvas)
     , m_parentTool(parentTool)
 {}
 
-void KisToolPathLocalTool::paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter)
+void KisToolPathLocalTool::paintPath(KoPathShape &pathShape, QPainter &painter, const KoViewConverter &converter)
 {
     (void)converter;
 
     PkTransform matrix;
     matrix.scale(m_parentTool->image()->xRes(), m_parentTool->image()->yRes());
     matrix.translate(pathShape.position().x(), pathShape.position().y());
-    m_parentTool->paintToolOutline(&painter, m_parentTool->pixelToView(matrix.map(pathShape.outline())));
+    m_parentTool->paintToolOutline(
+        &painter,
+        m_parentTool->pixelToView(KisOptimizedBrushOutline(matrix.map(pathShape.outline()))));
 }
 
 void KisToolPathLocalTool::addPathShape(KoPathShape* pathShape)
@@ -104,7 +141,7 @@ void KisPathEnclosingProducer::beginAlternateAction(KoPointerEvent *event, Alter
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         PkString message("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, {});
+        feedback->showFloatingMessage(toQString(message), {});
         event->ignore();
         return;
     }
@@ -144,7 +181,7 @@ void KisPathEnclosingProducer::addPathShape(KoPathShape* pathShape)
     pathShape->close();
 
     KisPainter painter(enclosingMask);
-    painter.setPaintColor(KoColor(Qt::white, enclosingMask->colorSpace()));
+    painter.setPaintColor(KoColor(Pk::white, enclosingMask->colorSpace()));
     painter.setAntiAliasPolygonFill(false);
     painter.setFillStyle(KisPainter::FillStyleForegroundColor);
     painter.setStrokeStyle(KisPainter::StrokeStyleNone);

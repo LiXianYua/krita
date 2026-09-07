@@ -10,6 +10,7 @@
 #define KISTOOLENCLOSEANDFILL_H
 
 #include <PkList.h>
+#include <PkConfigGroup.h>
 #include <PkRect.h>
 #include <PkSet.h>
 #include <PkSharedPointer.h>
@@ -18,8 +19,6 @@
 
 #include <kis_tool_shape.h>
 #include <flake/kis_node_shape.h>
-#include <kconfig.h>
-#include <kconfiggroup.h>
 #include <KisEncloseAndFillPainter.h>
 #include <commands_new/KisMergeLabeledLayersCommand.h>
 #include <KoCompositeOpRegistry.h>
@@ -108,7 +107,7 @@ private:
     PkSharedPointer<PkRect> m_dirtyRect {nullptr};
     KisStrokeId m_fillStrokeId {nullptr};
 
-    KConfigGroup m_configGroup;
+    PkConfigGroup m_configGroup;
     
     bool m_alternateActionStarted {false};
 

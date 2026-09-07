@@ -47,7 +47,17 @@ void KisLassoEnclosingProducer::enclosingMaskProduced(KisPixelSelectionSP enclos
         enclosingMask);
 }
 
-void KisLassoEnclosingProducer::finishOutline(const PkVector<PkPointF> &points)
+void KisLassoEnclosingProducer::finishOutline(const QVector<PkPointF> &points)
+{
+    PkVector<PkPointF> pkPoints;
+    pkPoints.reserve(points.size());
+    for (const PkPointF &point : points) {
+        pkPoints.append(point);
+    }
+    finishOutlinePk(pkPoints);
+}
+
+void KisLassoEnclosingProducer::finishOutlinePk(const PkVector<PkPointF> &points)
 {
     if (points.size() < 3) {
         return;
@@ -56,7 +66,7 @@ void KisLassoEnclosingProducer::finishOutline(const PkVector<PkPointF> &points)
     KisPixelSelectionSP enclosingMask(new KisPixelSelection());
 
     KisPainter painter(enclosingMask);
-    painter.setPaintColor(KoColor(Qt::white, enclosingMask->colorSpace()));
+    painter.setPaintColor(KoColor(Pk::white, enclosingMask->colorSpace()));
     painter.setAntiAliasPolygonFill(false);
     painter.setFillStyle(KisPainter::FillStyleForegroundColor);
     painter.setStrokeStyle(KisPainter::StrokeStyleNone);

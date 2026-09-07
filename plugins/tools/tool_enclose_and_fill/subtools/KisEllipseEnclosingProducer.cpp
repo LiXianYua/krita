@@ -7,6 +7,7 @@
  */
 
 #include <KoCanvasResourceProvider.h>
+#include <PkTransform.h>
 
 #include "KisEllipseEnclosingProducer.h"
 
@@ -60,11 +61,15 @@ void KisEllipseEnclosingProducer::finishRect(const PkRectF& rect, qreal roundCor
     KisPixelSelectionSP enclosingMask = KisPixelSelectionSP(new KisPixelSelection());
     PkPainterPath path;
 
-    path.addEllipse(rc);
-    getRotatedPath(path, rc.center(), getRotationAngle());
+    path.addEllipse(PkRectF(rc));
+    PkTransform rotation;
+    rotation.translate(rc.center().x(), rc.center().y());
+    rotation.rotateRadians(getRotationAngle());
+    rotation.translate(-rc.center().x(), -rc.center().y());
+    path = rotation.map(path);
 
     KisPainter painter(enclosingMask);
-    painter.setPaintColor(KoColor(Qt::white, enclosingMask->colorSpace()));
+    painter.setPaintColor(KoColor(Pk::white, enclosingMask->colorSpace()));
     painter.setAntiAliasPolygonFill(false);
     painter.setFillStyle(KisPainter::FillStyleForegroundColor);
     painter.setStrokeStyle(KisPainter::StrokeStyleNone);

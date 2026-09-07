@@ -7,6 +7,7 @@
  */
 
 #include <KoCanvasResourceProvider.h>
+#include <PkTransform.h>
 
 #include "KisRectangleEnclosingProducer.h"
 
@@ -58,14 +59,18 @@ void KisRectangleEnclosingProducer::finishRect(const PkRectF& rect, qreal roundC
     PkPainterPath path;
 
     if (roundCornersX > 0 || roundCornersY > 0) {
-        path.addRoundedRect(rc, roundCornersX, roundCornersY);
+        path.addRoundedRect(PkRectF(rc), roundCornersX, roundCornersY);
     } else {
-        path.addRect(rc);
+        path.addRect(PkRectF(rc));
     }
-    getRotatedPath(path, rc.center(), getRotationAngle());
+    PkTransform rotation;
+    rotation.translate(rc.center().x(), rc.center().y());
+    rotation.rotateRadians(getRotationAngle());
+    rotation.translate(-rc.center().x(), -rc.center().y());
+    path = rotation.map(path);
 
     KisPainter painter(enclosingMask);
-    painter.setPaintColor(KoColor(Qt::white, enclosingMask->colorSpace()));
+    painter.setPaintColor(KoColor(Pk::white, enclosingMask->colorSpace()));
     painter.setAntiAliasPolygonFill(false);
     painter.setFillStyle(KisPainter::FillStyleForegroundColor);
     painter.setStrokeStyle(KisPainter::StrokeStyleNone);

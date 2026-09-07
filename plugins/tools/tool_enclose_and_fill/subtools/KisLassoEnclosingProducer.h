@@ -13,6 +13,7 @@
 #include <KisToolOutlineBase.h>
 #include <PkPoint.h>
 #include <PkVector.h>
+#include <QVector>
 
 #include "KisDynamicDelegatedTool.h"
 
@@ -27,7 +28,10 @@ public:
     void enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
 
 protected:
-    void finishOutline(const PkVector<PkPointF> &points) override;
+    void finishOutline(const QVector<PkPointF> &points) override;
+
+private:
+    void finishOutlinePk(const PkVector<PkPointF> &points);
     void beginShape() override;
     void endShape() override;
 

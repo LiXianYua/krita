@@ -15,6 +15,7 @@ set_target_properties(kritatoolencloseandfill PROPERTIES
     AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatoolencloseandfill PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/color
+    ${CMAKE_SOURCE_DIR}/pk/config
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/geometry
     ${CMAKE_SOURCE_DIR}/pk/pointer
@@ -30,6 +31,7 @@ target_link_libraries(kritatoolencloseandfill
     kritaflake
     kritaimage
     pkcolor
+    pkconfig
     pkcontainer
     pkgeometry
     pkpointer

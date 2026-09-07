@@ -11,9 +11,10 @@
 
 #include <KoCreatePathTool.h>
 #include <kis_pixel_selection.h>
-#include <kis_delegated_tool.h>
+#include <kis_delegated_tool_policies.h>
 #include <kis_tool_shape.h>
-#include <PkPainter.h>
+#include <KisCanvasToolServices.h>
+#include <PkScopedPointer.h>
 
 #include "KisDynamicDelegatedTool.h"
 
@@ -23,7 +24,7 @@ class KisToolPathLocalTool : public KoCreatePathTool {
 public:
     KisToolPathLocalTool(KoCanvasBase * canvas, KisPathEnclosingProducer* parentTool);
 
-    void paintPath(KoPathShape &pathShape, PkPainter &painter, const KoViewConverter &converter) override;
+    void paintPath(KoPathShape &pathShape, QPainter &painter, const KoViewConverter &converter) override;
     void addPathShape(KoPathShape* pathShape) override;
     void beginShape() override;
     void endShape() override;
@@ -38,7 +39,65 @@ private:
     KisPathEnclosingProducer* const m_parentTool;
 };
 
-typedef KisDelegatedTool<KisToolShape, KisToolPathLocalTool, DeselectShapesActivationPolicy> DelegatedPathTool;
+class DelegatedPathTool : public KisToolShape
+{
+public:
+    DelegatedPathTool(KoCanvasBase *canvas,
+                      const QCursor &cursor,
+                      KisToolPathLocalTool *delegateTool)
+        : KisToolShape(canvas, cursor)
+        , m_localTool(delegateTool)
+    {
+    }
+
+    KisToolPathLocalTool *localTool() const
+    {
+        return m_localTool.data();
+    }
+
+    void activate(const PkSet<KoShape*> &shapes) override
+    {
+        KisToolShape::activate(shapes);
+        m_localTool->activate(shapes);
+        DeselectShapesActivationPolicy::onActivate(canvas());
+        dynamic_cast<KisCanvasToolServices*>(canvas())
+            ->toolSetPriorityEventFilter(this, true);
+    }
+
+    void deactivate() override
+    {
+        m_localTool->deactivate();
+        KisToolShape::deactivate();
+        dynamic_cast<KisCanvasToolServices*>(canvas())
+            ->toolSetPriorityEventFilter(this, false);
+    }
+
+    void mousePressEvent(KoPointerEvent *event) override;
+    void mouseDoubleClickEvent(KoPointerEvent *event) override;
+
+    void mouseMoveEvent(KoPointerEvent *event) override
+    {
+        m_localTool->mouseMoveEvent(event);
+        KisToolShape::mouseMoveEvent(event);
+    }
+
+    void mouseReleaseEvent(KoPointerEvent *event) override;
+
+    void paint(QPainter &painter, const KoViewConverter &converter) override
+    {
+        m_localTool->paint(painter, converter);
+    }
+
+    PkList<PkPointer<QWidget>> createOptionWidgets() override
+    {
+        PkList<PkPointer<QWidget>> widgets = KisToolShape::createOptionWidgets();
+        widgets.append(m_localTool->createOptionWidgets());
+        return widgets;
+    }
+
+protected:
+    PkScopedPointer<KisToolPathLocalTool> m_localTool;
+};
 
 class KisPathEnclosingProducer : public KisDynamicDelegateTool<DelegatedPathTool>
 {

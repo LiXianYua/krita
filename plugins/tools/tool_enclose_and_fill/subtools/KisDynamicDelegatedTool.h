@@ -18,6 +18,7 @@
 #include <PkRect.h>
 #include <PkSet.h>
 #include <PkVariant.h>
+#include <QCursor>
 
 #include <KoToolBase.h>
 #include <KoToolBase_p.h>
@@ -89,7 +90,7 @@ class KisDynamicDelegatedTool : public BaseClass
 public:
     using DelegateType = KisDynamicDelegateTool<BaseClass>;
 
-    using CursorType = typename KisDynamicMethodTraits<decltype(&BaseClass::cursor)>::ReturnType;
+    using CursorType = QCursor;
     using KeyPressEvent = typename KisDynamicMethodTraits<decltype(&BaseClass::keyPressEvent)>::template Argument<0>;
     using KeyReleaseEvent = typename KisDynamicMethodTraits<decltype(&BaseClass::keyReleaseEvent)>::template Argument<0>;
     using PopupMenu = typename KisDynamicMethodTraits<decltype(&BaseClass::popupActionsMenu)>::ReturnType;
@@ -125,13 +126,13 @@ public:
         }
         m_delegateTool = newDelegateTool;
         if (m_delegateTool) {
-            BaseClass::connect(m_delegateTool, &DelegateType::activateTool,
+            QObject::connect(m_delegateTool, &DelegateType::activateTool,
                                this, &BaseClass::activateTool);
-            BaseClass::connect(m_delegateTool, &DelegateType::cursorChanged,
+            QObject::connect(m_delegateTool, &DelegateType::cursorChanged,
                                this, [this](const auto &cursor) { this->BaseClass::useCursor(cursor); });
-            BaseClass::connect(m_delegateTool, &DelegateType::selectionChanged,
+            QObject::connect(m_delegateTool, &DelegateType::selectionChanged,
                                this, &BaseClass::selectionChanged);
-            BaseClass::connect(m_delegateTool, &DelegateType::statusTextChanged,
+            QObject::connect(m_delegateTool, &DelegateType::statusTextChanged,
                                this, &BaseClass::statusTextChanged);
         }
     }
@@ -139,7 +140,7 @@ public:
     PkRectF decorationsRect() const override
     {
         if (m_delegateTool) return m_delegateTool->decorationsRect();
-        return PkRect();
+        return PkRectF();
     }
 
     bool wantsAutoScroll() const override
@@ -150,7 +151,9 @@ public:
 
     void paint(PkPainter &painter, const KoViewConverter &converter) override
     {
-        if (m_delegateTool) m_delegateTool->paint(painter, converter);
+        if (m_delegateTool) {
+            static_cast<KoToolBase *>(m_delegateTool)->paint(painter, converter);
+        }
     }
 
     void mousePressEvent(KoPointerEvent *event) override

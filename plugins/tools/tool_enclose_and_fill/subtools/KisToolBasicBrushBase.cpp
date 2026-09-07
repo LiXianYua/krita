@@ -27,7 +27,7 @@ KisToolBasicBrushBase::KisToolBasicBrushBase(KoCanvasBase * canvas, ToolType typ
     , m_previewColor(0, 255, 0, 128)
 {
     setSupportOutline(true);
-    QObject::connect(KisConfigNotifier::instance(),
+    PkObject::connect(KisConfigNotifier::instance(),
             &KisConfigNotifier::configChanged,
             this,
             &KisToolBasicBrushBase::updateSettings);
@@ -66,14 +66,14 @@ void KisToolBasicBrushBase::beginPrimaryAction(KoPointerEvent *event)
             KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
             KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
             PkString message("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            feedback->showFloatingMessage(message, {});
+            feedback->showFloatingMessage(toQString(message), {});
         }
 
         if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
             KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
             KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
             PkString message("The MyPaint Brush Engine is not available for this colorspace");
-            feedback->showFloatingMessage(message, {});
+            feedback->showFloatingMessage(toQString(message), {});
         }
 
         event->ignore();
@@ -88,7 +88,7 @@ void KisToolBasicBrushBase::beginPrimaryAction(KoPointerEvent *event)
     const qreal pressure = pressureToCurve(event->pressure());
     const qreal radius = pressure * currentPaintOpPreset()->settings()->paintOpSize() / 2.0;
     m_path = PkPainterPath(position);
-    m_path.setFillRule(Qt::WindingFill);
+    m_path.setFillRule(Pk::WindingFill);
     m_path.addEllipse(position, radius, radius);
 
     m_lastPosition = position;
@@ -157,7 +157,7 @@ void KisToolBasicBrushBase::beginAlternateAction(KoPointerEvent *event, Alternat
     setMode(GESTURE_MODE);
     m_changeSizeInitialGestureDocPoint = event->point;
     using CursorType = std::remove_reference_t<decltype(cursor())>;
-    m_changeSizeInitialGestureGlobalPoint = CursorType::pos();
+    m_changeSizeInitialGestureGlobalPoint = toPkPoint(CursorType::pos());
 
     m_changeSizeLastDocumentPoint = event->point;
     m_changeSizeLastPaintOpSize = currentPaintOpPreset()->settings()->paintOpSize();
@@ -280,14 +280,16 @@ KisOptimizedBrushOutline KisToolBasicBrushBase::getOutlinePath(const PkPointF &d
 
 void KisToolBasicBrushBase::paint(PkPainter &gc, const KoViewConverter &converter)
 {
+    (void)converter;
     if (mode() == KisTool::PAINT_MODE) {
         gc.save();
-        gc.setPen(Qt::NoPen);
+        gc.setPen(Pk::NoPen);
         gc.setBrush(m_previewColor);
-        gc.drawPath(pixelToView(m_path));
+        for (const PkPolygonF &polygon : m_path.toSubpathPolygons(PkTransform())) {
+            gc.drawPolygon(pixelToView(polygon));
+        }
         gc.restore();
     }
-    KisToolShape::paint(gc, converter);
 }
 
 void KisToolBasicBrushBase::activate(const PkSet<KoShape*> &shapes)
@@ -417,7 +419,7 @@ PkPainterPath KisToolBasicBrushBase::generateSegment(const PkPointF &point1, qre
     }
 
     PkPainterPath path;
-    path.setFillRule(Qt::WindingFill);
+    path.setFillRule(Pk::WindingFill);
     path.moveTo(tangentPointP11);
     path.lineTo(tangentPointP21);
     path.lineTo(tangentPointP22);

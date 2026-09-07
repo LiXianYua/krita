@@ -54,7 +54,7 @@ void KisBrushEnclosingProducer::finishStroke(const PkPainterPath &stroke)
     KisPixelSelectionSP enclosingMask(new KisPixelSelection());
 
     KisPainter painter(enclosingMask);
-    painter.setPaintColor(KoColor(Qt::white, enclosingMask->colorSpace()));
+    painter.setPaintColor(KoColor(Pk::white, enclosingMask->colorSpace()));
     painter.setAntiAliasPolygonFill(false);
     painter.setFillStyle(KisPainter::FillStyleForegroundColor);
     painter.setStrokeStyle(KisPainter::StrokeStyleNone);

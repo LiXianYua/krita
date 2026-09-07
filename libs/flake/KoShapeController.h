@@ -13,6 +13,7 @@
 
 #include <QObject>
 #include <PkList.h>
+#include <PkRect.h>
 #include <QMetaType>
 
 class KoCanvasBase;
