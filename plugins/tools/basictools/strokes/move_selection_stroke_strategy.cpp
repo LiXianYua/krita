@@ -174,19 +174,20 @@ void MoveSelectionStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
 
         PkRegion dirtyRegion = movedDevice->region().toQRegion();
 
+        const PkPoint offset(d->offset.x(), d->offset.y());
         PkPoint currentDeviceOffset(movedDevice->x(), movedDevice->y());
-        PkPoint newDeviceOffset(m_initialDeviceOffset + d->offset);
+        PkPoint newDeviceOffset(m_initialDeviceOffset + offset);
 
         dirtyRegion |= dirtyRegion.translated(newDeviceOffset - currentDeviceOffset);
 
         movedDevice->setX(newDeviceOffset.x());
         movedDevice->setY(newDeviceOffset.y());
-        m_finalOffset = d->offset;
+        m_finalOffset = offset;
 
         m_paintLayer->setDirty(KisRegion::fromQRegion(dirtyRegion));
 
-        m_selection->setX((m_initialSelectionOffset + d->offset).x());
-        m_selection->setY((m_initialSelectionOffset + d->offset).y());
+        m_selection->setX((m_initialSelectionOffset + offset).x());
+        m_selection->setY((m_initialSelectionOffset + offset).y());
 
         if (m_selection->isVisible()) {
             m_selection->notifySelectionChanged();
