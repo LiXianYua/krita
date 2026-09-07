@@ -15,20 +15,20 @@
 #include "KoToolBase.h"
 #include "kis_algebra_2d.h"
 
-SvgMoveTextStrategy::SvgMoveTextStrategy(KoToolBase *tool, KoSvgTextShape *shape, const QPointF &clicked)
+SvgMoveTextStrategy::SvgMoveTextStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked)
     : KoInteractionStrategy(tool)
     , m_shape(shape)
     , m_dragStart(clicked)
     , m_initialPosition(shape->absolutePosition())
     , m_finalPosition(m_initialPosition)
-    , m_anchorOffset(m_shape->absoluteTransformation().map(QPointF()) - m_initialPosition)
+    , m_anchorOffset(m_shape->absoluteTransformation().map(PkPointF()) - m_initialPosition)
 {
     this->tool()->canvas()->snapGuide()->setIgnoredShapes(KoShape::linearizeSubtree({shape}));
 }
 
-void SvgMoveTextStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgMoveTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
-    const QPointF delta = mouseLocation - m_dragStart;
+    const PkPointF delta = mouseLocation - m_dragStart;
 
     if (modifiers & Qt::ShiftModifier) {
         m_finalPosition = m_initialPosition+ snapToClosestAxis(delta);

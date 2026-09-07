@@ -13,8 +13,8 @@
 #include <KoShapeBulkActionLock.h>
 
 SvgMoveTextCommand::SvgMoveTextCommand(KoSvgTextShape *shape,
-                                       const QPointF &newPosition,
-                                       const QPointF &oldPosition,
+                                       const PkPointF &newPosition,
+                                       const PkPointF &oldPosition,
                                        KUndo2Command *parent)
     : KUndo2Command(parent)
     , m_shape(shape)
@@ -24,7 +24,7 @@ SvgMoveTextCommand::SvgMoveTextCommand(KoSvgTextShape *shape,
     setText(kundo2_i18n("Move text"));
 }
 
-static void moveShape(KoSvgTextShape *shape, const QPointF &position)
+static void moveShape(KoSvgTextShape *shape, const PkPointF &position)
 {
     KoShapeBulkActionLock lock(shape);
     shape->setAbsolutePosition(position);

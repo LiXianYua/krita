@@ -8,6 +8,7 @@
 #define SVG_MOVE_TEXT_COMMAND_H
 
 #include <kundo2command.h>
+#include <PkPoint.h>
 
 class KoSvgTextShape;
 
@@ -15,8 +16,8 @@ class SvgMoveTextCommand : public KUndo2Command
 {
 public:
     SvgMoveTextCommand(KoSvgTextShape *shape,
-                       const QPointF &newPosition,
-                       const QPointF &oldPosition,
+                       const PkPointF &newPosition,
+                       const PkPointF &oldPosition,
                        KUndo2Command *parent = nullptr);
     ~SvgMoveTextCommand() override = default;
 
@@ -27,12 +28,12 @@ public:
     bool mergeWith(const KUndo2Command *other) override;
 
 private:
-    void applyPosition(const QPointF &position);
+    void applyPosition(const PkPointF &position);
 
 private:
     KoSvgTextShape *m_shape;
-    QPointF m_newPosition;
-    QPointF m_oldPosition;
+    PkPointF m_newPosition;
+    PkPointF m_oldPosition;
 };
 
 #endif /* SVG_MOVE_TEXT_COMMAND_H */
