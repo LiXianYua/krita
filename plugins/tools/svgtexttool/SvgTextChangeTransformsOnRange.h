@@ -14,7 +14,7 @@
 class KRITATOOLSVGTEXT_EXPORT SvgTextChangeTransformsOnRange : public KUndo2Command
 {
 public:
-    SvgTextChangeTransformsOnRange(KoSvgTextShape *shape, int startPos, int endPos, QVector<QPointF> positions, QVector<qreal> rotations, bool calculateDeltaPositions, KUndo2Command *parentCommand = nullptr);
+    SvgTextChangeTransformsOnRange(KoSvgTextShape *shape, int startPos, int endPos, PkVector<PkPointF> positions, PkVector<qreal> rotations, bool calculateDeltaPositions, KUndo2Command *parentCommand = nullptr);
 
     enum OffsetType{
         OffsetAll,
@@ -23,7 +23,7 @@ public:
         RotateOnly
     };
 
-    SvgTextChangeTransformsOnRange(KoSvgTextShape *shape, int startPos, int endPos, QPointF delta, OffsetType type, bool calculateDeltaPositions, KUndo2Command *parentCommand = nullptr);
+    SvgTextChangeTransformsOnRange(KoSvgTextShape *shape, int startPos, int endPos, PkPointF delta, OffsetType type, bool calculateDeltaPositions, KUndo2Command *parentCommand = nullptr);
     ~SvgTextChangeTransformsOnRange() = default;
     void undo() override;
     void redo() override;
@@ -34,13 +34,13 @@ public:
      * @brief getTransformForOffset
      * Function to get the expected transform, so we can test this command better.
      */
-    static QTransform getTransformForOffset(KoSvgTextShape *shape, int startPos, int endPos, QPointF delta, OffsetType type);
+    static PkTransform getTransformForOffset(KoSvgTextShape *shape, int startPos, int endPos, PkPointF delta, OffsetType type);
 private:
     KoSvgTextShape *m_textShape = nullptr;
     int m_startPos = -1;
     int m_endPos = -1;
-    QVector<QPointF> m_positions;
-    QVector<qreal> m_rotations;
+    PkVector<PkPointF> m_positions;
+    PkVector<qreal> m_rotations;
     bool m_calculateDeltaPositions = false;
     KoSvgTextShapeMementoSP m_textData;
 };

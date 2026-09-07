@@ -7,7 +7,7 @@
 #include "kis_command_ids.h"
 #include <KoShapeBulkActionLock.h>
 
-SvgTextChangeTransformsOnRange::SvgTextChangeTransformsOnRange(KoSvgTextShape *shape, int startPos, int endPos, QVector<QPointF> positions, QVector<qreal> rotations, bool calculateDeltaPositions, KUndo2Command *parentCommand)
+SvgTextChangeTransformsOnRange::SvgTextChangeTransformsOnRange(KoSvgTextShape *shape, int startPos, int endPos, PkVector<PkPointF> positions, PkVector<qreal> rotations, bool calculateDeltaPositions, KUndo2Command *parentCommand)
     : KUndo2Command(parentCommand)
     , m_textShape(shape)
     , m_startPos(startPos)
@@ -20,7 +20,7 @@ SvgTextChangeTransformsOnRange::SvgTextChangeTransformsOnRange(KoSvgTextShape *s
     setText(kundo2_i18n("Adjust character transforms on text."));
 }
 
-SvgTextChangeTransformsOnRange::SvgTextChangeTransformsOnRange(KoSvgTextShape *shape, int startPos, int endPos, QPointF delta, OffsetType type, bool calculateDeltaPositions, KUndo2Command *parentCommand)
+SvgTextChangeTransformsOnRange::SvgTextChangeTransformsOnRange(KoSvgTextShape *shape, int startPos, int endPos, PkPointF delta, OffsetType type, bool calculateDeltaPositions, KUndo2Command *parentCommand)
     : KUndo2Command(parentCommand)
     , m_textShape(shape)
     , m_startPos(startPos)
@@ -30,10 +30,10 @@ SvgTextChangeTransformsOnRange::SvgTextChangeTransformsOnRange(KoSvgTextShape *s
 {
     setText(kundo2_i18n("Adjust character transforms on text."));
 
-    QVector<QPointF> positions;
-    QVector<qreal> rotations;
+    PkVector<PkPointF> positions;
+    PkVector<qreal> rotations;
 
-    QList<KoSvgTextCharacterInfo> originalTf = shape->getPositionsAndRotationsForRange(startPos, endPos);
+    PkList<KoSvgTextCharacterInfo> originalTf = shape->getPositionsAndRotationsForRange(startPos, endPos);
 
     if (type == OffsetAll) {
 
@@ -44,8 +44,8 @@ SvgTextChangeTransformsOnRange::SvgTextChangeTransformsOnRange(KoSvgTextShape *s
             rotations.append(tf.rotateDeg);
         }
     } else {
-        QTransform deltaTf = getTransformForOffset(shape, startPos, endPos, delta, type);
-        QLineF l(0, 0, 10, 0);
+        PkTransform deltaTf = getTransformForOffset(shape, startPos, endPos, delta, type);
+        PkLineF l(0, 0, 10, 0);
         l.setAngle(0);
         l = deltaTf.map(l);
 
@@ -112,14 +112,14 @@ bool SvgTextChangeTransformsOnRange::mergeWith(const KUndo2Command *otherCommand
     return true;
 }
 
-QTransform SvgTextChangeTransformsOnRange::getTransformForOffset(KoSvgTextShape *shape, int startPos, int endPos, QPointF delta, OffsetType type)
+PkTransform SvgTextChangeTransformsOnRange::getTransformForOffset(KoSvgTextShape *shape, int startPos, int endPos, PkPointF delta, OffsetType type)
 {
-    QTransform deltaTf;
+    PkTransform deltaTf;
     if (type == OffsetAll) {
-        return QTransform::fromTranslate(delta.x(), delta.y());
+        return PkTransform::fromTranslate(delta.x(), delta.y());
     } else {
         const int lineEnd = pkMin(shape->lineEnd(pkMin(startPos, endPos)), pkMax(startPos, endPos));
-        QList<KoSvgTextCharacterInfo> infos =
+        PkList<KoSvgTextCharacterInfo> infos =
                 shape->getPositionsAndRotationsForRange(pkMin(startPos, endPos), lineEnd);
         if (infos.size() < 1) return deltaTf;
         const bool rtl = infos.first().rtl;
@@ -140,21 +140,21 @@ QTransform SvgTextChangeTransformsOnRange::getTransformForOffset(KoSvgTextShape 
                 }
             }
         }
-        QTransform t = QTransform::fromTranslate(last.finalPos.x(), last.finalPos.y());
+        PkTransform t = PkTransform::fromTranslate(last.finalPos.x(), last.finalPos.y());
         t.rotate(last.rotateDeg);
         last.finalPos = t.map(last.advance);
 
-        QLineF originalLine(rtl? last.finalPos: first.finalPos, rtl? first.finalPos: last.finalPos);
-        QLineF newLine(originalLine.p1(), originalLine.p2() + delta);
+        PkLineF originalLine(rtl? last.finalPos: first.finalPos, rtl? first.finalPos: last.finalPos);
+        PkLineF newLine(originalLine.p1(), originalLine.p2() + delta);
 
         const qreal scale = newLine.length()/originalLine.length();
 
-        QTransform origin = QTransform::fromTranslate(originalLine.p1().x(), originalLine.p1().y());
+        PkTransform origin = PkTransform::fromTranslate(originalLine.p1().x(), originalLine.p1().y());
         qreal angle = originalLine.angle() - newLine.angle();
 
         deltaTf = origin.inverted();
-        deltaTf *= QTransform::fromScale(scale, scale);
-        deltaTf *= QTransform().rotate(angle);
+        deltaTf *= PkTransform::fromScale(scale, scale);
+        deltaTf *= PkTransform().rotate(angle);
         deltaTf *= origin;
     }
     return deltaTf;
