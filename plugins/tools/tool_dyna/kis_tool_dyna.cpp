@@ -8,6 +8,8 @@
 
 #include "kis_tool_dyna.h"
 
+#include <PkSharedConfig.h>
+
 #include <PkRect.h>
 #include <ksharedconfig.h>
 
@@ -63,7 +65,7 @@ void KisToolDyna::resetCursorStyle()
 void KisToolDyna::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
-    m_configGroup =  KSharedConfig::openConfig()->group(toolId());
+    m_configGroup = PkSharedConfig::openConfig()->group(toolId());
 
     // Was read in createOptionWidget() (now deleted) when the options panel
     // was created; that ran on every tool activation, so these are the

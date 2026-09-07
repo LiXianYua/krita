@@ -11,6 +11,7 @@
 #include <PkVector.h>
 #include <PkSet.h>
 #include <PkNamespace.h>
+#include <PkConfigGroup.h>
 
 #include "kis_tool_freehand.h"
 
@@ -94,7 +95,7 @@ private:
     qreal m_surfaceHeight {0.0};
 
     // settings variables
-    KConfigGroup m_configGroup;
+    PkConfigGroup m_configGroup;
     qreal m_width {0.0};
     qreal m_curmass {0.0};
     qreal m_curdrag {0.0};
@@ -130,7 +131,7 @@ public:
         setToolTip(PkString("Dynamic Brush Tool"));
         setSection(ToolBoxSection::Shape);
         setPriority(10);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolDynaFactory() override {}
