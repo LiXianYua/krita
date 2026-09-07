@@ -9,6 +9,8 @@
 #include <QtWidgets/QtWidgets>
 #include <QtXml/QtXml>
 #include <PkFlakeBridge.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 #include "KisToolKnife.h"
 
 #include <PkBrush.h>
@@ -77,12 +79,14 @@ KisToolKnife::~KisToolKnife()
 {
 }
 
-void KisToolKnife::paint(QPainter &painter, const KoViewConverter &converter)
+void KisToolKnife::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    KoInteractionTool::paint(painter, converter);
+    if (KoInteractionStrategy *strategy = currentStrategy()) {
+        strategy->paint(painter, converter);
+    }
 }
 
-void KisToolKnife::activate(const QSet<KoShape *> &shapes)
+void KisToolKnife::activate(const PkSet<KoShape *> &shapes)
 {
     KoInteractionTool::activate(shapes);
         useCursor(QCursor(Qt::ArrowCursor));
@@ -123,7 +127,7 @@ void KisToolKnife::mouseMoveEvent(KoPointerEvent *event)
         PkRectF accumulatedWithPrevious = m_d->previousLineDirtyRect;
         accumulatedWithPrevious |= dirtyRect;
 
-        canvas()->updateCanvas(toQRectF(accumulatedWithPrevious));
+        canvas()->updateCanvas(accumulatedWithPrevious);
         m_d->previousLineDirtyRect = dirtyRect;
 
     }
@@ -143,7 +147,7 @@ void KisToolKnife::mouseReleaseEvent(KoPointerEvent *event)
 
     PkRectF accumulatedWithPrevious = m_d->previousLineDirtyRect | dirtyRect;
 
-    canvas()->updateCanvas(toQRectF(accumulatedWithPrevious));
+    canvas()->updateCanvas(accumulatedWithPrevious);
     m_d->previousLineDirtyRect = dirtyRect;
 }
 
@@ -189,8 +193,8 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
     // "current_gutter_width_type" the panel used to pick which of
     // thick/thin/special/automatic was active -- so any value the user had
     // already saved (including a non-default width type) is still honoured.
-    KConfigGroup configGroup = KSharedConfig::openConfig()->group(toolId());
-    PkString unitSymbol = toPkString(configGroup.readEntry("gutter_unit_symbol", "px"));
+    PkConfigGroup configGroup = PkSharedConfig::openConfig()->group(toolId());
+    PkString unitSymbol = configGroup.readEntry("gutter_unit_symbol", PkString("px"));
     bool unitConversionSuccess = false;
     KoUnit unit = KoUnit::fromSymbol(unitSymbol, &unitConversionSuccess);
     if (!unitConversionSuccess) {
@@ -220,16 +224,16 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
     };
 
     const GutterWidthType currentWidthType =
-        gutterWidthTypeFromConfigString(toPkString(configGroup.readEntry("current_gutter_width_type", "thick")));
+        gutterWidthTypeFromConfigString(configGroup.readEntry("current_gutter_width_type", PkString("thick")));
 
     GutterWidthsConfig widthsConfig = [&]() {
         if (currentWidthType == GutterWidthType::Automatic) {
             const GutterWidthType horizontalType =
-                gutterWidthTypeFromConfigString(toPkString(configGroup.readEntry("automatic_horizontal_type", "thick")));
+                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_horizontal_type", PkString("thick")));
             const GutterWidthType verticalType =
-                gutterWidthTypeFromConfigString(toPkString(configGroup.readEntry("automatic_vertical_type", "thin")));
+                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_vertical_type", PkString("thin")));
             const GutterWidthType diagonalType =
-                gutterWidthTypeFromConfigString(toPkString(configGroup.readEntry("automatic_diagonal_type", "thin")));
+                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_diagonal_type", PkString("thin")));
             return GutterWidthsConfig(unit, resolution,
                                        widthForType(horizontalType),
                                        widthForType(verticalType),

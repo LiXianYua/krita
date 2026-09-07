@@ -34,10 +34,10 @@ public:
     KisToolKnife(KoCanvasBase * canvas);
     ~KisToolKnife() override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
 
 public:
-    void activate(const QSet<KoShape*> &shapes) override;
+    void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void mousePressEvent(KoPointerEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event)  override;
@@ -60,7 +60,7 @@ public:
         : KisToolPaintFactoryBase("KritaShape/KisToolKnife")
     {
 
-        setToolTip(toQString(PkString("Comic Panel Editing Tool")));
+        setToolTip(PkString("Comic Panel Editing Tool"));
 
         setSection(ToolBoxSection::Main);
         setPriority(7);

@@ -84,7 +84,7 @@ void CutThroughShapeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt:
     PkRectF accumulatedWithPrevious = m_previousLineDirtyRect | dirtyRect;
 
     if (tool() && tool()->canvas()) {
-        tool()->canvas()->updateCanvas(toQRectF(accumulatedWithPrevious));
+        tool()->canvas()->updateCanvas(accumulatedWithPrevious);
     }
     m_previousLineDirtyRect = dirtyRect;
 
@@ -140,7 +140,7 @@ bool CutThroughShapeStrategy::willShapeBeCutPrecise(const PkPainterPath& srcOutl
     }
 
     for (const PkPointF &p : srcOutline.toFillPolygon(PkTransform())) {
-        if (gapLinePolygon.containsPoint(p, Qt::WindingFill)) {
+        if (gapLinePolygon.containsPoint(p, Pk::WindingFill)) {
             // a shape point is inside the gap shape
             return true;
         }
@@ -155,8 +155,8 @@ void CutThroughShapeStrategy::initializeOutlineObjects(const PkTransform &boolea
     for (KoShape *shape : allShapes) {
 
         PkPainterPath outlineHere =
-            booleanWorkaroundTransform.map(toPkPainterPath(
-                shape->absoluteTransformation().map(shape->outline())));
+            booleanWorkaroundTransform.map(
+                shape->absoluteTransformation().map(shape->outline()));
 
         outSrcOutlines << outlineHere;
         outOutlineRect |= outlineHere.boundingRect();
@@ -189,7 +189,7 @@ void CutThroughShapeStrategy::initializeGapShapes(PkRectF outlineRect, PkLineF l
 
 void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 {
-    tool()->canvas()->updateCanvas(toQRectF(m_previousLineDirtyRect));
+    tool()->canvas()->updateCanvas(m_previousLineDirtyRect);
 
 
     KisShapeController *shapeController =
@@ -296,7 +296,7 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
             // this is needed because Qt linearize curves; this allows for a
             // "sane" linearization instead of a very blocky appearance
             path = booleanWorkaroundTransformInverted.map(path);
-            std::unique_ptr<KoPathShape> shape = std::unique_ptr<KoPathShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(path)));
+            std::unique_ptr<KoPathShape> shape = std::unique_ptr<KoPathShape>(KoPathShape::createShapeFromPainterPath(path));
             shape->closeMerge();
 
             if (shape->boundingRect().isEmpty()) {
@@ -324,7 +324,7 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     }
 
     if (affectedShapes > 0) {
-        tool()->canvas()->shapeController()->removeShapes(toQList(shapesToRemove), cmd.get());
+        tool()->canvas()->shapeController()->removeShapes(shapesToRemove, cmd.get());
         new KoKeepShapesSelectedCommand({}, newSelectedShapes, tool()->canvas()->selectedShapesProxy(), true, cmd.get());
         tool()->canvas()->addCommand(cmd.release());
     }
@@ -337,7 +337,7 @@ void CutThroughShapeStrategy::paint(PkPainter &painter, const KoViewConverter &c
 {
     painter.save();
 
-    PkColor semitransparentGray = PkColor(Qt::darkGray);
+    PkColor semitransparentGray = PkColor(Pk::darkGray);
     semitransparentGray.setAlphaF(0.6);
     PkPen pen(PkBrush(semitransparentGray), 2);
     painter.setPen(pen);

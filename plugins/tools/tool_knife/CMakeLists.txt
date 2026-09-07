@@ -23,10 +23,12 @@ set_target_properties(kritatoolKnife_static kritatoolKnife PROPERTIES
     AUTOMOC OFF CXX_COMPILER_LAUNCHER ccache)
 target_include_directories(kritatoolKnife_static PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/config
     ${CMAKE_SOURCE_DIR}/pk/geometry
     ${CMAKE_SOURCE_DIR}/pk/pointer
     ${CMAKE_SOURCE_DIR}/pk/render
     ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/namespace
     ${CMAKE_SOURCE_DIR}/pk/variant)
 target_include_directories(kritatoolKnife PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/container
@@ -37,7 +39,7 @@ target_include_directories(kritatoolKnife PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/variant)
 
 target_link_libraries(kritatoolKnife_static PUBLIC
-    kritacanvas kritashapemodel pkcontainer pkgeometry pkpointer pkrender pkstring pkvariant)
+    kritacanvas kritashapemodel pkconfig pkcontainer pkgeometry pknamespace pkpointer pkrender pkstring pkvariant)
 target_link_libraries(kritatoolKnife PRIVATE kritatoolKnife_static)
 
 install(TARGETS kritatoolKnife  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
