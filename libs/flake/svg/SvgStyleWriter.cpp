@@ -503,7 +503,7 @@ PkString SvgStyleWriter::saveSvgMeshGradient(SvgMeshGradient *gradient,
 
                 PkString pathstr;
                 PkTextStream stream(&pathstr);
-            
+
                 stream.setRealNumberPrecision(10);
                 // TODO: other path type?
                 stream << "C "

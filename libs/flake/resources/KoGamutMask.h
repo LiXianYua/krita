@@ -85,7 +85,7 @@ public:
 
     PkSizeF maskSize();
 
-    void setMaskShapes(PkList<KoShape*> shapes);   
+    void setMaskShapes(PkList<KoShape*> shapes);
     void setPreviewMaskShapes(PkList<KoShape*> shapes);
 
     PkList<KoShape*> koShapes() const;

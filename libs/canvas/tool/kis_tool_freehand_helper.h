@@ -147,8 +147,7 @@ protected:
 private:
     void paint(KisPaintInformation &info );
     void paintBezierSegment(KisPaintInformation pi1, KisPaintInformation pi2,
-                                                   PkPointF tangent1, PkPointF tangent2 
-                                                 );
+                            PkPointF tangent1, PkPointF tangent2);
 
     void stabilizerStart(KisPaintInformation firstPaintInfo);
     void stabilizerEnd();
