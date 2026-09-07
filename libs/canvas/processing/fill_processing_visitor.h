@@ -9,7 +9,11 @@
 
 #include <processing/kis_simple_processing_visitor.h>
 
-#include <QPoint>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
+#include <PkVector.h>
 #include <kis_selection.h>
 #include <kis_resources_snapshot.h>
 #include <kritacanvas_export.h>
@@ -29,8 +33,8 @@ public:
                           KisSelectionSP selection,
                           KisResourcesSnapshotSP resources);
 
-    void setSeedPoint(const QPoint &seedPoint);
-    void setSeedPoints(const QVector<QPoint> &seedPoints);
+    void setSeedPoint(const PkPoint &seedPoint);
+    void setSeedPoints(const PkVector<PkPoint> &seedPoints);
     void setUseFastMode(bool useFastMode);
     void setUsePattern(bool usePattern);
     void setSelectionOnly(bool selectionOnly);
@@ -46,14 +50,14 @@ public:
     void setRegionFillingBoundaryColor(const KoColor &regionFillingBoundaryColor);
     void setContinuousFillMode(ContinuousFillMode continuousFillMode);
     void setContinuousFillMask(KisSelectionSP continuousFillMask);
-    void setContinuousFillReferenceColor(const QSharedPointer<KoColor> continuousFillReferenceColor);
+    void setContinuousFillReferenceColor(const PkSharedPointer<KoColor> continuousFillReferenceColor);
     void setUnmerged(bool unmerged);
     void setUseBgColor(bool useBgColor);
     void setUseCustomBlendingOptions(bool useCustomBlendingOptions);
     void setCustomOpacity(qreal customOpacity);
-    void setCustomCompositeOp(const QString &customCompositeOp);
-    void setOutDirtyRect(QSharedPointer<QRect> outDirtyRect);
-    void setProgressHelper(QSharedPointer<ProgressHelper> progressHelper);
+    void setCustomCompositeOp(const PkString &customCompositeOp);
+    void setOutDirtyRect(PkSharedPointer<PkRect> outDirtyRect);
+    void setProgressHelper(PkSharedPointer<ProgressHelper> progressHelper);
 
 private:
     void visitNodeWithPaintDevice(KisNode *node, KisUndoAdapter *undoAdapter) override;
@@ -62,16 +66,16 @@ private:
 
     void fillPaintDevice(KisPaintDeviceSP device, KisUndoAdapter *undoAdapter);
 
-    void selectionFill(KisPaintDeviceSP device, const QRect &fillRect, KisUndoAdapter *undoAdapter);
-    void normalFill(KisPaintDeviceSP device, const QRect &fillRect, const QPoint &seedPoint, KisUndoAdapter *undoAdapter);
-    void continuousFill(KisPaintDeviceSP device, const QRect &fillRect, const QPoint &seedPoint, KisUndoAdapter *undoAdapter);
+    void selectionFill(KisPaintDeviceSP device, const PkRect &fillRect, KisUndoAdapter *undoAdapter);
+    void normalFill(KisPaintDeviceSP device, const PkRect &fillRect, const PkPoint &seedPoint, KisUndoAdapter *undoAdapter);
+    void continuousFill(KisPaintDeviceSP device, const PkRect &fillRect, const PkPoint &seedPoint, KisUndoAdapter *undoAdapter);
 
 private:
     KisPaintDeviceSP m_refPaintDevice;
     KisSelectionSP m_selection;
     KisResourcesSnapshotSP m_resources;
 
-    QVector<QPoint> m_seedPoints;
+    PkVector<PkPoint> m_seedPoints;
     bool m_useFastMode;
     bool m_selectionOnly;
     bool m_useSelectionAsBoundary;
@@ -88,18 +92,18 @@ private:
 
     ContinuousFillMode m_continuousFillMode;
     KisSelectionSP m_continuousFillMask;
-    QSharedPointer<KoColor> m_continuousFillReferenceColor {nullptr};
+    PkSharedPointer<KoColor> m_continuousFillReferenceColor {nullptr};
 
     bool m_unmerged;
     bool m_useBgColor;
 
     bool m_useCustomBlendingOptions;
     qreal m_customOpacity;
-    QString m_customCompositeOp;
+    PkString m_customCompositeOp;
 
-    QSharedPointer<QRect> m_outDirtyRect;
+    PkSharedPointer<PkRect> m_outDirtyRect;
 
-    QSharedPointer<ProgressHelper> m_progressHelper {nullptr};
+    PkSharedPointer<ProgressHelper> m_progressHelper {nullptr};
 };
 
 #endif /* __FILL_PROCESSING_VISITOR_H */

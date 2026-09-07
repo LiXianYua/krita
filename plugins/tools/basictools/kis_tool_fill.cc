@@ -86,7 +86,7 @@ void KisToolFill::resetCursorStyle()
 void KisToolFill::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
-    m_configGroup = KSharedConfig::openConfig()->group(toolId());
+    m_configGroup = KSharedConfig::openConfig()->group(toQString(toolId()));
     loadConfiguration();
 }
 
@@ -494,7 +494,7 @@ void KisToolFill::slotUpdateFill()
 void KisToolFill::loadConfiguration()
 {
     {
-        const PkString whatToFillStr = m_configGroup.readEntry<PkString>("whatToFill", "");
+        const PkString whatToFillStr = toPkString(m_configGroup.readEntry("whatToFill", QString()));
         if (whatToFillStr == "fillSelection") {
             m_fillMode = FillMode_FillSelection;
         } else if (whatToFillStr == "fillContiguousRegion") {
@@ -510,7 +510,7 @@ void KisToolFill::loadConfiguration()
         }
     }
     {
-        const PkString fillTypeStr = m_configGroup.readEntry<PkString>("fillWith", "");
+        const PkString fillTypeStr = toPkString(m_configGroup.readEntry("fillWith", QString()));
         if (fillTypeStr == "foregroundColor") {
             m_fillType = FillType_FillWithForegroundColor;
         } else if (fillTypeStr == "backgroundColor") {
@@ -529,12 +529,12 @@ void KisToolFill::loadConfiguration()
     m_patternRotation = m_configGroup.readEntry<qreal>("patternRotate", 0.0);
     m_useCustomBlendingOptions = m_configGroup.readEntry<bool>("useCustomBlendingOptions", false);
     m_customOpacity = pkBound(0, m_configGroup.readEntry<int>("customOpacity", 100), 100);
-    m_customCompositeOp = m_configGroup.readEntry<PkString>("customCompositeOp", COMPOSITE_OVER);
+    m_customCompositeOp = toPkString(m_configGroup.readEntry("customCompositeOp", toQString(COMPOSITE_OVER)));
     if (KoCompositeOpRegistry::instance().getKoID(m_customCompositeOp).id().isEmpty()) {
         m_customCompositeOp = COMPOSITE_OVER;
     }
     {
-        const PkString contiguousFillModeStr = m_configGroup.readEntry<PkString>("contiguousFillMode", "");
+        const PkString contiguousFillModeStr = toPkString(m_configGroup.readEntry("contiguousFillMode", QString()));
         m_contiguousFillMode = contiguousFillModeStr == "boundaryFill"
                                ? ContiguousFillMode_BoundaryFill
                                : ContiguousFillMode_FloodFill;
@@ -549,7 +549,7 @@ void KisToolFill::loadConfiguration()
     m_stopGrowingAtDarkestPixel = m_configGroup.readEntry<bool>("stopGrowingAtDarkestPixel", false);
     m_feather = m_configGroup.readEntry<int>("featherAmount", 0);
     {
-        const PkString sampleLayersModeStr = m_configGroup.readEntry<PkString>("sampleLayersMode", "");
+        const PkString sampleLayersModeStr = toPkString(m_configGroup.readEntry("sampleLayersMode", QString()));
         if (sampleLayersModeStr == "currentLayer") {
             m_reference = Reference_CurrentLayer;
         } else if (sampleLayersModeStr == "allLayers") {
@@ -565,8 +565,8 @@ void KisToolFill::loadConfiguration()
         }
     }
     {
-        const std::vector<PkString> colorLabelsStr =
-            m_configGroup.readEntry<PkString>("colorLabels", "").split(u',');
+        const PkList<PkString> colorLabelsStr =
+            toPkString(m_configGroup.readEntry("colorLabels", QString())).split(u',');
         m_selectedColorLabels.clear();
         for (const PkString &colorLabelStr : colorLabelsStr) {
             if (colorLabelStr.isEmpty()) {
@@ -581,7 +581,8 @@ void KisToolFill::loadConfiguration()
         m_useActiveLayer = m_configGroup.readEntry<bool>("useActiveLayer", false);
     }
     {
-        const PkString continuousFillModeStr = m_configGroup.readEntry<PkString>("continuousFillMode", "fillAnyRegion");
+        const PkString continuousFillModeStr =
+            toPkString(m_configGroup.readEntry("continuousFillMode", QStringLiteral("fillAnyRegion")));
         if (continuousFillModeStr == "doNotUse") {
             m_continuousFillMode = ContinuousFillMode_DoNotUse;
         } else if (continuousFillModeStr == "fillSimilarRegions") {
@@ -594,7 +595,8 @@ void KisToolFill::loadConfiguration()
 
 KoColor KisToolFill::loadContiguousFillBoundaryColorFromConfig()
 {
-    const PkString xmlColor = m_configGroup.readEntry("contiguousFillBoundaryColor", PkString());
+    const PkString xmlColor =
+        toPkString(m_configGroup.readEntry("contiguousFillBoundaryColor", QString()));
     PkXmlDocument doc;
     if (doc.setContent(xmlColor)) {
         PkXmlElement e = doc.documentElement().firstChild().toElement();

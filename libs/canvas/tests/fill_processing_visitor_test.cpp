@@ -60,7 +60,7 @@ public:
         FillProcessingVisitor *visitor = new FillProcessingVisitor(0,
                                                                    image->globalSelection(),
                                                                    resources);
-        visitor->setSeedPoint(QPoint(100,100));
+        visitor->setSeedPoint(PkPoint(100,100));
         visitor->setUsePattern(usePattern);
         visitor->setSelectionOnly(selectionOnly);
         visitor->setFeather(10);
