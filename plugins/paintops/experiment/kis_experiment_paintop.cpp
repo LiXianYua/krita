@@ -232,8 +232,8 @@ void KisExperimentPaintOp::paintLine(const KisPaintInformation &pi1, const KisPa
                 KisRegion changedRegion;
                 if (distanceMetric < pathSizeThreshold) {
 
-                    PkRectF changedRect = m_path.boundingRect().toRect() |
-                                         m_lastPaintedPath.boundingRect().toRect();
+                    PkRectF changedRect = PkRectF(m_path.boundingRect().toRect() |
+                                         m_lastPaintedPath.boundingRect().toRect());
                     changedRect.adjust(-1, -1, 1, 1);
 
                     changedRegion = changedRect.toRect();

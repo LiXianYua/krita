@@ -183,7 +183,7 @@ void KisImagePyramid::setImage(KisImageWSP newImage)
         setImageSize(m_originalImage->width(), m_originalImage->height());
 
         // Get the full image size
-        QRect rc = toQRectF(m_originalImage->projection()->exactBounds()).toRect();
+        QRect rc = toQRect(m_originalImage->projection()->exactBounds());
 
         KisImageConfig config(true);
 

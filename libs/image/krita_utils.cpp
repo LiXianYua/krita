@@ -151,7 +151,7 @@ namespace KritaUtils
                 PkRect rect(x, y, nextX - x, nextY - y);
 
                 for (const PkPolygonF &triangle : triangles) {
-                    if(checkInTriangle(rect, triangle)) {
+                    if(checkInTriangle(PkRectF(rect), triangle)) {
                         dirtyRects.append(rect);
                         break;
                     }

@@ -83,6 +83,6 @@ KisCachedGradientShapeStrategy::~KisCachedGradientShapeStrategy()
 
 double KisCachedGradientShapeStrategy::valueAt(double x, double y) const
 {
-    PkPointF pt = KisAlgebra2D::ensureInRect(PkPointF(x, y), m_d->rc);
+    PkPointF pt = KisAlgebra2D::ensureInRect(PkPointF(x, y), PkRectF(m_d->rc));
     return m_d->spline->value(pt.x(), pt.y());
 }

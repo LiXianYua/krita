@@ -208,13 +208,13 @@ KisSafeTransform::KisSafeTransform(const PkTransform &transform,
 
         PkLineF srcHorizon;
         if (m_d->getHorizon(m_d->backwardTransform, &srcHorizon)) {
-            crossCoeff = m_d->getCrossSign(srcHorizon, srcInterestRect);
+            crossCoeff = m_d->getCrossSign(srcHorizon, PkRectF(srcInterestRect));
             m_d->srcClipPolygon = m_d->getCroppedPolygon(srcHorizon, m_d->bounds, crossCoeff);
         }
 
         PkLineF dstHorizon;
         if (m_d->getHorizon(m_d->forwardTransform, &dstHorizon)) {
-            crossCoeff = m_d->getCrossSign(dstHorizon, mapRectForward(srcInterestRect));
+            crossCoeff = m_d->getCrossSign(dstHorizon, PkRectF(mapRectForward(srcInterestRect)));
             m_d->dstClipPolygon = m_d->getCroppedPolygon(dstHorizon, m_d->bounds, crossCoeff);
         }
     }

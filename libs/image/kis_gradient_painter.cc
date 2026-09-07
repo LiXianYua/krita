@@ -1040,7 +1040,7 @@ KisGradientShapeStrategy* createPolygonShapeStrategy(const PkPainterPath &path, 
                             boundingRect.height() >= 3);
 
     const qreal step =
-        pkMin(qreal(8.0), KritaUtils::maxDimensionPortion(boundingRect, 0.01, 2));
+        pkMin(qreal(8.0), KritaUtils::maxDimensionPortion(PkRectF(boundingRect), 0.01, 2));
 
     return new KisCachedGradientShapeStrategy(boundingRect, step, step, strategy);
 }
@@ -1064,7 +1064,7 @@ void KisGradientPainter::precalculateShape()
 
         path = selection()->outlineCache();
     } else {
-        path.addRect(device()->defaultBounds()->bounds());
+        path.addRect(PkRectF(device()->defaultBounds()->bounds()));
     }
 
     PkList<PkPainterPath> splitPaths = KritaUtils::splitDisjointPaths(path);

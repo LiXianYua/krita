@@ -65,7 +65,7 @@ std::tuple<PkString, PkRectF> MyPaintCurveRangeModel::reshapeCurve(std::tuple<Pk
      * Krita's GUI doesn't support x-range more narrow than 0...1, so
      * we should extend it if necessary
      */
-    std::get<1>(curve) |= PkRect(0, -1, 1, 2);
+    std::get<1>(curve) |= PkRectF(PkRect(0, -1, 1, 2));
 
     NormalizedCurve normalized = lager::view(curveToNormalizedCurve, curve);
     curve = lager::set(curveToNormalizedCurve, curve, normalized);

@@ -122,7 +122,7 @@ void KisPixelSelection::select(const PkRect & rc, quint8 selectedness)
 
     if (m_d->outlineCacheValid) {
         PkPainterPath path;
-        path.addRect(r);
+        path.addRect(PkRectF(r));
 
         if (selectedness != MIN_SELECTED) {
             m_d->outlineCache.addPath(path);

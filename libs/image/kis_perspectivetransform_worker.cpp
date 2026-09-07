@@ -133,7 +133,7 @@ void KisPerspectiveTransformWorker::fillParams(const PkRectF &srcRect,
     PkPolygonF bounds = srcRect;
     PkPolygonF newBounds = m_forwardTransform.map(bounds);
 
-    PkRectF clipRect = dstBaseClipRect;
+    PkRectF clipRect = PkRectF(dstBaseClipRect);
 
     if (!m_cropDst) {
         clipRect |= srcRect;
@@ -156,7 +156,7 @@ void KisPerspectiveTransformWorker::init(const PkTransform &transform)
     m_backwardTransform = transform.inverted();
 
     if (m_dev) {
-        m_srcRect = kisGrowRect(m_dev->exactBounds(), 1.0);
+        m_srcRect = PkRectF(kisGrowRect(m_dev->exactBounds(), 1.0));
 
         PkPolygonF dstClipPolygonUnused;
 
@@ -275,7 +275,7 @@ void KisPerspectiveTransformWorker::runPartialDst(KisPaintDeviceSP srcDev,
     KIS_SAFE_ASSERT_RECOVER_RETURN(srcDev->pixelSize() == dstDev->pixelSize());
     KIS_SAFE_ASSERT_RECOVER_NOOP(*srcDev->colorSpace() == *dstDev->colorSpace());
 
-    PkRectF srcClipRect = kisGrowRect(srcDev->exactBounds(), 1) | srcDev->defaultBounds()->imageBorderRect();
+    PkRectF srcClipRect = PkRectF(kisGrowRect(srcDev->exactBounds(), 1) | srcDev->defaultBounds()->imageBorderRect());
     if (srcClipRect.isEmpty()) return;
 
     if (m_isIdentity || (m_isTranslating && !m_forceSubPixelTranslation)) {

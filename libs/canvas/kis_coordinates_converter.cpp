@@ -826,12 +826,12 @@ PkPointF KisCoordinatesConverter::imageCenterInWidgetPixel() const
 
 PkRectF KisCoordinatesConverter::imageRectInWidgetPixels() const
 {
-    return toPkRect(imageToWidget(m_d->imageBounds));
+    return toPkRectF(imageToWidget<QRect>(m_d->imageBounds));
 }
 
 PkRectF KisCoordinatesConverter::imageRectInViewportPixels() const
 {
-    return toPkRect(imageToViewport(m_d->imageBounds));
+    return toPkRectF(imageToViewport<QRect>(m_d->imageBounds));
 }
 
 QRect KisCoordinatesConverter::imageRectInImagePixels() const
@@ -841,7 +841,7 @@ QRect KisCoordinatesConverter::imageRectInImagePixels() const
 
 PkRectF KisCoordinatesConverter::imageRectInDocumentPixels() const
 {
-    return toPkRect(imageToDocument(m_d->imageBounds));
+    return toPkRectF(imageToDocument<QRect>(m_d->imageBounds));
 }
 
 PkSizeF KisCoordinatesConverter::imageSizeInFlakePixels() const

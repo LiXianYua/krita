@@ -118,7 +118,7 @@ void KisSketchPaintOp::updateBrushMask(const KisPaintInformation& info, qreal sc
                                      info, 1.0,
                                      &dstRect);
 
-    m_brushBoundingBox = dstRect;
+    m_brushBoundingBox = PkRectF(dstRect);
     m_hotSpot = PkPointF(0.5 * m_brushBoundingBox.width(),
                         0.5 * m_brushBoundingBox.height());
 }

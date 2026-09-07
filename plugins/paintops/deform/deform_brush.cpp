@@ -283,7 +283,7 @@ PkPointF DeformBrush::hotSpot(qreal scale, qreal rotation)
     m.reset();
     m.rotate(-rotation);
 
-    m_maskRect = PkRect(0, 0, fWidth, fHeight);
+    m_maskRect = PkRectF(PkRect(0, 0, fWidth, fHeight));
     m_maskRect.translate(-m_maskRect.center());
     m_maskRect = m.mapRect(m_maskRect);
     m_maskRect.translate(-m_maskRect.topLeft());

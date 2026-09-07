@@ -132,7 +132,7 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
     if (m_d->image) {
         relativeAxesCenter = m_d->image->mirrorAxesCenter();
     }
-    m_d->axesCenter = KisAlgebra2D::relativeToAbsolute(relativeAxesCenter, m_d->bounds->imageBorderRect());
+    m_d->axesCenter = KisAlgebra2D::relativeToAbsolute(relativeAxesCenter, PkRectF(m_d->bounds->imageBorderRect()));
 
     m_d->mirrorMaskHorizontal = canvasResources->resource(KoCanvasResource::MirrorHorizontal).toBool();
     m_d->mirrorMaskVertical = canvasResources->resource(KoCanvasResource::MirrorVertical).toBool();
@@ -178,7 +178,7 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
     if (m_d->image) {
         relativeAxesCenter = m_d->image->mirrorAxesCenter();
     }
-    m_d->axesCenter = KisAlgebra2D::relativeToAbsolute(relativeAxesCenter, m_d->bounds->imageBorderRect());
+    m_d->axesCenter = KisAlgebra2D::relativeToAbsolute(relativeAxesCenter, PkRectF(m_d->bounds->imageBorderRect()));
     m_d->opacity = OPACITY_OPAQUE_F;
 
     setCurrentNode(currentNode);
