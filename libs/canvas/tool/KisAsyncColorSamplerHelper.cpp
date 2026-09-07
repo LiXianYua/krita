@@ -511,7 +511,7 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
             cachePainter.setBrush(baseColor);
             clipPath.clear();
             clipPath.addPolygon(
-                tf.map(PkRectF(0, cacheRect.height() / 2.0, cacheRect.width(), cacheRect.height() / 2.0)));
+                toQPolygonF(tf.map(PkRectF(0, cacheRect.height() / 2.0, cacheRect.width(), cacheRect.height() / 2.0))));
             cachePainter.setClipPath(clipPath);
 
             cachePainter.setBrush(flipped ? currentColor : baseColor);
@@ -539,21 +539,21 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
             PkPointF rightCenter = PkPointF(innerRect.right() + extraMargin, innerRect.top() + innerRect.height()/2.0);
 
             innerPath.setFillRule(Qt::OddEvenFill);
-            innerPath.addEllipse(leftCenter, m_d->circlePreviewThickness*cacheRect.width(), m_d->circlePreviewThickness*cacheRect.width());
-            innerPath.addEllipse(rightCenter, m_d->circlePreviewThickness*cacheRect.width(), m_d->circlePreviewThickness*cacheRect.width());
+            innerPath.addEllipse(toQPointF(leftCenter), m_d->circlePreviewThickness*cacheRect.width(), m_d->circlePreviewThickness*cacheRect.width());
+            innerPath.addEllipse(toQPointF(rightCenter), m_d->circlePreviewThickness*cacheRect.width(), m_d->circlePreviewThickness*cacheRect.width());
 
             innerPath = innerPath.intersected(innerEllipse);
         }
 
         cachePainter.setPen(Qt::NoPen);
         cachePainter.setCompositionMode(QPainter::CompositionMode_Clear);
-        cachePainter.drawPath(tf.map(innerPath));
+        cachePainter.drawPath(toQPainterPath(tf.map(toPkPainterPath(innerPath))));
 
         if (m_d->circlePreviewOutlineEnabled) {
             cachePainter.setBrush(Qt::transparent);
             cachePainter.setPen(pen);
             cachePainter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-            cachePainter.drawPath(tf.map(innerPath));
+            cachePainter.drawPath(toQPainterPath(tf.map(toPkPainterPath(innerPath))));
         }
     }
     gc.drawPixmap(toQRectF(viewRectF).toRect(), m_d->cache);

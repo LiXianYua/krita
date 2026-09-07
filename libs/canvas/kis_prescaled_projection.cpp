@@ -76,7 +76,6 @@ struct RelevantCanvasState
         return {state.effectiveZoom, state.rotation, state.viewportOffsetF};
     }
 };
-}
 
 #define ceiledSize(sz) QSize(ceil((sz).width()), ceil((sz).height()))
 
@@ -292,7 +291,7 @@ void KisPrescaledProjection::recalculateCache(KisUpdateInfoSP info)
     if(!ppInfo) return;
 
     QRect rawViewRect =
-        m_d->coordinatesConverter->viewportToImage(m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect());
+        m_d->coordinatesConverter->viewportToImage(toPkRect(m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect()));
 
     fillInUpdateInformation(rawViewRect, ppInfo);
 
@@ -345,12 +344,12 @@ void KisPrescaledProjection::setDisplayFilter(QSharedPointer<KisDisplayFilter> d
 
 void KisPrescaledProjection::updateViewportSize()
 {
-    QRect imageRect = m_d->coordinatesConverter->imageRectInWidgetPixels().toAlignedRect();
+    QRect imageRect = toQRect(m_d->coordinatesConverter->imageRectInWidgetPixels().toAlignedRect());
     PkSizeF minimalSize(pkMin(imageRect.width(), m_d->canvasSize.width()),
                        pkMin(imageRect.height(), m_d->canvasSize.height()));
     PkRectF minimalRect(PkPointF(0,0), minimalSize);
 
-    m_d->viewportSize = m_d->coordinatesConverter->widgetToViewport(minimalRect).toAlignedRect().size();
+    m_d->viewportSize = toQSize(m_d->coordinatesConverter->widgetToViewport(minimalRect).toAlignedRect().size());
 
     if (m_d->prescaledQImage.isNull() ||
         m_d->prescaledQImage.size() != m_d->viewportSize) {
@@ -392,7 +391,7 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
 
     // second, align this rect to the KisImage's pixels and pixels
     // of projection backend.
-    info->imageRect = m_d->coordinatesConverter->viewportToImage(PkRectF(croppedViewRect)).toAlignedRect();
+    info->imageRect = toPkRectF(m_d->coordinatesConverter->viewportToImage(toQRectF(PkRectF(croppedViewRect))).toAlignedRect());
 
     /**
      * To avoid artifacts while scaling we use mechanism like
@@ -409,7 +408,7 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
     m_d->projectionBackend->alignSourceRect(info->imageRect, info->scaleX);
 
     // finally, compute the dirty rect of the canvas
-    info->viewportRect = m_d->coordinatesConverter->imageToViewport(info->imageRect);
+    info->viewportRect = toPkRectF(m_d->coordinatesConverter->imageToViewport(toQRectF(info->imageRect)));
 
     info->borderWidth = 0;
     if (SCALE_MORE_OR_EQUAL_TO(info->scaleX, info->scaleY, 1.0)) {
@@ -453,7 +452,7 @@ void KisPrescaledProjection::drawUsingBackend(QPainter &gc, KisPPUpdateInfoSP in
         KisImagePatch patch = m_d->projectionBackend->getNearestPatch(info);
         // prescale the patch because otherwise we'd scale using QPainter, which gives
         // a crap result compared to QImage's smoothscale
-        patch.preScale(info->viewportRect);
-        patch.drawMe(gc, info->viewportRect, info->renderHints);
+        patch.preScale(toQRectF(info->viewportRect));
+        patch.drawMe(gc, toQRectF(info->viewportRect), info->renderHints);
     }
 }

@@ -70,7 +70,7 @@ struct KisCoordinatesConverter::Private {
 
     struct StandardZoomLevelsInitializer {
         StandardZoomLevelsInitializer(Private *d) : m_d(d) {}
-        QVector<qreal> initialize() const;
+        PkVector<qreal> initialize() const;
         Private *m_d;
     };
 
@@ -817,7 +817,7 @@ void KisCoordinatesConverter::getOpenGLCheckersInfo(const PkRectF &viewportRect,
 
 PkPointF KisCoordinatesConverter::imageCenterInWidgetPixel() const
 {
-    PkPolygonF poly = toPkPolygonF(imageToWidget(QPolygon(m_d->imageBounds));
+    PkPolygonF poly = toPkPolygonF(imageToWidget(QPolygon(m_d->imageBounds)));
     return (poly[0] + poly[1] + poly[2] + poly[3]) / 4.0;
 }
 
@@ -940,12 +940,12 @@ qreal KisCoordinatesConverter::clampZoom(qreal zoom) const
     return std::clamp(zoom, minZoom(), maxZoom());
 }
 
-QVector<qreal> KisCoordinatesConverter::standardZoomLevels() const
+PkVector<qreal> KisCoordinatesConverter::standardZoomLevels() const
 {
     return m_d->standardZoomLevels.value();
 }
 
-QVector<qreal> KisCoordinatesConverter::Private::StandardZoomLevelsInitializer::initialize() const
+PkVector<qreal> KisCoordinatesConverter::Private::StandardZoomLevelsInitializer::initialize() const
 {
     return KoZoomMode::generateStandardZoomLevels(m_d->minZoom, m_d->maxZoom);
 }

@@ -3,6 +3,7 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <PkFlakeBridge.h>
 #include "kis_update_info.h"
 #include <KisStaticInitializer.h>
 

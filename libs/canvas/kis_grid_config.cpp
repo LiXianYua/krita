@@ -148,7 +148,6 @@ bool loadQtValue(const QDomElement &parent, const QString &tag, T *value)
     return findOnlyQtElement(parent, tag, &element) && loadQtValue(element, value);
 }
 
-}
 
 const KisGridConfig& KisGridConfig::defaultGrid()
 {

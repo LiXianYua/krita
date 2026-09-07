@@ -50,28 +50,7 @@ Q_DECLARE_METATYPE(KisNodeWSP)
 Q_DECLARE_METATYPE(KoColor)
 
 
-    if (image.colorCount() > 0) {
-        std::vector<std::uint32_t> colorTable;
-        colorTable.reserve(static_cast<std::size_t>(image.colorCount()));
-        for (int i = 0; i < image.colorCount(); ++i) {
-            colorTable.push_back(image.color(i));
-        }
-        result.setColorTable(colorTable);
-    }
-    return result;
 
-    if (image.colorCount() > 0) {
-        QVector<QRgb> colorTable;
-        colorTable.reserve(image.colorCount());
-        for (int i = 0; i < image.colorCount(); ++i) {
-            colorTable.append(static_cast<QRgb>(image.color(i)));
-        }
-        result.setColorTable(colorTable);
-    }
-    return result;
-}
-
-}
 
 Q_GLOBAL_STATIC(KisDisplayColorConverter, s_instance)
 

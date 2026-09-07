@@ -134,7 +134,7 @@ public:
 
     ~KisTextureTileInfoPool() {
         delete m_worker;
-        pkDeleteAll(m_pools);
+        qDeleteAll(m_pools);
     }
 
     /**

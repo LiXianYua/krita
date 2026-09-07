@@ -3,6 +3,7 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <PkFlakeBridge.h>
 #include "kis_image_pyramid.h"
 
 #include <QBitArray>
@@ -43,16 +44,6 @@
 #define isOdd(x) ((x) & 0x01)
 
 namespace {
-
-PkRect toPkRect(const QRect &rect)
-{
-    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-
-QRect toQRect(const PkRect &rect)
-{
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
 
 PkBitArray toPkBitArray(const QBitArray &bits)
 {
@@ -192,7 +183,7 @@ void KisImagePyramid::setImage(KisImageWSP newImage)
         setImageSize(m_originalImage->width(), m_originalImage->height());
 
         // Get the full image size
-        QRect rc = toQRect(m_originalImage->projection()->exactBounds());
+        QRect rc = toQRectF(m_originalImage->projection()->exactBounds()).toRect();
 
         KisImageConfig config(true);
 
@@ -494,7 +485,7 @@ KisImagePatch KisImagePyramid::getNearestPatch(KisPPUpdateInfoSP info)
 void KisImagePyramid::drawFromOriginalImage(QPainter& gc, KisPPUpdateInfoSP info)
 {
     KisImagePatch patch = getNearestPatch(info);
-    patch.drawMe(gc, toQRectF(info->viewportRect, info->renderHints);
+    patch.drawMe(gc, toQRectF(info->viewportRect), info->renderHints);
 }
 
 QImage KisImagePyramid::convertToQImageFast(KisPaintDeviceSP paintDevice,

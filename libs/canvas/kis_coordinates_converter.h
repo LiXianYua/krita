@@ -256,7 +256,7 @@ public:
     qreal minZoom() const;
     qreal maxZoom() const;
     qreal clampZoom(qreal zoom) const;
-    QVector<qreal> standardZoomLevels() const;
+    PkVector<qreal> standardZoomLevels() const;
 
     static qreal findNextZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels);
     static qreal findPrevZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels);
