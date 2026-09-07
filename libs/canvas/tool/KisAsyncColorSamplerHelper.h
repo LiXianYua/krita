@@ -9,12 +9,12 @@
 
 #include "kritacanvas_export.h"
 
-#include <QScopedPointer>
 #include <QObject>
+#include <PkScopedPointer.h>
+#include <pk/render/PkPainter.h>
 
 #include "kis_types.h"
 
-class QPainter;
 class KoCanvasBase;
 class KoViewConverter;
 class KisStrokesFacade;
@@ -39,7 +39,7 @@ public:
     void endAction();
 
     PkRectF colorPreviewDocRect(const PkPointF &docPoint);
-    void paint(QPainter &gc, const KoViewConverter &converter);
+    void paint(PkPainter &gc, const KoViewConverter &converter);
 
     void updateCursor(bool sampleCurrentLayer, bool pickFgColor);
 
@@ -78,11 +78,11 @@ private Q_SLOTS:
 
 private:
     void activatePreview();
-    void paintRectangle(QPainter &gc, const PkRectF &viewRectF, const QColor &currentColor, const QColor &baseColor);
-    void paintCircle(QPainter &gc, const PkRectF &viewRectF, const QColor &currentColor, const QColor &baseColor);
+    void paintRectangle(PkPainter &gc, const PkRectF &viewRectF, const PkColor &currentColor, const PkColor &baseColor);
+    void paintCircle(PkPainter &gc, const PkRectF &viewRectF, const PkColor &currentColor, const PkColor &baseColor);
 
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif // KISASYNCCOLORSAMPLERHELPER_H

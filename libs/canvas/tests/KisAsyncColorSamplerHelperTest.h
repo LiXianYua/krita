@@ -12,10 +12,12 @@ class KisAsyncColorSamplerHelperTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void initTestCase();
     void referenceColorShortCircuitsDeviceSampling();
     void missingReferenceFallsBackToProjection();
     void delayedJobReadsTheCurrentNodeAgain();
     void previewUsesSamplingCanvasGeometry();
+    void circlePreviewDoesNotClearDestination();
     void cursorUsesSamplingCanvasPolicy();
 };
 

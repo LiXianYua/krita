@@ -10,10 +10,7 @@
 #include "KisAsyncColorSamplerHelper.h"
 
 #include <QApplication>
-#include <QPainter>
-#include <QPainterPath>
 #include <QPalette>
-#include <QPixmap>
 #include <QTimer>
 #include <pk/geometry/PkTransform.h>
 
@@ -88,7 +85,7 @@ struct KisAsyncColorSamplerHelper::Private
 
     KisStrokeId strokeId;
     typedef KisSignalCompressorWithParam<PkPointF> SamplingCompressor;
-    QScopedPointer<SamplingCompressor> samplingCompressor;
+    PkScopedPointer<SamplingCompressor> samplingCompressor;
 
     QTimer activationDelayTimer;
 
@@ -101,10 +98,6 @@ struct KisAsyncColorSamplerHelper::Private
 
     QColor currentColor;
     QColor baseColor;
-
-    QPixmap cache;
-    qreal cacheRotation = 0.0;
-    bool cacheMirror = false;
 
     KisStrokesFacade *strokesFacade() const {
         return samplingCanvas->samplingImage().data();
@@ -278,8 +271,6 @@ void KisAsyncColorSamplerHelper::activatePreview()
 
     m_d->currentColor = previewColor;
     m_d->baseColor = previewColor;
-    m_d->cache = QPixmap();
-
     updateCursor(m_d->sampleCurrentLayer, m_d->sampleResourceId == KoCanvasResource::ForegroundColor);
 }
 
@@ -313,8 +304,6 @@ void KisAsyncColorSamplerHelper::deactivate()
     m_d->previewDocRect = PkRectF();
     m_d->currentColor = QColor();
     m_d->baseColor = QColor();
-    m_d->cache = QPixmap();
-
     m_d->isActive = false;
 
     Q_EMIT sigRequestCursorReset();
@@ -361,15 +350,17 @@ PkRectF KisAsyncColorSamplerHelper::colorPreviewDocRect(const PkPointF &docPoint
     return m_d->previewDocRect;
 }
 
-void KisAsyncColorSamplerHelper::paint(QPainter &gc, const KoViewConverter &converter)
+void KisAsyncColorSamplerHelper::paint(PkPainter &gc, const KoViewConverter &converter)
 {
     if (!m_d->showPreview) {
         return;
     }
 
     PkRectF viewRectF = converter.documentToView(m_d->previewDocRect);
-    QColor currentColor = colorWithAlpha(m_d->currentColor, OPACITY_OPAQUE_U8);
-    QColor baseColor = m_d->haveSample ? colorWithAlpha(m_d->baseColor, OPACITY_OPAQUE_U8) : currentColor;
+    const PkColor currentColor = toPkColor(colorWithAlpha(m_d->currentColor, OPACITY_OPAQUE_U8));
+    const PkColor baseColor = m_d->haveSample
+        ? toPkColor(colorWithAlpha(m_d->baseColor, OPACITY_OPAQUE_U8))
+        : currentColor;
 
     switch (m_d->style) {
     case ColorSamplerPreviewStyle::RectangleLeft:
@@ -388,61 +379,45 @@ void KisAsyncColorSamplerHelper::paint(QPainter &gc, const KoViewConverter &conv
     }
 }
 
-void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
+void KisAsyncColorSamplerHelper::paintRectangle(PkPainter &gc,
                                                 const PkRectF &viewRectF,
-                                                const QColor &currentColor,
-                                                const QColor &baseColor)
+                                                const PkColor &currentColor,
+                                                const PkColor &baseColor)
 {
-    qreal dpr = gc.device()->devicePixelRatioF();
-    PkSizeF cacheSizeF = viewRectF.size() * dpr;
-    QSize cacheSize(pkCeil(cacheSizeF.width()), pkCeil(cacheSizeF.height()));
-    bool needsNewCache = m_d->cache.isNull() || m_d->cache.size() != cacheSize;
-    if (needsNewCache) {
-        m_d->cache = QPixmap(cacheSize);
-        m_d->cache.fill(Qt::transparent);
+    PkTransform contentTransform;
+    const PkPointF center = viewRectF.center();
+    contentTransform.translate(center.x(), center.y());
+    const qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
+    contentTransform.rotate(m_d->samplingCanvas->samplingCanvasMirroredHorizontally()
+                                ? canvasRotationAngle
+                                : -canvasRotationAngle);
+    contentTransform.translate(-center.x(), -center.y());
+
+    if (!m_d->haveSample) {
+        PkPainterPath currentPath;
+        currentPath.addRect(viewRectF);
+        gc.fillPath(contentTransform.map(currentPath), PkBrush(currentColor));
+        return;
     }
 
-    qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
-    bool canvasMirror =
-        m_d->samplingCanvas->samplingCanvasMirroredHorizontally();
-    if (needsNewCache || !pkQtFuzzyCompare(canvasRotationAngle, m_d->cacheRotation) || canvasMirror != m_d->cacheMirror) {
-        m_d->cacheRotation = canvasRotationAngle;
-        m_d->cacheMirror = canvasMirror;
-
-        QPainter cachePainter(&m_d->cache);
-        cachePainter.setRenderHint(QPainter::Antialiasing);
-
-        qreal size = Private::PREVIEW_RECT_SIZE * dpr;
-        PkRectF rect(0.0, 0.0, m_d->haveSample ? size * 2.0 : size, size);
-        rect.moveTopLeft(-rect.center());
-
-        PkTransform tf;
-        PkPointF offset = toPkRectF(m_d->cache.rect()).center();
-        tf.translate(offset.x(), offset.y());
-        tf.rotate(canvasMirror ? canvasRotationAngle : -canvasRotationAngle);
-        cachePainter.setTransform(toQTransform(tf));
-
-        if (m_d->haveSample) {
-            qreal centerX = rect.center().x();
-            PkRectF currentRect(rect.topLeft(), PkPointF(centerX + 1.0, rect.bottom()));
-            PkRectF baseRect(PkPointF(centerX, rect.top()), rect.bottomRight());
-            if (m_d->samplingCanvas->samplingCanvasMirroredHorizontally()) {
-                std::swap(currentRect, baseRect);
-            }
-            cachePainter.fillRect(toQRectF(currentRect), currentColor);
-            cachePainter.fillRect(toQRectF(baseRect), baseColor);
-        } else {
-            cachePainter.fillRect(toQRectF(rect), currentColor);
-        }
+    const qreal centerX = viewRectF.center().x();
+    PkRectF currentRect(viewRectF.topLeft(), PkPointF(centerX, viewRectF.bottom()));
+    PkRectF baseRect(PkPointF(centerX, viewRectF.top()), viewRectF.bottomRight());
+    if (m_d->samplingCanvas->samplingCanvasMirroredHorizontally()) {
+        std::swap(currentRect, baseRect);
     }
-
-    gc.drawPixmap(toQRectF(viewRectF).toRect(), m_d->cache);
+    PkPainterPath currentPath;
+    currentPath.addRect(currentRect);
+    PkPainterPath basePath;
+    basePath.addRect(baseRect);
+    gc.fillPath(contentTransform.map(currentPath), PkBrush(currentColor));
+    gc.fillPath(contentTransform.map(basePath), PkBrush(baseColor));
 }
 
-void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
+void KisAsyncColorSamplerHelper::paintCircle(PkPainter &gc,
                                              const PkRectF &viewRectF,
-                                             const QColor &currentColor,
-                                             const QColor &baseColor)
+                                             const PkColor &currentColor,
+                                             const PkColor &baseColor)
 {
     if (!m_d->haveSample) {
         return;
@@ -452,111 +427,68 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
 
     gc.save();
 
-    qreal dpr = gc.device()->devicePixelRatioF();
-    PkSizeF cacheSizeF = viewRectF.size() * dpr;
-    QSize cacheSize(pkCeil(cacheSizeF.width()), pkCeil(cacheSizeF.height()));
-    bool needsNewCache = m_d->cache.isNull() || m_d->cache.size() != cacheSize;
-    if (needsNewCache) {
-        m_d->cache = QPixmap(cacheSize);
-        m_d->cache.fill(Qt::transparent);
-    }
+    const qreal penWidth = m_d->circlePreviewDiameter > 100 ? 2.0 : 1.0;
+    const PkColor outlineColor = toPkColor(
+        colorWithAlpha(qApp->palette().color(QPalette::Base), OPACITY_OPAQUE_U8 / 2 + 1));
+    const PkRectF outerRect = viewRectF.adjusted(penWidth, penWidth, -penWidth, -penWidth);
 
     qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
     if (m_d->samplingCanvas->samplingCanvasMirroredHorizontally()) {
         canvasRotationAngle = -canvasRotationAngle;
     }
+    PkTransform contentTransform;
+    const PkPointF center = viewRectF.center();
+    contentTransform.translate(center.x(), center.y());
+    contentTransform.rotate(-canvasRotationAngle);
+    contentTransform.translate(-center.x(), -center.y());
 
-    bool needsDualColor = currentColor != baseColor;
-    if (needsNewCache || (needsDualColor && !pkQtFuzzyCompare(m_d->cacheRotation, canvasRotationAngle))) {
-        m_d->cacheRotation = canvasRotationAngle;
+    const qreal innerMarginX = outerRect.width() * m_d->circlePreviewThickness;
+    const qreal innerMarginY = outerRect.height() * m_d->circlePreviewThickness;
+    const PkRectF innerRect = outerRect.adjusted(innerMarginX, innerMarginY, -innerMarginX, -innerMarginY);
+    PkPainterPath innerEllipse;
+    innerEllipse.addEllipse(innerRect);
+    PkPainterPath innerPath = innerEllipse;
 
-        QPainter cachePainter(&m_d->cache);
-        cachePainter.setRenderHint(QPainter::Antialiasing);
-
-        QColor backgroundColor = colorWithAlpha(qApp->palette().color(QPalette::Base), OPACITY_OPAQUE_U8 / 2 + 1);
-        qreal penWidth = m_d->circlePreviewDiameter > 100 ? (2.0 * dpr) : (1.0 * dpr);
-        QPen pen = QPen(backgroundColor, penWidth);
-        if (m_d->circlePreviewOutlineEnabled) {
-            cachePainter.setPen(pen);
-        } else {
-            cachePainter.setPen(Qt::NoPen);
-        }
-
-        QRectF cacheRect = m_d->cache.rect();
-        QRectF outerRect = cacheRect.marginsRemoved(QMarginsF(penWidth, penWidth, penWidth, penWidth));
-
-        PkTransform tf;
-
-        QPointF cacheCenter = cacheRect.center();
-        tf.translate(cacheCenter.x(), cacheCenter.y());
-        tf.rotate(-canvasRotationAngle);
-        tf.translate(-cacheCenter.x(), -cacheCenter.y());
-
-
-        if (needsDualColor) {
-            // The color sampler preview is an outline and those rotate along
-            // with the canvas. That's undesirable for the sampler preview
-            // though, so we un-rotate its contents here accordingly.
-
-
-            QPainterPath clipPath;
-            clipPath.addPolygon(toQPolygonF(tf.map(PkPolygonF(PkRectF(0, 0, cacheRect.width(), cacheRect.height() / 2.0 + 1.0)))));
-            cachePainter.setClipPath(clipPath);
-
-            bool flipped =
-                m_d->samplingCanvas->samplingCanvasMirroredVertically();
-            cachePainter.setBrush(flipped ? baseColor : currentColor);
-            cachePainter.drawEllipse(outerRect);
-
-            cachePainter.setBrush(baseColor);
-            clipPath.clear();
-            clipPath.addPolygon(
-                toQPolygonF(tf.map(PkRectF(0, cacheRect.height() / 2.0, cacheRect.width(), cacheRect.height() / 2.0))));
-            cachePainter.setClipPath(clipPath);
-
-            cachePainter.setBrush(flipped ? currentColor : baseColor);
-            cachePainter.drawEllipse(outerRect);
-
-            cachePainter.setClipPath(QPainterPath(), Qt::NoClip);
-        } else {
-            cachePainter.setBrush(currentColor);
-            cachePainter.drawEllipse(outerRect);
-        }
-
-        qreal innerX = cacheRect.width() * (1.0 - m_d->circlePreviewThickness);
-        qreal innerY = cacheRect.height() * (1.0 - m_d->circlePreviewThickness);
-        QRectF innerRect = cacheRect.marginsRemoved(QMarginsF(innerX, innerY, innerX, innerY));
-        QPainterPath innerEllipse;
-        innerEllipse.addEllipse(innerRect);
-
-        QPainterPath innerPath;
-        innerPath.addPath(innerEllipse);
-
-
-        if (m_d->circlePreviewThickness < 0.5 && m_d->circlePreviewExtraCircles) {
-            qreal extraMargin = 0.1*m_d->circlePreviewThickness*innerRect.width(); // looks better
-            PkPointF leftCenter = PkPointF(innerRect.left() - extraMargin, innerRect.top() + innerRect.height()/2.0);
-            PkPointF rightCenter = PkPointF(innerRect.right() + extraMargin, innerRect.top() + innerRect.height()/2.0);
-
-            innerPath.setFillRule(Qt::OddEvenFill);
-            innerPath.addEllipse(toQPointF(leftCenter), m_d->circlePreviewThickness*cacheRect.width(), m_d->circlePreviewThickness*cacheRect.width());
-            innerPath.addEllipse(toQPointF(rightCenter), m_d->circlePreviewThickness*cacheRect.width(), m_d->circlePreviewThickness*cacheRect.width());
-
-            innerPath = innerPath.intersected(innerEllipse);
-        }
-
-        cachePainter.setPen(Qt::NoPen);
-        cachePainter.setCompositionMode(QPainter::CompositionMode_Clear);
-        cachePainter.drawPath(toQPainterPath(tf.map(toPkPainterPath(innerPath))));
-
-        if (m_d->circlePreviewOutlineEnabled) {
-            cachePainter.setBrush(Qt::transparent);
-            cachePainter.setPen(pen);
-            cachePainter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-            cachePainter.drawPath(toQPainterPath(tf.map(toPkPainterPath(innerPath))));
-        }
+    if (m_d->circlePreviewThickness < 0.5 && m_d->circlePreviewExtraCircles) {
+        const qreal extraMargin = 0.1 * m_d->circlePreviewThickness * innerRect.width();
+        const PkPointF leftCenter(innerRect.left() - extraMargin,
+                                  innerRect.top() + innerRect.height() / 2.0);
+        const PkPointF rightCenter(innerRect.right() + extraMargin,
+                                   innerRect.top() + innerRect.height() / 2.0);
+        innerPath.setFillRule(Pk::OddEvenFill);
+        const qreal radius = m_d->circlePreviewThickness * viewRectF.width();
+        innerPath.addEllipse(leftCenter, radius, radius);
+        innerPath.addEllipse(rightCenter, radius, radius);
+        innerPath = innerPath.intersected(innerEllipse);
     }
-    gc.drawPixmap(toQRectF(viewRectF).toRect(), m_d->cache);
+    innerPath = contentTransform.map(innerPath);
+
+    PkPainterPath outerPath;
+    outerPath.addEllipse(outerRect);
+    const PkPainterPath ringPath = outerPath.subtracted(innerPath);
+
+    const bool needsDualColor = currentColor != baseColor;
+    if (needsDualColor) {
+        const bool flipped = m_d->samplingCanvas->samplingCanvasMirroredVertically();
+        PkPainterPath clipPath;
+        clipPath.addRect(PkRectF(viewRectF.left(), viewRectF.top(), viewRectF.width(), viewRectF.height() / 2.0 + 1.0));
+        gc.setClipPath(contentTransform.map(clipPath));
+        gc.fillPath(ringPath, PkBrush(flipped ? baseColor : currentColor));
+
+        clipPath.clear();
+        clipPath.addRect(PkRectF(viewRectF.left(), viewRectF.center().y(), viewRectF.width(), viewRectF.height() / 2.0));
+        gc.setClipPath(contentTransform.map(clipPath));
+        gc.fillPath(ringPath, PkBrush(flipped ? currentColor : baseColor));
+        gc.setClipPath(PkPainterPath(), Pk::NoClip);
+    } else {
+        gc.fillPath(ringPath, PkBrush(currentColor));
+    }
+
+    if (m_d->circlePreviewOutlineEnabled) {
+        const PkPen outlinePen(outlineColor, penWidth);
+        gc.strokePath(outerPath, outlinePen);
+        gc.strokePath(innerPath, outlinePen);
+    }
 
     gc.restore();
 }
@@ -606,7 +538,7 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const PkPointF &docPoint)
         QString message = i18n("Color sampler does not work on this layer.");
         if (KisCanvasFeedback *feedback =
                 dynamic_cast<KisCanvasFeedback *>(m_d->canvas)) {
-            feedback->showFloatingMessage(message, QIcon());
+            feedback->showFloatingMessage(toPkString(message), QIcon());
         }
     }
 }
@@ -631,7 +563,6 @@ void KisAsyncColorSamplerHelper::slotColorSamplingFinished(const KoColor &rawCol
     if (!m_d->haveSample || m_d->currentColor != previewColor) {
         m_d->haveSample = true;
         m_d->currentColor = previewColor;
-        m_d->cache = QPixmap();
     }
 
     Q_EMIT sigRequestUpdateOutline();

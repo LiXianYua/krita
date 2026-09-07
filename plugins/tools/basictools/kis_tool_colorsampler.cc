@@ -21,16 +21,16 @@ KisToolColorSampler::KisToolColorSampler(KoCanvasBase *canvas)
       m_helper(canvas, dynamic_cast<KisColorSamplingCanvas *>(canvas))
 {
     QObject::setObjectName("tool_colorsampler");
-    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestCursor,
-                      this, [this](const auto &cursor) { useCursor(cursor); });
-    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestCursorReset,
-                      this, &KisToolColorSampler::slotColorPickerRequestedCursorReset);
-    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestUpdateOutline,
-                      this, &KisToolColorSampler::slotColorPickerRequestedOutlineUpdate);
-    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRawColorSelected,
-                      this, &KisToolColorSampler::slotColorPickerSelectedColor);
-    PkObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigFinalColorSelected,
-                      this, &KisToolColorSampler::slotColorPickerSelectionFinished);
+    QObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestCursor,
+                     this, [this](const auto &cursor) { useCursor(cursor); });
+    QObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestCursorReset,
+                     this, &KisToolColorSampler::slotColorPickerRequestedCursorReset);
+    QObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRequestUpdateOutline,
+                     this, &KisToolColorSampler::slotColorPickerRequestedOutlineUpdate);
+    QObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigRawColorSelected,
+                     this, &KisToolColorSampler::slotColorPickerSelectedColor);
+    QObject::connect(&m_helper, &KisAsyncColorSamplerHelper::sigFinalColorSelected,
+                     this, &KisToolColorSampler::slotColorPickerSelectionFinished);
 }
 
 KisToolColorSampler::~KisToolColorSampler()
