@@ -582,7 +582,7 @@ public:
     constexpr PkRectF(qreal left, qreal top, qreal width, qreal height) noexcept;
     // qrect.h:518 —— **非 explicit**：PkRect 到 PkRectF 是隐式提升，
     // `QRectF r = someQRect;` 这类调用点靠它。
-    constexpr PkRectF(const PkRect &rect) noexcept;
+    explicit constexpr PkRectF(const PkRect &rect) noexcept;
 
     constexpr inline bool isNull() const noexcept;
     constexpr inline bool isEmpty() const noexcept;

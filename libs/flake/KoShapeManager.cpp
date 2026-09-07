@@ -288,7 +288,7 @@ void KoShapeManager::Private::forwardCompressedUpdate()
 
         if (!compressedUpdate.isEmpty()) {
             scheduledUpdate = compressedUpdate;
-            compressedUpdate = PkRect();
+            compressedUpdate = PkRectF(PkRect());
         }
 
         Q_FOREACH (const KoShape *shape, compressedUpdatedShapes) {
@@ -362,7 +362,7 @@ void KoShapeManager::setShapes(const PkList<KoShape *> &shapes, Repaint repaint)
         //clear selection
         d->selection->deselectAll();
         d->unlinkFromShapesRecursively(d->shapes);
-        d->compressedUpdate = PkRect();
+        d->compressedUpdate = PkRectF(PkRect());
         d->compressedUpdatedShapes.clear();
         d->aggregate4update.clear();
         d->tree.clear();
@@ -560,7 +560,7 @@ void KoShapeManager::paint(QPainter &painter)
     if (painter.hasClipping()) {
         PkMutexLocker l(&d->treeMutex);
 
-        PkRectF rect = KisPaintingTweaks::safeClipBoundingRect(painter);
+        PkRectF rect = PkRectF(KisPaintingTweaks::safeClipBoundingRect(painter));
         unsortedShapes = d->tree.intersects(rect);
     } else {
         unsortedShapes = d->shapes;

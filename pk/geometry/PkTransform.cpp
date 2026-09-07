@@ -1007,7 +1007,7 @@ static inline bool pkNeedsPerspectiveClipping(const PkRectF &rect, const PkTrans
 //
 // Qt 的两个 mapRect 在 **`t == TxProject` 且 pkNeedsPerspectiveClipping(rect) 为真**
 // 时不走四角包围盒，而是
-//     QPainterPath path; path.addRect(rect); return map(path).boundingRect();
+//     QPainterPath path; path.addRect(PkRectF(rect)); return map(path).boundingRect();
 // —— 把矩形当路径、在近裁剪面上真的**裁**一刀再取包围盒。
 //
 // `QPainterPath` 不在 R-03 交付范围（`Qt替代品选型.md` §1 几何那一行点名的四个
@@ -1113,12 +1113,12 @@ PkRect PkTransform::mapRect(const PkRect &rect) const
             y -= h;
         }
         return PkRect(x, y, w, h);
-    } else if (t < TxProject || !pkNeedsPerspectiveClipping(rect, *this)) {
+    } else if (t < TxProject || !pkNeedsPerspectiveClipping(PkRectF(rect), *this)) {
         return mapRectCorners(rect, t);
     } else {
         // R-22 T5: 用 PkPainterPath 裁剪路径关闭偏离 21
         PkPainterPath path;
-        path.addRect(rect);
+        path.addRect(PkRectF(rect));
         return map(path).boundingRect().toRect();
     }
 }
@@ -1172,12 +1172,12 @@ PkRectF PkTransform::mapRect(const PkRectF &rect) const
             y -= h;
         }
         return PkRectF(x, y, w, h);
-    } else if (t < TxProject || !pkNeedsPerspectiveClipping(rect, *this)) {
+    } else if (t < TxProject || !pkNeedsPerspectiveClipping(PkRectF(rect), *this)) {
         return mapRectCorners(rect, t);
     } else {
         // R-22 T5: 用 PkPainterPath 裁剪路径关闭偏离 21
         PkPainterPath path;
-        path.addRect(rect);
+        path.addRect(PkRectF(rect));
         return map(path).boundingRect();
     }
 }

@@ -633,10 +633,11 @@ static_assert(sizeof(PkRectF) == 4 * sizeof(qreal), "PkRectF 必须是四个 qre
 static_assert(std::is_trivially_copyable<PkRectF>::value, "PkRectF 必须可平凡拷贝");
 static_assert(std::is_standard_layout<PkRectF>::value, "PkRectF 必须是标准布局");
 
-// ⚠ **PkRect 到 PkRectF 必须是隐式的**（Qt 的 QRectF(const QRect&) 非 explicit），
+// ⚠ S-09-g（2026-09-07 用户拍板方案 A）：改为 **explicit**——Qt 的 QRectF(const
+// QRect&) 隐式让 toQRect(PkRect) 在 bridge 中产生 PkRectF 候选歧义（15 处）。t），
 // 反向必须**不是**（QRect 没有吃 QRectF 的构造，只有 toRect()/toAlignedRect()）。
-static_assert(std::is_convertible<PkRect, PkRectF>::value,
-              "PkRect → PkRectF 必须能隐式提升");
+static_assert(!std::is_convertible<PkRect, PkRectF>::value,
+              "PkRect → PkRectF 必须显式（explicit ctor，防 toQRect 歧义）");
 static_assert(!std::is_convertible<PkRectF, PkRect>::value,
               "PkRectF → PkRect 必须**不能**隐式转换 —— 只能走 toRect/toAlignedRect");
 
