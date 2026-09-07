@@ -13,8 +13,8 @@
 #include "KoSvgTextShapeMarkupConverter.h"
 
 SvgTextChangeCommand::SvgTextChangeCommand(KoSvgTextShape *shape,
-                                           const QString &svg,
-                                           const QString &defs,
+                                           const PkString &svg,
+                                           const PkString &defs,
                                            KUndo2Command *parent)
     : KUndo2Command(parent)
     , m_shape(shape)

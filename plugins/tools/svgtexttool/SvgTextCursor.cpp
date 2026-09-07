@@ -615,7 +615,7 @@ void SvgTextCursor::insertText(QString text)
             addCommandToUndoAdapter(removeCmd);
         }
 
-        SvgTextInsertCommand *insertCmd = new SvgTextInsertCommand(d->shape, d->pos, d->anchor, text);
+        SvgTextInsertCommand *insertCmd = new SvgTextInsertCommand(d->shape, d->pos, d->anchor, toPkString(text));
         addCommandToUndoAdapter(insertCmd);
 
     }
@@ -1131,7 +1131,7 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
     // insert a preedit string, if any.
     if (!event->preeditString().isEmpty()) {
         int index = d->shape->indexForPos(d->pos);
-        d->preEditCommand = new SvgTextInsertCommand(d->shape, d->pos, d->anchor, event->preeditString());
+        d->preEditCommand = new SvgTextInsertCommand(d->shape, d->pos, d->anchor, toPkString(event->preeditString()));
         d->preEditCommand->redo();
         d->preEditLength = event->preeditString().size();
         d->preEditStart = d->shape->posForIndex(index, true);

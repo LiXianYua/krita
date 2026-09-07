@@ -8,10 +8,8 @@
 #include "KoSvgTextShapeMarkupConverter.h"
 #include <KoShapeBulkActionLock.h>
 
-#include <QRegularExpression>
-
 #include "kis_command_ids.h"
-SvgTextInsertCommand::SvgTextInsertCommand(KoSvgTextShape *shape, int pos, int anchor, QString text, KUndo2Command *parent)
+SvgTextInsertCommand::SvgTextInsertCommand(KoSvgTextShape *shape, int pos, int anchor, PkString text, KUndo2Command *parent)
     : KUndo2Command(parent)
     , m_shape(shape)
     , m_pos(pos)
@@ -23,9 +21,8 @@ SvgTextInsertCommand::SvgTextInsertCommand(KoSvgTextShape *shape, int pos, int a
     m_text = filterInputUnicodeString(text);
 }
 
-QString SvgTextInsertCommand::filterInputUnicodeString(QString text)
+PkString SvgTextInsertCommand::filterInputUnicodeString(PkString text)
 {
-    QRegularExpression exp;
     // This replaces...
     // - carriage return
     // - carriage return-linefeed
@@ -35,8 +32,11 @@ QString SvgTextInsertCommand::filterInputUnicodeString(QString text)
     // with a single linefeed to avoid them from being added to the textShape.
     // NOTE: \r\n comes **before** \r to ensure that full match
     //       is preferred to the partial match!
-    exp.setPattern("(\\r\\n|\\r|\\x{2029}|\\x{2028}|\\x{000b})");
-    text.replace(exp, "\n");
+    text.replace(PkString::fromUtf8("\r\n"), PkString("\n"));
+    text.replace(u'\r', u'\n');
+    text.replace(u'\u2029', u'\n');
+    text.replace(u'\u2028', u'\n');
+    text.replace(u'\u000b', u'\n');
     return text;
 }
 

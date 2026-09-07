@@ -13,7 +13,7 @@
 class KRITATOOLSVGTEXT_EXPORT SvgTextInsertCommand : public KUndo2Command
 {
 public:
-    SvgTextInsertCommand(KoSvgTextShape *shape, int pos, int anchor, QString text, KUndo2Command *parent = 0);
+    SvgTextInsertCommand(KoSvgTextShape *shape, int pos, int anchor, PkString text, KUndo2Command *parent = 0);
     ~SvgTextInsertCommand() override = default;
 
     void redo() override;
@@ -23,14 +23,14 @@ public:
     int id() const override;
     bool mergeWith(const KUndo2Command *other) override;
 
-    static QString filterInputUnicodeString(QString text);
+    static PkString filterInputUnicodeString(PkString text);
 
 private:
     KoSvgTextShape *m_shape;
 
     int m_pos;
     int m_anchor;
-    QString m_text;
+    PkString m_text;
     KoSvgTextShapeMementoSP m_textData;
 };
 
