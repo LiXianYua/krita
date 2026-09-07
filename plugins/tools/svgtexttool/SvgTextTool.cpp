@@ -498,8 +498,7 @@ bool SvgTextTool::nodeEditable()
                 dynamic_cast<KisCanvasFeedback *>(canvas())) {
             PkString message = dynamic_cast<KisCanvasToolServices *>(canvas())
                                   ->toolNodeEditableMessage(node);
-            feedback->showFloatingMessage(
-                toQString(message), QIcon());
+            feedback->showFloatingMessage(message, QIcon());
         }
         return false;
     }

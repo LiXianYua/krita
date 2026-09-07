@@ -128,7 +128,7 @@ void KisToolSmartPatch::beginPrimaryAction(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-            toQString(PkString("Select a paint layer to use this tool")),
+            PkString("Select a paint layer to use this tool"),
             {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         event->ignore();
         return;

@@ -90,20 +90,20 @@ namespace {
 
 
 
-QString nodeEditableMessage(KisNodeSP node, bool blockedNoIndirectPainting)
+PkString nodeEditableMessage(KisNodeSP node, bool blockedNoIndirectPainting)
 {
-    QString message;
+    PkString message;
     if (!node->isEditable(true) || blockedNoIndirectPainting) {
         if (!node->visible() && node->userLocked()) {
-            message = i18n("Layer is locked and invisible.");
+            message = toPkString(i18n("Layer is locked and invisible."));
         } else if (node->userLocked()) {
-            message = i18n("Layer is locked.");
+            message = toPkString(i18n("Layer is locked."));
         } else if (!node->visible()) {
-            message = i18n("Layer is invisible.");
+            message = toPkString(i18n("Layer is invisible."));
         } else if (blockedNoIndirectPainting) {
-            message = i18n("Layer can be painted in Wash Mode only.");
+            message = toPkString(i18n("Layer can be painted in Wash Mode only."));
         } else {
-            message = i18n("Group not editable.");
+            message = toPkString(i18n("Group not editable."));
         }
     }
     return message;
@@ -768,7 +768,7 @@ bool KisTool::selectionEditable()
     bool editable = services && services->toolSelectionEditable();
     if (!editable) {
         if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            feedback->showFloatingMessage(i18n("Local selection is locked."), QIcon());
+            feedback->showFloatingMessage(toPkString(i18n("Local selection is locked.")), QIcon());
         }
     }
     return editable;

@@ -186,9 +186,9 @@ void KisSelectionToolHelper::addSelectionShapes(PkList< KoShape* > shapes, Selec
     if (m_image->wrapAroundModePermitted()) {
         if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(m_canvas)) {
             feedback->showFloatingMessage(
-                i18n("Shape selection does not fully "
-                     "support wraparound mode. Please "
-                     "use pixel selection instead"),
+                toPkString(i18n("Shape selection does not fully "
+                                "support wraparound mode. Please "
+                                "use pixel selection instead")),
                 QIcon());
         }
     }

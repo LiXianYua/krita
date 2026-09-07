@@ -141,7 +141,7 @@ void KisPathEnclosingProducer::beginAlternateAction(KoPointerEvent *event, Alter
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         PkString message("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(toQString(message), {});
+        feedback->showFloatingMessage(message, {});
         event->ignore();
         return;
     }

@@ -105,7 +105,7 @@ void KisToolKnife::mousePressEvent(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-                toQString(PkString("This tool only works on vector layers. You probably want to create a vector layer and a starting shape first.")),
+                PkString("This tool only works on vector layers. You probably want to create a vector layer and a starting shape first."),
                 {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         return;
     }

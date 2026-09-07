@@ -113,7 +113,7 @@ void KisToolMeasure::showDistanceAngleOnCanvas()
         .arg(KritaUtils::prettyFormatReal(distance() / currentImage()->xRes()))
         .arg(KoUnit(KoUnit::Pixel).symbol())
         .arg(KisBasicToolsString::numberFixed(angle(), 1));
-    feedback->showFloatingMessage(toQString(message), {}, 2000, KisCanvasFeedback::Priority::High);
+    feedback->showFloatingMessage(message, {}, 2000, KisCanvasFeedback::Priority::High);
 }
 void KisToolMeasure::beginPrimaryAction(KoPointerEvent *event)
 {

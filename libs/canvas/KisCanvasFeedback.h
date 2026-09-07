@@ -6,11 +6,11 @@
 #define KIS_CANVAS_FEEDBACK_H
 
 #include <Qt>
+#include <PkString.h>
 
 #include <kritacanvas_export.h>
 
 class QIcon;
-class QString;
 
 /**
  * Narrow presentation port for transient feedback produced by canvas tools.
@@ -30,7 +30,7 @@ public:
 
     virtual ~KisCanvasFeedback();
 
-    virtual void showFloatingMessage(const QString &message,
+    virtual void showFloatingMessage(const PkString &message,
                                      const QIcon &icon,
                                      int timeout = 4500,
                                      Priority priority = Priority::Medium,

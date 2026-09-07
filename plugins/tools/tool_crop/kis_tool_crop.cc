@@ -724,12 +724,12 @@ void KisToolCrop::showSizeOnCanvas()
     KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
     if(m_mouseOnHandleType == 9) {
-        feedback->showFloatingMessage(toQString(PkString("X: %1\nY: %2").arg(cropX()).arg(cropY())),
+        feedback->showFloatingMessage(PkString("X: %1\nY: %2").arg(cropX()).arg(cropY()),
                                       {}, 1000, KisCanvasFeedback::Priority::High,
                                       Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }
     else {
-        feedback->showFloatingMessage(toQString(PkString("Width: %1\nHeight: %2").arg(cropWidth()).arg(cropHeight())),
+        feedback->showFloatingMessage(PkString("Width: %1\nHeight: %2").arg(cropWidth()).arg(cropHeight()),
                                       {}, 1000, KisCanvasFeedback::Priority::High,
                                       Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }

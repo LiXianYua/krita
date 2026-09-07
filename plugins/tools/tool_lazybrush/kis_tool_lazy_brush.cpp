@@ -184,7 +184,7 @@ void KisToolLazyBrush::tryCreateColorizeMask()
     if (!node->isEditable(false)) {
         if (KisCanvasFeedback *feedback =
                 dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            feedback->showFloatingMessage(toQString(PkString("Layer is locked")), {});
+            feedback->showFloatingMessage(PkString("Layer is locked"), {});
         }
         return;
     }
