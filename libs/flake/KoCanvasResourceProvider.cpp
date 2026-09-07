@@ -28,7 +28,7 @@ struct Q_DECL_HIDDEN CanvasResourceProviderInterfaceWrapper : public KoCanvasRes
     }
 
     PkVariant resource(int key) const override {
-        return PkVariant::fromValue(m_provider->resource(key));
+        return m_provider->resource(key);
     }
 
 private:
