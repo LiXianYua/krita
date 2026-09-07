@@ -7,7 +7,7 @@
 #include "SvgTextCursor.h"
 #include <QDebug>
 
-SvgSelectTextStrategy::SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cursor, const QPointF &clicked, Qt::KeyboardModifiers modifiers)
+SvgSelectTextStrategy::SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cursor, const PkPointF &clicked, Qt::KeyboardModifiers modifiers)
     : KoInteractionStrategy(tool)
     , m_cursor(cursor)
     , m_dragStart(clicked)
@@ -16,7 +16,7 @@ SvgSelectTextStrategy::SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cu
     m_cursor->setPosToPoint(m_dragStart, !(modifiers & Qt::ShiftModifier));
 }
 
-void SvgSelectTextStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgSelectTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers)
     m_dragEnd = mouseLocation;

@@ -7,25 +7,25 @@
 #define SVGSELECTTEXTSTRATEGY_H
 
 #include <KoInteractionStrategy.h>
-#include <QPointF>
+#include <PkPoint.h>
 
 class SvgTextCursor;
 
 class SvgSelectTextStrategy : public KoInteractionStrategy
 {
 public:
-    SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cursor, const QPointF &clicked, Qt::KeyboardModifiers modifiers);
+    SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cursor, const PkPointF &clicked, Qt::KeyboardModifiers modifiers);
     ~SvgSelectTextStrategy() override = default;
 
-    void handleMouseMove(const QPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
     void finishInteraction(Qt::KeyboardModifiers modifiers) override;
 
 private:
     SvgTextCursor *m_cursor;
-    QPointF m_dragStart;
-    QPointF m_dragEnd;
+    PkPointF m_dragStart;
+    PkPointF m_dragEnd;
 };
 
 #endif // SVGSELECTTEXTSTRATEGY_H

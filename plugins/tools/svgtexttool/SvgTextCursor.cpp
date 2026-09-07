@@ -363,7 +363,7 @@ void SvgTextCursor::setPos(int pos, int anchor)
     updateSelection();
 }
 
-void SvgTextCursor::setPosToPoint(QPointF point, bool moveAnchor)
+void SvgTextCursor::setPosToPoint(PkPointF point, bool moveAnchor)
 {
     if (d->shape) {
         Private::InputQueryUpdateBlocker inputQueryUpdateBlocker(d);
@@ -681,9 +681,9 @@ QPair<KoSvgTextProperties, KoSvgTextProperties> SvgTextCursor::currentTextProper
     return QPair<KoSvgTextProperties, KoSvgTextProperties>();
 }
 
-QList<KoSvgTextProperties> SvgTextCursor::propertiesForRange() const
+PkList<KoSvgTextProperties> SvgTextCursor::propertiesForRange() const
 {
-    if (!d->shape) return QList<KoSvgTextProperties>();
+    if (!d->shape) return PkList<KoSvgTextProperties>();
     int start = -1;
     int end = -1;
     start = pkMin(d->pos, d->anchor);
@@ -691,13 +691,13 @@ QList<KoSvgTextProperties> SvgTextCursor::propertiesForRange() const
     return d->shape->propertiesForRange(start, end);
 }
 
-QList<KoSvgTextProperties> SvgTextCursor::propertiesForShape() const
+PkList<KoSvgTextProperties> SvgTextCursor::propertiesForShape() const
 {
-    if (!d->shape) return QList<KoSvgTextProperties>();
+    if (!d->shape) return PkList<KoSvgTextProperties>();
     return {d->shape->propertiesForRange(-1, -1)};
 }
 
-void SvgTextCursor::mergePropertiesIntoSelection(const KoSvgTextProperties props, const QSet<KoSvgTextProperties::PropertyId> removeProperties, bool paragraphOnly, bool selectWord)
+void SvgTextCursor::mergePropertiesIntoSelection(const KoSvgTextProperties props, const PkSet<KoSvgTextProperties::PropertyId> removeProperties, bool paragraphOnly, bool selectWord)
 {
     if (d->shape) {
         int start = -1;
@@ -1345,7 +1345,7 @@ void SvgTextCursor::canvasResourceChanged(int key, const QVariant &value)
         }
     }
     if (!props.isEmpty()) {
-        mergePropertiesIntoSelection(props, QSet<KoSvgTextProperties::PropertyId>(), !hasSelection());
+        mergePropertiesIntoSelection(props, PkSet<KoSvgTextProperties::PropertyId>(), !hasSelection());
     }
 }
 
@@ -1364,7 +1364,7 @@ void SvgTextCursor::clearFormattingAction()
 {
     KoSvgTextProperties props;
 
-    QSet<KoSvgTextProperties::PropertyId> ids;
+    PkSet<KoSvgTextProperties::PropertyId> ids;
 
     for (int i = 0; i < int(KoSvgTextProperties::LastPropertyId); i++) {
         ids.insert(KoSvgTextProperties::PropertyId(i));
@@ -2205,15 +2205,15 @@ SvgTextCursorPropertyInterface::~SvgTextCursorPropertyInterface()
     PkObject::disconnect(d->characterCompressorConnection);
     PkObject::disconnect(d->compressorConnection);
 }
-QList<KoSvgTextProperties> SvgTextCursorPropertyInterface::getSelectedProperties()
+PkList<KoSvgTextProperties> SvgTextCursorPropertyInterface::getSelectedProperties()
 {
     return d->parent->propertiesForShape();
 }
 
-QList<KoSvgTextProperties> SvgTextCursorPropertyInterface::getCharacterProperties()
+PkList<KoSvgTextProperties> SvgTextCursorPropertyInterface::getCharacterProperties()
 {
     // When there's only a single node, its best to only return empty properties, as paragraph properties handle that single node.
-    if (!d->parent->shape()) return QList<KoSvgTextProperties>();
+    if (!d->parent->shape()) return PkList<KoSvgTextProperties>();
     if (d->parent->shape()->singleNode()) {
         return {KoSvgTextProperties()};
     }
@@ -2227,12 +2227,12 @@ KoSvgTextProperties SvgTextCursorPropertyInterface::getInheritedProperties()
     return (d->parent->shape())? d->parent->shape()->textProperties(): KoSvgTextProperties();
 }
 
-void SvgTextCursorPropertyInterface::setPropertiesOnSelected(KoSvgTextProperties properties, QSet<KoSvgTextProperties::PropertyId> removeProperties)
+void SvgTextCursorPropertyInterface::setPropertiesOnSelected(KoSvgTextProperties properties, PkSet<KoSvgTextProperties::PropertyId> removeProperties)
 {
     d->parent->mergePropertiesIntoSelection(properties, removeProperties, true);
 }
 
-void SvgTextCursorPropertyInterface::setCharacterPropertiesOnSelected(KoSvgTextProperties properties, QSet<KoSvgTextProperties::PropertyId> removeProperties)
+void SvgTextCursorPropertyInterface::setCharacterPropertiesOnSelected(KoSvgTextProperties properties, PkSet<KoSvgTextProperties::PropertyId> removeProperties)
 {
     d->parent->mergePropertiesIntoSelection(properties, removeProperties, false, true);
 }

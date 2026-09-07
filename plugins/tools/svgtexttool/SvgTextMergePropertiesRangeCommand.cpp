@@ -13,7 +13,7 @@ SvgTextMergePropertiesRangeCommand::SvgTextMergePropertiesRangeCommand(KoSvgText
                                                                        const KoSvgTextProperties props,
                                                                        const int pos,
                                                                        const int anchor,
-                                                                       const QSet<KoSvgTextProperties::PropertyId> removeProperties,
+                                                                       const PkSet<KoSvgTextProperties::PropertyId> removeProperties,
                                                                        KUndo2Command *parent)
     : KUndo2Command(parent)
     , m_shape(shape)

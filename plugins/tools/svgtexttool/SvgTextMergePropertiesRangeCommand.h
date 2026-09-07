@@ -11,6 +11,7 @@
 
 #include "KoSvgTextProperties.h"
 #include <KoSvgTextShape.h>
+#include <PkSet.h>
 
 class KoSvgTextShape;
 class KoSvgTextProperties;
@@ -27,7 +28,7 @@ public:
     SvgTextMergePropertiesRangeCommand(KoSvgTextShape *shape,
                                        const KoSvgTextProperties props,
                                        const int pos, const int anchor,
-                                       const QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>(),
+                                       const PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>(),
                                        KUndo2Command *parent = 0);
     ~SvgTextMergePropertiesRangeCommand() override = default;
 
@@ -40,7 +41,7 @@ public:
 private:
     KoSvgTextShape *m_shape;
     KoSvgTextProperties m_props;
-    QSet<KoSvgTextProperties::PropertyId> m_removeProperties;
+    PkSet<KoSvgTextProperties::PropertyId> m_removeProperties;
 
     int m_pos;
     int m_anchor;

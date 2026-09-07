@@ -13,6 +13,9 @@
 #include <KoToolSelection.h>
 #include <QPainter>
 #include <KoShape.h>
+#include <PkList.h>
+#include <PkPoint.h>
+#include <PkSet.h>
 #include "kritatoolsvgtext_export.h"
 
 class KoCanvasBase;
@@ -143,7 +146,7 @@ public:
     void setPos(int pos, int anchor);
 
     /// Set the pos from a point. This currently does a search inside the text shape.
-    void setPosToPoint(QPointF point, bool moveAnchor = true);
+    void setPosToPoint(PkPointF point, bool moveAnchor = true);
 
     /// Get typeSettingMode handle for text;
     TypeSettingModeHandle typeSettingHandleAtPos(const QRectF regionOfInterest);
@@ -221,12 +224,12 @@ public:
      * @brief propertiesForRange
      * @return properties for the current range defined by the cursor pos and anchor.
      */
-    QList<KoSvgTextProperties> propertiesForRange() const;
+    PkList<KoSvgTextProperties> propertiesForRange() const;
     /**
      * @brief propertiesForShape
      * @return properties for the current shape.
      */
-    QList<KoSvgTextProperties> propertiesForShape() const;
+    PkList<KoSvgTextProperties> propertiesForShape() const;
 
     /**
      * @brief mergePropertiesIntoSelection
@@ -239,7 +242,7 @@ public:
      * @param paragraphOnly -- whether to apply to the paragraph.
      * @param selectWord -- whether to select the word if there's no selection.
      */
-    void mergePropertiesIntoSelection(const KoSvgTextProperties props, const QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>(), bool paragraphOnly = false, bool selectWord = false);
+    void mergePropertiesIntoSelection(const KoSvgTextProperties props, const PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>(), bool paragraphOnly = false, bool selectWord = false);
 
     /**
      * @brief removeSelection
@@ -397,11 +400,11 @@ class KRITATOOLSVGTEXT_EXPORT SvgTextCursorPropertyInterface : public KoSvgTextP
 public:
     SvgTextCursorPropertyInterface(SvgTextCursor *parent);
     ~SvgTextCursorPropertyInterface();
-    virtual QList<KoSvgTextProperties> getSelectedProperties() override;
-    virtual QList<KoSvgTextProperties> getCharacterProperties() override;
+    virtual PkList<KoSvgTextProperties> getSelectedProperties() override;
+    virtual PkList<KoSvgTextProperties> getCharacterProperties() override;
     virtual KoSvgTextProperties getInheritedProperties() override;
-    virtual void setPropertiesOnSelected(KoSvgTextProperties properties, QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>()) override;
-    virtual void setCharacterPropertiesOnSelected(KoSvgTextProperties properties, QSet<KoSvgTextProperties::PropertyId> removeProperties = QSet<KoSvgTextProperties::PropertyId>()) override;
+    virtual void setPropertiesOnSelected(KoSvgTextProperties properties, PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>()) override;
+    virtual void setCharacterPropertiesOnSelected(KoSvgTextProperties properties, PkSet<KoSvgTextProperties::PropertyId> removeProperties = PkSet<KoSvgTextProperties::PropertyId>()) override;
     virtual bool spanSelection() override;
     virtual bool characterPropertiesEnabled() override;
     void emitSelectionChange();
