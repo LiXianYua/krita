@@ -1,5 +1,6 @@
 set(kritashapemodel_SOURCES
     ../KisReferenceImage.cpp
+    ../PkImageRasterBackend.cpp
     ../kis_image_view_converter.cpp
     KisReferenceImagesLayer.cpp
     kis_shape_layer.cc

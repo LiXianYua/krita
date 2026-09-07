@@ -40,3 +40,9 @@ kis_add_tests(
     NAME_PREFIX libs-ui-
     LINK_LIBRARIES kritashapemodel kritaimpex kritatestsdk
 )
+
+kis_add_test(
+    PkImageRasterBackendTest.cpp
+    NAME_PREFIX libs-ui-
+    LINK_LIBRARIES kritashapemodel kritatestsdk
+)
