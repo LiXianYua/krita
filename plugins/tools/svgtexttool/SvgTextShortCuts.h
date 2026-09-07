@@ -27,9 +27,9 @@ public:
     static QStringList possibleActions();
     static bool configureAction(QAction *action, const QString &name);
 
-    static bool actionEnabled(QAction *action, const QList<KoSvgTextProperties> currentProperties);
+    static bool actionEnabled(QAction *action, const PkList<KoSvgTextProperties> currentProperties);
 
-    static KoSvgTextProperties getModifiedProperties(const QAction *action, QList<KoSvgTextProperties> currentProperties);
+    static KoSvgTextProperties getModifiedProperties(const QAction *action, PkList<KoSvgTextProperties> currentProperties);
 
 private:
 };

@@ -43,6 +43,7 @@
 #include <QInputMethodEvent>
 #include <QBuffer>
 #include <QWidget>
+#include <KLocalizedString>
 
 #ifdef Q_OS_ANDROID
 #include <config-qt-patches-present.h>
@@ -207,15 +208,15 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
     bool cursorVisible = false;
     bool hasFocus = false;
 
-    QPainterPath cursorShape;
-    QColor cursorColor;
-    QRectF oldCursorRect;
-    QLineF cursorCaret;
-    QLineF anchorCaret;
+    PkPainterPath cursorShape;
+    PkColor cursorColor;
+    PkRectF oldCursorRect;
+    PkLineF cursorCaret;
+    PkLineF anchorCaret;
     int cursorWidth = 1;
     bool drawCursorInAdditionToSelection = false;
-    QPainterPath selection;
-    QRectF oldSelectionRect;
+    PkPainterPath selection;
+    PkRectF oldSelectionRect;
 
 
     // This is used to adjust cursorpositions better on text-shape relayouts.
@@ -238,8 +239,8 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
     int preEditStart = -1; ///< Start of the preEdit string as a cursor pos.
     int preEditLength = -1; ///< Length of the preEditString.
     QVector<IMEDecorationInfo> styleMap; ///< Decoration info (underlines) for the preEdit string to differentiate it from regular text.
-    QPainterPath IMEDecoration; ///< The decorations for the current preedit string.
-    QRectF oldIMEDecorationRect; ///< Update Rectangle of previous decoration.
+    PkPainterPath IMEDecoration; ///< The decorations for the current preedit string.
+    PkRectF oldIMEDecorationRect; ///< Update Rectangle of previous decoration.
     bool blockQueryUpdates = false; ///< Block qApp->inputMethod->update(), enabled during the inputmethod event flow.
 
     SvgTextCursorPropertyInterface *interface{nullptr};
@@ -274,8 +275,8 @@ SvgTextCursor::SvgTextCursor(KoCanvasBase *canvas) :
                 this,
                 SLOT(updateInputMethodItemTransform()));
         d->resourceManagerAcyclicConnector.connectBackwardResourcePair(
-                    d->canvas->resourceManager(), SIGNAL(canvasResourceChanged(int,QVariant)),
-                    this, SLOT(canvasResourceChanged(int,QVariant)));
+                    d->canvas->resourceManager(), SIGNAL(canvasResourceChanged(int,PkVariant)),
+                    this, SLOT(canvasResourceChanged(int,PkVariant)));
         d->resourceManagerAcyclicConnector.connectForwardVoid(d->interface, SIGNAL(textCharacterSelectionChanged()), this, SLOT(updateCanvasResources()));
     }
 
@@ -530,8 +531,8 @@ bool SvgTextCursor::setDominantBaselineFromHandle(const TypeSettingModeHandle ha
         return false;
     }
     KoSvgTextProperties props;
-    props.setProperty(KoSvgTextProperties::DominantBaselineId, QVariant::fromValue(baseline));
-    props.setProperty(KoSvgTextProperties::AlignmentBaselineId, QVariant::fromValue(baseline));
+    props.setProperty(KoSvgTextProperties::DominantBaselineId, PkVariant::fromValue(baseline));
+    props.setProperty(KoSvgTextProperties::AlignmentBaselineId, PkVariant::fromValue(baseline));
     mergePropertiesIntoSelection(props);
     return true;
 }
@@ -740,23 +741,23 @@ void SvgTextCursor::copy() const
     if (d->shape) {
         int start = d->shape->indexForPos(pkMin(d->anchor, d->pos));
         int length = d->shape->indexForPos(pkMax(d->anchor, d->pos)) - start;
-        QString copied = d->shape->plainText().mid(start, length);
+        QString copied = toQString(d->shape->plainText().mid(start, length));
         std::unique_ptr<KoSvgTextShape> copy = d->shape->copyRange(start, length);
         QClipboard *cb = QApplication::clipboard();
 
         if (copy) {
             KoSvgTextShapeMarkupConverter converter(copy.get());
-            QString svg;
-            QString styles;
-            QString html;
+            PkString svg;
+            PkString styles;
+            PkString html;
             QMimeData *svgData = new QMimeData();
             if (converter.convertToSvg(&svg, &styles)) {
-                QString svgDoc = QString("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"2.0\">%1\n%2</svg>").arg(styles).arg(svg);
-                svgData->setData(QLatin1String("image/svg+xml"), svgDoc.toUtf8());
+                const PkString svgDoc = PkString("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"2.0\">") + styles + PkString("\n") + svg + PkString("</svg>");
+                svgData->setData(QLatin1String("image/svg+xml"), toQString(svgDoc).toUtf8());
             }
             svgData->setText(copied);
             if (converter.convertToHtml(&html))
-                svgData->setHtml(html);
+                svgData->setHtml(toQString(html));
             cb->setMimeData(svgData);
         } else {
             cb->setText(copied);
@@ -779,7 +780,7 @@ bool SvgTextCursor::pasteRichText()
         const QMimeData *mimeData = cb->mimeData();
         KoSvgPaste shapePaste;
         if (shapePaste.hasShapes()) {
-            QList<KoShape*> shapes = shapePaste.fetchShapes(d->shape->boundingRect(), 72.0);
+            PkList<KoShape*> shapes = shapePaste.fetchShapes(d->shape->boundingRect(), 72.0);
             while (shapes.size() > 0) {
                 KoSvgTextShape *textShape = dynamic_cast<KoSvgTextShape*>(shapes.takeFirst());
                 if (textShape) {
@@ -788,11 +789,11 @@ bool SvgTextCursor::pasteRichText()
                 }
             }
         } else if (mimeData->hasHtml()) {
-            QString html = mimeData->html();
+            PkString html = toPkString(mimeData->html());
             KoSvgTextShape *insert = new KoSvgTextShape();
             KoSvgTextShapeMarkupConverter converter(insert);
-            QString svg;
-            QString styles;
+            PkString svg;
+            PkString styles;
             if (converter.convertFromHtml(html, &svg, &styles)
                     && converter.convertFromSvg(svg, styles, d->shape->boundingRect(), 72.0) ) {
                 insertRichText(insert);
@@ -834,20 +835,20 @@ void SvgTextCursor::deselectText()
 
 static QColor bgColorForCaret(QColor c, int opacity = 64) {
 
-    return KisPaintingTweaks::luminosityCoarse(c) > 0.8? QColor(0, 0, 0, opacity) : QColor(255, 255, 255, opacity);
+    return KisPaintingTweaks::luminosityCoarse(toPkColor(c)) > 0.8? QColor(0, 0, 0, opacity) : QColor(255, 255, 255, opacity);
 }
 
 void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int decorationThickness, qreal handleRadius)
 {
     if (d->shape) {
         gc.save();
-        gc.setTransform(d->shape->absoluteTransformation(), true);
+        gc.setTransform(toQTransform(d->shape->absoluteTransformation()), true);
 
         if (d->pos != d->anchor && !d->typeSettingMode) {
             gc.save();
             gc.setOpacity(0.5);
             QBrush brush(selectionColor);
-            gc.fillPath(d->selection, brush);
+            gc.fillPath(toQPainterPath(d->selection), brush);
             gc.restore();
         }
 
@@ -855,15 +856,15 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
                 && d->cursorVisible) {
             QPen pen;
             pen.setCosmetic(true);
-            QColor c = d->cursorColor.isValid()? d->cursorColor: Qt::black;
+            QColor c = d->cursorColor.isValid()? toQColor(d->cursorColor): Qt::black;
             pen.setColor(bgColorForCaret(c));
             pen.setWidth((d->cursorWidth + 2) * decorationThickness);
             gc.setPen(pen);
-            gc.drawPath(d->cursorShape);
+            gc.drawPath(toQPainterPath(d->cursorShape));
             pen.setColor(c);
             pen.setWidth(d->cursorWidth * decorationThickness);
             gc.setPen(pen);
-            gc.drawPath(d->cursorShape);
+            gc.drawPath(toQPainterPath(d->cursorShape));
 
         }
 
@@ -871,7 +872,7 @@ void SvgTextCursor::paintDecorations(QPainter &gc, QColor selectionColor, int de
             gc.save();
             QBrush brush(selectionColor);
             gc.setOpacity(0.5);
-            gc.fillPath(d->IMEDecoration, brush);
+            gc.fillPath(toQPainterPath(d->IMEDecoration), brush);
             gc.restore();
         }
         if (d->typeSettingMode && d->drawTypeSettingHandle) {
@@ -952,8 +953,8 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImCursorRectangle:
         // The platform integration will always define the cursor as the 'left side' handle.
         if (d->shape) {
-            QPointF caret1(d->cursorCaret.p1());
-            QPointF caret2(d->cursorCaret.p2());
+            QPointF caret1(toQPointF(d->cursorCaret.p1()));
+            QPointF caret2(toQPointF(d->cursorCaret.p2()));
 
 
             QRectF rect = QRectF(caret1, caret2).normalized();
@@ -972,8 +973,8 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImAnchorRectangle:
         // The platform integration will always define the anchor as the 'right side' handle.
         if (d->shape) {
-            QPointF caret1(d->anchorCaret.p1());
-            QPointF caret2(d->anchorCaret.p2());
+            QPointF caret1(toQPointF(d->anchorCaret.p1()));
+            QPointF caret2(toQPointF(d->anchorCaret.p2()));
             QRectF rect = QRectF(caret1, caret2).normalized();
             if (rect.isEmpty()) {
                 if (rect.height() < 1) {
@@ -995,7 +996,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
         break;
     case Qt::ImSurroundingText:
         if (d->shape) {
-            QString surroundingText = d->shape->plainText();
+            QString surroundingText = toQString(d->shape->plainText());
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
             return surroundingText;
@@ -1003,7 +1004,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
         break;
     case Qt::ImCurrentSelection:
         if (d->shape) {
-            QString surroundingText = d->shape->plainText();
+            QString surroundingText = toQString(d->shape->plainText());
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
             int start = d->shape->indexForPos(pkMin(d->anchor, d->pos));
@@ -1014,7 +1015,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImTextBeforeCursor:
         if (d->shape) {
             int start = d->shape->indexForPos(d->pos);
-            QString surroundingText = d->shape->plainText();
+            QString surroundingText = toQString(d->shape->plainText());
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
             return surroundingText.left(start);
@@ -1023,7 +1024,7 @@ QVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
     case Qt::ImTextAfterCursor:
         if (d->shape) {
             int start = d->shape->indexForPos(d->pos);
-            QString surroundingText = d->shape->plainText();
+            QString surroundingText = toQString(d->shape->plainText());
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
             surroundingText.remove(preEditIndex, d->preEditLength);
             return surroundingText.right(start);
@@ -1072,7 +1073,7 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
     dbgTools << "Commit:"<< event->commitString() << "predit:"<< event->preeditString();
     dbgTools << "Replacement:"<< event->replacementStart() << event->replacementLength();
 
-    QRectF updateRect = d->shape? d->shape->boundingRect(): QRectF();
+    PkRectF updateRect = d->shape? d->shape->boundingRect(): PkRectF();
     SvgTextShapeManagerBlocker blocker(d->canvas->shapeManager());
 
     bool isGettingInput = !event->commitString().isEmpty() || !event->preeditString().isEmpty()
@@ -1084,7 +1085,7 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
         d->preEditCommand = 0;
         d->preEditStart = -1;
         d->preEditLength = -1;
-        updateRect |= d->shape? d->shape->boundingRect(): QRectF();
+        updateRect |= d->shape? d->shape->boundingRect(): PkRectF();
     }
 
     if (!d->shape || !isGettingInput) {
@@ -1299,10 +1300,10 @@ void SvgTextCursor::updateInputMethodItemTransform()
     QTransform inputItemTransform = widgetToWindow;
     QRectF inputRect = d->canvas->canvasWidget()->geometry();
     if (d->shape) {
-        inputRect = d->shape->outlineRect().normalized();
-        QTransform shapeTransform = d->shape->absoluteTransformation();
-        QTransform docToView = d->canvas->viewConverter()->documentToView();
-        QTransform viewToWidget = d->canvas->viewConverter()->viewToWidget();
+        inputRect = toQRectF(d->shape->outlineRect().normalized());
+        QTransform shapeTransform = toQTransform(d->shape->absoluteTransformation());
+        QTransform docToView = toQTransform(d->canvas->viewConverter()->documentToView());
+        QTransform viewToWidget = toQTransform(d->canvas->viewConverter()->viewToWidget());
         inputItemTransform = shapeTransform * docToView * viewToWidget * widgetToWindow;
         // Only mess with IME if we're actually the thing being typed at.
         if (d->hasFocus) {
@@ -1316,7 +1317,7 @@ void SvgTextCursor::updateInputMethodItemTransform()
     }
 }
 
-void SvgTextCursor::canvasResourceChanged(int key, const QVariant &value)
+void SvgTextCursor::canvasResourceChanged(int key, const PkVariant &value)
 {
     if (!d->shape || (key != KoCanvasResource::ForegroundColor && key != KoCanvasResource::BackgroundColor))
         return;
@@ -1324,16 +1325,16 @@ void SvgTextCursor::canvasResourceChanged(int key, const QVariant &value)
     KoSvgTextProperties props;
     KoSvgTextProperties shapeProps = hasSelection()? d->shape->propertiesForPos(pkMin(d->pos, d->anchor), true): d->shape->textProperties();
     if (key == KoCanvasResource::ForegroundColor) {
-        QSharedPointer<KoShapeBackground> bg(new KoColorBackground(value.value<KoColor>().toQColor()));
+        PkSharedPointer<KoShapeBackground> bg(new KoColorBackground(value.value<KoColor>().toQColor()));
         if (!bg->compareTo(shapeProps.background().data())
                 || !shapeProps.hasProperty(KoSvgTextProperties::FillId)) {
             props.setProperty(KoSvgTextProperties::FillId,
-                              QVariant::fromValue(KoSvgText::BackgroundProperty(bg)));
+                              PkVariant::fromValue(KoSvgText::BackgroundProperty(bg)));
         }
     } else if (key == KoCanvasResource::BackgroundColor) {
-        QSharedPointer<KoShapeStroke> stroke(new KoShapeStroke());
+        PkSharedPointer<KoShapeStroke> stroke(new KoShapeStroke());
         if (shapeProps.hasProperty(KoSvgTextProperties::StrokeId)) {
-            KoShapeStrokeSP shapeStroke = qSharedPointerDynamicCast<KoShapeStroke>(shapeProps.stroke());
+            KoShapeStrokeSP shapeStroke = pkSharedPointerDynamicCast<KoShapeStroke>(shapeProps.stroke());
             if (shapeStroke->isVisible()) {
                 stroke.reset(new KoShapeStroke(*shapeStroke));
             }
@@ -1341,7 +1342,7 @@ void SvgTextCursor::canvasResourceChanged(int key, const QVariant &value)
         stroke->setColor(value.value<KoColor>().toQColor());
         if (!stroke->compareFillTo(shapeProps.stroke().data()) || !shapeProps.hasProperty(KoSvgTextProperties::StrokeId)) {
             props.setProperty(KoSvgTextProperties::StrokeId,
-                              QVariant::fromValue(KoSvgText::StrokeProperty(stroke)));
+                              PkVariant::fromValue(KoSvgText::StrokeProperty(stroke)));
         }
     }
     if (!props.isEmpty()) {
@@ -1354,7 +1355,7 @@ void SvgTextCursor::propertyAction()
     QAction *action = dynamic_cast<QAction*>(QObject::sender());
     if (!action || !d->shape) return;
 
-    const QList<KoSvgTextProperties> p = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor));
+    const PkList<KoSvgTextProperties> p = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor));
     KoSvgTextProperties properties = SvgTextShortCuts::getModifiedProperties(action, p);
     if (properties.isEmpty()) return;
     mergePropertiesIntoSelection(properties);
@@ -1715,8 +1716,8 @@ void SvgTextCursor::updateCursor(bool firstUpdate)
         emit selectionChanged();
         updateTypeSettingDecoration();
     }
-    d->cursorColor = QColor();
-    d->cursorShape = d->shape? d->shape->cursorForPos(d->pos, d->cursorCaret, d->cursorColor): QPainterPath();
+    d->cursorColor = PkColor();
+    d->cursorShape = d->shape? d->shape->cursorForPos(d->pos, d->cursorCaret, d->cursorColor): PkPainterPath();
 
     if (!d->blockQueryUpdates) {
         qApp->inputMethod()->update(Qt::ImQueryInput);
@@ -1727,7 +1728,7 @@ void SvgTextCursor::updateCursor(bool firstUpdate)
         return;
     }
     if (d->shape && !firstUpdate) {
-        QRectF rect = d->shape->shapeToDocument(d->cursorShape.boundingRect());
+        PkRectF rect = d->shape->shapeToDocument(d->cursorShape.boundingRect());
         d->canvas->canvasController()->ensureVisibleDoc(rect, false);
     }
     if (d->canvas->canvasWidget()->hasFocus()) {
@@ -1758,20 +1759,20 @@ void SvgTextCursor::updateIMEDecoration()
         d->oldIMEDecorationRect = d->shape->shapeToDocument(d->IMEDecoration.boundingRect());
         KoSvgText::TextDecorations decor;
         decor.setFlag(KoSvgText::DecorationUnderline, true);
-        d->IMEDecoration = QPainterPath();
+        d->IMEDecoration = PkPainterPath();
         if (d->preEditCommand) {
             Q_FOREACH(const IMEDecorationInfo info,  d->styleMap) {
 
                 int startIndex = d->shape->indexForPos(d->preEditStart) + info.start;
                 int endIndex = startIndex + info.length;
-                qreal minimum = d->canvas->viewToDocument(QPointF(1, 1)).x();
+                qreal minimum = d->canvas->viewToDocument(PkPointF(1, 1)).x();
                 d->IMEDecoration.addPath(d->shape->underlines(d->shape->posForIndex(startIndex),
                                                               d->shape->posForIndex(endIndex),
                                                               info.decor,
                                                               info.style,
                                                               minimum,
                                                               info.thick));
-                d->IMEDecoration.setFillRule(Qt::WindingFill);
+                d->IMEDecoration.setFillRule(Pk::WindingFill);
             }
         }
 
@@ -2165,7 +2166,7 @@ void SvgTextCursor::updateCanvasResources()
         Q_FOREACH (QAction *action, d->actions) {
             // Blocking signals so that we don't get a toggle action while evaluating the checked-ness.
             action->blockSignals(true);
-            const QList<KoSvgTextProperties> r = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor), true);
+            const PkList<KoSvgTextProperties> r = d->shape->propertiesForRange(pkMin(d->pos, d->anchor), pkMax(d->pos, d->anchor), true);
             if (action->isCheckable() && SvgTextShortCuts::possibleActions().contains(action->objectName())) {
                 const bool checked = SvgTextShortCuts::actionEnabled(action, r);
                 if (action->isChecked() != checked) {

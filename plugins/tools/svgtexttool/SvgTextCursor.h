@@ -330,7 +330,7 @@ private Q_SLOTS:
      */
     void updateInputMethodItemTransform();
     /// Called when the canvas resources (foreground/background) change.
-    void canvasResourceChanged(int key, const QVariant &value);
+    void canvasResourceChanged(int key, const PkVariant &value);
     /// Called by the actions to execute a property change based on their data.
     void propertyAction();
     /// Called by the clear formatting action.

@@ -190,7 +190,7 @@ bool SvgTextShortCuts::configureAction(QAction *action, const QString &name)
  * @param currentProperties
  * @return whether any properties in the current properties pass the info.testValue.
  */
-bool testPropertyEnabled(const SvgTextShortcutInfo &info, const QList<KoSvgTextProperties> currentProperties)
+bool testPropertyEnabled(const SvgTextShortcutInfo &info, const PkList<KoSvgTextProperties> currentProperties)
 {
     const PkVariant testValue = info.type == SvgTextShortcutInfo::Toggle? info.testValue: info.value1;
 
@@ -247,7 +247,7 @@ bool testPropertyEnabled(const SvgTextShortcutInfo &info, const QList<KoSvgTextP
     return false;
 }
 
-bool SvgTextShortCuts::actionEnabled(QAction *action, const QList<KoSvgTextProperties> currentProperties) {
+bool SvgTextShortCuts::actionEnabled(QAction *action, const PkList<KoSvgTextProperties> currentProperties) {
     if (!action || !action->isCheckable() || !action->data().canConvert<SvgTextShortcutInfo>()) return action->isChecked();
     SvgTextShortcutInfo info = action->data().value<SvgTextShortcutInfo>();
 
@@ -263,7 +263,7 @@ bool SvgTextShortCuts::actionEnabled(QAction *action, const QList<KoSvgTextPrope
  * Handles toggling properties for getModifiedProperties
  * split out to make code easier to navigate.
  */
-PkVariant toggleProperty(SvgTextShortcutInfo info, bool checked, QList<KoSvgTextProperties> currentProperties) {
+PkVariant toggleProperty(SvgTextShortcutInfo info, bool checked, PkList<KoSvgTextProperties> currentProperties) {
     PkVariant newVal;
 
     if (currentProperties.isEmpty()) return newVal;
@@ -343,7 +343,7 @@ PkVariant adjustValue(SvgTextShortcutInfo info, PkVariant oldValue) {
     return newVal;
 }
 
-KoSvgTextProperties SvgTextShortCuts::getModifiedProperties(const QAction *action, QList<KoSvgTextProperties> currentProperties)
+KoSvgTextProperties SvgTextShortCuts::getModifiedProperties(const QAction *action, PkList<KoSvgTextProperties> currentProperties)
 {
     if (!action || !action->data().canConvert<SvgTextShortcutInfo>() || currentProperties.isEmpty()) return KoSvgTextProperties();
     SvgTextShortcutInfo info = action->data().value<SvgTextShortcutInfo>();
