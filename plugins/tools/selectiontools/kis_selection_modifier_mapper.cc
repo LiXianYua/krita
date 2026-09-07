@@ -23,15 +23,16 @@
 
 #include "kis_selection.h"
 #include "kis_selection_modifier_mapper.h"
-#include "kis_config_notifier.h"
 
-#include <KConfigGroup>
-#include <KSharedConfig>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
+
+void connectSelectionModifierMapperToConfigChanges(KisSelectionModifierMapper *mapper);
 
 // This numerically serializes modifier flags... let's keep it around for later.
 #if 0
 #include <bitset>
-PkString modifierBinary(Qt::KeyboardModifiers m)
+PkString modifierBinary(Pk::KeyboardModifiers m)
 {
     return PkString(std::bitset<sizeof(int) * 8>(m).to_string().c_str());
 };
@@ -39,21 +40,20 @@ PkString modifierBinary(Qt::KeyboardModifiers m)
 
 struct KisSelectionModifierMapper::Private
 {
-    SelectionAction map(Qt::KeyboardModifiers m);
+    SelectionAction map(Pk::KeyboardModifiers m);
     void slotConfigChanged();
-    Qt::KeyboardModifiers replaceModifiers;
-    Qt::KeyboardModifiers intersectModifiers;
-    Qt::KeyboardModifiers addModifiers;
-    Qt::KeyboardModifiers subtractModifiers;
-    Qt::KeyboardModifiers symmetricdifferenceModifiers;
+    Pk::KeyboardModifiers replaceModifiers;
+    Pk::KeyboardModifiers intersectModifiers;
+    Pk::KeyboardModifiers addModifiers;
+    Pk::KeyboardModifiers subtractModifiers;
+    Pk::KeyboardModifiers symmetricdifferenceModifiers;
 };
 
 
 KisSelectionModifierMapper::KisSelectionModifierMapper()
     : m_d(new Private)
 {
-    PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged,
-                      this, &KisSelectionModifierMapper::slotConfigChanged);
+    connectSelectionModifierMapperToConfigChanges(this);
     slotConfigChanged();
 }
 
@@ -77,28 +77,28 @@ void KisSelectionModifierMapper::slotConfigChanged()
 void KisSelectionModifierMapper::Private::slotConfigChanged()
 {
     const bool switchSelectionCtrlAlt =
-        KSharedConfig::openConfig()->group(PkString()).readEntry("switchSelectionCtrlAlt", false);
+        PkSharedConfig::openConfig()->group(PkString()).readEntry("switchSelectionCtrlAlt", false);
     if (!switchSelectionCtrlAlt) {
-        replaceModifiers   = Qt::ControlModifier;
-        intersectModifiers = (Qt::KeyboardModifiers)(Qt::AltModifier | Qt::ShiftModifier);
-        subtractModifiers  = Qt::AltModifier;
-        symmetricdifferenceModifiers = (Qt::KeyboardModifiers)(Qt::ControlModifier | Qt::AltModifier);
+        replaceModifiers   = Pk::ControlModifier;
+        intersectModifiers = Pk::AltModifier | Pk::ShiftModifier;
+        subtractModifiers  = Pk::AltModifier;
+        symmetricdifferenceModifiers = Pk::ControlModifier | Pk::AltModifier;
     } else {
-        replaceModifiers   = Qt::AltModifier;
-        intersectModifiers = (Qt::KeyboardModifiers)(Qt::ControlModifier | Qt::ShiftModifier);
-        subtractModifiers  = Qt::ControlModifier;
-        symmetricdifferenceModifiers = (Qt::KeyboardModifiers)(Qt::AltModifier | Qt::ControlModifier);
+        replaceModifiers   = Pk::AltModifier;
+        intersectModifiers = Pk::ControlModifier | Pk::ShiftModifier;
+        subtractModifiers  = Pk::ControlModifier;
+        symmetricdifferenceModifiers = Pk::AltModifier | Pk::ControlModifier;
     }
 
-    addModifiers = Qt::ShiftModifier;
+    addModifiers = Pk::ShiftModifier;
 }
 
-SelectionAction KisSelectionModifierMapper::map(Qt::KeyboardModifiers m)
+SelectionAction KisSelectionModifierMapper::map(Pk::KeyboardModifiers m)
 {
     return instance()->m_d->map(m);
 }
 
-SelectionAction KisSelectionModifierMapper::Private::map(Qt::KeyboardModifiers m)
+SelectionAction KisSelectionModifierMapper::Private::map(Pk::KeyboardModifiers m)
 {
     SelectionAction newAction = SELECTION_DEFAULT;
     if (m == replaceModifiers) {
