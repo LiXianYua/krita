@@ -16,9 +16,6 @@
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <kconfig.h>
-#include <kconfiggroup.h>
-
 class KoCanvasBase;
 class KisPaintInformation;
 class KisSpacingInformation;
@@ -73,7 +70,7 @@ public:
 
         setSection(ToolBoxSection::Fill);
         setPriority(4);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 
     ~KisToolSmartPatchFactory() override {}

@@ -8,6 +8,7 @@
 
 #include <PkPainter.h>
 #include <PkPainterPath.h>
+#include <PkPen.h>
 
 #include <klocalizedstring.h>
 #include <KoColor.h>
@@ -27,12 +28,11 @@
 #include "kis_datamanager.h"
 
 #include "KoColorSpaceRegistry.h"
-#include <KisCursorOverrideLock.h>
-
 #include "libs/image/kis_paint_device_debug_utils.h"
 
 #include "kis_paint_layer.h"
 #include "kis_algebra_2d.h"
+#include "kis_painting_tweaks.h"
 #include "kis_resources_snapshot.h"
 
 PkRect patchImage(KisPaintDeviceSP imageDev, KisPaintDeviceSP maskDev, int radius, int accuracy, KisSelectionSP selection);
@@ -72,8 +72,8 @@ KisToolSmartPatch::KisToolSmartPatch(KoCanvasBase * canvas)
     m_d->maskDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
     m_d->maskDevPainter.begin( m_d->maskDev );
 
-    m_d->maskDevPainter.setPaintColor(KoColor(Qt::magenta, m_d->maskDev->colorSpace()));
-    m_d->maskDevPainter.setBackgroundColor(KoColor(Qt::white, m_d->maskDev->colorSpace()));
+    m_d->maskDevPainter.setPaintColor(KoColor(Pk::magenta, m_d->maskDev->colorSpace()));
+    m_d->maskDevPainter.setBackgroundColor(KoColor(Pk::white, m_d->maskDev->colorSpace()));
     m_d->maskDevPainter.setFillStyle( KisPainter::FillStyleForegroundColor );
 }
 
@@ -118,7 +118,7 @@ void KisToolSmartPatch::addMaskPath( KoPointerEvent *event )
     PkPainterPath currentBrushOutline = brushOutline().translated(KisAlgebra2D::alignForZoom(imagePos, converter->effectivePhysicalZoom()));
     m_d->maskDevPainter.fillPainterPath(currentBrushOutline);
 
-    canvas()->updateCanvas(currentImage()->pixelToDocument(m_d->maskDev->exactBounds()));
+    canvas()->updateCanvas(currentImage()->pixelToDocument(PkRectF(m_d->maskDev->exactBounds())));
 }
 
 void KisToolSmartPatch::beginPrimaryAction(KoPointerEvent *event)
@@ -128,7 +128,7 @@ void KisToolSmartPatch::beginPrimaryAction(KoPointerEvent *event)
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
-            PkString("Select a paint layer to use this tool"),
+            toQString(PkString("Select a paint layer to use this tool")),
             {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         event->ignore();
         return;
@@ -152,8 +152,6 @@ void KisToolSmartPatch::endPrimaryAction(KoPointerEvent *event)
     addMaskPath(event);
     KisToolPaint::endPrimaryAction(event);
     setMode(KisTool::HOVER_MODE);
-
-    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
 
     const int accuracy = 50; //default accuracy - middle value
     const int patchRadius = 4; //default radius, which works well for most cases tested
@@ -240,15 +238,29 @@ void KisToolSmartPatch::paint(PkPainter &painter, const KoViewConverter &convert
     (void)converter;
 
     painter.save();
-    PkPainterPath path = pixelToView(m_d->brushOutline);
-    paintToolOutline(&painter, path);
+    const KisOptimizedBrushOutline path =
+        pixelToView(KisOptimizedBrushOutline(m_d->brushOutline));
+    PkPen antsPen;
+    PkPen outlinePen;
+    KisPaintingTweaks::initAntsPen(&antsPen, &outlinePen);
+    outlinePen.setWidth(decorationThickness());
+    antsPen.setWidth(decorationThickness());
+    painter.setBrush(Pk::NoBrush);
+    painter.setPen(outlinePen);
+    for (const PkPolygonF &polygon : path) {
+        painter.drawPolygon(polygon);
+    }
+    painter.setPen(antsPen);
+    for (const PkPolygonF &polygon : path) {
+        painter.drawPolygon(polygon);
+    }
     painter.restore();
 
     painter.save();
-    painter.setBrush(Qt::magenta);
+    painter.setBrush(PkColor(Pk::magenta));
     PkImage img = m_d->maskDev->convertToQImage(0);
     if( !img.size().isEmpty() ){
-        painter.drawImage(pixelToView(m_d->maskDev->exactBounds()), img);
+        painter.drawImage(pixelToView(PkRectF(m_d->maskDev->exactBounds())), img);
     }
     painter.restore();
 }
