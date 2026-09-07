@@ -504,25 +504,18 @@ bool KisSaveXmlVisitor::saveReferenceImagesLayer(KisExternalLayer *layer)
     auto *referencesLayer = dynamic_cast<KisReferenceImagesLayer*>(layer);
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(referencesLayer, false);
 
-    QDomDocument qtDocument;
-    QDomElement qtLayerElement = qtDocument.createElement(toQString(LAYER));
-    qtLayerElement.setAttribute(toQString(NODE_TYPE), toQString(REFERENCE_IMAGES_LAYER));
-    qtDocument.appendChild(qtLayerElement);
+    PkXmlElement layerElement = m_doc.createElement(LAYER);
+    layerElement.setAttribute(NODE_TYPE, REFERENCE_IMAGES_LAYER);
 
     int nextId = 0;
     Q_FOREACH(KoShape *shape, referencesLayer->shapes()) {
         auto *reference = dynamic_cast<KisReferenceImage*>(shape);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(reference, false);
-        reference->saveXml(qtDocument, qtLayerElement, nextId);
+        reference->saveXml(m_doc, layerElement, nextId);
         nextId++;
     }
-
-    const PkXmlElement convertedLayerElement = toPkXmlElement(qtLayerElement);
-    PkXmlElement layerElement = m_doc.importNode(convertedLayerElement, true).toElement();
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!layerElement.isNull(), false);
 
     m_elem.appendChild(layerElement);
     m_count++;
     return true;
 }
-

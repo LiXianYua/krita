@@ -36,18 +36,6 @@ static const char CURRENT_DTD_VERSION[] = "2.0";
 
 namespace {
 
-PkString toPkString(const QString &value)
-{
-    const QByteArray utf8 = value.toUtf8();
-    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
-}
-
-QString toQString(const PkString &value)
-{
-    const std::string utf8 = value.PkToUtf8();
-    return QString::fromUtf8(utf8.data(), int(utf8.size()));
-}
-
 // Minimal PNG (8-bit RGBA, non-interlaced) writer. The kernel has no Qt image
 // encoder, so the .kra thumbnail is produced directly with zlib.
 // Pixel packing follows PkImage::pixel(): uint32_t 0xAARRGGBB.
@@ -402,7 +390,7 @@ KisImportExportErrorCode KraConverter::savePreview(KoStore *store)
     if (preview.isNull() || preview.size().isEmpty()) {
         PkSize newSize = m_doc->savingImage()->bounds().size();
         // make sure dimensions are at least one pixel, because extreme aspect ratios may cause rounding to zero
-        newSize = newSize.scaled(PkSize(256, 256), Qt::KeepAspectRatio).expandedTo({1, 1});
+        newSize = newSize.scaled(PkSize(256, 256), Pk::KeepAspectRatio).expandedTo({1, 1});
         preview = PkImage(newSize, PkImage::Format_ARGB32);
         preview.fill(0u); // ARGB transparent black
     }

@@ -1234,7 +1234,7 @@ KisNodeSP KisKraLoader::loadShapeLayer(const PkXmlElement& element, KisImageSP i
     if (m_d->document) {
         shapeController = m_d->document->shapeController();
     }
-    KisShapeLayer* layer = new KisShapeLayer(shapeController, image, toQString(name), opacity);
+    KisShapeLayer* layer = new KisShapeLayer(shapeController, image, name, opacity);
     Q_CHECK_PTR(layer);
 
     return layer;
@@ -1539,7 +1539,7 @@ KisNodeSP KisKraLoader::loadReferenceImagesLayer(const PkXmlElement &elem, KisIm
 
     for (PkXmlElement child = elem.firstChildElement(); !child.isNull(); child = child.nextSiblingElement()) {
         if (child.nodeName().toLower() == "referenceimage") {
-            auto* reference = KisReferenceImage::fromXml(toQDomElement(child));
+            auto* reference = KisReferenceImage::fromXml(child);
             reference->setZIndex(layer->shapes().size());
             layer->addShape(reference);
         }

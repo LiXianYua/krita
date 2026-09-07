@@ -61,25 +61,6 @@
 
 using namespace KRA;
 
-namespace {
-PkString toPkString(const QString &value)
-{
-    const QByteArray utf8 = value.toUtf8();
-    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
-}
-
-QString toQString(const PkString &value)
-{
-    const std::string utf8 = value.PkToUtf8();
-    return QString::fromUtf8(utf8.data(), int(utf8.size()));
-}
-
-QRect toQRect(const PkRect &rect)
-{
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-}
-
 PkString expandEncodedDirectory(const PkString& _intern)
 {
 
@@ -126,9 +107,10 @@ KisKraLoadVisitor::KisKraLoadVisitor(KisImageSP image,
 
     if (!m_store->enterDirectory(m_name)) {
         PkStringList directories = m_store->directoryList();
-        dbgKrita << directories;
+        dbgKrita << toQString(directories.join(", "));
         if (directories.size() > 0) {
-            dbgFile << "Could not locate the directory, maybe some encoding issue? Grab the first directory, that'll be the image one." << m_name << directories;
+            dbgFile << "Could not locate the directory, maybe some encoding issue? Grab the first directory, that'll be the image one."
+                    << toQString(m_name) << toQString(directories.join(", "));
             m_name = directories.first();
         }
         else {
@@ -159,14 +141,14 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
 
             while (!loadReferenceImageWithDocumentFallback(reference, m_store)) {
                 if (reference->embed()) {
-                    m_errorMessages << toPkString(i18n("Could not load embedded reference image %1 ", reference->internalFile()));
+                    m_errorMessages << toPkString(i18n("Could not load embedded reference image %1 ", toQString(reference->internalFile())));
                     break;
                 } else {
                     PkString msg = toPkString(i18nc(
                         "@info",
                         "A reference image linked to an external file could not be loaded.\n\n"
                         "Path: %1\n\n"
-                        "Do you want to select another location?", reference->filename()));
+                        "Do you want to select another location?", toQString(reference->filename())));
 
                     PkString url;
                     if (m_feedbackInterface) {
@@ -179,7 +161,7 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
                     if (url.isEmpty()) {
                         break;
                     } else {
-                        reference->setFilename(toQString(url));
+                        reference->setFilename(url);
                         reference->setEmbed(false);
                     }
                 }
@@ -192,15 +174,15 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
             return false;
         }
 
-        QStringList vectorWarnings;
+        PkStringList vectorWarnings;
 
         m_store->pushDirectory();
         m_store->enterDirectory(getLocation(layer, DOT_SHAPE_LAYER)) ;
         result =  shapeLayer->loadLayer(m_store, &vectorWarnings);
         m_store->popDirectory();
 
-        for (const QString &warning : vectorWarnings) {
-            m_warningMessages << toPkString(warning);
+        for (const PkString &warning : vectorWarnings) {
+            m_warningMessages << warning;
         }
     }
 
@@ -786,7 +768,7 @@ bool KisKraLoadVisitor::loadSelection(const PkString& location, KisSelectionSP d
 
         KisShapeSelection* shapeSelection = new KisShapeSelection(m_shapeController, dstSelection.data());
         dstSelection->convertToVectorSelectionNoUndo(shapeSelection);
-        result = shapeSelection->loadSelection(m_store, toQRect(m_image->bounds()));
+        result = shapeSelection->loadSelection(m_store, m_image->bounds());
 
         /**
          * We need to explicitly call updateProjection() here, because

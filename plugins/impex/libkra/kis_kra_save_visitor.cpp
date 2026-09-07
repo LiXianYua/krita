@@ -71,10 +71,6 @@ QString toQStringArgument(const PkString &value)
     return QString::fromUtf8(utf8.data(), int(utf8.size()));
 }
 
-QRect toQRect(const PkRect &rect)
-{
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
 }
 
 KisKraSaveVisitor::KisKraSaveVisitor(KoStore *store, const PkString & name, PkMap<const KisNode*, PkString> nodeFileNames)
@@ -103,18 +99,14 @@ bool KisKraSaveVisitor::visit(KisExternalLayer * layer)
     bool result = false;
     if (auto* referencesLayer = dynamic_cast<KisReferenceImagesLayer*>(layer)) {
         result = true;
-        PkList<KoShape *> shapes;
-        const QList<KoShape *> qtShapes = referencesLayer->shapes();
-        for (KoShape *shape : qtShapes) {
-            shapes.append(shape);
-        }
+        PkList<KoShape *> shapes = referencesLayer->shapes();
         std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
         Q_FOREACH(KoShape *shape, shapes) {
             auto *reference = dynamic_cast<KisReferenceImage*>(shape);
             KIS_ASSERT_RECOVER_RETURN_VALUE(reference, false);
             bool saved = reference->saveImage(m_store);
             if (!saved) {
-                m_errorMessages << toPkMessage(i18n("Failed to save reference image %1.", reference->internalFile()));
+                m_errorMessages << toPkMessage(i18n("Failed to save reference image %1.", toQStringArgument(reference->internalFile())));
                 result = false;
             }
         }
@@ -495,7 +487,7 @@ bool KisKraSaveVisitor::saveSelection(KisNode* node)
                 retval = false;
             }
 
-            if (retval && !shapeSelection->saveSelection(m_store, toQRect(node->image()->bounds()))) {
+            if (retval && !shapeSelection->saveSelection(m_store, node->image()->bounds())) {
                 m_errorMessages << toPkMessage(i18n("Failed to save the vector selection data for layer %1.", toQStringArgument(node->name())));
                 retval = false;
             }
