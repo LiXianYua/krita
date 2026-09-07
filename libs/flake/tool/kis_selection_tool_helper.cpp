@@ -10,7 +10,7 @@
 
 
 #include <kundo2command.h>
-#include <QTimer>
+#include <PkThreadCallQueue.h>
 #include <QIcon>
 
 #include <KoCanvasBase.h>
@@ -381,7 +381,7 @@ bool KisSelectionToolHelper::tryDeselectCurrentSelection(const PkRectF selection
         // Queueing this action to ensure we avoid a race condition when unlocking the node system
         const KisImageSP image = m_image;
         const KisNodeSP activeNode = m_activeNode;
-        QTimer::singleShot(0, m_canvas, [image, activeNode]() {
+        PkThreadCallQueue::post(m_guiContext.thread(), [image, activeNode]() {
             KisSelectionSP selection =
                 KisSelectionUtils::activeSelectionForNode(image, activeNode);
             if (selection) {
@@ -391,7 +391,7 @@ bool KisSelectionToolHelper::tryDeselectCurrentSelection(const PkRectF selection
                     KisStrokeJobData::SEQUENTIAL,
                     KisStrokeJobData::EXCLUSIVE);
             }
-        });
+        }, m_guiContext.callLifetime());
         result = true;
     }
 
