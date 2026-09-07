@@ -10,19 +10,45 @@
 #include "kis_grid_interpolation_tools.h"
 #include "kis_green_coordinates_math.h"
 
-#include <QPainter>
-
 #include "KoColor.h"
 #include "kis_selection.h"
 #include "kis_painter.h"
 #include "kis_image.h"
 #include "krita_utils.h"
 
-#include <qnumeric.h>
+namespace {
+
+uint32_t sourceOver(uint32_t destination, uint32_t source)
+{
+    const uint32_t sourceAlpha = source >> 24;
+    if (sourceAlpha == 0) return destination;
+    if (sourceAlpha == 255) return source;
+
+    const uint32_t destinationAlpha = destination >> 24;
+    const uint32_t inverseSourceAlpha = 255 - sourceAlpha;
+    const uint32_t outputAlpha =
+        sourceAlpha + (destinationAlpha * inverseSourceAlpha + 127) / 255;
+
+    auto blendChannel = [&](int shift) {
+        const uint32_t sourceChannel = (source >> shift) & 0xff;
+        const uint32_t destinationChannel = (destination >> shift) & 0xff;
+        const uint32_t premultiplied =
+            sourceChannel * sourceAlpha +
+            (destinationChannel * destinationAlpha * inverseSourceAlpha + 127) / 255;
+        return (premultiplied + outputAlpha / 2) / outputAlpha;
+    };
+
+    return outputAlpha << 24 |
+           blendChannel(16) << 16 |
+           blendChannel(8) << 8 |
+           blendChannel(0);
+}
+
+}
 
 struct KisCageTransformWorker::Private
 {
-    Private(const QVector<QPointF> &_origCage,
+    Private(const PkVector<PkPointF> &_origCage,
             KoUpdater *_progress,
             int _pixelPrecision)
         : origCage(_origCage),
@@ -31,46 +57,46 @@ struct KisCageTransformWorker::Private
     {
     }
 
-    QRect srcBounds;
+    PkRect srcBounds;
 
-    QImage srcImage;
-    QPointF srcImageOffset;
+    PkImage srcImage;
+    PkPointF srcImageOffset;
 
-    QVector<QPointF> origCage;
-    QVector<QPointF> transfCage;
+    PkVector<PkPointF> origCage;
+    PkVector<PkPointF> transfCage;
     KoUpdater *progress;
     int pixelPrecision;
 
-    QVector<int> allToValidPointsMap;
-    QVector<QPointF> validPoints;
+    PkVector<int> allToValidPointsMap;
+    PkVector<PkPointF> validPoints;
 
     /**
      * Contains all points of the grid including non-defined
      * points (the ones which are placed outside the cage).
      */
-    QVector<QPointF> allSrcPoints;
+    PkVector<PkPointF> allSrcPoints;
 
     KisGreenCoordinatesMath cage;
 
-    QSize gridSize;
+    PkSize gridSize;
 
     bool isGridEmpty() const {
         return allSrcPoints.isEmpty();
     }
 
 
-    QVector<QPointF> calculateTransformedPoints();
+    PkVector<PkPointF> calculateTransformedPoints();
 
-    inline QVector<int> calculateMappedIndexes(int col, int row,
+    inline PkVector<int> calculateMappedIndexes(int col, int row,
                                                int *numExistingPoints);
 
-    int tryGetValidIndex(const QPoint &cellPt);
+    int tryGetValidIndex(const PkPoint &cellPt);
 
     struct MapIndexesOp;
 };
 
-KisCageTransformWorker::KisCageTransformWorker(const QRect &deviceNonDefaultRegion,
-                                               const QVector<QPointF> &origCage,
+KisCageTransformWorker::KisCageTransformWorker(const PkRect &deviceNonDefaultRegion,
+                                               const PkVector<PkPointF> &origCage,
                                                KoUpdater *progress,
                                                int pixelPrecision)
     : m_d(new Private(origCage, progress, pixelPrecision))
@@ -78,30 +104,30 @@ KisCageTransformWorker::KisCageTransformWorker(const QRect &deviceNonDefaultRegi
     m_d->srcBounds = deviceNonDefaultRegion;
 }
 
-KisCageTransformWorker::KisCageTransformWorker(const QImage &srcImage,
-                                               const QPointF &srcImageOffset,
-                                               const QVector<QPointF> &origCage,
+KisCageTransformWorker::KisCageTransformWorker(const PkImage &srcImage,
+                                               const PkPointF &srcImageOffset,
+                                               const PkVector<PkPointF> &origCage,
                                                KoUpdater *progress,
                                                int pixelPrecision)
     : m_d(new Private(origCage, progress, pixelPrecision))
 {
     m_d->srcImage = srcImage;
     m_d->srcImageOffset = srcImageOffset;
-    m_d->srcBounds = QRectF(m_d->srcImageOffset, m_d->srcImage.size()).toAlignedRect();
+    m_d->srcBounds = PkRectF(m_d->srcImageOffset, m_d->srcImage.size()).toAlignedRect();
 }
 
 KisCageTransformWorker::~KisCageTransformWorker()
 {
 }
 
-void KisCageTransformWorker::setTransformedCage(const QVector<QPointF> &transformedCage)
+void KisCageTransformWorker::setTransformedCage(const PkVector<PkPointF> &transformedCage)
 {
     m_d->transfCage = transformedCage;
 }
 
 struct PointsFetcherOp
 {
-    PointsFetcherOp(const QPolygonF &cagePolygon)
+    PointsFetcherOp(const PkPolygonF &cagePolygon)
         : m_cagePolygon(cagePolygon),
           m_numValidPoints(0)
     {
@@ -117,7 +143,7 @@ struct PointsFetcherOp
         Q_UNUSED(colIndex);
         Q_UNUSED(rowIndex);
 
-        QPointF pt(col, row);
+        PkPointF pt(col, row);
 
         if (m_cagePolygon.containsPoint(pt, Pk::OddEvenFill)) {
             KisAlgebra2D::adjustIfOnPolygonBoundary(m_cagePolygon, m_polygonDirection, &pt);
@@ -134,9 +160,9 @@ struct PointsFetcherOp
     inline void nextLine() {
     }
 
-    QVector<bool> m_pointValid;
-    QVector<QPointF> m_points;
-    QPolygonF m_cagePolygon;
+    PkVector<bool> m_pointValid;
+    PkVector<PkPointF> m_points;
+    PkPolygonF m_cagePolygon;
     int m_polygonDirection;
     int m_numValidPoints;
 };
@@ -145,9 +171,9 @@ void KisCageTransformWorker::prepareTransform()
 {
     if (m_d->origCage.size() < 3) return;
 
-    const QPolygonF srcPolygon(m_d->origCage);
+    const PkPolygonF srcPolygon(m_d->origCage);
 
-    QRect srcBounds = m_d->srcBounds;
+    PkRect srcBounds = m_d->srcBounds;
     srcBounds &= srcPolygon.boundingRect().toAlignedRect();
 
     // no need to process empty devices
@@ -168,7 +194,7 @@ void KisCageTransformWorker::prepareTransform()
     {
         int validIdx = 0;
         for (int i = 0; i < numPoints; i++) {
-            const QPointF &pt = pointsOp.m_points[i];
+            const PkPointF &pt = pointsOp.m_points[i];
             const bool pointValid = pointsOp.m_pointValid[i];
 
             if (pointValid) {
@@ -185,12 +211,12 @@ void KisCageTransformWorker::prepareTransform()
     m_d->cage.precalculateGreenCoordinates(m_d->origCage, m_d->validPoints);
 }
 
-QVector<QPointF> KisCageTransformWorker::Private::calculateTransformedPoints()
+PkVector<PkPointF> KisCageTransformWorker::Private::calculateTransformedPoints()
 {
     cage.generateTransformedCageNormals(transfCage);
 
     const int numValidPoints = validPoints.size();
-    QVector<QPointF> transformedPoints(numValidPoints);
+    PkVector<PkPointF> transformedPoints(numValidPoints);
 
     for (int i = 0; i < numValidPoints; i++) {
         transformedPoints[i] = cage.transformedPoint(i, transfCage);
@@ -206,12 +232,12 @@ QVector<QPointF> KisCageTransformWorker::Private::calculateTransformedPoints()
     return transformedPoints;
 }
 
-inline QVector<int> KisCageTransformWorker::Private::
+inline PkVector<int> KisCageTransformWorker::Private::
 calculateMappedIndexes(int col, int row,
                        int *numExistingPoints)
 {
     *numExistingPoints = 0;
-    QVector<int> cellIndexes =
+    PkVector<int> cellIndexes =
         GridIterationTools::calculateCellIndexes(col, row, gridSize);
 
     for (int i = 0; i < 4; i++) {
@@ -225,7 +251,7 @@ calculateMappedIndexes(int col, int row,
 
 
 int KisCageTransformWorker::Private::
-tryGetValidIndex(const QPoint &cellPt)
+tryGetValidIndex(const PkPoint &cellPt)
 {
     int index = -1;
     if (cellPt.x() >= 0 &&
@@ -244,50 +270,50 @@ struct KisCageTransformWorker::Private::MapIndexesOp {
 
     MapIndexesOp(KisCageTransformWorker::Private *d)
         : m_d(d),
-          m_srcCagePolygon(QPolygonF(m_d->origCage))
+          m_srcCagePolygon(PkPolygonF(m_d->origCage))
     {
     }
 
-    inline QVector<int> calculateMappedIndexes(int col, int row,
+    inline PkVector<int> calculateMappedIndexes(int col, int row,
                                                int *numExistingPoints) const {
 
         return m_d->calculateMappedIndexes(col, row, numExistingPoints);
     }
 
-    inline int tryGetValidIndex(const QPoint &cellPt) const {
+    inline int tryGetValidIndex(const PkPoint &cellPt) const {
         return m_d->tryGetValidIndex(cellPt);
     }
 
-    inline QPointF getSrcPointForce(const QPoint &cellPt) const {
+    inline PkPointF getSrcPointForce(const PkPoint &cellPt) const {
         return m_d->allSrcPoints[GridIterationTools::pointToIndex(cellPt, m_d->gridSize)];
     }
 
-    inline const QPolygonF srcCropPolygon() const {
+    inline const PkPolygonF srcCropPolygon() const {
         return m_srcCagePolygon;
     }
 
     KisCageTransformWorker::Private *m_d;
-    QPolygonF m_srcCagePolygon;
+    PkPolygonF m_srcCagePolygon;
 };
 
-QRect KisCageTransformWorker::approxChangeRect(const QRect &rc)
+PkRect KisCageTransformWorker::approxChangeRect(const PkRect &rc)
 {
     const qreal margin = 0.30;
 
-    QVector<QPointF> cageSamplePoints;
+    PkVector<PkPointF> cageSamplePoints;
 
     const int minStep = 3;
     const int maxSamples = 200;
 
     const int totalPixels = rc.width() * rc.height();
     const int realStep = pkMax(minStep, totalPixels / maxSamples);
-    const QPolygonF cagePolygon(m_d->origCage);
+    const PkPolygonF cagePolygon(m_d->origCage);
 
     for (int i = 0; i < totalPixels; i += realStep) {
         const int x = rc.x() + i % rc.width();
         const int y = rc.y() + i / rc.width();
 
-        const QPointF pt(x, y);
+        const PkPointF pt(x, y);
         if (cagePolygon.containsPoint(pt, Pk::OddEvenFill)) {
             cageSamplePoints << pt;
         }
@@ -302,7 +328,7 @@ QRect KisCageTransformWorker::approxChangeRect(const QRect &rc)
     cage.generateTransformedCageNormals(m_d->transfCage);
 
     const int numValidPoints = cageSamplePoints.size();
-    QVector<QPointF> transformedPoints(numValidPoints);
+    PkVector<PkPointF> transformedPoints(numValidPoints);
 
     for (int i = 0; i < numValidPoints; i++) {
         transformedPoints[i] = cage.transformedPoint(i, m_d->transfCage);
@@ -314,13 +340,13 @@ QRect KisCageTransformWorker::approxChangeRect(const QRect &rc)
         }
     }
 
-    QRect resultRect =
+    PkRect resultRect =
         KisAlgebra2D::approximateRectFromPoints(transformedPoints).toAlignedRect();
 
     return KisAlgebra2D::blowRect(resultRect | rc, margin);
 }
 
-QRect KisCageTransformWorker::approxNeedRect(const QRect &rc, const QRect &fullBounds)
+PkRect KisCageTransformWorker::approxNeedRect(const PkRect &rc, const PkRect &fullBounds)
 {
     Q_UNUSED(rc);
     return fullBounds;
@@ -334,7 +360,7 @@ void KisCageTransformWorker::run(KisPaintDeviceSP srcDevice, KisPaintDeviceSP ds
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_d->origCage.size() == m_d->transfCage.size());
     KIS_SAFE_ASSERT_RECOVER_RETURN(*srcDevice->colorSpace() == *dstDevice->colorSpace());
 
-    QVector<QPointF> transformedPoints = m_d->calculateTransformedPoints();
+    PkVector<PkPointF> transformedPoints = m_d->calculateTransformedPoints();
 
     KisPaintDeviceSP tempDevice = new KisPaintDevice(dstDevice->colorSpace());
 
@@ -360,61 +386,75 @@ void KisCageTransformWorker::run(KisPaintDeviceSP srcDevice, KisPaintDeviceSP ds
                                                       m_d->validPoints,
                                                       transformedPoints);
 
-    QRect rect = tempDevice->extent();
+    PkRect rect = tempDevice->extent();
     KisPainter gc(dstDevice);
     gc.bitBlt(rect.topLeft(), tempDevice, rect);
 }
 
-QImage KisCageTransformWorker::runOnQImage(QPointF *newOffset)
+PkImage KisCageTransformWorker::runOnImage(PkPointF *newOffset)
 {
-    if (m_d->isGridEmpty()) return QImage();
+    if (m_d->isGridEmpty()) return PkImage();
 
     KIS_ASSERT_RECOVER(m_d->origCage.size() >= 3 &&
                        m_d->origCage.size() == m_d->transfCage.size()) {
-        return QImage();
+        return PkImage();
     }
 
     KIS_ASSERT_RECOVER(!m_d->srcImage.isNull()) {
-        return QImage();
+        return PkImage();
     }
 
-    KIS_ASSERT_RECOVER(m_d->srcImage.format() == QImage::Format_ARGB32) {
-        return QImage();
+    KIS_ASSERT_RECOVER(m_d->srcImage.format() == PkImage::Format_ARGB32) {
+        return PkImage();
     }
 
-    QVector<QPointF> transformedPoints = m_d->calculateTransformedPoints();
+    PkVector<PkPointF> transformedPoints = m_d->calculateTransformedPoints();
 
-    QRectF dstBounds;
-    Q_FOREACH (const QPointF &pt, transformedPoints) {
+    PkRectF dstBounds;
+    for (const PkPointF &pt : transformedPoints) {
         KisAlgebra2D::accumulateBounds(pt, &dstBounds);
     }
 
-    const QRectF srcBounds(m_d->srcImageOffset, m_d->srcImage.size());
+    const PkRectF srcBounds(m_d->srcImageOffset, m_d->srcImage.size());
     dstBounds |= srcBounds;
 
-    QPointF dstQImageOffset = dstBounds.topLeft();
-    *newOffset = dstQImageOffset;
+    PkPointF dstImageOffset = dstBounds.topLeft();
+    *newOffset = dstImageOffset;
 
-    QRect dstBoundsI = dstBounds.toAlignedRect();
+    PkRect dstBoundsI = dstBounds.toAlignedRect();
 
 
-    QImage dstImage(dstBoundsI.size(), m_d->srcImage.format());
+    PkImage dstImage(dstBoundsI.size(), m_d->srcImage.format());
     dstImage.fill(0);
 
-    QImage tempImage(dstImage);
+    PkImage tempImage(dstImage);
 
     {
-        // we shouldn't create too many painters
-        QPainter gc(&dstImage);
-        gc.drawImage(-dstQImageOffset + m_d->srcImageOffset, m_d->srcImage);
-        gc.setBrush(Pk::black);
-        gc.setPen(Pk::black);
-        gc.setCompositionMode(QPainter::CompositionMode_Clear);
-        gc.drawPolygon(QPolygonF(m_d->origCage).translated(-dstQImageOffset));
-        gc.end();
+        const PkPoint imageOffset =
+            (m_d->srcImageOffset - dstImageOffset).toPoint();
+        for (int y = 0; y < m_d->srcImage.height(); ++y) {
+            for (int x = 0; x < m_d->srcImage.width(); ++x) {
+                const PkPoint destination = PkPoint(x, y) + imageOffset;
+                if (dstImage.rect().contains(destination)) {
+                    dstImage.setPixel(destination.x(), destination.y(),
+                                      m_d->srcImage.pixel(x, y));
+                }
+            }
+        }
+
+        const PkPolygonF localCage = PkPolygonF(m_d->origCage).translated(
+            PkPointF(-dstImageOffset.x(), -dstImageOffset.y()));
+        const PkRect cageBounds = localCage.boundingRect().toAlignedRect() & dstImage.rect();
+        for (int y = cageBounds.top(); y <= cageBounds.bottom(); ++y) {
+            for (int x = cageBounds.left(); x <= cageBounds.right(); ++x) {
+                if (localCage.containsPoint(PkPointF(x + 0.5, y + 0.5), Pk::OddEvenFill)) {
+                    dstImage.setPixel(x, y, 0);
+                }
+            }
+        }
     }
 
-    GridIterationTools::QImagePolygonOp polygonOp(m_d->srcImage, tempImage, m_d->srcImageOffset, dstQImageOffset);
+    GridIterationTools::PkImagePolygonOp polygonOp(m_d->srcImage, tempImage, m_d->srcImageOffset, dstImageOffset);
     Private::MapIndexesOp indexesOp(m_d.data());
     GridIterationTools::iterateThroughGrid
         <GridIterationTools::IncompletePolygonPolicy>(polygonOp, indexesOp,
@@ -422,11 +462,12 @@ QImage KisCageTransformWorker::runOnQImage(QPointF *newOffset)
                                                       m_d->validPoints,
                                                       transformedPoints);
 
-    {
-        QPainter gc(&dstImage);
-        gc.drawImage(QPoint(), tempImage);
+    for (int y = 0; y < dstImage.height(); ++y) {
+        for (int x = 0; x < dstImage.width(); ++x) {
+            dstImage.setPixel(x, y,
+                              sourceOver(dstImage.pixel(x, y), tempImage.pixel(x, y)));
+        }
     }
 
     return dstImage;
 }
-

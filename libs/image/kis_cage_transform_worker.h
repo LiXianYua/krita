@@ -7,40 +7,43 @@
 #ifndef __KIS_CAGE_TRANSFORM_WORKER_H
 #define __KIS_CAGE_TRANSFORM_WORKER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkVector.h>
 #include <kritaimage_export.h>
 #include <kis_types.h>
 
-class QImage;
+#include <PkImage.h>
 
 class KRITAIMAGE_EXPORT KisCageTransformWorker
 {
 public:
-    KisCageTransformWorker(const QRect &deviceNonDefaultRegion,
-                           const QVector<QPointF> &origCage,
+    KisCageTransformWorker(const PkRect &deviceNonDefaultRegion,
+                           const PkVector<PkPointF> &origCage,
                            KoUpdater *progress,
                            int pixelPrecision = 8);
 
-    KisCageTransformWorker(const QImage &srcImage,
-                           const QPointF &srcImageOffset,
-                           const QVector<QPointF> &origCage,
+    KisCageTransformWorker(const PkImage &srcImage,
+                           const PkPointF &srcImageOffset,
+                           const PkVector<PkPointF> &origCage,
                            KoUpdater *progress,
                            int pixelPrecision = 8);
 
     ~KisCageTransformWorker();
 
     void prepareTransform();
-    void setTransformedCage(const QVector<QPointF> &transformedCage);
+    void setTransformedCage(const PkVector<PkPointF> &transformedCage);
     void run(KisPaintDeviceSP srcDevice, KisPaintDeviceSP dstDevice);
 
-    QRect approxChangeRect(const QRect &rc);
-    QRect approxNeedRect(const QRect &rc, const QRect &fullBounds);
+    PkRect approxChangeRect(const PkRect &rc);
+    PkRect approxNeedRect(const PkRect &rc, const PkRect &fullBounds);
 
-    QImage runOnQImage(QPointF *newOffset);
+    PkImage runOnImage(PkPointF *newOffset);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_CAGE_TRANSFORM_WORKER_H */

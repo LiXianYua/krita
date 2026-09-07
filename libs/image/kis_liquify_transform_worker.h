@@ -7,23 +7,23 @@
 #ifndef __KIS_LIQUIFY_TRANSFORM_WORKER_H
 #define __KIS_LIQUIFY_TRANSFORM_WORKER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkRect.h>
+#include <PkPoint.h>
+#include <PkSize.h>
+#include <PkTransform.h>
+#include <PkVector.h>
+#include <PkImage.h>
+#include <PkXmlElement.h>
 #include <boost/operators.hpp>
 
 #include <kritaimage_export.h>
 #include <kis_types.h>
 
-class QImage;
-class QRect;
-class QSize;
-class QTransform;
-class QDomElement;
-
-
 class KRITAIMAGE_EXPORT KisLiquifyTransformWorker : boost::equality_comparable<KisLiquifyTransformWorker>
 {
 public:
-    KisLiquifyTransformWorker(const QRect &srcBounds,
+    KisLiquifyTransformWorker(const PkRect &srcBounds,
                               KoUpdater *progress,
                               int pixelPrecision = 8);
 
@@ -35,55 +35,55 @@ public:
     bool isIdentity() const;
 
 
-    int pointToIndex(const QPoint &cellPt);
-    QSize gridSize() const;
+    int pointToIndex(const PkPoint &cellPt);
+    PkSize gridSize() const;
 
-    void translatePoints(const QPointF &base,
-                         const QPointF &offset,
+    void translatePoints(const PkPointF &base,
+                         const PkPointF &offset,
                          qreal sigma,
                          bool useWashMode,
                          qreal flow);
 
-    void scalePoints(const QPointF &base,
+    void scalePoints(const PkPointF &base,
                      qreal scale,
                      qreal sigma,
                      bool useWashMode,
                      qreal flow);
 
-    void rotatePoints(const QPointF &base,
+    void rotatePoints(const PkPointF &base,
                       qreal angle,
                       qreal sigma,
                       bool useWashMode,
                       qreal flow);
 
-    void undoPoints(const QPointF &base,
+    void undoPoints(const PkPointF &base,
                     qreal amount,
                     qreal sigma);
 
-    const QVector<QPointF>& originalPoints() const;
-    QVector<QPointF>& transformedPoints();
+    const PkVector<PkPointF>& originalPoints() const;
+    PkVector<PkPointF>& transformedPoints();
 
     void run(KisPaintDeviceSP srcDevice, KisPaintDeviceSP dstDevice);
-    QImage runOnQImage(const QImage &srcImage,
-                       const QPointF &srcImageOffset,
-                       const QTransform &imageToThumbTransform,
-                       QPointF *newOffset);
+    PkImage runOnImage(const PkImage &srcImage,
+                       const PkPointF &srcImageOffset,
+                       const PkTransform &imageToThumbTransform,
+                       PkPointF *newOffset);
 
-    void toXML(QDomElement *e) const;
-    static KisLiquifyTransformWorker* fromXML(const QDomElement &e);
+    void toXML(PkXmlElement *e) const;
+    static KisLiquifyTransformWorker* fromXML(const PkXmlElement &e);
 
-    void translate(const QPointF &offset);
-    void translateDstSpace(const QPointF &offset);
+    void translate(const PkPointF &offset);
+    void translateDstSpace(const PkPointF &offset);
 
-    QRect approxChangeRect(const QRect &rc);
-    QRect approxNeedRect(const QRect &rc, const QRect &fullBounds);
-    QRectF accumulatedStrokesBounds() const;
+    PkRect approxChangeRect(const PkRect &rc);
+    PkRect approxNeedRect(const PkRect &rc, const PkRect &fullBounds);
+    PkRectF accumulatedStrokesBounds() const;
 
-    void transformSrcAndDst(const QTransform &t);
+    void transformSrcAndDst(const PkTransform &t);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_LIQUIFY_TRANSFORM_WORKER_H */

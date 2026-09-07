@@ -13,17 +13,17 @@
 #include "kis_debug.h"
 
 KisBezierTransformMesh::patch_const_iterator
-KisBezierTransformMesh::hitTestPatchImpl(const QPointF &pt, QPointF *localPointResult) const
+KisBezierTransformMesh::hitTestPatchImpl(const PkPointF &pt, PkPointF *localPointResult) const
 {
     auto result = endPatches();
 
-    const QRectF unitRect(0, 0, 1, 1);
+    const PkRectF unitRect(0, 0, 1, 1);
 
     for (auto it = beginPatches(); it != endPatches(); ++it) {
         Patch patch = *it;
 
         if (patch.dstBoundingRect().contains(pt)) {
-            const QPointF localPos = KisBezierUtils::calculateLocalPos(patch.points, pt);
+            const PkPointF localPos = KisBezierUtils::calculateLocalPos(patch.points, pt);
 
             if (unitRect.contains(localPos)) {
 
@@ -40,19 +40,19 @@ KisBezierTransformMesh::hitTestPatchImpl(const QPointF &pt, QPointF *localPointR
     return result;
 }
 
-KisBezierTransformMesh::PatchIndex KisBezierTransformMesh::hitTestPatch(const QPointF &pt, QPointF *localPointResult) const
+KisBezierTransformMesh::PatchIndex KisBezierTransformMesh::hitTestPatch(const PkPointF &pt, PkPointF *localPointResult) const
 {
     return hitTestPatchImpl(pt, localPointResult).patchIndex();
 }
 
-QRect KisBezierTransformMesh::hitTestPatchInSourceSpace(const QRectF &rect) const
+PkRect KisBezierTransformMesh::hitTestPatchInSourceSpace(const PkRectF &rect) const
 {
-    const QRectF searchRect = rect & m_originalRect;
+    const PkRectF searchRect = rect & m_originalRect;
 
-    if (searchRect.isEmpty()) return QRect();
+    if (searchRect.isEmpty()) return PkRect();
 
-    const QPointF proportionalTL = KisAlgebra2D::absoluteToRelative(searchRect.topLeft(), m_originalRect);
-    const QPointF proportionalBR = KisAlgebra2D::absoluteToRelative(searchRect.bottomRight(), m_originalRect);
+    const PkPointF proportionalTL = KisAlgebra2D::absoluteToRelative(searchRect.topLeft(), m_originalRect);
+    const PkPointF proportionalBR = KisAlgebra2D::absoluteToRelative(searchRect.bottomRight(), m_originalRect);
 
     const auto topItY = prev(upper_bound(m_rows.begin(), prev(m_rows.end()), proportionalTL.y()));
     const int topRow = distance(m_rows.begin(), topItY);
@@ -66,25 +66,25 @@ QRect KisBezierTransformMesh::hitTestPatchInSourceSpace(const QRectF &rect) cons
     const auto rightItX = prev(upper_bound(m_columns.begin(), prev(m_columns.end()), proportionalBR.x()));
     const int rightColumn = distance(m_columns.begin(), rightItX);
 
-    return QRect(leftColumn, topRow,
+    return PkRect(leftColumn, topRow,
                  rightColumn - leftColumn + 1,
                  bottomRow - topRow + 1);
 }
 
-void KisBezierTransformMesh::transformPatch(const KisBezierPatch &patch, const QPoint &srcQImageOffset, const QImage &srcImage, const QPoint &dstQImageOffset, QImage *dstImage)
+void KisBezierTransformMesh::transformPatch(const KisBezierPatch &patch, const PkPoint &srcImageOffset, const PkImage &srcImage, const PkPoint &dstImageOffset, PkImage *dstImage)
 {
-    QVector<QPointF> originalPointsLocal;
-    QVector<QPointF> transformedPointsLocal;
-    QSize gridSize;
+    PkVector<PkPointF> originalPointsLocal;
+    PkVector<PkPointF> transformedPointsLocal;
+    PkSize gridSize;
 
-    patch.sampleRegularGrid(gridSize, originalPointsLocal, transformedPointsLocal, QPointF(8,8));
+    patch.sampleRegularGrid(gridSize, originalPointsLocal, transformedPointsLocal, PkPointF(8,8));
 
-    const QRect dstBoundsI = patch.dstBoundingRect().toAlignedRect();
-    const QRect imageSize = QRect(dstQImageOffset, dstImage->size());
+    const PkRect dstBoundsI = patch.dstBoundingRect().toAlignedRect();
+    const PkRect imageSize = PkRect(dstImageOffset, dstImage->size());
     KIS_SAFE_ASSERT_RECOVER_NOOP(imageSize.contains(dstBoundsI));
 
     {
-        GridIterationTools::QImagePolygonOp polygonOp(srcImage, *dstImage, srcQImageOffset, dstQImageOffset);
+        GridIterationTools::PkImagePolygonOp polygonOp(srcImage, *dstImage, srcImageOffset, dstImageOffset);
 
         GridIterationTools::RegularGridIndexesOp indexesOp(gridSize);
         GridIterationTools::iterateThroughGrid
@@ -97,11 +97,11 @@ void KisBezierTransformMesh::transformPatch(const KisBezierPatch &patch, const Q
 
 void KisBezierTransformMesh::transformPatch(const KisBezierPatch &patch, KisPaintDeviceSP srcDevice, KisPaintDeviceSP dstDevice)
 {
-    QVector<QPointF> originalPointsLocal;
-    QVector<QPointF> transformedPointsLocal;
-    QSize gridSize;
+    PkVector<PkPointF> originalPointsLocal;
+    PkVector<PkPointF> transformedPointsLocal;
+    PkSize gridSize;
 
-    patch.sampleRegularGrid(gridSize, originalPointsLocal, transformedPointsLocal, QPointF(8,8));
+    patch.sampleRegularGrid(gridSize, originalPointsLocal, transformedPointsLocal, PkPointF(8,8));
 
     {
         GridIterationTools::PaintDevicePolygonOp polygonOp(srcDevice, dstDevice);
@@ -115,10 +115,10 @@ void KisBezierTransformMesh::transformPatch(const KisBezierPatch &patch, KisPain
     }
 }
 
-void KisBezierTransformMesh::transformMesh(const QPoint &srcQImageOffset, const QImage &srcImage, const QPoint &dstQImageOffset, QImage *dstImage) const
+void KisBezierTransformMesh::transformMesh(const PkPoint &srcImageOffset, const PkImage &srcImage, const PkPoint &dstImageOffset, PkImage *dstImage) const
 {
     for (auto it = beginPatches(); it != endPatches(); ++it) {
-        transformPatch(*it, srcQImageOffset, srcImage, dstQImageOffset, dstImage);
+        transformPatch(*it, srcImageOffset, srcImage, dstImageOffset, dstImage);
     }
 }
 
@@ -129,17 +129,17 @@ void KisBezierTransformMesh::transformMesh(KisPaintDeviceSP srcDevice, KisPaintD
     }
 }
 
-QRect KisBezierTransformMesh::approxNeedRect(const QRect &rc) const
+PkRect KisBezierTransformMesh::approxNeedRect(const PkRect &rc) const
 {
-    QRect result;
+    PkRect result;
 
-    const QRect sampleRect = rc & dstBoundingRect().toAlignedRect();
+    const PkRect sampleRect = rc & dstBoundingRect().toAlignedRect();
     if (sampleRect.isEmpty()) return result;
 
-    const QRectF unitRect(0, 0, 1, 1);
+    const PkRectF unitRect(0, 0, 1, 1);
     const int samplesLimit = sampleRect.width() * sampleRect.height() / 2;
 
-    QRectF stepRect;
+    PkRectF stepRect;
 
     {
         /**
@@ -152,7 +152,7 @@ QRect KisBezierTransformMesh::approxNeedRect(const QRect &rc) const
          * that is, sample the whole perimeter of the patch.
          */
 
-        const QRectF dstRect = rc;
+        const PkRectF dstRect(rc);
 
         auto tryAddHandle = [&dstRect, &stepRect] (const KisBezierPatch &patch, KisBezierPatch::ControlPointType controlType) {
 
@@ -173,7 +173,7 @@ QRect KisBezierTransformMesh::approxNeedRect(const QRect &rc) const
             };
 
             if (dstRect.contains(patch.points[controlType])) {
-                QPointF localPoint;
+                PkPointF localPoint;
 
                 switch (controlType) {
                 case KisBezierPatch::TL:
@@ -272,7 +272,7 @@ QRect KisBezierTransformMesh::approxNeedRect(const QRect &rc) const
         }
     }
 
-    KisSampleRectIterator dstRectSampler(sampleRect);
+    KisSampleRectIterator dstRectSampler{PkRectF(sampleRect)};
     KisBezierPatch patch = *beginPatches();
     KisBezierPatchParamToSourceSampler patchSampler(patch);
 
@@ -282,10 +282,10 @@ QRect KisBezierTransformMesh::approxNeedRect(const QRect &rc) const
 
     while (1) {
         for (int i = 0; i < 10; i++) {
-            const QPointF dstPoint = *dstRectSampler++;
+            const PkPointF dstPoint = *dstRectSampler++;
 
             if (patch.dstBoundingRect().contains(dstPoint)) {
-                const QPointF localPoint = patch.globalToLocal(dstPoint);
+                const PkPointF localPoint = patch.globalToLocal(dstPoint);
                 if (unitRect.contains(localPoint)) {
                     KisAlgebra2D::accumulateBounds(patchSampler.point(localPoint), &stepRect);
                     hitPoints++;
@@ -294,7 +294,7 @@ QRect KisBezierTransformMesh::approxNeedRect(const QRect &rc) const
             }
 
             {
-                QPointF localPoint;
+                PkPointF localPoint;
                 auto it = hitTestPatchImpl(dstPoint, &localPoint);
                 if (it != endPatches()) {
                     patch = *it;
@@ -306,7 +306,7 @@ QRect KisBezierTransformMesh::approxNeedRect(const QRect &rc) const
             }
         }
 
-        QRect alignedRect = stepRect.toAlignedRect();
+        PkRect alignedRect = stepRect.toAlignedRect();
 
         if (hitPoints > 20 && !alignedRect.isEmpty() && alignedRect == result) {
             break;
@@ -330,30 +330,30 @@ QRect KisBezierTransformMesh::approxNeedRect(const QRect &rc) const
     return result;
 }
 
-QRect KisBezierTransformMesh::approxChangeRect(const QRect &rc) const
+PkRect KisBezierTransformMesh::approxChangeRect(const PkRect &rc) const
 {
-    QRect result;
+    PkRect result;
 
-    const QRect affectedPatches = hitTestPatchInSourceSpace(rc);
+    const PkRect affectedPatches = hitTestPatchInSourceSpace(PkRectF(rc));
 
     for (int row = affectedPatches.top(); row <= affectedPatches.bottom(); row++) {
         for (int column = affectedPatches.left(); column <= affectedPatches.right(); column++) {
             const KisBezierPatch patch = *find(PatchIndex(column, row));
-            const QRectF srcRect = QRectF(rc) & patch.srcBoundingRect();
-            const QRectF paramRect = calcTightSrcRectRangeInParamSpace(patch, srcRect, 0.1);
+            const PkRectF srcRect = PkRectF(rc) & patch.srcBoundingRect();
+            const PkRectF paramRect = calcTightSrcRectRangeInParamSpace(patch, srcRect, 0.1);
 
             KisSampleRectIterator paramRectSampler(paramRect);
-            QRect patchResultRect;
-            QRectF stepRect;
+            PkRect patchResultRect;
+            PkRectF stepRect;
 
             while (1) {
                 for (int i = 0; i < 10; i++) {
-                    const QPointF sampledParamPoint = *paramRectSampler++;
-                    const QPointF globalPoint = patch.localToGlobal(sampledParamPoint);
+                    const PkPointF sampledParamPoint = *paramRectSampler++;
+                    const PkPointF globalPoint = patch.localToGlobal(sampledParamPoint);
                     KisAlgebra2D::accumulateBounds(globalPoint, &stepRect);
                 }
 
-                const QRect alignedRect = stepRect.toAlignedRect();
+                const PkRect alignedRect = stepRect.toAlignedRect();
 
                 if (!alignedRect.isEmpty() && alignedRect == patchResultRect) {
                     break;
@@ -380,7 +380,7 @@ QRect KisBezierTransformMesh::approxChangeRect(const QRect &rc) const
  * Approximate the param-space rect that corresponds to \p srcSpaceRect in the source-space.
  * The resulting param-space rect will fully cover the source-space rect (and will be bigger).
  */
-QRectF KisBezierTransformMesh::calcTightSrcRectRangeInParamSpace(const KisBezierPatch &patch, const QRectF &srcSpaceRect, qreal srcPrecision)
+PkRectF KisBezierTransformMesh::calcTightSrcRectRangeInParamSpace(const KisBezierPatch &patch, const PkRectF &srcSpaceRect, qreal srcPrecision)
 {
     using KisBezierUtils::Range;
     using KisBezierUtils::calcTightSrcRectRangeInParamSpace1D;
@@ -420,10 +420,10 @@ QRectF KisBezierTransformMesh::calcTightSrcRectRangeInParamSpace(const KisBezier
 
 #include <kis_dom_utils.h>
 
-void KisBezierTransformMeshDetail::saveValue(QDomElement *parent, const QString &tag, const KisBezierTransformMesh &mesh)
+void KisBezierTransformMeshDetail::saveValue(PkXmlElement *parent, const PkString &tag, const KisBezierTransformMesh &mesh)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "transform-mesh");
@@ -435,7 +435,7 @@ void KisBezierTransformMeshDetail::saveValue(QDomElement *parent, const QString 
     KisDomUtils::saveValue(&e, "nodes", mesh.m_nodes);
 }
 
-bool KisBezierTransformMeshDetail::loadValue(const QDomElement &e, KisBezierTransformMesh *mesh)
+bool KisBezierTransformMeshDetail::loadValue(const PkXmlElement &e, KisBezierTransformMesh *mesh)
 {
     if (!KisDomUtils::Private::checkType(e, "transform-mesh")) return false;
 
