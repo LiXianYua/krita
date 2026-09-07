@@ -48,13 +48,13 @@ struct KisReferenceImage::Private : public QSharedData
 
     bool loadFromFile(const KisReferenceImage::FallbackFileLoader &fallbackLoader) {
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!externalFilename.isEmpty(), false);
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(QFileInfo(externalFilename).exists(), false);
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(QFileInfo(externalFilename).isReadable(), false);
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(QFileInfo(toQString(externalFilename)).exists(), false);
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(QFileInfo(toQString(externalFilename)).isReadable(), false);
         {
-            QImageReader reader(externalFilename);
+            QImageReader reader(toQString(externalFilename));
             reader.setDecideFormatFromContent(true);
-            PkImage loaded = reader.read();
-            image = toPkImage(loaded);
+            PkImage loaded = toPkImage(reader.read());
+            image = loaded;
 
             if (image.isNull()) {
                 reader.setAutoDetectImageFormat(true);
@@ -64,7 +64,7 @@ struct KisReferenceImage::Private : public QSharedData
         }
 
         if (image.isNull()) {
-            image = toPkImage(PkImage(externalFilename));
+            image = toPkImage(QImage(toQString(externalFilename)));
         }
 
         if (image.isNull() && fallbackLoader) {
@@ -77,7 +77,7 @@ struct KisReferenceImage::Private : public QSharedData
         if (!image.isNull()) {
             PkImage loaded = toQImage(image);
             loaded.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
-            image = toPkImage(loaded);
+            image = loaded;
         }
 
         return (!image.isNull());
@@ -395,7 +395,7 @@ bool KisReferenceImage::loadImage(KoStore *store, const FallbackFileLoader &fall
     if (!loaded.loadFromData(toQByteArray(bytes), "PNG")) {
         return false;
     }
-    d->image = toPkImage(loaded);
+    d->image = loaded;
 
     return store->close();
 }
