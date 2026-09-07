@@ -27,6 +27,8 @@ target_include_directories(kritashapemodel
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../tool>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/libs/resources
 )
 
 target_link_libraries(kritashapemodel
@@ -38,6 +40,7 @@ target_link_libraries(kritashapemodel
 
     PRIVATE
         KF${KF_MAJOR}::I18n
+        kritaresources
 )
 
 set_target_properties(kritashapemodel PROPERTIES

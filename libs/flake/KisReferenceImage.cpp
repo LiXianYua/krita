@@ -29,6 +29,7 @@
 #include <SvgUtil.h>
 #include <libs/flake/svg/parsers/SvgTransformParser.h>
 #include <libs/brush/kis_qimage_pyramid.h>
+#include <KisResourceThumbnailCodec.h>
 
 struct KisReferenceImage::Private : public QSharedData
 {
@@ -361,9 +362,8 @@ bool KisReferenceImage::saveImage(KoStore *store) const
 
     KoStoreDevice storeDev(store);
     if (storeDev.open(PkStream::WriteOnly)) {
-        QBuffer buffer;
-        if (buffer.open(QIODevice::WriteOnly) && toQImage(d->image).save(&buffer, "PNG")) {
-            const PkByteArray bytes = toPkByteArray(buffer.data());
+        const PkByteArray bytes = KisResourceThumbnailCodec::encodePng(d->image);
+        if (!bytes.isEmpty()) {
             saved = storeDev.write(bytes.constData(), bytes.size()) == bytes.size();
         }
     }
@@ -392,11 +392,11 @@ bool KisReferenceImage::loadImage(KoStore *store, const FallbackFileLoader &fall
     }
 
     const PkByteArray bytes = storeDev.readAll();
-    QImage loaded;
-    if (!loaded.loadFromData(toQByteArray(bytes), "PNG")) {
+    PkImage loaded = KisResourceThumbnailCodec::decodePng(bytes);
+    if (loaded.isNull()) {
         return false;
     }
-    d->image = toPkImage(loaded);
+    d->image = std::move(loaded);
 
     return store->close();
 }
