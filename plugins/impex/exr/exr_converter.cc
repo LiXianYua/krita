@@ -482,7 +482,7 @@ void EXRConverter::Private::decodeData1(Imf::InputFile& file, ExrPaintLayerInfo&
     } ;
 }
 
-bool recCheckGroup(const ExrGroupLayerInfo& group, const std::vector<PkString> &list, int idx1, int idx2)
+bool recCheckGroup(const ExrGroupLayerInfo& group, const PkList<PkString> &list, int idx1, int idx2)
 {
     if (idx1 > idx2) return true;
     if (group.name == list[idx2]) {
@@ -491,7 +491,7 @@ bool recCheckGroup(const ExrGroupLayerInfo& group, const std::vector<PkString> &
     return false;
 }
 
-ExrGroupLayerInfo* searchGroup(PkList<ExrGroupLayerInfo>* groups, const std::vector<PkString> &list, int idx1, int idx2)
+ExrGroupLayerInfo* searchGroup(PkList<ExrGroupLayerInfo>* groups, const PkList<PkString> &list, int idx1, int idx2)
 {
     if (idx1 > idx2) {
         return 0;
@@ -688,7 +688,7 @@ KisImportExportErrorCode EXRConverter::decode(const PkString &filename)
                 info.updateImageType(imfTypeToKisType(channel.type));
 
                 PkString qname = j.name();
-                const std::vector<PkString> list = qname.split(u'.');
+                const PkList<PkString> list = qname.split(u'.');
                 PkString layersuffix = list.back();
 
                 dbgFile << "\tchannel " << j.name() << "suffix" << layersuffix << " type = " << channel.type;
