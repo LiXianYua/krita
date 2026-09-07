@@ -34,7 +34,7 @@ KoToolBase *DefaultToolFactory::createTool(KoCanvasBase *canvas)
     return new DefaultTool(canvas, true);
 }
 
-PkList<DefaultToolAction *> DefaultToolFactory::createActionsImpl()
+PkList<DefaultToolAction *> DefaultToolFactory::createDefaultToolActions()
 {
     PkList<DefaultToolAction *> actions;
     for (const auto &descriptor : defaultToolActionDescriptors()) {

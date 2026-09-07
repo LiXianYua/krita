@@ -485,7 +485,7 @@ KisImagePatch KisImagePyramid::getNearestPatch(KisPPUpdateInfoSP info)
 void KisImagePyramid::drawFromOriginalImage(QPainter& gc, KisPPUpdateInfoSP info)
 {
     KisImagePatch patch = getNearestPatch(info);
-    patch.drawMe(gc, toQRectF(info->viewportRect), info->renderHints);
+    patch.drawMe(gc, info->viewportRect, info->renderHints);
 }
 
 QImage KisImagePyramid::convertToQImageFast(KisPaintDeviceSP paintDevice,

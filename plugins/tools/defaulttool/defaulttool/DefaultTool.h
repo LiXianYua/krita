@@ -80,7 +80,7 @@ public:
     ///reimplemented
     KoToolSelection *selection() override;
 
-    DefaultToolMenu *popupActionsMenu();
+    DefaultToolMenu *defaultToolPopupMenu();
     bool dispatchAction(DefaultToolActionId action, bool checked = false);
     DefaultToolActionState actionState(DefaultToolActionId action) const;
     DefaultToolMenuState menuState() const;

@@ -415,7 +415,7 @@ DefaultTool::DefaultTool(KoCanvasBase *canvas, bool connectToSelectedShapesProxy
     , m_platformServices(dynamic_cast<DefaultToolPlatformServices *>(canvas))
 {
     DefaultToolFactory actionFactory;
-    for (DefaultToolAction *toolAction : actionFactory.createActionsImpl()) {
+    for (DefaultToolAction *toolAction : actionFactory.createDefaultToolActions()) {
         m_actions.insert(toolAction->objectName(), toolAction);
     }
     setupActions();
@@ -2265,7 +2265,7 @@ KoToolSelection *DefaultTool::selection()
     return m_selectionHandler;
 }
 
-DefaultToolMenu* DefaultTool::popupActionsMenu()
+DefaultToolMenu* DefaultTool::defaultToolPopupMenu()
 {
     if (m_contextMenu) {
         m_contextMenu->clear();

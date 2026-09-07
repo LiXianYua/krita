@@ -105,12 +105,12 @@ void KisToolPolylineBase::beginPrimaryAction(KoPointerEvent *event)
 
         if (paintability == KisToolPaint::CLONE){
             QString message = i18n("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(message, true);
+            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(toPkString(message), true);
         }
 
         if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
             QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(message, true);
+            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(toPkString(message), true);
         }
 
         event->ignore();

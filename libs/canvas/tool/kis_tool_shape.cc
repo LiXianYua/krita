@@ -192,7 +192,7 @@ void KisToolShape::addPathShape(KoPathShape* pathShape, const KUndo2MagicString&
     PkTransform matrix;
     matrix.scale(image->xRes(), image->yRes());
     matrix.translate(pathShape->position().x(), pathShape->position().y());
-    QPainterPath mappedOutline = toQPainterPath(matrix.map(pathShape->outline());
+    QPainterPath mappedOutline = toQPainterPath(matrix.map(pathShape->outline()));
 
     if (node->hasEditablePaintDevice()) {
         KisFigurePaintingToolHelper helper(name,

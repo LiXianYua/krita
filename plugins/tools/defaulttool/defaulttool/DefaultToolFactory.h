@@ -21,6 +21,6 @@ public:
     ~DefaultToolFactory() override;
 
     KoToolBase *createTool(KoCanvasBase *canvas) override;
-    PkList<DefaultToolAction *> createActionsImpl();
+    PkList<DefaultToolAction *> createDefaultToolActions();
 };
 #endif
