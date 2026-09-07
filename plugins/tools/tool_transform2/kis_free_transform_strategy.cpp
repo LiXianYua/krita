@@ -206,7 +206,7 @@ void KisFreeTransformStrategy::setTransformFunction(const PkPointF &mousePos, bo
 
 
     StrokeFunction defaultFunction;
-    if (transformedPolygon.containsPoint(mousePos, Qt::OddEvenFill))
+    if (transformedPolygon.containsPoint(mousePos, Pk::OddEvenFill))
         defaultFunction = MOVE;
     else if (m_d->transaction.boundsRotationAllowed() && altModifierActive)
         defaultFunction = ROTATEBOUNDS;
@@ -412,7 +412,7 @@ void KisFreeTransformStrategy::paint(TransformToolPainter &gc)
     pen[0].setCosmetic(true);
     pen[1].setWidth(decorationThickness() * 2);
     pen[1].setCosmetic(true);
-    pen[1].setColor(Qt::lightGray);
+    pen[1].setColor(Pk::lightGray);
 
     for (int i = 1; i >= 0; --i) {
         gc.setPen(pen[i]);

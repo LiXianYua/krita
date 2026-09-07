@@ -22,7 +22,7 @@
 #include "kis_signal_compressor.h"
 
 
-uint qHash(const PkPoint &value) {
+uint pkHash(const PkPoint &value) {
     return uint((0xffffffffffffffff - quint64(value.y())) ^ quint64(value.x()));
 }
 

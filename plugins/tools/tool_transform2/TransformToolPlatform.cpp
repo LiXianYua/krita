@@ -146,14 +146,14 @@ PkColor transformHandleFillColor(TransformHandleStyle style)
     case TransformHandleStyle::SelectedPrimaryHandles:
         return PkColor(164, 227, 243);
     case TransformHandleStyle::PrimarySelection:
-        return PkColor(Qt::white);
+        return PkColor(Pk::white);
     }
-    return PkColor(Qt::white);
+    return PkColor(Pk::white);
 }
 
 PkPen transformHandleOutlinePen(int decorationThickness)
 {
-    PkPen pen(Qt::white);
+    PkPen pen(Pk::white);
     pen.setWidthF(decorationThickness);
     pen.setCosmetic(true);
     return pen;
@@ -165,7 +165,7 @@ PkPen transformHandleMainLinePen(TransformHandleStyle style,
     PkPen pen(transformHandleLineColor(style));
     pen.setWidthF(decorationThickness);
     pen.setCosmetic(true);
-    pen.setJoinStyle(Qt::RoundJoin);
+    pen.setJoinStyle(Pk::RoundJoin);
     if (style != TransformHandleStyle::HighlightedPrimaryHandlesWithSolidOutline) {
         pen.setDashPattern({4.0, 4.0});
     }
@@ -200,7 +200,7 @@ PkPen TransformToolHandlePainter::handlePen() const
     PkPen pen(transformHandleLineColor(m_style));
     pen.setWidthF(2.0 * m_decorationThickness);
     pen.setCosmetic(true);
-    pen.setJoinStyle(Qt::RoundJoin);
+    pen.setJoinStyle(Pk::RoundJoin);
     return pen;
 }
 
@@ -255,7 +255,7 @@ void TransformToolHandlePainter::drawConnectionLine(const PkPointF &from,
                                                      const PkPointF &to)
 {
     m_painter.save();
-    m_painter.setBrush(PkBrush(Qt::NoBrush));
+    m_painter.setBrush(PkBrush(Pk::NoBrush));
     drawLinePasses(m_painterTransform.map(from), m_painterTransform.map(to));
     m_painter.restore();
 }
@@ -263,7 +263,7 @@ void TransformToolHandlePainter::drawConnectionLine(const PkPointF &from,
 void TransformToolHandlePainter::drawPath(const PkPainterPath &path)
 {
     m_painter.save();
-    m_painter.setBrush(PkBrush(Qt::NoBrush));
+    m_painter.setBrush(PkBrush(Pk::NoBrush));
     drawPathPasses(m_painterTransform.map(path));
     m_painter.restore();
 }
@@ -347,7 +347,7 @@ TransformToolFactoryDescriptor transformToolFactoryDescriptor()
             ToolBoxSection::Transform,
             "krita_tool_transform",
             "Ctrl+T",
-            KRITA_TOOL_ACTIVATION_ID,
+            "flake/always",
             2};
 }
 

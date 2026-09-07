@@ -404,7 +404,7 @@ void InplaceTransformStrokeStrategy::initStrokeCallback()
             rootNode.clear();
             m_d->processedNodes.clear();
 
-            TransformTransactionProperties transaction(PkRect(), &m_d->initialTransformArgs, m_d->rootNodes, m_d->processedNodes);
+            TransformTransactionProperties transaction(PkRectF(PkRect()), &m_d->initialTransformArgs, m_d->rootNodes, m_d->processedNodes);
             sigTransactionGenerated(transaction, m_d->initialTransformArgs, this);
             return;
         }
@@ -574,7 +574,7 @@ void InplaceTransformStrokeStrategy::initStrokeCallback()
             }
         }
 
-        TransformTransactionProperties transaction(srcRect, &m_d->initialTransformArgs, m_d->rootNodes, m_d->processedNodes);
+        TransformTransactionProperties transaction(PkRectF(srcRect), &m_d->initialTransformArgs, m_d->rootNodes, m_d->processedNodes);
         if (!argsAreInitialized) {
             m_d->initialTransformArgs = KisTransformUtils::resetArgsForMode(m_d->mode, m_d->filterId, transaction, m_d->externalSource);
         }
@@ -638,13 +638,14 @@ void InplaceTransformStrokeStrategy::initStrokeCallback()
     KritaUtils::addJobBarrier(extraInitJobs, [this]() {
         if (m_d->previewLevelOfDetail > 0) {
             PkVector<KisStrokeJobData*> lodSyncJobs;
+            PkList<KisPaintDeviceSP> cachedDevices = m_d->devicesCacheHash.values();
+            cachedDevices.append(m_d->transformMaskCacheHash.values());
 
             KisSyncLodCacheStrokeStrategy::createJobsData(lodSyncJobs,
                                                           m_d->imageRoot,
                                                           m_d->updatesFacade,
                                                           m_d->previewLevelOfDetail,
-                                                          m_d->devicesCacheHash.values() +
-                                                          m_d->transformMaskCacheHash.values());
+                                                          cachedDevices);
 
             for (auto it = lodSyncJobs.begin(); it != lodSyncJobs.end(); ++it) {
                 (*it)->setLevelOfDetailOverride(m_d->previewLevelOfDetail);

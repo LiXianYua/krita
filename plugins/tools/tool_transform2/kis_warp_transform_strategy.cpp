@@ -253,10 +253,10 @@ void KisWarpTransformStrategy::paint(TransformToolPainter &gc)
     }
 
 
-    PkPen mainPen(Qt::black);
+    PkPen mainPen(Pk::black);
     mainPen.setCosmetic(true);
     mainPen.setWidth(decorationThickness());
-    PkPen outlinePen(Qt::white);
+    PkPen outlinePen(Pk::white);
     outlinePen.setCosmetic(true);
     outlinePen.setWidth(decorationThickness());
 
@@ -289,7 +289,7 @@ void KisWarpTransformStrategy::paint(TransformToolPainter &gc)
             PkPointF center;
             PkVector<PkPointF*> selectedPoints = m_d->getSelectedPoints(&center, true);
 
-            PkBrush selectionBrush(selectedPoints.size() > 1 ? Qt::red : Qt::black);
+            PkBrush selectionBrush(selectedPoints.size() > 1 ? Pk::red : Pk::black);
 
             PkBrush oldBrush = gc.brush();
             gc.setBrush(selectionBrush);
@@ -633,7 +633,7 @@ PkImage KisWarpTransformStrategy::calculateTransformedImage(ToolTransformArgs &c
                                                            const PkPointF &srcOffset,
                                                            PkPointF *dstOffset)
 {
-    return KisWarpTransformWorker::transformQImage(
+    return KisWarpTransformWorker::transformImage(
         currentArgs.warpType(),
         origPoints, transfPoints,
         currentArgs.alpha(),

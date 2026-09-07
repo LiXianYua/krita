@@ -36,7 +36,7 @@ TransformTransactionProperties(const PkRectF &originalRect,
     {
         m_hasInvisibleNodes = false;
         for (const KisNodeSP &node : transformedNodes) {
-            if (KisExternalLayer *extLayer = dynamic_cast<KisExternalLayer*>(node.data())) {
+            if (const KisExternalLayer *extLayer = dynamic_cast<const KisExternalLayer*>(node.data())) {
                 if (!extLayer->supportsPerspectiveTransform()) {
                     m_shouldAvoidPerspectiveTransform = true;
                     break;

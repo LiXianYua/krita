@@ -331,7 +331,7 @@ void KisLiquifyTransformStrategy::Private::recalculateTransformations()
             imageToRealThumbTransform.map(transaction.originalTopLeft());
 
         transformedImage =
-            currentArgs.liquifyWorker()->runOnQImage(transformedImage,
+            currentArgs.liquifyWorker()->runOnImage(transformedImage,
                                                      origTLInFlake,
                                                      imageToRealThumbTransform,
                                                      &paintingOffset);

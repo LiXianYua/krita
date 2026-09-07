@@ -535,7 +535,7 @@ void TransformStrokeStrategy::initStrokeCallback()
             rootNode.clear();
             m_processedNodes.clear();
 
-            TransformTransactionProperties transaction(PkRect(), &m_initialTransformArgs, m_rootNodes, m_processedNodes);
+            TransformTransactionProperties transaction(PkRectF(PkRect()), &m_initialTransformArgs, m_rootNodes, m_processedNodes);
             sigTransactionGenerated(transaction, m_initialTransformArgs, this);
             return;
         }
@@ -655,7 +655,7 @@ void TransformStrokeStrategy::initStrokeCallback()
             }
         }
 
-        TransformTransactionProperties transaction(srcRect, &initialTransformArgs, m_rootNodes, m_processedNodes);
+        TransformTransactionProperties transaction(PkRectF(srcRect), &initialTransformArgs, m_rootNodes, m_processedNodes);
         if (!argsAreInitialized) {
             initialTransformArgs = KisTransformUtils::resetArgsForMode(m_mode, m_filterId, transaction, nullptr);
         }

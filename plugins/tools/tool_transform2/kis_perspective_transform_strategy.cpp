@@ -166,7 +166,7 @@ void KisPerspectiveTransformStrategy::setTransformFunction(const PkPointF &mouse
     (void)altModifierActive;
 
     PkPolygonF transformedPolygon = m_d->transform.map(PkPolygonF(m_d->transaction.originalRect()));
-    StrokeFunction defaultFunction = transformedPolygon.containsPoint(mousePos, Qt::OddEvenFill) ? MOVE : NONE;
+    StrokeFunction defaultFunction = transformedPolygon.containsPoint(mousePos, Pk::OddEvenFill) ? MOVE : NONE;
     KisTransformUtils::HandleChooser<StrokeFunction>
         handleChooser(mousePos, defaultFunction);
 
@@ -278,7 +278,7 @@ void KisPerspectiveTransformStrategy::paint(TransformToolPainter &gc)
     pen[0].setCosmetic(true);
     pen[1].setWidth(decorationThickness() * 2);
     pen[1].setCosmetic(true);
-    pen[1].setColor(Qt::lightGray);
+    pen[1].setColor(Pk::lightGray);
 
     for (int i = 1; i >= 0; --i) {
         gc.setPen(pen[i]);
@@ -309,7 +309,7 @@ void KisPerspectiveTransformStrategy::paint(TransformToolPainter &gc)
             gc.save();
             gc.setTransform(m_d->converter->imageToWidgetTransform());
 
-            gc.setBrush(PkBrush(Qt::red));
+            gc.setBrush(PkBrush(Pk::red));
 
             for (int i = 1; i >= 0; --i) {
                 gc.setPen(pen[i]);
@@ -354,9 +354,16 @@ Eigen::Matrix3f getTransitionMatrix(const PkVector<PkPointF> &sp)
     A.col(2) *= coeffs(2);
 
     return A;
+}
 
+PkTransform toPkTransform(const Eigen::Matrix3f &m)
+{
+    return PkTransform(m(0,0), m(1,0), m(2,0),
+                       m(0,1), m(1,1), m(2,1),
+                       m(0,2), m(1,2), m(2,2));
+}
 
-Eigen::Matrix3f fromQTransform(const PkTransform &t)
+Eigen::Matrix3f fromPkTransform(const PkTransform &t)
 {
     Eigen::Matrix3f m;
 
@@ -429,7 +436,7 @@ void KisPerspectiveTransformStrategy::Private::transformIntoArgs(const Eigen::Ma
 #if 0
     // Decomposition according to:
     // https://www.w3.org/TR/css-transforms-1/#decomposing-a-3d-matrix
-    KisAlgebra2D::DecomposedMatrix dm(toQTransform(m));
+    KisAlgebra2D::DecomposedMatrix dm(toPkTransform(m));
 
     currentArgs.setScaleX(dm.scaleX);
     currentArgs.setScaleY(dm.scaleY);
@@ -440,7 +447,7 @@ void KisPerspectiveTransformStrategy::Private::transformIntoArgs(const Eigen::Ma
     currentArgs.setAZ(kisDegreesToRadians(dm.angle));
 
     PkTransform pre = dm.scaleTransform() * dm.shearTransform() * dm.rotateTransform();
-    m = m * fromQTransform(pre.inverted());
+    m = m * fromPkTransform(pre.inverted());
 #else
     currentArgs.setScaleX(1.0);
     currentArgs.setScaleY(1.0);
@@ -450,7 +457,7 @@ void KisPerspectiveTransformStrategy::Private::transformIntoArgs(const Eigen::Ma
 #endif
 
     currentArgs.setTransformedCenter(PkPointF(tX, tY));
-    currentArgs.setFlattenedPerspectiveTransform(toQTransform(m));
+    currentArgs.setFlattenedPerspectiveTransform(toPkTransform(m));
 }
 
 PkTransform KisPerspectiveTransformStrategy::Private::transformFromArgs()
@@ -459,9 +466,13 @@ PkTransform KisPerspectiveTransformStrategy::Private::transformFromArgs()
     return m.finalTransform();
 }
 
-PkVector4D fromQPointF(const PkPointF &pt) {
+PkVector4D fromPkPointF(const PkPointF &pt) {
     return PkVector4D(pt.x(), pt.y(), 0, 1.0);
+}
 
+PkPointF toPkPointF(const PkVector4D &v) {
+    return v.toVector2DAffine().toPointF();
+}
 
 void KisPerspectiveTransformStrategy::continuePrimaryAction(const PkPointF &mousePos, bool shiftModifierActive, bool altModifierActive)
 {
@@ -548,12 +559,12 @@ void KisPerspectiveTransformStrategy::continuePrimaryAction(const PkPointF &mous
             otherV = PkVector4D(1,0,0,0);
         }
 
-        PkPointF tl_dst = toQPointF(m * fromQPointF(tl));
-        PkPointF tr_dst = toQPointF(m * fromQPointF(tr));
-        PkPointF bl_dst = toQPointF(m * fromQPointF(bl));
-        PkPointF br_dst = toQPointF(m * fromQPointF(br));
-        PkPointF v_dst = toQPointF(m * v);
-        PkPointF otherV_dst = toQPointF(m * otherV);
+        PkPointF tl_dst = toPkPointF(m * fromPkPointF(tl));
+        PkPointF tr_dst = toPkPointF(m * fromPkPointF(tr));
+        PkPointF bl_dst = toPkPointF(m * fromPkPointF(bl));
+        PkPointF br_dst = toPkPointF(m * fromPkPointF(br));
+        PkPointF v_dst = toPkPointF(m * v);
+        PkPointF otherV_dst = toPkPointF(m * otherV);
 
         PkVector<PkPointF> srcPoints;
         PkVector<PkPointF> dstPoints;

@@ -75,7 +75,7 @@
 #include "strokes/inplace_transform_stroke_strategy.h"
 
 KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
-    : KisTool(canvas, TransformCursorDescriptor{TransformCursorKind::PointingHand})
+    : KisTool(canvas, QCursor())
     , m_converter(dynamic_cast<const KisCoordinatesConverter *>(canvas->viewConverter()))
     , m_warpStrategy(
         new KisWarpTransformStrategy(
@@ -324,7 +324,7 @@ void KisToolTransform::cursorOutlineUpdateRequested(const PkPointF &imagePos)
     if (!canvasUpdateRect.isEmpty()) {
         // grow rect a bit to follow interpolation fuzziness
         canvasUpdateRect = kisGrowRect(canvasUpdateRect, 2);
-        canvas()->updateCanvas(canvasUpdateRect);
+        canvas()->updateCanvas(PkRectF(canvasUpdateRect));
     }
 }
 
@@ -930,7 +930,7 @@ void KisToolTransform::startStroke(ToolTransformArgs::TransformMode mode, bool f
          * When working with transform mask, selections are not
          * taken into account.
          */
-        if (selection && dynamic_cast<KisTransformMask*>(currentNode.data())) {
+        if (selection && dynamic_cast<const KisTransformMask*>(currentNode.data())) {
             showTransformToolMessage(canvas(),
                                      "Selections are not used when editing transform masks ", 4000,
                                      TransformToolMessagePriority::Low);
@@ -1004,7 +1004,7 @@ void KisToolTransform::endStroke()
     image()->endStroke(m_strokeId);
 
     m_strokeStrategyCookie = 0;
-    m_strokeId.clear();
+    m_strokeId = KisStrokeId();
     m_changesTracker.reset();
     m_transaction = TransformTransactionProperties(PkRectF(), &m_currentArgs, KisNodeList(), {});
     outlineChanged();
@@ -1067,7 +1067,7 @@ void KisToolTransform::cancelStroke()
 
     image()->cancelStroke(m_strokeId);
     m_strokeStrategyCookie = 0;
-    m_strokeId.clear();
+    m_strokeId = KisStrokeId();
     m_changesTracker.reset();
     m_transaction = TransformTransactionProperties(PkRectF(), &m_currentArgs, KisNodeList(), {});
     outlineChanged();

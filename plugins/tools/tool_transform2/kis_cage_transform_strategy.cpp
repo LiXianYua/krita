@@ -85,5 +85,5 @@ PkImage KisCageTransformStrategy::calculateTransformedImage(ToolTransformArgs &c
                                   currentArgs.previewPixelPrecision());
     worker.prepareTransform();
     worker.setTransformedCage(transfPoints);
-    return worker.runOnQImage(dstOffset);
+    return worker.runOnImage(dstOffset);
 }
