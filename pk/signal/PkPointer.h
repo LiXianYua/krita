@@ -20,6 +20,12 @@ public:
 
     bool isNull() const
     {
+        if (!m_ptr) {
+            return true;
+        }
+        if (!m_tracksLifetime) {
+            return false;
+        }
         auto f = m_alive.lock();
         return !f || !f->load();
     }
@@ -32,18 +38,24 @@ public:
     explicit operator bool() const { return !isNull(); }
     operator T*() const { return data(); }
 
-    void clear() { m_ptr = nullptr; m_alive.reset(); }
+    void clear()
+    {
+        m_ptr = nullptr;
+        m_alive.reset();
+        m_tracksLifetime = false;
+    }
     void reset(T* p)
     {
         m_ptr = p;
         m_alive.reset();
+        m_tracksLifetime = false;
         if (p) {
             // PkObject::aliveFlag() 返回 shared_ptr<atomic<bool>>，转 weak 观察。
             // SFINAE 降级：过渡期部分 QObject 系类型（KoShapeManager/KoCanvasBase/
             // KoDocumentResourceManager）还不是 PkObject 派生，没有 aliveFlag()——
             // 此时弱视图为空，isNull() 退化为纯空指针判断（无析构防护）。这些类型
             // 迁到 PkObject 后防护自动生效，调用点零改写。
-            m_alive = hasAliveFlag(p, 0);
+            m_alive = hasAliveFlag(p, &m_tracksLifetime, 0);
         }
     }
 
@@ -58,10 +70,19 @@ public:
 
 private:
     template <typename U>
-    static auto hasAliveFlag(U* p, int) -> decltype(p->aliveFlag()) { return p->aliveFlag(); }
+    static auto hasAliveFlag(U* p, bool *tracksLifetime, int) -> decltype(p->aliveFlag())
+    {
+        *tracksLifetime = true;
+        return p->aliveFlag();
+    }
     template <typename U>
-    static std::shared_ptr<std::atomic<bool>> hasAliveFlag(U*, long) { return nullptr; }
+    static std::shared_ptr<std::atomic<bool>> hasAliveFlag(U*, bool *tracksLifetime, long)
+    {
+        *tracksLifetime = false;
+        return nullptr;
+    }
 
     T* m_ptr = nullptr;
     std::weak_ptr<std::atomic<bool>> m_alive;
+    bool m_tracksLifetime = false;
 };

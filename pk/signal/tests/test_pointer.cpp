@@ -20,6 +20,10 @@ struct Node : PkObject {
     Node* this_expected = nullptr;
     Node* innerEmitter = nullptr;
 };
+
+struct HostObject {
+    int value = 17;
+};
 }
 
 void run_pointer_tests()
@@ -46,6 +50,15 @@ void run_pointer_tests()
 
     // 3. sender() 返回当前 emitter（探针 3）
     {
+        HostObject host;
+        PkPointer<HostObject> pointer(&host);
+        _expect(!pointer.isNull(), "PkPointer keeps a non-null host fallback visible");
+        _expect(pointer.data() == &host, "host fallback data() returns the raw pointer");
+        _expect(pointer->value == 17, "host fallback remains dereferenceable while owned");
+    }
+
+    // 4. sender() 返回当前 emitter（探针 3）
+    {
         Node s; Node r;
         r.this_expected = &s;
         PkObject::connect(&s, &Node::sig, &r, &Node::slotCheckSender);
@@ -54,12 +67,12 @@ void run_pointer_tests()
         _expect(g_lastSender == &s, "sender()==emitter");
     }
 
-    // 4. 槽外 sender() == nullptr
+    // 5. 槽外 sender() == nullptr
     {
         _expect(PkObject::sender() == nullptr, "sender() null outside emit");
     }
 
-    // 5. 嵌套 emit：内层槽里 sender() 返回最内层 emitter（栈 LIFO）
+    // 6. 嵌套 emit：内层槽里 sender() 返回最内层 emitter（栈 LIFO）
     {
         Node a; Node b; Node r;
         r.innerEmitter = &b;

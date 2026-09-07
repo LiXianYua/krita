@@ -12,6 +12,7 @@
 #include <PkFlakeBridge.h>
 #include "KoToolManager.h"
 #include "KoToolManager_p.h"
+#include "KoToolManagerOptionWidgets_p.h"
 #include "KoToolRegistry.h"
 #include "KoToolProxy.h"
 #include "KoToolProxy_p.h"
@@ -584,10 +585,9 @@ void KoToolManager::Private::postSwitchTool()
         canvasData->activeTool->activate(shapesToOperateOn);
     }
 
-    QList<QPointer<QWidget> > optionWidgetList;
-    for (const PkPointer<QWidget> &w : canvasData->activeTool->optionWidgets()) {
-        optionWidgetList.append(QPointer<QWidget>(w.data()));
-    }
+    QList<QPointer<QWidget>> optionWidgetList =
+        KoToolManagerOptionWidgets::toHostPointers(
+            canvasData->activeTool->optionWidgets());
     if (optionWidgetList.isEmpty()) { // no option widget.
         QWidget *toolWidget;
         PkString title = canvasData->activeTool->factory()->toolTip();

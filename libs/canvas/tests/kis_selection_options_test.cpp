@@ -5,11 +5,59 @@
  */
 
 #include <QSignalSpy>
+#include <QPointer>
+#include <QWidget>
 #include <type_traits>
 
 #include <simpletest.h>
 
 #include "kis_selection_options.h"
+#include "tool/kis_delegated_tool.h"
+#include "KoToolManagerOptionWidgets_p.h"
+
+namespace
+{
+class DelegatedOptionBase : public KisTool
+{
+public:
+    DelegatedOptionBase(KoCanvasBase *canvas, const QCursor &cursor)
+        : KisTool(canvas, cursor)
+    {
+    }
+
+    void mousePressEvent(KoPointerEvent *) override {}
+    void mouseMoveEvent(KoPointerEvent *) override {}
+    void mouseReleaseEvent(KoPointerEvent *) override {}
+    PkList<PkPointer<QWidget>> createOptionWidgets() override { return {}; }
+};
+
+class DelegatedOptionLocalTool
+{
+public:
+    DelegatedOptionLocalTool()
+        : m_widget(new QWidget)
+    {
+        m_widget->setObjectName("DelegatedOptionWidget");
+    }
+
+    ~DelegatedOptionLocalTool() { delete m_widget; }
+
+    void activate(const PkSet<KoShape *> &) {}
+    void deactivate() {}
+    void mousePressEvent(KoPointerEvent *) {}
+    void mouseDoubleClickEvent(KoPointerEvent *) {}
+    void mouseMoveEvent(KoPointerEvent *) {}
+    void mouseReleaseEvent(KoPointerEvent *) {}
+    void paint(PkPainter &, const KoViewConverter &) {}
+    PkList<PkPointer<QWidget>> createOptionWidgets() { return {m_widget}; }
+
+    QWidget *widget() const { return m_widget; }
+
+private:
+    QWidget *m_widget;
+};
+
+}
 
 class KisSelectionOptionsTest : public QObject
 {
@@ -19,6 +67,7 @@ private Q_SLOTS:
     void testDomainStateIsNotAWidget();
     void testAllValuesAreObservableState();
     void testSelectedColorLabelsAreObservableState();
+    void testDelegatedOptionWidgetReachesHostBoundaryAndTearsDownSafely();
 };
 
 void KisSelectionOptionsTest::testDomainStateIsNotAWidget()
@@ -109,6 +158,26 @@ void KisSelectionOptionsTest::testSelectedColorLabelsAreObservableState()
     options.setSelectedColorLabels({8, 2});
     QCOMPARE(options.selectedColorLabels(), PkList<int>({8, 2}));
     QCOMPARE(changedSpy.count(), 2);
+}
+
+void KisSelectionOptionsTest::testDelegatedOptionWidgetReachesHostBoundaryAndTearsDownSafely()
+{
+    QList<QPointer<QWidget>> deliveredWidgets;
+    QWidget *expectedWidget = nullptr;
+
+    {
+        auto *localTool = new DelegatedOptionLocalTool;
+        expectedWidget = localTool->widget();
+        KisDelegatedTool<DelegatedOptionBase, DelegatedOptionLocalTool> tool(
+            nullptr, QCursor(), localTool);
+
+        deliveredWidgets = KoToolManagerOptionWidgets::toHostPointers(
+            tool.createOptionWidgets());
+        QCOMPARE(deliveredWidgets.size(), 1);
+        QCOMPARE(deliveredWidgets.first().data(), expectedWidget);
+    }
+
+    QVERIFY(deliveredWidgets.first().isNull());
 }
 
 SIMPLE_TEST_MAIN(KisSelectionOptionsTest)
