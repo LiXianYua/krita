@@ -86,7 +86,7 @@ KisImportExportErrorCode OraConverter::buildFile(PkStream *io, KisImageSP image,
     }
 
     PkSize previewSize = image->bounds().size();
-    previewSize.scale(PkSize(256,256), Qt::KeepAspectRatio);
+    previewSize.scale(PkSize(256,256), Pk::KeepAspectRatio);
 
     PkImage preview = image->convertToQImage(previewSize, 0);
 

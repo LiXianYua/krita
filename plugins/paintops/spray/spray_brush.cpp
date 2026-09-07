@@ -357,7 +357,7 @@ void SprayBrush::paintImpl(KisPaintDeviceSP dab, KisPaintDeviceSP source,
                     if (m_shapeDynamicsProperties->randomSize) {
                         m.scale(particleScale, particleScale);
                     }
-                    m_transformed = m_brushPkImage.transformed(m, Qt::SmoothTransformation);
+                    m_transformed = m_brushPkImage.transformed(m, Pk::SmoothTransformation);
                     m_imageDevice->convertFromQImage(m_transformed, 0);
                     KisRandomAccessorSP ac = m_imageDevice->createRandomAccessorNG();
                     PkRect rc = m_transformed.rect();

@@ -79,7 +79,9 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
         return ImportExportCodes::FileFormatIncorrect;
     }
 
-    dbgFile << header;
+    dbgFile << "PSD header" << header.signature.PkToUtf8().c_str()
+            << header.version << header.nChannels << header.width << header.height
+            << header.channelDepth << static_cast<int>(header.colormode);
     dbgFile << "Read header. pos:" << io.pos();
 
     PSDColorModeBlock colorModeBlock(header.colormode);
@@ -202,7 +204,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                 dbgFile << "Loaded embedded pattern: " << pattern->name();
             }
             else {
-                qWarning() << "Invalid or empty pattern" << pattern;
+                warnKrita << "Invalid or empty pattern" << pattern;
             }
         }
     }
@@ -513,10 +515,10 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                                                                    offset1, offsetByAscent,
                                                                    text.isHorizontal, scaleToPt);
                 if (!res || !converter.errors().isEmpty()) {
-                    qWarning() << converter.errors();
+                    warnKrita << converter.errors().join("; ");
                 }
-                dbgFile << converter.warnings();
-                svgConverter.convertFromSvg(svg, styles, m_image->bounds(), m_image->xRes()*72.0);
+                dbgFile << converter.warnings().join("; ").PkToUtf8().c_str();
+                svgConverter.convertFromSvg(svg, styles, PkRectF(m_image->bounds()), m_image->xRes()*72.0);
                 if (offsetByAscent) {
                     PkPointF offset2 = PkPointF() - shape->outlineRect().topLeft();
                     if (text.isHorizontal) {
@@ -562,7 +564,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
         Q_FOREACH (ChannelInfo *channelInfo, layerRecord->channelInfoRecords) {
             if (channelInfo->channelId < -1) {
                 const KisGeneratorLayer *fillLayer = dynamic_cast<KisGeneratorLayer *>(newLayer.data());
-                const KisShapeLayer *shapeLayer = qobject_cast<KisShapeLayer *>(newLayer.data());
+                const KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer *>(newLayer.data());
                 KoPathShape *vectorMask = new KoPathShape();
                 if (layerRecord->infoBlocks.keys.contains("vmsk") || layerRecord->infoBlocks.keys.contains("vsms")) {
                     double width = m_image->width() / m_image->xRes();
@@ -617,7 +619,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                         resourceProxy.addResource(gradient);
                     }
                     else {
-                        qWarning() << "Invalid or empty gradient" << gradient;
+                        warnKrita << "Invalid or empty gradient" << gradient;
                     }
                 }
 
@@ -625,7 +627,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                     if (pattern && pattern->valid()) {
                         resourceProxy.addResource(pattern);
                     } else {
-                        qWarning() << "Invalid or empty pattern" << pattern;
+                        warnKrita << "Invalid or empty pattern" << pattern;
                     }
                 }
 
@@ -640,7 +642,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
 
                 layer->setLayerStyle(layerStyle->cloneWithResourcesSnapshot(layerStyle->resourcesInterface(), 0));
             } else {
-                warnKrita << "WARNING: Couldn't read layer style!" << ppVar(serializer.styles());
+                warnKrita << "WARNING: Couldn't read layer style! styles.size()=" << serializer.styles().size();
             }
 
         }

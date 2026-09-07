@@ -88,7 +88,7 @@ public:
         buffer.open(PkStream::WriteOnly);
 
         if (!write(buffer)) {
-            qWarning() << "Could not copy PSDResourceBlock" << error;
+            warnKrita << "Could not copy PSDResourceBlock" << error;
             delete copied;
             return 0;
         }
@@ -96,7 +96,7 @@ public:
         buffer.open(PkStream::ReadOnly);
 
         if (!copied->read(buffer)) {
-            qWarning() << "Could not copy PSDResourceBlock" << copied->error;
+            warnKrita << "Could not copy PSDResourceBlock" << copied->error;
             delete copied;
             return 0;
         }

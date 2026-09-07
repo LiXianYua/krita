@@ -57,7 +57,7 @@ KisJPEGExport::~KisJPEGExport()
 KisImportExportErrorCode KisJPEGExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration)
 {
     KisImageSP image = document->savingImage();
-    Q_CHECK_PTR(image);
+    KIS_ASSERT_RECOVER_RETURN_VALUE(image, ImportExportCodes::InternalError);
 
     // An extra option to pass to the config widget to set the state correctly, this isn't saved
     const KoColorSpace* cs = image->projection()->colorSpace();

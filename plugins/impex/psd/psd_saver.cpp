@@ -126,7 +126,9 @@ KisImportExportErrorCode PSDSaver::buildFile(PkStream &io)
     header.colormode = colordef.first;
     header.channelDepth = colordef.second;
 
-    dbgFile << "header" << header << io.pos();
+    dbgFile << "PSD header" << header.signature.PkToUtf8().c_str()
+            << header.version << header.nChannels << header.width << header.height
+            << header.channelDepth << static_cast<int>(header.colormode) << io.pos();
 
     if (!header.write(io)) {
         dbgFile << "Failed to write header. Error:" << header.error << io.pos();
@@ -258,4 +260,3 @@ void PSDSaver::cancel()
 {
     m_stop = true;
 }
-
