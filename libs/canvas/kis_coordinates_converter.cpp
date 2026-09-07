@@ -855,12 +855,12 @@ PkSizeF KisCoordinatesConverter::imageSizeInFlakePixels() const
 
 PkRectF KisCoordinatesConverter::widgetRectInFlakePixels() const
 {
-    return widgetToFlake(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
+    return widgetToFlake(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
 }
 
 PkRectF KisCoordinatesConverter::widgetRectInImagePixels() const
 {
-    return widgetToImage(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
+    return widgetToImage(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
 }
 
 PkPointF KisCoordinatesConverter::flakeCenterPoint() const

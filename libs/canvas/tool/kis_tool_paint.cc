@@ -16,10 +16,10 @@
 #include <QLayout>
 #include <QPainterPath>
 #include <QPoint>
-#include <PkPointF>
+#include <pk/geometry/PkPoint.h>
 #include <QPushButton>
 #include <QRect>
-#include <PkRectF>
+#include <pk/geometry/PkRect.h>
 #include <QString>
 #include <QVariant>
 #include <QVBoxLayout>

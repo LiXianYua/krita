@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkFlakeBridge.h>
 #include "kis_shape_tool_helper.h"
 
 #include <QPainterPath>
@@ -33,11 +34,11 @@ KoShape* KisShapeToolHelper::createRectangleShape(const PkRectF& rect, qreal rou
         //Fallback if the plugin wasn't found
         QPainterPath path;
         if (roundCornersX > 0 || roundCornersY > 0) {
-            path.addRoundedRect(rect, roundCornersX, roundCornersY);
+            path.addRoundedRect(toQRectF(rect), roundCornersX, roundCornersY);
         } else {
-            path.addRect(rect);
+            path.addRect(toQRectF(rect));
         }
-        KoPathShape *pathShape = KoPathShape::createShapeFromPainterPath(path);
+        KoPathShape *pathShape = KoPathShape::createShapeFromPainterPath(toPkPainterPath(path));
         pathShape->normalize();
         shape = pathShape;
     }

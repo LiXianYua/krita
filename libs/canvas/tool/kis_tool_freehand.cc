@@ -10,7 +10,7 @@
  */
 
 #include <QPainter>
-#include <PkPointF>
+#include <pk/geometry/PkPoint.h>
 #include <QRect>
 #include <QThreadPool>
 

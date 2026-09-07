@@ -9,6 +9,7 @@
 
 #include <QObject>
 #include <PkPointer.h>
+#include <pk/render/PkPainter.h>
 #include <PkSet.h>
 #include <PkList.h>
 #include <PkHash.h>
@@ -93,6 +94,9 @@ public:
      * @param converter to convert between internal and view coordinates.
      */
     virtual void paint(QPainter &painter, const KoViewConverter &converter) = 0;
+    // S-09-g 扩锁：Pk 命令式 paint 轨（defaulttool 等薄壳 tool 用）。
+    // Qt 直绘轨的 paint(QPainter&) 保留；两轨由各自渲染循环分别调用。
+    virtual void paint(PkPainter &painter, const KoViewConverter &converter) { Q_UNUSED(painter); Q_UNUSED(converter); }
 
     /**
      * Return the option widgets for this tool. Create them if they
@@ -586,3 +590,5 @@ private:
 };
 
 #endif /* KOTOOLBASE_H */
+
+#include <pk/render/PkPainter.h>

@@ -291,7 +291,7 @@ void KisPrescaledProjection::recalculateCache(KisUpdateInfoSP info)
     if(!ppInfo) return;
 
     QRect rawViewRect =
-        m_d->coordinatesConverter->viewportToImage(toPkRect(m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect()));
+        m_d->coordinatesConverter->viewportToImage(m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect());
 
     fillInUpdateInformation(rawViewRect, ppInfo);
 
@@ -391,7 +391,7 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
 
     // second, align this rect to the KisImage's pixels and pixels
     // of projection backend.
-    info->imageRect = toPkRectF(m_d->coordinatesConverter->viewportToImage(toQRectF(PkRectF(croppedViewRect))).toAlignedRect());
+    info->imageRect = toPkRectF(m_d->coordinatesConverter->viewportToImage(croppedViewRect).toAlignedRect());
 
     /**
      * To avoid artifacts while scaling we use mechanism like

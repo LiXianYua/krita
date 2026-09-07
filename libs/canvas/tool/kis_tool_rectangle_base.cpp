@@ -41,7 +41,7 @@ KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectang
 }
 
 
-QList<QPointer<QWidget> > KisToolRectangleBase::createOptionWidgets()
+PkList<QPointer<QWidget>> KisToolRectangleBase::createOptionWidgets()
 {
     return KisToolShape::createOptionWidgets();
 }

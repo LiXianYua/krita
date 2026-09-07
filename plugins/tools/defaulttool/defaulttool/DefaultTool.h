@@ -80,7 +80,7 @@ public:
     ///reimplemented
     KoToolSelection *selection() override;
 
-    DefaultToolMenu *popupActionsMenu() override;
+    DefaultToolMenu *popupActionsMenu();
     bool dispatchAction(DefaultToolActionId action, bool checked = false);
     DefaultToolActionState actionState(DefaultToolActionId action) const;
     DefaultToolMenuState menuState() const;
@@ -146,7 +146,7 @@ public: // Events
     void mouseReleaseEvent(KoPointerEvent *event) override;
     void mouseDoubleClickEvent(KoPointerEvent *event) override;
 
-    void keyPressEvent(DefaultToolKeyEvent *event) override;
+    void keyPressEvent(DefaultToolKeyEvent *event);
 
     void explicitUserStrokeEndRequest() override;
 protected:

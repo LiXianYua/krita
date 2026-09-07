@@ -43,7 +43,7 @@ public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
-    QList<QPointer<QWidget> > createOptionWidgets() override;
+    PkList<QPointer<QWidget>> createOptionWidgets() override;
     void showSize();
 
 protected:

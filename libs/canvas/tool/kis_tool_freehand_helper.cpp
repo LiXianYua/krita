@@ -1006,7 +1006,7 @@ void KisToolFreehandHelper::finishStroke()
         paintBezierSegment(m_d->olderPaintInformation,
                            m_d->previousPaintInformation,
                            m_d->previousTangent,
-                           toQPointF(newTangent));
+                           newTangent);
     }
     
 }

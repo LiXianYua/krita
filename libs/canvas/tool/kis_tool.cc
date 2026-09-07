@@ -9,12 +9,12 @@
 #include <QLabel>
 #include <QPainterPath>
 #include <QPoint>
-#include <PkPointF>
-#include <PkPolygonF>
+#include <pk/geometry/PkPoint.h>
+#include <pk/geometry/PkPolygon.h>
 #include <QRect>
-#include <PkRectF>
+#include <pk/geometry/PkRect.h>
 #include <QString>
-#include <PkTransform>
+#include <pk/geometry/PkTransform.h>
 #include <QVariant>
 #include <QWidget>
 
