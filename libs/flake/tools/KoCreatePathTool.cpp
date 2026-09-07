@@ -553,11 +553,11 @@ void KoCreatePathTool::addPathShape(KoPathShape *pathShape)
     addPathShapeImpl(pathShape, false);
 }
 
-PkList<PkPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
+PkList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
 {
     Q_D(KoCreatePathTool);
 
-    PkList<PkPointer<QWidget> > list;
+    PkList<QPointer<QWidget> > list;
 
     QWidget *widget = new QWidget();
     widget->setObjectName("bezier-curve-tool-widget");

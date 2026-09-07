@@ -7,7 +7,6 @@
 #ifndef KIS_TOOL_RECTANGLE_BASE_H
 #define KIS_TOOL_RECTANGLE_BASE_H
 
-#include <PkPointer.h>
 #include <PkSet.h>
 #include <kis_tool_shape.h>
 
@@ -44,7 +43,7 @@ public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
-    PkList<PkPointer<QWidget>> createOptionWidgets() override;
+    PkList<QPointer<QWidget>> createOptionWidgets() override;
     void showSize();
 
 protected:

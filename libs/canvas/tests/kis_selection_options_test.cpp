@@ -28,7 +28,7 @@ public:
     void mousePressEvent(KoPointerEvent *) override {}
     void mouseMoveEvent(KoPointerEvent *) override {}
     void mouseReleaseEvent(KoPointerEvent *) override {}
-    PkList<PkPointer<QWidget>> createOptionWidgets() override { return {}; }
+    PkList<QPointer<QWidget>> createOptionWidgets() override { return {}; }
 };
 
 class DelegatedOptionLocalTool
@@ -49,9 +49,14 @@ public:
     void mouseMoveEvent(KoPointerEvent *) {}
     void mouseReleaseEvent(KoPointerEvent *) {}
     void paint(PkPainter &, const KoViewConverter &) {}
-    PkList<PkPointer<QWidget>> createOptionWidgets() { return {m_widget}; }
+    PkList<QPointer<QWidget>> createOptionWidgets() { return {m_widget}; }
 
     QWidget *widget() const { return m_widget; }
+    void destroyWidget()
+    {
+        delete m_widget;
+        m_widget = nullptr;
+    }
 
 private:
     QWidget *m_widget;
@@ -171,10 +176,18 @@ void KisSelectionOptionsTest::testDelegatedOptionWidgetReachesHostBoundaryAndTea
         KisDelegatedTool<DelegatedOptionBase, DelegatedOptionLocalTool> tool(
             nullptr, QCursor(), localTool);
 
-        deliveredWidgets = KoToolManagerOptionWidgets::toHostPointers(
-            tool.createOptionWidgets());
+        const auto cachedWidgets = tool.optionWidgets();
+        deliveredWidgets =
+            KoToolManagerOptionWidgets::toHostPointers(cachedWidgets);
         QCOMPARE(deliveredWidgets.size(), 1);
         QCOMPARE(deliveredWidgets.first().data(), expectedWidget);
+
+        localTool->destroyWidget();
+        QVERIFY(deliveredWidgets.first().isNull());
+
+        const auto cachedAfterTeardown = tool.optionWidgets();
+        QCOMPARE(cachedAfterTeardown.size(), 1);
+        QVERIFY(cachedAfterTeardown.first().isNull());
     }
 
     QVERIFY(deliveredWidgets.first().isNull());

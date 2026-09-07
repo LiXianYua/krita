@@ -12,8 +12,8 @@
 #include "KoCanvasBase.h"
 #include "KoShapeController.h"
 #include <PkHash.h>
+#include <QPointer>
 #include <QWidget>
-#include <PkPointer.h>
 #include <string.h> // for the qt version check
 
 class QAction;
@@ -34,7 +34,7 @@ public:
 
     virtual ~KoToolBasePrivate()
     {
-        Q_FOREACH (PkPointer<QWidget> optionWidget, optionWidgets) {
+        for (const QPointer<QWidget> &optionWidget : optionWidgets) {
             if (optionWidget) {
                 optionWidget->setParent(0);
                 delete optionWidget;
@@ -65,7 +65,7 @@ public:
         PkHash<int, KoDerivedResourceConverterSP> converters;
     };
 
-    PkList<PkPointer<QWidget> > optionWidgets; ///< the optionwidgets associated with this tool
+    PkList<QPointer<QWidget> > optionWidgets; ///< the optionwidgets associated with this tool
     bool optionWidgetsCreated {false};
     QCursor currentCursor;
     KoToolBase *q;

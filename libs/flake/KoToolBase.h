@@ -9,7 +9,7 @@
 
 #include <pk/signal/PkObject.h>
 #include <QObject>
-#include <PkPointer.h>
+#include <QPointer>
 #include <pk/render/PkPainter.h>
 #include <PkSet.h>
 #include <PkList.h>
@@ -108,7 +108,7 @@ public:
      *
      * @see m_optionWidgets
      */
-    PkList<PkPointer<QWidget> > optionWidgets();
+    PkList<QPointer<QWidget> > optionWidgets();
 
     /**
      * Retrieve an action by name.
@@ -499,7 +499,7 @@ protected:
      * Sets the option widget to 0 by default.
      */
     virtual QWidget *createOptionWidget();
-    virtual PkList<PkPointer<QWidget> > createOptionWidgets();
+    virtual PkList<QPointer<QWidget> > createOptionWidgets();
 
     /// Convenience function to get the current handle radius
     int handleRadius() const;

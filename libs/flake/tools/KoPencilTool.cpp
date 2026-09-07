@@ -295,7 +295,7 @@ void KoPencilTool::finish(bool closePath)
     addPathShape(path, closePath);
 }
 
-PkList<PkPointer<QWidget> > KoPencilTool::createOptionWidgets()
+PkList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
 {
     m_mode = static_cast<PencilMode>(m_configGroup.readEntry<int>("pencilMode", m_mode));
     m_optimizeRaw = m_configGroup.readEntry<bool>("optimizeRaw", m_optimizeRaw);
@@ -303,7 +303,7 @@ PkList<PkPointer<QWidget> > KoPencilTool::createOptionWidgets()
     m_combineAngle = m_configGroup.readEntry<qreal>("combineAngle", m_combineAngle);
     m_fittingError = m_configGroup.readEntry<qreal>("fittingError", m_fittingError);
 
-    PkList<PkPointer<QWidget> > widgets;
+    PkList<QPointer<QWidget> > widgets;
     QWidget *optionWidget = new QWidget();
     QVBoxLayout * layout = new QVBoxLayout(optionWidget);
 

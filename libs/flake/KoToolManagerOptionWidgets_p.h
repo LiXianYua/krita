@@ -6,7 +6,6 @@
 #define KO_TOOL_MANAGER_OPTION_WIDGETS_P_H
 
 #include <PkList.h>
-#include <PkPointer.h>
 
 #include <QList>
 #include <QPointer>
@@ -18,11 +17,11 @@ namespace KoToolManagerOptionWidgets
 // QWidget remains a literal host identity. Convert to QPointer only at the
 // KoToolManager delivery boundary so the host keeps teardown tracking.
 inline QList<QPointer<QWidget>> toHostPointers(
-    const PkList<PkPointer<QWidget>> &widgets)
+    const PkList<QPointer<QWidget>> &widgets)
 {
     QList<QPointer<QWidget>> result;
-    for (const PkPointer<QWidget> &widget : widgets) {
-        result.append(QPointer<QWidget>(widget.data()));
+    for (const QPointer<QWidget> &widget : widgets) {
+        result.append(widget);
     }
     return result;
 }

@@ -12,7 +12,7 @@
 #include <KoCanvasBase.h>
 
 #include <QLayout>
-#include <PkPointer.h>
+#include <QPointer>
 #include <PkScopedPointer.h>
 #include <PkSet.h>
 
@@ -117,11 +117,11 @@ public:
         m_localTool->paint(painter, converter);
     }
 
-    PkList<PkPointer<QWidget>> createOptionWidgets() override
+    PkList<QPointer<QWidget>> createOptionWidgets() override
     {
-        PkList<PkPointer<QWidget>> baseWidgetList =
+        PkList<QPointer<QWidget>> baseWidgetList =
             BaseClass::createOptionWidgets();
-        PkList<PkPointer<QWidget>> localWidgetList =
+        PkList<QPointer<QWidget>> localWidgetList =
             m_localTool->createOptionWidgets();
 
         baseWidgetList.append(localWidgetList);

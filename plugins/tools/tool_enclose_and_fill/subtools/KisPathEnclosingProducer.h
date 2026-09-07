@@ -88,9 +88,9 @@ public:
         m_localTool->paint(painter, converter);
     }
 
-    PkList<PkPointer<QWidget>> createOptionWidgets() override
+    PkList<QPointer<QWidget>> createOptionWidgets() override
     {
-        PkList<PkPointer<QWidget>> widgets = KisToolShape::createOptionWidgets();
+        PkList<QPointer<QWidget>> widgets = KisToolShape::createOptionWidgets();
         widgets.append(m_localTool->createOptionWidgets());
         return widgets;
     }
