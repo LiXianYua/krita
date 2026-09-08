@@ -7,6 +7,7 @@ kis_add_tests(
     kis_opengl_policy_test.cpp
     kis_prescaled_projection_test.cpp
     kis_selection_options_test.cpp
+    kis_selection_tool_factory_test.cpp
     kis_stabilized_events_sampler_test.cpp
     fill_processing_visitor_test.cpp
     zoomhandler_test.cpp
@@ -22,3 +23,8 @@ add_test(NAME libs-canvas-host-action-extraction
         -DHOST_FACTORY_SOURCE=${CMAKE_SOURCE_DIR}/libs/flake/KoToolFactoryBase.cpp
         -DCANVAS_FACTORY_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/../tool/KisToolPaintFactoryBase.cpp
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_host_action_extraction.cmake)
+
+add_test(NAME libs-canvas-selection-factory-host-boundary
+    COMMAND ${CMAKE_COMMAND}
+        -DSELECTION_FACTORY_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/../tool/KisSelectionToolFactoryBase.cpp
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_selection_factory_host_boundary.cmake)

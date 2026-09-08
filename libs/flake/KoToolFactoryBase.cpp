@@ -18,6 +18,9 @@
 namespace {
 QString translateHostActionText(const char *text)
 {
+    if (!text || !*text) {
+        return QString();
+    }
     // Keep these literals in the host boundary so xgettext can retain the
     // contextless message ids used by the QAction runtime path.
     if (qstrcmp(text, "Increase Brush Size") == 0) {
