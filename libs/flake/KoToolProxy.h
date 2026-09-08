@@ -41,6 +41,13 @@ class PkPointF;
 class QMenu;
 class KisPopupWidgetInterface;
 
+enum class KoPointerInputSource {
+    None,
+    Mouse,
+    Tablet,
+    Touch
+};
+
 /**
  * Tool proxy object which allows an application to address the current tool.
  *
@@ -156,8 +163,6 @@ public:
 
     KoPointerEvent* lastDeliveredPointerEvent() const;
 
-    PkVector<QKeySequence> toolPriorityShortcuts() const;
-
     /// \internal
     KoToolProxyPrivate *priv();
 
@@ -198,7 +203,7 @@ private:
     Q_PRIVATE_SLOT(d, void timeout())
     Q_PRIVATE_SLOT(d, void selectionChanged(bool))
 
-    void countMultiClick(KoPointerEvent *ev, int eventType);
+    void countMultiClick(KoPointerEvent *ev, KoPointerInputSource source);
 
     friend class KoToolProxyPrivate;
     KoToolProxyPrivate * const d;

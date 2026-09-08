@@ -16,6 +16,7 @@
 
 #include <PkSharedPointer.h>
 #include <PkPoint.h>
+#include <PkNamespace.h>
 #include <optional>
 
 class QEvent;
@@ -58,6 +59,13 @@ public:
 
     KoPointerEvent(QTouchEvent* ev, const PkPointF& pnt);
 
+    /** Construct a host-free mouse event for retained tool dispatch. */
+    KoPointerEvent(const PkPoint &widgetPosition,
+                   const PkPointF &documentPosition,
+                   Pk::MouseButton button,
+                   Pk::MouseButtons buttons,
+                   Pk::KeyboardModifiers modifiers);
+
     KoPointerEvent(KoPointerEvent *event, const PkPointF& point);
 
     ~KoPointerEvent();
@@ -88,6 +96,9 @@ public:
      * any time longer than the lifetime of the handler for this event.
      */
     KoPointerEventWrapper deepCopyEvent() const;
+
+    /** Copy the observable input state without retaining the host Qt event. */
+    KoPointerEvent detachedCopy() const;
 
     /**
      * For classes that are handed this event, you can choose to accept (default) this event.
@@ -234,4 +245,3 @@ struct KRITAFLAKE_EXPORT KoPointerEventWrapper
 };
 
 #endif
-

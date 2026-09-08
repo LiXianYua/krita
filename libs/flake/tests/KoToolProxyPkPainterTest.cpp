@@ -6,6 +6,7 @@
 #include <QTest>
 
 #include "KoCanvasBase.h"
+#include "KoCanvasController.h"
 #include "KoShapeControllerBase.h"
 #include "KoToolBase.h"
 #include "KoToolProxy.h"
@@ -21,11 +22,16 @@
 #include "tools/KoPencilTool.h"
 
 #include <vector>
+#include <chrono>
+#include <optional>
+#include <thread>
 #include <type_traits>
 
 #include <PkPaintCommand.h>
 #include <PkPainter.h>
 #include <PkSize.h>
+#include <PkThreadCallQueue.h>
+#include <PkTimer.h>
 
 namespace
 {
@@ -87,6 +93,49 @@ public:
     KoViewConverter converter;
 };
 
+class MinimalController final : public KoCanvasController
+{
+public:
+    MinimalController()
+        : KoCanvasController(nullptr)
+    {
+    }
+
+    void setCanvas(KoCanvasBase *value) override { m_canvas = value; }
+    KoCanvasBase *canvas() const override { return m_canvas; }
+    void ensureVisibleDoc(const PkRectF &rect, bool smooth) override
+    {
+        lastVisibleRect = rect;
+        lastSmooth = smooth;
+        m_preferredCenter += PkPointF(1.0, 1.0);
+        ++ensureVisibleCalls;
+    }
+    void zoomIn(const KoViewTransformStillPoint &) override {}
+    void zoomIn() override {}
+    void zoomOut(const KoViewTransformStillPoint &) override {}
+    void zoomOut() override {}
+    void zoomTo(const PkRect &) override {}
+    void setZoom(KoZoomMode::Mode, qreal) override {}
+    void setPreferredCenter(const PkPointF &point) override { m_preferredCenter = point; }
+    PkPointF preferredCenter() const override { return m_preferredCenter; }
+    void pan(const PkPoint &) override {}
+    void panUp() override {}
+    void panDown() override {}
+    void panLeft() override {}
+    void panRight() override {}
+    PkPoint scrollBarValue() const override { return {}; }
+    void setScrollBarValue(const PkPoint &) override {}
+    void resetScrollBars() override {}
+    PkPointF currentCursorPosition() const override { return {}; }
+    KoZoomState zoomState() const override { return {}; }
+
+    KoCanvasBase *m_canvas = nullptr;
+    PkPointF m_preferredCenter;
+    PkRectF lastVisibleRect;
+    bool lastSmooth = false;
+    int ensureVisibleCalls = 0;
+};
+
 class TestToolProxy final : public KoToolProxy
 {
 public:
@@ -124,10 +173,19 @@ public:
     }
 
     void mousePressEvent(KoPointerEvent *) override {}
-    void mouseMoveEvent(KoPointerEvent *) override {}
-    void mouseReleaseEvent(KoPointerEvent *) override {}
+    void mouseMoveEvent(KoPointerEvent *event) override
+    {
+        ++mouseMoveCalls;
+        lastMouseMovePoint = event->point;
+        lastMouseMoveButtons = event->buttons();
+    }
+    void mouseReleaseEvent(KoPointerEvent *) override { ++mouseReleaseCalls; }
 
     bool reached = false;
+    int mouseMoveCalls = 0;
+    int mouseReleaseCalls = 0;
+    PkPointF lastMouseMovePoint;
+    Qt::MouseButtons lastMouseMoveButtons;
 };
 
 class PencilPreviewTool final : public KoPencilTool
@@ -143,6 +201,9 @@ static_assert(std::is_same_v<decltype(&KoToolProxy::paint),
                             void (KoToolProxy::*)(PkPainter &, const KoViewConverter &)>);
 static_assert(std::is_same_v<decltype(&KoToolBase::paint),
                             void (KoToolBase::*)(PkPainter &, const KoViewConverter &)>);
+static_assert(std::is_same_v<decltype(KoToolProxyPrivate::scrollTimer), PkTimer>);
+static_assert(std::is_same_v<decltype(KoToolProxyPrivate::lastPointerEvent),
+                            std::optional<KoPointerEvent>>);
 }
 
 class KoToolProxyPkPainterTest : public QObject
@@ -150,6 +211,75 @@ class KoToolProxyPkPainterTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void initTestCase()
+    {
+        PkThreadCallQueue::warmUpCurrentThread();
+    }
+
+    void cleanup()
+    {
+        PkThreadCallQueue::processPendingCalls();
+    }
+
+    void detachedLastEventOutlivesHostEvent()
+    {
+        MinimalShapeController shapeController;
+        MinimalCanvas canvas(&shapeController);
+        TestToolProxy proxy(&canvas);
+        PkOnlyTool tool(&canvas);
+        proxy.priv()->activeTool = &tool;
+
+        {
+            QMouseEvent move(QEvent::MouseMove, QPointF(7, 9), QPointF(17, 19),
+                             Qt::NoButton, Qt::LeftButton, Qt::ShiftModifier);
+            proxy.mouseMoveEvent(&move, PkPointF(70, 90));
+        }
+
+        const KoPointerEvent *saved = proxy.lastDeliveredPointerEvent();
+        QVERIFY(saved);
+        QCOMPARE(saved->point, PkPointF(70, 90));
+        QCOMPARE(saved->pos(), PkPoint(7, 9));
+        QCOMPARE(saved->globalPos(), PkPoint(17, 19));
+        QCOMPARE(saved->buttons(), Qt::LeftButton);
+        QCOMPARE(saved->modifiers(), Qt::ShiftModifier);
+    }
+
+    void autoScrollPkTimerFiresOnceAndReleaseCancelsRepeat()
+    {
+        MinimalShapeController shapeController;
+        MinimalCanvas canvas(&shapeController);
+        MinimalController controller;
+        controller.setCanvas(&canvas);
+        TestToolProxy proxy(&canvas);
+        PkOnlyTool tool(&canvas);
+        proxy.priv()->activeTool = &tool;
+        proxy.priv()->controller = &controller;
+
+        QMouseEvent move(QEvent::MouseMove, QPointF(25, 35),
+                         Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        KoPointerEvent pointer(&move, PkPointF(25, 35));
+        proxy.mousePressEvent(&pointer);
+        proxy.mouseMoveEvent(&pointer);
+        QVERIFY(proxy.priv()->scrollTimer.isActive());
+
+        // A stalled host must not accumulate one callback per elapsed interval.
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        QCOMPARE(PkThreadCallQueue::pendingCount(), size_t(1));
+        QEvent hostPulse(QEvent::User);
+        proxy.processEvent(&hostPulse);
+        QCOMPARE(PkThreadCallQueue::pendingCount(), size_t(0));
+        QCOMPARE(controller.ensureVisibleCalls, 1);
+        QCOMPARE(tool.mouseMoveCalls, 2);
+        QCOMPARE(tool.lastMouseMovePoint, PkPointF(25, 35));
+        QCOMPARE(tool.lastMouseMoveButtons, Qt::LeftButton);
+
+        proxy.mouseReleaseEvent(&pointer);
+        QVERIFY(!proxy.priv()->scrollTimer.isActive());
+        PkThreadCallQueue::processPendingCalls();
+        QCOMPARE(tool.mouseMoveCalls, 2);
+        QCOMPARE(tool.mouseReleaseCalls, 1);
+    }
+
     void pathSelectionDecorationsUsePkDispatch()
     {
         MinimalShapeController controller;

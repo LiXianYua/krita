@@ -14,6 +14,10 @@
 #include <QClipboard>
 #include <QEvent>
 
+#include <PkThreadCallQueue.h>
+
+#include <chrono>
+
 #include <kundo2command.h>
 #include <KoProperties.h>
 
@@ -40,9 +44,9 @@
 
 
 KoToolProxyPrivate::KoToolProxyPrivate(KoToolProxy *p)
-    : parent(p)
+    : scrollTimer(PkThreadCallQueue::warmUpCurrentThread())
+    , parent(p)
 {
-    scrollTimer.setInterval(100);
 }
 
 void KoToolProxyPrivate::timeout() // Auto scroll the canvas
@@ -74,8 +78,11 @@ void KoToolProxyPrivate::timeout() // Auto scroll the canvas
 
     widgetScrollPointDoc = parent->widgetToDocument(originalWidgetPoint);
 
-    QMouseEvent event(QEvent::MouseMove, toQPoint(originalWidgetPoint), Qt::LeftButton, Qt::LeftButton, QFlags<Qt::KeyboardModifier>());
-    KoPointerEvent ev(&event, widgetScrollPointDoc);
+    KoPointerEvent ev(originalWidgetPoint,
+                      widgetScrollPointDoc,
+                      Pk::LeftButton,
+                      Pk::LeftButton,
+                      Pk::KeyboardModifiers());
     activeTool->mouseMoveEvent(&ev);
 }
 
@@ -91,8 +98,9 @@ void KoToolProxyPrivate::checkAutoScroll(const KoPointerEvent &event)
 
     widgetScrollPointDoc = event.point;
 
-    if (! scrollTimer.isActive())
-        scrollTimer.start();
+    if (!scrollTimer.isActive()) {
+        scrollTimer.start(std::chrono::milliseconds(100), [this] { timeout(); });
+    }
 }
 
 void KoToolProxyPrivate::selectionChanged(bool newSelection)
@@ -121,7 +129,6 @@ KoToolProxy::KoToolProxy(KoCanvasBase *canvas, QObject *parent)
 {
     KoToolManager::instance()->priv()->registerToolProxy(this, canvas);
 
-    QObject::connect(&d->scrollTimer, &QTimer::timeout, this, [this]() { d->timeout(); });
 }
 
 KoToolProxy::~KoToolProxy()
@@ -149,11 +156,11 @@ int KoToolProxy::multiClickCount() const
     return d->multiClickCount;
 }
 
-void KoToolProxy::countMultiClick(KoPointerEvent *ev, int eventType)
+void KoToolProxy::countMultiClick(KoPointerEvent *ev, KoPointerInputSource source)
 {
     PkPointF globalPoint = ev->globalPos();
 
-    if (d->multiClickSource != eventType) {
+    if (d->multiClickSource != source) {
         d->multiClickCount = 0;
     }
 
@@ -171,7 +178,7 @@ void KoToolProxy::countMultiClick(KoPointerEvent *ev, int eventType)
     } else {
         d->multiClickTimeStamp.start();
         d->multiClickCount = 1;
-        d->multiClickSource = QEvent::Type(eventType);
+        d->multiClickSource = source;
     }
 
     if (d->activeTool) {
@@ -208,7 +215,7 @@ void KoToolProxy::tabletEvent(QTabletEvent *event, const PkPointF &point)
 
     switch (event->type()) {
     case QEvent::TabletPress:
-        countMultiClick(&ev, event->type());
+        countMultiClick(&ev, KoPointerInputSource::Tablet);
         break;
     case QEvent::TabletRelease:
         d->scrollTimer.stop();
@@ -224,7 +231,7 @@ void KoToolProxy::tabletEvent(QTabletEvent *event, const PkPointF &point)
     }
 
     d->mouseLeaveWorkaround = true;
-    d->lastPointerEvent = ev.deepCopyEvent();
+    d->lastPointerEvent = ev.detachedCopy();
 }
 
 void KoToolProxy::mousePressEvent(KoPointerEvent *ev)
@@ -250,7 +257,7 @@ void KoToolProxy::mousePressEvent(KoPointerEvent *ev)
         return;
     }
 
-    countMultiClick(ev, QEvent::MouseButtonPress);
+    countMultiClick(ev, KoPointerInputSource::Mouse);
 
     d->isToolPressed = true;
 }
@@ -259,14 +266,14 @@ void KoToolProxy::mousePressEvent(QMouseEvent *event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mousePressEvent(&ev);
-    d->lastPointerEvent = ev.deepCopyEvent();
+    d->lastPointerEvent = ev.detachedCopy();
 }
 
 void KoToolProxy::mouseDoubleClickEvent(QMouseEvent *event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseDoubleClickEvent(&ev);
-    d->lastPointerEvent = ev.deepCopyEvent();
+    d->lastPointerEvent = ev.detachedCopy();
 }
 
 void KoToolProxy::mouseDoubleClickEvent(KoPointerEvent *event)
@@ -279,7 +286,7 @@ void KoToolProxy::mouseMoveEvent(QMouseEvent *event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseMoveEvent(&ev);
-    d->lastPointerEvent = ev.deepCopyEvent();
+    d->lastPointerEvent = ev.detachedCopy();
 }
 
 void KoToolProxy::mouseMoveEvent(KoPointerEvent *event)
@@ -304,7 +311,7 @@ void KoToolProxy::mouseReleaseEvent(QMouseEvent *event, const PkPointF &point)
 {
     KoPointerEvent ev(event, point);
     mouseReleaseEvent(&ev);
-    d->lastPointerEvent = ev.deepCopyEvent();
+    d->lastPointerEvent = ev.detachedCopy();
 }
 
 void KoToolProxy::mouseReleaseEvent(KoPointerEvent* event)
@@ -384,30 +391,11 @@ void KoToolProxy::setActiveTool(KoToolBase *tool)
 {
     if (d->activeTool) {
         QObject::disconnect(d->activeTool, &KoToolBase::selectionChanged, this, static_cast<void**>(nullptr));
-        d->toolPriorityShortcuts.clear();
     }
 
     d->activeTool = tool;
 
     if (tool) {
-        QObject *collection = d->controller->actionCollection();
-        KIS_SAFE_ASSERT_RECOVER_NOOP(collection);
-        if (collection) {
-            Q_FOREACH(QAction *action, collection->findChildren<QAction *>()) {
-
-                const QVariant prop = action->property("tool_action");
-
-                if (prop.isValid()) {
-                    const PkStringList tools = toPkStringList(prop.toStringList());
-
-                    if (tools.contains(d->activeTool->toolId())) {
-                        const QList<QKeySequence> shortcuts = action->shortcuts();
-                        for (const QKeySequence &sc : shortcuts) d->toolPriorityShortcuts.append(sc);
-                    }
-                }
-            }
-        }
-
         QObject::connect(d->activeTool, &KoToolBase::selectionChanged, this,
                 [this](bool hasSelection) { d->selectionChanged(hasSelection); });
         d->selectionChanged(hasSelection());
@@ -425,7 +413,7 @@ void KoToolProxy::touchEvent(QTouchEvent* event, const PkPointF& point)
     switch (event->touchPointStates())
     {
     case Qt::TouchPointPressed:
-        countMultiClick(&ev, QEvent::TouchBegin);
+        countMultiClick(&ev, KoPointerInputSource::Touch);
         break;
     case Qt::TouchPointMoved:
         d->activeTool->mouseMoveEvent(&ev);
@@ -437,17 +425,12 @@ void KoToolProxy::touchEvent(QTouchEvent* event, const PkPointF& point)
         ;
     }
 
-    d->lastPointerEvent = ev.deepCopyEvent();
+    d->lastPointerEvent = ev.detachedCopy();
 }
 
 KoPointerEvent *KoToolProxy::lastDeliveredPointerEvent() const
 {
-    return d->lastPointerEvent ? &(d->lastPointerEvent->event) : 0;
-}
-
-PkVector<QKeySequence> KoToolProxy::toolPriorityShortcuts() const
-{
-    return d->toolPriorityShortcuts;
+    return d->lastPointerEvent ? &(*d->lastPointerEvent) : nullptr;
 }
 
 void KoToolProxyPrivate::setCanvasController(KoCanvasController *c)
@@ -526,6 +509,10 @@ void KoToolProxy::deleteSelection()
 
 void KoToolProxy::processEvent(QEvent *e) const
 {
+    // The host calls this entry for every canvas event. It is the retained
+    // input thread's explicit pump for PkTimer and queued tool callbacks.
+    PkThreadCallQueue::processPendingCalls();
+
     if(e->type()==QEvent::ShortcutOverride
             && d->activeTool
             && d->activeTool->isInTextMode()

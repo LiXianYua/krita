@@ -8,14 +8,10 @@
 #define KOTOOLPROXYPRIVATE_P
 
 #include <PkTimer.h>
-#include <QTimer>
 #include <PkElapsedTimer.h>
 #include <PkPoint.h>
-#include <QEvent>
 #include <KoPointerEvent.h>
-#include <boost/optional.hpp>
-// [migrate] missing include for Pk/Qt type
-#include <PkVector.h>
+#include <optional>
 
 class KoPointerEvent;
 class KoToolBase;
@@ -40,7 +36,7 @@ public:
 
     KoToolBase *activeTool {0};
     bool hasSelection {false};
-    QTimer scrollTimer;
+    PkTimer scrollTimer;
     PkPointF widgetScrollPointDoc;
     KoCanvasController *controller {0};
     KoToolProxy *parent {0};
@@ -57,11 +53,9 @@ public:
     int multiClickCount {0};
     PkPointF multiClickGlobalPoint;
     PkElapsedTimer multiClickTimeStamp;
-    QEvent::Type multiClickSource;
+    KoPointerInputSource multiClickSource {KoPointerInputSource::None};
 
-    PkVector<QKeySequence> toolPriorityShortcuts;
-
-    boost::optional<KoPointerEventWrapper> lastPointerEvent;
+    std::optional<KoPointerEvent> lastPointerEvent;
 };
 
 #endif
