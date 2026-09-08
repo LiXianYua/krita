@@ -157,8 +157,10 @@ bool KisMyPaintPaintOpPreset::loadFromDevice(PkStream *dev, KisResourcesInterfac
             }
             return true;
         } else {
-            PkMessageLogger(__FILE__, __LINE__, __func__, &_41006()).warning()
-                << "Failed loading MyPaint preset from KoResource serialization";
+            if (_41006().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41006()).warning()
+                    << "Failed loading MyPaint preset from KoResource serialization";
+            }
             return false;
         }
     }

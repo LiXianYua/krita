@@ -40,9 +40,13 @@
 
 #undef WARN_WRONG_MODE
 #define WARN_WRONG_MODE(_mode)                                               \
-    PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()       \
-        << "Unexpected tool event has come to" << __func__                  \
-        << "while being mode" << _mode << "!"
+    do {                                                                      \
+        if (_41000().isWarningEnabled()) {                                    \
+            PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning() \
+                << "Unexpected tool event has come to" << __func__           \
+                << "while being mode" << _mode << "!";                       \
+        }                                                                     \
+    } while (false)
 
 
 KisToolGradient::KisToolGradient(KoCanvasBase * canvas)

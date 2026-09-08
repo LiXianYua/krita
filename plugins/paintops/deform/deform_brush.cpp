@@ -265,6 +265,10 @@ KisFixedPaintDeviceSP DeformBrush::paintMask(KisFixedPaintDeviceSP dab,
 
 void DeformBrush::debugColor(const quint8* data, KoColorSpace * cs)
 {
+    if (!_41006().isDebugEnabled()) {
+        return;
+    }
+
     PkColor rgbcolor;
     cs->toQColor(data, &rgbcolor);
     PkMessageLogger(__FILE__, __LINE__, __func__, &_41006()).debug()
