@@ -9,6 +9,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(PK_STRING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../string)
 set(PK_TEST_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/../test)
 set(PK_CONTAINER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../container)
+set(KRITA_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 if (NOT TARGET pkcontainer)
     set(PKCONTAINER_LIBRARY_ONLY ON)
@@ -57,6 +58,7 @@ target_link_libraries(pkport PUBLIC pkcontainer pkzip)
 add_executable(test_pkport
     tests/test_main.cpp
     tests/test_stream.cpp
+    tests/test_csv_read_line.cpp
     tests/test_eventsink.cpp
     tests/test_resourcestorage.cpp
     tests/test_fontprovider.cpp
@@ -65,6 +67,12 @@ add_executable(test_pkport
     ${PK_TEST_DIR}/PkTestRunner.cpp
     ${PK_TEST_DIR}/PkTestCompare.cpp
     ${PK_TEST_DIR}/PkTestData.cpp
+    ${KRITA_ROOT_DIR}/plugins/impex/csv/csv_read_line.cpp
 )
-target_include_directories(test_pkport PRIVATE ${PK_TEST_DIR})
+target_include_directories(test_pkport PRIVATE
+    ${PK_TEST_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/stubs
+    ${KRITA_ROOT_DIR}/plugins/impex/csv
+    ${KRITA_ROOT_DIR}/pk/variant
+)
 target_link_libraries(test_pkport PRIVATE pkport)

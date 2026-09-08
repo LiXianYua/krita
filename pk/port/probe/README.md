@@ -19,7 +19,9 @@ LD_LIBRARY_PATH=$QT/lib/x86_64-linux-gnu ldd "$OUT/probe_qiodevice" | grep -i qt
 ```
 
 最后那条 `ldd` **必须看到 `libQt5Core`** —— 看不到就说明比的不是真 Qt，结论作废。
-`probe_qdatastream_openmode.cpp` 用同样的命令行。`probe_qdir.cpp`（评审 C-1
+`probe_qdatastream_openmode.cpp` 用同样的命令行。`probe_qiodevice_readline.cpp`
+也用同样的 QtCore 命令行；它单独覆盖 no-argument `readLine()` 的 CSV 输入、
+Text-mode CR 过滤、短读和设备错误。`probe_qdir.cpp`（评审 C-1
 补的）也用同样的命令行，只是换成链接目标：
 
 ```bash

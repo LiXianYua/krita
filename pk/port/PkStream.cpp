@@ -25,6 +25,7 @@ void PkStream::setOpenMode(OpenMode mode)
     m_openMode = mode;
     m_pos = 0;
     m_ungetBuffer.clear();
+    m_lastReadFilteredData = false;
     m_errorString.clear();
 }
 
@@ -132,6 +133,7 @@ bool PkStream::canReadLine() const
 
 PkStream::pk_int64 PkStream::read(char *data, pk_int64 maxSize)
 {
+    m_lastReadFilteredData = false;
     // 顺序必须是「maxSize<0 → -1」在最前，其次「未 open/不可读 → -1」，
     // maxSize==0 的短路排在两者之后——真 Qt 的 CHECK_MAXLEN 与
     // CHECK_READABLE 都先于 maxSize==0 判断（评审 I-2）。颠倒顺序会让
@@ -149,34 +151,66 @@ PkStream::pk_int64 PkStream::read(char *data, pk_int64 maxSize)
     }
 
     pk_int64 total = 0;
+    const bool textMode = (m_openMode & Text) != 0;
+    bool filteredData = false;
 
     // 先吃 unget 缓冲：ungetChar() 注入的字节必须先于底层真实数据被读到，
     // 且不再重新触达 readData()。
     while (total < maxSize && !m_ungetBuffer.empty()) {
-        data[total] = m_ungetBuffer.front();
+        const char c = m_ungetBuffer.front();
         m_ungetBuffer.erase(m_ungetBuffer.begin());
-        ++total;
         if (!isSequential()) {
             ++m_pos;
         }
+        if (textMode && c == '\r') {
+            filteredData = true;
+        } else {
+            data[total++] = c;
+        }
     }
 
-    // 剩余额度只转发**一次** readData()——不循环重试去补齐 maxSize，这是
-    // 「短读返回实际字节数，不补零」（探针 §3.9 / 头注释②）的直接体现。
-    if (total < maxSize) {
-        const pk_int64 n = readData(data + total, maxSize - total);
+    // Binary mode forwards exactly once. Text mode may need another full read
+    // only when CR filtering created spare output capacity; a positive short
+    // read still returns immediately, matching QIODevice's short-read rule.
+    // If an entire read consists of CR bytes, return 0 and remember that raw
+    // progress occurred so line/readAll loops do not mistake it for EOF.
+    while (total < maxSize) {
+        const pk_int64 request = maxSize - total;
+        const pk_int64 n = readData(data + total, request);
         if (n > 0) {
             if (!isSequential()) {
                 m_pos += n;
             }
-            total += n;
+            if (!textMode) {
+                total += n;
+                break;
+            }
+
+            pk_int64 kept = 0;
+            for (pk_int64 i = 0; i < n; ++i) {
+                if (data[total + i] == '\r') {
+                    filteredData = true;
+                } else {
+                    data[total + kept++] = data[total + i];
+                }
+            }
+            total += kept;
+            if (total == 0 || n < request || total == maxSize) {
+                break;
+            }
         } else if (total == 0) {
-            // 只有在 unget 缓冲什么都没给的时候，才把 readData() 的 0(EOF)/
-            // 负值原样透传；已经从 unget 缓冲拿到过字节的话，这次 read()
-            // 调用本身是成功的，不能因为底层紧接着 EOF 就报错或报 0。
+            // No translated output was produced, so preserve the underlying
+            // EOF/error result. A CR-only text read is the special zero-with-
+            // progress case recorded below for line/readAll loops.
+            m_lastReadFilteredData = filteredData && n == 0;
             return n;
+        } else {
+            // A prior unget byte or text refill already produced output; keep
+            // that prefix even if the next underlying read reaches EOF/errors.
+            break;
         }
     }
+    m_lastReadFilteredData = filteredData && total == 0;
     return total;
 }
 
@@ -201,6 +235,10 @@ PkByteArray PkStream::readAll()
         }
         bytes.resize(oldSize + static_cast<std::size_t>(request));
         const pk_int64 count = read(reinterpret_cast<char *>(bytes.data() + oldSize), request);
+        if (count == 0 && m_lastReadFilteredData) {
+            bytes.resize(oldSize);
+            continue;
+        }
         if (count <= 0) {
             bytes.resize(oldSize);
             break;
@@ -221,7 +259,13 @@ PkStream::pk_int64 PkStream::peek(char *data, pk_int64 maxSize)
     // 原始顺序还原了。read() 挪动过的 m_pos 也会被同样次数的 ungetChar()
     // 挪回去（一次 read 前进 1，一次 ungetChar 后退 1），净效果就是 pos()
     // 不变——不需要再手写一份「不动 pos」的逻辑。
+    // Qt 5.15 peek() is raw even when the device is opened in Text mode: it
+    // exposes CR bytes that read() would filter. Temporarily mask only Text;
+    // assigning the flag directly avoids setOpenMode()'s reset side effects.
+    const OpenMode savedMode = m_openMode;
+    m_openMode &= ~static_cast<OpenMode>(Text);
     const pk_int64 n = read(data, maxSize);
+    m_openMode = savedMode;
     if (n <= 0) {
         return n;
     }
@@ -271,6 +315,9 @@ PkStream::pk_int64 PkStream::readLine(char *data, pk_int64 maxSize)
         char c;
         const pk_int64 n = read(&c, 1);
         if (n <= 0) {
+            if (n == 0 && m_lastReadFilteredData) {
+                continue;
+            }
             if (count == 0) {
                 // 一个字符都没读到：readLine 与 read 在 EOF 语义上不同——
                 // read() 在 EOF 返回 0，但 readLine() 在 EOF 返回 -1（真 Qt
@@ -300,9 +347,14 @@ PkByteArray PkStream::readLine()
     // open/readability, short-read, sequential-device, unget, and error
     // behavior. Reading one byte at a time avoids imposing a line-size cap on
     // callers such as CSVReadLine.
-    while (read(&c, 1) > 0) {
-        line.push_back(c);
-        if (c == '\n') {
+    for (;;) {
+        const pk_int64 count = read(&c, 1);
+        if (count > 0) {
+            line.push_back(c);
+            if (c == '\n') {
+                break;
+            }
+        } else if (!(count == 0 && m_lastReadFilteredData)) {
             break;
         }
     }

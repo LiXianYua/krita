@@ -182,6 +182,7 @@ public:
     void testReadLineConveniencePreservesLinesAndEof();
     void testReadLineConvenienceHandlesShortReadsAndLongLines();
     void testReadLineConvenienceHandlesSequentialErrorAndBufferInteraction();
+    void testTextModeReadAndReadLineMatchQtOracle();
     void testReadAllRandomAccessStopsOnPositiveShortRead();
     void testReadAllSequentialAccumulatesShortReadsToEof();
     void testReadAllEofAndImmediateErrorReturnEmpty();
@@ -515,8 +516,84 @@ void PkStreamTestCase::testReadLineConvenienceHandlesSequentialErrorAndBufferInt
     PK_VERIFY(error.readLine().isEmpty());
     PK_COMPARE(error.errorString().PkToUtf8(), std::string("scripted-error"));
 
+    // Qt 5.15 returns an accumulated prefix when the next device read fails,
+    // then a null/empty result on the following call while preserving the
+    // device error. This catches treating a partial error as an all-or-nothing
+    // convenience read.
+    ScriptedStream partialError("prefix-tail", true, 1, 6);
+    partialError.open(PkStream::ReadOnly);
+    const PkByteArray prefix = partialError.readLine();
+    PK_COMPARE(prefix.size(), 6);
+    PK_VERIFY(std::memcmp(prefix.constData(), "prefix", 6) == 0);
+    PK_COMPARE(partialError.errorString().PkToUtf8(), std::string("scripted-error"));
+    PK_VERIFY(partialError.readLine().isEmpty());
+
     MemoryStream unopened("data\n");
     PK_VERIFY(unopened.readLine().isEmpty());
+}
+
+void PkStreamTestCase::testTextModeReadAndReadLineMatchQtOracle()
+{
+    // Qt 5.15 QIODevice::Text removes CR bytes on read, including lone CR.
+    // Binary/default mode remains byte preserving (covered above).
+    MemoryStream mixed("a\r\nb\rc\n");
+    mixed.open(PkStream::ReadOnly | PkStream::Text);
+    char mixedBuffer[16] = {};
+    PK_COMPARE(mixed.read(mixedBuffer, sizeof(mixedBuffer)), (PkStream::pk_int64)5);
+    PK_VERIFY(std::memcmp(mixedBuffer, "a\nbc\n", 5) == 0);
+    PK_COMPARE(mixed.pos(), (PkStream::pk_int64)7);
+
+    // When a full raw read loses CR, Qt refills the translated buffer; a
+    // positive underlying short read still returns immediately.
+    MemoryStream bounded("a\r\nb");
+    bounded.open(PkStream::ReadOnly | PkStream::Text);
+    char boundedBuffer[2] = {};
+    PK_COMPARE(bounded.read(boundedBuffer, sizeof(boundedBuffer)), (PkStream::pk_int64)2);
+    PK_VERIFY(std::memcmp(boundedBuffer, "a\n", 2) == 0);
+    PK_COMPARE(bounded.pos(), (PkStream::pk_int64)3);
+    PK_COMPARE(bounded.read(boundedBuffer, sizeof(boundedBuffer)), (PkStream::pk_int64)1);
+    PK_VERIFY(boundedBuffer[0] == 'b');
+
+    MemoryStream peeked("a\r\nb");
+    peeked.open(PkStream::ReadOnly | PkStream::Text);
+    char peekBuffer[2] = {};
+    PK_COMPARE(peeked.peek(peekBuffer, sizeof(peekBuffer)), (PkStream::pk_int64)2);
+    PK_VERIFY(std::memcmp(peekBuffer, "a\r", 2) == 0);
+    PK_COMPARE(peeked.pos(), (PkStream::pk_int64)0);
+
+    ScriptedStream oneByteReads("a\r\nb", true, 1);
+    oneByteReads.open(PkStream::ReadOnly | PkStream::Text);
+    char oneByte = 0;
+    PK_COMPARE(oneByteReads.read(&oneByte, 1), (PkStream::pk_int64)1);
+    PK_VERIFY(oneByte == 'a');
+    PK_COMPARE(oneByteReads.read(&oneByte, 1), (PkStream::pk_int64)0);
+    PK_COMPARE(oneByteReads.read(&oneByte, 1), (PkStream::pk_int64)1);
+    PK_VERIFY(oneByte == '\n');
+    PK_COMPARE(oneByteReads.read(&oneByte, 1), (PkStream::pk_int64)1);
+    PK_VERIFY(oneByte == 'b');
+
+    MemoryStream convenience("plain,42\r\nrest");
+    convenience.open(PkStream::ReadOnly | PkStream::Text);
+    const PkByteArray line = convenience.readLine();
+    PK_COMPARE(line.size(), 9);
+    PK_VERIFY(std::memcmp(line.constData(), "plain,42\n", 9) == 0);
+
+    MemoryStream charBuffer("a\r\nb\r\n");
+    charBuffer.open(PkStream::ReadOnly | PkStream::Text);
+    char lineBuffer[8] = {};
+    PK_COMPARE(charBuffer.readLine(lineBuffer, sizeof(lineBuffer)), (PkStream::pk_int64)2);
+    PK_VERIFY(std::memcmp(lineBuffer, "a\n", 2) == 0);
+    const PkByteArray second = charBuffer.readLine();
+    PK_COMPARE(second.size(), 2);
+    PK_VERIFY(std::memcmp(second.constData(), "b\n", 2) == 0);
+
+    // A one-byte short read that consists only of CR yields zero translated
+    // bytes from read(), but readLine() must continue until LF/EOF/error.
+    ScriptedStream shortText("short\r\nrest", true, 1);
+    shortText.open(PkStream::ReadOnly | PkStream::Text);
+    const PkByteArray shortLine = shortText.readLine();
+    PK_COMPARE(shortLine.size(), 6);
+    PK_VERIFY(std::memcmp(shortLine.constData(), "short\n", 6) == 0);
 }
 
 void PkStreamTestCase::testWriteToReadOnlyDeviceReturnsMinusOne()
@@ -728,6 +805,9 @@ struct PkTestBinder<PkStreamTestCase> {
             {"testReadLineConvenienceHandlesSequentialErrorAndBufferInteraction",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadLineConvenienceHandlesSequentialErrorAndBufferInteraction(); },
              nullptr},
+            {"testTextModeReadAndReadLineMatchQtOracle",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testTextModeReadAndReadLineMatchQtOracle(); },
+             nullptr},
             {"testReadAllRandomAccessStopsOnPositiveShortRead",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadAllRandomAccessStopsOnPositiveShortRead(); },
              nullptr},
@@ -743,7 +823,7 @@ struct PkTestBinder<PkStreamTestCase> {
         };
         return fns;
     }
-    static int count() { return 27; }
+    static int count() { return 28; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }

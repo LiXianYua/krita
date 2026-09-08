@@ -26,6 +26,8 @@ class PkString;
 //
 // 2. **短读不补零**：一次 read()/write() 调用只转发一次 readData()/writeData()，
 //    对方能给多少就返回多少，不在这一层循环重试去凑满 maxSize。
+//    Text 模式是 Qt 同样具有的窄例外：若一次完整底层读取中的 '\r' 被过滤而
+//    留出输出空间，可继续读到填满；底层正短读时仍立即返回。
 //
 // 3. **顺序设备（isSequential()==true）上 pos() 恒为 0**——本基类**不为它推进
 //    内部游标**。这条是硬契约，写给所有子类：
@@ -44,8 +46,8 @@ class PkString;
 // ── 一个刻意的设计，不要「修正」它 ──────────────────────────────────────
 //
 // readAll() 由本端口实现，使用 read() 的短读、EOF、错误和顺序设备语义；
-// PkByteArray 已由 R-02 交付。peek()/readLine() 的 PkByteArray 重载仍由后续任务
-// 实现。
+// PkByteArray 已由 R-02 交付。PkByteArray 便利重载与 char-buffer 重载共享这里
+// 的 open/短读/Text/错误语义，不允许各自添加上层适配逻辑。
 class PkStream
 {
 public:
@@ -102,6 +104,10 @@ private:
     // 取走——front() 是下一个要被读到的字节。peek() 就是靠「read() 之后把读到
     // 的字节原样 ungetChar() 回去」实现的，不需要另一套缓冲逻辑。
     std::string m_ungetBuffer;
+    // Text-mode reads can consume one or more raw CR bytes yet return zero
+    // translated bytes. Line/readAll loops use this bit to distinguish that
+    // progress from a real EOF without exposing a second public read API.
+    bool m_lastReadFilteredData = false;
     // 内部只存 UTF-8 字节，避免头文件为 errorString() 这一个返回值类型拖出
     // PkString 的完整定义。空字符串代表「没设过」，errorString() 对外返回时
     // 补成 "Unknown error"（真 Qt QIODevice 的默认文案，探针 Follow-up A 确认
