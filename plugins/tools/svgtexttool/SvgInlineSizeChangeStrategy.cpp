@@ -65,7 +65,9 @@ void SvgInlineSizeChangeStrategy::handleMouseMove(const PkPointF &mouseLocation,
     double newInlineSize = 0.0;
 
     PkPointF snapDelta = invTransform.inverted().map(PkPointF(invTransform.map(mouseLocation + m_snapDelta).x(), initPos.y())) - mouseLocation;
-    PkPointF snappedLocation = tool()->canvas()->snapGuide()->snap(mouseLocation + snapDelta, modifiers) - snapDelta;
+    PkPointF snappedLocation = tool()->canvas()->snapGuide()->snap(
+        mouseLocation + snapDelta,
+        Pk::KeyboardModifiers(static_cast<int>(modifiers))) - snapDelta;
     const double mouseDelta = invTransform.map(PkLineF(m_dragStart, snappedLocation)).dx();
     PkPointF newPosition = m_shape->absolutePosition(KoFlake::TopLeft);
 

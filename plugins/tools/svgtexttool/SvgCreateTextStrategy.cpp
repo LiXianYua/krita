@@ -58,7 +58,8 @@ void SvgCreateTextStrategy::paint(PkPainter &painter, const KoViewConverter &con
 
 void SvgCreateTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
-    m_dragEnd = this->tool()->canvas()->snapGuide()->snap(mouseLocation, modifiers);
+    m_dragEnd = this->tool()->canvas()->snapGuide()->snap(
+        mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
     m_modifiers = modifiers;
     const PkRectF updateRect = PkRectF(m_dragStart, m_dragEnd).normalized();
     tool()->canvas()->updateCanvas(kisGrowRect(updateRect, 100));

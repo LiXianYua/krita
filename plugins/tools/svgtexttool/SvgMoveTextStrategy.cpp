@@ -34,7 +34,9 @@ void SvgMoveTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::Key
         m_finalPosition = m_initialPosition+ snapToClosestAxis(delta);
     } else {
         m_finalPosition =
-            tool()->canvas()->snapGuide()->snap(m_initialPosition + m_anchorOffset + delta, modifiers) - m_anchorOffset;
+            tool()->canvas()->snapGuide()->snap(
+                m_initialPosition + m_anchorOffset + delta,
+                Pk::KeyboardModifiers(static_cast<int>(modifiers))) - m_anchorOffset;
     }
 
     SvgMoveTextCommand(m_shape, m_finalPosition, m_initialPosition).redo();

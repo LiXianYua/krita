@@ -42,7 +42,8 @@ void SvgTextTypeSettingStrategy::handleMouseMove(const PkPointF &mouseLocation, 
         m_currentDelta = delta;
     } else {
         m_dragCurrent =
-            tool()->canvas()->snapGuide()->snap(mouseLocation, modifiers);
+            tool()->canvas()->snapGuide()->snap(
+                mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
         m_currentDelta = m_dragCurrent - m_dragStart;
     }
 

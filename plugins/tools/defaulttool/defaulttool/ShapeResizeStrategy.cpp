@@ -105,7 +105,8 @@ ShapeResizeStrategy::~ShapeResizeStrategy()
 
 void ShapeResizeStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModifiers modifiers)
 {
-    PkPointF newPos = tool()->canvas()->snapGuide()->snap(point, modifiers);
+    PkPointF newPos = tool()->canvas()->snapGuide()->snap(
+        point, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
 
     bool keepAspect = modifiers & Qt::ShiftModifier;
     for (KoShape *shape : m_selectedShapes) {

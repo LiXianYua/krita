@@ -316,7 +316,10 @@ PkPointF KisTool::convertToPixelCoordAndSnap(KoPointerEvent *e, const PkPointF &
         return e->point;
 
     KoSnapGuide *snapGuide = canvas()->snapGuide();
-    PkPointF pos = snapGuide->snap(e->point, offset, useModifiers ? e->modifiers() : Qt::NoModifier);
+    const Pk::KeyboardModifiers modifiers = useModifiers
+        ? Pk::KeyboardModifiers(static_cast<int>(e->modifiers()))
+        : Pk::KeyboardModifiers();
+    PkPointF pos = snapGuide->snap(e->point, offset, modifiers);
 
     return image()->documentToPixel(pos);
 }
@@ -327,7 +330,7 @@ PkPointF KisTool::convertToPixelCoordAndSnap(const PkPointF& pt, const PkPointF 
         return pt;
 
     KoSnapGuide *snapGuide = canvas()->snapGuide();
-    PkPointF pos = snapGuide->snap(pt, offset, Qt::NoModifier);
+    PkPointF pos = snapGuide->snap(pt, offset, Pk::KeyboardModifiers());
 
     return image()->documentToPixel(pos);
 }

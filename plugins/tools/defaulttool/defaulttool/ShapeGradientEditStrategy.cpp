@@ -68,7 +68,9 @@ ShapeGradientEditStrategy::~ShapeGradientEditStrategy()
 
 void ShapeGradientEditStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
-    const PkPointF snappedPosition = tool()->canvas()->snapGuide()->snap(mouseLocation, m_d->initialOffset, modifiers);
+    const PkPointF snappedPosition = tool()->canvas()->snapGuide()->snap(
+        mouseLocation, m_d->initialOffset,
+        Pk::KeyboardModifiers(static_cast<int>(modifiers)));
     const PkPointF diff = DefaultToolStrategyMath::gradientHandlePosition(
         m_d->previous, snappedPosition - m_d->previous) - m_d->previous;
     m_d->previous = snappedPosition;

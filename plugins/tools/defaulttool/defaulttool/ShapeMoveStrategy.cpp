@@ -61,7 +61,8 @@ void ShapeMoveStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModif
         diff = snapToClosestAxis(diff);
     } else {
         PkPointF positionToSnap = point + m_initialOffset;
-        PkPointF snappedPosition = tool()->canvas()->snapGuide()->snap(positionToSnap, modifiers);
+        PkPointF snappedPosition = tool()->canvas()->snapGuide()->snap(
+            positionToSnap, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
         diff = snappedPosition - m_initialOffset - m_start;
     }
 

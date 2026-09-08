@@ -697,7 +697,8 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
     bool crossLayerPossible = !hoverPath.isEmpty() && shapeType == KoSvgTextShape_SHAPEID;
 
     if (!selectedShape && !hoveredShape && !hoveredFlowShape && !crossLayerPossible) {
-        PkPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
+        PkPointF point = canvas()->snapGuide()->snap(
+            event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         m_interactionStrategy.reset(new SvgCreateTextStrategy(this, point));
         m_dragging = DragMode::Create;
         event->accept();
@@ -711,7 +712,8 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
         m_dragging = DragMode::Select;
         event->accept();
     } else if (hoveredFlowShape) {
-        PkPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
+        PkPointF point = canvas()->snapGuide()->snap(
+            event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         m_interactionStrategy.reset(new SvgCreateTextStrategy(this, point, hoveredFlowShape));
         m_dragging = DragMode::Create;
         event->accept();
