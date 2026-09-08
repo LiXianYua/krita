@@ -2,7 +2,10 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cmath>
+#include <limits>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 #define NANOSVG_IMPLEMENTATION
@@ -23,8 +26,12 @@ struct RasterizerDeleter {
 }
 
 PkImage PkSvgRasterizer::render(const char *svg, std::size_t size, int outputWidth)
+try
 {
-    if (!svg || size == 0 || outputWidth <= 0) {
+    // Same encoded/decoded ceiling as PkImageFileDecoder / native codecs.
+    constexpr std::size_t maximumBytes = 512u * 1024u * 1024u;
+    if (!svg || size == 0 || size > maximumBytes || outputWidth <= 0 ||
+        outputWidth > std::numeric_limits<int>::max() / 4) {
         return {};
     }
 
@@ -35,12 +42,16 @@ PkImage PkSvgRasterizer::render(const char *svg, std::size_t size, int outputWid
 
     std::unique_ptr<NSVGimage, SvgDeleter> image(
         nsvgParse(document.data(), "px", 96.0f));
-    if (!image || !(image->width > 0.0f) || !(image->height > 0.0f)) {
+    if (!image || !std::isfinite(image->width) || !std::isfinite(image->height) ||
+        !(image->width > 0.0f) || !(image->height > 0.0f)) {
         return {};
     }
 
     const double scaledHeight = static_cast<double>(outputWidth) * image->height / image->width;
+    if (!std::isfinite(scaledHeight) || scaledHeight > std::numeric_limits<int>::max()) return {};
     const int outputHeight = std::max(1, static_cast<int>(scaledHeight));
+    const std::size_t stride = static_cast<std::size_t>(outputWidth) * 4u;
+    if (static_cast<std::size_t>(outputHeight) > maximumBytes / stride) return {};
     const float scale = static_cast<float>(outputWidth) / image->width;
 
     std::unique_ptr<NSVGrasterizer, RasterizerDeleter> rasterizer(nsvgCreateRasterizer());
@@ -54,6 +65,7 @@ PkImage PkSvgRasterizer::render(const char *svg, std::size_t size, int outputWid
                   rgba.data(), outputWidth, outputHeight, outputWidth * 4);
 
     PkImage result(outputWidth, outputHeight, PkImage::Format_ARGB32);
+    if (result.isNull()) return {};
     for (int y = 0; y < outputHeight; ++y) {
         for (int x = 0; x < outputWidth; ++x) {
             const std::size_t offset =
@@ -72,3 +84,5 @@ PkImage PkSvgRasterizer::render(const char *svg, std::size_t size, int outputWid
     }
     return result;
 }
+catch (const std::bad_alloc &) { return {}; }
+catch (const std::length_error &) { return {}; }

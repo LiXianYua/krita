@@ -2,10 +2,28 @@
 
 #include <cstdint>
 #include <iostream>
+#include <limits>
+#include <cstring>
 #include <vector>
 
 int main()
 {
+    const char *extreme = "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1e30'/>";
+    if (!PkSvgRasterizer::render(extreme, std::strlen(extreme), 1000).isNull()) {
+        std::cerr << "FAIL: SVG out-of-range height must be rejected before integer conversion\n";
+        return 1;
+    }
+    const char *square = "<svg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/>";
+    try {
+        if (!PkSvgRasterizer::render(square, std::strlen(square), std::numeric_limits<int>::max()).isNull() ||
+            !PkSvgRasterizer::render(square, std::numeric_limits<std::size_t>::max(), 1000).isNull()) {
+            std::cerr << "FAIL: SVG byte/stride limits were not enforced\n";
+            return 1;
+        }
+    } catch (...) {
+        std::cerr << "FAIL: SVG allocation failure escaped the loader boundary\n";
+        return 1;
+    }
     static const char svg[] =
         "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 4 2\">"
         "<g transform=\"translate(1 0)\" opacity=\"0.5\">"
