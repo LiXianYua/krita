@@ -14,6 +14,7 @@
 #include <PkSet.h>
 #include <PkList.h>
 #include <PkHash.h>
+#include <PkNamespace.h>
 
 #include <KisQStringListFwd.h>
 #include "kritaflake_export.h"
@@ -184,7 +185,7 @@ public:
      * @param query specifies which property is queried.
      * @param converter the view converter for the current canvas.
      */
-    virtual PkVariant inputMethodQuery(Qt::InputMethodQuery query) const;
+    virtual PkVariant inputMethodQuery(Pk::InputMethodQuery query) const;
 
     /**
      * Text entry of complex text, like CJK, can be made more interactive if a tool

@@ -353,7 +353,7 @@ void KoToolProxy::explicitUserStrokeEndRequest()
     }
 }
 
-PkVariant KoToolProxy::inputMethodQuery(Qt::InputMethodQuery query) const
+PkVariant KoToolProxy::inputMethodQuery(Pk::InputMethodQuery query) const
 {
     if (d->activeTool)
         return d->activeTool->inputMethodQuery(query);

@@ -435,7 +435,79 @@ enum CompositionMode {
 };
 
 // ── qnamespace.h:1507-1511 ───────────────────────────────────────────────────
-// 探针：LTR=0 RTL=1 Auto=2
+// Input-method query/value carriers used by KoToolBase and the SVG text tool.
+// Values are bit-for-bit compatible with Qt 5.15.7 so a final GUI host adapter
+// can convert once without leaking Qt ownership back into tool APIs.
+enum InputMethodQuery {
+    ImEnabled = 0x1,
+    ImCursorRectangle = 0x2,
+    ImFont = 0x4,
+    ImCursorPosition = 0x8,
+    ImSurroundingText = 0x10,
+    ImCurrentSelection = 0x20,
+    ImMaximumTextLength = 0x40,
+    ImAnchorPosition = 0x80,
+    ImHints = 0x100,
+    ImPreferredLanguage = 0x200,
+    ImAbsolutePosition = 0x400,
+    ImTextBeforeCursor = 0x800,
+    ImTextAfterCursor = 0x1000,
+    ImEnterKeyType = 0x2000,
+    ImAnchorRectangle = 0x4000,
+    ImInputItemClipRectangle = 0x8000,
+    ImPlatformData = 0x80000000,
+    ImQueryInput = ImCursorRectangle | ImCursorPosition | ImSurroundingText |
+                   ImCurrentSelection | ImAnchorRectangle | ImAnchorPosition,
+    ImQueryAll = 0xffffffff
+};
+PK_DECLARE_FLAGS(InputMethodQueries, InputMethodQuery)
+PK_DECLARE_OPERATORS_FOR_FLAGS(InputMethodQueries)
+
+enum InputMethodHint {
+    ImhNone = 0x0,
+    ImhHiddenText = 0x1,
+    ImhSensitiveData = 0x2,
+    ImhNoAutoUppercase = 0x4,
+    ImhPreferNumbers = 0x8,
+    ImhPreferUppercase = 0x10,
+    ImhPreferLowercase = 0x20,
+    ImhNoPredictiveText = 0x40,
+    ImhDate = 0x80,
+    ImhTime = 0x100,
+    ImhPreferLatin = 0x200,
+    ImhMultiLine = 0x400,
+    ImhNoEditMenu = 0x800,
+    ImhNoTextHandles = 0x1000,
+    ImhDigitsOnly = 0x10000,
+    ImhFormattedNumbersOnly = 0x20000,
+    ImhUppercaseOnly = 0x40000,
+    ImhLowercaseOnly = 0x80000,
+    ImhDialableCharactersOnly = 0x100000,
+    ImhEmailCharactersOnly = 0x200000,
+    ImhUrlCharactersOnly = 0x400000,
+    ImhLatinOnly = 0x800000,
+    ImhExclusiveInputMask = 0xffff0000
+};
+PK_DECLARE_FLAGS(InputMethodHints, InputMethodHint)
+PK_DECLARE_OPERATORS_FOR_FLAGS(InputMethodHints)
+
+inline constexpr unsigned int ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_RESIZE = 1u;
+inline constexpr unsigned int ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_PAN = 2u;
+inline constexpr unsigned int ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_NOTHING = 3u;
+inline constexpr unsigned int ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_MASK = 3u;
+
+enum EnterKeyType {
+    EnterKeyDefault,
+    EnterKeyReturn,
+    EnterKeyDone,
+    EnterKeyGo,
+    EnterKeySend,
+    EnterKeySearch,
+    EnterKeyNext,
+    EnterKeyPrevious
+};
+
+// qnamespace.h:1507-1511; LTR=0, RTL=1, Auto=2.
 enum LayoutDirection {
     LeftToRight,
     RightToLeft,
@@ -502,4 +574,3 @@ enum TimerType {
 };
 
 } // namespace Pk
-

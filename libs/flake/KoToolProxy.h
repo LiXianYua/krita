@@ -17,6 +17,7 @@
 #include <PkVariant.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkVector.h>
+#include <PkNamespace.h>
 
 class QAction;
 class QAction;
@@ -101,7 +102,7 @@ public:
     void explicitUserStrokeEndRequest();
 
     /// Forwarded to the current KoToolBase
-    PkVariant inputMethodQuery(Qt::InputMethodQuery query) const;
+    PkVariant inputMethodQuery(Pk::InputMethodQuery query) const;
 
     /// Forwarded to the current KoToolBase
     void inputMethodEvent(QInputMethodEvent *event);

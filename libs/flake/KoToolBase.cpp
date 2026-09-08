@@ -128,18 +128,18 @@ void KoToolBase::explicitUserStrokeEndRequest()
 {
 }
 
-PkVariant KoToolBase::inputMethodQuery(Qt::InputMethodQuery query) const
+PkVariant KoToolBase::inputMethodQuery(Pk::InputMethodQuery query) const
 {
     Q_D(const KoToolBase);
     if (d->canvas->canvasWidget() == 0)
         return PkVariant();
 
     switch (query) {
-    case Qt::ImEnabled:
+    case Pk::ImEnabled:
         return isInTextMode();
-    case Qt::ImCursorRectangle:
+    case Pk::ImCursorRectangle:
         return PkRect(d->canvas->canvasWidget()->width() / 2, 0, 1, d->canvas->canvasWidget()->height());
-    case Qt::ImFont:
+    case Pk::ImFont:
         // 过渡期：QFont 无法进 PkVariant（输入法字体提示，绘画内核非关键路径）。
         return PkVariant();
     default:

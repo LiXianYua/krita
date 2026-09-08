@@ -44,6 +44,9 @@ private Q_SLOTS:
     void itemDataRoleValues();
     void itemFlagsValues();
     void timerTypeValues();
+    void inputMethodQueryValues();
+    void inputMethodHintValues();
+    void enterKeyTypeValues();
     void globalColorValues();
     void coexistWithGlobalEnums();
     void coexistAxisEnum();

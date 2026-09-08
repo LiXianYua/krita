@@ -379,6 +379,53 @@ void PkNamespaceCase::timerTypeValues()
     PK_COMPARE(int(Pk::VeryCoarseTimer), 2);
 }
 
+void PkNamespaceCase::inputMethodQueryValues()
+{
+    PK_COMPARE(int(Pk::ImEnabled), 0x1);
+    PK_COMPARE(int(Pk::ImCursorRectangle), 0x2);
+    PK_COMPARE(int(Pk::ImFont), 0x4);
+    PK_COMPARE(int(Pk::ImCursorPosition), 0x8);
+    PK_COMPARE(int(Pk::ImSurroundingText), 0x10);
+    PK_COMPARE(int(Pk::ImCurrentSelection), 0x20);
+    PK_COMPARE(int(Pk::ImMaximumTextLength), 0x40);
+    PK_COMPARE(int(Pk::ImAnchorPosition), 0x80);
+    PK_COMPARE(int(Pk::ImHints), 0x100);
+    PK_COMPARE(int(Pk::ImPreferredLanguage), 0x200);
+    PK_COMPARE(int(Pk::ImAbsolutePosition), 0x400);
+    PK_COMPARE(int(Pk::ImTextBeforeCursor), 0x800);
+    PK_COMPARE(int(Pk::ImTextAfterCursor), 0x1000);
+    PK_COMPARE(int(Pk::ImEnterKeyType), 0x2000);
+    PK_COMPARE(int(Pk::ImAnchorRectangle), 0x4000);
+    PK_COMPARE(int(Pk::ImInputItemClipRectangle), 0x8000);
+    PK_COMPARE(static_cast<unsigned int>(Pk::ImPlatformData), 0x80000000u);
+    PK_COMPARE(int(Pk::ImQueryInput), 0x40ba);
+    PK_COMPARE(static_cast<unsigned int>(Pk::ImQueryAll), 0xffffffffu);
+
+    Pk::InputMethodQueries queries = Pk::ImEnabled | Pk::ImCursorRectangle;
+    PK_COMPARE(int(queries), 0x3);
+    PK_VERIFY(queries.testFlag(Pk::ImEnabled));
+    PK_VERIFY(queries.testFlag(Pk::ImCursorRectangle));
+}
+
+void PkNamespaceCase::inputMethodHintValues()
+{
+    PK_COMPARE(int(Pk::ImhNone), 0x0);
+    PK_COMPARE(int(Pk::ImhMultiLine), 0x400);
+    PK_COMPARE(int(Pk::ImhNoEditMenu), 0x800);
+    PK_COMPARE(int(Pk::ImhNoTextHandles), 0x1000);
+    PK_COMPARE(int(Pk::ImhExclusiveInputMask), 0xffff0000);
+
+    Pk::InputMethodHints hints = Pk::ImhMultiLine | Pk::ImhNoTextHandles;
+    PK_COMPARE(int(hints), 0x1400);
+}
+
+void PkNamespaceCase::enterKeyTypeValues()
+{
+    PK_COMPARE(int(Pk::EnterKeyDefault), 0);
+    PK_COMPARE(int(Pk::EnterKeyPrevious), 7);
+    PK_COMPARE(Pk::ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_NOTHING, 3u);
+}
+
 void PkNamespaceCase::globalColorValues()
 {
     // QColor 构造的 Pk::GlobalColor 实参依赖这些序号的数值。
