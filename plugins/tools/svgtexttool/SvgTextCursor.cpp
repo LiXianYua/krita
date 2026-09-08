@@ -944,17 +944,17 @@ void SvgTextCursor::paintDecorations(PkPainter &gc, PkColor selectionColor, int 
     }
 }
 
-PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
+PkVariant SvgTextCursor::inputMethodQuery(Pk::InputMethodQuery query) const
 {
     dbgTools << "receiving inputmethod query" << query;
 
     // Because we set the input item transform to be shape->document->view->widget->window,
     // the coordinates here should be in shape coordinates.
     switch(query) {
-    case Qt::ImEnabled:
+    case Pk::ImEnabled:
         return d->shape? true: false;
         break;
-    case Qt::ImCursorRectangle:
+    case Pk::ImCursorRectangle:
         // The platform integration will always define the cursor as the 'left side' handle.
         if (d->shape) {
             PkRectF rect = PkRectF(d->cursorCaret.p1(), d->cursorCaret.p2()).normalized();
@@ -970,7 +970,7 @@ PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
             return PkVariant::fromValue(rect.toAlignedRect());
         }
         break;
-    case Qt::ImAnchorRectangle:
+    case Pk::ImAnchorRectangle:
         // The platform integration will always define the anchor as the 'right side' handle.
         if (d->shape) {
             PkRectF rect = PkRectF(d->anchorCaret.p1(), d->anchorCaret.p2()).normalized();
@@ -986,13 +986,13 @@ PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
         }
         break;
     //case Qt::ImFont: // not sure what this is used for, but we cannot sent out without access to properties.
-    case Qt::ImAbsolutePosition:
-    case Qt::ImCursorPosition:
+    case Pk::ImAbsolutePosition:
+    case Pk::ImCursorPosition:
         if (d->shape) {
             return d->shape->indexForPos(d->pos);
         }
         break;
-    case Qt::ImSurroundingText:
+    case Pk::ImSurroundingText:
         if (d->shape) {
             PkString surroundingText = d->shape->plainText();
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
@@ -1000,7 +1000,7 @@ PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
             return surroundingText;
         }
         break;
-    case Qt::ImCurrentSelection:
+    case Pk::ImCurrentSelection:
         if (d->shape) {
             PkString surroundingText = d->shape->plainText();
             int preEditIndex = d->preEditCommand? d->shape->indexForPos(d->preEditStart): 0;
@@ -1010,7 +1010,7 @@ PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
             return surroundingText.mid(start, length);
         }
         break;
-    case Qt::ImTextBeforeCursor:
+    case Pk::ImTextBeforeCursor:
         if (d->shape) {
             int start = d->shape->indexForPos(d->pos);
             PkString surroundingText = d->shape->plainText();
@@ -1019,7 +1019,7 @@ PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
             return surroundingText.left(start);
         }
         break;
-    case Qt::ImTextAfterCursor:
+    case Pk::ImTextAfterCursor:
         if (d->shape) {
             int start = d->shape->indexForPos(d->pos);
             PkString surroundingText = d->shape->plainText();
@@ -1028,22 +1028,22 @@ PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
             return surroundingText.right(start);
         }
         break;
-    case Qt::ImMaximumTextLength:
+    case Pk::ImMaximumTextLength:
         return PkVariant(); // infinite text length!
         break;
-    case Qt::ImAnchorPosition:
+    case Pk::ImAnchorPosition:
         if (d->shape) {
             return d->shape->indexForPos(d->anchor);
         }
         break;
-    case Qt::ImHints:
+    case Pk::ImHints:
         // It would be great to use Qt::ImhNoTextHandles or Qt::ImhNoEditMenu,
         // but neither are implemented for anything but web platform integration
-        return static_cast<int>(Qt::ImhMultiLine);
+        return static_cast<int>(Pk::ImhMultiLine);
         break;
     // case Qt::ImPreferredLanguage: // requires access to properties.
 #if defined(Q_OS_ANDROID) && KRITA_QT_HAS_ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_NOTHING
-    case Qt::ImPlatformData:
+    case Pk::ImPlatformData:
         // Platform-specific data. Qt normally only uses this on iOS, but we
         // have a patch that allows us to control the keyboard pan behavior.
         // Normally it pans the application window up if the text area would end
@@ -1052,11 +1052,11 @@ PkVariant SvgTextCursor::inputMethodQuery(Qt::InputMethodQuery query) const
         // if you do that while the keyboard is up, you end up with the whole
         // window panned up for no reason until you dismiss and re-show it, so
         // better to just do nothing in the first place and let the user pan.
-        return static_cast<int>(Qt::ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_NOTHING);
+        return static_cast<int>(Pk::ANDROID_INPUT_PLATFORM_DATA_SOFT_INPUT_ADJUST_NOTHING);
 #endif
-    case Qt::ImEnterKeyType:
+    case Pk::ImEnterKeyType:
         if (d->shape) {
-            return static_cast<int>(Qt::EnterKeyDefault); // because input method hint is always multiline, this will show a return key.
+            return static_cast<int>(Pk::EnterKeyDefault); // because input method hint is always multiline, this will show a return key.
         }
         break;
     // case Qt::ImInputItemClipRectangle // whether the input item is clipped?

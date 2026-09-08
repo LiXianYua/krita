@@ -67,7 +67,7 @@ public:
 
     KisPopupWidgetInterface* popupWidget() override;
 
-    PkVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+    PkVariant inputMethodQuery(Pk::InputMethodQuery query) const override;
     void inputMethodEvent(QInputMethodEvent *event) override;
 
     /// reimplemented from superclass

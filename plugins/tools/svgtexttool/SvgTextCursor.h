@@ -15,6 +15,7 @@
 #include <PkList.h>
 #include <PkPoint.h>
 #include <PkSet.h>
+#include <PkNamespace.h>
 #include "kritatoolsvgtext_export.h"
 
 class KoCanvasBase;
@@ -272,7 +273,7 @@ public:
     void paintDecorations(PkPainter &gc, PkColor selectionColor, int decorationThickness = 1, qreal handleRadius = 5.0);
 
     /// Process an input method query and return the requested result.
-    PkVariant inputMethodQuery(Qt::InputMethodQuery query) const;
+    PkVariant inputMethodQuery(Pk::InputMethodQuery query) const;
     /// Process an input method event. This is used by IME like virtual keyboards.
     void inputMethodEvent(QInputMethodEvent *event);
 

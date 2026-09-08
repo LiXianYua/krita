@@ -210,7 +210,7 @@ KisPopupWidgetInterface *SvgTextTool::popupWidget()
     return nullptr;
 }
 
-PkVariant SvgTextTool::inputMethodQuery(Qt::InputMethodQuery query) const
+PkVariant SvgTextTool::inputMethodQuery(Pk::InputMethodQuery query) const
 {
     if (canvas()) {
         return m_textCursor.inputMethodQuery(query);
