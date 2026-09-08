@@ -71,7 +71,6 @@ set(kritapigment_SRCS
     resources/KoCachedGradient.h
     resources/KisGradientConversion.cpp
     resources/KisUniqueColorSet.cpp
-    PkGradient.cpp
     PkTextStream.cpp
 )
 

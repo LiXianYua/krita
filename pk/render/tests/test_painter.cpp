@@ -47,6 +47,56 @@ void compareTransform(const PkTransform &actual,
 
 } // namespace
 
+void PkPainterCase::gradientBrushSurvivesStateAndCommands()
+{
+    auto gradient = PkGradient::radial(PkPointF(4, 5), 10, PkPointF(5, 6));
+    gradient.setFocalRadius(2);
+    gradient.setStops({{0.8, PkColor(Pk::red)}, {0.2, PkColor(Pk::blue)},
+                       {0.8, PkColor(Pk::green)}, {-1, PkColor(Pk::white)}});
+    PK_COMPARE(gradient.stops().size(), 2);
+    PK_COMPARE(gradient.stops().at(0).offset, 0.2);
+    PK_VERIFY(gradient.stops().at(1).color == PkColor(Pk::green));
+    PkBrush brush(gradient);
+    brush.setTransform(PkTransform(2, 1, 3, 4, 5, 6));
+    const PkBrush snapshot = brush;
+    gradient.setFocalRadius(3);
+    gradient.setColorAt(0.8, PkColor(Pk::white));
+    PK_COMPARE(brush.gradient()->focalRadius(), 2.0);
+    PK_VERIFY(brush.gradient()->stops().at(1).color == PkColor(Pk::green));
+    PK_VERIFY(*brush.gradient() != gradient);
+    RecordingBackend backend;
+    PkPainter painter(backend);
+    painter.setBrush(brush);
+    painter.setPen(PkPen(brush, 2));
+    painter.save();
+    PkPainterPath path;
+    path.addRect(PkRectF(0, 0, 10, 10));
+    painter.fillRect(PkRectF(1, 2, 3, 4));
+    painter.fillPath(path);
+    painter.strokePath(path, painter.pen());
+    brush.setStyle(Pk::NoBrush);
+    PK_VERIFY(brush.gradient() == nullptr);
+    painter.setBrush(brush);
+    painter.setPen(Pk::NoPen);
+    painter.restore();
+    PK_VERIFY(painter.brush() == snapshot);
+    PK_VERIFY(painter.pen().brush() == snapshot);
+    PK_VERIFY(std::get<PkSetBrushCommand>(backend.commands[0]).brush == snapshot);
+    PK_VERIFY(std::get<PkSetPenCommand>(backend.commands[1]).pen.brush() == snapshot);
+    PK_VERIFY(std::get<PkFillRectCommand>(backend.commands[3]).brush == snapshot);
+    PK_VERIFY(std::get<PkFillPathCommand>(backend.commands[4]).brush == snapshot);
+    PK_VERIFY(std::get<PkStrokePathCommand>(backend.commands[5]).pen.brush() == snapshot);
+    PkBrush returned = painter.brush();
+    returned.setColor(Pk::white);
+    PK_VERIFY(returned.gradient() != nullptr);
+    PK_VERIFY(painter.brush() == snapshot);
+    // Existing pigment interpolation remains available after the ownership move.
+    PkGradient ramp;
+    PK_VERIFY(ramp.colorAt(0.5) == PkColor(Pk::black));
+    ramp.setStops({{0, PkColor(0, 20, 40, 100)}, {1, PkColor(100, 120, 140, 200)}});
+    PK_VERIFY(ramp.colorAt(0.5) == PkColor(50, 70, 90, 150));
+}
+
 void PkPainterCase::brushTransformSurvivesStateAndCommands()
 {
     RecordingBackend backend;

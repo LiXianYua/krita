@@ -20,4 +20,5 @@ private Q_SLOTS:
     void textOverloadsPreservePlacementKind();
     void clipStateTracksRectPathAndStackOperations();
     void brushTransformSurvivesStateAndCommands();
+    void gradientBrushSurvivesStateAndCommands();
 };
