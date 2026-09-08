@@ -53,10 +53,8 @@ bool pkProofBrokenFuzzyIsNull(float) { return false; }
 #define qFuzzyCompare pkProofBrokenFuzzyCompare
 #define qFuzzyIsNull  pkProofBrokenFuzzyIsNull
 
-// PkGlobal.h 检测到 qFuzzyCompare 已是宏时会整段让位，连 qAbs 也不再定义
-//（那是给 pk/test 的垫片留的位置）。这里补上与 pk/test 那份逐字相同的 qAbs，
-// 复现真实共存路径的形状。
-template <typename T> constexpr T pkAbs(const T &t) { return t >= T(0) ? t : -t; }
+// pkAbs 是 Pk 自有名，不受 qFuzzy* 宏污染，PkGlobal.h 会在下面的匿名
+// namespace 内提供它。不要在探针里再补一份同名模板，否则会重定义。
 
 #include "../PkPoint.h"
 
@@ -66,10 +64,10 @@ PkPointMacroProof pkPointMacroProbe()
 {
     const double inf = std::numeric_limits<double>::infinity();
     PkPointMacroProof p{};
-    // 宏真的生效了吗——如果 PkGlobal.h 的让位分支没走到，这一条就是 false，
+    // 宏真的生效了吗——直接检查被污染的 Qt 名；若误查不受污染的 pkQt 名，
     // 整个探针会被判成空转（那正是「测了个寂寞」的形态）。
-    p.sabotagedFuzzyWasVisible = (pkQtFuzzyCompare(1.0, 1.0) == false)
-                              && (pkQtFuzzyIsNull(0.0) == false);
+    p.sabotagedFuzzyWasVisible = (qFuzzyCompare(1.0, 1.0) == false)
+                              && (qFuzzyIsNull(0.0) == false);
     p.nearIsEqual        =  (PkPointF(1.0, 1.0) == PkPointF(1.0 + 1e-13, 1.0));
     p.farIsNotEqual      = !(PkPointF(1.0, 1.0) == PkPointF(1.0 + 1e-11, 1.0));
     p.zeroSideIsEqual    =  (PkPointF(0.0, 0.0) == PkPointF(1e-300, 0.0));

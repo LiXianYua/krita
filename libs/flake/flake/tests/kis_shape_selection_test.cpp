@@ -23,6 +23,11 @@
 #include <testutil.h>
 #include <KisDocument.h>
 #include "kis_transaction.h"
+#include "kis_default_bounds_base.h"
+
+#include <QImage>
+#include <QPainter>
+#include <QPainterPath>
 
 class TestKisDocument : public KisDocument
 {
@@ -34,7 +39,7 @@ void KisShapeSelectionTest::testAddChild()
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     PkScopedPointer<KisDocument> doc(new TestKisDocument);
-    PkColor qc(Qt::white);
+    PkColor qc(Pk::white);
     qc.setAlpha(0);
     KoColor bgColor(qc, cs);
     doc->newImage("test", 300, 300, cs, bgColor, KisDocument::NewImageBackgroundStyle::CanvasColor, 1, "test", 100);
@@ -336,6 +341,135 @@ void KisShapeSelectionTest::testHistoryOnFlattening()
     QVERIFY(!selection->shapeSelection());
     QVERIFY(!selection->hasNonEmptyShapeSelection());
     QCOMPARE(selection->selectedExactRect(), PkRect());
+}
+
+namespace {
+
+class FixedLodBounds final : public KisDefaultBoundsBase
+{
+public:
+    FixedLodBounds(const PkRect &bounds, int lod)
+        : m_bounds(bounds)
+        , m_lod(lod)
+    {
+    }
+
+    PkRect bounds() const override { return m_bounds; }
+    PkRect imageBorderRect() const override { return m_bounds; }
+    bool wrapAroundMode() const override { return false; }
+    WrapAroundAxis wrapAroundModeAxis() const override { return WRAPAROUND_BOTH; }
+    int currentLevelOfDetail() const override { return m_lod; }
+    int currentTime() const override { return 0; }
+    bool externalFrameActive() const override { return false; }
+    void *sourceCookie() const override { return nullptr; }
+
+private:
+    PkRect m_bounds;
+    int m_lod;
+};
+
+}
+
+void KisShapeSelectionTest::testRenderMatchesQtTiledLargePath()
+{
+    const KoColorSpace *rgb8 = KoColorSpaceRegistry::instance()->rgb8();
+    const KoColorSpace *alpha8 = KoColorSpaceRegistry::instance()->alpha8();
+    PkScopedPointer<KisDocument> doc(new TestKisDocument);
+    const KoColor background(PkColor(255, 255, 255, 0), rgb8);
+    doc->newImage("shape-selection-oracle", 512, 256, rgb8, background,
+                  KisDocument::NewImageBackgroundStyle::CanvasColor, 1,
+                  "shape-selection-oracle", 100);
+    KisImageSP image = doc->image();
+    KisDefaultBoundsSP selectionBounds(new KisDefaultBounds(image));
+    KisImageResolutionProxySP resolutionProxy(new KisImageResolutionProxy(image));
+    KisSelectionSP selection = new KisSelection(selectionBounds, resolutionProxy);
+    PkScopedPointer<KisShapeSelection> shapeSelection(
+        new KisShapeSelection(doc->shapeController(), selection));
+
+    const qreal invXRes = 1.0 / image->xRes();
+    const qreal invYRes = 1.0 / image->yRes();
+    PkTransform fixtureTransform;
+    fixtureTransform.translate(2.25, 1.5);
+    fixtureTransform.rotate(13);
+    const auto documentPoint = [&](qreal x, qreal y) {
+        const PkPointF point = fixtureTransform.map(PkPointF(x, y));
+        return PkPointF(point.x() * invXRes, point.y() * invYRes);
+    };
+    const auto rawDocumentPoint = [=](qreal x, qreal y) {
+        return PkPointF(x * invXRes, y * invYRes);
+    };
+
+    KoPathShape *shape = new KoPathShape;
+    shape->setShapeId(KoPathShapeId);
+    shape->moveTo(documentPoint(2, 2));
+    shape->curveTo(documentPoint(30, -2), documentPoint(-2, 28),
+                   documentPoint(25, 18));
+    shape->lineTo(documentPoint(3, 20));
+    shape->close();
+    shape->moveTo(rawDocumentPoint(0, 80));
+    shape->lineTo(rawDocumentPoint(300, 80));
+    shape->lineTo(rawDocumentPoint(300, 110));
+    shape->lineTo(rawDocumentPoint(0, 110));
+    shape->close();
+    shape->moveTo(rawDocumentPoint(80000, 20));
+    shape->lineTo(rawDocumentPoint(80020, 20));
+    shape->lineTo(rawDocumentPoint(80020, 40));
+    shape->lineTo(rawDocumentPoint(80000, 40));
+    shape->close();
+    shapeSelection->addShape(shape);
+    shapeSelection->recalculateOutlineCache();
+
+    QPainterPath sourceOutline;
+    sourceOutline.moveTo(2, 2);
+    sourceOutline.cubicTo(30, -2, -2, 28, 25, 18);
+    sourceOutline.lineTo(3, 20);
+    sourceOutline.closeSubpath();
+    QTransform qtFixtureTransform;
+    qtFixtureTransform.translate(2.25, 1.5);
+    qtFixtureTransform.rotate(13);
+    QPainterPath qtOutline = qtFixtureTransform.map(sourceOutline);
+    qtOutline.addRect(QRectF(0, 80, 300, 30));
+    qtOutline.addRect(QRectF(80000, 20, 20, 20));
+
+    for (int lod : {0, 1}) {
+        const qreal scale = 1.0 / (1 << lod);
+        const PkRect requestedRect = lod == 0
+            ? PkRect(0, 0, 300, 140)
+            : PkRect(0, 0, 150, 70);
+        const QPainterPath expectedOutline = QTransform::fromScale(scale, scale).map(qtOutline);
+
+        for (quint8 defaultValue : {quint8(0), quint8(91)}) {
+            KisPaintDeviceSP projection = new KisPaintDevice(alpha8);
+            projection->setDefaultBounds(new FixedLodBounds(requestedRect, lod));
+            projection->setDefaultPixel(KoColor(&defaultValue, alpha8));
+            const quint8 staleValue = 37;
+            projection->fill(requestedRect, KoColor(&staleValue, alpha8));
+
+            shapeSelection->renderToProjection(projection, requestedRect);
+
+            QImage expected(requestedRect.width(), requestedRect.height(), QImage::Format_ARGB32);
+            expected.fill(Qt::black);
+            QPainter painter(&expected);
+            painter.setRenderHint(QPainter::Antialiasing, true);
+            painter.translate(-requestedRect.x(), -requestedRect.y());
+            painter.fillPath(expectedOutline, Qt::white);
+            painter.end();
+
+            for (int y = 0; y < requestedRect.height(); ++y) {
+                for (int x = 0; x < requestedRect.width(); ++x) {
+                    const int absoluteX = requestedRect.x() + x;
+                    const int absoluteY = requestedRect.y() + y;
+                    const quint8 actual = TestUtil::alphaDevicePixel(projection, absoluteX, absoluteY);
+                    const quint8 oracle = qRed(expected.pixel(x, y));
+                    const QString context = QStringLiteral(
+                        "lod=%1 default=%2 x=%3 y=%4 Qt=%5 Pk=%6")
+                        .arg(lod).arg(defaultValue).arg(absoluteX).arg(absoluteY)
+                        .arg(oracle).arg(actual);
+                    QVERIFY2(actual == oracle, qPrintable(context));
+                }
+            }
+        }
+    }
 }
 
 

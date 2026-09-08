@@ -404,16 +404,17 @@ void PkPainterPathCase::boundingRect()
     // 包围盒包含所有点
     PK_COMPARE(path.boundingRect(), PkRectF(10, 20, 190, 80));
 
-    // 路径包含控制点（cubicTo 的控制点会扩展包围盒）
+    // boundingRect follows the curve extrema; controlPointRect remains the
+    // conservative box containing the control points.
     PkPainterPath cubicPath;
     cubicPath.moveTo(0, 0);
-    cubicPath.cubicTo(200, 0, 0, 200, 100, 100);
-    // 包围盒包含控制点 (200,0) 和 (0,200)
-    PkRectF bounds = cubicPath.boundingRect();
-    PK_VERIFY(bounds.x() <= 0);
-    PK_VERIFY(bounds.y() <= 0);
-    PK_VERIFY(bounds.x() + bounds.width() >= 200);
-    PK_VERIFY(bounds.y() + bounds.height() >= 200);
+    cubicPath.cubicTo(100, 100, -100, 100, 0, 0);
+    const PkRectF bounds = cubicPath.boundingRect();
+    PK_VERIFY(pkAbs(bounds.x() + 28.8675134594813) < 1e-10);
+    PK_VERIFY(pkAbs(bounds.y()) < 1e-12);
+    PK_VERIFY(pkAbs(bounds.width() - 57.7350269189626) < 1e-10);
+    PK_VERIFY(pkAbs(bounds.height() - 75.0) < 1e-10);
+    PK_COMPARE(cubicPath.controlPointRect(), PkRectF(-100, 0, 200, 100));
 }
 
 void PkPainterPathCase::controlPointRect()

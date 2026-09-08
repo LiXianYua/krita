@@ -8,6 +8,7 @@
 #include "PkGrayRaster.h"
 #include "PkAliasedRasterizer.h"
 #include <PkStrokeOutline.h>
+#include <PkPathClipper_p.h>
 #include "PkCosmeticStroker.h"
 
 #include <algorithm>
@@ -614,14 +615,62 @@ std::vector<unsigned char> PkImageRasterBackend::coverage(const PkPainterPath &p
         }
     }
     flattened.closeSubpath();
-    const PkPainterPath mapped = m_state.transform.map(flattened);
+    PkPainterPath mapped = m_state.transform.map(flattened);
+    bool needsDeviceClip = false;
+    for (int i = 0; i < mapped.elementCount(); ++i) {
+        const auto element = mapped.elementAt(i);
+        if (!std::isfinite(element.x) || !std::isfinite(element.y)) {
+            throw std::invalid_argument("PkImageRasterBackend path contains a non-finite coordinate");
+        }
+        needsDeviceClip = needsDeviceClip
+            || std::abs(element.x) > 32767
+            || std::abs(element.y) > 32767;
+    }
+    if (needsDeviceClip) {
+        // The span rasterizer clips in device space, but its input uses 26.6
+        // fixed point. Keep representable subpaths byte-for-byte unchanged,
+        // discard distant ones, and restrict only crossing subpaths to the
+        // destination plus one AA guard pixel before converting them.
+        const PkRectF deviceClip(-1, -1, width + 2, height + 2);
+        PkPainterPath restricted;
+        restricted.setFillRule(mapped.fillRule());
+        PkPainterPath subpath;
+        const auto appendRestricted = [&]() {
+            if (subpath.isEmpty())
+                return;
+            bool subpathNeedsClip = false;
+            for (int i = 0; i < subpath.elementCount(); ++i) {
+                const auto element = subpath.elementAt(i);
+                subpathNeedsClip = subpathNeedsClip
+                    || std::abs(element.x) > 32767
+                    || std::abs(element.y) > 32767;
+            }
+            if (!subpathNeedsClip) {
+                restricted.addPath(subpath);
+            } else if (subpath.controlPointRect().intersects(deviceClip)) {
+                restricted.addPath(PkPathClipper::intersect(subpath, deviceClip));
+            }
+        };
+        for (int i = 0; i < mapped.elementCount(); ++i) {
+            const auto element = mapped.elementAt(i);
+            if (element.isMoveTo()) {
+                appendRestricted();
+                subpath = PkPainterPath();
+                subpath.setFillRule(mapped.fillRule());
+                subpath.moveTo(element);
+            } else {
+                subpath.lineTo(element);
+            }
+        }
+        appendRestricted();
+        mapped = std::move(restricted);
+    }
     std::vector<PK_FT_Vector> points;
     std::vector<char> tags;
     std::vector<int> contours;
     for (int i = 0; i < mapped.elementCount(); ++i) {
         const auto element = mapped.elementAt(i);
-        if (!std::isfinite(element.x) || !std::isfinite(element.y) ||
-            std::abs(element.x) > 32767 || std::abs(element.y) > 32767) {
+        if (std::abs(element.x) > 32767 || std::abs(element.y) > 32767) {
             throw std::invalid_argument("PkImageRasterBackend path exceeds fixed-point range");
         }
         if (element.isMoveTo() && !points.empty()) contours.push_back(points.size() - 1);

@@ -681,10 +681,63 @@ bool PkPainterPath::isEmpty() const
         || (m_elements.size() == 1 && m_elements.first().type == MoveToElement);
 }
 PkRectF PkPainterPath::boundingRect() const
-{ if (!m_dirtyBounds) return m_cachedBounds; if (m_elements.isEmpty()) { m_cachedBounds=PkRectF(0,0,0,0); m_dirtyBounds=false; return m_cachedBounds; }
-  qreal minx=m_elements.at(0).x,maxx=minx,miny=m_elements.at(0).y,maxy=miny;
-  for (int i=1;i<m_elements.size();++i) { const auto &e=m_elements.at(i); if (e.x<minx) minx=e.x; if (e.x>maxx) maxx=e.x; if (e.y<miny) miny=e.y; if (e.y>maxy) maxy=e.y; }
-  m_cachedBounds=PkRectF(minx,miny,maxx-minx,maxy-miny); m_dirtyBounds=false; return m_cachedBounds; }
+{
+    if (!m_dirtyBounds)
+        return m_cachedBounds;
+    if (m_elements.isEmpty()) {
+        m_cachedBounds = PkRectF(0, 0, 0, 0);
+        m_dirtyBounds = false;
+        return m_cachedBounds;
+    }
+
+    qreal minx = m_elements.at(0).x;
+    qreal maxx = minx;
+    qreal miny = m_elements.at(0).y;
+    qreal maxy = miny;
+    const auto includePoint = [&](const PkPointF &point) {
+        minx = pkMin(minx, point.x());
+        maxx = pkMax(maxx, point.x());
+        miny = pkMin(miny, point.y());
+        maxy = pkMax(maxy, point.y());
+    };
+    const auto includeStationaryPoints = [&](const PkArcBezier &bezier,
+                                              const PkArcBezier &axisBezier) {
+        qreal t0 = 0;
+        qreal t1 = 0;
+        const int count = axisBezier.stationaryYPoints(t0, t1);
+        if (count > 0)
+            includePoint(bezier.pointAt(t0));
+        if (count > 1)
+            includePoint(bezier.pointAt(t1));
+    };
+
+    PkPointF current = m_elements.at(0);
+    for (int i = 1; i < m_elements.size(); ++i) {
+        const auto &element = m_elements.at(i);
+        if (element.isCurveTo() && i + 2 < m_elements.size()) {
+            const auto &control2 = m_elements.at(i + 1);
+            const auto &end = m_elements.at(i + 2);
+            const PkArcBezier bezier = PkArcBezier::fromPoints(
+                current, element, control2, end);
+            includePoint(end);
+            includeStationaryPoints(bezier, bezier);
+            const PkArcBezier transposed {
+                bezier.y1, bezier.x1, bezier.y2, bezier.x2,
+                bezier.y3, bezier.x3, bezier.y4, bezier.x4
+            };
+            includeStationaryPoints(bezier, transposed);
+            current = end;
+            i += 2;
+        } else {
+            current = element;
+            includePoint(current);
+        }
+    }
+
+    m_cachedBounds = PkRectF(minx, miny, maxx - minx, maxy - miny);
+    m_dirtyBounds = false;
+    return m_cachedBounds;
+}
 PkRectF PkPainterPath::controlPointRect() const
 { if (!m_dirtyControlRect) return m_cachedControlRect; if (m_elements.isEmpty()) { m_cachedControlRect=PkRectF(0,0,0,0); m_dirtyControlRect=false; return m_cachedControlRect; }
   qreal minx=m_elements.at(0).x,maxx=minx,miny=m_elements.at(0).y,maxy=miny;

@@ -112,8 +112,9 @@ void PkRectFCase::rectfLayoutIsFourQreal()
     PK_COMPARE(sizeof(PkRectF), sizeof(qreal) * 4);
     PK_VERIFY(std::is_trivially_copyable<PkRectF>::value);
     PK_VERIFY(std::is_standard_layout<PkRectF>::value);
-    // ⚠ 提升方向是单向的：PkRect → PkRectF 隐式，反向只能走 toRect/toAlignedRect。
-    PK_VERIFY((std::is_convertible<PkRect, PkRectF>::value));
+    // The fork intentionally requires PkRect → PkRectF promotion to be
+    // explicit; the reverse direction still uses toRect/toAlignedRect.
+    PK_VERIFY(!(std::is_convertible<PkRect, PkRectF>::value));
     PK_VERIFY(!(std::is_convertible<PkRectF, PkRect>::value));
 }
 
@@ -686,9 +687,10 @@ void PkRectFCase::rectfFromPkRectUsesWidthNotRight()
     PK_VERIFY(fieldsAre(PkRectF(PkRect(5, 5, 0, 0)), 5, 5, 0, 0));
     { PkRect q; q.setCoords(0, 0, -2, -2);
       PK_VERIFY(fieldsAre(PkRectF(q), 0, 0, -1, -1)); }
-    // 提升是隐式的：函数实参、赋值都不用写转换
-    const PkRectF implicit = PkRect(1, 2, 3, 4);
-    PK_VERIFY(fieldsAre(implicit, 1, 2, 3, 4));
+    // The fork intentionally requires the promotion to be explicit while
+    // preserving Qt's x/y/width/height value semantics.
+    const PkRectF promoted(PkRect(1, 2, 3, 4));
+    PK_VERIFY(fieldsAre(promoted, 1, 2, 3, 4));
     // ⚠ 往返不是恒等：PkRect(0,0,10,10) → PkRectF → toRect() 回得来，
     // 但 toAlignedRect 在半值上回不来（上面 rectfToRectAndToAlignedRectDiffer）。
     PK_VERIFY(PkRectF(PkRect(0, 0, 10, 10)).toRect() == PkRect(0, 0, 10, 10));

@@ -38,6 +38,7 @@ private Q_SLOTS:
     void matchesQtShortSpansAndTails();
     void matchesQtPlusPixelsAndOverlappingMasks();
     void matchesQtTransformedClippedPathCoverage();
+    void matchesQtLargeDisconnectedPathCoverage();
     void matchesQtStrokePixels();
     void matchesQtGradientPixels();
     void matchesQtTransformedImagePixels();
@@ -57,6 +58,91 @@ private Q_SLOTS:
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtLargeDisconnectedPathCoverage()
+{
+    QImage qtImage(320, 160, QImage::Format_ARGB32);
+    PkImage pkImage(320, 160, PkImage::Format_ARGB32);
+    qtImage.fill(Qt::black);
+    pkImage.fill(Pk::black);
+
+    QPainterPath qtSource;
+    PkPainterPath pkSource;
+    qtSource.moveTo(2, 2); pkSource.moveTo(2, 2);
+    qtSource.cubicTo(30, -2, -2, 28, 25, 18);
+    pkSource.cubicTo(30, -2, -2, 28, 25, 18);
+    qtSource.lineTo(3, 20); pkSource.lineTo(3, 20);
+    qtSource.closeSubpath(); pkSource.closeSubpath();
+    QTransform qtTransform;
+    PkTransform pkTransform;
+    qtTransform.translate(2.25, 1.5); pkTransform.translate(2.25, 1.5);
+    qtTransform.rotate(13); pkTransform.rotate(13);
+    QPainterPath qtPath = qtTransform.map(qtSource);
+    PkPainterPath pkPath = pkTransform.map(pkSource);
+    qtPath.addRect(QRectF(0, 80, 300, 30));
+    pkPath.addRect(PkRectF(0, 80, 300, 30));
+    qtPath.addRect(QRectF(80000, 20, 20, 20));
+    pkPath.addRect(PkRectF(80000, 20, 20, 20));
+
+    QPainter qtPainter(&qtImage);
+    PkImageRasterBackend backend(pkImage);
+    PkPainter pkPainter(backend);
+    qtPainter.setRenderHint(QPainter::Antialiasing, true);
+    pkPainter.setRenderHint(PkPainter::Antialiasing, true);
+    qtPainter.fillPath(qtPath, Qt::white);
+    pkPainter.fillPath(pkPath, Pk::white);
+    qtPainter.end();
+
+    for (int y = 0; y < qtImage.height(); ++y) {
+        for (int x = 0; x < qtImage.width(); ++x) {
+            const QString context = QStringLiteral("x=%1 y=%2 Qt=%3 Pk=%4")
+                .arg(x).arg(y)
+                .arg(qtImage.pixel(x, y), 8, 16, QLatin1Char('0'))
+                .arg(pkImage.pixel(x, y), 8, 16, QLatin1Char('0'));
+            QVERIFY2(pkImage.pixel(x, y) == qtImage.pixel(x, y), qPrintable(context));
+        }
+    }
+
+    QImage qtDistantOnly(32, 24, QImage::Format_ARGB32);
+    PkImage pkDistantOnly(32, 24, PkImage::Format_ARGB32);
+    qtDistantOnly.fill(Qt::black);
+    pkDistantOnly.fill(Pk::black);
+    QPainter qtDistantPainter(&qtDistantOnly);
+    PkImageRasterBackend distantBackend(pkDistantOnly);
+    PkPainter pkDistantPainter(distantBackend);
+    QPainterPath qtDistantPath;
+    PkPainterPath pkDistantPath;
+    qtDistantPath.addRect(QRectF(80000, 20, 20, 20));
+    pkDistantPath.addRect(PkRectF(80000, 20, 20, 20));
+    qtDistantPainter.fillPath(qtDistantPath, Qt::white);
+    pkDistantPainter.fillPath(pkDistantPath, Pk::white);
+    qtDistantPainter.end();
+    for (int y = 0; y < qtDistantOnly.height(); ++y) {
+        for (int x = 0; x < qtDistantOnly.width(); ++x) {
+            QVERIFY(pkDistantOnly.pixel(x, y) == qtDistantOnly.pixel(x, y));
+        }
+    }
+
+    QImage qtCrossing(32, 24, QImage::Format_ARGB32);
+    PkImage pkCrossing(32, 24, PkImage::Format_ARGB32);
+    qtCrossing.fill(Qt::black);
+    pkCrossing.fill(Pk::black);
+    QPainter qtCrossingPainter(&qtCrossing);
+    PkImageRasterBackend crossingBackend(pkCrossing);
+    PkPainter pkCrossingPainter(crossingBackend);
+    QPainterPath qtCrossingPath;
+    PkPainterPath pkCrossingPath;
+    qtCrossingPath.addRect(QRectF(-80000, 4, 160000, 10));
+    pkCrossingPath.addRect(PkRectF(-80000, 4, 160000, 10));
+    qtCrossingPainter.fillPath(qtCrossingPath, Qt::white);
+    pkCrossingPainter.fillPath(pkCrossingPath, Pk::white);
+    qtCrossingPainter.end();
+    for (int y = 0; y < qtCrossing.height(); ++y) {
+        for (int x = 0; x < qtCrossing.width(); ++x) {
+            QVERIFY(pkCrossing.pixel(x, y) == qtCrossing.pixel(x, y));
+        }
+    }
+}
 
 void PkImageRasterBackendTest::paintsGrayscaleDestination()
 {

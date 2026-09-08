@@ -86,7 +86,7 @@ const char *shapeName(ShapeKind kind)
     return "unknown";
 }
 
-QPainterPath makeQt(ShapeKind kind, Pk::FillRule rule)
+QPainterPath makeQt(ShapeKind kind, Qt::FillRule rule)
 {
     QPainterPath path;
     if (kind == ShapeKind::Empty)
@@ -460,8 +460,8 @@ const char *opName(BinaryOp op)
 
 void compareBinary(BinaryOp op, ShapeKind a, ShapeKind b, int fillA, int fillB)
 {
-    const QPainterPath qa = makeQt(a, fillA ? Pk::WindingFill : Pk::OddEvenFill);
-    const QPainterPath qb = makeQt(b, fillB ? Pk::WindingFill : Pk::OddEvenFill);
+    const QPainterPath qa = makeQt(a, fillA ? Qt::WindingFill : Qt::OddEvenFill);
+    const QPainterPath qb = makeQt(b, fillB ? Qt::WindingFill : Qt::OddEvenFill);
     const auto pa = makePk(a, fillA ? pkoracle::Pk::WindingFill : pkoracle::Pk::OddEvenFill);
     const auto pb = makePk(b, fillB ? pkoracle::Pk::WindingFill : pkoracle::Pk::OddEvenFill);
 
@@ -557,12 +557,31 @@ void compareAdversarialCubics()
                   "adversarial-cubic:operation=simplified");
 }
 
+void compareTightCubicBounds()
+{
+    QPainterPath qt;
+    qt.moveTo(0, 0);
+    qt.cubicTo(100, 100, -100, 100, 0, 0);
+
+    pkoracle::PkPainterPath pk;
+    pk.moveTo(0, 0);
+    pk.cubicTo(pkoracle::PkPointF(100, 100), pkoracle::PkPointF(-100, 100),
+               pkoracle::PkPointF(0, 0));
+
+    const QRectF qr = qt.boundingRect();
+    const pkoracle::PkRectF pr = pk.boundingRect();
+    rec(sameCoordinate(qr.x(), pr.x()), "tight-cubic-bounds:field=x");
+    rec(sameCoordinate(qr.y(), pr.y()), "tight-cubic-bounds:field=y");
+    rec(sameCoordinate(qr.width(), pr.width()), "tight-cubic-bounds:field=width");
+    rec(sameCoordinate(qr.height(), pr.height()), "tight-cubic-bounds:field=height");
+}
+
 void compareEqualityEdgeCases()
 {
     QPainterPath qtEmpty;
-    qtEmpty.setFillRule(Pk::WindingFill);
+    qtEmpty.setFillRule(Qt::WindingFill);
     QPainterPath qtOrigin;
-    qtOrigin.setFillRule(Pk::WindingFill);
+    qtOrigin.setFillRule(Qt::WindingFill);
     qtOrigin.moveTo(0, 0);
 
     pkoracle::PkPainterPath pkEmpty;
@@ -574,7 +593,7 @@ void compareEqualityEdgeCases()
         "equality-edge:empty-vs-origin:fill=winding");
 
     QPainterPath qtOddOrigin;
-    qtOddOrigin.setFillRule(Pk::OddEvenFill);
+    qtOddOrigin.setFillRule(Qt::OddEvenFill);
     qtOddOrigin.moveTo(0, 0);
     pkoracle::PkPainterPath pkOddOrigin;
     pkOddOrigin.setFillRule(pkoracle::Pk::OddEvenFill);
@@ -634,6 +653,7 @@ int main()
     for (ShapeKind kind : kinds)
         std::cerr << "FAMILY " << shapeName(kind) << '\n';
     std::cerr << "FAMILY adversarial-cubic\n";
+    std::cerr << "FAMILY tight-cubic-bounds\n";
     std::cerr << "FAMILY close-same-line\n";
     std::cerr << "FAMILY close-different-line\n";
     std::cerr << "FAMILY fuzzy-close-normalization\n";
@@ -642,13 +662,13 @@ int main()
 
     for (int fillA = 0; fillA < 2; ++fillA) {
         for (ShapeKind a : kinds) {
-            const QPainterPath qa = makeQt(a, fillA ? Pk::WindingFill : Pk::OddEvenFill);
+            const QPainterPath qa = makeQt(a, fillA ? Qt::WindingFill : Qt::OddEvenFill);
             const auto pa = makePk(a, fillA ? pkoracle::Pk::WindingFill : pkoracle::Pk::OddEvenFill);
             compareResult(qa.simplified(), pa.simplified(),
                           baseTag("simplified", a, a, fillA, fillA));
             for (int fillB = 0; fillB < 2; ++fillB) {
                 for (ShapeKind b : kinds) {
-                    const QPainterPath qb = makeQt(b, fillB ? Pk::WindingFill : Pk::OddEvenFill);
+                    const QPainterPath qb = makeQt(b, fillB ? Qt::WindingFill : Qt::OddEvenFill);
                     const auto pb = makePk(b, fillB ? pkoracle::Pk::WindingFill : pkoracle::Pk::OddEvenFill);
                     const std::string relation = baseTag("relation", a, b, fillA, fillB);
                     rec((qa == qb) == (pa == pb), relation + ":field=path-equality");
@@ -665,6 +685,7 @@ int main()
     compareNearCoincidentPair(10.0, 0.1, "small");
     compareNearCoincidentPair(1.0e6, 0.0000005, "large");
     compareAdversarialCubics();
+    compareTightCubicBounds();
     compareEqualityEdgeCases();
     compareCloseStateFamilies();
     compareElementMutationFamilies();

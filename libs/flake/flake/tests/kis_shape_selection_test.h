@@ -20,6 +20,8 @@ private Q_SLOTS:
     void testUndoFlattening();
 
     void testHistoryOnFlattening();
+
+    void testRenderMatchesQtTiledLargePath();
 };
 
 #endif
