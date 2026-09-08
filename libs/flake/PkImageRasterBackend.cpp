@@ -313,23 +313,30 @@ uint32_t composeSolid(uint32_t destination, uint32_t premultipliedSource, unsign
 std::array<Rgba64Pixel, 1024> gradientTable(const PkGradient &gradient, unsigned opacity)
 {
     const auto stops = gradient.stops();
-    const auto color = [opacity](const PkColor &value) {
-        const unsigned a = (unsigned(value.alpha()) * 257u * opacity) >> 8;
-        return Rgba64Pixel {a,
-            divideBy65535(unsigned(value.red()) * 257u * a),
-            divideBy65535(unsigned(value.green()) * 257u * a),
-            divideBy65535(unsigned(value.blue()) * 257u * a)};
+    const bool component = gradient.interpolationMode() == PkGradient::ComponentInterpolation;
+    const auto premultiply = [](Rgba64Pixel value) {
+        return Rgba64Pixel {value.a, divideBy65535(value.r * value.a),
+            divideBy65535(value.g * value.a), divideBy65535(value.b * value.a)};
+    };
+    const auto output = [component, premultiply](Rgba64Pixel value) {
+        return component ? premultiply(value) : value;
+    };
+    const auto color = [opacity, component, premultiply](const PkColor &value) {
+        const unsigned a = (unsigned(std::round(value.alphaF() * 65535)) * opacity) >> 8;
+        const Rgba64Pixel result {a, unsigned(std::round(value.redF() * 65535)),
+            unsigned(std::round(value.greenF() * 65535)), unsigned(std::round(value.blueF() * 65535))};
+        return component ? result : premultiply(result);
     };
     std::array<Rgba64Pixel, 1024> table;
     if (stops.size() == 1) {
-        table.fill(color(stops[0].color));
+        table.fill(output(color(stops[0].color)));
         return table;
     }
     if (stops.size() > 2) {
         const double increment = 1.0 / 1024;
         double position = 1.5 * increment;
         int index = 0;
-        table[index++] = color(stops[0].color);
+        table[index++] = output(color(stops[0].color));
         while (position <= stops[0].offset && index < 1024) {
             table[index] = table[index - 1];
             ++index;
@@ -352,12 +359,12 @@ std::array<Rgba64Pixel, 1024> gradientTable(const PkGradient &gradient, unsigned
             const auto mix = [amount, inverse](unsigned a, unsigned b) {
                 return ((a * inverse) >> 8) + ((b * amount) >> 8);
             };
-            table[index++] = {mix(first.a, last.a), mix(first.r, last.r),
-                              mix(first.g, last.g), mix(first.b, last.b)};
+            table[index++] = output({mix(first.a, last.a), mix(first.r, last.r),
+                              mix(first.g, last.g), mix(first.b, last.b)});
             position += increment;
             t += delta;
         }
-        const auto last = color(stops.last().color);
+        const auto last = output(color(stops.last().color));
         while (index < 1024) table[index++] = last;
         return table;
     }
@@ -365,7 +372,7 @@ std::array<Rgba64Pixel, 1024> gradientTable(const PkGradient &gradient, unsigned
     const int firstIndex = pkRound(stops[0].offset * 1023);
     const int lastIndex = pkRound(stops[1].offset * 1023);
     int index = 0;
-    for (; index <= firstIndex && index < 1024; ++index) table[index] = first;
+    for (; index <= firstIndex && index < 1024; ++index) table[index] = output(first);
     if (index < lastIndex) {
         const double reciprocal = 1.0 / (lastIndex - firstIndex);
         uint32_t channels[] = {first.a << 16, first.r << 16, first.g << 16, first.b << 16};
@@ -377,10 +384,10 @@ std::array<Rgba64Pixel, 1024> gradientTable(const PkGradient &gradient, unsigned
         }
         for (; index < lastIndex && index < 1024; ++index) {
             for (int j = 0; j < 4; ++j) channels[j] += delta[j];
-            table[index] = {channels[0] >> 16, channels[1] >> 16, channels[2] >> 16, channels[3] >> 16};
+            table[index] = output({channels[0] >> 16, channels[1] >> 16, channels[2] >> 16, channels[3] >> 16});
         }
     }
-    for (; index < 1024; ++index) table[index] = last;
+    for (; index < 1024; ++index) table[index] = output(last);
     return table;
 }
 
@@ -448,6 +455,13 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
     if (const auto *path = std::get_if<PkDrawPathCommand>(&command)) {
         fillPath(path->path, m_state.brush);
         strokePath(path->path, m_state.pen);
+        return;
+    }
+    if (const auto *rect = std::get_if<PkDrawRectCommand>(&command)) {
+        PkPainterPath path;
+        path.addRect(rect->rect);
+        fillMask(path, m_state.brush, rectangleCoverage(rect->rect));
+        strokePath(path, m_state.pen);
         return;
     }
     if (const auto *line = std::get_if<PkDrawLineCommand>(&command)) {
@@ -1139,7 +1153,12 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
     const auto inverse = (PkTransform::fromTranslate(1.0 / 65536, 1.0 / 65536) *
                           placement * m_state.transform).inverted();
     const bool smooth = m_state.hints & 4u;
-    const int stepX = int(inverse.m11() * 65536), stepY = int(inverse.m12() * 65536);
+    const double f1 = inverse.m11() * inverse.m11() + inverse.m21() * inverse.m21();
+    const double f2 = inverse.m12() * inverse.m12() + inverse.m22() * inverse.m22();
+    const bool fastMatrix = f1 < 1e4 && f2 < 1e4 && f1 > 1.0 / 65536 && f2 > 1.0 / 65536 &&
+        std::abs(inverse.dx()) < 1e4 && std::abs(inverse.dy()) < 1e4;
+    const int stepX = fastMatrix ? int(inverse.m11() * 65536) : 0;
+    const int stepY = fastMatrix ? int(inverse.m12() * 65536) : 0;
     const unsigned opacity = unsigned(m_state.opacity * 256);
     const int left = tiled ? 0 : std::max(0, int(std::floor(source.left())));
     const int top = tiled ? 0 : std::max(0, int(std::floor(source.top())));
@@ -1221,15 +1240,21 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
             while (x < m_destination.width() && amountAt(x) != 0) ++x;
             const int count = x - start;
             const auto p = inverse.map(PkPointF(start + 0.5, y + 0.5));
-            int fx = int(p.x() * 65536) - (smooth ? 32768 : 0);
-            int fy = int(p.y() * 65536) - (smooth ? 32768 : 0);
+            bool fastSpan = fastMatrix;
+            for (double coordinate : {p.x() * 65536, p.y() * 65536,
+                    p.x() * 65536 + double(stepX) * count, p.y() * 65536 + double(stepY) * count})
+                if (!std::isfinite(coordinate) || coordinate < std::numeric_limits<int>::min() ||
+                    coordinate > std::numeric_limits<int>::max()) fastSpan = false;
+            std::int64_t fx = fastSpan ? std::int64_t(p.x() * 65536) - (smooth ? 32768 : 0) : 0;
+            std::int64_t fy = fastSpan ? std::int64_t(p.y() * 65536) - (smooth ? 32768 : 0) : 0;
+            double floatingX = p.x(), floatingY = p.y();
             int lowPrecisionStart=0,lowPrecisionEnd=0;
-            if (smooth && !tiled && uses32BitComposition(m_destination.format()) &&
+            if (fastSpan && smooth && !tiled && uses32BitComposition(m_destination.format()) &&
                 (image.format()==PkImage::Format_ARGB32_Premultiplied || image.format()==PkImage::Format_RGB32) &&
                 stepY!=0 && std::abs(inverse.m11())>=.125 && std::abs(inverse.m22())>=.125) {
                 // Qt's PM fast-rotation SIMD interior uses rounded four-bit
                 // fractions; bounded edges and scalar tails retain eight bits.
-                int tx=fx,ty=fy;
+                std::int64_t tx=fx,ty=fy;
                 while (lowPrecisionStart<count &&
                     ((tx>>16)<left || (tx>>16)>=right || (ty>>16)<top || (ty>>16)>=bottom)) {
                     ++lowPrecisionStart; tx+=stepX; ty+=stepY;
@@ -1249,7 +1274,20 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
             }
             const auto destinations = premultiplySpan(m_destination, y, start, count);
             for (int i = 0; i < count; ++i, fx += stepX, fy += stepY) {
-                const int sx = fx >> 16, sy = fy >> 16;
+                int sx = int(fx >> 16), sy = int(fy >> 16);
+                unsigned fractionX = fx & 65535, fractionY = fy & 65535;
+                if (!fastSpan) {
+                    double px = floatingX - (smooth ? 0.5 : 0);
+                    double py = floatingY - (smooth ? 0.5 : 0);
+                    if (!std::isfinite(px) || !std::isfinite(py)) throw std::invalid_argument("non-finite image sampling coordinate");
+                    if (tiled) { px = std::fmod(px, image.width()); py = std::fmod(py, image.height()); }
+                    sx = int(std::clamp(std::floor(px), -1.0, double(right)));
+                    sy = int(std::clamp(std::floor(py), -1.0, double(bottom)));
+                    fractionX = unsigned((px - std::floor(px)) * 65536);
+                    fractionY = unsigned((py - std::floor(py)) * 65536);
+                    floatingX += inverse.m11();
+                    floatingY += inverse.m12();
+                }
                 Rgba64Pixel source = fetch(sx, sy);
                 if (smooth) {
                     const auto right = fetch(sx + 1, sy);
@@ -1264,8 +1302,8 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
                         source={mix(source.a,right.a,bottom.a,bottomRight.a),mix(source.r,right.r,bottom.r,bottomRight.r),
                             mix(source.g,right.g,bottom.g,bottomRight.g),mix(source.b,right.b,bottom.b,bottomRight.b)};
                     } else {
-                        source = interpolate(interpolate(source, bottom, fy & 65535),
-                                             interpolate(right, bottomRight, fy & 65535), fx & 65535);
+                        source = interpolate(interpolate(source, bottom, fractionY),
+                                             interpolate(right, bottomRight, fractionY), fractionX);
                     }
                 }
                 if (uses32BitComposition(m_destination.format())) {
@@ -1277,9 +1315,11 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
                     storeComposedPixel(m_destination,start+i,y,composeSolid(m_destination.pixel(start+i,y),pixel,
                         (amountAt(start+i)*opacity)>>8,mode,true,false));
                 } else {
+                    const auto mode = m_state.mode == Pk::CompositionMode_SourceOver &&
+                        image.format() == PkImage::Format_RGB32 ? Pk::CompositionMode_Source : m_state.mode;
                     m_destination.setPixel(start + i, y,
                         compose(destinations[i], source, (amountAt(start + i) * opacity) >> 8,
-                                i >= count - count % 4, m_state.mode));
+                                i >= count - count % 4, mode));
                 }
             }
         }

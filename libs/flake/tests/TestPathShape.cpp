@@ -13,6 +13,7 @@
 
 #include <simpletest.h>
 Q_DECLARE_METATYPE(PkPainterPath)
+Q_DECLARE_METATYPE(PkString)
 
 void TestPathShape::close()
 {
@@ -780,11 +781,11 @@ void TestPathShape::createFromPainterPath_data()
     //QTest::addRow() << path << expected;
     PkPainterPath path;
     path.addPolygon(PkPolygonF({PkPointF(10, 10), PkPointF(100, 10), PkPointF(100, 200), PkPointF(10, 200)}));
-    QTest::addRow("no last point") << path << "M10 10L100 10L100 200L10 200";
+    QTest::addRow("no last point") << path << PkString("M10 10L100 10L100 200L10 200");
 
     PkPainterPath path2;
     path2.addPolygon(PkPolygonF({PkPointF(10, 10), PkPointF(100, 10), PkPointF(100, 200), PkPointF(10, 200), PkPointF(10, 10)}));
-    QTest::addRow("last point exists") << path2 << "M10 10L100 10L100 200L10 200Z";
+    QTest::addRow("last point exists") << path2 << PkString("M10 10L100 10L100 200L10 200Z");
 
     PkPainterPath path3;
     path3.lineTo(PkPointF(100, 0));
@@ -792,7 +793,7 @@ void TestPathShape::createFromPainterPath_data()
     path3.lineTo(PkPointF(0, 200));
     path3.lineTo(PkPointF(0, 0));
 
-    QTest::addRow("no MoveTo point in the beginning (in theory, at least)") << path3 << "M0 0L100 0L100 200L0 200Z";
+    QTest::addRow("no MoveTo point in the beginning (in theory, at least)") << path3 << PkString("M0 0L100 0L100 200L0 200Z");
 }
 
 

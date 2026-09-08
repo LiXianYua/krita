@@ -10,10 +10,7 @@
 #include <PkTransform.h>
 
 
-#include "kritaflake_export.h"
-
-
-class KRITAFLAKE_EXPORT SvgTransformParser
+class SvgTransformParser
 {
 public:
     SvgTransformParser(const PkString &str);

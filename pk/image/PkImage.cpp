@@ -681,6 +681,15 @@ PkImage PkImage::convertToFormat(Format newFormat) const
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
             uint32_t argb = rawPixelArgb(srcData, srcFormat, x, y);
+            if (srcFormat == Format_ARGB32 && fmt == Format_ARGB32_Premultiplied) {
+                const unsigned a = argb >> 24;
+                const auto premultiply = [a](unsigned c) {
+                    const unsigned value = c * a + 128;
+                    return (value + (value >> 8)) >> 8;
+                };
+                argb = (a << 24) | (premultiply((argb >> 16) & 255) << 16) |
+                    (premultiply((argb >> 8) & 255) << 8) | premultiply(argb & 255);
+            }
             writeRawPixelArgb(dstData, fmt, x, y, argb);
         }
     }

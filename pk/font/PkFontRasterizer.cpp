@@ -1,4 +1,6 @@
 #include "PkFontRasterizer.h"
+#include "PkFontOutline_p.h"
+#include <PkTransform.h>
 
 #include <fontconfig/fontconfig.h>
 #include <ft2build.h>
@@ -127,6 +129,84 @@ unsigned blendCoverage(unsigned previous, unsigned coverage, bool gammaCorrect)
     return (gamma.fromLinear[index] + 128u) >> 8;
 }
 
+}
+
+PkPainterPath PkFontRasterizer::outline(const PkString &text, const PkFont &font, double *advance, Metrics *metrics)
+{
+    if (advance) *advance = 0;
+    if (metrics) *metrics = {};
+    PkPainterPath result;
+    result.setFillRule(Pk::WindingFill);
+    if (text.isEmpty()) return result;
+    FtLibrary library;
+    const auto files = resolveFontFiles(font);
+    if (!library.value || files.empty()) return result;
+    using Face = std::unique_ptr<std::remove_pointer_t<FT_Face>, FtFaceDeleter>;
+    std::vector<Face> faces(files.size());
+    const auto loadFace = [&](std::size_t i) -> FT_Face {
+        if (faces[i]) return faces[i].get();
+        FT_Face face = nullptr;
+        if (FT_New_Face(library.value, files[i].path.c_str(), files[i].index, &face)) return nullptr;
+        faces[i].reset(face);
+        if (FT_Set_Pixel_Sizes(face, 0, font.pixelSize() > 0 ? font.pixelSize() : 12)) return nullptr;
+        return face;
+    };
+    FT_Face primary = loadFace(0);
+    if (!primary) return result;
+    const auto characters = codepoints(text);
+    std::unique_ptr<raqm_t, decltype(&raqm_destroy)> layout(raqm_create(), raqm_destroy);
+    if (!layout || !raqm_set_text(layout.get(), characters.data(), characters.size()) ||
+        !raqm_set_freetype_face(layout.get(), primary) ||
+        !raqm_set_freetype_load_flags(layout.get(), FT_LOAD_NO_BITMAP)) return result;
+    for (std::size_t i = 0; i < characters.size(); ++i) {
+        FT_Face selected = primary;
+        for (std::size_t f = 0; f < files.size(); ++f) {
+            FT_Face candidate = loadFace(f);
+            if (candidate && FT_Get_Char_Index(candidate, characters[i])) { selected = candidate; break; }
+        }
+        if (!raqm_set_freetype_face_range(layout.get(), selected, i, 1)) return {};
+        if (metrics) {
+            metrics->ascent = std::max(metrics->ascent, std::ceil(selected->size->metrics.ascender / 64.0));
+            metrics->descent = std::max(metrics->descent, std::ceil(-selected->size->metrics.descender / 64.0));
+        }
+    }
+    if (!raqm_layout(layout.get())) return result;
+    std::size_t count = 0;
+    const auto glyphs = raqm_get_glyphs(layout.get(), &count);
+    FT_Pos penX = 0, penY = 0;
+    for (std::size_t i = 0; i < count; ++i) {
+        const auto &glyph = glyphs[i];
+        if (metrics && i + 1 == count) {
+            FT_Set_Pixel_Sizes(glyph.ftface, 0, font.pixelSize() > 0 ? font.pixelSize() : 12);
+            if (!FT_Load_Glyph(glyph.ftface, glyph.index, FT_LOAD_NO_BITMAP)) {
+                const auto &m = glyph.ftface->glyph->metrics;
+                metrics->rightOverhang = std::max(0.0, (m.horiBearingX + m.width - m.horiAdvance) / 64.0);
+            }
+        }
+        // Qt's outline path hints at units-per-em, then scales with FT_MulFix.
+        // Loading an unhinted outline directly at the requested size changes
+        // the 26.6 rounding and loses the component placement of hinted fonts.
+        const auto em = glyph.ftface->units_per_EM;
+        if (!em || FT_Set_Char_Size(glyph.ftface, em << 6, em << 6, 0, 0)) continue;
+        if (!FT_Load_Glyph(glyph.ftface, glyph.index, FT_LOAD_NO_BITMAP)) {
+            const auto scale = FT_MulDiv((font.pixelSize() > 0 ? font.pixelSize() : 12) << 6, 1 << 10, em);
+            auto &outline = glyph.ftface->glyph->outline;
+            for (int point = 0; point < outline.n_points; ++point) {
+                outline.points[point].x = FT_MulFix(outline.points[point].x, scale);
+                outline.points[point].y = FT_MulFix(outline.points[point].y, scale);
+            }
+            const auto path = convertFromFreeTypeOutline(glyph.ftface->glyph);
+            const PkTransform transform(1.0 / 64, 0, 0, -1.0 / 64,
+                (penX + glyph.x_offset) / 64.0, -(penY + glyph.y_offset) / 64.0);
+            result.addPath(transform.map(path));
+        }
+        // The Qt 5.15 default hinted text layout rounds shaped advances to
+        // whole pixels before SVG applies its 100-pixel layout transform.
+        penX += FT_Pos(std::round(glyph.x_advance / 64.0)) * 64;
+        penY += FT_Pos(std::round(glyph.y_advance / 64.0)) * 64;
+    }
+    if (advance) *advance = penX / 64.0;
+    return result;
 }
 
 PkImage PkFontRasterizer::render(const PkString &text, const PkFont &font)

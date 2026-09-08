@@ -1186,7 +1186,11 @@ void PkImageRasterBackendTest::rejectsUnsupportedOperations()
     PkImageRasterBackend backend(destination);
     PkPainter painter(backend);
 
-    QVERIFY_EXCEPTION_THROWN(painter.drawRect(PkRectF(0, 0, 1, 1)), std::logic_error);
+    painter.setPen(PkPen(Pk::NoPen));
+    painter.setBrush(PkBrush(PkColor(Pk::red)));
+    painter.drawRect(PkRectF(0, 0, 1, 1));
+    QCOMPARE(destination.pixel(0, 0), 0xffff0000u);
+    QVERIFY_EXCEPTION_THROWN(painter.drawEllipse(PkRectF(0, 0, 1, 1)), std::logic_error);
 
     PkImage unsupportedDestination(1, 1, PkImage::Format_RGBA8888);
     PkImageRasterBackend unsupportedBackend(unsupportedDestination);

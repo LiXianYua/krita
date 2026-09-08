@@ -47,6 +47,8 @@ if(NOT TARGET pkrender)
         ${CMAKE_CURRENT_SOURCE_DIR}/PkGrayRaster.c
         ${CMAKE_CURRENT_SOURCE_DIR}/PkAliasedRasterizer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/PkCosmeticStroker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/svg/parsers/SvgTransformParser.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/svg/SvgCssHelper.cpp
     )
     target_include_directories(pkrender PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/render>
@@ -55,12 +57,17 @@ if(NOT TARGET pkrender)
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/svg/parsers>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/svg>
     )
     target_link_libraries(pkrender PUBLIC
         pkgeometry
         pkimage
         pkcolor
         pkfont
+        pkxml
+        pkimageio
+        libunibreak::libunibreak
     )
     set_target_properties(pkrender PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
@@ -261,10 +268,8 @@ set(kritaflake_SRCS
     svg/SvgParser.cpp
     svg/SvgStyleParser.cpp
     svg/SvgGradientHelper.cpp
-    svg/SvgCssHelper.cpp
     svg/SvgClipPathHelper.cpp
     svg/SvgLoadingContext.cpp
-    svg/parsers/SvgTransformParser.cpp
     svg/SvgMeshGradient.cpp
     svg/SvgMeshPatch.cpp
     svg/SvgMeshArray.cpp

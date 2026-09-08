@@ -4,15 +4,14 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
+#include <cstdio>
 
-#include <pk/container/PkMap.h>
-#include <pk/container/PkMapIterator.h>
-#include <pk/xml/PkXmlCDATASection.h>
+#include <PkMap.h>
+#include <PkMapIterator.h>
+#include <PkXmlCDATASection.h>
 #include "SvgCssHelper.h"
-#include <FlakeDebug.h>
-#include <pk/container/PkContainerAlgo.h>
+
+#include <PkContainerAlgo.h>
 #include <utility>
 #include <regex>
 #include <string>
@@ -320,12 +319,12 @@ public:
     }
     ~CssSimpleSelector() override
     {
-        qDeleteAll(m_selectors);
+        pkDeleteAll(m_selectors);
     }
 
     bool match(const PkXmlElement &e) override
     {
-        Q_FOREACH (CssSelectorBase *s, m_selectors) {
+        for (CssSelectorBase *s : m_selectors) {
             if (!s->match(e))
                 return false;
         }
@@ -336,7 +335,7 @@ public:
     PkString toString() const override
     {
         PkString str;
-        Q_FOREACH (CssSelectorBase *s, m_selectors) {
+        for (CssSelectorBase *s : m_selectors) {
             str += s->toString();
         }
         return str;
@@ -344,7 +343,7 @@ public:
     int priority() override
     {
         int p = 0;
-        Q_FOREACH (CssSelectorBase *s, m_selectors) {
+        for (CssSelectorBase *s : m_selectors) {
             p += s->priority();
         }
         return p;
@@ -454,7 +453,7 @@ public:
     }
     ~CssComplexSelector() override
     {
-        qDeleteAll(m_selectors);
+        pkDeleteAll(m_selectors);
     }
     PkString toString() const override
     {
@@ -538,7 +537,7 @@ public:
     int priority() override
     {
         int p = 0;
-        Q_FOREACH (CssSelectorBase *s, m_selectors) {
+        for (CssSelectorBase *s : m_selectors) {
             p += s->priority();
         }
         return p;
@@ -547,7 +546,7 @@ public:
 private:
     void compile(const PkList<CssToken> &tokens)
     {
-        Q_FOREACH (const CssToken &token, tokens) {
+        for (const CssToken &token : tokens) {
             if(token.first == SelectorToken) {
                 m_selectors.append(new CssSimpleSelector(token.second));
             } else {
@@ -570,8 +569,8 @@ class SvgCssHelper::Private
 public:
     ~Private()
     {
-        Q_FOREACH (const CssRule &rule, cssRules) {
-            qDeleteAll(rule.first);
+        for (const CssRule &rule : cssRules) {
+            pkDeleteAll(rule.first);
         }
     }
 
@@ -606,7 +605,7 @@ public:
 
         char16_t ch = expr[0];
         if (pkIsSpace(ch) || ch == u'>' || ch == u'+') {
-            debugFlake << "selector starting with combinator is not allowed:" << selector;
+            std::fprintf(stderr, "selector starting with combinator is not allowed: %s\n", selector.PkToUtf8().c_str());
             return tokenList;
         } else {
             state = InSelector;
@@ -736,8 +735,8 @@ PkStringList SvgCssHelper::matchStyles(const PkXmlElement &element) const
 {
     PkMap<int, PkString> prioritizedRules;
     // match rules to element
-    Q_FOREACH (const CssRule &rule, d->cssRules) {
-        Q_FOREACH (CssSelectorBase *s, rule.first) {
+    for (const CssRule &rule : d->cssRules) {
+        for (CssSelectorBase *s : rule.first) {
             bool matched = s->match(element);
             if (matched)
                 prioritizedRules[s->priority()] = rule.second;

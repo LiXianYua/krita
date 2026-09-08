@@ -97,7 +97,7 @@ bool isPng(const uint8_t *data, std::size_t size)
     return size >= 8 && png_sig_cmp(data, 0, 8) == 0;
 }
 
-PkImage decodePng(const uint8_t *data, std::size_t size)
+PkImage decodePngData(const uint8_t *data, std::size_t size, bool forPainting)
 {
     png_image codec{};
     codec.version = PNG_IMAGE_VERSION;
@@ -110,6 +110,7 @@ PkImage decodePng(const uint8_t *data, std::size_t size)
         png_image_free(&codec);
         return PkImage();
     }
+    const bool hasAlpha = codec.format & PNG_FORMAT_FLAG_ALPHA;
     codec.format = PNG_FORMAT_RGBA;
     try {
         std::vector<uint8_t> rgba(bytes);
@@ -121,6 +122,7 @@ PkImage decodePng(const uint8_t *data, std::size_t size)
         PkImage result = rgbaToImage(rgba.data(), codec.width, codec.height,
                                      static_cast<std::size_t>(codec.width) * 4u);
         png_image_free(&codec);
+        if (forPainting && !hasAlpha) result = result.convertToFormat(PkImage::Format_RGB32);
         return result;
     } catch (const std::bad_alloc &) {
         png_image_free(&codec);
@@ -130,6 +132,9 @@ PkImage decodePng(const uint8_t *data, std::size_t size)
         return PkImage();
     }
 }
+
+PkImage decodePng(const uint8_t *data, std::size_t size)
+{ return decodePngData(data, size, false); }
 
 struct JpegErrorManager
 {
@@ -602,7 +607,13 @@ std::vector<PkImageFileDecoderHandler> pkNativeImageCodecHandlers()
     std::vector<PkImageFileDecoderHandler> result;
     result.reserve(5);
     result.push_back(handler("native.png", 1000, {"png"}, isPng, decodePng));
+    result.back().decodeForPainting = [](const uint8_t *data, std::size_t size, const std::string &) {
+        return decodePngData(data, size, true);
+    };
     result.push_back(handler("native.jpeg", 1000, {"jpg", "jpeg"}, isJpeg, decodeJpeg));
+    result.back().decodeForPainting = [](const uint8_t *data, std::size_t size, const std::string &) {
+        return decodeJpeg(data, size).convertToFormat(PkImage::Format_RGB32);
+    };
     result.push_back(handler("native.tiff", 1000, {"tif", "tiff"}, isTiff, decodeTiff));
     result.push_back(handler("native.gif", 1000, {"gif"}, isGif, decodeGif));
     result.push_back(handler("native.webp", 1000, {"webp"}, isWebP, decodeWebP));

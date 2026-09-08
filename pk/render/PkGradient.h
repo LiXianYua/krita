@@ -33,6 +33,7 @@ using GradientStops = PkGradientStops;
 // need neither pigment's generated export header nor a pigment/render library.
 class PkGradient {
 public:
+    enum InterpolationMode { ColorInterpolation, ComponentInterpolation };
     using Type = PkGradientEnums::Type;
     using Spread = PkGradientEnums::Spread;
     using CoordinateMode = PkGradientEnums::CoordinateMode;
@@ -67,6 +68,8 @@ public:
     void setSpread(Spread spread) { m_spread = spread; }
     CoordinateMode coordinateMode() const { return m_coordinateMode; }
     void setCoordinateMode(CoordinateMode mode) { m_coordinateMode = mode; }
+    InterpolationMode interpolationMode() const { return m_interpolationMode; }
+    void setInterpolationMode(InterpolationMode mode) { m_interpolationMode = mode; }
 
     // Qt exposes a black-to-white ramp when no explicit stops were assigned.
     // The first setColorAt still starts with an empty list, not that ramp.
@@ -116,7 +119,8 @@ public:
     bool operator==(const PkGradient &o) const
     {
         if (m_type != o.m_type || m_spread != o.m_spread ||
-            m_coordinateMode != o.m_coordinateMode || stops() != o.stops()) return false;
+            m_coordinateMode != o.m_coordinateMode || m_interpolationMode != o.m_interpolationMode ||
+            stops() != o.stops()) return false;
         switch (m_type) {
         case LinearGradient: return m_start == o.m_start && m_finalStop == o.m_finalStop;
         case RadialGradient: return m_center == o.m_center && m_radius == o.m_radius &&
@@ -150,6 +154,7 @@ private:
     Type m_type = NoGradient;
     Spread m_spread = PadSpread;
     CoordinateMode m_coordinateMode = LogicalMode;
+    InterpolationMode m_interpolationMode = ColorInterpolation;
     PkGradientStops m_stops;
     PkPointF m_start, m_finalStop, m_center, m_focalPoint;
     qreal m_radius = 0;

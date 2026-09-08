@@ -135,7 +135,7 @@ PkImage decodePnm(const uint8_t *data, std::size_t size)
         return PkImage();
     }
 
-    PkImage image(static_cast<int>(width), static_cast<int>(height), PkImage::Format_ARGB32);
+    PkImage image(static_cast<int>(width), static_cast<int>(height), PkImage::Format_RGB32);
     if (image.isNull()) return PkImage();
     const bool ascii = data[1] <= '3';
 
@@ -205,6 +205,9 @@ PkImageFileDecoderHandler pkPnmImageCodecHandler()
         "qt.pnm", 900, {"pbm", "pgm", "ppm"},
         [](const uint8_t *data, std::size_t size, const std::string &) {
             return isPnm(data, size);
+        },
+        [](const uint8_t *data, std::size_t size, const std::string &) {
+            return decodePnm(data, size).convertToFormat(PkImage::Format_ARGB32);
         },
         [](const uint8_t *data, std::size_t size, const std::string &) {
             return decodePnm(data, size);

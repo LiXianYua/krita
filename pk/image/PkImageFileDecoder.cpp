@@ -97,16 +97,7 @@ std::string normalizedExtension(std::string extension)
     return extension;
 }
 
-} // namespace
-
-bool PkImageFileDecoder::registerHandler(PkImageFileDecoderHandler handler)
-{
-    ensureBuiltInHandlers();
-    return registerHandlerInternal(std::move(handler));
-}
-
-PkImage PkImageFileDecoder::decode(const uint8_t *data, std::size_t size,
-                                   const std::string &pathHint)
+PkImage decodeImage(const uint8_t *data, std::size_t size, const std::string &pathHint, bool forPainting)
 {
     ensureBuiltInHandlers();
     if (!data || size == 0) {
@@ -120,7 +111,8 @@ PkImage PkImageFileDecoder::decode(const uint8_t *data, std::size_t size,
                 !handler.canDecode(data, size, pathHint)) {
                 continue;
             }
-            PkImage image = handler.decode(data, size, pathHint);
+            const auto &decode = forPainting && handler.decodeForPainting ? handler.decodeForPainting : handler.decode;
+            PkImage image = decode(data, size, pathHint);
             if (!image.isNull()) {
                 return image;
             }
@@ -131,7 +123,7 @@ PkImage PkImageFileDecoder::decode(const uint8_t *data, std::size_t size,
     return PkImage();
 }
 
-PkImage PkImageFileDecoder::load(const std::string &path)
+PkImage loadImage(const std::string &path, bool forPainting)
 {
     std::ifstream input(path, std::ios::binary | std::ios::ate);
     if (!input) {
@@ -157,13 +149,33 @@ PkImage PkImageFileDecoder::load(const std::string &path)
                         static_cast<std::streamsize>(bytes.size()))) {
             return PkImage();
         }
-        return decode(bytes.data(), bytes.size(), path);
+        return decodeImage(bytes.data(), bytes.size(), path, forPainting);
     } catch (const std::bad_alloc &) {
         return PkImage();
     } catch (const std::length_error &) {
         return PkImage();
     }
 }
+
+} // namespace
+
+bool PkImageFileDecoder::registerHandler(PkImageFileDecoderHandler handler)
+{
+    ensureBuiltInHandlers();
+    return registerHandlerInternal(std::move(handler));
+}
+
+PkImage PkImageFileDecoder::decode(const uint8_t *data, std::size_t size, const std::string &pathHint)
+{ return decodeImage(data, size, pathHint, false); }
+
+PkImage PkImageFileDecoder::decodeForPainting(const uint8_t *data, std::size_t size, const std::string &pathHint)
+{ return decodeImage(data, size, pathHint, true); }
+
+PkImage PkImageFileDecoder::load(const std::string &path)
+{ return loadImage(path, false); }
+
+PkImage PkImageFileDecoder::loadForPainting(const std::string &path)
+{ return loadImage(path, true); }
 
 std::vector<std::string> PkImageFileDecoder::supportedExtensions()
 {
