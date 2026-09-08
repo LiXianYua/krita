@@ -10,6 +10,7 @@
 #include "PkCosmeticStroker.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -280,6 +281,95 @@ uint32_t composeSolid(uint32_t destination, uint32_t premultipliedSource, unsign
                 unpremultiplyTo8(result[2], result[0]), unpremultiplyTo8(result[3], result[0]));
 }
 
+std::array<Rgba64Pixel, 1024> gradientTable(const PkGradient &gradient, unsigned opacity)
+{
+    const auto stops = gradient.stops();
+    const auto color = [opacity](const PkColor &value) {
+        const unsigned a = (unsigned(value.alpha()) * 257u * opacity) >> 8;
+        return Rgba64Pixel {a,
+            divideBy65535(unsigned(value.red()) * 257u * a),
+            divideBy65535(unsigned(value.green()) * 257u * a),
+            divideBy65535(unsigned(value.blue()) * 257u * a)};
+    };
+    std::array<Rgba64Pixel, 1024> table;
+    if (stops.size() == 1) {
+        table.fill(color(stops[0].color));
+        return table;
+    }
+    if (stops.size() > 2) {
+        const double increment = 1.0 / 1024;
+        double position = 1.5 * increment;
+        int index = 0;
+        table[index++] = color(stops[0].color);
+        while (position <= stops[0].offset && index < 1024) {
+            table[index] = table[index - 1];
+            ++index;
+            position += increment;
+        }
+        int segment = 0;
+        double t = 0, delta = 0;
+        bool newSegment = true;
+        while (position < stops.last().offset && index < 1024) {
+            while (position > stops[segment + 1].offset) { ++segment; newSegment = true; }
+            if (newSegment) {
+                const double distance = stops[segment + 1].offset - stops[segment].offset;
+                const double factor = distance == 0 ? 0 : 256 / distance;
+                t = (position - stops[segment].offset) * factor;
+                delta = increment * factor;
+                newSegment = false;
+            }
+            const auto first = color(stops[segment].color), last = color(stops[segment + 1].color);
+            const int amount = pkRound(t), inverse = 256 - amount;
+            const auto mix = [amount, inverse](unsigned a, unsigned b) {
+                return ((a * inverse) >> 8) + ((b * amount) >> 8);
+            };
+            table[index++] = {mix(first.a, last.a), mix(first.r, last.r),
+                              mix(first.g, last.g), mix(first.b, last.b)};
+            position += increment;
+            t += delta;
+        }
+        const auto last = color(stops.last().color);
+        while (index < 1024) table[index++] = last;
+        return table;
+    }
+    const auto first = color(stops[0].color), last = color(stops[1].color);
+    const int firstIndex = pkRound(stops[0].offset * 1023);
+    const int lastIndex = pkRound(stops[1].offset * 1023);
+    int index = 0;
+    for (; index <= firstIndex && index < 1024; ++index) table[index] = first;
+    if (index < lastIndex) {
+        const double reciprocal = 1.0 / (lastIndex - firstIndex);
+        uint32_t channels[] = {first.a << 16, first.r << 16, first.g << 16, first.b << 16};
+        const unsigned ends[] = {last.a, last.r, last.g, last.b};
+        int delta[4];
+        for (int j = 0; j < 4; ++j) {
+            delta[j] = pkRound((double(uint32_t(ends[j] << 16)) - channels[j]) * reciprocal);
+            channels[j] += 1 << 15;
+        }
+        for (; index < lastIndex && index < 1024; ++index) {
+            for (int j = 0; j < 4; ++j) channels[j] += delta[j];
+            table[index] = {channels[0] >> 16, channels[1] >> 16, channels[2] >> 16, channels[3] >> 16};
+        }
+    }
+    for (; index < 1024; ++index) table[index] = last;
+    return table;
+}
+
+int gradientIndex(int index, PkGradient::Spread spread)
+{
+    if (spread == PkGradient::RepeatSpread) {
+        index %= 1024;
+        if (index < 0) index += 1024;
+    } else if (spread == PkGradient::ReflectSpread) {
+        index %= 2048;
+        if (index < 0) index += 2048;
+        if (index >= 1024) index = 2047 - index;
+    } else {
+        index = std::clamp(index, 0, 1023);
+    }
+    return index;
+}
+
 } // namespace
 
 PkImageRasterBackend::PkImageRasterBackend(PkImage &destination)
@@ -507,7 +597,8 @@ void PkImageRasterBackend::setClip(const PkPainterPath &path, Pk::ClipOperation 
 void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle)
 {
     if (brush.style() == Pk::NoBrush) return;
-    if (brush.style() != Pk::SolidPattern) {
+    const PkGradient *gradient = brush.gradient();
+    if (brush.style() != Pk::SolidPattern && !gradient) {
         throw std::logic_error("PkImageRasterBackend unsupported brush");
     }
     if (m_destination.format() != PkImage::Format_ARGB32) {
@@ -533,6 +624,32 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
     }
     const uint32_t color = brush.color().rgba();
     const unsigned fixedOpacity = static_cast<unsigned>(m_state.opacity * 256.0);
+    std::array<Rgba64Pixel, 1024> ramp {};
+    PkTransform inverse;
+    double gradientDx = 0, gradientDy = 0, gradientOffset = 0;
+    if (gradient) {
+        ramp = gradientTable(*gradient, fixedOpacity);
+        auto transform = brush.transform();
+        if (gradient->coordinateMode() == PkGradient::ObjectBoundingMode) {
+            const auto bounds = path.boundingRect();
+            PkTransform object;
+            object.translate(bounds.x(), bounds.y());
+            object.scale(bounds.width(), bounds.height());
+            transform = transform * object;
+        }
+        // QSpanData biases the source sampling origin by one 16.16 unit
+        // before inversion so gradient table boundary rounding is stable.
+        inverse = (PkTransform::fromTranslate(1.0 / 65536, 1.0 / 65536) *
+                   transform * m_state.transform).inverted();
+        gradientDx = gradient->finalStop().x() - gradient->start().x();
+        gradientDy = gradient->finalStop().y() - gradient->start().y();
+        const double length = gradientDx * gradientDx + gradientDy * gradientDy;
+        if (length != 0) {
+            gradientDx /= length;
+            gradientDy /= length;
+            gradientOffset = -gradientDx * gradient->start().x() - gradientDy * gradient->start().y();
+        }
+    }
     const unsigned sourceAlpha = (alpha(color) * 257u * fixedOpacity) >> 8;
     const uint32_t source = argb(to8Bit(sourceAlpha),
         to8Bit(divideBy65535(red(color) * 257u * sourceAlpha)),
@@ -554,6 +671,42 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
             }
             if (!amount) continue;
             const int count = x - start;
+            if (gradient) {
+                const auto positions = inverse.map(PkPointF(start + 0.5, y + 0.5));
+                const double t = (gradientDx * positions.x() + gradientDy * positions.y() + gradientOffset) * 1023;
+                const double increment = (gradientDx * inverse.m11() + gradientDy * inverse.m12()) * 1023;
+                int fixed = int(t * 256);
+                const int step = int(increment * 256);
+                const auto destinations = premultiplySpan(m_destination, y, start, count);
+                for (int i = 0; i < count; ++i, fixed += step) {
+                    int index = gradientIndex((fixed + 128) >> 8, gradient->spread());
+                    bool valid = true;
+                    if (gradient->type() == PkGradient::ConicalGradient) {
+                        const auto p = inverse.map(PkPointF(start + i + 0.5, y + 0.5)) - gradient->center();
+                        const double angle = std::atan2(p.y(), p.x()) + gradient->angle() * (M_PI / 180);
+                        index = gradientIndex(int((1 - angle / (2 * M_PI)) * 1023 + 0.5), PkGradient::RepeatSpread);
+                    } else if (gradient->type() == PkGradient::RadialGradient) {
+                        const auto p = inverse.map(PkPointF(start + i + 0.5, y + 0.5)) - gradient->focalPoint();
+                        const auto delta = gradient->center() - gradient->focalPoint();
+                        const double dr = gradient->radius() - gradient->focalRadius();
+                        const double a = dr * dr - delta.x() * delta.x() - delta.y() * delta.y();
+                        const double b = 2 * (dr * gradient->focalRadius() + p.x() * delta.x() + p.y() * delta.y());
+                        const double c = gradient->focalRadius() * gradient->focalRadius() - p.x() * p.x() - p.y() * p.y();
+                        const double determinant = b * b - 4 * a * c;
+                        valid = !pkQtFuzzyIsNull(a) && determinant >= 0;
+                        if (valid) {
+                            const double root = std::sqrt(determinant);
+                            const double position = std::max((-b + root) / (2 * a), (-b - root) / (2 * a));
+                            valid = gradient->focalRadius() + dr * position >= 0;
+                            index = gradientIndex(int(position * 1023 + 0.5), gradient->spread());
+                        }
+                    }
+                    m_destination.setPixel(start + i, y,
+                        compose(destinations[i], valid ? ramp[index] : Rgba64Pixel{}, amount,
+                                i >= count - count % 4, m_state.mode));
+                }
+                continue;
+            }
             for (int i = 0; i < count; ++i) {
                 m_destination.setPixel(start + i, y,
                     composeSolid(m_destination.pixel(start + i, y), source, amount, m_state.mode));

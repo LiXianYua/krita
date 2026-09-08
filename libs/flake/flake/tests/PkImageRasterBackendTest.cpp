@@ -10,6 +10,7 @@
 
 #include <array>
 #include <random>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -27,10 +28,65 @@ private Q_SLOTS:
     void matchesQtPlusPixelsAndOverlappingMasks();
     void matchesQtTransformedClippedPathCoverage();
     void matchesQtStrokePixels();
+    void matchesQtGradientPixels();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtGradientPixels()
+{
+    for (int kind = 0; kind < 3; ++kind) {
+    for (int stopCount = 1; stopCount <= 3; ++stopCount) {
+    for (double opacity : {0.25, 0.9, 1.0}) {
+        for (int spread = 0; spread < 3; ++spread) {
+            QImage qtImage(41, 23, QImage::Format_ARGB32);
+            PkImage pkImage(41, 23, PkImage::Format_ARGB32);
+            qtImage.fill(0x80602040u); pkImage.fill(0x80602040u);
+            std::unique_ptr<QGradient> qtStorage;
+            if (kind == 0) qtStorage = std::make_unique<QLinearGradient>(5, 3, 28, 17);
+            else if (kind == 1) qtStorage = std::make_unique<QRadialGradient>(20, 12, 17, 16, 9);
+            else qtStorage = std::make_unique<QConicalGradient>(20, 12, 37);
+            QGradient &qtGradient = *qtStorage;
+            auto pkGradient = PkGradient::linear(PkPointF(5, 3), PkPointF(28, 17));
+            if (kind == 1) pkGradient = PkGradient::radial(PkPointF(20, 12), 17, PkPointF(16, 9));
+            else if (kind == 2) pkGradient = PkGradient::conical(PkPointF(20, 12), 37);
+            qtGradient.setColorAt(0, QColor(250, 15, 40, 71));
+            pkGradient.setColorAt(0, PkColor(250, 15, 40, 71));
+            if (stopCount >= 2) {
+                qtGradient.setColorAt(1, QColor(20, 210, 185, 243));
+                pkGradient.setColorAt(1, PkColor(20, 210, 185, 243));
+            }
+            if (stopCount == 3) {
+                qtGradient.setColorAt(0.4, QColor(130, 75, 215, 160));
+                pkGradient.setColorAt(0.4, PkColor(130, 75, 215, 160));
+            }
+            qtGradient.setSpread(static_cast<QGradient::Spread>(spread));
+            pkGradient.setSpread(spread == 0 ? PkGradient::PadSpread :
+                                 spread == 1 ? PkGradient::ReflectSpread : PkGradient::RepeatSpread);
+            QBrush qtBrush(qtGradient);
+            PkBrush pkBrush(pkGradient);
+            qtBrush.setTransform(QTransform(1.25, 0.1, 0.2, 0.8, 1.5, -2));
+            pkBrush.setTransform(PkTransform(1.25, 0.1, 0.2, 0.8, 1.5, -2));
+            QPainter qtPainter(&qtImage);
+            PkImageRasterBackend backend(pkImage);
+            PkPainter painter(backend);
+            qtPainter.setOpacity(opacity); painter.setOpacity(opacity);
+            qtPainter.fillRect(QRectF(0, 0, 41, 23), qtBrush);
+            painter.fillRect(PkRectF(0, 0, 41, 23), pkBrush);
+            qtPainter.end();
+            for (int y = 0; y < 23; ++y) for (int x = 0; x < 41; ++x) {
+                const QString context = QStringLiteral("opacity=%1 spread=%2 x=%3 y=%4 Qt=%5 Pk=%6 kind=%7 stops=%8")
+                    .arg(opacity).arg(spread).arg(x).arg(y)
+                    .arg(qtImage.pixel(x, y), 8, 16, QLatin1Char('0'))
+                    .arg(pkImage.pixel(x, y), 8, 16, QLatin1Char('0')).arg(kind).arg(stopCount);
+                QVERIFY2(pkImage.pixel(x, y) == qtImage.pixel(x, y), qPrintable(context));
+            }
+        }
+    }
+    }
+    }
+}
 
 void PkImageRasterBackendTest::matchesQtStrokePixels()
 {
