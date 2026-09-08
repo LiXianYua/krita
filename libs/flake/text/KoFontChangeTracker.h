@@ -21,7 +21,7 @@ public:
     explicit KoFontChangeTracker(PkStringList paths);
     ~KoFontChangeTracker();
 
-    /// This should be called after fontregistry initialization is done to start the signal compressor.
+    /// Capture the directory state after a successful registry refresh.
     void resetChangeTracker();
     bool directoriesChanged() const;
 private:

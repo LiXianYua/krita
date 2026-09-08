@@ -187,7 +187,7 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText,
     svgWriter.setAutoFormatting(false);
 
     int lineCount = 0;
-    int bodyDepth = 0;
+    bool firstElement = true;
     PkString bodyEm("1em");
     PkString previousStyleString;
     PkString currentElement;
@@ -212,7 +212,6 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText,
             PkString outputName;
             if (elementName == "body") {
                 outputName = "text";
-                ++bodyDepth;
             } else if (elementName == "p") {
                 outputName = "tspan";
                 newLine = true;
@@ -234,7 +233,12 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText,
             }
 
             if (!outputName.isEmpty()) {
-                svgWriter.writeStartElement(outputName);
+                svgWriter.writeStartElement(firstElement ? PkString("text") : outputName);
+                firstElement = false;
+            } else {
+                // Attributes belong only to the start tag emitted for this
+                // input node. A writer cannot attach them to a closed parent.
+                continue;
             }
 
             const PkXmlStreamAttributes attributes = htmlReader.attributes();
@@ -301,14 +305,11 @@ bool KoSvgTextShapeMarkupConverter::convertFromHtml(const PkString &htmlText,
                 isSpanLike(elementName)) {
                 svgWriter.writeEndElement();
             }
-            if (elementName == "body") {
-                --bodyDepth;
-            }
             currentElement = elementName;
         } else if (token == PkXmlStreamReader::Characters) {
             if (currentElement == "style") {
                 *styles = htmlReader.text();
-            } else if (bodyDepth > 0) {
+            } else {
                 svgWriter.writeCharacters(htmlReader.text());
             }
         }

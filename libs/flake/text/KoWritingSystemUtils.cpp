@@ -208,7 +208,9 @@ PkChar::Script KoWritingSystemUtils::qCharScriptForScriptTag(const PkString &tag
 
 PkString KoWritingSystemUtils::scriptTagForLanguage(const PkString &locale)
 {
-    const Bcp47Locale bcp = parseBcp47Locale(locale);
+    PkString normalized = locale;
+    normalized.replace("_", "-");
+    const Bcp47Locale bcp = parseBcp47Locale(normalized);
     if (!bcp.scriptTag.isEmpty()) return bcp.scriptTag;
     if (bcp.languageTags.isEmpty()) return "Zyyy";
     const PkString script = KoLc::defaultScriptTag(bcp.languageTags.first(), bcp.regionTag);

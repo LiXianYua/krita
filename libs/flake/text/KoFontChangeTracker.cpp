@@ -8,6 +8,7 @@
 #include <system_error>
 #include <utility>
 #include <vector>
+#include <mutex>
 
 struct KoFontChangeTracker::Private {
 
@@ -15,6 +16,7 @@ struct KoFontChangeTracker::Private {
         : paths(std::move(paths)) {}
     PkStringList paths;
     std::vector<std::filesystem::file_time_type> timestamps;
+    mutable std::mutex mutex;
 };
 
 KoFontChangeTracker::KoFontChangeTracker(PkStringList paths)
@@ -29,6 +31,7 @@ KoFontChangeTracker::~KoFontChangeTracker()
 
 void KoFontChangeTracker::resetChangeTracker()
 {
+    std::lock_guard<std::mutex> lock(d->mutex);
     d->timestamps.clear();
     for (const PkString &path : d->paths) {
         std::error_code error;
@@ -38,6 +41,7 @@ void KoFontChangeTracker::resetChangeTracker()
 
 bool KoFontChangeTracker::directoriesChanged() const
 {
+    std::lock_guard<std::mutex> lock(d->mutex);
     for (int i = 0; i < d->paths.size(); ++i) {
         std::error_code error;
         const auto timestamp = std::filesystem::last_write_time(d->paths.at(i).PkToUtf8(), error);

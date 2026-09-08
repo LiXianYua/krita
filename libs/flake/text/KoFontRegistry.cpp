@@ -12,6 +12,9 @@
 #include <PkMessageLogger.h>
 #include <PkThread.h>
 #include <PkThreadStorage.h>
+#include <PkThreadCallQueue.h>
+#include <mutex>
+#include <atomic>
 #include <cstdlib>
 #include <filesystem>
 #include <memory>
@@ -53,8 +56,11 @@ class KoFontRegistry::Private
 private:
     // R-09：FcConfigSP（fontconfig 配置句柄）→ PkFontProvider（fontconfig 参考适配器）。
     std::unique_ptr<PkFontProvider> m_fontProvider;
-    PkSharedPointer<KoFFWWSConverter> fontFamilyConverter;
+    std::shared_ptr<const KoFFWWSConverter> fontFamilyConverter;
     PkSharedPointer<KoFontChangeTracker> changeTracker;
+    std::size_t generation = 0;
+    const std::shared_ptr<const int> identity = std::make_shared<const int>(0);
+    std::function<void()> notifyFontStorage;
 
     struct ThreadData {
         FT_LibrarySP m_library;
@@ -66,6 +72,8 @@ private:
         PkHash<PkString, PkVector<KoFFWWSConverter::FontFileEntry>> m_suggestedFiles;
         PkHash<PkString, KoSvgText::FontMetrics> m_fontMetrics;
         FT_FaceSP m_fallbackFont;
+        std::shared_ptr<const int> owner;
+        std::size_t generation = 0;
 
         ThreadData(FT_LibrarySP lib)
             : m_library(std::move(lib))
@@ -77,7 +85,7 @@ private:
 
     void initialize()
     {
-        if (!m_data.hasLocalData()) {
+        if (!m_data.hasLocalData() || m_data.localData()->owner != identity) {
             FT_Library lib = nullptr;
             FT_Error error = FT_Init_FreeType(&lib);
             if (error) {
@@ -85,13 +93,41 @@ private:
                     << "Error with initializing FreeType library:" << error;
             } else {
                 m_data.setLocalData(new ThreadData(FT_LibrarySP(lib)));
+                m_data.localData()->owner = identity;
             }
+        }
+        auto *data = m_data.localData();
+        if (data && data->generation != generation) {
+            data->m_fontCandidates.clear();
+            data->m_faces.clear();
+            data->m_suggestedFiles.clear();
+            data->m_fontMetrics.clear();
+            data->m_fallbackFont.reset();
+            data->generation = generation;
         }
     }
 
 public:
+    // Serializes provider mutation with complete queries, including all TLS
+    // cache lookups. Recursive only for metrics -> faces -> configureFaces.
+    std::recursive_mutex mutex;
+
     Private()
     {
+        if (auto *locator = KisResourceLocator::instance()) {
+            const auto target = locator->thread();
+            if (target == PkThread::currentThreadId()) {
+                PkThreadCallQueue::warmUpCurrentThread();
+            }
+            const auto lifetime = locator->callLifetime();
+            notifyFontStorage = [locator, target, lifetime] {
+                // The resource database and its observers belong to the
+                // locator thread. Never run them on a font-query worker.
+                PkThreadCallQueue::post(target, [locator] {
+                    locator->updateFontStorage();
+                }, lifetime);
+            };
+        }
         m_fontProvider = std::make_unique<KoFontProviderFontconfig>();
 
         /**
@@ -149,8 +185,8 @@ public:
 
     FT_LibrarySP library()
     {
-        if (!m_data.hasLocalData())
-            initialize();
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        initialize();
         return m_data.localData()->m_library;
     }
 
@@ -161,15 +197,13 @@ public:
 
     PkHash<PkString, std::vector<PkFontProvider::FontEntry>> &fontCandidates()
     {
-        if (!m_data.hasLocalData())
-            initialize();
+        initialize();
         return m_data.localData()->m_fontCandidates;
     }
 
     PkHash<PkString, FT_FaceSP> &typeFaces()
     {
-        if (!m_data.hasLocalData())
-            initialize();
+        initialize();
         return m_data.localData()->m_faces;
     }
 
@@ -178,8 +212,7 @@ public:
      * @return a fall back font for when no other font was found.
      */
     FT_FaceSP fallbackFont() {
-        if (!m_data.hasLocalData())
-            initialize();
+        initialize();
         if (!m_data.localData()->m_fallbackFont.data()) {
 
             // 回退路径 = 更宽的 query（只给 "sans-serif"）再查一次（R-09 边界注释：
@@ -207,51 +240,54 @@ public:
         return m_data.localData()->m_fallbackFont;
     }
 
-    PkSharedPointer<KoFFWWSConverter> converter() const {
-        return fontFamilyConverter;
-    }
-
-    PkSharedPointer<KoFontChangeTracker> fontChangeTracker() const {
-        return changeTracker;
+    std::shared_ptr<const KoFFWWSConverter> converter() const {
+        return std::atomic_load(&fontFamilyConverter);
     }
 
     bool reloadConverter() {
-        fontFamilyConverter.reset(new KoFFWWSConverter());
+        auto next = std::make_shared<KoFFWWSConverter>();
         const std::vector<PkFontProvider::FontEntry> allFonts = m_fontProvider->allFonts();
 
         for (const PkFontProvider::FontEntry &entry : allFonts) {
-            fontFamilyConverter->addFontFromEntry(entry, library(), m_fontProvider.get());
+            next->addFontFromEntry(entry, library(), m_fontProvider.get());
         }
-        fontFamilyConverter->addGenericFamily("serif");
-        fontFamilyConverter->addGenericFamily("sans-serif");
-        fontFamilyConverter->addGenericFamily("monospace");
-        fontFamilyConverter->sortIntoWWSFamilies();
+        next->addGenericFamily("serif");
+        next->addGenericFamily("sans-serif");
+        next->addGenericFamily("monospace");
+        next->sortIntoWWSFamilies();
+        std::atomic_store(&fontFamilyConverter, std::shared_ptr<const KoFFWWSConverter>(std::move(next)));
+        ++generation;
         return true;
     }
 
     PkHash<PkString, PkVector<KoFFWWSConverter::FontFileEntry>> &suggestedFileNames()
     {
-        if (!m_data.hasLocalData())
-            initialize();
+        initialize();
         return m_data.localData()->m_suggestedFiles;
     }
 
     PkHash<PkString, KoSvgText::FontMetrics> &fontMetrics() {
-        if (!m_data.hasLocalData())
-            initialize();
+        initialize();
         return m_data.localData()->m_fontMetrics;
     }
 
     void debugConverter() {
-        fontFamilyConverter->debugInfo();
+        converter()->debugInfo();
     }
 
     void updateConfig() {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         if (m_fontProvider->rebuildFontSet()) {
             reloadConverter();
-            KisResourceLocator::instance()->updateFontStorage();
             changeTracker->resetChangeTracker();
+            if (notifyFontStorage) notifyFontStorage();
         }
+    }
+
+    void refreshIfChanged() {
+        // Caller holds mutex across check, rebuild, publication and query.
+        if (changeTracker->directoriesChanged()) updateConfig();
+        initialize();
     }
 };
 
@@ -306,9 +342,8 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
                                                          quint32 yRes, bool disableFontMatching,
                                                          const PkString &language)
 {
-    if (d->fontChangeTracker()->directoriesChanged()) {
-        d->updateConfig();
-    }
+    std::lock_guard<std::recursive_mutex> lock(d->mutex);
+    d->refreshIfChanged();
     PkString modifications = modificationsString(info, xRes, yRes);
 
     PkVector<KoFFWWSConverter::FontFileEntry> candidates;
@@ -779,6 +814,8 @@ KoSvgText::FontMetrics KoFontRegistry::fontMetricsForCSSValues(KoCSSFontInfo inf
                                                                quint32 xRes, quint32 yRes,
                                                                bool disableFontMatching, const PkString &language)
 {
+    std::lock_guard<std::recursive_mutex> lock(d->mutex);
+    d->refreshIfChanged();
     const PkString suggestedHash = info.families.join(",")+":"+modificationsString(info, xRes, yRes)+language;
     KoSvgText::FontMetrics metrics;
     auto entry = d->fontMetrics().find(suggestedHash);
@@ -786,7 +823,7 @@ KoSvgText::FontMetrics KoFontRegistry::fontMetricsForCSSValues(KoCSSFontInfo inf
         metrics = entry.value();
     } else {
         PkVector<int> lengths;
-        const std::vector<FT_FaceSP> faces = KoFontRegistry::instance()->facesForCSSValues(
+        const std::vector<FT_FaceSP> faces = facesForCSSValues(
             lengths,
             info,
             text,
@@ -1153,6 +1190,8 @@ int32_t KoFontRegistry::loadFlagsForFace(FT_Face face, bool isHorizontal, int32_
 
 KoCSSFontInfo KoFontRegistry::getCssDataForPostScriptName(const PkString postScriptName, PkString *foundPostScriptName)
 {
+    std::lock_guard<std::recursive_mutex> lock(d->mutex);
+    d->refreshIfChanged();
     KoCSSFontInfo info;
     // 原 FcPatternAddString(FC_POSTSCRIPT_NAME) + FcDefaultSubstitute + FcFontMatch
     // + FcPatternGet*(FC_FAMILY/FC_POSTSCRIPT_NAME/FC_WEIGHT/FC_WIDTH/FC_SLANT)
@@ -1190,6 +1229,7 @@ KoCSSFontInfo KoFontRegistry::getCssDataForPostScriptName(const PkString postScr
 
 bool KoFontRegistry::addFontFilePathToRegistry(const PkString &path)
 {
+    std::lock_guard<std::recursive_mutex> lock(d->mutex);
     // 原 FcConfigAppFontAddFile(d->config())（:1211）→ 适配器 addFontFile。
     bool success = false;
     if (d->fontProvider()->addFontFile(path)) {
@@ -1200,6 +1240,7 @@ bool KoFontRegistry::addFontFilePathToRegistry(const PkString &path)
 
 bool KoFontRegistry::addFontFileDirectoryToRegistry(const PkString &path)
 {
+    std::lock_guard<std::recursive_mutex> lock(d->mutex);
     // 原 FcConfigAppFontAddDir(d->config())（:1222）→ 适配器 addFontDirectory。
     bool success = false;
     if (d->fontProvider()->addFontDirectory(path)) {

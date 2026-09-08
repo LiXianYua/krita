@@ -203,70 +203,10 @@ PkString capitalize(const PkString &text, const PkString &langCode)
 // ── bcp47Name ─────────────────────────────────────────────────
 // 语义照 Qt 5.15.7 QLocale::bcp47Name()（qlocale.cpp QLocaleId::
 // withLikelySubtagsRemoved + withLikelySubtagsAdded）：CLDR likely-subtags
-// 移除冗余子标签。数据取自 CLDR 40 likelySubtags，覆盖常用语言；表外语言
+// 移除冗余子标签。数据取自 Qt 5.15.7 的 CLDR 39 likelySubtags；表外语言
 // 回退为"已解析的最短形式"（oracle 对拍登记差异）。
 
 namespace {
-
-// lang → (defaultScript, defaultCountry)。
-struct LangDefault {
-    const char *script;
-    const char *country;
-};
-
-const std::map<std::string, LangDefault> &langDefaults()
-{
-    static const std::map<std::string, LangDefault> m = {
-        {"af", {"Latn", "ZA"}}, {"am", {"Ethi", "ET"}}, {"ar", {"Arab", "EG"}},
-        {"as", {"Beng", "IN"}}, {"az", {"Latn", "AZ"}}, {"be", {"Cyrl", "BY"}},
-        {"bg", {"Cyrl", "BG"}}, {"bn", {"Beng", "BD"}}, {"bs", {"Latn", "BA"}},
-        {"ca", {"Latn", "ES"}}, {"cs", {"Latn", "CZ"}}, {"cy", {"Latn", "GB"}},
-        {"da", {"Latn", "DK"}}, {"de", {"Latn", "DE"}}, {"el", {"Grek", "GR"}},
-        {"en", {"Latn", "US"}}, {"es", {"Latn", "ES"}}, {"et", {"Latn", "EE"}},
-        {"eu", {"Latn", "ES"}}, {"fa", {"Arab", "IR"}}, {"fi", {"Latn", "FI"}},
-        {"fil", {"Latn", "PH"}}, {"fr", {"Latn", "FR"}}, {"ga", {"Latn", "IE"}},
-        {"gl", {"Latn", "ES"}}, {"gu", {"Gujr", "IN"}}, {"he", {"Hebr", "IL"}},
-        {"hi", {"Deva", "IN"}}, {"hr", {"Latn", "HR"}}, {"hu", {"Latn", "HU"}},
-        {"hy", {"Armn", "AM"}}, {"id", {"Latn", "ID"}}, {"is", {"Latn", "IS"}},
-        {"it", {"Latn", "IT"}}, {"ja", {"Jpan", "JP"}}, {"ka", {"Geor", "GE"}},
-        {"kk", {"Cyrl", "KZ"}}, {"km", {"Khmr", "KH"}}, {"kn", {"Knda", "IN"}},
-        {"ko", {"Kore", "KR"}}, {"lo", {"Laoo", "LA"}}, {"lt", {"Latn", "LT"}},
-        {"lv", {"Latn", "LV"}}, {"mk", {"Cyrl", "MK"}}, {"ml", {"Mlym", "IN"}},
-        {"mn", {"Cyrl", "MN"}}, {"mr", {"Deva", "IN"}}, {"ms", {"Latn", "MY"}},
-        {"my", {"Mymr", "MM"}}, {"nb", {"Latn", "NO"}}, {"ne", {"Deva", "NP"}},
-        {"nl", {"Latn", "NL"}}, {"nn", {"Latn", "NO"}}, {"or", {"Orya", "IN"}},
-        {"pa", {"Guru", "IN"}}, {"pl", {"Latn", "PL"}}, {"ps", {"Arab", "AF"}},
-        {"pt", {"Latn", "BR"}}, {"ro", {"Latn", "RO"}}, {"ru", {"Cyrl", "RU"}},
-        {"si", {"Sinh", "LK"}}, {"sk", {"Latn", "SK"}}, {"sl", {"Latn", "SI"}},
-        {"sq", {"Latn", "AL"}}, {"sr", {"Cyrl", "RS"}}, {"sv", {"Latn", "SE"}},
-        {"sw", {"Latn", "TZ"}}, {"ta", {"Taml", "IN"}}, {"te", {"Telu", "IN"}},
-        {"th", {"Thai", "TH"}}, {"tr", {"Latn", "TR"}}, {"uk", {"Cyrl", "UA"}},
-        {"ur", {"Arab", "PK"}}, {"uz", {"Latn", "UZ"}}, {"vi", {"Latn", "VN"}},
-        {"zh", {"Hans", "CN"}}, {"zu", {"Latn", "ZA"}},
-    };
-    return m;
-}
-
-// (lang, country) → 非默认 script（country 隐含 script 的特例）。
-const std::map<std::string, const char *> &langCountryScript()
-{
-    static const std::map<std::string, const char *> m = {
-        {"zh-TW", "Hant"}, {"zh-HK", "Hant"}, {"zh-MO", "Hant"},
-        {"zh-SG", "Hans"}, {"az-IR", "Arab"}, {"pa-PK", "Arab"},
-        {"sr-ME", "Latn"}, {"sr-BA", "Latn"},
-    };
-    return m;
-}
-
-// (lang, script) → 非默认 country（script 隐含 country 的特例）。
-const std::map<std::string, const char *> &langScriptCountry()
-{
-    static const std::map<std::string, const char *> m = {
-        {"zh-Hant", "TW"}, {"zh-Hans", "CN"}, {"sr-Latn", "RS"},
-        {"sr-Cyrl", "RS"}, {"az-Arab", "IR"}, {"pa-Arab", "PK"},
-    };
-    return m;
-}
 
 struct LikelyId {
     std::string lang;
@@ -274,37 +214,32 @@ struct LikelyId {
     std::string country;
 };
 
-// CLDR likely-subtags 近似：给定 (lang, script, country) 补全缺省子标签。
+const std::map<std::string, std::string> &likelySubtags()
+{
+    static const std::map<std::string, std::string> data = {
+#include "KoLcLikelySubtags.inc"
+    };
+    return data;
+}
+
+// CLDR lookup order: full id, language+script, language+region, language.
+// Explicit subtags always win over inferred ones. Unknown languages remain
+// unknown instead of inheriting the process locale or the "und" Latin default.
 LikelyId likely(const std::string &lang, const std::string &script, const std::string &country)
 {
-    const auto &defs = langDefaults();
-    const auto itDef = defs.find(lang);
-    const std::string defScript = itDef == defs.end() ? "" : itDef->second.script;
-    const std::string defCountry = itDef == defs.end() ? "" : itDef->second.country;
-
-    if (!script.empty() && !country.empty()) {
-        // 三元组齐备：按给定的脚本/地区返回（表内组合即最大 likely）。
-        return {lang, script, country};
+    const auto &data = likelySubtags();
+    const std::string keys[] = {lang + "-" + script + "-" + country,
+                               lang + "-" + script, lang + "-" + country, lang};
+    for (const auto &key : keys) {
+        const auto it = data.find(key);
+        if (it == data.end()) continue;
+        const auto first = it->second.find('-');
+        const auto last = it->second.rfind('-');
+        return {lang,
+                script.empty() ? it->second.substr(first + 1, last - first - 1) : script,
+                country.empty() ? it->second.substr(last + 1) : country};
     }
-    if (!script.empty()) {
-        // (lang, script) → country
-        const auto &sc = langScriptCountry();
-        const auto itSc = sc.find(lang + "-" + script);
-        if (itSc != sc.end()) {
-            return {lang, script, itSc->second};
-        }
-        return {lang, script, defCountry};
-    }
-    if (!country.empty()) {
-        // (lang, country) → script
-        const auto &cs = langCountryScript();
-        const auto itCs = cs.find(lang + "-" + country);
-        if (itCs != cs.end()) {
-            return {lang, itCs->second, country};
-        }
-        return {lang, defScript, country};
-    }
-    return {lang, defScript, defCountry};
+    return {lang, script, country};
 }
 
 bool sameId(const LikelyId &a, const LikelyId &b)
@@ -318,8 +253,14 @@ PkString defaultScriptTag(const PkString &language, const PkString &region)
 {
     const std::string languageCode = languageSubtag(language).PkToUtf8();
     const std::string regionCode = region.toUpper().PkToUtf8();
-    const LikelyId locale = likely(languageCode, std::string(), regionCode);
-    return PkString(locale.script.c_str());
+    static const std::map<std::string, std::string> regionScripts = {
+#include "KoLcLocaleRegions.inc"
+    };
+    const auto regionScript = regionScripts.find(languageCode + "-" + regionCode);
+    if (regionScript != regionScripts.end()) return PkString(regionScript->second.c_str());
+    // QLocale uses its language default if a maximized regional triple has
+    // no locale data. E.g. CLDR ha-SD implies Arab, but Qt falls back to Latn.
+    return PkString(likely(languageCode, "", "").script.c_str());
 }
 
 PkString bcp47Name(const PkString &langCode)
@@ -382,7 +323,7 @@ PkString bcp47Name(const PkString &langCode)
     //   2) likely(lang, country) == max   → lang-country
     //   3) likely(lang, script) == max    → lang-script
     //   4) else                            → max
-    const auto &defs = langDefaults();
+    const auto &defs = likelySubtags();
     const auto itDef = defs.find(lang);
     if (itDef == defs.end()) {
         // 表外语言：原样输出已解析的最短形式。
@@ -412,10 +353,11 @@ PkString bcp47Name(const PkString &langCode)
     }
     // 4) max 本身（含 likely 补全的 script/country）
     PkString out(lang.c_str());
-    if (!max.script.empty() && max.script != itDef->second.script) {
+    const LikelyId defaults = likely(lang, "", "");
+    if (!max.script.empty() && max.script != defaults.script) {
         out += PkString("-") + PkString(max.script.c_str());
     }
-    if (!max.country.empty() && max.country != itDef->second.country) {
+    if (!max.country.empty() && max.country != defaults.country) {
         out += PkString("-") + PkString(max.country.c_str());
     }
     if (out == PkString(lang.c_str())) {

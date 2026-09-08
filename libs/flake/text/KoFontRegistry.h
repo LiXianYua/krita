@@ -121,6 +121,7 @@ private:
 
     friend class TestSvgText;
     friend class SvgTextCursorTest;
+    friend class KoSvgTextHtmlNativeTest;
 
     /**
      * @brief addFontFilePathToRegistry
