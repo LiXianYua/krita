@@ -9,3 +9,7 @@ kis_add_test(
     TEST_NAME KisInputTransformPolicyTest
     LINK_LIBRARIES kritainput kritatestsdk
 )
+
+add_executable(PkInputSemanticsTest pk_input_semantics_test.cpp)
+target_link_libraries(PkInputSemanticsTest PRIVATE kritainput)
+add_test(NAME libs-input-PkInputSemanticsTest COMMAND PkInputSemanticsTest)

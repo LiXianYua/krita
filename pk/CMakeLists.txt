@@ -151,6 +151,10 @@ target_include_directories(pkflags INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/flags)
 add_library(pknamespace INTERFACE)
 target_include_directories(pknamespace INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/namespace)
 
+add_library(pkinput INTERFACE)
+target_include_directories(pkinput INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/input)
+target_link_libraries(pkinput INTERFACE pkcontainer pkgeometry pknamespace)
+
 # pk/image consumes the already aggregated geometry/container targets.  Its
 # standalone CMake project cannot be added here because it recursively adds
 # pk/geometry and the shared pk/test target.

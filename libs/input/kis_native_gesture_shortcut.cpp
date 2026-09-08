@@ -7,8 +7,6 @@
 
 #include "kis_native_gesture_shortcut.h"
 
-#include <QNativeGestureEvent>
-
 class KisNativeGestureShortcut::Private
 {
 public:
@@ -34,7 +32,7 @@ int KisNativeGestureShortcut::priority() const
 	return 0;
 }
 
-bool KisNativeGestureShortcut::match(QNativeGestureEvent* event)
+bool KisNativeGestureShortcut::match(PkNativeGestureEvent* event)
 {
 	//printf("checking NativeGesture against KisNativeGestureShortcut %d %d\n", (int)event->gestureType(), (int)d->type);
 	return event->gestureType() == d->type;

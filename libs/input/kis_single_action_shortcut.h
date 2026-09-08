@@ -9,7 +9,7 @@
 
 #include "kis_abstract_shortcut.h"
 
-#include <QKeySequence>
+#include <PkKeySequence.h>
 
 /**
  * This class represents a shortcut that executes a simple atomic
@@ -33,16 +33,16 @@ public:
 
     int priority() const override;
 
-    void setKey(const QSet<Pk::Key> &modifiers, Pk::Key key);
-    void setWheel(const QSet<Pk::Key> &modifiers, WheelAction wheelAction);
+    void setKey(const PkSet<Pk::Key> &modifiers, Pk::Key key);
+    void setWheel(const PkSet<Pk::Key> &modifiers, WheelAction wheelAction);
 
-    bool match(const QSet<Pk::Key> &modifiers, Pk::Key key);
-    bool match(const QSet<Pk::Key> &modifiers, WheelAction wheelAction);
+    bool match(const PkSet<Pk::Key> &modifiers, Pk::Key key);
+    bool match(const PkSet<Pk::Key> &modifiers, WheelAction wheelAction);
 
     /**
      * Check is the shortcut or the key sequence is a prefix of one another
      */
-    bool conflictsWith(const QKeySequence &seq);
+    bool conflictsWith(const PkKeySequence &seq);
 
 private:
     class Private;

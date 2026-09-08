@@ -10,8 +10,6 @@
 #include "kis_abstract_input_action.h"
 #include "KisInputConfig.h"
 
-#include <QTouchEvent>
-
 class KisTouchShortcut::Private
 {
 public:
@@ -47,7 +45,7 @@ int KisTouchShortcut::priority() const
 
 bool KisTouchShortcut::isHoldType() const
 {
-#ifdef Q_OS_MACOS
+#if defined(__APPLE__) && defined(__MACH__) && defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
     return false; // No equivalent gestures on macOS.
 #else
     return d->type == KisShortcutConfiguration::OneFingerHold;
@@ -69,30 +67,30 @@ void KisTouchShortcut::setDisableOnTouchPainting(bool disableOnTouchPainting)
     d->disableOnTouchPainting = disableOnTouchPainting;
 }
 
-bool KisTouchShortcut::matchTapType(QTouchEvent *event)
+bool KisTouchShortcut::matchTapType(PkTouchEvent *event)
 {
     return matchTouchPoint(event)
-#ifndef Q_OS_MACOS
+#if !defined(__APPLE__) || !defined(__MACH__) || !defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
         && (d->type >= KisShortcutConfiguration::OneFingerTap && d->type <= KisShortcutConfiguration::FiveFingerTap)
 #endif
         ;
 }
 
-bool KisTouchShortcut::matchDragType(QTouchEvent *event)
+bool KisTouchShortcut::matchDragType(PkTouchEvent *event)
 {
     return matchTouchPoint(event)
-#ifndef Q_OS_MACOS
+#if !defined(__APPLE__) || !defined(__MACH__) || !defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__)
         && (d->type >= KisShortcutConfiguration::OneFingerDrag && d->type <= KisShortcutConfiguration::FiveFingerDrag)
 #endif
         ;
 }
 
-bool KisTouchShortcut::matchHoldType(QTouchEvent *event)
+bool KisTouchShortcut::matchHoldType(PkTouchEvent *event)
 {
     return isHoldType() && matchTouchPoint(event);
 }
 
-bool KisTouchShortcut::matchTouchPoint(QTouchEvent *event)
+bool KisTouchShortcut::matchTouchPoint(PkTouchEvent *event)
 {
     return (!d->disableOnTouchPainting || KisInputConfig().disableTouchOnCanvas())
         && event->touchPoints().count() >= d->minTouchPoints && event->touchPoints().count() <= d->maxTouchPoints;

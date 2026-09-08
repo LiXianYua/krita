@@ -31,16 +31,15 @@ target_include_directories(kritainput
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/config>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/global>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/input>
 )
 
 target_link_libraries(kritainput
     PUBLIC
-        Qt${QT_MAJOR_VERSION}::Core
-        Qt${QT_MAJOR_VERSION}::Gui
         # S-08-a Task 7（判据⑨）：剥-ed 源引用的 pk 库显式链入主树 kritainput。
         # pk 库 target 由根 CMakeLists.txt:1642 的 add_subdirectory(pk) 定义，此处只接线。
         # pkflags/pknamespace 是 INTERFACE 头库，无需 link。
-        pkstring pkcontainer pkgeometry pkpointer pkconfig pkglobal
+        pkstring pkcontainer pkgeometry pkpointer pkconfig pkglobal pkinput
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
         KF${KF_MAJOR}::I18n

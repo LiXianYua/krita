@@ -9,7 +9,7 @@
 #include "kis_abstract_input_action.h"
 
 
-class Q_DECL_HIDDEN KisAbstractShortcut::Private
+class KisAbstractShortcut::Private
 {
 public:
     KisAbstractInputAction *action;
@@ -43,12 +43,12 @@ int KisAbstractShortcut::shortcutIndex() const
     return m_d->shortcutIndex;
 }
 
-bool KisAbstractShortcut::compareKeys(const QSet<Pk::Key> &keys1,
-                                      const QSet<Pk::Key> &keys2)
+bool KisAbstractShortcut::compareKeys(const PkSet<Pk::Key> &keys1,
+                                      const PkSet<Pk::Key> &keys2)
 {
     if (keys1.size() != keys2.size()) return false;
 
-    Q_FOREACH (Pk::Key key, keys1) {
+    for (Pk::Key key : keys1) {
         if (!keys2.contains(key)) return false;
     }
     return true;

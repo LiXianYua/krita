@@ -11,8 +11,8 @@
 
 #include "kis_abstract_shortcut.h"
 #include "kis_shortcut_configuration.h"
+#include <PkInputEvent.h>
 
-class QTouchEvent;
 /**
  * @brief The KisTouchShortcut class only handles touch gestures
  * it _does not_ handle tool invocation i.e painting (which is being
@@ -33,10 +33,10 @@ class KRITAINPUT_EXPORT KisTouchShortcut : public KisAbstractShortcut
         void setMaximumTouchPoints( int max );
         void setDisableOnTouchPainting(bool disableOnTouchPainting);
 
-        bool matchTapType(QTouchEvent *event);
-        bool matchDragType(QTouchEvent *event);
-        bool matchHoldType(QTouchEvent *event);
-        bool matchTouchPoint(QTouchEvent *event);
+        bool matchTapType(PkTouchEvent *event);
+        bool matchDragType(PkTouchEvent *event);
+        bool matchHoldType(PkTouchEvent *event);
+        bool matchTouchPoint(PkTouchEvent *event);
 
     private:
         class Private;

@@ -245,10 +245,10 @@ enum NativeGestureType {
 };
 
 enum TouchPointState {
-    TouchPointPressed    = 0x0002,
-    TouchPointMoved      = 0x0004,
-    TouchPointStationary = 0x0008,
-    TouchPointReleased   = 0x0010
+    TouchPointPressed    = 0x0001,
+    TouchPointMoved      = 0x0002,
+    TouchPointStationary = 0x0004,
+    TouchPointReleased   = 0x0008
 };
 PK_DECLARE_FLAGS(TouchPointStates, TouchPointState)
 PK_DECLARE_OPERATORS_FOR_FLAGS(TouchPointStates)

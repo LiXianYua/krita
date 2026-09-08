@@ -9,7 +9,7 @@
 #define __KIS_ABSTRACT_SHORTCUT_H
 
 #include <PkNamespace.h>
-#include <QSet>
+#include <PkSet.h>
 #include <kritainput_export.h>
 #include "KisInputActionGroup.h"
 
@@ -51,8 +51,8 @@ public:
     bool isAvailable(KisInputActionGroupsMask mask) const;
 
 protected:
-    bool compareKeys(const QSet<Pk::Key> &keys1,
-                     const QSet<Pk::Key> &keys2);
+    bool compareKeys(const PkSet<Pk::Key> &keys1,
+                     const PkSet<Pk::Key> &keys2);
 
 private:
     class Private;

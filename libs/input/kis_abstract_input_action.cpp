@@ -6,34 +6,29 @@
 
 #include "kis_abstract_input_action.h"
 
-#include <QPointF>
-#include <QMouseEvent>
-#include <klocalizedstring.h>
-#include <kis_debug.h>
-
-class Q_DECL_HIDDEN KisAbstractInputAction::Private
+class KisAbstractInputAction::Private
 {
 public:
-    QString id;
-    QString name;
-    QString description;
-    QHash<QString, int> indexes;
+    PkString id;
+    PkString name;
+    PkString description;
+    PkHash<PkString, int> indexes;
 
-    QPointF lastCursorPosition;
-    QPointF startCursorPosition;
+    PkPointF lastCursorPosition;
+    PkPointF startCursorPosition;
 
     static KisInputManager *inputManager;
-    static std::function<QPointF(KisInputManager *, const QNativeGestureEvent *)> nativeGestureMapper;
+    static std::function<PkPointF(KisInputManager *, const PkNativeGestureEvent *)> nativeGestureMapper;
 };
 
 KisInputManager *KisAbstractInputAction::Private::inputManager = 0;
-std::function<QPointF(KisInputManager *, const QNativeGestureEvent *)> KisAbstractInputAction::Private::nativeGestureMapper;
+std::function<PkPointF(KisInputManager *, const PkNativeGestureEvent *)> KisAbstractInputAction::Private::nativeGestureMapper;
 
-KisAbstractInputAction::KisAbstractInputAction(const QString &id)
+KisAbstractInputAction::KisAbstractInputAction(const PkString &id)
     : d(new Private)
 {
     d->id = id;
-    d->indexes.insert(i18n("Activate"), 0);
+    d->indexes.insert(PkString("Activate"), 0);
 }
 
 KisAbstractInputAction::~KisAbstractInputAction()
@@ -43,17 +38,17 @@ KisAbstractInputAction::~KisAbstractInputAction()
 
 void KisAbstractInputAction::activate(int shortcut)
 {
-    Q_UNUSED(shortcut);
+    (void)shortcut;
 }
 
 void KisAbstractInputAction::deactivate(int shortcut)
 {
-    Q_UNUSED(shortcut);
+    (void)shortcut;
 }
 
-void KisAbstractInputAction::begin(int shortcut, QEvent *event)
+void KisAbstractInputAction::begin(int shortcut, PkInputEvent *event)
 {
-    Q_UNUSED(shortcut);
+    (void)shortcut;
 
     if (event) {
         d->lastCursorPosition = eventPosF(event);
@@ -61,42 +56,42 @@ void KisAbstractInputAction::begin(int shortcut, QEvent *event)
     }
 }
 
-void KisAbstractInputAction::inputEvent(QEvent *event)
+void KisAbstractInputAction::inputEvent(PkInputEvent *event)
 {
     if (event) {
-        QPointF newPosition = eventPosF(event);
+        PkPointF newPosition = eventPosF(event);
         cursorMoved(d->lastCursorPosition, newPosition);
         cursorMovedAbsolute(d->startCursorPosition, newPosition);
         d->lastCursorPosition = newPosition;
     }
 }
 
-void KisAbstractInputAction::end(QEvent *event)
+void KisAbstractInputAction::end(PkInputEvent *event)
 {
-    Q_UNUSED(event);
+    (void)event;
 }
 
-void KisAbstractInputAction::cursorMoved(const QPointF &lastPos, const QPointF &pos)
+void KisAbstractInputAction::cursorMoved(const PkPointF &lastPos, const PkPointF &pos)
 {
-    Q_UNUSED(lastPos);
-    Q_UNUSED(pos);
+    (void)lastPos;
+    (void)pos;
 }
 
-void KisAbstractInputAction::cursorMovedAbsolute(const QPointF &startPos, const QPointF &pos)
+void KisAbstractInputAction::cursorMovedAbsolute(const PkPointF &startPos, const PkPointF &pos)
 {
-    Q_UNUSED(startPos);
-    Q_UNUSED(pos);
+    (void)startPos;
+    (void)pos;
 }
 
 bool KisAbstractInputAction::supportsHiResInputEvents(int shortcut) const
 {
-    Q_UNUSED(shortcut);
+    (void)shortcut;
     return false;
 }
 
 KisInputActionGroup KisAbstractInputAction::inputActionGroup(int shortcut) const
 {
-    Q_UNUSED(shortcut);
+    (void)shortcut;
     return ModifyingActionGroup;
 }
 
@@ -105,12 +100,12 @@ KisInputManager* KisAbstractInputAction::inputManager() const
     return Private::inputManager;
 }
 
-QString KisAbstractInputAction::name() const
+PkString KisAbstractInputAction::name() const
 {
     return d->name;
 }
 
-QString KisAbstractInputAction::description() const
+PkString KisAbstractInputAction::description() const
 {
     return d->description;
 }
@@ -125,27 +120,27 @@ bool KisAbstractInputAction::canIgnoreModifiers() const
     return false;
 }
 
-QHash< QString, int > KisAbstractInputAction::shortcutIndexes() const
+PkHash<PkString, int> KisAbstractInputAction::shortcutIndexes() const
 {
     return d->indexes;
 }
 
-QString KisAbstractInputAction::id() const
+PkString KisAbstractInputAction::id() const
 {
     return d->id;
 }
 
-void KisAbstractInputAction::setName(const QString &name)
+void KisAbstractInputAction::setName(const PkString &name)
 {
     d->name = name;
 }
 
-void KisAbstractInputAction::setDescription(const QString &description)
+void KisAbstractInputAction::setDescription(const PkString &description)
 {
     d->description = description;
 }
 
-void KisAbstractInputAction::setShortcutIndexes(const QHash< QString, int > &indexes)
+void KisAbstractInputAction::setShortcutIndexes(const PkHash<PkString, int> &indexes)
 {
     d->indexes = indexes;
 }
@@ -155,88 +150,41 @@ void KisAbstractInputAction::setInputManager(KisInputManager *manager)
     Private::inputManager = manager;
 }
 
-void KisAbstractInputAction::setNativeGestureMapper(std::function<QPointF(KisInputManager *, const QNativeGestureEvent *)> mapper)
+void KisAbstractInputAction::setNativeGestureMapper(std::function<PkPointF(KisInputManager *, const PkNativeGestureEvent *)> mapper)
 {
     Private::nativeGestureMapper = std::move(mapper);
 }
 
 bool KisAbstractInputAction::isShortcutRequired(int shortcut) const
 {
-    Q_UNUSED(shortcut);
+    (void)shortcut;
     return false;
 }
 
-QPoint KisAbstractInputAction::eventPos(const QEvent *event)
+PkPoint KisAbstractInputAction::eventPos(const PkInputEvent *event)
 {
     if(!event) {
-        return QPoint();
+        return PkPoint();
     }
-
-    switch (event->type()) {
-    case QEvent::MouseMove:
-    case QEvent::MouseButtonPress:
-    case QEvent::MouseButtonDblClick:
-    case QEvent::MouseButtonRelease:
-        return static_cast<const QMouseEvent*>(event)->pos();
-
-    case QEvent::TabletMove:
-    case QEvent::TabletPress:
-    case QEvent::TabletRelease:
-        return static_cast<const QTabletEvent*>(event)->pos();
-
-    case QEvent::TouchBegin:
-    case QEvent::TouchUpdate:
-    case QEvent::TouchEnd:
-        return static_cast<const QTouchEvent *>(event)->touchPoints().at(0).pos().toPoint();
-
-    case QEvent::Wheel:
-        return static_cast<const QWheelEvent*>(event)->position().toPoint();
-
-    case QEvent::NativeGesture: {
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(Private::nativeGestureMapper, QPoint());
-        return Private::nativeGestureMapper(d->inputManager, static_cast<const QNativeGestureEvent *>(event)).toPoint();
+    if (event->type() == PkInputEvent::NativeGesture) {
+        if (!Private::nativeGestureMapper) return PkPoint();
+        return Private::nativeGestureMapper(d->inputManager,
+                                            static_cast<const PkNativeGestureEvent *>(event)).toPoint();
     }
-
-    default:
-        warnInput << "KisAbstractInputAction" << d->name << "tried to process event data from an unhandled event type" << event->type();
-        return QPoint();
-    }
+    return event->localPosition().toPoint();
 }
 
-QPointF KisAbstractInputAction::eventPosF(const QEvent *event) {
+PkPointF KisAbstractInputAction::eventPosF(const PkInputEvent *event) {
 
     if(!event) {
-        return QPoint();
+        return PkPointF();
     }
-
-    switch (event->type()) {
-    case QEvent::MouseMove:
-    case QEvent::MouseButtonPress:
-    case QEvent::MouseButtonDblClick:
-    case QEvent::MouseButtonRelease:
-        return static_cast<const QMouseEvent*>(event)->localPos();
-
-    case QEvent::TabletMove:
-    case QEvent::TabletPress:
-    case QEvent::TabletRelease:
-        return static_cast<const QTabletEvent*>(event)->posF();
-
-    case QEvent::TouchBegin:
-    case QEvent::TouchUpdate:
-    case QEvent::TouchEnd:
-        return static_cast<const QTouchEvent *>(event)->touchPoints().at(0).pos();
-
-    case QEvent::Wheel:
-        return static_cast<const QWheelEvent*>(event)->position();
-
-    case QEvent::NativeGesture: {
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(Private::nativeGestureMapper, QPointF());
-        return Private::nativeGestureMapper(d->inputManager, static_cast<const QNativeGestureEvent *>(event));
+    if (event->type() == PkInputEvent::NativeGesture) {
+        if (!Private::nativeGestureMapper) return PkPointF();
+        return Private::nativeGestureMapper(d->inputManager,
+                                            static_cast<const PkNativeGestureEvent *>(event));
     }
-    default:
-        warnInput << "KisAbstractInputAction" << d->name << "tried to process event data from an unhandled event type" << event->type();
-        return QPointF();
-    }
+    return event->localPosition();
 }
 
 bool KisAbstractInputAction::isAvailable() const

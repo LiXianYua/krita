@@ -9,8 +9,8 @@
 #define KISNATIVEGESTURESHORTCUT_H
 
 #include "kis_abstract_shortcut.h"
+#include <PkInputEvent.h>
 
-class QNativeGestureEvent;
 class KRITAINPUT_EXPORT KisNativeGestureShortcut : public KisAbstractShortcut
 {
 public:
@@ -19,7 +19,7 @@ public:
 
 	int priority() const override;
 
-	bool match(QNativeGestureEvent* event);
+	bool match(PkNativeGestureEvent* event);
 
 private:
 	class Private;

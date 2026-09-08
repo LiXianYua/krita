@@ -9,8 +9,8 @@
 
 #include "kis_abstract_shortcut.h"
 
-class QMouseEvent;
-class QPointF;
+#include <PkInputEvent.h>
+#include <PkPoint.h>
 
 /**
  * This class represents a shortcut that starts an action that can
@@ -43,8 +43,8 @@ public:
      * \param buttons mouse buttons that should be pressed (simultaneously)
      *                for the shortcut to trigger
      */
-    void setButtons(const QSet<Pk::Key> &modifiers,
-                    const QSet<Pk::MouseButton> &buttons);
+    void setButtons(const PkSet<Pk::Key> &modifiers,
+                    const PkSet<Pk::MouseButton> &buttons);
 
     /**
      * Reports whether all but one buttons and modifiers are pressed
@@ -52,8 +52,8 @@ public:
      * can show the user that pressing the mouse button will start some
      * action. This can be done with, e.g. changing the cursor.
      */
-    bool matchReady(const QSet<Pk::Key> &modifiers,
-                    const QSet<Pk::MouseButton> &buttons);
+    bool matchReady(const PkSet<Pk::Key> &modifiers,
+                    const PkSet<Pk::MouseButton> &buttons);
 
     /**
      * Reports whether the shortcut can transit form the "Ready"
@@ -62,7 +62,7 @@ public:
      */
     bool matchBegin(Pk::MouseButton button);
 
-    QMouseEvent fakeEndEvent(const QPointF &localPos) const;
+    PkInputEvent fakeEndEvent(const PkPointF &localPos) const;
 
 private:
     class Private;

@@ -7,17 +7,17 @@
 #ifndef KIS_ABSTRACT_INPUT_ACTION_H
 #define KIS_ABSTRACT_INPUT_ACTION_H
 
-#include <QHash>
-#include <QPoint>
+#include <PkHash.h>
+#include <PkInputEvent.h>
+#include <PkPoint.h>
+#include <PkString.h>
+#include <PkStringHash.h>
 #include "kritainput_export.h"
 
 #include <functional>
 
 #include "KisInputActionGroup.h"
 
-class QPointF;
-class QEvent;
-class QNativeGestureEvent;
 class KisInputManager;
 
 /**
@@ -38,7 +38,7 @@ class KisInputManager;
  *    calls in null.
  * 2) Stroke events. The input manager calls begin() and end() on the
  *    corresponding mouse down and up events. The \p event parameter
- *    will be of QMouseEvent type, representing the event happened.
+ *    carries the pointer-event payload that triggered the action.
  *    All the mouse move events between begin() and end() will be
  *    redirected to the inputEvent() method.
  */
@@ -50,7 +50,7 @@ public:
      *
      * \param manager The InputManager this action belongs to.
      */
-    explicit KisAbstractInputAction(const QString &id);
+    explicit KisAbstractInputAction(const PkString &id);
     /**
      * Destructor.
      */
@@ -81,14 +81,14 @@ public:
      * \param event The mouse event that has triggered this action.
      *              Is null for keyboard-activated actions.
      */
-    virtual void begin(int shortcut, QEvent *event);
+    virtual void begin(int shortcut, PkInputEvent *event);
     /**
      * End the action.
      *
      * \param event The mouse event that has finished this action.
      *              Is null for keyboard-activated actions.
      */
-    virtual void end(QEvent *event);
+    virtual void end(PkInputEvent *event);
     /**
      * Process an input event.
      *
@@ -97,7 +97,7 @@ public:
      *
      * \param event An event to process.
      */
-    virtual void inputEvent(QEvent* event);
+    virtual void inputEvent(PkInputEvent* event);
 
     /**
      * Returns true if the action can handle HiRes flow of move events
@@ -116,22 +116,22 @@ public:
     /**
      * The indexes of shortcut behaviours available.
      */
-    virtual QHash<QString, int> shortcutIndexes() const;
+    virtual PkHash<PkString, int> shortcutIndexes() const;
 
     /**
      * The id of this action.
      */
-    virtual QString id() const;
+    virtual PkString id() const;
 
     /**
      * The translated name of this action.
      */
-    virtual QString name() const;
+    virtual PkString name() const;
 
     /**
      * A short description of this action.
      */
-    virtual QString description() const;
+    virtual PkString description() const;
 
     /**
      * The priority for this action.
@@ -176,33 +176,33 @@ protected:
      *
      * \param name The new name.
      */
-    void setName(const QString &name);
+    void setName(const PkString &name);
     /**
      * Set the description of this action.
      *
      * \param description The new description.
      */
-    void setDescription(const QString &description);
+    void setDescription(const PkString &description);
     /**
      * Set the available indexes of shortcut behaviours.
      *
      * \param indexes The new indexes.
      */
-    void setShortcutIndexes(const QHash<QString, int> &indexes);
+    void setShortcutIndexes(const PkHash<PkString, int> &indexes);
 
     /**
      * Convenience method for handling cursor movement for tablet, mouse and touch.
      * The default implementation of inputEvent calls this function.
      */
-    virtual void cursorMoved(const QPointF &lastPos, const QPointF &pos);
-    virtual void cursorMovedAbsolute(const QPointF &startPos, const QPointF &pos);
+    virtual void cursorMoved(const PkPointF &lastPos, const PkPointF &pos);
+    virtual void cursorMovedAbsolute(const PkPointF &startPos, const PkPointF &pos);
 
     /**
      * Convenience method to extract the position from a cursor movement event.
      *
      * \param event A mouse or tablet event.
      */
-    QPoint eventPos(const QEvent *event);
+    PkPoint eventPos(const PkInputEvent *event);
 
     /**
      * Convenience method to extract the floating point position from a
@@ -210,12 +210,12 @@ protected:
      *
      * \param event A mouse or tablet event.
      */
-    QPointF eventPosF(const QEvent *event);
+    PkPointF eventPosF(const PkInputEvent *event);
 
 private:
     friend class KisInputManager;
     static void setInputManager(KisInputManager *manager);
-    static void setNativeGestureMapper(std::function<QPointF(KisInputManager *, const QNativeGestureEvent *)> mapper);
+    static void setNativeGestureMapper(std::function<PkPointF(KisInputManager *, const PkNativeGestureEvent *)> mapper);
 
     class Private;
     Private * const d;
