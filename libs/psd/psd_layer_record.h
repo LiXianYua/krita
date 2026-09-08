@@ -9,8 +9,6 @@
 
 #include "kritapsd_export.h"
 
-#include <PkFlakeBridge.h>
-
 #include <PkDebug.h>
 #include <PkByteArray.h>
 #include <PkRect.h>

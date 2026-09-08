@@ -5,8 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include <kis_debug.h>
-#include <PkFlakeBridge.h>
-
 #include "psd_layer_section.h"
 
 #include <PkStream.h>
@@ -467,7 +465,7 @@ void addBackgroundIfNeeded(KisNodeSP root, PkList<FlattenedNode> &nodes)
 template<typename ShapeList>
 void flattenShapes(const KisShapeLayer *parentShapeLayer, const ShapeList &shapes, PkList<FlattenedNode> &nodes) {
     for (KoShape *shape : shapes) {
-        const PkString name = toPkString(shape->name()).isEmpty()? PkString("shape ") + PkString("%1").arg(static_cast<int>(nodes.size())): toPkString(shape->name());
+        const PkString name = shape->name().isEmpty()? PkString("shape ") + PkString("%1").arg(static_cast<int>(nodes.size())): shape->name();
         KoShapeGroup *group = dynamic_cast<KoShapeGroup*>(shape);
         if (group) {
             KisGroupLayerSP newGroup(new KisGroupLayer(parentShapeLayer->image(),
@@ -770,7 +768,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                             PkString styles;
                             svgConverter.convertToSvg(&svgText, &styles);
                             // unsure about the boundingBox, needs more research.
-                            textData.boundingBox = toPkRectF(text->boundingRect().normalized());
+                            textData.boundingBox = text->boundingRect().normalized();
                             if (text->shapesInside().isEmpty()) {
                                 // Scale bbox to inline
                                 const KoSvgText::AutoValue inlineSizeProp =
@@ -783,11 +781,11 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                                     }
                                 }
                             }
-                            textData.bounds = toPkRectF(text->outlineRect().normalized());
+                            textData.bounds = text->outlineRect().normalized();
 
                             bool res = convert.convertToPSDTextEngineData(svgText,
                                                                          textData.bounds,
-                                                                         toPkList(text->shapesInside()),
+                                                                         text->shapesInside(),
                                                                          globalInfoSection.txt2Data,
                                                                          textData.textIndex,
                                                                          textData.text,
@@ -804,7 +802,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                             textData.engineData = KisTxt2Utils::tyShFromTxt2(globalInfoSection.txt2Data, FlaketoPixels.mapRect(textData.boundingBox), textData.textIndex);
                             //textCount += 1;
                             if (!text->shapesInside().isEmpty()) {
-                                textData.bounds = toPkRectF(text->outlineRect().normalized());
+                                textData.bounds = text->outlineRect().normalized();
                             }
                             if (!textData.bounds.isEmpty()) {
                                 textData.boundingBox = FlaketoPixels.mapRect(textData.boundingBox);
@@ -812,7 +810,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                             } else {
                                 textData.boundingBox = PkRectF();
                             }
-                            textData.transform = FlaketoPixels.inverted() * toPkTransform(text->absoluteTransformation()) * FlaketoPixels;
+                            textData.transform = FlaketoPixels.inverted() * text->absoluteTransformation() * FlaketoPixels;
                         } else {
                             KoPathShape *pathShape = dynamic_cast<KoPathShape*>(shapeLayer->shapes().first());
                             if (pathShape){
@@ -823,9 +821,9 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                                 if ((pathShape->pathShapeId() == "RectangleShape" || pathShape->pathShapeId() == "EllipseShape")
                                         && pathShape->pointCount() == 4) {
                                     psd_vector_origination_data data;
-                                    data.originType = data.typeToName.key(toPkString(pathShape->pathShapeId()), 1);
-                                    const PkTransform pathTransform = toPkTransform(pathShape->absoluteTransformation());
-                                    PkPolygonF poly = pathTransform.map(toPkRectF(pathShape->outlineRect()));
+                                    data.originType = data.typeToName.key(pathShape->pathShapeId(), 1);
+                                    const PkTransform pathTransform = pathShape->absoluteTransformation();
+                                    PkPolygonF poly = pathTransform.map(pathShape->outlineRect());
                                     data.originShapeBBox = poly.boundingRect();
                                     data.originBoxCorners = poly;
                                     data.transform = pathTransform;
@@ -842,7 +840,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                                     } else {
                                         fill.cs = node->colorSpace();
                                     }
-                                    fill.setColor(KoColor(toPkColor(b->color()), fill.cs));
+                                    fill.setColor(KoColor(b->color(), fill.cs));
                                     fillConfig = fill.getASLXML();
                                     fillType = psd_fill_solid_color;
                                 } else if (g) {

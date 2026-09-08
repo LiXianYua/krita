@@ -9,8 +9,6 @@
 #include FT_FREETYPE_H
 #include FT_TRUETYPE_TABLES_H
 
-#include <PkFlakeBridge.h>
-
 #include <KoCSSFontInfo.h>
 #include <KoSvgTextProperties.h>
 #include <KoPathSegment.h>
@@ -196,7 +194,7 @@ PkString PsdTextDataConverter::stylesForPSDStyleSheet(PkString &lang, PkVariantH
             KoCSSFontInfo fontInfo = fontNames.value(pssVal.toInt());
             weight = fontInfo.weight;
             italic = italic? true: !fontSlantIsNormal(fontInfo);
-            styles.append(toPkString("font-family:" + pkFamiliesDirect(fontInfo.families).join(",")));
+            styles.append("font-family:" + pkFamiliesDirect(fontInfo.families).join(","));
             if (fontInfo.width != 100) {
                 styles.append(PkString("font-width:")+pkNum(fontInfo.width));
             }
@@ -920,7 +918,7 @@ bool PsdTextDataConverter::convertPSDTextEngineDataToSVG(const PkVariantHash tyS
 
             if (postScriptName != foundPostScriptName) {
                 fontInfo.families = PkStringList({"sans-serif"});
-                d->errors << PkString("Font %1 not found, substituting %2").arg(postScriptName).arg(toPkString(pkFamiliesDirect(fontInfo.families).join(",")));
+                d->errors << PkString("Font %1 not found, substituting %2").arg(postScriptName).arg(pkFamiliesDirect(fontInfo.families).join(","));
             }
             fontNames.insert(i, fontInfo);
         }
@@ -1064,9 +1062,9 @@ bool PsdTextDataConverter::convertPSDTextEngineDataToSVG(const PkVariantHash tyS
     if (textShape) {
         stylesWriter.writeStartElement("path");
         stylesWriter.writeAttribute("id", "textShape");
-        stylesWriter.writeAttribute("d", toPkString(textShape->toString()));
+        stylesWriter.writeAttribute("d", textShape->toString());
         stylesWriter.writeAttribute("opacity", "0");
-        stylesWriter.writeAttribute("sodipodi:nodetypes", toPkString(textShape->nodeTypes()));
+        stylesWriter.writeAttribute("sodipodi:nodetypes", textShape->nodeTypes());
         stylesWriter.writeEndElement();
     }
 
@@ -1146,7 +1144,7 @@ bool PsdTextDataConverter::convertPSDTextEngineDataToSVG(const PkVariantHash tyS
     if (textShape && textType == 2) {
         svgWriter.writeStartElement("textPath");
         textPathCreated = true;
-        svgWriter.writeAttribute("path", toPkString(textShape->toString()));
+        svgWriter.writeAttribute("path", textShape->toString());
         if (reversed) {
             svgWriter.writeAttribute("side", "right");
         }
@@ -1479,8 +1477,8 @@ void PsdTextDataConverter::gatherStyles(PkXmlElement el, PkString &text,
             cssStyles.insert(key, val);
         }
         for (const auto &attribute : KoSvgTextProperties::supportedXmlAttributes()) {
-            if (el.hasAttribute(toPkString(attribute))) {
-                cssStyles.insert(toPkString(attribute), el.attribute(toPkString(attribute)));
+            if (el.hasAttribute(attribute)) {
+                cssStyles.insert(attribute, el.attribute(attribute));
             }
         }
     }
@@ -1620,7 +1618,7 @@ bool PsdTextDataConverter::convertToPSDTextEngineData(const PkString &svgText, P
     PkMap<PkString, PkString> defaultCss;
     const auto nativeAttrKeys = nativeAttrs.keys();
     for (int i = 0; i < nativeAttrKeys.size(); i++) {
-        defaultCss.insert(toPkString(nativeAttrKeys.at(i)), toPkString(nativeAttrs.value(nativeAttrKeys.at(i))));
+        defaultCss.insert(nativeAttrKeys.at(i), nativeAttrs.value(nativeAttrKeys.at(i)));
     }
     gatherFonts(defaultCss, "", fontSet, lengths, fontIndices);
 
@@ -1707,10 +1705,10 @@ bool PsdTextDataConverter::convertToPSDTextEngineData(const PkString &svgText, P
     if (textShape) {
         for (int i = 0; i<textShape->subpathPointCount(0); i++) {
             KoPathSegment s = textShape->segmentByIndex(KoPathPointIndex(0, i));
-            points.append(toPkPointF(s.first()->point()));
-            points.append(toPkPointF(s.first()->controlPoint2()));
-            points.append(toPkPointF(s.second()->controlPoint1()));
-            points.append(toPkPointF(s.second()->point()));
+            points.append(s.first()->point());
+            points.append(s.first()->controlPoint2());
+            points.append(s.second()->controlPoint1());
+            points.append(s.second()->point());
         }
     } else if (!bounds.isEmpty()) {
         points.append(bounds.topLeft());

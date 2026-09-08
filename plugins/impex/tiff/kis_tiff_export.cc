@@ -22,7 +22,7 @@
 #include <KisExportCheckRegistry.h>
 #include <KoColorModelStandardIds.h>
 #include <KoDocumentInfo.h>
-#include <KoUnit.h>
+#include <psd_units.h>
 #include <kis_assert.h>
 #include <kis_group_layer.h>
 #include <kis_layer_utils.h>
@@ -173,19 +173,19 @@ KisImportExportErrorCode KisTIFFExport::convert(KisDocument *document, PkStream 
         }
     }
 
-    dbgFile << "xres: " << INCH_TO_POINT(kisimage->xRes())
-            << " yres: " << INCH_TO_POINT(kisimage->yRes());
+    dbgFile << "xres: " << psdInchesToPoints(kisimage->xRes())
+            << " yres: " << psdInchesToPoints(kisimage->yRes());
     if (!TIFFSetField(
             image.get(),
             TIFFTAG_XRESOLUTION,
-            INCH_TO_POINT(kisimage->xRes()))) { // It is the "invert" macro
+            psdInchesToPoints(kisimage->xRes()))) { // It is the "invert" macro
                                                 // because we convert from
                                                 // pointer-per-inch to points
         return ImportExportCodes::ErrorWhileWriting;
     }
     if (!TIFFSetField(image.get(),
                       TIFFTAG_YRESOLUTION,
-                      INCH_TO_POINT(kisimage->yRes()))) {
+                      psdInchesToPoints(kisimage->yRes()))) {
         return ImportExportCodes::ErrorWhileWriting;
     }
 

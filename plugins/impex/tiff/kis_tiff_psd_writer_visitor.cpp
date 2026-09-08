@@ -19,7 +19,7 @@
 #include <KoColorSpaceRegistry.h>
 #include <KoConfig.h>
 #include <KoID.h>
-#include <KoUnit.h>
+#include <psd_units.h>
 #include <kis_group_layer.h>
 #include <kis_image.h>
 #include <kis_iterator_ng.h>
@@ -294,8 +294,8 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
         // Add resolution block
         {
             auto *resInfo = new RESN_INFO_1005();
-            resInfo->hRes = static_cast<int>(INCH_TO_POINT(layer->image()->xRes()));
-            resInfo->vRes = static_cast<int>(INCH_TO_POINT(layer->image()->yRes()));
+            resInfo->hRes = static_cast<int>(psdInchesToPoints(layer->image()->xRes()));
+            resInfo->vRes = static_cast<int>(psdInchesToPoints(layer->image()->yRes()));
             auto *block = new PSDResourceBlock();
             block->identifier = KisTiffPsdResourceRecord::RESN_INFO;
             block->resource = resInfo;

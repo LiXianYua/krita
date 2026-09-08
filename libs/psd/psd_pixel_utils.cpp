@@ -5,14 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/qnamespace.h>
-#include <QtGlobal>
-#include <QtCore/qalgorithms.h>
-#include <QtCore/qhashfunctions.h>
-#include <QtCore/qmath.h>
-#include <QtCore/qnumeric.h>
-#include <QtCore/qpair.h>
-
 #include "psd_pixel_utils.h"
 
 #include <PkStream.h>
@@ -21,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <limits>
 
 #include <KoColorSpace.h>
 #include <KoColorSpaceMaths.h>
@@ -620,7 +613,7 @@ inline void preparePixelForWrite(std::uint8_t *dataPlane, int numPixels, int cha
             if (byteOrder == psd_byte_order::psdBigEndian)
                 val = psdFromBigEndian(val);
             if (channelId >= 0 && (colorMode == CMYK || colorMode == CMYK64)) {
-                val = quint16_MAX - val;
+                val = std::numeric_limits<std::uint16_t>::max() - val;
             }
             *pixelPtr = val;
         }

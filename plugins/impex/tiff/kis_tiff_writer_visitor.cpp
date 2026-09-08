@@ -7,6 +7,7 @@
 
 #include <PkMemoryStream.h>
 
+#include <array>
 #include <memory>
 #include <limits>
 
@@ -18,7 +19,19 @@
 #include <KoColorSpaceRegistry.h>
 #include <KoID.h>
 #include <kis_assert.h>
+#include <generator/kis_generator_layer.h>
+#include <kis_adjustment_layer.h>
+#include <kis_annotation.h>
+#include <kis_clone_layer.h>
+#include <kis_external_layer_iface.h>
+#include <kis_generator_layer.h>
+#include <kis_group_layer.h>
+#include <kis_image.h>
+#include <kis_iterator_ng.h>
 #include <kis_meta_data_backend_registry.h>
+#include <kis_paint_device.h>
+#include <kis_paint_layer.h>
+#include <kis_types.h>
 
 #include <KoConfig.h>
 #ifdef HAVE_OPENEXR
@@ -34,6 +47,67 @@ KisTIFFWriterVisitor::KisTIFFWriterVisitor(TIFF*image, KisTIFFOptions* options)
 }
 
 KisTIFFWriterVisitor::~KisTIFFWriterVisitor() = default;
+
+bool KisTIFFWriterVisitor::visit(KisNode *)
+{
+    return true;
+}
+
+bool KisTIFFWriterVisitor::visit(KisPaintLayer *layer)
+{
+    return saveLayerProjection(layer);
+}
+
+bool KisTIFFWriterVisitor::visit(KisGroupLayer *layer)
+{
+    dbgFile << "Visiting on grouplayer" << layer->name() << "";
+    return visitAll(layer, true);
+}
+
+bool KisTIFFWriterVisitor::visit(KisGeneratorLayer *layer)
+{
+    return saveLayerProjection(layer);
+}
+
+bool KisTIFFWriterVisitor::visit(KisCloneLayer *layer)
+{
+    return saveLayerProjection(layer);
+}
+
+bool KisTIFFWriterVisitor::visit(KisExternalLayer *layer)
+{
+    return saveLayerProjection(layer);
+}
+
+bool KisTIFFWriterVisitor::visit(KisAdjustmentLayer *layer)
+{
+    return saveLayerProjection(layer);
+}
+
+bool KisTIFFWriterVisitor::visit(KisFilterMask *)
+{
+    return true;
+}
+
+bool KisTIFFWriterVisitor::visit(KisTransformMask *)
+{
+    return true;
+}
+
+bool KisTIFFWriterVisitor::visit(KisTransparencyMask *)
+{
+    return true;
+}
+
+bool KisTIFFWriterVisitor::visit(KisSelectionMask *)
+{
+    return true;
+}
+
+bool KisTIFFWriterVisitor::visit(KisColorizeMask *)
+{
+    return true;
+}
 
 bool KisTIFFWriterVisitor::saveLayerProjection(KisLayer *layer)
 {

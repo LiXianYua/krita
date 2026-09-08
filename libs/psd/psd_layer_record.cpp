@@ -5,8 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include <kis_debug.h>
-#include <PkFlakeBridge.h>
-
 #include "psd_layer_record.h"
 
 #include <KoColor.h>
@@ -1019,7 +1017,7 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
 void PSDLayerRecord::addPathShapeToPSDPath(psd_path &path, KoPathShape *shape, double shapeWidth, double shapeHeight)
 {
     PkTransform tf = PkTransform::fromScale(shapeWidth, shapeHeight).inverted();
-    tf = toPkTransform(shape->absoluteTransformation()) * tf;
+    tf = shape->absoluteTransformation() * tf;
 
 
     for (int i = 0; i < shape->subpathCount(); i++) {
@@ -1028,9 +1026,9 @@ void PSDLayerRecord::addPathShapeToPSDPath(psd_path &path, KoPathShape *shape, d
         while(subPath.nodes.size() < shape->subpathPointCount(i)) {
             const KoPathPoint *point = shape->pointByIndex(KoPathPointIndex(i, subPath.nodes.size()));
             psd_path_node node;
-            node.node = tf.map(toPkPointF(point->point()));
-            node.control1 = point->activeControlPoint1() ? tf.map(toPkPointF(point->controlPoint1())) : node.node;
-            node.control2 = point->activeControlPoint2() ? tf.map(toPkPointF(point->controlPoint2())) : node.node;
+            node.node = tf.map(point->point());
+            node.control1 = point->activeControlPoint1() ? tf.map(point->controlPoint1()) : node.node;
+            node.control2 = point->activeControlPoint2() ? tf.map(point->controlPoint2()) : node.node;
 
             node.isSmooth = (point->properties().testFlag(KoPathPoint::IsSmooth)
                     || point->properties().testFlag(KoPathPoint::IsSymmetric));

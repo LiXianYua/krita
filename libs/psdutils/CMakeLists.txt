@@ -42,8 +42,6 @@ target_link_libraries(kritapsdutils
         kritapigment
         kritaglobal
         kritaflake
-        Qt${QT_MAJOR_VERSION}::Core
-        Qt${QT_MAJOR_VERSION}::Gui
         pkstring
         pkcontainer
         pkvariant

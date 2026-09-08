@@ -13,6 +13,7 @@
 #include <PkStream.h>
 #include <PkString.h>
 #include <PkVector.h>
+#include <PkPen.h>
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -33,8 +34,6 @@
 #include <KoGradientBackground.h>
 #include <KoPatternBackground.h>
 #include <KoShapeStroke.h>
-#include <PkFlakeBridge.h>
-
 #undef qCDebug
 #undef qCWarning
 #undef qWarning
@@ -1076,7 +1075,7 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         gradient = lineGradient != nullptr;
         opacity = stroke->color().alphaF();
         dashPattern = stroke->lineDashes();
-        penColor = toPkColor(pen.color());
+        penColor = pen.color();
         if (lineGradient) {
             penGradient = *lineGradient;
         }

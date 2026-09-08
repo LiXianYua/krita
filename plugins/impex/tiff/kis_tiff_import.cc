@@ -28,7 +28,7 @@
 
 #include <KoColorProfile.h>
 #include <KoDocumentInfo.h>
-#include <KoUnit.h>
+#include <psd_units.h>
 #include <KisExiv2IODevice.h>
 #include <kis_group_layer.h>
 #include <kis_image.h>
@@ -428,8 +428,8 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
                                          ImportExportCodes::InsufficientMemory);
 
     psdImage->setResolution(
-        POINT_TO_INCH(static_cast<double>(basicInfo.xres)),
-        POINT_TO_INCH(static_cast<double>(
+        psdPointsToInches(static_cast<double>(basicInfo.xres)),
+        psdPointsToInches(static_cast<double>(
             basicInfo.yres))); // It is the "invert" macro because we convert
                                // from pointer-per-inch to points
 
@@ -440,8 +440,8 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
         if (resInfo) {
             // check resolution size is not zero
             if (resInfo->hRes * resInfo->vRes > 0)
-                psdImage->setResolution(POINT_TO_INCH(resInfo->hRes),
-                                        POINT_TO_INCH(resInfo->vRes));
+                psdImage->setResolution(psdPointsToInches(resInfo->hRes),
+                                        psdPointsToInches(resInfo->vRes));
             // let's skip the unit for now; we can only set that on the
             // KisDocument, and krita doesn't use it.
             delete resources.take(KisTiffPsdResourceRecord::RESN_INFO);
@@ -741,9 +741,9 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         // It is the "invert" macro because we
         // convert from pointer-per-unit to points
         if (basicInfo.resolution == TiffResolution::INCH) {
-            m_image->setResolution(POINT_TO_INCH(static_cast<double>(xres)), POINT_TO_INCH(static_cast<double>(yres)));
+            m_image->setResolution(psdPointsToInches(static_cast<double>(xres)), psdPointsToInches(static_cast<double>(yres)));
         } else {
-            m_image->setResolution(POINT_TO_CM(static_cast<double>(xres)), POINT_TO_CM(static_cast<double>(yres)));
+            m_image->setResolution(psdPointsToCentimeters(static_cast<double>(xres)), psdPointsToCentimeters(static_cast<double>(yres)));
         }
     } else {
         if (m_image->width() < static_cast<std::int32_t>(width)

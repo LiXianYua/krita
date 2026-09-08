@@ -16,7 +16,7 @@
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>
 #include <KoCompositeOp.h>
-#include <KoUnit.h>
+#include <psd_units.h>
 #include <KoSvgTextShape.h>
 #include <KoSvgTextShapeMarkupConverter.h>
 #include <kis_shape_layer.h>
@@ -155,7 +155,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
         if (resInfo) {
             // check resolution size is not zero
             if (resInfo->hRes * resInfo->vRes > 0)
-                m_image->setResolution(POINT_TO_INCH(resInfo->hRes), POINT_TO_INCH(resInfo->vRes));
+                m_image->setResolution(psdPointsToInches(resInfo->hRes), psdPointsToInches(resInfo->vRes));
             // let's skip the unit for now; we can only set that on the KisDocument, and krita doesn't use it.
             delete resourceSection.resources.take(PSDImageResourceSection::RESN_INFO);
         }

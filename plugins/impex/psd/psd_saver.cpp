@@ -14,7 +14,7 @@
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>
 #include <KoCompositeOp.h>
-#include <KoUnit.h>
+#include <psd_units.h>
 
 
 #include <kis_annotation.h>
@@ -184,8 +184,8 @@ KisImportExportErrorCode PSDSaver::buildFile(PkStream &io)
     // Add resolution block
     {
         RESN_INFO_1005 *resInfo = new RESN_INFO_1005;
-        resInfo->hRes = INCH_TO_POINT(m_image->xRes());
-        resInfo->vRes = INCH_TO_POINT(m_image->yRes());
+        resInfo->hRes = psdInchesToPoints(m_image->xRes());
+        resInfo->vRes = psdInchesToPoints(m_image->yRes());
         PSDResourceBlock *block = new PSDResourceBlock;
         block->identifier = PSDImageResourceSection::RESN_INFO;
         block->resource = resInfo;
