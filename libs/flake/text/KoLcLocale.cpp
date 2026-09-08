@@ -251,7 +251,15 @@ bool sameId(const LikelyId &a, const LikelyId &b)
 
 PkString defaultScriptTag(const PkString &language, const PkString &region)
 {
-    const std::string languageCode = languageSubtag(language).PkToUtf8();
+    std::string languageCode = languageSubtag(language).PkToUtf8();
+    // QLocale accepts these legacy ISO language aliases before resolving
+    // likely subtags and regional defaults.
+    static const std::map<std::string, std::string> aliases = {
+        {"iw", "he"}, {"in", "id"}, {"ji", "yi"}, {"no", "nb"},
+        {"tl", "fil"}, {"sh", "sr"}, {"mo", "ro"}
+    };
+    const auto alias = aliases.find(languageCode);
+    if (alias != aliases.end()) languageCode = alias->second;
     const std::string regionCode = region.toUpper().PkToUtf8();
     static const std::map<std::string, std::string> regionScripts = {
 #include "KoLcLocaleRegions.inc"

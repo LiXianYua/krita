@@ -35,7 +35,8 @@ private Q_SLOTS:
         static const char *tags[] = {
 #include "Qt515ScriptTags.inc"
         };
-        QSet<QString> languages, regions;
+        QSet<QString> languages = {"iw", "in", "ji", "no", "tl", "sh", "mo"};
+        QSet<QString> regions;
         for (const auto &locale : QLocale::matchingLocales(QLocale::AnyLanguage, QLocale::AnyScript, QLocale::AnyCountry)) {
             if (locale.language() == QLocale::C) continue;
             languages.insert(locale.name().section('_', 0, 0));
@@ -181,6 +182,7 @@ private Q_SLOTS:
 #include "Qt515ScriptTags.inc"
         };
         QSet<QString> inputs = {"bo", "dv", "syr", "sr-BA", "sr-Latn-BA",
+            "iw", "in", "ji", "no", "tl", "sh", "mo",
             "az-IR", "ha-SD", "kk-CN", "ku-LB", "ky-CN", "mn-CN", "ms-CC",
             "pa-PK", "sd-IN", "sr-ME", "tg-PK", "ug-KZ", "uz-AF", "zh-HK", "zh-MO", "zh-TW"};
         for (const auto &locale : QLocale::matchingLocales(QLocale::AnyLanguage, QLocale::AnyScript, QLocale::AnyCountry)) {
