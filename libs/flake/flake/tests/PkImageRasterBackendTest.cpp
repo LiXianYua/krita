@@ -6,6 +6,7 @@
 #include <QTest>
 #include <QImage>
 #include <QPainter>
+#include <QPainterPath>
 
 #include <array>
 #include <random>
@@ -24,10 +25,69 @@ private Q_SLOTS:
     void matchesQtArgb32SourceOverMatrix();
     void matchesQtShortSpansAndTails();
     void matchesQtPlusPixelsAndOverlappingMasks();
+    void matchesQtTransformedClippedPathCoverage();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtTransformedClippedPathCoverage()
+{
+    // Exact area coverage, cubic subdivision, winding holes, device-space
+    // clip persistence and Source clearing are independently rendered by Qt.
+    for (double opacity : {0.0, 0.25, 0.4, 0.9, 1.0}) {
+    for (bool oddEven : {false, true}) {
+        QImage qtImage(32, 24, QImage::Format_ARGB32);
+        PkImage pkImage(32, 24, PkImage::Format_ARGB32);
+        qtImage.fill(0x80604020u);
+        pkImage.fill(0x80604020u);
+        QPainter qtPainter(&qtImage);
+        PkImageRasterBackend backend(pkImage);
+        PkPainter painter(backend);
+        qtPainter.setRenderHint(QPainter::Antialiasing);
+        painter.setRenderHint(PkPainter::Antialiasing);
+        qtPainter.translate(2.25, 1.5);
+        painter.translate(2.25, 1.5);
+        qtPainter.setClipRect(QRectF(1, 2, 23, 17));
+        painter.setClipRect(PkRectF(1, 2, 23, 17));
+        qtPainter.save();
+        painter.save();
+        qtPainter.rotate(13);
+        painter.rotate(13);
+        qtPainter.setOpacity(opacity);
+        painter.setOpacity(opacity);
+        QPainterPath qtPath;
+        PkPainterPath pkPath;
+        qtPath.moveTo(2, 2); pkPath.moveTo(2, 2);
+        qtPath.cubicTo(30, -2, -2, 28, 25, 18);
+        pkPath.cubicTo(30, -2, -2, 28, 25, 18);
+        qtPath.lineTo(3, 20); pkPath.lineTo(3, 20);
+        qtPath.closeSubpath(); pkPath.closeSubpath();
+        qtPath.addRect(QRectF(5, 6, 8, 9));
+        pkPath.addRect(PkRectF(5, 6, 8, 9));
+        qtPath.setFillRule(oddEven ? Qt::OddEvenFill : Qt::WindingFill);
+        pkPath.setFillRule(oddEven ? Pk::OddEvenFill : Pk::WindingFill);
+        qtPainter.fillPath(qtPath, QColor(123, 231, 87, 179));
+        painter.fillPath(pkPath, PkBrush(PkColor(123, 231, 87, 179)));
+        qtPainter.restore();
+        painter.restore();
+        qtPainter.setCompositionMode(QPainter::CompositionMode_Source);
+        painter.setCompositionMode(Pk::CompositionMode_Source);
+        qtPainter.fillRect(QRectF(4, 4, 5, 6), Qt::transparent);
+        painter.fillRect(PkRectF(4, 4, 5, 6), PkBrush(PkColor(Pk::transparent)));
+        qtPainter.end();
+        for (int y = 0; y < 24; ++y) {
+            for (int x = 0; x < 32; ++x) {
+                const QString context = QStringLiteral("oddEven=%1 x=%2 y=%3 Qt=%4 Pk=%5")
+                    .arg(oddEven).arg(x).arg(y)
+                    .arg(qtImage.pixel(x, y), 8, 16, QLatin1Char('0'))
+                    .arg(pkImage.pixel(x, y), 8, 16, QLatin1Char('0'));
+                QVERIFY2(pkImage.pixel(x, y) == qtImage.pixel(x, y), qPrintable(context));
+            }
+        }
+    }
+    }
+}
 
 void PkImageRasterBackendTest::matchesQtPlusPixelsAndOverlappingMasks()
 {

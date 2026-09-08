@@ -4,6 +4,7 @@
  */
 
 #include "PkImageRasterBackend.h"
+#include "PkGrayRaster.h"
 
 #include <algorithm>
 #include <cmath>
@@ -213,6 +214,11 @@ uint32_t compose(const Rgba64Pixel &destinationPremultiplied,
         const auto destination = multiply64(destinationPremultiplied, (255u - opacity) * 257u);
         result = {source.a + destination.a, source.r + destination.r,
                   source.g + destination.g, source.b + destination.b};
+    } else if (mode == Pk::CompositionMode_Source) {
+        const auto source = multiply64(sourcePremultiplied, opacity * 257u);
+        const auto destination = multiply64(destinationPremultiplied, (255u - opacity) * 257u);
+        result = {source.a + destination.a, source.r + destination.r,
+                  source.g + destination.g, source.b + destination.b};
     } else {
         const Rgba64Pixel scaledSource = multiply64(sourcePremultiplied, opacity * 257u);
         const Rgba64Pixel scaledDestination =
@@ -240,6 +246,37 @@ bool isIntegralCoordinate(qreal value)
         value <= std::numeric_limits<int>::max();
 }
 
+unsigned multiply8(unsigned value, unsigned factor)
+{
+    const unsigned product = value * factor + 128;
+    return (product + (product >> 8)) >> 8;
+}
+
+uint32_t composeSolid(uint32_t destination, uint32_t premultipliedSource, unsigned coverage,
+                      Pk::CompositionMode mode)
+{
+    const unsigned sa = alpha(premultipliedSource);
+    const unsigned da = alpha(destination);
+    unsigned s[] = {sa, red(premultipliedSource), green(premultipliedSource), blue(premultipliedSource)};
+    unsigned d[] = {da, multiply8(red(destination), da), multiply8(green(destination), da), multiply8(blue(destination), da)};
+    unsigned result[4];
+    for (int i = 0; i < 4; ++i) {
+        if (mode == Pk::CompositionMode_Plus) {
+            result[i] = multiply8(std::min(255u, s[i] + d[i]), coverage) +
+                multiply8(d[i], 255 - coverage);
+        } else if (mode == Pk::CompositionMode_Source) {
+            // Qt's 32-bit interpolation rounds the combined numerator once.
+            const unsigned value = s[i] * coverage + d[i] * (255 - coverage) + 128;
+            result[i] = (value + (value >> 8)) >> 8;
+        } else {
+            result[i] = multiply8(s[i], coverage) + multiply8(d[i], 255 - multiply8(sa, coverage));
+        }
+    }
+    if (result[0] == 0) return 0;
+    return argb(result[0], unpremultiplyTo8(result[1], result[0]),
+                unpremultiplyTo8(result[2], result[0]), unpremultiplyTo8(result[3], result[0]));
+}
+
 } // namespace
 
 PkImageRasterBackend::PkImageRasterBackend(PkImage &destination)
@@ -254,6 +291,46 @@ qreal PkImageRasterBackend::devicePixelRatio() const
 
 void PkImageRasterBackend::submit(const PkPaintCommand &command)
 {
+    if (const auto *hint = std::get_if<PkSetRenderHintCommand>(&command)) {
+        if (hint->enabled) m_state.hints |= hint->hint;
+        else m_state.hints &= ~hint->hint;
+        return;
+    }
+    if (const auto *transform = std::get_if<PkSetTransformCommand>(&command)) {
+        m_state.transform = transform->combine ?
+            transform->transform * m_state.transform : transform->transform;
+        return;
+    }
+    if (const auto *clip = std::get_if<PkSetClipPathCommand>(&command)) {
+        setClip(clip->path, clip->operation);
+        return;
+    }
+    if (const auto *clip = std::get_if<PkSetClipRectCommand>(&command)) {
+        PkPainterPath path;
+        if (m_state.transform.type() <= PkTransform::TxScale) {
+            // The raster engine optimizes vector rectangle clips to their
+            // aligned integer bounds, even when antialiasing is enabled.
+            path.addRect(PkRectF(m_state.transform.mapRect(clip->rect).toAlignedRect()));
+            const auto savedTransform = m_state.transform;
+            m_state.transform = PkTransform();
+            setClip(path, clip->operation);
+            m_state.transform = savedTransform;
+            return;
+        }
+        path.addRect(clip->rect);
+        setClip(path, clip->operation);
+        return;
+    }
+    if (const auto *fill = std::get_if<PkFillPathCommand>(&command)) {
+        fillPath(fill->path, fill->brush);
+        return;
+    }
+    if (const auto *fill = std::get_if<PkFillRectCommand>(&command)) {
+        PkPainterPath path;
+        path.addRect(fill->rect);
+        fillPath(path, fill->brush, true);
+        return;
+    }
     if (std::holds_alternative<PkSaveCommand>(command)) {
         m_stack.push_back(m_state);
         return;
@@ -267,6 +344,7 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
     }
     if (const auto *composition = std::get_if<PkSetCompositionModeCommand>(&command)) {
         if (composition->mode != Pk::CompositionMode_SourceOver &&
+            composition->mode != Pk::CompositionMode_Source &&
             composition->mode != Pk::CompositionMode_Plus) {
             throw std::logic_error("PkImageRasterBackend unsupported composition mode");
         }
@@ -288,8 +366,191 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
     throw std::logic_error("PkImageRasterBackend does not support this paint command");
 }
 
+std::vector<unsigned char> PkImageRasterBackend::coverage(const PkPainterPath &path) const
+{
+    const int width = m_destination.width();
+    const int height = m_destination.height();
+    if (width > 32767 || height > 32767) {
+        throw std::invalid_argument("PkImageRasterBackend raster dimensions exceed span range");
+    }
+    std::vector<unsigned char> pixels(static_cast<std::size_t>(width) * height, 0);
+    if (path.isEmpty() || width <= 0 || height <= 0) return pixels;
+    // QOutlineMapper flattens cubics in logical coordinates, at 0.25 / scale,
+    // before the 26.6 transform. Passing raw cubics to the gray raster has a
+    // different subdivision and produces observably different coverage.
+    PkPainterPath flattened;
+    flattened.setFillRule(path.fillRule());
+    const double scale = std::max(std::hypot(m_state.transform.m11(), m_state.transform.m12()),
+                                  std::hypot(m_state.transform.m21(), m_state.transform.m22()));
+    const double threshold = scale == 0 ? 0.25 : 0.25 / scale;
+    const auto flatten = [&](auto &&self, PkPointF a, PkPointF b, PkPointF c, PkPointF d, int level) -> void {
+        const double dx = d.x() - a.x(), dy = d.y() - a.y();
+        double length = std::abs(dx) + std::abs(dy);
+        double distance;
+        if (length > 1) {
+            distance = std::abs(dx * (a.y() - b.y()) - dy * (a.x() - b.x())) +
+                std::abs(dx * (a.y() - c.y()) - dy * (a.x() - c.x()));
+        } else {
+            distance = std::abs(a.x() - b.x()) + std::abs(a.y() - b.y()) +
+                std::abs(a.x() - c.x()) + std::abs(a.y() - c.y());
+            length = 1;
+        }
+        if (distance < threshold * length || level == 0) {
+            flattened.lineTo(d);
+            return;
+        }
+        const auto ab = (a + b) * 0.5, bc = (b + c) * 0.5, cd = (c + d) * 0.5;
+        const auto abc = (ab + bc) * 0.5, bcd = (bc + cd) * 0.5;
+        const auto middle = (abc + bcd) * 0.5;
+        self(self, a, ab, abc, middle, level - 1);
+        self(self, middle, bcd, cd, d, level - 1);
+    };
+    for (int i = 0; i < path.elementCount(); ++i) {
+        const auto element = path.elementAt(i);
+        if (element.isMoveTo()) {
+            if (!flattened.isEmpty()) flattened.closeSubpath();
+            flattened.moveTo(element);
+        } else if (element.isLineTo()) {
+            flattened.lineTo(element);
+        } else if (element.isCurveTo()) {
+            flatten(flatten, flattened.currentPosition(), element,
+                    path.elementAt(i + 1), path.elementAt(i + 2), 9);
+            i += 2;
+        }
+    }
+    flattened.closeSubpath();
+    const PkPainterPath mapped = m_state.transform.map(flattened);
+    std::vector<PK_FT_Vector> points;
+    std::vector<char> tags;
+    std::vector<int> contours;
+    for (int i = 0; i < mapped.elementCount(); ++i) {
+        const auto element = mapped.elementAt(i);
+        if (!std::isfinite(element.x) || !std::isfinite(element.y) ||
+            std::abs(element.x) > 32767 || std::abs(element.y) > 32767) {
+            throw std::invalid_argument("PkImageRasterBackend path exceeds fixed-point range");
+        }
+        if (element.isMoveTo() && !points.empty()) contours.push_back(points.size() - 1);
+        // QOutlineMapper rounds transformed positions to 26.6 fixed point.
+        points.push_back({pkRound(element.x * 64), pkRound(element.y * 64)});
+        if (element.isCurveTo()) {
+            tags.push_back(PK_FT_CURVE_TAG_CUBIC);
+            for (int j = 0; j < 2; ++j) {
+                const auto next = mapped.elementAt(++i);
+                points.push_back({pkRound(next.x * 64), pkRound(next.y * 64)});
+                tags.push_back(j == 0 ? PK_FT_CURVE_TAG_CUBIC : PK_FT_CURVE_TAG_ON);
+            }
+        } else {
+            tags.push_back(PK_FT_CURVE_TAG_ON);
+        }
+    }
+    contours.push_back(points.size() - 1);
+    PK_FT_Outline outline {static_cast<int>(contours.size()), static_cast<int>(points.size()),
+        points.data(), tags.data(), contours.data(),
+        path.fillRule() == Pk::OddEvenFill ? PK_FT_OUTLINE_EVEN_ODD_FILL : 0};
+    struct Target { int width; unsigned char *pixels; } target {width, pixels.data()};
+    PK_FT_Raster_Params params {};
+    params.source = &outline;
+    params.flags = PK_FT_RASTER_FLAG_AA | PK_FT_RASTER_FLAG_DIRECT | PK_FT_RASTER_FLAG_CLIP;
+    params.clip_box = {0, 0, width, height};
+    params.user = &target;
+    params.gray_spans = [](int count, const PK_FT_Span *spans, void *context) {
+        const auto &target = *static_cast<Target *>(context);
+        for (int i = 0; i < count; ++i) {
+            const auto &span = spans[i];
+            std::fill_n(target.pixels + static_cast<std::size_t>(span.y) * target.width + span.x,
+                        span.len, span.coverage);
+        }
+    };
+    // Each call owns its raster pool, so independent image painters are safe.
+    std::vector<std::max_align_t> pool(65536 / sizeof(std::max_align_t));
+    PK_FT_Raster raster {};
+    if (pk_ft_grays_raster.raster_new(&raster) != 0) throw std::bad_alloc();
+    pk_ft_grays_raster.raster_reset(raster, reinterpret_cast<unsigned char *>(pool.data()),
+                                   pool.size() * sizeof(std::max_align_t));
+    const int error = pk_ft_grays_raster.raster_render(raster, &params);
+    pk_ft_grays_raster.raster_done(raster);
+    if (error) throw std::runtime_error("PkImageRasterBackend path rasterization failed");
+    return pixels;
+}
+
+void PkImageRasterBackend::setClip(const PkPainterPath &path, Pk::ClipOperation operation)
+{
+    if (operation == Pk::NoClip) {
+        m_state.hasClip = false;
+        m_state.clip.clear();
+        return;
+    }
+    auto mask = coverage(path);
+    if (operation == Pk::IntersectClip && m_state.hasClip) {
+        for (std::size_t i = 0; i < mask.size(); ++i) {
+            mask[i] = (unsigned(mask[i]) * m_state.clip[i] + 127) / 255;
+        }
+    }
+    m_state.clip = std::move(mask);
+    m_state.hasClip = true;
+}
+
+void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle)
+{
+    if (brush.style() == Pk::NoBrush) return;
+    if (!(m_state.hints & 1u)) {
+        throw std::logic_error("PkImageRasterBackend aliased path rasterization is not implemented");
+    }
+    if (brush.style() != Pk::SolidPattern) {
+        throw std::logic_error("PkImageRasterBackend unsupported brush");
+    }
+    if (m_destination.format() != PkImage::Format_ARGB32) {
+        throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
+    }
+    auto mask = coverage(path);
+    if (rectangle && m_state.transform.type() <= PkTransform::TxScale) {
+        const auto bounds = m_state.transform.mapRect(path.boundingRect()).normalized();
+        for (int y = 0; y < m_destination.height(); ++y) {
+            const auto height = std::max(0.0, std::min(y + 1.0, bounds.bottom()) - std::max(double(y), bounds.top()));
+            for (int x = 0; x < m_destination.width(); ++x) {
+                const auto width = std::max(0.0, std::min(x + 1.0, bounds.right()) - std::max(double(x), bounds.left()));
+                const auto horizontal = static_cast<long long>(width * 65536) * 255;
+                const auto vertical = static_cast<long long>(height * 65536);
+                mask[static_cast<std::size_t>(y) * m_destination.width() + x] = (horizontal * vertical) >> 32;
+            }
+        }
+    }
+    const uint32_t color = brush.color().rgba();
+    const unsigned fixedOpacity = static_cast<unsigned>(m_state.opacity * 256.0);
+    const unsigned sourceAlpha = (alpha(color) * 257u * fixedOpacity) >> 8;
+    const uint32_t source = argb(to8Bit(sourceAlpha),
+        to8Bit(divideBy65535(red(color) * 257u * sourceAlpha)),
+        to8Bit(divideBy65535(green(color) * 257u * sourceAlpha)),
+        to8Bit(divideBy65535(blue(color) * 257u * sourceAlpha)));
+    for (int y = 0; y < m_destination.height(); ++y) {
+        int x = 0;
+        while (x < m_destination.width()) {
+            const auto index = static_cast<std::size_t>(y) * m_destination.width() + x;
+            unsigned amount = mask[index];
+            if (m_state.hasClip) amount = (amount * m_state.clip[index] + 127) / 255;
+            const int start = x++;
+            while (x < m_destination.width()) {
+                const auto next = static_cast<std::size_t>(y) * m_destination.width() + x;
+                unsigned nextAmount = mask[next];
+                if (m_state.hasClip) nextAmount = (nextAmount * m_state.clip[next] + 127) / 255;
+                if (nextAmount != amount) break;
+                ++x;
+            }
+            if (!amount) continue;
+            const int count = x - start;
+            for (int i = 0; i < count; ++i) {
+                m_destination.setPixel(start + i, y,
+                    composeSolid(m_destination.pixel(start + i, y), source, amount, m_state.mode));
+            }
+        }
+    }
+}
+
 void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
 {
+    if (!m_state.transform.isIdentity() || m_state.hasClip) {
+        throw std::logic_error("PkImageRasterBackend transformed/clipped image rasterization is not implemented");
+    }
     if (m_destination.format() != PkImage::Format_ARGB32 ||
         command.image.format() != PkImage::Format_ARGB32) {
         throw std::invalid_argument("PkImageRasterBackend requires ARGB32 images");

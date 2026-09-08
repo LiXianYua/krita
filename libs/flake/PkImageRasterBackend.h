@@ -19,11 +19,18 @@ public:
 
 private:
     void drawImage(const PkDrawImageCommand &command);
+    void fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle = false);
+    void setClip(const PkPainterPath &path, Pk::ClipOperation operation);
+    std::vector<unsigned char> coverage(const PkPainterPath &path) const;
 
     PkImage &m_destination;
     struct State {
         qreal opacity {1.0};
         Pk::CompositionMode mode {Pk::CompositionMode_SourceOver};
+        PkTransform transform;
+        unsigned hints {0};
+        std::vector<unsigned char> clip;
+        bool hasClip {false};
     };
     State m_state;
     std::vector<State> m_stack;
