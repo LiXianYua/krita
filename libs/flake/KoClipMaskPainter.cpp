@@ -111,6 +111,7 @@ PkPainter *KoClipMaskPainter::maskPainter()
 void KoClipMaskPainter::renderOnGlobalPainter()
 {
     KIS_ASSERT_RECOVER_RETURN(m_d->maskImage.size() == m_d->shapeImage.size());
+    if (m_d->shapeImage.isNull()) return;
 
     const int nPixels = m_d->maskImage.height() * m_d->maskImage.width();
 

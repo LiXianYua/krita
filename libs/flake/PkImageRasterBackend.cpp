@@ -418,6 +418,9 @@ qreal PkImageRasterBackend::devicePixelRatio() const
 
 void PkImageRasterBackend::submit(const PkPaintCommand &command)
 {
+    // Like an inactive painter on a null image, an empty mask buffer accepts
+    // drawing/state commands without validating a nonexistent pixel format.
+    if (m_destination.isNull()) return;
     if (const auto *pen = std::get_if<PkSetPenCommand>(&command)) {
         m_state.pen = pen->pen;
         return;

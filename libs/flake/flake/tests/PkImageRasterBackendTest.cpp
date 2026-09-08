@@ -13,6 +13,7 @@
 #include <KoShapeStroke.h>
 #include <KoShapeManager.h>
 #include <KoClipMaskPainter.h>
+#include <KoClipMask.h>
 
 #include <array>
 #include <cstring>
@@ -44,11 +45,38 @@ private Q_SLOTS:
     void matchesQtPremultipliedDestination();
     void matchesQtHighDepthImageSources();
     void preservesManagerDispatchAndMaskBuffers();
+    void emptyAndDisjointMasksAreNoOps();
     void gradientCopiesKeepIndependentValues();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::emptyAndDisjointMasksAreNoOps()
+{
+    QImage expected(19,17,QImage::Format_ARGB32); expected.fill(0xff345678);
+    PkImage actual(19,17,PkImage::Format_ARGB32); actual.fill(0xff345678);
+    QImage empty;
+    QPainter qt(&expected);
+    qt.drawImage(QPoint(),empty);
+    qt.setClipRect(QRect(12,12,3,3));
+    qt.fillRect(QRect(1,1,4,4),Qt::red);
+    qt.end();
+    PkImageRasterBackend backend(actual); PkPainter pk(backend);
+    KoClipMaskPainter mask(&pk,PkRectF());
+    mask.shapePainter()->fillRect(PkRect(0,0,8,8),Pk::red);
+    mask.maskPainter()->fillRect(PkRect(0,0,8,8),Pk::white);
+    mask.renderOnGlobalPainter();
+    KoPathShape shape;
+    shape.moveTo(PkPointF(1,1)); shape.lineTo(PkPointF(5,1));
+    shape.lineTo(PkPointF(5,5)); shape.lineTo(PkPointF(1,5)); shape.close();
+    shape.setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(Pk::red)));
+    shape.setClipMask(new KoClipMask);
+    pk.setClipRect(PkRect(12,12,3,3));
+    KoShapeManager::renderSingleShape(&shape,pk);
+    for (int y=0;y<17;++y) for (int x=0;x<19;++x)
+        QCOMPARE(actual.pixel(x,y),expected.pixel(x,y));
+}
 
 void PkImageRasterBackendTest::preservesManagerDispatchAndMaskBuffers()
 {
