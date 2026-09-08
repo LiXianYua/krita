@@ -43,6 +43,8 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
+#include <climits>
 #include <new>
 
 template<class T> static T *pkRasterCheckPtr(T *p) { if (!p) throw std::bad_alloc(); return p; }
@@ -715,4 +717,519 @@ void PkAliasedRasterizer::rasterize(const PK_FT_Outline *outline, Pk::FillRule f
     }
 
     d->scanConverter.end();
+}
+static Pk16Dot16 intersectPixelFP(int x, Pk16Dot16 top, Pk16Dot16 bottom, Pk16Dot16 leftIntersectX, Pk16Dot16 rightIntersectX, Pk16Dot16 slope, Pk16Dot16 invSlope)
+{
+    Pk16Dot16 leftX = IntToPk16Dot16(x);
+    Pk16Dot16 rightX = IntToPk16Dot16(x) + Pk16Dot16Factor;
+
+    Pk16Dot16 leftIntersectY, rightIntersectY;
+    if (slope > 0) {
+        leftIntersectY = top + Pk16Dot16Multiply(leftX - leftIntersectX, invSlope);
+        rightIntersectY = leftIntersectY + invSlope;
+    } else {
+        leftIntersectY = top + Pk16Dot16Multiply(leftX - rightIntersectX, invSlope);
+        rightIntersectY = leftIntersectY + invSlope;
+    }
+
+    if (leftIntersectX >= leftX && rightIntersectX <= rightX) {
+        return Pk16Dot16Multiply(bottom - top, leftIntersectX - leftX + ((rightIntersectX - leftIntersectX) >> 1));
+    } else if (leftIntersectX >= rightX) {
+        return bottom - top;
+    } else if (leftIntersectX >= leftX) {
+        if (slope > 0) {
+            return (bottom - top) - Pk16Dot16FastMultiply((rightX - leftIntersectX) >> 1, rightIntersectY - top);
+        } else {
+            return (bottom - top) - Pk16Dot16FastMultiply((rightX - leftIntersectX) >> 1, bottom - rightIntersectY);
+        }
+    } else if (rightIntersectX <= leftX) {
+        return 0;
+    } else if (rightIntersectX <= rightX) {
+        if (slope > 0) {
+            return Pk16Dot16FastMultiply((rightIntersectX - leftX) >> 1, bottom - leftIntersectY);
+        } else {
+            return Pk16Dot16FastMultiply((rightIntersectX - leftX) >> 1, leftIntersectY - top);
+        }
+    } else {
+        if (slope > 0) {
+            return (bottom - rightIntersectY) + ((rightIntersectY - leftIntersectY) >> 1);
+        } else {
+            return (rightIntersectY - top) + ((leftIntersectY - rightIntersectY) >> 1);
+        }
+    }
+}
+
+static inline bool q26Dot6Compare(qreal p1, qreal p2)
+{
+    return int((p2  - p1) * 64.) == 0;
+}
+
+static inline PkPointF snapTo26Dot6Grid(const PkPointF &p)
+{
+    return PkPointF(std::floor(p.x() * 64) * (1 / qreal(64)),
+                   std::floor(p.y() * 64) * (1 / qreal(64)));
+}
+
+/*
+   The rasterize line function relies on some div by zero which should
+   result in +/-inf values. However, when floating point exceptions are
+   enabled, this will cause crashes, so we return high numbers instead.
+   As the returned value is used in further arithmetic, returning
+   FLT_MAX/DBL_MAX will also cause values, so instead return a value
+   that is well outside the int-range.
+ */
+static inline qreal qSafeDivide(qreal x, qreal y)
+{
+    if (y == 0)
+        return x > 0 ? 1e20 : -1e20;
+    return x / y;
+}
+
+/* Conversion to int fails if the value is too large to fit into INT_MAX or
+   too small to fit into INT_MIN, so we need this slightly safer conversion
+   when floating point exceptions are enabled
+ */
+static inline int qSafeFloatToPk16Dot16(qreal x)
+{
+    qreal tmp = x * 65536.;
+    if (tmp > qreal(INT_MAX))
+        return INT_MAX;
+    else if (tmp < qreal(INT_MIN))
+        return -INT_MAX;
+    return int(tmp);
+}
+
+void PkAliasedRasterizer::rasterizeLine(const PkPointF &a, const PkPointF &b, qreal width, bool squareCap)
+{
+    if (a == b || !(width > 0.0) || d->clipRect.isEmpty())
+        return;
+
+    PkPointF pa = a;
+    PkPointF pb = b;
+
+    if (squareCap) {
+        PkPointF delta = pb - pa;
+        pa -= (0.5f * width) * delta;
+        pb += (0.5f * width) * delta;
+    }
+
+    PkPointF offs = PkPointF(pkAbs(b.y() - a.y()), pkAbs(b.x() - a.x())) * width * 0.5;
+    const PkRectF clip(d->clipRect.topLeft() - offs, d->clipRect.bottomRight() + PkPoint(1, 1) + offs);
+
+    if (!clip.contains(pa) || !clip.contains(pb)) {
+        qreal t1 = 0;
+        qreal t2 = 1;
+
+        const qreal o[2] = { pa.x(), pa.y() };
+        const qreal d[2] = { pb.x() - pa.x(), pb.y() - pa.y() };
+
+        const qreal low[2] = { clip.left(), clip.top() };
+        const qreal high[2] = { clip.right(), clip.bottom() };
+
+        for (int i = 0; i < 2; ++i) {
+            if (d[i] == 0) {
+                if (o[i] <= low[i] || o[i] >= high[i])
+                    return;
+                continue;
+            }
+            const qreal d_inv = 1 / d[i];
+            qreal t_low = (low[i] - o[i]) * d_inv;
+            qreal t_high = (high[i] - o[i]) * d_inv;
+            if (t_low > t_high)
+                std::swap(t_low, t_high);
+            if (t1 < t_low)
+                t1 = t_low;
+            if (t2 > t_high)
+                t2 = t_high;
+            if (t1 >= t2)
+                return;
+        }
+
+        PkPointF npa = pa + (pb - pa) * t1;
+        PkPointF npb = pa + (pb - pa) * t2;
+
+        pa = npa;
+        pb = npb;
+    }
+
+    if (!d->antialiased && d->legacyRounding) {
+        pa.rx() += (COORD_OFFSET - COORD_ROUNDING)/64.;
+        pa.ry() += (COORD_OFFSET - COORD_ROUNDING)/64.;
+        pb.rx() += (COORD_OFFSET - COORD_ROUNDING)/64.;
+        pb.ry() += (COORD_OFFSET - COORD_ROUNDING)/64.;
+    }
+
+    {
+        // old delta
+        const PkPointF d0 = a - b;
+        const qreal w0 = d0.x() * d0.x() + d0.y() * d0.y();
+
+        // new delta
+        const PkPointF d = pa - pb;
+        const qreal w = d.x() * d.x() + d.y() * d.y();
+
+        if (w == 0)
+            return;
+
+        // adjust width which is given relative to |b - a|
+        width *= std::sqrt(w0 / w);
+    }
+
+    PkSpanBuffer buffer(d->blend, d->data, d->clipRect);
+
+    if (q26Dot6Compare(pa.y(), pb.y())) {
+        const qreal x = (pa.x() + pb.x()) * 0.5f;
+        const qreal dx = pkAbs(pb.x() - pa.x()) * 0.5f;
+
+        const qreal y = pa.y();
+        const qreal dy = width * dx;
+
+        pa = PkPointF(x, y - dy);
+        pb = PkPointF(x, y + dy);
+
+        width = 1 / width;
+    }
+
+    if (q26Dot6Compare(pa.x(), pb.x())) {
+        if (pa.y() > pb.y())
+            std::swap(pa, pb);
+
+        const qreal dy = pb.y() - pa.y();
+        const qreal halfWidth = 0.5f * width * dy;
+
+        qreal left = pa.x() - halfWidth;
+        qreal right = pa.x() + halfWidth;
+
+        left = pkBound(qreal(d->clipRect.left()), left, qreal(d->clipRect.right() + 1));
+        right = pkBound(qreal(d->clipRect.left()), right, qreal(d->clipRect.right() + 1));
+
+        pa.ry() = pkBound(qreal(d->clipRect.top()), pa.y(), qreal(d->clipRect.bottom() + 1));
+        pb.ry() = pkBound(qreal(d->clipRect.top()), pb.y(), qreal(d->clipRect.bottom() + 1));
+
+        if (q26Dot6Compare(left, right) || q26Dot6Compare(pa.y(), pb.y()))
+            return;
+
+        if (d->antialiased) {
+            const Pk16Dot16 iLeft = int(left);
+            const Pk16Dot16 iRight = int(right);
+            const Pk16Dot16 leftWidth = IntToPk16Dot16(iLeft + 1)
+                                       - qSafeFloatToPk16Dot16(left);
+            const Pk16Dot16 rightWidth = qSafeFloatToPk16Dot16(right)
+                                        - IntToPk16Dot16(iRight);
+
+            Pk16Dot16 coverage[3];
+            int x[3];
+            int len[3];
+
+            int n = 1;
+            if (iLeft == iRight) {
+                coverage[0] = (leftWidth + rightWidth) * 255;
+                x[0] = iLeft;
+                len[0] = 1;
+            } else {
+                coverage[0] = leftWidth * 255;
+                x[0] = iLeft;
+                len[0] = 1;
+                if (leftWidth == Pk16Dot16Factor) {
+                    len[0] = iRight - iLeft;
+                } else if (iRight - iLeft > 1) {
+                    coverage[1] = IntToPk16Dot16(255);
+                    x[1] = iLeft + 1;
+                    len[1] = iRight - iLeft - 1;
+                    ++n;
+                }
+                if (rightWidth) {
+                    coverage[n] = rightWidth * 255;
+                    x[n] = iRight;
+                    len[n] = 1;
+                    ++n;
+                }
+            }
+
+            const Pk16Dot16 iTopFP = IntToPk16Dot16(int(pa.y()));
+            const Pk16Dot16 iBottomFP = IntToPk16Dot16(int(pb.y()));
+            const Pk16Dot16 yPa = qSafeFloatToPk16Dot16(pa.y());
+            const Pk16Dot16 yPb = qSafeFloatToPk16Dot16(pb.y());
+            for (Pk16Dot16 yFP = iTopFP; yFP <= iBottomFP; yFP += Pk16Dot16Factor) {
+                const Pk16Dot16 rowHeight = pkMin(yFP + Pk16Dot16Factor, yPb)
+                                           - pkMax(yFP, yPa);
+                const int y = Pk16Dot16ToInt(yFP);
+                if (y > d->clipRect.bottom())
+                    break;
+                for (int i = 0; i < n; ++i) {
+                    buffer.addSpan(x[i], len[i], y,
+                                   Pk16Dot16ToInt(Pk16Dot16Multiply(rowHeight, coverage[i])));
+                }
+            }
+        } else { // aliased
+            int iTop = int(pa.y() + 0.5f);
+            int iBottom = pb.y() < 0.5f ? -1 : int(pb.y() - 0.5f);
+            int iLeft = int(left + 0.5f);
+            int iRight = right < 0.5f ? -1 : int(right - 0.5f);
+
+            int iWidth = iRight - iLeft + 1;
+            for (int y = iTop; y <= iBottom; ++y)
+                buffer.addSpan(iLeft, iWidth, y, 255);
+        }
+    } else {
+        if (pa.y() > pb.y())
+            std::swap(pa, pb);
+
+        PkPointF delta = pb - pa;
+        delta *= 0.5f * width;
+        const PkPointF perp(delta.y(), -delta.x());
+
+        PkPointF top;
+        PkPointF left;
+        PkPointF right;
+        PkPointF bottom;
+
+        if (pa.x() < pb.x()) {
+            top = pa + perp;
+            left = pa - perp;
+            right = pb + perp;
+            bottom = pb - perp;
+        } else {
+            top = pa - perp;
+            left = pb - perp;
+            right = pa + perp;
+            bottom = pb + perp;
+        }
+
+        top = snapTo26Dot6Grid(top);
+        bottom = snapTo26Dot6Grid(bottom);
+        left = snapTo26Dot6Grid(left);
+        right = snapTo26Dot6Grid(right);
+
+        const qreal topBound = pkBound(qreal(d->clipRect.top()), top.y(), qreal(d->clipRect.bottom()));
+        const qreal bottomBound = pkBound(qreal(d->clipRect.top()), bottom.y(), qreal(d->clipRect.bottom()));
+
+        const PkPointF topLeftEdge = left - top;
+        const PkPointF topRightEdge = right - top;
+        const PkPointF bottomLeftEdge = bottom - left;
+        const PkPointF bottomRightEdge = bottom - right;
+
+        const qreal topLeftSlope = qSafeDivide(topLeftEdge.x(), topLeftEdge.y());
+        const qreal bottomLeftSlope = qSafeDivide(bottomLeftEdge.x(), bottomLeftEdge.y());
+
+        const qreal topRightSlope = qSafeDivide(topRightEdge.x(), topRightEdge.y());
+        const qreal bottomRightSlope = qSafeDivide(bottomRightEdge.x(), bottomRightEdge.y());
+
+        const Pk16Dot16 topLeftSlopeFP = qSafeFloatToPk16Dot16(topLeftSlope);
+        const Pk16Dot16 topRightSlopeFP = qSafeFloatToPk16Dot16(topRightSlope);
+
+        const Pk16Dot16 bottomLeftSlopeFP = qSafeFloatToPk16Dot16(bottomLeftSlope);
+        const Pk16Dot16 bottomRightSlopeFP = qSafeFloatToPk16Dot16(bottomRightSlope);
+
+        const Pk16Dot16 invTopLeftSlopeFP = qSafeFloatToPk16Dot16(qSafeDivide(1, topLeftSlope));
+        const Pk16Dot16 invTopRightSlopeFP = qSafeFloatToPk16Dot16(qSafeDivide(1, topRightSlope));
+
+        const Pk16Dot16 invBottomLeftSlopeFP = qSafeFloatToPk16Dot16(qSafeDivide(1, bottomLeftSlope));
+        const Pk16Dot16 invBottomRightSlopeFP = qSafeFloatToPk16Dot16(qSafeDivide(1, bottomRightSlope));
+
+        if (d->antialiased) {
+            const Pk16Dot16 iTopFP = IntToPk16Dot16(int(topBound));
+            const Pk16Dot16 iLeftFP = IntToPk16Dot16(int(left.y()));
+            const Pk16Dot16 iRightFP = IntToPk16Dot16(int(right.y()));
+            const Pk16Dot16 iBottomFP = IntToPk16Dot16(int(bottomBound));
+
+            Pk16Dot16 leftIntersectAf = qSafeFloatToPk16Dot16(top.x() + (int(topBound) - top.y()) * topLeftSlope);
+            Pk16Dot16 rightIntersectAf = qSafeFloatToPk16Dot16(top.x() + (int(topBound) - top.y()) * topRightSlope);
+            Pk16Dot16 leftIntersectBf = 0;
+            Pk16Dot16 rightIntersectBf = 0;
+
+            if (iLeftFP < iTopFP)
+                leftIntersectBf = qSafeFloatToPk16Dot16(left.x() + (int(topBound) - left.y()) * bottomLeftSlope);
+
+            if (iRightFP < iTopFP)
+                rightIntersectBf = qSafeFloatToPk16Dot16(right.x() + (int(topBound) - right.y()) * bottomRightSlope);
+
+            Pk16Dot16 rowTop, rowBottomLeft, rowBottomRight, rowTopLeft, rowTopRight, rowBottom;
+            Pk16Dot16 topLeftIntersectAf, topLeftIntersectBf, topRightIntersectAf, topRightIntersectBf;
+            Pk16Dot16 bottomLeftIntersectAf, bottomLeftIntersectBf, bottomRightIntersectAf, bottomRightIntersectBf;
+
+            int leftMin, leftMax, rightMin, rightMax;
+
+            const Pk16Dot16 yTopFP = qSafeFloatToPk16Dot16(top.y());
+            const Pk16Dot16 yLeftFP = qSafeFloatToPk16Dot16(left.y());
+            const Pk16Dot16 yRightFP = qSafeFloatToPk16Dot16(right.y());
+            const Pk16Dot16 yBottomFP = qSafeFloatToPk16Dot16(bottom.y());
+
+            rowTop = pkMax(iTopFP, yTopFP);
+            topLeftIntersectAf = leftIntersectAf +
+                                 Pk16Dot16Multiply(topLeftSlopeFP, rowTop - iTopFP);
+            topRightIntersectAf = rightIntersectAf +
+                                  Pk16Dot16Multiply(topRightSlopeFP, rowTop - iTopFP);
+
+            Pk16Dot16 yFP = iTopFP;
+            while (yFP <= iBottomFP) {
+                rowBottomLeft = pkMin(yFP + Pk16Dot16Factor, yLeftFP);
+                rowBottomRight = pkMin(yFP + Pk16Dot16Factor, yRightFP);
+                rowTopLeft = pkMax(yFP, yLeftFP);
+                rowTopRight = pkMax(yFP, yRightFP);
+                rowBottom = pkMin(yFP + Pk16Dot16Factor, yBottomFP);
+
+                if (yFP == iLeftFP) {
+                    const int y = Pk16Dot16ToInt(yFP);
+                    leftIntersectBf = qSafeFloatToPk16Dot16(left.x() + (y - left.y()) * bottomLeftSlope);
+                    topLeftIntersectBf = leftIntersectBf + Pk16Dot16Multiply(bottomLeftSlopeFP, rowTopLeft - yFP);
+                    bottomLeftIntersectAf = leftIntersectAf + Pk16Dot16Multiply(topLeftSlopeFP, rowBottomLeft - yFP);
+                } else {
+                    topLeftIntersectBf = leftIntersectBf;
+                    bottomLeftIntersectAf = leftIntersectAf + topLeftSlopeFP;
+                }
+
+                if (yFP == iRightFP) {
+                    const int y = Pk16Dot16ToInt(yFP);
+                    rightIntersectBf = qSafeFloatToPk16Dot16(right.x() + (y - right.y()) * bottomRightSlope);
+                    topRightIntersectBf = rightIntersectBf + Pk16Dot16Multiply(bottomRightSlopeFP, rowTopRight - yFP);
+                    bottomRightIntersectAf = rightIntersectAf + Pk16Dot16Multiply(topRightSlopeFP, rowBottomRight - yFP);
+                } else {
+                    topRightIntersectBf = rightIntersectBf;
+                    bottomRightIntersectAf = rightIntersectAf + topRightSlopeFP;
+                }
+
+                if (yFP == iBottomFP) {
+                    bottomLeftIntersectBf = leftIntersectBf + Pk16Dot16Multiply(bottomLeftSlopeFP, rowBottom - yFP);
+                    bottomRightIntersectBf = rightIntersectBf + Pk16Dot16Multiply(bottomRightSlopeFP, rowBottom - yFP);
+                } else {
+                    bottomLeftIntersectBf = leftIntersectBf + bottomLeftSlopeFP;
+                    bottomRightIntersectBf = rightIntersectBf + bottomRightSlopeFP;
+                }
+
+                if (yFP < iLeftFP) {
+                    leftMin = Pk16Dot16ToInt(bottomLeftIntersectAf);
+                    leftMax = Pk16Dot16ToInt(topLeftIntersectAf);
+                } else if (yFP == iLeftFP) {
+                    leftMin = Pk16Dot16ToInt(pkMax(bottomLeftIntersectAf, topLeftIntersectBf));
+                    leftMax = Pk16Dot16ToInt(pkMax(topLeftIntersectAf, bottomLeftIntersectBf));
+                } else {
+                    leftMin = Pk16Dot16ToInt(topLeftIntersectBf);
+                    leftMax = Pk16Dot16ToInt(bottomLeftIntersectBf);
+                }
+
+                leftMin = pkBound(d->clipRect.left(), leftMin, d->clipRect.right());
+                leftMax = pkBound(d->clipRect.left(), leftMax, d->clipRect.right());
+
+                if (yFP < iRightFP) {
+                    rightMin = Pk16Dot16ToInt(topRightIntersectAf);
+                    rightMax = Pk16Dot16ToInt(bottomRightIntersectAf);
+                } else if (yFP == iRightFP) {
+                    rightMin = Pk16Dot16ToInt(pkMin(topRightIntersectAf, bottomRightIntersectBf));
+                    rightMax = Pk16Dot16ToInt(pkMin(bottomRightIntersectAf, topRightIntersectBf));
+                } else {
+                    rightMin = Pk16Dot16ToInt(bottomRightIntersectBf);
+                    rightMax = Pk16Dot16ToInt(topRightIntersectBf);
+                }
+
+                rightMin = pkBound(d->clipRect.left(), rightMin, d->clipRect.right());
+                rightMax = pkBound(d->clipRect.left(), rightMax, d->clipRect.right());
+
+                if (leftMax > rightMax)
+                    leftMax = rightMax;
+                if (rightMin < leftMin)
+                    rightMin = leftMin;
+
+                Pk16Dot16 rowHeight = rowBottom - rowTop;
+
+                int x = leftMin;
+                while (x <= leftMax) {
+                    Pk16Dot16 excluded = 0;
+
+                    if (yFP <= iLeftFP)
+                        excluded += intersectPixelFP(x, rowTop, rowBottomLeft,
+                                                     bottomLeftIntersectAf, topLeftIntersectAf,
+                                                     topLeftSlopeFP, invTopLeftSlopeFP);
+                    if (yFP >= iLeftFP)
+                        excluded += intersectPixelFP(x, rowTopLeft, rowBottom,
+                                                     topLeftIntersectBf, bottomLeftIntersectBf,
+                                                     bottomLeftSlopeFP, invBottomLeftSlopeFP);
+
+                    if (x >= rightMin) {
+                        if (yFP <= iRightFP)
+                            excluded += (rowBottomRight - rowTop) - intersectPixelFP(x, rowTop, rowBottomRight,
+                                                                                     topRightIntersectAf, bottomRightIntersectAf,
+                                                                                     topRightSlopeFP, invTopRightSlopeFP);
+                        if (yFP >= iRightFP)
+                            excluded += (rowBottom - rowTopRight) - intersectPixelFP(x, rowTopRight, rowBottom,
+                                                                                     bottomRightIntersectBf, topRightIntersectBf,
+                                                                                     bottomRightSlopeFP, invBottomRightSlopeFP);
+                    }
+
+                    Pk16Dot16 coverage = rowHeight - excluded;
+                    buffer.addSpan(x, 1, Pk16Dot16ToInt(yFP),
+                                   Pk16Dot16ToInt(255 * coverage));
+                    ++x;
+                }
+                if (x < rightMin) {
+                    buffer.addSpan(x, rightMin - x, Pk16Dot16ToInt(yFP),
+                                   Pk16Dot16ToInt(255 * rowHeight));
+                    x = rightMin;
+                }
+                while (x <= rightMax) {
+                    Pk16Dot16 excluded = 0;
+                    if (yFP <= iRightFP)
+                        excluded += (rowBottomRight - rowTop) - intersectPixelFP(x, rowTop, rowBottomRight,
+                                                                                 topRightIntersectAf, bottomRightIntersectAf,
+                                                                                 topRightSlopeFP, invTopRightSlopeFP);
+                    if (yFP >= iRightFP)
+                        excluded += (rowBottom - rowTopRight) - intersectPixelFP(x, rowTopRight, rowBottom,
+                                                                                 bottomRightIntersectBf, topRightIntersectBf,
+                                                                                 bottomRightSlopeFP, invBottomRightSlopeFP);
+
+                    Pk16Dot16 coverage = rowHeight - excluded;
+                    buffer.addSpan(x, 1, Pk16Dot16ToInt(yFP),
+                                   Pk16Dot16ToInt(255 * coverage));
+                    ++x;
+                }
+
+                leftIntersectAf += topLeftSlopeFP;
+                leftIntersectBf += bottomLeftSlopeFP;
+                rightIntersectAf += topRightSlopeFP;
+                rightIntersectBf += bottomRightSlopeFP;
+                topLeftIntersectAf = leftIntersectAf;
+                topRightIntersectAf = rightIntersectAf;
+
+                yFP += Pk16Dot16Factor;
+                rowTop = yFP;
+            }
+        } else { // aliased
+            int iTop = int(top.y() + 0.5f);
+            int iLeft = left.y() < 0.5f ? -1 : int(left.y() - 0.5f);
+            int iRight = right.y() < 0.5f ? -1 : int(right.y() - 0.5f);
+            int iBottom = bottom.y() < 0.5f? -1 : int(bottom.y() - 0.5f);
+            int iMiddle = pkMin(iLeft, iRight);
+
+            Pk16Dot16 leftIntersectAf = qSafeFloatToPk16Dot16(top.x() + 0.5f + (iTop + 0.5f - top.y()) * topLeftSlope);
+            Pk16Dot16 leftIntersectBf = qSafeFloatToPk16Dot16(left.x() + 0.5f + (iLeft + 1.5f - left.y()) * bottomLeftSlope);
+            Pk16Dot16 rightIntersectAf = qSafeFloatToPk16Dot16(top.x() - 0.5f + (iTop + 0.5f - top.y()) * topRightSlope);
+            Pk16Dot16 rightIntersectBf = qSafeFloatToPk16Dot16(right.x() - 0.5f + (iRight + 1.5f - right.y()) * bottomRightSlope);
+
+            int ny;
+            int y = iTop;
+#define DO_SEGMENT(next, li, ri, ls, rs) \
+            ny = pkMin(next + 1, d->clipRect.top()); \
+            if (y < ny) { \
+                li += ls * (ny - y); \
+                ri += rs * (ny - y); \
+                y = ny; \
+            } \
+            if (next > d->clipRect.bottom()) \
+                next = d->clipRect.bottom(); \
+            for (; y <= next; ++y) { \
+                const int x1 = pkMax(Pk16Dot16ToInt(li), d->clipRect.left()); \
+                const int x2 = pkMin(Pk16Dot16ToInt(ri), d->clipRect.right()); \
+                if (x2 >= x1) \
+                    buffer.addSpan(x1, x2 - x1 + 1, y, 255); \
+                li += ls; \
+                ri += rs; \
+             }
+
+            DO_SEGMENT(iMiddle, leftIntersectAf, rightIntersectAf, topLeftSlopeFP, topRightSlopeFP)
+            DO_SEGMENT(iRight, leftIntersectBf, rightIntersectAf, bottomLeftSlopeFP, topRightSlopeFP)
+            DO_SEGMENT(iLeft, leftIntersectAf, rightIntersectBf, topLeftSlopeFP, bottomRightSlopeFP);
+            DO_SEGMENT(iBottom, leftIntersectBf, rightIntersectBf, bottomLeftSlopeFP, bottomRightSlopeFP);
+#undef DO_SEGMENT
+        }
+    }
 }

@@ -29,10 +29,74 @@ private Q_SLOTS:
     void matchesQtTransformedClippedPathCoverage();
     void matchesQtStrokePixels();
     void matchesQtGradientPixels();
+    void matchesQtTransformedImagePixels();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtTransformedImagePixels()
+{
+    for (int format = 0; format < 4; ++format) {
+    for (bool plus : {false, true}) {
+    for (bool smooth : {false, true}) {
+        for (bool antialias : {false, true}) {
+            QImage qtImage(25, 22, QImage::Format_ARGB32);
+            PkImage pkImage(25, 22, PkImage::Format_ARGB32);
+            qtImage.fill(0x80603040u); pkImage.fill(0x80603040u);
+            const QImage::Format qtFormats[] = {QImage::Format_ARGB32, QImage::Format_ARGB32_Premultiplied,
+                QImage::Format_Grayscale8, QImage::Format_Mono};
+            const PkImage::Format pkFormats[] = {PkImage::Format_ARGB32, PkImage::Format_ARGB32_Premultiplied,
+                PkImage::Format_Grayscale8, PkImage::Format_Mono};
+            QImage qtSource(5, 4, qtFormats[format]);
+            PkImage pkSource(5, 4, pkFormats[format]);
+            if (format == 3) {
+                qtSource.setColorTable({0xff000000u, 0xffffffffu});
+                pkSource.setColorTable({0xff000000u, 0xffffffffu});
+            }
+            std::mt19937 random(3217);
+            for (int y = 0; y < 4; ++y) for (int x = 0; x < 5; ++x) {
+                uint32_t pixel = random();
+                if (format == 1) pixel = qPremultiply(pixel);
+                if (format == 3) pixel = (x + y) % 2;
+                if (format == 2) {
+                    qtSource.scanLine(y)[x] = pixel & 255;
+                    pkSource.scanLine(y)[x] = pixel & 255;
+                } else {
+                    qtSource.setPixel(x, y, pixel); pkSource.setPixel(x, y, pixel);
+                }
+            }
+            QPainter qtPainter(&qtImage);
+            PkImageRasterBackend backend(pkImage);
+            PkPainter painter(backend);
+            qtPainter.setRenderHint(QPainter::Antialiasing, antialias);
+            painter.setRenderHint(PkPainter::Antialiasing, antialias);
+            qtPainter.setRenderHint(QPainter::SmoothPixmapTransform, smooth);
+            painter.setRenderHint(PkPainter::SmoothPixmapTransform, smooth);
+            qtPainter.setClipRect(QRectF(2, 1, 17, 14));
+            painter.setClipRect(PkRectF(2, 1, 17, 14));
+            qtPainter.translate(5, 2); painter.translate(5, 2);
+            qtPainter.rotate(17); painter.rotate(17);
+            qtPainter.setOpacity(0.9); painter.setOpacity(0.9);
+            if (plus) {
+                qtPainter.setCompositionMode(QPainter::CompositionMode_Plus);
+                painter.setCompositionMode(Pk::CompositionMode_Plus);
+            }
+            qtPainter.drawImage(QRectF(1.25, 2.5, 14, 9), qtSource);
+            painter.drawImage(PkRectF(1.25, 2.5, 14, 9), pkSource);
+            qtPainter.end();
+            for (int y = 0; y < 22; ++y) for (int x = 0; x < 25; ++x) {
+                const QString context = QStringLiteral("smooth=%1 aa=%2 x=%3 y=%4 Qt=%5 Pk=%6 format=%7 plus=%8")
+                    .arg(smooth).arg(antialias).arg(x).arg(y)
+                    .arg(qtImage.pixel(x, y), 8, 16, QLatin1Char('0'))
+                    .arg(pkImage.pixel(x, y), 8, 16, QLatin1Char('0')).arg(format).arg(plus);
+                QVERIFY2(pkImage.pixel(x, y) == qtImage.pixel(x, y), qPrintable(context));
+            }
+        }
+    }
+    }
+    }
+}
 
 void PkImageRasterBackendTest::matchesQtGradientPixels()
 {

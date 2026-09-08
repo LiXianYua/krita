@@ -19,10 +19,12 @@ public:
 
 private:
     void drawImage(const PkDrawImageCommand &command);
+    void drawTransformedImage(const PkDrawImageCommand &command);
     void fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle = false);
     void strokePath(const PkPainterPath &path, const PkPen &pen, bool point = false);
     void setClip(const PkPainterPath &path, Pk::ClipOperation operation);
     std::vector<unsigned char> coverage(const PkPainterPath &path) const;
+    std::vector<unsigned char> rectangleCoverage(const PkRectF &rect) const;
 
     PkImage &m_destination;
     struct State {

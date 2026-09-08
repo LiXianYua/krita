@@ -370,6 +370,27 @@ int gradientIndex(int index, PkGradient::Spread spread)
     return index;
 }
 
+bool scaleForTransform(const PkTransform &transform, qreal *scale)
+{
+    const auto type = transform.type();
+    if (type <= PkTransform::TxTranslate) { *scale = 1; return true; }
+    if (type == PkTransform::TxScale) {
+        const auto x = std::abs(transform.m11()), y = std::abs(transform.m22());
+        *scale = std::max(x, y);
+        return pkQtFuzzyCompare(x, y);
+    }
+    const double x1 = transform.m11() * transform.m11() + transform.m21() * transform.m21();
+    const double y1 = transform.m12() * transform.m12() + transform.m22() * transform.m22();
+    const double x2 = transform.m11() * transform.m11() + transform.m12() * transform.m12();
+    const double y2 = transform.m21() * transform.m21() + transform.m22() * transform.m22();
+    if (std::abs(x1 - y1) > std::abs(x2 - y2)) {
+        *scale = std::sqrt(std::max(x1, y1));
+        return type == PkTransform::TxRotate && pkQtFuzzyCompare(x1, y1);
+    }
+    *scale = std::sqrt(std::max(x2, y2));
+    return type == PkTransform::TxRotate && pkQtFuzzyCompare(x2, y2);
+}
+
 } // namespace
 
 PkImageRasterBackend::PkImageRasterBackend(PkImage &destination)
@@ -500,8 +521,8 @@ std::vector<unsigned char> PkImageRasterBackend::coverage(const PkPainterPath &p
     // different subdivision and produces observably different coverage.
     PkPainterPath flattened;
     flattened.setFillRule(path.fillRule());
-    const double scale = std::max(std::hypot(m_state.transform.m11(), m_state.transform.m12()),
-                                  std::hypot(m_state.transform.m21(), m_state.transform.m22()));
+    double scale;
+    scaleForTransform(m_state.transform, &scale);
     const double threshold = scale == 0 ? 0.25 : 0.25 / scale;
     const auto flatten = [&](auto &&self, PkPointF a, PkPointF b, PkPointF c, PkPointF d, int level) -> void {
         const double dx = d.x() - a.x(), dy = d.y() - a.y();
@@ -615,6 +636,33 @@ void PkImageRasterBackend::setClip(const PkPainterPath &path, Pk::ClipOperation 
     }
     m_state.clip = std::move(mask);
     m_state.hasClip = true;
+}
+
+std::vector<unsigned char> PkImageRasterBackend::rectangleCoverage(const PkRectF &rect) const
+{
+    double scale;
+    if (!scaleForTransform(m_state.transform, &scale)) {
+        PkPainterPath path; path.addRect(rect); return coverage(path);
+    }
+    std::vector<unsigned char> pixels(static_cast<std::size_t>(m_destination.width()) * m_destination.height());
+    if (rect.isEmpty() || m_destination.isNull()) return pixels;
+    struct Target { int width; unsigned char *pixels; } target {m_destination.width(), pixels.data()};
+    PkAliasedRasterizer raster;
+    raster.setAntialiased(m_state.hints & 1u);
+    raster.setClipRect(m_destination.rect());
+    raster.initialize([](int count, const PK_FT_Span *spans, void *data) {
+        const auto &target = *static_cast<Target *>(data);
+        for (int i = 0; i < count; ++i) {
+            const auto &span = spans[i];
+            std::fill_n(target.pixels + static_cast<std::size_t>(span.y) * target.width + span.x,
+                        span.len, span.coverage);
+        }
+    }, &target);
+    const auto bounds = rect.normalized();
+    const auto a = m_state.transform.map((bounds.topLeft() + bounds.bottomLeft()) * 0.5);
+    const auto b = m_state.transform.map((bounds.topRight() + bounds.bottomRight()) * 0.5);
+    raster.rasterizeLine(a, b, bounds.height() / bounds.width());
+    return pixels;
 }
 
 void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle)
@@ -741,10 +789,10 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
 void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pen, bool point)
 {
     if (pen.style() == Pk::NoPen) return;
-    const double scale = std::max(std::hypot(m_state.transform.m11(), m_state.transform.m12()),
-                                  std::hypot(m_state.transform.m21(), m_state.transform.m22()));
+    double scale;
+    const bool noShear = scaleForTransform(m_state.transform, &scale);
     const double width = pen.widthF() * (pen.isCosmetic() ? 1 : scale);
-    if (width <= 1) {
+    if (width <= 1 && (pen.isCosmetic() || noShear || !(m_state.hints & 1u))) {
         if (pen.brush().style() != Pk::SolidPattern || m_destination.format() != PkImage::Format_ARGB32) {
             throw std::logic_error("PkImageRasterBackend cosmetic brush/image format unsupported");
         }
@@ -799,8 +847,12 @@ void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pe
 
 void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
 {
-    if (!m_state.transform.isIdentity() || m_state.hasClip) {
-        throw std::logic_error("PkImageRasterBackend transformed/clipped image rasterization is not implemented");
+    if (command.image.format() != PkImage::Format_ARGB32 ||
+        !m_state.transform.isIdentity() || m_state.hasClip ||
+        !isIntegralCoordinate(command.target.x()) || !isIntegralCoordinate(command.target.y()) ||
+        command.target.width() != command.image.width() || command.target.height() != command.image.height()) {
+        drawTransformedImage(command);
+        return;
     }
     if (m_destination.format() != PkImage::Format_ARGB32 ||
         command.image.format() != PkImage::Format_ARGB32) {
@@ -855,6 +907,87 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
                            opacity,
                            i >= scalarStoreBegin,
                            m_state.mode));
+        }
+    }
+}
+
+void PkImageRasterBackend::drawTransformedImage(const PkDrawImageCommand &command)
+{
+    if (m_destination.format() != PkImage::Format_ARGB32) {
+        throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
+    }
+    switch (command.image.format()) {
+    case PkImage::Format_ARGB32:
+    case PkImage::Format_ARGB32_Premultiplied:
+    case PkImage::Format_Grayscale8:
+    case PkImage::Format_Mono:
+        break;
+    default:
+        throw std::invalid_argument("PkImageRasterBackend unsupported image source format");
+    }
+    if (command.image.isNull() || command.target.isEmpty()) return;
+    if (!m_state.transform.isAffine()) throw std::logic_error("PkImageRasterBackend projective image unsupported");
+    auto mask = rectangleCoverage(command.target);
+    PkTransform target;
+    target.translate(command.target.x(), command.target.y());
+    target.scale(command.target.width() / command.image.width(), command.target.height() / command.image.height());
+    const auto inverse = (PkTransform::fromTranslate(1.0 / 65536, 1.0 / 65536) *
+                          target * m_state.transform).inverted();
+    const bool smooth = m_state.hints & 4u;
+    const int stepX = int(inverse.m11() * 65536), stepY = int(inverse.m12() * 65536);
+    const unsigned opacity = unsigned(m_state.opacity * 256);
+    const auto fetch = [&](int x, int y) {
+        const auto pixel = command.image.pixel(std::clamp(x, 0, command.image.width() - 1),
+                                              std::clamp(y, 0, command.image.height() - 1));
+        // Premultiplied image bytes are already associated with alpha. Qt's
+        // RGBA64 fetch expands them directly; a second multiplication loses
+        // colored-glyph energy, especially along translucent edges.
+        if (command.image.format() == PkImage::Format_ARGB32_Premultiplied) {
+            return Rgba64Pixel {alpha(pixel) * 257u, red(pixel) * 257u,
+                                green(pixel) * 257u, blue(pixel) * 257u};
+        }
+        return premultiply64(pixel);
+    };
+    const auto interpolate = [](const Rgba64Pixel &a, const Rgba64Pixel &b, unsigned amount) {
+        if (!amount) return a;
+        const auto mix = [amount](unsigned x, unsigned y) { return ((x * (65536 - amount)) >> 16) + ((y * amount) >> 16); };
+        return Rgba64Pixel {mix(a.a, b.a), mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b)};
+    };
+    for (int y = 0; y < m_destination.height(); ++y) {
+        int x = 0;
+        const auto amountAt = [&](int x) {
+            const auto index = static_cast<std::size_t>(y) * m_destination.width() + x;
+            unsigned amount = mask[index];
+            if (m_state.hasClip) amount = (amount * m_state.clip[index] + 127) / 255;
+            return amount;
+        };
+        while (x < m_destination.width()) {
+            const unsigned amount = amountAt(x);
+            const int start = x++;
+            if (!amount) continue;
+            // Qt batches adjacent spans on one scanline even when coverage
+            // changes. Sampling fixed-point phase and SIMD store tails refer
+            // to that whole batch, not to each coverage run.
+            while (x < m_destination.width() && amountAt(x) != 0) ++x;
+            const int count = x - start;
+            const auto p = inverse.map(PkPointF(start + 0.5, y + 0.5));
+            int fx = int(p.x() * 65536) - (smooth ? 32768 : 0);
+            int fy = int(p.y() * 65536) - (smooth ? 32768 : 0);
+            const auto destinations = premultiplySpan(m_destination, y, start, count);
+            for (int i = 0; i < count; ++i, fx += stepX, fy += stepY) {
+                const int sx = fx >> 16, sy = fy >> 16;
+                Rgba64Pixel source = fetch(sx, sy);
+                if (smooth) {
+                    const auto right = fetch(sx + 1, sy);
+                    const auto bottom = fetch(sx, sy + 1);
+                    const auto bottomRight = fetch(sx + 1, sy + 1);
+                    source = interpolate(interpolate(source, bottom, fy & 65535),
+                                         interpolate(right, bottomRight, fy & 65535), fx & 65535);
+                }
+                m_destination.setPixel(start + i, y,
+                    compose(destinations[i], source, (amountAt(start + i) * opacity) >> 8,
+                            i >= count - count % 4, m_state.mode));
+            }
         }
     }
 }

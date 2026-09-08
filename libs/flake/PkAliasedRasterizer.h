@@ -20,6 +20,7 @@ public:
     void setLegacyRoundingEnabled(bool enabled);
     void initialize(ProcessSpans callback, void *data);
     void rasterize(const PK_FT_Outline *outline, Pk::FillRule fillRule);
+    void rasterizeLine(const PkPointF &a, const PkPointF &b, qreal width, bool squareCap = false);
 private:
     PkAliasedRasterizerPrivate *d;
 };
