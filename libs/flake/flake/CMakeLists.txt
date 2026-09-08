@@ -3,6 +3,7 @@ set(kritashapemodel_SOURCES
     ../PkImageRasterBackend.cpp
     ../PkGrayRaster.c
     ../PkAliasedRasterizer.cpp
+    ../PkCosmeticStroker.cpp
     ../kis_image_view_converter.cpp
     KisReferenceImagesLayer.cpp
     kis_shape_layer.cc

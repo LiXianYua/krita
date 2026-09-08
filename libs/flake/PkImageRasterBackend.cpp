@@ -6,6 +6,8 @@
 #include "PkImageRasterBackend.h"
 #include "PkGrayRaster.h"
 #include "PkAliasedRasterizer.h"
+#include <PkStrokeOutline.h>
+#include "PkCosmeticStroker.h"
 
 #include <algorithm>
 #include <cmath>
@@ -292,6 +294,10 @@ qreal PkImageRasterBackend::devicePixelRatio() const
 
 void PkImageRasterBackend::submit(const PkPaintCommand &command)
 {
+    if (const auto *stroke = std::get_if<PkStrokePathCommand>(&command)) {
+        strokePath(stroke->path, stroke->pen);
+        return;
+    }
     if (const auto *hint = std::get_if<PkSetRenderHintCommand>(&command)) {
         if (hint->enabled) m_state.hints |= hint->hint;
         else m_state.hints &= ~hint->hint;
@@ -553,6 +559,59 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
                     composeSolid(m_destination.pixel(start + i, y), source, amount, m_state.mode));
             }
         }
+    }
+}
+
+void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pen)
+{
+    if (pen.style() == Pk::NoPen) return;
+    const double scale = std::max(std::hypot(m_state.transform.m11(), m_state.transform.m12()),
+                                  std::hypot(m_state.transform.m21(), m_state.transform.m22()));
+    const double width = pen.widthF() * (pen.isCosmetic() ? 1 : scale);
+    if (width <= 1) {
+        if (pen.brush().style() != Pk::SolidPattern || m_destination.format() != PkImage::Format_ARGB32) {
+            throw std::logic_error("PkImageRasterBackend cosmetic brush/image format unsupported");
+        }
+        const uint32_t color = pen.color().rgba();
+        const unsigned opacity = static_cast<unsigned>(m_state.opacity * 256);
+        const unsigned a = (alpha(color) * 257u * opacity) >> 8;
+        const uint32_t source = argb(to8Bit(a),
+            to8Bit(divideBy65535(red(color) * 257u * a)),
+            to8Bit(divideBy65535(green(color) * 257u * a)),
+            to8Bit(divideBy65535(blue(color) * 257u * a)));
+        struct Context { PkImageRasterBackend *backend; uint32_t source; } context {this, source};
+        const auto blend = [](int count, const PK_FT_Span *spans, void *data) {
+            const auto &context = *static_cast<Context *>(data);
+            auto &backend = *context.backend;
+            for (int i = 0; i < count; ++i) {
+                const auto &span = spans[i];
+                for (int x = span.x; x < span.x + span.len; ++x) {
+                    unsigned amount = span.coverage;
+                    if (backend.m_state.hasClip) {
+                        const auto index = static_cast<std::size_t>(span.y) * backend.m_destination.width() + x;
+                        amount = (amount * backend.m_state.clip[index] + 127) / 255;
+                    }
+                    if (amount) backend.m_destination.setPixel(x, span.y,
+                        composeSolid(backend.m_destination.pixel(x, span.y), context.source,
+                                     amount, backend.m_state.mode));
+                }
+            }
+        };
+        PkCosmeticStroker stroker(pen, m_state.transform, m_state.hints & 1u, scale,
+                                  m_destination.rect(), blend, &context);
+        stroker.drawPath(path);
+        return;
+    }
+    if (pen.isCosmetic()) {
+        // Cosmetic pen width is measured after the world transform.
+        const auto transform = m_state.transform;
+        const auto outline = PkRender::createStrokeOutline(transform.map(path), pen);
+        m_state.transform = PkTransform();
+        try { fillPath(outline, pen.brush()); }
+        catch (...) { m_state.transform = transform; throw; }
+        m_state.transform = transform;
+    } else {
+        fillPath(PkRender::createStrokeOutline(path, pen), pen.brush());
     }
 }
 

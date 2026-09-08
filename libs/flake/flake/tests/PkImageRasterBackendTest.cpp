@@ -26,10 +26,52 @@ private Q_SLOTS:
     void matchesQtShortSpansAndTails();
     void matchesQtPlusPixelsAndOverlappingMasks();
     void matchesQtTransformedClippedPathCoverage();
+    void matchesQtStrokePixels();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtStrokePixels()
+{
+    for (double width : {0.0, 1.0, 3.25}) {
+    for (bool antialias : {false, true}) {
+        for (bool dashed : {false, true}) {
+            QImage qtImage(40, 32, QImage::Format_ARGB32);
+            PkImage pkImage(40, 32, PkImage::Format_ARGB32);
+            qtImage.fill(0u); pkImage.fill(0u);
+            QPainter qtPainter(&qtImage);
+            PkImageRasterBackend backend(pkImage);
+            PkPainter painter(backend);
+            qtPainter.setRenderHint(QPainter::Antialiasing, antialias);
+            painter.setRenderHint(PkPainter::Antialiasing, antialias);
+            qtPainter.translate(3.5, 2.25); painter.translate(3.5, 2.25);
+            QPainterPath qtPath;
+            PkPainterPath pkPath;
+            qtPath.moveTo(2, 3); pkPath.moveTo(2, 3);
+            qtPath.lineTo(22, 5); pkPath.lineTo(22, 5);
+            qtPath.lineTo(12, 24); pkPath.lineTo(12, 24);
+            QPen qtPen(QColor(71, 133, 237, 198), width);
+            PkPen pkPen(PkColor(71, 133, 237, 198), width);
+            qtPen.setCapStyle(Qt::RoundCap); pkPen.setCapStyle(Pk::RoundCap);
+            qtPen.setJoinStyle(Qt::MiterJoin); pkPen.setJoinStyle(Pk::MiterJoin);
+            if (dashed) { qtPen.setStyle(Qt::DashLine); pkPen.setStyle(Pk::DashLine); }
+            qtPainter.strokePath(qtPath, qtPen);
+            painter.strokePath(pkPath, pkPen);
+            qtPainter.end();
+            for (int y = 0; y < 32; ++y) {
+                for (int x = 0; x < 40; ++x) {
+                    const QString context = QStringLiteral("aa=%1 dash=%2 x=%3 y=%4 Qt=%5 Pk=%6")
+                        .arg(antialias).arg(dashed).arg(x).arg(y)
+                        .arg(qtImage.pixel(x, y), 8, 16, QLatin1Char('0'))
+                        .arg(pkImage.pixel(x, y), 8, 16, QLatin1Char('0'));
+                    QVERIFY2(pkImage.pixel(x, y) == qtImage.pixel(x, y), qPrintable(context));
+                }
+            }
+        }
+    }
+    }
+}
 
 void PkImageRasterBackendTest::matchesQtTransformedClippedPathCoverage()
 {
