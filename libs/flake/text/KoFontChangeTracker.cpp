@@ -4,29 +4,23 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KoFontChangeTracker.h"
-#include <PkFlakeBridge.h>
-
-#include <QFileSystemWatcher>
-#include <kis_signal_compressor.h>
-#include <QDebug>
+#include <filesystem>
+#include <system_error>
+#include <utility>
+#include <vector>
 
 struct KoFontChangeTracker::Private {
 
-    Private(PkStringList paths = PkStringList())
-        : fileSystemWatcher(toQStringList(paths)) {
-
-    }
-    QFileSystemWatcher fileSystemWatcher;
-
-    bool filesChanged = false;
-    bool configStale = false;
+    explicit Private(PkStringList paths)
+        : paths(std::move(paths)) {}
+    PkStringList paths;
+    std::vector<std::filesystem::file_time_type> timestamps;
 };
 
-KoFontChangeTracker::KoFontChangeTracker(PkStringList paths, QObject *parent)
-    : QObject(parent)
-    , d(new Private(paths))
+KoFontChangeTracker::KoFontChangeTracker(PkStringList paths)
+    : d(new Private(std::move(paths)))
 {
-    QObject::connect(&d->fileSystemWatcher, &QFileSystemWatcher::directoryChanged, this, &KoFontChangeTracker::directoriesChanged);
+    resetChangeTracker();
 }
 
 KoFontChangeTracker::~KoFontChangeTracker()
@@ -35,14 +29,21 @@ KoFontChangeTracker::~KoFontChangeTracker()
 
 void KoFontChangeTracker::resetChangeTracker()
 {
-    d->filesChanged = false;
+    d->timestamps.clear();
+    for (const PkString &path : d->paths) {
+        std::error_code error;
+        d->timestamps.push_back(std::filesystem::last_write_time(path.PkToUtf8(), error));
+    }
 }
 
-
-void KoFontChangeTracker::directoriesChanged()
+bool KoFontChangeTracker::directoriesChanged() const
 {
-    if (!d->filesChanged) {
-        d->filesChanged = true;
-        emit (sigUpdateConfig());
+    for (int i = 0; i < d->paths.size(); ++i) {
+        std::error_code error;
+        const auto timestamp = std::filesystem::last_write_time(d->paths.at(i).PkToUtf8(), error);
+        if (static_cast<std::size_t>(i) >= d->timestamps.size() || timestamp != d->timestamps[static_cast<std::size_t>(i)]) {
+            return true;
+        }
     }
+    return false;
 }

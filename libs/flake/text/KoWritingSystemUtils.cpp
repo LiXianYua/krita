@@ -4,350 +4,40 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KoWritingSystemUtils.h"
-#include <PkFlakeBridge.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <PkChar.h>
-#include <QRegularExpression>
-// 过渡期：BCP-47 tag 的 regex 校验（PkString 不做 regex，S-09-g）。
-static bool pkContainsRe(const PkString &s, const QRegularExpression &re)
+#include "KoLcLocale.h"
+#include <PkChar.h>
+#include <PkMap.h>
+#include <PkString.h>
+
+static bool isAsciiAlpha(const PkString &text)
 {
-    return toQString(s).contains(re);
+    if (text.isEmpty()) return false;
+    for (char16_t ch : text.PkToU16()) {
+        if (!((ch >= u'A' && ch <= u'Z') || (ch >= u'a' && ch <= u'z'))) return false;
+    }
+    return true;
 }
 
+static bool isAsciiDigit(const PkString &text)
+{
+    if (text.isEmpty()) return false;
+    for (char16_t ch : text.PkToU16()) {
+        if (ch < u'0' || ch > u'9') return false;
+    }
+    return true;
+}
 
-static PkMap<QFontDatabase::WritingSystem, PkString> WRITINGSYSTEM_SCRIPT_MAP {
-    {{QFontDatabase::Any},{"Zyyy"}},
-    {{QFontDatabase::Latin},{"Latn"}},
-    {{QFontDatabase::Greek},{"Grek"}},
-    {{QFontDatabase::Cyrillic},{"Cyrl"}},
-    {{QFontDatabase::Armenian},{"Armn"}},
-    {{QFontDatabase::Hebrew},{"Hebr"}},
-    {{QFontDatabase::Arabic},{"Arab"}},
-    {{QFontDatabase::Syriac},{"Syrc"}},
-    {{QFontDatabase::Thaana},{"Thaa"}},
-    {{QFontDatabase::Devanagari},{"Deva"}},
-    {{QFontDatabase::Bengali},{"Beng"}},
-    {{QFontDatabase::Gurmukhi},{"Guru"}},
-    {{QFontDatabase::Gujarati},{"Gujr"}},
-    {{QFontDatabase::Oriya},{"Orya"}},
-    {{QFontDatabase::Tamil},{"Taml"}},
-    {{QFontDatabase::Telugu},{"Telu"}},
-    {{QFontDatabase::Kannada},{"Knda"}},
-    {{QFontDatabase::Malayalam},{"Mylm"}},
-    {{QFontDatabase::Sinhala},{"Sinh"}},
-    {{QFontDatabase::Thai},{"Thai"}},
-    {{QFontDatabase::Lao},{"Laoo"}},
-    {{QFontDatabase::Tibetan},{"Tibt"}},
-    {{QFontDatabase::Myanmar},{"Mymr"}},
-    {{QFontDatabase::Georgian},{"Geor"}},
-    {{QFontDatabase::Khmer},{"Khmr"}},
-    {{QFontDatabase::SimplifiedChinese},{"Hans"}},
-    {{QFontDatabase::TraditionalChinese},{"Hant"}},
-    {{QFontDatabase::Japanese},{"Jpan"}},
-    {{QFontDatabase::Korean},{"Kore"}},
-    {{QFontDatabase::Ogham},{"Ogam"}},
-    {{QFontDatabase::Runic},{"Runr"}},
-    {{QFontDatabase::Nko},{"Nkoo"}},
-    /*{{QFontDatabase::Symbol},{"Zsye"}}, Symbol refers to the wingdings fonts, not actually unicode scripts.*/
-    {{QFontDatabase::Vietnamese},{"Latn"}},
-};
+static bool isAsciiAlphaNumeric(const PkString &text)
+{
+    if (text.isEmpty()) return false;
+    for (char16_t ch : text.PkToU16()) {
+        const bool alpha = (ch >= u'A' && ch <= u'Z') || (ch >= u'a' && ch <= u'z');
+        if (!alpha && !(ch >= u'0' && ch <= u'9')) return false;
+    }
+    return true;
+}
 
-static PkMap<QLocale::Script, PkString> QLOCALE_SCRIPT_MAP {
-    {{QLocale::LatinScript},{"Latn"}},
-    {{QLocale::GreekScript},{"Grek"}},
-    {{QLocale::CyrillicScript},{"Cyrl"}},
-    {{QLocale::ArmenianScript},{"Armn"}},
-    {{QLocale::HebrewScript},{"Hebr"}},
-    {{QLocale::ArabicScript},{"Arab"}},
-    {{QLocale::SyriacScript},{"Syrc"}},
-    {{QLocale::ThaanaScript},{"Thaa"}},
-    {{QLocale::DevanagariScript},{"Deva"}},
-    {{QLocale::BengaliScript},{"Beng"}},
-    {{QLocale::GurmukhiScript},{"Guru"}},
-    {{QLocale::GujaratiScript},{"Gujr"}},
-    {{QLocale::OriyaScript},{"Orya"}},
-    {{QLocale::TamilScript},{"Taml"}},
-    {{QLocale::TeluguScript},{"Telu"}},
-    {{QLocale::KannadaScript},{"Knda"}},
-    {{QLocale::MalayalamScript},{"Mylm"}},
-    {{QLocale::SinhalaScript},{"Sinh"}},
-    {{QLocale::ThaiScript},{"Thai"}},
-    {{QLocale::LaoScript},{"Laoo"}},
-    {{QLocale::TibetanScript},{"Tibt"}},
-    {{QLocale::MyanmarScript},{"Mymr"}},
-    {{QLocale::GeorgianScript},{"Geor"}},
-    {{QLocale::KhmerScript},{"Khmr"}},
-    {{QLocale::SimplifiedChineseScript},{"Hans"}},
-    {{QLocale::TraditionalChineseScript},{"Hant"}},
-    {{QLocale::JapaneseScript},{"Jpan"}},
-    {{QLocale::KoreanScript},{"Kore"}},
-    {{QLocale::OghamScript},{"Ogam"}},
-    {{QLocale::RunicScript},{"Runr"}},
-    {{QLocale::NkoScript},{"Nkoo"}},
-
-    {{QLocale::DeseretScript},{"Dsrt"}},
-    {{QLocale::MongolianScript},{"Mong"}},
-    {{QLocale::TifinaghScript},{"Tfng"}},
-    {{QLocale::CherokeeScript},{"Cher"}},
-    {{QLocale::EthiopicScript},{"Ethi"}},
-    {{QLocale::YiScript},{"Yiii"}},
-    {{QLocale::VaiScript},{"Vaii"}},
-    {{QLocale::AvestanScript},{"Avst"}},
-    {{QLocale::BalineseScript},{"Bali"}},
-    {{QLocale::BamumScript},{"Bamu"}},
-    {{QLocale::BopomofoScript},{"Bopo"}},
-    {{QLocale::BrahmiScript},{"Brah"}},
-    {{QLocale::BugineseScript},{"Bugi"}},
-    {{QLocale::BuhidScript},{"Buhd"}},
-    {{QLocale::CanadianAboriginalScript},{"Cans"}},
-    {{QLocale::CarianScript},{"Cari"}},
-    {{QLocale::ChakmaScript},{"Cakm"}},
-    {{QLocale::ChamScript},{"Cham"}},
-    {{QLocale::CopticScript},{"Copt"}},
-    {{QLocale::CypriotScript},{"Cprt"}},
-    {{QLocale::EgyptianHieroglyphsScript},{"Egyp"}},
-    {{QLocale::FraserScript},{"Lisu"}},
-    {{QLocale::GlagoliticScript},{"Glag"}},
-    {{QLocale::GothicScript},{"Goth"}},
-    {{QLocale::HanScript},{"Hani"}},
-    {{QLocale::HangulScript},{"Hang"}},
-    {{QLocale::HanunooScript},{"Hano"}},
-    {{QLocale::ImperialAramaicScript},{"Armi"}},
-    {{QLocale::InscriptionalPahlaviScript},{"Phli"}},
-    {{QLocale::InscriptionalParthianScript},{"Prti"}},
-    {{QLocale::JavaneseScript},{"Java"}},
-    {{QLocale::KaithiScript},{"Kthi"}},
-    {{QLocale::KatakanaScript},{"Kana"}},
-    {{QLocale::KayahLiScript},{"Kali"}},
-    {{QLocale::KharoshthiScript},{"Khar"}},
-    {{QLocale::LannaScript},{"Lana"}},
-    {{QLocale::LepchaScript},{"Lepc"}},
-    {{QLocale::LimbuScript},{"Limb"}},
-    {{QLocale::LinearBScript},{"Linb"}},
-    {{QLocale::LycianScript},{"Lyci"}},
-    {{QLocale::LydianScript},{"Lydi"}},
-    {{QLocale::MandaeanScript},{"Mand"}},
-    {{QLocale::MeiteiMayekScript},{"Mtei"}},
-    {{QLocale::MeroiticScript},{"Mero"}},
-    {{QLocale::MeroiticCursiveScript},{"Merc"}},
-    {{QLocale::NewTaiLueScript},{"Talu"}},
-    {{QLocale::OlChikiScript},{"Olck"}},
-    {{QLocale::OldItalicScript},{"Ital"}},
-    {{QLocale::OldPersianScript},{"Xpeo"}},
-    {{QLocale::OldSouthArabianScript},{"Sarb"}},
-    {{QLocale::OrkhonScript},{"Orkh"}},
-    {{QLocale::OsmanyaScript},{"Osma"}},
-    {{QLocale::PhagsPaScript},{"Phag"}},
-    {{QLocale::PhoenicianScript},{"Phnx"}},
-    {{QLocale::PollardPhoneticScript},{"Plrd"}},
-    {{QLocale::RejangScript},{"Rjng"}},
-    {{QLocale::SamaritanScript},{"Samr"}},
-    {{QLocale::SaurashtraScript},{"Saur"}},
-    {{QLocale::SharadaScript},{"Shrd"}},
-    {{QLocale::ShavianScript},{"Shaw"}},
-    {{QLocale::SoraSompengScript},{"Sora"}},
-    {{QLocale::CuneiformScript},{"Xsux"}},
-    {{QLocale::SundaneseScript},{"Sund"}},
-    {{QLocale::SylotiNagriScript},{"Sylo"}},
-    {{QLocale::TagalogScript},{"Tglg"}},
-    {{QLocale::TagbanwaScript},{"Tagb"}},
-    {{QLocale::TaiLeScript},{"Tale"}},
-    {{QLocale::TaiVietScript},{"Tavt"}},
-    {{QLocale::TakriScript},{"Takr"}},
-    {{QLocale::UgariticScript},{"Ugar"}},
-    {{QLocale::BrailleScript},{"Brai"}},
-    {{QLocale::HiraganaScript},{"Hira"}},
-    {{QLocale::CaucasianAlbanianScript},{"Aghb"}},
-    {{QLocale::BassaVahScript},{"Bass"}},
-    {{QLocale::DuployanScript},{"Dupl"}},
-    {{QLocale::ElbasanScript},{"Elba"}},
-    {{QLocale::GranthaScript},{"Gran"}},
-    {{QLocale::PahawhHmongScript},{"Hmng"}},
-    {{QLocale::KhojkiScript},{"Khoi"}},
-    {{QLocale::LinearAScript},{"Lina"}},
-    {{QLocale::MahajaniScript},{"Mahj"}},
-    {{QLocale::ManichaeanScript},{"Mani"}},
-    {{QLocale::MendeKikakuiScript},{"Mend"}},
-    {{QLocale::ModiScript},{"Modi"}},
-    {{QLocale::MroScript},{"Mroo"}},
-    {{QLocale::OldNorthArabianScript},{"Narb"}},
-    {{QLocale::NabataeanScript},{"Nbat"}},
-    {{QLocale::PalmyreneScript},{"Palm"}},
-    {{QLocale::PauCinHauScript},{"Pauc"}},
-    {{QLocale::PsalterPahlaviScript},{"Phlp"}},
-    {{QLocale::KhudawadiScript},{"Sind"}},
-    {{QLocale::TirhutaScript},{"Tirh"}},
-    {{QLocale::VarangKshitiScript},{"Wara"}},
-    {{QLocale::AhomScript},{"Ahom"}},
-    {{QLocale::AnatolianHieroglyphsScript},{"Hluw"}},
-    {{QLocale::HatranScript},{"Hatr"}},
-    {{QLocale::MultaniScript},{"Mult"}},
-    {{QLocale::OldHungarianScript},{"Hung"}},
-    {{QLocale::SignWritingScript},{"Sgnw"}},
-    {{QLocale::AdlamScript},{"Adlm"}},
-    {{QLocale::BhaiksukiScript},{"Bhks"}},
-    {{QLocale::BatakScript},{"Batk"}},
-    {{QLocale::MarchenScript},{"Marc"}},
-    {{QLocale::NewaScript},{"Newa"}},
-    {{QLocale::OsageScript},{"Osge"}},
-    {{QLocale::TangutScript},{"Tang"}},
-    {{QLocale::HanWithBopomofoScript},{"Hanb"}},
-    {{QLocale::JamoScript},{"Jamo"}},
-};
-
-static PkMap<PkChar::Script, PkString> QCHAR_SCRIPT_MAP {
+static PkMap<PkChar::Script, PkString> SCRIPT_TAG_MAP {
     {{PkChar::Script_Latin},{"Latn"}},
     {{PkChar::Script_Greek},{"Grek"}},
     {{PkChar::Script_Cyrillic},{"Cyrl"}},
@@ -506,76 +196,79 @@ static PkMap<PkChar::Script, PkString> QCHAR_SCRIPT_MAP {
     {{PkChar::Script_Yezidi},{"Yezi"}},
 };
 
-PkString KoWritingSystemUtils::scriptTagForWritingSystem(QFontDatabase::WritingSystem system) {
-    return WRITINGSYSTEM_SCRIPT_MAP.value(system);
-}
-
-QFontDatabase::WritingSystem KoWritingSystemUtils::writingSystemForScriptTag(const PkString &tag)
-{
-    return WRITINGSYSTEM_SCRIPT_MAP.key(tag, QFontDatabase::Any);
-}
-
-PkString KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::Script script)
-{
-    return QLOCALE_SCRIPT_MAP.value(script);
-}
-
-QLocale::Script KoWritingSystemUtils::scriptForScriptTag(const PkString &tag)
-{
-    return QLOCALE_SCRIPT_MAP.key(tag, QLocale::AnyScript);
-}
-
 PkString KoWritingSystemUtils::scriptTagForQCharScript(PkChar::Script script)
 {
-    return QCHAR_SCRIPT_MAP.value(script);
+    return SCRIPT_TAG_MAP.value(script);
 }
 
 PkChar::Script KoWritingSystemUtils::qCharScriptForScriptTag(const PkString &tag)
 {
-    return QCHAR_SCRIPT_MAP.key(tag, PkChar::Script_Unknown);
+    return SCRIPT_TAG_MAP.key(tag, PkChar::Script_Unknown);
 }
 
-#include <QDebug>
-// [migrate] missing include for Pk/Qt type
-#include <PkMap.h>
-// [migrate] missing include for Pk/Qt type
-#include <PkString.h>
+PkString KoWritingSystemUtils::scriptTagForLanguage(const PkString &locale)
+{
+    const Bcp47Locale bcp = parseBcp47Locale(locale);
+    if (!bcp.scriptTag.isEmpty()) return bcp.scriptTag;
+    if (bcp.languageTags.isEmpty()) return "Zyyy";
+    const PkString script = KoLc::defaultScriptTag(bcp.languageTags.first(), bcp.regionTag);
+    return script.isEmpty() ? PkString("Zyyy") : script;
+}
+
 PkMap<PkString, PkString> KoWritingSystemUtils::samples()
 {
     PkMap <PkString, PkString> samples;
-    // Also add simplified latin sample. By doing this first, it'll fall back nicely.
     samples.insert("AaBbGg", "s_Latn");
-
-    // Some symbol samples...
     samples.insert("\u263A\u2764\u2693\U0001F308", "s_Zsye"); // Emoji
     samples.insert("∆∅∞≠", "s_Zmth"); // Some math operators
     samples.insert("𝄞𝅘𝅥𝅮𝄿𝄻", "s_Zsym"); // Musical notes
     samples.insert("←↕↝↴", "s_Zsym"); // Arrows
-    for (int i = 0; i < QFontDatabase::WritingSystemsCount; i++) {
-        QFontDatabase::WritingSystem w = QFontDatabase::WritingSystem(i);
-        if (w == QFontDatabase::WritingSystem::Any) continue;
-
-        if (w == QFontDatabase::WritingSystem::Vietnamese) {
-            samples.insert(toPkString(QFontDatabase::writingSystemSample(QFontDatabase::Vietnamese)),
-                           "l_vi");
-        } else {
-            samples.insert(toPkString(QFontDatabase::writingSystemSample(w)),
-                           "s_"+WRITINGSYSTEM_SCRIPT_MAP.value(w, "Zyyy"));
-        }
-    }
-
+    // Exact Qt 5.15 QFontDatabase::writingSystemSample() values. These are
+    // data, not a platform-font lookup: retaining the full set preserves the
+    // original font coverage classification without linking QtGui.
+    samples.insert("AaÃáZz", "s_Latn");
+    samples.insert("ΓαΩω", "s_Grek");
+    samples.insert("Дджя", "s_Cyrl");
+    samples.insert("ԿՏկտ", "s_Armn");
+    samples.insert("אבגד", "s_Hebr");
+    samples.insert("أبجدية عربية", "s_Arab");
+    samples.insert("ܕܥܖܦ", "s_Syrc");
+    samples.insert("ބޔތލ", "s_Thaa");
+    samples.insert("अकथव", "s_Deva");
+    samples.insert("আখদশ", "s_Beng");
+    samples.insert("ਅਕਥਵ", "s_Guru");
+    samples.insert("અકથવ", "s_Gujr");
+    samples.insert("ଆଖଫଶ", "s_Orya");
+    samples.insert("உஙனஹ", "s_Taml");
+    samples.insert("అకథవ", "s_Telu");
+    samples.insert("ಅಕಥವ", "s_Knda");
+    samples.insert("അകഥവ", "s_Mylm");
+    samples.insert("ඐචධව", "s_Sinh");
+    samples.insert("ขฒยา", "s_Thai");
+    samples.insert("ຍຝອຽ", "s_Laoo");
+    samples.insert("ༀ༁༂༃", "s_Tibt");
+    samples.insert("ကခဂဃ", "s_Mymr");
+    samples.insert("ႠႰჀა", "s_Geor");
+    samples.insert("កថឰៀ", "s_Khmr");
+    samples.insert("中文范例", "s_Hans");
+    samples.insert("中文範例", "s_Hant");
+    samples.insert("サンプルです", "s_Jpan");
+    samples.insert("가갑갚갯", "s_Kore");
+    samples.insert("ỗộốồ", "l_vi");
+    samples.insert("AaBbZz", "s_Zyyy");
+    samples.insert("ᚁᚂᚃᚄ", "s_Ogam");
+    samples.insert("ᚠᚡᚢᚣ", "s_Runr");
+    samples.insert("ߊߋߌߍ", "s_Nkoo");
     return samples;
 }
 
-PkString KoWritingSystemUtils::sampleTagForQLocale(const QLocale &locale)
+PkString KoWritingSystemUtils::sampleTagForLocale(const PkString &locale)
 {
-    const QLocale vietnamese(QLocale::Vietnamese, QLocale::LatinScript, QLocale::AnyCountry);
-
-    if (locale == vietnamese) {
+    const Bcp47Locale bcp = parseBcp47Locale(locale);
+    if (!bcp.languageTags.isEmpty() && bcp.languageTags.first() == "vi") {
         return "l_vi";
     }
-
-    return "s_"+QLOCALE_SCRIPT_MAP.value(locale.script(), "Zyyy");
+    return "s_" + scriptTagForLanguage(locale);
 }
 
 // There's a number of tags that are kept around for compatibility.
@@ -614,18 +307,15 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
 
     if (tags.isEmpty()) return bcp;
 
-    const QRegularExpression alphas("^[A-Za-z]+$");
-    const QRegularExpression digits("^\\d+$");
-
     // Language -- single primary language, followed by optional 3 letter extended tags.
     if (tags.first().size() == 2 || tags.first().size() == 3) {
         bcp.languageTags.append(tags.takeFirst().toLower());
 
         // extensions only happen when first tag is 2 or 3 long.
-        while (!tags.isEmpty() && tags.first().size() == 3 && pkContainsRe(tags.first(), alphas)) {
+        while (!tags.isEmpty() && tags.first().size() == 3 && isAsciiAlpha(tags.first())) {
             bcp.languageTags.append(tags.takeFirst().toLower());
         }
-    } else if (tags.first().size() >= 4 || tags.first().size() <= 8) {
+    } else if (tags.first().size() >= 4 && tags.first().size() <= 8 && isAsciiAlpha(tags.first())) {
         // 4 alpha is reserved for future use and 5-8 is also legit, but practically doesn't exist...
         bcp.languageTags.append(tags.takeFirst().toLower());
     } else if (tags.first() == "i" && tags.size() > 0) {
@@ -638,7 +328,7 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
 
     // Script -- This is an 4 letter alpha only.
 
-    if (pkContainsRe(tags.first(), alphas) && tags.first().size() == 4) {
+    if (isAsciiAlpha(tags.first()) && tags.first().size() == 4) {
         bcp.scriptTag = tags.takeFirst().toLower();
         bcp.scriptTag = bcp.scriptTag.mid(0, 1).toUpper()+bcp.scriptTag.mid(1);
     }
@@ -647,8 +337,8 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
 
     // Region -- 2 letter alpha only.
 
-    if ((pkContainsRe(tags.first(), alphas) && tags.first().size() == 2)
-            || (pkContainsRe(tags.first(), digits) && tags.first().size() == 3)) {
+    if ((isAsciiAlpha(tags.first()) && tags.first().size() == 2)
+            || (isAsciiDigit(tags.first()) && tags.first().size() == 3)) {
         bcp.regionTag = tags.takeFirst().toUpper();
     }
 
@@ -656,11 +346,11 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
 
     // Variants -- [0+] alpha numerics, either between 5-8 char long, or 4 but starting with a digit.
 
-    const QRegularExpression variantAlphaNumeric("^\\d[A-Za-z0-9]{3}$");
-
     while (!tags.isEmpty()
            && ( (tags.first().size() >= 5 && tags.first().size() <= 8)
-               || (pkContainsRe(tags.first(), variantAlphaNumeric) && tags.first().size() == 4) )
+               || (tags.first().size() == 4
+                   && tags.first().at(0) >= u'0' && tags.first().at(0) <= u'9'
+                   && isAsciiAlphaNumeric(tags.first().mid(1))) )
            ) {
         bcp.variantTags.append(tags.takeFirst().toLower());
     }
@@ -690,16 +380,6 @@ KoWritingSystemUtils::Bcp47Locale KoWritingSystemUtils::parseBcp47Locale(const P
     }
 
     return bcp;
-}
-
-QLocale KoWritingSystemUtils::localeFromBcp47Locale(const Bcp47Locale &locale)
-{
-    return QLocale(toQString(locale.toPosixLocaleFormat()));
-}
-
-QLocale KoWritingSystemUtils::localeFromBcp47Locale(const PkString &locale)
-{
-    return localeFromBcp47Locale(parseBcp47Locale(locale));
 }
 
 bool KoWritingSystemUtils::Bcp47Locale::isValid() const

@@ -20,8 +20,6 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "SvgWriter.h"
 
 #include "SvgUtil.h"
@@ -44,12 +42,11 @@
 #include "PkSvgPainterBackend.h"
 
 #include <kis_debug.h>
-#include <KisPortingUtils.h>
 
 SvgWriter::SvgWriter(const PkList<KoShapeLayer*> &layers)
     : m_writeInlineImages(true)
 {
-    Q_FOREACH (KoShapeLayer *layer, layers)
+    for (KoShapeLayer *layer : layers)
         m_toplevelShapes.append(layer);
 }
 
@@ -152,7 +149,7 @@ bool SvgWriter::saveDetached(SvgSavingContext &savingContext)
 void SvgWriter::saveShapes(const PkList<KoShape *> shapes, SvgSavingContext &savingContext)
 {
     // top level shapes
-    Q_FOREACH (KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         KoShapeLayer *layer = dynamic_cast<KoShapeLayer*>(shape);
         if(layer) {
             saveLayer(layer, savingContext);
@@ -169,12 +166,12 @@ void SvgWriter::saveShapes(const PkList<KoShape *> shapes, SvgSavingContext &sav
 void SvgWriter::saveLayer(KoShapeLayer *layer, SvgSavingContext &context)
 {
     context.shapeWriter().startElement("g");
-    context.shapeWriter().addAttribute("id", toPkString(context.getID(layer)));
+    context.shapeWriter().addAttribute("id", context.getID(layer));
 
     PkList<KoShape*> sortedShapes = layer->shapes();
     std::sort(sortedShapes.begin(), sortedShapes.end(), KoShape::compareShapeZIndex);
 
-    Q_FOREACH (KoShape * shape, sortedShapes) {
+    for (KoShape * shape : sortedShapes) {
         KoShapeGroup * group = dynamic_cast<KoShapeGroup*>(shape);
         if (group)
             saveGroup(group, context);
@@ -188,7 +185,7 @@ void SvgWriter::saveLayer(KoShapeLayer *layer, SvgSavingContext &context)
 void SvgWriter::saveGroup(KoShapeGroup * group, SvgSavingContext &context)
 {
     context.shapeWriter().startElement("g");
-    context.shapeWriter().addAttribute("id", toPkString(context.getID(group)));
+    context.shapeWriter().addAttribute("id", context.getID(group));
 
     SvgUtil::writeTransformAttributeLazy("transform", group->transformation(), context.shapeWriter());
 
@@ -200,7 +197,7 @@ void SvgWriter::saveGroup(KoShapeGroup * group, SvgSavingContext &context)
     PkList<KoShape*> sortedShapes = group->shapes();
     std::sort(sortedShapes.begin(), sortedShapes.end(), KoShape::compareShapeZIndex);
 
-    Q_FOREACH (KoShape * shape, sortedShapes) {
+    for (KoShape * shape : sortedShapes) {
         KoShapeGroup * childGroup = dynamic_cast<KoShapeGroup*>(shape);
         if (childGroup)
             saveGroup(childGroup, context);
@@ -229,13 +226,13 @@ void SvgWriter::saveShape(KoShape *shape, SvgSavingContext &context)
 void SvgWriter::savePath(KoPathShape *path, SvgSavingContext &context)
 {
     context.shapeWriter().startElement("path");
-    context.shapeWriter().addAttribute("id", toPkString(context.getID(path)));
+    context.shapeWriter().addAttribute("id", context.getID(path));
 
     SvgUtil::writeTransformAttributeLazy("transform", path->transformation(), context.shapeWriter());
     SvgStyleWriter::saveSvgStyle(path, context);
 
-    context.shapeWriter().addAttribute("d", toPkString(path->toString(context.userSpaceTransform())));
-    context.shapeWriter().addAttribute("sodipodi:nodetypes", toPkString(path->nodeTypes()));
+    context.shapeWriter().addAttribute("d", path->toString(context.userSpaceTransform()));
+    context.shapeWriter().addAttribute("sodipodi:nodetypes", path->nodeTypes());
     SvgStyleWriter::saveMetadata(path, context);
     context.shapeWriter().endElement();
 }
@@ -264,12 +261,12 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
         painter.paint(image);
 
         context.shapeWriter().startElement("image");
-        context.shapeWriter().addAttribute("id", toPkString(context.getID(shape)));
+        context.shapeWriter().addAttribute("id", context.getID(shape));
         context.shapeWriter().addAttribute("x", bbox.x());
         context.shapeWriter().addAttribute("y", bbox.y());
         context.shapeWriter().addAttribute("width", bbox.width());
         context.shapeWriter().addAttribute("height", bbox.height());
-        context.shapeWriter().addAttribute("xlink:href", toPkString(context.saveImage(image)));
+        context.shapeWriter().addAttribute("xlink:href", context.saveImage(image));
         context.shapeWriter().endElement(); // image
 
     } else {

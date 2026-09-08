@@ -16,10 +16,9 @@
 #include <hb-ot.h>
 #include <hb.h>
 
-#include <QDebug>
+#include <PkGlobal.h>
+#include <PkMessageLogger.h>
 #include <PkSharedPointer.h>
-
-#include <kis_debug.h>
 
 namespace detail {
 
@@ -28,9 +27,11 @@ void checkCStyleResultWrapper(T *ptr)
 {
     const int result = P(ptr);
     if (result != 0) {
-        qWarning() << "WARNING: failed to release a library resource";
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+            << "WARNING: failed to release a library resource";
 #ifdef __GNUC__
-        qWarning() << "    source:" << __PRETTY_FUNCTION__;
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+            << "    source:" << __PRETTY_FUNCTION__;
 #endif
     }
 }

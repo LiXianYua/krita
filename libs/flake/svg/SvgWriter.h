@@ -18,6 +18,7 @@
 
 #include "kritaflake_export.h"
 #include <PkList.h>
+#include <PkString.h>
 #include <PkSize.h>
 
 class SvgSavingContext;
@@ -27,7 +28,6 @@ class KoShape;
 class KoPathShape;
 class PkStream;
 class PkStream;
-class PkString;
 
 /// Implements exporting shapes to SVG
 class KRITAFLAKE_EXPORT SvgWriter

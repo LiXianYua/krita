@@ -10,8 +10,6 @@
 #include <kis_algebra_2d.h>
 #include <kis_debug.h>
 
-#include <QPainter>
-
 #include <kistest.h>
 #include <PkFlakeBridge.h>
 #include <KoSvgTextShape.h>
@@ -39,6 +37,7 @@
 // PkFlags<KisTransformComponent>，剥离头不带 Q_DECLARE_METATYPE——在 real-Qt 测试 TU
 // 补注册，语义不变，仅让 QFETCH/QCOMPARE 能编。
 Q_DECLARE_METATYPE(KisAlgebra2D::KisTransformComponents)
+Q_DECLARE_METATYPE(PkTransform)
 
 namespace {
 
@@ -104,8 +103,6 @@ void paintShapes(KoShape *textShape, PkList<KoShape *> contourShapes, const PkSt
 #ifdef DEBUG_SHAPE_RENDERING
     PkImage image(PkSize(300, 200), PkImage::Format_ARGB32);
     image.fill(0);
-    QPainter gc(&image);
-    gc.setClipRect(image.rect());
 
     PkList<KoShape *> paintedShapes;
     if (textShape) {
@@ -115,8 +112,8 @@ void paintShapes(KoShape *textShape, PkList<KoShape *> contourShapes, const PkSt
 
     KoShapePainter p;
     p.setShapes(paintedShapes);
-    p.paint(gc, image.rect(), image.rect());
-    image.save(stripTestName(testName));
+    p.paint(image);
+    toQImage(image).save(toQString(stripTestName(testName)));
 #else /* DEBUG_SHAPE_RENDERING */
     Q_UNUSED(textShape)
     Q_UNUSED(contourShapes)
@@ -799,7 +796,7 @@ void TestSvgTextShape::testReorderShapesInside()
     }
     Q_FOREACH(KoShape *target, targets) {
         const int final = textShape->shapesInside().indexOf(target);
-        QVERIFY2(final == start, PkString("Expected: %1, got: %2").arg(start).arg(final).toLatin1());
+        QVERIFY2(final == start, PkString("Expected: %1, got: %2").arg(start).arg(final).toLatin1().constData());
         start +=1;
     }
 
@@ -808,14 +805,14 @@ void TestSvgTextShape::testReorderShapesInside()
     int startOld = 2;
     Q_FOREACH(KoShape *target, targets) {
         const int final = textShape->shapesInside().indexOf(target);
-        QVERIFY2(final == startOld, PkString("Expected: %1, got: %2").arg(startOld).arg(final).toLatin1());
+        QVERIFY2(final == startOld, PkString("Expected: %1, got: %2").arg(startOld).arg(final).toLatin1().constData());
         startOld+=1;
     }
 }
 
 void TestSvgTextShape::testTextPathOnRange_data()
 {
-    QTest::addColumn<PkString>("svg");
+    QTest::addColumn<QString>("svg");
     QTest::addColumn<int>("startPos");
     QTest::addColumn<int>("endPos");
 
@@ -842,13 +839,13 @@ void TestSvgTextShape::testTextPathOnRange()
     // TODO: test a case when mulitple path shapes have the same original id
     // TODO: assigned names should be removed/undone
 
-    QFETCH(PkString, svg);
+    QFETCH(QString, svg);
     QFETCH(int, startPos);
     QFETCH(int, endPos);
     KoSvgTextShape *textShape = new KoSvgTextShape();
     textShape->setPosition(PkPointF(10,10));
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(svg, PkString(), PkRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(svg), PkString(), PkRectF(0, 0, 300, 300), 72.0);
     KoPathShape *path = createPath();
     KoSvgTextSetTextPathOnRangeCommand *cmd = new KoSvgTextSetTextPathOnRangeCommand(textShape, path, startPos, endPos);
 

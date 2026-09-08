@@ -35,6 +35,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/pk/xml
     ${CMAKE_SOURCE_DIR}/pk/namespace
     ${CMAKE_SOURCE_DIR}/pk/render
+    ${CMAKE_SOURCE_DIR}/pk/font
 )
 
 if(NOT TARGET pkrender)
@@ -520,6 +521,7 @@ target_include_directories(kritaflake
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/xml>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/render>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/font>
 )
 
 set_target_properties(libraqm PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -542,7 +544,7 @@ target_link_libraries(kritaflake
         # add_subdirectory(pk) 定义，此处只接线。
         pkstring pkcontainer pkcolor pkgeometry pkvariant pkxml pkimage pkport pkpointer
         pkconcurrent pklog pksignal pktime pkconfig pkflags pknamespace
-        pkrender
+        pkrender pkfont
         Boost::boost
         Freetype::Freetype
         HarfBuzz::HarfBuzz

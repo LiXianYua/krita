@@ -4,9 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
-
 #include "KoPolygonUtils.h"
 #include <boost/polygon/polygon.hpp>
 #include <pk/geometry/PkPoint.h>
@@ -70,7 +67,7 @@ namespace boost { namespace polygon {
         }
 
         static inline winding_direction winding(const PkPolygon& t) {
-            Q_UNUSED(t);
+            (void)t;
             return unknown_winding;
         }
     };

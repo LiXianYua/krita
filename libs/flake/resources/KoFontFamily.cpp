@@ -102,14 +102,12 @@ PkByteArray pkStringToByteArray(const PkString &s)
     return PkByteArray(u8.data(), int(u8.size()));
 }
 
-// 本地化标签 PkHash<QLocale,PkString> → PkVariantMap<bcp47Name, label>。
-// lang 键统一走 R-31 locale 层 bcp47Name()，与旧 producer 的 QLocale::bcp47Name()
-// 语义一致（保留冗余子标签的最短形式，见 KoLcLocale.h）。
-PkVariantMap localeHashToPkVariantMap(const PkHash<QLocale, PkString> &names)
+// 本地化标签 PkHash<bcp47Name, label> → PkVariantMap<bcp47Name, label>。
+PkVariantMap localeHashToPkVariantMap(const PkHash<PkString, PkString> &names)
 {
     PkVariantMap map;
     for (auto it = names.constBegin(); it != names.constEnd(); ++it) {
-        map.emplace(KoLc::bcp47Name(toPkString(it.key().name())), PkVariant(toPkString(it.value())));
+        map.emplace(KoLc::bcp47Name(it.key()), PkVariant(it.value()));
     }
     return map;
 }
@@ -180,8 +178,8 @@ KoFontFamily::KoFontFamily(KoFontFamilyWWSRepresentation representation)
     }
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_STRING, samples);
     PkVariantList supportedLanguages;
-    for (const QLocale &l : representation.supportedLanguages) {
-        supportedLanguages.push_back(PkVariant(KoLc::bcp47Name(toPkString(l.name()))));
+    for (const PkString &language : representation.supportedLanguages) {
+        supportedLanguages.push_back(PkVariant(KoLc::bcp47Name(language)));
     }
     addMetaData(KoFontFamilyMetadata::KEY_SUPPORTED_LANGUAGES, supportedLanguages);
 
@@ -344,7 +342,7 @@ PkList<KoSvgText::FontFamilyAxis> KoFontFamily::axes() const
         KoSvgText::FontFamilyAxis axis;
         axis.tag = pkToQString(entry->tag);
         for (auto it = entry->localizedLabels.begin(); it != entry->localizedLabels.end(); ++it) {
-            axis.localizedLabels.insert(QLocale(toQString(it->first)), it->second.toString());
+            axis.localizedLabels.insert(it->first, it->second.toString());
         }
         axis.min = entry->min;
         axis.max = entry->max;
@@ -369,7 +367,7 @@ PkList<KoSvgText::FontFamilyStyleInfo> KoFontFamily::styles() const
         }
         KoSvgText::FontFamilyStyleInfo style;
         for (auto it = entry->localizedLabels.begin(); it != entry->localizedLabels.end(); ++it) {
-            style.localizedLabels.insert(QLocale(toQString(it->first)), it->second.toString());
+            style.localizedLabels.insert(it->first, it->second.toString());
         }
         for (auto it = entry->instanceCoords.begin(); it != entry->instanceCoords.end(); ++it) {
             style.instanceCoords.insert(pkToQString(it->first), float(it->second.toDouble()));

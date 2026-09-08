@@ -79,6 +79,12 @@ target_include_directories(KoCanvasDeferredCallTest PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/concurrent
     )
 
+kis_add_test(
+    KoSvgTextHtmlNativeTest.cpp
+    TEST_NAME KoSvgTextHtmlNativeTest
+    LINK_LIBRARIES kritaflake kritatestsdk
+    )
+
 ############## broken tests ###############
 
 kis_add_test(TestPointMergeCommand.cpp

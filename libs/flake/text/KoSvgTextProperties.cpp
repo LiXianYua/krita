@@ -4,16 +4,17 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoSvgTextProperties.h"
 
-#include <QFontMetrics>
-#include <QGlobalStatic>
+#include <PkGlobal.h>
 #include <PkMap.h>
-#include <QRegularExpression>
+#include <PkColor.h>
+#include <PkMessageLogger.h>
 
 #include <fontconfig/fontconfig.h>
+
+#include <algorithm>
+#include <cmath>
 
 #include <SvgGraphicContext.h>
 #include <SvgLoadingContext.h>
@@ -277,9 +278,14 @@ std::pair<PkString, PkString> parseTag(PkString taggedValue) {
     return tag;
 }
 // 过渡期：PkString 不做 regex（S-09-g）。
-static bool pkContainsRe(const PkString &s, const QRegularExpression &re)
+static bool containsAsciiDigit(const PkString &text)
 {
-    return toQString(s).contains(re);
+    for (char16_t ch : text.PkToU16()) {
+        if (ch >= u'0' && ch <= u'9') {
+            return true;
+        }
+    }
+    return false;
 }
 
 
@@ -366,13 +372,12 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
         KoSvgText::BaselineShiftMode mode = KoSvgText::parseBaselineShiftMode(value);
         setProperty(BaselineShiftModeId, mode);
         if (mode == KoSvgText::ShiftLengthPercentage) {
-            KoSvgText::CssLengthPercentage shift = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
+            KoSvgText::CssLengthPercentage shift = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
             setProperty(BaselineShiftValueId, PkVariant::fromValue(shift));
         }
     } else if (command == "vertical-align") {
-        QRegularExpression digits = QRegularExpression("\\d");
-        Q_FOREACH (const PkString &param, value.split(' ', Pk::SkipEmptyParts)) {
-            bool paramContains = pkContainsRe(param, digits);
+        for (const PkString &param : value.split(' ', Pk::SkipEmptyParts)) {
+            const bool paramContains = containsAsciiDigit(param);
 
             if (param == "sub" || param == "super" || param == "top" || param == "bottom" || paramContains) {
                 parseSvgTextAttribute(context, "baseline-shift", param);
@@ -398,7 +403,7 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
         setProperty(WordSpacingId, PkVariant::fromValue(KoSvgText::parseAutoLengthPercentageXY(value, context, "normal", context.currentGC()->currentBoundingBox, true)));
     } else if (command == "font-family") {
         PkStringList familiesList;
-        Q_FOREACH (const PkString &fam, value.split(',', Pk::SkipEmptyParts)) {
+        for (const PkString &fam : value.split(',', Pk::SkipEmptyParts)) {
             PkString family = fam.trimmed();
             if ((family.startsWith('\"') && family.endsWith('\"')) ||
                 (family.startsWith('\'') && family.endsWith('\''))) {
@@ -414,7 +419,7 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
     } else if (command == "font-variant" || command == "font-variant-ligatures" || command == "font-variant-position" || command == "font-variant-caps"
                || command == "font-variant-numeric" || command == "font-variant-east-asian" || command == "font-variant-alternates") {
         const PkStringList features = value.split(" ");
-        Q_FOREACH (const PkString f, features) {
+        for (const PkString &f : features) {
             bool commandFontVariant = (command == "font-variant");
             if (commandFontVariant || command == "font-variant-ligatures") {
                 KoSvgText::FontFeatureLigatures liga = property(FontVariantLigatureId).value<KoSvgText::FontFeatureLigatures>();
@@ -458,7 +463,7 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
         setProperty(FontWeightId, weight);
 
     } else if (command == "font-size") {
-        const KoSvgText::CssLengthPercentage pointSize = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
+        const KoSvgText::CssLengthPercentage pointSize = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
         if (pointSize.value > 0.0) {
             setProperty(FontSizeId, PkVariant::fromValue(pointSize));
         }
@@ -484,7 +489,7 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
         PkColor textDecorationColor = propertyOrDefault(TextDecorationStyleId).value<PkColor>();
         bool setPosition = false;
 
-        Q_FOREACH (const PkString &param, value.split(' ', Pk::SkipEmptyParts)) {
+        for (const PkString &param : value.split(' ', Pk::SkipEmptyParts)) {
             if (param == "line-through") {
                 deco |= DecorationLineThrough;
             } else if (param == "underline") {
@@ -513,11 +518,7 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
             } else if (param == "right") {
                 underlinePos.verticalPosition = UnderlineRight;
                 setPosition = true;
-#if QT_VERSION < QT_VERSION_CHECK(6, 6, 0)
             } else if (PkColor::isValidColor(param)) {
-#else
-            } else if (PkColor::isValidColorName(param)) {
-#endif
                 // TODO: Convert to KoColor::fromSvg11.
                 textDecorationColor = PkColor(param);
             }
@@ -579,7 +580,7 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
         setProperty(TextIndentId, PkVariant::fromValue(KoSvgText::parseTextIndent(value, context)));
     } else if (command == "hanging-punctuation") {
         KoSvgText::HangingPunctuations hang;
-        Q_FOREACH (const PkString &param, value.split(' ', Pk::SkipEmptyParts)) {
+        for (const PkString &param : value.split(' ', Pk::SkipEmptyParts)) {
             if (param == "first") {
                 hang.setFlag(KoSvgText::HangFirst, true);
             } else if (param == "last") {
@@ -607,10 +608,10 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
     } else if (command == "tab-size") {
         setProperty(TabSizeId, PkVariant::fromValue(KoSvgText::parseTabSize(value, context)));
     } else if (command == "shape-padding") {
-        const KoSvgText::CssLengthPercentage size = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
+        const KoSvgText::CssLengthPercentage size = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
         setProperty(ShapePaddingId, PkVariant::fromValue(size));
     } else if (command == "shape-margin") {
-        const KoSvgText::CssLengthPercentage size = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
+        const KoSvgText::CssLengthPercentage size = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
         setProperty(ShapeMarginId, PkVariant::fromValue(size));
     } else if (command == "font-synthesis") {
         setProperty(FontSynthesisBoldId, false);
@@ -643,7 +644,10 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
     } else if (command == "text-rendering") {
         setProperty(TextRenderingId, KoSvgText::parseTextRendering(value));
     } else {
-        qFatal("FATAL: Unknown SVG property: %s = %s", command.toUtf8().data(), value.toUtf8().data());
+        PkMessageLogger(__FILE__, __LINE__, __func__).fatal(
+            "FATAL: Unknown SVG property: %s = %s",
+            command.PkToUtf8().c_str(),
+            value.PkToUtf8().c_str());
     }
 }
 
@@ -1029,7 +1033,7 @@ PkMap<PkString, PkString> KoSvgTextProperties::convertParagraphProperties() cons
     return result;
 }
 
-QFont KoSvgTextProperties::generateFont() const
+PkFont KoSvgTextProperties::generateFont() const
 {
     PkString fontFamily;
 
@@ -1038,20 +1042,20 @@ QFont KoSvgTextProperties::generateFont() const
     if (!familiesList.isEmpty()) {
         fontFamily = familiesList.first();
     }
-    const QFont::Style style =
-        QFont::Style(propertyOrDefault(KoSvgTextProperties::FontStyleId).toInt());
+    const PkFontStyle style = propertyOrDefault(KoSvgTextProperties::FontStyleId)
+                                  .value<KoSvgText::CssFontStyleData>()
+                                  .style;
 
     KoSvgText::CssLengthPercentage fontSize = this->fontSize();
 
-    // for rounding see a comment below!
-    QFont font(toQString(fontFamily)
-               , qMax(qRound(fontSize.value), 1)
-               , propertyOrDefault(KoSvgTextProperties::FontWeightId).toInt()
-               , style != QFont::StyleNormal);
+    PkFont font(fontFamily.PkToUtf8(),
+                std::max(static_cast<int>(std::lround(fontSize.value)), 1),
+                propertyOrDefault(KoSvgTextProperties::FontWeightId).toInt(),
+                style != PkFontStyleNormal);
     font.setStyle(style);
 
     /**
-     * The constructor of QFont cannot accept fractional font size, so we pass
+     * The integer constructor cannot accept fractional font size, so we pass
      * a rounded one to it and set the correct one later on
      */
     font.setPointSizeF(fontSize.value);
@@ -1066,27 +1070,8 @@ QFont KoSvgTextProperties::generateFont() const
     font.setUnderline(deco & DecorationUnderline);
     font.setOverline(deco & DecorationOverline);
 
-    struct FakePaintDevice : public QPaintDevice
-    {
-        QPaintEngine *paintEngine() const override {
-            return nullptr;
-        }
-
-        int metric(QPaintDevice::PaintDeviceMetric metric) const override {
-
-            if (metric == QPaintDevice::PdmDpiX || metric == QPaintDevice::PdmDpiY) {
-                return 72;
-            }
-
-
-            return QPaintDevice::metric(metric);
-        }
-    };
-
-    // paint device is used only to initialize DPI, so
-    // we can delete it right after creation of the font
-    FakePaintDevice fake72DpiPaintDevice;
-    return QFont(font, &fake72DpiPaintDevice);
+    font.setDpi(72);
+    return font;
 }
 
 qreal KoSvgTextProperties::xHeight() const
@@ -1241,67 +1226,65 @@ PkStringList KoSvgTextProperties::supportedXmlAttributes()
     return attributes;
 }
 
-namespace {
-Q_GLOBAL_STATIC(KoSvgTextProperties, s_defaultProperties)
-}
-
 const KoSvgTextProperties &KoSvgTextProperties::defaultProperties()
 {
-    if (!s_defaultProperties.exists()) {
+    static const KoSvgTextProperties properties = [] {
+        KoSvgTextProperties result;
         using namespace KoSvgText;
 
-        s_defaultProperties->setProperty(WritingModeId, HorizontalTB);
-        s_defaultProperties->setProperty(DirectionId, DirectionLeftToRight);
-        s_defaultProperties->setProperty(UnicodeBidiId, BidiNormal);
-        s_defaultProperties->setProperty(TextAnchorId, AnchorStart);
-        s_defaultProperties->setProperty(DominantBaselineId, BaselineAuto);
-        s_defaultProperties->setProperty(AlignmentBaselineId, BaselineDominant);
-        s_defaultProperties->setProperty(BaselineShiftModeId, ShiftNone);
-        s_defaultProperties->setProperty(BaselineShiftValueId, PkVariant::fromValue(KoSvgText::CssLengthPercentage()));
-        s_defaultProperties->setProperty(KerningId, fromAutoValue(AutoValue()));
-        s_defaultProperties->setProperty(TextOrientationId, OrientationMixed);
-        s_defaultProperties->setProperty(LetterSpacingId, PkVariant::fromValue(AutoLengthPercentage()));
-        s_defaultProperties->setProperty(WordSpacingId, PkVariant::fromValue(AutoLengthPercentage()));
+        result.setProperty(WritingModeId, HorizontalTB);
+        result.setProperty(DirectionId, DirectionLeftToRight);
+        result.setProperty(UnicodeBidiId, BidiNormal);
+        result.setProperty(TextAnchorId, AnchorStart);
+        result.setProperty(DominantBaselineId, BaselineAuto);
+        result.setProperty(AlignmentBaselineId, BaselineDominant);
+        result.setProperty(BaselineShiftModeId, ShiftNone);
+        result.setProperty(BaselineShiftValueId, PkVariant::fromValue(KoSvgText::CssLengthPercentage()));
+        result.setProperty(KerningId, fromAutoValue(AutoValue()));
+        result.setProperty(TextOrientationId, OrientationMixed);
+        result.setProperty(LetterSpacingId, PkVariant::fromValue(AutoLengthPercentage()));
+        result.setProperty(WordSpacingId, PkVariant::fromValue(AutoLengthPercentage()));
 
-        s_defaultProperties->setProperty(FontFamiliesId, toPkString(QStringLiteral("sans-serif")));
-        s_defaultProperties->setProperty(FontStyleId, PkVariant::fromValue(KoSvgText::CssFontStyleData()));
-        s_defaultProperties->setProperty(FontStretchId, 100);
-        s_defaultProperties->setProperty(FontWeightId, 400);
-        s_defaultProperties->setProperty(FontSizeId, PkVariant::fromValue(KoSvgText::CssLengthPercentage(12.0)));
-        s_defaultProperties->setProperty(FontSizeAdjustId, fromAutoValue(AutoValue()));
+        result.setProperty(FontFamiliesId, PkStringList{PkString("sans-serif")});
+        result.setProperty(FontStyleId, PkVariant::fromValue(KoSvgText::CssFontStyleData()));
+        result.setProperty(FontStretchId, 100);
+        result.setProperty(FontWeightId, 400);
+        result.setProperty(FontSizeId, PkVariant::fromValue(KoSvgText::CssLengthPercentage(12.0)));
+        result.setProperty(FontSizeAdjustId, fromAutoValue(AutoValue()));
 
-        s_defaultProperties->setProperty(FontSynthesisBoldId, true);
-        s_defaultProperties->setProperty(FontSynthesisItalicId, true);
-        s_defaultProperties->setProperty(FontSynthesisSmallCapsId, true);
-        s_defaultProperties->setProperty(FontSynthesisSuperSubId, true);
+        result.setProperty(FontSynthesisBoldId, true);
+        result.setProperty(FontSynthesisItalicId, true);
+        result.setProperty(FontSynthesisSmallCapsId, true);
+        result.setProperty(FontSynthesisSuperSubId, true);
 
-        s_defaultProperties->setProperty(FontOpticalSizingId, true);
-        s_defaultProperties->setProperty(TextRenderingId, RenderingAuto);
+        result.setProperty(FontOpticalSizingId, true);
+        result.setProperty(TextRenderingId, RenderingAuto);
         {
             using namespace KoSvgText;
             TextDecorations deco = DecorationNone;
 
-            s_defaultProperties->setProperty(TextDecorationLineId, PkVariant::fromValue(deco));
-            s_defaultProperties->setProperty(TextDecorationPositionId, PkVariant::fromValue(KoSvgText::TextUnderlinePosition()));
-            s_defaultProperties->setProperty(TextDecorationColorId, PkVariant::fromValue(Qt::transparent));
-            s_defaultProperties->setProperty(TextDecorationStyleId, Solid);
+            result.setProperty(TextDecorationLineId, PkVariant::fromValue(deco));
+            result.setProperty(TextDecorationPositionId, PkVariant::fromValue(KoSvgText::TextUnderlinePosition()));
+            result.setProperty(TextDecorationColorId, PkVariant::fromValue(PkColor(Pk::transparent)));
+            result.setProperty(TextDecorationStyleId, Solid);
 
-            s_defaultProperties->setProperty(TextCollapseId, Collapse);
-            s_defaultProperties->setProperty(TextWrapId, Wrap);
+            result.setProperty(TextCollapseId, Collapse);
+            result.setProperty(TextWrapId, Wrap);
             TextSpaceTrims trim = TrimNone;
-            s_defaultProperties->setProperty(TextTrimId, PkVariant::fromValue(trim));
-            s_defaultProperties->setProperty(LineBreakId, LineBreakAuto);
-            s_defaultProperties->setProperty(WordBreakId, WordBreakNormal);
-            s_defaultProperties->setProperty(TextAlignAllId, AlignStart);
-            s_defaultProperties->setProperty(TextAlignLastId, AlignLastAuto);
-            s_defaultProperties->setProperty(TextTransformId, TextTransformNone);
-            s_defaultProperties->setProperty(LineHeightId, PkVariant::fromValue(KoSvgText::LineHeightInfo()));
-            s_defaultProperties->setProperty(TabSizeId, PkVariant::fromValue(KoSvgText::TabSizeInfo()));
+            result.setProperty(TextTrimId, PkVariant::fromValue(trim));
+            result.setProperty(LineBreakId, LineBreakAuto);
+            result.setProperty(WordBreakId, WordBreakNormal);
+            result.setProperty(TextAlignAllId, AlignStart);
+            result.setProperty(TextAlignLastId, AlignLastAuto);
+            result.setProperty(TextTransformId, TextTransformNone);
+            result.setProperty(LineHeightId, PkVariant::fromValue(KoSvgText::LineHeightInfo()));
+            result.setProperty(TabSizeId, PkVariant::fromValue(KoSvgText::TabSizeInfo()));
             HangingPunctuations hang = HangNone;
-            s_defaultProperties->setProperty(HangingPunctuationId, PkVariant::fromValue(hang));
+            result.setProperty(HangingPunctuationId, PkVariant::fromValue(hang));
         }
-    }
-    return *s_defaultProperties;
+        return result;
+    }();
+    return properties;
 }
 
 bool KoSvgTextProperties::propertyIsBlockOnly(PropertyId id)
@@ -1318,4 +1301,3 @@ bool KoSvgTextProperties::propertyIsInheritable(PropertyId id) const
 {
     return m_d->isInheritable(id);
 }
-

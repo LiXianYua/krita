@@ -35,7 +35,7 @@ struct KoSvgTextShapeOutlineHelper::Private {
     }
 
     KoSvgTextShape *getPotentialTextShape(const PkPointF &point) {
-        Q_FOREACH(KoShape*shape, canvas->shapeManager()->selection()->selectedEditableShapes()) {
+        for (KoShape*shape : canvas->shapeManager()->selection()->selectedEditableShapes()) {
             KoSvgTextShape *text = dynamic_cast<KoSvgTextShape*>(shape);
             if (drawButton(text)) {
                 if (getButtonRectCorrected(text->boundingRect()).contains(point)) {
@@ -97,7 +97,7 @@ PkList<PkLineF> getTextAreaOrderArrows(PkList<PkPainterPath> areas) {
             for (const PkPolygonF &p : next.toSubpathPolygons(PkTransform())) {
                 if (p.size() == 1) continue;
                 for (int j = 1; j < p.size(); j++) {
-                    PkLineF l2(toPkPointF(p.at(j-1)), toPkPointF(p.at(j)));
+                    PkLineF l2(p.at(j-1), p.at(j));
                     PkPointF intersect;
                     if (l2.intersects(arrow, &intersect) == PkLineF::BoundedIntersection) {
                         arrow.setP2(intersect);
@@ -193,7 +193,7 @@ PkRectF KoSvgTextShapeOutlineHelper::decorationRect()
         base |= d->getButtonRectCorrected(base);
         decorationRect = base;
     } else {
-        Q_FOREACH(KoShape* shape, d->canvas->shapeManager()->selection()->selectedEditableShapes()) {
+        for (KoShape* shape : d->canvas->shapeManager()->selection()->selectedEditableShapes()) {
             text = dynamic_cast<KoSvgTextShape*>(shape);
             if (d->drawButton(text)) {
                 PkRectF base = text->boundingRect();

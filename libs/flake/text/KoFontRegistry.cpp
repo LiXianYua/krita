@@ -3,28 +3,23 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoFontRegistry.h"
-#include "FlakeDebug.h"
 #include "KoCssTextUtils.h"
 #include "KoFontProviderFontconfig.h"
 
-#include <QApplication>
-#include <QDebug>
-#include <QDir>
 #include <PkFileStream.h>
-#include <QGlobalStatic>
+#include <PkGlobal.h>
+#include <PkMessageLogger.h>
 #include <PkThread.h>
 #include <PkThreadStorage.h>
-#include <QtGlobal>
+#include <cstdlib>
+#include <filesystem>
 #include <memory>
 #include <utility>
 
 #include <optional>
 
 #include <KoResourcePaths.h>
-#include <kis_debug.h>
 
 #include "KoFontLibraryResourceUtils.h"
 #include "KoFFWWSConverter.h"
@@ -37,42 +32,23 @@
 
 static unsigned int firstCharUcs4(const PkString qsv)
 {
-    if (Q_UNLIKELY(qsv.isEmpty())) {
+    if (qsv.isEmpty()) {
         return 0;
     }
     const PkChar high = qsv.at(0);
-    if (Q_LIKELY(!high.isSurrogate())) {
+    if (!high.isSurrogate()) {
         return high.unicode();
     }
-    if (Q_LIKELY(high.isHighSurrogate() && qsv.length() >= 2)) {
+    if (high.isHighSurrogate() && qsv.length() >= 2) {
         const PkChar low = qsv[1];
-        if (Q_LIKELY(low.isLowSurrogate())) {
+        if (low.isLowSurrogate()) {
             return PkChar::surrogateToUcs4(high, low);
         }
     }
     return PkChar::ReplacementCharacter;
 }
 
-namespace {
-
-// R-09 边界层：Qt 类型 ↔ Pk 类型（与 KoCssTextUtils.cpp 的 qStringToPk/pkToQString 一致）。
-PkString qStringToPk(const PkString &s)
-{
-    const PkByteArray u8 = s.toUtf8();
-    return PkString::PkFromUtf8(u8.constData(), u8.size());
-}
-
-PkString pkToQString(const PkString &s)
-{
-    const std::string u8 = s.PkToUtf8();
-    return PkString::fromUtf8(u8.data(), int(u8.size()));
-}
-
-}
-
-Q_GLOBAL_STATIC(KoFontRegistry, s_instance)
-
-class Q_DECL_HIDDEN KoFontRegistry::Private
+class KoFontRegistry::Private
 {
 private:
     // R-09：FcConfigSP（fontconfig 配置句柄）→ PkFontProvider（fontconfig 参考适配器）。
@@ -105,8 +81,8 @@ private:
             FT_Library lib = nullptr;
             FT_Error error = FT_Init_FreeType(&lib);
             if (error) {
-                errorFlake << "Error with initializing FreeType library:" << error
-                           << "GUI thread:" << qApp->thread();
+                PkMessageLogger(__FILE__, __LINE__, __func__).critical()
+                    << "Error with initializing FreeType library:" << error;
             } else {
                 m_data.setLocalData(new ThreadData(FT_LibrarySP(lib)));
             }
@@ -131,34 +107,36 @@ public:
          * 这个参数解释成平台自己的字体配置根（或忽略走内置默认表）。
          */
         PkString configSearchPath;
-        if (qgetenv("FONTCONFIG_PATH").isEmpty()) {
-            QDir appdir("/etc/fonts");
-            if (QFileInfo(appdir.absoluteFilePath("fonts.conf")).exists()) {
-                configSearchPath = toPkString(QDir::toNativeSeparators(appdir.absolutePath()));
+        const char *fontConfigPath = std::getenv("FONTCONFIG_PATH");
+        if (!fontConfigPath || !*fontConfigPath) {
+            std::filesystem::path appdir("/etc/fonts");
+            if (std::filesystem::exists(appdir / "fonts.conf")) {
+                configSearchPath = PkString(appdir.string().c_str());
             } else {
                 // Otherwise use default, which is defined in src/fcinit.c , windows and macos
                 // default locations *are* defined in fontconfig's meson build system.
-                appdir = QDir(toQString(pkToQString(KoResourcePaths::getApplicationRoot())) + "/etc/fonts");
-                if (QFileInfo(appdir.absoluteFilePath("fonts.conf")).exists()) {
-                    configSearchPath = toPkString(QDir::toNativeSeparators(appdir.absolutePath()));
+                appdir = std::filesystem::path(KoResourcePaths::getApplicationRoot().PkToUtf8()) / "etc/fonts";
+                if (std::filesystem::exists(appdir / "fonts.conf")) {
+                    configSearchPath = PkString(appdir.string().c_str());
                 }
             }
         }
         // 适配器内部：FcConfigCreate + FcConfigParseAndLoad（失败时容错回退到
         // FcConfigGetCurrent），FONTCONFIG_PATH 由它在 initialize 里设置。
-        if (!m_fontProvider->initialize(qStringToPk(configSearchPath))) {
-            errorFlake << "Failed loading the Fontconfig configuration";
+        if (!m_fontProvider->initialize(configSearchPath)) {
+            PkMessageLogger(__FILE__, __LINE__, __func__).critical()
+                << "Failed loading the Fontconfig configuration";
         }
 
         // Add fonts folder from resource folder.
-        const PkString fontsFolder = pkToQString(KoResourcePaths::saveLocation("data", "/fonts/", true));
-        m_fontProvider->addFontDirectory(qStringToPk(fontsFolder));
+        const PkString fontsFolder = KoResourcePaths::saveLocation("data", "/fonts/", true);
+        m_fontProvider->addFontDirectory(fontsFolder);
 
         /// Setup the change tracker.
         const std::vector<PkString> fontDirs = m_fontProvider->fontDirectories();
         PkStringList paths;
         for (const PkString &dir : fontDirs) {
-            paths.append(pkToQString(dir));
+            paths.append(dir);
         }
         paths.append(fontsFolder);
         changeTracker.reset(new KoFontChangeTracker(paths));
@@ -210,10 +188,14 @@ public:
             query.families.push_back(PkString("sans-serif"));
             const std::vector<PkFontProvider::FontEntry> candidates = m_fontProvider->sortedMatches(query);
 
-            KIS_ASSERT_X(!candidates.empty(), "No fallback fonts in font registry", "Cannot load an fallback font, no fonts found");
+            if (candidates.empty()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__).critical()
+                    << "Cannot load a fallback font: no fonts found";
+                return {};
+            }
 
             for (const PkFontProvider::FontEntry &entry : candidates) {
-                PkByteArray utfData = pkToQString(entry.handle.filePath).toUtf8();
+                PkByteArray utfData = entry.handle.filePath.toUtf8();
                 FT_Face f = nullptr;
                 FT_Error err = FT_New_Face(library().data(), utfData.data(), entry.handle.faceIndex, &f);
                 if (err == 0) {
@@ -273,11 +255,9 @@ public:
     }
 };
 
-KoFontRegistry::KoFontRegistry(QObject *parent)
-    : QObject(parent)
-    , d(new Private())
+KoFontRegistry::KoFontRegistry()
+    : d(new Private())
 {
-    QObject::connect(d->fontChangeTracker().data(), &KoFontChangeTracker::sigUpdateConfig, this, &KoFontRegistry::updateConfig, Qt::UniqueConnection);
 }
 
 KoFontRegistry::~KoFontRegistry() {
@@ -285,7 +265,8 @@ KoFontRegistry::~KoFontRegistry() {
 
 KoFontRegistry *KoFontRegistry::instance()
 {
-    return s_instance;
+    static KoFontRegistry registry;
+    return &registry;
 }
 
 PkString modificationsString(KoCSSFontInfo info, quint32 xRes, quint32 yRes) {
@@ -309,7 +290,7 @@ PkString modificationsString(KoCSSFontInfo info, quint32 xRes, quint32 yRes) {
         }
     }
     if (!info.axisSettings.isEmpty()) {
-        Q_FOREACH (const PkString &key, info.axisSettings.keys()) {
+        for (const PkString &key : info.axisSettings.keys()) {
             modifications += "|" + key + PkString::number(info.axisSettings.value(key));
         }
     }
@@ -325,6 +306,9 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
                                                          quint32 yRes, bool disableFontMatching,
                                                          const PkString &language)
 {
+    if (d->fontChangeTracker()->directoriesChanged()) {
+        d->updateConfig();
+    }
     PkString modifications = modificationsString(info, xRes, yRes);
 
     PkVector<KoFFWWSConverter::FontFileEntry> candidates;
@@ -349,16 +333,16 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
 
         // 族④归零：原 FcPatternAdd*（:365-399）→ PkFontQuery（R-09 接口）。
         PkFontProvider::PkFontQuery query;
-        Q_FOREACH (const PkString &family, info.families) {
-            query.families.push_back(qStringToPk(family));
+        for (const PkString &family : info.families) {
+            query.families.push_back(family);
         }
         // 原 FcPatternAddWeak(FC_FAMILY, "sans-serif")（:372-378）——回退家族放列表
         // 末尾（R-09 边界注释：回退 = 同一条 sortedMatches() 用更宽的 query 再查一次）。
         query.families.push_back(PkString("sans-serif"));
 
-        if (info.slantMode == QFont::StyleItalic) {
+        if (info.slantMode == PkFontStyleItalic) {
             query.slant = PkFontProvider::Slant::Italic;
-        } else if (info.slantMode == QFont::StyleOblique) {
+        } else if (info.slantMode == PkFontStyleOblique) {
             query.slant = PkFontProvider::Slant::Oblique;
         } else {
             query.slant = PkFontProvider::Slant::Normal;
@@ -366,7 +350,7 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
         query.weight = static_cast<int>(info.weight);
         query.width = static_cast<int>(info.width);
         query.size = info.size;
-        query.pixelSize = info.size * (qMin(xRes, yRes) / 72.0);
+        query.pixelSize = info.size * (pkMin(xRes, yRes) / 72.0);
 
         // 原 FcPatternHash 两级缓存（:405-435，pattern → fontSet）→ 单个
         // families+modifications 缓存键。查询侧相关字段（weight/width/slant/
@@ -390,14 +374,14 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
             for (const KoFFWWSConverter::FontFileEntry &cand : candidates) {
                 bool present = false;
                 for (const PkFontProvider::FontEntry &fe : fontEntries) {
-                    if (pkToQString(fe.handle.filePath) == cand.fileName && fe.handle.faceIndex == cand.fontIndex) {
+                    if (fe.handle.filePath == cand.fileName && fe.handle.faceIndex == cand.fontIndex) {
                         present = true;
                         break;
                     }
                 }
                 if (!present) {
                     PkFontProvider::FontEntry fe;
-                    fe.handle.filePath = qStringToPk(cand.fileName);
+                    fe.handle.filePath = cand.fileName;
                     fe.handle.faceIndex = cand.fontIndex;
                     fontEntries.push_back(std::move(fe));
                 }
@@ -417,7 +401,7 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
                     continue;
                 }
                 KoFFWWSConverter::FontFileEntry font;
-                font.fileName = pkToQString(fe.handle.filePath);
+                font.fileName = fe.handle.filePath;
                 font.fontIndex = fe.handle.faceIndex;
                 fonts.append(font);
                 lengths.append(0);
@@ -443,7 +427,7 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
             for (int i = 0; i < fontEntries.size(); i++) {
                 const PkFontProvider::FontEntry &fe = fontEntries.at(i);
                 int index = 0;
-                Q_FOREACH (const PkString &grapheme, graphemes) {
+                for (const PkString &grapheme : graphemes) {
 
                     // Don't worry about matching controls directly,
                     // as they are not important to font-selection (and many
@@ -457,7 +441,7 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
                     if (familyValues.at(index) == -1) {
                         int fallbackMatch = fallbackMatchValues.at(index);
                         bool covered = true;
-                        Q_FOREACH (uint unicode, grapheme.toUcs4()) {
+                        for (uint unicode : grapheme.toUcs4()) {
                             // 原 FcCharSetHasChar(set, unicode)（:490）→ 逐码点端口。
                             if (!d->fontProvider()->coversCodepoint(fe.handle, unicode)) {
                                 covered = false;
@@ -485,13 +469,13 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
             // Remove the -1 entries.
             if (familyValues.contains(-1)) {
                 int value = -1;
-                Q_FOREACH (const int currentValue, familyValues) {
+                for (const int currentValue : familyValues) {
                     if (currentValue != value) {
                         value = currentValue;
                         break;
                     }
                 }
-                value = qMax(0, value);
+                value = pkMax(0, value);
                 for (int i = 0; i < familyValues.size(); i++) {
                     if (familyValues.at(i) < 0) {
                         if (fallbackMatchValues.at(i) < 0) {
@@ -511,7 +495,7 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
             int lastIndex = familyValues.at(0);
             KoFFWWSConverter::FontFileEntry font{};
             const PkFontProvider::FontEntry &firstFe = fontEntries.at(lastIndex);
-            font.fileName = pkToQString(firstFe.handle.filePath);
+            font.fileName = firstFe.handle.filePath;
             font.fontIndex = firstFe.handle.faceIndex;
             for (int i = 0; i < familyValues.size(); i++) {
                 if (lastIndex != familyValues.at(i)) {
@@ -521,7 +505,7 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
                     length = 0;
                     lastIndex = familyValues.at(i);
                     const PkFontProvider::FontEntry &curFe = fontEntries.at(lastIndex);
-                    font.fileName = pkToQString(curFe.handle.filePath);
+                    font.fileName = curFe.handle.filePath;
                     font.fontIndex = curFe.handle.faceIndex;
                 }
                 length += 1;
@@ -535,10 +519,13 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
 
     std::vector<FT_FaceSP> faces;
 
-    KIS_ASSERT_X(lengths.size() == fonts.size(),
-                 "KoFontRegistry",
-                 PkString("Fonts and lengths don't have the same size. Fonts: %1. Length: %2")
-                 .arg(fonts.size(), lengths.size()).toLatin1().constData());
+    if (lengths.size() != fonts.size()) {
+        PkMessageLogger(__FILE__, __LINE__, __func__).critical()
+            << "Fonts and lengths don't have the same size. Fonts:"
+            << fonts.size() << "Length:" << lengths.size();
+        lengths.clear();
+        return {};
+    }
 
     for (int i = 0; i < lengths.size(); i++) {
         KoFFWWSConverter::FontFileEntry font = fonts.at(i);
@@ -565,7 +552,8 @@ std::vector<FT_FaceSP> KoFontRegistry::facesForCSSValues(PkVector<int> &lengths,
                 faces.emplace_back(face);
                 d->typeFaces().insert(fontCacheEntry, face);
             } else {
-                qWarning() << "Failed to load font" << font.fileName << "in font registry, FreeType error:" << err;
+                PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                    << "Failed to load font" << font.fileName << "in font registry, FreeType error:" << err;
                 if (faces.size() > 0) {
                     faces.emplace_back(faces.at(faces.size()-1));
                 } else {
@@ -596,9 +584,9 @@ bool KoFontRegistry::configureFaces(const std::vector<FT_FaceSP> &faces,
 {
     int errorCode = 0;
     const qreal ftFontUnit = 64.0;
-    const qreal finalRes = qMin(xRes, yRes);
+    const qreal finalRes = pkMin(xRes, yRes);
     const qreal scaleToPixel = finalRes / 72;
-    Q_FOREACH (const FT_FaceSP &face, faces) {
+    for (const FT_FaceSP &face : faces) {
 
         // set the charmap, by default Freetype will select a Unicode charmap, but when there's none, it doesn't set any and we need to select one manually.
         if (!face->charmap) {
@@ -644,7 +632,7 @@ bool KoFontRegistry::configureFaces(const std::vector<FT_FaceSP> &faces,
             int selectedIndex = -1;
 
             for (int i = 0; i < face->num_fixed_sizes; i++) {
-                const qreal newDelta = qAbs((fontSizePixels)-face->available_sizes[i].x_ppem);
+                const qreal newDelta = pkAbs((fontSizePixels)-face->available_sizes[i].x_ppem);
                 if (newDelta < sizeDelta || i == 0) {
                     selectedIndex = i;
                     sizeDelta = newDelta;
@@ -682,11 +670,11 @@ bool KoFontRegistry::configureFaces(const std::vector<FT_FaceSP> &faces,
         }
 
         PkMap<FT_Tag, qreal> tags;
-        Q_FOREACH (const PkString &tagName, axisSettings.keys()) {
+        for (const PkString &tagName : axisSettings.keys()) {
             if (tagName.size() == 4) {
                 const PkByteArray utfData = tagName.toUtf8();
                 const char *tag = utfData.data();
-                if (tagName == "opsz" && !qFuzzyCompare(adjustedSize, size)) {
+                if (tagName == "opsz" && !pkQtFuzzyCompare(adjustedSize, size)) {
                     /**
                      *  There's something peculiar about this:
                      *  Var fonts can change their x-height depending
@@ -714,15 +702,15 @@ bool KoFontRegistry::configureFaces(const std::vector<FT_FaceSP> &faces,
                 FT_Var_Axis axis = amaster->axis[i];
                 designCoords[i] = axis.def;
                 if (tags.contains(axis.tag)) {
-                    designCoords[i] = qBound(axis.minimum, long(tags.value(axis.tag) * axisMultiplier), axis.maximum);
+                    designCoords[i] = pkBound(axis.minimum, long(tags.value(axis.tag) * axisMultiplier), axis.maximum);
                 } else if (axis.tag == SLANT_TAG
                            && !tags.contains(SLANT_TAG)
                            && tags.value(ITALIC_TAG, 0) > 0) {
-                    designCoords[i] = qBound(axis.minimum, long(-11.0 * axisMultiplier), axis.maximum);
+                    designCoords[i] = pkBound(axis.minimum, long(-11.0 * axisMultiplier), axis.maximum);
                 } else if (axis.tag == ITALIC_TAG
                            && !tags.contains(ITALIC_TAG)
-                           && !qFuzzyCompare(tags.value(SLANT_TAG, 0), 0)) {
-                    designCoords[i] = qBound(axis.minimum, long(1.0 * axisMultiplier), axis.maximum);
+                           && !pkQtFuzzyCompare(tags.value(SLANT_TAG, 0), 0)) {
+                    designCoords[i] = pkBound(axis.minimum, long(1.0 * axisMultiplier), axis.maximum);
                 }
             }
             FT_Set_Var_Design_Coordinates(face.data(), amaster->num_axis, designCoords.data());
@@ -752,7 +740,7 @@ void KoFontRegistry::updateConfig()
     d->updateConfig();
 }
 
-QFont::Style KoFontRegistry::slantMode(FT_FaceSP face)
+PkFontStyle KoFontRegistry::slantMode(FT_FaceSP face)
 {
     constexpr unsigned OS2_ITALIC = 1u << 0; /// Is italic
     constexpr unsigned OS2_REGULAR = 1u << 6; /// Is truly regular (instead of italic or oblique)
@@ -777,9 +765,11 @@ QFont::Style KoFontRegistry::slantMode(FT_FaceSP face)
                 isOblique = false;
             }
         }
-        return isItalic? isOblique? QFont::StyleOblique: QFont::StyleItalic: QFont::StyleNormal;
+        return isItalic ? (isOblique ? PkFontStyleOblique : PkFontStyleItalic)
+                        : PkFontStyleNormal;
     } else {
-        return face->style_flags & FT_STYLE_FLAG_ITALIC? QFont::StyleItalic: QFont::StyleNormal;
+        return face->style_flags & FT_STYLE_FLAG_ITALIC ? PkFontStyleItalic
+                                                        : PkFontStyleNormal;
     }
 }
 
@@ -806,7 +796,9 @@ KoSvgText::FontMetrics KoFontRegistry::fontMetricsForCSSValues(KoCSSFontInfo inf
             language);
 
         if (faces.empty()) return KoSvgText::FontMetrics(info.size, isHorizontal);
-        metrics = KoFontRegistry::generateFontMetrics(faces.front(), isHorizontal, KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale(toQString(language)).script()), rendering);
+        metrics = KoFontRegistry::generateFontMetrics(
+            faces.front(), isHorizontal,
+            KoWritingSystemUtils::scriptTagForLanguage(language), rendering);
         d->fontMetrics().insert(suggestedHash, metrics);
     }
     return metrics;
@@ -900,7 +892,7 @@ KoSvgText::FontMetrics KoFontRegistry::generateFontMetrics(FT_FaceSP face, bool 
     for (auto it = metricTags.begin(); it!= metricTags.end(); it++) {
         char c[4];
         hb_tag_to_string(*it, c);
-        const QLatin1String tagName(c, 4);
+        const PkString tagName = PkString::fromLatin1(c, 4);
         hb_position_t origin = 0;
         if (useFallback) {
             hb_ot_metrics_get_position_with_fallback(font.data(), *it, &origin);
@@ -1023,17 +1015,10 @@ KoSvgText::FontMetrics KoFontRegistry::generateFontMetrics(FT_FaceSP face, bool 
                 // This assumes a font where there's design language metadata, but no water glyph.
                 // In theory could happen with the non-han cjk fonts.
                 const PkStringList cjkScripts {
-                    KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::HanScript),
-                            KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::JapaneseScript),
-                            KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::TraditionalHanScript),
-                            KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::SimplifiedHanScript),
-                            KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::HanWithBopomofoScript),
-                            KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::BopomofoScript),
-                            KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::HangulScript),
-                            KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::KatakanaScript),
-                            KoWritingSystemUtils::scriptTagForQLocaleScript(QLocale::HiraganaScript),
+                    "Hani", "Jpan", "Hant", "Hans", "Hanb",
+                    "Bopo", "Hang", "Kana", "Hira"
                 };
-                Q_FOREACH (const PkString cjk, cjkScripts) {
+                for (const PkString &cjk : cjkScripts) {
                     if (cjk.isEmpty()) continue;
                     if (designLang.contains(cjk.trimmed())) {
                         isIdeographic = true;
@@ -1054,7 +1039,7 @@ KoSvgText::FontMetrics KoFontRegistry::generateFontMetrics(FT_FaceSP face, bool 
             }
         } else if (isHorizontal) {
             const qreal alphabeticMultiplier = qreal(ascender+descender)/metrics.fontSize;
-            qint32 top = qMax(baselineVals.value(hang, metrics.capHeight), qint32(qRound(ascender*alphabeticMultiplier)));
+            qint32 top = pkMax(baselineVals.value(hang, metrics.capHeight), qint32(pkRound(ascender*alphabeticMultiplier)));
             baselineVals.insert(ideoTop, top);
             baselineVals.insert(ideoBottom, top-metrics.fontSize);
         } else {
@@ -1087,7 +1072,7 @@ KoSvgText::FontMetrics KoFontRegistry::generateFontMetrics(FT_FaceSP face, bool 
         }
     }
 
-    Q_FOREACH(const PkString key, baselineVals.keys()) {
+    for (const PkString &key : baselineVals.keys()) {
         metrics.setBaselineValueByTag(key, baselineVals.value(key));
     }
 
@@ -1175,16 +1160,16 @@ KoCSSFontInfo KoFontRegistry::getCssDataForPostScriptName(const PkString postScr
     // PostScript 名精确匹配，families[0] 承载 PostScript 名。FontEntry 的 weight
     // 已由适配器用 FcWeightToOpenType 换算成 OpenType 值。
     PkFontProvider::PkFontQuery query;
-    query.families.push_back(qStringToPk(postScriptName));
+    query.families.push_back(postScriptName);
     PkFontProvider::FontEntry entry;
     if (d->fontProvider()->bestMatch(query, &entry)) {
         if (!entry.familyName.isEmpty()) {
-            info.families << pkToQString(entry.familyName);
+            info.families << entry.familyName;
         } else {
             info.families << postScriptName;
         }
         if (!entry.postScriptName.isEmpty()) {
-            *foundPostScriptName = pkToQString(entry.postScriptName);
+            *foundPostScriptName = entry.postScriptName;
         } else {
             *foundPostScriptName = postScriptName;
         }
@@ -1194,9 +1179,9 @@ KoCSSFontInfo KoFontRegistry::getCssDataForPostScriptName(const PkString postScr
         if (entry.width != -1) {
             info.width = entry.width;
         }
-        info.slantMode = entry.slant == PkFontProvider::Slant::Italic ? QFont::StyleItalic
-                : entry.slant == PkFontProvider::Slant::Oblique ? QFont::StyleOblique
-                                                                 : QFont::StyleNormal;
+        info.slantMode = entry.slant == PkFontProvider::Slant::Italic ? PkFontStyleItalic
+                : entry.slant == PkFontProvider::Slant::Oblique ? PkFontStyleOblique
+                                                                 : PkFontStyleNormal;
     } else {
         info.families << postScriptName;
     }
@@ -1207,7 +1192,7 @@ bool KoFontRegistry::addFontFilePathToRegistry(const PkString &path)
 {
     // 原 FcConfigAppFontAddFile(d->config())（:1211）→ 适配器 addFontFile。
     bool success = false;
-    if (d->fontProvider()->addFontFile(qStringToPk(path))) {
+    if (d->fontProvider()->addFontFile(path)) {
         success = d->reloadConverter();
     }
     return success;
@@ -1217,7 +1202,7 @@ bool KoFontRegistry::addFontFileDirectoryToRegistry(const PkString &path)
 {
     // 原 FcConfigAppFontAddDir(d->config())（:1222）→ 适配器 addFontDirectory。
     bool success = false;
-    if (d->fontProvider()->addFontDirectory(qStringToPk(path))) {
+    if (d->fontProvider()->addFontDirectory(path)) {
         success = d->reloadConverter();
     }
     return success;

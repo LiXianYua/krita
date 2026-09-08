@@ -4,9 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
-
 #include "SvgTransformParser.h"
 
 //#include "kis_debug.h"
@@ -263,5 +260,4 @@ PkTransform SvgTransformParser::transform() const
 {
     return m_transform;
 }
-
 

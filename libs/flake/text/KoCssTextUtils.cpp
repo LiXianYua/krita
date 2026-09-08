@@ -59,8 +59,8 @@ PkString pkToQString(const PkString &s)
 PkString KoCssTextUtils::transformTextToUpperCase(const PkString &text, const PkString &langCode, PkVector<std::pair<int, int> > &positions)
 {
     if (text.isEmpty()) return text;
-    // R-31：QLocale casing → KoLcLocale。原代码把 langCode 的 "-" 换成 "_" 喂
-    // QLocale，capitalize 却直接用连字符——KoLcLocale 内部统一归一化，无需在这里
+    // R-31：legacy locale casing → KoLcLocale。原代码把 langCode 的 "-" 换成 "_"，
+    // capitalize 却直接用连字符——KoLcLocale 内部统一归一化，无需在这里
     // 对齐（见 locale/KoLcLocale-design.md）。
     const PkString transformedText = pkToQString(KoLc::toUpper(qStringToPk(text), qStringToPk(langCode)));
     positions = positionDifference(textToUnicodeGraphemeClusters(text, langCode), textToUnicodeGraphemeClusters(transformedText, langCode));
@@ -78,8 +78,7 @@ PkString KoCssTextUtils::transformTextToLowerCase(const PkString &text, const Pk
 PkString KoCssTextUtils::transformTextCapitalize(const PkString &text, const PkString langCode, PkVector<std::pair<int, int>> &positions)
 {
     if (text.isEmpty()) return text;
-    // R-31：QLocale::Dutch 判定 → KoLcLocale::isDutch（原代码在循环外构造
-    // QLocale，这里也把 isDutch 提到循环外算一次）。
+    // R-31：legacy Dutch 判定 → KoLcLocale::isDutch（这里把 isDutch 提到循环外算一次）。
     const PkString pkLang = qStringToPk(langCode);
     const bool dutch = KoLc::isDutch(pkLang);
 
@@ -130,7 +129,7 @@ PkString KoCssTextUtils::transformTextFullWidth(const PkString &text)
 {
     if (text.isEmpty()) return text;
     PkString transformedText;
-    Q_FOREACH (const PkChar &c, text) {
+    for (const PkChar c : text) {
         if (c.decompositionTag() == PkChar::Narrow) {
             transformedText.append(c.decomposition());
         } else {
@@ -215,7 +214,7 @@ static PkChar findSmallKanaToBigKana(const PkChar &value, const PkChar &defaultV
 PkString KoCssTextUtils::transformTextFullSizeKana(const PkString &text)
 {
     PkString transformedText;
-    Q_FOREACH (const PkChar &c, text) {
+    for (const PkChar c : text) {
         transformedText.append(PkString(static_cast<char16_t>(findSmallKanaToBigKana(c, c).unicode())));
     }
 
@@ -566,7 +565,7 @@ void KoCssTextUtils::removeText(PkString &text, int &start, int length)
     int regionalIndicatorCount = 0;
     bool startFound = false;
     bool addToEnd = true;
-    Q_FOREACH(const uint i, text.toUcs4()) {
+    for (const uint i : text.toUcs4()) {
         v = PkChar::requiresSurrogates(i)? 2: 1;
         int index = (j+v) -1;
         bool ZWJ = text.at(index) == ZERO_WIDTH_JOINER;
@@ -649,7 +648,7 @@ qreal KoCssTextUtils::cssSelectFontStyleValue(const PkVector<qreal> &values, con
             selectedValue = *lower;
         }
     }
-    if (qFuzzyCompare(selectedValue, defaultValue) && shouldNotReturnDefault) {
+    if (pkQtFuzzyCompare(selectedValue, defaultValue) && shouldNotReturnDefault) {
         return targetValue;
     }
     return selectedValue;

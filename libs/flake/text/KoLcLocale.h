@@ -30,6 +30,9 @@ PkString capitalize(const PkString &text, const PkString &langCode);
 // 保留冗余子标签的最短形式）。
 PkString bcp47Name(const PkString &langCode);
 
+// CLDR likely-subtags 中语言/地区组合的默认 ISO 15924 script；表外返回空。
+PkString defaultScriptTag(const PkString &language, const PkString &region = PkString());
+
 // Dutch 判定（KoCssTextUtils.cpp 的 IJ 特殊分支用）。
 bool isDutch(const PkString &langCode);
 

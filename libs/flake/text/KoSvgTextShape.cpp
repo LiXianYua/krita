@@ -5,14 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoSvgTextShape.h"
 #include "KoSvgTextShape_p.h"
-
-#include <QTextLayout>
-
-#include <klocalizedstring.h>
 
 #include "KoSvgTextProperties.h"
 #include <KoDocumentResourceManager.h>
@@ -39,11 +33,11 @@
 #include <SvgStyleWriter.h>
 
 #include <PkPainter.h>
+#include <PkMessageLogger.h>
 #include <PkStrokeOutline.h>
 #include <PkPainterPath.h>
-#include <QtMath>
 
-#include <FlakeDebug.h>
+#include <cmath>
 #include <functional>
 
 // Memento pointer to hold data for Undo commands.
@@ -126,14 +120,17 @@ KoSvgTextProperties *KoSvgTextNodeIndex::properties(){
 
 KoSvgText::TextOnPathInfo *KoSvgTextNodeIndex::textPathInfo() {
     if (!d) {
-        qDebug() << "d not initialized...";
+        PkMessageLogger(__FILE__, __LINE__, __func__).debug() << "d not initialized...";
         return nullptr;
     }
     return &d->textElement->textPathInfo;
 }
 
 KoShape *KoSvgTextNodeIndex::textPath() {
-    if (!d) { qDebug() << "d not initialized...";return nullptr;}
+    if (!d) {
+        PkMessageLogger(__FILE__, __LINE__, __func__).debug() << "d not initialized...";
+        return nullptr;
+    }
     return d->textPath;
 }
 
@@ -154,21 +151,21 @@ KoSvgTextShape::KoSvgTextShape(const KoSvgTextShape &rhs)
     setShapeId(KoSvgTextShape_SHAPEID);
     d->shapeGroup->setTransformation(this->transformation());
     d->internalShapesPainter->setUpdateFunction(std::bind(&KoSvgTextShape::updateAbsolute, this, std::placeholders::_1));
-    Q_FOREACH(KoShape *shape, d->shapeGroup->shapes()) {
+    for (KoShape *shape : d->shapeGroup->shapes()) {
         shape->addDependee(this);
     }
 }
 
 KoSvgTextShape::~KoSvgTextShape()
 {
-    Q_FOREACH(KoShape *shape, internalShapeManager()->shapes()) {
+    for (KoShape *shape : internalShapeManager()->shapes()) {
         shape->removeDependee(this);
     }
 }
 
 const PkString &KoSvgTextShape::defaultPlaceholderText()
 {
-    static const PkString s_placeholderText = toPkString(i18nc("Default text for the text shape", "Placeholder Text"));
+    static const PkString s_placeholderText("Placeholder Text");
     return s_placeholderText;
 }
 
@@ -248,8 +245,8 @@ void KoSvgTextShape::shapeChanged(ChangeType type, KoShape *shape)
 
 void KoSvgTextShape::setResolution(qreal xRes, qreal yRes)
 {
-    int roundedX = qRound(xRes);
-    int roundedY = qRound(yRes);
+    int roundedX = pkRound(xRes);
+    int roundedY = pkRound(yRes);
     if (roundedX != d->xRes || roundedY != d->yRes) {
         d->xRes = roundedX;
         d->yRes = roundedY;
@@ -364,7 +361,7 @@ int KoSvgTextShape::lineEnd(int pos)
 int KoSvgTextShape::wordLeft(int pos, bool visual)
 {
     //TODO: figure out preferred behaviour for wordLeft in RTL && visual.
-    Q_UNUSED(visual)
+    (void)visual;
     if (pos < 0 || pos > d->cursorPos.size()-1 || d->result.isEmpty() || d->cursorPos.isEmpty()) {
         return pos;
     }
@@ -377,7 +374,7 @@ int KoSvgTextShape::wordLeft(int pos, bool visual)
 
 int KoSvgTextShape::wordRight(int pos, bool visual)
 {
-    Q_UNUSED(visual)
+    (void)visual;
     if (pos < 0 || pos > d->cursorPos.size()-1 || d->result.isEmpty() || d->cursorPos.isEmpty()) {
         return pos;
     }
@@ -426,10 +423,10 @@ int KoSvgTextShape::nextPos(int pos, bool visual)
 
     if(visual) {
         int visualIndex = d->logicalToVisualCursorPos.value(pos);
-        return d->logicalToVisualCursorPos.key(qMin(visualIndex + 1, d->cursorPos.size() - 1), d->cursorPos.size() - 1);
+        return d->logicalToVisualCursorPos.key(pkMin(visualIndex + 1, d->cursorPos.size() - 1), d->cursorPos.size() - 1);
     }
 
-    return qMin(pos + 1, d->cursorPos.size() - 1);
+    return pkMin(pos + 1, d->cursorPos.size() - 1);
 }
 
 int KoSvgTextShape::previousPos(int pos, bool visual)
@@ -440,10 +437,10 @@ int KoSvgTextShape::previousPos(int pos, bool visual)
 
     if(visual) {
         int visualIndex = d->logicalToVisualCursorPos.value(pos);
-        return d->logicalToVisualCursorPos.key(qMax(visualIndex - 1, 0), 0);
+        return d->logicalToVisualCursorPos.key(pkMax(visualIndex - 1, 0), 0);
     }
 
-    return qMax(pos - 1, 0);
+    return pkMax(pos - 1, 0);
 }
 
 int KoSvgTextShape::nextLine(int pos)
@@ -460,15 +457,15 @@ int KoSvgTextShape::nextLine(int pos)
         for (int i = 0; i < d->lineBoxes.size(); ++i) {
             for (int j = 0; j < d->lineBoxes.at(i).chunks.size(); ++j) {
                 if (d->lineBoxes.at(i).chunks.at(j).chunkIndices.contains(cursorPos.cluster)) {
-                    nextLineBox = d->lineBoxes.at(qMin(i + 1, d->lineBoxes.size()-1));
+                    nextLineBox = d->lineBoxes.at(pkMin(i + 1, d->lineBoxes.size()-1));
                 }
             }
         }
         if (nextLineBox.chunks.size()>0) {
             int first = -1;
             int last = -1;
-            Q_FOREACH(LineChunk chunk, nextLineBox.chunks) {
-                Q_FOREACH (int i, chunk.chunkIndices) {
+            for (LineChunk chunk : nextLineBox.chunks) {
+                for (int i : chunk.chunkIndices) {
                     if (d->result.at(i).addressable) {
                         if (first < 0) {
                             first = d->result.at(i).cursorInfo.graphemeIndices.first();
@@ -517,15 +514,15 @@ int KoSvgTextShape::previousLine(int pos)
         for (int i = 0; i < d->lineBoxes.size(); ++i) {
             for (int j = 0; j < d->lineBoxes.at(i).chunks.size(); ++j) {
                 if (d->lineBoxes.at(i).chunks.at(j).chunkIndices.contains(cursorPos.cluster)) {
-                    previousLineBox = d->lineBoxes.at(qMax(i - 1, 0));
+                    previousLineBox = d->lineBoxes.at(pkMax(i - 1, 0));
                 }
             }
         }
         if (previousLineBox.chunks.size()>0) {
             int first = -1;
             int last = -1;
-            Q_FOREACH(LineChunk chunk, previousLineBox.chunks) {
-                Q_FOREACH (int i, chunk.chunkIndices) {
+            for (LineChunk chunk : previousLineBox.chunks) {
+                for (int i : chunk.chunkIndices) {
                     if (d->result.at(i).addressable) {
                         if (first < 0) {
                             first = d->result.at(i).cursorInfo.graphemeIndices.first();
@@ -574,7 +571,7 @@ int KoSvgTextShape::wordEnd(int pos)
                 && i > pos) {
 
             if (isWhiteSpace) {
-                wordEnd = qMax(pos, wordEnd-1);
+                wordEnd = pkMax(pos, wordEnd-1);
             }
             break;
         }
@@ -585,7 +582,7 @@ int KoSvgTextShape::wordEnd(int pos)
             bool found = false;
             for (int j = cursorPos.cluster; j < nextCursorPos.cluster; j++) {
                 if (d->result.at(j).breakType == BreakType::HardBreak && d->result.at(j).addressable) {
-                    wordEnd = qMax(pos, wordEnd);
+                    wordEnd = pkMax(pos, wordEnd);
                     found = true;
                     break;
                 }
@@ -621,7 +618,7 @@ int KoSvgTextShape::wordStart(int pos)
             bool found = false;
             for (int j = cursorPos.cluster; j > prevCursorPos.cluster; j--) {
                 if (d->result.at(j).breakType == BreakType::HardBreak && d->result.at(j).addressable) {
-                    wordStart = qMin(pos, i-1);
+                    wordStart = pkMin(pos, i-1);
                     found = true;
                     break;
                 }
@@ -694,9 +691,9 @@ PkPainterPath KoSvgTextShape::cursorForPos(int pos, PkLineF &caret, PkColor &col
 
 PkPainterPath KoSvgTextShape::selectionBoxes(int pos, int anchor)
 {
-    int start = qMin(pos, anchor);
-    int end = qMax(pos, anchor);
-    end = qMin(d->cursorPos.size()-1, end);
+    int start = pkMin(pos, anchor);
+    int end = pkMax(pos, anchor);
+    end = pkMin(d->cursorPos.size()-1, end);
 
     if (start == end || start < 0) {
         return PkPainterPath();
@@ -727,8 +724,8 @@ PkPainterPath KoSvgTextShape::selectionBoxes(int pos, int anchor)
 
 PkPainterPath KoSvgTextShape::underlines(int pos, int anchor, KoSvgText::TextDecorations decor, KoSvgText::TextDecorationStyle style, qreal minimum, bool thick)
 {
-    int start = qMin(pos, anchor);
-    int end = qMax(pos, anchor);
+    int start = pkMin(pos, anchor);
+    int end = pkMax(pos, anchor);
 
     if (start == end || start < 0 || end >= d->cursorPos.size()) {
         return PkPainterPath();
@@ -794,8 +791,8 @@ PkPainterPath KoSvgTextShape::underlines(int pos, int anchor, KoSvgText::TextDec
         }
     }
 
-    const qreal freetypePixelsToPt = (1.0 / 64.0) * (72. / qMin(d->xRes, d->yRes));
-    const qreal width = strokeWidth > 0 ? qMax(qreal(strokeWidth/qMax(1, end-(start+1)))*freetypePixelsToPt, minimum): minimum;
+    const double freetypePixelsToPt = (1.0 / 64.0) * (72. / pkMin(d->xRes, d->yRes));
+    const double width = strokeWidth > 0 ? pkMax(double(strokeWidth/pkMax(1, end-(start+1)))*freetypePixelsToPt, minimum): minimum;
 
     stroker.setWidthF(thick? width*2: width);
 
@@ -818,8 +815,8 @@ int KoSvgTextShape::posForPoint(PkPointF point, int start, int end, bool *overla
     int a = 0;
     int b = d->cursorPos.size();
     if (start >= 0 && end >= 0) {
-        a = qMax(start, a);
-        b = qMin(end, b);
+        a = pkMax(start, a);
+        b = pkMin(end, b);
     }
     double closest = std::numeric_limits<double>::max();
     int candidate = 0;
@@ -878,7 +875,7 @@ int KoSvgTextShape::posForPointLineSensitive(PkPointF point)
 
     if (candidateLineStart > -1) {
         int end = lineEnd(candidateLineStart);
-        initialPos = posForPoint(point, candidateLineStart, qMin(end + 1, d->cursorPos.size()));
+        initialPos = posForPoint(point, candidateLineStart, pkMin(end + 1, d->cursorPos.size()));
     }
 
     return initialPos;
@@ -936,7 +933,7 @@ bool KoSvgTextShape::insertText(int pos, PkString text)
         CharacterResult res = d->result.at(cursorPos.cluster);
         elementIndex = res.plaintTextIndex;
         insertionIndex = cursorPos.index;
-        elementIndex = qMin(elementIndex, d->result.size()-1);
+        elementIndex = pkMin(elementIndex, d->result.size()-1);
     }
     auto it = d->findTextContentElementForIndex(d->textData, currentIndex, elementIndex);
     if (it != d->textData.depthFirstTailEnd()) {
@@ -1096,10 +1093,10 @@ void KoSvgTextShape::mergePropertiesIntoRange(const int startPos,
 {
     if ((startPos < 0 && startPos == endPos) || d->cursorPos.isEmpty()) {
         if (KisForestDetail::size(d->textData)) {
-            Q_FOREACH(KoSvgTextProperties::PropertyId p, properties.properties()) {
+            for (KoSvgTextProperties::PropertyId p : properties.properties()) {
                 d->textData.childBegin()->properties.setProperty(p, properties.property(p));
             }
-            Q_FOREACH(KoSvgTextProperties::PropertyId p, removeProperties) {
+            for (KoSvgTextProperties::PropertyId p : removeProperties) {
                 d->textData.childBegin()->properties.removeProperty(p);
             }
         }
@@ -1136,14 +1133,14 @@ void KoSvgTextShape::mergePropertiesIntoRange(const int startPos,
         }
 
         if (currentIndex >= startIndex && currentIndex < endIndex) {
-            Q_FOREACH(KoSvgTextProperties::PropertyId p, removeProperties) {
+            for (KoSvgTextProperties::PropertyId p : removeProperties) {
                 if (KoSvgTextProperties::propertyIsBlockOnly(p)) {
                     d->textData.childBegin()->properties.removeProperty(p);
                 } else {
                     it->properties.removeProperty(p);
                 }
             }
-            Q_FOREACH(KoSvgTextProperties::PropertyId p, properties.properties()) {
+            for (KoSvgTextProperties::PropertyId p : properties.properties()) {
                 if (KoSvgTextProperties::propertyIsBlockOnly(p) || (p == KoSvgTextProperties::TextAnchorId && isWrapping)) {
                     d->textData.childBegin()->properties.setProperty(p, properties.property(p));
                 } else {
@@ -1198,7 +1195,7 @@ bool KoSvgTextShape::insertRichText(int pos, const KoSvgTextShape *richText, boo
         CharacterResult res = d->result.at(cursorPos.cluster);
         elementIndex = res.plaintTextIndex;
         insertionIndex = cursorPos.index;
-        elementIndex = qMin(elementIndex, d->result.size()-1);
+        elementIndex = pkMin(elementIndex, d->result.size()-1);
     }
 
     KoSvgTextShape::Private::splitContentElement(this->d->textData, insertionIndex);
@@ -1218,7 +1215,7 @@ bool KoSvgTextShape::insertRichText(int pos, const KoSvgTextShape *richText, boo
     }
 
     if (richTextIt != d->textData.childEnd()) {
-        Q_FOREACH (const KoSvgTextProperties::PropertyId p, richTextIt->properties.properties()) {
+        for (const KoSvgTextProperties::PropertyId p : richTextIt->properties.properties()) {
             if (KoSvgTextProperties::propertyIsBlockOnly(p)) {
                 richTextIt->properties.removeProperty(p);
             }
@@ -1228,7 +1225,7 @@ bool KoSvgTextShape::insertRichText(int pos, const KoSvgTextShape *richText, boo
         if (parentIt != parentEnd) {
             parentIt++;
             if (inheritPropertiesIfPossible && parentIt != parentEnd) {
-                Q_FOREACH (const KoSvgTextProperties::PropertyId p, richTextIt->properties.properties()) {
+                for (const KoSvgTextProperties::PropertyId p : richTextIt->properties.properties()) {
                     if (richTextIt->properties.inheritsProperty(p, parentIt->properties)) {
                         richTextIt->properties.removeProperty(p);
                     }
@@ -1256,8 +1253,8 @@ bool KoSvgTextShape::setCharacterTransformsOnRange(const int startPos, const int
     if ((startPos < 0 && startPos == endPos) || d->cursorPos.isEmpty()) {
         return false;
     }
-    const int startIndex = d->getCursorPos(qMin(startPos, endPos)).index;
-    int endIndex = d->getCursorPos(qMax(startPos, endPos)).index;
+    const int startIndex = d->getCursorPos(pkMin(startPos, endPos)).index;
+    int endIndex = d->getCursorPos(pkMax(startPos, endPos)).index;
     if (startIndex == endIndex) {
         endIndex += 1;
         while(d->result.at(endIndex).middle) {
@@ -1450,8 +1447,8 @@ PkList<KoSvgTextCharacterInfo> KoSvgTextShape::getPositionsAndRotationsForRange(
         return infos;
     }
     const int finalPos = d->cursorPos.size()-1;
-    const int startIndex = d->getCursorPos(qMin(startPos, endPos)).index;
-    const int endIndex = d->getCursorPos(qMax(startPos, endPos)).index;
+    const int startIndex = d->getCursorPos(pkMin(startPos, endPos)).index;
+    const int endIndex = d->getCursorPos(pkMax(startPos, endPos)).index;
 
     for (int i = startIndex; i < endIndex; i++) {
         CharacterResult res = d->result.value(i);
@@ -1460,7 +1457,7 @@ PkList<KoSvgTextCharacterInfo> KoSvgTextShape::getPositionsAndRotationsForRange(
     }
 
     if (endIndex == startIndex) {
-        bool final = qMax(startPos, endPos) == finalPos;
+        bool final = pkMax(startPos, endPos) == finalPos;
         CharacterResult resFinal = final? d->result.last(): d->result.value(startIndex);
         if (resFinal.addressable) {
             infos << infoFromCharacterResult(resFinal, startIndex);
@@ -1475,8 +1472,8 @@ void KoSvgTextShape::removeTransformsFromRange(const int startPos, const int end
     if ((startPos < 0 && startPos == endPos) || d->cursorPos.isEmpty()) {
         return;
     }
-    const int startIndex = d->getCursorPos(qMin(startPos, endPos)).index;
-    const int endIndex = d->getCursorPos(qMax(startPos, endPos)).index;
+    const int startIndex = d->getCursorPos(pkMin(startPos, endPos)).index;
+    const int endIndex = d->getCursorPos(pkMax(startPos, endPos)).index;
 
     d->removeTransforms(d->textData, startIndex, endIndex-startIndex);
 
@@ -1667,7 +1664,7 @@ void KoSvgTextShape::notifyCursorPosChanged(int pos, int anchor)
     if (d->isLoading) {
         return;
     }
-    Q_FOREACH (KoShape::ShapeChangeListener *listener, listeners()) {
+    for (KoShape::ShapeChangeListener *listener : listeners()) {
         TextCursorChangeListener *cursorListener = dynamic_cast<TextCursorChangeListener*>(listener);
         if (cursorListener) {
             cursorListener->notifyCursorPosChanged(pos, anchor);
@@ -1680,7 +1677,7 @@ void KoSvgTextShape::notifyMarkupChanged()
     if (d->isLoading) {
         return;
     }
-    Q_FOREACH (KoShape::ShapeChangeListener *listener, listeners()) {
+    for (KoShape::ShapeChangeListener *listener : listeners()) {
         TextCursorChangeListener *cursorListener = dynamic_cast<TextCursorChangeListener*>(listener);
         if (cursorListener) {
             cursorListener->notifyMarkupChanged();
@@ -1698,8 +1695,8 @@ void KoSvgTextShape::convertCharTransformsToPreformatted(bool makeInlineSize)
     KoSvgTextProperties props = this->propertiesForPos(-1);
     if (makeInlineSize) {
         KoSvgText::AutoValue val;
-        // Using QCeil here because otherwise the text will layout too tight.
-        val.customValue = qCeil(inlineSize);
+        // Round upward here because otherwise the text will layout too tight.
+        val.customValue = std::ceil(inlineSize);
         val.isAuto = false;
         if (!props.hasProperty(KoSvgTextProperties::InlineSizeId)) {
             props.setProperty(KoSvgTextProperties::InlineSizeId, PkVariant::fromValue(val));
@@ -1733,7 +1730,7 @@ bool KoSvgTextShape::saveSvg(SvgSavingContext &context)
     bool success = false;
 
     PkList<KoShape*> visibleShapes;
-    Q_FOREACH(KoShape *shape, d->internalShapes()) {
+    for (KoShape *shape : d->internalShapes()) {
         if (shape->isVisible(false)) {
             visibleShapes.append(shape);
         }
@@ -1741,7 +1738,7 @@ bool KoSvgTextShape::saveSvg(SvgSavingContext &context)
     const bool writeGroup = !(visibleShapes.isEmpty() || context.strippedTextMode());
     if (writeGroup) {
         context.shapeWriter().startElement("g", false);
-        context.shapeWriter().addAttribute("id", toPkString(context.createUID("group")));
+        context.shapeWriter().addAttribute("id", context.createUID("group"));
         context.shapeWriter().addAttribute(KoSvgTextShape_TEXTCONTOURGROUP, "true");
 
         SvgUtil::writeTransformAttributeLazy("transform", transformation(), context.shapeWriter());
@@ -1759,7 +1756,7 @@ bool KoSvgTextShape::saveSvg(SvgSavingContext &context)
                 context.shapeWriter().startElement("text", false);
 
                 if (!context.strippedTextMode()) {
-                    context.shapeWriter().addAttribute("id", toPkString(context.getID(this)));
+                    context.shapeWriter().addAttribute("id", context.getID(this));
 
                     // save the version to distinguish from the buggy Krita version
                     // 2: Wrong font-size.
@@ -1879,12 +1876,13 @@ bool KoSvgTextShape::saveHtml(HtmlSavingContext &context)
                                 .append(";" );
                     }
                 }
-                context.shapeWriter().addAttribute("style", toPkString(styleString));
+                context.shapeWriter().addAttribute("style", styleString);
 
                 if (d->childCount(siblingCurrent(it)) == 0) {
-                    debugFlake << "saveHTML" << this << it->text;
+                    PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                        << "saveHTML" << this << it->text;
                     // After adding all the styling to the <p> element, add the text
-                    context.shapeWriter().addTextNode(toPkString(it->text));
+                    context.shapeWriter().addTextNode(it->text);
                 }
             }
         } else {
@@ -1939,7 +1937,8 @@ void KoSvgTextShape::setMementoImpl(const KoSvgTextShapeMementoSP memento)
         for (auto child = childBegin(root); child != childEnd(root); child++) {
             if (!child->textPathId.isEmpty()) {
                 KIS_SAFE_ASSERT_RECOVER(Private::textPathByName(child->textPathId, d->textPaths)) {
-                    qDebug() << "missing path is" << child->textPathId;
+                    PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                        << "missing path is" << child->textPathId;
                     child->textPathId = PkString();
                 }
             }
@@ -1983,21 +1982,36 @@ void KoSvgTextShape::setMemento(const KoSvgTextShapeMementoSP memento, int pos, 
 
 void KoSvgTextShape::debugParsing()
 {
-    qDebug() << "Tree size:" << KisForestDetail::size(d->textData);
+    PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+        << "Tree size:" << KisForestDetail::size(d->textData);
     PkString spaces;
     for (auto it = compositionBegin(d->textData); it != compositionEnd(d->textData); it++) {
         if (it.state() == KisForestDetail::Enter) {
 
-            qDebug() << PkString(spaces + "+") << it->text;
-            qDebug() << PkString(spaces + "|");
-            qDebug() << PkString(spaces + "| PropertyType:") << it->properties.property(KoSvgTextProperties::KraTextStyleType).toString();
-            qDebug() << PkString(spaces + "| Fill set: ") << it->properties.hasProperty(KoSvgTextProperties::FillId);
-            qDebug() << PkString(spaces + "| Stroke set: ") << it->properties.hasProperty(KoSvgTextProperties::StrokeId);
-            qDebug() << PkString(spaces + "| Opacity:");
-            qDebug() << PkString(spaces + "| PaintOrder: ") << it->properties.hasProperty(KoSvgTextProperties::PaintOrder);
-            qDebug() << PkString(spaces + "| Visibility set: ") << it->properties.hasProperty(KoSvgTextProperties::Visibility);
-            qDebug() << PkString(spaces + "| TextPath set: ") << it->textPathId;
-            qDebug() << PkString(spaces + "| Transforms set:");
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "+") << it->text;
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug() << PkString(spaces + "|");
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "| PropertyType:")
+                << it->properties.property(KoSvgTextProperties::KraTextStyleType).toString();
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "| Fill set: ")
+                << it->properties.hasProperty(KoSvgTextProperties::FillId);
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "| Stroke set: ")
+                << it->properties.hasProperty(KoSvgTextProperties::StrokeId);
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "| Opacity:");
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "| PaintOrder: ")
+                << it->properties.hasProperty(KoSvgTextProperties::PaintOrder);
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "| Visibility set: ")
+                << it->properties.hasProperty(KoSvgTextProperties::Visibility);
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "| TextPath set: ") << it->textPathId;
+            PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                << PkString(spaces + "| Transforms set:");
             spaces.append(" ");
         }
 
@@ -2095,14 +2109,14 @@ void KoSvgTextShape::paint(PkPainter &painter) const
 
 void KoSvgTextShape::paintStroke(PkPainter &painter) const
 {
-    Q_UNUSED(painter);
+    (void)painter;
     // do nothing! everything is painted in paint()
 }
 
 PkPainterPath KoSvgTextShape::outline() const {
     PkPainterPath result;
     if (!d->internalShapes().isEmpty()) {
-        Q_FOREACH(KoShape *shape, d->internalShapes()) {
+        for (KoShape *shape : d->internalShapes()) {
             result.addPath(shape->transformation().map(shape->outline()));
         }
     }
@@ -2173,7 +2187,7 @@ void KoSvgTextShape::setSize(const PkSizeF &size)
         if (!d->textPaths.isEmpty()) return;
 
         const bool allInternalShapeAreTranslatedOnly = [this] () {
-            Q_FOREACH(KoShape *shape, d->internalShapes()) {
+            for (KoShape *shape : d->internalShapes()) {
                 if (shape->transformation().type() > PkTransform::TxTranslate) {
                     return false;
                 }
@@ -2186,7 +2200,7 @@ void KoSvgTextShape::setSize(const PkSizeF &size)
              * We have only one contour that has no transformations, so we can just pass
              * the resize to it and preserve all the contours intact
              */
-            Q_FOREACH (KoShape *internalShape, d->internalShapes()) {
+            for (KoShape *internalShape : d->internalShapes()) {
                 /**
                  * When resizing the shapes via setSize() we expect the method to
                  * scale the shapes bluntly in the parent's coordinate system. So,
@@ -2253,7 +2267,7 @@ void KoSvgTextShape::setSize(const PkSizeF &size)
 
             const PkTransform scale = PkTransform::fromScale(scaleX, scaleY);
 
-            Q_FOREACH (KoShape *shape, d->internalShapes()) {
+            for (KoShape *shape : d->internalShapes()) {
                 shape->setTransformation(shape->transformation() * scale);
             }
 
@@ -2274,12 +2288,12 @@ void KoSvgTextShape::paintDebug(PkPainter &painter, const DebugElements elements
         }
 
         //Debug shape outlines.
-        Q_FOREACH (KoShape *shapeInside, d->shapesInside) {
+        for (KoShape *shapeInside : d->shapesInside) {
             PkPainterPath p = shapeInside->outline();
             p = shapeInside->transformation().map(p);
             painter.strokePath(p, PkPen(PkColor(Pk::green)));
         }
-        Q_FOREACH (KoShape *shapeInside, d->shapesSubtract) {
+        for (KoShape *shapeInside : d->shapesSubtract) {
             PkPainterPath p = shapeInside->outline();
             p = shapeInside->transformation().map(p);
             painter.strokePath(p, PkPen(PkColor(Pk::red)));
@@ -2287,8 +2301,8 @@ void KoSvgTextShape::paintDebug(PkPainter &painter, const DebugElements elements
     }
 
     if (elements & DebugElement::LineBox) {
-        Q_FOREACH (LineBox lineBox, d->lineBoxes) {
-            Q_FOREACH (const LineChunk &chunk, lineBox.chunks) {
+        for (LineBox lineBox : d->lineBoxes) {
+            for (const LineChunk &chunk : lineBox.chunks) {
                 PkPen pen;
                 pen.setCosmetic(true);
                 pen.setWidth(2);
@@ -2357,7 +2371,7 @@ void KoSvgTextShape::setShapesInside(PkList<KoShape *> shapesInside)
 
 void KoSvgTextShape::addShapeContours(PkList<KoShape *> shapes, const bool inside)
 {
-    Q_FOREACH(KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         if (d->textPaths.contains(shape)) {
             d->removeTextPathId(d->textData.childBegin(), shape->name());
             d->cleanUp(d->textData);
@@ -2399,7 +2413,7 @@ bool KoSvgTextShape::shapeInContours(KoShape *shape)
 
 void KoSvgTextShape::removeShapesFromContours(PkList<KoShape *> shapes, bool callUpdate, bool cleanup)
 {
-    Q_FOREACH(KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         if (shape) {
             d->removeTextPathId(d->textData.childBegin(), shape->name());
             shape->removeDependee(this);
@@ -2462,7 +2476,7 @@ bool KoSvgTextShape::setTextPathOnRange(KoShape *textPath, const int startPos, c
         PkList<KoSvgTextProperties::PropertyId> copyIds = {KoSvgTextProperties::TextDecorationLineId,
                                                           KoSvgTextProperties::TextDecorationColorId,
                                                           KoSvgTextProperties::TextDecorationStyleId};
-        Q_FOREACH(KoSvgTextProperties::PropertyId p, copyIds) {
+        for (KoSvgTextProperties::PropertyId p : copyIds) {
             if (d->textData.childBegin()->properties.hasProperty(KoSvgTextProperties::TextDecorationLineId)) {
                 textPathElement.properties.setProperty(p, d->textData.childBegin()->properties.property(p));
                 d->textData.childBegin()->properties.removeProperty(p);
@@ -2493,7 +2507,7 @@ bool KoSvgTextShape::setTextPathOnRange(KoShape *textPath, const int startPos, c
              (child != last && child != childEnd(d->textData.childBegin()));
              child++) {
             if (!child->textPathId.isEmpty()) {
-                Q_FOREACH(KoShape *shape, d->textPaths) {
+                for (KoShape *shape : d->textPaths) {
                     if (shape->name() == child->textPathId) {
                         removeShapesFromContours({shape}, false, false);
                         break;
@@ -2591,7 +2605,7 @@ PkMap<PkString, PkString> KoSvgTextShape::shapeTypeSpecificStyles(SvgSavingConte
     PkMap<PkString, PkString> map = this->textProperties().convertParagraphProperties();
     if (!d->shapesInside.isEmpty()) {
         PkStringList shapesInsideList;
-        Q_FOREACH(KoShape* shape, d->shapesInside) {
+        for (KoShape* shape : d->shapesInside) {
             PkString id = (shape->isVisible(false) && !context.strippedTextMode())? context.getID(shape): SvgStyleWriter::embedShape(shape, context);
             shapesInsideList.append(PkString("url(#%1)").arg(id));
         }
@@ -2602,7 +2616,7 @@ PkMap<PkString, PkString> KoSvgTextShape::shapeTypeSpecificStyles(SvgSavingConte
     }
     if (!d->shapesSubtract.isEmpty()) {
         PkStringList shapesInsideList;
-        Q_FOREACH(KoShape* shape, d->shapesSubtract) {
+        for (KoShape* shape : d->shapesSubtract) {
             PkString id = shape->isVisible(false)? context.getID(shape): SvgStyleWriter::embedShape(shape, context);
             shapesInsideList.append(PkString("url(#%1)").arg(id));
         }
@@ -2618,28 +2632,29 @@ void KoSvgTextShape::relayout() const
 }
 
 KoSvgTextShapeFactory::KoSvgTextShapeFactory()
-    : KoShapeFactoryBase(KoSvgTextShape_SHAPEID, toPkString(i18nc("Text label in SVG Text Tool", "Text")))
+    : KoShapeFactoryBase(KoSvgTextShape_SHAPEID, PkString("Text"))
 {
-    setToolTip(toPkString(i18n("SVG Text Shape")));
+    setToolTip("SVG Text Shape");
     setIconName("x-shape-text");
     setLoadingPriority(5);
     setXmlElementNames(KoXmlNS::svg, PkStringList{PkString("text")});
 
     KoShapeTemplate t;
-    t.name = toPkString(i18n("SVG Text"));
-    t.iconName = toPkString(QLatin1String("x-shape-text"));
-    t.toolTip = toPkString(i18n("SVG Text Shape"));
+    t.name = "SVG Text";
+    t.iconName = "x-shape-text";
+    t.toolTip = "SVG Text Shape";
     addTemplate(t);
 }
 
 KoShape *KoSvgTextShapeFactory::createDefaultShape(KoDocumentResourceManager *documentResources) const
 {
-    Q_UNUSED(documentResources);
-    debugFlake << "Create default svg text shape";
+    (void)documentResources;
+    PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+        << "Create default svg text shape";
 
     KoSvgTextShape *shape = new KoSvgTextShape();
     shape->setShapeId(KoSvgTextShape_SHAPEID);
-    shape->insertText(0, toPkString(i18nc("Default text for the text shape", "Placeholder Text")));
+    shape->insertText(0, "Placeholder Text");
 
     return shape;
 }
@@ -2649,7 +2664,7 @@ KoShape *KoSvgTextShapeFactory::createShape(const KoProperties *params, KoDocume
     KoSvgTextShape *shape = new KoSvgTextShape();
     shape->setShapeId(KoSvgTextShape_SHAPEID);
 
-    PkString svgText = params->stringProperty("svgText", toPkString(i18nc("Default text for the text shape", "<text>Placeholder Text</text>")));
+    PkString svgText = params->stringProperty("svgText", "<text>Placeholder Text</text>");
     PkString defs = params->stringProperty("defs");
     PkRectF shapeRect = PkRectF(0, 0, 200, 60);
     PkVariant rect = params->property("shapeRect");
@@ -2681,6 +2696,6 @@ bool KoSvgTextShapeFactory::supports(const PkXmlElement &/*e*/, KoShapeLoadingCo
 
 void KoSvgTextShape::TextCursorChangeListener::notifyShapeChanged(KoShape::ChangeType type, KoShape *shape)
 {
-    Q_UNUSED(type);
-    Q_UNUSED(shape);
+    (void)type;
+    (void)shape;
 }

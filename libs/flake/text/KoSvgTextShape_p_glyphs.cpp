@@ -5,21 +5,19 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoSvgTextShape.h"
 #include "KoSvgTextShape_p.h"
 
 #include "KisTofuGlyph.h"
 #include "KoFontLibraryResourceUtils.h"
 
-#include <FlakeDebug.h>
 #include <KoPathShape.h>
 
 #include <kis_global.h>
 
 #include <PkPainterPath.h>
-#include <QtMath>
+#include <PkGlobal.h>
+#include <PkMessageLogger.h>
 
 #include <utility>
 #include <variant>
@@ -38,6 +36,8 @@
 // [migrate] missing include for Pk/Qt type
 #include <PkRgb.h>
 
+#define debugFlake PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+#define warnFlake PkMessageLogger(__FILE__, __LINE__, __func__).warning()
 
 static PkPainterPath convertFromFreeTypeOutline(FT_GlyphSlotRec *glyphSlot);
 static PkImage convertFromFreeTypeBitmap(FT_GlyphSlotRec *glyphSlot);
@@ -157,7 +157,7 @@ static std::pair<PkTransform, PkTransform> calcOutlineGlyphTransform(const PkTra
     PkTransform glyphObliqueTf;
 
     // Check whether we need to synthesize italic by shearing the glyph:
-    if (charResult.fontStyle != QFont::StyleNormal && !faceIsItalic(currentGlyph.ftface)) {
+    if (charResult.fontStyle != PkFontStyleNormal && !faceIsItalic(currentGlyph.ftface)) {
         // CSS Fonts Module Level 4, 2.4. Font style: the font-style property:
         // For `oblique`, "lack of an <angle> represents 14deg".
         constexpr double SLANT_14DEG = 0.24932800284318069162403993780486;
@@ -434,7 +434,7 @@ std::pair<PkTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const PkTra
             bitmapGlyph->images.append(image);
 
             // Check whether we need to synthesize italic by shearing the glyph:
-            if (charResult.fontStyle != QFont::StyleNormal
+            if (charResult.fontStyle != PkFontStyleNormal
                 && !(currentGlyph.ftface->style_flags & FT_STYLE_FLAG_ITALIC)) {
                 // Since we are dealing with a bitmap glyph, we'll just use a nice
                 // round floating point number.
@@ -599,7 +599,7 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
             charResult.tabSize = ftTF.map(PkPointF(*charResult.tabSize, *charResult.tabSize)).x();
         }
 
-        if(!qFuzzyCompare(bitmapScale, 1.0)) {
+        if(!pkQtFuzzyCompare(bitmapScale, 1.0)) {
             charResult.metrics.scaleBaselines(bitmapScale);
         }
         if (charResult.extraFontScaling < 1.0) {
@@ -611,7 +611,7 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
         } else if (const auto *outlineGlyph = std::get_if<Glyph::Outline>(&charResult.glyph)) {
             charResult.inkBoundingBox |= outlineGlyph->path.boundingRect();
         } else if (const auto *colorGlyph = std::get_if<Glyph::ColorLayers>(&charResult.glyph)) {
-            Q_FOREACH (const PkPainterPath &p, colorGlyph->paths) {
+            for (const PkPainterPath &p : colorGlyph->paths) {
                 charResult.inkBoundingBox |= p.boundingRect();
             }
         } else if (!std::holds_alternative<std::monostate>(charResult.glyph)) {
@@ -763,7 +763,7 @@ static PkImage convertFromFreeTypeBitmap(FT_GlyphSlotRec *glyphSlot)
         for (int y = 0; y < height; y++) {
             auto *argb = reinterpret_cast<PkRgb *>(img.scanLine(y));
             for (unsigned int x = 0; x < glyphSlot->bitmap.width; x++) {
-                argb[x] = qRgba(src[2], src[1], src[0], src[3]);
+                argb[x] = pkRgba(src[2], src[1], src[0], src[3]);
                 src += 4;
             }
         }

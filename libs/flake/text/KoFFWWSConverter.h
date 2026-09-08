@@ -13,7 +13,6 @@
 #include <kritaflake_export.h>
 
 #include <KoSvgText.h>
-#include <QLocale>
 #include <PkDateTime.h>
 
 #include <optional>
@@ -26,14 +25,14 @@ struct KoFontFamilyWWSRepresentation {
     PkString fontFamilyName;
     PkString typographicFamilyName;
 
-    PkHash<QLocale, PkString> localizedFontFamilyNames;
-    PkHash<QLocale, PkString> localizedTypographicFamily;
-    PkHash<QLocale, PkString> localizedTypographicStyles;
+    PkHash<PkString, PkString> localizedFontFamilyNames;
+    PkHash<PkString, PkString> localizedTypographicFamily;
+    PkHash<PkString, PkString> localizedTypographicStyles;
 
     PkDateTime lastModified; ///< Value of the most recently modified font family. Used for updates.
 
     PkHash<PkString, PkString> sampleStrings; /// sample string used to generate the preview;
-    PkList<QLocale> supportedLanguages;
+    PkList<PkString> supportedLanguages;
 
     PkHash<PkString, KoSvgText::FontFamilyAxis> axes;
     PkList<KoSvgText::FontFamilyStyleInfo> styles;
@@ -79,7 +78,7 @@ public:
     /// and other font features.
     bool addFontFromFile(const PkString &filename, const int index, FT_LibrarySP freeTypeLibrary);
 
-    void addSupportedLanguagesByFile(const PkString &filename, const int index, const PkList<QLocale> &supportedLanguages, const PkFontProvider *provider, const PkFontProvider::FontHandle &handle);
+    void addSupportedLanguagesByFile(const PkString &filename, const int index, const PkList<PkString> &supportedLanguages, const PkFontProvider *provider, const PkFontProvider::FontHandle &handle);
 
     /// Sort any straggling fonts into WWSFamilies.
     void sortIntoWWSFamilies();

@@ -22,14 +22,13 @@
 #include <kis_assert.h>
 #include <KisForest.h>
 
-#include <QFont>
+#include <PkGlobal.h>
 #include <PkImage.h>
 #include <PkLine.h>
 #include <PkPainterPath.h>
 #include <PkPoint.h>
 #include <PkRect.h>
 #include <PkVector.h>
-#include <QtMath>
 
 #include <variant>
 
@@ -261,7 +260,7 @@ struct CharacterResult {
         return baselineOffset+dominantBaselineOffset;
     }
 
-    QFont::Style fontStyle = QFont::StyleNormal;
+    PkFontStyle fontStyle = PkFontStyleNormal;
     int fontWeight = 400;
 
     CursorInfo cursorInfo;
@@ -316,14 +315,14 @@ struct LineBox {
     LineBox(PkVector<PkLineF> lineWidths, bool ltr, PkPointF indent, const KoSvgText::ResolutionHandler &resHandler) {
         textIndent = indent;
         if (ltr) {
-            Q_FOREACH(PkLineF line, lineWidths) {
+            for (const PkLineF &line : lineWidths) {
                 LineChunk chunk;
                 chunk.length = PkLineF(resHandler.adjustCeil(line.p1()), resHandler.adjustFloor(line.p2()));
                 chunks.append(chunk);
                 currentChunk = 0;
             }
         } else {
-            Q_FOREACH(PkLineF line, lineWidths) {
+            for (const PkLineF &line : lineWidths) {
                 LineChunk chunk;
                 chunk.length = PkLineF(resHandler.adjustFloor(line.p2()), resHandler.adjustCeil(line.p1()));
                 chunks.insert(0, chunk);
@@ -353,7 +352,7 @@ struct LineBox {
     }
 
     void setCurrentChunk(LineChunk chunk) {
-        currentChunk = qMax(currentChunk, 0);
+        currentChunk = pkMax(currentChunk, 0);
         if (currentChunk < chunks.size()) {
             chunks[currentChunk] = chunk;
         } else {
@@ -385,16 +384,16 @@ struct LineBox {
         for (int i=0; i<chunks.size(); i++) {
             LineChunk chunk = chunks.at(i);
             if (isHorizontal) {
-                qreal min = qMin(chunk.length.p1().x(), chunk.length.p2().x()) - SHAPE_PRECISION;
-                qreal max = qMax(chunk.length.p1().x(), chunk.length.p2().x()) + SHAPE_PRECISION;
+                qreal min = pkMin(chunk.length.p1().x(), chunk.length.p2().x()) - SHAPE_PRECISION;
+                qreal max = pkMax(chunk.length.p1().x(), chunk.length.p2().x()) + SHAPE_PRECISION;
                 if ((pos.x() < max) &&
                         (pos.x() >= min)) {
                         currentChunk = i;
                         break;
                 }
             } else {
-                qreal min = qMin(chunk.length.p1().y(), chunk.length.p2().y()) - SHAPE_PRECISION;
-                qreal max = qMax(chunk.length.p1().y(), chunk.length.p2().y()) + SHAPE_PRECISION;
+                qreal min = pkMin(chunk.length.p1().y(), chunk.length.p2().y()) - SHAPE_PRECISION;
+                qreal max = pkMax(chunk.length.p1().y(), chunk.length.p2().y()) + SHAPE_PRECISION;
                 if ((pos.y() < max) &&
                         (pos.y() >= min)) {
                     currentChunk = i;
@@ -497,15 +496,21 @@ public:
     ~Private() {
 
         internalShapesPainter.reset();
-        Q_FOREACH(KoShape *shape, shapeGroup->shapes()) {
+        for (KoShape *shape : shapeGroup->shapes()) {
             shapeGroup->removeShape(shape);
         }
         shapeGroup.reset();
-        qDeleteAll(shapesInside);
+        for (KoShape *shape : shapesInside) {
+            delete shape;
+        }
         shapesInside.clear();
-        qDeleteAll(shapesSubtract);
+        for (KoShape *shape : shapesSubtract) {
+            delete shape;
+        }
         shapesSubtract.clear();
-        qDeleteAll(textPaths);
+        for (KoShape *shape : textPaths) {
+            delete shape;
+        }
         textPaths.clear();
     }
 
@@ -520,16 +525,16 @@ public:
     }
 
     void updateShapeGroup() {
-        Q_FOREACH(KoShape *shape, shapeGroup->shapes()) {
+        for (KoShape *shape : shapeGroup->shapes()) {
             shapeGroup->removeShape(shape);
         }
-        Q_FOREACH(KoShape *shape, shapesInside) {
+        for (KoShape *shape : shapesInside) {
             shapeGroup->addShape(shape);
         }
-        Q_FOREACH(KoShape *shape, shapesSubtract) {
+        for (KoShape *shape : shapesSubtract) {
             shapeGroup->addShape(shape);
         }
-        Q_FOREACH(KoShape *shape, textPaths) {
+        for (KoShape *shape : textPaths) {
             shapeGroup->addShape(shape);
         }
         updateTextWrappingAreas();
@@ -577,7 +582,7 @@ public:
 
     // Convenience function to ensure the bounds checking is in place.
     CursorPos getCursorPos(int pos) {
-        return cursorPos.at(qBound(0, pos, cursorPos.size()-1));
+        return cursorPos.at(pkBound(0, pos, cursorPos.size()-1));
     }
 
     KisForest<KoSvgTextContentElement> textData;
@@ -672,7 +677,7 @@ public:
     static void finalizeDecoration (
             PkPainterPath decorationPath,
             const PkPointF offset,
-            const QPainterPathStroker &stroker,
+            const PkPen &stroker,
             const KoSvgText::TextDecoration type,
             PkMap<KoSvgText::TextDecoration, PkPainterPath> &decorationPaths,
             const KoPathShape *currentTextPath,
@@ -980,7 +985,8 @@ public:
                 }
             }
             if (transformOffset < currentTextElement->localTransformations.size()) {
-                int length = qBound(0, transformOffsetEnd-transformOffset, qMax(0, currentTextElement->localTransformations.size()-transformOffset));
+                int length = pkBound(0, transformOffsetEnd-transformOffset,
+                                     pkMax(0, currentTextElement->localTransformations.size()-transformOffset));
                 currentTextElement->localTransformations.remove(transformOffset,
                                                                 length);
             }
@@ -1405,7 +1411,7 @@ public:
         PkString newTextPathName = textPath->name();
         while(!textPathNameUnique) {
             textPathNameUnique = true;
-            Q_FOREACH(KoShape *shape, textPaths) {
+            for (KoShape *shape : textPaths) {
                 if (shape->name() == newTextPathName) {
                     textPathNameUnique = false;
                     textPathNumber += 1;

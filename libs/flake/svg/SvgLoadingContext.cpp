@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
-
 #include "SvgLoadingContext.h"
 
 #include <filesystem>
@@ -14,19 +11,18 @@
 #include <vector>
 #include <pk/container/PkStack.h>
 #include <PkAuxTypes.h>
+#include <PkGlobal.h>
+#include <PkMessageLogger.h>
 
 #include <KoColorSpaceRegistry.h>
 #include <KoColorSpaceEngine.h>
 #include <KoColorProfile.h>
 #include <KoDocumentResourceManager.h>
 
-#include <FlakeDebug.h>
-
 #include "SvgGraphicContext.h"
 #include "SvgUtil.h"
 #include "SvgCssHelper.h"
 #include "SvgStyleParser.h"
-#include "kis_debug.h"
 
 
 // PkByteArray 缺 fromHex()/toHex()；color-profile 的唯一 id 往返需要
@@ -82,7 +78,7 @@ PkString pkToHex(const PkByteArray &ba)
 
 }
 
-class Q_DECL_HIDDEN SvgLoadingContext::Private
+class SvgLoadingContext::Private
 {
 public:
     Private()
@@ -97,9 +93,12 @@ public:
     {
         if (! gcStack.isEmpty() && !gcStack.top()->isResolutionFrame) {
             // Resolution frame is usually the first and is not removed.
-            warnFlake << "the context stack is not empty (current count" << gcStack.size() << ", expected 0)";
+            PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                << "the context stack is not empty (current count" << gcStack.size() << ", expected 0)";
         }
-        qDeleteAll(gcStack);
+        for (SvgGraphicsContext *gc : gcStack) {
+            delete gc;
+        }
         gcStack.clear();
         delete styleParser;
     }
@@ -308,11 +307,13 @@ void SvgLoadingContext::parseProfile(const PkXmlElement &element)
 
     if (element.attribute("rendering-intent", "auto") != "auto") {
         // WARNING: Krita does *not* treat rendering intents attributes of the profile!
-        warnFlake << "WARNING: we do *not* treat rendering intents attributes of the profile!";
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+            << "WARNING: we do *not* treat rendering intents attributes of the profile!";
     }
 
     if (d->profiles.contains(name)) {
-        debugFlake << "Profile already in the map!" << ppVar(name);
+        PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+            << "Profile already in the map! name=" << name;
         return;
     }
 
@@ -329,12 +330,16 @@ void SvgLoadingContext::parseProfile(const PkXmlElement &element)
                 profile = engine->addProfile(profileData);
 
                 if (profile->uniqueId() != uniqueId) {
-                    warnFlake << "WARNING: ProfileID of the attached profile doesn't match the one mentioned in SVG element";
-                    warnFlake << "       " << ppVar(pkToHex(profile->uniqueId()));
-                    warnFlake << "       " << ppVar(pkToHex(uniqueId));
+                    PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                        << "WARNING: ProfileID of the attached profile doesn't match the one mentioned in SVG element";
+                    PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                        << "profileId=" << pkToHex(profile->uniqueId());
+                    PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                        << "expectedId=" << pkToHex(uniqueId);
                 }
             } else {
-                warnFlake << "WARNING: couldn't fetch the ICCprofile file!" << fileName;
+                PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                    << "WARNING: couldn't fetch the ICCprofile file!" << fileName;
             }
         }
     }
@@ -342,7 +347,9 @@ void SvgLoadingContext::parseProfile(const PkXmlElement &element)
     if (profile) {
         d->profiles.insert(name, profile);
     } else {
-        warnFlake << "WARNING: couldn't load SVG profile" << ppVar(name) << ppVar(href) << ppVar(uniqueId);
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+            << "WARNING: couldn't load SVG profile name=" << name
+            << " href=" << href << " id=" << pkToHex(uniqueId);
     }
 }
 

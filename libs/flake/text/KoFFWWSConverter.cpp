@@ -3,10 +3,9 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoFFWWSConverter.h"
-#include <PkQLocaleHash.h>
+#include <PkGlobal.h>
+#include <PkMessageLogger.h>
 // CaseInsensitive contains（FFWWS 字体家族匹配 6 处，S-09-g）
 static bool pkContainsCI(const PkStringList &list, const PkString &needle)
 {
@@ -18,22 +17,23 @@ static bool pkContainsCI(const PkStringList &list, const PkString &needle)
 
 
 #include <KisForest.h>
-#include <KisStaticInitializer.h>
-#include <kis_assert.h>
 #include <hb.h>
 #include <hb-ft.h>
 #include FT_TRUETYPE_TABLES_H
 
-#include <QFileInfo>
 #include <PkDateTime.h>
+#include <filesystem>
+#include <sys/stat.h>
 
 namespace {
 
-// R-09 边界层：PkString → PkString（与 KoCssTextUtils.cpp 的 qStringToPk/pkToQString 一致）。
-PkString pkToQString(const PkString &s)
+PkHash<PkString, PkString> localeLabelsToTags(const PkHash<PkString, PkString> &labels)
 {
-    const std::string u8 = s.PkToUtf8();
-    return PkString::fromUtf8(u8.data(), int(u8.size()));
+    PkHash<PkString, PkString> result;
+    for (auto it = labels.begin(); it != labels.end(); ++it) {
+        result.insert(it.key(), it.value());
+    }
+    return result;
 }
 
 }
@@ -60,11 +60,11 @@ struct FontFamilySizeInfo {
     qreal low = -1;
     qreal high = -1;
     qreal designSize = 0;
-    PkHash<QLocale, PkString> localizedLabels;
+    PkHash<PkString, PkString> localizedLabels;
     PkString debugInfo() const {
         PkString label;
         if (!localizedLabels.isEmpty()) {
-            label = localizedLabels.value(QLocale(QLocale::English), localizedLabels.values().first());
+            label = localizedLabels.value(PkString("en"), localizedLabels.values().first());
         }
         return PkString("Optical Size Info: OS2=%1, label: %2, min: %3, max: %4, designSize: %5").arg(os2table? "true": "false").arg(label).arg(low).arg(high).arg(designSize);
     }
@@ -74,14 +74,14 @@ struct FontFamilySizeInfo {
         if (os2table != other.os2table) {
             return false;
         } else if (os2table) {
-            return qFuzzyCompare(low, other.low) && qFuzzyCompare(high, other.high);
+            return pkQtFuzzyCompare(low, other.low) && pkQtFuzzyCompare(high, other.high);
         } else {
-            return qFuzzyCompare(designSize, other.designSize);
+            return pkQtFuzzyCompare(designSize, other.designSize);
         }
     }
 };
 
-QDebug operator<<(QDebug dbg, const FontFamilySizeInfo &info) {
+PkDebug operator<<(PkDebug dbg, const FontFamilySizeInfo &info) {
     dbg.nospace() << info.debugInfo();
     return dbg.space();
 }
@@ -96,22 +96,22 @@ struct FontFamilyNode {
     int fileIndex = 0; /// Truetype collections have indices that need to be checked against.
 
     PkHash<PkString, PkString> sampleStrings; /// sample string used to generate the preview;
-    PkList<QLocale> supportedLanguages; /// Languages supported, according to fontconfig.
+    PkList<PkString> supportedLanguages; /// Languages supported, according to fontconfig.
 
     PkStringList otherFiles; /// Other files that seem related. These might be duplicate font files, or fonts where only the tech differs.
     PkDateTime lastModified; /// Last time the file was modified.
 
     // The localized font-families. This should be the name associated with the current node,
     // and thus is the typographic, wws or ribbi name depending on the depth.
-    PkHash<QLocale, PkString> localizedFontFamilies;
+    PkHash<PkString, PkString> localizedFontFamilies;
 
     // Style name can depend on depth, and when returning the representation, we need to select the correct name.
-    PkHash<QLocale, PkString> localizedFontStyle;
-    PkHash<QLocale, PkString> localizedTypographicStyle;
-    PkHash<QLocale, PkString> localizedWWSStyle;
+    PkHash<PkString, PkString> localizedFontStyle;
+    PkHash<PkString, PkString> localizedTypographicStyle;
+    PkHash<PkString, PkString> localizedWWSStyle;
 
     // The full proper name as used by Windows to identify unique names.
-    PkHash<QLocale, PkString> localizedFullName;
+    PkHash<PkString, PkString> localizedFullName;
 
     /**
      * @brief axes
@@ -160,7 +160,7 @@ struct FontFamilyNode {
         for (int k = 0; k < axes.keys().size(); k++) {
             KoSvgText::FontFamilyAxis a = axes.value(axes.keys().at(k));
             KoSvgText::FontFamilyAxis b = otherAxes.value(axes.keys().at(k));
-            if (!qFuzzyCompare(a.value, b.value)) {
+            if (!pkQtFuzzyCompare(a.value, b.value)) {
                 return false;
             }
         }
@@ -239,7 +239,7 @@ PkStringList FontFamilyNode::debugInfo() const
     return debug;
 }
 
-QDebug operator<<(QDebug dbg, const FontFamilyNode &node) {
+PkDebug operator<<(PkDebug dbg, const FontFamilyNode &node) {
     dbg.nospace() << "FFWWS node";
     return dbg.space();
 }
@@ -314,7 +314,7 @@ bool KoFFWWSConverter::addFontFromEntry(const PkFontProvider::FontEntry &entry, 
     // 原 addFontFromPattern 从 FcPattern 读 FC_FILE/FC_INDEX/FC_LANG；端口化后这些
     // 字段由适配器在 FontEntry 里给好（I-6 分工表：handle/familyName/languages），
     // 这里直接消费，不再有「读不到 pattern 字段」的失败分支。
-    const PkString filename = pkToQString(entry.handle.filePath);
+    const PkString filename = entry.handle.filePath;
     const int indexValue = entry.handle.faceIndex;
 
     if (indexValue > 0xffff) { // this indicates the font is a variable font instance, so we don't try to load it.
@@ -323,9 +323,9 @@ bool KoFFWWSConverter::addFontFromEntry(const PkFontProvider::FontEntry &entry, 
 
     bool success = addFontFromFile(filename, indexValue, freeTypeLibrary);
     if (success && !entry.languages.empty() && provider) {
-        PkList<QLocale> languages;
+        PkList<PkString> languages;
         for (const PkString &lang : entry.languages) {
-            languages.append(QLocale(toQString(pkToQString(lang))));
+            languages.append(lang);
         }
         addSupportedLanguagesByFile(filename, indexValue, languages, provider, entry.handle);
     }
@@ -354,15 +354,11 @@ bool KoFFWWSConverter::addFontFromFile(const PkString &filename, const int index
 
     fontFamily.fontFamily = face->family_name;
     fontFamily.fontStyle = face->style_name;
-    fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(QFileInfo(toQString(fontFamily.fileName)).lastModified().toMSecsSinceEpoch());
-    if (!fontFamily.lastModified.isValid()) {
-        PkDateTime time = PkDateTime::fromMSecsSinceEpoch(QFileInfo(toQString(fontFamily.fileName)).birthTime().toMSecsSinceEpoch());
-        if (time.isValid()) {
-            fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(time.toMSecsSinceEpoch());
-        } else {
-            fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(0);
-        }
-    }
+    struct stat fileStat {};
+    const std::string nativeFileName = fontFamily.fileName.PkToUtf8();
+    const qint64 modifiedMs = stat(nativeFileName.c_str(), &fileStat) == 0
+        ? static_cast<qint64>(fileStat.st_mtime) * 1000 : 0;
+    fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(modifiedMs);
     FontFamilyNode typographicFamily;
     FontFamilyNode wwsFamily;
 
@@ -488,17 +484,17 @@ bool KoFFWWSConverter::addFontFromFile(const PkString &filename, const int index
         uint numEntries = 0;
         const hb_ot_name_entry_t *entries = hb_ot_name_list_names(hbFace.data(), &numEntries);
 
-        PkHash<QLocale, PkString> ribbiFamilyNames;
-        PkHash<QLocale, PkString> ribbiStyleNames;
-        PkHash<QLocale, PkString> WWSFamilyNames;
-        PkHash<QLocale, PkString> WWSStyleNames;
-        PkHash<QLocale, PkString> typographicFamilyNames;
-        PkHash<QLocale, PkString> typographicStyleNames;
-        PkHash<QLocale, PkString> fullNames;
+        PkHash<PkString, PkString> ribbiFamilyNames;
+        PkHash<PkString, PkString> ribbiStyleNames;
+        PkHash<PkString, PkString> WWSFamilyNames;
+        PkHash<PkString, PkString> WWSStyleNames;
+        PkHash<PkString, PkString> typographicFamilyNames;
+        PkHash<PkString, PkString> typographicStyleNames;
+        PkHash<PkString, PkString> fullNames;
         for (uint i = 0; i < numEntries; i++) {
             hb_ot_name_entry_t entry = entries[i];
             PkString lang(hb_language_to_string(entry.language));
-            QLocale locale(toQString(lang));
+            const PkString locale = lang;
             uint length = hb_ot_name_get_utf8(hbFace.data(), entry.name_id, entry.language, nullptr, nullptr)+1;
             std::vector<char> buff(length);
             hb_ot_name_get_utf8(hbFace.data(), entry.name_id, entry.language, &length, buff.data());
@@ -521,16 +517,16 @@ bool KoFFWWSConverter::addFontFromFile(const PkString &filename, const int index
                 fullNames.insert(locale, name);
             } else if (entry.name_id > 0) { // Fonts made by Adobe seem to use the copyright id (0) as the input when the given value is empty.
                 if (axisNameIDs.keys().contains(entry.name_id)) {
-                    fontFamily.axes[axisNameIDs.value(entry.name_id)].localizedLabels.insert(locale, name);
+                    fontFamily.axes[axisNameIDs.value(entry.name_id)].localizedLabels.insert(lang, name);
                 } else if (entry.name_id == sizeNameId) {
                     fontFamily.sizeInfo.localizedLabels.insert(locale, name);
                 } else if (instanceNameIDs.contains(entry.name_id)) {
                     int idx = instanceNameIDs.indexOf(entry.name_id);
-                    fontFamily.styleInfo[idx].localizedLabels.insert(locale, name);
+                    fontFamily.styleInfo[idx].localizedLabels.insert(lang, name);
                 }
             }
         }
-        QLocale english(QLocale::English);
+        const PkString english("en");
         if (!typographicFamilyNames.isEmpty()) {
             typographicFamily.fontFamily = typographicFamilyNames.value(english, typographicFamilyNames.values().first());
             typographicFamily.localizedFontFamilies = typographicFamilyNames;
@@ -558,7 +554,7 @@ bool KoFFWWSConverter::addFontFromFile(const PkString &filename, const int index
     }
 
     if (fontFamily.fontFamily.isEmpty()) {
-        fontFamily.fontFamily = toPkString(QFileInfo(toQString(fontFamily.fileName)).baseName());
+        fontFamily.fontFamily = PkString(std::filesystem::path(nativeFileName).stem().string().c_str());
     }
     if (typographicFamily.fontFamily.isEmpty()) {
         typographicFamily.fontFamily = fontFamily.fontFamily;
@@ -629,7 +625,7 @@ bool KoFFWWSConverter::addFontFromFile(const PkString &filename, const int index
 }
 
 #include <KoWritingSystemUtils.h>
-void KoFFWWSConverter::addSupportedLanguagesByFile(const PkString &filename, const int index, const PkList<QLocale> &supportedLanguages, const PkFontProvider *provider, const PkFontProvider::FontHandle &handle)
+void KoFFWWSConverter::addSupportedLanguagesByFile(const PkString &filename, const int index, const PkList<PkString> &supportedLanguages, const PkFontProvider *provider, const PkFontProvider::FontHandle &handle)
 {
     auto it = d->fontFamilyCollection.depthFirstTailBegin();
     for (; it!= d->fontFamilyCollection.depthFirstTailEnd(); it++) {
@@ -645,7 +641,7 @@ void KoFFWWSConverter::addSupportedLanguagesByFile(const PkString &filename, con
         for (int i = 0; i < samples.size(); i++) {
             PkString sample = samples.keys().at(i);
             bool matching = true;
-            Q_FOREACH (uint unicode, sample.toUcs4()) {
+            for (uint unicode : sample.toUcs4()) {
                 // R-12 评审 M-5：端口只给逐码点 coversCodepoint()，没有整个字符集粒度
                 // ——FcCharSetHasChar(set, unicode) → provider->coversCodepoint(handle, unicode)。
                 if (!provider->coversCodepoint(handle, unicode)) {
@@ -694,7 +690,10 @@ void KoFFWWSConverter::sortIntoWWSFamilies()
         }
         while (!deleteList.isEmpty()) {
             auto child = deleteList.takeFirst();
-            KIS_ASSERT_RECOVER_NOOP(childBegin(child) == childEnd(child));
+            if (childBegin(child) != childEnd(child)) {
+                PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                    << "Expected an empty font-family node while sorting WWS families";
+            }
             d->fontFamilyCollection.erase(child);
         }
 
@@ -721,10 +720,10 @@ void KoFFWWSConverter::sortIntoWWSFamilies()
                 const int testFileIndex = fileIndices.contains(0)? 0: fileIndices.first();
 
                 bool widthTested = !font->axes.keys().contains(WIDTH_TAG);
-                widthTested = widthTested? true: qFuzzyCompare(font->axes.value(WIDTH_TAG).value, testWidth);
+                widthTested = widthTested? true: pkQtFuzzyCompare(font->axes.value(WIDTH_TAG).value, testWidth);
 
                 std::pair<PkString, PkString> fontStyle(font->fontFamily, font->fontStyle);
-                if (qFuzzyCompare(font->axes.value(WEIGHT_TAG).value, testWeight) && widthTested
+                if (pkQtFuzzyCompare(font->axes.value(WEIGHT_TAG).value, testWeight) && widthTested
                         && !font->isItalic
                         && !font->isOblique
                         && ( ( fileIndices.size() > 1 && font->fileIndex == testFileIndex ) || ( fileIndices.size()<=1 ))
@@ -741,7 +740,10 @@ void KoFFWWSConverter::sortIntoWWSFamilies()
             }
             while (!deleteList.isEmpty()) {
                 auto child = deleteList.takeFirst();
-                KIS_ASSERT_RECOVER_NOOP(childBegin(child) == childEnd(child));
+                if (childBegin(child) != childEnd(child)) {
+                    PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                        << "Expected an empty font-family node while deduplicating WWS families";
+                }
                 tempList.erase(child);
             }
             // Then sort the rest of the family nodes into wws families.
@@ -835,9 +837,9 @@ void KoFFWWSConverter::sortIntoWWSFamilies()
                             for (auto otherwws = childBegin(typographic); otherwws != childEnd(typographic); otherwws++) {
                                 if (otherwws->fontFamily == otherWWSName) {
                                     otherwws->fontFamily = childBegin(otherwws)->fontFamily + " " + childBegin(otherwws)->fontStyle;
-                                    PkHash<QLocale, PkString> families;
-                                    const PkHash<QLocale, PkString> styles = childBegin(otherwws)->localizedFontStyle;
-                                    Q_FOREACH (const QLocale l, otherwws->localizedFontFamilies.keys()) {
+                                    PkHash<PkString, PkString> families;
+                                    const PkHash<PkString, PkString> styles = childBegin(otherwws)->localizedFontStyle;
+                                    for (const PkString &l : otherwws->localizedFontFamilies.keys()) {
                                         families.insert(l, otherwws->localizedFontFamilies.value(l)+" "+styles.value(l, childBegin(otherwws)->fontStyle));
                                     }
                                     otherwws->localizedFontFamilies = families;
@@ -902,7 +904,10 @@ void KoFFWWSConverter::sortIntoWWSFamilies()
             }
             while (!deleteList.isEmpty()) {
                 auto del = deleteList.takeFirst();
-                KIS_ASSERT_RECOVER_NOOP(childBegin(del) == childEnd(del));
+                if (childBegin(del) != childEnd(del)) {
+                    PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                        << "Expected an empty font-family node before deletion";
+                }
                 d->fontFamilyCollection.erase(del);
             }
         }
@@ -914,9 +919,9 @@ void KoFFWWSConverter::addGenericFamily(const PkString &name)
     FontFamilyNode typographicFamily;
     FontFamilyNode fontFamily;
 
-    PkHash<QLocale, PkString> familyNames = {{QLocale(QLocale::English), name}};
+    PkHash<PkString, PkString> familyNames = {{PkString("en"), name}};
     // TODO: can and should we translate this?
-    PkHash<QLocale, PkString> styleNames = {{QLocale(QLocale::English), "Regular"}};
+    PkHash<PkString, PkString> styleNames = {{PkString("en"), "Regular"}};
 
     fontFamily.fontFamily = name;
     fontFamily.localizedFontFamilies = familyNames;
@@ -927,7 +932,7 @@ void KoFFWWSConverter::addGenericFamily(const PkString &name)
     fontFamily.axes.insert(WEIGHT_TAG, KoSvgText::FontFamilyAxis::weightAxis(400));
     fontFamily.fontStyle = styleNames.values().first();
     fontFamily.localizedFontStyle = styleNames;
-    PkString tag = KoWritingSystemUtils::sampleTagForQLocale(QLocale(QLocale::English));
+    PkString tag = KoWritingSystemUtils::sampleTagForLocale(PkString("en"));
     fontFamily.sampleStrings.insert(tag, KoWritingSystemUtils::samples().key(tag));
 
     auto typographic = d->fontFamilyCollection.insert(d->fontFamilyCollection.childEnd(), typographicFamily);
@@ -958,7 +963,7 @@ KoFontFamilyWWSRepresentation createRepresentation(KisForest<FontFamilyNode>::ch
             representation.lastModified = subFamily->lastModified;
         }
         representation.sampleStrings.insert(subFamily->sampleStrings);
-        Q_FOREACH(const QLocale &locale, subFamily->supportedLanguages) {
+        for (const PkString &locale : subFamily->supportedLanguages) {
             if (!representation.supportedLanguages.contains(locale)) {
                 representation.supportedLanguages.append(locale);
             }
@@ -968,9 +973,9 @@ KoFontFamilyWWSRepresentation createRepresentation(KisForest<FontFamilyNode>::ch
             PkString key = subFamily->axes.keys().at(a);
             KoSvgText::FontFamilyAxis axis = subFamily->axes.value(key);
             KoSvgText::FontFamilyAxis mainAxis = representation.axes.value(key);
-            mainAxis.min = qMin(mainAxis.min, axis.min);
+            mainAxis.min = pkMin(mainAxis.min, axis.min);
             mainAxis.defaultValue = axis.defaultValue;
-            mainAxis.max = qMax(mainAxis.max, axis.max);
+            mainAxis.max = pkMax(mainAxis.max, axis.max);
             mainAxis.localizedLabels.insert(axis.localizedLabels);
             mainAxis.tag = axis.tag;
             mainAxis.axisHidden = axis.axisHidden;
@@ -982,13 +987,13 @@ KoFontFamilyWWSRepresentation createRepresentation(KisForest<FontFamilyNode>::ch
         }
         if (!subFamily->isVariable) {
             if (!subFamily->localizedWWSStyle.isEmpty()) {
-                style.localizedLabels = subFamily->localizedWWSStyle;
+                style.localizedLabels = localeLabelsToTags(subFamily->localizedWWSStyle);
             } else if (!subFamily->localizedTypographicStyle.isEmpty()) {
-                style.localizedLabels = subFamily->localizedTypographicStyle;
+                style.localizedLabels = localeLabelsToTags(subFamily->localizedTypographicStyle);
             } else if (!subFamily->localizedFontStyle.isEmpty()) {
-                style.localizedLabels = subFamily->localizedFontStyle;
+                style.localizedLabels = localeLabelsToTags(subFamily->localizedFontStyle);
             } else {
-                style.localizedLabels.insert(QLocale(QLocale::English), subFamily->fontStyle);
+                style.localizedLabels.insert("en", subFamily->fontStyle);
             }
             style.isItalic = subFamily->isItalic;
             style.isOblique = subFamily->isOblique;
@@ -1110,7 +1115,7 @@ std::optional<PkString> KoFFWWSConverter::wwsNameByFamilyName(const PkString fam
 PkVector<FontFamilyNode> findNodesByAxis(const PkVector<FontFamilyNode> &nodes, const PkString axisTag, const qreal &value, const qreal &defaultValue, const qreal &defaultValueUpper) {
     PkVector<FontFamilyNode> candidates;
     PkVector<qreal> values;
-    Q_FOREACH (const FontFamilyNode &node, nodes) {
+    for (const FontFamilyNode &node : nodes) {
         qreal selectingVal = defaultValue;
 
         if (node.axes.keys().contains(axisTag)) {
@@ -1138,7 +1143,7 @@ PkVector<FontFamilyNode> findNodesByAxis(const PkVector<FontFamilyNode> &nodes, 
     bool shouldNotReturnDefault = ((axisTag == ITALIC_TAG || axisTag == SLANT_TAG) && value != defaultValue);
     qreal selectedValue = KoCssTextUtils::cssSelectFontStyleValue(values, value, defaultValue, defaultValueUpper, shouldNotReturnDefault);
 
-    Q_FOREACH (const FontFamilyNode &node, nodes) {
+    for (const FontFamilyNode &node : nodes) {
         if (node.axes.keys().contains(axisTag)) {
             KoSvgText::FontFamilyAxis axis = node.axes.value(axisTag);
             if (axis.value == selectedValue) {
@@ -1156,9 +1161,9 @@ PkVector<KoFFWWSConverter::FontFileEntry> KoFFWWSConverter::candidatesForCssValu
 {
     PkVector<FontFileEntry> candidateFileNames;
 
-    int pixelSize = info.size * (qMin(xRes, yRes) / 72.0);
+    int pixelSize = info.size * (pkMin(xRes, yRes) / 72.0);
 
-    Q_FOREACH(const PkString &family, info.families) {
+    for (const PkString &family : info.families) {
         auto it = d->fontFamilyCollection.compositionBegin();
         it = searchNodes(it, d->fontFamilyCollection.compositionEnd(), family);
         if (it != d->fontFamilyCollection.compositionEnd()) {
@@ -1204,12 +1209,12 @@ PkVector<KoFFWWSConverter::FontFileEntry> KoFFWWSConverter::candidatesForCssValu
                 PkVector<FontFamilyNode> obliques;
 
                 if (wws->isVariable) {
-                    qreal slantValue = info.slantMode == QFont::StyleItalic? 11: info.autoSlant? 14: info.slantValue;
+                    qreal slantValue = info.slantMode == PkFontStyleItalic ? 11 : info.autoSlant ? 14 : info.slantValue;
                     italics = findNodesByAxis(candidates, ITALIC_TAG, 1.0, 0.0, 0.0);
                     obliques = findNodesByAxis(candidates, SLANT_TAG, -slantValue, 0.0, 0.0);
                 }
                 if (italics.isEmpty() && obliques.isEmpty()) {
-                    Q_FOREACH(const FontFamilyNode &node, candidates) {
+                    for (const FontFamilyNode &node : candidates) {
                         if (node.isItalic) {
                             if (!node.isOblique) {
                                 italics.append(node);
@@ -1220,13 +1225,13 @@ PkVector<KoFFWWSConverter::FontFileEntry> KoFFWWSConverter::candidatesForCssValu
                     }
                 }
 
-                if (info.slantMode == QFont::StyleItalic) {
+                if (info.slantMode == PkFontStyleItalic) {
                     if (!italics.isEmpty()) {
                         candidates = italics;
                     } else if (!obliques.isEmpty()) {
                         candidates = obliques;
                     }
-                } else if (info.slantMode == QFont::StyleOblique) {
+                } else if (info.slantMode == PkFontStyleOblique) {
                     if (!obliques.isEmpty()) {
                         candidates = obliques;
                     } else if (!italics.isEmpty()) {
@@ -1235,13 +1240,13 @@ PkVector<KoFFWWSConverter::FontFileEntry> KoFFWWSConverter::candidatesForCssValu
                 } else {
                     PkStringList slantedFontFiles;
                     PkVector<FontFamilyNode> regular;
-                    Q_FOREACH(const FontFamilyNode &italic, italics) {
+                    for (const FontFamilyNode &italic : italics) {
                         slantedFontFiles.append(italic.fileName);
                     }
-                    Q_FOREACH(const FontFamilyNode &oblique, obliques) {
+                    for (const FontFamilyNode &oblique : obliques) {
                         slantedFontFiles.append(oblique.fileName);
                     }
-                    Q_FOREACH(const FontFamilyNode &node, candidates) {
+                    for (const FontFamilyNode &node : candidates) {
                         if (!slantedFontFiles.contains(node.fileName)) {
                             regular.append(node);
                         }
@@ -1255,7 +1260,7 @@ PkVector<KoFFWWSConverter::FontFileEntry> KoFFWWSConverter::candidatesForCssValu
             // prefer opentype
             if (candidates.size() > 1) {
                 PkVector<FontFamilyNode> openType;
-                Q_FOREACH(const FontFamilyNode &node, candidates) {
+                for (const FontFamilyNode &node : candidates) {
                     if (node.type == KoSvgText::OpenTypeFontType) {
                         openType.append(node);
                     }
@@ -1266,11 +1271,11 @@ PkVector<KoFFWWSConverter::FontFileEntry> KoFFWWSConverter::candidatesForCssValu
             }
 
             // finally, match size.
-            Q_FOREACH(const FontFamilyNode &node, candidates) {
+            for (const FontFamilyNode &node : candidates) {
                 PkStringList fileNames = node.otherFiles;
                 fileNames.append(node.fileName);
                 fileNames = node.pixelSizes.value(pixelSize, fileNames);
-                Q_FOREACH(const PkString &fileName, fileNames) {
+                for (const PkString &fileName : fileNames) {
                     if (fileName.isEmpty()) continue;
                     FontFileEntry entry;
                     entry.fileName = fileName;
@@ -1285,16 +1290,19 @@ PkVector<KoFFWWSConverter::FontFileEntry> KoFFWWSConverter::candidatesForCssValu
 
 void KoFFWWSConverter::debugInfo() const
 {
-    qDebug() << "Debug for font family collection" << KisForestDetail::size(d->fontFamilyCollection);
+    PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+        << "Debug for font family collection" << KisForestDetail::size(d->fontFamilyCollection);
     PkString spaces;
     for (auto it = compositionBegin(d->fontFamilyCollection); it != compositionEnd(d->fontFamilyCollection); it++) {
         if (it.state() == KisForestDetail::Enter) {
             PkStringList debugInfo = it->debugInfo();
             for (int i = 0; i< debugInfo.size(); i++) {
                 if (i==0) {
-                    qDebug().noquote() << PkString(spaces + "+") << debugInfo.at(i);
+                    PkMessageLogger(__FILE__, __LINE__, __func__).debug().noquote()
+                        << PkString(spaces + "+") << debugInfo.at(i);
                 } else {
-                    qDebug().noquote() << PkString(spaces + "| ") << debugInfo.at(i);
+                    PkMessageLogger(__FILE__, __LINE__, __func__).debug().noquote()
+                        << PkString(spaces + "| ") << debugInfo.at(i);
                 }
             }
             spaces.append("    ");
@@ -1305,4 +1313,3 @@ void KoFFWWSConverter::debugInfo() const
         }
     }
 }
-

@@ -6,6 +6,7 @@
 // weight / italic / setPixelSize 等。后续接 fontconfig/freetype 做真实度量，
 // 当前为值语义的轻量承载。
 
+#include <cmath>
 #include <string>
 
 // QFont::Style / QFont::Weight 的零 Qt 等价枚举（值照抄 Qt，便于 text/svg 调用点
@@ -20,19 +21,28 @@ enum PkFontWeight {
 class PkFont {
 public:
     PkFont() = default;
-    explicit PkFont(const std::string &family, int pointSize = -1) : m_family(family), m_pointSize(pointSize) {}
+    explicit PkFont(const std::string &family, int pointSize = -1)
+        : m_family(family), m_pointSize(pointSize), m_pointSizeF(pointSize) {}
     // 对齐 QFont(family, pointSize, weight, italic)（KoSvgTextProperties::generateFont 用到）
     PkFont(const std::string &family, int pointSize, int weight, bool italic)
-        : m_family(family), m_pointSize(pointSize), m_weight(weight), m_italic(italic) {}
+        : m_family(family), m_pointSize(pointSize), m_pointSizeF(pointSize),
+          m_weight(weight), m_style(italic ? PkFontStyleItalic : PkFontStyleNormal) {}
 
     std::string family() const { return m_family; }
     void setFamily(const std::string &f) { m_family = f; }
 
     int pointSize() const { return m_pointSize; }
-    void setPointSize(int s) { m_pointSize = s; }
+    void setPointSize(int s) { m_pointSize = s; m_pointSizeF = s; m_pixelSize = -1; }
+
+    double pointSizeF() const { return m_pointSizeF; }
+    void setPointSizeF(double s) {
+        m_pointSizeF = s;
+        m_pointSize = static_cast<int>(std::lround(s));
+        m_pixelSize = -1;
+    }
 
     int pixelSize() const { return m_pixelSize; }
-    void setPixelSize(int s) { m_pixelSize = s; }
+    void setPixelSize(int s) { m_pixelSize = s; m_pointSize = -1; m_pointSizeF = -1.0; }
 
     int weight() const { return m_weight; }
     void setWeight(int w) { m_weight = w; }
@@ -40,23 +50,48 @@ public:
     bool bold() const { return m_weight >= 75; }
     void setBold(bool b) { m_weight = b ? 75 : 50; }
 
-    bool italic() const { return m_italic; }
-    void setItalic(bool i) { m_italic = i; }
+    bool italic() const { return m_style != PkFontStyleNormal; }
+    void setItalic(bool i) { m_style = i ? PkFontStyleItalic : PkFontStyleNormal; }
 
-    PkFontStyle style() const { return m_italic ? PkFontStyleItalic : PkFontStyleNormal; }
-    void setStyle(PkFontStyle s) { m_italic = (s != PkFontStyleNormal); }
+    PkFontStyle style() const { return m_style; }
+    void setStyle(PkFontStyle s) { m_style = s; }
+
+    int stretch() const { return m_stretch; }
+    void setStretch(int stretch) { m_stretch = stretch; }
+
+    bool strikeOut() const { return m_strikeOut; }
+    void setStrikeOut(bool enabled) { m_strikeOut = enabled; }
+
+    bool underline() const { return m_underline; }
+    void setUnderline(bool enabled) { m_underline = enabled; }
+
+    bool overline() const { return m_overline; }
+    void setOverline(bool enabled) { m_overline = enabled; }
+
+    int dpi() const { return m_dpi; }
+    void setDpi(int dpi) { m_dpi = dpi; }
 
     bool operator==(const PkFont &o) const {
         return m_family == o.m_family && m_pointSize == o.m_pointSize &&
-               m_pixelSize == o.m_pixelSize && m_weight == o.m_weight && m_italic == o.m_italic;
+               m_pointSizeF == o.m_pointSizeF && m_pixelSize == o.m_pixelSize &&
+               m_weight == o.m_weight && m_style == o.m_style &&
+               m_stretch == o.m_stretch && m_strikeOut == o.m_strikeOut &&
+               m_underline == o.m_underline && m_overline == o.m_overline &&
+               m_dpi == o.m_dpi;
     }
 
 private:
     std::string m_family;
     int m_pointSize = -1;
+    double m_pointSizeF = -1.0;
     int m_pixelSize = -1;
     int m_weight = 50;
-    bool m_italic = false;
+    PkFontStyle m_style = PkFontStyleNormal;
+    int m_stretch = 100;
+    bool m_strikeOut = false;
+    bool m_underline = false;
+    bool m_overline = false;
+    int m_dpi = 96;
 };
 
 #endif // PK_FONT_H

@@ -6,7 +6,8 @@
 #ifndef KOCSSFONTINFO_H
 #define KOCSSFONTINFO_H
 
-#include <QFont>
+#include <PkFont.h>
+#include <PkStringList.h>
 #include <PkMap.h>
 #include <kritaflake_export.h>
 #include <boost/operators.hpp>
@@ -28,7 +29,7 @@ struct KRITAFLAKE_EXPORT KoCSSFontInfo: public boost::equality_comparable<KoCSSF
     double weight = 400;
     double width = 100;
 
-    QFont::Style slantMode = QFont::StyleNormal;
+    PkFontStyle slantMode = PkFontStyleNormal;
     bool autoSlant = true;
     double slantValue = 0.0;
 
@@ -41,9 +42,9 @@ struct KRITAFLAKE_EXPORT KoCSSFontInfo: public boost::equality_comparable<KoCSSF
         if (automaticOpticalSizing) {
             settings.insert("opsz", size);
         }
-        if (slantMode == QFont::StyleItalic) {
+        if (slantMode == PkFontStyleItalic) {
             settings.insert("ital", 1);
-        } else if (slantMode == QFont::StyleOblique) {
+        } else if (slantMode == PkFontStyleOblique) {
             settings.insert("slnt", -(autoSlant? 14.0: slantValue));
         } else {
             settings.insert("ital", 0);
@@ -56,13 +57,13 @@ struct KRITAFLAKE_EXPORT KoCSSFontInfo: public boost::equality_comparable<KoCSSF
     }
 
     bool operator==(const KoCSSFontInfo &rhs) const {
-        bool sizeMatch = automaticOpticalSizing? true: qFuzzyCompare(size, rhs.size);
-        bool slantMatch = autoSlant == rhs.autoSlant? true: qFuzzyCompare(slantValue, rhs.slantValue);
+        bool sizeMatch = automaticOpticalSizing? true: pkQtFuzzyCompare(size, rhs.size);
+        bool slantMatch = autoSlant == rhs.autoSlant? true: pkQtFuzzyCompare(slantValue, rhs.slantValue);
         return families == rhs.families
                 && automaticOpticalSizing == rhs.automaticOpticalSizing
                 && sizeMatch
-                && qFuzzyCompare(weight, rhs.weight)
-                && qFuzzyCompare(width, rhs.width)
+                && pkQtFuzzyCompare(weight, rhs.weight)
+                && pkQtFuzzyCompare(width, rhs.width)
                 && slantMode == rhs.slantMode
                 && slantMatch
                 && axisSettings == rhs.axisSettings;

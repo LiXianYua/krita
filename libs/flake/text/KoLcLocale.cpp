@@ -314,6 +314,14 @@ bool sameId(const LikelyId &a, const LikelyId &b)
 
 } // namespace
 
+PkString defaultScriptTag(const PkString &language, const PkString &region)
+{
+    const std::string languageCode = languageSubtag(language).PkToUtf8();
+    const std::string regionCode = region.toUpper().PkToUtf8();
+    const LikelyId locale = likely(languageCode, std::string(), regionCode);
+    return PkString(locale.script.c_str());
+}
+
 PkString bcp47Name(const PkString &langCode)
 {
     if (langCode.isEmpty()) {

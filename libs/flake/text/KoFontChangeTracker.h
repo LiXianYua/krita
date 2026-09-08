@@ -6,8 +6,6 @@
 #ifndef KOFONTCHANGETRACKER_H
 #define KOFONTCHANGETRACKER_H
 
-#include <QObject>
-// [migrate] missing include for Pk/Qt type
 #include <PkScopedPointer.h>
 #include <PkString.h>
 #include <PkStringList.h>
@@ -17,19 +15,15 @@
  * This class keeps track of the paths FontConfig is looking at,
  * and resets the font registry if they change.
  */
-class KoFontChangeTracker : public QObject
+class KoFontChangeTracker
 {
-    Q_OBJECT
 public:
-    explicit KoFontChangeTracker(PkStringList paths, QObject *parent = nullptr);
+    explicit KoFontChangeTracker(PkStringList paths);
     ~KoFontChangeTracker();
 
     /// This should be called after fontregistry initialization is done to start the signal compressor.
     void resetChangeTracker();
-Q_SIGNALS:
-    void sigUpdateConfig();
-private Q_SLOTS:
-    void directoriesChanged();
+    bool directoriesChanged() const;
 private:
     struct Private;
     PkScopedPointer<Private> d;

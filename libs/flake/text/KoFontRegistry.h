@@ -6,7 +6,6 @@
 #ifndef KOFONTREGISTRY_H
 #define KOFONTREGISTRY_H
 
-#include <QObject>
 #include <PkScopedPointer.h>
 #include <PkVector.h>
 
@@ -27,11 +26,10 @@
  * It also provides a configuration function to handle all the
  * size and variation axis values.
  */
-class KRITAFLAKE_EXPORT KoFontRegistry: public QObject
+class KRITAFLAKE_EXPORT KoFontRegistry
 {
-    Q_OBJECT
 public:
-    KoFontRegistry(QObject *parent = nullptr);
+    KoFontRegistry();
     ~KoFontRegistry();
 
     static KoFontRegistry *instance();
@@ -95,7 +93,7 @@ public:
      * @param face the freetype face to test for.
      * @return the slant mode, can be normal, italic or oblique.
      */
-    static QFont::Style slantMode(FT_FaceSP face);
+    static PkFontStyle slantMode(FT_FaceSP face);
 
     KoSvgText::FontMetrics fontMetricsForCSSValues(KoCSSFontInfo info = KoCSSFontInfo(),
                                                    const bool isHorizontal = true,
@@ -114,12 +112,11 @@ public:
     // more information to get a proper css representation.
     KoCSSFontInfo getCssDataForPostScriptName (const PkString postScriptName,
                                       PkString *foundPostScriptName);
-private Q_SLOTS:
+private:
     /**
      * Update the config and reset the FontChangeListener.
      */
     void updateConfig();
-private:
     class Private;
 
     friend class TestSvgText;
@@ -144,7 +141,8 @@ private:
 
     PkScopedPointer<Private> d;
 
-    Q_DISABLE_COPY(KoFontRegistry);
+    KoFontRegistry(const KoFontRegistry &) = delete;
+    KoFontRegistry &operator=(const KoFontRegistry &) = delete;
 };
 
 #endif // KOFONTREGISTRY_H

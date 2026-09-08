@@ -14,6 +14,7 @@
 #include <PkScopedPointer.h>
 #include <PkVariant.h>
 #include <PkList.h>
+#include <PkFont.h>
 
 #include <boost/operators.hpp>
 
@@ -252,7 +253,7 @@ public:
      */
     PkMap<PkString, PkString> convertParagraphProperties() const;
 
-    QFont generateFont() const;
+    PkFont generateFont() const;
 
     qreal xHeight() const;
 

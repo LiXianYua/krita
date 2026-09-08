@@ -5,8 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <PkGradient.h>
 #include "KoSvgTextShape.h"
 #include "KoSvgTextShape_p.h"
@@ -27,9 +25,9 @@
 #include <KoShapeGroupCommand.h>
 
 #include <kis_algebra_2d.h>
+#include <kis_global.h>
 
 #include <PkPainter.h>
-#include <QtMath>
 
 #include <variant>
 
@@ -103,7 +101,7 @@ void KoSvgTextShape::Private::paintTextDecoration(PkPainter &painter,
         const PkColor textDecorationColor = it->properties.propertyOrDefault(KoSvgTextProperties::TextDecorationColorId).value<PkColor>();
         const bool colorValid = textDecorationColor.isValid() && it->properties.hasProperty(KoSvgTextProperties::TextDecorationColorId) && textDecorationColor != PkColor(Pk::transparent);
 
-        Q_FOREACH(const KoShape::PaintOrder p, paintOrder) {
+        for (const KoShape::PaintOrder p : paintOrder) {
             if (p == KoShape::Fill) {
 
                 if (background && !colorValid) {
@@ -237,14 +235,14 @@ void KoSvgTextShape::Private::paintPaths(PkPainter &painter,
                                     if (img.format() == PkImage::Format_Grayscale8 || img.format() == PkImage::Format_Mono) {
                                         fillPainter.maskPainter()->save();
                                         fillPainter.maskPainter()->translate(result.at(i).finalPosition.x(), result.at(i).finalPosition.y());
-                                        fillPainter.maskPainter()->rotate(qRadiansToDegrees(result.at(i).rotate));
+                                        fillPainter.maskPainter()->rotate(kisRadiansToDegrees(result.at(i).rotate));
                                         fillPainter.maskPainter()->setCompositionMode(Pk::CompositionMode_Plus);
                                         fillPainter.maskPainter()->drawImage(rect, img);
                                         fillPainter.maskPainter()->restore();
                                     } else {
                                         painter.save();
                                         painter.translate(result.at(i).finalPosition.x(), result.at(i).finalPosition.y());
-                                        painter.rotate(qRadiansToDegrees(result.at(i).rotate));
+                                        painter.rotate(kisRadiansToDegrees(result.at(i).rotate));
                                         painter.setRenderHint(PkPainter::SmoothPixmapTransform, true);
                                         painter.drawImage(rect, img);
                                         painter.restore();
@@ -253,7 +251,7 @@ void KoSvgTextShape::Private::paintPaths(PkPainter &painter,
                             }
                         }
                     }
-                    Q_FOREACH(const KoShape::PaintOrder p, paintOrder) {
+                    for (const KoShape::PaintOrder p : paintOrder) {
                         if (p == KoShape::Fill) {
                             if (background) {
                                 chunk.setFillRule(Pk::WindingFill);
@@ -376,7 +374,7 @@ KoSvgTextShape::Private::collectPaths(const KoSvgTextShape *rootShape, PkVector<
     if (!internalShapes().isEmpty()) {
         PkList<KoShape *> internalS = internalShapes();
         std::sort(internalS.begin(), internalS.end(), KoShape::compareShapeZIndex);
-        Q_FOREACH(KoShape *shape, internalS) {
+        for (KoShape *shape : internalS) {
             KoShape *clone = shape->cloneShape();
             clone->setZIndex(shapes.size());
             if (clone->paintOrder() != rootShape->paintOrder()) {
@@ -501,8 +499,8 @@ KoSvgTextShape::Private::collectPaths(const KoSvgTextShape *rootShape, PkVector<
                                 PkTransform imageTf = PkTransform::fromTranslate(drawRect.x(), drawRect.y());
                                 PkTransform viewBox = PkTransform::fromScale(drawRect.width()/img.width(),
                                                                            drawRect.height()/img.height());
-                                params.setProperty(toPkString(imageProp), PkVariant::fromValue(img));
-                                params.setProperty(toPkString(imageViewTransformProp), PkVariant::fromValue(viewBox));
+                                params.setProperty(imageProp, PkVariant::fromValue(img));
+                                params.setProperty(imageViewTransformProp, PkVariant::fromValue(viewBox));
                                 KoShape *shape = imageFactory->createShape(&params);
                                 if (img.format() == PkImage::Format_Grayscale8 || img.format() == PkImage::Format_Mono) {
                                     KoShape *rect = rectangleFactory->createDefaultShape();
@@ -585,7 +583,7 @@ KoSvgTextShape::Private::collectPaths(const KoSvgTextShape *rootShape, PkVector<
         parentShape = shapes.first();
     } else if (shapes.size() > 1) {
         KoShapeGroup *group = new KoShapeGroup();
-        KoShapeGroupCommand cmd(group, toPkList(shapes), false);
+        KoShapeGroupCommand cmd(group, shapes, false);
         cmd.redo();
 
         group->setBackground(rootShape->background());
@@ -629,12 +627,12 @@ void KoSvgTextShape::Private::paintDebug(PkPainter &painter,
                     pen.setWidth(2);
                     painter.setPen(pen);
                     if (const auto *bitmapGlyph = std::get_if<Glyph::Bitmap>(&result.at(i).glyph)) {
-                        Q_FOREACH(const PkRectF drawRect, bitmapGlyph->drawRects) {
+                        for (const PkRectF drawRect : bitmapGlyph->drawRects) {
                             painter.drawPolygon(tf.map(drawRect));
                         }
                     } else if (const auto *colorGlyph = std::get_if<Glyph::ColorLayers>(&result.at(i).glyph)) {
                         PkRectF boundingRect;
-                        Q_FOREACH (const PkPainterPath &p, colorGlyph->paths) {
+                        for (const PkPainterPath &p : colorGlyph->paths) {
                             boundingRect |= p.boundingRect();
                         }
                         painter.drawPolygon(tf.map(boundingRect));

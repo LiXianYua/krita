@@ -46,8 +46,6 @@ public:
     static PkXmlDocument createDocumentFromSvg(PkStream *device, PkString *errorMsg = 0, int *errorLine = 0, int *errorColumn = 0);
     static PkXmlDocument createDocumentFromSvg(const PkByteArray &data, PkString *errorMsg = 0, int *errorLine = 0, int *errorColumn = 0);
     static PkXmlDocument createDocumentFromSvg(const PkString &data, PkString *errorMsg = 0, int *errorLine = 0, int *errorColumn = 0);
-    static PkXmlDocument createDocumentFromSvg(QXmlStreamReader reader, PkString *errorMsg = 0, int *errorLine = 0, int *errorColumn = 0);
-
     /// Parses a svg fragment, returning the list of top level child shapes
     PkList<KoShape*> parseSvg(const PkXmlElement &e, PkSizeF * fragmentSize = 0);
 

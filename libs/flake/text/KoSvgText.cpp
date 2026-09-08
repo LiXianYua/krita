@@ -4,11 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoSvgText.h"
 
-#include <QDebug>
+#include <algorithm>
 #include <array>
 
 #include <kis_dom_utils.h>
@@ -21,54 +19,29 @@
 #include <SvgLoadingContext.h>
 #include <SvgUtil.h>
 
-#include <KisStaticInitializer.h>
-// [migrate] missing include for Pk/Qt type
 #include <PkDataStream.h>
-
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KoSvgText::CssLengthPercentage>("KoSvgText::CssLengthPercentage");
-    qRegisterMetaType<KoSvgText::AutoValue>("KoSvgText::AutoValue");
-    qRegisterMetaType<KoSvgText::AutoLengthPercentage>("KoSvgText::AutoLengthPercentage");
-    qRegisterMetaType<KoSvgText::StrokeProperty>("KoSvgText::StrokeProperty");
-    qRegisterMetaType<KoSvgText::TextTransformInfo>("KoSvgText::TextTransformInfo");
-    qRegisterMetaType<KoSvgText::TextIndentInfo>("KoSvgText::TextIndentInfo");
-    qRegisterMetaType<KoSvgText::TabSizeInfo>("KoSvgText::TabSizeInfo");
-    qRegisterMetaType<KoSvgText::LineHeightInfo>("KoSvgText::LineHeightInfo");
-    qRegisterMetaType<KoSvgText::FontFamilyAxis>("KoSvgText::FontFamilyAxis");
-    qRegisterMetaType<KoSvgText::FontFamilyStyleInfo>("KoSvgText::FontFamilyStyleInfo");
-    qRegisterMetaType<KoSvgText::CssFontStyleData>("KoSvgText::CssSlantData");
-    qRegisterMetaType<KoSvgText::BackgroundProperty>("KoSvgText::BackgroundProperty");
-    qRegisterMetaType<KoSvgText::FontFeatureLigatures>("KoSvgText::FontFeatureLigatures");
-    qRegisterMetaType<KoSvgText::FontFeatureNumeric>("KoSvgText::FontFeatureNumeric");
-    qRegisterMetaType<KoSvgText::FontFeatureEastAsian>("KoSvgText::FontFeatureEastAsian");
-    qRegisterMetaType<KoSvgText::FontMetrics>("KoSvgText::FontMetrics");
-    qRegisterMetaType<KoSvgText::TextUnderlinePosition>("KoSvgText::TextUnderlinePosition");
-
-// Qt5 的 registerEqualsComparator/DebugStreamOperator 依赖 QMetaType 流化与
-    // QString 成员语义，过渡期裁剪（S-09-g）。Qt6 分支不用这些 API。
-    // （原 #endif 随裁剪块一并移除，S-09-g）
-}
+#include <kis_debug.h>
 
 namespace KoSvgText {
 
 AutoValue parseAutoValueX(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword)
 {
-    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(value));
+    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), value);
 }
 
 AutoValue parseAutoValueY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword)
 {
-    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(value));
+    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), value);
 }
 
 AutoValue parseAutoValueXY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword)
 {
-    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitXY(context.currentGC(), context.resolvedProperties(), toPkString(value));
+    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitXY(context.currentGC(), context.resolvedProperties(), value);
 }
 
 AutoValue parseAutoValueAngular(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword)
 {
-    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitAngular(context.currentGC(), toPkString(value));
+    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitAngular(context.currentGC(), value);
 }
 
 WritingMode parseWritingMode(const PkString &value) {
@@ -233,19 +206,19 @@ PkString writeLengthAdjust(LengthAdjust value)
     return value == LengthAdjustSpacingAndGlyphs ? "spacingAndGlyphs" : "spacing";
 }
 
-QDebug operator<<(QDebug dbg, const KoSvgText::AutoValue &value)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::AutoValue &value)
 {
     dbg.nospace() << (value.isAuto ? "auto" : PkString::number(value.customValue));
     return dbg.space();
 }
 
-QDebug operator<<(QDebug dbg, const KoSvgText::CssFontStyleData &value)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::CssFontStyleData &value)
 {
-    if (value.style == QFont::StyleOblique) {
+    if (value.style == PkFontStyleOblique) {
         dbg.nospace() << "oblique ";
         dbg.nospace() << value.slantValue;
     } else {
-        dbg.nospace() << (value.style == QFont::StyleItalic? "italic": "roman");
+        dbg.nospace() << (value.style == PkFontStyleItalic? "italic": "roman");
     }
 
 
@@ -328,12 +301,12 @@ bool CharTransformation::operator==(const CharTransformation &other) const {
 }
 
 namespace {
-QDebug addSeparator(QDebug dbg, bool hasPreviousContent) {
+PkDebug addSeparator(PkDebug dbg, bool hasPreviousContent) {
     return hasPreviousContent ? (dbg.nospace() << "; ") : dbg;
 }
 }
 
-QDebug operator<<(QDebug dbg, const CharTransformation &t)
+PkDebug operator<<(PkDebug dbg, const CharTransformation &t)
 {
     dbg.nospace() << "CharTransformation(";
 
@@ -372,14 +345,14 @@ QDebug operator<<(QDebug dbg, const CharTransformation &t)
     return dbg.space();
 }
 
-QDebug operator<<(QDebug dbg, const TextTransformInfo &t)
+PkDebug operator<<(PkDebug dbg, const TextTransformInfo &t)
 {
     dbg.nospace() << "TextTransformInfo(";
     dbg.nospace() << writeTextTransform(t);
     dbg.nospace() << ")";
     return dbg.space();
 }
-QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::TextIndentInfo &value)
+PkDebug KRITAFLAKE_EXPORT operator<<(PkDebug dbg, const KoSvgText::TextIndentInfo &value)
 {
     dbg.nospace() << "TextIndentInfo(";
     dbg.nospace() << writeTextIndent(value);
@@ -387,7 +360,7 @@ QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::TextIndentInfo 
     return dbg.space();
 }
 
-QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::TabSizeInfo &value)
+PkDebug KRITAFLAKE_EXPORT operator<<(PkDebug dbg, const KoSvgText::TabSizeInfo &value)
 {
     dbg.nospace() << "TextIndentInfo(";
     dbg.nospace() << writeTabSize(value);
@@ -398,14 +371,14 @@ QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgText::TabSizeInfo &va
     return dbg.space();
 }
 
-QDebug operator<<(QDebug dbg, const BackgroundProperty &prop)
+PkDebug operator<<(PkDebug dbg, const BackgroundProperty &prop)
 {
     dbg.nospace() << "BackgroundProperty(";
 
     dbg.nospace() << prop.property.data();
 
     if (KoColorBackground *fill = dynamic_cast<KoColorBackground*>(prop.property.data())) {
-        dbg.nospace() << "), color: " << toQColor(fill->color());
+        dbg.nospace() << "), color: " << fill->color();
     }
 
     if (KoGradientBackground *fill = dynamic_cast<KoGradientBackground*>(prop.property.data())) {
@@ -420,14 +393,14 @@ QDebug operator<<(QDebug dbg, const BackgroundProperty &prop)
     return dbg.space();
 }
 
-QDebug operator<<(QDebug dbg, const StrokeProperty &prop)
+PkDebug operator<<(PkDebug dbg, const StrokeProperty &prop)
 {
     dbg.nospace() << "StrokeProperty(";
 
     dbg.nospace() << prop.property.data();
 
     if (KoShapeStroke *stroke = dynamic_cast<KoShapeStroke*>(prop.property.data())) {
-        dbg.nospace() << "), pen: " << toQPen(stroke->resultLinePen());
+        dbg.nospace() << "), pen: " << stroke->resultLinePen();
     }
 
     dbg.nospace() << ")";
@@ -531,7 +504,7 @@ bool xmlSpaceToLongHands(const PkString &value, TextSpaceCollapse &collapseMetho
 
 PkString writeWhiteSpaceValue(TextSpaceCollapse collapseMethod, TextWrap wrapMethod, TextSpaceTrims trimMethod)
 {
-    Q_UNUSED(trimMethod);
+    (void)trimMethod;
     if (wrapMethod != NoWrap) {
         if (collapseMethod == Preserve) {
             return "pre-wrap";
@@ -616,7 +589,7 @@ TextTransformInfo parseTextTransform(const PkString &value)
 {
     TextTransformInfo textTransform;
     const PkStringList values = value.toLower().split(" ");
-    Q_FOREACH (const PkString &param, values) {
+    for (const PkString &param : values) {
         if (param == "capitalize") {
             textTransform.capitals = TextTransformCapitalize;
         } else if (param == "uppercase") {
@@ -632,7 +605,7 @@ TextTransformInfo parseTextTransform(const PkString &value)
             textTransform.fullWidth = false;
             textTransform.fullSizeKana = false;
         } else {
-            qWarning() << "Unknown parameter in text-transform" << param;
+            warnKrita << "Unknown parameter in text-transform" << param;
         }
     }
     return textTransform;
@@ -665,13 +638,13 @@ TextIndentInfo parseTextIndent(const PkString &value, const SvgLoadingContext &c
 {
     const PkStringList values = value.toLower().split(" ");
     TextIndentInfo textIndent;
-    Q_FOREACH (const PkString &param, values) {
+    for (const PkString &param : values) {
         if (param == "hanging") {
             textIndent.hanging = true;
         } else if (param == "each-line") {
             textIndent.eachLine = true;
         } else {
-            textIndent.length = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(param));
+            textIndent.length = SvgUtil::parseTextUnitStruct(context.currentGC(), param);
             //ToDo: figure out how to detect value is number.
             //qWarning() << "Unknown parameter in text-indent" << param;
         }
@@ -695,11 +668,11 @@ PkString writeTextIndent(const TextIndentInfo textIndent)
 TabSizeInfo parseTabSize(const PkString &value, const SvgLoadingContext &context)
 {
     TabSizeInfo tabSizeInfo;
-    qreal val = KisDomUtils::toDouble(toPkString(value), &tabSizeInfo.isNumber);
+    qreal val = KisDomUtils::toDouble(value, &tabSizeInfo.isNumber);
     if (tabSizeInfo.isNumber) {
-        tabSizeInfo.value = qMax(0.0, val);
+        tabSizeInfo.value = std::max(0.0, val);
     } else {
-        tabSizeInfo.length = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
+        tabSizeInfo.length = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
     }
     if ((tabSizeInfo.isNumber && tabSizeInfo.value < 0) || tabSizeInfo.length.value < 0) {
         tabSizeInfo.isNumber = true;
@@ -786,7 +759,7 @@ int parseCSSFontWeight(const PkString &value, int currentWeight)
         // try to read numerical weight value
         const int parsed = value.toInt(&ok, 10);
         if (ok) {
-            weight = qBound(0, parsed, 1000);
+            weight = pkBound(0, parsed, 1000);
         }
     }
     return weight;
@@ -801,7 +774,7 @@ LineHeightInfo parseLineHeight(const PkString &value, const SvgLoadingContext &c
     if (lineHeight.isNumber) {
         lineHeight.value = parsed;
     } else {
-        lineHeight.length = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
+        lineHeight.length = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
     }
 
     // Negative line-height is invalid
@@ -828,7 +801,7 @@ PkString writeLineHeight(LineHeightInfo lineHeight)
     return val;
 }
 
-QDebug operator<<(QDebug dbg, const LineHeightInfo &value)
+PkDebug operator<<(PkDebug dbg, const LineHeightInfo &value)
 {
     dbg.nospace() << "LineHeightInfo(";
 
@@ -844,7 +817,7 @@ QDebug operator<<(QDebug dbg, const LineHeightInfo &value)
     return dbg.space();
 }
 
-QDebug operator<<(QDebug dbg, const CssLengthPercentage &value)
+PkDebug operator<<(PkDebug dbg, const CssLengthPercentage &value)
 {
     dbg.nospace() << "Length(";
 
@@ -920,8 +893,8 @@ void CssLengthPercentage::convertToAbsolute(const KoSvgText::FontMetrics metrics
 AutoLengthPercentage parseAutoLengthPercentageXY(const PkString &value, const SvgLoadingContext &context, const PkString &autoKeyword, PkRectF bbox, bool percentageIsViewPort)
 {
     return value == autoKeyword ? AutoLengthPercentage()
-                                : percentageIsViewPort? AutoLengthPercentage(SvgUtil::parseUnitStruct(context.currentGC(), toPkString(value), true, true, toPkRectF(bbox)))
-                                                      : AutoLengthPercentage(SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value)));
+                                : percentageIsViewPort? AutoLengthPercentage(SvgUtil::parseUnitStruct(context.currentGC(), value, true, true, bbox))
+                                                      : AutoLengthPercentage(SvgUtil::parseTextUnitStruct(context.currentGC(), value));
 }
 
 PkString writeAutoLengthPercentage(const AutoLengthPercentage &value, const PkString &autoKeyword, bool percentageToEm)
@@ -929,7 +902,7 @@ PkString writeAutoLengthPercentage(const AutoLengthPercentage &value, const PkSt
     return value.isAuto ? autoKeyword : writeLengthPercentage(value.length, percentageToEm);
 }
 
-QDebug operator<<(QDebug dbg, const KoSvgText::AutoLengthPercentage &value)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::AutoLengthPercentage &value)
 {
     if (value.isAuto) {
         dbg.nospace() << "auto";
@@ -940,7 +913,7 @@ QDebug operator<<(QDebug dbg, const KoSvgText::AutoLengthPercentage &value)
 }
 
 
-QDebug operator<<(QDebug dbg, const KoSvgText::FontFamilyAxis &axis)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::FontFamilyAxis &axis)
 {
     dbg.nospace() << axis.debugInfo();
     return dbg.space();
@@ -958,7 +931,7 @@ PkDataStream &operator<<(PkDataStream &out, const KoSvgText::FontFamilyAxis &axi
     root.setAttribute("variable", axis.variableAxis? "true": "false");
     for(auto it = axis.localizedLabels.begin(); it != axis.localizedLabels.end(); it++) {
         PkXmlElement name = doc.createElement("name");
-        name.setAttribute("lang", toPkString(it.key().bcp47Name()));
+        name.setAttribute("lang", it.key());
         name.setAttribute("value", it.value());
         root.appendChild(name);
     }
@@ -985,13 +958,13 @@ PkDataStream &operator>>(PkDataStream &in, KoSvgText::FontFamilyAxis &axis) {
         PkXmlElement name = names.at(i).toElement();
         PkString lang = name.attribute("lang");
         PkString value = name.attribute("value");
-        axis.localizedLabels.insert(QLocale(toQString(lang)), value);
+        axis.localizedLabels.insert(lang, value);
     }
 
     return in;
 }
 
-QDebug operator<<(QDebug dbg, const KoSvgText::FontFamilyStyleInfo &style)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::FontFamilyStyleInfo &style)
 {
     dbg.nospace() << style.debugInfo();
     return dbg.space();
@@ -1011,7 +984,7 @@ PkDataStream &operator<<(PkDataStream &out, const KoSvgText::FontFamilyStyleInfo
     }
     for(auto it = style.localizedLabels.begin(); it != style.localizedLabels.end(); it++) {
         PkXmlElement name = doc.createElement("name");
-        name.setAttribute("lang", toPkString(it.key().bcp47Name()));
+        name.setAttribute("lang", it.key());
         name.setAttribute("value", it.value());
         root.appendChild(name);
     }
@@ -1033,7 +1006,7 @@ PkDataStream &operator>>(PkDataStream &in, KoSvgText::FontFamilyStyleInfo &style
         PkXmlElement name = names.at(i).toElement();
         PkString lang = name.attribute("lang");
         PkString value = name.attribute("value");
-        style.localizedLabels.insert(QLocale(toQString(lang)), value);
+        style.localizedLabels.insert(lang, value);
     }
     PkXmlNodeList coords =  root.elementsByTagName("coord");
     for(int i = 0; i < coords.size(); i++) {
@@ -1052,7 +1025,9 @@ CssFontStyleData parseFontStyle(const PkString &value)
     PkStringList params = value.split(" ");
     if (!params.isEmpty()) {
         PkString style = params.first();
-        slant.style = style == "italic"? QFont::StyleItalic: style == "oblique"? QFont::StyleOblique: QFont::StyleNormal;
+        slant.style = style == "italic" ? PkFontStyleItalic
+                    : style == "oblique" ? PkFontStyleOblique
+                                           : PkFontStyleNormal;
     }
     if (params.size() > 1) {
         PkString angle = params.last();
@@ -1068,9 +1043,9 @@ CssFontStyleData parseFontStyle(const PkString &value)
 PkString writeFontStyle(CssFontStyleData value)
 {
     PkString style =
-        value.style == QFont::StyleItalic ? "italic" :
-        value.style == QFont::StyleOblique ? "oblique" : "normal";
-    if (value.style == QFont::StyleOblique && !value.slantValue.isAuto) {
+        value.style == PkFontStyleItalic ? "italic" :
+        value.style == PkFontStyleOblique ? "oblique" : "normal";
+    if (value.style == PkFontStyleOblique && !value.slantValue.isAuto) {
         style.append(PkString(" ")+PkString::number(value.slantValue.customValue)+PkString("deg"));
     }
     return style;
@@ -1129,7 +1104,7 @@ PkString writeFontFeatureLigatures(const FontFeatureLigatures &feature)
     return list.join(" ");
 }
 
-QDebug operator<<(QDebug dbg, const KoSvgText::FontFeatureLigatures &feature)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::FontFeatureLigatures &feature)
 {
     dbg.nospace() << "Ligatures("<< writeFontFeatureLigatures(feature) <<")";
     return dbg.space();
@@ -1195,7 +1170,7 @@ PkString writeFontFeatureNumeric(const FontFeatureNumeric &feature)
     return list.join(" ");
 }
 
-QDebug operator<<(QDebug dbg, const KoSvgText::FontFeatureNumeric &feature)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::FontFeatureNumeric &feature)
 {
     dbg.nospace() << "NumericFeatures("<< writeFontFeatureNumeric(feature) <<")";
     return dbg.space();
@@ -1261,7 +1236,7 @@ PkString writeFontFeatureEastAsian(const FontFeatureEastAsian &feature)
     return list.join(" ");
 }
 
-QDebug operator<<(QDebug dbg, const KoSvgText::FontFeatureEastAsian &feature)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::FontFeatureEastAsian &feature)
 {
     dbg.nospace() << "EastAsianFeatures("<< writeFontFeatureEastAsian(feature) <<")";
     return dbg.space();
@@ -1483,7 +1458,7 @@ void FontMetrics::setBaselineValueByTag(const PkString &tag, int32_t value) {
     }
 }
 
-void FontMetrics::setMetricsValueByTag(const QLatin1String &tag, int32_t value) {
+void FontMetrics::setMetricsValueByTag(const PkString &tag, int32_t value) {
     if (tag == "xhgt") {
         xHeight = value;
     } else if (tag == "cpht") {
@@ -1568,7 +1543,7 @@ void FontMetrics::offsetMetricsToNewOrigin(const Baseline baseline)
     descender -= offset;
 }
 
-QDebug operator<<(QDebug dbg, const FontMetrics &metrics)
+PkDebug operator<<(PkDebug dbg, const FontMetrics &metrics)
 {
     const double ftPixel = 1.0;
     dbg.nospace() << "FontMetrics(";
@@ -1601,7 +1576,7 @@ QDebug operator<<(QDebug dbg, const FontMetrics &metrics)
     return dbg.space();
 }
 
-QDebug operator<<(QDebug dbg, const KoSvgText::TextUnderlinePosition &value)
+PkDebug operator<<(PkDebug dbg, const KoSvgText::TextUnderlinePosition &value)
 {
     dbg.nospace() << "Underline position( horizontal:" << value.horizontalPosition << ", vertical:" << value.verticalPosition << ")";
     return dbg.space();
@@ -1653,10 +1628,10 @@ PkPointF ResolutionHandler::adjust(const PkPointF point) const {
     if (!roundToPixelHorizontal && !roundToPixelVertical) return point;
     PkPointF pix = pointToPixel().map(point);
     if (roundToPixelHorizontal) {
-        pix.setX(qRound(pix.x()));
+        pix.setX(pkRound(pix.x()));
     }
     if (roundToPixelVertical) {
-        pix.setY(qRound(pix.y()));
+        pix.setY(pkRound(pix.y()));
     }
     return pixelToPoint().map(pix);
 }
