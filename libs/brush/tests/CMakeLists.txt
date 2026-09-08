@@ -11,5 +11,5 @@ kis_add_tests(
     kis_imagepipe_brush_test.cpp
     TestAbrStorage.cpp
     KisBrushModelTest.cpp
-    LINK_LIBRARIES kritaimage kritalibbrush kritatestsdk
+    LINK_LIBRARIES kritaimage kritalibbrush kritatestsdk pkstring pkcontainer
     )

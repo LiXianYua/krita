@@ -43,12 +43,15 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/pk/uuid
     ${CMAKE_SOURCE_DIR}/pk/color
     ${CMAKE_SOURCE_DIR}/pk/log
+    ${CMAKE_SOURCE_DIR}/pk/render
+    ${CMAKE_SOURCE_DIR}/pk/font
 )
 
 kis_add_library(kritalibbrush SHARED ${kritalibbrush_LIB_SRCS})
 generate_export_header(kritalibbrush BASE_NAME kritabrush EXPORT_MACRO_NAME BRUSH_EXPORT)
+target_compile_definitions(kritalibbrush PRIVATE QT_NO_VERSION_TAGGING)
 
-target_link_libraries(kritalibbrush kritaimage Qt${QT_MAJOR_VERSION}::Svg kritamultiarch lager pksql)
+target_link_libraries(kritalibbrush kritaimage pkimageio pkrender kritamultiarch lager pksql)
 
 set_target_properties(kritalibbrush PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}

@@ -10,10 +10,10 @@
 
 #include "kis_scaling_size_brush.h"
 #include "kritabrush_export.h"
+#include <PkFont.h>
+#include <PkString.h>
 
 class KisTextBrushesPipe;
-class QFont;
-class QString;
 
 
 class BRUSH_EXPORT KisTextBrush : public KisScalingSizeBrush
@@ -43,11 +43,11 @@ public:
     KisFixedPaintDeviceSP paintDevice(const KoColorSpace * colorSpace,
         KisDabShape const&, const KisPaintInformation& info, double subPixelX, double subPixelY) const override;
 
-    void setText(const QString& txt);
-    QString text(void) const;
+    void setText(const PkString& txt);
+    PkString text(void) const;
 
-    QFont font();
-    void setFont(const QFont& font);
+    PkFont font() const;
+    void setFont(const PkFont& font);
 
     void setPipeMode(bool pipe);
     bool pipeMode() const;
@@ -63,8 +63,8 @@ public:
     void setSpacing(double _spacing) override;
 
 private:
-    QFont *m_font;
-    QString *m_text;
+    PkFont m_font;
+    PkString m_text;
 
 private:
     KisTextBrushesPipe *m_brushesPipe;

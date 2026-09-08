@@ -13,6 +13,7 @@ class KisSvgBrushTest : public QObject
 
 private Q_SLOTS:
     void testUtf8NameAndSvgRoundTrip();
+    void testTransformOpacityAndColorMatchQt515();
 };
 
 #endif

@@ -17,21 +17,13 @@
 #include <KisResourceCacheDb.h>
 #include "KisResourceLoaderRegistry.h"
 #include "KisResourceLoader.h"
+#include "KisLocalStrokeResources.h"
 #include "KisResourceLocator.h"
 #include "kis_png_brush.h"
 #include "KoResourcePaths.h"
 
 void KisBrushModelTest::initTestCase()
 {
-    {
-        PkString fullFileName = TestUtil::fetchDataFileLazy("kritaTransparent.png");
-        KIS_ASSERT(!fullFileName.isEmpty());
-        KIS_ASSERT(QFileInfo(fullFileName).exists());
-
-        KisResourceModel model(ResourceType::Brushes);
-        KoResourceSP result = model.importResourceFile(fullFileName, false);
-        QVERIFY(result);
-    }
 }
 
 void KisBrushModelTest::testAutoBrush()
@@ -72,10 +64,14 @@ void KisBrushModelTest::testAutoBrush()
 
 void KisBrushModelTest::testPredefinedBrush()
 {
-    auto source = KisGlobalResourcesInterface::instance()->source<KisBrush>(ResourceType::Brushes);
-
-    KisBrushSP fallbackBrush = source.fallbackResource();
+    const QString qtFileName = TestUtil::fetchDataFileLazy("kritaTransparent.png");
+    const QByteArray utf8FileName = qtFileName.toUtf8();
+    const PkString fullFileName = PkString::PkFromUtf8(utf8FileName.constData(), utf8FileName.size());
+    KisBrushSP fallbackBrush(new KisPngBrush(fullFileName));
+    QVERIFY(fallbackBrush->load(KisGlobalResourcesInterface::instance()));
     QVERIFY(fallbackBrush);
+    KisResourcesInterfaceSP localResources(
+        new KisLocalStrokeResources(PkList<KoResourceSP>() << fallbackBrush));
 
     KisBrushModel::BrushData data;
 
@@ -104,7 +100,7 @@ void KisBrushModelTest::testPredefinedBrush()
     data.write(&config);
 
     std::optional<KisBrushModel::BrushData> newData =
-        KisBrushModel::BrushData::read(&config, KisGlobalResourcesInterface::instance());
+        KisBrushModel::BrushData::read(&config, localResources);
 
     QVERIFY(newData);
     QCOMPARE(*newData, data);

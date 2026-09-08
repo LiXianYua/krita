@@ -14,9 +14,8 @@ class KisPngBrushTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
-
-    void testLoading_data();
     void testLoading();
+    void testEmbeddedMetadata();
 };
 
 #endif

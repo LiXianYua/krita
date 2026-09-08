@@ -4,54 +4,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QBuffer>
-#include <QImageReader>
-#include <QPainter>
-
 #include "kis_png_brush.h"
 
 #include <PkAuxTypes.h>
+#include <PkPngReader.h>
 #include <PkStream.h>
 #include <PkXmlElement.h>
-#include <cstring>
 #include <filesystem>
 
 #include <kis_dom_utils.h>
 #include "KisBrushStreamUtils.h"
 
-// ── 图像编解码 GAP（登记，关闭条件 R-15/S-03-e libpng 通道）──────────────────
-// PNG 解码走 Qt 通道：QImageReader 只能消费 QIODevice，PkMemoryStream 不是
-// QIODevice，这里把 dev->readAll() 的 PkByteArray 拷进 QByteArray 再包 QBuffer
-// 喂给 QImageReader（原 Qt 形态）。QImage 也随 QImageReader 保留为过渡，只在
-// setBrushTipImage 边界经 toPkImage() 转成 PkImage。
-static PkString toPkString(const QString &s)
-{
-    const QByteArray bytes = s.toUtf8();
-    return PkString::PkFromUtf8(bytes.constData(), bytes.size());
-}
-
-// QImage→PkImage 桥。主树：QImage 与 PkImage 的 Format 枚举逐值同序
-// （PkImage 是 QImage 的忠实移植），逐行按源 bytesPerLine 拷贝（两者行对齐规则
-// 相同：((width*depth+31)/32)*4）；索引格式（Mono/MonoLSB/Indexed8）连颜色表一起拷。
-// 壳内若 QImage 经 compat 即 PkImage，本函数退化为自拷贝，identity 语义，行为不变。
-static PkImage toPkImage(const QImage &img)
-{
-    PkImage out(img.width(), img.height(), static_cast<PkImage::Format>(img.format()));
-    if (img.colorCount() > 0) {
-        std::vector<uint32_t> colors;
-        colors.reserve(static_cast<size_t>(img.colorCount()));
-        for (int i = 0; i < img.colorCount(); ++i) {
-            colors.push_back(img.color(i));
-        }
-        out.setColorTable(colors);
-    }
-    for (int y = 0; y < img.height(); ++y) {
-        memcpy(out.scanLine(y), img.constScanLine(y), img.bytesPerLine());
-    }
-    return out;
-}
-
-// QFileInfo(p).completeBaseName() 等价：文件名去掉最后一个扩展名。
+// Legacy completeBaseName behavior: remove only the final extension.
 // 复刻 S-02-b PkResourceStorageDesktop 的 std::filesystem 处理模式
 // （Task 1 修复轮 pathFileName 同款）。
 static PkString pathCompleteBaseName(const PkString &path)
@@ -79,37 +43,31 @@ KoResourceSP KisPngBrush::clone() const
 
 bool KisPngBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
-    Q_UNUSED(resourcesInterface);
+    (void)resourcesInterface;
 
     // Workaround for some OS (Debian, Ubuntu), where loading directly from the PkStream
     // fails with "libpng error: IDAT: CRC error"
-    PkByteArray data = kisBrushReadAll(dev);
-    QByteArray bytes(data.data(), data.size());
-    QBuffer buf(&bytes);
-    buf.open(QIODevice::ReadOnly);
-    QImageReader reader(&buf, "PNG");
+    const PkByteArray data = kisBrushReadAll(dev);
+    const PkPngReadResult decoded = PkPngReader::read(
+        reinterpret_cast<const uint8_t *>(data.constData()),
+        static_cast<std::size_t>(data.size()));
 
-    if (!reader.canRead()) {
-        dbgKrita << "Could not read brush" << QString::fromUtf8(filename().PkToUtf8().c_str()) << ". Error:" << reader.errorString();
-        setValid(false);
-        return false;
+    const auto spacing = decoded.text.find("brush_spacing");
+    if (spacing != decoded.text.end()) {
+        setSpacing(KisDomUtils::toDouble(PkString::fromUtf8(spacing->second.c_str())));
     }
 
-    if (reader.textKeys().contains("brush_spacing")) {
-        setSpacing(KisDomUtils::toDouble(toPkString(reader.text("brush_spacing"))));
-    }
-
-    if (reader.textKeys().contains("brush_name")) {
-        setName(toPkString(reader.text("brush_name")));
+    const auto name = decoded.text.find("brush_name");
+    if (name != decoded.text.end()) {
+        setName(PkString::PkFromUtf8(name->second.data(), static_cast<int>(name->second.size())));
     }
     else {
         setName(pathCompleteBaseName(filename()));
     }
 
-    QImage image = reader.read();
+    PkImage image = decoded.image;
 
     if (image.isNull()) {
-        dbgKrita << "Could not create image for" << QString::fromUtf8(filename().PkToUtf8().c_str()) << ". Error:" << reader.errorString();
         setValid(false);
         return false;
     }
@@ -119,7 +77,7 @@ bool KisPngBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
     bool hasAlpha = false;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
-            if (qAlpha(image.pixel(x, y)) != 255) {
+            if ((image.pixel(x, y) >> 24) != 255) {
                 hasAlpha = true;
                 break;
             }
@@ -133,16 +91,7 @@ bool KisPngBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
         // NOTE: drawing it over white background can probably be skipped now...
         //       Any images with an Alpha channel should be loaded as RGBA so
         //       they can have the lightness and gradient options available
-        QImage base(image.size(), image.format());
-        if ((int)base.format() < (int)QImage::Format_RGB32) {
-            base.convertTo(QImage::Format_ARGB32);
-        }
-        QPainter gc(&base);
-        gc.fillRect(base.rect(), Qt::white);
-        gc.drawImage(0, 0, image);
-        gc.end();
-        QImage converted = base.convertToFormat(QImage::Format_Grayscale8);
-        setBrushTipImage(toPkImage(converted));
+        setBrushTipImage(image.convertToFormat(PkImage::Format_Grayscale8));
         setBrushType(MASK);
         setBrushApplication(ALPHAMASK);
         setHasColorAndTransparency(false);
@@ -150,11 +99,11 @@ bool KisPngBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
     else {
         // see bug https://bugs.kde.org/show_bug.cgi?id=484115 if you want to edit this condition
         // keep it in sync with KisColorfulBrush code
-        if ((int)image.format() != (int)QImage::Format_ARGB32) {
-            image.convertTo(QImage::Format_ARGB32);
+        if (image.format() != PkImage::Format_ARGB32) {
+            image.convertTo(PkImage::Format_ARGB32);
         }
 
-        setBrushTipImage(toPkImage(image));
+        setBrushTipImage(image);
         setBrushType(IMAGE);
         setBrushApplication(isAllGray ? ALPHAMASK : LIGHTNESSMAP);
         setHasColorAndTransparency(!isAllGray);
@@ -169,7 +118,7 @@ bool KisPngBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
 
 bool KisPngBrush::saveToDevice(PkStream *dev) const
 {
-    Q_UNUSED(dev);
+    (void)dev;
     // GAP: PkImage::save 未交付（R-15/S-03-e libpng 通道）。PNG 编码待图像编解码任务。
     return false;
 }

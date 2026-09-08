@@ -13,6 +13,7 @@
 
 
 #include <KoColor.h>
+#include <PkColor.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoCompositeOpRegistry.h>
@@ -128,7 +129,7 @@ void checkIncrementalPainting(KisBrushSP brush, const PkString &prefix)
     qreal realAngle = 0;
 
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
-    KoColor fillColor(Qt::red, cs);
+    KoColor fillColor(PkColor(Pk::red), cs);
 
     KisFixedPaintDeviceSP fixedDab = new KisFixedPaintDevice(cs);
 
@@ -240,7 +241,9 @@ void KisImagePipeBrushTest::testTextBrushNoPipes()
     PkSharedPointer<KisTextBrush> brush(new KisTextBrush());
 
     brush->setPipeMode(false);
-    brush->setFont(QApplication::font());
+    PkFont font("DejaVu Sans");
+    font.setPixelSize(24);
+    brush->setFont(font);
     brush->setText("The_Quick_Brown_Fox_Jumps_Over_The_Lazy_Dog");
     brush->updateBrush();
 
@@ -252,7 +255,9 @@ void KisImagePipeBrushTest::testTextBrushPiped()
     PkSharedPointer<KisTextBrush> brush(new KisTextBrush());
 
     brush->setPipeMode(true);
-    brush->setFont(QApplication::font());
+    PkFont font("DejaVu Sans");
+    font.setPixelSize(24);
+    brush->setFont(font);
     brush->setText("The_Quick_Brown_Fox_Jumps_Over_The_Lazy_Dog");
     brush->updateBrush();
 

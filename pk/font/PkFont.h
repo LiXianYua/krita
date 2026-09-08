@@ -1,16 +1,17 @@
 #ifndef PK_FONT_H
 #define PK_FONT_H
 
-// PkFont —— QFont 的零 Qt 替代（R-50）。
+// PkFont —— native value-semantic font description (R-50).
 // text/svg 实测用量（Qt替代品选型.md §2）：family / pointSize / setBold /
-// weight / italic / setPixelSize 等。后续接 fontconfig/freetype 做真实度量，
-// 当前为值语义的轻量承载。
+// weight / italic / setPixelSize 等。PkFont itself remains a lightweight
+// value type; PkFontRasterizer resolves and renders it with Fontconfig/FreeType.
 
 #include <cmath>
 #include <string>
 
-// QFont::Style / QFont::Weight 的零 Qt 等价枚举（值照抄 Qt，便于 text/svg 调用点
-// 机械替换；见 libs/flake/text 对 QFont::StyleItalic/StyleOblique/ Weight 的大量使用）。
+class PkString;
+
+// Style and weight values keep the legacy wire/API conventions used by text/svg.
 enum PkFontStyle { PkFontStyleNormal, PkFontStyleItalic, PkFontStyleOblique };
 enum PkFontWeight {
     PkFontWeightThin = 0, PkFontWeightExtraLight = 1, PkFontWeightLight = 2,
@@ -23,7 +24,7 @@ public:
     PkFont() = default;
     explicit PkFont(const std::string &family, int pointSize = -1)
         : m_family(family), m_pointSize(pointSize), m_pointSizeF(pointSize) {}
-    // 对齐 QFont(family, pointSize, weight, italic)（KoSvgTextProperties::generateFont 用到）
+    // Four-argument compatibility constructor used by text property generation.
     PkFont(const std::string &family, int pointSize, int weight, bool italic)
         : m_family(family), m_pointSize(pointSize), m_pointSizeF(pointSize),
           m_weight(weight), m_style(italic ? PkFontStyleItalic : PkFontStyleNormal) {}
@@ -71,13 +72,18 @@ public:
     int dpi() const { return m_dpi; }
     void setDpi(int dpi) { m_dpi = dpi; }
 
+    bool fromString(const PkString &description);
+    PkString toString() const;
+
     bool operator==(const PkFont &o) const {
         return m_family == o.m_family && m_pointSize == o.m_pointSize &&
                m_pointSizeF == o.m_pointSizeF && m_pixelSize == o.m_pixelSize &&
                m_weight == o.m_weight && m_style == o.m_style &&
                m_stretch == o.m_stretch && m_strikeOut == o.m_strikeOut &&
                m_underline == o.m_underline && m_overline == o.m_overline &&
-               m_dpi == o.m_dpi;
+               m_dpi == o.m_dpi && m_styleHint == o.m_styleHint &&
+               m_fixedPitch == o.m_fixedPitch &&
+               m_rawMode == o.m_rawMode;
     }
 
 private:
@@ -88,10 +94,13 @@ private:
     int m_weight = 50;
     PkFontStyle m_style = PkFontStyleNormal;
     int m_stretch = 100;
-    bool m_strikeOut = false;
-    bool m_underline = false;
     bool m_overline = false;
     int m_dpi = 96;
+    int m_styleHint = 5;
+    int m_underline = 0;
+    int m_strikeOut = 0;
+    int m_fixedPitch = 0;
+    int m_rawMode = 0;
 };
 
 #endif // PK_FONT_H

@@ -5,6 +5,7 @@
 #include "kis_svg_brush_test.h"
 
 #include <cstring>
+#include <cstdint>
 #include <string>
 
 #include <KisGlobalResourcesInterface.h>
@@ -44,6 +45,35 @@ void KisSvgBrushTest::testUtf8NameAndSvgRoundTrip()
     QVERIFY(brush.saveToDevice(&output));
     QCOMPARE(output.size(), PkStream::pk_int64(sizeof(svg) - 1));
     QCOMPARE(std::memcmp(output.data(), svg, sizeof(svg) - 1), 0);
+}
+
+void KisSvgBrushTest::testTransformOpacityAndColorMatchQt515()
+{
+    static const char svg[] =
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 4 2\">"
+        "<g transform=\"translate(1 0)\" opacity=\"0.5\">"
+        "<rect width=\"2\" height=\"2\" fill=\"#ff0000\"/>"
+        "</g></svg>";
+    PkMemoryStream input;
+    QVERIFY(input.open(PkStream::ReadWrite));
+    QCOMPARE(input.write(svg, sizeof(svg) - 1), PkStream::pk_int64(sizeof(svg) - 1));
+    QVERIFY(input.seek(0));
+
+    KisSvgBrush brush("/tmp/oracle.svg");
+    QVERIFY(brush.loadFromDevice(&input, KisGlobalResourcesInterface::instance()));
+    QCOMPARE(brush.brushTipImage().size(), PkSize(1000, 500));
+    QCOMPARE(brush.brushTipImage().pixelIndex(100, 250), 255);
+    QCOMPARE(brush.brushTipImage().pixelIndex(300, 250), 128);
+    QCOMPARE(brush.brushTipImage().pixelIndex(700, 250), 128);
+
+    std::uint64_t hash = 1469598103934665603ull;
+    for (int y = 0; y < brush.brushTipImage().height(); ++y) {
+        for (int x = 0; x < brush.brushTipImage().width(); ++x) {
+            hash ^= static_cast<unsigned>(brush.brushTipImage().pixelIndex(x, y));
+            hash *= 1099511628211ull;
+        }
+    }
+    QCOMPARE(hash, std::uint64_t(15120048081377001843ull));
 }
 
 SIMPLE_TEST_MAIN(KisSvgBrushTest)

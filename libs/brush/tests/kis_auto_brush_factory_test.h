@@ -12,6 +12,7 @@ class KisAutoBrushFactoryTest : public QObject
     Q_OBJECT
 private Q_SLOTS:
     void testXMLClone();
+    void testTextBrushXMLRoundTrip();
 };
 
 #endif // KIS_AUTO_BRUSH_FACTORY_TEST_H

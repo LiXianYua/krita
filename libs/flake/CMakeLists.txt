@@ -42,9 +42,11 @@ if(NOT TARGET pkrender)
     add_library(pkrender STATIC
         ${CMAKE_SOURCE_DIR}/pk/render/PkPainter.cpp
         ${CMAKE_SOURCE_DIR}/pk/render/PkStrokeOutline.cpp
+        ${CMAKE_SOURCE_DIR}/pk/render/PkSvgRasterizer.cpp
     )
     target_include_directories(pkrender PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/render>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/image>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/font>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>

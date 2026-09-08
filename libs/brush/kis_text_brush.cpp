@@ -5,56 +5,14 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QFont>
-#include <QFontMetrics>
-#include <QImage>
-#include <QMap>
-#include <QPainter>
-#include <QString>
-
 #include "kis_text_brush.h"
 
-#include <cstring>
-#include <vector>
+#include <map>
 
 #include "kis_gbr_brush.h"
 #include "kis_brushes_pipe.h"
 #include <kis_dom_utils.h>
-#include <kis_threaded_text_rendering_workaround.h>
-
-#ifdef HAVE_THREADED_TEXT_RENDERING_WORKAROUND
-#include <QApplication>
-#include <QWidget>
-#include <QThread>
-#endif /* HAVE_THREADED_TEXT_RENDERING_WORKAROUND */
-
-namespace {
-
-PkString toPkString(const QString &text)
-{
-    const QByteArray utf8 = text.toUtf8();
-    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
-}
-
-PkImage toPkImage(const QImage &image)
-{
-    PkImage result(image.width(), image.height(), static_cast<PkImage::Format>(image.format()));
-    if (image.colorCount() > 0) {
-        std::vector<uint32_t> colors;
-        colors.reserve(static_cast<std::size_t>(image.colorCount()));
-        for (int i = 0; i < image.colorCount(); ++i) {
-            colors.push_back(image.color(i));
-        }
-        result.setColorTable(colors);
-    }
-    for (int y = 0; y < image.height(); ++y) {
-        std::memcpy(result.scanLine(y), image.constScanLine(y),
-                    static_cast<std::size_t>(image.bytesPerLine()));
-    }
-    return result;
-}
-
-}
+#include <PkFontRasterizer.h>
 
 
 class KisTextBrushesPipe : public KisBrushesPipe<KisGbrBrush>
@@ -73,16 +31,14 @@ public:
     {
         m_brushesMap.clear();
 
-        QMapIterator<QChar, KisGbrBrushSP> iter(rhs.m_brushesMap);
-        while (iter.hasNext()) {
-            iter.next();
-            KisGbrBrushSP brush(new KisGbrBrush(*iter.value()));
-            m_brushesMap.insert(iter.key(), brush);
+        for (const auto &entry : rhs.m_brushesMap) {
+            KisGbrBrushSP brush(new KisGbrBrush(*entry.second));
+            m_brushesMap.emplace(entry.first, brush);
             KisBrushesPipe<KisGbrBrush>::addBrush(brush);
         }
     }
 
-    void setText(const QString &text, const QFont &font) {
+    void setText(const PkString &text, const PkFont &font) {
         m_text = text;
 
         m_charIndex = 0;
@@ -91,52 +47,23 @@ public:
 
         for (int i = 0; i < m_text.length(); i++) {
 
-            const QChar letter = m_text.at(i);
+            const char16_t letter = m_text.at(i);
 
             // skip letters that are already present in the brushes pipe
-            if (m_brushesMap.contains(letter)) continue;
+            if (m_brushesMap.find(letter) != m_brushesMap.end()) continue;
 
-            QImage image = renderChar(letter, font);
-            KisGbrBrushSP brush(new KisGbrBrush(toPkImage(image), toPkString(letter)));
+            PkImage image = renderChar(PkString(letter), font);
+            KisGbrBrushSP brush(new KisGbrBrush(image, PkString(letter)));
             brush->setSpacing(0.1); // support for letter spacing?
             brush->makeMaskImage(false);
 
-            m_brushesMap.insert(letter, brush);
+            m_brushesMap.emplace(letter, brush);
             KisBrushesPipe<KisGbrBrush>::addBrush(brush);
         }
     }
 
-    static QImage renderChar(const QString& text, const QFont &font) {
-#ifdef HAVE_THREADED_TEXT_RENDERING_WORKAROUND
-        QWidget *focusWidget = qApp->focusWidget();
-        if (focusWidget) {
-            QThread *guiThread = focusWidget->thread();
-            if (guiThread != QThread::currentThread()) {
-                warnKrita << "WARNING: Rendering text in non-GUI thread!"
-                           << "That may lead to hangups and crashes on some"
-                           << "versions of X11/Qt!";
-            }
-        }
-#endif /* HAVE_THREADED_TEXT_RENDERING_WORKAROUND */
-
-        QFontMetrics metric(font);
-        QRect rect = metric.boundingRect(text);
-
-        if (rect.isEmpty()) {
-            rect = QRect(0, 0, 1, 1); // paint at least something
-        }
-
-        QRect paintingRect = rect.translated(-rect.x(), -rect.y());
-
-        QImage renderedChar(paintingRect.size(), QImage::Format_ARGB32);
-        QPainter p;
-        p.begin(&renderedChar);
-        p.setFont(font);
-        p.fillRect(paintingRect, Qt::white);
-        p.setPen(Qt::black);
-        p.drawText(-rect.x(), -rect.y(), text);
-        p.end();
-        return renderedChar;
+    static PkImage renderChar(const PkString& text, const PkFont &font) {
+        return PkFontRasterizer::render(text, font);
     }
 
     void clear() override {
@@ -145,9 +72,8 @@ public:
     }
 
     KisGbrBrushSP firstBrush() const {
-        Q_ASSERT(m_text.size() > 0);
-        Q_ASSERT(m_brushesMap.size() > 0);
-        return m_brushesMap.value(m_text.at(0));
+        if (m_text.isEmpty() || m_brushesMap.empty()) return {};
+        return m_brushesMap.at(m_text.at(0));
     }
 
     void notifyStrokeStarted() override {
@@ -162,12 +88,12 @@ public:
 protected:
 
     int chooseNextBrush(const KisPaintInformation& info) override {
-        Q_UNUSED(info);
+        (void)info;
         return m_currentBrushIndex;
     }
 
     void updateBrushIndexes(KisRandomSourceSP randomSource, int seqNo) override {
-        Q_UNUSED(randomSource);
+        (void)randomSource;
 
         if (m_text.size()) {
             m_charIndex = (seqNo >= 0 ? seqNo : (m_charIndex + 1)) % m_text.size();
@@ -186,40 +112,37 @@ private:
             m_charIndex = 0;
         }
 
-        QChar letter = m_text.at(m_charIndex);
-        Q_ASSERT(m_brushesMap.contains(letter));
+        const char16_t letter = m_text.at(m_charIndex);
+        const auto brush = m_brushesMap.find(letter);
+        KIS_ASSERT_RECOVER_RETURN(brush != m_brushesMap.end());
 
-        m_currentBrushIndex = m_brushes.indexOf(m_brushesMap.value(letter));
+        m_currentBrushIndex = m_brushes.indexOf(brush->second);
     }
 
 private:
-    QMap<QChar, KisGbrBrushSP> m_brushesMap;
-    QString m_text;
+    std::map<char16_t, KisGbrBrushSP> m_brushesMap;
+    PkString m_text;
     int m_charIndex;
     int m_currentBrushIndex;
 };
 
 
 KisTextBrush::KisTextBrush()
-    : m_font(new QFont())
-    , m_text(new QString())
-    , m_brushesPipe(new KisTextBrushesPipe())
+    : m_brushesPipe(new KisTextBrushesPipe())
 {
     setPipeMode(false);
 }
 
 KisTextBrush::KisTextBrush(const KisTextBrush &rhs)
     : KisScalingSizeBrush(rhs),
-      m_font(new QFont(*rhs.m_font)),
-      m_text(new QString(*rhs.m_text)),
+      m_font(rhs.m_font),
+      m_text(rhs.m_text),
       m_brushesPipe(new KisTextBrushesPipe(*rhs.m_brushesPipe))
 {
 }
 
 KisTextBrush::~KisTextBrush()
 {
-    delete m_font;
-    delete m_text;
     delete m_brushesPipe;
 }
 
@@ -235,14 +158,14 @@ bool KisTextBrush::isEphemeral() const
 
 bool KisTextBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
-    Q_UNUSED(dev);
-    Q_UNUSED(resourcesInterface);
+    (void)dev;
+    (void)resourcesInterface;
     return false;
 }
 
 bool KisTextBrush::saveToDevice(PkStream *dev) const
 {
-    Q_UNUSED(dev);
+    (void)dev;
     return false;
 }
 
@@ -256,24 +179,24 @@ bool KisTextBrush::pipeMode() const
     return brushType() == PIPE_MASK;
 }
 
-void KisTextBrush::setText(const QString& txt)
+void KisTextBrush::setText(const PkString& txt)
 {
-    *m_text = txt;
+    m_text = txt;
 }
 
-QString KisTextBrush::text(void) const
+PkString KisTextBrush::text(void) const
 {
-    return *m_text;
+    return m_text;
 }
 
-void KisTextBrush::setFont(const QFont& font)
+void KisTextBrush::setFont(const PkFont& font)
 {
-    *m_font = font;
+    m_font = font;
 }
 
-QFont KisTextBrush::font()
+PkFont KisTextBrush::font() const
 {
-    return *m_font;
+    return m_font;
 }
 
 void KisTextBrush::notifyStrokeStarted()
@@ -313,12 +236,12 @@ KisFixedPaintDeviceSP KisTextBrush::paintDevice(const KoColorSpace * colorSpace,
 
 void KisTextBrush::toXML(PkXmlDocument& doc, PkXmlElement& e) const
 {
-    Q_UNUSED(doc);
+    (void)doc;
 
     e.setAttribute("type", "kis_text_brush");
     e.setAttribute("spacing", KisDomUtils::toString(spacing()));
-    e.setAttribute("text", toPkString(*m_text));
-    e.setAttribute("font", toPkString(m_font->toString()));
+    e.setAttribute("text", m_text);
+    e.setAttribute("font", m_font.toString());
     e.setAttribute("pipe", (brushType() == PIPE_MASK) ? "true" : "false");
     KisBrush::toXML(doc, e);
 }
@@ -330,16 +253,16 @@ void KisTextBrush::updateBrush()
     }
 
     if (brushType() == PIPE_MASK) {
-        m_brushesPipe->setText(*m_text, *m_font);
-        if (m_text->isEmpty()) {
+        m_brushesPipe->setText(m_text, m_font);
+        if (m_text.isEmpty()) {
             // Dummy brushtip to avoid a crash...
-            setBrushTipImage(toPkImage(KisTextBrushesPipe::renderChar(*m_text, *m_font)));
+            setBrushTipImage(KisTextBrushesPipe::renderChar(m_text, m_font));
             return;
         }
         setBrushTipImage(m_brushesPipe->firstBrush()->brushTipImage());
     }
     else { /* if (brushType() == MASK)*/
-        setBrushTipImage(toPkImage(KisTextBrushesPipe::renderChar(*m_text, *m_font)));
+        setBrushTipImage(KisTextBrushesPipe::renderChar(m_text, m_font));
     }
 
     resetOutlineCache();

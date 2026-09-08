@@ -170,6 +170,7 @@ target_link_libraries(pkimage PUBLIC pkgeometry)
 
 add_library(pkimageio SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImageFileDecoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/PkPngReader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkNativeImageCodecs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkBmpHandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image/codecs/PkPnmHandler.cpp
@@ -196,6 +197,20 @@ install(TARGETS pkimageio
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+if(BUILD_TESTING)
+    add_executable(pkimage_file_decoder_test
+        ${CMAKE_CURRENT_SOURCE_DIR}/image/tests/test_file_decoder.cpp)
+    target_compile_definitions(pkimage_file_decoder_test PRIVATE
+        PKIMAGE_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/image/tests/data")
+    target_link_libraries(pkimage_file_decoder_test PRIVATE pkimageio Threads::Threads)
+    add_test(NAME pkimage-file-decoder-test COMMAND pkimage_file_decoder_test)
+
+    add_executable(pksvg_rasterizer_test
+        ${CMAKE_CURRENT_SOURCE_DIR}/render/tests/test_svg_rasterizer.cpp)
+    target_link_libraries(pksvg_rasterizer_test PRIVATE pkrender)
+    add_test(NAME pksvg-rasterizer-test COMMAND pksvg_rasterizer_test)
+endif()
 
 # =========================================================================
 # 5. pk/concurrent
@@ -475,9 +490,21 @@ target_include_directories(pkdom PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/dom)
 target_link_libraries(pkdom PUBLIC pugixml)
 
 add_library(pkfont STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/font/PkFont.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/font/PkFontDatabase.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/font/PkFontRasterizer.cpp
 )
-target_include_directories(pkfont PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/font)
+target_include_directories(pkfont PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/font
+    ${CMAKE_CURRENT_SOURCE_DIR}/image
+    ${CMAKE_CURRENT_SOURCE_DIR}/string)
+target_link_libraries(pkfont PUBLIC pkimage pkstring Freetype::Freetype Fontconfig::Fontconfig)
+
+if(BUILD_TESTING)
+    add_executable(pkfont_test ${CMAKE_CURRENT_SOURCE_DIR}/font/tests/test_font.cpp)
+    target_link_libraries(pkfont_test PRIVATE pkfont Threads::Threads)
+    add_test(NAME pkfont-test COMMAND pkfont_test)
+endif()
 
 add_library(pktextstream STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/textstream/PkTextStream.cpp

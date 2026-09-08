@@ -28,6 +28,7 @@ target_include_directories(pkimage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(pkimageio SHARED
     PkImageFileDecoder.cpp
+    PkPngReader.cpp
     codecs/PkNativeImageCodecs.cpp
     codecs/PkBmpHandler.cpp
     codecs/PkPnmHandler.cpp
@@ -77,7 +78,9 @@ target_include_directories(test_pkimage PRIVATE
 set_source_files_properties(tests/test_image.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_image_case.inc")
 
-add_test(NAME test_pkimage COMMAND test_pkimage)
+if(NOT PKIMAGE_SKIP_TEST_REGISTRATION)
+    add_test(NAME test_pkimage COMMAND test_pkimage)
+endif()
 
 add_executable(test_pkimage_file_decoder
     tests/test_file_decoder.cpp
@@ -85,7 +88,9 @@ add_executable(test_pkimage_file_decoder
 target_compile_definitions(test_pkimage_file_decoder PRIVATE
     PKIMAGE_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
 target_link_libraries(test_pkimage_file_decoder PRIVATE pkimageio Threads::Threads)
-add_test(NAME test_pkimage_file_decoder COMMAND test_pkimage_file_decoder)
+if(NOT PKIMAGE_SKIP_TEST_REGISTRATION)
+    add_test(NAME test_pkimage_file_decoder COMMAND test_pkimage_file_decoder)
+endif()
 
 add_library(pkimage_test_registrar SHARED
     tests/file_decoder_registrar.cpp
@@ -97,8 +102,10 @@ add_executable(test_pkimage_file_decoder_dso
 )
 target_link_libraries(test_pkimage_file_decoder_dso PRIVATE pkimageio ${CMAKE_DL_LIBS})
 add_dependencies(test_pkimage_file_decoder_dso pkimage_test_registrar)
-add_test(NAME test_pkimage_file_decoder_dso
-    COMMAND test_pkimage_file_decoder_dso $<TARGET_FILE:pkimage_test_registrar>)
+if(NOT PKIMAGE_SKIP_TEST_REGISTRATION)
+    add_test(NAME test_pkimage_file_decoder_dso
+        COMMAND test_pkimage_file_decoder_dso $<TARGET_FILE:pkimage_test_registrar>)
+endif()
 
 # Keep the standalone shell's package boundary identical to the aggregate
 # target.  The test-only registrar and consumer are installed as a focused
@@ -108,11 +115,13 @@ install(TARGETS pkimageio pkimage_test_registrar test_pkimage_file_decoder_dso
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-add_test(NAME test_pkimage_file_decoder_dso_installed
-    COMMAND ${CMAKE_COMMAND}
-        -D BUILD_DIR=${CMAKE_BINARY_DIR}
-        -D INSTALL_PREFIX=${CMAKE_BINARY_DIR}/installed-decoder
-        -D CI_LIBRARY_DIR=$ENV{KDECI_INSTALL_PREFIX}/lib
-        -D REGISTRAR_NAME=$<TARGET_FILE_NAME:pkimage_test_registrar>
-        -D CONSUMER_NAME=$<TARGET_FILE_NAME:test_pkimage_file_decoder_dso>
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_installed_decoder.cmake)
+if(NOT PKIMAGE_SKIP_TEST_REGISTRATION)
+    add_test(NAME test_pkimage_file_decoder_dso_installed
+        COMMAND ${CMAKE_COMMAND}
+            -D BUILD_DIR=${CMAKE_BINARY_DIR}
+            -D INSTALL_PREFIX=${CMAKE_BINARY_DIR}/installed-decoder
+            -D CI_LIBRARY_DIR=$ENV{KDECI_INSTALL_PREFIX}/lib
+            -D REGISTRAR_NAME=$<TARGET_FILE_NAME:pkimage_test_registrar>
+            -D CONSUMER_NAME=$<TARGET_FILE_NAME:test_pkimage_file_decoder_dso>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_installed_decoder.cmake)
+endif()

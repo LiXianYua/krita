@@ -8,8 +8,11 @@
 #include <testutil.h>
 #include "kis_auto_brush.h"
 #include "kis_auto_brush_factory.h"
+#include "kis_text_brush.h"
+#include "kis_text_brush_factory.h"
 #include "kis_mask_generator.h"
 #include <KoColor.h>
+#include <PkColor.h>
 #include <brushengine/kis_paint_information.h>
 #include <KisGlobalResourcesInterface.h>
 
@@ -39,7 +42,7 @@ void KisAutoBrushFactoryTest::testXMLClone()
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
     KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
     KisDabShape shape(0.9, 0.7, 1.0);
-    KoColor color(Qt::yellow, cs);
+    KoColor color(PkColor(Pk::yellow), cs);
 
     KisFixedPaintDeviceSP fdev1 = new KisFixedPaintDevice(cs);
     brush->mask(fdev1, color, shape, info);
@@ -50,6 +53,32 @@ void KisAutoBrushFactoryTest::testXMLClone()
     PkImage res2 = fdev2->convertToQImage(0);
 
     QCOMPARE(res1, res2);
+}
+
+void KisAutoBrushFactoryTest::testTextBrushXMLRoundTrip()
+{
+    KisTextBrushSP brush(new KisTextBrush());
+    PkFont font("DejaVu Sans");
+    font.setPixelSize(24);
+    brush->setText(PkString::PkFromUtf8(u8"A画", sizeof(u8"A画") - 1));
+    brush->setFont(font);
+    brush->setPipeMode(true);
+    brush->setSpacing(0.25);
+    brush->updateBrush();
+
+    PkXmlDocument document;
+    PkXmlElement element = document.createElement("Brush");
+    brush->toXML(document, element);
+    KisTextBrushSP clone = KisTextBrushFactory()
+        .createBrush(element, KisGlobalResourcesInterface::instance())
+        .resource<KisTextBrush>();
+
+    QVERIFY(clone);
+    QCOMPARE(clone->text(), brush->text());
+    QCOMPARE(clone->font().toString(), brush->font().toString());
+    QCOMPARE(clone->pipeMode(), brush->pipeMode());
+    QCOMPARE(clone->spacing(), brush->spacing());
+    QCOMPARE(clone->brushTipImage(), brush->brushTipImage());
 }
 
 SIMPLE_TEST_MAIN(KisAutoBrushFactoryTest)

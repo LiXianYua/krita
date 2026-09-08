@@ -4,40 +4,16 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QByteArray>
-#include <QImage>
-#include <QPainter>
-#include <QSvgRenderer>
-
 #include "kis_svg_brush.h"
 
-#include <cstring>
 #include <filesystem>
 #include <vector>
+
+#include <PkSvgRasterizer.h>
 
 #include "KisBrushStreamUtils.h"
 
 namespace {
-
-PkImage toPkImage(const QImage &image)
-{
-    PkImage result(image.width(), image.height(), static_cast<PkImage::Format>(image.format()));
-
-    if (image.colorCount() > 0) {
-        std::vector<uint32_t> colors;
-        colors.reserve(static_cast<size_t>(image.colorCount()));
-        for (int i = 0; i < image.colorCount(); ++i) {
-            colors.push_back(image.color(i));
-        }
-        result.setColorTable(colors);
-    }
-
-    for (int y = 0; y < image.height(); ++y) {
-        std::memcpy(result.scanLine(y), image.constScanLine(y), static_cast<size_t>(image.bytesPerLine()));
-    }
-
-    return result;
-}
 
 PkString pathCompleteBaseName(const PkString &path)
 {
@@ -68,28 +44,30 @@ KoResourceSP KisSvgBrush::clone() const
 
 bool KisSvgBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
-    Q_UNUSED(resourcesInterface);
+    (void)resourcesInterface;
 
     m_svg = kisBrushReadAll(dev);
+    const PkImage image = PkSvgRasterizer::render(m_svg.constData(),
+                                                   static_cast<std::size_t>(m_svg.size()),
+                                                   1000);
+    if (image.isNull()) return false;
 
-    const QByteArray svgBytes(m_svg.constData(), m_svg.size());
-    QSvgRenderer renderer(svgBytes);
-
-    QRect box = renderer.viewBox();
-    if (box.isEmpty()) return false;
-
-    QImage image_(1000, (1000 * box.height()) / box.width(), QImage::Format_ARGB32);
-    {
-        QPainter p(&image_);
-        p.fillRect(0, 0, image_.width(), image_.height(), Qt::white);
-        renderer.render(&p);
+    std::vector<uint32_t> table;
+    table.reserve(256);
+    for (unsigned i = 0; i < 256; ++i) {
+        table.push_back(0xff000000u | (i << 16) | (i << 8) | i);
     }
-
-    QVector<QRgb> table;
-    for (int i = 0; i < 256; ++i) table.push_back(qRgb(i, i, i));
-    image_ = image_.convertToFormat(QImage::Format_Indexed8, table);
-
-    setBrushTipImage(toPkImage(image_));
+    PkImage indexed(image.size(), PkImage::Format_Indexed8);
+    indexed.setColorTable(table);
+    // The legacy ARGB32 -> Indexed8 path with an explicit table retains the
+    // low byte as the palette index. Brush presets depend on that behavior;
+    // the independent 5.15 oracle maps 0xffff8080 to index 128.
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            indexed.setPixel(x, y, image.pixel(x, y) & 0xffu);
+        }
+    }
+    setBrushTipImage(indexed);
 
     setValid(true);
 

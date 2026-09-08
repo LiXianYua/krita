@@ -3,9 +3,6 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QFont>
-#include <QString>
-
 #include "kis_text_brush_factory.h"
 #include <kis_dom_utils.h>
 #include "kis_text_brush.h"
@@ -31,10 +28,10 @@ KoResourceLoadResult KisTextBrushFactory::createBrush(const KisBrushModel::Brush
 
     KisTextBrushSP brush = KisTextBrushSP(new KisTextBrush());
 
-    QFont font;
-    font.fromString(QString::fromUtf8(data.textBrush.font.PkToUtf8().c_str()));
+    PkFont font;
+    font.fromString(data.textBrush.font);
 
-    brush->setText(QString::fromUtf8(data.textBrush.text.PkToUtf8().c_str()));
+    brush->setText(data.textBrush.text);
     brush->setFont(font);
     brush->setPipeMode(data.textBrush.usePipeMode);
     brush->setSpacing(data.common.spacing);
