@@ -10,6 +10,8 @@
 #ifndef KOCANVASBASE_H
 #define KOCANVASBASE_H
 
+#include <functional>
+
 #include <PkPoint.h>
 
 #include "kritaflake_export.h"
@@ -30,6 +32,7 @@ class KoSelectedShapesProxy;
 
 class QWidget;
 class QCursor;
+class PkObject;
 class PkPointF;
 class PkRectF;
 class PkSizeF;
@@ -250,6 +253,18 @@ public:
      * Returns the snap guide of the canvas
      */
     KoSnapGuide *snapGuide() const;
+
+    /**
+     * Queue work for the thread that owns this canvas. The callback remains
+     * deferred until that thread explicitly pumps PkThreadCallQueue and is
+     * discarded if the canvas is destroyed first.
+     */
+    void postDeferredCall(std::function<void()> callback) const;
+
+    /**
+     * Persistent Pk lifetime/affinity context owned by this canvas.
+     */
+    PkObject *deferredCallContext() const;
 
     /// called by KoCanvasController to set the controller that handles this canvas.
     void setCanvasController(KoCanvasController *controller);

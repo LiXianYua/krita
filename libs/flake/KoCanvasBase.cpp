@@ -6,7 +6,11 @@
 */
 
 #include <PkRect.h>
+#include <PkObject.h>
+#include <PkThreadCallQueue.h>
 #include <QDebug>
+
+#include <utility>
 
 #include "KoCanvasBase.h"
 #include "KoCanvasResourceProvider.h"
@@ -43,6 +47,7 @@ public:
     bool isResourceManagerShared;
     KoCanvasController *controller;
     KoSnapGuide *snapGuide;
+    PkObject deferredCallContext;
 };
 
 KoCanvasBase::KoCanvasBase(KoShapeControllerBase *shapeController, KoCanvasResourceProvider *sharedResourceManager)
@@ -107,4 +112,17 @@ void KoCanvasBase::clipToDocument(const KoShape *, PkPointF &) const
 KoSnapGuide * KoCanvasBase::snapGuide() const
 {
     return d->snapGuide;
+}
+
+void KoCanvasBase::postDeferredCall(std::function<void()> callback) const
+{
+    PkObject *context = deferredCallContext();
+    PkThreadCallQueue::post(context->thread(),
+                            std::move(callback),
+                            context->callLifetime());
+}
+
+PkObject *KoCanvasBase::deferredCallContext() const
+{
+    return &d->deferredCallContext;
 }

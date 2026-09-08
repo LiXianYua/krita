@@ -196,7 +196,10 @@ install(TARGETS pkimageio
 # =========================================================================
 # 5. pk/concurrent
 # =========================================================================
-add_library(pkconcurrent STATIC
+# The call queue is process-global state.  A static copy in every shared
+# consumer gives each DSO its own registry, so a host pump cannot observe
+# work posted by another library.
+add_library(pkconcurrent SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/concurrent/PkThreadPool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/concurrent/PkThread.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/concurrent/PkSemaphore.cpp
@@ -206,6 +209,14 @@ add_library(pkconcurrent STATIC
 )
 target_include_directories(pkconcurrent PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/concurrent)
 target_link_libraries(pkconcurrent PUBLIC Threads::Threads)
+# The repository-wide hidden-visibility flags otherwise hide the public API
+# even though this target is shared.
+target_compile_options(pkconcurrent PRIVATE -fvisibility=default)
+set_target_properties(pkconcurrent PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+install(TARGETS pkconcurrent
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # =========================================================================
 # 6. pk/log

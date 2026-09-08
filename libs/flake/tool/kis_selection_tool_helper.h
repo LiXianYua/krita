@@ -9,7 +9,6 @@
 #include <PkList.h>
 #include <PkRect.h>
 #include <PkRect.h>
-#include <PkObject.h>
 
 #include <kritashapemodel_export.h>
 
@@ -52,7 +51,6 @@ private:
     KisImageSP m_image;
     KisNodeSP m_activeNode;
     KUndo2MagicString m_name;
-    PkObject m_guiContext;
 };
 
 

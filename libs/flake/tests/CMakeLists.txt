@@ -69,6 +69,15 @@ target_include_directories(KoToolProxyPkPainterTest PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/render
     )
 
+kis_add_test(
+    KoCanvasDeferredCallTest.cpp
+    TEST_NAME KoCanvasDeferredCallTest
+    LINK_LIBRARIES kritaflake kritatestsdk
+    )
+target_include_directories(KoCanvasDeferredCallTest PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/concurrent
+    )
+
 ############## broken tests ###############
 
 kis_add_test(TestPointMergeCommand.cpp

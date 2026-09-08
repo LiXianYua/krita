@@ -10,7 +10,6 @@
 
 
 #include <kundo2command.h>
-#include <QTimer>
 #include <QIcon>
 
 #include <KoCanvasBase.h>
@@ -47,7 +46,6 @@ KisSelectionToolHelper::KisSelectionToolHelper(KoCanvasBase *canvas,
         , m_image(image)
         , m_activeNode(activeNode)
         , m_name(name)
-        , m_guiContext()
 {
 }
 
@@ -355,7 +353,7 @@ void KisSelectionToolHelper::addSelectionShapes(PkList< KoShape* > shapes, Selec
     applicator.applyCommand(
             new KisGuiContextCommand(
             new AddSelectionShape(m_canvas, m_image, m_activeNode, shapes, action),
-            &m_guiContext));
+            m_canvas->deferredCallContext()));
     applicator.end();
 }
 
@@ -381,7 +379,7 @@ bool KisSelectionToolHelper::tryDeselectCurrentSelection(const PkRectF selection
         // Queueing this action to ensure we avoid a race condition when unlocking the node system
         const KisImageSP image = m_image;
         const KisNodeSP activeNode = m_activeNode;
-        QTimer::singleShot(0, m_canvas, [image, activeNode]() {
+        m_canvas->postDeferredCall([image, activeNode]() {
             KisSelectionSP selection =
                 KisSelectionUtils::activeSelectionForNode(image, activeNode);
             if (selection) {
