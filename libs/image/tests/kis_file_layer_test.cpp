@@ -19,6 +19,7 @@
 #include <pk/geometry/PkRect.h>
 #include <pk/geometry/PkTransform.h>
 #include <PkImage.h>
+#include <PkString.h>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -54,9 +55,21 @@ PkImage toPkImage(const QImage &image)
     return result;
 }
 
-KisSafeDocumentLoader::LoadResult loadImage(const QString &path)
+PkString toPkString(const QString &value)
 {
-    const QImage image(path);
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
+QString toQString(const PkString &value)
+{
+    const std::string utf8 = value.PkToUtf8();
+    return QString::fromUtf8(utf8.data(), int(utf8.size()));
+}
+
+KisSafeDocumentLoader::LoadResult loadImage(const PkString &path)
+{
+    const QImage image(toQString(path));
     if (image.isNull()) {
         return {};
     }
@@ -64,7 +77,7 @@ KisSafeDocumentLoader::LoadResult loadImage(const QString &path)
     KisPaintDeviceSP device(new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8()));
     device->convertFromQImage(toPkImage(image), 0);
 
-    return {device, 1.0, 1.0, image.size()};
+    return {device, 1.0, 1.0, PkSize(image.width(), image.height())};
 }
 
 void waitForMaskUpdates(KisNodeSP root)
@@ -91,6 +104,27 @@ void KisFileLayerTest::cleanupTestCase()
     KisSafeDocumentLoader::setDefaultImageLoader({});
 }
 
+void KisFileLayerTest::testPkPathAndScalingSerializationState()
+{
+    TestUtil::MaskParent p(QRect(0, 0, 16, 16));
+    KisFileLayer layer(p.image, "layer", OPACITY_OPAQUE_U8);
+
+    layer.setFileName("/base/root", "child/../linked.png");
+    QVERIFY(layer.fileName() == PkString("child/../linked.png"));
+    QVERIFY(layer.path() == PkString("/base/root/linked.png"));
+
+    layer.setFileName("/base/root", "../linked.png");
+    QVERIFY(layer.path() == PkString("/base/root/../linked.png"));
+
+    layer.setFileName("/base/root", "/absolute/linked.png");
+    QVERIFY(layer.path() == PkString("/absolute/linked.png"));
+
+    layer.setScalingMethod(KisFileLayer::ToImagePPI);
+    layer.setScalingFilter("Bicubic");
+    QCOMPARE(layer.scalingMethod(), KisFileLayer::ToImagePPI);
+    QVERIFY(layer.scalingFilter() == PkString("Bicubic"));
+}
+
 void KisFileLayerTest::testFileLayerPlusTransformMaskOffImage()
 {
     TestUtil::ReferenceImageChecker chk("flayer_tmask_offimage", "file_layer");
@@ -98,7 +132,7 @@ void KisFileLayerTest::testFileLayerPlusTransformMaskOffImage()
     const QRect refRect(0, 0, 640, 441);
     TestUtil::MaskParent p(refRect);
 
-    const QString refName(TestUtil::fetchDataFileLazy("hakonepa.png"));
+    const PkString refName(toPkString(TestUtil::fetchDataFileLazy("hakonepa.png")));
     KisLayerSP flayer = new KisFileLayer(p.image, "", refName, KisFileLayer::None,
                                         "Bicubic", "flayer", OPACITY_OPAQUE_U8);
     p.image->addNode(flayer, p.image->root(), KisNodeSP());
@@ -149,7 +183,7 @@ void KisFileLayerTest::testFileLayerPlusTransformMaskSmallFileBigOffset()
     const QRect refRect(0, 0, 2000, 1500);
     TestUtil::MaskParent p(refRect);
 
-    const QString refName = QStringLiteral(FILES_DATA_DIR "../../animation/tests/data/file_layer_source.png");
+    const PkString refName(FILES_DATA_DIR "../../animation/tests/data/file_layer_source.png");
     KisLayerSP flayer = new KisFileLayer(p.image, "", refName, KisFileLayer::None,
                                         "Bicubic", "flayer", OPACITY_OPAQUE_U8);
     p.image->addNode(flayer, p.image->root(), KisNodeSP());

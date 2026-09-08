@@ -9,21 +9,22 @@
 
 #include <functional>
 
-#include <QObject>
-#include <QSize>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
+#include <PkSize.h>
+#include <PkString.h>
 #include "kis_paint_device.h"
 #include "kis_types.h"
 #include "kritaimage_export.h"
 
-class KRITAIMAGE_EXPORT KisSafeDocumentLoader : public QObject
+class KRITAIMAGE_EXPORT KisSafeDocumentLoader : public PkObject
 {
-    Q_OBJECT
 public:
     struct LoadResult {
         KisPaintDeviceSP paintDevice;
         qreal xRes = 0.0;
         qreal yRes = 0.0;
-        QSize size;
+        PkSize size;
 
         explicit operator bool() const
         {
@@ -31,26 +32,27 @@ public:
         }
     };
 
-    using ImageLoader = std::function<LoadResult(const QString &path)>;
+    using ImageLoader = std::function<LoadResult(const PkString &path)>;
 
-    KisSafeDocumentLoader(const QString &path = "", QObject *parent = 0);
-    KisSafeDocumentLoader(const QString &path, ImageLoader imageLoader, QObject *parent = 0);
+    KisSafeDocumentLoader(const PkString &path = PkString(), PkObject *parent = nullptr);
+    KisSafeDocumentLoader(const PkString &path, ImageLoader imageLoader, PkObject *parent = nullptr);
     ~KisSafeDocumentLoader() override;
 
     static void setDefaultImageLoader(ImageLoader imageLoader);
 
-    void setPath(const QString &path);
+    void setPath(const PkString &path);
     void reloadImage();
-private Q_SLOTS:
-    void fileChanged(QString);
-    void slotFileExistsStateChanged(const QString &path, bool fileExists);
-    void fileChangedCompressed(bool sync = false);
-    void delayedLoadStart();
 
-Q_SIGNALS:
-    void loadingFinished(KisPaintDeviceSP paintDevice, qreal xRes, qreal yRes, const QSize &size);
+signals:
+    void loadingFinished(KisPaintDeviceSP paintDevice, qreal xRes, qreal yRes, PkSize size);
     void loadingFailed();
     void fileExistsStateChanged(bool fileExists);
+
+private:
+    void fileChanged(PkString path);
+    void slotFileExistsStateChanged(PkString path, bool fileExists);
+    void fileChangedCompressed(bool sync = false);
+    void delayedLoadStart();
 
 private:
     struct Private;

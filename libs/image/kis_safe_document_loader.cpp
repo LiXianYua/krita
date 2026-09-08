@@ -4,49 +4,32 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-// ===========================================================================
-// [GAP] kis_safe_document_loader.cpp 阻塞登记（S-06 Task 8 批次C2）
-// 
-// 本文件不进薄壳，保留 Qt 原样。阻塞原因：
-//   * QFileSystemWatcher/QTimer::singleShot/QCoreApplication::processEvents/
-//     QRandomGenerator/QDateTime/QDir/QTemporaryFile 全量未剥；
-//   * FileSystemWatcherWrapper 的 Qt 信号槽（fileChanged/fileExistsStateChanged）
-//     与 QObject 生命周期绑定，且文本流输出走 QTextStream。
-// ===========================================================================
-
-
-#include <PkGlobal.h>
-#include <QtCore/QDebug>
-#include <QtCore/QElapsedTimer>
-#include <QtCore/QHash>
-
 #include "kis_safe_document_loader.h"
 
-#include <utility>
-
-#include <QTimer>
-#include <QFileSystemWatcher>
-#include <QRandomGenerator>
-#include <QCoreApplication>
-#include <QDateTime>
-#include <QFileInfo>
-#include <QDir>
-
 #include <KoStore.h>
-#include <QTemporaryFile>
 
-#include "kis_signal_compressor.h"
-#include "KisUsageLogger.h"
+#include <PkEventLoop.h>
+#include <PkThreadCallQueue.h>
+#include <PkTimer.h>
 
-#include <kis_global.h>
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace {
 
-PkString toPkString(const QString &value)
-{
-    const QByteArray utf8 = value.toUtf8();
-    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
-}
+namespace fs = std::filesystem;
+using namespace std::chrono_literals;
 
 KisSafeDocumentLoader::ImageLoader &defaultImageLoader()
 {
@@ -54,241 +37,274 @@ KisSafeDocumentLoader::ImageLoader &defaultImageLoader()
     return loader;
 }
 
+fs::path nativePath(const PkString &path)
+{
+    return fs::u8path(path.PkToUtf8());
 }
 
-class FileSystemWatcherWrapper : public QObject
+PkString portablePath(const fs::path &path)
 {
-    Q_OBJECT
+    return PkString(path.u8string().c_str());
+}
 
-private:
-    enum FileState {
-        Exists = 0,
-        Reattaching,
-        Lost
-    };
+struct FileSnapshot
+{
+    bool exists = false;
+    std::uintmax_t size = 0;
+    fs::file_time_type modified {};
+};
 
-    struct FileEntry
-    {
-        int numConnections = 0;
-        QElapsedTimer lostTimer;
-        FileState state = Exists;
-    };
+FileSnapshot snapshot(const PkString &path)
+{
+    FileSnapshot result;
+    std::error_code error;
+    const fs::path native = nativePath(path);
+    result.exists = fs::exists(native, error) && !error;
+    if (!result.exists) return result;
 
+    result.size = fs::file_size(native, error);
+    if (error) {
+        result.exists = false;
+        result.size = 0;
+        return result;
+    }
+
+    result.modified = fs::last_write_time(native, error);
+    if (error) {
+        result.exists = false;
+        result.size = 0;
+    }
+    return result;
+}
+
+PkString uniqueTemporaryPath(const char *prefix, const std::string &suffix)
+{
+    static std::atomic<std::uint64_t> nextId {0};
+    const auto tick = std::chrono::steady_clock::now().time_since_epoch().count();
+    const std::string name = std::string(prefix) + std::to_string(tick) + "_" +
+        std::to_string(nextId.fetch_add(1, std::memory_order_relaxed)) + suffix;
+    std::error_code error;
+    fs::path directory = fs::temp_directory_path(error);
+    if (error) directory = fs::current_path(error);
+    return portablePath(directory / name);
+}
+
+class FileSystemWatcherWrapper final : public PkObject
+{
 public:
     FileSystemWatcherWrapper()
-        : m_reattachmentCompressor(100, KisSignalCompressor::FIRST_INACTIVE),
-          m_lostCompressor(1000, KisSignalCompressor::FIRST_INACTIVE)
-
+        : m_targetThread(PkThreadCallQueue::warmUpCurrentThread())
+        , m_worker([this] { run(); })
     {
-        connect(&m_watcher, SIGNAL(fileChanged(QString)), SLOT(slotFileChanged(QString)));
-        m_reattachmentConnection =
-            PkObject::connect(&m_reattachmentCompressor, &KisSignalCompressor::timeout,
-                              &m_reattachmentCompressor,
-                              [this]() { slotReattachFiles(); });
-        m_lostConnection =
-            PkObject::connect(&m_lostCompressor, &KisSignalCompressor::timeout,
-                              &m_lostCompressor,
-                              [this]() { slotFindLostFiles(); });
     }
 
     ~FileSystemWatcherWrapper() override
     {
-        PkObject::disconnect(m_lostConnection);
-        PkObject::disconnect(m_reattachmentConnection);
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_stopping = true;
+        }
+        m_wake.notify_all();
+        if (m_worker.joinable()) m_worker.join();
     }
 
-    bool addPath(const QString &file) {
-        bool result = true;
-        const QString ufile = unifyFilePath(file);
-
-        if (m_fileEntries.contains(ufile)) {
-            m_fileEntries[ufile].numConnections++;
-        } else {
-            m_fileEntries.insert(ufile, {1, {}, Exists});
-            result = m_watcher.addPath(ufile);
+    bool addPath(const PkString &file)
+    {
+        const PkString unified = unifyFilePath(file);
+        const FileSnapshot current = snapshot(unified);
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_entries.find(unified);
+        if (it != m_entries.end()) {
+            ++it->second.numConnections;
+            return current.exists;
         }
 
-        return result;
+        Entry entry;
+        entry.numConnections = 1;
+        entry.last = current;
+        if (!current.exists) entry.missingSince = std::chrono::steady_clock::now();
+        m_entries.emplace(unified, entry);
+        m_wake.notify_all();
+        return current.exists;
     }
 
-    bool removePath(const QString &file) {
-        bool result = true;
-        const QString ufile = unifyFilePath(file);
-
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_fileEntries.contains(ufile), false);
-
-        if (m_fileEntries[ufile].numConnections == 1) {
-            m_fileEntries.remove(ufile);
-            result = m_watcher.removePath(ufile);
-        } else {
-            m_fileEntries[ufile].numConnections--;
-        }
-        return result;
+    bool removePath(const PkString &file)
+    {
+        const PkString unified = unifyFilePath(file);
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_entries.find(unified);
+        if (it == m_entries.end()) return false;
+        if (--it->second.numConnections == 0) m_entries.erase(it);
+        return true;
     }
 
-    QStringList files() const {
-        return m_watcher.files();
+    static PkString unifyFilePath(const PkString &path)
+    {
+        std::error_code error;
+        fs::path absolute = fs::absolute(nativePath(path), error);
+        if (error) absolute = nativePath(path);
+        return portablePath(absolute.lexically_normal());
     }
 
-private Q_SLOTS:
-    void slotFileChanged(const QString &path) {
-
-        KIS_SAFE_ASSERT_RECOVER_RETURN(m_fileEntries.contains(path));
-
-        FileEntry &entry = m_fileEntries[path];
-
-        // re-add the file after QSaveFile optimization
-        if (!m_watcher.files().contains(path)) {
-
-            if (QFileInfo(path).exists()) {
-                const FileState oldState = entry.state;
-
-                m_watcher.addPath(path);
-                entry.state = Exists;
-
-                if (oldState == Lost) {
-                    Q_EMIT fileExistsStateChanged(path, true);
-                } else {
-                    Q_EMIT fileChanged(path);
-                }
-
-            } else {
-
-                if (entry.state == Exists) {
-                    entry.state = Reattaching;
-                    entry.lostTimer.start();
-                    m_reattachmentCompressor.start();
-
-                } else if (entry.state == Reattaching) {
-                    if (entry.lostTimer.elapsed() > 10000) {
-                        entry.state = Lost;
-                        m_lostCompressor.start();
-                        Q_EMIT fileExistsStateChanged(path, false);
-                    } else {
-                        m_reattachmentCompressor.start();
-                    }
-
-                } else if (entry.state == Lost) {
-                    m_lostCompressor.start();
-                }
-
-
-#if 0
-                const bool shouldSpitWarning =
-                    absenceTimeMSec <= 600000 &&
-                        ((absenceTimeMSec >= 60000 && (absenceTimeMSec % 60000 == 0)) ||
-                         (absenceTimeMSec >= 10000 && (absenceTimeMSec % 10000 == 0)));
-
-                if (shouldSpitWarning) {
-                    QString message;
-                    QTextStream log(&message);
-                    KisPortingUtils::setUtf8OnStream(log);
-
-                    log << "WARNING: couldn't reconnect to a removed file layer's file (" << path << "). File is not available for " << absenceTimeMSec / 1000 << " seconds";
-
-                    qWarning() << message;
-                    KisUsageLogger::log(message);
-
-                    if (absenceTimeMSec == 600000) {
-                        message.clear();
-                        log.reset();
-
-                        log << "Giving up... :( No more reports about " << path;
-
-                        qWarning() << message;
-                        KisUsageLogger::log(message);
-                    }
-                }
-#endif
-            }
-        } else {
-            Q_EMIT fileChanged(path);
-        }
+    void fileChanged(PkString path)
+    {
+        activateSignal(this,
+                       PkMemberFnKey::from(&FileSystemWatcherWrapper::fileChanged),
+                       path);
     }
 
-    void slotFindLostFiles() {
-        for (auto it = m_fileEntries.constBegin(); it != m_fileEntries.constEnd(); ++it) {
-            if (it.value().state == Lost)
-            slotFileChanged(it.key());
-        }
-    }
-
-    void slotReattachFiles() {
-        for (auto it = m_fileEntries.constBegin(); it != m_fileEntries.constEnd(); ++it) {
-            if (it.value().state == Reattaching)
-            slotFileChanged(it.key());
-        }
-    }
-
-
-Q_SIGNALS:
-    void fileChanged(const QString &path);
-    void fileExistsStateChanged(const QString &path, bool exists);
-
-public:
-    static QString unifyFilePath(const QString &path) {
-        return QFileInfo(path).absoluteFilePath();
+    void fileExistsStateChanged(PkString path, bool exists)
+    {
+        activateSignal(this,
+                       PkMemberFnKey::from(&FileSystemWatcherWrapper::fileExistsStateChanged),
+                       path,
+                       exists);
     }
 
 private:
-    QFileSystemWatcher m_watcher;
-    QHash<QString, int> m_pathCount;
-    KisSignalCompressor m_reattachmentCompressor;
-    KisSignalCompressor m_lostCompressor;
-    PkConnection m_reattachmentConnection;
-    PkConnection m_lostConnection;
-    QHash<QString, int> m_lostFilesAbsenceCounter;
-    QHash<QString, FileEntry> m_fileEntries;
+    struct Entry
+    {
+        int numConnections = 0;
+        FileSnapshot last;
+        std::chrono::steady_clock::time_point missingSince {};
+        bool lossReported = false;
+    };
+
+    enum class EventType {
+        Changed,
+        ExistsState
+    };
+
+    struct Event
+    {
+        EventType type;
+        PkString path;
+        bool exists = false;
+    };
+
+    void run()
+    {
+        while (true) {
+            std::vector<Event> events;
+            {
+                std::unique_lock<std::mutex> lock(m_mutex);
+                m_wake.wait_for(lock, 50ms, [this] { return m_stopping; });
+                if (m_stopping) return;
+
+                const auto now = std::chrono::steady_clock::now();
+                for (auto &item : m_entries) {
+                    const PkString &path = item.first;
+                    Entry &entry = item.second;
+                    const FileSnapshot current = snapshot(path);
+
+                    if (entry.last.exists && !current.exists) {
+                        entry.last = current;
+                        entry.missingSince = now;
+                        entry.lossReported = false;
+                        continue;
+                    }
+
+                    if (!entry.last.exists && !current.exists) {
+                        if (!entry.lossReported && entry.missingSince.time_since_epoch().count() &&
+                            now - entry.missingSince > 10s) {
+                            entry.lossReported = true;
+                            events.push_back({EventType::ExistsState, path, false});
+                        }
+                        continue;
+                    }
+
+                    if (!entry.last.exists && current.exists) {
+                        const bool wasReportedLost = entry.lossReported;
+                        entry.last = current;
+                        entry.lossReported = false;
+                        events.push_back({wasReportedLost ? EventType::ExistsState : EventType::Changed,
+                                          path,
+                                          true});
+                        continue;
+                    }
+
+                    if (current.size != entry.last.size || current.modified != entry.last.modified) {
+                        entry.last = current;
+                        events.push_back({EventType::Changed, path, true});
+                    }
+                }
+            }
+
+            for (const Event &event : events) {
+                PkThreadCallQueue::post(
+                    m_targetThread,
+                    [this, event] {
+                        if (event.type == EventType::Changed) {
+                            fileChanged(event.path);
+                        } else {
+                            fileExistsStateChanged(event.path, event.exists);
+                        }
+                    },
+                    callLifetime());
+            }
+        }
+    }
+
+    const PkThreadId m_targetThread;
+    std::mutex m_mutex;
+    std::condition_variable m_wake;
+    std::map<PkString, Entry> m_entries;
+    bool m_stopping = false;
+    std::thread m_worker;
 };
 
-Q_GLOBAL_STATIC(FileSystemWatcherWrapper, s_fileSystemWatcher)
+FileSystemWatcherWrapper &fileSystemWatcher()
+{
+    static FileSystemWatcherWrapper watcher;
+    return watcher;
+}
 
+} // namespace
 
 struct KisSafeDocumentLoader::Private
 {
     explicit Private(ImageLoader loader)
-        : fileChangedSignalCompressor(500 /* ms */, KisSignalCompressor::POSTPONE)
-        , imageLoader(std::move(loader))
+        : imageLoader(std::move(loader))
     {
     }
 
-    KisSignalCompressor fileChangedSignalCompressor;
+    PkTimer fileChangedTimer;
+    PkTimer delayedLoadTimer;
     PkConnection fileChangedConnection;
+    PkConnection fileExistsConnection;
     ImageLoader imageLoader;
     bool isLoading = false;
     bool fileChangedFlag = false;
-    QString path;
-    QString temporaryPath;
-
-    qint64 initialFileSize {0};
-    QDateTime initialFileTimeStamp;
-
-    int failureCount {0};
+    PkString path;
+    PkString temporaryPath;
+    std::uintmax_t initialFileSize = 0;
+    fs::file_time_type initialFileTimeStamp {};
+    int failureCount = 0;
 };
 
-KisSafeDocumentLoader::KisSafeDocumentLoader(const QString &path, QObject *parent)
+KisSafeDocumentLoader::KisSafeDocumentLoader(const PkString &path, PkObject *parent)
     : KisSafeDocumentLoader(path, {}, parent)
 {
 }
 
-KisSafeDocumentLoader::KisSafeDocumentLoader(const QString &path,
+KisSafeDocumentLoader::KisSafeDocumentLoader(const PkString &path,
                                              ImageLoader imageLoader,
-                                             QObject *parent)
-    : QObject(parent),
-      m_d(new Private(std::move(imageLoader)))
+                                             PkObject *parent)
+    : PkObject(parent)
+    , m_d(new Private(std::move(imageLoader)))
 {
-    connect(s_fileSystemWatcher, SIGNAL(fileChanged(QString)),
-            SLOT(fileChanged(QString)));
-
-    connect(s_fileSystemWatcher, SIGNAL(fileExistsStateChanged(QString, bool)),
-            SLOT(slotFileExistsStateChanged(QString, bool)));
-
     m_d->fileChangedConnection =
-        PkObject::connect(&m_d->fileChangedSignalCompressor,
-                          &KisSignalCompressor::timeout,
-                          &m_d->fileChangedSignalCompressor,
-                          [this]() { fileChangedCompressed(); });
-
+        PkObject::connect(&fileSystemWatcher(),
+                          &FileSystemWatcherWrapper::fileChanged,
+                          this,
+                          [this](PkString changedPath) { fileChanged(std::move(changedPath)); });
+    m_d->fileExistsConnection =
+        PkObject::connect(&fileSystemWatcher(),
+                          &FileSystemWatcherWrapper::fileExistsStateChanged,
+                          this,
+                          [this](PkString changedPath, bool exists) {
+                              slotFileExistsStateChanged(std::move(changedPath), exists);
+                          });
     setPath(path);
 }
 
@@ -299,25 +315,23 @@ void KisSafeDocumentLoader::setDefaultImageLoader(ImageLoader imageLoader)
 
 KisSafeDocumentLoader::~KisSafeDocumentLoader()
 {
+    m_d->fileChangedTimer.stop();
+    m_d->delayedLoadTimer.stop();
     PkObject::disconnect(m_d->fileChangedConnection);
+    PkObject::disconnect(m_d->fileExistsConnection);
+    if (!m_d->path.isEmpty()) fileSystemWatcher().removePath(m_d->path);
 
-    if (!m_d->path.isEmpty()) {
-        s_fileSystemWatcher->removePath(m_d->path);
-    }
-
+    std::error_code error;
+    if (!m_d->temporaryPath.isEmpty()) fs::remove(nativePath(m_d->temporaryPath), error);
     delete m_d;
 }
 
-void KisSafeDocumentLoader::setPath(const QString &path)
+void KisSafeDocumentLoader::setPath(const PkString &path)
 {
     if (path.isEmpty()) return;
-
-    if (!m_d->path.isEmpty()) {
-        s_fileSystemWatcher->removePath(m_d->path);
-    }
-
+    if (!m_d->path.isEmpty()) fileSystemWatcher().removePath(m_d->path);
     m_d->path = path;
-    s_fileSystemWatcher->addPath(m_d->path);
+    fileSystemWatcher().addPath(m_d->path);
 }
 
 void KisSafeDocumentLoader::reloadImage()
@@ -325,176 +339,115 @@ void KisSafeDocumentLoader::reloadImage()
     fileChangedCompressed(true);
 }
 
-void KisSafeDocumentLoader::fileChanged(QString path)
+void KisSafeDocumentLoader::fileChanged(PkString path)
 {
-    if (FileSystemWatcherWrapper::unifyFilePath(m_d->path) == path) {
-        m_d->fileChangedFlag = true;
-        m_d->fileChangedSignalCompressor.start();
-    }
+    if (FileSystemWatcherWrapper::unifyFilePath(m_d->path) != path) return;
+    m_d->fileChangedFlag = true;
+    m_d->fileChangedTimer.start(500ms, [this] { fileChangedCompressed(); }, true);
 }
 
-void KisSafeDocumentLoader::slotFileExistsStateChanged(const QString &path, bool fileExists)
+void KisSafeDocumentLoader::slotFileExistsStateChanged(PkString path, bool fileExists)
 {
-    if (FileSystemWatcherWrapper::unifyFilePath(m_d->path) == path) {
-        Q_EMIT fileExistsStateChanged(fileExists);
-        if (fileExists) {
-            fileChanged(path);
-        }
-    }
+    if (FileSystemWatcherWrapper::unifyFilePath(m_d->path) != path) return;
+    fileExistsStateChanged(fileExists);
+    if (fileExists) fileChanged(std::move(path));
 }
 
 void KisSafeDocumentLoader::fileChangedCompressed(bool sync)
 {
     if (m_d->isLoading) return;
 
-    QFileInfo initialFileInfo(m_d->path);
-    m_d->initialFileSize = initialFileInfo.size();
-    m_d->initialFileTimeStamp = initialFileInfo.lastModified();
-
-    // it may happen when the file is flushed by
-    // so other application
-    if (!m_d->initialFileSize) return;
+    const FileSnapshot initial = snapshot(m_d->path);
+    m_d->initialFileSize = initial.size;
+    m_d->initialFileTimeStamp = initial.modified;
+    if (!initial.exists || !m_d->initialFileSize) return;
 
     m_d->isLoading = true;
     m_d->fileChangedFlag = false;
+    const std::string suffix = nativePath(m_d->path).extension().u8string();
+    m_d->temporaryPath = uniqueTemporaryPath("krita_file_layer_copy_", suffix);
 
-    m_d->temporaryPath =
-            QDir::tempPath() + '/' +
-            QString("krita_file_layer_copy_%1_%2.%3")
-            .arg(QCoreApplication::applicationPid())
-            .arg(QRandomGenerator::global()->generate())
-            .arg(initialFileInfo.suffix());
+    std::error_code error;
+    fs::copy_file(nativePath(m_d->path),
+                  nativePath(m_d->temporaryPath),
+                  fs::copy_options::overwrite_existing,
+                  error);
 
-    QFile::copy(m_d->path, m_d->temporaryPath);
-
-
-    if (!sync) {
-        QTimer::singleShot(100, Qt::CoarseTimer, this, SLOT(delayedLoadStart()));
-    } else {
-        QCoreApplication::processEvents();
+    if (sync) {
+        PkEventLoop::processEvents();
         delayedLoadStart();
+    } else {
+        m_d->delayedLoadTimer.start(100ms, [this] { delayedLoadStart(); }, true);
     }
 }
 
 void KisSafeDocumentLoader::delayedLoadStart()
 {
-    QFileInfo originalInfo(m_d->path);
-    QFileInfo tempInfo(m_d->temporaryPath);
+    const FileSnapshot original = snapshot(m_d->path);
+    const FileSnapshot temporary = snapshot(m_d->temporaryPath);
     bool successfullyLoaded = false;
     LoadResult loadResult;
 
     if (!m_d->fileChangedFlag &&
-            originalInfo.size() == m_d->initialFileSize &&
-            originalInfo.lastModified() == m_d->initialFileTimeStamp &&
-            tempInfo.size() == m_d->initialFileSize) {
+        original.exists &&
+        original.size == m_d->initialFileSize &&
+        original.modified == m_d->initialFileTimeStamp &&
+        temporary.exists &&
+        temporary.size == m_d->initialFileSize) {
 
         const ImageLoader imageLoader = m_d->imageLoader ? m_d->imageLoader : defaultImageLoader();
-
-        auto loadPathNatively = [&imageLoader, &loadResult](const QString &path) -> bool {
-            if (!imageLoader) {
-                return false;
-            }
-
+        auto loadPathNatively = [&imageLoader, &loadResult](const PkString &path) {
+            if (!imageLoader) return false;
             loadResult = imageLoader(path);
             return bool(loadResult);
         };
 
-        if (m_d->path.toLower().endsWith("ora") || m_d->path.toLower().endsWith("kra")) {
-            QScopedPointer<KoStore> store(KoStore::createStore(toPkString(m_d->temporaryPath), KoStore::Read));
-            if (store && !store->bad()) {
-                if (store->open(toPkString(QStringLiteral("mergedimage.png")))) {
-                    /**
-                     * TODO: Ideally the configured image loader should allow
-                     * loading from a QIODevice, but currently its contract
-                     * accepts a local file path only. That is why
-                     * we just extract the PNG into a temporary file and
-                     * load it separately.
-                     *
-                     * NOTE: we cannot use QImage for loading, since it strips
-                     * the color profile attached to the PNG file
-                     */
-                    qint64 totalWritten = 0;
-                    const qint64 expectedFileSize = store->size();
-                    QTemporaryFile temporaryFile(QDir::tempPath() + QLatin1String("/krita_merged_image_XXXXXX.png"));
-                    if (temporaryFile.open()) {
-                        QByteArray buffer(BUFSIZ, 0);
+        const PkString lowerPath = m_d->path.toLower();
+        if (lowerPath.endsWith("ora") || lowerPath.endsWith("kra")) {
+            std::unique_ptr<KoStore> store(KoStore::createStore(m_d->temporaryPath, KoStore::Read));
+            if (store && !store->bad() && store->open("mergedimage.png")) {
+                const std::int64_t expectedSize = store->size();
+                const PkString mergedPath = uniqueTemporaryPath("krita_merged_image_", ".png");
+                std::ofstream output(nativePath(mergedPath), std::ios::binary | std::ios::trunc);
+                std::int64_t totalWritten = 0;
+                std::array<char, BUFSIZ> buffer {};
 
-                        while (true) {
-                            qint64 read = store->read(buffer.data(), buffer.size());
-                            if (read < 0) {
-                                warnKrita << "Failed to read from mergedimage.png for the file layer's projection";
-                                break;
-                            } else if (read == 0) {
-                                // End of file
-                                break;
-                            } else {
-                                // Successful read, try to write it.
-                                qint64 written = temporaryFile.write(buffer.constData(), read);
-                                if (written < 0) {
-                                    // Write error.
-                                    warnKrita << "Failed to write mergedimage.png into a temporary file for the file layer's projection"
-                                              << temporaryFile.fileName() << ":" << temporaryFile.errorString();
-                                    break;
-                                }
-                                // We may not have written as much as we read, but we handle
-                                // that at the end.
-                                totalWritten += written;
-                            }
-                        }
-
-                        temporaryFile.close();
-                    } else {
-                        warnKrita << "Failed to open temporary file for mergedimage.png for the file layer's projection"
-                                  << temporaryFile.fileName() << ":" << temporaryFile.errorString();
-                    }
-                    store->close();
-
-                    if (totalWritten == expectedFileSize) {
-                        successfullyLoaded = loadPathNatively(temporaryFile.fileName());
-                    } else {
-                        successfullyLoaded = false;
-                    }
+                while (output) {
+                    const std::int64_t bytesRead = store->read(buffer.data(), buffer.size());
+                    if (bytesRead <= 0) break;
+                    output.write(buffer.data(), bytesRead);
+                    if (output) totalWritten += bytesRead;
                 }
-                else {
-                    qWarning() << "delayedLoadStart: Could not open mergedimage.png";
+                output.close();
+                store->close();
+
+                if (totalWritten == expectedSize) {
+                    successfullyLoaded = loadPathNatively(mergedPath);
                 }
+                std::error_code error;
+                fs::remove(nativePath(mergedPath), error);
             }
-            else {
-                qWarning() << "delayedLoadStart: Store was bad";
-            }
-        }
-        else {
+        } else {
             successfullyLoaded = loadPathNatively(m_d->temporaryPath);
         }
-    } else {
-        dbgKrita << "File was modified externally. Restarting.";
-        dbgKrita << ppVar(m_d->fileChangedFlag);
-        dbgKrita << ppVar(m_d->initialFileSize);
-        dbgKrita << ppVar(m_d->initialFileTimeStamp);
-        dbgKrita << ppVar(originalInfo.size());
-        dbgKrita << ppVar(originalInfo.lastModified());
-        dbgKrita << ppVar(tempInfo.size());
     }
 
-    QFile::remove(m_d->temporaryPath);
+    std::error_code error;
+    fs::remove(nativePath(m_d->temporaryPath), error);
+    m_d->temporaryPath = PkString();
     m_d->isLoading = false;
 
     if (!successfullyLoaded) {
-        // Restart the attempt
-        m_d->failureCount++;
+        ++m_d->failureCount;
         if (m_d->failureCount >= 3) {
-            Q_EMIT loadingFailed();
+            loadingFailed();
+        } else {
+            m_d->fileChangedTimer.start(500ms, [this] { fileChangedCompressed(); }, true);
         }
-        else {
-            m_d->fileChangedSignalCompressor.start();
-        }
-    }
-    else {
-        Q_EMIT loadingFinished(loadResult.paintDevice,
-                              loadResult.xRes,
-                              loadResult.yRes,
-                              loadResult.size);
+    } else {
+        loadingFinished(loadResult.paintDevice,
+                        loadResult.xRes,
+                        loadResult.yRes,
+                        loadResult.size);
     }
 }
-
-#include "kis_safe_document_loader.moc"

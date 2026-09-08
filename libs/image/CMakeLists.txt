@@ -505,6 +505,7 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     KisLockFrameGenerationLock.cpp
     kis_convex_hull.cpp
 )
+set_target_properties(kritaimage_core_objects PROPERTIES AUTOMOC OFF)
 
 set(einspline_SRCS
    3rdparty/einspline/bspline_create.cpp
@@ -538,6 +539,7 @@ set(kritaimage_SIGNAL_HEADERS
     KisAnimatedOpacityProperty.h
     KisImageConfigNotifier.h
     KisSafeNodeProjectionStore.h
+    kis_safe_document_loader.h
     kis_base_node.h
     kis_busy_progress_indicator.h
     kis_idle_watcher.h

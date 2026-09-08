@@ -10,6 +10,7 @@ class KisSafeDocumentLoaderTest : public QObject
 private Q_SLOTS:
     void test();
     void testFileLost();
+    void testQueuedDeliveryHonorsReceiverLifetime();
 };
 
 #endif // KISSAFEDOCUMENTLOADERTEST_H

@@ -21,8 +21,7 @@
 class KRITAIMAGE_EXPORT KisFileLayer : public KisExternalLayer
 {
 public:
-    using FileOpener = std::function<void(const QString &path)>;
-    using IconProvider = std::function<QIcon()>;
+    using FileOpener = std::function<void(const PkString &path)>;
 
     enum ScalingMethod {
         None,
@@ -30,7 +29,7 @@ public:
         ToImagePPI
     };
 
-    KisFileLayer(KisImageWSP image, const QString &name, quint8 opacity);
+    KisFileLayer(KisImageWSP image, const PkString &name, quint8 opacity);
     /**
      * @brief KisFileLayer create a new file layer with the given file
      * @param image the image the file layer will belong to
@@ -41,12 +40,11 @@ public:
      * @param name the name of the layer
      * @param opacity the opacity of the layer
      */
-    KisFileLayer(KisImageWSP image, const QString& basePath, const QString &filename, ScalingMethod scalingMethod, QString scalingFilter, const QString &name, quint8 opacity, const KoColorSpace *fallbackColorSpace = 0);
+    KisFileLayer(KisImageWSP image, const PkString& basePath, const PkString &filename, ScalingMethod scalingMethod, PkString scalingFilter, const PkString &name, quint8 opacity, const KoColorSpace *fallbackColorSpace = 0);
     ~KisFileLayer() override;
     KisFileLayer(const KisFileLayer& rhs);
 
     static void setDefaultFileOpener(FileOpener fileOpener);
-    static void setDefaultIconProvider(IconProvider iconProvider);
 
     void resetCache(const KoColorSpace *colorSpace = 0) override;
 
@@ -60,16 +58,16 @@ public:
      * @param basePath the path to the image, if it has been saved before.
      * @param filename the path to the file, relative to the basePath
      */
-    void setFileName(const QString &basePath, const QString &filename);
-    QString fileName() const;
-    QString path() const;
+    void setFileName(const PkString &basePath, const PkString &filename);
+    PkString fileName() const;
+    PkString path() const;
 
 
     ScalingMethod scalingMethod() const;
     void setScalingMethod(ScalingMethod method);
 
-    QString scalingFilter() const;
-    void setScalingFilter(QString method);
+    PkString scalingFilter() const;
+    void setScalingFilter(PkString method);
 
     KisNodeSP clone() const override;
     bool allowAsChild(KisNodeSP) const override;
@@ -83,7 +81,7 @@ public:
     void setImage(KisImageWSP image) override;
 
 private:
-    void slotLoadingFinished(KisPaintDeviceSP projection, qreal xRes, qreal yRes, const QSize &size);
+    void slotLoadingFinished(KisPaintDeviceSP projection, qreal xRes, qreal yRes, PkSize size);
     void slotLoadingFailed();
     void slotFileExistsStateChanged(bool exists);
     void openFile() const;
@@ -99,14 +97,14 @@ private:
     void changeState(State newState);
 
 private:
-    QString m_basePath;
-    QString m_filename;
+    PkString m_basePath;
+    PkString m_filename;
     ScalingMethod m_scalingMethod {None};
-    QString m_scalingFilter;
+    PkString m_scalingFilter;
 
     KisPaintDeviceSP m_paintDevice;
     KisSafeDocumentLoader m_loader;
-    QSize m_generatedForImageSize;
+    PkSize m_generatedForImageSize;
     qreal m_generatedForXRes = 0.0;
     qreal m_generatedForYRes = 0.0;
 

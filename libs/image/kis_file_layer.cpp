@@ -4,26 +4,13 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-// ===========================================================================
-// [GAP] kis_file_layer.cpp 阻塞登记（S-06 Task 8 批次C2）
-// 
-// 本文件不进薄壳，保留 Qt 原样。阻塞原因：
-//   * QFile/QFileInfo/QDir/QIcon/QSize/QRect/QPoint/QTransform 等
-//     Qt 类型与信号槽字符串连接（loadingFinished 等）全量未剥；
-//   * 文件层走异步 KisFileLayerLoader + QFileSystemWatcher 依赖 Qt 事件循环；
-//   * i18n/i18nc 工具提示文案依赖翻译层。待文件层子系统专用批次。
-// ===========================================================================
-
 #include <PkGlobal.h>
 #include "kis_file_layer.h"
 
+#include <cstdlib>
+#include <filesystem>
 #include <string>
 #include <utility>
-
-#include <QFile>
-#include <QFileInfo>
-#include <QDebug>
-#include <klocalizedstring.h>
 
 #include "kis_transform_worker.h"
 #include "kis_filter_strategy.h"
@@ -34,9 +21,10 @@
 #include "commands_new/kis_node_move_command2.h"
 #include "kis_default_bounds.h"
 #include "kis_layer_properties_icons.h"
-#include <QDir>
 
 namespace {
+
+namespace fs = std::filesystem;
 
 KisFileLayer::FileOpener &defaultFileOpener()
 {
@@ -44,32 +32,14 @@ KisFileLayer::FileOpener &defaultFileOpener()
     return fileOpener;
 }
 
-KisFileLayer::IconProvider &defaultIconProvider()
+fs::path nativePath(const PkString &path)
 {
-    static KisFileLayer::IconProvider iconProvider;
-    return iconProvider;
+    return fs::u8path(path.PkToUtf8());
 }
 
-PkString toPkString(const QString &value)
+PkString portablePath(const fs::path &path)
 {
-    const QByteArray utf8 = value.toUtf8();
-    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
-}
-
-QString toQString(const PkString &value)
-{
-    const std::string utf8 = value.PkToUtf8();
-    return QString::fromUtf8(utf8.data(), int(utf8.size()));
-}
-
-QSize toQSize(const PkSize &size)
-{
-    return QSize(size.width(), size.height());
-}
-
-bool sizesEqual(const QSize &lhs, const PkSize &rhs)
-{
-    return lhs.width() == rhs.width() && lhs.height() == rhs.height();
+    return PkString(path.u8string().c_str());
 }
 
 }
@@ -79,14 +49,8 @@ void KisFileLayer::setDefaultFileOpener(FileOpener fileOpener)
     defaultFileOpener() = std::move(fileOpener);
 }
 
-void KisFileLayer::setDefaultIconProvider(IconProvider iconProvider)
-{
-    defaultIconProvider() = std::move(iconProvider);
-}
-
-
-KisFileLayer::KisFileLayer(KisImageWSP image, const QString &name, quint8 opacity)
-    : KisExternalLayer(image, toPkString(name), opacity)
+KisFileLayer::KisFileLayer(KisImageWSP image, const PkString &name, quint8 opacity)
+    : KisExternalLayer(image, name, opacity)
 {
     /**
      * Set default paint device for a layer. It will be used in case
@@ -96,24 +60,16 @@ KisFileLayer::KisFileLayer(KisImageWSP image, const QString &name, quint8 opacit
     m_paintDevice = new KisPaintDevice(image->colorSpace());
     m_paintDevice->setDefaultBounds(new KisDefaultBounds(image));
 
-    QObject::connect(&m_loader,
-                     &KisSafeDocumentLoader::loadingFinished,
-                     &m_loader,
-                     [this](KisPaintDeviceSP projection, qreal xRes, qreal yRes, const QSize &size) {
-                         slotLoadingFinished(projection, xRes, yRes, size);
-                     });
-    QObject::connect(&m_loader,
-                     &KisSafeDocumentLoader::loadingFailed,
-                     &m_loader,
-                     [this]() { slotLoadingFailed(); });
-    QObject::connect(&m_loader,
-                     &KisSafeDocumentLoader::fileExistsStateChanged,
-                     &m_loader,
-                     [this](bool exists) { slotFileExistsStateChanged(exists); });
+    PkObject::connect(&m_loader, &KisSafeDocumentLoader::loadingFinished,
+                      this, &KisFileLayer::slotLoadingFinished);
+    PkObject::connect(&m_loader, &KisSafeDocumentLoader::loadingFailed,
+                      this, &KisFileLayer::slotLoadingFailed);
+    PkObject::connect(&m_loader, &KisSafeDocumentLoader::fileExistsStateChanged,
+                      this, &KisFileLayer::slotFileExistsStateChanged);
 }
 
-KisFileLayer::KisFileLayer(KisImageWSP image, const QString &basePath, const QString &filename, ScalingMethod scaleToImageResolution, QString scalingFilter, const QString &name, quint8 opacity, const KoColorSpace *fallbackColorSpace)
-    : KisExternalLayer(image, toPkString(name), opacity)
+KisFileLayer::KisFileLayer(KisImageWSP image, const PkString &basePath, const PkString &filename, ScalingMethod scaleToImageResolution, PkString scalingFilter, const PkString &name, quint8 opacity, const KoColorSpace *fallbackColorSpace)
+    : KisExternalLayer(image, name, opacity)
     , m_basePath(basePath)
     , m_filename(filename)
     , m_scalingMethod(scaleToImageResolution)
@@ -127,23 +83,15 @@ KisFileLayer::KisFileLayer(KisImageWSP image, const QString &basePath, const QSt
     m_paintDevice = new KisPaintDevice(fallbackColorSpace ? fallbackColorSpace : image->colorSpace());
     m_paintDevice->setDefaultBounds(new KisDefaultBounds(image));
 
-    QObject::connect(&m_loader,
-                     &KisSafeDocumentLoader::loadingFinished,
-                     &m_loader,
-                     [this](KisPaintDeviceSP projection, qreal xRes, qreal yRes, const QSize &size) {
-                         slotLoadingFinished(projection, xRes, yRes, size);
-                     });
-    QObject::connect(&m_loader,
-                     &KisSafeDocumentLoader::loadingFailed,
-                     &m_loader,
-                     [this]() { slotLoadingFailed(); });
-    QObject::connect(&m_loader,
-                     &KisSafeDocumentLoader::fileExistsStateChanged,
-                     &m_loader,
-                     [this](bool exists) { slotFileExistsStateChanged(exists); });
+    PkObject::connect(&m_loader, &KisSafeDocumentLoader::loadingFinished,
+                      this, &KisFileLayer::slotLoadingFinished);
+    PkObject::connect(&m_loader, &KisSafeDocumentLoader::loadingFailed,
+                      this, &KisFileLayer::slotLoadingFailed);
+    PkObject::connect(&m_loader, &KisSafeDocumentLoader::fileExistsStateChanged,
+                      this, &KisFileLayer::slotFileExistsStateChanged);
 
-    QFileInfo fi(path());
-    if (fi.exists()) {
+    std::error_code error;
+    if (fs::exists(nativePath(path()), error) && !error) {
         m_loader.setPath(path());
         m_loader.reloadImage();
     }
@@ -170,18 +118,14 @@ KisFileLayer::KisFileLayer(const KisFileLayer &rhs)
 
     m_paintDevice = new KisPaintDevice(*rhs.m_paintDevice);
 
-    QObject::connect(&m_loader,
-                     &KisSafeDocumentLoader::loadingFinished,
-                     &m_loader,
-                     [this](KisPaintDeviceSP projection, qreal xRes, qreal yRes, const QSize &size) {
-                         slotLoadingFinished(projection, xRes, yRes, size);
-                     });
+    PkObject::connect(&m_loader, &KisSafeDocumentLoader::loadingFinished,
+                      this, &KisFileLayer::slotLoadingFinished);
     m_loader.setPath(path());
 }
 
 void KisFileLayer::resetCache(const KoColorSpace *colorSpace)
 {
-    Q_UNUSED(colorSpace);
+    (void)colorSpace;
     m_loader.reloadImage();
 }
 
@@ -198,7 +142,7 @@ KisPaintDeviceSP KisFileLayer::paintDevice() const
 void KisFileLayer::setSectionModelProperties(const KisBaseNode::PropertyList &properties)
 {
     KisLayer::setSectionModelProperties(properties);
-    Q_FOREACH (const KisBaseNode::Property &property, properties) {
+    for (const KisBaseNode::Property &property : properties) {
         if (property.id== KisLayerPropertiesIcons::openFileLayerFile.id()) {
             if (property.state.toBool() == false) {
                 openFile();
@@ -210,20 +154,20 @@ void KisFileLayer::setSectionModelProperties(const KisBaseNode::PropertyList &pr
 KisBaseNode::PropertyList KisFileLayer::sectionModelProperties() const
 {
     KisBaseNode::PropertyList l = KisLayer::sectionModelProperties();
-    l << KisBaseNode::Property(KoID("sourcefile", toPkString(i18n("File"))), toPkString(m_filename));
+    l << KisBaseNode::Property(KoID("sourcefile", PkString("File")), m_filename);
     l << KisLayerPropertiesIcons::getProperty(KisLayerPropertiesIcons::openFileLayerFile, true);
 
     auto fileNameOrPlaceholder =
     [this] () {
-        return !m_filename.isEmpty() ? m_filename : i18nc("placeholder test for a warning when not file is set in the file layer", "<No file name is set>");
+        return !m_filename.isEmpty() ? m_filename : PkString("<No file name is set>");
     };
 
     if (m_state == FileNotFound) {
-        l << KisLayerPropertiesIcons::getErrorProperty(toPkString(i18nc("a tooltip shown when a file layer cannot find its linked file",
-                                                                        "Linked file not found: %1", fileNameOrPlaceholder())));
+        l << KisLayerPropertiesIcons::getErrorProperty(
+            PkString("Linked file not found: %1").arg(fileNameOrPlaceholder()));
     } else if (m_state == FileLoadingFailed) {
-        l << KisLayerPropertiesIcons::getErrorProperty(toPkString(i18nc("a tooltip shown when a file layer cannot load its linked file",
-                                                                        "Failed to load linked file: %1", fileNameOrPlaceholder())));
+        l << KisLayerPropertiesIcons::getErrorProperty(
+            PkString("Failed to load linked file: %1").arg(fileNameOrPlaceholder()));
     }
 
     const KoColorSpace *cs = m_paintDevice->colorSpace();
@@ -235,30 +179,32 @@ KisBaseNode::PropertyList KisFileLayer::sectionModelProperties() const
     return l;
 }
 
-void KisFileLayer::setFileName(const QString &basePath, const QString &filename)
+void KisFileLayer::setFileName(const PkString &basePath, const PkString &filename)
 {
     m_basePath = basePath;
     m_filename = filename;
-    QFileInfo fi(path());
-    if (fi.exists()) {
+    std::error_code error;
+    if (fs::exists(nativePath(path()), error) && !error) {
         m_loader.setPath(path());
         m_loader.reloadImage();
     }
 }
 
-QString KisFileLayer::fileName() const
+PkString KisFileLayer::fileName() const
 {
     return m_filename;
 }
 
-QString KisFileLayer::path() const
+PkString KisFileLayer::path() const
 {
     if (m_basePath.isEmpty()) {
         return m_filename;
     }
     else {
-#ifndef Q_OS_ANDROID
-        return QDir(m_basePath).filePath(QDir::cleanPath(m_filename));
+#ifndef __ANDROID__
+        fs::path cleanFileName = nativePath(m_filename).lexically_normal();
+        if (cleanFileName.empty()) cleanFileName = ".";
+        return portablePath(nativePath(m_basePath) / cleanFileName);
 #else
         return m_filename;
 #endif
@@ -267,8 +213,7 @@ QString KisFileLayer::path() const
 
 void KisFileLayer::openFile() const
 {
-    if (qEnvironmentVariableIsSet("KRITA_ENABLE_ASSERT_TESTS")) {
-        qDebug() << "Entering" << toQString(__METHOD_NAME__) << ppVar(m_filename);
+    if (std::getenv("KRITA_ENABLE_ASSERT_TESTS")) {
         if (m_filename.toLower() == "crash_me_with_safe_assert") {
             KIS_SAFE_ASSERT_RECOVER_NOOP(0 && "safe assert for testing purposes");
         }
@@ -276,7 +221,7 @@ void KisFileLayer::openFile() const
             KIS_ASSERT_RECOVER_NOOP(0 && "normal assert for testing purposes");
         }
         if (m_filename.toLower() == "crash_me_with_qfatal") {
-            qFatal("Testing fatal message");
+            std::abort();
         }
 
         if (m_filename.toLower() == "crash_me_with_asan") {
@@ -291,18 +236,18 @@ void KisFileLayer::openFile() const
              * such code in production builds may be unsafe.
              */
             int *array = new int[10];
-            qDebug() << "Reading past the end of the allocated array" << array[10];
+            volatile int invalidRead = array[10];
+            (void)invalidRead;
             delete[] array;
-#else
-            qDebug() << "ASAN is not enabled for this build!";
 #endif
 #endif
         }
     }
 
-    const QString absolutePath = QFileInfo(path()).absoluteFilePath();
-    if (defaultFileOpener() && QFile::exists(absolutePath)) {
-        defaultFileOpener()(absolutePath);
+    std::error_code error;
+    fs::path absolutePath = fs::absolute(nativePath(path()), error);
+    if (!error && defaultFileOpener() && fs::exists(absolutePath, error) && !error) {
+        defaultFileOpener()(portablePath(absolutePath.lexically_normal()));
     }
 }
 
@@ -325,19 +270,19 @@ void KisFileLayer::setScalingMethod(ScalingMethod method)
     m_scalingMethod = method;
 }
 
-QString KisFileLayer::scalingFilter() const
+PkString KisFileLayer::scalingFilter() const
 {
     return m_scalingFilter;
 }
 
-void KisFileLayer::setScalingFilter(QString filter)
+void KisFileLayer::setScalingFilter(PkString filter)
 {
     m_scalingFilter = filter;
 }
 
 void KisFileLayer::slotLoadingFinished(KisPaintDeviceSP projection,
                                        qreal xRes, qreal yRes,
-                                       const QSize &size)
+                                       PkSize size)
 {
     qint32 oldX = x();
     qint32 oldY = y();
@@ -366,20 +311,20 @@ void KisFileLayer::slotLoadingFinished(KisPaintDeviceSP projection,
             qreal xscale = image->xRes() / xRes;
             qreal yscale = image->yRes() / yRes;
 
-            KisTransformWorker worker(m_paintDevice, xscale, yscale, 0.0, 0, 0, 0, 0, 0, KisFilterStrategyRegistry::instance()->get(toPkString(m_scalingFilter)));
+            KisTransformWorker worker(m_paintDevice, xscale, yscale, 0.0, 0, 0, 0, 0, 0, KisFilterStrategyRegistry::instance()->get(m_scalingFilter));
             worker.run();
         }
-        else if (m_scalingMethod == ToImageSize && !sizesEqual(size, image->size())) {
-            QSize sz = size;
-            sz.scale(toQSize(image->size()), Qt::KeepAspectRatio);
+        else if (m_scalingMethod == ToImageSize && size != image->size()) {
+            PkSize sz = size;
+            sz.scale(image->size(), Pk::KeepAspectRatio);
             qreal xscale =  (qreal)sz.width() / (qreal)size.width();
             qreal yscale = (qreal)sz.height() / (qreal)size.height();
 
-            KisTransformWorker worker(m_paintDevice, xscale, yscale, 0.0, 0, 0, 0, 0, 0, KisFilterStrategyRegistry::instance()->get(toPkString(m_scalingFilter)));
+            KisTransformWorker worker(m_paintDevice, xscale, yscale, 0.0, 0, 0, 0, 0, 0, KisFilterStrategyRegistry::instance()->get(m_scalingFilter));
             worker.run();
         }
 
-        m_generatedForImageSize = toQSize(image->size());
+        m_generatedForImageSize = image->size();
         m_generatedForXRes = image->xRes();
         m_generatedForYRes = image->yRes();
     }
@@ -453,7 +398,7 @@ void KisFileLayer::slotImageSizeChanged()
     KisImageSP image = this->image();
     if (!image) return;
 
-    if (m_scalingMethod == ToImageSize && !sizesEqual(m_generatedForImageSize, image->size())) {
+    if (m_scalingMethod == ToImageSize && m_generatedForImageSize != image->size()) {
         m_loader.reloadImage();
     }
 }
@@ -481,7 +426,7 @@ void KisFileLayer::setImage(KisImageWSP image)
     if (m_scalingMethod != None && image && oldImage != image) {
         bool canSkipReloading = false;
 
-        if (m_scalingMethod == ToImageSize && image && sizesEqual(m_generatedForImageSize, image->size())) {
+        if (m_scalingMethod == ToImageSize && image && m_generatedForImageSize == image->size()) {
             canSkipReloading = true;
         }
 
