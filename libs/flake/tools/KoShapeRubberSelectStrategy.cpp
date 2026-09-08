@@ -25,7 +25,7 @@ KoShapeRubberSelectStrategy::KoShapeRubberSelectStrategy(KoToolBase *tool, const
     d->snapGuide->enableSnapStrategies(KoSnapGuide::GridSnapping);
     d->snapGuide->enableSnapping(useSnapToGrid);
 
-    d->selectRect = PkRectF(d->snapGuide->snap(clicked, QFlags<Qt::KeyboardModifier>()), PkSizeF(0, 0));
+    d->selectRect = PkRectF(d->snapGuide->snap(clicked, Pk::KeyboardModifiers()), PkSizeF(0, 0));
 }
 
 void KoShapeRubberSelectStrategy::paint(PkPainter &painter, const KoViewConverter &converter)
@@ -57,7 +57,8 @@ void KoShapeRubberSelectStrategy::paint(PkPainter &painter, const KoViewConverte
 void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Qt::KeyboardModifiers modifiers)
 {
     Q_D(KoShapeRubberSelectStrategy);
-    PkPointF point = d->snapGuide->snap(p, modifiers);
+    PkPointF point = d->snapGuide->snap(
+        p, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
     if (modifiers & Qt::ControlModifier) {
         const PkRectF oldDirtyRect = d->selectedRect();
         d->selectRect.moveTopLeft(d->selectRect.topLeft() - (d->lastPos - point));

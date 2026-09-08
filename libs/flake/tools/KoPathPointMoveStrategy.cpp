@@ -34,7 +34,9 @@ KoPathPointMoveStrategy::~KoPathPointMoveStrategy()
 void KoPathPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
     PkPointF deltaMovement = mouseLocation - m_startMousePosition;
-    PkPointF newPosition = m_tool->canvas()->snapGuide()->snap(m_startPointPosition + deltaMovement, modifiers);
+    PkPointF newPosition = m_tool->canvas()->snapGuide()->snap(
+        m_startPointPosition + deltaMovement,
+        Pk::KeyboardModifiers(static_cast<int>(modifiers)));
     PkPointF move = newPosition - m_startPointPosition;
 
     if (modifiers & Qt::ShiftModifier) {

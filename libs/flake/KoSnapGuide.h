@@ -11,7 +11,7 @@
 
 #include <PkScopedPointer.h>
 #include <PkList.h>
-#include <Qt>
+#include <PkNamespace.h>
 
 class KoSnapStrategy;
 class KoShape;
@@ -60,7 +60,7 @@ public:
         CustomSnapping = 0x200,
         PixelSnapping = 0x400
     };
-    Q_DECLARE_FLAGS(Strategies, Strategy)
+    PK_DECLARE_FLAGS(Strategies, Strategy)
 
     /// Creates the snap guide to work on the given canvas
     explicit KoSnapGuide(KoCanvasBase *canvas);
@@ -68,9 +68,9 @@ public:
     virtual ~KoSnapGuide();
 
     /// snaps the mouse position, returns if mouse was snapped
-    PkPointF snap(const PkPointF &mousePosition, Qt::KeyboardModifiers modifiers);
+    PkPointF snap(const PkPointF &mousePosition, Pk::KeyboardModifiers modifiers);
 
-    PkPointF snap(const PkPointF &mousePosition, const PkPointF &dragOffset, Qt::KeyboardModifiers modifiers);
+    PkPointF snap(const PkPointF &mousePosition, const PkPointF &dragOffset, Pk::KeyboardModifiers modifiers);
 
     /// paints the guide
     void paint(QPainter &painter, const KoViewConverter &converter);
@@ -144,6 +144,6 @@ private:
     const PkScopedPointer<Private> d;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KoSnapGuide::Strategies)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KoSnapGuide::Strategies)
 
 #endif // KOSNAPGUIDE_H

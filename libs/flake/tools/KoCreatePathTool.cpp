@@ -191,7 +191,8 @@ void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)
                 repaintDecorations();
             }
         } else {
-            PkPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
+            PkPointF point = canvas()->snapGuide()->snap(
+                event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
 
             // check whether we hit an start/end node of an existing path
             d->existingEndPoint = d->endPointAtPosition(point);
@@ -219,7 +220,8 @@ void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)
         stroke->setColor(toPkColor(canvas()->resourceManager()->foregroundColor().toQColor()));
 
         pathShape->setStroke(stroke);
-        PkPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
+        PkPointF point = canvas()->snapGuide()->snap(
+            event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
 
         // check whether we hit an start/end node of an existing path
         d->existingStartPoint = d->endPointAtPosition(point);
@@ -282,7 +284,8 @@ void KoCreatePathTool::handleMouseMove(const KoPointerEvent *event, bool conside
     d->hoveredPoint = d->endPointAtPosition(event->point);
 
     if (!pathStarted()) {
-        canvas()->snapGuide()->snap(event->point, event->modifiers());
+        canvas()->snapGuide()->snap(
+            event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         repaintDecorations();
 
         d->mouseOverFirstPoint = false;
@@ -291,7 +294,8 @@ void KoCreatePathTool::handleMouseMove(const KoPointerEvent *event, bool conside
 
     d->mouseOverFirstPoint = handleGrabRect(d->firstPoint->point()).contains(event->point);
 
-    PkPointF snappedPosition = canvas()->snapGuide()->snap(event->point, event->modifiers());
+    PkPointF snappedPosition = canvas()->snapGuide()->snap(
+        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
 
     if (considerDrag && (event->buttons() & Qt::LeftButton)) {
         if (d->pointIsDragged ||

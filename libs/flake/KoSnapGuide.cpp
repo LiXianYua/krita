@@ -152,18 +152,18 @@ int KoSnapGuide::snapDistance() const
     return d->snapDistance;
 }
 
-PkPointF KoSnapGuide::snap(const PkPointF &mousePosition, const PkPointF &dragOffset, Qt::KeyboardModifiers modifiers)
+PkPointF KoSnapGuide::snap(const PkPointF &mousePosition, const PkPointF &dragOffset, Pk::KeyboardModifiers modifiers)
 {
     PkPointF pos = mousePosition + dragOffset;
     pos = snap(pos, modifiers);
     return pos - dragOffset;
 }
 
-PkPointF KoSnapGuide::snap(const PkPointF &mousePosition, Qt::KeyboardModifiers modifiers)
+PkPointF KoSnapGuide::snap(const PkPointF &mousePosition, Pk::KeyboardModifiers modifiers)
 {
     d->currentStrategy.clear();
 
-    if (! d->active || (modifiers & Qt::ShiftModifier))
+    if (! d->active || (modifiers & Pk::ShiftModifier))
         return mousePosition;
 
     KoSnapProxy proxy(this);

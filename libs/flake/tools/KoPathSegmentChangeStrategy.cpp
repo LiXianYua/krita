@@ -52,7 +52,8 @@ KoPathSegmentChangeStrategy::~KoPathSegmentChangeStrategy()
 
 void KoPathSegmentChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
-    PkPointF snappedPosition = m_tool->canvas()->snapGuide()->snap(mouseLocation, modifiers);
+    PkPointF snappedPosition = m_tool->canvas()->snapGuide()->snap(
+        mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
     PkPointF localPos = m_path->documentToShape(snappedPosition);
 
     if (m_segment.degree() == 1) {

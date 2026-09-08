@@ -32,7 +32,8 @@ KoPathControlPointMoveStrategy::~KoPathControlPointMoveStrategy()
 
 void KoPathControlPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
 {
-    PkPointF docPoint = m_tool->canvas()->snapGuide()->snap(mouseLocation, modifiers);
+    PkPointF docPoint = m_tool->canvas()->snapGuide()->snap(
+        mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
     PkPointF localPos = m_path->documentToShape(docPoint);
     PkPointF move = localPos - m_path->documentToShape(m_lastPosition);
     // as the last position can change when the top left is changed we have
