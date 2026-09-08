@@ -209,6 +209,18 @@ if(BUILD_TESTING)
     add_executable(pksvg_rasterizer_test
         ${CMAKE_CURRENT_SOURCE_DIR}/render/tests/test_svg_rasterizer.cpp)
     target_link_libraries(pksvg_rasterizer_test PRIVATE pkrender)
+    add_executable(pksvg_native_cases ${CMAKE_CURRENT_SOURCE_DIR}/render/oracle/brush_svg_cases.cpp)
+    target_link_libraries(pksvg_native_cases PRIVATE pkrender)
+    target_compile_definitions(pksvg_native_cases PRIVATE QT_NO_VERSION_TAGGING)
+    add_executable(pksvg_qt_cases ${CMAKE_CURRENT_SOURCE_DIR}/render/oracle/brush_svg_cases.cpp)
+    target_compile_definitions(pksvg_qt_cases PRIVATE PK_SVG_QT_ORACLE)
+    target_link_libraries(pksvg_qt_cases PRIVATE Qt${QT_MAJOR_VERSION}::Svg Qt${QT_MAJOR_VERSION}::Gui)
+    add_test(NAME pksvg-pixels-qt-comparison COMMAND ${CMAKE_COMMAND}
+        -DNATIVE=$<TARGET_FILE:pksvg_native_cases> -DORACLE=$<TARGET_FILE:pksvg_qt_cases>
+        -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/render/oracle/compare_svg.cmake)
+    set_tests_properties(pksvg-pixels-qt-comparison PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;FONTCONFIG_FILE=/etc/fonts/fonts.conf")
     add_test(NAME pksvg-rasterizer-test COMMAND pksvg_rasterizer_test)
 endif()
 

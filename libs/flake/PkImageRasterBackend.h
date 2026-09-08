@@ -5,11 +5,9 @@
 
 #pragma once
 
-#include "kritaflake_export.h"
-
 #include <PkPaintCommand.h>
 
-class KRITAFLAKE_EXPORT PkImageRasterBackend final : public PkPainterBackend
+class PkImageRasterBackend final : public PkPainterBackend
 {
 public:
     explicit PkImageRasterBackend(PkImage &destination);

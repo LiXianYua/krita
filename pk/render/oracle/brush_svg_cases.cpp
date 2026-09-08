@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 
 int main(int argc, char **argv)
 {
@@ -26,6 +27,8 @@ int main(int argc, char **argv)
         {"gradient", "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 2'><defs><linearGradient id='g'><stop offset='0' stop-color='black'/><stop offset='1' stop-color='white'/></linearGradient></defs><rect width='4' height='2' fill='url(#g)'/></svg>"},
         {"clip", "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 2'><defs><clipPath id='c'><rect width='1' height='2'/></clipPath></defs><rect width='4' height='2' clip-path='url(#c)'/></svg>"}
     };
+    std::ofstream pixels;
+    if (argc > 1) pixels.open(argv[1], std::ios::binary);
     for (const auto &item : cases) {
 #ifdef PK_SVG_QT_ORACLE
         QSvgRenderer renderer(QByteArray(item.svg));
@@ -43,6 +46,7 @@ int main(int argc, char **argv)
         for (int y = 0; y < image.height(); ++y) {
             for (int x = 0; x < image.width(); ++x) {
                 const std::uint32_t pixel = image.pixel(x, y);
+                if (pixels) pixels.write(reinterpret_cast<const char *>(&pixel), sizeof(pixel));
                 hash ^= pixel;
                 hash *= 1099511628211ull;
                 if (pixel != 0xffffffffu) ++nonWhite;

@@ -43,6 +43,10 @@ if(NOT TARGET pkrender)
         ${CMAKE_SOURCE_DIR}/pk/render/PkPainter.cpp
         ${CMAKE_SOURCE_DIR}/pk/render/PkStrokeOutline.cpp
         ${CMAKE_SOURCE_DIR}/pk/render/PkSvgRasterizer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/PkImageRasterBackend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/PkGrayRaster.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/PkAliasedRasterizer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/PkCosmeticStroker.cpp
     )
     target_include_directories(pkrender PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/render>
@@ -50,6 +54,7 @@ if(NOT TARGET pkrender)
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/font>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     )
     target_link_libraries(pkrender PUBLIC
         pkgeometry
@@ -373,10 +378,6 @@ list(REMOVE_ITEM kritaflake_core_SRCS ${__per_arch_alpha_applicator_factory_objs
 # → 归入上层绘图，保留过渡 Qt；不建 PkPainter/PkPen/PkBrush（S-02-b 裁决）。
 # 含 S-02-b 交接的 4 个 libs/global 闭包（本任务搬入 libs/flake）与 Qt 版 KisAlgebra2D。
 set(kritaflake_painting_SRCS
-    PkImageRasterBackend.cpp
-    PkGrayRaster.c
-    PkAliasedRasterizer.cpp
-    PkCosmeticStroker.cpp
     kis_painting_tweaks.cpp
     KisHandlePainterHelper.cpp
     KisHandleStyle.cpp
