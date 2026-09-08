@@ -5,6 +5,7 @@ set(kritaseexprgenerator_SOURCES
     )
 
 kis_add_library(kritaseexprgenerator STATIC ${kritaseexprgenerator_SOURCES})
+target_compile_definitions(kritaseexprgenerator PRIVATE QT_NO_VERSION_TAGGING)
 set_target_properties(kritaseexprgenerator PROPERTIES AUTOMOC OFF)
 
 target_link_libraries(kritaseexprgenerator PRIVATE

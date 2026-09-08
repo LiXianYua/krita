@@ -1,4 +1,5 @@
 set(kritaembossfilter_SOURCES kis_emboss_filter_plugin.cpp kis_emboss_filter.cpp )
 kis_add_library(kritaembossfilter STATIC ${kritaembossfilter_SOURCES})
+target_compile_definitions(kritaembossfilter PRIVATE QT_NO_VERSION_TAGGING)
 target_link_libraries(kritaembossfilter kritaimage)
 install(TARGETS kritaembossfilter  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

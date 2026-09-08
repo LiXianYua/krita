@@ -6,5 +6,6 @@ set(kritaextensioncolorsfilters_SOURCES
     )
 
 kis_add_library(kritaextensioncolorsfilters STATIC ${kritaextensioncolorsfilters_SOURCES})
+target_compile_definitions(kritaextensioncolorsfilters PRIVATE QT_NO_VERSION_TAGGING)
 target_link_libraries(kritaextensioncolorsfilters kritaimage)
 install(TARGETS kritaextensioncolorsfilters  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

@@ -3,6 +3,7 @@ set(kritarandompickfilter_SOURCES
     )
 
 kis_add_library(kritarandompickfilter STATIC ${kritarandompickfilter_SOURCES})
+target_compile_definitions(kritarandompickfilter PRIVATE QT_NO_VERSION_TAGGING)
 
 target_link_libraries(kritarandompickfilter kritaimage)
 

@@ -5,5 +5,6 @@ set(kritaphongbumpmap_SOURCES
     )
 
 kis_add_library(kritaphongbumpmap STATIC ${kritaphongbumpmap_SOURCES})
+target_compile_definitions(kritaphongbumpmap PRIVATE QT_NO_VERSION_TAGGING)
 target_link_libraries(kritaphongbumpmap kritaimage)
 install(TARGETS kritaphongbumpmap  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

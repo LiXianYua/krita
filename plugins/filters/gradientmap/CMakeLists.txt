@@ -10,6 +10,7 @@ kis_add_library(kritafilterdithering STATIC
     KisDitherUtil.cpp
     KisDitherConfigurationHelper.cpp
 )
+target_compile_definitions(kritafilterdithering PRIVATE QT_NO_VERSION_TAGGING)
 target_include_directories(kritafilterdithering PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(kritafilterdithering PUBLIC kritaimage)
 

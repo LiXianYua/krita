@@ -1,4 +1,5 @@
 set(kritaraindropsfilter_SOURCES kis_raindrops_filter_plugin.cpp kis_raindrops_filter.cpp )
 kis_add_library(kritaraindropsfilter STATIC ${kritaraindropsfilter_SOURCES})
+target_compile_definitions(kritaraindropsfilter PRIVATE QT_NO_VERSION_TAGGING)
 target_link_libraries(kritaraindropsfilter kritaimage)
 install(TARGETS kritaraindropsfilter  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

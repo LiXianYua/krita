@@ -1,5 +1,6 @@
 set(kritapalettize_SOURCES palettize.cpp)
 kis_add_library(kritapalettize STATIC ${kritapalettize_SOURCES})
+target_compile_definitions(kritapalettize PRIVATE QT_NO_VERSION_TAGGING)
 target_link_libraries(kritapalettize kritafilterdithering kritaimage)
 install(TARGETS kritapalettize  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 install( FILES
