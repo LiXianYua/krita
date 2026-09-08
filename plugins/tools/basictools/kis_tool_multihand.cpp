@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "kis_tool_multihand.h"
+#include <PkNamespace.h>
 #include "kis_basic_tools_geometry_utils.h"
 
 #include <PkTransform.h>
@@ -465,7 +466,7 @@ void KisToolMultihand::updateCanvas()
                 .arg(KisBasicToolsString::numberFixed(this->m_axesPoint.x(), 1))
                 .arg(KisBasicToolsString::numberFixed(this->m_axesPoint.y(), 1)),
             {}, 1000, KisCanvasFeedback::Priority::High,
-            Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+            Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
     }
 }
 
@@ -485,7 +486,7 @@ PkVector<PkPoint> KisToolMultihand::intervalLocations()
         feedback->showFloatingMessage(
             PkString("Multibrush Tool does not support more than %1 brushes; use a larger interval.")
                 .arg(KisBasicToolsString::number(MAXIMUM_BRUSHES)), {}, 4500,
-            KisCanvasFeedback::Priority::Medium, Qt::AlignCenter | Qt::TextWordWrap);
+            KisCanvasFeedback::Priority::Medium, Pk::AlignCenter | Pk::TextWordWrap);
         return intervalLocations;
     }
 

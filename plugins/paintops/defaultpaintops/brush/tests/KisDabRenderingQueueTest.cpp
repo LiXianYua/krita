@@ -366,8 +366,6 @@ void KisDabRenderingQueueTest::testPostprocessedDabs()
         QVERIFY(job);
         QCOMPARE(job->seqNo, 4);
         QCOMPARE(job->generationInfo.info.pos(), request2.info.pos());
-        ENTER_FUNCTION() << ppVar(job->type);
-
         QCOMPARE(job->type, KisDabRenderingJob::Postprocess);
         QVERIFY(job->originalDevice);
         QVERIFY(!job->postprocessedDevice);

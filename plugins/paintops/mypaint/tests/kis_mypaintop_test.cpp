@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include "kis_mypaintop_test.h"
+
 #include <KisGlobalResourcesInterface.h>
 #include <PkImageFileDecoder.h>
 #include <PkStream.h>
@@ -18,10 +20,11 @@
 #include <memory>
 #include <string>
 
-#include "kis_mypaintop_test.h"
 #include "MyPaintSurface.h"
 #include "MyPaintBrushUtils.h"
+#include "MyPaintPaintOpFactory.h"
 #include "MyPaintPaintOpPreset.h"
+#include <brushengine/kis_paintop_registry.h>
 
 namespace
 {
@@ -90,6 +93,11 @@ bool findFirstDifferentPixel(const PkImage &expected, const PkImage &actual,
 }
 
 } // namespace
+
+void KisMyPaintOpTest::initTestCase()
+{
+    KisPaintOpRegistry::instance()->add(new KisMyPaintOpFactory());
+}
 
 void KisMyPaintOpTest::testDab()
 {
@@ -231,5 +239,7 @@ void KisMyPaintOpTest::testInvalidRawPresetFallsBackWithoutChangingRawBytes()
         mypaint_brush_get_base_value(preset.brush(), MYPAINT_BRUSH_SETTING_OPAQUE),
         mypaint_brush_get_base_value(defaults.get(), MYPAINT_BRUSH_SETTING_OPAQUE));
 }
+
+#include "pk_binder_kis_mypaintop_test.inc"
 
 PK_TEST_MAIN(KisMyPaintOpTest)

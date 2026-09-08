@@ -11,6 +11,7 @@
  */
 
 #include "kis_tool_line.h"
+#include <PkNamespace.h>
 
 
 
@@ -32,6 +33,12 @@
 
 #include "kis_tool_line_helper.h"
 #include "kis_basic_tools_string_utils.h"
+
+#undef WARN_WRONG_MODE
+#define WARN_WRONG_MODE(_mode)                                               \
+    PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()       \
+        << "Unexpected tool event has come to" << __func__                  \
+        << "while being mode" << _mode << "!"
 
 
 const KisCoordinatesConverter* getCoordinatesConverter(KoCanvasBase * canvas)
@@ -155,7 +162,7 @@ void KisToolLine::beginPrimaryAction(KoPointerEvent *event)
         PkString message("The MyPaint Brush Engine is not available for this colorspace");
         feedback->showFloatingMessage(message, {}, 4500,
                                       KisCanvasFeedback::Priority::Medium,
-                                      Qt::AlignCenter | Qt::TextWordWrap);
+                                      Pk::AlignCenter | Pk::TextWordWrap);
         event->ignore();
         return;
     }
@@ -177,7 +184,8 @@ void KisToolLine::beginPrimaryAction(KoPointerEvent *event)
     m_lastUpdatedPoint = m_startPoint;
 
     m_strokeIsRunning = true;
-    m_altInitiallyHeld = event->modifiers().testFlag(Qt::AltModifier);
+    const Pk::KeyboardModifiers modifiers(static_cast<int>(event->modifiers()));
+    m_altInitiallyHeld = modifiers.testFlag(Pk::AltModifier);
 
     showSize();
 }
@@ -200,13 +208,13 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
     // move the origin around because moving the origin of a zero-length line
     // is silly and this interferes with users coming from PS binding Alt to
     // the quick switch line tool.
-    Qt::KeyboardModifiers effectiveModifiers = event->modifiers();
+    Pk::KeyboardModifiers effectiveModifiers(static_cast<int>(event->modifiers()));
     if (m_altInitiallyHeld){
-        if (effectiveModifiers.testFlag(Qt::AltModifier)) {
+        if (effectiveModifiers.testFlag(Pk::AltModifier)) {
             // Remove the modifier if it was held at the beginning. The checks
             // in the subsequent code use equality instead of testing the flag,
             // so this retains the expected behavior without much rejigging.
-            effectiveModifiers.setFlag(Qt::AltModifier, false);
+            effectiveModifiers.setFlag(Pk::AltModifier, false);
         } else {
             // User lifted the Alt key, we'll let them re-press it from this
             // point on to move the origin after all.
@@ -219,12 +227,12 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
 
     PkPointF pos = convertToPixelCoordAndSnap(event);
 
-    if (effectiveModifiers == Qt::AltModifier) {
+    if (effectiveModifiers == Pk::AltModifier) {
         PkPointF trans = pos - m_endPoint;
         m_helper->translatePoints(trans);
         m_startPoint += trans;
         m_endPoint += trans;
-    } else if (effectiveModifiers == Qt::ShiftModifier) {
+    } else if (effectiveModifiers == Pk::ShiftModifier) {
         pos = straightLine(pos);
         m_helper->addPoint(event, pos);
     } else {
@@ -247,7 +255,7 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
         m_lastUpdatedPoint = pos;
     }
 
-    if(effectiveModifiers == Qt::AltModifier) {
+    if(effectiveModifiers == Pk::AltModifier) {
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_NOOP(feedback);
         if (feedback) {
@@ -256,7 +264,7 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
                     .arg(KisBasicToolsString::numberFixed(m_startPoint.x(), 1))
                     .arg(KisBasicToolsString::numberFixed(m_startPoint.y(), 1)),
                 {}, 1000, KisCanvasFeedback::Priority::High,
-                Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+                Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
         }
     }
     else {
@@ -386,7 +394,7 @@ void KisToolLine::showSize()
         PkString("Length: %1 px").arg(
             KisBasicToolsString::numberFixed(PkLineF(m_startPoint, m_endPoint).length(), 1)),
         {}, 1000, KisCanvasFeedback::Priority::High,
-        Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+        Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
 }
 void KisToolLine::paintLine(PkPainter& gc, const PkRect&)
 {

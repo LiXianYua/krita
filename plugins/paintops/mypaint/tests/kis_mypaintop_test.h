@@ -7,13 +7,17 @@
 #ifndef KIS_MYPAINTOP_TEST_H
 #define KIS_MYPAINTOP_TEST_H
 
-#include <pk/test/compat/QObject>
-#include <pk/test/compat/QTest>
+#include <PkTest.h>
+#include <PkTestObject.h>
+
+#define Q_OBJECT template <typename PkTestBinderArgT> friend struct PkTestBinder;
+#define Q_SLOTS
 
 class KisMyPaintOpTest : public PkTestObject
 {
     Q_OBJECT
 private Q_SLOTS:
+    void initTestCase();
     void testDab();
     void testGetColor();
     void testLoading();
@@ -23,5 +27,8 @@ private Q_SLOTS:
     void testSlowTrackingPolicyIsNotPersisted();
     void testInvalidRawPresetFallsBackWithoutChangingRawBytes();
 };
+
+#undef Q_SLOTS
+#undef Q_OBJECT
 
 #endif // KIS_MYPAINTOP_TEST_H

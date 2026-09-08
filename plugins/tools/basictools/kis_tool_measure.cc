@@ -7,6 +7,7 @@
 
 #include "kis_tool_measure.h"
 #include "kis_basic_tools_string_utils.h"
+#include <PkNamespace.h>
 
 #include <math.h>
 
@@ -26,6 +27,12 @@
 #include "krita_utils.h"
 #include <KisCanvasFeedback.h>
 #include <KisOptimizedBrushOutline.h>
+
+#undef WARN_WRONG_MODE
+#define WARN_WRONG_MODE(_mode)                                               \
+    PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()       \
+        << "Unexpected tool event has come to" << __func__                  \
+        << "while being mode" << _mode << "!"
 
 #define INNER_RADIUS 50
 
@@ -136,17 +143,18 @@ void KisToolMeasure::continuePrimaryAction(KoPointerEvent *event)
 
     PkPointF pos = convertToPixelCoord(event);
 
-    if (event->modifiers() & Qt::AltModifier) {
+    const Pk::KeyboardModifiers modifiers(static_cast<int>(event->modifiers()));
+    if (modifiers & Pk::AltModifier) {
         PkPointF trans = pos - m_endPos;
         m_startPos += trans;
         m_endPos += trans;
-    } else if(event->modifiers() & Qt::ShiftModifier){
+    } else if(modifiers & Pk::ShiftModifier){
         m_endPos = lockedAngle(pos);
     } else {
         m_endPos = pos;
     }
 
-    if(!(event->modifiers() & Qt::ControlModifier)) {
+    if(!(modifiers & Pk::ControlModifier)) {
         m_chooseBaseLineVec = false;
     } else if(!m_chooseBaseLineVec) {
         m_chooseBaseLineVec = true;

@@ -267,11 +267,12 @@ void DeformBrush::debugColor(const quint8* data, KoColorSpace * cs)
 {
     PkColor rgbcolor;
     cs->toQColor(data, &rgbcolor);
-    dbgPlugins << "RGBA: ("
-               << rgbcolor.red()
-               << ", " << rgbcolor.green()
-               << ", " << rgbcolor.blue()
-               << ", " << rgbcolor.alpha() << ")";
+    PkMessageLogger(__FILE__, __LINE__, __func__, &_41006()).debug()
+        << "RGBA: ("
+        << rgbcolor.red()
+        << ", " << rgbcolor.green()
+        << ", " << rgbcolor.blue()
+        << ", " << rgbcolor.alpha() << ")";
 }
 
 PkPointF DeformBrush::hotSpot(qreal scale, qreal rotation)

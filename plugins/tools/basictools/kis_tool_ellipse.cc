@@ -16,6 +16,7 @@
 #include <KoCanvasResourceProvider.h>
 #include <KoShapeStroke.h>
 #include <KisCanvasToolServices.h>
+#include <kis_global.h>
 
 #include <kis_shape_tool_helper.h>
 #include "kis_figure_painting_tool_helper.h"
@@ -84,7 +85,7 @@ void KisToolEllipse::finishRect(const PkRectF& rect, qreal roundCornersX, qreal 
                                        canvas()->resourceManager()->canvasResourcesInterface());
         PkRectF r = convertToPt(rect);
         KoShape* shape = KisShapeToolHelper::createEllipseShape(r);
-        shape->rotate(qRadiansToDegrees(getRotationAngle()));
+        shape->rotate(kisRadiansToDegrees(getRotationAngle()));
         KoShapeStrokeSP border(new KoShapeStroke(currentStrokeWidth(), resources.currentFgColor().toQColor()));
         shape->setStroke(border);
 

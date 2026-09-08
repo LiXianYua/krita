@@ -6,6 +6,7 @@
  */
 
 #include "kis_tool_pencil.h"
+#include <PkNamespace.h>
 #include <KoPathShape.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
@@ -70,7 +71,7 @@ void KisToolPencil::beginPrimaryAction(KoPointerEvent *event)
         PkString message("The MyPaint Brush Engine is not available for this colorspace");
         feedback->showFloatingMessage(message, {}, 4500,
                                       KisCanvasFeedback::Priority::Medium,
-                                      Qt::AlignCenter | Qt::TextWordWrap);
+                                      Pk::AlignCenter | Pk::TextWordWrap);
         event->ignore();
         return;
     }

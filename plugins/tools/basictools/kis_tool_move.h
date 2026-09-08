@@ -15,6 +15,7 @@
 #include <kis_tool.h>
 #include <flake/kis_node_shape.h>
 #include <PkList.h>
+#include <PkNamespace.h>
 #include <PkPainter.h>
 #include <PkString.h>
 #include <PkVariant.h>
@@ -110,7 +111,7 @@ public:
 private:
     void drag(const PkPoint& newPos);
     void cancelStroke();
-    PkPoint applyModifiers(Qt::KeyboardModifiers modifiers, PkPoint pos);
+    PkPoint applyModifiers(Pk::KeyboardModifiers modifiers, PkPoint pos);
 
     bool startStrokeImpl(MoveToolMode mode, const PkPoint *pos);
 

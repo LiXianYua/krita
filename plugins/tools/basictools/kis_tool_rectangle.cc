@@ -19,6 +19,7 @@
 #include "KoCanvasBase.h"
 #include <KoCanvasResourceProvider.h>
 #include <KisCanvasToolServices.h>
+#include <kis_global.h>
 
 #include "kis_shape_tool_helper.h"
 #include "kis_figure_painting_tool_helper.h"
@@ -92,7 +93,7 @@ void KisToolRectangle::finishRect(const PkRectF &rect, qreal roundCornersX, qrea
         const qreal docRoundCornersX = convertToPt(roundCornersX);
         const qreal docRoundCornersY = convertToPt(roundCornersY);
         KoShape* shape = KisShapeToolHelper::createRectangleShape(r, docRoundCornersX, docRoundCornersY);
-        shape->rotate(qRadiansToDegrees(getRotationAngle()));
+        shape->rotate(kisRadiansToDegrees(getRotationAngle()));
 
         KoShapeStrokeSP border;
         if (strokeStyle() != KisToolShapeUtils::StrokeStyleNone) {

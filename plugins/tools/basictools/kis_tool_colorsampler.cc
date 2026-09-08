@@ -15,6 +15,12 @@
 #include <KoPointerEvent.h>
 #include <KoViewConverter.h>
 
+#undef WARN_WRONG_MODE
+#define WARN_WRONG_MODE(_mode)                                               \
+    PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()       \
+        << "Unexpected tool event has come to" << __func__                  \
+        << "while being mode" << _mode << "!"
+
 KisToolColorSampler::KisToolColorSampler(KoCanvasBase *canvas)
     : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolSamplerCursor()),
       m_config(new KisColorSamplerConfig),

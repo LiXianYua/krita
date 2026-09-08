@@ -10,6 +10,7 @@
  */
 
 #include "kis_tool_gradient.h"
+#include <PkNamespace.h>
 
 #include <cfloat>
 
@@ -36,6 +37,12 @@
 #include "kis_command_utils.h"
 #include "kis_processing_applicator.h"
 #include "kis_processing_visitor.h"
+
+#undef WARN_WRONG_MODE
+#define WARN_WRONG_MODE(_mode)                                               \
+    PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()       \
+        << "Unexpected tool event has come to" << __func__                  \
+        << "while being mode" << _mode << "!"
 
 
 KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
@@ -116,7 +123,8 @@ void KisToolGradient::continuePrimaryAction(KoPointerEvent *event)
 
     PkPointF pos = convertToPixelCoordAndSnap(event, PkPointF(), false);
 
-    if (event->modifiers() == Qt::ShiftModifier) {
+    const Pk::KeyboardModifiers modifiers(static_cast<int>(event->modifiers()));
+    if (modifiers == Pk::ShiftModifier) {
         m_endPos = straightLine(pos);
     } else {
         m_endPos = pos;

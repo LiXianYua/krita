@@ -10,14 +10,13 @@
 #define KIS_TOOL_FILL_H_
 
 #include <PkFlakeBridge.h>
+#include <PkConfigGroup.h>
 #include <PkPoint.h>
 #include <PkList.h>
 #include <PkVector.h>
 
 #include "kis_tool_paint.h"
 #include <flake/kis_node_shape.h>
-#include <kconfig.h>
-#include <kconfiggroup.h>
 #include <kis_signal_compressor.h>
 #include <kis_signal_auto_connection.h>
 #include <kis_resources_snapshot.h>
@@ -131,7 +130,7 @@ private:
     PkVector<PkPoint> m_seedPoints;
     KisStrokeId m_fillStrokeId;
 
-    KConfigGroup m_configGroup;
+    PkConfigGroup m_configGroup;
 
     void beginFilling(const PkPoint &seedPoint);
     void addFillingOperation(const PkPoint &seedPoint);

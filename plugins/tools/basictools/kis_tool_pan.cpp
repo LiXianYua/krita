@@ -5,6 +5,7 @@
  */
 
 #include "kis_tool_pan.h"
+#include <PkNamespace.h>
 #include <KisCanvasToolServices.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
@@ -42,16 +43,16 @@ void KisToolPan::endPrimaryAction(KoPointerEvent *event)
 bool KisToolPan::panByKey(int key)
 {
     switch (key) {
-        case Qt::Key_Up:
+        case Pk::Key_Up:
             canvas()->canvasController()->panUp();
             return true;
-        case Qt::Key_Down:
+        case Pk::Key_Down:
             canvas()->canvasController()->panDown();
             return true;
-        case Qt::Key_Left:
+        case Pk::Key_Left:
             canvas()->canvasController()->panLeft();
             return true;
-        case Qt::Key_Right:
+        case Pk::Key_Right:
             canvas()->canvasController()->panRight();
             return true;
         default:

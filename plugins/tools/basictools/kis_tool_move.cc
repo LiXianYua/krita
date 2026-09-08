@@ -12,9 +12,9 @@
 #include "kis_basic_tools_string_utils.h"
 
 #include <PkPoint.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
-#include <KSharedConfig>
-#include <KConfigGroup>
 #include <KoCanvasBase.h>
 #include <KoPointerEvent.h>
 
@@ -35,6 +35,12 @@
 #include <boost/operators.hpp>
 #include "KisMoveBoundsCalculationJob.h"
 #include <KisOptimizedBrushOutline.h>
+
+#undef WARN_WRONG_MODE
+#define WARN_WRONG_MODE(_mode)                                               \
+    PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()       \
+        << "Unexpected tool event has come to" << __func__                  \
+        << "while being mode" << _mode << "!"
 
 
 struct KisToolMoveState : KisToolChangesTrackerData, boost::equality_comparable<KisToolMoveState>
@@ -218,7 +224,7 @@ bool KisToolMove::startStrokeImpl(MoveToolMode mode, const PkPoint *pos)
     }
 
     {
-        KConfigGroup group = KSharedConfig::openConfig()->group(toQString(toolId()));
+        PkConfigGroup group = PkSharedConfig::openConfig()->group(toolId());
         const bool forceLodMode = group.readEntry("forceLodMode", false);
         strategy->setForceLodModeIfPossible(forceLodMode);
     }
@@ -523,7 +529,7 @@ void KisToolMove::continueAction(KoPointerEvent *event)
     if (!m_strokeId) return;
 
     PkPoint pos = convertToPixelCoordAndSnap(event).toPoint();
-    pos = applyModifiers(event->modifiers(), pos);
+    pos = applyModifiers(Pk::KeyboardModifiers(static_cast<int>(event->modifiers())), pos);
     m_dragPos = pos;
 
     drag(pos);
@@ -539,7 +545,7 @@ void KisToolMove::endAction(KoPointerEvent *event)
     if (!m_strokeId) return;
 
     PkPoint pos = convertToPixelCoordAndSnap(event).toPoint();
-    pos = applyModifiers(event->modifiers(), pos);
+    pos = applyModifiers(Pk::KeyboardModifiers(static_cast<int>(event->modifiers())), pos);
     drag(pos);
 
     m_accumulatedOffset += pos - m_dragStart;
@@ -665,17 +671,17 @@ KisToolMove::MoveToolMode KisToolMove::moveToolMode() const
     return MoveSelectedLayer;
 }
 
-PkPoint KisToolMove::applyModifiers(Qt::KeyboardModifiers modifiers, PkPoint pos)
+PkPoint KisToolMove::applyModifiers(Pk::KeyboardModifiers modifiers, PkPoint pos)
 {
     PkPoint move = pos - m_dragStart;
 
     // Snap to axis
-    if (modifiers & Qt::ShiftModifier) {
+    if (modifiers & Pk::ShiftModifier) {
         move = snapToClosestAxis(move);
     }
 
     // "Precision mode" - scale down movement by 1/5
-    if (modifiers & Qt::AltModifier) {
+    if (modifiers & Pk::AltModifier) {
         const qreal SCALE_FACTOR = .2;
         move = SCALE_FACTOR * move;
     }
