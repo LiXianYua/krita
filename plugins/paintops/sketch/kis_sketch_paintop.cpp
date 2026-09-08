@@ -5,7 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
 #include "kis_sketch_paintop.h"
 #include "kis_sketch_paintop_settings.h"
 

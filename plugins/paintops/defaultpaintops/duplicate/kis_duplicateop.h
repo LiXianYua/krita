@@ -13,8 +13,6 @@
 
 #include "kis_brush_based_paintop.h"
 
-#include <klocalizedstring.h>
-
 #include <kis_types.h>
 #include <brushengine/kis_paintop_factory.h>
 #include <brushengine/kis_paintop_settings.h>
