@@ -16,3 +16,9 @@ kis_add_tests(
 target_link_libraries(KisAsyncColorSamplerHelperTest kritaselectiontools)
 target_include_directories(KisAsyncColorSamplerHelperTest PRIVATE
     ${CMAKE_SOURCE_DIR}/plugins/tools/selectiontools)
+
+add_test(NAME libs-canvas-host-action-extraction
+    COMMAND ${CMAKE_COMMAND}
+        -DHOST_FACTORY_SOURCE=${CMAKE_SOURCE_DIR}/libs/flake/KoToolFactoryBase.cpp
+        -DCANVAS_FACTORY_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/../tool/KisToolPaintFactoryBase.cpp
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_host_action_extraction.cmake)

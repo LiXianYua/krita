@@ -15,6 +15,33 @@
 #include <QDebug>
 #include <klocalizedstring.h>
 
+namespace {
+QString translateHostActionText(const char *text)
+{
+    // Keep these literals in the host boundary so xgettext can retain the
+    // contextless message ids used by the QAction runtime path.
+    if (qstrcmp(text, "Increase Brush Size") == 0) {
+        return i18n("Increase Brush Size");
+    }
+    if (qstrcmp(text, "Decrease Brush Size") == 0) {
+        return i18n("Decrease Brush Size");
+    }
+    if (qstrcmp(text, "Rotate brush tip clockwise") == 0) {
+        return i18n("Rotate brush tip clockwise");
+    }
+    if (qstrcmp(text, "Rotate brush tip clockwise (precise)") == 0) {
+        return i18n("Rotate brush tip clockwise (precise)");
+    }
+    if (qstrcmp(text, "Rotate brush tip counter-clockwise") == 0) {
+        return i18n("Rotate brush tip counter-clockwise");
+    }
+    if (qstrcmp(text, "Rotate brush tip counter-clockwise (precise)") == 0) {
+        return i18n("Rotate brush tip counter-clockwise (precise)");
+    }
+    return i18n(text);
+}
+}
+
 class Q_DECL_HIDDEN KoToolFactoryBase::Private
 {
 public:
@@ -210,7 +237,7 @@ QAction *KoToolFactoryBase::createHostAction(const char *text,
                                              const PkString &objectName,
                                              Pk::Key shortcut)
 {
-    auto *action = new QAction(i18n(text), this);
+    auto *action = new QAction(translateHostActionText(text), this);
     action->setObjectName(toQString(objectName));
     if (shortcut != static_cast<Pk::Key>(0)) {
         action->setShortcut(static_cast<int>(shortcut));
