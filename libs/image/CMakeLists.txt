@@ -3,7 +3,6 @@ add_subdirectory( tests )
 target_sources(kis_painter_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/private/kis_path_rasterizer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/private/kis_path_scan_converter.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/private/kis_path_stroker.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/private/kis_cosmetic_stroker.cpp
 )
 
@@ -323,7 +322,6 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     kis_painter_rasterize.cpp
     private/kis_path_rasterizer.cpp
     private/kis_path_scan_converter.cpp
-    private/kis_path_stroker.cpp
     private/kis_cosmetic_stroker.cpp
     kis_resources_snapshot.cpp
     kis_filter_stroke_strategy.cpp
@@ -610,7 +608,7 @@ target_link_libraries(kritaimage
         pksignal
         pkuuid
 )
-target_link_libraries(kritaimage PRIVATE pkconcurrent)
+target_link_libraries(kritaimage PRIVATE pkconcurrent pkrender)
 
 if(HAVE_CXX_ATOMICS_WITH_LIB OR HAVE_CXX_ATOMICS64_WITH_LIB)
    target_link_libraries(kritaimage PUBLIC atomic)

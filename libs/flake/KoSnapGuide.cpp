@@ -16,8 +16,6 @@
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
 
-#include <QPainter>
-#include <PkQPainterAdapter.h>
 #include <pk/render/PkPainter.h>
 #include <PkPainterPath.h>
 
@@ -210,13 +208,6 @@ PkRectF KoSnapGuide::boundingRect()
     } else {
         return rect;
     }
-}
-
-void KoSnapGuide::paint(QPainter &painter, const KoViewConverter &converter)
-{
-    PkQPainterAdapter backend(painter);
-    PkPainter pkPainter(backend);
-    paint(pkPainter, converter);
 }
 
 void KoSnapGuide::paint(PkPainter &painter, const KoViewConverter &converter)

@@ -35,7 +35,6 @@ class QAction;
 class QKeyEvent;
 class QWidget;
 class QCursor;
-class QPainter;
 class PkString;
 class PkRectF;
 class PkPointF;
@@ -95,10 +94,7 @@ public:
      * @param painter used for painting the shape
      * @param converter to convert between internal and view coordinates.
      */
-    // S-09-g：Qt 直绘轨改默认空实现（薄壳迁移期，工具可只实现 Pk 轨）。
-    virtual void paint(QPainter &painter, const KoViewConverter &converter) { Q_UNUSED(painter); Q_UNUSED(converter); }
-    // S-09-g 扩锁：Pk 命令式 paint 轨（defaulttool 等薄壳 tool 用）。
-    // Qt 直绘轨的 paint(QPainter&) 保留；两轨由各自渲染循环分别调用。
+    // The host supplies a Pk backend through KoToolProxy; this is the only decoration API.
     virtual void paint(PkPainter &painter, const KoViewConverter &converter) { Q_UNUSED(painter); Q_UNUSED(converter); }
 
     /**

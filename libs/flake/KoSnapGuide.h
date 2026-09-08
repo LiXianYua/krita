@@ -18,7 +18,6 @@ class KoShape;
 class KoPathPoint;
 class KoViewConverter;
 class KoCanvasBase;
-class QPainter;
 class PkPainter;
 class PkPointF;
 class PkRectF;
@@ -73,7 +72,6 @@ public:
     PkPointF snap(const PkPointF &mousePosition, const PkPointF &dragOffset, Pk::KeyboardModifiers modifiers);
 
     /// paints the guide
-    void paint(QPainter &painter, const KoViewConverter &converter);
     void paint(PkPainter &painter, const KoViewConverter &converter);
 
     /// returns the bounding rect of the guide

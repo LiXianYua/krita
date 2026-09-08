@@ -38,7 +38,7 @@
 ****************************************************************************/
 
 #include <PkNamespace.h>
-#include "kis_path_stroker_p.h"
+#include "PkStrokeOutline.h"
 
 #include <PkLine.h>
 #include <PkPainterPath.h>
@@ -53,7 +53,7 @@
 #include <utility>
 #include <vector>
 
-namespace KisPathRasterizer::Private {
+namespace PkRender {
 namespace {
 
 using Fixed = qreal;
@@ -1264,4 +1264,4 @@ PkPainterPath createStrokeOutline(const PkPainterPath &path,
     return outline;
 }
 
-} // namespace KisPathRasterizer::Private
+} // namespace PkRender

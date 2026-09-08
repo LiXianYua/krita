@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../geometry ${CMAKE_CURRENT_BINARY_DIR}/pkgeometry EXCLUDE_FROM_ALL)
-add_library(pkrender STATIC PkPainter.cpp ../image/PkImage.cpp ../color/PkColor.cpp
+add_library(pkrender STATIC PkPainter.cpp PkStrokeOutline.cpp ../image/PkImage.cpp ../color/PkColor.cpp
     ../global/PkGlobal.cpp ../string/PkStringCodec.cpp ../string/PkString_core.cpp
     ../string/PkString_query.cpp ../string/PkString_format.cpp)
 target_include_directories(pkrender PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../image ../container ../color ../namespace ../global ../font)

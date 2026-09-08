@@ -16,7 +16,7 @@
 #include <KoCanvasBase.h>
 #include <KoDocumentResourceManager.h>
 #include <KoShapeController.h>
-#include <QPainter>
+#include <PkPainter.h>
 #include <KisHandlePainterHelper.h>
 
 KoPathToolSelection::KoPathToolSelection(KoPathTool * tool)
@@ -28,7 +28,7 @@ KoPathToolSelection::~KoPathToolSelection()
 {
 }
 
-void KoPathToolSelection::paint(QPainter &painter, const KoViewConverter &converter, qreal handleRadius)
+void KoPathToolSelection::paint(PkPainter &painter, const KoViewConverter &converter, qreal handleRadius)
 {
     int decorationThickness = m_tool? m_tool->decorationThickness(): 1;
     PathShapePointMap::iterator it(m_shapePointMap.begin());

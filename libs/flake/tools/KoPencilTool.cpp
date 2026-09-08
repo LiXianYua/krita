@@ -42,7 +42,6 @@
 #include <QGroupBox>
 #include <QCheckBox>
 #include <QVBoxLayout>
-#include <QPainter>
 #include <QLabel>
 #include <QKeyEvent>
 

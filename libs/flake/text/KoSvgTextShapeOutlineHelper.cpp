@@ -12,9 +12,6 @@
 #include <KisHandlePainterHelper.h>
 #include <KoShapeManager.h>
 #include <KoSelection.h>
-#include <QApplication>
-#include <QPalette>
-#include <QIcon>
 #include <pk/render/PkPainter.h>
 
 const int BUTTON_ICON_SIZE = 16;
@@ -86,10 +83,10 @@ PkList<PkLineF> getTextAreaOrderArrows(PkList<PkPainterPath> areas) {
         PkLineF arrow(previous.boundingRect().center(), next.boundingRect().center());
         if (!overlap) {
 
-            for (const QPolygonF &p : toQPainterPath(previous).toSubpathPolygons()) {
+            for (const PkPolygonF &p : previous.toSubpathPolygons(PkTransform())) {
                 if (p.size() == 1) continue;
                 for (int j = 1; j < p.size(); j++) {
-                    PkLineF l2(toPkPointF(p.at(j-1)), toPkPointF(p.at(j)));
+                    PkLineF l2(p.at(j-1), p.at(j));
                     PkPointF intersect;
                     if (l2.intersects(arrow, &intersect) == PkLineF::BoundedIntersection) {
                         arrow.setP1(intersect);
@@ -97,7 +94,7 @@ PkList<PkLineF> getTextAreaOrderArrows(PkList<PkPainterPath> areas) {
                     }
                 }
             }
-            for (const QPolygonF &p : toQPainterPath(next).toSubpathPolygons()) {
+            for (const PkPolygonF &p : next.toSubpathPolygons(PkTransform())) {
                 if (p.size() == 1) continue;
                 for (int j = 1; j < p.size(); j++) {
                     PkLineF l2(toPkPointF(p.at(j-1)), toPkPointF(p.at(j)));
@@ -113,79 +110,6 @@ PkList<PkLineF> getTextAreaOrderArrows(PkList<PkPainterPath> areas) {
         lines.append(arrow);
     }
     return lines;
-}
-
-void KoSvgTextShapeOutlineHelper::paintTextShape(QPainter *painter, const KoViewConverter &converter,
-                                                  const QPalette &pal, KoSvgTextShape *text,
-                                                  bool contourModeActive) {
-    painter->save();
-    KisHandlePainterHelper helper =
-            KoShape::createHandlePainterHelperView(painter, text, converter, d->handleRadius, d->decorationThickness);
-    helper.setHandleStyle(KisHandleStyle::secondarySelection());
-    if (contourModeActive) {
-        if (d->drawOutline) {
-
-            Q_FOREACH(KoShape *shape, text->internalShapeManager()->shapes()) {
-                PkPainterPath p = shape->transformation().map(shape->outline());
-                helper.drawPath(p);
-            }
-            PkList<PkPainterPath> areas;
-            Q_FOREACH(const KoShape *shape, text->shapesInside()) {
-                areas.append(shape->transformation().map(shape->outline()));
-            }
-            Q_FOREACH(PkLineF arrow, getTextAreaOrderArrows(areas)) {
-                helper.drawGradientArrow(arrow.p1(), arrow.p2(), 1.5 * d->handleRadius);
-            }
-        }
-        if (d->drawBoundingRect) {
-            PkPainterPath rect;
-            rect.addRect(text->outlineRect());
-            helper.drawPath(rect);
-        }
-    }
-    if (d->drawTextWrappingArea) {
-        if (d->textWrappingAreasHovered) {
-            helper.setHandleStyle(KisHandleStyle::partiallyHighlightedPrimaryHandles());
-        }
-        PkList<PkPainterPath> areas = text->textWrappingAreas();
-        Q_FOREACH(PkLineF arrow, getTextAreaOrderArrows(areas)) {
-            helper.drawGradientArrow(arrow.p1(), arrow.p2(), 1.5 * d->handleRadius);
-        }
-        Q_FOREACH(const PkPainterPath path, areas) {
-            helper.drawPath(path);
-        }
-    }
-    painter->restore();
-
-    painter->save();
-    QIcon icon = contourModeActive? QIcon(): QIcon();
-    QPixmap pm = icon.pixmap(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE);
-    painter->setBrush(contourModeActive? pal.highlight(): pal.button());
-    PkPen pen;
-    pen.setColor(toPkColor(contourModeActive? pal.highlightedText().color(): pal.buttonText().color()));
-    pen.setCosmetic(true);
-    pen.setWidthF(d->decorationThickness);
-    painter->setPen(toQPen(pen));
-    const PkRectF buttonRect = d->getButtonRect(converter.documentToView().mapRect(text->boundingRect()));
-    painter->drawRoundedRect(toQRectF(buttonRect), BUTTON_CORNER_ROUND, BUTTON_CORNER_ROUND);
-    painter->drawPixmap(toQPointF(buttonRect.topLeft()+PkPointF(BUTTON_PADDING, BUTTON_PADDING)), pm);
-    painter->restore();
-}
-
-void KoSvgTextShapeOutlineHelper::paint(QPainter *painter, const KoViewConverter &converter)
-{
-    const QPalette pal = qApp->palette();
-    KoSvgTextShape *text = d->getTextModeShape();
-    if (text) {
-        paintTextShape(painter, converter, pal, text, true);
-    } else {
-        Q_FOREACH(KoShape* shape, d->canvas->shapeManager()->selection()->selectedEditableShapes()) {
-            text = dynamic_cast<KoSvgTextShape*>(shape);
-            if (d->drawButton(text)) {
-                paintTextShape(painter, converter, pal, text, false);
-            }
-        }
-    }
 }
 
 void KoSvgTextShapeOutlineHelper::paintTextShape(PkPainter *painter, const KoViewConverter &converter,

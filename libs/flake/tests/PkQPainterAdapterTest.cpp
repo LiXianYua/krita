@@ -11,6 +11,7 @@
 
 #include "PkFlakeBridge.h"
 #include <PkPainter.h>
+#include <PkStrokeOutline.h>
 
 namespace
 {
@@ -47,7 +48,49 @@ private Q_SLOTS:
     void blitsSmartPatchImage();
     void preservesPointBaselineAndRectangleAlignment();
     void reportsPaintDevicePixelRatio();
+    void nativeStrokeOutlineMatchesQt();
 };
+
+void PkQPainterAdapterTest::nativeStrokeOutlineMatchesQt()
+{
+    PkPainterPath path;
+    path.moveTo(4, 8);
+    path.lineTo(25, 12);
+    path.cubicTo(35, -3, 48, 39, 63, 20);
+    for (const auto cap : {Pk::FlatCap, Pk::SquareCap, Pk::RoundCap}) {
+        for (const auto join : {Pk::MiterJoin, Pk::BevelJoin, Pk::RoundJoin}) {
+            for (const bool dashed : {false, true}) {
+                PkPen pen(Pk::black, 3.5);
+                pen.setCapStyle(cap);
+                pen.setJoinStyle(join);
+                pen.setMiterLimit(2.0);
+                if (dashed) {
+                    pen.setDashPattern({2.0, 1.0, 3.0, 1.5});
+                    pen.setDashOffset(0.75);
+                }
+                QPainterPathStroker oracle;
+                oracle.setWidth(pen.widthF());
+                oracle.setCapStyle(static_cast<Qt::PenCapStyle>(cap));
+                oracle.setJoinStyle(static_cast<Qt::PenJoinStyle>(join));
+                oracle.setMiterLimit(pen.miterLimit());
+                if (dashed) {
+                    oracle.setDashPattern(QVector<qreal>{2.0, 1.0, 3.0, 1.5});
+                    oracle.setDashOffset(0.75);
+                }
+                const QPainterPath expected = oracle.createStroke(toQPainterPath(path));
+                const PkPainterPath actual = PkRender::createStrokeOutline(path, pen);
+                QCOMPARE(actual.elementCount(), expected.elementCount());
+                for (int i = 0; i < expected.elementCount(); ++i) {
+                    const auto a = actual.elementAt(i);
+                    const auto e = expected.elementAt(i);
+                    QCOMPARE(int(a.type), int(e.type));
+                    QVERIFY(qAbs(a.x - e.x) < 1e-8);
+                    QVERIFY(qAbs(a.y - e.y) < 1e-8);
+                }
+            }
+        }
+    }
+}
 
 void PkQPainterAdapterTest::restoresSavedPenAndBrushState()
 {

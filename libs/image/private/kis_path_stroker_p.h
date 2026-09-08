@@ -40,15 +40,11 @@
 #ifndef KIS_PATH_STROKER_P_H
 #define KIS_PATH_STROKER_P_H
 
-class PkPainterPath;
-class PkPen;
-class PkRect;
+#include "../../../pk/render/PkStrokeOutline.h"
 
 namespace KisPathRasterizer::Private {
 
-PkPainterPath createStrokeOutline(const PkPainterPath &path,
-                                  const PkPen &pen,
-                                  const PkRect &clip);
+using PkRender::createStrokeOutline;
 
 } // namespace KisPathRasterizer::Private
 

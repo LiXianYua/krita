@@ -41,7 +41,7 @@ public:
     explicit KoPathTool(KoCanvasBase *canvas);
     ~KoPathTool() override;
 
-    void paint(QPainter &painter, const KoViewConverter &converter) override;
+    void paint(PkPainter &painter, const KoViewConverter &converter) override;
     void repaintDecorations() override;
     PkRectF decorationsRect() const override;
     void mousePressEvent(KoPointerEvent *event) override;

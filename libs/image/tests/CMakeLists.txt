@@ -27,10 +27,9 @@ add_executable(KisPathRasterizerPkProbe
     KisPathRasterizerPkProbe.cpp
     ../private/kis_path_rasterizer.cpp
     ../private/kis_path_scan_converter.cpp
-    ../private/kis_path_stroker.cpp
     ../private/kis_cosmetic_stroker.cpp
     path_rasterizer_cases.h)
-target_link_libraries(KisPathRasterizerPkProbe PRIVATE pkgeometry pkcolor)
+target_link_libraries(KisPathRasterizerPkProbe PRIVATE pkgeometry pkcolor pkrender)
 ecm_mark_as_test(KisPathRasterizerPkProbe)
 
 kis_add_test(

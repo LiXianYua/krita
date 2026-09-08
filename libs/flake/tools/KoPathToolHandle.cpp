@@ -21,7 +21,7 @@
 #include "KoViewConverter.h"
 #include "KoPointerEvent.h"
 #include "KoShapeController.h"
-#include <QPainter>
+#include <PkPainter.h>
 #include <KisHandlePainterHelper.h>
 
 
@@ -42,7 +42,7 @@ PointHandle::PointHandle(KoPathTool *tool, KoPathPoint *activePoint, KoPathPoint
 {
 }
 
-void PointHandle::paint(QPainter &painter, const KoViewConverter &converter, qreal handleRadius, int decorationThickness)
+void PointHandle::paint(PkPainter &painter, const KoViewConverter &converter, qreal handleRadius, int decorationThickness)
 {
     KoPathToolSelection * selection = dynamic_cast<KoPathToolSelection*>(m_tool->selection());
 
@@ -168,7 +168,7 @@ ParameterHandle::ParameterHandle(KoPathTool *tool, KoParameterShape *parameterSh
 {
 }
 
-void ParameterHandle::paint(QPainter &painter, const KoViewConverter &converter, qreal handleRadius, int decorationThickness)
+void ParameterHandle::paint(PkPainter &painter, const KoViewConverter &converter, qreal handleRadius, int decorationThickness)
 {
     KisHandlePainterHelper helper = KoShape::createHandlePainterHelperView(&painter, m_parameterShape, converter, handleRadius, decorationThickness);
     helper.setHandleStyle(KisHandleStyle::highlightedPrimaryHandles());

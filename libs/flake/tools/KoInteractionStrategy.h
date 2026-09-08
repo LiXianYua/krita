@@ -13,7 +13,6 @@
 #include "kritaflake_export.h"
 
 #include <Qt>
-#include <QPainter>
 
 class KoPointerEvent;
 class KoViewConverter;
@@ -48,7 +47,6 @@ public:
      * that is, a transient decoration like a rubber band.
      */
     virtual void paint(PkPainter &painter, const KoViewConverter &converter);
-    virtual void paint(QPainter &painter, const KoViewConverter &converter);
     /**
      * Extending classes should implement this method to update the selectedShapes
      * based on the new mouse position.

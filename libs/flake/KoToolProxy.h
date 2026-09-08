@@ -36,7 +36,6 @@ class QDragLeaveEvent;
 class QDropEvent;
 class QTouchEvent;
 class QFocusEvent;
-class QPainter;
 class PkPainter;
 class PkPointF;
 class QMenu;
@@ -64,10 +63,7 @@ public:
     explicit KoToolProxy(KoCanvasBase *canvas, QObject *parent = 0);
     ~KoToolProxy() override;
 
-    /// Forwarded to the current KoToolBase
-    void paint(QPainter &painter, const KoViewConverter &converter);
-
-    /// Forwarded to the current KoToolBase without crossing back through Qt rendering.
+    /// Canonical decoration dispatch. The host supplies a native PkPainter backend.
     void paint(PkPainter &painter, const KoViewConverter &converter);
 
     /// Forwarded to the current KoToolBase

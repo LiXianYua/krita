@@ -40,6 +40,7 @@ include_directories(
 if(NOT TARGET pkrender)
     add_library(pkrender STATIC
         ${CMAKE_SOURCE_DIR}/pk/render/PkPainter.cpp
+        ${CMAKE_SOURCE_DIR}/pk/render/PkStrokeOutline.cpp
     )
     target_include_directories(pkrender PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/render>
@@ -358,7 +359,6 @@ list(REMOVE_ITEM kritaflake_core_SRCS ${__per_arch_alpha_applicator_factory_objs
 # → 归入上层绘图，保留过渡 Qt；不建 PkPainter/PkPen/PkBrush（S-02-b 裁决）。
 # 含 S-02-b 交接的 4 个 libs/global 闭包（本任务搬入 libs/flake）与 Qt 版 KisAlgebra2D。
 set(kritaflake_painting_SRCS
-    PkQPainterAdapter.cpp
     kis_painting_tweaks.cpp
     KisHandlePainterHelper.cpp
     KisHandleStyle.cpp

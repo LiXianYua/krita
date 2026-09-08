@@ -52,7 +52,7 @@
 #include <QAction>
 #include <FlakeDebug.h>
 #include <klocalizedstring.h>
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 #include <QBitmap>
 #include <QTabWidget>
@@ -419,7 +419,7 @@ void KoPathTool::breakAtSegment()
     }
 }
 
-void KoPathTool::paint(QPainter &painter, const KoViewConverter &converter)
+void KoPathTool::paint(PkPainter &painter, const KoViewConverter &converter)
 {
     Q_D(KoToolBase);
     m_textOutlineHelper->setDecorationThickness(decorationThickness());
@@ -487,7 +487,7 @@ void KoPathTool::paint(QPainter &painter, const KoViewConverter &converter)
 
     if (m_currentStrategy) {
         painter.save();
-        painter.setTransform(toQTransform(converter.documentToView()), true);
+        painter.setTransform(converter.documentToView(), true);
         d->canvas->snapGuide()->paint(painter, converter);
         painter.restore();
     }

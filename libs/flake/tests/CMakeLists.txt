@@ -53,6 +53,7 @@ target_compile_definitions(TestSvgParserRoundTrip PRIVATE USE_ROUND_TRIP)
 
 kis_add_test(
     PkQPainterAdapterTest.cpp
+    PkQPainterAdapter.cpp
     TEST_NAME PkQPainterAdapterTest
     LINK_LIBRARIES kritaflake kritatestsdk
     )

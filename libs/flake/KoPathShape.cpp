@@ -10,6 +10,7 @@
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoPathShape.h"
+#include <PkStrokeOutline.h>
 #include "KoPathShape_p.h"
 
 #include "KoPathSegment.h"
@@ -1389,21 +1390,7 @@ PkPainterPath KoPathShape::pathStroke(const PkPen &pen) const
     }
     PkPainterPath pathOutline;
 
-    QPainterPathStroker stroker;
-    stroker.setWidth(0);
-    stroker.setJoinStyle(Qt::MiterJoin);
-    stroker.setWidth(pen.widthF());
-    stroker.setJoinStyle(static_cast<Qt::PenJoinStyle>(pen.joinStyle()));
-    stroker.setMiterLimit(pen.miterLimit());
-    stroker.setCapStyle(static_cast<Qt::PenCapStyle>(pen.capStyle()));
-    stroker.setDashOffset(pen.dashOffset());
-    {
-        QVector<qreal> dp;
-        for (qreal v : pen.dashPattern()) dp << v;
-        stroker.setDashPattern(dp);
-    }
-
-    PkPainterPath path = toPkPainterPath(stroker.createStroke(toQPainterPath(outline())));
+    PkPainterPath path = PkRender::createStrokeOutline(outline(), pen);
 
     pathOutline.addPath(path);
     pathOutline.setFillRule(Pk::WindingFill);

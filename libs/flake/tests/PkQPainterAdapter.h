@@ -8,11 +8,11 @@
 #include <QtCore/QtCore>
 #include <QtGui/QtGui>
 
-#include "kritaflake_export.h"
 #include <pk/render/PkPainter.h>
 #include <PkPaintCommand.h>
 
-class KRITAFLAKE_EXPORT PkQPainterAdapter final : public PkPainterBackend
+// Qt oracle only: never link this backend into a production target.
+class PkQPainterAdapter final : public PkPainterBackend
 {
 public:
     explicit PkQPainterAdapter(QPainter &painter);

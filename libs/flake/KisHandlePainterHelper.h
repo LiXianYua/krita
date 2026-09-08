@@ -11,9 +11,7 @@
 #include "KisAlgebra2D.h"
 
 #include <pk/render/PkPainter.h>
-#include <memory>
 #include <KisHandleStyle.h>
-class QPainter;
 class KoShape;
 class KoViewConverter;
 
@@ -24,7 +22,7 @@ class KoViewConverter;
  *        in the painter. The handles will also be rotated/skewed if the object
  *        itself has these transformations.
  *
- *        On construction it resets QPainter transformation and on destruction
+ *        On construction it resets PkPainter transformation and on destruction
  *        recovers it back.
  *
  * Please consider using KoShape::createHandlePainterHelper instead of direct
@@ -48,12 +46,6 @@ public:
      * transformation of the painter into the coordinate system of the shape
      */
     KisHandlePainterHelper(PkPainter *_painter, const PkTransform &originalPainterTransform, qreal handleRadius, int decorationThickness = 1);
-
-    /**
-     * S-09-g 双模：QPainter 直绘栈经 PkQPainterAdapter 桥转 Pk 命令。
-     */
-    KisHandlePainterHelper(QPainter *_painter, qreal handleRadius = 0.0, int decorationThickness = 1);
-    KisHandlePainterHelper(QPainter *_painter, const PkTransform &originalPainterTransform, qreal handleRadius, int decorationThickness = 1);
 
     /**
      * Move c-tor. Used to create and return the helper from functions by-value.
@@ -165,8 +157,6 @@ private:
 
 private:
     PkPainter *m_painter;
-    std::unique_ptr<class PkQPainterAdapter> m_adapter;
-    std::unique_ptr<PkPainter> m_ownedPkPainter;
     PkTransform m_originalPainterTransform;
     PkTransform m_painterTransform;
     qreal m_handleRadius;

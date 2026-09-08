@@ -9,7 +9,6 @@
 #include <KoCanvasBase.h>
 #include <KoViewConverter.h>
 
-#include <QPainter>
 #include <PkPoint.h>
 #include <PkScopedPointer.h>
 
@@ -28,7 +27,6 @@ public:
     KoSvgTextShapeOutlineHelper(KoCanvasBase *canvas);
     ~KoSvgTextShapeOutlineHelper();
 
-    void paint(QPainter *painter, const KoViewConverter &converter);
     void paint(PkPainter *painter, const KoViewConverter &converter);
 
     /**
@@ -79,9 +77,6 @@ public:
     void setTextAreasHovered(bool enabled);
 
 private:
-    void paintTextShape(QPainter *painter, const KoViewConverter &converter,
-                        const QPalette &pal, KoSvgTextShape *text,
-                        bool contourModeActive = false);
     void paintTextShape(PkPainter *painter, const KoViewConverter &converter,
                         KoSvgTextShape *text, bool contourModeActive = false);
     struct Private;
