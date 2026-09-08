@@ -7,7 +7,7 @@
 #ifndef KIS_UPDATE_INFO_H_
 #define KIS_UPDATE_INFO_H_
 
-#include <QPainter>
+#include <PkRect.h>
 
 #include "kis_image_patch.h"
 #include "kis_shared.h"
@@ -22,14 +22,11 @@ public:
     KisUpdateInfo();
     virtual ~KisUpdateInfo();
 
-    virtual QRect dirtyViewportRect();
-    virtual QRect dirtyImageRect() const = 0;
+    virtual PkRect dirtyViewportRect();
+    virtual PkRect dirtyImageRect() const = 0;
     virtual int levelOfDetail() const = 0;
     virtual bool canBeCompressed() const;
 };
-
-Q_DECLARE_METATYPE(KisUpdateInfoSP)
-
 
 struct ConversionOptions {
     ConversionOptions() : m_needsConversion(false) {}
@@ -60,10 +57,10 @@ public:
 
     KisTextureTileUpdateInfoSPList tileList;
 
-    QRect dirtyViewportRect() override;
-    QRect dirtyImageRect() const override;
+    PkRect dirtyViewportRect() override;
+    PkRect dirtyImageRect() const override;
 
-    void assignDirtyImageRect(const QRect &rect);
+    void assignDirtyImageRect(const PkRect &rect);
     void assignLevelOfDetail(int lod);
 
     int levelOfDetail() const override;
@@ -71,7 +68,7 @@ public:
     bool tryMergeWith(const KisOpenGLUpdateInfo& rhs);
 
 private:
-    QRect m_dirtyImageRect;
+    PkRect m_dirtyImageRect;
     int m_levelOfDetail;
 };
 
@@ -84,25 +81,25 @@ public:
         PATCH
     };
 
-    QRect dirtyViewportRect() override;
-    QRect dirtyImageRect() const override;
+    PkRect dirtyViewportRect() override;
+    PkRect dirtyImageRect() const override;
     int levelOfDetail() const override;
 
     /**
      * The rect that was reported by KisImage as dirty
      */
-    QRect dirtyImageRectVar;
+    PkRect dirtyImageRectVar;
 
     /**
      * Rect of KisImage corresponding to @ref viewportRect .
      * It is cropped and aligned corresponding to the canvas.
      */
-    QRect imageRect;
+    PkRect imageRect;
 
     /**
      * Rect of canvas widget corresponding to @ref imageRect
      */
-    QRectF viewportRect;
+    PkRectF viewportRect;
 
     qreal scaleX;
     qreal scaleY;
@@ -116,7 +113,7 @@ public:
     /**
      * Render hints for painting the direct painting/patch painting
      */
-    QPainter::RenderHints renderHints;
+    unsigned renderHints {0};
 
     /**
      * The number of additional pixels those should be added
@@ -142,17 +139,17 @@ public:
     };
 
 public:
-    KisMarkerUpdateInfo(Type type, const QRect &dirtyImageRect);
+    KisMarkerUpdateInfo(Type type, const PkRect &dirtyImageRect);
 
     Type type() const;
 
-    QRect dirtyImageRect() const override;
+    PkRect dirtyImageRect() const override;
     int levelOfDetail() const override;
     bool canBeCompressed() const override;
 
 private:
     Type m_type;
-    QRect m_dirtyImageRect;
+    PkRect m_dirtyImageRect;
 };
 
 #endif /* KIS_UPDATE_INFO_H_ */

@@ -13,8 +13,8 @@ void KisStabilizedEventsSamplerTest::test()
 {
     KisStabilizedEventsSampler sampler(20);
 
-    KisPaintInformation pi1(QPoint(10,10));
-    KisPaintInformation pi2(QPoint(20,20));
+    KisPaintInformation pi1(PkPointF(10, 10));
+    KisPaintInformation pi2(PkPointF(20, 20));
 
     sampler.addEvent(pi1);
 
@@ -40,8 +40,6 @@ void KisStabilizedEventsSamplerTest::test()
         } else if (it->pos().x() == 20) {
             num2++;
         }
-
-        qDebug() << ppVar(it->pos());
     }
 
     QVERIFY(numTotal >= 6);

@@ -6,16 +6,16 @@
 
 #include "kis_delegated_tool_policies.h"
 
-#include <QWidget>
-
 #include <KoCanvasBase.h>
 #include <KoShapeManager.h>
 #include <KoSelection.h>
+#include <KisCanvasToolServices.h>
 
 
 void DeselectShapesActivationPolicy::onActivate(KoCanvasBase *canvas)
 {
     canvas->shapeManager()->selection()->deselectAll();
-    canvas->canvasWidget()->update();
+    if (auto *services = dynamic_cast<KisCanvasToolServices *>(canvas)) {
+        services->toolUpdateCanvas();
+    }
 }
-

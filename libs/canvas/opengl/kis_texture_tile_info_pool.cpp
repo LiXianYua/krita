@@ -30,7 +30,7 @@ void KisTextureTileInfoPoolWorker::slotPurge(int pixelSize, int numFrees)
 
 void KisTextureTileInfoPoolWorker::slotDelayedPurge()
 {
-    for (QMap<int, int>::const_iterator i = m_purge.constBegin(); i != m_purge.constEnd(); i++) {
+    for (PkMap<int, int>::const_iterator i = m_purge.constBegin(); i != m_purge.constEnd(); i++) {
         m_pool->tryPurge(i.key(), i.value());
     }
 

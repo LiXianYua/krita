@@ -7,8 +7,9 @@
 #ifndef KIS_IMAGE_PATCH_H_
 #define KIS_IMAGE_PATCH_H_
 
-#include <QPainter>
-#include <QImage>
+#include <PkImage.h>
+#include <PkPainter.h>
+#include <PkRect.h>
 #include <kis_types.h>
 
 #define BORDER_SIZE(scale) (ceil(0.5/scale))
@@ -29,7 +30,7 @@ public:
      *
      * \see setImage
      */
-    KisImagePatch(QRect imageRect, qint32 borderWidth,
+    KisImagePatch(PkRect imageRect, qint32 borderWidth,
                   qreal scaleX, qreal scaleY);
 
     /**
@@ -37,14 +38,14 @@ public:
      * Should be called right after the constructor
      * to finish initializing the object
      */
-    void setImage(QImage image);
+    void setImage(PkImage image);
 
     /**
      * prescale the patch image. Call after setImage().
      * This ensures that we use the QImage smoothscale method, not the QPainter scaling,
      * which is far inferior.
      */
-    void preScale(const QRectF &dstRect);
+    void preScale(const PkRectF &dstRect);
 
     /**
      * Returns the rect of KisImage covered by the image
@@ -52,16 +53,16 @@ public:
      *
      * \see m_patchRect
      */
-    QRect patchRect();
+    PkRect patchRect();
 
     /**
      * Draws an m_interestRect of the patch onto @p gc
      * By the way it fits this rect into @p dstRect
      * @p renderHints are directly transmitted to QPainter
      */
-    void drawMe(QPainter &gc,
-                const QRectF &dstRect,
-                QPainter::RenderHints renderHints);
+    void drawMe(PkPainter &gc,
+                const PkRectF &dstRect,
+                unsigned renderHints);
 
     /**
      * Checks whether the patch can be used for drawing the image
@@ -79,7 +80,7 @@ private:
      * The rect of KisImage covered by the image
      * of the patch (in KisImage pixels)
      */
-    QRect m_patchRect;
+    PkRect m_patchRect;
 
     /**
      * The rect that was requested during creation
@@ -90,9 +91,9 @@ private:
      * (IN m_image PIXELS, relative to m_image's topLeft);
 
      */
-    QRectF m_interestRect;
+    PkRectF m_interestRect;
 
-    QImage m_image;
+    PkImage m_image;
     bool m_isScaled {false};
 };
 

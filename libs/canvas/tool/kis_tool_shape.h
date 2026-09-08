@@ -10,7 +10,7 @@
 
 #include <PkSet.h>
 #include <kritacanvas_export.h>
-#include <kconfiggroup.h>
+#include <PkConfigGroup.h>
 
 #include <kis_painter.h>
 
@@ -27,19 +27,15 @@ class KoPathShape;
 class KRITACANVAS_EXPORT KisToolShape : public KisToolPaint
 {
 
-    Q_OBJECT
-
 public:
     KisToolShape(KoCanvasBase * canvas, const QCursor & cursor);
     ~KisToolShape() override;
     int flags() const override;
 
-public Q_SLOTS:
+public:
     void activate(const PkSet<KoShape*> &shapes) override;
 
 protected:
-    QWidget* createOptionWidget() override;
-
     KisToolShapeUtils::FillStyle fillStyle();
     KisToolShapeUtils::StrokeStyle strokeStyle();
     PkTransform fillTransform();
@@ -66,7 +62,7 @@ protected:
     virtual void beginShape() {}
     virtual void endShape() {}
 
-    KConfigGroup m_configGroup;
+    PkConfigGroup m_configGroup;
 };
 
 #endif // KIS_TOOL_SHAPE_H_

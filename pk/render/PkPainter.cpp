@@ -210,6 +210,9 @@ void PkPainter::fillPath(const PkPainterPath &p,const PkBrush &b) { m_backend.su
 void PkPainter::fillTexturePath(const PkPainterPath &p,const PkImage &i,const PkTransform &t) { m_backend.submit(PkFillTexturePathCommand{p,i,t}); }
 
 void PkPainter::drawImage(const PkRectF &r,const PkImage &i) { m_backend.submit(PkDrawImageCommand{r,i}); }
+void PkPainter::drawImage(const PkRectF &target,const PkImage &image,const PkRectF &source) {
+    m_backend.submit(PkDrawPixmapCommand{target,image,source});
+}
 void PkPainter::drawPixmap(const PkPointF &pos,const PkImage &img) {
     m_backend.submit(PkDrawPixmapCommand{PkRectF(pos, PkSizeF(img.width(), img.height())), img, PkRectF()});
 }

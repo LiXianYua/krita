@@ -3,18 +3,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <PkFlakeBridge.h>
 #include "kis_update_info.h"
-#include <KisStaticInitializer.h>
-
-/**
- * The connection in KisCanvas2 uses queued signals
- * with an argument of KisNodeSP type, so we should
- * register it beforehand
- */
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KisUpdateInfoSP>("KisUpdateInfoSP");
-}
+#include <cstdlib>
 
 KisUpdateInfo::KisUpdateInfo()
 {
@@ -24,9 +14,9 @@ KisUpdateInfo::~KisUpdateInfo()
 {
 }
 
-QRect KisUpdateInfo::dirtyViewportRect()
+PkRect KisUpdateInfo::dirtyViewportRect()
 {
-    return QRect();
+    return PkRect();
 }
 
 bool KisUpdateInfo::canBeCompressed() const
@@ -34,11 +24,11 @@ bool KisUpdateInfo::canBeCompressed() const
     return true;
 }
 
-QRect KisPPUpdateInfo::dirtyViewportRect() {
+PkRect KisPPUpdateInfo::dirtyViewportRect() {
     return viewportRect.toRect();
 }
 
-QRect KisPPUpdateInfo::dirtyImageRect() const {
+PkRect KisPPUpdateInfo::dirtyImageRect() const {
     return dirtyImageRectVar;
 }
 
@@ -52,12 +42,11 @@ KisOpenGLUpdateInfo::KisOpenGLUpdateInfo()
 {
 }
 
-QRect KisOpenGLUpdateInfo::dirtyViewportRect() {
-    qFatal("Not implemented yet!");
-    return QRect();
+PkRect KisOpenGLUpdateInfo::dirtyViewportRect() {
+    std::abort();
 }
 
-void KisOpenGLUpdateInfo::assignDirtyImageRect(const QRect &rect)
+void KisOpenGLUpdateInfo::assignDirtyImageRect(const PkRect &rect)
 {
     m_dirtyImageRect = rect;
 }
@@ -67,7 +56,7 @@ void KisOpenGLUpdateInfo::assignLevelOfDetail(int lod)
     m_levelOfDetail = lod;
 }
 
-QRect KisOpenGLUpdateInfo::dirtyImageRect() const
+PkRect KisOpenGLUpdateInfo::dirtyImageRect() const
 {
     return m_dirtyImageRect;
 }
@@ -89,7 +78,7 @@ bool KisOpenGLUpdateInfo::tryMergeWith(const KisOpenGLUpdateInfo &rhs)
     return true;
 }
 
-KisMarkerUpdateInfo::KisMarkerUpdateInfo(KisMarkerUpdateInfo::Type type, const QRect &dirtyImageRect)
+KisMarkerUpdateInfo::KisMarkerUpdateInfo(KisMarkerUpdateInfo::Type type, const PkRect &dirtyImageRect)
     : m_type(type),
       m_dirtyImageRect(dirtyImageRect)
 {
@@ -100,7 +89,7 @@ KisMarkerUpdateInfo::Type KisMarkerUpdateInfo::type() const
     return m_type;
 }
 
-QRect KisMarkerUpdateInfo::dirtyImageRect() const
+PkRect KisMarkerUpdateInfo::dirtyImageRect() const
 {
     return m_dirtyImageRect;
 }

@@ -4,11 +4,11 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QSignalSpy>
 #include <QPointer>
 #include <QWidget>
 #include <type_traits>
 
+#include <PkObject.h>
 #include <simpletest.h>
 
 #include "kis_selection_options.h"
@@ -84,17 +84,29 @@ void KisSelectionOptionsTest::testAllValuesAreObservableState()
 {
     KisSelectionOptions options;
 
-    QSignalSpy modeSpy(&options, &KisSelectionOptions::modeChanged);
-    QSignalSpy actionSpy(&options, &KisSelectionOptions::actionChanged);
-    QSignalSpy antiAliasSpy(
-        &options, &KisSelectionOptions::antiAliasSelectionChanged);
-    QSignalSpy growSpy(&options, &KisSelectionOptions::growSelectionChanged);
-    QSignalSpy darkestSpy(
-        &options, &KisSelectionOptions::stopGrowingAtDarkestPixelChanged);
-    QSignalSpy featherSpy(
-        &options, &KisSelectionOptions::featherSelectionChanged);
-    QSignalSpy referenceSpy(
-        &options, &KisSelectionOptions::referenceLayersChanged);
+    PkObject observer;
+    int modeCount = 0;
+    int actionCount = 0;
+    int antiAliasCount = 0;
+    int growCount = 0;
+    int darkestCount = 0;
+    int featherCount = 0;
+    int referenceCount = 0;
+
+    PkObject::connect(&options, &KisSelectionOptions::modeChanged,
+                      &observer, [&](SelectionMode) { ++modeCount; });
+    PkObject::connect(&options, &KisSelectionOptions::actionChanged,
+                      &observer, [&](SelectionAction) { ++actionCount; });
+    PkObject::connect(&options, &KisSelectionOptions::antiAliasSelectionChanged,
+                      &observer, [&](bool) { ++antiAliasCount; });
+    PkObject::connect(&options, &KisSelectionOptions::growSelectionChanged,
+                      &observer, [&](int) { ++growCount; });
+    PkObject::connect(&options, &KisSelectionOptions::stopGrowingAtDarkestPixelChanged,
+                      &observer, [&](bool) { ++darkestCount; });
+    PkObject::connect(&options, &KisSelectionOptions::featherSelectionChanged,
+                      &observer, [&](int) { ++featherCount; });
+    PkObject::connect(&options, &KisSelectionOptions::referenceLayersChanged,
+                      &observer, [&](KisSelectionOptions::ReferenceLayers) { ++referenceCount; });
 
     QCOMPARE(options.mode(), SHAPE_PROTECTION);
     QCOMPARE(options.action(), SELECTION_REPLACE);
@@ -120,13 +132,13 @@ void KisSelectionOptionsTest::testAllValuesAreObservableState()
     QCOMPARE(options.featherSelection(), 4);
     QCOMPARE(options.referenceLayers(),
              KisSelectionOptions::ColorLabeledLayers);
-    QCOMPARE(modeSpy.count(), 1);
-    QCOMPARE(actionSpy.count(), 1);
-    QCOMPARE(antiAliasSpy.count(), 1);
-    QCOMPARE(growSpy.count(), 1);
-    QCOMPARE(darkestSpy.count(), 1);
-    QCOMPARE(featherSpy.count(), 1);
-    QCOMPARE(referenceSpy.count(), 1);
+    QCOMPARE(modeCount, 1);
+    QCOMPARE(actionCount, 1);
+    QCOMPARE(antiAliasCount, 1);
+    QCOMPARE(growCount, 1);
+    QCOMPARE(darkestCount, 1);
+    QCOMPARE(featherCount, 1);
+    QCOMPARE(referenceCount, 1);
 
     options.setMode(PIXEL_SELECTION);
     options.setAction(SELECTION_ADD);
@@ -136,33 +148,35 @@ void KisSelectionOptionsTest::testAllValuesAreObservableState()
     options.setFeatherSelection(4);
     options.setReferenceLayers(KisSelectionOptions::ColorLabeledLayers);
 
-    QCOMPARE(modeSpy.count(), 1);
-    QCOMPARE(actionSpy.count(), 1);
-    QCOMPARE(antiAliasSpy.count(), 1);
-    QCOMPARE(growSpy.count(), 1);
-    QCOMPARE(darkestSpy.count(), 1);
-    QCOMPARE(featherSpy.count(), 1);
-    QCOMPARE(referenceSpy.count(), 1);
+    QCOMPARE(modeCount, 1);
+    QCOMPARE(actionCount, 1);
+    QCOMPARE(antiAliasCount, 1);
+    QCOMPARE(growCount, 1);
+    QCOMPARE(darkestCount, 1);
+    QCOMPARE(featherCount, 1);
+    QCOMPARE(referenceCount, 1);
 }
 
 void KisSelectionOptionsTest::testSelectedColorLabelsAreObservableState()
 {
     KisSelectionOptions options;
-    QSignalSpy changedSpy(&options,
-                          &KisSelectionOptions::selectedColorLabelsChanged);
+    PkObject observer;
+    int changedCount = 0;
+    PkObject::connect(&options, &KisSelectionOptions::selectedColorLabelsChanged,
+                      &observer, [&] { ++changedCount; });
 
     QCOMPARE(options.selectedColorLabels(), PkList<int>());
 
     options.setSelectedColorLabels({2, 5, 8});
     QCOMPARE(options.selectedColorLabels(), PkList<int>({2, 5, 8}));
-    QCOMPARE(changedSpy.count(), 1);
+    QCOMPARE(changedCount, 1);
 
     options.setSelectedColorLabels({2, 5, 8});
-    QCOMPARE(changedSpy.count(), 1);
+    QCOMPARE(changedCount, 1);
 
     options.setSelectedColorLabels({8, 2});
     QCOMPARE(options.selectedColorLabels(), PkList<int>({8, 2}));
-    QCOMPARE(changedSpy.count(), 2);
+    QCOMPARE(changedCount, 2);
 }
 
 void KisSelectionOptionsTest::testDelegatedOptionWidgetReachesHostBoundaryAndTearsDownSafely()

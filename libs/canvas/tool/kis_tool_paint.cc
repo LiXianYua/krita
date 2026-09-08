@@ -8,31 +8,13 @@
 #include <PkFlakeBridge.h>
 #include <algorithm>
 
-#include <QAction>
-#include <QCheckBox>
-#include <QEvent>
-#include <QGridLayout>
-#include <QHBoxLayout>
-#include <QIcon>
-#include <QLayout>
-#include <QPainterPath>
-#include <QPoint>
 #include <pk/geometry/PkPoint.h>
-#include <QPushButton>
-#include <QRect>
 #include <pk/geometry/PkRect.h>
-#include <QString>
-#include <QVariant>
-#include <QVBoxLayout>
-#include <QWhatsThis>
-#include <QWidget>
 
 #include <PkObject.h>
 
 #include "kis_tool_paint.h"
 #include <kis_debug.h>
-
-#include <klocalizedstring.h>
 
 #include <kis_algebra_2d.h>
 #include <KoShape.h>
@@ -63,11 +45,6 @@
 
 namespace {
 
-QString r44ToQString(const PkString &value)
-{
-    return QString::fromUtf8(value.PkToUtf8().c_str());
-}
-
 PkRectF r44ToQRectF(const PkRectF &rect)
 {
     return PkRectF(rect.x(), rect.y(), rect.width(), rect.height());
@@ -76,31 +53,6 @@ PkRectF r44ToQRectF(const PkRectF &rect)
 PkPointF r44ToPkPointF(const PkPointF &point)
 {
     return PkPointF(point.x(), point.y());
-}
-
-PkPainterPath r44ToPkPainterPath(const QPainterPath &path)
-{
-    PkPainterPath result;
-    result.setFillRule(static_cast<Pk::FillRule>(path.fillRule()));
-
-    const int elementCount = path.elementCount();
-    for (int i = 0; i < elementCount; ++i) {
-        const QPainterPath::Element element = path.elementAt(i);
-        if (element.isMoveTo()) {
-            result.moveTo(element.x, element.y);
-        } else if (element.isLineTo()) {
-            result.lineTo(element.x, element.y);
-        } else if (element.isCurveTo()) {
-            const QPainterPath::Element controlPoint2 = path.elementAt(i + 1);
-            const QPainterPath::Element endPoint = path.elementAt(i + 2);
-            result.cubicTo(element.x, element.y,
-                           controlPoint2.x, controlPoint2.y,
-                           endPoint.x, endPoint.y);
-            i += 2;
-        }
-    }
-
-    return result;
 }
 
 }
@@ -125,13 +77,22 @@ KisToolPaint::KisToolPaint(KoCanvasBase *canvas, const QCursor &cursor)
 {
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
     KIS_ASSERT(services);
-    QObject::connect(this, &KisToolPaint::sigPaintingFinished, this, [services]() {
+    PkObject::connect(this, &KisToolPaint::sigPaintingFinished, this, [services]() {
         services->toolNotifyPaintingFinished();
     });
 
-    QObject::connect(&m_colorSamplerHelper, SIGNAL(sigRequestCursor(QCursor)), this, SLOT(slotColorPickerRequestedCursor(QCursor)));
-    QObject::connect(&m_colorSamplerHelper, SIGNAL(sigRequestCursorReset()), this, SLOT(slotColorPickerRequestedCursorReset()));
-    QObject::connect(&m_colorSamplerHelper, SIGNAL(sigRequestUpdateOutline()), this, SLOT(slotColorPickerRequestedOutlineUpdate()));
+    PkObject::connect(&m_colorSamplerHelper,
+                      &KisAsyncColorSamplerHelper::sigRequestCursor,
+                      &m_colorSamplerHelper,
+                      [this](const QCursor &cursor) { slotColorPickerRequestedCursor(cursor); });
+    PkObject::connect(&m_colorSamplerHelper,
+                      &KisAsyncColorSamplerHelper::sigRequestCursorReset,
+                      &m_colorSamplerHelper,
+                      [this] { slotColorPickerRequestedCursorReset(); });
+    PkObject::connect(&m_colorSamplerHelper,
+                      &KisAsyncColorSamplerHelper::sigRequestUpdateOutline,
+                      &m_colorSamplerHelper,
+                      [this] { slotColorPickerRequestedOutlineUpdate(); });
 }
 
 
@@ -159,8 +120,9 @@ void KisToolPaint::canvasResourceChanged(int key, const PkVariant &v)
     }
     case KoCanvasResource::CurrentPaintOpPresetName: {
         if (isActive()) {
-            const QString formattedBrushName = toQString(v.toString()).replace("_", " ");
-            Q_EMIT statusTextChanged(toPkString(formattedBrushName));
+            PkString formattedBrushName = v.toString();
+            formattedBrushName.replace("_", " ");
+            statusTextChanged(formattedBrushName);
         }
         break;
     }
@@ -198,41 +160,47 @@ void KisToolPaint::tryRestoreOpacitySnapshot()
 void KisToolPaint::activate(const PkSet<KoShape*> &shapes)
 {
     if (currentPaintOpPreset()) {
-        const QString formattedBrushName = currentPaintOpPreset() ? r44ToQString(currentPaintOpPreset()->name()).replace("_", " ") : QString();
-        Q_EMIT statusTextChanged(toPkString(formattedBrushName));
+        PkString formattedBrushName = currentPaintOpPreset()->name();
+        formattedBrushName.replace("_", " ");
+        statusTextChanged(formattedBrushName);
     }
 
     KisTool::activate(shapes);
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(services);
     if (flags() & KisTool::FLAG_USES_CUSTOM_SIZE) {
-        QObject::connect(action("increase_brush_size"), SIGNAL(triggered()), SLOT(increaseBrushSize()), Qt::UniqueConnection);
-        QObject::connect(action("decrease_brush_size"), SIGNAL(triggered()), SLOT(decreaseBrushSize()), Qt::UniqueConnection);
-        QObject::connect(action("increase_brush_size"), SIGNAL(triggered()), this, SLOT(showBrushSize()));
-        QObject::connect(action("decrease_brush_size"), SIGNAL(triggered()), this, SLOT(showBrushSize()));
-
+        services->toolSetActionCallback(
+            "increase_brush_size", this,
+            [this] { increaseBrushSize(); showBrushSize(); }, true);
+        services->toolSetActionCallback(
+            "decrease_brush_size", this,
+            [this] { decreaseBrushSize(); showBrushSize(); }, true);
     }
 
-    QObject::connect(action("rotate_brush_tip_clockwise"), SIGNAL(triggered()), SLOT(rotateBrushTipClockwise()), Qt::UniqueConnection);
-    QObject::connect(action("rotate_brush_tip_clockwise_precise"), SIGNAL(triggered()), SLOT(rotateBrushTipClockwisePrecise()), Qt::UniqueConnection);
-    QObject::connect(action("rotate_brush_tip_counter_clockwise"), SIGNAL(triggered()), SLOT(rotateBrushTipCounterClockwise()), Qt::UniqueConnection);
-    QObject::connect(action("rotate_brush_tip_counter_clockwise_precise"), SIGNAL(triggered()), SLOT(rotateBrushTipCounterClockwisePrecise()), Qt::UniqueConnection);
+    services->toolSetActionCallback(
+        "rotate_brush_tip_clockwise", this,
+        [this] { rotateBrushTipClockwise(); }, true);
+    services->toolSetActionCallback(
+        "rotate_brush_tip_clockwise_precise", this,
+        [this] { rotateBrushTipClockwisePrecise(); }, true);
+    services->toolSetActionCallback(
+        "rotate_brush_tip_counter_clockwise", this,
+        [this] { rotateBrushTipCounterClockwise(); }, true);
+    services->toolSetActionCallback(
+        "rotate_brush_tip_counter_clockwise_precise", this,
+        [this] { rotateBrushTipCounterClockwisePrecise(); }, true);
 
     tryRestoreOpacitySnapshot();
 }
 
 void KisToolPaint::deactivate()
 {
-    if (flags() & KisTool::FLAG_USES_CUSTOM_SIZE) {
-        QObject::disconnect(action("increase_brush_size"), 0, this, 0);
-        QObject::disconnect(action("decrease_brush_size"), 0, this, 0);
-    }
-
-    QObject::disconnect(action("rotate_brush_tip_clockwise"), 0, this, 0);
-    QObject::disconnect(action("rotate_brush_tip_clockwise_precise"), 0, this, 0);
-    QObject::disconnect(action("rotate_brush_tip_counter_clockwise"), 0, this, 0);
-    QObject::disconnect(action("rotate_brush_tip_counter_clockwise_precise"), 0, this, 0);
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(services);
+    services->toolClearActionCallbacks(this);
 
     tryRestoreOpacitySnapshot();
-    Q_EMIT statusTextChanged(PkString());
+    statusTextChanged(PkString());
 
     KisTool::deactivate();
 }
@@ -271,7 +239,7 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_ASSERT(services);
-    const QSize widgetSize = toQSize(services->toolCanvasWidgetSize());
+    const PkSize widgetSize = services->toolCanvasWidgetSize();
     const int maxThresholdSum = widgetSize.width() + widgetSize.height();
 
     KisOptimizedBrushOutline outline = originalOutline;
@@ -283,7 +251,7 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
     if (sum > maxThresholdSum) {
         const int hairOffset = 7;
 
-        QPainterPath crossIcon;
+        PkPainterPath crossIcon;
 
         crossIcon.moveTo(center.x(), center.y() - hairOffset);
         crossIcon.lineTo(center.x(), center.y() + hairOffset);
@@ -291,7 +259,7 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
         crossIcon.moveTo(center.x() - hairOffset, center.y());
         crossIcon.lineTo(center.x() + hairOffset, center.y());
 
-        outline.addPath(r44ToPkPainterPath(crossIcon));
+        outline.addPath(crossIcon);
 
     } else if (sum < minThresholdSize && !outline.isEmpty()) {
         outline = KisOptimizedBrushOutline();
@@ -303,7 +271,7 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
 
 void KisToolPaint::paint(PkPainter &gc, const KoViewConverter &converter)
 {
-    Q_UNUSED(converter);
+    (void)converter;
 
     KisOptimizedBrushOutline path = tryFixBrushOutline(pixelToView(m_currentOutline));
     paintToolOutline(&gc, path);
@@ -317,7 +285,7 @@ void KisToolPaint::setMode(ToolMode mode)
             mode != KisTool::PAINT_MODE) {
 
         // Let's add history information about recently used colors
-        Q_EMIT sigPaintingFinished();
+        sigPaintingFinished();
     }
 
     KisTool::setMode(mode);
@@ -419,110 +387,6 @@ void KisToolPaint::mouseReleaseEvent(KoPointerEvent *event)
     if (mode() == KisTool::HOVER_MODE) {
         requestUpdateOutline(event->point, event);
     }
-}
-
-QWidget *KisToolPaint::createOptionWidget()
-{
-    QWidget *optionWidget = new QWidget();
-    optionWidget->setObjectName(toQString(toolId()));
-
-    QVBoxLayout *verticalLayout = new QVBoxLayout(optionWidget);
-    verticalLayout->setObjectName("KisToolPaint::OptionWidget::VerticalLayout");
-    verticalLayout->setContentsMargins(0,0,0,0);
-    verticalLayout->setSpacing(5);
-
-    // See https://bugs.kde.org/show_bug.cgi?id=316896
-    QWidget *specialSpacer = new QWidget(optionWidget);
-    specialSpacer->setObjectName("SpecialSpacer");
-    specialSpacer->setFixedSize(0, 0);
-    verticalLayout->addWidget(specialSpacer);
-    verticalLayout->addWidget(specialSpacer);
-
-    m_optionsWidgetLayout = new QGridLayout();
-    m_optionsWidgetLayout->setColumnStretch(1, 1);
-    verticalLayout->addLayout(m_optionsWidgetLayout);
-    m_optionsWidgetLayout->setContentsMargins(0,0,0,0);
-    m_optionsWidgetLayout->setSpacing(5);
-
-    if (!quickHelp().isEmpty()) {
-        QPushButton *push = new QPushButton(QIcon(), QString(), optionWidget);
-        QObject::connect(push, SIGNAL(clicked()), this, SLOT(slotPopupQuickHelp()));
-        QHBoxLayout *hLayout = new QHBoxLayout();
-        hLayout->addWidget(push);
-        hLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed));
-        verticalLayout->addLayout(hLayout);
-    }
-
-    return optionWidget;
-}
-
-QWidget* findLabelWidget(QGridLayout *layout, QWidget *control)
-{
-    QWidget *result = 0;
-
-    int index = layout->indexOf(control);
-
-    int row, col, rowSpan, colSpan;
-    layout->getItemPosition(index, &row, &col, &rowSpan, &colSpan);
-
-    if (col > 0) {
-        QLayoutItem *item = layout->itemAtPosition(row, col - 1);
-
-        if (item) {
-            result = item->widget();
-        }
-    } else {
-        QLayoutItem *item = layout->itemAtPosition(row, col + 1);
-        if (item) {
-            result = item->widget();
-        }
-    }
-
-    return result;
-}
-
-void KisToolPaint::showControl(QWidget *control, bool value)
-{
-    control->setVisible(value);
-    QWidget *label = findLabelWidget(m_optionsWidgetLayout, control);
-    if (label) {
-        label->setVisible(value);
-    }
-}
-
-void KisToolPaint::enableControl(QWidget *control, bool value)
-{
-    control->setEnabled(value);
-    QWidget *label = findLabelWidget(m_optionsWidgetLayout, control);
-    if (label) {
-        label->setEnabled(value);
-    }
-}
-
-void KisToolPaint::addOptionWidgetLayout(QLayout *layout)
-{
-    Q_ASSERT(m_optionsWidgetLayout != 0);
-    int rowCount = m_optionsWidgetLayout->rowCount();
-    m_optionsWidgetLayout->addLayout(layout, rowCount, 0, 1, 2);
-}
-
-
-void KisToolPaint::addOptionWidgetOption(QWidget *control, QWidget *label)
-{
-    Q_ASSERT(m_optionsWidgetLayout != 0);
-    if (label) {
-        m_optionsWidgetLayout->addWidget(label, m_optionsWidgetLayout->rowCount(), 0);
-        m_optionsWidgetLayout->addWidget(control, m_optionsWidgetLayout->rowCount() - 1, 1);
-    }
-    else {
-        m_optionsWidgetLayout->addWidget(control, m_optionsWidgetLayout->rowCount(), 0, 1, 2);
-    }
-}
-
-
-void KisToolPaint::slotPopupQuickHelp()
-{
-    QWhatsThis::showText(QCursor::pos(), toQString(quickHelp()));
 }
 
 void KisToolPaint::activatePrimaryAction()
@@ -753,7 +617,9 @@ void KisToolPaint::requestUpdateOutline(const PkPointF &outlineDocPoint, const K
 }
 
 bool KisToolPaint::isEraser() const {
-    return toQString(canvas()->resourceManager()->resource(KoCanvasResource::CurrentEffectiveCompositeOp).toString()) == r44ToQString(COMPOSITE_ERASE);
+    return canvas()->resourceManager()
+               ->resource(KoCanvasResource::CurrentEffectiveCompositeOp)
+               .toString() == COMPOSITE_ERASE;
 }
 
 KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const PkPointF &documentPos,

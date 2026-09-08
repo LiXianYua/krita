@@ -38,6 +38,7 @@
 #undef Q_ASSERT
 namespace pkoracle {
 #include "PkColor.h"
+#include "../container/PkByteArray.cpp"
 #include "../string/PkString_core.cpp"
 #include "../string/PkString_query.cpp"
 #include "../string/PkString_format.cpp"
@@ -121,6 +122,33 @@ static void cmp_color(const char *api, const QColor &q, const pkoracle::PkColor 
     rec(pfx, ext ? il(q.hslSaturation(), p.hslSaturation()) : q.hslSaturation() == p.hslSaturation(), "hslSaturation", in, s(q.hslSaturation()), s(p.hslSaturation()));
     rec(pfx, ext ? il(q.lightness(), p.lightness()) : q.lightness() == p.lightness(), "lightness", in, s(q.lightness()), s(p.lightness()));
 
+    int qh = 0, qs = 0, qv = 0, qa = 0;
+    int ph = 0, ps = 0, pv = 0, pa = 0;
+    q.getHsv(&qh, &qs, &qv, &qa);
+    p.getHsv(&ph, &ps, &pv, &pa);
+    rec(pfx, ext ? il(qh, ph) : qh == ph, "getHsv.h", in, s(qh), s(ph));
+    rec(pfx, ext ? il(qs, ps) : qs == ps, "getHsv.s", in, s(qs), s(ps));
+    rec(pfx, ext ? il(qv, pv) : qv == pv, "getHsv.v", in, s(qv), s(pv));
+    rec(pfx, ext ? il(qa, pa) : qa == pa, "getHsv.a", in, s(qa), s(pa));
+
+    qreal qhf = 0.0, qsf = 0.0, qvf = 0.0, qaf = 0.0;
+    pkoracle::qreal phf = 0.0, psf = 0.0, pvf = 0.0, paf = 0.0;
+    q.getHsvF(&qhf, &qsf, &qvf, &qaf);
+    p.getHsvF(&phf, &psf, &pvf, &paf);
+    rec(pfx, ext ? fl(qhf, phf) : qhf == phf, "getHsvF.h", in, sf(qhf), sf(phf));
+    rec(pfx, ext ? fl(qsf, psf) : qsf == psf, "getHsvF.s", in, sf(qsf), sf(psf));
+    rec(pfx, ext ? fl(qvf, pvf) : qvf == pvf, "getHsvF.v", in, sf(qvf), sf(pvf));
+    rec(pfx, ext ? fl(qaf, paf) : qaf == paf, "getHsvF.a", in, sf(qaf), sf(paf));
+
+    qreal qhl = 0.0, qsl = 0.0, qll = 0.0, qal = 0.0;
+    pkoracle::qreal phl = 0.0, psl = 0.0, pll = 0.0, pal = 0.0;
+    q.getHslF(&qhl, &qsl, &qll, &qal);
+    p.getHslF(&phl, &psl, &pll, &pal);
+    rec(pfx, ext ? fl(qhl, phl) : qhl == phl, "getHslF.h", in, sf(qhl), sf(phl));
+    rec(pfx, ext ? fl(qsl, psl) : qsl == psl, "getHslF.s", in, sf(qsl), sf(psl));
+    rec(pfx, ext ? fl(qll, pll) : qll == pll, "getHslF.l", in, sf(qll), sf(pll));
+    rec(pfx, ext ? fl(qal, pal) : qal == pal, "getHslF.a", in, sf(qal), sf(pal));
+
     // name 由 rgba 推导；ExtendedRgb 的 rgba 已按字节容差核对，字符串比较跳过。
     if (!ext) {
         rec(pfx, q.name().toStdString() == p.name().PkToUtf8(), "name", in,
@@ -141,7 +169,7 @@ int main()
 {
     // ── 1. Pk::GlobalColor 全 20 项 ────────────────────────────────────────
     for (int gc = 0; gc < 20; ++gc) {
-        QColor q((Pk::GlobalColor)gc);
+        QColor q(static_cast<Qt::GlobalColor>(gc));
         pkoracle::PkColor p((pkoracle::Pk::GlobalColor)gc);
         cmp_color("gc", q, p, "gc=" + s(gc));
     }

@@ -7,8 +7,6 @@
 #ifndef __KIS_DELEGATED_TOOL_POLICIES_H
 #define __KIS_DELEGATED_TOOL_POLICIES_H
 
-#include <QtGlobal>
-
 #include <kritacanvas_export.h>
 
 
@@ -16,7 +14,7 @@ class KoCanvasBase;
 
 struct KRITACANVAS_EXPORT NoopActivationPolicy {
     static inline void onActivate(KoCanvasBase *canvas) {
-        Q_UNUSED(canvas);
+        (void)canvas;
     }
 };
 

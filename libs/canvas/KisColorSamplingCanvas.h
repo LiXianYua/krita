@@ -8,9 +8,8 @@
 #include <optional>
 
 #include <QCursor>
-#include <QPoint>
-
 #include <PkColor.h>
+#include <PkPoint.h>
 
 #include <KoColor.h>
 #include <kis_types.h>
@@ -29,7 +28,7 @@ public:
 
     virtual KisImageWSP samplingImage() const = 0;
     virtual std::optional<KoColor>
-        sampleVisibleReferenceColor(const QPoint &imagePoint) const = 0;
+        sampleVisibleReferenceColor(const PkPoint &imagePoint) const = 0;
     virtual PkColor samplingPreviewColor(const KoColor &color) const = 0;
     virtual PkColor samplingPaletteBaseColor() const = 0;
     virtual qreal samplingCanvasRotation() const = 0;

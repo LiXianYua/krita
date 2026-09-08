@@ -9,7 +9,6 @@
 #include "opengl/KisOpenGLPolicy.h"
 
 #include <algorithm>
-#include <QProcessEnvironment>
 
 Q_DECLARE_METATYPE(KisOpenGLPolicy::Renderer)
 Q_DECLARE_METATYPE(KisOpenGLPolicy::Platform)
@@ -52,9 +51,10 @@ void KisOpenGLPolicyTest::testRendererConfigMapping()
     QFETCH(KisOpenGLPolicy::Renderer, renderer);
     QFETCH(QString, config);
 
-    QCOMPARE(KisOpenGLPolicy::rendererToConfig(renderer), config);
-    QCOMPARE(KisOpenGLPolicy::rendererFromConfig(config), renderer);
-    QCOMPARE(KisOpenGLPolicy::rendererFromConfig(QStringLiteral("unexpected")),
+    const PkString nativeConfig(config.toUtf8().constData());
+    QCOMPARE(KisOpenGLPolicy::rendererToConfig(renderer), nativeConfig);
+    QCOMPARE(KisOpenGLPolicy::rendererFromConfig(nativeConfig), renderer);
+    QCOMPARE(KisOpenGLPolicy::rendererFromConfig(PkString("unexpected")),
              KisOpenGLPolicy::Renderer::Auto);
 }
 
@@ -82,7 +82,10 @@ void KisOpenGLPolicyTest::testIntelDriverBlacklist()
     QFETCH(bool, windows);
     QFETCH(bool, blacklisted);
 
-    QCOMPARE(KisOpenGLPolicy::intelDriverPolicy(renderer, version, windows).blacklisted, blacklisted);
+    QCOMPARE(KisOpenGLPolicy::intelDriverPolicy(PkString(renderer.toUtf8().constData()),
+                                                PkString(version.toUtf8().constData()),
+                                                windows).blacklisted,
+             blacklisted);
 }
 
 void KisOpenGLPolicyTest::testSurfaceRequestPolicy()
@@ -166,17 +169,17 @@ void KisOpenGLPolicyTest::testCapabilityProbeSequence()
 
     const auto windowsSequence = defaultProbeSequence(Platform::Windows);
     QCOMPARE(windowsSequence.size(), 5);
-    QCOMPARE(windowsSequence.constLast(), ProbeRequest({Renderer::Software, false}));
+    QCOMPARE(windowsSequence.last(), ProbeRequest({Renderer::Software, false}));
 
     const auto macSequence = defaultProbeSequence(Platform::MacOS);
     QCOMPARE(macSequence.size(), 1);
-    QCOMPARE(macSequence.constFirst(), ProbeRequest({Renderer::Auto, false}));
+    QCOMPARE(macSequence.first(), ProbeRequest({Renderer::Auto, false}));
 
     QCOMPARE(rendererCandidates(false, false),
-             QVector<Renderer>({Renderer::DesktopGL, Renderer::OpenGLES}));
-    QCOMPARE(rendererCandidates(true, false), QVector<Renderer>({Renderer::OpenGLES}));
+             PkVector<Renderer>({Renderer::DesktopGL, Renderer::OpenGLES}));
+    QCOMPARE(rendererCandidates(true, false), PkVector<Renderer>({Renderer::OpenGLES}));
     QCOMPARE(rendererCandidates(false, true),
-             QVector<Renderer>({Renderer::DesktopGL, Renderer::OpenGLES, Renderer::Software}));
+             PkVector<Renderer>({Renderer::DesktopGL, Renderer::OpenGLES, Renderer::Software}));
 }
 
 void KisOpenGLPolicyTest::testRendererOrdering()
@@ -191,7 +194,7 @@ void KisOpenGLPolicyTest::testRendererOrdering()
     preferences.desktopBlacklisted = true;
     preferences.userPreferredBitDepth = 10;
 
-    QVector<FormatCandidate> candidates {
+    PkVector<FormatCandidate> candidates {
         {Renderer::Software, ColorSpace::Bt2020Pq, 10},
         {Renderer::DesktopGL, ColorSpace::Bt2020Pq, 10},
         {Renderer::OpenGLES, ColorSpace::SRgb, 8},
@@ -206,7 +209,7 @@ void KisOpenGLPolicyTest::testRendererOrdering()
     QCOMPARE(candidates.at(0).renderer, Renderer::OpenGLES);
     QCOMPARE(candidates.at(0).colorSpace, ColorSpace::Bt2020Pq);
     QCOMPARE(candidates.at(1).renderer, Renderer::DesktopGL);
-    QCOMPARE(candidates.constLast().renderer, Renderer::Software);
+    QCOMPARE(candidates.last().renderer, Renderer::Software);
 
     preferences.preferredRendererByUser = Renderer::Software;
     std::stable_sort(candidates.begin(), candidates.end(),
@@ -220,50 +223,44 @@ void KisOpenGLPolicyTest::testDriverWorkarounds()
 {
     using namespace KisOpenGLPolicy;
 
-    QVERIFY(needsFenceWorkaround(true, QStringLiteral("AMD Radeon"), false));
-    QVERIFY(!needsFenceWorkaround(false, QStringLiteral("AMD Radeon"), false));
-    QVERIFY(needsFenceWorkaround(false, QStringLiteral("NVIDIA"), true));
+    QVERIFY(needsFenceWorkaround(true, PkString("AMD Radeon"), false));
+    QVERIFY(!needsFenceWorkaround(false, PkString("AMD Radeon"), false));
+    QVERIFY(needsFenceWorkaround(false, PkString("NVIDIA"), true));
 
     QVERIFY(!shouldUseTextureBuffers(true, true));
     QVERIFY(shouldUseTextureBuffers(false, true));
     QVERIFY(!shouldInvalidateBuffers(true, false));
     QVERIFY(shouldInvalidateBuffers(true, true));
 
-    QVERIFY(rejectAngleD3d9(true, true, QStringLiteral("ANGLE (Direct3D9)")));
-    QVERIFY(rejectAngleD3d9(true, true, QStringLiteral("angle direct3d9")));
-    QVERIFY(!rejectAngleD3d9(false, true, QStringLiteral("ANGLE (Direct3D9)")));
+    QVERIFY(rejectAngleD3d9(true, true, PkString("ANGLE (Direct3D9)")));
+    QVERIFY(rejectAngleD3d9(true, true, PkString("angle direct3d9")));
+    QVERIFY(!rejectAngleD3d9(false, true, PkString("ANGLE (Direct3D9)")));
 }
 
 void KisOpenGLPolicyTest::testAngleTextureBufferPolicy()
 {
     using namespace KisOpenGLPolicy;
 
-    QProcessEnvironment cleanEnvironment;
     QVERIFY(forceDisableTextureBuffers(Platform::Windows,
-                                       QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
-                                       cleanEnvironment));
+                                       PkString("ANGLE (NVIDIA, Direct3D11)"),
+                                       false));
     QVERIFY(forceDisableTextureBuffers(Platform::Windows,
-                                       QStringLiteral("angle direct3d11"),
-                                       cleanEnvironment));
+                                       PkString("angle direct3d11"),
+                                       false));
     QVERIFY(!forceDisableTextureBuffers(Platform::Other,
-                                        QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
-                                        cleanEnvironment));
+                                        PkString("ANGLE (NVIDIA, Direct3D11)"),
+                                        false));
     QVERIFY(!forceDisableTextureBuffers(Platform::Windows,
-                                        QStringLiteral("NVIDIA OpenGL"),
-                                        cleanEnvironment));
+                                        PkString("NVIDIA OpenGL"),
+                                        false));
 
-    QProcessEnvironment unlockedEnvironment;
-    unlockedEnvironment.insert(QStringLiteral("KRITA_UNLOCK_TEXTURE_BUFFERS"), QString());
     QVERIFY(!forceDisableTextureBuffers(Platform::Windows,
-                                        QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
-                                        unlockedEnvironment));
+                                        PkString("ANGLE (NVIDIA, Direct3D11)"),
+                                        true));
 
-    QProcessEnvironment nonEmptyUnlockedEnvironment;
-    nonEmptyUnlockedEnvironment.insert(QStringLiteral("KRITA_UNLOCK_TEXTURE_BUFFERS"),
-                                       QStringLiteral("1"));
     QVERIFY(!forceDisableTextureBuffers(Platform::Windows,
-                                        QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
-                                        nonEmptyUnlockedEnvironment));
+                                        PkString("ANGLE (NVIDIA, Direct3D11)"),
+                                        true));
 }
 
 void KisOpenGLPolicyTest::testPixmapCacheFormula()

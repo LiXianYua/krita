@@ -6,16 +6,16 @@
 #ifndef KIS_SMOOTHING_OPTIONS_H
 #define KIS_SMOOTHING_OPTIONS_H
 
-#include <qglobal.h>
-#include <QObject>
-#include <QSharedPointer>
-#include <QScopedPointer>
+#include <PkGlobal.h>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
+#include <PkSignalCompat.h>
 #include <kritacanvas_export.h>
 
 
-class KRITACANVAS_EXPORT KisSmoothingOptions : public QObject
+class KRITACANVAS_EXPORT KisSmoothingOptions : public PkObject
 {
-    Q_OBJECT
 public:
     enum SmoothingType {
         NO_SMOOTHING = 0,
@@ -63,17 +63,17 @@ public:
     void setStabilizeSensors(bool value);
     bool stabilizeSensors() const;
 
-Q_SIGNALS:
+signals:
     void sigSmoothingTypeChanged();
 
-private Q_SLOTS:
+private:
     void slotWriteConfig();
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-typedef QSharedPointer<KisSmoothingOptions> KisSmoothingOptionsSP;
+typedef PkSharedPointer<KisSmoothingOptions> KisSmoothingOptionsSP;
 
 #endif // KIS_SMOOTHING_OPTIONS_H

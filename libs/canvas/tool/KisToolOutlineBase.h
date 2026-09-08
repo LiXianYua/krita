@@ -19,8 +19,6 @@ class KisInputActionGroupsMaskGuard;
 
 class KRITACANVAS_EXPORT KisToolOutlineBase : public KisToolShape
 {
-    Q_OBJECT
-
 public:
     enum ToolType {
         PAINT,
@@ -40,12 +38,11 @@ public:
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event) override;
-    bool eventFilter(QObject *obj, QEvent *event) override;
     KisPopupWidgetInterface* popupWidget() override;
 
     bool hasUserInteractionRunning() const;
 
-public Q_SLOTS:
+public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void requestStrokeEnd() override;

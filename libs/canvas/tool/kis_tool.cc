@@ -5,18 +5,10 @@
  */
 #include <pk/container/PkSet.h>
 #include <QCursor>
-#include <QIcon>
-#include <QLabel>
-#include <QPainterPath>
-#include <QPoint>
 #include <pk/geometry/PkPoint.h>
 #include <pk/geometry/PkPolygon.h>
-#include <QRect>
 #include <pk/geometry/PkRect.h>
-#include <QString>
 #include <pk/geometry/PkTransform.h>
-#include <QVariant>
-#include <QWidget>
 
 #include "kis_tool.h"
 
@@ -25,7 +17,6 @@
 #include <PkRect.h>
 #include <PkTransform.h>
 
-#include <klocalizedstring.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColor.h>
@@ -62,15 +53,6 @@
 #include <KisCanvasFeedback.h>
 #include <KisCanvasToolServices.h>
 
-Q_DECLARE_METATYPE(KoColor)
-Q_DECLARE_METATYPE(KoPatternSP)
-Q_DECLARE_METATYPE(KoAbstractGradientSP)
-Q_DECLARE_METATYPE(KisPaintOpPresetSP)
-Q_DECLARE_METATYPE(KisFilterConfiguration*)
-Q_DECLARE_METATYPE(KisNodeWSP)
-Q_DECLARE_METATYPE(KisNodeList)
-
-
 struct Q_DECL_HIDDEN KisTool::Private {
     QCursor cursor; // the cursor that should be shown on tool activation.
 
@@ -81,7 +63,6 @@ struct Q_DECL_HIDDEN KisTool::Private {
     KoColor currentBgColor;
     float currentExposure{1.0};
     KisFilterConfigurationSP currentGenerator;
-    QWidget* optionWidget{0};
     ToolMode m_mode{HOVER_MODE};
     bool m_isActive{false};
 };
@@ -95,15 +76,15 @@ PkString nodeEditableMessage(KisNodeSP node, bool blockedNoIndirectPainting)
     PkString message;
     if (!node->isEditable(true) || blockedNoIndirectPainting) {
         if (!node->visible() && node->userLocked()) {
-            message = toPkString(i18n("Layer is locked and invisible."));
+            message = PkString("Layer is locked and invisible.");
         } else if (node->userLocked()) {
-            message = toPkString(i18n("Layer is locked."));
+            message = PkString("Layer is locked.");
         } else if (!node->visible()) {
-            message = toPkString(i18n("Layer is invisible."));
+            message = PkString("Layer is invisible.");
         } else if (blockedNoIndirectPainting) {
-            message = toPkString(i18n("Layer can be painted in Wash Mode only."));
+            message = PkString("Layer can be painted in Wash Mode only.");
         } else {
-            message = toPkString(i18n("Group not editable."));
+            message = PkString("Group not editable.");
         }
     }
     return message;
@@ -113,7 +94,7 @@ bool clearImage(KisImageSP image, KisNodeList nodes, KisSelectionSP selection)
 {
     KisNodeList masks;
 
-    Q_FOREACH (KisNodeSP node, nodes) {
+    for (KisNodeSP node : nodes) {
         if (node->inherits("KisMask")) {
             masks.append(node);
         }
@@ -129,7 +110,7 @@ bool clearImage(KisImageSP image, KisNodeList nodes, KisSelectionSP selection)
     KisProcessingApplicator applicator(image, 0, KisProcessingApplicator::NONE,
                                        KisImageSignalVector(), kundo2_text("Clear"));
 
-    Q_FOREACH (KisNodeSP node, nodes) {
+    for (KisNodeSP node : nodes) {
         KisLayerUtils::recursiveApplyNodes(node, [&applicator, selection, masks] (KisNodeSP node) {
             if (node->inherits("KisMask") && !masks.contains(node)) {
                 return;
@@ -179,14 +160,11 @@ KisTool::KisTool(KoCanvasBase * canvas, const QCursor & cursor)
     d->cursor = cursor;
 
     KisConfigNotifier *notifier = KisConfigNotifier::instance();
-    PkConnection configConnection = PkObject::connect(
-        notifier, &KisConfigNotifier::configChanged, notifier,
+    PkObject::connect(
+        notifier, &KisConfigNotifier::configChanged, this,
         [this]() { resetCursorStyle(); });
-    QObject::connect(this, &QObject::destroyed,
-                     [configConnection](QObject *) mutable {
-                         PkObject::disconnect(configConnection);
-                     });
-    QObject::connect(this, SIGNAL(isActiveChanged(bool)), SLOT(resetCursorStyle()));
+    PkObject::connect(this, &KisTool::isActiveChanged,
+                      this, [this](bool) { resetCursorStyle(); });
 }
 
 KisTool::~KisTool()
@@ -229,13 +207,13 @@ void KisTool::activate(const PkSet<KoShape*> &shapes)
     }
 
     d->m_isActive = true;
-    Q_EMIT isActiveChanged(true);
+    isActiveChanged(true);
 }
 
 void KisTool::deactivate()
 {
     d->m_isActive = false;
-    Q_EMIT isActiveChanged(false);
+    isActiveChanged(false);
 
     KoToolBase::deactivate();
 }
@@ -369,14 +347,6 @@ qreal KisTool::convertToPt(qreal value)
     return value / avgResolution;
 }
 
-PkPointF KisTool::pixelToView(const QPoint &pixelCoord) const
-{
-    if (!image())
-        return toPkPointF(pixelCoord);
-    PkPointF documentCoord = image()->pixelToDocument(toPkPoint(pixelCoord));
-    return canvas()->viewConverter()->documentToView(documentCoord);
-}
-
 PkPointF KisTool::pixelToView(const PkPointF &pixelCoord) const
 {
     if (!image())
@@ -395,20 +365,20 @@ PkRectF KisTool::pixelToView(const PkRectF &pixelRect) const
     return {topLeft, bottomRight};
 }
 
-QPainterPath KisTool::pixelToView(const QPainterPath &pixelPolygon) const
+PkPainterPath KisTool::pixelToView(const PkPainterPath &pixelPolygon) const
 {
     PkTransform matrix;
     qreal zoomX, zoomY;
     canvas()->viewConverter()->zoom(&zoomX, &zoomY);
     matrix.scale(zoomX/image()->xRes(), zoomY/ image()->yRes());
-    return toQPainterPath(matrix.map(toPkPainterPath(pixelPolygon)));
+    return matrix.map(pixelPolygon);
 }
 
 KisOptimizedBrushOutline KisTool::pixelToView(const KisOptimizedBrushOutline &path) const
 {
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_ASSERT(services);
-    return path.mapped(toPkTransform(services->toolImageToViewTransform()));
+    return path.mapped(services->toolImageToViewTransform());
 }
 
 
@@ -675,13 +645,6 @@ void KisTool::newActivationWithExternalSource(KisPaintDeviceSP externalSource)
     Q_UNUSED(externalSource);
 }
 
-QWidget* KisTool::createOptionWidget()
-{
-    d->optionWidget = new QLabel(i18n("No options"));
-    d->optionWidget->setObjectName("SpecialSpacer");
-    return d->optionWidget;
-}
-
 #define NEAR_VAL -1000.0
 #define FAR_VAL 1000.0
 #define PROGRAM_VERTEX_ATTRIBUTE 0
@@ -705,7 +668,8 @@ bool KisTool::overrideCursorIfNotEditable()
     if (isActive()) {
         KisNodeSP node = currentNode();
         if (node && !node->isEditable()) {
-            canvas()->setCursor(Qt::ForbiddenCursor);
+            useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())
+                          ->toolForbiddenCursor());
             return true;
         }
     }
@@ -757,9 +721,9 @@ bool KisTool::nodeEditable()
     bool nodeEditable = node->isEditable() && !blockedNoIndirectPainting;
 
     if (!nodeEditable) {
-        if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            feedback->showFloatingMessage(nodeEditableMessage(node, blockedNoIndirectPainting),
-                                          QIcon());
+        if (KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas())) {
+            services->toolShowFloatingMessage(
+                nodeEditableMessage(node, blockedNoIndirectPainting));
         }
     }
     return nodeEditable;
@@ -770,8 +734,8 @@ bool KisTool::selectionEditable()
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     bool editable = services && services->toolSelectionEditable();
     if (!editable) {
-        if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            feedback->showFloatingMessage(toPkString(i18n("Local selection is locked.")), QIcon());
+        if (KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas())) {
+            services->toolShowFloatingMessage(PkString("Local selection is locked."));
         }
     }
     return editable;

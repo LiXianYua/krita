@@ -677,6 +677,48 @@ qreal PkColor::alphaF() const noexcept
     return ct.argb.alpha / qreal(kUShortMax);
 }
 
+void PkColor::getHsv(int *h, int *s, int *v, int *a) const noexcept
+{
+    if (!h || !s || !v) return;
+    if (cspec != Invalid && cspec != Hsv) {
+        toHsv().getHsv(h, s, v, a);
+        return;
+    }
+
+    *h = ct.ahsv.hue == kUShortMax ? -1 : ct.ahsv.hue / 100;
+    *s = qt_div_257(ct.ahsv.saturation);
+    *v = qt_div_257(ct.ahsv.value);
+    if (a) *a = qt_div_257(ct.ahsv.alpha);
+}
+
+void PkColor::getHsvF(qreal *h, qreal *s, qreal *v, qreal *a) const noexcept
+{
+    if (!h || !s || !v) return;
+    if (cspec != Invalid && cspec != Hsv) {
+        toHsv().getHsvF(h, s, v, a);
+        return;
+    }
+
+    *h = ct.ahsv.hue == kUShortMax ? qreal(-1.0) : ct.ahsv.hue / qreal(36000.0);
+    *s = ct.ahsv.saturation / qreal(kUShortMax);
+    *v = ct.ahsv.value / qreal(kUShortMax);
+    if (a) *a = ct.ahsv.alpha / qreal(kUShortMax);
+}
+
+void PkColor::getHslF(qreal *h, qreal *s, qreal *l, qreal *a) const noexcept
+{
+    if (!h || !s || !l) return;
+    if (cspec != Invalid && cspec != Hsl) {
+        toHsl().getHslF(h, s, l, a);
+        return;
+    }
+
+    *h = ct.ahsl.hue == kUShortMax ? qreal(-1.0) : ct.ahsl.hue / qreal(36000.0);
+    *s = ct.ahsl.saturation / qreal(kUShortMax);
+    *l = ct.ahsl.lightness / qreal(kUShortMax);
+    if (a) *a = ct.ahsl.alpha / qreal(kUShortMax);
+}
+
 // qcolor.cpp:1391 rgba()：Invalid 也走 qt_div_257（alpha=65535 → 255）。
 quint32 PkColor::rgba() const noexcept
 {

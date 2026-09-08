@@ -7,8 +7,9 @@
 #ifndef __KIS_SELECTION_TOOL_CONFIG_WIDGET_HELPER_H
 #define __KIS_SELECTION_TOOL_CONFIG_WIDGET_HELPER_H
 
-#include <QObject>
 #include <PkList.h>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
 #include <PkString.h>
 
 #include "kis_image.h"
@@ -18,9 +19,8 @@
 
 class KoCanvasResourceProvider;
 
-class KRITACANVAS_EXPORT KisSelectionToolConfigWidgetHelper : public QObject
+class KRITACANVAS_EXPORT KisSelectionToolConfigWidgetHelper : public PkObject
 {
-    Q_OBJECT
 public:
     KisSelectionToolConfigWidgetHelper(const PkString &windowTitle);
 
@@ -37,10 +37,10 @@ public:
 
     void setConfigGroupForExactTool(const PkString &toolId);
 
-Q_SIGNALS:
+signals:
     void selectionActionChanged(SelectionAction newAction);
 
-public Q_SLOTS:
+public:
     void slotToolActivatedChanged(bool isActivated);
 
     void slotWidgetModeChanged(SelectionMode mode);
@@ -63,6 +63,7 @@ private:
     KisSelectionOptions m_options;
     PkString m_windowTitle;
     PkString m_configGroupForTool;
+    bool m_loadingConfig {false};
 
     void reloadExactToolConfig();
 };

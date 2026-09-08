@@ -65,6 +65,44 @@ set(kritacanvas_LIB_SRCS
 kis_add_library(kritacanvas SHARED ${kritacanvas_LIB_SRCS})
 generate_export_header(kritacanvas BASE_NAME kritacanvas)
 
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+set(kritacanvas_SIGNAL_HEADERS
+    KisCanvasToolServices.h
+    kis_aspect_ratio_locker.h
+    kis_display_color_converter.h
+    opengl/kis_texture_tile_info_pool.h
+    tool/KisAsyncColorSamplerHelper.h
+    tool/kis_smoothing_options.h
+    tool/kis_tool.h
+    tool/kis_tool_freehand_helper.h
+    tool/kis_tool_paint.h
+    tool/kis_tool_rectangle_base.h
+    tool/strokes/kis_color_sampler_stroke_strategy.h
+    tool/kis_selection_tool_config_widget_helper.h
+    widgets/kis_selection_options.h
+)
+set(kritacanvas_SIGNAL_SRCS)
+foreach(signal_header IN LISTS kritacanvas_SIGNAL_HEADERS)
+    get_filename_component(signal_name "${signal_header}" NAME_WE)
+    set(signal_source "${CMAKE_CURRENT_BINARY_DIR}/${signal_name}_pk_signals.cpp")
+    add_custom_command(
+        OUTPUT "${signal_source}"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${signal_header}"
+                -o "${signal_source}"
+        DEPENDS
+                "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${signal_header}"
+        COMMENT "pk_signal_moc: generating ${signal_name} signal definitions"
+        VERBATIM
+    )
+    list(APPEND kritacanvas_SIGNAL_SRCS "${signal_source}")
+endforeach()
+set_source_files_properties(${kritacanvas_SIGNAL_SRCS} PROPERTIES SKIP_AUTOMOC ON)
+target_sources(kritacanvas PRIVATE ${kritacanvas_SIGNAL_SRCS})
+
 target_include_directories(kritacanvas
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -77,6 +115,9 @@ target_include_directories(kritacanvas
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/container>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/geometry>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/color>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/image>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/render>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/pointer>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/config>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/global>
@@ -103,6 +144,9 @@ target_link_libraries(kritacanvas
         pkstring
         pkcontainer
         pkgeometry
+        pkcolor
+        pkimage
+        pkrender
         pkpointer
         pkconfig
         pkglobal

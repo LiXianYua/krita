@@ -5,25 +5,13 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <PkFlakeBridge.h>
 #include "kis_prescaled_projection.h"
 
 #include <math.h>
 
-#include <QImage>
-#include <QBitArray>
-#include <QColor>
-#include <QRect>
-#include <QPoint>
-#include <QSharedPointer>
-#include <QSize>
-#include <QVector>
-#include <QPainter>
-
-#include <PkObject.h>
-#include <PkRect.h>
-#include <PkSize.h>
-#include <PkVector.h>
+#include <PkImageRasterBackend.h>
+#include <PkRegion.h>
+#include <QObject>
 
 #include <KoColorProfile.h>
 #include <KoViewConverter.h>
@@ -77,9 +65,9 @@ struct RelevantCanvasState
     }
 };
 
-#define ceiledSize(sz) QSize(ceil((sz).width()), ceil((sz).height()))
+#define ceiledSize(sz) PkSize(ceil((sz).width()), ceil((sz).height()))
 
-inline void copyQImageBuffer(uchar* dst, const uchar* src , qint32 deltaX, qint32 width)
+inline void copyImageBuffer(uchar* dst, const uchar* src , qint32 deltaX, qint32 width)
 {
     if (deltaX >= 0) {
         memcpy(dst + 4 * deltaX, src, 4 *(width - deltaX) * sizeof(uchar));
@@ -88,22 +76,22 @@ inline void copyQImageBuffer(uchar* dst, const uchar* src , qint32 deltaX, qint3
     }
 }
 
-void copyQImage(qint32 deltaX, qint32 deltaY, QImage* dstImage, const QImage& srcImage)
+void copyImage(qint32 deltaX, qint32 deltaY, PkImage* dstImage, const PkImage& srcImage)
 {
     qint32 height = dstImage->height();
     qint32 width = dstImage->width();
-    Q_ASSERT(dstImage->width() == srcImage.width() && dstImage->height() == srcImage.height());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(dstImage->width() == srcImage.width() && dstImage->height() == srcImage.height());
     if (deltaY >= 0) {
         for (int y = 0; y < height - deltaY; y ++) {
             const uchar* src = srcImage.scanLine(y);
             uchar* dst = dstImage->scanLine(y + deltaY);
-            copyQImageBuffer(dst, src, deltaX, width);
+            copyImageBuffer(dst, src, deltaX, width);
         }
     } else {
         for (int y = 0; y < height + deltaY; y ++) {
             const uchar* src = srcImage.scanLine(y - deltaY);
             uchar* dst = dstImage->scanLine(y);
-            copyQImageBuffer(dst, src, deltaX, width);
+            copyImageBuffer(dst, src, deltaX, width);
         }
     }
 }
@@ -114,20 +102,19 @@ struct KisPrescaledProjection::Private {
         , projectionBackend(0) {
     }
 
-    QImage prescaledQImage;
+    PkImage prescaledQImage;
 
     std::optional<RelevantCanvasState> currentRelevantCanvasState;
-    QSize updatePatchSize;
-    QSize canvasSize;
-    QSize viewportSize;
+    PkSize updatePatchSize;
+    PkSize canvasSize;
+    PkSize viewportSize;
     KisImageWSP image;
     KisCoordinatesConverter *coordinatesConverter {0};
     KisProjectionBackend *projectionBackend {0};
 };
 
 KisPrescaledProjection::KisPrescaledProjection()
-        : QObject(0)
-        , m_d(new Private())
+        : m_d(new Private())
 {
     updateSettings();
 
@@ -136,17 +123,14 @@ KisPrescaledProjection::KisPrescaledProjection()
     m_d->projectionBackend = new KisImagePyramid(1);
 
     KisConfigNotifier *notifier = KisConfigNotifier::instance();
-    PkConnection configConnection = PkObject::connect(
-        notifier, &KisConfigNotifier::configChanged, notifier,
+    m_configConnection = PkObject::connect(
+        notifier, &KisConfigNotifier::configChanged, this,
         [this]() { updateSettings(); });
-    QObject::connect(this, &QObject::destroyed,
-                     [configConnection](QObject *) mutable {
-                         PkObject::disconnect(configConnection);
-                     });
 }
 
 KisPrescaledProjection::~KisPrescaledProjection()
 {
+    PkObject::disconnect(m_configConnection);
     delete m_d->projectionBackend;
     delete m_d;
 }
@@ -154,12 +138,12 @@ KisPrescaledProjection::~KisPrescaledProjection()
 
 void KisPrescaledProjection::setImage(KisImageWSP image)
 {
-    Q_ASSERT(image);
+    KIS_SAFE_ASSERT_RECOVER_RETURN(image);
     m_d->image = image;
     m_d->projectionBackend->setImage(image);
 }
 
-QImage KisPrescaledProjection::prescaledQImage() const
+PkImage KisPrescaledProjection::prescaledQImage() const
 {
     return m_d->prescaledQImage;
 }
@@ -202,9 +186,9 @@ void KisPrescaledProjection::viewportMoved(const PkPointF &offset)
     if (m_d->prescaledQImage.isNull()) return;
     if (offset.isNull()) return;
 
-    QPoint alignedOffset = toQPoint(offset.toPoint());
+    PkPoint alignedOffset = offset.toPoint();
 
-    if(offset != toPkPoint(alignedOffset)) {
+    if(offset != PkPointF(alignedOffset)) {
         /**
          * We can't optimize anything when offset is float :(
          * Just prescale entire image.
@@ -214,43 +198,40 @@ void KisPrescaledProjection::viewportMoved(const PkPointF &offset)
         return;
     }
 
-    QImage newImage = QImage(m_d->viewportSize, QImage::Format_ARGB32);
+    PkImage newImage(m_d->viewportSize, PkImage::Format_ARGB32);
     newImage.fill(0);
 
     /**
      * TODO: viewport rects should be cropped by the borders of
      * the image, because it may be requested to read/write
-     * outside QImage and copyQImage will not catch it
+     * outside the image and copyImage will not catch it
      */
-    QRect newViewportRect = QRect(QPoint(0,0), m_d->viewportSize);
-    QRect oldViewportRect = newViewportRect.translated(alignedOffset);
+    PkRect newViewportRect(PkPoint(0,0), m_d->viewportSize);
+    PkRect oldViewportRect = newViewportRect.translated(alignedOffset);
 
-    QRegion updateRegion = newViewportRect;
-    QRect savedArea = newViewportRect & oldViewportRect;
+    PkRegion updateRegion = newViewportRect;
+    PkRect savedArea = newViewportRect & oldViewportRect;
     if(!savedArea.isEmpty()) {
-        copyQImage(alignedOffset.x(), alignedOffset.y(), &newImage, m_d->prescaledQImage);
+        copyImage(alignedOffset.x(), alignedOffset.y(), &newImage, m_d->prescaledQImage);
         updateRegion -= savedArea;
     }
 
-    QPainter gc(&newImage);
-    auto rc = updateRegion.begin();
-    while (rc != updateRegion.end()) {
-        QRect rect = *rc;
-        QRect imageRect =
-            m_d->coordinatesConverter->viewportToImage(rect);
+    PkImageRasterBackend rasterBackend(newImage);
+    PkPainter gc(rasterBackend);
+    for (const PkRect &rect : updateRegion) {
+        PkRect imageRect =
+            m_d->coordinatesConverter->viewportToImage(rect).toAlignedRect();
         const PkVector<PkRect> patches = KritaUtils::splitRectIntoPatches(
-            toPkRect(imageRect), toPkSize(m_d->updatePatchSize));
+            imageRect, m_d->updatePatchSize);
 
-        Q_FOREACH (const PkRect &pkRect, patches) {
-            const QRect rc = toQRect(pkRect);
-            QRect viewportPatch =
-                m_d->coordinatesConverter->imageToViewport(rc);
+        for (const PkRect &patchRect : patches) {
+            PkRect viewportPatch =
+                m_d->coordinatesConverter->imageToViewport(patchRect).toAlignedRect();
 
-            KisPPUpdateInfoSP info = getInitialUpdateInformation(QRect());
+            KisPPUpdateInfoSP info = getInitialUpdateInformation(PkRect());
             fillInUpdateInformation(viewportPatch, info);
             drawUsingBackend(gc, info);
         }
-        rc++;
     }
 
     m_d->prescaledQImage = newImage;
@@ -264,7 +245,7 @@ void KisPrescaledProjection::slotImageSizeChanged(qint32 w, qint32 h)
     updateViewportSize();
 }
 
-KisUpdateInfoSP KisPrescaledProjection::updateCache(const QRect &dirtyImageRect)
+KisUpdateInfoSP KisPrescaledProjection::updateCache(const PkRect &dirtyImageRect)
 {
     if (!m_d->image) {
         dbgRender.noquote() << "Calling updateCache without an image:" << kisBacktrace();
@@ -276,7 +257,7 @@ KisUpdateInfoSP KisPrescaledProjection::updateCache(const QRect &dirtyImageRect)
      * We needn't this stuff outside KisImage's area. We're not displaying
      * anything painted outside the image anyway.
      */
-    QRect croppedImageRect = dirtyImageRect & toQRect(m_d->image->bounds());
+    PkRect croppedImageRect = dirtyImageRect & m_d->image->bounds();
     if (croppedImageRect.isEmpty()) return new KisPPUpdateInfo();
 
     KisPPUpdateInfoSP info = getInitialUpdateInformation(croppedImageRect);
@@ -290,8 +271,8 @@ void KisPrescaledProjection::recalculateCache(KisUpdateInfoSP info)
     KisPPUpdateInfoSP ppInfo = dynamic_cast<KisPPUpdateInfo*>(info.data());
     if(!ppInfo) return;
 
-    QRect rawViewRect =
-        m_d->coordinatesConverter->viewportToImage(m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar));
+    PkRect rawViewRect =
+        m_d->coordinatesConverter->imageToViewport(ppInfo->dirtyImageRectVar).toAlignedRect();
 
     fillInUpdateInformation(rawViewRect, ppInfo);
 
@@ -307,20 +288,20 @@ void KisPrescaledProjection::preScale()
 
     m_d->prescaledQImage.fill(0);
 
-    QRect viewportRect(QPoint(0, 0), m_d->viewportSize);
-    QRect imageRect =
-        m_d->coordinatesConverter->viewportToImage(viewportRect);
+    PkRect viewportRect(PkPoint(0, 0), m_d->viewportSize);
+    PkRect imageRect =
+        m_d->coordinatesConverter->viewportToImage(viewportRect).toAlignedRect();
 
     const PkVector<PkRect> patches = KritaUtils::splitRectIntoPatches(
-        toPkRect(imageRect), toPkSize(m_d->updatePatchSize));
+        imageRect, m_d->updatePatchSize);
 
-    Q_FOREACH (const PkRect &pkRect, patches) {
-        const QRect rc = toQRect(pkRect);
-        QRect viewportPatch = m_d->coordinatesConverter->imageToViewport(rc);
-        KisPPUpdateInfoSP info = getInitialUpdateInformation(QRect());
+    for (const PkRect &patchRect : patches) {
+        PkRect viewportPatch = m_d->coordinatesConverter->imageToViewport(patchRect).toAlignedRect();
+        KisPPUpdateInfoSP info = getInitialUpdateInformation(PkRect());
         fillInUpdateInformation(viewportPatch, info);
-        QPainter gc(&m_d->prescaledQImage);
-        gc.setCompositionMode(QPainter::CompositionMode_Source);
+        PkImageRasterBackend rasterBackend(m_d->prescaledQImage);
+        PkPainter gc(rasterBackend);
+        gc.setCompositionMode(Pk::CompositionMode_Source);
         drawUsingBackend(gc, info);
     }
 
@@ -331,12 +312,12 @@ void KisPrescaledProjection::setDisplayConfig(const KisDisplayConfig &config)
     m_d->projectionBackend->setMonitorProfile(config.profile, config.intent, config.conversionFlags);
 }
 
-void KisPrescaledProjection::setChannelFlags(const QBitArray &channelFlags)
+void KisPrescaledProjection::setChannelFlags(const PkBitArray &channelFlags)
 {
     m_d->projectionBackend->setChannelFlags(channelFlags);
 }
 
-void KisPrescaledProjection::setDisplayFilter(QSharedPointer<KisDisplayFilter> displayFilter)
+void KisPrescaledProjection::setDisplayFilter(PkSharedPointer<KisDisplayFilter> displayFilter)
 {
     m_d->projectionBackend->setDisplayFilter(displayFilter);
 }
@@ -344,29 +325,29 @@ void KisPrescaledProjection::setDisplayFilter(QSharedPointer<KisDisplayFilter> d
 
 void KisPrescaledProjection::updateViewportSize()
 {
-    QRect imageRect = toQRect(m_d->coordinatesConverter->imageRectInWidgetPixels().toAlignedRect());
+    PkRect imageRect = m_d->coordinatesConverter->imageRectInWidgetPixels().toAlignedRect();
     PkSizeF minimalSize(pkMin(imageRect.width(), m_d->canvasSize.width()),
                        pkMin(imageRect.height(), m_d->canvasSize.height()));
     PkRectF minimalRect(PkPointF(0,0), minimalSize);
 
-    m_d->viewportSize = toQSize(m_d->coordinatesConverter->widgetToViewport(minimalRect).toAlignedRect().size());
+    m_d->viewportSize = m_d->coordinatesConverter->widgetToViewport(minimalRect).toAlignedRect().size();
 
     if (m_d->prescaledQImage.isNull() ||
         m_d->prescaledQImage.size() != m_d->viewportSize) {
 
-        m_d->prescaledQImage = QImage(m_d->viewportSize, QImage::Format_ARGB32);
+        m_d->prescaledQImage = PkImage(m_d->viewportSize, PkImage::Format_ARGB32);
         m_d->prescaledQImage.fill(0);
     }
 }
 
-void KisPrescaledProjection::notifyCanvasSizeChanged(const QSize &widgetSize)
+void KisPrescaledProjection::notifyCanvasSizeChanged(const PkSize &widgetSize)
 {
     m_d->canvasSize = widgetSize;
     updateViewportSize();
     preScale();
 }
 
-KisPPUpdateInfoSP KisPrescaledProjection::getInitialUpdateInformation(const QRect &dirtyImageRect)
+KisPPUpdateInfoSP KisPrescaledProjection::getInitialUpdateInformation(const PkRect &dirtyImageRect)
 {
     /**
      * This update information has nothing more than an information
@@ -381,17 +362,18 @@ KisPPUpdateInfoSP KisPrescaledProjection::getInitialUpdateInformation(const QRec
     return info;
 }
 
-void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
+void KisPrescaledProjection::fillInUpdateInformation(const PkRect &viewportRect,
                                                      KisPPUpdateInfoSP info)
 {
     m_d->coordinatesConverter->imageScale(&info->scaleX, &info->scaleY);
 
     // first, crop the part of the view rect that is outside of the canvas
-    QRect croppedViewRect = viewportRect.intersected(QRect(QPoint(0, 0), m_d->viewportSize));
+    PkRect croppedViewRect = viewportRect.intersected(PkRect(PkPoint(0, 0), m_d->viewportSize));
 
     // second, align this rect to the KisImage's pixels and pixels
     // of projection backend.
-    info->imageRect = m_d->coordinatesConverter->viewportToImage(croppedViewRect);
+    info->imageRect =
+        m_d->coordinatesConverter->viewportToImage(PkRectF(croppedViewRect)).toAlignedRect();
 
     /**
      * To avoid artifacts while scaling we use mechanism like
@@ -403,23 +385,23 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
     const int borderSize = BORDER_SIZE(pkMax(info->scaleX, info->scaleY));
     info->imageRect.adjust(-borderSize, -borderSize, borderSize, borderSize);
 
-    info->imageRect = info->imageRect & toQRect(m_d->image->bounds());
+    info->imageRect = info->imageRect & m_d->image->bounds();
 
     m_d->projectionBackend->alignSourceRect(info->imageRect, info->scaleX);
 
     // finally, compute the dirty rect of the canvas
-    info->viewportRect = m_d->coordinatesConverter->imageToViewport(info->imageRect);
+    info->viewportRect = PkRectF(m_d->coordinatesConverter->imageToViewport(info->imageRect));
 
     info->borderWidth = 0;
     if (SCALE_MORE_OR_EQUAL_TO(info->scaleX, info->scaleY, 1.0)) {
         if (SCALE_LESS_THAN(info->scaleX, info->scaleY, 2.0)) {
             dbgRender << "smoothBetween100And200Percent";
-            info->renderHints = QPainter::SmoothPixmapTransform;
+            info->renderHints = PkPainter::SmoothPixmapTransform;
             info->borderWidth = borderSize;
         }
         info->transfer = KisPPUpdateInfo::DIRECT;
     } else { // <100%
-        info->renderHints = QPainter::SmoothPixmapTransform;
+        info->renderHints = PkPainter::SmoothPixmapTransform;
         info->borderWidth = borderSize;
         info->transfer = KisPPUpdateInfo::PATCH;
     }
@@ -437,12 +419,13 @@ void KisPrescaledProjection::fillInUpdateInformation(const QRect &viewportRect,
 
 void KisPrescaledProjection::updateScaledImage(KisPPUpdateInfoSP info)
 {
-    QPainter gc(&m_d->prescaledQImage);
-    gc.setCompositionMode(QPainter::CompositionMode_Source);
+    PkImageRasterBackend rasterBackend(m_d->prescaledQImage);
+    PkPainter gc(rasterBackend);
+    gc.setCompositionMode(Pk::CompositionMode_Source);
     drawUsingBackend(gc, info);
 }
 
-void KisPrescaledProjection::drawUsingBackend(QPainter &gc, KisPPUpdateInfoSP info)
+void KisPrescaledProjection::drawUsingBackend(PkPainter &gc, KisPPUpdateInfoSP info)
 {
     if (info->imageRect.isEmpty()) return;
 
@@ -450,8 +433,7 @@ void KisPrescaledProjection::drawUsingBackend(QPainter &gc, KisPPUpdateInfoSP in
         m_d->projectionBackend->drawFromOriginalImage(gc, info);
     } else /* if info->transfer == KisPPUpdateInformation::PATCH */ {
         KisImagePatch patch = m_d->projectionBackend->getNearestPatch(info);
-        // prescale the patch because otherwise we'd scale using QPainter, which gives
-        // a crap result compared to QImage's smoothscale
+        // Prescale the patch instead of relying on the painter's scaling path.
         patch.preScale(info->viewportRect);
         patch.drawMe(gc, info->viewportRect, info->renderHints);
     }

@@ -14,8 +14,6 @@
 
 class KRITACANVAS_EXPORT KisToolMultihandHelper : public KisToolFreehandHelper
 {
-    Q_OBJECT
-
 public:
     KisToolMultihandHelper(KisPaintingInformationBuilder *infoBuilder,
                            KoCanvasResourceProvider *resourceManager,
@@ -25,7 +23,7 @@ public:
     void setupTransformations(const PkVector<PkTransform> &transformations);
 
 protected:
-    void createPainters(QVector<KisFreehandStrokeInfo*> &strokeInfos,
+    void createPainters(PkVector<KisFreehandStrokeInfo*> &strokeInfos,
                         const KisDistanceInformation &startDist) override;
 
     void paintAt(const KisPaintInformation &pi) override;

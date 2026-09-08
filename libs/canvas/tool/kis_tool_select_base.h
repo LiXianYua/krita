@@ -112,21 +112,23 @@ public:
         m_widgetHelper.setConfigGroupForExactTool(this->toolId());
         m_widgetHelper.slotToolActivatedChanged(true);
 
-        m_modeConnections.addUniqueConnection(
+        m_modeConnections.clear();
+
+        m_modeConnections.addConnection(
             this->action("selection_tool_mode_replace"), &QAction::triggered,
-            &m_widgetHelper, &KisSelectionToolConfigWidgetHelper::slotReplaceModeRequested);
+            this, [this] { m_widgetHelper.slotReplaceModeRequested(); });
 
-        m_modeConnections.addUniqueConnection(
+        m_modeConnections.addConnection(
             this->action("selection_tool_mode_add"), &QAction::triggered,
-            &m_widgetHelper, &KisSelectionToolConfigWidgetHelper::slotAddModeRequested);
+            this, [this] { m_widgetHelper.slotAddModeRequested(); });
 
-        m_modeConnections.addUniqueConnection(
+        m_modeConnections.addConnection(
             this->action("selection_tool_mode_subtract"), &QAction::triggered,
-            &m_widgetHelper, &KisSelectionToolConfigWidgetHelper::slotSubtractModeRequested);
+            this, [this] { m_widgetHelper.slotSubtractModeRequested(); });
 
-        m_modeConnections.addUniqueConnection(
+        m_modeConnections.addConnection(
             this->action("selection_tool_mode_intersect"), &QAction::triggered,
-            &m_widgetHelper, &KisSelectionToolConfigWidgetHelper::slotIntersectModeRequested);
+            this, [this] { m_widgetHelper.slotIntersectModeRequested(); });
 
     }
 
@@ -481,10 +483,10 @@ protected:
 
     void initializeSelectionState()
     {
-        QObject::connect(&m_widgetHelper,
-                         &KisSelectionToolConfigWidgetHelper::selectionActionChanged,
-                         this,
-                         [this]() { this->resetCursorStyle(); });
+        PkObject::connect(&m_widgetHelper,
+                          &KisSelectionToolConfigWidgetHelper::selectionActionChanged,
+                          this,
+                          [this](SelectionAction) { this->resetCursorStyle(); });
     }
 
     KisSelectionToolConfigWidgetHelper m_widgetHelper;

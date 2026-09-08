@@ -7,15 +7,17 @@
 #ifndef __KIS_COLOR_SAMPLER_STROKE_STRATEGY_H
 #define __KIS_COLOR_SAMPLER_STROKE_STRATEGY_H
 
-#include <QObject>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 #include <PkPoint.h>
 #include "kis_simple_stroke_strategy.h"
 #include "kis_lod_transform.h"
+#include "kis_paint_device.h"
 #include "KoColor.h"
 
-class KisColorSamplerStrokeStrategy : public QObject, public KisSimpleStrokeStrategy
+class KisColorSamplerStrokeStrategy : public PkObject, public KisSimpleStrokeStrategy
 {
-    Q_OBJECT
 public:
     class Data : public KisStrokeJobData {
     public:
@@ -41,7 +43,7 @@ public:
         {}
 
         KisStrokeJobData* createLodClone(int levelOfDetail) override {
-            Q_UNUSED(levelOfDetail);
+            (void)levelOfDetail;
             return new FinalizeData();
         }
     };
@@ -52,13 +54,13 @@ public:
     void doStrokeCallback(KisStrokeJobData *data) override;
     KisStrokeStrategy* createLodClone(int levelOfDetail) override;
 
-Q_SIGNALS:
+signals:
     void sigColorUpdated(const KoColor &color);
     void sigFinalColorSelected(const KoColor &color);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_COLOR_SAMPLER_STROKE_STRATEGY_H */

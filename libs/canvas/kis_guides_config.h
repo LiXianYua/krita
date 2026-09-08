@@ -10,20 +10,16 @@
 #define KOGUIDESDATA_H
 
 #include "kritacanvas_export.h"
-#include <QScopedPointer>
-#include <QList>
+#include <memory>
+#include <PkColor.h>
+#include <PkPen.h>
+#include <PkVector.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkGlobal.h>
 #include <boost/operators.hpp>
 #include <KoUnit.h>
 #include <pk/geometry/PkTransform.h>
-
-class QDomElement;
-class QDomDocument;
-class QColor;
-class QPen;
-class PkString;
-class PkXmlDocument;
-class PkXmlElement;
-
 
 class KRITACANVAS_EXPORT KisGuidesConfig : boost::equality_comparable<KisGuidesConfig>
 {
@@ -48,14 +44,14 @@ public:
      *
      * @param lines a list of positions of the horizontal guide lines
      */
-    void setHorizontalGuideLines(const QList<qreal> &lines);
+    void setHorizontalGuideLines(const PkVector<qreal> &lines);
 
     /**
      * @brief Set the positions of the vertical guide lines
      *
      * @param lines a list of positions of the vertical guide lines
      */
-    void setVerticalGuideLines(const QList<qreal> &lines);
+    void setVerticalGuideLines(const PkVector<qreal> &lines);
 
     /**
      * @brief Add a guide line to the canvas.
@@ -63,7 +59,7 @@ public:
      * @param orientation the orientation of the guide line
      * @param position the position in document coordinates of the guide line
      */
-    void addGuideLine(Qt::Orientation orientation, qreal position);
+    void addGuideLine(Pk::Orientation orientation, qreal position);
     void removeAllGuides();
 
     bool showGuides() const;
@@ -82,25 +78,24 @@ public:
     LineTypeInternal guidesLineType() const;
     void setGuidesLineType(LineTypeInternal value);
 
-    QColor guidesColor() const;
-    void setGuidesColor(const QColor &value);
+    PkColor guidesColor() const;
+    void setGuidesColor(const PkColor &value);
 
-    QPen guidesPen() const;
+    PkPen guidesPen() const;
 
     /// Returns the list of horizontal guide lines.
-    const QList<qreal>& horizontalGuideLines() const;
+    const PkVector<qreal>& horizontalGuideLines() const;
 
     /// Returns the list of vertical guide lines.
-    const QList<qreal>& verticalGuideLines() const;
+    const PkVector<qreal>& verticalGuideLines() const;
 
     bool hasGuides() const;
 
     void loadStaticData();
     void saveStaticData() const;
 
-    QDomElement saveToXml(QDomDocument& doc, const QString &tag) const;
     PkXmlElement saveToXml(PkXmlDocument& doc, const PkString &tag) const;
-    bool loadFromXml(const QDomElement &parent);
+    bool loadFromXml(const PkXmlElement &parent);
 
     bool isDefault() const;
 
@@ -111,7 +106,7 @@ public:
 
 private:
     class Private;
-    const QScopedPointer<Private> d;
+    const std::unique_ptr<Private> d;
 };
 
 

@@ -6,17 +6,19 @@
 #ifndef KIS_PRESCALED_PROJECTION_H
 #define KIS_PRESCALED_PROJECTION_H
 
-#include <QObject>
+#include <PkBitArray.h>
+#include <PkConnection.h>
+#include <PkImage.h>
+#include <PkObject.h>
+#include <PkPainter.h>
+#include <PkRect.h>
+#include <PkSharedPointer.h>
+#include <PkSize.h>
 
 #include <kritacanvas_export.h>
 #include <kis_shared.h>
 
 #include "KoColorConversionTransformation.h"
-class QImage;
-class QRect;
-class QSize;
-class QPainter;
-
 class KoColorProfile;
 class KisCoordinatesConverter;
 class KisDisplayFilter;
@@ -29,14 +31,13 @@ class KisCanvasState;
 
 /**
  * KisPrescaledProjection is responsible for keeping around a
- * prescaled QImage representation that is always suitable for
+ * prescaled PkImage representation that is always suitable for
  * painting onto the canvas.
  *
  * Note: the export macro is only for the unittest.
  */
-class KRITACANVAS_EXPORT KisPrescaledProjection : public QObject, public KisShared
+class KRITACANVAS_EXPORT KisPrescaledProjection : public PkObject, public KisShared
 {
-    Q_OBJECT
 public:
 
     KisPrescaledProjection();
@@ -45,14 +46,14 @@ public:
     void setImage(KisImageWSP image);
 
     /**
-     * Return the prescaled QImage. The prescaled image is exactly as big as
+     * Return the prescaled PkImage. The prescaled image is exactly as big as
      * the canvas widget in pixels.
      */
-    QImage prescaledQImage() const;
+    PkImage prescaledQImage() const;
 
     void setCoordinatesConverter(KisCoordinatesConverter *coordinatesConverter);
 
-public Q_SLOTS:
+public:
 
     /**
      * Retrieves image's data from KisImage object and updates
@@ -60,7 +61,7 @@ public Q_SLOTS:
      * @param dirtyImageRect the rect changed on the image
      * @see recalculateCache
      */
-    KisUpdateInfoSP updateCache(const QRect &dirtyImageRect);
+    KisUpdateInfoSP updateCache(const PkRect &dirtyImageRect);
 
     /**
      * Updates the prescaled cache at current zoom level
@@ -88,16 +89,16 @@ public Q_SLOTS:
      * Checks whether it is needed to resize the prescaled image and
      * updates it. The size is given in canvas widget pixels.
      */
-    void notifyCanvasSizeChanged(const QSize &widgetSize);
+    void notifyCanvasSizeChanged(const PkSize &widgetSize);
 
     /**
      * Set the current monitor profile
      */
     void setDisplayConfig(const KisDisplayConfig &config);
 
-    void setChannelFlags(const QBitArray &channelFlags);
+    void setChannelFlags(const PkBitArray &channelFlags);
 
-    void setDisplayFilter(QSharedPointer<KisDisplayFilter> displayFilter);
+    void setDisplayFilter(PkSharedPointer<KisDisplayFilter> displayFilter);
 
     /**
      * Called whenever the zoom level changes or another chunk of the
@@ -131,7 +132,7 @@ private:
      *
      * @see fillInUpdateInformation()
      */
-    KisPPUpdateInfoSP getInitialUpdateInformation(const QRect &dirtyImageRect);
+    KisPPUpdateInfoSP getInitialUpdateInformation(const PkRect &dirtyImageRect);
 
     /**
      * Prepare all the information about rects needed during
@@ -145,7 +146,7 @@ private:
      *
      * @see getInitialUpdateInformation()
      */
-    void fillInUpdateInformation(const QRect &viewportRect,
+    void fillInUpdateInformation(const PkRect &viewportRect,
                                  KisPPUpdateInfoSP info);
 
     /**
@@ -160,10 +161,11 @@ private:
      * @param info prepared information
      * @param gc The painter we draw on
      */
-    void drawUsingBackend(QPainter &gc, KisPPUpdateInfoSP info);
+    void drawUsingBackend(PkPainter &gc, KisPPUpdateInfoSP info);
 
     struct Private;
     Private * const m_d;
+    PkConnection m_configConnection;
 };
 
 #endif

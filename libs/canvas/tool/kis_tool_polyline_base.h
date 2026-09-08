@@ -12,7 +12,6 @@
 
 class KRITACANVAS_EXPORT KisToolPolylineBase : public KisToolShape
 {
-Q_OBJECT
 public:
     enum ToolType {
         PAINT,
@@ -25,7 +24,6 @@ public:
     void endPrimaryAction(KoPointerEvent *event) override;
     void beginPrimaryDoubleClickAction(KoPointerEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event) override;
-    bool eventFilter(QObject *obj, QEvent *event) override;
 
     void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
 
@@ -46,7 +44,7 @@ private:
     void updateArea();
     PkRectF dragBoundingRect();
 
-private Q_SLOTS:
+private:
     void undoSelection();
     void undoSelectionOrCancel();
 
@@ -55,7 +53,7 @@ private:
     PkPointF m_dragStart;
     PkPointF m_dragEnd;
     bool m_dragging;
-    vQPointF m_points;
+    PkVector<PkPointF> m_points;
     ToolType m_type;
     bool m_closeSnappingActivated;
 };

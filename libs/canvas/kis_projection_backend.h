@@ -8,6 +8,10 @@
 #define KIS_PROJECTION_BACKEND
 
 #include "kis_update_info.h"
+#include <PkBitArray.h>
+#include <PkPainter.h>
+#include <PkRect.h>
+#include <PkSharedPointer.h>
 
 class KoColorProfile;
 class KisImagePatch;
@@ -33,15 +37,15 @@ public:
     virtual void setImage(KisImageWSP image) = 0;
     virtual void setImageSize(qint32 w, qint32 h) = 0;
     virtual void setMonitorProfile(const KoColorProfile* monitorProfile, KoColorConversionTransformation::Intent renderingIntent, KoColorConversionTransformation::ConversionFlags conversionFlags) = 0;
-    virtual void setChannelFlags(const QBitArray &channelFlags) = 0;
-    virtual void setDisplayFilter(QSharedPointer<KisDisplayFilter> displayFilter) = 0;
+    virtual void setChannelFlags(const PkBitArray &channelFlags) = 0;
+    virtual void setDisplayFilter(PkSharedPointer<KisDisplayFilter> displayFilter) = 0;
 
     /**
      * Updates the cache of the backend by reading from
      * an associated image. All data transfers with
      * KisImage should happen here
      */
-    virtual void updateCache(const QRect &dirtyImageRect) = 0;
+    virtual void updateCache(const PkRect &dirtyImageRect) = 0;
 
     /**
      * Prescales the cache of the backend. It is intended to be
@@ -56,7 +60,7 @@ public:
      * scaling stuff. That's why KisPrescaledProjection asks
      * a backend to align an image rect before any operations.
      */
-    virtual void alignSourceRect(QRect& rect, qreal scale);
+    virtual void alignSourceRect(PkRect& rect, qreal scale);
 
     /**
      * Gets a patch from a backend that can draw a info.imageRect on some
@@ -81,7 +85,7 @@ public:
      * @p info.borderWidth has the same meaning as in getNearestPatch
      * @p info.renderHints - hints, transmitted to QPainter during drawing
      */
-    virtual void drawFromOriginalImage(QPainter& gc,
+    virtual void drawFromOriginalImage(PkPainter& gc,
                                        KisPPUpdateInfoSP info) = 0;
 };
 

@@ -5,7 +5,6 @@
  */
 #include "kis_display_filter.h"
 
-KisDisplayFilter::KisDisplayFilter(QObject *parent)
-    : QObject(parent)
-{
-}
+KisDisplayFilter::KisDisplayFilter() = default;
+
+KisDisplayFilter::~KisDisplayFilter() = default;

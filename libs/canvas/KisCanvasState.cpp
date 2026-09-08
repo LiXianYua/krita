@@ -5,8 +5,7 @@
  */
 
 #include "KisCanvasState.h"
-#include <QDebug>
-#include <PkFlakeBridge.h>
+#include <cstdio>
 #include "kis_coordinates_converter.h"
 #include "KoZoomState.h"
 
@@ -47,9 +46,12 @@ KisCanvasState KisCanvasState::fromConverter(const KisCoordinatesConverter &conv
     state.imageRectInWidgetPixels = converter.imageRectInWidgetPixels();
 
     if (state.imageRectInWidgetPixels.topLeft() != -state.documentOffsetF) {
-        qWarning() << "The imageRectInWidgetPixels topLeft() does not match the documentOffsetF!";
-        qWarning() << "    imageRectInWidgetPixels:" << state.imageRectInWidgetPixels;
-        qWarning() << "    documentOffsetF:" << state.documentOffsetF;
+        std::fprintf(stderr,
+                     "The imageRectInWidgetPixels topLeft() does not match the documentOffsetF: "
+                     "imageRect=(%.15g,%.15g,%.15g,%.15g), documentOffset=(%.15g,%.15g)\n",
+                     state.imageRectInWidgetPixels.x(), state.imageRectInWidgetPixels.y(),
+                     state.imageRectInWidgetPixels.width(), state.imageRectInWidgetPixels.height(),
+                     state.documentOffsetF.x(), state.documentOffsetF.y());
     }
 
     return state;

@@ -7,8 +7,10 @@
 #ifndef __KIS_TOOL_FREEHAND_HELPER_H
 #define __KIS_TOOL_FREEHAND_HELPER_H
 
-#include <QObject>
-#include <QVector>
+#include <PkObject.h>
+#include <PkQueue.h>
+#include <PkSignalCompat.h>
+#include <PkVector.h>
 
 #include "kis_types.h"
 #include "kritacanvas_export.h"
@@ -28,10 +30,8 @@ class KisPaintOp;
 class KisFreehandStrokeInfo;
 
 
-class KRITACANVAS_EXPORT KisToolFreehandHelper : public QObject
+class KRITACANVAS_EXPORT KisToolFreehandHelper : public PkObject
 {
-    Q_OBJECT
-
 public:
 
     KisToolFreehandHelper(KisPaintingInformationBuilder *infoBuilder,
@@ -80,7 +80,7 @@ public:
                                             const KisPaintOpSettingsSP globalSettings,
                                             KisPaintOpSettings::OutlineMode mode) const;
 
-Q_SIGNALS:
+signals:
     /**
      * The signal is emitted when the outline should be updated
      * explicitly by the tool. Used by Stabilizer option, because it
@@ -115,7 +115,7 @@ protected:
 
 protected:
 
-    virtual void createPainters(QVector<KisFreehandStrokeInfo*> &strokeInfos,
+    virtual void createPainters(PkVector<KisFreehandStrokeInfo*> &strokeInfos,
                                 const KisDistanceInformation &startDist);
 
     // lo-level methods for painting primitives
@@ -151,14 +151,14 @@ private:
 
     void stabilizerStart(KisPaintInformation firstPaintInfo);
     void stabilizerEnd();
-    KisPaintInformation getStabilizedPaintInfo(const QQueue<KisPaintInformation> &queue,
+    KisPaintInformation getStabilizedPaintInfo(const PkQueue<KisPaintInformation> &queue,
                                                const KisPaintInformation &lastPaintInfo);
     int computeAirbrushTimerInterval() const;
 
     qreal currentZoom() const;
     qreal currentPhysicalZoom() const;
 
-private Q_SLOTS:
+private:
     void finishStroke();
     void doAirbrushing();
     void stabilizerPollAndPaint();

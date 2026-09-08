@@ -9,7 +9,13 @@
 
 #include <algorithm>
 
+#include <QDebug>
+
+#include <pk/geometry/PkPoint.h>
+#include <pk/geometry/PkRect.h>
+#include <pk/geometry/PkSize.h>
 #include <pk/geometry/PkTransform.h>
+#include <PkVector.h>
 
 #include <KoZoomHandler.h>
 #include <KoColorSpaceRegistry.h>
@@ -19,6 +25,48 @@
 #include "kis_filter_strategy.h"
 #include <kis_algebra_2d.h>
 #include <KoViewTransformStillPoint.h>
+
+Q_DECLARE_METATYPE(PkPoint)
+Q_DECLARE_METATYPE(PkPointF)
+Q_DECLARE_METATYPE(PkRect)
+Q_DECLARE_METATYPE(PkRectF)
+Q_DECLARE_METATYPE(PkSize)
+Q_DECLARE_METATYPE(PkSizeF)
+
+QDebug operator<<(QDebug debug, const PkPoint &point)
+{
+    return debug.nospace() << "PkPoint(" << point.x() << ", " << point.y() << ")";
+}
+
+QDebug operator<<(QDebug debug, const PkPointF &point)
+{
+    return debug.nospace() << "PkPointF(" << point.x() << ", " << point.y() << ")";
+}
+
+QDebug operator<<(QDebug debug, const PkRect &rect)
+{
+    return debug.nospace() << "PkRect(" << rect.x() << ", " << rect.y() << ", "
+                           << rect.width() << ", " << rect.height() << ")";
+}
+
+QDebug operator<<(QDebug debug, const PkRectF &rect)
+{
+    return debug.nospace() << "PkRectF(" << rect.x() << ", " << rect.y() << ", "
+                           << rect.width() << ", " << rect.height() << ")";
+}
+
+QDebug operator<<(QDebug debug, const PkSize &size)
+{
+    return debug.nospace() << "PkSize(" << size.width() << ", " << size.height() << ")";
+}
+
+QDebug operator<<(QDebug debug, const PkSizeF &size)
+{
+    return debug.nospace() << "PkSizeF(" << size.width() << ", " << size.height() << ")";
+}
+
+using ZoomLevels = PkVector<qreal>;
+Q_DECLARE_METATYPE(ZoomLevels)
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 Q_DECLARE_METATYPE(KoZoomMode::Mode)
@@ -41,8 +89,8 @@ void KisCoordinatesConverterTest::testConversion()
 
     converter.setImage(image);
     converter.setZoom(1.0);
-    converter.setDocumentOffset(QPoint(20,20));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffset(PkPoint(20,20));
+    converter.setCanvasWidgetSize(PkSize(500,500));
 
     PkRectF testRect(100,100,100,100);
 
@@ -81,8 +129,8 @@ void KisCoordinatesConverterTest::testImageCropping()
 
     converter.setImage(image);
     converter.setZoom(1.0);
-    converter.setDocumentOffset(QPoint(0,0));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffset(PkPoint(0,0));
+    converter.setCanvasWidgetSize(PkSize(500,500));
 
     // we do NOT crop here
     QCOMPARE(converter.viewportToImage(PkRectF(900,900,200,200)),
@@ -100,8 +148,8 @@ void KisCoordinatesConverterTest::testTransformations()
 
     converter.setImage(image);
     converter.setZoom(1.0);
-    converter.setDocumentOffset(QPoint(20,30));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffset(PkPoint(20,30));
+    converter.setCanvasWidgetSize(PkSize(500,500));
 
     PkRectF testRect(100,100,100,100);
     PkTransform imageToWidget;
@@ -140,8 +188,8 @@ void KisCoordinatesConverterTest::testConsistency()
 
     converter.setImage(image);
     converter.setZoom(0.5);
-    converter.setDocumentOffset(QPoint(20,30));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffset(PkPoint(20,30));
+    converter.setCanvasWidgetSize(PkSize(500,500));
 
     PkRectF testRect(100,100,100,100);
     PkTransform imageToWidget;
@@ -167,12 +215,12 @@ void KisCoordinatesConverterTest::testRotation()
     KisCoordinatesConverter converter;
     initImage(&image, &converter);
 
-    QSize widgetSize(1000,500);
+    PkSize widgetSize(1000,500);
     PkRectF testRect(800, 100, 300, 300);
 
     converter.setImage(image);
     converter.setZoom(1.);
-    converter.setDocumentOffset(QPoint(0,0));
+    converter.setDocumentOffset(PkPoint(0,0));
     converter.setCanvasWidgetSize(widgetSize);
 
     converter.rotate(std::nullopt, 30);
@@ -200,13 +248,13 @@ void KisCoordinatesConverterTest::testMirroring()
     KisCoordinatesConverter converter;
     initImage(&image, &converter);
 
-    QSize widgetSize(500,400);
-//    QSize flakeSize(1000,1000);
+    PkSize widgetSize(500,400);
+//    PkSize flakeSize(1000,1000);
     PkRectF testRect(300, 100, 200, 200);
 
     converter.setImage(image);
     converter.setZoom(1.0);
-    converter.setDocumentOffset(QPoint(200,100));
+    converter.setDocumentOffset(PkPoint(200,100));
     converter.setCanvasWidgetSize(widgetSize);
 
 //    PkTransform imageToWidget;
@@ -234,13 +282,13 @@ void KisCoordinatesConverterTest::testMirroringCanvasBiggerThanImage()
     KisCoordinatesConverter converter;
     initImage(&image, &converter);
 
-    QSize widgetSize(2000,2000);
-//    QSize flakeSize(1000,1000);
+    PkSize widgetSize(2000,2000);
+//    PkSize flakeSize(1000,1000);
     PkRectF testRect(300, 100, 200, 200);
 
     converter.setImage(image);
     converter.setZoom(1.0);
-    converter.setDocumentOffset(QPoint(-50,-50));
+    converter.setDocumentOffset(PkPoint(-50,-50));
     converter.setCanvasWidgetSize(widgetSize);
 
 //    PkTransform imageToWidget;
@@ -267,8 +315,8 @@ void KisCoordinatesConverterTest::testCanvasOffset()
 
     converter.setImage(image);
     converter.setZoom(1.);
-    converter.setDocumentOffset(QPoint(0,0));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffset(PkPoint(0,0));
+    converter.setCanvasWidgetSize(PkSize(500,500));
 
     qDebug() << ppVar(converter.imageToWidget(PkPointF(0,0)));
 
@@ -278,7 +326,7 @@ void KisCoordinatesConverterTest::testCanvasOffset()
 
     {
         // move the image to the top and left direction (the offset is inverted)
-        converter.setDocumentOffset(QPoint(0, 0));
+        converter.setDocumentOffset(PkPoint(0, 0));
         qDebug() << "before mirror" << ppVar(converter.documentOffset());
 
         qDebug() << "  " << ppVar(converter.imageToWidget(PkPointF(0, 0)));
@@ -295,7 +343,7 @@ void KisCoordinatesConverterTest::testCanvasOffset()
 
     {
         // move the image to the top and left direction (the offset is inverted)
-        converter.setDocumentOffset(QPoint(100, 200));
+        converter.setDocumentOffset(PkPoint(100, 200));
         qDebug() << "before mirror" << ppVar(converter.documentOffset());
 
         qDebug() << "  " << ppVar(converter.imageToWidget(PkPointF(0, 0)));
@@ -312,7 +360,7 @@ void KisCoordinatesConverterTest::testCanvasOffset()
 
     {
         // move the image to the top and left direction (the offset is inverted)
-        converter.setDocumentOffset(QPoint(100, 200));
+        converter.setDocumentOffset(PkPoint(100, 200));
         qDebug() << "before rotate" << ppVar(converter.documentOffset());
 
         qDebug() << "  " << ppVar(converter.imageToWidget(PkPointF(0, 0)));
@@ -338,8 +386,8 @@ void KisCoordinatesConverterTest::testImageSmallerThanCanvas()
 
     converter.setImage(image);
     converter.setZoom(1.);
-    converter.setDocumentOffset(QPoint(0,0));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffset(PkPoint(0,0));
+    converter.setCanvasWidgetSize(PkSize(500,500));
 
 
     qDebug() << ppVar(converter.imageToWidget(PkPointF(0,0)));
@@ -356,8 +404,8 @@ void KisCoordinatesConverterTest::testImageResolutionChange()
 
     converter.setImage(image);
     converter.setZoom(0.5);
-    converter.setDocumentOffset(QPoint(0,0));
-    converter.setCanvasWidgetSize(QSize(500,500));
+    converter.setDocumentOffset(PkPoint(0,0));
+    converter.setCanvasWidgetSize(PkSize(500,500));
 
     qreal oldXScale = 0.0, oldYScale = 0.0;
     converter.imageScale(&oldXScale, &oldYScale);
@@ -402,25 +450,25 @@ void KisCoordinatesConverterTest::testImageResolutionChange()
 
 void KisCoordinatesConverterTest::testOffsetLimits_data()
 {
-    QTest::addColumn<QRect>("extraRreferencesRect");
+    QTest::addColumn<PkRect>("extraRreferencesRect");
 
-    QTest::addRow("no-ref") << QRect();
-    QTest::addRow("ref-topleft") << QRect(-100, -100, 200, 200);
-    QTest::addRow("ref-bottomright") << QRect(900, 900, 200, 200);
+    QTest::addRow("no-ref") << PkRect();
+    QTest::addRow("ref-topleft") << PkRect(-100, -100, 200, 200);
+    QTest::addRow("ref-bottomright") << PkRect(900, 900, 200, 200);
 }
 
 void KisCoordinatesConverterTest::testOffsetLimits()
 {
-    QFETCH(QRect, extraRreferencesRect);
+    QFETCH(PkRect, extraRreferencesRect);
 
     KisImageSP image;
     KisCoordinatesConverter converter;
     initImage(&image, &converter);
 
-    const QRect widgetRect(0,0,500,500);
+    const PkRect widgetRect(0,0,500,500);
     converter.setImage(image);
     converter.setZoom(0.5);
-    converter.setDocumentOffset(QPoint(0,0));
+    converter.setDocumentOffset(PkPoint(0,0));
     converter.setCanvasWidgetSize(widgetRect.size()); // should be initialized first
     if (!extraRreferencesRect.isEmpty()) {
         converter.setExtraReferencesBounds(extraRreferencesRect);
@@ -431,7 +479,7 @@ void KisCoordinatesConverterTest::testOffsetLimits()
     // initial offset is null, hence the topleft is at the origin of the widget
     QCOMPARE(converter.imageToWidget(PkPointF(0,0)), PkPointF(0,0));
 
-    const PkRectF sampleImageRect = image->bounds() | extraRreferencesRect;
+    const PkRectF sampleImageRect(image->bounds() | extraRreferencesRect);
 
     // when the scrollbars offset in minimal, the topleft of the image is moved
     // to the bottom-right corner of the widget
@@ -451,13 +499,13 @@ void KisCoordinatesConverterTest::testOffsetLimitsCropping()
     KisCoordinatesConverter converter;
     initImage(&image, &converter);
 
-    const QRect widgetRect(0,0,500,500);
+    const PkRect widgetRect(0,0,500,500);
     converter.setImage(image);
     converter.setZoom(0.5);
-    converter.setDocumentOffset(QPoint(0,0));
+    converter.setDocumentOffset(PkPoint(0,0));
     converter.setCanvasWidgetSize(widgetRect.size()); // should be initialized first
 
-    QCOMPARE(converter.documentOffset(), QPoint(0,0));
+    QCOMPARE(converter.documentOffset(), PkPoint(0,0));
     QCOMPARE(converter.imageToWidget(PkPointF(0,0)), PkPointF(0,0));
     QCOMPARE(converter.imageToWidget(PkPointF(1000,1000)), PkPointF(500,500));
 
@@ -466,13 +514,13 @@ void KisCoordinatesConverterTest::testOffsetLimitsCropping()
     // 480, which is higher than the limit of 450.
     converter.mirror(converter.makeWidgetStillPoint(PkPointF(490, 0)), true, false);
 
-    QCOMPARE(converter.documentOffset(), QPoint(-450,0));
+    QCOMPARE(converter.documentOffset(), PkPoint(-450,0));
     QCOMPARE(converter.imageToWidget(PkPointF(0,0)), PkPointF(950,0));
     QCOMPARE(converter.imageToWidget(PkPointF(1000,1000)), PkPointF(450,500));
 
     // return the canvas back to the topleft (though mirrored)
-    converter.setDocumentOffset(QPoint(0,0));
-    QCOMPARE(converter.documentOffset(), QPoint(0,0));
+    converter.setDocumentOffset(PkPoint(0,0));
+    QCOMPARE(converter.documentOffset(), PkPoint(0,0));
     QCOMPARE(converter.imageToWidget(PkPointF(0,0)), PkPointF(500,0));
     QCOMPARE(converter.imageToWidget(PkPointF(1000,1000)), PkPointF(0,500));
 
@@ -480,17 +528,20 @@ void KisCoordinatesConverterTest::testOffsetLimitsCropping()
     // to the right
     converter.mirror(converter.makeWidgetStillPoint(PkPointF(10, 0)), false, false);
 
-    QCOMPARE(converter.documentOffset(), QPoint(450,0));
+    QCOMPARE(converter.documentOffset(), PkPoint(450,0));
     QCOMPARE(converter.imageToWidget(PkPointF(0,0)), PkPointF(-450,0));
     QCOMPARE(converter.imageToWidget(PkPointF(1000,1000)), PkPointF(50,500));
 }
 
-using PointPairs = QVector<std::pair<PkPointF, PkPointF>>;
+using PointPair = std::pair<PkPointF, PkPointF>;
+using PointPairs = QVector<PointPair>;
+Q_DECLARE_METATYPE(PointPair)
+Q_DECLARE_METATYPE(PointPairs)
 
 void KisCoordinatesConverterTest::testZoomMode_data()
 {
     QTest::addColumn<int>("zoomMargin");
-    QTest::addColumn<QSize>("widgetSize");
+    QTest::addColumn<PkSize>("widgetSize");
     QTest::addColumn<PkPointF>("originalOffset");
     QTest::addColumn<qreal>("originalZoom");
     QTest::addColumn<PointPairs>("originalTestPoints");
@@ -507,7 +558,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("constant")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -529,7 +580,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("constant-double-resolution")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -551,7 +602,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("width-shrink")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -573,7 +624,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("width-shrink-double-resolution")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -595,7 +646,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("width-grow")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 0.1
         << PointPairs{
@@ -618,7 +669,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("width-shrink-with-margin")
             << 50
-            << QSize(700, 500)
+            << PkSize(700, 500)
             << PkPointF(-100,-100)
             << 1.0
             << PointPairs{
@@ -640,7 +691,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("height-shrink")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -662,7 +713,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("height-shrink-double-resolution")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -684,7 +735,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("height-grow")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 0.1
         << PointPairs{
@@ -707,7 +758,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("height-shrink-with-margin")
         << 50
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -729,7 +780,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("page-vertically")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -751,7 +802,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("page-vertically-double-resolution")
         << 0
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -773,7 +824,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("page-vertically-margin")
         << 50
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -795,7 +846,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("page-horizontally")
         << 0
-        << QSize(700, 800)
+        << PkSize(700, 800)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -817,7 +868,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("page-horizontally-double-resolution")
         << 0
-        << QSize(700, 800)
+        << PkSize(700, 800)
         << PkPointF(-100,-100)
         << 1.0
         << PointPairs{
@@ -839,7 +890,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 
     QTest::newRow("page-horizontally-margin")
             << 50
-            << QSize(700, 800)
+            << PkSize(700, 800)
             << PkPointF(-100,-100)
             << 1.0
             << PointPairs{
@@ -863,7 +914,7 @@ void KisCoordinatesConverterTest::testZoomMode_data()
 void KisCoordinatesConverterTest::testZoomMode()
 {
     QFETCH(int, zoomMargin);
-    QFETCH(QSize, widgetSize);
+    QFETCH(PkSize, widgetSize);
     QFETCH(PkPointF, originalOffset);
     QFETCH(qreal, originalZoom);
     QFETCH(PointPairs, originalTestPoints);
@@ -878,7 +929,7 @@ void KisCoordinatesConverterTest::testZoomMode()
     KisCoordinatesConverter converter;
     initImage(&image, &converter);
 
-    const QRect widgetRect(QPoint(), widgetSize);
+    const PkRect widgetRect(PkPoint(), widgetSize);
     converter.setZoomMarginSize(zoomMargin);
     converter.setImage(image);
     converter.setZoom(originalZoom);
@@ -918,11 +969,11 @@ void KisCoordinatesConverterTest::testZoomMode()
 void KisCoordinatesConverterTest::testChangeCanvasSize_data()
 {
     QTest::addColumn<KoZoomMode::Mode>("zoomMode");
-    QTest::addColumn<QSize>("originalWidgetSize");
+    QTest::addColumn<PkSize>("originalWidgetSize");
     QTest::addColumn<qreal>("originalZoom");
     QTest::addColumn<PkPointF>("originalOffset");
     QTest::addColumn<PointPairs>("originalTestPoints");
-    QTest::addColumn<QSize>("newWidgetSize");
+    QTest::addColumn<PkSize>("newWidgetSize");
     QTest::addColumn<qreal>("expectedZoom");
     QTest::addColumn<PointPairs>("expectedTestPoints");
 
@@ -930,7 +981,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
 
     QTest::newRow("constant")
         << KoZoomMode::ZOOM_CONSTANT
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << 0.5
         << PkPointF(-100, -100)
         << PointPairs{
@@ -938,7 +989,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
             {{100,100}, {150,150}},
             {{200,200}, {200,200}}
            }
-        << QSize(200, 200) // nothing changes with the widget resize!
+        << PkSize(200, 200) // nothing changes with the widget resize!
         << 0.5
         << PointPairs{
             {{0,0},     {100,100}},
@@ -948,7 +999,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
 
     QTest::newRow("page-vertically")
            << KoZoomMode::ZOOM_PAGE
-           << QSize(700, 500)
+           << PkSize(700, 500)
            << 0.5
            << unusedOriginalDocumentOffset
            << PointPairs{
@@ -956,7 +1007,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
                {{100,100}, {150,50}},
                {{500,500}, {350,250}} // centers are aligned
               }
-           << QSize(200, 100)
+           << PkSize(200, 100)
            << 0.1
            << PointPairs{
                {{0,0},     {50,0}},
@@ -966,7 +1017,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
 
     QTest::newRow("page-horizontally")
         << KoZoomMode::ZOOM_PAGE
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << 0.5
         << unusedOriginalDocumentOffset
         << PointPairs{
@@ -974,7 +1025,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
             {{100,100}, {150,50}},
             {{500,500}, {350,250}} // centers are aligned
             }
-        << QSize(100, 200)
+        << PkSize(100, 200)
         << 0.1
         << PointPairs{
             {{0,0},     {0, 50}},
@@ -984,7 +1035,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
 
     QTest::newRow("width")
         << KoZoomMode::ZOOM_WIDTH
-        << QSize(700, 500)
+        << PkSize(700, 500)
         << 0.7
         << unusedOriginalDocumentOffset
         << PointPairs{
@@ -992,7 +1043,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
             {{100,100}, {70,-30}},
             {{500,500}, {350,250}} // centers are aligned
             }
-        << QSize(200, 100)
+        << PkSize(200, 100)
         << 0.2
         << PointPairs{
             {{0,0},     {0,-50}},
@@ -1002,7 +1053,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
 
     QTest::newRow("height")
            << KoZoomMode::ZOOM_HEIGHT
-           << QSize(700, 500)
+           << PkSize(700, 500)
            << 0.5
            << unusedOriginalDocumentOffset
            << PointPairs{
@@ -1010,7 +1061,7 @@ void KisCoordinatesConverterTest::testChangeCanvasSize_data()
                {{100,100}, {150,50}},
                {{500,500}, {350,250}} // centers are aligned
               }
-           << QSize(200, 100)
+           << PkSize(200, 100)
            << 0.1
            << PointPairs{
                {{0,0},     {50,0}},
@@ -1024,9 +1075,9 @@ void KisCoordinatesConverterTest::testChangeCanvasSize()
     QFETCH(KoZoomMode::Mode, zoomMode);
     QFETCH(qreal, originalZoom);
     QFETCH(PkPointF, originalOffset);
-    QFETCH(QSize, originalWidgetSize);
+    QFETCH(PkSize, originalWidgetSize);
     QFETCH(PointPairs, originalTestPoints);
-    QFETCH(QSize, newWidgetSize);
+    QFETCH(PkSize, newWidgetSize);
     QFETCH(qreal, expectedZoom);
     QFETCH(PointPairs, expectedTestPoints);
 
@@ -1136,7 +1187,7 @@ void KisCoordinatesConverterTest::testChangeImageResolution()
     QFETCH(qreal, expectedEffectiveZoom);
     QFETCH(PointPairs, expectedTestPoints);
 
-    const QSize widgetSize(700, 500);
+    const PkSize widgetSize(700, 500);
 
     KisImageSP image;
     KisCoordinatesConverter converter;
@@ -1193,7 +1244,7 @@ void KisCoordinatesConverterTest::testChangeImageSize_data()
     QTest::addColumn<qreal>("originalZoom");
     QTest::addColumn<PkPointF>("originalOffset");
     QTest::addColumn<PointPairs>("originalTestPoints");
-    QTest::addColumn<QSize>("newImageSize");
+    QTest::addColumn<PkSize>("newImageSize");
     QTest::addColumn<PkPointF>("oldImageStillPoint");
     QTest::addColumn<PkPointF>("newImageStillPoint");
     QTest::addColumn<qreal>("expectedZoom");
@@ -1210,7 +1261,7 @@ void KisCoordinatesConverterTest::testChangeImageSize_data()
             {{0,0},     {100,100}},
             {{100,100}, {125,125}},
            }
-        << QSize(200, 200) // crop the bottom-right corner of the image
+        << PkSize(200, 200) // crop the bottom-right corner of the image
         << PkPointF(900,900)
         << PkPointF(100,100)
         << 0.25
@@ -1230,7 +1281,7 @@ void KisCoordinatesConverterTest::testChangeImageSize_data()
                {{100,100}, {150,50}},
                {{900,900}, {550,450}}, // still point
               }
-           << QSize(200, 200) // crop the bottom-right corner of the image
+           << PkSize(200, 200) // crop the bottom-right corner of the image
            << PkPointF(900,900)
            << PkPointF(100,100)
            << 0.5
@@ -1246,13 +1297,13 @@ void KisCoordinatesConverterTest::testChangeImageSize()
     QFETCH(qreal, originalZoom);
     QFETCH(PkPointF, originalOffset);
     QFETCH(PointPairs, originalTestPoints);
-    QFETCH(QSize, newImageSize);
+    QFETCH(PkSize, newImageSize);
     QFETCH(PkPointF, oldImageStillPoint);
     QFETCH(PkPointF, newImageStillPoint);
     QFETCH(qreal, expectedZoom);
     QFETCH(PointPairs, expectedTestPoints);
 
-    const QSize widgetSize(700, 500);
+    const PkSize widgetSize(700, 500);
 
     KisImageSP image;
     KisCoordinatesConverter converter;
@@ -1280,7 +1331,7 @@ void KisCoordinatesConverterTest::testChangeImageSize()
         }
     }
 
-    converter.setImageBounds(QRect(QPoint(), newImageSize), oldImageStillPoint, newImageStillPoint);
+    converter.setImageBounds(PkRect(PkPoint(), newImageSize), oldImageStillPoint, newImageStillPoint);
 
     /**
      * Zoom mode should reset into "constant mode to let the user see that the
@@ -1351,7 +1402,7 @@ void KisCoordinatesConverterTest::testResolutionModes()
     QFETCH(PointPairs, expectedTestPoints);
     QFETCH(PkRectF, expectedImageRectInWidgetPixels);
 
-    const QSize widgetSize(700, 500);
+    const PkSize widgetSize(700, 500);
 
     KisImageSP image;
     KisCoordinatesConverter converter;
@@ -1407,24 +1458,24 @@ void KisCoordinatesConverterTest::testResolutionModes()
 void KisCoordinatesConverterTest::testHiDPICanvasSize_data()
 {
     QTest::addColumn<qreal>("devicePixelRatio");
-    QTest::addColumn<QSize>("widgetSize");
+    QTest::addColumn<PkSize>("widgetSize");
     QTest::addColumn<PkPointF>("offset");
     QTest::addColumn<qreal>("zoom");
     QTest::addColumn<PkSizeF>("expectedWidgetSize");
     QTest::addColumn<PkPointF>("expectedOffsetF");
-    QTest::addColumn<QPoint>("expectedOffset");
-    QTest::addColumn<QSize>("expectedViewportDevicePixelSize");
+    QTest::addColumn<PkPoint>("expectedOffset");
+    QTest::addColumn<PkSize>("expectedViewportDevicePixelSize");
     QTest::addColumn<PointPairs>("expectedTestPoints");
 
     QTest::newRow("lodpi")
         << 1.0
-        << QSize(701, 503)
+        << PkSize(701, 503)
         << PkPointF(-101, -103)
         << 1.0 // zoom
         << PkSizeF(701, 503)
         << PkPointF(-101, -103)
-        << QPoint(-101, -103)
-        << QSize(701, 503)
+        << PkPoint(-101, -103)
+        << PkSize(701, 503)
         << PointPairs{
             {{0,0},     {101,103}},
             {{100,100}, {201,203}},
@@ -1433,13 +1484,13 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize_data()
 
     QTest::newRow("hidpi-i2")
         << 2.0
-        << QSize(701, 503)
+        << PkSize(701, 503)
         << PkPointF(-101, -103)
         << 1.0 // zoom
         << PkSizeF(701, 503)
         << PkPointF(-101, -103)
-        << QPoint(-101, -103)
-        << QSize(1402, 1006) // only viewport texture size is changed in integer scaling mode!
+        << PkPoint(-101, -103)
+        << PkSize(1402, 1006) // only viewport texture size is changed in integer scaling mode!
         << PointPairs{
             {{0,0},     {101,103}},
             {{100,100}, {201,203}},
@@ -1448,13 +1499,13 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize_data()
 
     QTest::newRow("hidpi-i3")
         << 3.0
-        << QSize(701, 503)
+        << PkSize(701, 503)
         << PkPointF(-101, -103)
         << 1.0 // zoom
         << PkSizeF(701, 503)
         << PkPointF(-101, -103)
-        << QPoint(-101, -103)
-        << QSize(2103, 1509) // only viewport texture size is changed in integer scaling mode!
+        << PkPoint(-101, -103)
+        << PkSize(2103, 1509) // only viewport texture size is changed in integer scaling mode!
         << PointPairs{
             {{0,0},     {101,103}},
             {{100,100}, {201,203}},
@@ -1468,19 +1519,19 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize_data()
 
     QTest::newRow("hidpi-f1.5")
         << 1.5
-        << QSize(701, 503)
+        << PkSize(701, 503)
         << PkPointF(-101, -103)
         << 1.0 // zoom
         << PkSizeF(frac(700, 2, 3), frac(502, 2, 3))
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         // Qt5 rounds negative numbers to the positive direction, causing pkRound(-151.5) = -151
         << PkPointF(-frac(100, 2, 3), -frac(102, 2, 3)) // offset is rounded to device pixels!
-        << QPoint(-100, -102)
+        << PkPoint(-100, -102)
 #else
         << PkPointF(-frac(101, 1, 3), -frac(103, 1, 3)) // offset is rounded to device pixels!
-        << QPoint(-101, -103)
+        << PkPoint(-101, -103)
 #endif
-        << QSize(1051, 754) // the size is floored to device pixels!
+        << PkSize(1051, 754) // the size is floored to device pixels!
         << PointPairs{
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
             // Qt5 rounds negative numbers to the positive direction, hence different results
@@ -1496,13 +1547,13 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize_data()
 
     QTest::newRow("hidpi-f1.75")
         << 1.75
-        << QSize(701, 503)
+        << PkSize(701, 503)
         << PkPointF(-101, -103)
         << 1.0 // zoom
         << PkSizeF(frac(700, 4, 7), frac(502, 6, 7))
         << PkPointF(-frac(101, 1, 7), -frac(102, 6, 7)) // offset is rounded to device pixels!
-        << QPoint(-101, -102) // scroll bars value is floored! (TODO: verify it is correct?)
-        << QSize(1226, 880) // the size is floored to device pixels!
+        << PkPoint(-101, -102) // scroll bars value is floored! (TODO: verify it is correct?)
+        << PkSize(1226, 880) // the size is floored to device pixels!
         << PointPairs{
             {{0,0},      {frac(101, 1, 7), frac(102, 6, 7)}},
             {{100,100},  {frac(201, 1, 7), frac(202, 6, 7)}},
@@ -1511,13 +1562,13 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize_data()
 
     QTest::newRow("hidpi-f1.25")
         << 1.25
-        << QSize(701, 503)
+        << PkSize(701, 503)
         << PkPointF(-101, -103)
         << 1.0 // zoom
         << PkSizeF(700.8, 502.4)
         << PkPointF(-100.8, -103.2) // offset is rounded to device pixels!
-        << QPoint(-100, -103) // scroll bars value is floored! (TODO: verify it is correct?)
-        << QSize(876, 628) // the size is floored to device pixels!
+        << PkPoint(-100, -103) // scroll bars value is floored! (TODO: verify it is correct?)
+        << PkSize(876, 628) // the size is floored to device pixels!
         << PointPairs{
             {{0,0},      {100.8, 103.2}},
             {{100,100},  {200.8, 203.2}},
@@ -1528,13 +1579,13 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize_data()
 void KisCoordinatesConverterTest::testHiDPICanvasSize()
 {
     QFETCH(qreal, devicePixelRatio);
-    QFETCH(QSize, widgetSize);
+    QFETCH(PkSize, widgetSize);
     QFETCH(qreal, zoom);
     QFETCH(PkPointF, offset);
     QFETCH(PkSizeF, expectedWidgetSize);
     QFETCH(PkPointF, expectedOffsetF);
-    QFETCH(QPoint, expectedOffset);
-    QFETCH(QSize, expectedViewportDevicePixelSize);
+    QFETCH(PkPoint, expectedOffset);
+    QFETCH(PkSize, expectedViewportDevicePixelSize);
     QFETCH(PointPairs, expectedTestPoints);
 
     KisImageSP image;
@@ -1579,24 +1630,24 @@ void KisCoordinatesConverterTest::testHiDPICanvasSize()
 
 void KisCoordinatesConverterTest::testZoomLimits_data()
 {
-    QTest::addColumn<QSize>("originalImageSize");
+    QTest::addColumn<PkSize>("originalImageSize");
     QTest::addColumn<PkPointF>("originalImageResolution");
     QTest::addColumn<PkPointF>("originalScreenResolution");
     QTest::addColumn<PointPairs>("originalTestPoints");
     QTest::addColumn<qreal>("expectedOriginalMinZoom");
     QTest::addColumn<qreal>("expectedOriginalMaxZoom");
-    QTest::addColumn<QVector<qreal>>("expectedOriginalZoomLevels");
+    QTest::addColumn<ZoomLevels>("expectedOriginalZoomLevels");
 
-    QTest::addColumn<QSize>("finalImageSize");
+    QTest::addColumn<PkSize>("finalImageSize");
     QTest::addColumn<PkPointF>("finalImageResolution");
     QTest::addColumn<PkPointF>("finalScreenResolution");
     QTest::addColumn<PointPairs>("expectedTestPoints");
     QTest::addColumn<qreal>("expectedFinalMinZoom");
     QTest::addColumn<qreal>("expectedFinalMaxZoom");
-    QTest::addColumn<QVector<qreal>>("expectedFinalZoomLevels");
+    QTest::addColumn<ZoomLevels>("expectedFinalZoomLevels");
 
     QTest::newRow("image-resize")
-        << QSize(1000, 1000)
+        << PkSize(1000, 1000)
         << PkPointF(100, 100)
         << PkPointF(100, 100)
         << PointPairs{
@@ -1605,9 +1656,9 @@ void KisCoordinatesConverterTest::testZoomLimits_data()
            }
         << 0.1
         << 90.0
-        << QVector<qreal>{0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64}
+        << ZoomLevels{0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64}
 
-        << QSize(2000, 2000)
+        << PkSize(2000, 2000)
         << PkPointF(100, 100)
         << PkPointF(100, 100)
         << PointPairs{
@@ -1616,10 +1667,10 @@ void KisCoordinatesConverterTest::testZoomLimits_data()
            }
         << 0.05
         << 90.0
-        << QVector<qreal>{0.0625, 0.0833333, 0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64};
+        << ZoomLevels{0.0625, 0.0833333, 0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64};
 
     QTest::newRow("image-resolution-change")
-        << QSize(1000, 1000)
+        << PkSize(1000, 1000)
         << PkPointF(100, 100)
         << PkPointF(100, 100)
         << PointPairs{
@@ -1628,9 +1679,9 @@ void KisCoordinatesConverterTest::testZoomLimits_data()
            }
         << 0.1
         << 90.0
-        << QVector<qreal>{0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64}
+        << ZoomLevels{0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64}
 
-        << QSize(1000, 1000)
+        << PkSize(1000, 1000)
         << PkPointF(50, 50) // lower image DPI to increase physical screen size
         << PkPointF(100, 100)
         << PointPairs{
@@ -1639,10 +1690,10 @@ void KisCoordinatesConverterTest::testZoomLimits_data()
            }
         << 0.05
         << 90.0
-        << QVector<qreal>{0.0625, 0.0833333, 0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64};
+        << ZoomLevels{0.0625, 0.0833333, 0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64};
 
         QTest::newRow("screen-resolution-change")
-        << QSize(1000, 1000)
+        << PkSize(1000, 1000)
         << PkPointF(100, 100)
         << PkPointF(100, 100)
         << PointPairs{
@@ -1651,9 +1702,9 @@ void KisCoordinatesConverterTest::testZoomLimits_data()
            }
         << 0.1
         << 90.0
-        << QVector<qreal>{0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64}
+        << ZoomLevels{0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64}
 
-        << QSize(1000, 1000)
+        << PkSize(1000, 1000)
         << PkPointF(100, 100)
         << PkPointF(200, 200)  // increase screen dpi to increase the size of the image
         << PointPairs{
@@ -1662,39 +1713,39 @@ void KisCoordinatesConverterTest::testZoomLimits_data()
            }
         << 0.05
         << 90.0
-        << QVector<qreal>{0.0625, 0.0833333, 0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64};
+        << ZoomLevels{0.0625, 0.0833333, 0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64};
 
 }
 
 void KisCoordinatesConverterTest::testZoomLimits()
 {
-    QFETCH(QSize, originalImageSize);
+    QFETCH(PkSize, originalImageSize);
     QFETCH(PkPointF, originalImageResolution);
     QFETCH(PkPointF, originalScreenResolution);
     QFETCH(PointPairs, originalTestPoints);
     QFETCH(qreal, expectedOriginalMinZoom);
     QFETCH(qreal, expectedOriginalMaxZoom);
-    QFETCH(QVector<qreal>, expectedOriginalZoomLevels);
+    QFETCH(ZoomLevels, expectedOriginalZoomLevels);
 
-    QFETCH(QSize, finalImageSize);
+    QFETCH(PkSize, finalImageSize);
     QFETCH(PkPointF, finalImageResolution);
     QFETCH(PkPointF, finalScreenResolution);
     QFETCH(PointPairs, expectedTestPoints);
     QFETCH(qreal, expectedFinalMinZoom);
     QFETCH(qreal, expectedFinalMaxZoom);
-    QFETCH(QVector<qreal>, expectedFinalZoomLevels);
+    QFETCH(ZoomLevels, expectedFinalZoomLevels);
 
     KisImageSP image;
     KisCoordinatesConverter converter;
     initImage(&image, &converter);
 
-    image->resizeImage(QRect(QPoint(), originalImageSize));
+    image->resizeImage(PkRect(PkPoint(), originalImageSize));
     image->setResolution(originalImageResolution.x(), originalImageResolution.y());
     image->waitForDone();
     converter.setResolution(originalScreenResolution.x(), originalScreenResolution.y());
 
     converter.setImage(image);
-    converter.setCanvasWidgetSize(QSize(700,500));
+    converter.setCanvasWidgetSize(PkSize(700,500));
     converter.setZoom(1.0);
     converter.setDocumentOffset(PkPointF());
 
@@ -1717,11 +1768,11 @@ void KisCoordinatesConverterTest::testZoomLimits()
         return pkRound(lhs * 10000) == pkRound(rhs * 10000);
     };
 
-    auto compareZoomLevels = [&] (const QVector<qreal> &real, const QVector<qreal> &expected) {
+    auto compareZoomLevels = [&] (const ZoomLevels &real, const ZoomLevels &expected) {
         if (real.size() != expected.size()) {
             qWarning() << "Zoom level vectors have different size!";
-            qWarning() << "    " << ppVar(real);
-            qWarning() << "    " << ppVar(expected);
+            qWarning() << "    real size:" << real.size();
+            qWarning() << "    expected size:" << expected.size();
             return false;
         }
 
@@ -1735,8 +1786,6 @@ void KisCoordinatesConverterTest::testZoomLimits()
             qWarning() << "Zoom level mismatch at index" << index;
             qWarning() << "    real:    " << *mismatch.first;
             qWarning() << "    expected:" << *mismatch.second;
-            qWarning() << "   " << ppVar(real);
-            qWarning() << "   " << ppVar(expected);
             return false;
         }
 
@@ -1748,9 +1797,9 @@ void KisCoordinatesConverterTest::testZoomLimits()
     }
 
     if (originalImageSize != finalImageSize) {
-        image->resizeImage(QRect(QPoint(), finalImageSize));
+        image->resizeImage(PkRect(PkPoint(), finalImageSize));
         image->waitForDone();
-        converter.setImageBounds(image->bounds(), QPoint(), QPoint());
+        converter.setImageBounds(image->bounds(), PkPoint(), PkPoint());
     }
 
     if (originalImageResolution != finalImageResolution) {
@@ -1792,8 +1841,8 @@ void KisCoordinatesConverterTest::testZoomLimits()
 }
 void KisCoordinatesConverterTest::testZoomLimitsEnforcement_data()
 {
-    QTest::addColumn<QSize>("originalImageSize");
-    QTest::addColumn<QSize>("originalCanvasSize");
+    QTest::addColumn<PkSize>("originalImageSize");
+    QTest::addColumn<PkSize>("originalCanvasSize");
     QTest::addColumn<qreal>("expectedOriginalMinZoom");
     QTest::addColumn<qreal>("expectedOriginalMaxZoom");
     QTest::addColumn<KoZoomMode::Mode>("requestedZoomMode");
@@ -1802,8 +1851,8 @@ void KisCoordinatesConverterTest::testZoomLimitsEnforcement_data()
     QTest::addColumn<qreal>("expectedFinalZoom");
 
     QTest::newRow("const-below-min")
-        << QSize(1000, 1000)
-        << QSize(700, 500)
+        << PkSize(1000, 1000)
+        << PkSize(700, 500)
         << 0.1
         << 90.0
         << KoZoomMode::ZOOM_CONSTANT
@@ -1812,8 +1861,8 @@ void KisCoordinatesConverterTest::testZoomLimitsEnforcement_data()
         << 0.1;
 
     QTest::newRow("const-above-max")
-        << QSize(1000, 1000)
-        << QSize(700, 500)
+        << PkSize(1000, 1000)
+        << PkSize(700, 500)
         << 0.1
         << 90.0
         << KoZoomMode::ZOOM_CONSTANT
@@ -1822,8 +1871,8 @@ void KisCoordinatesConverterTest::testZoomLimitsEnforcement_data()
         << 90.0;
 
     QTest::newRow("page-below-min")
-        << QSize(1000, 1000)
-        << QSize(50, 50)
+        << PkSize(1000, 1000)
+        << PkSize(50, 50)
         << 0.1
         << 90.0
         << KoZoomMode::ZOOM_PAGE
@@ -1837,8 +1886,8 @@ void KisCoordinatesConverterTest::testZoomLimitsEnforcement()
     /// Zoom limits enforcement is applied only to KoZoomMode::ZOOM_CONSTANT
     /// mode. All the fit-modes are allowed to zoom as much as needed.
 
-    QFETCH(QSize, originalImageSize);
-    QFETCH(QSize, originalCanvasSize);
+    QFETCH(PkSize, originalImageSize);
+    QFETCH(PkSize, originalCanvasSize);
     QFETCH(qreal, expectedOriginalMinZoom);
     QFETCH(qreal, expectedOriginalMaxZoom);
 
@@ -1852,7 +1901,7 @@ void KisCoordinatesConverterTest::testZoomLimitsEnforcement()
     KisCoordinatesConverter converter;
     initImage(&image, &converter);
 
-    image->resizeImage(QRect(QPoint(), originalImageSize));
+    image->resizeImage(PkRect(PkPoint(), originalImageSize));
     image->waitForDone();
 
     converter.setImage(image);
@@ -1924,7 +1973,7 @@ void KisCoordinatesConverterTest::testFindNextZoom()
     QFETCH(qreal, startZoom);
     QFETCH(qreal, expectedZoom);
 
-    const QVector<qreal> levels{0.0625, 0.0833333, 0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64};
+    const ZoomLevels levels{0.0625, 0.0833333, 0.125, 0.166667, 0.25, 0.333333, 0.5, 0.666667, 1, 1.33333, 2, 2.66667, 4, 5.33333, 8, 10.6667, 16, 21.3333, 32, 42.6667, 64};
 
     const qreal resultZoom =
         findNext ?
@@ -1974,7 +2023,7 @@ void KisCoordinatesConverterTest::testZoomTo()
     converter.setImage(image);
     converter.setZoom(originalZoom);
     converter.setDocumentOffset(originalOffset);
-    converter.setCanvasWidgetSize(QSize(700, 500));
+    converter.setCanvasWidgetSize(PkSize(700, 500));
 
     for (const auto &pair : std::as_const(originalTestPoints)) {
         const PkPointF realPointWidgetPos = converter.imageToWidget(pair.first);
@@ -2050,13 +2099,13 @@ void KisCoordinatesConverterTest::testHiDPIOffsetSnapping()
     initImage(&image, &converter);
 
     KisFilterStrategy *strategy = new KisBilinearFilterStrategy();
-    image->scaleImage(QSize(77, 83), image->xRes(), image->yRes(), strategy);
+    image->scaleImage(PkSize(77, 83), image->xRes(), image->yRes(), strategy);
     image->waitForDone();
     QTest::qWait(100);
 
     converter.setDevicePixelRatio(1.5);
     converter.setImage(image);
-    converter.setCanvasWidgetSizeKeepZoom(QSize(700, 500));
+    converter.setCanvasWidgetSizeKeepZoom(PkSize(700, 500));
 
     auto roundTo5thDigit = [] (qreal x) {
         return pkRound(x * 100000.0) / 100000.0;
@@ -2083,14 +2132,14 @@ void KisCoordinatesConverterTest::testHiDPIOffsetSnapping()
             converter.setDocumentOffset(PkPointF(-100.33, -200.77));
             break;
         case ScrollAway:
-            converter.setCanvasWidgetSizeKeepZoom(QSize(701, 503));
+            converter.setCanvasWidgetSizeKeepZoom(PkSize(701, 503));
             converter.setDocumentOffset(PkPointF(10000.33, 20000.22));
             break;
         case ImageResolution:
             converter.setImageResolution(7.77, 3.13);
             break;
         case ImageBounds:
-            converter.setImageBounds(QRect(0,0,113, 117), PkPointF(77,17), PkPointF(111, 110));
+            converter.setImageBounds(PkRect(0,0,113, 117), PkPointF(77,17), PkPointF(111, 110));
             break;
         case ZoomTo:
             converter.zoomTo(PkRectF(13.33, 17.77, 333.17, 234.13));
@@ -2152,7 +2201,7 @@ void KisCoordinatesConverterTest::testPreferredCenterTransformations()
     initImage(&image, &converter);
 
     converter.setImage(image);
-    converter.setCanvasWidgetSizeKeepZoom(QSize(700, 500));
+    converter.setCanvasWidgetSizeKeepZoom(PkSize(700, 500));
 
     KoViewTransformStillPoint expectedStillPoint;
     std::optional<KoViewTransformStillPoint> realStillPoint;
@@ -2198,7 +2247,7 @@ void KisCoordinatesConverterTest::testPreferredCenterTransformations()
     } else if (testingMode == "change-widget-size-page") {
         const qreal oldZoom = converter.zoom();
         const PkPointF oldOffset = converter.documentOffsetF();
-        converter.setCanvasWidgetSizeKeepZoom(QSize(1100,400));
+        converter.setCanvasWidgetSizeKeepZoom(PkSize(1100,400));
 #if QT_VERSION > QT_VERSION_CHECK(6, 0, 0)
         QCOMPARE_NE(converter.zoom(), oldZoom);
         QCOMPARE_NE(converter.documentOffsetF(), oldOffset);
@@ -2219,11 +2268,11 @@ void KisCoordinatesConverterTest::testPreferredCenterTransformations()
 
         const qreal oldZoom = converter.zoom();
         const PkPointF oldOffset = converter.documentOffsetF();
-        converter.setCanvasWidgetSizeKeepZoom(QSize(1100,400));
+        converter.setCanvasWidgetSizeKeepZoom(PkSize(1100,400));
         QCOMPARE(converter.zoom(), oldZoom);
         QCOMPARE(converter.documentOffsetF(), oldOffset);
     } else if (testingMode == "change-image-size") {
-        converter.setImageBounds(QRect(0,0,113, 117), PkPointF(77,17), PkPointF(111, 110));
+        converter.setImageBounds(PkRect(0,0,113, 117), PkPointF(77,17), PkPointF(111, 110));
 
         /// the actual still point is checked in a  different test,
         /// here we only need to test the preferred center
@@ -2257,4 +2306,3 @@ void KisCoordinatesConverterTest::testPreferredCenterTransformations()
 }
 
 SIMPLE_TEST_MAIN(KisCoordinatesConverterTest)
-

@@ -4,25 +4,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
-#include <QColor>
-#include <QGlobalStatic>
-#include <QImage>
-#include <QPointer>
-#include <QRect>
-#include <QVector>
-
 #include "kis_display_color_converter.h"
 
 #include <PkColor.h>
 #include <PkImage.h>
 #include <PkObject.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
+#include <PkSharedPointer.h>
+#include <PkScopedPointer.h>
 #include <PkSize.h>
 #include <PkString.h>
 #include <PkVector.h>
-
-#include <KConfigGroup>
-#include <KSharedConfig>
 
 #include <KoColor.h>
 #include <KoColorProfile.h>
@@ -44,15 +37,10 @@
 #include "KisDisplayConfig.h"
 
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <memory>
 #include <vector>
-
-Q_DECLARE_METATYPE(KisNodeWSP)
-Q_DECLARE_METATYPE(KoColor)
-
-
-
-
-Q_GLOBAL_STATIC(KisDisplayColorConverter, s_instance)
 
 
 struct KisDisplayColorConverter::Private
@@ -69,6 +57,7 @@ struct KisDisplayColorConverter::Private
 
     ~Private()
     {
+        PkObject::disconnect(configChangedConnection);
         PkObject::disconnect(profileChangedConnection);
         PkObject::disconnect(colorSpaceChangedConnection);
     }
@@ -96,7 +85,7 @@ struct KisDisplayColorConverter::Private
         cachedQtWidgetsColorSpace = 0;
         cachedOpenGLSurfaceColorSpace = 0;
 
-        Q_EMIT q->displayConfigurationChanged();
+        q->displayConfigurationChanged();
     }
 
     const KoColorProfile* qtWidgetsProfile() const {
@@ -177,18 +166,19 @@ struct KisDisplayColorConverter::Private
 
     KisMultiSurfaceDisplayConfig multiSurfaceDisplayConfig;
 
-    QSharedPointer<KisDisplayFilter> displayFilter;
+    PkSharedPointer<KisDisplayFilter> displayFilter;
 
     KoColor intermediateFgColor;
     KisNodeSP connectedNode;
     KisImageSP image;
+    PkConnection configChangedConnection;
     PkConnection profileChangedConnection;
     PkConnection colorSpaceChangedConnection;
 
-    inline KoColor approximateFromQColor(const QColor &qcolor);
-    inline QColor approximateToQColor(const KoColor &color);
+    inline KoColor approximateFromQColor(const PkColor &qcolor);
+    inline PkColor approximateToQColor(const KoColor &color);
 
-    void slotCanvasResourceChanged(int key, const QVariant &v);
+    void slotCanvasResourceChanged(int key, const PkVariant &v);
     void slotUpdateCurrentNodeColorSpace();
     void selectPaintingColorSpace();
 
@@ -203,28 +193,28 @@ struct KisDisplayColorConverter::Private
             : m_displayColorConverter(displayColorConverter),
               m_resourceManager(resourceManager)
         {
-            m_displayConfigurationConnection =
-                QObject::connect(displayColorConverter,
-                                 &KisDisplayColorConverter::displayConfigurationChanged,
-                                 [this]() { displayConfigurationChanged(); });
+            m_displayConfigurationConnection = PkObject::connect(
+                displayColorConverter,
+                &KisDisplayColorConverter::displayConfigurationChanged,
+                this,
+                [this]() { displayConfigurationChanged(); });
         }
 
         ~DisplayRenderer() override
         {
-            QObject::disconnect(m_displayConfigurationConnection);
+            PkObject::disconnect(m_displayConfigurationConnection);
         }
 
         PkImage toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, PkSize size, bool proofPaintColors = false) const override {
-            return ::toPkImage(m_displayColorConverter->toQImage(
-                srcColorSpace, data, QSize(size.width(), size.height()), proofPaintColors));
+            return m_displayColorConverter->toQImage(srcColorSpace, data, size, proofPaintColors);
         }
 
         PkColor toQColor(const KoColor &c, bool proofToPaintColors = false) const override {
-            return ::toPkColor(m_displayColorConverter->toQColor(c, proofToPaintColors));
+            return m_displayColorConverter->toQColor(c, proofToPaintColors);
         }
 
         KoColor approximateFromRenderedQColor(const PkColor &c) const override {
-            return m_displayColorConverter->approximateFromRenderedQColor(::toQColor(c));
+            return m_displayColorConverter->approximateFromRenderedQColor(c);
         }
 
         KoColor fromHsv(int h, int s, int v, int a) const override {
@@ -257,38 +247,32 @@ struct KisDisplayColorConverter::Private
 
     private:
         KisDisplayColorConverter *m_displayColorConverter;
-        QPointer<KoCanvasResourceProvider> m_resourceManager;
-        QMetaObject::Connection m_displayConfigurationConnection;
+        KoCanvasResourceProvider *m_resourceManager;
+        PkConnection m_displayConfigurationConnection;
     };
 
-    QScopedPointer<KoColorDisplayRendererInterface> displayRenderer;
+    PkScopedPointer<KoColorDisplayRendererInterface> displayRenderer;
 };
 
-KisDisplayColorConverter::KisDisplayColorConverter(KoCanvasResourceProvider *resourceManager, QObject *parent)
-    : QObject(parent),
-      m_d(new Private(this, resourceManager))
+KisDisplayColorConverter::KisDisplayColorConverter(KoCanvasResourceProvider *resourceManager, PkObject *parent)
+    : PkObject(parent)
+    , m_d(new Private(this, resourceManager))
 {
-    QObject::connect(m_d->resourceManager, SIGNAL(canvasResourceChanged(int,QVariant)),
-            SLOT(slotCanvasResourceChanged(int,QVariant)));
     KisConfigNotifier *notifier = KisConfigNotifier::instance();
-    PkConnection configConnection = PkObject::connect(
-        notifier, &KisConfigNotifier::configChanged, notifier,
+    m_d->configChangedConnection = PkObject::connect(
+        notifier, &KisConfigNotifier::configChanged, this,
         [this]() { m_d->selectPaintingColorSpace(); });
-    QObject::connect(this, &QObject::destroyed,
-                     [configConnection](QObject *) mutable {
-                         PkObject::disconnect(configConnection);
-                     });
 
     m_d->inputImageProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
     m_d->paintingColorSpace = KoColorSpaceRegistry::instance()->rgb8();
     m_d->setCurrentNode(0);
-    setDisplayFilter(QSharedPointer<KisDisplayFilter>(0));
+    setDisplayFilter(PkSharedPointer<KisDisplayFilter>());
 }
 
 KisDisplayColorConverter::KisDisplayColorConverter()
     : m_d(new Private(this, 0))
 {
-    setDisplayFilter(QSharedPointer<KisDisplayFilter>(0));
+    setDisplayFilter(PkSharedPointer<KisDisplayFilter>());
 
     m_d->inputImageProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
     m_d->paintingColorSpace = KoColorSpaceRegistry::instance()->rgb8();
@@ -313,7 +297,8 @@ void KisDisplayColorConverter::setImageColorSpace(const KoColorSpace *cs)
 
 KisDisplayColorConverter* KisDisplayColorConverter::dumbConverterInstance()
 {
-    return s_instance;
+    static KisDisplayColorConverter instance;
+    return &instance;
 }
 
 KoColorDisplayRendererInterface* KisDisplayColorConverter::displayRendererInterface() const
@@ -360,7 +345,7 @@ void KisDisplayColorConverter::Private::updateIntermediateFgColor(const KoColor 
     intermediateFgColor = color;
 }
 
-void KisDisplayColorConverter::Private::slotCanvasResourceChanged(int key, const QVariant &v)
+void KisDisplayColorConverter::Private::slotCanvasResourceChanged(int key, const PkVariant &v)
 {
     if (key == KoCanvasResource::CurrentKritaNode) {
         KisNodeSP currentNode = v.value<KisNodeWSP>();
@@ -424,19 +409,19 @@ void KisDisplayColorConverter::Private::setCurrentNode(KisNodeSP node)
 
 void KisDisplayColorConverter::Private::selectPaintingColorSpace()
 {
-    const KConfigGroup cfg = KSharedConfig::openConfig()->group("advancedColorSelector");
+    const PkConfigGroup cfg = PkSharedConfig::openConfig()->group("advancedColorSelector");
     paintingColorSpace = nullptr;
 
     if (cfg.readEntry("useCustomColorSpace", true)) {
-        QString profile = cfg.readEntry("customColorSpaceProfile", "sRGB built-in - (lcms internal)");
-        if (profile == QLatin1String("default")) {
-            profile = QStringLiteral("sRGB built-in - (lcms internal)");
+        PkString profile = cfg.readEntry("customColorSpaceProfile", "sRGB built-in - (lcms internal)");
+        if (profile == PkString("default")) {
+            profile = PkString("sRGB built-in - (lcms internal)");
         }
 
         paintingColorSpace = KoColorSpaceRegistry::instance()->colorSpace(
-            toPkString(cfg.readEntry("customColorSpaceModel", "RGBA")),
-            toPkString(cfg.readEntry("customColorSpaceDepthID", "U8")),
-            toPkString(profile));
+            cfg.readEntry("customColorSpaceModel", "RGBA"),
+            cfg.readEntry("customColorSpaceDepthID", "U8"),
+            profile);
     }
 
     if (!paintingColorSpace || displayFilter) {
@@ -470,7 +455,7 @@ void KisDisplayColorConverter::setMultiSurfaceDisplayConfig(const KisMultiSurfac
     m_d->notifyDisplayConfigurationChanged();
 }
 
-void KisDisplayColorConverter::setDisplayFilter(QSharedPointer<KisDisplayFilter> displayFilter)
+void KisDisplayColorConverter::setDisplayFilter(PkSharedPointer<KisDisplayFilter> displayFilter)
 {
     if (m_d->displayFilter && displayFilter &&
         displayFilter->lockCurrentColorVisualRepresentation()) {
@@ -502,7 +487,7 @@ KisDisplayConfig KisDisplayColorConverter::displayConfig() const
     return m_d->multiSurfaceDisplayConfig.uiDisplayConfig();
 }
 
-QSharedPointer<KisDisplayFilter> KisDisplayColorConverter::displayFilter() const
+PkSharedPointer<KisDisplayFilter> KisDisplayColorConverter::displayFilter() const
 {
     return m_d->displayFilter;
 }
@@ -517,7 +502,7 @@ KisDisplayColorConverter::ConversionOptions KisDisplayColorConverter::conversion
     return m_d->multiSurfaceDisplayConfig.options();
 }
 
-QColor KisDisplayColorConverter::toQColor(const KoColor &srcColor, bool proofToPaintColors) const
+PkColor KisDisplayColorConverter::toQColor(const KoColor &srcColor, bool proofToPaintColors) const
 {
     KoColor c(srcColor);
 
@@ -527,7 +512,7 @@ QColor KisDisplayColorConverter::toQColor(const KoColor &srcColor, bool proofToP
 
     if (m_d->useOcio()) {
         KIS_ASSERT_RECOVER(m_d->ocioInputColorSpace()->pixelSize() == 16) {
-            return QColor(Qt::green);
+            return PkColor(Pk::green);
         }
 
         c.convertTo(m_d->ocioInputColorSpace());
@@ -537,12 +522,12 @@ QColor KisDisplayColorConverter::toQColor(const KoColor &srcColor, bool proofToP
 
     // we expect the display profile is rgb8, which is BGRA here
     KIS_ASSERT_RECOVER(m_d->qtWidgetsColorSpace()->pixelSize() == 4) {
-        return QColor(Qt::red);
+        return PkColor(Pk::red);
     }
 
     c.convertTo(m_d->qtWidgetsColorSpace(), m_d->multiSurfaceDisplayConfig.intent, m_d->multiSurfaceDisplayConfig.conversionFlags);
     const quint8 *p = c.data();
-    return QColor(p[2], p[1], p[0], p[3]);
+    return PkColor(p[2], p[1], p[0], p[3]);
 }
 
 KoColor KisDisplayColorConverter::applyDisplayFiltering(const KoColor &srcColor,
@@ -576,17 +561,17 @@ bool KisDisplayColorConverter::canSkipDisplayConversion(const KoColorSpace *cs) 
 }
 
 
-KoColor KisDisplayColorConverter::approximateFromRenderedQColor(const QColor &c) const
+KoColor KisDisplayColorConverter::approximateFromRenderedQColor(const PkColor &c) const
 {
     return m_d->approximateFromQColor(c);
 }
 
-QImage KisDisplayColorConverter::toQImage(KisPaintDeviceSP srcDevice, bool proofPaintColors) const
+PkImage KisDisplayColorConverter::toQImage(KisPaintDeviceSP srcDevice, bool proofPaintColors) const
 {
     KisPaintDeviceSP device = srcDevice;
 
     const PkRect bounds = srcDevice->exactBounds();
-    if (bounds.isEmpty()) return QImage();
+    if (bounds.isEmpty()) return PkImage();
 
     if (proofPaintColors && m_d->needsColorProofing(srcDevice->colorSpace())) {
         srcDevice->convertTo(paintingColorSpace(), m_d->multiSurfaceDisplayConfig.intent, m_d->multiSurfaceDisplayConfig.conversionFlags);
@@ -594,7 +579,7 @@ QImage KisDisplayColorConverter::toQImage(KisPaintDeviceSP srcDevice, bool proof
 
     if (m_d->useOcio()) {
         KIS_ASSERT_RECOVER(m_d->ocioInputColorSpace()->pixelSize() == 16) {
-            return QImage();
+            return PkImage();
         }
 
         device = new KisPaintDevice(*srcDevice);
@@ -612,59 +597,59 @@ QImage KisDisplayColorConverter::toQImage(KisPaintDeviceSP srcDevice, bool proof
 
     // we expect the display profile is rgb8, which is BGRA here
     KIS_ASSERT_RECOVER(m_d->qtWidgetsColorSpace()->pixelSize() == 4) {
-        return QImage();
+        return PkImage();
     }
 
-    return ::toQImage(device->convertToQImage(
+    return device->convertToQImage(
         m_d->qtWidgetsProfile(), bounds,
         m_d->multiSurfaceDisplayConfig.intent,
-        m_d->multiSurfaceDisplayConfig.conversionFlags));
+        m_d->multiSurfaceDisplayConfig.conversionFlags);
 }
 
-QImage KisDisplayColorConverter::toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, QSize size, bool proofPaintColors) const
+PkImage KisDisplayColorConverter::toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, PkSize size, bool proofPaintColors) const
 {
     const int numPixels = size.width() * size.height();
 
     const KoColorSpace  *colorSpace = srcColorSpace;
     const quint8 *pixels = data;
 
-    QScopedArrayPointer<quint8> proofBuffer;
+    std::unique_ptr<quint8[]> proofBuffer;
 
     if (proofPaintColors && m_d->needsColorProofing(srcColorSpace)) {
         const int imageSize = numPixels * paintingColorSpace()->pixelSize();
-        proofBuffer.reset(new quint8[imageSize]);
-        colorSpace->convertPixelsTo(pixels, proofBuffer.data(),
+        proofBuffer = std::make_unique<quint8[]>(imageSize);
+        colorSpace->convertPixelsTo(pixels, proofBuffer.get(),
                                       paintingColorSpace(),
                                       numPixels,
                                       m_d->multiSurfaceDisplayConfig.intent,
                                       m_d->multiSurfaceDisplayConfig.conversionFlags);
         colorSpace = paintingColorSpace();
-        pixels = proofBuffer.data();
+        pixels = proofBuffer.get();
     }
 
-    QScopedArrayPointer<quint8> ocioBuffer;
+    std::unique_ptr<quint8[]> ocioBuffer;
     if (m_d->useOcio()) {
         const int imageSize = numPixels * m_d->ocioInputColorSpace()->pixelSize();
-        ocioBuffer.reset(new quint8[imageSize]);
-        colorSpace->convertPixelsTo(pixels, ocioBuffer.data(),
+        ocioBuffer = std::make_unique<quint8[]>(imageSize);
+        colorSpace->convertPixelsTo(pixels, ocioBuffer.get(),
                                       m_d->ocioInputColorSpace(),
                                       numPixels,
                                       m_d->multiSurfaceDisplayConfig.intent,
                                       m_d->multiSurfaceDisplayConfig.conversionFlags);
-        m_d->displayFilter->filter(ocioBuffer.data(), numPixels);
+        m_d->displayFilter->filter(ocioBuffer.get(), numPixels);
 
-        return ::toQImage(m_d->ocioOutputColorSpace()->convertToQImage(
-            ocioBuffer.data(), size.width(), size.height(),
+        return m_d->ocioOutputColorSpace()->convertToQImage(
+            ocioBuffer.get(), size.width(), size.height(),
             m_d->qtWidgetsProfile(),
             m_d->multiSurfaceDisplayConfig.intent,
-            m_d->multiSurfaceDisplayConfig.conversionFlags));
+            m_d->multiSurfaceDisplayConfig.conversionFlags);
     }
 
-    return ::toQImage(colorSpace->convertToQImage(
+    return colorSpace->convertToQImage(
         pixels, size.width(), size.height(),
         m_d->qtWidgetsProfile(),
         m_d->multiSurfaceDisplayConfig.intent,
-        m_d->multiSurfaceDisplayConfig.conversionFlags));
+        m_d->multiSurfaceDisplayConfig.conversionFlags);
 }
 
 void KisDisplayColorConverter::applyDisplayFilteringF32(KisFixedPaintDeviceSP device,
@@ -691,22 +676,21 @@ void KisDisplayColorConverter::applyDisplayFilteringF32(KisFixedPaintDeviceSP de
     device->convertTo(dstColorSpace);
 }
 
-KoColor KisDisplayColorConverter::Private::approximateFromQColor(const QColor &qcolor)
+KoColor KisDisplayColorConverter::Private::approximateFromQColor(const PkColor &qcolor)
 {
     if (!useOcio()) {
-        return KoColor(toPkColor(qcolor), paintingColorSpace);
+        return KoColor(qcolor, paintingColorSpace);
     } else {
-        KoColor color(toPkColor(qcolor), intermediateColorSpace());
+        KoColor color(qcolor, intermediateColorSpace());
         displayFilter->approximateInverseTransformation(color.data(), 1);
         color.convertTo(paintingColorSpace);
         return color;
     }
 
-    qFatal("Must not be reachable");
-    return KoColor();
+    std::abort();
 }
 
-QColor KisDisplayColorConverter::Private::approximateToQColor(const KoColor &srcColor)
+PkColor KisDisplayColorConverter::Private::approximateToQColor(const KoColor &srcColor)
 {
     KoColor color(srcColor);
 
@@ -715,62 +699,46 @@ QColor KisDisplayColorConverter::Private::approximateToQColor(const KoColor &src
         displayFilter->approximateForwardTransformation(color.data(), 1);
     }
 
-    return ::toQColor(color.toQColor());
+    return color.toQColor();
 }
 
 
 KoColor KisDisplayColorConverter::fromHsv(int h, int s, int v, int a) const
 {
     // generate HSV from sRGB!
-    QColor qcolor(QColor::fromHsv(h, s, v, a));
+    PkColor qcolor(PkColor::fromHsv(h, s, v, a));
     return m_d->approximateFromQColor(qcolor);
 }
 
 void KisDisplayColorConverter::getHsv(const KoColor &srcColor, int *h, int *s, int *v, int *a) const
 {
     // we are going through sRGB here!
-    QColor color = m_d->approximateToQColor(srcColor);
+    PkColor color = m_d->approximateToQColor(srcColor);
     color.getHsv(h, s, v, a);
 }
 
 KoColor KisDisplayColorConverter::fromHsvF(qreal h, qreal s, qreal v, qreal a)
 {
     // generate HSV from sRGB!
-    QColor qcolor(QColor::fromHsvF(h, s, v, a));
+    PkColor qcolor(PkColor::fromHsvF(h, s, v, a));
     return m_d->approximateFromQColor(qcolor);
 }
 
 void KisDisplayColorConverter::getHsvF(const KoColor &srcColor, qreal *h, qreal *s, qreal *v, qreal *a)
 {
     // we are going through sRGB here!
-    QColor color = m_d->approximateToQColor(srcColor);
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    PkColor color = m_d->approximateToQColor(srcColor);
     color.getHsvF(h, s, v, a);
-#else
-    float fH, fS, fV, fA;
-    fH = *h;
-    fS = *s;
-    fV = *v;
-    if (a) {
-        fA = *a;
-    }
-    color.getHsvF(&fH, &fS, &fV, &fA);
-    *h = fH;
-    *s = fS;
-    *v = fV;
-    if (a) {
-        *a = fA;
-    }
-#endif
 }
 
 KoColor KisDisplayColorConverter::fromHslF(qreal h, qreal s, qreal l, qreal a)
 {
     // generate HSL from sRGB!
-    QColor qcolor(QColor::fromHslF(h, s, l, a));
+    PkColor qcolor(PkColor::fromHslF(h, s, l, a));
     if (!qcolor.isValid()) {
-        warnKrita << "Could not construct valid color from h" << h << "s" << s << "l" << l << "a" << a;
-        qcolor = Qt::black;
+        std::fprintf(stderr, "Could not construct valid color from h %.15g s %.15g l %.15g a %.15g\n",
+                     h, s, l, a);
+        qcolor = PkColor(Pk::black);
     }
     return m_d->approximateFromQColor(qcolor);
 
@@ -779,25 +747,8 @@ KoColor KisDisplayColorConverter::fromHslF(qreal h, qreal s, qreal l, qreal a)
 void KisDisplayColorConverter::getHslF(const KoColor &srcColor, qreal *h, qreal *s, qreal *l, qreal *a)
 {
     // we are going through sRGB here!
-    QColor color = m_d->approximateToQColor(srcColor);
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    PkColor color = m_d->approximateToQColor(srcColor);
     color.getHslF(h, s, l, a);
-#else
-    float fH, fS, fL, fA;
-    fH = *h;
-    fS = *s;
-    fL = *l;
-    if (a) {
-        fA = *a;
-    }
-    color.getHslF(&fH, &fS, &fL, &fA);
-    *h = fH;
-    *s = fS;
-    *l = fL;
-    if (a) {
-        *a = fA;
-    }
-#endif
 }
 
 KoColor KisDisplayColorConverter::fromHsiF(qreal h, qreal s, qreal i)
@@ -808,7 +759,7 @@ KoColor KisDisplayColorConverter::fromHsiF(qreal h, qreal s, qreal i)
     qreal b=0.0;
     qreal a=1.0;
     HSIToRGB(h, s, i, &r, &g, &b);
-    QColor qcolor;
+    PkColor qcolor;
     qcolor.setRgbF(pkBound(0.0,r,1.0), pkBound(0.0,g,1.0), pkBound(0.0,b,1.0), a);
     return m_d->approximateFromQColor(qcolor);
 }
@@ -816,7 +767,7 @@ KoColor KisDisplayColorConverter::fromHsiF(qreal h, qreal s, qreal i)
 void KisDisplayColorConverter::getHsiF(const KoColor &srcColor, qreal *h, qreal *s, qreal *i)
 {
     // we are going through sRGB here!
-    QColor color = m_d->approximateToQColor(srcColor);
+    PkColor color = m_d->approximateToQColor(srcColor);
     qreal r=color.redF();
     qreal g=color.greenF();
     qreal b=color.blueF();
@@ -830,7 +781,7 @@ KoColor KisDisplayColorConverter::fromHsyF(qreal h, qreal s, qreal y, qreal R, q
     y = pow(y, gamma);
     HSYToRGB(h, s, y, &channelValues[0], &channelValues[1], &channelValues[2], R, G, B);
     KoColorSpaceRegistry::instance()->rgb8()->profile()->delinearizeFloatValueFast(channelValues);
-    QColor qcolor;
+    PkColor qcolor;
     qcolor.setRgbF(pkBound(0.0,channelValues[0],1.0), pkBound(0.0,channelValues[1],1.0), pkBound(0.0,channelValues[2],1.0), 1.0);
     return m_d->approximateFromQColor(qcolor);
 }
@@ -838,7 +789,7 @@ KoColor KisDisplayColorConverter::fromHsyF(qreal h, qreal s, qreal y, qreal R, q
 void KisDisplayColorConverter::getHsyF(const KoColor &srcColor, qreal *h, qreal *s, qreal *y, qreal R, qreal G, qreal B, qreal gamma)
 {
     // we are going through sRGB here!
-    QColor color = m_d->approximateToQColor(srcColor);
+    PkColor color = m_d->approximateToQColor(srcColor);
     PkVector<qreal> channelValues(3);
     channelValues[0]=color.redF();
     channelValues[1]=color.greenF();
@@ -851,7 +802,7 @@ void KisDisplayColorConverter::getHsyF(const KoColor &srcColor, qreal *h, qreal 
 
 
 // S-09-g：slot 转发（Q_PRIVATE_SLOT → 普通 slot），Private 此处完整可见。
-void KisDisplayColorConverter::slotCanvasResourceChanged(int key, const QVariant &v)
+void KisDisplayColorConverter::slotCanvasResourceChanged(int key, const PkVariant &v)
 {
     m_d->slotCanvasResourceChanged(key, v);
 }

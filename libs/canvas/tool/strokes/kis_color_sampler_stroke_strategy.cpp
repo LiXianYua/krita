@@ -21,7 +21,7 @@ struct KisColorSamplerStrokeStrategy::Private
 };
 
 KisColorSamplerStrokeStrategy::KisColorSamplerStrokeStrategy(int radius, int blend, int lod)
-    : KisSimpleStrokeStrategy(QLatin1String("KisColorSamplerStrokeStrategy")),
+    : KisSimpleStrokeStrategy(PkString("KisColorSamplerStrokeStrategy")),
       m_d(new Private)
 {
     setSupportsWrapAroundMode(true);
@@ -48,11 +48,11 @@ void KisColorSamplerStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
         KoColor previous = d->currentColor;
         if (KisColorSamplingUtils::sampleColor(color, d->dev, d->pt, &previous, m_d->radius, m_d->blend)) {
             m_d->lastSelectedColor = color;
-            Q_EMIT sigColorUpdated(color);
+            sigColorUpdated(color);
         }
     } else if (finalize) {
         if (m_d->lastSelectedColor) {
-            Q_EMIT sigFinalColorSelected(*m_d->lastSelectedColor);
+            sigFinalColorSelected(*m_d->lastSelectedColor);
         }
     }
 }
@@ -62,8 +62,8 @@ KisStrokeStrategy* KisColorSamplerStrokeStrategy::createLodClone(int levelOfDeta
     m_d->shouldSkipWork = true;
 
     KisColorSamplerStrokeStrategy *lodStrategy = new KisColorSamplerStrokeStrategy(m_d->radius, m_d->blend, levelOfDetail);
-    QObject::connect(lodStrategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
+    PkObject::connect(lodStrategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
             this, &KisColorSamplerStrokeStrategy::sigColorUpdated,
-            Qt::DirectConnection);
+            PkConnectionType::Direct);
     return lodStrategy;
 }

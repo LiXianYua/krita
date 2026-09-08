@@ -7,8 +7,14 @@
 #ifndef __KIS_DISPLAY_COLOR_CONVERTER_H
 #define __KIS_DISPLAY_COLOR_CONVERTER_H
 
-#include <PkFlakeBridge.h>
-#include <QScopedPointer>
+#include <PkColor.h>
+#include <PkImage.h>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
+#include <PkSignalCompat.h>
+#include <PkSize.h>
+#include <PkVariant.h>
 
 #include <KoColorDisplayRendererInterface.h>
 #include <KoColorConversionTransformation.h>
@@ -36,13 +42,11 @@ class KoID;
  * KoColor may be in any of these color spaces. QColor should always
  * be in the display color space only.
  */
-class KRITACANVAS_EXPORT KisDisplayColorConverter : public QObject
+class KRITACANVAS_EXPORT KisDisplayColorConverter : public PkObject
 {
-    Q_OBJECT
-
 public:
     KisDisplayColorConverter();
-    KisDisplayColorConverter(KoCanvasResourceProvider *resourceManager, QObject *parent);
+    KisDisplayColorConverter(KoCanvasResourceProvider *resourceManager, PkObject *parent);
     ~KisDisplayColorConverter() override;
 
     void setImage(KisImageSP image);
@@ -55,10 +59,10 @@ public:
     const KoColorSpace* paintingColorSpace() const;
     const KoColorSpace* nodeColorSpace() const;
     void setMultiSurfaceDisplayConfig(const KisMultiSurfaceDisplayConfig &config);
-    void setDisplayFilter(QSharedPointer<KisDisplayFilter> displayFilter);
+    void setDisplayFilter(PkSharedPointer<KisDisplayFilter> displayFilter);
 
-    QColor toQColor(const KoColor &c, bool proofToPaintColors = false) const;
-    KoColor approximateFromRenderedQColor(const QColor &c) const;
+    PkColor toQColor(const KoColor &c, bool proofToPaintColors = false) const;
+    KoColor approximateFromRenderedQColor(const PkColor &c) const;
 
     bool canSkipDisplayConversion(const KoColorSpace *cs) const;
     KoColor applyDisplayFiltering(const KoColor &srcColor, const KoID &bitDepthId) const;
@@ -77,8 +81,8 @@ public:
      * offset of the image in QImage is always zero for efficiency
      * reasons.
      */
-    QImage toQImage(KisPaintDeviceSP srcDevice, bool proofPaintColors = false) const;
-    QImage toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, QSize size, bool proofPaintColors = false) const;
+    PkImage toQImage(KisPaintDeviceSP srcDevice, bool proofPaintColors = false) const;
+    PkImage toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, PkSize size, bool proofPaintColors = false) const;
 
     KoColor fromHsv(int h, int s, int v, int a = 255) const;
     KoColor fromHsvF(qreal h, qreal s, qreal v, qreal a = 1.0);
@@ -94,32 +98,30 @@ public:
 
     KisDisplayConfig displayConfig() const;
 
-    QSharedPointer<KisDisplayFilter> displayFilter() const;
+    PkSharedPointer<KisDisplayFilter> displayFilter() const;
     KisMultiSurfaceDisplayConfig multiSurfaceDisplayConfig() const;
 
     using ConversionOptions = std::pair<KoColorConversionTransformation::Intent, KoColorConversionTransformation::ConversionFlags>;
     ConversionOptions conversionOptions() const;
 
 
-Q_SIGNALS:
+signals:
     void displayConfigurationChanged();
 
 private:
     // is not possible to implement!
-    KoColor toKoColor(const QColor &c);
+    KoColor toKoColor(const PkColor &c);
     template <class Policy>
     typename Policy::Result convertToDisplayImpl(const KoColor &srcColor, bool alreadyInDestinationF32 = false) const;
 
-private Q_SLOTS:
-    // S-09-g：Q_PRIVATE_SLOT 需要 moc 单元看到完整 Private（已 rehome 到 cpp），改为
-    // 普通 slot 声明 + cpp 内转发，moc 只需声明即可生成合法转发体。
-    void slotCanvasResourceChanged(int key, const QVariant &v);
+private:
+    void slotCanvasResourceChanged(int key, const PkVariant &v);
     void selectPaintingColorSpace();
     void slotUpdateCurrentNodeColorSpace();
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_DISPLAY_COLOR_CONVERTER_H */

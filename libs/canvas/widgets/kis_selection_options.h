@@ -7,8 +7,9 @@
 #ifndef __KIS_SELECTION_OPTIONS_H__
 #define __KIS_SELECTION_OPTIONS_H__
 
-#include <QObject>
 #include <PkList.h>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
 
 #include <kritacanvas_export.h>
 #include <KisSelectionTags.h>
@@ -20,15 +21,12 @@
  * graph must keep the tool behavior observable without retaining the desktop
  * adapter, so this class contains only values and change notifications.
  */
-class KRITACANVAS_EXPORT KisSelectionOptions : public QObject
+class KRITACANVAS_EXPORT KisSelectionOptions : public PkObject
 {
-    Q_OBJECT
-
 public:
     enum ReferenceLayers { CurrentLayer, AllLayers, ColorLabeledLayers };
-    Q_ENUM(ReferenceLayers)
 
-    explicit KisSelectionOptions(QObject *parent = nullptr);
+    explicit KisSelectionOptions(PkObject *parent = nullptr);
 
     SelectionMode mode() const;
     SelectionAction action() const;
@@ -48,7 +46,7 @@ public:
     void setReferenceLayers(ReferenceLayers value);
     void setSelectedColorLabels(const PkList<int> &value);
 
-Q_SIGNALS:
+signals:
     void modeChanged(SelectionMode mode);
     void actionChanged(SelectionAction action);
     void antiAliasSelectionChanged(bool antiAliasSelection);

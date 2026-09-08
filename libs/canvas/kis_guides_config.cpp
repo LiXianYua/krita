@@ -6,30 +6,17 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QColor>
-#include <QDomDocument>
-#include <QList>
-#include <QPen>
-#include <QString>
 #include <pk/geometry/PkTransform.h>
-#include <QVector>
-
-#include <PkFlakeBridge.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include "kis_guides_config.h"
 
-#include <KConfigGroup>
-#include <KSharedConfig>
 #include "kis_dom_utils.h"
 #include "kis_algebra_2d.h"
 #include "kis_global.h"
-#include <KisStaticInitializer.h>
 
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KisGuidesConfig>("KisGuidesConfig");
-}
-
-class Q_DECL_HIDDEN KisGuidesConfig::Private
+class KisGuidesConfig::Private
 {
 public:
 
@@ -45,8 +32,8 @@ public:
             unitType == rhs.unitType;
     }
 
-    QList<qreal> horzGuideLines;
-    QList<qreal> vertGuideLines;
+    PkVector<qreal> horzGuideLines;
+    PkVector<qreal> vertGuideLines;
 
     bool showGuides {false};
     bool snapToGuides {false};
@@ -55,10 +42,10 @@ public:
 
     KoUnit::Type unitType {KoUnit::Pixel};
 
-    QColor guidesColor;
+    PkColor guidesColor;
     LineTypeInternal guidesLineType {LINE_SOLID};
 
-    Qt::PenStyle toPenStyle(LineTypeInternal type);
+    Pk::PenStyle toPenStyle(LineTypeInternal type);
 };
 
 KisGuidesConfig::KisGuidesConfig()
@@ -96,19 +83,19 @@ bool KisGuidesConfig::hasSamePositionAs(const KisGuidesConfig &rhs) const
         verticalGuideLines() == rhs.verticalGuideLines();
 }
 
-void KisGuidesConfig::setHorizontalGuideLines(const QList<qreal> &lines)
+void KisGuidesConfig::setHorizontalGuideLines(const PkVector<qreal> &lines)
 {
     d->horzGuideLines = lines;
 }
 
-void KisGuidesConfig::setVerticalGuideLines(const QList<qreal> &lines)
+void KisGuidesConfig::setVerticalGuideLines(const PkVector<qreal> &lines)
 {
     d->vertGuideLines = lines;
 }
 
-void KisGuidesConfig::addGuideLine(Qt::Orientation o, qreal pos)
+void KisGuidesConfig::addGuideLine(Pk::Orientation o, qreal pos)
 {
-    if (o == Qt::Horizontal) {
+    if (o == Pk::Horizontal) {
         d->horzGuideLines.append(pos);
     } else {
         d->vertGuideLines.append(pos);
@@ -117,7 +104,7 @@ void KisGuidesConfig::addGuideLine(Qt::Orientation o, qreal pos)
 
 void KisGuidesConfig::removeAllGuides()
 {
-    QList<qreal> emptyGuides ;
+    PkVector<qreal> emptyGuides;
     setVerticalGuideLines(emptyGuides);
     setHorizontalGuideLines(emptyGuides);
 }
@@ -184,34 +171,36 @@ void KisGuidesConfig::setGuidesLineType(LineTypeInternal value)
 }
 
 
-QColor KisGuidesConfig::guidesColor() const
+PkColor KisGuidesConfig::guidesColor() const
 {
     return d->guidesColor;
 }
 
-void KisGuidesConfig::setGuidesColor(const QColor &value)
+void KisGuidesConfig::setGuidesColor(const PkColor &value)
 {
     d->guidesColor = value;
 }
 
- Qt::PenStyle KisGuidesConfig::Private::toPenStyle(LineTypeInternal type) {
-    return type == LINE_SOLID ? Qt::SolidLine :
-        type == LINE_DASHED ? Qt::DashLine :
-        type == LINE_DOTTED ? Qt::DotLine :
-        Qt::DashDotDotLine;
+Pk::PenStyle KisGuidesConfig::Private::toPenStyle(LineTypeInternal type) {
+    return type == LINE_SOLID ? Pk::SolidLine :
+        type == LINE_DASHED ? Pk::DashLine :
+        type == LINE_DOTTED ? Pk::DotLine :
+        Pk::DashDotDotLine;
 }
 
-QPen KisGuidesConfig::guidesPen() const
+PkPen KisGuidesConfig::guidesPen() const
 {
-    return QPen(d->guidesColor, 0, d->toPenStyle(d->guidesLineType));
+    PkPen pen(d->guidesColor, 0);
+    pen.setStyle(d->toPenStyle(d->guidesLineType));
+    return pen;
 }
 
-const QList<qreal>& KisGuidesConfig::horizontalGuideLines() const
+const PkVector<qreal>& KisGuidesConfig::horizontalGuideLines() const
 {
     return d->horzGuideLines;
 }
 
-const QList<qreal>& KisGuidesConfig::verticalGuideLines() const
+const PkVector<qreal>& KisGuidesConfig::verticalGuideLines() const
 {
     return d->vertGuideLines;
 }
@@ -223,25 +212,17 @@ bool KisGuidesConfig::hasGuides() const
 
 void KisGuidesConfig::loadStaticData()
 {
-    const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
+    const PkConfigGroup cfg = PkSharedConfig::openConfig()->group(PkString());
     d->guidesLineType = LineTypeInternal(pkBound(0, cfg.readEntry("guidesLineStyle", 0), 2));
-    d->guidesColor = cfg.readEntry("guidesColor", QColor(99, 99, 99));
+    d->guidesColor = cfg.readEntry("guidesColor", PkColor(99, 99, 99));
 }
 
 void KisGuidesConfig::saveStaticData() const
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group(PkString());
     cfg.writeEntry("guidesLineStyle", quint32(d->guidesLineType));
     cfg.writeEntry("guidesColor", d->guidesColor);
     cfg.sync();
-}
-
-QDomElement KisGuidesConfig::saveToXml(QDomDocument& doc, const QString &tag) const
-{
-    PkXmlDocument pkDoc;
-    PkXmlElement guidesElement = saveToXml(pkDoc, toPkString(tag));
-    pkDoc.appendChild(guidesElement);
-    return doc.importNode(toQDomElement(guidesElement), true).toElement();
 }
 
 PkXmlElement KisGuidesConfig::saveToXml(PkXmlDocument& doc, const PkString &tag) const
@@ -250,15 +231,11 @@ PkXmlElement KisGuidesConfig::saveToXml(PkXmlDocument& doc, const PkString &tag)
     KisDomUtils::saveValue(&guidesElement, "showGuides", d->showGuides);
     KisDomUtils::saveValue(&guidesElement, "snapToGuides", d->snapToGuides);
     KisDomUtils::saveValue(&guidesElement, "lockGuides", d->lockGuides);
-    KisDomUtils::saveValue(&guidesElement, "colorGuides", toPkColor(d->guidesColor));
+    KisDomUtils::saveValue(&guidesElement, "colorGuides", d->guidesColor);
     KisDomUtils::saveValue(&guidesElement, "lineTypeGuides", d->guidesLineType);
 
-    PkVector<qreal> horizontalGuides;
-    for (qreal value : d->horzGuideLines) horizontalGuides.append(value);
-    PkVector<qreal> verticalGuides;
-    for (qreal value : d->vertGuideLines) verticalGuides.append(value);
-    KisDomUtils::saveValue(&guidesElement, "horizontalGuides", horizontalGuides);
-    KisDomUtils::saveValue(&guidesElement, "verticalGuides", verticalGuides);
+    KisDomUtils::saveValue(&guidesElement, "horizontalGuides", d->horzGuideLines);
+    KisDomUtils::saveValue(&guidesElement, "verticalGuides", d->vertGuideLines);
 
     KisDomUtils::saveValue(&guidesElement, "rulersMultiple2", d->rulersMultiple2);
     KoUnit tmp(d->unitType);
@@ -267,30 +244,27 @@ PkXmlElement KisGuidesConfig::saveToXml(PkXmlDocument& doc, const PkString &tag)
     return guidesElement;
 }
 
-bool KisGuidesConfig::loadFromXml(const QDomElement &parent)
+bool KisGuidesConfig::loadFromXml(const PkXmlElement &parent)
 {
-    const PkXmlElement pkParent = toPkXmlElement(parent);
-    const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
+    const PkConfigGroup cfg = PkSharedConfig::openConfig()->group(PkString());
     bool result = true;
 
-    result &= KisDomUtils::loadValue(pkParent, "showGuides", &d->showGuides);
-    result &= KisDomUtils::loadValue(pkParent, "snapToGuides", &d->snapToGuides);
-    result &= KisDomUtils::loadValue(pkParent, "lockGuides", &d->lockGuides);
+    result &= KisDomUtils::loadValue(parent, "showGuides", &d->showGuides);
+    result &= KisDomUtils::loadValue(parent, "snapToGuides", &d->snapToGuides);
+    result &= KisDomUtils::loadValue(parent, "lockGuides", &d->lockGuides);
 
     PkVector<qreal> hGuides;
     PkVector<qreal> vGuides;
 
-    result &= KisDomUtils::loadValue(pkParent, "horizontalGuides", &hGuides);
-    result &= KisDomUtils::loadValue(pkParent, "verticalGuides", &vGuides);
+    result &= KisDomUtils::loadValue(parent, "horizontalGuides", &hGuides);
+    result &= KisDomUtils::loadValue(parent, "verticalGuides", &vGuides);
 
-    d->horzGuideLines.clear();
-    for (qreal value : hGuides) d->horzGuideLines.append(value);
-    d->vertGuideLines.clear();
-    for (qreal value : vGuides) d->vertGuideLines.append(value);
+    d->horzGuideLines = hGuides;
+    d->vertGuideLines = vGuides;
 
-    result &= KisDomUtils::loadValue(pkParent, "rulersMultiple2", &d->rulersMultiple2);
+    result &= KisDomUtils::loadValue(parent, "rulersMultiple2", &d->rulersMultiple2);
     PkString unit;
-    result &= KisDomUtils::loadValue(pkParent, "unit", &unit);
+    result &= KisDomUtils::loadValue(parent, "unit", &unit);
     bool ok = false;
     KoUnit tmp = KoUnit::fromSymbol(unit, &ok);
     if (ok) {
@@ -300,13 +274,13 @@ bool KisGuidesConfig::loadFromXml(const QDomElement &parent)
 
     // following variables may not be present in older files; do not update result variable
     int guidesLineType = pkBound(0, cfg.readEntry("guidesLineStyle", 0), 2);
-    KisDomUtils::loadValue(pkParent, "lineTypeGuides", &guidesLineType);
+    KisDomUtils::loadValue(parent, "lineTypeGuides", &guidesLineType);
     d->guidesLineType = LineTypeInternal(guidesLineType);
 
-    d->guidesColor = cfg.readEntry("guidesColor", QColor(99, 99, 99));
-    PkColor guidesColor = toPkColor(d->guidesColor);
-    if (KisDomUtils::loadValue(pkParent, "colorGuides", &guidesColor)) {
-        d->guidesColor = toQColor(guidesColor);
+    d->guidesColor = cfg.readEntry("guidesColor", PkColor(99, 99, 99));
+    PkColor guidesColor = d->guidesColor;
+    if (KisDomUtils::loadValue(parent, "colorGuides", &guidesColor)) {
+        d->guidesColor = guidesColor;
     }
 
     return result;
@@ -324,7 +298,7 @@ void KisGuidesConfig::transform(const PkTransform &transform)
 {
     if (transform.type() >= PkTransform::TxShear) return;
 
-    KisAlgebra2D::DecomposedMatrix m(toPkTransform(transform));
+    KisAlgebra2D::DecomposedMatrix m(transform);
 
     PkTransform t = m.scaleTransform();
 
@@ -339,26 +313,26 @@ void KisGuidesConfig::transform(const PkTransform &transform)
     t *= m.translateTransform();
 
 
-    QList<qreal> newHorzGuideLines;
-    QList<qreal> newVertGuideLines;
+    PkVector<qreal> newHorzGuideLines;
+    PkVector<qreal> newVertGuideLines;
 
-    Q_FOREACH (qreal hRuler, d->horzGuideLines) {
+    for (qreal hRuler : d->horzGuideLines) {
         const PkPointF pt = t.map(PkPointF(0, hRuler));
 
         if (numWraps & 0x1) {
-            newVertGuideLines << pt.x();
+            newVertGuideLines.append(pt.x());
         } else {
-            newHorzGuideLines << pt.y();
+            newHorzGuideLines.append(pt.y());
         }
     }
 
-    Q_FOREACH (qreal vRuler, d->vertGuideLines) {
+    for (qreal vRuler : d->vertGuideLines) {
         const PkPointF pt = t.map(PkPointF(vRuler, 0));
 
         if (!(numWraps & 0x1)) {
-            newVertGuideLines << pt.x();
+            newVertGuideLines.append(pt.x());
         } else {
-            newHorzGuideLines << pt.y();
+            newHorzGuideLines.append(pt.y());
         }
     }
 

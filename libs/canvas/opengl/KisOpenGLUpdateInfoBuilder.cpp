@@ -11,32 +11,7 @@
 
 #include "KisProofingConfiguration.h"
 
-#include <QReadWriteLock>
-#include <QReadLocker>
-#include <QWriteLocker>
-
-namespace {
-
-PkRect toPkRect(const QRect &rect)
-{
-    return PkRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-
-QRect toQRect(const PkRect &rect)
-{
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-
-PkBitArray toPkBitArray(const QBitArray &bits)
-{
-    PkBitArray result(bits.size());
-    for (int i = 0; i < bits.size(); ++i) {
-        result.setBit(i, bits.testBit(i));
-    }
-    return result;
-}
-
-}
+#include <PkReadWriteLock.h>
 
 
 struct KRITACANVAS_NO_EXPORT KisOpenGLUpdateInfoBuilder::Private
@@ -48,13 +23,13 @@ struct KRITACANVAS_NO_EXPORT KisOpenGLUpdateInfoBuilder::Private
     int selectedChannelIndex = -1;
 
     int textureBorder = 0;
-    QSize effectiveTextureSize;
+    PkSize effectiveTextureSize;
 
     KisProofingConfigurationSP proofingConfig;
-    QScopedPointer<KoColorConversionTransformation> proofingTransform;
+    PkScopedPointer<KoColorConversionTransformation> proofingTransform;
 
     KisTextureTileInfoPoolSP pool;
-    QReadWriteLock lock;
+    PkReadWriteLock lock;
 };
 
 
@@ -67,9 +42,9 @@ KisOpenGLUpdateInfoBuilder::~KisOpenGLUpdateInfoBuilder()
 {
 }
 
-KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const QRect &rect, KisImageSP srcImage, bool convertColorSpace)
+KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const PkRect &rect, KisImageSP srcImage, bool convertColorSpace)
 {
-    return buildUpdateInfo(toPkRect(rect), srcImage->projection(), srcImage->bounds(), srcImage->currentLevelOfDetail(), convertColorSpace);
+    return buildUpdateInfo(rect, srcImage->projection(), srcImage->bounds(), srcImage->currentLevelOfDetail(), convertColorSpace);
 }
 
 KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const PkRect &rect, KisPaintDeviceSP projection, const PkRect &bounds, int levelOfDetail, bool convertColorSpace)
@@ -92,7 +67,7 @@ KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const PkRect &
     // lazily create transform
     if (convertColorSpace && needCreateProofingTransform()) {
 
-        QWriteLocker locker(&m_d->lock);
+        PkWriteLocker locker(&m_d->lock);
         if (needCreateProofingTransform()) {
             const KoColorSpace *proofingSpace = KoColorSpaceRegistry::instance()->colorSpace(m_d->proofingConfig->proofingModel,
                                                                                              m_d->proofingConfig->proofingDepth,
@@ -112,7 +87,7 @@ KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const PkRect &
         }
     }
 
-    QReadLocker locker(&m_d->lock);
+    PkReadLocker locker(&m_d->lock);
 
     /**
      * Why the rect is artificial? That's easy!
@@ -177,25 +152,24 @@ KisOpenGLUpdateInfoSP KisOpenGLUpdateInfoBuilder::buildUpdateInfo(const PkRect &
                 info->tileList.append(tileInfo);
             }
             else {
-                dbgUI << "Trying to create an empty tileinfo record" << col << row
-                      << toQRect(alignedTileTextureRect) << toQRect(updateRect) << toQRect(bounds);
+                dbgUI << "Trying to create an empty tileinfo record" << col << row;
             }
         }
     }
 
-    info->assignDirtyImageRect(toQRect(rect));
+    info->assignDirtyImageRect(rect);
     info->assignLevelOfDetail(levelOfDetail);
     return info;
 }
 
-QRect KisOpenGLUpdateInfoBuilder::calculateEffectiveTileRect(int col, int row, const PkRect &imageBounds) const
+PkRect KisOpenGLUpdateInfoBuilder::calculateEffectiveTileRect(int col, int row, const PkRect &imageBounds) const
 {
     const PkRect rect = imageBounds &
             PkRect(col * m_d->effectiveTextureSize.width(),
                    row * m_d->effectiveTextureSize.height(),
                    m_d->effectiveTextureSize.width(),
                    m_d->effectiveTextureSize.height());
-    return toQRect(rect);
+    return rect;
 }
 
 PkRect KisOpenGLUpdateInfoBuilder::calculatePhysicalTileRect(int col, int row, const PkRect &imageBounds, int levelOfDetail) const
@@ -227,59 +201,59 @@ int KisOpenGLUpdateInfoBuilder::yToRow(int y) const
 
 const KoColorSpace *KisOpenGLUpdateInfoBuilder::destinationColorSpace() const
 {
-    QReadLocker lock(&m_d->lock);
+    PkReadLocker lock(&m_d->lock);
 
     return m_d->conversionOptions.m_destinationColorSpace;
 }
 
 void KisOpenGLUpdateInfoBuilder::setConversionOptions(const ConversionOptions &options)
 {
-    QWriteLocker lock(&m_d->lock);
+    PkWriteLocker lock(&m_d->lock);
 
     m_d->conversionOptions = options;
     // the proofing transform becomes invalid when the target colorspace changes
     m_d->proofingTransform.reset();
 }
 
-void KisOpenGLUpdateInfoBuilder::setChannelFlags(const QBitArray &channelFrags, bool onlyOneChannelSelected, int selectedChannelIndex)
+void KisOpenGLUpdateInfoBuilder::setChannelFlags(const PkBitArray &channelFrags, bool onlyOneChannelSelected, int selectedChannelIndex)
 {
-    QWriteLocker lock(&m_d->lock);
+    PkWriteLocker lock(&m_d->lock);
 
-    m_d->channelFlags = toPkBitArray(channelFrags);
+    m_d->channelFlags = channelFrags;
     m_d->onlyOneChannelSelected = onlyOneChannelSelected;
     m_d->selectedChannelIndex = selectedChannelIndex;
 }
 
 void KisOpenGLUpdateInfoBuilder::setTextureBorder(int value)
 {
-    QWriteLocker lock(&m_d->lock);
+    PkWriteLocker lock(&m_d->lock);
 
     m_d->textureBorder = value;
 }
 
-void KisOpenGLUpdateInfoBuilder::setEffectiveTextureSize(const QSize &size)
+void KisOpenGLUpdateInfoBuilder::setEffectiveTextureSize(const PkSize &size)
 {
-    QWriteLocker lock(&m_d->lock);
+    PkWriteLocker lock(&m_d->lock);
 
     m_d->effectiveTextureSize = size;
 }
 
 void KisOpenGLUpdateInfoBuilder::setTextureInfoPool(KisTextureTileInfoPoolSP pool)
 {
-    QWriteLocker lock(&m_d->lock);
+    PkWriteLocker lock(&m_d->lock);
 
     m_d->pool = pool;
 }
 
 KisTextureTileInfoPoolSP KisOpenGLUpdateInfoBuilder::textureInfoPool() const
 {
-    QReadLocker lock(&m_d->lock);
+    PkReadLocker lock(&m_d->lock);
     return m_d->pool;
 }
 
 void KisOpenGLUpdateInfoBuilder::setProofingConfig(KisProofingConfigurationSP config)
 {
-    QWriteLocker lock(&m_d->lock);
+    PkWriteLocker lock(&m_d->lock);
 
     m_d->proofingConfig = config;
     m_d->proofingTransform.reset();
@@ -287,7 +261,7 @@ void KisOpenGLUpdateInfoBuilder::setProofingConfig(KisProofingConfigurationSP co
 
 KisProofingConfigurationSP KisOpenGLUpdateInfoBuilder::proofingConfig() const
 {
-    QReadLocker lock(&m_d->lock);
+    PkReadLocker lock(&m_d->lock);
 
     return m_d->proofingConfig;
 }

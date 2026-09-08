@@ -9,10 +9,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QPainter>
 #include <pk/geometry/PkPoint.h>
-#include <QRect>
-#include <QThreadPool>
 
 #include "kis_tool_freehand.h"
 
@@ -53,33 +50,31 @@ KisToolFreehand::KisToolFreehand(KoCanvasBase * canvas, const QCursor & cursor,
     setSupportOutline(true);
     updateMaskSyntheticEventsFromTouch();
     KisConfigNotifier *notifier = KisConfigNotifier::instance();
-    PkConnection touchPaintingConnection = PkObject::connect(
-        notifier, &KisConfigNotifier::touchPaintingChanged, notifier,
+    PkObject::connect(
+        notifier, &KisConfigNotifier::touchPaintingChanged, this,
         [this]() { updateMaskSyntheticEventsFromTouch(); });
-    QObject::connect(this, &QObject::destroyed,
-                     [touchPaintingConnection](QObject *) mutable {
-                         PkObject::disconnect(touchPaintingConnection);
-                     });
 
     m_infoBuilder = new KisToolFreehandPaintingInformationBuilder(this);
     m_helper = new KisToolFreehandHelper(m_infoBuilder, canvas->resourceManager(), transactionText,
                                          new KisSmoothingOptions(useSavedSmoothing));
 
-    QObject::connect(m_helper, &KisToolFreehandHelper::requestExplicitUpdateOutline,
-                     this, &KisToolFreehand::explicitUpdateOutline);
+    PkObject::connect(m_helper,
+                      &KisToolFreehandHelper::requestExplicitUpdateOutline,
+                      m_helper,
+                      [this] { explicitUpdateOutline(); });
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
     KIS_ASSERT(services);
-    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::brushOutlineChanged,
-            this, &KisToolFreehand::explicitUpdateOutline);
-    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
-            this, &KisToolFreehand::explicitUpdateOutline);
-    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
-            this, &KisToolFreehand::resetCursorStyle);
-    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
-            this, &KisToolFreehand::explicitUpdateOutline);
-    QObject::connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
-            this, &KisToolFreehand::resetCursorStyle);
+    PkObject::connect(services->toolSignals(), &KisCanvasToolSignals::brushOutlineChanged,
+                      m_helper, [this] { explicitUpdateOutline(); });
+    PkObject::connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
+                      m_helper, [this] { explicitUpdateOutline(); });
+    PkObject::connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
+                      m_helper, [this] { resetCursorStyle(); });
+    PkObject::connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
+                      m_helper, [this] { explicitUpdateOutline(); });
+    PkObject::connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
+                      m_helper, [this] { resetCursorStyle(); });
 }
 
 KisToolFreehand::~KisToolFreehand()
@@ -338,7 +333,7 @@ void KisToolFreehand::beginAlternateAction(KoPointerEvent *event, AlternateActio
 
     setMode(GESTURE_MODE);
     m_initialGestureDocPoint = event->point;
-    m_initialGestureGlobalPoint = toQPoint(event->globalPos());
+    m_initialGestureGlobalPoint = event->globalPos();
 
     m_lastDocumentPoint = event->point;
     m_lastPaintOpSize = currentPaintOpPreset()->settings()->paintOpSize();
@@ -363,7 +358,7 @@ void KisToolFreehand::continueAlternateAction(KoPointerEvent *event, AlternateAc
 
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(services);
-    const QRect screenRect = toQRect(services->toolAvailableVirtualScreenGeometry());
+    const PkRect screenRect = services->toolAvailableVirtualScreenGeometry();
     const qreal scaleX = services->toolImageScaleX();
 
     const qreal maxBrushSize = KisImageConfig(true).maxBrushSize();
@@ -408,7 +403,7 @@ void KisToolFreehand::endAlternateAction(KoPointerEvent *event, AlternateAction 
         return;
     }
 
-    dynamic_cast<KisCanvasToolServices *>(canvas())->toolSetCursorPosition(toPkPoint(m_initialGestureGlobalPoint));
+    dynamic_cast<KisCanvasToolServices *>(canvas())->toolSetCursorPosition(m_initialGestureGlobalPoint);
     requestUpdateOutline(m_initialGestureDocPoint, 0);
 
     setMode(HOVER_MODE);

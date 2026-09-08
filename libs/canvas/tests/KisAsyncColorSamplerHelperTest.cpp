@@ -16,8 +16,8 @@
 
 #include <PkThreadCallQueue.h>
 
-#include <KConfigGroup>
-#include <KSharedConfig>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
@@ -42,8 +42,6 @@
 #include "tool/kis_tool_polyline_base.h"
 #include "kis_tool_select_polygonal.h"
 
-Q_DECLARE_METATYPE(KoColor)
-
 namespace {
 class TestSamplingCanvas : public KoCanvasBase,
                            public KisColorSamplingCanvas,
@@ -64,7 +62,7 @@ public:
     }
 
     std::optional<KoColor>
-        sampleVisibleReferenceColor(const QPoint &imagePoint) const override
+        sampleVisibleReferenceColor(const PkPoint &imagePoint) const override
     {
         ++referenceSampleCount;
         lastReferencePoint = imagePoint;
@@ -155,7 +153,7 @@ public:
     mutable int cursorQueryCount {0};
     mutable bool lastCursorSampleCurrentLayer {false};
     mutable bool lastCursorPickFgColor {false};
-    mutable QPoint lastReferencePoint;
+    mutable PkPoint lastReferencePoint;
     int feedbackCount {0};
 };
 
@@ -197,6 +195,13 @@ class EllipsePreviewCanvas final : public TestSamplingCanvas,
                                    public KisCanvasToolServices
 {
 public:
+    struct ActionCallbackRecord {
+        PkString name;
+        const void *receiverIdentity {nullptr};
+        std::function<void()> callback;
+        bool unique {false};
+    };
+
     explicit EllipsePreviewCanvas(KisImageSP image = {})
         : TestSamplingCanvas(image)
     {
@@ -206,7 +211,7 @@ public:
     PkPointF toolWidgetCenterInWidgetPixels() const override { return {}; }
     PkPointF toolDocumentToWidget(const PkPointF &point) const override { return point; }
     PkPointF toolDocumentToAlignedImagePixel(const PkPointF &point) const override { return point; }
-    QTransform toolImageToViewTransform() const override { return {}; }
+    PkTransform toolImageToViewTransform() const override { return {}; }
     void drawToolOutline(PkPainter *painter,
                          const KisOptimizedBrushOutline &path,
                          int) override
@@ -218,7 +223,7 @@ public:
     bool toolBlockUntilOperationsFinished(KisImageWSP) override { return true; }
     void toolBlockUntilOperationsFinishedForced(KisImageWSP) override {}
     bool toolSelectionEditable() const override { return true; }
-    KisCanvasToolSignals *toolSignals() override { return nullptr; }
+    KisCanvasToolSignals *toolSignals() override { return &toolSignalBus; }
     KisPaintOpPresetSP toolCurrentPaintOpPreset() const override { return {}; }
     void toolNotifyPaintingFinished() override {}
     void toolSetControlsEnabled(bool) override {}
@@ -239,20 +244,44 @@ public:
     QCursor toolSamplerCursor() const override { return {}; }
     QCursor toolOpenHandCursor() const override { return {}; }
     QCursor toolClosedHandCursor() const override { return {}; }
+    QCursor toolForbiddenCursor() const override { return {}; }
     QCursor toolLoadCursor(const PkString &, int, int) const override { return {}; }
     void toolSetCursorPosition(const PkPoint &) override {}
     void toolShowBrushSize(qreal) override {}
     void toolShowLockedLayerMessage(bool) override {}
     void toolShowFloatingMessage(const PkString &, bool) override {}
+    void toolShowRectangleSize(int, int) override {}
+    void toolShowRectanglePosition(qreal, qreal) override {}
     PkString toolNodeEditableMessage(KisNodeSP, bool) const override { return {}; }
-    QPainterPath toolShapeHoverInfoCrossLayer(const PkPointF &,
-                                              PkString &,
-                                              bool *,
-                                              bool) const override { return {}; }
+    PkPainterPath toolShapeHoverInfoCrossLayer(const PkPointF &,
+                                               PkString &,
+                                               bool *,
+                                               bool) const override { return {}; }
     bool toolSelectShapeCrossLayer(const PkPointF &,
                                    const PkString &,
                                    bool) override { return false; }
     void toolUpdateCanvas() override {}
+    void toolSetActionCallback(const PkString &name,
+                               const void *receiverIdentity,
+                               std::function<void()> callback,
+                               bool unique) override
+    {
+        actionCallbacks.push_back({name, receiverIdentity, std::move(callback), unique});
+    }
+    void toolClearActionCallbacks(const void *receiverIdentity) override
+    {
+        clearedActionReceiver = receiverIdentity;
+        actionCallbacks.clear();
+    }
+    void toolSetPriorityRightClickCallback(const void *receiverIdentity,
+                                           std::function<bool()> callback,
+                                           bool attached) override
+    {
+        rightClickReceiver = receiverIdentity;
+        rightClickCallback = std::move(callback);
+        rightClickAttached = attached;
+    }
+    KisToolKeyEventState toolKeyEventState(const void *) const override { return {}; }
     void toolSetPriorityEventFilter(QObject *, bool) override {}
     KisInputActionGroupsMaskInterface::SharedInterface
         toolInputActionGroupsMaskInterface() override { return {}; }
@@ -265,6 +294,13 @@ public:
                                          bool) override { return point; }
     qreal toolAssistantPerspective(const PkPointF &) const override { return 1.0; }
     void toolEndAssistantStroke() override {}
+
+    std::vector<ActionCallbackRecord> actionCallbacks;
+    const void *clearedActionReceiver {nullptr};
+    const void *rightClickReceiver {nullptr};
+    std::function<bool()> rightClickCallback;
+    bool rightClickAttached {false};
+    KisCanvasToolSignals toolSignalBus;
 };
 
 class EllipsePreviewTool final : public KisToolEllipseBase
@@ -332,7 +368,7 @@ template <typename T>
 class ConfigEntryGuard
 {
 public:
-    ConfigEntryGuard(KConfigGroup group, QString key, T fallback)
+    ConfigEntryGuard(PkConfigGroup group, PkString key, T fallback)
         : m_group(std::move(group))
         , m_key(std::move(key))
         , m_hadEntry(m_group.hasKey(m_key))
@@ -350,8 +386,8 @@ public:
     }
 
 private:
-    KConfigGroup m_group;
-    QString m_key;
+    PkConfigGroup m_group;
+    PkString m_key;
     bool m_hadEntry;
     T m_oldValue;
 };
@@ -372,18 +408,10 @@ void setCurrentNode(TestSamplingCanvas &canvas, KisNodeSP node)
                                           PkVariant::fromValue(KisNodeWSP(node)));
 }
 
-bool invokeSamplingJob(KisAsyncColorSamplerHelper &helper)
-{
-    return QMetaObject::invokeMethod(&helper,
-                                     "slotAddSamplingJob",
-                                     Qt::DirectConnection,
-                                     Q_ARG(PkPointF, PkPointF(2, 3)));
-}
 }
 
 void KisAsyncColorSamplerHelperTest::initTestCase()
 {
-    qRegisterMetaType<KoColor>("KoColor");
     PkThreadCallQueue::warmUpCurrentThread();
 }
 
@@ -462,9 +490,9 @@ void KisAsyncColorSamplerHelperTest::referenceColorShortCircuitsDeviceSampling()
     QList<KoColor> sampledColors;
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
-    QObject::connect(&helper,
+    PkObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRawColorSelected,
-            this,
+            &helper,
             [&sampledColors](const KoColor &color) {
                 sampledColors.append(color);
             });
@@ -473,13 +501,14 @@ void KisAsyncColorSamplerHelperTest::referenceColorShortCircuitsDeviceSampling()
     helper.startAction(PkPointF(2, 3), 1, 100);
     sampledColors.clear();
     canvas.referenceSampleCount = 0;
-    QVERIFY(invokeSamplingJob(helper));
+    helper.slotAddSamplingJob(PkPointF(2, 3));
     helper.endAction();
     image->waitForDone();
     QTest::qWait(120);
 
     QCOMPARE(canvas.referenceSampleCount, 1);
-    QCOMPARE(canvas.lastReferencePoint, QPoint(2, 3));
+    QCOMPARE(canvas.lastReferencePoint.x(), 2);
+    QCOMPARE(canvas.lastReferencePoint.y(), 3);
     QCOMPARE(sampledColors.size(), 1);
     QCOMPARE(toQColor(sampledColors.first().toQColor()), QColor(Qt::red));
 }
@@ -504,9 +533,9 @@ void KisAsyncColorSamplerHelperTest::missingReferenceFallsBackToProjection()
     QList<KoColor> sampledColors;
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
-    QObject::connect(&helper,
+    PkObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRawColorSelected,
-            this,
+            &helper,
             [&sampledColors](const KoColor &color) {
                 sampledColors.append(color);
             });
@@ -515,10 +544,10 @@ void KisAsyncColorSamplerHelperTest::missingReferenceFallsBackToProjection()
     helper.startAction(PkPointF(2, 3), 1, 100);
     sampledColors.clear();
     canvas.referenceSampleCount = 0;
-    QVERIFY(invokeSamplingJob(helper));
+    helper.slotAddSamplingJob(PkPointF(2, 3));
     helper.endAction();
     image->waitForDone();
-    QTRY_COMPARE(sampledColors.size(), 2);
+    QTRY_COMPARE((PkThreadCallQueue::processPendingCalls(), sampledColors.size()), 2);
 
     QCOMPARE(canvas.referenceSampleCount, 1);
     QCOMPARE(toQColor(sampledColors.last().toQColor()), QColor(Qt::green));
@@ -549,9 +578,9 @@ void KisAsyncColorSamplerHelperTest::delayedJobReadsTheCurrentNodeAgain()
     QList<KoColor> sampledColors;
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
-    QObject::connect(&helper,
+    PkObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRawColorSelected,
-            this,
+            &helper,
             [&sampledColors](const KoColor &color) {
                 sampledColors.append(color);
             });
@@ -564,10 +593,10 @@ void KisAsyncColorSamplerHelperTest::delayedJobReadsTheCurrentNodeAgain()
                  ->resource(KoCanvasResource::CurrentKritaNode)
                  .value<KisNodeWSP>(),
              KisNodeWSP(secondLayer));
-    QVERIFY(invokeSamplingJob(helper));
+    helper.slotAddSamplingJob(PkPointF(2, 3));
     helper.endAction();
     image->waitForDone();
-    QTRY_COMPARE(sampledColors.size(), 2);
+    QTRY_COMPARE((PkThreadCallQueue::processPendingCalls(), sampledColors.size()), 2);
 
     QCOMPARE(canvas.referenceSampleCount, 0);
     QCOMPARE(toQColor(sampledColors.first().toQColor()), QColor(Qt::red));
@@ -576,8 +605,8 @@ void KisAsyncColorSamplerHelperTest::delayedJobReadsTheCurrentNodeAgain()
 
 void KisAsyncColorSamplerHelperTest::previewUsesSamplingCanvasGeometry()
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group("");
-    const QString key = QStringLiteral("colorSamplerPreviewStyle");
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
+    const PkString key("colorSamplerPreviewStyle");
     const ConfigEntryGuard<int> styleGuard(cfg, key, 1);
     cfg.writeEntry(key, 2); // RectangleLeft
 
@@ -591,9 +620,7 @@ void KisAsyncColorSamplerHelperTest::previewUsesSamplingCanvasGeometry()
 
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.activate(false, true);
-    QVERIFY(QMetaObject::invokeMethod(&helper,
-                                      "activateDelayedPreview",
-                                      Qt::DirectConnection));
+    helper.activateDelayedPreview();
     const PkRectF previewRect = helper.colorPreviewDocRect(PkPointF(10, 20));
     helper.deactivate();
 
@@ -607,8 +634,8 @@ void KisAsyncColorSamplerHelperTest::previewUsesSamplingCanvasGeometry()
 
 void KisAsyncColorSamplerHelperTest::rectanglePreviewPreservesCommandsAndState()
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group("");
-    const QString styleKey = QStringLiteral("colorSamplerPreviewStyle");
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
+    const PkString styleKey("colorSamplerPreviewStyle");
     const ConfigEntryGuard<int> styleGuard(cfg, styleKey, 1);
     cfg.writeEntry(styleKey, 2); // RectangleLeft
 
@@ -623,13 +650,8 @@ void KisAsyncColorSamplerHelperTest::rectanglePreviewPreservesCommandsAndState()
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
     helper.activate(false, true);
-    QVERIFY(QMetaObject::invokeMethod(&helper,
-                                      "activateDelayedPreview",
-                                      Qt::DirectConnection));
-    QVERIFY(QMetaObject::invokeMethod(&helper,
-                                      "slotColorSamplingFinished",
-                                      Qt::DirectConnection,
-                                      Q_ARG(KoColor, KoColor(Pk::red, image->colorSpace()))));
+    helper.activateDelayedPreview();
+    helper.slotColorSamplingFinished(KoColor(Pk::red, image->colorSpace()));
     const PkRectF viewRect = helper.colorPreviewDocRect(PkPointF(10.25, 20.75));
 
     RecordingBackend backend(2.0);
@@ -674,12 +696,12 @@ void KisAsyncColorSamplerHelperTest::rectanglePreviewPreservesCommandsAndState()
 
 void KisAsyncColorSamplerHelperTest::circlePreviewPreservesRingCommandsAndState()
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group("");
-    const QString styleKey = QStringLiteral("colorSamplerPreviewStyle");
-    const QString diameterKey = QStringLiteral("colorSamplerPreviewCircleDiameter");
-    const QString thicknessKey = QStringLiteral("colorSamplerPreviewCircleThickness");
-    const QString outlineKey = QStringLiteral("colorSamplerPreviewCircleOutlineEnabled");
-    const QString extraKey = QStringLiteral("colorSamplerPreviewCircleExtraCirclesEnabled");
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
+    const PkString styleKey("colorSamplerPreviewStyle");
+    const PkString diameterKey("colorSamplerPreviewCircleDiameter");
+    const PkString thicknessKey("colorSamplerPreviewCircleThickness");
+    const PkString outlineKey("colorSamplerPreviewCircleOutlineEnabled");
+    const PkString extraKey("colorSamplerPreviewCircleExtraCirclesEnabled");
     const ConfigEntryGuard<int> styleGuard(cfg, styleKey, 1);
     const ConfigEntryGuard<int> diameterGuard(cfg, diameterKey, 180);
     const ConfigEntryGuard<qreal> thicknessGuard(cfg, thicknessKey, 12.0);
@@ -704,13 +726,8 @@ void KisAsyncColorSamplerHelperTest::circlePreviewPreservesRingCommandsAndState(
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
     helper.setUpdateGlobalColor(false);
     helper.activate(false, true);
-    QVERIFY(QMetaObject::invokeMethod(&helper,
-                                      "activateDelayedPreview",
-                                      Qt::DirectConnection));
-    QVERIFY(QMetaObject::invokeMethod(&helper,
-                                      "slotColorSamplingFinished",
-                                      Qt::DirectConnection,
-                                      Q_ARG(KoColor, KoColor(Pk::red, image->colorSpace()))));
+    helper.activateDelayedPreview();
+    helper.slotColorSamplingFinished(KoColor(Pk::red, image->colorSpace()));
     const PkRectF viewRect = helper.colorPreviewDocRect(PkPointF(10.25, 20.75));
 
     RecordingBackend backend;
@@ -817,9 +834,9 @@ void KisAsyncColorSamplerHelperTest::cursorUsesSamplingCanvasPolicy()
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
 
     QCursor requestedCursor;
-    QObject::connect(&helper,
+    PkObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRequestCursor,
-            this,
+            &helper,
             [&requestedCursor](const QCursor &cursor) {
                 requestedCursor = cursor;
             });
@@ -884,10 +901,44 @@ void KisAsyncColorSamplerHelperTest::proxyDispatchesPolylineAndSelectionDecorati
     proxy.priv()->activeTool = nullptr;
 }
 
+void KisAsyncColorSamplerHelperTest::hostCallbacksPreserveActionAndRightClickLifecycle()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    EllipsePreviewCanvas canvas(image);
+    setCurrentNode(canvas, layer);
+    PolylinePreviewTool tool(&canvas);
+
+    tool.activate({});
+
+    QCOMPARE(canvas.actionCallbacks.size(), std::size_t(7));
+    QCOMPARE(canvas.actionCallbacks.back().name, PkString("undo_polygon_selection"));
+    QCOMPARE(canvas.actionCallbacks.back().receiverIdentity,
+             static_cast<const void *>(&tool));
+    QVERIFY(canvas.actionCallbacks.back().unique);
+    QVERIFY(canvas.rightClickAttached);
+    QCOMPARE(canvas.rightClickReceiver, static_cast<const void *>(&tool));
+    QVERIFY(canvas.rightClickCallback);
+    QVERIFY(!canvas.rightClickCallback());
+
+    QMouseEvent press(QEvent::MouseButtonPress, QPointF(10, 20),
+                      Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    KoPointerEvent start(&press, PkPointF(10, 20));
+    tool.beginPrimaryAction(&start);
+    QVERIFY(canvas.rightClickCallback());
+    QVERIFY(!canvas.rightClickCallback());
+
+    tool.deactivate();
+    QCOMPARE(canvas.clearedActionReceiver, static_cast<const void *>(&tool));
+    QVERIFY(canvas.actionCallbacks.empty());
+    QVERIFY(!canvas.rightClickAttached);
+    QVERIFY(!canvas.rightClickCallback);
+}
+
 void KisAsyncColorSamplerHelperTest::proxyDispatchesProductionAsyncSampler()
 {
-    KConfigGroup cfg = KSharedConfig::openConfig()->group("");
-    const QString styleKey = QStringLiteral("colorSamplerPreviewStyle");
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
+    const PkString styleKey("colorSamplerPreviewStyle");
     const ConfigEntryGuard<int> styleGuard(cfg, styleKey, 1);
     cfg.writeEntry(styleKey, 2);
 

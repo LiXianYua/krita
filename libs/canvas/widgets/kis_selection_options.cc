@@ -6,8 +6,8 @@
 
 #include "kis_selection_options.h"
 
-KisSelectionOptions::KisSelectionOptions(QObject *parent)
-    : QObject(parent)
+KisSelectionOptions::KisSelectionOptions(PkObject *parent)
+    : PkObject(parent)
 {
 }
 
@@ -55,54 +55,54 @@ void KisSelectionOptions::setMode(SelectionMode value)
 {
     if (m_mode == value) return;
     m_mode = value;
-    Q_EMIT modeChanged(value);
+    modeChanged(value);
 }
 
 void KisSelectionOptions::setAction(SelectionAction value)
 {
     if (m_action == value) return;
     m_action = value;
-    Q_EMIT actionChanged(value);
+    actionChanged(value);
 }
 
 void KisSelectionOptions::setAntiAliasSelection(bool value)
 {
     if (m_antiAliasSelection == value) return;
     m_antiAliasSelection = value;
-    Q_EMIT antiAliasSelectionChanged(value);
+    antiAliasSelectionChanged(value);
 }
 
 void KisSelectionOptions::setGrowSelection(int value)
 {
     if (m_growSelection == value) return;
     m_growSelection = value;
-    Q_EMIT growSelectionChanged(value);
+    growSelectionChanged(value);
 }
 
 void KisSelectionOptions::setStopGrowingAtDarkestPixel(bool value)
 {
     if (m_stopGrowingAtDarkestPixel == value) return;
     m_stopGrowingAtDarkestPixel = value;
-    Q_EMIT stopGrowingAtDarkestPixelChanged(value);
+    stopGrowingAtDarkestPixelChanged(value);
 }
 
 void KisSelectionOptions::setFeatherSelection(int value)
 {
     if (m_featherSelection == value) return;
     m_featherSelection = value;
-    Q_EMIT featherSelectionChanged(value);
+    featherSelectionChanged(value);
 }
 
 void KisSelectionOptions::setReferenceLayers(ReferenceLayers value)
 {
     if (m_referenceLayers == value) return;
     m_referenceLayers = value;
-    Q_EMIT referenceLayersChanged(value);
+    referenceLayersChanged(value);
 }
 
 void KisSelectionOptions::setSelectedColorLabels(const PkList<int> &value)
 {
     if (m_selectedColorLabels == value) return;
     m_selectedColorLabels = value;
-    Q_EMIT selectedColorLabelsChanged();
+    selectedColorLabelsChanged();
 }

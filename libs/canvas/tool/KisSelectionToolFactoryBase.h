@@ -14,7 +14,7 @@
 class KRITACANVAS_EXPORT KisSelectionToolFactoryBase : public KisToolPaintFactoryBase
 {
 public:
-    explicit KisSelectionToolFactoryBase(const QString &id);
+    explicit KisSelectionToolFactoryBase(const PkString &id);
     ~KisSelectionToolFactoryBase() override;
 protected:
     PkList<QAction *> createActionsImpl() override;
@@ -23,7 +23,7 @@ protected:
 class KRITACANVAS_EXPORT KisToolPolyLineFactoryBase : public KisToolPaintFactoryBase
 {
 public:
-    explicit KisToolPolyLineFactoryBase(const QString &id);
+    explicit KisToolPolyLineFactoryBase(const PkString &id);
     ~KisToolPolyLineFactoryBase() override;
 protected:
     PkList<QAction *> createActionsImpl() override;

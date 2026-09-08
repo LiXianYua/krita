@@ -12,13 +12,12 @@
 
 class KRITACANVAS_EXPORT KisToolRectangleBase : public KisToolShape
 {
-Q_OBJECT
+signals:
 
-Q_SIGNALS:
     void rectangleChanged(const PkRectF &newRect);
     void sigRequestReloadConfig();
 
-public Q_SLOTS:
+public:
     void constraintsChanged(bool forceRatio, bool forceWidth, bool forceHeight, float ratio, float width, float height);
     void roundCornersChanged(int rx, int ry);
 
@@ -43,7 +42,6 @@ public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
-    PkList<QPointer<QWidget>> createOptionWidgets() override;
     void showSize();
 
 protected:
@@ -66,7 +64,7 @@ protected:
     qreal m_referenceAngle;
     qreal m_angle;
     qreal m_angleBuffer;
-    Qt::KeyboardModifiers m_currentModifiers;
+    Pk::KeyboardModifiers m_currentModifiers;
 
     bool isFixedSize();
     qreal getRotationAngle();

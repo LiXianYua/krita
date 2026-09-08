@@ -6,6 +6,8 @@
 
 #include "KisStabilizerDelayedPaintHelper.h"
 
+#include <chrono>
+
 constexpr int fixedPaintTimerInterval = 20;
 
 KisStabilizerDelayedPaintHelper::TimedPaintInfo::TimedPaintInfo(int elapsedTime, KisPaintInformation paintInfo)
@@ -16,22 +18,21 @@ KisStabilizerDelayedPaintHelper::TimedPaintInfo::TimedPaintInfo(int elapsedTime,
 
 KisStabilizerDelayedPaintHelper::KisStabilizerDelayedPaintHelper()
 {
-    QObject::connect(&m_paintTimer, SIGNAL(timeout()), SLOT(stabilizerDelayedPaintTimer()));
 }
 
 void KisStabilizerDelayedPaintHelper::start(const KisPaintInformation &firstPaintInfo) {
     if (running()) {
         cancel();
     }
-    m_paintTimer.setInterval(fixedPaintTimerInterval);
-    m_paintTimer.start();
+    m_paintTimer.start(std::chrono::milliseconds(fixedPaintTimerInterval),
+                       [this] { stabilizerDelayedPaintTimer(); });
     m_elapsedTimer.start();
     m_lastPendingTime = m_elapsedTimer.elapsed();
     m_lastPaintTime = m_lastPendingTime;
     m_paintQueue.enqueue(TimedPaintInfo(m_lastPendingTime, firstPaintInfo));
 }
 
-void KisStabilizerDelayedPaintHelper::update(const QVector<KisPaintInformation> &newPaintInfos) {
+void KisStabilizerDelayedPaintHelper::update(const PkVector<KisPaintInformation> &newPaintInfos) {
     int now = m_elapsedTimer.elapsed();
     int delayedPaintInterval = m_elapsedTimer.elapsed() - m_lastPendingTime;
     for (int i = 0; i < newPaintInfos.size(); i++) {

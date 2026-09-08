@@ -8,13 +8,14 @@
 #define __KIS_TEXTURE_TILE_INFO_POOL_H
 
 #include <boost/pool/pool.hpp>
-#include <QtGlobal>
-#include <QVector>
-
-#include <QMutex>
-#include <QMutexLocker>
-#include <QApplication>
-#include <QSharedPointer>
+#include <PkConnection.h>
+#include <PkMap.h>
+#include <PkMutex.h>
+#include <PkObject.h>
+#include <PkSharedPointer.h>
+#include <PkSignalCompat.h>
+#include <PkThread.h>
+#include <PkVector.h>
 
 #include "kis_assert.h"
 #include "kis_debug.h"
@@ -95,14 +96,13 @@ private:
 
 class KisTextureTileInfoPool;
 
-class KRITACANVAS_EXPORT KisTextureTileInfoPoolWorker : public QObject
+class KRITACANVAS_EXPORT KisTextureTileInfoPoolWorker : public PkObject
 {
-    Q_OBJECT
 public:
     KisTextureTileInfoPoolWorker(KisTextureTileInfoPool *pool);
     ~KisTextureTileInfoPoolWorker() override;
 
-public Q_SLOTS:
+public:
     void slotPurge(int pixelSize, int numFrees);
     void slotDelayedPurge();
 
@@ -111,7 +111,7 @@ private:
     KisSignalCompressor m_compressor;
     PkObject m_compressorReceiver;
     PkConnection m_compressorConnection;
-    QMap<int, int> m_purge;
+    PkMap<int, int> m_purge;
 };
 
 /**
@@ -119,29 +119,35 @@ private:
  * sizes.  The underlying pools are created for each pixel size on
  * demand.
  */
-class KRITACANVAS_EXPORT KisTextureTileInfoPool : public QObject
+class KRITACANVAS_EXPORT KisTextureTileInfoPool : public PkObject
 {
-    Q_OBJECT
 public:
     KisTextureTileInfoPool(int tileWidth, int tileHeight)
         : m_tileWidth(tileWidth),
           m_tileHeight(tileHeight)
     {
         m_worker = new KisTextureTileInfoPoolWorker(this);
-        m_worker->moveToThread(QApplication::instance()->thread());
-        QObject::connect(this, SIGNAL(purge(int, int)), m_worker, SLOT(slotPurge(int, int)));
+        const PkThreadId mainThread = PkThread::mainThreadId();
+        if (mainThread != PkThreadId{}) {
+            m_worker->moveToThread(mainThread);
+        }
+        m_purgeConnection = PkObject::connect(
+            this, &KisTextureTileInfoPool::purge,
+            m_worker, &KisTextureTileInfoPoolWorker::slotPurge);
     }
 
     ~KisTextureTileInfoPool() {
         delete m_worker;
-        qDeleteAll(m_pools);
+        for (KisTextureTileInfoPoolSingleSize *pool : m_pools) {
+            delete pool;
+        }
     }
 
     /**
      * Alloc a tile with the specified pixel size
      */
     quint8* malloc(int pixelSize) {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
 
         if (m_pools.size() <= pixelSize) {
             m_pools.resize(pixelSize + 1);
@@ -159,10 +165,10 @@ public:
      * Free a tile with the specified pixel size
      */
     void free(quint8 *ptr, int pixelSize) {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         KisTextureTileInfoPoolSingleSize *pool = m_pools[pixelSize];
         if (pool->free(ptr)) {
-            Q_EMIT purge(pixelSize, pool->numFrees());
+            purge(pixelSize, pool->numFrees());
         }
     }
 
@@ -170,36 +176,37 @@ public:
      * \return the length of the chunks stored in the pool
      */
     int chunkSize(int pixelSize) const {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         return m_pools[pixelSize]->chunkSize();
     }
 
     void tryPurge(int pixelSize, int numFrees) {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         m_pools[pixelSize]->tryPurge(numFrees);
     }
 
-Q_SIGNALS:
+signals:
     void purge(int pixelSize, int numFrees);
 
 private:
-    mutable QMutex m_mutex;
+    mutable PkMutex m_mutex;
     const int m_tileWidth;
     const int m_tileHeight;
-    QVector<KisTextureTileInfoPoolSingleSize*> m_pools;
+    PkVector<KisTextureTileInfoPoolSingleSize*> m_pools;
     KisTextureTileInfoPoolWorker *m_worker;
+    PkConnection m_purgeConnection;
 };
 
-typedef QSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
+typedef PkSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
 
 class KRITACANVAS_EXPORT KisTextureTileInfoPoolRegistry
 {
-    typedef QWeakPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolWSP;
-    typedef QPair<int, int> PoolId;
+    typedef PkWeakPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolWSP;
+    typedef std::pair<int, int> PoolId;
 
 public:
     KisTextureTileInfoPoolSP getPool(int tileWidth, int tileHeight) {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
 
         PoolId id(tileWidth, tileHeight);
 
@@ -215,8 +222,8 @@ public:
     }
 
 private:
-    QMutex m_mutex;
-    QHash<PoolId, KisTextureTileInfoPoolWSP> m_storage;
+    PkMutex m_mutex;
+    PkMap<PoolId, KisTextureTileInfoPoolWSP> m_storage;
 };
 
 

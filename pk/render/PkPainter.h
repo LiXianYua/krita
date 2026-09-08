@@ -68,6 +68,7 @@ public:
     void fillPath(const PkPainterPath &path, const PkColor &color) { fillPath(path, PkBrush(color)); }
     void fillTexturePath(const PkPainterPath &, const PkImage &, const PkTransform &);
     void drawImage(const PkRectF &, const PkImage &);
+    void drawImage(const PkRectF &target, const PkImage &image, const PkRectF &source);
     void drawImage(const PkPointF &point, const PkImage &image) {
         drawImage(PkRectF(point, PkSizeF(image.width() / image.devicePixelRatio(), image.height() / image.devicePixelRatio())), image);
     }

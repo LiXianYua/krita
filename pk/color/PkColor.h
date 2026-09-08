@@ -107,6 +107,11 @@ public:
     qreal blueF() const noexcept;
     qreal alphaF() const noexcept;
 
+    // ── 组合 getter（输出指针语义对齐 QColor 5.15）────────
+    void getHsv(int *h, int *s, int *v, int *a = nullptr) const noexcept;
+    void getHsvF(qreal *h, qreal *s, qreal *v, qreal *a = nullptr) const noexcept;
+    void getHslF(qreal *h, qreal *s, qreal *l, qreal *a = nullptr) const noexcept;
+
     // ── 合成取色 ───────────────────────────────────────────
     quint32 rgba() const noexcept;       // 0xaarrggbb（无效色 = 0xff000000）
     quint32 rgb() const noexcept;        // 0x00rrggbb（alpha 恒 255）

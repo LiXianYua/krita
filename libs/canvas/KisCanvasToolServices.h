@@ -6,14 +6,17 @@
 #define KIS_CANVAS_TOOL_SERVICES_H
 
 #include <PkFlakeBridge.h>
+#include <PkObject.h>
+#include <PkSignalCompat.h>
+#include <functional>
 #include <KoCanvasCursorHost.h>
 #include <pk/geometry/PkPoint.h>
-#include <QPainterPath>
+#include <pk/geometry/PkPainterPath.h>
 #include <QCursor>
 #include <QObject>
 #include <pk/geometry/PkRect.h>
 #include <pk/geometry/PkSize.h>
-#include <QTransform>
+#include <pk/geometry/PkTransform.h>
 
 #include <kis_global.h>
 #include <kis_types.h>
@@ -24,14 +27,18 @@ class PkPainter;
 class KisOptimizedBrushOutline;
 class KisPopupWidgetInterface;
 
-class KRITACANVAS_EXPORT KisCanvasToolSignals : public QObject
+struct KisToolKeyEventState
 {
-    Q_OBJECT
+    Pk::Key key {static_cast<Pk::Key>(0)};
+    Pk::KeyboardModifiers modifiers;
+};
 
+class KRITACANVAS_EXPORT KisCanvasToolSignals : public PkObject
+{
 public:
-    using QObject::QObject;
+    using PkObject::PkObject;
 
-Q_SIGNALS:
+signals:
     void brushOutlineChanged();
     void effectiveCompositeOpChanged();
     void paintOpPresetChanged();
@@ -52,7 +59,7 @@ public:
     virtual PkPointF toolWidgetCenterInWidgetPixels() const = 0;
     virtual PkPointF toolDocumentToWidget(const PkPointF &point) const = 0;
     virtual PkPointF toolDocumentToAlignedImagePixel(const PkPointF &point) const = 0;
-    virtual QTransform toolImageToViewTransform() const = 0;
+    virtual PkTransform toolImageToViewTransform() const = 0;
     virtual void drawToolOutline(PkPainter *painter,
                                  const KisOptimizedBrushOutline &path,
                                  int thickness) = 0;
@@ -81,6 +88,7 @@ public:
     virtual QCursor toolSamplerCursor() const = 0;
     virtual QCursor toolOpenHandCursor() const = 0;
     virtual QCursor toolClosedHandCursor() const = 0;
+    virtual QCursor toolForbiddenCursor() const = 0;
     virtual QCursor toolLoadCursor(const PkString &name, int hotX, int hotY) const = 0;
     QCursor loadCursorResource(const PkString &resource,
                                const PkSize &size,
@@ -94,16 +102,27 @@ public:
     virtual void toolShowLockedLayerMessage(bool myPaintUnavailable) = 0;
     virtual void toolShowFloatingMessage(const PkString &message,
                                          bool lockedIcon = false) = 0;
+    virtual void toolShowRectangleSize(int width, int height) = 0;
+    virtual void toolShowRectanglePosition(qreal x, qreal y) = 0;
     virtual PkString toolNodeEditableMessage(KisNodeSP node,
                                             bool blockedNoIndirectPainting = false) const = 0;
-    virtual QPainterPath toolShapeHoverInfoCrossLayer(const PkPointF &point,
-                                                      PkString &shapeType,
-                                                      bool *isHorizontal = nullptr,
-                                                      bool skipCurrentShapes = true) const = 0;
+    virtual PkPainterPath toolShapeHoverInfoCrossLayer(const PkPointF &point,
+                                                       PkString &shapeType,
+                                                       bool *isHorizontal = nullptr,
+                                                       bool skipCurrentShapes = true) const = 0;
     virtual bool toolSelectShapeCrossLayer(const PkPointF &point,
                                            const PkString &shapeType = PkString(),
                                            bool skipCurrentShapes = true) = 0;
     virtual void toolUpdateCanvas() = 0;
+    virtual void toolSetActionCallback(const PkString &actionName,
+                                       const void *receiverIdentity,
+                                       std::function<void()> callback,
+                                       bool unique) = 0;
+    virtual void toolClearActionCallbacks(const void *receiverIdentity) = 0;
+    virtual void toolSetPriorityRightClickCallback(const void *receiverIdentity,
+                                                   std::function<bool()> callback,
+                                                   bool attached) = 0;
+    virtual KisToolKeyEventState toolKeyEventState(const void *hostEvent) const = 0;
     virtual void toolSetPriorityEventFilter(QObject *filter, bool attached) = 0;
     virtual KisInputActionGroupsMaskInterface::SharedInterface
         toolInputActionGroupsMaskInterface() = 0;

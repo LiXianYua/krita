@@ -10,12 +10,6 @@
 
 #include <PkFlakeBridge.h>
 
-#include <QAction>
-#include <QMouseEvent>
-#include <QTabletEvent>
-
-#include <klocalizedstring.h>
-
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
@@ -39,8 +33,11 @@ KisToolOutlineBase::~KisToolOutlineBase()
 
 void KisToolOutlineBase::keyPressEvent(QKeyEvent *event)
 {
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(services);
+    const KisToolKeyEventState state = services->toolKeyEventState(event);
     // Allow to enter continued mode only if we started drawing the shape
-    if (mode() == PAINT_MODE && event->key() == Qt::Key_Control) {
+    if (mode() == PAINT_MODE && state.key == Pk::Key_Control) {
         m_continuedMode = true;
         installBlockActionGuard();
     }
@@ -49,8 +46,10 @@ void KisToolOutlineBase::keyPressEvent(QKeyEvent *event)
 
 void KisToolOutlineBase::keyReleaseEvent(QKeyEvent *event)
 {
-    if (event->key() == Qt::Key_Control ||
-        !(event->modifiers() & Qt::ControlModifier)) {
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(services);
+    const KisToolKeyEventState state = services->toolKeyEventState(event);
+    if (state.key == Pk::Key_Control || !(state.modifiers & Pk::ControlModifier)) {
         m_continuedMode = false;
         if (mode() != PAINT_MODE) {
             endStroke();
@@ -77,9 +76,20 @@ void KisToolOutlineBase::mouseMoveEvent(KoPointerEvent *event)
 void KisToolOutlineBase::activate(const PkSet<KoShape *> &shapes)
 {
     KisToolShape::activate(shapes);
-    QObject::connect(action("undo_polygon_selection"), SIGNAL(triggered()), SLOT(undoLastPoint()), Qt::UniqueConnection);
-
-    dynamic_cast<KisCanvasToolServices*>(canvas())->toolSetPriorityEventFilter(this, true);
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(services);
+    services->toolSetActionCallback(
+        "undo_polygon_selection", this, [this] { undoLastPoint(); }, true);
+    services->toolSetPriorityRightClickCallback(
+        this,
+        [this] {
+            if (m_points.isEmpty()) {
+                return false;
+            }
+            undoLastPoint();
+            return true;
+        },
+        true);
 }
 
 void KisToolOutlineBase::deactivate()
@@ -92,7 +102,7 @@ void KisToolOutlineBase::deactivate()
 
     m_continuedMode = false;
 
-    services->toolSetPriorityEventFilter(this, false);
+    services->toolSetPriorityRightClickCallback(this, {}, false);
 
     KisToolShape::deactivate();
 }
@@ -100,32 +110,6 @@ void KisToolOutlineBase::deactivate()
 KisPopupWidgetInterface* KisToolOutlineBase::popupWidget()
 {
     return !m_points.isEmpty() || m_type == SELECT ? nullptr : KisToolShape::popupWidget();
-}
-
-// Install an event filter to catch right-click events.
-// The simplest way to accommodate the popup palette binding.
-bool KisToolOutlineBase::eventFilter(QObject *obj, QEvent *event)
-{
-    Q_UNUSED(obj);
-
-    if (m_points.isEmpty()) {
-        return false;
-    }
-    if (event->type() == QEvent::MouseButtonPress ||
-        event->type() == QEvent::MouseButtonDblClick) {
-        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-        if (mouseEvent->button() == Qt::RightButton) {
-            undoLastPoint();
-            return true;
-        }
-    } else if (event->type() == QEvent::TabletPress) {
-        QTabletEvent *tabletEvent = static_cast<QTabletEvent*>(event);
-        if (tabletEvent->button() == Qt::RightButton) {
-            undoLastPoint();
-            return true;
-        }
-    }
-    return false;
 }
 
 void KisToolOutlineBase::undoLastPoint()
@@ -156,14 +140,10 @@ void KisToolOutlineBase::beginPrimaryAction(KoPointerEvent *event)
     NodePaintAbility paintability = nodePaintAbility();
     if ((m_type == PAINT && (!nodeEditable() || paintability == UNPAINTABLE || paintability  == KisToolPaint::CLONE || paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE)) || (m_type == SELECT && !selectionEditable())) {
 
-        if (paintability == KisToolPaint::CLONE){
-            QString message = i18n("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(toPkString(message), true);
-        }
-
-        if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
-            QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(toPkString(message), true);
+        if (paintability == KisToolPaint::CLONE ||
+            paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
+            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowLockedLayerMessage(
+                paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE);
         }
 
         event->ignore();

@@ -1,5 +1,6 @@
 kis_add_tests(
     KisAsyncColorSamplerHelperTest.cpp
+    kis_aspect_ratio_locker_test.cpp
     kis_coordinates_converter_test.cpp
     kis_grid_config_test.cpp
     kis_multi_surface_policy_test.cpp

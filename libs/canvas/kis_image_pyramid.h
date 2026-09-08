@@ -7,18 +7,15 @@
 #ifndef __KIS_IMAGE_PYRAMID
 #define __KIS_IMAGE_PYRAMID
 
-#include <QBitArray>
-#include <QImage>
-#include <QPoint>
-#include <QRect>
-#include <QSharedPointer>
-#include <QSize>
-#include <QVector>
-#include <QThreadStorage>
-
 #include <PkBitArray.h>
 #include <PkConnection.h>
+#include <PkImage.h>
 #include <PkObject.h>
+#include <PkPainter.h>
+#include <PkRect.h>
+#include <PkSharedPointer.h>
+#include <PkSize.h>
+#include <PkVector.h>
 
 #include <KoColorSpace.h>
 #include <kis_image.h>
@@ -26,10 +23,8 @@
 #include "kis_projection_backend.h"
 
 
-class KisImagePyramid : QObject, public KisProjectionBackend
+class KisImagePyramid : public PkObject, public KisProjectionBackend
 {
-    Q_OBJECT
-
 public:
     KisImagePyramid(qint32 pyramidHeight);
     ~KisImagePyramid() override;
@@ -37,42 +32,19 @@ public:
     void setImage(KisImageWSP newImage) override;
     void setImageSize(qint32 w, qint32 h) override;
     void setMonitorProfile(const KoColorProfile* monitorProfile, KoColorConversionTransformation::Intent renderingIntent, KoColorConversionTransformation::ConversionFlags conversionFlags) override;
-    void setChannelFlags(const QBitArray &channelFlags) override;
-    void setDisplayFilter(QSharedPointer<KisDisplayFilter> displayFilter) override;
-    void updateCache(const QRect &dirtyImageRect) override;
+    void setChannelFlags(const PkBitArray &channelFlags) override;
+    void setDisplayFilter(PkSharedPointer<KisDisplayFilter> displayFilter) override;
+    void updateCache(const PkRect &dirtyImageRect) override;
     void recalculateCache(KisPPUpdateInfoSP info) override;
 
     KisImagePatch getNearestPatch(KisPPUpdateInfoSP info) override;
-    void drawFromOriginalImage(QPainter& gc, KisPPUpdateInfoSP info) override;
+    void drawFromOriginalImage(PkPainter& gc, KisPPUpdateInfoSP info) override;
 
-    /**
-     * Render the projection onto a QImage.
-     * Color profiling occurs here
-     */
-    QImage convertToQImage(qreal scale,
-                           const QRect& unscaledRect,
-                           enum Qt::TransformationMode transformMode);
-
-    QImage convertToQImage(qreal scale,
-                           qint32 unscaledX,
-                           qint32 unscaledY,
-                           qint32 unscaledWidth,
-                           qint32 unscaledHeight);
-
-    /**
-     * Draw the projection onto a QPainter.
-     * Color profiling occurs here
-     */
-    void drawImage(qreal scale,
-                   QPainter& gc,
-                   const QPoint& topLeftScaled,
-                   const QRect& unscaledSourceRect);
-
-    void alignSourceRect(QRect& rect, qreal scale) override;
+    void alignSourceRect(PkRect& rect, qreal scale) override;
 
 private:
 
-    void retrieveImageData(const QRect &rect);
+    void retrieveImageData(const PkRect &rect);
     void rebuildPyramid();
     void clearPyramid();
 
@@ -81,8 +53,8 @@ private:
      * result into proper place of @dst paint device
      * Returns modified rect of @dst paintDevice
      */
-    QRect downsampleByFactor2(const QRect& srcRect,
-                              KisPaintDevice* src, KisPaintDevice* dst);
+    PkRect downsampleByFactor2(const PkRect& srcRect,
+                               KisPaintDevice* src, KisPaintDevice* dst);
 
     /**
      * Auxiliary function. Downsamples two lines in @srcRow0
@@ -97,28 +69,28 @@ private:
      * canvas on current zoom level
      */
 
-    int findFirstGoodPlaneIndex(qreal scale, QSize originalSize);
+    int findFirstGoodPlaneIndex(qreal scale, PkSize originalSize);
 
 
     /**
      * Fast workaround for converting paintDevices
      */
-    QImage convertToQImageFast(KisPaintDeviceSP paintDevice,
-                               const QRect& unscaledRect);
+    PkImage convertToImageFast(KisPaintDeviceSP paintDevice,
+                               const PkRect& unscaledRect);
 
-private Q_SLOTS:
+private:
 
     void configChanged();
 
 private:
 
-    QVector<KisPaintDeviceSP> m_pyramid;
+    PkVector<KisPaintDeviceSP> m_pyramid;
     KisImageWSP  m_originalImage;
 
     const KoColorProfile* m_monitorProfile {0};
     const KoColorSpace* m_monitorColorSpace {0};
 
-    QSharedPointer<KisDisplayFilter> m_displayFilter;
+    PkSharedPointer<KisDisplayFilter> m_displayFilter;
 
     KoColorConversionTransformation::Intent m_renderingIntent { KoColorConversionTransformation::IntentPerceptual };
     KoColorConversionTransformation::ConversionFlags m_conversionFlags { KoColorConversionTransformation::Empty };

@@ -8,6 +8,8 @@
 #define KIS_TOOL_H_
 
 #include <PkSet.h>
+#include <PkSignalCompat.h>
+#include <PkMessageLogger.h>
 #include <QCursor>
 
 #include <KoColor.h>
@@ -20,30 +22,24 @@
 #include <kis_types.h>
 
 #ifdef __GNUC__
-#define WARN_WRONG_MODE(_mode) warnKrita << "Unexpected tool event has come to" << __func__ << "while being mode" << _mode << "!"
+#define WARN_WRONG_MODE(_mode) PkMessageLogger(__FILE__, __LINE__, __func__).warning() << "Unexpected tool event has come to" << __func__ << "while being mode" << _mode << "!"
 #else
-#define WARN_WRONG_MODE(_mode) warnKrita << "Unexpected tool event has come while being mode" << _mode << "!"
+#define WARN_WRONG_MODE(_mode) PkMessageLogger(__FILE__, __LINE__, __func__).warning() << "Unexpected tool event has come while being mode" << _mode << "!"
 #endif
 
 #define CHECK_MODE_SANITY_OR_RETURN(_mode) if (mode() != _mode) { WARN_WRONG_MODE(mode()); return; }
 
 class KoCanvasBase;
 class KisFilterConfiguration;
-class QPainter;
-class QPainterPath;
 class PkPolygonF;
 class KisOptimizedBrushOutline;
 
 //activation id for Krita tools, Krita tools are always active and handle locked and invisible layers by themselves
-static const QString KRITA_TOOL_ACTIVATION_ID = "flake/always";
+static const PkString KRITA_TOOL_ACTIVATION_ID = "flake/always";
 
 #include <kritacanvas_export.h>
 class KRITACANVAS_EXPORT KisTool : public KoToolBase
 {
-    Q_OBJECT
-
-    Q_PROPERTY(bool isActive READ isActive NOTIFY isActiveChanged)
-
 public:
     enum { FLAG_USES_CUSTOM_PRESET=0x01, FLAG_USES_CUSTOM_COMPOSITEOP=0x02, FLAG_USES_CUSTOM_SIZE=0x04 };
 
@@ -153,8 +149,6 @@ public:
         UNPAINTABLE,
         MYPAINTBRUSH_UNPAINTABLE
     };
-    Q_ENUMS(NodePaintAbility)
-
     static AlternateAction actionToAlternateAction(ToolAction action);
 
     virtual void activateAlternateAction(AlternateAction action);
@@ -187,7 +181,7 @@ public:
      */
     virtual void newActivationWithExternalSource(KisPaintDeviceSP externalSource);
 
-public Q_SLOTS:
+public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
     void canvasResourceChanged(int key, const PkVariant &res) override;
@@ -197,7 +191,7 @@ public Q_SLOTS:
     // this will likely be expanded.
     virtual void updateSettingsViews();
 
-Q_SIGNALS:
+signals:
     void isActiveChanged(bool isActivated);
 
 protected:
@@ -208,7 +202,6 @@ protected:
     /// coordinates.
     PkPointF convertToPixelCoord(KoPointerEvent *e);
     PkPointF convertToPixelCoord(const PkPointF& pt);
-    PkPointF convertToPixelCoord(const QPoint& pt);
 
     PkPointF convertToPixelCoordAndAlignOnWidget(const PkPointF& pt);
 
@@ -231,7 +224,6 @@ protected:
     PkPointF viewToPixel(const PkPointF &viewCoord) const;
     /// Convert an integer pixel coordinate into a view coordinate.
     /// The view coordinate is at the centre of the pixel.
-    PkPointF pixelToView(const QPoint &pixelCoord) const;
 
     /// Convert a floating point pixel coordinate into a view coordinate.
     PkPointF pixelToView(const PkPointF &pixelCoord) const;
@@ -240,7 +232,7 @@ protected:
     PkRectF pixelToView(const PkRectF &pixelRect) const;
 
     /// Convert a pixel path into a view path
-    QPainterPath pixelToView(const QPainterPath &pixelPath) const;
+    PkPainterPath pixelToView(const PkPainterPath &pixelPath) const;
 
     KisOptimizedBrushOutline pixelToView(const KisOptimizedBrushOutline &path) const;
 
@@ -252,8 +244,6 @@ protected:
 
     /// Update the canvas for the given rectangle in view coordinates.
     void updateCanvasViewRect(const PkRectF &viewRect);
-
-    QWidget* createOptionWidget() override;
 
     /**
      * To determine whether this tool will change its behavior when
@@ -312,7 +302,7 @@ protected:
     virtual ToolMode mode() const;
     void setCursor(const QCursor &cursor);
 
-protected Q_SLOTS:
+protected:
     /**
      * Called whenever the configuration settings change.
      */

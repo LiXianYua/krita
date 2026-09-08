@@ -8,12 +8,10 @@
 #define KIS_TOOL_PAINT_H_
 
 #include <PkSet.h>
+#include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 #include "kis_tool.h"
 #include <KisStandardBrushSizes.h>
-
-#include <QGridLayout>
-#include <QPainterPath>
-#include <QCheckBox>
 
 #include <KoCanvasResourceProvider.h>
 #include <KoToolBase.h>
@@ -28,14 +26,11 @@
 #include <KisOptimizedBrushOutline.h>
 #include "KisAsyncColorSamplerHelper.h"
 
-class QGridLayout;
 class KoCompositeOp;
 class KoCanvasBase;
 
 class KRITACANVAS_EXPORT KisToolPaint : public KisTool
 {
-
-    Q_OBJECT
 
 public:
     KisToolPaint(KoCanvasBase *canvas, const QCursor &cursor);
@@ -87,17 +82,6 @@ protected:
 
     bool isEraser() const;
 
-    /// Add the tool-specific layout to the default option widget layout.
-    void addOptionWidgetLayout(QLayout *layout);
-
-    /// Add a widget and a label to the current option widget layout.
-    virtual void addOptionWidgetOption(QWidget *control, QWidget *label = nullptr);
-
-    void showControl(QWidget *control, bool value);
-    void enableControl(QWidget *control, bool value);
-
-    QWidget * createOptionWidget() override;
-
     /**
      * Quick help is a short help text about the way the tool functions.
      */
@@ -105,17 +89,15 @@ protected:
         return PkString();
     }
 
-public Q_SLOTS:
+public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
-private Q_SLOTS:
+private:
 
     void slotColorPickerRequestedCursor(const QCursor &cursor);
     void slotColorPickerRequestedCursorReset();
     void slotColorPickerRequestedOutlineUpdate();
-
-    void slotPopupQuickHelp();
 
     void increaseBrushSize();
     void decreaseBrushSize();
@@ -139,8 +121,6 @@ private:
 private:
 
     bool m_specialHoverModifier {false};
-    QGridLayout *m_optionsWidgetLayout {nullptr};
-
     bool m_supportOutline {false};
 
     /**
@@ -160,9 +140,9 @@ private:
     void tryRestoreOpacitySnapshot();
 
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 
-Q_SIGNALS:
+signals:
     void sigPaintingFinished();
 };
 

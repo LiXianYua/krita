@@ -7,10 +7,9 @@
 #ifndef __KIS_PAINTING_INFORMATION_BUILDER_H
 #define __KIS_PAINTING_INFORMATION_BUILDER_H
 
-#include <QObject>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
 #include <pk/geometry/PkPoint.h>
-#include <QScopedPointer>
-#include <QVariant>
 
 #include <PkVector.h>
 
@@ -24,10 +23,8 @@ class KisCoordinatesConverter;
 class KisSpeedSmoother;
 class KoCanvasResourceProvider;
 
-class KRITACANVAS_EXPORT KisPaintingInformationBuilder : public QObject
+class KRITACANVAS_EXPORT KisPaintingInformationBuilder : public PkObject
 {
-    Q_OBJECT
-
 public:
     KisPaintingInformationBuilder();
     ~KisPaintingInformationBuilder() override;
@@ -45,10 +42,9 @@ public:
 
     void reset();
 
-protected Q_SLOTS:
+protected:
     void updateSettings();
 
-protected:
     virtual PkPointF adjustDocumentPoint(const PkPointF &point, const PkPointF &startPoint);
     virtual PkPointF documentToImage(const PkPointF &point);
     virtual PkPointF imageToDocument(const PkPointF &point);
@@ -73,7 +69,7 @@ private:
 private:
     PkVector<qreal> m_pressureSamples;
     PkPointF m_startPoint;
-    QScopedPointer<KisSpeedSmoother> m_speedSmoother;
+    PkScopedPointer<KisSpeedSmoother> m_speedSmoother;
     bool m_pressureDisabled;
     int m_maxAllowedSpeedValue = 30;
     qreal m_tiltDirectionOffset = 0;  // [0, 360) degrees
@@ -81,8 +77,6 @@ private:
 
 class KRITACANVAS_EXPORT KisConverterPaintingInformationBuilder : public KisPaintingInformationBuilder
 {
-    Q_OBJECT
-
 public:
     KisConverterPaintingInformationBuilder(const KisCoordinatesConverter *converter);
 
@@ -101,8 +95,6 @@ private:
 
 class KRITACANVAS_EXPORT KisToolFreehandPaintingInformationBuilder : public KisPaintingInformationBuilder
 {
-    Q_OBJECT
-
 public:
     KisToolFreehandPaintingInformationBuilder(KisToolFreehand *tool);
 

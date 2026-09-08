@@ -7,8 +7,6 @@
 #include <QKeyEvent>
 #include <QtCore/qmath.h>
 
-#include <klocalizedstring.h>
-
 #include "kis_tool_rectangle_base.h"
 
 #include <KoCanvasBase.h>
@@ -35,15 +33,10 @@ KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectang
     , m_referenceAngle(0)
     , m_angle(0)
     , m_angleBuffer(0)
-    , m_currentModifiers(Qt::NoModifier)
+    , m_currentModifiers(Pk::NoModifier)
 {
 }
 
-
-PkList<QPointer<QWidget>> KisToolRectangleBase::createOptionWidgets()
-{
-    return KisToolShape::createOptionWidgets();
-}
 
 void KisToolRectangleBase::constraintsChanged(bool forceRatio, bool forceWidth, bool forceHeight, float ratio, float width, float height)
 {
@@ -70,9 +63,8 @@ void KisToolRectangleBase::showSize()
 {
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
     KIS_SAFE_ASSERT_RECOVER_RETURN(services);
-    services->toolShowFloatingMessage(toPkString(i18n("Width: %1 px\nHeight: %2 px"
-                                            , createRect(m_dragStart, m_dragEnd).width()
-                                            , createRect(m_dragStart, m_dragEnd).height())));
+    const PkRectF rect = createRect(m_dragStart, m_dragEnd);
+    services->toolShowRectangleSize(pkRound(rect.width()), pkRound(rect.height()));
 
 }
 void KisToolRectangleBase::paint(PkPainter &gc, const KoViewConverter &converter)
@@ -88,7 +80,7 @@ void KisToolRectangleBase::activate(const PkSet<KoShape *> &shapes)
 {
     KisToolShape::activate(shapes);
 
-    Q_EMIT sigRequestReloadConfig();
+    sigRequestReloadConfig();
 }
 
 void KisToolRectangleBase::deactivate()
@@ -98,32 +90,38 @@ void KisToolRectangleBase::deactivate()
 }
 
 void KisToolRectangleBase::keyPressEvent(QKeyEvent *event) {
-    const Qt::Key key = event->key() == Qt::Key_Meta &&
-            event->modifiers().testFlag(Qt::ShiftModifier)
-        ? Qt::Key_Alt : static_cast<Qt::Key>(event->key());
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(services);
+    const KisToolKeyEventState state = services->toolKeyEventState(event);
+    const Pk::Key key = state.key == Pk::Key_Meta &&
+            state.modifiers.testFlag(Pk::ShiftModifier)
+        ? Pk::Key_Alt : state.key;
 
-    if (key == Qt::Key_Control) {
-        m_currentModifiers |= Qt::ControlModifier;
-    } else if (key == Qt::Key_Shift) {
-        m_currentModifiers |= Qt::ShiftModifier;
-    } else if (key == Qt::Key_Alt) {
-        m_currentModifiers |= Qt::AltModifier;
+    if (key == Pk::Key_Control) {
+        m_currentModifiers |= Pk::ControlModifier;
+    } else if (key == Pk::Key_Shift) {
+        m_currentModifiers |= Pk::ShiftModifier;
+    } else if (key == Pk::Key_Alt) {
+        m_currentModifiers |= Pk::AltModifier;
     }
 
     KisToolShape::keyPressEvent(event);
 }
 
 void KisToolRectangleBase::keyReleaseEvent(QKeyEvent *event) {
-    const Qt::Key key = event->key() == Qt::Key_Meta &&
-            event->modifiers().testFlag(Qt::ShiftModifier)
-        ? Qt::Key_Alt : static_cast<Qt::Key>(event->key());
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(services);
+    const KisToolKeyEventState state = services->toolKeyEventState(event);
+    const Pk::Key key = state.key == Pk::Key_Meta &&
+            state.modifiers.testFlag(Pk::ShiftModifier)
+        ? Pk::Key_Alt : state.key;
 
-    if (key == Qt::Key_Control) {
-        m_currentModifiers &= ~Qt::ControlModifier;
-    } else if (key == Qt::Key_Shift) {
-        m_currentModifiers &= ~Qt::ShiftModifier;
-    } else if (key == Qt::Key_Alt) {
-        m_currentModifiers &= ~Qt::AltModifier;
+    if (key == Pk::Key_Control) {
+        m_currentModifiers &= ~Pk::ControlModifier;
+    } else if (key == Pk::Key_Shift) {
+        m_currentModifiers &= ~Pk::ShiftModifier;
+    } else if (key == Pk::Key_Alt) {
+        m_currentModifiers &= ~Pk::AltModifier;
     }
 
     KisToolShape::keyReleaseEvent(event);
@@ -134,14 +132,10 @@ void KisToolRectangleBase::beginPrimaryAction(KoPointerEvent *event)
     NodePaintAbility paintability = nodePaintAbility();
     if ((m_type == PAINT && (!nodeEditable() || paintability == UNPAINTABLE || paintability  == KisToolPaint::CLONE || paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE)) || (m_type == SELECT && !selectionEditable())) {
 
-        if (paintability == KisToolPaint::CLONE){
-            QString message = i18n("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(toPkString(message), true);
-        }
-
-        if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
-            QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(toPkString(message), true);
+        if (paintability == KisToolPaint::CLONE ||
+            paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
+            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowLockedLayerMessage(
+                paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE);
         }
 
         event->ignore();
@@ -150,7 +144,7 @@ void KisToolRectangleBase::beginPrimaryAction(KoPointerEvent *event)
     setMode(KisTool::PAINT_MODE);
     beginShape();
 
-    m_currentModifiers = Qt::NoModifier;
+    m_currentModifiers = Pk::NoModifier;
 
     PkPointF pos = convertToPixelCoordAndSnap(event, PkPointF(), false);
     m_dragStart = m_dragCenter = pos;
@@ -202,9 +196,9 @@ void KisToolRectangleBase::continuePrimaryAction(KoPointerEvent *event)
 {
     CHECK_MODE_SANITY_OR_RETURN(KisTool::PAINT_MODE);
 
-    bool constraintToggle = m_currentModifiers & Qt::ShiftModifier;
-    bool translateMode = m_currentModifiers & Qt::AltModifier;
-    bool expandFromCenter = m_currentModifiers & Qt::ControlModifier;
+    bool constraintToggle = m_currentModifiers & Pk::ShiftModifier;
+    bool translateMode = m_currentModifiers & Pk::AltModifier;
+    bool expandFromCenter = m_currentModifiers & Pk::ControlModifier;
 
     bool rotateMode = expandFromCenter && translateMode;
     bool fixedSize = isFixedSize() && !constraintToggle;
@@ -270,9 +264,7 @@ void KisToolRectangleBase::continuePrimaryAction(KoPointerEvent *event)
     else {
         KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
         KIS_ASSERT(services);
-        services->toolShowFloatingMessage(toPkString(i18n("X: %1 px\nY: %2 px"
-                                                , QString::number(m_dragStart.x(), 'f', 1)
-                                                , QString::number(m_dragStart.y(), 'f', 1))));
+        services->toolShowRectanglePosition(m_dragStart.x(), m_dragStart.y());
     }
     updateArea();
     m_dragCenter = PkPointF((m_dragStart.x() + m_dragEnd.x()) / 2,
@@ -382,7 +374,7 @@ void KisToolRectangleBase::updateArea() {
 
     canvas()->updateCanvas(convertToPt(bound).adjusted(-100, -100, +200, +200));
 
-    Q_EMIT rectangleChanged(bound);
+    rectangleChanged(bound);
 }
 
 qreal KisToolRectangleBase::getRotationAngle() {

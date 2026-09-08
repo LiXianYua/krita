@@ -19,8 +19,7 @@
 #include <KoDocumentResourceManager.h>
 #include <KoPathShape.h>
 
-#include <klocalizedstring.h>
-#include <ksharedconfig.h>
+#include <PkSharedConfig.h>
 
 #include <kis_debug.h>
 #include <brushengine/kis_paintop_registry.h>
@@ -49,7 +48,7 @@ KisToolShape::~KisToolShape()
 void KisToolShape::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
-    m_configGroup =  KSharedConfig::openConfig()->group(toQString(toolId()));
+    m_configGroup = PkSharedConfig::openConfig()->group(toolId());
 }
 
 
@@ -57,11 +56,6 @@ int KisToolShape::flags() const
 {
     return KisTool::FLAG_USES_CUSTOM_COMPOSITEOP|KisTool::FLAG_USES_CUSTOM_PRESET
            |KisTool::FLAG_USES_CUSTOM_SIZE;
-}
-
-QWidget * KisToolShape::createOptionWidget()
-{
-    return nullptr;
 }
 
 KisToolShapeUtils::FillStyle KisToolShape::fillStyle()
@@ -156,10 +150,10 @@ void KisToolShape::addShape(KoShape* shape)
     case KisToolShapeUtils::StrokeStyleBackground: {
         KoShapeStrokeSP stroke(new KoShapeStroke());
         stroke->setLineWidth(currentStrokeWidth());
-        const QColor color = strokeStyle() == KisToolShapeUtils::StrokeStyleForeground ?
-                    toQColor(resources.currentFgColor().toQColor()) :
-                    toQColor(resources.currentBgColor().toQColor());
-        stroke->setColor(toPkColor(color));
+        const PkColor color = strokeStyle() == KisToolShapeUtils::StrokeStyleForeground
+            ? resources.currentFgColor().toQColor()
+            : resources.currentBgColor().toQColor();
+        stroke->setColor(color);
         shape->setStroke(stroke);
         break;
     }
@@ -192,7 +186,7 @@ void KisToolShape::addPathShape(KoPathShape* pathShape, const KUndo2MagicString&
     PkTransform matrix;
     matrix.scale(image->xRes(), image->yRes());
     matrix.translate(pathShape->position().x(), pathShape->position().y());
-    QPainterPath mappedOutline = toQPainterPath(matrix.map(pathShape->outline()));
+    const PkPainterPath mappedOutline = matrix.map(pathShape->outline());
 
     if (node->hasEditablePaintDevice()) {
         KisFigurePaintingToolHelper helper(name,
@@ -202,7 +196,7 @@ void KisToolShape::addPathShape(KoPathShape* pathShape, const KUndo2MagicString&
                                            strokeStyle(),
                                            fillStyle(),
                                            toPkTransform(fillTransform()));
-        helper.paintPainterPath(toPkPainterPath(mappedOutline));
+        helper.paintPainterPath(mappedOutline);
     } else if (node->inherits("KisShapeLayer")) {
         pathShape->normalize();
         addShape(pathShape);

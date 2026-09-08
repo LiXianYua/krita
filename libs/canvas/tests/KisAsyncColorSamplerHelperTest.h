@@ -26,6 +26,7 @@ private Q_SLOTS:
     void circlePreviewPreservesRingCommandsAndState();
     void cursorUsesSamplingCanvasPolicy();
     void proxyDispatchesPolylineAndSelectionDecorations();
+    void hostCallbacksPreserveActionAndRightClickLifecycle();
     void proxyDispatchesProductionAsyncSampler();
 };
 

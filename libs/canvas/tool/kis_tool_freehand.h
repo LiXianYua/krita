@@ -30,8 +30,6 @@ class KisToolFreehandHelper;
 class KRITACANVAS_EXPORT KisToolFreehand : public KisToolPaint
 {
 
-    Q_OBJECT
-
 public:
     KisToolFreehand(KoCanvasBase * canvas, const QCursor & cursor, const KUndo2MagicString &transactionText,
                     bool useSavedSmoothing = true);
@@ -40,7 +38,7 @@ public:
     void mouseMoveEvent(KoPointerEvent *event) override;
     
 
-public Q_SLOTS:
+public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
@@ -78,7 +76,7 @@ protected:
 
     bool supportsPaintingAssistants() const override;
 
-protected Q_SLOTS:
+protected:
 
     void explicitUpdateOutline();
     void resetCursorStyle() override;
@@ -102,7 +100,7 @@ private:
      */
     qreal calculatePerspective(const PkPointF &documentPoint);
 
-private Q_SLOTS:
+private:
     void updateMaskSyntheticEventsFromTouch();
 
 protected:
@@ -121,7 +119,7 @@ private:
     PkPointF m_initialGestureDocPoint;
     PkPointF m_lastDocumentPoint;
     qreal m_lastPaintOpSize {0.0};
-    QPoint m_initialGestureGlobalPoint;
+    PkPoint m_initialGestureGlobalPoint;
 
     bool m_paintopBasedSamplingInAction {false};
     KisSignalCompressorWithParam<qreal> m_brushResizeCompressor;

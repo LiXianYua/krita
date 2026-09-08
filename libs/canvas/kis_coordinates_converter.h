@@ -9,13 +9,8 @@
 #define KIS_COORDINATES_CONVERTER_H
 
 #include <optional>
-#include <type_traits>
-
-// R-38 约定：真 Qt 头在前，PkFlakeBridge 才走真 Qt 分支（toQTransform 等可见）。
-#include <QtCore/QtCore>
-#include <QtGui/QtGui>
 #include <pk/geometry/PkTransform.h>
-#include <PkFlakeBridge.h>
+#include <pk/geometry/PkPainterPath.h>
 #include <KoZoomHandler.h>
 
 #include "kritacanvas_export.h"
@@ -35,29 +30,7 @@ namespace _Private
     template<class T> struct Traits
     {
         typedef T Result;
-        // 按类型精确分发：Pk 类型走 PkTransform 原生；Qt 类型走 toQTransform 后的
-        // 精确重载（不能笼统 map(obj)：QRect 会隐式转 QRegion/QPolygon 造成歧义）。
-        // 需 PkRectF/PkRect 特化保留在下方（mapRect 语义不同：整数版四角取整）。
-        static T map(const PkTransform& transform, const T& obj)
-        {
-            if constexpr (std::is_same_v<T, PkRectF> || std::is_same_v<T, PkRect>) {
-                return transform.mapRect(obj);
-            } else if constexpr (std::is_same_v<T, PkPoint> || std::is_same_v<T, PkPointF> ||
-                                 std::is_same_v<T, PkLineF> || std::is_same_v<T, PkPolygonF> ||
-                                 std::is_same_v<T, PkPainterPath>) {
-                return transform.map(obj);
-            } else if constexpr (std::is_same_v<T, QRect> || std::is_same_v<T, QRectF>) {
-                return toQTransform(transform).mapRect(obj);
-            } else if constexpr (std::is_same_v<T, QPoint> || std::is_same_v<T, QPointF> ||
-                                 std::is_same_v<T, QPolygon> || std::is_same_v<T, QPolygonF> ||
-                                 std::is_same_v<T, QLineF> || std::is_same_v<T, QRegion>) {
-                return toQTransform(transform).map(obj);
-            } else if constexpr (std::is_same_v<T, QLine>) {
-                return toQTransform(transform).map(QLineF(obj)).toLine();
-            } else {
-                static_assert(sizeof(T) == 0, "Traits<T>::map: unsupported type");
-            }
-        }
+        static T map(const PkTransform& transform, const T& obj) { return transform.map(obj); }
     };
 
     template<> struct Traits<PkRectF>
@@ -66,6 +39,26 @@ namespace _Private
         static PkRectF map(const PkTransform& transform, const PkRectF& rc)  { return transform.mapRect(rc); }
     };
 
+    // Match the original Qt converter contract: mapping integer geometry
+    // produces floating-point geometry. Mapping it as an integer first rounds
+    // transformed coordinates and breaks fractional-HiDPI pixel snapping.
+    template<> struct Traits<PkRect>
+    {
+        typedef PkRectF Result;
+        static PkRectF map(const PkTransform& transform, const PkRect& rect)
+        {
+            return transform.mapRect(PkRectF(rect));
+        }
+    };
+
+    template<> struct Traits<PkPoint>
+    {
+        typedef PkPointF Result;
+        static PkPointF map(const PkTransform& transform, const PkPoint& point)
+        {
+            return transform.map(PkPointF(point));
+        }
+    };
 
 }
 
@@ -76,18 +69,18 @@ public:
     ~KisCoordinatesConverter() override;
 
     PkSizeF getCanvasWidgetSize() const;
-    QSize viewportDevicePixelSize() const;
+    PkSize viewportDevicePixelSize() const;
 
     void setCanvasWidgetSize(PkSizeF size);
     void setDevicePixelRatio(qreal value);
     void setImage(KisImageWSP image);
-    void setExtraReferencesBounds(const QRect &imageRect);
-    void setImageBounds(const QRect &rect, const PkPointF oldImageStillPoint, const PkPointF newImageStillPoint);
+    void setExtraReferencesBounds(const PkRect &imageRect);
+    void setImageBounds(const PkRect &rect, const PkPointF oldImageStillPoint, const PkPointF newImageStillPoint);
     void setImageResolution(qreal xRes, qreal yRes);
     void setDocumentOffset(const PkPointF &offset);
 
     qreal devicePixelRatio() const;
-    QPoint documentOffset() const;
+    PkPoint documentOffset() const;
     PkPointF documentOffsetF() const;
     qreal rotationAngle() const;
 
@@ -238,7 +231,7 @@ public:
     PkSizeF imageSizeInFlakePixels() const;
     PkRectF widgetRectInFlakePixels() const;
     PkRectF widgetRectInImagePixels() const;
-    QRect imageRectInImagePixels() const;
+    PkRect imageRectInImagePixels() const;
     PkRectF imageRectInDocumentPixels() const;
 
     PkPointF flakeCenterPoint() const;
@@ -250,8 +243,8 @@ public:
     PkPointF snapToDevicePixel(const PkPointF &point) const;
     PkSizeF snapWidgetSizeToDevicePixel(const PkSizeF &size) const;
 
-    QPoint minimumOffset() const;
-    QPoint maximumOffset() const;
+    PkPoint minimumOffset() const;
+    PkPoint maximumOffset() const;
 
     qreal minZoom() const;
     qreal maxZoom() const;

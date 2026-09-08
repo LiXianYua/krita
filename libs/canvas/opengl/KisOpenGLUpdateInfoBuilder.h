@@ -7,18 +7,16 @@
 #define KISOPENGLUPDATEINFOBUILDER_H
 
 #include "kritacanvas_export.h"
-#include <QBitArray>
-#include <QRect>
-#include <QScopedPointer>
-#include <QSharedPointer>
-#include <QSize>
-
+#include <PkBitArray.h>
 #include <PkRect.h>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
+#include <PkSize.h>
 
 #include "kis_types.h"
 
 class KisTextureTileInfoPool;
-typedef QSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
+typedef PkSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
 
 class KisOpenGLUpdateInfo;
 typedef KisSharedPtr<KisOpenGLUpdateInfo> KisOpenGLUpdateInfoSP;
@@ -33,21 +31,21 @@ public:
     KisOpenGLUpdateInfoBuilder();
     ~KisOpenGLUpdateInfoBuilder();
 
-    KisOpenGLUpdateInfoSP buildUpdateInfo(const QRect& rect, KisImageSP srcImage, bool convertColorSpace);
+    KisOpenGLUpdateInfoSP buildUpdateInfo(const PkRect& rect, KisImageSP srcImage, bool convertColorSpace);
     KisOpenGLUpdateInfoSP buildUpdateInfo(const PkRect& rect, KisPaintDeviceSP projection, const PkRect &bounds, int levelOfDetail, bool convertColorSpace);
 
     PkRect calculatePhysicalTileRect(int col, int row, const PkRect &imageBounds, int levelOfDetail) const;
-    QRect calculateEffectiveTileRect(int col, int row, const PkRect &imageBounds) const;
+    PkRect calculateEffectiveTileRect(int col, int row, const PkRect &imageBounds) const;
     int xToCol(int x) const;
     int yToRow(int y) const;
 
     const KoColorSpace* destinationColorSpace() const;
 
     void setConversionOptions(const ConversionOptions &options);
-    void setChannelFlags(const QBitArray &channelFrags, bool onlyOneChannelSelected, int selectedChannelIndex);
+    void setChannelFlags(const PkBitArray &channelFrags, bool onlyOneChannelSelected, int selectedChannelIndex);
 
     void setTextureBorder(int value);
-    void setEffectiveTextureSize(const QSize &size);
+    void setEffectiveTextureSize(const PkSize &size);
 
     void setTextureInfoPool(KisTextureTileInfoPoolSP pool);
     KisTextureTileInfoPoolSP textureInfoPool() const;
@@ -57,7 +55,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISOPENGLUPDATEINFOBUILDER_H

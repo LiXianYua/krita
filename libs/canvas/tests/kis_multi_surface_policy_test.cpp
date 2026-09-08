@@ -42,15 +42,15 @@ void KisMultiSurfacePolicyTest::testLegacyConfigDefaults()
                  KoColorConversionTransformation::HighQuality |
                  KoColorConversionTransformation::BlackpointCompensation));
 
-    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(QStringLiteral("rec709g22")),
+    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(PkString("rec709g22")),
              KisCanvasSurfaceMode::Rec709g22);
-    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(QStringLiteral("rec709g10")),
+    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(PkString("rec709g10")),
              KisCanvasSurfaceMode::Rec709g10);
-    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(QStringLiteral("rec2020pq")),
+    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(PkString("rec2020pq")),
              KisCanvasSurfaceMode::Rec2020pq);
-    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(QStringLiteral("unmanaged")),
+    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(PkString("unmanaged")),
              KisCanvasSurfaceMode::Unmanaged);
-    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(QStringLiteral("invalid")),
+    QCOMPARE(KisCanvasSurfaceColorSpacePolicy::surfaceModeFromConfig(PkString("invalid")),
              KisCanvasSurfaceMode::Preferred);
 }
 
@@ -326,7 +326,7 @@ void KisMultiSurfacePolicyTest::testTerminalSrgbFallbacks()
     QVERIFY(!selected.requestedDescription);
     QCOMPARE(selected.profileSource, ProfileSource::BuiltInSrgb);
     QCOMPARE(selected.errorMessage,
-             QStringLiteral("failed to find a suitable surface format for the compositor"));
+             PkString("failed to find a suitable surface format for the compositor"));
 
     QVector<SurfaceDescription> profileAttempts;
     selected = selectSurfaceDescription(
@@ -365,7 +365,7 @@ void KisMultiSurfacePolicyTest::testTerminalSrgbFallbacks()
     QVERIFY(!selected.requestedDescription);
     QCOMPARE(selected.profileSource, ProfileSource::BuiltInSrgb);
     QCOMPARE(selected.errorMessage,
-             QStringLiteral("failed to create a profile for the compositor's preferred color space"));
+             PkString("failed to create a profile for the compositor's preferred color space"));
 }
 
 

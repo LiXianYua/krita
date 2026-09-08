@@ -3,14 +3,13 @@
  *
  *  SPDX-License-Identifier: LGPL-2.0-or-later
  */
-#include <PkFlakeBridge.h>
 #include <pk/container/PkList.h>
 #include "KisSelectionToolFactoryBase.h"
 
 #include <QAction>
 
-KisSelectionToolFactoryBase::KisSelectionToolFactoryBase(const QString &id)
-    : KisToolPaintFactoryBase(toPkString(id))
+KisSelectionToolFactoryBase::KisSelectionToolFactoryBase(const PkString &id)
+    : KisToolPaintFactoryBase(id)
 {
 }
 
@@ -41,8 +40,8 @@ PkList<QAction *> KisSelectionToolFactoryBase::createActionsImpl()
     return actions;
 }
 
-KisToolPolyLineFactoryBase::KisToolPolyLineFactoryBase(const QString &id)
-    : KisToolPaintFactoryBase(toPkString(id))
+KisToolPolyLineFactoryBase::KisToolPolyLineFactoryBase(const PkString &id)
+    : KisToolPaintFactoryBase(id)
 {
 }
 

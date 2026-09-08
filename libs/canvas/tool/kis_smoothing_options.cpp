@@ -65,7 +65,7 @@ KisSmoothingOptions::SmoothingType KisSmoothingOptions::smoothingType() const
 void KisSmoothingOptions::setSmoothingType(KisSmoothingOptions::SmoothingType value)
 {
     m_d->smoothingType = value;
-    Q_EMIT sigSmoothingTypeChanged();
+    sigSmoothingTypeChanged();
     m_d->writeCompressor.start();
 }
 

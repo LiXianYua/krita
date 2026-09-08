@@ -7,37 +7,40 @@
 #include <pk/global/PkGlobal.h>
 #include "KisOpenGLPolicy.h"
 
-#include <QProcessEnvironment>
-#include <QRegularExpression>
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <regex>
+#include <string>
 
 namespace KisOpenGLPolicy
 {
 
-QString rendererToConfig(Renderer renderer)
+PkString rendererToConfig(Renderer renderer)
 {
     switch (renderer) {
     case Renderer::None:
-        return QStringLiteral("none");
+        return PkString("none");
     case Renderer::Software:
-        return QStringLiteral("software");
+        return PkString("software");
     case Renderer::DesktopGL:
-        return QStringLiteral("desktop");
+        return PkString("desktop");
     case Renderer::OpenGLES:
-        return QStringLiteral("angle");
+        return PkString("angle");
     default:
-        return QStringLiteral("auto");
+        return PkString("auto");
     }
 }
 
-Renderer rendererFromConfig(const QString &renderer)
+Renderer rendererFromConfig(const PkString &renderer)
 {
-    if (renderer == QStringLiteral("desktop")) {
+    if (renderer == PkString("desktop")) {
         return Renderer::DesktopGL;
-    } else if (renderer == QStringLiteral("angle")) {
+    } else if (renderer == PkString("angle")) {
         return Renderer::OpenGLES;
-    } else if (renderer == QStringLiteral("software")) {
+    } else if (renderer == PkString("software")) {
         return Renderer::Software;
-    } else if (renderer == QStringLiteral("none")) {
+    } else if (renderer == PkString("none")) {
         return Renderer::None;
     }
     return Renderer::Auto;
@@ -88,15 +91,15 @@ SurfaceRequest surfaceRequest(Renderer renderer,
         request.angleRenderer = AngleRenderer::Default;
         break;
     case Renderer::Auto:
-        Q_UNREACHABLE();
+        std::abort();
     }
 
     return request;
 }
 
-QVector<ProbeRequest> defaultProbeSequence(Platform platform)
+PkVector<ProbeRequest> defaultProbeSequence(Platform platform)
 {
-    QVector<ProbeRequest> sequence {{Renderer::Auto, false}};
+    PkVector<ProbeRequest> sequence {{Renderer::Auto, false}};
 
     if (platform != Platform::MacOS) {
         sequence.append({Renderer::DesktopGL, false});
@@ -111,9 +114,9 @@ QVector<ProbeRequest> defaultProbeSequence(Platform platform)
     return sequence;
 }
 
-QVector<Renderer> rendererCandidates(bool isAndroid, bool isWindows)
+PkVector<Renderer> rendererCandidates(bool isAndroid, bool isWindows)
 {
-    QVector<Renderer> renderers;
+    PkVector<Renderer> renderers;
     if (!isAndroid) {
         renderers.append(Renderer::DesktopGL);
     }
@@ -124,25 +127,26 @@ QVector<Renderer> rendererCandidates(bool isAndroid, bool isWindows)
     return renderers;
 }
 
-IntelDriverPolicy intelDriverPolicy(const QString &rendererString,
-                                    const QString &driverVersionString,
+IntelDriverPolicy intelDriverPolicy(const PkString &rendererString,
+                                    const PkString &driverVersionString,
                                     bool isWindows)
 {
     IntelDriverPolicy result;
-    if (!isWindows || !rendererString.startsWith(QStringLiteral("Intel"))) {
+    if (!isWindows || !rendererString.startsWith(PkString("Intel"))) {
         return result;
     }
 
-    const QRegularExpression regex(QStringLiteral("\\b\\d{1,2}\\.\\d{1,2}\\.(\\d{1,3})\\.(\\d{4})\\b"));
-    const QRegularExpressionMatch match = regex.match(driverVersionString);
-    if (!match.hasMatch()) {
+    static const std::regex regex("\\b\\d{1,2}\\.\\d{1,2}\\.(\\d{1,3})\\.(\\d{4})\\b");
+    std::smatch match;
+    const std::string version = driverVersionString.PkToUtf8();
+    if (!std::regex_search(version, match, regex)) {
         result.blacklisted = true;
         result.warning = IntelWarning::UnknownDriverFormat;
         return result;
     }
 
-    const int thirdPart = match.captured(1).toInt();
-    const int fourthPart = match.captured(2).toInt();
+    const int thirdPart = std::stoi(match[1].str());
+    const int fourthPart = std::stoi(match[2].str());
     result.driverBuild = thirdPart >= 100 ? thirdPart * 10000 + fourthPart : fourthPart;
 
     if ((result.driverBuild > 4636 && result.driverBuild < 4729) || result.driverBuild == 4358) {
@@ -154,6 +158,16 @@ IntelDriverPolicy intelDriverPolicy(const QString &rendererString,
 
 namespace
 {
+bool containsAsciiCaseInsensitive(const PkString &text, const char *needle)
+{
+    std::string haystack = text.PkToUtf8();
+    std::string wanted(needle);
+    const auto lower = [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); };
+    std::transform(haystack.begin(), haystack.end(), haystack.begin(), lower);
+    std::transform(wanted.begin(), wanted.end(), wanted.begin(), lower);
+    return haystack.find(wanted) != std::string::npos;
+}
+
 bool isHdr(ColorSpace colorSpace)
 {
     return colorSpace == ColorSpace::Bt2020Pq || colorSpace == ColorSpace::ScRgb;
@@ -244,9 +258,9 @@ bool isPreferred(const FormatCandidate &lhs,
     return false;
 }
 
-bool needsFenceWorkaround(bool isOnX11, const QString &rendererString, bool forceWorkaround)
+bool needsFenceWorkaround(bool isOnX11, const PkString &rendererString, bool forceWorkaround)
 {
-    return (isOnX11 && rendererString.startsWith(QStringLiteral("AMD"))) || forceWorkaround;
+    return (isOnX11 && rendererString.startsWith(PkString("AMD"))) || forceWorkaround;
 }
 
 bool shouldUseTextureBuffers(bool forceDisabled, bool userPreference)
@@ -255,12 +269,12 @@ bool shouldUseTextureBuffers(bool forceDisabled, bool userPreference)
 }
 
 bool forceDisableTextureBuffers(Platform platform,
-                                const QString &rendererString,
-                                const QProcessEnvironment &environment)
+                                const PkString &rendererString,
+                                bool unlockTextureBuffersEnvironmentSet)
 {
     return platform == Platform::Windows &&
-        !environment.contains(QStringLiteral("KRITA_UNLOCK_TEXTURE_BUFFERS")) &&
-        rendererString.contains(QStringLiteral("ANGLE"), Qt::CaseInsensitive);
+        !unlockTextureBuffersEnvironmentSet &&
+        containsAsciiCaseInsensitive(rendererString, "ANGLE");
 }
 
 bool shouldInvalidateBuffers(bool configured, bool driverSupportsInvalidation)
@@ -275,10 +289,10 @@ int assistantPixmapCacheLimitKiB(int width, int height)
     return pkMax(minimumCacheSize, cacheSize);
 }
 
-bool rejectAngleD3d9(bool isWindows, bool isUsingAngle, const QString &rendererString)
+bool rejectAngleD3d9(bool isWindows, bool isUsingAngle, const PkString &rendererString)
 {
     return isWindows && isUsingAngle &&
-        rendererString.contains(QStringLiteral("Direct3D9"), Qt::CaseInsensitive);
+        containsAsciiCaseInsensitive(rendererString, "Direct3D9");
 }
 
 } // namespace KisOpenGLPolicy

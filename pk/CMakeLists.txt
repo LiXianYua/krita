@@ -287,7 +287,10 @@ target_include_directories(pktime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/time)
 # =========================================================================
 # 8. pk/config
 # =========================================================================
-add_library(pkconfig STATIC
+# Configuration is process-global state.  Keep one store across the host,
+# shared libraries and plugins instead of embedding an independent static
+# PkConfigStore in every consumer.
+add_library(pkconfig SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/config/PkConfigStore.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/config/PkConfigGroup.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/config/PkSharedConfig.cpp
@@ -299,7 +302,13 @@ target_include_directories(pkconfig PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/container
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry
 )
-target_link_libraries(pkconfig PUBLIC pkstring pkcolor)
+target_link_libraries(pkconfig PUBLIC pkstring pkcontainer pkcolor)
+target_compile_options(pkconfig PRIVATE -fvisibility=default)
+set_target_properties(pkconfig PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+install(TARGETS pkconfig
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # =========================================================================
 # 9. pk/pointer

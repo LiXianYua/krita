@@ -9,10 +9,8 @@
 
 #include <kritacanvas_export.h>
 
-#include <QString>
-#include <QVector>
-
-class QProcessEnvironment;
+#include <PkString.h>
+#include <PkVector.h>
 
 namespace KisOpenGLPolicy
 {
@@ -65,8 +63,8 @@ struct KRITACANVAS_EXPORT SurfaceRequest
     bool debugContext {false};
 };
 
-KRITACANVAS_EXPORT QString rendererToConfig(Renderer renderer);
-KRITACANVAS_EXPORT Renderer rendererFromConfig(const QString &renderer);
+KRITACANVAS_EXPORT PkString rendererToConfig(Renderer renderer);
+KRITACANVAS_EXPORT Renderer rendererFromConfig(const PkString &renderer);
 
 KRITACANVAS_EXPORT SurfaceRequest surfaceRequest(Renderer renderer,
                                                  Platform platform,
@@ -87,8 +85,8 @@ struct KRITACANVAS_EXPORT ProbeRequest
     }
 };
 
-KRITACANVAS_EXPORT QVector<ProbeRequest> defaultProbeSequence(Platform platform);
-KRITACANVAS_EXPORT QVector<Renderer> rendererCandidates(bool isAndroid, bool isWindows);
+KRITACANVAS_EXPORT PkVector<ProbeRequest> defaultProbeSequence(Platform platform);
+KRITACANVAS_EXPORT PkVector<Renderer> rendererCandidates(bool isAndroid, bool isWindows);
 
 enum class IntelWarning {
     None,
@@ -103,8 +101,8 @@ struct KRITACANVAS_EXPORT IntelDriverPolicy
     int driverBuild {-1};
 };
 
-KRITACANVAS_EXPORT IntelDriverPolicy intelDriverPolicy(const QString &rendererString,
-                                                       const QString &driverVersionString,
+KRITACANVAS_EXPORT IntelDriverPolicy intelDriverPolicy(const PkString &rendererString,
+                                                       const PkString &driverVersionString,
                                                        bool isWindows);
 
 struct KRITACANVAS_EXPORT FormatCandidate
@@ -130,18 +128,18 @@ KRITACANVAS_EXPORT bool isPreferred(const FormatCandidate &lhs,
                                     const SelectionPreferences &preferences);
 
 KRITACANVAS_EXPORT bool needsFenceWorkaround(bool isOnX11,
-                                             const QString &rendererString,
+                                             const PkString &rendererString,
                                              bool forceWorkaround);
 KRITACANVAS_EXPORT bool shouldUseTextureBuffers(bool forceDisabled, bool userPreference);
 KRITACANVAS_EXPORT bool forceDisableTextureBuffers(
     Platform platform,
-    const QString &rendererString,
-    const QProcessEnvironment &environment);
+    const PkString &rendererString,
+    bool unlockTextureBuffersEnvironmentSet);
 KRITACANVAS_EXPORT bool shouldInvalidateBuffers(bool configured, bool driverSupportsInvalidation);
 KRITACANVAS_EXPORT int assistantPixmapCacheLimitKiB(int width, int height);
 KRITACANVAS_EXPORT bool rejectAngleD3d9(bool isWindows,
                                        bool isUsingAngle,
-                                       const QString &rendererString);
+                                       const PkString &rendererString);
 
 } // namespace KisOpenGLPolicy
 

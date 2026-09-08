@@ -394,6 +394,16 @@ void PkPainterCase::measuredOverloadsSubmitOneCommand()
     oneMore(before);
     PK_COMPARE(std::get<PkDrawEllipseCommand>(backend.commands.back()).rect,
                PkRectF(16, 25, 8, 10));
+
+    PkImage sourceImage(8, 9, PkImage::Format_ARGB32);
+    before = backend.commands.size();
+    painter.drawImage(PkRectF(40, 50, 60, 70), sourceImage,
+                      PkRectF(1, 2, 3, 4));
+    oneMore(before);
+    const auto &image = std::get<PkDrawPixmapCommand>(backend.commands.back());
+    PK_COMPARE(image.target, PkRectF(40, 50, 60, 70));
+    PK_COMPARE(image.source, PkRectF(1, 2, 3, 4));
+
 }
 
 void PkPainterCase::textOverloadsPreservePlacementKind()

@@ -6,15 +6,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QPoint>
-#include <QRect>
-#include <QSharedPointer>
-#include <QString>
-#include <QVector>
+#include <cassert>
 
-#include <PkRect.h>
-#include <PkSize.h>
-#include <PkString.h>
 #include <PkVector.h>
 
 #include <kis_node.h>
@@ -24,20 +17,6 @@
 #include <KoCompositeOpRegistry.h>
 
 #include "KisEncloseAndFillProcessingVisitor.h"
-
-namespace {
-
-PkString toPkString(const QString &value)
-{
-    return PkString(value.toUtf8().constData());
-}
-
-QRect toQRect(const PkRect &rect)
-{
-    return QRect(rect.x(), rect.y(), rect.width(), rect.height());
-}
-
-}
 
 KisEncloseAndFillProcessingVisitor::KisEncloseAndFillProcessingVisitor(KisPaintDeviceSP referencePaintDevice,
         KisPixelSelectionSP enclosingMask,
@@ -61,8 +40,8 @@ KisEncloseAndFillProcessingVisitor::KisEncloseAndFillProcessingVisitor(KisPaintD
         bool useBgColor,
         bool useCustomBlendingOptions,
         qreal customOpacity,
-        const QString &customCompositeOp,
-        QSharedPointer<QRect> outDirtyRect
+        const PkString &customCompositeOp,
+        PkSharedPointer<PkRect> outDirtyRect
 )
     : m_referencePaintDevice(referencePaintDevice)
     , m_enclosingMask(enclosingMask)
@@ -92,21 +71,21 @@ KisEncloseAndFillProcessingVisitor::KisEncloseAndFillProcessingVisitor(KisPaintD
 
 void KisEncloseAndFillProcessingVisitor::visitExternalLayer(KisExternalLayer *layer, KisUndoAdapter *undoAdapter)
 {
-    Q_UNUSED(layer);
-    Q_UNUSED(undoAdapter);
+    (void)layer;
+    (void)undoAdapter;
 }
 
 void KisEncloseAndFillProcessingVisitor::visitNodeWithPaintDevice(KisNode *node, KisUndoAdapter *undoAdapter)
 {
     KisPaintDeviceSP device = node->paintDevice();
-    Q_ASSERT(device);
+    assert(device);
     ProgressHelper helper(node);
     fillPaintDevice(device, undoAdapter, helper);
 }
 
 void KisEncloseAndFillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device, KisUndoAdapter *undoAdapter, ProgressHelper &helper)
 {
-    Q_ASSERT(m_enclosingMask);
+    assert(m_enclosingMask);
 
     const PkRect fillRect = m_resources->image()->bounds();
 
@@ -135,7 +114,7 @@ void KisEncloseAndFillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device
     painter.setFeather(m_feather);
     if (m_useCustomBlendingOptions) {
         painter.setOpacityF(m_customOpacity);
-        painter.setCompositeOpId(toPkString(m_customCompositeOp));
+        painter.setCompositeOpId(m_customCompositeOp);
     }
 
     KisPaintDeviceSP sourceDevice = m_unmerged ? device : m_referencePaintDevice;
@@ -149,16 +128,16 @@ void KisEncloseAndFillProcessingVisitor::fillPaintDevice(KisPaintDeviceSP device
     painter.endTransaction(undoAdapter);
 
     if (m_outDirtyRect) {
-        *m_outDirtyRect = toQRect(m_enclosingMask->selectedRect());
+        *m_outDirtyRect = m_enclosingMask->selectedRect();
         const PkVector<PkRect> dirtyRects = painter.takeDirtyRegion();
-        Q_FOREACH(const PkRect &r, dirtyRects) {
-            *m_outDirtyRect = m_outDirtyRect->united(toQRect(r));
+        for (const PkRect &r : dirtyRects) {
+            *m_outDirtyRect = m_outDirtyRect->united(r);
         }
     }
 }
 
 void KisEncloseAndFillProcessingVisitor::visitColorizeMask(KisColorizeMask *mask, KisUndoAdapter *undoAdapter)
 {
-    Q_UNUSED(mask);
-    Q_UNUSED(undoAdapter);
+    (void)mask;
+    (void)undoAdapter;
 }

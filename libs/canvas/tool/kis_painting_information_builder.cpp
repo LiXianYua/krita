@@ -4,11 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QObject>
 #include <pk/geometry/PkPoint.h>
-#include <QVariant>
-#include <PkFlakeBridge.h>
-#include <QVector>
 
 #include "kis_painting_information_builder.h"
 
@@ -39,13 +35,9 @@ KisPaintingInformationBuilder::KisPaintingInformationBuilder()
       m_pressureDisabled(false)
 {
     KisConfigNotifier *notifier = KisConfigNotifier::instance();
-    PkConnection configConnection = PkObject::connect(
-        notifier, &KisConfigNotifier::configChanged, notifier,
+    PkObject::connect(
+        notifier, &KisConfigNotifier::configChanged, this,
         [this]() { updateSettings(); });
-    QObject::connect(this, &QObject::destroyed,
-                     [configConnection](QObject *) mutable {
-                         PkObject::disconnect(configConnection);
-                     });
 
     updateSettings();
 }
@@ -118,7 +110,7 @@ PkPointF KisPaintingInformationBuilder::imageToView(const PkPointF &point)
 
 qreal KisPaintingInformationBuilder::calculatePerspective(const PkPointF &documentPoint)
 {
-    Q_UNUSED(documentPoint);
+    (void)documentPoint;
     return 1.0;
 }
 

@@ -10,6 +10,7 @@
 
 #include <QSize>
 #include <QImage>
+#include <QPainter>
 
 #include <KoZoomHandler.h>
 #include <KoColorSpaceRegistry.h>
@@ -30,106 +31,115 @@
 
 #include "../../sdk/tests/testutil.h"
 
+namespace {
+
+void saveDiagnosticImage(const PkImage &image, const QString &path)
+{
+    TestUtil::diagnosticQImage(image).save(path);
+}
+
+}
+
 bool KisPrescaledProjectionTest::testProjectionScenario(KisPrescaledProjection & projection,
         KoZoomHandler * viewConverter,
         const QString & name)
 {
 
-    projection.notifyCanvasSizeChanged(QSize(1000, 1000));
-    projection.prescaledQImage().save(name + "_prescaled_projection_01.png");
+    projection.notifyCanvasSizeChanged(PkSize(1000, 1000));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_01.png");
 
     viewConverter->setZoom(0.5);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_021.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_021.png");
 
     viewConverter->setZoom(0.6);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_022.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_022.png");
 
     viewConverter->setZoom(0.71);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_023.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_023.png");
 
     viewConverter->setZoom(0.84);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_024.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_024.png");
 
     viewConverter->setZoom(0.9);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_025.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_025.png");
 
     viewConverter->setZoom(1.9);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_03.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_03.png");
 
     viewConverter->setZoom(2.0);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_04.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_04.png");
 
     viewConverter->setZoom(2.5);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_05.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_05.png");
 
     viewConverter->setZoom(16.0);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_06.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_06.png");
 
     viewConverter->setZoom(1.0);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_07.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_07.png");
 
-    projection.viewportMoved(QPoint(50, 50));
-    projection.prescaledQImage().save(name + "_prescaled_projection_08.png");
+    projection.viewportMoved(PkPointF(50, 50));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_08.png");
 
-    projection.viewportMoved(QPoint(100, 100));
-    projection.prescaledQImage().save(name + "_prescaled_projection_081.png");
+    projection.viewportMoved(PkPointF(100, 100));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_081.png");
 
-    projection.viewportMoved(QPoint(200, 200));
-    projection.prescaledQImage().save(name + "_prescaled_projection_082.png");
+    projection.viewportMoved(PkPointF(200, 200));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_082.png");
 
-    projection.viewportMoved(QPoint(250, 250));
-    projection.prescaledQImage().save(name + "_prescaled_projection_083.png");
+    projection.viewportMoved(PkPointF(250, 250));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_083.png");
 
-    projection.viewportMoved(QPoint(150, 200));
-    projection.prescaledQImage().save(name + "_prescaled_projection_084.png");
+    projection.viewportMoved(PkPointF(150, 200));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_084.png");
 
-    projection.viewportMoved(QPoint(100, 200));
-    projection.prescaledQImage().save(name + "_prescaled_projection_085.png");
+    projection.viewportMoved(PkPointF(100, 200));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_085.png");
 
-    projection.viewportMoved(QPoint(50, 200));
-    projection.prescaledQImage().save(name + "_prescaled_projection_086.png");
+    projection.viewportMoved(PkPointF(50, 200));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_086.png");
 
-    projection.viewportMoved(QPoint(0, 200));
-    projection.prescaledQImage().save(name + "_prescaled_projection_087.png");
+    projection.viewportMoved(PkPointF(0, 200));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_087.png");
 
-    projection.notifyCanvasSizeChanged(QSize(750, 750));
-    projection.prescaledQImage().save(name + "_prescaled_projection_09.png");
+    projection.notifyCanvasSizeChanged(PkSize(750, 750));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_09.png");
 
     viewConverter->setZoom(1.0);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_10.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_10.png");
 
-    projection.notifyCanvasSizeChanged(QSize(350, 350));
-    projection.prescaledQImage().save(name + "_prescaled_projection_11.png");
+    projection.notifyCanvasSizeChanged(PkSize(350, 350));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_11.png");
 
-    projection.viewportMoved(QPoint(100, 100));
-    projection.prescaledQImage().save(name + "_prescaled_projection_12.png");
+    projection.viewportMoved(PkPointF(100, 100));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_12.png");
 
     viewConverter->setZoom(0.75);
     projection.preScale();
-    projection.prescaledQImage().save(name + "_prescaled_projection_13.png");
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_13.png");
 
-    projection.viewportMoved(QPoint(10, 10));
-    projection.prescaledQImage().save(name + "_prescaled_projection_14.png");
+    projection.viewportMoved(PkPointF(10, 10));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_14.png");
 
-    projection.viewportMoved(QPoint(0, 0));
-    projection.prescaledQImage().save(name + "_prescaled_projection_15.png");
+    projection.viewportMoved(PkPointF(0, 0));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_15.png");
 
-    projection.viewportMoved(QPoint(10, 10));
-    projection.prescaledQImage().save(name + "_prescaled_projection_16.png");
+    projection.viewportMoved(PkPointF(10, 10));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_16.png");
 
-    projection.viewportMoved(QPoint(30, 50));
-    projection.prescaledQImage().save(name + "_prescaled_projection_17.png");
+    projection.viewportMoved(PkPointF(30, 50));
+    saveDiagnosticImage(projection.prescaledQImage(), name + "_prescaled_projection_17.png");
 
     return true;
 }
@@ -158,7 +168,7 @@ void KisPrescaledProjectionTest::testScalingUndeferredSmoothingPixelForPixel()
 
     KisPaintLayerSP layer = new KisPaintLayer(image, "test", OPACITY_OPAQUE_U8, cs);
     image->addNode(layer.data(), image->rootLayer(), 0);
-    layer->paintDevice()->convertFromQImage(qimage, 0);
+    layer->paintDevice()->convertFromQImage(TestUtil::pkImageFromQImage(qimage), 0);
 
     KisPrescaledProjection projection;
     KisCoordinatesConverter converter;
@@ -191,7 +201,7 @@ void KisPrescaledProjectionTest::testScalingUndeferredSmoothing()
 
     KisPaintLayerSP layer = new KisPaintLayer(image, "test", OPACITY_OPAQUE_U8, cs);
     image->addNode(layer.data(), image->rootLayer(), 0);
-    layer->paintDevice()->convertFromQImage(qimage, 0);
+    layer->paintDevice()->convertFromQImage(TestUtil::pkImageFromQImage(qimage), 0);
 
     KisPrescaledProjection projection;
     KisCoordinatesConverter converter;
@@ -219,7 +229,7 @@ void KisPrescaledProjectionTest::benchmarkUpdate()
     image->setResolution(300 / 72 , 300 / 72);
 
     KisPaintLayerSP layer = new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8, cs);
-    layer->paintDevice()->convertFromQImage(referenceImage, 0);
+    layer->paintDevice()->convertFromQImage(TestUtil::pkImageFromQImage(referenceImage), 0);
 
     image->addNode(layer, image->rootLayer(), 0);
 
@@ -242,9 +252,9 @@ void KisPrescaledProjectionTest::benchmarkUpdate()
     QEXPECT_FAIL("", "We expected the image rect to be (0,0,512,512), but it is (0,0 308x245)", Continue);
     QCOMPARE(imageRect, QRect(0,0,512,512));
 
-    QRect dirtyRect(0,0,20,20);
+    PkRect dirtyRect(0,0,20,20);
     const qint32 numShifts = 25;
-    const QPoint offset(dirtyRect.width(),dirtyRect.height());
+    const PkPoint offset(dirtyRect.width(),dirtyRect.height());
 
     //CALLGRIND_START_INSTRUMENTATION;
 
@@ -273,20 +283,20 @@ public:
         image->setResolution(100, 100);
 
         layer = new KisPaintLayer(image, "test", OPACITY_OPAQUE_U8, cs);
-        layer->paintDevice()->convertFromQImage(sourceImage, 0);
+        layer->paintDevice()->convertFromQImage(TestUtil::pkImageFromQImage(sourceImage), 0);
 
         image->addNode(layer, image->rootLayer(), 0);
 
         converter.setResolution(100, 100);
         converter.setZoom(1.);
         converter.setImage(image);
-        converter.setCanvasWidgetSize(QSize(100,100));
-        converter.setDocumentOffset(QPoint(100,100));
+        converter.setCanvasWidgetSize(PkSize(100,100));
+        converter.setDocumentOffset(PkPoint(100,100));
 
         projection.setCoordinatesConverter(&converter);
         projection.setDisplayConfig(KisDisplayConfig());
         projection.setImage(image);
-        projection.notifyCanvasSizeChanged(QSize(100,100));
+        projection.notifyCanvasSizeChanged(PkSize(100,100));
     }
 
     QImage sourceImage;
@@ -300,17 +310,17 @@ void KisPrescaledProjectionTest::testScrollingZoom100()
 {
     PrescaledProjectionTester t;
 
-    QImage result = t.projection.prescaledQImage();
+    QImage result = TestUtil::diagnosticQImage(t.projection.prescaledQImage());
     QImage reference = t.sourceImage.copy(QRect(100,100,100,100));
 
     QPoint pt;
     QVERIFY(TestUtil::compareQImages(pt, result, reference));
 
     // Test actual scrolling
-    t.converter.setDocumentOffset(QPoint(150,150));
-    t.projection.viewportMoved(QPoint(-50,-50));
+    t.converter.setDocumentOffset(PkPointF(150,150));
+    t.projection.viewportMoved(PkPointF(-50,-50));
 
-    result = t.projection.prescaledQImage();
+    result = TestUtil::diagnosticQImage(t.projection.prescaledQImage());
     reference = t.sourceImage.copy(QRect(150,150,100,100));
 
     QEXPECT_FAIL("", "Images should be the same, but aren't", Continue);
@@ -321,10 +331,10 @@ void KisPrescaledProjectionTest::testScrollingZoom50()
 {
     PrescaledProjectionTester t;
 
-    t.converter.setDocumentOffset(QPoint(0,0));
+    t.converter.setDocumentOffset(PkPointF(0,0));
 
-    t.converter.setCanvasWidgetSize(QSize(300,300));
-    t.projection.notifyCanvasSizeChanged(QSize(300,300));
+    t.converter.setCanvasWidgetSize(PkSize(300,300));
+    t.projection.notifyCanvasSizeChanged(PkSize(300,300));
 
     QEXPECT_FAIL("", "Images should be the same, but aren't", Continue);
     QVERIFY(TestUtil::checkQImage(t.projection.prescaledQImage(),
@@ -341,8 +351,8 @@ void KisPrescaledProjectionTest::testScrollingZoom50()
                                   "testScrollingZoom50",
                                   "zoom50"));
 
-    t.converter.setDocumentOffset(QPoint(50,50));
-    t.projection.viewportMoved(QPoint(-50,-50));
+    t.converter.setDocumentOffset(PkPointF(50,50));
+    t.projection.viewportMoved(PkPointF(-50,-50));
 
     QEXPECT_FAIL("", "Images should be the same, but aren't", Continue);
     QVERIFY(TestUtil::checkQImage(t.projection.prescaledQImage(),
@@ -355,10 +365,10 @@ void KisPrescaledProjectionTest::testUpdates()
 {
     PrescaledProjectionTester t;
 
-    t.converter.setDocumentOffset(QPoint(10,10));
+    t.converter.setDocumentOffset(PkPointF(10,10));
 
-    t.converter.setCanvasWidgetSize(2*QSize(300,300));
-    t.projection.notifyCanvasSizeChanged(2*QSize(300,300));
+    t.converter.setCanvasWidgetSize(2*PkSize(300,300));
+    t.projection.notifyCanvasSizeChanged(2*PkSize(300,300));
 
 
     t.converter.setZoom(0.50);
@@ -394,8 +404,8 @@ void KisPrescaledProjectionTest::testUpdates()
 
     for(int y = 0; y < t.image->height(); y+=step) {
         for(int x = 0; x < t.image->width(); x+=step) {
-            QRect patchRect(x - patchOffset, y - patchOffset,
-                            patchSize, patchSize);
+            PkRect patchRect(x - patchOffset, y - patchOffset,
+                             patchSize, patchSize);
 
             infos.append(t.projection.updateCache(patchRect));
         }
@@ -435,13 +445,13 @@ void KisPrescaledProjectionTest::testQtScaling()
 
     // Scale down transformation
     qreal scale = 3.49/7.0;
-    gc.setTransform(PkTransform::fromScale(scale,scale));
+    gc.setTransform(QTransform::fromScale(scale,scale));
 
     // Draw a rect scale*(7x7)
-    gc.fillRect(PkRectF(0,0,7,7), Qt::red);
+    gc.fillRect(QRectF(0,0,7,7), Qt::red);
 
     // Draw an image scale*(7x7)
-    gc.drawImage(PkPointF(), image, PkRectF(0,0,7,7));
+    gc.drawImage(QPointF(), image, QRectF(0,0,7,7));
 
     gc.end();
 
@@ -458,4 +468,3 @@ void KisPrescaledProjectionTest::testQtScaling()
 }
 
 SIMPLE_TEST_MAIN(KisPrescaledProjectionTest)
-

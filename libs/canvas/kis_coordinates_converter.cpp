@@ -7,15 +7,11 @@
 
 #include <cmath>
 
-#include <QDebug>
-#include <QPoint>
 #include <pk/geometry/PkPoint.h>
-#include <QRect>
 #include <pk/geometry/PkRect.h>
-#include <QSize>
 #include <pk/geometry/PkSize.h>
 #include <pk/geometry/PkTransform.h>
-#include <QtMath>
+#include <cstdio>
 
 #include "kis_coordinates_converter.h"
 #include "KoViewTransformStillPoint.h"
@@ -27,7 +23,6 @@
 #include <kis_assert.h>
 #include <KisValueCache.h>
 #include <KisPortingUtils.h>
-#include <PkFlakeBridge.h>
 
 
 struct KisCoordinatesConverter::Private {
@@ -46,8 +41,8 @@ struct KisCoordinatesConverter::Private {
     {
     }
 
-    QRect imageBounds;
-    QRect extraReferencesBounds;
+    PkRect imageBounds;
+    PkRect extraReferencesBounds;
     qreal imageXRes;
     qreal imageYRes;
 
@@ -62,8 +57,8 @@ struct KisCoordinatesConverter::Private {
     qreal devicePixelRatio;
     PkPointF documentOffset;
     PkPointF preferredTransformationCenterImage;
-    QPoint minimumOffset;
-    QPoint maximumOffset;
+    PkPoint minimumOffset;
+    PkPoint maximumOffset;
 
     qreal minZoom {0.01};
     qreal maxZoom {9.0};
@@ -105,7 +100,7 @@ PkPointF KisCoordinatesConverter::centeringCorrection() const
 {
     KisCanvasConfig cfg(true);
 
-    QSize documentSize = toQSize(imageRectInWidgetPixels().toAlignedRect().size());
+    PkSize documentSize = imageRectInWidgetPixels().toAlignedRect().size();
     PkPointF dPoint(documentSize.width(), documentSize.height());
     PkPointF wPoint(m_d->canvasWidgetSize.width(), m_d->canvasWidgetSize.height());
 
@@ -128,9 +123,9 @@ void KisCoordinatesConverter::recalculateOffsetBoundsAndCrop()
 
     KisCanvasConfig cfg(true);
 
-    const QRect refRect = imageToWidget(m_d->extraReferencesBounds);
+    const PkRect refRect = imageToWidget(m_d->extraReferencesBounds).toAlignedRect();
 
-    QRect documentRect = toQRect(imageRectInWidgetPixels().toAlignedRect());
+    PkRect documentRect = imageRectInWidgetPixels().toAlignedRect();
     PkPointF dPointMax(pkMax(documentRect.width(), refRect.right() + 1 - documentRect.x()),
                       pkMax(documentRect.height(),  refRect.bottom() + 1 - documentRect.y()));
     PkPointF dPointMin(pkMin(0, refRect.left() - documentRect.x()),
@@ -140,24 +135,25 @@ void KisCoordinatesConverter::recalculateOffsetBoundsAndCrop()
     PkPointF minOffset = dPointMin - cfg.vastScrolling() * wPoint;
     PkPointF maxOffset = dPointMax - wPoint + cfg.vastScrolling() * wPoint;
 
-    m_d->minimumOffset = toQPoint(minOffset.toPoint());
-    m_d->maximumOffset = toQPoint(maxOffset.toPoint());
+    m_d->minimumOffset = minOffset.toPoint();
+    m_d->maximumOffset = maxOffset.toPoint();
 
-    const PkRectF limitRect(toPkPoint(m_d->minimumOffset), toPkPoint(m_d->maximumOffset));
+    const PkRectF limitRect(m_d->minimumOffset, m_d->maximumOffset);
 
     if (!limitRect.contains(m_d->documentOffset)) {
         m_d->documentOffset = snapToDevicePixel(KisAlgebra2D::clampPoint(m_d->documentOffset, limitRect));
-        qDebug() << "    corrected offset:" << m_d->documentOffset;
+        std::fprintf(stderr, "corrected offset: (%.15g,%.15g)\n",
+                     m_d->documentOffset.x(), m_d->documentOffset.y());
         correctTransformationToOffset();
     }
 }
 
-QPoint KisCoordinatesConverter::minimumOffset() const
+PkPoint KisCoordinatesConverter::minimumOffset() const
 {
     return m_d->minimumOffset;
 }
 
-QPoint KisCoordinatesConverter::maximumOffset() const
+PkPoint KisCoordinatesConverter::maximumOffset() const
 {
     return m_d->maximumOffset;
 }
@@ -210,7 +206,7 @@ void KisCoordinatesConverter::recalculateTransformations()
     recalculateOffsetBoundsAndCrop();
 
     PkRectF irect = imageRectInWidgetPixels();
-    PkRectF wrect = PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize));
+    PkRectF wrect(PkPointF(0, 0), m_d->canvasWidgetSize);
     PkRectF rrect = irect & wrect;
 
     PkTransform reversedTransform = flakeToWidgetTransform().inverted();
@@ -259,8 +255,7 @@ void KisCoordinatesConverter::setImage(KisImageWSP image)
     // to convert the image to the physical size of the display
 
     const PkRect imageBounds = image->bounds();
-    m_d->imageBounds = QRect(imageBounds.x(), imageBounds.y(),
-                             imageBounds.width(), imageBounds.height());
+    m_d->imageBounds = imageBounds;
     recalculateZoomLevelLimits();
     recalculateTransformations();
 
@@ -269,14 +264,14 @@ void KisCoordinatesConverter::setImage(KisImageWSP image)
         // proposed mode and postpone the actual recentering of the image
         // (this case is supposed to happen in unittests only)
         KoZoomHandler::setZoomMode(KoZoomMode::ZOOM_PAGE);
-        m_d->preferredTransformationCenterImage = toPkPointF(m_d->imageBounds.center());
+        m_d->preferredTransformationCenterImage = m_d->imageBounds.center();
     } else {
         // the default mode after initialization is "Zoom Page"
         setZoom(KoZoomMode::ZOOM_PAGE, 777.7, resolutionX(), resolutionY(), std::nullopt);
     }
 }
 
-void KisCoordinatesConverter::setExtraReferencesBounds(const QRect &imageRect)
+void KisCoordinatesConverter::setExtraReferencesBounds(const PkRect &imageRect)
 {
     if (imageRect == m_d->extraReferencesBounds) return;
 
@@ -286,7 +281,7 @@ void KisCoordinatesConverter::setExtraReferencesBounds(const QRect &imageRect)
     recalculateTransformations();
 }
 
-void KisCoordinatesConverter::setImageBounds(const QRect &rect, const PkPointF oldImageStillPoint, const PkPointF newImageStillPoint)
+void KisCoordinatesConverter::setImageBounds(const PkRect &rect, const PkPointF oldImageStillPoint, const PkPointF newImageStillPoint)
 {
     if (rect == m_d->imageBounds) return;
 
@@ -364,9 +359,9 @@ qreal KisCoordinatesConverter::devicePixelRatio() const
     return m_d->devicePixelRatio;
 }
 
-QPoint KisCoordinatesConverter::documentOffset() const
+PkPoint KisCoordinatesConverter::documentOffset() const
 {
-    return QPoint(int(m_d->documentOffset.x()), int(m_d->documentOffset.y()));
+    return PkPoint(int(m_d->documentOffset.x()), int(m_d->documentOffset.y()));
 }
 
 PkPointF KisCoordinatesConverter::documentOffsetF() const
@@ -431,13 +426,13 @@ PkSizeF KisCoordinatesConverter::snapWidgetSizeToDevicePixel(const PkSizeF &size
     return PkSizeF(viewportWidth, viewportHeight) / m_d->devicePixelRatio;
 }
 
-QSize KisCoordinatesConverter::viewportDevicePixelSize() const
+PkSize KisCoordinatesConverter::viewportDevicePixelSize() const
 {
     // TODO: add an assert and a unittest to verify that there is no
     //       actual rounding happens, only intolerances!
-    return toQSize(pkQtFuzzyCompare(m_d->devicePixelRatio, 1.0) ?
+    return pkQtFuzzyCompare(m_d->devicePixelRatio, 1.0) ?
         m_d->canvasWidgetSize.toSize() :
-        (m_d->canvasWidgetSize * m_d->devicePixelRatio).toSize());
+        (m_d->canvasWidgetSize * m_d->devicePixelRatio).toSize();
 }
 
 void KisCoordinatesConverter::setZoom(KoZoomMode::Mode mode, qreal zoom, qreal resolutionX, qreal resolutionY, const std::optional<KoViewTransformStillPoint> &stillPoint)
@@ -550,7 +545,7 @@ qreal KisCoordinatesConverter::effectiveZoom() const
     this->imageScale(&scaleX, &scaleY);
 
     if (scaleX != scaleY) {
-        qWarning() << "WARNING: Zoom is not isotropic!"  << ppVar(scaleX) << ppVar(scaleY) << ppVar(pkQtFuzzyCompare(scaleX, scaleY));
+        std::fprintf(stderr, "WARNING: Zoom is not isotropic: %.15g %.15g\n", scaleX, scaleY);
     }
 
     // zoom by average of x and y
@@ -563,7 +558,7 @@ qreal KisCoordinatesConverter::effectivePhysicalZoom() const
     this->imagePhysicalScale(&scaleX, &scaleY);
 
     if (scaleX != scaleY) {
-        qWarning() << "WARNING: Zoom is not isotropic!"  << ppVar(scaleX) << ppVar(scaleY) << ppVar(pkQtFuzzyCompare(scaleX, scaleY));
+        std::fprintf(stderr, "WARNING: Zoom is not isotropic: %.15g %.15g\n", scaleX, scaleY);
     }
 
     // zoom by average of x and y
@@ -644,8 +639,7 @@ void KisCoordinatesConverter::mirror(const std::optional<KoViewTransformStillPoi
         KoViewTransformStillPoint(m_d->preferredTransformationCenterInDocumentPixels(), widgetCenterPoint());
 
 
-    if (kisSquareDistance(toPkPointF(effectiveStillPoint.viewPoint()),
-                          toPkPointF(widgetCenterPoint())) > 2.0) {
+    if (kisSquareDistance(effectiveStillPoint.viewPoint(), widgetCenterPoint()) > 2.0) {
         // when mirroring not against the center, reset the zoom mode
         setZoomMode(KoZoomMode::ZOOM_CONSTANT);
     }
@@ -791,7 +785,7 @@ void KisCoordinatesConverter::getQPainterCheckersInfo(PkTransform *transform,
     else {
         *transform = PkTransform();
         *polygon = viewportToWidgetTransform().map(imageRect);
-        *brushOrigin = toPkPointF(QPoint(0,0));
+        *brushOrigin = PkPointF(0, 0);
     }
 }
 
@@ -817,7 +811,7 @@ void KisCoordinatesConverter::getOpenGLCheckersInfo(const PkRectF &viewportRect,
 
 PkPointF KisCoordinatesConverter::imageCenterInWidgetPixel() const
 {
-    PkPolygonF poly = toPkPolygonF(imageToWidget(QPolygon(m_d->imageBounds)));
+    PkPolygonF poly = imageToWidget(PkPolygonF(PkRectF(m_d->imageBounds)));
     return (poly[0] + poly[1] + poly[2] + poly[3]) / 4.0;
 }
 
@@ -826,41 +820,41 @@ PkPointF KisCoordinatesConverter::imageCenterInWidgetPixel() const
 
 PkRectF KisCoordinatesConverter::imageRectInWidgetPixels() const
 {
-    return toPkRectF(imageToWidget<QRect>(m_d->imageBounds));
+    return PkRectF(imageToWidget(m_d->imageBounds));
 }
 
 PkRectF KisCoordinatesConverter::imageRectInViewportPixels() const
 {
-    return toPkRectF(imageToViewport<QRect>(m_d->imageBounds));
+    return PkRectF(imageToViewport(m_d->imageBounds));
 }
 
-QRect KisCoordinatesConverter::imageRectInImagePixels() const
+PkRect KisCoordinatesConverter::imageRectInImagePixels() const
 {
     return m_d->imageBounds;
 }
 
 PkRectF KisCoordinatesConverter::imageRectInDocumentPixels() const
 {
-    return toPkRectF(imageToDocument<QRect>(m_d->imageBounds));
+    return PkRectF(imageToDocument(m_d->imageBounds));
 }
 
 PkSizeF KisCoordinatesConverter::imageSizeInFlakePixels() const
 {
     qreal scaleX, scaleY;
     imageScale(&scaleX, &scaleY);
-    QSize imageSize = m_d->imageBounds.size();
+    PkSize imageSize = m_d->imageBounds.size();
 
     return PkSizeF(imageSize.width() * scaleX, imageSize.height() * scaleY);
 }
 
 PkRectF KisCoordinatesConverter::widgetRectInFlakePixels() const
 {
-    return widgetToFlake(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
+    return widgetToFlake(PkRectF(PkPointF(0, 0), m_d->canvasWidgetSize));
 }
 
 PkRectF KisCoordinatesConverter::widgetRectInImagePixels() const
 {
-    return widgetToImage(PkRectF(toPkPoint(QPoint(0,0)), toPkSizeF(m_d->canvasWidgetSize)));
+    return widgetToImage(PkRectF(PkPointF(0, 0), m_d->canvasWidgetSize));
 }
 
 PkPointF KisCoordinatesConverter::flakeCenterPoint() const
@@ -914,7 +908,7 @@ PkPointF KisCoordinatesConverter::snapToDevicePixel(const PkPointF &point) const
     PkPoint devicePixel = (point * m_d->devicePixelRatio).toPoint();
     // These adjusted coords will be in logical pixel but is aligned in device
     // pixel space for pixel-perfect rendering.
-    return toPkPointF(devicePixel) / m_d->devicePixelRatio;
+    return PkPointF(devicePixel) / m_d->devicePixelRatio;
 }
 
 PkTransform KisCoordinatesConverter::viewToWidget() const

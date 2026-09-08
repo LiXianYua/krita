@@ -9,9 +9,12 @@
 
 #include "kritacanvas_export.h"
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkScopedPointer.h>
+#include <PkSignalCompat.h>
 #include <pk/render/PkPainter.h>
+#include <KoColor.h>
+#include <QCursor>
 
 #include "kis_types.h"
 
@@ -19,11 +22,9 @@ class KoCanvasBase;
 class KoViewConverter;
 class KisStrokesFacade;
 class KisColorSamplingCanvas;
-class KoColor;
-
-class KRITACANVAS_EXPORT KisAsyncColorSamplerHelper : public QObject
+class KisAsyncColorSamplerHelperTest;
+class KRITACANVAS_EXPORT KisAsyncColorSamplerHelper : public PkObject
 {
-    Q_OBJECT
 public:
     KisAsyncColorSamplerHelper(KoCanvasBase *canvas,
                                KisColorSamplingCanvas *samplingCanvas);
@@ -46,7 +47,7 @@ public:
     void setUpdateGlobalColor(bool value);
     bool updateGlobalColor() const;
 
-Q_SIGNALS:
+signals:
     void sigRequestUpdateOutline();
     void sigRequestCursor(const QCursor &cursor);
     void sigRequestCursorReset();
@@ -71,7 +72,9 @@ Q_SIGNALS:
      */
     void sigFinalColorSelected(const KoColor &color);
 
-private Q_SLOTS:
+private:
+    friend class KisAsyncColorSamplerHelperTest;
+
     void activateDelayedPreview();
     void slotAddSamplingJob(const PkPointF &docPoint);
     void slotColorSamplingFinished(const KoColor &rawColor);

@@ -9,8 +9,6 @@
 
 #include <kritacanvas_export.h>
 #include <boost/operators.hpp>
-#include <QPoint>
-#include <QSize>
 #include <pk/geometry/PkRect.h>
 #include <KoZoomMode.h>
 
@@ -26,11 +24,11 @@ public:
     qreal rotation;
     bool mirrorHorizontally;
     bool mirrorVertically;
-    QPoint documentOffset;
+    PkPoint documentOffset;
     PkPointF documentOffsetF;
     PkPointF viewportOffsetF;
-    QPoint minimumOffset;
-    QPoint maximumOffset;
+    PkPoint minimumOffset;
+    PkPoint maximumOffset;
     PkSizeF canvasSize;
     qreal minimumZoom;
     qreal maximumZoom;

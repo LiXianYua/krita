@@ -9,7 +9,9 @@
 #ifndef KISENCLOSEANDFILLPROCESSINGVISITOR_H
 #define KISENCLOSEANDFILLPROCESSINGVISITOR_H
 
-#include <QPoint>
+#include <PkRect.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
 
 #include <processing/kis_simple_processing_visitor.h>
 #include <kis_selection.h>
@@ -43,8 +45,8 @@ public:
         bool useBgColor,
         bool useCustomBlendingOptions,
         qreal customOpacity,
-        const QString &customCompositeOp,
-        QSharedPointer<QRect> outDirtyRect
+        const PkString &customCompositeOp,
+        PkSharedPointer<PkRect> outDirtyRect
     );
 
 private:
@@ -77,8 +79,8 @@ private:
     bool m_useBgColor {false};
     bool m_useCustomBlendingOptions;
     qreal m_customOpacity;
-    QString m_customCompositeOp;
-    QSharedPointer<QRect> m_outDirtyRect;
+    PkString m_customCompositeOp;
+    PkSharedPointer<PkRect> m_outDirtyRect;
 };
 
 #endif

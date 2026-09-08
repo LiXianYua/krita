@@ -26,12 +26,12 @@ PkList<QAction *> KisToolPaintFactoryBase::createActionsImpl()
 
     QAction *increaseBrushSize = new QAction(i18n("Increase Brush Size"), this);
     increaseBrushSize->setObjectName("increase_brush_size");
-    increaseBrushSize->setShortcut(Qt::Key_BracketRight);
+    increaseBrushSize->setShortcut(static_cast<int>(Pk::Key_BracketRight));
 
     actions << increaseBrushSize;
 
     QAction *decreaseBrushSize = new QAction(i18n("Decrease Brush Size"), this);
-    decreaseBrushSize->setShortcut(Qt::Key_BracketLeft);
+    decreaseBrushSize->setShortcut(static_cast<int>(Pk::Key_BracketLeft));
     decreaseBrushSize->setObjectName("decrease_brush_size");
 
     actions << decreaseBrushSize;

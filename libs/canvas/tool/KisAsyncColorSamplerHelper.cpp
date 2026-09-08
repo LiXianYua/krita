@@ -15,17 +15,14 @@
 
 #include <chrono>
 
-#include <klocalizedstring.h>
-
-#include <KConfigGroup>
-#include <KSharedConfig>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include "KoCanvasBase.h"
 #include "KoCanvasResourcesIds.h"
 #include "KoCanvasResourceProvider.h"
 #include "KoViewConverter.h"
-#include <QIcon>
-#include "KisCanvasFeedback.h"
+#include "KisCanvasToolServices.h"
 #include "KisColorSamplingCanvas.h"
 #include "kis_image.h"
 #include "kis_signal_compressor_with_param.h"
@@ -46,7 +43,7 @@ enum class ColorSamplerPreviewStyle {
 
 ColorSamplerPreviewStyle readColorSamplerPreviewStyle()
 {
-    const KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+    const PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
     const int style = cfg.readEntry(
         "colorSamplerPreviewStyle", int(ColorSamplerPreviewStyle::Circle));
 
@@ -233,7 +230,7 @@ void KisAsyncColorSamplerHelper::activate(bool sampleCurrentLayer, bool pickFgCo
     m_d->haveSample = false;
 
 
-    const KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+    const PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
     m_d->style = readColorSamplerPreviewStyle();
     m_d->circlePreviewDiameter =
         cfg.readEntry("colorSamplerPreviewCircleDiameter", 180);
@@ -260,7 +257,7 @@ void KisAsyncColorSamplerHelper::activateDelayedPreview()
 
     activatePreview();
 
-    Q_EMIT sigRequestUpdateOutline();
+    sigRequestUpdateOutline();
 }
 
 void KisAsyncColorSamplerHelper::activatePreview()
@@ -279,7 +276,7 @@ void KisAsyncColorSamplerHelper::activatePreview()
 
 void KisAsyncColorSamplerHelper::updateCursor(bool sampleCurrentLayer, bool pickFgColor)
 {
-    Q_EMIT sigRequestCursor(
+    sigRequestCursor(
         m_d->samplingCanvas->samplingCursor(sampleCurrentLayer, pickFgColor));
 }
 
@@ -309,17 +306,41 @@ void KisAsyncColorSamplerHelper::deactivate()
     m_d->baseColor = PkColor();
     m_d->isActive = false;
 
-    Q_EMIT sigRequestCursorReset();
-    Q_EMIT sigRequestUpdateOutline();
+    sigRequestCursorReset();
+    sigRequestUpdateOutline();
 }
 
 void KisAsyncColorSamplerHelper::startAction(const PkPointF &docPoint, int radius, int blend)
 {
     KisColorSamplerStrokeStrategy *strategy = new KisColorSamplerStrokeStrategy(radius, blend);
-    QObject::connect(strategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
-            this, &KisAsyncColorSamplerHelper::slotColorSamplingFinished);
-    QObject::connect(strategy, &KisColorSamplerStrokeStrategy::sigFinalColorSelected,
-            this, &KisAsyncColorSamplerHelper::sigFinalColorSelected);
+    const PkThreadId receiverThread = thread();
+    const PkCallLifetime receiverLifetime = callLifetime();
+    PkObject::connect(strategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
+            this,
+            [this, receiverThread, receiverLifetime](const KoColor &color) {
+                if (PkThread::currentThreadId() == receiverThread) {
+                    slotColorSamplingFinished(color);
+                } else {
+                    PkThreadCallQueue::post(
+                        receiverThread,
+                        [this, color] { slotColorSamplingFinished(color); },
+                        receiverLifetime);
+                }
+            },
+            PkConnectionType::Direct);
+    PkObject::connect(strategy, &KisColorSamplerStrokeStrategy::sigFinalColorSelected,
+            this,
+            [this, receiverThread, receiverLifetime](const KoColor &color) {
+                if (PkThread::currentThreadId() == receiverThread) {
+                    sigFinalColorSelected(color);
+                } else {
+                    PkThreadCallQueue::post(
+                        receiverThread,
+                        [this, color] { sigFinalColorSelected(color); },
+                        receiverLifetime);
+                }
+            },
+            PkConnectionType::Direct);
 
     activatePreview();
     m_d->haveSample = true;
@@ -543,7 +564,7 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const PkPointF &docPoint)
 
     if (!m_d->sampleCurrentLayer) {
         const std::optional<KoColor> referenceColor =
-            m_d->samplingCanvas->sampleVisibleReferenceColor(QPoint(imagePoint.x(), imagePoint.y()));
+            m_d->samplingCanvas->sampleVisibleReferenceColor(imagePoint);
         if (referenceColor) {
             slotColorSamplingFinished(*referenceColor);
             return;
@@ -571,10 +592,10 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const PkPointF &docPoint)
         m_d->strokesFacade()->addJob(m_d->strokeId,
             new KisColorSamplerStrokeStrategy::Data(device, imagePoint, currentColor));
     } else {
-        QString message = i18n("Color sampler does not work on this layer.");
-        if (KisCanvasFeedback *feedback =
-                dynamic_cast<KisCanvasFeedback *>(m_d->canvas)) {
-            feedback->showFloatingMessage(toPkString(message), QIcon());
+        if (KisCanvasToolServices *services =
+                dynamic_cast<KisCanvasToolServices *>(m_d->canvas)) {
+            services->toolShowFloatingMessage(
+                PkString("Color sampler does not work on this layer."));
         }
     }
 }
@@ -589,8 +610,8 @@ void KisAsyncColorSamplerHelper::slotColorSamplingFinished(const KoColor &rawCol
         m_d->canvas->resourceManager()->setResource(m_d->sampleResourceId, color);
     }
 
-    Q_EMIT sigRawColorSelected(rawColor);
-    Q_EMIT sigColorSelected(color);
+    sigRawColorSelected(rawColor);
+    sigColorSelected(color);
 
     if (!m_d->showPreview) return;
 
@@ -601,5 +622,5 @@ void KisAsyncColorSamplerHelper::slotColorSamplingFinished(const KoColor &rawCol
         m_d->currentColor = previewColor;
     }
 
-    Q_EMIT sigRequestUpdateOutline();
+    sigRequestUpdateOutline();
 }

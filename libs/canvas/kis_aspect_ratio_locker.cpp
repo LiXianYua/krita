@@ -1,139 +1,97 @@
 /*
- *  SPDX-FileCopyrightText: 2016 Dmitry Kazakov <dimula73@gmail.com>
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-FileCopyrightText: 2016 Dmitry Kazakov <dimula73@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "kis_aspect_ratio_locker.h"
 
-#include <QSpinBox>
-#include <QDoubleSpinBox>
-#include <QAbstractButton>
-
-#include "kis_signals_blocker.h"
-
-
-struct SliderWrapper
-{
-    template <class Slider>
-    SliderWrapper(Slider *slider)
-        : m_slider(QVariant::fromValue(slider)),
-          m_object(slider) {}
-
-    void setValue(qreal value) {
-        if (auto *slider = m_slider.value<QDoubleSpinBox*>()) {
-            slider->setValue(value);
-
-        } else if (auto *slider = m_slider.value<QSpinBox*>()) {
-            slider->setValue(qRound(value));
-
-        }
-    }
-
-    qreal value() const {
-        qreal result = 0.0;
-
-        if (auto *slider = m_slider.value<QDoubleSpinBox*>()) {
-            result = slider->value();
-
-        } else if (auto *slider = m_slider.value<QSpinBox*>()) {
-            result = slider->value();
-
-        }
-
-        return result;
-    }
-
-    QObject* object() const {
-        return m_object;
-    }
-
-private:
-    QVariant m_slider;
-    QObject *m_object;
-};
-
 struct KisAspectRatioLocker::Private
 {
-    QScopedPointer<SliderWrapper> spinOne;
-    QScopedPointer<SliderWrapper> spinTwo;
-    QAbstractButton *aspectButton = 0;
-
+    KisAspectRatioValueControl *spinOne = nullptr;
+    KisAspectRatioValueControl *spinTwo = nullptr;
+    KisAspectRatioToggleControl *aspectButton = nullptr;
     qreal aspectRatio = 1.0;
     bool blockUpdatesOnDrag = false;
+    bool correctingValue = false;
+    bool suppressSignals = false;
 };
 
-
-KisAspectRatioLocker::KisAspectRatioLocker(QObject *parent)
-    : QObject(parent),
-      m_d(new Private)
+KisAspectRatioLocker::KisAspectRatioLocker(PkObject *parent)
+    : PkObject(parent)
+    , m_d(new Private)
 {
 }
 
-KisAspectRatioLocker::~KisAspectRatioLocker()
-{
-}
+KisAspectRatioLocker::~KisAspectRatioLocker() = default;
 
-template <class SpinBoxType>
-void KisAspectRatioLocker::connectSpinBoxes(SpinBoxType *spinOne, SpinBoxType *spinTwo, QAbstractButton *aspectButton)
+void KisAspectRatioLocker::connectSpinBoxes(KisAspectRatioValueControl *spinOne,
+                                            KisAspectRatioValueControl *spinTwo,
+                                            KisAspectRatioToggleControl *aspectButton)
 {
-    m_d->spinOne.reset(new SliderWrapper(spinOne));
-    m_d->spinTwo.reset(new SliderWrapper(spinTwo));
+    m_d->spinOne = spinOne;
+    m_d->spinTwo = spinTwo;
     m_d->aspectButton = aspectButton;
 
-    if (QVariant::fromValue(spinOne->value()).type() == QMetaType::Double) {
-        QObject::connect(spinOne, SIGNAL(valueChanged(qreal)), SLOT(slotSpinOneChanged()));
-        QObject::connect(spinTwo, SIGNAL(valueChanged(qreal)), SLOT(slotSpinTwoChanged()));
-    } else {
-        QObject::connect(spinOne, SIGNAL(valueChanged(int)), SLOT(slotSpinOneChanged()));
-        QObject::connect(spinTwo, SIGNAL(valueChanged(int)), SLOT(slotSpinTwoChanged()));
-    }
-
-    QObject::connect(m_d->aspectButton, SIGNAL(toggled(bool)), SLOT(slotAspectButtonChanged()));
+    spinOne->setValueChangedCallback([this]() { slotSpinOneChanged(); });
+    spinTwo->setValueChangedCallback([this]() { slotSpinTwoChanged(); });
+    aspectButton->setToggledCallback([this](bool) { slotAspectButtonChanged(); });
     slotAspectButtonChanged();
 }
 
-
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(QSpinBox *spinOne, QSpinBox *spinTwo, QAbstractButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(QDoubleSpinBox *spinOne, QDoubleSpinBox *spinTwo, QAbstractButton *aspectButton);
-
 void KisAspectRatioLocker::slotSpinOneChanged()
 {
-    if (m_d->aspectButton->isChecked()) {
-        KisSignalsBlocker b(m_d->spinTwo->object());
-        m_d->spinTwo->setValue(m_d->aspectRatio * m_d->spinOne->value());
+    if (m_d->correctingValue) {
+        return;
     }
 
-    Q_EMIT sliderValueChanged();
+    if (m_d->aspectButton->isChecked()) {
+        m_d->correctingValue = true;
+        m_d->spinTwo->setValue(m_d->aspectRatio * m_d->spinOne->value());
+        m_d->correctingValue = false;
+    }
+
+    if (!m_d->suppressSignals) {
+        sliderValueChanged();
+    }
 }
 
 void KisAspectRatioLocker::slotSpinTwoChanged()
 {
-    if (m_d->aspectButton->isChecked()) {
-        KisSignalsBlocker b(m_d->spinOne->object());
-        m_d->spinOne->setValue(m_d->spinTwo->value() / m_d->aspectRatio);
+    if (m_d->correctingValue) {
+        return;
     }
 
-    Q_EMIT sliderValueChanged();
+    if (m_d->aspectButton->isChecked()) {
+        m_d->correctingValue = true;
+        m_d->spinOne->setValue(m_d->spinTwo->value() / m_d->aspectRatio);
+        m_d->correctingValue = false;
+    }
+
+    if (!m_d->suppressSignals) {
+        sliderValueChanged();
+    }
 }
 
 void KisAspectRatioLocker::slotAspectButtonChanged()
 {
-    if (m_d->aspectButton->isChecked() &&
-        m_d->spinTwo->value() > 0 &&
-        m_d->spinOne->value() > 0) {
-        m_d->aspectRatio = qreal(m_d->spinTwo->value()) / m_d->spinOne->value();
+    const bool checked = m_d->aspectButton->isChecked();
+    if (checked && m_d->spinTwo->value() > 0 && m_d->spinOne->value() > 0) {
+        m_d->aspectRatio = m_d->spinTwo->value() / m_d->spinOne->value();
     } else {
         m_d->aspectRatio = 1.0;
     }
 
-    Q_EMIT aspectButtonChanged();
-    Q_EMIT aspectButtonToggled(m_d->aspectButton->isChecked());
+    if (!m_d->suppressSignals) {
+        aspectButtonChanged();
+        aspectButtonToggled(checked);
+    }
 }
 
 void KisAspectRatioLocker::slotSpinDraggingFinished()
 {
-    Q_EMIT sliderValueChanged();
+    if (!m_d->suppressSignals) {
+        sliderValueChanged();
+    }
 }
 
 void KisAspectRatioLocker::setBlockUpdateSignalOnDrag(bool value)
@@ -143,6 +101,7 @@ void KisAspectRatioLocker::setBlockUpdateSignalOnDrag(bool value)
 
 void KisAspectRatioLocker::updateAspect()
 {
-    KisSignalsBlocker b(this);
+    m_d->suppressSignals = true;
     slotAspectButtonChanged();
+    m_d->suppressSignals = false;
 }

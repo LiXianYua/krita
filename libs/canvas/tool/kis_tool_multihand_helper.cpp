@@ -35,7 +35,7 @@ void KisToolMultihandHelper::setupTransformations(const PkVector<PkTransform> &t
     d->transformations = transformations;
 }
 
-void KisToolMultihandHelper::createPainters(QVector<KisFreehandStrokeInfo*> &strokeInfos,
+void KisToolMultihandHelper::createPainters(PkVector<KisFreehandStrokeInfo*> &strokeInfos,
                                             const KisDistanceInformation &startDist)
 {
     for (int i = 0; i < d->transformations.size(); i++) {

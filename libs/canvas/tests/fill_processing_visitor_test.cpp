@@ -8,6 +8,8 @@
 
 #include <simpletest.h>
 
+#include <type_traits>
+
 #include "kis_undo_stores.h"
 #include "kis_processing_applicator.h"
 
@@ -18,7 +20,35 @@
 #include <resources/KoPattern.h>
 
 #include <processing/fill_processing_visitor.h>
+#include <processing/KisEncloseAndFillProcessingVisitor.h>
 #include <KisGlobalResourcesInterface.h>
+
+static_assert(std::is_constructible_v<
+    KisEncloseAndFillProcessingVisitor,
+    KisPaintDeviceSP,
+    KisPixelSelectionSP,
+    KisSelectionSP,
+    KisResourcesSnapshotSP,
+    KisEncloseAndFillPainter::RegionSelectionMethod,
+    const KoColor &,
+    bool,
+    bool,
+    bool,
+    int,
+    int,
+    int,
+    bool,
+    int,
+    bool,
+    int,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    qreal,
+    const PkString &,
+    PkSharedPointer<PkRect>>);
 
 class FillProcessingVisitorTester : public TestUtil::QImageBasedTest
 {

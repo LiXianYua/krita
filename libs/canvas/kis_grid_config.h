@@ -7,22 +7,15 @@
 #ifndef __KIS_GRID_CONFIG_H
 #define __KIS_GRID_CONFIG_H
 
-#include <QMetaType>
-
-#include <QPoint>
-#include <QColor>
-#include <QPen>
+#include <PkColor.h>
+#include <PkPen.h>
+#include <PkPoint.h>
 #include <pk/geometry/PkTransform.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include <boost/operators.hpp>
 #include "kritacanvas_export.h"
-
-class QDomElement;
-class QDomDocument;
-class PkString;
-class PkXmlDocument;
-class PkXmlElement;
-
 
 class KRITACANVAS_EXPORT KisGridConfig : boost::equality_comparable<KisGridConfig>
 {
@@ -77,9 +70,9 @@ public:
           m_colorMain(200, 200, 200, 200),
           m_colorSubdivision(200, 200, 200, 150),
           m_colorIsoVertical(200, 200, 200, 100),
-          m_penMain(QPen()),
-          m_penSubdivision(QPen()),
-          m_penVertical(QPen())
+          m_penMain(PkPen()),
+          m_penSubdivision(PkPen()),
+          m_penVertical(PkPen())
     {
         loadStaticData();
         m_penMain.setWidth(0);
@@ -136,18 +129,18 @@ public:
         m_offsetActive = value;
     }
 
-    QPoint offset() const {
+    PkPoint offset() const {
         return m_offset;
     }
-    void setOffset(const QPoint &value) {
+    void setOffset(const PkPoint &value) {
         m_offset = value;
         updateTrigoCache();
     }
 
-    QPoint spacing() const {
+    PkPoint spacing() const {
         return m_spacing;
     }
-    void setSpacing(const QPoint &value) {
+    void setSpacing(const PkPoint &value) {
         m_spacing = value;
     }
 
@@ -275,39 +268,39 @@ public:
         updateTrigoCache();
     }
 
-    QColor colorMain() const {
+    PkColor colorMain() const {
         return m_colorMain;
     }
-    void setColorMain(const QColor &value) {
+    void setColorMain(const PkColor &value) {
         m_colorMain = value;
         updatePenStyle(&m_penMain, m_colorMain, m_lineTypeMain);
     }
 
-    QColor colorSubdivision() const {
+    PkColor colorSubdivision() const {
         return m_colorSubdivision;
     }
-    void setColorSubdivision(const QColor &value) {
+    void setColorSubdivision(const PkColor &value) {
         m_colorSubdivision = value;
         updatePenStyle(&m_penSubdivision, m_colorSubdivision, m_lineTypeSubdivision);
     }
 
-    QColor colorVertical() const {
+    PkColor colorVertical() const {
         return m_colorIsoVertical;
     }
-    void setColorVertical(const QColor &value) {
+    void setColorVertical(const PkColor &value) {
         m_colorIsoVertical = value;
         updatePenStyle(&m_penVertical, m_colorIsoVertical, m_lineTypeIsoVertical);
     }
 
-    QPen penMain() const {
+    PkPen penMain() const {
         return m_penMain;
     }
 
-    QPen penSubdivision() const {
+    PkPen penSubdivision() const {
         return m_penSubdivision;
     }
 
-    QPen penVertical() const {
+    PkPen penVertical() const {
         return m_penVertical;
     }
 
@@ -318,9 +311,8 @@ public:
     void loadStaticData();
     void saveStaticData() const;
 
-    QDomElement saveDynamicDataToXml(QDomDocument& doc, const QString &tag) const;
     PkXmlElement saveDynamicDataToXml(PkXmlDocument& doc, const PkString &tag) const;
-    bool loadDynamicDataFromXml(const QDomElement &parent);
+    bool loadDynamicDataFromXml(const PkXmlElement &parent);
 
     static const KisGridConfig& defaultGrid();
 
@@ -334,7 +326,7 @@ public:
     void transform(const PkTransform &transform);
 
 private:
-    void updatePenStyle(QPen *pen, QColor color, LineTypeInternal type);
+    void updatePenStyle(PkPen *pen, PkColor color, LineTypeInternal type);
     void updateTrigoCache();
 
 private:
@@ -342,7 +334,7 @@ private:
 
     bool m_showGrid;
     bool m_snapToGrid;
-    QPoint m_spacing;
+    PkPoint m_spacing;
     bool m_xSpacingActive;
     bool m_ySpacingActive;
     bool m_offsetActive;
@@ -359,7 +351,7 @@ private:
     GridType m_gridType;
     int m_subdivision;
 
-    QPoint m_offset;
+    PkPoint m_offset;
 
     // Static data. Stored in the Krita config.
 
@@ -367,17 +359,15 @@ private:
     LineTypeInternal m_lineTypeSubdivision;
     LineTypeInternal m_lineTypeIsoVertical;
 
-    QColor m_colorMain;
-    QColor m_colorSubdivision;
-    QColor m_colorIsoVertical;
+    PkColor m_colorMain;
+    PkColor m_colorSubdivision;
+    PkColor m_colorIsoVertical;
 
-    QPen m_penMain;
-    QPen m_penSubdivision;
-    QPen m_penVertical;
+    PkPen m_penMain;
+    PkPen m_penSubdivision;
+    PkPen m_penVertical;
 
     TrigoCache m_trigoCache;
 };
-
-Q_DECLARE_METATYPE(KisGridConfig)
 
 #endif /* __KIS_GRID_CONFIG_H */
