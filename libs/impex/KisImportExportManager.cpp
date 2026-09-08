@@ -13,6 +13,7 @@
 #include <PkString.h>
 #include <PkStringList.h>
 #include <PkAuxTypes.h>
+#include <PkMessageLogger.h>
 
 #include <KisMimeDatabase.h>
 #include <KisUsageLogger.h>
@@ -48,6 +49,8 @@ static PkByteArray pkToByteArray(const PkString &s) {
     std::string u = s.PkToUtf8();
     return PkByteArray(u.data(), (int)u.size());
 }
+
+#define PK_WARNING() PkMessageLogger(__FILE__, __LINE__, __func__).warning()
 
 // 临时文件唯一名计数器。std::async 每次调用新起一线程，两个文档并发异步导出
 // 会竞争该计数器 —— 必须原子（原临时文件 API 线程安全且唯一）。Linux 与非
@@ -324,7 +327,7 @@ KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImpo
             if (image) {
                 KIS_SAFE_ASSERT_RECOVER(image->colorSpace() != nullptr && image->colorSpace()->profile() != nullptr)
                 {
-                    qWarning() << "Loaded a profile-less file without a fallback. Rejecting image "
+                    PK_WARNING() << "Loaded a profile-less file without a fallback. Rejecting image "
                                   "opening";
                     return KisImportExportErrorCode(ImportExportCodes::InternalError);
                 }
@@ -339,7 +342,7 @@ KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImpo
                                         .arg(image->colorSpace()->profile()->name())
                                         .arg(pkNumber(image->nlayers())));
             } else {
-                qWarning() << "The filter returned OK, but there is no image";
+                PK_WARNING() << "The filter returned OK, but there is no image";
             }
 
         }
@@ -548,7 +551,7 @@ KisImportExportErrorCode KisImportExportManager::doExportImpl(const PkString &lo
             std::error_code ec;
             std::filesystem::rename(tmpLocation.PkToUtf8(), location.PkToUtf8(), ec);
             if (ec) {
-                qWarning() << "Could not rename temporary export file" << location;
+                PK_WARNING() << "Could not rename temporary export file" << location;
                 status = KisImportExportErrorCannotWrite(PkOpenError);
             }
         }

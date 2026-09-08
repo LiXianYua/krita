@@ -5,15 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/qglobal.h>
-#include <QtCore/qnamespace.h>
-#include <QtCore/qhashfunctions.h>
-#include <QtCore/qalgorithms.h>
-#include <QtCore/qmath.h>
-#include <QtCore/qnumeric.h>
-#include <QDebug>
-
 #include <KisMimeDatabase.h>
+#include <PkMessageLogger.h>
 
 #include <KoColor.h>
 #include <KoColorProfile.h>
@@ -138,6 +131,8 @@ namespace {
 constexpr int errorMessageTimeout = 5000;
 constexpr int successMessageTimeout = 1000;
 }
+
+#define PK_WARNING() PkMessageLogger(__FILE__, __LINE__, __func__).warning()
 
 // ---- Pk helpers (S-03-e Task 5; replaces Qt's file/dir/string/url helpers) ----
 static PkString pkNumber(int v) { char buf[32]; snprintf(buf, sizeof(buf), "%d", v); return PkString(buf); }
@@ -935,7 +930,7 @@ bool KisDocument::exportDocumentImpl(const KritaUtils::ExportFileJob &job, KisPr
 
         if (numOfBackupsKept == 1) {
             if (!KisBackup::simpleBackupFile(job.filePath, backupDir, suffix)) {
-                qWarning() << "Failed to create simple backup file!"
+                PK_WARNING() << "Failed to create simple backup file!"
                            << job.filePath.PkToUtf8().c_str()
                            << backupDir.PkToUtf8().c_str() << suffix.PkToUtf8().c_str();
                 KisUsageLogger::log(PkString("Failed to create a simple backup for %1 in %2.")
@@ -954,7 +949,7 @@ bool KisDocument::exportDocumentImpl(const KritaUtils::ExportFileJob &job, KisPr
         }
         else if (numOfBackupsKept > 1) {
             if (!KisBackup::numberedBackupFile(job.filePath, backupDir, suffix, numOfBackupsKept)) {
-                qWarning() << "Failed to create numbered backup file!"
+                PK_WARNING() << "Failed to create numbered backup file!"
                            << job.filePath.PkToUtf8().c_str()
                            << backupDir.PkToUtf8().c_str() << suffix.PkToUtf8().c_str();
                 KisUsageLogger::log(PkString("Failed to create a numbered backup for %2.")
@@ -1108,7 +1103,7 @@ PkByteArray KisDocument::serializeToNativeByteArray()
     d->savingImage = d->image;
 
     if (!filter->convert(this, &buffer).isOk()) {
-        qWarning() << "serializeToByteArray():: Could not export to our native format";
+        PK_WARNING() << "serializeToByteArray():: Could not export to our native format";
     }
 
     return PkByteArray(buffer.data(), (int)buffer.size());
@@ -1245,7 +1240,7 @@ void KisDocument::Private::uploadLinkedResourcesFromLayersToStorage()
                     KoResourceSP resource = result.resource();
 
                     if (!resource) {
-                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to fetch a resource"
+                        PK_WARNING() << "WARNING: KisDocument::lockAndCloneForSaving failed to fetch a resource"
                                    << result.signature().filename.PkToUtf8().c_str();
                         continue;
                     }
@@ -1259,7 +1254,7 @@ void KisDocument::Private::uploadLinkedResourcesFromLayersToStorage()
                     buf.close();
 
                     if (!res) {
-                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to export resource"
+                        PK_WARNING() << "WARNING: KisDocument::lockAndCloneForSaving failed to export resource"
                                    << result.signature().filename.PkToUtf8().c_str();
                         continue;
                     }
@@ -1271,7 +1266,7 @@ void KisDocument::Private::uploadLinkedResourcesFromLayersToStorage()
                     buf.close();
 
                     if (!res) {
-                        qWarning() << "WARNING: KisDocument::lockAndCloneForSaving failed to import resource"
+                        PK_WARNING() << "WARNING: KisDocument::lockAndCloneForSaving failed to import resource"
                                    << result.signature().filename.PkToUtf8().c_str();
                         continue;
                     }
@@ -2180,7 +2175,7 @@ void KisDocument::autoSaveOnPause()
     }
     else
     {
-        qWarning() << "Could not auto-save when paused";
+        PK_WARNING() << "Could not auto-save when paused";
     }
 }
 

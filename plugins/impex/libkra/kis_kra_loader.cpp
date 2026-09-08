@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <klocalizedstring.h>
 #include "kis_kra_loader.h"
 
 #include <PkStringList.h>
@@ -12,6 +11,7 @@
 #include <PkMemoryStream.h>
 #include <PkVersionNumber.h>
 #include <PkNodeId.h>
+#include <PkMessageLogger.h>
 
 #include <filesystem>
 
@@ -113,6 +113,10 @@ YCbCrAU16  YCBCRAU16    YCBCRAU16
 
 using namespace KRA;
 
+#define PK_KRITA_WARNING() PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()
+#define PK_FILE_DEBUG() PkMessageLogger(__FILE__, __LINE__, __func__, &_41008()).debug()
+#define PK_FILE_WARNING() PkMessageLogger(__FILE__, __LINE__, __func__, &_41008()).warning()
+
 struct KisKraLoader::Private
 {
 public:
@@ -206,18 +210,18 @@ KisImageSP KisKraLoader::loadXML(const PkXmlElement& imageElement)
     if ((attr = imageElement.attribute(MIME)) == NATIVE_MIMETYPE) {
 
         if ((m_d->imageName = imageElement.attribute(NAME)).isEmpty()) {
-            m_d->errorMessages << toPkString(i18n("Image does not have a name."));
+            m_d->errorMessages << PkString("Image does not have a name.");
             return KisImageSP(0);
         }
 
         if ((attr = imageElement.attribute(WIDTH)).isEmpty()) {
-            m_d->errorMessages << toPkString(i18n("Image does not specify a width."));
+            m_d->errorMessages << PkString("Image does not specify a width.");
             return KisImageSP(0);
         }
         width = KisDomUtils::toInt(attr);
 
         if ((attr = imageElement.attribute(HEIGHT)).isEmpty()) {
-            m_d->errorMessages << toPkString(i18n("Image does not specify a height."));
+            m_d->errorMessages << PkString("Image does not specify a height.");
             return KisImageSP(0);
         }
 
@@ -267,7 +271,7 @@ KisImageSP KisKraLoader::loadXML(const PkXmlElement& imageElement)
             // try once more without the profile
             cs = KoColorSpaceRegistry::instance()->colorSpace(colorspaceModel, colorspaceDepth, "");
             if (cs == 0) {
-                m_d->errorMessages << toPkString(i18n("Image specifies an unsupported color model: %1.", toQString(colorspacename)));
+                m_d->errorMessages << PkString("Image specifies an unsupported color model: %1.").arg(colorspacename);
                 return KisImageSP(0);
             }
         }
@@ -546,7 +550,7 @@ void KisKraLoader::loadBinaryData(KoStore * store, KisImageSP image, const PkStr
             serializer.assignAllLayerStylesToLayers(image->root(), resourceLocation);
 
         } else {
-            warnKrita << "WARNING: Couldn't load layer styles library from .kra!";
+            PK_KRITA_WARNING() << "WARNING: Couldn't load layer styles library from .kra!";
         }
     }
 
@@ -589,7 +593,7 @@ void KisKraLoader::loadResources(KoStore *store, KisDocument *doc)
             store->close();
             list.append(newPalette);
         } else {
-            m_d->warningMessages.append(toPkString(i18nc("Warning message on loading a .kra file", "Embedded palette is empty and cannot be loaded. The name of the palette: %1", toQString(filename))));
+            m_d->warningMessages.append(PkString("Embedded palette is empty and cannot be loaded. The name of the palette: %1").arg(filename));
         }
     }
     doc->setPaletteList(list);
@@ -600,7 +604,7 @@ void KisKraLoader::loadResources(KoStore *store, KisDocument *doc)
             store->open(RESOURCE_PATH + "/" + resourceItem.type + "/" + resourceItem.filename);
 
             if (!store->isOpen()) {
-                m_d->warningMessages.append(toPkString(i18nc("Warning message on loading a .kra file", "Embedded resource cannot be read. The filename of the resource: %1", toQString(resourceItem.filename))));
+                m_d->warningMessages.append(PkString("Embedded resource cannot be read. The filename of the resource: %1").arg(resourceItem.filename));
                 continue;
             }
 
@@ -609,7 +613,7 @@ void KisKraLoader::loadResources(KoStore *store, KisDocument *doc)
             if (!store->device()->atEnd() && !doc->linkedResourcesStorageId().isEmpty()) {
                 bool result = bool(model.importResource(resourceItem.filename, store->device(), false, doc->linkedResourcesStorageId()));
                 if (!result) {
-                    m_d->warningMessages.append(toPkString(i18nc("Warning message on loading a .kra file", "Embedded resource cannot be imported. The filename of the resource: %1", toQString(resourceItem.filename))));
+                    m_d->warningMessages.append(PkString("Embedded resource cannot be imported. The filename of the resource: %1").arg(resourceItem.filename));
                 }
             }
 
@@ -690,12 +694,14 @@ void KisKraLoader::backCompat_loadAudio(const PkXmlElement& elem, KisDocument *d
             if (m_d->feedbackInterface) {
                 PkString chosenUrl;
                 m_d->feedbackInterface->askUser([&](PkWidget *parent) {
-                    (void)i18nc(
-                                "@info",
-                                "Audio channel file \"%1\" doesn't exist!\n\n"
-                                "Expected path:\n"
-                                "%2\n\n"
-                                "Do you want to locate it manually?", toQString(fileName), filePath.string().c_str());
+                    const PkString prompt = PkString(
+                        "Audio channel file \"%1\" doesn't exist!\n\n"
+                        "Expected path:\n"
+                        "%2\n\n"
+                        "Do you want to locate it manually?")
+                            .arg(fileName)
+                            .arg(PkString(filePath.string().c_str()));
+                    (void)prompt;
 
                     chosenUrl = KisImportExportManager::askForAudioFileName(filePath.parent_path().string().c_str(), parent);
                     return !chosenUrl.isEmpty();
@@ -854,7 +860,8 @@ KisNodeSP KisKraLoader::loadNodes(const PkXmlElement& element, KisImageSP image,
                     KisSelectionMask *mask = dynamic_cast<KisSelectionMask*>(node.data());
                     if (mask->active()) {
                         if (activeSelectionMask) {
-                            m_d->warningMessages << toPkString(i18n("Two global selection masks in active state found. \"%1\" is kept active, \"%2\" is deactivated", toQString(activeSelectionMask->name()), toQString(mask->name())));
+                            m_d->warningMessages << PkString("Two global selection masks in active state found. \"%1\" is kept active, \"%2\" is deactivated")
+                                                        .arg(activeSelectionMask->name()).arg(mask->name());
                             mask->setActive(false);
                             KIS_ASSERT(!mask->active());
                         } else {
@@ -892,7 +899,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
 
     const KoColorSpace* colorSpace = 0;
     if ((element.attribute(COLORSPACE_NAME)).isEmpty()) {
-        dbgFile << "No attribute color space for layer: " << name;
+        PK_FILE_DEBUG() << "No attribute color space for layer: " << name;
         colorSpace = image->colorSpace();
     } else {
         PkString colorspacename = element.attribute(COLORSPACE_NAME);
@@ -902,7 +909,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
 
         PkString colorspaceModel = KoColorSpaceRegistry::instance()->colorSpaceColorModelId(colorspacename).id();
         PkString colorspaceDepth = KoColorSpaceRegistry::instance()->colorSpaceColorDepthId(colorspacename).id();
-        dbgFile << "Searching color space: " << colorspacename << colorspaceModel << colorspaceDepth << " for layer: " << name;
+        PK_FILE_DEBUG() << "Searching color space: " << colorspacename << colorspaceModel << colorspaceDepth << " for layer: " << name;
         // use default profile - it will be replaced later in completeLoading
 
         if (profileProductName.isEmpty()) {
@@ -912,9 +919,9 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
             colorSpace = KoColorSpaceRegistry::instance()->colorSpace(colorspaceModel, colorspaceDepth, profileProductName);
         }
 
-        dbgFile << "found colorspace" << colorSpace;
+        PK_FILE_DEBUG() << "found colorspace" << colorSpace;
         if (!colorSpace) {
-            m_d->warningMessages << toPkString(i18n("Layer %1 specifies an unsupported color model: %2.", toQString(name), toQString(colorspacename)));
+            m_d->warningMessages << PkString("Layer %1 specifies an unsupported color model: %2.").arg(name).arg(colorspacename);
             return 0;
         }
     }
@@ -942,7 +949,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
     }
 
     if (nodeType.isEmpty()) {
-        m_d->warningMessages << toPkString(i18n("Layer %1 has an unsupported type.", toQString(name)));
+        m_d->warningMessages << PkString("Layer %1 has an unsupported type.").arg(name);
         return 0;
     }
 
@@ -977,14 +984,14 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
     else if (nodeType == REFERENCE_IMAGES_LAYER)
         node = loadReferenceImagesLayer(element, image);
     else {
-        m_d->warningMessages << toPkString(i18n("Layer %1 has an unsupported type: %2.", toQString(name), toQString(nodeType)));
+        m_d->warningMessages << PkString("Layer %1 has an unsupported type: %2.").arg(name).arg(nodeType);
         return 0;
     }
 
     // Loading the node went wrong. Return empty node and leave to
     // upstream to complain to the user
     if (!node) {
-        m_d->warningMessages << toPkString(i18n("Failure loading layer %1 of type: %2.", toQString(name), toQString(nodeType)));
+        m_d->warningMessages << PkString("Failure loading layer %1 of type: %2.").arg(name).arg(nodeType);
         return 0;
     }
 
@@ -1007,11 +1014,11 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
             colorSpace->colorModelId() == CMYKAColorModelID &&
             subtractiveBlendingModesInCmyk().contains(compositeOpName)) {
 
-            m_d->warningMessages << toPkString(i18n("Layer \"%1\" has blending mode \"%2\" that has changed its "
+            m_d->warningMessages << PkString("Layer \"%1\" has blending mode \"%2\" that has changed its "
                     "behavior for CMYK color in Krita 5.2. Please check the "
                     "result and consider enabling legacy \"Additive\" algorithm in "
-                    "Settings->Configure Krita->General->Tools->CMYK blending mode",
-                    toQString(name), toQString(KoCompositeOpRegistry::instance().getKoID(compositeOpName).name())));
+                    "Settings->Configure Krita->General->Tools->CMYK blending mode")
+                    .arg(name).arg(KoCompositeOpRegistry::instance().getKoID(compositeOpName).name());
         }
     }
 
@@ -1028,7 +1035,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
                 dumbLayerStyle->setUuid(uuid);
                 layer->setLayerStyle(dumbLayerStyle->cloneWithResourcesSnapshot(KisGlobalResourcesInterface::instance(), 0));
             } else {
-                warnKrita << "WARNING: Layer style for layer" << layer->name() << "contains invalid UUID" << uuidString;
+                PK_KRITA_WARNING() << "WARNING: Layer style for layer" << layer->name() << "contains invalid UUID" << uuidString;
             }
         }
     }
@@ -1086,7 +1093,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
 KisNodeSP KisKraLoader::loadPaintLayer(const PkXmlElement& element, KisImageSP image,
                                        const PkString& name, const KoColorSpace* cs, quint32 opacity)
 {
-    Q_UNUSED(element);
+    (void)element;
     KisPaintLayer* layer;
 
     layer = new KisPaintLayer(image, name, opacity, cs);
@@ -1129,12 +1136,14 @@ KisNodeSP KisKraLoader::loadFileLayer(const PkXmlElement& element, KisImageSP im
         if (m_d->feedbackInterface) {
             PkString chosenUrl;
             m_d->feedbackInterface->askUser([&](PkWidget *parent) {
-                (void)i18nc(
-                            "@info",
-                            "The file associated to a file layer with the name \"%1\" is not found.\n\n"
-                            "Expected path:\n"
-                            "%2\n\n"
-                            "Do you want to locate it manually?", toQString(name), fullPath.string().c_str());
+                const PkString prompt = PkString(
+                    "The file associated to a file layer with the name \"%1\" is not found.\n\n"
+                    "Expected path:\n"
+                    "%2\n\n"
+                    "Do you want to locate it manually?")
+                        .arg(name)
+                        .arg(PkString(fullPath.string().c_str()));
+                (void)prompt;
 
                 chosenUrl = KisImportExportManager::getUriForAdditionalFile(fullPath.string().c_str(), parent);
                 return !chosenUrl.isEmpty();
@@ -1159,7 +1168,7 @@ KisNodeSP KisKraLoader::loadFileLayer(const PkXmlElement& element, KisImageSP im
 KisNodeSP KisKraLoader::loadGroupLayer(const PkXmlElement& element, KisImageSP image,
                                        const PkString& name, const KoColorSpace* cs, quint32 opacity)
 {
-    Q_UNUSED(element);
+    (void)element;
     KisGroupLayer* layer;
 
     layer = new KisGroupLayer(image, name, opacity, cs);
@@ -1173,7 +1182,7 @@ KisNodeSP KisKraLoader::loadAdjustmentLayer(const PkXmlElement& element, KisImag
                                             const PkString& name, const KoColorSpace* cs, quint32 opacity)
 {
     // XXX: do something with filterversion?
-    Q_UNUSED(cs);
+    (void)cs;
     PkString attr;
     KisAdjustmentLayer* layer;
     PkString filtername;
@@ -1181,7 +1190,7 @@ KisNodeSP KisKraLoader::loadAdjustmentLayer(const PkXmlElement& element, KisImag
 
     if ((filtername = element.attribute(FILTER_NAME)).isEmpty()) {
         // XXX: Invalid adjustment layer! We should warn about it!
-        warnFile << "No filter in adjustment layer";
+        PK_FILE_WARNING() << "No filter in adjustment layer";
         return 0;
     }
 
@@ -1200,7 +1209,7 @@ KisNodeSP KisKraLoader::loadAdjustmentLayer(const PkXmlElement& element, KisImag
 
     KisFilterSP f = KisFilterRegistry::instance()->value(filtername);
     if (!f) {
-        warnFile << "No filter for filtername" << filtername << "";
+        PK_FILE_WARNING() << "No filter for filtername" << filtername << "";
         return 0; // XXX: We don't have this filter. We should warn about it!
     }
 
@@ -1226,8 +1235,8 @@ KisNodeSP KisKraLoader::loadShapeLayer(const PkXmlElement& element, KisImageSP i
                                        const PkString& name, const KoColorSpace* cs, quint32 opacity)
 {
 
-    Q_UNUSED(element);
-    Q_UNUSED(cs);
+    (void)element;
+    (void)cs;
 
     PkString attr;
     KoShapeControllerBase * shapeController = 0;
@@ -1245,20 +1254,20 @@ KisNodeSP KisKraLoader::loadShapeLayer(const PkXmlElement& element, KisImageSP i
 KisNodeSP KisKraLoader::loadGeneratorLayer(const PkXmlElement& element, KisImageSP image,
                                            const PkString& name, const KoColorSpace* cs, quint32 opacity)
 {
-    Q_UNUSED(cs);
+    (void)cs;
     // XXX: do something with generator version?
     KisGeneratorLayer* layer;
     PkString generatorname = element.attribute(GENERATOR_NAME);
 
     if (generatorname.isEmpty()) {
         // XXX: Invalid generator layer! We should warn about it!
-        warnFile << "No generator in generator layer";
+        PK_FILE_WARNING() << "No generator in generator layer";
         return 0;
     }
 
     KisGeneratorSP generator = KisGeneratorRegistry::instance()->value(generatorname);
     if (!generator) {
-        warnFile << "No generator for generatorname" << generatorname << "";
+        PK_FILE_WARNING() << "No generator for generatorname" << generatorname << "";
         return 0; // XXX: We don't have this generator. We should warn about it!
     }
 
@@ -1278,7 +1287,7 @@ KisNodeSP KisKraLoader::loadGeneratorLayer(const PkXmlElement& element, KisImage
 KisNodeSP KisKraLoader::loadCloneLayer(const PkXmlElement& element, KisImageSP image,
                                        const PkString& name, const KoColorSpace* cs, quint32 opacity)
 {
-    Q_UNUSED(cs);
+    (void)cs;
 
     KisCloneLayerSP layer = new KisCloneLayer(0, image, name, opacity);
 
@@ -1314,13 +1323,13 @@ KisNodeSP KisKraLoader::loadFilterMask(KisImageSP image, const PkXmlElement& ele
 
     if ((filtername = element.attribute(FILTER_NAME)).isEmpty()) {
         // XXX: Invalid filter layer! We should warn about it!
-        warnFile << "No filter in filter layer";
+        PK_FILE_WARNING() << "No filter in filter layer";
         return 0;
     }
 
     KisFilterSP f = KisFilterRegistry::instance()->value(filtername);
     if (!f) {
-        warnFile << "No filter for filtername" << filtername << "";
+        PK_FILE_WARNING() << "No filter for filtername" << filtername << "";
         return 0; // XXX: We don't have this filter. We should warn about it!
     }
 
@@ -1337,7 +1346,7 @@ KisNodeSP KisKraLoader::loadFilterMask(KisImageSP image, const PkXmlElement& ele
 
 KisNodeSP KisKraLoader::loadTransformMask(KisImageSP image, const PkXmlElement& element)
 {
-    Q_UNUSED(element);
+    (void)element;
 
     KisTransformMask* mask;
 
@@ -1353,7 +1362,7 @@ KisNodeSP KisKraLoader::loadTransformMask(KisImageSP image, const PkXmlElement& 
 
 KisNodeSP KisKraLoader::loadTransparencyMask(KisImageSP image, const PkXmlElement& element)
 {
-    Q_UNUSED(element);
+    (void)element;
     KisTransparencyMask* mask = new KisTransparencyMask(image, "");
     Q_CHECK_PTR(mask);
 
@@ -1503,7 +1512,7 @@ void KisKraLoader::loadStoryboardCommentList(const PkXmlElement& elem)
 
 void KisKraLoader::loadAudioXML(PkXmlDocument &xmlDoc, PkXmlElement &xmlElement, KisDocument *kisDoc)
 {
-    Q_UNUSED(xmlDoc);
+    (void)xmlDoc;
     PkXmlNode audioClip = xmlElement.firstChild();
     if (audioClip.nodeName() == "audioClips") {
         PkXmlElement audioClipElement = audioClip.toElement();

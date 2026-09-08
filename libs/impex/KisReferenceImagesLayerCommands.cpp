@@ -4,13 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/qglobal.h>
-#include <QtCore/qnamespace.h>
-#include <QtCore/qhashfunctions.h>
-#include <QtCore/qalgorithms.h>
-#include <QtCore/qmath.h>
-#include <QtCore/qnumeric.h>
-
 #include "KisReferenceImagesLayer.h"
 
 #include <PkList.h>
@@ -23,15 +16,6 @@
 #include <kundo2magicstring.h>
 
 #include "KisDocument.h"
-
-static PkList<KoShape *> toPkList(const QList<KoShape *> &shapes)
-{
-    PkList<KoShape *> result;
-    for (KoShape *shape : shapes) {
-        result.append(shape);
-    }
-    return result;
-}
 
 struct AddReferenceImagesCommand : KoShapeCreateCommand
 {
@@ -123,7 +107,7 @@ KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document
 
     KUndo2Command *parentCommand = new KUndo2Command();
 
-    new KoKeepShapesSelectedCommand(toPkList(layer->shapeManager()->selection()->selectedShapes()),
+    new KoKeepShapesSelectedCommand(layer->shapeManager()->selection()->selectedShapes(),
                                     PkList<KoShape *>(),
                                     layer->selectedShapesProxy(),
                                     KisCommandUtils::FlipFlopCommand::State::INITIALIZING,
