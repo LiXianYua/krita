@@ -12,9 +12,8 @@
 
 #include <PkTransform.h>
 #include <PkPainterPath.h>
-#include <QPainter>
+#include <PkPainter.h>
 #include <QVarLengthArray>
-#include <QSharedData>
 
 #include <kis_algebra_2d.h>
 
@@ -33,16 +32,14 @@ PkTransform scaleFromPercent(const PkSizeF &size)
     return PkTransform().scale(w/1.0, h/1.0);
 }
 
-class Q_DECL_HIDDEN KoClipPath::Private : public QSharedData
+class Q_DECL_HIDDEN KoClipPath::Private
 {
 public:
     Private()
-        : QSharedData()
-    {}
+        {}
 
     Private(const Private &rhs)
-        : QSharedData()
-        , clipPath(rhs.clipPath)
+        : clipPath(rhs.clipPath)
         , clipRule(rhs.clipRule)
         , coordinates(rhs.coordinates)
         , initialTransformToShape(rhs.initialTransformToShape)
@@ -147,7 +144,7 @@ KoFlake::CoordinateSystem KoClipPath::coordinates() const
     return d->coordinates;
 }
 
-void KoClipPath::applyClipping(KoShape *shape, QPainter &painter)
+void KoClipPath::applyClipping(KoShape *shape, PkPainter &painter)
 {
     if (shape->clipPath()) {
         PkPainterPath path = shape->clipPath()->path();
@@ -158,7 +155,7 @@ void KoClipPath::applyClipping(KoShape *shape, QPainter &painter)
         }
 
         if (!path.isEmpty()) {
-            painter.setClipPath(toQPainterPath(path), Qt::IntersectClip);
+            painter.setClipPath(path, Pk::IntersectClip);
         }
     }
 }

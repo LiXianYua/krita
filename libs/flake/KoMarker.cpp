@@ -6,7 +6,6 @@
 
 #include <QtCore/QtCore>
 #include <PkGradient.h>
-#include <KoGradientBridge.h>
 #include <PkFlakeBridge.h>
 #include "KoMarker.h"
 
@@ -24,7 +23,7 @@
 #include <PkString.h>
 #include <QUrl>
 #include <PkPainterPath.h>
-#include <QPainter>
+#include <PkPainter.h>
 
 #include "kis_global.h"
 #include "kis_algebra_2d.h"
@@ -136,7 +135,7 @@ PkString KoMarker::name() const
 }
 
 KoMarker::KoMarker(const KoMarker &rhs)
-    : QSharedData(rhs),
+    : KisShared(),
       d(new Private(*rhs.d))
 {
 }
@@ -229,16 +228,16 @@ PkList<KoShape *> KoMarker::shapes() const
     return d->shapes;
 }
 
-void KoMarker::paintAtPosition(QPainter *painter, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle)
+void KoMarker::paintAtPosition(PkPainter *painter, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle)
 {
-    QTransform oldTransform = painter->transform();
+    PkTransform oldTransform = painter->transform();
 
     if (!d->shapePainter) {
         d->shapePainter.reset(new KoShapePainter());
         d->shapePainter->setShapes(d->shapes);
     }
 
-    painter->setTransform(toQTransform(d->markerTransform(strokeWidth, nodeAngle, pos)), true);
+    painter->setTransform(d->markerTransform(strokeWidth, nodeAngle, pos), true);
     d->shapePainter->paint(*painter);
 
     painter->setTransform(oldTransform);
@@ -286,7 +285,7 @@ PkPainterPath KoMarker::outline(qreal strokeWidth, qreal nodeAngle) const
     return outline;
 }
 
-void KoMarker::drawPreview(QPainter *painter, const PkRectF &previewRect, const PkPen &pen, KoFlake::MarkerPosition position)
+void KoMarker::drawPreview(PkPainter *painter, const PkRectF &previewRect, const PkPen &pen, KoFlake::MarkerPosition position)
 {
     const PkRectF outlineRect = outline(pen.widthF(), 0).boundingRect(); // normalized to 0,0
     PkPointF marker;
@@ -308,10 +307,10 @@ void KoMarker::drawPreview(QPainter *painter, const PkRectF &previewRect, const 
     }
 
     painter->save();
-    painter->setPen(toQPen(pen));
-    painter->setClipRect(toQRectF(previewRect));
+    painter->setPen(pen);
+    painter->setClipRect(previewRect);
 
-    painter->drawLine(toQPointF(start), toQPointF(end));
+    painter->drawLine(start, end);
     paintAtPosition(painter, marker, pen.widthF(), 0);
 
     painter->restore();
@@ -319,7 +318,7 @@ void KoMarker::drawPreview(QPainter *painter, const PkRectF &previewRect, const 
 
 void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *stroke, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle)
 {
-    const PkGradient *originalGradient = toPkGradientPtr(stroke->lineBrush().gradient());
+    const PkGradient *originalGradient = stroke->lineBrush().gradient();
 
     if (!originalGradient) {
         PkList<KoShape*> linearizedShapes = KoShape::linearizeSubtree(d->shapes);
@@ -332,7 +331,7 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
             if (shapeStroke) {
                 shapeStroke = PkSharedPointer<KoShapeStroke>(new KoShapeStroke(*shapeStroke));
 
-                shapeStroke->setLineBrush(QBrush());
+                shapeStroke->setLineBrush(PkBrush());
                 shapeStroke->setColor(stroke->color());
 
                 shape->setStroke(shapeStroke);
@@ -381,8 +380,8 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
             if (shapeStroke) {
                 shapeStroke = PkSharedPointer<KoShapeStroke>(new KoShapeStroke(*shapeStroke));
 
-                QBrush brush(toQGradient(*g));
-                brush.setTransform(toQTransform(t));
+                PkBrush brush(*g);
+                brush.setTransform(t);
                 shapeStroke->setLineBrush(brush);
                 shapeStroke->setColor(PkColor(Pk::transparent));
                 shape->setStroke(shapeStroke);

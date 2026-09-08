@@ -11,21 +11,25 @@
 
 #include <FlakeDebug.h>
 
-#include <QBrush>
+#include <PkBrush.h>
 #include <PkGradient.h>
-#include <KoGradientBridge.h>
 #include <PkFlakeBridge.h>
-#include <QPainter>
-#include <QSharedData>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 
-class KoGradientBackground::Private : public QSharedData
+class KoGradientBackground::Private
 {
 public:
     Private()
-        : QSharedData()
-        , gradient(0)
+        : gradient(0)
     {}
+
+    Private(const Private &other)
+        : gradient(other.gradient ? KoFlake::cloneGradient(other.gradient) : nullptr)
+        , matrix(other.matrix)
+    {}
+
+    ~Private() { delete gradient; }
 
     PkGradient *gradient;
     PkTransform matrix;
@@ -51,7 +55,6 @@ KoGradientBackground::KoGradientBackground(const PkGradient & gradient, const Pk
 
 KoGradientBackground::~KoGradientBackground()
 {
-    delete d->gradient;
 }
 
 KoGradientBackground::KoGradientBackground(const KoGradientBackground &rhs)
@@ -86,9 +89,9 @@ PkTransform KoGradientBackground::transform() const
 
 void KoGradientBackground::setGradient(const PkGradient &gradient)
 {
+    PkGradient *replacement = KoFlake::cloneGradient(&gradient);
     delete d->gradient;
-
-    d->gradient = KoFlake::cloneGradient(&gradient);
+    d->gradient = replacement;
     Q_ASSERT(d->gradient);
 }
 
@@ -97,7 +100,7 @@ const PkGradient * KoGradientBackground::gradient() const
     return d->gradient;
 }
 
-void KoGradientBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
+void KoGradientBackground::paint(PkPainter &painter, const PkPainterPath &fillPath) const
 {
     if (!d->gradient) return;
 
@@ -106,9 +109,9 @@ void KoGradientBackground::paint(QPainter &painter, const PkPainterPath &fillPat
         /**
          * NOTE: important hack!
          *
-         * Qt has different notation of QBrush::setTransform() in comparison
+         * Qt has different notation of PkBrush::setTransform() in comparison
          * to what SVG defines. SVG defines gradientToUser matrix to be postmultiplied
-         * by QBrush::transform(), but Qt does exactly reverse!
+         * by PkBrush::transform(), but Qt does exactly reverse!
          *
          * That most probably has been caused by the fact that Qt uses transposed
          * matrices and someone just mistyped the stuff long ago :(
@@ -125,14 +128,14 @@ void KoGradientBackground::paint(QPainter &painter, const PkPainterPath &fillPat
         PkGradient g = *d->gradient;
         g.setCoordinateMode(PkGradientEnums::LogicalMode);
 
-        QBrush b(toQGradient(g));
-        b.setTransform(toQTransform(d->matrix * gradientToUser));
+        PkBrush b(g);
+        b.setTransform(d->matrix * gradientToUser);
         painter.setBrush(b);
     } else {
-        QBrush b(toQGradient(*d->gradient));
-        b.setTransform(toQTransform(d->matrix));
+        PkBrush b(*d->gradient);
+        b.setTransform(d->matrix);
         painter.setBrush(b);
     }
 
-    painter.drawPath(toQPainterPath(fillPath));
+    painter.drawPath(fillPath);
 }

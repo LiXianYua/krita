@@ -19,7 +19,7 @@
 
 #include <FlakeDebug.h>
 
-#include <QPainter>
+#include <PkPainter.h>
 
 class ShapeGroupContainerModel : public SimpleShapeContainerModel
 {
@@ -116,7 +116,7 @@ KoShape *KoShapeGroup::cloneShape() const
     return new KoShapeGroup(*this);
 }
 
-void KoShapeGroup::paintComponent(QPainter &painter) const
+void KoShapeGroup::paintComponent(PkPainter &painter) const
 {
     Q_UNUSED(painter);
 }

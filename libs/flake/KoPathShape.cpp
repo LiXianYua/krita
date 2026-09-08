@@ -29,7 +29,7 @@
 #include "KisQPainterStateSaver.h"
 
 #include <FlakeDebug.h>
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 
 #include "kis_global.h"
@@ -106,7 +106,7 @@ void KoPathShape::clear()
     notifyPointsChanged();
 }
 
-void KoPathShape::paint(QPainter &painter) const
+void KoPathShape::paint(PkPainter &painter) const
 {
     KisQPainterStateSaver saver(&painter);
     Q_UNUSED(saver);
@@ -122,7 +122,7 @@ void KoPathShape::paint(QPainter &painter) const
 
 
 #ifndef NDEBUG
-void KoPathShape::Private::paintDebug(QPainter &painter)
+void KoPathShape::Private::paintDebug(PkPainter &painter)
 {
     KoSubpathList::const_iterator pathIt(subpaths.constBegin());
     int i = 0;
@@ -140,13 +140,13 @@ void KoPathShape::Private::paintDebug(QPainter &painter)
             PkPen pen(Pk::black, 0);
             painter.setPen(pen);
             if (point->activeControlPoint1() && point->activeControlPoint2()) {
-                QBrush b(Qt::red);
+                PkBrush b(Pk::red);
                 painter.setBrush(b);
             } else if (point->activeControlPoint1()) {
-                QBrush b(Qt::yellow);
+                PkBrush b(Pk::yellow);
                 painter.setBrush(b);
             } else if (point->activeControlPoint2()) {
-                QBrush b(Qt::darkYellow);
+                PkBrush b(Pk::darkYellow);
                 painter.setBrush(b);
             }
             painter.drawEllipse(r);
@@ -287,8 +287,8 @@ PkRectF KoPathShape::boundingRect() const
 
     // select round joins and caps to ensure it sweeps exactly
     // 'outlineSweepWidth' pixels in every possible
-    pen.setJoinStyle(Qt::RoundJoin);
-    pen.setCapStyle(Qt::RoundCap);
+    pen.setJoinStyle(Pk::RoundJoin);
+    pen.setCapStyle(Pk::RoundCap);
     PkRectF bb = transform.map(pathStroke(pen)).boundingRect();
 #endif
 

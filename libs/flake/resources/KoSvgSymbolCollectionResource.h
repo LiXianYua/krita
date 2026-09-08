@@ -12,7 +12,7 @@
 #include <PkVector.h>
 #include <PkScopedPointer.h>
 #include <PkImage.h>
-#include <QPainter>
+#include <PkPainter.h>
 
 #include <KoResource.h>
 #include <KisResourceTypes.h>
@@ -100,4 +100,3 @@ private:
 
 };
 #endif // KOSVGSYMBOLCOLLECTIONRESOURCE
-

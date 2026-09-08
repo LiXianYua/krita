@@ -40,8 +40,8 @@ public:
 
     KoShape* cloneShape() const override;
 
-    void paint(QPainter &painter) const override;
-    void paintStroke(QPainter &painter) const override;
+    void paint(PkPainter &painter) const override;
+    void paintStroke(PkPainter &painter) const override;
 
     PkPainterPath outline() const override;
     PkRectF outlineRect() const override;

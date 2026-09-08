@@ -7,7 +7,7 @@
 #ifndef IMAGESHAPE_H
 #define IMAGESHAPE_H
 
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 
 #include "KoShape.h"
 #include <SvgShape.h>
@@ -23,7 +23,7 @@ public:
 
     KoShape *cloneShape() const override;
 
-    void paint(QPainter &painter) const override;
+    void paint(PkPainter &painter) const override;
 
     void setSize(const PkSizeF &size) override;
 
@@ -41,7 +41,7 @@ private:
 
 private:
     struct Private;
-    QSharedDataPointer<Private> m_d;
+    PkSharedDataPointer<Private> m_d;
 };
 
 #endif // IMAGESHAPE_H

@@ -38,7 +38,8 @@
 #include <SvgUtil.h>
 #include <SvgStyleWriter.h>
 
-#include <QPainter>
+#include <PkPainter.h>
+#include <PkStrokeOutline.h>
 #include <PkPainterPath.h>
 #include <QtMath>
 
@@ -732,18 +733,18 @@ PkPainterPath KoSvgTextShape::underlines(int pos, int anchor, KoSvgText::TextDec
     if (start == end || start < 0 || end >= d->cursorPos.size()) {
         return PkPainterPath();
     }
-    QPainterPathStroker stroker;
+    PkPen stroker;
 
     KoSvgText::WritingMode mode = KoSvgText::WritingMode(this->textProperties().propertyOrDefault(KoSvgTextProperties::WritingModeId).toInt());
-    stroker.setCapStyle(Qt::FlatCap);
+    stroker.setCapStyle(Pk::FlatCap);
     if (style == KoSvgText::Solid) {
-        stroker.setDashPattern(Qt::SolidLine);
+        stroker.setStyle(Pk::SolidLine);
     } else if (style == KoSvgText::Dashed) {
-        stroker.setDashPattern(Qt::DashLine);
+        stroker.setStyle(Pk::DashLine);
     } else if (style == KoSvgText::Dotted) {
-        stroker.setDashPattern(Qt::DotLine);
+        stroker.setStyle(Pk::DotLine);
     } else {
-        stroker.setDashPattern(Qt::SolidLine);
+        stroker.setStyle(Pk::SolidLine);
     }
 
     PkPainterPath underPath;
@@ -796,17 +797,17 @@ PkPainterPath KoSvgTextShape::underlines(int pos, int anchor, KoSvgText::TextDec
     const qreal freetypePixelsToPt = (1.0 / 64.0) * (72. / qMin(d->xRes, d->yRes));
     const qreal width = strokeWidth > 0 ? qMax(qreal(strokeWidth/qMax(1, end-(start+1)))*freetypePixelsToPt, minimum): minimum;
 
-    stroker.setWidth(thick? width*2: width);
+    stroker.setWidthF(thick? width*2: width);
 
     PkPainterPath final;
     if (decor.testFlag(KoSvgText::DecorationUnderline)){
-        final.addPath(toPkPainterPath(stroker.createStroke(toQPainterPath(underPath))));
+        final.addPath(PkRender::createStrokeOutline(underPath, stroker));
     }
     if (decor.testFlag(KoSvgText::DecorationOverline)){
-        final.addPath(toPkPainterPath(stroker.createStroke(toQPainterPath(overPath))));
+        final.addPath(PkRender::createStrokeOutline(overPath, stroker));
     }
     if (decor.testFlag(KoSvgText::DecorationLineThrough)){
-        final.addPath(toPkPainterPath(stroker.createStroke(toQPainterPath(middlePath))));
+        final.addPath(PkRender::createStrokeOutline(middlePath, stroker));
     }
 
     return final;
@@ -827,7 +828,7 @@ int KoSvgTextShape::posForPoint(PkPointF point, int start, int end, bool *overla
         CharacterResult res = d->result.at(pos.cluster);
         PkPointF cursorStart = res.finalPosition;
         cursorStart += res.cursorInfo.offsets.value(pos.offset, res.advance);
-        double distance = kisDistance(toPkPointF(cursorStart), toPkPointF(point));
+        double distance = kisDistance(cursorStart, point);
         if (distance < closest) {
             candidate = i;
             closest = distance;
@@ -860,7 +861,7 @@ int KoSvgTextShape::posForPointLineSensitive(PkPointF point)
             caret.translate(res.finalPosition);
             PkPointF cursorStart = res.finalPosition;
             cursorStart += res.cursorInfo.offsets.value(pos.offset, res.advance);
-            double distance = kisDistance(toPkPointF(cursorStart), toPkPointF(point));
+            double distance = kisDistance(cursorStart, point);
             if (mode == KoSvgText::HorizontalTB) {
                 if (caret.p1().y() > point.y() && caret.p2().y() <= point.y() && closest > distance) {
                     candidateLineStart = i;
@@ -2059,23 +2060,23 @@ PkRectF KoSvgTextShape::endBulkAction()
     return updateRect;
 }
 
-void KoSvgTextShape::paint(QPainter &painter) const
+void KoSvgTextShape::paint(PkPainter &painter) const
 {
     painter.save();
 
-    painter.setTransform(toQTransform(d->shapeGroup->absoluteTransformation().inverted()) * painter.transform());
+    painter.setTransform(d->shapeGroup->absoluteTransformation().inverted() * painter.transform());
     d->internalShapesPainter->paint(painter);
     painter.restore();
 
     painter.save();
     KoSvgText::TextRendering textRendering = KoSvgText::TextRendering(textProperties().propertyOrDefault(KoSvgTextProperties::TextRenderingId).toInt());
-    if (textRendering == KoSvgText::RenderingOptimizeSpeed || !painter.testRenderHint(QPainter::Antialiasing)) {
-        // also apply antialiasing only if antialiasing is active on provided target QPainter
-        painter.setRenderHint(QPainter::Antialiasing, false);
-        painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+    if (textRendering == KoSvgText::RenderingOptimizeSpeed || !painter.testRenderHint(PkPainter::Antialiasing)) {
+        // also apply antialiasing only if antialiasing is active on provided target PkPainter
+        painter.setRenderHint(PkPainter::Antialiasing, false);
+        painter.setRenderHint(PkPainter::SmoothPixmapTransform, false);
     } else {
-        painter.setRenderHint(QPainter::Antialiasing, true);
-        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+        painter.setRenderHint(PkPainter::Antialiasing, true);
+        painter.setRenderHint(PkPainter::SmoothPixmapTransform, true);
     }
 
     PkPainterPath chunk;
@@ -2092,7 +2093,7 @@ void KoSvgTextShape::paint(QPainter &painter) const
     painter.restore();
 }
 
-void KoSvgTextShape::paintStroke(QPainter &painter) const
+void KoSvgTextShape::paintStroke(PkPainter &painter) const
 {
     Q_UNUSED(painter);
     // do nothing! everything is painted in paint()

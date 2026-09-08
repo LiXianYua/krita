@@ -80,7 +80,7 @@ private Q_SLOTS:
 
 protected:
 
-    void paintComponent(QPainter& painter) const override;
+    void paintComponent(PkPainter& painter) const override;
 
 private:
     friend class KisTakeAllShapesCommand;

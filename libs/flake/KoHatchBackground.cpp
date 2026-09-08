@@ -19,15 +19,14 @@
 #include <PkPen.h>
 #include <PkFlakeBridge.h>
 #include <PkString.h>
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 
-class KoHatchBackground::Private : public QSharedData
+class KoHatchBackground::Private
 {
 public:
     Private()
-        : QSharedData()
-        , angle(0.0)
+        : angle(0.0)
         , distance(1.0)
         , style(KoHatchBackground::Single)
     {}
@@ -49,7 +48,7 @@ KoHatchBackground::~KoHatchBackground()
 {
 }
 
-void KoHatchBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
+void KoHatchBackground::paint(PkPainter &painter, const PkPainterPath &fillPath) const
 {
     if (color().isValid()) {
         // paint background color if set by using the color background
@@ -58,11 +57,11 @@ void KoHatchBackground::paint(QPainter &painter, const PkPainterPath &fillPath) 
 
     const PkRectF targetRect = fillPath.boundingRect();
     painter.save();
-    painter.setClipPath(toQPainterPath(fillPath));
+    painter.setClipPath(fillPath);
     PkPen pen(d->lineColor);
     // we set the pen width to 0.5 pt for the hatch. This is not defined in the spec.
     pen.setWidthF(0.5);
-    painter.setPen(toQPen(pen));
+    painter.setPen(pen);
     PkVector<PkLineF> lines;
 
     // The different styles are handled by painting the lines multiple times with a different
@@ -112,7 +111,7 @@ void KoHatchBackground::paint(QPainter &painter, const PkPainterPath &fillPath) 
     }
 
     for (const PkLineF &line : lines) {
-        painter.drawLine(toQLineF(line));
+        painter.drawLine(line);
     }
     painter.restore();
 }

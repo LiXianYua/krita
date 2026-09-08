@@ -29,7 +29,7 @@
 #include "KoSvgTextShape.h"
 #include <QApplication>
 
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 #include <PkThread.h>
 #include <PkMutex.h>
@@ -175,7 +175,7 @@ void buildRenderTree(PkList<KoShape*> leafShapes,
  */
 void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
                   typename KisForest<KoShape*>::child_iterator endIt,
-                  QPainter &painter)
+                  PkPainter &painter)
 {
     for (auto it = beginIt; it != endIt; ++it) {
         KoShape *shape = *it;
@@ -183,9 +183,9 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
         KisQPainterStateSaver saver(&painter);
 
         if (!isEnd(parent(it))) {
-            painter.setTransform(toQTransform(shape->transformation()) * painter.transform());
+            painter.setTransform(shape->transformation() * painter.transform());
         } else {
-            painter.setTransform(toQTransform(shape->absoluteTransformation()) * painter.transform());
+            painter.setTransform(shape->absoluteTransformation() * painter.transform());
         }
 
         KoClipPath::applyClipping(shape, painter);
@@ -196,7 +196,7 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
         }
 
         PkScopedPointer<KoClipMaskPainter> clipMaskPainter;
-        QPainter *shapePainter = &painter;
+        PkPainter *shapePainter = &painter;
 
         KoClipMask *clipMask = shape->clipMask();
         if (clipMask) {
@@ -204,7 +204,7 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
              * We should clip on both, the shape and the global clipping rect.
              * Otherwise filling huge shapes will go into almost infinite loop.
              */
-            const PkRectF bounds = toPkRectF(painter.transform().mapRect(toQRectF(shape->outlineRect())) & painter.clipBoundingRect());
+            const PkRectF bounds = painter.transform().mapRect(shape->outlineRect()) & painter.clipBoundingRect();
 
             clipMaskPainter.reset(new KoClipMaskPainter(&painter, bounds));
             shapePainter = clipMaskPainter->shapePainter();
@@ -215,7 +215,7 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
          * not always here, so we need a period of sanity checks to ensure all the shapes are
          * ported correctly.
          */
-        const PkTransform sanityCheckTransformSaved = toPkTransform(shapePainter->transform());
+        const PkTransform sanityCheckTransformSaved = shapePainter->transform();
 
         renderShapes(childBegin(it), childEnd(it), *shapePainter);
 
@@ -229,8 +229,8 @@ void renderShapes(typename KisForest<KoShape*>::child_iterator beginIt,
             }
         }
 
-        KIS_SAFE_ASSERT_RECOVER(shapePainter->transform() == toQTransform(sanityCheckTransformSaved)) {
-            shapePainter->setTransform(toQTransform(sanityCheckTransformSaved));
+        KIS_SAFE_ASSERT_RECOVER(shapePainter->transform() == sanityCheckTransformSaved) {
+            shapePainter->setTransform(sanityCheckTransformSaved);
         }
 
         if (clipMask) {
@@ -536,10 +536,10 @@ void KoShapeManager::preparePaintJobs(PaintJobsOrder &jobsOrder,
     }
 }
 
-void KoShapeManager::paintJob(QPainter &painter, const KoShapeManager::PaintJob &job)
+void KoShapeManager::paintJob(PkPainter &painter, const KoShapeManager::PaintJob &job)
 {
-    painter.setPen(Qt::NoPen);  // painters by default have a black stroke, lets turn that off.
-    painter.setBrush(Qt::NoBrush);
+    painter.setPen(Pk::NoPen);  // painters by default have a black stroke, lets turn that off.
+    painter.setBrush(Pk::NoBrush);
 
     KisForest<KoShape*> renderTree;
     buildRenderTree(job.shapes, renderTree);
@@ -547,20 +547,20 @@ void KoShapeManager::paintJob(QPainter &painter, const KoShapeManager::PaintJob 
     renderShapes(childBegin(renderTree), childEnd(renderTree), painter);
 }
 
-void KoShapeManager::paint(QPainter &painter)
+void KoShapeManager::paint(PkPainter &painter)
 {
     d->updateTree();
 
     PkMutexLocker l1(&d->shapesMutex);
 
-    painter.setPen(Qt::NoPen);  // painters by default have a black stroke, lets turn that off.
-    painter.setBrush(Qt::NoBrush);
+    painter.setPen(Pk::NoPen);  // painters by default have a black stroke, lets turn that off.
+    painter.setBrush(Pk::NoBrush);
 
     PkList<KoShape*> unsortedShapes;
     if (painter.hasClipping()) {
         PkMutexLocker l(&d->treeMutex);
 
-        PkRectF rect = PkRectF(KisPaintingTweaks::safeClipBoundingRect(painter));
+        PkRectF rect = PkRectF(painter.clipBoundingRect().toAlignedRect());
         unsortedShapes = d->tree.intersects(rect);
     } else {
         unsortedShapes = d->shapes;
@@ -572,7 +572,7 @@ void KoShapeManager::paint(QPainter &painter)
     renderShapes(childBegin(renderTree), childEnd(renderTree), painter);
 }
 
-void KoShapeManager::renderSingleShape(KoShape *shape, QPainter &painter)
+void KoShapeManager::renderSingleShape(KoShape *shape, PkPainter &painter)
 {
     KisForest<KoShape*> renderTree;
 

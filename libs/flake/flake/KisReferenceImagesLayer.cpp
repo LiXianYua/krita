@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkTransform.h>
 #include <PkColor.h>
 #include <PkImage.h>
@@ -117,8 +117,8 @@ PkVector<KisReferenceImage*> KisReferenceImagesLayer::referenceImages() const
     return references;
 }
 
-void KisReferenceImagesLayer::paintReferences(QPainter &painter) {
-    painter.setTransform(toQTransform(converter()->documentToView()), true);
+void KisReferenceImagesLayer::paintReferences(PkPainter &painter) {
+    painter.setTransform(converter()->documentToView(), true);
     shapeManager()->paint(painter);
 }
 

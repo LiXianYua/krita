@@ -15,7 +15,8 @@
 #include <PkMemoryStream.h>
 #include <PkByteArray.h>
 #include <PkImage.h>
-#include <QPainter>
+#include <PkPainter.h>
+#include "PkImageRasterBackend.h"
 
 #include <klocalizedstring.h>
 #include <KoMarker.h>
@@ -48,11 +49,12 @@ PkImage KoSvgSymbol::icon(int size = 0)
     // because it's saved into the database and then used in widgets
     const qreal margin = 0.05;
 
-    QImage image(size, size, QImage::Format_ARGB32_Premultiplied);
+    PkImage image(size, size, PkImage::Format_ARGB32_Premultiplied);
     qreal symbolScale = (qreal)(size*(1.0 - 2*margin))/maxDim;
-    QPainter gc(&image);
-    gc.setRenderHint(QPainter::Antialiasing, true);
-    image.fill(Qt::gray);
+    PkImageRasterBackend backend(image);
+    PkPainter gc(backend);
+    gc.setRenderHint(PkPainter::Antialiasing, true);
+    image.fill(Pk::gray);
 
 //        debugFlake << "Going to render. Original bounding rect:" << group->boundingRect()
 //                 << "Normalized: " << rc
@@ -63,8 +65,7 @@ PkImage KoSvgSymbol::icon(int size = 0)
 
     gc.translate((maxDim - rc.width())/2.0, (maxDim - rc.height())/2.0);
     KoShapeManager::renderSingleShape(group, gc);
-    gc.end();
-    return toPkImage(image);
+    return image;
 }
 
 

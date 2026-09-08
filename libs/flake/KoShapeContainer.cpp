@@ -11,7 +11,7 @@
 #include "SimpleShapeContainerModel.h"
 #include "KoShapeSavingContext.h"
 
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 
 #include "kis_painting_tweaks.h"
@@ -93,7 +93,7 @@ bool KoShapeContainer::inheritsTransform(const KoShape *shape) const
     return d->model->inheritsTransform(shape);
 }
 
-void KoShapeContainer::paint(QPainter &painter) const
+void KoShapeContainer::paint(PkPainter &painter) const
 {
     // Shape container paints only its internal component part. All the children are rendered
     // by the shape manager itself

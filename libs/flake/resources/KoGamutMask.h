@@ -7,7 +7,7 @@
 #ifndef KOGAMUTMASK_H
 #define KOGAMUTMASK_H
 
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkString.h>
 #include <PkVector.h>
 #include <cmath>
@@ -32,8 +32,8 @@ public:
 
     bool coordIsClear(const PkPointF& coord) const;
     PkPainterPath outline();
-    void paint(QPainter &painter);
-    void paintStroke(QPainter &painter);
+    void paint(PkPainter &painter);
+    void paintStroke(PkPainter &painter);
     KoShape* koShape();
 
 private:
@@ -66,8 +66,8 @@ public:
         return std::pair<PkString, PkString>(ResourceType::GamutMasks, PkString());
     }
 
-    void paint(QPainter &painter, bool preview);
-    void paintStroke(QPainter &painter, bool preview);
+    void paint(PkPainter &painter, bool preview);
+    void paintStroke(PkPainter &painter, bool preview);
 
     PkTransform maskToViewTransform(qreal viewSize);
     PkTransform viewToMaskTransform(qreal viewSize);

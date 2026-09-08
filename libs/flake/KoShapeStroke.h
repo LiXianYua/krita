@@ -23,8 +23,8 @@
 
 
 class KoShape;
-class QPainter;
-class QBrush;
+class PkPainter;
+class PkBrush;
 class PkPen;
 struct KoInsets;
 
@@ -84,16 +84,16 @@ public:
     void setColor(const PkColor &color);
 
     /// Sets the strokes brush used to fill strokes of this border
-    void setLineBrush(const QBrush & brush);
+    void setLineBrush(const PkBrush & brush);
     /// Returns the strokes brush
-    QBrush lineBrush() const;
+    const PkBrush &lineBrush() const;
 
     // pure virtuals from KoShapeStrokeModel implemented here.
     void strokeInsets(const KoShape *shape, KoInsets &insets) const override;
     qreal strokeMaxMarkersInset(const KoShape *shape) const override;
     bool hasTransparency() const override;
-    void paint(const KoShape *shape, QPainter &painter) const override;
-    void paintMarkers(const KoShape *shape, QPainter &painter) const override;
+    void paint(const KoShape *shape, PkPainter &painter) const override;
+    void paintMarkers(const KoShape *shape, PkPainter &painter) const override;
 
     PkPen resultLinePen() const;
 

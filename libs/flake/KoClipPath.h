@@ -10,13 +10,13 @@
 #include "kritaflake_export.h"
 
 #include <PkList.h>
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 #include <qnamespace.h>
 #include <KoFlakeCoordinateSystem.h>
 
 class KoShape;
 class KoPathShape;
-class QPainter;
+class PkPainter;
 class PkTransform;
 class PkPainterPath;
 class PkSizeF;
@@ -35,7 +35,7 @@ public:
     KoClipPath(PkList<KoShape*> clipShapes, KoFlake::CoordinateSystem coordinates);
     ~KoClipPath();
 
-    // Work around MSVC inability to generate copy ops with QSharedDataPointer.
+    // Work around MSVC inability to generate copy ops with PkSharedDataPointer.
     KoClipPath(const KoClipPath &);
     KoClipPath &operator=(const KoClipPath &);
 
@@ -70,11 +70,11 @@ public:
     PkTransform clipDataTransformation(KoShape *clippedShape) const;
 
     /// Applies the clipping to the given painter
-    static void applyClipping(KoShape *clippedShape, QPainter &painter);
+    static void applyClipping(KoShape *clippedShape, PkPainter &painter);
 
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif // KOCLIPPATH_H

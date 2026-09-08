@@ -18,7 +18,8 @@
 #include <KoViewConverter.h>
 #include <KoUnit.h>
 
-#include <QPainter>
+#include <PkPainter.h>
+#include "PkImageRasterBackend.h"
 #include <PkImage.h>
 
 class SimpleCanvas : public KoCanvasBase
@@ -133,7 +134,7 @@ void KoShapePainter::setShapes(const PkList<KoShape*> &shapes)
     d->canvas->shapeManager()->setShapes(shapes, KoShapeManager::AddWithoutRepaint);
 }
 
-void KoShapePainter::paint(QPainter &painter)
+void KoShapePainter::paint(PkPainter &painter)
 {
     foreach (KoShape *shape, d->canvas->shapeManager()->shapes()) {
         shape->waitUntilReady(false);
@@ -142,7 +143,7 @@ void KoShapePainter::paint(QPainter &painter)
     d->canvas->shapeManager()->paint(painter);
 }
 
-void KoShapePainter::paint(QPainter &painter, const QRect &painterRect, const PkRectF &documentRect)
+void KoShapePainter::paint(PkPainter &painter, const PkRect &painterRect, const PkRectF &documentRect)
 {
     if (documentRect.width() == 0.0f || documentRect.height() == 0.0f)
         return;
@@ -163,19 +164,19 @@ void KoShapePainter::paint(QPainter &painter, const QRect &painterRect, const Pk
     painter.save();
 
     // initialize painter
-    painter.setPen(QPen(Qt::NoPen));
-    painter.setBrush(Qt::NoBrush);
-    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(PkPen(Pk::NoPen));
+    painter.setBrush(Pk::NoBrush);
+    painter.setRenderHint(PkPainter::Antialiasing);
     painter.setClipRect(painterRect.adjusted(-1,-1,1,1));
 
     // convert document rectangle to view coordinates
     PkRectF zoomedBound = converter.documentToView(documentRect);
     // calculate offset between painter rectangle and converted document rectangle
-    const QPointF painterCenter = QRectF(painterRect).center();
-    PkPointF offset = toPkPointF(painterCenter) - zoomedBound.center();
+    const PkPointF painterCenter = PkRectF(painterRect).center();
+    PkPointF offset = painterCenter - zoomedBound.center();
     // center content in painter rectangle
     painter.translate(offset.x(), offset.y());
-    painter.setTransform(toQTransform(converter.documentToView()), true);
+    painter.setTransform(converter.documentToView(), true);
 
     // finally paint the shapes
     paint(painter);
@@ -188,13 +189,9 @@ void KoShapePainter::paint(PkImage &image)
     if (image.isNull())
         return;
 
-    // 过渡期：QImage 画布上绘制，再拷回 PkImage
-    QImage qimg = toQImage(image);
-    QPainter painter(&qimg);
-
-    paint(painter, qimg.rect(), contentRect());
-    painter.end();
-    image = toPkImage(qimg);
+    PkImageRasterBackend backend(image);
+    PkPainter painter(backend);
+    paint(painter, image.rect(), contentRect());
 }
 
 PkRectF KoShapePainter::contentRect() const

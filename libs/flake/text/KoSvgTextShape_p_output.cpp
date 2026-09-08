@@ -7,7 +7,6 @@
 
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
-#include <KoGradientBridge.h>
 #include <PkGradient.h>
 #include "KoSvgTextShape.h"
 #include "KoSvgTextShape_p.h"
@@ -29,7 +28,7 @@
 
 #include <kis_algebra_2d.h>
 
-#include <QPainter>
+#include <PkPainter.h>
 #include <QtMath>
 
 #include <variant>
@@ -58,18 +57,18 @@ static void inheritPaintProperties(const KisForest<KoSvgTextContentElement>::com
     }
 }
 
-void setRenderHints(QPainter &painter, const KoSvgText::TextRendering textRendering, const bool testAntialiasing) {
+void setRenderHints(PkPainter &painter, const KoSvgText::TextRendering textRendering, const bool testAntialiasing) {
     if (textRendering != KoSvgText::RenderingOptimizeSpeed && testAntialiasing) {
-        // also apply antialiasing only if antialiasing is active on provided target QPainter
-        painter.setRenderHint(QPainter::Antialiasing, true);
-        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+        // also apply antialiasing only if antialiasing is active on provided target PkPainter
+        painter.setRenderHint(PkPainter::Antialiasing, true);
+        painter.setRenderHint(PkPainter::SmoothPixmapTransform, true);
     } else {
-        painter.setRenderHint(QPainter::Antialiasing, false);
-        painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+        painter.setRenderHint(PkPainter::Antialiasing, false);
+        painter.setRenderHint(PkPainter::SmoothPixmapTransform, false);
     }
 }
 
-void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
+void KoSvgTextShape::Private::paintTextDecoration(PkPainter &painter,
                                                   const PkPainterPath &rootOutline,
                                                   const KoShape *rootShape,
                                                   const KoSvgText::TextDecoration type,
@@ -94,11 +93,11 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
         if (textDecorations.isEmpty() || !textDecorations.contains(type)) continue;
 
         const PkPainterPath decorPath = textDecorations.value(type);
-        const PkRect shapeGlobalClipRect = toPkRect(painter.transform().mapRect(toQRectF(decorPath.boundingRect().adjusted(-insets.left, -insets.top, insets.right, insets.bottom))).toAlignedRect());
+        const PkRect shapeGlobalClipRect = painter.transform().mapRect(decorPath.boundingRect().adjusted(-insets.left, -insets.top, insets.right, insets.bottom)).toAlignedRect();
 
         if (!shapeGlobalClipRect.isValid()) continue;
 
-        const PkRectF clipRect = toPkRectF(painter.clipBoundingRect());
+        const PkRectF clipRect = painter.clipBoundingRect();
         if (!clipRect.contains(decorPath.boundingRect()) &&
                  !clipRect.intersects(decorPath.boundingRect())) continue;
         const PkColor textDecorationColor = it->properties.propertyOrDefault(KoSvgTextProperties::TextDecorationColorId).value<PkColor>();
@@ -109,13 +108,13 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
 
                 if (background && !colorValid) {
                     KoClipMaskPainter fillPainter(&painter, PkRectF(shapeGlobalClipRect));
-                    setRenderHints(*fillPainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
+                    setRenderHints(*fillPainter.maskPainter(), rendering, painter.testRenderHint(PkPainter::Antialiasing));
                     background->paint(*fillPainter.shapePainter(), rootOutline);
-                    fillPainter.maskPainter()->fillPath(toQPainterPath(rootOutline), QBrush(toQColor(PkColor(Pk::black))));
-                    fillPainter.maskPainter()->fillPath(toQPainterPath(decorPath), Qt::white);
+                    fillPainter.maskPainter()->fillPath(rootOutline, PkBrush(PkColor(Pk::black)));
+                    fillPainter.maskPainter()->fillPath(decorPath, Pk::white);
                     fillPainter.renderOnGlobalPainter();
                 } else if (colorValid) {
-                    painter.fillPath(toQPainterPath(decorPath), toQColor(textDecorationColor));
+                    painter.fillPath(decorPath, textDecorationColor);
                 }
             } else if (p == KoShape::Stroke) {
                 if (stroke) {
@@ -126,15 +125,15 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
                             KoClipMaskPainter strokePainter(&painter, PkRectF(shapeGlobalClipRect));
                             PkPainterPath strokeOutline;
                             strokeOutline.addRect(rootOutline.boundingRect().adjusted(-insets.left, -insets.top, insets.right, insets.bottom));
-                            strokePainter.shapePainter()->fillRect(toQRectF(strokeOutline.boundingRect()), strokeSP->lineBrush());
-                            strokePainter.maskPainter()->fillRect(toQRectF(strokeOutline.boundingRect()), QBrush(toQColor(PkColor(Pk::black))));
+                            strokePainter.shapePainter()->fillRect(strokeOutline.boundingRect(), strokeSP->lineBrush());
+                            strokePainter.maskPainter()->fillRect(strokeOutline.boundingRect(), PkBrush(PkColor(Pk::black)));
 
                             KoShapeStrokeSP maskStroke = KoShapeStrokeSP(new KoShapeStroke(*strokeSP.data()));
                             maskStroke->setColor(PkColor(Pk::white));
-                            maskStroke->setLineBrush(Qt::white);
+                            maskStroke->setLineBrush(PkBrush(PkColor(Pk::white)));
 
 
-                            setRenderHints(*strokePainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
+                            setRenderHints(*strokePainter.maskPainter(), rendering, painter.testRenderHint(PkPainter::Antialiasing));
                             {
                                 PkScopedPointer<KoShape> shape(KoPathShape::createShapeFromPainterPath(decorPath));
                                 maskStroke->paint(shape.data(), *strokePainter.maskPainter());
@@ -155,7 +154,7 @@ void KoSvgTextShape::Private::paintTextDecoration(QPainter &painter,
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void KoSvgTextShape::Private::paintPaths(QPainter &painter,
+void KoSvgTextShape::Private::paintPaths(PkPainter &painter,
                                          const PkPainterPath &rootOutline,
                                          const KoShape *rootShape,
                                          const PkVector<CharacterResult> &result, const KoSvgText::TextRendering rendering,
@@ -181,14 +180,14 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                 if (it->finalResultIndex < 0) continue;
                 const int j = it->finalResultIndex;//currentIndex + it->numChars(true);
 
-                const PkRect shapeGlobalClipRect = toPkRect(painter.transform().mapRect(toQRectF(it->associatedOutline.boundingRect().adjusted(-insets.left, -insets.top, insets.right, insets.bottom))).toAlignedRect());
+                const PkRect shapeGlobalClipRect = painter.transform().mapRect(it->associatedOutline.boundingRect().adjusted(-insets.left, -insets.top, insets.right, insets.bottom)).toAlignedRect();
 
                 if (shapeGlobalClipRect.isValid()) {
                     KoClipMaskPainter fillPainter(&painter, PkRectF(shapeGlobalClipRect));
                     if (background) {
                         background->paint(*fillPainter.shapePainter(), rootOutline);
-                        fillPainter.maskPainter()->fillPath(toQPainterPath(rootOutline), QBrush(toQColor(PkColor(Pk::black))));
-                        setRenderHints(*fillPainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
+                        fillPainter.maskPainter()->fillPath(rootOutline, PkBrush(PkColor(Pk::black)));
+                        setRenderHints(*fillPainter.maskPainter(), rendering, painter.testRenderHint(PkPainter::Antialiasing));
                     }
                     PkPainterPath textDecorationsRest;
                     textDecorationsRest.setFillRule(Pk::WindingFill);
@@ -202,7 +201,7 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                      * otherwise we can just skip it. Adding insets to ensure the outline will not be skipped.
                      */
                             const PkRectF boundingRect = tf.mapRect(result.at(i).inkBoundingBox).adjusted(-insets.left, -insets.top, insets.right, insets.bottom);
-                            const PkRectF clipRect = toPkRectF(painter.clipBoundingRect());
+                            const PkRectF clipRect = painter.clipBoundingRect();
                             if (boundingRect.isEmpty() ||
                                     (!clipRect.contains(boundingRect) &&
                                      !clipRect.intersects(boundingRect))) continue;
@@ -218,7 +217,7 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
 
                             if (const auto *colorGlyph = std::get_if<Glyph::ColorLayers>(&result.at(i).glyph)) {
                                 for (int c = 0; c < colorGlyph->paths.size(); c++) {
-                                    QBrush color = colorGlyph->colors.at(c);
+                                    PkBrush color = colorGlyph->colors.at(c);
                                     bool replace = colorGlyph->replaceWithForeGroundColor.at(c);
                                     // In theory we can use the pattern or gradient as well
                                     // for ColorV0 fonts, but ColorV1 fonts can have
@@ -227,7 +226,7 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                                     if (b && replace) {
                                         color = b->brush();
                                     }
-                                    painter.fillPath(toQPainterPath(tf.map(colorGlyph->paths.at(c))), color);
+                                    painter.fillPath(tf.map(colorGlyph->paths.at(c)), color);
                                 }
                             } else if (const auto *outlineGlyph = std::get_if<Glyph::Outline>(&result.at(i).glyph)) {
                                 chunk.addPath(tf.map(outlineGlyph->path));
@@ -239,15 +238,15 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                                         fillPainter.maskPainter()->save();
                                         fillPainter.maskPainter()->translate(result.at(i).finalPosition.x(), result.at(i).finalPosition.y());
                                         fillPainter.maskPainter()->rotate(qRadiansToDegrees(result.at(i).rotate));
-                                        fillPainter.maskPainter()->setCompositionMode(QPainter::CompositionMode_Plus);
-                                        fillPainter.maskPainter()->drawImage(toQRectF(rect), toQImage(img));
+                                        fillPainter.maskPainter()->setCompositionMode(Pk::CompositionMode_Plus);
+                                        fillPainter.maskPainter()->drawImage(rect, img);
                                         fillPainter.maskPainter()->restore();
                                     } else {
                                         painter.save();
                                         painter.translate(result.at(i).finalPosition.x(), result.at(i).finalPosition.y());
                                         painter.rotate(qRadiansToDegrees(result.at(i).rotate));
-                                        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-                                        painter.drawImage(toQRectF(rect), toQImage(img));
+                                        painter.setRenderHint(PkPainter::SmoothPixmapTransform, true);
+                                        painter.drawImage(rect, img);
                                         painter.restore();
                                     }
                                 }
@@ -258,10 +257,10 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                         if (p == KoShape::Fill) {
                             if (background) {
                                 chunk.setFillRule(Pk::WindingFill);
-                                fillPainter.maskPainter()->fillPath(toQPainterPath(chunk), Qt::white);
+                                fillPainter.maskPainter()->fillPath(chunk, Pk::white);
                             }
                             if (!textDecorationsRest.isEmpty()) {
-                                fillPainter.maskPainter()->fillPath(toQPainterPath(textDecorationsRest.simplified()), QBrush(toQColor(PkColor(Pk::white))));
+                                fillPainter.maskPainter()->fillPath(textDecorationsRest.simplified(), PkBrush(PkColor(Pk::white)));
                             }
                             fillPainter.renderOnGlobalPainter();
                         } else if (p == KoShape::Stroke) {
@@ -274,12 +273,12 @@ void KoSvgTextShape::Private::paintPaths(QPainter &painter,
                                         KoClipMaskPainter strokePainter(&painter, PkRectF(shapeGlobalClipRect));
                                         PkPainterPath strokeOutline;
                                         strokeOutline.addRect(rootOutline.boundingRect().adjusted(-insets.left, -insets.top, insets.right, insets.bottom));
-                                        strokePainter.shapePainter()->fillRect(toQRectF(strokeOutline.boundingRect()), strokeSP->lineBrush());
-                                        strokePainter.maskPainter()->fillRect(toQRectF(strokeOutline.boundingRect()), QBrush(toQColor(PkColor(Pk::black))));
+                                        strokePainter.shapePainter()->fillRect(strokeOutline.boundingRect(), strokeSP->lineBrush());
+                                        strokePainter.maskPainter()->fillRect(strokeOutline.boundingRect(), PkBrush(PkColor(Pk::black)));
                                         maskStroke = KoShapeStrokeSP(new KoShapeStroke(*strokeSP.data()));
                                         maskStroke->setColor(PkColor(Pk::white));
-                                        maskStroke->setLineBrush(Qt::white);
-                                        setRenderHints(*strokePainter.maskPainter(), rendering, painter.testRenderHint(QPainter::Antialiasing));
+                                        maskStroke->setLineBrush(PkBrush(PkColor(Pk::white)));
+                                        setRenderHints(*strokePainter.maskPainter(), rendering, painter.testRenderHint(PkPainter::Antialiasing));
                                         {
                                             PkScopedPointer<KoShape> shape(KoPathShape::createShapeFromPainterPath(chunk));
                                             maskStroke->paint(shape.data(), *strokePainter.maskPainter());
@@ -344,7 +343,7 @@ PkSharedPointer<KoShapeBackground> transformBackgroundToBounds(PkSharedPointer<K
 KoShapeStrokeModelSP transformStrokeBgToNewBounds(KoShapeStrokeModelSP stroke, const PkRectF &oldBounds, const PkRectF &newBounds, bool calcInsets = true) {
     KoShapeStrokeSP s = pkSharedPointerDynamicCast<KoShapeStroke>(stroke);
     if (s) {
-        QBrush b = s->lineBrush();
+        PkBrush b = s->lineBrush();
         if (b.gradient()) {
             PkRectF nb = newBounds;
             PkRectF ob = oldBounds;
@@ -359,7 +358,7 @@ KoShapeStrokeModelSP transformStrokeBgToNewBounds(KoShapeStrokeModelSP stroke, c
             KoShapeStrokeSP newStroke(new KoShapeStroke(*s.data()));
             PkTransform newTf = PkTransform::fromTranslate(relative.x(), relative.y());
             newTf.scale(relative.width(), relative.height());
-            QBrush newBrush(toQGradient(*cloneAndTransformGradient(toPkGradientPtr(b.gradient()), newTf)));
+            PkBrush newBrush(*cloneAndTransformGradient(b.gradient(), newTf));
             newStroke->setLineBrush(newBrush);
             return newStroke;
         }
@@ -471,7 +470,7 @@ KoSvgTextShape::Private::collectPaths(const KoSvgTextShape *rootShape, PkVector<
                         const PkTransform tf = result.at(i).finalTransform();
                         if (const auto *colorGlyph = std::get_if<Glyph::ColorLayers>(&result.at(i).glyph)) {
                             for (int c = 0; c < colorGlyph->paths.size(); c++) {
-                                QBrush color = colorGlyph->colors.at(c);
+                                PkBrush color = colorGlyph->colors.at(c);
                                 bool replace = colorGlyph->replaceWithForeGroundColor.at(c);
                                 // In theory we can use the pattern or gradient as well
                                 // for ColorV0 fonts, but ColorV1 fonts can have
@@ -481,7 +480,7 @@ KoSvgTextShape::Private::collectPaths(const KoSvgTextShape *rootShape, PkVector<
                                     color = b->brush();
                                 }
                                 KoPathShape *shape = KoPathShape::createShapeFromPainterPath(tf.map(colorGlyph->paths.at(c)));
-                                shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(toPkColor(color.color()))));
+                                shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(color.color())));
                                 shape->setZIndex(shapes.size());
                                 shape->setFillRule(Pk::WindingFill);
                                 shape->setPaintOrder(first, second);

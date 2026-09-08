@@ -40,8 +40,8 @@
 #include <PkString.h>
 #include <PkTextStream.h>
 #include <PkMemoryStream.h>
-#include <QPainter>
-#include <QSvgGenerator>
+#include <PkPainter.h>
+#include "PkSvgPainterBackend.h"
 
 #include <kis_debug.h>
 #include <KisPortingUtils.h>
@@ -250,39 +250,14 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
     KoShapePainter painter;
     painter.setShapes(PkList<KoShape*>()<< shape);
 
-    // generate svg from shape
-    QByteArray svgData;
-    QBuffer svgBuffer(&svgData);
-    svgBuffer.open(QIODevice::ReadOnly | QIODevice::WriteOnly);
-    QSvgGenerator svgGenerator;
-    svgGenerator.setOutputDevice(&svgBuffer);
-
-    /**
-     * HACK ALERT: Qt (and Krita 3.x) has a weird bug, it assumes that all font sizes are
-     *             defined in 96 ppi resolution, even though your the resolution in QSvgGenerator
-     *             is manually set to 72 ppi. So here we do a tricky thing: we set a fake resolution
-     *             to (72 * 72 / 96) = 54 ppi, which guarantees that the text, when painted in 96 ppi,
-     *             will be actually painted in 72 ppi.
-     *
-     * BUG: 389802
-     */
-    if (shape->shapeId() == "TextShapeID") {
-        svgGenerator.setResolution(54);
-    }
-
-    QPainter svgPainter;
-    svgPainter.begin(&svgGenerator);
-    painter.paint(svgPainter, toQRectF(SvgUtil::toUserSpace(toPkRectF(bbox))).toRect(), bbox);
-    svgPainter.end();
-
-    // remove anything before the start of the svg element from the buffer
-    int startOfContent = svgData.indexOf("<svg");
-    if (startOfContent > 0) {
-        svgData.remove(0, startOfContent);
-    }
+    const PkRect viewport = SvgUtil::toUserSpace(bbox).toRect();
+    PkSvgPainterBackend backend;
+    PkPainter svgPainter(backend);
+    painter.paint(svgPainter, viewport, bbox);
+    const std::string svgData = backend.document();
 
     // check if painting to svg produced any output
-    if (svgData.isEmpty()) {
+    if (svgData.empty()) {
         // prepare a transparent image, make it twice as big as the original size
         PkImage image(2*bbox.size().toSize(), PkImage::Format_ARGB32);
         image.fill(0);
@@ -298,10 +273,10 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
         context.shapeWriter().endElement(); // image
 
     } else {
-        QBuffer cleanedBuffer(&svgData);
-        cleanedBuffer.open(QIODevice::ReadOnly);
-        PkDeviceStream stream;
-        stream.attach(&cleanedBuffer);
+        PkMemoryStream stream;
+        stream.open(PkStream::ReadWrite);
+        stream.write(svgData.data(), static_cast<PkStream::pk_int64>(svgData.size()));
+        stream.seek(0);
         context.shapeWriter().addCompleteElement(&stream);
     }
 

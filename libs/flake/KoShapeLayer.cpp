@@ -37,6 +37,6 @@ PkRectF KoShapeLayer::boundingRect() const
     return KoShape::boundingRect(shapes());
 }
 
-void KoShapeLayer::paintComponent(QPainter &) const
+void KoShapeLayer::paintComponent(PkPainter &) const
 {
 }

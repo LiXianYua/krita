@@ -204,7 +204,7 @@ void KisShapeSelection::recalculateOutlineCache()
     m_outline = outline;
 }
 
-void KisShapeSelection::paintComponent(QPainter& painter) const
+void KisShapeSelection::paintComponent(PkPainter& painter) const
 {
     Q_UNUSED(painter);
 }

@@ -19,7 +19,7 @@
 #include <PkSet.h>
 #include <PkMap.h>
 #include <QMetaType>
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 
 #include <PkXmlDocument.h>
 
@@ -27,7 +27,7 @@
 // [migrate] missing include for Pk/Qt type
 #include <PkScopedPointer.h>
 
-class QPainter;
+class PkPainter;
 class PkRectF;
 class PkPainterPath;
 class PkTransform;
@@ -159,21 +159,21 @@ public:
      *
      * @param painter used for painting the shape
      */
-    virtual void paint(QPainter &painter) const = 0;
+    virtual void paint(PkPainter &painter) const = 0;
 
     /**
      * @brief paintStroke paints the shape's stroked outline
      * @param painter used for painting the shape
      * @see applyConversion()
      */
-    virtual void paintStroke(QPainter &painter) const;
+    virtual void paintStroke(PkPainter &painter) const;
 
     /**
      * @brief paintStroke paints the shape's markers
      * @param painter used for painting the shape
      * @see applyConversion()
      */
-    virtual void paintMarkers(QPainter &painter) const;
+    virtual void paintMarkers(PkPainter &painter) const;
 
     /**
      * @brief Scale the shape using the zero-point which is the top-left corner.
@@ -319,7 +319,7 @@ public:
 
     /**
      * Return the brush used to paint the background of this shape with.
-     * A QBrush can have a plain color, be fully transparent or have a complex fill.
+     * A PkBrush can have a plain color, be fully transparent or have a complex fill.
      * setting such a brush will allow the shape to fill itself using that brush and
      * will be able to tell if its transparent or not.
      * @return the background-brush
@@ -977,7 +977,7 @@ private:
     PkScopedPointer<Private> d;
 
     class SharedData;
-    QSharedDataPointer<SharedData> s;
+    PkSharedDataPointer<SharedData> s;
 
 
 protected:

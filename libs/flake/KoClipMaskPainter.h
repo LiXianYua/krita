@@ -11,18 +11,18 @@
 
 #include <PkScopedPointer.h>
 
-class QPainter;
+class PkPainter;
 class PkRectF;
 
 
 class KRITAFLAKE_EXPORT KoClipMaskPainter
 {
 public:
-    KoClipMaskPainter(QPainter *painter, const PkRectF &globalClipRect);
+    KoClipMaskPainter(PkPainter *painter, const PkRectF &globalClipRect);
     ~KoClipMaskPainter();
 
-    QPainter* shapePainter();
-    QPainter* maskPainter();
+    PkPainter* shapePainter();
+    PkPainter* maskPainter();
 
     void renderOnGlobalPainter();
 

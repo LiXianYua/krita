@@ -9,7 +9,7 @@
 #include "KoPathShapeMarkerCommand.h"
 #include "KoMarker.h"
 #include "KoPathShape.h"
-#include <QExplicitlySharedDataPointer>
+#include <kis_shared_ptr.h>
 #include <KoShapeBulkActionLock.h>
 #include <kis_pointer_utils.h>
 
@@ -20,8 +20,8 @@
 struct Q_DECL_HIDDEN KoPathShapeMarkerCommand::Private
 {
     PkList<KoPathShape*> shapes;  ///< the shapes to set marker for
-    PkList<QExplicitlySharedDataPointer<KoMarker>> oldMarkers; ///< the old markers, one for each shape
-    QExplicitlySharedDataPointer<KoMarker> marker; ///< the new marker to set
+    PkList<KisSharedPtr<KoMarker>> oldMarkers; ///< the old markers, one for each shape
+    KisSharedPtr<KoMarker> marker; ///< the new marker to set
     KoFlake::MarkerPosition position;
     PkList<bool> oldAutoFillMarkers;
 };
@@ -36,7 +36,7 @@ KoPathShapeMarkerCommand::KoPathShapeMarkerCommand(const PkList<KoPathShape*> &s
 
     // save old markers
     Q_FOREACH (KoPathShape *shape, m_d->shapes) {
-        m_d->oldMarkers.append(QExplicitlySharedDataPointer<KoMarker>(shape->marker(position)));
+        m_d->oldMarkers.append(KisSharedPtr<KoMarker>(shape->marker(position)));
         m_d->oldAutoFillMarkers.append(shape->autoFillMarkers());
     }
 }

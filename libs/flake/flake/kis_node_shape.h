@@ -36,7 +36,7 @@ public:
     PkSizeF size() const override;
     PkRectF boundingRect() const override;
     void setPosition(const PkPointF &) override;
-    void paint(QPainter &painter) const override;
+    void paint(PkPainter &painter) const override;
 
 private Q_SLOTS:
     void editabilityChanged();

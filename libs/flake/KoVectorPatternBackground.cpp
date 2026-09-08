@@ -13,11 +13,10 @@
 #include <KoShapePainter.h>
 #include <KoBakedShapeRenderer.h>
 
-class KoVectorPatternBackground::Private : public QSharedData
+class KoVectorPatternBackground::Private
 {
 public:
     Private()
-        : QSharedData()
     {
     }
 
@@ -106,7 +105,7 @@ PkList<KoShape *> KoVectorPatternBackground::shapes() const
     return d->shapes;
 }
 
-void KoVectorPatternBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
+void KoVectorPatternBackground::paint(PkPainter &painter, const PkPainterPath &fillPath) const
 {
     const PkPainterPath dstShapeOutline = fillPath;
     const PkRectF dstShapeBoundingBox = dstShapeOutline.boundingRect();
@@ -119,7 +118,7 @@ void KoVectorPatternBackground::paint(QPainter &painter, const PkPainterPath &fi
                                   d->referenceCoordinates != KoFlake::UserSpaceOnUse,
                                   d->patternTransform);
 
-    QPainter *patchPainter = renderer.bakeShapePainter();
+    PkPainter *patchPainter = renderer.bakeShapePainter();
 
     KoShapePainter p;
     p.setShapes(d->shapes);
@@ -128,7 +127,7 @@ void KoVectorPatternBackground::paint(QPainter &painter, const PkPainterPath &fi
     // uncomment for debug
     // renderer.patchImage().save("dd_patch_image.png");
 
-    painter.setPen(Qt::NoPen);
+    painter.setPen(Pk::NoPen);
     renderer.renderShape(painter);
 }
 

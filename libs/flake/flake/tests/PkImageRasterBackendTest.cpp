@@ -7,8 +7,15 @@
 #include <QImage>
 #include <QPainter>
 #include <QPainterPath>
+#include <KoPathShape.h>
+#include <KoColorBackground.h>
+#include <KoGradientBackground.h>
+#include <KoShapeStroke.h>
+#include <KoShapeManager.h>
+#include <KoClipMaskPainter.h>
 
 #include <array>
+#include <cstring>
 #include <random>
 #include <memory>
 #include <stdexcept>
@@ -33,10 +40,182 @@ private Q_SLOTS:
     void matchesQtPatternImagePixels();
     void matchesQtTexturePathPixels();
     void matchesQtClipQueries();
+    void matchesQtNativeShapePainting();
+    void matchesQtPremultipliedDestination();
+    void matchesQtHighDepthImageSources();
+    void preservesManagerDispatchAndMaskBuffers();
+    void gradientCopiesKeepIndependentValues();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::preservesManagerDispatchAndMaskBuffers()
+{
+    for (bool masked : {false,true}) {
+        QImage expected(41,33,QImage::Format_ARGB32); expected.fill(0);
+        PkImage actual(41,33,PkImage::Format_ARGB32); actual.fill(0);
+        QPainter qt(&expected); PkImageRasterBackend backend(actual); PkPainter pk(backend);
+        pk.setPen(Pk::NoPen);
+        qt.translate(5,4); pk.translate(5,4);
+        qt.setClipRect(QRect(0,0,27,24)); pk.setClipRect(PkRect(0,0,27,24));
+        QPainterPath path; path.addRect(QRectF(2,3,20,15));
+        KoPathShape shape;
+        shape.moveTo(PkPointF(2,3)); shape.lineTo(PkPointF(22,3));
+        shape.lineTo(PkPointF(22,18)); shape.lineTo(PkPointF(2,18)); shape.close();
+        shape.setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(PkColor(150,70,190,180))));
+        if (masked) {
+            qt.setClipRect(QRect(7,5,11,16),Qt::IntersectClip);
+            KoClipMaskPainter mask(&pk,PkRectF(5,4,27,24));
+            KoShapeManager::renderSingleShape(&shape,*mask.shapePainter());
+            mask.maskPainter()->fillRect(PkRect(7,5,11,16),PkColor(255,255,255));
+            mask.renderOnGlobalPainter();
+        } else {
+            KoShapeManager::renderSingleShape(&shape,pk);
+        }
+        qt.fillPath(path,QColor(150,70,190,180)); qt.end();
+        for (int y=0;y<33;++y) for (int x=0;x<41;++x)
+            QVERIFY2(actual.pixel(x,y)==expected.pixel(x,y),qPrintable(QString("mask=%1 x=%2 y=%3 Qt=%4 native=%5")
+                .arg(masked).arg(x).arg(y).arg(expected.pixel(x,y),8,16,QLatin1Char('0')).arg(actual.pixel(x,y),8,16,QLatin1Char('0'))));
+        QCOMPARE(pk.transform(),PkTransform::fromTranslate(5,4));
+    }
+}
+
+void PkImageRasterBackendTest::gradientCopiesKeepIndependentValues()
+{
+    auto gradient=PkGradient::linear(PkPointF(),PkPointF(1,1));
+    gradient.setColorAt(0,PkColor(20,80,140));
+    KoGradientBackground original(gradient);
+    KoGradientBackground copied(original);
+    auto changed=gradient;
+    changed.setColorAt(0,PkColor(190,30,60));
+    copied.setGradient(changed);
+    QCOMPARE(original.gradient()->stops()[0].color.rgba(),PkColor(20,80,140).rgba());
+    QCOMPARE(copied.gradient()->stops()[0].color.rgba(),PkColor(190,30,60).rgba());
+    KoGradientBackground assigned(changed);
+    assigned=original;
+    assigned.setTransform(PkTransform::fromScale(2,3));
+    assigned.setGradient(changed);
+    QCOMPARE(original.gradient()->stops()[0].color.rgba(),PkColor(20,80,140).rgba());
+    QCOMPARE(original.transform(),PkTransform());
+}
+
+void PkImageRasterBackendTest::matchesQtPremultipliedDestination()
+{
+    // Symbol previews render onto PM buffers. Treating their stored channels
+    // as straight alpha (or unpremultiplying on store) corrupts translucent edges.
+    for (int kind = 0; kind < 6; ++kind)
+    for (int mode = 0; mode < 3; ++mode) for (bool aa : {false, true}) {
+        QImage expected(37, 29, QImage::Format_ARGB32_Premultiplied);
+        PkImage actual(37, 29, PkImage::Format_ARGB32_Premultiplied);
+        expected.fill(0x70502010); actual.fill(0x70502010);
+        QPainter qt(&expected); PkImageRasterBackend backend(actual); PkPainter pk(backend);
+        const QPainter::CompositionMode qm[] = {QPainter::CompositionMode_SourceOver,QPainter::CompositionMode_Source,QPainter::CompositionMode_Plus};
+        const Pk::CompositionMode pm[] = {Pk::CompositionMode_SourceOver,Pk::CompositionMode_Source,Pk::CompositionMode_Plus};
+        qt.setCompositionMode(qm[mode]); pk.setCompositionMode(pm[mode]);
+        qt.setRenderHint(QPainter::Antialiasing,aa); pk.setRenderHint(PkPainter::Antialiasing,aa);
+        qt.setOpacity(.7); pk.setOpacity(.7);
+        QPainterPath qp; PkPainterPath pp;
+        qp.moveTo(2,3); pp.moveTo(2,3);
+        qp.cubicTo(4,24,23,-5,33,24); pp.cubicTo(4,24,23,-5,33,24);
+        qp.lineTo(3,25); pp.lineTo(3,25);
+        qp.closeSubpath(); pp.closeSubpath();
+        if (kind == 0) {
+            qt.fillPath(qp,QColor(160,40,120,180)); pk.fillPath(pp,PkColor(160,40,120,180));
+        } else if (kind == 1) {
+            QLinearGradient qg(0,0,30,20);
+            auto pg=PkGradient::linear(PkPointF(),PkPointF(30,20));
+            qg.setColorAt(0,QColor(160,40,120,180)); pg.setColorAt(0,PkColor(160,40,120,180));
+            qg.setColorAt(1,QColor(30,200,50,90)); pg.setColorAt(1,PkColor(30,200,50,90));
+            qt.fillPath(qp,QBrush(qg)); pk.fillPath(pp,PkBrush(pg));
+        } else {
+            qt.setRenderHint(QPainter::SmoothPixmapTransform,kind>=3);
+            pk.setRenderHint(PkPainter::SmoothPixmapTransform,kind>=3);
+            QImage qi(13,9,kind>=4?QImage::Format_ARGB32_Premultiplied:QImage::Format_ARGB32);
+            PkImage pi(13,9,kind>=4?PkImage::Format_ARGB32_Premultiplied:PkImage::Format_ARGB32);
+            for (int y=0;y<9;++y) for (int x=0;x<13;++x) {
+                const unsigned color=qRgba(x*17,y*27,150,100+x*9);
+                const unsigned value=kind>=4?qPremultiply(color):color;
+                qi.setPixel(x,y,value); pi.setPixel(x,y,value);
+            }
+            qt.setClipPath(qp); pk.setClipPath(pp);
+            if (kind==5) { qt.rotate(17); pk.rotate(17); }
+            qt.drawImage(QRectF(2,3,26,18),qi); pk.drawImage(PkRectF(2,3,26,18),pi);
+        }
+        qt.end();
+        for (int y=0;y<29;++y) for (int x=0;x<37;++x)
+            QVERIFY2(actual.pixel(x,y)==expected.pixel(x,y),qPrintable(QString("mode=%1 aa=%2 x=%3 y=%4 Qt=%5 native=%6 kind=%7")
+                .arg(mode).arg(aa).arg(x).arg(y).arg(expected.pixel(x,y),8,16,QLatin1Char('0')).arg(actual.pixel(x,y),8,16,QLatin1Char('0')).arg(kind)));
+    }
+}
+
+void PkImageRasterBackendTest::matchesQtHighDepthImageSources()
+{
+    // Reference images can retain 16-bit samples; the painter must not throw
+    // or discard their low bits before filtering/composition.
+    for (bool pm : {false,true}) for (bool smooth : {false,true})
+    for (auto format : {QImage::Format_RGB32,QImage::Format_RGBX64,QImage::Format_RGBA64,QImage::Format_RGBA64_Premultiplied}) {
+        QImage source(9,7,format);
+        for (int y=0;y<7;++y) for (int x=0;x<9;++x)
+            source.setPixelColor(x,y,QColor::fromRgba64(x*7011,y*9021,(x*3111+y*4713)%65536,1000+x*6011+y*901));
+        const auto nativeFormat=format==QImage::Format_RGB32?PkImage::Format_RGB32:
+            format==QImage::Format_RGBX64?PkImage::Format_RGBX64:
+            format==QImage::Format_RGBA64?PkImage::Format_RGBA64:PkImage::Format_RGBA64_Premultiplied;
+        PkImage nativeSource(9,7,nativeFormat);
+        for (int y=0;y<7;++y) std::memcpy(nativeSource.scanLine(y),source.constScanLine(y),9*(source.depth()/8));
+        QImage expected(31,25,pm?QImage::Format_ARGB32_Premultiplied:QImage::Format_ARGB32);
+        PkImage actual(31,25,pm?PkImage::Format_ARGB32_Premultiplied:PkImage::Format_ARGB32);
+        expected.fill(0x70502010); actual.fill(0x70502010);
+        QPainter qt(&expected); PkImageRasterBackend backend(actual); PkPainter pk(backend);
+        qt.setOpacity(.7); pk.setOpacity(.7);
+        qt.setRenderHint(QPainter::SmoothPixmapTransform,smooth); pk.setRenderHint(PkPainter::SmoothPixmapTransform,smooth);
+        qt.drawImage(QRectF(2,3,21,17),source); pk.drawImage(PkRectF(2,3,21,17),nativeSource);
+        qt.end();
+        for (int y=0;y<25;++y) for (int x=0;x<31;++x)
+            QVERIFY2(actual.pixel(x,y)==expected.pixel(x,y),qPrintable(QString("format=%1 pm=%2 smooth=%3 x=%4 y=%5 Qt=%6 native=%7")
+                .arg(format).arg(pm).arg(smooth).arg(x).arg(y).arg(expected.pixel(x,y),8,16,QLatin1Char('0')).arg(actual.pixel(x,y),8,16,QLatin1Char('0'))));
+    }
+}
+
+void PkImageRasterBackendTest::matchesQtNativeShapePainting()
+{
+    for (bool antialias : {false, true}) {
+        QImage qtImage(47, 39, QImage::Format_ARGB32);
+        PkImage pkImage(47, 39, PkImage::Format_ARGB32);
+        qtImage.fill(0); pkImage.fill(0);
+        QPainterPath qtPath;
+        KoPathShape shape;
+        qtPath.moveTo(3, 5); shape.moveTo(PkPointF(3, 5));
+        qtPath.lineTo(31, 7); shape.lineTo(PkPointF(31, 7));
+        qtPath.lineTo(18, 27); shape.lineTo(PkPointF(18, 27));
+        qtPath.closeSubpath(); shape.close();
+        shape.setBackground(PkSharedPointer<KoShapeBackground>(new KoColorBackground(PkColor(40, 130, 210, 170))));
+        shape.setStroke(KoShapeStrokeModelSP(new KoShapeStroke(3.25, PkColor(180, 30, 80, 210))));
+        QPainter qtPainter(&qtImage);
+        PkImageRasterBackend backend(pkImage);
+        PkPainter painter(backend);
+        qtPainter.setRenderHint(QPainter::Antialiasing, antialias);
+        painter.setRenderHint(PkPainter::Antialiasing, antialias);
+        qtPainter.translate(5, 2); painter.translate(5, 2);
+        qtPainter.rotate(7); painter.rotate(7);
+        qtPainter.setOpacity(0.9); painter.setOpacity(0.9);
+        qtPainter.setPen(Qt::NoPen); painter.setPen(Pk::NoPen);
+        qtPainter.fillPath(qtPath, QColor(40, 130, 210, 170));
+        QPen qtPen(QColor(180, 30, 80, 210), 3.25);
+        qtPen.setJoinStyle(Qt::MiterJoin);
+        qtPainter.strokePath(qtPath, qtPen);
+        shape.paint(painter);
+        shape.paintStroke(painter);
+        qtPainter.end();
+        for (int y = 0; y < 39; ++y) for (int x = 0; x < 47; ++x) {
+            const QString context = QStringLiteral("aa=%1 x=%2 y=%3 Qt=%4 Pk=%5")
+                .arg(antialias).arg(x).arg(y)
+                .arg(qtImage.pixel(x,y), 8, 16, QLatin1Char('0'))
+                .arg(pkImage.pixel(x,y), 8, 16, QLatin1Char('0'));
+            QVERIFY2(pkImage.pixel(x,y) == qtImage.pixel(x,y), qPrintable(context));
+        }
+    }
+}
 
 void PkImageRasterBackendTest::matchesQtClipQueries()
 {

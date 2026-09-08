@@ -10,23 +10,20 @@
 
 #include <PkRect.h>
 #include <PkTransform.h>
-#include <QPainter>
-#include <QSharedData>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 #include <KoShape.h>
 #include "kis_algebra_2d.h"
 
 #include <KoShapePainter.h>
 
-struct Q_DECL_HIDDEN KoClipMask::Private : public QSharedData
+struct Q_DECL_HIDDEN KoClipMask::Private
 {
     Private()
-        : QSharedData()
-    {}
+        {}
 
     Private(const Private &rhs)
-        : QSharedData()
-        , coordinates(rhs.coordinates)
+        : coordinates(rhs.coordinates)
         , contentCoordinates(rhs.contentCoordinates)
         , maskRect(rhs.maskRect)
         , extraShapeTransform(rhs.extraShapeTransform)
@@ -145,28 +142,28 @@ void KoClipMask::setExtraShapeOffset(const PkPointF &value)
     }
 }
 
-void KoClipMask::drawMask(QPainter *painter, KoShape *shape)
+void KoClipMask::drawMask(PkPainter *painter, KoShape *shape)
 {
     painter->save();
 
     PkPainterPath clipPathInShapeSpace;
 
     if (m_d->coordinates == KoFlake::ObjectBoundingBox) {
-        QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(shape->outlineRect()));
-        clipPathInShapeSpace.addPolygon(toPkPolygonF(relativeToShape.map(toQRectF(m_d->maskRect))));
+        PkTransform relativeToShape = KisAlgebra2D::mapToRect(shape->outlineRect());
+        clipPathInShapeSpace.addPolygon(relativeToShape.map(m_d->maskRect));
     } else {
         clipPathInShapeSpace.addRect(m_d->maskRect);
         clipPathInShapeSpace = m_d->extraShapeTransform.map(clipPathInShapeSpace);
     }
 
-    painter->setClipPath(toQPainterPath(clipPathInShapeSpace), Qt::IntersectClip);
+    painter->setClipPath(clipPathInShapeSpace, Pk::IntersectClip);
 
     if (m_d->contentCoordinates == KoFlake::ObjectBoundingBox) {
-        QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(shape->outlineRect()));
+        PkTransform relativeToShape = KisAlgebra2D::mapToRect(shape->outlineRect());
 
         painter->setTransform(relativeToShape, true);
     } else {
-        painter->setTransform(toQTransform(m_d->extraShapeTransform), true);
+        painter->setTransform(m_d->extraShapeTransform, true);
     }
 
     KoShapePainter p;

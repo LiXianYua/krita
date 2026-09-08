@@ -39,7 +39,7 @@
 #include <KoXmlNS.h>
 #include <KoUnit.h>
 
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkVariant.h>
 #include <PkPainterPath.h>
 #include <PkList.h>
@@ -53,8 +53,7 @@
 // KoShape::Private
 
 KoShape::SharedData::SharedData()
-    : QSharedData()
-    , size(50, 50)
+    : size(50, 50)
     , transparency(0.0)
     , zIndex(0)
     , visible(true)
@@ -68,8 +67,7 @@ KoShape::SharedData::SharedData()
 { }
 
 KoShape::SharedData::SharedData(const SharedData &rhs)
-    : QSharedData()
-    , size(rhs.size)
+    : size(rhs.size)
     , shapeId(rhs.shapeId)
     , name(rhs.name)
     , localMatrix(rhs.localMatrix)
@@ -193,14 +191,14 @@ KoShape *KoShape::cloneShapeAndBakeAbsoluteTransform() const
     return clonedShape;
 }
 
-void KoShape::paintStroke(QPainter &painter) const
+void KoShape::paintStroke(PkPainter &painter) const
 {
     if (stroke()) {
         stroke()->paint(this, painter);
     }
 }
 
-void KoShape::paintMarkers(QPainter &painter) const
+void KoShape::paintMarkers(PkPainter &painter) const
 {
     if (stroke()) {
         stroke()->paintMarkers(this, painter);

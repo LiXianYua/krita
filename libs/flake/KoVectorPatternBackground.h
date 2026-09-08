@@ -9,7 +9,7 @@
 
 #include <KoShapeBackground.h>
 #include <KoFlakeCoordinateSystem.h>
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 
 class KoShape;
 class PkPointF;
@@ -43,11 +43,11 @@ public:
     void setShapes(const PkList<KoShape*> value);
     PkList<KoShape*> shapes() const;
 
-    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
+    void paint(PkPainter &painter, const PkPainterPath &fillPath) const override;
     bool hasTransparency() const override;
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif // KOVECTORPATTERNBACKGROUND_H

@@ -6,9 +6,9 @@
 
 #include "KisQPainterStateSaver.h"
 
-#include <QPainter>
+#include <PkPainter.h>
 
-KisQPainterStateSaver::KisQPainterStateSaver(QPainter *painter)
+KisQPainterStateSaver::KisQPainterStateSaver(PkPainter *painter)
     : m_painter(painter)
 {
     m_painter->save();
@@ -18,4 +18,3 @@ KisQPainterStateSaver::~KisQPainterStateSaver()
 {
     m_painter->restore();
 }
-

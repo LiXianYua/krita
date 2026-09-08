@@ -13,17 +13,15 @@
 
 #include <FlakeDebug.h>
 
-#include <QBrush>
-#include <QPainter>
+#include <PkBrush.h>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
-#include <QSharedData>
 
-class KoPatternBackground::Private : public QSharedData
+class KoPatternBackground::Private
 {
 public:
     Private()
-        : QSharedData()
-        , repeat(KoPatternBackground::Tiled)
+        : repeat(KoPatternBackground::Tiled)
         , refPoint(KoPatternBackground::TopLeft)
     {
     }
@@ -215,7 +213,7 @@ PkSizeF KoPatternBackground::patternOriginalSize() const
     return d->pattern.size();
 }
 
-void KoPatternBackground::paint(QPainter &painter, const PkPainterPath &fillPath) const
+void KoPatternBackground::paint(PkPainter &painter, const PkPainterPath &fillPath) const
 {
     if (d->pattern.isNull()) {
         return;
@@ -241,21 +239,21 @@ void KoPatternBackground::paint(QPainter &painter, const PkPainterPath &fillPath
         PkTransform matrix;
         matrix.scale(scaleX, scaleY);
 
-        painter.setClipPath(toQPainterPath(fillPath));
-        painter.setWorldTransform(toQTransform(matrix), true);
-        painter.drawTiledPixmap(toQRectF(targetRect), QPixmap::fromImage(toQImage(d->pattern)), toQPointF(-offset));
+        painter.setClipPath(fillPath);
+        painter.setTransform(matrix, true);
+        painter.drawTiledPixmap(targetRect, d->pattern.convertToFormat(PkImage::Format_ARGB32_Premultiplied), -offset);
     } else if (d->repeat == Original) {
         PkRectF sourceRect(PkPointF(0, 0), d->pattern.size());
         PkRectF targetRect(PkPoint(0, 0), d->targetSize());
         targetRect.moveCenter(fillPath.boundingRect().center());
-        painter.setClipPath(toQPainterPath(fillPath));
-        painter.drawPixmap(toQRectF(targetRect), QPixmap::fromImage(toQImage(d->pattern)).scaled(toQSizeF(sourceRect.size()).toSize()), toQRect(sourceRect));
+        painter.setClipPath(fillPath);
+        painter.drawPixmap(targetRect, d->pattern.convertToFormat(PkImage::Format_ARGB32_Premultiplied).scaled(sourceRect.size().toSize()), sourceRect);
     } else if (d->repeat == Stretched) {
-        painter.setClipPath(toQPainterPath(fillPath));
+        painter.setClipPath(fillPath);
         // undo conversion of the scaling so that we can use a nicely scaled image of the correct size
         qWarning() << "WARNING: stretched KoPatternBackground painting code is abandoned. The result might be not correct";
         const PkRectF targetRect = fillPath.boundingRect();
-        painter.drawPixmap(toQPointF(targetRect.topLeft()), QPixmap::fromImage(toQImage(d->pattern)).scaled(toQSizeF(targetRect.size()).toSize()));
+        painter.drawPixmap(targetRect.topLeft(), d->pattern.convertToFormat(PkImage::Format_ARGB32_Premultiplied).scaled(targetRect.size().toSize()));
     }
 
     painter.restore();

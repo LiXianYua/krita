@@ -8,7 +8,7 @@
 
 #include <PkSize.h>
 #include <PkRect.h>
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkFlakeBridge.h>
 
 #include <kis_types.h>
@@ -92,6 +92,6 @@ void KisNodeShape::setPosition(const PkPointF &)
 {
 }
 
-void KisNodeShape::paint(QPainter &) const
+void KisNodeShape::paint(PkPainter &) const
 {
 }

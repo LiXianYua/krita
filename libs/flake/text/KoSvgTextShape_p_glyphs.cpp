@@ -216,20 +216,20 @@ public:
      * @param faceLoadFlags
      * @param x_advance Pointer to the X advance to be adjusted if needed.
      * @param y_advance Pointer to the Y advance to be adjusted if needed.
-     * @return std::tuple<PkPainterPath, QBrush, bool> {glyphOutline, layerColor, isForeGroundColor}
+     * @return std::tuple<PkPainterPath, PkBrush, bool> {glyphOutline, layerColor, isForeGroundColor}
      */
-    std::tuple<PkPainterPath, QBrush, bool>
+    std::tuple<PkPainterPath, PkBrush, bool>
     layer(const CharacterResult &charResult, const FT_Int32 faceLoadFlags, int *x_advance, int *y_advance)
     {
-        QBrush layerColor;
+        PkBrush layerColor;
         bool isForeGroundColor = false;
 
         if (m_layerColorIndex == 0xFFFF) {
-            layerColor = QBrush(toQColor(PkColor(Pk::black)));
+            layerColor = PkBrush(PkColor(Pk::black));
             isForeGroundColor = true;
         } else {
             const FT_Color color = m_palette[m_layerColorIndex];
-            layerColor = toQColor(PkColor(color.red, color.green, color.blue, color.alpha));
+            layerColor = PkBrush(PkColor(color.red, color.green, color.blue, color.alpha));
         }
         if (const FT_Error err = FT_Load_Glyph(m_face, m_layerGlyphIndex, faceLoadFlags)) {
             warnFlake << "Failed to load glyph, freetype error" << err;
@@ -327,7 +327,7 @@ std::pair<PkTransform, qreal> KoSvgTextShape::Private::loadGlyphOnly(const PkTra
             new_x_advance = orig_x_advance;
             new_y_advance = orig_y_advance;
             PkPainterPath p;
-            QBrush layerColor;
+            PkBrush layerColor;
             bool isForeGroundColor = false;
             std::tie(p, layerColor, isForeGroundColor) = loader.layer(charResult, faceLoadFlags, &new_x_advance, &new_y_advance);
             if (!p.isEmpty()) {

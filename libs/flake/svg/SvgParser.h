@@ -13,7 +13,7 @@
 #include <PkSize.h>
 #include <PkRect.h>
 #include <PkSharedPointer.h>
-#include <QExplicitlySharedDataPointer>
+#include <kis_shared_ptr.h>
 
 #include "kritaflake_export.h"
 #include "SvgGradientHelper.h"
@@ -81,7 +81,7 @@ public:
     typedef std::function<PkByteArray(const PkString&)> FileFetcherFunc;
     void setFileFetcher(FileFetcherFunc func);
 
-    PkList<QExplicitlySharedDataPointer<KoMarker>> knownMarkers() const;
+    PkList<KisSharedPtr<KoMarker>> knownMarkers() const;
 
     void parseDefsElement(const PkXmlElement &e);
     KoShape* parseTextElement(const PkXmlElement &e, KoSvgTextShape *mergeIntoShape = 0);
@@ -226,7 +226,7 @@ private:
     PkMap<PkString, SvgGradientHelper> m_gradients;
     PkMap<PkString, SvgClipPathHelper> m_clipPaths;
     PkMap<PkString, PkSharedPointer<KoClipMask>> m_clipMasks;
-    PkMap<PkString, QExplicitlySharedDataPointer<KoMarker>> m_markers;
+    PkMap<PkString, KisSharedPtr<KoMarker>> m_markers;
     KoDocumentResourceManager *m_documentResourceManager;
     PkList<KoShape*> m_shapes;
     PkMap<PkString, KoSvgSymbol*> m_symbols;

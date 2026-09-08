@@ -8,9 +8,10 @@
 #include <PkFlakeBridge.h>
 
 #include "ImageShape.h"
+#include "ImageShapePngData.h"
 #include "kis_debug.h"
 
-#include <QPainter>
+#include <PkPainter.h>
 #include <SvgLoadingContext.h>
 #include <SvgSavingContext.h>
 #include <SvgUtil.h>
@@ -23,12 +24,11 @@
 #include "KisQPainterStateSaver.h"
 
 
-struct Q_DECL_HIDDEN ImageShape::Private : public QSharedData
+struct Q_DECL_HIDDEN ImageShape::Private
 {
     Private() {}
     Private(const Private &rhs)
-        : QSharedData(),
-          image(rhs.image),
+        : image(rhs.image),
           ratioParser(rhs.ratioParser ? new SvgUtil::PreserveAspectRatioParser(*rhs.ratioParser) : 0),
           viewBoxTransform(rhs.viewBoxTransform)
     {
@@ -60,14 +60,14 @@ KoShape *ImageShape::cloneShape() const
     return new ImageShape(*this);
 }
 
-void ImageShape::paint(QPainter &painter) const
+void ImageShape::paint(PkPainter &painter) const
 {
     KisQPainterStateSaver saver(&painter);
 
-    painter.setRenderHint(QPainter::SmoothPixmapTransform);
-    painter.setClipRect(toQRectF(PkRectF(PkPointF(), size())), Qt::IntersectClip);
-    painter.setTransform(toQTransform(m_d->viewBoxTransform), true);
-    painter.drawImage(QPoint(), toQImage(m_d->image));
+    painter.setRenderHint(PkPainter::SmoothPixmapTransform);
+    painter.setClipRect(PkRectF(PkPointF(), size()), Pk::IntersectClip);
+    painter.setTransform(m_d->viewBoxTransform, true);
+    painter.drawImage(PkPoint(), m_d->image);
 }
 
 void ImageShape::setSize(const PkSizeF &size)
@@ -90,14 +90,8 @@ bool ImageShape::saveSvg(SvgSavingContext &context)
         context.shapeWriter().addAttribute("preserveAspectRatio", aspectString.toUtf8().constData());
     }
 
-    // 过渡期：PNG 编码/base64 走 Qt（QImage::save）
-    QByteArray png;
-    QBuffer buffer(&png);
-    buffer.open(QIODevice::WriteOnly);
-    if (toQImage(m_d->image).save(&buffer, "PNG")) {
-        const PkString mimeType = toPkString(KisMimeDatabase::mimeTypeForSuffix("*.png"));
-        context.shapeWriter().addAttribute("xlink:href", ("data:" + mimeType + ";base64," + PkString(png.toBase64().constData())).toUtf8().constData());
-    }
+    const PkString dataUri = ImageShapePngData::encodeDataUri(m_d->image);
+    if (!dataUri.isEmpty()) context.shapeWriter().addAttribute("xlink:href", dataUri);
     SvgStyleWriter::saveMetadata(this, context);
 
     context.shapeWriter().endElement(); // image
@@ -125,24 +119,13 @@ bool ImageShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &context
 
     if (fileName.startsWith("data:")) {
 
-        QRegularExpression re("data:(.+?);base64,(.+)");
-        QRegularExpressionMatch match = re.match(toQString(fileName));
-
-        data = toPkByteArray(match.captured(2).toLatin1());
-        // base64 解码走 Qt（过渡期）
-        data = toPkByteArray(QByteArray::fromBase64(toQByteArray(data)));
+        data = ImageShapePngData::decodeDataUriBase64(fileName);
     } else {
         data = toPkByteArray(context.fetchExternalFile(fileName));
     }
 
     if (!data.isEmpty()) {
-        // 过渡期：PNG 解码走 Qt（QImage::load）
-        QByteArray raw = toQByteArray(data);
-        QBuffer buffer(&raw);
-        buffer.open(QIODevice::ReadOnly);
-        QImage loaded;
-        loaded.load(&buffer, "");
-        m_d->image = toPkImage(loaded);
+        m_d->image = ImageShapePngData::decodeImage(data);
     }
 
     const PkString aspectString = element.attribute("preserveAspectRatio", "xMidYMid meet");
@@ -155,8 +138,8 @@ bool ImageShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &context
 
         PkTransform viewTransform = m_d->viewBoxTransform;
         SvgUtil::parseAspectRatio(*m_d->ratioParser,
-                                  toPkRectF(PkRectF(PkPointF(), size())),
-                                  toPkRectF(PkRectF(PkPoint(), m_d->image.size())),
+                                  PkRectF(PkPointF(), size()),
+                                  PkRectF(PkPoint(), m_d->image.size()),
                                   &viewTransform);
         m_d->viewBoxTransform = viewTransform;
     }

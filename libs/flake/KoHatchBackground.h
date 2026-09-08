@@ -26,11 +26,11 @@ public:
     ~KoHatchBackground() override;
 
     // reimplemented
-    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
+    void paint(PkPainter &painter, const PkPainterPath &fillPath) const override;
 
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif /* KOHATCHBACKGROUND_H */

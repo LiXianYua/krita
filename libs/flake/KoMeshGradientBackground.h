@@ -6,7 +6,7 @@
 #define KOMESHGRADIENTBACKGROUND_H
 
 #include "KoShapeBackground.h"
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 #include "SvgMeshGradient.h"
 
 class KRITAFLAKE_EXPORT KoMeshGradientBackground : public KoShapeBackground
@@ -15,11 +15,11 @@ public:
     KoMeshGradientBackground(const SvgMeshGradient *gradient, const PkTransform &matrix = PkTransform());
     ~KoMeshGradientBackground();
 
-    // Work around MSVC inability to generate copy ops with QSharedDataPointer.
+    // Work around MSVC inability to generate copy ops with PkSharedDataPointer.
     KoMeshGradientBackground(const KoMeshGradientBackground &);
     KoMeshGradientBackground& operator=(const KoMeshGradientBackground &);
 
-    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
+    void paint(PkPainter &painter, const PkPainterPath &fillPath) const override;
 
     bool compareTo(const KoShapeBackground *other) const override;
 
@@ -28,7 +28,7 @@ public:
 
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 

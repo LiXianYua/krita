@@ -10,24 +10,22 @@
 #include <kis_algebra_2d.h>
 
 #include <QRegion>
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 #include <QDebug>
 
 #include "KoMeshPatchesRenderer.h"
 
-class KoMeshGradientBackground::Private : public QSharedData
+class KoMeshGradientBackground::Private
 {
 public:
     Private()
-        : QSharedData()
-        , gradient(0)
+        : gradient(0)
         , renderer(new KoMeshPatchesRenderer)
     {}
 
     Private(const Private& other)
-        : QSharedData()
-        , gradient(new SvgMeshGradient(*other.gradient))
+        : gradient(new SvgMeshGradient(*other.gradient))
         , matrix(other.matrix)
         , renderer(new KoMeshPatchesRenderer)
     {
@@ -65,7 +63,7 @@ KoMeshGradientBackground &KoMeshGradientBackground::operator=(const KoMeshGradie
     return *this;
 }
 
-void KoMeshGradientBackground::paint(QPainter &painter,
+void KoMeshGradientBackground::paint(PkPainter &painter,
                                      const PkPainterPath &fillPath) const
 {
     if (!d->gradient || !d->gradient->isValid())   return;
@@ -85,7 +83,7 @@ void KoMeshGradientBackground::paint(QPainter &painter,
 
     if (d->renderer->patchImage()->isNull()) {
 
-        d->renderer->configure(meshBoundingRect, toPkTransform(painter.transform()));
+        d->renderer->configure(meshBoundingRect, painter.transform());
         SvgMeshArray *mesharray = gradient->getMeshArray().data();
 
         for (int row = 0; row < mesharray->numRows(); ++row) {
@@ -98,10 +96,10 @@ void KoMeshGradientBackground::paint(QPainter &painter,
         //  d->renderer->patchImage()->save("mesh-patch.png");
     }
 
-    painter.setClipPath(toQPainterPath(fillPath));
+    painter.setClipPath(fillPath);
 
     // patch is to be drawn wrt. to "user" coordinates
-    painter.drawImage(toQRectF(meshBoundingRect), *d->renderer->patchImage());
+    painter.drawImage(meshBoundingRect, *d->renderer->patchImage());
 
     painter.restore();
 }

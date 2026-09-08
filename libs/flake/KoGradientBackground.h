@@ -11,7 +11,7 @@
 #include "kritaflake_export.h"
 
 #include <PkTransform.h>
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 
 class PkGradient;
 
@@ -34,7 +34,7 @@ public:
     /// Destroys the background
     ~KoGradientBackground() override;
 
-    // Work around MSVC inability to generate copy ops with QSharedDataPointer.
+    // Work around MSVC inability to generate copy ops with PkSharedDataPointer.
     KoGradientBackground(const KoGradientBackground &);
     KoGradientBackground &operator=(const KoGradientBackground &);
 
@@ -56,10 +56,10 @@ public:
     const PkGradient *gradient() const;
 
     /// reimplemented from KoShapeBackground
-    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
+    void paint(PkPainter &painter, const PkPainterPath &fillPath) const override;
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif // KOGRADIENTBACKGROUND_H

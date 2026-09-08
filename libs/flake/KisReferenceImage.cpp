@@ -12,12 +12,8 @@
 #include "KisReferenceImage.h"
 #include "KoColorSpaceRegistry.h"
 #include <PkImage.h>
-#include <QPainter>
-#include <QSharedData>
-#include <QFileInfo>
-#include <QImageReader>
-
-#include <QColorSpace>
+#include <PkPainter.h>
+#include "shapes/PkReferenceImageLoader.h"
 
 #include <kundo2command.h>
 #include <KoStore.h>
@@ -31,9 +27,8 @@
 #include <libs/brush/kis_qimage_pyramid.h>
 #include <KisResourceThumbnailCodec.h>
 #include <PkImageRasterBackend.h>
-#include <PkPainter.h>
 
-struct KisReferenceImage::Private : public QSharedData
+struct KisReferenceImage::Private
 {
     // Filename within .kra (for embedding)
     PkString internalFilename;
@@ -51,34 +46,7 @@ struct KisReferenceImage::Private : public QSharedData
 
     bool loadFromFile(const KisReferenceImage::FallbackFileLoader &fallbackLoader) {
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!externalFilename.isEmpty(), false);
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(QFileInfo(toQString(externalFilename)).exists(), false);
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(QFileInfo(toQString(externalFilename)).isReadable(), false);
-        {
-            QImageReader reader(toQString(externalFilename));
-            reader.setDecideFormatFromContent(true);
-            auto normalizeAndBridge = [](QImage loaded) {
-                if (!loaded.isNull() && loaded.colorSpace().isValid()) {
-                    loaded.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
-                }
-                return toPkImage(loaded);
-            };
-
-            image = normalizeAndBridge(reader.read());
-
-            if (image.isNull()) {
-                reader.setAutoDetectImageFormat(true);
-                image = normalizeAndBridge(reader.read());
-            }
-
-        }
-
-        if (image.isNull()) {
-            QImage loaded(toQString(externalFilename));
-            if (!loaded.isNull() && loaded.colorSpace().isValid()) {
-                loaded.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
-            }
-            image = toPkImage(loaded);
-        }
+        image = loadPkReferenceImage(externalFilename.PkToUtf8());
 
         if (image.isNull() && fallbackLoader) {
             image = fallbackLoader(externalFilename);
@@ -197,7 +165,7 @@ KisReferenceImage *KisReferenceImage::fromQImage(const KisCoordinatesConverter &
     return reference;
 }
 
-void KisReferenceImage::paint(QPainter &gc) const
+void KisReferenceImage::paint(PkPainter &gc) const
 {
     if (!parent()) return;
 
@@ -214,23 +182,23 @@ void KisReferenceImage::paint(QPainter &gc) const
 
     qreal scale;
     // scale from the highDPI display
-    PkTransform devicePixelRatioFTransform = PkTransform::fromScale(gc.device()->devicePixelRatioF(), gc.device()->devicePixelRatioF());
+    PkTransform devicePixelRatioFTransform = PkTransform::fromScale(gc.devicePixelRatio(), gc.devicePixelRatio());
     // all three transformations: scale and rotation done by the user, scale from highDPI display, and zoom + rotation of the view
     // order: zoom/rotation of the view; scale to high res; scale and rotation done by the user
     PkImage prescaled = d->mipmap.getClosestWithoutWorkaroundBorder(
-        transform * devicePixelRatioFTransform * toPkTransform(gc.transform()), &scale);
+        transform * devicePixelRatioFTransform * gc.transform(), &scale);
     transform.scale(1.0 / scale, 1.0 / scale);
 
     if (scale > 1.0) {
         // enlarging should be done without smooth transformation
         // so the user can see pixels just as they are painted
-        gc.setRenderHints(QPainter::Antialiasing);
+        gc.setRenderHints(PkPainter::Antialiasing);
     } else {
-        gc.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+        gc.setRenderHints(PkPainter::Antialiasing | PkPainter::SmoothPixmapTransform);
     }
-    gc.setClipRect(toQRectF(PkRectF(PkPointF(), shapeSize)), Qt::IntersectClip);
-    gc.setTransform(toQTransform(transform), true);
-    gc.drawImage(QPoint(), toQImage(prescaled));
+    gc.setClipRect(PkRectF(PkPointF(), shapeSize), Pk::IntersectClip);
+    gc.setTransform(transform, true);
+    gc.drawImage(PkPoint(), prescaled);
 
     gc.restore();
 }

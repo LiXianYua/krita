@@ -8,7 +8,7 @@
 #ifndef KOSHAPEPAINTER_H
 #define KOSHAPEPAINTER_H
 
-#include <QRect>
+#include <PkRect.h>
 #include <PkList.h>
 #include <functional>
 #include <PkRect.h>
@@ -16,12 +16,12 @@
 #include "kritaflake_export.h"
 
 class KoShape;
-class QPainter;
+class PkPainter;
 class PkImage;
 class KoShapeManager;
 
 /**
- * A utility class to paint a subset of shapes onto a QPainter.
+ * A utility class to paint a subset of shapes onto a PkPainter.
  * Notice that using setShapes repeatedly is very expensive, as it populates
  * the shapeManager and all its caching every time.  If at all possible use
  * a shapeManager directly and avoid losing the cache between usages.
@@ -43,7 +43,7 @@ public:
      * @param painter the painter to paint on
      * @param converter the view converter defining the zoom to use
      */
-    void paint(QPainter &painter);
+    void paint(PkPainter &painter);
 
     /**
      * Paints the shapes on the given painter.
@@ -53,7 +53,7 @@ public:
      * @param painterRect the destination rectangle on the painter
      * @param documentRect the document region to paint
      */
-    void paint(QPainter &painter, const QRect &painterRect, const PkRectF &documentRect);
+    void paint(PkPainter &painter, const PkRect &painterRect, const PkRectF &documentRect);
 
     /**
      * Paints shapes to the given image, so that all shapes fit onto it.

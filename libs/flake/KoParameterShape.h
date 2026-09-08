@@ -9,6 +9,7 @@
 #define KOPARAMETERSHAPE_H
 
 #include "KoPathShape.h"
+#include <PkSharedDataPointer.h>
 #include "kritaflake_export.h"
 
 class KoParameterShapePrivate;
@@ -144,7 +145,7 @@ protected:
 
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif /* KOPARAMETERSHAPE_H */

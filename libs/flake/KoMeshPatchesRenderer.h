@@ -8,8 +8,9 @@
 #define KOMESHPATCHESRENDERER_H
 
 #include <PkImage.h>
-#include <QImage>
-#include <QPainter>
+#include "PkImageRasterBackend.h"
+#include <memory>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 #include <PkVector.h>
 #include <PkRect.h>
@@ -42,17 +43,19 @@ public:
         // boundingRect of the scaled version
         PkRectF scaledGradientRect = scaledTransform.mapRect(gradientRect);
 
-        m_patch = QImage(toQSizeF(scaledGradientRect.size()).toSize(), QImage::Format_ARGB32);
-        m_patch.fill(Qt::transparent);
+        m_patch = PkImage(scaledGradientRect.size().toSize(), PkImage::Format_ARGB32);
+        m_patch.fill(Pk::transparent);
 
-        m_patchPainter.begin(&m_patch);
+        m_patchPainter.reset();
+        m_patchBackend = std::make_unique<PkImageRasterBackend>(m_patch);
+        m_patchPainter = std::make_unique<PkPainter>(*m_patchBackend);
 
         // this ensures that the patch renders inside the boundingRect
-        m_patchPainter.translate(-scaledGradientRect.left(), -scaledGradientRect.top());
+        m_patchPainter->translate(-scaledGradientRect.left(), -scaledGradientRect.top());
 
         // upscale the patch to the same scaling factor as the painterTransform
-        m_patchPainter.setTransform(toQTransform(scaledTransform), true);
-        m_patchPainter.setCompositionMode(QPainter::CompositionMode_Source);
+        m_patchPainter->setTransform(scaledTransform, true);
+        m_patchPainter->setCompositionMode(Pk::CompositionMode_Source);
     }
 
     void fillPatch(const SvgMeshPatch *patch,
@@ -132,22 +135,20 @@ public:
             quint8 mixed[4];
             cs->mixColorsOp()->mixColors(c[0], 4, mixed);
 
-            // KoColorSpace::toQColor 剥离后收 PkColor*，先转 Pk 再经桥接回真 Qt 颜色。
-            PkColor averagePk;
-            cs->toQColor(mixed, &averagePk);
-            PkColor average = averagePk;
+            PkColor average;
+            cs->toQColor(mixed, &average);
 
             PkPen pen(average);
             pen.setWidth(0);
-            m_patchPainter.setPen(toQPen(pen));
+            m_patchPainter->setPen(pen);
 
             if (patchRect.width() <= 1 && patchRect.height() <= 1) {
-                m_patchPainter.drawPoint(toQPointF(patchRect.topLeft()));
-                m_patchPainter.fillPath(toQPainterPath(outline), toQColor(average));
+                m_patchPainter->drawPoint(patchRect.topLeft());
+                m_patchPainter->fillPath(outline, average);
 
             } else {
-                m_patchPainter.setBrush(toQColor(average));
-                m_patchPainter.drawPath(toQPainterPath(outline));
+                m_patchPainter->setBrush(average);
+                m_patchPainter->drawPath(outline);
             }
         }
     }
@@ -621,13 +622,14 @@ public:
         return result;
     }
 
-    QImage* patchImage() {
+    PkImage* patchImage() {
         return &m_patch;
     }
 
 private:
-    QImage m_patch;   // S-09-g：QPainter 需 QPaintDevice（过渡期真 Qt）
-    QPainter m_patchPainter;
+    PkImage m_patch;
+    std::unique_ptr<PkImageRasterBackend> m_patchBackend;
+    std::unique_ptr<PkPainter> m_patchPainter;
     // TODO: make them local
     PkVector<PkVector<qreal>> m_alpha;
 };

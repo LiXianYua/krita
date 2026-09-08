@@ -83,7 +83,7 @@ struct Bitmap {
 
 struct ColorLayers {
     PkVector<PkPainterPath> paths;
-    PkVector<QBrush> colors;
+    PkVector<PkBrush> colors;
     PkVector<bool> replaceWithForeGroundColor;
 };
 
@@ -681,12 +681,12 @@ public:
             const bool textPathSide
             );
 
-    void paintTextDecoration(QPainter &painter,
+    void paintTextDecoration(PkPainter &painter,
                              const PkPainterPath &outlineRect,
                              const KoShape *rootShape,
                              const KoSvgText::TextDecoration type,
                              const KoSvgText::TextRendering rendering);
-    void paintPaths(QPainter &painter,
+    void paintPaths(PkPainter &painter,
                     const PkPainterPath &outlineRect,
                     const KoShape *rootShape,
                     const PkVector<CharacterResult> &result,

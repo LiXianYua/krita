@@ -17,7 +17,7 @@
 
 // Qt
 #include <PkPainterPath.h>
-#include <QPainter>
+#include <PkPainter.h>
 
 // Calligra
 
@@ -40,11 +40,11 @@ public:
     Private(KoShapeStroke *_q) : q(_q) {}
     KoShapeStroke *q;
 
-    void paintBorder(const KoShape *shape, QPainter &painter, const PkPen &pen) const;
-    void paintMarkers(const KoShape *shape, QPainter &painter, const PkPen &pen) const;
+    void paintBorder(const KoShape *shape, PkPainter &painter, const PkPen &pen) const;
+    void paintMarkers(const KoShape *shape, PkPainter &painter, const PkPen &pen) const;
     PkColor color;
     PkPen pen;
-    QBrush brush;
+    PkBrush brush;
 };
 
 namespace {
@@ -76,24 +76,24 @@ std::pair<qreal, qreal> anglesForSegment(KoPathSegment segment) {
 }
 }
 
-void KoShapeStroke::Private::paintBorder(const KoShape *shape, QPainter &painter, const PkPen &pen) const
+void KoShapeStroke::Private::paintBorder(const KoShape *shape, PkPainter &painter, const PkPen &pen) const
 {
-    if (!pen.isCosmetic() && pen.style() != Qt::NoPen) {
+    if (!pen.isCosmetic() && pen.style() != Pk::NoPen) {
         const KoPathShape *pathShape = dynamic_cast<const KoPathShape *>(shape);
         if (pathShape) {
             PkPainterPath path = pathShape->pathStroke(pen);
 
-            painter.fillPath(toQPainterPath(path), toQBrush(pen.brush()));
+            painter.fillPath(path, pen.brush());
 
             return;
         }
 
-        painter.strokePath(toQPainterPath(shape->outline()), toQPen(pen));
+        painter.strokePath(shape->outline(), pen);
     }
 }
-void KoShapeStroke::Private::paintMarkers(const KoShape *shape, QPainter &painter, const PkPen &pen) const
+void KoShapeStroke::Private::paintMarkers(const KoShape *shape, PkPainter &painter, const PkPen &pen) const
 {
-    if (!pen.isCosmetic() && pen.style() != Qt::NoPen) {
+    if (!pen.isCosmetic() && pen.style() != Pk::NoPen) {
         const KoPathShape *pathShape = dynamic_cast<const KoPathShape *>(shape);
         if (pathShape) {
 
@@ -263,7 +263,7 @@ PkPen KoShapeStroke::resultLinePen() const
     PkPen pen = d->pen;
 
     if (d->brush.gradient()) {
-        pen.setBrush(toPkBrush(d->brush));
+        pen.setBrush(d->brush);
     } else {
         pen.setColor(d->color.isValid() ? d->color : PkColor(Pk::transparent));
     }
@@ -271,14 +271,14 @@ PkPen KoShapeStroke::resultLinePen() const
     return pen;
 }
 
-void KoShapeStroke::paint(const KoShape *shape, QPainter &painter) const
+void KoShapeStroke::paint(const KoShape *shape, PkPainter &painter) const
 {
     KisQPainterStateSaver saver(&painter);
 
     d->paintBorder(shape, painter, resultLinePen());
 }
 
-void KoShapeStroke::paintMarkers(const KoShape *shape, QPainter &painter) const
+void KoShapeStroke::paintMarkers(const KoShape *shape, PkPainter &painter) const
 {
     KisQPainterStateSaver saver(&painter);
 
@@ -402,12 +402,12 @@ qreal KoShapeStroke::dashOffset() const
     return d->pen.dashOffset();
 }
 
-void KoShapeStroke::setLineBrush(const QBrush &brush)
+void KoShapeStroke::setLineBrush(const PkBrush &brush)
 {
     d->brush = brush;
 }
 
-QBrush KoShapeStroke::lineBrush() const
+const PkBrush &KoShapeStroke::lineBrush() const
 {
     return d->brush;
 }

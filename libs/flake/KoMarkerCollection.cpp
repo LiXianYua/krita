@@ -1,3 +1,4 @@
+#include <kis_shared_ptr.h>
 /* This file is part of the KDE project
    SPDX-FileCopyrightText: 2011 Thorsten Zachmann <zachmann@kde.org>
 
@@ -32,7 +33,7 @@ public:
     {
     }
 
-    PkList<QExplicitlySharedDataPointer<KoMarker> > markers;
+    PkList<KisSharedPtr<KoMarker> > markers;
 };
 
 KoMarkerCollection::KoMarkerCollection(QObject *parent)
@@ -40,7 +41,7 @@ KoMarkerCollection::KoMarkerCollection(QObject *parent)
 , d(new Private)
 {
     // Add no marker so the user can remove a marker from the line.
-    d->markers.append(QExplicitlySharedDataPointer<KoMarker>(0));
+    d->markers.append(KisSharedPtr<KoMarker>(0));
     // Add default markers
     loadDefaultMarkers();
 }
@@ -88,7 +89,7 @@ void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
     PkList<KoShape*> shapes = parser.parseSvg(doc.documentElement(), &fragmentSize);
     qDeleteAll(shapes);
 
-    Q_FOREACH (const QExplicitlySharedDataPointer<KoMarker> &marker, parser.knownMarkers()) {
+    Q_FOREACH (KisSharedPtr<KoMarker> marker, parser.knownMarkers()) {
         addMarker(marker.data());
     }
 }
@@ -102,7 +103,7 @@ void KoMarkerCollection::loadDefaultMarkers()
 PkList<KoMarker*> KoMarkerCollection::markers() const
 {
     PkList<KoMarker*> markerList;
-    foreach (const QExplicitlySharedDataPointer<KoMarker>& m, d->markers){
+    foreach (KisSharedPtr<KoMarker> m, d->markers){
         markerList.append(m.data());
     }
     return markerList;
@@ -110,7 +111,7 @@ PkList<KoMarker*> KoMarkerCollection::markers() const
 
 KoMarker * KoMarkerCollection::addMarker(KoMarker *marker)
 {
-    foreach (const QExplicitlySharedDataPointer<KoMarker>& m, d->markers) {
+    foreach (KisSharedPtr<KoMarker> m, d->markers) {
         if (marker == m.data()) {
             return marker;
         }
@@ -119,6 +120,6 @@ KoMarker * KoMarkerCollection::addMarker(KoMarker *marker)
             return m.data();
         }
     }
-    d->markers.append(QExplicitlySharedDataPointer<KoMarker>(marker));
+    d->markers.append(KisSharedPtr<KoMarker>(marker));
     return marker;
 }

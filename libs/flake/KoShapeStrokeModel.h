@@ -19,7 +19,7 @@ class KoShapeSavingContext;
 struct KoInsets;
 
 class PkColor;
-class QPainter;
+class PkPainter;
 
 /**
  * A model for strokes of KoShapes.
@@ -59,14 +59,14 @@ public:
      * @param painter the painter to paint to, the painter will have the topleft of the
      *       shape as its start coordinate.
      */
-    virtual void paint(const KoShape *shape, QPainter &painter) const = 0;
+    virtual void paint(const KoShape *shape, PkPainter &painter) const = 0;
 
     /**
      * @brief paintMarkers
      * Paints the markers if possible.
      * @see paint()
      */
-    virtual void paintMarkers(const KoShape *shape, QPainter &painter) const = 0;
+    virtual void paintMarkers(const KoShape *shape, PkPainter &painter) const = 0;
 
     virtual bool compareFillTo(const KoShapeStrokeModel *other) = 0;
     virtual bool compareStyleTo(const KoShapeStrokeModel *other) = 0;

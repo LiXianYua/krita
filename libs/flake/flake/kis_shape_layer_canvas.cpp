@@ -8,7 +8,8 @@
 
 #include "kis_shape_layer_canvas.h"
 
-#include <QPainter>
+#include <PkPainter.h>
+#include "PkImageRasterBackend.h"
 #include <PkMutex.h>
 
 #include <KoShapeManager.h>
@@ -421,12 +422,13 @@ void KisShapeLayerCanvas::repaint()
     const qint32 MASK_IMAGE_WIDTH = 256;
     const qint32 MASK_IMAGE_HEIGHT = 256;
 
-    QImage image(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, QImage::Format_ARGB32);
-    QPainter tempPainter(&image);
+    PkImage image(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, PkImage::Format_ARGB32);
+    PkImageRasterBackend backend(image);
+    PkPainter tempPainter(backend);
 
     if(m_parentLayer->antialiased()) {
-        tempPainter.setRenderHint(QPainter::Antialiasing);
-        tempPainter.setRenderHint(QPainter::TextAntialiasing);
+        tempPainter.setRenderHint(PkPainter::Antialiasing);
+        tempPainter.setRenderHint(PkPainter::TextAntialiasing);
     }
 
     quint8 * dstData = new quint8[MASK_IMAGE_WIDTH * MASK_IMAGE_HEIGHT * m_projection->pixelSize()];
@@ -447,10 +449,10 @@ void KisShapeLayerCanvas::repaint()
 
         image.fill(0);
 
-        tempPainter.setTransform(QTransform());
-        tempPainter.setClipRect(QRect(0, 0, job.viewUpdateRect.width(), job.viewUpdateRect.height()));
-        tempPainter.setTransform(toQTransform(viewConverter()->documentToView() *
-                                 PkTransform::fromTranslate(-job.viewUpdateRect.x(), -job.viewUpdateRect.y())));
+        tempPainter.setTransform(PkTransform());
+        tempPainter.setClipRect(PkRect(0, 0, job.viewUpdateRect.width(), job.viewUpdateRect.height()));
+        tempPainter.setTransform(viewConverter()->documentToView() *
+                                 PkTransform::fromTranslate(-job.viewUpdateRect.x(), -job.viewUpdateRect.y()));
 
         m_shapeManager->paintJob(tempPainter, job);
 

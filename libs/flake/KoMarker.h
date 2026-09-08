@@ -8,7 +8,6 @@
 #define KOMARKER_H
 
 #include <QMetaType>
-#include <QSharedData>
 
 #include "kritaflake_export.h"
 #include <KoFlake.h>
@@ -22,10 +21,12 @@ class KoShapeSavingContext;
 class PkString;
 class PkPainterPath;
 class KoShape;
-class QPainter;
+class PkPainter;
 class KoShapeStroke;
 
-class  KRITAFLAKE_EXPORT KoMarker : public QSharedData
+#include <kis_shared.h>
+
+class  KRITAFLAKE_EXPORT KoMarker : public KisShared
 {
 public:
     KoMarker();
@@ -74,7 +75,7 @@ public:
      * @brief paintAtOrigin paints the marker at the position \p pos.
      *        Scales and rotates the marker if needed.
      */
-    void paintAtPosition(QPainter *painter, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle);
+    void paintAtPosition(PkPainter *painter, const PkPointF &pos, qreal strokeWidth, qreal nodeAngle);
 
     /**
      * Return maximum distance that the marker can take outside the shape itself
@@ -96,7 +97,7 @@ public:
     /**
      * Draws a preview of the marker in \p previewRect of \p painter
      */
-    void drawPreview(QPainter *painter, const PkRectF &previewRect,
+    void drawPreview(PkPainter *painter, const PkRectF &previewRect,
                      const PkPen &pen, KoFlake::MarkerPosition position);
 
 

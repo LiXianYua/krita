@@ -10,18 +10,15 @@
 
 #include <KisHandlePainterHelper.h>
 
-#include <QPainter>
 #include <FlakeDebug.h>
 
 KoParameterShape::Private::Private()
-    : QSharedData()
-    , parametric(true)
+    : parametric(true)
 {
 }
 
 KoParameterShape::Private::Private(const Private &rhs)
-    : QSharedData()
-    , parametric(rhs.parametric)
+    : parametric(rhs.parametric)
     , handles(rhs.handles)
 {
 }

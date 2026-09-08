@@ -28,7 +28,7 @@ public:
     PkRectF boundingImageRect() const;
     PkColor getPixel(PkPointF position) const;
 
-    void paintReferences(QPainter &painter);
+    void paintReferences(PkPainter &painter);
 
     bool allowAsChild(KisNodeSP) const override;
 

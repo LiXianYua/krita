@@ -7,6 +7,7 @@
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoGamutMask.h"
+#include <KisResourceThumbnailCodec.h>
 
 #include <cstring>
 
@@ -26,7 +27,7 @@
 #include <KoStoreDevice.h>
 #include <KoDocumentResourceManager.h>
 #include <QBuffer>
-#include <QImage>
+#include <PkImage.h>
 #include <SvgParser.h>
 #include <SvgWriter.h>
 #include <KoShape.h>
@@ -62,18 +63,18 @@ bool KoGamutMaskShape::coordIsClear(const PkPointF& coord) const
     return isClear;
 }
 
-void KoGamutMaskShape::paint(QPainter &painter)
+void KoGamutMaskShape::paint(PkPainter &painter)
 {
     painter.save();
-    painter.setTransform(toQTransform(m_maskShape->absoluteTransformation()), true);
+    painter.setTransform(m_maskShape->absoluteTransformation(), true);
     m_maskShape->paint(painter);
     painter.restore();
 }
 
-void KoGamutMaskShape::paintStroke(QPainter &painter)
+void KoGamutMaskShape::paintStroke(PkPainter &painter)
 {
     painter.save();
-    painter.setTransform(toQTransform(m_maskShape->absoluteTransformation()), true);
+    painter.setTransform(m_maskShape->absoluteTransformation(), true);
     m_maskShape->paintStroke(painter);
     painter.restore();
 }
@@ -156,7 +157,7 @@ bool KoGamutMask::coordIsClear(const PkPointF& coord, bool preview)
     return false;
 }
 
-void KoGamutMask::paint(QPainter &painter, bool preview)
+void KoGamutMask::paint(PkPainter &painter, bool preview)
 {
     PkVector<KoGamutMaskShape*>* shapeVector;
 
@@ -171,7 +172,7 @@ void KoGamutMask::paint(QPainter &painter, bool preview)
     }
 }
 
-void KoGamutMask::paintStroke(QPainter &painter, bool preview)
+void KoGamutMask::paintStroke(PkPainter &painter, bool preview)
 {
     PkVector<KoGamutMaskShape*>* shapeVector;
 
@@ -307,9 +308,8 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
 
     if (store->open("preview.png")) {
         const PkByteArray pngData = store->read(store->size());
-        QImage preview;
-        preview.loadFromData(toQByteArray(pngData), "PNG");
-        setImage(toPkImage(preview));
+        PkImage preview = KisResourceThumbnailCodec::decodePng(pngData);
+        setImage(preview);
 
         (void)store->close();
     }
@@ -365,11 +365,7 @@ bool KoGamutMask::saveToDevice(PkStream *dev) const
         return false;
     }
 
-    QByteArray pngBytes;
-    QBuffer pngBuf(&pngBytes);
-    pngBuf.open(QIODevice::WriteOnly);
-    toQImage(image()).save(&pngBuf, "PNG");
-    pngBuf.close();
+    const PkByteArray pngBytes = KisResourceThumbnailCodec::encodePng(image());
 
     KoStoreDevice previewDev(store);
     previewDev.open(PkStream::WriteOnly);

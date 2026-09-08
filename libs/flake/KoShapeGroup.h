@@ -44,7 +44,7 @@ public:
     KoShape* cloneShape() const override;
 
     /// This implementation is empty since a group is itself not visible.
-    void paintComponent(QPainter &painter) const override;
+    void paintComponent(PkPainter &painter) const override;
     /// always returns false since the group itself can't be selected or hit
     bool hitTest(const PkPointF &position) const override;
     PkSizeF size() const override;

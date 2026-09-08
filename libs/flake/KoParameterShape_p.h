@@ -13,11 +13,10 @@
 
 #include <PkList.h>
 #include <PkPoint.h>
-#include <QSharedData>
 
 class KoParameterShape;
 
-class KRITAFLAKE_EXPORT KoParameterShape::Private : public QSharedData
+class KRITAFLAKE_EXPORT KoParameterShape::Private
 {
 public:
     explicit Private();

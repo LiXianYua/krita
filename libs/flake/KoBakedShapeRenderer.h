@@ -8,9 +8,9 @@
 #define KOBAKEDSHAPERENDERER_H
 
 #include <PkImage.h>
-#include <QImage>
+#include "PkImageRasterBackend.h"
 #include <PkFlakeBridge.h>
-#include <QPainter>
+#include <PkPainter.h>
 #include <PkPainterPath.h>
 #include <PkTransform.h>
 
@@ -34,22 +34,21 @@ struct KoBakedShapeRenderer {
 
         const PkRectF dstShapeBoundingRect = dstShapeOutline.boundingRect();
 
-        QTransform relativeToBakedShape;
+        PkTransform relativeToBakedShape;
 
         if (referenceIsObb || contentIsObb) {
-            m_relativeToShape = toQTransform(KisAlgebra2D::mapToRect(dstShapeBoundingRect));
-            relativeToBakedShape = toQTransform(KisAlgebra2D::mapToRect(bakedShapeBoundingRect));
+            m_relativeToShape = KisAlgebra2D::mapToRect(dstShapeBoundingRect);
+            relativeToBakedShape = KisAlgebra2D::mapToRect(bakedShapeBoundingRect);
         }
 
 
         m_referenceRectUser =
             referenceIsObb ?
-            m_relativeToShape.mapRect(toQRectF(referenceRect)).toAlignedRect() :
-            toQRect(referenceRect.toAlignedRect());
+            m_relativeToShape.mapRect(referenceRect).toAlignedRect() :
+            referenceRect.toAlignedRect();
 
-        m_patch = QImage(m_referenceRectUser.size(), QImage::Format_ARGB32);
+        m_patch = PkImage(m_referenceRectUser.size(), PkImage::Format_ARGB32);
         m_patch.fill(0);
-        m_patchPainter.begin(&m_patch);
 
         m_patchPainter.translate(-m_referenceRectUser.topLeft());
         m_patchPainter.setClipRect(m_referenceRectUser);
@@ -59,47 +58,44 @@ struct KoBakedShapeRenderer {
             m_patchPainter.setTransform(relativeToBakedShape.inverted(), true);
         }
 
-        m_patchPainter.setTransform(toQTransform(bakedTransform).inverted(), true);
+        m_patchPainter.setTransform(bakedTransform.inverted(), true);
     }
 
-    QPainter* bakeShapePainter() {
+    PkPainter* bakeShapePainter() {
         return &m_patchPainter;
     }
 
-    void renderShape(QPainter &painter) {
+    void renderShape(PkPainter &painter) {
         painter.save();
 
-        painter.setTransform(toQTransform(m_dstShapeTransform), true);
-        painter.setClipPath(toQPainterPath(m_dstShapeOutline));
+        painter.setTransform(m_dstShapeTransform, true);
+        painter.setClipPath(m_dstShapeOutline);
 
-        QTransform brushTransform;
+        PkTransform brushTransform;
 
-        const QPoint patternOffset = m_referenceRectUser.topLeft();
+        const PkPoint patternOffset = m_referenceRectUser.topLeft();
 
         brushTransform =
             brushTransform *
-            QTransform::fromTranslate(patternOffset.x(), patternOffset.y());
+            PkTransform::fromTranslate(patternOffset.x(), patternOffset.y());
 
         if (m_contentIsObb) {
             brushTransform = brushTransform * m_relativeToShape.inverted();
         }
 
-        brushTransform = brushTransform * toQTransform(m_patternTransform);
+        brushTransform = brushTransform * m_patternTransform;
 
         if (m_contentIsObb) {
             brushTransform = brushTransform * m_relativeToShape;
         }
 
-        QBrush brush(m_patch);
-        brush.setTransform(brushTransform);
-
-        painter.setBrush(brush);
-        painter.drawPath(toQPainterPath(m_dstShapeOutline));
+        painter.fillTexturePath(m_dstShapeOutline, m_patch, brushTransform);
+        painter.strokePath(m_dstShapeOutline, painter.pen());
 
         painter.restore();
     }
 
-    QImage patchImage() const {
+    PkImage patchImage() const {
         return m_patch;
     }
 
@@ -111,11 +107,12 @@ private:
     bool m_contentIsObb;
     const PkTransform &m_patternTransform;
 
-    QImage m_patch;
-    QPainter m_patchPainter;
+    PkImage m_patch;
+    PkImageRasterBackend m_patchBackend {m_patch};
+    PkPainter m_patchPainter {m_patchBackend};
 
-    QTransform m_relativeToShape;
-    QRect m_referenceRectUser;
+    PkTransform m_relativeToShape;
+    PkRect m_referenceRectUser;
 };
 
 #endif // KOBAKEDSHAPERENDERER_H

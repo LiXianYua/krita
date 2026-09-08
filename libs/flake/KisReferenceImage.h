@@ -9,7 +9,7 @@
 
 #include <functional>
 
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 
 #include <KoColor.h>
 #include <KoShape.h>
@@ -19,7 +19,7 @@
 
 class PkImage;
 class PkPointF;
-class QPainter;
+class PkPainter;
 class PkRectF;
 class KoStore;
 class KisCoordinatesConverter;
@@ -76,7 +76,7 @@ public:
     PkString filename() const;
     PkString internalFile() const;
 
-    void paint(QPainter &gc) const override;
+    void paint(PkPainter &gc) const override;
 
     PkColor getPixel(PkPointF position);
 
@@ -91,7 +91,7 @@ public:
 
 private:
     struct Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif // KISREFERENCEIMAGE_H

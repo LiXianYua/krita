@@ -43,7 +43,7 @@ public:
     KoSelection(QObject *parent = 0);
     ~KoSelection() override;
 
-    void paint(QPainter &painter) const override;
+    void paint(PkPainter &painter) const override;
     void setSize(const PkSizeF &size) override;
     PkSizeF size() const override;
     PkRectF outlineRect() const override;
@@ -146,7 +146,7 @@ protected:
 
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif

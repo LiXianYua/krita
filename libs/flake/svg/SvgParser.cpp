@@ -1,3 +1,4 @@
+#include <kis_shared_ptr.h>
 /* This file is part of the KDE project
  * SPDX-FileCopyrightText: 2002-2005, 2007 Rob Buis <buis@kde.org>
  * SPDX-FileCopyrightText: 2002-2004 Nicolas Goutte <nicolasg@snafu.de>
@@ -14,7 +15,6 @@
 #include <PkTextStream.h>
 #include <PkFileStream.h>
 #include <PkFlakeBridge.h>
-#include <KoGradientBridge.h>
 #include "SvgParser.h"
 
 #include <cmath>
@@ -23,7 +23,6 @@
 
 #include <PkColor.h>
 #include <QDir>
-#include <QPainter>
 #include <PkPainterPath.h>
 #include <QRandomGenerator>
 
@@ -828,7 +827,7 @@ bool SvgParser::parseMarker(const PkXmlElement &e)
 
     marker->setShapes({markerShape});
 
-    m_markers.insert(id, QExplicitlySharedDataPointer<KoMarker>(marker.release()));
+    m_markers.insert(id, KisSharedPtr<KoMarker>(marker.release()));
 
     return true;
 }
@@ -1285,9 +1284,9 @@ void SvgParser::applyStrokeStyle(KoShape *shape)
             PkTransform transform;
             PkGradient *result = prepareGradientForShape(gradient, shape, gc, &transform);
             if (result) {
-                QBrush brush(toQGradient(*result));
+                PkBrush brush(*result);
                 delete result;
-                brush.setTransform(toQTransform(transform));
+                brush.setTransform(transform);
 
                 KoShapeStrokeSP stroke(new KoShapeStroke(*gc->stroke));
                 stroke->setLineBrush(brush);
@@ -1599,7 +1598,7 @@ PkStringList SvgParser::warnings() const
     return warnings;
 }
 
-PkList<QExplicitlySharedDataPointer<KoMarker> > SvgParser::knownMarkers() const
+PkList<KisSharedPtr<KoMarker> > SvgParser::knownMarkers() const
 {
     return m_markers.values();
 }

@@ -7,11 +7,10 @@
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include "KoShapeFillWrapper.h"
-#include <KoGradientBridge.h>
 
 #include <KoShape.h>
 #include <PkList.h>
-#include <QBrush>
+#include <PkBrush.h>
 #include <KoColorBackground.h>
 #include <KoGradientBackground.h>
 #include <KoPatternBackground.h>
@@ -125,12 +124,12 @@ struct ShapeStrokeFillFetchPolicy
 
     static const PkGradient* gradient(KoShape *shape) {
         KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
-        return stroke ? toPkGradientPtr(stroke->lineBrush().gradient()) : 0;
+        return stroke ? stroke->lineBrush().gradient() : 0;
     }
 
     static PkTransform gradientTransform(KoShape *shape) {
         KoShapeStrokeSP stroke = pkSharedPointerDynamicCast<KoShapeStroke>(shape->stroke());
-        return stroke ? toPkTransform(stroke->lineBrush().transform()) : PkTransform();
+        return stroke ? stroke->lineBrush().transform() : PkTransform();
     }
 
     static bool compareTo(PointerType p1, PointerType p2) {
@@ -212,15 +211,15 @@ void KoShapeFillWrapper::Private::applyFillGradientStops(KoShapeStrokeSP shapeSt
     const PkGradient *shapeGradient = 0;
 
     {
-        QBrush brush = shapeStroke->lineBrush();
-        gradientTransform = toPkTransform(brush.transform());
-        shapeGradient = brush.gradient() ? toPkGradientPtr(brush.gradient()) : &fakeShapeGradient;
+        const PkBrush &brush = shapeStroke->lineBrush();
+        gradientTransform = brush.transform();
+        shapeGradient = brush.gradient() ? brush.gradient() : &fakeShapeGradient;
     }
 
     {
         PkScopedPointer<PkGradient> g(KoFlake::mergeGradient(shapeGradient, stopGradient));
-        QBrush newBrush(toQGradient(*g));
-        newBrush.setTransform(toQTransform(gradientTransform));
+        PkBrush newBrush(*g);
+        newBrush.setTransform(gradientTransform);
         shapeStroke->setLineBrush(newBrush);
     }
 }
@@ -348,7 +347,7 @@ KUndo2Command *KoShapeFillWrapper::setColor(const PkColor &color)
     } else {
         command = KoFlake::modifyShapesStrokes(m_d->shapes,
             [color] (KoShapeStrokeSP stroke) {
-                stroke->setLineBrush(Qt::NoBrush);
+                stroke->setLineBrush(PkBrush(Pk::NoBrush));
                 stroke->setColor(color);
 
             });
@@ -409,8 +408,8 @@ KUndo2Command *KoShapeFillWrapper::setGradient(const PkGradient *gradient, const
     } else {
         command = KoFlake::modifyShapesStrokes(m_d->shapes,
             [gradient, transform] (KoShapeStrokeSP stroke) {
-                QBrush newBrush(toQGradient(*gradient));
-                newBrush.setTransform(toQTransform(transform));
+                PkBrush newBrush(*gradient);
+                newBrush.setTransform(transform);
 
                 stroke->setLineBrush(newBrush);
                 stroke->setColor(PkColor(Pk::transparent));

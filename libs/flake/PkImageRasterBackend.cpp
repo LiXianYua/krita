@@ -257,25 +257,38 @@ unsigned multiply8(unsigned value, unsigned factor)
 }
 
 uint32_t composeSolid(uint32_t destination, uint32_t premultipliedSource, unsigned coverage,
-                      Pk::CompositionMode mode)
+                      Pk::CompositionMode mode, bool premultipliedDestination = false, bool solid = true)
 {
     const unsigned sa = alpha(premultipliedSource);
     const unsigned da = alpha(destination);
     unsigned s[] = {sa, red(premultipliedSource), green(premultipliedSource), blue(premultipliedSource)};
     unsigned d[] = {da, multiply8(red(destination), da), multiply8(green(destination), da), multiply8(blue(destination), da)};
+    if (premultipliedDestination) {
+        d[1] = red(destination); d[2] = green(destination); d[3] = blue(destination);
+    }
     unsigned result[4];
     for (int i = 0; i < 4; ++i) {
         if (mode == Pk::CompositionMode_Plus) {
+            if (premultipliedDestination) {
+                const unsigned value = std::min(255u, s[i] + d[i]) * coverage + d[i] * (255 - coverage);
+                result[i] = (value + (value >> 8) + 128) >> 8;
+                continue;
+            }
             result[i] = multiply8(std::min(255u, s[i] + d[i]), coverage) +
                 multiply8(d[i], 255 - coverage);
         } else if (mode == Pk::CompositionMode_Source) {
+            if (premultipliedDestination && solid) {
+                result[i] = multiply8(s[i], coverage) + multiply8(d[i], 255 - coverage);
+                continue;
+            }
             // Qt's 32-bit interpolation rounds the combined numerator once.
-            const unsigned value = s[i] * coverage + d[i] * (255 - coverage) + 128;
-            result[i] = (value + (value >> 8)) >> 8;
+            const unsigned value = s[i] * coverage + d[i] * (255 - coverage);
+            result[i] = (value + (value >> 8) + 128) >> 8;
         } else {
             result[i] = multiply8(s[i], coverage) + multiply8(d[i], 255 - multiply8(sa, coverage));
         }
     }
+    if (premultipliedDestination) return argb(result[0], result[1], result[2], result[3]);
     if (result[0] == 0) return 0;
     return argb(result[0], unpremultiplyTo8(result[1], result[0]),
                 unpremultiplyTo8(result[2], result[0]), unpremultiplyTo8(result[3], result[0]));
@@ -672,7 +685,19 @@ std::vector<unsigned char> PkImageRasterBackend::rectangleCoverage(const PkRectF
     struct Target { int width; unsigned char *pixels; } target {m_destination.width(), pixels.data()};
     PkAliasedRasterizer raster;
     raster.setAntialiased(m_state.hints & 1u);
-    raster.setClipRect(m_destination.rect());
+    PkRect rasterClip=m_destination.rect();
+    if (m_state.hasClip) {
+        int left=m_destination.width(),top=m_destination.height(),right=-1,bottom=-1;
+        for (int y=0;y<m_destination.height();++y) for (int x=0;x<m_destination.width();++x) {
+            if (!m_state.clip[static_cast<std::size_t>(y)*m_destination.width()+x]) continue;
+            left=std::min(left,x); top=std::min(top,y); right=std::max(right,x); bottom=std::max(bottom,y);
+        }
+        if (right<left) return pixels;
+        rasterClip=PkRect(left,top,right-left+1,bottom-top+1);
+    }
+    // initializeRasterizer in Qt uses the clip's span bounds. Clipping the
+    // line earlier changes its fixed-point stepping at partially covered edges.
+    raster.setClipRect(rasterClip);
     raster.initialize([](int count, const PK_FT_Span *spans, void *data) {
         const auto &target = *static_cast<Target *>(data);
         for (int i = 0; i < count; ++i) {
@@ -695,7 +720,8 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
     if (brush.style() != Pk::SolidPattern && !gradient) {
         throw std::logic_error("PkImageRasterBackend unsupported brush");
     }
-    if (m_destination.format() != PkImage::Format_ARGB32) {
+    if (m_destination.format() != PkImage::Format_ARGB32 &&
+        m_destination.format() != PkImage::Format_ARGB32_Premultiplied) {
         throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
     }
     auto mask = coverage(path);
@@ -760,7 +786,7 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
                 const auto next = static_cast<std::size_t>(y) * m_destination.width() + x;
                 unsigned nextAmount = mask[next];
                 if (m_state.hasClip) nextAmount = (nextAmount * m_state.clip[next] + 127) / 255;
-                if (nextAmount != amount) break;
+                if (gradient ? (!amount || !nextAmount) : nextAmount != amount) break;
                 ++x;
             }
             if (!amount) continue;
@@ -773,6 +799,9 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
                 const int step = int(increment * 256);
                 const auto destinations = premultiplySpan(m_destination, y, start, count);
                 for (int i = 0; i < count; ++i, fixed += step) {
+                    const auto maskIndex=static_cast<std::size_t>(y)*m_destination.width()+start+i;
+                    unsigned sampleAmount=mask[maskIndex];
+                    if (m_state.hasClip) sampleAmount=(sampleAmount*m_state.clip[maskIndex]+127)/255;
                     int index = gradientIndex((fixed + 128) >> 8, gradient->spread());
                     bool valid = true;
                     if (gradient->type() == PkGradient::ConicalGradient) {
@@ -795,15 +824,21 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
                             index = gradientIndex(int(position * 1023 + 0.5), gradient->spread());
                         }
                     }
-                    m_destination.setPixel(start + i, y,
-                        compose(destinations[i], valid ? ramp[index] : Rgba64Pixel{}, amount,
-                                i >= count - count % 4, m_state.mode));
+                    const auto sample = valid ? ramp[index] : Rgba64Pixel{};
+                    if (m_destination.format() == PkImage::Format_ARGB32_Premultiplied) {
+                        const uint32_t source = argb(to8Bit(sample.a),to8Bit(sample.r),to8Bit(sample.g),to8Bit(sample.b));
+                        m_destination.setPixel(start+i,y,composeSolid(m_destination.pixel(start+i,y),source,sampleAmount,m_state.mode,true,false));
+                    } else {
+                        m_destination.setPixel(start + i, y,
+                            compose(destinations[i], sample, sampleAmount, i >= count - count % 4, m_state.mode));
+                    }
                 }
                 continue;
             }
             for (int i = 0; i < count; ++i) {
                 m_destination.setPixel(start + i, y,
-                    composeSolid(m_destination.pixel(start + i, y), source, amount, m_state.mode));
+                    composeSolid(m_destination.pixel(start + i, y), source, amount, m_state.mode,
+                                 m_destination.format() == PkImage::Format_ARGB32_Premultiplied));
             }
         }
     }
@@ -816,7 +851,8 @@ void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pe
     const bool noShear = scaleForTransform(m_state.transform, &scale);
     const double width = pen.widthF() * (pen.isCosmetic() ? 1 : scale);
     if (width <= 1 && (pen.isCosmetic() || noShear || !(m_state.hints & 1u))) {
-        if (pen.brush().style() != Pk::SolidPattern || m_destination.format() != PkImage::Format_ARGB32) {
+        if (pen.brush().style() != Pk::SolidPattern ||
+            (m_destination.format() != PkImage::Format_ARGB32 && m_destination.format() != PkImage::Format_ARGB32_Premultiplied)) {
             throw std::logic_error("PkImageRasterBackend cosmetic brush/image format unsupported");
         }
         const uint32_t color = pen.color().rgba();
@@ -840,7 +876,8 @@ void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pe
                     }
                     if (amount) backend.m_destination.setPixel(x, span.y,
                         composeSolid(backend.m_destination.pixel(x, span.y), context.source,
-                                     amount, backend.m_state.mode));
+                                     amount, backend.m_state.mode,
+                                     backend.m_destination.format() == PkImage::Format_ARGB32_Premultiplied));
                 }
             }
         };
@@ -870,7 +907,7 @@ void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pe
 
 void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
 {
-    if (command.image.format() != PkImage::Format_ARGB32 ||
+    if (m_destination.format() != PkImage::Format_ARGB32 || command.image.format() != PkImage::Format_ARGB32 ||
         !m_state.transform.isIdentity() || m_state.hasClip ||
         !isIntegralCoordinate(command.target.x()) || !isIntegralCoordinate(command.target.y()) ||
         command.target.width() != command.image.width() || command.target.height() != command.image.height()) {
@@ -951,10 +988,14 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
                                       const PkTransform &placement, const PkRectF &source, bool tiled)
 {
     if (image.isNull()) return;
-    if (m_destination.format() != PkImage::Format_ARGB32) {
+    if (m_destination.format() != PkImage::Format_ARGB32 && m_destination.format() != PkImage::Format_ARGB32_Premultiplied) {
         throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
     }
     switch (image.format()) {
+    case PkImage::Format_RGB32:
+    case PkImage::Format_RGBX64:
+    case PkImage::Format_RGBA64:
+    case PkImage::Format_RGBA64_Premultiplied:
     case PkImage::Format_ARGB32:
     case PkImage::Format_ARGB32_Premultiplied:
     case PkImage::Format_Grayscale8:
@@ -982,6 +1023,20 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
             x = std::clamp(x, left, right);
             y = std::clamp(y, top, bottom);
         }
+        if (image.depth()==64) {
+            const auto *rgba=reinterpret_cast<const std::uint16_t*>(image.constScanLine(y))+4*x;
+            const unsigned a=image.format()==PkImage::Format_RGBX64?65535:rgba[3];
+            if (image.format()==PkImage::Format_RGBA64 && m_destination.format()==PkImage::Format_ARGB32_Premultiplied &&
+                ((!smooth && (placement*m_state.transform).type()>PkTransform::TxTranslate) ||
+                 (smooth && (stepY!=0 || std::abs(stepX)>131072)))) {
+                const unsigned alpha8=to8Bit(a);
+                return Rgba64Pixel {alpha8*257u,multiply8(to8Bit(rgba[0]),alpha8)*257u,
+                    multiply8(to8Bit(rgba[1]),alpha8)*257u,multiply8(to8Bit(rgba[2]),alpha8)*257u};
+            }
+            if (image.format()==PkImage::Format_RGBA64_Premultiplied)
+                return Rgba64Pixel {a,rgba[0],rgba[1],rgba[2]};
+            return Rgba64Pixel {a,divideBy65535(rgba[0]*a),divideBy65535(rgba[1]*a),divideBy65535(rgba[2]*a)};
+        }
         const auto pixel = image.pixel(x, y);
         // Premultiplied image bytes are already associated with alpha. Qt's
         // RGBA64 fetch expands them directly; a second multiplication loses
@@ -990,11 +1045,23 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
             return Rgba64Pixel {alpha(pixel) * 257u, red(pixel) * 257u,
                                 green(pixel) * 257u, blue(pixel) * 257u};
         }
+        if (m_destination.format() == PkImage::Format_ARGB32_Premultiplied) {
+            const unsigned a=alpha(pixel);
+            return Rgba64Pixel {a*257u,multiply8(red(pixel),a)*257u,multiply8(green(pixel),a)*257u,multiply8(blue(pixel),a)*257u};
+        }
         return premultiply64(pixel);
     };
-    const auto interpolate = [](const Rgba64Pixel &a, const Rgba64Pixel &b, unsigned amount) {
+    const auto interpolate = [&](const Rgba64Pixel &a, const Rgba64Pixel &b, unsigned amount) {
         if (!amount) return a;
-        const auto mix = [amount](unsigned x, unsigned y) { return ((x * (65536 - amount)) >> 16) + ((y * amount) >> 16); };
+        const auto mix = [&](unsigned x, unsigned y) {
+            if (m_destination.format()==PkImage::Format_ARGB32_Premultiplied) {
+                // The 32-bit fetcher truncates each separable pass to eight
+                // bits, with an eight-bit sample fraction (not RGBA64 lerp).
+                const unsigned fraction=amount>>8;
+                return ((to8Bit(x)*(256-fraction)+to8Bit(y)*fraction)>>8)*257u;
+            }
+            return ((x * (65536 - amount)) >> 16) + ((y * amount) >> 16);
+        };
         return Rgba64Pixel {mix(a.a, b.a), mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b)};
     };
     for (int y = 0; y < m_destination.height(); ++y) {
@@ -1017,6 +1084,30 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
             const auto p = inverse.map(PkPointF(start + 0.5, y + 0.5));
             int fx = int(p.x() * 65536) - (smooth ? 32768 : 0);
             int fy = int(p.y() * 65536) - (smooth ? 32768 : 0);
+            int lowPrecisionStart=0,lowPrecisionEnd=0;
+            if (smooth && !tiled && m_destination.format()==PkImage::Format_ARGB32_Premultiplied &&
+                (image.format()==PkImage::Format_ARGB32_Premultiplied || image.format()==PkImage::Format_RGB32) &&
+                stepY!=0 && std::abs(inverse.m11())>=.125 && std::abs(inverse.m22())>=.125) {
+                // Qt's PM fast-rotation SIMD interior uses rounded four-bit
+                // fractions; bounded edges and scalar tails retain eight bits.
+                int tx=fx,ty=fy;
+                while (lowPrecisionStart<count &&
+                    ((tx>>16)<left || (tx>>16)>=right || (ty>>16)<top || (ty>>16)>=bottom)) {
+                    ++lowPrecisionStart; tx+=stepX; ty+=stepY;
+                }
+                int length=count-lowPrecisionStart;
+                if (stepX>0) length=std::min(length,int((std::int64_t(right)*65536-tx)/stepX));
+                else if (stepX<0) length=std::min(length,int((std::int64_t(left)*65536-tx)/stepX));
+                if (stepY>0) length=std::min(length,int((std::int64_t(bottom)*65536-ty)/stepY));
+                else if (stepY<0) length=std::min(length,int((std::int64_t(top)*65536-ty)/stepY));
+                int lanes=1;
+#if defined(__SSE2__)
+                lanes=__builtin_cpu_supports("avx2")?8:4;
+#elif defined(__ARM_NEON__)
+                lanes=4;
+#endif
+                lowPrecisionEnd=lowPrecisionStart+std::max(0,length)/lanes*lanes;
+            }
             const auto destinations = premultiplySpan(m_destination, y, start, count);
             for (int i = 0; i < count; ++i, fx += stepX, fy += stepY) {
                 const int sx = fx >> 16, sy = fy >> 16;
@@ -1025,12 +1116,32 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
                     const auto right = fetch(sx + 1, sy);
                     const auto bottom = fetch(sx, sy + 1);
                     const auto bottomRight = fetch(sx + 1, sy + 1);
-                    source = interpolate(interpolate(source, bottom, fy & 65535),
-                                         interpolate(right, bottomRight, fy & 65535), fx & 65535);
+                    if (i>=lowPrecisionStart && i<lowPrecisionEnd) {
+                        const unsigned dx=((fx&65535)+2048)>>12,dy=((fy&65535)+2048)>>12;
+                        const auto mix=[&](unsigned tl,unsigned tr,unsigned bl,unsigned br) {
+                            return ((to8Bit(tl)*(16-dx)*(16-dy)+to8Bit(tr)*dx*(16-dy)+
+                                to8Bit(bl)*(16-dx)*dy+to8Bit(br)*dx*dy)>>8)*257u;
+                        };
+                        source={mix(source.a,right.a,bottom.a,bottomRight.a),mix(source.r,right.r,bottom.r,bottomRight.r),
+                            mix(source.g,right.g,bottom.g,bottomRight.g),mix(source.b,right.b,bottom.b,bottomRight.b)};
+                    } else {
+                        source = interpolate(interpolate(source, bottom, fy & 65535),
+                                             interpolate(right, bottomRight, fy & 65535), fx & 65535);
+                    }
                 }
-                m_destination.setPixel(start + i, y,
-                    compose(destinations[i], source, (amountAt(start + i) * opacity) >> 8,
-                            i >= count - count % 4, m_state.mode));
+                if (m_destination.format() == PkImage::Format_ARGB32_Premultiplied) {
+                    const uint32_t pixel=argb(to8Bit(source.a),to8Bit(source.r),to8Bit(source.g),to8Bit(source.b));
+                    const auto mode=m_state.mode==Pk::CompositionMode_SourceOver &&
+                        image.format()==PkImage::Format_RGB32 && !smooth && !m_state.hasClip &&
+                        !(m_state.hints&1u) && (placement*m_state.transform).type()<=PkTransform::TxScale?
+                        Pk::CompositionMode_Source:m_state.mode;
+                    m_destination.setPixel(start+i,y,composeSolid(m_destination.pixel(start+i,y),pixel,
+                        (amountAt(start+i)*opacity)>>8,mode,true,false));
+                } else {
+                    m_destination.setPixel(start + i, y,
+                        compose(destinations[i], source, (amountAt(start + i) * opacity) >> 8,
+                                i >= count - count % 4, m_state.mode));
+                }
             }
         }
     }

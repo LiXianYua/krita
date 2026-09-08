@@ -11,13 +11,13 @@
 
 #include <KoFlakeCoordinateSystem.h>
 #include <PkList.h>
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 
 class KoShape;
 class PkRectF;
 class PkTransform;
 class PkPointF;
-class QPainter;
+class PkPainter;
 
 
 class KRITAFLAKE_EXPORT KoClipMask
@@ -26,7 +26,7 @@ public:
     KoClipMask();
     ~KoClipMask();
 
-    // Work around MSVC inability to generate copy ops with QSharedDataPointer.
+    // Work around MSVC inability to generate copy ops with PkSharedDataPointer.
     KoClipMask(const KoClipMask &);
     KoClipMask &operator=(const KoClipMask &);
 
@@ -48,11 +48,11 @@ public:
 
     void setExtraShapeOffset(const PkPointF &value);
 
-    void drawMask(QPainter *painter, KoShape *shape);
+    void drawMask(PkPainter *painter, KoShape *shape);
 
 private:
     struct Private;
-    QSharedDataPointer<Private> m_d;
+    PkSharedDataPointer<Private> m_d;
 };
 
 #endif // KOCLIPMASK_H

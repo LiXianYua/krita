@@ -23,7 +23,6 @@
 #include <QtCore/QtCore>
 #include <PkTextStream.h>
 #include <PkFlakeBridge.h>
-#include <KoGradientBridge.h>
 #include "SvgStyleWriter.h"
 #include "SvgSavingContext.h"
 #include "SvgUtil.h"
@@ -106,7 +105,6 @@ void SvgStyleWriter::saveSvgFill(PkSharedPointer<KoShapeBackground> background, 
         context.shapeWriter().addAttribute("fill", "none");
     }
 
-    QBrush fill(Qt::NoBrush);
     PkSharedPointer<KoColorBackground>  cbg = pkSharedPointerDynamicCast<KoColorBackground>(background);
     if (cbg) {
         context.shapeWriter().addAttribute("fill", toPkString(cbg->color().name()));
@@ -148,7 +146,7 @@ void SvgStyleWriter::saveSvgStroke(KoShapeStrokeModelSP stroke, SvgSavingContext
 
     PkString strokeStr("none");
     if (lineBorder->lineBrush().gradient()) {
-        PkString gradientId = saveSvgGradient(toPkGradientPtr(lineBorder->lineBrush().gradient()), toPkTransform(lineBorder->lineBrush().transform()), context);
+        PkString gradientId = saveSvgGradient(lineBorder->lineBrush().gradient(), lineBorder->lineBrush().transform(), context);
         strokeStr = "url(#" + gradientId + ")";
     } else {
         if (lineBorder->color().isValid()) {

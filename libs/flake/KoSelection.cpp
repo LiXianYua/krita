@@ -18,7 +18,7 @@
 #include "kis_algebra_2d.h"
 #include "krita_container_utils.h"
 
-#include <QPainter>
+#include <PkPainter.h>
 
 #include "kis_debug.h"
 KoSelection::KoSelection(QObject *parent)
@@ -41,7 +41,7 @@ KoSelection::~KoSelection()
 {
 }
 
-void KoSelection::paint(QPainter &painter) const
+void KoSelection::paint(PkPainter &painter) const
 {
     Q_UNUSED(painter);
 }

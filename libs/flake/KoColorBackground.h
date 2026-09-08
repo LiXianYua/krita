@@ -10,11 +10,12 @@
 #include "KoShapeBackground.h"
 #include "kritaflake_export.h"
 #include <Qt>
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
+#include <PkBrush.h>
 
 class KoColorBackgroundPrivate;
 class PkColor;
-class QBrush;
+class PkBrush;
 
 /// A simple solid color shape background
 class KRITAFLAKE_EXPORT KoColorBackground : public KoShapeBackground
@@ -23,11 +24,11 @@ public:
     KoColorBackground();
 
     /// Creates background from given color and style
-    explicit KoColorBackground(const PkColor &color, Qt::BrushStyle style = Qt::SolidPattern);
+    explicit KoColorBackground(const PkColor &color, Pk::BrushStyle style = Pk::SolidPattern);
 
     ~KoColorBackground() override;
 
-    // Work around MSVC inability to generate copy ops with QSharedDataPointer.
+    // Work around MSVC inability to generate copy ops with PkSharedDataPointer.
     KoColorBackground(const KoColorBackground &);
     KoColorBackground &operator=(const KoColorBackground &);
 
@@ -40,16 +41,16 @@ public:
     void setColor(const PkColor &color);
 
     /// Returns the background style
-    Qt::BrushStyle style() const;
+    Pk::BrushStyle style() const;
 
-    QBrush brush() const;
+    PkBrush brush() const;
 
     // reimplemented from KoShapeBackground
-    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
+    void paint(PkPainter &painter, const PkPainterPath &fillPath) const override;
 
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif // KOCOLORBACKGROUND_H

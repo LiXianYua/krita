@@ -10,7 +10,7 @@
 #include "KoShapeBackground.h"
 #include "kritaflake_export.h"
 
-#include <QSharedDataPointer>
+#include <PkSharedDataPointer.h>
 
 class KoPatternBackgroundPrivate;
 
@@ -46,7 +46,7 @@ public:
 
     ~KoPatternBackground() override;
 
-    // Work around MSVC inability to generate copy ops with QSharedDataPointer.
+    // Work around MSVC inability to generate copy ops with PkSharedDataPointer.
     KoPatternBackground(const KoPatternBackground &);
     KoPatternBackground& operator=(const KoPatternBackground &);
 
@@ -98,13 +98,13 @@ public:
     PkSizeF patternOriginalSize() const;
 
     /// reimplemented from KoShapeBackground
-    void paint(QPainter &painter, const PkPainterPath &fillPath) const override;
+    void paint(PkPainter &painter, const PkPainterPath &fillPath) const override;
 
     /// Returns the bounding rect of the pattern image based on the given fill size
     PkRectF patternRectFromFillSize(const PkSizeF &size);
 private:
     class Private;
-    QSharedDataPointer<Private> d;
+    PkSharedDataPointer<Private> d;
 };
 
 #endif // KOPATTERNBACKGROUND_H

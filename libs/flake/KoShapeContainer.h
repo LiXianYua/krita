@@ -15,7 +15,7 @@
 // [migrate] missing include for Pk/Qt type
 #include <PkScopedPointer.h>
 
-class QPainter;
+class PkPainter;
 class KoShapeContainerModel;
 class KoShapeContainerPrivate;
 
@@ -156,7 +156,7 @@ public:
 
 
     /// reimplemented
-    void paint(QPainter &painter) const override;
+    void paint(PkPainter &painter) const override;
 
     /**
      * @brief Paint the component
@@ -166,7 +166,7 @@ public:
      * @param painter used for painting the shape
      * @see applyConversion()
      */
-    virtual void paintComponent(QPainter &painter) const = 0;
+    virtual void paintComponent(PkPainter &painter) const = 0;
 
     using KoShape::update;
     /// reimplemented

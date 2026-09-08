@@ -1,3 +1,4 @@
+#include <kis_shared_ptr.h>
 /* This file is part of the KDE project
  * SPDX-FileCopyrightText: 2009 Thomas Zander <zander@kde.org>
  *
@@ -9,7 +10,6 @@
 #include "KoPathShape.h"
 #include "KoMarker.h"
 
-#include <QSharedData>
 
 class KoPathShape::Private
 {
@@ -29,7 +29,7 @@ public:
     KoSubpath *subPath(int subpathIndex) const;
 #ifndef NDEBUG
     /// \internal
-    void paintDebug(QPainter &painter);
+    void paintDebug(PkPainter &painter);
     /**
      * @brief print debug information about a the points of the path
      */
@@ -40,7 +40,7 @@ public:
 
     KoSubpathList subpaths;
 
-    PkMap<KoFlake::MarkerPosition, QExplicitlySharedDataPointer<KoMarker>> markersNew;
+    PkMap<KoFlake::MarkerPosition, KisSharedPtr<KoMarker>> markersNew;
     bool autoFillMarkers;
 };
 

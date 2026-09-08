@@ -35,6 +35,7 @@ public:
     // ---- 变换（translate/scale/rotate 都折叠进 transform）----
     PkTransform transform() const; void setTransform(const PkTransform &, bool combine=false);
     void translate(qreal dx, qreal dy);
+    void translate(const PkPointF &point) { translate(point.x(), point.y()); }
     void scale(qreal sx, qreal sy);
     void rotate(qreal degrees);
 
@@ -46,6 +47,7 @@ public:
 
     // ---- 裁剪 ----
     void setClipRect(const PkRectF &, Pk::ClipOperation=Pk::ReplaceClip);
+    void setClipRect(const PkRect &rect, Pk::ClipOperation operation=Pk::ReplaceClip) { setClipRect(PkRectF(rect), operation); }
     void setClipPath(const PkPainterPath &, Pk::ClipOperation=Pk::ReplaceClip);
     bool hasClipping() const;
     PkPainterPath clipPath() const;
@@ -60,9 +62,15 @@ public:
     void drawPoint(const PkPointF &);
     void strokePath(const PkPainterPath &, const PkPen &);
     void fillRect(const PkRectF &); void fillRect(const PkRectF &, const PkBrush &);
+    void fillRect(const PkRectF &rect, const PkColor &color) { fillRect(rect, PkBrush(color)); }
+    void fillRect(const PkRect &rect, const PkColor &color) { fillRect(PkRectF(rect), PkBrush(color)); }
     void fillPath(const PkPainterPath &); void fillPath(const PkPainterPath &, const PkBrush &);
+    void fillPath(const PkPainterPath &path, const PkColor &color) { fillPath(path, PkBrush(color)); }
     void fillTexturePath(const PkPainterPath &, const PkImage &, const PkTransform &);
     void drawImage(const PkRectF &, const PkImage &);
+    void drawImage(const PkPointF &point, const PkImage &image) {
+        drawImage(PkRectF(point, PkSizeF(image.width() / image.devicePixelRatio(), image.height() / image.devicePixelRatio())), image);
+    }
     void drawPixmap(const PkPointF &, const PkImage &);
     void drawPixmap(const PkRectF &target, const PkImage &, const PkRectF &source = PkRectF());
     void drawTiledPixmap(const PkRectF &, const PkImage &, const PkPointF &offset = PkPointF());
