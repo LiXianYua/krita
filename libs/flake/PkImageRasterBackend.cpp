@@ -1002,6 +1002,7 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
     case PkImage::Format_ARGB32:
     case PkImage::Format_ARGB32_Premultiplied:
     case PkImage::Format_Grayscale8:
+    case PkImage::Format_Grayscale16:
     case PkImage::Format_Mono:
         break;
     default:
@@ -1025,6 +1026,14 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
         } else {
             x = std::clamp(x, left, right);
             y = std::clamp(y, top, bottom);
+        }
+        if (image.format()==PkImage::Format_Grayscale16) {
+            unsigned gray=reinterpret_cast<const std::uint16_t*>(image.constScanLine(y))[x];
+            // Qt fetches full gray16 into RGBA64, but rounds through div_257
+            // before interpolation when the destination uses the 32-bit path.
+            if (m_destination.format()==PkImage::Format_ARGB32_Premultiplied)
+                gray=to8Bit(gray)*257u;
+            return Rgba64Pixel {65535,gray,gray,gray};
         }
         if (image.depth()==64) {
             const auto *rgba=reinterpret_cast<const std::uint16_t*>(image.constScanLine(y))+4*x;

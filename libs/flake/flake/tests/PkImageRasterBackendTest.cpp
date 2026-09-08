@@ -14,6 +14,9 @@
 #include <KoShapeManager.h>
 #include <KoClipMaskPainter.h>
 #include <KoClipMask.h>
+#include <shapes/ImageShape.h>
+#include <shapes/ImageShapePngData.h>
+#include <QBuffer>
 
 #include <array>
 #include <cstring>
@@ -46,11 +49,46 @@ private Q_SLOTS:
     void matchesQtHighDepthImageSources();
     void preservesManagerDispatchAndMaskBuffers();
     void emptyAndDisjointMasksAreNoOps();
+    void paintsDecodedGrayscale16();
     void gradientCopiesKeepIndependentValues();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::paintsDecodedGrayscale16()
+{
+    QImage input(9,7,QImage::Format_Grayscale16);
+    for (int y=0;y<7;++y) for (int x=0;x<9;++x)
+        reinterpret_cast<quint16*>(input.scanLine(y))[x]=(x*7011+y*9021)%65536;
+    QByteArray bytes; QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly));
+    QVERIFY(input.save(&buffer,"PNG"));
+    const QImage source=QImage::fromData(bytes);
+    const PkImage decoded=ImageShapePngData::decodePng(PkByteArray(bytes.constData(),bytes.size()));
+    QCOMPARE(decoded.format(),PkImage::Format_Grayscale16);
+    for (bool pm : {false,true}) for (bool smooth : {false,true}) for (bool shapeEntry : {false,true}) {
+        QImage expected(31,25,pm?QImage::Format_ARGB32_Premultiplied:QImage::Format_ARGB32);
+        PkImage actual(31,25,pm?PkImage::Format_ARGB32_Premultiplied:PkImage::Format_ARGB32);
+        expected.fill(0xff234567); actual.fill(0xff234567);
+        QPainter qt(&expected); PkImageRasterBackend backend(actual); PkPainter pk(backend);
+        qt.translate(3,2); pk.translate(3,2); qt.setOpacity(.7); pk.setOpacity(.7);
+        qt.setRenderHint(QPainter::SmoothPixmapTransform,smooth || shapeEntry);
+        pk.setRenderHint(PkPainter::SmoothPixmapTransform,smooth);
+        if (shapeEntry) {
+            qt.setClipRect(QRectF(0,0,21,19),Qt::IntersectClip);
+            qt.scale(2.1,2.3); qt.drawImage(QPoint(),source);
+            ImageShape shape; shape.setSize(PkSizeF(21,19)); shape.setImage(decoded);
+            shape.setViewBoxTransform(PkTransform::fromScale(2.1,2.3)); shape.paint(pk);
+        } else {
+            qt.drawImage(QRectF(1.2,2.4,23,19),source);
+            pk.drawImage(PkRectF(1.2,2.4,23,19),decoded);
+        }
+        qt.end();
+        for (int y=0;y<25;++y) for (int x=0;x<31;++x)
+            QVERIFY2(actual.pixel(x,y)==expected.pixel(x,y),qPrintable(QString("pm=%1 smooth=%2 shape=%3 x=%4 y=%5 Qt=%6 native=%7")
+                .arg(pm).arg(smooth).arg(shapeEntry).arg(x).arg(y).arg(expected.pixel(x,y),8,16,QLatin1Char('0')).arg(actual.pixel(x,y),8,16,QLatin1Char('0'))));
+    }
+}
 
 void PkImageRasterBackendTest::emptyAndDisjointMasksAreNoOps()
 {
