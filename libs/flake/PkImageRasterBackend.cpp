@@ -503,6 +503,23 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
         drawImage(*image);
         return;
     }
+    if (const auto *image = std::get_if<PkDrawPixmapCommand>(&command)) {
+        drawTransformedImage({image->target, image->image}, image->source);
+        return;
+    }
+    if (const auto *image = std::get_if<PkDrawTiledPixmapCommand>(&command)) {
+        if (image->image.isNull()) return;
+        // QPainter rounds the requested tile phase to whole source pixels
+        // before passing it to the raster engine (also for transformed tiles).
+        const auto phase = [](qreal value, int period) {
+            return value < 0 ? period - int(std::round(-value)) % period : int(std::round(value)) % period;
+        };
+        drawTransformedImage({image->rect, image->image},
+                             PkRectF(PkPointF(phase(image->offset.x(), image->image.width()),
+                                              phase(image->offset.y(), image->image.height())),
+                                     PkSizeF(image->rect.width(), image->rect.height())), true);
+        return;
+    }
 
     throw std::logic_error("PkImageRasterBackend does not support this paint command");
 }
@@ -911,7 +928,8 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
     }
 }
 
-void PkImageRasterBackend::drawTransformedImage(const PkDrawImageCommand &command)
+void PkImageRasterBackend::drawTransformedImage(const PkDrawImageCommand &command,
+                                               const PkRectF &sourceRect, bool tiled)
 {
     if (m_destination.format() != PkImage::Format_ARGB32) {
         throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
@@ -928,17 +946,31 @@ void PkImageRasterBackend::drawTransformedImage(const PkDrawImageCommand &comman
     if (command.image.isNull() || command.target.isEmpty()) return;
     if (!m_state.transform.isAffine()) throw std::logic_error("PkImageRasterBackend projective image unsupported");
     auto mask = rectangleCoverage(command.target);
+    const PkRectF source = sourceRect.isNull() ? PkRectF(0, 0, command.image.width(), command.image.height()) : sourceRect;
     PkTransform target;
     target.translate(command.target.x(), command.target.y());
-    target.scale(command.target.width() / command.image.width(), command.target.height() / command.image.height());
+    if (!tiled) target.scale(command.target.width() / source.width(), command.target.height() / source.height());
+    target.translate(-source.x(), -source.y());
+    if (tiled) target.scale(1.0 / command.image.devicePixelRatio(), 1.0 / command.image.devicePixelRatio());
     const auto inverse = (PkTransform::fromTranslate(1.0 / 65536, 1.0 / 65536) *
                           target * m_state.transform).inverted();
     const bool smooth = m_state.hints & 4u;
     const int stepX = int(inverse.m11() * 65536), stepY = int(inverse.m12() * 65536);
     const unsigned opacity = unsigned(m_state.opacity * 256);
+    const int left = tiled ? 0 : std::max(0, int(std::floor(source.left())));
+    const int top = tiled ? 0 : std::max(0, int(std::floor(source.top())));
+    const int right = tiled ? command.image.width() - 1 : std::min(command.image.width() - 1, int(std::ceil(source.right())) - 1);
+    const int bottom = tiled ? command.image.height() - 1 : std::min(command.image.height() - 1, int(std::ceil(source.bottom())) - 1);
+    if (right < left || bottom < top) return;
     const auto fetch = [&](int x, int y) {
-        const auto pixel = command.image.pixel(std::clamp(x, 0, command.image.width() - 1),
-                                              std::clamp(y, 0, command.image.height() - 1));
+        if (tiled) {
+            x %= command.image.width(); if (x < 0) x += command.image.width();
+            y %= command.image.height(); if (y < 0) y += command.image.height();
+        } else {
+            x = std::clamp(x, left, right);
+            y = std::clamp(y, top, bottom);
+        }
+        const auto pixel = command.image.pixel(x, y);
         // Premultiplied image bytes are already associated with alpha. Qt's
         // RGBA64 fetch expands them directly; a second multiplication loses
         // colored-glyph energy, especially along translucent edges.

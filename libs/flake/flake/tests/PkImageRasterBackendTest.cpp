@@ -30,10 +30,56 @@ private Q_SLOTS:
     void matchesQtStrokePixels();
     void matchesQtGradientPixels();
     void matchesQtTransformedImagePixels();
+    void matchesQtPatternImagePixels();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtPatternImagePixels()
+{
+    // Catch incorrect source-rectangle mapping and tile phase/wrap at negative
+    // offsets. Qt owns its pixmap and painter; no native expected-value helper.
+    for (bool tiled : {false, true}) for (bool smooth : {false, true}) {
+        for (bool antialias : {false, true}) {
+            QImage qtImage(33, 27, QImage::Format_ARGB32);
+            PkImage pkImage(33, 27, PkImage::Format_ARGB32);
+            qtImage.fill(0x80603040u); pkImage.fill(0x80603040u);
+            QImage qtSource(7, 6, QImage::Format_ARGB32_Premultiplied);
+            PkImage pkSource(7, 6, PkImage::Format_ARGB32_Premultiplied);
+            std::mt19937 random(3117);
+            for (int y = 0; y < 6; ++y) for (int x = 0; x < 7; ++x) {
+                const uint32_t pixel = qPremultiply(random());
+                qtSource.setPixel(x, y, pixel); pkSource.setPixel(x, y, pixel);
+            }
+            QPainter qtPainter(&qtImage);
+            PkImageRasterBackend backend(pkImage);
+            PkPainter painter(backend);
+            qtPainter.setRenderHint(QPainter::Antialiasing, antialias);
+            painter.setRenderHint(PkPainter::Antialiasing, antialias);
+            qtPainter.setRenderHint(QPainter::SmoothPixmapTransform, smooth);
+            painter.setRenderHint(PkPainter::SmoothPixmapTransform, smooth);
+            qtPainter.translate(5, 2); painter.translate(5, 2);
+            qtPainter.rotate(13); painter.rotate(13);
+            qtPainter.setOpacity(0.9); painter.setOpacity(0.9);
+            if (tiled) {
+                qtPainter.drawTiledPixmap(QRectF(1.25, 2.5, 24, 19), QPixmap::fromImage(qtSource), QPointF(-2.25, 1.5));
+                painter.drawTiledPixmap(PkRectF(1.25, 2.5, 24, 19), pkSource, PkPointF(-2.25, 1.5));
+            } else {
+                qtPainter.drawPixmap(QRectF(1.25, 2.5, 24, 19), QPixmap::fromImage(qtSource), QRectF(1.25, 0.5, 4.5, 4.25));
+                painter.drawPixmap(PkRectF(1.25, 2.5, 24, 19), pkSource, PkRectF(1.25, 0.5, 4.5, 4.25));
+            }
+            qtPainter.end();
+            for (int y = 0; y < 27; ++y) for (int x = 0; x < 33; ++x) {
+                const QString context = QStringLiteral("tiled=%1 smooth=%2 aa=%3 x=%4 y=%5 Qt=%6 Pk=%7")
+                    .arg(tiled).arg(smooth).arg(antialias).arg(x).arg(y)
+                    .arg(qtImage.pixel(x, y), 8, 16, QLatin1Char('0'))
+                    .arg(pkImage.pixel(x, y), 8, 16, QLatin1Char('0'));
+                QVERIFY2(pkImage.pixel(x, y) == qtImage.pixel(x, y), qPrintable(context));
+            }
+        }
+    }
+}
 
 void PkImageRasterBackendTest::matchesQtTransformedImagePixels()
 {

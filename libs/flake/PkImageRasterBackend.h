@@ -19,7 +19,8 @@ public:
 
 private:
     void drawImage(const PkDrawImageCommand &command);
-    void drawTransformedImage(const PkDrawImageCommand &command);
+    void drawTransformedImage(const PkDrawImageCommand &command,
+                              const PkRectF &source = PkRectF(), bool tiled = false);
     void fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle = false);
     void strokePath(const PkPainterPath &path, const PkPen &pen, bool point = false);
     void setClip(const PkPainterPath &path, Pk::ClipOperation operation);
