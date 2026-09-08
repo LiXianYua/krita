@@ -7,10 +7,14 @@
 #include "KisAsyncColorSamplerHelperTest.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <optional>
+#include <thread>
 #include <utility>
 #include <vector>
+
+#include <PkThreadCallQueue.h>
 
 #include <KConfigGroup>
 #include <KSharedConfig>
@@ -67,10 +71,15 @@ public:
         return referenceColor;
     }
 
-    QColor samplingPreviewColor(const KoColor &color) const override
+    PkColor samplingPreviewColor(const KoColor &color) const override
     {
         ++previewConversionCount;
-        return toQColor(color.toQColor());
+        return color.toQColor();
+    }
+
+    PkColor samplingPaletteBaseColor() const override
+    {
+        return paletteBaseColor;
     }
 
     qreal samplingCanvasRotation() const override
@@ -134,6 +143,7 @@ public:
     KisImageSP m_image;
     mutable KoZoomHandler m_converter;
     std::optional<KoColor> referenceColor;
+    PkColor paletteBaseColor {Pk::white};
     qreal rotation {0.0};
     bool horizontalMirror {false};
     bool verticalMirror {false};
@@ -374,6 +384,70 @@ bool invokeSamplingJob(KisAsyncColorSamplerHelper &helper)
 void KisAsyncColorSamplerHelperTest::initTestCase()
 {
     qRegisterMetaType<KoColor>("KoColor");
+    PkThreadCallQueue::warmUpCurrentThread();
+}
+
+void KisAsyncColorSamplerHelperTest::cleanup()
+{
+    PkThreadCallQueue::processPendingCalls();
+}
+
+void KisAsyncColorSamplerHelperTest::delayedPreviewWaitsForPkTimerPump()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    TestSamplingCanvas canvas(image);
+    canvas.resourceManager()->setResource(KoCanvasResource::ForegroundColor,
+                                          KoColor(Pk::green, image->colorSpace()));
+    KisAsyncColorSamplerHelper helper(&canvas, &canvas);
+
+    helper.activate(false, true);
+    QVERIFY(helper.colorPreviewDocRect(PkPointF(2, 3)).isEmpty());
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    QCOMPARE(PkThreadCallQueue::pendingCount(), std::size_t(0));
+    QVERIFY(helper.colorPreviewDocRect(PkPointF(2, 3)).isEmpty());
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(180));
+    QCOMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    QVERIFY(helper.colorPreviewDocRect(PkPointF(2, 3)).isEmpty());
+    QCOMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    QVERIFY(!helper.colorPreviewDocRect(PkPointF(2, 3)).isEmpty());
+    QCOMPARE(canvas.previewConversionCount, 1);
+    helper.deactivate();
+}
+
+void KisAsyncColorSamplerHelperTest::deactivationCancelsDelayedPreview()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    TestSamplingCanvas canvas(image);
+    KisAsyncColorSamplerHelper helper(&canvas, &canvas);
+
+    helper.activate(false, true);
+    helper.deactivate();
+    std::this_thread::sleep_for(std::chrono::milliseconds(140));
+
+    QCOMPARE(PkThreadCallQueue::pendingCount(), std::size_t(0));
+    QCOMPARE(canvas.previewConversionCount, 0);
+    QVERIFY(helper.colorPreviewDocRect(PkPointF(2, 3)).isEmpty());
+}
+
+void KisAsyncColorSamplerHelperTest::destructionInvalidatesQueuedPreview()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    TestSamplingCanvas canvas(image);
+
+    {
+        KisAsyncColorSamplerHelper helper(&canvas, &canvas);
+        helper.activate(false, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(140));
+        QCOMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    }
+
+    QCOMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    QCOMPARE(canvas.previewConversionCount, 0);
 }
 
 void KisAsyncColorSamplerHelperTest::referenceColorShortCircuitsDeviceSampling()
@@ -620,6 +694,7 @@ void KisAsyncColorSamplerHelperTest::circlePreviewPreservesRingCommandsAndState(
     KisPaintLayerSP layer;
     KisImageSP image = createImageWithLayer(Pk::black, &layer);
     TestSamplingCanvas canvas(image);
+    canvas.paletteBaseColor = PkColor(10, 20, 30);
     canvas.rotation = 30.0;
     canvas.horizontalMirror = true;
     canvas.verticalMirror = true;
@@ -684,6 +759,10 @@ void KisAsyncColorSamplerHelperTest::circlePreviewPreservesRingCommandsAndState(
     QVERIFY(outerStroke->path != innerStroke->path);
     QCOMPARE(outerStroke->pen.widthF(), 2.0);
     QCOMPARE(innerStroke->pen.widthF(), 2.0);
+    PkColor expectedOutlineColor = canvas.paletteBaseColor;
+    expectedOutlineColor.setAlpha(OPACITY_OPAQUE_U8 / 2 + 1);
+    QCOMPARE(outerStroke->pen.color(), expectedOutlineColor);
+    QCOMPARE(innerStroke->pen.color(), expectedOutlineColor);
 
     PkTransform contentTransform;
     contentTransform.translate(viewRect.center().x(), viewRect.center().y());

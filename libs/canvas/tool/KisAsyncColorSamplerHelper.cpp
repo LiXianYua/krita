@@ -9,10 +9,11 @@
 
 #include "KisAsyncColorSamplerHelper.h"
 
-#include <QApplication>
-#include <QPalette>
-#include <QTimer>
+#include <PkThreadCallQueue.h>
+#include <PkTimer.h>
 #include <pk/geometry/PkTransform.h>
+
+#include <chrono>
 
 #include <klocalizedstring.h>
 
@@ -56,7 +57,7 @@ ColorSamplerPreviewStyle readColorSamplerPreviewStyle()
     return ColorSamplerPreviewStyle::Circle;
 }
 
-QColor colorWithAlpha(QColor color, int alpha)
+PkColor colorWithAlpha(PkColor color, int alpha)
 {
     color.setAlpha(alpha);
     return color;
@@ -70,6 +71,8 @@ struct KisAsyncColorSamplerHelper::Private
     Private(KoCanvasBase *_canvas, KisColorSamplingCanvas *_samplingCanvas)
         : canvas(_canvas)
         , samplingCanvas(_samplingCanvas)
+        // KoToolProxy::processEvent() is the canvas host's target-thread pump.
+        , activationDelayTimer(PkThreadCallQueue::warmUpCurrentThread())
     {}
 
     KoCanvasBase *canvas;
@@ -87,7 +90,7 @@ struct KisAsyncColorSamplerHelper::Private
     typedef KisSignalCompressorWithParam<PkPointF> SamplingCompressor;
     PkScopedPointer<SamplingCompressor> samplingCompressor;
 
-    QTimer activationDelayTimer;
+    PkTimer activationDelayTimer;
 
     ColorSamplerPreviewStyle style = ColorSamplerPreviewStyle::Circle;
     int circlePreviewDiameter {180};
@@ -96,8 +99,8 @@ struct KisAsyncColorSamplerHelper::Private
     bool circlePreviewExtraCircles {true};
     PkRectF previewDocRect;
 
-    QColor currentColor;
-    QColor baseColor;
+    PkColor currentColor;
+    PkColor baseColor;
 
     KisStrokesFacade *strokesFacade() const {
         return samplingCanvas->samplingImage().data();
@@ -204,9 +207,6 @@ KisAsyncColorSamplerHelper::KisAsyncColorSamplerHelper(
     m_d->samplingCompressor.reset(
         new Private::SamplingCompressor(100, callback, KisSignalCompressor::FIRST_ACTIVE));
 
-    m_d->activationDelayTimer.setInterval(100);
-    m_d->activationDelayTimer.setSingleShot(true);
-    QObject::connect(&m_d->activationDelayTimer, SIGNAL(timeout()), this, SLOT(activateDelayedPreview()));
 }
 
 KisAsyncColorSamplerHelper::~KisAsyncColorSamplerHelper()
@@ -244,7 +244,10 @@ void KisAsyncColorSamplerHelper::activate(bool sampleCurrentLayer, bool pickFgCo
     m_d->circlePreviewExtraCircles =
         cfg.readEntry("colorSamplerPreviewCircleExtraCirclesEnabled", true);
 
-    m_d->activationDelayTimer.start();
+    m_d->activationDelayTimer.start(
+        std::chrono::milliseconds(100),
+        [this] { activateDelayedPreview(); },
+        true);
 }
 
 void KisAsyncColorSamplerHelper::activateDelayedPreview()
@@ -267,7 +270,7 @@ void KisAsyncColorSamplerHelper::activatePreview()
 
     const KoColor currentColor =
         m_d->canvas->resourceManager()->koColorResource(m_d->sampleResourceId);
-    const QColor previewColor = m_d->samplingCanvas->samplingPreviewColor(currentColor);
+    const PkColor previewColor = m_d->samplingCanvas->samplingPreviewColor(currentColor);
 
     m_d->currentColor = previewColor;
     m_d->baseColor = previewColor;
@@ -302,8 +305,8 @@ void KisAsyncColorSamplerHelper::deactivate()
     m_d->haveSample = false;
 
     m_d->previewDocRect = PkRectF();
-    m_d->currentColor = QColor();
-    m_d->baseColor = QColor();
+    m_d->currentColor = PkColor();
+    m_d->baseColor = PkColor();
     m_d->isActive = false;
 
     Q_EMIT sigRequestCursorReset();
@@ -357,9 +360,9 @@ void KisAsyncColorSamplerHelper::paint(PkPainter &gc, const KoViewConverter &con
     }
 
     PkRectF viewRectF = converter.documentToView(m_d->previewDocRect);
-    const PkColor currentColor = toPkColor(colorWithAlpha(m_d->currentColor, OPACITY_OPAQUE_U8));
+    const PkColor currentColor = colorWithAlpha(m_d->currentColor, OPACITY_OPAQUE_U8);
     const PkColor baseColor = m_d->haveSample
-        ? toPkColor(colorWithAlpha(m_d->baseColor, OPACITY_OPAQUE_U8))
+        ? colorWithAlpha(m_d->baseColor, OPACITY_OPAQUE_U8)
         : currentColor;
 
     switch (m_d->style) {
@@ -461,8 +464,8 @@ void KisAsyncColorSamplerHelper::paintCircle(PkPainter &gc,
     gc.setRenderHint(PkPainter::Antialiasing, true);
 
     const qreal penWidth = m_d->circlePreviewDiameter > 100 ? 2.0 : 1.0;
-    const PkColor outlineColor = toPkColor(
-        colorWithAlpha(qApp->palette().color(QPalette::Base), OPACITY_OPAQUE_U8 / 2 + 1));
+    const PkColor outlineColor = colorWithAlpha(
+        m_d->samplingCanvas->samplingPaletteBaseColor(), OPACITY_OPAQUE_U8 / 2 + 1);
     const PkRectF outerRect = viewRectF.adjusted(penWidth, penWidth, -penWidth, -penWidth);
 
     qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
@@ -591,7 +594,7 @@ void KisAsyncColorSamplerHelper::slotColorSamplingFinished(const KoColor &rawCol
 
     if (!m_d->showPreview) return;
 
-    const QColor previewColor = m_d->samplingCanvas->samplingPreviewColor(color);
+    const PkColor previewColor = m_d->samplingCanvas->samplingPreviewColor(color);
 
     if (!m_d->haveSample || m_d->currentColor != previewColor) {
         m_d->haveSample = true;

@@ -13,6 +13,10 @@ class KisAsyncColorSamplerHelperTest : public QObject
 
 private Q_SLOTS:
     void initTestCase();
+    void cleanup();
+    void delayedPreviewWaitsForPkTimerPump();
+    void deactivationCancelsDelayedPreview();
+    void destructionInvalidatesQueuedPreview();
     void referenceColorShortCircuitsDeviceSampling();
     void missingReferenceFallsBackToProjection();
     void delayedJobReadsTheCurrentNodeAgain();
