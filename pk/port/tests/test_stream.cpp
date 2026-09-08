@@ -178,6 +178,10 @@ public:
     // Important③：readLine 在 EOF 返回 -1（不是 0），真 Qt 四种情形全覆盖：
     // 末尾带 '\n' / 末尾不带 '\n' / 空设备 / 多行读完后。
     void testReadLineEofReturnsMinusOneAllScenarios();
+    // no-argument readLine() returns one complete byte-preserving line.
+    void testReadLineConveniencePreservesLinesAndEof();
+    void testReadLineConvenienceHandlesShortReadsAndLongLines();
+    void testReadLineConvenienceHandlesSequentialErrorAndBufferInteraction();
     void testReadAllRandomAccessStopsOnPositiveShortRead();
     void testReadAllSequentialAccumulatesShortReadsToEof();
     void testReadAllEofAndImmediateErrorReturnEmpty();
@@ -452,6 +456,69 @@ void PkStreamTestCase::testReadLineNewlineAndEof()
     PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)-1);
 }
 
+void PkStreamTestCase::testReadLineConveniencePreservesLinesAndEof()
+{
+    MemoryStream dev("alpha\r\nbeta\n\n");
+    dev.open(PkStream::ReadOnly);
+
+    const PkByteArray first = dev.readLine();
+    PK_COMPARE(first.size(), 7);
+    PK_VERIFY(std::memcmp(first.constData(), "alpha\r\n", 7) == 0);
+
+    const PkByteArray second = dev.readLine();
+    PK_COMPARE(second.size(), 5);
+    PK_VERIFY(std::memcmp(second.constData(), "beta\n", 5) == 0);
+
+    // A newline-only record is a real empty record and therefore contains its
+    // terminator; only the subsequent call is the empty EOF result.
+    const PkByteArray emptyRecord = dev.readLine();
+    PK_COMPARE(emptyRecord.size(), 1);
+    PK_VERIFY(emptyRecord.data()[0] == '\n');
+    PK_VERIFY(dev.readLine().isEmpty());
+    PK_VERIFY(dev.atEnd());
+}
+
+void PkStreamTestCase::testReadLineConvenienceHandlesShortReadsAndLongLines()
+{
+    ScriptedStream shortReads("short\r\nnext", false, 1);
+    shortReads.open(PkStream::ReadOnly);
+    const PkByteArray line = shortReads.readLine();
+    PK_COMPARE(line.size(), 7);
+    PK_VERIFY(std::memcmp(line.constData(), "short\r\n", 7) == 0);
+
+    const std::string payload(9000, 'x');
+    MemoryStream longLine(payload + "\n");
+    longLine.open(PkStream::ReadOnly);
+    const PkByteArray result = longLine.readLine();
+    PK_COMPARE(result.size(), 9001);
+    PK_VERIFY(result.data()[0] == 'x');
+    PK_VERIFY(result.data()[8999] == 'x');
+    PK_VERIFY(result.data()[9000] == '\n');
+}
+
+void PkStreamTestCase::testReadLineConvenienceHandlesSequentialErrorAndBufferInteraction()
+{
+    SequentialMemoryStream sequential("one\ntwo");
+    sequential.open(PkStream::ReadOnly);
+    const PkByteArray one = sequential.readLine();
+    PK_COMPARE(one.size(), 4);
+    PK_VERIFY(std::memcmp(one.constData(), "one\n", 4) == 0);
+    PK_COMPARE(sequential.pos(), (PkStream::pk_int64)0);
+
+    char buffer[16] = {};
+    PK_COMPARE(sequential.readLine(buffer, sizeof(buffer)), (PkStream::pk_int64)3);
+    PK_VERIFY(std::memcmp(buffer, "two", 3) == 0);
+    PK_VERIFY(sequential.readLine().isEmpty());
+
+    ScriptedStream error("ignored", false, 4, 0);
+    error.open(PkStream::ReadOnly);
+    PK_VERIFY(error.readLine().isEmpty());
+    PK_COMPARE(error.errorString().PkToUtf8(), std::string("scripted-error"));
+
+    MemoryStream unopened("data\n");
+    PK_VERIFY(unopened.readLine().isEmpty());
+}
+
 void PkStreamTestCase::testWriteToReadOnlyDeviceReturnsMinusOne()
 {
     // 回归：write 到 ReadOnly 设备返回 -1（isWritable() 为 false）。
@@ -652,6 +719,15 @@ struct PkTestBinder<PkStreamTestCase> {
             {"testReadLineEofReturnsMinusOneAllScenarios",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadLineEofReturnsMinusOneAllScenarios(); },
              nullptr},
+            {"testReadLineConveniencePreservesLinesAndEof",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadLineConveniencePreservesLinesAndEof(); },
+             nullptr},
+            {"testReadLineConvenienceHandlesShortReadsAndLongLines",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadLineConvenienceHandlesShortReadsAndLongLines(); },
+             nullptr},
+            {"testReadLineConvenienceHandlesSequentialErrorAndBufferInteraction",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadLineConvenienceHandlesSequentialErrorAndBufferInteraction(); },
+             nullptr},
             {"testReadAllRandomAccessStopsOnPositiveShortRead",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadAllRandomAccessStopsOnPositiveShortRead(); },
              nullptr},
@@ -667,7 +743,7 @@ struct PkTestBinder<PkStreamTestCase> {
         };
         return fns;
     }
-    static int count() { return 24; }
+    static int count() { return 27; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }

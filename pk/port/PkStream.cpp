@@ -291,6 +291,28 @@ PkStream::pk_int64 PkStream::readLine(char *data, pk_int64 maxSize)
     return count;
 }
 
+PkByteArray PkStream::readLine()
+{
+    std::string line;
+    char c;
+
+    // Route through read() so the convenience overload shares the existing
+    // open/readability, short-read, sequential-device, unget, and error
+    // behavior. Reading one byte at a time avoids imposing a line-size cap on
+    // callers such as CSVReadLine.
+    while (read(&c, 1) > 0) {
+        line.push_back(c);
+        if (c == '\n') {
+            break;
+        }
+    }
+
+    if (line.empty()) {
+        return PkByteArray();
+    }
+    return PkByteArray(line.data(), static_cast<int>(line.size()));
+}
+
 PkStream::pk_int64 PkStream::write(const char *data, pk_int64 maxSize)
 {
     // 同 read()：maxSize<0 最先判，其次未 open/不可写，maxSize==0 排最后
