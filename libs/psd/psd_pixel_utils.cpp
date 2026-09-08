@@ -20,6 +20,7 @@
 #include <psd_utils.h>
 
 #include <cstdint>
+#include <cstring>
 
 #include <KoColorSpace.h>
 #include <KoColorSpaceMaths.h>
@@ -93,6 +94,17 @@ template<>
 inline std::uint32_t convertByteOrder<KoBgrU32Traits>(std::uint32_t value)
 {
     return psdFromBigEndian((std::uint32_t)value);
+}
+
+template<>
+inline float convertByteOrder<KoRgbF32Traits>(float value)
+{
+    std::uint32_t bits = 0;
+    static_assert(sizeof(bits) == sizeof(value));
+    std::memcpy(&bits, &value, sizeof(bits));
+    bits = psdFromBigEndian(bits);
+    std::memcpy(&value, &bits, sizeof(value));
+    return value;
 }
 
 template<>
@@ -255,7 +267,7 @@ void readRgbPixelCommon(int channelSize, const PkMap<std::uint16_t, PkByteArray>
     } else if (channelSize == 2) {
         readRgbPixel<KoBgrU16Traits, byteOrder>(channelBytes, col, dstPtr);
     } else if (channelSize == 4) {
-        readRgbPixel<KoBgrU16Traits, byteOrder>(channelBytes, col, dstPtr);
+        readRgbPixel<KoRgbF32Traits, byteOrder>(channelBytes, col, dstPtr);
     }
 }
 
