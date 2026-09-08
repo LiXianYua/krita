@@ -126,7 +126,7 @@ bool KisSeExprScript::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP reso
     }
 
     const PkByteArray scriptData = store->read(store->size());
-    d->script = PkString::fromUtf8(scriptData.constData());
+    d->script = PkString::fromUtf8(scriptData.constData(), static_cast<int>(scriptData.size()));
     store->close();
 
     if (store->open("preview.png")) {
