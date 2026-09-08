@@ -104,6 +104,27 @@ bool normalizeRgb(PkImage &image, cmsHPROFILE profile)
         const float value=x<d?c*x:std::pow(a*x,gInv)+e;
         fromLinear[i]=std::lround(value*65280);
     }
+    if (image.format()==PkImage::Format_RGBA64 || image.format()==PkImage::Format_RGBX64) {
+        PkImage normalized(image.width(),image.height(),PkImage::Format_RGBA64);
+        for (int y=0;y<image.height();++y) {
+            const auto *input=reinterpret_cast<const std::uint16_t*>(image.constScanLine(y));
+            auto *output=reinterpret_cast<std::uint16_t*>(normalized.scanLine(y));
+            for (int x=0;x<image.width();++x) {
+                const auto index=[](unsigned value) { return (value-(value>>8))>>4; };
+                const auto linear=transform.map({{toLinear[0][index(input[4*x])],
+                    toLinear[1][index(input[4*x+1])],toLinear[2][index(input[4*x+2])]}});
+                for (int c=0;c<3;++c) {
+                    // Qt's straight RGBA64 store uses half-up LUT indexing,
+                    // then expands its 0..65280 entries without losing low bits.
+                    const auto value=fromLinear[int(std::clamp(linear[c],0.f,1.f)*4080.f+.5f)];
+                    output[4*x+c]=value+(value>>8);
+                }
+                output[4*x+3]=image.format()==PkImage::Format_RGBX64?65535:input[4*x+3];
+            }
+        }
+        image=normalized;
+        return true;
+    }
     const bool premultiplied=image.format()==PkImage::Format_ARGB32_Premultiplied;
     PkImage normalized(image.width(),image.height(),premultiplied?PkImage::Format_ARGB32_Premultiplied:PkImage::Format_ARGB32);
     for (int y=0;y<image.height();++y) for (int x=0;x<image.width();++x) {
