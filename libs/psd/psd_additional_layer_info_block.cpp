@@ -18,9 +18,6 @@
 
 #include <PkXmlDocument.h>
 
-#include <QPointF>
-#include <QRectF>
-
 #include <asl/kis_offset_on_exit_verifier.h>
 
 #include <asl/kis_asl_patterns_writer.h>
@@ -276,7 +273,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
                     vectorMask.path.clipBoardBounds = bounds;
                     vectorMask.path.clipBoardResolution = psdreadFixedPoint<byteOrder>(io);
                     dbgFile << "\trecord" << recordType << "top"
-                            << QRectF(bounds.left(), bounds.top(), bounds.width(), bounds.height())
+                            << PkRectF(bounds.left(), bounds.top(), bounds.width(), bounds.height())
                             << "res" << vectorMask.path.clipBoardResolution;
                     io.skip(4);
                 } else if (recordType == 0 || recordType == 3) {
@@ -308,9 +305,9 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
                     node.control2.setX(psdreadFixedPoint<byteOrder>(io));
                     node.isSmooth = (recordType == 1 || recordType == 4);
                     dbgFile << "\trecord" << recordType << "c1"
-                             << QPointF(node.control1.x(), node.control1.y())
-                             << "node" << QPointF(node.node.x(), node.node.y())
-                             << "c2" << QPointF(node.control2.x(), node.control2.y());
+                             << PkPointF(node.control1.x(), node.control1.y())
+                             << "node" << PkPointF(node.node.x(), node.node.y())
+                             << "c2" << PkPointF(node.control2.x(), node.control2.y());
                     currentPath.nodes.append(node);
                 }
 

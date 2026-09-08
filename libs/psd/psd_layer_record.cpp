@@ -703,12 +703,12 @@ void PSDLayerRecord::writeImpl(PkStream &io,
             }
 
             // write 'lfx2' data block
-            if (!stylesXmlDoc.isNull()) {
+            if (!stylesXmlDoc.documentElement().isNull()) {
                 additionalInfoBlock.writeLfx2BlockEx(io, stylesXmlDoc, useLfxsLayerStyleFormat);
             }
 
             // write SoCo, GdFl, PtFl data blocks.
-            if (!fillConfig.isNull()) {
+            if (!fillConfig.documentElement().isNull()) {
                 additionalInfoBlock.writeFillLayerBlockEx(io, fillConfig, fillType);
             }
 
@@ -723,11 +723,11 @@ void PSDLayerRecord::writeImpl(PkStream &io,
             }
 
             // write 'vstk' data block
-            if (!vectorStroke.isNull()) {
+            if (!vectorStroke.documentElement().isNull()) {
                 additionalInfoBlock.writeVectorStrokeDataEx(io, vectorStroke);
             }
 
-            if (!vectorOriginationData.isNull()) {
+            if (!vectorOriginationData.documentElement().isNull()) {
                 additionalInfoBlock.writeVectorOriginationDataEx(io, vectorOriginationData);
             }
 

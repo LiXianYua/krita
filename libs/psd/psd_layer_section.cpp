@@ -881,10 +881,12 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                 }
 
                 PkXmlDocument stylesXmlDoc = fetchLayerStyleXmlData(node);
+                const bool hasStyles = !stylesXmlDoc.documentElement().isNull();
+                const bool hasMergedPatterns = !mergedPatternsXmlDoc.documentElement().isNull();
 
-                if (mergedPatternsXmlDoc.isNull() && !stylesXmlDoc.isNull()) {
+                if (!hasMergedPatterns && hasStyles) {
                     mergedPatternsXmlDoc = stylesXmlDoc;
-                } else if (!mergedPatternsXmlDoc.isNull() && !stylesXmlDoc.isNull()) {
+                } else if (hasMergedPatterns && hasStyles) {
                     mergePatternsXMLSection(stylesXmlDoc, mergedPatternsXmlDoc);
                 }
 
@@ -1105,10 +1107,12 @@ void PSDLayerMaskSection::writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_c
                 const bool nodeIsPassThrough = groupLayer && groupLayer->passThroughMode();
 
                 PkXmlDocument stylesXmlDoc = fetchLayerStyleXmlData(node);
+                const bool hasStyles = !stylesXmlDoc.documentElement().isNull();
+                const bool hasMergedPatterns = !mergedPatternsXmlDoc.documentElement().isNull();
 
-                if (mergedPatternsXmlDoc.isNull() && !stylesXmlDoc.isNull()) {
+                if (!hasMergedPatterns && hasStyles) {
                     mergedPatternsXmlDoc = stylesXmlDoc;
-                } else if (!mergedPatternsXmlDoc.isNull() && !stylesXmlDoc.isNull()) {
+                } else if (hasMergedPatterns && hasStyles) {
                     mergePatternsXMLSection(stylesXmlDoc, mergedPatternsXmlDoc);
                 }
 
