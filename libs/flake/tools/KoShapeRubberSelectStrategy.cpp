@@ -54,12 +54,12 @@ void KoShapeRubberSelectStrategy::paint(PkPainter &painter, const KoViewConverte
     painter.drawRect(paintRect);
 }
 
-void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Qt::KeyboardModifiers modifiers)
+void KoShapeRubberSelectStrategy::handleMouseMove(const PkPointF &p, Pk::KeyboardModifiers modifiers)
 {
     Q_D(KoShapeRubberSelectStrategy);
     PkPointF point = d->snapGuide->snap(
         p, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
-    if (modifiers & Qt::ControlModifier) {
+    if (modifiers & Pk::ControlModifier) {
         const PkRectF oldDirtyRect = d->selectedRect();
         d->selectRect.moveTopLeft(d->selectRect.topLeft() - (d->lastPos - point));
         d->lastPos = point;

@@ -49,14 +49,14 @@ ShapeMoveStrategy::ShapeMoveStrategy(KoToolBase *tool, KoSelection *selection, c
     tool->setStatusText(PkString("Press Shift to hold x- or y-position."));
 }
 
-void ShapeMoveStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModifiers modifiers)
+void ShapeMoveStrategy::handleMouseMove(const PkPointF &point, Pk::KeyboardModifiers modifiers)
 {
     if (m_selectedShapes.isEmpty()) {
         return;
     }
     PkPointF diff = DefaultToolStrategyMath::moveDelta(m_start, point);
 
-    if (modifiers & Qt::ShiftModifier) {
+    if (modifiers & Pk::ShiftModifier) {
         // Limit change to one direction only
         diff = snapToClosestAxis(diff);
     } else {
@@ -102,7 +102,7 @@ KUndo2Command *ShapeMoveStrategy::createCommand()
     return new KoShapeMoveCommand(m_selectedShapes, m_previousPositions, m_newPositions);
 }
 
-void ShapeMoveStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void ShapeMoveStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     (void)modifiers;
 }

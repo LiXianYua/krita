@@ -12,7 +12,8 @@
 
 #include "kritaflake_export.h"
 
-#include <Qt>
+#include <PkNamespace.h>
+#include <QtCore/qglobal.h>
 
 class KoPointerEvent;
 class KoViewConverter;
@@ -53,7 +54,7 @@ public:
      * @param mouseLocation the new location in pt
      * @param modifiers OR-ed set of keys pressed.
      */
-    virtual void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers);
+    virtual void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers);
 
     /**
      * For interactions that are undo-able this method should be implemented to return such
@@ -69,7 +70,7 @@ public:
     /**
      * Override to make final changes to the data on the end of an interaction.
      */
-    virtual void finishInteraction(Qt::KeyboardModifiers modifiers) = 0;
+    virtual void finishInteraction(Pk::KeyboardModifiers modifiers) = 0;
 
     KoToolBase *tool() const;
 

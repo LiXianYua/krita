@@ -26,11 +26,11 @@ SvgMoveTextStrategy::SvgMoveTextStrategy(KoToolBase *tool, KoSvgTextShape *shape
     this->tool()->canvas()->snapGuide()->setIgnoredShapes(KoShape::linearizeSubtree({shape}));
 }
 
-void SvgMoveTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgMoveTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     const PkPointF delta = mouseLocation - m_dragStart;
 
-    if (modifiers & Qt::ShiftModifier) {
+    if (modifiers & Pk::ShiftModifier) {
         m_finalPosition = m_initialPosition+ snapToClosestAxis(delta);
     } else {
         m_finalPosition =
@@ -58,6 +58,6 @@ void SvgMoveTextStrategy::cancelInteraction()
     tool()->repaintDecorations();
 }
 
-void SvgMoveTextStrategy::finishInteraction(Qt::KeyboardModifiers /*modifiers*/)
+void SvgMoveTextStrategy::finishInteraction(Pk::KeyboardModifiers /*modifiers*/)
 {
 }

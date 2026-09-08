@@ -22,14 +22,14 @@ class KoSvgTextShape;
 class SvgTextTypeSettingStrategy: public KoInteractionStrategy
 {
 public:
-    SvgTextTypeSettingStrategy(KoToolBase *tool, KoSvgTextShape *textShape, SvgTextCursor *textCursor, const PkRectF &regionOfInterest, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    SvgTextTypeSettingStrategy(KoToolBase *tool, KoSvgTextShape *textShape, SvgTextCursor *textCursor, const PkRectF &regionOfInterest, Pk::KeyboardModifiers modifiers = Pk::NoModifier);
 
     // KoInteractionStrategy interface
 public:
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
 
 private:
     KoSvgTextShape *m_shape;
@@ -43,7 +43,7 @@ private:
     int m_referenceCursorPos;
 
     bool m_deltaCalc;
-    Qt::KeyboardModifiers m_modifiers;
+    Pk::KeyboardModifiers m_modifiers;
 
     QScopedPointer<KUndo2Command> m_previousCmd;
     KoSvgTextShapeMementoSP m_textData;

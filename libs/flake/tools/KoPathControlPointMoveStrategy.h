@@ -27,8 +27,8 @@ public:
     KoPathControlPointMoveStrategy(KoPathTool *tool, const KoPathPointData &point,
                                    KoPathPoint::PointType type, const PkPointF &pos);
     ~KoPathControlPointMoveStrategy() override;
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
     KUndo2Command* createCommand() override;
 
 private:
@@ -45,4 +45,3 @@ private:
 };
 
 #endif /* KOPATHCONTROLPOINTMOVESTRATEGY_H */
-

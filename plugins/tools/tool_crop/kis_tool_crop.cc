@@ -726,12 +726,12 @@ void KisToolCrop::showSizeOnCanvas()
     if(m_mouseOnHandleType == 9) {
         feedback->showFloatingMessage(PkString("X: %1\nY: %2").arg(cropX()).arg(cropY()),
                                       {}, 1000, KisCanvasFeedback::Priority::High,
-                                      Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+                                      Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
     }
     else {
         feedback->showFloatingMessage(PkString("Width: %1\nHeight: %2").arg(cropWidth()).arg(cropHeight()),
                                       {}, 1000, KisCanvasFeedback::Priority::High,
-                                      Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+                                      Pk::AlignLeft | Pk::TextWordWrap | Pk::AlignVCenter);
     }
 }
 

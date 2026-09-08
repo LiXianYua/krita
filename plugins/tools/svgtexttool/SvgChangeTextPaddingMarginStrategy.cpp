@@ -153,7 +153,7 @@ void SvgChangeTextPaddingMarginStrategy::paint(PkPainter &painter, const KoViewC
     painter.restore();
 }
 
-void SvgChangeTextPaddingMarginStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgChangeTextPaddingMarginStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers);
     m_lastMousePos = mouseLocation;
@@ -167,7 +167,7 @@ KUndo2Command *SvgChangeTextPaddingMarginStrategy::createCommand()
     return new SvgTextMergePropertiesRangeCommand(m_shape, props, -1, -1);
 }
 
-void SvgChangeTextPaddingMarginStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void SvgChangeTextPaddingMarginStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers);
 }

@@ -24,10 +24,10 @@ public:
     ~SvgCreateTextStrategy() override = default;
 
     void paint(PkPainter &painter, const KoViewConverter &converter) override;
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
 
     bool draggingInlineSize();
     bool hasWrappingShape();
@@ -37,7 +37,7 @@ private:
     PkPointF m_dragEnd;
     PkSizeF m_minSizeInline;
     KoShape *m_flowShape;
-    Qt::KeyboardModifiers m_modifiers;
+    Pk::KeyboardModifiers m_modifiers;
 };
 
 #endif /* SVG_CREATE_TEXT_STRATEGY_H */

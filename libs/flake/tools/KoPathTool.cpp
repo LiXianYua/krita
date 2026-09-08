@@ -601,7 +601,8 @@ void KoPathTool::mouseMoveEvent(KoPointerEvent *event)
 
     if (m_currentStrategy) {
         m_lastPoint = event->point;
-        m_currentStrategy->handleMouseMove(event->point, event->modifiers());
+        m_currentStrategy->handleMouseMove(
+            event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
 
         repaintDecorations();
 
@@ -724,7 +725,8 @@ void KoPathTool::mouseReleaseEvent(KoPointerEvent *event)
     Q_D(KoToolBase);
     if (m_currentStrategy) {
         const bool hadNoSelection = !m_pointSelection.hasSelection();
-        m_currentStrategy->finishInteraction(event->modifiers());
+        m_currentStrategy->finishInteraction(
+            Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         KUndo2Command *command = m_currentStrategy->createCommand();
         if (command)
             d->canvas->addCommand(command);
@@ -747,7 +749,8 @@ void KoPathTool::keyPressEvent(QKeyEvent *event)
         case Qt::Key_Shift:
         case Qt::Key_Meta:
             if (! event->isAutoRepeat()) {
-                m_currentStrategy->handleMouseMove(m_lastPoint, event->modifiers());
+                m_currentStrategy->handleMouseMove(
+                    m_lastPoint, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
             }
             break;
         case Qt::Key_Escape:
@@ -786,7 +789,7 @@ void KoPathTool::keyReleaseEvent(QKeyEvent *event)
         case Qt::Key_Shift:
         case Qt::Key_Meta:
             if (! event->isAutoRepeat()) {
-                m_currentStrategy->handleMouseMove(m_lastPoint, Qt::NoModifier);
+                m_currentStrategy->handleMouseMove(m_lastPoint, Pk::NoModifier);
             }
             break;
         default:

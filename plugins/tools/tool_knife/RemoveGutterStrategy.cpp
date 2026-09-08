@@ -50,7 +50,7 @@ KUndo2Command *RemoveGutterStrategy::createCommand()
     return 0;
 }
 
-void RemoveGutterStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void RemoveGutterStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     m_endPoint = mouseLocation;
     PkRectF dirtyRect;
@@ -98,7 +98,7 @@ void convertShapeToDebugArray(const PkLineF& line) {
 }
 #endif
 
-void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void RemoveGutterStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     tool()->canvas()->updateCanvas(m_previousLineDirtyRect);
 

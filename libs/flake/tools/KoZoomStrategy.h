@@ -31,7 +31,7 @@ public:
     void forceZoomIn();
 
     /// Execute the zoom
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
     void cancelInteraction() override;
 
 protected:
@@ -44,4 +44,3 @@ private:
 };
 
 #endif
-

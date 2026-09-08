@@ -16,7 +16,7 @@
 #include <PkPainterPath.h>
 #include <PkScopedPointer.h>
 #include <PkString.h>
-#include <KConfigGroup>
+#include <PkConfigGroup.h>
 
 class PkPainterPath;
 
@@ -67,7 +67,7 @@ private:
     void deleteSelectedAnchor();
     void updateSelectedAnchor();
     int updateInitialAnchorBounds(PkPoint pt);
-    void updateContinuedModeFromModifiers(Qt::KeyboardModifiers modifiers);
+    void updateContinuedModeFromModifiers(Pk::KeyboardModifiers modifiers);
 
     PkPainterPath m_paintPath;
     PkVector<PkPointF> m_points;
@@ -85,7 +85,7 @@ private:
     int m_anchorGap {30};
     qreal m_filterRadius {3.0};
     PkRectF m_snapBound;
-    KConfigGroup m_configGroup;
+    PkConfigGroup m_configGroup;
     PkVector<PkVector<PkPointF>> m_pointCollection;
     KisSignalCompressor m_mouseHoverCompressor;
     PkConnection m_mouseHoverConnection;

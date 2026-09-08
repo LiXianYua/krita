@@ -113,8 +113,8 @@ public:
         return 0;
     }
 
-    void handleMouseMove(const PkPointF & /*mouseLocation*/, Qt::KeyboardModifiers /*modifiers*/) override {}
-    void finishInteraction(Qt::KeyboardModifiers /*modifiers*/) override {}
+    void handleMouseMove(const PkPointF & /*mouseLocation*/, Pk::KeyboardModifiers /*modifiers*/) override {}
+    void finishInteraction(Pk::KeyboardModifiers /*modifiers*/) override {}
 
     void paint(PkPainter &painter, const KoViewConverter &converter) override {
         (void)painter;
@@ -139,7 +139,7 @@ public:
         tool()->canvas()->updateCanvas(selectedRectangle() | tool()->decorationsRect());
     }
 
-    void finishInteraction(Qt::KeyboardModifiers modifiers = Qt::KeyboardModifiers()) override
+    void finishInteraction(Pk::KeyboardModifiers modifiers = Pk::KeyboardModifiers()) override
     {
         (void)modifiers;
         DefaultTool *defaultTool = dynamic_cast<DefaultTool*>(tool());
@@ -1012,7 +1012,7 @@ void DefaultTool::updateCursor()
 {
     if (tryUseCustomCursor()) return;
 
-    DefaultToolCursor cursor = Qt::ArrowCursor;
+    DefaultToolCursor cursor = Pk::ArrowCursor;
 
     PkString statusText;
 
@@ -1060,7 +1060,7 @@ void DefaultTool::updateCursor()
                 rotateHandle = true;
                 break;
             case KoFlake::NoHandle:
-                cursor = Qt::ArrowCursor;
+                cursor = Pk::ArrowCursor;
                 break;
             }
             if (rotateHandle) {
@@ -1106,7 +1106,7 @@ void DefaultTool::updateCursor()
                 cornerHandle = true;
                 break;
             case KoFlake::NoHandle:
-                cursor = Qt::SizeAllCursor;
+                cursor = Pk::SizeAllCursor;
                 statusText = PkString("Click and drag to move selection.");
                 break;
             }
@@ -1115,7 +1115,7 @@ void DefaultTool::updateCursor()
             }
         }
         if (!editable) {
-            cursor = Qt::ArrowCursor;
+            cursor = Pk::ArrowCursor;
         }
     } else {
         // there used to be guides... :'''(
@@ -1199,7 +1199,7 @@ void DefaultTool::mousePressEvent(KoPointerEvent *event)
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
                 PkString("This tool only works on vector layers. You probably want the move tool."),
-                {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
+                {}, 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
         return;
     }
 
@@ -1284,27 +1284,27 @@ void DefaultTool::mouseDoubleClickEvent(KoPointerEvent *event)
     explicitUserStrokeEndRequest();
 }
 
-bool DefaultTool::moveSelection(int direction, Qt::KeyboardModifiers modifiers)
+bool DefaultTool::moveSelection(int direction, Pk::KeyboardModifiers modifiers)
 {
     bool result = false;
 
     qreal x = 0.0, y = 0.0;
-    if (direction == Qt::Key_Left) {
+    if (direction == Pk::Key_Left) {
         x = -5;
-    } else if (direction == Qt::Key_Right) {
+    } else if (direction == Pk::Key_Right) {
         x = 5;
-    } else if (direction == Qt::Key_Up) {
+    } else if (direction == Pk::Key_Up) {
         y = -5;
-    } else if (direction == Qt::Key_Down) {
+    } else if (direction == Pk::Key_Down) {
         y = 5;
     }
 
     if (x != 0.0 || y != 0.0) { // actually move
 
-        if ((modifiers & Qt::ShiftModifier) != 0) {
+        if ((modifiers & Pk::ShiftModifier) != 0) {
             x *= 10;
             y *= 10;
-        } else if ((modifiers & Qt::AltModifier) != 0) { // more precise
+        } else if ((modifiers & Pk::AltModifier) != 0) { // more precise
             x /= 5;
             y /= 5;
         }
@@ -1324,10 +1324,10 @@ void DefaultTool::keyPressEvent(DefaultToolKeyEvent *event)
 {
     if (currentStrategy() == 0) {
         switch (event->key()) {
-        case Qt::Key_Left:
-        case Qt::Key_Right:
-        case Qt::Key_Up:
-        case Qt::Key_Down:
+        case Pk::Key_Left:
+        case Pk::Key_Right:
+        case Pk::Key_Up:
+        case Pk::Key_Down:
             if (moveSelection(event->key(), event->modifiers())) {
                 event->accept();
             }
@@ -2072,7 +2072,11 @@ KoInteractionStrategy *DefaultTool::createStrategy(KoPointerEvent *event)
             if (handle == KoFlake::TopLeftHandle || handle == KoFlake::TopRightHandle ||
                     handle == KoFlake::BottomLeftHandle || handle == KoFlake::BottomRightHandle) {
 
-                return new ShapeRotateStrategy(this, selection, event->point, event->buttons());
+                return new ShapeRotateStrategy(
+                    this,
+                    selection,
+                    event->point,
+                    Pk::MouseButtons(static_cast<int>(event->buttons())));
             }
         }
 

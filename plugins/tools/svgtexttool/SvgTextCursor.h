@@ -293,7 +293,7 @@ public:
     /// Handle the cursor-related key events.
     void keyPressEvent(QKeyEvent *event);
 
-    void updateModifiers(const Qt::KeyboardModifiers modifiers);
+    void updateModifiers(Pk::KeyboardModifiers modifiers);
 
     /// the cursor is currently adding a command
     bool isAddingCommand() const;

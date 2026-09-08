@@ -31,7 +31,7 @@ KoPathPointMoveStrategy::~KoPathPointMoveStrategy()
 {
 }
 
-void KoPathPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void KoPathPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     PkPointF deltaMovement = mouseLocation - m_startMousePosition;
     PkPointF newPosition = m_tool->canvas()->snapGuide()->snap(
@@ -39,7 +39,7 @@ void KoPathPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt:
         Pk::KeyboardModifiers(static_cast<int>(modifiers)));
     PkPointF move = newPosition - m_startPointPosition;
 
-    if (modifiers & Qt::ShiftModifier) {
+    if (modifiers & Pk::ShiftModifier) {
         // Limit change to one direction only
         move = snapToClosestAxis(move);
     }
@@ -55,7 +55,7 @@ void KoPathPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt:
     m_move = move;
 }
 
-void KoPathPointMoveStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void KoPathPointMoveStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers);
 }

@@ -7,8 +7,6 @@
 #include "SvgInlineSizeChangeCommand.h"
 #include "SvgInlineSizeHelper.h"
 
-#include <QRegularExpression>
-
 #include <klocalizedstring.h>
 
 #include "KoSvgText.h"

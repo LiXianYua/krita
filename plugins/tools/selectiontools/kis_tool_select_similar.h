@@ -8,9 +8,8 @@
 #define KIS_TOOL_SELECT_SIMILAR_H_
 
 #include <KisSelectionToolFactoryBase.h>
-#include <kconfig.h>
 #include "kis_tool_select_base.h"
-#include <kconfiggroup.h>
+#include <PkConfigGroup.h>
 #include <commands_new/KisMergeLabeledLayersCommand.h>
 
 /*
@@ -39,7 +38,7 @@ protected:
 private:
     int m_threshold;
     int m_opacitySpread;
-    KConfigGroup m_configGroup;
+    PkConfigGroup m_configGroup;
     KisPaintDeviceSP m_referencePaintDevice;
     KisMergeLabeledLayersCommand::ReferenceNodeInfoListSP m_referenceNodeList;
     int m_previousTime;

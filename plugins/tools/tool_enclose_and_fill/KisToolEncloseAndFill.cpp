@@ -211,7 +211,7 @@ void KisToolEncloseAndFill::beginPrimaryAction(KoPointerEvent *event)
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
             PkString("You cannot use this tool with the selected layer type"),
-            {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
+            {}, 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
         event->ignore();
         return;
     }

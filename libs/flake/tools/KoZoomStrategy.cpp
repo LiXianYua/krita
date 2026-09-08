@@ -24,7 +24,7 @@ KoZoomStrategy::KoZoomStrategy(KoZoomTool *tool, KoCanvasController *controller,
 {
 }
 
-void KoZoomStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void KoZoomStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     Q_D(KoShapeRubberSelectStrategy);
 
@@ -35,7 +35,7 @@ void KoZoomStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     const PkRect pixelRect = documentToWidget.mapRect(d->selectedRect()).toRect();
 
     bool m_zoomOut = m_forceZoomOut;
-    if (modifiers & Qt::ControlModifier) {
+    if (modifiers & Pk::ControlModifier) {
         m_zoomOut = !m_zoomOut;
     }
 

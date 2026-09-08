@@ -5,22 +5,20 @@
  */
 #include "SvgSelectTextStrategy.h"
 #include "SvgTextCursor.h"
-#include <QDebug>
-
-SvgSelectTextStrategy::SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cursor, const PkPointF &clicked, Qt::KeyboardModifiers modifiers)
+SvgSelectTextStrategy::SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cursor, const PkPointF &clicked, Pk::KeyboardModifiers modifiers)
     : KoInteractionStrategy(tool)
     , m_cursor(cursor)
     , m_dragStart(clicked)
 {
     m_dragEnd = m_dragStart;
-    m_cursor->setPosToPoint(m_dragStart, !(modifiers & Qt::ShiftModifier));
+    m_cursor->setPosToPoint(m_dragStart, !(modifiers & Pk::ShiftModifier));
 }
 
-void SvgSelectTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgSelectTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers)
     m_dragEnd = mouseLocation;
-    if (!(modifiers & Qt::ShiftModifier)) {
+    if (!(modifiers & Pk::ShiftModifier)) {
         m_cursor->setPosToPoint(m_dragStart, true);
     }
     m_cursor->setPosToPoint(m_dragEnd, false);
@@ -36,10 +34,10 @@ void SvgSelectTextStrategy::cancelInteraction()
     return;
 }
 
-void SvgSelectTextStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void SvgSelectTextStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers)
-    if (!(modifiers & Qt::ShiftModifier)) {
+    if (!(modifiers & Pk::ShiftModifier)) {
         m_cursor->setPosToPoint(m_dragStart, true);
     }
     m_cursor->setPosToPoint(m_dragEnd, false);

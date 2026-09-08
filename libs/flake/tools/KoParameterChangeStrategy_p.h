@@ -28,7 +28,7 @@ public:
     const int handleId;                      ///< the id of the control point
     const PkPointF startPoint;                ///< the starting position of the control point
     PkPointF releasePoint;
-    Qt::KeyboardModifiers lastModifierUsed;
+    Pk::KeyboardModifiers lastModifierUsed;
 };
 
 #endif // KOPARAMETERCHANGESTRATEGYPRIVATE_H

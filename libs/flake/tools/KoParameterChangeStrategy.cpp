@@ -32,14 +32,15 @@ KoParameterChangeStrategy::~KoParameterChangeStrategy()
 {
 }
 
-void KoParameterChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void KoParameterChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     Q_D(KoParameterChangeStrategy);
 
     const PkPointF snappedPosition = d->tool->canvas()->snapGuide()->snap(
-        mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
+        mouseLocation, modifiers);
 
-    d->parameterShape->moveHandle(d->handleId, snappedPosition, modifiers);
+    d->parameterShape->moveHandle(
+        d->handleId, snappedPosition, Qt::KeyboardModifiers(static_cast<int>(modifiers)));
     d->lastModifierUsed = modifiers;
     d->releasePoint = snappedPosition;
 }
@@ -53,12 +54,16 @@ KUndo2Command* KoParameterChangeStrategy::createCommand()
     KoParameterHandleMoveCommand *cmd = 0;
     // check if handle position changed
     if (d->startPoint != PkPointF(0, 0) && d->startPoint != d->releasePoint) {
-        cmd = new KoParameterHandleMoveCommand(d->parameterShape, d->handleId, d->startPoint, d->releasePoint, d->lastModifierUsed);
+        cmd = new KoParameterHandleMoveCommand(
+            d->parameterShape,
+            d->handleId,
+            d->startPoint,
+            d->releasePoint,
+            Qt::KeyboardModifiers(static_cast<int>(d->lastModifierUsed)));
     }
     return cmd;
 }
 
-void KoParameterChangeStrategy::finishInteraction(Qt::KeyboardModifiers /*modifiers*/)
+void KoParameterChangeStrategy::finishInteraction(Pk::KeyboardModifiers /*modifiers*/)
 {
 }
-

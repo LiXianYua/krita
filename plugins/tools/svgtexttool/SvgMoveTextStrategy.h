@@ -19,10 +19,10 @@ public:
     SvgMoveTextStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked);
     ~SvgMoveTextStrategy() override = default;
 
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
 
 private:
     KoSvgTextShape *m_shape;

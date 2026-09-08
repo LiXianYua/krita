@@ -53,7 +53,7 @@ SvgInlineSizeChangeStrategy::SvgInlineSizeChangeStrategy(KoToolBase *tool,
     }
 }
 
-void SvgInlineSizeChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgInlineSizeChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     PkTransform invTransform{};
     PkPointF initPos;
@@ -86,7 +86,7 @@ void SvgInlineSizeChangeStrategy::handleMouseMove(const PkPointF &mouseLocation,
         }
         break;
     case VisualAnchor::Mid:
-        if (modifiers.testFlag(Qt::ControlModifier)) {
+        if (modifiers.testFlag(Pk::ControlModifier)) {
             if (m_handleSide == Side::RightOrBottom) {
                 newInlineSize = m_initialInlineSize + 2.0 * mouseDelta;
             } else {
@@ -172,6 +172,6 @@ void SvgInlineSizeChangeStrategy::cancelInteraction()
     tool()->repaintDecorations();
 }
 
-void SvgInlineSizeChangeStrategy::finishInteraction(Qt::KeyboardModifiers /*modifiers*/)
+void SvgInlineSizeChangeStrategy::finishInteraction(Pk::KeyboardModifiers /*modifiers*/)
 {
 }

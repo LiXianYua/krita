@@ -103,12 +103,12 @@ ShapeResizeStrategy::~ShapeResizeStrategy()
 
 }
 
-void ShapeResizeStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModifiers modifiers)
+void ShapeResizeStrategy::handleMouseMove(const PkPointF &point, Pk::KeyboardModifiers modifiers)
 {
     PkPointF newPos = tool()->canvas()->snapGuide()->snap(
         point, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
 
-    bool keepAspect = modifiers & Qt::ShiftModifier;
+    bool keepAspect = modifiers & Pk::ShiftModifier;
     for (KoShape *shape : m_selectedShapes) {
         keepAspect = keepAspect || shape->keepAspectRatio();
     }
@@ -133,7 +133,7 @@ void ShapeResizeStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardMod
         distance.ry() = 0.0;
     }
 
-    const bool scaleFromCenter = modifiers & Qt::ControlModifier;
+    const bool scaleFromCenter = modifiers & Pk::ControlModifier;
     if (scaleFromCenter) {
         distance *= 2.0;
     }
@@ -222,7 +222,7 @@ KUndo2Command *ShapeResizeStrategy::createCommand()
     return m_executedCommand.release();
 }
 
-void ShapeResizeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void ShapeResizeStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     (void)modifiers;
 }

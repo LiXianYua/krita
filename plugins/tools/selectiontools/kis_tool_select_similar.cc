@@ -10,7 +10,7 @@
 #include "kis_tool_select_similar.h"
 
 #include <PkFlakeBridge.h>
-#include <ksharedconfig.h>
+#include <PkSharedConfig.h>
 
 #include <KoColorSpace.h>
 #include <KisCursorOverrideLock.h>
@@ -41,7 +41,7 @@ KisToolSelectSimilar::KisToolSelectSimilar(KoCanvasBase *canvas)
 void KisToolSelectSimilar::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolSelect::activate(shapes);
-    m_configGroup =  KSharedConfig::openConfig()->group(toQString(toolId()));
+    m_configGroup = PkSharedConfig::openConfig()->group(toolId());
 
     // Was read in createOptionWidget() (now deleted) when the options panel
     // was created; that ran on every tool activation, so these are the

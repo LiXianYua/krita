@@ -18,10 +18,10 @@ public:
     SvgChangeTextPathInfoStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked, int textCursorPos);
     ~SvgChangeTextPathInfoStrategy() override = default;
 
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
 private:
     KoSvgTextShape *m_shape;
     PkPointF m_currentMousePos;

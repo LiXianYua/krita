@@ -106,7 +106,7 @@ void KisToolKnife::mousePressEvent(KoPointerEvent *event)
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         feedback->showFloatingMessage(
                 PkString("This tool only works on vector layers. You probably want to create a vector layer and a starting shape first."),
-                {}, 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
+                {}, 2000, KisCanvasFeedback::Priority::Medium, Pk::AlignCenter);
         return;
     }
 
@@ -117,7 +117,8 @@ void KisToolKnife::mouseMoveEvent(KoPointerEvent *event)
 {
     KoInteractionTool::mouseMoveEvent(event);
 
-    if (event->buttons().testFlag(Qt::MouseButton::LeftButton)) {
+    const Pk::MouseButtons buttons(static_cast<int>(event->buttons()));
+    if (buttons.testFlag(Pk::LeftButton)) {
 
         m_d->endPoint = toPkPointF(event->point);
         PkRectF dirtyRect;

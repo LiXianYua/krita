@@ -14,13 +14,13 @@ class SvgTextCursor;
 class SvgSelectTextStrategy : public KoInteractionStrategy
 {
 public:
-    SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cursor, const PkPointF &clicked, Qt::KeyboardModifiers modifiers);
+    SvgSelectTextStrategy(KoToolBase *tool, SvgTextCursor *cursor, const PkPointF &clicked, Pk::KeyboardModifiers modifiers);
     ~SvgSelectTextStrategy() override = default;
 
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
 
 private:
     SvgTextCursor *m_cursor;

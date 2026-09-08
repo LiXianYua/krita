@@ -16,7 +16,7 @@
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
-#include <ksharedconfig.h>
+#include <PkSharedConfig.h>
 
 #include "KoPointerEvent.h"
 #include "KoViewConverter.h"
@@ -59,14 +59,14 @@ KisToolSelectContiguous::~KisToolSelectContiguous()
 void KisToolSelectContiguous::activate(const PkSet<KoShape*> &shapes)
 {
     KisToolSelect::activate(shapes);
-    m_configGroup =  KSharedConfig::openConfig()->group(toQString(toolId()));
+    m_configGroup = PkSharedConfig::openConfig()->group(toolId());
 
     // Was read in createOptionWidget() (now deleted) when the options panel
     // was created; that ran on every tool activation, so these are the
     // effective defaults with no panel too -- same keys, same fallbacks
     // (including the legacy "fuzziness" -> "threshold" migration).
-    const PkString contiguousSelectionModeStr = toPkString(
-        m_configGroup.readEntry<QString>("contiguousSelectionMode", QString()));
+    const PkString contiguousSelectionModeStr =
+        m_configGroup.readEntry("contiguousSelectionMode", PkString());
     m_contiguousSelectionMode =
         contiguousSelectionModeStr == "boundaryFill"
         ? BoundaryFill
@@ -271,9 +271,9 @@ void KisToolSelectContiguous::slotSetContiguousSelectionMode(
     m_contiguousSelectionMode = contiguousSelectionMode;
     m_configGroup.writeEntry(
         "contiguousSelectionMode",
-        contiguousSelectionMode == FloodFill
-        ? "floodFill"
-        : "boundaryFill"
+        PkString(contiguousSelectionMode == FloodFill
+                     ? "floodFill"
+                     : "boundaryFill")
     );
 }
 
@@ -284,8 +284,7 @@ void KisToolSelectContiguous::slotSetContiguousSelectionBoundaryColor(
         return;
     }
     m_contiguousSelectionBoundaryColor = color;
-    m_configGroup.writeEntry("contiguousSelectionBoundaryColor",
-                             toQString(color.toXML()));
+    m_configGroup.writeEntry("contiguousSelectionBoundaryColor", color.toXML());
 }
 
 void KisToolSelectContiguous::slotSetThreshold(int threshold)
@@ -315,8 +314,8 @@ void KisToolSelectContiguous::slotSetUseSelectionAsBoundary(bool useSelectionAsB
 
 KoColor KisToolSelectContiguous::loadContiguousSelectionBoundaryColorFromConfig()
 {
-    const PkString xmlColor = toPkString(
-        m_configGroup.readEntry("contiguousSelectionBoundaryColor", QString()));
+    const PkString xmlColor =
+        m_configGroup.readEntry("contiguousSelectionBoundaryColor", PkString());
     PkXmlDocument doc;
     if (doc.setContent(xmlColor)) {
         PkXmlElement e = doc.documentElement().firstChild().toElement();

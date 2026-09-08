@@ -12,8 +12,6 @@
 #include <KoToolBase.h>
 #include <KoViewConverter.h>
 #include <qmath.h>
-#include <QDebug>
-
 SvgChangeTextPathInfoStrategy::SvgChangeTextPathInfoStrategy(KoToolBase *tool, KoSvgTextShape *shape, const PkPointF &clicked, int textCursorPos)
     :KoInteractionStrategy(tool)
     , m_shape(shape)
@@ -25,7 +23,7 @@ SvgChangeTextPathInfoStrategy::SvgChangeTextPathInfoStrategy(KoToolBase *tool, K
 
 }
 
-void SvgChangeTextPathInfoStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgChangeTextPathInfoStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers)
 
@@ -98,7 +96,7 @@ void SvgChangeTextPathInfoStrategy::cancelInteraction()
     tool()->repaintDecorations();
 }
 
-void SvgChangeTextPathInfoStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void SvgChangeTextPathInfoStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
 
 }

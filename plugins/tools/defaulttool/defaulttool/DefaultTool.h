@@ -180,7 +180,7 @@ private:
     void addMappedAction(KisSignalMapper *mapper, const PkString &actionId, int type);
 
     void selectionReorder(KoShapeReorderCommand::MoveShapeType order);
-    bool moveSelection(int direction, Qt::KeyboardModifiers modifiers);
+    bool moveSelection(int direction, Pk::KeyboardModifiers modifiers);
 
     /// Returns selection rectangle adjusted by handle proximity threshold
     PkRectF handlesSize();

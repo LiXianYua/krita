@@ -22,11 +22,11 @@ public:
 
     ~ShapeMeshGradientEditStrategy();
 
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
 
     KUndo2Command* createCommand() override;
 
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
 
 private:
     struct Private;

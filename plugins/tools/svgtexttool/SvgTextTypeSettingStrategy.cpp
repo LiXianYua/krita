@@ -14,10 +14,9 @@
 #include <KoCanvasBase.h>
 #include "KoSnapGuide.h"
 #include <kis_algebra_2d.h>
-#include <QDebug>
 #include <KoViewConverter.h>
 
-SvgTextTypeSettingStrategy::SvgTextTypeSettingStrategy(KoToolBase *tool, KoSvgTextShape *textShape, SvgTextCursor *textCursor, const PkRectF &regionOfInterest, Qt::KeyboardModifiers modifiers)
+SvgTextTypeSettingStrategy::SvgTextTypeSettingStrategy(KoToolBase *tool, KoSvgTextShape *textShape, SvgTextCursor *textCursor, const PkRectF &regionOfInterest, Pk::KeyboardModifiers modifiers)
     : KoInteractionStrategy(tool)
     , m_shape(textShape)
     , m_dragStart(regionOfInterest.center())
@@ -31,19 +30,19 @@ SvgTextTypeSettingStrategy::SvgTextTypeSettingStrategy(KoToolBase *tool, KoSvgTe
     m_referenceCursorPos = textCursor->posForTypeSettingHandleAndRect(SvgTextCursor::TypeSettingModeHandle(m_editingType), regionOfInterest);
 }
 
-void SvgTextTypeSettingStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgTextTypeSettingStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     PkPointF delta = mouseLocation - m_dragStart;
     m_modifiers = modifiers;
 
-    if (m_modifiers & Qt::ShiftModifier) {
+    if (m_modifiers & Pk::ShiftModifier) {
         delta = snapToClosestAxis(delta);
         m_dragCurrent = m_dragStart + delta;
         m_currentDelta = delta;
     } else {
         m_dragCurrent =
             tool()->canvas()->snapGuide()->snap(
-                mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
+                mouseLocation, modifiers);
         m_currentDelta = m_dragCurrent - m_dragStart;
     }
 
@@ -174,7 +173,7 @@ void SvgTextTypeSettingStrategy::cancelInteraction()
     tool()->repaintDecorations();
 }
 
-void SvgTextTypeSettingStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void SvgTextTypeSettingStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     m_modifiers = modifiers;
     cancelInteraction();

@@ -31,12 +31,12 @@ public:
      * @param tool the parent tool which controls this strategy
      * @param clicked the initial point that the user depressed (in pt).
      */
-    ShapeRotateStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, Qt::MouseButtons buttons);
+    ShapeRotateStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, Pk::MouseButtons buttons);
     ~ShapeRotateStrategy() override {}
 
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override
     {
         (void)modifiers;
     }
@@ -53,4 +53,3 @@ private:
 };
 
 #endif
-

@@ -61,7 +61,8 @@ void KoInteractionTool::mouseMoveEvent(KoPointerEvent *event)
     d->lastPoint = event->point;
 
     if (d->currentStrategy) {
-        d->currentStrategy->handleMouseMove(d->lastPoint, event->modifiers());
+        d->currentStrategy->handleMouseMove(
+            d->lastPoint, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     } else {
         Q_FOREACH (KoInteractionStrategyFactorySP factory, d->interactionFactories) {
             // skip the rest of rendering if the factory asks for it
@@ -76,7 +77,8 @@ void KoInteractionTool::mouseReleaseEvent(KoPointerEvent *event)
 {
     Q_D(KoInteractionTool);
     if (d->currentStrategy) {
-        d->currentStrategy->finishInteraction(event->modifiers());
+        d->currentStrategy->finishInteraction(
+            Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         KUndo2Command *command = d->currentStrategy->createCommand();
         if (command)
             d->canvas->addCommand(command);
@@ -95,7 +97,8 @@ void KoInteractionTool::keyPressEvent(QKeyEvent *event)
             (event->key() == Qt::Key_Control ||
              event->key() == Qt::Key_Alt || event->key() == Qt::Key_Shift ||
              event->key() == Qt::Key_Meta)) {
-        d->currentStrategy->handleMouseMove(d->lastPoint, event->modifiers());
+        d->currentStrategy->handleMouseMove(
+            d->lastPoint, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         event->accept();
     }
 }
@@ -115,7 +118,8 @@ void KoInteractionTool::keyReleaseEvent(QKeyEvent *event)
     } else if (event->key() == Qt::Key_Control ||
                event->key() == Qt::Key_Alt || event->key() == Qt::Key_Shift ||
                event->key() == Qt::Key_Meta) {
-        d->currentStrategy->handleMouseMove(d->lastPoint, event->modifiers());
+        d->currentStrategy->handleMouseMove(
+            d->lastPoint, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     }
 }
 

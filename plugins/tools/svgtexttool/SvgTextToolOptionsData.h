@@ -6,19 +6,19 @@
 #ifndef SVGTEXTTOOLOPTIONSDATA_H
 #define SVGTEXTTOOLOPTIONSDATA_H
 
-#include <QString>
+#include <PkString.h>
 
 struct SvgTextToolOptionsData
 {
     bool useCurrentTextProperties = true;
-    QString cssStylePresetName = QString();
+    PkString cssStylePresetName;
 
     bool useVisualBidiCursor = false;
 
     bool pasteRichtTextByDefault = false;
 
-    void writeConfig(const QString &toolId);
-    void loadConfig(const QString &toolId);
+    void writeConfig(const PkString &toolId);
+    void loadConfig(const PkString &toolId);
     void resetConfig();
 };
 

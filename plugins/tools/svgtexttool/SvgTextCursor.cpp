@@ -148,8 +148,8 @@ struct TypeSettingDecorInfo {
         return total;
     }
 
-    bool testBaselines(Qt::KeyboardModifiers modifiers) {
-        return (modifiers & Qt::ShiftModifier);
+    bool testBaselines(Pk::KeyboardModifiers modifiers) {
+        return modifiers.testFlag(Pk::ShiftModifier);
     }
 
 };
@@ -226,7 +226,7 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
     bool visualNavigation = true;
     bool pasteRichText = true;
 
-    Qt::KeyboardModifiers lastKnownModifiers;
+    Pk::KeyboardModifiers lastKnownModifiers;
 
     bool typeSettingMode = false;
     SvgTextCursor::TypeSettingModeHandle hoveredTypeSettingHandle = SvgTextCursor::NoHandle;
@@ -1413,7 +1413,7 @@ void SvgTextCursor::keyPressEvent(QKeyEvent *event)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(d->shape);
 
-    updateModifiers(event->modifiers());
+    updateModifiers(Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
 
     if (d->preEditCommand) {
         //MacOS will keep sending keyboard events during IME handling.
@@ -1645,7 +1645,7 @@ void SvgTextCursor::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void SvgTextCursor::updateModifiers(const Qt::KeyboardModifiers modifiers)
+void SvgTextCursor::updateModifiers(Pk::KeyboardModifiers modifiers)
 {
     d->lastKnownModifiers = modifiers;
     updateTypeSettingDecoration();

@@ -56,7 +56,7 @@ void SvgCreateTextStrategy::paint(PkPainter &painter, const KoViewConverter &con
     handlePainter.drawRubberLine(poly);
 }
 
-void SvgCreateTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void SvgCreateTextStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     m_dragEnd = this->tool()->canvas()->snapGuide()->snap(
         mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
@@ -83,7 +83,7 @@ KUndo2Command *SvgCreateTextStrategy::createCommand()
     const double lineHeight = m_minSizeInline.width();
     const KoSvgText::WritingMode writingMode = KoSvgText::WritingMode(properties.propertyOrDefault(KoSvgTextProperties::WritingModeId).toInt());
 
-    bool unwrappedText = m_modifiers.testFlag(Qt::ControlModifier) || m_flowShape;
+    bool unwrappedText = m_modifiers.testFlag(Pk::ControlModifier) || m_flowShape;
     if (rectangle.width() < m_minSizeInline.width() && rectangle.height() < m_minSizeInline.height()) {
         unwrappedText = true;
     }
@@ -184,7 +184,6 @@ KUndo2Command *SvgCreateTextStrategy::createCommand()
                     break;
                 }
                 info.startOffset += s.length();
-                qDebug() << info.startOffset << s.length();
             }
             new KoSvgTextPathInfoChangeCommand(textShape, 2, info, parentCommand);
         } else {
@@ -215,7 +214,7 @@ void SvgCreateTextStrategy::cancelInteraction()
     tool()->canvas()->updateCanvas(updateRect);
 }
 
-void SvgCreateTextStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void SvgCreateTextStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     m_modifiers = modifiers;
 }
@@ -223,7 +222,7 @@ void SvgCreateTextStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 bool SvgCreateTextStrategy::draggingInlineSize()
 {
     PkRectF rectangle = PkRectF(m_dragStart, m_dragEnd).normalized();
-    return (rectangle.width() >= m_minSizeInline.width() || rectangle.height() >= m_minSizeInline.height()) && !m_modifiers.testFlag(Qt::ControlModifier);
+    return (rectangle.width() >= m_minSizeInline.width() || rectangle.height() >= m_minSizeInline.height()) && !m_modifiers.testFlag(Pk::ControlModifier);
 }
 
 bool SvgCreateTextStrategy::hasWrappingShape()

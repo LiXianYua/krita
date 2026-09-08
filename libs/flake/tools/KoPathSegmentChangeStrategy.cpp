@@ -50,7 +50,7 @@ KoPathSegmentChangeStrategy::~KoPathSegmentChangeStrategy()
 {
 }
 
-void KoPathSegmentChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void KoPathSegmentChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     PkPointF snappedPosition = m_tool->canvas()->snapGuide()->snap(
         mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
@@ -101,7 +101,7 @@ void KoPathSegmentChangeStrategy::handleMouseMove(const PkPointF &mouseLocation,
     m_lastPosition = snappedPosition;
 }
 
-void KoPathSegmentChangeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void KoPathSegmentChangeStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers);
 }

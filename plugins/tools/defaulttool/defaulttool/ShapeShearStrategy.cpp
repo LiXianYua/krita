@@ -103,7 +103,7 @@ ShapeShearStrategy::ShapeShearStrategy(KoToolBase *tool, KoSelection *selection,
     m_isMirrored = (top.x() * left.y() - top.y() * left.x()) < 0.0;
 }
 
-void ShapeShearStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModifiers modifiers)
+void ShapeShearStrategy::handleMouseMove(const PkPointF &point, Pk::KeyboardModifiers modifiers)
 {
     (void)modifiers;
     PkPointF shearVector = point - m_start;

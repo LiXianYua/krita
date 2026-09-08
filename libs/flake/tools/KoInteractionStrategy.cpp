@@ -43,7 +43,7 @@ void KoInteractionStrategy::paint(PkPainter &, const KoViewConverter &)
 {
 }
 
-void KoInteractionStrategy::handleMouseMove(const PkPointF &, Qt::KeyboardModifiers)
+void KoInteractionStrategy::handleMouseMove(const PkPointF &, Pk::KeyboardModifiers)
 {
 }
 

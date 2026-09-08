@@ -36,9 +36,9 @@ public:
     ShapeMoveStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked);
     ~ShapeMoveStrategy() override {}
 
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
     void paint(PkPainter &painter, const KoViewConverter &converter) override;
 private:
     void moveSelection(const PkPointF &diff);

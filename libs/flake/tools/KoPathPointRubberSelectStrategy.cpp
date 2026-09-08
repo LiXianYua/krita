@@ -18,17 +18,17 @@ KoPathPointRubberSelectStrategy::KoPathPointRubberSelectStrategy(KoPathTool *too
 {
 }
 
-void KoPathPointRubberSelectStrategy::handleMouseMove(const PkPointF &p, Qt::KeyboardModifiers modifiers)
+void KoPathPointRubberSelectStrategy::handleMouseMove(const PkPointF &p, Pk::KeyboardModifiers modifiers)
 {
     KoPathToolSelection * selection = dynamic_cast<KoPathToolSelection*>(m_tool->selection());
-    if (selection && !(modifiers & Qt::ShiftModifier)) {
+    if (selection && !(modifiers & Pk::ShiftModifier)) {
         selection->clear();
     }
 
     KoShapeRubberSelectStrategy::handleMouseMove(p, modifiers);
 }
 
-void KoPathPointRubberSelectStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void KoPathPointRubberSelectStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     Q_D(KoShapeRubberSelectStrategy);
     KoPathToolSelection * selection = dynamic_cast<KoPathToolSelection*>(m_tool->selection());
@@ -37,7 +37,7 @@ void KoPathPointRubberSelectStrategy::finishInteraction(Qt::KeyboardModifiers mo
     }
 
     const PkRectF oldDirtyRect = d->selectedRect().normalized() | m_tool->decorationsRect();
-    selection->selectPoints(d->selectedRect(), !(modifiers & Qt::ShiftModifier));
+    selection->selectPoints(d->selectedRect(), !(modifiers & Pk::ShiftModifier));
     m_tool->canvas()->updateCanvas(oldDirtyRect |
                                    d->selectedRect().normalized() |
                                    m_tool->decorationsRect());

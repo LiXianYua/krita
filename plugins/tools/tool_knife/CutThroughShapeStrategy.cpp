@@ -51,11 +51,11 @@ KUndo2Command *CutThroughShapeStrategy::createCommand()
     return 0;
 }
 
-PkPointF snapEndPoint(const PkPointF &startPoint, const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) {
+PkPointF snapEndPoint(const PkPointF &startPoint, const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) {
 
     PkPointF nicePoint = snapToClosestNiceAngle(mouseLocation, startPoint); // by default the function gives you 15 degrees increments
 
-    if (modifiers & Qt::KeyboardModifier::ShiftModifier) {
+    if (modifiers & Pk::KeyboardModifier::ShiftModifier) {
         return nicePoint;
         if (pkAbs(mouseLocation.x() - startPoint.x()) >= pkAbs(mouseLocation.y() - startPoint.y())) {
             // do horizontal line
@@ -73,7 +73,7 @@ PkPointF snapEndPoint(const PkPointF &startPoint, const PkPointF &mouseLocation,
     return mouseLocation;
 }
 
-void CutThroughShapeStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void CutThroughShapeStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     m_endPoint = snapEndPoint(m_startPoint, mouseLocation, modifiers);
     PkRectF dirtyRect;
@@ -187,7 +187,7 @@ void CutThroughShapeStrategy::initializeGapShapes(PkRectF outlineRect, PkLineF l
 
 }
 
-void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void CutThroughShapeStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     tool()->canvas()->updateCanvas(m_previousLineDirtyRect);
 

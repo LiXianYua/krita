@@ -66,7 +66,7 @@ ShapeGradientEditStrategy::~ShapeGradientEditStrategy()
 {
 }
 
-void ShapeGradientEditStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void ShapeGradientEditStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     const PkPointF snappedPosition = tool()->canvas()->snapGuide()->snap(
         mouseLocation, m_d->initialOffset,
@@ -87,7 +87,7 @@ KUndo2Command *ShapeGradientEditStrategy::createCommand()
         nullptr;
 }
 
-void ShapeGradientEditStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void ShapeGradientEditStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     (void)modifiers;
     tool()->canvas()->snapGuide()->reset();

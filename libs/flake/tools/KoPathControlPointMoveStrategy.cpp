@@ -30,7 +30,7 @@ KoPathControlPointMoveStrategy::~KoPathControlPointMoveStrategy()
 {
 }
 
-void KoPathControlPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers)
+void KoPathControlPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
     PkPointF docPoint = m_tool->canvas()->snapGuide()->snap(
         mouseLocation, Pk::KeyboardModifiers(static_cast<int>(modifiers)));
@@ -47,7 +47,7 @@ void KoPathControlPointMoveStrategy::handleMouseMove(const PkPointF &mouseLocati
         m_intermediateCommand);
 }
 
-void KoPathControlPointMoveStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void KoPathControlPointMoveStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers);
 }

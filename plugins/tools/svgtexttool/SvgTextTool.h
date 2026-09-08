@@ -9,8 +9,8 @@
 #define SVG_TEXT_TOOL
 
 
-#include <KConfigGroup>
 #include <KoToolBase.h>
+#include <PkMap.h>
 #include <QCursor>
 #include <QPointer>
 
@@ -196,6 +196,7 @@ private:
 
     QActionGroup *m_textTypeActionGroup {nullptr};
     QActionGroup *m_typeSettingMovementActionGroup {nullptr};
+    PkMap<QAction *, int> m_mappedActionValues;
 
 
     SvgTextCursor m_textCursor;

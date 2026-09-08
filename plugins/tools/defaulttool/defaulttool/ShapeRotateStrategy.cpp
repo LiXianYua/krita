@@ -22,7 +22,7 @@
 #include <math.h>
 #include <klocalizedstring.h>
 
-ShapeRotateStrategy::ShapeRotateStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, Qt::MouseButtons buttons)
+ShapeRotateStrategy::ShapeRotateStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, Pk::MouseButtons buttons)
     : KoInteractionStrategy(tool)
     , m_start(clicked)
 {
@@ -37,7 +37,7 @@ ShapeRotateStrategy::ShapeRotateStrategy(KoToolBase *tool, KoSelection *selectio
         m_oldTransforms << shape->transformation();
     }
 
-    KoFlake::AnchorPosition anchor = !(buttons & Qt::RightButton) ?
+    KoFlake::AnchorPosition anchor = !(buttons & Pk::RightButton) ?
                 KoFlake::Center :
                 KoFlake::AnchorPosition(tool->canvas()->resourceManager()->resource(KoFlake::HotPosition).toInt());
 
@@ -46,13 +46,13 @@ ShapeRotateStrategy::ShapeRotateStrategy(KoToolBase *tool, KoSelection *selectio
     tool->setStatusText(PkString("Press ALT to rotate in 45 degree steps."));
 }
 
-void ShapeRotateStrategy::handleMouseMove(const PkPointF &point, Qt::KeyboardModifiers modifiers)
+void ShapeRotateStrategy::handleMouseMove(const PkPointF &point, Pk::KeyboardModifiers modifiers)
 {
     qreal angle = atan2(point.y() - m_rotationCenter.y(), point.x() - m_rotationCenter.x()) -
                   atan2(m_start.y() - m_rotationCenter.y(), m_start.x() - m_rotationCenter.x());
     angle = angle / M_PI * 180;  // convert to degrees.
     angle = DefaultToolStrategyMath::snappedRotationDegrees(
-        angle, modifiers & (Qt::AltModifier | Qt::ControlModifier));
+        angle, modifiers & (Pk::AltModifier | Pk::ControlModifier));
 
     rotateBy(angle);
 }

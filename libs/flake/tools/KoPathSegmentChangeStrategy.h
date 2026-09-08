@@ -23,8 +23,8 @@ class KoPathSegmentChangeStrategy : public KoInteractionStrategy
 public:
     KoPathSegmentChangeStrategy(KoPathTool *tool, const PkPointF &pos, const KoPathPointData &segment, qreal segmentParam);
     ~KoPathSegmentChangeStrategy() override;
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
 
 private:

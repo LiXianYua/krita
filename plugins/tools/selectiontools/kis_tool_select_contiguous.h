@@ -13,8 +13,7 @@
 
 #include "KisSelectionToolFactoryBase.h"
 #include "kis_tool_select_base.h"
-#include <kconfig.h>
-#include <kconfiggroup.h>
+#include <PkConfigGroup.h>
 #include <commands_new/KisMergeLabeledLayersCommand.h>
 
 /**
@@ -69,7 +68,7 @@ private:
     int  m_opacitySpread {100};
     int m_closeGap {0};
     bool m_useSelectionAsBoundary {false};
-    KConfigGroup m_configGroup;
+    PkConfigGroup m_configGroup;
     KisPaintDeviceSP m_referencePaintDevice;
     KisMergeLabeledLayersCommand::ReferenceNodeInfoListSP m_referenceNodeList;
     int m_previousTime;

@@ -37,7 +37,6 @@
 
 #include <klocalizedstring.h>
 
-#include <KSharedConfig>
 #include "kis_assert.h"
 #include <kis_coordinates_converter.h>
 #include <KisCanvasFeedback.h>
@@ -171,7 +170,7 @@ void SvgTextTool::activate(const PkSet<KoShape *> &shapes)
     // (whose createOptionWidget() was itself only ever called once per tool
     // instance and cached by KoToolBase::optionWidgets()).
     if (!m_optionsDataLoaded) {
-        m_optionsData.loadConfig(toQString(this->toolId()));
+        m_optionsData.loadConfig(this->toolId());
         slotUpdateVisualCursor();
         slotUpdateTextPasteBehaviour();
         m_optionsDataLoaded = true;
@@ -180,9 +179,9 @@ void SvgTextTool::activate(const PkSet<KoShape *> &shapes)
     canvas()->setCurrentShapeManagerOwnerShape(nullptr);
 
     QObject::connect(m_textTypeActionGroup, &QActionGroup::triggered, this,
-                     [this](QAction *action) { slotConvertType(action->data().toInt()); });
+                     [this](QAction *action) { slotConvertType(m_mappedActionValues.value(action)); });
     QObject::connect(m_typeSettingMovementActionGroup, &QActionGroup::triggered, this,
-                     [this](QAction *action) { slotMoveTextSelection(action->data().toInt()); });
+                     [this](QAction *action) { slotMoveTextSelection(m_mappedActionValues.value(action)); });
 
     useCursor(m_base_cursor);
     slotShapeSelectionChanged();
@@ -268,7 +267,7 @@ PkString SvgTextTool::generateDefs(const KoSvgTextProperties &properties)
 KoSvgTextProperties SvgTextTool::propertiesForNewText() const
 {
     const bool useCurrent = m_optionsData.useCurrentTextProperties;
-    const QString presetName = m_optionsData.cssStylePresetName;
+    const PkString presetName = m_optionsData.cssStylePresetName;
 
     KoSvgTextProperties props;
     if (useCurrent || presetName.isEmpty()) {
@@ -276,7 +275,7 @@ KoSvgTextProperties SvgTextTool::propertiesForNewText() const
         props = textData.commonProperties;
     } else {
         KisAllResourcesModel *model = KisResourceModelProvider::resourceModel(ResourceType::CssStyles);
-        PkVector<KoResourceSP> res = model->resourcesForName(toPkString(presetName));
+        PkVector<KoResourceSP> res = model->resourcesForName(presetName);
         if (res.first()) {
             KoCssStylePresetSP style = res.first().staticCast<KoCssStylePreset>();
             const qreal dpi = canvas()->shapeController()->pixelsPerInch();
@@ -652,7 +651,12 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
             SvgTextCursor::TypeSettingModeHandle handle = m_textCursor.typeSettingHandleAtPos(handleGrabRect(event->point));
             if (handle != SvgTextCursor::NoHandle) {
                 if (!m_textCursor.setDominantBaselineFromHandle(handle)) {
-                    m_interactionStrategy.reset(new SvgTextTypeSettingStrategy(this, selectedShape, &m_textCursor, handleGrabRect(event->point), event->modifiers()));
+                    m_interactionStrategy.reset(new SvgTextTypeSettingStrategy(
+                        this,
+                        selectedShape,
+                        &m_textCursor,
+                        handleGrabRect(event->point),
+                        Pk::KeyboardModifiers(static_cast<int>(event->modifiers()))));
                     m_dragging = DragMode::TypeSetting;
                     m_textCursor.setDrawTypeSettingHandle(false);
                 }
@@ -708,7 +712,11 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
             canvas()->shapeManager()->selection()->select(hoveredShape);
             m_hoveredShapeHighlightRect = PkPainterPath();
         }
-        m_interactionStrategy.reset(new SvgSelectTextStrategy(this, &m_textCursor, event->point, event->modifiers()));
+        m_interactionStrategy.reset(new SvgSelectTextStrategy(
+            this,
+            &m_textCursor,
+            event->point,
+            Pk::KeyboardModifiers(static_cast<int>(event->modifiers()))));
         m_dragging = DragMode::Select;
         event->accept();
     } else if (hoveredFlowShape) {
@@ -720,7 +728,11 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
     } else if (crossLayerPossible) {
         if (dynamic_cast<KisCanvasToolServices *>(canvas())
                 ->toolSelectShapeCrossLayer(event->point, KoSvgTextShape_SHAPEID)) {
-            m_interactionStrategy.reset(new SvgSelectTextStrategy(this, &m_textCursor, event->point, event->modifiers()));
+            m_interactionStrategy.reset(new SvgSelectTextStrategy(
+                this,
+                &m_textCursor,
+                event->point,
+                Pk::KeyboardModifiers(static_cast<int>(event->modifiers()))));
             m_dragging = DragMode::Select;
             m_hoveredShapeHighlightRect = PkPainterPath();
         } else {
@@ -764,10 +776,11 @@ void SvgTextTool::mouseMoveEvent(KoPointerEvent *event)
 {
     m_lastMousePos = event->point;
     m_hoveredShapeHighlightRect = PkPainterPath();
-    m_textCursor.updateModifiers(event->modifiers());
+    m_textCursor.updateModifiers(Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
 
     if (m_interactionStrategy) {
-        m_interactionStrategy->handleMouseMove(event->point, event->modifiers());
+        m_interactionStrategy->handleMouseMove(
+            event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         if (m_dragging == DragMode::Create) {
             SvgCreateTextStrategy *c = dynamic_cast<SvgCreateTextStrategy*>(m_interactionStrategy.get());
             if (c && c->draggingInlineSize() && !c->hasWrappingShape()) {
@@ -892,7 +905,8 @@ void SvgTextTool::mouseMoveEvent(KoPointerEvent *event)
 void SvgTextTool::mouseReleaseEvent(KoPointerEvent *event)
 {
     if (m_interactionStrategy) {
-        m_interactionStrategy->finishInteraction(event->modifiers());
+        m_interactionStrategy->finishInteraction(
+            Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         KUndo2Command *const command = m_interactionStrategy->createCommand();
         if (command) {
             m_strategyAddingCommand = true;
@@ -919,7 +933,8 @@ void SvgTextTool::keyPressEvent(QKeyEvent *event)
     if (m_interactionStrategy
             && (event->key() == Qt::Key_Control || event->key() == Qt::Key_Alt || event->key() == Qt::Key_Shift
                 || event->key() == Qt::Key_Meta)) {
-        m_interactionStrategy->handleMouseMove(m_lastMousePos, event->modifiers());
+        m_interactionStrategy->handleMouseMove(
+            m_lastMousePos, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         event->accept();
         return;
     } else if (event->key() == Qt::Key_Escape) {
@@ -933,11 +948,12 @@ void SvgTextTool::keyPressEvent(QKeyEvent *event)
 
 void SvgTextTool::keyReleaseEvent(QKeyEvent *event)
 {
-    m_textCursor.updateModifiers(event->modifiers());
+    m_textCursor.updateModifiers(Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     if (m_interactionStrategy
             && (event->key() == Qt::Key_Control || event->key() == Qt::Key_Alt || event->key() == Qt::Key_Shift
                 || event->key() == Qt::Key_Meta)) {
-        m_interactionStrategy->handleMouseMove(m_lastMousePos, event->modifiers());
+        m_interactionStrategy->handleMouseMove(
+            m_lastMousePos, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
         event->accept();
     } else {
         event->ignore();
@@ -998,7 +1014,7 @@ void SvgTextTool::addMappedAction(QActionGroup *group, const PkString &actionNam
 {
     QAction *a = action(actionName);
     if (a) {
-        a->setData(value);
+        m_mappedActionValues.insert(a, value);
         m_textCursor.registerPropertyAction(a, actionName);
         if (!a->actionGroup()) {
             group->addAction(a);

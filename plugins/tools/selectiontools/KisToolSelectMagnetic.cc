@@ -12,7 +12,7 @@
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
-#include <ksharedconfig.h>
+#include <PkSharedConfig.h>
 
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
@@ -152,11 +152,11 @@ void KisToolSelectMagnetic::calculateCheckPoints(PkVector<PkPointF> points)
     }
 } // KisToolSelectMagnetic::calculateCheckPoints
 
-void KisToolSelectMagnetic::updateContinuedModeFromModifiers(Qt::KeyboardModifiers modifiers)
+void KisToolSelectMagnetic::updateContinuedModeFromModifiers(Pk::KeyboardModifiers modifiers)
 {
     if (!isSelecting()) return;
 
-    if (modifiers & Qt::ControlModifier) {
+    if (modifiers & Pk::ControlModifier) {
         setContinuedModeModifierPressed(true);
         return;
     }
@@ -190,7 +190,8 @@ PkVector<PkPointF> KisToolSelectMagnetic::computeEdgeWrapper(PkPoint a, PkPoint 
 // the cursor is still tracked even when no mousebutton is pressed
 void KisToolSelectMagnetic::mouseMoveEvent(KoPointerEvent *event)
 {
-    updateContinuedModeFromModifiers(event->modifiers());
+    updateContinuedModeFromModifiers(
+        Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     if (isMovingSelection()) {
         KisToolSelect::mouseMoveEvent(event);
         return;
@@ -206,7 +207,8 @@ void KisToolSelectMagnetic::mouseMoveEvent(KoPointerEvent *event)
 // press primary mouse button
 void KisToolSelectMagnetic::beginPrimaryAction(KoPointerEvent *event)
 {
-    updateContinuedModeFromModifiers(event->modifiers());
+    updateContinuedModeFromModifiers(
+        Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     KisToolSelectBase::beginPrimaryAction(event);
     if (isMovingSelection()) {
         return;
@@ -675,7 +677,7 @@ void KisToolSelectMagnetic::updateContinuedMode()
 void KisToolSelectMagnetic::activate(const PkSet<KoShape *> &shapes)
 {
     m_worker.reset(new KisMagneticWorker(image()->projection()));
-    m_configGroup = KSharedConfig::openConfig()->group(toQString(toolId()));
+    m_configGroup = PkSharedConfig::openConfig()->group(toolId());
 
     // Was read in createOptionWidget() (now deleted) when the options panel
     // was created; that ran on every tool activation, so these are the

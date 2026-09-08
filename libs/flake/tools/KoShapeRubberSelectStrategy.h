@@ -40,7 +40,7 @@ public:
     KoShapeRubberSelectStrategy(KoToolBase *tool, const PkPointF &clicked, bool useSnapToGrid = false);
 
     void paint(PkPainter &painter, const KoViewConverter &converter) override;
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
 
 protected:

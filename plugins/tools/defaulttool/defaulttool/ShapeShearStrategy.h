@@ -35,9 +35,9 @@ public:
     ShapeShearStrategy(KoToolBase *tool, KoSelection *selection, const PkPointF &clicked, KoFlake::SelectionHandle direction);
     ~ShapeShearStrategy() override {}
 
-    void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override
     {
         (void)modifiers;
     }

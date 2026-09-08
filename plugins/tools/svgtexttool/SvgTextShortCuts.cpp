@@ -5,9 +5,8 @@
  */
 #include "SvgTextShortCuts.h"
 #include <QAction>
+#include <PkFlakeBridge.h>
 #include <KoSvgTextProperties.h>
-
-#include <KisStaticInitializer.h>
 
 /**
  * @brief The SvgTextShortcutInfo class
@@ -66,15 +65,6 @@ struct SvgTextShortcutInfo : public boost::equality_comparable<SvgTextShortcutIn
                 && testValue == other.testValue);
     }
 };
-
-Q_DECLARE_METATYPE(SvgTextShortcutInfo)
-
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<SvgTextShortcutInfo>("SvgTextShortcutInfo");
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    QMetaType::registerEqualsComparator<SvgTextShortcutInfo>();
-#endif
-}
 
 const PkMap<PkString, SvgTextShortcutInfo> textShortCuts = {
     {
@@ -178,11 +168,8 @@ PkStringList SvgTextShortCuts::possibleActions()
 
 bool SvgTextShortCuts::configureAction(QAction *action, const PkString &name)
 {
-    if (!textShortCuts.contains(name)) return false;
-    if (!action) return false;
-    SvgTextShortcutInfo info = textShortCuts.value(name);
-    action->setData(QVariant::fromValue(info));
-    return true;
+    return action && textShortCuts.contains(name)
+        && toPkString(action->objectName()) == name;
 }
 /**
  * @brief testPropertyEnabled
@@ -248,8 +235,10 @@ bool testPropertyEnabled(const SvgTextShortcutInfo &info, const PkList<KoSvgText
 }
 
 bool SvgTextShortCuts::actionEnabled(QAction *action, const PkList<KoSvgTextProperties> currentProperties) {
-    if (!action || !action->isCheckable() || !action->data().canConvert<SvgTextShortcutInfo>()) return action->isChecked();
-    SvgTextShortcutInfo info = action->data().value<SvgTextShortcutInfo>();
+    if (!action) return false;
+    const PkString actionName = toPkString(action->objectName());
+    if (!action->isCheckable() || !textShortCuts.contains(actionName)) return action->isChecked();
+    const SvgTextShortcutInfo info = textShortCuts.value(actionName);
 
     if (info.type != SvgTextShortcutInfo::Toggle && info.type != SvgTextShortcutInfo::Set) {
         return false;
@@ -345,8 +334,10 @@ PkVariant adjustValue(SvgTextShortcutInfo info, PkVariant oldValue) {
 
 KoSvgTextProperties SvgTextShortCuts::getModifiedProperties(const QAction *action, PkList<KoSvgTextProperties> currentProperties)
 {
-    if (!action || !action->data().canConvert<SvgTextShortcutInfo>() || currentProperties.isEmpty()) return KoSvgTextProperties();
-    SvgTextShortcutInfo info = action->data().value<SvgTextShortcutInfo>();
+    if (!action || currentProperties.isEmpty()) return KoSvgTextProperties();
+    const PkString actionName = toPkString(action->objectName());
+    if (!textShortCuts.contains(actionName)) return KoSvgTextProperties();
+    const SvgTextShortcutInfo info = textShortCuts.value(actionName);
 
     PkVariant newVal;
     if (info.type == SvgTextShortcutInfo::Toggle) {

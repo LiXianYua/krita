@@ -104,7 +104,7 @@ class DefaultToolCursor
 {
 public:
     DefaultToolCursor() = default;
-    DefaultToolCursor(Qt::CursorShape shape)
+    DefaultToolCursor(Pk::CursorShape shape)
         : m_descriptor(cursorDescriptor(shape)) {}
     explicit DefaultToolCursor(const DefaultToolCursorDescriptor &descriptor)
         : m_descriptor(descriptor) {}
@@ -115,18 +115,18 @@ public:
     const DefaultToolCursorDescriptor &descriptor() const { return m_descriptor; }
 
 private:
-    static DefaultToolCursorDescriptor cursorDescriptor(Qt::CursorShape shape)
+    static DefaultToolCursorDescriptor cursorDescriptor(Pk::CursorShape shape)
     {
         switch (shape) {
-        case Qt::SizeAllCursor:
+        case Pk::SizeAllCursor:
             return {DefaultToolCursorKind::Move, 0, {}, 0};
-        case Qt::SizeVerCursor:
+        case Pk::SizeVerCursor:
             return {DefaultToolCursorKind::ResizeVertical, 0, {}, 0};
-        case Qt::SizeBDiagCursor:
+        case Pk::SizeBDiagCursor:
             return {DefaultToolCursorKind::ResizeBackwardDiagonal, 0, {}, 0};
-        case Qt::SizeHorCursor:
+        case Pk::SizeHorCursor:
             return {DefaultToolCursorKind::ResizeHorizontal, 0, {}, 0};
-        case Qt::SizeFDiagCursor:
+        case Pk::SizeFDiagCursor:
             return {DefaultToolCursorKind::ResizeForwardDiagonal, 0, {}, 0};
         default:
             return {DefaultToolCursorKind::Arrow, 0, {}, 0};
@@ -142,15 +142,15 @@ class DefaultToolKeyEvent
 #endif
 {
 public:
-    DefaultToolKeyEvent(int key, Qt::KeyboardModifiers modifiers = {})
+    DefaultToolKeyEvent(int key, Pk::KeyboardModifiers modifiers = {})
         : m_key(key), m_modifiers(modifiers) {}
     int key() const { return m_key; }
-    Qt::KeyboardModifiers modifiers() const { return m_modifiers; }
+    Pk::KeyboardModifiers modifiers() const { return m_modifiers; }
     void accept() { m_accepted = true; }
     bool isAccepted() const { return m_accepted; }
 
 private:
     int m_key;
-    Qt::KeyboardModifiers m_modifiers;
+    Pk::KeyboardModifiers m_modifiers;
     bool m_accepted {false};
 };

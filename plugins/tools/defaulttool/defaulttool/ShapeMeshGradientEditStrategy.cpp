@@ -42,7 +42,7 @@ ShapeMeshGradientEditStrategy::~ShapeMeshGradientEditStrategy()
 }
 
 void ShapeMeshGradientEditStrategy::handleMouseMove(const PkPointF &mouseLocation,
-                                                    Qt::KeyboardModifiers modifiers)
+                                                    Pk::KeyboardModifiers modifiers)
 {
     (void)modifiers;
 
@@ -62,7 +62,7 @@ KUndo2Command* ShapeMeshGradientEditStrategy::createCommand()
         nullptr;
 }
 
-void ShapeMeshGradientEditStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
+void ShapeMeshGradientEditStrategy::finishInteraction(Pk::KeyboardModifiers modifiers)
 {
     (void)modifiers;
 }

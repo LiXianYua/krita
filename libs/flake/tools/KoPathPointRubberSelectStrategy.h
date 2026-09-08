@@ -21,8 +21,8 @@ public:
     KoPathPointRubberSelectStrategy(KoPathTool *tool, const PkPointF &clicked);
     ~KoPathPointRubberSelectStrategy() override {}
 
-    void handleMouseMove(const PkPointF &p, Qt::KeyboardModifiers modifiers) override;
-    void finishInteraction(Qt::KeyboardModifiers modifiers) override;
+    void handleMouseMove(const PkPointF &p, Pk::KeyboardModifiers modifiers) override;
+    void finishInteraction(Pk::KeyboardModifiers modifiers) override;
     void cancelInteraction() override;
 
 private:

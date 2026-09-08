@@ -9,7 +9,6 @@
 #include <QAction>
 #include <PkStringList.h>
 
-class QString;
 class KoSvgTextProperties;
 /**
  * @brief The SvgTextShortCuts class
@@ -18,8 +17,7 @@ class KoSvgTextProperties;
  *
  * Many text property shortcuts are about toggling/enabling a single property.
  * Given there's a huge amount of them, it thus makes sense to generalize the
- * actions by adding a special QVariant to them and using that QVariant to
- * determine which property adjustment is at play.
+ * actions by looking up their stable action identifiers in the table below.
  *
  */
 class SvgTextShortCuts
