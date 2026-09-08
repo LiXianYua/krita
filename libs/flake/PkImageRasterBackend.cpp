@@ -5,6 +5,7 @@
 
 #include "PkImageRasterBackend.h"
 #include "PkGrayRaster.h"
+#include "PkAliasedRasterizer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -461,6 +462,13 @@ std::vector<unsigned char> PkImageRasterBackend::coverage(const PkPainterPath &p
                         span.len, span.coverage);
         }
     };
+    if (!(m_state.hints & 1u)) {
+        PkAliasedRasterizer raster;
+        raster.setClipRect(PkRect(0, 0, width, height));
+        raster.initialize(params.gray_spans, params.user);
+        raster.rasterize(&outline, path.fillRule());
+        return pixels;
+    }
     // Each call owns its raster pool, so independent image painters are safe.
     std::vector<std::max_align_t> pool(65536 / sizeof(std::max_align_t));
     PK_FT_Raster raster {};
@@ -493,9 +501,6 @@ void PkImageRasterBackend::setClip(const PkPainterPath &path, Pk::ClipOperation 
 void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle)
 {
     if (brush.style() == Pk::NoBrush) return;
-    if (!(m_state.hints & 1u)) {
-        throw std::logic_error("PkImageRasterBackend aliased path rasterization is not implemented");
-    }
     if (brush.style() != Pk::SolidPattern) {
         throw std::logic_error("PkImageRasterBackend unsupported brush");
     }
@@ -511,7 +516,12 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
                 const auto width = std::max(0.0, std::min(x + 1.0, bounds.right()) - std::max(double(x), bounds.left()));
                 const auto horizontal = static_cast<long long>(width * 65536) * 255;
                 const auto vertical = static_cast<long long>(height * 65536);
-                mask[static_cast<std::size_t>(y) * m_destination.width() + x] = (horizontal * vertical) >> 32;
+                unsigned amount = (horizontal * vertical) >> 32;
+                if (!(m_state.hints & 1u)) {
+                    amount = x >= pkRound(bounds.left()) && x < pkRound(bounds.right()) &&
+                        y >= pkRound(bounds.top()) && y < pkRound(bounds.bottom()) ? 255 : 0;
+                }
+                mask[static_cast<std::size_t>(y) * m_destination.width() + x] = amount;
             }
         }
     }

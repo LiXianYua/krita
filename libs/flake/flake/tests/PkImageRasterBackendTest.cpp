@@ -35,6 +35,7 @@ void PkImageRasterBackendTest::matchesQtTransformedClippedPathCoverage()
 {
     // Exact area coverage, cubic subdivision, winding holes, device-space
     // clip persistence and Source clearing are independently rendered by Qt.
+    for (bool antialias : {false, true}) {
     for (double opacity : {0.0, 0.25, 0.4, 0.9, 1.0}) {
     for (bool oddEven : {false, true}) {
         QImage qtImage(32, 24, QImage::Format_ARGB32);
@@ -44,8 +45,8 @@ void PkImageRasterBackendTest::matchesQtTransformedClippedPathCoverage()
         QPainter qtPainter(&qtImage);
         PkImageRasterBackend backend(pkImage);
         PkPainter painter(backend);
-        qtPainter.setRenderHint(QPainter::Antialiasing);
-        painter.setRenderHint(PkPainter::Antialiasing);
+        qtPainter.setRenderHint(QPainter::Antialiasing, antialias);
+        painter.setRenderHint(PkPainter::Antialiasing, antialias);
         qtPainter.translate(2.25, 1.5);
         painter.translate(2.25, 1.5);
         qtPainter.setClipRect(QRectF(1, 2, 23, 17));
@@ -85,6 +86,7 @@ void PkImageRasterBackendTest::matchesQtTransformedClippedPathCoverage()
                 QVERIFY2(pkImage.pixel(x, y) == qtImage.pixel(x, y), qPrintable(context));
             }
         }
+    }
     }
     }
 }
