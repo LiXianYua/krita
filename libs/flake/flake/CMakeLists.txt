@@ -32,6 +32,7 @@ target_include_directories(kritashapemodel
 )
 
 target_link_libraries(kritashapemodel
+    PRIVATE kritaflake_imagecodec
     PUBLIC
         kritaflake
         kritaimage

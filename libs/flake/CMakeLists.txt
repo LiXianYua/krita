@@ -59,9 +59,10 @@ endif()
 
 # Native leaf shared by core SVG images and the image-shape plugin; no flake
 # dependency here, so the plugin's existing flake edge cannot create a cycle.
-add_library(kritaflake_imagecodec STATIC shapes/ImageShapePngData.cpp)
+add_library(kritaflake_imagecodec STATIC shapes/ImageShapePngData.cpp shapes/PkReferenceImageLoader.cpp)
 set_target_properties(kritaflake_imagecodec PROPERTIES AUTOMOC OFF POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(kritaflake_imagecodec PUBLIC pkimage pkstring pkcontainer PNG::PNG TIFF::TIFF)
+target_link_libraries(kritaflake_imagecodec PRIVATE pkimageio LibExiv2::LibExiv2 LCMS2::LCMS)
 if(JPEG_FOUND)
     target_link_libraries(kritaflake_imagecodec PRIVATE JPEG::JPEG)
     target_compile_definitions(kritaflake_imagecodec PRIVATE HAVE_JPEG=1)

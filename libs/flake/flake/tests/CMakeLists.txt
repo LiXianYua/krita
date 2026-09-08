@@ -51,3 +51,8 @@ kis_add_test(PkSvgPainterBackendTest.cpp
     NAME_PREFIX libs-ui-
     LINK_LIBRARIES pkrender kritaflake_imagecodec Qt${QT_MAJOR_VERSION}::Svg Qt${QT_MAJOR_VERSION}::Test
 )
+
+kis_add_test(PkReferenceImageLoaderTest.cpp
+    NAME_PREFIX libs-ui-
+    LINK_LIBRARIES kritaflake_imagecodec Qt${QT_MAJOR_VERSION}::Gui Qt${QT_MAJOR_VERSION}::Test
+)

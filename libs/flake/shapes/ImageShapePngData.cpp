@@ -722,7 +722,7 @@ int tiffMap(thandle_t, tdata_t *, toff_t *) { return 0; }
 void tiffUnmap(thandle_t, tdata_t, toff_t) {}
 
 PkImage decodeTiff(const PkByteArray &encoded, std::size_t maximum,
-                   ImageShapePngData::DecodeError *error)
+                   ImageShapePngData::DecodeError *error, bool associated = false)
 {
     setDecodeError(error, ImageShapePngData::DecodeError::InvalidData);
     TiffInput input{reinterpret_cast<const std::uint8_t *>(encoded.constData()), static_cast<std::size_t>(encoded.size()), 0};
@@ -755,7 +755,8 @@ PkImage decodeTiff(const PkByteArray &encoded, std::size_t maximum,
     TIFFClose(tiff);
     PkImage image;
     try {
-        image = PkImage(static_cast<int>(width), static_cast<int>(height), PkImage::Format_ARGB32);
+        image = PkImage(static_cast<int>(width), static_cast<int>(height),
+                        associated ? PkImage::Format_ARGB32_Premultiplied : PkImage::Format_ARGB32);
     } catch (const std::bad_alloc &) {
         setDecodeError(error, ImageShapePngData::DecodeError::Allocation);
         return {};
@@ -764,6 +765,11 @@ PkImage decodeTiff(const PkByteArray &encoded, std::size_t maximum,
         for (std::uint32_t x = 0; x < width; ++x) {
             const std::uint32_t pixel = raster[static_cast<std::size_t>(y) * width + x];
             const std::uint8_t alpha = TIFFGetA(pixel);
+            if (associated) {
+                image.setPixel(static_cast<int>(x), static_cast<int>(y), (std::uint32_t(alpha) << 24) |
+                    (std::uint32_t(TIFFGetR(pixel)) << 16) | (std::uint32_t(TIFFGetG(pixel)) << 8) | TIFFGetB(pixel));
+                continue;
+            }
             image.setPixel(static_cast<int>(x), static_cast<int>(y),
                            (std::uint32_t(alpha) << 24) |
                            (std::uint32_t(unpremultiply8(TIFFGetR(pixel), alpha)) << 16) |
@@ -794,7 +800,7 @@ bool hasJpegSignature(const PkByteArray &encoded)
 }
 
 PkImage decodeImageWithLimit(const PkByteArray &encodedImage, std::size_t maximum,
-                             ImageShapePngData::DecodeError *error)
+                             ImageShapePngData::DecodeError *error, bool associatedTiff = false)
 {
     setDecodeError(error, ImageShapePngData::DecodeError::UnsupportedFormat);
     if (encodedImage.isEmpty() || static_cast<std::size_t>(encodedImage.size()) > kMaxDecodedCompressedBytes) {
@@ -809,7 +815,7 @@ PkImage decodeImageWithLimit(const PkByteArray &encodedImage, std::size_t maximu
                        ((data[2] == 42 || data[2] == 43) && data[3] == 0)) ||
                       (data[0] == 'M' && data[1] == 'M' && data[2] == 0 &&
                        (data[3] == 42 || data[3] == 43)))) {
-        return decodeTiff(encodedImage, maximum, error);
+        return decodeTiff(encodedImage, maximum, error, associatedTiff);
     }
     return {};
 }
@@ -889,6 +895,11 @@ PkImage decodePng(const PkByteArray &encodedPng)
 PkImage decodeImage(const PkByteArray &encodedImage)
 {
     return decodeImageWithLimit(encodedImage, kMaxDecodedRgbaBytes, nullptr);
+}
+
+PkImage decodeReferenceImage(const PkByteArray &encodedImage)
+{
+    return decodeImageWithLimit(encodedImage, kMaxDecodedRgbaBytes, nullptr, true);
 }
 
 #if defined(IMAGESHAPE_CODEC_TESTING)

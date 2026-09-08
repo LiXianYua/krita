@@ -28,6 +28,9 @@ PkByteArray decodeBase64(const PkString &encoded);
 PkByteArray decodeDataUriBase64(const PkString &dataUri);
 PkImage decodePng(const PkByteArray &encodedPng);
 PkImage decodeImage(const PkByteArray &encodedImage);
+// Qt's TIFF reader retains associated-alpha samples. Reference-image color
+// normalization must run before any lossy unassociation into straight bytes.
+PkImage decodeReferenceImage(const PkByteArray &encodedImage);
 #if defined(IMAGESHAPE_CODEC_TESTING)
 PkImage decodeImageForTesting(const PkByteArray &encodedImage,
                               std::size_t maxDecodedPixelBytes,
