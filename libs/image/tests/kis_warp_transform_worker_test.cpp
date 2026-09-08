@@ -22,14 +22,15 @@ struct WarpTransformWorkerData {
 
         const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
         // QImage image(TestUtil::fetchDataFileLazy("test_transform_quality.png"));
-        QImage image(TestUtil::fetchDataFileLazy("test_transform_quality_second.png"));
+        const PkImage image = TestUtil::pkImageFromQImage(
+            QImage(TestUtil::fetchDataFileLazy("test_transform_quality_second.png")));
 
         dev = new KisPaintDevice(cs);
         dev->convertFromQImage(image, 0);
 
         alpha = 1.0;
 
-        bounds = dev->exactBounds();
+        bounds = PkRectF(dev->exactBounds());
 
         origPoints << bounds.topLeft();
         origPoints << bounds.topRight();
@@ -37,25 +38,25 @@ struct WarpTransformWorkerData {
         origPoints << bounds.bottomLeft();
 
         origPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight());
-        origPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + QPointF(-20, 0);
+        origPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + PkPointF(-20, 0);
 
 
         transfPoints << bounds.topLeft();
         transfPoints << bounds.bottomLeft() + 0.6 * (bounds.topRight() - bounds.bottomLeft());
         transfPoints << bounds.topLeft() + 0.8 * (bounds.bottomRight() - bounds.topLeft());
-        transfPoints << bounds.bottomLeft() + QPointF(200, 0);
+        transfPoints << bounds.bottomLeft() + PkPointF(200, 0);
 
-        transfPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + QPointF(40,20);
-        transfPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + QPointF(-20, 0) + QPointF(-40,20);
+        transfPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + PkPointF(40,20);
+        transfPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + PkPointF(-20, 0) + PkPointF(-40,20);
     }
 
 
     KisPaintDeviceSP dev;
-    QVector<QPointF> origPoints;
-    QVector<QPointF> transfPoints;
+    PkVector<PkPointF> origPoints;
+    PkVector<PkPointF> transfPoints;
     qreal alpha;
     KoUpdaterPtr updater;
-    QRectF bounds;
+    PkRectF bounds;
 };
 
 
@@ -74,7 +75,7 @@ void KisWarpTransformWorkerTest::test()
         worker.run(srcDev, d.dev);
     }
 
-    QImage result = d.dev->convertToQImage(0);
+    PkImage result = d.dev->convertToQImage(0);
 
     TestUtil::checkQImage(result, "warp_transform_test", "simple", "tr");
 }
@@ -86,17 +87,16 @@ void KisWarpTransformWorkerTest::testQImage()
     KoUpdaterPtr updater = pu.startSubtask();
 
 //    QImage image(TestUtil::fetchDataFileLazy("test_transform_quality.png"));
-    QImage image(TestUtil::fetchDataFileLazy("test_transform_quality_second.png"));
-    image.convertTo(QImage::Format_ARGB32);
+    PkImage image = TestUtil::pkImageFromQImage(
+        QImage(TestUtil::fetchDataFileLazy("test_transform_quality_second.png")));
+    image.convertTo(PkImage::Format_ARGB32);
 
-    dbgKrita << ppVar(image.format());
 
-
-    QVector<QPointF> origPoints;
-    QVector<QPointF> transfPoints;
+    PkVector<PkPointF> origPoints;
+    PkVector<PkPointF> transfPoints;
     qreal alpha = 1.0;
 
-    QRectF bounds(image.rect());
+    PkRectF bounds(image.rect());
 
     origPoints << bounds.topLeft();
     origPoints << bounds.topRight();
@@ -104,29 +104,27 @@ void KisWarpTransformWorkerTest::testQImage()
     origPoints << bounds.bottomLeft();
 
     origPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight());
-    origPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + QPointF(-20, 0);
+    origPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + PkPointF(-20, 0);
 
 
     transfPoints << bounds.topLeft();
     transfPoints << bounds.bottomLeft() + 0.6 * (bounds.topRight() - bounds.bottomLeft());
     transfPoints << bounds.topLeft() + 0.8 * (bounds.bottomRight() - bounds.topLeft());
-    transfPoints << bounds.bottomLeft() + QPointF(200, 0);
+    transfPoints << bounds.bottomLeft() + PkPointF(200, 0);
 
-    transfPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + QPointF(40,20);
-    transfPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + QPointF(-20, 0) + QPointF(-40,20);
+    transfPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + PkPointF(40,20);
+    transfPoints << 0.5 * (bounds.bottomLeft() + bounds.bottomRight()) + PkPointF(-20, 0) + PkPointF(-40,20);
 
 
-    QImage result;
-    QPointF newOffset;
+    PkImage result;
+    PkPointF newOffset;
 
     QBENCHMARK_ONCE {
-        result = KisWarpTransformWorker::transformQImage(
+        result = KisWarpTransformWorker::transformImage(
             KisWarpTransformWorker::RIGID_TRANSFORM,
             origPoints, transfPoints, alpha,
-            image, QPointF(), &newOffset);
+            image, PkPointF(), &newOffset);
     }
-
-    dbgKrita << ppVar(newOffset);
 
     TestUtil::checkQImage(result, "warp_transform_test", "qimage", "tr");
 }
@@ -149,39 +147,39 @@ void KisWarpTransformWorkerTest::testGridSize()
 
 void KisWarpTransformWorkerTest::testBackwardInterpolatorExtrapolation()
 {
-    QPolygonF src;
+    PkPolygonF src;
 
-    src << QPointF(0, 0);
-    src << QPointF(100, 0);
-    src << QPointF(100, 100);
-    src << QPointF(0, 100);
+    src << PkPointF(0, 0);
+    src << PkPointF(100, 0);
+    src << PkPointF(100, 100);
+    src << PkPointF(0, 100);
 
-    QPolygonF dst(src);
+    PkPolygonF dst(src);
     std::rotate(dst.begin(), dst.begin() + 1, dst.end());
     KisFourPointInterpolatorBackward interp(src, dst);
 
     // standard checks
-    QCOMPARE(interp.map(QPointF(0,0)), QPointF(0,100));
-    QCOMPARE(interp.map(QPointF(100,0)), QPointF(0,0));
-    QCOMPARE(interp.map(QPointF(100,100)), QPointF(100,0));
-    QCOMPARE(interp.map(QPointF(0,100)), QPointF(100,100));
+    QCOMPARE(interp.map(PkPointF(0,0)), PkPointF(0,100));
+    QCOMPARE(interp.map(PkPointF(100,0)), PkPointF(0,0));
+    QCOMPARE(interp.map(PkPointF(100,100)), PkPointF(100,0));
+    QCOMPARE(interp.map(PkPointF(0,100)), PkPointF(100,100));
 
     // extrapolate!
-    QCOMPARE(interp.map(QPointF(-10,0)), QPointF(0,110));
-    QCOMPARE(interp.map(QPointF(0,-10)), QPointF(-10,100));
-    QCOMPARE(interp.map(QPointF(-10,-10)), QPointF(-10,110));
+    QCOMPARE(interp.map(PkPointF(-10,0)), PkPointF(0,110));
+    QCOMPARE(interp.map(PkPointF(0,-10)), PkPointF(-10,100));
+    QCOMPARE(interp.map(PkPointF(-10,-10)), PkPointF(-10,110));
 
-    QCOMPARE(interp.map(QPointF(110,0)), QPointF(0,-10));
-    QCOMPARE(interp.map(QPointF(100,-10)), QPointF(-10,0));
-    QCOMPARE(interp.map(QPointF(110,-10)), QPointF(-10,-10));
+    QCOMPARE(interp.map(PkPointF(110,0)), PkPointF(0,-10));
+    QCOMPARE(interp.map(PkPointF(100,-10)), PkPointF(-10,0));
+    QCOMPARE(interp.map(PkPointF(110,-10)), PkPointF(-10,-10));
 
-    QCOMPARE(interp.map(QPointF(110,100)), QPointF(100, -10));
-    QCOMPARE(interp.map(QPointF(100,110)), QPointF(110, 0));
-    QCOMPARE(interp.map(QPointF(110,110)), QPointF(110,-10));
+    QCOMPARE(interp.map(PkPointF(110,100)), PkPointF(100, -10));
+    QCOMPARE(interp.map(PkPointF(100,110)), PkPointF(110, 0));
+    QCOMPARE(interp.map(PkPointF(110,110)), PkPointF(110,-10));
 
-    QCOMPARE(interp.map(QPointF(-10,100)), QPointF(100, 110));
-    QCOMPARE(interp.map(QPointF(0,110)), QPointF(110, 100));
-    QCOMPARE(interp.map(QPointF(-10,110)), QPointF(110,110));
+    QCOMPARE(interp.map(PkPointF(-10,100)), PkPointF(100, 110));
+    QCOMPARE(interp.map(PkPointF(0,110)), PkPointF(110, 100));
+    QCOMPARE(interp.map(PkPointF(-10,110)), PkPointF(110,110));
 }
 #include "krita_utils.h"
 void KisWarpTransformWorkerTest::testNeedChangeRects()
@@ -194,7 +192,7 @@ void KisWarpTransformWorkerTest::testNeedChangeRects()
                                   d.updater);
 
     QCOMPARE(KisAlgebra2D::sampleRectWithPoints(d.bounds.toAlignedRect()).size(), 9);
-    QCOMPARE(worker.approxChangeRect(d.bounds.toAlignedRect()), QRect(-44,-44, 982,986));
+    QCOMPARE(worker.approxChangeRect(d.bounds.toAlignedRect()), PkRect(-44,-44, 982,986));
 }
 
 

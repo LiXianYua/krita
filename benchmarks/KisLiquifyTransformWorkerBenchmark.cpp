@@ -17,6 +17,7 @@
 #include <kis_liquify_transform_worker.h>
 #include <kis_algebra_2d.h>
 #include <kis_grid_interpolation_tools.h>
+#include <PkXmlDocument.h>
 
 
 #include <quazip.h>
@@ -26,8 +27,8 @@
 KisPaintDeviceSP getBlackImageDev(int size = 5000)
 {
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
-    QImage image(size, size, QImage::Format_RGBA8888);
-    image.fill(Qt::black);
+    PkImage image(size, size, PkImage::Format_RGBA8888);
+    image.fill(Pk::black);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->convertFromQImage(image, 0);
@@ -38,9 +39,9 @@ KisPaintDeviceSP getBlackImageDev(int size = 5000)
 
 
 
-QList<QPointF> preparePointsData(const QPointF& A, const QPointF& B, const QPointF& C, const QPointF& D, int oneWayBasesCount)
+PkVector<PkPointF> preparePointsData(const PkPointF& A, const PkPointF& B, const PkPointF& C, const PkPointF& D, int oneWayBasesCount)
 {
-    QList<QPointF> bases;
+    PkVector<PkPointF> bases;
     for (int i = 0; i < oneWayBasesCount; i++) {
         bases << A + (B - A)*i/oneWayBasesCount;
     }
@@ -93,14 +94,14 @@ void testPoints(KisLiquifyTransformWorkerBenchmark::Operation operation, bool us
         bigger = 1.5*size/5.0;
     }
 
-    QPointF A = QPointF(smaller, smaller);
-    QPointF B = QPointF(bigger, bigger);
-    QPointF C = QPointF(smaller, bigger);
-    QPointF D = QPointF(bigger, smaller);
+    PkPointF A = PkPointF(smaller, smaller);
+    PkPointF B = PkPointF(bigger, bigger);
+    PkPointF C = PkPointF(smaller, bigger);
+    PkPointF D = PkPointF(bigger, smaller);
 
 
     int oneWayBasesCount = 300;
-    QList<QPointF> bases = preparePointsData(A, B, C, D, oneWayBasesCount);
+    PkVector<PkPointF> bases = preparePointsData(A, B, C, D, oneWayBasesCount);
 
     QRandomGenerator randGen(1000);
     QList<qreal> sigmas; // that means "sizes"...
@@ -117,7 +118,7 @@ void testPoints(KisLiquifyTransformWorkerBenchmark::Operation operation, bool us
         QBENCHMARK {
 
             for (int i = 0; i < bases.count(); i++) {
-                worker.translatePoints(bases[i], QPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
+                worker.translatePoints(bases[i], PkPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
             }
         }
     } else if (operation == KisLiquifyTransformWorkerBenchmark::Rotate) {
@@ -137,7 +138,7 @@ void testPoints(KisLiquifyTransformWorkerBenchmark::Operation operation, bool us
     } else if (operation == KisLiquifyTransformWorkerBenchmark::Undo) {
 
         for (int i = 0; i < bases.count(); i++) {
-            worker.translatePoints(bases[i], QPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
+            worker.translatePoints(bases[i], PkPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
         }
 
         for (int i = 0; i < bases.count(); i++) {
@@ -149,7 +150,7 @@ void testPoints(KisLiquifyTransformWorkerBenchmark::Operation operation, bool us
         }
 
 
-        QList<QPointF> undoBases = preparePointsData((A + D)/2, (C+B)/2, (B+D)/2, (A+C)/2, oneWayBasesCount);
+        PkVector<PkPointF> undoBases = preparePointsData((A + D)/2, (C+B)/2, (B+D)/2, (A+C)/2, oneWayBasesCount);
 
 
         QBENCHMARK {
@@ -160,7 +161,7 @@ void testPoints(KisLiquifyTransformWorkerBenchmark::Operation operation, bool us
         }
     } else if (operation == KisLiquifyTransformWorkerBenchmark::RunOnQImage) {
         for (int i = 0; i < bases.count(); i++) {
-            worker.translatePoints(bases[i], QPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
+            worker.translatePoints(bases[i], PkPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
         }
 
         for (int i = 0; i < bases.count(); i++) {
@@ -171,17 +172,17 @@ void testPoints(KisLiquifyTransformWorkerBenchmark::Operation operation, bool us
             worker.scalePoints(bases[i], scales[i%scales.length()], sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
         }
 
-        QImage image(size, size, QImage::Format_ARGB32);
-        image.fill(Qt::black);
-        QPointF newOffset;
+        PkImage image(size, size, PkImage::Format_ARGB32);
+        image.fill(Pk::black);
+        PkPointF newOffset;
 
         QBENCHMARK {
-            worker.runOnQImage(image, QPointF(), QTransform(), &newOffset);
+            worker.runOnImage(image, PkPointF(), PkTransform(), &newOffset);
         }
 
     } else if (operation == KisLiquifyTransformWorkerBenchmark::RunOnDev) {
         for (int i = 0; i < bases.count(); i++) {
-            worker.translatePoints(bases[i], QPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
+            worker.translatePoints(bases[i], PkPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
         }
 
         for (int i = 0; i < bases.count(); i++) {
@@ -203,7 +204,7 @@ void testPoints(KisLiquifyTransformWorkerBenchmark::Operation operation, bool us
         //qCritical() << "cases: " << cases << "number of points: " << worker.originalPoints().length();
 
         KisLiquifyTransformWorker previous(worker);
-        QSize prevSize;
+        PkSize prevSize;
         QBENCHMARK {
             for (int i = 0; i < cases; i++) {
                 //previous = KisLiquifyTransformWorker(previous);
@@ -214,13 +215,13 @@ void testPoints(KisLiquifyTransformWorkerBenchmark::Operation operation, bool us
     }
     else if (operation == KisLiquifyTransformWorkerBenchmark::MovePointsOutsideOfTheGrid) {
 
-        QRect bounds = dev->exactBounds();
-        QPointF addition = bounds.topLeft() - QPointF(bounds.width(), bounds.height());
+        PkRect bounds = dev->exactBounds();
+        PkPointF addition = bounds.topLeft() - PkPointF(bounds.width(), bounds.height());
 
 
         QBENCHMARK {
             for (int i = 0; i < bases.count(); i++) {
-                worker.translatePoints(addition/2 + bases[i], QPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
+                worker.translatePoints(addition/2 + bases[i], PkPointF(50, 0), sigmas[i%sigmas.length()], useWashMode, flows[i%flows.length()]);
             }
 
             KisPaintDeviceSP newDev = getBlackImageDev();
@@ -314,12 +315,12 @@ void KisLiquifyTransformWorkerBenchmark::testSmallChangeOnQImage()
 
 KisLiquifyTransformWorker* getWorkerFromIODeviceXml(QIODevice* device)
 {
-    QDomDocument doc;
+    const QByteArray xml = device->readAll();
+    PkXmlDocument doc;
+    doc.setContent(PkString::PkFromUtf8(xml.constData(), xml.size()));
 
-    doc.setContent(device);
-
-    QDomElement rootElement = doc.documentElement();
-    QDomElement data = rootElement.firstChildElement("data");
+    PkXmlElement rootElement = doc.documentElement();
+    PkXmlElement data = rootElement.firstChildElement("data");
     return KisLiquifyTransformWorker::fromXML(data);
 }
 
@@ -354,7 +355,7 @@ KisLiquifyTransformWorker* getWorkerFromXml(QString filename)
     } else {
         QFile file(filename);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            ENTER_FUNCTION() << "Could not find the file" << filename;
+            qWarning() << "Could not find the file" << filename;
             return nullptr;
         }
 
@@ -398,13 +399,13 @@ void KisLiquifyTransformWorkerBenchmark::testRenderingMask()
 
     if (onQImage) {
 
-        QImage image = newDev->convertToQImage(0);
-        QImage dst = image.copy();
+        PkImage image = newDev->convertToQImage(0);
+        PkImage dst = image.copy();
 
-        QPointF p;
+        PkPointF p;
 
         QBENCHMARK {
-            QImage dst = liquifyWorker->runOnQImage(image, p, QTransform(), &p);
+            PkImage dst = liquifyWorker->runOnImage(image, p, PkTransform(), &p);
         }
 
     } else {
@@ -448,14 +449,14 @@ void KisLiquifyTransformWorkerBenchmark::checkMath()
     qreal smaller = size/5.0;
     qreal bigger = 4*size/5.0;
 
-    QPointF A = QPointF(smaller, smaller);
-    QPointF B = QPointF(bigger, bigger);
-    QPointF C = QPointF(smaller, bigger);
-    QPointF D = QPointF(bigger, smaller);
+    PkPointF A = PkPointF(smaller, smaller);
+    PkPointF B = PkPointF(bigger, bigger);
+    PkPointF C = PkPointF(smaller, bigger);
+    PkPointF D = PkPointF(bigger, smaller);
 
 
     int oneWayBasesCount = 300;
-    QList<QPointF> bases = preparePointsData(A, B, C, D, oneWayBasesCount);
+    PkVector<PkPointF> bases = preparePointsData(A, B, C, D, oneWayBasesCount);
 
     QRandomGenerator randGen(1000);
     QList<qreal> sigmas; // that means "sizes"...

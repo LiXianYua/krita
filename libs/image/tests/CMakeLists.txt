@@ -154,6 +154,10 @@ kis_add_tests(
     LINK_LIBRARIES kritaimage kritatestsdk -Wl,--no-as-needed kritalcmsengine -Wl,--as-needed
     )
 
+# KisBezierGradientMesh.cpp is excluded from kritaimage, but
+# kis_mesh_transform_worker_test still owns its diagnostic render coverage.
+target_sources(kis_mesh_transform_worker_test PRIVATE ../KisBezierGradientMesh.cpp)
+
 kis_add_test(
     kis_clone_layer_test.cpp
     LINK_LIBRARIES kritaimage kritatestsdk kritaglobal kritatransformmaskstubs

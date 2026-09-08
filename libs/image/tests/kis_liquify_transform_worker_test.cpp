@@ -8,6 +8,7 @@
 #include "kis_liquify_transform_worker_test.h"
 
 #include <simpletest.h>
+#include <QPainter>
 
 #include <KoColor.h>
 #include <KoProgressUpdater.h>
@@ -18,17 +19,18 @@
 #include <kis_algebra_2d.h>
 #include <quazip.h>
 #include <quazipfile.h>
+#include <PkXmlDocument.h>
 
 
 // copied from KisLiquifyTransformWorkerBenchmark
 KisLiquifyTransformWorker* getWorkerFromIODeviceXml(QIODevice* device)
 {
-    QDomDocument doc;
+    const QByteArray xml = device->readAll();
+    PkXmlDocument doc;
+    doc.setContent(PkString::PkFromUtf8(xml.constData(), xml.size()));
 
-    doc.setContent(device);
-
-    QDomElement rootElement = doc.documentElement();
-    QDomElement data = rootElement.firstChildElement("data");
+    PkXmlElement rootElement = doc.documentElement();
+    PkXmlElement data = rootElement.firstChildElement("data");
     return KisLiquifyTransformWorker::fromXML(data);
 }
 
@@ -36,10 +38,10 @@ KisLiquifyTransformWorker* getWorkerFromIODeviceXml(QIODevice* device)
 KisLiquifyTransformWorker* getWorkerFromXml(QString filename)
 {
 
-    ENTER_FUNCTION() << ppVar(filename);
+    qDebug() << ppVar(filename);
     filename = TestUtil::fetchDataFileLazy(filename);
 
-    ENTER_FUNCTION() << ppVar(filename);
+    qDebug() << ppVar(filename);
 
 
     if (filename.endsWith("zip")) {
@@ -67,7 +69,7 @@ KisLiquifyTransformWorker* getWorkerFromXml(QString filename)
     } else {
         QFile file(filename);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            ENTER_FUNCTION() << "Could not find the file" << filename;
+            qWarning() << "Could not find the file" << filename;
             return nullptr;
         }
 
@@ -88,7 +90,7 @@ void KisLiquifyTransformWorkerTest::testPoints()
     QImage image(TestUtil::fetchDataFileLazy("test_transform_quality_second.png"));
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->convertFromQImage(image, 0);
+    dev->convertFromQImage(TestUtil::pkImageFromQImage(image), 0);
 
     KisPaintDeviceSP srcDev = new KisPaintDevice(*dev);
 
@@ -100,34 +102,34 @@ void KisLiquifyTransformWorkerTest::testPoints()
 
 
     QBENCHMARK_ONCE {
-        worker.translatePoints(QPointF(100,100),
-                               QPointF(50, 0),
+        worker.translatePoints(PkPointF(100,100),
+                               PkPointF(50, 0),
                                50, false, 0.2);
 
-        worker.scalePoints(QPointF(400,100),
+        worker.scalePoints(PkPointF(400,100),
                            0.9,
                            50, false, 0.2);
 
-        worker.undoPoints(QPointF(400,100),
+        worker.undoPoints(PkPointF(400,100),
                            1.0,
                            50);
 
-        worker.scalePoints(QPointF(400,300),
+        worker.scalePoints(PkPointF(400,300),
                            0.5,
                            50, false, 0.2);
 
-        worker.scalePoints(QPointF(100,300),
+        worker.scalePoints(PkPointF(100,300),
                            -0.5,
                            30, false, 0.2);
 
-        worker.rotatePoints(QPointF(100,500),
+        worker.rotatePoints(PkPointF(100,500),
                             M_PI / 4,
                             50, false, 0.2);
     }
 
     worker.run(srcDev, dev);
 
-    QImage result = dev->convertToQImage(0);
+    PkImage result = dev->convertToQImage(0);
     TestUtil::checkQImage(result, "liquify_transform_test", "liquify_dev", "unity");
 }
 
@@ -141,7 +143,7 @@ void KisLiquifyTransformWorkerTest::testPointsQImage()
     QImage image(TestUtil::fetchDataFileLazy("test_transform_quality_second.png"));
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->convertFromQImage(image, 0);
+    dev->convertFromQImage(TestUtil::pkImageFromQImage(image), 0);
 
     KisPaintDeviceSP srcDev = new KisPaintDevice(*dev);
 
@@ -152,31 +154,32 @@ void KisLiquifyTransformWorkerTest::testPointsQImage()
                                      pixelPrecision);
 
 
-    worker.translatePoints(QPointF(100,100),
-                           QPointF(50, 0),
+    worker.translatePoints(PkPointF(100,100),
+                           PkPointF(50, 0),
                            50, false, 0.2);
 
-    QRect rc = dev->exactBounds();
+    PkRect rc = dev->exactBounds();
     dev->setX(50);
     dev->setY(50);
     worker.run(srcDev, dev);
     rc |= dev->exactBounds();
 
-    QImage resultDev = dev->convertToQImage(0, rc.x(), rc.y(), rc.width(), rc.height());
+    PkImage resultDev = dev->convertToQImage(0, rc.x(), rc.y(), rc.width(), rc.height());
     TestUtil::checkQImage(resultDev, "liquify_transform_test", "liquify_qimage", "refDevice");
 
-    QTransform imageToThumbTransform =
-        QTransform::fromScale(0.5, 0.5);
+    const PkTransform imageToThumbTransform =
+        PkTransform::fromScale(0.5, 0.5);
 
     QImage srcImage(image);
     image = QImage(image.size(), QImage::Format_ARGB32);
     QPainter gc(&image);
-    gc.setTransform(imageToThumbTransform);
+    gc.setTransform(QTransform::fromScale(0.5, 0.5));
     gc.drawImage(QPoint(), srcImage);
 
-    QPointF newOffset;
-    QImage result = worker.runOnQImage(image, QPointF(10, 10), imageToThumbTransform, &newOffset);
-    dbgKrita << ppVar(newOffset);
+    PkPointF newOffset;
+    PkImage result = worker.runOnImage(TestUtil::pkImageFromQImage(image),
+                                       PkPointF(10, 10), imageToThumbTransform,
+                                       &newOffset);
 
 
     TestUtil::checkQImage(result, "liquify_transform_test", "liquify_qimage", "resultImage");
@@ -190,7 +193,7 @@ void KisLiquifyTransformWorkerTest::testIdentityTransform()
 
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
 
-    QRect rc(0,0,13,23);
+    PkRect rc(0,0,13,23);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->fill(rc, KoColor(Pk::blue, cs));
@@ -205,7 +208,7 @@ void KisLiquifyTransformWorkerTest::testIdentityTransform()
 
     worker.run(srcDev, dev);
 
-    QImage result = dev->convertToQImage(0, rc);
+    PkImage result = dev->convertToQImage(0, rc);
     TestUtil::checkQImage(result, "liquify_transform_test", "liquify_dev", "identity");
 }
 
@@ -260,21 +263,23 @@ void KisLiquifyTransformWorkerTest::testMaskRendering_data()
 
 QImage convertPaintDeviceTo16BitQImage(KisPaintDeviceSP dev, QSize size) {
     if (dev->pixelSize() != 2*4) {
-        ENTER_FUNCTION() << "The Paint Device should be 16 bit too";
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(false, dev->convertToQImage(dev->colorSpace()->profile()));
+        qWarning() << "The Paint Device should be 16 bit too";
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(
+            false,
+            TestUtil::diagnosticQImage(dev->convertToQImage(dev->colorSpace()->profile())));
     }
 
     quint8 *data = 0;
     try {
         data = new quint8 [size.width() * size.height() * dev->pixelSize()];
     } catch (const std::bad_alloc&) {
-        warnKrita << "KisPaintDevice::convertToQImage std::bad_alloc for " << size << " * " << dev->pixelSize();
+        qWarning() << "KisPaintDevice::convertToQImage std::bad_alloc for " << size << " * " << dev->pixelSize();
         //delete[] data; // data is not allocated, so don't free it
         return QImage();
     }
     Q_CHECK_PTR(data);
 
-    dev->readBytes(data, QRect(QPoint(), size));
+    dev->readBytes(data, PkRect(PkPoint(), PkSize(size.width(), size.height())));
     QImage img = QImage(size, QImage::Format_RGBA64);
     memcpy(img.bits(), const_cast<quint8 *>(data), size.width() * size.height() * dev->pixelSize());
     delete[] data;
@@ -285,7 +290,7 @@ QImage convertPaintDeviceTo16BitQImage(KisPaintDeviceSP dev, QSize size) {
 void convert16BitQImageToPaintDevice(KisPaintDeviceSP dev, QImage image) {
 
     if (image.format() != QImage::Format_RGBA64) {
-        ENTER_FUNCTION() << "The Paint Device should be 16 bit too";
+        qWarning() << "The Paint Device should be 16 bit too";
         KIS_SAFE_ASSERT_RECOVER_RETURN(false);
     }
 
@@ -301,7 +306,7 @@ KisPaintDeviceSP getPaintDeviceFromQImage(QImage image, const KoColorSpace* cs) 
     if (image.format() == QImage::Format_RGBA64) {
         convert16BitQImageToPaintDevice(dev, image);
     } else {
-        dev->convertFromQImage(image, cs->profile());
+        dev->convertFromQImage(TestUtil::pkImageFromQImage(image), cs->profile());
     }
     return dev;
 }
@@ -316,7 +321,7 @@ void KisLiquifyTransformWorkerTest::testMaskRendering()
 
 
     QString tname = QTest::currentDataTag();
-    ENTER_FUNCTION() << ppVar(tname);
+    qDebug() << ppVar(tname);
 
 
 
@@ -346,8 +351,10 @@ void KisLiquifyTransformWorkerTest::testMaskRendering()
 
     if (onQImage) {
 
-        QPointF p;
-        result = liquifyWorker->runOnQImage(image, p, QTransform(), &p);
+        PkPointF p;
+        result = TestUtil::diagnosticQImage(
+            liquifyWorker->runOnImage(TestUtil::pkImageFromQImage(image),
+                                      p, PkTransform(), &p));
 
     } else {
         liquifyWorker->run(dev, dstDev);
@@ -357,7 +364,9 @@ void KisLiquifyTransformWorkerTest::testMaskRendering()
             result = convertPaintDeviceTo16BitQImage(dstDev, image.size());
         }
         else {
-            result = dstDev->convertToQImage(cs->profile(), 0, 0, image.width(), image.height());
+            result = TestUtil::diagnosticQImage(
+                dstDev->convertToQImage(cs->profile(), 0, 0,
+                                        image.width(), image.height()));
         }
     }
 
@@ -374,7 +383,7 @@ void KisLiquifyTransformWorkerTest::testMaskRendering()
         KisPaintDeviceSP expDev = getPaintDeviceFromQImage(expected, cs);
 
         dstDev->crop(0, 0, expected.width(), expected.height()); // needed in case the transform would move the content out of the canvas
-        ENTER_FUNCTION() << "src = expDev, dst = dstDev";
+        qDebug() << "src = expDev, dst = dstDev";
         QVERIFY(TestUtil::comparePaintDevicesClever<uint16_t>(expDev, dstDev));
 
     } else {

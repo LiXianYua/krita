@@ -10,27 +10,29 @@
 #include "kritaimage_export.h"
 #include <KisBezierMesh.h>
 
-#include <QColor>
+#include <PkColor.h>
+#include <PkImage.h>
+#include <PkXmlElement.h>
 
 namespace KisBezierGradientMeshDetail {
 
-inline QColor lerp(const QColor &c1, const QColor &c2, qreal t) {
+inline PkColor lerp(const PkColor &c1, const PkColor &c2, qreal t) {
     using KisAlgebra2D::lerp;
 
-    return QColor::fromRgbF(lerp(c1.redF(), c2.redF(), t),
-                            lerp(c1.greenF(), c2.greenF(), t),
-                            lerp(c1.blueF(), c2.blueF(), t),
-                            lerp(c1.alphaF(), c2.alphaF(), t));
+    return PkColor::fromRgbF(lerp(c1.redF(), c2.redF(), t),
+                             lerp(c1.greenF(), c2.greenF(), t),
+                             lerp(c1.blueF(), c2.blueF(), t),
+                             lerp(c1.alphaF(), c2.alphaF(), t));
 }
 
 struct GradientMeshPatch : public KisBezierPatch {
-    std::array<QColor, 4> colors;
+    std::array<PkColor, 4> colors;
 };
 
 struct GradientMeshNode : public KisBezierMeshDetails::BaseMeshNode, public boost::equality_comparable<GradientMeshNode>
 {
     using BaseMeshNode::BaseMeshNode;
-    QColor color;
+    PkColor color;
 
     bool operator==(const GradientMeshNode &rhs) const {
         return static_cast<const KisBezierMeshDetails::BaseMeshNode&>(*this) ==
@@ -45,7 +47,7 @@ inline void lerpNodeData(const GradientMeshNode &left, const GradientMeshNode &r
 }
 
 inline void assignPatchData(GradientMeshPatch *patch,
-                     const QRectF &srcRect,
+                     const PkRectF &srcRect,
                      const GradientMeshNode &tl,
                      const GradientMeshNode &tr,
                      const GradientMeshNode &bl,
@@ -53,7 +55,7 @@ inline void assignPatchData(GradientMeshPatch *patch,
 {
     Q_UNUSED(srcRect);
 
-    patch->originalRect = QRectF(0.0, 0.0, 1.0, 1.0);
+    patch->originalRect = PkRectF(0.0, 0.0, 1.0, 1.0);
     patch->colors[0] = tl.color;
     patch->colors[1] = tr.color;
     patch->colors[2] = bl.color;
@@ -64,30 +66,30 @@ class KRITAIMAGE_EXPORT KisBezierGradientMesh : public KisBezierMeshBase<Gradien
 {
 public:
 
-    PatchIndex hitTestPatch(const QPointF &pt, QPointF *localPointResult) const;
+    PatchIndex hitTestPatch(const PkPointF &pt, PkPointF *localPointResult) const;
 
     static void renderPatch(const GradientMeshPatch &patch,
-                     const QPoint &dstQImageOffset,
-                     QImage *dstImage);
+                     const PkPoint &dstImageOffset,
+                     PkImage *dstImage);
 
-    void renderMesh(const QPoint &dstQImageOffset,
-                    QImage *dstImage) const;
+    void renderMesh(const PkPoint &dstImageOffset,
+                    PkImage *dstImage) const;
 
-    friend KRITAIMAGE_EXPORT void saveValue(QDomElement *parent, const QString &tag, const KisBezierGradientMesh &mesh);
-    friend KRITAIMAGE_EXPORT bool loadValue(const QDomElement &parent, const QString &tag, KisBezierGradientMesh *mesh);
+    friend KRITAIMAGE_EXPORT void saveValue(PkXmlElement *parent, const PkString &tag, const KisBezierGradientMesh &mesh);
+    friend KRITAIMAGE_EXPORT bool loadValue(const PkXmlElement &parent, const PkString &tag, KisBezierGradientMesh *mesh);
 };
 
 KRITAIMAGE_EXPORT
-void saveValue(QDomElement *parent, const QString &tag, const GradientMeshNode &node);
+void saveValue(PkXmlElement *parent, const PkString &tag, const GradientMeshNode &node);
 
 KRITAIMAGE_EXPORT
-bool loadValue(const QDomElement &parent, GradientMeshNode *node);
+bool loadValue(const PkXmlElement &parent, GradientMeshNode *node);
 
 KRITAIMAGE_EXPORT
-void saveValue(QDomElement *parent, const QString &tag, const KisBezierGradientMesh &mesh);
+void saveValue(PkXmlElement *parent, const PkString &tag, const KisBezierGradientMesh &mesh);
 
 KRITAIMAGE_EXPORT
-bool loadValue(const QDomElement &parent, const QString &tag, KisBezierGradientMesh *mesh);
+bool loadValue(const PkXmlElement &parent, const PkString &tag, KisBezierGradientMesh *mesh);
 }
 
 namespace KisDomUtils {

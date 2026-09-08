@@ -13,48 +13,49 @@
 
 namespace KisBezierGradientMeshDetail {
 
-struct QImageGradientOp
+struct PkImageGradientOp
 {
-    QImageGradientOp(const std::array<QColor, 4> &colors, QImage &dstImage,
-                    const QPointF &dstImageOffset)
+    PkImageGradientOp(const std::array<PkColor, 4> &colors, PkImage &dstImage,
+                      const PkPointF &dstImageOffset)
         : m_colors(colors), m_dstImage(dstImage),
           m_dstImageOffset(dstImageOffset),
           m_dstImageRect(m_dstImage.rect())
     {
     }
 
-    void operator() (const QPolygonF &srcPolygon, const QPolygonF &dstPolygon) {
+    void operator() (const PkPolygonF &srcPolygon, const PkPolygonF &dstPolygon) {
         this->operator() (srcPolygon, dstPolygon, dstPolygon);
     }
 
-    void operator() (const QPolygonF &srcPolygon, const QPolygonF &dstPolygon, const QPolygonF &clipDstPolygon) {
-        QRect boundRect = clipDstPolygon.boundingRect().toAlignedRect();
+    void operator() (const PkPolygonF &srcPolygon, const PkPolygonF &dstPolygon, const PkPolygonF &clipDstPolygon) {
+        PkRect boundRect = clipDstPolygon.boundingRect().toAlignedRect();
         KisFourPointInterpolatorBackward interp(srcPolygon, dstPolygon);
 
         for (int y = boundRect.top(); y <= boundRect.bottom(); y++) {
             interp.setY(y);
             for (int x = boundRect.left(); x <= boundRect.right(); x++) {
 
-                QPointF srcPoint(x, y);
+                PkPointF srcPoint(x, y);
                 if (clipDstPolygon.containsPoint(srcPoint, Pk::OddEvenFill)) {
 
                     interp.setX(srcPoint.x());
-                    QPointF dstPoint = interp.getValue();
+                    PkPointF dstPoint = interp.getValue();
 
                     // about srcPoint/dstPoint hell please see a
                     // comment in PaintDevicePolygonOp::operator() ()
 
                     srcPoint -= m_dstImageOffset;
 
-                    QPoint srcPointI = srcPoint.toPoint();
+                    PkPoint srcPointI = srcPoint.toPoint();
 
                     if (!m_dstImageRect.contains(srcPointI)) continue;
 
                     // TODO: move vertical calculation into the upper loop
-                    const QColor c1 = lerp(m_colors[0], m_colors[1], pkBound(0.0, dstPoint.x(), 1.0));
-                    const QColor c2 = lerp(m_colors[2], m_colors[3], pkBound(0.0, dstPoint.x(), 1.0));
+                    const PkColor c1 = lerp(m_colors[0], m_colors[1], pkBound(0.0, dstPoint.x(), 1.0));
+                    const PkColor c2 = lerp(m_colors[2], m_colors[3], pkBound(0.0, dstPoint.x(), 1.0));
 
-                    m_dstImage.setPixelColor(srcPointI, lerp(c1, c2, pkBound(0.0, dstPoint.y(), 1.0)));
+                    m_dstImage.setPixelColor(srcPointI.x(), srcPointI.y(),
+                                             lerp(c1, c2, pkBound(0.0, dstPoint.y(), 1.0)).rgba());
                 }
             }
         }
@@ -62,16 +63,16 @@ struct QImageGradientOp
 
     void finalize() {}
 
-    const std::array<QColor, 4> &m_colors;
-    QImage &m_dstImage;
-    QPointF m_dstImageOffset;
-    QRect m_dstImageRect;
+    const std::array<PkColor, 4> &m_colors;
+    PkImage &m_dstImage;
+    PkPointF m_dstImageOffset;
+    PkRect m_dstImageRect;
 };
 
-void saveValue(QDomElement *parent, const QString &tag, const GradientMeshNode &node)
+void saveValue(PkXmlElement *parent, const PkString &tag, const GradientMeshNode &node)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "gradient-mesh-node");
@@ -84,7 +85,7 @@ void saveValue(QDomElement *parent, const QString &tag, const GradientMeshNode &
 
 }
 
-bool loadValue(const QDomElement &parent, GradientMeshNode *node)
+bool loadValue(const PkXmlElement &parent, GradientMeshNode *node)
 {
     if (!KisDomUtils::Private::checkType(parent, "gradient-mesh-node")) return false;
 
@@ -97,10 +98,10 @@ bool loadValue(const QDomElement &parent, GradientMeshNode *node)
     return true;
 }
 
-void saveValue(QDomElement *parent, const QString &tag, const KisBezierGradientMesh &mesh)
+void saveValue(PkXmlElement *parent, const PkString &tag, const KisBezierGradientMesh &mesh)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "gradient-mesh");
@@ -112,9 +113,9 @@ void saveValue(QDomElement *parent, const QString &tag, const KisBezierGradientM
     KisDomUtils::saveValue(&e, "nodes", mesh.m_nodes);
 }
 
-bool loadValue(const QDomElement &parent, const QString &tag, KisBezierGradientMesh *mesh)
+bool loadValue(const PkXmlElement &parent, const PkString &tag, KisBezierGradientMesh *mesh)
 {
-    QDomElement e;
+    PkXmlElement e;
     if (!KisDomUtils::findOnlyElement(parent, tag, &e)) return false;
 
     if (!KisDomUtils::Private::checkType(e, "gradient-mesh")) return false;
@@ -134,16 +135,16 @@ bool loadValue(const QDomElement &parent, const QString &tag, KisBezierGradientM
 
 }
 
-KisBezierGradientMesh::PatchIndex KisBezierGradientMesh::hitTestPatch(const QPointF &pt, QPointF *localPointResult) const {
+KisBezierGradientMesh::PatchIndex KisBezierGradientMesh::hitTestPatch(const PkPointF &pt, PkPointF *localPointResult) const {
     auto result = endPatches();
 
-    const QRectF unitRect(0, 0, 1, 1);
+    const PkRectF unitRect(0, 0, 1, 1);
 
     for (auto it = beginPatches(); it != endPatches(); ++it) {
         Patch patch = *it;
 
         if (patch.dstBoundingRect().contains(pt)) {
-            const QPointF localPos = KisBezierUtils::calculateLocalPosSVG2(patch.points, pt);
+            const PkPointF localPos = KisBezierUtils::calculateLocalPosSVG2(patch.points, pt);
 
             if (unitRect.contains(localPos)) {
 
@@ -161,21 +162,21 @@ KisBezierGradientMesh::PatchIndex KisBezierGradientMesh::hitTestPatch(const QPoi
 }
 
 void KisBezierGradientMesh::renderPatch(const KisBezierGradientMeshDetail::GradientMeshPatch &patch,
-                                        const QPoint &dstQImageOffset,
-                                        QImage *dstImage)
+                                        const PkPoint &dstImageOffset,
+                                        PkImage *dstImage)
 {
-    QVector<QPointF> originalPointsLocal;
-    QVector<QPointF> transformedPointsLocal;
-    QSize gridSize;
+    PkVector<PkPointF> originalPointsLocal;
+    PkVector<PkPointF> transformedPointsLocal;
+    PkSize gridSize;
 
-    patch.sampleRegularGridSVG2(gridSize, originalPointsLocal, transformedPointsLocal, QPointF(8,8));
+    patch.sampleRegularGridSVG2(gridSize, originalPointsLocal, transformedPointsLocal, PkPointF(8,8));
 
-    const QRect dstBoundsI = patch.dstBoundingRect().toAlignedRect();
-    const QRect imageSize = QRect(dstQImageOffset, dstImage->size());
+    const PkRect dstBoundsI = patch.dstBoundingRect().toAlignedRect();
+    const PkRect imageSize = PkRect(dstImageOffset, dstImage->size());
     KIS_SAFE_ASSERT_RECOVER_NOOP(imageSize.contains(dstBoundsI));
 
     {
-        QImageGradientOp polygonOp(patch.colors, *dstImage, dstQImageOffset);
+        PkImageGradientOp polygonOp(patch.colors, *dstImage, dstImageOffset);
 
 
         GridIterationTools::RegularGridIndexesOp indexesOp(gridSize);
@@ -188,10 +189,10 @@ void KisBezierGradientMesh::renderPatch(const KisBezierGradientMeshDetail::Gradi
     }
 }
 
-void KisBezierGradientMesh::renderMesh(const QPoint &dstQImageOffset,
-                                       QImage *dstImage) const
+void KisBezierGradientMesh::renderMesh(const PkPoint &dstImageOffset,
+                                       PkImage *dstImage) const
 {
     for (auto it = beginPatches(); it != endPatches(); ++it) {
-        renderPatch(*it, dstQImageOffset, dstImage);
+        renderPatch(*it, dstImageOffset, dstImage);
     }
 }

@@ -26,17 +26,18 @@ void testCage(bool clockwise, bool unityTransform, bool benchmarkPrepareOnly = f
     KoUpdaterPtr updater = pu.startSubtask();
 
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
-    QImage image(TestUtil::fetchDataFileLazy("test_cage_transform.png"));
+    const QImage sourceImage(TestUtil::fetchDataFileLazy("test_cage_transform.png"));
+    const PkImage image = TestUtil::pkImageFromQImage(sourceImage);
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->convertFromQImage(image, 0);
 
     KisPaintDeviceSP srcDev = new KisPaintDevice(*dev);
 
-    QVector<QPointF> origPoints;
-    QVector<QPointF> transfPoints;
+    PkVector<PkPointF> origPoints;
+    PkVector<PkPointF> transfPoints;
 
-    QRectF bounds(dev->exactBounds());
+    PkRectF bounds(dev->exactBounds());
 
     origPoints << bounds.topLeft();
     origPoints << 0.5 * (bounds.topLeft() + bounds.topRight());
@@ -71,9 +72,9 @@ void testCage(bool clockwise, bool unityTransform, bool benchmarkPrepareOnly = f
                                   updater,
                                   pixelPrecision);
 
-    QImage result;
-    QPointF srcQImageOffset(0, 0);
-    QPointF dstQImageOffset;
+    PkImage result;
+    PkPointF srcImageOffset(0, 0);
+    PkPointF dstImageOffset;
 
     QBENCHMARK_ONCE {
         if (!testQImage) {
@@ -84,21 +85,14 @@ void testCage(bool clockwise, bool unityTransform, bool benchmarkPrepareOnly = f
 
             }
         } else {
-            QImage srcImage = image;
-            QImage image2 = QImage(image.size(), QImage::Format_ARGB32);
-            QPainter gc(&image2);
-            gc.drawImage(QPoint(), srcImage);
-            gc.end();
-            image = image2;
-
             KisCageTransformWorker qimageWorker(image,
-                                                srcQImageOffset,
+                                                srcImageOffset,
                                                 origPoints,
                                                 updater,
                                                 pixelPrecision);
             qimageWorker.prepareTransform();
             qimageWorker.setTransformedCage(transfPoints);
-            result = qimageWorker.runOnQImage(&dstQImageOffset);
+            result = qimageWorker.runOnImage(&dstImageOffset);
         }
     }
 
@@ -153,14 +147,14 @@ void KisCageTransformWorkerTest::testCageCounterclockwiseUnity()
 #include <QtGlobal>
 
 
-QPointF generatePoint(const QRectF &rc, QRandomGenerator &rng)
+PkPointF generatePoint(const PkRectF &rc, QRandomGenerator &rng)
 {
     qreal cx = rng.bounded(1.0);
     qreal cy = rng.bounded(1.0);
 
-    QPointF diff = rc.bottomRight() - rc.topLeft();
+    PkPointF diff = rc.bottomRight() - rc.topLeft();
 
-    QPointF pt = rc.topLeft() + QPointF(cx * diff.x(), cy * diff.y());
+    PkPointF pt = rc.topLeft() + PkPointF(cx * diff.x(), cy * diff.y());
     return pt;
 }
 
@@ -174,19 +168,19 @@ void KisCageTransformWorkerTest::stressTestRandomCages()
     QImage image(TestUtil::fetchDataFileLazy("test_cage_transform.png"));
 
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
-    dev->convertFromQImage(image, 0);
+    dev->convertFromQImage(TestUtil::pkImageFromQImage(image), 0);
 
     KisPaintDeviceSP dstDev = new KisPaintDevice(cs);
 
     const int pixelPrecision = 8;
-    QRectF bounds(dev->exactBounds());
+    PkRectF bounds(dev->exactBounds());
 
     QRandomGenerator rng{};
 
     for (int numPoints = 4; numPoints < 15; numPoints+=5) {
         for (int j = 0; j < 200; j++) {
-            QVector<QPointF> origPoints;
-            QVector<QPointF> transfPoints;
+            PkVector<PkPointF> origPoints;
+            PkVector<PkPointF> transfPoints;
 
             dbgKrita << ppVar(j);
 
@@ -211,10 +205,10 @@ void KisCageTransformWorkerTest::stressTestRandomCages()
 
 void KisCageTransformWorkerTest::testUnityGreenCoordinates()
 {
-    QVector<QPointF> origPoints;
-    QVector<QPointF> transfPoints;
+    PkVector<PkPointF> origPoints;
+    PkVector<PkPointF> transfPoints;
 
-    QRectF bounds(0,0,300,300);
+    PkRectF bounds(0,0,300,300);
 
     origPoints << bounds.topLeft();
     origPoints << 0.5 * (bounds.topLeft() + bounds.topRight());
@@ -225,28 +219,28 @@ void KisCageTransformWorkerTest::testUnityGreenCoordinates()
 
     transfPoints = origPoints;
 
-    QVector<QPointF> points;
-    points << QPointF(10,10);
-    points << QPointF(140,10);
-    points << QPointF(140,140);
-    points << QPointF(10,140);
+    PkVector<PkPointF> points;
+    points << PkPointF(10,10);
+    points << PkPointF(140,10);
+    points << PkPointF(140,140);
+    points << PkPointF(10,140);
 
-    points << QPointF(10,160);
-    points << QPointF(140,160);
-    points << QPointF(140,290);
-    points << QPointF(10,290);
+    points << PkPointF(10,160);
+    points << PkPointF(140,160);
+    points << PkPointF(140,290);
+    points << PkPointF(10,290);
 
-    points << QPointF(160,160);
-    points << QPointF(290,160);
-    points << QPointF(290,290);
-    points << QPointF(160,290);
+    points << PkPointF(160,160);
+    points << PkPointF(290,160);
+    points << PkPointF(290,290);
+    points << PkPointF(160,290);
 
     KisGreenCoordinatesMath cage;
 
     cage.precalculateGreenCoordinates(origPoints, points);
     cage.generateTransformedCageNormals(transfPoints);
 
-    QVector<QPointF> newPoints;
+    PkVector<PkPointF> newPoints;
 
     for (int i = 0; i < points.size(); i++) {
         newPoints << cage.transformedPoint(i, transfPoints);
@@ -258,66 +252,66 @@ void KisCageTransformWorkerTest::testUnityGreenCoordinates()
 
 void KisCageTransformWorkerTest::testTransformAsBase()
 {
-    QPointF t(1.0, 0.0);
-    QPointF b1(1.0, 0.0);
-    QPointF b2(2.0, 0.0);
-    QPointF result;
+    PkPointF t(1.0, 0.0);
+    PkPointF b1(1.0, 0.0);
+    PkPointF b2(2.0, 0.0);
+    PkPointF result;
 
 
-    t = QPointF(1.0, 0.0);
-    b1 = QPointF(1.0, 0.0);
-    b2 = QPointF(2.0, 0.0);
+    t = PkPointF(1.0, 0.0);
+    b1 = PkPointF(1.0, 0.0);
+    b2 = PkPointF(2.0, 0.0);
     result = KisAlgebra2D::transformAsBase(t, b1, b2);
-    QCOMPARE(result, QPointF(2.0, 0.0));
+    QCOMPARE(result, PkPointF(2.0, 0.0));
 
-    t = QPointF(1.0, 0.0);
-    b1 = QPointF(1.0, 0.0);
-    b2 = QPointF(0.0, 1.0);
+    t = PkPointF(1.0, 0.0);
+    b1 = PkPointF(1.0, 0.0);
+    b2 = PkPointF(0.0, 1.0);
     result = KisAlgebra2D::transformAsBase(t, b1, b2);
-    QCOMPARE(result, QPointF(0.0, 1.0));
+    QCOMPARE(result, PkPointF(0.0, 1.0));
 
-    t = QPointF(1.0, 0.0);
-    b1 = QPointF(1.0, 0.0);
-    b2 = QPointF(0.0, 2.0);
+    t = PkPointF(1.0, 0.0);
+    b1 = PkPointF(1.0, 0.0);
+    b2 = PkPointF(0.0, 2.0);
     result = KisAlgebra2D::transformAsBase(t, b1, b2);
-    QCOMPARE(result, QPointF(0.0, 2.0));
+    QCOMPARE(result, PkPointF(0.0, 2.0));
 
-    t = QPointF(0.0, 1.0);
-    b1 = QPointF(1.0, 0.0);
-    b2 = QPointF(2.0, 0.0);
+    t = PkPointF(0.0, 1.0);
+    b1 = PkPointF(1.0, 0.0);
+    b2 = PkPointF(2.0, 0.0);
     result = KisAlgebra2D::transformAsBase(t, b1, b2);
-    QCOMPARE(result, QPointF(0.0, 2.0));
+    QCOMPARE(result, PkPointF(0.0, 2.0));
 
-    t = QPointF(0.0, 1.0);
-    b1 = QPointF(1.0, 0.0);
-    b2 = QPointF(0.0, 1.0);
+    t = PkPointF(0.0, 1.0);
+    b1 = PkPointF(1.0, 0.0);
+    b2 = PkPointF(0.0, 1.0);
     result = KisAlgebra2D::transformAsBase(t, b1, b2);
-    QCOMPARE(result, QPointF(-1.0, 0.0));
+    QCOMPARE(result, PkPointF(-1.0, 0.0));
 
-    t = QPointF(0.0, 1.0);
-    b1 = QPointF(1.0, 0.0);
-    b2 = QPointF(0.0, 2.0);
+    t = PkPointF(0.0, 1.0);
+    b1 = PkPointF(1.0, 0.0);
+    b2 = PkPointF(0.0, 2.0);
     result = KisAlgebra2D::transformAsBase(t, b1, b2);
-    QCOMPARE(result, QPointF(-2.0, 0.0));
+    QCOMPARE(result, PkPointF(-2.0, 0.0));
 }
 
 void KisCageTransformWorkerTest::testAngleBetweenVectors()
 {
-    QPointF b1(1.0, 0.0);
-    QPointF b2(2.0, 0.0);
+    PkPointF b1(1.0, 0.0);
+    PkPointF b2(2.0, 0.0);
     qreal result;
 
-    b1 = QPointF(1.0, 0.0);
-    b2 = QPointF(0.0, 1.0);
+    b1 = PkPointF(1.0, 0.0);
+    b2 = PkPointF(0.0, 1.0);
     result = KisAlgebra2D::angleBetweenVectors(b1, b2);
     QCOMPARE(result, M_PI_2);
 
-    b1 = QPointF(1.0, 0.0);
-    b2 = QPointF(std::sqrt(0.5), std::sqrt(0.5));
+    b1 = PkPointF(1.0, 0.0);
+    b2 = PkPointF(std::sqrt(0.5), std::sqrt(0.5));
     result = KisAlgebra2D::angleBetweenVectors(b1, b2);
     QCOMPARE(result, M_PI / 4);
 
-    QTransform t;
+    PkTransform t;
     t.rotateRadians(M_PI / 4);
     QCOMPARE(t.map(b1), b2);
 }
