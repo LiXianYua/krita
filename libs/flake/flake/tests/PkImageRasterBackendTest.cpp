@@ -90,6 +90,7 @@ void PkImageRasterBackendTest::matchesQtGradientPixels()
 
 void PkImageRasterBackendTest::matchesQtStrokePixels()
 {
+    for (bool dispatch : {false, true}) {
     for (double width : {0.0, 1.0, 3.25}) {
     for (bool antialias : {false, true}) {
         for (bool dashed : {false, true}) {
@@ -112,8 +113,24 @@ void PkImageRasterBackendTest::matchesQtStrokePixels()
             qtPen.setCapStyle(Qt::RoundCap); pkPen.setCapStyle(Pk::RoundCap);
             qtPen.setJoinStyle(Qt::MiterJoin); pkPen.setJoinStyle(Pk::MiterJoin);
             if (dashed) { qtPen.setStyle(Qt::DashLine); pkPen.setStyle(Pk::DashLine); }
-            qtPainter.strokePath(qtPath, qtPen);
-            painter.strokePath(pkPath, pkPen);
+            if (dispatch) {
+                qtPainter.setPen(qtPen); painter.setPen(pkPen);
+                qtPainter.drawPath(qtPath); painter.drawPath(pkPath);
+                qtPainter.save(); painter.save();
+                qtPainter.setPen(Qt::NoPen); painter.setPen(Pk::NoPen);
+                qtPainter.drawLine(QPointF(1, 1), QPointF(10, 1));
+                painter.drawLine(PkPointF(1, 1), PkPointF(10, 1));
+                qtPainter.restore(); painter.restore();
+                qtPainter.drawLine(QPointF(1, 1), QPointF(10, 1));
+                painter.drawLine(PkPointF(1, 1), PkPointF(10, 1));
+                if (width == 0) {
+                    qtPainter.drawPoint(QPointF(29.5, 5.25));
+                    painter.drawPoint(PkPointF(29.5, 5.25));
+                }
+            } else {
+                qtPainter.strokePath(qtPath, qtPen);
+                painter.strokePath(pkPath, pkPen);
+            }
             qtPainter.end();
             for (int y = 0; y < 32; ++y) {
                 for (int x = 0; x < 40; ++x) {
@@ -125,6 +142,7 @@ void PkImageRasterBackendTest::matchesQtStrokePixels()
                 }
             }
         }
+    }
     }
     }
 }

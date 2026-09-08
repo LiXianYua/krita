@@ -20,7 +20,7 @@ public:
 private:
     void drawImage(const PkDrawImageCommand &command);
     void fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle = false);
-    void strokePath(const PkPainterPath &path, const PkPen &pen);
+    void strokePath(const PkPainterPath &path, const PkPen &pen, bool point = false);
     void setClip(const PkPainterPath &path, Pk::ClipOperation operation);
     std::vector<unsigned char> coverage(const PkPainterPath &path) const;
 
@@ -29,6 +29,8 @@ private:
         qreal opacity {1.0};
         Pk::CompositionMode mode {Pk::CompositionMode_SourceOver};
         PkTransform transform;
+        PkPen pen;
+        PkBrush brush;
         unsigned hints {0};
         std::vector<unsigned char> clip;
         bool hasClip {false};

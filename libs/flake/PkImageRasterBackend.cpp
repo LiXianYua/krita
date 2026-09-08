@@ -384,6 +384,29 @@ qreal PkImageRasterBackend::devicePixelRatio() const
 
 void PkImageRasterBackend::submit(const PkPaintCommand &command)
 {
+    if (const auto *pen = std::get_if<PkSetPenCommand>(&command)) {
+        m_state.pen = pen->pen;
+        return;
+    }
+    if (const auto *brush = std::get_if<PkSetBrushCommand>(&command)) {
+        m_state.brush = brush->brush;
+        return;
+    }
+    if (const auto *path = std::get_if<PkDrawPathCommand>(&command)) {
+        fillPath(path->path, m_state.brush);
+        strokePath(path->path, m_state.pen);
+        return;
+    }
+    if (const auto *line = std::get_if<PkDrawLineCommand>(&command)) {
+        PkPainterPath path(line->line.p1());
+        path.lineTo(line->line.p2());
+        strokePath(path, m_state.pen);
+        return;
+    }
+    if (const auto *point = std::get_if<PkDrawPointCommand>(&command)) {
+        strokePath(PkPainterPath(point->point), m_state.pen, true);
+        return;
+    }
     if (const auto *stroke = std::get_if<PkStrokePathCommand>(&command)) {
         strokePath(stroke->path, stroke->pen);
         return;
@@ -715,7 +738,7 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
     }
 }
 
-void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pen)
+void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pen, bool point)
 {
     if (pen.style() == Pk::NoPen) return;
     const double scale = std::max(std::hypot(m_state.transform.m11(), m_state.transform.m12()),
@@ -752,9 +775,15 @@ void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pe
         };
         PkCosmeticStroker stroker(pen, m_state.transform, m_state.hints & 1u, scale,
                                   m_destination.rect(), blend, &context);
-        stroker.drawPath(path);
+        if (point) {
+            const auto position = path.currentPosition();
+            stroker.drawPoints(&position, 1);
+        } else {
+            stroker.drawPath(path);
+        }
         return;
     }
+    if (point) throw std::logic_error("PkImageRasterBackend wide point rasterization unsupported");
     if (pen.isCosmetic()) {
         // Cosmetic pen width is measured after the world transform.
         const auto transform = m_state.transform;
