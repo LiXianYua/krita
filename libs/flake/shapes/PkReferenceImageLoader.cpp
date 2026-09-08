@@ -126,9 +126,19 @@ bool normalizeRgb(PkImage &image, cmsHPROFILE profile, const Matrix *explicitPri
         return true;
     }
     const bool premultiplied=image.format()==PkImage::Format_ARGB32_Premultiplied;
-    PkImage normalized(image.width(),image.height(),premultiplied?PkImage::Format_ARGB32_Premultiplied:PkImage::Format_ARGB32);
+    const bool gray16=image.format()==PkImage::Format_Grayscale16;
+    PkImage normalized(image.width(),image.height(),gray16?PkImage::Format_Grayscale16:
+        premultiplied?PkImage::Format_ARGB32_Premultiplied:PkImage::Format_ARGB32);
     for (int y=0;y<image.height();++y) for (int x=0;x<image.width();++x) {
-        const unsigned pixel=image.pixel(x,y);
+        // Qt applyColorTransform converts depth <= 32 opaque formats through
+        // RGB32, then restores the original format. Keep the codec's uint16
+        // storage and use rounded div-257 only for this normalization step.
+        unsigned pixel;
+        if (gray16) {
+            unsigned gray=reinterpret_cast<const std::uint16_t*>(image.constScanLine(y))[x]+128u;
+            gray=(gray-(gray>>8))>>8;
+            pixel=0xff000000u|gray*0x10101u;
+        } else pixel=image.pixel(x,y);
         const unsigned alpha=pixel>>24;
         const auto inputIndex=[&](unsigned channel) {
             if (!premultiplied) return int(channel*16);
@@ -158,7 +168,10 @@ bool normalizeRgb(PkImage &image, cmsHPROFILE profile, const Matrix *explicitPri
             return unsigned(fromLinear[index]*(alpha/65280.f)+.5f);
 #endif
         };
-        normalized.setPixel(x,y,(pixel&0xff000000u)|(channel(linear[0])<<16)|(channel(linear[1])<<8)|channel(linear[2]));
+        if (gray16) {
+            reinterpret_cast<std::uint16_t*>(normalized.scanLine(y))[x]=
+                ((11*channel(linear[0])+16*channel(linear[1])+5*channel(linear[2]))/32)*257;
+        } else normalized.setPixel(x,y,(pixel&0xff000000u)|(channel(linear[0])<<16)|(channel(linear[1])<<8)|channel(linear[2]));
     }
     image=normalized;
     return true;

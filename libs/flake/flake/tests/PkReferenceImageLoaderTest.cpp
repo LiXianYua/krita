@@ -14,7 +14,47 @@ private Q_SLOTS:
     void normalizesTaggedRasterPixels();
     void preservesHighDepthTaggedPng();
     void normalizesGammaChromaticityPng();
+    void normalizesGrayscale16Png();
 };
+void PkReferenceImageLoaderTest::normalizesGrayscale16Png()
+{
+    QTemporaryDir dir; QVERIFY(dir.isValid());
+    // Every div-257 boundary, including the values immediately on either side.
+    for (int metadata : {0,1,2}) {
+        const QString path=dir.filePath("gray16.png");
+        FILE *file=std::fopen(path.toLocal8Bit().constData(),"wb"); QVERIFY(file);
+        png_structp png=png_create_write_struct(PNG_LIBPNG_VER_STRING,nullptr,nullptr,nullptr); QVERIFY(png);
+        png_infop info=png_create_info_struct(png); QVERIFY(info);
+        QVERIFY(setjmp(png_jmpbuf(png))==0);
+        png_init_io(png,file);
+        png_set_IHDR(png,info,256,3,16,PNG_COLOR_TYPE_GRAY,PNG_INTERLACE_NONE,PNG_COMPRESSION_TYPE_DEFAULT,PNG_FILTER_TYPE_DEFAULT);
+        if (metadata==2) png_set_sRGB(png,info,PNG_sRGB_INTENT_PERCEPTUAL);
+        else {
+            png_set_gAMA(png,info,1.0);
+            if (metadata==1) png_set_cHRM(png,info,.31271,.32902,.68,.32,.265,.69,.15,.06);
+        }
+        png_write_info(png,info);
+        for (int y=0;y<3;++y) {
+            unsigned char row[512];
+            for (int x=0;x<256;++x) {
+                const unsigned value=std::min(65535,x*257+127+y);
+                row[2*x]=value>>8; row[2*x+1]=value&255;
+            }
+            png_write_row(png,row);
+        }
+        png_write_end(png,info); png_destroy_write_struct(&png,&info); std::fclose(file);
+        QImage expected=QImageReader(path).read();
+        QCOMPARE(expected.format(),QImage::Format_Grayscale16);
+        QVERIFY(expected.colorSpace().isValid());
+        expected.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
+        const PkImage actual=loadPkReferenceImage(path.toStdString());
+        QCOMPARE(actual.format(),PkImage::Format_Grayscale16);
+        QCOMPARE(expected.format(),QImage::Format_Grayscale16);
+        for (int y=0;y<3;++y) for (int x=0;x<256;++x)
+            QCOMPARE(reinterpret_cast<const quint16*>(actual.constScanLine(y))[x],
+                     reinterpret_cast<const quint16*>(expected.constScanLine(y))[x]);
+    }
+}
 void PkReferenceImageLoaderTest::normalizesGammaChromaticityPng()
 {
     QTemporaryDir dir; QVERIFY(dir.isValid());
