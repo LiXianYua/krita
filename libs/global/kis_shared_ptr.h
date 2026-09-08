@@ -315,7 +315,10 @@ public:
      */
     inline T* data() {
         if (!isConsistent()) {
-            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning().noquote()
+                    << kisBacktrace().PkToUtf8().c_str();
+            }
             Q_ASSERT(0);
         }
 
@@ -327,7 +330,10 @@ public:
      */
     inline const T* data() const {
         if (!isConsistent()) {
-            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning().noquote()
+                    << kisBacktrace().PkToUtf8().c_str();
+            }
             Q_ASSERT(0);
         }
 
@@ -339,7 +345,10 @@ public:
      */
     inline const T* constData() const {
         if (!isConsistent()) {
-            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning().noquote()
+                    << kisBacktrace().PkToUtf8().c_str();
+            }
             Q_ASSERT(0);
         }
 
@@ -360,7 +369,10 @@ public:
 
     inline const T& operator*() const {
         if (!isValid()) {
-            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning().noquote()
+                    << kisBacktrace().PkToUtf8().c_str();
+            }
             Q_ASSERT(0);
         }
 
@@ -369,7 +381,10 @@ public:
 
     inline T& operator*() {
         if (!isValid()) {
-            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning().noquote()
+                    << kisBacktrace().PkToUtf8().c_str();
+            }
             Q_ASSERT(0);
         }
 
@@ -378,7 +393,10 @@ public:
 
     inline const T* operator->() const {
         if (!isValid()) {
-            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning().noquote()
+                    << kisBacktrace().PkToUtf8().c_str();
+            }
             Q_ASSERT(0);
         }
 
@@ -387,7 +405,10 @@ public:
 
     inline T* operator->() {
         if (!isValid()) {
-            warnKrita.noquote() << kisBacktrace().PkToUtf8().c_str();
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning().noquote()
+                    << kisBacktrace().PkToUtf8().c_str();
+            }
             Q_ASSERT(0);
         }
 

@@ -117,8 +117,9 @@ KisPaintDeviceSP TransformStrokeStrategy::getDeviceCache(KisPaintDeviceSP src)
 {
     PkMutexLocker l(&m_devicesCacheMutex);
     KisPaintDeviceSP cache = m_devicesCacheHash.value(src.data());
-    if (!cache) {
-        warnKrita << "WARNING: Transform Stroke: the device is absent in cache!";
+    if (!cache && _41000().isWarningEnabled()) {
+        PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()
+            << "WARNING: Transform Stroke: the device is absent in cache!";
     }
 
     return cache;
@@ -495,7 +496,9 @@ PkPolygon TransformStrokeStrategy::calculateConvexHull()
                     numContributions += 1;
                 } else {
                     // When can this happen?  Should it continue instead?
-                    ENTER_FUNCTION() << "Bailing out, device was null" << ppVar(node);
+                    PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                        << "Entering" << __METHOD_NAME__
+                        << "Bailing out, device was null" << ppVar(node);
                     return PkPolygon();
                 }
             }

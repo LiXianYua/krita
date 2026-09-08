@@ -240,9 +240,12 @@ void KisToolTransform::slotConvexHullCalculated(PkPolygon hull, void *strokeStra
         currentStrategy()->externalConfigChanged();
         canvasUpdateRequested();
     } else {
-        warnTools << "WARNING: KisToolTransform: calculated convex hull's bounds "
-                     "differ from the bounding rect of the source clip. It shouldn't "
-                     "have happened";
+        if (_41003().isWarningEnabled()) {
+            PkMessageLogger(__FILE__, __LINE__, __func__, &_41003()).warning()
+                << "WARNING: KisToolTransform: calculated convex hull's bounds "
+                   "differ from the bounding rect of the source clip. It shouldn't "
+                   "have happened";
+        }
     }
 }
 

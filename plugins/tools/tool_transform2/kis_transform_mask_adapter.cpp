@@ -128,7 +128,10 @@ KisTransformMaskParamsInterfaceSP KisTransformMaskAdapter::fromDumbXML(const PkX
             KisDomUtils::loadValue(transformEl, "transform", &transform);
 
         if (!result) {
-            warnKrita << "WARNING: couldn't load dumb transform. Ignoring...";
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()
+                    << "WARNING: couldn't load dumb transform. Ignoring...";
+            }
         }
 
         args.translateDstSpace(PkPointF(transform.dx(), transform.dy()));

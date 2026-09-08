@@ -361,7 +361,9 @@ PkPolygon InplaceTransformStrokeStrategy::calculateConvexHull()
                     numContributions += 1;
                 } else {
                     // When can this happen?  Should it continue instead?
-                    ENTER_FUNCTION() << "Bailing out, device was null" << ppVar(node);
+                    PkMessageLogger(__FILE__, __LINE__, __func__).debug()
+                        << "Entering" << __METHOD_NAME__
+                        << "Bailing out, device was null" << ppVar(node);
                     return PkPolygon();
                 }
             }
