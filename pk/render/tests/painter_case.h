@@ -19,4 +19,5 @@ private Q_SLOTS:
     void measuredOverloadsSubmitOneCommand();
     void textOverloadsPreservePlacementKind();
     void clipStateTracksRectPathAndStackOperations();
+    void brushTransformSurvivesStateAndCommands();
 };

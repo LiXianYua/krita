@@ -47,6 +47,45 @@ void compareTransform(const PkTransform &actual,
 
 } // namespace
 
+void PkPainterCase::brushTransformSurvivesStateAndCommands()
+{
+    RecordingBackend backend;
+    PkPainter painter(backend);
+    PkBrush brush(PkColor(40, 50, 60));
+    PK_VERIFY(brush.transform().isIdentity());
+    const PkTransform transform(2, 0, 0, 3, 10, 20);
+    brush.setTransform(transform);
+    const PkBrush snapshot = brush;
+    PK_VERIFY(brush != PkBrush(PkColor(40, 50, 60)));
+    painter.setBrush(brush);
+    painter.setPen(PkPen(brush, 2));
+    painter.save();
+    PkPainterPath path;
+    path.addRect(PkRectF(0, 0, 10, 10));
+    painter.fillRect(PkRectF(1, 2, 3, 4));
+    painter.fillPath(path);
+    painter.strokePath(path, painter.pen());
+    brush.setTransform(PkTransform());
+    painter.setBrush(brush);
+    painter.setPen(Pk::NoPen);
+    painter.restore();
+    PK_VERIFY(painter.brush() == snapshot);
+    PK_VERIFY(painter.pen().brush() == snapshot);
+    PK_VERIFY(std::get<PkSetBrushCommand>(backend.commands[0]).brush == snapshot);
+    PK_VERIFY(std::get<PkSetPenCommand>(backend.commands[1]).pen.brush() == snapshot);
+    PK_VERIFY(std::get<PkFillRectCommand>(backend.commands[3]).brush == snapshot);
+    PK_VERIFY(std::get<PkFillPathCommand>(backend.commands[4]).brush == snapshot);
+    PK_VERIFY(std::get<PkStrokePathCommand>(backend.commands[5]).pen.brush() == snapshot);
+    PkBrush returned = painter.brush();
+    returned.setTransform(PkTransform(4, 0, 0, 5, 6, 7));
+    PK_VERIFY(painter.brush() == snapshot);
+    // Style/color mutation must preserve the independently owned transform.
+    returned = snapshot;
+    returned.setStyle(Pk::NoBrush);
+    returned.setColor(Pk::red);
+    PK_VERIFY(returned.transform() == transform);
+}
+
 void PkPainterCase::commandOrderAndPayloads()
 {
     RecordingBackend backend;

@@ -1,5 +1,6 @@
 #pragma once
 #include "PkColor.h"
+#include "PkTransform.h"
 #include "../namespace/PkNamespace.h"
 
 class PkBrush {
@@ -13,9 +14,12 @@ public:
     void setColor(const PkColor &c) { m_color = c; }
     Pk::BrushStyle style() const { return m_style; }
     void setStyle(Pk::BrushStyle s) { m_style = s; }
-    bool operator==(const PkBrush &o) const { return m_color == o.m_color && m_style == o.m_style; }
+    PkTransform transform() const { return m_transform; }
+    void setTransform(const PkTransform &transform) { m_transform = transform; }
+    bool operator==(const PkBrush &o) const { return m_color == o.m_color && m_style == o.m_style && m_transform == o.m_transform; }
     bool operator!=(const PkBrush &o) const { return !(*this == o); }
 private:
     PkColor m_color;
     Pk::BrushStyle m_style;
+    PkTransform m_transform;
 };
