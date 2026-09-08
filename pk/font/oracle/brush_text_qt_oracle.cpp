@@ -11,6 +11,13 @@
 int main(int argc, char **argv)
 {
     QGuiApplication application(argc, argv);
+    for (int style = 0; style != 3; ++style) {
+        QFont styled;
+        const QString wire = QStringLiteral("DejaVu Sans,-1,24,5,50,%1,0,0,0,0").arg(style);
+        if (!styled.fromString(wire) || styled.style() != style || styled.toString() != wire) return 1;
+        std::cout << "style=" << styled.style() << " italic=" << styled.italic()
+                  << " wire=" << styled.toString().toStdString() << '\n';
+    }
     QFont font("DejaVu Sans");
     font.setPixelSize(24);
     const QString text = QStringLiteral("A");

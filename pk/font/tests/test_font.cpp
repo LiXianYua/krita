@@ -24,6 +24,16 @@ std::uint64_t imageHash(const PkImage &image)
 
 int main()
 {
+    // QFont 5.15 preserves the style enum in field 6, including Oblique.
+    for (int style = 0; style != 3; ++style) {
+        const PkString styledWire(("DejaVu Sans,-1,24,5,50," + std::to_string(style) + ",0,0,0,0").c_str());
+        PkFont styled;
+        if (!styled.fromString(styledWire) || styled.style() != style ||
+            styled.italic() != (style != 0) || styled.toString() != styledWire) {
+            std::cerr << "FAIL: QFont style wire round trip differs for " << style << '\n';
+            return 1;
+        }
+    }
     const PkString wire("DejaVu Sans,-1,24,5,50,0,0,0,0,0");
     PkFont font;
     if (!font.fromString(wire) || font.family() != "DejaVu Sans" ||

@@ -498,7 +498,7 @@ target_include_directories(pkfont PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/font
     ${CMAKE_CURRENT_SOURCE_DIR}/image
     ${CMAKE_CURRENT_SOURCE_DIR}/string)
-target_link_libraries(pkfont PUBLIC pkimage pkstring Freetype::Freetype Fontconfig::Fontconfig)
+target_link_libraries(pkfont PUBLIC pkimage pkstring Freetype::Freetype Fontconfig::Fontconfig Raqm::Raqm HarfBuzz::HarfBuzz)
 
 if(BUILD_TESTING)
     add_executable(pkfont_test ${CMAKE_CURRENT_SOURCE_DIR}/font/tests/test_font.cpp)
