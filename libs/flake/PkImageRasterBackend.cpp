@@ -192,20 +192,38 @@ unsigned unpremultiplyTo8ScalarStore(unsigned component, unsigned a)
 #endif
 }
 
-uint32_t sourceOver(const Rgba64Pixel &destinationPremultiplied,
+uint32_t compose(const Rgba64Pixel &destinationPremultiplied,
                     const Rgba64Pixel &sourcePremultiplied,
                     unsigned opacity,
-                    bool scalarStore)
+                    bool scalarStore,
+                    Pk::CompositionMode mode)
 {
-    const Rgba64Pixel scaledSource = multiply64(sourcePremultiplied, opacity * 257u);
-    const Rgba64Pixel scaledDestination =
-        multiply64(destinationPremultiplied, 65535u - scaledSource.a);
-    const Rgba64Pixel result {
-        scaledSource.a + scaledDestination.a,
-        scaledSource.r + scaledDestination.r,
-        scaledSource.g + scaledDestination.g,
-        scaledSource.b + scaledDestination.b
-    };
+    Rgba64Pixel result;
+    if (mode == Pk::CompositionMode_Plus) {
+        // Plus saturates in premultiplied space BEFORE applying coverage /
+        // painter opacity. Interpolating the saturated sum with destination
+        // is observably different from adding an opacity-scaled source.
+        const Rgba64Pixel sum {
+            std::min(65535u, sourcePremultiplied.a + destinationPremultiplied.a),
+            std::min(65535u, sourcePremultiplied.r + destinationPremultiplied.r),
+            std::min(65535u, sourcePremultiplied.g + destinationPremultiplied.g),
+            std::min(65535u, sourcePremultiplied.b + destinationPremultiplied.b)
+        };
+        const auto source = multiply64(sum, opacity * 257u);
+        const auto destination = multiply64(destinationPremultiplied, (255u - opacity) * 257u);
+        result = {source.a + destination.a, source.r + destination.r,
+                  source.g + destination.g, source.b + destination.b};
+    } else {
+        const Rgba64Pixel scaledSource = multiply64(sourcePremultiplied, opacity * 257u);
+        const Rgba64Pixel scaledDestination =
+            multiply64(destinationPremultiplied, 65535u - scaledSource.a);
+        result = {
+            scaledSource.a + scaledDestination.a,
+            scaledSource.r + scaledDestination.r,
+            scaledSource.g + scaledDestination.g,
+            scaledSource.b + scaledDestination.b
+        };
+    }
 
     const auto storeComponent = scalarStore ?
         unpremultiplyTo8ScalarStore : unpremultiplyTo8;
@@ -236,11 +254,30 @@ qreal PkImageRasterBackend::devicePixelRatio() const
 
 void PkImageRasterBackend::submit(const PkPaintCommand &command)
 {
+    if (std::holds_alternative<PkSaveCommand>(command)) {
+        m_stack.push_back(m_state);
+        return;
+    }
+    if (std::holds_alternative<PkRestoreCommand>(command)) {
+        if (!m_stack.empty()) {
+            m_state = m_stack.back();
+            m_stack.pop_back();
+        }
+        return;
+    }
+    if (const auto *composition = std::get_if<PkSetCompositionModeCommand>(&command)) {
+        if (composition->mode != Pk::CompositionMode_SourceOver &&
+            composition->mode != Pk::CompositionMode_Plus) {
+            throw std::logic_error("PkImageRasterBackend unsupported composition mode");
+        }
+        m_state.mode = composition->mode;
+        return;
+    }
     if (const auto *opacity = std::get_if<PkSetOpacityCommand>(&command)) {
         if (!std::isfinite(opacity->opacity)) {
             throw std::invalid_argument("PkImageRasterBackend opacity must be finite");
         }
-        m_opacity = std::clamp(opacity->opacity, qreal(0.0), qreal(1.0));
+        m_state.opacity = std::clamp(opacity->opacity, qreal(0.0), qreal(1.0));
         return;
     }
     if (const auto *image = std::get_if<PkDrawImageCommand>(&command)) {
@@ -269,7 +306,7 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
     const int targetY = static_cast<int>(command.target.y());
     // QRasterPaintEngine first truncates opacity to an 8.8 fixed-point value,
     // then combines it with a fully covered span to obtain its 0..255 alpha.
-    const unsigned fixedOpacity = static_cast<unsigned>(m_opacity * 256.0);
+    const unsigned fixedOpacity = static_cast<unsigned>(m_state.opacity * 256.0);
     const unsigned opacity = (fixedOpacity * 255u) >> 8;
 
     for (int sourceY = 0; sourceY < command.image.height(); ++sourceY) {
@@ -301,10 +338,11 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
             m_destination.setPixel(
                 destinationX + i,
                 y,
-                sourceOver(destinationPixels[static_cast<std::size_t>(i)],
+                compose(destinationPixels[static_cast<std::size_t>(i)],
                            sourcePixels[static_cast<std::size_t>(i)],
                            opacity,
-                           i >= scalarStoreBegin));
+                           i >= scalarStoreBegin,
+                           m_state.mode));
         }
     }
 }

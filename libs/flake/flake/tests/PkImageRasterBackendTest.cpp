@@ -23,10 +23,83 @@ private Q_SLOTS:
     void blendsImageWithOpacity();
     void matchesQtArgb32SourceOverMatrix();
     void matchesQtShortSpansAndTails();
+    void matchesQtPlusPixelsAndOverlappingMasks();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtPlusPixelsAndOverlappingMasks()
+{
+    // A fixed SourceOver backend, pre-saturation opacity, or lost saved
+    // composition state all change these pixels. Qt supplies the reference.
+    for (int width : {1, 2, 3, 4, 7, 8, 9, 15, 17, 65}) {
+        QImage qtSource(width, 24, QImage::Format_ARGB32);
+        QImage qtOriginal(width, 24, QImage::Format_ARGB32);
+        PkImage pkSource(width, 24, PkImage::Format_ARGB32);
+        PkImage pkOriginal(width, 24, PkImage::Format_ARGB32);
+        std::mt19937 random(1847);
+        constexpr unsigned edges[] = {0, 1, 63, 127, 128, 254, 255};
+        for (int y = 0; y < 24; ++y) {
+            for (int x = 0; x < width; ++x) {
+                // The first rows are white glyph coverage masks, including
+                // transparent, low alpha, and saturated overlap boundaries.
+                const uint32_t source = y < 7 ? (edges[y] << 24) | 0xffffffu : random();
+                const uint32_t destination = y < 7 ?
+                    (edges[(x + y) % 7] << 24) | 0xffffffu : random();
+                qtSource.setPixel(x, y, source);
+                pkSource.setPixel(x, y, source);
+                qtOriginal.setPixel(x, y, destination);
+                pkOriginal.setPixel(x, y, destination);
+            }
+        }
+        for (double opacity : {0.0, 1.0 / 256, 0.1, 0.25, 0.5, 0.9, 255.0 / 256, 1.0}) {
+            QImage qtDestination = qtOriginal;
+            PkImage pkDestination = pkOriginal;
+            QPainter qtPainter(&qtDestination);
+            PkImageRasterBackend backend(pkDestination);
+            PkPainter painter(backend);
+            qtPainter.setOpacity(opacity);
+            painter.setOpacity(opacity);
+            qtPainter.setCompositionMode(QPainter::CompositionMode_Plus);
+            painter.setCompositionMode(Pk::CompositionMode_Plus);
+            for (int pass = 0; pass < 3; ++pass) {
+                const int offset = pass - 1;
+                qtPainter.drawImage(QPoint(offset, 0), qtSource);
+                painter.drawImage(PkRectF(offset, 0, width, 24), pkSource);
+                for (int y = 0; y < 24; ++y) {
+                    for (int x = 0; x < width; ++x) {
+                        const QString context = QStringLiteral("width=%1 opacity=%2 pass=%3 x=%4 y=%5 Qt=%6 Pk=%7")
+                            .arg(width).arg(opacity, 0, 'g', 17).arg(pass).arg(x).arg(y)
+                            .arg(qtDestination.pixel(x, y), 8, 16, QLatin1Char('0'))
+                            .arg(pkDestination.pixel(x, y), 8, 16, QLatin1Char('0'));
+                        QVERIFY2(pkDestination.pixel(x, y) == qtDestination.pixel(x, y), qPrintable(context));
+                    }
+                }
+            }
+            qtPainter.save();
+            painter.save();
+            qtPainter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+            painter.setCompositionMode(Pk::CompositionMode_SourceOver);
+            qtPainter.setOpacity(0.25);
+            painter.setOpacity(0.25);
+            qtPainter.drawImage(QPoint(), qtSource);
+            painter.drawImage(PkRectF(0, 0, width, 24), pkSource);
+            qtPainter.restore();
+            painter.restore();
+            QCOMPARE(painter.compositionMode(), Pk::CompositionMode_Plus);
+            QCOMPARE(painter.opacity(), opacity);
+            qtPainter.drawImage(QPoint(), qtSource);
+            painter.drawImage(PkRectF(0, 0, width, 24), pkSource);
+            qtPainter.end();
+            for (int y = 0; y < 24; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    QCOMPARE(pkDestination.pixel(x, y), qtDestination.pixel(x, y));
+                }
+            }
+        }
+    }
+}
 
 void PkImageRasterBackendTest::reportsDestinationDevicePixelRatio()
 {

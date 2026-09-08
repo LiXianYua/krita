@@ -21,5 +21,10 @@ private:
     void drawImage(const PkDrawImageCommand &command);
 
     PkImage &m_destination;
-    qreal m_opacity {1.0};
+    struct State {
+        qreal opacity {1.0};
+        Pk::CompositionMode mode {Pk::CompositionMode_SourceOver};
+    };
+    State m_state;
+    std::vector<State> m_stack;
 };
