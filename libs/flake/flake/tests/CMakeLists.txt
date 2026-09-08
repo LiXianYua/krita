@@ -44,5 +44,5 @@ kis_add_tests(
 kis_add_test(
     PkImageRasterBackendTest.cpp
     NAME_PREFIX libs-ui-
-    LINK_LIBRARIES kritashapemodel kritatestsdk
+    LINK_LIBRARIES kritaflake kritatestsdk
 )
