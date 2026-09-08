@@ -5,13 +5,16 @@ set(kritaseexprgenerator_SOURCES
     )
 
 kis_add_library(kritaseexprgenerator STATIC ${kritaseexprgenerator_SOURCES})
-target_compile_definitions(kritaseexprgenerator PRIVATE QT_NO_VERSION_TAGGING)
 set_target_properties(kritaseexprgenerator PROPERTIES AUTOMOC OFF)
 
 target_link_libraries(kritaseexprgenerator PRIVATE
-    kritaimage KSeExpr::KSeExpr
+    kritaimage_noqt_compile_interface
+    KSeExpr::KSeExpr
     pkcontainer pkstring pkvariant pkgeometry
 )
+target_link_libraries(kritaseexprgenerator INTERFACE
+    $<LINK_ONLY:kritaimage>)
+add_dependencies(kritaseexprgenerator kritaimage)
 
 install(TARGETS kritaseexprgenerator  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

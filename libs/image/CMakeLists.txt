@@ -644,6 +644,75 @@ target_include_directories(kritaimage
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/processing>
 )
 
+# These FILTERS archives use the migrated image API, but must not inherit the
+# legacy kritapsdutils -> Qt compile interface. Keep the real image library as
+# a link-only dependency at each consumer and expose its remaining public
+# compile requirements here. The psdutils directories provide headers used by
+# image's public headers without propagating the psdutils target interface.
+add_library(kritaimage_noqt_compile_interface INTERFACE)
+target_include_directories(kritaimage_noqt_compile_interface INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/image>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/image>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/image/brushengine>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/image/filter>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/image/generator>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/image/layerstyles>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/image/processing>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/psdutils>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/psdutils>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/version>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/version>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/global>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/global>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/pigment>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/pigment>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/pigment/resources>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/pigment/compositeops>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/command>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/command>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/metadata>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/metadata>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/resources>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/resources>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/koplugin>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/koplugin>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/store>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/store>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/multiarch>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/multiarch>
+)
+target_link_libraries(kritaimage_noqt_compile_interface INTERFACE
+    kritaversion
+    kritaglobal
+    kritacommand
+    kritamultiarch
+    Eigen3::Eigen
+    Boost::boost
+    pkstring
+    pkcontainer
+    pkvariant
+    pkport
+    pkpointer
+    pkgeometry
+    pkglobal
+    pklog
+    pkconcurrent
+    pkimage
+    pktime
+    pkconfig
+    pkflags
+    pkuuid
+    pkcolor
+    pksignal
+    pksql
+    pkxml
+    pknamespace
+)
+if(OpenEXR_FOUND)
+    target_link_libraries(kritaimage_noqt_compile_interface INTERFACE
+        ${LINK_OPENEXR_LIB})
+endif()
+
 set_target_properties(kritaimage PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
 )

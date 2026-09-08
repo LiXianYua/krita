@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include "SeExprVariable.h"
 
 SeExprVariable::SeExprVariable()

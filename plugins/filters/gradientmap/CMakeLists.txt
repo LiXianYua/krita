@@ -10,9 +10,13 @@ kis_add_library(kritafilterdithering STATIC
     KisDitherUtil.cpp
     KisDitherConfigurationHelper.cpp
 )
-target_compile_definitions(kritafilterdithering PRIVATE QT_NO_VERSION_TAGGING)
+set_target_properties(kritafilterdithering PROPERTIES AUTOMOC OFF)
 target_include_directories(kritafilterdithering PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(kritafilterdithering PUBLIC kritaimage)
+target_link_libraries(kritafilterdithering PUBLIC
+    kritaimage_noqt_compile_interface)
+target_link_libraries(kritafilterdithering INTERFACE
+    $<LINK_ONLY:kritaimage>)
+add_dependencies(kritafilterdithering kritaimage)
 
 kis_add_library(kritagradientmap STATIC ${kritagradientmap_SOURCES})
 target_link_libraries(kritagradientmap kritafilterdithering kritaimage)

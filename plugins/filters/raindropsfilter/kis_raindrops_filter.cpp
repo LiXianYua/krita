@@ -10,7 +10,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
 #include "kis_raindrops_filter.h"
 
 #include <stdlib.h>
