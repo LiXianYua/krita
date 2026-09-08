@@ -460,6 +460,16 @@ void KisSafeDocumentLoader::reloadImage()
     fileChangedCompressed(true);
 }
 
+bool KisSafeDocumentLoader::hasPendingDebounceForTesting() const
+{
+    return m_d->fileChangedTimer.isActive();
+}
+
+PkString KisSafeDocumentLoader::temporaryCopyPathForTesting() const
+{
+    return m_d->temporaryFile ? m_d->temporaryFile->path() : PkString();
+}
+
 void KisSafeDocumentLoader::fileChanged(PkString path)
 {
     if (FileSystemWatcherWrapper::unifyFilePath(m_d->path) != path) return;

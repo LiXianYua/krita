@@ -17,6 +17,8 @@
 #include "kis_types.h"
 #include "kritaimage_export.h"
 
+class KisSafeDocumentLoaderTest;
+
 class KRITAIMAGE_EXPORT KisSafeDocumentLoader : public PkObject
 {
 public:
@@ -49,6 +51,12 @@ signals:
     void fileExistsStateChanged(bool fileExists);
 
 private:
+    friend class KisSafeDocumentLoaderTest;
+
+    // Read-only lifecycle probes used by the focused destruction tests.
+    bool hasPendingDebounceForTesting() const;
+    PkString temporaryCopyPathForTesting() const;
+
     void fileChanged(PkString path);
     void slotFileExistsStateChanged(PkString path, bool fileExists);
     void fileChangedCompressed(bool sync = false);

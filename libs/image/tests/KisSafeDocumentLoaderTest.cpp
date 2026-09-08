@@ -20,6 +20,7 @@
 #include <PkEventLoop.h>
 #include <PkImage.h>
 #include <PkObject.h>
+#include <PkThreadCallQueue.h>
 #include <PkString.h>
 
 #include "config-limit-long-tests.h"
@@ -130,22 +131,14 @@ bool isPrivateRegularFile(const PkString &path)
 #endif
 }
 
-std::vector<fs::path> temporaryCopiesWithSuffix(const std::string &suffix)
+bool waitForPendingCall(std::size_t previousCount, std::chrono::milliseconds timeout)
 {
-    std::vector<fs::path> matches;
-    std::error_code error;
-    const fs::path directory = fs::temp_directory_path(error);
-    if (error) return matches;
-    for (const fs::directory_entry &entry : fs::directory_iterator(directory, error)) {
-        if (error) break;
-        const std::string name = entry.path().filename().u8string();
-        if (name.rfind("krita_file_layer_copy_", 0) == 0 &&
-            name.size() >= suffix.size() &&
-            name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0) {
-            matches.push_back(entry.path());
-        }
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (std::chrono::steady_clock::now() < deadline) {
+        if (PkThreadCallQueue::pendingCount() > previousCount) return true;
+        QTest::qWait(10);
     }
-    return matches;
+    return PkThreadCallQueue::pendingCount() > previousCount;
 }
 
 }
@@ -361,13 +354,14 @@ void KisSafeDocumentLoaderTest::testDestroyWithDebouncePending()
         loader->reloadImage();
         QCOMPARE(loadCount, 1);
         writeBytes(file, "changed");
-        QTest::qWait(150);
+        const std::size_t pendingBeforeWatcher = PkThreadCallQueue::pendingCount();
+        QVERIFY(waitForPendingCall(pendingBeforeWatcher, std::chrono::milliseconds(1500)));
         PkEventLoop::processEvents();
+        QVERIFY(loader->hasPendingDebounceForTesting());
     }
     QTest::qWait(700);
     PkEventLoop::processEvents();
     QCOMPARE(loadCount, 1);
-    QVERIFY(temporaryCopiesWithSuffix(".s09gdebounce").empty());
 }
 
 void KisSafeDocumentLoaderTest::testDestroyWithDelayedLoadPending()
@@ -376,6 +370,7 @@ void KisSafeDocumentLoaderTest::testDestroyWithDelayedLoadPending()
     QVERIFY(file.open());
     writeBytes(file, "a");
     int loadCount = 0;
+    PkString temporaryPath;
     {
         std::unique_ptr<KisSafeDocumentLoader> loader(new KisSafeDocumentLoader(
             toPkString(file.fileName()),
@@ -386,14 +381,17 @@ void KisSafeDocumentLoaderTest::testDestroyWithDelayedLoadPending()
         loader->reloadImage();
         QCOMPARE(loadCount, 1);
         writeBytes(file, "changed");
-        QVERIFY(waitFor([] {
-            return !temporaryCopiesWithSuffix(".s09gdelayed").empty();
+        QVERIFY(waitFor([&] {
+            temporaryPath = loader->temporaryCopyPathForTesting();
+            return !temporaryPath.isEmpty() &&
+                fs::exists(fs::u8path(temporaryPath.PkToUtf8()));
         }, std::chrono::milliseconds(1500)));
     }
     QTest::qWait(300);
     PkEventLoop::processEvents();
     QCOMPARE(loadCount, 1);
-    QVERIFY(temporaryCopiesWithSuffix(".s09gdelayed").empty());
+    QVERIFY(!temporaryPath.isEmpty());
+    QVERIFY(!fs::exists(fs::u8path(temporaryPath.PkToUtf8())));
 }
 
 void KisSafeDocumentLoaderTest::testDestroyWithWatcherEventQueued()
@@ -412,7 +410,8 @@ void KisSafeDocumentLoaderTest::testDestroyWithWatcherEventQueued()
         loader->reloadImage();
         QCOMPARE(loadCount, 1);
         writeBytes(file, "queued-change");
-        QTest::qWait(150);
+        const std::size_t pendingBeforeWatcher = PkThreadCallQueue::pendingCount();
+        QVERIFY(waitForPendingCall(pendingBeforeWatcher, std::chrono::milliseconds(1500)));
     }
     PkEventLoop::processEvents();
     QTest::qWait(700);
