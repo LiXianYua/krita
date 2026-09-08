@@ -45,15 +45,15 @@ PkPointF KisSimplifiedActionPolicyStrategy::handleSnapPoint(const PkPointF &imag
     return imagePos;
 }
 
-PkPointF KisSimplifiedActionPolicyStrategy::snapDocPoint(const PkPointF &point, Qt::KeyboardModifiers modifiers) const
+PkPointF KisSimplifiedActionPolicyStrategy::snapDocPoint(const PkPointF &point, Pk::KeyboardModifiers modifiers) const
 {
     PkPointF pos = point;
 
     if (m_d->snapGuide) {
-        Qt::KeyboardModifiers modifiersForSnapping = modifiers;
+        Pk::KeyboardModifiers modifiersForSnapping = modifiers;
 
         if (shiftModifierIsUsed()) {
-            modifiersForSnapping.setFlag(Qt::ShiftModifier, false);
+            modifiersForSnapping.setFlag(Pk::ShiftModifier, false);
         }
 
         pos = m_d->snapGuide->snap(point, m_d->dragOffset, modifiersForSnapping);
@@ -79,7 +79,8 @@ bool KisSimplifiedActionPolicyStrategy::beginPrimaryAction(KoPointerEvent *event
         m_d->dragOffset = m_d->converter->imageToDocument(imageOffset);
     }
 
-    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    const PkPointF pos = snapDocPoint(
+        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
 
     PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
@@ -104,7 +105,8 @@ void KisSimplifiedActionPolicyStrategy::continuePrimaryAction(KoPointerEvent *ev
     const bool shiftIsActive = event->modifiers() & Qt::ShiftModifier;
     const bool altIsActive = event->modifiers() & Qt::AltModifier;
 
-    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    const PkPointF pos = snapDocPoint(
+        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
@@ -121,7 +123,8 @@ void KisSimplifiedActionPolicyStrategy::hoverActionCommon(KoPointerEvent *event)
 
 bool KisSimplifiedActionPolicyStrategy::endPrimaryAction(KoPointerEvent *event)
 {
-    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    const PkPointF pos = snapDocPoint(
+        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
@@ -166,7 +169,8 @@ bool KisSimplifiedActionPolicyStrategy::beginAlternateAction(KoPointerEvent *eve
 
     if (!m_d->changeSizeModifierActive && !m_d->anySamplerModifierActive) return false;
 
-    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    const PkPointF pos = snapDocPoint(
+        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
@@ -180,7 +184,8 @@ void KisSimplifiedActionPolicyStrategy::continueAlternateAction(KoPointerEvent *
     if (!m_d->changeSizeModifierActive && !m_d->anySamplerModifierActive) return;
     const bool altIsActive = event->modifiers() & Qt::AltModifier;
 
-    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    const PkPointF pos = snapDocPoint(
+        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
@@ -193,7 +198,8 @@ bool KisSimplifiedActionPolicyStrategy::endAlternateAction(KoPointerEvent *event
 
     if (!m_d->changeSizeModifierActive && !m_d->anySamplerModifierActive) return false;
 
-    const PkPointF pos = snapDocPoint(event->point, event->modifiers());
+    const PkPointF pos = snapDocPoint(
+        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
     PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
@@ -209,4 +215,3 @@ void KisSimplifiedActionPolicyStrategy::hoverActionCommon(const PkPointF &pt)
 {
     setTransformFunction(pt, m_d->anySamplerModifierActive && !m_d->sampleFromNodeModifierActive, m_d->changeSizeModifierActive, m_d->sampleFromNodeModifierActive);
 }
-

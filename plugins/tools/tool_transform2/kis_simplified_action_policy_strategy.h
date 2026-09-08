@@ -39,7 +39,7 @@ public:
     bool endAlternateAction(KoPointerEvent *event, KisTool::AlternateAction action) override;
 
 private:
-    PkPointF snapDocPoint(const PkPointF &point, Qt::KeyboardModifiers modifiers) const;
+    PkPointF snapDocPoint(const PkPointF &point, Pk::KeyboardModifiers modifiers) const;
 
 protected:
 
