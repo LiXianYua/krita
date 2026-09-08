@@ -46,6 +46,25 @@ class QTouchEvent;
 class QFocusEvent;
 class QMenu;
 
+/** Toolkit-neutral key payload dispatched by the host-facing key adapter. */
+class KRITAFLAKE_EXPORT PkToolKeyEvent
+{
+public:
+    PkToolKeyEvent(Pk::Key key, Pk::KeyboardModifiers modifiers, bool accepted)
+        : m_key(key), m_modifiers(modifiers), m_accepted(accepted) {}
+
+    Pk::Key key() const { return m_key; }
+    Pk::KeyboardModifiers modifiers() const { return m_modifiers; }
+    void accept() { m_accepted = true; }
+    void ignore() { m_accepted = false; }
+    bool isAccepted() const { return m_accepted; }
+
+private:
+    Pk::Key m_key;
+    Pk::KeyboardModifiers m_modifiers;
+    bool m_accepted;
+};
+
 /**
  * Abstract base class for all tools. Tools can create or manipulate
  * flake shapes, canvas state or any other thing that a user may wish
@@ -156,6 +175,7 @@ public:
      * @param event state and reason of this key press
      */
     virtual void keyPressEvent(QKeyEvent *event);
+    virtual void pkKeyPressEvent(PkToolKeyEvent *event);
 
     /**
      * Called when a key is released
@@ -164,6 +184,7 @@ public:
      * @param event state and reason of this key release
      */
     virtual void keyReleaseEvent(QKeyEvent *event);
+    virtual void pkKeyReleaseEvent(PkToolKeyEvent *event);
 
     /**
      * @brief explicitUserStrokeEndRequest is called by the input manager

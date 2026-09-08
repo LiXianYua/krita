@@ -115,10 +115,28 @@ void KoToolBase::mouseTripleClickEvent(KoPointerEvent *event)
 
 void KoToolBase::keyPressEvent(QKeyEvent *e)
 {
-    e->ignore();
+    PkToolKeyEvent event(static_cast<Pk::Key>(e->key()),
+                         Pk::KeyboardModifiers(PkFlag(static_cast<int>(e->modifiers()))),
+                         e->isAccepted());
+    pkKeyPressEvent(&event);
+    event.isAccepted() ? e->accept() : e->ignore();
 }
 
 void KoToolBase::keyReleaseEvent(QKeyEvent *e)
+{
+    PkToolKeyEvent event(static_cast<Pk::Key>(e->key()),
+                         Pk::KeyboardModifiers(PkFlag(static_cast<int>(e->modifiers()))),
+                         e->isAccepted());
+    pkKeyReleaseEvent(&event);
+    event.isAccepted() ? e->accept() : e->ignore();
+}
+
+void KoToolBase::pkKeyPressEvent(PkToolKeyEvent *e)
+{
+    e->ignore();
+}
+
+void KoToolBase::pkKeyReleaseEvent(PkToolKeyEvent *e)
 {
     e->ignore();
 }

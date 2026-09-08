@@ -9,8 +9,6 @@
 
 #include <QAction>
 
-#include <klocalizedstring.h>
-
 KisToolPaintFactoryBase::KisToolPaintFactoryBase(const PkString &id)
     : KoToolFactoryBase(toPkString(id))
 {
@@ -24,35 +22,34 @@ PkList<QAction *> KisToolPaintFactoryBase::createActionsImpl()
 {
     PkList<QAction *> actions;
 
-    QAction *increaseBrushSize = new QAction(i18n("Increase Brush Size"), this);
-    increaseBrushSize->setObjectName("increase_brush_size");
-    increaseBrushSize->setShortcut(static_cast<int>(Pk::Key_BracketRight));
+    QAction *increaseBrushSize = createHostAction(
+        "Increase Brush Size", "increase_brush_size", Pk::Key_BracketRight);
 
     actions << increaseBrushSize;
 
-    QAction *decreaseBrushSize = new QAction(i18n("Decrease Brush Size"), this);
-    decreaseBrushSize->setShortcut(static_cast<int>(Pk::Key_BracketLeft));
-    decreaseBrushSize->setObjectName("decrease_brush_size");
+    QAction *decreaseBrushSize = createHostAction(
+        "Decrease Brush Size", "decrease_brush_size", Pk::Key_BracketLeft);
 
     actions << decreaseBrushSize;
 
-    QAction *rotateBrushTipClockwise = new QAction(i18n("Rotate brush tip clockwise"), this);
-    rotateBrushTipClockwise->setObjectName("rotate_brush_tip_clockwise");
+    QAction *rotateBrushTipClockwise = createHostAction(
+        "Rotate brush tip clockwise", "rotate_brush_tip_clockwise");
 
     actions << rotateBrushTipClockwise;
 
-    QAction *rotateBrushTipClockwisePrecise = new QAction(i18n("Rotate brush tip clockwise (precise)"), this);
-    rotateBrushTipClockwisePrecise->setObjectName("rotate_brush_tip_clockwise_precise");
+    QAction *rotateBrushTipClockwisePrecise = createHostAction(
+        "Rotate brush tip clockwise (precise)", "rotate_brush_tip_clockwise_precise");
 
     actions << rotateBrushTipClockwisePrecise;
 
-    QAction *rotateBrushTipCounterClockwise = new QAction(i18n("Rotate brush tip counter-clockwise"), this);
-    rotateBrushTipCounterClockwise->setObjectName("rotate_brush_tip_counter_clockwise");
+    QAction *rotateBrushTipCounterClockwise = createHostAction(
+        "Rotate brush tip counter-clockwise", "rotate_brush_tip_counter_clockwise");
 
     actions << rotateBrushTipCounterClockwise;
 
-    QAction *rotateBrushTipCounterClockwisePrecise = new QAction(i18n("Rotate brush tip counter-clockwise (precise)"), this);
-    rotateBrushTipCounterClockwisePrecise->setObjectName("rotate_brush_tip_counter_clockwise_precise");
+    QAction *rotateBrushTipCounterClockwisePrecise = createHostAction(
+        "Rotate brush tip counter-clockwise (precise)",
+        "rotate_brush_tip_counter_clockwise_precise");
 
     actions << rotateBrushTipCounterClockwisePrecise;
 

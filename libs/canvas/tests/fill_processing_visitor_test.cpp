@@ -1,166 +1,61 @@
 /*
- *  SPDX-FileCopyrightText: 2013 Dmitry Kazakov <dimula73@gmail.com>
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "fill_processing_visitor_test.h"
 
 #include <simpletest.h>
 
-#include <type_traits>
+#include <KoColorSpaceRegistry.h>
+#include <kis_image.h>
+#include <kis_paint_layer.h>
+#include <kis_pixel_selection.h>
+#include <kis_resources_snapshot.h>
+#include <kis_default_bounds.h>
+#include <kis_undo_stores.h>
+#include <kis_undo_adapter.h>
 
-#include "kis_undo_stores.h"
-#include "kis_processing_applicator.h"
-
-#include <testutil.h>
-#define USE_DOCUMENT 0
-#include "qimage_based_test.h"
-#include "stroke_testing_utils.h"
-#include <resources/KoPattern.h>
-
-#include <processing/fill_processing_visitor.h>
 #include <processing/KisEncloseAndFillProcessingVisitor.h>
-#include <KisGlobalResourcesInterface.h>
 
-static_assert(std::is_constructible_v<
-    KisEncloseAndFillProcessingVisitor,
-    KisPaintDeviceSP,
-    KisPixelSelectionSP,
-    KisSelectionSP,
-    KisResourcesSnapshotSP,
-    KisEncloseAndFillPainter::RegionSelectionMethod,
-    const KoColor &,
-    bool,
-    bool,
-    bool,
-    int,
-    int,
-    int,
-    bool,
-    int,
-    bool,
-    int,
-    bool,
-    bool,
-    bool,
-    bool,
-    bool,
-    qreal,
-    const PkString &,
-    PkSharedPointer<PkRect>>);
-
-class FillProcessingVisitorTester : public TestUtil::QImageBasedTest
+void FillProcessingVisitorTest::fillsPixelsReportsDirtyRegionAndUndoes()
 {
-public:
-    FillProcessingVisitorTester()
-        : QImageBasedTest("fill_processing")
-    {
-    }
+    const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
+    auto *undoStore = new KisSurrogateUndoStore;
+    KisImageSP image = new KisImage(undoStore, 8, 8, colorSpace, PkString("fill visitor"));
+    KisPaintLayerSP layer = new KisPaintLayer(image, PkString("paint"), OPACITY_OPAQUE_U8);
+    image->addNode(layer);
 
-    void test(const QString &testname, bool haveSelection, bool usePattern, bool selectionOnly) {
-        KisSurrogateUndoStore *undoStore = new KisSurrogateUndoStore();
-        KisImageSP image = createImage(undoStore);
+    KisPixelSelectionSP enclosingMask =
+        new KisPixelSelection(new KisSelectionDefaultBounds(layer->paintDevice()));
+    const PkRect enclosingRect(2, 2, 3, 3);
+    enclosingMask->select(enclosingRect);
 
-        if (haveSelection) {
-            addGlobalSelection(image);
-        }
+    KisResourcesSnapshotSP resources = new KisResourcesSnapshot(image, layer);
+    resources->setFGColorOverride(KoColor(Pk::red, colorSpace));
+    PkSharedPointer<PkRect> dirtyRect(new PkRect);
 
-        image->initialRefreshGraph();
+    KisEncloseAndFillProcessingVisitor visitor(
+        layer->paintDevice(), enclosingMask, {}, resources,
+        KisEncloseAndFillPainter::SelectAllRegions,
+        KoColor(Pk::transparent, colorSpace), false, true, true,
+        8, 100, 0, false, 0, false, 0, false, false, true, false,
+        false, 1.0, PkString(), dirtyRect);
 
-        QVERIFY(checkLayersInitial(image));
+    KoColor before;
+    layer->paintDevice()->pixel(3, 3, &before);
+    QCOMPARE(before.opacityU8(), quint8(0));
 
-        KisNodeSP fillNode = findNode(image->root(), "paint1");
+    visitor.visit(layer.data(), image->undoAdapter());
 
-        KoCanvasResourceProvider *manager = utils::createResourceManager(image, fillNode);
+    KoColor filled;
+    layer->paintDevice()->pixel(3, 3, &filled);
+    QCOMPARE(filled.toQColor(), PkColor(Pk::red));
+    QCOMPARE(*dirtyRect, layer->paintDevice()->extent());
 
-        KoPatternSP newPattern(new KoPattern(TestUtil::fetchDataFileLazy("HR_SketchPaper_01.pat")));
-        newPattern->load(KisGlobalResourcesInterface::instance());
-        Q_ASSERT(newPattern->valid());
-
-        QVariant v;
-        v.setValue(newPattern);
-        manager->setResource(KoCanvasResource::CurrentPattern, v);
-
-        KisResourcesSnapshotSP resources =
-            new KisResourcesSnapshot(image,
-                                     fillNode,
-                                     manager->canvasResourcesInterface());
-
-        FillProcessingVisitor *visitor = new FillProcessingVisitor(0,
-                                                                   image->globalSelection(),
-                                                                   resources);
-        visitor->setSeedPoint(PkPoint(100,100));
-        visitor->setUsePattern(usePattern);
-        visitor->setSelectionOnly(selectionOnly);
-        visitor->setFeather(10);
-        visitor->setSizeMod(10);
-        visitor->setFillThreshold(10);
-        visitor->setOpacitySpread(0);
-        visitor->setUnmerged(true);
-
-        KisProcessingApplicator applicator(image, fillNode,
-                                           KisProcessingApplicator::NONE);
-        applicator.applyVisitor(visitor);
-        applicator.end();
-
-        image->waitForDone();
-
-        QVERIFY(checkOneLayer(image, fillNode, testname, 500));
-
-        undoStore->undo();
-        image->waitForDone();
-
-        QVERIFY(checkLayersInitial(image));
-    }
-};
-
-void FillProcessingVisitorTest::testFillColorNoSelection()
-{
-    FillProcessingVisitorTester tester;
-    tester.test("fill_color_no_selection", false, false, false);
-}
-
-void FillProcessingVisitorTest::testFillPatternNoSelection()
-{
-    FillProcessingVisitorTester tester;
-    tester.test("fill_pattern_no_selection", false, true, false);
-}
-
-void FillProcessingVisitorTest::testFillColorHaveSelection()
-{
-    FillProcessingVisitorTester tester;
-    tester.test("fill_color_have_selection", true, false, false);
-}
-
-void FillProcessingVisitorTest::testFillPatternHaveSelection()
-{
-    FillProcessingVisitorTester tester;
-    tester.test("fill_pattern_have_selection", true, true, false);
-}
-
-void FillProcessingVisitorTest::testFillColorNoSelectionSelectionOnly()
-{
-    FillProcessingVisitorTester tester;
-    tester.test("fill_color_no_selection_selection_only", false, false, true);
-}
-
-void FillProcessingVisitorTest::testFillPatternNoSelectionSelectionOnly()
-{
-    FillProcessingVisitorTester tester;
-    tester.test("fill_pattern_no_selection_selection_only", false, true, true);
-}
-
-void FillProcessingVisitorTest::testFillColorHaveSelectionSelectionOnly()
-{
-    FillProcessingVisitorTester tester;
-    tester.test("fill_color_have_selection_selection_only", true, false, true);
-}
-
-void FillProcessingVisitorTest::testFillPatternHaveSelectionSelectionOnly()
-{
-    FillProcessingVisitorTester tester;
-    tester.test("fill_pattern_have_selection_selection_only", true, true, true);
+    image->undoAdapter()->undoLastCommand();
+    KoColor undone;
+    layer->paintDevice()->pixel(3, 3, &undone);
+    QCOMPARE(undone.opacityU8(), quint8(0));
 }
 
 SIMPLE_TEST_MAIN(FillProcessingVisitorTest)

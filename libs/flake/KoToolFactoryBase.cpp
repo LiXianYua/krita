@@ -13,6 +13,7 @@
 #include <QKeySequence>
 #include <QAction>
 #include <QDebug>
+#include <klocalizedstring.h>
 
 class Q_DECL_HIDDEN KoToolFactoryBase::Private
 {
@@ -205,8 +206,19 @@ PkList<QAction *> KoToolFactoryBase::createActionsImpl()
     return PkList<QAction *>();
 }
 
+QAction *KoToolFactoryBase::createHostAction(const char *text,
+                                             const PkString &objectName,
+                                             Pk::Key shortcut)
+{
+    auto *action = new QAction(i18n(text), this);
+    action->setObjectName(toQString(objectName));
+    if (shortcut != static_cast<Pk::Key>(0)) {
+        action->setShortcut(static_cast<int>(shortcut));
+    }
+    return action;
+}
+
 void KoToolFactoryBase::activateTool()
 {
     KoToolManager::instance()->switchToolRequested(toPkString(sender()->objectName()));
 }
-

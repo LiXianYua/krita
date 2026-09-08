@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QKeyEvent>
 #include <QtCore/qmath.h>
 
 #include "kis_tool_rectangle_base.h"
@@ -89,13 +88,10 @@ void KisToolRectangleBase::deactivate()
     KisToolShape::deactivate();
 }
 
-void KisToolRectangleBase::keyPressEvent(QKeyEvent *event) {
-    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(services);
-    const KisToolKeyEventState state = services->toolKeyEventState(event);
-    const Pk::Key key = state.key == Pk::Key_Meta &&
-            state.modifiers.testFlag(Pk::ShiftModifier)
-        ? Pk::Key_Alt : state.key;
+void KisToolRectangleBase::pkKeyPressEvent(PkToolKeyEvent *event) {
+    const Pk::Key key = event->key() == Pk::Key_Meta &&
+            event->modifiers().testFlag(Pk::ShiftModifier)
+        ? Pk::Key_Alt : event->key();
 
     if (key == Pk::Key_Control) {
         m_currentModifiers |= Pk::ControlModifier;
@@ -105,16 +101,13 @@ void KisToolRectangleBase::keyPressEvent(QKeyEvent *event) {
         m_currentModifiers |= Pk::AltModifier;
     }
 
-    KisToolShape::keyPressEvent(event);
+    KisToolShape::pkKeyPressEvent(event);
 }
 
-void KisToolRectangleBase::keyReleaseEvent(QKeyEvent *event) {
-    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(services);
-    const KisToolKeyEventState state = services->toolKeyEventState(event);
-    const Pk::Key key = state.key == Pk::Key_Meta &&
-            state.modifiers.testFlag(Pk::ShiftModifier)
-        ? Pk::Key_Alt : state.key;
+void KisToolRectangleBase::pkKeyReleaseEvent(PkToolKeyEvent *event) {
+    const Pk::Key key = event->key() == Pk::Key_Meta &&
+            event->modifiers().testFlag(Pk::ShiftModifier)
+        ? Pk::Key_Alt : event->key();
 
     if (key == Pk::Key_Control) {
         m_currentModifiers &= ~Pk::ControlModifier;
@@ -124,7 +117,7 @@ void KisToolRectangleBase::keyReleaseEvent(QKeyEvent *event) {
         m_currentModifiers &= ~Pk::AltModifier;
     }
 
-    KisToolShape::keyReleaseEvent(event);
+    KisToolShape::pkKeyReleaseEvent(event);
 }
 
 void KisToolRectangleBase::beginPrimaryAction(KoPointerEvent *event)

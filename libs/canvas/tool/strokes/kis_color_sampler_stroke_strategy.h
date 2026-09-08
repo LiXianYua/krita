@@ -15,8 +15,9 @@
 #include "kis_lod_transform.h"
 #include "kis_paint_device.h"
 #include "KoColor.h"
+#include "kritacanvas_export.h"
 
-class KisColorSamplerStrokeStrategy : public PkObject, public KisSimpleStrokeStrategy
+class KRITACANVAS_EXPORT KisColorSamplerStrokeStrategy : public PkObject, public KisSimpleStrokeStrategy
 {
 public:
     class Data : public KisStrokeJobData {

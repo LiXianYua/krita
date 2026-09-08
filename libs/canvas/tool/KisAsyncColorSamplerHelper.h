@@ -22,6 +22,7 @@ class KoCanvasBase;
 class KoViewConverter;
 class KisStrokesFacade;
 class KisColorSamplingCanvas;
+class KisColorSamplerStrokeStrategy;
 class KisAsyncColorSamplerHelperTest;
 class KRITACANVAS_EXPORT KisAsyncColorSamplerHelper : public PkObject
 {
@@ -78,6 +79,7 @@ private:
     void activateDelayedPreview();
     void slotAddSamplingJob(const PkPointF &docPoint);
     void slotColorSamplingFinished(const KoColor &rawColor);
+    void connectSamplerStrategy(KisColorSamplerStrokeStrategy *strategy);
 
 private:
     void activatePreview();

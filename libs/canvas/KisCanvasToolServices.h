@@ -8,6 +8,7 @@
 #include <PkFlakeBridge.h>
 #include <PkObject.h>
 #include <PkSignalCompat.h>
+#include <PkThreadCallQueue.h>
 #include <functional>
 #include <KoCanvasCursorHost.h>
 #include <pk/geometry/PkPoint.h>
@@ -26,12 +27,6 @@
 class PkPainter;
 class KisOptimizedBrushOutline;
 class KisPopupWidgetInterface;
-
-struct KisToolKeyEventState
-{
-    Pk::Key key {static_cast<Pk::Key>(0)};
-    Pk::KeyboardModifiers modifiers;
-};
 
 class KRITACANVAS_EXPORT KisCanvasToolSignals : public PkObject
 {
@@ -116,13 +111,14 @@ public:
     virtual void toolUpdateCanvas() = 0;
     virtual void toolSetActionCallback(const PkString &actionName,
                                        const void *receiverIdentity,
+                                       PkCallLifetime receiverLifetime,
                                        std::function<void()> callback,
                                        bool unique) = 0;
     virtual void toolClearActionCallbacks(const void *receiverIdentity) = 0;
     virtual void toolSetPriorityRightClickCallback(const void *receiverIdentity,
+                                                   PkCallLifetime receiverLifetime,
                                                    std::function<bool()> callback,
                                                    bool attached) = 0;
-    virtual KisToolKeyEventState toolKeyEventState(const void *hostEvent) const = 0;
     virtual void toolSetPriorityEventFilter(QObject *filter, bool attached) = 0;
     virtual KisInputActionGroupsMaskInterface::SharedInterface
         toolInputActionGroupsMaskInterface() = 0;

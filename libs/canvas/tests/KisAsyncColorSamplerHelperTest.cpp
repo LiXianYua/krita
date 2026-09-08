@@ -14,6 +14,8 @@
 #include <utility>
 #include <vector>
 
+#include <QKeyEvent>
+
 #include <PkThreadCallQueue.h>
 
 #include <PkConfigGroup.h>
@@ -40,6 +42,7 @@
 #include "kis_paint_layer.h"
 #include "tool/kis_tool_ellipse_base.h"
 #include "tool/kis_tool_polyline_base.h"
+#include "tool/strokes/kis_color_sampler_stroke_strategy.h"
 #include "kis_tool_select_polygonal.h"
 
 namespace {
@@ -198,6 +201,7 @@ public:
     struct ActionCallbackRecord {
         PkString name;
         const void *receiverIdentity {nullptr};
+        PkCallLifetime receiverLifetime;
         std::function<void()> callback;
         bool unique {false};
     };
@@ -263,10 +267,12 @@ public:
     void toolUpdateCanvas() override {}
     void toolSetActionCallback(const PkString &name,
                                const void *receiverIdentity,
+                               PkCallLifetime receiverLifetime,
                                std::function<void()> callback,
                                bool unique) override
     {
-        actionCallbacks.push_back({name, receiverIdentity, std::move(callback), unique});
+        actionCallbacks.push_back({name, receiverIdentity, std::move(receiverLifetime),
+                                   std::move(callback), unique});
     }
     void toolClearActionCallbacks(const void *receiverIdentity) override
     {
@@ -274,14 +280,15 @@ public:
         actionCallbacks.clear();
     }
     void toolSetPriorityRightClickCallback(const void *receiverIdentity,
+                                           PkCallLifetime receiverLifetime,
                                            std::function<bool()> callback,
                                            bool attached) override
     {
         rightClickReceiver = receiverIdentity;
+        rightClickLifetime = std::move(receiverLifetime);
         rightClickCallback = std::move(callback);
         rightClickAttached = attached;
     }
-    KisToolKeyEventState toolKeyEventState(const void *) const override { return {}; }
     void toolSetPriorityEventFilter(QObject *, bool) override {}
     KisInputActionGroupsMaskInterface::SharedInterface
         toolInputActionGroupsMaskInterface() override { return {}; }
@@ -295,9 +302,38 @@ public:
     qreal toolAssistantPerspective(const PkPointF &) const override { return 1.0; }
     void toolEndAssistantStroke() override {}
 
+    bool dispatchAction(const PkString &name)
+    {
+        const auto it = std::find_if(actionCallbacks.begin(), actionCallbacks.end(),
+                                     [&name](const ActionCallbackRecord &record) {
+                                         return record.name == name;
+                                     });
+        if (it == actionCallbacks.end() || !it->receiverLifetime.claim ||
+            !it->receiverLifetime.alive) {
+            return false;
+        }
+        std::lock_guard<std::recursive_mutex> guard(*it->receiverLifetime.claim);
+        if (!it->receiverLifetime.alive->load(std::memory_order_acquire)) return false;
+        it->callback();
+        return true;
+    }
+
+    bool dispatchRightClick(bool *invoked)
+    {
+        if (!rightClickAttached || !rightClickCallback || !rightClickLifetime.claim ||
+            !rightClickLifetime.alive) {
+            return false;
+        }
+        std::lock_guard<std::recursive_mutex> guard(*rightClickLifetime.claim);
+        if (!rightClickLifetime.alive->load(std::memory_order_acquire)) return false;
+        *invoked = true;
+        return rightClickCallback();
+    }
+
     std::vector<ActionCallbackRecord> actionCallbacks;
     const void *clearedActionReceiver {nullptr};
     const void *rightClickReceiver {nullptr};
+    PkCallLifetime rightClickLifetime;
     std::function<bool()> rightClickCallback;
     bool rightClickAttached {false};
     KisCanvasToolSignals toolSignalBus;
@@ -360,6 +396,38 @@ public:
 protected:
     // Brush shape generation is irrelevant to this sampler test. Painting remains
     // the production KisToolPaint override, including its real sampler member.
+    KisOptimizedBrushOutline getOutlinePath(const PkPointF &, const KoPointerEvent *,
+                                             KisPaintOpSettings::OutlineMode) override { return {}; }
+};
+
+class KeyEventProbeTool final : public KisToolPaint
+{
+public:
+    explicit KeyEventProbeTool(KoCanvasBase *canvas)
+        : KisToolPaint(canvas, QCursor()) {}
+
+    Pk::Key lastKey {static_cast<Pk::Key>(0)};
+    Pk::KeyboardModifiers lastModifiers;
+    int pressCount {0};
+    int releaseCount {0};
+
+    void pkKeyPressEvent(PkToolKeyEvent *event) override
+    {
+        lastKey = event->key();
+        lastModifiers = event->modifiers();
+        ++pressCount;
+        event->accept();
+    }
+
+    void pkKeyReleaseEvent(PkToolKeyEvent *event) override
+    {
+        lastKey = event->key();
+        lastModifiers = event->modifiers();
+        ++releaseCount;
+        event->ignore();
+    }
+
+protected:
     KisOptimizedBrushOutline getOutlinePath(const PkPointF &, const KoPointerEvent *,
                                              KisPaintOpSettings::OutlineMode) override { return {}; }
 };
@@ -933,6 +1001,92 @@ void KisAsyncColorSamplerHelperTest::hostCallbacksPreserveActionAndRightClickLif
     QVERIFY(canvas.actionCallbacks.empty());
     QVERIFY(!canvas.rightClickAttached);
     QVERIFY(!canvas.rightClickCallback);
+}
+
+void KisAsyncColorSamplerHelperTest::hostCallbacksDropDispatchAfterDirectToolDestruction()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    EllipsePreviewCanvas canvas(image);
+    setCurrentNode(canvas, layer);
+
+    auto *tool = new PolylinePreviewTool(&canvas);
+    tool->activate({});
+    QVERIFY(canvas.dispatchAction(PkString("undo_polygon_selection")));
+    delete tool;
+
+    bool rightClickInvoked = false;
+    QVERIFY(!canvas.dispatchAction(PkString("undo_polygon_selection")));
+    QVERIFY(!canvas.dispatchRightClick(&rightClickInvoked));
+    QVERIFY(!rightClickInvoked);
+}
+
+void KisAsyncColorSamplerHelperTest::hostKeyAdapterDispatchesPkPayload()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    EllipsePreviewCanvas canvas(image);
+    KeyEventProbeTool tool(&canvas);
+    KoToolBase *hostTool = &tool;
+
+    QKeyEvent press(QEvent::KeyPress, Qt::Key_Control,
+                    Qt::ShiftModifier | Qt::AltModifier);
+    press.ignore();
+    hostTool->keyPressEvent(&press);
+    QCOMPARE(tool.pressCount, 1);
+    QCOMPARE(tool.lastKey, Pk::Key_Control);
+    QCOMPARE(int(tool.lastModifiers), int(press.modifiers()));
+    QVERIFY(press.isAccepted());
+
+    QKeyEvent release(QEvent::KeyRelease, Qt::Key_Shift, Qt::ControlModifier);
+    release.accept();
+    hostTool->keyReleaseEvent(&release);
+    QCOMPARE(tool.releaseCount, 1);
+    QCOMPARE(tool.lastKey, Pk::Key_Shift);
+    QCOMPARE(int(tool.lastModifiers), int(release.modifiers()));
+    QVERIFY(!release.isAccepted());
+}
+
+void KisAsyncColorSamplerHelperTest::testWorkerThreadSampleDelivery()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    TestSamplingCanvas canvas(image);
+    KisAsyncColorSamplerHelper helper(&canvas, &canvas);
+    KisColorSamplerStrokeStrategy strategy(1, 100);
+    int deliveries = 0;
+    PkObject::connect(&helper, &KisAsyncColorSamplerHelper::sigFinalColorSelected,
+                      &helper, [&deliveries](const KoColor &) { ++deliveries; });
+    helper.connectSamplerStrategy(&strategy);
+
+    const KoColor sample(Pk::red, image->colorSpace());
+    std::thread worker([&strategy, sample] { strategy.sigFinalColorSelected(sample); });
+    worker.join();
+
+    QCOMPARE(deliveries, 0);
+    QCOMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    QCOMPARE(deliveries, 1);
+}
+
+void KisAsyncColorSamplerHelperTest::testWorkerThreadSampleDeliveryAfterHelperDestruction()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    TestSamplingCanvas canvas(image);
+    KisColorSamplerStrokeStrategy strategy(1, 100);
+    int deliveries = 0;
+    auto *helper = new KisAsyncColorSamplerHelper(&canvas, &canvas);
+    PkObject::connect(helper, &KisAsyncColorSamplerHelper::sigFinalColorSelected,
+                      helper, [&deliveries](const KoColor &) { ++deliveries; });
+    helper->connectSamplerStrategy(&strategy);
+
+    const KoColor sample(Pk::red, image->colorSpace());
+    std::thread worker([&strategy, sample] { strategy.sigFinalColorSelected(sample); });
+    worker.join();
+    delete helper;
+
+    QCOMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    QCOMPARE(deliveries, 0);
 }
 
 void KisAsyncColorSamplerHelperTest::proxyDispatchesProductionAsyncSampler()

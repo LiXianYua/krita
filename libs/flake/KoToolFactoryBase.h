@@ -12,6 +12,7 @@
 
 #include <PkString.h>
 #include <PkList.h>
+#include <PkNamespace.h>
 #include <QObject>
 
 class KoCanvasBase;
@@ -183,6 +184,11 @@ protected:
      * @return the list of actions this tool wishes to be available.
      */
     virtual PkList<QAction *> createActionsImpl();
+
+    /** Host boundary for factories that keep only QAction identity. */
+    QAction *createHostAction(const char *text,
+                              const PkString &objectName,
+                              Pk::Key shortcut = static_cast<Pk::Key>(0));
 
 private Q_SLOTS:
 

@@ -8,6 +8,7 @@ kis_add_tests(
     kis_prescaled_projection_test.cpp
     kis_selection_options_test.cpp
     kis_stabilized_events_sampler_test.cpp
+    fill_processing_visitor_test.cpp
     zoomhandler_test.cpp
     LINK_LIBRARIES kritacanvas kritatestsdk
 )
@@ -15,11 +16,3 @@ kis_add_tests(
 target_link_libraries(KisAsyncColorSamplerHelperTest kritaselectiontools)
 target_include_directories(KisAsyncColorSamplerHelperTest PRIVATE
     ${CMAKE_SOURCE_DIR}/plugins/tools/selectiontools)
-
-krita_add_broken_unit_test(
-    fill_processing_visitor_test.cpp
-    $<TARGET_PROPERTY:kritatestsdk,SOURCE_DIR>/stroke_testing_utils.cpp
-    TEST_NAME FillProcessingVisitorTest
-    NAME_PREFIX libs-canvas-
-    LINK_LIBRARIES kritacanvas kritatestsdk
-)

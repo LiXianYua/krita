@@ -170,24 +170,24 @@ void KisToolPaint::activate(const PkSet<KoShape*> &shapes)
     KIS_ASSERT_RECOVER_RETURN(services);
     if (flags() & KisTool::FLAG_USES_CUSTOM_SIZE) {
         services->toolSetActionCallback(
-            "increase_brush_size", this,
+            "increase_brush_size", this, callLifetime(),
             [this] { increaseBrushSize(); showBrushSize(); }, true);
         services->toolSetActionCallback(
-            "decrease_brush_size", this,
+            "decrease_brush_size", this, callLifetime(),
             [this] { decreaseBrushSize(); showBrushSize(); }, true);
     }
 
     services->toolSetActionCallback(
-        "rotate_brush_tip_clockwise", this,
+        "rotate_brush_tip_clockwise", this, callLifetime(),
         [this] { rotateBrushTipClockwise(); }, true);
     services->toolSetActionCallback(
-        "rotate_brush_tip_clockwise_precise", this,
+        "rotate_brush_tip_clockwise_precise", this, callLifetime(),
         [this] { rotateBrushTipClockwisePrecise(); }, true);
     services->toolSetActionCallback(
-        "rotate_brush_tip_counter_clockwise", this,
+        "rotate_brush_tip_counter_clockwise", this, callLifetime(),
         [this] { rotateBrushTipCounterClockwise(); }, true);
     services->toolSetActionCallback(
-        "rotate_brush_tip_counter_clockwise_precise", this,
+        "rotate_brush_tip_counter_clockwise_precise", this, callLifetime(),
         [this] { rotateBrushTipCounterClockwisePrecise(); }, true);
 
     tryRestoreOpacitySnapshot();

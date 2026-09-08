@@ -40,9 +40,10 @@ void KisToolPolylineBase::activate(const PkSet<KoShape *> &shapes)
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
     KIS_ASSERT_RECOVER_RETURN(services);
     services->toolSetActionCallback(
-        "undo_polygon_selection", this, [this] { undoSelectionOrCancel(); }, true);
+        "undo_polygon_selection", this, callLifetime(),
+        [this] { undoSelectionOrCancel(); }, true);
     services->toolSetPriorityRightClickCallback(
-        this,
+        this, callLifetime(),
         [this] {
             if (!m_dragging) {
                 return false;
@@ -57,7 +58,8 @@ void KisToolPolylineBase::deactivate()
 {
     cancelStroke();
 
-    dynamic_cast<KisCanvasToolServices*>(canvas())->toolSetPriorityRightClickCallback(this, {}, false);
+    dynamic_cast<KisCanvasToolServices*>(canvas())->toolSetPriorityRightClickCallback(
+        this, callLifetime(), {}, false);
 
     KisToolShape::deactivate();
 }

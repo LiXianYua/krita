@@ -31,31 +31,25 @@ KisToolOutlineBase::KisToolOutlineBase(KoCanvasBase * canvas, ToolType type, con
 KisToolOutlineBase::~KisToolOutlineBase()
 {}
 
-void KisToolOutlineBase::keyPressEvent(QKeyEvent *event)
+void KisToolOutlineBase::pkKeyPressEvent(PkToolKeyEvent *event)
 {
-    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(services);
-    const KisToolKeyEventState state = services->toolKeyEventState(event);
     // Allow to enter continued mode only if we started drawing the shape
-    if (mode() == PAINT_MODE && state.key == Pk::Key_Control) {
+    if (mode() == PAINT_MODE && event->key() == Pk::Key_Control) {
         m_continuedMode = true;
         installBlockActionGuard();
     }
-    KisToolShape::keyPressEvent(event);
+    KisToolShape::pkKeyPressEvent(event);
 }
 
-void KisToolOutlineBase::keyReleaseEvent(QKeyEvent *event)
+void KisToolOutlineBase::pkKeyReleaseEvent(PkToolKeyEvent *event)
 {
-    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(services);
-    const KisToolKeyEventState state = services->toolKeyEventState(event);
-    if (state.key == Pk::Key_Control || !(state.modifiers & Pk::ControlModifier)) {
+    if (event->key() == Pk::Key_Control || !(event->modifiers() & Pk::ControlModifier)) {
         m_continuedMode = false;
         if (mode() != PAINT_MODE) {
             endStroke();
         }
     }
-    KisToolShape::keyReleaseEvent(event);
+    KisToolShape::pkKeyReleaseEvent(event);
 }
 
 void KisToolOutlineBase::mouseMoveEvent(KoPointerEvent *event)
@@ -79,9 +73,9 @@ void KisToolOutlineBase::activate(const PkSet<KoShape *> &shapes)
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
     KIS_ASSERT_RECOVER_RETURN(services);
     services->toolSetActionCallback(
-        "undo_polygon_selection", this, [this] { undoLastPoint(); }, true);
+        "undo_polygon_selection", this, callLifetime(), [this] { undoLastPoint(); }, true);
     services->toolSetPriorityRightClickCallback(
-        this,
+        this, callLifetime(),
         [this] {
             if (m_points.isEmpty()) {
                 return false;
@@ -102,7 +96,7 @@ void KisToolOutlineBase::deactivate()
 
     m_continuedMode = false;
 
-    services->toolSetPriorityRightClickCallback(this, {}, false);
+    services->toolSetPriorityRightClickCallback(this, callLifetime(), {}, false);
 
     KisToolShape::deactivate();
 }

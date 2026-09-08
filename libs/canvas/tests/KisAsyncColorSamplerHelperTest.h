@@ -27,6 +27,10 @@ private Q_SLOTS:
     void cursorUsesSamplingCanvasPolicy();
     void proxyDispatchesPolylineAndSelectionDecorations();
     void hostCallbacksPreserveActionAndRightClickLifecycle();
+    void hostCallbacksDropDispatchAfterDirectToolDestruction();
+    void hostKeyAdapterDispatchesPkPayload();
+    void testWorkerThreadSampleDelivery();
+    void testWorkerThreadSampleDeliveryAfterHelperDestruction();
     void proxyDispatchesProductionAsyncSampler();
 };
 

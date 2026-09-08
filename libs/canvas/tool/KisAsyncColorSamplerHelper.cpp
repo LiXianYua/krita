@@ -313,6 +313,16 @@ void KisAsyncColorSamplerHelper::deactivate()
 void KisAsyncColorSamplerHelper::startAction(const PkPointF &docPoint, int radius, int blend)
 {
     KisColorSamplerStrokeStrategy *strategy = new KisColorSamplerStrokeStrategy(radius, blend);
+    connectSamplerStrategy(strategy);
+
+    activatePreview();
+    m_d->haveSample = true;
+    m_d->strokeId = m_d->strokesFacade()->startStroke(strategy);
+    m_d->samplingCompressor->start(docPoint);
+}
+
+void KisAsyncColorSamplerHelper::connectSamplerStrategy(KisColorSamplerStrokeStrategy *strategy)
+{
     const PkThreadId receiverThread = thread();
     const PkCallLifetime receiverLifetime = callLifetime();
     PkObject::connect(strategy, &KisColorSamplerStrokeStrategy::sigColorUpdated,
@@ -342,10 +352,6 @@ void KisAsyncColorSamplerHelper::startAction(const PkPointF &docPoint, int radiu
             },
             PkConnectionType::Direct);
 
-    activatePreview();
-    m_d->haveSample = true;
-    m_d->strokeId = m_d->strokesFacade()->startStroke(strategy);
-    m_d->samplingCompressor->start(docPoint);
 }
 
 void KisAsyncColorSamplerHelper::continueAction(const PkPointF &docPoint)

@@ -13,15 +13,7 @@ class FillProcessingVisitorTest : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
-    void testFillColorNoSelection();
-    void testFillPatternNoSelection();
-    void testFillColorHaveSelection();
-    void testFillPatternHaveSelection();
-
-    void testFillColorNoSelectionSelectionOnly();
-    void testFillPatternNoSelectionSelectionOnly();
-    void testFillColorHaveSelectionSelectionOnly();
-    void testFillPatternHaveSelectionSelectionOnly();
+    void fillsPixelsReportsDirtyRegionAndUndoes();
 };
 
 #endif /* __FILL_PROCESSING_VISITOR_TEST_H */

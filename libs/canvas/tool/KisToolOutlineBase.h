@@ -35,8 +35,8 @@ public:
     void endPrimaryAction(KoPointerEvent *event) override;
     void paint(PkPainter &gc, const KoViewConverter &converter) override;
 
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
+    void pkKeyPressEvent(PkToolKeyEvent *event) override;
+    void pkKeyReleaseEvent(PkToolKeyEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event) override;
     KisPopupWidgetInterface* popupWidget() override;
 
