@@ -34,6 +34,14 @@
 #include <KoPatternBackground.h>
 #include <KoShapeStroke.h>
 #include <PkFlakeBridge.h>
+
+#undef qCDebug
+#undef qCWarning
+#undef qWarning
+#define qCDebug(category) PK_QCLOG_IMPL(category, isDebugEnabled, debug)
+#define qCWarning(category) PK_QCLOG_IMPL(category, isWarningEnabled, warning)
+#define qWarning PkMessageLogger(__FILE__, __LINE__, __func__).warning
+
 #include <psd.h>
 
 #include <asl/kis_asl_xml_writer.h>

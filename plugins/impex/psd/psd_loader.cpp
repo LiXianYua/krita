@@ -3,10 +3,12 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <kis_debug.h>
 #include <KisDocument.h>
 
 #include "psd_loader.h"
 
+#include <cstdint>
 #include <stack>
 
 #include <KoColorSpace.h>
@@ -48,12 +50,17 @@
 #include "psd_utils.h"
 #include "psd_resource_section.h"
 #include "psd_layer_section.h"
+
+#undef qCDebug
+#undef qCWarning
+#define qCDebug(category) PK_QCLOG_IMPL(category, isDebugEnabled, debug)
+#define qCWarning(category) PK_QCLOG_IMPL(category, isWarningEnabled, warning)
+
 #include "psd_resource_block.h"
 #include "psd_image_data.h"
 #include "KisEmbeddedResourceStorageProxy.h"
 #include "KisImageBarrierLock.h"
 #include "KisImportUserFeedbackInterface.h"
-
 
 PSDLoader::PSDLoader(KisDocument *doc, KisImportUserFeedbackInterface *feedbackInterface)
     : m_image(0)
@@ -140,8 +147,6 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
     PkFileStream *file = dynamic_cast<PkFileStream *>(&io);
     PkString name = file ? file->fileName() : "Imported";
     m_image = new KisImage(m_doc->createUndoStore(),  header.width, header.height, cs, name);
-    Q_CHECK_PTR(m_image);
-
     KisImageBarrierLock lock(m_image);
 
     // set the correct resolution
@@ -160,10 +165,10 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
         GRID_GUIDE_1032 *gridGuidesInfo = dynamic_cast<GRID_GUIDE_1032*>(resourceSection.resources[PSDImageResourceSection::GRID_GUIDE]->resource);
         if (gridGuidesInfo) {
             KisGuidesConfig config = m_doc->guidesConfig();
-            Q_FOREACH(quint32 guide, gridGuidesInfo->verticalGuides) {
+            for (std::uint32_t guide : gridGuidesInfo->verticalGuides) {
                 config.addGuideLine(Qt::Vertical, guide / m_image->xRes());
             }
-            Q_FOREACH(quint32 guide, gridGuidesInfo->horizontalGuides) {
+            for (std::uint32_t guide : gridGuidesInfo->horizontalGuides) {
                 config.addGuideLine(Qt::Horizontal, guide / m_image->yRes());
             }
             config.setShowGuides(true);
@@ -172,7 +177,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
     }
 
     // Preserve all the annotations
-    Q_FOREACH (PSDResourceBlock *resourceBlock, resourceSection.resources.values()) {
+    for (PSDResourceBlock *resourceBlock : resourceSection.resources.values()) {
         m_image->addAnnotation(resourceBlock);
     }
 
@@ -195,10 +200,10 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
 
     KisAslLayerStyleSerializer serializer;
     if (!embeddedPatterns.isEmpty()) {
-        Q_FOREACH (const PkXmlDocument &doc, embeddedPatterns) {
+        for (const PkXmlDocument &doc : embeddedPatterns) {
             serializer.registerPSDPattern(doc);
         }
-        Q_FOREACH (KoPatternSP pattern, serializer.patterns()) {
+        for (KoPatternSP pattern : serializer.patterns()) {
             if (pattern && pattern->valid()) {
                 resourceProxy.addResource(pattern);
                 dbgFile << "Loaded embedded pattern: " << pattern->name();
@@ -561,7 +566,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
 
         }
 
-        Q_FOREACH (ChannelInfo *channelInfo, layerRecord->channelInfoRecords) {
+        for (ChannelInfo *channelInfo : layerRecord->channelInfoRecords) {
             if (channelInfo->channelId < -1) {
                 const KisGeneratorLayer *fillLayer = dynamic_cast<KisGeneratorLayer *>(newLayer.data());
                 const KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer *>(newLayer.data());
@@ -606,7 +611,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
     }
 
     if (!allStylesXml.isEmpty()) {
-        Q_FOREACH (const LayerStyleMapping &mapping, allStylesXml) {
+        for (const LayerStyleMapping &mapping : allStylesXml) {
 
             serializer.readFromPSDXML(mapping.first);
 
@@ -614,7 +619,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                 KisPSDLayerStyleSP layerStyle = serializer.styles().first();
                 KisLayerSP layer = mapping.second;
 
-                Q_FOREACH (KoAbstractGradientSP gradient, serializer.gradients()) {
+                for (KoAbstractGradientSP gradient : serializer.gradients()) {
                     if (gradient && gradient->valid()) {
                         resourceProxy.addResource(gradient);
                     }
@@ -623,7 +628,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                     }
                 }
 
-                Q_FOREACH (const KoPatternSP &pattern, serializer.patterns()) {
+                for (const KoPatternSP &pattern : serializer.patterns()) {
                     if (pattern && pattern->valid()) {
                         resourceProxy.addResource(pattern);
                     } else {

@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <kis_debug.h>
 #include <KisDocument.h>
 
 #include "kis_tiff_import.h"
@@ -19,6 +20,7 @@
 #include <stack>
 
 #include <array>
+#include <cstdint>
 #include <limits>
 
 #include <exiv2/exiv2.hpp>
@@ -50,12 +52,27 @@
 #endif
 
 #include "kis_buffer_stream.h"
+
+#undef qCDebug
+#undef qCWarning
+#undef qCCritical
+#define qCDebug(category) PK_QCLOG_IMPL(category, isDebugEnabled, debug)
+#define qCWarning(category) PK_QCLOG_IMPL(category, isWarningEnabled, warning)
+#define qCCritical(category) PK_QCLOG_IMPL(category, isCriticalEnabled, critical)
+
 #include "kis_tiff_logger.h"
 #include "kis_tiff_reader.h"
 #include "kis_tiff_ycbcr_reader.h"
 #include "tiff_stream_adapter.h"
 
-enum class TiffResolution : quint8 {
+#undef qCDebug
+#undef qCWarning
+#undef qCCritical
+#define qCDebug(category) PK_QCLOG_IMPL(category, isDebugEnabled, debug)
+#define qCWarning(category) PK_QCLOG_IMPL(category, isWarningEnabled, warning)
+#define qCCritical(category) PK_QCLOG_IMPL(category, isCriticalEnabled, critical)
+
+enum class TiffResolution : std::uint8_t {
     NONE = RESUNIT_NONE,
     INCH = RESUNIT_INCH,
     CM = RESUNIT_CENTIMETER,
@@ -84,10 +101,10 @@ struct KisTiffBasicInfo {
 namespace {
 bool stageTiffBytes(PkMemoryStream &stream, const void *data, std::size_t size)
 {
-    return data && size <= static_cast<std::size_t>(std::numeric_limits<qint64>::max()) &&
+    return data && size <= static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max()) &&
            stream.open(PkStream::ReadWrite) &&
-           stream.write(static_cast<const char *>(data), static_cast<qint64>(size)) ==
-               static_cast<qint64>(size) &&
+           stream.write(static_cast<const char *>(data), static_cast<std::int64_t>(size)) ==
+               static_cast<std::int64_t>(size) &&
            stream.seek(0);
 }
 }
@@ -403,16 +420,16 @@ KisImportExportErrorCode KisTIFFImport::readImageFromPsdRecords(
     }
 
     KisImageSP psdImage = new KisImage(m_doc->createUndoStore(),
-                                       static_cast<qint32>(basicInfo.width),
-                                       static_cast<qint32>(basicInfo.height),
+                                       static_cast<std::int32_t>(basicInfo.width),
+                                       static_cast<std::int32_t>(basicInfo.height),
                                        cs,
                                        "built image");
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(psdImage,
                                          ImportExportCodes::InsufficientMemory);
 
     psdImage->setResolution(
-        POINT_TO_INCH(static_cast<qreal>(basicInfo.xres)),
-        POINT_TO_INCH(static_cast<qreal>(
+        POINT_TO_INCH(static_cast<double>(basicInfo.xres)),
+        POINT_TO_INCH(static_cast<double>(
             basicInfo.yres))); // It is the "invert" macro because we convert
                                // from pointer-per-inch to points
 
@@ -714,8 +731,8 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
     // Creating the KisImageSP
     if (!m_image) {
         m_image = new KisImage(m_doc->createUndoStore(),
-                               static_cast<qint32>(width),
-                               static_cast<qint32>(height),
+                               static_cast<std::int32_t>(width),
+                               static_cast<std::int32_t>(height),
                                cs,
                                "built image");
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(
@@ -724,24 +741,24 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         // It is the "invert" macro because we
         // convert from pointer-per-unit to points
         if (basicInfo.resolution == TiffResolution::INCH) {
-            m_image->setResolution(POINT_TO_INCH(static_cast<qreal>(xres)), POINT_TO_INCH(static_cast<qreal>(yres)));
+            m_image->setResolution(POINT_TO_INCH(static_cast<double>(xres)), POINT_TO_INCH(static_cast<double>(yres)));
         } else {
-            m_image->setResolution(POINT_TO_CM(static_cast<qreal>(xres)), POINT_TO_CM(static_cast<qreal>(yres)));
+            m_image->setResolution(POINT_TO_CM(static_cast<double>(xres)), POINT_TO_CM(static_cast<double>(yres)));
         }
     } else {
-        if (m_image->width() < static_cast<qint32>(width)
-            || m_image->height() < static_cast<qint32>(height)) {
-            qint32 newwidth = (m_image->width() < static_cast<qint32>(width))
-                ? static_cast<qint32>(width)
+        if (m_image->width() < static_cast<std::int32_t>(width)
+            || m_image->height() < static_cast<std::int32_t>(height)) {
+            std::int32_t newwidth = (m_image->width() < static_cast<std::int32_t>(width))
+                ? static_cast<std::int32_t>(width)
                 : m_image->width();
-            qint32 newheight = (m_image->height() < static_cast<qint32>(height))
-                ? static_cast<qint32>(height)
+            std::int32_t newheight = (m_image->height() < static_cast<std::int32_t>(height))
+                ? static_cast<std::int32_t>(height)
                 : m_image->height();
             m_image->resizeImage(PkRect(0, 0, newwidth, newheight));
         }
     }
     KisPaintLayer *layer =
-        new KisPaintLayer(m_image, m_image->nextLayerName(), quint8_MAX, cs);
+        new KisPaintLayer(m_image, m_image->nextLayerName(), std::numeric_limits<std::uint8_t>::max(), cs);
     std::unique_ptr<std::remove_pointer_t<tdata_t>, decltype(&_TIFFfree)> buf(
         nullptr,
         &_TIFFfree);
@@ -758,7 +775,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 
     // Configure poses
     uint16_t nbcolorsamples = nbchannels - extrasamplescount;
-    const auto poses = [&]() -> std::array<quint8, 5> {
+    const auto poses = [&]() -> std::array<std::uint8_t, 5> {
         switch (color_type) {
         case PHOTOMETRIC_MINISWHITE:
         case PHOTOMETRIC_MINISBLACK:
@@ -846,8 +863,8 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
         if (dstDepth == 8) {
             tiffReader = PkSharedPointer<KisTIFFYCbCrReader<uint8_t>>::create(
                 layer->paintDevice(),
-                static_cast<quint32>(layer->image()->width()),
-                static_cast<quint32>(layer->image()->height()),
+                static_cast<std::uint32_t>(layer->image()->width()),
+                static_cast<std::uint32_t>(layer->image()->height()),
                 poses,
                 alphapos,
                 depth,
@@ -864,8 +881,8 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
 #ifdef HAVE_OPENEXR
                 tiffReader = PkSharedPointer<KisTIFFYCbCrReader<half>>::create(
                     layer->paintDevice(),
-                    static_cast<quint32>(layer->image()->width()),
-                    static_cast<quint32>(layer->image()->height()),
+                    static_cast<std::uint32_t>(layer->image()->width()),
+                    static_cast<std::uint32_t>(layer->image()->height()),
                     poses,
                     alphapos,
                     depth,
@@ -882,8 +899,8 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 tiffReader =
                     PkSharedPointer<KisTIFFYCbCrReader<uint16_t>>::create(
                     layer->paintDevice(),
-                    static_cast<quint32>(layer->image()->width()),
-                    static_cast<quint32>(layer->image()->height()),
+                    static_cast<std::uint32_t>(layer->image()->width()),
+                    static_cast<std::uint32_t>(layer->image()->height()),
                     poses,
                     alphapos,
                     depth,
@@ -900,8 +917,8 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             if (sampletype == SAMPLEFORMAT_IEEEFP) {
                 tiffReader = PkSharedPointer<KisTIFFYCbCrReader<float>>::create(
                     layer->paintDevice(),
-                    static_cast<quint32>(layer->image()->width()),
-                    static_cast<quint32>(layer->image()->height()),
+                    static_cast<std::uint32_t>(layer->image()->width()),
+                    static_cast<std::uint32_t>(layer->image()->height()),
                     poses,
                     alphapos,
                     depth,
@@ -917,8 +934,8 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 tiffReader =
                     PkSharedPointer<KisTIFFYCbCrReader<uint32_t>>::create(
                     layer->paintDevice(),
-                    static_cast<quint32>(layer->image()->width()),
-                    static_cast<quint32>(layer->image()->height()),
+                    static_cast<std::uint32_t>(layer->image()->width()),
+                    static_cast<std::uint32_t>(layer->image()->height()),
                     poses,
                     alphapos,
                     depth,
@@ -944,7 +961,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
             hasPremultipliedAlpha,
             transform,
             postprocessor,
-            quint8_MAX);
+            std::numeric_limits<std::uint8_t>::max());
     } else if (dstDepth == 16) {
         if (sampletype == SAMPLEFORMAT_IEEEFP) {
 #ifdef HAVE_OPENEXR
@@ -973,7 +990,7 @@ KisTIFFImport::readImageFromTiff(KisDocument *m_doc,
                 hasPremultipliedAlpha,
                 transform,
                 postprocessor,
-                quint16_MAX);
+                std::numeric_limits<std::uint16_t>::max());
         }
     } else if (dstDepth == 32) {
         if (sampletype == SAMPLEFORMAT_IEEEFP) {
@@ -1789,11 +1806,11 @@ KisImportExportErrorCode KisTIFFImport::readTIFFDirectory(KisDocument *m_doc,
     // Read image profile
     dbgFile << "Reading profile";
     const KoColorProfile *profile = nullptr;
-    quint32 EmbedLen = 0;
+    std::uint32_t EmbedLen = 0;
     uint8_t *EmbedBuffer = nullptr;
 
     if (TIFFGetField(image, TIFFTAG_ICCPROFILE, &EmbedLen, &EmbedBuffer) == 1) {
-        if (!EmbedBuffer || EmbedLen > static_cast<quint32>(std::numeric_limits<int>::max())) {
+        if (!EmbedBuffer || EmbedLen > static_cast<std::uint32_t>(std::numeric_limits<int>::max())) {
             return ImportExportCodes::FileFormatIncorrect;
         }
         dbgFile << "Profile found";

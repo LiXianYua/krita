@@ -4,6 +4,7 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <kis_debug.h>
 #include <PkFlakeBridge.h>
 
 #include "psd_layer_section.h"
@@ -19,7 +20,6 @@
 #include <KoColor.h>
 #include <KoColorSpace.h>
 
-#include <kis_debug.h>
 #include <kis_effect_mask.h>
 #include <kis_group_layer.h>
 #include <kis_generator_layer.h>
@@ -42,6 +42,13 @@
 #include <KoShapeGroup.h>
 #include <KoShapeManager.h>
 #include <KoSvgTextShapeMarkupConverter.h>
+
+#undef qCDebug
+#undef qCWarning
+#undef qWarning
+#define qCDebug(category) PK_QCLOG_IMPL(category, isDebugEnabled, debug)
+#define qCWarning(category) PK_QCLOG_IMPL(category, isWarningEnabled, warning)
+#define qWarning PkMessageLogger(__FILE__, __LINE__, __func__).warning
 
 #include "kis_dom_utils.h"
 

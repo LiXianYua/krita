@@ -7,6 +7,7 @@
 
 #include <PkMemoryStream.h>
 
+#include <cstdint>
 #include <memory>
 #include <limits>
 
@@ -160,14 +161,14 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
     KIS_ASSERT_RECOVER_RETURN_VALUE(
         buff && "Unable to allocate buffer for TIFF!",
         ImportExportCodes::InsufficientMemory);
-    qint32 height = layer->image()->height();
-    qint32 width = layer->image()->width();
+    std::int32_t height = layer->image()->height();
+    std::int32_t width = layer->image()->width();
     bool r = true;
-    for (qint32 y = 0; y < height; y++) {
+    for (std::int32_t y = 0; y < height; y++) {
         KisHLineConstIteratorSP it = pd->createHLineConstIteratorNG(0, y, width);
         switch (color_type) {
         case PHOTOMETRIC_MINISBLACK: {
-            const std::array<quint8, 5> poses = {0, 1};
+            const std::array<std::uint8_t, 5> poses = {0, 1};
             r = copyDataToStrips(it,
                                  buff.get(),
                                  depth,
@@ -176,7 +177,7 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
                                  poses);
         } break;
         case PHOTOMETRIC_RGB: {
-            const auto poses = [&]() -> std::array<quint8, 5> {
+            const auto poses = [&]() -> std::array<std::uint8_t, 5> {
                 if (sample_format == SAMPLEFORMAT_IEEEFP) {
                     return {0, 1, 2, 3};
                 } else {
@@ -191,7 +192,7 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
                                  poses);
         } break;
         case PHOTOMETRIC_SEPARATED: {
-            const std::array<quint8, 5> poses = {0, 1, 2, 3, 4};
+            const std::array<std::uint8_t, 5> poses = {0, 1, 2, 3, 4};
             r = copyDataToStrips(it,
                                  buff.get(),
                                  depth,
@@ -201,7 +202,7 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
         } break;
         case PHOTOMETRIC_ICCLAB:
         case PHOTOMETRIC_YCBCR: {
-            const std::array<quint8, 5> poses = {0, 1, 2, 3};
+            const std::array<std::uint8_t, 5> poses = {0, 1, 2, 3};
             r = copyDataToStrips(it,
                                  buff.get(),
                                  depth,
@@ -214,7 +215,7 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
             return ImportExportCodes::InternalError;
         TIFFWriteScanline(image(),
                           buff.get(),
-                          static_cast<quint32>(y),
+                          static_cast<std::uint32_t>(y),
                           (tsample_t)-1);
     }
     buff.reset();
@@ -250,7 +251,7 @@ KisImportExportErrorCode KisTiffPsdWriter::writeImage(KisGroupLayerSP layer)
         } else {
             // else write a zero length block
             dbgFile << "No layers, saving empty layers/mask block" << buf.pos();
-            psdwrite(buf, (quint32)0);
+            psdwrite(buf, std::uint32_t(0));
         }
 
         buf.close();

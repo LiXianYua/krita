@@ -3,8 +3,6 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-
 #include "psd_text_data_converter.h"
 
 #include <ft2build.h>
@@ -81,30 +79,7 @@ bool fontSlantIsNormal(const KoCSSFontInfo &fontInfo)
     return fontInfo.slantMode == 0;
 }
 
-#ifdef QT_CORE_LIB
-PkStringList pkFromNativeFamilies(const PK_CAT_(Q, StringList) &families)
-{
-    PkStringList result;
-    for (int i = 0; i < families.size(); i++) {
-        result.append(toPkString(families.at(i)));
-    }
-    return result;
-}
-
-PK_CAT_(Q, StringList) pkToNativeFamilies(const PkStringList &families)
-{
-    PK_CAT_(Q, StringList) result;
-    for (int i = 0; i < families.size(); i++) {
-        result.append(toQString(families.at(i)));
-    }
-    return result;
-}
-
-// PkStringList 直通（QT 分支专用别名；非 Qt 下 PK_CAT_ 版即直通，S-09-g）。
 PkStringList pkFamiliesDirect(const PkStringList &families) { return families; }
-
-
-#endif
 
 
 } // namespace

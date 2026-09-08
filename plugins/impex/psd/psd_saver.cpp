@@ -3,9 +3,12 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <kis_debug.h>
 #include <KisDocument.h>
 
 #include "psd_saver.h"
+
+#include <cstdint>
 
 #include <KoColorSpace.h>
 #include <KoColorModelStandardIds.h>
@@ -21,7 +24,6 @@
 #include <kis_image.h>
 #include <kis_group_layer.h>
 #include <kis_paint_device.h>
-#include <kis_debug.h>
 #include <kis_guides_config.h>
 
 #include "psd.h"
@@ -30,14 +32,17 @@
 #include "psd_utils.h"
 #include "psd_resource_section.h"
 #include "psd_layer_section.h"
+
+#undef qCDebug
+#define qCDebug(category) PK_QCLOG_IMPL(category, isDebugEnabled, debug)
+
 #include "psd_resource_block.h"
 #include "psd_image_data.h"
 
 
 
 
-
-std::pair<psd_color_mode, quint16> colormodelid_to_psd_colormode(const PkString &colorSpaceId, const PkString &colorDepthId)
+std::pair<psd_color_mode, std::uint16_t> colormodelid_to_psd_colormode(const PkString &colorSpaceId, const PkString &colorDepthId)
 {
     psd_color_mode colorMode = COLORMODE_UNKNOWN;
     if (colorSpaceId == RGBAColorModelID.id()) {
@@ -53,7 +58,7 @@ std::pair<psd_color_mode, quint16> colormodelid_to_psd_colormode(const PkString 
         colorMode = Lab;
     }
 
-    quint16 depth = 0;
+    std::uint16_t depth = 0;
 
     if (colorDepthId ==  Integer8BitsColorDepthID.id()) {
         depth = 8;
@@ -68,7 +73,7 @@ std::pair<psd_color_mode, quint16> colormodelid_to_psd_colormode(const PkString 
         depth = 32;
     }
 
-    return std::pair<psd_color_mode, quint16>(colorMode, depth);
+    return std::pair<psd_color_mode, std::uint16_t>(colorMode, depth);
 }
 
 
@@ -115,7 +120,7 @@ KisImportExportErrorCode PSDSaver::buildFile(PkStream &io)
     header.width = m_image->width();
     header.height = m_image->height();
 
-    std::pair<psd_color_mode, quint16> colordef = colormodelid_to_psd_colormode(m_image->colorSpace()->colorModelId().id(),
+    std::pair<psd_color_mode, std::uint16_t> colordef = colormodelid_to_psd_colormode(m_image->colorSpace()->colorModelId().id(),
                                                                           m_image->colorSpace()->colorDepthId().id());
 
     if (colordef.first == COLORMODE_UNKNOWN || colordef.second == 0 || colordef.second == 32) {
@@ -190,12 +195,12 @@ KisImportExportErrorCode PSDSaver::buildFile(PkStream &io)
     // Add grid/guides block
     {
         GRID_GUIDE_1032 *gridGuidesInfo = new GRID_GUIDE_1032;
-        PkList<quint32> verticalGuides;
-        Q_FOREACH(qreal guide, m_doc->guidesConfig().verticalGuideLines()) {
+        PkList<std::uint32_t> verticalGuides;
+        for (double guide : m_doc->guidesConfig().verticalGuideLines()) {
             verticalGuides.append(guide * m_image->xRes());
         }
-        PkList<quint32> horizontalGuides;
-        Q_FOREACH(qreal guide, m_doc->guidesConfig().horizontalGuideLines()) {
+        PkList<std::uint32_t> horizontalGuides;
+        for (double guide : m_doc->guidesConfig().horizontalGuideLines()) {
             horizontalGuides.append(guide * m_image->xRes());
         }
         gridGuidesInfo->verticalGuides = verticalGuides;
@@ -240,7 +245,7 @@ KisImportExportErrorCode PSDSaver::buildFile(PkStream &io)
     else {
         // else write a zero length block
         dbgFile << "No layers, saving empty layers/mask block" << io.pos();
-        psdwrite(io, (quint32)0);
+        psdwrite(io, std::uint32_t(0));
     }
 
     // IMAGE DATA

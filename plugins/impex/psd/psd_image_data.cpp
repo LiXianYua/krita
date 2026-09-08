@@ -5,10 +5,11 @@
  *   SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <kis_debug.h>
 #include <psd_image_data.h>
 
+#include <cstdint>
 #include <PkFileStream.h>
-#include <kis_debug.h>
 #include <PkVector.h>
 
 #include <KoChannelInfo.h>
@@ -20,6 +21,9 @@
 #include <compression.h>
 #include <psd_pixel_utils.h>
 #include <psd_utils.h>
+
+#undef qCDebug
+#define qCDebug(category) PK_QCLOG_IMPL(category, isDebugEnabled, debug)
 
 PSDImageData::PSDImageData(PSDHeader *header)
 {
@@ -33,9 +37,9 @@ PSDImageData::~PSDImageData() {
 bool PSDImageData::read(PkStream &io, KisPaintDeviceSP dev)
 {
     psdread(io, m_compression);
-    quint64 start = io.pos();
+    std::uint64_t start = io.pos();
     m_channelSize = m_header->channelDepth/8;
-    m_channelDataLength = quint64(m_header->height) * m_header->width * m_channelSize;
+    m_channelDataLength = std::uint64_t(m_header->height) * m_header->width * m_channelSize;
 
     dbgFile << "Reading Image Data Block: compression" << m_compression << "channelsize" << m_channelSize << "number of channels" << m_header->nChannels;
 
@@ -49,7 +53,7 @@ bool PSDImageData::read(PkStream &io, KisPaintDeviceSP dev)
             channelInfo.channelId = channel;
             channelInfo.compressionType = psd_compression_type::Uncompressed;
             channelInfo.channelDataStart = start;
-            channelInfo.channelDataLength = quint64(m_header->width) * m_header->height * m_channelSize;
+            channelInfo.channelDataLength = std::uint64_t(m_header->width) * m_header->height * m_channelSize;
             start += channelInfo.channelDataLength;
             m_channelInfoRecords.append(channelInfo);
 
@@ -59,26 +63,26 @@ bool PSDImageData::read(PkStream &io, KisPaintDeviceSP dev)
 
     case 1: // RLE
     {
-        quint32 rlelength = 0;
+        std::uint32_t rlelength = 0;
 
         // The start of the actual channel data is _after_ the RLE rowlengths block
         if (m_header->version == 1) {
-            start += quint64(m_header->nChannels) * m_header->height * 2;
+            start += std::uint64_t(m_header->nChannels) * m_header->height * 2;
         }
         else if (m_header->version == 2) {
-            start += quint64(m_header->nChannels) * m_header->height * 4;
+            start += std::uint64_t(m_header->nChannels) * m_header->height * 4;
         }
 
         for (int channel = 0; channel < m_header->nChannels; channel++) {
             m_channelOffsets << 0;
-            quint64 sumrlelength = 0;
+            std::uint64_t sumrlelength = 0;
             ChannelInfo channelInfo;
             channelInfo.channelId = channel;
             channelInfo.channelDataStart = start;
             channelInfo.compressionType = psd_compression_type::RLE;
-            for (quint32 row = 0; row < m_header->height; row++ ) {
+            for (std::uint32_t row = 0; row < m_header->height; row++ ) {
                 if (m_header->version == 1) {
-                    quint16 rlelength16 = 0; // use temporary variable to not cast pointers and not rely on endianness
+                    std::uint16_t rlelength16 = 0; // use temporary variable to not cast pointers and not rely on endianness
                     psdread(io, rlelength16);
                     rlelength = rlelength16;
                 }
@@ -130,7 +134,7 @@ bool PSDImageData::read(PkStream &io, KisPaintDeviceSP dev)
 
 bool PSDImageData::write(PkStream &io, KisPaintDeviceSP dev, bool hasAlpha, psd_compression_type compressionType)
 {
-    psdwrite(io, static_cast<quint16>(compressionType));
+    psdwrite(io, static_cast<std::uint16_t>(compressionType));
 
     // now write all the channels in display order
     // fill in the channel chooser, in the display order, but store the pixel index as well.
@@ -157,7 +161,7 @@ bool PSDImageData::write(PkStream &io, KisPaintDeviceSP dev, bool hasAlpha, psd_
         writingInfoList <<
             PsdPixelUtils::ChannelWritingInfo(channelId, -1, rleOffset);
 
-        io.seek(io.pos() + rc.height() * sizeof(quint16));
+        io.seek(io.pos() + rc.height() * sizeof(std::uint16_t));
     }
 
     PsdPixelUtils::writePixelDataCommon(io, dev, rc, colorMode, channelSize, false, false, writingInfoList, compressionType);

@@ -4,6 +4,7 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <kis_debug.h>
 #include <PkFlakeBridge.h>
 
 #include "psd_layer_record.h"
@@ -14,7 +15,6 @@
 
 #include "kis_iterator_ng.h"
 #include <algorithm>
-#include <kis_debug.h>
 #include <kis_node.h>
 #include <kis_paint_layer.h>
 
@@ -31,6 +31,11 @@
 #include <KoPathShape.h>
 #include <KoPathSegment.h>
 #include <KoPathPoint.h>
+
+#undef qCDebug
+#undef qCWarning
+#define qCDebug(category) PK_QCLOG_IMPL(category, isDebugEnabled, debug)
+#define qCWarning(category) PK_QCLOG_IMPL(category, isWarningEnabled, warning)
 
 #include <asl/kis_asl_reader_utils.h>
 #include <asl/kis_asl_writer_utils.h>
@@ -56,11 +61,6 @@ PkString toBinaryString(unsigned int value)
 }
 
 } // namespace
-
-QDebug operator<<(QDebug dbg, const PSDLayerRecord::LayerBlendingRanges::LayerBlendingRange &data)
-{
-    return dbg << data.blackValues[0] << data.blackValues[1] << data.whiteValues[0] << data.whiteValues[1];
-}
 
 // Just for pretty debug messages
 PkString channelIdToChannelType(int channelId, psd_color_mode colormode)

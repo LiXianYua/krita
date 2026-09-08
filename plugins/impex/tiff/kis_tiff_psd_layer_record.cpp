@@ -9,6 +9,7 @@
 #include "kis_tiff_psd_layer_record.h"
 #include "psd_utils.h"
 
+#include <cstdint>
 #include <PkMemoryStream.h>
 #include <asl/kis_asl_reader_utils.h>
 #include <asl/kis_asl_writer_utils.h>
@@ -143,7 +144,7 @@ bool KisTiffPsdLayerRecord::writeImpl(PkStream &device, KisNodeSP rootLayer, psd
     buf.close();
 
     // Then get the size
-    qint64 layerSectionLength = buf.size();
+    std::int64_t layerSectionLength = buf.size();
     dbgFile << "layer section has size" << layerSectionLength;
 
     // and write the whole buffer

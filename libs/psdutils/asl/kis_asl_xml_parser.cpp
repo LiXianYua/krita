@@ -4,7 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QDebug>
+#include "kis_debug.h"
 
 #include "kis_asl_xml_parser.h"
 
@@ -25,11 +25,15 @@
 #include "kis_dom_utils.h"
 
 #include "compression.h"
-#include "kis_debug.h"
 #include "psd.h"
 #include "psd_utils.h"
 
 #include "kis_asl_object_catcher.h"
+
+#undef qDebug
+#undef qCWarning
+#define qDebug PkMessageLogger(__FILE__, __LINE__, __func__).debug
+#define qCWarning(category) PK_QCLOG_IMPL(category, isWarningEnabled, warning)
 
 namespace Private
 {

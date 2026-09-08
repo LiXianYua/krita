@@ -6,6 +6,7 @@
  */
 #include "kis_tiff_psd_resource_record.h"
 
+#include <cstdint>
 #include <PkMemoryStream.h>
 #include <PkStream.h>
 #include <algorithm>
@@ -66,7 +67,7 @@ bool KisTiffPsdResourceRecord::write(PkStream &io)
     buf.close();
 
     // Then get the size
-    qint64 resourceSectionLength = buf.size();
+    std::int64_t resourceSectionLength = buf.size();
     dbgFile << "resource section has size" << resourceSectionLength;
 
     // and write the whole buffer
