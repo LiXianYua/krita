@@ -1159,7 +1159,9 @@ KisNodeSP KisKraLoader::loadFileLayer(const PkXmlElement& element, KisImageSP im
         }
     }
 
-    KisLayer *layer = new KisFileLayer(image, toQString(basePath), toQString(filename), (KisFileLayer::ScalingMethod)scalingMethod, toQString(scalingFilter), toQString(name), opacity, fallbackColorSpace);
+    KisLayer *layer = new KisFileLayer(image, basePath, filename,
+                                      (KisFileLayer::ScalingMethod)scalingMethod,
+                                      scalingFilter, name, opacity, fallbackColorSpace);
     Q_CHECK_PTR(layer);
 
     return layer;

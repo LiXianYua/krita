@@ -13,6 +13,8 @@
 #include "kis_safe_document_loader.h"
 #include "kis_external_layer_iface.h"
 #include <PkConnection.h>
+#include <PkSize.h>
+#include <PkString.h>
 #include <PkTransform.h>
 
 /**

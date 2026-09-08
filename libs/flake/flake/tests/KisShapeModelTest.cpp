@@ -19,6 +19,12 @@
 
 namespace {
 
+PkString toPkString(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
 class TestShapeController : public KoShapeControllerBase
 {
 public:
@@ -48,9 +54,9 @@ private Q_SLOTS:
 void KisShapeModelTest::ownsShapeLayerStateWithoutUi()
 {
     const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
-    KisImageSP image = new KisImage(nullptr, 64, 64, colorSpace, QStringLiteral("shape-model"));
+    KisImageSP image = new KisImage(nullptr, 64, 64, colorSpace, PkString("shape-model"));
     TestShapeController controller;
-    KisShapeLayer layer(&controller, image, QStringLiteral("vectors"), 255);
+    KisShapeLayer layer(&controller, image, PkString("vectors"), 255);
 
     QVERIFY(layer.shapeManager());
     QVERIFY(layer.antialiased());
@@ -63,7 +69,7 @@ void KisShapeModelTest::ownsShapeLayerStateWithoutUi()
     layer.addShape(path);
 
     QCOMPARE(layer.shapes().size(), 1);
-    QCOMPARE(layer.shapes().constFirst(), path);
+    QCOMPARE(layer.shapes().first(), path);
 
     layer.setAntialiased(false);
     QVERIFY(!layer.antialiased());
@@ -99,7 +105,7 @@ void KisShapeModelTest::loadsFileThroughInjectedHeadlessLoader()
     int loadCount = 0;
     PkString loadedPath;
     KisSafeDocumentLoader loader(
-        file.fileName(),
+        toPkString(file.fileName()),
         [&](const PkString &path) {
             ++loadCount;
             loadedPath = path;
@@ -115,10 +121,11 @@ void KisShapeModelTest::loadsFileThroughInjectedHeadlessLoader()
     qreal loadedXRes = 0.0;
     qreal loadedYRes = 0.0;
     PkSize loadedSize;
-    QObject::connect(&loader,
+    PkObject receiver;
+    PkObject::connect(&loader,
             &KisSafeDocumentLoader::loadingFinished,
-            this,
-            [&](KisPaintDeviceSP device, qreal xRes, qreal yRes, const PkSize &size) {
+            &receiver,
+            [&](KisPaintDeviceSP device, qreal xRes, qreal yRes, PkSize size) {
                 loadedDevice = device;
                 loadedXRes = xRes;
                 loadedYRes = yRes;
@@ -129,7 +136,7 @@ void KisShapeModelTest::loadsFileThroughInjectedHeadlessLoader()
 
     QCOMPARE(loadCount, 1);
     QVERIFY(!loadedPath.isEmpty());
-    QVERIFY(loadedPath != file.fileName());
+    QVERIFY(loadedPath != toPkString(file.fileName()));
     QCOMPARE(loadedDevice, expectedDevice);
     QCOMPARE(loadedXRes, 2.0);
     QCOMPARE(loadedYRes, 3.0);

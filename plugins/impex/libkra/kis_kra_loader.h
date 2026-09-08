@@ -83,6 +83,8 @@ public:
 
 private:
 
+    friend class KisFileLayerRoundTripTest;
+
     // this needs to be private, for neatness sake
     void loadAssistants(KoStore* store, const PkString & uri, bool external);
 

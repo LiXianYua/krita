@@ -607,6 +607,7 @@ target_link_libraries(kritaimage
         pkport
         pkxml
         pkconfig
+        pkgeometry
         pksignal
         pkuuid
 )

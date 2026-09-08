@@ -2,16 +2,20 @@
 #include "KisSafeDocumentLoaderTest.h"
 
 #include <QTemporaryFile>
+#include <QTemporaryDir>
+#include <QBuffer>
 #include <QImage>
 #include <QTest>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <filesystem>
 #include <memory>
 #include <simpletest.h>
 #include <vector>
 #include <KoColorSpaceRegistry.h>
+#include <KoStore.h>
 
 #include <PkEventLoop.h>
 #include <PkImage.h>
@@ -24,6 +28,8 @@
 #include "kis_debug.h"
 
 namespace {
+
+namespace fs = std::filesystem;
 
 PkString toPkString(const QString &value)
 {
@@ -91,6 +97,55 @@ void writeToFile(QFile &file, QColor /*color*/)
     img.fill(Pk::black);
     img.save(&file, "PNG");
     file.flush();
+}
+
+KisSafeDocumentLoader::LoadResult successfulLoadResult()
+{
+    KisPaintDeviceSP device(new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8()));
+    return {device, 1.0, 1.0, PkSize(1, 1)};
+}
+
+void writeBytes(QFile &file, const QByteArray &bytes)
+{
+    file.reset();
+    file.resize(0);
+    QCOMPARE(file.write(bytes), bytes.size());
+    QVERIFY(file.flush());
+}
+
+bool isPrivateRegularFile(const PkString &path)
+{
+    std::error_code error;
+    const fs::path native = fs::u8path(path.PkToUtf8());
+    if (!fs::is_regular_file(fs::symlink_status(native, error)) || error) return false;
+#ifdef _WIN32
+    return true;
+#else
+    const fs::perms permissions = fs::status(native, error).permissions();
+    if (error) return false;
+    constexpr fs::perms nonOwner = fs::perms::group_read | fs::perms::group_write |
+        fs::perms::group_exec | fs::perms::others_read | fs::perms::others_write |
+        fs::perms::others_exec;
+    return (permissions & nonOwner) == fs::perms::none;
+#endif
+}
+
+std::vector<fs::path> temporaryCopiesWithSuffix(const std::string &suffix)
+{
+    std::vector<fs::path> matches;
+    std::error_code error;
+    const fs::path directory = fs::temp_directory_path(error);
+    if (error) return matches;
+    for (const fs::directory_entry &entry : fs::directory_iterator(directory, error)) {
+        if (error) break;
+        const std::string name = entry.path().filename().u8string();
+        if (name.rfind("krita_file_layer_copy_", 0) == 0 &&
+            name.size() >= suffix.size() &&
+            name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0) {
+            matches.push_back(entry.path());
+        }
+    }
+    return matches;
 }
 
 }
@@ -227,6 +282,219 @@ void KisSafeDocumentLoaderTest::testQueuedDeliveryHonorsReceiverLifetime()
         PkEventLoop::processEvents();
         QCOMPARE(deliveryCount, 1);
     }
+}
+
+void KisSafeDocumentLoaderTest::testTemporaryCopiesArePrivateAndArchiveUsesMergedImage()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString plainPath = directory.filePath("source.png");
+    QImage image(3, 2, QImage::Format_ARGB32);
+    image.fill(Qt::red);
+    QVERIFY(image.save(plainPath, "PNG"));
+
+    PkString observedPlainPath;
+    bool plainWasPrivate = false;
+    KisSafeDocumentLoader plainLoader(
+        toPkString(plainPath),
+        [&](const PkString &path) {
+            observedPlainPath = path;
+            plainWasPrivate = isPrivateRegularFile(path);
+            return loadImage(path);
+        });
+    plainLoader.reloadImage();
+    QVERIFY(plainWasPrivate);
+    QVERIFY(observedPlainPath != toPkString(plainPath));
+    QVERIFY(!fs::exists(fs::u8path(observedPlainPath.PkToUtf8())));
+
+    QByteArray pngBytes;
+    QBuffer pngBuffer(&pngBytes);
+    QVERIFY(pngBuffer.open(QIODevice::WriteOnly));
+    QVERIFY(image.save(&pngBuffer, "PNG"));
+    pngBuffer.close();
+
+    for (const char *extension : {"kra", "ora"}) {
+        const PkString archivePath =
+            toPkString(directory.filePath(QStringLiteral("source.%1").arg(extension)));
+        {
+            std::unique_ptr<KoStore> store(
+                KoStore::createStore(archivePath, KoStore::Write, PkByteArray(), KoStore::Zip, false));
+            QVERIFY(store);
+            QVERIFY(!store->bad());
+            QVERIFY(store->open("mergedimage.png"));
+            QCOMPARE(store->write(pngBytes.constData(), pngBytes.size()), pngBytes.size());
+            QVERIFY(store->close());
+            QVERIFY(store->finalize());
+        }
+
+        PkString observedMergedPath;
+        bool mergedWasPrivate = false;
+        KisSafeDocumentLoader archiveLoader(
+            archivePath,
+            [&](const PkString &path) {
+                observedMergedPath = path;
+                mergedWasPrivate = isPrivateRegularFile(path);
+                return loadImage(path);
+            });
+        archiveLoader.reloadImage();
+        QVERIFY(mergedWasPrivate);
+        QVERIFY(observedMergedPath.endsWith(".png"));
+        QVERIFY(observedMergedPath != archivePath);
+        QVERIFY(!fs::exists(fs::u8path(observedMergedPath.PkToUtf8())));
+    }
+}
+
+void KisSafeDocumentLoaderTest::testDestroyWithDebouncePending()
+{
+    QTemporaryFile file("safe-loader-debounce-destroy-XXXXXX.s09gdebounce");
+    QVERIFY(file.open());
+    writeBytes(file, "a");
+    int loadCount = 0;
+    {
+        std::unique_ptr<KisSafeDocumentLoader> loader(new KisSafeDocumentLoader(
+            toPkString(file.fileName()),
+            [&](const PkString &) {
+                ++loadCount;
+                return successfulLoadResult();
+            }));
+        loader->reloadImage();
+        QCOMPARE(loadCount, 1);
+        writeBytes(file, "changed");
+        QTest::qWait(150);
+        PkEventLoop::processEvents();
+    }
+    QTest::qWait(700);
+    PkEventLoop::processEvents();
+    QCOMPARE(loadCount, 1);
+    QVERIFY(temporaryCopiesWithSuffix(".s09gdebounce").empty());
+}
+
+void KisSafeDocumentLoaderTest::testDestroyWithDelayedLoadPending()
+{
+    QTemporaryFile file("safe-loader-delayed-destroy-XXXXXX.s09gdelayed");
+    QVERIFY(file.open());
+    writeBytes(file, "a");
+    int loadCount = 0;
+    {
+        std::unique_ptr<KisSafeDocumentLoader> loader(new KisSafeDocumentLoader(
+            toPkString(file.fileName()),
+            [&](const PkString &) {
+                ++loadCount;
+                return successfulLoadResult();
+            }));
+        loader->reloadImage();
+        QCOMPARE(loadCount, 1);
+        writeBytes(file, "changed");
+        QVERIFY(waitFor([] {
+            return !temporaryCopiesWithSuffix(".s09gdelayed").empty();
+        }, std::chrono::milliseconds(1500)));
+    }
+    QTest::qWait(300);
+    PkEventLoop::processEvents();
+    QCOMPARE(loadCount, 1);
+    QVERIFY(temporaryCopiesWithSuffix(".s09gdelayed").empty());
+}
+
+void KisSafeDocumentLoaderTest::testDestroyWithWatcherEventQueued()
+{
+    QTemporaryFile file("safe-loader-queued-watcher-XXXXXX.bin");
+    QVERIFY(file.open());
+    writeBytes(file, "a");
+    int loadCount = 0;
+    {
+        std::unique_ptr<KisSafeDocumentLoader> loader(new KisSafeDocumentLoader(
+            toPkString(file.fileName()),
+            [&](const PkString &) {
+                ++loadCount;
+                return successfulLoadResult();
+            }));
+        loader->reloadImage();
+        QCOMPARE(loadCount, 1);
+        writeBytes(file, "queued-change");
+        QTest::qWait(150);
+    }
+    PkEventLoop::processEvents();
+    QTest::qWait(700);
+    PkEventLoop::processEvents();
+    QCOMPARE(loadCount, 1);
+}
+
+void KisSafeDocumentLoaderTest::testSharedPathSurvivesOneLoaderDestruction()
+{
+    QTemporaryFile file("safe-loader-shared-path-XXXXXX.bin");
+    QVERIFY(file.open());
+    writeBytes(file, "a");
+    int firstCount = 0;
+    int secondCount = 0;
+    std::unique_ptr<KisSafeDocumentLoader> first(new KisSafeDocumentLoader(
+        toPkString(file.fileName()),
+        [&](const PkString &) {
+            ++firstCount;
+            return successfulLoadResult();
+        }));
+    KisSafeDocumentLoader second(
+        toPkString(file.fileName()),
+        [&](const PkString &) {
+            ++secondCount;
+            return successfulLoadResult();
+        });
+    first->reloadImage();
+    second.reloadImage();
+    QCOMPARE(firstCount, 1);
+    QCOMPARE(secondCount, 1);
+
+    first.reset();
+    writeBytes(file, "changed");
+    QVERIFY(waitFor([&] { return secondCount == 2; }, std::chrono::milliseconds(2000)));
+    QCOMPARE(firstCount, 1);
+}
+
+void KisSafeDocumentLoaderTest::testDebounceAndRetryCounts()
+{
+    QTemporaryFile debounceFile("safe-loader-debounce-count-XXXXXX.bin");
+    QVERIFY(debounceFile.open());
+    writeBytes(debounceFile, "a");
+    int successCount = 0;
+    KisSafeDocumentLoader debounceLoader(
+        toPkString(debounceFile.fileName()),
+        [&](const PkString &) {
+            ++successCount;
+            return successfulLoadResult();
+        });
+    debounceLoader.reloadImage();
+    QCOMPARE(successCount, 1);
+    for (const QByteArray &contents : {QByteArray("one"), QByteArray("two-two"), QByteArray("three-three")}) {
+        writeBytes(debounceFile, contents);
+        QTest::qWait(100);
+        PkEventLoop::processEvents();
+    }
+    QVERIFY(waitFor([&] { return successCount == 2; }, std::chrono::milliseconds(2000)));
+    QTest::qWait(750);
+    PkEventLoop::processEvents();
+    QCOMPARE(successCount, 2);
+
+    QTemporaryFile retryFile("safe-loader-retry-count-XXXXXX.bin");
+    QVERIFY(retryFile.open());
+    writeBytes(retryFile, "not-loadable");
+    int attemptCount = 0;
+    int failedCount = 0;
+    KisSafeDocumentLoader retryLoader(
+        toPkString(retryFile.fileName()),
+        [&](const PkString &) {
+            ++attemptCount;
+            return KisSafeDocumentLoader::LoadResult {};
+        });
+    PkObject receiver;
+    PkObject::connect(&retryLoader, &KisSafeDocumentLoader::loadingFailed,
+                      &receiver, [&] { ++failedCount; });
+    retryLoader.reloadImage();
+    QVERIFY(waitFor([&] { return failedCount == 1; }, std::chrono::milliseconds(2500)));
+    QCOMPARE(attemptCount, 3);
+    QTest::qWait(750);
+    PkEventLoop::processEvents();
+    QCOMPARE(attemptCount, 3);
+    QCOMPARE(failedCount, 1);
 }
 
 SIMPLE_TEST_MAIN(KisSafeDocumentLoaderTest)

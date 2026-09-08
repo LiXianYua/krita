@@ -14,6 +14,7 @@
 
 #include <array>
 #include <atomic>
+#include <cstdio>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -25,6 +26,16 @@
 #include <thread>
 #include <utility>
 #include <vector>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#include <fcntl.h>
+#include <io.h>
+#else
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 namespace {
 
@@ -77,17 +88,128 @@ FileSnapshot snapshot(const PkString &path)
     return result;
 }
 
-PkString uniqueTemporaryPath(const char *prefix, const std::string &suffix)
+class PkSecureTemporaryFile final
 {
-    static std::atomic<std::uint64_t> nextId {0};
-    const auto tick = std::chrono::steady_clock::now().time_since_epoch().count();
-    const std::string name = std::string(prefix) + std::to_string(tick) + "_" +
-        std::to_string(nextId.fetch_add(1, std::memory_order_relaxed)) + suffix;
-    std::error_code error;
-    fs::path directory = fs::temp_directory_path(error);
-    if (error) directory = fs::current_path(error);
-    return portablePath(directory / name);
-}
+public:
+    static std::unique_ptr<PkSecureTemporaryFile> create(const char *prefix,
+                                                         const std::string &suffix)
+    {
+        std::error_code error;
+        fs::path directory = fs::temp_directory_path(error);
+        if (error) directory = fs::current_path(error);
+        if (error) return {};
+
+#ifdef _WIN32
+        static std::atomic<unsigned long long> nextId {0};
+        for (int attempt = 0; attempt < 128; ++attempt) {
+            const std::wstring name = fs::u8path(prefix).wstring() +
+                std::to_wstring(::GetCurrentProcessId()) + L"_" +
+                std::to_wstring(nextId.fetch_add(1, std::memory_order_relaxed)) +
+                fs::u8path(suffix).wstring();
+            const fs::path path = directory / name;
+            HANDLE handle = ::CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0,
+                                          nullptr, CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+            if (handle == INVALID_HANDLE_VALUE) {
+                const DWORD createError = ::GetLastError();
+                if (createError == ERROR_FILE_EXISTS || createError == ERROR_ALREADY_EXISTS) {
+                    continue;
+                }
+                return {};
+            }
+            const int descriptor = ::_open_osfhandle(reinterpret_cast<intptr_t>(handle),
+                                                      _O_BINARY | _O_RDWR);
+            if (descriptor < 0) {
+                ::CloseHandle(handle);
+                fs::remove(path, error);
+                return {};
+            }
+            FILE *stream = ::_fdopen(descriptor, "w+b");
+            if (!stream) {
+                ::_close(descriptor);
+                fs::remove(path, error);
+                return {};
+            }
+            return std::unique_ptr<PkSecureTemporaryFile>(
+                new PkSecureTemporaryFile(path, stream));
+        }
+        return {};
+#else
+        std::string pattern = (directory / (std::string(prefix) + "XXXXXX" + suffix)).u8string();
+        std::vector<char> writablePattern(pattern.begin(), pattern.end());
+        writablePattern.push_back('\0');
+        const int descriptor = ::mkstemps(writablePattern.data(), static_cast<int>(suffix.size()));
+        if (descriptor < 0) return {};
+        (void)::fchmod(descriptor, S_IRUSR | S_IWUSR);
+        const fs::path path = fs::u8path(writablePattern.data());
+        FILE *stream = ::fdopen(descriptor, "w+b");
+        if (!stream) {
+            ::close(descriptor);
+            fs::remove(path, error);
+            return {};
+        }
+        return std::unique_ptr<PkSecureTemporaryFile>(
+            new PkSecureTemporaryFile(path, stream));
+#endif
+    }
+
+    ~PkSecureTemporaryFile()
+    {
+        close();
+        std::error_code error;
+        fs::remove(m_path, error);
+    }
+
+    PkString path() const
+    {
+        return portablePath(m_path);
+    }
+
+    bool write(const char *data, std::size_t size)
+    {
+        if (!m_stream) return false;
+        std::size_t written = 0;
+        while (written < size) {
+            const std::size_t chunk = std::fwrite(data + written, 1, size - written, m_stream);
+            if (chunk == 0) return false;
+            written += chunk;
+        }
+        return true;
+    }
+
+    bool copyFrom(const fs::path &source)
+    {
+        std::ifstream input(source, std::ios::binary);
+        if (!input) return false;
+        std::array<char, BUFSIZ> buffer {};
+        while (input) {
+            input.read(buffer.data(), buffer.size());
+            const std::streamsize count = input.gcount();
+            if (count > 0 && !write(buffer.data(), static_cast<std::size_t>(count))) {
+                return false;
+            }
+        }
+        return input.eof() && close();
+    }
+
+    bool close()
+    {
+        if (!m_stream) return true;
+        const bool flushed = std::fflush(m_stream) == 0;
+        const bool closed = std::fclose(m_stream) == 0;
+        m_stream = nullptr;
+        return flushed && closed;
+    }
+
+private:
+    PkSecureTemporaryFile(fs::path path, FILE *stream)
+        : m_path(std::move(path))
+        , m_stream(stream)
+    {
+    }
+
+    fs::path m_path;
+    FILE *m_stream = nullptr;
+};
 
 class FileSystemWatcherWrapper final : public PkObject
 {
@@ -276,7 +398,7 @@ struct KisSafeDocumentLoader::Private
     bool isLoading = false;
     bool fileChangedFlag = false;
     PkString path;
-    PkString temporaryPath;
+    std::unique_ptr<PkSecureTemporaryFile> temporaryFile;
     std::uintmax_t initialFileSize = 0;
     fs::file_time_type initialFileTimeStamp {};
     int failureCount = 0;
@@ -321,8 +443,7 @@ KisSafeDocumentLoader::~KisSafeDocumentLoader()
     PkObject::disconnect(m_d->fileExistsConnection);
     if (!m_d->path.isEmpty()) fileSystemWatcher().removePath(m_d->path);
 
-    std::error_code error;
-    if (!m_d->temporaryPath.isEmpty()) fs::remove(nativePath(m_d->temporaryPath), error);
+    m_d->temporaryFile.reset();
     delete m_d;
 }
 
@@ -365,13 +486,10 @@ void KisSafeDocumentLoader::fileChangedCompressed(bool sync)
     m_d->isLoading = true;
     m_d->fileChangedFlag = false;
     const std::string suffix = nativePath(m_d->path).extension().u8string();
-    m_d->temporaryPath = uniqueTemporaryPath("krita_file_layer_copy_", suffix);
-
-    std::error_code error;
-    fs::copy_file(nativePath(m_d->path),
-                  nativePath(m_d->temporaryPath),
-                  fs::copy_options::overwrite_existing,
-                  error);
+    m_d->temporaryFile = PkSecureTemporaryFile::create("krita_file_layer_copy_", suffix);
+    if (m_d->temporaryFile && !m_d->temporaryFile->copyFrom(nativePath(m_d->path))) {
+        m_d->temporaryFile.reset();
+    }
 
     if (sync) {
         PkEventLoop::processEvents();
@@ -384,7 +502,10 @@ void KisSafeDocumentLoader::fileChangedCompressed(bool sync)
 void KisSafeDocumentLoader::delayedLoadStart()
 {
     const FileSnapshot original = snapshot(m_d->path);
-    const FileSnapshot temporary = snapshot(m_d->temporaryPath);
+    const PkString temporaryPath = m_d->temporaryFile
+        ? m_d->temporaryFile->path()
+        : PkString();
+    const FileSnapshot temporary = snapshot(temporaryPath);
     bool successfullyLoaded = false;
     LoadResult loadResult;
 
@@ -404,37 +525,34 @@ void KisSafeDocumentLoader::delayedLoadStart()
 
         const PkString lowerPath = m_d->path.toLower();
         if (lowerPath.endsWith("ora") || lowerPath.endsWith("kra")) {
-            std::unique_ptr<KoStore> store(KoStore::createStore(m_d->temporaryPath, KoStore::Read));
+            std::unique_ptr<KoStore> store(KoStore::createStore(temporaryPath, KoStore::Read));
             if (store && !store->bad() && store->open("mergedimage.png")) {
                 const std::int64_t expectedSize = store->size();
-                const PkString mergedPath = uniqueTemporaryPath("krita_merged_image_", ".png");
-                std::ofstream output(nativePath(mergedPath), std::ios::binary | std::ios::trunc);
+                std::unique_ptr<PkSecureTemporaryFile> mergedFile =
+                    PkSecureTemporaryFile::create("krita_merged_image_", ".png");
                 std::int64_t totalWritten = 0;
                 std::array<char, BUFSIZ> buffer {};
 
-                while (output) {
+                while (mergedFile) {
                     const std::int64_t bytesRead = store->read(buffer.data(), buffer.size());
                     if (bytesRead <= 0) break;
-                    output.write(buffer.data(), bytesRead);
-                    if (output) totalWritten += bytesRead;
+                    if (!mergedFile->write(buffer.data(), static_cast<std::size_t>(bytesRead))) {
+                        break;
+                    }
+                    totalWritten += bytesRead;
                 }
-                output.close();
                 store->close();
 
-                if (totalWritten == expectedSize) {
-                    successfullyLoaded = loadPathNatively(mergedPath);
+                if (mergedFile && totalWritten == expectedSize && mergedFile->close()) {
+                    successfullyLoaded = loadPathNatively(mergedFile->path());
                 }
-                std::error_code error;
-                fs::remove(nativePath(mergedPath), error);
             }
         } else {
-            successfullyLoaded = loadPathNatively(m_d->temporaryPath);
+            successfullyLoaded = loadPathNatively(temporaryPath);
         }
     }
 
-    std::error_code error;
-    fs::remove(nativePath(m_d->temporaryPath), error);
-    m_d->temporaryPath = PkString();
+    m_d->temporaryFile.reset();
     m_d->isLoading = false;
 
     if (!successfullyLoaded) {

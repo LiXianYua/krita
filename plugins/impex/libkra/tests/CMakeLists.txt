@@ -3,6 +3,11 @@ kis_add_tests(
     LINK_LIBRARIES kritaimpex kritalibkra kritatestsdk
     )
 
+kis_add_test(
+    kis_file_layer_roundtrip_test.cpp
+    LINK_LIBRARIES kritaimpex kritalibkra kritatestsdk
+    )
+
 
 kis_add_test(
     kis_kra_saver_test.cpp
