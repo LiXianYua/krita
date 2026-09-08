@@ -15,6 +15,8 @@ class KisGridConfigTest : public QObject
 private Q_SLOTS:
     void testGridConfig();
     void testGuidesConfig();
+    void testPkGridSerializationMatchesQt515();
+    void testPkGuidesSerializationMatchesQt515();
 };
 
 #endif /* __KIS_GRID_CONFIG_TEST_H */

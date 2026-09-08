@@ -10,6 +10,8 @@
 
 #include <KisDocument.h>
 #include <KisDocumentRegistry.h>
+#include <kis_grid_config.h>
+#include <kis_guides_config.h>
 #include <KoDocumentInfo.h>
 #include <KoShapeContainer.h>
 #include <KoPathShape.h>
@@ -77,6 +79,20 @@ void KisKraSaverTest::testCrashyShapeLayer()
 void KisKraSaverTest::testRoundTrip()
 {
     PkScopedPointer<KisDocument> doc(createCompleteDocument());
+    KisGridConfig expectedGrid = doc->gridConfig();
+    expectedGrid.setShowGrid(true);
+    expectedGrid.setSnapToGrid(true);
+    expectedGrid.setSpacing(QPoint(19, 23));
+    expectedGrid.setOffset(QPoint(7, 11));
+    doc->setGridConfig(expectedGrid);
+
+    KisGuidesConfig expectedGuides = doc->guidesConfig();
+    expectedGuides.setShowGuides(true);
+    expectedGuides.setLockGuides(true);
+    expectedGuides.addGuideLine(Qt::Horizontal, 37.5);
+    expectedGuides.addGuideLine(Qt::Vertical, 82.25);
+    doc->setGuidesConfig(expectedGuides);
+
     KoColor bgColor(PkColor(255, 0, 0), doc->image()->colorSpace());
     doc->image()->setDefaultProjectionColor(bgColor);
     doc->image()->waitForDone(); // wait to make sure the image can be locked for saving!
@@ -97,6 +113,8 @@ void KisKraSaverTest::testRoundTrip()
 
     // check whether the BG color is saved correctly
     PK_COMPARE(doc2->image()->defaultProjectionColor(), bgColor);
+    PK_COMPARE(doc2->gridConfig(), expectedGrid);
+    PK_COMPARE(doc2->guidesConfig(), expectedGuides);
 
     // test round trip of a transform mask
     KisNode* tnode =

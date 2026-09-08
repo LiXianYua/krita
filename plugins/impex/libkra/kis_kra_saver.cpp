@@ -49,7 +49,6 @@
 #include "kis_asl_layer_style_serializer.h"
 
 #include <KisMirrorAxisConfig.h>
-#include <PkFlakeBridge.h>
 
 #include <filesystem>
 
@@ -762,8 +761,7 @@ bool KisKraSaver::saveGrid(PkXmlDocument& doc, PkXmlElement& element)
     KisGridConfig config = m_d->doc->gridConfig();
 
     if (!config.isDefault()) {
-        QDomDocument qdoc;
-        PkXmlElement gridElement = toPkXmlElement(config.saveDynamicDataToXml(qdoc, "grid"));
+        PkXmlElement gridElement = config.saveDynamicDataToXml(doc, "grid");
         element.appendChild(gridElement);
     }
 
@@ -775,8 +773,7 @@ bool KisKraSaver::saveGuides(PkXmlDocument& doc, PkXmlElement& element)
     KisGuidesConfig guides = m_d->doc->guidesConfig();
 
     if (!guides.isDefault()) {
-        QDomDocument qdoc;
-        PkXmlElement guidesElement = toPkXmlElement(guides.saveToXml(qdoc, "guides"));
+        PkXmlElement guidesElement = guides.saveToXml(doc, "guides");
         element.appendChild(guidesElement);
     }
 

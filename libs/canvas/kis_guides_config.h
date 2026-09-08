@@ -20,6 +20,9 @@ class QDomElement;
 class QDomDocument;
 class QColor;
 class QPen;
+class PkString;
+class PkXmlDocument;
+class PkXmlElement;
 
 
 class KRITACANVAS_EXPORT KisGuidesConfig : boost::equality_comparable<KisGuidesConfig>
@@ -96,6 +99,7 @@ public:
     void saveStaticData() const;
 
     QDomElement saveToXml(QDomDocument& doc, const QString &tag) const;
+    PkXmlElement saveToXml(PkXmlDocument& doc, const PkString &tag) const;
     bool loadFromXml(const QDomElement &parent);
 
     bool isDefault() const;

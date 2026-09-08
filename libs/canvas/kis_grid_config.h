@@ -19,6 +19,9 @@
 
 class QDomElement;
 class QDomDocument;
+class PkString;
+class PkXmlDocument;
+class PkXmlElement;
 
 
 class KRITACANVAS_EXPORT KisGridConfig : boost::equality_comparable<KisGridConfig>
@@ -316,6 +319,7 @@ public:
     void saveStaticData() const;
 
     QDomElement saveDynamicDataToXml(QDomDocument& doc, const QString &tag) const;
+    PkXmlElement saveDynamicDataToXml(PkXmlDocument& doc, const PkString &tag) const;
     bool loadDynamicDataFromXml(const QDomElement &parent);
 
     static const KisGridConfig& defaultGrid();

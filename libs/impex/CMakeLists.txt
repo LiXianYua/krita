@@ -37,6 +37,7 @@ target_include_directories(kritaimpex PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/variant
     ${CMAKE_SOURCE_DIR}/pk/pointer
     ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/log
 )
 
 target_link_libraries(kritaimpex
@@ -58,6 +59,7 @@ target_link_libraries(kritaimpex
         pkvariant
         pkpointer
         pkstring
+        pklog
 )
 
 if(UNIX AND NOT APPLE)

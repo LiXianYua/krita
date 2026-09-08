@@ -17,6 +17,7 @@
 #include <KConfigGroup>
 #include <KSharedConfig>
 #include "kis_algebra_2d.h"
+#include "kis_dom_utils.h"
 #include <KisStaticInitializer.h>
 
 KIS_DECLARE_STATIC_INITIALIZER {
@@ -240,6 +241,38 @@ QDomElement KisGridConfig::saveDynamicDataToXml(QDomDocument& doc, const QString
     saveQtValue(&gridElement, "lineTypeMain", m_lineTypeMain);
     saveQtValue(&gridElement, "lineTypeSubdivision", m_lineTypeSubdivision);
     saveQtValue(&gridElement, "lineTypeVertical", m_lineTypeIsoVertical);
+
+    return gridElement;
+}
+
+PkXmlElement KisGridConfig::saveDynamicDataToXml(PkXmlDocument& doc, const PkString &tag) const
+{
+    PkXmlElement gridElement = doc.createElement(tag);
+    KisDomUtils::saveValue(&gridElement, "showGrid", m_showGrid);
+    KisDomUtils::saveValue(&gridElement, "snapToGrid", m_snapToGrid);
+    KisDomUtils::saveValue(&gridElement, "offsetActive", m_offsetActive);
+    KisDomUtils::saveValue(&gridElement, "offset", toPkPoint(m_offset));
+    KisDomUtils::saveValue(&gridElement, "spacing", toPkPoint(m_spacing));
+    KisDomUtils::saveValue(&gridElement, "xSpacingActive", m_xSpacingActive);
+    KisDomUtils::saveValue(&gridElement, "ySpacingActive", m_ySpacingActive);
+    KisDomUtils::saveValue(&gridElement, "offsetAspectLocked", m_offsetAspectLocked);
+    KisDomUtils::saveValue(&gridElement, "spacingAspectLocked", m_spacingAspectLocked);
+    KisDomUtils::saveValue(&gridElement, "subdivision", m_subdivision);
+    KisDomUtils::saveValue(&gridElement, "angleLeft", m_angleLeft);
+    KisDomUtils::saveValue(&gridElement, "angleRight", m_angleRight);
+    KisDomUtils::saveValue(&gridElement, "angleLeftActive", m_angleLeftActive);
+    KisDomUtils::saveValue(&gridElement, "angleRightActive", m_angleRightActive);
+    KisDomUtils::saveValue(&gridElement, "angleAspectLocked", m_angleAspectLocked);
+    KisDomUtils::saveValue(&gridElement, "cellSpacing", m_cellSpacing);
+    KisDomUtils::saveValue(&gridElement, "cellSize", m_cellSize);
+    KisDomUtils::saveValue(&gridElement, "gridType", static_cast<int>(m_gridType));
+
+    KisDomUtils::saveValue(&gridElement, "colorMain", toPkColor(m_colorMain));
+    KisDomUtils::saveValue(&gridElement, "colorSubdivision", toPkColor(m_colorSubdivision));
+    KisDomUtils::saveValue(&gridElement, "colorVertical", toPkColor(m_colorIsoVertical));
+    KisDomUtils::saveValue(&gridElement, "lineTypeMain", static_cast<int>(m_lineTypeMain));
+    KisDomUtils::saveValue(&gridElement, "lineTypeSubdivision", static_cast<int>(m_lineTypeSubdivision));
+    KisDomUtils::saveValue(&gridElement, "lineTypeVertical", static_cast<int>(m_lineTypeIsoVertical));
 
     return gridElement;
 }

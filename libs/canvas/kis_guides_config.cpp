@@ -239,8 +239,14 @@ void KisGuidesConfig::saveStaticData() const
 QDomElement KisGuidesConfig::saveToXml(QDomDocument& doc, const QString &tag) const
 {
     PkXmlDocument pkDoc;
-    PkXmlElement guidesElement = pkDoc.createElement(toPkString(tag));
+    PkXmlElement guidesElement = saveToXml(pkDoc, toPkString(tag));
     pkDoc.appendChild(guidesElement);
+    return doc.importNode(toQDomElement(guidesElement), true).toElement();
+}
+
+PkXmlElement KisGuidesConfig::saveToXml(PkXmlDocument& doc, const PkString &tag) const
+{
+    PkXmlElement guidesElement = doc.createElement(tag);
     KisDomUtils::saveValue(&guidesElement, "showGuides", d->showGuides);
     KisDomUtils::saveValue(&guidesElement, "snapToGuides", d->snapToGuides);
     KisDomUtils::saveValue(&guidesElement, "lockGuides", d->lockGuides);
@@ -258,7 +264,7 @@ QDomElement KisGuidesConfig::saveToXml(QDomDocument& doc, const QString &tag) co
     KoUnit tmp(d->unitType);
     KisDomUtils::saveValue(&guidesElement, "unit", tmp.symbol());
 
-    return doc.importNode(toQDomElement(guidesElement), true).toElement();
+    return guidesElement;
 }
 
 bool KisGuidesConfig::loadFromXml(const QDomElement &parent)

@@ -12,8 +12,8 @@
 
 #include <filesystem>
 
+#include <PkMessageLogger.h>
 #include <PkNodeId.h>
-#include <PkFlakeBridge.h>
 #include <KoProperties.h>
 #include <KoColorSpace.h>
 #include <KoCompositeOp.h>
@@ -43,6 +43,9 @@
 #include "kis_dom_utils.h"
 
 using namespace KRA;
+
+#define PK_KRITA_WARNING() PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()
+#define PK_FILE_DEBUG() PkMessageLogger(__FILE__, __LINE__, __func__, &_41008()).debug()
 
 KisSaveXmlVisitor::KisSaveXmlVisitor(PkXmlDocument doc, const PkXmlElement & element, quint32 &count, const PkString &url, bool root)
     : KisNodeVisitor()
@@ -83,7 +86,7 @@ bool KisSaveXmlVisitor::visit(KisExternalLayer * layer)
         KisFileLayer *fileLayer = dynamic_cast<KisFileLayer*>(layer);
         KIS_ASSERT(fileLayer);
 
-        PkString path = toPkString(fileLayer->path());
+        const PkString path = fileLayer->path();
 
 #ifndef Q_OS_ANDROID
         // 对拍 relativeFilePath：计算 source 相对 .kra 所在目录的相对路径。
@@ -106,7 +109,7 @@ bool KisSaveXmlVisitor::visit(KisExternalLayer * layer)
         }
         layerElement.setAttribute("scalingmethod", PkString("%1").arg((int)fileLayer->scalingMethod()));
         layerElement.setAttribute(COLORSPACE_NAME, layer->original()->colorSpace()->id());
-        layerElement.setAttribute("scalingfilter", toPkString(fileLayer->scalingFilter()));
+        layerElement.setAttribute("scalingfilter", fileLayer->scalingFilter());
 
         m_elem.appendChild(layerElement);
         m_count++;
@@ -361,7 +364,7 @@ void KisSaveXmlVisitor::loadLayerAttributes(const PkXmlElement &el, KisLayer *la
             dumbLayerStyle->setUuid(uuid);
             layer->setLayerStyle(dumbLayerStyle);
         } else {
-            warnKrita << "WARNING: Layer style for layer" << layer->name() << "contains invalid UUID" << uuidString;
+            PK_KRITA_WARNING() << "WARNING: Layer style for layer" << layer->name() << "contains invalid UUID" << uuidString;
         }
     }
 
@@ -408,7 +411,7 @@ void KisSaveXmlVisitor::saveLayer(PkXmlElement & el, const PkString & layerType,
         el.setAttribute(LAYER_STYLE_UUID, layer->layerStyle()->uuid().toString());
     }
 
-    Q_FOREACH (KisNodeSP node, m_selectedNodes) {
+    for (const KisNodeSP &node : m_selectedNodes) {
         if (node.data() == layer) {
             el.setAttribute("selected", "true");
             break;
@@ -419,7 +422,7 @@ void KisSaveXmlVisitor::saveLayer(PkXmlElement & el, const PkString & layerType,
 
     m_nodeFileNames[layer] = filename;
 
-    dbgFile << "Saved layer "
+    PK_FILE_DEBUG() << "Saved layer "
             << layer->name()
             << " of type " << layerType
             << " with filename " << LAYER + PkString("%1").arg((int)m_count);
@@ -464,7 +467,7 @@ void KisSaveXmlVisitor::saveMask(PkXmlElement & el, const PkString & maskType, c
 
     m_nodeFileNames[mask] = filename;
 
-    dbgFile << "Saved mask "
+    PK_FILE_DEBUG() << "Saved mask "
             << mask->name()
             << " of type " << maskType
             << " with filename " << filename;
@@ -508,7 +511,7 @@ bool KisSaveXmlVisitor::saveReferenceImagesLayer(KisExternalLayer *layer)
     layerElement.setAttribute(NODE_TYPE, REFERENCE_IMAGES_LAYER);
 
     int nextId = 0;
-    Q_FOREACH(KoShape *shape, referencesLayer->shapes()) {
+    for (KoShape *shape : referencesLayer->shapes()) {
         auto *reference = dynamic_cast<KisReferenceImage*>(shape);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(reference, false);
         reference->saveXml(m_doc, layerElement, nextId);
