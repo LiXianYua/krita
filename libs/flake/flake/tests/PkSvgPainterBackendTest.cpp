@@ -5,6 +5,7 @@
 #include <QPainterPath>
 #include <QSvgGenerator>
 #include <QSvgRenderer>
+#include <QXmlStreamReader>
 #include <PkPainter.h>
 #include "../../svg/PkSvgPainterBackend.h"
 
@@ -18,6 +19,7 @@ private Q_SLOTS:
 
 void PkSvgPainterBackendTest::preservesVectorPathPainting()
 {
+    for (bool explicitViewport : {false, true}) {
     // A missing transform, fill, cubic, or restored pen changes rendered pixels.
     // Qt generates the reference SVG independently from the native commands.
     QByteArray reference;
@@ -25,11 +27,13 @@ void PkSvgPainterBackendTest::preservesVectorPathPainting()
     buffer.open(QIODevice::WriteOnly);
     QSvgGenerator generator;
     generator.setOutputDevice(&buffer);
-    generator.setSize(QSize(48, 40));
-    generator.setViewBox(QRect(0, 0, 48, 40));
+    if (explicitViewport) {
+        generator.setSize(QSize(48, 40));
+        generator.setViewBox(QRect(0, 0, 48, 40));
+    }
     generator.setResolution(72);
     QPainter qt(&generator);
-    PkSvgPainterBackend backend(PkRectF(0, 0, 48, 40));
+    PkSvgPainterBackend backend(explicitViewport ? PkRectF(0, 0, 48, 40) : PkRectF());
     PkPainter pk(backend);
     qt.translate(4, 3); pk.translate(4, 3);
     qt.setOpacity(.7); pk.setOpacity(.7);
@@ -50,6 +54,12 @@ void PkSvgPainterBackendTest::preservesVectorPathPainting()
 
     const std::string native = backend.document();
     QVERIFY(!native.empty());
+    if (!explicitViewport) {
+        QXmlStreamReader expectedXml(reference),actualXml(QByteArray::fromStdString(native));
+        QVERIFY(expectedXml.readNextStartElement()); QVERIFY(actualXml.readNextStartElement());
+        QCOMPARE(actualXml.attributes().hasAttribute("width"),expectedXml.attributes().hasAttribute("width"));
+        QCOMPARE(actualXml.attributes().hasAttribute("viewBox"),expectedXml.attributes().hasAttribute("viewBox"));
+    }
     QSvgRenderer expected(reference), actual(QByteArray::fromStdString(native));
     QVERIFY(expected.isValid()); QVERIFY(actual.isValid());
     QImage a(48, 40, QImage::Format_ARGB32), b(a.size(), a.format());
@@ -59,6 +69,7 @@ void PkSvgPainterBackendTest::preservesVectorPathPainting()
     qa.end(); qb.end();
     for (int y = 0; y < a.height(); ++y) for (int x = 0; x < a.width(); ++x)
         QCOMPARE(b.pixel(x, y), a.pixel(x, y));
+    }
 }
 void PkSvgPainterBackendTest::preservesGradientAndImagePainting()
 {

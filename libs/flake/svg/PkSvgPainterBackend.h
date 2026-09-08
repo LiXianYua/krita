@@ -158,13 +158,15 @@ class PkSvgPainterBackend final : public PkPainterBackend
         m_state.clips.push_back(id);
     }
 public:
-    explicit PkSvgPainterBackend(const PkRectF &bounds) : m_bounds(bounds) {}
+    explicit PkSvgPainterBackend(const PkRectF &bounds = PkRectF()) : m_bounds(bounds) {}
     std::string document() const {
         if (!m_supported) return {};
-        return "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"" +
-            number(m_bounds.width()) + "\" height=\"" + number(m_bounds.height()) + "\" viewBox=\"" +
-            number(m_bounds.x()) + " " + number(m_bounds.y()) + " " + number(m_bounds.width()) + " " + number(m_bounds.height()) +
-            "\"><defs>" + m_defs + "</defs>" + m_body + "</svg>";
+        std::string root = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"";
+        if (m_bounds.isValid()) {
+            root += " width=\"" + number(m_bounds.width()) + "\" height=\"" + number(m_bounds.height()) + "\" viewBox=\"" +
+                number(m_bounds.x()) + " " + number(m_bounds.y()) + " " + number(m_bounds.width()) + " " + number(m_bounds.height()) + "\"";
+        }
+        return root + "><defs>" + m_defs + "</defs>" + m_body + "</svg>";
     }
     void submit(const PkPaintCommand &command) override {
         std::visit([this](const auto &c) {
