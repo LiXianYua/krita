@@ -13,7 +13,6 @@
 
 #include <PkNamespace.h>
 #include "kis_painter.h"
-#include <PkFlakeBridge.h>
 #include "kis_painter_p.h"
 #include "kis_algebra_2d.h"   // KisAlgebra2D::directionBetweenPoints（paintPolygon/paintPolyline 用）
 #include <brushengine/kis_paint_information.h>

@@ -11,7 +11,7 @@
 
 #include <kritaimage_export.h>
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 /**
  * This is a class that return a pseudo-random number that will be constant for a given

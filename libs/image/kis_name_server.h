@@ -6,7 +6,7 @@
 #ifndef KIS_NAMESERVER_H_
 #define KIS_NAMESERVER_H_
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <kritaimage_export.h>
 
 class KRITAIMAGE_EXPORT KisNameServer
@@ -23,4 +23,3 @@ private:
 };
 
 #endif // KIS_NAMESERVER_H_
-

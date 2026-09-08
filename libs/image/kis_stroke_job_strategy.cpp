@@ -6,9 +6,6 @@
 
 #include "kis_stroke_job_strategy.h"
 
-#include <QtGlobal>
-
-
 KisStrokeJobData::KisStrokeJobData(Sequentiality sequentiality,
                                    Exclusivity exclusivity)
     : m_sequentiality(sequentiality),
@@ -47,7 +44,7 @@ bool KisStrokeJobData::isExclusive() const
 
 KisStrokeJobData* KisStrokeJobData::createLodClone(int levelOfDetail)
 {
-    Q_UNUSED(levelOfDetail);
+    (void)levelOfDetail;
     return 0;
 }
 
@@ -78,5 +75,3 @@ KisStrokeJobStrategy::KisStrokeJobStrategy()
 KisStrokeJobStrategy::~KisStrokeJobStrategy()
 {
 }
-
-
