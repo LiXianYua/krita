@@ -50,11 +50,58 @@ private Q_SLOTS:
     void preservesManagerDispatchAndMaskBuffers();
     void emptyAndDisjointMasksAreNoOps();
     void paintsDecodedGrayscale16();
+    void paintsPatternBackgroundsAndThinGradientStrokes();
     void gradientCopiesKeepIndependentValues();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::paintsPatternBackgroundsAndThinGradientStrokes()
+{
+    for (bool pm : {false,true}) for (bool aa : {false,true}) for (bool scaled : {false,true}) for (bool rotated : {false,true})
+    for (int kind=0;kind<16;++kind) {
+        QImage expected(41,35,pm?QImage::Format_ARGB32_Premultiplied:QImage::Format_ARGB32);
+        PkImage actual(41,35,pm?PkImage::Format_ARGB32_Premultiplied:PkImage::Format_ARGB32);
+        expected.fill(0xff345678); actual.fill(0xff345678);
+        QPainter qt(&expected); PkImageRasterBackend backend(actual); PkPainter pk(backend);
+        qt.setPen(Qt::NoPen); pk.setPen(Pk::NoPen); qt.setOpacity(.7); pk.setOpacity(.7);
+        qt.setRenderHint(QPainter::Antialiasing,aa); pk.setRenderHint(PkPainter::Antialiasing,aa);
+        qt.translate(4,3); pk.translate(4,3);
+        if (rotated) { qt.rotate(17); pk.rotate(17); }
+        if (scaled) { qt.scale(.4,.4); pk.scale(.4,.4); }
+        QPainterPath qp; PkPainterPath pp;
+        qp.addRect(QRectF(2,3,27,23)); pp.addRect(PkRectF(2,3,27,23));
+        if (kind<13) {
+            qt.setBrush(QBrush(QColor(170,50,130,180),Qt::BrushStyle(int(Qt::Dense1Pattern)+kind)));
+            qt.drawPath(qp);
+            KoColorBackground background(PkColor(170,50,130,180),Pk::BrushStyle(int(Pk::Dense1Pattern)+kind));
+            background.paint(pk,pp);
+        } else {
+            QLinearGradient ql(0,0,30,20); QRadialGradient qr(15,15,20); QConicalGradient qc(15,15,25);
+            QGradient qg=kind==13?QGradient(ql):kind==14?QGradient(qr):QGradient(qc);
+            auto pg=kind==13?PkGradient::linear(PkPointF(),PkPointF(30,20)):
+                kind==14?PkGradient::radial(PkPointF(15,15),20,PkPointF(15,15)):PkGradient::conical(PkPointF(15,15),25);
+            qg.setColorAt(0,QColor(170,50,130,180)); pg.setColorAt(0,PkColor(170,50,130,180));
+            qg.setColorAt(1,QColor(20,180,90,100)); pg.setColorAt(1,PkColor(20,180,90,100));
+            const double width=scaled?2:1;
+            QPen pen(QBrush(qg),width); pen.setJoinStyle(Qt::MiterJoin);
+            // ImageShape is deliberately not a KoPathShape: its stroke goes
+            // through KoShapeStroke::paintBorder -> native strokePath.
+            ImageShape shape; shape.setSize(PkSizeF(27,23));
+            KoShapeStroke stroke(width); stroke.setLineBrush(PkBrush(pg));
+            QPainterPath outline; outline.addRect(QRectF(0,0,27,23));
+            qt.strokePath(outline,pen); stroke.paint(&shape,pk);
+            // Retracing a path must composite overlapping spans in order.
+            qp.addRect(QRectF(2,3,27,23)); pp.addRect(PkRectF(2,3,27,23));
+            qt.strokePath(qp,pen); pk.strokePath(pp,stroke.resultLinePen());
+        }
+        qt.end();
+        for (int y=0;y<35;++y) for (int x=0;x<41;++x)
+            QVERIFY2(actual.pixel(x,y)==expected.pixel(x,y),qPrintable(QString("pm=%1 aa=%2 scaled=%3 kind=%4 x=%5 y=%6 Qt=%7 native=%8")
+                .arg(pm).arg(aa).arg(scaled).arg(kind).arg(x).arg(y).arg(expected.pixel(x,y),8,16,QLatin1Char('0')).arg(actual.pixel(x,y),8,16,QLatin1Char('0'))));
+    }
+}
 
 void PkImageRasterBackendTest::paintsDecodedGrayscale16()
 {

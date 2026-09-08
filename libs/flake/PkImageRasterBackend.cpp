@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2026 Krita contributors
+ * SPDX-FileCopyrightText: 2016 The Qt Company Ltd.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -719,10 +720,6 @@ std::vector<unsigned char> PkImageRasterBackend::rectangleCoverage(const PkRectF
 void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle)
 {
     if (brush.style() == Pk::NoBrush) return;
-    const PkGradient *gradient = brush.gradient();
-    if (brush.style() != Pk::SolidPattern && !gradient) {
-        throw std::logic_error("PkImageRasterBackend unsupported brush");
-    }
     if (m_destination.format() != PkImage::Format_ARGB32 &&
         m_destination.format() != PkImage::Format_ARGB32_Premultiplied) {
         throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
@@ -745,6 +742,43 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
             }
         }
     }
+    fillMask(path, brush, mask);
+}
+
+void PkImageRasterBackend::fillMask(const PkPainterPath &path, const PkBrush &brush,
+                                   const std::vector<unsigned char> &mask)
+{
+    if (brush.style() == Pk::NoBrush) return;
+    const PkGradient *gradient = brush.gradient();
+    if (brush.style() >= Pk::Dense1Pattern && brush.style() <= Pk::DiagCrossPattern) {
+        // Qt 5.15 qbrush.cpp::qt_patternForBrush(invert=true), MonoLSB.
+        static constexpr unsigned char patterns[][8] = {
+            {0xff,0xbb,0xff,0xff,0xff,0xbb,0xff,0xff},
+            {0x77,0xff,0xdd,0xff,0x77,0xff,0xdd,0xff},
+            {0x55,0xbb,0x55,0xee,0x55,0xbb,0x55,0xee},
+            {0xaa,0x55,0xaa,0x55,0xaa,0x55,0xaa,0x55},
+            {0xaa,0x44,0xaa,0x11,0xaa,0x44,0xaa,0x11},
+            {0x88,0x00,0x22,0x00,0x88,0x00,0x22,0x00},
+            {0x00,0x44,0x00,0x00,0x00,0x44,0x00,0x00},
+            {0x00,0x00,0x00,0xff,0x00,0x00,0x00,0x00},
+            {0x10,0x10,0x10,0x10,0x10,0x10,0x10,0x10},
+            {0x10,0x10,0x10,0xff,0x10,0x10,0x10,0x10},
+            {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01},
+            {0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80},
+            {0x81,0x42,0x24,0x18,0x18,0x24,0x42,0x81}
+        };
+        const auto color=brush.color().rgba();
+        const auto a=alpha(color);
+        const auto foreground=argb(a,multiply8(red(color),a),multiply8(green(color),a),multiply8(blue(color),a));
+        PkImage tile(8,8,PkImage::Format_ARGB32_Premultiplied);
+        const auto &rows=patterns[brush.style()-Pk::Dense1Pattern];
+        for (int y=0;y<8;++y) for (int x=0;x<8;++x)
+            tile.setPixel(x,y,(rows[y]&(1u<<x))?foreground:0);
+        renderImage(tile,mask,brush.transform(),PkRectF(0,0,8,8),true);
+        return;
+    }
+    if (brush.style() != Pk::SolidPattern && !gradient)
+        throw std::logic_error("PkImageRasterBackend unsupported brush");
     const uint32_t color = brush.color().rgba();
     const unsigned fixedOpacity = static_cast<unsigned>(m_state.opacity * 256.0);
     std::array<Rgba64Pixel, 1024> ramp {};
@@ -854,9 +888,39 @@ void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pe
     const bool noShear = scaleForTransform(m_state.transform, &scale);
     const double width = pen.widthF() * (pen.isCosmetic() ? 1 : scale);
     if (width <= 1 && (pen.isCosmetic() || noShear || !(m_state.hints & 1u))) {
-        if (pen.brush().style() != Pk::SolidPattern ||
-            (m_destination.format() != PkImage::Format_ARGB32 && m_destination.format() != PkImage::Format_ARGB32_Premultiplied)) {
+        if (m_destination.format() != PkImage::Format_ARGB32 && m_destination.format() != PkImage::Format_ARGB32_Premultiplied) {
             throw std::logic_error("PkImageRasterBackend cosmetic brush/image format unsupported");
+        }
+        if (pen.brush().style() != Pk::SolidPattern) {
+            const PkBrush brush=pen.brush();
+            // Retain the cosmetic stroker's exact coverage, and use the same
+            // brush sampler as fills. Flush overlapping spans in order rather
+            // than unioning them (SourceOver/Plus must see every contribution).
+            struct Context {
+                PkImageRasterBackend *backend;
+                const PkPainterPath *path;
+                const PkBrush *brush;
+                std::vector<unsigned char> mask;
+            } context {this,&path,&brush,std::vector<unsigned char>(
+                static_cast<std::size_t>(m_destination.width())*m_destination.height(),0)};
+            const auto blend=[](int count,const PK_FT_Span *spans,void *data) {
+                auto &c=*static_cast<Context*>(data);
+                const auto flush=[&] {
+                    c.backend->fillMask(*c.path,*c.brush,c.mask);
+                    std::fill(c.mask.begin(),c.mask.end(),0);
+                };
+                for (int i=0;i<count;++i) {
+                    const auto &s=spans[i];
+                    auto first=c.mask.begin()+static_cast<std::size_t>(s.y)*c.backend->m_destination.width()+s.x;
+                    if (std::any_of(first,first+s.len,[](unsigned char v){return v!=0;})) flush();
+                    std::fill_n(first,s.len,s.coverage);
+                }
+                if (count) flush();
+            };
+            PkCosmeticStroker stroker(pen,m_state.transform,m_state.hints&1u,scale,m_destination.rect(),blend,&context);
+            if (point) { const auto position=path.currentPosition(); stroker.drawPoints(&position,1); }
+            else stroker.drawPath(path);
+            return;
         }
         const uint32_t color = pen.color().rgba();
         const unsigned opacity = static_cast<unsigned>(m_state.opacity * 256);

@@ -24,6 +24,8 @@ private:
     void renderImage(const PkImage &image, const std::vector<unsigned char> &mask,
                      const PkTransform &placement, const PkRectF &source, bool tiled);
     void fillPath(const PkPainterPath &path, const PkBrush &brush, bool rectangle = false);
+    void fillMask(const PkPainterPath &path, const PkBrush &brush,
+                  const std::vector<unsigned char> &mask);
     void strokePath(const PkPainterPath &path, const PkPen &pen, bool point = false);
     void setClip(const PkPainterPath &path, Pk::ClipOperation operation);
     std::vector<unsigned char> coverage(const PkPainterPath &path) const;
