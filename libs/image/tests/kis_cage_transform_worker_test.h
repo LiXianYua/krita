@@ -20,6 +20,7 @@ private Q_SLOTS:
     void testCageCounterclockwise();
     void testCageClockwiseUnity();
     void testCageCounterclockwiseUnity();
+    void testRunOnImagePainterParity();
 
     void stressTestRandomCages();
 

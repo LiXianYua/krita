@@ -9,6 +9,7 @@
 
 #include <PkScopedPointer.h>
 #include <PkPoint.h>
+#include <PkPolygon.h>
 #include <PkRect.h>
 #include <PkVector.h>
 #include <kritaimage_export.h>
@@ -42,6 +43,14 @@ public:
     PkImage runOnImage(PkPointF *newOffset);
 
 private:
+    friend class KisCageTransformWorkerTest;
+    static void compositeImages(PkImage *destination,
+                                const PkImage &source,
+                                const PkPointF &sourceOffset,
+                                const PkPointF &destinationOffset,
+                                const PkPolygonF &originalCage,
+                                const PkImage &transformedImage);
+
     struct Private;
     const PkScopedPointer<Private> m_d;
 };

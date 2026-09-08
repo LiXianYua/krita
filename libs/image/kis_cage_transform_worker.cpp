@@ -7,6 +7,10 @@
 #include <PkGlobal.h>
 #include "kis_cage_transform_worker.h"
 
+#include <algorithm>
+#include <climits>
+#include <cmath>
+
 #include "kis_grid_interpolation_tools.h"
 #include "kis_green_coordinates_math.h"
 
@@ -17,6 +21,253 @@
 #include "krita_utils.h"
 
 namespace {
+
+enum PenDirection {
+    NoDirection = 0,
+    TopToBottom = 0x1,
+    BottomToTop = 0x2,
+    LeftToRight = 0x4,
+    RightToLeft = 0x8,
+    VerticalMask = 0x3,
+    HorizontalMask = 0xc
+};
+
+struct PenRasterState {
+    PkPoint lastPixel {INT_MIN, INT_MIN};
+    PenDirection lastDirection {NoDirection};
+    bool lastAxisAligned {false};
+};
+
+int fixedDivide(int numerator, int denominator)
+{
+    if (std::abs(numerator) > 0x7fff) {
+        return static_cast<int>(static_cast<int64_t>(numerator) * (1 << 16) /
+                                denominator);
+    }
+    return numerator * (1 << 16) / denominator;
+}
+
+void calculateLastPenPixel(const PkPointF &start,
+                           const PkPointF &end,
+                           PenRasterState *state)
+{
+    int x1 = static_cast<int>(start.x() * 64.0);
+    int y1 = static_cast<int>(start.y() * 64.0);
+    int x2 = static_cast<int>(end.x() * 64.0);
+    int y2 = static_cast<int>(end.y() * 64.0);
+    const int dx = std::abs(x2 - x1);
+    const int dy = std::abs(y2 - y1);
+
+    state->lastPixel = PkPoint(INT_MIN, INT_MIN);
+    if (dx < dy) {
+        const bool swapped = y1 > y2;
+        if (swapped) {
+            std::swap(y1, y2);
+            std::swap(x1, x2);
+        }
+        const int xIncrement = fixedDivide(x2 - x1, y2 - y1);
+        int x = x1 * (1 << 10);
+        const int y = (y1 + 32) >> 6;
+        const int yStop = (y2 + 32) >> 6;
+        const int round = xIncrement > 0 ? 32 : 0;
+        if (y != yStop) {
+            x += ((y * 64 + round - y1) * xIncrement) >> 6;
+            if (swapped) {
+                state->lastPixel = PkPoint(x >> 16, y);
+                state->lastDirection = BottomToTop;
+            } else {
+                state->lastPixel = PkPoint(
+                    (x + (yStop - y - 1) * xIncrement) >> 16, yStop - 1);
+                state->lastDirection = TopToBottom;
+            }
+            state->lastAxisAligned = std::abs(xIncrement) < (1 << 14);
+        }
+    } else if (dx != 0) {
+        const bool swapped = x1 > x2;
+        if (swapped) {
+            std::swap(x1, x2);
+            std::swap(y1, y2);
+        }
+        const int yIncrement = fixedDivide(y2 - y1, x2 - x1);
+        int y = y1 * (1 << 10);
+        const int x = (x1 + 32) >> 6;
+        const int xStop = (x2 + 32) >> 6;
+        const int round = yIncrement > 0 ? 32 : 0;
+        if (x != xStop) {
+            y += ((x * 64 + round - x1) * yIncrement) >> 6;
+            if (swapped) {
+                state->lastPixel = PkPoint(x, y >> 16);
+                state->lastDirection = RightToLeft;
+            } else {
+                state->lastPixel = PkPoint(
+                    xStop - 1, (y + (xStop - x - 1) * yIncrement) >> 16);
+                state->lastDirection = LeftToRight;
+            }
+            state->lastAxisAligned = std::abs(yIncrement) < (1 << 14);
+        }
+    }
+}
+
+void adjustPenCaps(int caps, int *start, int *end, int *minor, int increment)
+{
+    if (caps & 0x1) {
+        *start -= 32;
+        *minor -= increment >> 1;
+    }
+    if (caps & 0x2) {
+        *end += 32;
+    }
+}
+
+void clearAliasedPenSegment(PkImage *image,
+                            const PkPointF &start,
+                            const PkPointF &end,
+                            PenRasterState *state)
+{
+    int x1 = static_cast<int>(start.x() * 64.0);
+    int y1 = static_cast<int>(start.y() * 64.0);
+    int x2 = static_cast<int>(end.x() * 64.0);
+    int y2 = static_cast<int>(end.y() * 64.0);
+    const int dx = std::abs(x2 - x1);
+    const int dy = std::abs(y2 - y1);
+    PkPoint last = state->lastPixel;
+    int caps = 0;
+
+    const auto clearPixel = [image](int x, int y) {
+        if (image->rect().contains(PkPoint(x, y))) image->setPixel(x, y, 0);
+    };
+
+    if (dx < dy) {
+        PenDirection direction = TopToBottom;
+        const bool swapped = y1 > y2;
+        if (swapped) {
+            std::swap(y1, y2);
+            std::swap(x1, x2);
+            direction = BottomToTop;
+        }
+        const int xIncrement = fixedDivide(x2 - x1, y2 - y1);
+        int x = x1 * (1 << 10);
+        if ((state->lastDirection ^ VerticalMask) == direction) {
+            caps |= swapped ? 0x2 : 0x1;
+        }
+        adjustPenCaps(caps, &y1, &y2, &x, xIncrement);
+        int y = (y1 + 32) >> 6;
+        int yStop = (y2 + 32) >> 6;
+        const int round = xIncrement > 0 ? 32 : 0;
+        if ((caps & 0x1) && state->lastPixel.y() == y + 1) ++y;
+        if (y != yStop) {
+            x += ((y * 64 + round - y1) * xIncrement) >> 6;
+            PkPoint first(x >> 16, y);
+            last = PkPoint((x + (yStop - y - 1) * xIncrement) >> 16,
+                           yStop - 1);
+            if (swapped) std::swap(first, last);
+            const bool axisAligned = std::abs(xIncrement) < (1 << 14);
+            if (state->lastPixel.x() > INT_MIN) {
+                if (first == state->lastPixel) {
+                    if (swapped) --yStop;
+                    else {
+                        ++y;
+                        x += xIncrement;
+                    }
+                } else if (state->lastDirection != direction &&
+                           (((axisAligned && state->lastAxisAligned) &&
+                             state->lastPixel.x() != first.x() &&
+                             state->lastPixel.y() != first.y()) ||
+                            std::abs(state->lastPixel.x() - first.x()) > 1 ||
+                            std::abs(state->lastPixel.y() - first.y()) > 1)) {
+                    if (swapped) ++yStop;
+                    else {
+                        --y;
+                        x -= xIncrement;
+                    }
+                } else if (state->lastDirection == direction &&
+                           std::abs(state->lastPixel.x() - first.x()) <= 1 &&
+                           std::abs(state->lastPixel.y() - first.y()) > 1) {
+                    x += xIncrement >> 1;
+                    last.setX(swapped ? x >> 16
+                                      : (x + (yStop - y - 1) * xIncrement) >> 16);
+                }
+            }
+            state->lastDirection = direction;
+            state->lastAxisAligned = axisAligned;
+            do {
+                clearPixel(x >> 16, y);
+                x += xIncrement;
+            } while (++y < yStop);
+        }
+    } else {
+        if (dx == 0) return;
+        PenDirection direction = LeftToRight;
+        const bool swapped = x1 > x2;
+        if (swapped) {
+            std::swap(x1, x2);
+            std::swap(y1, y2);
+            direction = RightToLeft;
+        }
+        const int yIncrement = fixedDivide(y2 - y1, x2 - x1);
+        int y = y1 * (1 << 10);
+        if ((state->lastDirection ^ HorizontalMask) == direction) {
+            caps |= swapped ? 0x2 : 0x1;
+        }
+        adjustPenCaps(caps, &x1, &x2, &y, yIncrement);
+        int x = (x1 + 32) >> 6;
+        int xStop = (x2 + 32) >> 6;
+        const int round = yIncrement > 0 ? 32 : 0;
+        if ((caps & 0x1) && state->lastPixel.x() == x + 1) ++x;
+        if (x != xStop) {
+            y += ((x * 64 + round - x1) * yIncrement) >> 6;
+            PkPoint first(x, y >> 16);
+            last = PkPoint(xStop - 1,
+                           (y + (xStop - x - 1) * yIncrement) >> 16);
+            if (swapped) std::swap(first, last);
+            const bool axisAligned = std::abs(yIncrement) < (1 << 14);
+            if (state->lastPixel.x() > INT_MIN) {
+                if (first == state->lastPixel) {
+                    if (swapped) --xStop;
+                    else {
+                        ++x;
+                        y += yIncrement;
+                    }
+                } else if (state->lastDirection != direction &&
+                           (((axisAligned && state->lastAxisAligned) &&
+                             state->lastPixel.x() != first.x() &&
+                             state->lastPixel.y() != first.y()) ||
+                            std::abs(state->lastPixel.x() - first.x()) > 1 ||
+                            std::abs(state->lastPixel.y() - first.y()) > 1)) {
+                    if (swapped) ++xStop;
+                    else {
+                        --x;
+                        y -= yIncrement;
+                    }
+                } else if (state->lastDirection == direction &&
+                           std::abs(state->lastPixel.x() - first.x()) <= 1 &&
+                           std::abs(state->lastPixel.y() - first.y()) > 1) {
+                    y += yIncrement >> 1;
+                    last.setY(swapped ? y >> 16
+                                      : (y + (xStop - x - 1) * yIncrement) >> 16);
+                }
+            }
+            state->lastDirection = direction;
+            state->lastAxisAligned = axisAligned;
+            do {
+                clearPixel(x, y >> 16);
+                y += yIncrement;
+            } while (++x < xStop);
+        }
+    }
+    state->lastPixel = last;
+}
+
+void clearAliasedPolygonPen(PkImage *image, const PkPolygonF &polygon)
+{
+    if (polygon.size() < 2) return;
+    PenRasterState state;
+    calculateLastPenPixel(polygon.last(), polygon.first(), &state);
+    for (int i = 0; i < polygon.size(); ++i) {
+        clearAliasedPenSegment(image, polygon[i],
+                               polygon[(i + 1) % polygon.size()], &state);
+    }
+}
 
 uint32_t sourceOver(uint32_t destination, uint32_t source)
 {
@@ -429,31 +680,6 @@ PkImage KisCageTransformWorker::runOnImage(PkPointF *newOffset)
 
     PkImage tempImage(dstImage);
 
-    {
-        const PkPoint imageOffset =
-            (m_d->srcImageOffset - dstImageOffset).toPoint();
-        for (int y = 0; y < m_d->srcImage.height(); ++y) {
-            for (int x = 0; x < m_d->srcImage.width(); ++x) {
-                const PkPoint destination = PkPoint(x, y) + imageOffset;
-                if (dstImage.rect().contains(destination)) {
-                    dstImage.setPixel(destination.x(), destination.y(),
-                                      m_d->srcImage.pixel(x, y));
-                }
-            }
-        }
-
-        const PkPolygonF localCage = PkPolygonF(m_d->origCage).translated(
-            PkPointF(-dstImageOffset.x(), -dstImageOffset.y()));
-        const PkRect cageBounds = localCage.boundingRect().toAlignedRect() & dstImage.rect();
-        for (int y = cageBounds.top(); y <= cageBounds.bottom(); ++y) {
-            for (int x = cageBounds.left(); x <= cageBounds.right(); ++x) {
-                if (localCage.containsPoint(PkPointF(x + 0.5, y + 0.5), Pk::OddEvenFill)) {
-                    dstImage.setPixel(x, y, 0);
-                }
-            }
-        }
-    }
-
     GridIterationTools::PkImagePolygonOp polygonOp(m_d->srcImage, tempImage, m_d->srcImageOffset, dstImageOffset);
     Private::MapIndexesOp indexesOp(m_d.data());
     GridIterationTools::iterateThroughGrid
@@ -462,12 +688,56 @@ PkImage KisCageTransformWorker::runOnImage(PkPointF *newOffset)
                                                       m_d->validPoints,
                                                       transformedPoints);
 
-    for (int y = 0; y < dstImage.height(); ++y) {
-        for (int x = 0; x < dstImage.width(); ++x) {
-            dstImage.setPixel(x, y,
-                              sourceOver(dstImage.pixel(x, y), tempImage.pixel(x, y)));
+    compositeImages(&dstImage, m_d->srcImage, m_d->srcImageOffset,
+                    dstImageOffset, PkPolygonF(m_d->origCage), tempImage);
+
+    return dstImage;
+}
+
+void KisCageTransformWorker::compositeImages(PkImage *destination,
+                                             const PkImage &source,
+                                             const PkPointF &sourceOffset,
+                                             const PkPointF &destinationOffset,
+                                             const PkPolygonF &originalCage,
+                                             const PkImage &transformedImage)
+{
+    const PkPointF imageOffset = sourceOffset - destinationOffset;
+    for (int y = 0; y < destination->height(); ++y) {
+        const int sourceY = static_cast<int>(
+            std::ceil(y + 0.5 - imageOffset.y()) - 1.0);
+        if (sourceY < 0 || sourceY >= source.height()) continue;
+
+        for (int x = 0; x < destination->width(); ++x) {
+            const int sourceX = static_cast<int>(
+                std::ceil(x + 0.5 - imageOffset.x()) - 1.0);
+            if (sourceX < 0 || sourceX >= source.width()) continue;
+
+            destination->setPixel(x, y,
+                                  sourceOver(destination->pixel(x, y),
+                                             source.pixel(sourceX, sourceY)));
         }
     }
 
-    return dstImage;
+    const PkPolygonF localCage = originalCage.translated(
+        PkPointF(-destinationOffset.x(), -destinationOffset.y()));
+    const PkRect cageBounds =
+        localCage.boundingRect().toAlignedRect().adjusted(-1, -1, 1, 1) &
+        destination->rect();
+    for (int y = cageBounds.top(); y <= cageBounds.bottom(); ++y) {
+        for (int x = cageBounds.left(); x <= cageBounds.right(); ++x) {
+            const PkPointF pixelCenter(x + 0.5, y + 0.5);
+            if (localCage.containsPoint(pixelCenter, Pk::OddEvenFill)) {
+                destination->setPixel(x, y, 0);
+            }
+        }
+    }
+    clearAliasedPolygonPen(destination, localCage);
+    for (int y = 0; y < destination->height(); ++y) {
+        for (int x = 0; x < destination->width(); ++x) {
+            destination->setPixel(
+                x, y,
+                sourceOver(destination->pixel(x, y),
+                           transformedImage.pixel(x, y)));
+        }
+    }
 }

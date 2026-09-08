@@ -8,6 +8,7 @@
 
 #include <simpletest.h>
 
+#include <QPainter>
 #include <QRandomGenerator>
 
 #include <KoProgressUpdater.h>
@@ -142,6 +143,117 @@ void KisCageTransformWorkerTest::testCageClockwiseUnity()
 void KisCageTransformWorkerTest::testCageCounterclockwiseUnity()
 {
     testCage(false, true);
+}
+
+void KisCageTransformWorkerTest::testRunOnImagePainterParity()
+{
+    QImage source(7, 7, QImage::Format_ARGB32);
+    for (int y = 0; y < source.height(); ++y) {
+        for (int x = 0; x < source.width(); ++x) {
+            source.setPixel(x, y, qRgba(20 + 17 * x, 30 + 13 * y,
+                                        40 + 5 * (x + y), 255));
+        }
+    }
+
+    const auto runCase = [&source](const PkPointF &sourceOffset,
+                                   const PkVector<PkPointF> &relativeCage) {
+        PkVector<PkPointF> originalCage;
+        for (const PkPointF &point : relativeCage) {
+            originalCage << sourceOffset + point;
+        }
+
+        const PkPointF outputOffset(0.0, 0.0);
+        PkImage actualPk(12, 12, PkImage::Format_ARGB32);
+        actualPk.fill(0);
+        PkImage transformedImage(actualPk.size(), actualPk.format());
+        transformedImage.fill(0);
+        transformedImage.setPixel(0, 0, qRgba(200, 10, 20, 255));
+        transformedImage.setPixel(9, 9, qRgba(5, 220, 30, 255));
+
+        KisCageTransformWorker::compositeImages(
+            &actualPk, TestUtil::pkImageFromQImage(source), sourceOffset,
+            outputOffset, PkPolygonF(originalCage), transformedImage);
+
+        if (sourceOffset == PkPointF(2.0, 2.0)) {
+            QVERIFY(!PkPolygonF(originalCage).containsPoint(PkPointF(3.5, 2.5),
+                                                            Pk::OddEvenFill));
+        }
+
+        QImage expected(actualPk.width(), actualPk.height(), QImage::Format_ARGB32);
+        expected.fill(Qt::transparent);
+
+        QPolygonF localCage;
+        for (const PkPointF &point : originalCage) {
+            localCage << QPointF(point.x() - outputOffset.x(),
+                                 point.y() - outputOffset.y());
+        }
+
+        {
+            QPainter painter(&expected);
+            painter.drawImage(QPointF(sourceOffset.x() - outputOffset.x(),
+                                      sourceOffset.y() - outputOffset.y()), source);
+            painter.setBrush(Qt::black);
+            painter.setPen(Qt::black);
+            painter.setCompositionMode(QPainter::CompositionMode_Clear);
+            painter.drawPolygon(localCage);
+            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+            painter.drawImage(QPoint(), TestUtil::diagnosticQImage(transformedImage));
+        }
+
+        QImage fillOnly(expected.size(), QImage::Format_ARGB32);
+        fillOnly.fill(Qt::white);
+        {
+            QPainter painter(&fillOnly);
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(Qt::black);
+            painter.setCompositionMode(QPainter::CompositionMode_Clear);
+            painter.drawPolygon(localCage);
+        }
+        QImage penOnly(expected.size(), QImage::Format_ARGB32);
+        penOnly.fill(Qt::white);
+        {
+            QPainter painter(&penOnly);
+            painter.setBrush(Qt::NoBrush);
+            painter.setPen(Qt::black);
+            painter.setCompositionMode(QPainter::CompositionMode_Clear);
+            painter.drawPolygon(localCage);
+        }
+
+        const QImage actual = TestUtil::diagnosticQImage(actualPk);
+        for (int y = 0; y < actual.height(); ++y) {
+            for (int x = 0; x < actual.width(); ++x) {
+                const QString mismatch = QStringLiteral(
+                    "sourceOffset=(%1,%2) pixel=(%3,%4) actual=%5 expected=%6 fill=%7 pen=%8")
+                    .arg(sourceOffset.x()).arg(sourceOffset.y())
+                    .arg(x).arg(y)
+                    .arg(actual.pixel(x, y), 0, 16)
+                    .arg(expected.pixel(x, y), 0, 16)
+                    .arg(fillOnly.pixel(x, y), 0, 16)
+                    .arg(penOnly.pixel(x, y), 0, 16);
+                QVERIFY2(actual.pixel(x, y) == expected.pixel(x, y),
+                         qPrintable(mismatch));
+            }
+        }
+    };
+
+    const PkVector<PkPointF> square {
+        PkPointF(1.0, 1.0), PkPointF(5.0, 1.0),
+        PkPointF(5.0, 5.0), PkPointF(1.0, 5.0)
+    };
+    const PkVector<PkPointF> slanted {
+        PkPointF(1.2, 1.0), PkPointF(5.6, 1.8),
+        PkPointF(4.8, 5.5), PkPointF(0.7, 4.6)
+    };
+
+    runCase(PkPointF(2.0, 2.0), square);
+    runCase(PkPointF(2.25, 2.75), square);
+    runCase(PkPointF(2.5, 2.5), square);
+    runCase(PkPointF(2.25, 2.75), slanted);
+
+    PkVector<PkPointF> reversedSlanted = slanted;
+    std::reverse(reversedSlanted.begin(), reversedSlanted.end());
+    runCase(PkPointF(-2.25, -1.75), slanted);
+    runCase(PkPointF(8.5, 7.25), reversedSlanted);
 }
 
 #include <QtGlobal>
