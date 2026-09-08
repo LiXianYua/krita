@@ -21,6 +21,8 @@ private Q_SLOTS:
     void rectanglePreviewPreservesCommandsAndState();
     void circlePreviewPreservesRingCommandsAndState();
     void cursorUsesSamplingCanvasPolicy();
+    void proxyDispatchesPolylineAndSelectionDecorations();
+    void proxyDispatchesProductionAsyncSampler();
 };
 
 #endif // KIS_ASYNC_COLOR_SAMPLER_HELPER_TEST_H

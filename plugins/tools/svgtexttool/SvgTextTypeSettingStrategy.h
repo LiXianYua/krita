@@ -26,7 +26,6 @@ public:
 
     // KoInteractionStrategy interface
 public:
-    // void paint(QPainter &painter, const KoViewConverter &converter) override;
     void handleMouseMove(const PkPointF &mouseLocation, Qt::KeyboardModifiers modifiers) override;
     KUndo2Command *createCommand() override;
     void cancelInteraction() override;

@@ -21,6 +21,10 @@
 #include <KoColorSpaceRegistry.h>
 #include <KoUnit.h>
 #include <KoZoomHandler.h>
+#include <KoToolProxy.h>
+#include <KoToolProxy_p.h>
+#include <KoSnapGuide.h>
+#include <KoPointerEvent.h>
 #include <simpletest.h>
 
 #include "KisAsyncColorSamplerHelper.h"
@@ -31,6 +35,8 @@
 #include "kis_image.h"
 #include "kis_paint_layer.h"
 #include "tool/kis_tool_ellipse_base.h"
+#include "tool/kis_tool_polyline_base.h"
+#include "kis_tool_select_polygonal.h"
 
 Q_DECLARE_METATYPE(KoColor)
 
@@ -181,12 +187,12 @@ class EllipsePreviewCanvas final : public TestSamplingCanvas,
                                    public KisCanvasToolServices
 {
 public:
-    EllipsePreviewCanvas()
-        : TestSamplingCanvas({})
+    explicit EllipsePreviewCanvas(KisImageSP image = {})
+        : TestSamplingCanvas(image)
     {
     }
 
-    KisImageWSP toolImage() const override { return {}; }
+    KisImageWSP toolImage() const override { return m_image; }
     PkPointF toolWidgetCenterInWidgetPixels() const override { return {}; }
     PkPointF toolDocumentToWidget(const PkPointF &point) const override { return point; }
     PkPointF toolDocumentToAlignedImagePixel(const PkPointF &point) const override { return point; }
@@ -268,6 +274,48 @@ public:
 
 private:
     void finishRect(const PkRectF &, qreal, qreal) override {}
+};
+
+class DecorationProxy final : public KoToolProxy
+{
+public:
+    using KoToolProxy::KoToolProxy;
+protected:
+    PkPointF widgetToDocument(const PkPointF &point) const override { return point; }
+    PkPointF documentToWidget(const PkPointF &point) const override { return point; }
+};
+
+class PolylinePreviewTool final : public KisToolPolylineBase
+{
+public:
+    explicit PolylinePreviewTool(KoCanvasBase *canvas)
+        : KisToolPolylineBase(canvas, SELECT, QCursor()) {}
+protected:
+    void finishPolyline(const PkVector<PkPointF> &) override {}
+};
+
+class SelectionPreviewTool final : public __KisToolSelectPolygonalLocal
+{
+public:
+    using __KisToolSelectPolygonalLocal::__KisToolSelectPolygonalLocal;
+protected:
+    void finishPolyline(const PkVector<PkPointF> &) override {}
+};
+
+class SamplingPreviewTool final : public KisToolPaint
+{
+public:
+    explicit SamplingPreviewTool(KoCanvasBase *canvas)
+        : KisToolPaint(canvas, QCursor()) { setSupportOutline(true); }
+    using KisToolPaint::activateAlternateAction;
+    using KisToolPaint::deactivateAlternateAction;
+    using KisToolPaint::beginAlternateAction;
+    using KisToolPaint::endAlternateAction;
+protected:
+    // Brush shape generation is irrelevant to this sampler test. Painting remains
+    // the production KisToolPaint override, including its real sampler member.
+    KisOptimizedBrushOutline getOutlinePath(const PkPointF &, const KoPointerEvent *,
+                                             KisPaintOpSettings::OutlineMode) override { return {}; }
 };
 
 template <typename T>
@@ -703,6 +751,100 @@ void KisAsyncColorSamplerHelperTest::cursorUsesSamplingCanvasPolicy()
     QVERIFY(canvas.lastCursorSampleCurrentLayer);
     QVERIFY(!canvas.lastCursorPickFgColor);
     QCOMPARE(requestedCursor.shape(), Qt::WaitCursor);
+}
+
+void KisAsyncColorSamplerHelperTest::proxyDispatchesPolylineAndSelectionDecorations()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::black, &layer);
+    EllipsePreviewCanvas canvas(image);
+    setCurrentNode(canvas, layer);
+    canvas.snapGuide()->enableSnapping(false);
+    DecorationProxy proxy(&canvas);
+    PolylinePreviewTool polyline(&canvas);
+    SelectionPreviewTool selection(&canvas);
+
+    for (KisToolPolylineBase *tool : {static_cast<KisToolPolylineBase *>(&polyline),
+                                    static_cast<KisToolPolylineBase *>(&selection)}) {
+        proxy.priv()->activeTool = tool;
+        for (const PkPointF &point : {PkPointF(10, 20), PkPointF(30, 20)}) {
+            QMouseEvent press(QEvent::MouseButtonPress, QPointF(point.x(), point.y()),
+                              Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+            KoPointerEvent start(&press, point);
+            tool->beginPrimaryAction(&start);
+            QMouseEvent release(QEvent::MouseButtonRelease, QPointF(point.x(), point.y()),
+                                Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+            KoPointerEvent end(&release, point);
+            tool->endPrimaryAction(&end);
+        }
+        QMouseEvent move(QEvent::MouseMove, QPointF(50, 40),
+                         Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        KoPointerEvent hover(&move, PkPointF(50, 40));
+        tool->mouseMoveEvent(&hover);
+
+        RecordingBackend backend;
+        PkPainter painter(backend);
+        proxy.paint(painter, *canvas.viewConverter());
+        bool fixedSegment = false;
+        bool draggingSegment = false;
+        for (const auto &command : backend.commands) {
+            if (const auto *polygon = std::get_if<PkDrawPolygonCommand>(&command)) {
+                for (int i = 1; i < polygon->polygon.size(); ++i) {
+                    const auto a = polygon->polygon.at(i - 1);
+                    const auto b = polygon->polygon.at(i);
+                    fixedSegment |= a == PkPointF(10, 20) && b == PkPointF(30, 20);
+                    draggingSegment |= a == PkPointF(30, 20) && b == PkPointF(50, 40);
+                }
+            }
+        }
+        QVERIFY(fixedSegment);
+        QVERIFY(draggingSegment);
+        QCOMPARE(painter.transform(), PkTransform());
+        tool->requestStrokeCancellation();
+    }
+    proxy.priv()->activeTool = nullptr;
+}
+
+void KisAsyncColorSamplerHelperTest::proxyDispatchesProductionAsyncSampler()
+{
+    KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+    const QString styleKey = QStringLiteral("colorSamplerPreviewStyle");
+    const ConfigEntryGuard<int> styleGuard(cfg, styleKey, 1);
+    cfg.writeEntry(styleKey, 2);
+
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Pk::red, &layer);
+    EllipsePreviewCanvas canvas(image);
+    setCurrentNode(canvas, layer);
+    canvas.resourceManager()->setResource(KoCanvasResource::ForegroundColor,
+                                          KoColor(Pk::green, image->colorSpace()));
+    DecorationProxy proxy(&canvas);
+    SamplingPreviewTool tool(&canvas);
+    proxy.priv()->activeTool = &tool;
+
+    QMouseEvent press(QEvent::MouseButtonPress, QPointF(2, 3),
+                      Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    KoPointerEvent event(&press, PkPointF(2, 3));
+    tool.activateAlternateAction(KisTool::SampleFgImage);
+    tool.beginAlternateAction(&event, KisTool::SampleFgImage);
+    tool.endAlternateAction(&event, KisTool::SampleFgImage);
+    image->waitForDone();
+    QCoreApplication::processEvents();
+
+    RecordingBackend backend;
+    PkPainter painter(backend);
+    proxy.paint(painter, *canvas.viewConverter());
+    int fills = 0;
+    for (const auto &command : backend.commands) {
+        if (const auto *fill = std::get_if<PkFillPathCommand>(&command)) {
+            QVERIFY(!fill->path.isEmpty());
+            ++fills;
+        }
+    }
+    QCOMPARE(fills, 2);
+    QVERIFY(!painter.testRenderHint(PkPainter::Antialiasing));
+    tool.deactivateAlternateAction(KisTool::SampleFgImage);
+    proxy.priv()->activeTool = nullptr;
 }
 
 SIMPLE_TEST_MAIN(KisAsyncColorSamplerHelperTest)

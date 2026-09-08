@@ -11,6 +11,10 @@ kis_add_tests(
     LINK_LIBRARIES kritacanvas kritatestsdk
 )
 
+target_link_libraries(KisAsyncColorSamplerHelperTest kritaselectiontools)
+target_include_directories(KisAsyncColorSamplerHelperTest PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugins/tools/selectiontools)
+
 krita_add_broken_unit_test(
     fill_processing_visitor_test.cpp
     $<TARGET_PROPERTY:kritatestsdk,SOURCE_DIR>/stroke_testing_utils.cpp
