@@ -31,7 +31,6 @@
 #include <testimage.h>
 #include <qimage_test_util.h>
 
-#include <dlfcn.h>
 #include <cstring>
 
 
@@ -49,9 +48,6 @@ $color\n\
 
 void KisSeExprGeneratorTest::initTestCase()
 {
-    void *module = dlopen(SEEXPR_MODULE_PATH, RTLD_NOW | RTLD_GLOBAL);
-    const char *error = module ? nullptr : dlerror();
-    QVERIFY2(module, error ? error : "unknown module load error");
     QVERIFY(KisGeneratorRegistry::instance()->get("seexpr"));
 }
 
@@ -117,12 +113,12 @@ void KisSeExprGeneratorTest::testGenerationFromKoResource()
     KisFilterConfigurationSP config = generator->defaultConfiguration(KisGlobalResourcesInterface::instance());
     QVERIFY(config);
 
-    auto resource = new KisSeExprScript(TestUtil::fetchDataFileLazy("Disney_noisecolor2.kse"));
-    resource->load(KisGlobalResourcesInterface::instance());
-    Q_ASSERT(resource->valid());
+    const QByteArray resourcePath = TestUtil::fetchDataFileLazy("Disney_noisecolor2.kse").toUtf8();
+    auto resource = new KisSeExprScript(PkString::fromUtf8(resourcePath.constData(), resourcePath.size()));
+    QVERIFY(resource->load(KisGlobalResourcesInterface::instance()));
+    QVERIFY(resource->valid());
 
-    const QByteArray scriptUtf8 = resource->script().toUtf8();
-    config->setProperty("script", PkString(scriptUtf8.constData()));
+    config->setProperty("script", resource->script());
 
     PkPoint point(0, 0);
     PkSize testSize(256, 256);

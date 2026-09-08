@@ -117,7 +117,10 @@ void KisFilterColorToAlpha::processImpl(KisPaintDeviceSP device,
         if (valueType != KoChannelInfo::OTHER &&
                 valueType != currentValueType) {
 
-            warnKrita << "Cannot apply a Color-to-Alpha filter to a heterogeneous colorspace";
+            if (_41000().isWarningEnabled()) {
+                PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()
+                    << "Cannot apply a Color-to-Alpha filter to a heterogeneous colorspace";
+            }
             return;
         } else {
             valueType = currentValueType;
@@ -166,6 +169,9 @@ void KisFilterColorToAlpha::processImpl(KisPaintDeviceSP device,
     case KoChannelInfo::INT16: /* !UNSUPPORTED! */
 
     case KoChannelInfo::OTHER:
-        warnKrita << "Color To Alpha: Unsupported channel type:" << valueType;
+        if (_41000().isWarningEnabled()) {
+            PkMessageLogger(__FILE__, __LINE__, __func__, &_41000()).warning()
+                << "Color To Alpha: Unsupported channel type:" << valueType;
+        }
     }
 }
