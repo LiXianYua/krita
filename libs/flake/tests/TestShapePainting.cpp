@@ -5,12 +5,12 @@
 
 #include "TestShapePainting.h"
 
-#include <QtGui>
+#include <PkPainter.h>
+#include <PkImageRasterBackend.h>
 #include "KoShapeContainer.h"
 #include "KoShapeManager.h"
 
 #include <MockShapes.h>
-#include <testflake.h>
 
 
 #include <simpletest.h>
@@ -35,8 +35,9 @@ void TestShapePainting::testPaintShape()
     manager.addShape(container.data());
     QCOMPARE(manager.shapes().count(), 3);
 
-    PkImage image(100, 100,  PkImage::Format_Mono);
-    QPainter painter(&image);
+    PkImage image(100, 100, PkImage::Format_ARGB32);
+    PkImageRasterBackend backend(image);
+    PkPainter painter(backend);
     manager.paint(painter);
 
     // with the shape not being clipped, the shapeManager will paint it for us.
@@ -95,8 +96,9 @@ void TestShapePainting::testPaintHiddenShape()
     manager.addShape(top.data());
     QCOMPARE(manager.shapes().count(), 5);
 
-    PkImage image(100, 100,  PkImage::Format_Mono);
-    QPainter painter(&image);
+    PkImage image(100, 100, PkImage::Format_ARGB32);
+    PkImageRasterBackend backend(image);
+    PkPainter painter(backend);
     manager.paint(painter);
 
     QCOMPARE(top->paintedCount, 1);
@@ -119,7 +121,7 @@ void TestShapePainting::testPaintOrder()
     class OrderedMockShape : public MockShape {
     public:
         OrderedMockShape(PkList<const MockShape*> *list) : order(list) {}
-        void paint(QPainter &painter) const override {
+        void paint(PkPainter &painter) const override {
             order->append(this);
             MockShape::paint(painter);
         }
@@ -153,8 +155,9 @@ void TestShapePainting::testPaintOrder()
         manager.addShape(bottom.data());
         QCOMPARE(manager.shapes().count(), 6);
 
-        PkImage image(100, 100,  PkImage::Format_Mono);
-        QPainter painter(&image);
+        PkImage image(100, 100, PkImage::Format_ARGB32);
+        PkImageRasterBackend backend(image);
+        PkPainter painter(backend);
         manager.paint(painter);
         QCOMPARE(top->paintedCount, 1);
         QCOMPARE(bottom->paintedCount, 1);
@@ -171,7 +174,7 @@ void TestShapePainting::testPaintOrder()
 
         // again, with clipping.
         order.clear();
-        painter.setClipRect(0, 0, 100, 100);
+        painter.setClipRect(PkRect(0, 0, 100, 100));
         manager.paint(painter);
         QCOMPARE(top->paintedCount, 2);
         QCOMPARE(bottom->paintedCount, 2);
@@ -257,8 +260,9 @@ void TestShapePainting::testGroupUngroup()
 
     PkList<KoShape*> groupedShapes = {shape1, shape2};
 
-    PkImage image(100, 100,  PkImage::Format_Mono);
-    QPainter painter(&image);
+    PkImage image(100, 100, PkImage::Format_ARGB32);
+    PkImageRasterBackend backend(image);
+    PkPainter painter(backend);
     painter.setClipRect(image.rect());
 
     for (int i = 0; i < 3; i++) {
@@ -298,4 +302,6 @@ void TestShapePainting::testGroupUngroup()
     }
 }
 
-KISTEST_MAIN(TestShapePainting)
+// These tests exercise mock-shape dispatch/order, not resource import. Match
+// the other shape-manager fixtures without loading every resource thumbnail.
+SIMPLE_TEST_MAIN(TestShapePainting)
