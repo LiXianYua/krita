@@ -4,7 +4,6 @@ set ( ImageShape_SRCS
     ImageShapePlugin.cpp
     ImageShape.cpp
     ImageShapeState.cpp
-    ImageShapePngData.cpp
     ImageShapeFactory.cpp
 )
 
@@ -22,6 +21,7 @@ target_include_directories(krita_shape_image PRIVATE
 
 target_link_libraries(krita_shape_image
     kritaflake
+    kritaflake_imagecodec
     pkstring
     pkcontainer
     pkvariant

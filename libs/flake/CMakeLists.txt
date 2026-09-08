@@ -57,6 +57,16 @@ if(NOT TARGET pkrender)
     set_target_properties(pkrender PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
+# Native leaf shared by core SVG images and the image-shape plugin; no flake
+# dependency here, so the plugin's existing flake edge cannot create a cycle.
+add_library(kritaflake_imagecodec STATIC shapes/ImageShapePngData.cpp)
+set_target_properties(kritaflake_imagecodec PROPERTIES AUTOMOC OFF POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(kritaflake_imagecodec PUBLIC pkimage pkstring pkcontainer PNG::PNG TIFF::TIFF)
+if(JPEG_FOUND)
+    target_link_libraries(kritaflake_imagecodec PRIVATE JPEG::JPEG)
+    target_compile_definitions(kritaflake_imagecodec PRIVATE HAVE_JPEG=1)
+endif()
+
 add_subdirectory(styles)
 add_subdirectory(tests)
 add_subdirectory(resources/tests)
@@ -457,7 +467,7 @@ target_include_directories(kritaflake_painting_objects PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/namespace)
 # KisAlgebra2D（DecomposedMatrix）用 Eigen 做矩阵分解——Eigen 原为 libs/global 的
 # PRIVATE 依赖（kis_algebra_2d.cpp 随闭包搬入 flake），这里随搬移补上。
-target_link_libraries(kritaflake_painting_objects PRIVATE Eigen3::Eigen)
+target_link_libraries(kritaflake_painting_objects PRIVATE Eigen3::Eigen kritaflake_imagecodec)
 
 kritaflake_add_object_library(kritaflake_commands_objects ${kritaflake_commands_SRCS})
 kritaflake_add_object_library(kritaflake_html_objects ${kritaflake_html_SRCS})
@@ -514,6 +524,7 @@ target_include_directories(kritaflake
 set_target_properties(libraqm PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_link_libraries(kritaflake
+    PRIVATE kritaflake_imagecodec
     PUBLIC
         pktextstream
         kritapigment

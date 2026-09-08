@@ -186,7 +186,7 @@ public:
         return offset;
     }
     virtual PkString pathShapeId() const { return "KoPathShape"; }
-    virtual void moveHandleAction(int, const PkPointF &, Qt::KeyboardModifiers = Qt::NoModifier) {}
+    virtual void moveHandleAction(int, const PkPointF &, Pk::KeyboardModifiers = Pk::NoModifier) {}
     virtual void updatePath(const PkSizeF &) {}
 
     void setHandles(const PkList<PkPointF> &handles) { m_handles = handles; }

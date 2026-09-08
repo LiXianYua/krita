@@ -2,7 +2,7 @@ set(imageshape_cow_test_SRCS
     ImageShapeCowTest.cpp
     ../ImageShape.cpp
     ../ImageShapeState.cpp
-    ../ImageShapePngData.cpp
+    ${CMAKE_SOURCE_DIR}/libs/flake/shapes/ImageShapePngData.cpp
     ../ImageShapeFactory.cpp
     ../ImageShapePlugin.cpp
 )
@@ -19,7 +19,7 @@ target_include_directories(ImageShapeCowTest BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/namespace
 )
 
-kis_add_test(ImageShapeSerializationTest.cpp ../ImageShapePngData.cpp
+kis_add_test(ImageShapeSerializationTest.cpp ${CMAKE_SOURCE_DIR}/libs/flake/shapes/ImageShapePngData.cpp
     TEST_NAME ImageShapeSerializationTest
     LINK_LIBRARIES pkstring pkcontainer pkgeometry pkimage pkvariant PNG::PNG TIFF::TIFF
 )
