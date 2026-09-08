@@ -4,15 +4,57 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 #include <QtMath>
+#include <vector>
 #include "TestPathTool.h"
 
 #include <PkPainterPath.h>
 #include "../KoPathShape.h"
+#include "../KoCanvasCursorHost.h"
 #include "../tools/KoPathTool.h"
 #include "../tools/KoPathToolSelection.h"
 #include "../KoPathPointData.h"
 #include <MockShapes.h>
 #include <simpletest.h>
+
+namespace {
+
+class CursorResourceMockCanvas final : public MockCanvas, public KoCanvasCursorHost
+{
+public:
+    struct Request {
+        PkString resource;
+        PkSize size;
+        PkPoint hotspot;
+    };
+
+    QCursor loadCursorResource(const PkString &resource,
+                               const PkSize &size,
+                               const PkPoint &hotspot) const override
+    {
+        requests.push_back({resource, size, hotspot});
+        return QCursor(requests.size() == 1 ? Qt::CrossCursor : Qt::SizeAllCursor);
+    }
+
+    mutable std::vector<Request> requests;
+};
+
+}
+
+void TestPathTool::cursorResourcesAreResolvedByHost()
+{
+    CursorResourceMockCanvas canvas;
+    KoPathTool tool(&canvas);
+
+    QCOMPARE(canvas.requests.size(), size_t(2));
+    QCOMPARE(canvas.requests[0].resource, PkString(":/cursor-needle.svg"));
+    QCOMPARE(canvas.requests[0].size, PkSize(32, 32));
+    QCOMPARE(canvas.requests[0].hotspot, PkPoint(0, 0));
+    QCOMPARE(canvas.requests[1].resource, PkString(":/cursor-needle-move.svg"));
+    QCOMPARE(canvas.requests[1].size, PkSize(32, 32));
+    QCOMPARE(canvas.requests[1].hotspot, PkPoint(0, 0));
+    QCOMPARE(tool.m_selectCursor.shape(), Qt::CrossCursor);
+    QCOMPARE(tool.m_moveCursor.shape(), Qt::SizeAllCursor);
+}
 
 void TestPathTool::koPathPointSelection_selectedSegmentsData()
 {

@@ -6,6 +6,7 @@
 #define KIS_CANVAS_TOOL_SERVICES_H
 
 #include <PkFlakeBridge.h>
+#include <KoCanvasCursorHost.h>
 #include <pk/geometry/PkPoint.h>
 #include <QPainterPath>
 #include <QCursor>
@@ -42,7 +43,7 @@ Q_SIGNALS:
  * Tool algorithms need image and coordinate access plus a few host-mediated
  * operations, but must not depend on the desktop canvas implementation.
  */
-class KRITACANVAS_EXPORT KisCanvasToolServices
+class KRITACANVAS_EXPORT KisCanvasToolServices : public KoCanvasCursorHost
 {
 public:
     virtual ~KisCanvasToolServices();
@@ -81,6 +82,13 @@ public:
     virtual QCursor toolOpenHandCursor() const = 0;
     virtual QCursor toolClosedHandCursor() const = 0;
     virtual QCursor toolLoadCursor(const PkString &name, int hotX, int hotY) const = 0;
+    QCursor loadCursorResource(const PkString &resource,
+                               const PkSize &size,
+                               const PkPoint &hotspot) const override
+    {
+        Q_UNUSED(size);
+        return toolLoadCursor(resource, hotspot.x(), hotspot.y());
+    }
     virtual void toolSetCursorPosition(const PkPoint &globalPoint) = 0;
     virtual void toolShowBrushSize(qreal size) = 0;
     virtual void toolShowLockedLayerMessage(bool myPaintUnavailable) = 0;

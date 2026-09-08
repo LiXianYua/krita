@@ -12,6 +12,7 @@ class TestPathTool : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
+    void cursorResourcesAreResolvedByHost();
     void koPathPointSelection_selectedSegmentsData();
 };
 

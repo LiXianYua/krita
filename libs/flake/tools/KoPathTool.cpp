@@ -11,6 +11,7 @@
 #include <PkFlakeBridge.h>
 #include "KoPathTool.h"
 #include "KoCanvasBase.h"
+#include "KoCanvasCursorHost.h"
 #include "KoDocumentResourceManager.h"
 #include "KoParameterChangeStrategy.h"
 #include "KoParameterShape.h"
@@ -107,8 +108,16 @@ KoPathTool::KoPathTool(KoCanvasBase *canvas)
     m_textOutlineHelper->setDrawBoundingRect(true);
     m_textOutlineHelper->setDrawShapeOutlines(false);
 
-    m_selectCursor = QCursor(QIcon(":/cursor-needle.svg").pixmap(32), 0, 0);
-    m_moveCursor = QCursor(QIcon(":/cursor-needle-move.svg").pixmap(32), 0, 0);
+    const KoCanvasCursorHost *cursorHost = dynamic_cast<const KoCanvasCursorHost *>(canvas);
+    if (cursorHost) {
+        const PkSize cursorSize(32, 32);
+        const PkPoint hotspot(0, 0);
+        m_selectCursor = cursorHost->loadCursorResource(":/cursor-needle.svg", cursorSize, hotspot);
+        m_moveCursor = cursorHost->loadCursorResource(":/cursor-needle-move.svg", cursorSize, hotspot);
+    } else {
+        m_selectCursor = QCursor(Qt::CrossCursor);
+        m_moveCursor = QCursor(Qt::SizeAllCursor);
+    }
 
     QObject::connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::repaintDecorations);
 }
