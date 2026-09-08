@@ -48,7 +48,7 @@ extern "C" KRITAIMPEX_EXPORT bool registerRGBEImportFilter()
 
 #define MAXLINE 1024
 
-class Q_DECL_HIDDEN RGBEImportData
+class RGBEImportData
 {
 public:
     KisPaintDeviceSP m_currentFrame{nullptr};

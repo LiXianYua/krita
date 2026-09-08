@@ -5,7 +5,7 @@ set(kritawebpexport_SOURCES
     webp_validation.cpp
 )
 
-add_library(kritawebpexport MODULE ${kritawebpexport_SOURCES})
+add_library(kritawebpexport STATIC ${kritawebpexport_SOURCES})
 target_link_libraries(kritawebpexport kritaimpex WebP::webp WebP::libwebpmux)
 
 install(TARGETS kritawebpexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
@@ -16,7 +16,7 @@ set(kritawebpimport_SOURCES
     webp_validation.cpp
 )
 
-add_library(kritawebpimport MODULE ${kritawebpimport_SOURCES})
+add_library(kritawebpimport STATIC ${kritawebpimport_SOURCES})
 target_link_libraries(kritawebpimport kritaimpex WebP::webp WebP::webpdemux)
 
 install(TARGETS kritawebpimport DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
