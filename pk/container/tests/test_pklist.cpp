@@ -8,6 +8,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 // PkTestBinder<PkListTest> 特化由 pk_test_moc.py 生成（CMake 的 pk_test_generate
 // 触发）。显式特化必须在 qExec<PkListTest> 实例化前对本 TU 可见，所以像 moc 的
@@ -18,6 +19,8 @@ namespace {
 
 // 模板实参里的逗号会被预处理器当成宏参数分隔符，所以断言里一律用别名。
 using IntList = PkList<int>;
+using BoolList = PkList<bool>;
+using BoolInner = std::vector<bool>;
 
 // ---- 契约的编译期部分（签名形状，不是行为）----
 
@@ -31,6 +34,48 @@ static_assert(std::is_same<decltype(std::declval<IntList &>()[0]), int &>::value
               "非 const operator[] 必须返回 T&");
 static_assert(std::is_same<decltype(std::declval<const IntList &>().value(0)), int>::value,
               "value() 必须按值返回");
+
+// std::vector<bool> 的引用类型是代理，而 const_reference 是 bool 值。共同容器
+// 必须保留内层容器的真实类型，不能把它们强行写成 bool& / const bool&。
+static_assert(std::is_same<typename BoolList::reference,
+                           typename BoolInner::reference>::value,
+              "PkList<bool>::reference 必须保留内层可写代理");
+static_assert(std::is_same<typename BoolList::const_reference,
+                           typename BoolInner::const_reference>::value,
+              "PkList<bool>::const_reference 必须是安全的值类型");
+static_assert(std::is_same<decltype(std::declval<BoolList &>()[0]),
+                           typename BoolInner::reference>::value,
+              "PkList<bool> 非 const operator[] 必须返回可写代理");
+static_assert(std::is_same<decltype(std::declval<const BoolList &>().at(0)),
+                           typename BoolInner::const_reference>::value,
+              "PkList<bool>::at() 不得返回临时 bool 的悬垂引用");
+static_assert(std::is_same<decltype(std::declval<const BoolList &>()[0]),
+                           typename BoolInner::const_reference>::value,
+              "PkList<bool> const operator[] 不得返回悬垂引用");
+static_assert(std::is_same<decltype(std::declval<BoolList &>().first()),
+                           typename BoolInner::reference>::value,
+              "PkList<bool>::first() 必须返回可写代理");
+static_assert(std::is_same<decltype(std::declval<const BoolList &>().first()),
+                           typename BoolInner::const_reference>::value,
+              "PkList<bool> const first() 不得返回悬垂引用");
+static_assert(std::is_same<decltype(std::declval<BoolList &>().last()),
+                           typename BoolInner::reference>::value,
+              "PkList<bool>::last() 必须返回可写代理");
+static_assert(std::is_same<decltype(std::declval<const BoolList &>().last()),
+                           typename BoolInner::const_reference>::value,
+              "PkList<bool> const last() 不得返回悬垂引用");
+static_assert(std::is_same<decltype(std::declval<BoolList &>().front()),
+                           typename BoolInner::reference>::value,
+              "PkList<bool>::front() 必须返回可写代理");
+static_assert(std::is_same<decltype(std::declval<const BoolList &>().front()),
+                           typename BoolInner::const_reference>::value,
+              "PkList<bool> const front() 不得返回悬垂引用");
+static_assert(std::is_same<decltype(std::declval<BoolList &>().back()),
+                           typename BoolInner::reference>::value,
+              "PkList<bool>::back() 必须返回可写代理");
+static_assert(std::is_same<decltype(std::declval<const BoolList &>().back()),
+                           typename BoolInner::const_reference>::value,
+              "PkList<bool> const back() 不得返回悬垂引用");
 
 // Qt 的 removeAll 返回删掉几个、removeOne 返回删没删掉、takeAt 按值返回。
 static_assert(std::is_same<decltype(std::declval<IntList &>().removeAll(0)), int>::value,
@@ -96,6 +141,40 @@ void PkListTest::swap() { pkSeqTestSwap<PkList>(); }
 void PkListTest::selfAssignment() { pkSeqTestSelfAssignment<PkList>(); }
 void PkListTest::moveLeavesSourceUsable() { pkSeqTestMoveLeavesSourceUsable<PkList>(); }
 void PkListTest::initializerListAndDefaults() { pkSeqTestInitializerListAndDefaults<PkList>(); }
+
+void PkListTest::boolReferenceSemantics()
+{
+    BoolList values{false, true};
+
+    // 可写访问返回代理：代理离开 operator[] 后仍能更新容器元素。
+    auto firstRef = values[0];
+    firstRef = true;
+    PK_VERIFY(values.at(0));
+
+    values.first() = false;
+    values.last() = false;
+    PK_VERIFY(!values.at(0));
+    PK_VERIFY(!values.at(1));
+    values.front() = true;
+    values.back() = true;
+    PK_VERIFY(values.at(0));
+    PK_VERIFY(values.at(1));
+
+    // const 访问按值返回；临时容器在完整表达式末尾析构后，结果仍独立有效。
+    const BoolList &constValues = values;
+    const bool indexed = constValues[0];
+    const bool first = constValues.first();
+    const bool last = constValues.last();
+    const bool front = constValues.front();
+    const bool back = constValues.back();
+    const bool fromTemporary = BoolList{true}.at(0);
+    PK_VERIFY(indexed);
+    PK_VERIFY(first);
+    PK_VERIFY(last);
+    PK_VERIFY(front);
+    PK_VERIFY(back);
+    PK_VERIFY(fromTemporary);
+}
 
 // ---------------------------------------------------------------------------
 // PkList 专有

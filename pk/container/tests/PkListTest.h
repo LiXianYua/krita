@@ -32,6 +32,7 @@ private Q_SLOTS:
     void selfAssignment();
     void moveLeavesSourceUsable();
     void initializerListAndDefaults();
+    void boolReferenceSemantics();
 
     // ---- PkList 专有 ----
     void removeAtAllOne();

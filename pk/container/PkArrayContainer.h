@@ -62,8 +62,11 @@ public:
     // Qt 的驼峰别名：调用点写 QVector<T>::Iterator 的地方靠它。
     using Iterator = iterator;
     using ConstIterator = const_iterator;
-    using reference = T &;
-    using const_reference = const T &;
+    // 保留内层容器的真实引用类型。对普通 T，它们仍是 T& / const T&；
+    // std::vector<bool> 则使用可写代理 / bool 值，不能强行声明成 bool& /
+    // const bool&（后者会绑到临时转换结果并立即悬垂）。
+    using reference = typename PkInner::reference;
+    using const_reference = typename PkInner::const_reference;
     using pointer = T *;
     using const_pointer = const T *;
     using difference_type = typename PkInner::difference_type;
@@ -109,22 +112,19 @@ public:
 
     // ---- 元素访问 ----
 
-    const T &at(int i) const
+    const_reference at(int i) const
     {
         assert(i >= 0 && i < size());
         return m_d.PkConst()[static_cast<std::size_t>(i)];
     }
 
-    // 返回容器原生引用类型：std::vector<bool> 的 operator[] 返回代理
-    // （bool 纯右值），T& 会绑不上——PkVector<bool> 是真实调用点
-    // （KoCssTextUtils collapsed[i] = true，S-09-g 实测）。
-    auto operator[](int i) -> decltype(std::declval<std::vector<T>&>()[0])
+    reference operator[](int i)
     {
         assert(i >= 0 && i < size());
         return m_d.PkMut()[static_cast<std::size_t>(i)];
     }
 
-    const T &operator[](int i) const { return at(i); }
+    const_reference operator[](int i) const { return at(i); }
 
     // value() 越界（含负数）返回 T() / def —— 这是 Qt 的行为，不是断言。
     T value(int i) const
@@ -145,32 +145,32 @@ public:
         return v[static_cast<std::size_t>(i)];
     }
 
-    T &first()
+    reference first()
     {
         assert(!isEmpty());
         return m_d.PkMut().front();
     }
-    const T &first() const
+    const_reference first() const
     {
         assert(!isEmpty());
         return m_d.PkConst().front();
     }
 
-    T &last()
+    reference last()
     {
         assert(!isEmpty());
         return m_d.PkMut().back();
     }
-    const T &last() const
+    const_reference last() const
     {
         assert(!isEmpty());
         return m_d.PkConst().back();
     }
 
-    T &front() { return first(); }
-    const T &front() const { return first(); }
-    T &back() { return last(); }
-    const T &back() const { return last(); }
+    reference front() { return first(); }
+    const_reference front() const { return first(); }
+    reference back() { return last(); }
+    const_reference back() const { return last(); }
 
     T *data() { return m_d.PkMut().data(); }
     const T *data() const { return m_d.PkConst().data(); }
