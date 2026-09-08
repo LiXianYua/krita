@@ -172,8 +172,10 @@ PkStream::pk_int64 PkStream::read(char *data, pk_int64 maxSize)
     // Binary mode forwards exactly once. Text mode may need another full read
     // only when CR filtering created spare output capacity; a positive short
     // read still returns immediately, matching QIODevice's short-read rule.
-    // If an entire read consists of CR bytes, return 0 and remember that raw
-    // progress occurred so line/readAll loops do not mistake it for EOF.
+    // A full random-access read that consists only of CR bytes may refill to
+    // produce translated output. Sequential devices preserve the positive
+    // short-read boundary and report zero translated bytes; layered loops use
+    // m_lastReadFilteredData to distinguish that progress from EOF.
     while (total < maxSize) {
         const pk_int64 request = maxSize - total;
         const pk_int64 n = readData(data + total, request);
@@ -195,7 +197,7 @@ PkStream::pk_int64 PkStream::read(char *data, pk_int64 maxSize)
                 }
             }
             total += kept;
-            if (total == 0 || n < request || total == maxSize) {
+            if (total == maxSize || n < request || (total == 0 && isSequential())) {
                 break;
             }
         } else if (total == 0) {
@@ -293,6 +295,9 @@ PkStream::pk_int64 PkStream::skip(pk_int64 maxSize)
             chunk = static_cast<pk_int64>(sizeof(discard));
         }
         const pk_int64 n = read(discard, chunk);
+        if (n == 0 && m_lastReadFilteredData) {
+            continue;
+        }
         if (n <= 0) {
             break;
         }

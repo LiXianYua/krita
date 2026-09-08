@@ -12,6 +12,16 @@
 
 namespace {
 
+int failures = 0;
+
+void check(bool condition, const char *message)
+{
+    if (!condition) {
+        std::fprintf(stderr, "FAIL: %s\n", message);
+        ++failures;
+    }
+}
+
 class ScriptedDevice final : public QIODevice
 {
 public:
@@ -104,6 +114,40 @@ int main()
 
     {
         QBuffer device;
+        device.setData("\r\nx");
+        device.open(QIODevice::ReadOnly | QIODevice::Text);
+        char byte = 0;
+        const qint64 size = device.read(&byte, 1);
+        std::printf("text-crlf-read-one\tsize=%lld\tpos=%lld\thex=%s\n",
+                    static_cast<long long>(size),
+                    static_cast<long long>(device.pos()),
+                    QByteArray(&byte, size > 0 ? static_cast<int>(size) : 0).toHex().constData());
+        check(size == 1, "Text QBuffer read(1) at CRLF start returns one translated byte");
+        check(byte == '\n', "Text QBuffer read(1) at CRLF start returns LF");
+        check(device.pos() == 2, "Text QBuffer read(1) at CRLF start consumes CRLF");
+    }
+
+    {
+        QBuffer device;
+        device.setData("\r\nx");
+        device.open(QIODevice::ReadOnly | QIODevice::Text);
+        const qint64 skipped = device.skip(1);
+        const qint64 posAfterSkip = device.pos();
+        char byte = 0;
+        const qint64 size = device.read(&byte, 1);
+        std::printf("text-crlf-skip-one\tskipped=%lld\tpos_after_skip=%lld\tafter_size=%lld\tafter_hex=%s\n",
+                    static_cast<long long>(skipped),
+                    static_cast<long long>(posAfterSkip),
+                    static_cast<long long>(size),
+                    QByteArray(&byte, size > 0 ? static_cast<int>(size) : 0).toHex().constData());
+        check(skipped == 1, "Text QBuffer skip(1) at CRLF start skips one translated byte");
+        check(posAfterSkip == 2, "Text QBuffer skip(1) at CRLF start consumes CRLF");
+        check(size == 1 && byte == 'x', "Text QBuffer skip(1) at CRLF start leaves x next");
+        check(device.pos() == 3, "Text QBuffer skip(1) then read(1) consumes all input");
+    }
+
+    {
+        QBuffer device;
         device.setData("a\r\nb");
         device.open(QIODevice::ReadOnly | QIODevice::Text);
         char buffer[2] = {};
@@ -156,9 +200,11 @@ int main()
                         static_cast<long long>(size),
                         static_cast<long long>(device.calls()),
                         QByteArray(buffer, size > 0 ? static_cast<int>(size) : 0).toHex().constData());
+            if (i == 2) {
+                check(size == 0, "Text sequential positive short CR read preserves zero-output boundary");
+            }
         }
     }
-
     {
         ScriptedDevice device("ignored", 1, 0);
         device.open(QIODevice::ReadOnly);
@@ -184,5 +230,5 @@ int main()
         printResult("char-buffer-text-second", device.readLine(), device);
     }
 
-    return 0;
+    return failures == 0 ? 0 : 1;
 }

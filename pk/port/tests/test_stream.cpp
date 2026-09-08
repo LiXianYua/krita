@@ -183,6 +183,8 @@ public:
     void testReadLineConvenienceHandlesShortReadsAndLongLines();
     void testReadLineConvenienceHandlesSequentialErrorAndBufferInteraction();
     void testTextModeReadAndReadLineMatchQtOracle();
+    void testTextModeCrOnlyReadRefillsRandomAccess();
+    void testTextModeCrOnlySkipConsumesTranslatedByte();
     void testReadAllRandomAccessStopsOnPositiveShortRead();
     void testReadAllSequentialAccumulatesShortReadsToEof();
     void testReadAllEofAndImmediateErrorReturnEmpty();
@@ -596,6 +598,49 @@ void PkStreamTestCase::testTextModeReadAndReadLineMatchQtOracle()
     PK_VERIFY(std::memcmp(shortLine.constData(), "short\n", 6) == 0);
 }
 
+void PkStreamTestCase::testTextModeCrOnlyReadRefillsRandomAccess()
+{
+    // A full one-byte random-access read containing only CR made raw progress
+    // but produced no translated byte. Qt continues through the following LF.
+    MemoryStream readDevice("\r\nx");
+    readDevice.open(PkStream::ReadOnly | PkStream::Text);
+    char byte = 0;
+    PK_COMPARE(readDevice.read(&byte, 1), (PkStream::pk_int64)1);
+    PK_VERIFY(byte == '\n');
+    PK_COMPARE(readDevice.pos(), (PkStream::pk_int64)2);
+    PK_COMPARE(readDevice.read(&byte, 1), (PkStream::pk_int64)1);
+    PK_VERIFY(byte == 'x');
+
+    // A sequential device may report a positive short read containing only
+    // CR. Preserve that public read() boundary.
+    ScriptedStream sequentialRead("\r\nx", true, 1);
+    sequentialRead.open(PkStream::ReadOnly | PkStream::Text);
+    PK_COMPARE(sequentialRead.read(&byte, 1), (PkStream::pk_int64)0);
+    PK_COMPARE(sequentialRead.calls(), (PkStream::pk_int64)1);
+    PK_COMPARE(sequentialRead.read(&byte, 1), (PkStream::pk_int64)1);
+    PK_VERIFY(byte == '\n');
+}
+
+void PkStreamTestCase::testTextModeCrOnlySkipConsumesTranslatedByte()
+{
+    char byte = 0;
+    MemoryStream skipDevice("\r\nx");
+    skipDevice.open(PkStream::ReadOnly | PkStream::Text);
+    PK_COMPARE(skipDevice.skip(1), (PkStream::pk_int64)1);
+    PK_COMPARE(skipDevice.pos(), (PkStream::pk_int64)2);
+    PK_COMPARE(skipDevice.read(&byte, 1), (PkStream::pk_int64)1);
+    PK_VERIFY(byte == 'x');
+
+    // skip() must recognize the sequential zero-output raw progress and
+    // continue until one translated byte was actually skipped.
+    ScriptedStream sequentialSkip("\r\nx", true, 1);
+    sequentialSkip.open(PkStream::ReadOnly | PkStream::Text);
+    PK_COMPARE(sequentialSkip.skip(1), (PkStream::pk_int64)1);
+    PK_COMPARE(sequentialSkip.calls(), (PkStream::pk_int64)2);
+    PK_COMPARE(sequentialSkip.read(&byte, 1), (PkStream::pk_int64)1);
+    PK_VERIFY(byte == 'x');
+}
+
 void PkStreamTestCase::testWriteToReadOnlyDeviceReturnsMinusOne()
 {
     // 回归：write 到 ReadOnly 设备返回 -1（isWritable() 为 false）。
@@ -808,6 +853,12 @@ struct PkTestBinder<PkStreamTestCase> {
             {"testTextModeReadAndReadLineMatchQtOracle",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testTextModeReadAndReadLineMatchQtOracle(); },
              nullptr},
+            {"testTextModeCrOnlyReadRefillsRandomAccess",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testTextModeCrOnlyReadRefillsRandomAccess(); },
+             nullptr},
+            {"testTextModeCrOnlySkipConsumesTranslatedByte",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testTextModeCrOnlySkipConsumesTranslatedByte(); },
+             nullptr},
             {"testReadAllRandomAccessStopsOnPositiveShortRead",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadAllRandomAccessStopsOnPositiveShortRead(); },
              nullptr},
@@ -823,7 +874,7 @@ struct PkTestBinder<PkStreamTestCase> {
         };
         return fns;
     }
-    static int count() { return 28; }
+    static int count() { return 30; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }
