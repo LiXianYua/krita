@@ -6,11 +6,13 @@
  */
 
 #include <PkFlakeBridge.h>
+#include <PkImage.h>
+#include <PkPainter.h>
+#include <PkImageRasterBackend.h>
 
 #include "kis_shape_selection.h"
 
 
-#include <QPainter>
 #include <kundo2command.h>
 #include <QMimeData>
 #include <QCoreApplication>
@@ -230,11 +232,11 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRec
     const qint32 MASK_IMAGE_WIDTH = 256;
     const qint32 MASK_IMAGE_HEIGHT = 256;
 
-    QPainterPath selectionOutline = toQPainterPath(outlineCache());
+    PkPainterPath selectionOutline = outlineCache();
 
     if (projection->defaultBounds()->currentLevelOfDetail() > 0) {
         KisLodTransform t(projection);
-        selectionOutline = toQTransform(t.transform()).map(selectionOutline);
+        selectionOutline = t.transform().map(selectionOutline);
     }
 
     if (*projection->defaultPixel().data() == OPACITY_TRANSPARENT_U8) {
@@ -243,19 +245,20 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRec
         KoColor transparentColor = KoColor::createTransparent(projection->colorSpace());
         projection->fill(requestedRect, transparentColor);
     }
-    const QRect r = toQRect(requestedRect) & selectionOutline.boundingRect().toAlignedRect();
+    const PkRect r = requestedRect & selectionOutline.boundingRect().toAlignedRect();
 
-    QImage polygonMaskImage(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, QImage::Format_ARGB32);
-    QPainter maskPainter(&polygonMaskImage);
-    maskPainter.setRenderHint(QPainter::Antialiasing, true);
+    PkImage polygonMaskImage(MASK_IMAGE_WIDTH, MASK_IMAGE_HEIGHT, PkImage::Format_ARGB32);
+    PkImageRasterBackend maskBackend(polygonMaskImage);
+    PkPainter maskPainter(maskBackend);
+    maskPainter.setRenderHint(PkPainter::Antialiasing, true);
 
     // Break the mask up into chunks so we don't have to allocate a potentially very large PkImage.
     for (qint32 x = r.x(); x < r.x() + r.width(); x += MASK_IMAGE_WIDTH) {
         for (qint32 y = r.y(); y < r.y() + r.height(); y += MASK_IMAGE_HEIGHT) {
 
-            maskPainter.fillRect(polygonMaskImage.rect(), Qt::black);
+            maskPainter.fillRect(polygonMaskImage.rect(), Pk::black);
             maskPainter.translate(-x, -y);
-            maskPainter.fillPath(selectionOutline, Qt::white);
+            maskPainter.fillPath(selectionOutline, Pk::white);
             maskPainter.translate(x, y);
 
             qint32 rectWidth = qMin(r.x() + r.width() - x, MASK_IMAGE_WIDTH);
@@ -263,7 +266,7 @@ void KisShapeSelection::renderSelection(KisPaintDeviceSP projection, const PkRec
 
             KisSequentialIterator it(projection, PkRect(x, y, rectWidth, rectHeight));
             while (it.nextPixel()) {
-                (*it.rawData()) = qRed(polygonMaskImage.pixel(it.x() - x, it.y() - y));
+                (*it.rawData()) = (polygonMaskImage.pixel(it.x() - x, it.y() - y) >> 16) & 0xff;
             }
         }
     }
