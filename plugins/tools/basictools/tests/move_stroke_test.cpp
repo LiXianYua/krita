@@ -20,7 +20,7 @@ class MoveStrokeTester : public utils::StrokeTester
 {
 public:
     MoveStrokeTester()
-        : StrokeTester("move", QSize(512, 512), "")
+        : StrokeTester("move", PkSize(512, 512), "")
     {
     }
 

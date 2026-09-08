@@ -5,18 +5,16 @@
  */
 
 // ===========================================================================
-// [GAP] stroke_testing_utils.h 阻塞登记（S-06 Task 9）
-//
-// 本文件不进薄壳，保留 Qt 类型。include KoCanvasResourceProvider
-// （libs/ui，壳闭包外）+ QString + QImage。StrokeTester 默认容差
-// m_baseFuzziness=1 保持原样。
-// 关闭条件：libs/ui 的 KoCanvasResourceProvider 进壳 + PkImage 文件 I/O。
+// The helper remains a UI-test utility, but its value/storage boundary follows
+// the migrated production APIs. Qt is confined to the test harness diagnostics.
 
 
 #ifndef __STROKE_TESTING_UTILS_H
 #define __STROKE_TESTING_UTILS_H
 
-#include <QString>
+#include <PkImage.h>
+#include <PkSize.h>
+#include <PkString.h>
 #include <KoCanvasResourceProvider.h>
 #include "kis_node.h"
 #include "kis_types.h"
@@ -29,15 +27,16 @@ class KisUndoStore;
 
 namespace utils {
 
-    KisImageSP createImage(KisUndoStore *undoStore, const QSize &imageSize);
+    KisImageSP createImage(KisUndoStore *undoStore, const PkSize &imageSize);
     KoCanvasResourceProvider* createResourceManager(KisImageWSP image,
                                              KisNodeSP node = 0,
-                                             const QString &presetFileName = "autobrush_300px.kpp");
+                                             const PkString &presetFileName = PkString("autobrush_300px.kpp"));
 
     class StrokeTester
     {
     public:
-        StrokeTester(const QString &name, const QSize &imageSize, const QString &presetFileName = "autobrush_300px.kpp");
+        StrokeTester(const PkString &name, const PkSize &imageSize,
+                     const PkString &presetFileName = PkString("autobrush_300px.kpp"));
         virtual ~StrokeTester();
 
         void testSimpleStroke();
@@ -86,21 +85,21 @@ namespace utils {
         void testOneStroke(bool cancelled, bool indirectPainting,
                            bool externalLayer, bool testUpdates = false);
 
-        QImage doStroke(bool cancelled,
+        PkImage doStroke(bool cancelled,
                         bool externalLayer, bool testUpdates = false,
                         bool needQImage = true);
 
-        QString formatTestName(const QString &baseName, bool cancelled,
-                               bool indirectPainting, bool externalLayer);
-        QString referenceFile(const QString &testName);
-        QString dumpReferenceFile(const QString &testName);
-        QString resultFile(const QString &testName);
+        PkString formatTestName(const PkString &baseName, bool cancelled,
+                                bool indirectPainting, bool externalLayer);
+        PkString referenceFile(const PkString &testName);
+        PkString dumpReferenceFile(const PkString &testName);
+        PkString resultFile(const PkString &testName);
 
     private:
         KisStrokeId m_strokeId;
-        QString m_name;
-        QSize m_imageSize;
-        QString m_presetFilename;
+        PkString m_name;
+        PkSize m_imageSize;
+        PkString m_presetFilename;
         int m_numIterations;
         int m_baseFuzziness;
         int m_strokeTime = 0;

@@ -26,6 +26,9 @@
 #include <set>
 #include <QLocale>
 #include <KisSynchronizedConnection.h>
+#include <PkByteArray.h>
+#include <PkStream.h>
+#include <PkString.h>
 
 /**
  * There is a hierarchy of libraries built on the kritaresources library
@@ -123,7 +126,7 @@ namespace {
 class KisTestUiResource final : public KoResource
 {
 public:
-    KisTestUiResource(const QString &filename, const QString &type)
+    KisTestUiResource(const PkString &filename, const PkString &type)
         : KoResource(filename)
         , m_type(type)
     {
@@ -141,26 +144,26 @@ public:
         return KoResourceSP(new KisTestUiResource(*this));
     }
 
-    bool loadFromDevice(QIODevice *device, KisResourcesInterfaceSP) override
+    bool loadFromDevice(PkStream *device, KisResourcesInterfaceSP) override
     {
         m_data = device->readAll();
         setValid(true);
         return true;
     }
 
-    bool saveToDevice(QIODevice *device) const override
+    bool saveToDevice(PkStream *device) const override
     {
-        return device->write(m_data) == m_data.size();
+        return device->write(m_data.constData(), m_data.size()) == m_data.size();
     }
 
-    QPair<QString, QString> resourceType() const override
+    std::pair<PkString, PkString> resourceType() const override
     {
-        return qMakePair(m_type, QString());
+        return std::make_pair(m_type, PkString());
     }
 
 private:
-    QString m_type;
-    QByteArray m_data;
+    PkString m_type;
+    PkByteArray m_data;
 };
 
 class KisTestUiResourceLoader final : public KisResourceLoaderBase
@@ -168,7 +171,7 @@ class KisTestUiResourceLoader final : public KisResourceLoaderBase
 public:
     using KisResourceLoaderBase::KisResourceLoaderBase;
 
-    KoResourceSP create(const QString &filename) override
+    KoResourceSP create(const PkString &filename) override
     {
         return KoResourceSP(new KisTestUiResource(filename, resourceType()));
     }

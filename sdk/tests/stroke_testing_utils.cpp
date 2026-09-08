@@ -5,20 +5,18 @@
  */
 
 // ===========================================================================
-// [GAP] stroke_testing_utils.cpp 阻塞登记（S-06 Task 9）
-//
-// 本文件不进薄壳，保留 Qt 类型。用 QImage 从文件读参考图/保存结果
-// （PkImage 无文件 I/O），并依赖 KoCanvasResourceProvider（libs/ui）。
-// StrokeTester 默认容差 m_baseFuzziness=1 保持原样。
-// 关闭条件：libs/ui 进壳 + PkImage 文件 I/O（R-15）。
+// The helper remains a UI-test utility, but its value/storage boundary follows
+// the migrated production APIs. Qt is confined to the test harness diagnostics.
 
 
 #include "stroke_testing_utils.h"
 
 #include <simpletest.h>
 
-#include <QDir>
 #include <QElapsedTimer>
+#include <PkColor.h>
+#include <PkImageFileDecoder.h>
+#include <PkVariant.h>
 #include <KoColor.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -35,8 +33,8 @@
 #include <KisGlobalResourcesInterface.h>
 
 
-KisImageSP utils::createImage(KisUndoStore *undoStore, const QSize &imageSize) {
-    QRect imageRect(0,0,imageSize.width(),imageSize.height());
+KisImageSP utils::createImage(KisUndoStore *undoStore, const PkSize &imageSize) {
+    PkRect imageRect(0,0,imageSize.width(),imageSize.height());
 
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisImageSP image = new KisImage(undoStore, imageRect.width(), imageRect.height(), cs, "stroke test");
@@ -59,17 +57,17 @@ KisImageSP utils::createImage(KisUndoStore *undoStore, const QSize &imageSize) {
 
 KoCanvasResourceProvider* utils::createResourceManager(KisImageWSP image,
                                                 KisNodeSP node,
-                                                const QString &presetFileName)
+                                                const PkString &presetFileName)
 {
     KoCanvasResourceProvider *manager = new KoCanvasResourceProvider();
 
-    QVariant i;
+    PkVariant i;
 
-    i.setValue(KoColor(Qt::black, image->colorSpace()));
-    manager->setResource(KoCanvasResource::ForegroundColor, i);
+    manager->setResource(KoCanvasResource::ForegroundColor,
+                         KoColor(Pk::black, image->colorSpace()));
 
-    i.setValue(KoColor(Qt::white, image->colorSpace()));
-    manager->setResource(KoCanvasResource::BackgroundColor, i);
+    manager->setResource(KoCanvasResource::BackgroundColor,
+                         KoColor(Pk::white, image->colorSpace()));
 
     i.setValue(static_cast<void*>(0));
     manager->setResource(KoCanvasResource::CurrentPattern, i);
@@ -92,8 +90,10 @@ KoCanvasResourceProvider* utils::createResourceManager(KisImageWSP image,
     KisPaintOpPresetSP preset;
 
     if (!presetFileName.isEmpty()) {
-        QString fullFileName = TestUtil::fetchDataFileLazy(presetFileName);
-        preset = KisPaintOpPresetSP(new KisPaintOpPreset(fullFileName));
+        const QString fullFileName =
+            TestUtil::fetchDataFileLazy(TestUtil::diagnosticQString(presetFileName));
+        preset = KisPaintOpPresetSP(
+            new KisPaintOpPreset(TestUtil::pkStringFromQString(fullFileName)));
         bool presetValid = preset->load(KisGlobalResourcesInterface::instance());
         Q_ASSERT(presetValid); Q_UNUSED(presetValid);
 
@@ -128,7 +128,8 @@ KoCanvasResourceProvider* utils::createResourceManager(KisImageWSP image,
     return manager;
 }
 
-utils::StrokeTester::StrokeTester(const QString &name, const QSize &imageSize, const QString &presetFilename)
+utils::StrokeTester::StrokeTester(const PkString &name, const PkSize &imageSize,
+                                  const PkString &presetFilename)
     : m_name(name),
       m_imageSize(imageSize),
       m_presetFilename(presetFilename),
@@ -212,35 +213,40 @@ void utils::StrokeTester::testOneStroke(bool cancelled,
     // TODO: indirectPainting option is not used anymore! The real value is
     //       taken from the preset!
 
-    QString testName = formatTestName(m_name,
-                                      cancelled,
-                                      indirectPainting,
-                                      externalLayer);
+    const PkString testName = formatTestName(m_name,
+                                             cancelled,
+                                             indirectPainting,
+                                             externalLayer);
 
     dbgKrita << "Testcase:" << testName
              << "(compare against " << (testUpdates ? "projection" : "layer") << ")";
 
-    QImage resultImage;
-    resultImage = doStroke(cancelled, externalLayer, testUpdates);
+    const PkImage resultImage = doStroke(cancelled, externalLayer, testUpdates);
 
-    QImage refImage;
-    refImage.load(referenceFile(testName));
+    const PkImage refImage =
+        PkImageFileDecoder::load(referenceFile(testName).PkToUtf8());
 
     QPoint temp;
-    if(!TestUtil::compareQImages(temp, refImage, resultImage, m_baseFuzziness, m_baseFuzziness)) {
-        refImage.save(dumpReferenceFile(testName));
-        resultImage.save(resultFile(testName));
+    if(!TestUtil::compareQImages(temp,
+                                 TestUtil::diagnosticQImage(refImage),
+                                 TestUtil::diagnosticQImage(resultImage),
+                                 m_baseFuzziness,
+                                 m_baseFuzziness)) {
+        TestUtil::diagnosticQImage(refImage).save(
+            TestUtil::diagnosticQString(dumpReferenceFile(testName)));
+        TestUtil::diagnosticQImage(resultImage).save(
+            TestUtil::diagnosticQString(resultFile(testName)));
 
         QFAIL("Images do not coincide");
     }
 }
 
-QString utils::StrokeTester::formatTestName(const QString &baseName,
-                                            bool cancelled,
-                                            bool indirectPainting,
-                                            bool externalLayer)
+PkString utils::StrokeTester::formatTestName(const PkString &baseName,
+                                             bool cancelled,
+                                             bool indirectPainting,
+                                             bool externalLayer)
 {
-    QString result = baseName;
+    PkString result = baseName;
     result += "_" + m_presetFilename;
     result += indirectPainting ? "_indirect" : "_incremental";
     result += cancelled ? "_cancelled" : "_finished";
@@ -248,38 +254,36 @@ QString utils::StrokeTester::formatTestName(const QString &baseName,
     return result;
 }
 
-QString utils::StrokeTester::referenceFile(const QString &testName)
+PkString utils::StrokeTester::referenceFile(const PkString &testName)
 {
-    QString path =
-        QString(FILES_DATA_DIR) + '/' +
-        m_name + '/';
+    PkString path = PkString(FILES_DATA_DIR) + '/' + m_name + '/';
 
     path += testName;
     path += ".png";
     return path;
 }
 
-QString utils::StrokeTester::dumpReferenceFile(const QString &testName)
+PkString utils::StrokeTester::dumpReferenceFile(const PkString &testName)
 {
-    QString path = QString(FILES_OUTPUT_DIR) + '/';
+    PkString path = PkString(FILES_OUTPUT_DIR) + '/';
     path += testName;
     path += "_expected";
     path += ".png";
     return path;
 }
 
-QString utils::StrokeTester::resultFile(const QString &testName)
+PkString utils::StrokeTester::resultFile(const PkString &testName)
 {
-    QString path = QString(FILES_OUTPUT_DIR) + '/';
+    PkString path = PkString(FILES_OUTPUT_DIR) + '/';
     path += testName;
     path += ".png";
     return path;
 }
 
-QImage utils::StrokeTester::doStroke(bool cancelled,
-                                     bool externalLayer,
-                                     bool testUpdates,
-                                     bool needQImage)
+PkImage utils::StrokeTester::doStroke(bool cancelled,
+                                      bool externalLayer,
+                                      bool testUpdates,
+                                      bool needQImage)
 {
     KisUndoStore *undoStore = new KisSurrogateUndoStore();
 
@@ -327,7 +331,7 @@ QImage utils::StrokeTester::doStroke(bool cancelled,
 
     beforeCheckingResult(image, currentNode);
 
-    QImage resultImage;
+    PkImage resultImage;
     if(needQImage) {
         KisPaintDeviceSP device = testUpdates ?
             image->projection() :

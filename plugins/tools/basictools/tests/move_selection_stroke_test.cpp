@@ -36,7 +36,7 @@ void MoveSelectionStrokeTest::test()
     const PkRect imageRect(0,0,800,800);
     KisImageSP image = utils::createImage(0, imageRect.size());
     PkScopedPointer<KoCanvasResourceProvider> manager(
-        utils::createResourceManager(image));
+        utils::createResourceManager(image, 0, PkString()));
 
     image->setLodPreferences(KisLodPreferences(2));
     image->waitForDone();
@@ -55,10 +55,10 @@ void MoveSelectionStrokeTest::test()
     {
         KisImageBarrierLock lock(image);
 
-        device->fill(PkRect(0,0,400,400),     KoColor(Qt::red, image->colorSpace()));
-        device->fill(PkRect(400,0,400,400),   KoColor(Qt::green, image->colorSpace()));
-        device->fill(PkRect(0,400,400,400),   KoColor(Qt::blue, image->colorSpace()));
-        device->fill(PkRect(400,400,400,400), KoColor(Qt::yellow, image->colorSpace()));
+        device->fill(PkRect(0,0,400,400),     KoColor(Pk::red, image->colorSpace()));
+        device->fill(PkRect(400,0,400,400),   KoColor(Pk::green, image->colorSpace()));
+        device->fill(PkRect(0,400,400,400),   KoColor(Pk::blue, image->colorSpace()));
+        device->fill(PkRect(400,400,400,400), KoColor(Pk::yellow, image->colorSpace()));
     }
 
     {
