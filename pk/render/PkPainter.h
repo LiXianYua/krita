@@ -48,6 +48,7 @@ public:
     void setClipRect(const PkRectF &, Pk::ClipOperation=Pk::ReplaceClip);
     void setClipPath(const PkPainterPath &, Pk::ClipOperation=Pk::ReplaceClip);
     bool hasClipping() const;
+    PkPainterPath clipPath() const;
     PkRectF clipBoundingRect() const;
 
     // ---- 绘制 ----
@@ -70,6 +71,13 @@ public:
 
 private:
     struct State {
+        struct ClipInfo {
+            PkPainterPath path;
+            PkRectF rect;
+            PkTransform transform;
+            Pk::ClipOperation operation;
+            bool rectangle;
+        };
         PkPen pen;
         PkBrush brush;
         PkFont font;
@@ -77,7 +85,7 @@ private:
         unsigned hints = 0;
         qreal opacity = 1.0;
         Pk::CompositionMode mode = Pk::CompositionMode_SourceOver;
-        PkPainterPath clipPath;
+        std::vector<ClipInfo> clips;
         bool hasClip = false;
     };
     PkPainterBackend &m_backend;

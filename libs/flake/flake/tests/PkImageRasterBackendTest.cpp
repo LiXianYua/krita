@@ -32,10 +32,77 @@ private Q_SLOTS:
     void matchesQtTransformedImagePixels();
     void matchesQtPatternImagePixels();
     void matchesQtTexturePathPixels();
+    void matchesQtClipQueries();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtClipQueries()
+{
+    // A clip is anchored at the transform active when it is set. Queries must
+    // map it back to the CURRENT logical coordinates, including saved history.
+    QImage qtImage(80, 70, QImage::Format_ARGB32);
+    PkImage pkImage(80, 70, PkImage::Format_ARGB32);
+    QPainter qtPainter(&qtImage);
+    PkImageRasterBackend backend(pkImage);
+    PkPainter painter(backend);
+    int checkpoint = 0;
+    const auto compare = [&] {
+        ++checkpoint;
+        const auto expected = qtPainter.clipBoundingRect();
+        const auto actual = painter.clipBoundingRect();
+        QCOMPARE(painter.hasClipping(), qtPainter.hasClipping());
+        const QString context = QStringLiteral("checkpoint=%1 Qt=(%2,%3,%4,%5) Pk=(%6,%7,%8,%9)")
+            .arg(checkpoint).arg(expected.x(), 0, 'g', 16).arg(expected.y(), 0, 'g', 16)
+            .arg(expected.width(), 0, 'g', 16).arg(expected.height(), 0, 'g', 16)
+            .arg(actual.x(), 0, 'g', 16).arg(actual.y(), 0, 'g', 16)
+            .arg(actual.width(), 0, 'g', 16).arg(actual.height(), 0, 'g', 16);
+        QVERIFY2(std::abs(actual.x() - expected.x()) < 1e-9, qPrintable(context));
+        QVERIFY(std::abs(actual.y() - expected.y()) < 1e-9);
+        QVERIFY(std::abs(actual.width() - expected.width()) < 1e-9);
+        QVERIFY(std::abs(actual.height() - expected.height()) < 1e-9);
+        QImage qtClip(80, 70, QImage::Format_ARGB32);
+        PkImage pkClip(80, 70, PkImage::Format_ARGB32);
+        qtClip.fill(0); pkClip.fill(0);
+        QPainter qtClipPainter(&qtClip);
+        PkImageRasterBackend clipBackend(pkClip);
+        PkPainter clipPainter(clipBackend);
+        qtClipPainter.setRenderHint(QPainter::Antialiasing);
+        clipPainter.setRenderHint(PkPainter::Antialiasing);
+        qtClipPainter.fillPath(qtPainter.clipPath(), QColor(30, 120, 220, 180));
+        clipPainter.fillPath(painter.clipPath(), PkBrush(PkColor(30, 120, 220, 180)));
+        qtClipPainter.end();
+        for (int y = 0; y < 70; ++y) for (int x = 0; x < 80; ++x) {
+            const auto pixelContext = context + QStringLiteral(" pixel=(%1,%2) Qt=%3 Pk=%4")
+                .arg(x).arg(y).arg(qtClip.pixel(x,y), 8, 16, QLatin1Char('0'))
+                .arg(pkClip.pixel(x,y), 8, 16, QLatin1Char('0'));
+            QVERIFY2(pkClip.pixel(x,y) == qtClip.pixel(x,y), qPrintable(pixelContext));
+        }
+    };
+    compare();
+    qtPainter.translate(5, 3); painter.translate(5, 3);
+    qtPainter.rotate(17); painter.rotate(17);
+    qtPainter.setClipRect(QRectF(1.25, 2.5, 23, 19));
+    painter.setClipRect(PkRectF(1.25, 2.5, 23, 19));
+    compare();
+    qtPainter.save(); painter.save();
+    qtPainter.scale(0.75, 1.5); painter.scale(0.75, 1.5);
+    compare();
+    QPainterPath qtPath; PkPainterPath path;
+    qtPath.moveTo(2, 3); path.moveTo(2, 3);
+    qtPath.cubicTo(30, -2, 5, 23, 30, 20); path.cubicTo(30, -2, 5, 23, 30, 20);
+    qtPath.lineTo(2, 24); path.lineTo(2, 24);
+    qtPath.closeSubpath(); path.closeSubpath();
+    qtPainter.setClipPath(qtPath, Qt::IntersectClip);
+    painter.setClipPath(path, Pk::IntersectClip);
+    compare();
+    qtPainter.restore(); painter.restore();
+    compare();
+    qtPainter.setClipPath(qtPath); painter.setClipPath(path);
+    qtPainter.rotate(-7); painter.rotate(-7);
+    compare();
+}
 
 void PkImageRasterBackendTest::matchesQtTexturePathPixels()
 {

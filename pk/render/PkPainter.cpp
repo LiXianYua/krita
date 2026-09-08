@@ -1,4 +1,57 @@
 #include "PkPainter.h"
+#include "PkClipRegion.h"
+#include <algorithm>
+#include <cmath>
+
+namespace {
+// The geometry owner's current bounds include control points. Painter clip
+// queries require the actual cubic extrema before mapping the conservative
+// box into device space (Qt 5.15 qpainterpath.cpp).
+PkRectF clipPathBounds(const PkPainterPath &path)
+{
+    if (!path.elementCount()) return PkRectF();
+    auto first = path.elementAt(0);
+    qreal minx = first.x, maxx = first.x, miny = first.y, maxy = first.y;
+    const auto include = [&](qreal x, qreal y) {
+        minx = std::min(minx, x); maxx = std::max(maxx, x);
+        miny = std::min(miny, y); maxy = std::max(maxy, y);
+    };
+    for (int i = 1; i < path.elementCount(); ++i) {
+        const auto e = path.elementAt(i);
+        if (e.type != PkPainterPath::CurveToElement) {
+            include(e.x, e.y);
+            continue;
+        }
+        const auto p = path.elementAt(i - 1), q = path.elementAt(i + 1), r = path.elementAt(i + 2);
+        include(r.x, r.y);
+        const auto at = [&](qreal t) {
+            if (t < 0 || t > 1) return;
+            const qreal u = 1 - t;
+            include(u*u*u*p.x + 3*t*u*u*e.x + 3*t*t*u*q.x + t*t*t*r.x,
+                    u*u*u*p.y + 3*t*u*u*e.y + 3*t*t*u*q.y + t*t*t*r.y);
+        };
+        const auto extrema = [&](qreal p0, qreal p1, qreal p2, qreal p3) {
+            const qreal a = 3 * (-p0 + 3*p1 - 3*p2 + p3);
+            const qreal b = 6 * (p0 - 2*p1 + p2);
+            const qreal c = 3 * (-p0 + p1);
+            if (std::abs(a) <= 1e-12) {
+                if (std::abs(b) > 1e-12) at(-c / b);
+            } else {
+                const qreal discriminant = b*b - 4*a*c;
+                if (discriminant >= 0) {
+                    const qreal root = std::sqrt(discriminant), reciprocal = 1 / (2*a);
+                    at((-b + root) * reciprocal);
+                    at((-b - root) * reciprocal);
+                }
+            }
+        };
+        extrema(p.x, e.x, q.x, r.x);
+        extrema(p.y, e.y, q.y, r.y);
+        i += 2;
+    }
+    return PkRectF(minx, miny, maxx - minx, maxy - miny);
+}
+}
 
 PkPainter::PkPainter(PkPainterBackend &b) : m_backend(b) {}
 
@@ -61,37 +114,82 @@ void PkPainter::setOpacity(qreal opacity) {
 qreal PkPainter::opacity() const { return m_state.opacity; }
 
 void PkPainter::setClipRect(const PkRectF &r,Pk::ClipOperation o) {
-    PkPainterPath path;
-    path.addRect(r);
-    if (o == Pk::NoClip) {
-        m_state.clipPath = PkPainterPath();
-        m_state.hasClip = false;
-    } else if (o == Pk::ReplaceClip || !m_state.hasClip) {
-        m_state.clipPath = path;
-        m_state.hasClip = true;
-    } else {
-        m_state.clipPath &= path;
-    }
-    m_backend.submit(PkSetClipRectCommand{r,o});
+    const auto requestedOperation = o;
+    if (!m_state.hasClip && o != Pk::NoClip) o = Pk::ReplaceClip;
+    if (o == Pk::NoClip || o == Pk::ReplaceClip) m_state.clips.clear();
+    m_state.clips.push_back({PkPainterPath(), r, m_state.transform, o, true});
+    m_state.hasClip = o != Pk::NoClip;
+    m_backend.submit(PkSetClipRectCommand{r,requestedOperation});
 }
 void PkPainter::setClipPath(const PkPainterPath &p,Pk::ClipOperation o) {
-    if (o == Pk::NoClip) {
-        m_state.clipPath = PkPainterPath();
-        m_state.hasClip = false;
-    } else if (o == Pk::ReplaceClip || !m_state.hasClip) {
-        m_state.clipPath = p;
-        m_state.hasClip = true;
-    } else {
-        m_state.clipPath &= p;
-    }
-    m_backend.submit(PkSetClipPathCommand{p,o});
+    const auto requestedOperation = o;
+    if (!m_state.hasClip && o != Pk::NoClip) o = Pk::ReplaceClip;
+    if (o == Pk::NoClip || o == Pk::ReplaceClip) m_state.clips.clear();
+    m_state.clips.push_back({p, PkRectF(), m_state.transform, o, false});
+    m_state.hasClip = o != Pk::NoClip;
+    m_backend.submit(PkSetClipPathCommand{p,requestedOperation});
 }
 bool PkPainter::hasClipping() const { return m_state.hasClip; }
 
+PkPainterPath PkPainter::clipPath() const
+{
+    PkPainterPath result;
+    if (m_state.clips.empty()) return result;
+    const auto inverse = m_state.transform.inverted();
+    if (m_state.clips.size() == 1 && !m_state.clips.front().rectangle) {
+        const auto &clip = m_state.clips.front();
+        return (clip.transform * inverse).map(clip.path);
+    }
+    PkRegion region;
+    bool lastWasNothing = true;
+    for (const auto &clip : m_state.clips) {
+        const auto matrix = clip.transform * inverse;
+        PkRegion next;
+        if (clip.rectangle && matrix.type() <= PkTransform::TxScale) {
+            const auto rect = clip.rect.toRect();
+            if (matrix.type() <= PkTransform::TxTranslate) {
+                next = PkRegion(rect).translated(int(std::round(matrix.dx())), int(std::round(matrix.dy())));
+            } else {
+                next = PkRegion(matrix.mapRect(PkRectF(rect)).toRect());
+            }
+        } else {
+            PkPainterPath path = clip.path;
+            if (clip.rectangle) path.addRect(PkRectF(clip.rect.toRect()));
+            next = PkRender::clipRegionFromPolygon(matrix.map(path).toFillPolygon(PkTransform()).toPolygon(), path.fillRule());
+        }
+        if (lastWasNothing) { region = next; lastWasNothing = false; }
+        else if (clip.operation == Pk::IntersectClip) {
+            // Intersect the two unions of rectangles pairwise. Sequentially
+            // intersecting with each disjoint right-hand rectangle erases
+            // valid coverage (the current geometry region operator does that).
+            PkRegion intersection;
+            for (const auto &left : region) for (const auto &right : next)
+                intersection |= left.intersected(right);
+            region = std::move(intersection);
+        }
+        else if (clip.operation == Pk::NoClip) { region = PkRegion(); lastWasNothing = true; }
+        else region = next;
+    }
+    // Non-overlapping region rectangles all have the same winding. Shared
+    // edges cancel during fill, preserving the region's exact covered area.
+    result.setFillRule(Pk::WindingFill);
+    for (const auto &rect : region) result.addRect(PkRectF(rect));
+    return result;
+}
+
 PkRectF PkPainter::clipBoundingRect() const {
-    // Qt 语义：当前裁剪区域与设备矩形的交。这里没有设备矩形概念，
-    // 退化为「裁剪路径的包围盒」；未设裁剪时返回空矩形（Qt 返回设备矩形）。
-    return m_state.hasClip ? m_state.clipPath.boundingRect() : PkRectF();
+    // Qt accumulates conservative bounds in device space, then maps that box
+    // back to the current logical coordinates. It does not intersect the
+    // device bounds and returns an empty rectangle when no clip was recorded.
+    PkRectF bounds;
+    bool first = true;
+    for (const auto &clip : m_state.clips) {
+        const auto rect = clip.transform.mapRect(clip.rectangle ? clip.rect : clipPathBounds(clip.path));
+        if (first) bounds = rect;
+        else if (clip.operation == Pk::IntersectClip) bounds &= rect;
+        first = false;
+    }
+    return m_state.transform.inverted().mapRect(bounds);
 }
 
 void PkPainter::drawLine(const PkLineF &l) { m_backend.submit(PkDrawLineCommand{l}); }
