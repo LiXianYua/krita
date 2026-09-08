@@ -13,7 +13,34 @@
 #include <MockShapes.h>
 
 
-#include <simpletest.h>
+#include <testflake.h>
+#include <resources/KoFontFamily.h>
+
+void TestShapePainting::testNonColorFontThumbnail()
+{
+    KoFontFamilyWWSRepresentation representation;
+    // Explicit sample and family make this independent of imported resource
+    // cache contents; updateThumbnail always exercises generateImage(false).
+    representation.fontFamilyName="DejaVu Sans";
+    representation.sampleStrings.insert("s_Latn","AaBbGg");
+    KoFontFamily font(representation);
+    QVERIFY(!font.colorBitmap());
+    QVERIFY(!font.colorClrV0());
+    font.updateThumbnail();
+    const PkImage first=font.image();
+    QCOMPARE(first.format(),PkImage::Format_Grayscale8);
+    QCOMPARE(first.width(),256);
+    QCOMPARE(first.height(),256);
+    QCOMPARE(first.constScanLine(0)[0],static_cast<unsigned char>(255));
+    bool ink=false;
+    for (int y=0;y<first.height();++y) for (int x=0;x<first.width();++x)
+        ink=ink || first.constScanLine(y)[x]!=first.constScanLine(0)[0];
+    QVERIFY(ink);
+    font.updateThumbnail();
+    const PkImage second=font.image();
+    for (int y=0;y<first.height();++y) for (int x=0;x<first.width();++x)
+        QCOMPARE(first.constScanLine(y)[x],second.constScanLine(y)[x]);
+}
 
 void TestShapePainting::testPaintShape()
 {
@@ -302,6 +329,4 @@ void TestShapePainting::testGroupUngroup()
     }
 }
 
-// These tests exercise mock-shape dispatch/order, not resource import. Match
-// the other shape-manager fixtures without loading every resource thumbnail.
-SIMPLE_TEST_MAIN(TestShapePainting)
+KISTEST_MAIN(TestShapePainting)

@@ -257,6 +257,20 @@ unsigned multiply8(unsigned value, unsigned factor)
     return (product + (product >> 8)) >> 8;
 }
 
+bool uses32BitComposition(PkImage::Format format)
+{
+    // Qt's generic Grayscale8 destination dispatch uses ARGB32PM spans.
+    return format==PkImage::Format_ARGB32_Premultiplied || format==PkImage::Format_Grayscale8;
+}
+
+void storeComposedPixel(PkImage &image, int x, int y, uint32_t pixel)
+{
+    // Qt destStore selects storeFromRGB32 for an opaque destination, including
+    // Grayscale8. Its qGray store consumes the composed channels directly,
+    // even when CompositionMode_Source produced a translucent PM pixel.
+    image.setPixel(x,y,pixel);
+}
+
 uint32_t composeSolid(uint32_t destination, uint32_t premultipliedSource, unsigned coverage,
                       Pk::CompositionMode mode, bool premultipliedDestination = false, bool solid = true)
 {
@@ -721,8 +735,8 @@ void PkImageRasterBackend::fillPath(const PkPainterPath &path, const PkBrush &br
 {
     if (brush.style() == Pk::NoBrush) return;
     if (m_destination.format() != PkImage::Format_ARGB32 &&
-        m_destination.format() != PkImage::Format_ARGB32_Premultiplied) {
-        throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
+        !uses32BitComposition(m_destination.format())) {
+        throw std::invalid_argument("PkImageRasterBackend requires ARGB32 or Grayscale8 destination");
     }
     auto mask = coverage(path);
     if (rectangle && m_state.transform.type() <= PkTransform::TxScale) {
@@ -862,9 +876,9 @@ void PkImageRasterBackend::fillMask(const PkPainterPath &path, const PkBrush &br
                         }
                     }
                     const auto sample = valid ? ramp[index] : Rgba64Pixel{};
-                    if (m_destination.format() == PkImage::Format_ARGB32_Premultiplied) {
+                    if (uses32BitComposition(m_destination.format())) {
                         const uint32_t source = argb(to8Bit(sample.a),to8Bit(sample.r),to8Bit(sample.g),to8Bit(sample.b));
-                        m_destination.setPixel(start+i,y,composeSolid(m_destination.pixel(start+i,y),source,sampleAmount,m_state.mode,true,false));
+                        storeComposedPixel(m_destination,start+i,y,composeSolid(m_destination.pixel(start+i,y),source,sampleAmount,m_state.mode,true,false));
                     } else {
                         m_destination.setPixel(start + i, y,
                             compose(destinations[i], sample, sampleAmount, i >= count - count % 4, m_state.mode));
@@ -873,9 +887,9 @@ void PkImageRasterBackend::fillMask(const PkPainterPath &path, const PkBrush &br
                 continue;
             }
             for (int i = 0; i < count; ++i) {
-                m_destination.setPixel(start + i, y,
+                storeComposedPixel(m_destination,start + i, y,
                     composeSolid(m_destination.pixel(start + i, y), source, amount, m_state.mode,
-                                 m_destination.format() == PkImage::Format_ARGB32_Premultiplied));
+                                 uses32BitComposition(m_destination.format())));
             }
         }
     }
@@ -888,7 +902,7 @@ void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pe
     const bool noShear = scaleForTransform(m_state.transform, &scale);
     const double width = pen.widthF() * (pen.isCosmetic() ? 1 : scale);
     if (width <= 1 && (pen.isCosmetic() || noShear || !(m_state.hints & 1u))) {
-        if (m_destination.format() != PkImage::Format_ARGB32 && m_destination.format() != PkImage::Format_ARGB32_Premultiplied) {
+        if (m_destination.format() != PkImage::Format_ARGB32 && !uses32BitComposition(m_destination.format())) {
             throw std::logic_error("PkImageRasterBackend cosmetic brush/image format unsupported");
         }
         if (pen.brush().style() != Pk::SolidPattern) {
@@ -941,10 +955,10 @@ void PkImageRasterBackend::strokePath(const PkPainterPath &path, const PkPen &pe
                         const auto index = static_cast<std::size_t>(span.y) * backend.m_destination.width() + x;
                         amount = (amount * backend.m_state.clip[index] + 127) / 255;
                     }
-                    if (amount) backend.m_destination.setPixel(x, span.y,
+                    if (amount) storeComposedPixel(backend.m_destination,x, span.y,
                         composeSolid(backend.m_destination.pixel(x, span.y), context.source,
                                      amount, backend.m_state.mode,
-                                     backend.m_destination.format() == PkImage::Format_ARGB32_Premultiplied));
+                                     uses32BitComposition(backend.m_destination.format())));
                 }
             }
         };
@@ -1055,8 +1069,8 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
                                       const PkTransform &placement, const PkRectF &source, bool tiled)
 {
     if (image.isNull()) return;
-    if (m_destination.format() != PkImage::Format_ARGB32 && m_destination.format() != PkImage::Format_ARGB32_Premultiplied) {
-        throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
+    if (m_destination.format() != PkImage::Format_ARGB32 && !uses32BitComposition(m_destination.format())) {
+        throw std::invalid_argument("PkImageRasterBackend requires ARGB32 or Grayscale8 destination");
     }
     switch (image.format()) {
     case PkImage::Format_RGB32:
@@ -1095,14 +1109,14 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
             unsigned gray=reinterpret_cast<const std::uint16_t*>(image.constScanLine(y))[x];
             // Qt fetches full gray16 into RGBA64, but rounds through div_257
             // before interpolation when the destination uses the 32-bit path.
-            if (m_destination.format()==PkImage::Format_ARGB32_Premultiplied)
+            if (uses32BitComposition(m_destination.format()))
                 gray=to8Bit(gray)*257u;
             return Rgba64Pixel {65535,gray,gray,gray};
         }
         if (image.depth()==64) {
             const auto *rgba=reinterpret_cast<const std::uint16_t*>(image.constScanLine(y))+4*x;
             const unsigned a=image.format()==PkImage::Format_RGBX64?65535:rgba[3];
-            if (image.format()==PkImage::Format_RGBA64 && m_destination.format()==PkImage::Format_ARGB32_Premultiplied &&
+            if (image.format()==PkImage::Format_RGBA64 && uses32BitComposition(m_destination.format()) &&
                 ((!smooth && (placement*m_state.transform).type()>PkTransform::TxTranslate) ||
                  (smooth && (stepY!=0 || std::abs(stepX)>131072)))) {
                 const unsigned alpha8=to8Bit(a);
@@ -1121,7 +1135,7 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
             return Rgba64Pixel {alpha(pixel) * 257u, red(pixel) * 257u,
                                 green(pixel) * 257u, blue(pixel) * 257u};
         }
-        if (m_destination.format() == PkImage::Format_ARGB32_Premultiplied) {
+        if (uses32BitComposition(m_destination.format())) {
             const unsigned a=alpha(pixel);
             return Rgba64Pixel {a*257u,multiply8(red(pixel),a)*257u,multiply8(green(pixel),a)*257u,multiply8(blue(pixel),a)*257u};
         }
@@ -1130,7 +1144,7 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
     const auto interpolate = [&](const Rgba64Pixel &a, const Rgba64Pixel &b, unsigned amount) {
         if (!amount) return a;
         const auto mix = [&](unsigned x, unsigned y) {
-            if (m_destination.format()==PkImage::Format_ARGB32_Premultiplied) {
+            if (uses32BitComposition(m_destination.format())) {
                 // The 32-bit fetcher truncates each separable pass to eight
                 // bits, with an eight-bit sample fraction (not RGBA64 lerp).
                 const unsigned fraction=amount>>8;
@@ -1161,7 +1175,7 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
             int fx = int(p.x() * 65536) - (smooth ? 32768 : 0);
             int fy = int(p.y() * 65536) - (smooth ? 32768 : 0);
             int lowPrecisionStart=0,lowPrecisionEnd=0;
-            if (smooth && !tiled && m_destination.format()==PkImage::Format_ARGB32_Premultiplied &&
+            if (smooth && !tiled && uses32BitComposition(m_destination.format()) &&
                 (image.format()==PkImage::Format_ARGB32_Premultiplied || image.format()==PkImage::Format_RGB32) &&
                 stepY!=0 && std::abs(inverse.m11())>=.125 && std::abs(inverse.m22())>=.125) {
                 // Qt's PM fast-rotation SIMD interior uses rounded four-bit
@@ -1205,13 +1219,13 @@ void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<u
                                              interpolate(right, bottomRight, fy & 65535), fx & 65535);
                     }
                 }
-                if (m_destination.format() == PkImage::Format_ARGB32_Premultiplied) {
+                if (uses32BitComposition(m_destination.format())) {
                     const uint32_t pixel=argb(to8Bit(source.a),to8Bit(source.r),to8Bit(source.g),to8Bit(source.b));
                     const auto mode=m_state.mode==Pk::CompositionMode_SourceOver &&
                         image.format()==PkImage::Format_RGB32 && !smooth && !m_state.hasClip &&
                         !(m_state.hints&1u) && (placement*m_state.transform).type()<=PkTransform::TxScale?
                         Pk::CompositionMode_Source:m_state.mode;
-                    m_destination.setPixel(start+i,y,composeSolid(m_destination.pixel(start+i,y),pixel,
+                    storeComposedPixel(m_destination,start+i,y,composeSolid(m_destination.pixel(start+i,y),pixel,
                         (amountAt(start+i)*opacity)>>8,mode,true,false));
                 } else {
                     m_destination.setPixel(start + i, y,

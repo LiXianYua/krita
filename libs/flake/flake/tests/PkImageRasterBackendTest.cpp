@@ -51,11 +51,60 @@ private Q_SLOTS:
     void emptyAndDisjointMasksAreNoOps();
     void paintsDecodedGrayscale16();
     void paintsPatternBackgroundsAndThinGradientStrokes();
+    void paintsGrayscaleDestination();
     void gradientCopiesKeepIndependentValues();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::paintsGrayscaleDestination()
+{
+    for (bool aa : {false,true}) for (bool smooth : {false,true})
+    for (auto mode : {Pk::CompositionMode_SourceOver,Pk::CompositionMode_Source,Pk::CompositionMode_Plus})
+    for (int kind=0;kind<10;++kind) {
+        QImage expected(41,35,QImage::Format_Grayscale8);
+        PkImage actual(41,35,PkImage::Format_Grayscale8);
+        // Odd width exercises padded stride; initialize native storage directly.
+        expected.fill(71); actual.fill(0xff474747);
+        QPainter qt(&expected); PkImageRasterBackend backend(actual); PkPainter pk(backend);
+        qt.setCompositionMode(QPainter::CompositionMode(int(mode))); pk.setCompositionMode(mode);
+        qt.setOpacity(.7); pk.setOpacity(.7);
+        qt.setRenderHint(QPainter::Antialiasing,aa); pk.setRenderHint(PkPainter::Antialiasing,aa);
+        qt.setRenderHint(QPainter::SmoothPixmapTransform,smooth); pk.setRenderHint(PkPainter::SmoothPixmapTransform,smooth);
+        qt.setClipRect(QRectF(2,3,35,29)); pk.setClipRect(PkRectF(2,3,35,29));
+        qt.translate(4,3); pk.translate(4,3); qt.rotate(13); pk.rotate(13);
+        QPainterPath qp; PkPainterPath pp;
+        qp.addRect(QRectF(2,3,27,23)); pp.addRect(PkRectF(2,3,27,23));
+        QLinearGradient qg(0,0,30,20); auto pg=PkGradient::linear(PkPointF(),PkPointF(30,20));
+        qg.setColorAt(0,QColor(170,50,130,180)); pg.setColorAt(0,PkColor(170,50,130,180));
+        qg.setColorAt(1,QColor(20,180,90,100)); pg.setColorAt(1,PkColor(20,180,90,100));
+        for (int draw=0;draw<3;++draw) {
+            if (kind<5) {
+                QBrush qb=kind==1||kind==4?QBrush(qg):QBrush(QColor(170,50,130,180),kind==2?Qt::DiagCrossPattern:Qt::SolidPattern);
+                PkBrush pb=kind==1||kind==4?PkBrush(pg):PkBrush(PkColor(170,50,130,180));
+                if (kind==2) pb.setStyle(Pk::DiagCrossPattern);
+                if (kind>=3) { qt.strokePath(qp,QPen(qb,1)); pk.strokePath(pp,PkPen(pb,1)); }
+                else { qt.fillPath(qp,qb); pk.fillPath(pp,pb); }
+            } else {
+                const auto qformat=kind==5?QImage::Format_ARGB32:kind==6?QImage::Format_ARGB32_Premultiplied:
+                    kind==7?QImage::Format_RGBA64:kind==8?QImage::Format_Grayscale16:QImage::Format_RGB32;
+                QImage source(9,7,qformat);
+                PkImage native(9,7,PkImage::Format(int(qformat)));
+                for (int y=0;y<7;++y) for (int x=0;x<9;++x)
+                    source.setPixelColor(x,y,QColor::fromRgba64((x*7919+y*1471)%65536,(x*1237+y*7979)%65536,
+                        (x*4793+y*4093)%65536,3000+x*6001+y*1009));
+                for (int y=0;y<7;++y) std::memcpy(native.scanLine(y),source.constScanLine(y),source.bytesPerLine());
+                qt.drawImage(QRectF(1.2,2.4,23,19),source); pk.drawImage(PkRectF(1.2,2.4,23,19),native);
+            }
+            qt.translate(1,2); pk.translate(1,2);
+        }
+        qt.end();
+        for (int y=0;y<35;++y) for (int x=0;x<41;++x)
+            QVERIFY2(actual.constScanLine(y)[x]==expected.constScanLine(y)[x],qPrintable(QString("aa=%1 smooth=%2 mode=%3 kind=%4 x=%5 y=%6 Qt=%7 native=%8")
+                .arg(aa).arg(smooth).arg(int(mode)).arg(kind).arg(x).arg(y).arg(expected.constScanLine(y)[x]).arg(actual.constScanLine(y)[x])));
+    }
+}
 
 void PkImageRasterBackendTest::paintsPatternBackgroundsAndThinGradientStrokes()
 {
@@ -165,9 +214,9 @@ void PkImageRasterBackendTest::emptyAndDisjointMasksAreNoOps()
 
 void PkImageRasterBackendTest::preservesManagerDispatchAndMaskBuffers()
 {
-    for (bool masked : {false,true}) {
-        QImage expected(41,33,QImage::Format_ARGB32); expected.fill(0);
-        PkImage actual(41,33,PkImage::Format_ARGB32); actual.fill(0);
+    for (bool masked : {false,true}) for (bool gray : {false,true}) {
+        QImage expected(41,33,gray?QImage::Format_Grayscale8:QImage::Format_ARGB32); expected.fill(0);
+        PkImage actual(41,33,gray?PkImage::Format_Grayscale8:PkImage::Format_ARGB32); actual.fill(0);
         QPainter qt(&expected); PkImageRasterBackend backend(actual); PkPainter pk(backend);
         pk.setPen(Pk::NoPen);
         qt.translate(5,4); pk.translate(5,4);

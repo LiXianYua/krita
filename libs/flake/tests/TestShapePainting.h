@@ -16,6 +16,7 @@ private Q_SLOTS:
     void testPaintHiddenShape();
     void testPaintOrder();
     void testGroupUngroup();
+    void testNonColorFontThumbnail();
 };
 
 #endif

@@ -43,7 +43,7 @@ PkImage generateImage(const PkString &sample, const PkString &fontFamily, bool i
     PkImage img(256,
                256,
                isColor? PkImage::Format_ARGB32: PkImage::Format_Grayscale8);
-    img.fill(Qt::white);
+    img.fill(Pk::white);
 
     KoShapePainter painter;
     painter.setShapes({shape.data()});
