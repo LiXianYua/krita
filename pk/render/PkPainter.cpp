@@ -109,6 +109,7 @@ void PkPainter::fillRect(const PkRectF &r) { fillRect(r, m_state.brush); }
 void PkPainter::fillRect(const PkRectF &r,const PkBrush &b) { m_backend.submit(PkFillRectCommand{r,b}); }
 void PkPainter::fillPath(const PkPainterPath &p) { fillPath(p, m_state.brush); }
 void PkPainter::fillPath(const PkPainterPath &p,const PkBrush &b) { m_backend.submit(PkFillPathCommand{p,b}); }
+void PkPainter::fillTexturePath(const PkPainterPath &p,const PkImage &i,const PkTransform &t) { m_backend.submit(PkFillTexturePathCommand{p,i,t}); }
 
 void PkPainter::drawImage(const PkRectF &r,const PkImage &i) { m_backend.submit(PkDrawImageCommand{r,i}); }
 void PkPainter::drawPixmap(const PkPointF &pos,const PkImage &img) {

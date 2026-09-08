@@ -466,6 +466,12 @@ void PkImageRasterBackend::submit(const PkPaintCommand &command)
         fillPath(fill->path, fill->brush);
         return;
     }
+    if (const auto *fill = std::get_if<PkFillTexturePathCommand>(&command)) {
+        PkTransform placement = fill->transform;
+        placement.scale(1.0 / fill->image.devicePixelRatio(), 1.0 / fill->image.devicePixelRatio());
+        renderImage(fill->image, coverage(fill->path), placement, PkRectF(fill->image.rect()), true);
+        return;
+    }
     if (const auto *fill = std::get_if<PkFillRectCommand>(&command)) {
         PkPainterPath path;
         path.addRect(fill->rect);
@@ -931,10 +937,24 @@ void PkImageRasterBackend::drawImage(const PkDrawImageCommand &command)
 void PkImageRasterBackend::drawTransformedImage(const PkDrawImageCommand &command,
                                                const PkRectF &sourceRect, bool tiled)
 {
+    if (command.image.isNull() || command.target.isEmpty()) return;
+    const PkRectF source = sourceRect.isNull() ? PkRectF(0, 0, command.image.width(), command.image.height()) : sourceRect;
+    PkTransform target;
+    target.translate(command.target.x(), command.target.y());
+    if (!tiled) target.scale(command.target.width() / source.width(), command.target.height() / source.height());
+    target.translate(-source.x(), -source.y());
+    if (tiled) target.scale(1.0 / command.image.devicePixelRatio(), 1.0 / command.image.devicePixelRatio());
+    renderImage(command.image, rectangleCoverage(command.target), target, source, tiled);
+}
+
+void PkImageRasterBackend::renderImage(const PkImage &image, const std::vector<unsigned char> &mask,
+                                      const PkTransform &placement, const PkRectF &source, bool tiled)
+{
+    if (image.isNull()) return;
     if (m_destination.format() != PkImage::Format_ARGB32) {
         throw std::invalid_argument("PkImageRasterBackend requires ARGB32 destination");
     }
-    switch (command.image.format()) {
+    switch (image.format()) {
     case PkImage::Format_ARGB32:
     case PkImage::Format_ARGB32_Premultiplied:
     case PkImage::Format_Grayscale8:
@@ -943,38 +963,30 @@ void PkImageRasterBackend::drawTransformedImage(const PkDrawImageCommand &comman
     default:
         throw std::invalid_argument("PkImageRasterBackend unsupported image source format");
     }
-    if (command.image.isNull() || command.target.isEmpty()) return;
-    if (!m_state.transform.isAffine()) throw std::logic_error("PkImageRasterBackend projective image unsupported");
-    auto mask = rectangleCoverage(command.target);
-    const PkRectF source = sourceRect.isNull() ? PkRectF(0, 0, command.image.width(), command.image.height()) : sourceRect;
-    PkTransform target;
-    target.translate(command.target.x(), command.target.y());
-    if (!tiled) target.scale(command.target.width() / source.width(), command.target.height() / source.height());
-    target.translate(-source.x(), -source.y());
-    if (tiled) target.scale(1.0 / command.image.devicePixelRatio(), 1.0 / command.image.devicePixelRatio());
+    if (!(placement * m_state.transform).isAffine()) throw std::logic_error("PkImageRasterBackend projective image unsupported");
     const auto inverse = (PkTransform::fromTranslate(1.0 / 65536, 1.0 / 65536) *
-                          target * m_state.transform).inverted();
+                          placement * m_state.transform).inverted();
     const bool smooth = m_state.hints & 4u;
     const int stepX = int(inverse.m11() * 65536), stepY = int(inverse.m12() * 65536);
     const unsigned opacity = unsigned(m_state.opacity * 256);
     const int left = tiled ? 0 : std::max(0, int(std::floor(source.left())));
     const int top = tiled ? 0 : std::max(0, int(std::floor(source.top())));
-    const int right = tiled ? command.image.width() - 1 : std::min(command.image.width() - 1, int(std::ceil(source.right())) - 1);
-    const int bottom = tiled ? command.image.height() - 1 : std::min(command.image.height() - 1, int(std::ceil(source.bottom())) - 1);
+    const int right = tiled ? image.width() - 1 : std::min(image.width() - 1, int(std::ceil(source.right())) - 1);
+    const int bottom = tiled ? image.height() - 1 : std::min(image.height() - 1, int(std::ceil(source.bottom())) - 1);
     if (right < left || bottom < top) return;
     const auto fetch = [&](int x, int y) {
         if (tiled) {
-            x %= command.image.width(); if (x < 0) x += command.image.width();
-            y %= command.image.height(); if (y < 0) y += command.image.height();
+            x %= image.width(); if (x < 0) x += image.width();
+            y %= image.height(); if (y < 0) y += image.height();
         } else {
             x = std::clamp(x, left, right);
             y = std::clamp(y, top, bottom);
         }
-        const auto pixel = command.image.pixel(x, y);
+        const auto pixel = image.pixel(x, y);
         // Premultiplied image bytes are already associated with alpha. Qt's
         // RGBA64 fetch expands them directly; a second multiplication loses
         // colored-glyph energy, especially along translucent edges.
-        if (command.image.format() == PkImage::Format_ARGB32_Premultiplied) {
+        if (image.format() == PkImage::Format_ARGB32_Premultiplied) {
             return Rgba64Pixel {alpha(pixel) * 257u, red(pixel) * 257u,
                                 green(pixel) * 257u, blue(pixel) * 257u};
         }

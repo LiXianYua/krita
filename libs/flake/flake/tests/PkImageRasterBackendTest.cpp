@@ -31,10 +31,60 @@ private Q_SLOTS:
     void matchesQtGradientPixels();
     void matchesQtTransformedImagePixels();
     void matchesQtPatternImagePixels();
+    void matchesQtTexturePathPixels();
     void clipsToDestinationBounds();
     void rejectsUnsupportedOperations();
     void reportsDestinationDevicePixelRatio();
 };
+
+void PkImageRasterBackendTest::matchesQtTexturePathPixels()
+{
+    // Repeated image fill must follow the brush transform, not the outline's
+    // bounding rectangle; bilinear taps must wrap across every tile seam.
+    for (bool smooth : {false, true}) for (bool antialias : {false, true}) {
+        QImage qtImage(39, 31, QImage::Format_ARGB32);
+        PkImage pkImage(39, 31, PkImage::Format_ARGB32);
+        qtImage.fill(0x80603040u); pkImage.fill(0x80603040u);
+        QImage qtSource(7, 6, QImage::Format_ARGB32);
+        PkImage pkSource(7, 6, PkImage::Format_ARGB32);
+        std::mt19937 random(3827);
+        for (int y = 0; y < 6; ++y) for (int x = 0; x < 7; ++x) {
+            const uint32_t pixel = random();
+            qtSource.setPixel(x, y, pixel); pkSource.setPixel(x, y, pixel);
+        }
+        QPainter qtPainter(&qtImage);
+        PkImageRasterBackend backend(pkImage);
+        PkPainter painter(backend);
+        qtPainter.setRenderHint(QPainter::Antialiasing, antialias);
+        painter.setRenderHint(PkPainter::Antialiasing, antialias);
+        qtPainter.setRenderHint(QPainter::SmoothPixmapTransform, smooth);
+        painter.setRenderHint(PkPainter::SmoothPixmapTransform, smooth);
+        qtPainter.translate(4, 2); painter.translate(4, 2);
+        qtPainter.rotate(13); painter.rotate(13);
+        qtPainter.setOpacity(0.9); painter.setOpacity(0.9);
+        QPainterPath qtPath;
+        PkPainterPath path;
+        qtPath.moveTo(2, 3); path.moveTo(2, 3);
+        qtPath.cubicTo(30, -2, 5, 23, 30, 20); path.cubicTo(30, -2, 5, 23, 30, 20);
+        qtPath.lineTo(2, 24); path.lineTo(2, 24);
+        qtPath.closeSubpath(); path.closeSubpath();
+        QTransform qtTransform; PkTransform transform;
+        qtTransform.translate(-2.25, 3.5); transform.translate(-2.25, 3.5);
+        qtTransform.rotate(7); transform.rotate(7);
+        qtTransform.scale(1.25, 0.8); transform.scale(1.25, 0.8);
+        QBrush qtBrush(qtSource); qtBrush.setTransform(qtTransform);
+        qtPainter.fillPath(qtPath, qtBrush);
+        painter.fillTexturePath(path, pkSource, transform);
+        qtPainter.end();
+        for (int y = 0; y < 31; ++y) for (int x = 0; x < 39; ++x) {
+            const QString context = QStringLiteral("smooth=%1 aa=%2 x=%3 y=%4 Qt=%5 Pk=%6")
+                .arg(smooth).arg(antialias).arg(x).arg(y)
+                .arg(qtImage.pixel(x, y), 8, 16, QLatin1Char('0'))
+                .arg(pkImage.pixel(x, y), 8, 16, QLatin1Char('0'));
+            QVERIFY2(pkImage.pixel(x, y) == qtImage.pixel(x, y), qPrintable(context));
+        }
+    }
+}
 
 void PkImageRasterBackendTest::matchesQtPatternImagePixels()
 {

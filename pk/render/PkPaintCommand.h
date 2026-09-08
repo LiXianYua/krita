@@ -35,6 +35,9 @@ struct PkSetOpacityCommand { qreal opacity; };
 struct PkSetClipPathCommand { PkPainterPath path; Pk::ClipOperation operation; };
 struct PkFillRectCommand { PkRectF rect; PkBrush brush; };
 struct PkFillPathCommand { PkPainterPath path; PkBrush brush; };
+// Image-backed fill used by the baked vector-pattern renderer. Own the image
+// snapshot in the render command, without adding image ownership to geometry.
+struct PkFillTexturePathCommand { PkPainterPath path; PkImage image; PkTransform transform; };
 struct PkDrawPointCommand { PkPointF point; };
 struct PkStrokePathCommand { PkPainterPath path; PkPen pen; };
 struct PkDrawPixmapCommand { PkRectF target; PkImage image; PkRectF source; };
@@ -43,7 +46,7 @@ struct PkSetFontCommand { PkFont font; };
 struct PkDrawTextAtPointCommand { PkPointF position; PkString text; };
 struct PkDrawTextInRectCommand { PkRectF rect; PkString text; };
 
-using PkPaintCommand = std::variant<PkSaveCommand,PkRestoreCommand,PkSetPenCommand,PkSetBrushCommand,PkSetTransformCommand,PkSetRenderHintCommand,PkSetClipRectCommand,PkDrawLineCommand,PkDrawRectCommand,PkDrawEllipseCommand,PkDrawArcCommand,PkDrawPathCommand,PkDrawPolygonCommand,PkDrawImageCommand,PkSetCompositionModeCommand,PkSetOpacityCommand,PkSetClipPathCommand,PkFillRectCommand,PkFillPathCommand,PkDrawPointCommand,PkStrokePathCommand,PkDrawPixmapCommand,PkDrawTiledPixmapCommand,PkSetFontCommand,PkDrawTextAtPointCommand,PkDrawTextInRectCommand>;
+using PkPaintCommand = std::variant<PkSaveCommand,PkRestoreCommand,PkSetPenCommand,PkSetBrushCommand,PkSetTransformCommand,PkSetRenderHintCommand,PkSetClipRectCommand,PkDrawLineCommand,PkDrawRectCommand,PkDrawEllipseCommand,PkDrawArcCommand,PkDrawPathCommand,PkDrawPolygonCommand,PkDrawImageCommand,PkSetCompositionModeCommand,PkSetOpacityCommand,PkSetClipPathCommand,PkFillRectCommand,PkFillPathCommand,PkFillTexturePathCommand,PkDrawPointCommand,PkStrokePathCommand,PkDrawPixmapCommand,PkDrawTiledPixmapCommand,PkSetFontCommand,PkDrawTextAtPointCommand,PkDrawTextInRectCommand>;
 class PkPainterBackend {
 public:
     virtual ~PkPainterBackend() = default;

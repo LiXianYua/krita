@@ -60,6 +60,7 @@ public:
     void strokePath(const PkPainterPath &, const PkPen &);
     void fillRect(const PkRectF &); void fillRect(const PkRectF &, const PkBrush &);
     void fillPath(const PkPainterPath &); void fillPath(const PkPainterPath &, const PkBrush &);
+    void fillTexturePath(const PkPainterPath &, const PkImage &, const PkTransform &);
     void drawImage(const PkRectF &, const PkImage &);
     void drawPixmap(const PkPointF &, const PkImage &);
     void drawPixmap(const PkRectF &target, const PkImage &, const PkRectF &source = PkRectF());
