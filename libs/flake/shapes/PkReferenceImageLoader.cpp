@@ -7,6 +7,8 @@
 #include <PkImageFileDecoder.h>
 #include <exiv2/exiv2.hpp>
 #include <lcms2.h>
+#include <png.h>
+#include <cstdio>
 #include <array>
 #include <vector>
 #include <memory>
@@ -40,13 +42,14 @@ struct Matrix {
     }
 };
 Vector chromaticity(double x, double y) { return {{float(x/y),1,float((1-x-y)/y)}}; }
-Matrix fromPrimaries(double rx,double ry,double gx,double gy,double bx,double by,bool d50=false)
+Matrix fromPrimaries(double rx,double ry,double gx,double gy,double bx,double by,bool d50=false,
+                     double wx=.31271,double wy=.32902)
 {
     Matrix xyz {chromaticity(rx,ry),chromaticity(gx,gy),chromaticity(bx,by)};
-    const auto white=d50?chromaticity(.34567,.35850):chromaticity(.31271,.32902);
+    const auto white=d50?chromaticity(.34567,.35850):chromaticity(wx,wy);
     const auto scale=xyz.inverted().map(white);
     xyz=xyz*Matrix{{{scale[0],0,0}},{{0,scale[1],0}},{{0,0,scale[2]}}};
-    if (d50) return xyz;
+    if (d50 || white==chromaticity(.34567,.35850)) return xyz;
     const Matrix brad {{{.8951f,-.7502f,.0389f}},{{.2664f,1.7135f,-.0685f}},{{-.1614f,.0367f,1.0296f}}};
     const Matrix inverse {{{.9869929f,.4323053f,-.0085287f}},{{-.1470543f,.5183603f,.0400428f}},{{.1599627f,.0492912f,.9684867f}}};
     const auto from=brad.map(white),to=brad.map(chromaticity(.34567,.35850));
@@ -78,7 +81,7 @@ float inputCurve(cmsToneCurve *curve, float x)
     }
     return cmsEvalToneCurveFloat(curve, x);
 }
-bool normalizeRgb(PkImage &image, cmsHPROFILE profile)
+bool normalizeRgb(PkImage &image, cmsHPROFILE profile, const Matrix *explicitPrimaries=nullptr)
 {
     const auto *r=static_cast<const cmsCIEXYZ*>(cmsReadTag(profile,cmsSigRedColorantTag));
     const auto *g=static_cast<const cmsCIEXYZ*>(cmsReadTag(profile,cmsSigGreenColorantTag));
@@ -87,12 +90,9 @@ bool normalizeRgb(PkImage &image, cmsHPROFILE profile)
         static_cast<cmsToneCurve*>(cmsReadTag(profile,cmsSigGreenTRCTag)), static_cast<cmsToneCurve*>(cmsReadTag(profile,cmsSigBlueTRCTag))};
     if (!r || !g || !b || !curves[0] || !curves[1] || !curves[2]) return false;
     Matrix source {{{float(r->X),float(r->Y),float(r->Z)}},{{float(g->X),float(g->Y),float(g->Z)}},{{float(b->X),float(b->Y),float(b->Z)}}};
+    if (explicitPrimaries) source=*explicitPrimaries;
     for (const auto &known : {srgb,adobe,p3,prophoto}) if (source.matches(known)) { source=known; break; }
     const Matrix transform = source.matches(srgb) ? Matrix{{{1,0,0}},{{0,1,0}},{{0,0,1}}} : srgb.inverted()*source;
-    bool sameTrc = true;
-    for (auto *curve : curves) for (float x : {.25f,.5f,.75f})
-        sameTrc &= std::abs(inputCurve(curve,x)-std::pow((1.f/1.055f)*x+.055f/1.055f,2.4f)) < 1.f/65536;
-    if (source.matches(srgb) && sameTrc) return true;
     std::array<std::array<float,4081>,3> toLinear;
     for (int c=0;c<3;++c) for (int i=0;i<=4080;++i)
         toLinear[c][i] = std::lround(inputCurve(curves[c], float(i/4080.0))*65280) * (1.f/65280);
@@ -163,6 +163,52 @@ bool normalizeRgb(PkImage &image, cmsHPROFILE profile)
     image=normalized;
     return true;
 }
+
+void normalizePngColorimetry(PkImage &image,const std::string &path)
+{
+    // Qt PNG metadata precedence: valid ICC > sRGB > gAMA with optional cHRM.
+    // The ICC case was handled by the caller. Read the PNG header with libpng
+    // so CRCs, invalid chunks and sRGB validity follow the decoder's rules.
+    std::unique_ptr<FILE,decltype(&std::fclose)> file(std::fopen(path.c_str(),"rb"),std::fclose);
+    unsigned char signature[8];
+    if (!file || std::fread(signature,1,8,file.get())!=8 || png_sig_cmp(signature,0,8)) return;
+    png_structp png=png_create_read_struct(PNG_LIBPNG_VER_STRING,nullptr,nullptr,nullptr);
+    if (!png) return;
+    png_infop info=png_create_info_struct(png);
+    if (!info) { png_destroy_read_struct(&png,nullptr,nullptr); return; }
+    if (setjmp(png_jmpbuf(png))) { png_destroy_read_struct(&png,&info,nullptr); return; }
+    png_init_io(png,file.get()); png_set_sig_bytes(png,8); png_read_info(png,info);
+    int intent=-1;
+    double gamma=0,wx=.31271,wy=.32902,rx=.64,ry=.33,gx=.30,gy=.60,bx=.15,by=.06;
+    const bool isSrgb=png_get_sRGB(png,info,&intent) && intent>=0 && intent<=3;
+    const bool hasGamma=png_get_gAMA(png,info,&gamma) && gamma>0;
+    const bool hasChromaticity=png_get_cHRM(png,info,&wx,&wy,&rx,&ry,&gx,&gy,&bx,&by);
+    png_destroy_read_struct(&png,&info,nullptr);
+    if (isSrgb) {
+        std::unique_ptr<void,decltype(&cmsCloseProfile)> profile(cmsCreate_sRGBProfile(),cmsCloseProfile);
+        if (profile) normalizeRgb(image,profile.get(),&srgb);
+        return;
+    }
+    if (!hasGamma) return;
+    const auto valid=[](double x,double y) {return x>=0 && x<=1 && y>0 && y<=1 && x+y<=1;};
+    if (!hasChromaticity || !valid(wx,wy) || !valid(rx,ry) || !valid(gx,gy) || !valid(bx,by)) {
+        wx=.31271; wy=.32902; rx=.64; ry=.33; gx=.30; gy=.60; bx=.15; by=.06;
+    }
+    const cmsCIExyY white {wx,wy,1};
+    const cmsCIExyYTRIPLE primaries {{rx,ry,1},{gx,gy,1},{bx,by,1}};
+    // Qt stores fileGamma as float, then builds a Gamma transfer function.
+    std::unique_ptr<cmsToneCurve,decltype(&cmsFreeToneCurve)> curve(
+        cmsBuildGamma(nullptr,1.f/static_cast<float>(gamma)),cmsFreeToneCurve);
+    if (!curve) return;
+    cmsToneCurve *curves[]={curve.get(),curve.get(),curve.get()};
+    std::unique_ptr<void,decltype(&cmsCloseProfile)> profile(
+        cmsCreateRGBProfile(&white,&primaries,curves),cmsCloseProfile);
+    if (!profile) return;
+    // Use the original chromaticities, avoiding an ICC tag round-trip's loss
+    // of matrix precision before the existing native Qt-compatible LUT path.
+    const Matrix source=fromPrimaries(rx,ry,gx,gy,bx,by,false,wx,wy);
+    normalizeRgb(image,profile.get(),&source);
+}
 }
 
 PkImage loadPkReferenceImage(const std::string &path)
@@ -180,18 +226,20 @@ PkImage loadPkReferenceImage(const std::string &path)
     if (image.isNull()) return image;
     try {
         auto metadata = Exiv2::ImageFactory::open(path);
-        if (!metadata) return image;
-        metadata->readMetadata();
-        const auto &profile = metadata->iccProfile();
-        if (profile.empty()) return image;
-        using Profile = std::unique_ptr<void, decltype(&cmsCloseProfile)>;
-        Profile input(cmsOpenProfileFromMem(profile.c_data(), static_cast<cmsUInt32Number>(profile.size())), cmsCloseProfile);
-        if (!input || cmsGetColorSpace(input.get()) != cmsSigRgbData) return image;
-        normalizeRgb(image, input.get());
-        return image;
+        if (metadata) {
+            metadata->readMetadata();
+            const auto &profile = metadata->iccProfile();
+            using Profile = std::unique_ptr<void, decltype(&cmsCloseProfile)>;
+            Profile input(profile.empty()?nullptr:cmsOpenProfileFromMem(profile.c_data(), static_cast<cmsUInt32Number>(profile.size())), cmsCloseProfile);
+            if (input) {
+                if (cmsGetColorSpace(input.get()) == cmsSigRgbData) normalizeRgb(image,input.get());
+                return image;
+            }
+        }
     } catch (const Exiv2::Error &) {
         // Missing/invalid metadata must not turn an otherwise readable raster
         // into an import failure (the Qt reader also accepts untagged images).
-        return image;
     }
+    normalizePngColorimetry(image,path);
+    return image;
 }
