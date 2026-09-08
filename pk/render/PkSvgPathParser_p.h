@@ -410,152 +410,88 @@ const char * PkSvgPathParser<Path>::getFlag(const char *ptr, bool &flag)
     return ptr;
 }
 
-// This works by converting the SVG arc to "simple" beziers.
-// For each bezier found a svgToCurve call is done.
+// QtSvg 5.15's pathArc()/pathArcSegment() conversion, originally from XSVG.
+// SPDX-SnippetBegin
+// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-SnippetCopyrightText: 2002 USC/Information Sciences Institute
 template<class Path>
 void PkSvgPathParser<Path>::calculateArc(bool relative, qreal &curx, qreal &cury, qreal angle, qreal x, qreal y, qreal rx, qreal ry, bool largeArcFlag, bool sweepFlag)
 {
-    // if radii are zero or the endpoints of ellipse are same as its start point, then use lineTo/don't do
-    // anything.
-    if (pkQtFuzzyCompare(rx, 0.0) || pkQtFuzzyCompare(ry, 0.0)
-        || (!relative && pkQtFuzzyCompare(curx - x, 0) && pkQtFuzzyCompare(cury - y, 0))
-        || (relative && pkQtFuzzyCompare(x, 0) && pkQtFuzzyCompare(y, 0))) {
-        qreal x2 = x;
-        qreal y2 = y;
+    const qreal endX = relative ? curx + x : x;
+    const qreal endY = relative ? cury + y : y;
+    const qreal radiusXSquared = rx * rx;
+    const qreal radiusYSquared = ry * ry;
 
-        if (relative) {
-            x2 += curx;
-            y2 += cury;
+    if (radiusXSquared && radiusYSquared) {
+        rx = std::abs(rx);
+        ry = std::abs(ry);
+
+        const qreal angleRadians = angle * (M_PI / 180.0);
+        const qreal sinAngle = std::sin(angleRadians);
+        const qreal cosAngle = std::cos(angleRadians);
+        const qreal dx = (curx - endX) / 2.0;
+        const qreal dy = (cury - endY) / 2.0;
+        const qreal rotatedX = cosAngle * dx + sinAngle * dy;
+        const qreal rotatedY = -sinAngle * dx + cosAngle * dy;
+        const qreal check = rotatedX * rotatedX / radiusXSquared
+            + rotatedY * rotatedY / radiusYSquared;
+        if (check > 1) {
+            rx *= std::sqrt(check);
+            ry *= std::sqrt(check);
         }
-        svgLineTo(x2, y2);
-        return;
+
+        const qreal a00 = cosAngle / rx;
+        const qreal a01 = sinAngle / rx;
+        const qreal a10 = -sinAngle / ry;
+        const qreal a11 = cosAngle / ry;
+        const qreal x0 = a00 * curx + a01 * cury;
+        const qreal y0 = a10 * curx + a11 * cury;
+        const qreal x1 = a00 * endX + a01 * endY;
+        const qreal y1 = a10 * endX + a11 * endY;
+        const qreal distance = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0);
+
+        if (distance > 0 && std::isfinite(distance)) {
+            const qreal factorSquared = std::max<qreal>(0, 1.0 / distance - 0.25);
+            qreal factor = std::sqrt(factorSquared);
+            if (sweepFlag == largeArcFlag) factor = -factor;
+            const qreal centerX = 0.5 * (x0 + x1) - factor * (y1 - y0);
+            const qreal centerY = 0.5 * (y0 + y1) + factor * (x1 - x0);
+            const qreal theta0 = std::atan2(y0 - centerY, x0 - centerX);
+            const qreal theta1 = std::atan2(y1 - centerY, x1 - centerX);
+            qreal arc = theta1 - theta0;
+            if (arc < 0 && sweepFlag) arc += 2 * M_PI;
+            else if (arc > 0 && !sweepFlag) arc -= 2 * M_PI;
+            const int segments = int(std::ceil(std::abs(arc / (M_PI * 0.5 + 0.001))));
+
+            const qreal out00 = cosAngle * rx;
+            const qreal out01 = -sinAngle * ry;
+            const qreal out10 = sinAngle * rx;
+            const qreal out11 = cosAngle * ry;
+            for (int i = 0; i < segments; ++i) {
+                const qreal start = theta0 + i * arc / segments;
+                const qreal end = theta0 + (i + 1) * arc / segments;
+                const qreal half = 0.5 * (end - start);
+                const qreal tangent = (8.0 / 3.0) * std::sin(half * 0.5) * std::sin(half * 0.5) / std::sin(half);
+                const qreal control1X = centerX + std::cos(start) - tangent * std::sin(start);
+                const qreal control1Y = centerY + std::sin(start) + tangent * std::cos(start);
+                const qreal pointX = centerX + std::cos(end);
+                const qreal pointY = centerY + std::sin(end);
+                const qreal control2X = pointX + tangent * std::sin(end);
+                const qreal control2Y = pointY - tangent * std::cos(end);
+                svgCurveToCubic(out00 * control1X + out01 * control1Y,
+                                out10 * control1X + out11 * control1Y,
+                                out00 * control2X + out01 * control2Y,
+                                out10 * control2X + out11 * control2Y,
+                                out00 * pointX + out01 * pointY,
+                                out10 * pointX + out11 * pointY);
+            }
+        }
     }
 
-    const qreal angleRadians = angle * (M_PI / 180.0);
-    const qreal sin_th = sin(angleRadians);
-    const qreal cos_th = cos(angleRadians);
-
-    qreal dx;
-    qreal x2 = x;
-    if (!relative) {
-        dx = (curx - x) / 2.0;
-    } else {
-        dx = -(x / 2.0);
-        x2 = curx + x;
-    }
-
-    qreal dy;
-    qreal y2 = y;
-    if (!relative) {
-        dy = (cury - y) / 2.0;
-    } else {
-        dy = -(y / 2.0);
-        y2 = cury + y;
-    }
-
-    // From SVG spec
-
-    // Step 1: Compute (x1_prime, y1_prime)
-    const qreal x1Prime = cos_th * dx + sin_th * dy;
-    const qreal y1Prime = -sin_th * dx + cos_th * dy;
-
-    // eq. 5.1
-    const qreal x1PrimeSq = x1Prime * x1Prime;
-    const qreal y1PrimeSq = y1Prime * y1Prime;
-
-    // Step 2: Compute (c_x_prime, c_y_prime)
-    qreal rxSq = rx * rx;
-    qreal rySq = ry * ry;
-
-    // Spec : check if radii are large enough
-    // eq. 6.2
-    const qreal check = x1PrimeSq / rxSq + y1PrimeSq / rySq;
-    if (check > 1) {
-        // eq. 6.3
-        rx = rx * sqrt(check);
-        ry = ry * sqrt(check);
-
-        rxSq = rx * rx;
-        rySq = ry * ry;
-    }
-
-    // Step 2: Compute (c_x_prime, c_y_prime)
-    const qreal radiiSq = rxSq * rySq;
-    const qreal ellipseValue = rxSq * y1PrimeSq + rySq * x1PrimeSq;
-
-    qreal coef = sqrt(std::fabs((radiiSq - ellipseValue) / ellipseValue));
-    if (sweepFlag == largeArcFlag) {
-        coef = -coef;
-    }
-    // eq. 5.2
-    const qreal cxPrime = coef * (rx * y1Prime) / ry;
-    const qreal cyPrime = coef * -(ry * x1Prime) / rx;
-
-    // Step 3: Compute (c_x, c_y) from (c_x_prime, c_y_prime)
-    // eq. 5.3
-    const qreal cx = cos_th * cxPrime - sin_th * cyPrime + (curx + x2) * 0.5;
-    const qreal cy = sin_th * cxPrime + cos_th * cyPrime + (cury + y2) * 0.5;
-
-    // Step 4: Compute angle and delta
-    const PkPointF v = {(x1Prime - cxPrime) / rx, (y1Prime - cyPrime) / ry};
-    // eq. 5.5
-    const qreal theta = angleBetweenVectors({1.0, 0.0}, v);
-    // eq. 5.6
-    qreal delta = std::fmod(
-        angleBetweenVectors(v, {(-x1Prime - cxPrime) / rx, (-y1Prime - cyPrime) / ry}),
-        M_PI * 2);
-
-    if (sweepFlag && delta < 0) {
-        delta += (M_PI * 2);
-    } else if (!sweepFlag && delta > 0) {
-        delta -= (M_PI * 2);
-    }
-
-    int n_segs = (int)ceil(fabs(delta / (M_PI * 0.25)));
-
-    // From: http://www.spaceroots.org/documents/ellipse/elliptical-arc.pdf
-    for (int i = 0; i < n_segs; ++i) {
-        const qreal eta1 = theta + i * delta / n_segs;
-        const qreal eta2 = theta + (i + 1) * delta / n_segs;
-
-        const qreal etaHalf = 0.5 * (eta2 - eta1);
-
-        const qreal cosAngle = cos(angleRadians);
-        const qreal sinAngle = sin(angleRadians);
-
-        auto ellipseArcToPoint = [sinAngle, cosAngle](qreal cx, qreal cy, qreal eta, qreal rx, qreal ry) {
-            qreal x = cx + (rx * cosAngle * cos(eta)) - (ry * sinAngle * sin(eta));
-            qreal y = cy + (rx * sinAngle * cos(eta)) + (ry * cosAngle * sin(eta));
-            return PkPointF(x, y);
-        };
-        auto ellipseDerivativeArcToPoint = [sinAngle, cosAngle](qreal eta, qreal rx, qreal ry) {
-            qreal x = -(rx * cosAngle * sin(eta)) - (ry * sinAngle * cos(eta));
-            qreal y = -(rx * sinAngle * sin(eta)) + (ry * cosAngle * cos(eta));
-            return PkPointF(x, y);
-        };
-
-        // bezier control points
-        const PkPointF p1 = ellipseArcToPoint(cx, cy, eta1, rx, ry);
-        const PkPointF p2 = ellipseArcToPoint(cx, cy, eta2, rx, ry);
-
-        const qreal alpha = sin(eta2 - eta1) * (sqrt(4 + 3 * tan(etaHalf) * tan(etaHalf)) - 1) / 3;
-
-        const PkPointF q1 = p1 + alpha * ellipseDerivativeArcToPoint(eta1, rx, ry);
-        const PkPointF q2 = p2 - alpha * ellipseDerivativeArcToPoint(eta2, rx, ry);
-
-        svgCurveToCubic(q1.x(), q1.y(), q2.x(), q2.y(), p2.x(), p2.y());
-    }
-
-    if (!relative)
-        curx = x;
-    else
-        curx += x;
-
-    if (!relative)
-        cury = y;
-    else
-        cury += y;
+    curx = endX;
+    cury = endY;
 }
+// SPDX-SnippetEnd
 
 template<class Path>
 void PkSvgPathParser<Path>::svgMoveTo(qreal x1, qreal y1, bool abs)

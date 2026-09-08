@@ -591,6 +591,9 @@ private:
             result.setAlphaF(std::clamp(number(attr(e, "solid-opacity", attr(e, "opacity", "1").c_str())), 0.0, 1.0));
             return PkBrush(result);
         }
+        if (e.tagName() != "linearGradient" && e.tagName() != "radialGradient") {
+            return PkBrush(Pk::NoBrush);
+        }
         const bool object = attr(e, "gradientUnits") != "userSpaceOnUse";
         const auto x = [&](const char *key, const char *fallback) { return length(attr(e, key, fallback), 1); };
         const auto y = x;
