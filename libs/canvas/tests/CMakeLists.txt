@@ -9,19 +9,25 @@ kis_add_tests(
     kis_selection_options_test.cpp
     kis_selection_tool_factory_test.cpp
     kis_stabilized_events_sampler_test.cpp
-    fill_processing_visitor_test.cpp
     zoomhandler_test.cpp
     LINK_LIBRARIES kritacanvas kritatestsdk
+)
+
+kis_add_test(
+    fill_processing_visitor_test.cpp
+    LINK_LIBRARIES kritacanvas kritatestsdk pkimageio kritalcmsengine
 )
 
 target_link_libraries(KisAsyncColorSamplerHelperTest kritaselectiontools)
 target_include_directories(KisAsyncColorSamplerHelperTest PRIVATE
     ${CMAKE_SOURCE_DIR}/plugins/tools/selectiontools)
 
+find_program(GETTEXT_XGETTEXT_EXECUTABLE NAMES xgettext REQUIRED)
 add_test(NAME libs-canvas-host-action-extraction
     COMMAND ${CMAKE_COMMAND}
         -DHOST_FACTORY_SOURCE=${CMAKE_SOURCE_DIR}/libs/flake/KoToolFactoryBase.cpp
         -DCANVAS_FACTORY_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/../tool/KisToolPaintFactoryBase.cpp
+        -DXGETTEXT_EXECUTABLE=${GETTEXT_XGETTEXT_EXECUTABLE}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_host_action_extraction.cmake)
 
 add_test(NAME libs-canvas-selection-factory-host-boundary
