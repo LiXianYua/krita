@@ -5,6 +5,8 @@
  */
 
 
+#include <PkPainterPath.h>
+#include <PkPen.h>
 #include <PkFlakeBridge.h>
 
 #include <KoPointerEvent.h>

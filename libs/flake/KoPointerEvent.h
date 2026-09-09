@@ -10,14 +10,16 @@
 
 #ifndef KOPOINTEREVENT_H
 
-#include <QtCore/QtCore>
-#include <QtGui/QtGui>
 #define KOPOINTEREVENT_H
 
+#include <PkAuxTypes.h>
 #include <PkSharedPointer.h>
 #include <PkPoint.h>
+#include <PkPainterPath.h>
+#include <PkPen.h>
 #include <PkNamespace.h>
 #include <optional>
+#include <cstdint>
 
 class QEvent;
 class QTabletEvent;
@@ -118,7 +120,7 @@ public:
      * Returns the keyboard modifier flags that existed immediately before the event occurred.
      * See also QApplication::keyboardModifiers().
      */
-    Qt::KeyboardModifiers modifiers() const;
+    Pk::KeyboardModifiers modifiers() const;
 
     /// return if the event has been accepted.
     bool isAccepted() const;
@@ -127,10 +129,10 @@ public:
     bool spontaneous() const;
 
     /// return button pressed (see QMouseEvent::button());
-    Qt::MouseButton button() const;
+    Pk::MouseButton button() const;
 
     /// return buttons pressed (see QMouseEvent::buttons());
-    Qt::MouseButtons buttons() const;
+    Pk::MouseButtons buttons() const;
 
     /// Return the position screen coordinates
     PkPoint globalPos() const;
@@ -143,10 +145,10 @@ public:
      * and the default pressure (this is the pressure that will be given
      * when you use something like the mouse) is 1.0
      */
-    qreal pressure() const;
+    double pressure() const;
 
     /// return the rotation (or a default value)
-    qreal rotation() const;
+    double rotation() const;
 
     /**
      * return the tangential pressure  (or a default value)
@@ -155,7 +157,7 @@ public:
      * only move in the positive direction from the neutral position. If the device
      * does not support tangential pressure, this value is always 0.0.
      */
-    qreal tangentialPressure() const;
+    double tangentialPressure() const;
 
     /**
      * Return the x position in widget coordinates.
@@ -169,7 +171,7 @@ public:
      * towards the tablet's physical right. The angle is in the range -60
      * to +60 degrees. The default value is 0.
      */
-    qreal xTilt() const;
+    double xTilt() const;
 
     /**
      * Return the y position in widget coordinates.
@@ -183,7 +185,7 @@ public:
      * towards the tablet's physical right. The angle is in the range -60
      * to +60 degrees. The default value is 0.
      */
-    qreal yTilt() const;
+    double yTilt() const;
 
     /**
      * Returns the z position of the device. Typically this is represented
@@ -195,7 +197,7 @@ public:
     /**
      * Returns the time the event was registered.
      */
-    ulong time() const;
+    std::uint64_t time() const;
 
 
     /// The point in document coordinates.
@@ -217,11 +219,9 @@ public:
     static bool tabletInputReceived();
 
 public:
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     static void copyQtPointerEvent(const QMouseEvent *event, PkScopedPointer<QEvent> &dst);
     static void copyQtPointerEvent(const QTabletEvent *event, PkScopedPointer<QEvent> &dst);
     static void copyQtPointerEvent(const QTouchEvent *event, PkScopedPointer<QEvent> &dst);
-#endif
 
     static std::optional<PkPointF> fetchGlobalPositionFromPointerEvent(QEvent *event);
 

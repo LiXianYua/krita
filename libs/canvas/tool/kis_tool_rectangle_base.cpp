@@ -11,6 +11,8 @@
 #include <KoPointerEvent.h>
 #include <KoViewConverter.h>
 #include <KisCanvasToolServices.h>
+#include <PkPainterPath.h>
+#include <PkPen.h>
 #include <PkFlakeBridge.h>
 
 KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, const QCursor & cursor)

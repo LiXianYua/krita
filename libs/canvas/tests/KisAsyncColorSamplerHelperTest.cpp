@@ -2,19 +2,25 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkPainterPath.h>
+#include <PkPen.h>
 #include <PkFlakeBridge.h>
 #include <pk/render/PkPaintCommand.h>
 #include "KisAsyncColorSamplerHelperTest.h"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
+#include <deque>
+#include <memory>
 #include <optional>
 #include <thread>
 #include <utility>
 #include <vector>
 
 #include <QKeyEvent>
+#include <QTabletEvent>
 
 #include <PkThreadCallQueue.h>
 
@@ -41,7 +47,10 @@
 #include "KisOptimizedBrushOutline.h"
 #include "kis_image.h"
 #include "kis_paint_layer.h"
+#include "brushengine/kis_no_size_paintop_settings.h"
+#include "brushengine/kis_paintop_preset.h"
 #include "tool/kis_tool_ellipse_base.h"
+#include "tool/kis_tool_freehand.h"
 #include "tool/kis_tool_polyline_base.h"
 #include "tool/strokes/kis_color_sampler_stroke_strategy.h"
 
@@ -241,7 +250,7 @@ public:
     void toolSetControlsEnabled(bool) override {}
     KisPopupWidgetInterface *toolPopupWidget() const override { return nullptr; }
     PkSize toolCanvasWidgetSize() const override { return {}; }
-    PkRect toolAvailableVirtualScreenGeometry() const override { return {}; }
+    PkRect toolAvailableVirtualScreenGeometry() const override { return PkRect(0, 0, 1000, 1000); }
     qreal toolImageScaleX() const override { return 1.0; }
     PkPointF toolImageToDocument(const PkPointF &point) const override { return point; }
     qreal toolCanvasRotation() const override { return 0.0; }
@@ -260,10 +269,33 @@ public:
     QCursor toolLoadCursor(const PkString &, int, int) const override { return {}; }
     QCursor loadCursorResource(const PkString &, const PkSize &,
                                const PkPoint &) const override { return {}; }
-    KisCanvasCursorToken toolImportCursor(const QCursor &) const override
+    KisCanvasCursorToken toolImportCursor(const QCursor &cursor) const override
     {
         ++cursorImportCount;
-        return KisCanvasCursorToken(0x11);
+        if (std::this_thread::get_id() != cursorOwnerThread) {
+            ++cursorThreadFailureCount;
+            return {};
+        }
+        const auto existing = std::find_if(cursorSnapshots.begin(), cursorSnapshots.end(),
+                                           [&cursor](const auto &entry) {
+                                               return entry.second == cursor;
+                                           });
+        if (existing != cursorSnapshots.end()) {
+            return existing->first;
+        }
+        static std::atomic<std::uint64_t> nextToken {1};
+        const KisCanvasCursorToken token(nextToken.fetch_add(1));
+        cursorSnapshots.emplace_back(token, cursor);
+        return token;
+    }
+    const QCursor *toolCursorSnapshot(KisCanvasCursorToken cursor) const override
+    {
+        if (!cursor) return &defaultCursor;
+        const auto it = std::find_if(cursorSnapshots.begin(), cursorSnapshots.end(),
+                                     [cursor](const auto &entry) {
+                                         return entry.first == cursor;
+                                     });
+        return it == cursorSnapshots.end() ? nullptr : &it->second;
     }
     KisCanvasCursorToken toolCursorToken(CursorStyle style) const override
     {
@@ -281,7 +313,16 @@ public:
     }
     void toolApplyCursor(KisCanvasCursorToken cursor) override
     {
+        const auto it = std::find_if(cursorSnapshots.begin(), cursorSnapshots.end(),
+                                     [cursor](const auto &entry) {
+                                         return entry.first == cursor;
+                                     });
+        if (cursor && it == cursorSnapshots.end()) {
+            ++cursorRejectCount;
+            return;
+        }
         lastAppliedCursor = cursor;
+        lastAppliedCursorShape = cursor ? it->second.shape() : defaultCursor.shape();
         ++cursorApplyCount;
     }
     void toolSetCursorPosition(const PkPoint &) override {}
@@ -377,8 +418,14 @@ public:
     PkObject *priorityEventFilter {nullptr};
     bool priorityEventFilterAttached {false};
     mutable int cursorImportCount {0};
+    mutable int cursorThreadFailureCount {0};
     int cursorApplyCount {0};
+    int cursorRejectCount {0};
     KisCanvasCursorToken lastAppliedCursor;
+    Qt::CursorShape lastAppliedCursorShape {Qt::BlankCursor};
+    mutable std::deque<std::pair<KisCanvasCursorToken, QCursor>> cursorSnapshots;
+    QCursor defaultCursor {Qt::ArrowCursor};
+    const std::thread::id cursorOwnerThread {std::this_thread::get_id()};
     KisCanvasToolSignals toolSignalBus;
 };
 
@@ -397,6 +444,7 @@ public:
 
     void setPreviewAngle(qreal angle) { m_angle = angle; }
     void applyStoredCursor() { resetCursorStyle(); }
+    KisCanvasCursorToken storedCursorToken() const { return cursor(); }
 
 private:
     void finishRect(const PkRectF &, qreal, qreal) override {}
@@ -434,6 +482,90 @@ protected:
     // the production KisToolPaint override, including its real sampler member.
     KisOptimizedBrushOutline getOutlinePath(const PkPointF &, const KoPointerEvent *,
                                              KisPaintOpSettings::OutlineMode) override { return {}; }
+};
+
+class ResizeTestSettings final : public KisNoSizePaintOpSettings
+{
+public:
+    ResizeTestSettings()
+        : KisNoSizePaintOpSettings({})
+    {
+    }
+
+    void setPaintOpSize(qreal value) override { m_size = value; }
+    qreal paintOpSize() const override { return m_size; }
+    KisPaintOpSettingsSP clone() const override
+    {
+        return KisPaintOpSettingsSP(new ResizeTestSettings(*this));
+    }
+
+private:
+    qreal m_size {25.0};
+};
+
+struct PointerEventObservation {
+    PkPointF point;
+    PkPoint position;
+    PkPoint globalPosition;
+    Pk::MouseButton button {Pk::NoButton};
+    Pk::MouseButtons buttons;
+    Pk::KeyboardModifiers modifiers;
+    double pressure {0.0};
+    double rotation {0.0};
+    double tangentialPressure {0.0};
+    double xTilt {0.0};
+    double yTilt {0.0};
+    int z {0};
+    std::uint64_t timestamp {0};
+    bool accepted {false};
+    bool spontaneous {false};
+    bool tablet {false};
+    bool touch {false};
+};
+
+class FreehandEventProbeTool final : public KisToolFreehand
+{
+public:
+    explicit FreehandEventProbeTool(KoCanvasBase *canvas)
+        : KisToolFreehand(canvas, QCursor(), KUndo2MagicString(), false)
+    {
+    }
+
+    using KisToolFreehand::beginAlternateAction;
+    using KisToolFreehand::continueAlternateAction;
+    using KisToolFreehand::endAlternateAction;
+    using KisToolFreehand::requestStrokeCancellation;
+
+    bool gestureActive() const { return mode() == GESTURE_MODE; }
+    std::vector<std::optional<PointerEventObservation>> observations;
+
+protected:
+    void requestUpdateOutline(const PkPointF &, const KoPointerEvent *event) override
+    {
+        if (!event) {
+            observations.emplace_back(std::nullopt);
+            return;
+        }
+        observations.emplace_back(PointerEventObservation {
+            event->point,
+            event->pos(),
+            event->globalPos(),
+            event->button(),
+            event->buttons(),
+            event->modifiers(),
+            event->pressure(),
+            event->rotation(),
+            event->tangentialPressure(),
+            event->xTilt(),
+            event->yTilt(),
+            event->z(),
+            event->time(),
+            event->isAccepted(),
+            event->spontaneous(),
+            event->isTabletEvent(),
+            event->isTouchEvent()
+        });
+    }
 };
 
 class KeyEventProbeTool final : public KisToolPaint
@@ -957,14 +1089,155 @@ void KisAsyncColorSamplerHelperTest::toolCursorTokenPersistsAndApplies()
 {
     EllipsePreviewCanvas canvas;
     EllipsePreviewTool tool(&canvas);
+    KisCanvasCursorToken notifiedToken;
+    QCursor notifiedCursor;
+    int tokenNotificationCount = 0;
+    int compatibilityNotificationCount = 0;
+    PkObject::connect(&tool, &KoToolBase::cursorTokenChanged, &tool,
+                      [&](KisCanvasCursorToken token) {
+                          notifiedToken = token;
+                          ++tokenNotificationCount;
+                      });
+    PkObject::connect(&tool, &KoToolBase::cursorChanged, &tool,
+                      [&](const QCursor &cursor) {
+                          notifiedCursor = cursor;
+                          ++compatibilityNotificationCount;
+                      });
 
     QCOMPARE(canvas.cursorImportCount, 1);
     QCOMPARE(canvas.cursorApplyCount, 0);
+    QVERIFY(tool.storedCursorToken());
 
     tool.applyStoredCursor();
 
     QCOMPARE(canvas.cursorApplyCount, 1);
-    QCOMPARE(canvas.lastAppliedCursor.value(), std::uint64_t(0x11));
+    QCOMPARE(canvas.lastAppliedCursor, tool.storedCursorToken());
+    QCOMPARE(notifiedToken, tool.storedCursorToken());
+    QCOMPARE(notifiedCursor.shape(), QCursor().shape());
+    QCOMPARE(tokenNotificationCount, 1);
+    QCOMPARE(compatibilityNotificationCount, 1);
+}
+
+void KisAsyncColorSamplerHelperTest::cursorTokenContractCoversZeroIdentityScopeAndThreadAffinity()
+{
+    auto first = std::make_unique<EllipsePreviewCanvas>();
+
+    first->toolApplyCursor({});
+    QCOMPARE(first->lastAppliedCursor, KisCanvasCursorToken());
+    QCOMPARE(first->lastAppliedCursorShape, Qt::ArrowCursor);
+
+    QCursor source(Qt::CrossCursor);
+    const KisCanvasCursorToken firstToken = first->toolImportCursor(source);
+    const KisCanvasCursorToken repeatedToken = first->toolImportCursor(source);
+    QVERIFY(firstToken);
+    QCOMPARE(repeatedToken, firstToken);
+    source.setShape(Qt::WaitCursor);
+    QVERIFY(first->toolCursorSnapshot(firstToken));
+    QCOMPARE(first->toolCursorSnapshot(firstToken)->shape(), Qt::CrossCursor);
+    const KisCanvasCursorToken changedToken = first->toolImportCursor(source);
+    QVERIFY(changedToken != firstToken);
+
+    EllipsePreviewCanvas second;
+    const KisCanvasCursorToken secondToken = second.toolImportCursor(QCursor(Qt::CrossCursor));
+    QVERIFY(secondToken != firstToken);
+    second.toolApplyCursor(firstToken);
+    QCOMPARE(second.cursorRejectCount, 1);
+    QCOMPARE(second.cursorApplyCount, 0);
+
+    KisCanvasCursorToken workerToken;
+    std::thread worker([&] {
+        workerToken = first->toolImportCursor(QCursor(Qt::BusyCursor));
+    });
+    worker.join();
+    QVERIFY(!workerToken);
+    QCOMPARE(first->cursorThreadFailureCount, 1);
+
+    const KisCanvasCursorToken destroyedHostToken = firstToken;
+    first.reset();
+    EllipsePreviewCanvas replacement;
+    const KisCanvasCursorToken replacementToken =
+        replacement.toolImportCursor(QCursor(Qt::CrossCursor));
+    QVERIFY(replacementToken != destroyedHostToken);
+}
+
+void KisAsyncColorSamplerHelperTest::freehandAlternateActionRetainsDetachedEventAndResets()
+{
+    EllipsePreviewCanvas canvas;
+    KisPaintOpPresetSP preset(new KisPaintOpPreset());
+    preset->setSettings(new ResizeTestSettings());
+    canvas.resourceManager()->setResource(KoCanvasResource::CurrentPaintOpPreset,
+                                          PkVariant::fromValue(preset));
+    FreehandEventProbeTool tool(&canvas);
+
+    {
+        QTabletEvent hostEvent(QEvent::TabletPress,
+                               QPointF(12, 13), QPointF(112, 113),
+                               QTabletEvent::Stylus, QTabletEvent::Pen,
+                               0.42, 17, -11, 0.25, 33.0, 7,
+                               Qt::ShiftModifier, 99,
+                               Qt::LeftButton, Qt::LeftButton);
+        hostEvent.setTimestamp(1234);
+        hostEvent.ignore();
+        KoPointerEvent beginEvent(&hostEvent, PkPointF(20, 30));
+        tool.beginAlternateAction(&beginEvent, KisTool::ChangeSize);
+    }
+
+    QVERIFY(tool.gestureActive());
+    QCOMPARE(tool.observations.size(), std::size_t(1));
+    QVERIFY(tool.observations.back().has_value());
+    const PointerEventObservation retained = *tool.observations.back();
+    QCOMPARE(retained.point, PkPointF(20, 30));
+    QCOMPARE(retained.position, PkPoint(12, 13));
+    QCOMPARE(retained.globalPosition, PkPoint(112, 113));
+    QCOMPARE(retained.button, Pk::LeftButton);
+    QCOMPARE(int(retained.buttons), int(Pk::LeftButton));
+    QCOMPARE(int(retained.modifiers), int(Pk::ShiftModifier));
+    QCOMPARE(retained.pressure, 0.42);
+    QCOMPARE(retained.rotation, 33.0);
+    QCOMPARE(retained.tangentialPressure, 0.625);
+    QCOMPARE(retained.xTilt, 17.0);
+    QCOMPARE(retained.yTilt, -11.0);
+    QCOMPARE(retained.z, 7);
+    QCOMPARE(retained.timestamp, std::uint64_t(1234));
+    QVERIFY(!retained.accepted);
+    QVERIFY(!retained.spontaneous);
+    QVERIFY(retained.tablet);
+    QVERIFY(!retained.touch);
+
+    KoPointerEvent continuation(PkPoint(32, 13), PkPointF(40, 30),
+                                Pk::LeftButton, Pk::LeftButton, Pk::ShiftModifier);
+    tool.continueAlternateAction(&continuation, KisTool::ChangeSize);
+    QCOMPARE(tool.observations.size(), std::size_t(2));
+    QVERIFY(tool.observations.back().has_value());
+    const PointerEventObservation continued = *tool.observations.back();
+    QCOMPARE(continued.point, retained.point);
+    QCOMPARE(continued.position, retained.position);
+    QCOMPARE(continued.globalPosition, retained.globalPosition);
+    QCOMPARE(continued.button, retained.button);
+    QCOMPARE(continued.buttons, retained.buttons);
+    QCOMPARE(continued.modifiers, retained.modifiers);
+    QCOMPARE(continued.pressure, retained.pressure);
+    QCOMPARE(continued.rotation, retained.rotation);
+    QCOMPARE(continued.tangentialPressure, retained.tangentialPressure);
+    QCOMPARE(continued.xTilt, retained.xTilt);
+    QCOMPARE(continued.yTilt, retained.yTilt);
+    QCOMPARE(continued.z, retained.z);
+    QCOMPARE(continued.timestamp, retained.timestamp);
+    QCOMPARE(continued.accepted, retained.accepted);
+    QCOMPARE(continued.spontaneous, retained.spontaneous);
+    QCOMPARE(continued.tablet, retained.tablet);
+    QCOMPARE(continued.touch, retained.touch);
+
+    tool.endAlternateAction(&continuation, KisTool::ChangeSize);
+    QVERIFY(!tool.gestureActive());
+    QVERIFY(!tool.observations.back().has_value());
+
+    tool.beginAlternateAction(&continuation, KisTool::ChangeSizeSnap);
+    QVERIFY(tool.gestureActive());
+    QVERIFY(tool.observations.back().has_value());
+    tool.requestStrokeCancellation();
+    QVERIFY(!tool.gestureActive());
+    QVERIFY(!tool.observations.back().has_value());
 }
 
 void KisAsyncColorSamplerHelperTest::proxyDispatchesPolylineDecorations()

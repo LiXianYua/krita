@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkPainterPath.h>
+#include <PkPen.h>
 #include <PkFlakeBridge.h>
 
 #include "KisAsyncColorSamplerHelper.h"

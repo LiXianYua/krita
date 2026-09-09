@@ -76,6 +76,7 @@ public:
     PkList<QPointer<QWidget> > optionWidgets; ///< the optionwidgets associated with this tool
     bool optionWidgetsCreated {false};
     QCursor currentCursor;
+    KisCanvasCursorToken currentCursorToken;
     KoToolBase *q;
     KoToolFactoryBase *factory {0};
     KoCanvasBase *canvas; ///< the canvas interface this tool will work for.

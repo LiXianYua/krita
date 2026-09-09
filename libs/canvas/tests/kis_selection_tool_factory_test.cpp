@@ -4,6 +4,8 @@
 
 #include <simpletest.h>
 
+#include <PkPainterPath.h>
+#include <PkPen.h>
 #include <PkFlakeBridge.h>
 
 #include <QAction>

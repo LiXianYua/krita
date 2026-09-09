@@ -16,6 +16,8 @@
 #include <PkSize.h>
 #include <PkString.h>
 #include <PkVector.h>
+#include <PkPainterPath.h>
+#include <PkPen.h>
 
 #include <KoColor.h>
 #include <KoColorProfile.h>

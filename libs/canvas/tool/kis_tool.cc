@@ -157,7 +157,6 @@ KisTool::KisTool(KoCanvasBase * canvas, const QCursor & cursor)
     , d(new Private)
 {
     KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
-    KIS_ASSERT(services);
     if (services) {
         d->cursor = services->toolImportCursor(cursor);
     }
@@ -497,11 +496,7 @@ void KisTool::setCursor(KisCanvasCursorToken cursor)
 
 void KisTool::applyCursor(KisCanvasCursorToken cursor)
 {
-    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
-    KIS_ASSERT(services);
-    if (services) {
-        services->toolApplyCursor(cursor);
-    }
+    KoToolBase::useCursor(cursor);
 }
 
 KisTool::AlternateAction KisTool::actionToAlternateAction(ToolAction action) {

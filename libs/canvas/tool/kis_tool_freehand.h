@@ -56,6 +56,7 @@ protected:
     void beginAlternateAction(KoPointerEvent *event, AlternateAction action) override;
     void continueAlternateAction(KoPointerEvent *event, AlternateAction action) override;
     void endAlternateAction(KoPointerEvent *event, AlternateAction action) override;
+    void requestStrokeCancellation() override;
 
     bool wantsAutoScroll() const override;
 
@@ -102,6 +103,7 @@ private:
 
 private:
     void updateMaskSyntheticEventsFromTouch();
+    void resetAlternateActionGesture();
 
 protected:
     friend class KisViewManager;

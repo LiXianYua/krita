@@ -32,3 +32,9 @@ add_test(NAME libs-canvas-selection-factory-host-boundary
     COMMAND ${CMAKE_COMMAND}
         -DSELECTION_FACTORY_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/../tool/KisSelectionToolFactoryBase.cpp
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_selection_factory_host_boundary.cmake)
+
+add_test(NAME libs-canvas-native-cursor-event-abi
+    COMMAND ${CMAKE_COMMAND}
+        -DCANVAS_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/..
+        -DFLAKE_SOURCE_DIR=${CMAKE_SOURCE_DIR}/libs/flake
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_canvas_native_cursor_event_abi.cmake)

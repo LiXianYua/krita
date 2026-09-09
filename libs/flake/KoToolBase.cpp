@@ -284,8 +284,29 @@ void KoToolBase::customMoveEvent(KoPointerEvent * event)
 void KoToolBase::useCursor(const QCursor &cursor)
 {
     Q_D(KoToolBase);
+    if (auto *host = dynamic_cast<KoCanvasCursorHost *>(d->canvas)) {
+        const KisCanvasCursorToken token = host->toolImportCursor(cursor);
+        if (token) {
+            useCursor(token);
+            return;
+        }
+    }
     d->currentCursor = cursor;
     Q_EMIT cursorChanged(d->currentCursor);
+}
+
+void KoToolBase::useCursor(KisCanvasCursorToken cursor)
+{
+    Q_D(KoToolBase);
+    d->currentCursorToken = cursor;
+    if (auto *host = dynamic_cast<KoCanvasCursorHost *>(d->canvas)) {
+        if (const QCursor *snapshot = host->toolCursorSnapshot(cursor)) {
+            d->currentCursor = *snapshot;
+            Q_EMIT cursorChanged(d->currentCursor);
+        }
+        host->toolApplyCursor(cursor);
+    }
+    Q_EMIT cursorTokenChanged(cursor);
 }
 
 void KoToolBase::useCursor(Pk::CursorShape cursorShape)
@@ -352,6 +373,12 @@ QCursor KoToolBase::cursor() const
 {
     Q_D(const KoToolBase);
     return d->currentCursor;
+}
+
+KisCanvasCursorToken KoToolBase::cursorToken() const
+{
+    Q_D(const KoToolBase);
+    return d->currentCursorToken;
 }
 
 void KoToolBase::deleteSelection()
@@ -603,6 +630,12 @@ void KoToolBase::cursorChanged(const QCursor &cursor)
 {
     activateSignal<const QCursor &>(
         this, PkMemberFnKey::from(&KoToolBase::cursorChanged), cursor);
+}
+
+void KoToolBase::cursorTokenChanged(KisCanvasCursorToken cursor)
+{
+    activateSignal<KisCanvasCursorToken>(
+        this, PkMemberFnKey::from(&KoToolBase::cursorTokenChanged), cursor);
 }
 
 void KoToolBase::selectionChanged(bool hasSelection)

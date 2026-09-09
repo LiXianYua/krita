@@ -405,10 +405,23 @@ void KisToolFreehand::endAlternateAction(KoPointerEvent *event, AlternateAction 
     }
 
     dynamic_cast<KisCanvasToolServices *>(canvas())->toolSetCursorPosition(m_initialGestureGlobalPoint);
-    requestUpdateOutline(m_initialGestureDocPoint, 0);
+    resetAlternateActionGesture();
+}
 
+void KisToolFreehand::requestStrokeCancellation()
+{
+    if (mode() == GESTURE_MODE) {
+        resetAlternateActionGesture();
+        return;
+    }
+
+    KisToolPaint::requestStrokeCancellation();
+}
+
+void KisToolFreehand::resetAlternateActionGesture()
+{
+    requestUpdateOutline(m_initialGestureDocPoint, nullptr);
     setMode(HOVER_MODE);
-
     m_beginAlternateActionEvent.reset();
 }
 

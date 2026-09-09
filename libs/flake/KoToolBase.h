@@ -15,6 +15,7 @@
 #include <PkHash.h>
 #include <PkVariant.h>
 #include <PkNamespace.h>
+#include "KoCanvasCursorHost.h"
 
 #include <PkStringList.h>
 #include "kritaflake_export.h"
@@ -336,6 +337,9 @@ public:
     /// return the last emitted cursor
     QCursor cursor() const;
 
+    /// Return the host-scoped native cursor token last emitted by this tool.
+    KisCanvasCursorToken cursorToken() const;
+
     /**
      * Returns the internal selection object of this tool.
      * Each tool can have a selection which is private to that tool and the specified shape that it comes with.
@@ -550,6 +554,9 @@ public:
      */
     void cursorChanged(const QCursor &cursor);
 
+    /** Native cursor notification paired with cursorChanged compatibility delivery. */
+    void cursorTokenChanged(KisCanvasCursorToken cursor);
+
     /**
      * A tool can have a selection that is copy-able, this signal is emitted when that status changes.
      * @param hasSelection is true when the tool holds selected data.
@@ -586,6 +593,7 @@ protected:
      * @param cursor the new cursor.
      */
     void useCursor(const QCursor &cursor);
+    void useCursor(KisCanvasCursorToken cursor);
     void useCursor(Pk::CursorShape cursorShape);
 
     /**

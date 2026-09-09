@@ -5,6 +5,8 @@
 #ifndef KIS_CANVAS_TOOL_SERVICES_H
 #define KIS_CANVAS_TOOL_SERVICES_H
 
+#include <PkPainterPath.h>
+#include <PkPen.h>
 #include <PkFlakeBridge.h>
 #include <PkObject.h>
 #include <PkSignalCompat.h>
@@ -89,6 +91,7 @@ public:
                                        const PkSize &size,
                                        const PkPoint &hotspot) const override = 0;
     virtual KisCanvasCursorToken toolImportCursor(const QCursor &cursor) const = 0;
+    virtual const QCursor *toolCursorSnapshot(KisCanvasCursorToken cursor) const override = 0;
     virtual KisCanvasCursorToken toolCursorToken(CursorStyle style) const = 0;
     virtual KisCanvasCursorToken toolMoveCursorToken() const = 0;
     virtual KisCanvasCursorToken toolMoveSelectionCursorToken() const = 0;
@@ -99,7 +102,7 @@ public:
     virtual KisCanvasCursorToken toolLoadCursorToken(const PkString &name,
                                                      int hotX,
                                                      int hotY) const = 0;
-    virtual void toolApplyCursor(KisCanvasCursorToken cursor) = 0;
+    virtual void toolApplyCursor(KisCanvasCursorToken cursor) override = 0;
     virtual void toolSetCursorPosition(const PkPoint &globalPoint) = 0;
     virtual void toolShowBrushSize(qreal size) = 0;
     virtual void toolShowLockedLayerMessage(bool myPaintUnavailable) = 0;

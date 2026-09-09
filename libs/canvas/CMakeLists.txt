@@ -105,7 +105,6 @@ target_sources(kritacanvas PRIVATE ${kritacanvas_SIGNAL_SRCS})
 
 target_include_directories(kritacanvas
     BEFORE PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/noqt-compat
         ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
         ${CMAKE_SOURCE_DIR}/pk/string/compat
         ${CMAKE_SOURCE_DIR}/pk/container/compat
