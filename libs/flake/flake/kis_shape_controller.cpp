@@ -74,6 +74,23 @@ KisShapeController::~KisShapeController()
     delete m_d;
 }
 
+void KisShapeController::selectionChanged()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KisShapeController::selectionChanged));
+}
+
+void KisShapeController::selectionContentChanged()
+{
+    activateSignal<>(this,
+                     PkMemberFnKey::from(&KisShapeController::selectionContentChanged));
+}
+
+void KisShapeController::currentLayerChanged(const KoShapeLayer *layer)
+{
+    activateSignal<const KoShapeLayer *>(
+        this, PkMemberFnKey::from(&KisShapeController::currentLayerChanged), layer);
+}
+
 void KisShapeController::slotUpdateDocumentResolution()
 {
     KisImageSP image = this->image();

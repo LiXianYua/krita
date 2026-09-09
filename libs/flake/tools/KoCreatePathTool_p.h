@@ -10,6 +10,8 @@
 #define KOCREATEPATHTOOL_P_H
 
 #include <PkPainterPath.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include "KoCreatePathTool.h"
 #include "KoPathPoint.h"
@@ -20,9 +22,6 @@
 #include "KoSnapStrategy.h"
 #include "KoToolBase_p.h"
 #include <KoViewConverter.h>
-
-#include <KSharedConfig>
-#include <KConfigGroup>
 
 #include "math.h"
 
@@ -413,13 +412,13 @@ public:
     void autoSmoothCurvesChanged(bool value) {
         autoSmoothCurves = value;
 
-        KConfigGroup config = KSharedConfig::openConfig()->group("");
+        PkConfigGroup config = PkSharedConfig::openConfig()->group("");
         config.writeEntry("autoSmoothBezierCurves", value);
         config.sync();
     }
 
     void loadAutoSmoothValueFromConfig() {
-        autoSmoothCurves = KSharedConfig::openConfig()->group("").readEntry("autoSmoothBezierCurves", false);
+        autoSmoothCurves = PkSharedConfig::openConfig()->group("").readEntry("autoSmoothBezierCurves", false);
 
         q->sigUpdateAutoSmoothCurvesGUI(autoSmoothCurves);
     }

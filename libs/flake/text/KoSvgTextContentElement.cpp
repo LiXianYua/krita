@@ -6,6 +6,8 @@
 
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 #include "KoSvgTextContentElement.h"
 
 #include "KoCssTextUtils.h"
@@ -107,9 +109,6 @@ void writeTextListAttribute(const PkString &attribute, const PkVector<qreal> &va
 }
 }
 
-#include <ksharedconfig.h>
-#include <kconfiggroup.h>
-
 /**
  * HACK ALERT: this is a function from a private Qt's header qfont_p.h,
  * we don't include the whole header, because it is painful in the
@@ -119,7 +118,7 @@ Q_GUI_EXPORT int qt_defaultDpi();
 
 namespace {
 int forcedDpiForQtFontBugWorkaround() {
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), "");
     int value = cfg.readEntry("forcedDpiForQtFontBugWorkaround", qt_defaultDpi());
 
     if (value < 0) {

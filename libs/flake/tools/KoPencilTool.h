@@ -10,7 +10,7 @@
 #include "KoFlakeTypes.h"
 #include "KoShapeStroke.h"
 #include "KoToolBase.h"
-#include <kconfiggroup.h>
+#include <PkConfigGroup.h>
 #include <qcolor.h>
 
 class KoPathShape;
@@ -95,7 +95,7 @@ private:
     KoPathPoint *m_existingStartPoint {0}; ///< an existing path point we started a new path at
     KoPathPoint *m_existingEndPoint {0};   ///< an existing path point we finished a new path at
     KoPathPoint *m_hoveredPoint {0}; ///< an existing path end point the mouse is hovering on
-    KConfigGroup m_configGroup;
+    PkConfigGroup m_configGroup;
 };
 
 #endif // _KOPENCILTOOL_H_

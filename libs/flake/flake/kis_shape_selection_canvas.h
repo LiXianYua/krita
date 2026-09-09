@@ -25,7 +25,6 @@ class KisShapeController;
  */
 class KisShapeSelectionCanvas : public KoCanvasBase
 {
-    Q_OBJECT
 public:
 
     KisShapeSelectionCanvas(KoShapeControllerBase *shapeController);

@@ -7,6 +7,8 @@
 #include <QTest>
 #include <QTemporaryFile>
 
+#include <type_traits>
+
 #include <KoColorSpaceRegistry.h>
 #include <KoPathShape.h>
 #include <KoShapeControllerBase.h>
@@ -15,11 +17,40 @@
 #include <kis_paint_device.h>
 #include <kis_safe_document_loader.h>
 #include <KisReferenceImage.h>
+#include <kis_dummies_facade.h>
+#include <kis_node_dummies_graph.h>
+#include <kis_node_shape.h>
+#include <kis_shape_controller.h>
 #include <kis_shape_layer.h>
+#include <kis_shape_layer_canvas.h>
+#include <kis_shape_selection.h>
+#include <kis_shape_selection_canvas.h>
+#include <kis_shape_selection_model.h>
 
 namespace {
 
-PkString toPkString(const QString &value)
+static_assert(std::is_same_v<decltype(&KisDummiesFacade::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisDummiesFacadeBase::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisNodeDummy::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisNodeShape::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisShapeController::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisShapeLayerCanvasBase::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisShapeLayerCanvas::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisShapeSelection::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisShapeSelectionCanvas::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KisShapeSelectionModel::qt_metacall),
+                             decltype(&QObject::qt_metacall)>);
+
+PkString localToPkString(const QString &value)
 {
     const QByteArray utf8 = value.toUtf8();
     return PkString::PkFromUtf8(utf8.constData(), utf8.size());
@@ -46,10 +77,24 @@ class KisShapeModelTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void nativeFacadeNotificationsUsePkDelivery();
     void ownsShapeLayerStateWithoutUi();
     void ownsReferenceImageStateWithoutUi();
     void loadsFileThroughInjectedHeadlessLoader();
 };
+
+void KisShapeModelTest::nativeFacadeNotificationsUsePkDelivery()
+{
+    KisDummiesFacade facade;
+    PkObject receiver;
+    int notifications = 0;
+    PkObject::connect(&facade, &KisDummiesFacadeBase::sigEndRemoveDummy,
+                      &receiver, [&] { ++notifications; });
+
+    facade.sigEndRemoveDummy();
+
+    QCOMPARE(notifications, 1);
+}
 
 void KisShapeModelTest::ownsShapeLayerStateWithoutUi()
 {
@@ -105,7 +150,7 @@ void KisShapeModelTest::loadsFileThroughInjectedHeadlessLoader()
     int loadCount = 0;
     PkString loadedPath;
     KisSafeDocumentLoader loader(
-        toPkString(file.fileName()),
+        localToPkString(file.fileName()),
         [&](const PkString &path) {
             ++loadCount;
             loadedPath = path;
@@ -136,7 +181,7 @@ void KisShapeModelTest::loadsFileThroughInjectedHeadlessLoader()
 
     QCOMPARE(loadCount, 1);
     QVERIFY(!loadedPath.isEmpty());
-    QVERIFY(loadedPath != toPkString(file.fileName()));
+    QVERIFY(loadedPath != localToPkString(file.fileName()));
     QCOMPARE(loadedDevice, expectedDevice);
     QCOMPARE(loadedXRes, 2.0);
     QCOMPARE(loadedYRes, 3.0);

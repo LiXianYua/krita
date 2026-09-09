@@ -47,7 +47,7 @@ public:
                                  KoColorConversionTransformation::ConversionFlags conversionFlags = KoColorConversionTransformation::internalConversionFlags()) override;
 
 
-Q_SIGNALS:
+public:
     /**
      * The content of the layer has changed, and the canvas decoration
      * needs to update.

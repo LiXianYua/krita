@@ -36,8 +36,6 @@ class KisNodeShape;
 
 class KRITASHAPEMODEL_EXPORT KisNodeDummy : public QObject
 {
-    Q_OBJECT
-
 public:
     /**
      * Take care that KisNodeDummy does not take ownership over

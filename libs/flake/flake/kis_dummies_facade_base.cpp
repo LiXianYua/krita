@@ -71,6 +71,44 @@ KisDummiesFacadeBase::~KisDummiesFacadeBase()
     delete m_d;
 }
 
+void KisDummiesFacadeBase::sigBeginInsertDummy(KisNodeDummy *parent, int index,
+                                                const PkString &metaObjectType)
+{
+    activateSignal<KisNodeDummy *, int, const PkString &>(
+        this, PkMemberFnKey::from(&KisDummiesFacadeBase::sigBeginInsertDummy),
+        parent, index, metaObjectType);
+}
+
+void KisDummiesFacadeBase::sigEndInsertDummy(KisNodeDummy *dummy)
+{
+    activateSignal<KisNodeDummy *>(
+        this, PkMemberFnKey::from(&KisDummiesFacadeBase::sigEndInsertDummy), dummy);
+}
+
+void KisDummiesFacadeBase::sigBeginRemoveDummy(KisNodeDummy *dummy)
+{
+    activateSignal<KisNodeDummy *>(
+        this, PkMemberFnKey::from(&KisDummiesFacadeBase::sigBeginRemoveDummy), dummy);
+}
+
+void KisDummiesFacadeBase::sigEndRemoveDummy()
+{
+    activateSignal<>(this,
+                     PkMemberFnKey::from(&KisDummiesFacadeBase::sigEndRemoveDummy));
+}
+
+void KisDummiesFacadeBase::sigDummyChanged(KisNodeDummy *dummy)
+{
+    activateSignal<KisNodeDummy *>(
+        this, PkMemberFnKey::from(&KisDummiesFacadeBase::sigDummyChanged), dummy);
+}
+
+void KisDummiesFacadeBase::sigActivateNode(KisNodeSP node)
+{
+    activateSignal<KisNodeSP>(
+        this, PkMemberFnKey::from(&KisDummiesFacadeBase::sigActivateNode), node);
+}
+
 void KisDummiesFacadeBase::setImage(KisImageWSP image)
 {
     setImage(image, nullptr);

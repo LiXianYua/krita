@@ -25,9 +25,6 @@ class KUndo2Stack;
  */
 class KRITASHAPEMODEL_EXPORT KisShapeController : public KisDummiesFacadeBase, public KoShapeControllerBase
 {
-
-    Q_OBJECT
-
 public:
 
     KisShapeController(KisNameServer *nameServer, KUndo2Stack *undoStack, QObject *parent = 0);
@@ -57,11 +54,11 @@ private:
     void addNodeImpl(KisNodeSP node, KisNodeSP parent, KisNodeSP aboveThis) override;
     void removeNodeImpl(KisNodeSP node) override;
 
-private Q_SLOTS:
+private:
     void slotUpdateDocumentResolution();
     void slotUpdateDocumentSize();
 
-Q_SIGNALS:
+public:
     /**
      * These three signals are forwarded from each KisShapeLayer's local
      * shape manager. Consumers may switch between managers, so they need a

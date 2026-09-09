@@ -17,7 +17,6 @@
  */
 class KRITAFLAKE_EXPORT KoToolSelection : public QObject
 {
-    Q_OBJECT
 public:
     /**
      * Constructor.

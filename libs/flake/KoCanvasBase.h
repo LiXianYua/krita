@@ -46,7 +46,6 @@ class PkSizeF;
  */
 class KRITAFLAKE_EXPORT KoCanvasBase : public QObject
 {
-    Q_OBJECT
 public:
 
     /**

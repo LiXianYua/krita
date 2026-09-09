@@ -5,6 +5,7 @@
  */
 
 #include <PkFlakeBridge.h>
+#include <PkSharedConfig.h>
 
 #include "kis_selection_tool_helper.h"
 
@@ -33,8 +34,6 @@
 #include "commands/kis_deselect_global_selection_command.h"
 
 #include "kis_algebra_2d.h"
-#include <KSharedConfig>
-#include <KConfigGroup>
 #include <klocalizedstring.h>
 
 
@@ -372,7 +371,7 @@ bool KisSelectionToolHelper::tryDeselectCurrentSelection(const PkRectF selection
     bool result = false;
 
     const qreal selectionViewSizeMinimum =
-        KSharedConfig::openConfig()->group("").readEntry("SelectionViewSizeMinimum", 5.0);
+        PkSharedConfig::openConfig()->group("").readEntry("SelectionViewSizeMinimum", 5.0);
     if (KisAlgebra2D::maxDimension(selectionViewRect) < selectionViewSizeMinimum &&
         (action == SELECTION_INTERSECT || action == SELECTION_SYMMETRICDIFFERENCE || action == SELECTION_REPLACE)) {
 

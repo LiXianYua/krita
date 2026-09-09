@@ -10,6 +10,8 @@
 
 #include "KoPointerEvent.h"
 #include <PkFlakeBridge.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 #include <QTabletEvent>
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -17,15 +19,12 @@
 #include <stdexcept>
 #include <boost/variant2/variant.hpp>
 
-#include <ksharedconfig.h>
-#include <kconfiggroup.h>
 #include <kis_config_notifier.h>
 #include <kis_assert.h>
 
 class KisTouchPressureSensitivityOptionContainer : public QObject
 {
 private:
-    Q_OBJECT
 public:
     KisTouchPressureSensitivityOptionContainer() {
         PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged,
@@ -35,10 +34,10 @@ public:
 
     bool useTouchPressure = true;
 
-private Q_SLOTS:
+private:
     void slotSettingsChanged() {
 
-        KConfigGroup group = KSharedConfig::openConfig()->group("");
+        PkConfigGroup group = PkSharedConfig::openConfig()->group("");
         useTouchPressure = group.readEntry("useTouchPressureSensitivity", true);
     }
 };
@@ -672,6 +671,5 @@ std::optional<PkPointF> KoPointerEvent::fetchGlobalPositionFromPointerEvent(QEve
     return std::nullopt;
 }
 
-#include <KoPointerEvent.moc>
 // [migrate] missing include for Pk/Qt type
 #include <PkList.h>

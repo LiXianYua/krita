@@ -189,7 +189,7 @@ protected:
 
     friend class TransformShapeLayerDeferred;
 
-Q_SIGNALS:
+public:
     /**
      * These signals are forwarded from the local shape manager
      * This is done because we switch KoShapeManager and therefore
@@ -201,7 +201,7 @@ Q_SIGNALS:
     void selectionChanged();
     void currentLayerChanged(const KoShapeLayer *layer);
 
-Q_SIGNALS:
+public:
     /**
      * A signal + slot to synchronize UI and image
      * threads. Image thread emits the signal, UI
@@ -209,7 +209,7 @@ Q_SIGNALS:
      */
     void sigMoveShapes(const PkPointF &diff);
 
-private Q_SLOTS:
+private:
     void slotMoveShapes(const PkPointF &diff);
     void slotTransformShapes(const PkTransform &transform);
     void slotImageResolutionChanged();

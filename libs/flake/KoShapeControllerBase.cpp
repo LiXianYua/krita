@@ -8,6 +8,8 @@
 
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 #include <PkTransform.h>
 
 #include "KoShapeControllerBase.h"
@@ -15,9 +17,6 @@
 #include "KoShapeRegistry.h"
 #include "KoShapeFactoryBase.h"
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
 #include <kundo2command.h>
 
 class KoshapeControllerBasePrivate
@@ -32,8 +31,8 @@ public:
             shapeFactory->newDocumentResourceManager(resourceManager);
         }
         // read persistent application wide resources
-        KSharedConfigPtr config =  KSharedConfig::openConfig();
-        KConfigGroup miscGroup = config->group("Misc");
+        PkSharedConfig *config = PkSharedConfig::openConfig();
+        PkConfigGroup miscGroup = config->group("Misc");
         const uint grabSensitivity = miscGroup.readEntry("GrabSensitivity", 10);
         resourceManager->setGrabSensitivity(grabSensitivity);
     }

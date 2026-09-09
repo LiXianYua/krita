@@ -6,6 +6,7 @@
 
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
+#include <PkSharedConfig.h>
 #include "KoPencilTool.h"
 #include "KoCurveFit.h"
 
@@ -19,7 +20,7 @@
 // KoUnit.h 是剥离头，显式 `#include <compat/QFlags>` 拉进 pk 垫片（垫片顶部已
 // push_macro 保存进入前的宏状态）。本 TU 是 real-Qt-first：垫片在 KoUnit.h 内部
 // 消费完即 pop 恢复真 Qt 宏（QFlags 类 + Q_DECLARE_FLAGS 等函数式宏），让后续
-// real-Qt 头（KoPathPoint.h / KoSnapGuide.h / KSharedConfig）保持真 QFlags，
+// real-Qt 头（KoPathPoint.h / KoSnapGuide.h）保持真 QFlags，
 // 命中 Q-mangled 定义而非 PkFlags。
 #pragma pop_macro("QFlags")
 #pragma pop_macro("Q_DECLARE_FLAGS")
@@ -184,7 +185,7 @@ void KoPencilTool::activate(const PkSet<KoShape*> &shapes)
     m_close = false;
     slotUpdatePencilCursor();
 
-    m_configGroup =  KSharedConfig::openConfig()->group(toQString(toolId()));
+    m_configGroup = PkSharedConfig::openConfig()->group(toolId());
 }
 
 void KoPencilTool::deactivate()

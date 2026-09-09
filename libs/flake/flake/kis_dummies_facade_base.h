@@ -9,6 +9,7 @@
 
 #include <QtMath>
 #include <QObject>
+#include <PkObject.h>
 
 #include "kis_types.h"
 #include "kritashapemodel_export.h"
@@ -24,10 +25,8 @@ class KisNodeDummy;
  * when a node is removed/deleted.
  */
 
-class KRITASHAPEMODEL_EXPORT KisDummiesFacadeBase : public QObject
+class KRITASHAPEMODEL_EXPORT KisDummiesFacadeBase : public QObject, public PkObject
 {
-    Q_OBJECT
-
 public:
     KisDummiesFacadeBase(QObject *parent = 0);
     ~KisDummiesFacadeBase() override;
@@ -62,7 +61,7 @@ protected:
     virtual void addNodeImpl(KisNodeSP node, KisNodeSP parent, KisNodeSP aboveThis) = 0;
     virtual void removeNodeImpl(KisNodeSP node) = 0;
 
-Q_SIGNALS:
+public:
     /**
      * The signals for controlling the node model
      */
@@ -83,7 +82,7 @@ Q_SIGNALS:
      */
     void sigActivateNode(KisNodeSP node);
 
-private Q_SLOTS:
+private:
     void slotLayersChanged();
     void slotNodeChanged(KisNodeSP node);
 

@@ -11,6 +11,7 @@
 #include "kritaflake_export.h"
 
 #include <QObject>
+#include <PkObject.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkString.h>
 // [migrate] missing include for Pk/Qt type
@@ -58,9 +59,8 @@ enum class KoPointerInputSource {
  * which will transparently be routed to the active tool.  Without the application
  * having to bother about which tool is active.
  */
-class KRITAFLAKE_EXPORT KoToolProxy : public QObject
+class KRITAFLAKE_EXPORT KoToolProxy : public QObject, public PkObject
 {
-    Q_OBJECT
 public:
     /**
      * Constructor
@@ -166,7 +166,7 @@ public:
     /// \internal
     KoToolProxyPrivate *priv();
 
-protected Q_SLOTS:
+protected:
     /// Forwarded to the current KoToolBase
     void requestUndoDuringStroke();
 
@@ -179,7 +179,7 @@ protected Q_SLOTS:
     /// Forwarded to the current KoToolBase
     void requestStrokeEnd();
 
-Q_SIGNALS:
+public:
     /**
      * A tool can have a selection that is copy-able, this signal is emitted when that status changes.
      * @param hasSelection is true when the tool holds selected data.
@@ -200,9 +200,6 @@ protected:
     int multiClickCount() const;
 
 private:
-    Q_PRIVATE_SLOT(d, void timeout())
-    Q_PRIVATE_SLOT(d, void selectionChanged(bool))
-
     void countMultiClick(KoPointerEvent *ev, KoPointerInputSource source);
 
     friend class KoToolProxyPrivate;
@@ -210,7 +207,3 @@ private:
 };
 
 #endif // _KO_TOOL_PROXY_H_
-
-// S-09-g：Q_PRIVATE_SLOT(d, …) 的独立 automoc 编译单元需要完整 Private。
-// 放在类定义之后（本头自底向上可见），include 顺序两种都由 include-guard 兜底。
-#include "KoToolProxy_p.h"

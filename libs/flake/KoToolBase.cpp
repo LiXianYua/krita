@@ -32,7 +32,6 @@
 #include <PkXmlElement.h>
 #include <QApplication>
 
-#include <QKeyEvent>
 #include <QInputMethodEvent>
 #include <QFocusEvent>
 
@@ -113,24 +112,6 @@ void KoToolBase::mouseTripleClickEvent(KoPointerEvent *event)
     event->ignore();
 }
 
-void KoToolBase::keyPressEvent(QKeyEvent *e)
-{
-    PkToolKeyEvent event(static_cast<Pk::Key>(e->key()),
-                         Pk::KeyboardModifiers(PkFlag(static_cast<int>(e->modifiers()))),
-                         e->isAccepted());
-    pkKeyPressEvent(&event);
-    event.isAccepted() ? e->accept() : e->ignore();
-}
-
-void KoToolBase::keyReleaseEvent(QKeyEvent *e)
-{
-    PkToolKeyEvent event(static_cast<Pk::Key>(e->key()),
-                         Pk::KeyboardModifiers(PkFlag(static_cast<int>(e->modifiers()))),
-                         e->isAccepted());
-    pkKeyReleaseEvent(&event);
-    event.isAccepted() ? e->accept() : e->ignore();
-}
-
 void KoToolBase::pkKeyPressEvent(PkToolKeyEvent *e)
 {
     e->ignore();
@@ -168,8 +149,9 @@ PkVariant KoToolBase::inputMethodQuery(Pk::InputMethodQuery query) const
 void KoToolBase::inputMethodEvent(QInputMethodEvent * event)
 {
     if (! event->commitString().isEmpty()) {
-        QKeyEvent ke(QEvent::KeyPress, -1, QFlags<Qt::KeyboardModifier>(), event->commitString());
-        keyPressEvent(&ke);
+        PkToolKeyEvent keyEvent(static_cast<Pk::Key>(-1), Pk::NoModifier, false,
+                                false, toPkString(event->commitString()));
+        pkKeyPressEvent(&keyEvent);
     }
     event->accept();
 }
@@ -504,4 +486,34 @@ void KoToolBase::updateOptionsWidgetIcons()
 {
     Q_D(KoToolBase);
     Q_UNUSED(d);
+}
+
+void KoToolBase::activateTool(const PkString &id)
+{
+    activateSignal<const PkString &>(
+        this, PkMemberFnKey::from(&KoToolBase::activateTool), id);
+}
+
+void KoToolBase::cursorChanged(const QCursor &cursor)
+{
+    activateSignal<const QCursor &>(
+        this, PkMemberFnKey::from(&KoToolBase::cursorChanged), cursor);
+}
+
+void KoToolBase::selectionChanged(bool hasSelection)
+{
+    activateSignal<bool>(
+        this, PkMemberFnKey::from(&KoToolBase::selectionChanged), hasSelection);
+}
+
+void KoToolBase::statusTextChanged(const PkString &statusText)
+{
+    activateSignal<const PkString &>(
+        this, PkMemberFnKey::from(&KoToolBase::statusTextChanged), statusText);
+}
+
+void KoToolBase::textModeChanged(bool inTextMode)
+{
+    activateSignal<bool>(
+        this, PkMemberFnKey::from(&KoToolBase::textModeChanged), inTextMode);
 }

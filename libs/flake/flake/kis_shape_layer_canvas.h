@@ -33,7 +33,6 @@ class KoColorSpace;
 
 class KRITASHAPEMODEL_EXPORT KisShapeLayerCanvasBase : public KoCanvasBase
 {
-    Q_OBJECT
 public:
     KisShapeLayerCanvasBase(KisShapeLayer *parent);
     KisShapeLayerCanvasBase(const KisShapeLayerCanvasBase &rhs, KisShapeLayer *parent);
@@ -82,7 +81,6 @@ protected:
  */
 class KisShapeLayerCanvas : public KisShapeLayerCanvasBase
 {
-    Q_OBJECT
 public:
 
     KisShapeLayerCanvas(const KoColorSpace *cs, KisDefaultBoundsBaseSP defaultBounds, KisShapeLayer *parent);
@@ -105,7 +103,7 @@ public:
     void rerenderAfterBeingInvisible() override;
 
 
-private Q_SLOTS:
+private:
     friend class KisRepaintShapeLayerLayerJob;
     void repaint();
     void slotStartAsyncRepaint();

@@ -25,7 +25,6 @@
  */
 class KRITASHAPEMODEL_EXPORT KisNodeShape : public QObject, public KoShapeLayer
 {
-    Q_OBJECT
 public:
     KisNodeShape(KisNodeSP node);
     ~KisNodeShape() override;
@@ -38,7 +37,7 @@ public:
     void setPosition(const PkPointF &) override;
     void paint(PkPainter &painter) const override;
 
-private Q_SLOTS:
+private:
     void editabilityChanged();
 
 private:

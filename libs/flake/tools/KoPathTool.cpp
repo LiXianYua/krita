@@ -741,20 +741,19 @@ void KoPathTool::mouseReleaseEvent(KoPointerEvent *event)
     }
 }
 
-void KoPathTool::keyPressEvent(QKeyEvent *event)
+void KoPathTool::pkKeyPressEvent(PkToolKeyEvent *event)
 {
     if (m_currentStrategy) {
         switch (event->key()) {
-        case Qt::Key_Control:
-        case Qt::Key_Alt:
-        case Qt::Key_Shift:
-        case Qt::Key_Meta:
+        case Pk::Key_Control:
+        case Pk::Key_Alt:
+        case Pk::Key_Shift:
+        case Pk::Key_Meta:
             if (! event->isAutoRepeat()) {
-                m_currentStrategy->handleMouseMove(
-                    m_lastPoint, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+                m_currentStrategy->handleMouseMove(m_lastPoint, event->modifiers());
             }
             break;
-        case Qt::Key_Escape:
+        case Pk::Key_Escape:
             m_currentStrategy->cancelInteraction();
             m_currentStrategy.reset();
             break;
@@ -781,14 +780,14 @@ void KoPathTool::keyPressEvent(QKeyEvent *event)
     event->accept();
 }
 
-void KoPathTool::keyReleaseEvent(QKeyEvent *event)
+void KoPathTool::pkKeyReleaseEvent(PkToolKeyEvent *event)
 {
     if (m_currentStrategy) {
         switch (event->key()) {
-        case Qt::Key_Control:
-        case Qt::Key_Alt:
-        case Qt::Key_Shift:
-        case Qt::Key_Meta:
+        case Pk::Key_Control:
+        case Pk::Key_Alt:
+        case Pk::Key_Shift:
+        case Pk::Key_Meta:
             if (! event->isAutoRepeat()) {
                 m_currentStrategy->handleMouseMove(m_lastPoint, Pk::NoModifier);
             }

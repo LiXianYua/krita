@@ -13,6 +13,7 @@
 #include <QTouchEvent>
 #include <QClipboard>
 #include <QEvent>
+#include <QKeyEvent>
 
 #include <PkThreadCallQueue.h>
 
@@ -332,18 +333,30 @@ void KoToolProxy::mouseReleaseEvent(KoPointerEvent* event)
 
 void KoToolProxy::keyPressEvent(QKeyEvent *event)
 {
-    if (d->activeTool)
-        d->activeTool->keyPressEvent(event);
-    else
+    if (d->activeTool) {
+        PkToolKeyEvent nativeEvent(
+            static_cast<Pk::Key>(event->key()),
+            Pk::KeyboardModifiers(PkFlag(static_cast<int>(event->modifiers()))),
+            event->isAccepted(), event->isAutoRepeat(), toPkString(event->text()));
+        d->activeTool->pkKeyPressEvent(&nativeEvent);
+        nativeEvent.isAccepted() ? event->accept() : event->ignore();
+    } else {
         event->ignore();
+    }
 }
 
 void KoToolProxy::keyReleaseEvent(QKeyEvent *event)
 {
-    if (d->activeTool)
-        d->activeTool->keyReleaseEvent(event);
-    else
+    if (d->activeTool) {
+        PkToolKeyEvent nativeEvent(
+            static_cast<Pk::Key>(event->key()),
+            Pk::KeyboardModifiers(PkFlag(static_cast<int>(event->modifiers()))),
+            event->isAccepted(), event->isAutoRepeat(), toPkString(event->text()));
+        d->activeTool->pkKeyReleaseEvent(&nativeEvent);
+        nativeEvent.isAccepted() ? event->accept() : event->ignore();
+    } else {
         event->ignore();
+    }
 
     d->isToolPressed = false;
 }
@@ -390,17 +403,29 @@ KisPopupWidgetInterface* KoToolProxy::popupWidget()
 void KoToolProxy::setActiveTool(KoToolBase *tool)
 {
     if (d->activeTool) {
-        QObject::disconnect(d->activeTool, &KoToolBase::selectionChanged, this, static_cast<void**>(nullptr));
+        PkObject::disconnect(d->activeTool, nullptr, this, nullptr);
     }
 
     d->activeTool = tool;
 
     if (tool) {
-        QObject::connect(d->activeTool, &KoToolBase::selectionChanged, this,
+        PkObject::connect(d->activeTool, &KoToolBase::selectionChanged, this,
                 [this](bool hasSelection) { d->selectionChanged(hasSelection); });
         d->selectionChanged(hasSelection());
         Q_EMIT toolChanged(tool->toolId());
     }
+}
+
+void KoToolProxy::selectionChanged(bool hasSelection)
+{
+    activateSignal<bool>(
+        this, PkMemberFnKey::from(&KoToolProxy::selectionChanged), hasSelection);
+}
+
+void KoToolProxy::toolChanged(const PkString &toolId)
+{
+    activateSignal<const PkString &>(
+        this, PkMemberFnKey::from(&KoToolProxy::toolChanged), toolId);
 }
 
 void KoToolProxy::touchEvent(QTouchEvent* event, const PkPointF& point)

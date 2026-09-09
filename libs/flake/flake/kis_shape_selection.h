@@ -6,7 +6,7 @@
 #ifndef KIS_SHAPE_SELECTION_H
 #define KIS_SHAPE_SELECTION_H
 
-#include <PkPainterPath.h>
+#include <PkObject.h>
 #include <PkPainterPath.h>
 #include <PkRect.h>
 #include <PkTransform.h>
@@ -29,10 +29,8 @@ class KisShapeSelectionModel;
 class KisImageViewConverter;
 class KUndo2Command;
 
-class KRITASHAPEMODEL_EXPORT KisShapeSelection : public QObject, public KoShapeLayer, public KisSelectionComponent
+class KRITASHAPEMODEL_EXPORT KisShapeSelection : public QObject, public PkObject, public KoShapeLayer, public KisSelectionComponent
 {
-    Q_OBJECT
-
     KisShapeSelection(const KisShapeSelection& rhs);
 public:
 
@@ -72,10 +70,10 @@ public:
 
     void setResolutionProxy(KisImageResolutionProxySP resolutionProxy ) override;
 
-Q_SIGNALS:
+public:
     void sigMoveShapes(const PkPointF &diff);
 
-private Q_SLOTS:
+private:
     void slotMoveShapes(const PkPointF &diff);
 
 protected:

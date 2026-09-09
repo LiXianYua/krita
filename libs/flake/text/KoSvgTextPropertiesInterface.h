@@ -7,6 +7,7 @@
 #define KOSVGTEXTPROPERTIESINTERFACE_H
 
 #include <QObject>
+#include <PkObject.h>
 #include <KoSvgTextProperties.h>
 #include <kritaflake_export.h>
 
@@ -16,9 +17,8 @@
  * This is an interface that can be used by tools to communicate
  * with the KisTextPropertiesManager.
  */
-class KRITAFLAKE_EXPORT KoSvgTextPropertiesInterface : public QObject
+class KRITAFLAKE_EXPORT KoSvgTextPropertiesInterface : public QObject, public PkObject
 {
-    Q_OBJECT
 public:
     explicit KoSvgTextPropertiesInterface(QObject *parent = nullptr): QObject(parent){}
 
@@ -67,12 +67,20 @@ public:
 
     /// Whether character selections are possible at all.
     virtual bool characterPropertiesEnabled() = 0;
-Q_SIGNALS:
+public:
     /// Emit to signal to KisTextPropertiesManager to call getSelectedProperties
-    void textSelectionChanged();
+    void textSelectionChanged()
+    {
+        activateSignal<>(this,
+                         PkMemberFnKey::from(&KoSvgTextPropertiesInterface::textSelectionChanged));
+    }
     /// Emit to signal to KisTextPropertiesManager to call getCharacterProperties
     /// and getInheritedProperties.
-    void textCharacterSelectionChanged();
+    void textCharacterSelectionChanged()
+    {
+        activateSignal<>(this,
+                         PkMemberFnKey::from(&KoSvgTextPropertiesInterface::textCharacterSelectionChanged));
+    }
 };
 
 

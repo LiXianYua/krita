@@ -494,13 +494,13 @@ void KoToolManager::Private::setup()
 void KoToolManager::Private::connectActiveTool()
 {
     if (canvasData->activeTool) {
-        QObject::connect(canvasData->activeTool, &KoToolBase::cursorChanged, q,
+        PkObject::connect(canvasData->activeTool, &KoToolBase::cursorChanged, q,
                 [this](const QCursor &cursor) { this->updateCursor(cursor); });
-        QObject::connect(canvasData->activeTool, &KoToolBase::activateTool, q,
+        PkObject::connect(canvasData->activeTool, &KoToolBase::activateTool, q,
                 [this](const PkString &id) { q->switchToolRequested(id); });
-        QObject::connect(canvasData->activeTool, &KoToolBase::statusTextChanged, q,
+        PkObject::connect(canvasData->activeTool, &KoToolBase::statusTextChanged, q,
                 [this](const PkString &statusText) { q->changedStatusText(statusText); });
-        QObject::connect(canvasData->activeTool, &KoToolBase::textModeChanged, q,
+        PkObject::connect(canvasData->activeTool, &KoToolBase::textModeChanged, q,
                 [this](bool inTextMode) { q->textModeChanged(inTextMode); });
 
         {

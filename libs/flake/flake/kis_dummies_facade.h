@@ -20,8 +20,6 @@
 
 class KRITASHAPEMODEL_EXPORT KisDummiesFacade : public KisDummiesFacadeBase
 {
-    Q_OBJECT
-
 public:
     KisDummiesFacade(QObject *parent = 0);
     ~KisDummiesFacade() override;

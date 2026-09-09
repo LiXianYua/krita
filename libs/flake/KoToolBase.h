@@ -50,19 +50,30 @@ class QMenu;
 class KRITAFLAKE_EXPORT PkToolKeyEvent
 {
 public:
-    PkToolKeyEvent(Pk::Key key, Pk::KeyboardModifiers modifiers, bool accepted)
-        : m_key(key), m_modifiers(modifiers), m_accepted(accepted) {}
+    PkToolKeyEvent(Pk::Key key, Pk::KeyboardModifiers modifiers, bool accepted,
+                   bool autoRepeat = false, const PkString &text = PkString())
+        : m_key(key)
+        , m_modifiers(modifiers)
+        , m_accepted(accepted)
+        , m_autoRepeat(autoRepeat)
+        , m_text(text)
+    {
+    }
 
     Pk::Key key() const { return m_key; }
     Pk::KeyboardModifiers modifiers() const { return m_modifiers; }
     void accept() { m_accepted = true; }
     void ignore() { m_accepted = false; }
     bool isAccepted() const { return m_accepted; }
+    bool isAutoRepeat() const { return m_autoRepeat; }
+    const PkString &text() const { return m_text; }
 
 private:
     Pk::Key m_key;
     Pk::KeyboardModifiers m_modifiers;
     bool m_accepted;
+    bool m_autoRepeat;
+    PkString m_text;
 };
 
 /**
@@ -76,7 +87,6 @@ private:
  */
 class KRITAFLAKE_EXPORT KoToolBase : public QObject, public PkObject
 {
-    Q_OBJECT
 public:
     /**
      * Constructor, normally only called by the factory (see KoToolFactoryBase)
@@ -174,7 +184,6 @@ public:
      * Default implementation ignores this event.
      * @param event state and reason of this key press
      */
-    virtual void keyPressEvent(QKeyEvent *event);
     virtual void pkKeyPressEvent(PkToolKeyEvent *event);
 
     /**
@@ -183,7 +192,6 @@ public:
      * Default implementation ignores this event.
      * @param event state and reason of this key release
      */
-    virtual void keyReleaseEvent(QKeyEvent *event);
     virtual void pkKeyReleaseEvent(PkToolKeyEvent *event);
 
     /**
@@ -266,7 +274,7 @@ public:
      * @return the toolId.
      * @see KoToolFactoryBase::id()
      */
-    Q_INVOKABLE PkString toolId() const;
+    PkString toolId() const;
 
     /// return the last emitted cursor
     QCursor cursor() const;
@@ -382,7 +390,7 @@ public:
      */
     int decorationThickness() const;
 
-public Q_SLOTS:
+public:
 
     /**
      * Called when the user requested undo while the stroke is
@@ -469,7 +477,7 @@ public Q_SLOTS:
      */
     void updateOptionsWidgetIcons();
 
-Q_SIGNALS:
+public:
 
     /**
      * Emitted when this tool wants itself to be replaced by another tool.

@@ -18,16 +18,20 @@
 #include "KoUnit.h"
 #include "KoViewConverter.h"
 #include "KoShapeManager.h"
+#include "KoShapeFactoryBase.h"
+#include "KoShapeUserData.h"
 #include "KoSelectedShapesProxySimple.h"
 #include "KoPathShape.h"
 #include "KoPointerEvent.h"
 #include "tools/KoPathTool.h"
 #include "tools/KoCreatePathTool.h"
 #include "tools/KoPathToolSelection.h"
+#include "KoToolSelection.h"
 #include "tools/KoPencilTool.h"
 #include "tools/KoInteractionTool.h"
 #include "tools/KoZoomTool.h"
 #include "shapes/RectangleShape.h"
+#include "text/KoSvgTextPropertiesInterface.h"
 #include "commands/KoParameterHandleMoveCommand.h"
 
 #include <vector>
@@ -218,6 +222,20 @@ public:
     void setNativeShortcut(const PkKeySequence &shortcut) { setShortcut(shortcut); }
 };
 
+class NativeTextPropertiesInterface final : public KoSvgTextPropertiesInterface
+{
+public:
+    PkList<KoSvgTextProperties> getSelectedProperties() override { return {}; }
+    PkList<KoSvgTextProperties> getCharacterProperties() override { return {}; }
+    KoSvgTextProperties getInheritedProperties() override { return {}; }
+    void setPropertiesOnSelected(KoSvgTextProperties,
+                                 PkSet<KoSvgTextProperties::PropertyId>) override {}
+    void setCharacterPropertiesOnSelected(KoSvgTextProperties,
+                                          PkSet<KoSvgTextProperties::PropertyId>) override {}
+    bool spanSelection() override { return false; }
+    bool characterPropertiesEnabled() override { return true; }
+};
+
 // Taking the member address without a cast fails if a second dispatch overload returns.
 static_assert(std::is_same_v<decltype(&KoToolProxy::paint),
                             void (KoToolProxy::*)(PkPainter &, const KoViewConverter &)>);
@@ -240,6 +258,20 @@ static_assert(std::is_same_v<decltype(&KoZoomTool::pkKeyPressEvent),
                             void (KoZoomTool::*)(PkToolKeyEvent *)>);
 static_assert(std::is_same_v<decltype(&KoZoomTool::pkKeyReleaseEvent),
                             void (KoZoomTool::*)(PkToolKeyEvent *)>);
+static_assert(std::is_same_v<decltype(&KoCanvasBase::qt_metacall),
+                            decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KoShapeFactoryBase::qt_metacall),
+                            decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KoShapeUserData::qt_metacall),
+                            decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KoToolBase::qt_metacall),
+                            decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KoToolSelection::qt_metacall),
+                            decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KoToolProxy::qt_metacall),
+                            decltype(&QObject::qt_metacall)>);
+static_assert(std::is_same_v<decltype(&KoSvgTextPropertiesInterface::qt_metacall),
+                            decltype(&QObject::qt_metacall)>);
 }
 
 class KoToolProxyPkPainterTest : public QObject
@@ -372,6 +404,83 @@ private Q_SLOTS:
 
         QCOMPARE(status, PkString("native-status"));
         QCOMPARE(notifications, 1);
+    }
+
+    void toolBaseNotificationsUseNativeSignalDelivery()
+    {
+        MinimalShapeController controller;
+        MinimalCanvas canvas(&controller);
+        PkOnlyTool tool(&canvas);
+        PkObject receiver;
+        PkString status;
+        bool hasSelection = false;
+        int notifications = 0;
+        PkObject::connect(&tool, &KoToolBase::statusTextChanged,
+                          &receiver, [&](const PkString &value) {
+            status = value;
+            ++notifications;
+        });
+        PkObject::connect(&tool, &KoToolBase::selectionChanged,
+                          &receiver, [&](bool value) {
+            hasSelection = value;
+            ++notifications;
+        });
+
+        tool.statusTextChanged("native-tool-status");
+        tool.selectionChanged(true);
+
+        QCOMPARE(status, PkString("native-tool-status"));
+        QVERIFY(hasSelection);
+        QCOMPARE(notifications, 2);
+    }
+
+    void toolProxyNotificationsUseNativeSignalDelivery()
+    {
+        MinimalShapeController controller;
+        MinimalCanvas canvas(&controller);
+        TestToolProxy proxy(&canvas);
+        PkOnlyTool tool(&canvas);
+        PkObject receiver;
+        PkString toolId;
+        int notifications = 0;
+        PkObject::connect(&proxy, &KoToolProxy::toolChanged,
+                          &receiver, [&](const PkString &value) {
+            toolId = value;
+            ++notifications;
+        });
+
+        proxy.setActiveTool(&tool);
+
+        QCOMPARE(toolId, tool.toolId());
+        QCOMPARE(notifications, 1);
+    }
+
+    void nativeKeyEventPreservesAutoRepeatState()
+    {
+        PkToolKeyEvent event(Pk::Key_A, Pk::ControlModifier, false, true, "a");
+        QCOMPARE(event.key(), Pk::Key_A);
+        QCOMPARE(event.modifiers(), Pk::ControlModifier);
+        QVERIFY(event.isAutoRepeat());
+        QCOMPARE(event.text(), PkString("a"));
+        QVERIFY(!event.isAccepted());
+    }
+
+    void textPropertyNotificationsUseNativeSignalDelivery()
+    {
+        NativeTextPropertiesInterface interface;
+        PkObject receiver;
+        int selectionChanges = 0;
+        int characterChanges = 0;
+        PkObject::connect(&interface, &KoSvgTextPropertiesInterface::textSelectionChanged,
+                          &receiver, [&] { ++selectionChanges; });
+        PkObject::connect(&interface, &KoSvgTextPropertiesInterface::textCharacterSelectionChanged,
+                          &receiver, [&] { ++characterChanges; });
+
+        interface.textSelectionChanged();
+        interface.textCharacterSelectionChanged();
+
+        QCOMPARE(selectionChanges, 1);
+        QCOMPARE(characterChanges, 1);
     }
 
     void createPathToolGuiNotificationUsesNativeSignalDelivery()

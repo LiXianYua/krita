@@ -10,11 +10,12 @@
 #include <simpletest.h>
 
 #include "empty_nodes_test.h"
+#include <PkObject.h>
 
 class KisNodeDummy;
 class KisDummiesFacadeBase;
 
-class KisDummiesFacadeBaseTest : public QObject, public TestUtil::EmptyNodesTest
+class KisDummiesFacadeBaseTest : public QObject, public PkObject, public TestUtil::EmptyNodesTest
 {
     Q_OBJECT
 

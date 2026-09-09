@@ -31,7 +31,6 @@
  */
 class KRITAFLAKE_EXPORT KoShapeUserData : public QObject
 {
-    Q_OBJECT
 public:
     /// Constructor
     explicit KoShapeUserData(QObject *parent = 0);

@@ -72,7 +72,6 @@ public:
  */
 class KRITAFLAKE_EXPORT KoShapeFactoryBase : public QObject
 {
-    Q_OBJECT
 public:
 
     /**
@@ -253,7 +252,7 @@ private:
 
     void getDeferredPlugin();
 
-private Q_SLOTS:
+private:
 
     /// called whenever a document KoDocumentResourceManager is deleted
     void pruneDocumentResourceManager(QObject *);

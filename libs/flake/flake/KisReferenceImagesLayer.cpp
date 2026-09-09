@@ -22,7 +22,6 @@
 
 class ReferenceImagesCanvas : public KisShapeLayerCanvasBase
 {
-    Q_OBJECT
 public:
     ReferenceImagesCanvas(const KoColorSpace *cs, KisDefaultBoundsBaseSP defaultBounds, KisReferenceImagesLayer *parent)
         : KisShapeLayerCanvasBase(parent)
@@ -75,7 +74,7 @@ public:
     KisPaintDeviceSP projection() const override {
         return m_fallbackProjection;
     }
-private Q_SLOTS:
+private:
     void slotAsyncRepaint() {
         PkRectF r = viewConverter()->documentToView(m_dirtyRect);
         m_layer->signalUpdate(r);
@@ -189,5 +188,3 @@ PkColor KisReferenceImagesLayer::getPixel(PkPointF position) const
 
     return PkColor();
 }
-
-#include "KisReferenceImagesLayer.moc"

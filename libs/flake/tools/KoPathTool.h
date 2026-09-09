@@ -46,8 +46,8 @@ public:
     void mousePressEvent(KoPointerEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event) override;
     void mouseReleaseEvent(KoPointerEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
+    void pkKeyPressEvent(PkToolKeyEvent *event) override;
+    void pkKeyReleaseEvent(PkToolKeyEvent *event) override;
     void mouseDoubleClickEvent(KoPointerEvent *event) override;
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;

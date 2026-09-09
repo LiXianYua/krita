@@ -7,13 +7,12 @@
 
 #include "KoZoomMode.h"
 #include <PkFlakeBridge.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <QDebug>
 
 #include <klocalizedstring.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
-
 #include <cmath>
 #include "kis_assert.h"
 // [migrate] missing include for Pk/Qt type
@@ -38,7 +37,7 @@ PkString KoZoomMode::toString(Mode mode)
 
 PkVector<qreal> KoZoomMode::generateStandardZoomLevels(qreal minZoom, qreal maxZoom)
 {
-    KConfigGroup config = KSharedConfig::openConfig()->group("");
+    PkConfigGroup config = PkSharedConfig::openConfig()->group("");
     int steps = config.readEntry("zoomSteps", 2);
     qreal k = steps / M_LN2;
 

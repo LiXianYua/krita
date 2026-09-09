@@ -7,12 +7,11 @@
 
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 #include "KoToolRegistry.h"
 
 #include <FlakeDebug.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
-
 #include "tools/KoPathToolFactory.h"
 #include "tools/KoZoomTool.h"
 #include "tools/KoZoomToolFactory.h"
@@ -37,11 +36,8 @@ void KoToolRegistry::init()
     KoToolFactoryBase *zoomToolFactory = new KoZoomToolFactory();
     add(toPkString(zoomToolFactory->id()), zoomToolFactory);
 
-    KConfigGroup cfg =  KSharedConfig::openConfig()->group("krita");
-    const QStringList defaultBlacklist = toQStringList(PkStringList());
-    const QStringList blacklistEntries = cfg.readEntry("ToolsBlacklist", defaultBlacklist);
-    PkStringList toolsBlacklist;
-    for (const QString &entry : blacklistEntries) toolsBlacklist.append(toPkString(entry));
+    PkConfigGroup cfg = PkSharedConfig::openConfig()->group("krita");
+    const PkStringList toolsBlacklist = cfg.readEntry("ToolsBlacklist", PkStringList());
     foreach (const PkString& toolID, toolsBlacklist) {
         delete value(toPkString(toolID));
         remove(toPkString(toolID));

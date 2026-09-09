@@ -21,7 +21,6 @@ class KisShapeSelection;
  */
 class KisShapeSelectionModel: public QObject, public KoShapeContainerModel
 {
-    Q_OBJECT
 public:
     KisShapeSelectionModel(KisImageResolutionProxySP resolutionProxy, KisSelectionWSP selection, KisShapeSelection* shapeSelection);
     ~KisShapeSelectionModel() override;
@@ -47,7 +46,7 @@ public:
     void setResolutionProxy(KisImageResolutionProxySP newResolutionProxy);
     KisImageResolutionProxySP resolutionProxy() const;
 
-private Q_SLOTS:
+private:
     void requestUpdate(const PkRect &updateRect);
 
 private:

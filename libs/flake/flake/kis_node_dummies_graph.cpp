@@ -59,7 +59,7 @@ KisNodeDummy* KisNodeDummy::prevSibling() const
 
 KisNodeDummy* KisNodeDummy::parent() const
 {
-    return qobject_cast<KisNodeDummy*>(QObject::parent());
+    return static_cast<KisNodeDummy*>(QObject::parent());
 }
 
 KisNodeShape* KisNodeDummy::nodeShape() const
