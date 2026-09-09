@@ -24,7 +24,6 @@ target_include_directories(krita_karbontools PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/color
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/geometry
-    ${CMAKE_SOURCE_DIR}/pk/global
     ${CMAKE_SOURCE_DIR}/pk/pointer
     ${CMAKE_SOURCE_DIR}/pk/render
     ${CMAKE_SOURCE_DIR}/pk/string

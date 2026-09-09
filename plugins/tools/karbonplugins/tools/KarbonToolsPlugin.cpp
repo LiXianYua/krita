@@ -16,7 +16,7 @@
 
 void registerKarbonTools()
 {
-    karbonToolsResourceAnchor();
+    registerKarbonToolsResources();
 
     static std::once_flag once;
     std::call_once(once, [] {

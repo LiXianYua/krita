@@ -8,11 +8,16 @@
 
 struct KarbonToolsResource
 {
+    const char *iconName;
+    const char *legacyPath;
     const unsigned char *data;
     std::size_t size;
 };
 
+using KarbonToolsResourceRegistrar = void (*)(const KarbonToolsResource &resource);
+
 KarbonToolsResource karbonCalligraphyIconPng();
-void karbonToolsResourceAnchor();
+void setKarbonToolsResourceRegistrar(KarbonToolsResourceRegistrar registrar);
+void registerKarbonToolsResources();
 
 #endif

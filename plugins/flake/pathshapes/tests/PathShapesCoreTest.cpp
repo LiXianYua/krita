@@ -24,14 +24,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <memory>
 
 namespace
 {
-bool closeEnough(double lhs, double rhs)
+bool closeEnough(double lhs, double rhs, double tolerance = 1e-12)
 {
-    return std::abs(lhs - rhs) < 1e-12;
+    return std::abs(lhs - rhs) < tolerance;
 }
 
 int rectangleClonePreservesClampedGeometry()
@@ -204,6 +205,54 @@ int realEllipseSaveSvgPreservesAttributes()
     return 0;
 }
 
+double attributeNumber(const KoXmlWriter &writer, const PkString &name)
+{
+    return std::strtod(writer.attribute(name).PkToUtf8().c_str(), nullptr);
+}
+
+int nonDefaultEllipseSerializationRoundTrips()
+{
+    EllipseShape source;
+    source.setSize(PkSizeF(160.0, 90.0));
+    source.setType(EllipseShape::Chord);
+    source.setStartAngle(15.0);
+    source.setEndAngle(275.0);
+
+    SvgSavingContext saveContext;
+    if (!source.saveSvg(saveContext)) return 85;
+    const KoXmlWriter &writer = saveContext.shapeWriter();
+    if (writer.elementName() != "path" || writer.attribute("sodipodi:type") != "arc" ||
+        writer.attribute("sodipodi:arc-type") != "chord" || writer.hasAttribute("sodipodi:open")) return 86;
+    if (!closeEnough(attributeNumber(writer, "sodipodi:rx"), 80.0) ||
+        !closeEnough(attributeNumber(writer, "sodipodi:ry"), 45.0) ||
+        !closeEnough(attributeNumber(writer, "sodipodi:cx"), 79.1553, 1e-4) ||
+        !closeEnough(attributeNumber(writer, "sodipodi:cy"), 44.0703, 1e-4) ||
+        !closeEnough(attributeNumber(writer, "sodipodi:start"), 1.4835298641951802, 1e-5) ||
+        !closeEnough(attributeNumber(writer, "sodipodi:end"), 6.021385919380437, 1e-5)) return 87;
+
+    PkXmlDocument document;
+    PkXmlElement serialized = document.createElement(writer.elementName());
+    const char *attributes[] = {
+        "sodipodi:type", "sodipodi:arc-type", "sodipodi:rx", "sodipodi:ry",
+        "sodipodi:cx", "sodipodi:cy", "sodipodi:start", "sodipodi:end", "d"
+    };
+    for (const char *name : attributes) {
+        serialized.setAttribute(name, writer.attribute(name));
+    }
+
+    EllipseShape restored;
+    SvgLoadingContext loadContext;
+    if (!restored.loadSvg(serialized, loadContext)) return 88;
+    if (restored.type() != EllipseShape::Chord ||
+        !closeEnough(restored.startAngle(), 14.999766197721216, 1e-9) ||
+        !closeEnough(restored.endAngle(), 274.999992218957, 1e-9) ||
+        !closeEnough(restored.size().width(), 156.42949850095027, 1e-5) ||
+        !closeEnough(restored.size().height(), 88.899115093158329, 1e-5) ||
+        !closeEnough(restored.position().x(), 60.160214400642133, 1e-5) ||
+        !closeEnough(restored.position().y(), -4.935041806849668, 1e-5)) return 89;
+    return 0;
+}
+
 PkXmlElement namespacedElement(PkXmlDocument &document,
                                const PkString &prefix,
                                const PkString &localName,
@@ -309,9 +358,11 @@ int registrationIsIdempotentAndComplete()
     const int countAfterFirstCall = registry->count();
     registerPathShapes();
     if (registry->count() != countAfterFirstCall) return 50;
+    if (countAfterFirstCall != 3) return 55;
     if (!registry->contains(StarShapeId)) return 51;
     if (!registry->contains(SpiralShapeId)) return 53;
     if (!registry->contains(EllipseShapeId)) return 54;
+    if (registry->contains(RectangleShapeId)) return 56;
     return 0;
 }
 } // namespace
@@ -334,6 +385,8 @@ int main()
     if (xmlResult) return xmlResult;
     const int svgResult = realEllipseSaveSvgPreservesAttributes();
     if (svgResult) return svgResult;
+    const int roundTripResult = nonDefaultEllipseSerializationRoundTrips();
+    if (roundTripResult) return roundTripResult;
     const int commandResult = configurationCommandsRedoAndUndo();
     if (commandResult) return commandResult;
     return registrationIsIdempotentAndComplete();

@@ -7,8 +7,6 @@
 #ifndef KARBONSIMPLIFYPATH_H
 #define KARBONSIMPLIFYPATH_H
 
-#include <PkGlobal.h>
-
 class KoPathShape;
 
 void karbonSimplifyPath(KoPathShape *path, double error);

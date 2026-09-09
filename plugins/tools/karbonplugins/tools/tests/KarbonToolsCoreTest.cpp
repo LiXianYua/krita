@@ -4,6 +4,7 @@
 
 #include "CalligraphyTool/KarbonCalligraphicShape.h"
 #include "CalligraphyTool/KarbonSimplifyPath.h"
+#include "KarbonToolsPlugin.h"
 #include "KarbonToolsResources.h"
 
 #include <KoPathPoint.h>
@@ -14,12 +15,13 @@
 #include <QImage>
 
 #include <cmath>
+#include <cstring>
 
 namespace
 {
-bool closeEnough(double lhs, double rhs)
+bool closeEnough(double lhs, double rhs, double tolerance = 1e-12)
 {
-    return std::abs(lhs - rhs) < 1e-12;
+    return std::abs(lhs - rhs) < tolerance;
 }
 
 bool pointEquals(const PkPointF &point, double x, double y)
@@ -65,10 +67,100 @@ int simplifyRemovesDuplicateWithoutChangingEndpoints()
     return 0;
 }
 
+int simplifyCurvedPathPreservesFittedGeometry()
+{
+    KoPathShape path;
+    path.moveTo(PkPointF(0.0, 0.0));
+    path.curveTo(PkPointF(0.0, 12.0), PkPointF(10.0, 12.0), PkPointF(10.0, 0.0));
+    path.curveTo(PkPointF(10.0, -12.0), PkPointF(20.0, -12.0), PkPointF(20.0, 0.0));
+    karbonSimplifyPath(&path, 0.3);
+
+    if (path.pointCount() != 6 || path.isClosedSubpath(0)) return 33;
+    const KoPathPoint *first = path.pointByIndex(KoPathPointIndex(0, 0));
+    const KoPathPoint *second = path.pointByIndex(KoPathPointIndex(0, 1));
+    const KoPathPoint *middle = path.pointByIndex(KoPathPointIndex(0, 3));
+    const KoPathPoint *last = path.pointByIndex(KoPathPointIndex(0, 5));
+    if (!pointEquals(first->point(), 0.0, 0.0) || !pointEquals(last->point(), 20.0, 0.0)) return 34;
+    if (!pointEquals(second->point(), 1.9281005859375, 7.27734375)) return 35;
+    if (!pointEquals(middle->point(), 11.5625, -6.75)) return 36;
+    if (!first->activeControlPoint2() || !middle->activeControlPoint1() || !last->activeControlPoint1()) return 37;
+    if (!closeEnough(first->controlPoint2().x(), 0.016246701079696606, 1e-9) ||
+        !closeEnough(first->controlPoint2().y(), 2.4889605809046409, 1e-9) ||
+        !closeEnough(middle->controlPoint1().x(), 8.9474617078288645, 1e-9) ||
+        !closeEnough(middle->controlPoint1().y(), -2.5366795628235703, 1e-9) ||
+        !closeEnough(last->controlPoint1().x(), 19.909235198516509, 1e-9) ||
+        !closeEnough(last->controlPoint1().y(), -1.7047997496029628, 1e-9)) return 38;
+    return 0;
+}
+
+int calligraphyPreservesSmoothingCapsAndFinalSimplification()
+{
+    KarbonCalligraphicShape shape(0.5);
+    shape.appendPoint(PkPointF(0.0, 0.0), 0.20, 4.0);
+    shape.appendPoint(PkPointF(10.0, 4.0), 0.25, 5.0);
+    shape.appendPoint(PkPointF(20.0, 9.0), 0.30, 6.0);
+    shape.appendPoint(PkPointF(30.0, 13.0), 0.35, 7.0);
+    shape.appendPoint(PkPointF(40.0, 10.0), 0.40, 8.0);
+    shape.appendPoint(PkPointF(50.0, 5.0), 0.45, 9.0);
+
+    if (shape.pointCount() != 14 || !shape.isClosedSubpath(0)) return 50;
+    const KoPathPoint *smoothed = shape.pointByIndex(KoPathPointIndex(0, 3));
+    if (!smoothed->activeControlPoint1() || !smoothed->activeControlPoint2()) return 51;
+    if (!closeEnough(smoothed->controlPoint1().x(), 16.56518735263418, 1e-9) ||
+        !closeEnough(smoothed->controlPoint2().y(), 10.487599893932121, 1e-9)) return 52;
+
+    shape.simplifyGuidePath();
+    shape.simplifyPath();
+    if (shape.pointCount() != 12 || !shape.isClosedSubpath(0)) return 53;
+    const KoPathPoint *first = shape.pointByIndex(KoPathPointIndex(0, 0));
+    const KoPathPoint *cap = shape.pointByIndex(KoPathPointIndex(0, 6));
+    const KoPathPoint *last = shape.pointByIndex(KoPathPointIndex(0, 11));
+    if (!pointEquals(first->point(), 0.95040940539945784, 0.31756405019685519) ||
+        !pointEquals(cap->point(), 56.810443015518928, 4.1003177457156461) ||
+        !pointEquals(last->point(), 4.6642660817140644, 1.7985745403763587)) return 54;
+    if (!cap->activeControlPoint1() || !cap->activeControlPoint2() ||
+        !closeEnough(cap->controlPoint1().x(), 54.303193590426531, 1e-9) ||
+        !closeEnough(cap->controlPoint2().y(), 5.2019895182987836, 1e-9) ||
+        !closeEnough(last->controlPoint1().x(), 11.884579238367628, 1e-9)) return 55;
+    return 0;
+}
+
+int calligraphyGuideSimplificationRemovesRedundantSections()
+{
+    KarbonCalligraphicShape shape;
+    for (int i = 0; i < 6; ++i) {
+        shape.appendPoint(PkPointF(i * 10.0, 0.0), 1.57079635, 4.0);
+    }
+    if (shape.pointCount() != 14 || !shape.isClosedSubpath(0)) return 56;
+    shape.simplifyGuidePath();
+    if (shape.pointCount() != 6 || shape.isClosedSubpath(0)) return 57;
+    if (!pointEquals(shape.pointByIndex(KoPathPointIndex(0, 1))->point(),
+                     10.000000092820414, 0.0) ||
+        !pointEquals(shape.pointByIndex(KoPathPointIndex(0, 2))->point(),
+                     50.000000092820407, 0.0) ||
+        !closeEnough(shape.pointByIndex(KoPathPointIndex(0, 1))->controlPoint2().x(),
+                     24.000000092820411, 1e-9)) return 58;
+    return 0;
+}
+
+KarbonToolsResource capturedResource {};
+int capturedResourceCount = 0;
+
+void captureResource(const KarbonToolsResource &resource)
+{
+    capturedResource = resource;
+    ++capturedResourceCount;
+}
+
 int nativeResourcePreservesCalligraphyIcon()
 {
-    const KarbonToolsResource icon = karbonCalligraphyIconPng();
-    if (!icon.data || icon.size == 0) return 40;
+    setKarbonToolsResourceRegistrar(captureResource);
+    registerKarbonTools();
+    setKarbonToolsResourceRegistrar(nullptr);
+    const KarbonToolsResource icon = capturedResource;
+    if (capturedResourceCount != 1 || !icon.data || icon.size == 0) return 40;
+    if (!icon.iconName || std::strcmp(icon.iconName, "calligraphy") != 0 ||
+        !icon.legacyPath || std::strcmp(icon.legacyPath, ":/calligraphy.png") != 0) return 45;
 
     const QByteArray bytes(reinterpret_cast<const char *>(icon.data), int(icon.size));
     if (QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex() !=
@@ -88,5 +180,11 @@ int main()
     if (pointResult) return pointResult;
     const int simplifyResult = simplifyRemovesDuplicateWithoutChangingEndpoints();
     if (simplifyResult) return simplifyResult;
+    const int fittedResult = simplifyCurvedPathPreservesFittedGeometry();
+    if (fittedResult) return fittedResult;
+    const int calligraphyResult = calligraphyPreservesSmoothingCapsAndFinalSimplification();
+    if (calligraphyResult) return calligraphyResult;
+    const int guideResult = calligraphyGuideSimplificationRemovesRedundantSections();
+    if (guideResult) return guideResult;
     return nativeResourcePreservesCalligraphyIcon();
 }

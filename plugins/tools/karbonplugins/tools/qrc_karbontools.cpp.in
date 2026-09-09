@@ -3,6 +3,8 @@
  */
 #include "KarbonToolsResources.h"
 
+#include <atomic>
+
 namespace
 {
 const unsigned char calligraphyIconPng[] = {
@@ -11,13 +13,24 @@ const unsigned char calligraphyIconPng[] = {
 
 static_assert(sizeof(calligraphyIconPng) == @KARBON_CALLIGRAPHY_PNG_SIZE@,
               "generated calligraphy icon size mismatch");
+
+std::atomic<KarbonToolsResourceRegistrar> resourceRegistrar {nullptr};
 }
 
 KarbonToolsResource karbonCalligraphyIconPng()
 {
-    return {calligraphyIconPng, sizeof(calligraphyIconPng)};
+    return {"calligraphy", ":/calligraphy.png", calligraphyIconPng, sizeof(calligraphyIconPng)};
 }
 
-void karbonToolsResourceAnchor()
+void setKarbonToolsResourceRegistrar(KarbonToolsResourceRegistrar registrar)
 {
+    resourceRegistrar.store(registrar, std::memory_order_release);
+}
+
+void registerKarbonToolsResources()
+{
+    if (const KarbonToolsResourceRegistrar registrar =
+            resourceRegistrar.load(std::memory_order_acquire)) {
+        registrar(karbonCalligraphyIconPng());
+    }
 }
