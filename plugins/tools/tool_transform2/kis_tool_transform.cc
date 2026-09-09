@@ -110,7 +110,7 @@ KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
 {
     KIS_ASSERT(m_converter);
 
-    QObject::setObjectName("tool_transform");
+    PkObject::setObjectName("tool_transform");
 
 #define CONNECT_TRANSFORM(sender, signal, slot) \
     PkObject::connect(sender, signal, this, slot)

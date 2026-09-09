@@ -89,7 +89,7 @@ const int decorsIndex[DECORATION_COUNT] = {0,4,12,18,20};
 KisToolCrop::KisToolCrop(KoCanvasBase * canvas)
         : KisTool(canvas, Qt::ArrowCursor)
 {
-    QObject::setObjectName("tool_crop");
+    PkObject::setObjectName("tool_crop");
     m_handleSize = 13;
     m_haveCropSelection = false;
     m_cropTypeSelectable = false;

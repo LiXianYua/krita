@@ -39,7 +39,7 @@ KisToolLazyBrush::KisToolLazyBrush(KoCanvasBase * canvas)
                       kundo2_text("Colorize Mask Key Stroke")),
       m_d(new Private)
 {
-    QObject::setObjectName("tool_lazybrush");
+    PkObject::setObjectName("tool_lazybrush");
 }
 
 KisToolLazyBrush::~KisToolLazyBrush()
@@ -65,7 +65,9 @@ void KisToolLazyBrush::activate(const PkSet<KoShape*> &shapes)
     QObject::disconnect(m_d->canvasResourceConnection);
     m_d->canvasResourceConnection = QObject::connect(
         canvas()->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-        this, &KisToolLazyBrush::slotCanvasResourceChanged);
+        [this](int key, const PkVariant &value) {
+            slotCanvasResourceChanged(key, value);
+        });
 
 
     KisColorizeMask *mask = dynamic_cast<KisColorizeMask*>(currentNode().data());

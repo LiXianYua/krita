@@ -68,7 +68,7 @@ KisToolSmartPatch::KisToolSmartPatch(KoCanvasBase * canvas)
       m_d(new Private)
 {
     setSupportOutline(true);
-    QObject::setObjectName("tool_SmartPatch");
+    PkObject::setObjectName("tool_SmartPatch");
     m_d->maskDev = new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
     m_d->maskDevPainter.begin( m_d->maskDev );
 
