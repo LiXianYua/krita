@@ -14,7 +14,6 @@
 #include <pk/geometry/PkPoint.h>
 #include <pk/geometry/PkPainterPath.h>
 #include <QCursor>
-#include <QObject>
 #include <pk/geometry/PkRect.h>
 #include <pk/geometry/PkSize.h>
 #include <pk/geometry/PkTransform.h>
@@ -119,7 +118,7 @@ public:
                                                    PkCallLifetime receiverLifetime,
                                                    std::function<bool()> callback,
                                                    bool attached) = 0;
-    virtual void toolSetPriorityEventFilter(QObject *filter, bool attached) = 0;
+    virtual void toolSetPriorityEventFilter(PkObject *filter, bool attached) = 0;
     virtual KisInputActionGroupsMaskInterface::SharedInterface
         toolInputActionGroupsMaskInterface() = 0;
     virtual void toolUpdateAssistantDecoration() = 0;

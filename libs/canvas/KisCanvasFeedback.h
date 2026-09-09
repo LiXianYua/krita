@@ -5,12 +5,10 @@
 #ifndef KIS_CANVAS_FEEDBACK_H
 #define KIS_CANVAS_FEEDBACK_H
 
-#include <Qt>
+#include <PkNamespace.h>
 #include <PkString.h>
 
 #include <kritacanvas_export.h>
-
-class QIcon;
 
 /**
  * Narrow presentation port for transient feedback produced by canvas tools.
@@ -31,10 +29,9 @@ public:
     virtual ~KisCanvasFeedback();
 
     virtual void showFloatingMessage(const PkString &message,
-                                     const QIcon &icon,
                                      int timeout = 4500,
                                      Priority priority = Priority::Medium,
-                                     int alignment = Qt::AlignCenter | Qt::TextWordWrap) = 0;
+                                     int alignment = int(Pk::AlignCenter) | int(Pk::TextWordWrap)) = 0;
 };
 
 #endif // KIS_CANVAS_FEEDBACK_H

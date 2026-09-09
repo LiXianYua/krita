@@ -133,7 +133,6 @@ public:
     KoUnit unit() const override { return KoUnit(KoUnit::Millimeter); }
 
     void showFloatingMessage(const PkString &,
-                             const QIcon &,
                              int,
                              Priority,
                              int) override
@@ -289,7 +288,11 @@ public:
         rightClickCallback = std::move(callback);
         rightClickAttached = attached;
     }
-    void toolSetPriorityEventFilter(QObject *, bool) override {}
+    void toolSetPriorityEventFilter(PkObject *filter, bool attached) override
+    {
+        priorityEventFilter = filter;
+        priorityEventFilterAttached = attached;
+    }
     KisInputActionGroupsMaskInterface::SharedInterface
         toolInputActionGroupsMaskInterface() override { return {}; }
     void toolUpdateAssistantDecoration() override {}
@@ -336,6 +339,8 @@ public:
     PkCallLifetime rightClickLifetime;
     std::function<bool()> rightClickCallback;
     bool rightClickAttached {false};
+    PkObject *priorityEventFilter {nullptr};
+    bool priorityEventFilterAttached {false};
     KisCanvasToolSignals toolSignalBus;
 };
 
@@ -1021,18 +1026,33 @@ void KisAsyncColorSamplerHelperTest::hostCallbacksDropDispatchAfterDirectToolDes
     QVERIFY(!rightClickInvoked);
 }
 
+void KisAsyncColorSamplerHelperTest::priorityEventFilterUsesPkIdentity()
+{
+    EllipsePreviewCanvas canvas;
+    PkObject filter;
+
+    canvas.toolSetPriorityEventFilter(&filter, true);
+    QCOMPARE(canvas.priorityEventFilter, &filter);
+    QVERIFY(canvas.priorityEventFilterAttached);
+
+    canvas.toolSetPriorityEventFilter(&filter, false);
+    QCOMPARE(canvas.priorityEventFilter, &filter);
+    QVERIFY(!canvas.priorityEventFilterAttached);
+}
+
 void KisAsyncColorSamplerHelperTest::hostKeyAdapterDispatchesPkPayload()
 {
     KisPaintLayerSP layer;
     KisImageSP image = createImageWithLayer(Pk::black, &layer);
     EllipsePreviewCanvas canvas(image);
     KeyEventProbeTool tool(&canvas);
-    KoToolBase *hostTool = &tool;
+    DecorationProxy hostProxy(&canvas);
+    hostProxy.priv()->activeTool = &tool;
 
     QKeyEvent press(QEvent::KeyPress, Qt::Key_Control,
                     Qt::ShiftModifier | Qt::AltModifier);
     press.ignore();
-    hostTool->keyPressEvent(&press);
+    hostProxy.keyPressEvent(&press);
     QCOMPARE(tool.pressCount, 1);
     QCOMPARE(tool.lastKey, Pk::Key_Control);
     QCOMPARE(int(tool.lastModifiers), int(press.modifiers()));
@@ -1040,11 +1060,12 @@ void KisAsyncColorSamplerHelperTest::hostKeyAdapterDispatchesPkPayload()
 
     QKeyEvent release(QEvent::KeyRelease, Qt::Key_Shift, Qt::ControlModifier);
     release.accept();
-    hostTool->keyReleaseEvent(&release);
+    hostProxy.keyReleaseEvent(&release);
     QCOMPARE(tool.releaseCount, 1);
     QCOMPARE(tool.lastKey, Pk::Key_Shift);
     QCOMPARE(int(tool.lastModifiers), int(release.modifiers()));
     QVERIFY(!release.isAccepted());
+    hostProxy.priv()->activeTool = nullptr;
 }
 
 void KisAsyncColorSamplerHelperTest::testWorkerThreadSampleDelivery()

@@ -28,6 +28,7 @@ private Q_SLOTS:
     void proxyDispatchesPolylineAndSelectionDecorations();
     void hostCallbacksPreserveActionAndRightClickLifecycle();
     void hostCallbacksDropDispatchAfterDirectToolDestruction();
+    void priorityEventFilterUsesPkIdentity();
     void hostKeyAdapterDispatchesPkPayload();
     void testWorkerThreadSampleDelivery();
     void testWorkerThreadSampleDeliveryAfterHelperDestruction();
