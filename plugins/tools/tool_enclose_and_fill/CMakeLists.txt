@@ -50,7 +50,7 @@ kis_add_test(
     tests/KisDynamicDelegatedToolTest.cpp
     TEST_NAME KisDynamicDelegatedToolTest
     NAME_PREFIX plugins-tools-enclose-and-fill-
-    LINK_LIBRARIES kritacanvas kritatestsdk
+    LINK_LIBRARIES kritatoolencloseandfill kritacanvas kritatestsdk
 )
 
 target_include_directories(KisDynamicDelegatedToolTest PRIVATE

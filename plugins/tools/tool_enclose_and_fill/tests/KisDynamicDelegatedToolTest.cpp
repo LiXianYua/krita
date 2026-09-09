@@ -9,11 +9,37 @@
 #include <PkObject.h>
 #include <PkPointer.h>
 
+#include <array>
+#include <mutex>
+#include <optional>
+
 #include <QCursor>
 
+#include <KoCanvasBase.h>
+#include <KoCanvasResourceProvider.h>
+#include <KoCanvasResourcesIds.h>
+#include <KoSelectedShapesProxySimple.h>
+#include <KoShapeControllerBase.h>
+#include <KoShapeManager.h>
+#include <KoUnit.h>
+#include <KoZoomHandler.h>
+#include <KisCanvasToolServices.h>
+#include <KisColorSamplingCanvas.h>
+#include <KoColorSpaceRegistry.h>
+
+#include "kis_paint_layer.h"
 #include "kis_paint_device.h"
+#include "kis_image.h"
+#include "brushengine/kis_paintop_preset.h"
+#include "brushengine/kis_paintop_settings.h"
 #include "tool/kis_tool.h"
+#include "KisToolEncloseAndFill.h"
 #include "subtools/KisDynamicDelegatedTool.h"
+#include "subtools/KisBrushEnclosingProducer.h"
+#include "subtools/KisEllipseEnclosingProducer.h"
+#include "subtools/KisLassoEnclosingProducer.h"
+#include "subtools/KisPathEnclosingProducer.h"
+#include "subtools/KisRectangleEnclosingProducer.h"
 
 namespace
 {
@@ -58,6 +84,246 @@ public:
 
 using DynamicTool = KisDynamicDelegatedTool<DynamicBase>;
 using DelegateTool = DynamicTool::DelegateType;
+
+class MinimalPaintOpSettings final : public KisPaintOpSettings
+{
+public:
+    MinimalPaintOpSettings()
+        : KisPaintOpSettings({})
+    {
+        setProperty("paintop", PkString("test"));
+    }
+
+    MinimalPaintOpSettings(const MinimalPaintOpSettings &rhs)
+        : KisPaintOpSettings(rhs)
+        , m_size(rhs.m_size)
+        , m_angle(rhs.m_angle)
+    {
+    }
+
+    KisPaintOpSettingsSP clone() const override
+    {
+        return KisPaintOpSettingsSP(new MinimalPaintOpSettings(*this));
+    }
+
+    void setPaintOpSize(qreal value) override { m_size = value; }
+    qreal paintOpSize() const override { return m_size; }
+    void setPaintOpAngle(qreal value) override { m_angle = value; }
+    qreal paintOpAngle() const override { return m_angle; }
+
+private:
+    qreal m_size {10.0};
+    qreal m_angle {0.0};
+};
+
+class EncloseShapeController final : public KoShapeControllerBase
+{
+public:
+    PkRectF documentRectInPixels() const override { return {0, 0, 32, 32}; }
+    qreal pixelsPerInch() const override { return 72.0; }
+};
+
+KoShapeControllerBase *testShapeController()
+{
+    static EncloseShapeController controller;
+    return &controller;
+}
+
+class EncloseTestCanvas final : public KoCanvasBase,
+                                public KisCanvasToolServices,
+                                public KisColorSamplingCanvas
+{
+public:
+    struct RightClickRecord {
+        const void *receiverIdentity {nullptr};
+        PkCallLifetime receiverLifetime;
+        std::function<bool()> callback;
+        bool attached {false};
+    };
+
+    EncloseTestCanvas()
+        : KoCanvasBase(testShapeController())
+        , m_shapeManager(new KoShapeManager(this))
+        , m_selectedShapesProxy(new KoSelectedShapesProxySimple(m_shapeManager.data()))
+    {
+        m_converter.setResolution(1.0, 1.0);
+        m_converter.setZoomedResolution(1.0, 1.0);
+        const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
+        m_image = KisImageSP(new KisImage(nullptr, 32, 32, colorSpace, "enclose test"));
+        m_preset = KisPaintOpPresetSP(new KisPaintOpPreset());
+        m_preset->setSettings(KisPaintOpSettingsSP(new MinimalPaintOpSettings()));
+        resourceManager()->setResource(KoCanvasResource::ForegroundColor,
+                                       KoColor(Pk::black, colorSpace));
+        resourceManager()->setResource(KoCanvasResource::BackgroundColor,
+                                       KoColor(Pk::white, colorSpace));
+        resourceManager()->setResource(KoCanvasResource::CurrentPaintOpPreset,
+                                       PkVariant::fromValue(m_preset));
+    }
+
+    void setCurrentNode(KisNodeSP node)
+    {
+        resourceManager()->setResource(KoCanvasResource::CurrentKritaNode,
+                                       PkVariant::fromValue(KisNodeWSP(node)));
+    }
+
+    bool dispatchRightClick(bool *invoked)
+    {
+        if (!rightClick.attached || !rightClick.callback ||
+            !rightClick.receiverLifetime.claim || !rightClick.receiverLifetime.alive) {
+            return false;
+        }
+        std::lock_guard<std::recursive_mutex> guard(*rightClick.receiverLifetime.claim);
+        if (!rightClick.receiverLifetime.alive->load(std::memory_order_acquire)) {
+            return false;
+        }
+        *invoked = true;
+        return rightClick.callback();
+    }
+
+    void gridSize(PkPointF *, PkSizeF *) const override {}
+    bool snapToGrid() const override { return false; }
+    void setCursor(const QCursor &) override {}
+    void addCommand(KUndo2Command *) override {}
+    KoShapeManager *shapeManager() const override { return m_shapeManager.data(); }
+    KoSelectedShapesProxy *selectedShapesProxy() const override
+    {
+        return m_selectedShapesProxy.data();
+    }
+    void updateCanvas(const PkRectF &) override {}
+    KoToolProxy *toolProxy() const override { return nullptr; }
+    const KoViewConverter *viewConverter() const override { return &m_converter; }
+    KoViewConverter *viewConverter() override { return &m_converter; }
+    QWidget *canvasWidget() override { return nullptr; }
+    const QWidget *canvasWidget() const override { return nullptr; }
+    KoUnit unit() const override { return KoUnit(KoUnit::Millimeter); }
+
+    KisImageWSP toolImage() const override { return m_image; }
+    KisImageWSP samplingImage() const override { return m_image; }
+    std::optional<KoColor> sampleVisibleReferenceColor(const PkPoint &) const override
+    {
+        return std::nullopt;
+    }
+    PkColor samplingPreviewColor(const KoColor &color) const override
+    {
+        return color.toQColor();
+    }
+    PkColor samplingPaletteBaseColor() const override { return Pk::white; }
+    qreal samplingCanvasRotation() const override { return 0.0; }
+    bool samplingCanvasMirroredHorizontally() const override { return false; }
+    bool samplingCanvasMirroredVertically() const override { return false; }
+    QCursor samplingCursor(bool, bool) const override { return {}; }
+    PkPointF toolWidgetCenterInWidgetPixels() const override { return {}; }
+    PkPointF toolDocumentToWidget(const PkPointF &point) const override { return point; }
+    PkPointF toolDocumentToAlignedImagePixel(const PkPointF &point) const override { return point; }
+    PkTransform toolImageToViewTransform() const override { return {}; }
+    void drawToolOutline(PkPainter *, const KisOptimizedBrushOutline &, int) override {}
+    bool toolBlockUntilOperationsFinished(KisImageWSP) override { return true; }
+    void toolBlockUntilOperationsFinishedForced(KisImageWSP) override {}
+    bool toolSelectionEditable() const override { return true; }
+    KisCanvasToolSignals *toolSignals() override { return &toolSignalBus; }
+    KisPaintOpPresetSP toolCurrentPaintOpPreset() const override { return m_preset; }
+    void toolNotifyPaintingFinished() override {}
+    void toolSetControlsEnabled(bool) override {}
+    KisPopupWidgetInterface *toolPopupWidget() const override { return nullptr; }
+    PkSize toolCanvasWidgetSize() const override { return {}; }
+    PkRect toolAvailableVirtualScreenGeometry() const override { return {}; }
+    qreal toolImageScaleX() const override { return 1.0; }
+    PkPointF toolImageToDocument(const PkPointF &point) const override { return point; }
+    qreal toolCanvasRotation() const override { return 0.0; }
+    bool toolCanvasMirroredHorizontally() const override { return false; }
+    bool toolCanvasMirroredVertically() const override { return false; }
+    qreal toolEffectiveZoom() const override { return 1.0; }
+    qreal toolCoordinateEffectiveZoom() const override { return 1.0; }
+    qreal toolEffectivePhysicalZoom() const override { return 1.0; }
+    QCursor toolCursor(CursorStyle) const override { return {}; }
+    QCursor toolMoveCursor() const override { return {}; }
+    QCursor toolMoveSelectionCursor() const override { return {}; }
+    QCursor toolSamplerCursor() const override { return {}; }
+    QCursor toolOpenHandCursor() const override { return {}; }
+    QCursor toolClosedHandCursor() const override { return {}; }
+    QCursor toolForbiddenCursor() const override { return {}; }
+    QCursor toolLoadCursor(const PkString &, int, int) const override { return {}; }
+    void toolSetCursorPosition(const PkPoint &) override {}
+    void toolShowBrushSize(qreal) override {}
+    void toolShowLockedLayerMessage(bool) override {}
+    void toolShowFloatingMessage(const PkString &, bool) override {}
+    void toolShowRectangleSize(int, int) override {}
+    void toolShowRectanglePosition(qreal, qreal) override {}
+    PkString toolNodeEditableMessage(KisNodeSP, bool) const override { return {}; }
+    PkPainterPath toolShapeHoverInfoCrossLayer(const PkPointF &,
+                                               PkString &,
+                                               bool *,
+                                               bool) const override { return {}; }
+    bool toolSelectShapeCrossLayer(const PkPointF &,
+                                   const PkString &,
+                                   bool) override { return false; }
+    void toolUpdateCanvas() override {}
+    void toolSetActionCallback(const PkString &,
+                               const void *,
+                               PkCallLifetime,
+                               std::function<void()>,
+                               bool) override {}
+    void toolClearActionCallbacks(const void *) override {}
+    void toolSetPriorityRightClickCallback(const void *receiverIdentity,
+                                           PkCallLifetime receiverLifetime,
+                                           std::function<bool()> callback,
+                                           bool attached) override
+    {
+        rightClick = {receiverIdentity, std::move(receiverLifetime),
+                      std::move(callback), attached};
+        if (attached) {
+            ++rightClickAttachCount;
+        } else {
+            ++rightClickDetachCount;
+        }
+    }
+    void toolSetPriorityEventFilter(QObject *, bool) override {}
+    KisInputActionGroupsMaskInterface::SharedInterface
+        toolInputActionGroupsMaskInterface() override { return {}; }
+    void toolUpdateAssistantDecoration() override {}
+    void toolUpdateOutlineDoc(const PkRectF &) override {}
+    PkPointF toolAdjustAssistantPosition(const PkPointF &point,
+                                         const PkPointF &,
+                                         qreal,
+                                         bool,
+                                         bool) override { return point; }
+    qreal toolAssistantPerspective(const PkPointF &) const override { return 1.0; }
+    void toolEndAssistantStroke() override {}
+
+    RightClickRecord rightClick;
+    int rightClickAttachCount {0};
+    int rightClickDetachCount {0};
+    KisCanvasToolSignals toolSignalBus;
+
+private:
+    mutable KoZoomHandler m_converter;
+    KisImageSP m_image;
+    KisPaintOpPresetSP m_preset;
+    PkScopedPointer<KoShapeManager> m_shapeManager;
+    PkScopedPointer<KoSelectedShapesProxySimple> m_selectedShapesProxy;
+};
+
+class PathProducerProbe final : public KisPathEnclosingProducer
+{
+public:
+    using KisPathEnclosingProducer::KisPathEnclosingProducer;
+    using KisPathEnclosingProducer::beginShape;
+};
+
+class EncloseToolProbe final : public KisToolEncloseAndFill
+{
+public:
+    using KisToolEncloseAndFill::KisToolEncloseAndFill;
+
+    void slot_delegateTool_enclosingMaskProduced(KisPixelSelectionSP mask) override
+    {
+        ++maskDeliveryCount;
+        lastMask = mask;
+    }
+
+    int maskDeliveryCount {0};
+    KisPixelSelectionSP lastMask;
+};
 }
 
 class KisDynamicDelegatedToolTest : public QObject
@@ -68,6 +334,10 @@ private Q_SLOTS:
     void forwardsAllNotificationsAcrossReplacement();
     void forwardsKeyAndResourceEventsAcrossReplacement();
     void disconnectsWhenSenderOrReceiverDies();
+    void ownerNamesAndProducerCursorDeliveryUsePkPaths();
+    void currentNodeAndColorSpaceSubscriptionFollowsActivation();
+    void concreteMaskSignalReachesInstalledMainDelegate();
+    void pathPriorityRightClickRegistrationFollowsToolLifetime();
 };
 
 void KisDynamicDelegatedToolTest::forwardsAllNotificationsAcrossReplacement()
@@ -200,6 +470,135 @@ void KisDynamicDelegatedToolTest::disconnectsWhenSenderOrReceiverDies()
 
     sender->statusTextChanged("ignored-after-receiver-destruction");
     delete sender;
+}
+
+void KisDynamicDelegatedToolTest::ownerNamesAndProducerCursorDeliveryUsePkPaths()
+{
+    EncloseTestCanvas canvas;
+    KisToolEncloseAndFill tool(&canvas);
+    KisRectangleEnclosingProducer rectangle(&canvas);
+    KisEllipseEnclosingProducer ellipse(&canvas);
+    KisPathEnclosingProducer path(&canvas);
+    KisLassoEnclosingProducer lasso(&canvas);
+    KisBrushEnclosingProducer brush(&canvas);
+
+    QCOMPARE(tool.objectName(), PkString("tool_enclose_and_fill"));
+    QCOMPARE(rectangle.objectName(), PkString("enclosing_tool_rectangle"));
+    QCOMPARE(ellipse.objectName(), PkString("enclosing_tool_rectangle"));
+    QCOMPARE(path.objectName(), PkString("enclosing_tool_path"));
+    QCOMPARE(lasso.objectName(), PkString("enclosing_tool_lasso"));
+    QCOMPARE(brush.objectName(), PkString("enclosing_tool_brush"));
+
+    PkObject observer;
+    std::array<int, 5> cursorDeliveries {};
+    std::array<KoToolBase *, 5> producers {
+        &rectangle, &ellipse, &path, &lasso, &brush
+    };
+    for (std::size_t i = 0; i < producers.size(); ++i) {
+        PkObject::connect(producers[i], &KoToolBase::cursorChanged,
+                          &observer, [&, i](const QCursor &) {
+                              ++cursorDeliveries[i];
+                          });
+    }
+
+    canvas.toolSignalBus.effectiveCompositeOpChanged();
+    QCOMPARE(cursorDeliveries, (std::array<int, 5> {1, 1, 1, 1, 1}));
+}
+
+void KisDynamicDelegatedToolTest::currentNodeAndColorSpaceSubscriptionFollowsActivation()
+{
+    EncloseTestCanvas canvas;
+    KisToolEncloseAndFill tool(&canvas);
+    const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
+
+    KisPaintLayerSP inactiveNode = new KisPaintLayer(nullptr, "inactive", OPACITY_OPAQUE_U8, colorSpace);
+    canvas.setCurrentNode(inactiveNode);
+    QVERIFY(tool.m_previousNode.isNull());
+    QVERIFY(!PkObject::disconnect(inactiveNode->paintDevice().data(),
+                                  &KisPaintDevice::colorSpaceChanged,
+                                  &tool,
+                                  &KisToolEncloseAndFill::slot_colorSpaceChanged));
+
+    KisPaintLayerSP activeNode = new KisPaintLayer(nullptr, "active", OPACITY_OPAQUE_U8, colorSpace);
+    canvas.setCurrentNode(activeNode);
+    tool.activate({});
+    QCOMPARE(tool.m_previousNode, KisNodeSP(activeNode));
+    QVERIFY(PkObject::disconnect(activeNode->paintDevice().data(),
+                                 &KisPaintDevice::colorSpaceChanged,
+                                 &tool,
+                                 &KisToolEncloseAndFill::slot_colorSpaceChanged));
+
+    KisPaintLayerSP replacementNode =
+        new KisPaintLayer(nullptr, "active-replacement", OPACITY_OPAQUE_U8, colorSpace);
+    canvas.setCurrentNode(replacementNode);
+    QCOMPARE(tool.m_previousNode, KisNodeSP(replacementNode));
+    QVERIFY(PkObject::disconnect(replacementNode->paintDevice().data(),
+                                 &KisPaintDevice::colorSpaceChanged,
+                                 &tool,
+                                 &KisToolEncloseAndFill::slot_colorSpaceChanged));
+    tool.deactivate();
+    QVERIFY(tool.m_previousNode.isNull());
+
+    KisPaintLayerSP postDeactivateNode =
+        new KisPaintLayer(nullptr, "post-deactivate", OPACITY_OPAQUE_U8, colorSpace);
+    canvas.setCurrentNode(postDeactivateNode);
+    QVERIFY(tool.m_previousNode.isNull());
+    QVERIFY(!PkObject::disconnect(postDeactivateNode->paintDevice().data(),
+                                  &KisPaintDevice::colorSpaceChanged,
+                                  &tool,
+                                  &KisToolEncloseAndFill::slot_colorSpaceChanged));
+}
+
+void KisDynamicDelegatedToolTest::concreteMaskSignalReachesInstalledMainDelegate()
+{
+    EncloseTestCanvas canvas;
+    EncloseToolProbe tool(&canvas);
+    tool.m_enclosingMethod = KisToolEncloseAndFill::Lasso;
+    tool.setupEnclosingSubtool();
+
+    auto *producer = reinterpret_cast<KisLassoEnclosingProducer *>(tool.delegateTool());
+    QVERIFY(producer);
+    KisPixelSelectionSP mask(new KisPixelSelection());
+    producer->enclosingMaskProduced(mask);
+
+    QCOMPARE(tool.maskDeliveryCount, 1);
+    QCOMPARE(tool.lastMask, mask);
+}
+
+void KisDynamicDelegatedToolTest::pathPriorityRightClickRegistrationFollowsToolLifetime()
+{
+    EncloseTestCanvas canvas;
+    PathProducerProbe producer(&canvas);
+    producer.activate({});
+
+    QCOMPARE(canvas.rightClickAttachCount, 1);
+    QVERIFY(canvas.rightClick.attached);
+    QCOMPARE(canvas.rightClick.receiverIdentity, static_cast<const void *>(&producer));
+
+    bool invoked = false;
+    QVERIFY(!canvas.dispatchRightClick(&invoked));
+    QVERIFY(invoked);
+
+    producer.beginShape();
+    invoked = false;
+    QVERIFY(canvas.dispatchRightClick(&invoked));
+    QVERIFY(invoked);
+
+    producer.deactivate();
+    QCOMPARE(canvas.rightClickDetachCount, 1);
+    QVERIFY(!canvas.rightClick.attached);
+    invoked = false;
+    QVERIFY(!canvas.dispatchRightClick(&invoked));
+    QVERIFY(!invoked);
+
+    auto *ephemeral = new PathProducerProbe(&canvas);
+    ephemeral->activate({});
+    QCOMPARE(canvas.rightClick.receiverIdentity, static_cast<const void *>(ephemeral));
+    delete ephemeral;
+
+    invoked = false;
+    QVERIFY(!canvas.dispatchRightClick(&invoked));
+    QVERIFY(!invoked);
 }
 
 SIMPLE_TEST_MAIN(KisDynamicDelegatedToolTest)

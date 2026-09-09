@@ -91,7 +91,9 @@ void KisToolEncloseAndFill::deactivate()
 void KisToolEncloseAndFill::canvasResourceChanged(int key, const PkVariant &value)
 {
     KisDynamicDelegatedTool::canvasResourceChanged(key, value);
-    slot_canvasResourceChanged(key, value);
+    if (isActivated()) {
+        slot_canvasResourceChanged(key, value);
+    }
 }
 
 void KisToolEncloseAndFill::setupEnclosingSubtool()

@@ -25,6 +25,8 @@
 
 #include "subtools/KisDynamicDelegatedTool.h"
 
+class KisDynamicDelegatedToolTest;
+
 class KisToolEncloseAndFill : public KisDynamicDelegatedTool<KisToolShape>
 {
 public:
@@ -158,11 +160,13 @@ private:
 
     void slot_currentNodeChanged(const KisNodeSP node);
     void slot_canvasResourceChanged(int key, const PkVariant &value);
-    void slot_delegateTool_enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
+    virtual void slot_delegateTool_enclosingMaskProduced(KisPixelSelectionSP enclosingMask);
     void slot_checkBoxUseActiveLayer_toggled(bool checked);
 
     void resetCursorStyle() override;
     void canvasResourceChanged(int key, const PkVariant &value) override;
+
+    friend class KisDynamicDelegatedToolTest;
 };
 
 #endif
