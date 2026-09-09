@@ -26,6 +26,7 @@
 
 #include <QCheckBox>
 #include <QHBoxLayout>
+#include <QPointer>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -36,6 +37,12 @@ KoCreatePathTool::KoCreatePathTool(KoCanvasBase *canvas)
 
 KoCreatePathTool::~KoCreatePathTool()
 {
+}
+
+void KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI(bool value)
+{
+    activateSignal<bool>(
+        this, PkMemberFnKey::from(&KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI), value);
 }
 
 PkRectF KoCreatePathTool::decorationsRect() const
@@ -588,13 +595,15 @@ PkList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
 
     QObject::connect(smoothCurves, &QAbstractButton::toggled, this,
             [this, d](bool value) { d->autoSmoothCurvesChanged(value); });
-    QObject::connect(this, &KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI, smoothCurves,
-            &QAbstractButton::setChecked);
+    const QPointer<QCheckBox> smoothCurvesGuard(smoothCurves);
+    PkObject::connect(this, &KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI, this,
+            [smoothCurvesGuard](bool value) {
+                if (smoothCurvesGuard) {
+                    smoothCurvesGuard->setChecked(value);
+                }
+            }, PkConnectionType::Direct);
     QObject::connect(angleSnap, &QCheckBox::stateChanged, this,
             [this, d](int state) { d->angleSnapChanged(state); });
 
     return list;
 }
-
-//have to include this because of Q_PRIVATE_SLOT
-#include "KoCreatePathTool.moc"

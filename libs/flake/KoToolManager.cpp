@@ -12,7 +12,7 @@
 #include <PkFlakeBridge.h>
 #include "KoToolManager.h"
 #include "KoToolManager_p.h"
-#include "KoToolManagerOptionWidgets_p.h"
+#include "KoToolManagerShortcuts_p.h"
 #include "KoToolRegistry.h"
 #include "KoToolProxy.h"
 #include "KoToolProxy_p.h"
@@ -46,7 +46,6 @@
 
 #include <QAction>
 #include <klocalizedstring.h>
-#include <QKeySequence>
 #include <stack>
 #include <QLabel>
 #include <QGlobalStatic>
@@ -86,7 +85,7 @@ public:
 
         PkStringList globalActions;
 
-        PkMap<QKeySequence, PkStringList> shortcutMap;
+        PkMap<KoToolManagerShortcuts::EncodedShortcut, PkStringList> shortcutMap;
 
 //        qDebug() << "................... activating tool" << activeToolId;
 
@@ -116,24 +115,20 @@ public:
                 globalActions << toPkString(action->objectName());
             }
 
-            Q_FOREACH(QKeySequence keySequence, action->shortcuts()) {
-                // After loading a custom shortcut profile, shortcuts can be defined as an empty string, which is not an empty shortcut
-                if (keySequence.toString() != "") {
-                    if (shortcutMap.contains(keySequence)) {
-                        shortcutMap[keySequence].append(toPkString(action->objectName()));
-                    }
-                    else {
-                        shortcutMap[keySequence] = PkStringList() << toPkString(action->objectName());
-                    }
+            for (const auto &shortcut : KoToolManagerShortcuts::fromHostAction(*action)) {
+                if (shortcutMap.contains(shortcut)) {
+                    shortcutMap[shortcut].append(toPkString(action->objectName()));
+                }
+                else {
+                    shortcutMap[shortcut] = PkStringList() << toPkString(action->objectName());
                 }
             }
         }
 
         // Make sure the tool's actions override the global actions that aren't associated with the tool.
-        Q_FOREACH(const QKeySequence &k, shortcutMap.keys()) {
-            if (shortcutMap[k].size() > 1) {
-                PkStringList actions = shortcutMap[k];
-                //qDebug() << k << actions;
+        for (const auto &shortcut : shortcutMap.keys()) {
+            if (shortcutMap[shortcut].size() > 1) {
+                PkStringList actions = shortcutMap[shortcut];
                 bool toolActionFound = false;
                 Q_FOREACH(const PkString &action, actions) {
                     if (toolActions.contains(action)) {
@@ -147,7 +142,7 @@ public:
                         disabledGlobalActions << action;
                     }
                 }
-                //qDebug() << k << shortcutMap[k];
+                //qDebug() << shortcutMap[shortcut];
             }
         }
 
@@ -406,9 +401,9 @@ void KoToolManager::addedTool(KoToolAction *toolAction, KoCanvasController *canv
 }
 
 void KoToolManager::toolOptionWidgetsChanged(KoCanvasController *controller,
-                                             const PkList<QObject *> &widgets)
+                                             const PkList<QPointer<QWidget>> &widgets)
 {
-    activateSignal<KoCanvasController *, const PkList<QObject *> &>(
+    activateSignal<KoCanvasController *, const PkList<QPointer<QWidget>> &>(
         this, PkMemberFnKey::from(&KoToolManager::toolOptionWidgetsChanged), controller, widgets);
 }
 
@@ -641,9 +636,7 @@ void KoToolManager::Private::postSwitchTool()
         canvasData->activeTool->activate(shapesToOperateOn);
     }
 
-    QList<QPointer<QWidget>> optionWidgetList =
-        KoToolManagerOptionWidgets::toHostPointers(
-            canvasData->activeTool->optionWidgets());
+    PkList<QPointer<QWidget>> optionWidgetList = canvasData->activeTool->optionWidgets();
     if (optionWidgetList.isEmpty()) { // no option widget.
         QWidget *toolWidget;
         PkString title = canvasData->activeTool->factory()->toolTip();
@@ -665,13 +658,7 @@ void KoToolManager::Private::postSwitchTool()
 
     q->changedTool(canvasData->canvas);
 
-    PkList<QObject *> optionObjects;
-    for (const QPointer<QWidget> &widget : optionWidgetList) {
-        if (widget) {
-            optionObjects.append(widget.data());
-        }
-    }
-    q->toolOptionWidgetsChanged(canvasData->canvas, optionObjects);
+    q->toolOptionWidgetsChanged(canvasData->canvas, optionWidgetList);
 }
 
 

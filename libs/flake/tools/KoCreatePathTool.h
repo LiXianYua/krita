@@ -27,7 +27,6 @@ class KoCreatePathToolPrivate;
  */
 class KRITAFLAKE_EXPORT KoCreatePathTool : public KoToolBase
 {
-    Q_OBJECT
 public:
     /**
      * Constructor for the tool that allows you to create new paths by hand.
@@ -59,7 +58,7 @@ public:
 
     void setEnableClosePathShortcut(bool value);
 
-public Q_SLOTS:
+public:
     /// reimplemented
     void activate(const PkSet<KoShape*> &shapes) override;
     /// reimplemented
@@ -67,7 +66,6 @@ public Q_SLOTS:
     /// reimplemented
     void canvasResourceChanged(int key, const PkVariant & res) override;
 
-Q_SIGNALS:
     void sigUpdateAutoSmoothCurvesGUI(bool value);
 
 protected:
@@ -104,12 +102,5 @@ protected:
 
 private:
     Q_DECLARE_PRIVATE(KoCreatePathTool)
-    Q_PRIVATE_SLOT(d_func(), void angleDeltaChanged(qreal))
-    Q_PRIVATE_SLOT(d_func(), void angleSnapChanged(int))
-    Q_PRIVATE_SLOT(d_func(), void autoSmoothCurvesChanged(bool))
 };
 #endif
-
-// S-09-g：Q_PRIVATE_SLOT(d, …) 的独立 automoc 编译单元需要完整 Private。
-// 放在类定义之后（本头自底向上可见），include 顺序两种都由 include-guard 兜底。
-#include "KoCreatePathTool_p.h"

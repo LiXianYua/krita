@@ -421,7 +421,7 @@ public:
     void loadAutoSmoothValueFromConfig() {
         autoSmoothCurves = KSharedConfig::openConfig()->group("").readEntry("autoSmoothBezierCurves", false);
 
-        Q_EMIT q->sigUpdateAutoSmoothCurvesGUI(autoSmoothCurves);
+        q->sigUpdateAutoSmoothCurvesGUI(autoSmoothCurves);
     }
 
     void angleSnapChanged(int angleSnap) {

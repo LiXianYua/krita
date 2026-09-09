@@ -13,7 +13,7 @@
 #include <PkString.h>
 #include <PkList.h>
 #include <PkNamespace.h>
-#include <pk/input/PkKeySequence.h>
+#include <PkKeySequence.h>
 #include <QObject>
 
 class KoCanvasBase;

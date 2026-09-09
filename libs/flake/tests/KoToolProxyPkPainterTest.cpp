@@ -12,6 +12,7 @@
 #include "KoToolBase.h"
 #include "KoToolFactoryBase.h"
 #include "KoToolManager.h"
+#include "KoToolManagerShortcuts_p.h"
 #include "KoToolProxy.h"
 #include "KoToolProxy_p.h"
 #include "KoUnit.h"
@@ -21,6 +22,7 @@
 #include "KoPathShape.h"
 #include "KoPointerEvent.h"
 #include "tools/KoPathTool.h"
+#include "tools/KoCreatePathTool.h"
 #include "tools/KoPathToolSelection.h"
 #include "tools/KoPencilTool.h"
 #include "tools/KoInteractionTool.h"
@@ -35,7 +37,7 @@
 #include <type_traits>
 
 #include <PkPaintCommand.h>
-#include <pk/input/PkKeySequence.h>
+#include <PkKeySequence.h>
 #include <PkPainter.h>
 #include <PkSize.h>
 #include <PkThreadCallQueue.h>
@@ -309,6 +311,23 @@ private Q_SLOTS:
         QCOMPARE(action.shortcut()[0], qt515Oracle[0]);
     }
 
+    void toolManagerConvertsHostShortcutsToNativeChordKeys()
+    {
+        QAction action;
+        const QKeySequence oneChord(QStringLiteral("Ctrl+R"));
+        const QKeySequence twoChords(QStringLiteral("Ctrl+K, Ctrl+C"));
+        action.setShortcuts({oneChord, QKeySequence(), twoChords});
+
+        const auto shortcuts = KoToolManagerShortcuts::fromHostAction(action);
+
+        QCOMPARE(shortcuts.size(), 2);
+        QCOMPARE(shortcuts.at(0).size(), std::size_t(1));
+        QCOMPARE(shortcuts.at(0).at(0), oneChord[0]);
+        QCOMPARE(shortcuts.at(1).size(), std::size_t(2));
+        QCOMPARE(shortcuts.at(1).at(0), twoChords[0]);
+        QCOMPARE(shortcuts.at(1).at(1), twoChords[1]);
+    }
+
     void pathSelectionBulkOperationsCoalesceNativeNotification()
     {
         MinimalShapeController controller;
@@ -353,6 +372,51 @@ private Q_SLOTS:
 
         QCOMPARE(status, PkString("native-status"));
         QCOMPARE(notifications, 1);
+    }
+
+    void createPathToolGuiNotificationUsesNativeSignalDelivery()
+    {
+        MinimalShapeController controller;
+        MinimalCanvas canvas(&controller);
+        KoCreatePathTool tool(&canvas);
+        PkObject receiver;
+        bool deliveredValue = false;
+        int notifications = 0;
+        PkObject::connect(&tool, &KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI,
+                          &receiver, [&](bool value) {
+            deliveredValue = value;
+            ++notifications;
+        });
+
+        tool.sigUpdateAutoSmoothCurvesGUI(true);
+
+        QVERIFY(deliveredValue);
+        QCOMPARE(notifications, 1);
+    }
+
+    void toolOptionWidgetQueuedDeliveryTracksWidgetLifetime()
+    {
+        KoToolManager manager;
+        PkObject receiver;
+        bool delivered = false;
+        bool deliveredNull = false;
+        PkObject::connect(&manager, &KoToolManager::toolOptionWidgetsChanged,
+                          &receiver,
+                          [&](KoCanvasController *, const PkList<QPointer<QWidget>> &widgets) {
+            delivered = true;
+            deliveredNull = widgets.size() == 1 && widgets.first().isNull();
+        }, PkConnectionType::Queued);
+
+        QWidget *widget = new QWidget;
+        PkList<QPointer<QWidget>> widgets;
+        widgets.append(QPointer<QWidget>(widget));
+        manager.toolOptionWidgetsChanged(nullptr, widgets);
+        delete widget;
+
+        QVERIFY(!delivered);
+        PkThreadCallQueue::processPendingCalls();
+        QVERIFY(delivered);
+        QVERIFY(deliveredNull);
     }
 
     void initTestCase()

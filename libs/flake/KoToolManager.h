@@ -14,11 +14,12 @@
 #include "KoAbstractCanvasResourceInterface.h"
 
 #include <QObject>
+#include <QPointer>
 #include <PkList.h>
 #include <PkObject.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkString.h>
-#include <pk/input/PkKeySequence.h>
+#include <PkKeySequence.h>
 
 class KoCanvasController;
 class KoShapeControllerBase;
@@ -28,6 +29,7 @@ class KoToolBase;
 class KoShape;
 class KoShapeLayer;
 class QCursor;
+class QWidget;
 
 /**
  * This class serves as a QAction-like control object for activation of a tool.
@@ -279,7 +281,8 @@ public:
     /**
      * Emit the new tool option widgets to be used with this canvas.
      */
-    void toolOptionWidgetsChanged(KoCanvasController *controller, const PkList<QObject *> &widgets);
+    void toolOptionWidgetsChanged(KoCanvasController *controller,
+                                  const PkList<QPointer<QWidget>> &widgets);
 
     /**
      * Emitted when the tool's text mode has changed.
