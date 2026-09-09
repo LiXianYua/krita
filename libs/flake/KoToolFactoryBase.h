@@ -177,6 +177,9 @@ protected:
     /**
      * @brief createActionsImpl should be reimplemented if the tool needs any actions.
      * The actions should have a valid objectName().
+     * Actions returned directly remain owned by this factory. createActions()
+     * transfers non-duplicate actions to its collection and deletes duplicate
+     * candidates after reusing the collection's existing action.
      *
      * @return the list of actions this tool wishes to be available.
      */

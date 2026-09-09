@@ -8,6 +8,7 @@
 
 #include <QAction>
 #include <KLocalizedString>
+#include <QPointer>
 
 #include <vector>
 
@@ -52,11 +53,14 @@ class KisSelectionToolFactoryTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
-    void preservesSelectionActionNamesAndFactoryOwnership();
-    void preservesPolylineActionNamesAndFactoryOwnership();
+    void preservesSelectionActionNames();
+    void preservesPolylineActionNames();
+    void directActionsFollowFactoryLifetime();
+    void collectionOwnsActions();
+    void duplicateCreationReusesCollectionActions();
 };
 
-void KisSelectionToolFactoryTest::preservesSelectionActionNamesAndFactoryOwnership()
+void KisSelectionToolFactoryTest::preservesSelectionActionNames()
 {
     SelectionFactory factory;
     const auto actions = factory.actions();
@@ -84,22 +88,76 @@ void KisSelectionToolFactoryTest::preservesSelectionActionNamesAndFactoryOwnersh
     };
     for (int i = 0; i < actions.size(); ++i) {
         QCOMPARE(toPkString(actions.at(i)->objectName()), expected.at(i));
-        QCOMPARE(actions.at(i)->parent(), static_cast<QObject *>(&factory));
         if (i < static_cast<int>(expectedPaintActionText.size())) {
             QCOMPARE(actions.at(i)->text(), expectedPaintActionText.at(i));
         }
     }
 }
 
-void KisSelectionToolFactoryTest::preservesPolylineActionNamesAndFactoryOwnership()
+void KisSelectionToolFactoryTest::preservesPolylineActionNames()
 {
     PolylineFactory factory;
     const auto actions = factory.actions();
     QCOMPARE(actions.size(), 8);
     QCOMPARE(toPkString(actions.at(6)->objectName()), PkString("undo_polygon_selection"));
     QCOMPARE(toPkString(actions.at(7)->objectName()), PkString("selection_tool_mode_add"));
-    QCOMPARE(actions.at(6)->parent(), static_cast<QObject *>(&factory));
-    QCOMPARE(actions.at(7)->parent(), static_cast<QObject *>(&factory));
+}
+
+void KisSelectionToolFactoryTest::directActionsFollowFactoryLifetime()
+{
+    std::vector<QPointer<QAction>> guardedActions;
+    {
+        SelectionFactory factory;
+        const auto actions = factory.actions();
+        guardedActions.reserve(actions.size());
+        for (QAction *action : actions) {
+            guardedActions.emplace_back(action);
+        }
+    }
+
+    bool allDestroyed = true;
+    for (const QPointer<QAction> &action : guardedActions) {
+        if (action) {
+            allDestroyed = false;
+            delete action.data();
+        }
+    }
+    QVERIFY(allDestroyed);
+}
+
+void KisSelectionToolFactoryTest::collectionOwnsActions()
+{
+    SelectionFactory factory;
+    std::vector<QPointer<QAction>> guardedActions;
+    {
+        QObject collection;
+        const auto actions = factory.createActions(&collection);
+        guardedActions.reserve(actions.size());
+        for (QAction *action : actions) {
+            QCOMPARE(action->parent(), &collection);
+            guardedActions.emplace_back(action);
+        }
+    }
+
+    for (const QPointer<QAction> &action : guardedActions) {
+        QVERIFY(action.isNull());
+    }
+}
+
+void KisSelectionToolFactoryTest::duplicateCreationReusesCollectionActions()
+{
+    SelectionFactory factory;
+    QObject collection;
+    const auto first = factory.createActions(&collection);
+    const auto second = factory.createActions(&collection);
+
+    QCOMPARE(second.size(), first.size());
+    for (int i = 0; i < first.size(); ++i) {
+        QCOMPARE(second.at(i), first.at(i));
+        const PkStringList tools =
+            toPkStringList(first.at(i)->property("tool_action").toStringList());
+        QCOMPARE(tools, PkStringList({factory.id(), factory.id()}));
+    }
 }
 
 SIMPLE_TEST_MAIN(KisSelectionToolFactoryTest)

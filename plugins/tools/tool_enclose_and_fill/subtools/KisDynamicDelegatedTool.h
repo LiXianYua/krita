@@ -14,6 +14,7 @@
 #include <type_traits>
 
 #include <PkPainter.h>
+#include <PkObject.h>
 #include <PkPoint.h>
 #include <PkRect.h>
 #include <PkSet.h>
@@ -126,14 +127,14 @@ public:
         }
         m_delegateTool = newDelegateTool;
         if (m_delegateTool) {
-            QObject::connect(m_delegateTool, &DelegateType::activateTool,
-                               this, &BaseClass::activateTool);
-            QObject::connect(m_delegateTool, &DelegateType::cursorChanged,
-                               this, [this](const auto &cursor) { this->BaseClass::useCursor(cursor); });
-            QObject::connect(m_delegateTool, &DelegateType::selectionChanged,
-                               this, &BaseClass::selectionChanged);
-            QObject::connect(m_delegateTool, &DelegateType::statusTextChanged,
-                               this, &BaseClass::statusTextChanged);
+            PkObject::connect(m_delegateTool, &DelegateType::activateTool,
+                              this, &BaseClass::activateTool);
+            PkObject::connect(m_delegateTool, &DelegateType::cursorChanged,
+                              this, [this](const auto &cursor) { this->BaseClass::useCursor(cursor); });
+            PkObject::connect(m_delegateTool, &DelegateType::selectionChanged,
+                              this, &BaseClass::selectionChanged);
+            PkObject::connect(m_delegateTool, &DelegateType::statusTextChanged,
+                              this, &BaseClass::statusTextChanged);
         }
     }
 

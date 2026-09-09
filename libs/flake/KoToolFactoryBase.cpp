@@ -59,6 +59,7 @@ public:
     PkString iconName;
     const PkString id;
     PkKeySequence shortcut;
+    QObject actionOwner;
 };
 
 
@@ -240,11 +241,10 @@ QAction *KoToolFactoryBase::createHostAction(const char *text,
                                              const PkString &objectName,
                                              Pk::Key shortcut)
 {
-    // Keep the candidate unparented until createActions() has checked the
-    // collection for an existing action with the same object name. Parenting
-    // it here would make findChild() return the candidate itself and the
-    // duplicate-reuse path would delete it, leaving a dangling pointer.
-    auto *action = new QAction(translateHostActionText(text), nullptr);
+    // The private owner preserves factory lifetime without making the factory
+    // a QObject. It also stays outside any action collection, so duplicate
+    // lookup cannot find and delete the candidate through its own parent.
+    auto *action = new QAction(translateHostActionText(text), &d->actionOwner);
     action->setObjectName(toQString(objectName));
     if (shortcut != static_cast<Pk::Key>(0)) {
         action->setShortcut(static_cast<int>(shortcut));

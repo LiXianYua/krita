@@ -45,3 +45,13 @@ target_link_libraries(kritatoolencloseandfill
 install(TARGETS kritatoolencloseandfill  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
 install( FILES KisToolEncloseAndFill.action DESTINATION  ${KDE_INSTALL_DATADIR}/krita/actions)
+
+kis_add_test(
+    tests/KisDynamicDelegatedToolTest.cpp
+    TEST_NAME KisDynamicDelegatedToolTest
+    NAME_PREFIX plugins-tools-enclose-and-fill-
+    LINK_LIBRARIES kritacanvas kritatestsdk
+)
+
+target_include_directories(KisDynamicDelegatedToolTest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR})
