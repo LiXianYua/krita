@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoMultiPathPointJoinCommand.h"
 
@@ -25,4 +23,3 @@ KUndo2Command *KoMultiPathPointJoinCommand::createMergeCommand(const KoPathPoint
 {
     return new KoSubpathJoinCommand(pointData1, pointData2);
 }
-

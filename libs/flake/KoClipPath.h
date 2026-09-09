@@ -11,7 +11,6 @@
 
 #include <PkList.h>
 #include <PkSharedDataPointer.h>
-#include <qnamespace.h>
 #include <KoFlakeCoordinateSystem.h>
 
 class KoShape;

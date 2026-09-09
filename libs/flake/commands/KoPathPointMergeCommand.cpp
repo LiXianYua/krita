@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoPathPointMergeCommand.h"
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"
@@ -15,7 +13,7 @@
 #include "KoPathMergeUtils.h"
 
 
-class Q_DECL_HIDDEN KoPathPointMergeCommand::Private
+class KoPathPointMergeCommand::Private
 {
 public:
     Private(const KoPathPointData &pointData1, const KoPathPointData &pointData2)

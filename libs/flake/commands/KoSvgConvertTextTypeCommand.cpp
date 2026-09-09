@@ -3,9 +3,10 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-#include <QtCore/QtCore>
 #include "KoSvgConvertTextTypeCommand.h"
 #include <KoShapeBulkActionLock.h>
+
+#include <algorithm>
 
 KoSvgConvertTextTypeCommand::KoSvgConvertTextTypeCommand(KoSvgTextShape *shape, KoSvgTextShape::TextType type, int pos, KUndo2Command *parent)
     : KUndo2Command(parent)
@@ -21,7 +22,7 @@ void KoSvgConvertTextTypeCommand::redo()
     KoShapeBulkActionLock lock(m_shape);
 
     m_textData = m_shape->getMemento();
-    const int oldIndex = qMax(0, m_shape->indexForPos(m_pos));
+    const int oldIndex = std::max(0, m_shape->indexForPos(m_pos));
 
     if (m_conversionType == KoSvgTextShape::PreformattedText) {
         m_shape->convertCharTransformsToPreformatted(false);

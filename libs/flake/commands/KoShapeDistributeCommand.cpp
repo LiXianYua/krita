@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeDistributeCommand.h"
 
@@ -14,7 +12,7 @@
 #include "KoShape.h"
 #include <pk/container/PkMap.h>
 #include <pk/container/PkMapIterator.h>
-class Q_DECL_HIDDEN KoShapeDistributeCommand::Private
+class KoShapeDistributeCommand::Private
 {
 public:
     Private() : command(0) {}

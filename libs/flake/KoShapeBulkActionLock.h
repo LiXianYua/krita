@@ -13,6 +13,11 @@
 #include <PkList.h>
 #include <PkRect.h>
 
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 class KoShape;
 struct KoShapeBulkActionInterface;
 

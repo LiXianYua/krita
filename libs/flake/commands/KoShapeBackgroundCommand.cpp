@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <pk/pointer/PkSharedPointer.h>
 
 #include "KoShapeBackgroundCommand.h"
@@ -19,7 +17,7 @@
 // PkSharedPointer）与命令参数（PkSharedPointer）之间跨界时调用。flake 剥完（共享指针
 // 归 Pk）后桥接连同本文件调用点一起删。
 
-class Q_DECL_HIDDEN KoShapeBackgroundCommand::Private
+class KoShapeBackgroundCommand::Private
 {
 public:
     Private() {

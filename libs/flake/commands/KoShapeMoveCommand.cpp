@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeMoveCommand.h"
 
@@ -16,7 +14,7 @@
 #include <KoShapeBulkActionLock.h>
 
 
-class Q_DECL_HIDDEN KoShapeMoveCommand::Private
+class KoShapeMoveCommand::Private
 {
 public:
     PkList<KoShape*> shapes;

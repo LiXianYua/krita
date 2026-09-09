@@ -7,8 +7,6 @@
 #ifndef KOMARKER_H
 #define KOMARKER_H
 
-#include <QMetaType>
-
 #include "kritaflake_export.h"
 #include <KoFlake.h>
 
@@ -107,7 +105,5 @@ private:
     class Private;
     Private * const d;
 };
-
-Q_DECLARE_METATYPE(KoMarker*)
 
 #endif /* KOMARKER_H */

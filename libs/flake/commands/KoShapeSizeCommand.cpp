@@ -5,13 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeSizeCommand.h"
 
 #include <KoShape.h>
-class Q_DECL_HIDDEN KoShapeSizeCommand::Private
+class KoShapeSizeCommand::Private
 {
 public:
     PkList<KoShape*> shapes;

@@ -3,10 +3,11 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
 #include "KoSvgTextReorderShapeInsideCommand.h"
 #include <KoSvgTextShape.h>
 #include <KoShapeBulkActionLock.h>
+
+#include <algorithm>
 
 
 struct KoSvgTextReorderShapeInsideCommand::Private {
@@ -20,7 +21,7 @@ struct KoSvgTextReorderShapeInsideCommand::Private {
         {
             return this->textShape->shapesInside().indexOf(a) < this->textShape->shapesInside().indexOf(b);
         });
-        Q_FOREACH(KoShape *shape, shapes) {
+        for (KoShape *shape : shapes) {
             oldIndices.append(textShape->shapesInside().indexOf(shape));
         }
     }
@@ -52,11 +53,11 @@ void KoSvgTextReorderShapeInsideCommand::redo()
     const int max = (d->textShape->shapesInside().size() -1);
     if (d->type == MoveEarlier || d->type == BringToFront) {
         if (d->type == MoveEarlier) {
-            newIndex = qMax(0, newIndex - 1);
+            newIndex = std::max(0, newIndex - 1);
         } else {
             newIndex = 0;
         }
-        Q_FOREACH(KoShape *shape, d->shapes) {
+        for (KoShape *shape : d->shapes) {
             const int index = d->textShape->shapesInside().indexOf(shape);
             if (index == newIndex) continue;
 
@@ -65,7 +66,7 @@ void KoSvgTextReorderShapeInsideCommand::redo()
         }
     } else {
         if (d->type == MoveLater) {
-            newIndex = qMin(max, newIndex + d->shapes.size());
+            newIndex = std::min(max, newIndex + d->shapes.size());
         } else {
             newIndex = max;
         }

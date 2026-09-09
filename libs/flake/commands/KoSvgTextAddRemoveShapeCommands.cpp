@@ -3,7 +3,6 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
 #include "KoSvgTextAddRemoveShapeCommands.h"
 #include "kis_assert.h"
 #include <optional>
@@ -89,7 +88,7 @@ void KoSvgTextAddRemoveShapeCommandImpl::partB()
     }
 
     if (!d->removeCommand) {
-        Q_FOREACH(KoShape *path, d->oldTextPaths) {
+        for (KoShape *path : d->oldTextPaths) {
             if (!d->textShape->shapeInContours(path)) {
                 d->textShape->addTextPathAtEnd(path);
             }
@@ -127,7 +126,7 @@ void KoSvgTextAddRemoveShapeCommandImpl::partA()
     }
 
     if (d->removeCommand) {
-        Q_FOREACH(KoShape *path, d->oldTextPaths) {
+        for (KoShape *path : d->oldTextPaths) {
             if (!d->textShape->shapeInContours(path)) {
                 d->textShape->addTextPathAtEnd(path);
             }
@@ -180,7 +179,7 @@ void KoSvgTextRemoveShapeCommand::removeContourShapesFromFlow(KoSvgTextShape *te
    if (textPaths) {
        shapes.append(textShape->textPathsAtRange(0, textShape->posForIndex(textShape->plainText().size())));
    }
-   Q_FOREACH(KoShape *shape, shapes) {
+   for (KoShape *shape : shapes) {
        new KoSvgTextRemoveShapeCommand(textShape, shape, parent);
    }
 }

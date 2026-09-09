@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoShapeRenameCommand.h"
 
 #include "KoShape.h"
 
-class Q_DECL_HIDDEN KoShapeRenameCommand::Private
+class KoShapeRenameCommand::Private
 {
 public:
     Private(KoShape *shape, const PkString &newName)

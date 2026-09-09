@@ -5,10 +5,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <pk/container/PkMap.h>
 #include "KoPathBreakAtPointCommand.h"
+
+#include <pk/container/PkContainerAlgo.h>
 
 #include "KoPathPoint.h"
 
@@ -66,7 +66,7 @@ KoPathBreakAtPointCommand::KoPathBreakAtPointCommand(const PkList<KoPathPointDat
 KoPathBreakAtPointCommand::~KoPathBreakAtPointCommand()
 {
     if (m_deletePoints) {
-        qDeleteAll(m_points);
+        pkDeleteAll(m_points);
     }
 }
 

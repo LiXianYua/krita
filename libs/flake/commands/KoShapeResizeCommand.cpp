@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeResizeCommand.h"
 
@@ -14,7 +12,7 @@
 #include <KoShapeBulkActionLock.h>
 
 
-struct Q_DECL_HIDDEN KoShapeResizeCommand::Private
+struct KoShapeResizeCommand::Private
 {
     PkList<KoShape *> shapes;
     qreal scaleX;

@@ -7,8 +7,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeStrokeCommand.h"
 #include "KoShape.h"
@@ -17,7 +15,7 @@
 #include "kis_command_ids.h"
 
 
-class Q_DECL_HIDDEN KoShapeStrokeCommand::Private
+class KoShapeStrokeCommand::Private
 {
 public:
     Private() {}

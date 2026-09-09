@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <memory>
 
 #include "KoMultiPathPointMergeCommand.h"
@@ -18,7 +16,7 @@
 #include "kis_assert.h"
 
 
-struct Q_DECL_HIDDEN KoMultiPathPointMergeCommand::Private
+struct KoMultiPathPointMergeCommand::Private
 {
     Private(const KoPathPointData &_pointData1, const KoPathPointData &_pointData2, KoShapeControllerBase *_controller, KoSelection *_selection)
         : pointData1(_pointData1),
@@ -112,4 +110,3 @@ void KoMultiPathPointMergeCommand::undo()
         }
     }
 }
-

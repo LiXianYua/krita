@@ -5,10 +5,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <pk/container/PkPair.h>
 #include "KoPathPointInsertCommand.h"
+
+#include <pk/container/PkContainerAlgo.h>
 
 #include "KoPathPoint.h"
 #include <KoPathSegment.h>
@@ -19,7 +19,7 @@ public:
     KoPathPointInsertCommandPrivate() : deletePoints(true) { }
     ~KoPathPointInsertCommandPrivate() {
         if (deletePoints) {
-            qDeleteAll(points);
+            pkDeleteAll(points);
         }
     }
     PkList<KoPathPointData> pointDataList;

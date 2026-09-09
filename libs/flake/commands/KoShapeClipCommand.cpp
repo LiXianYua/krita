@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeClipCommand.h"
+
+#include <pk/container/PkContainerAlgo.h>
 #include "KoClipPath.h"
 #include "KoShape.h"
 #include "KoShapeContainer.h"
@@ -15,7 +15,7 @@
 #include "KoShapeControllerBase.h"
 #include "kis_pointer_utils.h"
 
-class Q_DECL_HIDDEN KoShapeClipCommand::Private
+class KoShapeClipCommand::Private
 {
 public:
     Private(KoShapeControllerBase *c)
@@ -24,9 +24,9 @@ public:
 
     ~Private() {
         if (executed) {
-            qDeleteAll(oldClipPaths);
+            pkDeleteAll(oldClipPaths);
         } else {
-            qDeleteAll(newClipPaths);
+            pkDeleteAll(newClipPaths);
         }
     }
 

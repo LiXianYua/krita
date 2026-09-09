@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoSubpathJoinCommand.h"
 #include "kis_assert.h"
@@ -159,4 +157,3 @@ bool KoSubpathJoinCommand::closeSubpathMode() const
 {
     return m_pointData1.pointIndex.first == m_pointData2.pointIndex.first;
 }
-

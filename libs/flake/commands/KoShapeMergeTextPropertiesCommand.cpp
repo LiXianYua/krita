@@ -3,7 +3,6 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
 #include "KoShapeMergeTextPropertiesCommand.h"
 
 #include <KoSvgTextShape.h>
@@ -81,12 +80,12 @@ bool KoShapeMergeTextPropertiesCommand::mergeWith(const KUndo2Command *other)
      * present in both lists, then the value from @p properties is used.
      */
 
-    Q_FOREACH(KoSvgTextProperties::PropertyId p, command->d->removeProperties) {
+    for (KoSvgTextProperties::PropertyId p : command->d->removeProperties) {
         d->newProperties.removeProperty(p);
         d->removeProperties.insert(p);
     }
 
-    Q_FOREACH(KoSvgTextProperties::PropertyId p, command->d->newProperties.properties()) {
+    for (KoSvgTextProperties::PropertyId p : command->d->newProperties.properties()) {
         d->newProperties.setProperty(p, command->d->newProperties.property(p));
         d->removeProperties.remove(p);
     }

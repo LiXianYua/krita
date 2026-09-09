@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoPathFillRuleCommand.h"
 #include "KoPathShape.h"
 
 
-class Q_DECL_HIDDEN KoPathFillRuleCommand::Private
+class KoPathFillRuleCommand::Private
 {
 public:
     Private(Pk::FillRule fillRule) : newFillRule(fillRule) {

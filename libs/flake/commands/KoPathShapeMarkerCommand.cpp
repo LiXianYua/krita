@@ -5,7 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
 #include "KoPathShapeMarkerCommand.h"
 #include "KoMarker.h"
 #include "KoPathShape.h"
@@ -17,7 +16,7 @@
 
 #include <klocalizedstring.h>
 
-struct Q_DECL_HIDDEN KoPathShapeMarkerCommand::Private
+struct KoPathShapeMarkerCommand::Private
 {
     PkList<KoPathShape*> shapes;  ///< the shapes to set marker for
     PkList<KisSharedPtr<KoMarker>> oldMarkers; ///< the old markers, one for each shape
@@ -35,7 +34,7 @@ KoPathShapeMarkerCommand::KoPathShapeMarkerCommand(const PkList<KoPathShape*> &s
     m_d->position = position;
 
     // save old markers
-    Q_FOREACH (KoPathShape *shape, m_d->shapes) {
+    for (KoPathShape *shape : m_d->shapes) {
         m_d->oldMarkers.append(KisSharedPtr<KoMarker>(shape->marker(position)));
         m_d->oldAutoFillMarkers.append(shape->autoFillMarkers());
     }
@@ -51,7 +50,7 @@ void KoPathShapeMarkerCommand::redo()
 
     KoShapeBulkActionLock lock(implicitCastList<KoShape*>(m_d->shapes));
 
-    Q_FOREACH (KoPathShape *shape, m_d->shapes) {
+    for (KoPathShape *shape : m_d->shapes) {
         shape->setMarker(m_d->marker.data(), m_d->position);
 
         // we have no GUI for selection auto-filling yet! So just enable it!
@@ -69,7 +68,7 @@ void KoPathShapeMarkerCommand::undo()
 
     auto markerIt = m_d->oldMarkers.begin();
     auto autoFillIt = m_d->oldAutoFillMarkers.begin();
-    Q_FOREACH (KoPathShape *shape, m_d->shapes) {
+    for (KoPathShape *shape : m_d->shapes) {
         shape->setMarker((*markerIt).data(), m_d->position);
         shape->setAutoFillMarkers(*autoFillIt);
         ++markerIt;

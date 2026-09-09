@@ -5,10 +5,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoSubpathRemoveCommand.h"
+
+#include <pk/container/PkContainerAlgo.h>
 
 #include "KoPathPointData.h"
 #include "KoPathPoint.h"
@@ -25,7 +25,7 @@ KoSubpathRemoveCommand::KoSubpathRemoveCommand(KoPathShape *pathShape, int subpa
 KoSubpathRemoveCommand::~KoSubpathRemoveCommand()
 {
     if (m_subpath) {
-        qDeleteAll(*m_subpath);
+        pkDeleteAll(*m_subpath);
         delete m_subpath;
     }
 }
@@ -57,4 +57,3 @@ void KoSubpathRemoveCommand::undo()
         m_subpath = 0;
     }
 }
-

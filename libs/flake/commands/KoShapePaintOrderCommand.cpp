@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapePaintOrderCommand.h"
 #include "kis_command_ids.h"
 
-class Q_DECL_HIDDEN KoShapePaintOrderCommand::Private
+class KoShapePaintOrderCommand::Private
 {
 public:
     Private() {

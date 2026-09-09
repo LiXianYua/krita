@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoPathControlPointMoveCommand.h"
 #include <math.h>
 #include "kis_command_ids.h"

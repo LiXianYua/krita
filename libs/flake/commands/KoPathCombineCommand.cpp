@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <pk/container/PkHash.h>
 #include "KoPathCombineCommand.h"
 #include "KoShapeControllerBase.h"
@@ -16,7 +14,7 @@
 #include <KoPathPointData.h>
 
 
-class Q_DECL_HIDDEN KoPathCombineCommand::Private
+class KoPathCombineCommand::Private
 {
 public:
     Private(KoShapeControllerBase *c, const PkList<KoPathShape*> &p)
@@ -125,4 +123,3 @@ KoPathPointData KoPathCombineCommand::originalToCombined(KoPathPointData pd) con
     KoPathPointIndex newIndex(segmentOffset + pd.pointIndex.first, pd.pointIndex.second);
     return KoPathPointData(d->combinedPath, newIndex);
 }
-

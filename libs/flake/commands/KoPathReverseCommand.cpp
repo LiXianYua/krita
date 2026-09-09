@@ -4,12 +4,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoPathReverseCommand.h"
 #include "KoPathShape.h"
 
-class Q_DECL_HIDDEN KoPathReverseCommand::Private
+class KoPathReverseCommand::Private
 {
 public:
     Private(const PkList<KoPathShape*> &p)

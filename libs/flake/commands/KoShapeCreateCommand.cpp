@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeCreateCommand.h"
 #include "KoShape.h"
@@ -22,7 +20,7 @@
 #include <kis_undo_stores.h>
 #include <KoAddRemoveShapeCommands.h>
 
-class Q_DECL_HIDDEN KoShapeCreateCommand::Private
+class KoShapeCreateCommand::Private
 {
 public:
     Private(KoShapeControllerBase *_document, const PkList<KoShape*> &_shapes, KoShapeContainer *_parentShape)

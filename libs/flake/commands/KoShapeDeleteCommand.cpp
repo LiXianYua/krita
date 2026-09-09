@@ -5,13 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeDeleteCommand.h"
 #include "KoShapeContainer.h"
 #include "KoShapeControllerBase.h"
-class Q_DECL_HIDDEN KoShapeDeleteCommand::Private
+class KoShapeDeleteCommand::Private
 {
 public:
     Private(KoShapeControllerBase *c)

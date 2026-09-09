@@ -320,17 +320,10 @@ if (KSeExpr_FOUND)
     )
 endif()
 
-set(kritaflake_OBJECT_DEPS
+set(kritaflake_NATIVE_OBJECT_DEPS
     pktextstream
     kritapigment
     kritacommand
-    KF${KF_MAJOR}::WidgetsAddons
-    Qt${QT_MAJOR_VERSION}::Svg
-    KF${KF_MAJOR}::CoreAddons
-    KF${KF_MAJOR}::ConfigCore
-    KF${KF_MAJOR}::I18n
-    Qt${QT_MAJOR_VERSION}::Gui
-    Qt${QT_MAJOR_VERSION}::Xml
     Boost::boost
     Freetype::Freetype
     HarfBuzz::HarfBuzz
@@ -345,13 +338,53 @@ set(kritaflake_OBJECT_DEPS
     pkinput
 )
 
+set(kritaflake_QT_OBJECT_DEPS
+    KF${KF_MAJOR}::WidgetsAddons
+    Qt${QT_MAJOR_VERSION}::Svg
+    KF${KF_MAJOR}::CoreAddons
+    KF${KF_MAJOR}::ConfigCore
+    KF${KF_MAJOR}::I18n
+    Qt${QT_MAJOR_VERSION}::Gui
+    Qt${QT_MAJOR_VERSION}::Xml
+)
+
 if (QT_MAJOR_VERSION STREQUAL "6")
-    list(APPEND kritaflake_OBJECT_DEPS Qt${QT_MAJOR_VERSION}::OpenGLWidgets)
+    list(APPEND kritaflake_QT_OBJECT_DEPS Qt${QT_MAJOR_VERSION}::OpenGLWidgets)
 endif()
+
+set(kritaflake_OBJECT_DEPS ${kritaflake_NATIVE_OBJECT_DEPS} ${kritaflake_QT_OBJECT_DEPS})
 
 function(kritaflake_add_object_library target)
     kis_add_library(${target} OBJECT ${ARGN})
     target_link_libraries(${target} PRIVATE ${kritaflake_OBJECT_DEPS})
+    target_compile_definitions(${target} PRIVATE kritaflake_EXPORTS)
+    set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endfunction()
+
+function(kritaflake_add_native_object_library target)
+    kis_add_library(${target} OBJECT ${ARGN})
+    target_include_directories(${target} BEFORE PRIVATE
+        ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+        ${CMAKE_SOURCE_DIR}/pk/string/compat
+        ${CMAKE_SOURCE_DIR}/pk/container/compat
+        ${CMAKE_SOURCE_DIR}/pk/variant/compat
+        ${CMAKE_SOURCE_DIR}/pk/port/compat
+        ${CMAKE_SOURCE_DIR}/pk/pointer/compat
+        ${CMAKE_SOURCE_DIR}/pk/global/compat
+        ${CMAKE_SOURCE_DIR}/pk/geometry/compat
+        ${CMAKE_SOURCE_DIR}/pk/log/compat
+        ${CMAKE_SOURCE_DIR}/pk/concurrent/compat
+        ${CMAKE_SOURCE_DIR}/pk/image/compat
+        ${CMAKE_SOURCE_DIR}/pk/time/compat
+        ${CMAKE_SOURCE_DIR}/pk/config/compat
+        ${CMAKE_SOURCE_DIR}/pk/flags/compat
+        ${CMAKE_SOURCE_DIR}/pk/color/compat
+        ${CMAKE_SOURCE_DIR}/pk/signal/compat
+        ${CMAKE_SOURCE_DIR}/pk/sql/compat
+        ${CMAKE_SOURCE_DIR}/pk/xml/compat
+        ${CMAKE_SOURCE_DIR}/libs
+    )
+    target_link_libraries(${target} PRIVATE ${kritaflake_NATIVE_OBJECT_DEPS})
     target_compile_definitions(${target} PRIVATE kritaflake_EXPORTS)
     set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
@@ -481,7 +514,7 @@ target_include_directories(kritaflake_painting_objects PRIVATE
 # PRIVATE 依赖（kis_algebra_2d.cpp 随闭包搬入 flake），这里随搬移补上。
 target_link_libraries(kritaflake_painting_objects PRIVATE Eigen3::Eigen kritaflake_imagecodec)
 
-kritaflake_add_object_library(kritaflake_commands_objects ${kritaflake_commands_SRCS})
+kritaflake_add_native_object_library(kritaflake_commands_objects ${kritaflake_commands_SRCS})
 kritaflake_add_object_library(kritaflake_html_objects ${kritaflake_html_SRCS})
 kritaflake_add_object_library(kritaflake_tools_objects ${kritaflake_tools_SRCS})
 kritaflake_add_object_library(kritaflake_svg_objects ${kritaflake_svg_SRCS})

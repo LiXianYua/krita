@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeAlignCommand.h"
 #include "KoShape.h"
@@ -14,7 +12,7 @@
 #include "commands/KoShapeMoveCommand.h"
 // #include <FlakeDebug.h>
 
-class Q_DECL_HIDDEN KoShapeAlignCommand::Private
+class KoShapeAlignCommand::Private
 {
 public:
     Private() : command(0) {}

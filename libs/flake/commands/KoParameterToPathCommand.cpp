@@ -5,17 +5,17 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoParameterToPathCommand.h"
+
+#include <pk/container/PkContainerAlgo.h>
 #include "KoPathPoint.h"
 #include "KoParameterShape.h"
 class KoParameterToPathCommandPrivate
 {
 public:
     ~KoParameterToPathCommandPrivate() {
-        qDeleteAll(copies);
+        pkDeleteAll(copies);
     }
     void initialize();
     void copyPath(KoPathShape *destination, KoPathShape *source);

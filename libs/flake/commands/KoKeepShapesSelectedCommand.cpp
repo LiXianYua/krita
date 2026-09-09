@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoKeepShapesSelectedCommand.h"
 
@@ -40,4 +38,3 @@ void KoKeepShapesSelectedCommand::partB()
         selection->select(shape);
     }
 }
-

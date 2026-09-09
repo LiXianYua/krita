@@ -4,14 +4,12 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "KoShapeTransparencyCommand.h"
 #include "KoShape.h"
 #include "kis_command_ids.h"
 
-class Q_DECL_HIDDEN KoShapeTransparencyCommand::Private
+class KoShapeTransparencyCommand::Private
 {
 public:
     Private() {

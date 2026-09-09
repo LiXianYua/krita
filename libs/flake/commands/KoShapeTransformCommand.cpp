@@ -5,8 +5,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "kis_command_ids.h"
 
@@ -19,7 +17,7 @@
 
 #include <FlakeDebug.h>
 
-class Q_DECL_HIDDEN KoShapeTransformCommand::Private
+class KoShapeTransformCommand::Private
 {
 public:
     Private(const PkList<KoShape*> &list) : shapes(list) { }
