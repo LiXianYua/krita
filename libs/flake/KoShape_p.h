@@ -10,17 +10,15 @@
 #include "KoShape.h"
 
 #include <PkPoint.h>
-#include <QPaintDevice>
 #include <PkTransform.h>
 #include <PkScopedPointer.h>
-#include <QSharedData>
 
 #include <KoClipMask.h>
 
 class KoShapeManager;
 
 
-class KoShape::SharedData : public QSharedData
+class KoShape::SharedData
 {
 public:
     explicit SharedData();

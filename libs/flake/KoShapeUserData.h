@@ -7,7 +7,7 @@
 #ifndef KOSHAPEUSERDATA_H
 #define KOSHAPEUSERDATA_H
 
-#include <QObject>
+#include <PkObject.h>
 
 #include "kritaflake_export.h"
 
@@ -25,15 +25,13 @@
  *  Each subclass should provide a reimplementation of the destructor to ensure that
  *  any private data is automatically cleaned up when user data objects are deleted.
  *
- *  Please note that this object is a QObject to allow a
- *  <code>qobject_cast<MyData*> (shape->userData())</code> to work which is useful in an environment
- *  where classes from plugins may not be castable using a static_cast or a dynamic_cast
+ * Runtime type checks use standard C++ RTTI across the exported flake ABI.
  */
-class KRITAFLAKE_EXPORT KoShapeUserData : public QObject
+class KRITAFLAKE_EXPORT KoShapeUserData : public PkObject
 {
 public:
     /// Constructor
-    explicit KoShapeUserData(QObject *parent = 0);
+    explicit KoShapeUserData(PkObject *parent = nullptr);
     ~KoShapeUserData() override;
 
     virtual KoShapeUserData* clone() const = 0;

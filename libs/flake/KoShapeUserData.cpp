@@ -6,8 +6,8 @@
 
 #include "KoShapeUserData.h"
 
-KoShapeUserData::KoShapeUserData(QObject *parent)
-    : QObject(parent)
+KoShapeUserData::KoShapeUserData(PkObject *parent)
+    : PkObject(parent)
 {
 }
 
@@ -16,7 +16,7 @@ KoShapeUserData::~KoShapeUserData()
 }
 
 KoShapeUserData::KoShapeUserData(const KoShapeUserData &rhs)
-    : QObject()
+    : PkObject()
 {
     Q_UNUSED(rhs);
 }

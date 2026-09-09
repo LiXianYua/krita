@@ -11,7 +11,7 @@
 #ifndef KOSELECTION_H
 #define KOSELECTION_H
 
-#include <QObject>
+#include <PkObject.h>
 
 #include "KoShape.h"
 #include "KoFlake.h"
@@ -34,13 +34,11 @@ class KoSelectionPrivate;
  * A selection, however, should not be selectable. We need to think
  * a little about the interaction here.
  */
-class KRITAFLAKE_EXPORT KoSelection : public QObject, public KoShape, public KoShape::ShapeChangeListener
+class KRITAFLAKE_EXPORT KoSelection : public PkObject, public KoShape, public KoShape::ShapeChangeListener
 {
-    Q_OBJECT
-
 public:
 
-    KoSelection(QObject *parent = 0);
+    KoSelection(PkObject *parent = nullptr);
     ~KoSelection() override;
 
     void paint(PkPainter &painter) const override;
@@ -134,7 +132,7 @@ public:
 
     void notifyShapeChanged(ChangeType type, KoShape *shape) override;
 
-Q_SIGNALS:
+public:
     /// emitted when the selection is changed
     void selectionChanged();
 

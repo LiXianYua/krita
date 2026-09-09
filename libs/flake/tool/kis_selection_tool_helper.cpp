@@ -4,15 +4,12 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
 #include <PkSharedConfig.h>
 
 #include "kis_selection_tool_helper.h"
 
 
 #include <kundo2command.h>
-#include <QIcon>
-
 #include <KoCanvasBase.h>
 #include <KoShapeController.h>
 #include <KoPathShape.h>
@@ -34,9 +31,6 @@
 #include "commands/kis_deselect_global_selection_command.h"
 
 #include "kis_algebra_2d.h"
-#include <klocalizedstring.h>
-
-
 KisSelectionToolHelper::KisSelectionToolHelper(KoCanvasBase *canvas,
                                                KisImageSP image,
                                                KisNodeSP activeNode,
@@ -183,10 +177,9 @@ void KisSelectionToolHelper::addSelectionShapes(PkList< KoShape* > shapes, Selec
     if (m_image->wrapAroundModePermitted()) {
         if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(m_canvas)) {
             feedback->showFloatingMessage(
-                toPkString(i18n("Shape selection does not fully "
-                                "support wraparound mode. Please "
-                                "use pixel selection instead")),
-                QIcon());
+                PkString("Shape selection does not fully "
+                         "support wraparound mode. Please "
+                         "use pixel selection instead"));
         }
     }
 

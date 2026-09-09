@@ -776,7 +776,7 @@ void KoToolManager::Private::attachCanvas(KoCanvasController *controller)
     }
 
     KoShapeManager *shapeManager = controller->canvas()->shapeManager();
-    QObject::connect(shapeManager, &KoShapeManager::selectionChanged, q,
+    PkObject::connect(shapeManager, &KoShapeManager::selectionChanged, q,
             [this, shapeManager] { this->selectionChanged(shapeManager->selection()->selectedShapes()); });
     PkObject::connect(controller->canvas()->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged, q,
             [this](const KoShapeLayer *layer) { this->currentLayerChanged(layer); });

@@ -9,7 +9,7 @@
 
 #include <PkPointer.h>
 #include <KoSelectedShapesProxy.h>
-#include <QMetaObject>
+#include <PkConnection.h>
 
 class KoShapeManager;
 
@@ -23,7 +23,7 @@ public:
 
 private:
     PkPointer<KoShapeManager> m_shapeManager;
-    PkList<QMetaObject::Connection> m_hostConnections;
+    PkList<PkConnection> m_connections;
 };
 
 #endif // KOSELECTEDSHAPESPROXYSIMPLE_H

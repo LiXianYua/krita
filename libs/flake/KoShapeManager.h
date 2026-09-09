@@ -10,7 +10,7 @@
 #define KOSHAPEMANAGER_H
 
 #include <PkList.h>
-#include <QObject>
+#include <PkObject.h>
 #include <PkRect.h>
 
 #include "KoFlake.h"
@@ -38,10 +38,8 @@ class PkRectF;
  *
  * The selection in the different views can be different.
  */
-class KRITAFLAKE_EXPORT KoShapeManager : public QObject
+class KRITAFLAKE_EXPORT KoShapeManager : public PkObject
 {
-    Q_OBJECT
-
 public:
     /// enum for add()
     enum Repaint {
@@ -78,7 +76,7 @@ public:
      */
     PkList<KoShape*> topLevelShapes() const;
 
-public Q_SLOTS:
+public:
     /**
      * Add a KoShape to be displayed and managed by this manager.
      * This will trigger a repaint of the shape.
@@ -258,7 +256,7 @@ public:
 
     ShapeInterface* shapeInterface();
 
-Q_SIGNALS:
+public:
     /// emitted when the selection is changed
     void selectionChanged();
     /// emitted when an object in the selection is changed (moved/rotated etc)
@@ -275,8 +273,6 @@ private:
 
     class Private;
     Private * const d;
-    Q_PRIVATE_SLOT(d, void updateTree())
-    Q_PRIVATE_SLOT(d, void forwardCompressedUpdate())
 };
 
 #endif

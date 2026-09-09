@@ -17,22 +17,22 @@ KoSelectedShapesProxySimple::KoSelectedShapesProxySimple(KoShapeManager *shapeMa
     KIS_ASSERT_RECOVER_RETURN(m_shapeManager);
 
     const PkPointer<KoSelectedShapesProxySimple> guard(this);
-    m_hostConnections.append(QObject::connect(
+    m_connections.append(PkObject::connect(
         m_shapeManager.data(), &KoShapeManager::selectionChanged, m_shapeManager.data(),
         [guard] { if (guard) guard->selectionChanged(); }));
-    m_hostConnections.append(QObject::connect(
+    m_connections.append(PkObject::connect(
         m_shapeManager.data(), &KoShapeManager::selectionContentChanged, m_shapeManager.data(),
         [guard] { if (guard) guard->selectionContentChanged(); }));
     KoSelection *selection = m_shapeManager->selection();
-    m_hostConnections.append(QObject::connect(
+    m_connections.append(PkObject::connect(
         selection, &KoSelection::currentLayerChanged, selection,
         [guard](const KoShapeLayer *layer) { if (guard) guard->currentLayerChanged(layer); }));
 }
 
 KoSelectedShapesProxySimple::~KoSelectedShapesProxySimple()
 {
-    for (const QMetaObject::Connection &connection : m_hostConnections) {
-        QObject::disconnect(connection);
+    for (PkConnection &connection : m_connections) {
+        PkObject::disconnect(connection);
     }
 }
 

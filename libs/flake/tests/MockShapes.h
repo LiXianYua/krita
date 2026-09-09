@@ -100,7 +100,6 @@ public:
 
 class KRITAFLAKE_EXPORT MockCanvas : public KoCanvasBase
 {
-    Q_OBJECT
 public:
     MockCanvas(KoShapeControllerBase *aKoShapeControllerBase =0)//made for TestSnapStrategy.cpp
             : KoCanvasBase(aKoShapeControllerBase),

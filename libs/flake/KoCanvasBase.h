@@ -37,14 +37,14 @@ class PkPointF;
 class PkRectF;
 class PkSizeF;
 
-#include <QObject>
+#include <PkObject.h>
 
 /**
  * KoCanvasBase is the interface actual application canvas classes
  * should implement. Flake tools know about the canvas, so they can
  * do things like scroll, redraw, set a cursor etc.
  */
-class KRITAFLAKE_EXPORT KoCanvasBase : public QObject
+class KRITAFLAKE_EXPORT KoCanvasBase : public PkObject
 {
 public:
 
@@ -222,7 +222,7 @@ public:
      * connections it has to any QObject owned by the canvas. Do this in
      * the setCanvas of every KoCanvasObserver.
      */
-    virtual void disconnectCanvasObserver(QObject *object);
+    virtual void disconnectCanvasObserver(PkObject *object);
 
     /**
      * Return a pointer to the resource manager associated with this

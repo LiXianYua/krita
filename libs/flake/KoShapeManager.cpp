@@ -311,26 +311,26 @@ KoShapeManager::KoShapeManager(KoCanvasBase *canvas, const PkList<KoShape *> &sh
     : d(new Private(this, canvas))
 {
     Q_ASSERT(d->canvas); // not optional.
-    QObject::connect(d->selection, &KoSelection::selectionChanged, this, &KoShapeManager::selectionChanged);
+    PkObject::connect(d->selection, &KoSelection::selectionChanged, this, &KoShapeManager::selectionChanged);
     setShapes(shapes);
 
     /**
      * Shape manager uses uses queued signals, therefore it should belong
      * to the GUI thread.
      */
-    this->moveToThread(qApp->thread());
-    QObject::connect(this, &KoShapeManager::forwardUpdate, this, [this]() { d->forwardCompressedUpdate(); });
+    this->moveToThread(PkThread::mainThreadId());
+    PkObject::connect(this, &KoShapeManager::forwardUpdate, this, [this]() { d->forwardCompressedUpdate(); });
 }
 
 KoShapeManager::KoShapeManager(KoCanvasBase *canvas)
     : d(new Private(this, canvas))
 {
     Q_ASSERT(d->canvas); // not optional.
-    QObject::connect(d->selection, &KoSelection::selectionChanged, this, &KoShapeManager::selectionChanged);
+    PkObject::connect(d->selection, &KoSelection::selectionChanged, this, &KoShapeManager::selectionChanged);
 
     // see a comment in another constructor
-    this->moveToThread(qApp->thread());
-    QObject::connect(this, &KoShapeManager::forwardUpdate, this, [this]() { d->forwardCompressedUpdate(); });
+    this->moveToThread(PkThread::mainThreadId());
+    PkObject::connect(this, &KoShapeManager::forwardUpdate, this, [this]() { d->forwardCompressedUpdate(); });
 }
 
 void KoShapeManager::Private::unlinkFromShapesRecursively(const PkList<KoShape*> &shapes)
@@ -351,6 +351,26 @@ KoShapeManager::~KoShapeManager()
     d->shapes.clear();
 
     delete d;
+}
+
+void KoShapeManager::selectionChanged()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KoShapeManager::selectionChanged));
+}
+
+void KoShapeManager::selectionContentChanged()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KoShapeManager::selectionContentChanged));
+}
+
+void KoShapeManager::contentChanged()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KoShapeManager::contentChanged));
+}
+
+void KoShapeManager::forwardUpdate()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KoShapeManager::forwardUpdate));
 }
 
 void KoShapeManager::setShapes(const PkList<KoShape *> &shapes, Repaint repaint)

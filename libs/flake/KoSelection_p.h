@@ -6,23 +6,19 @@
 #ifndef KOSELECTIONPRIVATE_H
 #define KOSELECTIONPRIVATE_H
 
-#include <QSharedData>
-
 #include "kis_thread_safe_signal_compressor.h"
 
 class KoShapeGroup;
 
-class KoSelection::Private : public QSharedData
+class KoSelection::Private
 {
 public:
     explicit Private()
-        : QSharedData()
-        , activeLayer(0)
+        : activeLayer(0)
         , selectionChangedCompressor(new KisThreadSafeSignalCompressor(100, KisSignalCompressor::FIRST_INACTIVE))
     {}
     explicit Private(const Private &)
-        : QSharedData()
-        , activeLayer(0)
+        : activeLayer(0)
         , selectionChangedCompressor(new KisThreadSafeSignalCompressor(100, KisSignalCompressor::FIRST_INACTIVE))
     {
     }

@@ -21,17 +21,17 @@
 #include <PkPainter.h>
 
 #include "kis_debug.h"
-KoSelection::KoSelection(QObject *parent)
-    : QObject(parent)
+KoSelection::KoSelection(PkObject *parent)
+    : PkObject(parent)
     , KoShape()
     , d(new Private)
 {
     PkObject::connect(d->selectionChangedCompressor, &KisThreadSafeSignalCompressor::timeout,
-                      d->selectionChangedCompressor, [this]() { emit selectionChanged(); });
+                      this, [this]() { selectionChanged(); });
 }
 
 KoSelection::KoSelection(const KoSelection &rhs)
-    : QObject()
+    : PkObject()
     , KoShape(rhs)
     , d(rhs.d)
 {
@@ -39,6 +39,17 @@ KoSelection::KoSelection(const KoSelection &rhs)
 
 KoSelection::~KoSelection()
 {
+}
+
+void KoSelection::selectionChanged()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KoSelection::selectionChanged));
+}
+
+void KoSelection::currentLayerChanged(const KoShapeLayer *layer)
+{
+    activateSignal<const KoShapeLayer *>(
+        this, PkMemberFnKey::from(&KoSelection::currentLayerChanged), layer);
 }
 
 void KoSelection::paint(PkPainter &painter) const

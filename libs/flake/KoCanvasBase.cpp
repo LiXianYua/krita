@@ -51,7 +51,8 @@ public:
 };
 
 KoCanvasBase::KoCanvasBase(KoShapeControllerBase *shapeController, KoCanvasResourceProvider *sharedResourceManager)
-        : d(new Private())
+        : PkObject()
+        , d(new Private())
 {
     d->resourceManager = sharedResourceManager ?
         sharedResourceManager : new KoCanvasResourceProvider();
@@ -80,21 +81,21 @@ KoShapeController *KoCanvasBase::shapeController() const
         return 0;
 }
 
-void KoCanvasBase::disconnectCanvasObserver(QObject *object)
+void KoCanvasBase::disconnectCanvasObserver(PkObject *object)
 {
-    if (shapeManager()) shapeManager()->selection()->disconnect(object);
-    if (resourceManager()) resourceManager()->disconnect(object);
-    if (shapeManager()) shapeManager()->disconnect(object);
+    if (shapeManager()) {
+        PkObject::disconnect(shapeManager()->selection(), nullptr, object, nullptr);
+    }
+    if (auto *qtObserver = dynamic_cast<QObject *>(object)) {
+        if (resourceManager()) resourceManager()->disconnect(qtObserver);
+        if (toolProxy()) toolProxy()->QObject::disconnect(qtObserver);
+    }
+    if (shapeManager()) PkObject::disconnect(shapeManager(), nullptr, object, nullptr);
     if (toolProxy()) {
-        toolProxy()->QObject::disconnect(object);
-        if (auto *pkObserver = dynamic_cast<PkObject *>(object)) {
-            PkObject::disconnect(toolProxy(), nullptr, pkObserver, nullptr);
-        }
+        PkObject::disconnect(toolProxy(), nullptr, object, nullptr);
     }
     if (selectedShapesProxy()) {
-        if (auto *pkObserver = dynamic_cast<PkObject *>(object)) {
-            PkObject::disconnect(selectedShapesProxy(), nullptr, pkObserver, nullptr);
-        }
+        PkObject::disconnect(selectedShapesProxy(), nullptr, object, nullptr);
     }
 }
 
