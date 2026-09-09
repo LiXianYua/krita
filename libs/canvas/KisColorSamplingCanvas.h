@@ -7,13 +7,16 @@
 
 #include <optional>
 
-#include <QCursor>
 #include <PkColor.h>
 #include <PkPoint.h>
+
+#include "KisCanvasCursorToken.h"
 
 #include <KoColor.h>
 #include <kis_types.h>
 #include <kritacanvas_export.h>
+
+class QCursor;
 
 /**
  * Narrow host services needed by asynchronous canvas color sampling.
@@ -36,6 +39,8 @@ public:
     virtual bool samplingCanvasMirroredVertically() const = 0;
     virtual QCursor samplingCursor(bool sampleCurrentLayer,
                                    bool pickFgColor) const = 0;
+    virtual KisCanvasCursorToken samplingCursorToken(bool sampleCurrentLayer,
+                                                     bool pickFgColor) const = 0;
 };
 
 #endif // KIS_COLOR_SAMPLING_CANVAS_H

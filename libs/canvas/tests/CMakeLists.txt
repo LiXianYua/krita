@@ -20,10 +20,6 @@ kis_add_test(
     LINK_LIBRARIES kritacanvas kritatestsdk pkimageio kritalcmsengine
 )
 
-target_link_libraries(KisAsyncColorSamplerHelperTest kritaselectiontools)
-target_include_directories(KisAsyncColorSamplerHelperTest PRIVATE
-    ${CMAKE_SOURCE_DIR}/plugins/tools/selectiontools)
-
 find_program(GETTEXT_XGETTEXT_EXECUTABLE NAMES xgettext REQUIRED)
 add_test(NAME libs-canvas-host-action-extraction
     COMMAND ${CMAKE_COMMAND}

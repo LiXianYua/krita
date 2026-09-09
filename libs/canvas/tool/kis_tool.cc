@@ -4,7 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include <pk/container/PkSet.h>
-#include <QCursor>
 #include <pk/geometry/PkPoint.h>
 #include <pk/geometry/PkPolygon.h>
 #include <pk/geometry/PkRect.h>
@@ -54,7 +53,7 @@
 #include <KisCanvasToolServices.h>
 
 struct Q_DECL_HIDDEN KisTool::Private {
-    QCursor cursor; // the cursor that should be shown on tool activation.
+    KisCanvasCursorToken cursor; // Host-owned cursor shown on activation.
 
     // From the canvas resources
     KoPatternSP currentPattern;
@@ -157,7 +156,11 @@ KisTool::KisTool(KoCanvasBase * canvas, const QCursor & cursor)
     : KoToolBase(canvas)
     , d(new Private)
 {
-    d->cursor = cursor;
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
+    KIS_ASSERT(services);
+    if (services) {
+        d->cursor = services->toolImportCursor(cursor);
+    }
 
     KisConfigNotifier *notifier = KisConfigNotifier::instance();
     PkObject::connect(
@@ -350,7 +353,7 @@ qreal KisTool::convertToPt(qreal value)
 PkPointF KisTool::pixelToView(const PkPointF &pixelCoord) const
 {
     if (!image())
-        return toPkPointF(pixelCoord);
+        return pixelCoord;
     PkPointF documentCoord = image()->pixelToDocument(pixelCoord);
     return canvas()->viewConverter()->documentToView(documentCoord);
 }
@@ -411,7 +414,7 @@ KisImageWSP KisTool::image() const
 
 }
 
-QCursor KisTool::cursor() const
+KisCanvasCursorToken KisTool::cursor() const
 {
     return d->cursor;
 }
@@ -480,7 +483,25 @@ KisTool::ToolMode KisTool::mode() const {
 
 void KisTool::setCursor(const QCursor &cursor)
 {
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
+    if (services) {
+        d->cursor = services->toolImportCursor(cursor);
+    }
+}
+
+void KisTool::setCursor(KisCanvasCursorToken cursor)
+{
     d->cursor = cursor;
+}
+
+void KisTool::applyCursor(KisCanvasCursorToken cursor)
+{
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
+    if (services) {
+        services->toolApplyCursor(cursor);
+    }
 }
 
 KisTool::AlternateAction KisTool::actionToAlternateAction(ToolAction action) {
@@ -658,7 +679,7 @@ void KisTool::paintToolOutline(PkPainter *painter, const KisOptimizedBrushOutlin
 
 void KisTool::resetCursorStyle()
 {
-    useCursor(d->cursor);
+    applyCursor(d->cursor);
 }
 
 bool KisTool::overrideCursorIfNotEditable()
@@ -668,8 +689,9 @@ bool KisTool::overrideCursorIfNotEditable()
     if (isActive()) {
         KisNodeSP node = currentNode();
         if (node && !node->isEditable()) {
-            useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())
-                          ->toolForbiddenCursor());
+            KisCanvasToolServices *services =
+                dynamic_cast<KisCanvasToolServices *>(canvas());
+            applyCursor(services->toolForbiddenCursorToken());
             return true;
         }
     }

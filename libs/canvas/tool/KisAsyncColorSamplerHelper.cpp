@@ -277,7 +277,7 @@ void KisAsyncColorSamplerHelper::activatePreview()
 void KisAsyncColorSamplerHelper::updateCursor(bool sampleCurrentLayer, bool pickFgColor)
 {
     sigRequestCursor(
-        m_d->samplingCanvas->samplingCursor(sampleCurrentLayer, pickFgColor));
+        m_d->samplingCanvas->samplingCursorToken(sampleCurrentLayer, pickFgColor));
 }
 
 void KisAsyncColorSamplerHelper::setUpdateGlobalColor(bool value)
@@ -566,7 +566,7 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const PkPointF &docPoint)
 
     KisImageSP image = m_d->samplingCanvas->samplingImage();
 
-    const PkPoint imagePoint = image->documentToImagePixelFloored(toPkPointF(docPoint));
+    const PkPoint imagePoint = image->documentToImagePixelFloored(docPoint);
 
     if (!m_d->sampleCurrentLayer) {
         const std::optional<KoColor> referenceColor =

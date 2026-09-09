@@ -14,7 +14,8 @@
 #include <PkSignalCompat.h>
 #include <pk/render/PkPainter.h>
 #include <KoColor.h>
-#include <QCursor>
+
+#include "KisCanvasCursorToken.h"
 
 #include "kis_types.h"
 
@@ -50,7 +51,7 @@ public:
 
 signals:
     void sigRequestUpdateOutline();
-    void sigRequestCursor(const QCursor &cursor);
+    void sigRequestCursor(KisCanvasCursorToken cursor);
     void sigRequestCursorReset();
     /**
      * Notifies about the raw color picked from the layer,

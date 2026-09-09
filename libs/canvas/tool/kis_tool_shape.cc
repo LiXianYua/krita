@@ -129,10 +129,10 @@ void KisToolShape::addShape(KoShape* shape)
                                    canvas()->resourceManager()->canvasResourcesInterface());
     switch(fillStyle()) {
         case FillStyleForegroundColor:
-            shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(toPkColor(resources.currentFgColor().toQColor()))));
+            shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(resources.currentFgColor().toQColor())));
             break;
         case FillStyleBackgroundColor:
-            shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(toPkColor(resources.currentBgColor().toQColor()))));
+            shape->setBackground(PkSharedPointer<KoColorBackground>(new KoColorBackground(resources.currentBgColor().toQColor())));
             break;
         case FillStylePattern:
             shape->setBackground(PkSharedPointer<KoShapeBackground>(0));
@@ -166,10 +166,10 @@ void KisToolShape::addShape(KoShape* shape)
 
     // reset selection on the newly added shape :)
     // TODO: think about moving this into controller->addShape?
-    new KoKeepShapesSelectedCommand(toPkList(oldSelectedShapes), PkList<KoShape*>{shape}, canvas()->selectedShapesProxy(), false, parentCommand);
+    new KoKeepShapesSelectedCommand(oldSelectedShapes, PkList<KoShape*>{shape}, canvas()->selectedShapesProxy(), false, parentCommand);
     KUndo2Command *cmd = canvas()->shapeController()->addShape(shape, 0, parentCommand);
     parentCommand->setText(cmd->text());
-    new KoKeepShapesSelectedCommand(toPkList(oldSelectedShapes), PkList<KoShape*>{shape}, canvas()->selectedShapesProxy(), true, parentCommand);
+    new KoKeepShapesSelectedCommand(oldSelectedShapes, PkList<KoShape*>{shape}, canvas()->selectedShapesProxy(), true, parentCommand);
 
     KisProcessingApplicator::runSingleCommandStroke(image(), cmd, KisStrokeJobData::SEQUENTIAL, KisStrokeJobData::EXCLUSIVE);
 }

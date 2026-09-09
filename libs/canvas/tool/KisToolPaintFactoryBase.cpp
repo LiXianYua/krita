@@ -7,10 +7,8 @@
 #include <pk/container/PkList.h>
 #include "KisToolPaintFactoryBase.h"
 
-#include <QAction>
-
 KisToolPaintFactoryBase::KisToolPaintFactoryBase(const PkString &id)
-    : KoToolFactoryBase(toPkString(id))
+    : KoToolFactoryBase(id)
 {
 }
 

@@ -95,7 +95,7 @@ public:
 
 private:
 
-    void slotColorPickerRequestedCursor(const QCursor &cursor);
+    void slotColorPickerRequestedCursor(KisCanvasCursorToken cursor);
     void slotColorPickerRequestedCursorReset();
     void slotColorPickerRequestedOutlineUpdate();
 

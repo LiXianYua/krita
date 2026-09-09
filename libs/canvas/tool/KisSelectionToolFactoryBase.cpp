@@ -6,8 +6,6 @@
 #include <pk/container/PkList.h>
 #include "KisSelectionToolFactoryBase.h"
 
-#include <QAction>
-
 KisSelectionToolFactoryBase::KisSelectionToolFactoryBase(const PkString &id)
     : KisToolPaintFactoryBase(id)
 {

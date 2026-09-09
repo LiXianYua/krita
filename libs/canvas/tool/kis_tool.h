@@ -10,7 +10,8 @@
 #include <PkSet.h>
 #include <PkSignalCompat.h>
 #include <PkMessageLogger.h>
-#include <QCursor>
+
+#include "KisCanvasCursorToken.h"
 
 #include <KoColor.h>
 #include <KoToolBase.h>
@@ -33,6 +34,7 @@ class KoCanvasBase;
 class KisFilterConfiguration;
 class PkPolygonF;
 class KisOptimizedBrushOutline;
+class QCursor;
 
 //activation id for Krita tools, Krita tools are always active and handle locked and invisible layers by themselves
 static const PkString KRITA_TOOL_ACTIVATION_ID = "flake/always";
@@ -258,7 +260,7 @@ protected:
 
 protected:
     KisImageWSP image() const;
-    QCursor cursor() const;
+    KisCanvasCursorToken cursor() const;
 
     KisImageWSP currentImage();
     KoPatternSP currentPattern();
@@ -301,6 +303,8 @@ protected:
     virtual void setMode(ToolMode mode);
     virtual ToolMode mode() const;
     void setCursor(const QCursor &cursor);
+    void setCursor(KisCanvasCursorToken cursor);
+    void applyCursor(KisCanvasCursorToken cursor);
 
 protected:
     /**

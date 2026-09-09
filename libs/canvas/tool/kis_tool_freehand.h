@@ -124,7 +124,7 @@ private:
     bool m_paintopBasedSamplingInAction {false};
     KisSignalCompressorWithParam<qreal> m_brushResizeCompressor;
 
-    std::optional<KoPointerEventWrapper> m_beginAlternateActionEvent;
+    std::optional<KoPointerEvent> m_beginAlternateActionEvent;
 };
 
 

@@ -115,7 +115,7 @@ void KisToolPolylineBase::endPrimaryAction(KoPointerEvent *event)
     if(m_dragging) {
         m_dragStart = convertToPixelCoordAndSnap(event);
         m_dragEnd = m_dragStart;
-        m_points.append(toPkPointF(m_dragStart));
+        m_points.append(m_dragStart);
     }
 }
 

@@ -6,9 +6,6 @@
 #ifndef KIS_TEXTURE_TILE_UPDATE_INFO_H_
 #define KIS_TEXTURE_TILE_UPDATE_INFO_H_
 
-#include <QMessageBox>
-#include <QThreadStorage>
-#include <QScopedArrayPointer>
 #include <QPoint>
 #include <QRect>
 #include <QSize>
@@ -30,7 +27,6 @@
 #include <KoColorModelStandardIds.h>
 #include <KoColorSpace.h>
 #include <kis_lod_transform.h>
-#include <KisPortingUtils.h>
 #include <KisDisplayConfig.h>
 
 class KisTextureTileUpdateInfo;
@@ -114,7 +110,8 @@ public:
     }
 
 private:
-    Q_DISABLE_COPY(DataBuffer)
+    DataBuffer(const DataBuffer &) = delete;
+    DataBuffer &operator=(const DataBuffer &) = delete;
 
     quint8 *m_data {nullptr};
     int m_pixelSize;
@@ -320,7 +317,8 @@ public:
     }
 
 private:
-    Q_DISABLE_COPY(KisTextureTileUpdateInfo)
+    KisTextureTileUpdateInfo(const KisTextureTileUpdateInfo &) = delete;
+    KisTextureTileUpdateInfo &operator=(const KisTextureTileUpdateInfo &) = delete;
 
 private:
     qint32 m_tileCol {0};

@@ -34,6 +34,7 @@
 #include <simpletest.h>
 
 #include "KisAsyncColorSamplerHelper.h"
+#include "KisCanvasCursorToken.h"
 #include "KisCanvasFeedback.h"
 #include "KisCanvasToolServices.h"
 #include "KisColorSamplingCanvas.h"
@@ -43,7 +44,6 @@
 #include "tool/kis_tool_ellipse_base.h"
 #include "tool/kis_tool_polyline_base.h"
 #include "tool/strokes/kis_color_sampler_stroke_strategy.h"
-#include "kis_tool_select_polygonal.h"
 
 namespace {
 class TestSamplingCanvas : public KoCanvasBase,
@@ -108,6 +108,15 @@ public:
         lastCursorSampleCurrentLayer = sampleCurrentLayer;
         lastCursorPickFgColor = pickFgColor;
         return QCursor(Qt::WaitCursor);
+    }
+
+    KisCanvasCursorToken samplingCursorToken(bool sampleCurrentLayer,
+                                             bool pickFgColor) const override
+    {
+        ++cursorQueryCount;
+        lastCursorSampleCurrentLayer = sampleCurrentLayer;
+        lastCursorPickFgColor = pickFgColor;
+        return KisCanvasCursorToken(0x51);
     }
 
     const KoViewConverter *viewConverter() const override
@@ -249,6 +258,32 @@ public:
     QCursor toolClosedHandCursor() const override { return {}; }
     QCursor toolForbiddenCursor() const override { return {}; }
     QCursor toolLoadCursor(const PkString &, int, int) const override { return {}; }
+    QCursor loadCursorResource(const PkString &, const PkSize &,
+                               const PkPoint &) const override { return {}; }
+    KisCanvasCursorToken toolImportCursor(const QCursor &) const override
+    {
+        ++cursorImportCount;
+        return KisCanvasCursorToken(0x11);
+    }
+    KisCanvasCursorToken toolCursorToken(CursorStyle style) const override
+    {
+        return KisCanvasCursorToken(0x100 + std::uint64_t(style));
+    }
+    KisCanvasCursorToken toolMoveCursorToken() const override { return KisCanvasCursorToken(0x201); }
+    KisCanvasCursorToken toolMoveSelectionCursorToken() const override { return KisCanvasCursorToken(0x202); }
+    KisCanvasCursorToken toolSamplerCursorToken() const override { return KisCanvasCursorToken(0x203); }
+    KisCanvasCursorToken toolOpenHandCursorToken() const override { return KisCanvasCursorToken(0x204); }
+    KisCanvasCursorToken toolClosedHandCursorToken() const override { return KisCanvasCursorToken(0x205); }
+    KisCanvasCursorToken toolForbiddenCursorToken() const override { return KisCanvasCursorToken(0x206); }
+    KisCanvasCursorToken toolLoadCursorToken(const PkString &, int, int) const override
+    {
+        return KisCanvasCursorToken(0x207);
+    }
+    void toolApplyCursor(KisCanvasCursorToken cursor) override
+    {
+        lastAppliedCursor = cursor;
+        ++cursorApplyCount;
+    }
     void toolSetCursorPosition(const PkPoint &) override {}
     void toolShowBrushSize(qreal) override {}
     void toolShowLockedLayerMessage(bool) override {}
@@ -341,6 +376,9 @@ public:
     bool rightClickAttached {false};
     PkObject *priorityEventFilter {nullptr};
     bool priorityEventFilterAttached {false};
+    mutable int cursorImportCount {0};
+    int cursorApplyCount {0};
+    KisCanvasCursorToken lastAppliedCursor;
     KisCanvasToolSignals toolSignalBus;
 };
 
@@ -358,6 +396,7 @@ public:
     }
 
     void setPreviewAngle(qreal angle) { m_angle = angle; }
+    void applyStoredCursor() { resetCursorStyle(); }
 
 private:
     void finishRect(const PkRectF &, qreal, qreal) override {}
@@ -377,14 +416,6 @@ class PolylinePreviewTool final : public KisToolPolylineBase
 public:
     explicit PolylinePreviewTool(KoCanvasBase *canvas)
         : KisToolPolylineBase(canvas, SELECT, QCursor()) {}
-protected:
-    void finishPolyline(const PkVector<PkPointF> &) override {}
-};
-
-class SelectionPreviewTool final : public __KisToolSelectPolygonalLocal
-{
-public:
-    using __KisToolSelectPolygonalLocal::__KisToolSelectPolygonalLocal;
 protected:
     void finishPolyline(const PkVector<PkPointF> &) override {}
 };
@@ -906,11 +937,11 @@ void KisAsyncColorSamplerHelperTest::cursorUsesSamplingCanvasPolicy()
     TestSamplingCanvas canvas(image);
     KisAsyncColorSamplerHelper helper(&canvas, &canvas);
 
-    QCursor requestedCursor;
+    KisCanvasCursorToken requestedCursor;
     PkObject::connect(&helper,
             &KisAsyncColorSamplerHelper::sigRequestCursor,
             &helper,
-            [&requestedCursor](const QCursor &cursor) {
+            [&requestedCursor](KisCanvasCursorToken cursor) {
                 requestedCursor = cursor;
             });
 
@@ -919,10 +950,24 @@ void KisAsyncColorSamplerHelperTest::cursorUsesSamplingCanvasPolicy()
     QCOMPARE(canvas.cursorQueryCount, 1);
     QVERIFY(canvas.lastCursorSampleCurrentLayer);
     QVERIFY(!canvas.lastCursorPickFgColor);
-    QCOMPARE(requestedCursor.shape(), Qt::WaitCursor);
+    QCOMPARE(requestedCursor.value(), std::uint64_t(0x51));
 }
 
-void KisAsyncColorSamplerHelperTest::proxyDispatchesPolylineAndSelectionDecorations()
+void KisAsyncColorSamplerHelperTest::toolCursorTokenPersistsAndApplies()
+{
+    EllipsePreviewCanvas canvas;
+    EllipsePreviewTool tool(&canvas);
+
+    QCOMPARE(canvas.cursorImportCount, 1);
+    QCOMPARE(canvas.cursorApplyCount, 0);
+
+    tool.applyStoredCursor();
+
+    QCOMPARE(canvas.cursorApplyCount, 1);
+    QCOMPARE(canvas.lastAppliedCursor.value(), std::uint64_t(0x11));
+}
+
+void KisAsyncColorSamplerHelperTest::proxyDispatchesPolylineDecorations()
 {
     KisPaintLayerSP layer;
     KisImageSP image = createImageWithLayer(Pk::black, &layer);
@@ -931,46 +976,42 @@ void KisAsyncColorSamplerHelperTest::proxyDispatchesPolylineAndSelectionDecorati
     canvas.snapGuide()->enableSnapping(false);
     DecorationProxy proxy(&canvas);
     PolylinePreviewTool polyline(&canvas);
-    SelectionPreviewTool selection(&canvas);
+    KisToolPolylineBase *tool = &polyline;
+    proxy.priv()->activeTool = tool;
+    for (const PkPointF &point : {PkPointF(10, 20), PkPointF(30, 20)}) {
+        QMouseEvent press(QEvent::MouseButtonPress, QPointF(point.x(), point.y()),
+                          Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        KoPointerEvent start(&press, point);
+        tool->beginPrimaryAction(&start);
+        QMouseEvent release(QEvent::MouseButtonRelease, QPointF(point.x(), point.y()),
+                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        KoPointerEvent end(&release, point);
+        tool->endPrimaryAction(&end);
+    }
+    QMouseEvent move(QEvent::MouseMove, QPointF(50, 40),
+                     Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    KoPointerEvent hover(&move, PkPointF(50, 40));
+    tool->mouseMoveEvent(&hover);
 
-    for (KisToolPolylineBase *tool : {static_cast<KisToolPolylineBase *>(&polyline),
-                                    static_cast<KisToolPolylineBase *>(&selection)}) {
-        proxy.priv()->activeTool = tool;
-        for (const PkPointF &point : {PkPointF(10, 20), PkPointF(30, 20)}) {
-            QMouseEvent press(QEvent::MouseButtonPress, QPointF(point.x(), point.y()),
-                              Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-            KoPointerEvent start(&press, point);
-            tool->beginPrimaryAction(&start);
-            QMouseEvent release(QEvent::MouseButtonRelease, QPointF(point.x(), point.y()),
-                                Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-            KoPointerEvent end(&release, point);
-            tool->endPrimaryAction(&end);
-        }
-        QMouseEvent move(QEvent::MouseMove, QPointF(50, 40),
-                         Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-        KoPointerEvent hover(&move, PkPointF(50, 40));
-        tool->mouseMoveEvent(&hover);
-
-        RecordingBackend backend;
-        PkPainter painter(backend);
-        proxy.paint(painter, *canvas.viewConverter());
-        bool fixedSegment = false;
-        bool draggingSegment = false;
-        for (const auto &command : backend.commands) {
-            if (const auto *polygon = std::get_if<PkDrawPolygonCommand>(&command)) {
-                for (int i = 1; i < polygon->polygon.size(); ++i) {
-                    const auto a = polygon->polygon.at(i - 1);
-                    const auto b = polygon->polygon.at(i);
-                    fixedSegment |= a == PkPointF(10, 20) && b == PkPointF(30, 20);
-                    draggingSegment |= a == PkPointF(30, 20) && b == PkPointF(50, 40);
-                }
+    RecordingBackend backend;
+    PkPainter painter(backend);
+    proxy.paint(painter, *canvas.viewConverter());
+    bool fixedSegment = false;
+    bool draggingSegment = false;
+    for (const auto &command : backend.commands) {
+        if (const auto *polygon = std::get_if<PkDrawPolygonCommand>(&command)) {
+            for (int i = 1; i < polygon->polygon.size(); ++i) {
+                const auto a = polygon->polygon.at(i - 1);
+                const auto b = polygon->polygon.at(i);
+                fixedSegment |= a == PkPointF(10, 20) && b == PkPointF(30, 20);
+                draggingSegment |= a == PkPointF(30, 20) && b == PkPointF(50, 40);
             }
         }
-        QVERIFY(fixedSegment);
-        QVERIFY(draggingSegment);
-        QCOMPARE(painter.transform(), PkTransform());
-        tool->requestStrokeCancellation();
     }
+    QVERIFY(fixedSegment);
+    QVERIFY(draggingSegment);
+    QCOMPARE(painter.transform(), PkTransform());
+    tool->requestStrokeCancellation();
     proxy.priv()->activeTool = nullptr;
 }
 

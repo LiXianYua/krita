@@ -22,7 +22,6 @@
 #include <kis_algebra_2d.h>
 #include <kis_assert.h>
 #include <KisValueCache.h>
-#include <KisPortingUtils.h>
 
 
 struct KisCoordinatesConverter::Private {
@@ -489,7 +488,8 @@ void KisCoordinatesConverter::setZoom(KoZoomMode::Mode mode, qreal zoom, qreal r
             } else if (mode == KoZoomMode::ZOOM_WIDTH) {
                 return true;
             }
-            Q_UNREACHABLE_RETURN(true);
+            KIS_SAFE_ASSERT_RECOVER_NOOP(false);
+            return true;
         }();
 
         KoZoomHandler::setZoom(this->zoom() * (fitToWidth ? zoomCoeffX : zoomCoeffY));

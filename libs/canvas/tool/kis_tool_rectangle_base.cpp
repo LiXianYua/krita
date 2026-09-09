@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/qmath.h>
-
 #include "kis_tool_rectangle_base.h"
 
 #include <KoCanvasBase.h>

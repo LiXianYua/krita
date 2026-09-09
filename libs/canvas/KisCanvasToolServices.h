@@ -11,9 +11,9 @@
 #include <PkThreadCallQueue.h>
 #include <functional>
 #include <KoCanvasCursorHost.h>
+#include "KisCanvasCursorToken.h"
 #include <pk/geometry/PkPoint.h>
 #include <pk/geometry/PkPainterPath.h>
-#include <QCursor>
 #include <pk/geometry/PkRect.h>
 #include <pk/geometry/PkSize.h>
 #include <pk/geometry/PkTransform.h>
@@ -26,6 +26,7 @@
 class PkPainter;
 class KisOptimizedBrushOutline;
 class KisPopupWidgetInterface;
+class QCursor;
 
 class KRITACANVAS_EXPORT KisCanvasToolSignals : public PkObject
 {
@@ -84,13 +85,21 @@ public:
     virtual QCursor toolClosedHandCursor() const = 0;
     virtual QCursor toolForbiddenCursor() const = 0;
     virtual QCursor toolLoadCursor(const PkString &name, int hotX, int hotY) const = 0;
-    QCursor loadCursorResource(const PkString &resource,
-                               const PkSize &size,
-                               const PkPoint &hotspot) const override
-    {
-        Q_UNUSED(size);
-        return toolLoadCursor(resource, hotspot.x(), hotspot.y());
-    }
+    virtual QCursor loadCursorResource(const PkString &resource,
+                                       const PkSize &size,
+                                       const PkPoint &hotspot) const override = 0;
+    virtual KisCanvasCursorToken toolImportCursor(const QCursor &cursor) const = 0;
+    virtual KisCanvasCursorToken toolCursorToken(CursorStyle style) const = 0;
+    virtual KisCanvasCursorToken toolMoveCursorToken() const = 0;
+    virtual KisCanvasCursorToken toolMoveSelectionCursorToken() const = 0;
+    virtual KisCanvasCursorToken toolSamplerCursorToken() const = 0;
+    virtual KisCanvasCursorToken toolOpenHandCursorToken() const = 0;
+    virtual KisCanvasCursorToken toolClosedHandCursorToken() const = 0;
+    virtual KisCanvasCursorToken toolForbiddenCursorToken() const = 0;
+    virtual KisCanvasCursorToken toolLoadCursorToken(const PkString &name,
+                                                     int hotX,
+                                                     int hotY) const = 0;
+    virtual void toolApplyCursor(KisCanvasCursorToken cursor) = 0;
     virtual void toolSetCursorPosition(const PkPoint &globalPoint) = 0;
     virtual void toolShowBrushSize(qreal size) = 0;
     virtual void toolShowLockedLayerMessage(bool myPaintUnavailable) = 0;

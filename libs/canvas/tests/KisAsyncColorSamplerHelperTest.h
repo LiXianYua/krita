@@ -25,7 +25,8 @@ private Q_SLOTS:
     void rectanglePreviewPreservesCommandsAndState();
     void circlePreviewPreservesRingCommandsAndState();
     void cursorUsesSamplingCanvasPolicy();
-    void proxyDispatchesPolylineAndSelectionDecorations();
+    void toolCursorTokenPersistsAndApplies();
+    void proxyDispatchesPolylineDecorations();
     void hostCallbacksPreserveActionAndRightClickLifecycle();
     void hostCallbacksDropDispatchAfterDirectToolDestruction();
     void priorityEventFilterUsesPkIdentity();

@@ -104,6 +104,26 @@ set_source_files_properties(${kritacanvas_SIGNAL_SRCS} PROPERTIES SKIP_AUTOMOC O
 target_sources(kritacanvas PRIVATE ${kritacanvas_SIGNAL_SRCS})
 
 target_include_directories(kritacanvas
+    BEFORE PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/noqt-compat
+        ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+        ${CMAKE_SOURCE_DIR}/pk/string/compat
+        ${CMAKE_SOURCE_DIR}/pk/container/compat
+        ${CMAKE_SOURCE_DIR}/pk/variant/compat
+        ${CMAKE_SOURCE_DIR}/pk/port/compat
+        ${CMAKE_SOURCE_DIR}/pk/pointer/compat
+        ${CMAKE_SOURCE_DIR}/pk/global/compat
+        ${CMAKE_SOURCE_DIR}/pk/geometry/compat
+        ${CMAKE_SOURCE_DIR}/pk/log/compat
+        ${CMAKE_SOURCE_DIR}/pk/concurrent/compat
+        ${CMAKE_SOURCE_DIR}/pk/image/compat
+        ${CMAKE_SOURCE_DIR}/pk/time/compat
+        ${CMAKE_SOURCE_DIR}/pk/config/compat
+        ${CMAKE_SOURCE_DIR}/pk/flags/compat
+        ${CMAKE_SOURCE_DIR}/pk/color/compat
+        ${CMAKE_SOURCE_DIR}/pk/signal/compat
+        ${CMAKE_SOURCE_DIR}/pk/sql/compat
+        ${CMAKE_SOURCE_DIR}/pk/xml/compat
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tool>
@@ -126,21 +146,17 @@ target_include_directories(kritacanvas
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/concurrent>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/time>
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/log>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/input>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/input>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/input>
 )
 
 target_link_libraries(kritacanvas
     PUBLIC
         Boost::boost
-        Qt${QT_MAJOR_VERSION}::Core
-        Qt${QT_MAJOR_VERSION}::Gui
-        Qt${QT_MAJOR_VERSION}::Widgets
-        kritacolor
-        kritaflake
-        kritaglobal
-        kritaimage
-        kritainput
-        kritalibpaintop
-        kritasurfacecolormanagementapi
+        kritaimage_noqt_compile_interface
+        kritalibpaintop_noqt_compile_interface
         pkstring
         pkcontainer
         pkgeometry
@@ -155,8 +171,18 @@ target_link_libraries(kritacanvas
         pkconcurrent
         pktime
         pklog
+        pkinput
+        $<LINK_ONLY:Qt${QT_MAJOR_VERSION}::Core>
+        $<LINK_ONLY:Qt${QT_MAJOR_VERSION}::Gui>
+        $<LINK_ONLY:Qt${QT_MAJOR_VERSION}::Widgets>
+        $<LINK_ONLY:kritacolor>
+        $<LINK_ONLY:kritaflake>
+        $<LINK_ONLY:kritaglobal>
+        $<LINK_ONLY:kritaimage>
+        $<LINK_ONLY:kritainput>
+        $<LINK_ONLY:kritasurfacecolormanagementapi>
     PRIVATE
-        KF${KF_MAJOR}::ConfigCore
+        $<LINK_ONLY:KF${KF_MAJOR}::ConfigCore>
 )
 
 set_target_properties(kritacanvas PROPERTIES

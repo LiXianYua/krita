@@ -84,7 +84,7 @@ KisToolPaint::KisToolPaint(KoCanvasBase *canvas, const QCursor &cursor)
     PkObject::connect(&m_colorSamplerHelper,
                       &KisAsyncColorSamplerHelper::sigRequestCursor,
                       &m_colorSamplerHelper,
-                      [this](const QCursor &cursor) { slotColorPickerRequestedCursor(cursor); });
+                      [this](KisCanvasCursorToken cursor) { slotColorPickerRequestedCursor(cursor); });
     PkObject::connect(&m_colorSamplerHelper,
                       &KisAsyncColorSamplerHelper::sigRequestCursorReset,
                       &m_colorSamplerHelper,
@@ -205,9 +205,9 @@ void KisToolPaint::deactivate()
     KisTool::deactivate();
 }
 
-void KisToolPaint::slotColorPickerRequestedCursor(const QCursor &cursor)
+void KisToolPaint::slotColorPickerRequestedCursor(KisCanvasCursorToken cursor)
 {
-    useCursor(cursor);
+    applyCursor(cursor);
 }
 
 void KisToolPaint::slotColorPickerRequestedCursorReset()

@@ -104,31 +104,31 @@ void KisToolFreehand::resetCursorStyle()
 
     switch (useSeparateEraserCursor ? cfg.eraserCursorStyle() : cfg.newCursorStyle()) {
     case CURSOR_STYLE_NO_CURSOR:
-        useCursor(services->toolCursor(CURSOR_STYLE_NO_CURSOR));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_NO_CURSOR));
         break;
     case CURSOR_STYLE_POINTER:
-        useCursor(services->toolCursor(CURSOR_STYLE_POINTER));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_POINTER));
         break;
     case CURSOR_STYLE_SMALL_ROUND:
-        useCursor(services->toolCursor(CURSOR_STYLE_SMALL_ROUND));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_SMALL_ROUND));
         break;
     case CURSOR_STYLE_CROSSHAIR:
-        useCursor(services->toolCursor(CURSOR_STYLE_CROSSHAIR));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_CROSSHAIR));
         break;
     case CURSOR_STYLE_TRIANGLE_RIGHTHANDED:
-        useCursor(services->toolCursor(CURSOR_STYLE_TRIANGLE_RIGHTHANDED));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_TRIANGLE_RIGHTHANDED));
         break;
     case CURSOR_STYLE_TRIANGLE_LEFTHANDED:
-        useCursor(services->toolCursor(CURSOR_STYLE_TRIANGLE_LEFTHANDED));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_TRIANGLE_LEFTHANDED));
         break;
     case CURSOR_STYLE_BLACK_PIXEL:
-        useCursor(services->toolCursor(CURSOR_STYLE_BLACK_PIXEL));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_BLACK_PIXEL));
         break;
     case CURSOR_STYLE_WHITE_PIXEL:
-        useCursor(services->toolCursor(CURSOR_STYLE_WHITE_PIXEL));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_WHITE_PIXEL));
         break;
     case CURSOR_STYLE_ERASER:
-        useCursor(services->toolCursor(CURSOR_STYLE_ERASER));
+        applyCursor(services->toolCursorToken(CURSOR_STYLE_ERASER));
         break;
     case CURSOR_STYLE_TOOLICON:
     default:
@@ -304,7 +304,8 @@ void KisToolFreehand::activateAlternateAction(AlternateAction action)
         return;
     }
 
-    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_NO_CURSOR));
+    applyCursor(dynamic_cast<KisCanvasToolServices *>(canvas())
+                    ->toolCursorToken(CURSOR_STYLE_NO_CURSOR));
     setOutlineVisible(true);
 }
 
@@ -338,8 +339,8 @@ void KisToolFreehand::beginAlternateAction(KoPointerEvent *event, AlternateActio
     m_lastDocumentPoint = event->point;
     m_lastPaintOpSize = currentPaintOpPreset()->settings()->paintOpSize();
 
-    m_beginAlternateActionEvent = event->deepCopyEvent();
-    requestUpdateOutline(m_initialGestureDocPoint, &m_beginAlternateActionEvent->event);
+    m_beginAlternateActionEvent = event->detachedCopy();
+    requestUpdateOutline(m_initialGestureDocPoint, &*m_beginAlternateActionEvent);
 }
 
 void KisToolFreehand::continueAlternateAction(KoPointerEvent *event, AlternateAction action)
@@ -383,7 +384,7 @@ void KisToolFreehand::continueAlternateAction(KoPointerEvent *event, AlternateAc
 
         requestUpdateOutline(
             m_initialGestureDocPoint,
-            m_beginAlternateActionEvent.has_value() ? &m_beginAlternateActionEvent->event : nullptr);
+            m_beginAlternateActionEvent.has_value() ? &*m_beginAlternateActionEvent : nullptr);
         //m_brushResizeCompressor.start(newSize);
 
         m_lastDocumentPoint = event->point;

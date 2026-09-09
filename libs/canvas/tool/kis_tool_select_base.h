@@ -326,7 +326,7 @@ public:
         if (m_currentModifiers == Pk::NoModifier) {
             KisNodeSP selectionMask = locateSelectionMaskUnderCursor(m_currentPos, m_currentModifiers);
             if (selectionMask) {
-                this->useCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursor());
+                this->applyCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursorToken());
             } else {
                 this->resetCursorStyle();
             }
@@ -351,7 +351,7 @@ public:
             PkFlag(static_cast<int>(event->modifiers())));
         KisNodeSP selectionMask = locateSelectionMaskUnderCursor(m_currentPos, modifiers);
         if (selectionMask) {
-            this->useCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursor());
+            this->applyCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursorToken());
         } else {
             setAlternateSelectionAction(KisSelectionModifierMapper::map(m_currentModifiers));
             this->resetCursorStyle();
@@ -477,7 +477,7 @@ public:
             {
                 KisNodeSP selectionMask = locateSelectionMaskUnderCursor(m_currentPos, m_currentModifiers);
                 if (selectionMask) {
-                    this->useCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursor());
+                    this->applyCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursorToken());
                 } else {
                     this->resetCursorStyle();
                 }
