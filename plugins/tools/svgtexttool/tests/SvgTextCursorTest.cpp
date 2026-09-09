@@ -29,6 +29,7 @@
 #include <KoCanvasController.h>
 #include <KoToolRegistry.h>
 #include <KoViewConverter.h>
+#include <kis_coordinates_converter.h>
 #include <QCryptographicHash>
 #include <QAction>
 #include <QImage>
@@ -113,7 +114,7 @@ public:
 
     QWidget window;
     QWidget widget{&window};
-    KoViewConverter converter;
+    KisCoordinatesConverter converter;
 
     void addCommand(KUndo2Command *command) override
     {
@@ -402,6 +403,62 @@ void SvgTextCursorTest::nativeKeyDispatchMatchesQt515Adapter()
     QCOMPARE(toQString(shape.plainText()), QStringLiteral("one Ztwo"));
 }
 
+void SvgTextCursorTest::nativeAcceptedInputMatchesQt515UnicodeOracle()
+{
+    struct Case {
+        const char *name;
+        QString text;
+        Qt::KeyboardModifiers modifiers;
+        bool accepted;
+    };
+    const Case cases[] = {
+        {"ascii digit", QStringLiteral("1"), Qt::NoModifier, true},
+        {"space", QStringLiteral(" "), Qt::NoModifier, true},
+        {"Cc control", QString(QChar(0x0001)), Qt::NoModifier, false},
+        {"Cf format with Ctrl+Shift", QString(QChar(0x200c)),
+         Qt::ControlModifier | Qt::ShiftModifier, true},
+        {"private use", QString(QChar(0xe000)), Qt::NoModifier, true},
+        {"unassigned", QString(QChar(0x0378)), Qt::NoModifier, false},
+        {"AltGr printable", QString::fromUtf8("®"),
+         Qt::ControlModifier | Qt::AltModifier, true},
+    };
+
+    const auto qt515AcceptableInput = [](const QKeyEvent &event) {
+        if (event.text().isEmpty()) return false;
+        const QChar c = event.text().at(0);
+        if (c.category() == QChar::Other_Format) return true;
+        if (event.modifiers() == Qt::ControlModifier
+            || event.modifiers() == (Qt::ShiftModifier | Qt::ControlModifier)) {
+            return false;
+        }
+        return c.isPrint() || c.category() == QChar::Other_PrivateUse
+            || c == QLatin1Char('\t');
+    };
+
+    for (const Case &item : cases) {
+        QKeyEvent qtEvent(QEvent::KeyPress, Qt::Key_unknown, item.modifiers, item.text);
+        QCOMPARE(qt515AcceptableInput(qtEvent), item.accepted);
+
+        KoSvgTextShape shape;
+        KoSvgTextShapeMarkupConverter converter(&shape);
+        QVERIFY2(converter.convertFromSvg("<text font-size=\"10\">x</text>", {},
+                                          PkRectF(0, 0, 300, 300), 72.0),
+                 item.name);
+        ApplyingCanvas canvas;
+        SvgTextCursor cursor(&canvas);
+        cursor.setShape(&shape);
+        const int end = shape.posForIndex(shape.plainText().size());
+        cursor.setPos(end, end);
+
+        const SvgTextCursor::NativeKeyEvent native = svgTextNativeKeyEvent(
+            qtEvent, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
+        QCOMPARE(cursor.keyPressEvent(native), item.accepted);
+        const QString expected = item.accepted ? QStringLiteral("x") + item.text
+                                               : QStringLiteral("x");
+        QCOMPARE(toQString(shape.plainText()), expected);
+    }
+}
+
 void SvgTextCursorTest::nativeActionDispatchPreservesPropertySemantics()
 {
     KoSvgTextProperties properties;
@@ -520,6 +577,85 @@ void SvgTextCursorTest::hostTextTypeRetriggerKeepsCurrentActionChecked()
                  + int(inlineWrap->isChecked()),
              1);
     QVERIFY(current->isChecked());
+}
+
+void SvgTextCursorTest::hostMappedTextTypeShortcutDispatches()
+{
+    QObject actionCollection;
+    SvgTextToolFactory factory;
+    factory.createActions(&actionCollection);
+
+    CursorController controller(&actionCollection);
+    MockShapeController shapeController;
+    HostToolCanvas canvas(&shapeController);
+    controller.setCanvas(&canvas);
+    canvas.setCanvasController(&controller);
+
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">abc</text>", {},
+                                     PkRectF(0, 0, 300, 300), 72.0));
+    canvas.shapeManager()->selection()->select(&shape);
+
+    SvgTextTool tool(&canvas);
+    tool.activate({&shape});
+    QAction *target = actionCollection.findChild<QAction *>(
+        shape.textType() == KoSvgTextShape::InlineWrap
+            ? QStringLiteral("text_type_preformatted")
+            : QStringLiteral("text_type_inline_wrap"));
+    QVERIFY(target);
+    const KoSvgTextShape::TextType expectedType =
+        target->objectName() == QStringLiteral("text_type_inline_wrap")
+        ? KoSvgTextShape::InlineWrap : KoSvgTextShape::PreformattedText;
+    target->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
+
+    QKeyEvent event(QEvent::KeyPress, Qt::Key_T, Qt::ControlModifier);
+    tool.keyPressEvent(&event);
+
+    QVERIFY(event.isAccepted());
+    QCOMPARE(shape.textType(), expectedType);
+}
+
+void SvgTextCursorTest::hostMappedMovementShortcutDispatchesWhenEnabled()
+{
+    QObject actionCollection;
+    SvgTextToolFactory factory;
+    factory.createActions(&actionCollection);
+
+    CursorController controller(&actionCollection);
+    MockShapeController shapeController;
+    HostToolCanvas canvas(&shapeController);
+    controller.setCanvas(&canvas);
+    canvas.setCanvasController(&controller);
+
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">abc</text>", {},
+                                     PkRectF(0, 0, 300, 300), 72.0));
+    canvas.shapeManager()->selection()->select(&shape);
+
+    SvgTextTool tool(&canvas);
+    tool.activate({&shape});
+    QAction *movement = actionCollection.findChild<QAction *>(
+        QStringLiteral("svg_type_setting_move_selection_start_left_1_px"));
+    QVERIFY(movement);
+    movement->setEnabled(true);
+    movement->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_M));
+
+    const int start = shape.posForIndex(0);
+    const int end = shape.posForIndex(shape.plainText().size());
+    const PkList<KoSvgTextCharacterInfo> before =
+        shape.getPositionsAndRotationsForRange(start, end);
+    QVERIFY(!before.isEmpty());
+
+    QKeyEvent event(QEvent::KeyPress, Qt::Key_M, Qt::ControlModifier);
+    tool.keyPressEvent(&event);
+
+    QVERIFY(event.isAccepted());
+    const PkList<KoSvgTextCharacterInfo> after =
+        shape.getPositionsAndRotationsForRange(start, end);
+    QCOMPARE(after.size(), before.size());
+    QVERIFY(after.first().finalPos != before.first().finalPos);
 }
 
 void SvgTextCursorTest::nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery()

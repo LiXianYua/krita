@@ -33,6 +33,8 @@ install( FILES
 )
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/svgtexttool.xmlgui" SVGTEXTTOOL_XMLGUI)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/svgtexttool.xmlgui")
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/qrc_svgtexttool.cpp.in"
     "${CMAKE_CURRENT_BINARY_DIR}/qrc_svgtexttool.cpp"

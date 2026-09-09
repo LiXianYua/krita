@@ -20,9 +20,12 @@ private Q_SLOTS:
     void nativeInputMethodEventPreservesEditingLifecycle();
     void qtInputMethodAdapterMatchesQt515Payload();
     void nativeKeyDispatchMatchesQt515Adapter();
+    void nativeAcceptedInputMatchesQt515UnicodeOracle();
     void nativeActionDispatchPreservesPropertySemantics();
     void hostActionDispatchKeepsPrintableAltGrInput();
     void hostTextTypeRetriggerKeepsCurrentActionChecked();
+    void hostMappedTextTypeShortcutDispatches();
+    void hostMappedMovementShortcutDispatchesWhenEnabled();
     void nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery();
     void nativeRegistrationPreservesFactoryAndResources();
     void shortcutValuesMatchQt515Oracle();

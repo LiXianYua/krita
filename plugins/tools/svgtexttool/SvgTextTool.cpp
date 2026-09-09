@@ -1231,6 +1231,7 @@ void SvgTextTool::addMappedAction(const PkString &actionName, int value, bool mo
 {
     QAction *hostAction = action(actionName);
     if (!hostAction) return;
+    m_cursorActions.insert(actionName, hostAction);
     QObject::connect(hostAction, &QAction::triggered, this,
                      [this, value, movementAction] {
         if (movementAction) slotMoveTextSelection(value);

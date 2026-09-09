@@ -39,6 +39,7 @@
 #include <kis_assert.h>
 #include <QBuffer>
 #include <KLocalizedString>
+#include <unicode/uchar.h>
 
 #include <chrono>
 
@@ -1959,17 +1960,16 @@ bool SvgTextCursor::acceptableInput(const NativeKeyEvent &event) const
     const PkChar c(text.at(0));
     // Formatting characters such as ZWNJ, ZWJ, RLM, etc. This needs to go before the
     // next test, since CTRL+SHIFT is sometimes used to input it on Windows.
-    if (c.category() == PkChar::Other_Format)
+    if (u_charType(UChar32(c.unicode())) == U_FORMAT_CHAR)
         return true;
     // QTBUG-35734: ignore Ctrl/Ctrl+Shift; accept only AltGr (Alt+Ctrl) on German keyboards
     if (event.modifiers == Pk::ControlModifier
             || event.modifiers == (Pk::ShiftModifier | Pk::ControlModifier)) {
         return false;
     }
-    const PkChar::Category category = c.category();
-    if (category < PkChar::Other_Control || category > PkChar::Other_NotAssigned)
+    if (u_isprint(UChar32(c.unicode())))
         return true;
-    if (c.category() == PkChar::Other_PrivateUse)
+    if (u_charType(UChar32(c.unicode())) == U_PRIVATE_USE_CHAR)
         return true;
     if (c == PkChar(PkChar::Tabulation))
         return true;
