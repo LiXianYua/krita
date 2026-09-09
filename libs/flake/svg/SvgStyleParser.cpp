@@ -10,9 +10,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
-
 #include "SvgStyleParser.h"
 #include "SvgLoadingContext.h"
 #include "SvgGraphicContext.h"
@@ -32,7 +29,9 @@
 #include <pk/color/PkColor.h>
 #include <PkGradient.h>
 #include <KoColor.h>
+#include <PkMessageLogger.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -141,7 +140,7 @@ static inline PkStringList toPkStringList(const PkStringList &list)
 
 } // namespace
 
-class Q_DECL_HIDDEN SvgStyleParser::Private
+class SvgStyleParser::Private
 {
 public:
     Private(SvgLoadingContext &loadingContext)
@@ -390,7 +389,8 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, co
                || command == "font-synthesis-small-caps" || command == "font-synthesis-position") {
         gc->textProperties.parseSvgTextAttribute(d->context, command, params);
     } else if (command == "font") {
-        qWarning() << "Krita does not support the 'font' shorthand";
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+            << "Krita does not support the 'font' shorthand";
     } else if (command == "text-decoration" || command == "text-decoration-line" || command == "text-decoration-style" || command == "text-decoration-color"
                || command == "text-decoration-position") {
         gc->textProperties.parseSvgTextAttribute(d->context, command, params);
@@ -501,10 +501,10 @@ std::pair<qreal, PkColor> SvgStyleParser::parseColorStop(const PkXmlElement& sto
     }
 
     // according to SVG the value must be within [0; 1] interval
-    offset = qBound(0.0, offset, 1.0);
+    offset = std::clamp(offset, 0.0, 1.0);
 
     // according to SVG the stops' offset must be non-decreasing
-    offset = qMax(offset, previousOffset);
+    offset = std::max(offset, previousOffset);
     previousOffset = offset;
 
     PkColor color;
@@ -531,7 +531,7 @@ std::pair<qreal, PkColor> SvgStyleParser::parseColorStop(const PkXmlElement& sto
     }
 
     if (!stopOpacityStr.isEmpty() && stopOpacityStr != "inherit") {
-        color.setAlphaF(qBound(0.0, KisDomUtils::toDouble(stopOpacityStr), 1.0));
+        color.setAlphaF(std::clamp(KisDomUtils::toDouble(stopOpacityStr), 0.0, 1.0));
     }
     return std::make_pair(offset, color);
 }

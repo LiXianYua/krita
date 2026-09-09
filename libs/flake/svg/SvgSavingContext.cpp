@@ -4,29 +4,28 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "SvgSavingContext.h"
 #include "SvgUtil.h"
+#include "shapes/ImageShapePngData.h"
 
 #include <KoXmlWriter.h>
 #include <KoShape.h>
 #include <KoShapeGroup.h>
 #include <KoShapeLayer.h>
 
-#include <QTemporaryFile>
-
 #include <PkImage.h>
 #include <PkTransform.h>
 #include <PkMemoryStream.h>
 #include <PkHash.h>
 #include <PkFileStream.h>
-#include <QFileInfo>
 #include <KisMimeDatabase.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkScopedPointer.h>
 
-class Q_DECL_HIDDEN SvgSavingContext::Private
+#include <filesystem>
+#include <fstream>
+
+class SvgSavingContext::Private
 {
 public:
     Private(PkStream *_mainDevice, PkStream *_styleDevice)
@@ -168,9 +167,12 @@ PkString SvgSavingContext::createFileName(const PkString &extension)
     if (!file)
         return PkString();
 
-    QFileInfo fi(toQString(file->fileName()));
-    PkString path = toPkString(fi.absolutePath());
-    PkString dstBaseFilename = toPkString(fi.completeBaseName());
+    const std::filesystem::path outputPath =
+        std::filesystem::u8path(file->fileName().PkToUtf8());
+    const std::filesystem::path parentPath = outputPath.parent_path();
+    const std::string stem = outputPath.stem().u8string();
+    const PkString dstBaseFilename =
+        PkString::PkFromUtf8(stem.data(), static_cast<int>(stem.size()));
 
     // create a filename for the image file at the destination directory
     PkString fname = dstBaseFilename + PkString("_") + createUID("file");
@@ -179,7 +181,8 @@ PkString SvgSavingContext::createFileName(const PkString &extension)
     int i = 0;
     PkString counter;
     // change filename as long as the filename already exists
-    while (QFileInfo(toQString(path + fname + counter + extension)).exists()) {
+    while (std::filesystem::exists(
+        parentPath / std::filesystem::u8path((fname + counter + extension).PkToUtf8()))) {
         counter = PkString("_%1").arg(++i);
     }
 
@@ -189,23 +192,23 @@ PkString SvgSavingContext::createFileName(const PkString &extension)
 PkString SvgSavingContext::saveImage(const PkImage &image)
 {
     if (isSavingInlineImages()) {
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
-        if (toQImage(image).save(&buffer, "PNG")) {
-            const PkString header("data:image/x-png;base64,");
-            return header + PkString(buffer.data().toBase64().constData());
-        }
+        const PkString encoded = ImageShapePngData::encodeBase64(image);
+        return encoded.isEmpty()
+            ? PkString()
+            : PkString("data:image/x-png;base64,") + encoded;
     } else {
-        // write to a temp file first
-        QTemporaryFile imgFile;
-        if (toQImage(image).save(&imgFile, "PNG")) {
-            PkString dstFilename = createFileName(".png");
-            if (QFile::copy(imgFile.fileName(), toQString(dstFilename))) {
-                return dstFilename;
-            }
-            else {
-                QFile::remove(imgFile.fileName());
-            }
+        const PkString encoded = ImageShapePngData::encodeBase64(image);
+        const PkByteArray png = ImageShapePngData::decodeBase64(encoded);
+        const PkString dstFilename = createFileName(".png");
+        if (png.isEmpty() || dstFilename.isEmpty()) {
+            return PkString();
+        }
+
+        std::ofstream output(std::filesystem::u8path(dstFilename.PkToUtf8()),
+                             std::ios::binary | std::ios::trunc);
+        output.write(png.constData(), png.size());
+        if (output.good()) {
+            return dstFilename;
         }
     }
 
