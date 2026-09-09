@@ -35,9 +35,7 @@
 #include <kis_acyclic_signal_connector.h>
 
 #include "kundo2command.h"
-#include <QDebug>
 #include <kis_assert.h>
-#include <QBuffer>
 #include <KLocalizedString>
 #include <unicode/uchar.h>
 
@@ -130,7 +128,7 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
         {
         }
 
-        InputQueryUpdateBlocker(const QScopedPointer<Private> &d)
+        InputQueryUpdateBlocker(const std::unique_ptr<Private> &d)
             : InputQueryUpdateBlocker(d.get())
         {
         }
@@ -634,14 +632,6 @@ void SvgTextCursor::removeLastCodePoint()
             addCommandToUndoAdapter(removeCmd);
         }
     }
-}
-
-QPair<KoSvgTextProperties, KoSvgTextProperties> SvgTextCursor::currentTextProperties() const
-{
-    if (d->shape) {
-        return QPair<KoSvgTextProperties, KoSvgTextProperties>(d->shape->propertiesForPos(d->pos), d->shape->propertiesForPos(d->pos, true));
-    }
-    return QPair<KoSvgTextProperties, KoSvgTextProperties>();
 }
 
 PkList<KoSvgTextProperties> SvgTextCursor::propertiesForRange() const

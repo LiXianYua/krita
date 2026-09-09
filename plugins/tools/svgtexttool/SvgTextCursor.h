@@ -20,6 +20,7 @@
 #include "kritatoolsvgtext_export.h"
 
 #include <functional>
+#include <memory>
 
 class KoCanvasBase;
 class SvgTextInsertCommand;
@@ -262,12 +263,6 @@ public:
     void removeLastCodePoint();
 
     /**
-     * @brief currentTextProperties
-     * @return a qpair, where the first is the properties without inheritance, and the second, with inheritance.
-     */
-    QPair<KoSvgTextProperties, KoSvgTextProperties> currentTextProperties() const;
-
-    /**
      * @brief propertiesForRange
      * @return properties for the current range defined by the cursor pos and anchor.
      */
@@ -443,7 +438,7 @@ private:
     void commitIMEPreEdit();
 
     struct Private;
-    const QScopedPointer<Private> d;
+    const std::unique_ptr<Private> d;
 };
 
 /// Interface to interact with the text property manager.
@@ -463,7 +458,7 @@ public:
     void emitCharacterSelectionChange();
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const std::unique_ptr<Private> d;
 };
 
 #endif // SVGTEXTCURSOR_H

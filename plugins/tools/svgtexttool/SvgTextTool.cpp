@@ -6,7 +6,6 @@
 */
 
 #include <PkFlakeBridge.h>
-#include <QIcon>
 #include "SvgTextTool.h"
 #include "KoSvgTextProperties.h"
 #include "KoSvgTextShape.h"
@@ -30,7 +29,6 @@
 #include "SvgChangeTextPaddingMarginStrategy.h"
 #include <commands/KoSvgTextAddRemoveShapeCommands.h>
 
-#include <QDesktopServices>
 #include <QApplication>
 #include <QStyle>
 #include <QAction>
@@ -48,7 +46,6 @@
 
 #include "kis_assert.h"
 #include <kis_coordinates_converter.h>
-#include <KisCanvasFeedback.h>
 #include <KisCanvasToolServices.h>
 
 #include <KoColor.h>
@@ -489,7 +486,7 @@ void SvgTextTool::slotShapeSelectionChanged()
     } else if (shapes.size() > 1) {
         KoSvgTextShape *foundTextShape = nullptr;
 
-        Q_FOREACH (KoShape *shape, shapes) {
+        for (KoShape *shape : shapes) {
             KoSvgTextShape *textShape = dynamic_cast<KoSvgTextShape*>(shape);
             if (textShape) {
                 foundTextShape = textShape;
@@ -677,11 +674,9 @@ bool SvgTextTool::nodeEditable()
 {
     KisNodeSP node = canvas()->resourceManager()->resource(KoCanvasResource::CurrentKritaNode).value<KisNodeWSP>();
     if (!node->isEditable(true)) {
-        if (KisCanvasFeedback *feedback =
-                dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            PkString message = dynamic_cast<KisCanvasToolServices *>(canvas())
-                                  ->toolNodeEditableMessage(node);
-            feedback->showFloatingMessage(message, QIcon());
+        if (KisCanvasToolServices *services =
+                dynamic_cast<KisCanvasToolServices *>(canvas())) {
+            services->toolShowFloatingMessage(services->toolNodeEditableMessage(node));
         }
         return false;
     }

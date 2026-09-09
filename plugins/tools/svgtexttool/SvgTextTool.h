@@ -196,7 +196,7 @@ private:
     SvgTextCursor m_textCursor;
     PkMap<PkString, QAction *> m_cursorActions;
     SvgTextOnPathDecorationHelper m_textOnPathHelper;
-    QScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
+    std::unique_ptr<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
 
     PkPainterPath m_hoveredShapeHighlightRect;
 

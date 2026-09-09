@@ -15,7 +15,6 @@
 #include <KoToolRegistry.h>
 #include <PkFlakeBridge.h>
 
-#include <QAction>
 #include <klocalizedstring.h>
 
 SvgTextToolFactory::SvgTextToolFactory()
@@ -40,20 +39,20 @@ PkList<QAction *> SvgTextToolFactory::createActionsImpl()
 {
     PkList<QAction *> actions;
     for (const PkString &name : SvgTextShortCuts::possibleActions()) {
-        { QAction *action = new QAction(this); action->setObjectName(toQString(name)); actions << action; }
+        actions << createHostAction("", name);
     }
-    { QAction *action = new QAction(this); action->setObjectName("svg_paste_rich_text"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("svg_paste_plain_text"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("text_type_preformatted"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("text_type_pre_positioned"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("text_type_inline_wrap"); actions << action; }
+    actions << createHostAction("", "svg_paste_rich_text");
+    actions << createHostAction("", "svg_paste_plain_text");
+    actions << createHostAction("", "text_type_preformatted");
+    actions << createHostAction("", "text_type_pre_positioned");
+    actions << createHostAction("", "text_type_inline_wrap");
 
-    { QAction *action = new QAction(this); action->setObjectName("svg_type_setting_move_selection_start_down_1_px"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("svg_type_setting_move_selection_start_up_1_px"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("svg_type_setting_move_selection_start_left_1_px"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("svg_type_setting_move_selection_start_right_1_px"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("svg_remove_transforms_from_range"); actions << action; }
-    { QAction *action = new QAction(this); action->setObjectName("svg_clear_formatting"); actions << action; }
+    actions << createHostAction("", "svg_type_setting_move_selection_start_down_1_px");
+    actions << createHostAction("", "svg_type_setting_move_selection_start_up_1_px");
+    actions << createHostAction("", "svg_type_setting_move_selection_start_left_1_px");
+    actions << createHostAction("", "svg_type_setting_move_selection_start_right_1_px");
+    actions << createHostAction("", "svg_remove_transforms_from_range");
+    actions << createHostAction("", "svg_clear_formatting");
     return actions;
 }
 
