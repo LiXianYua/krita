@@ -30,7 +30,9 @@
 
 
 KisToolDyna::KisToolDyna(KoCanvasBase * canvas)
-        : KisToolFreehand(canvas, PkToolArrowCursor, kundo2_text("Dynamic Brush Stroke"), false)
+        : KisToolFreehand(canvas,
+                          QCursor(static_cast<Qt::CursorShape>(PkToolArrowCursor)),
+                          kundo2_text("Dynamic Brush Stroke"), false)
 {
     QObject::setObjectName("tool_dyna");
     setIsOpacityPresetMode(true);
