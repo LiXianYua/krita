@@ -75,7 +75,6 @@
 #include "KisProofingConfiguration.h"
 #include "kis_layer_properties_icons.h"
 #include "KisMirrorAxisConfig.h"
-#include <PkFlakeBridge.h>
 
 /*
   Color model id comparison through the ages:
@@ -1452,7 +1451,7 @@ void KisKraLoader::loadGrid(const PkXmlElement& elem)
 
     KisGridConfig config;
     config.loadStaticData();
-    config.loadDynamicDataFromXml(toQDomElement(domElement));
+    config.loadDynamicDataFromXml(domElement);
     m_d->document->setGridConfig(config);
 }
 
@@ -1463,7 +1462,7 @@ void KisKraLoader::loadGuides(const PkXmlElement& elem)
     PkXmlElement domElement = dom.firstChildElement();
 
     KisGuidesConfig guides;
-    guides.loadFromXml(toQDomElement(domElement));
+    guides.loadFromXml(domElement);
     m_d->document->setGuidesConfig(guides);
 }
 

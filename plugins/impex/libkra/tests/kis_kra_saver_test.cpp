@@ -117,15 +117,15 @@ void KisKraSaverTest::testRoundTrip()
     KisGridConfig expectedGrid = doc->gridConfig();
     expectedGrid.setShowGrid(true);
     expectedGrid.setSnapToGrid(true);
-    expectedGrid.setSpacing(QPoint(19, 23));
-    expectedGrid.setOffset(QPoint(7, 11));
+    expectedGrid.setSpacing(PkPoint(19, 23));
+    expectedGrid.setOffset(PkPoint(7, 11));
     doc->setGridConfig(expectedGrid);
 
     KisGuidesConfig expectedGuides = doc->guidesConfig();
     expectedGuides.setShowGuides(true);
     expectedGuides.setLockGuides(true);
-    expectedGuides.addGuideLine(Qt::Horizontal, 37.5);
-    expectedGuides.addGuideLine(Qt::Vertical, 82.25);
+    expectedGuides.addGuideLine(Pk::Horizontal, 37.5);
+    expectedGuides.addGuideLine(Pk::Vertical, 82.25);
     doc->setGuidesConfig(expectedGuides);
 
     KoColor bgColor(PkColor(255, 0, 0), doc->image()->colorSpace());
