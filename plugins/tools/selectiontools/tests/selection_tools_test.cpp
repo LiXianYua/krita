@@ -8,6 +8,8 @@
 #include <KConfigGroup>
 #include <QKeySequence>
 #include <QTemporaryDir>
+#include <QFile>
+#include <QCryptographicHash>
 
 #include <PkConfigGroup.h>
 #include <PkString.h>
@@ -16,6 +18,7 @@
 #include <KoToolRegistry.h>
 
 #include "selection_tools.h"
+#include "selection_tool_cursor.h"
 
 class SelectionToolsTest : public QObject
 {
@@ -25,6 +28,7 @@ private Q_SLOTS:
     void registeredFactoryShortcutsMatchQt515Parser();
     void registeredFactoryShortcutsRetainNativeChords();
     void thresholdFallbackMatchesKConfig();
+    void cursorPayloadOracleMatchesAssets();
 };
 
 void SelectionToolsTest::registeredFactoryShortcutsMatchQt515Parser()
@@ -88,6 +92,22 @@ void SelectionToolsTest::thresholdFallbackMatchesKConfig()
              referenceGroup.readEntry("threshold", referenceGroup.readEntry("fuzziness", 20)));
 
     nativeGroup.deleteGroup();
+}
+
+void SelectionToolsTest::cursorPayloadOracleMatchesAssets()
+{
+    for (const auto &descriptor : selectionToolCursorDescriptors()) {
+        QFile asset(QStringLiteral(SELECTIONTOOLS_SOURCE_DIR) + QLatin1Char('/') +
+                    QString::fromUtf8(descriptor.assetPath.data(),
+                                      static_cast<int>(descriptor.assetPath.size())));
+        QVERIFY2(asset.open(QIODevice::ReadOnly), descriptor.name.data());
+        const QByteArray bytes = asset.readAll();
+        QCOMPARE(static_cast<std::size_t>(bytes.size()), descriptor.byteCount);
+        QCOMPARE(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex().toStdString(),
+                 std::string(descriptor.sha256));
+        QVERIFY(descriptor.hotspotX >= 0);
+        QVERIFY(descriptor.hotspotY >= 0);
+    }
 }
 
 SIMPLE_TEST_MAIN(SelectionToolsTest)

@@ -11,6 +11,7 @@ set(kritaselectiontools_SOURCES
     kis_selection_modifier_mapper_notifier.cpp
     KisMagneticWorker.cc
     KisToolSelectMagnetic.cc
+    selection_tool_cursor.cc
 )
 
 if(BUILD_TESTING)
@@ -22,8 +23,6 @@ endif()
 # disable the compat/QObject declarations used by KisConfigNotifier.
 set_source_files_properties(kis_selection_modifier_mapper_notifier.cpp PROPERTIES
     COMPILE_OPTIONS "-UQT_CORE_LIB")
-
-qt_add_resources(kritaselectiontools_SOURCES selectiontools.qrc)
 
 kis_add_library(kritaselectiontools STATIC ${kritaselectiontools_SOURCES})
 
@@ -62,6 +61,51 @@ target_link_libraries(kritaselectiontools
     pkstring)
 
 install(TARGETS kritaselectiontools  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
+
+# Native hosts consume the cursor payload descriptors; do not generate a Qt
+# RCC translation unit for this plugin.
+install(FILES
+        tool_contiguous_selection_cursor.png
+        tool_contiguous_selection_cursor_add.png
+        tool_contiguous_selection_cursor_inter.png
+        tool_contiguous_selection_cursor_sub.png
+        tool_contiguous_selection_cursor_symdiff.png
+        tool_elliptical_selection_cursor.png
+        tool_elliptical_selection_cursor_add.png
+        tool_elliptical_selection_cursor_inter.png
+        tool_elliptical_selection_cursor_sub.png
+        tool_elliptical_selection_cursor_symdiff.png
+        tool_elliptical_selection_enclose_eraser_cursor.png
+        tool_eraser_selection_cursor.png
+        tool_magnetic_selection_cursor.png
+        tool_magnetic_selection_cursor_add.png
+        tool_magnetic_selection_cursor_inter.png
+        tool_magnetic_selection_cursor_sub.png
+        tool_magnetic_selection_cursor_symdiff.png
+        tool_outline_selection_cursor.png
+        tool_outline_selection_cursor_add.png
+        tool_outline_selection_cursor_inter.png
+        tool_outline_selection_cursor_sub.png
+        tool_outline_selection_cursor_symdiff.png
+        tool_outline_selection_enclose_eraser_cursor.png
+        tool_polygonal_selection_cursor.png
+        tool_polygonal_selection_cursor_add.png
+        tool_polygonal_selection_cursor_inter.png
+        tool_polygonal_selection_cursor_sub.png
+        tool_polygonal_selection_cursor_symdiff.png
+        tool_polygonal_selection_enclose_eraser_cursor.png
+        tool_rectangular_selection_cursor.png
+        tool_rectangular_selection_cursor_add.png
+        tool_rectangular_selection_cursor_inter.png
+        tool_rectangular_selection_cursor_sub.png
+        tool_rectangular_selection_cursor_symdiff.png
+        tool_rectangular_selection_enclose_eraser_cursor.png
+        tool_similar_selection_cursor.png
+        tool_similar_selection_cursor_add.png
+        tool_similar_selection_cursor_inter.png
+        tool_similar_selection_cursor_sub.png
+        tool_similar_selection_cursor_symdiff.png
+        DESTINATION ${KRITA_PLUGIN_INSTALL_DIR}/selection-cursors)
 
 install( FILES
         KisToolSelectPolygonal.action

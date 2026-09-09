@@ -10,6 +10,8 @@
 #include <PkList.h>
 #include <PkString.h>
 
+#include "selection_tool_cursor.h"
+
 class KoToolBase;
 class PkConfigGroup;
 

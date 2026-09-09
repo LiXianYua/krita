@@ -24,7 +24,7 @@
 
 __KisToolSelectEllipticalLocal::__KisToolSelectEllipticalLocal(KoCanvasBase *canvas)
     : KisToolEllipseBase(canvas, KisToolEllipseBase::SELECT,
-                         dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_elliptical_selection_cursor.png", 6, 6))
+                         selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_elliptical_selection_cursor.png")))
 {
     QObject::setObjectName("tool_select_elliptical");
 }
@@ -145,13 +145,13 @@ void KisToolSelectElliptical::endShape()
 void KisToolSelectElliptical::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_elliptical_selection_cursor_add.png", 6, 6));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_elliptical_selection_cursor_add.png")));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_elliptical_selection_cursor_sub.png", 6, 6));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_elliptical_selection_cursor_sub.png")));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_elliptical_selection_cursor_inter.png", 6, 6));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_elliptical_selection_cursor_inter.png")));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_elliptical_selection_cursor_symdiff.png", 6, 6));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_elliptical_selection_cursor_symdiff.png")));
     } else {
         KisToolSelectBase<__KisToolSelectEllipticalLocal>::resetCursorStyle();
     }

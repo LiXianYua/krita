@@ -27,7 +27,7 @@
 
 __KisToolSelectRectangularLocal::__KisToolSelectRectangularLocal(KoCanvasBase * canvas)
     : KisToolRectangleBase(canvas, KisToolRectangleBase::SELECT,
-                           dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_rectangular_selection_cursor.png", 6, 6))
+                           selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_rectangular_selection_cursor.png")))
 {
     QObject::setObjectName("tool_select_rectangular");
 }
@@ -159,13 +159,13 @@ void KisToolSelectRectangular::endShape()
 void KisToolSelectRectangular::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_rectangular_selection_cursor_add.png", 6, 6));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_rectangular_selection_cursor_add.png")));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_rectangular_selection_cursor_sub.png", 6, 6));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_rectangular_selection_cursor_sub.png")));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_rectangular_selection_cursor_inter.png", 6, 6));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_rectangular_selection_cursor_inter.png")));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_rectangular_selection_cursor_symdiff.png", 6, 6));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_rectangular_selection_cursor_symdiff.png")));
     } else {
         KisToolSelectBase<__KisToolSelectRectangularLocal>::resetCursorStyle();
     }

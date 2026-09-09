@@ -40,7 +40,7 @@
 
 __KisToolSelectOutlineLocal::__KisToolSelectOutlineLocal(KoCanvasBase * canvas)
     : KisToolOutlineBase(canvas, KisToolOutlineBase::SELECT,
-                         dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_outline_selection_cursor.png", 5, 5))
+                         selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_outline_selection_cursor.png")))
 {
     QObject::setObjectName("tool_select_outline");
 }
@@ -193,13 +193,13 @@ bool KisToolSelectOutline::alternateActionSupportsHiResEvents(AlternateAction ac
 void KisToolSelectOutline::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_outline_selection_cursor_add.png", 5, 5));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_outline_selection_cursor_add.png")));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_outline_selection_cursor_sub.png", 5, 5));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_outline_selection_cursor_sub.png")));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_outline_selection_cursor_inter.png", 5, 5));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_outline_selection_cursor_inter.png")));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_outline_selection_cursor_symdiff.png", 5, 5));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_outline_selection_cursor_symdiff.png")));
     } else {
         KisToolSelectBase<__KisToolSelectOutlineLocal>::resetCursorStyle();
     }
