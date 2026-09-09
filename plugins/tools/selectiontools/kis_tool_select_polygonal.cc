@@ -38,7 +38,7 @@ __KisToolSelectPolygonalLocal::__KisToolSelectPolygonalLocal(KoCanvasBase *canva
     : KisToolPolylineBase(canvas, KisToolPolylineBase::SELECT,
                           selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor.png")))
 {
-    QObject::setObjectName("tool_select_polygonal");
+    PkObject::setObjectName("tool_select_polygonal");
 }
 
 void __KisToolSelectPolygonalLocal::activate(const PkSet<KoShape *> &shapes)

@@ -49,7 +49,7 @@ KisToolSelectContiguous::KisToolSelectContiguous(KoCanvasBase *canvas)
     , m_useSelectionAsBoundary(false)
     , m_previousTime(0)
 {
-    QObject::setObjectName("tool_select_contiguous");
+    PkObject::setObjectName("tool_select_contiguous");
 }
 
 KisToolSelectContiguous::~KisToolSelectContiguous()
