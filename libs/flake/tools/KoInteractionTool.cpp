@@ -5,8 +5,6 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <pk/render/PkPainter.h>
 
 #include "KoInteractionTool.h"
@@ -30,7 +28,7 @@ KoInteractionTool::~KoInteractionTool()
 
 void KoInteractionTool::paint(PkPainter &painter, const KoViewConverter &converter)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
 
     if (d->currentStrategy) {
         d->currentStrategy->paint(painter, converter);
@@ -44,7 +42,7 @@ void KoInteractionTool::paint(PkPainter &painter, const KoViewConverter &convert
 
 void KoInteractionTool::mousePressEvent(KoPointerEvent *event)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
     if (d->currentStrategy) { // possible if the user presses an extra mouse button
         cancelCurrentStrategy();
         return;
@@ -56,7 +54,7 @@ void KoInteractionTool::mousePressEvent(KoPointerEvent *event)
 
 void KoInteractionTool::mouseMoveEvent(KoPointerEvent *event)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
     d->lastPoint = event->point;
 
     if (d->currentStrategy) {
@@ -74,7 +72,7 @@ void KoInteractionTool::mouseMoveEvent(KoPointerEvent *event)
 
 void KoInteractionTool::mouseReleaseEvent(KoPointerEvent *event)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
     if (d->currentStrategy) {
         d->currentStrategy->finishInteraction(
             Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
@@ -90,7 +88,7 @@ void KoInteractionTool::mouseReleaseEvent(KoPointerEvent *event)
 
 void KoInteractionTool::pkKeyPressEvent(PkToolKeyEvent *event)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
     event->ignore();
     if (d->currentStrategy &&
             (event->key() == Pk::Key_Control ||
@@ -104,7 +102,7 @@ void KoInteractionTool::pkKeyPressEvent(PkToolKeyEvent *event)
 
 void KoInteractionTool::pkKeyReleaseEvent(PkToolKeyEvent *event)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
 
     if (!d->currentStrategy) {
         KoToolBase::pkKeyReleaseEvent(event);
@@ -124,13 +122,13 @@ void KoInteractionTool::pkKeyReleaseEvent(PkToolKeyEvent *event)
 
 KoInteractionStrategy *KoInteractionTool::currentStrategy()
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
     return d->currentStrategy;
 }
 
 void KoInteractionTool::cancelCurrentStrategy()
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
     if (d->currentStrategy) {
         d->currentStrategy->cancelInteraction();
         delete d->currentStrategy;
@@ -140,7 +138,7 @@ void KoInteractionTool::cancelCurrentStrategy()
 
 KoInteractionStrategy *KoInteractionTool::createStrategyBase(KoPointerEvent *event)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
 
     Q_FOREACH (KoInteractionStrategyFactorySP factory, d->interactionFactories) {
         KoInteractionStrategy *strategy = factory->createStrategy(event);
@@ -154,7 +152,7 @@ KoInteractionStrategy *KoInteractionTool::createStrategyBase(KoPointerEvent *eve
 
 void KoInteractionTool::addInteractionFactory(KoInteractionStrategyFactory *factory)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
 
     Q_FOREACH (auto f, d->interactionFactories) {
         KIS_SAFE_ASSERT_RECOVER_RETURN(f->id() != factory->id());
@@ -168,7 +166,7 @@ void KoInteractionTool::addInteractionFactory(KoInteractionStrategyFactory *fact
 
 void KoInteractionTool::removeInteractionFactory(const PkString &id)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
     PkList<KoInteractionStrategyFactorySP>::iterator it =
             d->interactionFactories.begin();
 
@@ -183,7 +181,7 @@ void KoInteractionTool::removeInteractionFactory(const PkString &id)
 
 bool KoInteractionTool::hasInteractionFactory(const PkString &id)
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
 
     Q_FOREACH (auto f, d->interactionFactories) {
         if (f->id() == id) {
@@ -196,7 +194,7 @@ bool KoInteractionTool::hasInteractionFactory(const PkString &id)
 
 bool KoInteractionTool::tryUseCustomCursor()
 {
-    Q_D(KoInteractionTool);
+    auto * const d = d_func();
 
     Q_FOREACH (auto f, d->interactionFactories) {
         if (f->tryUseCustomCursor()) {

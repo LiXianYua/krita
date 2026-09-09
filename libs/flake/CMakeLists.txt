@@ -515,7 +515,7 @@ target_include_directories(kritaflake_painting_objects PRIVATE
 target_link_libraries(kritaflake_painting_objects PRIVATE Eigen3::Eigen kritaflake_imagecodec)
 
 kritaflake_add_native_object_library(kritaflake_commands_objects ${kritaflake_commands_SRCS})
-kritaflake_add_object_library(kritaflake_html_objects ${kritaflake_html_SRCS})
+kritaflake_add_native_object_library(kritaflake_html_objects ${kritaflake_html_SRCS})
 kritaflake_add_object_library(kritaflake_tools_objects ${kritaflake_tools_SRCS})
 kritaflake_add_object_library(kritaflake_svg_objects ${kritaflake_svg_SRCS})
 kritaflake_add_object_library(kritaflake_text_objects ${kritaflake_text_SRCS})

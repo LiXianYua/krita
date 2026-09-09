@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include "SvgUtil.h"
 #include "SvgGraphicContext.h"
@@ -260,11 +258,11 @@ bool SvgUtil::parseViewBox(const PkXmlElement &e,
     if (!result) return false;
 
     qreal scaleX = 1;
-    if (!qFuzzyCompare(elementBounds.width(), viewBoxRect.width())) {
+    if (!pkQtFuzzyCompare(elementBounds.width(), viewBoxRect.width())) {
         scaleX = elementBounds.width() / viewBoxRect.width();
     }
     qreal scaleY = 1;
-    if (!qFuzzyCompare(elementBounds.height(), viewBoxRect.height())) {
+    if (!pkQtFuzzyCompare(elementBounds.height(), viewBoxRect.height())) {
         scaleY = elementBounds.height() / viewBoxRect.height();
     }
 

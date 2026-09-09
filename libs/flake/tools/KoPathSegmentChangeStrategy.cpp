@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoPathSegmentChangeStrategy.h"
 #include "KoPathShape.h"
 #include "KoPathPoint.h"
@@ -38,7 +36,8 @@ KoPathSegmentChangeStrategy::KoPathSegmentChangeStrategy(KoPathTool *tool, const
     // if they choose so.
     const qreal eps = 1e-2;
     // force segment parameter range to avoid division by zero
-    m_segmentParam = qBound(eps, m_segmentParam, qreal(1.0)-eps);
+    const qreal maxParam = qreal(1.0) - eps;
+    m_segmentParam = pkBound(eps, m_segmentParam, maxParam);
 
     m_path = segment.pathShape;
     m_segment = m_path->segmentByIndex(segment.pointIndex);

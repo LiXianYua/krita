@@ -13,7 +13,6 @@
 #include "kritaflake_export.h"
 
 #include <PkNamespace.h>
-#include <QtCore/qglobal.h>
 
 class KoPointerEvent;
 class KoViewConverter;

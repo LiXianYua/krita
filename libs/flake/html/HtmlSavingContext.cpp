@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "HtmlSavingContext.h"
 #include <KoXmlWriter.h>
 #include <KoShape.h>

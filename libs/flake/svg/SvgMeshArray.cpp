@@ -3,8 +3,6 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 
 #include <algorithm>
 
@@ -386,4 +384,3 @@ PkColor SvgMeshArray::getColor(SvgMeshPatch::Type edge, int row, int col) const
 {
     return getStop(edge, row, col).color;
 }
-

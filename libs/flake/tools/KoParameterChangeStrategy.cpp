@@ -4,8 +4,6 @@
 
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoParameterChangeStrategy.h"
 #include "KoParameterChangeStrategy_p.h"
 #include "KoParameterShape.h"
@@ -18,7 +16,7 @@
 KoParameterChangeStrategy::KoParameterChangeStrategy(KoToolBase *tool, KoParameterShape *parameterShape, int handleId)
     : KoInteractionStrategy(*(new KoParameterChangeStrategyPrivate(tool, parameterShape, handleId)))
 {
-    Q_D(KoParameterChangeStrategy);
+    auto * const d = d_func();
     d->tool->canvas()->snapGuide()->setIgnoredShapes({parameterShape});
 }
 
@@ -34,7 +32,7 @@ KoParameterChangeStrategy::~KoParameterChangeStrategy()
 
 void KoParameterChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, Pk::KeyboardModifiers modifiers)
 {
-    Q_D(KoParameterChangeStrategy);
+    auto * const d = d_func();
 
     const PkPointF snappedPosition = d->tool->canvas()->snapGuide()->snap(
         mouseLocation, modifiers);
@@ -47,7 +45,7 @@ void KoParameterChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, P
 
 KUndo2Command* KoParameterChangeStrategy::createCommand()
 {
-    Q_D(KoParameterChangeStrategy);
+    auto * const d = d_func();
 
     d->tool->canvas()->snapGuide()->reset();
 

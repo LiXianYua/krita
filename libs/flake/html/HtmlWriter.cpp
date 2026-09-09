@@ -5,12 +5,8 @@
  */
 #include "HtmlWriter.h"
 
-#include <QDebug>
 #include <PkStream.h>
 #include <PkTextStream.h>
-#include <PkFlakeBridge.h>
-
-#include <klocalizedstring.h>
 
 #include <KoShape.h>
 #include <KoShapeLayer.h>
@@ -18,8 +14,6 @@
 #include <KoSvgTextShape.h>
 
 #include <html/HtmlSavingContext.h>
-
-#include <KisPortingUtils.h>
 
 HtmlWriter::HtmlWriter(const PkList<KoShape*> &toplevelShapes)
     : m_toplevelShapes(toplevelShapes)
@@ -67,24 +61,24 @@ PkStringList HtmlWriter::warnings() const
 
 void HtmlWriter::saveShapes(const PkList<KoShape *> shapes, HtmlSavingContext &savingContext)
 {
-    Q_FOREACH (KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         KoShapeLayer *layer = dynamic_cast<KoShapeLayer*>(shape);
         if (layer) {
-            m_errors << toPkString(i18n("Saving KoShapeLayer to html is not implemented yet!"));
+            m_errors << PkString("Saving KoShapeLayer to html is not implemented yet!");
         } else {
             KoShapeGroup *group = dynamic_cast<KoShapeGroup*>(shape);
             if (group) {
-                m_errors << toPkString(i18n("KoShapeGroup to html is not implemented yet!"));
+                m_errors << PkString("KoShapeGroup to html is not implemented yet!");
             }
             else {
                 KoSvgTextShape *svgTextShape = dynamic_cast<KoSvgTextShape*>(shape);
                 if (svgTextShape) {
                     if (!svgTextShape->saveHtml(savingContext)) {
-                        m_errors << toPkString(i18n("saving to html failed"));
+                        m_errors << PkString("saving to html failed");
                     }
                 }
                 else {
-                    m_errors << toPkString(i18n("Cannot save %1 to html", toQString(shape->name())));
+                    m_errors << PkString("Cannot save %1 to html").arg(shape->name());
                 }
             }
         }
