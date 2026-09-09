@@ -6,11 +6,13 @@
 */
 
 #include "SvgTextToolFactory.h"
+#include "SvgTextToolResources.h"
 
 #include "KoSvgTextShape.h"
 #include "SvgTextTool.h"
 #include "SvgTextShortCuts.h"
 
+#include <KoToolRegistry.h>
 #include <PkFlakeBridge.h>
 
 #include <QAction>
@@ -53,4 +55,14 @@ PkList<QAction *> SvgTextToolFactory::createActionsImpl()
     { QAction *action = new QAction(this); action->setObjectName("svg_remove_transforms_from_range"); actions << action; }
     { QAction *action = new QAction(this); action->setObjectName("svg_clear_formatting"); actions << action; }
     return actions;
+}
+
+void registerSvgTextToolFactory()
+{
+    static bool registered = false;
+    if (registered) {
+        return;
+    }
+    registered = true;
+    KoToolRegistry::instance()->add(new SvgTextToolFactory());
 }

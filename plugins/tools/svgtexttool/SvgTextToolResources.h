@@ -18,6 +18,7 @@ enum class SvgTextToolPixmap {
 const char *const *svgTextToolCursorPixmap(SvgTextToolPixmap pixmap);
 const char *svgTextToolXmlGui();
 void svgTextToolResourceAnchor();
+void registerSvgTextToolFactory();
 
 void registerSvgTextTool();
 
