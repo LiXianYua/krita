@@ -44,6 +44,10 @@ inline bool KisTileData::acquire() {
      * So just clean it up.
      */
     if(m_usersCount == 1) {
+        // A popped clone is invisible to releaseInternalPools() until its
+        // destructor returns the allocation to the cache. Keep that whole
+        // transition mutually exclusive with a pool purge.
+        PkMutexLocker poolReleaseLock(&poolReleaseMutex());
         KisTileData *clone = 0;
         while(m_clonesStack.pop(clone)) {
             delete clone;

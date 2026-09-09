@@ -189,10 +189,11 @@ void KisTileData::freeData(std::uint8_t* ptr, const std::int32_t pixelSize)
 
 void KisTileData::releaseInternalPools()
 {
-    // A clone may have been removed from a pre-clone stack but not registered
-    // in KisTileDataStore yet.  Keep pool purge mutually exclusive with that
-    // allocation-to-registration window; otherwise purge_memory() can
-    // invalidate the clone's data before the store can see and migrate it.
+    // Every pooled allocation stays behind this gate whenever it is not
+    // visible through either store iteration or a pre-clone stack: from
+    // allocation/pop through registration, and from store/stack removal
+    // through destruction. Otherwise purge_memory() can invalidate an
+    // allocation while an invisible KisTileData still owns its pointer.
     PkMutexLocker poolReleaseLock(&poolReleaseMutex());
 
     const int maxMigratedTiles = 100;

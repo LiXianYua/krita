@@ -2,6 +2,7 @@ add_library(kritatestsdk INTERFACE)
 
 target_link_libraries(kritatestsdk INTERFACE
     Qt${QT_MAJOR_VERSION}::Test
+    Qt${QT_MAJOR_VERSION}::Widgets
     kritaglobal
     pktest
 )

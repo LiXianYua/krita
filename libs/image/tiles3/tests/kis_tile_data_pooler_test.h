@@ -14,6 +14,8 @@ class KisTileDataPoolerTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void testRemovalWaitsForPoolRelease();
+    void testAcquireCloneCleanupWaitsForPoolRelease();
     void testCycles();
 };
 

@@ -5,6 +5,8 @@
  */
 #include "TestKoShapeFactory.h"
 
+#include <PkStringList.h>
+
 #include <simpletest.h>
 #include <PkMemoryStream.h>
 

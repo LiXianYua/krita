@@ -12,6 +12,22 @@
 #include <KoProgressProxy.h>
 #include <KoProgressUpdater.h>
 #include <KoUpdater.h>
+#include <PkPointer.h>
+#include <PkString.h>
+#include <PkThreadCallQueue.h>
+
+namespace {
+
+void waitAndPump(int milliseconds)
+{
+    QTest::qWait(milliseconds);
+    // KoUpdaterPrivate is deleted in the first queue snapshot; its destructor
+    // schedules the public KoUpdater for the following snapshot.
+    PkThreadCallQueue::processPendingCalls();
+    PkThreadCallQueue::processPendingCalls();
+}
+
+}
 
 // Local equivalent of TestProgressBar, so this test does not drag
 // kritatestsdk's dependency on kritaimage into libs/global/tests.
@@ -31,12 +47,14 @@ public:
         m_min = min;
         m_max = max;
     }
-    void setFormat(const QString &format) override {
-        m_format = format;
+    void setFormat(const PkString &format) override {
+        const std::string utf8 = format.PkToUtf8();
+        m_format = QString::fromUtf8(utf8.data(), static_cast<int>(utf8.size()));
     }
 
-    void setAutoNestedName(const QString &name) override {
-        m_autoNestedName = name;
+    void setAutoNestedName(const PkString &name) override {
+        const std::string utf8 = name.PkToUtf8();
+        m_autoNestedName = QString::fromUtf8(utf8.data(), static_cast<int>(utf8.size()));
         KoProgressProxy::setAutoNestedName(name);
     }
 
@@ -54,7 +72,6 @@ private:
     QString m_format;
     QString m_autoNestedName;
 };
-
 
 void TestKoProgressUpdater::test()
 {
@@ -77,7 +94,7 @@ void TestKoProgressUpdater::test()
     QCOMPARE(testProxy.value(), 0);
     QCOMPARE(testProxy.format(), QString("Test Action: %p%"));
 
-    QPointer<KoUpdater> updater1 = progress.startSubtask(1, "");
+    PkPointer<KoUpdater> updater1 = progress.startSubtask(1, "");
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -93,7 +110,7 @@ void TestKoProgressUpdater::test()
     QCOMPARE(testProxy.value(), 50);
     QCOMPARE(testProxy.format(), QString("Test Action: %p%"));
 
-    QPointer<KoUpdater> updater2 = progress.startSubtask(4, "");
+    PkPointer<KoUpdater> updater2 = progress.startSubtask(4, "");
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -118,7 +135,7 @@ void TestKoProgressUpdater::test()
     QCOMPARE(testProxy.format(), QString("Test Action: %p%"));
 
     updater2->setProgress(100);
-    QTest::qWait(15);
+    waitAndPump(15);
 
     QCOMPARE(testProxy.min(), 0);
     QCOMPARE(testProxy.max(), 99);
@@ -154,7 +171,7 @@ void TestKoProgressUpdater::testNamedSubtasks()
     QCOMPARE(testProxy.format(), QString("Test Action: %p%"));
     QCOMPARE(testProxy.autoNestedName(), QString("Test Action"));
 
-    QPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
+    PkPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -172,7 +189,7 @@ void TestKoProgressUpdater::testNamedSubtasks()
     QCOMPARE(testProxy.format(), QString("Test Action: subtask1: %p%"));
     QCOMPARE(testProxy.autoNestedName(), QString("Test Action: subtask1"));
 
-    QPointer<KoUpdater> updater2 = progress.startSubtask(4, "subtask2");
+    PkPointer<KoUpdater> updater2 = progress.startSubtask(4, "subtask2");
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -182,7 +199,7 @@ void TestKoProgressUpdater::testNamedSubtasks()
     QCOMPARE(testProxy.autoNestedName(), QString("Test Action: subtask1"));
 
     updater1->setProgress(100);
-    QTest::qWait(15);
+    waitAndPump(15);
 
     QCOMPARE(testProxy.min(), 0);
     QCOMPARE(testProxy.max(), 99);
@@ -191,7 +208,7 @@ void TestKoProgressUpdater::testNamedSubtasks()
     QCOMPARE(testProxy.autoNestedName(), QString("Test Action: subtask2"));
 
     // tests subtask with an empty name!
-    QPointer<KoUpdater> updater3 = progress.startSubtask(1, "");
+    PkPointer<KoUpdater> updater3 = progress.startSubtask(1, "");
     updater2->setProgress(100);
     QTest::qWait(15);
 
@@ -225,7 +242,7 @@ void TestKoProgressUpdater::testNamedSubtasksUnnamedParent()
     QCOMPARE(testProxy.format(), QString("%p%"));
     QCOMPARE(testProxy.autoNestedName(), QString(""));
 
-    QPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
+    PkPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -258,7 +275,7 @@ void TestKoProgressUpdater::testPersistentSubtask()
     QCOMPARE(testProxy.format(), QString("%p%"));
     QCOMPARE(testProxy.autoNestedName(), QString(""));
 
-    QPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
+    PkPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -267,7 +284,7 @@ void TestKoProgressUpdater::testPersistentSubtask()
     QCOMPARE(testProxy.format(), QString("subtask1: %p%"));
     QCOMPARE(testProxy.autoNestedName(), QString("subtask1"));
 
-    QPointer<KoUpdater> updater2_persistent = progress.startSubtask(1, "subtask2", true);
+    PkPointer<KoUpdater> updater2_persistent = progress.startSubtask(1, "subtask2", true);
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -286,7 +303,7 @@ void TestKoProgressUpdater::testPersistentSubtask()
     QCOMPARE(testProxy.autoNestedName(), QString("subtask2"));
 
     updater2_persistent->setValue(100);
-    QTest::qWait(15);
+    waitAndPump(15);
 
     QCOMPARE(testProxy.min(), 0);
     QCOMPARE(testProxy.max(), 99);
@@ -299,7 +316,7 @@ void TestKoProgressUpdater::testPersistentSubtask()
     QVERIFY(updater2_persistent);
 
     progress.removePersistentSubtask(updater2_persistent);
-    QTest::qWait(15);
+    waitAndPump(15);
 
     // persistent subtask is killed only after explicit removal
     QVERIFY(!updater2_persistent);
@@ -328,7 +345,7 @@ void TestKoProgressUpdater::testDestructionNonpersistentSubtasks()
     QCOMPARE(testProxy.format(), QString("%p%"));
     QCOMPARE(testProxy.autoNestedName(), QString(""));
 
-    QPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
+    PkPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -364,7 +381,7 @@ void TestKoProgressUpdater::testDestructionNonpersistentSubtasks()
     QCOMPARE(testProxy.format(), QString("subtask1: %p%"));
     QCOMPARE(testProxy.autoNestedName(), QString("subtask1"));
 
-    QPointer<KoUpdater> subUpdater1 = subtaskProgress.startSubtask();
+    PkPointer<KoUpdater> subUpdater1 = subtaskProgress.startSubtask();
     QTest::qWait(15);
 
     // nothing changed!
@@ -374,7 +391,7 @@ void TestKoProgressUpdater::testDestructionNonpersistentSubtasks()
     QCOMPARE(testProxy.format(), QString("subtask1: %p%"));
     QCOMPARE(testProxy.autoNestedName(), QString("subtask1"));
 
-    QPointer<KoUpdater> subUpdater2 = subtaskProgress.startSubtask();
+    PkPointer<KoUpdater> subUpdater2 = subtaskProgress.startSubtask();
     QTest::qWait(15);
 
     // nothing changed!
@@ -404,7 +421,7 @@ void TestKoProgressUpdater::testDestructionNonpersistentSubtasks()
     QCOMPARE(testProxy.autoNestedName(), QString("subtask1"));
 
     subUpdater2->setProgress(100);
-    QTest::qWait(15);
+    waitAndPump(15);
 
     QCOMPARE(testProxy.min(), 0);
     QCOMPARE(testProxy.max(), 99);
@@ -444,7 +461,7 @@ void TestKoProgressUpdater::testUndefinedStateTasks()
     QCOMPARE(testProxy.format(), QString("%p%"));
     QCOMPARE(testProxy.autoNestedName(), QString(""));
 
-    QPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
+    PkPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
     updater1->setProgress(50);
     QTest::qWait(15);
 
@@ -454,7 +471,7 @@ void TestKoProgressUpdater::testUndefinedStateTasks()
     QCOMPARE(testProxy.format(), QString("subtask1: %p%"));
     QCOMPARE(testProxy.autoNestedName(), QString("subtask1"));
 
-    QPointer<KoUpdater> updater2 = progress.startSubtask(1, "subtask2");
+    PkPointer<KoUpdater> updater2 = progress.startSubtask(1, "subtask2");
     QTest::qWait(15);
 
     QCOMPARE(testProxy.min(), 0);
@@ -476,7 +493,7 @@ void TestKoProgressUpdater::testUndefinedStateTasks()
 
 
     updater1->setProgress(100);
-    QTest::qWait(15);
+    waitAndPump(15);
 
     // still undefined
     QCOMPARE(testProxy.min(), 0);
@@ -519,7 +536,7 @@ void TestKoProgressUpdater::testNonStandardRange()
     QCOMPARE(testProxy.format(), QString("%p%"));
     QCOMPARE(testProxy.autoNestedName(), QString(""));
 
-    QPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
+    PkPointer<KoUpdater> updater1 = progress.startSubtask(1, "subtask1");
     updater1->setProgress(50);
     QTest::qWait(15);
 
@@ -530,7 +547,7 @@ void TestKoProgressUpdater::testNonStandardRange()
     QCOMPARE(testProxy.autoNestedName(), QString("subtask1"));
 
     updater1->setProgress(100);
-    QTest::qWait(15);
+    waitAndPump(15);
 
     QCOMPARE(testProxy.min(), 0);
     QCOMPARE(testProxy.max(), 49);

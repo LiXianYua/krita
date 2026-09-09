@@ -206,6 +206,10 @@ void KisTileDataStore::freeTileData(KisTileData *td)
 
     DEBUG_FREE_ACTION(td);
 
+    // Once unregisterTileDataImp() removes td from store iteration, only this
+    // guard keeps its pooled allocation visible to releaseInternalPools().
+    // Hold it until destruction has returned the allocation to the cache.
+    PkMutexLocker poolReleaseLock(&KisTileData::poolReleaseMutex());
     m_iteratorLock.lockForRead();
     td->m_swapLock.lockForWrite();
 

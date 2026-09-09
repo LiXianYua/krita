@@ -1,4 +1,3 @@
-#include <PkGlobal.h>
 #include "path_rasterizer_cases.h"
 
 #include <QImage>
@@ -16,7 +15,7 @@ namespace {
 QPainterPath makePath(const RasterCase &c)
 {
     QPainterPath path;
-    path.setFillRule(c.fillRule == 1 ? Pk::WindingFill : Pk::OddEvenFill);
+    path.setFillRule(c.fillRule == 1 ? Qt::WindingFill : Qt::OddEvenFill);
     for (std::size_t i = 0; i < c.commandCount; ++i) {
         const auto &cmd = c.commands[i];
         switch (cmd.verb) {
@@ -39,23 +38,23 @@ int emitCase(const RasterCase &c)
 {
     if (!valid(c)) return 3;
     QImage image(c.clipWidth, c.clipHeight, QImage::Format_ARGB32_Premultiplied);
-    image.fill(Pk::black);
+    image.fill(Qt::black);
     QPainter painter(&image);
     painter.translate(-double(c.clipX), -double(c.clipY));
     painter.setRenderHint(QPainter::Antialiasing, c.antialiased);
     const QPainterPath path = makePath(c);
     if (c.mode == RasterMode::Fill) {
-        painter.fillPath(path, QBrush(Pk::white));
+        painter.fillPath(path, QBrush(Qt::white));
     } else {
-        QPen pen(Pk::white);
+        QPen pen(Qt::white);
         pen.setWidthF(c.penWidth);
-        pen.setStyle(static_cast<Pk::PenStyle>(c.penStyle));
-        pen.setCapStyle(static_cast<Pk::PenCapStyle>(c.capStyle));
-        pen.setJoinStyle(static_cast<Pk::PenJoinStyle>(c.joinStyle));
+        pen.setStyle(static_cast<Qt::PenStyle>(c.penStyle));
+        pen.setCapStyle(static_cast<Qt::PenCapStyle>(c.capStyle));
+        pen.setJoinStyle(static_cast<Qt::PenJoinStyle>(c.joinStyle));
         pen.setMiterLimit(c.miterLimit);
         if (c.dashCount) { QVector<qreal> pattern; for (std::size_t i = 0; i < c.dashCount; ++i) pattern.append(c.dashPattern[i]); pen.setDashPattern(pattern); pen.setDashOffset(c.dashOffset); }
         painter.setPen(pen);
-        painter.setBrush(Pk::NoBrush);
+        painter.setBrush(Qt::NoBrush);
         painter.drawPath(path);
     }
     painter.end();
