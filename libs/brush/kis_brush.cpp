@@ -9,7 +9,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtGui/QImage>
 #include "kis_brush.h"
 
 #include <PkXmlElement.h>
@@ -187,7 +186,7 @@ struct KisBrush::Private {
         , threadingAllowed(true)
         , brushPyramid([] (const KisBrush* brush)
                        {
-                           return new KisQImagePyramid(brush->brushTipImage());
+                           return new KisImagePyramid(brush->brushTipImage());
                        })
         , brushOutline(&detail::outlineFactory)
 
@@ -250,7 +249,7 @@ struct KisBrush::Private {
     bool threadingAllowed;
 
     PkImage brushTipImage;
-    mutable BrushLinkedCacheStorage<KisQImagePyramid, const KisBrush*> brushPyramid;
+    mutable BrushLinkedCacheStorage<KisImagePyramid, const KisBrush*> brushPyramid;
     mutable BrushLinkedCacheStorage<KisOptimizedBrushOutline, const KisBrush*> brushOutline;
 };
 
@@ -539,7 +538,7 @@ PkSizeF KisBrush::characteristicSize(KisDabShape const& shape) const
                 shape.scale() * d->scale,
                 shape.ratio(),
                 normalizeAngle(shape.rotation() + d->angle));
-    return KisQImagePyramid::characteristicSize(
+    return KisImagePyramid::characteristicSize(
                 PkSize(width(), height()), normalizedShape);
 }
 
@@ -550,7 +549,7 @@ qint32 KisBrush::maskWidth(KisDabShape const& shape, qreal subPixelX, qreal subP
     qreal angle = normalizeAngle(shape.rotation() + d->angle);
     qreal scale = shape.scale() * d->scale;
 
-    return KisQImagePyramid::imageSize(PkSize(width(), height()),
+    return KisImagePyramid::imageSize(PkSize(width(), height()),
                                        KisDabShape(scale, shape.ratio(), angle),
                                        subPixelX, subPixelY).width();
 }
@@ -562,7 +561,7 @@ qint32 KisBrush::maskHeight(KisDabShape const& shape, qreal subPixelX, qreal sub
     qreal angle = normalizeAngle(shape.rotation() + d->angle);
     qreal scale = shape.scale() * d->scale;
 
-    return KisQImagePyramid::imageSize(PkSize(width(), height()),
+    return KisImagePyramid::imageSize(PkSize(width(), height()),
                                        KisDabShape(scale, shape.ratio(), angle),
                                        subPixelX, subPixelY).height();
 }

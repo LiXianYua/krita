@@ -49,7 +49,6 @@ include_directories(
 
 kis_add_library(kritalibbrush SHARED ${kritalibbrush_LIB_SRCS})
 generate_export_header(kritalibbrush BASE_NAME kritabrush EXPORT_MACRO_NAME BRUSH_EXPORT)
-target_compile_definitions(kritalibbrush PRIVATE QT_NO_VERSION_TAGGING)
 
 target_link_libraries(kritalibbrush kritaimage pkimageio pkrender kritamultiarch lager pksql)
 

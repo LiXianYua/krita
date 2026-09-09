@@ -7,7 +7,7 @@
 
 #include <simpletest.h>
 
-class KisQImagePyramidTest : public QObject
+class KisImagePyramidTest : public QObject
 {
     Q_OBJECT
 

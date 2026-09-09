@@ -6,7 +6,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtGui/QImage>
 #include "kis_auto_brush.h"
 
 #include <kis_debug.h>

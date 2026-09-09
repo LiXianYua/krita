@@ -50,7 +50,7 @@ PkImage copyArgb32Rect(const PkImage &source, int x, int y, int width, int heigh
 }
 
 
-KisQImagePyramid::KisQImagePyramid(const PkImage &baseImage, bool useSmoothingForEnlarging)
+KisImagePyramid::KisImagePyramid(const PkImage &baseImage, bool useSmoothingForEnlarging)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(!baseImage.isNull());
 
@@ -97,11 +97,11 @@ KisQImagePyramid::KisQImagePyramid(const PkImage &baseImage, bool useSmoothingFo
     }
 }
 
-KisQImagePyramid::~KisQImagePyramid()
+KisImagePyramid::~KisImagePyramid()
 {
 }
 
-int KisQImagePyramid::findNearestLevel(qreal scale, qreal *baseScale) const
+int KisImagePyramid::findNearestLevel(qreal scale, qreal *baseScale) const
 {
     const qreal scale_epsilon = 1e-6;
 
@@ -178,7 +178,7 @@ PkTransform baseBrushTransform(KisDabShape const& shape,
     return transform * PkTransform::fromTranslate(subPixelX, subPixelY);
 }
 
-void KisQImagePyramid::calculateParams(KisDabShape const& shape,
+void KisImagePyramid::calculateParams(KisDabShape const& shape,
                                        qreal subPixelX, qreal subPixelY,
                                        const PkSize &originalSize,
                                        PkTransform *outputTransform, PkSize *outputSize)
@@ -189,7 +189,7 @@ void KisQImagePyramid::calculateParams(KisDabShape const& shape,
                     outputTransform, outputSize);
 }
 
-void KisQImagePyramid::calculateParams(KisDabShape shape,
+void KisImagePyramid::calculateParams(KisDabShape shape,
                                        qreal subPixelX, qreal subPixelY,
                                        const PkSize &originalSize,
                                        qreal baseScale, const PkSize &baseSize,
@@ -257,7 +257,7 @@ void KisQImagePyramid::calculateParams(KisDabShape shape,
     *outputSize = PkSize(width, height);
 }
 
-PkSize KisQImagePyramid::imageSize(const PkSize &originalSize,
+PkSize KisImagePyramid::imageSize(const PkSize &originalSize,
                                   KisDabShape const& shape,
                                   qreal subPixelX, qreal subPixelY)
 {
@@ -271,7 +271,7 @@ PkSize KisQImagePyramid::imageSize(const PkSize &originalSize,
     return dstSize;
 }
 
-PkSizeF KisQImagePyramid::characteristicSize(const PkSize &originalSize,
+PkSizeF KisImagePyramid::characteristicSize(const PkSize &originalSize,
                                             KisDabShape const& shape)
 {
     PkRectF originalRect(PkPointF(), originalSize);
@@ -282,7 +282,7 @@ PkSizeF KisQImagePyramid::characteristicSize(const PkSize &originalSize,
     return transform.mapRect(originalRect).size();
 }
 
-void KisQImagePyramid::appendPyramidLevel(const PkImage &image)
+void KisImagePyramid::appendPyramidLevel(const PkImage &image)
 {
     /**
      * QPainter has a bug: when doing a transformation it decides that
@@ -305,7 +305,7 @@ PkSize levelSize = image.size();
     m_levels.append(PyramidLevel(tmp, levelSize));
 }
 
-PkImage KisQImagePyramid::createImage(KisDabShape const& shape,
+PkImage KisImagePyramid::createImage(KisDabShape const& shape,
                                      qreal subPixelX, qreal subPixelY) const
 {
     if (m_levels.isEmpty()) return PkImage();
@@ -360,7 +360,7 @@ PkImage KisQImagePyramid::createImage(KisDabShape const& shape,
                          dstSize.height());
 }
 
-PkImage KisQImagePyramid::getClosest(PkTransform transform, qreal *scale) const
+PkImage KisImagePyramid::getClosest(PkTransform transform, qreal *scale) const
 {
     if (m_levels.isEmpty()) return PkImage();
 
@@ -374,7 +374,7 @@ PkImage KisQImagePyramid::getClosest(PkTransform transform, qreal *scale) const
     return m_levels[level].image;
 }
 
-PkImage KisQImagePyramid::getClosestWithoutWorkaroundBorder(PkTransform transform, qreal *scale) const
+PkImage KisImagePyramid::getClosestWithoutWorkaroundBorder(PkTransform transform, qreal *scale) const
 {
     PkImage image = getClosest(transform, scale);
     return copyArgb32Rect(image,

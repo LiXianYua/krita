@@ -13,12 +13,12 @@
 #include <kritabrush_export.h>
 
 
-class BRUSH_EXPORT KisQImagePyramid
+class BRUSH_EXPORT KisImagePyramid
 {
 public:
-    KisQImagePyramid() = default;
-    KisQImagePyramid(const PkImage &baseImage, bool useSmoothingForEnlarging = true);
-    ~KisQImagePyramid();
+    KisImagePyramid() = default;
+    KisImagePyramid(const PkImage &baseImage, bool useSmoothingForEnlarging = true);
+    ~KisImagePyramid();
 
     static PkSize imageSize(const PkSize &originalSize,
                            KisDabShape const&,

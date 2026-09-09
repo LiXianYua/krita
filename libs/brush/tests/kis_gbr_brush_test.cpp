@@ -127,7 +127,7 @@ void KisGbrBrushTest::benchmarkPyramidCreation()
     QVERIFY(!brush->brushTipImage().isNull());
 
     QBENCHMARK {
-        KisQImagePyramid pyramid(brush->brushTipImage());
+        KisImagePyramid pyramid(brush->brushTipImage());
         qreal temp = 0.0;
         QVERIFY(!pyramid.getClosest(PkTransform(), &temp).isNull()); // avoid compiler elimination of unused code!
     }
@@ -197,7 +197,7 @@ void KisGbrBrushTest::testPyramidLevelRounding()
     PkImage image(imageSize, PkImage::Format_ARGB32);
     image.fill(0);
 
-    KisQImagePyramid pyramid(image);
+    KisImagePyramid pyramid(image);
 
     qreal baseScale;
     int baseLevel;
@@ -232,7 +232,7 @@ static PkSize dabTransformHelper(KisDabShape const& shape)
     PkSize const testSize(150, 150);
     qreal const subPixelX = 0.0,
                 subPixelY = 0.0;
-    return KisQImagePyramid::imageSize(testSize, shape, subPixelX, subPixelY);
+    return KisImagePyramid::imageSize(testSize, shape, subPixelX, subPixelY);
 }
 
 void KisGbrBrushTest::testPyramidDabTransform()
@@ -243,18 +243,18 @@ void KisGbrBrushTest::testPyramidDabTransform()
     QCOMPARE(dabTransformHelper(KisDabShape(1.0, 0.5, M_PI / 4)), PkSize(160, 160));
 }
 
-// see comment in KisQImagePyramid::appendPyramidLevel
+// see comment in KisImagePyramid::appendPyramidLevel
 void KisGbrBrushTest::testQPainterTransformationBorder()
 {
     PkImage source(10, 10, PkImage::Format_ARGB32);
     source.fill(pkRgba(0, 0, 0, 255));
 
-    KisQImagePyramid pyramid(source);
+    KisImagePyramid pyramid(source);
     const KisDabShape shape(1.0, 1.0, 15.0 * M_PI / 180.0);
     const PkImage transformed = pyramid.createImage(shape, 0.0, 0.0);
 
     QVERIFY(!transformed.isNull());
-    QCOMPARE(transformed.size(), KisQImagePyramid::imageSize(source.size(), shape, 0.0, 0.0));
+    QCOMPARE(transformed.size(), KisImagePyramid::imageSize(source.size(), shape, 0.0, 0.0));
     QCOMPARE(transformed.format(), PkImage::Format_ARGB32);
 
     bool foundTransparentPixel = false;
