@@ -86,6 +86,37 @@ kis_add_test(
     LINK_LIBRARIES kritaflake kritatestsdk
     )
 
+add_executable(KoSvgTextNewlineNativeTest
+    KoSvgTextNewlineNativeTest.cpp
+    ../text/KoSvgTextNewlineNormalizer.cpp
+    )
+target_include_directories(KoSvgTextNewlineNativeTest PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/string
+    )
+target_link_libraries(KoSvgTextNewlineNativeTest PRIVATE pkstring pkcontainer)
+add_test(NAME libs-flake-KoSvgTextNewlineNativeTest
+    COMMAND KoSvgTextNewlineNativeTest)
+
+add_executable(KoFontGlyphModelNativeContractTest
+    KoFontGlyphModelNativeContractTest.cpp
+    )
+target_include_directories(KoFontGlyphModelNativeContractTest BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake/noqt-compat
+    ${CMAKE_SOURCE_DIR}/pk/string/compat
+    ${CMAKE_SOURCE_DIR}/pk/container/compat
+    ${CMAKE_SOURCE_DIR}/pk/variant/compat
+    ${CMAKE_SOURCE_DIR}/pk/pointer/compat
+    ${CMAKE_SOURCE_DIR}/pk/global/compat
+    ${CMAKE_SOURCE_DIR}/pk/signal/compat
+    ${CMAKE_SOURCE_DIR}/libs
+    ${CMAKE_SOURCE_DIR}/libs/flake/text
+    )
+target_link_libraries(KoFontGlyphModelNativeContractTest PRIVATE
+    pkstring pkcontainer pkvariant pksignal
+    Freetype::Freetype HarfBuzz::HarfBuzz Fontconfig::Fontconfig)
+add_test(NAME libs-flake-KoFontGlyphModelNativeContractTest
+    COMMAND KoFontGlyphModelNativeContractTest)
+
 ############## broken tests ###############
 
 kis_add_test(TestPointMergeCommand.cpp

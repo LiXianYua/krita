@@ -8,6 +8,7 @@
 #include <PkFont.h>
 #include <PkSharedConfig.h>
 #include "KoSvgTextContentElement.h"
+#include "KoSvgTextNewlineNormalizer.h"
 
 #include "KoCssTextUtils.h"
 #include <kis_dom_utils.h>
@@ -248,8 +249,7 @@ bool KoSvgTextContentElement::loadSvgTextNode(const PkXmlText &text, SvgLoadingC
     // end up with CR in the text. The SVG spec explicitly calls out that all
     // newlines in SVG are to be represented by a single LF (U+000A) character,
     // so we can replace all CRLF and CR into LF here for simplicity.
-    PkString content = text.data();
-    content = PkString::join(content.split("\r\n"), "\n");
+    PkString content = normalizeSvgTextNewlines(text.data());
 
     this->text = std::move(content);
 

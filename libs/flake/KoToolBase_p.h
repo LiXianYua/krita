@@ -51,7 +51,7 @@ public:
             Q_ASSERT_X(crp, "KoToolBase::KoToolBase", "No Canvas KoResourceManager");
             if (crp) {
                 const PkPointer<KoToolBase> guard(q);
-                QObject::connect(crp, &KoCanvasResourceProvider::canvasResourceChanged, crp,
+                PkObject::connect(crp, &KoCanvasResourceProvider::canvasResourceChanged, crp,
                                  [guard](int key, const PkVariant &value) {
                     if (guard) guard->canvasResourceChanged(key, value);
                 });
@@ -60,7 +60,7 @@ public:
             KoDocumentResourceManager *scrm = canvas->shapeController()->resourceManager();
             if (scrm) {
                 const PkPointer<KoToolBase> guard(q);
-                QObject::connect(scrm, &KoDocumentResourceManager::resourceChanged, scrm,
+                PkObject::connect(scrm, &KoDocumentResourceManager::resourceChanged, scrm,
                                  [guard](int key, const PkVariant &value) {
                     if (guard) guard->documentResourceChanged(key, value);
                 });

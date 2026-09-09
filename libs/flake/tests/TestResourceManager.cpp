@@ -11,11 +11,38 @@
 #include "KoResourceManager_p.h"
 #include "KoPathShape.h"
 #include "KoUnit.h"
-#include <QSignalSpy>
+#include <PkList.h>
+#include <PkObject.h>
 #include <simpletest.h>
 #include <PkFlakeBridge.h>
 
 #include "kis_debug.h"
+
+class ResourceSignalSpy : public PkObject
+{
+public:
+    template <typename Sender>
+    ResourceSignalSpy(Sender *sender,
+                      void (Sender::*signal)(int, const PkVariant &))
+    {
+        PkObject::connect(sender, signal, this,
+                          [this](int key, const PkVariant &value) {
+            PkList<PkVariant> arguments;
+            arguments.append(PkVariant(key));
+            arguments.append(value);
+            m_events.append(arguments);
+        });
+    }
+
+    int count() const { return m_events.count(); }
+    int size() const { return m_events.size(); }
+    bool isEmpty() const { return m_events.isEmpty(); }
+    void clear() { m_events.clear(); }
+    const PkList<PkVariant> &operator[](int index) const { return m_events[index]; }
+
+private:
+    PkList<PkList<PkVariant>> m_events;
+};
 
 void TestResourceManager::koShapeResource()
 {
@@ -30,7 +57,7 @@ void TestResourceManager::koShapeResource()
 void TestResourceManager::testUnitChanged()
 {
     KoCanvasResourceProvider rm(0);
-    QSignalSpy spy(&rm, &KoCanvasResourceProvider::canvasResourceChanged);
+    ResourceSignalSpy spy(&rm, &KoCanvasResourceProvider::canvasResourceChanged);
 
     KoUnit a;
     rm.setResource(KoCanvasResource::Unit, a);
@@ -72,7 +99,7 @@ void TestResourceManager::testConverters()
     QCOMPARE(m.resource(key2).toInt(), 2);
     QVERIFY(!m.hasResource(derivedKey));
 
-    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new DerivedResource(derivedKey, key2))));
+    m.addDerivedResourceConverter(toQShared(new DerivedResource(derivedKey, key2)));
 
     QCOMPARE(m.resource(derivedKey).toInt(), 12);
     QVERIFY(m.hasResource(derivedKey));
@@ -97,15 +124,15 @@ void TestResourceManager::testDerivedChanged()
     const int otherDerivedKey = 4;
 
     KoCanvasResourceProvider m(0);
-    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new DerivedResource(derivedKey, key2))));
-    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new DerivedResource(otherDerivedKey, key2))));
+    m.addDerivedResourceConverter(toQShared(new DerivedResource(derivedKey, key2)));
+    m.addDerivedResourceConverter(toQShared(new DerivedResource(otherDerivedKey, key2)));
 
     m.setResource(derivedKey, 15);
 
     QCOMPARE(m.resource(key2).toInt(), 5);
     QCOMPARE(m.resource(derivedKey).toInt(), 15);
 
-    QSignalSpy spy(&m, &KoCanvasResourceProvider::canvasResourceChanged);
+    ResourceSignalSpy spy(&m, &KoCanvasResourceProvider::canvasResourceChanged);
 
     m.setResource(derivedKey, 16);
 
@@ -192,13 +219,13 @@ void TestResourceManager::testComplexResource()
     const int complex2 = 4;
 
     KoCanvasResourceProvider m(0);
-    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new ComplexConverter(complex1, key))));
-    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new ComplexConverter(complex2, key))));
+    m.addDerivedResourceConverter(toQShared(new ComplexConverter(complex1, key)));
+    m.addDerivedResourceConverter(toQShared(new ComplexConverter(complex2, key)));
 
     ComplexMediatorSP mediator(new ComplexMediator(key));
     m.addResourceUpdateMediator(mediator);
 
-    QSignalSpy spy(&m, &KoCanvasResourceProvider::canvasResourceChanged);
+    ResourceSignalSpy spy(&m, &KoCanvasResourceProvider::canvasResourceChanged);
 
     ComplexResourceSP r1(new ComplexResource());
     r1->m_resources[complex1] = 10;
@@ -404,7 +431,7 @@ void TestResourceManager::testNeverChangingConverters()
     QCOMPARE(m.resource(key2).toInt(), 2);
     QVERIFY(!m.hasResource(derivedKey));
 
-    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new NeverChangingResource(derivedKey, key2))));
+    m.addDerivedResourceConverter(toQShared(new NeverChangingResource(derivedKey, key2)));
 
     QVERIFY(m.hasResource(derivedKey));
     QCOMPARE(m.resource(derivedKey).toInt(), 10);
@@ -444,7 +471,7 @@ void TestResourceManager::testAbstractResource()
     const int key1 = 1;
 
     KoResourceManager m;
-    QSignalSpy spy(&m, &KoResourceManager::resourceChanged);
+    ResourceSignalSpy spy(&m, &KoResourceManager::resourceChanged);
 
     PkSharedPointer<CanvasResource> resourceValue1(new CanvasResource(key1, 10));
     PkSharedPointer<CanvasResource> resourceValue2(new CanvasResource(key1, 20));

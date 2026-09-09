@@ -64,7 +64,7 @@ KoPencilTool::KoPencilTool(KoCanvasBase *canvas)
 
     KoCanvasResourceProvider *resourceManager = canvas->resourceManager();
     const PkPointer<KoPencilTool> toolGuard(this);
-    QObject::connect(resourceManager, &KoCanvasResourceProvider::canvasResourceChanged,
+    PkObject::connect(resourceManager, &KoCanvasResourceProvider::canvasResourceChanged,
             resourceManager, [toolGuard](int key, const PkVariant &value) {
         if (toolGuard && key == KoCanvasResource::Size) {
             toolGuard->m_strokeTemplate.setLineWidth(toolGuard->canvas()->unit().fromUserValue(value.toReal()));

@@ -6,18 +6,16 @@
 #ifndef KOFONTGLYPHMODEL_H
 #define KOFONTGLYPHMODEL_H
 
-#include <QAbstractItemModel>
+#include <PkByteArray.h>
+#include <PkObject.h>
 #include <PkScopedPointer.h>
+#include <PkString.h>
 #include "KoFontLibraryResourceUtils.h"
 #include "data/KoUnicodeBlockData.h"
 #include "kritaflake_export.h"
-// [migrate] missing include for Pk/Qt type
 #include <PkHash.h>
-// [migrate] missing include for Pk/Qt type
 #include <PkMap.h>
-// [migrate] missing include for Pk/Qt type
 #include <PkVariant.h>
-// [migrate] missing include for Pk/Qt type
 #include <PkVector.h>
 
 struct KoOpenTypeFeatureInfo;
@@ -28,34 +26,68 @@ struct KoOpenTypeFeatureInfo;
  * The primary parents are the basic codepoints, the children of those parents (if any),
  * are glyph variations.
  */
-class KRITAFLAKE_EXPORT KoFontGlyphModel: public QAbstractItemModel
+class KRITAFLAKE_EXPORT KoFontGlyphModel : public PkObject
 {
-    Q_OBJECT
 public:
+    class Index
+    {
+    public:
+        Index()
+            : m_row(-1)
+            , m_column(-1)
+            , m_parentRow(-1)
+            , m_internalId(0)
+        {
+        }
+
+        bool isValid() const { return m_row >= 0 && m_column >= 0; }
+        int row() const { return m_row; }
+        int column() const { return m_column; }
+        uint internalId() const { return m_internalId; }
+        Index parent() const;
+
+    private:
+        friend class KoFontGlyphModel;
+        Index(int row, int column, int parentRow, uint internalId)
+            : m_row(row)
+            , m_column(column)
+            , m_parentRow(parentRow)
+            , m_internalId(internalId)
+        {
+        }
+
+        int m_row;
+        int m_column;
+        int m_parentRow;
+        uint m_internalId;
+    };
+
     enum GlyphType {
         Base,
         UnicodeVariationSelector,
         OpenType
     };
 
-    KoFontGlyphModel(QObject *parent = nullptr);
-    ~KoFontGlyphModel();
+    explicit KoFontGlyphModel(PkObject *parent = nullptr);
+    ~KoFontGlyphModel() override;
 
     enum Roles {
-        OpenTypeFeatures = Qt::UserRole + 1,
+        DisplayRole = 0,
+        ToolTipRole = 3,
+        OpenTypeFeatures = 0x0101,
         GlyphLabel,
         ChildCount
     };
 
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    PkVariant data(const Index &index, int role = DisplayRole) const;
 
-    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
-    QModelIndex parent(const QModelIndex &child) const override;
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    bool hasChildren(const QModelIndex &parent = QModelIndex()) const override;
+    Index index(int row, int column, const Index &parent = Index()) const;
+    Index parent(const Index &child) const;
+    int rowCount(const Index &parent = Index()) const;
+    int columnCount(const Index &parent = Index()) const;
+    bool hasChildren(const Index &parent = Index()) const;
 
-    QModelIndex indexForString(PkString grapheme);
+    Index indexForString(PkString grapheme);
 
     /**
      * @brief setFace
@@ -64,9 +96,12 @@ public:
      * @param language -- the language for which to retrieve data for, OpenType data can have different glyphs depending on the language.
      * @param samplesOnly -- Whether to only retrieve enough data for 6 samples, or to retrieve the full glyph layout. Turning this on speeds up loading.
      */
-    void setFace(FT_FaceSP face, QLatin1String language = QLatin1String(), bool samplesOnly = false);
+    void setFace(FT_FaceSP face, PkString language = PkString(), bool samplesOnly = false);
 
-    QHash<int, QByteArray> roleNames() const override;
+    PkHash<int, PkByteArray> roleNames() const;
+
+    void modelAboutToBeReset();
+    void modelReset();
 
     /**
      * @brief blocks

@@ -279,6 +279,7 @@ set(kritaflake_SRCS
     text/KoSvgText.cpp
     text/KoSvgTextProperties.cpp
     text/KoSvgTextContentElement.cpp
+    text/KoSvgTextNewlineNormalizer.cpp
     text/KoSvgTextShape.cpp
     text/KoSvgTextLoader.cpp
     text/KoSvgTextShape_p_glyphs.cpp
@@ -288,6 +289,7 @@ set(kritaflake_SRCS
     text/KoSvgTextShapeLayoutFunc_lines.cpp
     text/KoSvgTextShapeMarkupConverter.cpp
     text/KoFontRegistry.cpp
+    text/KoFontGlyphModel.cpp
     text/KoFontProviderFontconfig.cpp
     text/KoLcLocale.cpp
     text/KoCssTextUtils.cpp

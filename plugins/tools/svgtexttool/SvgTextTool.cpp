@@ -336,7 +336,7 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
     if (canvas->canvasController()) {
         KoCanvasResourceProvider *resourceManager = canvas->resourceManager();
         const PkPointer<SvgTextTool> toolGuard(this);
-        QObject::connect(resourceManager, &KoCanvasResourceProvider::canvasResourceChanged,
+        PkObject::connect(resourceManager, &KoCanvasResourceProvider::canvasResourceChanged,
                          resourceManager, [toolGuard](int key, const PkVariant &value) {
             if (toolGuard) toolGuard->m_textCursor.notifyCanvasResourceChanged(key, value);
         });

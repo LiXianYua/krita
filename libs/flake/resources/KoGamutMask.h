@@ -44,10 +44,8 @@ private:
 /**
  * @brief The resource type for gamut masks used by the artistic color selector
  */
-class KRITAFLAKE_EXPORT KoGamutMask : public QObject, public KoResource
+class KRITAFLAKE_EXPORT KoGamutMask : public KoResource
 {
-    Q_OBJECT
-
 public:
     KoGamutMask(const PkString &filename);
     KoGamutMask();

@@ -4,14 +4,13 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoGamutMask.h"
 #include <KisResourceThumbnailCodec.h>
 
 #include <cstring>
 
 #include <PkVector.h>
+#include <PkContainerAlgo.h>
 #include <PkString.h>
 #include <PkFileStream.h>
 #include <PkList.h>
@@ -26,7 +25,6 @@
 #include <KoStore.h>
 #include <KoStoreDevice.h>
 #include <KoDocumentResourceManager.h>
-#include <QBuffer>
 #include <PkImage.h>
 #include <SvgParser.h>
 #include <SvgWriter.h>
@@ -82,7 +80,7 @@ void KoGamutMaskShape::paintStroke(PkPainter &painter)
 struct KoGamutMask::Private {
     PkString name;
     PkString title;
-    PK_QBYTEARRAY_ data;
+    PkByteArray data;
     PkVector<KoGamutMaskShape*> maskShapes;
     PkVector<KoGamutMaskShape*> previewShapes;
     PkSizeF maskSize;
@@ -111,8 +109,7 @@ KoGamutMask::KoGamutMask(KoGamutMask* rhs)
 }
 
 KoGamutMask::KoGamutMask(const KoGamutMask &rhs)
-    : QObject(0)
-    , KoResource(rhs)
+    : KoResource(rhs)
     , d(new Private)
 {
     setTitle(rhs.title());
@@ -133,8 +130,8 @@ KoResourceSP KoGamutMask::clone() const
 
 KoGamutMask::~KoGamutMask()
 {
-    qDeleteAll(d->maskShapes);
-    qDeleteAll(d->previewShapes);
+    pkDeleteAll(d->maskShapes);
+    pkDeleteAll(d->previewShapes);
     delete d;
 }
 
@@ -220,11 +217,11 @@ PkTransform KoGamutMask::viewToMaskTransform(qreal viewSize)
 
 bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
-    Q_UNUSED(resourcesInterface);
+    (void)resourcesInterface;
 
     if (!dev->isOpen()) dev->open(PkStream::ReadOnly);
 
-    d->data = pkReadAllAsQByteArray(dev);
+    d->data = dev->readAll();
 
     // TODO: test
     KIS_ASSERT_RECOVER_RETURN_VALUE(d->data.size() != 0, false);
@@ -234,7 +231,7 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
         return false;
     }
 
-    if (d->data.isNull()) {
+    if (d->data.isEmpty()) {
         PkFileStream file(filename());
         if (file.size() == 0) {
             warnFlake << "Cannot load gamut mask" << name() << "there is no data available";
@@ -245,7 +242,7 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
             warnFlake << "Cannot load gamut mask" << name() << ":" << file.errorString();
             return false;
         }
-        d->data = toQByteArray(file.readAll());
+        d->data = file.readAll();
         file.close();
     }
 
@@ -255,7 +252,7 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
     buf.close();
     buf.open(PkStream::ReadOnly);
 
-    PkScopedPointer<KoStore> store(KoStore::createStore(&buf, KoStore::Read, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
+    PkScopedPointer<KoStore> store(KoStore::createStore(&buf, KoStore::Read, PkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
     if (!store || store->bad()) return false;
 
     bool storeOpened = store->open("gamutmask.svg");
@@ -277,11 +274,11 @@ bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
         PkXmlDocument xmlDocument = SvgParser::createDocumentFromSvg(ba, &errorMsg, &errorLine, &errorColumn);
         if (xmlDocument.isNull()) {
 
-            errorFlake << "Parsing error in " << filename() << "! Aborting!" << Qt::endl
-            << " In line: " << errorLine << ", column: " << errorColumn << Qt::endl
-            << " Error message: " << errorMsg << Qt::endl;
+            errorFlake << "Parsing error in " << filename() << "! Aborting!"
+                       << " In line: " << errorLine << ", column: " << errorColumn
+                       << " Error message: " << errorMsg;
             errorFlake << "Parsing error in the main document at line" << errorLine
-                       << ", column" << errorColumn << Qt::endl
+                       << ", column" << errorColumn
                        << "Error message: " << errorMsg;
 
             return false;
@@ -338,7 +335,7 @@ PkList<KoShape*> KoGamutMask::koShapes() const
 
 bool KoGamutMask::saveToDevice(PkStream *dev) const
 {
-    KoStore* store(KoStore::createStore(dev, KoStore::Write, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
+    KoStore* store(KoStore::createStore(dev, KoStore::Write, PkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
     if (!store || store->bad()) return false;
 
     PkList<KoShape*> shapes = koShapes();
