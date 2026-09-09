@@ -15,9 +15,14 @@ static_assert(sizeof(calligraphyIconPng) == @KARBON_CALLIGRAPHY_PNG_SIZE@,
               "generated calligraphy icon size mismatch");
 
 std::mutex resourceRegistrarMutex;
-std::once_flag resourceRegistrationOnce;
 KarbonToolsResourceRegistrar resourceRegistrar = nullptr;
-bool resourceRegistrationStarted = false;
+enum class ResourceRegistrationState
+{
+    Ready,
+    Delivering,
+    Complete
+};
+ResourceRegistrationState resourceRegistrationState = ResourceRegistrationState::Ready;
 }
 
 KarbonToolsResource karbonCalligraphyIconPng()
@@ -28,7 +33,9 @@ KarbonToolsResource karbonCalligraphyIconPng()
 bool setKarbonToolsResourceRegistrar(KarbonToolsResourceRegistrar registrar)
 {
     std::lock_guard<std::mutex> lock(resourceRegistrarMutex);
-    if (!registrar || resourceRegistrationStarted || resourceRegistrar) {
+    if (!registrar ||
+        resourceRegistrationState != ResourceRegistrationState::Ready ||
+        resourceRegistrar) {
         return false;
     }
     resourceRegistrar = registrar;
@@ -37,15 +44,20 @@ bool setKarbonToolsResourceRegistrar(KarbonToolsResourceRegistrar registrar)
 
 void registerKarbonToolsResources()
 {
-    std::call_once(resourceRegistrationOnce, [] {
-        KarbonToolsResourceRegistrar registrar = nullptr;
-        {
-            std::lock_guard<std::mutex> lock(resourceRegistrarMutex);
-            resourceRegistrationStarted = true;
-            registrar = resourceRegistrar;
+    KarbonToolsResourceRegistrar registrar = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(resourceRegistrarMutex);
+        if (resourceRegistrationState != ResourceRegistrationState::Ready) {
+            return;
         }
-        if (registrar) {
-            registrar(karbonCalligraphyIconPng());
-        }
-    });
+        resourceRegistrationState = ResourceRegistrationState::Delivering;
+        registrar = resourceRegistrar;
+    }
+
+    if (registrar) {
+        registrar(karbonCalligraphyIconPng());
+    }
+
+    std::lock_guard<std::mutex> lock(resourceRegistrarMutex);
+    resourceRegistrationState = ResourceRegistrationState::Complete;
 }

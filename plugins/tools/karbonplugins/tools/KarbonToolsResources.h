@@ -14,7 +14,7 @@ struct KarbonToolsResource
     std::size_t size;
 };
 
-using KarbonToolsResourceRegistrar = void (*)(const KarbonToolsResource &resource);
+using KarbonToolsResourceRegistrar = void (*)(const KarbonToolsResource &resource) noexcept;
 
 KarbonToolsResource karbonCalligraphyIconPng();
 
@@ -30,17 +30,19 @@ KarbonToolsResource karbonCalligraphyIconPng();
  * without changing the installed registrar.  If registration starts without a
  * registrar, resource delivery is permanently skipped for this process.
  *
- * The callback is invoked synchronously at most once, even when registration is
- * requested repeatedly or concurrently.  Its KarbonToolsResource argument is a
- * temporary descriptor and must be copied if retained.  The descriptor's
- * identity strings and data bytes have static storage and remain valid until
- * process exit.
+ * The callback type requires noexcept and is invoked synchronously at most once,
+ * even when registration is requested repeatedly, concurrently, or recursively
+ * from the callback itself.  Reentrant and concurrent calls made while delivery
+ * is in progress return immediately without waiting or invoking the callback
+ * again.  Its KarbonToolsResource argument is a temporary descriptor and must be
+ * copied if retained.  The descriptor's identity strings and data bytes have
+ * static storage and remain valid until process exit.
  */
 bool setKarbonToolsResourceRegistrar(KarbonToolsResourceRegistrar registrar);
 
 /**
  * Delivers the embedded resources according to the installation contract above.
- * Repeated and concurrent calls are idempotent.
+ * Repeated, concurrent, and reentrant calls are idempotent.
  */
 void registerKarbonToolsResources();
 

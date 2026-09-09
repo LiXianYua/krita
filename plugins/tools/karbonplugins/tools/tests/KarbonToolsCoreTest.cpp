@@ -20,7 +20,16 @@
 #include <cmath>
 #include <cstring>
 #include <thread>
+#include <type_traits>
 #include <vector>
+
+static_assert(std::is_nothrow_invocable_v<KarbonToolsResourceRegistrar,
+                                          const KarbonToolsResource &>,
+              "resource registrar callbacks must have an enforced no-throw contract");
+using PotentiallyThrowingResourceRegistrar = void (*)(const KarbonToolsResource &);
+static_assert(!std::is_convertible_v<PotentiallyThrowingResourceRegistrar,
+                                     KarbonToolsResourceRegistrar>,
+              "a potentially-throwing callback must not satisfy the registrar contract");
 
 namespace
 {
@@ -151,16 +160,24 @@ int calligraphyGuideSimplificationRemovesRedundantSections()
 KarbonToolsResource capturedResource {};
 std::atomic<int> capturedResourceCount {0};
 std::atomic<int> replacementResourceCount {0};
+std::atomic<int> reentrantResourceCount {0};
 
-void captureResource(const KarbonToolsResource &resource)
+void captureResource(const KarbonToolsResource &resource) noexcept
 {
     capturedResource = resource;
     ++capturedResourceCount;
 }
 
-void captureReplacementResource(const KarbonToolsResource &)
+void captureReplacementResource(const KarbonToolsResource &) noexcept
 {
     ++replacementResourceCount;
+}
+
+void captureResourceAndReenterRegistration(const KarbonToolsResource &) noexcept
+{
+    ++reentrantResourceCount;
+    registerKarbonToolsResources();
+    registerKarbonTools();
 }
 
 int nativeResourcePreservesCalligraphyIcon()
@@ -221,12 +238,38 @@ int lateInstallAfterSkippedRegistrationIsRejected()
     if (capturedResourceCount.load() != 0) return 72;
     return 0;
 }
+
+int resourceRegistrationAllowsSynchronousReentry()
+{
+    if (!setKarbonToolsResourceRegistrar(captureResourceAndReenterRegistration)) return 73;
+
+    KoToolRegistry *const toolRegistry = KoToolRegistry::instance();
+    KoShapeRegistry *const shapeRegistry = KoShapeRegistry::instance();
+    if (toolRegistry->contains(PkString("KarbonCalligraphyTool")) ||
+        shapeRegistry->contains(PkString(KarbonCalligraphicShapeId))) return 74;
+    const int toolDuplicateCount = toolRegistry->doubleEntries().size();
+    const int shapeDuplicateCount = shapeRegistry->doubleEntries().size();
+
+    registerKarbonToolsResources();
+    registerKarbonToolsResources();
+    registerKarbonTools();
+
+    if (reentrantResourceCount.load() != 1) return 75;
+    if (!toolRegistry->contains(PkString("KarbonCalligraphyTool")) ||
+        !shapeRegistry->contains(PkString(KarbonCalligraphicShapeId))) return 76;
+    if (toolRegistry->doubleEntries().size() != toolDuplicateCount ||
+        shapeRegistry->doubleEntries().size() != shapeDuplicateCount) return 77;
+    return 0;
+}
 } // namespace
 
 int main(int argc, char **argv)
 {
     if (argc == 2 && std::strcmp(argv[1], "--late-install-after-skip") == 0) {
         return lateInstallAfterSkippedRegistrationIsRejected();
+    }
+    if (argc == 2 && std::strcmp(argv[1], "--resource-reentry") == 0) {
+        return resourceRegistrationAllowsSynchronousReentry();
     }
     const int pointResult = calligraphicPointsPreserveLiteralGeometry();
     if (pointResult) return pointResult;

@@ -10,6 +10,12 @@ set_target_properties(KarbonToolsCoreTest PROPERTIES AUTOMOC OFF)
 add_test(
     NAME plugins-tools-karbonplugins-tools-KarbonToolsResourceLateInstallTest
     COMMAND $<TARGET_FILE:KarbonToolsCoreTest> --late-install-after-skip)
+add_test(
+    NAME plugins-tools-karbonplugins-tools-KarbonToolsResourceReentryTest
+    COMMAND $<TARGET_FILE:KarbonToolsCoreTest> --resource-reentry)
+set_tests_properties(
+    plugins-tools-karbonplugins-tools-KarbonToolsResourceReentryTest
+    PROPERTIES TIMEOUT 5)
 target_include_directories(KarbonToolsCoreTest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/..
     ${CMAKE_SOURCE_DIR}/pk/color
