@@ -29,15 +29,6 @@
 
 void connectSelectionModifierMapperToConfigChanges(KisSelectionModifierMapper *mapper);
 
-// This numerically serializes modifier flags... let's keep it around for later.
-#if 0
-#include <bitset>
-PkString modifierBinary(Pk::KeyboardModifiers m)
-{
-    return PkString(std::bitset<sizeof(int) * 8>(m).to_string().c_str());
-};
-#endif
-
 struct KisSelectionModifierMapper::Private
 {
     SelectionAction map(Pk::KeyboardModifiers m);

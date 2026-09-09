@@ -13,6 +13,10 @@ set(kritaselectiontools_SOURCES
     KisToolSelectMagnetic.cc
 )
 
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
 # This bridge is intentionally Pk-only. The surrounding legacy target still
 # inherits QT_CORE_LIB through unrelated GUI sources, which would otherwise
 # disable the compat/QObject declarations used by KisConfigNotifier.
@@ -26,6 +30,7 @@ kis_add_library(kritaselectiontools STATIC ${kritaselectiontools_SOURCES})
 set_target_properties(kritaselectiontools PROPERTIES AUTOMOC OFF)
 target_include_directories(kritaselectiontools PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/color
+    ${CMAKE_SOURCE_DIR}/pk/config
     ${CMAKE_SOURCE_DIR}/pk/container
     ${CMAKE_SOURCE_DIR}/pk/geometry
     ${CMAKE_SOURCE_DIR}/pk/image
@@ -43,12 +48,12 @@ target_link_libraries(kritaselectiontools
     kritashapemodel
     kritaimage
     kritaresources
-    KF${KF_MAJOR}::ConfigCore
     Boost::boost
     pkcolor
     pkcontainer
     pkgeometry
     pkconfig
+    pkimage
     pknamespace
     pkpointer
     pkrender

@@ -9,6 +9,9 @@
 #include "selection_tools.h"
 #include <mutex>
 
+#include <PkConfigGroup.h>
+#include <PkNamespace.h>
+
 #include "KoToolRegistry.h"
 
 #include "kis_global.h"
@@ -22,6 +25,26 @@
 #include "kis_tool_select_path.h"
 #include "kis_tool_select_similar.h"
 #include "KisToolSelectMagnetic.h"
+
+int selectionToolShortcutChord(SelectionToolKind tool)
+{
+    switch (tool) {
+    case SelectionToolKind::Rectangular:
+        return static_cast<int>(Pk::ControlModifier) |
+               static_cast<int>(Pk::Key_R);
+    case SelectionToolKind::Elliptical:
+        return static_cast<int>(Pk::Key_J);
+    }
+
+    return 0;
+}
+
+int readSelectionThreshold(const PkConfigGroup &group, int defaultValue)
+{
+    return group.hasKey(PkString("threshold"))
+        ? group.readEntry(PkString("threshold"), defaultValue)
+        : group.readEntry(PkString("fuzziness"), defaultValue);
+}
 
 void registerSelectionTools()
 {

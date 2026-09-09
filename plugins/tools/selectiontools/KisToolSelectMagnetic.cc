@@ -11,7 +11,6 @@
 #include <PkPainter.h>
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 #include <PkSharedConfig.h>
 
 #include <KoPointerEvent.h>

@@ -11,6 +11,15 @@
 #include <PkString.h>
 
 class KoToolBase;
+class PkConfigGroup;
+
+enum class SelectionToolKind {
+    Rectangular,
+    Elliptical
+};
+
+int selectionToolShortcutChord(SelectionToolKind tool);
+int readSelectionThreshold(const PkConfigGroup &group, int defaultValue);
 
 enum class SelectionToolAction {
     UndoPolygonSelection,

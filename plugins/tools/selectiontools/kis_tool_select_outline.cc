@@ -13,7 +13,6 @@
 #include "kis_tool_select_outline.h"
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>

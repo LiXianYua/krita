@@ -8,6 +8,7 @@
  */
 
 #include "kis_tool_select_similar.h"
+#include "selection_tools.h"
 
 #include <PkFlakeBridge.h>
 #include <PkSharedConfig.h>
@@ -47,11 +48,7 @@ void KisToolSelectSimilar::activate(const PkSet<KoShape*> &shapes)
     // was created; that ran on every tool activation, so these are the
     // effective defaults with no panel too -- same keys, same fallbacks
     // (including the legacy "fuzziness" -> "threshold" migration).
-    if (m_configGroup.hasKey("threshold")) {
-        m_threshold = m_configGroup.readEntry("threshold", 20);
-    } else {
-        m_threshold = m_configGroup.readEntry("fuzziness", 20);
-    }
+    m_threshold = readSelectionThreshold(m_configGroup, 20);
     m_opacitySpread = m_configGroup.readEntry("opacitySpread", 100);
 }
 

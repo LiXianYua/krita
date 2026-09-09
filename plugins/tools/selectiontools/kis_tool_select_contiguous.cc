@@ -11,11 +11,11 @@
  */
 
 #include "kis_tool_select_contiguous.h"
+#include "selection_tools.h"
 #include <PkFlakeBridge.h>
 #include <PkPainter.h>
 
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 #include <PkSharedConfig.h>
 
 #include "KoPointerEvent.h"
@@ -73,11 +73,7 @@ void KisToolSelectContiguous::activate(const PkSet<KoShape*> &shapes)
         : FloodFill;
     m_contiguousSelectionBoundaryColor =
         loadContiguousSelectionBoundaryColorFromConfig();
-    if (m_configGroup.hasKey("threshold")) {
-        m_threshold = m_configGroup.readEntry("threshold", 8);
-    } else {
-        m_threshold = m_configGroup.readEntry("fuzziness", 8);
-    }
+    m_threshold = readSelectionThreshold(m_configGroup, 8);
     m_opacitySpread = m_configGroup.readEntry("opacitySpread", 100);
     m_closeGap = m_configGroup.readEntry("closeGapAmount", 0);
     m_useSelectionAsBoundary =
