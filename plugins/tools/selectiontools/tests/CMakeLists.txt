@@ -7,10 +7,9 @@ target_compile_definitions(SelectionToolsTest PRIVATE
     SELECTIONTOOLS_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 kis_add_test(selection_polygonal_dispatch_test.cpp
-    ../selection_tool_cursor.cc
-    ../kis_selection_modifier_mapper.cc
     TEST_NAME SelectionPolygonalDispatchTest
     LINK_LIBRARIES
+        kritaselectiontools
         kritacanvas
         kritaflake
         kritashapemodel

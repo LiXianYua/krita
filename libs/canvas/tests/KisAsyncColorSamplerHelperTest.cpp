@@ -325,7 +325,10 @@ public:
         lastAppliedCursorShape = cursor ? it->second.shape() : defaultCursor.shape();
         ++cursorApplyCount;
     }
-    void toolSetCursorPosition(const PkPoint &) override {}
+    void toolSetCursorPosition(const PkPoint &position) override
+    {
+        cursorPositions.push_back(position);
+    }
     void toolShowBrushSize(qreal) override {}
     void toolShowLockedLayerMessage(bool) override {}
     void toolShowFloatingMessage(const PkString &, bool) override {}
@@ -423,6 +426,7 @@ public:
     int cursorRejectCount {0};
     KisCanvasCursorToken lastAppliedCursor;
     Qt::CursorShape lastAppliedCursorShape {Qt::BlankCursor};
+    std::vector<PkPoint> cursorPositions;
     mutable std::deque<std::pair<KisCanvasCursorToken, QCursor>> cursorSnapshots;
     QCursor defaultCursor {Qt::ArrowCursor};
     const std::thread::id cursorOwnerThread {std::this_thread::get_id()};
@@ -444,7 +448,9 @@ public:
 
     void setPreviewAngle(qreal angle) { m_angle = angle; }
     void applyStoredCursor() { resetCursorStyle(); }
+    bool applyCursorToken(KisCanvasCursorToken token) { return KoToolBase::useCursor(token); }
     KisCanvasCursorToken storedCursorToken() const { return cursor(); }
+    QCursor compatibilityCursor() const { return KoToolBase::cursor(); }
 
 private:
     void finishRect(const PkRectF &, qreal, qreal) override {}
@@ -1118,6 +1124,32 @@ void KisAsyncColorSamplerHelperTest::toolCursorTokenPersistsAndApplies()
     QCOMPARE(compatibilityNotificationCount, 1);
 }
 
+void KisAsyncColorSamplerHelperTest::toolCursorRejectsForeignTokenWithoutObservableMutation()
+{
+    EllipsePreviewCanvas canvas;
+    EllipsePreviewTool tool(&canvas);
+    EllipsePreviewCanvas foreignHost;
+    const KisCanvasCursorToken foreignToken =
+        foreignHost.toolImportCursor(QCursor(Qt::CrossCursor));
+
+    const KisCanvasCursorToken retainedToken = tool.storedCursorToken();
+    const Qt::CursorShape retainedCursorShape = tool.compatibilityCursor().shape();
+    int tokenNotificationCount = 0;
+    int compatibilityNotificationCount = 0;
+    PkObject::connect(&tool, &KoToolBase::cursorTokenChanged, &tool,
+                      [&](KisCanvasCursorToken) { ++tokenNotificationCount; });
+    PkObject::connect(&tool, &KoToolBase::cursorChanged, &tool,
+                      [&](const QCursor &) { ++compatibilityNotificationCount; });
+
+    QVERIFY(!tool.applyCursorToken(foreignToken));
+    QCOMPARE(tool.storedCursorToken(), retainedToken);
+    QCOMPARE(tool.compatibilityCursor().shape(), retainedCursorShape);
+    QCOMPARE(canvas.cursorApplyCount, 0);
+    QCOMPARE(canvas.cursorRejectCount, 0);
+    QCOMPARE(tokenNotificationCount, 0);
+    QCOMPARE(compatibilityNotificationCount, 0);
+}
+
 void KisAsyncColorSamplerHelperTest::cursorTokenContractCoversZeroIdentityScopeAndThreadAffinity()
 {
     auto first = std::make_unique<EllipsePreviewCanvas>();
@@ -1231,6 +1263,8 @@ void KisAsyncColorSamplerHelperTest::freehandAlternateActionRetainsDetachedEvent
     tool.endAlternateAction(&continuation, KisTool::ChangeSize);
     QVERIFY(!tool.gestureActive());
     QVERIFY(!tool.observations.back().has_value());
+    QCOMPARE(canvas.cursorPositions,
+             std::vector<PkPoint>({PkPoint(112, 113)}));
 
     tool.beginAlternateAction(&continuation, KisTool::ChangeSizeSnap);
     QVERIFY(tool.gestureActive());
@@ -1238,6 +1272,8 @@ void KisAsyncColorSamplerHelperTest::freehandAlternateActionRetainsDetachedEvent
     tool.requestStrokeCancellation();
     QVERIFY(!tool.gestureActive());
     QVERIFY(!tool.observations.back().has_value());
+    QCOMPARE(canvas.cursorPositions,
+             std::vector<PkPoint>({PkPoint(112, 113), PkPoint(32, 13)}));
 }
 
 void KisAsyncColorSamplerHelperTest::proxyDispatchesPolylineDecorations()

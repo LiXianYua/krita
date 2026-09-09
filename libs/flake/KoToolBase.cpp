@@ -295,18 +295,21 @@ void KoToolBase::useCursor(const QCursor &cursor)
     Q_EMIT cursorChanged(d->currentCursor);
 }
 
-void KoToolBase::useCursor(KisCanvasCursorToken cursor)
+bool KoToolBase::useCursor(KisCanvasCursorToken cursor)
 {
     Q_D(KoToolBase);
+    auto *host = dynamic_cast<KoCanvasCursorHost *>(d->canvas);
+    if (!host) return false;
+
+    const QCursor *snapshot = host->toolCursorSnapshot(cursor);
+    if (!snapshot) return false;
+
     d->currentCursorToken = cursor;
-    if (auto *host = dynamic_cast<KoCanvasCursorHost *>(d->canvas)) {
-        if (const QCursor *snapshot = host->toolCursorSnapshot(cursor)) {
-            d->currentCursor = *snapshot;
-            Q_EMIT cursorChanged(d->currentCursor);
-        }
-        host->toolApplyCursor(cursor);
-    }
+    d->currentCursor = *snapshot;
+    Q_EMIT cursorChanged(d->currentCursor);
+    host->toolApplyCursor(cursor);
     Q_EMIT cursorTokenChanged(cursor);
+    return true;
 }
 
 void KoToolBase::useCursor(Pk::CursorShape cursorShape)

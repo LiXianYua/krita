@@ -69,10 +69,19 @@ public:
     /** Import a synchronous immutable cursor snapshot under the contract above. */
     virtual KisCanvasCursorToken toolImportCursor(const QCursor &) const { return {}; }
 
-    /** Resolve a token for compatibility observers; nullptr means invalid token. */
+    /**
+     * Resolve a token for compatibility observers and validate host ownership.
+     * Zero resolves to the default platform cursor. A nonzero token resolves
+     * only while it belongs to this host; nullptr means foreign, stale, or
+     * otherwise rejected. The returned immutable snapshot remains valid for
+     * the lifetime of this host.
+     */
     virtual const QCursor *toolCursorSnapshot(KisCanvasCursorToken) const { return nullptr; }
 
-    /** Apply a host-scoped token; zero restores the default platform cursor. */
+    /**
+     * Apply a token accepted by toolCursorSnapshot(). Zero restores the default
+     * platform cursor. A direct call with an invalid token must be a no-op.
+     */
     virtual void toolApplyCursor(KisCanvasCursorToken) {}
 };
 

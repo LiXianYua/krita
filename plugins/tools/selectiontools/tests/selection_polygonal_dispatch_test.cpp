@@ -31,37 +31,7 @@
 #include <variant>
 #include <vector>
 
-// Preload every header used by the implementation before the narrow test-only
-// QObject substitution below. The production class is currently PkObject-based,
-// but its constructor still contains one unrelated legacy qualified call.
 #include "kis_tool_select_polygonal.h"
-#include "selection_tools.h"
-#include <KoPathShape.h>
-#include "kis_algebra_2d.h"
-#include "kis_painter.h"
-#include <brushengine/kis_paintop_registry.h>
-#include "kis_selection_options.h"
-#include "KisSelectionUtils.h"
-#include "kis_pixel_selection.h"
-#include "kis_selection_tool_helper.h"
-#include "kis_shape_tool_helper.h"
-#include <kis_default_bounds.h>
-#include <kis_command_utils.h>
-#include <kis_selection_filters.h>
-
-void connectSelectionModifierMapperToConfigChanges(KisSelectionModifierMapper *)
-{
-}
-
-namespace SelectionPolygonalTestCompat {
-struct ObjectNameSink {
-    static void setObjectName(const char *) {}
-};
-}
-
-#define QObject SelectionPolygonalTestCompat::ObjectNameSink
-#include "../kis_tool_select_polygonal.cc"
-#undef QObject
 
 namespace {
 
@@ -266,6 +236,7 @@ void SelectionPolygonalDispatchTest::proxyPaintDispatchesFixedAndDraggingSegment
     canvas.snapGuide()->enableSnapping(false);
     DecorationProxy proxy(&canvas);
     SelectionPreviewTool selection(&canvas);
+    QCOMPARE(selection.objectName(), PkString("tool_select_polygonal"));
     KisToolPolylineBase *polymorphicTool = &selection;
     proxy.priv()->activeTool = polymorphicTool;
 

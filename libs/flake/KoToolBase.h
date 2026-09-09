@@ -593,7 +593,13 @@ protected:
      * @param cursor the new cursor.
      */
     void useCursor(const QCursor &cursor);
-    void useCursor(KisCanvasCursorToken cursor);
+    /**
+     * Apply a host-scoped token and publish the resulting cursor state.
+     * Returns false for a foreign, stale, hostless, or otherwise rejected
+     * token. Rejection leaves retained state unchanged, does not call the host
+     * apply operation, and emits neither cursor notification.
+     */
+    bool useCursor(KisCanvasCursorToken cursor);
     void useCursor(Pk::CursorShape cursorShape);
 
     /**
