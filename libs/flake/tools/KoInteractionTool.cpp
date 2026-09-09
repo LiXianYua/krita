@@ -8,7 +8,6 @@
 #include <QtCore/QtCore>
 #include <PkFlakeBridge.h>
 #include <pk/render/PkPainter.h>
-#include <QKeyEvent>
 
 #include "KoInteractionTool.h"
 #include "KoInteractionTool_p.h"
@@ -89,37 +88,37 @@ void KoInteractionTool::mouseReleaseEvent(KoPointerEvent *event)
         event->ignore();
 }
 
-void KoInteractionTool::keyPressEvent(QKeyEvent *event)
+void KoInteractionTool::pkKeyPressEvent(PkToolKeyEvent *event)
 {
     Q_D(KoInteractionTool);
     event->ignore();
     if (d->currentStrategy &&
-            (event->key() == Qt::Key_Control ||
-             event->key() == Qt::Key_Alt || event->key() == Qt::Key_Shift ||
-             event->key() == Qt::Key_Meta)) {
+            (event->key() == Pk::Key_Control ||
+             event->key() == Pk::Key_Alt || event->key() == Pk::Key_Shift ||
+             event->key() == Pk::Key_Meta)) {
         d->currentStrategy->handleMouseMove(
-            d->lastPoint, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+            d->lastPoint, event->modifiers());
         event->accept();
     }
 }
 
-void KoInteractionTool::keyReleaseEvent(QKeyEvent *event)
+void KoInteractionTool::pkKeyReleaseEvent(PkToolKeyEvent *event)
 {
     Q_D(KoInteractionTool);
 
     if (!d->currentStrategy) {
-        KoToolBase::keyReleaseEvent(event);
+        KoToolBase::pkKeyReleaseEvent(event);
         return;
     }
 
-    if (event->key() == Qt::Key_Escape) {
+    if (event->key() == Pk::Key_Escape) {
         cancelCurrentStrategy();
         event->accept();
-    } else if (event->key() == Qt::Key_Control ||
-               event->key() == Qt::Key_Alt || event->key() == Qt::Key_Shift ||
-               event->key() == Qt::Key_Meta) {
+    } else if (event->key() == Pk::Key_Control ||
+               event->key() == Pk::Key_Alt || event->key() == Pk::Key_Shift ||
+               event->key() == Pk::Key_Meta) {
         d->currentStrategy->handleMouseMove(
-            d->lastPoint, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+            d->lastPoint, event->modifiers());
     }
 }
 

@@ -8,7 +8,6 @@
 
 #include "KoZoomTool.h"
 
-#include <QKeyEvent>
 #include <QPixmap>
 
 #include "KoZoomStrategy.h"
@@ -42,20 +41,20 @@ void KoZoomTool::mouseMoveEvent(KoPointerEvent *event)
     KoInteractionTool::mouseMoveEvent(event);
 }
 
-void KoZoomTool::keyPressEvent(QKeyEvent *event)
+void KoZoomTool::pkKeyPressEvent(PkToolKeyEvent *event)
 {
     event->ignore();
-    updateCursor(event->modifiers() & Qt::ControlModifier);
+    updateCursor(event->modifiers() & Pk::ControlModifier);
 
-    KoInteractionTool::keyPressEvent(event);
+    KoInteractionTool::pkKeyPressEvent(event);
 }
 
-void KoZoomTool::keyReleaseEvent(QKeyEvent *event)
+void KoZoomTool::pkKeyReleaseEvent(PkToolKeyEvent *event)
 {
     event->ignore();
-    updateCursor(event->modifiers() & Qt::ControlModifier);
+    updateCursor(event->modifiers() & Pk::ControlModifier);
 
-    KoInteractionTool::keyReleaseEvent(event);
+    KoInteractionTool::pkKeyReleaseEvent(event);
 }
 
 void KoZoomTool::activate(const PkSet<KoShape*> &)

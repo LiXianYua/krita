@@ -57,7 +57,7 @@ PkString KoToolAction::iconName() const
     return d->toolFactory->iconName();
 }
 
-QKeySequence KoToolAction::shortcut() const
+PkKeySequence KoToolAction::shortcut() const
 {
     return d->toolFactory->shortcut();
 }

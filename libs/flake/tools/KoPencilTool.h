@@ -20,7 +20,6 @@ class KoPathPoint;
 
 class KRITAFLAKE_EXPORT KoPencilTool : public KoToolBase
 {
-    Q_OBJECT
 public:
     explicit KoPencilTool(KoCanvasBase *canvas);
     ~KoPencilTool() override;
@@ -30,7 +29,7 @@ public:
     void mousePressEvent(KoPointerEvent *event) override ;
     void mouseMoveEvent(KoPointerEvent *event) override;
     void mouseReleaseEvent(KoPointerEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
+    void pkKeyPressEvent(PkToolKeyEvent *event) override;
 
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
@@ -59,12 +58,12 @@ protected:
     qreal getFittingError();
     void setStrokeColor(PkColor color);
 
-private Q_SLOTS:
+private:
     void selectMode(int mode);
     void setOptimize(int state);
     void setDelta(double delta);
 
-protected Q_SLOTS:
+protected:
     virtual void slotUpdatePencilCursor();
 
 private:

@@ -119,7 +119,8 @@ KoPathTool::KoPathTool(KoCanvasBase *canvas)
         m_moveCursor = QCursor(Qt::SizeAllCursor);
     }
 
-    QObject::connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::repaintDecorations);
+    PkObject::connect(&m_pointSelection, &KoPathToolSelection::selectionChanged,
+                      this, &KoPathTool::repaintDecorations);
 }
 
 KoPathTool::~KoPathTool()
@@ -885,7 +886,8 @@ void KoPathTool::activate(const PkSet<KoShape*> &shapes)
     QObject::connect(m_actionPathPointCorner, &QAction::triggered, this, &KoPathTool::pointTypeChangedCorner, Qt::UniqueConnection);
     QObject::connect(m_actionPathPointSmooth, &QAction::triggered, this, &KoPathTool::pointTypeChangedSmooth, Qt::UniqueConnection);
     QObject::connect(m_actionPathPointSymmetric, &QAction::triggered, this, &KoPathTool::pointTypeChangedSymmetric, Qt::UniqueConnection);
-    QObject::connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::pointSelectionChanged, Qt::UniqueConnection);
+    PkObject::connect(&m_pointSelection, &KoPathToolSelection::selectionChanged,
+                      this, &KoPathTool::pointSelectionChanged, PkConnectionType::Unique);
 
 }
 
@@ -1068,7 +1070,7 @@ void KoPathTool::deactivate()
     QObject::disconnect(m_actionPathPointCorner, 0, this, 0);
     QObject::disconnect(m_actionPathPointSmooth, 0, this, 0);
     QObject::disconnect(m_actionPathPointSymmetric, 0, this, 0);
-    QObject::disconnect(&m_pointSelection, 0, this, 0);
+    static_cast<PkObject &>(m_pointSelection).disconnect();
 
     KoToolBase::deactivate();
 }

@@ -43,7 +43,6 @@
 #include <QCheckBox>
 #include <QVBoxLayout>
 #include <QLabel>
-#include <QKeyEvent>
 
 #include <math.h>
 
@@ -168,7 +167,7 @@ void KoPencilTool::mouseReleaseEvent(KoPointerEvent *event)
     m_points.clear();
 }
 
-void KoPencilTool::keyPressEvent(QKeyEvent *event)
+void KoPencilTool::pkKeyPressEvent(PkToolKeyEvent *event)
 {
     if (m_shape) {
         event->accept();

@@ -15,8 +15,10 @@
 
 #include <QObject>
 #include <PkList.h>
+#include <PkObject.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkString.h>
+#include <pk/input/PkKeySequence.h>
 
 class KoCanvasController;
 class KoShapeControllerBase;
@@ -25,8 +27,6 @@ class KoCanvasBase;
 class KoToolBase;
 class KoShape;
 class KoShapeLayer;
-class QKeySequence;
-
 class QCursor;
 
 /**
@@ -38,9 +38,8 @@ class QCursor;
  * KoToolAction objects are owned by the KoToolManager singleton
  * and live until the end of its lifetime.
  */
-class KRITAFLAKE_EXPORT KoToolAction : public QObject
+class KRITAFLAKE_EXPORT KoToolAction : public PkObject
 {
-    Q_OBJECT
 public:
     explicit KoToolAction(KoToolFactoryBase *toolFactory);
     ~KoToolAction() override;
@@ -50,7 +49,7 @@ public:
     PkString iconText() const;       ///< The icontext of the tool
     PkString toolTip() const;        ///< The tooltip of the tool
     PkString iconName() const;       ///< The icon name of the tool
-    QKeySequence shortcut() const;     ///< The shortcut to activate the tool
+    PkKeySequence shortcut() const;    ///< The shortcut to activate the tool
 
     PkString section() const;        ///< The section the tool wants to be in.
     int priority() const;           ///< Lower number (higher priority) means coming first in the section.
@@ -59,11 +58,8 @@ public:
 
     KoToolFactoryBase *toolFactory() const; ///< Factory to create new tool object instances
 
-public Q_SLOTS:
+public:
     void trigger();                 ///< Request the activation of the tool
-
-Q_SIGNALS:
-    void changed();                 ///< Emitted when a property changes (shortcut ATM)
 
 private:
     class Private;

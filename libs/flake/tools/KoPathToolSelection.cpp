@@ -28,6 +28,11 @@ KoPathToolSelection::~KoPathToolSelection()
 {
 }
 
+void KoPathToolSelection::selectionChanged()
+{
+    activateSignal<>(this, PkMemberFnKey::from(&KoPathToolSelection::selectionChanged));
+}
+
 void KoPathToolSelection::paint(PkPainter &painter, const KoViewConverter &converter, qreal handleRadius)
 {
     int decorationThickness = m_tool? m_tool->decorationThickness(): 1;
@@ -67,7 +72,7 @@ void KoPathToolSelection::add(KoPathPoint * point, bool clear)
             it = m_shapePointMap.insert(pathShape, PkSet<KoPathPoint *>());
         }
         it.value().insert(point);
-        Q_EMIT selectionChanged();
+        selectionChanged();
     }
 }
 
@@ -79,7 +84,7 @@ void KoPathToolSelection::remove(KoPathPoint * point)
         if (m_shapePointMap[pathShape].size() == 0) {
             m_shapePointMap.remove(pathShape);
         }
-        Q_EMIT selectionChanged();
+        selectionChanged();
     }
 }
 
@@ -87,7 +92,7 @@ void KoPathToolSelection::clear()
 {
     m_selectedPoints.clear();
     m_shapePointMap.clear();
-    Q_EMIT selectionChanged();
+    selectionChanged();
 }
 
 void KoPathToolSelection::selectPoints(const PkRectF &rect, bool clearSelection)
@@ -105,7 +110,7 @@ void KoPathToolSelection::selectPoints(const PkRectF &rect, bool clearSelection)
             add(point, false);
     }
     blockSignals(false);
-    Q_EMIT selectionChanged();
+    selectionChanged();
 }
 
 void KoPathToolSelection::selectAll()
@@ -119,7 +124,7 @@ void KoPathToolSelection::selectAll()
             add(point, false);
     }
     blockSignals(false);
-    Q_EMIT selectionChanged();
+    selectionChanged();
 }
 
 int KoPathToolSelection::objectCount() const
@@ -234,7 +239,7 @@ void KoPathToolSelection::update()
     }
 
     if (selectionHasChanged)
-        Q_EMIT selectionChanged();
+        selectionChanged();
 }
 
 bool KoPathToolSelection::hasSelection()
@@ -257,7 +262,7 @@ void KoPathToolSelection::recommendPointSelectionChange(KoPathShape *shape, cons
         add(point, false);
     }
 
-    Q_EMIT selectionChanged();
+    selectionChanged();
 }
 
 void KoPathToolSelection::notifyPathPointsChanged(KoPathShape *shape)
@@ -271,7 +276,7 @@ void KoPathToolSelection::notifyPathPointsChanged(KoPathShape *shape)
 
     m_tool->notifyPathPointsChanged(shape);
 
-    Q_EMIT selectionChanged();
+    selectionChanged();
 }
 
 void KoPathToolSelection::notifyShapeChanged(KoShape::ChangeType type, KoShape *shape)

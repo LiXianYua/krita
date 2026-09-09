@@ -13,11 +13,11 @@
 #include <PkString.h>
 #include <PkList.h>
 #include <PkNamespace.h>
+#include <pk/input/PkKeySequence.h>
 #include <QObject>
 
 class KoCanvasBase;
 class KoToolBase;
-class QKeySequence;
 class QAction;
 
 /**
@@ -58,9 +58,6 @@ namespace ToolBoxSection {
  */
 class KRITAFLAKE_EXPORT KoToolFactoryBase : public QObject
 {
-
-    Q_OBJECT
-
 public:
     /**
      * Create the new factory
@@ -132,14 +129,14 @@ public:
      *
      * @return the shortcut
      */
-    QKeySequence shortcut() const;
+    PkKeySequence shortcut() const;
 
 protected:
 
     /**
      * Set the default shortcut for activation of this tool.
      */
-    void setShortcut(const QKeySequence & shortcut);
+    void setShortcut(const PkKeySequence &shortcut);
 
     /**
      * Set the tooltip to be used for this tool
@@ -189,10 +186,6 @@ protected:
     QAction *createHostAction(const char *text,
                               const PkString &objectName,
                               Pk::Key shortcut = static_cast<Pk::Key>(0));
-
-private Q_SLOTS:
-
-    void activateTool();
 
 private:
     class Private;

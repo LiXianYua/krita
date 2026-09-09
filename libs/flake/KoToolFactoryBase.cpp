@@ -10,7 +10,6 @@
 
 #include <KoToolManager.h>
 
-#include <QKeySequence>
 #include <QAction>
 #include <QDebug>
 #include <klocalizedstring.h>
@@ -59,7 +58,7 @@ public:
     PkString activationId;
     PkString iconName;
     const PkString id;
-    QKeySequence shortcut;
+    PkKeySequence shortcut;
 };
 
 
@@ -83,7 +82,8 @@ PkList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
     if (actionCollection) {
         action->setParent(actionCollection);
     }
-    QObject::connect(action, &QAction::triggered, this, &KoToolFactoryBase::activateTool);
+    QObject::connect(action, &QAction::triggered, this,
+                     [toolId = id()] { KoToolManager::instance()->switchToolRequested(toolId); });
     //qDebug() << action << action->shortcut();
 
 
@@ -191,7 +191,7 @@ PkString KoToolFactoryBase::activationShapeId() const
     return d->activationId;
 }
 
-QKeySequence KoToolFactoryBase::shortcut() const
+PkKeySequence KoToolFactoryBase::shortcut() const
 {
     return d->shortcut;
 }
@@ -226,7 +226,7 @@ void KoToolFactoryBase::setPriority(int newPriority)
     d->priority = newPriority;
 }
 
-void KoToolFactoryBase::setShortcut(const QKeySequence &shortcut)
+void KoToolFactoryBase::setShortcut(const PkKeySequence &shortcut)
 {
     d->shortcut = shortcut;
 }
@@ -246,9 +246,4 @@ QAction *KoToolFactoryBase::createHostAction(const char *text,
         action->setShortcut(static_cast<int>(shortcut));
     }
     return action;
-}
-
-void KoToolFactoryBase::activateTool()
-{
-    KoToolManager::instance()->switchToolRequested(toPkString(sender()->objectName()));
 }

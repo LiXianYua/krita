@@ -36,7 +36,6 @@ class QMenu;
 /// See KoCreatePathTool for code handling the initial path creation.
 class KRITAFLAKE_EXPORT KoPathTool : public KoToolBase
 {
-    Q_OBJECT
 public:
     explicit KoPathTool(KoCanvasBase *canvas);
     ~KoPathTool() override;
@@ -67,7 +66,7 @@ public:
     // for KoPathToolSelection
     void notifyPathPointsChanged(KoPathShape *shape);
 
-public Q_SLOTS:
+public:
     void canvasResourceChanged(int key, const PkVariant & res) override;
 
 private:
@@ -75,7 +74,7 @@ private:
 
     PathSegment* segmentAtPoint(const PkPointF &point);
 
-private Q_SLOTS:
+private:
     void pointTypeChangedCorner();
     void pointTypeChangedSmooth();
     void pointTypeChangedSymmetric();

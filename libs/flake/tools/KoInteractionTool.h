@@ -42,7 +42,6 @@ class KoInteractionToolPrivate;
  */
 class KRITAFLAKE_EXPORT KoInteractionTool : public KoToolBase
 {
-    Q_OBJECT
 public:
     /**
      * Constructor for basic interaction tool where user actions are translated
@@ -59,8 +58,8 @@ public:
     void mouseMoveEvent(KoPointerEvent *event) override;
     void mouseReleaseEvent(KoPointerEvent *event) override;
 
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
+    void pkKeyPressEvent(PkToolKeyEvent *event) override;
+    void pkKeyReleaseEvent(PkToolKeyEvent *event) override;
 
 protected:
     /// \internal

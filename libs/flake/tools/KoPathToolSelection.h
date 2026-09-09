@@ -12,6 +12,7 @@
 
 #include <KoToolSelection.h>
 #include <KoPathShape.h>
+#include <PkObject.h>
 
 class KoPathTool;
 class KoPathPoint;
@@ -25,10 +26,10 @@ class PkPainter;
 * This class handles the selection of points. It makes sure
 * the canvas is repainted when the selection changes.
 */
-class KRITAFLAKE_EXPORT KoPathToolSelection : public KoToolSelection, public KoPathShape::PointSelectionChangeListener
+class KRITAFLAKE_EXPORT KoPathToolSelection : public KoToolSelection,
+                                              public PkObject,
+                                              public KoPathShape::PointSelectionChangeListener
 {
-    Q_OBJECT
-
 public:
     explicit KoPathToolSelection(KoPathTool *tool);
 
@@ -134,7 +135,6 @@ public:
     void notifyPathPointsChanged(KoPathShape *shape) override;
     void notifyShapeChanged(KoShape::ChangeType type, KoShape *shape) override;
 
-Q_SIGNALS:
     void selectionChanged();
 
 private:

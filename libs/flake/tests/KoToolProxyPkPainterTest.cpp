@@ -4,11 +4,14 @@
  */
 
 #include <QTest>
+#include <QKeySequence>
 
 #include "KoCanvasBase.h"
 #include "KoCanvasController.h"
 #include "KoShapeControllerBase.h"
 #include "KoToolBase.h"
+#include "KoToolFactoryBase.h"
+#include "KoToolManager.h"
 #include "KoToolProxy.h"
 #include "KoToolProxy_p.h"
 #include "KoUnit.h"
@@ -20,6 +23,8 @@
 #include "tools/KoPathTool.h"
 #include "tools/KoPathToolSelection.h"
 #include "tools/KoPencilTool.h"
+#include "tools/KoInteractionTool.h"
+#include "tools/KoZoomTool.h"
 #include "shapes/RectangleShape.h"
 #include "commands/KoParameterHandleMoveCommand.h"
 
@@ -30,6 +35,7 @@
 #include <type_traits>
 
 #include <PkPaintCommand.h>
+#include <pk/input/PkKeySequence.h>
 #include <PkPainter.h>
 #include <PkSize.h>
 #include <PkThreadCallQueue.h>
@@ -198,6 +204,18 @@ public:
     ~PencilPreviewTool() override { delete path(); }
 };
 
+class NativeShortcutFactory final : public KoToolFactoryBase
+{
+public:
+    NativeShortcutFactory()
+        : KoToolFactoryBase("native-shortcut-probe")
+    {
+    }
+
+    KoToolBase *createTool(KoCanvasBase *) override { return nullptr; }
+    void setNativeShortcut(const PkKeySequence &shortcut) { setShortcut(shortcut); }
+};
+
 // Taking the member address without a cast fails if a second dispatch overload returns.
 static_assert(std::is_same_v<decltype(&KoToolProxy::paint),
                             void (KoToolProxy::*)(PkPainter &, const KoViewConverter &)>);
@@ -206,6 +224,20 @@ static_assert(std::is_same_v<decltype(&KoToolBase::paint),
 static_assert(std::is_same_v<decltype(KoToolProxyPrivate::scrollTimer), PkTimer>);
 static_assert(std::is_same_v<decltype(KoToolProxyPrivate::lastPointerEvent),
                             std::optional<KoPointerEvent>>);
+static_assert(std::is_same_v<decltype(&KoToolFactoryBase::shortcut),
+                            PkKeySequence (KoToolFactoryBase::*)() const>);
+static_assert(std::is_same_v<decltype(&KoToolAction::shortcut),
+                            PkKeySequence (KoToolAction::*)() const>);
+static_assert(std::is_same_v<decltype(&KoInteractionTool::pkKeyPressEvent),
+                            void (KoInteractionTool::*)(PkToolKeyEvent *)>);
+static_assert(std::is_same_v<decltype(&KoInteractionTool::pkKeyReleaseEvent),
+                            void (KoInteractionTool::*)(PkToolKeyEvent *)>);
+static_assert(std::is_same_v<decltype(&KoPencilTool::pkKeyPressEvent),
+                            void (KoPencilTool::*)(PkToolKeyEvent *)>);
+static_assert(std::is_same_v<decltype(&KoZoomTool::pkKeyPressEvent),
+                            void (KoZoomTool::*)(PkToolKeyEvent *)>);
+static_assert(std::is_same_v<decltype(&KoZoomTool::pkKeyReleaseEvent),
+                            void (KoZoomTool::*)(PkToolKeyEvent *)>);
 }
 
 class KoToolProxyPkPainterTest : public QObject
@@ -257,6 +289,24 @@ private Q_SLOTS:
         QVERIFY(!command.mergeWith(&otherModifiers));
         otherModifiers.redo();
         QCOMPARE(shape.handlePosition(1), PkPointF(100, 25));
+    }
+
+    void factoryShortcutUsesNativeQt515ChordEncoding()
+    {
+        const int nativeChord = static_cast<int>(Pk::ControlModifier) |
+                                static_cast<int>(Pk::Key_R);
+        const QKeySequence qt515Oracle(QStringLiteral("Ctrl+R"));
+        QCOMPARE(nativeChord, qt515Oracle[0]);
+
+        NativeShortcutFactory factory;
+        factory.setNativeShortcut(PkKeySequence({nativeChord}));
+        const PkKeySequence shortcut = factory.shortcut();
+        QCOMPARE(shortcut.size(), 1);
+        QCOMPARE(shortcut[0], qt515Oracle[0]);
+
+        KoToolAction action(&factory);
+        QCOMPARE(action.shortcut().size(), 1);
+        QCOMPARE(action.shortcut()[0], qt515Oracle[0]);
     }
 
     void initTestCase()
