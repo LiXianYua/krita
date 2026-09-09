@@ -4,7 +4,7 @@
  *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
-#include "Plugin.h"
+#include "SvgTextToolResources.h"
 
 #include <KoShapeRegistry.h>
 #include <KoToolRegistry.h>
@@ -14,6 +14,8 @@
 // D-12 静态注册：原 K_PLUGIN_FACTORY_WITH_JSON 动态加载改为由 registerAllPlugins() 调用的静态注册。
 void registerSvgTextTool()
 {
+    svgTextToolResourceAnchor();
+
     static bool registered = false;
     if (registered) {
         return;
@@ -21,4 +23,3 @@ void registerSvgTextTool()
     registered = true;
     KoToolRegistry::instance()->add(new SvgTextToolFactory());
 }
-

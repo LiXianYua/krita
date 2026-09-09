@@ -22,6 +22,7 @@
 #include "SvgTextRemoveCommand.h"
 #include "KoSvgConvertTextTypeCommand.h"
 #include "SvgTextShortCuts.h"
+#include "SvgTextToolResources.h"
 #include "SvgTextTypeSettingStrategy.h"
 #include "SvgTextInputMethodAdapter.h"
 #include "SvgTextChangeTransformsOnRange.h"
@@ -326,14 +327,14 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
     m_textOutlineHelper->setDrawBoundingRect(false);
     m_textOutlineHelper->setDrawTextWrappingArea(true);
 
-    m_base_cursor = QCursor(QPixmap(":/tool_text_basic.xpm"), 7, 7);
-    m_text_inline_horizontal = QCursor(QPixmap(":/tool_text_inline_horizontal.xpm"), 7, 7);
-    m_text_inline_vertical = QCursor(QPixmap(":/tool_text_inline_vertical.xpm"), 7, 7);
-    m_text_on_path = QCursor(QPixmap(":/tool_text_on_path.xpm"), 7, 7);
-    m_text_in_shape = QCursor(QPixmap(":/tool_text_in_shape.xpm"), 7, 7);
-    m_ibeam_horizontal = QCursor(QPixmap(":/tool_text_i_beam_horizontal.xpm"), 11, 11);
-    m_ibeam_vertical = QCursor(QPixmap(":/tool_text_i_beam_vertical.xpm"), 11, 11);
-    m_ibeam_horizontal_done = QCursor(QPixmap(":/tool_text_i_beam_horizontal_done.xpm"), 5, 11);
+    m_base_cursor = QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::Basic)), 7, 7);
+    m_text_inline_horizontal = QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::InlineHorizontal)), 7, 7);
+    m_text_inline_vertical = QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::InlineVertical)), 7, 7);
+    m_text_on_path = QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::OnPath)), 7, 7);
+    m_text_in_shape = QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::InShape)), 7, 7);
+    m_ibeam_horizontal = QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::IBeamHorizontal)), 11, 11);
+    m_ibeam_vertical = QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::IBeamVertical)), 11, 11);
+    m_ibeam_horizontal_done = QCursor(QPixmap(svgTextToolCursorPixmap(SvgTextToolPixmap::IBeamHorizontalDone)), 5, 11);
 }
 
 SvgTextTool::~SvgTextTool()

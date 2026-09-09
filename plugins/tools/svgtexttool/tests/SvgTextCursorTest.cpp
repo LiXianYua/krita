@@ -10,6 +10,7 @@
 #include <SvgTextRemoveCommand.h>
 #include <SvgTextChangeTransformsOnRange.h>
 #include <SvgTextShortCuts.h>
+#include <SvgTextToolResources.h>
 #include <SvgTextToolOptionsData.h>
 #include <SvgTextInputMethodAdapter.h>
 #include <KisDocumentApplicationServices.h>
@@ -24,7 +25,10 @@
 #include <KoSvgTextShapeMarkupConverter.h>
 #include <KoFontRegistry.h>
 #include <KoCanvasController.h>
+#include <KoToolRegistry.h>
 #include <KoViewConverter.h>
+#include <QCryptographicHash>
+#include <QImage>
 #include <QInputMethod>
 #include <QInputMethodEvent>
 #include <QMimeData>
@@ -420,6 +424,46 @@ void SvgTextCursorTest::nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery(
 
     PkThreadCallQueue::processPendingCalls();
     QCOMPARE(updates, 0);
+}
+
+void SvgTextCursorTest::nativeRegistrationPreservesFactoryAndResources()
+{
+    registerSvgTextTool();
+    KoToolFactoryBase *const firstFactory = KoToolRegistry::instance()->value("SvgTextTool");
+    QVERIFY(firstFactory);
+    registerSvgTextTool();
+    QCOMPARE(KoToolRegistry::instance()->value("SvgTextTool"), firstFactory);
+
+    struct Case {
+        SvgTextToolPixmap pixmap;
+        int width;
+        int height;
+        const char *pixelSha256;
+    };
+    const Case cases[] = {
+        {SvgTextToolPixmap::Basic, 32, 32, "9082c8f93543e562107fc244ea27ae858e66c669c371592db1c34a13af771e47"},
+        {SvgTextToolPixmap::InlineHorizontal, 32, 32, "dddabca0ae3337a44daa96dfd90a0becc9dbe8a3995f968e14296d39732ff0aa"},
+        {SvgTextToolPixmap::InlineVertical, 32, 32, "e2f3c439a8ea087d83a6704fceccdec02d221ab548deba21d635c0b6fa786cb0"},
+        {SvgTextToolPixmap::OnPath, 32, 32, "b2426a3c697451b8164f92e63aaa0b24341e808e4cc84eaccb97dbd6e9858df4"},
+        {SvgTextToolPixmap::InShape, 32, 32, "a8282cbea6fc6c0e5869c2b703de9bf8b8e4400e74dcf754785caa27421ed1c5"},
+        {SvgTextToolPixmap::IBeamHorizontal, 22, 22, "382294bd454bc6d5ad7f17817b37a286e493ba1cfca751dfdfcd01a7e97788ff"},
+        {SvgTextToolPixmap::IBeamVertical, 22, 22, "22aca04897604f248419532a4ca2751e53d7847733ebb49024f8cefb9c877120"},
+        {SvgTextToolPixmap::IBeamHorizontalDone, 22, 22, "ed0643d3ef3159f8febd667fdc14979fd937db9ace262fe7c7d72c35e2465888"}
+    };
+    for (const Case &item : cases) {
+        QImage image(svgTextToolCursorPixmap(item.pixmap));
+        QVERIFY(!image.isNull());
+        QCOMPARE(image.width(), item.width);
+        QCOMPARE(image.height(), item.height);
+        image = image.convertToFormat(QImage::Format_ARGB32);
+        const QByteArray pixels(reinterpret_cast<const char *>(image.constBits()), int(image.sizeInBytes()));
+        QCOMPARE(QCryptographicHash::hash(pixels, QCryptographicHash::Sha256).toHex(), QByteArray(item.pixelSha256));
+    }
+
+    const QByteArray xml(svgTextToolXmlGui());
+    QVERIFY(xml.startsWith("<?xml version=\"1.0\"?>"));
+    QVERIFY(xml.contains("name=\"svg_SvgTextTool\""));
+    QVERIFY(xml.contains("<Action name=\"svg_settings\"/>"));
 }
 
 void SvgTextCursorTest::shortcutValuesMatchQt515Oracle()

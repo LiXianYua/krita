@@ -1,5 +1,5 @@
 /* XPM */
-static char *dummy[]={
+static const char *dummy[]={
 "22 22 4 1",
 ". c None",
 "b c None",

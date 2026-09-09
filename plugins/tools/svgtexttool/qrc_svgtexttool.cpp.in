@@ -1,0 +1,74 @@
+/*
+ * SPDX-License-Identifier: LGPL-2.0-or-later
+ */
+#include "SvgTextToolResources.h"
+
+#define dummy svgTextToolBasicXpm
+#include "tool_text_basic.xpm"
+#undef dummy
+
+#define dummy svgTextToolInlineHorizontalXpm
+#include "tool_text_inline_horizontal.xpm"
+#undef dummy
+
+#define dummy svgTextToolInlineVerticalXpm
+#include "tool_text_inline_vertical.xpm"
+#undef dummy
+
+#define dummy svgTextToolOnPathXpm
+#include "tool_text_on_path.xpm"
+#undef dummy
+
+#define dummy svgTextToolInShapeXpm
+#include "tool_text_in_shape.xpm"
+#undef dummy
+
+#define dummy svgTextToolIBeamHorizontalXpm
+#include "tool_text_i_beam_horizontal.xpm"
+#undef dummy
+
+#define dummy svgTextToolIBeamVerticalXpm
+#include "tool_text_i_beam_vertical.xpm"
+#undef dummy
+
+#define dummy svgTextToolIBeamHorizontalDoneXpm
+#include "tool_text_i_beam_horizontal_done.xpm"
+#undef dummy
+
+namespace
+{
+const char svgTextToolXmlGuiData[] = R"svgtext(@SVGTEXTTOOL_XMLGUI@)svgtext";
+}
+
+const char *const *svgTextToolCursorPixmap(SvgTextToolPixmap pixmap)
+{
+    switch (pixmap) {
+    case SvgTextToolPixmap::Basic:
+        return svgTextToolBasicXpm;
+    case SvgTextToolPixmap::InlineHorizontal:
+        return svgTextToolInlineHorizontalXpm;
+    case SvgTextToolPixmap::InlineVertical:
+        return svgTextToolInlineVerticalXpm;
+    case SvgTextToolPixmap::OnPath:
+        return svgTextToolOnPathXpm;
+    case SvgTextToolPixmap::InShape:
+        return svgTextToolInShapeXpm;
+    case SvgTextToolPixmap::IBeamHorizontal:
+        return svgTextToolIBeamHorizontalXpm;
+    case SvgTextToolPixmap::IBeamVertical:
+        return svgTextToolIBeamVerticalXpm;
+    case SvgTextToolPixmap::IBeamHorizontalDone:
+        return svgTextToolIBeamHorizontalDoneXpm;
+    }
+
+    return nullptr;
+}
+
+const char *svgTextToolXmlGui()
+{
+    return svgTextToolXmlGuiData;
+}
+
+void svgTextToolResourceAnchor()
+{
+}

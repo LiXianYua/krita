@@ -22,6 +22,7 @@ private Q_SLOTS:
     void nativeKeyDispatchMatchesQt515Adapter();
     void nativeActionDispatchPreservesPropertySemantics();
     void nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery();
+    void nativeRegistrationPreservesFactoryAndResources();
     void shortcutValuesMatchQt515Oracle();
     void configHandlesMatchKConfigOracle();
 

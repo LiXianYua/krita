@@ -1,8 +1,6 @@
 project(SvgTextTool)
 add_subdirectory(tests)
 
-set(CMAKE_AUTORCC ON)
-
 set (SvgTextTool_SRCS
     SvgCreateTextStrategy.cpp
     SvgInlineSizeChangeCommand.cpp
@@ -34,9 +32,15 @@ install( FILES
     DESTINATION  ${KDE_INSTALL_DATADIR}/krita/actions
 )
 
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/svgtexttool.xmlgui" SVGTEXTTOOL_XMLGUI)
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/qrc_svgtexttool.cpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/qrc_svgtexttool.cpp"
+    @ONLY)
+
 set(SvgTextTool_SOURCES
     Plugin.cpp
-    svgtexttool.qrc
+    "${CMAKE_CURRENT_BINARY_DIR}/qrc_svgtexttool.cpp"
 )
 
 
