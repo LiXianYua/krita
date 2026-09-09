@@ -24,7 +24,9 @@ set(kritajpegimport_SOURCES
 
 kis_add_library(kritajpegimport STATIC ${kritajpegimport_SOURCES})
 
-target_link_libraries(kritajpegimport kritaimpex ${JPEG_LIBRARIES} ${LCMS2_LIBRARIES} LibExiv2::LibExiv2 )
+target_link_libraries(kritajpegimport PUBLIC kritaimpex_noqt_compile_interface ${JPEG_LIBRARIES} ${LCMS2_LIBRARIES} LibExiv2::LibExiv2 )
+target_link_libraries(kritajpegimport INTERFACE $<LINK_ONLY:kritaimpex>)
+add_dependencies(kritajpegimport kritaimpex)
 
 install(TARGETS kritajpegimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -35,7 +37,9 @@ set(kritajpegexport_SOURCES
 
 kis_add_library(kritajpegexport STATIC ${kritajpegexport_SOURCES})
 
-target_link_libraries(kritajpegexport kritaimpex ${JPEG_LIBRARIES} ${LCMS2_LIBRARIES} LibExiv2::LibExiv2 )
+target_link_libraries(kritajpegexport PUBLIC kritaimpex_noqt_compile_interface ${JPEG_LIBRARIES} ${LCMS2_LIBRARIES} LibExiv2::LibExiv2 )
+target_link_libraries(kritajpegexport INTERFACE $<LINK_ONLY:kritaimpex>)
+add_dependencies(kritajpegexport kritaimpex)
 
 if (MSVC AND "${CMAKE_CXX_FLAGS}" MATCHES "-EHsc") 
     message(WARNING "The JPEG error catcher requires crossing the C ABI on MSVC. Exceptions need to be patched in.")

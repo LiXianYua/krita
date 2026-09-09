@@ -9,7 +9,9 @@ set(kritaspriterexport_SOURCES
 
 kis_add_library(kritaspriterexport STATIC ${kritaspriterexport_SOURCES})
 
-target_link_libraries(kritaspriterexport kritaimpex pkxml)
+target_link_libraries(kritaspriterexport PUBLIC kritaimpex_noqt_compile_interface pkxml)
+target_link_libraries(kritaspriterexport INTERFACE $<LINK_ONLY:kritaimpex>)
+add_dependencies(kritaspriterexport kritaimpex)
 
 install(TARGETS kritaspriterexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

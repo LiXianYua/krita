@@ -28,6 +28,37 @@ kis_add_library(kritaimpex SHARED ${kritaimpex_HEADERS_MOC} ${kritaimpex_LIB_SRC
 
 generate_export_header(kritaimpex BASE_NAME kritaimpex)
 
+# Format consumers use the migrated Pk-facing portions of impex headers.  Keep
+# the real DSO as a link-only edge so its legacy Qt usage requirements do not
+# become compile requirements of those consumers.
+add_library(kritaimpex_noqt_compile_interface INTERFACE)
+target_include_directories(kritaimpex_noqt_compile_interface INTERFACE
+    ${CMAKE_SOURCE_DIR}/libs/impex
+    ${CMAKE_BINARY_DIR}/libs/impex
+    ${CMAKE_SOURCE_DIR}/libs/image
+    ${CMAKE_BINARY_DIR}/libs/image
+    ${CMAKE_SOURCE_DIR}/libs/metadata
+    ${CMAKE_BINARY_DIR}/libs/metadata
+    ${CMAKE_SOURCE_DIR}/libs/psdutils
+    ${CMAKE_BINARY_DIR}/libs/psdutils
+    ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/variant
+    ${CMAKE_SOURCE_DIR}/pk/port
+    ${CMAKE_SOURCE_DIR}/pk/pointer
+    ${CMAKE_SOURCE_DIR}/pk/geometry
+    ${CMAKE_SOURCE_DIR}/pk/global
+    ${CMAKE_SOURCE_DIR}/pk/color
+    ${CMAKE_SOURCE_DIR}/pk/xml
+    ${CMAKE_SOURCE_DIR}/pk/log
+    ${CMAKE_SOURCE_DIR}/pk/uuid
+)
+target_link_libraries(kritaimpex_noqt_compile_interface INTERFACE
+    kritaimage_noqt_compile_interface
+    pkstring pkcontainer pkvariant pkport pkpointer pkgeometry pkglobal
+    pkcolor pkxml pklog pkuuid
+)
+
 # KisPkImageFileDecoderAdapter.cpp includes these Pk headers directly. Keep
 # the adapter's private closure explicit instead of relying on transitive
 # include directories exported by Krita libraries. pkimageio remains the

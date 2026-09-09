@@ -16,7 +16,9 @@ set(kritaoraimport_SOURCES
 
 kis_add_library(kritaoraimport STATIC ${kritaoraimport_SOURCES})
 
-target_link_libraries(kritaoraimport kritaimpex )
+target_link_libraries(kritaoraimport PUBLIC kritaimpex_noqt_compile_interface)
+target_link_libraries(kritaoraimport INTERFACE $<LINK_ONLY:kritaimpex>)
+add_dependencies(kritaoraimport kritaimpex)
 
 install(TARGETS kritaoraimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -27,7 +29,9 @@ set(kritaoraexport_SOURCES
 
 kis_add_library(kritaoraexport STATIC ${kritaoraexport_SOURCES})
 
-target_link_libraries(kritaoraexport kritaimpex)
+target_link_libraries(kritaoraexport PUBLIC kritaimpex_noqt_compile_interface)
+target_link_libraries(kritaoraexport INTERFACE $<LINK_ONLY:kritaimpex>)
+add_dependencies(kritaoraexport kritaimpex)
 
 install(TARGETS kritaoraexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

@@ -13,7 +13,9 @@ if (TIFF_HAS_PSD_TAGS)
         VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
     )
 
-    target_link_libraries(kritatiffpsd kritapsd ${TIFF_LIBRARIES})
+    target_link_libraries(kritatiffpsd PUBLIC kritaimpex_noqt_compile_interface ${TIFF_LIBRARIES})
+    target_link_libraries(kritatiffpsd INTERFACE $<LINK_ONLY:kritapsd>)
+    add_dependencies(kritatiffpsd kritapsd)
 
     install(TARGETS kritatiffpsd DESTINATION ${INSTALL_TARGETS_DEFAULT_ARGS})
 
@@ -28,8 +30,8 @@ set(kritatiffimport_SOURCES
 kis_add_library(kritatiffimport STATIC ${kritatiffimport_SOURCES})
 
 target_link_libraries(kritatiffimport
-    kritaimpex
-    kritaimpex
+    PUBLIC kritaimpex_noqt_compile_interface
+    INTERFACE $<LINK_ONLY:kritaimpex>
     LibExiv2::LibExiv2
     kritametadata
     kritaexifcommon
@@ -37,6 +39,7 @@ target_link_libraries(kritatiffimport
     ${KRITATIFFPSD_LIBRARY}
     ${TIFF_LIBRARIES}
     )
+add_dependencies(kritatiffimport kritaimpex)
 
 install(TARGETS kritatiffimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -57,13 +60,14 @@ endif()
 kis_add_library(kritatiffexport STATIC ${kritatiffexport_SOURCES})
 
 target_link_libraries(kritatiffexport
-    kritaimpex
-    kritaimpex
+    PUBLIC kritaimpex_noqt_compile_interface
+    INTERFACE $<LINK_ONLY:kritaimpex>
     LibExiv2::LibExiv2
     kritaexifcommon
     ${KRITATIFFPSD_LIBRARY}
     ${TIFF_LIBRARIES}
     )
+add_dependencies(kritatiffexport kritaimpex)
 
 install(TARGETS kritatiffexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

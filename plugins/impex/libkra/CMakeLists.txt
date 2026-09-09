@@ -20,7 +20,9 @@ set(kritalibkra_LIB_SRCS
 )
 
 kis_add_library(kritalibkra SHARED ${kritalibkra_LIB_SRCS})
-target_link_libraries(kritalibkra kritaimpex kritaimage ZLIB::ZLIB pklog)
+target_link_libraries(kritalibkra PUBLIC kritaimpex_noqt_compile_interface ZLIB::ZLIB pklog)
+target_link_libraries(kritalibkra INTERFACE $<LINK_ONLY:kritaimpex> $<LINK_ONLY:kritaimage>)
+add_dependencies(kritalibkra kritaimpex kritaimage)
 # 判据⑧：pk include 对齐。libkra 源码 include 的 pk 头 → 主树声明一致。
 # PkNodeId.h 在 pk/uuid（S-05-b 补定义）；其余 pk 头经 kritaimpex/kritaimage
 # 的链接闭包传递（pk/string pk/xml pk/signal pk/variant 等）。

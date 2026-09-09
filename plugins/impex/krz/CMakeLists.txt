@@ -4,7 +4,9 @@ set(kritakrzexport_SOURCES
 
 kis_add_library(kritakrzexport STATIC ${kritakrzexport_SOURCES})
 
-target_link_libraries(kritakrzexport kritalibkra kritaimpex kritaimage)
+target_link_libraries(kritakrzexport PUBLIC kritaimpex_noqt_compile_interface)
+target_link_libraries(kritakrzexport INTERFACE $<LINK_ONLY:kritalibkra> $<LINK_ONLY:kritaimpex> $<LINK_ONLY:kritaimage>)
+add_dependencies(kritakrzexport kritalibkra kritaimpex kritaimage)
 
 install(TARGETS kritakrzexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

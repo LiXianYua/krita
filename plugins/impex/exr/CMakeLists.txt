@@ -14,7 +14,9 @@ set(kritaexrimport_SOURCES
 
 kis_add_library(kritaexrimport STATIC ${kritaexrimport_SOURCES})
 
-target_link_libraries(kritaexrimport kritaimpex kritalibkra OpenEXR::IlmImf pkconfig)
+target_link_libraries(kritaexrimport PUBLIC kritaimpex_noqt_compile_interface OpenEXR::IlmImf pkconfig)
+target_link_libraries(kritaexrimport INTERFACE $<LINK_ONLY:kritaimpex> $<LINK_ONLY:kritalibkra>)
+add_dependencies(kritaexrimport kritaimpex kritalibkra)
 
 install(TARGETS kritaexrimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -25,7 +27,9 @@ set(kritaexrexport_SOURCES
 
 kis_add_library(kritaexrexport STATIC ${kritaexrexport_SOURCES})
 
-target_link_libraries(kritaexrexport kritalibkra kritaimpex OpenEXR::IlmImf pkconfig)
+target_link_libraries(kritaexrexport PUBLIC kritaimpex_noqt_compile_interface OpenEXR::IlmImf pkconfig)
+target_link_libraries(kritaexrexport INTERFACE $<LINK_ONLY:kritalibkra> $<LINK_ONLY:kritaimpex>)
+add_dependencies(kritaexrexport kritalibkra kritaimpex)
 
 install(TARGETS kritaexrexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
