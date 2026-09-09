@@ -162,6 +162,7 @@ private:
     void slot_checkBoxUseActiveLayer_toggled(bool checked);
 
     void resetCursorStyle() override;
+    void canvasResourceChanged(int key, const PkVariant &value) override;
 };
 
 #endif

@@ -10,7 +10,6 @@
 #include <PkPointer.h>
 
 #include <QCursor>
-#include <QKeyEvent>
 
 #include "kis_paint_device.h"
 #include "tool/kis_tool.h"
@@ -30,11 +29,31 @@ public:
     void mousePressEvent(KoPointerEvent *) override {}
     void mouseMoveEvent(KoPointerEvent *) override {}
     void mouseReleaseEvent(KoPointerEvent *) override {}
-    virtual void keyPressEvent(QKeyEvent *) {}
-    virtual void keyReleaseEvent(QKeyEvent *) {}
+    void pkKeyPressEvent(PkToolKeyEvent *event) override
+    {
+        ++keyPressCount;
+        event->accept();
+    }
+    void pkKeyReleaseEvent(PkToolKeyEvent *event) override
+    {
+        ++keyReleaseCount;
+        event->ignore();
+    }
+    void canvasResourceChanged(int key, const PkVariant &value) override
+    {
+        resourceKey = key;
+        resourceValue = value;
+        ++resourceChangeCount;
+    }
     void useCursor(const QCursor &cursor) { cursorChanged(cursor); }
     virtual void requestUpdateOutline(const PkPointF &, const KoPointerEvent *) {}
     int getOutlinePath() const { return 0; }
+
+    int keyPressCount = 0;
+    int keyReleaseCount = 0;
+    int resourceChangeCount = 0;
+    int resourceKey = 0;
+    PkVariant resourceValue;
 };
 
 using DynamicTool = KisDynamicDelegatedTool<DynamicBase>;
@@ -47,6 +66,7 @@ class KisDynamicDelegatedToolTest : public QObject
 
 private Q_SLOTS:
     void forwardsAllNotificationsAcrossReplacement();
+    void forwardsKeyAndResourceEventsAcrossReplacement();
     void disconnectsWhenSenderOrReceiverDies();
 };
 
@@ -121,6 +141,42 @@ void KisDynamicDelegatedToolTest::forwardsAllNotificationsAcrossReplacement()
 
     tool.setDelegateTool(nullptr);
     QVERIFY(secondGuard.isNull());
+}
+
+void KisDynamicDelegatedToolTest::forwardsKeyAndResourceEventsAcrossReplacement()
+{
+    DynamicTool tool(nullptr);
+
+    auto *first = new DelegateTool(nullptr, QCursor());
+    tool.setDelegateTool(first);
+
+    PkToolKeyEvent pressEvent(Pk::Key_A, Pk::ControlModifier, false);
+    tool.pkKeyPressEvent(&pressEvent);
+    QVERIFY(pressEvent.isAccepted());
+    QCOMPARE(first->keyPressCount, 1);
+
+    PkToolKeyEvent releaseEvent(Pk::Key_A, Pk::ControlModifier, true);
+    tool.pkKeyReleaseEvent(&releaseEvent);
+    QVERIFY(!releaseEvent.isAccepted());
+    QCOMPARE(first->keyReleaseCount, 1);
+
+    tool.canvasResourceChanged(17, PkVariant(PkString("first-resource")));
+    QCOMPARE(first->resourceChangeCount, 1);
+    QCOMPARE(first->resourceKey, 17);
+    QCOMPARE(first->resourceValue.toString(), PkString("first-resource"));
+
+    auto *second = new DelegateTool(nullptr, QCursor());
+    tool.setDelegateTool(second);
+
+    PkToolKeyEvent replacementPress(Pk::Key_Return, Pk::ShiftModifier, false);
+    tool.pkKeyPressEvent(&replacementPress);
+    QVERIFY(replacementPress.isAccepted());
+    QCOMPARE(second->keyPressCount, 1);
+
+    tool.canvasResourceChanged(23, PkVariant(PkString("second-resource")));
+    QCOMPARE(second->resourceChangeCount, 1);
+    QCOMPARE(second->resourceKey, 23);
+    QCOMPARE(second->resourceValue.toString(), PkString("second-resource"));
 }
 
 void KisDynamicDelegatedToolTest::disconnectsWhenSenderOrReceiverDies()

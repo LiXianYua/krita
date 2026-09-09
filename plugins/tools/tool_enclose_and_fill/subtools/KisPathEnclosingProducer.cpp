@@ -6,7 +6,6 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <KoCanvasResourceProvider.h>
 #include <KoPathShape.h>
 #include <KisCanvasFeedback.h>
 #include <PkTransform.h>
@@ -88,16 +87,15 @@ KisPathEnclosingProducer::KisPathEnclosingProducer(KoCanvasBase * canvas)
                                                 Qt::ArrowCursor,
                                                 new KisToolPathLocalTool(canvas, this))
 {
-    QObject::setObjectName("enclosing_tool_path");
+    setObjectName("enclosing_tool_path");
     setSupportOutline(true);
     setOutlineEnabled(false);
 
-    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const PkVariant &) {
-                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
-                    resetCursorStyle();
-                }
-            });
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas);
+    KIS_ASSERT_RECOVER_RETURN(services);
+    PkObject::connect(services->toolSignals(),
+                      &KisCanvasToolSignals::effectiveCompositeOpChanged,
+                      this, &KisPathEnclosingProducer::resetCursorStyle);
 }
 
 KisPathEnclosingProducer::~KisPathEnclosingProducer()
@@ -223,4 +221,14 @@ void KisPathEnclosingProducer::beginShape()
 void KisPathEnclosingProducer::endShape()
 {
     m_hasUserInteractionRunning = false;
+}
+
+bool KisPathEnclosingProducer::handlePriorityRightClick()
+{
+    if (!m_hasUserInteractionRunning) {
+        return false;
+    }
+
+    localTool()->removeLastPoint();
+    return true;
 }

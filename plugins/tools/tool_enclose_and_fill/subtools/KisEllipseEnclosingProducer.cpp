@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <KoCanvasResourceProvider.h>
+#include <KisCanvasToolServices.h>
 #include <PkTransform.h>
 
 #include "KisEllipseEnclosingProducer.h"
@@ -14,16 +14,15 @@
 KisEllipseEnclosingProducer::KisEllipseEnclosingProducer(KoCanvasBase * canvas)
     : KisDynamicDelegateTool<KisToolEllipseBase>(canvas, KisToolEllipseBase::PAINT, Qt::ArrowCursor)
 {
-    QObject::setObjectName("enclosing_tool_rectangle");
+    setObjectName("enclosing_tool_rectangle");
     setSupportOutline(true);
     setOutlineEnabled(false);
 
-    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const PkVariant &) {
-                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
-                    resetCursorStyle();
-                }
-            });
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas);
+    KIS_ASSERT_RECOVER_RETURN(services);
+    PkObject::connect(services->toolSignals(),
+                      &KisCanvasToolSignals::effectiveCompositeOpChanged,
+                      this, &KisEllipseEnclosingProducer::resetCursorStyle);
 }
 
 KisEllipseEnclosingProducer::~KisEllipseEnclosingProducer()

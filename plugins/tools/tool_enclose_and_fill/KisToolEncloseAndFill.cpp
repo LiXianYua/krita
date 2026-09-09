@@ -53,7 +53,7 @@
 KisToolEncloseAndFill::KisToolEncloseAndFill(KoCanvasBase * canvas)
     : KisDynamicDelegatedTool<KisToolShape>(canvas)
 {
-    QObject::setObjectName("tool_enclose_and_fill");
+    setObjectName("tool_enclose_and_fill");
 }
 
 KisToolEncloseAndFill::~KisToolEncloseAndFill()
@@ -75,13 +75,7 @@ void KisToolEncloseAndFill::activate(const PkSet<KoShape*> &shapes)
     // (config-driven, via the same m_configGroup keys) without a panel.
     loadConfiguration();
 
-    KoCanvasResourceProvider *resourceProvider = canvas()->resourceManager();
-    if (resourceProvider) {
-        QObject::connect(resourceProvider,
-                &KoCanvasResourceProvider::canvasResourceChanged,
-                this,
-                &KisToolEncloseAndFill::slot_canvasResourceChanged,
-                Qt::UniqueConnection);
+    if (canvas()->resourceManager()) {
         slot_currentNodeChanged(currentNode());
     }
 }
@@ -90,15 +84,14 @@ void KisToolEncloseAndFill::deactivate()
 {
     m_referencePaintDevice = nullptr;
     m_referenceNodeList = nullptr;
-    KoCanvasResourceProvider *resourceProvider = canvas()->resourceManager();
-    if (resourceProvider) {
-        QObject::disconnect(resourceProvider,
-                   &KoCanvasResourceProvider::canvasResourceChanged,
-                   this,
-                   &KisToolEncloseAndFill::slot_canvasResourceChanged);
-    }
     slot_currentNodeChanged(nullptr);
     KisDynamicDelegatedTool::deactivate();
+}
+
+void KisToolEncloseAndFill::canvasResourceChanged(int key, const PkVariant &value)
+{
+    KisDynamicDelegatedTool::canvasResourceChanged(key, value);
+    slot_canvasResourceChanged(key, value);
 }
 
 void KisToolEncloseAndFill::setupEnclosingSubtool()

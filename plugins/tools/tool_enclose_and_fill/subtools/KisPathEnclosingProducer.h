@@ -61,15 +61,17 @@ public:
         m_localTool->activate(shapes);
         DeselectShapesActivationPolicy::onActivate(canvas());
         dynamic_cast<KisCanvasToolServices*>(canvas())
-            ->toolSetPriorityEventFilter(this, true);
+            ->toolSetPriorityRightClickCallback(
+                this, callLifetime(),
+                [this] { return handlePriorityRightClick(); }, true);
     }
 
     void deactivate() override
     {
+        dynamic_cast<KisCanvasToolServices*>(canvas())
+            ->toolSetPriorityRightClickCallback(this, callLifetime(), {}, false);
         m_localTool->deactivate();
         KisToolShape::deactivate();
-        dynamic_cast<KisCanvasToolServices*>(canvas())
-            ->toolSetPriorityEventFilter(this, false);
     }
 
     void mousePressEvent(KoPointerEvent *event) override;
@@ -96,6 +98,11 @@ public:
     }
 
 protected:
+    virtual bool handlePriorityRightClick()
+    {
+        return false;
+    }
+
     PkScopedPointer<KisToolPathLocalTool> m_localTool;
 };
 
@@ -126,6 +133,7 @@ protected:
     void addPathShape(KoPathShape* pathShape);
     void beginShape() override;
     void endShape() override;
+    bool handlePriorityRightClick() override;
 
     friend class KisToolPathLocalTool;
 

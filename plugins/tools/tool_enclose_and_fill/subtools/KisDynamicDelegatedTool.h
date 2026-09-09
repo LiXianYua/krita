@@ -92,8 +92,6 @@ public:
     using DelegateType = KisDynamicDelegateTool<BaseClass>;
 
     using CursorType = QCursor;
-    using KeyPressEvent = typename KisDynamicMethodTraits<decltype(&BaseClass::keyPressEvent)>::template Argument<0>;
-    using KeyReleaseEvent = typename KisDynamicMethodTraits<decltype(&BaseClass::keyReleaseEvent)>::template Argument<0>;
     using PopupMenu = typename KisDynamicMethodTraits<decltype(&BaseClass::popupActionsMenu)>::ReturnType;
 
     explicit KisDynamicDelegatedTool(KoCanvasBase *canvas)
@@ -182,14 +180,14 @@ public:
         if (m_delegateTool) m_delegateTool->mouseReleaseEvent(event);
     }
 
-    void keyPressEvent(KeyPressEvent event) override
+    void pkKeyPressEvent(PkToolKeyEvent *event) override
     {
-        if (m_delegateTool) m_delegateTool->keyPressEvent(event);
+        if (m_delegateTool) m_delegateTool->pkKeyPressEvent(event);
     }
 
-    void keyReleaseEvent(KeyReleaseEvent event) override
+    void pkKeyReleaseEvent(PkToolKeyEvent *event) override
     {
-        if (m_delegateTool) m_delegateTool->keyReleaseEvent(event);
+        if (m_delegateTool) m_delegateTool->pkKeyReleaseEvent(event);
     }
 
     void explicitUserStrokeEndRequest() override

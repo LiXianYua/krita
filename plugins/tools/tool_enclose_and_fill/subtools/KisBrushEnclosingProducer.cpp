@@ -6,21 +6,20 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <KoCanvasResourceProvider.h>
+#include <KisCanvasToolServices.h>
 
 #include "KisBrushEnclosingProducer.h"
 
 KisBrushEnclosingProducer::KisBrushEnclosingProducer(KoCanvasBase * canvas)
     : KisDynamicDelegateTool<KisToolBasicBrushBase>(canvas, KisToolBasicBrushBase::PAINT)
 {
-    QObject::setObjectName("enclosing_tool_brush");
+    setObjectName("enclosing_tool_brush");
 
-    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const PkVariant &) {
-                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
-                    resetCursorStyle();
-                }
-            });
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas);
+    KIS_ASSERT_RECOVER_RETURN(services);
+    PkObject::connect(services->toolSignals(),
+                      &KisCanvasToolSignals::effectiveCompositeOpChanged,
+                      this, &KisBrushEnclosingProducer::resetCursorStyle);
 }
 
 KisBrushEnclosingProducer::~KisBrushEnclosingProducer()
