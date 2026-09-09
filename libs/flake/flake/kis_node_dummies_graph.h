@@ -7,10 +7,14 @@
 #ifndef __KIS_NODE_DUMMIES_GRAPH_H
 #define __KIS_NODE_DUMMIES_GRAPH_H
 
-#include <QtMath>
+#include <QtGlobal>
 #include <PkList.h>
 #include <PkMap.h>
 #include <PkObject.h>
+
+#if !defined(QT_CORE_LIB) && !defined(qDeleteAll)
+#define qDeleteAll pkDeleteAll
+#endif
 
 #include "kritashapemodel_export.h"
 #include "kis_types.h"

@@ -4,11 +4,11 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlakeBridge.h>
-
 #include "kis_image_view_converter.h"
 #include "kis_image.h"
 #include "kis_pointer_utils.h"
+
+#include <cassert>
 
 KisImageViewConverter::KisImageViewConverter()
     : KisImageViewConverter(KisImageSP())
@@ -78,9 +78,7 @@ qreal KisImageViewConverter::viewToDocumentY(qreal viewY) const {
 
 qreal KisImageViewConverter::zoom() const
 {
-    Q_ASSERT_X(0, "KisImageViewConverter::zoom()",
-               "Not possible to return a single zoom. "
-               "Don't use it. Sorry.");
+    assert(false && "KisImageViewConverter::zoom() cannot return a single zoom");
 
     return effectiveXRes();
 }

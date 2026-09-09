@@ -16,7 +16,7 @@
 #include <PkVector.h>
 #include <PkPoint.h>
 #include <PkRect.h>
-#include <QVarLengthArray>
+#include <vector>
 
 #include <QDebug>
 #include "kis_assert.h"
@@ -953,7 +953,7 @@ template <typename T>
 typename KoRTree<T>::Node * KoRTree<T>::NonLeafNode::getLeastEnlargement(const PkRectF& bb) const
 {
     //debugFlake << "NonLeafNode::getLeastEnlargement";
-    QVarLengthArray<qreal> area(this->m_counter);
+    std::vector<qreal> area(this->m_counter);
     for (int i = 0; i < this->m_counter; ++i) {
         PkSizeF big(this->m_childBoundingBox[i].united(bb).size());
         area[i] = big.width() * big.height() - this->m_childBoundingBox[i].width() * this->m_childBoundingBox[i].height();

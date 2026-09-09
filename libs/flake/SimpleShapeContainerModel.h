@@ -34,7 +34,9 @@ public:
         KIS_ASSERT_RECOVER(m_members.size() == m_inheritsTransform.size() &&
                            m_members.size() == m_clipped.size())
         {
-            qDeleteAll(m_members);
+            for (KoShape *shape : m_members) {
+                delete shape;
+            }
             m_members.clear();
             m_inheritsTransform.clear();
             m_clipped.clear();

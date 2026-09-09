@@ -14,7 +14,9 @@
 #include <QObject>
 #include <PkList.h>
 #include <PkRect.h>
+#if defined(QT_CORE_LIB)
 #include <QMetaType>
+#endif
 
 class KoCanvasBase;
 class KoShape;
@@ -156,6 +158,8 @@ private:
     Private * const d;
 };
 
+#if defined(QT_CORE_LIB)
 Q_DECLARE_METATYPE(KoShapeController *)
+#endif
 
 #endif

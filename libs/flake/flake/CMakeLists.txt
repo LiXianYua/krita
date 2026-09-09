@@ -22,26 +22,53 @@ kis_add_library(kritashapemodel SHARED ${kritashapemodel_SOURCES})
 generate_export_header(kritashapemodel BASE_NAME kritashapemodel)
 
 target_include_directories(kritashapemodel
+    BEFORE PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/noqt-compat
+        ${CMAKE_SOURCE_DIR}/pk/string/compat
+        ${CMAKE_SOURCE_DIR}/pk/container/compat
+        ${CMAKE_SOURCE_DIR}/pk/variant/compat
+        ${CMAKE_SOURCE_DIR}/pk/port/compat
+        ${CMAKE_SOURCE_DIR}/pk/pointer/compat
+        ${CMAKE_SOURCE_DIR}/pk/global/compat
+        ${CMAKE_SOURCE_DIR}/pk/geometry/compat
+        ${CMAKE_SOURCE_DIR}/pk/log/compat
+        ${CMAKE_SOURCE_DIR}/pk/concurrent/compat
+        ${CMAKE_SOURCE_DIR}/pk/image/compat
+        ${CMAKE_SOURCE_DIR}/pk/time/compat
+        ${CMAKE_SOURCE_DIR}/pk/config/compat
+        ${CMAKE_SOURCE_DIR}/pk/flags/compat
+        ${CMAKE_SOURCE_DIR}/pk/color/compat
+        ${CMAKE_SOURCE_DIR}/pk/signal/compat
+        ${CMAKE_SOURCE_DIR}/pk/sql/compat
+        ${CMAKE_SOURCE_DIR}/pk/xml/compat
+        ${CMAKE_SOURCE_DIR}/libs
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../tool>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/canvas>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/canvas>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/brush>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/libs/brush>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/libs/resources
 )
 
 target_link_libraries(kritashapemodel
-    PRIVATE kritaflake_imagecodec
     PUBLIC
-        kritaflake
-        kritaimage
-        kritalibbrush
-        kritacanvas
+        kritaimage_noqt_compile_interface
+        pktextstream
+        pkrender
+        $<LINK_ONLY:kritaflake>
+        $<LINK_ONLY:kritaimage>
+        $<LINK_ONLY:kritalibbrush>
+        $<LINK_ONLY:kritacanvas>
 
     PRIVATE
-        KF${KF_MAJOR}::I18n
+        kritaflake_imagecodec
         kritaresources
+        $<LINK_ONLY:KF${KF_MAJOR}::I18n>
 )
 
 set_target_properties(kritashapemodel PROPERTIES

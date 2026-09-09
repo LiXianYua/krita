@@ -739,6 +739,7 @@ private:
 // 只服务真 Qt 分支——壳内无对应类型，且剥离源文件不使用它们。
 #include <PkXmlCompat.h>
 #include <pk/color/PkColor.h>
+#include <pk/geometry/PkPen.h>
 #include <pk/pointer/PkSharedPointer.h>
 
 
@@ -758,17 +759,12 @@ inline PkPolygon toQPolygon(const PkPolygon &p) { return p; }
 
 inline PkXmlElement toPkXmlElement(const PkXmlElement &el) { return el; }
 
-template <typename T>
-
-template <typename T>
-
 // 共享指针互转的 Qt-free 恒等版：真 Qt 分支的 toPkSharedPointer/toQSharedPointer 在
 // 保活 deleter（Pk↔Q 各持控制块）；Qt-free 下 PkSharedPointer 已宏映射到 PkSharedPointer，
 // 恒等透传即可。KoShapeBackgroundCommand.cpp 等剥离源在薄壳编译时依赖本对。
 template <typename T>
 inline PkSharedPointer<T> toPkSharedPointer(const PkSharedPointer<T> &p) { return p; }
 
-template <typename T>
 inline PkPen toQPen(const PkPen &p) { return p; }
 inline PkPen toPkPen(const PkPen &p) { return p; }
 #endif

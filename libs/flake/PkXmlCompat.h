@@ -26,8 +26,8 @@
 #define PK_CAT_(a, b) a##b
 #define PK_INC_(x) <x>
 
-// 真 Qt 头在前（R-38 约定）：本头**先 include 真 Qt 全量**（QtCore/QtGui/
-// QtWidgets/QtXml/QtSvg），把主树过渡 TU 里未剥头会拉到的真 Qt 头一次性全部
+// 真 Qt 头在前（R-38 约定）：真 Qt 过渡 TU 由 QT_CORE_LIB 选中下面
+// 的 umbrella（QtCore/QtGui/QtWidgets/QtXml/QtSvg），把未剥头会拉到的真 Qt 头一次性全部
 // 干净处理。真 Qt 头内部只用 `<QtCore/...>` 形态相对 include（实测零裸
 // `<QName>`，唯一例外 QtGui 一处 `<QSurfaceFormat>` 也无 pk 垫片、解析回真 Qt）；
 // 一旦下面 compat 宏激活，任何后到的真 Qt 头内容都会被改写（String→PkString
@@ -35,12 +35,16 @@
 // 被改写。副作用两个都是我们需要的：真 Qt qobjectdefs.h 先到 → Q_OBJECT/
 // Q_SLOTS/Q_SIGNALS 先定义，未剥头（kundo2stack.h 等）直接用；pk 各 compat 的
 // 让位守卫（qAbs/qMin/qMax/…）见到 QGLOBAL_H 已定义就整段让位。
+#if defined(QT_CORE_LIB)
 #include <QtGlobal>
 #include <QtCore/QtCore>
 #include <QtGui/QtGui>
 #include <QtWidgets/QtWidgets>
 #include <QtXml/QtXml>
 #include <QtSvg/QtSvg>
+#else
+#include <QtGlobal>
+#endif
 
 // ---- 真 Qt 调试宏让位（R-34 守卫的消费方侧）----
 // umbrella 先到，真 Qt qlogging.h 的 qCDebug/qDebug 等已定义；PkMessageLogger.h
@@ -50,6 +54,7 @@
 // 的版本接手——其 PkDebug 鸭子类型 operator<<（PkToUtf8 探测）收 PkString 族。
 // 只影响含本头的 TU；过渡 TU 不含本头 → 真 Qt 宏原样生效。
 // ⚠ 顺序：必须在本头自己的 include 面里排在任何会碰 qCDebug 的 Pk 头之前。
+#if defined(QT_CORE_LIB)
 #undef qCDebug
 #undef qCInfo
 #undef qCWarning
@@ -59,6 +64,7 @@
 #undef qWarning
 #undef qCritical
 #undef qFatal
+#endif
 
 // ---- Q 名 token 拼装 ----
 // `PK_Q*_` 宏名里的 Q 前是 `_`（word 字符），不构成 `\bQ`；`PK_CAT_(Q, Xxx)`
@@ -158,6 +164,13 @@
 #include PK_INC_(compat/PK_QDOMCDATA_)
 #include PK_INC_(compat/PK_QCOLOR_)
 #include PK_INC_(compat/PK_QDATETIME_)
+
+#if !defined(QT_CORE_LIB) && !defined(qMin)
+#define qMin pkMin
+#endif
+#if !defined(QT_CORE_LIB) && !defined(qDeleteAll)
+#define qDeleteAll pkDeleteAll
+#endif
 
 // ---- 无 compat 垫片、flake 剥源码直接用的 Pk 头（Pk 名，无 Q token）----
 // PkMapIterator：SvgStyleParser/SvgCssHelper/KoShapeDistributeCommand 直接 include
