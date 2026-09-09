@@ -16,6 +16,22 @@ class PkConfigStore
 public:
     static PkConfigStore &instance();
 
+#ifdef PKCONFIG_ENABLE_TEST_HOOKS
+    enum class CommitFailureForTesting {
+        None,
+        ParentOpen,
+        ParentFsync
+    };
+
+    // Tests inject an exact file before the singleton is constructed. This is
+    // deliberately independent of every platform's environment conventions.
+    static bool setConfigFilePathForTesting(const std::filesystem::path &path);
+    static std::filesystem::path configFilePathForTesting();
+    static std::filesystem::path defaultConfigFilePathForTesting();
+    static std::filesystem::path defaultConfigLockFilePathForTesting();
+    static void setCommitFailureForTesting(CommitFailureForTesting failure);
+#endif
+
     PkString get(const PkString &group, const PkString &key, const PkString &fallback) const;
     void set(const PkString &group, const PkString &key, const PkString &value);
     bool has(const PkString &group, const PkString &key) const;

@@ -14,6 +14,7 @@
 `KoResourcePaths` 的已有资源目录配置共用同一文件：
 
 - Linux/Unix：`$XDG_CONFIG_HOME/kritarc`，未设时为 `$HOME/.config/kritarc`；
+  两者都未设时与 `KoResourcePaths` 一样使用相对 `kritarc`；
 - Windows：`%APPDATA%/kritarc`（缺失时回退用户目录）；
 - macOS：`$HOME/Library/Preferences/kritarc`；
 - Android：`$ANDROID_APP_DATA/kritarc`，然后按 `HOME`/`TMPDIR` 已有规则回退。
@@ -22,14 +23,19 @@
 `writeEntry`/`deleteEntry`/`deleteGroup` 先更新线程安全的进程内视图，并记录
 顺序变更。`sync()` 在 `kritarc.lock` 的跨进程排他锁内重读最新文件、
 合并本进程变更，写入 `kritarc.tmp.<pid>.<sequence>`，刷新文件后原子
-替换目标，并在 POSIX 上刷新父目录。进程生命期单例的析构函数会
+替换目标，并在 POSIX 上刷新父目录。POSIX 在替换前打开父目录；`rename()`
+是逻辑提交点，之后即使父目录刷新失败，新内容也已经安装，因此 `sync()`
+仍返回 `true` 并清除待写日志（此时只表示目录项的崩溃耐久性未能确认，不能
+谎报为“旧文件未替换”）。进程生命期单例的析构函数会
 再做一次 RAII `sync()`，因此未显式调用 `sync()` 的现有选区/SVG 设置也会
 在正常进程退出时持久化。
 
-同步失败时不替换旧文件，不丢弃待写变更，进程内读仍返回已写值；
+提交点之前的同步失败不替换旧文件，不丢弃待写变更，进程内读仍返回已写值；
 `PkConfigStore::sync()` 返回 `false` 供有错误通道的上层处理，兼容的
 `PkConfigGroup::sync()` 保持 `void` API。已有 Pk 专属段损坏、重复或超过 16 MiB 时
-按失败关闭处理：读取返回调用方 default，同步拒绝覆写原文件。
+按失败关闭处理：读取返回调用方 default，同步拒绝覆写原文件。写侧使用同一
+16 MiB wire-size 上限（包含保留的外部行与十六进制膨胀）；超限写在创建临时
+文件前失败，并保留待写日志供调用方缩减值后重试。
 
 ## 2. 序列化格式
 

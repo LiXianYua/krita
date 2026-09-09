@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -491,6 +492,111 @@ void TestConfigGroup::typedAndDeletionSemanticsSurviveRestart()
                                {"clear-group", "Selection", "unused", "unused"}), 0);
     PK_COMPARE(runConfigHelper(root.path(),
                                {"read-default", "Selection", "fuzziness", "fallback"}), 0);
+}
+
+void TestConfigGroup::symmetricWireSizeLimitIsRetryable()
+{
+    // Hand-derived from the documented v1 wire format for group "Boundary"
+    // and key "payload": section 31 bytes, entry framing 16 bytes, trailing
+    // blank line 1 byte, plus two hex bytes per payload byte.
+    constexpr std::size_t maximumBytes = 16U * 1024U * 1024U;
+    constexpr std::size_t fixedWireBytes = 48U;
+    constexpr std::size_t largestPayload = (maximumBytes - fixedWireBytes) / 2U;
+
+    TemporaryConfigRoot below;
+    PK_COMPARE(runConfigHelper(below.path(),
+                               {"write-sized", "Boundary", "payload",
+                                std::to_string(largestPayload)}), 0);
+    PK_COMPARE(fs::file_size(below.path() / "kritarc"), maximumBytes);
+    PK_COMPARE(runConfigHelper(below.path(),
+                               {"read-sized", "Boundary", "payload",
+                                std::to_string(largestPayload)}), 0);
+
+    TemporaryConfigRoot above;
+    PK_COMPARE(runConfigHelper(above.path(),
+                               {"write", "Boundary", "payload", "old"}), 0);
+    const std::string oldBytes = readBytes(above.path() / "kritarc");
+    PK_COMPARE(runConfigHelper(above.path(),
+                               {"oversize-retry", "Boundary", "payload",
+                                std::to_string(largestPayload + 1U)}), 0);
+    PK_VERIFY(readBytes(above.path() / "kritarc") != oldBytes);
+    PK_COMPARE(runConfigHelper(above.path(),
+                               {"read", "Boundary", "payload", "recovered"}), 0);
+}
+
+void TestConfigGroup::testPathOverrideContainsParentAndHelperWrites()
+{
+    const fs::path parentPath = PkConfigStore::configFilePathForTesting();
+    PK_COMPARE(parentPath.filename(), fs::path("kritarc"));
+    PK_VERIFY(parentPath.parent_path().filename().u8string().find("pkconfig-suite-") == 0);
+
+    PkConfigGroup parent = PkSharedConfig::openConfig()->group("PathIsolationParent");
+    parent.writeEntry("marker", PkString("parent"));
+    PK_VERIFY(PkConfigStore::instance().sync());
+    PK_VERIFY(fs::is_regular_file(parentPath));
+
+    TemporaryConfigRoot helperRoot;
+    PK_COMPARE(runConfigHelper(helperRoot.path(),
+                               {"write", "PathIsolationHelper", "marker", "helper"}), 0);
+    PK_VERIFY(fs::is_regular_file(helperRoot.path() / "kritarc"));
+}
+
+void TestConfigGroup::commitPointFailuresHaveTruthfulResults()
+{
+#ifndef _WIN32
+    TemporaryConfigRoot parentOpen;
+    PK_COMPARE(runConfigHelper(parentOpen.path(),
+                               {"write", "Commit", "value", "old"}), 0);
+    const std::string oldBytes = readBytes(parentOpen.path() / "kritarc");
+    PK_COMPARE(runConfigHelper(parentOpen.path(),
+                               {"commit-failure", "Commit", "value", "parent-open"}), 0);
+    PK_COMPARE(readBytes(parentOpen.path() / "kritarc"), oldBytes);
+    PK_COMPARE(runConfigHelper(parentOpen.path(),
+                               {"read", "Commit", "value", "old"}), 0);
+
+    TemporaryConfigRoot parentFsync;
+    PK_COMPARE(runConfigHelper(parentFsync.path(),
+                               {"write", "Commit", "value", "old"}), 0);
+    PK_COMPARE(runConfigHelper(parentFsync.path(),
+                               {"commit-failure", "Commit", "value", "parent-fsync"}), 0);
+    PK_COMPARE(runConfigHelper(parentFsync.path(),
+                               {"read", "Commit", "value", "parent-fsync"}), 0);
+#endif
+}
+
+void TestConfigGroup::linuxFallbackMatchesResourceConfigPath()
+{
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__ANDROID__) && !defined(__HAIKU__)
+    const char *oldXdgValue = std::getenv("XDG_CONFIG_HOME");
+    const char *oldHomeValue = std::getenv("HOME");
+    const bool hadXdg = oldXdgValue != nullptr;
+    const bool hadHome = oldHomeValue != nullptr;
+    const std::string oldXdg = hadXdg ? oldXdgValue : "";
+    const std::string oldHome = hadHome ? oldHomeValue : "";
+
+    ::setenv("XDG_CONFIG_HOME", "/tmp/pkconfig-xdg", 1);
+    ::setenv("HOME", "/tmp/pkconfig-home", 1);
+    PK_COMPARE(PkConfigStore::defaultConfigFilePathForTesting(),
+               fs::path("/tmp/pkconfig-xdg/kritarc"));
+    ::unsetenv("XDG_CONFIG_HOME");
+    PK_COMPARE(PkConfigStore::defaultConfigFilePathForTesting(),
+               fs::path("/tmp/pkconfig-home/.config/kritarc"));
+    ::unsetenv("HOME");
+    PK_COMPARE(PkConfigStore::defaultConfigFilePathForTesting(), fs::path("kritarc"));
+    PK_COMPARE(PkConfigStore::defaultConfigLockFilePathForTesting(),
+               fs::path("kritarc.lock"));
+
+    TemporaryConfigRoot fallbackRoot;
+    PK_COMPARE(runConfigHelper(fallbackRoot.path(),
+                               {"write-default-path", "Fallback", "value", "persisted"}), 0);
+    PK_VERIFY(fs::is_regular_file(fallbackRoot.path() / "kritarc"));
+    PK_VERIFY(fs::is_regular_file(fallbackRoot.path() / "kritarc.lock"));
+
+    if (hadXdg) ::setenv("XDG_CONFIG_HOME", oldXdg.c_str(), 1);
+    else ::unsetenv("XDG_CONFIG_HOME");
+    if (hadHome) ::setenv("HOME", oldHome.c_str(), 1);
+    else ::unsetenv("HOME");
+#endif
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

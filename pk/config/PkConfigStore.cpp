@@ -7,7 +7,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <limits>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 
 #ifdef _WIN32
@@ -29,6 +31,12 @@ using ConfigData = std::map<PkString, std::map<PkString, PkString>>;
 
 constexpr const char kOwnedSectionPrefix[] = "[PkConfig-v1:";
 constexpr std::size_t kMaximumConfigBytes = 16U * 1024U * 1024U;
+
+#ifdef PKCONFIG_ENABLE_TEST_HOOKS
+std::optional<fs::path> g_testConfigFilePath;
+bool g_storeConstructed = false;
+std::atomic<int> g_commitFailureForTesting{0};
+#endif
 
 fs::path environmentPath(const char *name)
 {
@@ -85,13 +93,23 @@ fs::path genericConfigPath()
         ? fs::u8path(path) : home;
 #else
     const fs::path xdg = environmentPath("XDG_CONFIG_HOME");
-    return xdg.empty() ? home / ".config" : xdg;
+    if (!xdg.empty()) return xdg;
+    const fs::path configuredHome = environmentPath("HOME");
+    return configuredHome.empty() ? fs::path() : configuredHome / ".config";
 #endif
+}
+
+fs::path defaultConfigFilePath()
+{
+    return genericConfigPath() / "kritarc";
 }
 
 fs::path configFilePath()
 {
-    return genericConfigPath() / "kritarc";
+#ifdef PKCONFIG_ENABLE_TEST_HOOKS
+    if (g_testConfigFilePath) return *g_testConfigFilePath;
+#endif
+    return defaultConfigFilePath();
 }
 
 fs::path lockFilePath(const fs::path &configPath)
@@ -99,6 +117,12 @@ fs::path lockFilePath(const fs::path &configPath)
     fs::path path = configPath;
     path += ".lock";
     return path;
+}
+
+fs::path directoryForFileOperations(const fs::path &path)
+{
+    const fs::path parent = path.parent_path();
+    return parent.empty() ? fs::path(".") : parent;
 }
 
 class ConfigFileLock
@@ -173,17 +197,6 @@ char hexDigit(unsigned int value)
                       : static_cast<char>('a' + value - 10);
 }
 
-std::string hexEncode(const std::string &bytes)
-{
-    std::string encoded;
-    encoded.reserve(bytes.size() * 2);
-    for (const unsigned char byte : bytes) {
-        encoded.push_back(hexDigit(byte >> 4));
-        encoded.push_back(hexDigit(byte & 0x0f));
-    }
-    return encoded;
-}
-
 int hexValue(char character)
 {
     if (character >= '0' && character <= '9') return character - '0';
@@ -249,11 +262,6 @@ bool decodePkString(const std::string &encoded, PkString *value)
     return true;
 }
 
-std::string encodePkString(const PkString &value)
-{
-    return hexEncode(value.PkToUtf8());
-}
-
 struct ParsedConfig
 {
     ConfigData data;
@@ -312,29 +320,55 @@ bool readConfig(const fs::path &path, ParsedConfig *parsed)
     return input.eof() && !input.bad();
 }
 
-std::string serializeConfig(const ParsedConfig &parsed)
+bool appendBounded(std::string *output, std::string_view bytes)
 {
-    std::string output;
-    for (const std::string &line : parsed.foreignLines) {
-        output += line;
-        output.push_back('\n');
+    if (bytes.size() > kMaximumConfigBytes - output->size()) return false;
+    output->append(bytes.data(), bytes.size());
+    return true;
+}
+
+bool appendBounded(std::string *output, char byte)
+{
+    if (output->size() == kMaximumConfigBytes) return false;
+    output->push_back(byte);
+    return true;
+}
+
+bool appendEncodedPkString(std::string *output, const PkString &value)
+{
+    const std::string bytes = value.PkToUtf8();
+    const std::size_t remaining = kMaximumConfigBytes - output->size();
+    if (bytes.size() > remaining / 2U) return false;
+    output->reserve(output->size() + bytes.size() * 2U);
+    for (const unsigned char byte : bytes) {
+        output->push_back(hexDigit(byte >> 4));
+        output->push_back(hexDigit(byte & 0x0f));
     }
-    if (!output.empty() && output.size() >= 2 && output[output.size() - 2] != '\n') {
-        output.push_back('\n');
+    return true;
+}
+
+bool serializeConfig(const ParsedConfig &parsed, std::string *output)
+{
+    output->clear();
+    for (const std::string &line : parsed.foreignLines) {
+        if (!appendBounded(output, line) || !appendBounded(output, '\n')) return false;
+    }
+    if (!output->empty() && output->size() >= 2 && (*output)[output->size() - 2] != '\n') {
+        if (!appendBounded(output, '\n')) return false;
     }
     for (const auto &group : parsed.data) {
-        output += kOwnedSectionPrefix;
-        output += encodePkString(group.first);
-        output += "]\n";
+        if (!appendBounded(output, kOwnedSectionPrefix) ||
+            !appendEncodedPkString(output, group.first) ||
+            !appendBounded(output, "]\n")) return false;
         for (const auto &entry : group.second) {
-            output += encodePkString(entry.first);
-            output.push_back('=');
-            output += encodePkString(entry.second);
-            output.push_back('\n');
+            if (!appendEncodedPkString(output, entry.first) ||
+                !appendBounded(output, '=') ||
+                !appendEncodedPkString(output, entry.second) ||
+                !appendBounded(output, '\n')) return false;
         }
-        output.push_back('\n');
+        if (!appendBounded(output, '\n')) return false;
     }
-    return output;
+    return true;
 }
 
 fs::path temporaryPath(const fs::path &configPath, std::uint64_t sequence)
@@ -352,6 +386,12 @@ fs::path temporaryPath(const fs::path &configPath, std::uint64_t sequence)
 class AtomicConfigWriter
 {
 public:
+    enum class CommitResult {
+        NotReplaced,
+        Replaced,
+        ReplacedDurabilityUncertain
+    };
+
     AtomicConfigWriter(const fs::path &destination, const std::string &contents)
         : m_destination(destination)
     {
@@ -391,7 +431,7 @@ public:
 #else
         if (m_fd >= 0) ::close(m_fd);
 #endif
-        if (!m_committed && !m_temporary.empty()) {
+        if (!m_temporary.empty()) {
             std::error_code error;
             fs::remove(m_temporary, error);
         }
@@ -400,31 +440,53 @@ public:
     AtomicConfigWriter(const AtomicConfigWriter &) = delete;
     AtomicConfigWriter &operator=(const AtomicConfigWriter &) = delete;
 
-    bool commit()
+    CommitResult commit()
     {
-        if (!m_ready) return false;
+        if (!m_ready) return CommitResult::NotReplaced;
 #ifdef _WIN32
         if (!MoveFileExW(m_temporary.c_str(), m_destination.c_str(),
-                         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) return false;
+                         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+            return CommitResult::NotReplaced;
+        }
+        m_temporary.clear();
 #else
-        std::error_code error;
-        fs::rename(m_temporary, m_destination, error);
-        if (error) return false;
         int flags = O_RDONLY;
 #ifdef O_DIRECTORY
         flags |= O_DIRECTORY;
 #endif
-        const int directory = ::open(m_destination.parent_path().c_str(), flags);
-        if (directory < 0) return false;
+#ifdef PKCONFIG_ENABLE_TEST_HOOKS
+        const bool failParentOpen = g_commitFailureForTesting.load() ==
+            static_cast<int>(PkConfigStore::CommitFailureForTesting::ParentOpen);
+#else
+        const bool failParentOpen = false;
+#endif
+        const int directory = failParentOpen
+            ? -1 : ::open(directoryForFileOperations(m_destination).c_str(), flags);
+        if (directory < 0) return CommitResult::NotReplaced;
+
+        std::error_code error;
+        fs::rename(m_temporary, m_destination, error);
+        if (error) {
+            ::close(directory);
+            return CommitResult::NotReplaced;
+        }
+        // rename() is the logical commit point. The temporary pathname no
+        // longer exists and the destination already names the new bytes.
+        m_temporary.clear();
         int result;
+#ifdef PKCONFIG_ENABLE_TEST_HOOKS
+        if (g_commitFailureForTesting.load() ==
+            static_cast<int>(PkConfigStore::CommitFailureForTesting::ParentFsync)) {
+            result = -1;
+        } else
+#endif
         do {
             result = ::fsync(directory);
         } while (result < 0 && errno == EINTR);
         ::close(directory);
-        if (result != 0) return false;
+        if (result != 0) return CommitResult::ReplacedDurabilityUncertain;
 #endif
-        m_committed = true;
-        return true;
+        return CommitResult::Replaced;
     }
 
 private:
@@ -461,7 +523,6 @@ private:
     fs::path m_destination;
     fs::path m_temporary;
     bool m_ready = false;
-    bool m_committed = false;
 };
 
 } // namespace
@@ -472,9 +533,41 @@ PkConfigStore &PkConfigStore::instance()
     return store;
 }
 
+#ifdef PKCONFIG_ENABLE_TEST_HOOKS
+bool PkConfigStore::setConfigFilePathForTesting(const std::filesystem::path &path)
+{
+    if (g_storeConstructed || path.empty()) return false;
+    g_testConfigFilePath = path;
+    return true;
+}
+
+std::filesystem::path PkConfigStore::configFilePathForTesting()
+{
+    return instance().m_configPath;
+}
+
+std::filesystem::path PkConfigStore::defaultConfigFilePathForTesting()
+{
+    return defaultConfigFilePath();
+}
+
+std::filesystem::path PkConfigStore::defaultConfigLockFilePathForTesting()
+{
+    return lockFilePath(defaultConfigFilePath());
+}
+
+void PkConfigStore::setCommitFailureForTesting(CommitFailureForTesting failure)
+{
+    g_commitFailureForTesting.store(static_cast<int>(failure));
+}
+#endif
+
 PkConfigStore::PkConfigStore()
     : m_configPath(configFilePath())
 {
+#ifdef PKCONFIG_ENABLE_TEST_HOOKS
+    g_storeConstructed = true;
+#endif
     std::error_code error;
     if (!fs::exists(m_configPath, error)) {
         m_persistentStateValid = !error;
@@ -545,8 +638,11 @@ bool PkConfigStore::sync() noexcept
         if (m_pending.empty()) return m_persistentStateValid;
 
         std::error_code error;
-        fs::create_directories(m_configPath.parent_path(), error);
-        if (error) return false;
+        const fs::path parent = m_configPath.parent_path();
+        if (!parent.empty()) {
+            fs::create_directories(parent, error);
+            if (error) return false;
+        }
         ConfigFileLock lock(m_configPath);
         if (!lock.isLocked()) return false;
 
@@ -574,8 +670,11 @@ bool PkConfigStore::sync() noexcept
             }
         }
 
-        AtomicConfigWriter writer(m_configPath, serializeConfig(parsed));
-        if (!writer.commit()) return false;
+        std::string contents;
+        if (!serializeConfig(parsed, &contents)) return false;
+        AtomicConfigWriter writer(m_configPath, contents);
+        const AtomicConfigWriter::CommitResult commitResult = writer.commit();
+        if (commitResult == AtomicConfigWriter::CommitResult::NotReplaced) return false;
         m_data = parsed.data;
         m_pending.clear();
         m_persistentStateValid = true;

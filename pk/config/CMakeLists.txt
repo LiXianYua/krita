@@ -63,6 +63,7 @@ target_include_directories(pkconfig_objects PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PKSTRING_DIR} ${PKCONTAINER_DIR} ${PKGEOMETRY_DIR}
     ${PKCOLOR_DIR} ${PKNAMESPACE_DIR})
+target_compile_definitions(pkconfig_objects PRIVATE PKCONFIG_ENABLE_TEST_HOOKS)
 
 # Production users keep one process-wide store in the shared library. The
 # frozen S-line artifact is made from the exact same object files and is never
@@ -108,11 +109,13 @@ add_executable(pkconfig_process_helper
     tests/pkconfig_process_helper.cpp
 )
 target_link_libraries(pkconfig_process_helper PRIVATE pkconfig)
+target_compile_definitions(pkconfig_process_helper PRIVATE PKCONFIG_ENABLE_TEST_HOOKS)
 target_include_directories(test_pkconfig PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
     ${PKTEST_DIR}/compat ${CMAKE_CURRENT_SOURCE_DIR}/compat)
 target_link_libraries(test_pkconfig PRIVATE pkconfig pktest)
 target_compile_definitions(test_pkconfig PRIVATE
+    PKCONFIG_ENABLE_TEST_HOOKS
     PKCONFIG_PROCESS_HELPER_PATH="$<TARGET_FILE:pkconfig_process_helper>")
 add_dependencies(test_pkconfig pkconfig_process_helper)
 set_source_files_properties(tests/test_config_group.cpp PROPERTIES

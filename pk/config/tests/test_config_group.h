@@ -24,4 +24,8 @@ private Q_SLOTS:
     void corruptOwnedSectionFailsClosed();
     void writeFailureKeepsPendingMemoryState();
     void typedAndDeletionSemanticsSurviveRestart();
+    void symmetricWireSizeLimitIsRetryable();
+    void testPathOverrideContainsParentAndHelperWrites();
+    void commitPointFailuresHaveTruthfulResults();
+    void linuxFallbackMatchesResourceConfigPath();
 };

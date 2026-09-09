@@ -29,15 +29,9 @@ int main(int argc, char **argv)
     if (error) {
         return 2;
     }
-#ifdef _WIN32
-    if (::_putenv_s("APPDATA", configRoot.u8string().c_str()) != 0) {
+    if (!PkConfigStore::setConfigFilePathForTesting(configRoot / "kritarc")) {
         return 2;
     }
-#else
-    if (::setenv("XDG_CONFIG_HOME", configRoot.u8string().c_str(), 1) != 0) {
-        return 2;
-    }
-#endif
 
     // qExec 的返回值是失败个数（0 = 全过）。两套测试都要跑完、互不因对方
     // 失败而被跳过，最终退出码只要任一套非 0 就报非 0。
