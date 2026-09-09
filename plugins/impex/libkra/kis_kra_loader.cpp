@@ -1445,24 +1445,16 @@ void KisKraLoader::loadAssistantsList(const PkXmlElement &elem)
 
 void KisKraLoader::loadGrid(const PkXmlElement& elem)
 {
-    PkXmlDocument dom;
-    dom.appendChild(dom.importNode(elem, true));
-    PkXmlElement domElement = dom.firstChildElement();
-
     KisGridConfig config;
     config.loadStaticData();
-    config.loadDynamicDataFromXml(domElement);
+    config.loadDynamicDataFromXml(elem);
     m_d->document->setGridConfig(config);
 }
 
 void KisKraLoader::loadGuides(const PkXmlElement& elem)
 {
-    PkXmlDocument dom;
-    dom.appendChild(dom.importNode(elem, true));
-    PkXmlElement domElement = dom.firstChildElement();
-
     KisGuidesConfig guides;
-    guides.loadFromXml(domElement);
+    guides.loadFromXml(elem);
     m_d->document->setGuidesConfig(guides);
 }
 
