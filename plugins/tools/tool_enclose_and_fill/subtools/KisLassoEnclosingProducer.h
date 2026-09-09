@@ -13,7 +13,6 @@
 #include <KisToolOutlineBase.h>
 #include <PkPoint.h>
 #include <PkVector.h>
-#include <QVector>
 
 #include "KisDynamicDelegatedTool.h"
 

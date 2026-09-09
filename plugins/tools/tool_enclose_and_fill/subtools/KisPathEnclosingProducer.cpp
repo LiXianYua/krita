@@ -12,13 +12,14 @@
 #include <PkTransform.h>
 
 #include "KisPathEnclosingProducer.h"
+#include "KisEncloseAndFillInputPolicy.h"
 
 void DelegatedPathTool::mousePressEvent(KoPointerEvent *event)
 {
     if (mode() == KisTool::HOVER_MODE &&
-        event->button() == Qt::LeftButton &&
-        ((event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier)) ||
-         event->modifiers() == Qt::NoModifier)) {
+        KisEncloseAndFillInputPolicy::acceptsPathPress(
+            static_cast<Pk::MouseButton>(event->button()),
+            Pk::KeyboardModifiers(static_cast<int>(event->modifiers())))) {
         setMode(KisTool::PAINT_MODE);
         m_localTool->mousePressEvent(event);
     } else {
@@ -29,9 +30,9 @@ void DelegatedPathTool::mousePressEvent(KoPointerEvent *event)
 void DelegatedPathTool::mouseDoubleClickEvent(KoPointerEvent *event)
 {
     if (mode() == KisTool::HOVER_MODE &&
-        event->button() == Qt::LeftButton &&
-        ((event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier)) ||
-         event->modifiers() == Qt::NoModifier)) {
+        KisEncloseAndFillInputPolicy::acceptsPathPress(
+            static_cast<Pk::MouseButton>(event->button()),
+            Pk::KeyboardModifiers(static_cast<int>(event->modifiers())))) {
         m_localTool->mouseDoubleClickEvent(event);
     } else {
         KisToolShape::mouseDoubleClickEvent(event);
@@ -40,7 +41,9 @@ void DelegatedPathTool::mouseDoubleClickEvent(KoPointerEvent *event)
 
 void DelegatedPathTool::mouseReleaseEvent(KoPointerEvent *event)
 {
-    if (mode() == KisTool::PAINT_MODE && event->button() == Qt::LeftButton) {
+    if (mode() == KisTool::PAINT_MODE &&
+        KisEncloseAndFillInputPolicy::isPrimaryButton(
+            static_cast<Pk::MouseButton>(event->button()))) {
         setMode(KisTool::HOVER_MODE);
         m_localTool->mouseReleaseEvent(event);
     } else {

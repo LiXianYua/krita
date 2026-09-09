@@ -75,6 +75,7 @@ set(kritatooltransform_PK_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/pk/global
     ${CMAKE_SOURCE_DIR}/pk/image
     ${CMAKE_SOURCE_DIR}/pk/log
+    ${CMAKE_SOURCE_DIR}/pk/namespace
     ${CMAKE_SOURCE_DIR}/pk/pointer
     ${CMAKE_SOURCE_DIR}/pk/render
     ${CMAKE_SOURCE_DIR}/pk/signal

@@ -5,6 +5,7 @@
  */
 
 #include "kis_simplified_action_policy_strategy.h"
+#include "TransformModifierPolicy.h"
 
 #include "KoPointerEvent.h"
 #include <KoSnapGuide.h>
@@ -102,15 +103,14 @@ void KisSimplifiedActionPolicyStrategy::continuePrimaryAction(KoPointerEvent *ev
      *
      * See bug 340496
      */
-    const bool shiftIsActive = event->modifiers() & Qt::ShiftModifier;
-    const bool altIsActive = event->modifiers() & Qt::AltModifier;
+    const Pk::KeyboardModifiers modifiers(static_cast<int>(event->modifiers()));
+    const TransformModifierState modifierState = transformModifierState(modifiers);
 
-    const PkPointF pos = snapDocPoint(
-        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+    const PkPointF pos = snapDocPoint(event->point, modifiers);
     PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
-    return continuePrimaryAction(imagePos, shiftIsActive, altIsActive);
+    return continuePrimaryAction(imagePos, modifierState.shift, modifierState.alt);
 }
 
 void KisSimplifiedActionPolicyStrategy::hoverActionCommon(KoPointerEvent *event)
@@ -182,14 +182,14 @@ void KisSimplifiedActionPolicyStrategy::continueAlternateAction(KoPointerEvent *
     (void)action;
 
     if (!m_d->changeSizeModifierActive && !m_d->anySamplerModifierActive) return;
-    const bool altIsActive = event->modifiers() & Qt::AltModifier;
+    const Pk::KeyboardModifiers modifiers(static_cast<int>(event->modifiers()));
+    const TransformModifierState modifierState = transformModifierState(modifiers);
 
-    const PkPointF pos = snapDocPoint(
-        event->point, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+    const PkPointF pos = snapDocPoint(event->point, modifiers);
     PkPointF imagePos = m_d->converter->documentToImage(pos);
     m_d->lastImagePos = imagePos;
 
-    continuePrimaryAction(imagePos, m_d->changeSizeModifierActive, altIsActive);
+    continuePrimaryAction(imagePos, m_d->changeSizeModifierActive, modifierState.alt);
 }
 
 bool KisSimplifiedActionPolicyStrategy::endAlternateAction(KoPointerEvent *event, KisTool::AlternateAction action)

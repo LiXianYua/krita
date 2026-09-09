@@ -7,16 +7,12 @@
 #ifndef CUT_THROUGH_SHAPE_STRATEGY_H_
 #define CUT_THROUGH_SHAPE_STRATEGY_H_
 
-#include <Qt>
-#include <QtMath>
 #include <PkScopedPointer.h>
 #include <PkRect.h>
 #include <PkPainter.h>
 
 #include <KoInteractionStrategy.h>
 #include <KoShape.h>
-#include "GutterWidthsConfig.h"
-
 #include "GutterWidthsConfig.h"
 
 class KoSelection;

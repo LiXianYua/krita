@@ -235,9 +235,6 @@ private:
     void outlineChanged();
     // Sets the cursor according to mouse position (doesn't take shearing into account well yet)
     void setFunctionalCursor();
-    // Sets m_function according to mouse position and modifier
-    void setTransformFunction(PkPointF mousePos, Qt::KeyboardModifiers modifiers);
-
     void commitChanges();
 
     void initTransformMode(ToolTransformArgs::TransformMode mode);

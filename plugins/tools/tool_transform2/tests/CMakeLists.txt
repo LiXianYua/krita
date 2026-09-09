@@ -3,6 +3,10 @@
 kis_add_test(test_animated_transform_parameters.cpp
     LINK_LIBRARIES kritatooltransform_static kritacanvas kritaimage kritatestsdk)
 
+kis_add_test(PluginDInputPolicyTest.cpp
+    TEST_NAME PluginDInputPolicyTest
+    LINK_LIBRARIES kritatooltransform_static kritatoolencloseandfill kritacanvas kritatestsdk)
+
 krita_add_broken_unit_test(TransformStrokeStrategyTest.cpp
     ../../../../sdk/tests/stroke_testing_utils.cpp
     TEST_NAME TransformStrokeStrategyTest
