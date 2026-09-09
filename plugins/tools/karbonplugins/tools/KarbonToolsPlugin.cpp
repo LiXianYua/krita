@@ -5,6 +5,7 @@
  */
 
 #include "KarbonToolsPlugin.h"
+#include "KarbonToolsResources.h"
 #include "CalligraphyTool/KarbonCalligraphyToolFactory.h"
 #include "CalligraphyTool/KarbonCalligraphicShapeFactory.h"
 
@@ -15,6 +16,8 @@
 
 void registerKarbonTools()
 {
+    karbonToolsResourceAnchor();
+
     static std::once_flag once;
     std::call_once(once, [] {
         KoToolRegistry::instance()->add(new KarbonCalligraphyToolFactory());

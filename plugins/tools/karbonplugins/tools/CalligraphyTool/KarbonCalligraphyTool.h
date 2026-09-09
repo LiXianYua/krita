@@ -42,8 +42,8 @@ private:
     // auxiliary functions to calculate the dynamic parameters
     // returns the new point and sets speed to the speed
     PkPointF calculateNewPoint(const PkPointF &mousePos, PkPointF *speed);
-    qreal calculateWidth(qreal pressure);
-    qreal calculateAngle(const PkPointF &oldSpeed, const PkPointF &newSpeed);
+    double calculateWidth(double pressure);
+    double calculateAngle(const PkPointF &oldSpeed, const PkPointF &newSpeed);
 
     PkPointF m_lastPoint;
     KarbonCalligraphicShape *m_shape;
@@ -54,19 +54,19 @@ private:
     bool m_usePath;         // follow selected path
     bool m_usePressure;     // use tablet pressure
     bool m_useAngle;        // use tablet angle
-    qreal m_strokeWidth;
-    qreal m_lastWidth;
-    qreal m_customAngle;   // angle set by the user
-    qreal m_angle;  // angle to use, may use the device angle, in radians!!!
-    qreal m_fixation;
-    qreal m_thinning;
-    qreal m_caps;
-    qreal m_mass;  // in raw format (not user friendly)
-    qreal m_drag;  // from 0.0 to 1.0
+    double m_strokeWidth;
+    double m_lastWidth;
+    double m_customAngle;   // angle set by the user
+    double m_angle;  // angle to use, may use the device angle, in radians!!!
+    double m_fixation;
+    double m_thinning;
+    double m_caps;
+    double m_mass;  // in raw format (not user friendly)
+    double m_drag;  // from 0.0 to 1.0
 
     KoPathShape *m_selectedPath;
     PkPainterPath m_selectedPathOutline;
-    qreal m_followPathPosition;
+    double m_followPathPosition;
     bool m_endOfPath;
     PkPointF m_lastMousePos;
 

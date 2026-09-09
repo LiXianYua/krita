@@ -55,19 +55,19 @@ public:
      * Sets the start angle of the ellipse.
      * @param angle the new start angle in degree
      */
-    void setStartAngle(qreal angle);
+    void setStartAngle(double angle);
 
     /// Returns the actual ellipse start angle in degree
-    qreal startAngle() const;
+    double startAngle() const;
 
     /**
      * Sets the end angle of the ellipse.
      * @param angle the new end angle in degree
      */
-    void setEndAngle(qreal angle);
+    void setEndAngle(double angle);
 
     /// Returns the actual ellipse end angle in degree
-    qreal endAngle() const;
+    double endAngle() const;
 
     /// reimplemented
     PkString pathShapeId() const;
@@ -85,7 +85,7 @@ protected:
     void createPoints(int requiredPointCount);
 
 private:
-    qreal sweepAngle() const;
+    double sweepAngle() const;
 
     void updateKindHandle();
     void updateAngleHandles();
@@ -93,11 +93,11 @@ private:
     EllipseShape(const EllipseShape &rhs);
 
     // start angle in degree
-    qreal m_startAngle;
+    double m_startAngle;
     // end angle in degree
-    qreal m_endAngle;
+    double m_endAngle;
     // angle for modifying the kind in radiant
-    qreal m_kindAngle;
+    double m_kindAngle;
     // the center of the ellipse
     PkPointF m_center;
     // the radii of the ellipse

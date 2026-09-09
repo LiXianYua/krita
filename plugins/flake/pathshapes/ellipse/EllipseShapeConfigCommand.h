@@ -23,7 +23,7 @@ public:
      * @param endAngle the end angle
      * @param parent the optional parent command
      */
-    EllipseShapeConfigCommand(EllipseShape *ellipse, EllipseShape::EllipseType type, qreal startAngle, qreal startEndAngle, KUndo2Command *parent = 0);
+    EllipseShapeConfigCommand(EllipseShape *ellipse, EllipseShape::EllipseType type, double startAngle, double startEndAngle, KUndo2Command *parent = 0);
     /// redo the command
     void redo() override;
     /// revert the actions done in redo
@@ -35,11 +35,11 @@ public:
 private:
     EllipseShape *m_ellipse;
     EllipseShape::EllipseType m_oldType;
-    qreal m_oldStartAngle;
-    qreal m_oldEndAngle;
+    double m_oldStartAngle;
+    double m_oldEndAngle;
     EllipseShape::EllipseType m_newType;
-    qreal m_newStartAngle;
-    qreal m_newEndAngle;
+    double m_newStartAngle;
+    double m_newEndAngle;
 };
 
 #endif // ELLIPSESHAPECONFIGCOMMAND_H

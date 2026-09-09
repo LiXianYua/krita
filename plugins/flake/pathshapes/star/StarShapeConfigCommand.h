@@ -25,20 +25,20 @@ public:
      * @param convex indicates whether the star is convex or not
      * @param parent the optional parent command
      */
-    StarShapeConfigCommand(StarShape *star, uint cornerCount, qreal innerRadius, qreal outerRadius, bool convex, KUndo2Command *parent = 0);
+    StarShapeConfigCommand(StarShape *star, unsigned int cornerCount, double innerRadius, double outerRadius, bool convex, KUndo2Command *parent = 0);
     /// redo the command
     void redo() override;
     /// revert the actions done in redo
     void undo() override;
 private:
     StarShape *m_star;
-    uint m_oldCornerCount;
-    qreal m_oldInnerRadius;
-    qreal m_oldOuterRadius;
+    unsigned int m_oldCornerCount;
+    double m_oldInnerRadius;
+    double m_oldOuterRadius;
     bool m_oldConvex;
-    uint m_newCornerCount;
-    qreal m_newInnerRadius;
-    qreal m_newOuterRadius;
+    unsigned int m_newCornerCount;
+    double m_newInnerRadius;
+    double m_newOuterRadius;
     bool m_newConvex;
 };
 

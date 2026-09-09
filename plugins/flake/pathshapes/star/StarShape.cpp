@@ -54,7 +54,7 @@ KoShape *StarShape::cloneShape() const
 }
 
 
-void StarShape::setCornerCount(uint cornerCount)
+void StarShape::setCornerCount(unsigned int cornerCount)
 {
     if (cornerCount >= 3) {
         double oldDefaultAngle = defaultAngleRadian();
@@ -67,40 +67,40 @@ void StarShape::setCornerCount(uint cornerCount)
     }
 }
 
-uint StarShape::cornerCount() const
+unsigned int StarShape::cornerCount() const
 {
     return m_cornerCount;
 }
 
-void StarShape::setBaseRadius(qreal baseRadius)
+void StarShape::setBaseRadius(double baseRadius)
 {
     m_radius[base] = fabs(baseRadius);
     updatePath(PkSize());
 }
 
-qreal StarShape::baseRadius() const
+double StarShape::baseRadius() const
 {
     return m_radius[base];
 }
 
-void StarShape::setTipRadius(qreal tipRadius)
+void StarShape::setTipRadius(double tipRadius)
 {
     m_radius[tip] = fabs(tipRadius);
     updatePath(PkSize());
 }
 
-qreal StarShape::tipRadius() const
+double StarShape::tipRadius() const
 {
     return m_radius[tip];
 }
 
-void StarShape::setBaseRoundness(qreal baseRoundness)
+void StarShape::setBaseRoundness(double baseRoundness)
 {
     m_roundness[base] = baseRoundness;
     updatePath(PkSize());
 }
 
-void StarShape::setTipRoundness(qreal tipRoundness)
+void StarShape::setTipRoundness(double tipRoundness)
 {
     m_roundness[tip] = tipRoundness;
     updatePath(PkSize());
@@ -127,10 +127,10 @@ void StarShape::moveHandleAction(int handleId, const PkPointF &point, Pk::Keyboa
     if (modifiers & Pk::ShiftModifier) {
         PkPointF handle = handles()[handleId];
         PkPointF tangentVector = point - handle;
-        qreal distance = sqrt(tangentVector.x() * tangentVector.x() + tangentVector.y() * tangentVector.y());
+        double distance = sqrt(tangentVector.x() * tangentVector.x() + tangentVector.y() * tangentVector.y());
         PkPointF radialVector = handle - m_center;
         // cross product to determine in which direction the user is dragging
-        qreal moveDirection = radialVector.x() * tangentVector.y() - radialVector.y() * tangentVector.x();
+        double moveDirection = radialVector.x() * tangentVector.y() - radialVector.y() * tangentVector.x();
         // make the roundness stick to zero if distance is under a certain value
         float snapDistance = 3.0;
         if (distance >= 0.0) {
@@ -151,12 +151,12 @@ void StarShape::moveHandleAction(int handleId, const PkPointF &point, Pk::Keyboa
         distVector.ry() /= m_zoomY;
         m_radius[handleId] = sqrt(distVector.x() * distVector.x() + distVector.y() * distVector.y());
 
-        qreal angle = atan2(distVector.y(), distVector.x());
+        double angle = atan2(distVector.y(), distVector.x());
         if (angle < 0.0) {
             angle += 2.0 * M_PI;
         }
-        qreal diffAngle = angle - m_angles[handleId];
-        qreal radianStep = M_PI / static_cast<qreal>(m_cornerCount);
+        double diffAngle = angle - m_angles[handleId];
+        double radianStep = M_PI / static_cast<double>(m_cornerCount);
         if (handleId == tip) {
             m_angles[tip] += diffAngle - radianStep;
             m_angles[base] += diffAngle - radianStep;
@@ -174,19 +174,19 @@ void StarShape::moveHandleAction(int handleId, const PkPointF &point, Pk::Keyboa
 void StarShape::updatePath(const PkSizeF &size)
 {
     (void)size;
-    qreal radianStep = M_PI / static_cast<qreal>(m_cornerCount);
+    double radianStep = M_PI / static_cast<double>(m_cornerCount);
 
     createPoints(m_convex ? m_cornerCount : 2 * m_cornerCount);
 
     KoSubpath &points = *subpaths()[0];
 
-    uint index = 0;
-    for (uint i = 0; i < 2 * m_cornerCount; ++i) {
-        uint cornerType = i % 2;
+    unsigned int index = 0;
+    for (unsigned int i = 0; i < 2 * m_cornerCount; ++i) {
+        unsigned int cornerType = i % 2;
         if (cornerType == base && m_convex) {
             continue;
         }
-        qreal radian = static_cast<qreal>((i + 1) * radianStep) + m_angles[cornerType];
+        double radian = static_cast<double>((i + 1) * radianStep) + m_angles[cornerType];
         PkPointF cornerPoint = PkPointF(m_zoomX * m_radius[cornerType] * cos(radian), m_zoomY * m_radius[cornerType] * sin(radian));
 
         points[index]->setPoint(m_center + cornerPoint);
@@ -261,7 +261,7 @@ PkPointF StarShape::computeCenter() const
     KoSubpath &points = *subpaths()[0];
 
     PkPointF center(0, 0);
-    for (uint i = 0; i < m_cornerCount; ++i) {
+    for (unsigned int i = 0; i < m_cornerCount; ++i) {
         if (m_convex) {
             center += points[i]->point();
         } else {
@@ -269,7 +269,7 @@ PkPointF StarShape::computeCenter() const
         }
     }
     if (m_cornerCount > 0) {
-        return center / static_cast<qreal>(m_cornerCount);
+        return center / static_cast<double>(m_cornerCount);
     }
     return center;
 
@@ -282,7 +282,7 @@ PkString StarShape::pathShapeId() const
 
 double StarShape::defaultAngleRadian() const
 {
-    qreal radianStep = M_PI / static_cast<qreal>(m_cornerCount);
+    double radianStep = M_PI / static_cast<double>(m_cornerCount);
 
     return M_PI_2 - 2 * radianStep;
 }

@@ -84,7 +84,7 @@ void EllipseShape::moveHandleAction(int handleId, const PkPointF &point, Pk::Key
 
     PkPointF diff(m_center - point);
     diff.setX(-diff.x());
-    qreal angle = 0;
+    double angle = 0;
     if (diff.x() == 0) {
         angle = (diff.y() < 0 ? 270 : 90) * M_PI / 180.0;
     } else {
@@ -144,7 +144,7 @@ void EllipseShape::updatePath(const PkSizeF &size)
     PkPointF startpoint(handles()[0]);
 
     PkPointF curvePoints[12];
-    const qreal distance = sweepAngle();
+    const double distance = sweepAngle();
 
     const bool sameAngles = distance > 359.9;
     int pointCnt = arcToCurve(m_radii.x(), m_radii.y(), m_startAngle, distance, startpoint, curvePoints);
@@ -224,7 +224,7 @@ void EllipseShape::createPoints(int requiredPointCount)
 
 void EllipseShape::updateKindHandle()
 {
-    qreal angle = 0.5 * (m_startAngle + m_endAngle);
+    double angle = 0.5 * (m_startAngle + m_endAngle);
     if (m_startAngle > m_endAngle) {
         angle += 180.0;
     }
@@ -248,20 +248,20 @@ void EllipseShape::updateKindHandle()
 
 void EllipseShape::updateAngleHandles()
 {
-    qreal startRadian = kisDegreesToRadians(normalizeAngleDegrees(m_startAngle));
-    qreal endRadian = kisDegreesToRadians(normalizeAngleDegrees(m_endAngle));
+    double startRadian = kisDegreesToRadians(normalizeAngleDegrees(m_startAngle));
+    double endRadian = kisDegreesToRadians(normalizeAngleDegrees(m_endAngle));
     PkList<PkPointF> handles = this->handles();
     handles[0] = m_center + PkPointF(cos(startRadian) * m_radii.x(), -sin(startRadian) * m_radii.y());
     handles[1] = m_center + PkPointF(cos(endRadian) * m_radii.x(), -sin(endRadian) * m_radii.y());
     setHandles(handles);
 }
 
-qreal EllipseShape::sweepAngle() const
+double EllipseShape::sweepAngle() const
 {
-    const qreal a1 = normalizeAngle(kisDegreesToRadians(m_startAngle));
-    const qreal a2 = normalizeAngle(kisDegreesToRadians(m_endAngle));
+    const double a1 = normalizeAngle(kisDegreesToRadians(m_startAngle));
+    const double a2 = normalizeAngle(kisDegreesToRadians(m_endAngle));
 
-    qreal sAngle = a2 - a1;
+    double sAngle = a2 - a1;
 
     if (a1 > a2) {
         sAngle = 2 * M_PI + sAngle;
@@ -286,7 +286,7 @@ EllipseShape::EllipseType EllipseShape::type() const
     return m_type;
 }
 
-void EllipseShape::setStartAngle(qreal angle)
+void EllipseShape::setStartAngle(double angle)
 {
     m_startAngle = angle;
     updateKindHandle();
@@ -294,12 +294,12 @@ void EllipseShape::setStartAngle(qreal angle)
     updatePath(size());
 }
 
-qreal EllipseShape::startAngle() const
+double EllipseShape::startAngle() const
 {
     return m_startAngle;
 }
 
-void EllipseShape::setEndAngle(qreal angle)
+void EllipseShape::setEndAngle(double angle)
 {
     m_endAngle = angle;
     updateKindHandle();
@@ -307,7 +307,7 @@ void EllipseShape::setEndAngle(qreal angle)
     updatePath(size());
 }
 
-qreal EllipseShape::endAngle() const
+double EllipseShape::endAngle() const
 {
     return m_endAngle;
 }
@@ -382,11 +382,11 @@ bool EllipseShape::saveSvg(SvgSavingContext &context)
 
 bool EllipseShape::loadSvg(const PkXmlElement &element, SvgLoadingContext &context)
 {
-    qreal rx = 0, ry = 0;
-    qreal cx = 0;
-    qreal cy = 0;
-    qreal start = 0;
-    qreal end = 0;
+    double rx = 0, ry = 0;
+    double cx = 0;
+    double cy = 0;
+    double start = 0;
+    double end = 0;
     EllipseType type = Arc;
 
     const PkString extendedNamespace =

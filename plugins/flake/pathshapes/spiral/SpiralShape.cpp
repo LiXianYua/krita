@@ -82,7 +82,7 @@ void SpiralShape::moveHandleAction(int handleId, const PkPointF &point, Pk::Keyb
 
     PkPointF diff(m_center - point);
     diff.setX(-diff.x());
-    qreal angle = 0;
+    double angle = 0;
     if (diff.x() == 0) {
         angle = (diff.y() < 0 ? 270 : 90) * M_PI / 180.0;
     } else {
@@ -179,25 +179,25 @@ void SpiralShape::createPath(const PkSizeF &size)
     clear();
     PkPointF center = PkPointF(m_radii.x() / 2.0, m_radii.y() / 2.0);
     //moveTo(PkPointF(size.width(), m_radii.y()));
-    qreal adv_ang = (m_clockwise ? -1.0 : 1.0) * M_PI_2;
+    double adv_ang = (m_clockwise ? -1.0 : 1.0) * M_PI_2;
     // radius of first segment is non-faded radius:
-    qreal m_radius = m_radii.x() / 2.0;
-    qreal r = m_radius;
+    double m_radius = m_radii.x() / 2.0;
+    double r = m_radius;
 
     PkPointF oldP(center.x(), (m_clockwise ? -1.0 : 1.0) * m_radius + center.y());
     PkPointF newP;
     PkPointF newCenter(center);
     moveTo(oldP);
-    uint m_segments = 10;
+    unsigned int m_segments = 10;
     //m_handles[0] = oldP;
 
-    for (uint i = 0; i < m_segments; ++i) {
+    for (unsigned int i = 0; i < m_segments; ++i) {
         newP.setX(r * cos(adv_ang * (i + 2)) + newCenter.x());
         newP.setY(r * sin(adv_ang * (i + 2)) + newCenter.y());
 
         if (m_type == Curve) {
-            qreal rx = std::abs(oldP.x() - newP.x());
-            qreal ry = std::abs(oldP.y() - newP.y());
+            double rx = std::abs(oldP.x() - newP.x());
+            double ry = std::abs(oldP.y() - newP.y());
             if (m_clockwise) {
                 arcTo(rx, ry, ((i + 1) % 4) * 90, 90);
             } else {
@@ -239,8 +239,8 @@ void SpiralShape::updateKindHandle()
 
 void SpiralShape::updateAngleHandles()
 {
-//    qreal startRadian = m_startAngle * M_PI / 180.0;
-//    qreal endRadian = m_endAngle * M_PI / 180.0;
+//    double startRadian = m_startAngle * M_PI / 180.0;
+//    double endRadian = m_endAngle * M_PI / 180.0;
 //    m_handles[0] = m_center + PkPointF(cos(startRadian) * m_radii.x(), -sin(startRadian) * m_radii.y());
 //    m_handles[1] = m_center + PkPointF(cos(endRadian) * m_radii.x(), -sin(endRadian) * m_radii.y());
 }
@@ -257,7 +257,7 @@ SpiralShape::SpiralType SpiralShape::type() const
     return m_type;
 }
 
-void SpiralShape::setFade(qreal fade)
+void SpiralShape::setFade(double fade)
 {
     m_fade = fade;
     updateKindHandle();
@@ -265,7 +265,7 @@ void SpiralShape::setFade(qreal fade)
     updatePath(size());
 }
 
-qreal SpiralShape::fade() const
+double SpiralShape::fade() const
 {
     return m_fade;
 }

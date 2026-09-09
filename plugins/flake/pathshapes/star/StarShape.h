@@ -41,29 +41,29 @@ public:
      *
      * @param cornerCount the new number of corners
      */
-    void setCornerCount(uint cornerCount);
+    void setCornerCount(unsigned int cornerCount);
 
     /// Returns the number of corners
-    uint cornerCount() const;
+    unsigned int cornerCount() const;
 
     /**
      * Sets the radius of the base points.
      * The base radius has no meaning if the star is set convex.
      * @param baseRadius the new base radius
      */
-    void setBaseRadius(qreal baseRadius);
+    void setBaseRadius(double baseRadius);
 
     /// Returns the base radius
-    qreal baseRadius() const;
+    double baseRadius() const;
 
     /**
      * Sets the radius of the tip points.
      * @param tipRadius the new tip radius
      */
-    void setTipRadius(qreal tipRadius);
+    void setTipRadius(double tipRadius);
 
     /// Returns the tip radius
-    qreal tipRadius() const;
+    double tipRadius() const;
 
     /**
      * Sets the roundness at the base points.
@@ -72,7 +72,7 @@ public:
      *
      * @param baseRoundness the new base roundness
      */
-    void setBaseRoundness(qreal baseRoundness);
+    void setBaseRoundness(double baseRoundness);
 
     /**
      * Sets the roundness at the tip points.
@@ -81,7 +81,7 @@ public:
      *
      * @param tipRoundness the new base roundness
      */
-    void setTipRoundness(qreal tipRoundness);
+    void setTipRoundness(double tipRoundness);
 
     /**
      * Sets the star to be convex, looking like a polygon.
@@ -123,12 +123,12 @@ private:
     /// the handle types
     enum Handles { tip = 0, base = 1 };
 
-    uint m_cornerCount;    ///< number of corners
-    std::array<qreal, 2> m_radius;    ///< the different radii
-    std::array<qreal, 2> m_angles;    ///< the offset angles
-    qreal m_zoomX;        ///< scaling in x
-    qreal m_zoomY;        ///< scaling in y
-    std::array<qreal, 2> m_roundness; ///< the roundness at the handles
+    unsigned int m_cornerCount;    ///< number of corners
+    std::array<double, 2> m_radius;    ///< the different radii
+    std::array<double, 2> m_angles;    ///< the offset angles
+    double m_zoomX;        ///< scaling in x
+    double m_zoomY;        ///< scaling in y
+    std::array<double, 2> m_roundness; ///< the roundness at the handles
     PkPointF m_center;      ///< the star center point
     bool m_convex;         ///< controls if the star is convex
 };

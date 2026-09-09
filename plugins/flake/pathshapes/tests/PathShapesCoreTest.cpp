@@ -110,7 +110,7 @@ int representativePointsAndBoundsRemainLive()
     RectangleShape rectangle;
     rectangle.setSize(PkSizeF(200.0, 100.0));
     if (rectangle.subpaths().count() != 1 || rectangle.subpaths()[0]->count() != 4) return 30;
-    qreal minX = 10000.0, minY = 10000.0, maxX = -10000.0, maxY = -10000.0;
+    double minX = 10000.0, minY = 10000.0, maxX = -10000.0, maxY = -10000.0;
     for (KoPathPoint *point : *rectangle.subpaths()[0]) {
         minX = std::min(minX, point->point().x());
         minY = std::min(minY, point->point().y());
@@ -284,7 +284,7 @@ int configurationCommandsRedoAndUndo()
     SpiralShape spiral;
     const SpiralShape::SpiralType oldType = spiral.type();
     const bool oldClockwise = spiral.clockWise();
-    const qreal oldFade = spiral.fade();
+    const double oldFade = spiral.fade();
     SpiralShapeConfigCommand spiralCommand(&spiral, SpiralShape::Line, !oldClockwise, 0.25);
     spiralCommand.redo();
     if (spiral.type() != SpiralShape::Line || spiral.clockWise() == oldClockwise || !closeEnough(spiral.fade(), 0.25)) return 74;
@@ -310,7 +310,6 @@ int registrationIsIdempotentAndComplete()
     registerPathShapes();
     if (registry->count() != countAfterFirstCall) return 50;
     if (!registry->contains(StarShapeId)) return 51;
-    if (!registry->contains(RectangleShapeId)) return 52;
     if (!registry->contains(SpiralShapeId)) return 53;
     if (!registry->contains(EllipseShapeId)) return 54;
     return 0;

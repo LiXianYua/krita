@@ -11,6 +11,6 @@
 
 class KoPathShape;
 
-void karbonSimplifyPath(KoPathShape *path, qreal error);
+void karbonSimplifyPath(KoPathShape *path, double error);
 
 #endif // KARBONSIMPLIFYPATH_H

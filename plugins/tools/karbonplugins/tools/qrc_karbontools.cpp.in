@@ -1,0 +1,23 @@
+/*
+ * SPDX-License-Identifier: LGPL-2.0-or-later
+ */
+#include "KarbonToolsResources.h"
+
+namespace
+{
+const unsigned char calligraphyIconPng[] = {
+    @KARBON_CALLIGRAPHY_PNG_BYTES@
+};
+
+static_assert(sizeof(calligraphyIconPng) == @KARBON_CALLIGRAPHY_PNG_SIZE@,
+              "generated calligraphy icon size mismatch");
+}
+
+KarbonToolsResource karbonCalligraphyIconPng()
+{
+    return {calligraphyIconPng, sizeof(calligraphyIconPng)};
+}
+
+void karbonToolsResourceAnchor()
+{
+}

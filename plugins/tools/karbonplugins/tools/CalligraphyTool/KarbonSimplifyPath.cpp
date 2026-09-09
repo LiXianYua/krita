@@ -29,7 +29,7 @@ FIXME: bezier fit seems to crash when getting to many points in input,
 
 namespace KarbonSimplifyPath
 {
-const qreal SUBDIVISION_COEFF = 100; // use error instead?
+const double SUBDIVISION_COEFF = 100; // use error instead?
 const int MAX_RECURSIVE_DEPTH = 1024;
 int recursiveDepth;
 
@@ -45,9 +45,9 @@ KoSubpath subdivideAux(KoPathPoint *p1, KoPathPoint *p2);
 bool isSufficientlyFlat(PkPointF curve[4]);
 
 // after this call the points _are_ owned by the subpaths
-void simplifySubpaths(PkList<KoSubpath *> *subpaths, qreal error);
+void simplifySubpaths(PkList<KoSubpath *> *subpaths, double error);
 // auxiliary function for the above
-void simplifySubpath(KoSubpath *subpath, qreal error);
+void simplifySubpath(KoSubpath *subpath, double error);
 
 // put the result into path
 void mergeSubpaths(PkList<KoSubpath *> subpaths, KoPathShape *path);
@@ -56,7 +56,7 @@ void mergeSubpaths(PkList<KoSubpath *> subpaths, KoPathShape *path);
 using namespace KarbonSimplifyPath;
 
 // TODO: rename to simplify subpath
-void karbonSimplifyPath(KoPathShape *path, qreal error)
+void karbonSimplifyPath(KoPathShape *path, double error)
 {
     if (path->pointCount() == 0) {
         return;
@@ -200,23 +200,23 @@ KoSubpath KarbonSimplifyPath::subdivideAux(KoPathPoint *p1,
 
 bool KarbonSimplifyPath::isSufficientlyFlat(PkPointF curve[4])
 {
-    qreal ux = 3 * curve[1].x() - 2 * curve[0].x() - curve[3].x();
-    qreal uy = 3 * curve[1].y() - 2 * curve[0].y() - curve[3].y();
-    qreal vx = 3 * curve[2].x() - 2 * curve[3].x() - curve[0].x();
-    qreal vy = 3 * curve[2].x() - 2 * curve[3].x() - curve[0].x();
+    double ux = 3 * curve[1].x() - 2 * curve[0].x() - curve[3].x();
+    double uy = 3 * curve[1].y() - 2 * curve[0].y() - curve[3].y();
+    double vx = 3 * curve[2].x() - 2 * curve[3].x() - curve[0].x();
+    double vy = 3 * curve[2].x() - 2 * curve[3].x() - curve[0].x();
 
     // calculate the square of the distance between the points
-    qreal dx = curve[0].x() - curve[3].y();
-    qreal dy = curve[0].y() - curve[3].y();
-    qreal dist2 = dx * dx + dy * dy;
-    qreal max2 = pkMax(ux * ux, vx * vx) + pkMax(uy * uy, vy * vy);
+    double dx = curve[0].x() - curve[3].y();
+    double dy = curve[0].y() - curve[3].y();
+    double dist2 = dx * dx + dy * dy;
+    double max2 = pkMax(ux * ux, vx * vx) + pkMax(uy * uy, vy * vy);
     max2 *= (SUBDIVISION_COEFF * SUBDIVISION_COEFF);
 
     return max2 <= dist2;
 }
 
 void KarbonSimplifyPath::simplifySubpaths(PkList<KoSubpath *> *subpaths,
-        qreal error)
+        double error)
 {
     for (KoSubpath *subpath : *subpaths) {
         if (subpath->size() > 2) {
@@ -225,7 +225,7 @@ void KarbonSimplifyPath::simplifySubpaths(PkList<KoSubpath *> *subpaths,
     }
 }
 
-void KarbonSimplifyPath::simplifySubpath(KoSubpath *subpath, qreal error)
+void KarbonSimplifyPath::simplifySubpath(KoSubpath *subpath, double error)
 {
     PkList<PkPointF> points;
 

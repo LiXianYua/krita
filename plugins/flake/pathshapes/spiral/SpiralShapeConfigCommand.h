@@ -22,7 +22,7 @@ public:
      * @param fade the fade parameter
      * @param parent the optional parent command
      */
-    SpiralShapeConfigCommand(SpiralShape *spiral, SpiralShape::SpiralType type, bool clockWise, qreal fade, KUndo2Command *parent = 0);
+    SpiralShapeConfigCommand(SpiralShape *spiral, SpiralShape::SpiralType type, bool clockWise, double fade, KUndo2Command *parent = 0);
     /// redo the command
     void redo() override;
     /// revert the actions done in redo
@@ -31,10 +31,10 @@ private:
     SpiralShape *m_spiral;
     SpiralShape::SpiralType m_oldType;
     bool m_oldClockWise;
-    qreal m_oldFade;
+    double m_oldFade;
     SpiralShape::SpiralType m_newType;
     bool m_newClockWise;
-    qreal m_newFade;
+    double m_newFade;
 };
 
 #endif // SPIRALSHAPECONFIGCOMMAND_H
