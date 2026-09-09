@@ -3,11 +3,7 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtGlobal>
-#include <QtGui/QtGui>
-
 #include "KoClipMaskApplicatorBase.h"
-// [migrate] missing include for Pk/Qt type
 #include <PkRgb.h>
 
 void KoClipMaskApplicatorBase::fallbackLuminanceMask(quint8 *pixels, quint8 *maskPixels, const int nPixels) const{
@@ -24,9 +20,9 @@ void KoClipMaskApplicatorBase::fallbackLuminanceMask(quint8 *pixels, quint8 *mas
         const PkRgb mask = *mP;
         const PkRgb shape = *sP;
 
-        const float maskValue = qAlpha(mask) * (redLum * qRed(mask) + greenLum * qGreen(mask) + blueLum * qBlue(mask)) * normCoeff;
+        const float maskValue = pkAlpha(mask) * (redLum * pkRed(mask) + greenLum * pkGreen(mask) + blueLum * pkBlue(mask)) * normCoeff;
 
-        const quint8 alpha = OptiRound<xsimd::generic, quint8>::roundScalar(maskValue * float(qAlpha(shape) * normCoeff));
+        const quint8 alpha = OptiRound<xsimd::generic, quint8>::roundScalar(maskValue * float(pkAlpha(shape) * normCoeff));
 
         *sP = (alpha << 24) | (shape & colorChannelsMask);
 

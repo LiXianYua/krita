@@ -4,18 +4,17 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <KoShapeBulkActionLock.h>
 
 #include <kis_debug.h>
+#include <FlakeDebug.h>
 #include <KoShape.h>
 
 #include <KoShapeBulkActionInterface.h>
 
 KoShapeBulkActionLockAdapter::KoShapeBulkActionLockAdapter(const PkList<KoShape*> &shapes)
 {
-    Q_FOREACH(KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         // explicitly called shaped will be "updated" in both
         // ways, using normal updates and dependent bulk updates
         m_normalUpdateShapes.append(shape);
@@ -39,7 +38,7 @@ void KoShapeBulkActionLockAdapter::tryAddBulkInterfaceShape(KoShape *shape)
 
 void KoShapeBulkActionLockAdapter::addBulkInterfaceDependees(const PkList<KoShape*> dependees)
 {
-    Q_FOREACH(KoShape *shape, dependees) {
+    for (KoShape *shape : dependees) {
         tryAddBulkInterfaceShape(shape);
         addBulkInterfaceDependees(shape->dependees());
     }
@@ -49,11 +48,11 @@ void KoShapeBulkActionLockAdapter::lock()
 {
     m_finalUpdates.clear();
 
-    Q_FOREACH(KoShape *shape, m_normalUpdateShapes) {
+    for (KoShape *shape : m_normalUpdateShapes) {
         m_finalUpdates[shape] |= shape->boundingRect();
     }
 
-    Q_FOREACH(KoShapeBulkActionInterface *iface, m_bulkInterfaceShapes) {
+    for (KoShapeBulkActionInterface *iface : m_bulkInterfaceShapes) {
         iface->startBulkAction();
     }
 
@@ -61,7 +60,7 @@ void KoShapeBulkActionLockAdapter::lock()
 
 void KoShapeBulkActionLockAdapter::unlock()
 {
-    Q_FOREACH(KoShapeBulkActionInterface *iface, m_bulkInterfaceShapes) {
+    for (KoShapeBulkActionInterface *iface : m_bulkInterfaceShapes) {
         const PkRectF update = iface->endBulkAction();
 
         KoShape *shape = dynamic_cast<KoShape*>(iface);
@@ -69,7 +68,7 @@ void KoShapeBulkActionLockAdapter::unlock()
         m_finalUpdates[shape] |= update;
     }
 
-    Q_FOREACH(KoShape *shape, m_normalUpdateShapes) {
+    for (KoShape *shape : m_normalUpdateShapes) {
         m_finalUpdates[shape] |= shape->boundingRect();
     }
 }
@@ -90,7 +89,7 @@ KoShapeBulkActionLockAdapter::takeFinalUpdatesList()
 KoShapeBulkActionLock::~KoShapeBulkActionLock()
 {
     if (owns_lock()) {
-        qWarning() << "WARNING: KoShapeBulkActionLock is destroyed while being locked. Update rect will be lost!";
+        warnFlake << "WARNING: KoShapeBulkActionLock is destroyed while being locked. Update rect will be lost!";
     }
 }
 

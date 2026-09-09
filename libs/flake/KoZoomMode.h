@@ -8,14 +8,13 @@
 #ifndef _KOZOOMMODE_H_
 #define _KOZOOMMODE_H_
 
-#include <QFlags>
+#include <PkFlags.h>
+#include <PkDebug.h>
 #include "kritaflake_export.h"
 // [migrate] missing include for Pk/Qt type
 #include <PkString.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkVector.h>
-
-class QDebug;
 
 /**
  * The ZoomMode container
@@ -31,7 +30,7 @@ public:
         ZOOM_HEIGHT   = 16,  ///< zoom pageheight
     };
 
-    Q_DECLARE_FLAGS(Modes, Mode)
+    PK_DECLARE_FLAGS(Modes, Mode)
 
     /// \return the to PkString converted and translated Mode \c mode
     static PkString toString(Mode mode);
@@ -56,9 +55,9 @@ private:
     static const char * const modes[];
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KoZoomMode::Modes)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KoZoomMode::Modes)
 
 KRITAFLAKE_EXPORT
-QDebug operator<<(QDebug dbg, const KoZoomMode::Mode &mode);
+PkDebug operator<<(PkDebug dbg, const KoZoomMode::Mode &mode);
 
 #endif

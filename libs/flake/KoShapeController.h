@@ -11,12 +11,8 @@
 
 #include "kritaflake_export.h"
 
-#include <QObject>
 #include <PkList.h>
 #include <PkRect.h>
-#if defined(QT_CORE_LIB)
-#include <QMetaType>
-#endif
 
 class KoCanvasBase;
 class KoShape;
@@ -34,10 +30,8 @@ class KoDocumentResourceManager;
  * from this class for maintaining the list of shapes in the document. So no tool gets
  * to access the application directly.
  */
-class KRITAFLAKE_EXPORT KoShapeController : public QObject
+class KRITAFLAKE_EXPORT KoShapeController
 {
-    Q_OBJECT
-
 public:
     /**
      * Create a new Controller; typically not called by applications, only
@@ -47,7 +41,7 @@ public:
      */
     KoShapeController(KoCanvasBase *canvas, KoShapeControllerBase *shapeController);
     /// destructor
-    ~KoShapeController() override;
+    ~KoShapeController();
 
     /**
      * @brief reset sets the canvas and shapebased document to 0.
@@ -157,9 +151,5 @@ private:
     class Private;
     Private * const d;
 };
-
-#if defined(QT_CORE_LIB)
-Q_DECLARE_METATYPE(KoShapeController *)
-#endif
 
 #endif

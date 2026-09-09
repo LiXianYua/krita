@@ -6,9 +6,11 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QMultiMap>
-#include <PkFlakeBridge.h>
+#include <PkMessageLogger.h>
 #include <PkVariant.h>
+
+#include <cassert>
+#include <map>
 
 #include "KoShapeLoadingContext.h"
 #include "KoShape.h"
@@ -18,16 +20,9 @@
 #include "KoDocumentResourceManager.h"
 #include "KoLoadingShapeUpdater.h"
 
-#include <FlakeDebug.h>
-
-uint qHash(const KoShapeLoadingContext::AdditionalAttributeData & attributeData)
-{
-    return qHash(toQString(attributeData.name));
-}
-
 static PkSet<KoShapeLoadingContext::AdditionalAttributeData> s_additionalAttributes;
 
-class Q_DECL_HIDDEN KoShapeLoadingContext::Private
+class KoShapeLoadingContext::Private
 {
 public:
     Private(KoStore *store, KoDocumentResourceManager *resourceManager)
@@ -39,7 +34,7 @@ public:
     }
 
     ~Private() {
-        Q_FOREACH (KoSharedLoadingData * data, sharedData) {
+        for (KoSharedLoadingData *data : sharedData) {
             delete data;
         }
     }
@@ -51,8 +46,8 @@ public:
     PkMap<PkString, std::pair<KoShape *, PkVariant> > subIds;
     PkMap<PkString, KoSharedLoadingData *> sharedData; //FIXME: use PkScopedPointer here to auto delete in destructor
     int zIndex;
-    QMultiMap<PkString, KoLoadingShapeUpdater*> updaterById;
-    QMultiMap<KoShape *, KoLoadingShapeUpdater*> updaterByShape;
+    std::multimap<PkString, KoLoadingShapeUpdater*> updaterById;
+    std::multimap<KoShape *, KoLoadingShapeUpdater*> updaterByShape;
     KoDocumentResourceManager *documentResources;
     KoSectionModel *sectionModel; };
 
@@ -73,8 +68,8 @@ KoStore *KoShapeLoadingContext::store() const
 
 PkString KoShapeLoadingContext::mimeTypeForPath(const PkString &href, bool b)
 {
-    Q_UNUSED(href);
-    Q_UNUSED(b);
+    (void)href;
+    (void)b;
     return "image/svg+xml";
 }
 
@@ -96,9 +91,10 @@ void KoShapeLoadingContext::clearLayers()
 void KoShapeLoadingContext::addShapeId(KoShape * shape, const PkString & id)
 {
     d->drawIds.insert(id, shape);
-    auto it(d->updaterById.find(id));
-    while (it != d->updaterById.end() && it.key() == id) {
-        d->updaterByShape.insert(shape, it.value());
+    auto it = d->updaterById.lower_bound(id);
+    const auto end = d->updaterById.upper_bound(id);
+    while (it != end) {
+        d->updaterByShape.emplace(shape, it->second);
         it = d->updaterById.erase(it);
     }
 }
@@ -122,15 +118,16 @@ std::pair<KoShape *, PkVariant> KoShapeLoadingContext::shapeSubItemById(const Pk
 // TODO make sure to remove the shape from the loading context when loading for it failed and it was deleted. This can also happen when the parent is deleted
 void KoShapeLoadingContext::updateShape(const PkString & id, KoLoadingShapeUpdater * shapeUpdater)
 {
-    d->updaterById.insert(id, shapeUpdater);
+    d->updaterById.emplace(id, shapeUpdater);
 }
 
 void KoShapeLoadingContext::shapeLoaded(KoShape * shape)
 {
-    auto it(d->updaterByShape.find(shape));
-    while (it != d->updaterByShape.end() && it.key() == shape) {
-        it.value()->update(shape);
-        delete it.value();
+    auto it = d->updaterByShape.lower_bound(shape);
+    const auto end = d->updaterByShape.upper_bound(shape);
+    while (it != end) {
+        it->second->update(shape);
+        delete it->second;
         it = d->updaterByShape.erase(it);
     }
 }
@@ -153,8 +150,9 @@ void KoShapeLoadingContext::addSharedData(const PkString & id, KoSharedLoadingDa
     if (it == d->sharedData.end()) {
         d->sharedData.insert(id, data);
     } else {
-        warnFlake << "The id" << id << "is already registered. Data not inserted";
-        Q_ASSERT(it == d->sharedData.end());
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+            << "The id" << id << "is already registered. Data not inserted";
+        assert(it == d->sharedData.end());
     }
 }
 

@@ -7,22 +7,22 @@
 #ifndef KOSHAPEFILLRESOURCECONNECTOR_H
 #define KOSHAPEFILLRESOURCECONNECTOR_H
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkScopedPointer.h>
+#include <PkVariant.h>
 
 class KoCanvasBase;
 
-class KoShapeFillResourceConnector : public QObject
+class KoShapeFillResourceConnector : public PkObject
 {
-    Q_OBJECT
 public:
-    explicit KoShapeFillResourceConnector(QObject *parent = 0);
+    explicit KoShapeFillResourceConnector(PkObject *parent = nullptr);
     ~KoShapeFillResourceConnector();
 
     void connectToCanvas(KoCanvasBase *canvas);
     void disconnect();
 
-private Q_SLOTS:
+private:
     void slotCanvasResourceChanged(int key, const PkVariant &value);
 
 private:

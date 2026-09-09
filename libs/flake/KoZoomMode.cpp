@@ -6,13 +6,9 @@
 */
 
 #include "KoZoomMode.h"
-#include <PkFlakeBridge.h>
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
-
-#include <QDebug>
-
-#include <klocalizedstring.h>
+#include <PkGlobal.h>
 #include <cmath>
 #include "kis_assert.h"
 // [migrate] missing include for Pk/Qt type
@@ -26,11 +22,11 @@ PkString KoZoomMode::toString(Mode mode)
     case KoZoomMode::ZOOM_CONSTANT:
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(0 && "constant zoom has no user-friendly representation", "XXX");
     case KoZoomMode::ZOOM_PAGE:
-        return toPkString(i18n("Fit View"));
+        return "Fit View";
     case KoZoomMode::ZOOM_WIDTH:
-        return toPkString(i18n("Fit Width"));
+        return "Fit Width";
     case KoZoomMode::ZOOM_HEIGHT:
-        return toPkString(i18n("Fit Height"));
+        return "Fit Height";
     }
     return "";
 }
@@ -72,7 +68,7 @@ qreal KoZoomMode::findNextZoom(qreal currentZoom, const PkVector<qreal> &zoomLev
         i++;
     }
 
-    return qMax(currentZoom, zoomLevels[i]);
+    return pkMax(currentZoom, zoomLevels[i]);
 }
 
 qreal KoZoomMode::findPrevZoom(qreal currentZoom, const PkVector<qreal> &zoomLevels)
@@ -81,10 +77,10 @@ qreal KoZoomMode::findPrevZoom(qreal currentZoom, const PkVector<qreal> &zoomLev
     int i = zoomLevels.size() - 1;
     while (i > 0 && currentZoom < zoomLevels[i] + eps) i--;
 
-    return qMin(currentZoom, zoomLevels[i]);
+    return pkMin(currentZoom, zoomLevels[i]);
 }
 
-QDebug operator<<(QDebug dbg, const KoZoomMode::Mode &mode)
+PkDebug operator<<(PkDebug dbg, const KoZoomMode::Mode &mode)
 {
     dbg.nospace() << "KoZoomMode::Mode(";
 

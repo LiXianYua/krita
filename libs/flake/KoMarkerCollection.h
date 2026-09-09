@@ -9,19 +9,17 @@
 
 #include "kritaflake_export.h"
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkList.h>
-#include <QMetaType>
 
 class KoMarker;
 #include <PkXmlDocument.h>
 class KoShapeLoadingContext;
 
-class KRITAFLAKE_EXPORT KoMarkerCollection : public QObject
+class KRITAFLAKE_EXPORT KoMarkerCollection : public PkObject
 {
-    Q_OBJECT
 public:
-    explicit KoMarkerCollection(QObject *parent = 0);
+    explicit KoMarkerCollection(PkObject *parent = nullptr);
     ~KoMarkerCollection() override;
 
     PkList<KoMarker*> markers() const;
@@ -48,7 +46,5 @@ private:
     class Private;
     Private * const d;
 };
-
-Q_DECLARE_METATYPE(KoMarkerCollection *)
 
 #endif /* KOMARKERCOLLECTION_H */

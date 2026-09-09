@@ -7,10 +7,11 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QtCore/QtCore>
 #include <PkHash.h>
-#include <PkFlakeBridge.h>
+#include <PkMessageLogger.h>
 #include "KoShapeSavingContext.h"
+
+#include <cassert>
 
 #include "KoShapeLayer.h"
 #include "KoMarker.h"
@@ -20,7 +21,6 @@
 #include <KoStoreDevice.h>
 #include <KoSharedSavingData.h>
 
-#include <FlakeDebug.h>
 #include <pk/uuid/PkNodeId.h>
 #include <PkImage.h>
 #include <KisMimeDatabase.h>
@@ -56,7 +56,7 @@ KoShapeSavingContextPrivate::KoShapeSavingContextPrivate(KoXmlWriter &w)
 
 KoShapeSavingContextPrivate::~KoShapeSavingContextPrivate()
 {
-    Q_FOREACH (KoSharedSavingData * data, sharedData) {
+    for (KoSharedSavingData *data : sharedData) {
         delete data;
     }
 }
@@ -118,9 +118,9 @@ void KoShapeSavingContext::addLayerForSaving(const KoShapeLayer *layer)
 void KoShapeSavingContext::saveLayerSet(KoXmlWriter &xmlWriter) const
 {
     xmlWriter.startElement("draw:layer-set");
-    Q_FOREACH (const KoShapeLayer * layer, d->layers) {
+    for (const KoShapeLayer *layer : d->layers) {
         xmlWriter.startElement("draw:layer");
-        xmlWriter.addAttribute("draw:name", toPkString(layer->name()));
+        xmlWriter.addAttribute("draw:name", layer->name());
         if (layer->isGeometryProtected())
             xmlWriter.addAttribute("draw:protected", "true");
         if (! layer->isVisible(false))
@@ -152,8 +152,9 @@ void KoShapeSavingContext::addSharedData(const PkString &id, KoSharedSavingData 
     if (it == d->sharedData.end()) {
         d->sharedData.insert(id, data);
     } else {
-        warnFlake << "The id" << id << "is already registered. Data not inserted";
-        Q_ASSERT(it == d->sharedData.end());
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+            << "The id" << id << "is already registered. Data not inserted";
+        assert(it == d->sharedData.end());
     }
 }
 

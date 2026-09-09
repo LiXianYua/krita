@@ -3,8 +3,6 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoFontFamily.h"
 #include "KoFontFamilyMetadata.h"
 #include "KoLcLocale.h"
@@ -12,9 +10,8 @@
 #include <KoSvgTextShape.h>
 #include <KoColorBackground.h>
 #include <SvgWriter.h>
-#include <QPainter>
 #include <PkMemoryStream.h>
-#include <QDebug>
+#include <PkMessageLogger.h>
 #include <KoShapePainter.h>
 #include <KisResourceTypes.h>
 
@@ -22,9 +19,7 @@
 #include <PkDateTime.h>
 #include <PkAuxTypes.h>
 
-#include <cstring>
 #include <utility>
-#include <vector>
 
 struct KoFontFamily::Private {
 };
@@ -132,28 +127,6 @@ PkVariantMap buildStyleEntryFromQt(const KoSvgText::FontFamilyStyleInfo &style)
         coords, style.isItalic, style.isOblique);
 }
 
-// PkImage → PkImage。PkImage::Format 数值与 PkImage::Format 顺序一致（见
-// pk/image/PkImage.h，自 Format_Invalid 起逐项对应），用 static_cast 直转；
-// 像素逐 scanLine 拷贝；索引色表也拷贝。
-PkImage qimageToPkImage(const PkImage &img)
-{
-    PkImage out(img.width(), img.height(), static_cast<PkImage::Format>(img.format()));
-    for (int y = 0; y < img.height(); ++y) {
-        const uchar *src = img.constScanLine(y);
-        uint8_t *dst = out.scanLine(y);
-        std::memcpy(dst, src, size_t(img.bytesPerLine()));
-    }
-    if (img.colorCount() > 0) {
-        std::vector<uint32_t> table;
-        table.reserve(size_t(img.colorCount()));
-        for (int i = 0; i < img.colorCount(); ++i) {
-            table.push_back(img.color(i));
-        }
-        out.setColorTable(table);
-    }
-    return out;
-}
-
 } // namespace
 
 KoFontFamily::KoFontFamily(KoFontFamilyWWSRepresentation representation)
@@ -174,7 +147,7 @@ KoFontFamily::KoFontFamily(KoFontFamilyWWSRepresentation representation)
 
     PkVariantMap samples;
     for (auto it = representation.sampleStrings.constBegin(); it != representation.sampleStrings.constEnd(); ++it) {
-        samples.emplace(toPkString(it.key()), PkVariant(it.value()));
+        samples.emplace(it.key(), PkVariant(it.value()));
     }
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_STRING, samples);
     PkVariantList supportedLanguages;
@@ -280,7 +253,7 @@ void KoFontFamily::updateThumbnail()
                 : pkToQString(samples.begin()->second.toString());
     }
     bool isColor = (metadata().value(KoFontFamilyMetadata::KEY_COLOR_BITMAP).toBool() || metadata().value(KoFontFamilyMetadata::KEY_COLOR_CLRV0).toBool());
-    setImage(qimageToPkImage(generateImage(sample, pkToQString(filename()), isColor)));
+    setImage(generateImage(sample, pkToQString(filename()), isColor));
 }
 
 PkString KoFontFamily::typographicFamily() const
@@ -336,7 +309,8 @@ PkList<KoSvgText::FontFamilyAxis> KoFontFamily::axes() const
         if (!entry) {
             // R-31：显式暴露不可解码条目（版本不符/类型错），不静默丢弃；原始
             // payload 由 DB 层逐字节保留（本 getter 只读不解）。
-            qWarning() << "KoFontFamily::axes(): 存在不可解码的 AXES 条目，已跳过";
+            PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                << "KoFontFamily::axes(): 存在不可解码的 AXES 条目，已跳过";
             continue;
         }
         KoSvgText::FontFamilyAxis axis;
@@ -362,7 +336,8 @@ PkList<KoSvgText::FontFamilyStyleInfo> KoFontFamily::styles() const
     for (const PkVariant &val : styles) {
         const auto entry = KoFontFamilyMetadata::parseStyleEntry(val.toMap());
         if (!entry) {
-            qWarning() << "KoFontFamily::styles(): 存在不可解码的 STYLES 条目，已跳过";
+            PkMessageLogger(__FILE__, __LINE__, __func__).warning()
+                << "KoFontFamily::styles(): 存在不可解码的 STYLES 条目，已跳过";
             continue;
         }
         KoSvgText::FontFamilyStyleInfo style;

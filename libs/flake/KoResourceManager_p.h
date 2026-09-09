@@ -8,12 +8,12 @@
 #ifndef KO_RESOURCEMANAGER_P_H
 #define KO_RESOURCEMANAGER_P_H
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkSize.h>
 #include <PkHash.h>
-#include <QMultiHash>
-#include <QMetaType>
 #include <PkVariant.h>
+
+#include <map>
 
 #include "kritaflake_export.h"
 #include <KoColor.h>
@@ -23,12 +23,6 @@
 #include "KoActiveCanvasResourceDependency.h"
 #include "KoAbstractCanvasResourceInterface.h"
 
-// S-08 过渡期：libs/pigment 的 KoColor 与 libs/global 的 KoUnit 已剥离掉原 Q_DECLARE_METATYPE，
-// 而本头是 real-Qt-first（QObject/PkVariant 存资源），PkVariant::setValue(KoColor) 需要 metatype。
-// 在 flake 侧补声明（真实 Qt 宏，KoColor/KoUnit 均已完整定义）。flake 剥完 Qt 后随本头删除。
-Q_DECLARE_METATYPE(KoColor)
-Q_DECLARE_METATYPE(KoUnit)
-
 class KoShape;
 
 /**
@@ -37,9 +31,8 @@ class KoShape;
  * the system that provides resources like brushes or palettes to the
  * application.
  */
-class KRITAFLAKE_EXPORT KoResourceManager : public QObject
+class KRITAFLAKE_EXPORT KoResourceManager : public PkObject
 {
-    Q_OBJECT
 public:
 
     KoResourceManager() {}
@@ -238,7 +231,7 @@ public:
      */
     void setAbstractResource(KoAbstractCanvasResourceInterfaceSP resource);
 
-Q_SIGNALS:
+public:
     void resourceChanged(int key, const PkVariant &value);
     void resourceChangeAttempted(int key, const PkVariant &value);
 
@@ -251,7 +244,7 @@ private:
 
     void notifyDependenciesAboutTargetChange(int targetKey, const PkVariant &value);
 
-private Q_SLOTS:
+private:
     void slotResourceInternalsChanged(int key);
     void slotAbstractResourceChangedExternal(int key, const PkVariant &value);
 
@@ -262,14 +255,13 @@ private:
     PkHash<int, PkVariant> m_resources;
 
     PkHash<int, KoDerivedResourceConverterSP> m_derivedResources;
-    QMultiHash<int, KoDerivedResourceConverterSP> m_derivedFromSource;
+    std::multimap<int, KoDerivedResourceConverterSP> m_derivedFromSource;
 
-    QMultiHash<int, KoActiveCanvasResourceDependencySP> m_dependencyFromSource;
-    QMultiHash<int, KoActiveCanvasResourceDependencySP> m_dependencyFromTarget;
+    std::multimap<int, KoActiveCanvasResourceDependencySP> m_dependencyFromSource;
+    std::multimap<int, KoActiveCanvasResourceDependencySP> m_dependencyFromTarget;
 
     PkHash<int, KoResourceUpdateMediatorSP> m_updateMediators;
     PkHash<int, KoAbstractCanvasResourceInterfaceSP> m_abstractResources;
 };
 
 #endif
-

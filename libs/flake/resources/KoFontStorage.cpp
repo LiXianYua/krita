@@ -3,14 +3,13 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoFontStorage.h"
 #include "KoFontFamily.h"
 #include "KoFontRegistry.h"
 #include "KisStaticInitializer.h"
 #include <KoMD5Generator.h>
 #include <KisResourceTypes.h>
+#include <PkListIterator.h>
 #include <optional>
 
 KIS_DECLARE_STATIC_INITIALIZER {
@@ -62,7 +61,9 @@ public:
     bool hasNext() const override {
         if (m_resourceType != ResourceType::FontFamilies) return false;
         if (!m_isLoaded) {
-            const_cast<FontIterator*>(this)->m_representationIterator.reset(new QListIterator<KoFontFamilyWWSRepresentation>(toQList(KoFontRegistry::instance()->collectRepresentations())));
+            const_cast<FontIterator*>(this)->m_representationIterator.reset(
+                new PkListIterator<KoFontFamilyWWSRepresentation>(
+                    KoFontRegistry::instance()->collectRepresentations()));
             const_cast<FontIterator*>(this)->m_isLoaded = true;
         }
 
@@ -89,7 +90,7 @@ private:
     bool m_isLoaded;
     PkString m_resourceType;
     KoFontFamilySP m_currentResource;
-    PkScopedPointer<QListIterator<KoFontFamilyWWSRepresentation>> m_representationIterator;
+    PkScopedPointer<PkListIterator<KoFontFamilyWWSRepresentation>> m_representationIterator;
 };
 
 KoFontStorage::KoFontStorage(const PkString &location)

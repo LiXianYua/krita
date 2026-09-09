@@ -6,8 +6,6 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
 #include <PkTransform.h>
@@ -26,7 +24,7 @@ public:
         : resourceManager(new KoDocumentResourceManager())
     {
         KoShapeRegistry *registry = KoShapeRegistry::instance();
-        foreach (const PkString &id, registry->keys()) {
+        for (const PkString &id : registry->keys()) {
             KoShapeFactoryBase *shapeFactory = registry->value(id);
             shapeFactory->newDocumentResourceManager(resourceManager);
         }
@@ -57,9 +55,9 @@ KoShapeControllerBase::~KoShapeControllerBase()
 
 KoShapeContainer* KoShapeControllerBase::createParentForShapes(const PkList<KoShape*> shapes, bool forceNewLayer, KUndo2Command *parentCommand)
 {
-    Q_UNUSED(parentCommand);
-    Q_UNUSED(forceNewLayer);
-    Q_UNUSED(shapes);
+    (void)parentCommand;
+    (void)forceNewLayer;
+    (void)shapes;
 
     return 0;
 }

@@ -7,8 +7,7 @@
 #include "KoGradientHelper.h"
 
 #include <PkGradient.h>
-#include <QtCore/QtCore>
-#include <math.h>
+#include <cmath>
 
 // S-09-g：PkGradient 是值类型（S-03-a，非多态），QGradient 的多态 clone/cast
 // 模式全部换成 PkGradient 的静态工厂 + 非虚接口。
@@ -54,7 +53,7 @@ PkGradient* KoGradientHelper::convertGradient(const PkGradient * gradient, PkGra
     case PkGradient::ConicalGradient: {
         start = gradient->center();
         qreal radAngle = gradient->angle() * M_PI / 180.0;
-        stop = PkPointF(0.5 * cos(radAngle), 0.5 * sin(radAngle));
+        stop = PkPointF(0.5 * std::cos(radAngle), 0.5 * std::sin(radAngle));
         break;
     }
     default:
@@ -69,13 +68,13 @@ PkGradient* KoGradientHelper::convertGradient(const PkGradient * gradient, PkGra
         break;
     case PkGradient::RadialGradient: {
         PkPointF diff(stop - start);
-        qreal radius = sqrt(diff.x()*diff.x() + diff.y()*diff.y());
+        qreal radius = std::sqrt(diff.x()*diff.x() + diff.y()*diff.y());
         newGradient = new PkGradient(PkGradient::radial(start, radius, start));
         break;
     }
     case PkGradient::ConicalGradient: {
         PkPointF diff(stop - start);
-        qreal angle = atan2(diff.y(), diff.x());
+        qreal angle = std::atan2(diff.y(), diff.x());
         if (angle < 0.0)
             angle += 2 * M_PI;
         newGradient = new PkGradient(PkGradient::conical(start, angle * 180/M_PI));
@@ -102,7 +101,7 @@ PkColor KoGradientHelper::colorAt(qreal position, const PkGradientStops &stops)
     PkGradientStop prevStop{-1.0, PkColor()};
     PkGradientStop nextStop{2.0, PkColor()};
     // find framing gradient stops
-    Q_FOREACH (const PkGradientStop & stop, stops) {
+    for (const PkGradientStop &stop : stops) {
         if (stop.offset > prevStop.offset && stop.offset < position)
             prevStop = stop;
         if (stop.offset < nextStop.offset && stop.offset > position)

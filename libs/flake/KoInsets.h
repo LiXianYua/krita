@@ -9,7 +9,8 @@
 
 #include "kritaflake_export.h"
 
-#include <QDebug>
+#include <PkDebug.h>
+#include <PkGlobal.h>
 
 /**
  * An Insets object is a representation of the strokes of a shape.
@@ -52,8 +53,6 @@ public:
     qreal right;   ///< Right inset
 };
 
-#ifndef QT_NO_DEBUG_STREAM
-KRITAFLAKE_EXPORT QDebug operator<<(QDebug, const KoInsets &);
-#endif
+KRITAFLAKE_EXPORT PkDebug operator<<(PkDebug, const KoInsets &);
 
 #endif

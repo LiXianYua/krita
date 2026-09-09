@@ -3,23 +3,19 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoCssStylePreset.h"
 
 #include <KoShapePainter.h>
 #include <KoSvgTextShape.h>
 #include <KoDocumentResourceManager.h>
-#include <KLocalizedString>
-
 #include <SvgWriter.h>
 #include <SvgParser.h>
 
 #include <PkXmlDocument.h>
 #include <PkMemoryStream.h>
-#include <QFileInfo>
-
 #include <FlakeDebug.h>
+
+#include <filesystem>
 
 const PkString TITLE = "title";
 const PkString DESCRIPTION = "description";
@@ -32,7 +28,7 @@ const PkString PRIMARY_FONT_FAMILY = "primary_font_family";
 
 const PkString STYLE_TYPE_PARAGRAPH = "paragraph";
 const PkString STYLE_TYPE_CHARACTER = "character";
-const KLocalizedString SAMPLE_PLACEHOLDER = ki18nc("info:placeholder", "Style Sample");
+const PkString SAMPLE_PLACEHOLDER = "Style Sample";
 
 struct KoCssStylePreset::Private {
 
@@ -43,7 +39,7 @@ struct KoCssStylePreset::Private {
 
     KoSvgTextProperties properties;
     PkString beforeText;
-    PkString sample = toPkString(SAMPLE_PLACEHOLDER.toString());
+    PkString sample = SAMPLE_PLACEHOLDER;
     PkString afterText;
 
     PkSizeF paragraphSampleSize = PkSizeF(120, 120);
@@ -53,11 +49,12 @@ KoCssStylePreset::KoCssStylePreset(const PkString &filename)
     : KoResource(filename)
     , d(new Private())
 {
-    PkString n = toPkString(toQString(name()).replace("_", " "));
+    PkString n = name();
+    n.replace("_", " ");
     setName(n);
     if (n.endsWith(defaultFileExtension())) {
-        const QFileInfo f(toQString(n));
-        setName(toPkString(f.completeBaseName()));
+        const std::string stem = std::filesystem::u8path(n.PkToUtf8()).stem().u8string();
+        setName(PkString::PkFromUtf8(stem.data(), static_cast<int>(stem.size())));
     }
 }
 
@@ -162,13 +159,13 @@ KoShape* KoCssStylePreset::generateSampleShape() const
     const PkString before = d->beforeText;
 
     std::unique_ptr<KoSvgTextShape> sampleText(new KoSvgTextShape());
-    sampleText->insertText(0, sample.isEmpty()? name().isEmpty()? toPkString(SAMPLE_PLACEHOLDER.toString()): name(): sample);
+    sampleText->insertText(0, sample.isEmpty() ? (name().isEmpty() ? SAMPLE_PLACEHOLDER : name()) : sample);
     const PkString type = styleType().isEmpty()? STYLE_TYPE_CHARACTER: styleType();
 
     bool removeParagraph = type == STYLE_TYPE_CHARACTER;
 
     // Remove properties that cannot be edited.
-    Q_FOREACH(KoSvgTextProperties::PropertyId p, modifiedProps.properties()) {
+    for (KoSvgTextProperties::PropertyId p : modifiedProps.properties()) {
         if (KoSvgTextProperties::propertyIsBlockOnly(p) && removeParagraph) {
             modifiedProps.removeProperty(p);
         }
@@ -231,11 +228,11 @@ KoShape* KoCssStylePreset::generateSampleShape() const
     return nullptr;
 }
 
-Qt::Alignment KoCssStylePreset::alignSample() const
+Pk::Alignment KoCssStylePreset::alignSample() const
 {
     PkMap<PkString, PkVariant> m = metadata();
-    PkVariant v = m.value(SAMPLE_ALIGN, PkVariant(static_cast<int>(Qt::AlignHCenter | Qt::AlignVCenter)));
-    return static_cast<Qt::Alignment>(v.toInt());
+    PkVariant v = m.value(SAMPLE_ALIGN, PkVariant(static_cast<int>(Pk::AlignHCenter | Pk::AlignVCenter)));
+    return static_cast<Pk::Alignment>(v.toInt());
 }
 
 PkString KoCssStylePreset::primaryFontFamily() const
@@ -246,8 +243,8 @@ PkString KoCssStylePreset::primaryFontFamily() const
 
 void KoCssStylePreset::updateAlignSample()
 {
-    Qt::AlignmentFlag hComponent = Qt::AlignHCenter;
-    Qt::AlignmentFlag vComponent = Qt::AlignVCenter;
+    Pk::AlignmentFlag hComponent = Pk::AlignHCenter;
+    Pk::AlignmentFlag vComponent = Pk::AlignVCenter;
 
     const KoSvgTextProperties props = d->properties;
     const PkString type = styleType().isEmpty()? props.property(KoSvgTextProperties::KraTextStyleType).toString(): styleType();
@@ -260,80 +257,80 @@ void KoCssStylePreset::updateAlignSample()
                                                             : KoSvgText::TextAlign(props.property(KoSvgTextProperties::TextAlignAllId).toInt());
 
             if (mode == KoSvgText::HorizontalTB) {
-                vComponent = Qt::AlignTop;
+                vComponent = Pk::AlignTop;
                 if (align == KoSvgText::AlignStart || align == KoSvgText::AlignLastAuto) {
                     if (dir == KoSvgText::DirectionLeftToRight) {
-                        hComponent = Qt::AlignLeft;
+                        hComponent = Pk::AlignLeft;
                     } else {
-                        hComponent = Qt::AlignRight;
+                        hComponent = Pk::AlignRight;
                     }
                 } else if (align == KoSvgText::AlignEnd) {
                     if (dir == KoSvgText::DirectionLeftToRight) {
-                        hComponent = Qt::AlignRight;
+                        hComponent = Pk::AlignRight;
                     } else {
-                        hComponent = Qt::AlignLeft;
+                        hComponent = Pk::AlignLeft;
                     }
                 } else if (align == KoSvgText::AlignLeft) {
-                    hComponent = Qt::AlignLeft;
+                    hComponent = Pk::AlignLeft;
                 } else if (align == KoSvgText::AlignRight) {
-                    hComponent =  Qt::AlignRight;
+                    hComponent = Pk::AlignRight;
                 }
             } else {
-                hComponent = mode == KoSvgText::VerticalRL? Qt::AlignRight: Qt::AlignLeft;
+                hComponent = mode == KoSvgText::VerticalRL ? Pk::AlignRight : Pk::AlignLeft;
                 if (align == KoSvgText::AlignStart || align == KoSvgText::AlignLastAuto) {
                     if (dir == KoSvgText::DirectionLeftToRight) {
-                        vComponent = Qt::AlignTop;
+                        vComponent = Pk::AlignTop;
                     } else {
-                        vComponent =  Qt::AlignBottom;
+                        vComponent = Pk::AlignBottom;
                     }
                 } else if (align == KoSvgText::AlignEnd) {
                     if (dir == KoSvgText::DirectionLeftToRight) {
-                        vComponent =  Qt::AlignBottom;
+                        vComponent = Pk::AlignBottom;
                     } else {
-                        vComponent =  Qt::AlignTop;
+                        vComponent = Pk::AlignTop;
                     }
                 } else if (align == KoSvgText::AlignLeft) {
-                    vComponent =  Qt::AlignTop;
+                    vComponent = Pk::AlignTop;
                 } else if (align == KoSvgText::AlignRight) {
-                    vComponent =  Qt::AlignBottom;
+                    vComponent = Pk::AlignBottom;
                 }
             }
         } else {
             const KoSvgText::TextAnchor anchor = KoSvgText::TextAnchor(props.propertyOrDefault(KoSvgTextProperties::TextAnchorId).toInt());
 
             if (mode == KoSvgText::HorizontalTB) {
-                vComponent = Qt::AlignTop;
+                vComponent = Pk::AlignTop;
                 if (anchor == KoSvgText::AnchorStart) {
                     if (dir == KoSvgText::DirectionLeftToRight) {
-                        hComponent = Qt::AlignLeft;
+                        hComponent = Pk::AlignLeft;
                     } else {
-                        hComponent = Qt::AlignRight;
+                        hComponent = Pk::AlignRight;
                     }
                 } else if (anchor == KoSvgText::AnchorEnd) {
                     if (dir == KoSvgText::DirectionLeftToRight) {
-                        hComponent = Qt::AlignRight;
+                        hComponent = Pk::AlignRight;
                     } else {
-                        hComponent = Qt::AlignLeft;
+                        hComponent = Pk::AlignLeft;
                     }
                 } else {
-                    hComponent = Qt::AlignHCenter;
+                    hComponent = Pk::AlignHCenter;
                 }
             } else {
-                hComponent = mode == KoSvgText::VerticalRL? Qt::AlignRight: Qt::AlignLeft;
+                hComponent = mode == KoSvgText::VerticalRL ? Pk::AlignRight : Pk::AlignLeft;
                 if (anchor == KoSvgText::AnchorStart) {
                     if (dir == KoSvgText::DirectionLeftToRight) {
-                        vComponent = Qt::AlignTop;
+                        vComponent = Pk::AlignTop;
                     } else {
-                        vComponent = Qt::AlignBottom;
+                        vComponent = Pk::AlignBottom;
                     }
                 } else if (anchor == KoSvgText::AnchorEnd) {
                     if (dir == KoSvgText::DirectionLeftToRight) {
-                        vComponent = Qt::AlignBottom;
+                        vComponent = Pk::AlignBottom;
                     } else {
-                        vComponent = Qt::AlignTop;
+                        vComponent = Pk::AlignTop;
                     }
                 } else {
-                    vComponent = Qt::AlignVCenter;
+                    vComponent = Pk::AlignVCenter;
                 }
             }
         }
@@ -402,7 +399,7 @@ KoResourceSP KoCssStylePreset::clone() const
 
 bool KoCssStylePreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
-    Q_UNUSED(resourcesInterface)
+    (void)resourcesInterface;
     if (!dev->isOpen()) dev->open(PkStream::ReadOnly);
     PkString errorMsg;
     int errorLine = 0;
@@ -415,11 +412,11 @@ bool KoCssStylePreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP res
     PkXmlDocument xmlDocument = SvgParser::createDocumentFromSvg(ba, &errorMsg, &errorLine, &errorColumn);
     if (xmlDocument.isNull()) {
 
-        errorFlake << "Parsing error in " << filename() << "! Aborting!" << Qt::endl
-        << " In line: " << errorLine << ", column: " << errorColumn << Qt::endl
-        << " Error message: " << errorMsg << Qt::endl;
+        errorFlake << "Parsing error in " << filename() << "! Aborting!\n"
+        << " In line: " << errorLine << ", column: " << errorColumn << '\n'
+        << " Error message: " << errorMsg << '\n';
         errorFlake << "Parsing error in the main document at line" << errorLine
-                   << ", column" << errorColumn << Qt::endl
+                   << ", column" << errorColumn << '\n'
                    << "Error message: " << errorMsg;
 
         return false;
@@ -433,7 +430,7 @@ bool KoCssStylePreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP res
 
     PkList<KoShape*> shapes = parser.parseSvg(xmlDocument.documentElement(), &fragmentSize);
 
-    Q_FOREACH(KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         KoSvgTextShape *textShape = dynamic_cast<KoSvgTextShape*>(shape);
         if (textShape) {
             setName(textShape->additionalAttribute(TITLE));
@@ -515,7 +512,7 @@ void KoCssStylePreset::updateThumbnail()
     PkImage img(256,
                256,
                PkImage::Format_ARGB32);
-    img.fill(Qt::white);
+    img.fill(Pk::white);
 
     KoShapePainter painter;
     painter.setShapes({shape.data()});

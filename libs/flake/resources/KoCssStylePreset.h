@@ -12,6 +12,7 @@
 
 #include <KisResourceTypes.h>
 #include <PkString.h>
+#include <PkNamespace.h>
 #include <pk/port/PkStream.h>
 
 class KoCssStylePreset;
@@ -90,7 +91,7 @@ public:
 
     /// Determines the preferred sample alignment based on the text properties.
     /// It's set up so that the alignment anchor of the text is shown.
-    Qt::Alignment alignSample() const;
+    Pk::Alignment alignSample() const;
 
     /**
      * @brief primaryFontFamily

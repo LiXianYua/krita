@@ -5,21 +5,14 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <PkConfigGroup.h>
+#include <PkContainerAlgo.h>
 #include <PkSharedConfig.h>
+#include <PkStringList.h>
 #include "KoToolRegistry.h"
 
-#include <FlakeDebug.h>
 #include "tools/KoPathToolFactory.h"
-#include "tools/KoZoomTool.h"
 #include "tools/KoZoomToolFactory.h"
-#include "KoToolManager.h"
-
-#include <QGlobalStatic>
-
-Q_GLOBAL_STATIC(KoToolRegistry, s_instance)
 
 KoToolRegistry::KoToolRegistry()
   : d(0)
@@ -32,28 +25,28 @@ void KoToolRegistry::init()
 
     // register generic tools
     KoToolFactoryBase *pathToolFactory = new KoPathToolFactory();
-    add(toPkString(pathToolFactory->id()), pathToolFactory);
+    add(pathToolFactory->id(), pathToolFactory);
     KoToolFactoryBase *zoomToolFactory = new KoZoomToolFactory();
-    add(toPkString(zoomToolFactory->id()), zoomToolFactory);
+    add(zoomToolFactory->id(), zoomToolFactory);
 
     PkConfigGroup cfg = PkSharedConfig::openConfig()->group("krita");
     const PkStringList toolsBlacklist = cfg.readEntry("ToolsBlacklist", PkStringList());
-    foreach (const PkString& toolID, toolsBlacklist) {
-        delete value(toPkString(toolID));
-        remove(toPkString(toolID));
+    for (const PkString &toolID : toolsBlacklist) {
+        delete value(toolID);
+        remove(toolID);
     }
 }
 
 KoToolRegistry::~KoToolRegistry()
 {
-    qDeleteAll(doubleEntries());
-    qDeleteAll(values());
+    pkDeleteAll(doubleEntries());
+    pkDeleteAll(values());
 }
 
 KoToolRegistry* KoToolRegistry::instance()
 {
-    if (!s_instance.exists()) {
-        s_instance->init();
-    }
-    return s_instance;
+    static KoToolRegistry registry;
+    static const bool initialized = (registry.init(), true);
+    (void)initialized;
+    return &registry;
 }

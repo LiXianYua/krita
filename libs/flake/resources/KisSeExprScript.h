@@ -10,7 +10,6 @@
 #define KIS_SEEXPR_SCRIPT_H
 
 #include <KoResource.h>
-#include <QMetaType>
 #include <kritaflake_export.h>
 
 #include <KisResourceTypes.h>
@@ -91,7 +90,5 @@ private:
     struct Private;
     Private *const d;
 };
-
-Q_DECLARE_METATYPE(KisSeExprScript *)
 
 #endif // KIS_SEEXPR_SCRIPT_H

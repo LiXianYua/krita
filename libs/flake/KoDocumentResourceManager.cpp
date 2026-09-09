@@ -6,8 +6,6 @@
 
    SPDX-License-Identifier: LGPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoDocumentResourceManager.h"
 
 #include <PkVariant.h>
@@ -18,23 +16,29 @@
 #include "KoShapeController.h"
 #include "KoResourceManager_p.h"
 
-class Q_DECL_HIDDEN KoDocumentResourceManager::Private
+class KoDocumentResourceManager::Private
 {
 public:
     KoResourceManager manager;
 };
 
-KoDocumentResourceManager::KoDocumentResourceManager(QObject *parent)
-        : QObject(parent),
+KoDocumentResourceManager::KoDocumentResourceManager(PkObject *parent)
+        : PkObject(parent),
         d(new Private())
 {
-    QObject::connect(&d->manager, &KoResourceManager::resourceChanged,
+    PkObject::connect(&d->manager, &KoResourceManager::resourceChanged,
             this, &KoDocumentResourceManager::resourceChanged);
 }
 
 KoDocumentResourceManager::~KoDocumentResourceManager()
 {
     delete d;
+}
+
+void KoDocumentResourceManager::resourceChanged(int key, const PkVariant &value)
+{
+    activateSignal<int, const PkVariant &>(
+        this, PkMemberFnKey::from(&KoDocumentResourceManager::resourceChanged), key, value);
 }
 
 void KoDocumentResourceManager::setResource(int key, const PkVariant &value)

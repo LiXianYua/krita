@@ -5,8 +5,8 @@
  */
 #include "KoDeferredShapeFactoryBase.h"
 
-KoDeferredShapeFactoryBase::KoDeferredShapeFactoryBase(QObject *parent)
-    : QObject(parent)
+KoDeferredShapeFactoryBase::KoDeferredShapeFactoryBase(PkObject *parent)
+    : PkObject(parent)
 {
 
 }

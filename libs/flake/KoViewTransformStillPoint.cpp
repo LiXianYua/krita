@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QDebug>
-#include <PkFlakeBridge.h>
 #include "KoViewTransformStillPoint.h"
 
 KoViewTransformStillPoint::KoViewTransformStillPoint(const PkPointF &docPoint, const PkPointF &viewPoint)
@@ -26,7 +24,7 @@ PkPointF KoViewTransformStillPoint::viewPoint() const {
     return second;
 }
 
-QDebug operator<<(QDebug dbg, const KoViewTransformStillPoint &point)
+PkDebug operator<<(PkDebug dbg, const KoViewTransformStillPoint &point)
 {
     dbg.nospace() << "KoViewTransformStillPoint(docPoint: " << point.docPoint() << ", viewPoint: " << point.viewPoint() << ")";
     return dbg.space();

@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoPathSegment.h"
+#include <PkGlobal.h>
 #include "KoPathPoint.h"
 #include <FlakeDebug.h>
 #include <PkPainterPath.h>
@@ -17,7 +16,7 @@
 
 #include <KisBezierUtils.h>
 
-class Q_DECL_HIDDEN KoPathSegment::Private
+class KoPathSegment::Private
 {
 public:
     Private(KoPathSegment *qq, KoPathPoint *p1, KoPathPoint *p2)
@@ -466,11 +465,11 @@ PkRectF KoPathSegment::controlPointRect() const
 
     PkList<PkPointF> points = controlPoints();
     PkRectF bbox(points.first(), points.first());
-    Q_FOREACH (const PkPointF &p, points) {
-        bbox.setLeft(qMin(bbox.left(), p.x()));
-        bbox.setRight(qMax(bbox.right(), p.x()));
-        bbox.setTop(qMin(bbox.top(), p.y()));
-        bbox.setBottom(qMax(bbox.bottom(), p.y()));
+    for (const PkPointF &p : points) {
+        bbox.setLeft(pkMin(bbox.left(), p.x()));
+        bbox.setRight(pkMax(bbox.right(), p.x()));
+        bbox.setTop(pkMin(bbox.top(), p.y()));
+        bbox.setBottom(pkMax(bbox.bottom(), p.y()));
     }
 
     if (degree() == 1) {
@@ -503,13 +502,13 @@ PkRectF KoPathSegment::boundingRect() const
          * was found in comp.graphics.algorithms:
          * Use the points at the extrema of the curve to calculate the AABB.
          */
-        foreach (qreal t, d->extrema()) {
+        for (qreal t : d->extrema()) {
             if (t >= 0.0 && t <= 1.0) {
                 PkPointF p = pointAt(t);
-                rect.setLeft(qMin(rect.left(), p.x()));
-                rect.setRight(qMax(rect.right(), p.x()));
-                rect.setTop(qMin(rect.top(), p.y()));
-                rect.setBottom(qMax(rect.bottom(), p.y()));
+                rect.setLeft(pkMin(rect.left(), p.x()));
+                rect.setRight(pkMax(rect.right(), p.x()));
+                rect.setTop(pkMin(rect.top(), p.y()));
+                rect.setBottom(pkMax(rect.bottom(), p.y()));
             }
         }
     }
@@ -558,17 +557,17 @@ PkList<PkPointF> KoPathSegment::intersections(const KoPathSegment &segment) cons
             d1 = d->distanceFromChord(d->first->controlPoint2());
         else
             d1 = d->distanceFromChord(d->second->controlPoint1());
-        dmin = qMin(qreal(0.0), qreal(0.5 * d1));
-        dmax = qMax(qreal(0.0), qreal(0.5 * d1));
+        dmin = pkMin(qreal(0.0), qreal(0.5 * d1));
+        dmax = pkMax(qreal(0.0), qreal(0.5 * d1));
     } else {
         qreal d1 = d->distanceFromChord(d->first->controlPoint2());
         qreal d2 = d->distanceFromChord(d->second->controlPoint1());
         if (d1*d2 > 0.0) {
-            dmin = 0.75 * qMin(qreal(0.0), qMin(d1, d2));
-            dmax = 0.75 * qMax(qreal(0.0), qMax(d1, d2));
+            dmin = 0.75 * pkMin(qreal(0.0), pkMin(d1, d2));
+            dmax = 0.75 * pkMax(qreal(0.0), pkMax(d1, d2));
         } else {
-            dmin = 4.0 / 9.0 * qMin(qreal(0.0), qMin(d1, d2));
-            dmax = 4.0 / 9.0 * qMax(qreal(0.0), qMax(d1, d2));
+            dmin = 4.0 / 9.0 * pkMin(qreal(0.0), pkMin(d1, d2));
+            dmax = 4.0 / 9.0 * pkMax(qreal(0.0), pkMax(d1, d2));
         }
     }
 
@@ -638,11 +637,11 @@ PkList<PkPointF> KoPathSegment::intersections(const KoPathSegment &segment) cons
             continue;
         if (p1.x() == p2.x()) {
             // vertical edge
-            bool dmaxIntersection = (dmax < qMax(p1.y(), p2.y()) && dmax > qMin(p1.y(), p2.y()));
-            bool dminIntersection = (dmin < qMax(p1.y(), p2.y()) && dmin > qMin(p1.y(), p2.y()));
+            bool dmaxIntersection = (dmax < pkMax(p1.y(), p2.y()) && dmax > pkMin(p1.y(), p2.y()));
+            bool dminIntersection = (dmin < pkMax(p1.y(), p2.y()) && dmin > pkMin(p1.y(), p2.y()));
             if (dmaxIntersection || dminIntersection) {
-                tmin = qMin(tmin, p1.x());
-                tmax = qMax(tmax, p1.x());
+                tmin = pkMin(tmin, p1.x());
+                tmax = pkMax(tmax, p1.x());
                 if (dmaxIntersection) {
                     intersectionsFoundMax = true;
                     //debugFlake << "found intersection with dmax at " << p1.x() << "," << dmax;
@@ -663,10 +662,10 @@ PkList<PkPointF> KoPathSegment::intersections(const KoPathSegment &segment) cons
                     //debugFlake << "found intersection with dmax at " << p1.x() << "," << dmax;
                     //debugFlake << "found intersection with dmax at " << p2.x() << "," << dmax;
                 }
-                tmin = qMin(tmin, p1.x());
-                tmin = qMin(tmin, p2.x());
-                tmax = qMax(tmax, p1.x());
-                tmax = qMax(tmax, p2.x());
+                tmin = pkMin(tmin, p1.x());
+                tmin = pkMin(tmin, p2.x());
+                tmax = pkMax(tmax, p1.x());
+                tmax = pkMax(tmax, p2.x());
             }
         } else {
             qreal dx = p2.x() - p1.x();
@@ -675,15 +674,15 @@ PkList<PkPointF> KoPathSegment::intersections(const KoPathSegment &segment) cons
             qreal n = p1.y() - m * p1.x();
             qreal t1 = (dmax - n) / m;
             if (t1 >= 0.0 && t1 <= 1.0) {
-                tmin = qMin(tmin, t1);
-                tmax = qMax(tmax, t1);
+                tmin = pkMin(tmin, t1);
+                tmax = pkMax(tmax, t1);
                 intersectionsFoundMax = true;
                 //debugFlake << "found intersection with dmax at " << t1 << "," << dmax;
             }
             qreal t2 = (dmin - n) / m;
             if (t2 >= 0.0 && t2 < 1.0) {
-                tmin = qMin(tmin, t2);
-                tmax = qMax(tmax, t2);
+                tmin = pkMin(tmin, t2);
+                tmax = pkMax(tmax, t2);
                 intersectionsFoundMin = true;
                 //debugFlake << "found intersection with dmin at " << t2 << "," << dmin;
             }
@@ -707,7 +706,7 @@ PkList<PkPointF> KoPathSegment::intersections(const KoPathSegment &segment) cons
             isects += segment.intersections(parts.first);
             isects += segment.intersections(parts.second);
         }
-    } else if (qAbs(tmin - tmax) < 1e-5) {
+    } else if (pkAbs(tmin - tmax) < 1e-5) {
         //debugFlake << "Yay, we found an intersection";
         // the interval is pretty small now, just calculate the intersection at this point
         isects.append(segment.pointAt(tmin));
@@ -848,7 +847,7 @@ qreal KoPathSegment::paramAtLength(qreal length, qreal tolerance) const
 
     if (deg == 1) {
         // make sure we return a maximum value of 1.0
-        return qMin(qreal(1.0), length / d->chordLength());
+        return pkMin(qreal(1.0), length / d->chordLength());
     }
 
     // for curves we need to make sure, that the specified length
@@ -865,7 +864,7 @@ qreal KoPathSegment::paramAtLength(qreal length, qreal tolerance) const
     // divide and conquer, split a midpoint and check
     // on which side of the midpoint to continue
     qreal midLength = lengthAt(0.5);
-    while (qAbs(midLength - length) / length > tolerance) {
+    while (pkAbs(midLength - length) / length > tolerance) {
         if (midLength < length)
             startT = midT;
         else
@@ -906,12 +905,12 @@ bool KoPathSegment::isFlat(qreal tolerance) const
     qreal minDist = 0.0;
     qreal maxDist = 0.0;
 
-    foreach (qreal t, s.d->extrema()) {
+    for (qreal t : s.d->extrema()) {
         if (t >= 0.0 && t <= 1.0) {
             PkPointF p = pointAt(t);
             qreal dist = s.d->distanceFromChord(p);
-            minDist = qMin(dist, minDist);
-            maxDist = qMax(dist, maxDist);
+            minDist = pkMin(dist, minDist);
+            maxDist = pkMax(dist, maxDist);
         }
     }
 
@@ -1050,7 +1049,7 @@ qreal KoPathSegment::nearestPoint(const PkPointF &point) const
     for (const PkPointF &pt : segmentControlPoints) {
         pkControlPoints.append(pt);
     }
-    return KisBezierUtils::nearestPoint(pkControlPoints, toPkPointF(point));
+    return KisBezierUtils::nearestPoint(pkControlPoints, point);
 }
 
 KoPathSegment KoPathSegment::interpolate(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, qreal t)

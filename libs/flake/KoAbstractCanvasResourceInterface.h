@@ -7,7 +7,7 @@
 #ifndef KOABSTRACTCANVASRESOURCEINTERFACE_H
 #define KOABSTRACTCANVASRESOURCEINTERFACE_H
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkSharedPointer.h>
 #include "kritaflake_export.h"
 // [migrate] missing include for Pk/Qt type
@@ -20,9 +20,8 @@ class PkVariant;
  *
  * Defines an abstract resource that is stored outside the resource manager
  */
-class KRITAFLAKE_EXPORT KoAbstractCanvasResourceInterface : public QObject
+class KRITAFLAKE_EXPORT KoAbstractCanvasResourceInterface : public PkObject
 {
-    Q_OBJECT
 public:
     KoAbstractCanvasResourceInterface(int key, const PkString debugTag = PkString());
 
@@ -41,7 +40,7 @@ public:
      */
     int key() const;
 
-Q_SIGNALS:
+public:
     /**
      * The signal is emitted when the resource is changed outside
      * the setValue() call by some external entity

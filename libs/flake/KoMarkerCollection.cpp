@@ -5,18 +5,14 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoMarkerCollection.h"
 
 #include <PkFileStream.h>
 
-#include <klocalizedstring.h>
 #include "KoMarker.h"
 #include <FlakeDebug.h>
 #include <KoResourcePaths.h>
 #include <SvgParser.h>
-#include <QFileInfo>
 #include <KoDocumentResourceManager.h>
 
 #include "kis_debug.h"
@@ -25,8 +21,10 @@
 //          deleting an uninitialized type here!
 #include <KoShape.h>
 
+#include <filesystem>
 
-class Q_DECL_HIDDEN KoMarkerCollection::Private
+
+class KoMarkerCollection::Private
 {
 public:
     ~Private()
@@ -36,8 +34,8 @@ public:
     PkList<KisSharedPtr<KoMarker> > markers;
 };
 
-KoMarkerCollection::KoMarkerCollection(QObject *parent)
-: QObject(parent)
+KoMarkerCollection::KoMarkerCollection(PkObject *parent)
+: PkObject(parent)
 , d(new Private)
 {
     // Add no marker so the user can remove a marker from the line.
@@ -54,7 +52,7 @@ KoMarkerCollection::~KoMarkerCollection()
 void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
 {
     PkFileStream file(svgFile);
-    if (!QFileInfo(toQString(file.fileName())).exists()) return;
+    if (!std::filesystem::exists(std::filesystem::u8path(file.fileName().PkToUtf8()))) return;
 
     if (!file.open(PkStream::ReadOnly)) return;
 
@@ -64,18 +62,19 @@ void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
 
     PkXmlDocument doc = SvgParser::createDocumentFromSvg(&file, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
-        errKrita << "Parsing error in " << svgFile << "! Aborting!" << Qt::endl
-        << " In line: " << errorLine << ", column: " << errorColumn << Qt::endl
-        << " Error message: " << errorMsg << Qt::endl;
-        errKrita << i18n("Parsing error in the main document at line %1, column %2\nError message: %3"
-                         , errorLine , errorColumn , toQString(errorMsg));
+        errKrita << "Parsing error in " << svgFile << "! Aborting!\n"
+        << " In line: " << errorLine << ", column: " << errorColumn << '\n'
+        << " Error message: " << errorMsg << '\n';
+        errKrita << "Parsing error in the main document at line " << errorLine
+                 << ", column " << errorColumn << "\nError message: " << errorMsg;
         return;
     }
 
     KoDocumentResourceManager manager;
     SvgParser parser(&manager);
     parser.setResolution(PkRectF(0,0,100,100), 72); // initialize with default values
-    parser.setXmlBaseDir(toPkString(QFileInfo(toQString(svgFile)).absolutePath()));
+    const std::string parentPath = std::filesystem::u8path(svgFile.PkToUtf8()).parent_path().u8string();
+    parser.setXmlBaseDir(PkString::PkFromUtf8(parentPath.data(), static_cast<int>(parentPath.size())));
 
     parser.setFileFetcher(
         [](const PkString &fileName) {
@@ -87,9 +86,11 @@ void KoMarkerCollection::loadMarkersFromFile(const PkString &svgFile)
 
     PkSizeF fragmentSize;
     PkList<KoShape*> shapes = parser.parseSvg(doc.documentElement(), &fragmentSize);
-    qDeleteAll(shapes);
+    for (KoShape *shape : shapes) {
+        delete shape;
+    }
 
-    Q_FOREACH (KisSharedPtr<KoMarker> marker, parser.knownMarkers()) {
+    for (KisSharedPtr<KoMarker> marker : parser.knownMarkers()) {
         addMarker(marker.data());
     }
 }
@@ -103,7 +104,7 @@ void KoMarkerCollection::loadDefaultMarkers()
 PkList<KoMarker*> KoMarkerCollection::markers() const
 {
     PkList<KoMarker*> markerList;
-    foreach (KisSharedPtr<KoMarker> m, d->markers){
+    for (KisSharedPtr<KoMarker> m : d->markers) {
         markerList.append(m.data());
     }
     return markerList;
@@ -111,7 +112,7 @@ PkList<KoMarker*> KoMarkerCollection::markers() const
 
 KoMarker * KoMarkerCollection::addMarker(KoMarker *marker)
 {
-    foreach (KisSharedPtr<KoMarker> m, d->markers) {
+    for (KisSharedPtr<KoMarker> m : d->markers) {
         if (marker == m.data()) {
             return marker;
         }

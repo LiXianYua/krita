@@ -9,7 +9,7 @@
 
 #include "kritaflake_export.h"
 
-#include <QObject>
+#include <PkObject.h>
 
 class KoShape;
 class KoDocumentResourceManager;
@@ -22,12 +22,11 @@ class PkString;
  * class that this class really creates the shape; it's the plugin entry point for the
  * actually shape plugins.
  */
-class KRITAFLAKE_EXPORT KoDeferredShapeFactoryBase : public QObject
+class KRITAFLAKE_EXPORT KoDeferredShapeFactoryBase : public PkObject
 {
-    Q_OBJECT
 public:
 
-    explicit KoDeferredShapeFactoryBase(QObject *parent);
+    explicit KoDeferredShapeFactoryBase(PkObject *parent);
 
     ~KoDeferredShapeFactoryBase() override;
 

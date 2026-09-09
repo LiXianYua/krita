@@ -27,3 +27,9 @@ int KoResourceUpdateMediator::key() const
 {
     return m_d->key;
 }
+
+void KoResourceUpdateMediator::sigResourceChanged(int key)
+{
+    activateSignal<int>(
+        this, PkMemberFnKey::from(&KoResourceUpdateMediator::sigResourceChanged), key);
+}

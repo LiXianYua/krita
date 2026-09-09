@@ -10,15 +10,15 @@
 #define KORTREE_H
 
 #include <utility>
-#include <PkFlakeBridge.h>
 #include <PkMap.h>
 #include <PkList.h>
 #include <PkVector.h>
 #include <PkPoint.h>
 #include <PkRect.h>
+#include <PkGlobal.h>
+#include <PkMessageLogger.h>
 #include <vector>
 
-#include <QDebug>
 #include "kis_assert.h"
 
 // #define CALLIGRA_RTREE_DEBUG
@@ -651,13 +651,13 @@ std::pair<int, int> KoRTree<T>::pickNext(Node * node, PkVector<bool> & marker, N
             PkRectF bb2 = group2->boundingBox().united(node->childBoundingBox(i));
             qreal d1 = bb1.width() * bb1.height() - group1->boundingBox().width() * group1->boundingBox().height();
             qreal d2 = bb2.width() * bb2.height() - group2->boundingBox().width() * group2->boundingBox().height();
-            qreal diff = qAbs(d1 - d2);
+            qreal diff = pkAbs(d1 - d2);
             //debugFlake << " diff" << diff << i << d1 << d2;
             if (diff > max) {
                 max = diff;
                 select = i;
                 //debugFlake << "  i =" <<  i;
-                if (qAbs(d1) > qAbs(d2)) {
+                if (pkAbs(d1) > pkAbs(d2)) {
                     group = 1;
                 } else {
                     group = 0;

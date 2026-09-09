@@ -4,13 +4,13 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KisSnapPointStrategy.h"
 
 #include <PkPainterPath.h>
 #include <KoViewConverter.h>
 #include "kis_global.h"
+
+#include <limits>
 
 struct KisSnapPointStrategy::Private
 {
@@ -29,13 +29,13 @@ KisSnapPointStrategy::~KisSnapPointStrategy()
 
 bool KisSnapPointStrategy::snap(const PkPointF &mousePosition, KoSnapProxy *proxy, qreal maxSnapDistance)
 {
-    Q_UNUSED(proxy);
+    (void)proxy;
 
     PkPointF snappedPoint = mousePosition;
     qreal minDistance = std::numeric_limits<qreal>::max();
 
-    Q_FOREACH (const PkPointF &pt, m_d->points) {
-        const qreal dist = kisDistance(toPkPointF(mousePosition), toPkPointF(pt));
+    for (const PkPointF &pt : m_d->points) {
+        const qreal dist = kisDistance(mousePosition, pt);
 
         if (dist < maxSnapDistance && dist < minDistance) {
             minDistance = dist;
@@ -60,4 +60,3 @@ void KisSnapPointStrategy::addPoint(const PkPointF &pt)
 {
     m_d->points << pt;
 }
-

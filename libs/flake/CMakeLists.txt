@@ -430,7 +430,6 @@ set(kritaflake_painting_SRCS
     KoClipMaskPainter.cpp
     KoClipPath.cpp
     KoColorBackground.cpp
-    KoDocumentResourceManager.cpp
     KoDrag.cpp
     KoGradientBackground.cpp
     KoHatchBackground.cpp
@@ -520,8 +519,9 @@ kritaflake_add_object_library(kritaflake_tools_objects ${kritaflake_tools_SRCS})
 kritaflake_add_native_object_library(kritaflake_svg_objects ${kritaflake_svg_SRCS})
 target_link_libraries(kritaflake_svg_objects PRIVATE kritaflake_imagecodec)
 kritaflake_add_object_library(kritaflake_text_objects ${kritaflake_text_SRCS})
-kritaflake_add_object_library(kritaflake_resources_objects ${kritaflake_resources_SRCS})
-kritaflake_add_object_library(kritaflake_core_objects ${kritaflake_core_SRCS})
+kritaflake_add_native_object_library(kritaflake_resources_objects ${kritaflake_resources_SRCS})
+target_link_libraries(kritaflake_resources_objects PRIVATE kritaflake_imagecodec)
+kritaflake_add_native_object_library(kritaflake_core_objects ${kritaflake_core_SRCS})
 
 kis_add_library(kritaflake SHARED
     $<TARGET_OBJECTS:kritaflake_commands_objects>

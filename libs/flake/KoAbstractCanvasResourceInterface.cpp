@@ -7,6 +7,7 @@
 #include "KoAbstractCanvasResourceInterface.h"
 // [migrate] missing include for Pk/Qt type
 #include <PkString.h>
+#include <PkVariant.h>
 
 KoAbstractCanvasResourceInterface::KoAbstractCanvasResourceInterface(int key, const PkString debugTag)
     : m_key(key)
@@ -16,4 +17,14 @@ KoAbstractCanvasResourceInterface::KoAbstractCanvasResourceInterface(int key, co
 
 int KoAbstractCanvasResourceInterface::key() const {
     return m_key;
+}
+
+void KoAbstractCanvasResourceInterface::sigResourceChangedExternal(
+    int key, const PkVariant &value)
+{
+    activateSignal<int, const PkVariant &>(
+        this,
+        PkMemberFnKey::from(&KoAbstractCanvasResourceInterface::sigResourceChangedExternal),
+        key,
+        value);
 }

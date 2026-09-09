@@ -7,8 +7,6 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoShapeController.h"
 #include "KoShapeControllerBase.h"
 #include "KoShapeRegistry.h"
@@ -22,7 +20,9 @@
 #include "KoShapeFactoryBase.h"
 #include "KoShape.h"
 
-#include <QObject>
+#include <PkMessageLogger.h>
+
+#include <algorithm>
 
 class KoShapeController::Private
 {
@@ -43,10 +43,10 @@ public:
         if (!parentShape) {
             resultCommand = new KUndo2Command(parent);
             parentShape = shapeController->createParentForShapes(shapes, false, resultCommand);
-            KUndo2Command *addShapeCommand = new KoShapeCreateCommand(shapeController, toPkList(shapes), parentShape, resultCommand);
+            KUndo2Command *addShapeCommand = new KoShapeCreateCommand(shapeController, shapes, parentShape, resultCommand);
             resultCommand->setText(addShapeCommand->text());
         } else {
-            resultCommand = new KoShapeCreateCommand(shapeController, toPkList(shapes), parentShape, parent);
+            resultCommand = new KoShapeCreateCommand(shapeController, shapes, parentShape, parent);
         }
 
         return resultCommand;
@@ -74,11 +74,11 @@ void KoShapeController::reset()
 KUndo2Command* KoShapeController::addShape(KoShape *shape, KoShapeContainer *parentShape, KUndo2Command *parent)
 {
     if (d->canvas && !shape->shapeId().isEmpty()) {
-        KoShapeFactoryBase *factory = KoShapeRegistry::instance()->value(toPkString(shape->shapeId()));
-        Q_ASSERT(factory);
+        KoShapeFactoryBase *factory = KoShapeRegistry::instance()->value(shape->shapeId());
+        KIS_ASSERT(factory);
         qint16 z = 0;
-        Q_FOREACH (KoShape *sh, d->canvas->shapeManager()->shapes()) {
-            z = qMax(z, sh->zIndex());
+        for (KoShape *sh : d->canvas->shapeManager()->shapes()) {
+            z = std::max(z, sh->zIndex());
         }
         shape->setZIndex(z + 1);
     }
@@ -102,7 +102,7 @@ KUndo2Command* KoShapeController::removeShape(KoShape *shape, KUndo2Command *par
 
 KUndo2Command* KoShapeController::removeShapes(const PkList<KoShape*> &shapes, KUndo2Command *parent)
 {
-    KUndo2Command *cmd = new KoShapeDeleteCommand(d->shapeController, toPkList(shapes), parent);
+    KUndo2Command *cmd = new KoShapeDeleteCommand(d->shapeController, shapes, parent);
     return cmd;
 }
 
@@ -129,7 +129,7 @@ PkRectF KoShapeController::documentRect() const
 KoDocumentResourceManager *KoShapeController::resourceManager() const
 {
     if (!d->shapeController) {
-        qWarning() << "THIS IS NOT GOOD!";
+        PkMessageLogger(__FILE__, __LINE__, __func__).warning() << "THIS IS NOT GOOD!";
         return 0;
     }
     return d->shapeController->resourceManager();

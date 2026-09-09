@@ -8,7 +8,7 @@
 #ifndef KO_DOCUMENTRESOURCEMANAGER_H
 #define KO_DOCUMENTRESOURCEMANAGER_H
 
-#include <QObject>
+#include <PkObject.h>
 
 #include "kritaflake_export.h"
 // [migrate] missing include for Pk/Qt type
@@ -22,6 +22,7 @@ class KoUnit;
 
 class PkVariant;
 class PkSizeF;
+class PkRectF;
 
 /**
  * The KoResourceManager contains a set of per-canvas <i>or</i> per-document
@@ -47,10 +48,8 @@ class PkSizeF;
  *  document = static_cast<QTextDocument*>(var.value<void*>());
  * @endcode
  */
-class KRITAFLAKE_EXPORT KoDocumentResourceManager : public QObject
+class KRITAFLAKE_EXPORT KoDocumentResourceManager : public PkObject
 {
-    Q_OBJECT
-
 public:
 
     /**
@@ -79,9 +78,9 @@ enum DocumentResource {
 
     /**
      * Constructor.
-     * @param parent the parent QObject, used for memory management.
+     * @param parent the parent PkObject, used for memory management.
      */
-    explicit KoDocumentResourceManager(QObject *parent = 0);
+    explicit KoDocumentResourceManager(PkObject *parent = nullptr);
     ~KoDocumentResourceManager() override;
 
     /**
@@ -205,7 +204,7 @@ enum DocumentResource {
     qreal documentResolution() const;
     PkRectF documentRectInPixels() const;
 
-Q_SIGNALS:
+public:
     /**
      * This signal is emitted every time a resource is set that is either
      * new or different from the previous set value.

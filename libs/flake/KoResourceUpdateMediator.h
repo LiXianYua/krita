@@ -9,7 +9,7 @@
 
 #include <PkScopedPointer.h>
 #include <PkSharedPointer.h>
-#include <QObject>
+#include <PkObject.h>
 #include <PkVariant.h>
 
 #include "kritaflake_export.h"
@@ -25,9 +25,8 @@
  * There is only one mediator for one type (key) of the resource.
  */
 
-class KRITAFLAKE_EXPORT KoResourceUpdateMediator : public QObject
+class KRITAFLAKE_EXPORT KoResourceUpdateMediator : public PkObject
 {
-    Q_OBJECT
 public:
     KoResourceUpdateMediator(int key);
     ~KoResourceUpdateMediator() override;
@@ -35,7 +34,7 @@ public:
     int key() const;
     virtual void connectResource(PkVariant sourceResource) = 0;
 
-Q_SIGNALS:
+public:
     void sigResourceChanged(int key);
 
 private:

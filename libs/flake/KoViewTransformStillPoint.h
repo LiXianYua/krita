@@ -8,6 +8,7 @@
 #define KOVIEWTRANSFORMSTILLPOINT_H
 
 #include <kritaflake_export.h>
+#include <PkDebug.h>
 #include <PkPoint.h>
 #include <utility>
 
@@ -46,6 +47,6 @@ public:
     PkPointF viewPoint() const;
 };
 
-KRITAFLAKE_EXPORT QDebug operator<<(QDebug dbg, const KoViewTransformStillPoint &point);
+KRITAFLAKE_EXPORT PkDebug operator<<(PkDebug dbg, const KoViewTransformStillPoint &point);
 
 #endif // KOVIEWTRANSFORMSTILLPOINT_H

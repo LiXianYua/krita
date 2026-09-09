@@ -22,7 +22,7 @@ class KoCanvasBase;
 class KoShapeGroup;
 class QPainter;
 
-class Q_DECL_HIDDEN KoShapeManager::Private
+class KoShapeManager::Private
 {
 public:
     Private(KoShapeManager *shapeManager, KoCanvasBase *c)

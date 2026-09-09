@@ -4,8 +4,6 @@
  *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoPathShapeFactory.h"
 #include "KoPathShape.h"
 #include "KoShapeStroke.h"
@@ -14,16 +12,15 @@
 #include "KoShapeLoadingContext.h"
 #include "KoInsets.h"
 
-#include <klocalizedstring.h>
-
 #include <KoXmlNS.h>
+#include <PkVariant.h>
 
 #include "kis_pointer_utils.h"
 
 KoPathShapeFactory::KoPathShapeFactory(const PkStringList&)
-        : KoShapeFactoryBase(KoPathShapeId, toPkString(i18n("Simple path shape")))
+        : KoShapeFactoryBase(KoPathShapeId, "Simple path shape")
 {
-    setToolTip(toPkString(i18n("A simple path shape")));
+    setToolTip("A simple path shape");
     setIconName("pathshape");
     PkStringList elementNames;
     elementNames << "path" << "line" << "polyline" << "polygon";
@@ -44,8 +41,8 @@ KoShape *KoPathShapeFactory::createDefaultShape(KoDocumentResourceManager *) con
 
 bool KoPathShapeFactory::supports(const PkXmlElement & e, KoShapeLoadingContext &context) const
 {
-    Q_UNUSED(context);
-    if (toQString(e.namespaceURI()) == toQString(KoXmlNS::draw)) {
+    (void)context;
+    if (e.namespaceURI() == KoXmlNS::draw) {
         if (e.localName() == "path")
             return true;
         if (e.localName() == "line")

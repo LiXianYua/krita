@@ -8,7 +8,6 @@
 #define KOCLIPMASKAPPLICATORBASE_H
 
 #include <KoStreamedMath.h>
-#include <QDebug>
 
 /** ClipMaskApplicator allows us to use xsimd functionality to speed up clipmask painting **/
 

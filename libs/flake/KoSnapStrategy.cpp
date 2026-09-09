@@ -13,9 +13,9 @@
 #include <KoCanvasBase.h>
 #include <KoViewConverter.h>
 
-#include <QPainter>
 #include <PkPainterPath.h>
 
+#include <cassert>
 #include <cmath>
 
 #if defined(_MSC_VER) && (_MSC_VER < 1800)
@@ -68,15 +68,15 @@ OrthogonalSnapStrategy::OrthogonalSnapStrategy()
 
 bool OrthogonalSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy * proxy, qreal maxSnapDistance)
 {
-    Q_ASSERT(std::isfinite(maxSnapDistance));
+    assert(std::isfinite(maxSnapDistance));
     PkPointF horzSnap, vertSnap;
     qreal minVertDist = HUGE_VAL;
     qreal minHorzDist = HUGE_VAL;
 
     PkList<KoShape*> shapes = proxy->shapes(true);
-    Q_FOREACH (KoShape * shape, shapes) {
+    for (KoShape *shape : shapes) {
         PkList<PkPointF> points = proxy->pointsFromShape(shape);
-        foreach (const PkPointF &point, points) {
+        for (const PkPointF &point : points) {
             qreal dx = fabs(point.x() - mousePosition.x());
             if (dx < minHorzDist && dx < maxSnapDistance) {
                 minHorzDist = dx;
@@ -138,7 +138,7 @@ NodeSnapStrategy::NodeSnapStrategy()
 
 bool NodeSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy * proxy, qreal maxSnapDistance)
 {
-    Q_ASSERT(std::isfinite(maxSnapDistance));
+    assert(std::isfinite(maxSnapDistance));
     const qreal maxDistance = maxSnapDistance * maxSnapDistance;
     qreal minDistance = HUGE_VAL;
 
@@ -147,7 +147,7 @@ bool NodeSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy * proxy, 
     PkList<PkPointF> points = proxy->pointsInRect(rect, false);
     PkPointF snappedPoint = mousePosition;
 
-    foreach (const PkPointF &point, points) {
+    for (const PkPointF &point : points) {
         qreal distance = squareDistance(mousePosition, point);
         if (distance < maxDistance && distance < minDistance) {
             snappedPoint = point;
@@ -176,7 +176,7 @@ ExtensionSnapStrategy::ExtensionSnapStrategy()
 
 bool ExtensionSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy * proxy, qreal maxSnapDistance)
 {
-    Q_ASSERT(std::isfinite(maxSnapDistance));
+    assert(std::isfinite(maxSnapDistance));
 
     const qreal maxDistance = maxSnapDistance * maxSnapDistance;
     qreal minDistances[2] = { HUGE_VAL, HUGE_VAL };
@@ -186,7 +186,7 @@ bool ExtensionSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy * pr
 
     PkList<KoShape*> shapes = proxy->shapes(true);
 
-    Q_FOREACH (KoShape * shape, shapes) {
+    for (KoShape *shape : shapes) {
         KoPathShape * path = dynamic_cast<KoPathShape*>(shape);
         if (! path) {
             continue;
@@ -287,7 +287,7 @@ bool ExtensionSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy * pr
 PkPainterPath ExtensionSnapStrategy::decoration(const KoViewConverter &/*converter*/) const
 {
     PkPainterPath decoration;
-    foreach (const PkLineF &line, m_lines) {
+    for (const PkLineF &line : m_lines) {
         decoration.moveTo(line.p1());
         decoration.lineTo(line.p2());
     }
@@ -296,7 +296,7 @@ PkPainterPath ExtensionSnapStrategy::decoration(const KoViewConverter &/*convert
 
 bool ExtensionSnapStrategy::snapToExtension(PkPointF &position, KoPathPoint * point, const PkTransform &matrix)
 {
-    Q_ASSERT(point);
+    assert(point);
     PkPointF direction = extensionDirection(point, matrix);
     if (direction.isNull())
         return false;
@@ -330,7 +330,7 @@ qreal ExtensionSnapStrategy::project(const PkPointF &lineStart, const PkPointF &
 
 PkPointF ExtensionSnapStrategy::extensionDirection(KoPathPoint * point, const PkTransform &matrix)
 {
-    Q_ASSERT(point);
+    assert(point);
 
     KoPathShape * path = point->parent();
     KoPathPointIndex index = path->pathPointIndex(point);
@@ -378,7 +378,7 @@ IntersectionSnapStrategy::IntersectionSnapStrategy()
 
 bool IntersectionSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy *proxy, qreal maxSnapDistance)
 {
-    Q_ASSERT(std::isfinite(maxSnapDistance));
+    assert(std::isfinite(maxSnapDistance));
     const qreal maxDistance = maxSnapDistance * maxSnapDistance;
     qreal minDistance = HUGE_VAL;
 
@@ -392,7 +392,7 @@ bool IntersectionSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy *
         const KoPathSegment &s1 = segments[i];
         for (int j = i + 1; j < segmentCount; ++j) {
             PkList<PkPointF> isects = s1.intersections(segments[j]);
-            Q_FOREACH (const PkPointF &point, isects) {
+            for (const PkPointF &point : isects) {
                 if (! rect.contains(point))
                     continue;
                 qreal distance = squareDistance(mousePosition, point);
@@ -425,7 +425,7 @@ GridSnapStrategy::GridSnapStrategy()
 
 bool GridSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy *proxy, qreal maxSnapDistance)
 {
-    Q_ASSERT(std::isfinite(maxSnapDistance));
+    assert(std::isfinite(maxSnapDistance));
     if (! proxy->canvas()->snapToGrid())
         return false;
 
@@ -444,16 +444,16 @@ bool GridSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy *proxy, q
     int nextRow = row + 1;
 
     // now check which grid line has less distance to the point
-    qreal distToCol = qAbs(offset.x() + col * spacing.width() - mousePosition.x());
-    qreal distToNextCol = qAbs(offset.x() + nextCol * spacing.width() - mousePosition.x());
+    qreal distToCol = std::abs(offset.x() + col * spacing.width() - mousePosition.x());
+    qreal distToNextCol = std::abs(offset.x() + nextCol * spacing.width() - mousePosition.x());
 
     if (distToCol > distToNextCol) {
         col = nextCol;
         distToCol = distToNextCol;
     }
 
-    qreal distToRow = qAbs(offset.y() + row * spacing.height() - mousePosition.y());
-    qreal distToNextRow = qAbs(offset.y() + nextRow * spacing.height() - mousePosition.y());
+    qreal distToRow = std::abs(offset.y() + row * spacing.height() - mousePosition.y());
+    qreal distToNextRow = std::abs(offset.y() + nextRow * spacing.height() - mousePosition.y());
     if (distToRow > distToNextRow) {
         row = nextRow;
         distToRow = distToNextRow;
@@ -503,7 +503,7 @@ BoundingBoxSnapStrategy::BoundingBoxSnapStrategy()
 
 bool BoundingBoxSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy *proxy, qreal maxSnapDistance)
 {
-    Q_ASSERT(std::isfinite(maxSnapDistance));
+    assert(std::isfinite(maxSnapDistance));
     const qreal maxDistance = maxSnapDistance * maxSnapDistance;
     qreal minDistance = HUGE_VAL;
 
@@ -522,7 +522,7 @@ bool BoundingBoxSnapStrategy::snap(const PkPointF &mousePosition, KoSnapProxy *p
     };
 
     PkList<KoShape*> shapes = proxy->shapesInRect(rect, true);
-    Q_FOREACH (KoShape * shape, shapes) {
+    for (KoShape *shape : shapes) {
         qreal shapeMinDistance = HUGE_VAL;
         // first check the corner and center points
         for (int i = 0; i < 5; ++i) {

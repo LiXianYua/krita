@@ -7,13 +7,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoFlake.h"
 #include "KoShape.h"
 
 #include <PkGradient.h>
-#include <math.h>
+#include <cmath>
 #include "kis_global.h"
 
 PkGradient *KoFlake::cloneGradient(const PkGradient *gradient)
@@ -106,7 +104,7 @@ qreal getScaleByPointsPair(qreal x1, qreal x2, qreal expX1, qreal expX2)
     const qreal diff = x2 - x1;
     const qreal expDiff = expX2 - expX1;
 
-    return qAbs(diff) > eps ? expDiff / diff : 1.0;
+    return std::abs(diff) > eps ? expDiff / diff : 1.0;
 }
 
 void findMinMaxPoints(const PkPolygonF &poly, int *minPoint, int *maxPoint, std::function<qreal(const PkPointF&)> dimension)
@@ -137,8 +135,8 @@ void findMinMaxPoints(const PkPolygonF &poly, int *minPoint, int *maxPoint, std:
 
 Pk::Orientation KoFlake::significantScaleOrientation(qreal scaleX, qreal scaleY)
 {
-    const qreal scaleXDeviation = qAbs(1.0 - scaleX);
-    const qreal scaleYDeviation = qAbs(1.0 - scaleY);
+    const qreal scaleXDeviation = std::abs(1.0 - scaleX);
+    const qreal scaleYDeviation = std::abs(1.0 - scaleY);
 
     return scaleXDeviation > scaleYDeviation ? Pk::Horizontal : Pk::Vertical;
 }
@@ -252,7 +250,7 @@ void KoFlake::resizeShape(KoShape *shape, qreal scaleX, qreal scaleY,
     }
 
     const PkSizeF oldSize(shape->size());
-    const PkSizeF newSize(oldSize.width() * qAbs(scaleX), oldSize.height() * qAbs(scaleY));
+    const PkSizeF newSize(oldSize.width() * std::abs(scaleX), oldSize.height() * std::abs(scaleY));
 
     const PkTransform mirrorTransform = PkTransform::fromScale(signPZ(scaleX), signPZ(scaleY));
 
