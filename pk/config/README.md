@@ -8,20 +8,37 @@
 - **`PkMimeDatabase`**（Q-7）—— `libs/koplugin/KisMimeDatabase` 的零 Qt 替代，
   37 条硬编码 MIME 表。
 
-## 1. 没有真实磁盘持久化
+## 1. 跨进程持久化契约
 
-`PkConfigGroup::sync()` 是空操作，只保证不抛异常/不崩——数据全程活在
-`PkConfigStore::instance()` 这个进程内单例的 `std::map` 里，**进程一退出就
-丢**。真实 `KConfigGroup`/`KSharedConfig` 会落盘到 `~/.config/*rc`，本任务不做
-这件事（Global Constraints 明确划出范围）。
+`PkConfigStore` 在首次使用时读取平台 `GenericConfig/kritarc`，与
+`KoResourcePaths` 的已有资源目录配置共用同一文件：
 
-后续某个 S 批次要接手真实文件 I/O：把 `PkConfigStore` 的读写路径接到
-`PkResourceStorage`/`PkStream`（两者都是 R-12 的接口，见
-`pk/port/README.md` §5——`PkResourceStorage`/`PkStream` 目前只有接口，没有
-具体的文件/内存/zip 适配器，適配器本身也是延后到 S-01 的缺口，不是本任务
-遗留的新缺口）。
+- Linux/Unix：`$XDG_CONFIG_HOME/kritarc`，未设时为 `$HOME/.config/kritarc`；
+- Windows：`%APPDATA%/kritarc`（缺失时回退用户目录）；
+- macOS：`$HOME/Library/Preferences/kritarc`；
+- Android：`$ANDROID_APP_DATA/kritarc`，然后按 `HOME`/`TMPDIR` 已有规则回退。
+- Haiku：用户 settings 目录下的 `kritarc`。
+
+`writeEntry`/`deleteEntry`/`deleteGroup` 先更新线程安全的进程内视图，并记录
+顺序变更。`sync()` 在 `kritarc.lock` 的跨进程排他锁内重读最新文件、
+合并本进程变更，写入 `kritarc.tmp.<pid>.<sequence>`，刷新文件后原子
+替换目标，并在 POSIX 上刷新父目录。进程生命期单例的析构函数会
+再做一次 RAII `sync()`，因此未显式调用 `sync()` 的现有选区/SVG 设置也会
+在正常进程退出时持久化。
+
+同步失败时不替换旧文件，不丢弃待写变更，进程内读仍返回已写值；
+`PkConfigStore::sync()` 返回 `false` 供有错误通道的上层处理，兼容的
+`PkConfigGroup::sync()` 保持 `void` API。已有 Pk 专属段损坏、重复或超过 16 MiB 时
+按失败关闭处理：读取返回调用方 default，同步拒绝覆写原文件。
 
 ## 2. 序列化格式
+
+底层文件框架为可共存的版本化 INI 段：每个 group 写成
+`[PkConfig-v1:<group-utf8-hex>]`，每个条目写成
+`<key-utf8-hex>=<value-utf8-hex>`。十六进制为小写 ASCII、两个字符表示一个
+UTF-8 字节；空 group/key/value 编码为空字段。这使换行、`=`、`[]`和任意
+Unicode 都可无歧义往返，且不会与现有 KConfig 段碰撞。非
+`PkConfig-v1` 段和根级行在重写时保留。
 
 一旦持久化落地，下面这些格式就会变成实际写到磁盘上的数据，改格式即改变格式
 版本，需要谨慎：
@@ -49,11 +66,9 @@
 
 ## 4. 已知限制
 
-- **`PkConfigStore` 不是线程安全的**：单个未加锁的 `std::map`（group →
-  key → value 两级）。目前本分支的测试/试接都是单线程用它，没暴露问题；但
-  真实 `KSharedConfig::openConfig()` 在 KDE 里返回的是**按线程各一份**的实例，
-  这里的全局单例在"多线程各自独立配置视图"这个形状上**不是等价替代**——
-  未来有消费者依赖这个线程隔离语义时需要重新设计，不能假定现状够用。
+- `PkConfigStore` 是单个进程全局视图，所有 map/变更日志访问由同一把
+  mutex 保护；不模拟 KDE 的每线程独立句柄。跨进程冲突以锁内重读+顺序
+  变更合并解决，同时修改同一 key 时后取得锁的写入者获胜。
 - **`PkStringList` 往返 `{""}`（单个空字符串元素）会退化成空列表**：这是
   `'\x1f'` 扁平分隔编码的固有行为（空字符串 join 出来的结果和"没有元素"在
   分隔符层面无法区分），不是 bug。低风险：实测的真实调用点都是插件 ID 黑

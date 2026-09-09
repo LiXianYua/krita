@@ -9,8 +9,8 @@
 class PkSharedConfig;
 
 // PkConfigGroup —— KConfigGroup 的零 Qt 替代。轻量句柄：只持有 group 名字的
-// 副本，每次读写都通过 PkConfigStore::instance() 落到进程内单例存储，
-// 因此同名的两个 PkConfigGroup 实例共享同一份底层数据。
+// 副本，每次读写都通过 PkConfigStore::instance() 落到进程共享存储。
+// sync() 和进程生命期结束都会将待写变更原子合并到共享 kritarc。
 class PkConfigGroup
 {
 public:

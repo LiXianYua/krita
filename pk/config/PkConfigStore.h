@@ -1,12 +1,16 @@
 #pragma once
+
 #include "PkString.h"
+
+#include <filesystem>
 #include <map>
 #include <mutex>
+#include <vector>
 
-// PkConfigStore —— 进程内单例，纯字符串二级 map（group -> key -> value）。
-// 不知道值的类型，类型化的编解码在 PkConfigGroup 里做。不做真实磁盘持久化
-// （Global Constraints，见 task brief）。所有 map 访问由同一把锁保护，使读、写和
-// 整组清除可以安全并发；锁不暴露给句柄层。
+// Process-wide configuration storage. Values remain opaque strings here;
+// PkConfigGroup owns the typed codecs. Mutations are journaled so sync() can
+// merge them with changes made by another process without replacing that
+// process's unrelated keys.
 class PkConfigStore
 {
 public:
@@ -18,8 +22,36 @@ public:
     void remove(const PkString &group, const PkString &key);
     void clearGroup(const PkString &group);
 
+    // Atomically merges pending mutations into the shared kritarc. Failure
+    // leaves both the previous file and the pending in-memory mutations intact
+    // so a later call can retry.
+    bool sync() noexcept;
+
 private:
-    PkConfigStore() = default;
+    using Group = std::map<PkString, PkString>;
+    using Data = std::map<PkString, Group>;
+
+    enum class MutationKind {
+        Set,
+        Remove,
+        ClearGroup
+    };
+
+    struct Mutation {
+        MutationKind kind;
+        PkString group;
+        PkString key;
+        PkString value;
+    };
+
+    PkConfigStore();
+    ~PkConfigStore();
+    PkConfigStore(const PkConfigStore &) = delete;
+    PkConfigStore &operator=(const PkConfigStore &) = delete;
+
     mutable std::mutex m_mutex;
-    std::map<PkString, std::map<PkString, PkString>> m_data;
+    Data m_data;
+    std::vector<Mutation> m_pending;
+    std::filesystem::path m_configPath;
+    bool m_persistentStateValid = true;
 };

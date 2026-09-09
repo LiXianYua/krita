@@ -5,9 +5,95 @@
 #include "../color/PkColor.h"
 
 #include <atomic>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <string>
 #include <thread>
 #include <type_traits>
 #include <vector>
+
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
+
+#ifndef PKCONFIG_PROCESS_HELPER_PATH
+#error "PKCONFIG_PROCESS_HELPER_PATH must name the fresh-process test helper"
+#endif
+
+namespace {
+
+namespace fs = std::filesystem;
+
+class TemporaryConfigRoot
+{
+public:
+    TemporaryConfigRoot()
+    {
+        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+        m_path = fs::temp_directory_path() /
+            ("pkconfig-process-test-" + std::to_string(stamp));
+        std::error_code error;
+        fs::create_directories(m_path, error);
+    }
+
+    ~TemporaryConfigRoot()
+    {
+        std::error_code error;
+        fs::remove_all(m_path, error);
+    }
+
+    const fs::path &path() const { return m_path; }
+
+private:
+    fs::path m_path;
+};
+
+int runConfigHelper(const fs::path &configRoot,
+                    std::initializer_list<std::string> arguments)
+{
+    std::vector<std::string> storage;
+    storage.emplace_back(PKCONFIG_PROCESS_HELPER_PATH);
+    storage.push_back(configRoot.u8string());
+    storage.insert(storage.end(), arguments.begin(), arguments.end());
+
+    std::vector<char *> argv;
+    argv.reserve(storage.size() + 1);
+    for (std::string &argument : storage) {
+        argv.push_back(argument.data());
+    }
+    argv.push_back(nullptr);
+
+#ifdef _WIN32
+    return static_cast<int>(::_spawnv(_P_WAIT, argv[0], argv.data()));
+#else
+    const pid_t child = ::fork();
+    if (child < 0) {
+        return -1;
+    }
+    if (child == 0) {
+        ::execv(argv[0], argv.data());
+        ::_exit(127);
+    }
+    int status = 0;
+    if (::waitpid(child, &status, 0) != child || !WIFEXITED(status)) {
+        return -1;
+    }
+    return WEXITSTATUS(status);
+#endif
+}
+
+std::string readBytes(const fs::path &path)
+{
+    std::ifstream input(path, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(input),
+                       std::istreambuf_iterator<char>());
+}
+
+} // namespace
 
 void TestConfigGroup::storeBasicGetSet()
 {
@@ -274,6 +360,137 @@ void TestConfigGroup::concurrentReadsAndGroupClearsAreSafe()
 
     PK_VERIFY(!invalidRead.load(std::memory_order_relaxed));
     group.deleteGroup();
+}
+
+void TestConfigGroup::persistsAcrossFreshProcessesAndPreservesForeignKritarcData()
+{
+    // Catches a process-local-only backend, a wrong filename, and rewriting
+    // the shared kritarc without preserving entries owned by other subsystems.
+    TemporaryConfigRoot root;
+    const fs::path configPath = root.path() / "kritarc";
+    const std::string foreign =
+        "ResourceDirectory=/paint/resources\n"
+        "[LegacyPlugin]\n"
+        "threshold=11\n";
+    {
+        std::ofstream output(configPath, std::ios::binary);
+        output << foreign;
+    }
+
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"write", "SvgTextTool", "document", "<svg>\ntext</svg>"}),
+               0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read", "SvgTextTool", "document", "<svg>\ntext</svg>"}),
+               0);
+
+    const std::string persisted = readBytes(configPath);
+    PK_VERIFY(persisted.find("ResourceDirectory=/paint/resources\n") != std::string::npos);
+    PK_VERIFY(persisted.find("[LegacyPlugin]\nthreshold=11\n") != std::string::npos);
+}
+
+void TestConfigGroup::concurrentProcessWritersDoNotLoseKeys()
+{
+    // Catches whole-snapshot last-writer-wins persistence. Each process starts
+    // from the same initial file and must merge its dirty key while holding the
+    // shared inter-process lock.
+    TemporaryConfigRoot root;
+    std::atomic<bool> start{false};
+    std::atomic<bool> failed{false};
+    std::vector<std::thread> writers;
+    for (int index = 0; index < 8; ++index) {
+        writers.emplace_back([&, index] {
+            while (!start.load(std::memory_order_acquire)) {
+            }
+            const std::string key = "key-" + std::to_string(index);
+            const std::string value = "value-" + std::to_string(index);
+            if (runConfigHelper(root.path(), {"write", "Concurrent", key, value}) != 0) {
+                failed.store(true, std::memory_order_relaxed);
+            }
+        });
+    }
+    start.store(true, std::memory_order_release);
+    for (std::thread &writer : writers) {
+        writer.join();
+    }
+    PK_VERIFY(!failed.load(std::memory_order_relaxed));
+
+    for (int index = 0; index < 8; ++index) {
+        const std::string key = "key-" + std::to_string(index);
+        const std::string value = "value-" + std::to_string(index);
+        PK_COMPARE(runConfigHelper(root.path(), {"read", "Concurrent", key, value}), 0);
+    }
+}
+
+void TestConfigGroup::corruptOwnedSectionFailsClosed()
+{
+    // Catches silently accepting or overwriting a malformed Pk-owned section.
+    // Foreign KConfig text is not corruption from this backend's perspective.
+    TemporaryConfigRoot root;
+    const fs::path configPath = root.path() / "kritarc";
+    const std::string corrupt =
+        "ResourceDirectory=/paint/resources\n"
+        "[PkConfig-v1:not-hex]\n"
+        "00=00\n";
+    {
+        std::ofstream output(configPath, std::ios::binary);
+        output << corrupt;
+    }
+
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read-default", "SvgTextTool", "missing", "fallback"}),
+               0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"write", "SvgTextTool", "new-key", "new-value"}),
+               0);
+    PK_COMPARE(readBytes(configPath), corrupt);
+}
+
+void TestConfigGroup::writeFailureKeepsPendingMemoryState()
+{
+    // A regular file cannot serve as XDG_CONFIG_HOME. This forces directory
+    // creation to fail even under privileged test users, unlike chmod-based
+    // fixtures. sync() must report the failure and retain the pending value.
+    TemporaryConfigRoot parent;
+    const fs::path invalidRoot = parent.path() / "not-a-directory";
+    {
+        std::ofstream output(invalidRoot, std::ios::binary);
+        output << "sentinel";
+    }
+
+    PK_COMPARE(runConfigHelper(invalidRoot,
+                               {"sync-failure", "Failure", "pending", "kept"}),
+               0);
+    PK_COMPARE(readBytes(invalidRoot), std::string("sentinel"));
+    PK_VERIFY(!fs::exists(fs::path(invalidRoot.u8string() + "/kritarc")));
+}
+
+void TestConfigGroup::typedAndDeletionSemanticsSurviveRestart()
+{
+    // Catches persistence that bypasses the typed codec or journals only sets.
+    // The two real selection keys remain distinct, so caller-owned modern-over-
+    // legacy precedence can still be applied after restart.
+    TemporaryConfigRoot root;
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"write-int", "Selection", "fuzziness", "17"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"write-int", "Selection", "threshold", "42"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read-int", "Selection", "fuzziness", "17"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read-int", "Selection", "threshold", "42"}), 0);
+
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"delete", "Selection", "threshold", "unused"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read-default", "Selection", "threshold", "fallback"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read-int", "Selection", "fuzziness", "17"}), 0);
+
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"clear-group", "Selection", "unused", "unused"}), 0);
+    PK_COMPARE(runConfigHelper(root.path(),
+                               {"read-default", "Selection", "fuzziness", "fallback"}), 0);
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

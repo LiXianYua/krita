@@ -287,15 +287,28 @@ target_include_directories(pktime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/time)
 # =========================================================================
 # 8. pk/config
 # =========================================================================
-# Configuration is process-global state.  Keep one store across the host,
-# shared libraries and plugins instead of embedding an independent static
-# PkConfigStore in every consumer.
-add_library(pkconfig SHARED
+set(PKCONFIG_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/config/PkConfigStore.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/config/PkConfigGroup.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/config/PkSharedConfig.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/config/PkMimeDatabase.cpp
 )
+add_library(pkconfig_objects OBJECT ${PKCONFIG_SOURCES})
+set_target_properties(pkconfig_objects PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    AUTOMOC OFF)
+target_include_directories(pkconfig_objects PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/string
+    ${CMAKE_CURRENT_SOURCE_DIR}/container
+    ${CMAKE_CURRENT_SOURCE_DIR}/geometry
+)
+target_compile_options(pkconfig_objects PRIVATE -fvisibility=default)
+
+# Configuration is process-global state. Production consumers link only this
+# shared target, so the host, shared libraries and plugins observe one store.
+add_library(pkconfig SHARED $<TARGET_OBJECTS:pkconfig_objects>)
+set_target_properties(pkconfig PROPERTIES AUTOMOC OFF)
 target_include_directories(pkconfig PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/config
     ${CMAKE_CURRENT_SOURCE_DIR}/string
@@ -303,8 +316,27 @@ target_include_directories(pkconfig PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry
 )
 target_link_libraries(pkconfig PUBLIC pkstring pkcontainer pkcolor)
-target_compile_options(pkconfig PRIVATE -fvisibility=default)
 set_target_properties(pkconfig PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
+# Frozen G16 evidence artifact. It reuses the shared target's exact object
+# files and is not linked by any production consumer; this restores the
+# physical lib/libpkconfig.a row without a second compiled implementation or a
+# second process-global singleton.
+add_library(pkconfig_frozen_archive STATIC $<TARGET_OBJECTS:pkconfig_objects>)
+set_target_properties(pkconfig_frozen_archive PROPERTIES AUTOMOC OFF)
+if (WIN32)
+    # Avoid colliding with pkconfig.dll's import library.
+    set_target_properties(pkconfig_frozen_archive PROPERTIES OUTPUT_NAME pkconfig_frozen)
+else()
+    set_target_properties(pkconfig_frozen_archive PROPERTIES OUTPUT_NAME pkconfig)
+endif()
+target_include_directories(pkconfig_frozen_archive PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/string
+    ${CMAKE_CURRENT_SOURCE_DIR}/container
+    ${CMAKE_CURRENT_SOURCE_DIR}/geometry
+)
+target_link_libraries(pkconfig_frozen_archive PUBLIC pkstring pkcontainer pkcolor)
 install(TARGETS pkconfig
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

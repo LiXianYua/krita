@@ -49,17 +49,46 @@ if (NOT TARGET pkstring)
     add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring)
 endif()
 
-add_library(pkconfig SHARED
+set(PKCONFIG_SOURCES
     PkConfigStore.cpp
     PkConfigGroup.cpp
     PkSharedConfig.cpp
     PkMimeDatabase.cpp
 )
+add_library(pkconfig_objects OBJECT ${PKCONFIG_SOURCES})
+set_target_properties(pkconfig_objects PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    AUTOMOC OFF)
+target_include_directories(pkconfig_objects PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PKSTRING_DIR} ${PKCONTAINER_DIR} ${PKGEOMETRY_DIR}
+    ${PKCOLOR_DIR} ${PKNAMESPACE_DIR})
+
+# Production users keep one process-wide store in the shared library. The
+# frozen S-line artifact is made from the exact same object files and is never
+# linked back into production, so it restores libpkconfig.a without compiling
+# or running a second logical implementation.
+add_library(pkconfig SHARED $<TARGET_OBJECTS:pkconfig_objects>)
+set_target_properties(pkconfig PROPERTIES AUTOMOC OFF)
 target_include_directories(pkconfig PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PKSTRING_DIR} ${PKCONTAINER_DIR} ${PKGEOMETRY_DIR}
     ${PKCOLOR_DIR} ${PKNAMESPACE_DIR})
 target_link_libraries(pkconfig PUBLIC pkstring pkcontainer pkcolor)
+
+add_library(pkconfig_frozen_archive STATIC $<TARGET_OBJECTS:pkconfig_objects>)
+set_target_properties(pkconfig_frozen_archive PROPERTIES AUTOMOC OFF)
+if (WIN32)
+    # Avoid colliding with pkconfig.dll's import library.
+    set_target_properties(pkconfig_frozen_archive PROPERTIES OUTPUT_NAME pkconfig_frozen)
+else()
+    set_target_properties(pkconfig_frozen_archive PROPERTIES OUTPUT_NAME pkconfig)
+endif()
+target_include_directories(pkconfig_frozen_archive PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PKSTRING_DIR} ${PKCONTAINER_DIR} ${PKGEOMETRY_DIR}
+    ${PKCOLOR_DIR} ${PKNAMESPACE_DIR})
+target_link_libraries(pkconfig_frozen_archive PUBLIC pkstring pkcontainer pkcolor)
 
 set(PKTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test)
 if (NOT TARGET pktest)
@@ -75,10 +104,17 @@ add_executable(test_pkconfig
     tests/test_config_group.cpp
     tests/test_mime_database.cpp
 )
+add_executable(pkconfig_process_helper
+    tests/pkconfig_process_helper.cpp
+)
+target_link_libraries(pkconfig_process_helper PRIVATE pkconfig)
 target_include_directories(test_pkconfig PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
     ${PKTEST_DIR}/compat ${CMAKE_CURRENT_SOURCE_DIR}/compat)
 target_link_libraries(test_pkconfig PRIVATE pkconfig pktest)
+target_compile_definitions(test_pkconfig PRIVATE
+    PKCONFIG_PROCESS_HELPER_PATH="$<TARGET_FILE:pkconfig_process_helper>")
+add_dependencies(test_pkconfig pkconfig_process_helper)
 set_source_files_properties(tests/test_config_group.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_config_group.inc")
 set_source_files_properties(tests/test_mime_database.cpp PROPERTIES

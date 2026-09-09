@@ -2,7 +2,7 @@
 
 PkSharedConfig *PkSharedConfig::openConfig()
 {
-    static PkSharedConfig instance;   // 进程内单例，C++11 magic static
+    static PkSharedConfig instance;   // 进程生命期单例，C++11 magic static
     return &instance;
 }
 

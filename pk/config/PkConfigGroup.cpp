@@ -231,8 +231,10 @@ void PkConfigGroup::deleteGroup()
 
 void PkConfigGroup::sync()
 {
-    // 不做真实磁盘持久化（见 task brief「Global Constraints」）：数据一直
-    // 活在 PkConfigStore 的进程内单例里，sync() 只需要不抛异常/不崩。
+    // KConfigGroup::sync() has no result channel. The store keeps dirty
+    // mutations after a failure, so an explicit retry or process teardown can
+    // try the same atomic merge again without losing the in-memory value.
+    PkConfigStore::instance().sync();
 }
 
 PkString PkConfigGroup::name() const

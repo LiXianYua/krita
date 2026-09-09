@@ -19,4 +19,9 @@ private Q_SLOTS:
     void colorReadEntryRejectsOutOfRangeSegments();
     void deleteGroupClearsEveryKeyAndPreservesOtherGroups();
     void concurrentReadsAndGroupClearsAreSafe();
+    void persistsAcrossFreshProcessesAndPreservesForeignKritarcData();
+    void concurrentProcessWritersDoNotLoseKeys();
+    void corruptOwnedSectionFailsClosed();
+    void writeFailureKeepsPendingMemoryState();
+    void typedAndDeletionSemanticsSurviveRestart();
 };
