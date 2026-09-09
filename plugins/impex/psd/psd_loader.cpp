@@ -166,10 +166,10 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
         if (gridGuidesInfo) {
             KisGuidesConfig config = m_doc->guidesConfig();
             for (std::uint32_t guide : gridGuidesInfo->verticalGuides) {
-                config.addGuideLine(Qt::Vertical, guide / m_image->xRes());
+                config.addGuideLine(Pk::Vertical, guide / m_image->xRes());
             }
             for (std::uint32_t guide : gridGuidesInfo->horizontalGuides) {
-                config.addGuideLine(Qt::Horizontal, guide / m_image->yRes());
+                config.addGuideLine(Pk::Horizontal, guide / m_image->yRes());
             }
             config.setShowGuides(true);
             m_doc->setGuidesConfig(config);

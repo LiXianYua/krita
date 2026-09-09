@@ -15,7 +15,7 @@
 #include <PkVectorND.h>
 #include <PkString.h>
 #include <PkFlakeBridge.h>
-#include <QKeySequence>
+#include <PkKeySequence.h>
 
 #include <KoToolFactoryBase.h>
 
@@ -351,7 +351,8 @@ public:
         setToolTip(descriptor.toolTip);
         setSection(descriptor.section);
         setIconName(descriptor.iconName);
-        setShortcut(QKeySequence(toQString(descriptor.shortcut)));
+        setShortcut(PkKeySequence({static_cast<int>(Pk::ControlModifier) |
+                                   static_cast<int>(Pk::Key_T)}));
         setPriority(descriptor.priority);
         setActivationShapeId(descriptor.activationShapeId);
     }

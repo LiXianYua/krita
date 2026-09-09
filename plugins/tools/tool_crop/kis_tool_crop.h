@@ -18,7 +18,7 @@
 #include <PkString.h>
 #include <PkVariant.h>
 
-#include <QKeySequence>
+#include <PkKeySequence.h>
 
 #include <KoToolFactoryBase.h>
 #include "kis_tool.h"
@@ -208,7 +208,7 @@ public:
         setSection(ToolBoxSection::Transform);
         setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(11);
-        setShortcut(QKeySequence(QStringLiteral("C")));
+        setShortcut(PkKeySequence({static_cast<int>('C')}));
     }
 
     ~KisToolCropFactory() override {}
