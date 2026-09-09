@@ -548,6 +548,7 @@ void KoToolManager::Private::disconnectActiveTool()
         q->aboutToChangeTool(canvasData->canvas);
         canvasData->activeTool->deactivate();
         QObject::disconnect(canvasData->activeTool, nullptr, q, nullptr);
+        PkObject::disconnect(canvasData->activeTool, nullptr, q, nullptr);
     }
 
     // Q_EMIT a empty status text to clear status text from last active tool

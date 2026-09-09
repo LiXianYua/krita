@@ -209,16 +209,18 @@ KisDocumentApplicationServices::InputMethodTextFormat nativeTextFormat(const QTe
 }
 
 SvgTextCursor::NativeKeyEvent
-svgTextNativeKeyEvent(const QKeyEvent &event,
+svgTextNativeKeyEvent(const PkToolKeyEvent &event,
                       KoSvgText::WritingMode writingMode,
                       KoSvgText::Direction direction)
 {
     SvgTextCursor::NativeKeyEvent result;
-    result.key = event.key();
-    result.modifiers = Pk::KeyboardModifiers(static_cast<int>(event.modifiers()));
-    result.text = toPkString(event.text());
-    const int adjustedKey = adjustedKeyForTextDirection(event.key(), writingMode, direction);
-    result.command = nativeCommandForSequence(QKeySequence(int(event.modifiers()) | adjustedKey));
+    result.key = static_cast<int>(event.key());
+    result.modifiers = event.modifiers();
+    result.text = event.text();
+    const int adjustedKey = adjustedKeyForTextDirection(
+        static_cast<int>(event.key()), writingMode, direction);
+    result.command = nativeCommandForSequence(
+        QKeySequence(static_cast<int>(event.modifiers()) | adjustedKey));
     return result;
 }
 
@@ -1107,16 +1109,15 @@ void SvgTextTool::mouseReleaseEvent(KoPointerEvent *event)
     event->accept();
 }
 
-void SvgTextTool::keyPressEvent(QKeyEvent *event)
+void SvgTextTool::pkKeyPressEvent(PkToolKeyEvent *event)
 {
     if (m_interactionStrategy
-            && (event->key() == Qt::Key_Control || event->key() == Qt::Key_Alt || event->key() == Qt::Key_Shift
-                || event->key() == Qt::Key_Meta)) {
-        m_interactionStrategy->handleMouseMove(
-            m_lastMousePos, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+            && (event->key() == Pk::Key_Control || event->key() == Pk::Key_Alt || event->key() == Pk::Key_Shift
+                || event->key() == Pk::Key_Meta)) {
+        m_interactionStrategy->handleMouseMove(m_lastMousePos, event->modifiers());
         event->accept();
         return;
-    } else if (event->key() == Qt::Key_Escape) {
+    } else if (event->key() == Pk::Key_Escape) {
         requestStrokeEnd();
     } else if (selectedShape()) {
         const KoSvgTextProperties properties = selectedShape()->textProperties();
@@ -1127,8 +1128,9 @@ void SvgTextTool::keyPressEvent(QKeyEvent *event)
         const SvgTextCursor::NativeKeyEvent nativeEvent =
             svgTextNativeKeyEvent(*event, writingMode, direction);
         const bool consumed = m_textCursor.keyPressEvent(nativeEvent, [this, event, writingMode, direction] {
-            const int adjustedKey = adjustedKeyForTextDirection(event->key(), writingMode, direction);
-            const QKeySequence sequence(int(event->modifiers()) | adjustedKey);
+            const int adjustedKey = adjustedKeyForTextDirection(
+                static_cast<int>(event->key()), writingMode, direction);
+            const QKeySequence sequence(static_cast<int>(event->modifiers()) | adjustedKey);
             for (auto it = m_cursorActions.constBegin(); it != m_cursorActions.constEnd(); ++it) {
                 QAction *hostAction = it.value();
                 if (hostAction && hostAction->shortcut() == sequence) {
@@ -1147,14 +1149,13 @@ void SvgTextTool::keyPressEvent(QKeyEvent *event)
     event->ignore();
 }
 
-void SvgTextTool::keyReleaseEvent(QKeyEvent *event)
+void SvgTextTool::pkKeyReleaseEvent(PkToolKeyEvent *event)
 {
-    m_textCursor.updateModifiers(Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+    m_textCursor.updateModifiers(event->modifiers());
     if (m_interactionStrategy
-            && (event->key() == Qt::Key_Control || event->key() == Qt::Key_Alt || event->key() == Qt::Key_Shift
-                || event->key() == Qt::Key_Meta)) {
-        m_interactionStrategy->handleMouseMove(
-            m_lastMousePos, Pk::KeyboardModifiers(static_cast<int>(event->modifiers())));
+            && (event->key() == Pk::Key_Control || event->key() == Pk::Key_Alt || event->key() == Pk::Key_Shift
+                || event->key() == Pk::Key_Meta)) {
+        m_interactionStrategy->handleMouseMove(m_lastMousePos, event->modifiers());
         event->accept();
     } else {
         event->ignore();

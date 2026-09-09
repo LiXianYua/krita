@@ -51,8 +51,8 @@ public:
     /// reimplemented from KoToolBase
     void mouseReleaseEvent(KoPointerEvent *event) override;
 
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
+    void pkKeyPressEvent(PkToolKeyEvent *event) override;
+    void pkKeyReleaseEvent(PkToolKeyEvent *event) override;
 
     void focusInEvent(QFocusEvent *event) override;
     void focusOutEvent(QFocusEvent *event) override;

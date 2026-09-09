@@ -4,6 +4,7 @@
  */
 
 #include <QTest>
+#include <QKeyEvent>
 #include <QKeySequence>
 
 #include "KoCanvasBase.h"
@@ -95,7 +96,8 @@ public:
     KoShapeManager *shapeManager() const override { return const_cast<KoShapeManager *>(&manager); }
     KoSelectedShapesProxy *selectedShapesProxy() const override { return const_cast<KoSelectedShapesProxySimple *>(&selectedShapes); }
     void updateCanvas(const PkRectF &) override {}
-    KoToolProxy *toolProxy() const override { return nullptr; }
+    KoToolProxy *toolProxy() const override { return m_toolProxy; }
+    void setToolProxy(KoToolProxy *proxy) { m_toolProxy = proxy; }
     const KoViewConverter *viewConverter() const override { return &converter; }
     KoViewConverter *viewConverter() override { return &converter; }
     QWidget *canvasWidget() override { return nullptr; }
@@ -105,13 +107,14 @@ public:
     KoShapeManager manager;
     KoSelectedShapesProxySimple selectedShapes;
     KoViewConverter converter;
+    KoToolProxy *m_toolProxy = nullptr;
 };
 
 class MinimalController final : public KoCanvasController
 {
 public:
-    MinimalController()
-        : KoCanvasController(nullptr)
+    explicit MinimalController(QObject *actionCollection = nullptr)
+        : KoCanvasController(actionCollection)
     {
     }
 
@@ -195,11 +198,44 @@ public:
     }
     void mouseReleaseEvent(KoPointerEvent *) override { ++mouseReleaseCalls; }
 
+    void pkKeyPressEvent(PkToolKeyEvent *event) override
+    {
+        ++keyPressCalls;
+        lastKey = event->key();
+        lastModifiers = event->modifiers();
+        lastAcceptedOnEntry = event->isAccepted();
+        lastAutoRepeat = event->isAutoRepeat();
+        lastText = event->text();
+        event->accept();
+    }
+
+    void pkKeyReleaseEvent(PkToolKeyEvent *event) override
+    {
+        ++keyReleaseCalls;
+        lastKey = event->key();
+        lastModifiers = event->modifiers();
+        lastAcceptedOnEntry = event->isAccepted();
+        lastAutoRepeat = event->isAutoRepeat();
+        lastText = event->text();
+        event->ignore();
+    }
+
     bool reached = false;
     int mouseMoveCalls = 0;
     int mouseReleaseCalls = 0;
+    int keyPressCalls = 0;
+    int keyReleaseCalls = 0;
     PkPointF lastMouseMovePoint;
     Qt::MouseButtons lastMouseMoveButtons;
+    Pk::Key lastKey = static_cast<Pk::Key>(0);
+    Pk::KeyboardModifiers lastModifiers = Pk::NoModifier;
+    bool lastAcceptedOnEntry = false;
+    bool lastAutoRepeat = false;
+    PkString lastText;
+};
+
+class DualCanvasObserver final : public QObject, public PkObject
+{
 };
 
 class PencilPreviewTool final : public KoPencilTool
@@ -453,6 +489,125 @@ private Q_SLOTS:
 
         QCOMPARE(toolId, tool.toolId());
         QCOMPARE(notifications, 1);
+    }
+
+    void activeToolConnectionsEndAtSwitchBoundary()
+    {
+        MinimalShapeController shapeController;
+        MinimalCanvas canvas(&shapeController);
+        QObject actionCollection;
+        MinimalController controller(&actionCollection);
+        controller.setCanvas(&canvas);
+        canvas.setCanvasController(&controller);
+        KoToolManager manager;
+        manager.initializeToolActions();
+        for (KoToolAction *action : manager.toolActionList()) {
+            action->toolFactory()->createActions(&actionCollection);
+        }
+        manager.addController(&controller);
+
+        const PkList<KoToolAction *> actions = manager.toolActionList();
+        QVERIFY(actions.size() >= 2);
+        const PkString firstId = actions.at(0)->id();
+        const PkString secondId = actions.at(1)->id();
+        QVERIFY(firstId != secondId);
+
+        manager.switchToolRequested(firstId);
+        KoToolBase *first = manager.toolById(&canvas, firstId);
+        manager.switchToolRequested(secondId);
+        KoToolBase *second = manager.toolById(&canvas, secondId);
+        QVERIFY(first);
+        QVERIFY(second);
+
+        PkObject receiver;
+        PkList<PkString> statuses;
+        PkObject::connect(&manager, &KoToolManager::changedStatusText,
+                          &receiver, [&](const PkString &status) {
+            if (!status.isEmpty()) {
+                statuses.append(status);
+            }
+        });
+
+        second->statusTextChanged("second-active");
+        QCOMPARE(statuses, PkList<PkString>({"second-active"}));
+
+        first->statusTextChanged("first-inactive");
+        QCOMPARE(statuses, PkList<PkString>({"second-active"}));
+
+        manager.switchToolRequested(firstId);
+        first->statusTextChanged("first-reactivated");
+        QCOMPARE(statuses, PkList<PkString>({"second-active", "first-reactivated"}));
+
+        second->statusTextChanged("second-inactive");
+        QCOMPARE(statuses, PkList<PkString>({"second-active", "first-reactivated"}));
+
+        manager.removeCanvasController(&controller);
+    }
+
+    void canvasObserverDisconnectCoversQObjectAndPkDelivery()
+    {
+        MinimalShapeController shapeController;
+        MinimalCanvas canvas(&shapeController);
+        auto *proxy = new TestToolProxy(&canvas);
+        canvas.setToolProxy(proxy);
+        DualCanvasObserver observer;
+        int qtDeliveries = 0;
+        int pkDeliveries = 0;
+        QObject::connect(proxy, &QObject::objectNameChanged, &observer,
+                         [&](const QString &) { ++qtDeliveries; });
+        PkObject::connect(proxy, &KoToolProxy::toolChanged, &observer,
+                          [&](const PkString &) { ++pkDeliveries; });
+
+        proxy->QObject::setObjectName(QStringLiteral("before"));
+        proxy->toolChanged("before");
+        QCOMPARE(qtDeliveries, 1);
+        QCOMPARE(pkDeliveries, 1);
+
+        canvas.disconnectCanvasObserver(&observer);
+        proxy->QObject::setObjectName(QStringLiteral("after"));
+        proxy->toolChanged("after");
+        QCOMPARE(qtDeliveries, 1);
+        QCOMPARE(pkDeliveries, 1);
+
+        canvas.setToolProxy(nullptr);
+        delete proxy;
+    }
+
+    void hostKeyAdapterDispatchesCompletePkPayloadAndAcceptance()
+    {
+        MinimalShapeController shapeController;
+        MinimalCanvas canvas(&shapeController);
+        TestToolProxy proxy(&canvas);
+        PkOnlyTool tool(&canvas);
+        proxy.priv()->activeTool = &tool;
+
+        QKeyEvent press(QEvent::KeyPress, Qt::Key_A,
+                        Qt::ControlModifier | Qt::ShiftModifier,
+                        QStringLiteral("A"), true);
+        press.ignore();
+        proxy.keyPressEvent(&press);
+
+        QCOMPARE(tool.keyPressCalls, 1);
+        QCOMPARE(tool.lastKey, Pk::Key_A);
+        QCOMPARE(tool.lastModifiers,
+                 Pk::KeyboardModifiers(Pk::ControlModifier | Pk::ShiftModifier));
+        QVERIFY(!tool.lastAcceptedOnEntry);
+        QVERIFY(tool.lastAutoRepeat);
+        QCOMPARE(tool.lastText, PkString("A"));
+        QVERIFY(press.isAccepted());
+
+        QKeyEvent release(QEvent::KeyRelease, Qt::Key_B, Qt::AltModifier,
+                          QStringLiteral("b"), false);
+        release.accept();
+        proxy.keyReleaseEvent(&release);
+
+        QCOMPARE(tool.keyReleaseCalls, 1);
+        QCOMPARE(tool.lastKey, Pk::Key_B);
+        QCOMPARE(tool.lastModifiers, Pk::KeyboardModifiers(Pk::AltModifier));
+        QVERIFY(tool.lastAcceptedOnEntry);
+        QVERIFY(!tool.lastAutoRepeat);
+        QCOMPARE(tool.lastText, PkString("b"));
+        QVERIFY(!release.isAccepted());
     }
 
     void nativeKeyEventPreservesAutoRepeatState()
