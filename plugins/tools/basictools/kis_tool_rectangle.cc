@@ -32,15 +32,14 @@ KisToolRectangle::KisToolRectangle(KoCanvasBase * canvas)
         : KisToolRectangleBase(canvas, KisToolRectangleBase::PAINT, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_rectangle_cursor.png", 6, 6))
 {
     setSupportOutline(true);
-    QObject::setObjectName("tool_rectangle");
     setIsOpacityPresetMode(true);
 
-    QObject::connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-            this, [this](int key, const PkVariant &) {
-                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
-                    resetCursorStyle();
-                }
-            });
+}
+
+void KisToolRectangle::canvasResourceChanged(int key, const PkVariant &value)
+{
+    KisToolRectangleBase::canvasResourceChanged(key, value);
+    if (key == KoCanvasResource::CurrentEffectiveCompositeOp) resetCursorStyle();
 }
 
 KisToolRectangle::~KisToolRectangle()

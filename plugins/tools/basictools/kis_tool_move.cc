@@ -64,7 +64,6 @@ KisToolMove::KisToolMove(KoCanvasBase *canvas)
     : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolMoveCursor())
     , m_updateCursorCompressor(100, KisSignalCompressor::FIRST_ACTIVE)
 {
-    QObject::setObjectName("tool_move");
 
     m_updateCursorConnection =
         PkObject::connect(&m_updateCursorCompressor, &KisSignalCompressor::timeout,
@@ -372,12 +371,6 @@ void KisToolMove::activate(const PkSet<KoShape*> &shapes)
 {
     KisTool::activate(shapes);
 
-    QObject::connect(
-        canvas()->resourceManager(),
-        &KoCanvasResourceProvider::canvasResourceChanged,
-        this,
-        &KisToolMove::slotCanvasResourceChanged);
-
     m_canvasConnections.addUniqueConnection(
         &m_changesTracker,
         &KisToolChangesTracker::sigConfigChanged,
@@ -406,10 +399,6 @@ void KisToolMove::paint(PkPainter& gc, const KoViewConverter &converter)
 
 void KisToolMove::deactivate()
 {
-    QObject::disconnect(canvas()->resourceManager(),
-                        &KoCanvasResourceProvider::canvasResourceChanged,
-                        this,
-                        &KisToolMove::slotCanvasResourceChanged);
     m_canvasConnections.clear();
 
     endStroke();
@@ -718,8 +707,9 @@ void KisToolMove::slotNodeChanged(const KisNodeList &nodes)
     requestHandlesRectUpdate();
 }
 
-void KisToolMove::slotCanvasResourceChanged(int key, const PkVariant &)
+void KisToolMove::canvasResourceChanged(int key, const PkVariant &value)
 {
+    KisTool::canvasResourceChanged(key, value);
     if (key == KoCanvasResource::CurrentKritaSelectedNodesRevision) {
         slotNodeChanged(selectedNodes());
     } else if (key == KoCanvasResource::CurrentKritaSelectionRevision) {

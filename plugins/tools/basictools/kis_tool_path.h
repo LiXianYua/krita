@@ -59,6 +59,7 @@ public:
     void beginPrimaryDoubleClickAction(KoPointerEvent* event) override;
 
     KisPopupWidgetInterface* popupWidget() override;
+    void canvasResourceChanged(int key, const PkVariant &value) override;
 
 protected:
     void requestStrokeCancellation() override;

@@ -9,6 +9,7 @@
 #define __KIS_TOOL_MULTIHAND_H
 
 #include <PkFlakeBridge.h>
+#include <PkKeySequence.h>
 #include "kis_tool_brush.h"
 #include <PkConnection.h>
 #include <PkPainter.h>
@@ -80,7 +81,7 @@ public:
 
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setShortcut(QKeySequence("Q"));
+        setShortcut(PkKeySequence({static_cast<int>('Q')}));
         setPriority(11);
         setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }

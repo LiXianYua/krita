@@ -10,6 +10,7 @@
 #define KIS_TOOL_FILL_H_
 
 #include <PkFlakeBridge.h>
+#include <PkKeySequence.h>
 #include <PkConfigGroup.h>
 #include <PkPoint.h>
 #include <PkList.h>
@@ -73,6 +74,7 @@ public:
 public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
+    void canvasResourceChanged(int key, const PkVariant &value) override;
 
 protected:
     bool wantsAutoScroll() const override { return false; }
@@ -155,7 +157,7 @@ public:
         setSection(ToolBoxSection::Fill);
         setPriority(0);
         setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
-        setShortcut(QKeySequence("F"));
+        setShortcut(PkKeySequence({static_cast<int>('F')}));
         setPriority(14);
     }
 

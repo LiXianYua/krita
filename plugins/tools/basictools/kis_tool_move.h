@@ -10,6 +10,7 @@
 #define KIS_TOOL_MOVE_H_
 
 #include <PkFlakeBridge.h>
+#include <PkKeySequence.h>
 #include <KisToolPaintFactoryBase.h>
 #include <kis_types.h>
 #include <kis_tool.h>
@@ -100,6 +101,7 @@ public:
 
     void slotNodeChanged(const KisNodeList &nodes);
     void slotSelectionChanged();
+    void canvasResourceChanged(int key, const PkVariant &value) override;
     void commitChanges();
 
     void slotHandlesRectCalculated(const PkRect &handlesRect);
@@ -125,7 +127,6 @@ private:
 private:
     void endStroke();
     void slotTrackerChangedConfig(KisToolChangesTrackerDataSP state);
-    void slotCanvasResourceChanged(int key, const PkVariant &value);
 
     void slotMoveDiscreteLeft();
     void slotMoveDiscreteRight();
@@ -175,7 +176,7 @@ public:
         setSection(ToolBoxSection::Transform);
         setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
         setPriority(3);
-        setShortcut(QKeySequence("T"));
+        setShortcut(PkKeySequence({static_cast<int>('T')}));
     }
 
     ~KisToolMoveFactory() override {}

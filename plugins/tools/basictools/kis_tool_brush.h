@@ -8,6 +8,7 @@
 #define KIS_TOOL_BRUSH_H_
 
 #include <PkFlakeBridge.h>
+#include <PkKeySequence.h>
 #include "kis_tool_freehand.h"
 
 #include <PkConnection.h>
@@ -94,7 +95,7 @@ public:
 
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setShortcut(QKeySequence("B"));
+        setShortcut(PkKeySequence({static_cast<int>('B')}));
         setPriority(0);
         setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }

@@ -48,6 +48,7 @@ public:
     PkString quickHelp() const override;
 
     bool supportsPaintingAssistants() const override;
+    void canvasResourceChanged(int key, const PkVariant &value) override;
 
 protected:
     void resetCursorStyle() override;

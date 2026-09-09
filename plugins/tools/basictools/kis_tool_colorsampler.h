@@ -11,6 +11,7 @@
 #define KIS_TOOL_COLOR_SAMPLER_H_
 
 #include <PkFlakeBridge.h>
+#include <PkKeySequence.h>
 #include "KoToolFactoryBase.h"
 #include "kis_tool.h"
 #include <KoColorSet.h>
@@ -86,7 +87,7 @@ public:
         setToolTip(PkString("Color Sampler Tool"));
         setSection(ToolBoxSection::Fill);
         setPriority(2);
-        setShortcut(QKeySequence("P"));
+        setShortcut(PkKeySequence({static_cast<int>('P')}));
         setActivationShapeId(toPkString(KRITA_TOOL_ACTIVATION_ID));
     }
 

@@ -23,7 +23,6 @@ KisToolBrush::KisToolBrush(KoCanvasBase * canvas)
                       dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_freehand_cursor.xpm", 2, 2),
                       kundo2_i18n("Freehand Brush Stroke"))
 {
-    QObject::setObjectName("tool_brush");
     setIsOpacityPresetMode(true);
 
     m_smoothingCursorConnection = PkObject::connect(
