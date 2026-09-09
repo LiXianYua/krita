@@ -163,7 +163,6 @@ public:
      * to do so.
      * @param controller the proxy object of the controller to be removed
      */
-    Q_SLOT void attemptCanvasControllerRemoval(QObject *controller);
 
     /// @return the active canvas controller
     KoCanvasController *activeCanvasController() const;

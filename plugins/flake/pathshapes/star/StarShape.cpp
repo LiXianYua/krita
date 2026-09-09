@@ -122,9 +122,9 @@ PkPointF StarShape::starCenter() const
     return m_center;
 }
 
-void StarShape::moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers)
+void StarShape::moveHandleAction(int handleId, const PkPointF &point, Pk::KeyboardModifiers modifiers)
 {
-    if (modifiers & Qt::ShiftModifier) {
+    if (modifiers & Pk::ShiftModifier) {
         PkPointF handle = handles()[handleId];
         PkPointF tangentVector = point - handle;
         qreal distance = sqrt(tangentVector.x() * tangentVector.x() + tangentVector.y() * tangentVector.y());
@@ -139,7 +139,7 @@ void StarShape::moveHandleAction(int handleId, const PkPointF &point, Qt::Keyboa
             distance = distance > -snapDistance ? 0.0 : distance + snapDistance;
         }
         // control changes roundness on both handles, else only the actual handle roundness is changed
-        if (modifiers & Qt::ControlModifier) {
+        if (modifiers & Pk::ControlModifier) {
             m_roundness[handleId] = moveDirection < 0.0f ? distance : -distance;
         } else {
             m_roundness[base] = m_roundness[tip] = moveDirection < 0.0f ? distance : -distance;
@@ -162,7 +162,7 @@ void StarShape::moveHandleAction(int handleId, const PkPointF &point, Qt::Keyboa
             m_angles[base] += diffAngle - radianStep;
         } else {
             // control make the base point move freely
-            if (modifiers & Qt::ControlModifier) {
+            if (modifiers & Pk::ControlModifier) {
                 m_angles[base] += diffAngle - 2 * radianStep;
             } else {
                 m_angles[base] = m_angles[tip];

@@ -39,7 +39,7 @@ KoParameterShape::~KoParameterShape()
 {
 }
 
-void KoParameterShape::moveHandle(int handleId, const PkPointF & point, Qt::KeyboardModifiers modifiers)
+void KoParameterShape::moveHandle(int handleId, const PkPointF & point, Pk::KeyboardModifiers modifiers)
 {
 
     if (handleId >= d->handles.size()) {

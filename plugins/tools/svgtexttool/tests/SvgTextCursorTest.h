@@ -13,6 +13,9 @@ class SvgTextCursorTest : public QObject
     Q_OBJECT
 private Q_SLOTS:
     void initTestCase();
+    void controllerChangesUpdateImeTransform();
+    void shortcutValuesMatchQt515Oracle();
+    void configHandlesMatchKConfigOracle();
 
     void test_ltr_data();
     void test_ltr();

@@ -64,7 +64,7 @@ public:
 protected:
     SpiralShape(const SpiralShape &rhs);
 
-    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void moveHandleAction(int handleId, const PkPointF &point, Pk::KeyboardModifiers modifiers = Pk::NoModifier);
     void updatePath(const PkSizeF &size);
     void createPath(const PkSizeF &size);
 

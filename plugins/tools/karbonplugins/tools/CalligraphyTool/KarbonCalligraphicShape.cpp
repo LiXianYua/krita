@@ -295,7 +295,7 @@ PkPointF KarbonCalligraphicShape::normalize()
 
 void KarbonCalligraphicShape::moveHandleAction(int handleId,
         const PkPointF &point,
-        Qt::KeyboardModifiers modifiers)
+        Pk::KeyboardModifiers modifiers)
 {
     (void)modifiers;
     s->points[handleId].setPoint(point);

@@ -63,6 +63,7 @@ target_include_directories(PkQPainterAdapterTest PRIVATE
 
 kis_add_test(
     KoToolProxyPkPainterTest.cpp
+    ../commands/KoParameterHandleMoveCommand.cpp
     TEST_NAME KoToolProxyPkPainterTest
     LINK_LIBRARIES kritaflake kritatestsdk
     )

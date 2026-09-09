@@ -6,14 +6,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
-
 #include "KoParameterHandleMoveCommand.h"
 #include "KoParameterShape.h"
 #include "kis_command_ids.h"
 
-KoParameterHandleMoveCommand::KoParameterHandleMoveCommand(KoParameterShape *shape, int handleId, const PkPointF &startPoint, const PkPointF &endPoint, Qt::KeyboardModifiers keyModifiers, KUndo2Command *parent)
+KoParameterHandleMoveCommand::KoParameterHandleMoveCommand(KoParameterShape *shape, int handleId, const PkPointF &startPoint, const PkPointF &endPoint, Pk::KeyboardModifiers keyModifiers, KUndo2Command *parent)
         : KUndo2Command(parent)
         , m_shape(shape)
         , m_handleId(handleId)
@@ -67,4 +64,3 @@ bool KoParameterHandleMoveCommand::mergeWith(const KUndo2Command *command)
 
     return true;
 }
-

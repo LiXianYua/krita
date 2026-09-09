@@ -47,7 +47,7 @@ KoShape *RectangleShape::cloneShape() const
     return new RectangleShape(*this);
 }
 
-void RectangleShape::moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers)
+void RectangleShape::moveHandleAction(int handleId, const PkPointF &point, Pk::KeyboardModifiers modifiers)
 {
     Q_UNUSED(modifiers);
     PkPointF p(point);
@@ -63,7 +63,7 @@ void RectangleShape::moveHandleAction(int handleId, const PkPointF &point, Qt::K
         }
         p.setY(0);
         m_cornerRadiusX = (size().width() - p.x()) / width2 * 100.0;
-        if (!(modifiers & Qt::ControlModifier)) {
+        if (!(modifiers & Pk::ControlModifier)) {
             m_cornerRadiusY = (size().width() - p.x()) / height2 * 100.0;
         }
         break;
@@ -75,7 +75,7 @@ void RectangleShape::moveHandleAction(int handleId, const PkPointF &point, Qt::K
         }
         p.setX(size().width());
         m_cornerRadiusY = p.y() / height2 * 100.0;
-        if (!(modifiers & Qt::ControlModifier)) {
+        if (!(modifiers & Pk::ControlModifier)) {
             m_cornerRadiusX = p.y() / width2 * 100.0;
         }
         break;

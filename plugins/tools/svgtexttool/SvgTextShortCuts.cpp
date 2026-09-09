@@ -97,9 +97,9 @@ const PkMap<PkString, SvgTextShortcutInfo> textShortCuts = {
     {
         "svg_format_italic",
         SvgTextShortcutInfo::propertyToggle(KoSvgTextProperties::FontStyleId,
-        PkVariant::fromValue(KoSvgText::CssFontStyleData(QFont::StyleNormal)),
-        PkVariant::fromValue(KoSvgText::CssFontStyleData(QFont::StyleItalic)),
-        PkVariant::fromValue(KoSvgText::CssFontStyleData(QFont::StyleNormal)))
+        PkVariant::fromValue(KoSvgText::CssFontStyleData(PkFontStyleNormal)),
+        PkVariant::fromValue(KoSvgText::CssFontStyleData(PkFontStyleItalic)),
+        PkVariant::fromValue(KoSvgText::CssFontStyleData(PkFontStyleNormal)))
     },
 
     {

@@ -90,7 +90,7 @@ protected:
     // reimplemented
     void moveHandleAction(int handleId,
                           const PkPointF &point,
-                          Qt::KeyboardModifiers modifiers = Qt::NoModifier) override;
+                          Pk::KeyboardModifiers modifiers = Pk::NoModifier) override;
 
     // reimplemented
     void updatePath(const PkSizeF &size) override;

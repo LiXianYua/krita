@@ -40,7 +40,7 @@ void KoParameterChangeStrategy::handleMouseMove(const PkPointF &mouseLocation, P
         mouseLocation, modifiers);
 
     d->parameterShape->moveHandle(
-        d->handleId, snappedPosition, Qt::KeyboardModifiers(static_cast<int>(modifiers)));
+        d->handleId, snappedPosition, modifiers);
     d->lastModifierUsed = modifiers;
     d->releasePoint = snappedPosition;
 }
@@ -59,7 +59,7 @@ KUndo2Command* KoParameterChangeStrategy::createCommand()
             d->handleId,
             d->startPoint,
             d->releasePoint,
-            Qt::KeyboardModifiers(static_cast<int>(d->lastModifierUsed)));
+            d->lastModifierUsed);
     }
     return cmd;
 }

@@ -10,6 +10,8 @@
 
 #ifndef KOCANVASCONTROLLER_H
 #define KOCANVASCONTROLLER_H
+#include <PkObject.h>
+#include <PkRect.h>
 
 #include "kritaflake_export.h"
 #include <QObject>
@@ -74,7 +76,7 @@ public:
 
     /**
      * Set the new canvas to be shown as a child
-     * Calling this will Q_EMIT canvasRemoved() if there was a canvas before, and will emit
+     * Calling this will canvasRemoved() if there was a canvas before, and will emit
      * canvasSet() with the new canvas.
      * @param canvas the new canvas. The KoCanvasBase::canvas() will be called to retrieve the
      *        actual widget which will then be added as child of this one.
@@ -204,62 +206,58 @@ private:
 
 
 /**
- * Workaround class for the problem that Qt does not allow two QObject base classes.
- * KoCanvasController can be implemented by for instance QWidgets, so it cannot be
- * a QObject directly. The interface of this class should be considered public interface
- * for KoCanvasController.
+ * Native notification and lifetime object for KoCanvasController. Keeping it
+ * separate lets a controller use its own host inheritance independently.
  */
-class KRITAFLAKE_EXPORT KoCanvasControllerProxyObject : public QObject
+class KRITAFLAKE_EXPORT KoCanvasControllerProxyObject : public PkObject
 {
-    Q_OBJECT
-    Q_DISABLE_COPY(KoCanvasControllerProxyObject)
 public:
-    explicit KoCanvasControllerProxyObject(KoCanvasController *canvasController, QObject *parent = 0);
+    explicit KoCanvasControllerProxyObject(KoCanvasController *canvasController, PkObject *parent = nullptr);
 
 public:
 
     // Convenience methods to invoke the signals from subclasses
 
-    void emitCanvasRemoved(KoCanvasController *canvasController) { Q_EMIT canvasRemoved(canvasController); }
-    void emitCanvasSet(KoCanvasController *canvasController) { Q_EMIT canvasSet(canvasController); }
-    void emitCanvasOffsetChanged() { Q_EMIT canvasOffsetChanged(); }
-    void emitCanvasMousePositionChanged(const PkPoint &position) { Q_EMIT canvasMousePositionChanged(position); }
-    void emitDocumentMousePositionChanged(const PkPointF &position) { Q_EMIT documentMousePositionChanged(position); }
-    void emitSizeChanged(const PkSize &size) { Q_EMIT sizeChanged(size); }
-    void emitMoveDocumentOffset(const PkPointF &oldOffset, const PkPointF &newOffset) { Q_EMIT moveDocumentOffset(oldOffset, newOffset); }
-    void emitEffectiveZoomChanged(qreal zoom) { Q_EMIT effectiveZoomChanged(zoom); }
-    void emitZoomStateChanged(const KoZoomState &zoomState) { Q_EMIT zoomStateChanged(zoomState); }
-    void emitDocumentRectInWidgetPixelsChanged(const PkRectF &documentRectInWidgetPixels) { Q_EMIT documentRectInWidgetPixelsChanged(documentRectInWidgetPixels); }
-    void emitDocumentRotationChanged(qreal angle) { Q_EMIT documentRotationChanged(angle); }
-    void emitDocumentMirrorStatusChanged(bool mirrorX, bool mirrorY) { Q_EMIT documentMirrorStatusChanged(mirrorX, mirrorY); }
-    void emitCanvasStateChanged() { Q_EMIT canvasStateChanged(); }
+    void emitCanvasRemoved(KoCanvasController *canvasController) { canvasRemoved(canvasController); }
+    void emitCanvasSet(KoCanvasController *canvasController) { canvasSet(canvasController); }
+    void emitCanvasOffsetChanged() { canvasOffsetChanged(); }
+    void emitCanvasMousePositionChanged(const PkPoint &position) { canvasMousePositionChanged(position); }
+    void emitDocumentMousePositionChanged(const PkPointF &position) { documentMousePositionChanged(position); }
+    void emitSizeChanged(const PkSize &size) { sizeChanged(size); }
+    void emitMoveDocumentOffset(const PkPointF &oldOffset, const PkPointF &newOffset) { moveDocumentOffset(oldOffset, newOffset); }
+    void emitEffectiveZoomChanged(qreal zoom) { effectiveZoomChanged(zoom); }
+    void emitZoomStateChanged(const KoZoomState &zoomState) { zoomStateChanged(zoomState); }
+    void emitDocumentRectInWidgetPixelsChanged(const PkRectF &documentRectInWidgetPixels) { documentRectInWidgetPixelsChanged(documentRectInWidgetPixels); }
+    void emitDocumentRotationChanged(qreal angle) { documentRotationChanged(angle); }
+    void emitDocumentMirrorStatusChanged(bool mirrorX, bool mirrorY) { documentMirrorStatusChanged(mirrorX, mirrorY); }
+    void emitCanvasStateChanged() { canvasStateChanged(); }
 
     // Convenience method to retrieve the canvas controller for who needs to use PkPointer
     KoCanvasController *canvasController() const { return m_canvasController; }
 
-Q_SIGNALS:
+public:
     /**
      * Emitted when a previously added canvas is about to be removed.
      * @param canvasController this object
      */
-    void canvasRemoved(KoCanvasController *canvasController);
+    void canvasRemoved(KoCanvasController *canvasController) { activateSignal(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::canvasRemoved), canvasController); }
 
     /**
      * Emitted when a canvas is set on this widget
      * @param canvasController this object
      */
-    void canvasSet(KoCanvasController *canvasController);
+    void canvasSet(KoCanvasController *canvasController) { activateSignal(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::canvasSet), canvasController); }
 
     /**
      * Emitted when canvasOffset() changes
      */
-    void canvasOffsetChanged();
+    void canvasOffsetChanged() { activateSignal(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::canvasOffsetChanged)); }
 
     /**
      * Emitted when the cursor is moved over the canvas widget.
      * @param position the position in view coordinates (pixels).
      */
-    void canvasMousePositionChanged(const PkPoint &position);
+    void canvasMousePositionChanged(const PkPoint &position) { activateSignal<const PkPoint &>(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::canvasMousePositionChanged), position); }
 
     /**
      * Emitted when the cursor is moved over the canvas widget.
@@ -268,13 +266,13 @@ Q_SIGNALS:
      * Use \ref canvasMousePositionChanged to get the position
      * in view coordinates.
      */
-    void documentMousePositionChanged(const PkPointF &position);
+    void documentMousePositionChanged(const PkPointF &position) { activateSignal<const PkPointF &>(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::documentMousePositionChanged), position); }
 
     /**
      * Emitted when the entire controller size changes
      * @param size the size in widget pixels.
      */
-    void sizeChanged(const PkSize &size);
+    void sizeChanged(const PkSize &size) { activateSignal<const PkSize &>(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::sizeChanged), size); }
 
     /**
      * Emitted whenever the document is scrolled.
@@ -282,18 +280,18 @@ Q_SIGNALS:
      * @param point the new top-left point from which the document should
      * be drawn.
      */
-    void moveDocumentOffset(const PkPointF &oldOffset, const PkPointF &newOffset);
+    void moveDocumentOffset(const PkPointF &oldOffset, const PkPointF &newOffset) { activateSignal<const PkPointF &, const PkPointF &>(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::moveDocumentOffset), oldOffset, newOffset); }
 
-    void effectiveZoomChanged(qreal zoom);
+    void effectiveZoomChanged(qreal zoom) { activateSignal(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::effectiveZoomChanged), zoom); }
 
-    void zoomStateChanged(const KoZoomState &zoomState);
+    void zoomStateChanged(const KoZoomState &zoomState) { activateSignal<const KoZoomState &>(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::zoomStateChanged), zoomState); }
 
-    void documentRectInWidgetPixelsChanged(const PkRectF &documentRectInWidgetPixels);
+    void documentRectInWidgetPixelsChanged(const PkRectF &rect) { activateSignal<const PkRectF &>(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::documentRectInWidgetPixelsChanged), rect); }
 
-    void documentRotationChanged(qreal angle);
-    void documentMirrorStatusChanged(bool mirrorX, bool mirrorY);
+    void documentRotationChanged(qreal angle) { activateSignal(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::documentRotationChanged), angle); }
+    void documentMirrorStatusChanged(bool mirrorX, bool mirrorY) { activateSignal(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::documentMirrorStatusChanged), mirrorX, mirrorY); }
 
-    void canvasStateChanged();
+    void canvasStateChanged() { activateSignal(this, PkMemberFnKey::from(&KoCanvasControllerProxyObject::canvasStateChanged)); }
 
 private:
     KoCanvasController *m_canvasController;

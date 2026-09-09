@@ -72,7 +72,7 @@ PkPointF SpiralShape::normalize()
     return offset;
 }
 
-void SpiralShape::moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers)
+void SpiralShape::moveHandleAction(int handleId, const PkPointF &point, Pk::KeyboardModifiers modifiers)
 {
     (void)handleId;
     (void)point;

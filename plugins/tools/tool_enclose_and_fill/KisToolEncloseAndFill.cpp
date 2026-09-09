@@ -10,8 +10,6 @@
 #include <klocalizedstring.h>
 
 #include <PkSharedConfig.h>
-#include <QRect>
-#include <QSharedPointer>
 
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
@@ -51,47 +49,6 @@
 #include "subtools/KisPathEnclosingProducer.h"
 #include "subtools/KisLassoEnclosingProducer.h"
 #include "subtools/KisBrushEnclosingProducer.h"
-
-namespace {
-
-class KisUpdateCommandFromQtRect : public KisUpdateCommand
-{
-public:
-    KisUpdateCommandFromQtRect(KisNodeSP node,
-                               PkSharedPointer<PkRect> dirtyRect,
-                               QSharedPointer<QRect> qtDirtyRect,
-                               KisUpdatesFacade *updatesFacade)
-        : KisUpdateCommand(node, dirtyRect, updatesFacade)
-        , m_dirtyRect(std::move(dirtyRect))
-        , m_qtDirtyRect(std::move(qtDirtyRect))
-    {
-    }
-
-    void undo() override
-    {
-        syncDirtyRect();
-        KisUpdateCommand::undo();
-    }
-
-    void redo() override
-    {
-        syncDirtyRect();
-        KisUpdateCommand::redo();
-    }
-
-private:
-    void syncDirtyRect()
-    {
-        if (m_dirtyRect && m_qtDirtyRect) {
-            *m_dirtyRect = toPkRect(*m_qtDirtyRect);
-        }
-    }
-
-    PkSharedPointer<PkRect> m_dirtyRect;
-    QSharedPointer<QRect> m_qtDirtyRect;
-};
-
-}
 
 KisToolEncloseAndFill::KisToolEncloseAndFill(KoCanvasBase * canvas)
     : KisDynamicDelegatedTool<KisToolShape>(canvas)
@@ -304,7 +261,6 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_fillStrokeId);
 
     m_dirtyRect.reset(new PkRect);
-    QSharedPointer<QRect> qtDirtyRect(new QRect);
 
     KisResourcesSnapshotSP resources(
         new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager()->canvasResourcesInterface()));
@@ -380,8 +336,8 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
                                                m_fillType == FillWithBackgroundColor,
                                                m_useCustomBlendingOptions,
                                                m_customOpacity / 100.0,
-                                               toQString(m_customCompositeOp),
-                                               qtDirtyRect));
+                                               m_customCompositeOp,
+                                               m_dirtyRect));
 
     image()->addJob(
         m_fillStrokeId,
@@ -396,7 +352,7 @@ void KisToolEncloseAndFill::slot_delegateTool_enclosingMaskProduced(KisPixelSele
     image()->addJob(
         m_fillStrokeId,
         new KisStrokeStrategyUndoCommandBased::Data(
-            KUndo2CommandSP(new KisUpdateCommandFromQtRect(currentNode(), m_dirtyRect, qtDirtyRect, image().data())),
+            KUndo2CommandSP(new KisUpdateCommand(currentNode(), m_dirtyRect, image().data())),
             false,
             KisStrokeJobData::SEQUENTIAL,
             KisStrokeJobData::EXCLUSIVE

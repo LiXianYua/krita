@@ -7,7 +7,9 @@
  */
 
 #include <cassert>
-
+#include <PkRect.h>
+#include <PkSize.h>
+#include <PkString.h>
 #include <PkVector.h>
 
 #include <kis_node.h>

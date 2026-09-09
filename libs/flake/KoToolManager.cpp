@@ -230,27 +230,17 @@ void KoToolManager::addController(KoCanvasController *controller)
         return;
     d->setup();
     d->attachCanvas(controller);
-    QObject::connect(controller->proxyObject, &QObject::destroyed, this, &KoToolManager::attemptCanvasControllerRemoval);
-    QObject::connect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasRemoved, this,
+    PkObject::connect(controller->proxyObject.data(), &KoCanvasControllerProxyObject::canvasRemoved, &d->controllerConnections,
             [this](KoCanvasController *canvasController) { d->detachCanvas(canvasController); });
-    QObject::connect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasSet, this,
+    PkObject::connect(controller->proxyObject.data(), &KoCanvasControllerProxyObject::canvasSet, &d->controllerConnections,
             [this](KoCanvasController *canvasController) { d->attachCanvas(canvasController); });
 }
 
 void KoToolManager::removeCanvasController(KoCanvasController *controller)
 {
     Q_ASSERT(controller);
-    QObject::disconnect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasRemoved, this, static_cast<void**>(nullptr));
-    QObject::disconnect(controller->proxyObject, &KoCanvasControllerProxyObject::canvasSet, this, static_cast<void**>(nullptr));
+    PkObject::disconnect(controller->proxyObject.data(), nullptr, &d->controllerConnections, nullptr);
     d->detachCanvas(controller);
-}
-
-void KoToolManager::attemptCanvasControllerRemoval(QObject* controller)
-{
-    KoCanvasControllerProxyObject* controllerActual = qobject_cast<KoCanvasControllerProxyObject*>(controller);
-    if (controllerActual) {
-        removeCanvasController(controllerActual->canvasController());
-    }
 }
 
 void KoToolManager::switchToolRequested(const PkString & id)

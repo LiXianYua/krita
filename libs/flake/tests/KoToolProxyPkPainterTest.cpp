@@ -20,6 +20,8 @@
 #include "tools/KoPathTool.h"
 #include "tools/KoPathToolSelection.h"
 #include "tools/KoPencilTool.h"
+#include "shapes/RectangleShape.h"
+#include "commands/KoParameterHandleMoveCommand.h"
 
 #include <vector>
 #include <chrono>
@@ -211,6 +213,52 @@ class KoToolProxyPkPainterTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void controllerNotificationsCarryNativeGeometry()
+    {
+        MinimalController controller;
+        PkObject receiver;
+        PkSize size;
+        PkPointF oldOffset, newOffset;
+        int deliveries = 0;
+        PkObject::connect(controller.proxyObject.data(), &KoCanvasControllerProxyObject::sizeChanged,
+                          &receiver, [&](const PkSize &value) { size = value; ++deliveries; });
+        PkObject::connect(controller.proxyObject.data(), &KoCanvasControllerProxyObject::moveDocumentOffset,
+                          &receiver, [&](const PkPointF &oldValue, const PkPointF &newValue) {
+            oldOffset = oldValue; newOffset = newValue; ++deliveries;
+        });
+        controller.proxyObject->emitSizeChanged(PkSize(640, 480));
+        controller.proxyObject->emitMoveDocumentOffset(PkPointF(1, 2), PkPointF(30, 40));
+        QCOMPARE(deliveries, 2);
+        QCOMPARE(size, PkSize(640, 480));
+        QCOMPARE(oldOffset, PkPointF(1, 2));
+        QCOMPARE(newOffset, PkPointF(30, 40));
+        receiver.disconnect();
+        controller.proxyObject->emitSizeChanged(PkSize(100, 100));
+        QCOMPARE(deliveries, 2);
+    }
+
+    void parameterHandleKeepsPkModifiersThroughUndo()
+    {
+        RectangleShape shape;
+        shape.setSize(PkSizeF(100, 80));
+        const PkPointF start = shape.shapeToDocument(shape.handlePosition(0));
+        const PkPointF end = shape.shapeToDocument(PkPointF(75, 0));
+        KoParameterHandleMoveCommand command(&shape, 0, start, end, Pk::ControlModifier);
+        command.redo();
+        QCOMPARE(shape.handlePosition(0), PkPointF(75, 0));
+        QCOMPARE(shape.handlePosition(1), PkPointF(100, 0));
+        command.undo();
+        QCOMPARE(shape.handlePosition(0), PkPointF(100, 0));
+        command.redo();
+        QCOMPARE(shape.handlePosition(0), PkPointF(75, 0));
+        QCOMPARE(shape.handlePosition(1), PkPointF(100, 0));
+
+        KoParameterHandleMoveCommand otherModifiers(&shape, 0, start, end, Pk::NoModifier);
+        QVERIFY(!command.mergeWith(&otherModifiers));
+        otherModifiers.redo();
+        QCOMPARE(shape.handlePosition(1), PkPointF(100, 25));
+    }
+
     void initTestCase()
     {
         PkThreadCallQueue::warmUpCurrentThread();

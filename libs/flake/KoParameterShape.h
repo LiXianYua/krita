@@ -10,6 +10,7 @@
 
 #include "KoPathShape.h"
 #include <PkSharedDataPointer.h>
+#include <PkNamespace.h>
 #include "kritaflake_export.h"
 
 class KoParameterShapePrivate;
@@ -48,7 +49,7 @@ public:
      * @param point the point to move the handle to in document coordinates
      * @param modifiers the keyboard modifiers used during moving the handle
      */
-    void moveHandle(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void moveHandle(int handleId, const PkPointF &point, Pk::KeyboardModifiers modifiers = Pk::NoModifier);
 
     /**
      * @brief Get the id of the handle within the given rect
@@ -134,7 +135,7 @@ protected:
      * @param point to move the handle to in shape coordinates
      * @param modifiers used during move to point
      */
-    virtual void moveHandleAction(int handleId, const PkPointF & point, Qt::KeyboardModifiers modifiers = Qt::NoModifier) = 0;
+    virtual void moveHandleAction(int handleId, const PkPointF & point, Pk::KeyboardModifiers modifiers = Pk::NoModifier) = 0;
 
     /**
      * @brief Update the path of the parameter shape

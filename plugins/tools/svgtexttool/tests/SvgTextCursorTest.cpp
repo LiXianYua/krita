@@ -9,18 +9,171 @@
 #include <SvgTextInsertCommand.h>
 #include <SvgTextRemoveCommand.h>
 #include <SvgTextChangeTransformsOnRange.h>
+#include <SvgTextShortCuts.h>
+#include <SvgTextToolOptionsData.h>
+#include <PkConfigGroup.h>
+#include <KConfig>
+#include <KConfigGroup>
+#include <QTemporaryDir>
 
 #include <KoSvgTextShape.h>
 #include <KoSvgTextShapeMarkupConverter.h>
 #include <KoFontRegistry.h>
+#include <KoCanvasController.h>
+#include <KoViewConverter.h>
+#include <QInputMethod>
+#include <QWidget>
 
 #include <tests/MockShapes.h>
 #include <simpletest.h>
 #include <testui.h>
+
+namespace {
+class CursorCanvas final : public MockCanvas
+{
+public:
+    QWidget window;
+    QWidget widget{&window};
+    KoViewConverter converter;
+    QWidget *canvasWidget() override { return &widget; }
+    const QWidget *canvasWidget() const override { return &widget; }
+    KoViewConverter *viewConverter() override { return &converter; }
+    const KoViewConverter *viewConverter() const override { return &converter; }
+};
+
+class CursorController final : public KoCanvasController
+{
+public:
+    CursorController() : KoCanvasController(nullptr) {}
+    void setCanvas(KoCanvasBase *value) override { currentCanvas = value; }
+    KoCanvasBase *canvas() const override { return currentCanvas; }
+    void ensureVisibleDoc(const PkRectF &, bool) override {}
+    void zoomIn(const KoViewTransformStillPoint &) override {}
+    void zoomIn() override {}
+    void zoomOut(const KoViewTransformStillPoint &) override {}
+    void zoomOut() override {}
+    void zoomTo(const PkRect &) override {}
+    void setZoom(KoZoomMode::Mode, qreal) override {}
+    void setPreferredCenter(const PkPointF &) override {}
+    PkPointF preferredCenter() const override { return {}; }
+    void pan(const PkPoint &) override {}
+    void panUp() override {}
+    void panDown() override {}
+    void panLeft() override {}
+    void panRight() override {}
+    PkPoint scrollBarValue() const override { return {}; }
+    void setScrollBarValue(const PkPoint &) override {}
+    void resetScrollBars() override {}
+    PkPointF currentCursorPosition() const override { return {}; }
+    KoZoomState zoomState() const override { return {}; }
+    KoCanvasBase *currentCanvas = nullptr;
+};
+}
+
+void SvgTextCursorTest::shortcutValuesMatchQt515Oracle()
+{
+    // Qt QVariant is the independent numeric carrier used by the original
+    // shortcut metadata. Literal cases cover toggle, set and both adjustments.
+    struct Case { const char *name; bool checked; int property; QVariant before; QVariant after; };
+    const Case cases[] = {
+        {"svg_weight_bold", true, KoSvgTextProperties::FontWeightId, QVariant(400), QVariant(700)},
+        {"svg_weight_bold", false, KoSvgTextProperties::FontWeightId, QVariant(700), QVariant(400)},
+        {"svg_weight_normal", false, KoSvgTextProperties::FontWeightId, QVariant(900), QVariant(400)},
+        {"svg_increase_font_size", false, KoSvgTextProperties::FontSizeId, QVariant(12.5), QVariant(13.5)},
+        {"svg_decrease_font_size", false, KoSvgTextProperties::FontSizeId, QVariant(12.5), QVariant(11.5)}
+    };
+    for (const Case &item : cases) {
+        QAction action;
+        action.setObjectName(QString::fromLatin1(item.name));
+        action.setCheckable(true);
+        action.setChecked(item.checked);
+        QVERIFY(SvgTextShortCuts::configureAction(&action, item.name));
+        KoSvgTextProperties properties;
+        properties.setProperty(KoSvgTextProperties::PropertyId(item.property), PkVariant(item.before.toDouble()));
+        const auto result = SvgTextShortCuts::getModifiedProperties(&action, {properties});
+        QCOMPARE(result.property(KoSvgTextProperties::PropertyId(item.property)).toDouble(), item.after.toDouble());
+    }
+    QVERIFY(!SvgTextShortCuts::actionEnabled(nullptr, {}));
+    QVERIFY(!SvgTextShortCuts::configureAction(nullptr, "svg_weight_bold"));
+    QAction unknown;
+    unknown.setObjectName("unknown");
+    QVERIFY(!SvgTextShortCuts::configureAction(&unknown, "unknown"));
+}
+
+void SvgTextCursorTest::configHandlesMatchKConfigOracle()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString fileName = directory.filePath("tools.ini");
+    const QString preset = QString::fromUtf8("预设 café العربية");
+    const QString boundaryXml = QString::fromUtf8("<color channeldepth=\"U8\"><sRGB r=\"0.25\" g=\"0.5\" b=\"1\"/></color>");
+    KConfig reference(fileName, KConfig::SimpleConfig);
+    KConfigGroup expected(&reference, "SvgTextToolOracle");
+    expected.writeEntry("useCurrentTextProperties", false);
+    expected.writeEntry("cssStylePresetName", preset);
+    expected.writeEntry("useVisualBidiCursor", true);
+    expected.writeEntry("pasteRichtTextByDefault", true);
+    expected.writeEntry("fuzziness", 37);
+    expected.writeEntry("boundaryColor", boundaryXml);
+    QVERIFY(expected.sync());
+
+    const PkString groupName("SvgTextToolOracle");
+    PkConfigGroup group(groupName);
+    group.deleteGroup();
+    SvgTextToolOptionsData written;
+    written.useCurrentTextProperties = false;
+    written.cssStylePresetName = toPkString(preset);
+    written.useVisualBidiCursor = true;
+    written.pasteRichtTextByDefault = true;
+    written.writeConfig(groupName);
+    group.writeEntry("fuzziness", 37);
+    group.writeEntry("boundaryColor", toPkString(boundaryXml));
+    group.sync();
+
+    // This intentionally verifies fresh handles in one process. A disk reload
+    // is a separate requirement; PkConfigStore currently has no disk backend.
+    KConfig reopened(fileName, KConfig::SimpleConfig);
+    KConfigGroup oracle(&reopened, "SvgTextToolOracle");
+    SvgTextToolOptionsData loaded;
+    loaded.loadConfig(groupName);
+    QCOMPARE(loaded.useCurrentTextProperties, oracle.readEntry("useCurrentTextProperties", true));
+    QCOMPARE(toQString(loaded.cssStylePresetName), oracle.readEntry("cssStylePresetName", QString()));
+    QCOMPARE(loaded.useVisualBidiCursor, oracle.readEntry("useVisualBidiCursor", false));
+    QCOMPARE(loaded.pasteRichtTextByDefault, oracle.readEntry("pasteRichtTextByDefault", false));
+    PkConfigGroup fresh(groupName);
+    QCOMPARE(fresh.hasKey("threshold"), oracle.hasKey("threshold"));
+    QCOMPARE(fresh.readEntry("fuzziness", 8), oracle.readEntry("fuzziness", 8));
+    QCOMPARE(toQString(fresh.readEntry("boundaryColor", PkString())), oracle.readEntry("boundaryColor", QString()));
+    group.deleteGroup();
+}
+
+void SvgTextCursorTest::controllerChangesUpdateImeTransform()
+{
+    CursorCanvas canvas;
+    CursorController controller;
+    controller.setCanvas(&canvas);
+    canvas.setCanvasController(&controller);
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">Hello</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    SvgTextCursor cursor(&canvas);
+    cursor.setShape(&shape);
+    cursor.focusIn();
+    QInputMethod *ime = QGuiApplication::inputMethod();
+    canvas.widget.move(17, 23);
+    controller.proxyObject->emitSizeChanged(PkSize(640, 480));
+    QCOMPARE(ime->inputItemTransform().map(QPointF()), QPointF(17, 23));
+    canvas.widget.move(31, 47);
+    controller.proxyObject->emitMoveDocumentOffset(PkPointF(), PkPointF(14, 24));
+    QCOMPARE(ime->inputItemTransform().map(QPointF()), QPointF(31, 47));
+    cursor.setShape(nullptr);
+    canvas.setCanvasController(nullptr);
+}
+
 void SvgTextCursorTest::initTestCase()
 {
     QString fileName = QString(FILES_DATA_DIR) + '/' + "DejaVuSans.ttf";
-    bool res = KoFontRegistry::instance()->addFontFilePathToRegistry(fileName);
+    bool res = KoFontRegistry::instance()->addFontFilePathToRegistry(toPkString(fileName));
 
     QVERIFY2(res, QString("KoFontRegistry could not add the test font %1").arg(fileName).toLatin1());
 }
@@ -58,7 +211,7 @@ void SvgTextCursorTest::test_ltr()
     KoSvgTextShape *textShape = new KoSvgTextShape();
     QString ref ("<text style=\"inline-size:50.0; font-size:10.0;font-family:Deja Vu Sans\">The quick brown fox jumps over the lazy dog.</text>");
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(ref, QString(), QRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(ref), PkString(), PkRectF(0, 0, 300, 300), 72.0);
 
     MockCanvas canvas;
     SvgTextCursor cursor(&canvas);
@@ -110,7 +263,7 @@ void SvgTextCursorTest::test_rtl()
     KoSvgTextShape *textShape = new KoSvgTextShape();
     QString ref ("<text style=\"inline-size:50.0; font-size:10.0; direction:rtl; font-family:Deja Vu Sans\">داستان SVG 1.1 SE طولا ني است.</text>");
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(ref, QString(), QRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(ref), PkString(), PkRectF(0, 0, 300, 300), 72.0);
 
     MockCanvas canvas;
     SvgTextCursor cursor(&canvas);
@@ -161,7 +314,7 @@ void SvgTextCursorTest::test_ttb_rl()
     KoSvgTextShape *textShape = new KoSvgTextShape();
     QString ref ("<text style=\"inline-size:50.0; font-size:10.0; writing-mode:vertical-rl; font-family:Deja Vu Sans\">A B C D E F G H I J K L M N O P</text>");
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(ref, QString(), QRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(ref), PkString(), PkRectF(0, 0, 300, 300), 72.0);
 
     MockCanvas canvas;
     SvgTextCursor cursor(&canvas);
@@ -212,7 +365,7 @@ void SvgTextCursorTest::test_ttb_lr()
     KoSvgTextShape *textShape = new KoSvgTextShape();
     QString ref ("<text style=\"inline-size:50.0; font-size:10.0; writing-mode:vertical-lr; font-family:Deja Vu Sans\">A B C D E F G H I J K L M N O P</text>");
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(ref, QString(), QRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(ref), PkString(), PkRectF(0, 0, 300, 300), 72.0);
 
     MockCanvas canvas;
     SvgTextCursor cursor(&canvas);
@@ -250,7 +403,7 @@ void SvgTextCursorTest::test_filter_control_chars_in_command()
     QFETCH(QString, srcText);
     QFETCH(QString, expectedFilteredText);
 
-    const QString result = SvgTextInsertCommand::filterInputUnicodeString(srcText);
+    const QString result = toQString(SvgTextInsertCommand::filterInputUnicodeString(toPkString(srcText)));
     QCOMPARE(result, expectedFilteredText);
 }
 
@@ -260,7 +413,7 @@ void SvgTextCursorTest::test_text_insert_command()
     KoSvgTextShape *textShape = new KoSvgTextShape();
     QString ref ("<text style=\"inline-size:50.0; font-size:10.0;font-family:Deja Vu Sans\">The quick brown fox jumps over the lazy dog.</text>");
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(ref, QString(), QRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(ref), PkString(), PkRectF(0, 0, 300, 300), 72.0);
 
     int pos = textShape->posForIndex(25, false, true);
     SvgTextInsertCommand *cmd = new SvgTextInsertCommand(textShape, pos, pos, " badly");
@@ -268,10 +421,10 @@ void SvgTextCursorTest::test_text_insert_command()
     QString test2 = test;
     test.insert(25, " badly");
     cmd->redo();
-    QCOMPARE(test, textShape->plainText());
+    QCOMPARE(test, toQString(textShape->plainText()));
 
     cmd->undo();
-    QCOMPARE(test2, textShape->plainText());
+    QCOMPARE(test2, toQString(textShape->plainText()));
 }
 
 // Test basic text removal in a horizontal ltr wrapped text;
@@ -280,7 +433,7 @@ void SvgTextCursorTest::test_text_remove_command()
     KoSvgTextShape *textShape = new KoSvgTextShape();
     QString ref ("<text style=\"inline-size:50.0; font-size:10.0;font-family:Deja Vu Sans\">The quick brown fox jumps over the lazy dog.</text>");
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(ref, QString(), QRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(ref), PkString(), PkRectF(0, 0, 300, 300), 72.0);
     QString test = "The quick brown fox jumps over the lazy dog.";
     QString test2 = test;
 
@@ -288,10 +441,10 @@ void SvgTextCursorTest::test_text_remove_command()
     test.remove(10, 5);
 
     cmd->redo();
-    QCOMPARE(test, textShape->plainText());
+    QCOMPARE(test, toQString(textShape->plainText()));
 
     cmd->undo();
-    QCOMPARE(test2, textShape->plainText());
+    QCOMPARE(test2, toQString(textShape->plainText()));
 }
 
 void SvgTextCursorTest::test_text_remove_dedicated_data()
@@ -314,7 +467,7 @@ void SvgTextCursorTest::test_text_remove_dedicated()
     KoSvgTextShape *textShape = new KoSvgTextShape();
     QString ref ("<text style=\"inline-size:50.0; font-size:10.0;font-family:Deja Vu Sans\">The quick brown fox jumps over the lazy dog.</text>");
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(ref, QString(), QRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(ref), PkString(), PkRectF(0, 0, 300, 300), 72.0);
 
     QFETCH(int, pos);
     QFETCH(SvgTextCursor::MoveMode, mode1);
@@ -393,13 +546,13 @@ void SvgTextCursorTest::test_set_transforms_on_text_command()
     QFETCH(int, length);
     QFETCH(int, type);
     QFETCH(bool, delta);
-    const QPointF offset(50, 20);
+    const PkPointF offset(50, 20);
     const SvgTextChangeTransformsOnRange::OffsetType offsetType = SvgTextChangeTransformsOnRange::OffsetType(type);
 
     KoSvgTextShape *textShape = new KoSvgTextShape();
 
     KoSvgTextShapeMarkupConverter converter(textShape);
-    converter.convertFromSvg(svg, QString(), QRectF(0, 0, 300, 300), 72.0);
+    converter.convertFromSvg(toPkString(svg), PkString(), PkRectF(0, 0, 300, 300), 72.0);
 
     // Normalize the pos and anchor, so we're sure the index corresponds to the given pos.
     const int indexPos = textShape->indexForPos(pos);
@@ -407,12 +560,12 @@ void SvgTextCursorTest::test_set_transforms_on_text_command()
     const int posNormalized = textShape->posForIndex(indexPos);
     const int anchor = textShape->posForIndex(indexAnchor);
 
-    QString currentString = textShape->plainText().mid(indexPos, indexAnchor - indexPos);
+    PkString currentString = textShape->plainText().mid(indexPos, indexAnchor - indexPos);
 
-    QList<KoSvgTextCharacterInfo> infos = textShape->getPositionsAndRotationsForRange(posNormalized, anchor);
-    QTransform deltaTf = SvgTextChangeTransformsOnRange::getTransformForOffset(textShape, posNormalized, anchor, offset, offsetType);
+    PkList<KoSvgTextCharacterInfo> infos = textShape->getPositionsAndRotationsForRange(posNormalized, anchor);
+    PkTransform deltaTf = SvgTextChangeTransformsOnRange::getTransformForOffset(textShape, posNormalized, anchor, offset, offsetType);
 
-    QVector<QPointF> positions;
+    QVector<PkPointF> positions;
     QVector<qreal> rotations;
     if (offsetType == SvgTextChangeTransformsOnRange::OffsetAll) {
         while (!infos.isEmpty()) {
@@ -421,7 +574,7 @@ void SvgTextCursorTest::test_set_transforms_on_text_command()
             rotations.append(tf.rotateDeg);
         }
     } else {
-        QLineF l(0, 0, 10, 0);
+        PkLineF l(0, 0, 10, 0);
         l.setAngle(0);
         l = deltaTf.map(l);
         while (!infos.isEmpty()) {
@@ -445,7 +598,7 @@ void SvgTextCursorTest::test_set_transforms_on_text_command()
 
     int newPos = textShape->posForIndex(indexPos);
     int newAnchor = textShape->posForIndex(indexAnchor);
-    QList<KoSvgTextCharacterInfo> newInfos = textShape->getPositionsAndRotationsForRange(newPos, newAnchor);
+    PkList<KoSvgTextCharacterInfo> newInfos = textShape->getPositionsAndRotationsForRange(newPos, newAnchor);
 
     for (int i = 0; i < positions.size(); i++) {
         KoSvgTextCharacterInfo info = newInfos.value(i);
@@ -454,7 +607,7 @@ void SvgTextCursorTest::test_set_transforms_on_text_command()
             /// This means we cannot be expected to test rtl beyond the first offset.
             break;
         }
-        const QPointF position = positions.value(i);
+        const PkPointF position = positions.value(i);
         const qreal rotate = rotations.value(i);
 
         if (offsetType != SvgTextChangeTransformsOnRange::RotateOnly) {

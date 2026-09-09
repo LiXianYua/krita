@@ -696,8 +696,8 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
     KoSvgTextShape *hoveredShape = dynamic_cast<KoSvgTextShape *>(canvas()->shapeManager()->shapeAt(event->point));
     KoPathShape *hoveredFlowShape = dynamic_cast<KoPathShape *>(canvas()->shapeManager()->shapeAt(event->point));
     PkString shapeType;
-    PkPainterPath hoverPath = toPkPainterPath(dynamic_cast<KisCanvasToolServices *>(canvas())
-                                 ->toolShapeHoverInfoCrossLayer(event->point, shapeType));
+    PkPainterPath hoverPath = dynamic_cast<KisCanvasToolServices *>(canvas())
+                                  ->toolShapeHoverInfoCrossLayer(event->point, shapeType);
     bool crossLayerPossible = !hoverPath.isEmpty() && shapeType == KoSvgTextShape_SHAPEID;
 
     if (!selectedShape && !hoveredShape && !hoveredFlowShape && !crossLayerPossible) {
@@ -849,10 +849,10 @@ void SvgTextTool::mouseMoveEvent(KoPointerEvent *event)
         bool isHorizontal = true;
         const KoSvgTextShape *hoveredShape = dynamic_cast<KoSvgTextShape *>(canvas()->shapeManager()->shapeAt(event->point));
         const KoPathShape *hoveredFlowShape = dynamic_cast<KoPathShape *>(canvas()->shapeManager()->shapeAt(event->point));
-        PkPainterPath hoverPath = toPkPainterPath(dynamic_cast<KisCanvasToolServices *>(canvas())
-                                     ->toolShapeHoverInfoCrossLayer(event->point,
-                                                                   shapeType,
-                                                                   &isHorizontal));
+        PkPainterPath hoverPath = dynamic_cast<KisCanvasToolServices *>(canvas())
+                                      ->toolShapeHoverInfoCrossLayer(event->point,
+                                                                    shapeType,
+                                                                    &isHorizontal);
 
         bool textAreasHovered = false;
         if (m_textOnPathHelper.hitTest(event->point, canvas()->viewConverter()->viewToDocument()) ) {

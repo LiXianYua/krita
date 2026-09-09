@@ -47,8 +47,8 @@ KoCanvasBase* KoCanvasController::canvas() const
     return 0;
 }
 
-KoCanvasControllerProxyObject::KoCanvasControllerProxyObject(KoCanvasController *controller, QObject *parent)
-    : QObject(parent)
+KoCanvasControllerProxyObject::KoCanvasControllerProxyObject(KoCanvasController *controller, PkObject *parent)
+    : PkObject(parent)
     , m_canvasController(controller)
 {
 }

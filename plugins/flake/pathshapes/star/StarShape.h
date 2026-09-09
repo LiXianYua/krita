@@ -108,7 +108,7 @@ public:
 protected:
     StarShape(const StarShape &rhs);
 
-    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void moveHandleAction(int handleId, const PkPointF &point, Pk::KeyboardModifiers modifiers = Pk::NoModifier);
     void updatePath(const PkSizeF &size);
     /// recreates the path points when the corner count or convexity changes
     void createPoints(int requiredPointCount);

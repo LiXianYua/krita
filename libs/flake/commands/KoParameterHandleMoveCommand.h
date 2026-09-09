@@ -8,6 +8,7 @@
 
 #ifndef KOPARAMETERHANDLEMOVECOMMAND_H
 #define KOPARAMETERHANDLEMOVECOMMAND_H
+#include <PkNamespace.h>
 #include <PkPoint.h>
 
 
@@ -30,7 +31,7 @@ public:
      * @param keyModifiers the key modifiers used while moving.
      * @param parent the parent command if this is a compound undo command.
      */
-    KoParameterHandleMoveCommand(KoParameterShape *shape, int handleId, const PkPointF &startPoint, const PkPointF &endPoint, Qt::KeyboardModifiers keyModifiers, KUndo2Command *parent = 0);
+    KoParameterHandleMoveCommand(KoParameterShape *shape, int handleId, const PkPointF &startPoint, const PkPointF &endPoint, Pk::KeyboardModifiers keyModifiers, KUndo2Command *parent = 0);
     ~KoParameterHandleMoveCommand() override;
 
     /// redo the command
@@ -46,8 +47,7 @@ private:
     int m_handleId;
     PkPointF m_startPoint;
     PkPointF m_endPoint;
-    Qt::KeyboardModifiers m_keyModifiers;
+    Pk::KeyboardModifiers m_keyModifiers;
 };
 
 #endif // KOPARAMETERHANDLEMOVECOMMAND_H
-

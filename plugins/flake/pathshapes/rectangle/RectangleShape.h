@@ -68,7 +68,7 @@ public:
 protected:
     RectangleShape(const RectangleShape &rhs);
 
-    void moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void moveHandleAction(int handleId, const PkPointF &point, Pk::KeyboardModifiers modifiers = Pk::NoModifier);
     void updatePath(const PkSizeF &size);
     void createPoints(int requiredPointCount);
     void updateHandles();

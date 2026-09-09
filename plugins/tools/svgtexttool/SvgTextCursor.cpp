@@ -198,6 +198,7 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
     };
 
     KoCanvasBase *canvas;
+    PkObject controllerConnections;
     bool isAddingCommand = false;
     int pos = 0;
     int anchor = 0;
@@ -257,23 +258,18 @@ SvgTextCursor::SvgTextCursor(KoCanvasBase *canvas) :
     d->interface = new SvgTextCursorPropertyInterface(this);
     if (d->canvas->canvasController()) {
         // Mockcanvas in the tests has no canvas controller.
-        QObject::connect(d->canvas->canvasController()->proxyObject, SIGNAL(sizeChanged(QSize)), this, SLOT(updateInputMethodItemTransform()));
-        QObject::connect(d->canvas->canvasController()->proxyObject,
-                SIGNAL(moveDocumentOffset(QPointF, QPointF)),
-                this,
-                SLOT(updateInputMethodItemTransform()));
-        QObject::connect(d->canvas->canvasController()->proxyObject,
-                SIGNAL(effectiveZoomChanged(qreal)),
-                this,
-                SLOT(updateInputMethodItemTransform()));
-        QObject::connect(d->canvas->canvasController()->proxyObject,
-                SIGNAL(documentRotationChanged(qreal)),
-                this,
-                SLOT(updateInputMethodItemTransform()));
-        QObject::connect(d->canvas->canvasController()->proxyObject,
-                SIGNAL(documentMirrorStatusChanged(bool, bool)),
-                this,
-                SLOT(updateInputMethodItemTransform()));
+        auto *controller = d->canvas->canvasController()->proxyObject.data();
+        auto updateTransform = [this](const auto &...) { updateInputMethodItemTransform(); };
+        PkObject::connect(controller, &KoCanvasControllerProxyObject::sizeChanged,
+                          &d->controllerConnections, updateTransform);
+        PkObject::connect(controller, &KoCanvasControllerProxyObject::moveDocumentOffset,
+                          &d->controllerConnections, updateTransform);
+        PkObject::connect(controller, &KoCanvasControllerProxyObject::effectiveZoomChanged,
+                          &d->controllerConnections, updateTransform);
+        PkObject::connect(controller, &KoCanvasControllerProxyObject::documentRotationChanged,
+                          &d->controllerConnections, updateTransform);
+        PkObject::connect(controller, &KoCanvasControllerProxyObject::documentMirrorStatusChanged,
+                          &d->controllerConnections, updateTransform);
         QObject::connect(d->canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
                          this, [this](int key, const PkVariant &value) {
             if (d->resourceManagerAcyclicConnector.isLocked()) return;

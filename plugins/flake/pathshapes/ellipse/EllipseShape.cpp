@@ -77,7 +77,7 @@ PkPointF EllipseShape::normalize()
     return offset;
 }
 
-void EllipseShape::moveHandleAction(int handleId, const PkPointF &point, Qt::KeyboardModifiers modifiers)
+void EllipseShape::moveHandleAction(int handleId, const PkPointF &point, Pk::KeyboardModifiers modifiers)
 {
     (void)modifiers;
     PkPointF p(point);

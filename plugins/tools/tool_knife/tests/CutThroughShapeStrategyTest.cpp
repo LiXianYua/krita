@@ -65,12 +65,12 @@ void CutThroughShapeStrategyTest::addRandom() {
 
     ENTER_FUNCTION();
 
-    QTest::addRow("check 2: cannot be outside of rect of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(shapeLeft))) << PkPainterPath() << !gapLineRect.isEmpty()
+    QTest::addRow("check 2: cannot be outside of rect of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(shapeLeft)) << PkPainterPath() << !gapLineRect.isEmpty()
                                              << gapLineRect << gapLine1 << gapLines[0] << gapLines[1] << gapLinePolygon  << false << false;
 
 
 
-    QTest::addRow("check 3: cannot be outside of rect of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(shapeLeft))) << PkPainterPath() << !gapLineRect.isEmpty()
+    QTest::addRow("check 3: cannot be outside of rect of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(shapeLeft)) << PkPainterPath() << !gapLineRect.isEmpty()
                                              << gapLineRect << gapLine1 << gapLines[0] << gapLines[1] << gapLinePolygon  << false << false;
 }
 
@@ -96,7 +96,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
     path.lineTo(40, 50);
 
 
-    QSharedPointer<KoShape> referenceShape(KoPathShape::createShapeFromPainterPath(toQPainterPath(path)));
+    QSharedPointer<KoShape> referenceShape(KoPathShape::createShapeFromPainterPath(path));
 
     //
     //QTest::addRow("a") << referenceShape << QPainterPath() << QRectF() << QRectF() << false << QRectF() << QLineF() << QLineF() << QLineF() << QPolygonF() << true << true;
@@ -134,12 +134,12 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
 
     ENTER_FUNCTION();
 
-    QTest::addRow("check 2 case 1: cannot be outside of rect of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(shapeLeft))) << shapeLeft << !gapLineRect.isEmpty()
+    QTest::addRow("check 2 case 1: cannot be outside of rect of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(shapeLeft)) << shapeLeft << !gapLineRect.isEmpty()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << false << false;
 
 
 
-    QTest::addRow("check 2 case 2: cannot be outside of rect of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(shapeRight))) << shapeRight << !gapLineRect.isEmpty()
+    QTest::addRow("check 2 case 2: cannot be outside of rect of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(shapeRight)) << shapeRight << !gapLineRect.isEmpty()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << false << false;
 
 
@@ -148,7 +148,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines1[0], gapLines1[1], left, right, gapLineRect, gapLinePolygon);
 
 
-    QTest::addRow("check 3: cannot have exactly one line point within the shape") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(shapeLeft))) << shapeLeft << !gapLineRect.isEmpty()
+    QTest::addRow("check 3: cannot have exactly one line point within the shape") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(shapeLeft)) << shapeLeft << !gapLineRect.isEmpty()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << true << false;
 
 
@@ -159,7 +159,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines1[0], gapLines1[1], left, right, gapLineRect, gapLinePolygon);
 
 
-    QTest::addRow("check 4a: can have two points within the shape") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(shapeLeft))) << shapeLeft << !gapLineRect.isEmpty()
+    QTest::addRow("check 4a: can have two points within the shape") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(shapeLeft)) << shapeLeft << !gapLineRect.isEmpty()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << true << true;
 
 
@@ -168,7 +168,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
     CutThroughShapeStrategy::initializeGapShapes(outlineRect, gapLines1[0], gapLines1[1], left, right, gapLineRect, gapLinePolygon);
 
 
-    QTest::addRow("check 4b: can cross either gap line") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(shapeLeft))) << shapeLeft << !gapLineRect.isEmpty()
+    QTest::addRow("check 4b: can cross either gap line") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(shapeLeft)) << shapeLeft << !gapLineRect.isEmpty()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << true << true;
 
 
@@ -179,7 +179,7 @@ void CutThroughShapeStrategyTest::WillShapeBeCutTest_data()
     ENTER_FUNCTION();
 
 
-    QTest::addRow("check 4c: can be inside of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(toQPainterPath(shapeLeft))) << shapeLeft << !gapLineRect.isEmpty()
+    QTest::addRow("check 4c: can be inside of the gap") << QSharedPointer<KoShape>(KoPathShape::createShapeFromPainterPath(shapeLeft)) << shapeLeft << !gapLineRect.isEmpty()
                                              << gapLineRect << gapLine1 << gapLines1[0] << gapLines1[1] << gapLinePolygon  << true << true;
 
 

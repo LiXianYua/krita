@@ -10,6 +10,7 @@
 #include <QObject>
 #include <PkString.h>
 #include <PkHash.h>
+#include <PkObject.h>
 
 #include <QKeySequence>
 #include <QAction>
@@ -31,6 +32,7 @@ class KoToolProxy;
 class Q_DECL_HIDDEN KoToolManager::Private
 {
 public:
+    PkObject controllerConnections;
     Private(KoToolManager *qq);
     ~Private();
 
