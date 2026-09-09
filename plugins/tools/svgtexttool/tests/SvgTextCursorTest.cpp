@@ -48,6 +48,11 @@
 
 Q_DECLARE_METATYPE(SvgTextCursor::MoveMode)
 
+SvgTextCursor::NativeKeyEvent
+svgTextNativeKeyEvent(const PkToolKeyEvent &event,
+                      KoSvgText::WritingMode writingMode,
+                      KoSvgText::Direction direction);
+
 namespace {
 class CursorCanvas final : public MockCanvas
 {
@@ -389,14 +394,14 @@ void SvgTextCursorTest::nativeKeyDispatchMatchesQt515Adapter()
     cursor.setShape(&shape);
     cursor.setPos(end, end);
 
-    QKeyEvent qtWordLeft(QEvent::KeyPress, Qt::Key_Left, Qt::ControlModifier);
+    PkToolKeyEvent qtWordLeft(Pk::Key_Left, Pk::ControlModifier, false);
     const SvgTextCursor::NativeKeyEvent nativeWordLeft =
         svgTextNativeKeyEvent(qtWordLeft, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
     QCOMPARE(nativeWordLeft.command, SvgTextCursor::NativeKeyCommand::MovePreviousWord);
     QVERIFY(cursor.keyPressEvent(nativeWordLeft));
     QCOMPARE(cursor.getPos(), shape.wordStart(end));
 
-    QKeyEvent qtPrintable(QEvent::KeyPress, Qt::Key_Z, Qt::NoModifier, QStringLiteral("Z"));
+    PkToolKeyEvent qtPrintable(static_cast<Pk::Key>(Qt::Key_Z), Pk::NoModifier, false, false, "Z");
     const SvgTextCursor::NativeKeyEvent nativePrintable =
         svgTextNativeKeyEvent(qtPrintable, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
     QVERIFY(cursor.keyPressEvent(nativePrintable));
@@ -450,8 +455,11 @@ void SvgTextCursorTest::nativeAcceptedInputMatchesQt515UnicodeOracle()
         const int end = shape.posForIndex(shape.plainText().size());
         cursor.setPos(end, end);
 
+        PkToolKeyEvent pkEvent(static_cast<Pk::Key>(qtEvent.key()),
+                               Pk::KeyboardModifiers(static_cast<int>(qtEvent.modifiers())),
+                               qtEvent.isAccepted(), qtEvent.isAutoRepeat(), toPkString(qtEvent.text()));
         const SvgTextCursor::NativeKeyEvent native = svgTextNativeKeyEvent(
-            qtEvent, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
+            pkEvent, KoSvgText::HorizontalTB, KoSvgText::DirectionLeftToRight);
         QCOMPARE(cursor.keyPressEvent(native), item.accepted);
         const QString expected = item.accepted ? QStringLiteral("x") + item.text
                                                : QStringLiteral("x");
@@ -509,10 +517,10 @@ void SvgTextCursorTest::hostActionDispatchKeepsPrintableAltGrInput()
     const auto originalAlignment = shape.textProperties().propertyOrDefault(
         KoSvgTextProperties::TextAlignAllId);
 
-    QKeyEvent altGrEvent(QEvent::KeyPress, Qt::Key_R,
-                         Qt::ControlModifier | Qt::AltModifier,
-                         QString::fromUtf8("®"));
-    tool.keyPressEvent(&altGrEvent);
+    PkToolKeyEvent altGrEvent(Pk::Key_R,
+                              Pk::ControlModifier | Pk::AltModifier,
+                              false, false, toPkString(QString::fromUtf8("®")));
+    tool.pkKeyPressEvent(&altGrEvent);
 
     QVERIFY(altGrEvent.isAccepted());
     QVERIFY(toQString(shape.plainText()).contains(QString::fromUtf8("®")));
@@ -609,8 +617,8 @@ void SvgTextCursorTest::hostMappedTextTypeShortcutDispatches()
         ? KoSvgTextShape::InlineWrap : KoSvgTextShape::PreformattedText;
     target->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
 
-    QKeyEvent event(QEvent::KeyPress, Qt::Key_T, Qt::ControlModifier);
-    tool.keyPressEvent(&event);
+    PkToolKeyEvent event(Pk::Key_T, Pk::ControlModifier, false);
+    tool.pkKeyPressEvent(&event);
 
     QVERIFY(event.isAccepted());
     QCOMPARE(shape.textType(), expectedType);
@@ -648,8 +656,8 @@ void SvgTextCursorTest::hostMappedMovementShortcutDispatchesWhenEnabled()
         shape.getPositionsAndRotationsForRange(start, end);
     QVERIFY(!before.isEmpty());
 
-    QKeyEvent event(QEvent::KeyPress, Qt::Key_M, Qt::ControlModifier);
-    tool.keyPressEvent(&event);
+    PkToolKeyEvent event(Pk::Key_M, Pk::ControlModifier, false);
+    tool.pkKeyPressEvent(&event);
 
     QVERIFY(event.isAccepted());
     const PkList<KoSvgTextCharacterInfo> after =
