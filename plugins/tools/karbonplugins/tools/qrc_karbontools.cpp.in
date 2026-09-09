@@ -3,7 +3,7 @@
  */
 #include "KarbonToolsResources.h"
 
-#include <atomic>
+#include <mutex>
 
 namespace
 {
@@ -14,7 +14,10 @@ const unsigned char calligraphyIconPng[] = {
 static_assert(sizeof(calligraphyIconPng) == @KARBON_CALLIGRAPHY_PNG_SIZE@,
               "generated calligraphy icon size mismatch");
 
-std::atomic<KarbonToolsResourceRegistrar> resourceRegistrar {nullptr};
+std::mutex resourceRegistrarMutex;
+std::once_flag resourceRegistrationOnce;
+KarbonToolsResourceRegistrar resourceRegistrar = nullptr;
+bool resourceRegistrationStarted = false;
 }
 
 KarbonToolsResource karbonCalligraphyIconPng()
@@ -22,15 +25,27 @@ KarbonToolsResource karbonCalligraphyIconPng()
     return {"calligraphy", ":/calligraphy.png", calligraphyIconPng, sizeof(calligraphyIconPng)};
 }
 
-void setKarbonToolsResourceRegistrar(KarbonToolsResourceRegistrar registrar)
+bool setKarbonToolsResourceRegistrar(KarbonToolsResourceRegistrar registrar)
 {
-    resourceRegistrar.store(registrar, std::memory_order_release);
+    std::lock_guard<std::mutex> lock(resourceRegistrarMutex);
+    if (!registrar || resourceRegistrationStarted || resourceRegistrar) {
+        return false;
+    }
+    resourceRegistrar = registrar;
+    return true;
 }
 
 void registerKarbonToolsResources()
 {
-    if (const KarbonToolsResourceRegistrar registrar =
-            resourceRegistrar.load(std::memory_order_acquire)) {
-        registrar(karbonCalligraphyIconPng());
-    }
+    std::call_once(resourceRegistrationOnce, [] {
+        KarbonToolsResourceRegistrar registrar = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(resourceRegistrarMutex);
+            resourceRegistrationStarted = true;
+            registrar = resourceRegistrar;
+        }
+        if (registrar) {
+            registrar(karbonCalligraphyIconPng());
+        }
+    });
 }

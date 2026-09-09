@@ -7,14 +7,11 @@ set(karbon_tools_SOURCES
    CalligraphyTool/KarbonSimplifyPath.cpp
 )
 
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/22-actions-calligraphy.png" KARBON_CALLIGRAPHY_PNG_HEX HEX)
-file(SIZE "${CMAKE_CURRENT_SOURCE_DIR}/22-actions-calligraphy.png" KARBON_CALLIGRAPHY_PNG_SIZE)
-string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," KARBON_CALLIGRAPHY_PNG_BYTES
-    "${KARBON_CALLIGRAPHY_PNG_HEX}")
-configure_file(
+include("${CMAKE_CURRENT_SOURCE_DIR}/KarbonToolsResource.cmake")
+karbon_embed_calligraphy_resource(
+    "${CMAKE_CURRENT_SOURCE_DIR}/22-actions-calligraphy.png"
     "${CMAKE_CURRENT_SOURCE_DIR}/qrc_karbontools.cpp.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/qrc_karbontools.cpp"
-    @ONLY)
+    "${CMAKE_CURRENT_BINARY_DIR}/qrc_karbontools.cpp")
 list(APPEND karbon_tools_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/qrc_karbontools.cpp")
 
 kis_add_library(krita_karbontools STATIC ${karbon_tools_SOURCES})

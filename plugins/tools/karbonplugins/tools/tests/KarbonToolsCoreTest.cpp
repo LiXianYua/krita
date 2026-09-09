@@ -9,13 +9,18 @@
 
 #include <KoPathPoint.h>
 #include <KoPathShape.h>
+#include <KoShapeRegistry.h>
+#include <KoToolRegistry.h>
 
 #include <QByteArray>
 #include <QCryptographicHash>
 #include <QImage>
 
+#include <atomic>
 #include <cmath>
 #include <cstring>
+#include <thread>
+#include <vector>
 
 namespace
 {
@@ -144,7 +149,8 @@ int calligraphyGuideSimplificationRemovesRedundantSections()
 }
 
 KarbonToolsResource capturedResource {};
-int capturedResourceCount = 0;
+std::atomic<int> capturedResourceCount {0};
+std::atomic<int> replacementResourceCount {0};
 
 void captureResource(const KarbonToolsResource &resource)
 {
@@ -152,30 +158,76 @@ void captureResource(const KarbonToolsResource &resource)
     ++capturedResourceCount;
 }
 
+void captureReplacementResource(const KarbonToolsResource &)
+{
+    ++replacementResourceCount;
+}
+
 int nativeResourcePreservesCalligraphyIcon()
 {
-    setKarbonToolsResourceRegistrar(captureResource);
+    if (setKarbonToolsResourceRegistrar(nullptr)) return 40;
+    if (!setKarbonToolsResourceRegistrar(captureResource)) return 41;
+    if (setKarbonToolsResourceRegistrar(captureReplacementResource)) return 42;
+
+    KoToolRegistry *const toolRegistry = KoToolRegistry::instance();
+    KoShapeRegistry *const shapeRegistry = KoShapeRegistry::instance();
+    if (toolRegistry->contains(PkString("KarbonCalligraphyTool")) ||
+        shapeRegistry->contains(PkString(KarbonCalligraphicShapeId))) return 62;
+    const int toolDuplicateCount = toolRegistry->doubleEntries().size();
+    const int shapeDuplicateCount = shapeRegistry->doubleEntries().size();
+
+    std::vector<std::thread> callers;
+    for (int i = 0; i < 8; ++i) {
+        callers.emplace_back(registerKarbonTools);
+    }
+    for (std::thread &caller : callers) {
+        caller.join();
+    }
     registerKarbonTools();
-    setKarbonToolsResourceRegistrar(nullptr);
+    registerKarbonTools();
+
+    if (capturedResourceCount.load() != 1 || replacementResourceCount.load() != 0) return 43;
+    if (!toolRegistry->contains(PkString("KarbonCalligraphyTool")) ||
+        !shapeRegistry->contains(PkString(KarbonCalligraphicShapeId))) return 63;
+    if (toolRegistry->doubleEntries().size() != toolDuplicateCount ||
+        shapeRegistry->doubleEntries().size() != shapeDuplicateCount) return 64;
+    if (setKarbonToolsResourceRegistrar(captureReplacementResource)) return 44;
+    if (setKarbonToolsResourceRegistrar(nullptr)) return 45;
+
+    // The callback receives a temporary descriptor.  A copied descriptor remains
+    // usable because the identity strings and payload bytes have static lifetime.
     const KarbonToolsResource icon = capturedResource;
-    if (capturedResourceCount != 1 || !icon.data || icon.size == 0) return 40;
+    if (!icon.data || icon.size == 0) return 46;
     if (!icon.iconName || std::strcmp(icon.iconName, "calligraphy") != 0 ||
-        !icon.legacyPath || std::strcmp(icon.legacyPath, ":/calligraphy.png") != 0) return 45;
+        !icon.legacyPath || std::strcmp(icon.legacyPath, ":/calligraphy.png") != 0) return 47;
 
     const QByteArray bytes(reinterpret_cast<const char *>(icon.data), int(icon.size));
     if (QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex() !=
-        QByteArray("f3125eea25ad77c9bdf1a783ae7038f006d3c493d86a145e067315f43f7eea12")) return 41;
+        QByteArray("f3125eea25ad77c9bdf1a783ae7038f006d3c493d86a145e067315f43f7eea12")) return 48;
 
     const QImage image = QImage::fromData(bytes, "PNG");
-    if (image.isNull() || image.width() != 22 || image.height() != 22) return 42;
-    if (icon.size < 29 || bytes.mid(12, 4) != QByteArray("IHDR", 4)) return 43;
-    if (icon.data[24] != 8 || icon.data[25] != 6 || icon.data[28] != 0) return 44;
+    if (image.isNull() || image.width() != 22 || image.height() != 22) return 49;
+    if (icon.size < 29 || bytes.mid(12, 4) != QByteArray("IHDR", 4)) return 60;
+    if (icon.data[24] != 8 || icon.data[25] != 6 || icon.data[28] != 0) return 61;
+    return 0;
+}
+
+int lateInstallAfterSkippedRegistrationIsRejected()
+{
+    if (setKarbonToolsResourceRegistrar(nullptr)) return 70;
+    registerKarbonToolsResources();
+    if (setKarbonToolsResourceRegistrar(captureResource)) return 71;
+    registerKarbonToolsResources();
+    if (capturedResourceCount.load() != 0) return 72;
     return 0;
 }
 } // namespace
 
-int main()
+int main(int argc, char **argv)
 {
+    if (argc == 2 && std::strcmp(argv[1], "--late-install-after-skip") == 0) {
+        return lateInstallAfterSkippedRegistrationIsRejected();
+    }
     const int pointResult = calligraphicPointsPreserveLiteralGeometry();
     if (pointResult) return pointResult;
     const int simplifyResult = simplifyRemovesDuplicateWithoutChangingEndpoints();

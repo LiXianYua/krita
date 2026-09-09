@@ -7,6 +7,9 @@ kis_add_test(KarbonToolsCoreTest.cpp
         Qt5::Gui
 )
 set_target_properties(KarbonToolsCoreTest PROPERTIES AUTOMOC OFF)
+add_test(
+    NAME plugins-tools-karbonplugins-tools-KarbonToolsResourceLateInstallTest
+    COMMAND $<TARGET_FILE:KarbonToolsCoreTest> --late-install-after-skip)
 target_include_directories(KarbonToolsCoreTest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/..
     ${CMAKE_SOURCE_DIR}/pk/color
@@ -18,3 +21,15 @@ target_include_directories(KarbonToolsCoreTest PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/string
     ${CMAKE_SOURCE_DIR}/pk/xml
 )
+
+add_test(
+    NAME plugins-tools-karbonplugins-tools-KarbonToolsResourceIncrementalTest
+    COMMAND ${CMAKE_COMMAND}
+        -DKARBON_RESOURCE_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/..
+        -DKARBON_RESOURCE_FIXTURE_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/resource_incremental_fixture
+        -DKARBON_RESOURCE_FIXTURE_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/resource_incremental_fixture
+        -DKARBON_RESOURCE_TEST_GENERATOR=${CMAKE_GENERATOR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/KarbonToolsResourceIncrementalTest.cmake)
+set_tests_properties(
+    plugins-tools-karbonplugins-tools-KarbonToolsResourceIncrementalTest
+    PROPERTIES TIMEOUT 180)
