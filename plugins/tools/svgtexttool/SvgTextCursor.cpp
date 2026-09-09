@@ -1369,7 +1369,8 @@ void SvgTextCursor::notifyMarkupChanged()
     updateTypeSettingDecoration();
 }
 
-bool SvgTextCursor::keyPressEvent(const NativeKeyEvent &event)
+bool SvgTextCursor::keyPressEvent(const NativeKeyEvent &event,
+                                  const std::function<bool()> &hostShortcut)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(d->shape, false);
 
@@ -1413,6 +1414,10 @@ bool SvgTextCursor::keyPressEvent(const NativeKeyEvent &event)
     }
     if (acceptableInput(event)) {
         insertText(event.text);
+        return true;
+    }
+
+    if (hostShortcut && hostShortcut()) {
         return true;
     }
 

@@ -21,6 +21,8 @@ private Q_SLOTS:
     void qtInputMethodAdapterMatchesQt515Payload();
     void nativeKeyDispatchMatchesQt515Adapter();
     void nativeActionDispatchPreservesPropertySemantics();
+    void hostActionDispatchKeepsPrintableAltGrInput();
+    void hostTextTypeRetriggerKeepsCurrentActionChecked();
     void nativeTimerRequiresExplicitPumpAndCancelsQueuedDelivery();
     void nativeRegistrationPreservesFactoryAndResources();
     void shortcutValuesMatchQt515Oracle();

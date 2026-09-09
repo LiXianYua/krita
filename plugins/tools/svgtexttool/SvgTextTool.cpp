@@ -586,7 +586,10 @@ void SvgTextTool::slotUpdateCursorDecoration(PkRectF updateRect)
 void SvgTextTool::slotConvertType(int index) {
     KoSvgTextShape *shape = selectedShape();
     if (shape) {
-        if (index == shape->textType()) return;
+        if (index == shape->textType()) {
+            slotTextTypeUpdated();
+            return;
+        }
         KoSvgTextShape::TextType type = KoSvgTextShape::TextType(index);
         KUndo2Command *parentCommand = new KUndo2Command();
         new KoKeepShapesSelectedCommand({shape}, {}, canvas()->selectedShapesProxy(),
@@ -1126,17 +1129,21 @@ void SvgTextTool::keyPressEvent(QKeyEvent *event)
             properties.propertyOrDefault(KoSvgTextProperties::WritingModeId).toInt());
         const auto direction = KoSvgText::Direction(
             properties.propertyOrDefault(KoSvgTextProperties::DirectionId).toInt());
-        const int adjustedKey = adjustedKeyForTextDirection(event->key(), writingMode, direction);
-        const QKeySequence sequence(int(event->modifiers()) | adjustedKey);
-        for (auto it = m_cursorActions.constBegin(); it != m_cursorActions.constEnd(); ++it) {
-            QAction *hostAction = it.value();
-            if (hostAction && hostAction->shortcut() == sequence) {
-                hostAction->trigger();
-                event->accept();
-                return;
+        const SvgTextCursor::NativeKeyEvent nativeEvent =
+            svgTextNativeKeyEvent(*event, writingMode, direction);
+        const bool consumed = m_textCursor.keyPressEvent(nativeEvent, [this, event, writingMode, direction] {
+            const int adjustedKey = adjustedKeyForTextDirection(event->key(), writingMode, direction);
+            const QKeySequence sequence(int(event->modifiers()) | adjustedKey);
+            for (auto it = m_cursorActions.constBegin(); it != m_cursorActions.constEnd(); ++it) {
+                QAction *hostAction = it.value();
+                if (hostAction && hostAction->shortcut() == sequence) {
+                    hostAction->trigger();
+                    return true;
+                }
             }
-        }
-        if (m_textCursor.keyPressEvent(svgTextNativeKeyEvent(*event, writingMode, direction))) {
+            return false;
+        });
+        if (consumed) {
             event->accept();
             return;
         }

@@ -337,8 +337,13 @@ public:
 
     void notifyMarkupChanged() override;
 
-    /// Handle a host-normalized key event. Returns whether it was consumed.
-    bool keyPressEvent(const NativeKeyEvent &event);
+    /**
+     * Handle a host-normalized key event. The host shortcut callback is run
+     * after printable input has been accepted and before standard key
+     * commands, matching the Qt input-control dispatch priority.
+     */
+    bool keyPressEvent(const NativeKeyEvent &event,
+                       const std::function<bool()> &hostShortcut = {});
 
     void updateModifiers(Pk::KeyboardModifiers modifiers);
 
