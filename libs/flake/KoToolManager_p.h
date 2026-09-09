@@ -87,22 +87,4 @@ public:
     bool layerExplicitlyDisabled;
 };
 
-/// \internal
-/// Helper class to transform a simple signal selection changed into a signal with a parameter
-class Connector : public QObject
-{
-    Q_OBJECT
-public:
-    explicit Connector(KoShapeManager *parent);
-
-public Q_SLOTS:
-    void selectionChanged();
-
-Q_SIGNALS:
-    void selectionChanged(const PkList<KoShape*> &shape);
-
-private:
-    KoShapeManager *m_shapeManager;
-};
-
 #endif

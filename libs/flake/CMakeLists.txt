@@ -36,6 +36,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/pk/namespace
     ${CMAKE_SOURCE_DIR}/pk/render
     ${CMAKE_SOURCE_DIR}/pk/font
+    ${CMAKE_SOURCE_DIR}/pk/input
 )
 
 if(NOT TARGET pkrender)
@@ -341,6 +342,7 @@ set(kritaflake_OBJECT_DEPS
     # pkglobal 纯 header-only（inline constexpr）无需链；pksql/pktest flake 不用。
     pkstring pkcontainer pkcolor pkgeometry pkvariant pkxml pkimage pkport pkpointer
     pkconcurrent pklog pksignal pktime pkconfig pkflags pknamespace
+    pkinput
 )
 
 if (QT_MAJOR_VERSION STREQUAL "6")
@@ -530,6 +532,7 @@ target_include_directories(kritaflake
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/render>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/font>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/input>
 )
 
 set_target_properties(libraqm PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -552,7 +555,7 @@ target_link_libraries(kritaflake
         # add_subdirectory(pk) 定义，此处只接线。
         pkstring pkcontainer pkcolor pkgeometry pkvariant pkxml pkimage pkport pkpointer
         pkconcurrent pklog pksignal pktime pkconfig pkflags pknamespace
-        pkrender pkfont
+        pkrender pkfont pkinput
         Boost::boost
         Freetype::Freetype
         HarfBuzz::HarfBuzz

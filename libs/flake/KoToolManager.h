@@ -121,10 +121,8 @@ private:
    the tool stuff.)
 
  */
-class KRITAFLAKE_EXPORT KoToolManager : public QObject
+class KRITAFLAKE_EXPORT KoToolManager : public QObject, public PkObject
 {
-    Q_OBJECT
-
 public:
     KoToolManager();
     /// Return the toolmanager singleton
@@ -205,7 +203,7 @@ public:
      */
     KoToolManager::Private *priv();
 
-public Q_SLOTS:
+public:
     /**
      * Request switching tool
      * @param id the id of the tool
@@ -228,7 +226,7 @@ public Q_SLOTS:
      */
     void themeChanged();
     
-Q_SIGNALS:
+public:
     /**
      * Emitted when a new tool is going to override the current tool
      * @param canvas the currently active canvas.
@@ -281,7 +279,7 @@ Q_SIGNALS:
     /**
      * Emit the new tool option widgets to be used with this canvas.
      */
-    void toolOptionWidgetsChanged(KoCanvasController *controller, const QList<QPointer<QWidget> > &widgets);
+    void toolOptionWidgetsChanged(KoCanvasController *controller, const PkList<QObject *> &widgets);
 
     /**
      * Emitted when the tool's text mode has changed.
@@ -299,18 +297,7 @@ private:
     KoToolManager(const KoToolManager&);
     KoToolManager operator=(const KoToolManager&);
 
-    Q_PRIVATE_SLOT(d, void detachCanvas(KoCanvasController *controller))
-    Q_PRIVATE_SLOT(d, void attachCanvas(KoCanvasController *controller))
-    Q_PRIVATE_SLOT(d, void movedFocus(QWidget *from, QWidget *to))
-    Q_PRIVATE_SLOT(d, void updateCursor(const QCursor &cursor))
-    Q_PRIVATE_SLOT(d, void selectionChanged(const PkList<KoShape*> &shapes))
-    Q_PRIVATE_SLOT(d, void currentLayerChanged(const KoShapeLayer *layer))
-
     Private *const d;
 };
 
 #endif
-
-// S-09-g：Q_PRIVATE_SLOT(d, …) 的独立 automoc 编译单元需要完整 Private。
-// 放在类定义之后（本头自底向上可见），include 顺序两种都由 include-guard 兜底。
-#include "KoToolManager_p.h"

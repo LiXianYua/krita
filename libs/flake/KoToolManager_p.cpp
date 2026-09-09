@@ -82,17 +82,3 @@ KoToolFactoryBase *KoToolAction::toolFactory() const
 {
     return d->toolFactory;
 }
-
-//   ************ Connector **********
-Connector::Connector(KoShapeManager *parent)
-        : QObject(parent),
-        m_shapeManager(parent)
-{
-    QObject::connect(m_shapeManager, &KoShapeManager::selectionChanged, this,
-            static_cast<void (Connector::*)()>(&Connector::selectionChanged));
-}
-
-void Connector::selectionChanged()
-{
-    Q_EMIT selectionChanged(m_shapeManager->selection()->selectedShapes());
-}

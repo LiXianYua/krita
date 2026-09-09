@@ -309,6 +309,52 @@ private Q_SLOTS:
         QCOMPARE(action.shortcut()[0], qt515Oracle[0]);
     }
 
+    void pathSelectionBulkOperationsCoalesceNativeNotification()
+    {
+        MinimalShapeController controller;
+        MinimalCanvas canvas(&controller);
+        KoPathShape shape;
+        shape.moveTo(PkPointF(10.0, 20.0));
+        shape.lineTo(PkPointF(30.0, 20.0));
+        KoPathTool tool(&canvas);
+        auto *selection = dynamic_cast<KoPathToolSelection *>(tool.selection());
+        QVERIFY(selection);
+        selection->setSelectedShapes({&shape});
+
+        PkObject receiver;
+        int notifications = 0;
+        PkObject::connect(selection, &KoPathToolSelection::selectionChanged,
+                          &receiver, [&] { ++notifications; });
+
+        selection->selectAll();
+
+        QCOMPARE(selection->size(), 2);
+        QCOMPARE(notifications, 1);
+
+        selection->selectPoints(PkRectF(0.0, 0.0, 100.0, 100.0), true);
+
+        QCOMPARE(selection->size(), 2);
+        QCOMPARE(notifications, 2);
+    }
+
+    void toolManagerNotificationsUseNativeSignalDelivery()
+    {
+        KoToolManager manager;
+        PkObject receiver;
+        PkString status;
+        int notifications = 0;
+        PkObject::connect(&manager, &KoToolManager::changedStatusText,
+                          &receiver, [&](const PkString &value) {
+            status = value;
+            ++notifications;
+        });
+
+        manager.changedStatusText("native-status");
+
+        QCOMPARE(status, PkString("native-status"));
+        QCOMPARE(notifications, 1);
+    }
+
     void initTestCase()
     {
         PkThreadCallQueue::warmUpCurrentThread();

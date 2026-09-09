@@ -30,7 +30,26 @@ KoPathToolSelection::~KoPathToolSelection()
 
 void KoPathToolSelection::selectionChanged()
 {
+    if (m_selectionUpdateDepth > 0) {
+        m_selectionNotificationPending = true;
+        return;
+    }
     activateSignal<>(this, PkMemberFnKey::from(&KoPathToolSelection::selectionChanged));
+}
+
+void KoPathToolSelection::beginSelectionUpdate()
+{
+    ++m_selectionUpdateDepth;
+}
+
+void KoPathToolSelection::endSelectionUpdate()
+{
+    KIS_ASSERT(m_selectionUpdateDepth > 0);
+    --m_selectionUpdateDepth;
+    if (m_selectionUpdateDepth == 0 && m_selectionNotificationPending) {
+        m_selectionNotificationPending = false;
+        selectionChanged();
+    }
 }
 
 void KoPathToolSelection::paint(PkPainter &painter, const KoViewConverter &converter, qreal handleRadius)
@@ -97,11 +116,11 @@ void KoPathToolSelection::clear()
 
 void KoPathToolSelection::selectPoints(const PkRectF &rect, bool clearSelection)
 {
+    beginSelectionUpdate();
     if (clearSelection) {
         clear();
     }
 
-    blockSignals(true);
     Q_FOREACH (KoPathShape* shape, m_selectedShapes) {
         KoParameterShape *parameterShape = dynamic_cast<KoParameterShape*>(shape);
         if (parameterShape && parameterShape->isParametricShape())
@@ -109,13 +128,13 @@ void KoPathToolSelection::selectPoints(const PkRectF &rect, bool clearSelection)
         Q_FOREACH (KoPathPoint* point, shape->pointsAt(shape->documentToShape(rect)))
             add(point, false);
     }
-    blockSignals(false);
     selectionChanged();
+    endSelectionUpdate();
 }
 
 void KoPathToolSelection::selectAll()
 {
-    blockSignals(true);
+    beginSelectionUpdate();
     Q_FOREACH (KoPathShape* shape, m_selectedShapes) {
         KoParameterShape *parameterShape = dynamic_cast<KoParameterShape*>(shape);
         if (parameterShape && parameterShape->isParametricShape())
@@ -123,8 +142,8 @@ void KoPathToolSelection::selectAll()
         Q_FOREACH (KoPathPoint* point, shape->pointsAt(shape->outlineRect().adjusted(-2, -2, 2, 2)))
             add(point, false);
     }
-    blockSignals(false);
     selectionChanged();
+    endSelectionUpdate();
 }
 
 int KoPathToolSelection::objectCount() const

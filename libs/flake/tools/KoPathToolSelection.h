@@ -138,12 +138,17 @@ public:
     void selectionChanged();
 
 private:
+    void beginSelectionUpdate();
+    void endSelectionUpdate();
+
     typedef PkMap<KoPathShape *, PkSet<KoPathPoint *> > PathShapePointMap;
 
     PkSet<KoPathPoint *> m_selectedPoints;
     PathShapePointMap m_shapePointMap;
     KoPathTool *m_tool;
     PkList<KoPathShape*> m_selectedShapes;
+    int m_selectionUpdateDepth {0};
+    bool m_selectionNotificationPending {false};
 };
 
 #endif // KOPATHTOOLSELECTION_H
