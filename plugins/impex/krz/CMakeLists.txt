@@ -4,6 +4,15 @@ set(kritakrzexport_SOURCES
 
 kis_add_library(kritakrzexport STATIC ${kritakrzexport_SOURCES})
 
+target_include_directories(kritakrzexport PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugins/impex/libkra
+    ${CMAKE_BINARY_DIR}/plugins/impex/libkra
+    ${CMAKE_SOURCE_DIR}/libs/flake
+    ${CMAKE_BINARY_DIR}/libs/flake
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake
+    ${CMAKE_BINARY_DIR}/libs/flake/flake
+)
+
 target_link_libraries(kritakrzexport PUBLIC kritaimpex_noqt_compile_interface)
 target_link_libraries(kritakrzexport INTERFACE $<LINK_ONLY:kritalibkra> $<LINK_ONLY:kritaimpex> $<LINK_ONLY:kritaimage>)
 add_dependencies(kritakrzexport kritalibkra kritaimpex kritaimage)

@@ -21,27 +21,30 @@ set(kritapsdutils_LIB_SRCS
 kis_add_library(kritapsdutils SHARED ${kritapsdutils_LIB_SRCS})
 generate_export_header(kritapsdutils BASE_NAME kritapsdutils)
 
-target_include_directories(kritapsdutils
-    PUBLIC
+add_library(kritapsdutils_noqt_compile_interface INTERFACE)
+target_include_directories(kritapsdutils_noqt_compile_interface INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/cos
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/string
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/container
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/variant
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/port
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/geometry
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/log
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/global
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/color
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/xml
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/pointer
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/image
+    ${CMAKE_SOURCE_DIR}/libs/global
+    ${CMAKE_BINARY_DIR}/libs/global
+    ${CMAKE_SOURCE_DIR}/libs/pigment
+    ${CMAKE_BINARY_DIR}/libs/pigment
+    ${CMAKE_SOURCE_DIR}/libs/pigment/resources
+    ${CMAKE_SOURCE_DIR}/libs/pigment/compositeops
+    ${CMAKE_SOURCE_DIR}/libs/flake
+    ${CMAKE_BINARY_DIR}/libs/flake
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake
+    ${CMAKE_BINARY_DIR}/libs/flake/flake
+    ${CMAKE_SOURCE_DIR}/libs/flake/commands
+    ${CMAKE_SOURCE_DIR}/libs/flake/tools
+    ${CMAKE_SOURCE_DIR}/libs/flake/resources
+    ${CMAKE_SOURCE_DIR}/libs/flake/svg
+    ${CMAKE_SOURCE_DIR}/libs/flake/text
+    ${CMAKE_SOURCE_DIR}/libs/resources
+    ${CMAKE_BINARY_DIR}/libs/resources
 )
-
-target_link_libraries(kritapsdutils
-    PUBLIC
-        kritapigment
-        kritaglobal
-        kritaflake
+target_link_libraries(kritapsdutils_noqt_compile_interface INTERFACE
         pkstring
         pkcontainer
         pkvariant
@@ -51,8 +54,28 @@ target_link_libraries(kritapsdutils
         pkxml
         pkpointer
         pkimage
-    PRIVATE
-        ZLIB::ZLIB
+        pkglobal
+        pkconfig
+        pkflags
+        pksignal
+        pkconcurrent
+        pktime
+        pksql
+        pknamespace
+        pkfont
+        pktextstream
+        Boost::boost
+        Eigen3::Eigen
+)
+
+target_link_libraries(kritapsdutils PUBLIC
+        kritapsdutils_noqt_compile_interface
+        $<LINK_ONLY:kritapigment>
+        $<LINK_ONLY:kritaglobal>
+        $<LINK_ONLY:kritaflake>
+)
+target_link_libraries(kritapsdutils PRIVATE
+        $<LINK_ONLY:ZLIB::ZLIB>
 )
 
 set_target_properties(kritapsdutils PROPERTIES

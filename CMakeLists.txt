@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.19.0 FATAL_ERROR)
 
+# Direct $<LINK_ONLY:...> entries keep runtime link dependencies without
+# importing their compile usage requirements.
+cmake_policy(SET CMP0131 NEW)
+
 set(SUPPORTED_LANGUAGES CXX C)
 
 if (APPLE)

@@ -37,6 +37,8 @@ target_include_directories(kritaimpex_noqt_compile_interface INTERFACE
     ${CMAKE_BINARY_DIR}/libs/impex
     ${CMAKE_SOURCE_DIR}/libs/image
     ${CMAKE_BINARY_DIR}/libs/image
+    ${CMAKE_SOURCE_DIR}/libs/canvas
+    ${CMAKE_BINARY_DIR}/libs/canvas
     ${CMAKE_SOURCE_DIR}/libs/metadata
     ${CMAKE_BINARY_DIR}/libs/metadata
     ${CMAKE_SOURCE_DIR}/libs/psdutils
@@ -74,29 +76,30 @@ target_include_directories(kritaimpex PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/log
 )
 
-target_link_libraries(kritaimpex
-    PUBLIC
-        KF${KF_MAJOR}::CoreAddons
-        KF${KF_MAJOR}::I18n
-        Qt${QT_MAJOR_VERSION}::Concurrent
-        kritaimage
-        kritashapemodel
-    PRIVATE
-        KF${KF_MAJOR}::ConfigCore
-        ${PNG_LIBRARIES}
-        kritaassistanttool_static
-        kritacanvas
-        kritaresources
-        kritastore
-        pkimageio
-        pkimage
-        pkcontainer
-        pkgeometry
-        pknamespace
-        pkvariant
-        pkpointer
-        pkstring
-        pklog
+target_link_libraries(kritaimpex PUBLIC
+    kritaimpex_noqt_compile_interface
+    $<LINK_ONLY:KF${KF_MAJOR}::CoreAddons>
+    $<LINK_ONLY:KF${KF_MAJOR}::I18n>
+    $<LINK_ONLY:Qt${QT_MAJOR_VERSION}::Concurrent>
+    $<LINK_ONLY:kritaimage>
+    $<LINK_ONLY:kritashapemodel>
+)
+target_link_libraries(kritaimpex PRIVATE
+    $<LINK_ONLY:KF${KF_MAJOR}::ConfigCore>
+    $<LINK_ONLY:${PNG_LIBRARIES}>
+    $<LINK_ONLY:kritaassistanttool_static>
+    $<LINK_ONLY:kritacanvas>
+    $<LINK_ONLY:kritaresources>
+    $<LINK_ONLY:kritastore>
+    pkimageio
+    pkimage
+    pkcontainer
+    pkgeometry
+    pknamespace
+    pkvariant
+    pkpointer
+    pkstring
+    pklog
 )
 
 if(UNIX AND NOT APPLE)

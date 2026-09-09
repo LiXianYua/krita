@@ -4,12 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <QtCore/qglobal.h>
-#include <QtCore/qnamespace.h>
-#include <QtCore/qhashfunctions.h>
-#include <QtCore/qalgorithms.h>
-#include <QtCore/qmath.h>
-#include <QtCore/qnumeric.h>
+#include <PkGlobal.h>
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>

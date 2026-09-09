@@ -13,8 +13,12 @@ if (TIFF_HAS_PSD_TAGS)
         VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
     )
 
-    target_link_libraries(kritatiffpsd PUBLIC kritaimpex_noqt_compile_interface ${TIFF_LIBRARIES})
-    target_link_libraries(kritatiffpsd INTERFACE $<LINK_ONLY:kritapsd>)
+    target_link_libraries(kritatiffpsd PUBLIC
+        kritaimpex_noqt_compile_interface
+        kritapsd_noqt_compile_interface
+        ${TIFF_LIBRARIES}
+    )
+    target_link_libraries(kritatiffpsd PRIVATE $<LINK_ONLY:kritapsd>)
     add_dependencies(kritatiffpsd kritapsd)
 
     install(TARGETS kritatiffpsd DESTINATION ${INSTALL_TARGETS_DEFAULT_ARGS})
@@ -30,14 +34,16 @@ set(kritatiffimport_SOURCES
 kis_add_library(kritatiffimport STATIC ${kritatiffimport_SOURCES})
 
 target_link_libraries(kritatiffimport
-    PUBLIC kritaimpex_noqt_compile_interface
-    INTERFACE $<LINK_ONLY:kritaimpex>
-    LibExiv2::LibExiv2
-    kritametadata
-    kritaexifcommon
-    ${JPEG_TURBO_LIBRARIES}
-    ${KRITATIFFPSD_LIBRARY}
-    ${TIFF_LIBRARIES}
+    PUBLIC
+        kritaimpex_noqt_compile_interface
+        LibExiv2::LibExiv2
+        kritametadata
+        kritaexifcommon
+        ${JPEG_TURBO_LIBRARIES}
+        ${KRITATIFFPSD_LIBRARY}
+        ${TIFF_LIBRARIES}
+    INTERFACE
+        $<LINK_ONLY:kritaimpex>
     )
 add_dependencies(kritatiffimport kritaimpex)
 
@@ -60,12 +66,14 @@ endif()
 kis_add_library(kritatiffexport STATIC ${kritatiffexport_SOURCES})
 
 target_link_libraries(kritatiffexport
-    PUBLIC kritaimpex_noqt_compile_interface
-    INTERFACE $<LINK_ONLY:kritaimpex>
-    LibExiv2::LibExiv2
-    kritaexifcommon
-    ${KRITATIFFPSD_LIBRARY}
-    ${TIFF_LIBRARIES}
+    PUBLIC
+        kritaimpex_noqt_compile_interface
+        LibExiv2::LibExiv2
+        kritaexifcommon
+        ${KRITATIFFPSD_LIBRARY}
+        ${TIFF_LIBRARIES}
+    INTERFACE
+        $<LINK_ONLY:kritaimpex>
     )
 add_dependencies(kritatiffexport kritaimpex)
 

@@ -21,7 +21,7 @@ set(kritalibkra_LIB_SRCS
 
 kis_add_library(kritalibkra SHARED ${kritalibkra_LIB_SRCS})
 target_link_libraries(kritalibkra PUBLIC kritaimpex_noqt_compile_interface ZLIB::ZLIB pklog)
-target_link_libraries(kritalibkra INTERFACE $<LINK_ONLY:kritaimpex> $<LINK_ONLY:kritaimage>)
+target_link_libraries(kritalibkra PRIVATE $<LINK_ONLY:kritaimpex> $<LINK_ONLY:kritaimage>)
 add_dependencies(kritalibkra kritaimpex kritaimage)
 # 判据⑧：pk include 对齐。libkra 源码 include 的 pk 头 → 主树声明一致。
 # PkNodeId.h 在 pk/uuid（S-05-b 补定义）；其余 pk 头经 kritaimpex/kritaimage
@@ -29,6 +29,10 @@ add_dependencies(kritalibkra kritaimpex kritaimage)
 target_include_directories(kritalibkra PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/uuid
     ${CMAKE_SOURCE_DIR}/pk/log
+    ${CMAKE_SOURCE_DIR}/libs/flake
+    ${CMAKE_BINARY_DIR}/libs/flake
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake
+    ${CMAKE_BINARY_DIR}/libs/flake/flake
 )
 generate_export_header(kritalibkra BASE_NAME kritalibkra)
 

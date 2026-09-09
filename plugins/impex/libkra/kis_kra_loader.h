@@ -7,13 +7,7 @@
 #define KIS_KRA_LOADER_H
 
 
-#include <QtCore/qnamespace.h>
-#include <QtGlobal>
-#include <QtCore/qalgorithms.h>
-#include <QtCore/qhashfunctions.h>
-#include <QtCore/qmath.h>
-#include <QtCore/qnumeric.h>
-#include <QtCore/qpair.h>
+#include <PkGlobal.h>
 
 #include <PkStringList.h>
 #include <PkString.h>

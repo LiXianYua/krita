@@ -9,6 +9,13 @@ set(kritaspriterexport_SOURCES
 
 kis_add_library(kritaspriterexport STATIC ${kritaspriterexport_SOURCES})
 
+target_include_directories(kritaspriterexport PRIVATE
+    ${CMAKE_SOURCE_DIR}/libs/flake
+    ${CMAKE_BINARY_DIR}/libs/flake
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake
+    ${CMAKE_BINARY_DIR}/libs/flake/flake
+)
+
 target_link_libraries(kritaspriterexport PUBLIC kritaimpex_noqt_compile_interface pkxml)
 target_link_libraries(kritaspriterexport INTERFACE $<LINK_ONLY:kritaimpex>)
 add_dependencies(kritaspriterexport kritaimpex)

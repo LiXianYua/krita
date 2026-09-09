@@ -7,7 +7,10 @@ set(LIB_PSD_SRCS
 
 kis_add_library( kritapsd_static STATIC ${LIB_PSD_SRCS})
 
-target_link_libraries(kritapsd_static PUBLIC kritaimpex_noqt_compile_interface)
+target_link_libraries(kritapsd_static PUBLIC
+    kritaimpex_noqt_compile_interface
+    kritapsd_noqt_compile_interface
+)
 target_link_libraries(kritapsd_static INTERFACE $<LINK_ONLY:kritaimage> $<LINK_ONLY:kritapsd>)
 add_dependencies(kritapsd_static kritaimage kritapsd)
 
@@ -39,7 +42,10 @@ set(kritapsdexport_SOURCES
 
 kis_add_library(kritapsdexport STATIC ${kritapsdexport_SOURCES})
 
-target_link_libraries(kritapsdexport PUBLIC kritaimpex_noqt_compile_interface)
+target_link_libraries(kritapsdexport PUBLIC
+    kritaimpex_noqt_compile_interface
+    kritapsd_noqt_compile_interface
+)
 target_link_libraries(kritapsdexport INTERFACE $<LINK_ONLY:kritapsd_static> $<LINK_ONLY:kritapsd> $<LINK_ONLY:kritaimpex> $<LINK_ONLY:kritastore>)
 add_dependencies(kritapsdexport kritapsd_static kritapsd kritaimpex kritastore)
 
