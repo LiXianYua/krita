@@ -19,6 +19,8 @@ target_include_directories(kritapsd_noqt_compile_interface INTERFACE
     ${CMAKE_BINARY_DIR}/libs/flake
     ${CMAKE_SOURCE_DIR}/libs/flake/flake
     ${CMAKE_BINARY_DIR}/libs/flake/flake
+    ${CMAKE_SOURCE_DIR}/libs/canvas
+    ${CMAKE_BINARY_DIR}/libs/canvas
 )
 target_link_libraries(kritapsd_noqt_compile_interface INTERFACE
     kritaimage_noqt_compile_interface

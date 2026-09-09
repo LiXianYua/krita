@@ -39,6 +39,14 @@ target_include_directories(kritaimpex_noqt_compile_interface INTERFACE
     ${CMAKE_BINARY_DIR}/libs/image
     ${CMAKE_SOURCE_DIR}/libs/canvas
     ${CMAKE_BINARY_DIR}/libs/canvas
+    ${CMAKE_SOURCE_DIR}/libs/flake
+    ${CMAKE_BINARY_DIR}/libs/flake
+    ${CMAKE_SOURCE_DIR}/libs/flake/flake
+    ${CMAKE_BINARY_DIR}/libs/flake/flake
+    ${CMAKE_SOURCE_DIR}/libs/flake/commands
+    ${CMAKE_BINARY_DIR}/libs/flake/commands
+    ${CMAKE_SOURCE_DIR}/plugins/assistants/Assistants
+    ${CMAKE_BINARY_DIR}/plugins/assistants/Assistants
     ${CMAKE_SOURCE_DIR}/libs/metadata
     ${CMAKE_BINARY_DIR}/libs/metadata
     ${CMAKE_SOURCE_DIR}/libs/psdutils
