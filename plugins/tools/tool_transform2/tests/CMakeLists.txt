@@ -1,7 +1,7 @@
 ########### next target ###############
 
 kis_add_test(test_animated_transform_parameters.cpp
-    LINK_LIBRARIES kritatooltransform_static kritacanvas kritaimage kritatestsdk)
+    LINK_LIBRARIES kritatooltransform kritatooltransform_static kritacanvas kritaimage kritatestsdk)
 
 kis_add_test(PluginDInputPolicyTest.cpp
     TEST_NAME PluginDInputPolicyTest
