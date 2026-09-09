@@ -8,11 +8,13 @@
 
 #include <simpletest.h>
 #include <PkFlakeBridge.h>
+#include <KoCanvasResourceProvider.h>
 
 #include "stroke_testing_utils.h"
 #include "kis_image.h"
 #include "kis_node.h"
 #include "kis_paint_device.h"
+#include "kis_tool_move.h"
 #include "strokes/move_stroke_strategy.h"
 
 
@@ -72,6 +74,20 @@ void MoveStrokeTest::testMoveStroke()
 {
     MoveStrokeTester tester;
     tester.test();
+}
+
+void MoveStrokeTest::testResourceRevisionActivationGate()
+{
+    QVERIFY(!KisToolMove::shouldHandleRevisionResource(
+        false, KoCanvasResource::CurrentKritaSelectedNodesRevision));
+    QVERIFY(!KisToolMove::shouldHandleRevisionResource(
+        false, KoCanvasResource::CurrentKritaSelectionRevision));
+    QVERIFY(KisToolMove::shouldHandleRevisionResource(
+        true, KoCanvasResource::CurrentKritaSelectedNodesRevision));
+    QVERIFY(KisToolMove::shouldHandleRevisionResource(
+        true, KoCanvasResource::CurrentKritaSelectionRevision));
+    QVERIFY(!KisToolMove::shouldHandleRevisionResource(
+        true, KoCanvasResource::CurrentEffectiveCompositeOp));
 }
 
 QTEST_GUILESS_MAIN(MoveStrokeTest)

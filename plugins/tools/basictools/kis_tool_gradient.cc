@@ -52,6 +52,7 @@
 KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
         : KisToolPaint(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_gradient_cursor.png", 6, 6))
 {
+    PkObject::setObjectName("tool_gradient");
 
     m_startPos = PkPointF(0, 0);
     m_endPos = PkPointF(0, 0);

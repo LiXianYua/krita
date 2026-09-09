@@ -64,6 +64,7 @@ KisToolFill::KisToolFill(KoCanvasBase * canvas)
     , m_dirtyRect(nullptr)
     , m_fillStrokeId(nullptr)
 {
+    PkObject::setObjectName("tool_fill");
     m_fillUpdateConnection =
         PkObject::connect(&m_compressorFillUpdate, &KisSignalCompressor::timeout,
                           &m_compressorFillUpdate, [this]() { slotUpdateFill(); });

@@ -25,6 +25,7 @@
 KisToolEllipse::KisToolEllipse(KoCanvasBase * canvas)
         : KisToolEllipseBase(canvas, KisToolEllipseBase::PAINT, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_ellipse_cursor.png", 6, 6))
 {
+    PkObject::setObjectName("tool_ellipse");
     setSupportOutline(true);
     setIsOpacityPresetMode(true);
 

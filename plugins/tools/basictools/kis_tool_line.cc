@@ -65,6 +65,7 @@ KisToolLine::KisToolLine(KoCanvasBase * canvas)
       m_strokeUpdateCompressor(200, KisSignalCompressor::POSTPONE),
       m_longStrokeUpdateCompressor(750, KisSignalCompressor::FIRST_INACTIVE)
 {
+    PkObject::setObjectName("tool_line");
 
     setSupportOutline(true);
 

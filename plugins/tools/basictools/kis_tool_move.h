@@ -102,6 +102,7 @@ public:
     void slotNodeChanged(const KisNodeList &nodes);
     void slotSelectionChanged();
     void canvasResourceChanged(int key, const PkVariant &value) override;
+    static bool shouldHandleRevisionResource(bool active, int key);
     void commitChanges();
 
     void slotHandlesRectCalculated(const PkRect &handlesRect);
@@ -161,6 +162,7 @@ private:
     KisSignalCompressor m_updateCursorCompressor;
     PkConnection m_updateCursorConnection;
     KisSignalAutoConnectionsStore m_canvasConnections;
+    bool m_moveResourceReactionsActive {false};
 
     KisAsynchronousStrokeUpdateHelper m_asyncUpdateHelper;
 };

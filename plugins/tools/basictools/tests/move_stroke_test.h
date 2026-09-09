@@ -14,6 +14,7 @@ class MoveStrokeTest : public QObject
     Q_OBJECT
 private Q_SLOTS:
     void testMoveStroke();
+    void testResourceRevisionActivationGate();
 };
 
 #endif /* __MOVE_STROKE_TEST_H */
