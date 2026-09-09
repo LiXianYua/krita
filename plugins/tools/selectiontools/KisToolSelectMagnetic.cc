@@ -5,6 +5,7 @@
  */
 
 #include "KisToolSelectMagnetic.h"
+#include "selection_tools.h"
 
 #include <PkFlakeBridge.h>
 #include <PkPainterPath.h>
@@ -682,7 +683,7 @@ void KisToolSelectMagnetic::activate(const PkSet<KoShape *> &shapes)
     // was created; that ran on every tool activation, so these are the
     // effective defaults with no panel too -- same keys, same fallbacks.
     m_filterRadius = m_configGroup.readEntry("filterradius", 3.0);
-    m_threshold = m_configGroup.readEntry("threshold", 100);
+    m_threshold = readSelectionThreshold(m_configGroup, 100);
     m_searchRadius = m_configGroup.readEntry("searchradius", 30);
     m_anchorGap = m_configGroup.readEntry("anchorgap", 20);
 

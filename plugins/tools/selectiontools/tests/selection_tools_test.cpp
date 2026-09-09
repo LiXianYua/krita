@@ -54,6 +54,8 @@ void SelectionToolsTest::thresholdFallbackMatchesKConfig()
     PkConfigGroup nativeGroup(PkString("selection-oracle"));
     nativeGroup.deleteGroup();
 
+    QCOMPARE(readSelectionThreshold(nativeGroup, 8),
+             referenceGroup.readEntry("threshold", referenceGroup.readEntry("fuzziness", 8)));
     QCOMPARE(readSelectionThreshold(nativeGroup, 20),
              referenceGroup.readEntry("threshold", referenceGroup.readEntry("fuzziness", 20)));
 
