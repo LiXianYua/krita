@@ -29,7 +29,6 @@ struct KisToolLazyBrush::Private
     bool activatedActionLock{false};
 
     KisNodeWSP manuallyActivatedNode;
-    QMetaObject::Connection canvasResourceConnection;
 };
 
 
@@ -62,14 +61,6 @@ void KisToolLazyBrush::tryDisableKeyStrokesOnMask()
 
 void KisToolLazyBrush::activate(const PkSet<KoShape*> &shapes)
 {
-    QObject::disconnect(m_d->canvasResourceConnection);
-    m_d->canvasResourceConnection = QObject::connect(
-        canvas()->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
-        [this](int key, const PkVariant &value) {
-            slotCanvasResourceChanged(key, value);
-        });
-
-
     KisColorizeMask *mask = dynamic_cast<KisColorizeMask*>(currentNode().data());
     if (mask) {
         mask->regeneratePrefilteredDeviceIfNeeded();
@@ -82,8 +73,14 @@ void KisToolLazyBrush::deactivate()
 {
     KisToolFreehand::deactivate();
     tryDisableKeyStrokesOnMask();
-    QObject::disconnect(m_d->canvasResourceConnection);
-    m_d->canvasResourceConnection = {};
+}
+
+void KisToolLazyBrush::canvasResourceChanged(int key, const PkVariant &value)
+{
+    KisToolFreehand::canvasResourceChanged(key, value);
+    if (key == KoCanvasResource::CurrentKritaNode) {
+        slotCurrentNodeChanged(value.value<KisNodeWSP>());
+    }
 }
 
 void KisToolLazyBrush::slotCurrentNodeChanged(KisNodeSP node)
@@ -98,13 +95,6 @@ void KisToolLazyBrush::slotCurrentNodeChanged(KisNodeSP node)
         if (mask) {
             mask->regeneratePrefilteredDeviceIfNeeded();
         }
-    }
-}
-
-void KisToolLazyBrush::slotCanvasResourceChanged(int key, const PkVariant &value)
-{
-    if (key == KoCanvasResource::CurrentKritaNode) {
-        slotCurrentNodeChanged(value.value<KisNodeWSP>());
     }
 }
 

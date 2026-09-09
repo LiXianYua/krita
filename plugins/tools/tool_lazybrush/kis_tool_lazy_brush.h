@@ -51,13 +51,13 @@ public:
 
 protected:
     void resetCursorStyle() override;
+    void canvasResourceChanged(int key, const PkVariant &value) override;
 
 public:
     void activate(const PkSet<KoShape*> &shapes) override;
     void deactivate() override;
 
 private:
-    void slotCanvasResourceChanged(int key, const PkVariant &value);
     void slotCurrentNodeChanged(KisNodeSP node);
 
 private:
