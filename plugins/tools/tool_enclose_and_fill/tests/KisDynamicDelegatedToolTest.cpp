@@ -18,6 +18,7 @@
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
 #include <KoCanvasResourcesIds.h>
+#include <KoPointerEvent.h>
 #include <KoSelectedShapesProxySimple.h>
 #include <KoShapeControllerBase.h>
 #include <KoShapeManager.h>
@@ -307,7 +308,6 @@ class PathProducerProbe final : public KisPathEnclosingProducer
 {
 public:
     using KisPathEnclosingProducer::KisPathEnclosingProducer;
-    using KisPathEnclosingProducer::beginShape;
 };
 
 class EncloseToolProbe final : public KisToolEncloseAndFill
@@ -336,7 +336,7 @@ private Q_SLOTS:
     void disconnectsWhenSenderOrReceiverDies();
     void ownerNamesAndProducerCursorDeliveryUsePkPaths();
     void currentNodeAndColorSpaceSubscriptionFollowsActivation();
-    void concreteMaskSignalReachesInstalledMainDelegate();
+    void concreteDelegateReplacementPreservesMaskAndResourceDelivery();
     void pathPriorityRightClickRegistrationFollowsToolLifetime();
 };
 
@@ -549,25 +549,74 @@ void KisDynamicDelegatedToolTest::currentNodeAndColorSpaceSubscriptionFollowsAct
                                   &KisToolEncloseAndFill::slot_colorSpaceChanged));
 }
 
-void KisDynamicDelegatedToolTest::concreteMaskSignalReachesInstalledMainDelegate()
+void KisDynamicDelegatedToolTest::concreteDelegateReplacementPreservesMaskAndResourceDelivery()
 {
     EncloseTestCanvas canvas;
     EncloseToolProbe tool(&canvas);
     tool.m_enclosingMethod = KisToolEncloseAndFill::Lasso;
     tool.setupEnclosingSubtool();
 
-    auto *producer = reinterpret_cast<KisLassoEnclosingProducer *>(tool.delegateTool());
-    QVERIFY(producer);
-    KisPixelSelectionSP mask(new KisPixelSelection());
-    producer->enclosingMaskProduced(mask);
+    auto *firstProducer = reinterpret_cast<KisLassoEnclosingProducer *>(tool.delegateTool());
+    QVERIFY(firstProducer);
+    PkPointer<KisLassoEnclosingProducer> firstProducerGuard(firstProducer);
+    PkObject observer;
+    int firstResourceDeliveryCount = 0;
+    PkObject::connect(firstProducer, &KoToolBase::cursorChanged,
+                      &observer, [&](const QCursor &) {
+                          ++firstResourceDeliveryCount;
+                      });
+
+    KisPixelSelectionSP firstMask(new KisPixelSelection());
+    firstProducer->enclosingMaskProduced(firstMask);
+    KisPaintLayerSP firstResourceNode =
+        new KisPaintLayer(nullptr, "first-resource", OPACITY_OPAQUE_U8,
+                          KoColorSpaceRegistry::instance()->rgb8());
+    tool.canvasResourceChanged(
+        KoCanvasResource::CurrentKritaNode,
+        PkVariant::fromValue(KisNodeWSP(firstResourceNode)));
 
     QCOMPARE(tool.maskDeliveryCount, 1);
-    QCOMPARE(tool.lastMask, mask);
+    QCOMPARE(tool.lastMask, firstMask);
+    QVERIFY(firstResourceDeliveryCount > 0);
+
+    tool.m_enclosingMethod = KisToolEncloseAndFill::Rectangle;
+    tool.setupEnclosingSubtool();
+    QVERIFY(firstProducerGuard.isNull());
+    const int firstResourceDeliveryCountAfterReplacement =
+        firstResourceDeliveryCount;
+
+    auto *replacementProducer =
+        reinterpret_cast<KisRectangleEnclosingProducer *>(tool.delegateTool());
+    QVERIFY(replacementProducer);
+    int replacementResourceDeliveryCount = 0;
+    PkObject::connect(replacementProducer, &KoToolBase::cursorChanged,
+                      &observer, [&](const QCursor &) {
+                          ++replacementResourceDeliveryCount;
+                      });
+
+    KisPixelSelectionSP replacementMask(new KisPixelSelection());
+    replacementProducer->enclosingMaskProduced(replacementMask);
+    KisPaintLayerSP replacementResourceNode =
+        new KisPaintLayer(nullptr, "replacement-resource", OPACITY_OPAQUE_U8,
+                          KoColorSpaceRegistry::instance()->rgb8());
+    tool.canvasResourceChanged(
+        KoCanvasResource::CurrentKritaNode,
+        PkVariant::fromValue(KisNodeWSP(replacementResourceNode)));
+
+    QCOMPARE(tool.maskDeliveryCount, 2);
+    QCOMPARE(tool.lastMask, replacementMask);
+    QCOMPARE(firstResourceDeliveryCount,
+             firstResourceDeliveryCountAfterReplacement);
+    QVERIFY(replacementResourceDeliveryCount > 0);
 }
 
 void KisDynamicDelegatedToolTest::pathPriorityRightClickRegistrationFollowsToolLifetime()
 {
     EncloseTestCanvas canvas;
+    KisPaintLayerSP pathNode =
+        new KisPaintLayer(nullptr, "path", OPACITY_OPAQUE_U8,
+                          KoColorSpaceRegistry::instance()->rgb8());
+    canvas.setCurrentNode(pathNode);
     PathProducerProbe producer(&canvas);
     producer.activate({});
 
@@ -579,10 +628,37 @@ void KisDynamicDelegatedToolTest::pathPriorityRightClickRegistrationFollowsToolL
     QVERIFY(!canvas.dispatchRightClick(&invoked));
     QVERIFY(invoked);
 
-    producer.beginShape();
+    KoPointerEvent firstPress(PkPoint(0, 0), PkPointF(0, 0),
+                              Pk::LeftButton, Pk::LeftButton, Pk::NoModifier);
+    KoPointerEvent firstRelease(PkPoint(0, 0), PkPointF(0, 0),
+                                Pk::LeftButton, Pk::NoButton, Pk::NoModifier);
+    producer.beginPrimaryAction(&firstPress);
+    producer.endPrimaryAction(&firstRelease);
+
+    KoPointerEvent peakMove(PkPoint(100, 100), PkPointF(100, 100),
+                            Pk::NoButton, Pk::NoButton, Pk::NoModifier);
+    producer.continuePrimaryAction(&peakMove);
+    KoPointerEvent peakPress(PkPoint(100, 100), PkPointF(100, 100),
+                             Pk::LeftButton, Pk::LeftButton, Pk::NoModifier);
+    KoPointerEvent peakRelease(PkPoint(100, 100), PkPointF(100, 100),
+                               Pk::LeftButton, Pk::NoButton, Pk::NoModifier);
+    producer.beginPrimaryAction(&peakPress);
+    producer.endPrimaryAction(&peakRelease);
+
+    KoPointerEvent endMove(PkPoint(200, 0), PkPointF(200, 0),
+                           Pk::NoButton, Pk::NoButton, Pk::NoModifier);
+    producer.continuePrimaryAction(&endMove);
+    QVERIFY(producer.hasUserInteractionRunning());
+    const PkRectF geometryBeforeRightClick =
+        producer.localTool()->decorationsRect();
+    QVERIFY(geometryBeforeRightClick.contains(PkPointF(100, 100)));
+
     invoked = false;
     QVERIFY(canvas.dispatchRightClick(&invoked));
     QVERIFY(invoked);
+    const PkRectF geometryAfterRightClick =
+        producer.localTool()->decorationsRect();
+    QVERIFY(!geometryAfterRightClick.contains(PkPointF(100, 100)));
 
     producer.deactivate();
     QCOMPARE(canvas.rightClickDetachCount, 1);
