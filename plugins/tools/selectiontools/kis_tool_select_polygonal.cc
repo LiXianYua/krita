@@ -11,6 +11,7 @@
  */
 
 #include "kis_tool_select_polygonal.h"
+#include "selection_tools.h"
 
 #include <KoPathShape.h>
 
@@ -351,13 +352,13 @@ void KisToolSelectPolygonal::endShape()
 void KisToolSelectPolygonal::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor_add.png")));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_polygonal_selection_cursor_add.png")));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor_sub.png")));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_polygonal_selection_cursor_sub.png")));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor_inter.png")));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_polygonal_selection_cursor_inter.png")));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas), selectionToolCursorDescriptor("tool_polygonal_selection_cursor_symdiff.png")));
+        useCursor(selectionToolCursor(dynamic_cast<KisCanvasToolServices*>(canvas()), selectionToolCursorDescriptor("tool_polygonal_selection_cursor_symdiff.png")));
     } else {
         KisToolSelectBase<__KisToolSelectPolygonalLocal>::resetCursorStyle();
     }
