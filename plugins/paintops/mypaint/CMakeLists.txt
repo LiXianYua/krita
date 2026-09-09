@@ -23,20 +23,23 @@ target_include_directories(kritamypaintop_static
     PRIVATE
         ${CMAKE_SOURCE_DIR}/plugins/paintops/libpaintop
         ${CMAKE_BINARY_DIR}/plugins/paintops/libpaintop
+        ${CMAKE_SOURCE_DIR}/libs/brush
+        ${CMAKE_BINARY_DIR}/libs/brush
+        ${CMAKE_SOURCE_DIR}/libs/resources
+        ${CMAKE_BINARY_DIR}/libs/resources
 )
 
 target_link_libraries(kritamypaintop_static
     PRIVATE
         LibMyPaint::mypaint
-        kritalibbrush
-        kritaresources
-        kritalibpaintop
+        kritalibpaintop_noqt_compile_interface
         PNG::PNG
         json-c::json-c)
 
 kis_add_library(kritamypaintop STATIC MyPaintPaintOpPlugin.cpp)
 
-target_link_libraries(kritamypaintop kritamypaintop_static kritalibpaintop)
+target_link_libraries(kritamypaintop kritamypaintop_static kritalibpaintop_noqt_compile_interface)
+set_target_properties(kritamypaintop_static kritamypaintop PROPERTIES AUTOMOC OFF)
 
 install(TARGETS kritamypaintop  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

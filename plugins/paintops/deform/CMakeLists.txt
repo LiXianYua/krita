@@ -9,7 +9,8 @@ set(kritadeformpaintop_SOURCES
 
 kis_add_library(kritadeformpaintop STATIC ${kritadeformpaintop_SOURCES})
 
-target_link_libraries(kritadeformpaintop kritalibpaintop)
+target_link_libraries(kritadeformpaintop kritalibpaintop_noqt_compile_interface)
+set_target_properties(kritadeformpaintop PROPERTIES AUTOMOC OFF)
 
 install(TARGETS kritadeformpaintop  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 install( FILES  krita-deform.png DESTINATION ${KDE_INSTALL_DATADIR}/krita/images )

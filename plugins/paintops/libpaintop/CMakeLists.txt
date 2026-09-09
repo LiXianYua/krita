@@ -138,6 +138,18 @@ target_link_libraries(kritalibpaintop
         pkflags
 )
 
+# Paintop archives consume the migrated Pk-facing headers, but must not inherit
+# the legacy Qt compile interface carried by kritaimage/other public targets.
+# Keep the real shared library as a link-only dependency and expose only this
+# target's include roots to archive consumers.
+add_library(kritalibpaintop_noqt_compile_interface INTERFACE)
+target_include_directories(kritalibpaintop_noqt_compile_interface INTERFACE
+    $<TARGET_PROPERTY:kritalibpaintop,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_link_libraries(kritalibpaintop_noqt_compile_interface INTERFACE
+    $<LINK_ONLY:kritalibpaintop>
+)
+
 set_target_properties(kritalibpaintop PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
 )

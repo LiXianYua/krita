@@ -7,7 +7,8 @@ set(kritasketchpaintop_SOURCES
 
 kis_add_library(kritasketchpaintop STATIC ${kritasketchpaintop_SOURCES})
 
-target_link_libraries(kritasketchpaintop kritalibpaintop)
+target_link_libraries(kritasketchpaintop kritalibpaintop_noqt_compile_interface)
+set_target_properties(kritasketchpaintop PROPERTIES AUTOMOC OFF)
 
 install(TARGETS kritasketchpaintop  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -15,5 +16,4 @@ install(TARGETS kritasketchpaintop  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 ########### install files ###############
 
 install( FILES  krita-sketch.png DESTINATION ${KDE_INSTALL_DATADIR}/krita/images)
-
 

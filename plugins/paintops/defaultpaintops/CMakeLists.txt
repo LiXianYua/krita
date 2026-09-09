@@ -20,11 +20,13 @@ set(kritadefaultpaintops_SOURCES
 kis_add_library(kritadefaultpaintops_static STATIC ${kritadefaultpaintops_SOURCES})
 generate_export_header(kritadefaultpaintops_static BASE_NAME kritadefaultpaintops EXPORT_MACRO_NAME KRITADEFAULTPAINTOPS_EXPORT)
 
-target_link_libraries(kritadefaultpaintops_static kritalibpaintop)
+target_link_libraries(kritadefaultpaintops_static kritalibpaintop_noqt_compile_interface)
+set_target_properties(kritadefaultpaintops_static PROPERTIES AUTOMOC OFF)
 
 kis_add_library(kritadefaultpaintops STATIC defaultpaintops_plugin.cc)
 
 target_link_libraries(kritadefaultpaintops kritadefaultpaintops_static)
+set_target_properties(kritadefaultpaintops PROPERTIES AUTOMOC OFF)
 
 install(TARGETS kritadefaultpaintops  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 install( FILES
