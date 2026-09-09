@@ -9,6 +9,10 @@
 #include <PkDebug.h>
 #include <PkSet.h>
 
+#if defined(QT_CORE_LIB)
+#include <QMetaType>
+#endif
+
 #include "KoSvgTextProperties.h"
 #include "kritaflake_export.h"
 
@@ -51,6 +55,8 @@ struct KRITAFLAKE_EXPORT KoSvgTextPropertyData : public boost::equality_comparab
 
 PkDebug KRITAFLAKE_EXPORT operator<<(PkDebug dbg, const KoSvgTextPropertyData &prop);
 
+#if defined(QT_CORE_LIB)
 Q_DECLARE_METATYPE(KoSvgTextPropertyData)
+#endif
 
 #endif // KOSVGTEXTPROPERTYDATA_H

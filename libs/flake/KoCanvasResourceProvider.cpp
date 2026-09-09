@@ -6,8 +6,6 @@
 
    SPDX-License-Identifier: LGPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoCanvasResourceProvider.h"
 
 #include <PkVariant.h>
@@ -20,7 +18,7 @@
 
 #include <KoCanvasResourcesInterface.h>
 
-struct Q_DECL_HIDDEN CanvasResourceProviderInterfaceWrapper : public KoCanvasResourcesInterface
+struct CanvasResourceProviderInterfaceWrapper : public KoCanvasResourcesInterface
 {
     CanvasResourceProviderInterfaceWrapper(KoCanvasResourceProvider *provider)
         : m_provider(provider)
@@ -36,7 +34,7 @@ private:
 };
 
 
-class Q_DECL_HIDDEN KoCanvasResourceProvider::Private
+class KoCanvasResourceProvider::Private
 {
 public:
     Private(KoCanvasResourceProvider *q)
@@ -48,23 +46,35 @@ public:
     PkSharedPointer<CanvasResourceProviderInterfaceWrapper> interfaceWrapper;
 };
 
-KoCanvasResourceProvider::KoCanvasResourceProvider(QObject *parent)
-    : QObject(parent)
+KoCanvasResourceProvider::KoCanvasResourceProvider(PkObject *parent)
+    : PkObject(parent)
     , d(new Private(this))
 {
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
     setForegroundColor(KoColor(Pk::black, cs));
     setBackgroundColor(KoColor(PkColor(Pk::white), cs));
 
-    QObject::connect(&d->manager, &KoResourceManager::resourceChanged,
+    PkObject::connect(&d->manager, &KoResourceManager::resourceChanged,
             this, &KoCanvasResourceProvider::canvasResourceChanged);
-    QObject::connect(&d->manager, &KoResourceManager::resourceChangeAttempted,
+    PkObject::connect(&d->manager, &KoResourceManager::resourceChangeAttempted,
             this, &KoCanvasResourceProvider::canvasResourceChangeAttempted);
 }
 
 KoCanvasResourceProvider::~KoCanvasResourceProvider()
 {
     delete d;
+}
+
+void KoCanvasResourceProvider::canvasResourceChanged(int key, const PkVariant &value)
+{
+    activateSignal<int, const PkVariant &>(
+        this, PkMemberFnKey::from(&KoCanvasResourceProvider::canvasResourceChanged), key, value);
+}
+
+void KoCanvasResourceProvider::canvasResourceChangeAttempted(int key, const PkVariant &value)
+{
+    activateSignal<int, const PkVariant &>(
+        this, PkMemberFnKey::from(&KoCanvasResourceProvider::canvasResourceChangeAttempted), key, value);
 }
 
 void KoCanvasResourceProvider::setResource(int key, const PkVariant &value)

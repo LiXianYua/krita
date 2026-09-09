@@ -8,8 +8,6 @@
 
 #include <KoSvgText.h>
 #include <PkChar.h>
-#include <QDebug>
-#include <QLocale>
 #include <PkString.h>
 
 #include "kritaflake_export.h"

@@ -297,7 +297,6 @@ set(kritaflake_SRCS
     text/KoFFWWSConverter.cpp
     text/KoFontChangeTracker.cpp
     text/KoWritingSystemUtils.cpp
-    text/KoFontGlyphModel.cpp
     text/KoOpenTypeFeatureInfoFactory.cpp
     text/data/KoUnicodeBlockData.cpp
     text/KoSvgTextShapeOutlineHelper.cpp
@@ -482,17 +481,6 @@ set(kritaflake_painting_SRCS
     text/KoSvgTextShape_p_layout.cpp
     text/KoSvgTextShape_p_output.cpp
     text/KoWritingSystemUtils.cpp
-    tools/KoCreatePathTool.cpp
-    tools/KoInteractionStrategy.cpp
-    tools/KoInteractionStrategyFactory.cpp
-    tools/KoInteractionTool.cpp
-    tools/KoPathTool.cpp
-    tools/KoPathToolFactory.cpp
-    tools/KoPathToolHandle.cpp
-    tools/KoPathToolSelection.cpp
-    tools/KoPencilTool.cpp
-    tools/KoShapeRubberSelectStrategy.cpp
-    tools/KoZoomTool.cpp
 )
 
 # 绘图文件从各组摘走，避免重复编译（REMOVE_ITEM 精确匹配，跨组无效）
@@ -504,7 +492,8 @@ list(REMOVE_ITEM kritaflake_text_SRCS ${kritaflake_painting_SRCS})
 list(REMOVE_ITEM kritaflake_resources_SRCS ${kritaflake_painting_SRCS})
 list(REMOVE_ITEM kritaflake_core_SRCS ${kritaflake_painting_SRCS})
 
-kritaflake_add_object_library(kritaflake_painting_objects ${kritaflake_painting_SRCS})
+kritaflake_add_native_object_library(kritaflake_painting_objects ${kritaflake_painting_SRCS})
+set_target_properties(kritaflake_painting_objects PROPERTIES AUTOMOC OFF)
 target_include_directories(kritaflake_painting_objects PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/font
     ${CMAKE_SOURCE_DIR}/pk/string
@@ -518,7 +507,8 @@ kritaflake_add_native_object_library(kritaflake_html_objects ${kritaflake_html_S
 kritaflake_add_object_library(kritaflake_tools_objects ${kritaflake_tools_SRCS})
 kritaflake_add_native_object_library(kritaflake_svg_objects ${kritaflake_svg_SRCS})
 target_link_libraries(kritaflake_svg_objects PRIVATE kritaflake_imagecodec)
-kritaflake_add_object_library(kritaflake_text_objects ${kritaflake_text_SRCS})
+kritaflake_add_native_object_library(kritaflake_text_objects ${kritaflake_text_SRCS})
+set_target_properties(kritaflake_text_objects PROPERTIES AUTOMOC OFF)
 kritaflake_add_native_object_library(kritaflake_resources_objects ${kritaflake_resources_SRCS})
 target_link_libraries(kritaflake_resources_objects PRIVATE kritaflake_imagecodec)
 kritaflake_add_native_object_library(kritaflake_core_objects ${kritaflake_core_SRCS})

@@ -3,17 +3,12 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoSvgTextPropertyData.h"
 #include <pk/log/PkDebug.h>
 
 namespace {
 
 // PkDebug 不流式输出容器，这里把 map/set 拼成可读字符串。
-// MapT 泛化：过渡头 convertParagraphProperties/convertToSvgTextAttributes 返回真 Qt
-// PkMap<PkString,PkString>（real-Qt-first TU 里 PkString 是真 Qt），key()/value() 是真 PkString，
-// 跨界用 toPkString 显式转 PkString。
 template <typename MapT>
 PkString mapToString(const MapT &m)
 {
@@ -22,9 +17,9 @@ PkString mapToString(const MapT &m)
         if (!out.isEmpty()) {
             out += PkString(", ");
         }
-        out += toPkString(it.key());
+        out += it.key();
         out += PkString("=");
-        out += toPkString(it.value());
+        out += it.value();
     }
     return out;
 }

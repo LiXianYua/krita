@@ -12,6 +12,8 @@
 
 #include <FlakeDebug.h>
 
+#include <cmath>
+
 namespace KoSvgTextShapeLayoutFunc
 {
 
@@ -38,11 +40,11 @@ void calculateLineHeight(CharacterResult cr, double &ascent, double &descent, bo
         descent = offsetDsc;
     } else {
         if (isHorizontal) {
-            ascent = qMin(offsetAsc, ascent);
-            descent = qMax(offsetDsc, descent);
+            ascent = pkMin(offsetAsc, ascent);
+            descent = pkMax(offsetDsc, descent);
         } else {
-            ascent = qMax(offsetAsc, ascent);
-            descent = qMin(offsetDsc, descent);
+            ascent = pkMax(offsetAsc, ascent);
+            descent = pkMin(offsetDsc, descent);
         }
     }
 }
@@ -62,7 +64,7 @@ void addWordToLine(PkVector<CharacterResult> &result,
 
     LineChunk currentChunk  = currentLine.chunk();
 
-    Q_FOREACH (const int j, wordIndices) {
+    for (const int j : wordIndices) {
         CharacterResult cr = result.at(j);
         if (currentLine.isEmpty() && j == wordIndices.first()) {
             if (result.at(j).lineStart == LineEdgeBehaviour::Collapse) {
@@ -134,8 +136,8 @@ static PkPointF lineHeightOffset(KoSvgText::WritingMode writingMode,
     }
 
     // We do qmin/qmax here so that later, the correction offset will not go below either value.
-    const qreal expectedLineTop = writingMode == KoSvgText::HorizontalTB? qMin(currentLine.expectedLineTop, currentLine.actualLineTop):
-                                                                          qMax(currentLine.expectedLineTop, currentLine.actualLineTop);
+    const qreal expectedLineTop = writingMode == KoSvgText::HorizontalTB? pkMin(currentLine.expectedLineTop, currentLine.actualLineTop):
+                                                                          pkMax(currentLine.expectedLineTop, currentLine.actualLineTop);
     if (writingMode == KoSvgText::HorizontalTB) {
         currentLine.baselineTop = PkPointF(0, currentLine.actualLineTop);
         currentLine.baselineBottom = PkPointF(0, currentLine.actualLineBottom);
@@ -166,7 +168,7 @@ static PkPointF lineHeightOffset(KoSvgText::WritingMode writingMode,
 
     if (!returnDescent) {
         for (auto chunk = currentLine.chunks.begin(); chunk != currentLine.chunks.end(); chunk++) {
-            Q_FOREACH (int j, chunk->chunkIndices) {
+            for (int j : chunk->chunkIndices) {
                 result[j].cssPosition += lineTop;
                 result[j].cssPosition += result[j].totalBaselineOffset();
                 result[j].finalPosition = result.at(j).cssPosition;
@@ -177,7 +179,7 @@ static PkPointF lineHeightOffset(KoSvgText::WritingMode writingMode,
     } else {
         offset = lineBottom - correctionOffset;
         for (auto chunk = currentLine.chunks.begin(); chunk != currentLine.chunks.end(); chunk++) {
-            Q_FOREACH (int j, chunk->chunkIndices) {
+            for (int j : chunk->chunkIndices) {
                 result[j].cssPosition -= correctionOffset;
                 result[j].cssPosition = result[j].cssPosition + result[j].totalBaselineOffset();
                 result[j].finalPosition = result.at(j).cssPosition;
@@ -259,7 +261,7 @@ static void applyInlineSizeAnchoring(PkVector<CharacterResult> &result,
     qreal b = 0;
 
     bool first = true;
-    Q_FOREACH (int i, lineIndices) {
+    for (int i : lineIndices) {
         if (!result.at(i).addressable || result.at(i).hidden || (result.at(i).isHanging && result.at(i).anchored_chunk)) {
             continue;
         }
@@ -276,12 +278,12 @@ static void applyInlineSizeAnchoring(PkVector<CharacterResult> &result,
         const qreal advance = isHorizontal ? d.x() : d.y();
 
         if (first) {
-            a = qMin(pos, pos + advance);
-            b = qMax(pos, pos + advance);
+            a = pkMin(pos, pos + advance);
+            b = pkMax(pos, pos + advance);
             first = false;
         } else {
-            a = qMin(a, qMin(pos, pos + advance));
-            b = qMax(b, qMax(pos, pos + advance));
+            a = pkMin(a, pkMin(pos, pos + advance));
+            b = pkMax(b, pkMax(pos, pos + advance));
         }
     }
 
@@ -306,7 +308,7 @@ static void applyInlineSizeAnchoring(PkVector<CharacterResult> &result,
     }
 
     PkPointF shiftP = resHandler.adjust(isHorizontal ? PkPointF(shift, 0) : PkPointF(0, shift));
-    Q_FOREACH (int j, lineIndices) {
+    for (int j : lineIndices) {
         result[j].cssPosition = result[j].cssPosition+shiftP;
         result[j].finalPosition = result.at(j).cssPosition;
     }
@@ -333,7 +335,7 @@ void finalizeLine(PkVector<CharacterResult> &result,
 
     for (auto currentChunk = currentLine.chunks.begin(); currentChunk != currentLine.chunks.end(); currentChunk++) {
         PkMap<int, int> visualToLogical;
-        Q_FOREACH (int j, currentChunk->chunkIndices) {
+        for (int j : currentChunk->chunkIndices) {
             visualToLogical.insert(result.at(j).visualIndex, j);
         }
         currentPos = lineOffset;
@@ -348,7 +350,7 @@ void finalizeLine(PkVector<CharacterResult> &result,
             double hangingGlyphLength = isHorizontal? currentChunk->conditionalHangEnd.x(): currentChunk->conditionalHangEnd.y();
             PkPointF advanceLength; ///< Because we may have collapsed the last glyph, we'll need to recalculate the total advance;
             bool first = true;
-            Q_FOREACH (int j, visualToLogical.values()) {
+            for (int j : visualToLogical.values()) {
                 if (!result.at(j).addressable || result.at(j).hidden) {
                     continue;
                 }
@@ -389,7 +391,7 @@ void finalizeLine(PkVector<CharacterResult> &result,
             }
         }
 
-        Q_FOREACH (const int j, visualToLogical.values()) {
+        for (const int j : visualToLogical.values()) {
             if (!result.at(j).addressable) {
                 continue;
             }
@@ -517,7 +519,7 @@ PkVector<LineBox> breakLines(const KoSvgTextProperties &properties,
                 // Sometimes glyphs are a fraction larger than you'd expect, but
                 // not enough to really break the line, so the following is a
                 // bit more stable than a simple compare.
-                if (abs(lineLength) - inlineSize.customValue > 0.01) {
+                if (std::abs(lineLength) - inlineSize.customValue > 0.01) {
                     softBreak = true;
                 } else {
                     addWordToLine(result, currentPos, wordIndices, currentLine, isHorizontal);
@@ -556,7 +558,7 @@ PkVector<LineBox> breakLines(const KoSvgTextProperties &properties,
                     wordLength = 0;
                     PkVector<int> partialWord;
                     currentLine.firstLine = firstLine;
-                    Q_FOREACH (const int i, wordIndices) {
+                    for (const int i : wordIndices) {
                         result[i].calculateAndApplyTabsize(wordAdvance + currentPos, isHorizontal, resHandler);
                         wordAdvance += result.at(i).advance;
                         wordLength = isHorizontal ? wordAdvance.x() : wordAdvance.y();

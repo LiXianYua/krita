@@ -5,13 +5,9 @@
  */
 
 #include "kis_painting_tweaks.h"
-#include <PkFlakeBridge.h>
 
 #include <PkPen.h>
-#include <QRegion>
-#include <QPainter>
 #include <PkTransform.h>
-#include <QDebug>
 
 #include <cmath>
 // [migrate] missing include for Pk/Qt type
@@ -28,28 +24,6 @@ inline T pow2(const T &x) { return x * x; }
 
 namespace KisPaintingTweaks {
 
-QRegion safeClipRegion(const QPainter &painter)
-{
-    const PkTransform t = toPkTransform(painter.transform());
-
-    QRegion region = t.type() <= PkTransform::TxScale ?
-        painter.clipRegion() :
-        QRegion(painter.clipBoundingRect().toAlignedRect());
-
-    if (region.rectCount() > 1000) {
-        qWarning() << "WARNING: KisPaintingTweaks::safeClipRegion: too many rectangles in the region!" << "rectCount=" << region.rectCount();
-        region = QRegion(painter.clipBoundingRect().toAlignedRect());
-    }
-
-    return region;
-}
-
-PkRect safeClipBoundingRect(const QPainter &painter)
-{
-    const QRect r = painter.clipBoundingRect().toAlignedRect();
-    return PkRect(r.x(), r.y(), r.width(), r.height());
-}
-
 void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
                  int antLength, int antSpace)
 {
@@ -64,38 +38,6 @@ void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
     *outlinePen = PkPen(Pk::SolidLine);
     outlinePen->setCosmetic(true);
     outlinePen->setColor(PkColor(Pk::white));
-}
-
-PenBrushSaver::PenBrushSaver(QPainter *painter)
-    : m_painter(painter),
-      m_pen(toPkPen(painter->pen())),
-      m_brush(painter->brush())
-{
-}
-
-PenBrushSaver::PenBrushSaver(QPainter *painter, const PkPen &pen, const QBrush &brush)
-    : PenBrushSaver(painter)
-{
-    m_painter->setPen(toQPen(pen));
-    m_painter->setBrush(brush);
-}
-
-PenBrushSaver::PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &pair)
-    : PenBrushSaver(painter)
-{
-    m_painter->setPen(toQPen(pair.first));
-    m_painter->setBrush(pair.second);
-}
-
-PenBrushSaver::PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &pair, allow_noop_t)
-    : m_painter(painter)
-{
-    if (m_painter) {
-        m_pen = toPkPen(m_painter->pen());
-        m_brush = m_painter->brush();
-        m_painter->setPen(toQPen(pair.first));
-        m_painter->setBrush(pair.second);
-    }
 }
 
 PenBrushSaver::PenBrushSaver(PkPainter *painter)
@@ -136,10 +78,6 @@ PenBrushSaver::PenBrushSaver(PkPainter *painter, const std::pair<PkPen, PkBrush>
 
 PenBrushSaver::~PenBrushSaver()
 {
-    if (m_painter) {
-        m_painter->setPen(toQPen(m_pen));
-        m_painter->setBrush(m_brush);
-    }
     if (m_pkPainter) {
         m_pkPainter->setPen(m_pen);
         m_pkPainter->setBrush(m_pkBrush);

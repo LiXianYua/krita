@@ -11,33 +11,13 @@
 
 #include <PkPen.h>
 #include <pk/render/PkPainter.h>
-#include <QBrush>
-
-#include <QVector3D>
-#include <QVector2D>
 // [migrate] missing include for Pk/Qt type
 #include <PkRect.h>
 
-class QPainter;
-class QRegion;
 class PkRect;
 class PkPen;
 
 namespace KisPaintingTweaks {
-
-    /**
-     * This is a workaround for QPainter::clipRegion() bug. When zoom
-     * is about 2000% and rotation is in a range[-5;5] degrees, the
-     * generated region will have about 20k+ rectangles inside. Their
-     * processing will be really slow. These functions work around
-     * the issue.
-     */
-    KRITAFLAKE_EXPORT QRegion safeClipRegion(const QPainter &painter);
-
-    /**
-     * \see safeClipRegion()
-     */
-    KRITAFLAKE_EXPORT PkRect safeClipBoundingRect(const QPainter &painter);
 
     KRITAFLAKE_EXPORT void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
                                         int antLength = 4, int antSpace = 4);
@@ -53,28 +33,6 @@ namespace KisPaintingTweaks {
         struct allow_noop_t { explicit allow_noop_t() = default; };
         static constexpr allow_noop_t	allow_noop { };
 
-        /**
-         * Saves pen and brush state of the provided painter object. \p painter cannot be null.
-         */
-        PenBrushSaver(QPainter *painter);
-
-        /**
-         * Overrides pen and brush of \p painter with the provided values. \p painter cannot be null.
-         */
-        PenBrushSaver(QPainter *painter, const PkPen &pen, const QBrush &brush);
-
-        /**
-         * Overrides pen and brush of \p painter with the provided values. \p painter cannot be null.
-         */
-        PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &pair);
-
-        /**
-         * A special constructor of PenBrushSaver that allows \p painter to be null. Passing null
-         * pointer will basically mean that the whole saver existence will be a noop.
-         */
-        PenBrushSaver(QPainter *painter, const std::pair<PkPen, QBrush> &pair, allow_noop_t);
-
-        // S-09-g 扩锁：Pk 命令式 painter 的 save/restore 重载（与 QPainter 版语义一致）。
         PenBrushSaver(PkPainter *painter);
         PenBrushSaver(PkPainter *painter, const PkPen &pen, const PkBrush &brush);
         PenBrushSaver(PkPainter *painter, const std::pair<PkPen, PkBrush> &pair);
@@ -87,11 +45,9 @@ namespace KisPaintingTweaks {
 
     private:
         PenBrushSaver(const PenBrushSaver &rhs) = delete;
-        QPainter *m_painter = nullptr;
         PkPainter *m_pkPainter = nullptr;
-        PkBrush m_pkBrush;
         PkPen m_pen;
-        QBrush m_brush;
+        PkBrush m_pkBrush;
     };
 
     PkColor KRITAFLAKE_EXPORT blendColors(const PkColor &c1, const PkColor &c2, qreal r1);
@@ -124,24 +80,26 @@ namespace KisPaintingTweaks {
      */
     void KRITAFLAKE_EXPORT dragColor(PkColor *color, const PkColor &baseColor, qreal threshold);
 
-    inline void rectToVertices(QVector3D* vertices, const PkRectF &rc)
+    template <typename Vector3D>
+    inline void rectToVertices(Vector3D* vertices, const PkRectF &rc)
     {
-        vertices[0] = QVector3D(rc.left(),  rc.bottom(), 0.f);
-        vertices[1] = QVector3D(rc.left(),  rc.top(),    0.f);
-        vertices[2] = QVector3D(rc.right(), rc.bottom(), 0.f);
-        vertices[3] = QVector3D(rc.left(),  rc.top(), 0.f);
-        vertices[4] = QVector3D(rc.right(), rc.top(), 0.f);
-        vertices[5] = QVector3D(rc.right(), rc.bottom(),    0.f);
+        vertices[0] = Vector3D(rc.left(),  rc.bottom(), 0.f);
+        vertices[1] = Vector3D(rc.left(),  rc.top(),    0.f);
+        vertices[2] = Vector3D(rc.right(), rc.bottom(), 0.f);
+        vertices[3] = Vector3D(rc.left(),  rc.top(), 0.f);
+        vertices[4] = Vector3D(rc.right(), rc.top(), 0.f);
+        vertices[5] = Vector3D(rc.right(), rc.bottom(),    0.f);
     }
 
-    inline void rectToTexCoords(QVector2D* texCoords, const PkRectF &rc)
+    template <typename Vector2D>
+    inline void rectToTexCoords(Vector2D* texCoords, const PkRectF &rc)
     {
-        texCoords[0] = QVector2D(rc.left(), rc.bottom());
-        texCoords[1] = QVector2D(rc.left(), rc.top());
-        texCoords[2] = QVector2D(rc.right(), rc.bottom());
-        texCoords[3] = QVector2D(rc.left(), rc.top());
-        texCoords[4] = QVector2D(rc.right(), rc.top());
-        texCoords[5] = QVector2D(rc.right(), rc.bottom());
+        texCoords[0] = Vector2D(rc.left(), rc.bottom());
+        texCoords[1] = Vector2D(rc.left(), rc.top());
+        texCoords[2] = Vector2D(rc.right(), rc.bottom());
+        texCoords[3] = Vector2D(rc.left(), rc.top());
+        texCoords[4] = Vector2D(rc.right(), rc.top());
+        texCoords[5] = Vector2D(rc.right(), rc.bottom());
     }
 }
 

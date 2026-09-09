@@ -94,7 +94,7 @@ void KisHandlePainterHelper::drawHandleRect(const PkPointF &center, qreal radius
     customPen.setWidth(4);
     m_painter->setPen(customPen);
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawPolygon(handlePolygon);
@@ -109,7 +109,7 @@ void KisHandlePainterHelper::drawHandleCircle(const PkPointF &center, qreal radi
     PkRectF handleRect(-radius, -radius, 2 * radius, 2 * radius);
     handleRect.translate(m_painterTransform.map(center));
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawEllipse(handleRect);
@@ -142,7 +142,7 @@ void KisHandlePainterHelper::drawHandleLine(const PkLineF &line, qreal width, Pk
     strokePen.setJoinStyle(Pk::RoundJoin);
     p = PkRender::createStrokeOutline(p, strokePen);
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->strokePath(p, m_painter->pen());
@@ -154,7 +154,7 @@ void KisHandlePainterHelper::drawHandleRect(const PkPointF &center) {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
     PkPolygonF paintingPolygon = m_handlePolygon.translated(m_painterTransform.map(center));
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawPolygon(paintingPolygon);
@@ -174,7 +174,7 @@ void KisHandlePainterHelper::drawGradientHandle(const PkPointF &center, qreal ra
     handlePolygon = m_handleTransform.map(handlePolygon);
     handlePolygon.translate(m_painterTransform.map(center));
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawPolygon(handlePolygon);
@@ -199,7 +199,7 @@ void KisHandlePainterHelper::drawGradientCrossHandle(const PkPointF &center, qre
         p = m_handleTransform.map(p);
         p.translate(m_painterTransform.map(center));
 
-        Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
+        for (KisHandleStyle::IterationStyle it : m_handleStyle.handleIterations) {
             it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
             PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
             m_painter->drawPath(p);
@@ -218,7 +218,7 @@ void KisHandlePainterHelper::drawGradientCrossHandle(const PkPointF &center, qre
         handlePolygon = m_handleTransform.map(handlePolygon);
         handlePolygon.translate(m_painterTransform.map(center));
 
-        Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
+        for (KisHandleStyle::IterationStyle it : m_handleStyle.handleIterations) {
             it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
             PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
             m_painter->drawPolygon(handlePolygon);
@@ -246,7 +246,7 @@ void KisHandlePainterHelper::drawArrow(const PkPointF &pos, const PkPointF &from
 
     p = m_handleTransform.map(p).translated(m_painterTransform.map(pos));
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawPath(p);
@@ -262,7 +262,7 @@ void KisHandlePainterHelper::drawGradientArrow(const PkPointF &start, const PkPo
     p.lineTo(end);
     p = m_painterTransform.map(p);
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF()*m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawPath(p);
@@ -284,7 +284,7 @@ void KisHandlePainterHelper::drawRubberLine(const PkPolygonF &poly) {
 
     PkPolygonF paintingPolygon = m_painterTransform.map(poly);
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawPolygon(paintingPolygon);
@@ -303,7 +303,7 @@ void KisHandlePainterHelper::drawConnectionLine(const PkPointF &p1, const PkPoin
     PkPointF realP1 = m_painterTransform.map(p1);
     PkPointF realP2 = m_painterTransform.map(p2);
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawLine(realP1, realP2);
@@ -314,7 +314,7 @@ void KisHandlePainterHelper::drawPath(const PkPainterPath &path)
 {
     const PkPainterPath realPath = m_painterTransform.map(path);
 
-    Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
+    for (KisHandleStyle::IterationStyle it : m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
         PenBrushSaver saver(it.isValid ? m_painter : 0, it.stylePair, PenBrushSaver::allow_noop);
         m_painter->drawPath(realPath);

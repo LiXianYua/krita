@@ -7,10 +7,9 @@
 #ifndef KISHANDLESTYLE_H
 #define KISHANDLESTYLE_H
 
-#include <PkFlakeBridge.h>
 #include <PkVector.h>
 #include <PkPen.h>
-#include <QBrush>
+#include <PkBrush.h>
 
 #include "kritaflake_export.h"
 

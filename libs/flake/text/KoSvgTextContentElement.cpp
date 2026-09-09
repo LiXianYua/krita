@@ -4,9 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include <PkConfigGroup.h>
+#include <PkFont.h>
 #include <PkSharedConfig.h>
 #include "KoSvgTextContentElement.h"
 
@@ -18,8 +17,6 @@
 #include <kis_global.h>
 
 #include "SvgGraphicContext.h"
-
-#include <QRegularExpression>
 
 KoSvgTextContentElement::KoSvgTextContentElement()
 {
@@ -93,7 +90,7 @@ PkVector<qreal> parseListAttributeAngular(const PkString &value, SvgLoadingConte
 PkString convertListAttribute(const PkVector<qreal> &values) {
     PkStringList stringValues;
 
-    Q_FOREACH (qreal value, values) {
+    for (qreal value : values) {
         stringValues.append(KisDomUtils::toString(value));
     }
 
@@ -109,20 +106,14 @@ void writeTextListAttribute(const PkString &attribute, const PkVector<qreal> &va
 }
 }
 
-/**
- * HACK ALERT: this is a function from a private Qt's header qfont_p.h,
- * we don't include the whole header, because it is painful in the
- * environments we don't fully control, e.g. in distribution packages.
- */
-Q_GUI_EXPORT int qt_defaultDpi();
-
 namespace {
 int forcedDpiForQtFontBugWorkaround() {
     PkConfigGroup cfg(PkSharedConfig::openConfig(), "");
-    int value = cfg.readEntry("forcedDpiForQtFontBugWorkaround", qt_defaultDpi());
+    const int defaultDpi = PkFont().dpi();
+    int value = cfg.readEntry("forcedDpiForQtFontBugWorkaround", defaultDpi);
 
     if (value < 0) {
-        value = qt_defaultDpi();
+        value = defaultDpi;
     }
 
     return value;
@@ -257,7 +248,6 @@ bool KoSvgTextContentElement::loadSvgTextNode(const PkXmlText &text, SvgLoadingC
     // end up with CR in the text. The SVG spec explicitly calls out that all
     // newlines in SVG are to be represented by a single LF (U+000A) character,
     // so we can replace all CRLF and CR into LF here for simplicity.
-    static const QRegularExpression s_regexCrlf(R"==((?:\r\n|\r(?!\n)))==");
     PkString content = text.data();
     content = PkString::join(content.split("\r\n"), "\n");
 
@@ -287,7 +277,7 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
             if (textPathInfo.startOffsetIsPercentage) {
                 offset += "%";
             }
-            context.shapeWriter().addAttribute("startOffset", toPkString(offset));
+            context.shapeWriter().addAttribute("startOffset", offset);
         }
         if (textPathInfo.method != KoSvgText::TextPathAlign) {
             context.shapeWriter().addAttribute("method", KoSvgText::writeTextPathMethod(textPathInfo.method));

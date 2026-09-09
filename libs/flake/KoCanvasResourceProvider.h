@@ -8,7 +8,7 @@
 #ifndef KO_CANVASRESOURCEMANAGER_H
 #define KO_CANVASRESOURCEMANAGER_H
 
-#include <QObject>
+#include <PkObject.h>
 
 #include "kritaflake_export.h"
 #include "KoDerivedResourceConverter.h"
@@ -20,8 +20,6 @@
 #include <KoCanvasResourcesInterface.h>
 // [migrate] missing include for Pk/Qt type
 #include <PkString.h>
-// [migrate] PkHash<QLocale> 实例化点需要 pkHash(const QLocale&)（定义在 PkFlakeBridge Qt 分支）
-#include <PkFlakeBridge.h>
 
 class KoShape;
 class KoShapeStroke;
@@ -52,10 +50,8 @@ class PkSizeF;
  *  document = static_cast<QTextDocument*>(var.value<void*>());
  * @endcode
  */
-class KRITAFLAKE_EXPORT KoCanvasResourceProvider : public QObject
+class KRITAFLAKE_EXPORT KoCanvasResourceProvider : public PkObject
 {
-    Q_OBJECT
-
 public:
     enum ApplicationSpecial {
         NoSpecial = 0,
@@ -64,12 +60,12 @@ public:
 
     /**
      * Constructor.
-     * @param parent the parent QObject, used for memory management.
+     * @param parent the parent PkObject, used for memory management.
      */
-    explicit KoCanvasResourceProvider(QObject *parent = 0);
+    explicit KoCanvasResourceProvider(PkObject *parent = nullptr);
     ~KoCanvasResourceProvider() override;
 
-public Q_SLOTS:
+public:
     /**
      * Set a resource of any type.
      * @param key the integer key
@@ -300,7 +296,7 @@ public:
      */
     KoCanvasResourcesInterfaceSP canvasResourcesInterface() const;
 
-Q_SIGNALS:
+public:
     /**
      * This signal is emitted every time a resource is set that is either
      * new or different from the previous set value.

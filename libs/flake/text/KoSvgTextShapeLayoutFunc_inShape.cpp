@@ -5,9 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
-
 #include "KoSvgTextShapeLayoutFunc.h"
 
 #include "KoPolygonUtils.h"
@@ -21,8 +18,7 @@
 #include <kis_global.h>
 #include <kis_algebra_2d.h>
 
-#include <QPainter>
-#include <QtMath>
+#include <cmath>
 
 namespace KoSvgTextShapeLayoutFunc {
 
@@ -41,7 +37,7 @@ getShapes(PkList<KoShape *> shapesInside, PkList<KoShape *> shapesSubtract, cons
     qreal shapeMargin = scale * resolved.propertyOrDefault(KoSvgTextProperties::ShapeMarginId).value<KoSvgText::CssLengthPercentage>().value;
 
     PkPainterPath subtract;
-    Q_FOREACH(const KoShape *shape, shapesSubtract) {
+    for (const KoShape *shape : shapesSubtract) {
         const KoPathShape *path = dynamic_cast<const KoPathShape*>(shape);
         if (path) {
             PkPainterPath p = path->transformation().map(path->outline());
@@ -49,7 +45,7 @@ getShapes(PkList<KoShape *> shapesInside, PkList<KoShape *> shapesSubtract, cons
             // grow each polygon here with the shape margin size.
             if (shapeMargin > 0) {
                 PkList<PkPolygon> subpathPolygons;
-                Q_FOREACH(PkPolygonF subPath, p.toSubpathPolygons(PkTransform())) {
+                for (PkPolygonF subPath : p.toSubpathPolygons(PkTransform())) {
                     subpathPolygons.append(precisionTF.map(subPath).toPolygon());
                 }
                 subpathPolygons = KoPolygonUtils::offsetPolygons(subpathPolygons, shapeMargin);
@@ -68,7 +64,7 @@ getShapes(PkList<KoShape *> shapesInside, PkList<KoShape *> shapesSubtract, cons
     }
 
     PkList<PkPainterPath> shapes;
-    Q_FOREACH(const KoShape *shape, shapesInside) {
+    for (const KoShape *shape : shapesInside) {
         const KoPathShape *path = dynamic_cast<const KoPathShape*>(shape);
         if (path) {
             PkPainterPath p = path->transformation().map(path->outline());
@@ -77,7 +73,7 @@ getShapes(PkList<KoShape *> shapesInside, PkList<KoShape *> shapesSubtract, cons
             p2.setFillRule(path->fillRule());
 
             PkList<PkPolygon> subpathPolygons;
-            Q_FOREACH(PkPolygonF subPath, p.toSubpathPolygons(PkTransform())) {
+            for (PkPolygonF subPath : p.toSubpathPolygons(PkTransform())) {
                 subpathPolygons.append(precisionTF.map(subPath).toPolygon());
             }
             subpathPolygons = KoPolygonUtils::offsetPolygons(subpathPolygons, -shapePadding);
@@ -140,7 +136,7 @@ static bool getFirstPosition(PkPointF &firstPoint,
     word.adjust(SHAPE_PRECISION, SHAPE_PRECISION, -SHAPE_PRECISION, -SHAPE_PRECISION);
 
     PkPointF terminatorAdjusted = terminator;
-    Q_FOREACH(const PkPolygonF polygon, p.toFillPolygons(PkTransform())) {
+    for (const PkPolygonF polygon : p.toFillPolygons(PkTransform())) {
         PkVector<PkLineF> offsetPoly;
         for(int i = 0; i < polygon.size()-1; i++) {
             PkLineF line;
@@ -161,7 +157,8 @@ static bool getFirstPosition(PkPointF &firstPoint,
                 qreal tAngle = fmod(line.angle(), 180.0);
                 PkPointF cPos = tAngle > 90? line.center() + PkPointF(-word.center().x(), word.center().y()): line.center() + word.center();
                 qreal offset = kisDistanceToLine(cPos, line);
-                const PkPointF vectorT(qCos(qDegreesToRadians(tAngle)), -qSin(qDegreesToRadians(tAngle)));
+                const qreal angleRadians = kisDegreesToRadians(tAngle);
+                const PkPointF vectorT(std::cos(angleRadians), -std::sin(angleRadians));
                 PkPointF vectorN(-vectorT.y(), vectorT.x());
                 PkPointF offsetP = PkPointF() - (0.0 * vectorT) + (offset * vectorN);
                 offsetPoly.append(line.translated(offsetP));
@@ -209,7 +206,7 @@ static bool getFirstPosition(PkPointF &firstPoint,
         return false;
     }
     PkPointF firstPointC = writingMode == KoSvgText::VerticalRL? p.boundingRect().bottomLeft(): p.boundingRect().bottomRight();
-    Q_FOREACH(const PkPointF candidate, candidatePositions) {
+    for (const PkPointF candidate : candidatePositions) {
         if (writingMode == KoSvgText::HorizontalTB) {
             if (terminatorAdjusted.y() - candidate.y() < SHAPE_PRECISION) {
 
@@ -367,15 +364,15 @@ findLineBoxesForFirstPos(PkPainterPath shape, PkPointF firstPos, const PkRectF w
 
             if (writingMode == KoSvgText::HorizontalTB) {
                 if (current.x() < line.center().x()) {
-                    start = qMax(current.x(), start);
+                    start = pkMax(current.x(), start);
                 } else if (current.x() > line.center().x()) {
-                    end = qMin(current.x(), end);
+                    end = pkMin(current.x(), end);
                 }
             } else {
                 if (current.y() < line.center().y()) {
-                    start = qMax(current.y(), start);
+                    start = pkMax(current.y(), start);
                 } else if (current.y() > line.center().y()) {
-                    end = qMin(current.y(), end);
+                    end = pkMin(current.y(), end);
                 }
             }
         }
@@ -549,15 +546,15 @@ PkVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
                 PkLineF line = currentLine.chunks.value(i).length;
                 qreal lineLength = isHorizontal ? (currentPos - line.p1() + wordAdvance).x()
                                                 : (currentPos - line.p1() + wordAdvance).y();
-                if (qRound((abs(lineLength) - line.length())) > 0) {
+                if (pkRound((std::abs(lineLength) - line.length())) > 0) {
                     if (i == currentLine.chunks.size()-1) {
                         softBreak = true;
                         break;
                     } else {
                         PkLineF nextLine = currentLine.chunks.value(i+1).length;
                         if (isHorizontal) {
-                            currentPos.setX(ltr? qMax(nextLine.p1().x(), currentPos.x()):
-                                                 qMin(nextLine.p1().x(), currentPos.x()));
+                            currentPos.setX(ltr? pkMax(nextLine.p1().x(), currentPos.x()):
+                                                 pkMin(nextLine.p1().x(), currentPos.x()));
                         } else {
                             currentPos.setY(nextLine.p1().y());
                         }
@@ -667,7 +664,7 @@ PkVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
                 if (lastDitch) {
                     PkVector<int> wordNew;
                     PkPointF advance = currentPos;
-                    Q_FOREACH(const int i, wordIndices) {
+                    for (const int i : wordIndices) {
                         advance += result[i].advance;
                         if (currentShape.contains(advance)) {
                             wordNew.append(i);
@@ -675,14 +672,14 @@ PkVector<LineBox> flowTextInShapes(const KoSvgTextProperties &properties,
                             result[i].hidden = true;
                             result[i].cssPosition = advance-result[i].advance;
                         }
-                        wordIndices = wordNew;
                     }
+                    wordIndices = wordNew;
                 }
                 addWordToLine(result, currentPos, wordIndices, currentLine, isHorizontal);
             } else {
                 currentLine = LineBox();
                 PkPointF advance = currentPos;
-                Q_FOREACH (const int j, wordIndices) {
+                for (const int j : wordIndices) {
                     result[j].cssPosition = advance;
                     advance += result[j].advance;
                     result[j].hidden = true;
