@@ -3,7 +3,6 @@ set(kritatoolcrop_SOURCES
     kis_tool_crop.cc
     kis_constrained_rect.cpp
     )
-qt_add_resources(kritatoolcrop_SOURCES toolcrop.qrc)
 
 kis_add_library(kritatoolcrop STATIC ${kritatoolcrop_SOURCES})
 
