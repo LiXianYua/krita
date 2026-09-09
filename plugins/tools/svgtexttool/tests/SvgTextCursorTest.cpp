@@ -11,7 +11,10 @@
 #include <SvgTextChangeTransformsOnRange.h>
 #include <SvgTextShortCuts.h>
 #include <SvgTextToolOptionsData.h>
+#include <SvgTextInputMethodAdapter.h>
+#include <KisDocumentApplicationServices.h>
 #include <PkConfigGroup.h>
+#include <kundo2command.h>
 #include <KConfig>
 #include <KConfigGroup>
 #include <QTemporaryDir>
@@ -22,6 +25,9 @@
 #include <KoCanvasController.h>
 #include <KoViewConverter.h>
 #include <QInputMethod>
+#include <QInputMethodEvent>
+#include <QMimeData>
+#include <QTextCharFormat>
 #include <QWidget>
 
 #include <tests/MockShapes.h>
@@ -68,6 +74,220 @@ public:
     KoZoomState zoomState() const override { return {}; }
     KoCanvasBase *currentCanvas = nullptr;
 };
+
+class ApplyingCanvas final : public MockCanvas
+{
+public:
+    void addCommand(KUndo2Command *command) override
+    {
+        if (command) {
+            command->redo();
+            delete command;
+        }
+    }
+};
+
+class ClipboardApplicationServices final : public KisDocumentApplicationServices
+{
+public:
+    ClipboardData clipboardData() const override { return data; }
+    void setClipboardData(const ClipboardData &value) override
+    {
+        data = value;
+        ++writeCount;
+    }
+
+    ClipboardData data;
+    int writeCount = 0;
+
+    void updateInputMethod(Pk::InputMethodQueries queries) override
+    {
+        lastQueries = queries;
+        ++updateCount;
+    }
+    void setInputMethodVisible(bool visible) override { inputMethodVisible = visible; }
+    void invokeInputMethodAction(InputMethodAction action, int cursorPosition) override
+    {
+        lastAction = action;
+        lastActionPosition = cursorPosition;
+    }
+    void setInputMethodItemTransform(const PkTransform &transform) override { inputItemTransform = transform; }
+    void setInputMethodItemRectangle(const PkRectF &rect) override { inputItemRectangle = rect; }
+    void commitInputMethod() override { ++commitCount; }
+
+    Pk::InputMethodQueries lastQueries;
+    InputMethodAction lastAction = InputMethodAction::Click;
+    int lastActionPosition = -1;
+    PkTransform inputItemTransform;
+    PkRectF inputItemRectangle;
+    int updateCount = 0;
+    int commitCount = 0;
+    bool inputMethodVisible = false;
+};
+
+class ApplicationServicesGuard final
+{
+public:
+    explicit ApplicationServicesGuard(KisDocumentApplicationServices *services)
+    {
+        KisDocumentApplicationServices::setInstance(services);
+    }
+
+    ~ApplicationServicesGuard()
+    {
+        KisDocumentApplicationServices::setInstance(nullptr);
+    }
+};
+}
+
+void SvgTextCursorTest::clipboardCopyAndPasteShareInjectedApplicationService()
+{
+    ClipboardApplicationServices services;
+    ApplicationServicesGuard guard(&services);
+
+    KoSvgTextShape source;
+    KoSvgTextShapeMarkupConverter sourceConverter(&source);
+    QVERIFY(sourceConverter.convertFromSvg("<text font-size=\"10\">Hello</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    ApplyingCanvas sourceCanvas;
+    SvgTextCursor sourceCursor(&sourceCanvas);
+    sourceCursor.setShape(&source);
+    sourceCursor.setPos(source.posForIndex(5), source.posForIndex(0));
+    sourceCursor.copy();
+
+    QCOMPARE(services.writeCount, 1);
+    const KisDocumentApplicationServices::ClipboardData copied = services.data;
+    QVERIFY(copied.hasText);
+    QVERIFY(copied.hasHtml);
+    QVERIFY(copied.hasSvg);
+    QCOMPARE(toQString(copied.text), QStringLiteral("Hello"));
+    QVERIFY(!copied.html.isEmpty());
+    QVERIFY(!copied.svg.isEmpty());
+
+    // QMimeData is the independent Qt 5.15 oracle for the consumed presence
+    // semantics; production cursor code must not depend on it.
+    QMimeData oracle;
+    oracle.setText(toQString(copied.text));
+    oracle.setHtml(toQString(copied.html));
+    oracle.setData(QStringLiteral("image/svg+xml"), QByteArray(copied.svg.data(), int(copied.svg.size())));
+    QVERIFY(oracle.hasText());
+    QVERIFY(oracle.hasHtml());
+    QVERIFY(oracle.hasFormat(QStringLiteral("image/svg+xml")));
+
+    services.data.text = "PLAIN-MARKER";
+    services.data.html = "<p>HTML-MARKER</p>";
+    KoSvgTextShape target;
+    KoSvgTextShapeMarkupConverter targetConverter(&target);
+    QVERIFY(targetConverter.convertFromSvg("<text font-size=\"10\">Before</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    ApplyingCanvas targetCanvas;
+    SvgTextCursor targetCursor(&targetCanvas);
+    targetCursor.setShape(&target);
+    const int end = target.posForIndex(target.plainText().size());
+    targetCursor.setPos(end, end);
+    QVERIFY(targetCursor.paste());
+    QCOMPARE(toQString(target.plainText()), QStringLiteral("BeforeHello"));
+}
+
+void SvgTextCursorTest::clipboardPreservesEmptyTextPresence()
+{
+    ClipboardApplicationServices services;
+    ApplicationServicesGuard guard(&services);
+    services.data.hasText = true;
+    services.data.text = {};
+
+    KoSvgTextShape target;
+    KoSvgTextShapeMarkupConverter converter(&target);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">Unchanged</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    ApplyingCanvas canvas;
+    SvgTextCursor cursor(&canvas);
+    cursor.setShape(&target);
+    cursor.setPasteRichTextByDefault(false);
+    QVERIFY(cursor.paste());
+    QCOMPARE(toQString(target.plainText()), QStringLiteral("Unchanged"));
+}
+
+void SvgTextCursorTest::nativeInputMethodEventPreservesEditingLifecycle()
+{
+    ClipboardApplicationServices services;
+    ApplicationServicesGuard guard(&services);
+    KoSvgTextShape shape;
+    KoSvgTextShapeMarkupConverter converter(&shape);
+    QVERIFY(converter.convertFromSvg("<text font-size=\"10\">abc</text>", {}, PkRectF(0, 0, 300, 300), 72.0));
+    ApplyingCanvas canvas;
+
+    {
+        SvgTextCursor cursor(&canvas);
+        cursor.setShape(&shape);
+        const int end = shape.posForIndex(shape.plainText().size());
+        cursor.setPos(end, end);
+
+        KisDocumentApplicationServices::InputMethodEvent preedit;
+        preedit.preeditString = "X";
+        KisDocumentApplicationServices::InputMethodAttribute cursorAttribute;
+        cursorAttribute.type = KisDocumentApplicationServices::InputMethodAttributeType::Cursor;
+        cursorAttribute.start = 1;
+        cursorAttribute.length = 1;
+        preedit.attributes.append(cursorAttribute);
+        QVERIFY(cursor.inputMethodEvent(preedit));
+        QCOMPARE(toQString(shape.plainText()), QStringLiteral("abcX"));
+        QCOMPARE(toQString(cursor.inputMethodQuery(Pk::ImSurroundingText).toString()), QStringLiteral("abc"));
+
+        KisDocumentApplicationServices::InputMethodEvent commit;
+        commit.commitString = "Y";
+        QVERIFY(cursor.inputMethodEvent(commit));
+        QCOMPARE(toQString(shape.plainText()), QStringLiteral("abcY"));
+
+        KisDocumentApplicationServices::InputMethodEvent replacement;
+        replacement.commitString = "Z";
+        replacement.replacementStart = -1;
+        replacement.replacementLength = 1;
+        QVERIFY(cursor.inputMethodEvent(replacement));
+        QCOMPARE(toQString(shape.plainText()), QStringLiteral("abcZ"));
+
+        KisDocumentApplicationServices::InputMethodEvent finalPreedit;
+        finalPreedit.preeditString = "pending";
+        QVERIFY(cursor.inputMethodEvent(finalPreedit));
+        QCOMPARE(toQString(shape.plainText()), QStringLiteral("abcZpending"));
+    }
+
+    QCOMPARE(services.commitCount, 1);
+    QCOMPARE(toQString(shape.plainText()), QStringLiteral("abcZ"));
+}
+
+void SvgTextCursorTest::qtInputMethodAdapterMatchesQt515Payload()
+{
+    QTextCharFormat format;
+    format.setFontUnderline(true);
+    format.setFontOverline(true);
+    format.setUnderlineStyle(QTextCharFormat::DashUnderline);
+    format.setBackground(QBrush(Qt::red));
+    const QList<QInputMethodEvent::Attribute> attributes = {
+        {QInputMethodEvent::Selection, 2, 3, {}},
+        {QInputMethodEvent::TextFormat, 0, 4, format},
+        {QInputMethodEvent::Cursor, 1, 1, {}},
+        {QInputMethodEvent::TextFormat, -1, 0, {}}
+    };
+    QInputMethodEvent event(QStringLiteral("preedit"), attributes);
+    event.setCommitString(QStringLiteral("commit"), -2, 1);
+
+    const auto native = svgTextNativeInputMethodEvent(event);
+    QCOMPARE(toQString(native.commitString), QStringLiteral("commit"));
+    QCOMPARE(toQString(native.preeditString), QStringLiteral("preedit"));
+    QCOMPARE(native.replacementStart, -2);
+    QCOMPARE(native.replacementLength, 1);
+    QCOMPARE(native.attributes.size(), 3);
+    QCOMPARE(native.attributes.at(0).type, KisDocumentApplicationServices::InputMethodAttributeType::Selection);
+    QCOMPARE(native.attributes.at(0).start, 2);
+    QCOMPARE(native.attributes.at(0).length, 3);
+    QCOMPARE(native.attributes.at(1).type, KisDocumentApplicationServices::InputMethodAttributeType::TextFormat);
+    QVERIFY(native.attributes.at(1).format.underline);
+    QVERIFY(native.attributes.at(1).format.overline);
+    QVERIFY(native.attributes.at(1).format.thick);
+#ifdef Q_OS_LINUX
+    QCOMPARE(native.attributes.at(1).format.style, KisDocumentApplicationServices::InputMethodLineStyle::Solid);
+#else
+    QCOMPARE(native.attributes.at(1).format.style, KisDocumentApplicationServices::InputMethodLineStyle::Dashed);
+#endif
+    QCOMPARE(native.attributes.at(2).type, KisDocumentApplicationServices::InputMethodAttributeType::Cursor);
 }
 
 void SvgTextCursorTest::shortcutValuesMatchQt515Oracle()
@@ -149,6 +369,8 @@ void SvgTextCursorTest::configHandlesMatchKConfigOracle()
 
 void SvgTextCursorTest::controllerChangesUpdateImeTransform()
 {
+    ClipboardApplicationServices services;
+    ApplicationServicesGuard guard(&services);
     CursorCanvas canvas;
     CursorController controller;
     controller.setCanvas(&canvas);
@@ -159,13 +381,14 @@ void SvgTextCursorTest::controllerChangesUpdateImeTransform()
     SvgTextCursor cursor(&canvas);
     cursor.setShape(&shape);
     cursor.focusIn();
-    QInputMethod *ime = QGuiApplication::inputMethod();
     canvas.widget.move(17, 23);
     controller.proxyObject->emitSizeChanged(PkSize(640, 480));
-    QCOMPARE(ime->inputItemTransform().map(QPointF()), QPointF(17, 23));
+    QCOMPARE(services.inputItemTransform.map(PkPointF()), PkPointF(17, 23));
+    QVERIFY(services.inputMethodVisible);
+    QVERIFY(services.updateCount > 0);
     canvas.widget.move(31, 47);
     controller.proxyObject->emitMoveDocumentOffset(PkPointF(), PkPointF(14, 24));
-    QCOMPARE(ime->inputItemTransform().map(QPointF()), QPointF(31, 47));
+    QCOMPARE(services.inputItemTransform.map(PkPointF()), PkPointF(31, 47));
     cursor.setShape(nullptr);
     canvas.setCanvasController(nullptr);
 }

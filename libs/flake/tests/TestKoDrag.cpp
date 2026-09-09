@@ -8,18 +8,23 @@
 
 #include <KoDrag.h>
 #include <KoSvgPaste.h>
+#include <PkFlakeBridge.h>
+#include <PkFileStream.h>
 
 #include <kis_debug.h>
 #include <kis_global.h>
 #include <svg/SvgParser.h>
 #include <KoDocumentResourceManager.h>
 #include <KoShapeGroup.h>
+#include <QApplication>
+#include <QClipboard>
+#include <QMimeData>
 
 #include <qimage_test_util.h>
 
 void TestKoDrag::test()
 {
-    const PkString fileName = TestUtil::fetchDataFileLazy("test_svg_file.svg");
+    const PkString fileName = toPkString(TestUtil::fetchDataFileLazy("test_svg_file.svg"));
     QVERIFY(!fileName.isEmpty());
 
     PkFileStream testShapes(fileName);
@@ -49,7 +54,10 @@ void TestKoDrag::test()
     drag.setSvg(shapes);
     drag.addToClipboard();
 
-    KoSvgPaste paste;
+    const QMimeData *mimeData = QApplication::clipboard()->mimeData();
+    const bool hasSvg = mimeData->hasFormat(QStringLiteral("image/svg+xml"));
+    const QByteArray svg = mimeData->data(QStringLiteral("image/svg+xml"));
+    KoSvgPaste paste(PkByteArray(svg.constData(), svg.size()), hasSvg);
     QVERIFY(paste.hasShapes());
 
     PkList<KoShape*> newShapes = paste.fetchShapes(PkRectF(0,0,15,15) /* px */, 144 /* ppi */, &fragmentSize);

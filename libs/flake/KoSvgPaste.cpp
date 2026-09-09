@@ -4,13 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QtCore/QtCore>
-#include <PkFlakeBridge.h>
 #include "KoSvgPaste.h"
-
-#include <QApplication>
-#include <QClipboard>
-#include <QMimeData>
 
 #include <SvgParser.h>
 #include <KoDocumentResourceManager.h>
@@ -21,17 +15,18 @@
 class KoSvgPaste::Private
 {
 public:
-    Private()
-        : mimeData(QApplication::clipboard()->mimeData())
-        {
+    Private(const PkByteArray &data, bool hasData)
+        : svgData(data)
+        , hasSvgData(hasData)
+    {
+    }
 
-        }
-
-    const QMimeData *mimeData;
+    PkByteArray svgData;
+    bool hasSvgData = false;
 };
 
-KoSvgPaste::KoSvgPaste()
-    : d(new Private)
+KoSvgPaste::KoSvgPaste(const PkByteArray &svgData, bool hasSvgData)
+    : d(new Private(svgData, hasSvgData))
 {
 }
 
@@ -40,47 +35,24 @@ KoSvgPaste::~KoSvgPaste()
     delete(d);
 }
 
-bool KoSvgPaste::hasShapes()
+bool KoSvgPaste::hasShapes() const
 {
-    bool hasSvg = false;
-    if (d->mimeData) {
-        const PkStringList mimeFormats = toPkStringList(d->mimeData->formats());
-    Q_FOREACH(const PkString &format, mimeFormats) {
-            if (format.toLower().contains("svg")) {
-                hasSvg = true;
-                break;
-            }
-        }
-    }
-
-    return hasSvg;
+    return d->hasSvgData;
 }
 
-PkList<KoShape*> KoSvgPaste::fetchShapes(const PkRectF viewportInPx, qreal resolutionPPI, PkSizeF *fragmentSize)
+PkList<KoShape*> KoSvgPaste::fetchShapes(const PkRectF viewportInPx, double resolutionPPI, PkSizeF *fragmentSize)
 {
     PkList<KoShape*> shapes;
 
-    if (!d->mimeData) return shapes;
-
-    PkByteArray data;
-
-    const PkStringList mimeFormats = toPkStringList(d->mimeData->formats());
-    Q_FOREACH(const PkString &format, mimeFormats) {
-        if (format.toLower().contains("svg")) {
-            data = toPkByteArray(d->mimeData->data(toQString(format)));
-            break;
-        }
-    }
-
-    if (data.isEmpty()) {
+    if (!d->hasSvgData || d->svgData.isEmpty()) {
         return shapes;
     }
 
-    return fetchShapesFromData(data, viewportInPx, resolutionPPI, fragmentSize);
+    return fetchShapesFromData(d->svgData, viewportInPx, resolutionPPI, fragmentSize);
 
 }
 
-PkList<KoShape*> KoSvgPaste::fetchShapesFromData(const PkByteArray &data, const PkRectF viewportInPx, qreal resolutionPPI, PkSizeF *fragmentSize)
+PkList<KoShape*> KoSvgPaste::fetchShapesFromData(const PkByteArray &data, const PkRectF viewportInPx, double resolutionPPI, PkSizeF *fragmentSize)
 {
     PkList<KoShape*> shapes;
 

@@ -14,6 +14,10 @@ class SvgTextCursorTest : public QObject
 private Q_SLOTS:
     void initTestCase();
     void controllerChangesUpdateImeTransform();
+    void clipboardCopyAndPasteShareInjectedApplicationService();
+    void clipboardPreservesEmptyTextPresence();
+    void nativeInputMethodEventPreservesEditingLifecycle();
+    void qtInputMethodAdapterMatchesQt515Payload();
     void shortcutValuesMatchQt515Oracle();
     void configHandlesMatchKConfigOracle();
 

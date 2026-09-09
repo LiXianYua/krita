@@ -20,6 +20,7 @@ namespace
 {
 KisDocumentApplicationServices *s_services = nullptr;
 KisDocumentApplicationServices s_headlessServices;
+KisDocumentApplicationServices::ClipboardData s_headlessClipboardData;
 
 // 原 Qt 的 homePath()（目录工具类）的 std::filesystem 替代：C++17 无
 // home_directory_path()，用 $HOME 环境变量（照 libs/resources/KoResourcePaths.cpp
@@ -43,6 +44,40 @@ KisDocumentApplicationServices *KisDocumentApplicationServices::instance()
 void KisDocumentApplicationServices::setInstance(KisDocumentApplicationServices *services)
 {
     s_services = services;
+}
+
+KisDocumentApplicationServices::ClipboardData KisDocumentApplicationServices::clipboardData() const
+{
+    return s_headlessClipboardData;
+}
+
+void KisDocumentApplicationServices::setClipboardData(const ClipboardData &data)
+{
+    s_headlessClipboardData = data;
+}
+
+void KisDocumentApplicationServices::updateInputMethod(Pk::InputMethodQueries)
+{
+}
+
+void KisDocumentApplicationServices::setInputMethodVisible(bool)
+{
+}
+
+void KisDocumentApplicationServices::invokeInputMethodAction(InputMethodAction, int)
+{
+}
+
+void KisDocumentApplicationServices::setInputMethodItemTransform(const PkTransform &)
+{
+}
+
+void KisDocumentApplicationServices::setInputMethodItemRectangle(const PkRectF &)
+{
+}
+
+void KisDocumentApplicationServices::commitInputMethod()
+{
 }
 
 bool KisDocumentApplicationServices::waitForImage(KisImageSP image, WaitMode)

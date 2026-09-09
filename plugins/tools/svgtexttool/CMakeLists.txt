@@ -44,9 +44,18 @@ kis_add_library(krita_tool_svgtext_static STATIC ${SvgTextTool_SRCS})
 kis_add_library(krita_tool_svgtext STATIC ${SvgTextTool_SOURCES})
 generate_export_header(krita_tool_svgtext_static BASE_NAME kritatoolsvgtext)
 
+target_include_directories(krita_tool_svgtext_static PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/geometry
+    ${CMAKE_SOURCE_DIR}/pk/namespace)
+
 target_link_libraries(krita_tool_svgtext_static
     kritacanvas
+    kritaimpex
     kritashapemodel
+    pkcontainer
+    pkgeometry
+    pknamespace
     KF${KF_MAJOR}::I18n)
 
 target_link_libraries(krita_tool_svgtext PRIVATE krita_tool_svgtext_static)

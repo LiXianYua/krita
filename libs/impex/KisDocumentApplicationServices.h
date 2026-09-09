@@ -10,11 +10,15 @@
 #include <optional>
 
 #include <PkColor.h>
+#include <PkByteArray.h>
 #include <PkImage.h>
 #include <PkList.h>
+#include <PkNamespace.h>
 #include <PkPoint.h>
+#include <PkRect.h>
 #include <PkString.h>
 #include <PkStringList.h>
+#include <PkTransform.h>
 
 #include <KisCumulativeUndoData.h>
 #include <KoCanvasResourcesInterface.h>
@@ -42,6 +46,55 @@ public:
 class KRITAIMPEX_EXPORT KisDocumentApplicationServices
 {
 public:
+    struct ClipboardData {
+        bool hasText = false;
+        bool hasHtml = false;
+        bool hasSvg = false;
+        PkString text;
+        PkString html;
+        PkByteArray svg;
+    };
+
+    enum class InputMethodAction {
+        Click
+    };
+
+    enum class InputMethodAttributeType {
+        Selection,
+        TextFormat,
+        Cursor
+    };
+
+    enum class InputMethodLineStyle {
+        Solid,
+        Dotted,
+        Dashed,
+        Wavy
+    };
+
+    struct InputMethodTextFormat {
+        bool underline = false;
+        bool overline = false;
+        bool strikeOut = false;
+        bool thick = false;
+        InputMethodLineStyle style = InputMethodLineStyle::Solid;
+    };
+
+    struct InputMethodAttribute {
+        InputMethodAttributeType type = InputMethodAttributeType::Cursor;
+        int start = 0;
+        int length = 0;
+        InputMethodTextFormat format;
+    };
+
+    struct InputMethodEvent {
+        PkString commitString;
+        PkString preeditString;
+        int replacementStart = 0;
+        int replacementLength = 0;
+        PkList<InputMethodAttribute> attributes;
+    };
+
     enum class WaitMode {
         Cancellable,
         Forced
@@ -75,6 +128,15 @@ public:
 
     static KisDocumentApplicationServices *instance();
     static void setInstance(KisDocumentApplicationServices *services);
+
+    virtual ClipboardData clipboardData() const;
+    virtual void setClipboardData(const ClipboardData &data);
+    virtual void updateInputMethod(Pk::InputMethodQueries queries);
+    virtual void setInputMethodVisible(bool visible);
+    virtual void invokeInputMethodAction(InputMethodAction action, int cursorPosition);
+    virtual void setInputMethodItemTransform(const PkTransform &transform);
+    virtual void setInputMethodItemRectangle(const PkRectF &rect);
+    virtual void commitInputMethod();
 
     virtual bool waitForImage(KisImageSP image, WaitMode mode);
     virtual void synchronizeDocumentViews();

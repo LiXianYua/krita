@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include <PkFlakeBridge.h>
+#include <PkVector.h>
 #include "SvgTextCursor.h"
 #include "KoCanvasBase.h"
 #include "KoSvgTextProperties.h"
@@ -14,6 +15,7 @@
 #include "SvgTextRemoveTransformsFromRange.h"
 #include "SvgTextShapeManagerBlocker.h"
 #include "SvgTextShortCuts.h"
+#include <KisDocumentApplicationServices.h>
 
 #include "KoSvgTextShapeMarkupConverter.h"
 #include "KoSvgPaste.h"
@@ -33,14 +35,10 @@
 #include "kundo2command.h"
 #include <QTimer>
 #include <QDebug>
-#include <QClipboard>
-#include <QMimeData>
-#include <QApplication>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QAction>
 #include <kis_assert.h>
-#include <QInputMethodEvent>
 #include <QBuffer>
 #include <QWidget>
 #include <KLocalizedString>
@@ -57,57 +55,24 @@ struct IMEDecorationInfo {
     KoSvgText::TextDecorationStyle style = KoSvgText::Solid; ///< The style.
     bool thick = false; ///< Whether the decoration needs to be doubled in size.
 
-    void setDecorationFromQStyle(QTextCharFormat::UnderlineStyle s) {
-        // whenever qt sets an underlinestyle it always sets the underline.
-        decor.setFlag(KoSvgText::DecorationUnderline, s != QTextCharFormat::NoUnderline);
-        if (s == QTextCharFormat::DotLine) {
+    void setDecorationFromNative(const KisDocumentApplicationServices::InputMethodTextFormat &format) {
+        decor.setFlag(KoSvgText::DecorationUnderline, format.underline);
+        decor.setFlag(KoSvgText::DecorationOverline, format.overline);
+        decor.setFlag(KoSvgText::DecorationLineThrough, format.strikeOut);
+        thick = format.thick;
+        switch (format.style) {
+        case KisDocumentApplicationServices::InputMethodLineStyle::Dotted:
             style = KoSvgText::Dotted;
-        } else if (s == QTextCharFormat::DashUnderline) {
+            break;
+        case KisDocumentApplicationServices::InputMethodLineStyle::Dashed:
             style = KoSvgText::Dashed;
-        } else if (s == QTextCharFormat::WaveUnderline) {
+            break;
+        case KisDocumentApplicationServices::InputMethodLineStyle::Wavy:
             style = KoSvgText::Wavy;
-        } else if (s == QTextCharFormat::SpellCheckUnderline) {
-            style = KoSvgText::Wavy;
-#ifdef Q_OS_MACOS
-            style = KoSvgText::Dotted;
-#endif
-        } else {
+            break;
+        case KisDocumentApplicationServices::InputMethodLineStyle::Solid:
             style = KoSvgText::Solid;
-        }
-    }
-
-    void setDecorationFromQTextCharFormat(QTextCharFormat format) {
-        if (format.hasProperty(QTextFormat::FontUnderline)) {
-            decor.setFlag(KoSvgText::DecorationUnderline, format.property(QTextFormat::FontUnderline).toBool());
-        }
-        if (format.hasProperty(QTextFormat::FontOverline)) {
-            decor.setFlag(KoSvgText::DecorationOverline, format.property(QTextFormat::FontOverline).toBool());
-        }
-        if (format.hasProperty(QTextFormat::FontStrikeOut)) {
-            decor.setFlag(KoSvgText::DecorationLineThrough, format.property(QTextFormat::FontStrikeOut).toBool());
-        }
-
-        if (format.hasProperty(QTextFormat::TextUnderlineStyle)) {
-            setDecorationFromQStyle(format.underlineStyle());
-        }
-        /**
-         * Because Qt doesn't have a concept of a thick or double underline at time of writing,
-         * most of Qt's QPA will set the background to a solid color instead. Sometimes the underline
-         * style is changed (as with IBus). We don't support setting the background right now, so instead
-         * we'll 'convert' it back to a thick solid underline.
-         */
-        if (format.hasProperty(QTextFormat::BackgroundBrush)) {
-            thick = format.background().isOpaque();
-#ifdef Q_OS_LINUX
-            if (style == KoSvgText::Dashed) {
-                style = KoSvgText::Solid;
-            }
-#endif
-
-        }
-        if (decor == KoSvgText::DecorationNone) {
-            // Ensure a underline is always set.
-            decor.setFlag(KoSvgText::DecorationUnderline, true);
+            break;
         }
     }
 };
@@ -173,15 +138,13 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
         ~InputQueryUpdateBlocker()
         {
             if (m_d) {
-                QInputMethod *inputMethod = QGuiApplication::inputMethod();
-
                 if (m_unblockQueryUpdates) {
                     m_d->blockQueryUpdates = false;
-                    inputMethod->update(Qt::ImQueryInput);
+                    KisDocumentApplicationServices::instance()->updateInputMethod(Pk::ImQueryInput);
                 }
 
                 if (m_changeVisibility) {
-                    inputMethod->setVisible(m_d->shape != nullptr);
+                    KisDocumentApplicationServices::instance()->setInputMethodVisible(m_d->shape != nullptr);
                 }
             }
         }
@@ -239,10 +202,10 @@ struct Q_DECL_HIDDEN SvgTextCursor::Private {
     SvgTextInsertCommand *preEditCommand {nullptr}; ///< PreEdit string as an command provided by the input method.
     int preEditStart = -1; ///< Start of the preEdit string as a cursor pos.
     int preEditLength = -1; ///< Length of the preEditString.
-    QVector<IMEDecorationInfo> styleMap; ///< Decoration info (underlines) for the preEdit string to differentiate it from regular text.
+    PkVector<IMEDecorationInfo> styleMap; ///< Decoration info (underlines) for the preEdit string to differentiate it from regular text.
     PkPainterPath IMEDecoration; ///< The decorations for the current preedit string.
     PkRectF oldIMEDecorationRect; ///< Update Rectangle of previous decoration.
-    bool blockQueryUpdates = false; ///< Block qApp->inputMethod->update(), enabled during the inputmethod event flow.
+    bool blockQueryUpdates = false; ///< Block application-service query updates during the input-method event flow.
 
     SvgTextCursorPropertyInterface *interface{nullptr};
 
@@ -378,7 +341,8 @@ void SvgTextCursor::setPosToPoint(PkPointF point, bool moveAnchor)
             int end = start + d->preEditLength;
             int posIndex = d->shape->indexForPos(pos);
             if (posIndex > start && posIndex <= end) {
-                qApp->inputMethod()->invokeAction(QInputMethod::Click, posIndex - start);
+                KisDocumentApplicationServices::instance()->invokeInputMethodAction(
+                    KisDocumentApplicationServices::InputMethodAction::Click, posIndex - start);
                 return;
             } else {
                 commitIMEPreEdit();
@@ -610,7 +574,7 @@ void SvgTextCursor::moveCursor(MoveMode mode, bool moveAnchor)
     }
 }
 
-void SvgTextCursor::insertText(QString text)
+void SvgTextCursor::insertText(const PkString &text)
 {
 
     if (d->shape) {
@@ -620,7 +584,7 @@ void SvgTextCursor::insertText(QString text)
             addCommandToUndoAdapter(removeCmd);
         }
 
-        SvgTextInsertCommand *insertCmd = new SvgTextInsertCommand(d->shape, d->pos, d->anchor, toPkString(text));
+        SvgTextInsertCommand *insertCmd = new SvgTextInsertCommand(d->shape, d->pos, d->anchor, text);
         addCommandToUndoAdapter(insertCmd);
 
     }
@@ -745,28 +709,28 @@ void SvgTextCursor::copy() const
     if (d->shape) {
         int start = d->shape->indexForPos(pkMin(d->anchor, d->pos));
         int length = d->shape->indexForPos(pkMax(d->anchor, d->pos)) - start;
-        QString copied = toQString(d->shape->plainText().mid(start, length));
+        PkString copied = d->shape->plainText().mid(start, length);
         std::unique_ptr<KoSvgTextShape> copy = d->shape->copyRange(start, length);
-        QClipboard *cb = QApplication::clipboard();
+        KisDocumentApplicationServices::ClipboardData data;
+        data.hasText = true;
+        data.text = copied;
 
         if (copy) {
             KoSvgTextShapeMarkupConverter converter(copy.get());
             PkString svg;
             PkString styles;
             PkString html;
-            QMimeData *svgData = new QMimeData();
             if (converter.convertToSvg(&svg, &styles)) {
                 const PkString svgDoc = PkString("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"2.0\">") + styles + PkString("\n") + svg + PkString("</svg>");
-                svgData->setData(QLatin1String("image/svg+xml"), toQString(svgDoc).toUtf8());
+                data.hasSvg = true;
+                data.svg = svgDoc.toUtf8();
             }
-            svgData->setText(copied);
-            if (converter.convertToHtml(&html))
-                svgData->setHtml(toQString(html));
-            cb->setMimeData(svgData);
-        } else {
-            cb->setText(copied);
+            if (converter.convertToHtml(&html)) {
+                data.hasHtml = true;
+                data.html = html;
+            }
         }
-
+        KisDocumentApplicationServices::instance()->setClipboardData(data);
     }
 }
 
@@ -780,9 +744,8 @@ bool SvgTextCursor::pasteRichText()
 {
     bool success = false;
     if (d->shape) {
-        QClipboard *cb = QApplication::clipboard();
-        const QMimeData *mimeData = cb->mimeData();
-        KoSvgPaste shapePaste;
+        const auto data = KisDocumentApplicationServices::instance()->clipboardData();
+        KoSvgPaste shapePaste(data.svg, data.hasSvg);
         if (shapePaste.hasShapes()) {
             PkList<KoShape*> shapes = shapePaste.fetchShapes(d->shape->boundingRect(), 72.0);
             while (shapes.size() > 0) {
@@ -792,13 +755,12 @@ bool SvgTextCursor::pasteRichText()
                     success = true;
                 }
             }
-        } else if (mimeData->hasHtml()) {
-            PkString html = toPkString(mimeData->html());
+        } else if (data.hasHtml) {
             KoSvgTextShape *insert = new KoSvgTextShape();
             KoSvgTextShapeMarkupConverter converter(insert);
             PkString svg;
             PkString styles;
-            if (converter.convertFromHtml(html, &svg, &styles)
+            if (converter.convertFromHtml(data.html, &svg, &styles)
                     && converter.convertFromSvg(svg, styles, d->shape->boundingRect(), 72.0) ) {
                 insertRichText(insert);
                 success = true;
@@ -815,10 +777,9 @@ bool SvgTextCursor::pasteRichText()
 bool SvgTextCursor::pastePlainText()
 {
     bool success = false;
-    QClipboard *cb = QApplication::clipboard();
-    const QMimeData *mimeData = cb->mimeData();
-    if (mimeData->hasText()) {
-        insertText(mimeData->text());
+    const auto data = KisDocumentApplicationServices::instance()->clipboardData();
+    if (data.hasText) {
+        insertText(data.text);
         success = true;
     }
     return success;
@@ -1062,16 +1023,16 @@ PkVariant SvgTextCursor::inputMethodQuery(Pk::InputMethodQuery query) const
     return PkVariant();
 }
 
-void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
+bool SvgTextCursor::inputMethodEvent(const KisDocumentApplicationServices::InputMethodEvent &event)
 {
-    dbgTools << "Commit:"<< event->commitString() << "predit:"<< event->preeditString();
-    dbgTools << "Replacement:"<< event->replacementStart() << event->replacementLength();
+    dbgTools << "Commit:" << event.commitString << "predit:" << event.preeditString;
+    dbgTools << "Replacement:" << event.replacementStart << event.replacementLength;
 
     PkRectF updateRect = d->shape? d->shape->boundingRect(): PkRectF();
     SvgTextShapeManagerBlocker blocker(d->canvas->shapeManager());
 
-    bool isGettingInput = !event->commitString().isEmpty() || !event->preeditString().isEmpty()
-                || event->replacementLength() > 0;
+    bool isGettingInput = !event.commitString.isEmpty() || !event.preeditString.isEmpty()
+                || event.replacementLength > 0;
 
     // Remove previous preedit string.
     if (d->preEditCommand) {
@@ -1085,8 +1046,7 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
     if (!d->shape || !isGettingInput) {
         blocker.unlock();
         d->canvas->shapeManager()->update(updateRect);
-        event->ignore();
-        return;
+        return false;
     }
 
     Private::InputQueryUpdateBlocker inputQueryUpdateBlocker(d);
@@ -1096,26 +1056,26 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
 
     // set the text insertion pos to replacement start and also remove replacement length, if any.
     int originalPos = d->pos;
-    int index = d->shape->indexForPos(d->pos) + event->replacementStart();
+    int index = d->shape->indexForPos(d->pos) + event.replacementStart;
     d->pos = d->shape->posForIndex(index);
-    if (event->replacementLength() > 0) {
+    if (event.replacementLength > 0) {
         SvgTextRemoveCommand *cmd = new SvgTextRemoveCommand(d->shape,
-                                                             index + event->replacementLength(),
+                                                             index + event.replacementLength,
                                                              originalPos,
                                                              d->anchor,
-                                                             event->replacementLength(),
+                                                             event.replacementLength,
                                                              false);
         addCommandToUndoAdapter(cmd);
     }
 
     // add the commit string, if any.
-    if (!event->commitString().isEmpty()) {
-        insertText(event->commitString());
+    if (!event.commitString.isEmpty()) {
+        insertText(event.commitString);
     }
 
     // set the selection...
-    Q_FOREACH(const QInputMethodEvent::Attribute attribute, event->attributes()) {
-        if (attribute.type == QInputMethodEvent::Selection) {
+    for (const auto &attribute : event.attributes) {
+        if (attribute.type == KisDocumentApplicationServices::InputMethodAttributeType::Selection) {
             d->pos = d->shape->posForIndex(attribute.start);
             int index = d->shape->indexForPos(d->pos);
             d->anchor = d->shape->posForIndex(index + attribute.length);
@@ -1124,33 +1084,27 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
 
 
     // insert a preedit string, if any.
-    if (!event->preeditString().isEmpty()) {
+    if (!event.preeditString.isEmpty()) {
         int index = d->shape->indexForPos(d->pos);
-        d->preEditCommand = new SvgTextInsertCommand(d->shape, d->pos, d->anchor, toPkString(event->preeditString()));
+        d->preEditCommand = new SvgTextInsertCommand(d->shape, d->pos, d->anchor, event.preeditString);
         d->preEditCommand->redo();
-        d->preEditLength = event->preeditString().size();
+        d->preEditLength = event.preeditString.size();
         d->preEditStart = d->shape->posForIndex(index, true);
     } else {
         d->preEditCommand = 0;
     }
 
     // Apply the cursor offset for the preedit.
-    QVector<IMEDecorationInfo> styleMap;
-    Q_FOREACH(const QInputMethodEvent::Attribute attribute, event->attributes()) {
-        dbgTools << "attribute: "<< attribute.type << "start: " << attribute.start
-                 << "length: " << attribute.length << "val: " << attribute.value;
+    PkVector<IMEDecorationInfo> styleMap;
+    for (const auto &attribute : event.attributes) {
+        dbgTools << "attribute: " << static_cast<int>(attribute.type) << "start: " << attribute.start
+                 << "length: " << attribute.length;
         // Text Format is about setting the look of the preedit string, and there can be multiple per event
         // we primarily interpret the underline. When a background color is set, we increase the underline
         // thickness, as that's what is actually supposed to happen according to the comments in the
         // platform input contexts for both macOS and Windows.
 
-        if (attribute.type == QInputMethodEvent::TextFormat) {
-            QVariant val = attribute.value;
-            QTextCharFormat form = val.value<QTextFormat>().toCharFormat();
-
-            if (attribute.length == 0 || attribute.start < 0 || !attribute.value.isValid()) {
-                continue;
-            }
+        if (attribute.type == KisDocumentApplicationServices::InputMethodAttributeType::TextFormat) {
 
             int positionA = -1;
             int positionB = -1;
@@ -1225,7 +1179,7 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
 
                 for(int i = positionA; i <= positionB; i++) {
                     IMEDecorationInfo decoration = styleMap.at(i);
-                    decoration.setDecorationFromQTextCharFormat(form);
+                    decoration.setDecorationFromNative(attribute.format);
                     styleMap[i] = decoration;
                 }
 
@@ -1233,14 +1187,14 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
                 IMEDecorationInfo decoration;
                 decoration.start = attribute.start;
                 decoration.length = attribute.length;
-                decoration.setDecorationFromQTextCharFormat(form);
+                decoration.setDecorationFromNative(attribute.format);
                 styleMap.append(decoration);
             }
 
         // QInputMethodEvent::Language is about setting the locale on the given  preedit string, which is not possible yet.
         // QInputMethodEvent::Ruby is supposedly ruby info for the preedit string, but none of the platform integrations
         // actually implement this at time of writing, and it may have been something from a previous live of Qt's.
-        } else if (attribute.type == QInputMethodEvent::Cursor) {
+        } else if (attribute.type == KisDocumentApplicationServices::InputMethodAttributeType::Cursor) {
             if (d->preEditStart < 0) {
                 d->anchor = d->pos;
             } else {
@@ -1262,7 +1216,7 @@ void SvgTextCursor::inputMethodEvent(QInputMethodEvent *event)
     updateIMEDecoration();
     updateSelection();
     updateCursor();
-    event->accept();
+    return true;
 }
 
 void SvgTextCursor::blinkCursor()
@@ -1289,23 +1243,24 @@ void SvgTextCursor::updateInputMethodItemTransform()
     if (!d->canvas->canvasWidget()) {
         return;
     }
-    QPoint pos = d->canvas->canvasWidget()->mapTo(d->canvas->canvasWidget()->window(), QPoint());
-    QTransform widgetToWindow = QTransform::fromTranslate(pos.x(), pos.y());
-    QTransform inputItemTransform = widgetToWindow;
-    QRectF inputRect = d->canvas->canvasWidget()->geometry();
+    const QPoint pos = d->canvas->canvasWidget()->mapTo(d->canvas->canvasWidget()->window(), QPoint());
+    const PkTransform widgetToWindow = PkTransform::fromTranslate(pos.x(), pos.y());
+    PkTransform inputItemTransform = widgetToWindow;
+    const QRect widgetGeometry = d->canvas->canvasWidget()->geometry();
+    PkRectF inputRect(widgetGeometry.x(), widgetGeometry.y(), widgetGeometry.width(), widgetGeometry.height());
     if (d->shape) {
-        inputRect = toQRectF(d->shape->outlineRect().normalized());
-        QTransform shapeTransform = toQTransform(d->shape->absoluteTransformation());
-        QTransform docToView = toQTransform(d->canvas->viewConverter()->documentToView());
-        QTransform viewToWidget = toQTransform(d->canvas->viewConverter()->viewToWidget());
+        inputRect = d->shape->outlineRect().normalized();
+        const PkTransform shapeTransform = d->shape->absoluteTransformation();
+        const PkTransform docToView = d->canvas->viewConverter()->documentToView();
+        const PkTransform viewToWidget = d->canvas->viewConverter()->viewToWidget();
         inputItemTransform = shapeTransform * docToView * viewToWidget * widgetToWindow;
         // Only mess with IME if we're actually the thing being typed at.
         if (d->hasFocus) {
-            QInputMethod *inputMethod = QGuiApplication::inputMethod();
-            inputMethod->setInputItemTransform(inputItemTransform);
-            inputMethod->setInputItemRectangle(inputRect);
+            auto *services = KisDocumentApplicationServices::instance();
+            services->setInputMethodItemTransform(inputItemTransform);
+            services->setInputMethodItemRectangle(inputRect);
             if (!d->blockQueryUpdates) {
-                inputMethod->update(Qt::ImQueryInput);
+                services->updateInputMethod(Pk::ImQueryInput);
             }
         }
     }
@@ -1460,7 +1415,7 @@ void SvgTextCursor::keyPressEvent(QKeyEvent *event)
         }
     }
     if (acceptableInput(event)) {
-        insertText(event->text());
+        insertText(toPkString(event->text()));
         event->accept();
         return;
     }
@@ -1714,7 +1669,7 @@ void SvgTextCursor::updateCursor(bool firstUpdate)
     d->cursorShape = d->shape? d->shape->cursorForPos(d->pos, d->cursorCaret, d->cursorColor): PkPainterPath();
 
     if (!d->blockQueryUpdates) {
-        qApp->inputMethod()->update(Qt::ImQueryInput);
+        KisDocumentApplicationServices::instance()->updateInputMethod(Pk::ImQueryInput);
     }
     d->interface->emitCharacterSelectionChange();
     if (!(d->canvas->canvasWidget() && d->canvas->canvasController())) {
@@ -1742,7 +1697,7 @@ void SvgTextCursor::updateSelection()
         Q_EMIT updateCursorDecoration(d->shape->shapeToDocument(d->selection.boundingRect()) | d->oldSelectionRect);
 
         if (!d->blockQueryUpdates) {
-            QGuiApplication::inputMethod()->update(Qt::ImQueryInput);
+            KisDocumentApplicationServices::instance()->updateInputMethod(Pk::ImQueryInput);
         }
     }
 }
@@ -1755,7 +1710,7 @@ void SvgTextCursor::updateIMEDecoration()
         decor.setFlag(KoSvgText::DecorationUnderline, true);
         d->IMEDecoration = PkPainterPath();
         if (d->preEditCommand) {
-            Q_FOREACH(const IMEDecorationInfo info,  d->styleMap) {
+            for (const IMEDecorationInfo &info : d->styleMap) {
 
                 int startIndex = d->shape->indexForPos(d->preEditStart) + info.start;
                 int endIndex = startIndex + info.length;
@@ -2118,7 +2073,7 @@ void SvgTextCursor::commitIMEPreEdit()
         return;
     }
 
-    qApp->inputMethod()->commit();
+    KisDocumentApplicationServices::instance()->commitInputMethod();
 
     if (!d->preEditCommand) {
         return;

@@ -8,29 +8,30 @@
 #define KOSVGPASTE_H
 
 #include "kritaflake_export.h"
+#include <PkByteArray.h>
 #include <PkList.h>
 
 class KoShape;
 class PkRectF;
 class PkSizeF;
-class PkByteArray;
 
 class KRITAFLAKE_EXPORT KoSvgPaste
 {
 public:
-    KoSvgPaste();
+    KoSvgPaste(const PkByteArray &svgData, bool hasSvgData);
     virtual ~KoSvgPaste();
 
 
-    bool hasShapes();
-    PkList<KoShape*> fetchShapes(PkRectF viewportInPx, qreal resolutionPPI, PkSizeF *fragmentSize = nullptr);
-    static PkList<KoShape*> fetchShapesFromData(const PkByteArray &data, PkRectF viewportInPx, qreal resolutionPPI, PkSizeF *fragmentSize = nullptr);
+    bool hasShapes() const;
+    PkList<KoShape*> fetchShapes(PkRectF viewportInPx, double resolutionPPI, PkSizeF *fragmentSize = nullptr);
+    static PkList<KoShape*> fetchShapesFromData(const PkByteArray &data, PkRectF viewportInPx, double resolutionPPI, PkSizeF *fragmentSize = nullptr);
 
 private:
     class Private;
     Private *const d;
 
-    Q_DISABLE_COPY(KoSvgPaste);
+    KoSvgPaste(const KoSvgPaste &) = delete;
+    KoSvgPaste &operator=(const KoSvgPaste &) = delete;
 };
 
 #endif // KOSVGPASTE_H

@@ -34,6 +34,9 @@ generate_export_header(kritaimpex BASE_NAME kritaimpex)
 # single shared process-wide decoder registry/provider.
 target_include_directories(kritaimpex PRIVATE
     ${CMAKE_SOURCE_DIR}/pk/image
+    ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/geometry
+    ${CMAKE_SOURCE_DIR}/pk/namespace
     ${CMAKE_SOURCE_DIR}/pk/variant
     ${CMAKE_SOURCE_DIR}/pk/pointer
     ${CMAKE_SOURCE_DIR}/pk/string
@@ -56,6 +59,9 @@ target_link_libraries(kritaimpex
         kritastore
         pkimageio
         pkimage
+        pkcontainer
+        pkgeometry
+        pknamespace
         pkvariant
         pkpointer
         pkstring

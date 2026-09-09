@@ -16,6 +16,7 @@
 #include <PkPoint.h>
 #include <PkSet.h>
 #include <PkNamespace.h>
+#include <KisDocumentApplicationServices.h>
 #include "kritatoolsvgtext_export.h"
 
 class KoCanvasBase;
@@ -23,7 +24,6 @@ class SvgTextInsertCommand;
 class SvgTextRemoveCommand;
 class KUndo2Command;
 class QKeyEvent;
-class QInputMethodEvent;
 class QAction;
 
 /**
@@ -190,7 +190,7 @@ public:
     void moveCursor(MoveMode mode, bool moveAnchor = true);
 
     /// Insert text at getPos()
-    void insertText(QString text);
+    void insertText(const PkString &text);
 
     /// Insert rich text at getPos();
     void insertRichText(KoSvgTextShape *insert, bool inheritPropertiesIfPossible = false);
@@ -275,7 +275,7 @@ public:
     /// Process an input method query and return the requested result.
     PkVariant inputMethodQuery(Pk::InputMethodQuery query) const;
     /// Process an input method event. This is used by IME like virtual keyboards.
-    void inputMethodEvent(QInputMethodEvent *event);
+    bool inputMethodEvent(const KisDocumentApplicationServices::InputMethodEvent &event);
 
     // Reimplemented.
     bool hasSelection() override;
