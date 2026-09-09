@@ -196,14 +196,17 @@ public:
 
 private:
     // 进程内共享的空 C。每个 C 一份（模板静态局部量），函数局部 static 保证
-    // 线程安全的一次性初始化，也避开了静态初始化顺序问题。
+    // 线程安全的一次性初始化。哨兵本身必须与 Qt shared_null 一样活到
+    // 进程结束：若让 shared_ptr 参与静态析构，一个更早构造、更晚析构的
+    // 注册表仍可在析构函数里默认构造容器，此时会访问已析构的哨兵。
+    // 故意保留每个 C 的这一个进程级分配，不登记 atexit 析构。
     //
     // 它自己长期持有 1 份引用，这是「往哨兵写会 detach」的全部机制所在：
     // 任何持有它的容器 use_count() 都 ≥ 2。别把它改成非 static 或不持引用。
     static const std::shared_ptr<C> &PkSharedEmpty()
     {
-        static const std::shared_ptr<C> s = std::make_shared<C>();
-        return s;
+        static const auto *s = new std::shared_ptr<C>(std::make_shared<C>());
+        return *s;
     }
 
     std::shared_ptr<C> d;

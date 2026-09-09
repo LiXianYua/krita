@@ -138,6 +138,7 @@ public:
         , m_entryOpenFlag(entryOpenFlag)
         , m_lastErrorOut(lastErrorOut)
         , m_size(knownSize)
+        , m_consumed(0)
         , m_lowLevelClosed(false)
     {
         open(forWrite ? WriteOnly : ReadOnly);
@@ -151,6 +152,24 @@ public:
     // （写时大小未知）。未知时（get_info 失败）按 -1 表达"不知道"，调用方
     // read(size()) 会得到 -1 错误而不是静默读 0 字节。
     pk_int64 size() const override { return m_size; }
+
+    pk_int64 bytesAvailable() const override
+    {
+        // This is a sequential device, so PkStream cannot derive the unread
+        // backend bytes from pos() (which intentionally stays zero).  A read
+        // entry does have its uncompressed size from the central directory,
+        // however.  Mirror the Qt 5.15 subclass pattern: add the bytes known
+        // to remain in the backend to QIODevice/PkStream's own unget buffer.
+        // Counting only successful low-level reads keeps peek()/ungetChar()
+        // correct: those APIs move bytes into the base buffer without making
+        // the minizip backend unread them.
+        const pk_int64 buffered = PkStream::bytesAvailable();
+        if (m_forWrite || m_size < 0) {
+            return buffered;
+        }
+        const pk_int64 remaining = m_size - m_consumed;
+        return (remaining > 0 ? remaining : 0) + buffered;
+    }
 
     void close() override
     {
@@ -192,6 +211,9 @@ protected:
         if (n < 0 && m_lastErrorOut) {
             *m_lastErrorOut = n;
         }
+        if (n > 0) {
+            m_consumed += n;
+        }
         return n < 0 ? -1 : n;
     }
 
@@ -213,6 +235,7 @@ private:
     bool *m_entryOpenFlag;
     int32_t *m_lastErrorOut;
     pk_int64 m_size;
+    pk_int64 m_consumed;
     bool m_lowLevelClosed;
 };
 
@@ -401,6 +424,19 @@ std::vector<PkString> PkZipArchive::entryNames() const
     // locateEntry() 定位好的条目就被悄悄改掉了（m_entryOpen 那道防护管不到
     // 这个游标）。先存游标、遍历完再还原，让 entryNames() 真的表现成只读。
     const int64_t savedEntry = mz_zip_get_entry(m_impl->zip);
+    void *cdMemoryStream = nullptr;
+    int64_t savedCdPosition = -1;
+    if (m_impl->mode == Write &&
+        mz_zip_get_cd_mem_stream(m_impl->zip, &cdMemoryStream) == MZ_OK &&
+        cdMemoryStream) {
+        // In write mode the central directory is an append-only memory stream.
+        // goto_first/next read through that same stream and therefore move its
+        // physical position.  Restoring only cd_current_pos via goto_entry()
+        // leaves the stream just after the restored header, so the next closed
+        // entry overwrites every header after it.  Preserve the append position
+        // independently of the logical entry cursor.
+        savedCdPosition = mz_stream_tell(cdMemoryStream);
+    }
     int32_t rc = mz_zip_goto_first_entry(m_impl->zip);
     while (rc == MZ_OK) {
         mz_zip_file *info = nullptr;
@@ -410,6 +446,9 @@ std::vector<PkString> PkZipArchive::entryNames() const
         rc = mz_zip_goto_next_entry(m_impl->zip);
     }
     mz_zip_goto_entry(m_impl->zip, savedEntry);
+    if (savedCdPosition >= 0) {
+        (void)mz_stream_seek(cdMemoryStream, savedCdPosition, MZ_SEEK_SET);
+    }
     return names;
 }
 

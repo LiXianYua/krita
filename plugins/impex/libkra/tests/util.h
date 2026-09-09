@@ -92,8 +92,8 @@ KisDocument* createCompleteDocument()
     KisPaintLayerSP paintLayer1 = new KisPaintLayer(image, "paintlayer1", OPACITY_OPAQUE_U8);
     paintLayer1->setUserLocked(true);
     PkBitArray channelFlags(4);
-    channelFlags[0] = true;
-    channelFlags[2] = true;
+    channelFlags.setBit(0);
+    channelFlags.setBit(2);
     paintLayer1->setChannelFlags(channelFlags);
 
     {

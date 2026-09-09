@@ -74,6 +74,6 @@ void KisSynchronizedConnectionBase::postEvent()
         // 才会真正执行——pump 所有权归 F-00，本任务只迁移投递机制。
         PkThreadCallQueue::post(this->thread(), [this]() {
             deliverEventToReceiver();
-        });
+        }, callLifetime());
     }
 }

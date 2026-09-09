@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <testui.h>
+
 #include "kis_kra_saver_test.h"
 
 #include <PkEventLoop.h>
@@ -49,10 +51,28 @@
 
 #include <KoResourcePaths.h>
 #include <filestest.h>
-#include <testui.h>
+
+extern "C" bool registerKraExportFilter();
+extern "C" bool registerKraImportFilter();
+void registerLcmsEngine();
 
 
 const PkString KraMimetype = "application/x-krita";
+
+namespace
+{
+bool saveKraFile(KisDocument *document, const PkString &fileName)
+{
+    document->setMimeType(KraMimetype.toUtf8());
+    return document->exportDocumentSync(fileName, KraMimetype.toUtf8());
+}
+
+bool loadKraFile(KisDocument *document, const PkString &fileName)
+{
+    document->setMimeType(KraMimetype.toUtf8());
+    return document->loadNativeFormat(fileName);
+}
+}
 
 void KisKraSaverTest::initTestCase()
 {
@@ -76,6 +96,21 @@ void KisKraSaverTest::testCrashyShapeLayer()
     //Q_UNUSED(doc);
 }
 
+void KisKraSaverTest::testNodeUuidsAreGeneratedAndUnique()
+{
+    const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
+    KisImageSP image = new KisImage(nullptr, 32, 32, colorSpace, "uuid test");
+    KisPaintLayerSP first = new KisPaintLayer(image, "first", OPACITY_OPAQUE_U8);
+    KisPaintLayerSP second = new KisPaintLayer(image, "second", OPACITY_OPAQUE_U8);
+    KisNodeSP duplicate = first->clone();
+
+    PK_VERIFY(!first->uuid().isNull());
+    PK_VERIFY(!second->uuid().isNull());
+    PK_VERIFY(!duplicate->uuid().isNull());
+    PK_VERIFY(first->uuid() != second->uuid());
+    PK_VERIFY(first->uuid() != duplicate->uuid());
+}
+
 void KisKraSaverTest::testRoundTrip()
 {
     PkScopedPointer<KisDocument> doc(createCompleteDocument());
@@ -96,7 +131,7 @@ void KisKraSaverTest::testRoundTrip()
     KoColor bgColor(PkColor(255, 0, 0), doc->image()->colorSpace());
     doc->image()->setDefaultProjectionColor(bgColor);
     doc->image()->waitForDone(); // wait to make sure the image can be locked for saving!
-    bool result = doc->exportDocumentSync("roundtriptest.kra", doc->mimeType());
+    bool result = saveKraFile(doc.data(), "roundtriptest.kra");
     PK_VERIFY(result);
 
     PkStringList list;
@@ -104,8 +139,9 @@ void KisKraSaverTest::testRoundTrip()
     doc->image()->rootLayer()->accept(cv1);
 
     PkScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
-    result = doc2->loadNativeFormat("roundtriptest.kra");
+    result = loadKraFile(doc2.data(), "roundtriptest.kra");
     PK_VERIFY(result);
+    doc2->image()->waitForDone();
 
     KisCountVisitor cv2(list, KoProperties());
     doc2->image()->rootLayer()->accept(cv2);
@@ -118,7 +154,7 @@ void KisKraSaverTest::testRoundTrip()
 
     // test round trip of a transform mask
     KisNode* tnode =
-        TestUtil::findNode(doc2->image()->rootLayer(), "testTransformMask").data();
+        TestUtil::findNode(doc2->image()->rootLayer(), PkString("testTransformMask")).data();
     PK_VERIFY(tnode);
     KisTransformMask *tmask = dynamic_cast<KisTransformMask*>(tnode);
     PK_VERIFY(tmask);
@@ -131,13 +167,13 @@ void KisKraSaverTest::testRoundTrip()
 void KisKraSaverTest::testSaveEmpty()
 {
     KisDocument* doc = createEmptyDocument();
-    doc->exportDocumentSync("emptytest.kra", doc->mimeType());
+    PK_VERIFY(saveKraFile(doc, "emptytest.kra"));
     PkStringList list;
     KisCountVisitor cv1(list, KoProperties());
     doc->image()->rootLayer()->accept(cv1);
 
     KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
-    doc2->loadNativeFormat("emptytest.kra");
+    PK_VERIFY(loadKraFile(doc2, "emptytest.kra"));
 
     KisCountVisitor cv2(list, KoProperties());
     doc2->image()->rootLayer()->accept(cv2);
@@ -151,7 +187,7 @@ void KisKraSaverTest::testSaveEmpty()
 
 void testRoundTripFillLayerImpl(const PkString &testName, KisFilterConfigurationSP config)
 {
-    TestUtil::ReferenceImageChecker chk(testName, "fill_layer");
+    TestUtil::ReferenceImageChecker chk(TestUtil::diagnosticQString(testName), "fill_layer");
     chk.setFuzzy(2);
 
     PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
@@ -172,10 +208,10 @@ void testRoundTripFillLayerImpl(const PkString &testName, KisFilterConfiguration
     p.image->waitForDone();
     chk.checkImage(p.image, "00_initial_layer_update");
 
-    doc->exportDocumentSync("roundtrip_fill_layer_test.kra", doc->mimeType());
+    PK_VERIFY(saveKraFile(doc.data(), "roundtrip_fill_layer_test.kra"));
 
     PkScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
-    doc2->loadNativeFormat("roundtrip_fill_layer_test.kra");
+    PK_VERIFY(loadKraFile(doc2.data(), "roundtrip_fill_layer_test.kra"));
 
     doc2->image()->waitForDone();
     chk.checkImage(doc2->image(), "01_fill_layer_round_trip");
@@ -264,11 +300,11 @@ void KisKraSaverTest::testRoundTripLayerStyles()
     image->initialRefreshGraph();
     chk.checkImage(image, "00_initial_layers");
 
-    doc->exportDocumentSync("roundtrip_layer_styles.kra", doc->mimeType());
+    PK_VERIFY(saveKraFile(doc.data(), "roundtrip_layer_styles.kra"));
 
 
     PkScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
-    doc2->loadNativeFormat("roundtrip_layer_styles.kra");
+    PK_VERIFY(loadKraFile(doc2.data(), "roundtrip_layer_styles.kra"));
 
     doc2->image()->waitForDone();
     chk.checkImage(doc2->image(), "00_initial_layers");
@@ -313,10 +349,10 @@ void KisKraSaverTest::testRoundTripAnimation()
     layer1->setPinnedToTimeline(true);
 
     doc->setCurrentImage(image);
-    doc->exportDocumentSync("roundtrip_animation.kra", doc->mimeType());
+    PK_VERIFY(saveKraFile(doc.data(), "roundtrip_animation.kra"));
 
     PkScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
-    doc2->loadNativeFormat("roundtrip_animation.kra");
+    PK_VERIFY(loadKraFile(doc2.data(), "roundtrip_animation.kra"));
     KisImageSP image2 = doc2->image();
     KisNodeSP node = image2->root()->firstChild();
 
@@ -404,10 +440,10 @@ void KisKraSaverTest::testRoundTripColorizeMask()
 
 
 
-    doc->exportDocumentSync("roundtrip_colorize.kra", doc->mimeType());
+    PK_VERIFY(saveKraFile(doc.data(), "roundtrip_colorize.kra"));
 
     PkScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
-    doc2->loadNativeFormat("roundtrip_colorize.kra");
+    PK_VERIFY(loadKraFile(doc2.data(), "roundtrip_colorize.kra"));
     KisImageSP image2 = doc2->image();
     KisNodeSP node = image2->root()->firstChild()->firstChild();
 
@@ -473,10 +509,12 @@ void KisKraSaverTest::testRoundTripShapeLayer()
 
     chk.checkImage(p.image, "00_initial_layer_update");
 
-    doc->exportDocumentSync("roundtrip_shapelayer_test.kra", doc->mimeType());
+    const bool exported = saveKraFile(doc.data(), "roundtrip_shapelayer_test.kra");
+    PK_VERIFY2(exported, doc->errorMessage().PkToUtf8());
 
     PkScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
-    doc2->loadNativeFormat("roundtrip_shapelayer_test.kra");
+    const bool loaded = loadKraFile(doc2.data(), "roundtrip_shapelayer_test.kra");
+    PK_VERIFY2(loaded, doc2->errorMessage().PkToUtf8());
 
     PkEventLoop::processEvents();
     doc2->image()->waitForDone();
@@ -533,10 +571,10 @@ void KisKraSaverTest::testRoundTripShapeSelection()
 
     chk.checkImage(p.image, "00_initial_shape_selection");
 
-    doc->exportDocumentSync("roundtrip_shapeselection_test.kra", doc->mimeType());
+    PK_VERIFY(saveKraFile(doc.data(), "roundtrip_shapeselection_test.kra"));
 
     PkScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
-    doc2->loadNativeFormat("roundtrip_shapeselection_test.kra");
+    PK_VERIFY(loadKraFile(doc2.data(), "roundtrip_shapeselection_test.kra"));
 
     PkEventLoop::processEvents();
     doc2->image()->waitForDone();
@@ -574,11 +612,11 @@ void KisKraSaverTest::testRoundTripStoryboard()
     list.append(item);
 
     doc->setStoryboardItemList(list);
-    bool result = doc->exportDocumentSync("storyboardroundtriptest.kra", doc->mimeType());
+    bool result = saveKraFile(doc.data(), "storyboardroundtriptest.kra");
     PK_VERIFY(result);
 
     PkScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
-    result = doc2->loadNativeFormat("storyboardroundtriptest.kra");
+    result = loadKraFile(doc2.data(), "storyboardroundtriptest.kra");
     PK_VERIFY(result);
 
     PK_COMPARE(doc2->getStoryboardItemList().count(), list.count());
@@ -593,4 +631,22 @@ void KisKraSaverTest::testExportToReadonly()
 #include "pk_binder_kis_kra_saver_test.inc"
 #endif
 
-PK_TEST_GUILESS_MAIN(KisKraSaverTest)
+int main(int argc, char *argv[])
+{
+    qputenv("LANGUAGE", "en");
+    QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
+    qputenv("QT_LOGGING_RULES", "");
+    QStandardPaths::setTestModeEnabled(true);
+    qputenv("EXTRA_RESOURCE_DIRS", QByteArray(KRITA_RESOURCE_DIRS_FOR_TESTS));
+    qputenv("KRITA_PLUGIN_PATH", QByteArray(KRITA_PLUGINS_DIR_FOR_TESTS));
+    QApplication app(argc, argv);
+    app.setAttribute(Qt::AA_Use96Dpi, true);
+    registerLcmsEngine();
+    (void)registerKraExportFilter();
+    (void)registerKraImportFilter();
+    registerResources();
+    PkThread::registerMainThread();
+    PkThreadCallQueue::warmUpCurrentThread();
+    KisKraSaverTest tc;
+    return PkTest::qExec(&tc, argc, argv);
+}

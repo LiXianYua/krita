@@ -37,6 +37,10 @@
 #include <functional>
 #include <future>
 
+#if !(defined(_WIN32) || defined(__APPLE__) || defined(__ANDROID__))
+#include <unistd.h>
+#endif
+
 // 本地数值格式化与字节互转辅助（与 KisDocument.cpp 同款）。
 static PkString pkNumber(int v) { char buf[32]; snprintf(buf, sizeof(buf), "%d", v); return PkString(buf); }
 static PkString pkNumber(long long v) { char buf[32]; snprintf(buf, sizeof(buf), "%lld", v); return PkString(buf); }
@@ -527,6 +531,13 @@ KisImportExportErrorCode KisImportExportManager::doExportImpl(const PkString &lo
     // std::filesystem::rename 原子改名为目标。rename 失败等价于原 commit() 失败，
     // 目标文件保持原样。临时文件必须与目标同目录，否则 rename 跨文件系统失败
     // （EXDEV）。原 getFileOpenError(file)：PkStream 无错误码 API，归一 PkOpenError。
+    const std::string nativeLocation = location.PkToUtf8();
+    if (filter->supportsIO() &&
+        ::access(nativeLocation.c_str(), F_OK) == 0 &&
+        ::access(nativeLocation.c_str(), W_OK) != 0) {
+        return KisImportExportErrorCannotWrite(PkPermissionsError);
+    }
+
     const PkString tmpLocation = location + PkString(".tmp_") + pkNumber(++s_tmpCounter);
     PkFileStream file(tmpLocation);
     if (filter->supportsIO() && !file.open(PkStream::WriteOnly | PkStream::Truncate)) {

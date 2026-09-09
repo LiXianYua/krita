@@ -38,7 +38,7 @@ struct KisBaseNode::Private
     KisThumbnailBoundsMode thumbnailBoundsMode { KisThumbnailBoundsMode::Precise };
 
     Private(KisImageWSP p_image)
-        : id(PkNodeId())
+        : id(PkNodeId::createUuid())
         , opacityProperty(new KisDefaultBounds(p_image), &properties, OPACITY_OPAQUE_U8)
         , image(p_image)
     {
@@ -46,7 +46,7 @@ struct KisBaseNode::Private
 
     Private(const Private &rhs)
         : compositeOp(rhs.compositeOp),
-          id(PkNodeId()),
+          id(PkNodeId::createUuid()),
           opacityProperty(new KisDefaultBounds(rhs.image), &properties, OPACITY_OPAQUE_U8),
           collapsed(rhs.collapsed),
           supportsLodMoves(rhs.supportsLodMoves),

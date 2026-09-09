@@ -11,7 +11,6 @@
 #include "kis_lzf_compression.h"
 #include <PkStream.h>
 #include "kis_paint_device_writer.h"
-#include <cstdio>
 #define TILE_DATA_SIZE(pixelSize) ((pixelSize) * KisTileData::WIDTH * KisTileData::HEIGHT)
 
 const PkString KisTileCompressor2::m_compressionName = "LZF";
@@ -67,13 +66,20 @@ bool KisTileCompressor2::readTile(PkStream *stream, KisTiledDataManager *dm)
         return false;
     }
 
-    std::int32_t x = 0, y = 0, dataSize = 0;
-    char compressionName[16] = {0};
-    if (sscanf(headerBuf, "%d,%d,%15s,%d", &x, &y, compressionName, &dataSize) != 4) {
+    const auto headerItems = PkString::fromUtf8(headerBuf).trimmed().split(u',');
+    if (headerItems.size() != 4) {
         return false;
     }
 
-    if (PkString(compressionName) != m_compressionName) {
+    bool xOk = false;
+    bool yOk = false;
+    bool dataSizeOk = false;
+    const std::int32_t x = headerItems[0].toInt(&xOk);
+    const std::int32_t y = headerItems[1].toInt(&yOk);
+    const PkString &compressionName = headerItems[2];
+    const std::int32_t dataSize = headerItems[3].toInt(&dataSizeOk);
+
+    if (!xOk || !yOk || !dataSizeOk || compressionName != m_compressionName) {
         return false;
     }
 

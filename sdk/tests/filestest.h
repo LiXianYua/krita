@@ -18,7 +18,9 @@
 #define FILESTEST
 
 #include <testutil.h>
+#ifndef KRITA_TESTSDK_PK_NATIVE
 #include "testui.h"
+#endif
 
 #include <QDir>
 
@@ -40,6 +42,7 @@
 #include <QFile>
 #include <QFileDevice>
 #include <QIODevice>
+#include <QStandardPaths>
 
 #ifdef Q_OS_UNIX
 #   include <unistd.h>
@@ -47,6 +50,28 @@
 
 namespace TestUtil
 {
+
+#ifdef KRITA_TESTSDK_PK_NATIVE
+using ImpexTestString = PkString;
+#define FILESTEST_VERIFY(statement) PK_VERIFY(statement)
+#define FILESTEST_FAIL(message) PK_FAIL(message)
+#define FILESTEST_SKIP(message) PK_SKIP(message)
+#else
+using ImpexTestString = QString;
+#define FILESTEST_VERIFY(statement) QVERIFY(statement)
+#define FILESTEST_FAIL(message) QFAIL(message)
+#define FILESTEST_SKIP(message) QSKIP(message)
+#endif
+
+inline PkString impexApiString(const PkString &text)
+{
+    return text;
+}
+
+inline PkString impexApiString(const QString &text)
+{
+    return pkStringFromQString(text);
+}
 
 void testFiles(const QString& _dirname, const QStringList& exclusions, const QString &resultSuffix = QString(), int fuzzy = 0, int maxNumFailingPixels = 0, bool showDebug = true)
 {
@@ -68,12 +93,13 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
                 continue;
             }
 
-            KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
+            KisDocument *doc = KisDocumentRegistry::instance()->createDocument();
 
             KisImportExportManager manager(doc);
             doc->setFileBatchMode(true);
 
-            KisImportExportErrorCode status = manager.importDocument(sourceFileInfo.absoluteFilePath(), QString());
+            KisImportExportErrorCode status = manager.importDocument(
+                pkStringFromQString(sourceFileInfo.absoluteFilePath()), PkString());
             Q_UNUSED(status);
 
             if (!doc->image()) {
@@ -81,7 +107,7 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
                 continue;
             }
 
-            QString id = doc->image()->colorSpace()->id();
+            const PkString id = doc->image()->colorSpace()->id();
             if (id != "GRAYA" && id != "GRAYAU16" && id != "RGBA" && id != "RGBA16") {
                 dbgKrita << "Images need conversion";
                 doc->image()->convertImageColorSpace(KoColorSpaceRegistry::instance()->rgb8(),
@@ -94,7 +120,8 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
             // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
             // 保险动作；S-06 按模式删除。
             doc->image()->waitForDone();
-            QImage sourceImage = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
+            QImage sourceImage = diagnosticQImage(
+                doc->image()->projection()->convertToQImage(0, doc->image()->bounds()));
 
 
 
@@ -121,7 +148,7 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
     qWarning() << "No image failures: " << failuresDocImage;
     qWarning() << "No comparison image: " <<  failuresFileInfo;
 
-    QFAIL("Failed testing files");
+    FILESTEST_FAIL("Failed testing files");
 }
 
 
@@ -131,7 +158,7 @@ void prepareFile(QFileInfo sourceFileInfo, bool removePermissionToWrite, bool re
     QFileDevice::Permissions permissionsBefore;
     if (sourceFileInfo.exists()) {
         permissionsBefore = QFile::permissions(sourceFileInfo.absoluteFilePath());
-        ENTER_FUNCTION() << permissionsBefore;
+        qDebug() << "prepareFile permissions before:" << permissionsBefore;
     } else {
         QFile file(sourceFileInfo.absoluteFilePath());
         bool opened = file.open(QIODevice::ReadWrite);
@@ -186,17 +213,17 @@ const QString &impexTempFilesDir() {
 }
 
 
-void testImportFromWriteonly(QString mimetype)
+void testImportFromWriteonly(const ImpexTestString &mimetype)
 {
 #ifdef Q_OS_WIN
     /// on Windows one cannot create a write-only file, so just skip this test
     /// (but keep it compiled to avoid compilation issues)
-    QSKIP("Cannot test write-only file on Windows.");
+    FILESTEST_SKIP("Cannot test write-only file on Windows.");
 #endif
 
 #ifdef Q_OS_UNIX
     if (geteuid() == 0) {
-        QSKIP("Test is being run as root; removing read permission has no effect.");
+        FILESTEST_SKIP("Test is being run as root; removing read permission has no effect.");
     }
 #endif
 
@@ -205,13 +232,14 @@ void testImportFromWriteonly(QString mimetype)
 
     prepareFile(sourceFileInfo, false, true);
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
+    KisDocument *doc = KisDocumentRegistry::instance()->createDocument();
 
     KisImportExportManager manager(doc);
     doc->setFileBatchMode(true);
 
-    KisImportExportErrorCode status = manager.importDocument(sourceFileInfo.absoluteFilePath(), mimetype);
-    qDebug() << "import result = " << status;
+    KisImportExportErrorCode status = manager.importDocument(
+        pkStringFromQString(sourceFileInfo.absoluteFilePath()), impexApiString(mimetype));
+    qDebug() << "import result = " << diagnosticQString(status.errorMessage());
 
     QString failMessage = "";
     bool fail = false;
@@ -238,19 +266,19 @@ void testImportFromWriteonly(QString mimetype)
 
     restorePermissionsToReadAndWrite(sourceFileInfo);
 
-    QVERIFY(!status.isOk());
+    FILESTEST_VERIFY(!status.isOk());
     if (fail) {
-        QFAIL(failMessage.toUtf8());
+        FILESTEST_FAIL(failMessage.toUtf8().constData());
     }
 
 }
 
 
-void testExportToReadonly(QString mimetype)
+void testExportToReadonly(const ImpexTestString &mimetype)
 {
 #ifdef Q_OS_UNIX
     if (geteuid() == 0) {
-        QSKIP("Test is being run as root; removing write permission has no effect.");
+        FILESTEST_SKIP("Test is being run as root; removing write permission has no effect.");
     }
 #endif
 
@@ -259,7 +287,7 @@ void testExportToReadonly(QString mimetype)
     QFileInfo sourceFileInfo(readonlyFilename);
     prepareFile(sourceFileInfo, true, false);
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
+    KisDocument *doc = KisDocumentRegistry::instance()->createDocument();
 
     KisImportExportManager manager(doc);
     doc->setFileBatchMode(true);
@@ -270,14 +298,16 @@ void testExportToReadonly(QString mimetype)
 
     {
     MaskParent p;
-    ENTER_FUNCTION() << doc->image();
+    qDebug() << "testExportToReadonly image:"
+             << static_cast<const void *>(doc->image().data());
 
     doc->setCurrentImage(p.image);
 
-    bool result = doc->exportDocumentSync(sourceFileInfo.absoluteFilePath(), mimetype.toUtf8());
+    bool result = doc->exportDocumentSync(
+        pkStringFromQString(sourceFileInfo.absoluteFilePath()), impexApiString(mimetype).toUtf8());
     status = result ? ImportExportCodes::OK : ImportExportCodes::Failure;
 
-    qDebug() << "export result = " << status;
+    qDebug() << "export result = " << diagnosticQString(status.errorMessage());
 
     // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
     // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
@@ -296,28 +326,29 @@ void testExportToReadonly(QString mimetype)
 
     restorePermissionsToReadAndWrite(sourceFileInfo);
 
-    QVERIFY(!status.isOk());
+    FILESTEST_VERIFY(!status.isOk());
     if (fail) {
-        QFAIL(failMessage.toUtf8());
+        FILESTEST_FAIL(failMessage.toUtf8().constData());
     }
 }
 
 
 
-void testImportIncorrectFormat(QString mimetype)
+void testImportIncorrectFormat(const ImpexTestString &mimetype)
 {
     QString incorrectFormatFilename = impexTempFilesDir() + "incorrectFormatFile.txt";
     QFileInfo sourceFileInfo(incorrectFormatFilename);
 
     prepareFile(sourceFileInfo, false, false);
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
+    KisDocument *doc = KisDocumentRegistry::instance()->createDocument();
 
     KisImportExportManager manager(doc);
     doc->setFileBatchMode(true);
 
-    KisImportExportErrorCode status = manager.importDocument(sourceFileInfo.absoluteFilePath(), mimetype);
-    qDebug() << "import result = " << status;
+    KisImportExportErrorCode status = manager.importDocument(
+        pkStringFromQString(sourceFileInfo.absoluteFilePath()), impexApiString(mimetype));
+    qDebug() << "import result = " << diagnosticQString(status.errorMessage());
 
     // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
     // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
@@ -329,14 +360,14 @@ void testImportIncorrectFormat(QString mimetype)
 
     delete doc;
 
-    QVERIFY(!status.isOk());
-    QVERIFY(status == KisImportExportErrorCode(ImportExportCodes::FileFormatIncorrect)
+    FILESTEST_VERIFY(!status.isOk());
+    FILESTEST_VERIFY(status == KisImportExportErrorCode(ImportExportCodes::FileFormatIncorrect)
             || status == KisImportExportErrorCode(ImportExportCodes::ErrorWhileReading)); // in case the filter doesn't know if it can't read or just parse
 
 }
 
 
-void testExportToColorSpace(QString mimetype, const KoColorSpace* space, KisImportExportErrorCode expected)
+void testExportToColorSpace(const ImpexTestString &mimetype, const KoColorSpace* space, KisImportExportErrorCode expected)
 {
     QString colorspaceFilename = impexTempFilesDir() + "colorspace.txt";
 
@@ -344,7 +375,7 @@ void testExportToColorSpace(QString mimetype, const KoColorSpace* space, KisImpo
     prepareFile(sourceFileInfo, true, true);
     restorePermissionsToReadAndWrite(sourceFileInfo);
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
+    KisDocument *doc = KisDocumentRegistry::instance()->createDocument();
 
     KisImportExportManager manager(doc);
     doc->setFileBatchMode(true);
@@ -362,10 +393,12 @@ void testExportToColorSpace(QString mimetype, const KoColorSpace* space, KisImpo
     doc->image()->convertImageColorSpace(space, KoColorConversionTransformation::Intent::IntentPerceptual, KoColorConversionTransformation::ConversionFlag::Empty);
     doc->image()->waitForDone();
 
-    bool result = doc->exportDocumentSync(QString(colorspaceFilename), mimetype.toUtf8());
+    bool result = doc->exportDocumentSync(
+        pkStringFromQString(colorspaceFilename), impexApiString(mimetype).toUtf8());
     statusExport = result ? ImportExportCodes::OK : ImportExportCodes::Failure;
 
-    statusImport = manager.importDocument(colorspaceFilename, mimetype.toUtf8());
+    statusImport = manager.importDocument(
+        pkStringFromQString(colorspaceFilename), impexApiString(mimetype));
     if (!(statusImport == ImportExportCodes::OK)) {
         fail = true;
         failMessage = "Incorrect status";
@@ -373,8 +406,9 @@ void testExportToColorSpace(QString mimetype, const KoColorSpace* space, KisImpo
 
     bool mismatch = (*(doc->image()->colorSpace()) != *space) || (doc->image()->colorSpace()->profile() != space->profile());
     if (mismatch) {
-        qDebug() << "Document color space = " << (doc->image()->colorSpace())->id();
-        qDebug() << "Saved color space = " << space->id();
+        qDebug() << "Document color space = "
+                 << diagnosticQString((doc->image()->colorSpace())->id());
+        qDebug() << "Saved color space = " << diagnosticQString(space->id());
         fail = true;
         failMessage = "Mismatch of color spaces";
     }
@@ -393,17 +427,16 @@ void testExportToColorSpace(QString mimetype, const KoColorSpace* space, KisImpo
     QFile::remove(colorspaceFilename);
 
     if (fail) {
-        QFAIL(failMessage.toUtf8());
+        FILESTEST_FAIL(failMessage.toUtf8().constData());
     }
 
-    QVERIFY(statusExport.isOk());
-    QVERIFY(statusExport == expected);
+    FILESTEST_VERIFY(statusExport.isOk());
+    FILESTEST_VERIFY(statusExport == expected);
 }
 
-
-
-
-
+#undef FILESTEST_VERIFY
+#undef FILESTEST_FAIL
+#undef FILESTEST_SKIP
 
 }
 #endif

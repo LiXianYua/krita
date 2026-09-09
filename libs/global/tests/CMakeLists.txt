@@ -74,4 +74,18 @@ if(BUILD_TESTING)
     )
     set_target_properties(kritaglobal_delete_later_test PROPERTIES AUTOMOC OFF)
     add_test(NAME libs-global-KisDeleteLaterWrapperTest COMMAND kritaglobal_delete_later_test)
+
+    add_executable(kritaglobal_synchronized_connection_test
+        KisSynchronizedConnectionLifetimeTest.cpp
+    )
+    target_include_directories(kritaglobal_synchronized_connection_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+    )
+    target_link_libraries(kritaglobal_synchronized_connection_test PRIVATE
+        kritaglobal
+        pkconcurrent
+    )
+    set_target_properties(kritaglobal_synchronized_connection_test PROPERTIES AUTOMOC OFF)
+    add_test(NAME libs-global-KisSynchronizedConnectionLifetimeTest
+        COMMAND kritaglobal_synchronized_connection_test)
 endif()

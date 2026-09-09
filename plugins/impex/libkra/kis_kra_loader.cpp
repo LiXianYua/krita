@@ -780,10 +780,7 @@ void KisKraLoader::loadAssistants(KoStore *store, const PkString &uri, bool exte
 
 void KisKraLoader::loadAnimationMetadataFromXML(const PkXmlElement &element, KisImageSP image)
 {
-    PkXmlDocument qDom;
-    PkXmlNode node = element;
-    qDom.appendChild(qDom.importNode(node, true));
-    PkXmlElement rootElement = qDom.firstChildElement();
+    const PkXmlElement rootElement = element;
 
     float framerate;
     KisTimeSpan range;

@@ -17,7 +17,11 @@
 #ifndef TEST_UTIL
 #define TEST_UTIL
 
+#include <QDebug>
+#include <QImage>
 #include <QProcessEnvironment>
+#include <QRect>
+#include <QtCore/qtestsupport_core.h>
 
 #include <simpletest.h>
 #include <QTime>
@@ -471,13 +475,19 @@ namespace TestUtil {
 
 struct MaskParent
 {
-    MaskParent(const QRect &_imageRect = QRect(0,0,512,512))
+    MaskParent(const PkRect &_imageRect = PkRect(0,0,512,512))
         : imageRect(_imageRect) {
         const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
         undoStore = new KisSurrogateUndoStore();
         image = new KisImage(undoStore, imageRect.width(), imageRect.height(), cs, "test image");
         layer = KisPaintLayerSP(new KisPaintLayer(image, "paint1", OPACITY_OPAQUE_U8));
         image->addNode(KisNodeSP(layer.data()));
+    }
+
+    explicit MaskParent(const QRect &_imageRect)
+        : MaskParent(PkRect(_imageRect.x(), _imageRect.y(),
+                            _imageRect.width(), _imageRect.height()))
+    {
     }
 
     void waitForImageAndShapeLayers() {
@@ -504,7 +514,7 @@ struct MaskParent
     }
 
     KisSurrogateUndoStore *undoStore;
-    const QRect imageRect;
+    const PkRect imageRect;
     KisImageSP image;
     KisPaintLayerSP layer;
 };
@@ -565,10 +575,10 @@ struct MeasureDistributionStats {
                     .arg(m_values[i], 5)
                     .arg(qreal(m_values[i]) / total * 100.0, 7, 'g', 2);
 
-            qCritical() << qPrintable(line);
+            qCritical() << line;
         }
         qCritical() << "----                          ----";
-        qCritical() << qPrintable(QString("Total: %1").arg(total));
+        qCritical() << QString("Total: %1").arg(total);
         qCritical() << "==================================";
     }
 

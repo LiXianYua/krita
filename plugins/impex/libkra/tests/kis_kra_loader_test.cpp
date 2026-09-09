@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <testui.h>
+
 #include "kis_kra_loader_test.h"
 
 
@@ -26,9 +28,20 @@
 
 #include <filestest.h>
 
-#include <testui.h>
+extern "C" bool registerKraExportFilter();
+extern "C" bool registerKraImportFilter();
+void registerLcmsEngine();
 
 const PkString KraMimetype = "application/x-krita";
+
+namespace
+{
+bool loadKraFile(KisDocument *document, const PkString &fileName)
+{
+    document->setMimeType(KraMimetype.toUtf8());
+    return document->loadNativeFormat(fileName);
+}
+}
 
 void KisKraLoaderTest::initTestCase()
 {
@@ -39,7 +52,8 @@ void KisKraLoaderTest::initTestCase()
 void KisKraLoaderTest::testLoading()
 {
     PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
-    doc->loadNativeFormat(PkString(FILES_DATA_DIR) + '/' + "load_test.kra");
+    const bool loaded = loadKraFile(doc.data(), PkString(FILES_DATA_DIR) + '/' + "load_test.kra");
+    PK_VERIFY2(loaded, doc->errorMessage().PkToUtf8());
     KisImageSP image = doc->image();
     image->waitForDone();
     PK_COMPARE(image->nlayers(), 12);
@@ -67,10 +81,11 @@ void testObligeSingleChildImpl(bool transpDefaultPixel)
         "single_layer_no_channel_flags_nontransp_def_pixel.kra" :
         "single_layer_no_channel_flags_transp_def_pixel.kra";
 
-    PkString fileName = TestUtil::fetchDataFileLazy(id);
+    PkString fileName = TestUtil::pkStringFromQString(
+        TestUtil::fetchDataFileLazy(TestUtil::diagnosticQString(id)));
 
     PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
-    const bool result = doc->loadNativeFormat(fileName);
+    const bool result = loadKraFile(doc.data(), fileName);
     PK_VERIFY(result);
 
     KisImageSP image = doc->image();
@@ -105,7 +120,8 @@ void KisKraLoaderTest::testObligeSingleChildNonTranspPixel()
 void KisKraLoaderTest::testLoadAnimated()
 {
     PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
-    doc->loadNativeFormat(PkString(FILES_DATA_DIR) + '/' + "load_test_animation.kra");
+    const bool loaded = loadKraFile(doc.data(), PkString(FILES_DATA_DIR) + '/' + "load_test_animation.kra");
+    PK_VERIFY2(loaded, doc->errorMessage().PkToUtf8());
     KisImageSP image = doc->image();
 
     KisNodeSP node1 = image->root()->firstChild();
@@ -138,7 +154,14 @@ void KisKraLoaderTest::testLoadAnimated()
     image->animationInterface()->switchCurrentTimeAsync(0);
     image->waitForDone();
 
-    PK_COMPARE(dev->exactBounds(), PkRect(506, 378, 198, 198));
+    const PkRect actualBounds = dev->exactBounds();
+    PK_VERIFY2(actualBounds == PkRect(506, 378, 198, 198),
+               PkString("actual bounds: x=%1 y=%2 width=%3 height=%4")
+                   .arg(actualBounds.x())
+                   .arg(actualBounds.y())
+                   .arg(actualBounds.width())
+                   .arg(actualBounds.height())
+                   .PkToUtf8());
     PK_COMPARE(dev->x(), -26);
     PK_COMPARE(dev->y(), -128);
     PK_COMPARE(dev->defaultPixel(), transparent);
@@ -179,4 +202,22 @@ void KisKraLoaderTest::testImportIncorrectFormat()
 #include "pk_binder_kis_kra_loader_test.inc"
 #endif
 
-PK_TEST_GUILESS_MAIN(KisKraLoaderTest)
+int main(int argc, char *argv[])
+{
+    qputenv("LANGUAGE", "en");
+    QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
+    qputenv("QT_LOGGING_RULES", "");
+    QStandardPaths::setTestModeEnabled(true);
+    qputenv("EXTRA_RESOURCE_DIRS", QByteArray(KRITA_RESOURCE_DIRS_FOR_TESTS));
+    qputenv("KRITA_PLUGIN_PATH", QByteArray(KRITA_PLUGINS_DIR_FOR_TESTS));
+    QApplication app(argc, argv);
+    app.setAttribute(Qt::AA_Use96Dpi, true);
+    registerLcmsEngine();
+    (void)registerKraExportFilter();
+    (void)registerKraImportFilter();
+    registerResources();
+    PkThread::registerMainThread();
+    PkThreadCallQueue::warmUpCurrentThread();
+    KisKraLoaderTest tc;
+    return PkTest::qExec(&tc, argc, argv);
+}

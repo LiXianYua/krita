@@ -9,11 +9,15 @@
 //   3. 大 entry（64KB 可压缩内容）读回 size()==65536。
 //   4. 读全量 read(size()) 与原始内容逐字节一致。
 //   5. 附加：不压缩（stored）的 entry 读回 size() 仍等于原始字节数。
+//   6. 顺序条目流的 bytesAvailable() 按底层已消费字节递减，
+//      同时计入 unget 缓冲；这是 canReadLine()/atEnd() 的前提。
+//   7. Write 模式中间列举条目不得改写中央目录的追加位置。
 #include "../PkZipArchive.h"
 #include "../../PkStream.h"
 #include "PkString.h"
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <utility>
 #include <vector>
@@ -154,6 +158,85 @@ int main()
             VERIFY(readN(s, s->size()) == payload);
             delete s;
         }
+        VERIFY(reader.close());
+        std::remove(path.c_str());
+    }
+
+    // 用例 6：PkZipEntryStream 是顺序设备，但中央目录已给出
+    // uncompressed_size。它必须像 Qt 5.15 中知道底层缓冲量的
+    // QIODevice 子类一样，报告「未消费底层字节 + QIODevice 基类
+    // unget 缓冲」。否则初始 bytesAvailable()==0 会让 canReadLine()
+    // 在读取 KRA tiled-data 头之前就退出。
+    {
+        const std::string content = "header\npayload";
+        const std::string path = uniqueTempPath("_available.zip");
+        writeZip(path, {{"stream.bin", content}});
+
+        PkZipArchive reader(PkZipArchive::Read);
+        VERIFY(reader.openFile(PkString(path.c_str())));
+        VERIFY(reader.locateEntry(PkString("stream.bin")));
+        PkStream *s = reader.openEntryForRead();
+        VERIFY(s != nullptr);
+        if (s) {
+            const PkStream::pk_int64 total = static_cast<PkStream::pk_int64>(content.size());
+            VERIFY(s->bytesAvailable() == total);
+            VERIFY(s->canReadLine());
+            VERIFY(!s->atEnd());
+
+            char prefix[3] = {};
+            VERIFY(s->read(prefix, 3) == 3);
+            VERIFY(std::string(prefix, 3) == "hea");
+            VERIFY(s->bytesAvailable() == total - 3);
+
+            s->ungetChar('a');
+            VERIFY(s->bytesAvailable() == total - 2);
+            char replay = '\0';
+            VERIFY(s->getChar(&replay));
+            VERIFY(replay == 'a');
+            VERIFY(s->bytesAvailable() == total - 3);
+
+            VERIFY(readN(s, total) == content.substr(3));
+            VERIFY(s->bytesAvailable() == 0);
+            VERIFY(!s->canReadLine());
+            VERIFY(s->atEnd());
+            delete s;
+        }
+        VERIFY(reader.close());
+        std::remove(path.c_str());
+    }
+
+    // 用例 7：KoQuaZipStore 会在写一个图层目录后列举已有条目，
+    // 再继续写后续条目。entryNames() 必须保留 minizip-ng 内存中央
+    // 目录流的追加位置；否则后续条目会从首条末尾开始覆盖。
+    {
+        const std::string path = uniqueTempPath("_list_while_writing.zip");
+        PkZipArchive writer(PkZipArchive::Write);
+        VERIFY(writer.openFile(PkString(path.c_str())));
+
+        const auto writeEntry = [&writer](const char *name, const char *content) {
+            PkStream *out = writer.openEntryForWrite(PkString(name), 0444, true);
+            VERIFY(out != nullptr);
+            if (out) {
+                const auto size = static_cast<PkStream::pk_int64>(std::strlen(content));
+                VERIFY(out->write(content, size) == size);
+                delete out;
+            }
+        };
+
+        writeEntry("first.txt", "first");
+        writeEntry("before-list.txt", "before");
+        const std::vector<PkString> namesDuringWrite = writer.entryNames();
+        VERIFY(namesDuringWrite.size() == 2);
+        writeEntry("after-list.txt", "after");
+        VERIFY(writer.close());
+
+        PkZipArchive reader(PkZipArchive::Read);
+        VERIFY(reader.openFile(PkString(path.c_str())));
+        const std::vector<PkString> finalNames = reader.entryNames();
+        VERIFY(finalNames.size() == 3);
+        VERIFY(reader.locateEntry(PkString("first.txt")));
+        VERIFY(reader.locateEntry(PkString("before-list.txt")));
+        VERIFY(reader.locateEntry(PkString("after-list.txt")));
         VERIFY(reader.close());
         std::remove(path.c_str());
     }

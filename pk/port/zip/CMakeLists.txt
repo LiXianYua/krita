@@ -80,7 +80,6 @@ add_executable(test_entry_size
     ${PK_STRING_DIR}/PkString_core.cpp
     ${PK_STRING_DIR}/PkString_query.cpp
     ${PK_STRING_DIR}/PkString_format.cpp
-    ${PK_STRING_DIR}/../container/PkArrayData.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../PkStream.cpp
 )
 target_include_directories(test_entry_size PRIVATE
@@ -88,5 +87,5 @@ target_include_directories(test_entry_size PRIVATE
     ${PK_STRING_DIR}
     ${PK_STRING_DIR}/../container
 )
-target_link_libraries(test_entry_size PRIVATE MINIZIP::minizip)
+target_link_libraries(test_entry_size PRIVATE pkcontainer MINIZIP::minizip)
 add_test(NAME test_entry_size COMMAND test_entry_size)
