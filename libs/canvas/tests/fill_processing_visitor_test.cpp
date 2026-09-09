@@ -204,6 +204,12 @@ void runReferenceFillCase(const FillCase &fillCase)
     KisImageSP image = createReferenceImage(undoStore, source, &layer);
     QVERIFY2(image && layer, "failed to create the historical Pk-native fill fixture");
 
+    const PkImage initialLayer = layer->paintDevice()->convertToQImage(
+        nullptr, image->bounds());
+    verifyImage(initialLayer, source, PngColorConversionTolerance);
+
+    PkImage initialSelection;
+
     if (fillCase.haveSelection) {
         KisSelectionSP selection = new KisSelection(
             new KisDefaultBounds(image),
@@ -213,6 +219,11 @@ void runReferenceFillCase(const FillCase &fillCase)
             PkRect(40, 40, 300, 300),
             KoColor(&selected, selection->pixelSelection()->colorSpace()));
         image->undoAdapter()->addCommand(new KisSetGlobalSelectionCommand(image, selection));
+        QVERIFY(!image->globalSelection().isNull());
+        initialSelection = image->globalSelection()->projection()->convertToQImage(
+            nullptr, image->bounds());
+    } else {
+        QVERIFY(image->globalSelection().isNull());
     }
 
     image->initialRefreshGraph();
@@ -262,6 +273,16 @@ void runReferenceFillCase(const FillCase &fillCase)
     const PkImage undone = layer->paintDevice()->convertToQImage(
         nullptr, image->bounds());
     verifyImage(undone, source, PngColorConversionTolerance);
+
+    if (fillCase.haveSelection) {
+        QVERIFY(!image->globalSelection().isNull());
+        const PkImage undoneSelection =
+            image->globalSelection()->projection()->convertToQImage(
+                nullptr, image->bounds());
+        verifyImage(undoneSelection, initialSelection, 0);
+    } else {
+        QVERIFY(image->globalSelection().isNull());
+    }
 }
 
 } // namespace

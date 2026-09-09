@@ -7,6 +7,7 @@
 #include <PkFlakeBridge.h>
 
 #include <QAction>
+#include <KLocalizedString>
 
 #include <vector>
 
@@ -73,9 +74,20 @@ void KisSelectionToolFactoryTest::preservesSelectionActionNamesAndFactoryOwnersh
         PkString("selection_tool_mode_subtract"),
         PkString("selection_tool_mode_intersect")
     };
+    const std::vector<QString> expectedPaintActionText {
+        i18n("Increase Brush Size"),
+        i18n("Decrease Brush Size"),
+        i18n("Rotate brush tip clockwise"),
+        i18n("Rotate brush tip clockwise (precise)"),
+        i18n("Rotate brush tip counter-clockwise"),
+        i18n("Rotate brush tip counter-clockwise (precise)")
+    };
     for (int i = 0; i < actions.size(); ++i) {
         QCOMPARE(toPkString(actions.at(i)->objectName()), expected.at(i));
         QCOMPARE(actions.at(i)->parent(), static_cast<QObject *>(&factory));
+        if (i < static_cast<int>(expectedPaintActionText.size())) {
+            QCOMPARE(actions.at(i)->text(), expectedPaintActionText.at(i));
+        }
     }
 }
 

@@ -15,6 +15,8 @@ kis_add_tests(
 
 kis_add_test(
     fill_processing_visitor_test.cpp
+    TEST_NAME FillProcessingVisitorTest
+    NAME_PREFIX libs-canvas-
     LINK_LIBRARIES kritacanvas kritatestsdk pkimageio kritalcmsengine
 )
 
